@@ -17,6 +17,10 @@
 #include "Algorithms/PartBunch.h"
 #include "Physics/Physics.h"
 #include <fstream>
+
+#include "BasicActions/Option.h"
+#include "Utilities/Options.h"
+#include "Utilities/Options.h"
 //////////////////////////////////////////////////////////////////////////////
 // a little helper class to specialize the action of the Green's function
 // calculation.  This should be specialized for each dimension
@@ -195,48 +199,50 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
     }
 
     ComputePotential_m = IpplTimings::getTimer("ComputePotential");
-    
+  
 #ifdef OPAL_DKS
 
-    int dkserr;
+    if (Options::enableDKS) {
+      int dkserr;
 
-    dksbase.setAPI("Cuda", 4);
-    dksbase.setDevice("-gpu", 4);
-    dksbase.initDevice();
+      dksbase.setAPI("Cuda", 4);
+      dksbase.setDevice("-gpu", 4);
+      dksbase.initDevice();
 
-    if (Ippl::myNode() == 0) {
+      if (Ippl::myNode() == 0) {
+	
+	//create stream for greens function
+	dksbase.createStream(streamGreens);
+	dksbase.createStream(streamFFT);
 
-      //create stream for greens function
-      dksbase.createStream(streamGreens);
-      dksbase.createStream(streamFFT);
-
-      //create fft plans for multiple reuse
-      int dimsize[3] = {2*nr_m[0], 2*nr_m[1], 2*nr_m[2]};
+	//create fft plans for multiple reuse
+	int dimsize[3] = {2*nr_m[0], 2*nr_m[1], 2*nr_m[2]};
       
-      dksbase.setupFFT(3, dimsize);
+	dksbase.setupFFT(3, dimsize);
    
-      //allocate memory
-      int sizegreen = tmpgreen.getLayout().getDomain().size();
-      int sizerho2_m = rho2_m.getLayout().getDomain().size();
-      int sizecomp = grntr_m.getLayout().getDomain().size();
+	//allocate memory
+	int sizegreen = tmpgreen.getLayout().getDomain().size();
+	int sizerho2_m = rho2_m.getLayout().getDomain().size();
+	int sizecomp = grntr_m.getLayout().getDomain().size();
+	
+	tmpgreen_ptr = dksbase.allocateMemory<double>(sizegreen, dkserr);
+	rho2_m_ptr = dksbase.allocateMemory<double>(sizerho2_m, dkserr);
+	rho2real_m_ptr = dksbase.allocateMemory<double>(sizerho2_m, dkserr);
 
-      tmpgreen_ptr = dksbase.allocateMemory<double>(sizegreen, dkserr);
-      rho2_m_ptr = dksbase.allocateMemory<double>(sizerho2_m, dkserr);
-      rho2real_m_ptr = dksbase.allocateMemory<double>(sizerho2_m, dkserr);
+	grntr_m_ptr = dksbase.allocateMemory< std::complex<double>  >(sizecomp, dkserr);
+	rho2tr_m_ptr = dksbase.allocateMemory< std::complex<double> > (sizecomp, dkserr);
 
-      grntr_m_ptr = dksbase.allocateMemory< std::complex<double>  >(sizecomp, dkserr);
-      rho2tr_m_ptr = dksbase.allocateMemory< std::complex<double> > (sizecomp, dkserr);
-
-      //send rho2real_m_ptr to other mpi processes
-      //send streamFFT to other processes
-      for (int p = 1; p < Ippl::getNodes(); p++) {
-	dksbase.sendPointer( rho2real_m_ptr, p, Ippl::getComm() );
+	//send rho2real_m_ptr to other mpi processes
+	//send streamFFT to other processes
+	for (int p = 1; p < Ippl::getNodes(); p++) {
+	  dksbase.sendPointer( rho2real_m_ptr, p, Ippl::getComm() );
+	}
+      } else {
+	//create stream for FFT data transfer
+	dksbase.createStream(streamFFT);
+	//receive pointer 
+	rho2real_m_ptr = dksbase.receivePointer(0, Ippl::getComm(), dkserr);
       }
-    } else {
-      //create stream for FFT data transfer
-      dksbase.createStream(streamFFT);
-      //receive pointer 
-      rho2real_m_ptr = dksbase.receivePointer(0, Ippl::getComm(), dkserr);
     }
     
 #endif
@@ -340,49 +346,51 @@ FFTPoissonSolver::FFTPoissonSolver(PartBunch &beam, std::string greensFunction):
                                           (2 * nr_m[i] - domain2_m[i]));
     }
 
+    std::cout << "Enable DKS: " << Options::enableDKS << std::endl;
+
 #ifdef OPAL_DKS
+    if (Options::enableDKS) {
+      int dkserr;
 
-    int dkserr;
+      dksbase.setAPI("Cuda", 4);
+      dksbase.setDevice("-gpu", 4);
+      dksbase.initDevice();
 
-    dksbase.setAPI("Cuda", 4);
-    dksbase.setDevice("-gpu", 4);
-    dksbase.initDevice();
-
-    if (Ippl::myNode() == 0) {
-
-      //create stream for greens function
-      dksbase.createStream(streamGreens);
-      dksbase.createStream(streamFFT);
-
-      //create fft plans for multiple reuse
-      int dimsize[3] = {2*nr_m[0], 2*nr_m[1], 2*nr_m[2]};
+      if (Ippl::myNode() == 0) {
+	
+	//create stream for greens function
+	dksbase.createStream(streamGreens);
+	dksbase.createStream(streamFFT);
+	
+	//create fft plans for multiple reuse
+	int dimsize[3] = {2*nr_m[0], 2*nr_m[1], 2*nr_m[2]};
       
-      dksbase.setupFFT(3, dimsize);
+	dksbase.setupFFT(3, dimsize);
    
-      //allocate memory
-      int sizegreen = tmpgreen.getLayout().getDomain().size();
-      int sizerho2_m = rho2_m.getLayout().getDomain().size();
-      int sizecomp = grntr_m.getLayout().getDomain().size();
+	//allocate memory
+	int sizegreen = tmpgreen.getLayout().getDomain().size();
+	int sizerho2_m = rho2_m.getLayout().getDomain().size();
+	int sizecomp = grntr_m.getLayout().getDomain().size();
+	
+	tmpgreen_ptr = dksbase.allocateMemory<double>(sizegreen, dkserr);
+	rho2_m_ptr = dksbase.allocateMemory<double>(sizerho2_m, dkserr);
+	rho2real_m_ptr = dksbase.allocateMemory<double>(sizerho2_m, dkserr);
+	
+	grntr_m_ptr = dksbase.allocateMemory< std::complex<double>  >(sizecomp, dkserr);
+	rho2tr_m_ptr = dksbase.allocateMemory< std::complex<double> > (sizecomp, dkserr);
 
-      tmpgreen_ptr = dksbase.allocateMemory<double>(sizegreen, dkserr);
-      rho2_m_ptr = dksbase.allocateMemory<double>(sizerho2_m, dkserr);
-      rho2real_m_ptr = dksbase.allocateMemory<double>(sizerho2_m, dkserr);
-
-      grntr_m_ptr = dksbase.allocateMemory< std::complex<double>  >(sizecomp, dkserr);
-      rho2tr_m_ptr = dksbase.allocateMemory< std::complex<double> > (sizecomp, dkserr);
-
-      //send rho2real_m_ptr to other mpi processes
-      //send streamFFT to other processes
-      for (int p = 1; p < Ippl::getNodes(); p++) {
-	dksbase.sendPointer( rho2real_m_ptr, p, Ippl::getComm() );
+	//send rho2real_m_ptr to other mpi processes
+	//send streamFFT to other processes
+	for (int p = 1; p < Ippl::getNodes(); p++) {
+	  dksbase.sendPointer( rho2real_m_ptr, p, Ippl::getComm() );
+	}
+      } else {
+	//create stream for FFT data transfer
+	dksbase.createStream(streamFFT);
+	//receive pointer 
+	rho2real_m_ptr = dksbase.receivePointer(0, Ippl::getComm(), dkserr);
       }
-    } else {
-      //create stream for FFT data transfer
-      dksbase.createStream(streamFFT);
-      //receive pointer 
-      rho2real_m_ptr = dksbase.receivePointer(0, Ippl::getComm(), dkserr);
     }
-    
 #endif
 
 }
@@ -401,24 +409,26 @@ FFTPoissonSolver::~FFTPoissonSolver() {
 
 #ifdef OPAL_DKS
   //free all the allocated memory
-  if (Ippl::myNode() == 0) {
-    //get number of elements
-    int sizegreen = tmpgreen.getLayout().getDomain().size();
-    int sizerho2_m = rho2_m.getLayout().getDomain().size();
-    int sizecomp = grntr_m.getLayout().getDomain().size();
-
-    //free memory
-    dksbase.freeMemory<double>(tmpgreen_ptr, sizegreen);
-    dksbase.freeMemory<double>(rho2_m_ptr, sizerho2_m);
-    dksbase.freeMemory< std::complex<double> >(grntr_m_ptr, sizecomp);
-
-    //wait for other processes to close handle to rho2real_m_ptr before freeing memory
-    MPI_Barrier(Ippl::getComm());
-    dksbase.freeMemory<double>(rho2real_m_ptr, sizerho2_m);
-    dksbase.freeMemory< std::complex<double> >(rho2tr_m_ptr, sizecomp);
-  } else {
-    dksbase.closeHandle(rho2real_m_ptr);
-    MPI_Barrier(Ippl::getComm());
+  if (Options::enableDKS) {
+    if (Ippl::myNode() == 0) {
+      //get number of elements
+      int sizegreen = tmpgreen.getLayout().getDomain().size();
+      int sizerho2_m = rho2_m.getLayout().getDomain().size();
+      int sizecomp = grntr_m.getLayout().getDomain().size();
+      
+      //free memory
+      dksbase.freeMemory<double>(tmpgreen_ptr, sizegreen);
+      dksbase.freeMemory<double>(rho2_m_ptr, sizerho2_m);
+      dksbase.freeMemory< std::complex<double> >(grntr_m_ptr, sizecomp);
+      
+      //wait for other processes to close handle to rho2real_m_ptr before freeing memory
+      MPI_Barrier(Ippl::getComm());
+      dksbase.freeMemory<double>(rho2real_m_ptr, sizerho2_m);
+      dksbase.freeMemory< std::complex<double> >(rho2tr_m_ptr, sizecomp);
+    } else {
+      dksbase.closeHandle(rho2real_m_ptr);
+      MPI_Barrier(Ippl::getComm());
+    }
   }
 #endif
 }
@@ -489,66 +499,68 @@ void FFTPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     // needed in greens function
     hr_m = hr;
 
-#ifndef OPAL_DKS
-    // FFT double-sized charge density
-    // we do a backward transformation so that we dont have to account for the normalization factor
-    // that is used in the forward transformation of the IPPL FFT
-    fft_m->transform(-1, rho2_m, rho2tr_m);
+    if (!Options::enableDKS) {
+      // FFT double-sized charge density
+      // we do a backward transformation so that we dont have to account for the normalization factor
+      // that is used in the forward transformation of the IPPL FFT
+      fft_m->transform(-1, rho2_m, rho2tr_m);
 
-    // must be called if the mesh size has changed
-    // have to check if we can do G with h = (1,1,1)
-    // and rescale later
-    IpplTimings::startTimer(GreensFunctionTimer_m);
-    if(greensFunction_m == std::string("INTEGRATED"))
-        integratedGreensFunction();
-    else
-        greensFunction();
-    IpplTimings::stopTimer(GreensFunctionTimer_m);
-    // multiply transformed charge density
-    // and transformed Green function
-    // Don't divide by (2*nx_m)*(2*ny_m), as Ryne does;
-    // this normalization is done in POOMA's fft routine.
-    rho2tr_m *= grntr_m;
-
-    // inverse FFT, rho2_m equals to the electrostatic potential
-    fft_m->transform(+1, rho2tr_m, rho2_m);
-    // end convolution
-#else
-
-    dksbase.syncDevice();
-    MPI_Barrier(Ippl::getComm());
-
-    if (Ippl::myNode() == 0) {
+      // must be called if the mesh size has changed
+      // have to check if we can do G with h = (1,1,1)
+      // and rescale later
       IpplTimings::startTimer(GreensFunctionTimer_m);
-      integratedGreensFunction();
+      if(greensFunction_m == std::string("INTEGRATED"))
+        integratedGreensFunction();
+      else
+        greensFunction();
       IpplTimings::stopTimer(GreensFunctionTimer_m);
-      //transform the greens function
-      int dimsize[3] = {2*nr_m[0], 2*nr_m[1], 2*nr_m[2]}; 
-      dksbase.callR2CFFT(rho2_m_ptr, grntr_m_ptr, 3, dimsize, streamGreens);
-    }  
-    MPI_Barrier(Ippl::getComm());
+      // multiply transformed charge density
+      // and transformed Green function
+      // Don't divide by (2*nx_m)*(2*ny_m), as Ryne does;
+      // this normalization is done in POOMA's fft routine.
+      rho2tr_m *= grntr_m;
 
-    //transform rho2_m keep pointer to GPU memory where results are stored in rho2tr_m_ptr  
-    fft_m->transformDKSRC(-1, rho2_m, rho2real_m_ptr, rho2tr_m_ptr, dksbase, streamFFT, false);
-
-    if (Ippl::myNode() == 0) {
-      //transform the greens function
-      //int dimsize[3] = {2*nr_m[0], 2*nr_m[1], 2*nr_m[2]}; 
-      //dksbase.callR2CFFT(rho2_m_ptr, grntr_m_ptr, 3, dimsize, streamGreens);
-      
-      //multiply fields and free unneeded memory
-      int sizecomp = grntr_m.getLayout().getDomain().size();
+      // inverse FFT, rho2_m equals to the electrostatic potential
+      fft_m->transform(+1, rho2tr_m, rho2_m);
+      // end convolution
+    } else {
+#ifdef OPAL_DKS
       dksbase.syncDevice();
-      dksbase.callMultiplyComplexFields(rho2tr_m_ptr, grntr_m_ptr, sizecomp);
-    }
-   
-    MPI_Barrier(Ippl::getComm());
-  
-    //inverse FFT and transfer result back to rho2_m
-    fft_m->transformDKSCR(+1, rho2_m, rho2real_m_ptr, rho2tr_m_ptr, dksbase);
+      MPI_Barrier(Ippl::getComm());
 
-    MPI_Barrier(Ippl::getComm());
+      if (Ippl::myNode() == 0) {
+	IpplTimings::startTimer(GreensFunctionTimer_m);
+	integratedGreensFunctionDKS();
+	IpplTimings::stopTimer(GreensFunctionTimer_m);
+	//transform the greens function
+	int dimsize[3] = {2*nr_m[0], 2*nr_m[1], 2*nr_m[2]}; 
+	dksbase.callR2CFFT(rho2_m_ptr, grntr_m_ptr, 3, dimsize, streamGreens);
+      }  
+      MPI_Barrier(Ippl::getComm());
+
+      //transform rho2_m keep pointer to GPU memory where results are stored in rho2tr_m_ptr  
+      fft_m->transformDKSRC(-1, rho2_m, rho2real_m_ptr, rho2tr_m_ptr, dksbase, streamFFT, false);
+      
+      if (Ippl::myNode() == 0) {
+	//transform the greens function
+	//int dimsize[3] = {2*nr_m[0], 2*nr_m[1], 2*nr_m[2]}; 
+	//dksbase.callR2CFFT(rho2_m_ptr, grntr_m_ptr, 3, dimsize, streamGreens);
+      
+	//multiply fields and free unneeded memory
+	int sizecomp = grntr_m.getLayout().getDomain().size();
+	dksbase.syncDevice();
+	dksbase.callMultiplyComplexFields(rho2tr_m_ptr, grntr_m_ptr, sizecomp);
+      }
+   
+      MPI_Barrier(Ippl::getComm());
+  
+      //inverse FFT and transfer result back to rho2_m
+      fft_m->transformDKSCR(+1, rho2_m, rho2real_m_ptr, rho2tr_m_ptr, dksbase);
+
+      MPI_Barrier(Ippl::getComm());
 #endif
+    }
+
 
     // back to physical grid
     // reuse the charge density field to store the electrostatic potential
@@ -620,7 +632,7 @@ void FFTPoissonSolver::integratedGreensFunction() {
     /**
      * This integral can be calculated analytically in a closed from:
      */
-#ifndef OPAL_DKS
+
 
     NDIndex<3> idx =  layout4_m->getLocalNDIndex();
     double cellVolume = hr_m[0] * hr_m[1] * hr_m[2];
@@ -648,13 +660,7 @@ void FFTPoissonSolver::integratedGreensFunction() {
             }
         }
     }
-#else 
-   
-    NDIndex<3> idx =  layout4_m->getDomain();
-    dksbase.callGreensIntegral(tmpgreen_ptr, idx[0].length(), idx[1].length(), idx[2].length(),
-			       nr_m[0]+1, nr_m[1]+1, hr_m[0], hr_m[1], hr_m[2], streamGreens);
     
-#endif
     IpplTimings::stopTimer(IntGreensFunctionTimer1_m);
 
     IpplTimings::startTimer(IntGreensFunctionTimer2_m);
@@ -666,7 +672,6 @@ void FFTPoissonSolver::integratedGreensFunction() {
       tmpgreen[I+1][J+1][K] + tmpgreen[I][J+1][K] +
       tmpgreen[I+1][J][K] - tmpgreen[I][J][K]);*/
 
-#ifndef OPAL_DKS
     Index I = nr_m[0] + 1;
     Index J = nr_m[1] + 1;
     Index K = nr_m[2] + 1;
@@ -681,31 +686,45 @@ void FFTPoissonSolver::integratedGreensFunction() {
     rho2_m[I][J][K] -= tmpgreen[I+1][J][K+1];
     rho2_m[I][J][K] -= tmpgreen[I][J+1][K+1];
     rho2_m[I][J][K] -= tmpgreen[I][J][K];
-#else
-    Index I = nr_m[0] + 1;
-    Index J = nr_m[1] + 1;
-    Index K = nr_m[2] + 1;
-    
-    if (Ippl::myNode() == 0)
-      dksbase.callGreensIntegration(rho2_m_ptr, tmpgreen_ptr, nr_m[0]+1, nr_m[1]+1, nr_m[2]+1, 
-				    streamGreens);
-#endif
 
     IpplTimings::stopTimer(IntGreensFunctionTimer2_m);
 
-#ifndef OPAL_DKS
     mirrorRhoField();
-#else
-    dksbase.callMirrorRhoField(rho2_m_ptr, nr_m[0], nr_m[1], nr_m[2], streamGreens);
-#endif
-
 
     IpplTimings::startTimer(IntGreensFunctionTimer3_m);
-#ifndef OPAL_DKS
+
     fft_m->transform(-1, rho2_m, grntr_m);
-#endif
 
     IpplTimings::stopTimer(IntGreensFunctionTimer3_m);
+}
+
+void FFTPoissonSolver::integratedGreensFunctionDKS() {
+
+#ifdef OPAL_DKS
+  IpplTimings::startTimer(IntGreensFunctionTimer1_m);
+  /**
+   * This integral can be calculated analytically in a closed from:
+   */
+  NDIndex<3> idx =  layout4_m->getDomain();
+  dksbase.callGreensIntegral(tmpgreen_ptr, idx[0].length(), idx[1].length(), idx[2].length(),
+			     nr_m[0]+1, nr_m[1]+1, hr_m[0], hr_m[1], hr_m[2], streamGreens);
+  
+  IpplTimings::stopTimer(IntGreensFunctionTimer1_m);
+
+  IpplTimings::startTimer(IntGreensFunctionTimer2_m);
+
+  Index I = nr_m[0] + 1;
+  Index J = nr_m[1] + 1;
+  Index K = nr_m[2] + 1;
+    
+  dksbase.callGreensIntegration(rho2_m_ptr, tmpgreen_ptr, nr_m[0]+1, nr_m[1]+1, nr_m[2]+1, 
+				streamGreens);
+
+  IpplTimings::stopTimer(IntGreensFunctionTimer2_m);
+
+  dksbase.callMirrorRhoField(rho2_m_ptr, nr_m[0], nr_m[1], nr_m[2], streamGreens);
+#endif
+
 }
 
 void FFTPoissonSolver::shiftedIntGreensFunction(double zshift) {
