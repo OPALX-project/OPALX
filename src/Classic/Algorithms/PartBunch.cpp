@@ -2068,10 +2068,7 @@ void PartBunch::calcBeamParameters() {
             psqsum(i) = 0;
         rpsum(i) = moments_m((2 * i), (2 * i) + 1) - N * rmean_m(i) * pmean_m(i);
     }
-
     eps2 = (rsqsum * psqsum - rpsum * rpsum) / (N * N);
-
-
     rpsum /= N;
 
     for(unsigned int i = 0 ; i < Dim; i++) {
@@ -2085,11 +2082,11 @@ void PartBunch::calcBeamParameters() {
     rprms_m = rpsum * fac;
 
     if (nodes_m > 1) {
-      Dx_m = moments_m(0, 5) / N;
-      DDx_m = moments_m(1, 5) / N;
+        Dx_m = moments_m(0, 5) / N;
+        DDx_m = moments_m(1, 5) / N;
       
-      Dy_m = moments_m(2, 5) / N;
-      DDy_m = moments_m(3, 5) / N;
+        Dy_m = moments_m(2, 5) / N;
+        DDy_m = moments_m(3, 5) / N;
 
     }
     else {
@@ -2100,25 +2097,21 @@ void PartBunch::calcBeamParameters() {
 	  can be set to zero and a dp/p0 can be set, hence the dispersion
 	  orbit can be followed.
       */
-      Inform m("Dispersion ");
-      for(size_t i = 0; i < locNp; i++) {
-	if (ID[i] == 1) {
-	  Dx_m = R[i](0);
-	  m << "ID= " << ID[i] << " " << R[i] << P[i] << endl;	  
-	}
-	else if (ID[i] == 2) {
-	  DDx_m = R[i](0);
-	  m << "ID= " << ID[i] << " " << R[i] << P[i] << endl;
-	}
-	else if (ID[i] == 3) {
-	  Dy_m = R[i](0);
-	  m << "ID= " << ID[i] << " " << R[i] << P[i] << endl;
-	}
-	else if (ID[i] == 4) {
-	  DDy_m = R[i](0);
-	  m << "ID= " << ID[i] << " " << R[i] << P[i] << endl;
-	}
-      }
+      
+        for(size_t i = 0; i < locNp; i++) {
+          if (ID[i] == 1) {
+              Dx_m = R[i](0);
+          }
+          else if (ID[i] == 2) {
+              DDx_m = R[i](0);
+          }
+          else if (ID[i] == 3) {
+              Dy_m = R[i](0);
+          }
+          else if (ID[i] == 4) {
+              DDy_m = R[i](0);
+          }
+        }
     }
 
     /*
@@ -2342,12 +2335,11 @@ void PartBunch::calcBeamParameters_cycl() {
     // y: longitudinal direction; z: vertical direction.
 
     if (nodes_m > 1) {
-      Dx_m = moments_m(0, 5) / locNp;
-      DDx_m = moments_m(1, 5) / locNp;
-      
-      Dy_m = moments_m(2, 5) / locNp;
-      DDy_m = moments_m(3, 5) / locNp;
-
+        Dx_m = moments_m(0, 5) / locNp;
+        DDx_m = moments_m(1, 5) / locNp;
+        
+        Dy_m = moments_m(2, 5) / locNp;
+        DDy_m = moments_m(3, 5) / locNp;
     }
     else {
       /** 
@@ -2357,27 +2349,22 @@ void PartBunch::calcBeamParameters_cycl() {
 	  can be set to zero and a dp/p0 can be set, hence the dispersion
 	  orbit can be followed.
       */
-      Inform m("Dispersion ");
-      for(size_t i = 0; i < locNp; i++) {
-	if (ID[i] == 1) {
-	  Dx_m = R[i](0);
-	  m << "ID= " << ID[i] << " " << R[i] << P[i] << endl;	  
-	}
-	else if (ID[i] == 2) {
-	  DDx_m = R[i](0);
-	  m << "ID= " << ID[i] << " " << R[i] << P[i] << endl;
-	}
-	else if (ID[i] == 3) {
-	  Dy_m = R[i](0);
-	  m << "ID= " << ID[i] << " " << R[i] << P[i] << endl;
-	}
-	else if (ID[i] == 4) {
-	  DDy_m = R[i](0);
-	  m << "ID= " << ID[i] << " " << R[i] << P[i] << endl;
-	}
-      }
+        for(size_t i = 0; i < locNp; i++) {
+            if (ID[i] == 1) {
+                Dx_m = R[i](0);
+            }
+            else if (ID[i] == 2) {
+                DDx_m = R[i](0);
+            }
+            else if (ID[i] == 3) {
+                Dy_m = R[i](0);
+            }
+            else if (ID[i] == 4) {
+                DDy_m = R[i](0);
+            }
+        }
     }
-
+    
     // calculate mean energy
     calcEMean();
 
