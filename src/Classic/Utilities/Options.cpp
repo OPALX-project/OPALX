@@ -86,4 +86,7 @@ namespace Options {
     // Governs how often boundp_destroy is called to destroy lost particles
     // Mainly used in the CyclotronTracker as of now -DW
     int boundpDestroyFreq = 10;
+
+    // Option to enable the use of GPUs in OPAL with DKS library
+    bool enableDKS = false;
 }
