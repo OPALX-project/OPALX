@@ -71,7 +71,7 @@ endif ()
 
 
 ### Uldis Locans 2014.09.05 ###
-OPTION (ENABLE_DKS "Enable DKS" ON)
+OPTION (ENABLE_DKS "Enable DKS" OFF)
 
 ### Load DKS package ###
 IF (ENABLE_DKS)
