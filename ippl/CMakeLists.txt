@@ -71,46 +71,21 @@ OPTION (USE_CUDA "Use CUDA" OFF)
 OPTION (USE_MIC "Use MIC" OFF)
 
 ### Load DKS package ###
-IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
+IF (ENABLE_DKS)
    FIND_PACKAGE(DKS REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
    MESSAGE (STATUS "Found DKS library: ${DKS_LIBRARY}")
    MESSAGE (STATUS "Found DKS include dir: ${DKS_INCLUDE_DIR}")
    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDKS_MPI")
-ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
 
-### OpenCL compiler flags ###
-IF (ENABLE_OPENCL)
-	SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lOpenCL -pthread -DDKS_OPENCL")
-ENDIF (ENABLE_OPENCL)
-### End OpenCL ###
+   ### OpenCL compiler flags ###
+   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lOpenCL -pthread -DDKS_OPENCL")
 
-### CUDA compiler flags ###
-IF (ENABLE_CUDA)
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lcudart -lcufft -lcublas -lnvToolsExt -DDKS_CUDA")
-ENDIF (ENABLE_CUDA)
-### End Cuda ###
-
-### MIC compiler flags ###
-IF (ENABLE_OPENMP)
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -openmp -DDKS_MIC")
-ENDIF (ENABLE_OPENMP)
-### END MIC ###
-
-### if any accelerator enabled set flag to use DKS ###
-IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_OPENMP)
-	SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIPPL_DKS -DOPAL_DKS")
-ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_OPENMP)
-
-### select API for DKS (temporary - will be moved to runtime) ###
-IF (USE_OPENCL)
-	SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIPPL_DKS_OPENCL")
-ENDIF (USE_OPENCL)
-IF (USE_CUDA)
-	SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIPPL_DKS_CUDA")
-ENDIF (USE_CUDA)
-IF (USE_MIC)
-	SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIPPL_DKS_MIC")
-ENDIF (USE_MIC)
+   ### CUDA compiler flags ###
+   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lcudart -lcufft -lcublas -lnvToolsExt -DDKS_CUDA")
+   
+   ### if any accelerator enabled set flag to use DKS ###
+   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIPPL_DKS -DOPAL_DKS")
+ENDIF (ENABLE_DKS)
 ### END DKS part ###
 
 # Handle options
