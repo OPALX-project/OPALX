@@ -71,6 +71,7 @@ namespace {
         BOUNDPDESTROYFQ,
 	BEAMHALOBOUNDARY,
 	CLOTUNEONLY,
+	ENABLEDKS,
         SIZE
     };
 }
@@ -168,6 +169,9 @@ Option::Option():
     itsAttr[BEAMHALOBOUNDARY] = Attributes::makeReal
       ("BEAMHALOBOUNDARY", "Defines in therms of sigma where the halo starts Default 0.0",0.0);
 
+    itsAttr[ENABLEDKS] = Attributes::makeBool
+      ("ENABLEDKS", "Enable the use of GPUs in OPAL trough DKS", enableDKS);
+
     FileStream::setEcho(echo);
     rangen.init55(seed);
 }
@@ -210,6 +214,7 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setBool(itsAttr[ASCIIDUMP], asciidump);
     Attributes::setReal(itsAttr[BOUNDPDESTROYFQ], 10);
     Attributes::setReal(itsAttr[BEAMHALOBOUNDARY], 0);
+    Attributes::setBool(itsAttr[ENABLEDKS], enableDKS);
 }
 
 
@@ -237,6 +242,7 @@ void Option::execute() {
     csrDump = Attributes::getBool(itsAttr[CSRDUMP]);
     ppdebug = Attributes::getBool(itsAttr[PPDEBUG]);
     enableHDF5 = Attributes::getBool(itsAttr[ENABLEHDF5]);
+    enableDKS = Attributes::getBool(itsAttr[ENABLEDKS]);
 
     if(itsAttr[ASCIIDUMP]) {
         asciidump = Attributes::getBool(itsAttr[ASCIIDUMP]);
@@ -301,6 +307,10 @@ void Option::execute() {
         nLHS = int(Attributes::getReal(itsAttr[NLHS]));
     }
 
+    if(itsAttr[ENABLEDKS]) {
+        enableDKS = bool(Attributes::getBool(itsAttr[ENABLEDKS]));
+    }
+
     if(itsAttr[CZERO]) {
         cZero = bool(Attributes::getBool(itsAttr[CZERO]));
     }
@@ -342,4 +352,5 @@ void Option::execute() {
     if(Attributes::getBool(itsAttr[TELL])) {
         *gmsg << "\nCurrent settings of options:\n" << *this << endl;
     }
+
 }
