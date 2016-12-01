@@ -101,6 +101,13 @@ public:
     
     inline void setB(Vector_t Bf, int i);
     
+    
+    void destroyAll() {
+        for (unsigned int i = 0; i < m_particles.size(); ++i)
+            this->RemoveParticlesAtLevel(i);
+        nLocalParticles_m = 0;
+    }
+    
 //     void setParGDB(AmrParGDB* gdb) {
 //         Define(gdb);
 //     }
