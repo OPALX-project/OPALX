@@ -96,7 +96,9 @@ int main(int argc, char* argv[]) {
                       << "- NOPARTICLES: rhs = -1 everywhere" << std::endl
                       << "- UNIFORM: As NOPARTICLES but with particles (single-core)"
                       << std::endl
-                      << "- GAUSSIAN: rhs using particles" << std::endl;
+                      << "- GAUSSIAN: rhs using particles" << std::endl
+                      << "- REAL: rhs read from a H5 file" << std::endl
+                      << "- MULTIGAUSS: 3 Gaussians" << std::endl;
         solved = false;
     }
     

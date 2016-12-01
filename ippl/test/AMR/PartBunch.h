@@ -117,6 +117,11 @@ public:
     inline Vector_t getRMax();
     inline Vector_t getHr();
     
+    
+    void destroyAll() {
+        
+    }
+    
 private:
 
     inline void setBCAllPeriodic_m();
