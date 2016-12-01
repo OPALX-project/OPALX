@@ -233,6 +233,19 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) {
         MultiFab::Add(*nPartPerCell_m[i], tmp, 0, 0, 1, 0);
     }
     
+    
+    std::cout << "---------------------------------------------" << std::endl;
+    std::cout << "          CHARGE CONSERVATION TEST 1         " << std::endl;
+    for (int i = 0; i <= finest_level; ++i) {
+        Real charge = bunch_m->sumParticleMass(0 /*attribute*/, i /*level*/);
+        Real invVol = (*(Geom(i).CellSize()) * *(Geom(i).CellSize()) * *(Geom(i).CellSize()) );
+        std::cout << "dx * dy * dz = " << invVol << std::endl;
+        std::cout << "Level " << i << " MultiFab sum * dx * dy * dz: " << nPartPerCell_m[i]->sum() * invVol
+                  << " Charge sum: " << charge
+                  << " Spacing: " << *(Geom(i).CellSize()) << std::endl;
+    }
+    std::cout << "---------------------------------------------" << std::endl;
+    
     std::cout << lev << " " << nPartPerCell_m[lev]->min(0) << " " << nPartPerCell_m[lev]->max(0) << std::endl;
     
     const int clearval = TagBox::CLEAR;
@@ -338,6 +351,18 @@ AmrOpal::regrid (int lbase, Real time)
         BoxLib::average_down(*nPartPerCell_m[i+1], tmp, 0, 1, refRatio(i));
         MultiFab::Add(*nPartPerCell_m[i], tmp, 0, 0, 1, 0);
     }
+    
+    std::cout << "---------------------------------------------" << std::endl;
+    std::cout << "          CHARGE CONSERVATION TEST 2         " << std::endl;
+    for (int i = 0; i <= finest_level; ++i) {
+        Real charge = bunch_m->sumParticleMass(0 /*attribute*/, i /*level*/);
+        Real invVol = (*(Geom(i).CellSize()) * *(Geom(i).CellSize()) * *(Geom(i).CellSize()) );
+        std::cout << "dx * dy * dz = " << invVol << std::endl;
+        std::cout << "Level " << i << " MultiFab sum * dx * dy * dz: " << nPartPerCell_m[i]->sum() * invVol
+                  << " Charge sum: " << charge
+                  << " Spacing: " << *(Geom(i).CellSize()) << std::endl;
+    }
+    std::cout << "---------------------------------------------" << std::endl;
 }
 
 

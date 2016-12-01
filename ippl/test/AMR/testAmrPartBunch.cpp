@@ -379,6 +379,11 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     ParmParse pp("amr");
     pp.add("max_grid_size", int(maxBoxSize));
     
+    Array<int> error_buf(nLevels, 0);
+    
+    pp.addarr("n_error_buf", error_buf);
+    pp.add("grid_eff", 0.95);
+    
     Array<int> nCells(3);
     for (int i = 0; i < 3; ++i)
         nCells[i] = nr[i];
@@ -459,25 +464,27 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // ========================================================================
     
     
-    for (int i = 0; i < myAmrOpal.finestLevel() + 1; ++i) {
-        
-        if ( myAmrOpal.boxArray(i).empty() )
-            break;
-        
-        MultiFab mf(myAmrOpal.boxArray(i), 1, 1);
-        dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(0, /*attribute*/ mf, i /*level*/);
-        Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0 /*attribute*/, i /*level*/);
-        
-        double invVol = 1.0 / (nr[0] * nr[1] * nr[2]);
-        
-        /* refinement factor */
-        invVol = (i > 0) ? invVol / std::pow( ( 2 << (i - 1) ), 3) : invVol;
-        
-        std::cout << "Level " << i << " MultiFab sum: " << mf.sum() * invVol << std::endl
-                  << "Level " << i << " Charge sum: " << charge << std::endl;
+//     for (int i = 0; i < myAmrOpal.finestLevel() + 1; ++i) {
+//         
+//         if ( myAmrOpal.boxArray(i).empty() )
+//             break;
+//         
+//         MultiFab mf(myAmrOpal.boxArray(i), 1, 1);
+//         dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(0, /*attribute*/ mf, i /*level*/);
+//         Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0 /*attribute*/, i /*level*/);
+//         
+//         double invVol = 1.0 / (nr[0] * nr[1] * nr[2]);
+//         
+//         /* refinement factor */
+// //         invVol = (i > 0) ? invVol / std::pow( ( 2 << (i - 1) ), 3) : invVol;
+//         invVol = (*(myAmrOpal.Geom(i).CellSize()) * *(myAmrOpal.Geom(i).CellSize()) * *(myAmrOpal.Geom(i).CellSize()) );
+//         std::cout << "dx * dy * dz = " << invVol << std::endl;
+//         std::cout << "Level " << i << " MultiFab sum * dx * dy * dz: " << mf.sum() * invVol
+//                   << " Charge sum: " << charge
+//                   << " Spacing: " << *(myAmrOpal.Geom(i).CellSize()) << std::endl;
 
         
-    }
+//     }
     
 //     std::string plotfilename = BoxLib::Concatenate("amr", 0, 4);
 //     myAmrOpal.writePlotFile(plotfilename, 0);
@@ -505,6 +512,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         
         std::string plotfilename = BoxLib::Concatenate("amr_", it, 4);
         myAmrOpal.writePlotFile(plotfilename, it);
+        
+        dynamic_cast<AmrPartBunch*>(bunch)->python_format(it);
         
         // update time step according to levels
 //         dt = 0.1 * *( myAmrOpal.Geom(myAmrOpal.finestLevel() - 1).CellSize() );
