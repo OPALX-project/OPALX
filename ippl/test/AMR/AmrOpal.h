@@ -84,6 +84,10 @@ public:
      * Write a timestamp file for displaying with yt.
      */
     void writePlotFile(std::string filename, int step);
+    
+    mfs_mt* getPartPerCell() {
+        return &nPartPerCell_m;
+    }
 
 protected:
     /*!
