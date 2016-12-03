@@ -95,11 +95,6 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     int base_level   = 0;
     int finest_level = myAmrOpal.finestLevel();
 
-//     Array<std::unique_ptr<MultiFab> > PartMF;
-//     PArray<MultiFab> PartMF;
-//     PartMF.resize(nLevels,PArrayManage);
-//     PartMF.set(0,new MultiFab(myAmrOpal.boxArray()[0],1,1));
-//     PartMF[0].setVal(0.0);
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
 
 //     for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
@@ -338,10 +333,10 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
     Distribution dist;
     IpplTimings::startTimer(distTimer);
-    dist.gaussian(0.0, 0.001, nloc, ParallelDescriptor::MyProc());
+//     dist.gaussian(0.0, 0.001, nloc, ParallelDescriptor::MyProc());
 //     dist.uniform(-0.02, 0.02, nloc, ParallelDescriptor::MyProc());
     
-//     dist.readH5("/home/matthias/Accelerated.h5", 0);
+    dist.readH5("/home/matthias/Accelerated.h5", 0);
     
     
     // copy particles to the PartBunchBase object.
@@ -408,18 +403,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // ========================================================================
     // 3. multi-level redistribute
     // ========================================================================
-    std::cout << "Max. level: " << myAmrOpal.maxLevel() << std::endl;
-    for (int i = 0; /*i <= myAmrOpal.finestLevel() &&*/ i < myAmrOpal.maxLevel(); ++i) {
+    for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i) {
         myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
-        msg << "DONE " << i << "th regridding." << endl;
     }
-    
-//     std::string plotfilename = BoxLib::Concatenate("plt", 0, 4);
-//     myAmrOpal.writePlotFile(plotfilename, 0);
-    
-    dynamic_cast<AmrPartBunch*>(bunch)->python_format(-1);
-    
-    myAmrOpal.info();
     
     msg << "****************************************************" << endl
         << "          BEAM REDISTRIBUTED (multi level)          " << endl
@@ -457,42 +443,6 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
             << myAmrOpal.boxArray(i) << endl;
     
     
-//     // write particle file
-//     dynamic_cast<AmrPartBunch*>(bunch)->Checkpoint(".", "particles0000", true);
-    
-    
-    
-    // ========================================================================
-    // do some operations on the data
-    // ========================================================================
-    
-    
-//     for (int i = 0; i < myAmrOpal.finestLevel() + 1; ++i) {
-//         
-//         if ( myAmrOpal.boxArray(i).empty() )
-//             break;
-//         
-//         MultiFab mf(myAmrOpal.boxArray(i), 1, 1);
-//         dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(0, /*attribute*/ mf, i /*level*/);
-//         Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0 /*attribute*/, i /*level*/);
-//         
-//         double invVol = 1.0 / (nr[0] * nr[1] * nr[2]);
-//         
-//         /* refinement factor */
-// //         invVol = (i > 0) ? invVol / std::pow( ( 2 << (i - 1) ), 3) : invVol;
-//         invVol = (*(myAmrOpal.Geom(i).CellSize()) * *(myAmrOpal.Geom(i).CellSize()) * *(myAmrOpal.Geom(i).CellSize()) );
-//         std::cout << "dx * dy * dz = " << invVol << std::endl;
-//         std::cout << "Level " << i << " MultiFab sum * dx * dy * dz: " << mf.sum() * invVol
-//                   << " Charge sum: " << charge
-//                   << " Spacing: " << *(myAmrOpal.Geom(i).CellSize()) << std::endl;
-
-        
-//     }
-    
-//     std::string plotfilename = BoxLib::Concatenate("amr", 0, 4);
-//     myAmrOpal.writePlotFile(plotfilename, 0);
-    
-    
     for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
         bunch->setP(Vector_t(1.0, 0.0, 0.0), i);         
     
@@ -512,6 +462,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
 //         std::string plotfilename = BoxLib::Concatenate("amr_", it, 4);
 //         myAmrOpal.writePlotFile(plotfilename, it);
 //         writePlotFile(plotfilename, rhs, phi, grad_phi, rr, geom, it);
+        myAmrOpal.assignDensity();
+        
         
         std::string plotfilename = BoxLib::Concatenate("amr_", it, 4);
         myAmrOpal.writePlotFile(plotfilename, it);
@@ -525,68 +477,20 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
 //         for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
 //             bunch->setR(bunch->getR(0) + dt * bunch->getP(0), 0);
         
-//         dist.setDistribution(*bunch, "/home/matthias/Accelerated.h5", it + 1);
+        dist.setDistribution(*bunch, "/home/matthias/Accelerated.h5", it + 1);
         
         bunch->myUpdate();
         
         
-        Array<std::unique_ptr<MultiFab> >* nPartPerCell = myAmrOpal.getPartPerCell();
-        for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
-            Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0 /*attribute*/, i /*level*/);
-            Real dx = *(myAmrOpal.Geom(i).CellSize());
-            Real invVol = dx * dx * dx;
-            std::cout << "dx * dy * dz = " << invVol << std::endl;
-            std::cout << "Level " << i << " MultiFab sum * dx * dy * dz: " << (*nPartPerCell)[i]->sum() * invVol
-                      << " Charge sum: " << charge
-                      << " Spacing: " << dx << std::endl;
+        // update Amr object
+        // update particle distribution across processors
+        for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i) {
+            myAmrOpal.regrid(i /*lbase*/, Real(it) /*time*/);
+            msg << "DONE " << i << "th regridding." << endl;
         }
         
         
-        // update Amr object
-        // update particle distribution across processors
-//         for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i) {
-//             myAmrOpal.regrid(i /*lbase*/, Real(it) /*time*/);
-//             msg << "DONE " << i << "th regridding." << endl;
-//         }
-        
-        
 //         doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
-        
-//         //
-//         for (int i = 0; i < myAmrOpal.finestLevel() + 1; ++i) {
-//             MultiFab mf(myAmrOpal.boxArray(i), 1, 1);
-//             dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(0, /*attribute*/ mf, i /*level*/);
-//             Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0 /*attribute*/, i /*level*/);
-//             
-//             double invVol = 1.0 / ( nr[0] * nr[1] * nr[2] );
-//             
-//             /* refinement factor */
-//             invVol = (i > 0) ? invVol / std::pow( ( 2 << (i - 1) ), 3) : invVol;
-//             
-//             std::cout << "MultiFab sum (not normalized): " << mf.sum() << std::endl;
-//             std::cout << "MultiFab sum: " << mf.sum() * invVol << std::endl
-//                       << "Charge sum: " << charge << std::endl;
-// 
-//         
-//         }
-//         //
-//         
-// //         myAmrOpal.averageDown();
-//         
-//         amr << "Max. level   = " << myAmrOpal.maxLevel() << endl
-//             << "Finest level = " << myAmrOpal.finestLevel() << endl;
-//         for (int i = 0; i < int(nMaxLevels); ++i)
-//             amr << "Max. ref. ratio level " << i << ": "
-//                 << myAmrOpal.MaxRefRatio(i) << endl;
-//         for (int i = 0; i < nLevels; ++i)
-//             amr << "Max. grid size level" << i << ": "
-//                 << myAmrOpal.maxGridSize(i) << endl;
-//         
-//         for (int i = 0; i < nLevels; ++i)
-//             amr << "BoxArray level" << i << ": "
-//                 << myAmrOpal.boxArray(i) << endl;
-// 
-//         msg << "Done timestep " << it << " using dt = " << dt << endl;
     }
     ParallelDescriptor::Barrier();
     IpplTimings::stopTimer(tracTimer);
