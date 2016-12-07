@@ -58,6 +58,7 @@ FFT<CCTransform,Dim,T>::FFT(
                    transformTheseDims, compressTemps)
 {
  
+/*
 #ifdef IPPL_DKS
 #ifdef IPPL_DKS_OPENCL
   INFOMSG("Init DKS base opencl" << endl);
@@ -81,7 +82,8 @@ FFT<CCTransform,Dim,T>::FFT(
   base.initDevice();
 #endif
 #endif
- 
+*/
+
   // construct array of axis lengths
   unsigned nTransformDims = this->numTransformDims();
   int* lengths = new int[nTransformDims];
@@ -314,7 +316,7 @@ FFT<CCTransform,Dim,T>::transform(
 //-----------------------------------------------------------------------------
 // "in-place" FFT; specify +1 or -1 to indicate forward or inverse transform.
 //-----------------------------------------------------------------------------
-
+/*
 #ifdef IPPL_DKS
 template <unsigned Dim, class T>
 void
@@ -345,7 +347,7 @@ FFT<CCTransform, Dim, T>::transform(
     
   localdata = ldf->getP();
     
-  /* DKS part */
+  // DKS part
   int ierr;
   void *mem_ptr;
   int size = N[0]*N[1]*N[2];
@@ -362,12 +364,7 @@ FFT<CCTransform, Dim, T>::transform(
     //base.callNormalizeFFT(mem_ptr, 3, N);
   }
     
-  /*
-    base.callFFT(mem_ptr, 3, N);
-    base.callIFFT(mem_ptr, 3, N);
-    base.callNormalizeFFT(mem_ptr, 3, N);
-  */
-    
+   
   base.readData<Complex_t>(mem_ptr, localdata, size);
   base.freeMemory<Complex_t>(mem_ptr, size);
         
@@ -380,6 +377,7 @@ FFT<CCTransform, Dim, T>::transform(
   return;
 }
 #else
+*/
 template <unsigned Dim, class T>
 void
 FFT<CCTransform,Dim,T>::transform(
@@ -500,7 +498,7 @@ FFT<CCTransform,Dim,T>::transform(
 
   return;
 }
-#endif
+//#endif
 
 //=============================================================================
 // 1D FFT CCTransform Constructors
@@ -832,7 +830,7 @@ FFT<RCTransform,Dim,T>::FFT(
                    transformTheseDims, compressTemps), 
     complexDomain_m(cdomain), serialAxes_m(1)
 {
-
+/*
 #ifdef IPPL_DKS
 #ifdef IPPL_DKS_OPENCL
   INFOMSG("Init DKS base opencl" << endl);
@@ -868,7 +866,7 @@ FFT<RCTransform,Dim,T>::FFT(
   base.setupFFTCR(Dim, dimsize,1./(dimsize[0]*dimsize[1]*dimsize[2]));
 #endif
 #endif
-
+*/
   // construct array of axis lengths
   unsigned nTransformDims = this->numTransformDims();
   int* lengths = new int[nTransformDims];
@@ -912,7 +910,7 @@ FFT<RCTransform,Dim,T>::FFT(
 {
   // Tau profiling
   
-  
+/*
 #ifdef IPPL_DKS
 #ifdef IPPL_DKS_OPENCL
   INFOMSG("Init DKS base opencl" << endl);
@@ -948,7 +946,7 @@ FFT<RCTransform,Dim,T>::FFT(
   base.setupFFTCR(Dim, dimsize,1./(dimsize[0]*dimsize[1]*dimsize[2]));
 #endif
 #endif
-
+*/
   // construct array of axis lengths
   int lengths[Dim];
   unsigned d;

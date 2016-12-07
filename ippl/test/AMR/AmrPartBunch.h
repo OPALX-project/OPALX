@@ -17,6 +17,8 @@
 #include <map>
 #include <tuple>
 
+// #include "Ippl.h"
+
 #include "PartBunchBase.h"
 
 #include <AmrParGDB.H>
@@ -101,9 +103,55 @@ public:
     
     inline void setB(Vector_t Bf, int i);
     
+    
+    void destroyAll() {
+        for (unsigned int i = 0; i < m_particles.size(); ++i)
+            this->RemoveParticlesAtLevel(i);
+        nLocalParticles_m = 0;
+    }
+    
 //     void setParGDB(AmrParGDB* gdb) {
 //         Define(gdb);
 //     }
+
+    void python_format(int step) {
+        std::string st = std::to_string(step);
+        Inform::WriteMode wm = Inform::OVERWRITE;
+        for (int i = 0; i < Ippl::getNodes(); ++i) {
+            if ( i == Ippl::myNode() ) {
+                wm = (i == 0) ? wm : Inform::APPEND;
+                
+                const ParGDBBase* gdb = GetParGDB();
+                
+                std::string grid_file = "pyplot_grids_" + st + ".dat";
+                Inform msg("", grid_file.c_str(), wm, i);
+                for (int l = 0; l < gdb->finestLevel() + 1; ++l) {
+                    Geometry geom = gdb->Geom(l);
+                    for (int g = 0; g < gdb->ParticleBoxArray(l).size(); ++g) {
+                        msg << l << ' ';
+                        RealBox loc = RealBox(gdb->boxArray(l)[g],geom.CellSize(),geom.ProbLo());
+                        for (int n = 0; n < BL_SPACEDIM; n++)
+                            msg << loc.lo(n) << ' ' << loc.hi(n) << ' ';
+                        msg << endl;
+                    }
+                }
+                
+                std::string particle_file = "pyplot_particles_" + st + ".dat";
+                Inform msg2all("", particle_file.c_str(), wm, i);
+                int l, g, dq;
+                for (size_t i = 0; i < this->getLocalNum(); ++i) {
+                    
+                    std::tie(l,g,dq) = idxMap_m[i];
+                    
+                    msg2all << m_particles[l][g][dq].m_pos[0] << " "
+                            << m_particles[l][g][dq].m_pos[1] << " "
+                            << m_particles[l][g][dq].m_pos[2]
+                            << endl;
+                }
+            }
+            Ippl::Comm->barrier();
+        }
+    }
     
 private:
     /// Create the index mapping in order to have random access

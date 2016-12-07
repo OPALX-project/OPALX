@@ -110,6 +110,10 @@ void Distribution::readH5(const std::string& filename, int step) {
 
 void Distribution::injectBeam(PartBunchBase& bunch) {
     
+    // destroy all partcles
+    if ( bunch.getLocalNum() )
+        bunch.destroyAll();
+    
     // create memory space
     bunch.create(nloc_m);
     
@@ -127,4 +131,13 @@ void Distribution::injectBeam(PartBunchBase& bunch) {
         
         q_m.pop_back();
     }
+}
+
+
+void Distribution::setDistribution(PartBunchBase& bunch, const std::string& filename, int step) {
+    
+    readH5(filename, step);
+    
+    for (unsigned int i = 0; i < bunch.getLocalNum(); ++i)
+        bunch.setR(Vector_t(x_m[i], y_m[i], z_m[i]), i);
 }

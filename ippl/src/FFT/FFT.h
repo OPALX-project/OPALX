@@ -435,10 +435,12 @@ template <unsigned Dim, class T>
 class FFT<RCTransform,Dim,T> : public FFTBase<Dim,T> {
 
 private:
+/*
 #ifdef IPPL_DKS
   DKSBase base;
   int fftStreamId;
 #endif
+*/
 
 public:
 
