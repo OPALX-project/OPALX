@@ -738,24 +738,24 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
         outputFile << "description=\"57 R1 Particle Position in y  \" &end" << endl;
         outputFile << "&column name=R1_s, type=double, units=m , ";
         outputFile << "description=\"58 R1 Particle Position in s  \" &end" << endl;
-        outputFile << "&column name=P0_x, type=double, units=1 , ";
+        outputFile << "&column name=P1_x, type=double, units=1 , ";
         outputFile << "description=\"59 R1 Particle Position in x  \" &end" << endl;
-        outputFile << "&column name=P0_y, type=double, units=1 , ";
+        outputFile << "&column name=P1_y, type=double, units=1 , ";
         outputFile << "description=\"60 R1 Particle Position in y  \" &end" << endl;
-        outputFile << "&column name=P0_s, type=double, units=1 , ";
+        outputFile << "&column name=P1_s, type=double, units=1 , ";
         outputFile << "description=\"61 R1 Particle Position in s  \" &end" << endl;
 
-        outputFile << "&column name=R0_x, type=double, units=m , ";
+        outputFile << "&column name=R2_x, type=double, units=m , ";
         outputFile << "description=\"62 R2 Particle Position in x  \" &end" << endl;
         outputFile << "&column name=R2_y, type=double, units=m , ";
         outputFile << "description=\"63 R2 Particle Position in y  \" &end" << endl;
         outputFile << "&column name=R2_s, type=double, units=m , ";
         outputFile << "description=\"64 R2 Particle Position in s  \" &end" << endl;
-        outputFile << "&column name=P0_x, type=double, units=1 , ";
+        outputFile << "&column name=P2_x, type=double, units=1 , ";
         outputFile << "description=\"65 R2 Particle Position in x  \" &end" << endl;
-        outputFile << "&column name=P0_y, type=double, units=1 , ";
+        outputFile << "&column name=P2_y, type=double, units=1 , ";
         outputFile << "description=\"66 R2 Particle Position in y  \" &end" << endl;
-        outputFile << "&column name=P0_s, type=double, units=1 , ";
+        outputFile << "&column name=P2_s, type=double, units=1 , ";
         outputFile << "description=\"67 R2 Particle Position in s  \" &end" << endl;
 
         outputFile << "&column name=R3_x, type=double, units=m , ";
@@ -764,11 +764,11 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
         outputFile << "description=\"69 R3 Particle Position in y  \" &end" << endl;
         outputFile << "&column name=R3_s, type=double, units=m , ";
         outputFile << "description=\"70 R3 Particle Position in s  \" &end" << endl;
-        outputFile << "&column name=P0_x, type=double, units=1 , ";
+        outputFile << "&column name=P3_x, type=double, units=1 , ";
         outputFile << "description=\"71 R3 Particle Position in x  \" &end" << endl;
-        outputFile << "&column name=P0_y, type=double, units=1 , ";
+        outputFile << "&column name=P3_y, type=double, units=1 , ";
         outputFile << "description=\"72 R3 Particle Position in y  \" &end" << endl;
-        outputFile << "&column name=P0_s, type=double, units=1 , ";
+        outputFile << "&column name=P3_s, type=double, units=1 , ";
         outputFile << "description=\"73 R3 Particle Position in s  \" &end" << endl;
 
         columnStart = 73;
