@@ -9,6 +9,7 @@
 
 import os
 import yt
+import sys
 
 opal = os.environ['OPAL_BUILD']
 
@@ -18,13 +19,20 @@ opal = os.environ['OPAL_BUILD']
 #slc.annotate_grids()
 #slc.save()
 
-for i in range(0, 10):
-    ds = yt.load(opal + "ippl/test/AMR/amr_000" + str(i), unit_system='accel')
+nSteps = int(sys.argv[1])
+
+for i in range(0, nSteps):
+    
+    if i < 10:
+        ds = yt.load(opal + "ippl/test/AMR/amr_000" + str(i), unit_system='accel')
+    else:
+        ds = yt.load(opal + "ippl/test/AMR/amr_00" + str(i), unit_system='accel')
+    
     slc = yt.SlicePlot(ds, normal='z', fields='rho')
     #slc.set_unit('rho', 'e/m**3')
     slc.annotate_grids()
     slc.save()
-    
+
 #for i in range(10, 25):
     #ds = yt.load(opal + "ippl/test/AMR/amr_00" + str(i)), unit_system='accel')
     #slc = yt.SlicePlot(ds, normal='z', fields='rho')

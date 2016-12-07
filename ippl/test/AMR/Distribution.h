@@ -58,6 +58,13 @@ public:
      */
     void injectBeam(PartBunchBase& bunch);
     
+    /// Update a distribution (only single-core)
+    /*! @param bunch is either an AmrPartBunch or an PartBunch object
+     * @param filename is the path and name of the H5 file
+     * @param step to be read in from a H5 file
+     */
+    void setDistribution(PartBunchBase& bunch, const std::string& filename, int step);
+    
 private:
     container_t x_m;    ///< Horizontal particle positions [m]
     container_t y_m;    ///< Vertical particle positions [m]
