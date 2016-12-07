@@ -64,12 +64,13 @@ class ClosedOrbitFinder
          * @param Emax is the maximum energy [MeV] reached in cyclotron
          * @param nSector is the number of sectors (--> symmetry) of cyclotron
          * @param fmapfn is the location of the file that specifies the magnetic field
-	 * @param guesss value of radius for closed orbit finder 
+	 * @param guesss value of radius for closed orbit finder
+         * @param scaleFactor for the magnetic field (default: 1.0)
          * @param domain is a boolean (default: true). If "true" the closed orbit is computed over a single sector,
          * otherwise over 2*pi.
          */
         ClosedOrbitFinder(value_type, value_type, value_type, size_type, value_type, size_type, value_type, value_type, size_type,
-                          const std::string&, value_type, bool = true);
+                          const std::string&, value_type, value_type scaleFactor = 1.0, bool = true);
 
         /// Returns the inverse bending radius (size of container N+1)
         container_type& getInverseBendingRadius();
@@ -251,17 +252,19 @@ class ClosedOrbitFinder
 // PUBLIC MEMBER FUNCTIONS
 // -----------------------------------------------------------------------------------------------------------------------
 
-    template<typename Value_type, typename Size_type, class Stepper>
-ClosedOrbitFinder<Value_type, Size_type, Stepper>::ClosedOrbitFinder(value_type E, value_type E0, value_type wo, size_type N,
-                                                                     value_type accuracy, size_type maxit,
-                                                                     value_type Emin, value_type Emax, size_type nSector,
-                                                                     const std::string& fmapfn,
-								     value_type rguess,
-                                                                     bool domain)
+template<typename Value_type, typename Size_type, class Stepper>
+ClosedOrbitFinder<Value_type,
+                  Size_type,
+                  Stepper>::ClosedOrbitFinder(value_type E, value_type E0,
+                                              value_type wo, size_type N,
+                                              value_type accuracy, size_type maxit,
+                                              value_type Emin, value_type Emax,
+                                              size_type nSector, const std::string& fmapfn,
+                                              value_type rguess, value_type scaleFactor, bool domain)
 : nxcross_m(0), nzcross_m(0), E_m(E), E0_m(E0), wo_m(wo), N_m(N), dtheta_m(Physics::two_pi/value_type(N)),
   gamma_m(E/E0+1.0), ravg_m(0), phase_m(0), converged_m(false), Emin_m(Emin), Emax_m(Emax), nSector_m(nSector),
   lastOrbitVal_m(0.0), lastMomentumVal_m(0.0),
-  vertOscDone_m(false), domain_m(domain), stepper_m(), rguess_m(rguess)
+  vertOscDone_m(false), domain_m(domain), stepper_m(), rguess_m(rguess), bField_m(fmapfn)
 {
     
     if ( Emin_m > Emax_m )
@@ -298,7 +301,7 @@ ClosedOrbitFinder<Value_type, Size_type, Stepper>::ClosedOrbitFinder(value_type 
     fidx_m.reserve(N_m);
     
     // read in magnetic fieldmap
-    bField_m.read(fmapfn);
+    bField_m.read(scaleFactor);
 
     // compute closed orbit
     converged_m = findOrbit(accuracy, maxit);

@@ -48,7 +48,6 @@
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 
-#include "MagneticField.h"
 
 extern Inform *gmsg;
 
@@ -1333,11 +1332,6 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	hE = E_m*1E-6;
       }
 
-      int nr, nth, nsc;
-      double rmin, dr, dth;
-
-      MagneticField::ReadHeader(&nr, &nth, &rmin, &dr, &dth, &nsc, Attributes::getString(itsAttr[AttributesT::FMAPFN]));
-
       int Nint = 1000;
       bool writeMap = true;
 
@@ -1352,11 +1346,7 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 						 lE,
 						 hE,
 						 (int)Attributes::getReal(itsAttr[AttributesT::MAGSYM]),
-						 rmin,
 						 Nint,
-						 nth,
-						 nr,
-						 dr,
 						 Attributes::getString(itsAttr[AttributesT::FMAPFN]),
 						 Attributes::getReal(itsAttr[AttributesT::ORDERMAPS]),
 						 writeMap);

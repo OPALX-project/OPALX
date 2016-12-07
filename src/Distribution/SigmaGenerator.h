@@ -95,21 +95,25 @@ class SigmaGenerator
          * @param Emin is the minimum energy [MeV] needed in cyclotron, \f$ \left[E_{min}\right] = MeV \f$
          * @param Emax is the maximum energy [MeV] reached in cyclotron, \f$ \left[E_{max}\right] = MeV \f$
          * @param nSector is the number of sectors (symmetry assumption)
-         * @param rmin is the minimal radius of the cyclotron, \f$ \left[r_{min}\right] = m \f$
-         * @param N is the number of integration steps (closed orbit computation). That's why its also the number of maps (for each integration step a map)
-         * @param ntheta is the number of angle splits (fieldmap variable)
-         * @param nradial is the number of radial splits (fieldmap variable)
-         * @param dr is the radial step size, \f$ \left[\Delta r}\right] = m \f$
+         * @param N is the number of integration steps (closed orbit computation). That's why its also the number
+         *        of maps (for each integration step a map)
          * @param fieldmap is the location of the file that specifies the magnetic field
          * @param truncOrder is the truncation order for power series of the Hamiltonian
+         * @param scaleFactor for the magnetic field (default: 1.0)
          * @param write is a boolean (default: true). If true all maps of all iterations are stored, otherwise not.
          */
-        SigmaGenerator(value_type, value_type, value_type, value_type, value_type, value_type, value_type, value_type, value_type, value_type, size_type, value_type, size_type, size_type, size_type, value_type, const std::string&, size_type, bool = true);
+        SigmaGenerator(value_type I, value_type ex, value_type ey, value_type ez,
+                       value_type wo, value_type E, value_type nh, value_type m,
+                       value_type Emin, value_type Emax, size_type nSector,
+                       size_type N, const std::string& fieldmap,
+                       size_type truncOrder, value_type scaleFactor = 1.0, bool write = true);
 
-        /// Searches for a matched distribution. Returns "true" if a matched distribution within the accuracy could be found, returns "false" otherwise
+        /// Searches for a matched distribution.
         /*!
+         * Returns "true" if a matched distribution within the accuracy could be found, returns "false" otherwise.
          * @param accuracy is used for computing the equilibrium orbit (to a certain accuracy)
-         * @param maxit is the maximum number of iterations (the program stops if within this value no stationary distribution was found)
+         * @param maxit is the maximum number of iterations (the program stops if within this value no stationary
+         *        distribution was found)
          * @param maxitOrbit is the maximum number of iterations for finding closed orbit
          * @param angle defines the start of the sector (one can choose any angle between 0° and 360°)
 	 * @param guess value of radius for closed orbit finder
@@ -118,7 +122,8 @@ class SigmaGenerator
         bool match(value_type, size_type, size_type, value_type, value_type, bool);
 
         /// Block diagonalizes the symplex part of the one turn transfer matrix
-        /** It computes the transformation matrix <b>R</b> and its inverse <b>invR</b>. It returns a vector containing the four eigenvalues
+        /** It computes the transformation matrix <b>R</b> and its inverse <b>invR</b>.
+         * It returns a vector containing the four eigenvalues
          * (alpha,beta,gamma,delta) (see formula (38), paper: Geometrical method of decoupling)
          */
         /*!
@@ -128,8 +133,9 @@ class SigmaGenerator
          */
         vector_type decouple(const matrix_type&, sparse_matrix_type&, sparse_matrix_type&);
 
-        /// Checks if the sigma-matrix is an eigenellipse and returns the L2 error (The idea of this function is taken from Dr. Christian Baumgarten's program).
+        /// Checks if the sigma-matrix is an eigenellipse and returns the L2 error.
         /*!
+         * The idea of this function is taken from Dr. Christian Baumgarten's program.
          * @param Mturn is the one turn transfer matrix
          * @param sigma is the sigma matrix to be tested
          */
@@ -176,18 +182,10 @@ class SigmaGenerator
         value_type Emax_m;
         /// Number of (symmetric) sectors
         size_type nSector_m;
-        /// Minimal radius of cyclotron, \f$ \left[r_{min}\right] = m \f$
-        value_type rmin_m;
         /// Number of integration steps for closed orbit computation
         size_type N_m;
         /// Number of integration steps per sector (--> also: number of maps per sector)
         size_type nStepsPerSector_m;
-        /// Number of angle splits (fieldmap)
-        size_type ntheta_m;
-        /// Number of radial splits (fieldmap)
-        size_type nradial_m;
-        /// Radial step size, \f$ \left[\Delta r\right] = m \f$
-        value_type dr_m;
         /// Error of computation
         value_type error_m;
 
@@ -199,6 +197,9 @@ class SigmaGenerator
 
         /// Decides for writing output (default: true)
         bool write_m;
+        
+        /// Scale the magnetic field values (default: 1.0)
+        value_type scaleFactor_m;
 
         /// Stores the stationary distribution (sigma matrix)
         matrix_type sigma_m;
@@ -268,14 +269,15 @@ class SigmaGenerator
 
 template<typename Value_type, typename Size_type>
 SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I, value_type ex, value_type ey, value_type ez, value_type wo,
-        value_type E, value_type nh, value_type m, value_type Emin, value_type Emax, size_type nSector, value_type rmin,
-        size_type N, size_type ntheta, size_type nradial, value_type dr, const std::string& fieldmap, size_type truncOrder, bool write)
+        value_type E, value_type nh, value_type m, value_type Emin, value_type Emax, size_type nSector,
+        size_type N, const std::string& fieldmap, size_type truncOrder, value_type scaleFactor, bool write)
 : I_m(I), wo_m(wo), E_m(E),
   gamma_m(E/m+1.0), gamma2_m(gamma_m*gamma_m),
   nh_m(nh), beta_m(std::sqrt(1.0-1.0/gamma2_m)), m_m(m), niterations_m(0), converged_m(false),
-  Emin_m(Emin), Emax_m(Emax), nSector_m(nSector), rmin_m(rmin), N_m(N), nStepsPerSector_m(N/nSector), ntheta_m(ntheta),
-  nradial_m(nradial), dr_m(dr), error_m(std::numeric_limits<value_type>::max()),
-  fieldmap_m(fieldmap), truncOrder_m(truncOrder), write_m(write), sigmas_m(nStepsPerSector_m)
+  Emin_m(Emin), Emax_m(Emax), nSector_m(nSector), N_m(N), nStepsPerSector_m(N/nSector),
+  error_m(std::numeric_limits<value_type>::max()),
+  fieldmap_m(fieldmap), truncOrder_m(truncOrder), write_m(write),
+  scaleFactor_m(scaleFactor), sigmas_m(nStepsPerSector_m)
 {
     // set emittances (initialization like that due to old compiler version)
     // [ex] = [ey] = [ez] = pi*mm*mrad --> [emittance] = mm mrad
@@ -365,11 +367,11 @@ template<typename Value_type, typename Size_type>
         std::pair<value_type,value_type> tunes;
 
         if (!harmonic) {
-            ClosedOrbitFinder<value_type, size_type, boost::numeric::odeint::runge_kutta4<container_type> > cof(E_m, m_m, wo_m, N_m, accuracy,
-                                                                                                                maxitOrbit, Emin_m, Emax_m,
-                                                                                                                nSector_m, rmin_m, ntheta_m,
-                                                                                                                nradial_m, dr_m, fieldmap_m, rguess,
-                                                                                                                false);
+            ClosedOrbitFinder<value_type, size_type,
+                boost::numeric::odeint::runge_kutta4<container_type> > cof(E_m, m_m, wo_m, N_m, accuracy,
+                                                                           maxitOrbit, Emin_m, Emax_m,
+                                                                           nSector_m, fieldmap_m, rguess,
+                                                                           scaleFactor_m, false);
 
             // properties of one turn
             container_type h_turn = cof.getInverseBendingRadius();
@@ -457,7 +459,13 @@ template<typename Value_type, typename Size_type>
             std::copy_n(ds_turn.begin()+start,nStepsPerSector_m, ds.begin());
 
         } else {
-            Harmonics<value_type, size_type> H(wo_m,Emin_m, Emax_m, ntheta_m, nradial_m, nSector_m, E_m, m_m);
+            MagneticField<double> bField(fieldmap_m);
+            bField.read(scaleFactor_m);
+            
+            int nradial = bField.getNradSteps();
+            int ntheta = bField.getNtetSteps();
+            
+            Harmonics<value_type, size_type> H(wo_m,Emin_m, Emax_m, ntheta, nradial, nSector_m, E_m, m_m);
             Mcycs = H.computeMap("data/inj2sym_mainharms.4","data/inj2sym_mainharms.8",4);
             ravg = H.getRadius();
             tunes = H.getTunes();
