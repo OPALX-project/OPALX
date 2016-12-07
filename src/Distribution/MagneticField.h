@@ -9,12 +9,6 @@
 #ifndef MAGNETICFIELD_H
 #define MAGNETICFIELD_H
 
-#include "Utilities/GeneralClassicException.h"
-
-#define CHECK_CYC_FSCANF_EOF(arg) if(arg == EOF)\
-    throw GeneralClassicException("Cyclotron::getFieldFromFile",\
-                                  "fscanf returned EOF at " #arg);
-
 #include <iostream>
 
 #include <cmath>
@@ -27,6 +21,10 @@
 #include <iostream>
 #include <fstream>
 
+#include <gsl/gsl_math.h>
+#include <gsl/gsl_interp2d.h>
+#include <gsl/gsl_spline2d.h>
+
 // #include "Utilities/LogicalError.h"
 
 // #include <Ippl.h>
@@ -34,400 +32,123 @@
 /// Memory allocator
 #define MALLOC(n,a) ((a*)malloc((n)*sizeof(a)))
 
-/// Temporary class for comparison with reference program of Dr. Christian Baumgarten.
+#define CHECK_CYC_FSCANF_EOF(arg) if(arg == EOF)\
+throw GeneralClassicException("Cyclotron::getFieldFromFile",\
+                              "fscanf returned EOF at " #arg);
+
+
+struct BfieldData {
+    std::string filename;
+    // known from file: field and three theta derivatives
+    //~ double *bfld;   //Bz
+    //~ double *dbt;    //dBz/dtheta
+    //~ double *dbtt;   //d2Bz/dtheta2
+    //~ double *dbttt;  //d3Bz/dtheta3
+//~
+    //~ // to be calculated in getdiffs: all other derivatives:
+    //~ double *dbr;    // dBz/dr
+    //~ double *dbrr;   // ...
+    //~ double *dbrrr;
+//~
+    //~ double *dbrt;
+    //~ double *dbrrt;
+    //~ double *dbrtt;
+//~
+    //~ // used to get (Br,Btheta,Bz) at any off-plane point
+    //~ double *f2;  // for Bz
+    //~ double *f3;  // for Br
+    //~ double *g3;  // for Btheta
+//~
+    std::vector<double> bfld;   //Bz
+    std::vector<double> dbt;    //dBz/dtheta
+    std::vector<double> dbtt;   //d2Bz/dtheta2
+    std::vector<double> dbttt;  //d3Bz/dtheta3
+
+    // to be calculated in getdiffs: all other derivatives:
+    std::vector<double> dbr;    // dBz/dr
+    std::vector<double> dbrr;   // ...
+    std::vector<double> dbrrr;
+
+    std::vector<double> dbrt;
+    std::vector<double> dbrrt;
+    std::vector<double> dbrtt;
+
+    // used to get (Br,Btheta,Bz) at any off-plane point
+    std::vector<double> f2;  // for Bz
+    std::vector<double> f3;  // for Br
+    std::vector<double> g3;  // for Btheta
+
+    // Grid-Size
+    //need to be read from inputfile.
+    int nrad, ntet;
+
+    // one more grid line is stored in azimuthal direction:
+    int ntetS;
+
+    // total grid points number.
+    int ntot;
+
+    // Mean and Maximas
+    double bacc, dbtmx, dbttmx, dbtttmx;
+};
+
+template<typename Value_type>
 class MagneticField
 {
 public:
-  /// Returns the interpolated values of the magnetic field: B(r,theta), dB/dr, dB/dtheta
-  /*!
-   * @param *bint stores the interpolated magnetic field
-   * @param *brint stores the interpolated radial derivative of the magnetic field
-   * @param *btint stores the interpolated "theta" derivative of the magnetic field
-   * @param th is the angle theta where to interpolate
-   * @param nr is the number of radial steps
-   * @param nth is the number of angle steps per sector
-   * @param r is radial position where to interpolate
-   * @param r0 is the minimal extent of eh cyclotron
-   * @param dr is the radial step size
-   * @param **b stores the data of the magnetic field (read in by ReadSectorMap())
-   */
-  static int interpolate(double*, double*, double*, double, int, int, double, double, double, float**);
+    struct BPositions {
+        // this 4 parameters are need to be read from field file.
+        double  rmin, delr;
+        double  tetmin, dtet;
+    
+        // Radii and step width of initial Grid
+        std::vector<double> rarr;
+    
+        //  int     ThetaPeriodicity; // Periodicity of Magnetic field
+        double  Bfact;      // MULTIPLICATION FACTOR FOR MAGNETIC FIELD
+    };
+    
+    /*!
+     * Read in a CARBONCYCL fieldmap.
+     */
+    void read(const Value_type &scaleFactor);
+    
+    /*!
+     * @param bint stores the interpolated magnetic field
+     * @param brint stores the interpolated radial derivative of the magnetic field
+     * @param btint stores the interpolated "theta" derivative of the magnetic field
+     * @param r is radial position where to interpolate
+     * @param theta is the azimuth angle where to interpolate
+     */
+    void interpolate(Value_type& bint, Value_type& brint, Value_type& btint,
+                     const Value_type& r, const Value_type& theta);
   
-  /// Returns the interpolated values of the magnetic field: B(r,theta), dB/dr, dB/dtheta
-  /*!
-   * @param *bint stores the interpolated magnetic field
-   * @param *brint stores the interpolated radial derivative of the magnetic field
-   * @param *btint stores the interpolated "theta" derivative of the magnetic field
-   * @param ith is the angle theta where to interpolate
-   * @param nr is the number of radial steps
-   * @param nth is the number of angle steps per sector
-   * @param r is radial position where to interpolate
-   * @param r0 is the minimal extent of eh cyclotron
-   * @param dr is the radial step size
-   * @param **b stores the data of the magnetic field (read in by ReadSectorMap())
-   * @param btflag true if dB/dtheta should be computed, else false
-   */
-  static int interpolate1(double*,double*,double*,int,int,int,double,double, double, float**,int);
   
-  /// Reads the magnetic field data from a file
-  /*!
-   * @param **b stores the read data
-   * @param nr is the number of radial steps
-   * @param nth is the number of angle steps per sector
-   * @param nsc is a symmetry parameter
-   * @param fname is the filename
-   * @param sum is 0
-   */
-  static int ReadSectorMap(float**, int, int, int, std::string, double);
-
-  /// Reads the header of magnetic field from a file
-  /*!
-   * @param nr is the number of radial steps
-   * @param nth is the number of angle steps
-   * @param rmin minimal radial position (m)
-   * @param dr radial step (m)
-   * @param dth angle per theta step (rad)
-   * @param nsc is the number of stectors
-   * @param fname is the filename
-   */
-  static void ReadHeader(int*, int*, double*, double*, double*, int*, std::string);
-  
-  /// Make cyclotron N symmetric
-  /*!
-   * @param bmag is magnetic field
-   * @param N
-   * @param nr is the number of radial steps
-   * @param nth is the number of angular steps
-   * @param nsc is the number of sectors
-   */
-  static void MakeNFoldSymmetric(float**, int, int, int, int);
-  
-  /// Allocate memory for magnetic field variable
-  /*!
-   * @param n is number of angular steps
-   * @param m is number of radial steps
-   */
-  static float** malloc2df(int, int);
+    ~MagneticField() {
+        gsl_spline2d_free(spline);
+        gsl_interp_accel_free(xacc);
+        gsl_interp_accel_free(yacc);
+    }
   
 private:
-  // ipolmethod==0 => lineare Interpolation
-  /// Interpolation method
-  static int ipolmethod;
+    
+  // object of Matrics including magnetic field map and its derivates
+  BfieldData Bfield;
   
-  /// Calculates coefficients for Laplace-Interpolation
-  /*!
-   * @param x
-   * @param cof
-   */
-  static void intcf(double, std::vector<double>&);
+  // object of parameters about the map grid
+  BPositions BP;
   
-  /// Calculates coefficients for Laplace-Interpolation
-  /*!
-   * @param x
-   * @param cof
-   * @param ctrl
-   */
-  static void _intcf(double, std::vector<double>&, int);
+  inline int idx(int irad, int ktet) {return (ktet + Bfield.ntetS * irad);}
   
-  /// Shift angle to [0°,360°]
-  /*!
-   * @param phi is the angle
-   */
-  static double norm360(double);
+  gsl_spline2d *spline;
+  gsl_interp_accel *xacc;
+  gsl_interp_accel *yacc;
+  
+  std::string fmapfn_m;     ///< Fieldmap file
   
 };
 
-int MagneticField::interpolate(double* bint,double* brint,double* btint,double th,int nr,int nth,
-	   double r,double r0, double dr, float** b) {
-    double dth,frb,fth;
-    std::vector<double> cofr(8);
-    std::vector<double> cofth(8);
-    int k0,k1,nrb,i,i1,j,ith,j1,xth,ctrl=0;
-    *bint=0.0;
-    *brint=0.0;
-    *btint=0.0;
-    // Map "th" into interval [0..360[: 
-    th=norm360(th);
-    // Map radius "r" onto radial grid:
-    if (r<r0) return 0;
-    frb=(r-r0)/dr;
-    // Split radius in fractional and integer value for interpolation:
-    nrb=(int)frb;
-    frb-=(double)nrb;
-    dth=360./(double)nth;
-    fth=th/dth;
-    ith=(int)fth;
-    fth-=(double)ith;
-    //     r-interpolation for b-field;
-    ctrl=0;
-    k0=0;
-    k1=4;
-    if (nrb+1>nr) return 2;
-    if (nrb+1==nr) {
-	/* Extrapolation: */
-	ctrl=2;
-	k0=0;
-	k1=3;
-	nrb--;
-    } else
-    if (nrb+2==nr) {
-	ctrl=1;
-	k0=0;
-	k1=3;	
-    }
-    // Calculate coefficients for Laplace-Interpolation:
-    _intcf(frb,cofr,ctrl);
-    intcf(fth,cofth);
-    
-    // Sum 'em up:
-    for (i=k0;i<k1;i++) {
-      xth=0;
-      i1=std::abs(nrb+i-1);
-      if (i1<0) {
-	i1=std::abs(i1);
-	xth=nth/2;
-      }
-      for (j=0;j<4;j++) { 
-	j1=(ith+j-1+xth) % nth;
-	if (j1<0) j1+=nth;
-	*bint+=cofr[i]*cofth[j]*b[j1][i1];	// problem with b, since size not 1440
-	*brint+=cofr[i+4]*cofth[j]*b[j1][i1];
-	*btint+=cofr[i]*cofth[j+4]*b[j1][i1];
-      }
-    }
-    
-    *btint*=((double)nth)/(2.0*M_PI);
-    *brint/=dr;
-    return 0;
-}
-
-int MagneticField::interpolate1(double *bint,double *brint,double *btint,int ith,int nr,int nth,
-	   double r,double r0, double dr, float **b,int btflag) {
-    double frb,dth;
-    
-    std::vector<double> cof(8);
-    
-    int nrb,i,i0,i1,ith1,ith2,ctrl;
-    // Map "ith" into interval [0..nth-1]: 
-    while (ith>=nth) ith-=nth;
-    while (ith<0) ith+=nth;
-    // Map radius "r" onto radial grid:
-    frb=(r-r0)/dr-1.0;
-    // Split radius in fractional and integer value for interpolation:
-    nrb=(int)frb;
-    frb-=(double)nrb;
-    ctrl=0;
-    i0=0;
-    i1=4;
-    if (nrb<0) {
-	ctrl=-1;
-	i0=1;
-	i1=4;
-    }
-    if (nrb+3==nr) {
-	ctrl=1;
-	i0=0;
-	i1=3;	
-    }
-    if (nrb+2==nr) {
-	ctrl=2;
-	i0=0;
-	i1=3;
-	nrb--;
-    }
-    if (nrb+2>nr) {
-	return 2;
-    }
-    //     r-interpolation for b-field;
-    // Calculate coefficients for Laplace-Interpolation:
-    _intcf(frb,cof,ctrl);
-    *bint=0.0;
-    *brint=0.0;
-    // Sum 'em up:
-    for (i=i0;i<i1;i++) { 
-      *bint+=cof[i]*b[ith][nrb+i];
-      *brint+=cof[i+4]*b[ith][nrb+i];
-    }
-    (*brint)/=dr;
-    // Theta derivative?
-    if (btflag) {
-	*btint=0.0;
-	dth=2.0*M_PI/(double)nth;
-	ith1=ith-1;
-	if (ith1<0) ith1+=nth;
-	ith2=ith+1;
-	if (ith2>=nth) ith2-=nth;
-	for (i=i0;i<i1;i++) {
-	  *btint+=cof[i]*(b[ith2][nrb+i]-b[ith1][nrb+i]);
-	}
-	(*btint)/=(2.0*dth);
-    }
-    return 0;
-}
-
-void MagneticField::ReadHeader(int *nr, int *nth, double *rmin, double *dr, double *dth, int *nsc, std::string fname){
-
-  FILE *f = fopen(fname.c_str(),"r");
-  if (f != NULL) {
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", rmin));
-    *rmin /= 1000.0; 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", dr));
-    *dr /= 1000.0;
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", nsc));
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", dth));
-    if (*dth<0.0)
-      *dth = -1.0 / *dth;
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", nth));
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", nr));
-    fclose(f);
-  }
-  else
-    throw GeneralClassicException("MagneticField::ReadHeader", "can not open " + fname);
-}
-
-// Sum=0: Read Field Map with nr,nth entries from file "fname" into array "b"
-// Sum=1: Add Field Map with nr,nth entries from file "fname" to array "b"
-// b=b[nth*nsc][nr];
-// Return value is BOOL(success).
-int MagneticField::ReadSectorMap(float** b,int nr,int nth,int nsc, std::string fname, double sum=0) {
-    double tmp;
-    int i,j,k,err=0;
-    FILE *f;
-
-    if ((nr <= 0) || (nth <= 0))
-      throw GeneralClassicException("MagneticField::ReadSectorMap", "nr or nth <= 0 ");
 
 
-    f = fopen(fname.c_str(),"r");
-    if (f != NULL) {
-        // overread the 6 header lines
-        for (int n=0; n<6; n++)
-          err=(fscanf(f,"%lf",&tmp)==EOF); 
-	int dread = 0;
-        j=0;
-	while ((j<nr)&&(err==0)) {		// j: distance (radius)
-	    for (i=0;i<nth;i++) {		// i: angles
-		err=(fscanf(f,"%16lE",&tmp)==EOF);
-		if (!err) {
-		  dread++;
-		    if (sum) {
-			for (k=0;k<nsc;k++)
-			    b[i+nth*k][j]+=sum*tmp;	// b is a (1440 x 8) x 141 matrix
-		    } else {
-			for (k=0;k<nsc;k++)
-			    b[i+nth*k][j]=tmp;
-		    }
-		} else fprintf(stderr,"Error reading %s at (%d,%d)\n",fname.c_str(),j,i);
-
-	    }
-	    if (!err) j++;
-	}
-	fclose(f);
-	if (dread != (nr*nth))
-	  throw GeneralClassicException("MagneticField::ReadSectorMap", "Expected number of datapoint not matched");
-	else
-	  return j;
-    } else 
-      throw GeneralClassicException("MagneticField::ReadSectorMap", "Can not open" + fname);
-    return 0;
-}
-
-float** MagneticField::malloc2df(int n,int m) {
-    float **a;
-    int i;
-    a=MALLOC(n,float*);
-    for (i=0;i<n;i++) {
-	a[i]=MALLOC(m,float);
-	std::memset(a[i],0,m*sizeof(float));
-    }
-    return a;
-}
-
-int MagneticField::ipolmethod=1;
-
-void MagneticField::intcf(double x, std::vector<double>& cof) {
-  //     double 3-pt interpolation for general use;
-  //      dimension cof(8);
-  double x2,x3;
-  
-  if (ipolmethod) {
-    x2=x*x;
-    x3=x2*x;
-    cof[0]=x2-.5*(x3+x);
-    cof[1]=1.5*x3-2.5*x2+1.;
-    cof[2]=2.*x2-1.5*x3+.5*x;
-    cof[3]=.5*(x3-x2);
-    cof[4]=2.*x-1.5*x2-.5;
-    cof[5]=4.5*x2-5.*x;
-    cof[6]=4.*x-4.5*x2+.5;
-    cof[7]=1.5*x2-x;
-  } else {
-    cof[0]=0.0;
-    cof[1]=1.0-x;
-    cof[2]=x;
-    cof[3]=0.0;
-    cof[4]=0.0;
-    cof[5]=-1.0;
-    cof[6]=1.0;
-    cof[7]=0.0;
-  }
-}
-
-void MagneticField::_intcf(double x, std::vector<double>& cof, int ctrl) {
-  double x2=x*x;
-  switch (ctrl) {
-    case 0:	intcf(x,cof); break;
-    case -1:
-      cof[0]=0.0;
-      cof[1]=1.-1.5*x+0.5*x2;
-      cof[2]=2.*x-x2;
-      cof[3]=0.5*(x2-x);
-      cof[4]=0.0;
-      cof[5]=-1.5+x;
-      cof[6]=2.*(1.-x);
-      cof[7]=x-0.5;
-      break;
-    case 1:
-      cof[0]=0.5*(x2-x);
-      cof[1]=1.-x2;
-      cof[2]=0.5*(x+x2);
-      cof[3]=0.0;
-      cof[4]=x-0.5;
-      cof[5]=-2.0*x;
-      cof[6]=0.5+x;
-      cof[7]=0.0;
-      break;
-    case 2: /* extrapolating: */
-      cof[0]=0.5*(x+x2);
-      cof[1]=-2.0*x-x2;
-      cof[2]=1.+1.5*x+0.5*x2;
-      cof[3]=0.0;
-      cof[4]=0.5+x;
-      cof[5]=-2.0*(1.+x);
-      cof[6]=1.5+x;
-      cof[7]=0.0;
-      break;
-    }
-}
-
-double MagneticField::norm360(double phi) {
-    double ph=std::fmod(phi,360.0);
-    if (ph<0.0) ph+=360.0;
-    if (std::fabs(ph-360.0)<1E-3) ph=0.0;
-    return ph;
-}
-
-void MagneticField::MakeNFoldSymmetric(float** bmag, int N, int nr, int nth, int nsc) {
-  double bav;
-
-  for (int i=0;i<nr;i++) {
-    for (int j=0;j<nth;j++) {
-      bav=0.0;
-      for (int k=0;k<nsc;k++) bav+=bmag[(j+k*nth) % N][i];
-      bav/=(double)nsc;
-      for (int k=0;k<nsc;k++) bmag[(j+k*nth) % N][i]=bav;
-    }
-  }
-}
 
 #endif
