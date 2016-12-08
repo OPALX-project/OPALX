@@ -261,6 +261,25 @@ class SigmaGenerator
          * @param val is the floating point value which is transformed to a string
          */
         std::string float2string(value_type val);
+        
+        /// Called within SigmaGenerator::match().
+        /*!
+         * @param tunes
+         * @param ravg is the average radius [m]
+         * @param r_turn is the radius [m]
+         * @param peo is the momentum
+         * @param h_turn is the inverse bending radius
+         * @param fidx_turn is the field index
+         * @param ds_turn is the path length element
+         */
+        void writeOrbitOutput_m(const std::pair<value_type,value_type>& tunes,
+                                const value_type& ravg,
+                                const value_type& freqError,
+                                const container_type& r_turn,
+                                const container_type& peo,
+                                const container_type& h_turn,
+                                const container_type&  fidx_turn,
+                                const container_type&  ds_turn);
 };
 
 // -----------------------------------------------------------------------------------------------------------------------
@@ -378,62 +397,43 @@ template<typename Value_type, typename Size_type>
             container_type r_turn = cof.getOrbit(angle);
             container_type ds_turn = cof.getPathLength();
             container_type fidx_turn = cof.getFieldIndex();
-            tunes = cof.getTunes();                          // tunes = {nur, nuz}
+            tunes = cof.getTunes();
             ravg = cof.getAverageRadius();                   // average radius
 
 	    container_type peo = cof.getMomentum(angle);
+            
+            // write properties to file
+            if (write_m)
+                writeOrbitOutput_m(tunes, ravg, cof.getFrequencyError(),
+                                   r_turn, peo, h_turn, fidx_turn, ds_turn);
+            
+//             // tune calculation from map
+//             std::vector<matrix_type> map(nStepsPerSector_m);
+//             
+            // compute the number of steps per degree
+            value_type deg_step = N_m / 360.0;
+            // compute starting point of computation
+            size_type start = deg_step * angle;
 
-            // write properties to file (if write_m = true)
-            if (write_m) {
-                // write tunes
-                std::ofstream writeTunes("data/Tunes.dat", std::ios::app);
+            // copy properties of the length of one sector (--> nStepsPerSector_m)
+            std::copy_n(r_turn.begin()+start,nStepsPerSector_m, r.begin());
+            std::copy_n(h_turn.begin()+start,nStepsPerSector_m, h.begin());
+            std::copy_n(fidx_turn.begin()+start,nStepsPerSector_m, fidx.begin());
+            std::copy_n(ds_turn.begin()+start,nStepsPerSector_m, ds.begin());
+//             
+//             for (std::size_t i = 0; i < map.size(); ++i)
+//                 map[i] = mapgen.generateMap(H_m(h[i],
+//                                                 h[i]*h[i]+fidx[i],
+//                                                 -fidx[i]),
+//                                             ds[i],
+//                                             truncOrder_m);
+//             
+//             matrix_type mtot = mapgen.combine(map);
+//             map.clear();
+//             tunes = mapgen.computeTunes(mtot);
+//             tunes.first = tunes.first * nSector_m;
+//             tunes.second = tunes.second * nSector_m;
 
-                if(writeTunes.tellp() == 0) // if nothing yet written --> write description
-                    writeTunes << "energy [MeV]" << std::setw(15) << "nur" << std::setw(25) << "nuz" << std::endl;
-
-                writeTunes << E_m << std::setw(30) << std::setprecision(10) << tunes.first << std::setw(25) << tunes.second << std::endl;
-
-                // write average radius
-                std::ofstream writeAvgRadius("data/AverageValues.dat", std::ios::app);
-
-                if (writeAvgRadius.tellp() == 0) // if nothing yet written --> write description
-                    writeAvgRadius << "energy [MeV]" << std::setw(15) << "avg. radius [m]" << std::setw(15) << "r [m]" << std::setw(15) << "pr [m]" << std::endl;
-
-                writeAvgRadius << E_m << std::setw(25) << std::setprecision(10) << ravg << std::setw(25) << std::setprecision(10) << r_turn[0] << std::setw(25) << std::setprecision(10) << peo[0] << std::endl;
-
-                // write frequency error
-                std::ofstream writePhase("data/FrequencyError.dat",std::ios::app);
-
-                if(writePhase.tellp() == 0) // if nothing yet written --> write description
-                    writePhase << "energy [MeV]" << std::setw(15) << "freq. error" << std::endl;
-
-                writePhase << E_m << std::setw(30) << std::setprecision(10) << cof.getFrequencyError() << std::endl;
-
-                // write other properties
-                std::string energy = float2string(E_m);
-                std::ofstream writeProperties("data/PropertiesForEnergy"+energy+"MeV.dat", std::ios::app);
-                writeProperties << std::left
-                                << std::setw(25) << "orbit radius"
-                                << std::setw(25) << "orbit momentum"
-                                << std::setw(25) << "inverse bending radius"
-                                << std::setw(25) << "field index"
-                                << std::setw(25) << "path length" << std::endl;
-
-                for (size_type i = 0; i < r_turn.size(); ++i) {
-                    writeProperties << std::setprecision(10) << std::left
-                                    << std::setw(25) << r_turn[i]
-                                    << std::setw(25) << peo[i]
-                                    << std::setw(25) << h_turn[i]
-                                    << std::setw(25) << fidx_turn[i]
-                                    << std::setw(25) <<  ds_turn[i] << std::endl;
-                }
-
-                // close all files within this if-statement
-                writeTunes.close();
-                writeAvgRadius.close();
-                writePhase.close();
-                writeProperties.close();
-            }
 
             // write to terminal
             *gmsg << "* ----------------------------" << endl
@@ -446,17 +446,6 @@ template<typename Value_type, typename Size_type>
                   << "* horizontal tune: " << tunes.first << endl
                   << "* vertical tune: " << tunes.second << endl
                   << "* ----------------------------" << endl << endl;
-
-                  // compute the number of steps per degree
-            value_type deg_step = N_m / 360.0;
-            // compute starting point of computation
-            size_type start = deg_step * angle;
-
-            // copy properties of the length of one sector (--> nStepsPerSector_m)
-            std::copy_n(r_turn.begin()+start,nStepsPerSector_m, r.begin());
-            std::copy_n(h_turn.begin()+start,nStepsPerSector_m, h.begin());
-            std::copy_n(fidx_turn.begin()+start,nStepsPerSector_m, fidx.begin());
-            std::copy_n(ds_turn.begin()+start,nStepsPerSector_m, ds.begin());
 
         } else {
             MagneticField<double> bField(fieldmap_m);
@@ -473,8 +462,8 @@ template<typename Value_type, typename Size_type>
         }
 
 
-	if(Options::cloTuneOnly)
-	  throw OpalException("Do only CLO and tune calculation","... ");
+        if(Options::cloTuneOnly)
+            throw OpalException("Do only CLO and tune calculation","... ");
 
         // initialize sigma matrices (for each angle one) (first guess)
         initialize(tunes.second,ravg);
@@ -1069,6 +1058,80 @@ std::string SigmaGenerator<Value_type, Size_type>::float2string(value_type val) 
     std::ostringstream out;
     out << std::setprecision(6) << val;
     return out.str();
+}
+
+
+template<typename Value_type, typename Size_type>
+void SigmaGenerator<Value_type, Size_type>::writeOrbitOutput_m(
+    const std::pair<value_type,value_type>& tunes,
+    const value_type& ravg,
+    const value_type& freqError,
+    const container_type& r_turn,
+    const container_type& peo,
+    const container_type& h_turn,
+    const container_type&  fidx_turn,
+    const container_type&  ds_turn)
+{
+    // write tunes
+    std::ofstream writeTunes("data/Tunes.dat", std::ios::app);
+
+    if(writeTunes.tellp() == 0) // if nothing yet written --> write description
+        writeTunes << "energy [MeV]" << std::setw(15)
+                   << "nur" << std::setw(25)
+                   << "nuz" << std::endl;
+    
+    writeTunes << E_m << std::setw(30) << std::setprecision(10)
+               << tunes.first << std::setw(25)
+               << tunes.second << std::endl;
+    
+    // write average radius
+    std::ofstream writeAvgRadius("data/AverageValues.dat", std::ios::app);
+    
+    if (writeAvgRadius.tellp() == 0) // if nothing yet written --> write description
+        writeAvgRadius << "energy [MeV]" << std::setw(15)
+                       << "avg. radius [m]" << std::setw(15)
+                       << "r [m]" << std::setw(15)
+                       << "pr [m]" << std::endl;
+    
+    writeAvgRadius << E_m << std::setw(25) << std::setprecision(10)
+                   << ravg << std::setw(25) << std::setprecision(10)
+                   << r_turn[0] << std::setw(25) << std::setprecision(10)
+                   << peo[0] << std::endl;
+
+    // write frequency error
+    std::ofstream writePhase("data/FrequencyError.dat",std::ios::app);
+
+    if(writePhase.tellp() == 0) // if nothing yet written --> write description
+        writePhase << "energy [MeV]" << std::setw(15)
+                   << "freq. error" << std::endl;
+    
+    writePhase << E_m << std::setw(30) << std::setprecision(10)
+               << freqError << std::endl;
+
+    // write other properties
+    std::string energy = float2string(E_m);
+    std::ofstream writeProperties("data/PropertiesForEnergy"+energy+"MeV.dat", std::ios::out);
+    writeProperties << std::left
+                    << std::setw(25) << "orbit radius"
+                    << std::setw(25) << "orbit momentum"
+                    << std::setw(25) << "inverse bending radius"
+                    << std::setw(25) << "field index"
+                    << std::setw(25) << "path length" << std::endl;
+        
+    for (size_type i = 0; i < r_turn.size(); ++i) {
+        writeProperties << std::setprecision(10) << std::left
+                        << std::setw(25) << r_turn[i]
+                        << std::setw(25) << peo[i]
+                        << std::setw(25) << h_turn[i]
+                        << std::setw(25) << fidx_turn[i]
+                        << std::setw(25) << ds_turn[i] << std::endl;
+    }
+        
+    // close all files within this if-statement
+    writeTunes.close();
+    writeAvgRadius.close();
+    writePhase.close();
+    writeProperties.close();
 }
 
 #endif
