@@ -31,6 +31,8 @@
 
 #include "MagneticField.h" // ONLY FOR STAND-ALONE PROGRAM
 
+#include "CycMagneticField.h"
+
 
 #include <fstream>
 
@@ -141,9 +143,9 @@ class ClosedOrbitFinder
         std::array<value_type,2> x_m; // x_m = [x1, x2]
         /// Stores current momenta in horizontal direction for the solutions of the ODE with different initial values
         std::array<value_type,2> px_m; // px_m = [px1, px2]
-        /// Stores current position in longitudinal direction for the solutions of the ODE with different initial values
+        /// Stores current position in vertical direction for the solutions of the ODE with different initial values
         std::array<value_type,2> z_m; // z_m = [z1, z2]
-        /// Stores current momenta in longitudinal direction for the solutions of the ODE with different initial values
+        /// Stores current momenta in vertical direction for the solutions of the ODE with different initial values
         std::array<value_type,2> pz_m; // pz_m = [pz1, pz2]
 
         /// Stores the inverse bending radius
@@ -798,7 +800,13 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
         invptheta = 1.0 / ptheta;
 
         // intepolate values of magnetic field
+        
+        std::cout << "vertical: " << y[4] << std::endl; std::cin.get();
+        
         bField_m.interpolate(bint, brint, btint, y[0], theta * 180.0 / Physics::pi);
+        
+        std::cout << bint << " " << brint << " " << btint << std::endl;
+        
         bint *= invbcon;
         brint *= invbcon;
         btint *= invbcon;

@@ -228,7 +228,7 @@ void MagneticField<Value_type>::read(const Value_type& scaleFactor) {
     }
     fp1.close();
     
-    const gsl_interp2d_type *T = gsl_interp2d_bilinear;
+    const gsl_interp2d_type *T = gsl_interp2d_bicubic; //gsl_interp2d_bilinear;
     spline = gsl_spline2d_alloc(T, Bfield.nrad, Bfield.ntet);
     xacc = gsl_interp_accel_alloc();
     yacc = gsl_interp_accel_alloc();
