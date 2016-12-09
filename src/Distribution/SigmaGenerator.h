@@ -448,17 +448,19 @@ template<typename Value_type, typename Size_type>
                   << "* ----------------------------" << endl << endl;
 
         } else {
-            MagneticField<double> bField(fieldmap_m);
-            bField.read(scaleFactor_m);
+            *gmsg << "Not yet supported." << endl;
+            return false;
+//             MagneticField<double> bField(fieldmap_m);
+//             bField.read(scaleFactor_m);
             
-            int nradial = bField.getNradSteps();
-            int ntheta = bField.getNtetSteps();
+//             int nradial = bField.getNradSteps();
+//             int ntheta = bField.getNtetSteps();
             
-            Harmonics<value_type, size_type> H(wo_m,Emin_m, Emax_m, ntheta, nradial, nSector_m, E_m, m_m);
-            Mcycs = H.computeMap("data/inj2sym_mainharms.4","data/inj2sym_mainharms.8",4);
-            ravg = H.getRadius();
-            tunes = H.getTunes();
-            const_ds = H.getPathLength();
+//             Harmonics<value_type, size_type> H(wo_m,Emin_m, Emax_m, ntheta, nradial, nSector_m, E_m, m_m);
+//             Mcycs = H.computeMap("data/inj2sym_mainharms.4","data/inj2sym_mainharms.8",4);
+//             ravg = H.getRadius();
+//             tunes = H.getTunes();
+//             const_ds = H.getPathLength();
         }
 
 
@@ -589,6 +591,30 @@ template<typename Value_type, typename Size_type>
 
     } catch(const std::exception& e) {
         std::cerr << e.what() << std::endl;
+    }
+    
+    if ( converged_m && write_m ) {
+        // write tunes
+        std::ofstream writeSigmaMatched("data/MatchedDistributions.dat", std::ios::app);
+        
+        std::array<double,3> emit = this->getEmittances();
+        
+        writeSigmaMatched << "* Converged (Ex, Ey, Ez) = (" << emit[0]
+                          << ", " << emit[1] << ", " << emit[2]
+                          << ") pi mm mrad for E= " << E_m << " (MeV)"
+                          << std::endl << "* Sigma-Matrix " << std::endl;
+
+        for(unsigned int i = 0; i < sigma_m.size1(); ++ i) {
+            writeSigmaMatched << std::setprecision(4)  << std::setw(11)
+                              << sigma_m(i,0);
+            for(unsigned int j = 1; j < sigma_m.size2(); ++ j) {
+                writeSigmaMatched << " & " <<  std::setprecision(4)
+                                  << std::setw(11) << sigma_m(i,j);
+            }
+            writeSigmaMatched << " \\\\" << std::endl;
+        }
+        
+        writeSigmaMatched.close();
     }
 
     return converged_m;
