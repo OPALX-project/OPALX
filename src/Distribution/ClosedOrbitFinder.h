@@ -29,7 +29,7 @@
 
 // #include "physics.h"
 
-#include "MagneticField.h" // ONLY FOR STAND-ALONE PROGRAM
+// #include "MagneticField.h" // ONLY FOR STAND-ALONE PROGRAM
 
 #include "CycMagneticField.h"
 
