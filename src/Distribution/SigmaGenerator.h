@@ -614,6 +614,7 @@ template<typename Value_type, typename Size_type>
             writeSigmaMatched << " \\\\" << std::endl;
         }
         
+        writeSigmaMatched << std::endl;
         writeSigmaMatched.close();
     }
 
