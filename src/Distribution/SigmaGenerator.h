@@ -255,6 +255,14 @@ class SigmaGenerator
          * @param newS is the new sigma matrix
          */
         value_type L2ErrorNorm(const matrix_type&, const matrix_type&);
+        
+        
+        /// Returns the Lp-error norm between the old and new sigma-matrix
+        /*!
+         * @param oldS is the old sigma matrix
+         * @param newS is the new sigma matrix
+         */
+        value_type L1ErrorNorm(const matrix_type&, const matrix_type&);
 
         /// Transforms a floating point value to a string
         /*!
@@ -477,9 +485,9 @@ template<typename Value_type, typename Size_type>
 
             std::string energy = float2string(E_m);
 
-            writeMturn.open("data/maps/OneTurnMapForEnergy"+energy+"MeV.dat",std::ios::app);
-            writeMsc.open("data/maps/SpaceChargeMapPerAngleForEnergy"+energy+"MeV.dat",std::ios::app);
-            writeMcyc.open("data/maps/CyclotronMapPerAngleForEnergy"+energy+"MeV.dat",std::ios::app);
+            writeMturn.open("data/OneTurnMapForEnergy"+energy+"MeV.dat",std::ios::app);
+            writeMsc.open("data/SpaceChargeMapPerAngleForEnergy"+energy+"MeV.dat",std::ios::app);
+            writeMcyc.open("data/CyclotronMapPerAngleForEnergy"+energy+"MeV.dat",std::ios::app);
 
             writeMturn << "--------------------------------" << std::endl;
             writeMturn << "Iteration: 0 " << std::endl;
@@ -1077,6 +1085,23 @@ typename SigmaGenerator<Value_type, Size_type>::value_type SigmaGenerator<Value_
 
     // sum squared error up and take square root
     return std::sqrt(std::inner_product(diff.data().begin(),diff.data().end(),diff.data().begin(),0.0));
+}
+
+template<typename Value_type, typename Size_type>
+typename SigmaGenerator<Value_type, Size_type>::value_type
+    SigmaGenerator<Value_type, Size_type>::L1ErrorNorm(const matrix_type& oldS,
+                                                       const matrix_type& newS)
+{
+    // compute difference
+    matrix_type diff = newS - oldS;
+    
+    std::for_each(diff.data().begin(), diff.data().end(),
+                  [](value_type& val) {
+                      return std::abs(val);
+                  });
+
+    // sum squared error up and take square root
+    return std::accumulate(diff.data().begin(), diff.data().end(), 0.0);
 }
 
 

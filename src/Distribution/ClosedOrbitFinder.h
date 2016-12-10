@@ -267,7 +267,7 @@ ClosedOrbitFinder<Value_type,
 : nxcross_m(0), nzcross_m(0), E_m(E), E0_m(E0), wo_m(wo), N_m(N), dtheta_m(Physics::two_pi/value_type(N)),
   gamma_m(E/E0+1.0), ravg_m(0), phase_m(0), converged_m(false), Emin_m(Emin), Emax_m(Emax), nSector_m(nSector),
   lastOrbitVal_m(0.0), lastMomentumVal_m(0.0),
-  vertOscDone_m(false), domain_m(domain), stepper_m(), rguess_m(rguess), bField_m(fmapfn)
+  vertOscDone_m(false), domain_m(domain), stepper_m(), rguess_m(rguess), bField_m(fmapfn, nSector)
 {
     
     if ( Emin_m > Emax_m )
@@ -305,17 +305,6 @@ ClosedOrbitFinder<Value_type,
     
     // read in magnetic fieldmap
     bField_m.read(scaleFactor);
-    
-    //
-    double bint, brint, btint;
-    double r = 3.0;
-    double theta = Physics::pi / 4.0;
-    bField_m.interpolate(bint, brint, btint, r, theta * 180.0 / Physics::pi);
-//     std::cout << bint << " " << brint << " " << btint << std::endl;
-//     std::cin.get();
-    //
-    
-    
 
     // compute closed orbit
     converged_m = findOrbit(accuracy, maxit);
@@ -514,7 +503,6 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
 
         // intepolate values of magnetic field
         bField_m.interpolate(bint, brint, btint, y[0], theta * 180.0 / Physics::pi);
-//         std::cout << bint << " " << brint << " " << btint << std::endl; std::cin.get();
         bint *= invbcon;
         brint *= invbcon;
 
@@ -813,12 +801,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
         invptheta = 1.0 / ptheta;
 
         // intepolate values of magnetic field
-        
-//         std::cout << "vertical: " << y[4] << std::endl; std::cin.get();
-        
         bField_m.interpolate(bint, brint, btint, y[0], theta * 180.0 / Physics::pi);
-        
-//         std::cout << bint << " " << brint << " " << btint << std::endl;
         
         bint *= invbcon;
         brint *= invbcon;
