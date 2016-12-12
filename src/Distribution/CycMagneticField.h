@@ -16,11 +16,13 @@
 
 #include "Utilities/GeneralClassicException.h"
 #include "AbsBeamline/Cyclotron.h"
+#include "BeamlineGeometry/NullGeometry.h"
+#include "Fields/NullField.h"
 
 #include "Physics/Physics.h"
 
 
-class CycMagneticField {
+class CycMagneticField : public Cyclotron {
     
 public:
     /*!
@@ -30,9 +32,10 @@ public:
     CycMagneticField(const std::string fmapfn, const double& symmetry);
     
     /*!
+     * @param type of the magnetic field file (e.g. CARBONCYCL)
      * @param scaleFactor for the magnetic field.
      */
-    void read(const double& scaleFactor);
+    void read(const std::string& type,const double& scaleFactor);
     
     /*!
      * Get the value of B_{z}, dB_{z}/dr and dB_{z}/dtheta
@@ -48,47 +51,46 @@ public:
                      double& btint,
                      const double& r,
                      const double& theta);
+    
+    
+    /*! Do not call.
+     * @returns a dummy value.
+     */
+    double getSlices() const;
+    
+    /*! Do not call.
+     * @returns a dummy value.
+     */
+    double getStepsize() const;
+    
+    /*! Do not call.
+     * @returns a null field.
+     */
+    const EMField &getField() const;
+    
+    /*! Do not call.
+     * @returns a null field.
+     */
+    EMField &getField();
+    
+    /*! Do not call.
+     * @returns a null pointer.
+     */
+    ElementBase* clone() const;
+    
+    /*! Do not call.
+     * @returns a null geometry.
+     */
+    const BGeometryBase &getGeometry() const;
+    
+    /*! Do not call.
+     * @returns a null geometry.
+     */
+    BGeometryBase &getGeometry();
+    
 private:
-    /*!
-     * @param rmin is the minimum radius [mm]
-     * @param dr is the radial spacing [mm]
-     * @param nrad is the number of radial points
-     */
-    void initR_m(double rmin, double dr, int nrad);
-    
-    /*!
-     * Interpolation of the derivatives of the magnetic field using
-     * the 5-point Lagrange's formula.
-     * 
-     * @param f is the startaddress for the 6 support points
-     * @param dx is the stepwidth
-     * @param kor is the order of the derivative (1, 2 or 3)
-     * @param krl is the number of support points, where the derivative is to be
-     *        calculated
-     * @param lpr is the distance of the 5 storage posiitions (=1 if they are
-     *        neighbors or length of columnlength of a matrix, if the support
-     *        points are on a line)
-     * @return the interpolated value of the derivative of the magnetic field.
-     */
-    double gutdf5d_m(double *f, double dx, const int kor, const int krl, const int lpr);
-    
-    /*!
-     * Initialize the derivatives of the magnetic field on
-     * the grid
-     */
-    void getdiffs_m();
-    
-private:
-    
-    BfieldData Bfield;      ///< object of Matrics including magnetic field map and its derivates
-    
-    BPositions BP;          ///< object of parameters about the map grid
-    
-    inline int idx(int irad, int ktet) {return (ktet + Bfield.ntetS * irad);}
-    
-    std::string fmapfn_m;   ///< Fieldmap file
-    
-    double symmetry_m;      ///< Number of sectors
+    NullGeometry nullGeom_m;
+    NullField nullField_m;
 };
 
 #endif
