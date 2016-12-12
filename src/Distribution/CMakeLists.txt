@@ -2,7 +2,7 @@ set (_SRCS
   Distribution.cpp
   halton1d_sequence.cpp
   LaserProfile.cpp
-  CycMagneticField.cpp
+  MagneticField.cpp
   )
 
 include_directories (
