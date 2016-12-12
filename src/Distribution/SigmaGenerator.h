@@ -117,9 +117,11 @@ class SigmaGenerator
          * @param maxitOrbit is the maximum number of iterations for finding closed orbit
          * @param angle defines the start of the sector (one can choose any angle between 0° and 360°)
 	 * @param guess value of radius for closed orbit finder
+         * @param type specifies the magnetic field format (e.g. CARBONCYCL)
          * @param harmonic is a boolean. If "true" the harmonics are used instead of the closed orbit finder.
          */
-        bool match(value_type, size_type, size_type, value_type, value_type, bool);
+        bool match(value_type, size_type, size_type, value_type,
+                   value_type, const std::string&, bool);
 
         /// Block diagonalizes the symplex part of the one turn transfer matrix
         /** It computes the transformation matrix <b>R</b> and its inverse <b>invR</b>.
@@ -373,7 +375,14 @@ SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I, value_type e
 }
 
 template<typename Value_type, typename Size_type>
-  bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy, size_type maxit, size_type maxitOrbit, value_type angle, value_type rguess, bool harmonic) {
+  bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy,
+                                                    size_type maxit,
+                                                    size_type maxitOrbit,
+                                                    value_type angle,
+                                                    value_type rguess,
+                                                    const std::string& type,
+                                                    bool harmonic)
+{
     /* compute the equilibrium orbit for energy E_
      * and get the the following properties:
      * - inverse bending radius h
@@ -384,7 +393,12 @@ template<typename Value_type, typename Size_type>
     try {
 
         // object for space charge map and cyclotron map
-        MapGenerator<value_type, size_type, Series, Map, Hamiltonian, SpaceCharge> mapgen(nStepsPerSector_m);
+        MapGenerator<value_type,
+                     size_type,
+                     Series,
+                     Map,
+                     Hamiltonian,
+                     SpaceCharge> mapgen(nStepsPerSector_m);
 
         // compute cyclotron map and space charge map for each angle and store them into a vector
         std::vector<matrix_type> Mcycs(nStepsPerSector_m), Mscs(nStepsPerSector_m);
@@ -398,7 +412,7 @@ template<typename Value_type, typename Size_type>
                 boost::numeric::odeint::runge_kutta4<container_type> > cof(E_m, m_m, wo_m, N_m, accuracy,
                                                                            maxitOrbit, Emin_m, Emax_m,
                                                                            nSector_m, fieldmap_m, rguess,
-                                                                           scaleFactor_m, false);
+                                                                           type, scaleFactor_m, false);
 
             // properties of one turn
             container_type h_turn = cof.getInverseBendingRadius();
@@ -414,34 +428,6 @@ template<typename Value_type, typename Size_type>
             if (write_m)
                 writeOrbitOutput_m(tunes, ravg, cof.getFrequencyError(),
                                    r_turn, peo, h_turn, fidx_turn, ds_turn);
-            
-//             // tune calculation from map
-//             std::vector<matrix_type> map(nStepsPerSector_m);
-//             
-            // compute the number of steps per degree
-            value_type deg_step = N_m / 360.0;
-            // compute starting point of computation
-            size_type start = deg_step * angle;
-
-            // copy properties of the length of one sector (--> nStepsPerSector_m)
-            std::copy_n(r_turn.begin()+start,nStepsPerSector_m, r.begin());
-            std::copy_n(h_turn.begin()+start,nStepsPerSector_m, h.begin());
-            std::copy_n(fidx_turn.begin()+start,nStepsPerSector_m, fidx.begin());
-            std::copy_n(ds_turn.begin()+start,nStepsPerSector_m, ds.begin());
-//             
-//             for (std::size_t i = 0; i < map.size(); ++i)
-//                 map[i] = mapgen.generateMap(H_m(h[i],
-//                                                 h[i]*h[i]+fidx[i],
-//                                                 -fidx[i]),
-//                                             ds[i],
-//                                             truncOrder_m);
-//             
-//             matrix_type mtot = mapgen.combine(map);
-//             map.clear();
-//             tunes = mapgen.computeTunes(mtot);
-//             tunes.first = tunes.first * nSector_m;
-//             tunes.second = tunes.second * nSector_m;
-
 
             // write to terminal
             *gmsg << "* ----------------------------" << endl
@@ -455,20 +441,20 @@ template<typename Value_type, typename Size_type>
                   << "* vertical tune: " << tunes.second << endl
                   << "* ----------------------------" << endl << endl;
 
+            // compute the number of steps per degree
+            value_type deg_step = N_m / 360.0;
+            // compute starting point of computation
+            size_type start = deg_step * angle;
+
+            // copy properties of the length of one sector (--> nStepsPerSector_m)
+            std::copy_n(r_turn.begin()+start,nStepsPerSector_m, r.begin());
+            std::copy_n(h_turn.begin()+start,nStepsPerSector_m, h.begin());
+            std::copy_n(fidx_turn.begin()+start,nStepsPerSector_m, fidx.begin());
+            std::copy_n(ds_turn.begin()+start,nStepsPerSector_m, ds.begin());
+            
         } else {
             *gmsg << "Not yet supported." << endl;
             return false;
-//             MagneticField<double> bField(fieldmap_m);
-//             bField.read(scaleFactor_m);
-            
-//             int nradial = bField.getNradSteps();
-//             int ntheta = bField.getNtetSteps();
-            
-//             Harmonics<value_type, size_type> H(wo_m,Emin_m, Emax_m, ntheta, nradial, nSector_m, E_m, m_m);
-//             Mcycs = H.computeMap("data/inj2sym_mainharms.4","data/inj2sym_mainharms.8",4);
-//             ravg = H.getRadius();
-//             tunes = H.getTunes();
-//             const_ds = H.getPathLength();
         }
 
 

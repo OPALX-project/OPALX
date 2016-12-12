@@ -230,7 +230,24 @@ public:
     virtual double getRmax() const;
 
     virtual double getRmin() const;
+    
+protected:
+    void   getdiffs();
 
+    double gutdf5d(double *f, double dx, const int kor, const int krl, const int lpr);
+
+    void   initR(double rmin, double dr, int nrad);
+
+    void   getFieldFromFile(const double &scaleFactor);
+    void   getFieldFromFile_Carbon(const double &scaleFactor);
+    void   getFieldFromFile_CYCIAE(const double &scaleFactor);
+    void   getFieldFromFile_AVFEQ(const double &scaleFactor);
+    void   getFieldFromFile_FFAG(const double &scaleFactor);
+    void   getFieldFromFile_BandRF(const double &scaleFactor);
+    void   getFieldFromFile_Synchrocyclotron(const double &scaleFactor);
+
+    inline int idx(int irad, int ktet) {return (ktet + Bfield.ntetS * irad);}
+    
 private:
 
     std::string fmapfn_m; /* stores the filename of the fieldmap */
@@ -279,11 +296,6 @@ private:
     // Not implemented.
     void operator=(const Cyclotron &);
 
-    // object of Matrics including magnetic field map and its derivates
-    BfieldData Bfield;
-
-    // object of parameters about the map grid
-    BPositions BP;
 
     BFieldType myBFieldType_m;
 
@@ -297,25 +309,15 @@ private:
     // handling for store the particle out of region
     std::unique_ptr<LossDataSink> lossDs_m;
 
-    void   getdiffs();
-
-    double gutdf5d(double *f, double dx, const int kor, const int krl, const int lpr);
-
-    void   initR(double rmin, double dr, int nrad);
-
-    void   getFieldFromFile(const double &scaleFactor);
-    void   getFieldFromFile_Carbon(const double &scaleFactor);
-    void   getFieldFromFile_CYCIAE(const double &scaleFactor);
-    void   getFieldFromFile_AVFEQ(const double &scaleFactor);
-    void   getFieldFromFile_FFAG(const double &scaleFactor);
-    void   getFieldFromFile_BandRF(const double &scaleFactor);
-    void   getFieldFromFile_Synchrocyclotron(const double &scaleFactor);
-
     // Necessary for quick and dirty phase output -DW
     int waiting_for_gap = 1;
+    
+protected:
+    // object of Matrics including magnetic field map and its derivates
+    BfieldData Bfield;
 
-    inline int idx(int irad, int ktet) {return (ktet + Bfield.ntetS * irad);}
-
+    // object of parameters about the map grid
+    BPositions BP;
 };
 
 #endif // CLASSIC_Cyclotron_HH
