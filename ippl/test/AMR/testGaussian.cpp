@@ -59,6 +59,22 @@ typedef Array<std::unique_ptr<MultiFab> > container_t;
 
 double dt = 1.0;          // size of timestep
 
+double totalFieldEnergy(container_t& efield, const Vektor<size_t, 3>& nr) {
+    
+    double fieldEnergy = 0.0;
+    for (unsigned int l = 0; l < efield.size(); ++l)
+        fieldEnergy += MultiFab::Dot(*efield[l], 0, *efield[l], 0, 3, 0) / ( nr[0] * nr[1] * nr[2] );
+    
+    return 0.5 * Physics::epsilon_0 * fieldEnergy;
+}
+
+double totalPotential(container_t& potential) {
+    double sum = 0.0;
+    for (unsigned int l = 0; l < potential.size(); ++l)
+        sum += potential[l]->sum();
+    return sum;
+}
+
 
 void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
              container_t& rhs,
@@ -232,7 +248,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     Distribution dist;
     IpplTimings::startTimer(distTimer);
     dist.gaussian(0.0, 0.001, nloc, ParallelDescriptor::MyProc());
-    
+//     dist.uniform(-0.001, 0.001, nloc, ParallelDescriptor::MyProc());
     
     // copy particles to the PartBunchBase object.
     dist.injectBeam(*bunch);
@@ -287,6 +303,12 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
     doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
+    
+    double dx = *(geom[0].CellSize());
+    std::cout << "Total field energy: " << totalFieldEnergy(grad_phi, nr) << std::endl;
+    std::cout << "Total potential: " << totalPotential(phi) << std::endl;
+    std::cout << "Cell volume: " << dx << std::endl;
+    
     
     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
     
