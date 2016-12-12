@@ -1,7 +1,7 @@
-#include "CycMagneticField.h"
+#include "MagneticField.h"
 
-CycMagneticField::CycMagneticField(const std::string fmapfn,
-                                   const double& symmetry) :
+MagneticField::MagneticField(const std::string fmapfn,
+                             const double& symmetry) :
     Cyclotron(),
     nullGeom_m(NullGeometry()),
     nullField_m(NullField())
@@ -10,7 +10,7 @@ CycMagneticField::CycMagneticField(const std::string fmapfn,
     this->setSymmetry(symmetry);
 }
 
-void CycMagneticField::read(const std::string& type,
+void MagneticField::read(const std::string& type,
                             const double& scaleFactor) {
     
     if ( type == "CARBONCYCL" )
@@ -40,7 +40,7 @@ void CycMagneticField::read(const std::string& type,
 }
 
 
-void CycMagneticField::interpolate(double& bint,
+void MagneticField::interpolate(double& bint,
                                    double& brint,
                                    double& btint,
                                    const double& rad,
@@ -133,30 +133,30 @@ void CycMagneticField::interpolate(double& bint,
     }
 }
 
-double CycMagneticField::getSlices() const {
+double MagneticField::getSlices() const {
     return -1.0;
 }
 
-double CycMagneticField::getStepsize() const {
+double MagneticField::getStepsize() const {
     return -1.0;
 }
 
-const EMField &CycMagneticField::getField() const {
+const EMField &MagneticField::getField() const {
     return nullField_m;
 }
 
-EMField &CycMagneticField::getField() {
+EMField &MagneticField::getField() {
     return nullField_m;
 }
 
-ElementBase* CycMagneticField::clone() const {
+ElementBase* MagneticField::clone() const {
     return nullptr;
 }
 
-const BGeometryBase &CycMagneticField::getGeometry() const {
+const BGeometryBase &MagneticField::getGeometry() const {
     return nullGeom_m;
 }
 
-BGeometryBase &CycMagneticField::getGeometry() {
+BGeometryBase &MagneticField::getGeometry() {
     return nullGeom_m;
 }
