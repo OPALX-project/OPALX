@@ -31,7 +31,7 @@
 
 // #include "MagneticField.h" // ONLY FOR STAND-ALONE PROGRAM
 
-#include "CycMagneticField.h"
+#include "MagneticField.h"
 
 
 #include <fstream>
@@ -251,7 +251,7 @@ class ClosedOrbitFinder
             return e0 * 1.0e7 / (/* physics::q0 */ 1.0 * Physics::c * Physics::c / wo);
         };
         
-        CycMagneticField bField_m;
+        MagneticField bField_m;
 };
 
 // -----------------------------------------------------------------------------------------------------------------------

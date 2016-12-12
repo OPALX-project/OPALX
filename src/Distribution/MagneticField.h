@@ -1,5 +1,5 @@
-#ifndef CYCMAGNETICFIELD_H
-#define CYCMAGNETICFIELD_H
+#ifndef MAGNETICFIELD_H
+#define MAGNETICFIELD_H
 
 
 #include <iostream>
@@ -22,14 +22,14 @@
 #include "Physics/Physics.h"
 
 
-class CycMagneticField : public Cyclotron {
+class MagneticField : public Cyclotron {
     
 public:
     /*!
      * @param fmapfn specifies the fieldmap file. We support only
      * the CARBONCYCL format at the moment.
      */
-    CycMagneticField(const std::string fmapfn, const double& symmetry);
+    MagneticField(const std::string fmapfn, const double& symmetry);
     
     /*!
      * @param type of the magnetic field file (e.g. CARBONCYCL)
