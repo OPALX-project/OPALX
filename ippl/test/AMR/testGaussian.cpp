@@ -59,11 +59,19 @@ typedef Array<std::unique_ptr<MultiFab> > container_t;
 
 double dt = 1.0;          // size of timestep
 
-double totalFieldEnergy(container_t& efield, const Vektor<size_t, 3>& nr) {
+double totalFieldEnergy(container_t& efield) {
     
     double fieldEnergy = 0.0;
-    for (unsigned int l = 0; l < efield.size(); ++l)
-        fieldEnergy += MultiFab::Dot(*efield[l], 0, *efield[l], 0, 3, 0) / ( nr[0] * nr[1] * nr[2] );
+//     long volume = 0;
+    for (unsigned int l = 0; l < efield.size(); ++l) {
+        long nPoints = 0;
+        fieldEnergy += MultiFab::Dot(*efield[l], 0, *efield[l], 0, 3, 0);
+        for (unsigned int b = 0; b < efield[l]->boxArray().size(); ++b) {
+//             volume += efield[l]->box(b).volume(); // cell-centered --> volume() == numPts()
+            nPoints += efield[l]->box(b).numPts();
+        }
+        fieldEnergy /= double(nPoints);
+    }
     
     return 0.5 * Physics::epsilon_0 * fieldEnergy;
 }
@@ -96,7 +104,7 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
         //                                    # component # ghost cells                                                                                                                                          
         rhs[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev],1          ,0));
         phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev],1          ,1));
-        grad_phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev],BL_SPACEDIM,1));
+        grad_phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev],BL_SPACEDIM, 0));
 
         rhs[lev]->setVal(0.0);
         phi[lev]->setVal(0.0);
@@ -117,12 +125,15 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
         std::cout << "level " << i << " sum = " << sum << std::endl;
         totalCharge += sum;
     }
-    std::cout << "Total Charge: " << totalCharge << std::endl;
+    std::cout << "Total Charge: " << totalCharge << " C" << std::endl;
+    std::cout << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << std::endl;
+    Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
+    std::cout << "Cell volume: " << vol << " m^3" << std::endl;
     
     // eps in C / (V * m)
-    double constant = -Physics::q_e / (4.0 * Physics::pi * Physics::epsilon_0);
+    double constant = -1.0/*Physics::q_e*/ / (4.0 * Physics::pi * Physics::epsilon_0);  // in [V m / C]
     for (int i = 0; i <=finest_level; ++i) {
-        rhs[i]->mult(constant, 0, 1);
+        rhs[i]->mult(constant, 0, 1);       // in [V m]
     }
     
     // **************************************************************************                                                                                                                                
@@ -141,9 +152,9 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     // solve                                                                                                                                                                                                     
     Solver sol;
     IpplTimings::startTimer(solvTimer);
-    sol.solve_for_accel(rhs,
-                        phi,
-                        grad_phi,
+    sol.solve_for_accel(rhs,            // [V m]
+                        phi,            // [V m^3]
+                        grad_phi,       // [V m^2]
                         geom,
                         base_level,
                         finest_level,
@@ -153,13 +164,13 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
         rhs[i]->mult(1.0 / constant, 0, 1);
     }
     
-    for (int i = 0; i <= finest_level; ++i) {
-        std::cout << "Level " << i << " " << phi[i]->min(0) << " " << phi[i]->max(0) << " "
-                  << grad_phi[i]->min(0) << " " << grad_phi[i]->max(0) << " "
-                  << grad_phi[i]->min(1) << " " << grad_phi[i]->max(1) << " "
-                  << grad_phi[i]->min(2) << " " << grad_phi[i]->max(2) << " "
-                  << std::endl;
-    }
+//     for (int i = 0; i <= finest_level; ++i) {
+//         std::cout << "Level " << i << " " << phi[i]->min(0) << " " << phi[i]->max(0) << " "
+//                   << grad_phi[i]->min(0) << " " << grad_phi[i]->max(0) << " "
+//                   << grad_phi[i]->min(1) << " " << grad_phi[i]->max(1) << " "
+//                   << grad_phi[i]->min(2) << " " << grad_phi[i]->max(2) << " "
+//                   << std::endl;
+//     }
     
     
     IpplTimings::stopTimer(solvTimer);
@@ -253,6 +264,10 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // copy particles to the PartBunchBase object.
     dist.injectBeam(*bunch);
     
+    
+    for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
+        bunch->setQM(Physics::q_e, i);  // in [C]
+    
     // redistribute on single-level
     bunch->myUpdate();
     
@@ -304,10 +319,14 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
     doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
     
-    double dx = *(geom[0].CellSize());
-    std::cout << "Total field energy: " << totalFieldEnergy(grad_phi, nr) << std::endl;
-    std::cout << "Total potential: " << totalPotential(phi) << std::endl;
-    std::cout << "Cell volume: " << dx << std::endl;
+    msg << "Total field energy: " << totalFieldEnergy(grad_phi) << endl;
+    
+    for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
+        msg << "Max. potential level " << i << ": "<< phi[i]->max(0) << endl
+            << "Min. potential level " << i << ": " << phi[i]->min(0) << endl
+            << "Max. ex-field level " << i << ": " << grad_phi[i]->max(0) << endl
+            << "Min. ex-field level " << i << ": " << grad_phi[i]->min(0) << endl;
+    }
     
     
     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
@@ -354,7 +373,7 @@ int main(int argc, char *argv[]) {
     size_t maxBoxSize = std::atoi(argv[6]);
     doBoxLib(nr, nParticles, nLevels, maxBoxSize, msg, msg2all);
     
-
+    
     IpplTimings::stopTimer(mainTimer);
 
     IpplTimings::print();

@@ -42,23 +42,7 @@ void AmrOpal::initBaseLevel() {
 // void AmrOpal::initFineLevels() { }
 
 
-void AmrOpal::writePlotFile(std::string filename, int step) {
-    
-//     Array<std::string> varnames(1, "rho");
-//     
-//     Array<const MultiFab*> tmp(finest_level + 1/*nPartPerCell_m.size()*/);
-//     for (/*unsigned*/ int i = 0; i < finest_level + 1/*nPartPerCell_m.size()*/; ++i) {
-//         tmp[i] = chargeOnGrid_m[i].get();
-//     }
-//     
-//     const auto& mf = tmp;
-//     
-//     Array<int> istep(finest_level+1, step);
-//     
-//     BoxLib::WriteMultiLevelPlotfile(filename, finest_level + 1, mf, varnames,
-//                                     Geom(), 0.0, istep, refRatio());
-//     
-//     return;
+void AmrOpal::writePlotFileYt(std::string filename, int step) {
     
     std::string dir = filename;
     int nLevels = chargeOnGrid_m.size();
@@ -209,6 +193,22 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
         VisMF::Write(data,TheFullPath);
     }
     
+}
+
+void AmrOpal::writePlotFile(std::string filename, int step) {
+    Array<std::string> varnames(1, "rho");
+    
+    Array<const MultiFab*> tmp(finest_level + 1/*nPartPerCell_m.size()*/);
+    for (/*unsigned*/ int i = 0; i < finest_level + 1/*nPartPerCell_m.size()*/; ++i) {
+        tmp[i] = chargeOnGrid_m[i].get();
+    }
+    
+    const auto& mf = tmp;
+    
+    Array<int> istep(finest_level+1, step);
+    
+    BoxLib::WriteMultiLevelPlotfile(filename, finest_level + 1, mf, varnames,
+                                    Geom(), 0.0, istep, refRatio());
 }
 
 

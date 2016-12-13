@@ -1,6 +1,7 @@
 #include "H5Reader.h"
 
 #include <vector>
+#include <cassert>
 
 #include "Ippl.h"
 
@@ -10,7 +11,22 @@ H5Reader::H5Reader(const std::string& filename)
 
 void H5Reader::open(int step) {
     close();
-    file_m = H5OpenFile(filename_m.c_str(), H5_O_RDONLY, Ippl::getComm());
+    
+    
+#if defined (USE_H5HUT2)
+    h5_prop_t props = H5CreateFileProp ();
+    MPI_Comm comm = Ippl::getComm();
+    h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
+#if defined (NDEBUG)
+    (void)h5err;
+#endif
+    assert (h5err != H5_ERR);
+    file_m = H5OpenFile (filename_m.c_str(), H5_O_RDONLY, props);
+    assert (file_m != (h5_file_t)H5_ERR);
+#else
+    file_m = H5OpenFile(filename_m.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, Ippl::getComm());
+    assert (file_m != (void*)H5_ERR);
+#endif
     
     H5SetStep(file_m, step);
 }
