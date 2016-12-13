@@ -83,6 +83,11 @@ public:
     /*!
      * Write a timestamp file for displaying with yt.
      */
+    void writePlotFileYt(std::string filename, int step);
+    
+    /*!
+     * Write a timestamp file for displaying with AmrVis.
+     */
     void writePlotFile(std::string filename, int step);
     
     mfs_mt* getPartPerCell() {

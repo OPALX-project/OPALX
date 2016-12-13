@@ -22,38 +22,14 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
+#include <cmath>
 
 
 typedef std::vector<double> vector_t;
 typedef std::vector<vector_t> matrix_t;
 typedef std::vector<matrix_t> tensor_t;
 
-
-int main(int argc, char* argv[]) {
-    
-    if (argc != 3) {
-        std::cerr << "./iterative [nx] [nsteps]" << std::endl;
-        return -1;
-    }
-    
-    int n = std::atoi(argv[1]); // grid points
-    double h = 1.0 / double(n); // mesh size
-    
-    // charge density initialized with -1
-    double rho = -1.0;
-    
-    // unknowns (initialized to zero by default)
-    /*
-     * the dimension in each direction has to be
-     * + 2 since we have Dirichlet boundary
-     * conditions and we just consider interior points
-     */
-    tensor_t phi(n + 2,
-                 matrix_t(n + 2,
-                          vector_t(n + 2)
-                         )
-                );
-    
+void jacobi(tensor_t& phi, const double& h, const int& n, const double& rho, const int& nSteps) {
     
     tensor_t newphi(n + 2,
                  matrix_t(n + 2,
@@ -74,7 +50,7 @@ int main(int argc, char* argv[]) {
      * 
      * (also for j and k direction)
      */
-    for (int t = 0; t < std::atoi(argv[2]); ++t) {
+    for (int t = 0; t < nSteps; ++t) {
         for (int i = 1; i < n + 1; ++i)
             for (int j = 1; j < n + 1; ++j)
                 for (int k = 1; k < n + 1; ++k) {
@@ -105,9 +81,68 @@ int main(int argc, char* argv[]) {
                 phi[n+1][j][k] = -phi[n][j][k];
             }
     }
+}
+
+// 6.12.2016, http://www.physics.buffalo.edu/phy410-505/2011/topic3/app1/index.html
+// successive over relaxation, not working
+void sor(tensor_t& phi, const double& h, const int& n, const double& rho, const int& nSteps) {
+    
+    double w = 2.0 / ( 1.0 + M_PI / double(n) );
+    
+    tensor_t newphi(n + 2,
+                 matrix_t(n + 2,
+                          vector_t(n + 2)
+                         )
+                );
     
     
+    double fac = - h * h / 6.0;
+    double inv = 1.0 / 6.0;
     
+    // solve (boundary is zero)
+    /*
+     * boundary is the edge and not the nodal point
+     * we can get a zero edge when we imply
+     * that
+     * \phi[i-1] = -\phi[i] for i = 1 and i = n
+     * 
+     * (also for j and k direction)
+     */
+    for (int t = 0; t < nSteps; ++t) {
+        for (int i = 1; i < n + 1; ++i)
+            for (int j = 1; j < n + 1; ++j)
+                for (int k = 1; k < n + 1; ++k) {
+                    newphi[i][j][k] = (1.0 - w) * phi[i][j][k]
+                                      + w * fac * rho + w * inv * (phi[i+1][j][k] + phi[i-1][j][k] +
+                                                                   phi[i][j+1][k] + phi[i][j-1][k] +
+                                                                   phi[i][j][k+1] + phi[i][j][k-1]
+                                                                   );
+                }
+        std::swap(phi, newphi);
+        
+        
+        // update boundary
+        for (int i = 0; i < n + 2; ++i)
+            for (int j = 0; j < n + 2; ++j) {
+                phi[i][j][0] = -phi[i][j][1];
+                phi[i][j][n+1] = -phi[i][j][n];
+            }
+        
+        for (int i = 0; i < n + 2; ++i)
+            for (int k = 0; k < n + 2; ++k) {
+                phi[i][0][k] = -phi[i][1][k];
+                phi[i][n+1][k] = -phi[i][n][k];
+            }
+        
+        for (int j = 0; j < n + 2; ++j)
+            for (int k = 0; k < n + 2; ++k) {
+                phi[0][j][k] = -phi[1][j][k];
+                phi[n+1][j][k] = -phi[n][j][k];
+            }
+    }
+}
+
+void write(tensor_t& phi, const double& h, const int& n) {
     // just write interior points
     std::ofstream pout("phi.dat");
     for (int i = 1; i < n + 1; ++i)
@@ -156,6 +191,39 @@ int main(int argc, char* argv[]) {
                   << std::endl;
     
     ezout.close();
+}
+
+
+int main(int argc, char* argv[]) {
+    
+    if (argc != 3) {
+        std::cerr << "./iterative [nx] [nsteps]" << std::endl;
+        return -1;
+    }
+    
+    int n = std::atoi(argv[1]); // grid points
+    double h = 0.02 / double(n); // mesh size
+    int nSteps = std::atoi(argv[2]);
+    
+    // charge density initialized with -1
+    double rho = -1.0;
+    
+    // unknowns (initialized to zero by default)
+    /*
+     * the dimension in each direction has to be
+     * + 2 since we have Dirichlet boundary
+     * conditions and we just consider interior points
+     */
+    tensor_t phi(n + 2,
+                 matrix_t(n + 2,
+                          vector_t(n + 2)
+                         )
+                );
+    
+    jacobi(phi, h, n, rho, nSteps);
+//     sor(phi, h, n, rho, nSteps);
+    
+    write(phi, h, n);
     
     return 0;
 }
