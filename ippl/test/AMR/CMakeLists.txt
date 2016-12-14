@@ -68,6 +68,8 @@ IF (ENABLE_AMR_SOLVER)
     add_executable (testError error.cpp AmrPartBunch.cpp H5Reader.cpp Distribution.cpp PoissonProblems.cpp Solver.cpp AmrOpal.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp)
     add_executable (testGaussian testGaussian.cpp AmrOpal.cpp AmrPartBunch.cpp H5Reader.cpp Distribution.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp Solver.cpp)
     
+    add_executable (testPointCharge testPointCharge.cpp AmrOpal.cpp AmrPartBunch.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp Solver.cpp)
+    
     add_executable (testH5Read testH5Read.cpp H5Reader.cpp Distribution.cpp)
     
     # Boxlib has a circular dependency between -lcboxlib and -lfboxlib --> resolve by: -lcboxlib -lfboxlib -lcboxlib
@@ -78,4 +80,6 @@ IF (ENABLE_AMR_SOLVER)
     target_link_libraries (testH5Read ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testGaussian ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    
+    target_link_libraries (testPointCharge ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 ENDIF(ENABLE_AMR_SOLVER)
