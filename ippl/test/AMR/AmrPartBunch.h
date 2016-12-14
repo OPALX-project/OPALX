@@ -153,6 +153,40 @@ public:
         }
     }
     
+    Vector_t interpolate(int i, MultiFab& quantity) {
+        
+        int lev, grid, dq;
+        std::tie(lev, grid, dq) = idxMap_m[i];
+        
+        const Real strttime  = ParallelDescriptor::second();
+        
+        MultiFab* ac_pointer;
+        if (OnSameGrids(lev,quantity)) {
+            ac_pointer = &quantity;
+        } else {
+            ac_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),quantity.nComp(),quantity.nGrow(),
+                                      m_gdb->ParticleDistributionMap(lev),Fab_allocate);
+            for (MFIter mfi(*ac_pointer); mfi.isValid(); ++mfi)
+                ac_pointer->setVal(0.);
+            ac_pointer->copy(quantity,0,0,quantity.nComp());
+            ac_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
+        }
+        
+        const FArrayBox& gfab = (*ac_pointer)[grid];
+        Real grav[1] = { 0.0 };
+        
+        int idx[1] = { 0 };
+
+    ParticleBase::Interp(m_particles[lev][grid][dq],
+                         m_gdb->Geom(lev),
+                         gfab,
+                         idx,
+                         grav,
+                         1);
+        
+        return Vector_t(grav[0], 0, 0);
+    }
+    
 private:
     /// Create the index mapping in order to have random access
     void buildIndexMapping_m();
