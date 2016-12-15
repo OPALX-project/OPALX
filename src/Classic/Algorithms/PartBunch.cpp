@@ -1804,8 +1804,8 @@ void PartBunch::boundp() {
             //INFOMSG("It is not a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
         }
 
-        if (getTotalNum()>10 && ((hr_m[0] <= 0.0) || (hr_m[1] <= 0.0) || (hr_m[2] <= 0.0)))
-	  throw GeneralClassicException("boundp() ", "h<0, can not build a mesh");
+        if (((hr_m[0] <= 0.0) || (hr_m[1] <= 0.0) || (hr_m[2] <= 0.0)) && (this->getTotalNum()>10))
+            throw GeneralClassicException("boundp() ", "h<0, can not build a mesh");
 
    // if (getTotalNum() < 200) m << "before set fields Nl= " << getLocalNum() << endl;
 

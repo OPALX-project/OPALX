@@ -33,6 +33,24 @@
 
 typedef Solver::container_t container_t;
 
+
+double totalFieldEnergy(container_t& efield) {
+    
+    double fieldEnergy = 0.0;
+    for (unsigned int l = 0; l < efield.size(); ++l)
+        fieldEnergy += MultiFab::Dot(*efield[l], 0, *efield[l], 0, 3, 0);
+    
+    return 0.5 * fieldEnergy;
+}
+
+double totalPotential(container_t& potential) {
+    double sum = 0.0;
+    for (unsigned int l = 0; l< potential.size(); ++l)
+        sum += potential[l]->sum();
+    return sum;
+}
+
+
 int main(int argc, char* argv[]) {
     
     if (argc != 7) {
@@ -72,7 +90,7 @@ int main(int argc, char* argv[]) {
     RealBox domain;
     for (int i = 0; i < BL_SPACEDIM; ++i) {
         domain.setLo(i, 0.0);
-        domain.setHi(i, 1.0);
+        domain.setHi(i, 0.01);
     }
     
     // dirichlet boundary conditions
@@ -153,13 +171,13 @@ int main(int argc, char* argv[]) {
     Solver sol;
     
     IpplTimings::startTimer(solverTimer);
-//     sol.solve_for_accel(BoxLib::GetArrOfPtrs(rho),
-//                         BoxLib::GetArrOfPtrs(phi),
-//                         BoxLib::GetArrOfPtrs(efield),
-//                         geom,
-//                         base_level,
-//                         fine_level,
-//                         offset);
+    sol.solve_for_accel(rho,
+                        phi,
+                        efield,
+                        geom,
+                        base_level,
+                        fine_level,
+                        offset);
     IpplTimings::stopTimer(solverTimer);
     
     // ------------------------------------------------------------------------
@@ -185,6 +203,13 @@ int main(int argc, char* argv[]) {
                         + "-gridsize=" + std::to_string(maxBoxSize);
                         
     IpplTimings::print(tfn);
+    
+    Inform msg("Solver");
+    
+    msg << "Field energy: " << totalFieldEnergy(efield) << endl
+        << "Total potential: " << totalPotential(phi) << endl;
+    double dx = *(geom[0].CellSize());
+    msg << "Cell volume: " << dx * dx * dx << endl;
     
     return 0;
 }

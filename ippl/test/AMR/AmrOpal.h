@@ -83,7 +83,41 @@ public:
     /*!
      * Write a timestamp file for displaying with yt.
      */
+    void writePlotFileYt(std::string filename, int step);
+    
+    /*!
+     * Write a timestamp file for displaying with AmrVis.
+     */
     void writePlotFile(std::string filename, int step);
+    
+    mfs_mt* getPartPerCell() {
+        return &nPartPerCell_m;
+    }
+    
+    void assignDensity() {
+        
+        for (int i = 0; i < finest_level; ++i)
+            chargeOnGrid_m[i]->setVal(0.0);
+        
+        bunch_m->AssignDensity(0, false, chargeOnGrid_m, 0, 1, finest_level);
+        
+//         double assign_sum = 0.0;
+//         double charge_sum = 0.0;
+//         std::cout << "---------------------------------------------" << std::endl;
+//         std::cout << "          CHARGE CONSERVATION TEST           " << std::endl;
+//         for (int i = 0; i <= finest_level; ++i) {
+//             Real charge = bunch_m->sumParticleMass(0 /*attribute*/, i /*level*/);
+//             Real invVol = (*(Geom(i).CellSize()) * *(Geom(i).CellSize()) * *(Geom(i).CellSize()) );
+//             std::cout << "dx * dy * dz = " << invVol << std::endl;
+//             assign_sum += chargeOnGrid_m[i]->sum() * invVol;
+//             std::cout << "Level " << i << " MultiFab sum * dx * dy * dz: " << chargeOnGrid_m[i]->sum() * invVol
+//                       << " Charge sum: " << charge
+//                       << " Spacing: " << *(Geom(i).CellSize()) << std::endl;
+//             charge_sum += charge;
+//         }
+//         std::cout << "Total charge: " << assign_sum << " " << charge_sum << std::endl;
+//         std::cout << "---------------------------------------------" << std::endl;
+    }
 
 protected:
     /*!
@@ -94,6 +128,7 @@ protected:
 private:
     AmrPartBunch* bunch_m;      ///< Particle bunch
     mfs_mt/*mp_mt*/ nPartPerCell_m;      ///< used in tagging.
+    mfs_mt chargeOnGrid_m;
     
 };
 

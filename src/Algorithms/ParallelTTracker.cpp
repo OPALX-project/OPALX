@@ -203,9 +203,11 @@ timeIntegrationTimer2Push_m(IpplTimings::getTimer("TIntegration2Push"))
     //    itsBeamline = dynamic_cast<Beamline*>(beamline.clone());
 
 #ifdef OPAL_DKS
-    dksbase.setAPI("Cuda", 4);
-    dksbase.setDevice("-gpu", 4);
-    dksbase.initDevice();
+    if (Options::enableDKS) {
+        dksbase.setAPI("Cuda", 4);
+        dksbase.setDevice("-gpu", 4);
+        dksbase.initDevice();
+    }
 #endif
 
 }
@@ -283,9 +285,11 @@ timeIntegrationTimer2Push_m(IpplTimings::getTimer("TIntegration2Push"))
     }
 
 #ifdef OPAL_DKS
-    dksbase.setAPI("Cuda", 4);
-    dksbase.setDevice("-gpu", 4);
-    dksbase.initDevice();
+    if (Options::enableDKS) {
+        dksbase.setAPI("Cuda", 4);
+        dksbase.setDevice("-gpu", 4);
+        dksbase.initDevice();
+    }
 #endif
 
 }
@@ -428,47 +432,48 @@ void ParallelTTracker::executeDefaultTracker() {
     surfaceStatus_m = false;
 
 #ifdef OPAL_DKS
+    if (Options::enableDKS) {
+        //get number of elements in the bunch
+        numDeviceElements = itsBunch->getLocalNum();
 
-    //get number of elements in the bunch
-    numDeviceElements = itsBunch->getLocalNum();
+        //allocate memory on device
+        r_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
+        p_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
+        x_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
 
-    //allocate memory on device
-    r_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
-    p_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
-    x_ptr = dksbase.allocateMemory<Vector_t>(numDeviceElements, ierr);
+        lastSec_ptr = dksbase.allocateMemory<long>(numDeviceElements, ierr);
+        dt_ptr = dksbase.allocateMemory<double>(numDeviceElements, ierr);
 
-    lastSec_ptr = dksbase.allocateMemory<long>(numDeviceElements, ierr);
-    dt_ptr = dksbase.allocateMemory<double>(numDeviceElements, ierr);
+        orient_ptr = dksbase.allocateMemory<Vector_t>(itsOpalBeamline_m.sections_m.size(), ierr);
 
-    orient_ptr = dksbase.allocateMemory<Vector_t>(itsOpalBeamline_m.sections_m.size(), ierr);
+        //get all the section orientations
+        int nsec = itsOpalBeamline_m.sections_m.size();
+        Vector_t *orientation = new Vector_t[nsec];
+        for (long i = 0; i < nsec; i++) {
+            orientation[i] = itsOpalBeamline_m.getOrientation(i);
+        }
+        
+        //write orientations to device
+        dksbase.writeData<Vector_t>(orient_ptr, orientation, nsec);
 
-    //get all the section orientations
-    int nsec = itsOpalBeamline_m.sections_m.size();
-    Vector_t *orientation = new Vector_t[nsec];
-    for (long i = 0; i < nsec; i++) {
-        orientation[i] = itsOpalBeamline_m.getOrientation(i);
+        //free local orientation memory
+        delete[] orientation;
+
+        //allocate memory on device for particle
+        allocateDeviceMemory();
+
+        //page lock itsBunch->X, itsBunch->R, itsBunch-P
+        registerHostMemory();
+        
+        //write R, P and X data to device
+        dksbase.writeDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], itsBunch->getLocalNum());
+        dksbase.writeDataAsync<Vector_t>(p_ptr, &itsBunch->P[0], itsBunch->getLocalNum());
+        dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum());
+        
+        //create two new streams
+        dksbase.createStream(stream1);
+        dksbase.createStream(stream2);
     }
-
-    //write orientations to device
-    dksbase.writeData<Vector_t>(orient_ptr, orientation, nsec);
-
-    //free local orientation memory
-    delete[] orientation;
-
-    //allocate memory on device for particle
-    allocateDeviceMemory();
-
-    //page lock itsBunch->X, itsBunch->R, itsBunch-P
-    registerHostMemory();
-
-    //write R, P and X data to device
-    dksbase.writeDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], itsBunch->getLocalNum());
-    dksbase.writeDataAsync<Vector_t>(p_ptr, &itsBunch->P[0], itsBunch->getLocalNum());
-    dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum());
-
-    //create two new streams
-    dksbase.createStream(stream1);
-    dksbase.createStream(stream2);
 #endif
 
     while (localTrackSteps_m.size() > 0) {
@@ -547,12 +552,13 @@ void ParallelTTracker::executeDefaultTracker() {
     *gmsg << "done executing ParallelTTracker at " << myt3.time() << endl;
 
 #ifdef OPAL_DKS
-    //free device memory
-    freeDeviceMemory();
-    dksbase.freeMemory<Vector_t>(orient_ptr, itsOpalBeamline_m.sections_m.size());
-    //unregister page lock itsBunch->X, itsBunch->R, itsBunch-P
-    unregisterHostMemory();
-
+    if (Options::enableDKS) {
+        //free device memory
+        freeDeviceMemory();
+        dksbase.freeMemory<Vector_t>(orient_ptr, itsOpalBeamline_m.sections_m.size());
+        //unregister page lock itsBunch->X, itsBunch->R, itsBunch-P
+        unregisterHostMemory();
+    }
 #endif
 }
 
@@ -1560,75 +1566,82 @@ void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
     if(bgf_m != NULL && secondaryFlg_m > 0) return;
 
     IpplTimings::startTimer(timeIntegrationTimer1Push_m);
+
+    if (Options::enableDKS) {
 #ifdef OPAL_DKS
+        //if bunch is largen than before reallocate memory
+        if (itsBunch->getLocalNum() > numDeviceElements) {
+            freeDeviceMemory();
+            unregisterHostMemory();
+            allocateDeviceMemory();
+            registerHostMemory();
+        }
+
+        //get all the section orientations
+        int nsec = itsOpalBeamline_m.sections_m.size();
+        Vector_t *orientation = new Vector_t[nsec];
+        for (long i = 0; i < nsec; i++) {
+            orientation[i] = itsOpalBeamline_m.getOrientation(i);
+        }
     
-    //if bunch is largen than before reallocate memory
-    if (itsBunch->getLocalNum() > numDeviceElements) {
-        freeDeviceMemory();
-        unregisterHostMemory();
-        allocateDeviceMemory();
-        registerHostMemory();
-    }
+        //write orientations to device
+        dksbase.writeData<Vector_t>(orient_ptr, orientation, nsec);
 
-    //get all the section orientations
-    int nsec = itsOpalBeamline_m.sections_m.size();
-    Vector_t *orientation = new Vector_t[nsec];
-    for (long i = 0; i < nsec; i++) {
-        orientation[i] = itsOpalBeamline_m.getOrientation(i);
-    }
-    
-    //write orientations to device
-    dksbase.writeData<Vector_t>(orient_ptr, orientation, nsec);
+        //free local orientation memory
+        delete[] orientation;
+        
+        //write R to device
+        dksbase.writeDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], 
+                                         itsBunch->getLocalNum(), stream1);
+        //write P to device
+        dksbase.writeDataAsync<Vector_t>(p_ptr, &itsBunch->P[0], 
+                                         itsBunch->getLocalNum(), stream1);
+        //write X to device
+        dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], 
+                                         itsBunch->getLocalNum(), stream2);
 
-    //free local orientation memory
-    delete[] orientation;
+        //write dt to device
+        dksbase.writeDataAsync<double>(dt_ptr, &itsBunch->dt[0], 
+                                       itsBunch->getLocalNum(), stream1);
 
-    //write R to device
-    dksbase.writeDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], itsBunch->getLocalNum(), stream1);
-    //write P to device
-    dksbase.writeDataAsync<Vector_t>(p_ptr, &itsBunch->P[0], itsBunch->getLocalNum(), stream1);
-    //write X to device
-    dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
+        //calc push
+        dksbase.callParallelTTrackerPush (r_ptr, p_ptr, itsBunch->getLocalNum(), dt_ptr,
+                                          itsBunch->getdT(), Physics::c, true, stream1);
+        //read R from device
+        dksbase.readDataAsync<Vector_t> (r_ptr, &itsBunch->R[0], 
+                                         itsBunch->getLocalNum(), stream1);
 
-    //write dt to device
-    dksbase.writeDataAsync<double>(dt_ptr, &itsBunch->dt[0], itsBunch->getLocalNum(), stream1);
+        //write LastSection to device
+        dksbase.writeDataAsync<long> (lastSec_ptr, &itsBunch->LastSection[0], 
+                                      itsBunch->getLocalNum(), stream2);
+        //calc push
+        dksbase.callParallelTTrackerPushTransform(x_ptr, p_ptr, lastSec_ptr, orient_ptr,
+                                                  itsBunch->getLocalNum(),
+                                                  itsOpalBeamline_m.sections_m.size(),
+                                                  dt_ptr, itsBunch->getdT(), Physics::c, 
+                                                  false, stream2);
+        //read R from device
+        dksbase.readDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
 
-    //calc push
-    dksbase.callParallelTTrackerPush (r_ptr, p_ptr, itsBunch->getLocalNum(), dt_ptr,
-                                      itsBunch->getdT(), Physics::c, true, stream1);
-    //read R from device
-    dksbase.readDataAsync<Vector_t> (r_ptr, &itsBunch->R[0], itsBunch->getLocalNum(), stream1);
-
-    //write LastSection to device
-    dksbase.writeDataAsync<long> (lastSec_ptr, &itsBunch->LastSection[0], 
-                                  itsBunch->getLocalNum(), stream2);
-    //calc push
-    dksbase.callParallelTTrackerPushTransform(x_ptr, p_ptr, lastSec_ptr, orient_ptr,
-                                              itsBunch->getLocalNum(),
-                                              itsOpalBeamline_m.sections_m.size(),
-                                              dt_ptr, itsBunch->getdT(), Physics::c, false, stream2);
-    //read R from device
-    dksbase.readDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
-
-    //sync and wait till all tasks and reads are complete
-    dksbase.syncDevice();
-#else
-    itsBunch->switchToUnitlessPositions();
-    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
-        //scale each particle with c*dt
-        pusher.push(itsBunch->R[i], itsBunch->P[i], itsBunch->dt[i]);
-
-        // update local coordinate system of particleInform &PartBunc
-        pusher.push(
-            itsBunch->X[i],
-            TransformTo(
-                itsBunch->P[i],
-                itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])),
-            itsBunch->getdT());
-    }
-    itsBunch->switchOffUnitlessPositions();
-
+        //sync and wait till all tasks and reads are complete
+        dksbase.syncDevice();
 #endif
+    } else {
+        itsBunch->switchToUnitlessPositions();
+        for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+            //scale each particle with c*dt
+            pusher.push(itsBunch->R[i], itsBunch->P[i], itsBunch->dt[i]);
+
+            // update local coordinate system of particleInform &PartBunc
+            pusher.push(
+                itsBunch->X[i],
+                TransformTo(
+                    itsBunch->P[i],
+                    itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])),
+                itsBunch->getdT());
+        }
+        itsBunch->switchOffUnitlessPositions();
+    }
     IpplTimings::stopTimer(timeIntegrationTimer1Push_m);
 
     if(numParticlesInSimulation_m > minBinEmitted_m) {
@@ -1737,83 +1750,89 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
 
     //switchElements();
     IpplTimings::startTimer(timeIntegrationTimer2Push_m);
+    if (Options::enableDKS) {
 #ifdef OPAL_DKS
     
-    //if bunch is largen than before reallocate memory
-    if (itsBunch->getLocalNum() > numDeviceElements) {
-        freeDeviceMemory();
-        unregisterHostMemory();
-        allocateDeviceMemory();
-        registerHostMemory();
-    }
+        //if bunch is largen than before reallocate memory
+        if (itsBunch->getLocalNum() > numDeviceElements) {
+            freeDeviceMemory();
+            unregisterHostMemory();
+            allocateDeviceMemory();
+            registerHostMemory();
+        }
 
-    //get all the section orientations
-    int nsec = itsOpalBeamline_m.sections_m.size();
-    Vector_t *orientation = new Vector_t[nsec];
-    for (long i = 0; i < nsec; i++) {
-        orientation[i] = itsOpalBeamline_m.getOrientation(i);
-    }
+        //get all the section orientations
+        int nsec = itsOpalBeamline_m.sections_m.size();
+        Vector_t *orientation = new Vector_t[nsec];
+        for (long i = 0; i < nsec; i++) {
+            orientation[i] = itsOpalBeamline_m.getOrientation(i);
+        }
 
-    //write orientations to device
-    dksbase.writeData<Vector_t>(orient_ptr, orientation, nsec);
+        //write orientations to device
+        dksbase.writeData<Vector_t>(orient_ptr, orientation, nsec);
 
-    //free local orientation memory
-    delete[] orientation;
+        //free local orientation memory
+        delete[] orientation;
 
-    //write R to device
-    dksbase.writeDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], itsBunch->getLocalNum(), stream1);
-    //write P to device
-    dksbase.writeDataAsync<Vector_t>(p_ptr, &itsBunch->P[0], itsBunch->getLocalNum(), stream1);
-    //write X to device
-    dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
+        //write R to device
+        dksbase.writeDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], 
+                                         itsBunch->getLocalNum(), stream1);
+        //write P to device
+        dksbase.writeDataAsync<Vector_t>(p_ptr, &itsBunch->P[0], 
+                                         itsBunch->getLocalNum(), stream1);
+        //write X to device
+        dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], 
+                                         itsBunch->getLocalNum(), stream2);
 
-    //wrote dt to device
-    dksbase.writeDataAsync<double>(dt_ptr, &itsBunch->dt[0], itsBunch->getLocalNum(), stream1);
-    //calc push
-    dksbase.callParallelTTrackerPush(r_ptr, p_ptr, itsBunch->getLocalNum(), dt_ptr,
-                                     itsBunch->getdT(), Physics::c, true, stream1);
-    //read R from device
-    dksbase.readDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], itsBunch->getLocalNum(), stream1);
+        //wrote dt to device
+        dksbase.writeDataAsync<double>(dt_ptr, &itsBunch->dt[0], 
+                                       itsBunch->getLocalNum(), stream1);
+        //calc push
+        dksbase.callParallelTTrackerPush(r_ptr, p_ptr, itsBunch->getLocalNum(), dt_ptr,
+                                         itsBunch->getdT(), Physics::c, true, stream1);
+        //read R from device
+        dksbase.readDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], itsBunch->getLocalNum(), stream1);
 
-    //write LastSection to device
-    dksbase.writeDataAsync<long>(lastSec_ptr, &itsBunch->LastSection[0],
-                                 itsBunch->getLocalNum(), stream2);
-    //calc push
-    dksbase.callParallelTTrackerPushTransform(x_ptr, p_ptr, lastSec_ptr, orient_ptr,
-                                              itsBunch->getLocalNum(),
-                                              itsOpalBeamline_m.sections_m.size(),
-                                              dt_ptr, itsBunch->getdT(), Physics::c, false, stream2);
-    //read R from device
-    dksbase.readDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
+        //write LastSection to device
+        dksbase.writeDataAsync<long>(lastSec_ptr, &itsBunch->LastSection[0],
+                                     itsBunch->getLocalNum(), stream2);
+        //calc push
+        dksbase.callParallelTTrackerPushTransform(x_ptr, p_ptr, lastSec_ptr, orient_ptr,
+                                                  itsBunch->getLocalNum(),
+                                                  itsOpalBeamline_m.sections_m.size(),
+                                                  dt_ptr, itsBunch->getdT(), Physics::c, 
+                                                  false, stream2);
+        //read R from device
+        dksbase.readDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
 
-    //sync and wait till all tasks and reads are complete
-    dksbase.syncDevice();
-
-#else
-    itsBunch->switchToUnitlessPositions(true);
-    // start normal particle loop part 2 for simulation without boundary geometry.
-    for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
-        /** \f[ \vec{x}_{n+1} = \vec{x}_{n+1/2} + \frac{1}{2}\vec{v}_{n+1/2}\quad (= \vec{x}_{n+1/2} + \frac{\Delta t}{2} \frac{\vec{\beta}_{n+1/2}\gamma_{n+1/2}}{\gamma_{n+1/2}}) \f]
-         * \code
-         * R[i] += 0.5 * P[i] * recpgamma;
-         * \endcode
-         */
-        pusher.push(itsBunch->R[i], itsBunch->P[i], itsBunch->dt[i]);
-        //and scale back to dimensions
-
-        // update local coordinate system
-        pusher.push (
-            itsBunch->X[i],
-            TransformTo(
-                itsBunch->P[i],
-                itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])),
-            itsBunch->getdT());
-        //reset time step if particle was emitted in the first half-step
-        //the particle is now in sync with the simulation timestep
-
-    }
-    itsBunch->switchOffUnitlessPositions(true);
+        //sync and wait till all tasks and reads are complete
+        dksbase.syncDevice();
 #endif
+    } else {
+        itsBunch->switchToUnitlessPositions(true);
+        // start normal particle loop part 2 for simulation without boundary geometry.
+        for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+            /** \f[ \vec{x}_{n+1} = \vec{x}_{n+1/2} + \frac{1}{2}\vec{v}_{n+1/2}\quad (= \vec{x}_{n+1/2} + \frac{\Delta t}{2} \frac{\vec{\beta}_{n+1/2}\gamma_{n+1/2}}{\gamma_{n+1/2}}) \f]
+             * \code
+             * R[i] += 0.5 * P[i] * recpgamma;
+             * \endcode
+             */
+            pusher.push(itsBunch->R[i], itsBunch->P[i], itsBunch->dt[i]);
+            //and scale back to dimensions
+
+            // update local coordinate system
+            pusher.push (
+                itsBunch->X[i],
+                TransformTo(
+                    itsBunch->P[i],
+                    itsOpalBeamline_m.getOrientation(itsBunch->LastSection[i])),
+                itsBunch->getdT());
+            //reset time step if particle was emitted in the first half-step
+            //the particle is now in sync with the simulation timestep
+
+        }
+        itsBunch->switchOffUnitlessPositions(true);
+    }
     IpplTimings::stopTimer(timeIntegrationTimer2Push_m);
 
     //std::fill(itsBunch->dt.begin(), itsBunch->dt.end(), itsBunch->getdT());

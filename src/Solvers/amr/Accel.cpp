@@ -783,8 +783,9 @@ Accel::errorEst (TagBoxArray& tags,
         for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
         {
             int idx = mfi.index();
-            const int* lo = mfi.validbox().loVect();
-            const int* hi = mfi.validbox().hiVect();
+            const Box& bx = mfi.validbox();
+            const int* lo = bx.loVect();
+            const int* hi = bx.hiVect();
 
             itags = tags[idx].tags();
             int* tptr = itags.dataPtr();

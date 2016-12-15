@@ -29,7 +29,9 @@
 
 // #include "physics.h"
 
-#include "MagneticField.h" // ONLY FOR STAND-ALONE PROGRAM
+// #include "MagneticField.h" // ONLY FOR STAND-ALONE PROGRAM
+
+#include "MagneticField.h"
 
 
 #include <fstream>
@@ -63,17 +65,18 @@ class ClosedOrbitFinder
          * @param Emin is the minimum energy [MeV] needed in cyclotron
          * @param Emax is the maximum energy [MeV] reached in cyclotron
          * @param nSector is the number of sectors (--> symmetry) of cyclotron
-         * @param rmin is the minimal radius of the cyclotron, \f$ \left[r_{min}\right] = \si{m} \f$
-         * @param ntheta is the number of angle splits (fieldmap variable)
-         * @param nradial is the number of radial splits (fieldmap variable)
-         * @param dr is the radial step size, \f$ \left[\Delta r\right] = \si{m} \f$
-         * @param fieldmap is the location of the file that specifies the magnetic field
-	 * @param guesss value of radius for closed orbit finder 
+         * @param fmapfn is the location of the file that specifies the magnetic field
+	 * @param guess value of radius for closed orbit finder
+         * @param type specifies the field format (e.g. CARBONCYCL)
+         * @param scaleFactor for the magnetic field (default: 1.0)
          * @param domain is a boolean (default: true). If "true" the closed orbit is computed over a single sector,
          * otherwise over 2*pi.
          */
-        ClosedOrbitFinder(value_type, value_type, value_type, size_type, value_type, size_type, value_type, value_type, size_type,
-                          value_type, size_type, size_type, value_type, const std::string&, value_type, bool = true);
+        ClosedOrbitFinder(value_type, value_type, value_type, size_type,
+                          value_type, size_type, value_type, value_type,
+                          size_type, const std::string&, value_type,
+                          const std::string& type, value_type scaleFactor = 1.0,
+                          bool = true);
 
         /// Returns the inverse bending radius (size of container N+1)
         container_type& getInverseBendingRadius();
@@ -144,9 +147,9 @@ class ClosedOrbitFinder
         std::array<value_type,2> x_m; // x_m = [x1, x2]
         /// Stores current momenta in horizontal direction for the solutions of the ODE with different initial values
         std::array<value_type,2> px_m; // px_m = [px1, px2]
-        /// Stores current position in longitudinal direction for the solutions of the ODE with different initial values
+        /// Stores current position in vertical direction for the solutions of the ODE with different initial values
         std::array<value_type,2> z_m; // z_m = [z1, z2]
-        /// Stores current momenta in longitudinal direction for the solutions of the ODE with different initial values
+        /// Stores current momenta in vertical direction for the solutions of the ODE with different initial values
         std::array<value_type,2> pz_m; // pz_m = [pz1, pz2]
 
         /// Stores the inverse bending radius
@@ -201,18 +204,6 @@ class ClosedOrbitFinder
         /// Number of sectors (symmetry)
         size_type nSector_m;
 
-        /// Minimal radius of cyclotron, \f$ \left[r_{min}\right] = m \f$
-        value_type rmin_m;
-
-        /// Number of angle splits (fieldmap)
-        size_type ntheta_m;
-
-        /// Number of radial steps (fieldmap)
-        size_type nradial_m;
-
-        /// Radial step size, \f$ \left[\Delta r\right] = m \f$
-        value_type dr_m;
-
         /**
          * Stores the last orbit value (since we have to return to the beginning to check the convergence in the
          * findOrbit() function. This last value is then deleted from the array but is stored in lastOrbitVal_m to
@@ -233,9 +224,6 @@ class ClosedOrbitFinder
          */
         bool vertOscDone_m;
 
-        /// Location of magnetic field
-        std::string fieldmap_m;
-
         /**
          * Boolean which is true by default. "true": orbit integration over one sector only, "false": integration
          * over 2*pi
@@ -244,9 +232,6 @@ class ClosedOrbitFinder
 
         /// Defines the stepper for integration of the ODE's
         Stepper stepper_m;
-
-        /// ONLY FOR STAND-ALONE PROGRAM
-        float** bmag_m;
 
 	/// a guesss for the clo finder
 	value_type rguess_m;
@@ -265,24 +250,28 @@ class ClosedOrbitFinder
         std::function<double(double, double)> bcon_m = [](double e0, double wo) {
             return e0 * 1.0e7 / (/* physics::q0 */ 1.0 * Physics::c * Physics::c / wo);
         };
+        
+        MagneticField bField_m;
 };
 
 // -----------------------------------------------------------------------------------------------------------------------
 // PUBLIC MEMBER FUNCTIONS
 // -----------------------------------------------------------------------------------------------------------------------
 
-    template<typename Value_type, typename Size_type, class Stepper>
-ClosedOrbitFinder<Value_type, Size_type, Stepper>::ClosedOrbitFinder(value_type E, value_type E0, value_type wo, size_type N,
-                                                                     value_type accuracy, size_type maxit,
-                                                                     value_type Emin, value_type Emax, size_type nSector,
-                                                                     value_type rmin, size_type ntheta, size_type nradial,
-                                                                     value_type dr, const std::string& fieldmap,
-								     value_type rguess,
-                                                                     bool domain)
+template<typename Value_type, typename Size_type, class Stepper>
+ClosedOrbitFinder<Value_type,
+                  Size_type,
+                  Stepper>::ClosedOrbitFinder(value_type E, value_type E0,
+                                              value_type wo, size_type N,
+                                              value_type accuracy, size_type maxit,
+                                              value_type Emin, value_type Emax,
+                                              size_type nSector, const std::string& fmapfn,
+                                              value_type rguess, const std::string& type,
+                                              value_type scaleFactor, bool domain)
 : nxcross_m(0), nzcross_m(0), E_m(E), E0_m(E0), wo_m(wo), N_m(N), dtheta_m(Physics::two_pi/value_type(N)),
   gamma_m(E/E0+1.0), ravg_m(0), phase_m(0), converged_m(false), Emin_m(Emin), Emax_m(Emax), nSector_m(nSector),
-  rmin_m(rmin), ntheta_m(ntheta), nradial_m(nradial), dr_m(dr), lastOrbitVal_m(0.0), lastMomentumVal_m(0.0),
-  vertOscDone_m(false), fieldmap_m(fieldmap), domain_m(domain), stepper_m(), rguess_m(rguess)
+  lastOrbitVal_m(0.0), lastMomentumVal_m(0.0),
+  vertOscDone_m(false), domain_m(domain), stepper_m(), rguess_m(rguess), bField_m(fmapfn, nSector)
 {
     
     if ( Emin_m > Emax_m )
@@ -317,6 +306,9 @@ ClosedOrbitFinder<Value_type, Size_type, Stepper>::ClosedOrbitFinder(value_type 
     h_m.reserve(N_m);
     ds_m.reserve(N_m);
     fidx_m.reserve(N_m);
+    
+    // read in magnetic fieldmap
+    bField_m.read(type, scaleFactor);
 
     // compute closed orbit
     converged_m = findOrbit(accuracy, maxit);
@@ -468,9 +460,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
      */
 
     // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
-    bmag_m = MagneticField::malloc2df(ntheta_m,nradial_m);
-    MagneticField::ReadSectorMap(bmag_m,nradial_m,ntheta_m,1,fieldmap_m,0.0);
-    MagneticField::MakeNFoldSymmetric(bmag_m,ntheta_m,nradial_m,ntheta_m/nSector_m,nSector_m);
+    
     value_type bint, brint, btint;
 
     // resize vectors (--> size = N_m+1, capacity = N_m+1), note: we do N_m+1 integration steps
@@ -516,7 +506,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         invptheta = 1.0 / ptheta;
 
         // intepolate values of magnetic field
-        MagneticField::interpolate(&bint,&brint,&btint,theta * 180 / Physics::pi,nradial_m,ntheta_m,y[0],rmin_m,dr_m,bmag_m);
+        bField_m.interpolate(bint, brint, btint, y[0], theta * 180.0 / Physics::pi);
         bint *= invbcon;
         brint *= invbcon;
 
@@ -757,7 +747,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
 
     for (size_type i = 0; i < N_m; ++i) {
         // interpolate magnetic field
-        MagneticField::interpolate(&bint,&brint,&btint,theta * 180.0 / Physics::pi,nradial_m,ntheta_m,r_m[i],rmin_m,dr_m,bmag_m);
+        bField_m.interpolate(bint, brint, btint, r_m[i], theta * 180.0 / Physics::pi);
         bint *= invbcon;
         brint *= invbcon;
         btint *= invbcon;
@@ -815,7 +805,8 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
         invptheta = 1.0 / ptheta;
 
         // intepolate values of magnetic field
-        MagneticField::interpolate(&bint,&brint,&btint,theta * 180 / Physics::pi,nradial_m,ntheta_m,y[0],rmin_m,dr_m,bmag_m);
+        bField_m.interpolate(bint, brint, btint, y[0], theta * 180.0 / Physics::pi);
+        
         bint *= invbcon;
         brint *= invbcon;
         btint *= invbcon;

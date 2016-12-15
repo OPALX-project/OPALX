@@ -12,18 +12,16 @@ Solver::solve_for_accel(container_t& rhs,
 {
  
     Real tol     = 1.e-10;
-    Real abs_tol = 1.e-14;
+    Real abs_tol = 0.0;//1.e-14;
 
     Array< Array<std::unique_ptr<MultiFab> > > grad_phi_edge(rhs.size());
-//     grad_phi_edge.resize(rhs.size());
 
     for (int lev = base_level; lev <= finest_level ; lev++)
     {
         grad_phi_edge[lev].resize(BL_SPACEDIM);
         for (int n = 0; n < BL_SPACEDIM; ++n) {
             BoxArray ba = rhs[lev]->boxArray();
-            grad_phi_edge[lev][n].reset(new MultiFab(ba.surroundingNodes(n), 1, 1));
-//             grad_phi_edge[lev].set(n, new MultiFab(ba.surroundingNodes(n), 1, 1));
+            grad_phi_edge[lev][n].reset(new MultiFab(ba.surroundingNodes(n), 1, 0));
         }
     }
 
@@ -36,7 +34,6 @@ Solver::solve_for_accel(container_t& rhs,
     solve_with_f90  (rhs,
                      phi,
                      grad_phi_edge,
-//                      grad_phi_edge,
                      geom,
                      base_level,
                      finest_level,
@@ -48,7 +45,6 @@ Solver::solve_for_accel(container_t& rhs,
     {
         BoxLib::average_face_to_cellcenter(*grad_phi[lev],
                                            BoxLib::GetArrOfConstPtrs(grad_phi_edge[lev]),
-//                                            grad_phi_edge[lev],
                                            geom[lev]);
         grad_phi[lev]->FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
     }
@@ -96,16 +92,13 @@ Solver::solve_with_f90(container_t& rhs,
     }
 
     // Have to do some packing because these arrays does not always start with base_level
-    /*P*/Array<Geometry> geom_p(nlevs);
-    /*P*/container_pt rhs_p(nlevs);
-    /*P*/container_pt phi_p(nlevs);
+    Array<Geometry> geom_p(nlevs);
+    container_pt rhs_p(nlevs);
+    container_pt phi_p(nlevs);
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         geom_p[ilev] = geom[ilev+base_level];
         rhs_p[ilev] = rhs[ilev+base_level].get();
         phi_p[ilev] = phi[ilev+base_level].get();
-//         geom_p.set(ilev, &geom[ilev+base_level]);
-// 	rhs_p.set (ilev,  rhs[ilev+base_level].get());
-// 	phi_p.set (ilev,  phi[ilev+base_level].get());
     }
     
     // Refinement ratio is hardwired to 2 here.
@@ -119,12 +112,21 @@ Solver::solve_with_f90(container_t& rhs,
     } else {
 	fmg.set_bc(mg_bc, *phi[base_level-1], *phi[base_level]);
     }
-
+    
+    /* (alpha * a - beta * (del dot b grad)) phi = rhs
+     * (b = 1)
+     * 
+     * The function call set_const_gravity_coeffs() sets alpha = 0.0
+     * and beta = -1 (in MGT_Solver::set_const_gravity_coeffs)
+     * 
+     * --> (del dot grad) phi = rhs
+     */
     fmg.set_const_gravity_coeffs();
+    fmg.set_maxorder(2);
 
     int always_use_bnorm = 0;
     int need_grad_phi = 1;
-    fmg.set_verbose(0);
+    fmg.set_verbose(1);
     fmg.solve(phi_p, rhs_p, tol, abs_tol, always_use_bnorm, need_grad_phi);
     
     const Array<Array<MultiFab*> >& g_phi_edge = BoxLib::GetArrOfArrOfPtrs(grad_phi_edge);

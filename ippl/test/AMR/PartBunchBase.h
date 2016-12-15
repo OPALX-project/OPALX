@@ -150,6 +150,9 @@ public:
     
     /// Writes the particles (x, y, z) to the shell.
     inline void print();
+    
+    /// Delete all particles and free allocated memory
+    virtual void destroyAll() = 0;
 };
 
 

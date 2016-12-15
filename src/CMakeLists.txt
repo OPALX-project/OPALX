@@ -1,4 +1,5 @@
 cmake_minimum_required (VERSION 2.8.10)
+set (DKS_VERSION \"1.0.0\")
 
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 configure_file(revision.h.in ${CMAKE_CURRENT_SOURCE_DIR}/revision.h)
@@ -99,10 +100,10 @@ link_directories (
     ${CCSE_LIBRARY_DIR}
 )
 
-IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
+IF (ENABLE_DKS)
    include_directories (${DKS_INCLUDE_DIR})
    link_directories (${DKS_LIBRARY_DIR})
-ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
+ENDIF (ENABLE_DKS)
 
 IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
  SET (OPAL_LIBS
@@ -130,12 +131,12 @@ ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
 
 
 
-IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
+IF (ENABLE_DKS)
    set (OPAL_LIBS
        ${OPAL_LIBS}
        ${DKS_LIBRARY_DIR}/libdks.a
        )
-ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
+ENDIF (ENABLE_DKS)
 
 add_library( OPALib ${OPAL_SRCS})
 set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
