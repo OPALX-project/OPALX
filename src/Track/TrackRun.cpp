@@ -624,7 +624,7 @@ void TrackRun::setupCyclotronTracker(){
     Track::block->bunch->setCouplingConstant(coefE);
 
     // statistical data are calculated (rms, eps etc.)
-    Track::block->bunch->calcBeamParameters_cycl();
+    Track::block->bunch->calcBeamParameters();
 
     if(!opal->inRestartRun())
         if(!opal->hasDataSinkAllocated()) {
@@ -688,7 +688,7 @@ void TrackRun::setupCyclotronTracker(){
     }
 
     // statistical data are calculated (rms, eps etc.)
-    Track::block->bunch->calcBeamParameters_cycl();
+    Track::block->bunch->calcBeamParameters();
 
     *gmsg << *dist << endl;
     *gmsg << *beam << endl;
