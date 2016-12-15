@@ -155,8 +155,9 @@ namespace Options {
     /// Do closed orbit and tune calculation only.
     extern bool cloTuneOnly;
 
-
+    /// Enable the use of GPUs in OPAL using DKS library
+    extern bool enableDKS;
 
 }
 
-#endif // OPAL_Options_HH
+#endif // OPAL_Options_HH 

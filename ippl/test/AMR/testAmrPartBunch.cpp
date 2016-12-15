@@ -95,30 +95,12 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     int base_level   = 0;
     int finest_level = myAmrOpal.finestLevel();
 
-//     Array<std::unique_ptr<MultiFab> > PartMF;
-//     PArray<MultiFab> PartMF;
-//     PartMF.resize(nLevels,PArrayManage);
-//     PartMF.set(0,new MultiFab(myAmrOpal.boxArray()[0],1,1));
-//     PartMF[0].setVal(0.0);
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
-
-//     for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
-//         BoxLib::average_down(PartMF[lev+1],PartMF[lev],0,1,rr[lev]);
-
-//     for (int lev = 0; lev < nLevels; lev++)
-//         MultiFab::Add(*rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
-    
     
     // eps in C / (V * m)
-//     double constant = -1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
-    // eps in e / (V * m)
-//     double constant = -1.0 / (4.0 * Physics::pi * 5.5262322518e7 );
-    
-//     for (int lev = 0; lev < nLevels; lev++) {
-//         PartMF[lev].mult(constant, 0, 1);
-        
-//         MultiFab::Add(*rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
-//     }
+    double constant = -Physics::q_e / (4.0 * Physics::pi * Physics::epsilon_0);
+    for (int i = 0; i <= finest_level; ++i)
+        rhs[i]->mult(constant, 0, 1);
     
     // **************************************************************************                                                                                                                                
     // Compute the total charge of all particles in order to compute the offset                                                                                                                                  
@@ -282,6 +264,12 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         domain.setHi(i,  1.0);
     }
     
+    domain.setLo(0, -0.025);
+    domain.setHi(0,  0.025);
+    domain.setLo(1, -0.025);
+    domain.setHi(1,  0.025);
+    domain.setLo(2, -0.025);
+    domain.setHi(2,  0.025);
     
     // periodic boundary conditions in all directions
     int bc[BL_SPACEDIM] = {0, 0, 0};
@@ -332,10 +320,16 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
     Distribution dist;
     IpplTimings::startTimer(distTimer);
-    dist.gaussian(0.0, 0.1, nloc, ParallelDescriptor::MyProc());
-//     dist.uniform(0.3, 0.7, nloc, ParallelDescriptor::MyProc());
+    dist.gaussian(0.0, 0.001, nloc, ParallelDescriptor::MyProc());
+//     dist.uniform(-0.02, 0.02, nloc, ParallelDescriptor::MyProc());
+    
+//     dist.readH5("/home/matthias/Accelerated.h5", 0);
+    
+    
     // copy particles to the PartBunchBase object.
     dist.injectBeam(*bunch);
+    
+//     bunch->setR(Vector_t(0.003, 0.001, 0), 0);
     
     msg << "****************************************************" << endl
         << "            BEAM INJECTED (single level)            " << endl
@@ -369,6 +363,11 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     ParmParse pp("amr");
     pp.add("max_grid_size", int(maxBoxSize));
     
+    Array<int> error_buf(nLevels, 0);
+    
+    pp.addarr("n_error_buf", error_buf);
+    pp.add("grid_eff", 0.95);
+    
     Array<int> nCells(3);
     for (int i = 0; i < 3; ++i)
         nCells[i] = nr[i];
@@ -391,13 +390,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // ========================================================================
     // 3. multi-level redistribute
     // ========================================================================
-    for (int i = 0; i < myAmrOpal.maxLevel(); ++i) {
+    for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i) {
         myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
-        msg << "DONE " << i << "th regridding." << endl;
     }
-    
-    
-    myAmrOpal.info();
     
     msg << "****************************************************" << endl
         << "          BEAM REDISTRIBUTED (multi level)          " << endl
@@ -435,49 +430,18 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
             << myAmrOpal.boxArray(i) << endl;
     
     
-//     // write particle file
-//     dynamic_cast<AmrPartBunch*>(bunch)->Checkpoint(".", "particles0000", true);
-    
-    
-    
-//     // ========================================================================
-//     // do some operations on the data
-//     // ========================================================================
-//     
-//     
-//     for (int i = 0; i < myAmrOpal.finestLevel() + 1; ++i) {
-//         
-//         if ( myAmrOpal.boxArray(i).empty() )
-//             break;
-//         
-//         MultiFab mf(myAmrOpal.boxArray(i), 1, 1);
-//         dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(0, /*attribute*/ mf, i /*level*/);
-//         Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0 /*attribute*/, i /*level*/);
-//         
-//         double invVol = 1.0 / (nr[0] * nr[1] * nr[2]);
-//         
-//         /* refinement factor */
-//         invVol = (i > 0) ? invVol / std::pow( ( 2 << (i - 1) ), 3) : invVol;
-//         
-//         std::cout << "MultiFab sum: " << mf.sum() * invVol << std::endl
-//                   << "Charge sum: " << charge << std::endl;
-// 
-//         
-//     }
-//     
-//     std::string plotfilename = BoxLib::Concatenate("amr", 0, 4);
-//     myAmrOpal.writePlotFile(plotfilename, 0);
-    
-    
     for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
         bunch->setP(Vector_t(1.0, 0.0, 0.0), i);         
     
     
-//     container_t rhs;
-//     container_t phi;
-//     container_t grad_phi;
+    container_t rhs;
+    container_t phi;
+    container_t grad_phi;
     
-//     doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
+    std::string plotsolve = BoxLib::Concatenate("solve_", 0, 4);
+    doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
+    
+    writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
     
     // begin main timestep loop
     msg << "Starting iterations ..." << endl;
@@ -485,19 +449,26 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     for (unsigned int it=0; it<nTimeSteps; it++) {
         bunch->gatherStatistics();
         
-//         std::string plotfilename = BoxLib::Concatenate("amr_", it, 4);
+//         
 //         myAmrOpal.writePlotFile(plotfilename, it);
-//         writePlotFile(plotfilename, rhs, phi, grad_phi, rr, geom, it);
+        myAmrOpal.assignDensity();
+        
         
         std::string plotfilename = BoxLib::Concatenate("amr_", it, 4);
         myAmrOpal.writePlotFile(plotfilename, it);
         
-        // update time step according to levels
-//         dt = 0.5 * *( myAmrOpal.Geom(myAmrOpal.finestLevel() - 1).CellSize() );
+        dynamic_cast<AmrPartBunch*>(bunch)->python_format(it);
         
-//         // advance the particle positions
+        // update time step according to levels
+//         dt = 0.9 * *( myAmrOpal.Geom(myAmrOpal.finestLevel() - 1).CellSize() );
+        
+        // advance the particle positions
 //         for (unsigned int i = 0; i < bunch->getLocalNum(); ++i)
-//             bunch->setR(bunch->getR(i) + dt * bunch->getP(i), i);
+//             bunch->setR(bunch->getR(0) + dt * bunch->getP(0), 0);
+        
+        dist.setDistribution(*bunch, "/home/matthias/Accelerated.h5", it + 1);
+        
+        bunch->myUpdate();
         
         
         // update Amr object
@@ -509,42 +480,6 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         
         
 //         doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
-        
-//         //
-//         for (int i = 0; i < myAmrOpal.finestLevel() + 1; ++i) {
-//             MultiFab mf(myAmrOpal.boxArray(i), 1, 1);
-//             dynamic_cast<AmrPartBunch*>(bunch)->AssignDensitySingleLevel(0, /*attribute*/ mf, i /*level*/);
-//             Real charge = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0 /*attribute*/, i /*level*/);
-//             
-//             double invVol = 1.0 / ( nr[0] * nr[1] * nr[2] );
-//             
-//             /* refinement factor */
-//             invVol = (i > 0) ? invVol / std::pow( ( 2 << (i - 1) ), 3) : invVol;
-//             
-//             std::cout << "MultiFab sum (not normalized): " << mf.sum() << std::endl;
-//             std::cout << "MultiFab sum: " << mf.sum() * invVol << std::endl
-//                       << "Charge sum: " << charge << std::endl;
-// 
-//         
-//         }
-//         //
-//         
-// //         myAmrOpal.averageDown();
-//         
-//         amr << "Max. level   = " << myAmrOpal.maxLevel() << endl
-//             << "Finest level = " << myAmrOpal.finestLevel() << endl;
-//         for (int i = 0; i < int(nMaxLevels); ++i)
-//             amr << "Max. ref. ratio level " << i << ": "
-//                 << myAmrOpal.MaxRefRatio(i) << endl;
-//         for (int i = 0; i < nLevels; ++i)
-//             amr << "Max. grid size level" << i << ": "
-//                 << myAmrOpal.maxGridSize(i) << endl;
-//         
-//         for (int i = 0; i < nLevels; ++i)
-//             amr << "BoxArray level" << i << ": "
-//                 << myAmrOpal.boxArray(i) << endl;
-// 
-//         msg << "Done timestep " << it << " using dt = " << dt << endl;
     }
     ParallelDescriptor::Barrier();
     IpplTimings::stopTimer(tracTimer);

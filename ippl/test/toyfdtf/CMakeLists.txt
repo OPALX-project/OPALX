@@ -17,14 +17,14 @@ link_directories (
 
 SET (IPPL_LIBS ippl)
 
-IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_OPENMP)
+IF (ENABLE_DKS)
 
    include_directories (${DKS_INCLUDE_DIR})
    link_directories (${DKS_LIBRARY_DIR})
    #SET (IPPL_LIBS ${IPPL_LIBS} dks)
    SET (IPPL_LIBS ${IPPL_LIBS} ${DKS_LIBRARY_DIR}/libdks.a)
 
-ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_OPENMP)
+ENDIF (ENABLE_DKS)
 
 add_executable (ipplToyFDTD ${IPPLTOYFDTD_SRCS} ToyFDTD-DataSink/ipplToyFDTD2.cpp)
 target_link_libraries (ipplToyFDTD ${IPPL_LIBS})
