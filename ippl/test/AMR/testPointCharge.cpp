@@ -23,8 +23,114 @@
 #include <cmath>
 
 #include "Physics/Physics.h"
+#include <random>
+
 
 typedef Array<std::unique_ptr<MultiFab> > container_t;
+
+void initSphere(double r, PartBunchBase* bunch, int nParticles) {
+    bunch->create(nParticles);
+    
+    std::mt19937_64 eng;
+    std::uniform_real_distribution<> d(-r * 0.5, r * 0.5);
+    
+    std::string outfile = "amr-particles-level-" + std::to_string(0);
+    std::ofstream out(outfile);
+    long double qi = 4.0 * Physics::pi * Physics::epsilon_0 * r * r / double(nParticles);
+    
+    std::cout << "At R = " << r << ": " << qi * nParticles / (4.0 * Physics::pi * Physics::epsilon_0 * r) << std::endl;
+    
+    for (int i = 0; i < nParticles; ++i) {
+        bunch->setR(Vector_t( d(eng), d(eng), d(eng)), i);    // m
+        bunch->setQM(qi, i);   // C
+        
+        out << bunch->getR(i)[0] << std::endl;
+    }
+    out.close();
+}
+
+
+void writePotential(const container_t& phi, double dx, double dlow) {
+    // potential and efield a long x-direction (y = 0, z = 0)
+    int lidx = 0;
+    for (MFIter mfi(*phi[0 /*level*/]); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+        FArrayBox& lhs = (*phi[0])[mfi];
+        /* Write the potential of all levels to file in the format: x, y, z, \phi
+         */
+        for (int proc = 0; proc < ParallelDescriptor::NProcs(); ++proc) {
+            if ( proc == ParallelDescriptor::MyProc() ) {
+                std::string outfile = "amr-phi_scalar-level-" + std::to_string(0);
+                std::ofstream out;
+                
+                if ( proc == 0 )
+                    out.open(outfile);
+                else
+                    out.open(outfile, std::ios_base::app);
+                
+//                 if ( !out.is_open() )
+//                     throw OpalException("Error in TrilinosSolver::CopySolution",
+//                                         "Couldn't open the file: " + outfile);
+                int j = 0.5 * (bx.hiVect()[1] - bx.loVect()[1]);
+                int k = 0.5 * (bx.hiVect()[2] - bx.loVect()[2]);
+                
+                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+//                     for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+//                         for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
+                            IntVect ivec(i, j, k);
+                            // add one in order to have same convention as PartBunch::computeSelfField()
+                            out << i + 1 << " " << j + 1 << " " << k + 1 << " " << dlow + dx * i << " "
+                                << lhs(ivec, 0)  << std::endl;
+//                         }
+//                     }
+                }
+                out.close();
+            }
+            ParallelDescriptor::Barrier();
+        }
+    }
+}
+
+void writeElectricField(const container_t& efield, double dx, double dlow) {
+    // potential and efield a long x-direction (y = 0, z = 0)
+    int lidx = 0;
+    for (MFIter mfi(*efield[0 /*level*/]); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+        FArrayBox& lhs = (*efield[0])[mfi];
+        /* Write the potential of all levels to file in the format: x, y, z, ex, ey, ez
+         */
+        for (int proc = 0; proc < ParallelDescriptor::NProcs(); ++proc) {
+            if ( proc == ParallelDescriptor::MyProc() ) {
+                std::string outfile = "amr-efield_scalar-level-" + std::to_string(0);
+                std::ofstream out;
+                
+                if ( proc == 0 )
+                    out.open(outfile);
+                else
+                    out.open(outfile, std::ios_base::app);
+                
+//                 if ( !out.is_open() )
+//                     throw OpalException("Error in TrilinosSolver::CopySolution",
+//                                         "Couldn't open the file: " + outfile);
+                int j = 0.5 * (bx.hiVect()[1] - bx.loVect()[1]);
+                int k = 0.5 * (bx.hiVect()[2] - bx.loVect()[2]);
+                
+                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+//                     for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+//                         for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
+                            IntVect ivec(i, j, k);
+                            // add one in order to have same convention as PartBunch::computeSelfField()
+                            out << i + 1 << " " << j + 1 << " " << k + 1 << " " << dlow + dx * i << " "
+                                << lhs(ivec, 0) << " " << lhs(ivec, 1) << " " << lhs(ivec, 2) << std::endl;
+//                         }
+//                     }
+                }
+                out.close();
+            }
+            ParallelDescriptor::Barrier();
+        }
+    }
+}
 
 
 void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
@@ -59,6 +165,24 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     int base_level   = 0;
     int finest_level = myAmrOpal.finestLevel();
 
+//     const Box& bx = rhs[0]->box(0);
+//     
+//     int cell[3] = {
+//         (*bx.hiVect() - *bx.loVect()) / 2,
+//         (*bx.hiVect() - *bx.loVect()) / 2,
+//         (*bx.hiVect() - *bx.loVect()) / 2
+//     };
+//     
+//     IntVect low(cell[0] - 1,
+//                 cell[1] - 1,
+//                 cell[2] - 1);
+//     
+//     IntVect high(cell[0] + 1,
+//                  cell[1] + 1,
+//                  cell[2] + 1);
+//     
+//     Box region(low, high);
+    
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
     
     Real totalCharge = 0.0;
@@ -68,13 +192,16 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
         std::cout << "level " << i << " sum = " << sum << std::endl;
         totalCharge += sum;
     }
+    
+    std::cout << rhs[0]->min(0) << " " << rhs[0]->max(0) << std::endl;
+    
     std::cout << "Total Charge: " << totalCharge << " C" << std::endl;
     std::cout << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << std::endl;
     Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
-    std::cout << "Cell volume: " << vol << " m^3" << std::endl;
+    std::cout << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << std::endl;
     
     // eps in C / (V * m)
-    double constant = -1.0/*Physics::q_e*/ / (1.0/*4.0 * Physics::pi * Physics::epsilon_0*/);  // in [V m / C]
+    double constant = -1.0/*Physics::q_e*/ / (4.0 * Physics::pi * Physics::epsilon_0);  // in [V m / C]
     for (int i = 0; i <=finest_level; ++i) {
         rhs[i]->mult(constant, 0, 1);       // in [V m]
     }
@@ -85,6 +212,12 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     // **************************************************************************                                                                                                                                
 
     Real offset = 0.;
+//     if (geom[0].isAllPeriodic()) 
+//     {
+//         offset = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0, 0);
+//         offset /= geom[0].ProbSize();
+//         std::cout << "offset = " << offset << std::endl;
+//     }
 
     // solve                                                                                                                                                                                                     
     Solver sol;
@@ -131,12 +264,12 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
         domain.setHi(i,  1.0);
     }
     
-    domain.setLo(0, -0.2); // m
-    domain.setHi(0,  0.2); // m
-    domain.setLo(1, -0.2); // m
-    domain.setHi(1,  0.2); // m
-    domain.setLo(2, -0.2); // m
-    domain.setHi(2,  0.2); // m
+    domain.setLo(0, -0.05); // m
+    domain.setHi(0,  0.05); // m
+    domain.setLo(1, -0.05); // m
+    domain.setHi(1,  0.05); // m
+    domain.setLo(2, -0.05); // m
+    domain.setHi(2,  0.05); // m
     
     // periodic boundary conditions in all directions
     int bc[BL_SPACEDIM] = {0, 0, 0};
@@ -185,12 +318,16 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     // initialize a particle distribution
     IpplTimings::startTimer(distTimer);
     
-    bunch->create(1);
-    bunch->setR(Vector_t(1.0 / ( 1000.0/*4.0 * Physics::pi * Physics::epsilon_0 * 1.0e+12*/), 0.0, 0.0), 0);    // m
-    bunch->setQM(1.0, 0);   // 1 C
+    double R = 0.01; // m
+    int nParticles = 100000;
+    initSphere(R, bunch, nParticles);
+    
+//     bunch->setR(Vector_t(0.0, 0.0, 0.0), 1);
+//     bunch->setQM(0.0, 1);
     
     msg << "Particle location: " <<  bunch->getR(0) << " m" << endl
-        << "Particle charge: " << bunch->getQM(0) << " C" << endl;
+        << "Particle charge: " << bunch->getQM(0) << " C" << endl
+        << "#Cells per dim for bunch: " << R / *(geom[0].CellSize()) << endl;
     
     // redistribute on single-level
     bunch->myUpdate();
@@ -250,11 +387,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
             << "Min. ex-field level " << i << ": " << grad_phi[i]->min(0) << endl;
     }
     
-    // interpolate to origin
-    bunch->setR(Vector_t(0.0, 0.0, 0.0), 0);    // m
-    bunch->myUpdate();
-    msg << "Potential: " << dynamic_cast<AmrPartBunch*>(bunch)->interpolate(0, *phi[myAmrOpal.finestLevel()]) << endl;
-    
+//     msg << "Potential: " << dynamic_cast<AmrPartBunch*>(bunch)->interpolate(0, *phi[0]) << endl;
+    writePotential(phi, *(geom[0].CellSize()), -0.05);
+    writeElectricField(grad_phi, *(geom[0].CellSize()), -0.05);
     
     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
 }

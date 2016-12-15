@@ -46,12 +46,17 @@ Solver::solve_for_accel(container_t& rhs,
         BoxLib::average_face_to_cellcenter(*grad_phi[lev],
                                            BoxLib::GetArrOfConstPtrs(grad_phi_edge[lev]),
                                            geom[lev]);
+        
         grad_phi[lev]->FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
     }
 
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
         Real      end    = ParallelDescriptor::second() - strt;
+    }
+    
+    for (int lev = base_level; lev <= finest_level; ++lev) {
+        grad_phi[lev]->mult(-1.0, 0, 3);
     }
 }
 
