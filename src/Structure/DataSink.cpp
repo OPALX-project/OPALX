@@ -726,11 +726,11 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
         outputFile << "&column name=R0_s, type=double, units=m , ";
         outputFile << "description=\"52 R0 Particle Position in s  \" &end" << endl;
         outputFile << "&column name=P0_x, type=double, units=1 , ";
-        outputFile << "description=\"53 R0 Particle Position in x  \" &end" << endl;
+        outputFile << "description=\"53 P0 Particle Position in px  \" &end" << endl;
         outputFile << "&column name=P0_y, type=double, units=1 , ";
-        outputFile << "description=\"54 R0 Particle Position in y  \" &end" << endl;
+        outputFile << "description=\"54 P0 Particle Position in py  \" &end" << endl;
         outputFile << "&column name=P0_s, type=double, units=1 , ";
-        outputFile << "description=\"55 R0 Particle Position in s  \" &end" << endl;
+        outputFile << "description=\"55 P0 Particle Position in ps  \" &end" << endl;
 
         outputFile << "&column name=R1_x, type=double, units=m , ";
         outputFile << "description=\"56 R1 Particle Position in x  \" &end" << endl;
@@ -739,11 +739,11 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
         outputFile << "&column name=R1_s, type=double, units=m , ";
         outputFile << "description=\"58 R1 Particle Position in s  \" &end" << endl;
         outputFile << "&column name=P1_x, type=double, units=1 , ";
-        outputFile << "description=\"59 R1 Particle Position in x  \" &end" << endl;
+        outputFile << "description=\"59 P1 Particle Position in px  \" &end" << endl;
         outputFile << "&column name=P1_y, type=double, units=1 , ";
-        outputFile << "description=\"60 R1 Particle Position in y  \" &end" << endl;
+        outputFile << "description=\"60 P1 Particle Position in py  \" &end" << endl;
         outputFile << "&column name=P1_s, type=double, units=1 , ";
-        outputFile << "description=\"61 R1 Particle Position in s  \" &end" << endl;
+        outputFile << "description=\"61 P1 Particle Position in ps  \" &end" << endl;
 
         outputFile << "&column name=R2_x, type=double, units=m , ";
         outputFile << "description=\"62 R2 Particle Position in x  \" &end" << endl;
@@ -752,11 +752,11 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
         outputFile << "&column name=R2_s, type=double, units=m , ";
         outputFile << "description=\"64 R2 Particle Position in s  \" &end" << endl;
         outputFile << "&column name=P2_x, type=double, units=1 , ";
-        outputFile << "description=\"65 R2 Particle Position in x  \" &end" << endl;
+        outputFile << "description=\"65 P2 Particle Position in px  \" &end" << endl;
         outputFile << "&column name=P2_y, type=double, units=1 , ";
-        outputFile << "description=\"66 R2 Particle Position in y  \" &end" << endl;
+        outputFile << "description=\"66 P2 Particle Position in py  \" &end" << endl;
         outputFile << "&column name=P2_s, type=double, units=1 , ";
-        outputFile << "description=\"67 R2 Particle Position in s  \" &end" << endl;
+        outputFile << "description=\"67 P2 Particle Position in ps  \" &end" << endl;
 
         outputFile << "&column name=R3_x, type=double, units=m , ";
         outputFile << "description=\"68 R3 Particle Position in x  \" &end" << endl;
@@ -765,11 +765,11 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
         outputFile << "&column name=R3_s, type=double, units=m , ";
         outputFile << "description=\"70 R3 Particle Position in s  \" &end" << endl;
         outputFile << "&column name=P3_x, type=double, units=1 , ";
-        outputFile << "description=\"71 R3 Particle Position in x  \" &end" << endl;
+        outputFile << "description=\"71 P3 Particle Position in px  \" &end" << endl;
         outputFile << "&column name=P3_y, type=double, units=1 , ";
-        outputFile << "description=\"72 R3 Particle Position in y  \" &end" << endl;
+        outputFile << "description=\"72 P3 Particle Position in py  \" &end" << endl;
         outputFile << "&column name=P3_s, type=double, units=1 , ";
-        outputFile << "description=\"73 R3 Particle Position in s  \" &end" << endl;
+        outputFile << "description=\"73 P3 Particle Position in ps  \" &end" << endl;
 
         columnStart = 73;
     }
