@@ -29,7 +29,7 @@ typedef std::vector<double> vector_t;
 typedef std::vector<vector_t> matrix_t;
 typedef std::vector<matrix_t> tensor_t;
 
-void jacobi(tensor_t& phi, const double& h, const int& n, const double& rho, const int& nSteps) {
+void jacobi(tensor_t& phi, const double& h, const int& n, const tensor_t& rho, const int& nSteps) {
     
     tensor_t newphi(n + 2,
                  matrix_t(n + 2,
@@ -54,10 +54,10 @@ void jacobi(tensor_t& phi, const double& h, const int& n, const double& rho, con
         for (int i = 1; i < n + 1; ++i)
             for (int j = 1; j < n + 1; ++j)
                 for (int k = 1; k < n + 1; ++k) {
-                    newphi[i][j][k] = fac * rho + inv * (phi[i+1][j][k] + phi[i-1][j][k] +
-                                                          phi[i][j+1][k] + phi[i][j-1][k] +
-                                                          phi[i][j][k+1] + phi[i][j][k-1]
-                                                         );
+                    newphi[i][j][k] = fac * rho[i][j][k] + inv * (phi[i+1][j][k] + phi[i-1][j][k] +
+                                                                  phi[i][j+1][k] + phi[i][j-1][k] +
+                                                                  phi[i][j][k+1] + phi[i][j][k-1]
+                                                                 );
                 }
         std::swap(phi, newphi);
         
@@ -202,11 +202,29 @@ int main(int argc, char* argv[]) {
     }
     
     int n = std::atoi(argv[1]); // grid points
-    double h = 0.02 / double(n); // mesh size
+    double h = 0.01 / double(n); // mesh size
     int nSteps = std::atoi(argv[2]);
     
     // charge density initialized with -1
-    double rho = -1.0;
+    tensor_t rho(n,
+                 matrix_t(n,
+                          vector_t(n)
+                 )
+             );
+    
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            for(int k = 0; j < n; ++k) {
+                
+                if ( i >= 0.5 * n - 1 && i <= 0.5 * n + 1 &&
+                     j >= 0.5 * n - 1 && j <= 0.5 * n + 1 &&
+                     k >= 0.5 * n - 1 && k <= 0.5 * n + 1 )
+                {
+                    rho[i][j][k] = -1;
+                }
+            }
+        }
+    }
     
     // unknowns (initialized to zero by default)
     /*
