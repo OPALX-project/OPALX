@@ -12,7 +12,7 @@ Solver::solve_for_accel(container_t& rhs,
 {
  
     Real tol     = 1.e-10;
-    Real abs_tol = 0.0;//1.e-14;
+    Real abs_tol = 1.e-14;
 
     Array< Array<std::unique_ptr<MultiFab> > > grad_phi_edge(rhs.size());
 
@@ -21,7 +21,7 @@ Solver::solve_for_accel(container_t& rhs,
         grad_phi_edge[lev].resize(BL_SPACEDIM);
         for (int n = 0; n < BL_SPACEDIM; ++n) {
             BoxArray ba = rhs[lev]->boxArray();
-            grad_phi_edge[lev][n].reset(new MultiFab(ba.surroundingNodes(n), 1, 0));
+            grad_phi_edge[lev][n].reset(new MultiFab(ba.surroundingNodes(n), 1, 1));
         }
     }
 
@@ -78,7 +78,7 @@ Solver::solve_with_f90(container_t& rhs,
     // This tells the solver that we are using Dirichlet bc's
     if (Geometry::isAllPeriodic()) {
 //         if ( ParallelDescriptor::IOProcessor() )
-//             std::cerr << "Periodic BC" << std::endl;
+            std::cerr << "Periodic BC" << std::endl;
         
         for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
             // periodic BC
@@ -87,7 +87,7 @@ Solver::solve_with_f90(container_t& rhs,
         }
     } else {
 //         if ( ParallelDescriptor::IOProcessor() )
-//             std::cerr << "Dirichlet BC" << std::endl;
+            std::cerr << "Dirichlet BC" << std::endl;
         
         for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
             // Dirichlet BC
@@ -127,7 +127,7 @@ Solver::solve_with_f90(container_t& rhs,
      * --> (del dot grad) phi = rhs
      */
     fmg.set_const_gravity_coeffs();
-    fmg.set_maxorder(2);
+    fmg.set_maxorder(3);
 
     int always_use_bnorm = 0;
     int need_grad_phi = 1;
