@@ -25,7 +25,6 @@ class FieldSolver;
 
 #ifdef HAVE_AMR_SOLVER
     #include <Amr.H>
-    #include "Solvers/amr/BoundaryDomain.h"
 #endif
 
 class PartBunch;

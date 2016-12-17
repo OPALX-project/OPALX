@@ -448,13 +448,6 @@ void FieldSolver::initSolver(PartBunch &b) {
         
         if(amrptr_m)
             m << fsType_m << " solver: amrptr_m Init done " << endl;
-        
-        BoundaryDomain* bd = new BoundaryDomain(nr,hr);
-        
-        amrptr_m->setBoundaryGeometry(bd->GetIntersectLoX(), bd->GetIntersectHiX(),
-                                        bd->GetIntersectLoY(), bd->GetIntersectHiY());
-        
-        m << fsType_m << " solver boundary geometry initialized " << endl;
     }
 #endif
     else {

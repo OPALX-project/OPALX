@@ -54,7 +54,6 @@
 #define DIM 3
 #include <Amr.H>
 #include <ParallelDescriptor.H>
-#include "Solvers/amr/BoundaryDomain.h"
 #endif
 
 #include <fstream>

@@ -1,6 +1,0 @@
-f90EXE_sources += Nyx_$(DIM)d.f90 
-f90EXE_sources += Derive_$(DIM)d.f90
-f90EXE_sources += Electrostatic_$(DIM)d.f90
-f90EXE_sources += Tagging_$(DIM)d.f90
-f90EXE_sources += ProbInit.f90
-f90EXE_sources += bc_fill_$(DIM)d.f90
