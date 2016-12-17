@@ -4,6 +4,10 @@
 #include <Geometry.H>
 #include <VisMF.H>
 
+#ifdef UNIQUE_PTR
+    #include <PArray.H>
+#endif
+
 /*!
  * @file writePlotFile.H
  * @author Matthias Frey
@@ -24,6 +28,7 @@
  * @param time specifies the step.
  */
 inline void
+#ifdef UNIQUE_PTR
 writePlotFile (const std::string& dir,
                const std::vector<std::unique_ptr<MultiFab> >& rho,
                const std::vector<std::unique_ptr<MultiFab> >& phi,
@@ -31,6 +36,15 @@ writePlotFile (const std::string& dir,
                const Array<int>& refRatio,
                const Array<Geometry>& geom,
 	       const Real&        time)
+#else
+writePlotFile (const std::string& dir,
+               const PArray<MultiFab>& rho,
+               const PArray<MultiFab>& phi,
+               const PArray<MultiFab>& efield,
+               const Array<int>& refRatio,
+               const Array<Geometry>& geom,
+	       const Real&        time)
+#endif
 {
     int nLevels = rho.size();
     //
@@ -56,7 +70,11 @@ writePlotFile (const std::string& dir,
 
     HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
+#ifdef UNIQUE_PTR
     int nData = rho[0]->nComp() + phi[0]->nComp() + efield[0]->nComp();
+#else
+    int nData = rho[0].nComp() + phi[0].nComp() + efield[0].nComp();
+#endif
     
     if (ParallelDescriptor::IOProcessor())
     {
@@ -71,11 +89,19 @@ writePlotFile (const std::string& dir,
         HeaderFile << nData << '\n';
 
 	// variable names
+#ifdef UNIQUE_PTR
         for (int ivar = 1; ivar <= rho[0]->nComp(); ivar++) {
+#else
+        for (int ivar = 1; ivar <= rho[0].nComp(); ivar++) {
+#endif
           HeaderFile << "rho\n";
         }
         
+#ifdef UNIQUE_PTR
         for (int ivar = 1; ivar <= phi[0]->nComp(); ivar++) {
+#else
+        for (int ivar = 1; ivar <= phi[0].nComp(); ivar++) {
+#endif
           HeaderFile << "potential\n";
         }
         
@@ -151,12 +177,24 @@ writePlotFile (const std::string& dir,
         
         if (ParallelDescriptor::IOProcessor())
         {
+#ifdef UNIQUE_PTR
             HeaderFile << lev << ' ' << rho[lev]->boxArray().size() << ' ' << 0 << '\n';
+#else
+            HeaderFile << lev << ' ' << rho[lev].boxArray().size() << ' ' << 0 << '\n';
+#endif
             HeaderFile << 0 << '\n';    // # time steps at this level
     
+#ifdef UNIQUE_PTR
             for (int i = 0; i < rho[lev]->boxArray().size(); ++i)
+#else
+            for (int i = 0; i < rho[lev].boxArray().size(); ++i)
+#endif
             {
+#ifdef UNIQUE_PTR
                 RealBox loc = RealBox(rho[lev]->boxArray()[i],geom[lev].CellSize(),geom[lev].ProbLo());
+#else
+                RealBox loc = RealBox(rho[lev].boxArray()[i],geom[lev].CellSize(),geom[lev].ProbLo());
+#endif
                 for (int n = 0; n < BL_SPACEDIM; n++)
                     HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
             }
@@ -165,8 +203,12 @@ writePlotFile (const std::string& dir,
             PathNameInHeader += BaseName;
             HeaderFile << PathNameInHeader << '\n';
         }
-        
+
+#ifdef UNIQUE_PTR
         MultiFab data(rho[lev]->boxArray(), nData, 0);
+#else
+        MultiFab data(rho[lev].boxArray(), nData, 0);
+#endif
         
         // dst, src, srccomp, dstcomp, numcomp, nghost
         /*
@@ -174,9 +216,15 @@ writePlotFile (const std::string& dir,
         * dstcmop: the component where to copy
         * numcomp: how many components to copy
         */
+#ifdef UNIQUE_PTR
         MultiFab::Copy(data, *rho[lev],    0, 0, 1, 0);
         MultiFab::Copy(data, *phi[lev],    0, 1, 1, 0);
         MultiFab::Copy(data, *efield[lev], 0, 2, 3, 0); // (Ex, Ey, Ez)
+#else
+        MultiFab::Copy(data, rho[lev],    0, 0, 1, 0);
+        MultiFab::Copy(data, phi[lev],    0, 1, 1, 0);
+        MultiFab::Copy(data, efield[lev], 0, 2, 3, 0); // (Ex, Ey, Ez)
+#endif
 //         MultiFab::Copy(data, efield[lev], 0, 2, 1, 0);   // Ex
 //         MultiFab::Copy(data, efield[lev], 1, 3, 1, 0);   // Ey
 //         MultiFab::Copy(data, efield[lev], 2, 4, 1, 0);   // Ez

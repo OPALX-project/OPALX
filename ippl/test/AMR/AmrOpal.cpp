@@ -12,13 +12,19 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
     initBaseLevel();
     nPartPerCell_m.resize(max_level_in + 1);//, PArrayManage);
 //     nPartPerCell_m.set(0, new MultiFab(this->boxArray(0), 1, 1));
-    
+#ifdef UNIQUE_PTR
     nPartPerCell_m[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(0), 1, 1, this->DistributionMap(0)));
     nPartPerCell_m[0]->setVal(0.0);
     
     chargeOnGrid_m.resize(max_level_in + 1);
     chargeOnGrid_m[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(0), 1, 0, this->DistributionMap(0)));
+#else
+    nPartPerCell_m.set(0, new MultiFab(this->boxArray(0), 1, 1, this->DistributionMap(0)));
+    nPartPerCell_m[0].setVal(0.0);
     
+    chargeOnGrid_m.resize(max_level_in + 1);
+    chargeOnGrid_m.set(0, new MultiFab(this->boxArray(0), 1, 0, this->DistributionMap(0)));
+#endif
 //     bunch_m->AssignDensitySingleLevel(0, *nPartPerCell_m[0], 0);
 //     bunch_m->myUpdate();
 }
@@ -69,7 +75,11 @@ void AmrOpal::writePlotFileYt(std::string filename, int step) {
 
     HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
+#ifdef UNIQUE_PTR
     int nData = chargeOnGrid_m[0]->nComp();
+#else
+    int nData = chargeOnGrid_m[0].nComp();
+#endif
     
     if (ParallelDescriptor::IOProcessor())
     {
@@ -84,7 +94,11 @@ void AmrOpal::writePlotFileYt(std::string filename, int step) {
         HeaderFile << nData << '\n';
 
 	// variable names
+#ifdef UNIQUE_PTR
         for (int ivar = 1; ivar <= chargeOnGrid_m[0]->nComp(); ivar++) {
+#else
+        for (int ivar = 1; ivar <= chargeOnGrid_m[0].nComp(); ivar++) {
+#endif
           HeaderFile << "rho\n";
         }
         
@@ -158,12 +172,21 @@ void AmrOpal::writePlotFileYt(std::string filename, int step) {
         
         if (ParallelDescriptor::IOProcessor())
         {
+#ifdef UNIQUE_PTR
             HeaderFile << lev << ' ' << chargeOnGrid_m[lev]->boxArray().size() << ' ' << 0 << '\n';
             HeaderFile << 0 << '\n';    // # time steps at this level
     
             for (int i = 0; i < chargeOnGrid_m[lev]->boxArray().size(); ++i)
             {
                 RealBox loc = RealBox(chargeOnGrid_m[lev]->boxArray()[i],geom[lev].CellSize(),geom[lev].ProbLo());
+#else
+            HeaderFile << lev << ' ' << chargeOnGrid_m[lev].boxArray().size() << ' ' << 0 << '\n';
+            HeaderFile << 0 << '\n';    // # time steps at this level
+    
+            for (int i = 0; i < chargeOnGrid_m[lev].boxArray().size(); ++i)
+            {
+                RealBox loc = RealBox(chargeOnGrid_m[lev].boxArray()[i],geom[lev].CellSize(),geom[lev].ProbLo());
+#endif
                 for (int n = 0; n < BL_SPACEDIM; n++)
                     HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
             }
@@ -173,8 +196,11 @@ void AmrOpal::writePlotFileYt(std::string filename, int step) {
             HeaderFile << PathNameInHeader << '\n';
         }
         
+#ifdef UNIQUE_PTR
         MultiFab data(chargeOnGrid_m[lev]->boxArray(), nData, 0);
-        
+#else
+        MultiFab data(chargeOnGrid_m[lev].boxArray(), nData, 0);
+#endif
         // dst, src, srccomp, dstcomp, numcomp, nghost
         /*
         * srccomp: the component to copy
@@ -182,8 +208,11 @@ void AmrOpal::writePlotFileYt(std::string filename, int step) {
         * numcomp: how many components to copy
         */
 //         data.copy(*nPartPerCell_m[lev],0,0,0);
+#ifdef UNIQUE_PTR
         MultiFab::Copy(data, *chargeOnGrid_m[lev],    0, 0, 1, 0);
-        
+#else
+        MultiFab::Copy(data, chargeOnGrid_m[lev],    0, 0, 1, 0);
+#endif
         //
         // Use the Full pathname when naming the MultiFab.
         //
@@ -200,7 +229,11 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
     
     Array<const MultiFab*> tmp(finest_level + 1/*nPartPerCell_m.size()*/);
     for (/*unsigned*/ int i = 0; i < finest_level + 1/*nPartPerCell_m.size()*/; ++i) {
+#ifdef UNIQUE_PTR
         tmp[i] = chargeOnGrid_m[i].get();
+#else
+        tmp[i] = &chargeOnGrid_m[i];
+#endif
     }
     
     const auto& mf = tmp;
@@ -215,16 +248,30 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
 void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) {
     
     for (int i = lev; i <= finest_level; ++i) {
+#ifdef UNIQUE_PTR
         nPartPerCell_m[i]->setVal(0.0);
         bunch_m->AssignDensitySingleLevel(0, *nPartPerCell_m[i], i);
+#else
+        nPartPerCell_m[i].setVal(0.0);
+        bunch_m->AssignDensitySingleLevel(0, nPartPerCell_m[i], i);
+#endif
     }
 
+#ifdef UNIQUE_PTR
     for (int i = finest_level-1; i >= lev; --i) {
         MultiFab tmp(nPartPerCell_m[i]->boxArray(), 1, 0, nPartPerCell_m[i]->DistributionMap());
         tmp.setVal(0.0);
         BoxLib::average_down(*nPartPerCell_m[i+1], tmp, 0, 1, refRatio(i));
         MultiFab::Add(*nPartPerCell_m[i], tmp, 0, 0, 1, 0);
     }
+#else
+    for (int i = finest_level-1; i >= lev; --i) {
+        MultiFab tmp(nPartPerCell_m[i].boxArray(), 1, 0, nPartPerCell_m[i].DistributionMap());
+        tmp.setVal(0.0);
+        BoxLib::average_down(nPartPerCell_m[i+1], tmp, 0, 1, refRatio(i));
+        MultiFab::Add(nPartPerCell_m[i], tmp, 0, 0, 1, 0);
+    }
+#endif
     
     
 //     std::cout << lev << " " << nPartPerCell_m[lev]->min(0) << " " << nPartPerCell_m[lev]->max(0) << std::endl;
@@ -242,8 +289,11 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) {
 #endif
     {
         Array<int>  itags;
-        
+#ifdef UNIQUE_PTR
         for (MFIter mfi(*nPartPerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+#else
+        for (MFIter mfi(nPartPerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+#endif
             const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
             TagBox&     tagfab  = tags[mfi];
@@ -258,7 +308,11 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) {
             const int*  thi     = tilebx.hiVect();
 
             state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
+#ifdef UNIQUE_PTR
                         BL_TO_FORTRAN_3D((*nPartPerCell_m[lev])[mfi]),
+#else
+                        BL_TO_FORTRAN_3D((nPartPerCell_m[lev])[mfi]),
+#endif
                         &tagval, &clearval, 
                         ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
                         ZFILL(dx), ZFILL(prob_lo), &time, &nPart);
@@ -346,9 +400,17 @@ AmrOpal::RemakeLevel (int lev, Real time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
+#ifdef UNIQUE_PTR
     nPartPerCell_m[lev].reset(new MultiFab(new_grids, 1, 1, new_dmap));
     
     chargeOnGrid_m[lev].reset(new MultiFab(new_grids, 1, 0, new_dmap));
+#else
+    nPartPerCell_m.clear(lev);
+    nPartPerCell_m.set(lev, new MultiFab(new_grids, 1, 1, new_dmap));
+    
+    chargeOnGrid_m.clear(lev);
+    chargeOnGrid_m.set(lev, new MultiFab(new_grids, 1, 0, new_dmap));
+#endif
 }
 
 void
@@ -358,15 +420,26 @@ AmrOpal::MakeNewLevel (int lev, Real time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
+#ifdef UNIQUE_PTR
     nPartPerCell_m[lev] = std::unique_ptr<MultiFab>(new MultiFab(new_grids, 1, 1, dmap[lev]));
     
     chargeOnGrid_m[lev] = std::unique_ptr<MultiFab>(new MultiFab(new_grids, 1, 0, dmap[lev]));
+#else
+    nPartPerCell_m.set(lev, new MultiFab(new_grids, 1, 1, dmap[lev]));
+    
+    chargeOnGrid_m.set(lev, new MultiFab(new_grids, 1, 0, dmap[lev]));
+#endif
 }
 
 void AmrOpal::ClearLevel(int lev) {
     
+#ifdef UNIQUE_PTR
     nPartPerCell_m[lev].reset(nullptr);
     chargeOnGrid_m[lev].reset(nullptr);
+#else
+    nPartPerCell_m.clear(lev);
+    chargeOnGrid_m.clear(lev);
+#endif
     ClearBoxArray(lev);
     ClearDistributionMap(lev);
 }

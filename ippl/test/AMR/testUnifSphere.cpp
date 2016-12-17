@@ -216,7 +216,7 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
         totalCharge += sum;
     }
     
-    msg << "Total Charge: " << totalCharge << " C" << endl
+    msg << "Total Charge (computed): " << totalCharge << " C" << endl
         << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
     
     Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
@@ -332,11 +332,13 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     
     // initialize a particle distribution
     double R = 0.005; // radius of sphere [m]
-    int nParticles = 1000000;
+    int nParticles = 1e6;
     initSphere(R, bunch, nParticles);
     
-    msg << "Particle location: " <<  bunch->getR(0) << " m" << endl
-        << "Particle charge: " << bunch->getQM(0) << " C" << endl
+    msg << "Bunch radius: " <<  bunch->getR(0) << " m" << endl
+        << "#Particles: " << nParticles << endl
+        << "Charge per particle: " << bunch->getQM(0) << " C" << endl
+        << "Total charge: " << nParticles * bunch->getQM(0) << " C" << endl
         << "#Cells per dim for bunch: " << 2.0 * R / *(geom[0].CellSize()) << endl;
     
     // redistribute on single-level
