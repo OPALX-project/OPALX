@@ -444,9 +444,6 @@ private:
     void initializeBoundaryGeometry();
     void doBinaryRepartition();
     void executeDefaultTracker();
-#ifdef HAVE_AMR_SOLVER
-    void executeAMRTracker();
-#endif
     void executeAMTSTracker();
     void push(double h);
     void kick(double h, bool avoidGammaCalc = false);
