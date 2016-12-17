@@ -25,14 +25,18 @@
 #include "Physics/Physics.h"
 #include <random>
 
-
+#ifdef UNIQUE_PTR
 typedef Array<std::unique_ptr<MultiFab> > container_t;
+#else
+#include <PArray.H>
+typedef PArray<MultiFab> container_t;
+#endif
 
 void initSphere(double r, PartBunchBase* bunch, int nParticles) {
     bunch->create(nParticles);
     
     std::mt19937_64 eng;
-    std::uniform_real_distribution<> d(-r * 0.5, r * 0.5);
+    std::uniform_real_distribution<> d(-r, r);
     
 //     std::string outfile = "amr-particles-level-" + std::to_string(0);
 //     std::ofstream out(outfile);
@@ -51,9 +55,17 @@ void initSphere(double r, PartBunchBase* bunch, int nParticles) {
 void writePotential(const container_t& phi, double dx, double dlow) {
     // potential and efield a long x-direction (y = 0, z = 0)
     int lidx = 0;
+#ifdef UNIQUE_PTR
     for (MFIter mfi(*phi[0 /*level*/]); mfi.isValid(); ++mfi) {
+#else
+    for (MFIter mfi(phi[0 /*level*/]); mfi.isValid(); ++mfi) {
+#endif
         const Box& bx = mfi.validbox();
-        FArrayBox& lhs = (*phi[0])[mfi];
+#ifdef UNIQUE_PTR
+        const FArrayBox& lhs = (*phi[0])[mfi];
+#else
+        const FArrayBox& lhs = (phi[0])[mfi];
+#endif
         /* Write the potential of all levels to file in the format: x, y, z, \phi
          */
         for (int proc = 0; proc < ParallelDescriptor::NProcs(); ++proc) {
@@ -89,9 +101,17 @@ void writePotential(const container_t& phi, double dx, double dlow) {
 void writeElectricField(const container_t& efield, double dx, double dlow) {
     // potential and efield a long x-direction (y = 0, z = 0)
     int lidx = 0;
+#ifdef UNIQUE_PTR
     for (MFIter mfi(*efield[0 /*level*/]); mfi.isValid(); ++mfi) {
+#else
+    for (MFIter mfi(efield[0 /*level*/]); mfi.isValid(); ++mfi) {
+#endif
         const Box& bx = mfi.validbox();
-        FArrayBox& lhs = (*efield[0])[mfi];
+#ifdef UNIQUE_PTR
+        const FArrayBox& lhs = (*efield[0])[mfi];
+#else
+        const FArrayBox& lhs = (efield[0])[mfi];
+#endif
         /* Write the potential of all levels to file in the format: x, y, z, ex, ey, ez
          */
         for (int proc = 0; proc < ParallelDescriptor::NProcs(); ++proc) {
@@ -143,6 +163,7 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     grad_phi.resize(nLevels);
 
     for (int lev = 0; lev < nLevels; ++lev) {
+#ifdef UNIQUE_PTR
         //                                    # component # ghost cells                                                                                                                                          
         rhs[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev],1          ,0));
         phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev],1          ,1));
@@ -151,6 +172,15 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
         rhs[lev]->setVal(0.0);
         phi[lev]->setVal(0.0);
         grad_phi[lev]->setVal(0.0);
+#else
+        //                                    # component # ghost cells                                                                                                                                          
+        rhs.set(lev, new MultiFab(myAmrOpal.boxArray()[lev],1          ,0));
+        phi.set(lev, new MultiFab(myAmrOpal.boxArray()[lev],1          ,1));
+        grad_phi.set(lev, new MultiFab(myAmrOpal.boxArray()[lev],BL_SPACEDIM, 1));
+        rhs[lev].setVal(0.0);
+        phi[lev].setVal(0.0);
+        grad_phi[lev].setVal(0.0);
+#endif
     }
     
 
@@ -164,7 +194,11 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     Real totalCharge = 0.0;
     for (int i = 0; i <= finest_level; ++i) {
         Real invVol = (*(geom[i].CellSize()) * *(geom[i].CellSize()) * *(geom[i].CellSize()) );
+#ifdef UNIQUE_PTR
         Real sum = rhs[i]->sum(0) * invVol;
+#else
+        Real sum = rhs[i].sum(0) * invVol;
+#endif
         totalCharge += sum;
     }
     
@@ -177,7 +211,11 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     // eps in C / (V * m)
     double constant = -1.0/*Physics::q_e*/ / (4.0 * Physics::pi * Physics::epsilon_0);  // in [V m / C]
     for (int i = 0; i <=finest_level; ++i) {
+#ifdef UNIQUE_PTR
         rhs[i]->mult(constant, 0, 1);       // in [V m]
+#else
+        rhs[i].mult(constant, 0, 1);
+#endif
     }
     
     // **************************************************************************                                                                                                                                
@@ -279,13 +317,13 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     
     
     // initialize a particle distribution
-    double R = 0.01; // m
-    int nParticles = 10000;
+    double R = 0.005; // radius of sphere [m]
+    int nParticles = 100000;
     initSphere(R, bunch, nParticles);
     
     msg << "Particle location: " <<  bunch->getR(0) << " m" << endl
         << "Particle charge: " << bunch->getQM(0) << " C" << endl
-        << "#Cells per dim for bunch: " << R / *(geom[0].CellSize()) << endl;
+        << "#Cells per dim for bunch: " << 2.0 * R / *(geom[0].CellSize()) << endl;
     
     // redistribute on single-level
     bunch->myUpdate();
@@ -339,10 +377,17 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     
     
     for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
+#ifdef UNIQUE_PTR
         msg << "Max. potential level " << i << ": "<< phi[i]->max(0) << endl
             << "Min. potential level " << i << ": " << phi[i]->min(0) << endl
             << "Max. ex-field level " << i << ": " << grad_phi[i]->max(0) << endl
             << "Min. ex-field level " << i << ": " << grad_phi[i]->min(0) << endl;
+#else
+        msg << "Max. potential level " << i << ": "<< phi[i].max(0) << endl
+            << "Min. potential level " << i << ": " << phi[i].min(0) << endl
+            << "Max. ex-field level " << i << ": " << grad_phi[i].max(0) << endl
+            << "Min. ex-field level " << i << ": " << grad_phi[i].min(0) << endl;
+#endif
     }
     
     writePotential(phi, *(geom[0].CellSize()), -a);
