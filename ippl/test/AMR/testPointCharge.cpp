@@ -36,17 +36,31 @@ void initSphere(double r, PartBunchBase* bunch, int nParticles) {
     bunch->create(nParticles);
     
     std::mt19937_64 eng;
-    std::uniform_real_distribution<> d(-r, r);
+    std::uniform_real_distribution<> ph(-1.0, 1.0);
+    std::uniform_real_distribution<> th(0.0, 2.0 * Physics::pi);
+    std::uniform_real_distribution<> u(0.0, 1.0);
+    
     
 //     std::string outfile = "amr-particles-level-" + std::to_string(0);
 //     std::ofstream out(outfile);
     long double qi = 4.0 * Physics::pi * Physics::epsilon_0 * r * r / double(nParticles);
     
     for (int i = 0; i < nParticles; ++i) {
-        bunch->setR(Vector_t( d(eng), d(eng), d(eng)), i);    // m
-        bunch->setQM(qi, i);   // C
+        // 17. Dec. 2016,
+        // http://math.stackexchange.com/questions/87230/picking-random-points-in-the-volume-of-sphere-with-uniform-probability
+        // http://stackoverflow.com/questions/5408276/sampling-uniformly-distributed-random-points-inside-a-spherical-volume
+        double phi = std::acos( ph(eng) );
+        double theta = th(eng);
+        double radius = r * std::cbrt( u(eng) );
         
-//         out << bunch->getR(i)[0] << std::endl;
+        double x = radius * std::cos( theta ) * std::sin( phi );
+        double y = radius * std::sin( theta ) * std::sin( phi );
+        double z = radius * std::cos( phi );
+        
+//         out << x << " " << y << " " << z << std::endl;
+        
+        bunch->setR(Vector_t( x, y, z ), i);    // m
+        bunch->setQM(qi, i);   // C
     }
 //     out.close();
 }
@@ -318,7 +332,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     
     // initialize a particle distribution
     double R = 0.005; // radius of sphere [m]
-    int nParticles = 100000;
+    int nParticles = 1000000;
     initSphere(R, bunch, nParticles);
     
     msg << "Particle location: " <<  bunch->getR(0) << " m" << endl
