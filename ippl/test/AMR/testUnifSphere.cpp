@@ -41,8 +41,8 @@ void initSphere(double r, PartBunchBase* bunch, int nParticles) {
     std::uniform_real_distribution<> u(0.0, 1.0);
     
     
-//     std::string outfile = "amr-particles-level-" + std::to_string(0);
-//     std::ofstream out(outfile);
+    std::string outfile = "amr-particles-level-" + std::to_string(0);
+    std::ofstream out(outfile);
     long double qi = 4.0 * Physics::pi * Physics::epsilon_0 * r * r / double(nParticles);
     
     for (int i = 0; i < nParticles; ++i) {
@@ -57,12 +57,12 @@ void initSphere(double r, PartBunchBase* bunch, int nParticles) {
         double y = radius * std::sin( theta ) * std::sin( phi );
         double z = radius * std::cos( phi );
         
-//         out << x << " " << y << " " << z << std::endl;
+        out << x << " " << y << " " << z << std::endl;
         
         bunch->setR(Vector_t( x, y, z ), i);    // m
         bunch->setQM(qi, i);   // C
     }
-//     out.close();
+    out.close();
 }
 
 
@@ -311,7 +311,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     dmap.resize(nLevels);
     dmap[0].define(ba[0], ParallelDescriptor::NProcs() /*nprocs*/);
     
-    
+    // refinement ratio
     Array<int> rr(nLevels - 1);
     for (unsigned int lev = 0; lev < rr.size(); ++lev)
         rr[lev] = 2;
