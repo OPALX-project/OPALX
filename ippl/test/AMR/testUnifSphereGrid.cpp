@@ -94,39 +94,6 @@ void initSphereOnGrid(container_t& rhs,
 // #endif
 }
 
-void initSphere(double r, PartBunchBase* bunch, int nParticles) {
-    bunch->create(nParticles);
-    
-    std::mt19937_64 eng;
-    std::uniform_real_distribution<> ph(-1.0, 1.0);
-    std::uniform_real_distribution<> th(0.0, 2.0 * Physics::pi);
-    std::uniform_real_distribution<> u(0.0, 1.0);
-    
-    
-    std::string outfile = "amr-particles-level-" + std::to_string(0);
-    std::ofstream out(outfile);
-    long double qi = 4.0 * Physics::pi * Physics::epsilon_0 * r * r / double(nParticles);
-    
-    for (int i = 0; i < nParticles; ++i) {
-        // 17. Dec. 2016,
-        // http://math.stackexchange.com/questions/87230/picking-random-points-in-the-volume-of-sphere-with-uniform-probability
-        // http://stackoverflow.com/questions/5408276/sampling-uniformly-distributed-random-points-inside-a-spherical-volume
-        double phi = std::acos( ph(eng) );
-        double theta = th(eng);
-        double radius = r * std::cbrt( u(eng) );
-        
-        double x = radius * std::cos( theta ) * std::sin( phi );
-        double y = radius * std::sin( theta ) * std::sin( phi );
-        double z = radius * std::cos( phi );
-        
-        out << x << " " << y << " " << z << std::endl;
-        
-        bunch->setR(Vector_t( x, y, z ), i);    // m
-        bunch->setQM(qi, i);   // C
-    }
-    out.close();
-}
-
 
 void writePotential(const container_t& phi, double dx, double dlow) {
     // potential and efield a long x-direction (y = 0, z = 0)
@@ -268,11 +235,8 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     int base_level   = 0;
     int finest_level = myAmrOpal.finestLevel();
     
-    if ( grid ) {
-        initSphereOnGrid(rhs, geom, a, R, nr);
-        
-    } else
-        dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
+    
+    initSphereOnGrid(rhs, geom, a, R, nr);
     
     // Check charge conservation
     Real totalCharge = 0.0;
@@ -402,19 +366,6 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     
     // initialize a particle distribution
     double R = 0.005; // radius of sphere [m]
-    int nParticles = 1e6;
-    initSphere(R, bunch, nParticles);
-    
-    msg << "Bunch radius: " << R << " m" << endl
-        << "#Particles: " << nParticles << endl
-        << "Charge per particle: " << bunch->getQM(0) << " C" << endl
-        << "Total charge: " << nParticles * bunch->getQM(0) << " C" << endl
-        << "#Cells per dim for bunch: " << 2.0 * R / *(geom[0].CellSize()) << endl;
-    
-    // redistribute on single-level
-    bunch->myUpdate();
-    
-//     bunch->gatherStatistics();
     
     // ========================================================================
     // 2. tagging (i.e. create BoxArray's, DistributionMapping's of all

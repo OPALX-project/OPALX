@@ -25,12 +25,22 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <random>
 
 
 typedef std::vector<double> vector_t;
 typedef std::vector<vector_t> matrix_t;
 typedef std::vector<matrix_t> tensor_t;
 
+/*! Solves Poisson equation \f$ \Delta\phi = -\rho \f$ in 3D
+ *  using the Jacobi method. It uses Dirichlet boundary
+ *  conditions (zero), where the boundary is the edge.
+ * @param phi is the potential (unknowns)
+ * @param h is the mesh spacing
+ * @param n is the number of discretization points
+ * @param rho is the right-hand side
+ * @param nSteps is the number of iteration steps
+ */
 void jacobi(tensor_t& phi, const double& h, const int& n, const tensor_t& rho, const int& nSteps) {
     
     tensor_t newphi(n + 2,
@@ -86,7 +96,14 @@ void jacobi(tensor_t& phi, const double& h, const int& n, const tensor_t& rho, c
 }
 
 // 6.12.2016, http://www.physics.buffalo.edu/phy410-505/2011/topic3/app1/index.html
-// successive over relaxation, not working
+/*!
+ * successive over relaxation, not working
+ * @param phi is the potential (unknowns)
+ * @param h is the mesh spacing
+ * @param n is the number of discretization points
+ * @param rho is the right-hand side
+ * @param nSteps is the number of iteration steps
+ */
 void sor(tensor_t& phi, const double& h, const int& n, const double& rho, const int& nSteps) {
     
     double w = 2.0 / ( 1.0 + M_PI / double(n) );
@@ -144,6 +161,12 @@ void sor(tensor_t& phi, const double& h, const int& n, const double& rho, const 
     }
 }
 
+/*! Write the electric field and the potential on the grid point
+ *  to files.
+ * @param phi is the potential on the grid
+ * @param h is the mesh spacing
+ * @param n is the number of discretization points
+ */
 void write(tensor_t& phi, const double& h, const int& n) {
     // just write interior points
     std::ofstream pout("phi.dat");
@@ -195,7 +218,14 @@ void write(tensor_t& phi, const double& h, const int& n) {
     ezout.close();
 }
 
-
+/*!
+ * Initialize the charge distribution on the grid with
+ * charge 1.0 for each grid point.
+ * @param rho is the right-hand side to be filled
+ * @param a is the domain size (cubic) [m]
+ * @param R is the radius of the sphere [m]
+ * @param n is the number of discretization points
+ */
 void initSphereOnGrid(tensor_t& rho, double a, double R, int n) {
     
     double eps = 8.854187817e-12;
@@ -240,6 +270,12 @@ void initSphereOnGrid(tensor_t& rho, double a, double R, int n) {
     std::cout << "#Grid non-zero points: " << num << std::endl;
 }
 
+/*!
+ * Initialize the charge distribution on the grid with
+ * charge 1.0 on the whole domain.
+ * @param rho is the right-hand side to be filled
+ * @param n is the number of discretization points
+ */
 void initMinusOneEverywhere(tensor_t& rho, int n) {
     
     double sum = 0.0;
@@ -254,6 +290,137 @@ void initMinusOneEverywhere(tensor_t& rho, int n) {
     std::cout << "Total Charge: " << sum << " [C]" << std::endl;
 }
 
+/*!
+ * Initialize the charge distribution on the grid within
+ * a sphere of radius R. The total charge is
+ * \f$ q = 2.78163\cdot 10^{-15} \f$.
+ * @param rho is the right-hand side to be filled
+ * @param a is the domain size (cubic) [m]
+ * @param R is the radius of the sphere [m]
+ * @param n is the number of discretization points
+ */
+void initSphere(tensor_t& rho, double a, double R, int n) {
+    
+    // vacuum permittivity [C / (V m)]
+    long double eps = 8.854187817e-12;
+    
+    // total charge
+    long double q = 2.78163e-15; // 1.112650056e-14;
+    int num = 0;
+    
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            for(int k = 0; k < n; ++k) {
+                double x = 2.0 * a / double(n - 1) * i - a;
+                double y = 2.0 * a / double(n - 1) * j - a;
+                double z = 2.0 * a / double(n - 1) * k - a;
+                
+                if ( x * x + y * y + z * z <= R * R ) {
+                    rho[i][j][k] = - q / (4.0 * M_PI * eps);
+                    ++num;
+                }
+            }
+        }
+    }
+    
+    
+    double sum = 0.0;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            for(int k = 0; k < n; ++k) {
+                
+                double x = 2.0 * a / double(n - 1) * i - a;
+                double y = 2.0 * a / double(n - 1) * j - a;
+                double z = 2.0 * a / double(n - 1) * k - a;
+                
+                if ( x * x + y * y + z * z <= R * R ) {
+                    rho[i][j][k] /= double(num);
+                    sum += rho[i][j][k] * (4.0 * M_PI * eps);
+                }
+            }
+        }
+    }
+    
+    std::cout << "Total Charge: " << sum << " [C]" << std::endl;
+}
+
+/*!
+ * Interpolate the particle \f$ (x, y, z) \f$ to the nearest
+ * grid point \f$ (i, j, k) \f$. Called by initSphereNGP().
+ * @param i is the grid point in x-direction (computed)
+ * @param j is the grid point in y-direction (computed)
+ * @param k is the grid point in z-direction (computed)
+ * @param x is the horizontal position of the particle [m]
+ * @param y is the vertical position of the particle [m]
+ * @param z is the longitudinal position of the particle [m]
+ * @param h is the mesh spacing
+ * @param a is side length of the cubic domain [m]
+ * @param n is the number of discretization points
+ */
+void nearestGridPoint(int& i, int& j, int& k,
+                      double x, double y, double z,
+                      double h, double a, int n)
+{
+    // map from [-a, a] --> [0, n - 1]
+    double itmp = (n - 1) / ( 2.0 * a ) * x + 0.5 * (n - 1);
+    double jtmp = (n - 1) / ( 2.0 * a ) * y + 0.5 * (n - 1);
+    double ktmp = (n - 1) / ( 2.0 * a ) * z + 0.5 * (n - 1);
+    
+    i = itmp;
+    j = jtmp;
+    k = ktmp;
+    
+    if ( std::abs( h - itmp +  i  ) >= 0.5 * h )
+        ++i;
+    
+    if ( std::abs( h - jtmp +  j  ) >= 0.5 * h )
+        ++j;
+    
+    if ( std::abs( h - ktmp +  k  ) >= 0.5 * h )
+        ++k;
+}
+
+/*!
+ * Initialize a particle distribution of \f$ 10^6 \f$ particles
+ * within a sphere of radius R and assign the charges to the grid
+ * using nearest grid point interpolation. The total charge
+ * is defined to be \f$ q = 2.78163\cdot 10^{-15} \f$.
+ * @param rho is the right-hand side to be filled
+ * @param a is the side length of the cubic domain [m]
+ * @param R is the radius of the sphere [m]
+ * @param n is the number of discretization points
+ */
+void initSphereNGP(tensor_t& rho, double a, double R, int n) {
+    
+    double h = 2 * a / double(n);
+    int nParticles = 1e6;
+    
+    std::mt19937_64 eng;
+    std::uniform_real_distribution<> ph(-1.0, 1.0);
+    std::uniform_real_distribution<> th(0.0, 2.0 * M_PI);
+    std::uniform_real_distribution<> u(0.0, 1.0);
+    
+    long double eps = 8.854187817e-12;
+    long double qi = 4.0 * M_PI * eps * R * R / double(nParticles);
+    
+    for (int pi = 0; pi < nParticles; ++pi) {
+        // 17. Dec. 2016,
+        // http://math.stackexchange.com/questions/87230/picking-random-points-in-the-volume-of-sphere-with-uniform-probability
+        // http://stackoverflow.com/questions/5408276/sampling-uniformly-distributed-random-points-inside-a-spherical-volume
+        double phi = std::acos( ph(eng) );
+        double theta = th(eng);
+        double radius = R * std::cbrt( u(eng) );
+        
+        double x = radius * std::cos( theta ) * std::sin( phi );
+        double y = radius * std::sin( theta ) * std::sin( phi );
+        double z = radius * std::cos( phi );
+        
+        int i = 0, j = 0, k = 0;
+        nearestGridPoint(i, j, k, x, y, z, h, a, n);
+        rho[i][j][k] -= qi / (4.0 * M_PI * eps);
+    }
+}
+    
 int main(int argc, char* argv[]) {
     
     if (argc != 3) {
@@ -276,7 +443,9 @@ int main(int argc, char* argv[]) {
              );
     
 //     initMinusOneEverywhere(rho, n);
-    initSphereOnGrid(rho, a, R, n);
+//     initSphereOnGrid(rho, a, R, n);
+    initSphere(rho, a, R, n);
+//     initSphereNGP(rho, a, R, n);
     
     // unknowns (initialized to zero by default)
     /*
