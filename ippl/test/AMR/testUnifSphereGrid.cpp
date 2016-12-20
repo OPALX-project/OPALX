@@ -54,8 +54,7 @@ void initSphereOnGrid(container_t& rhs,
                       const Vektor<size_t, 3>& nr) {
     
 //     double dx = *(geom[0].CellSize());
-    long double qi = 4.0 * Physics::pi * Physics::epsilon_0 * R * R;
-    int num = 0;
+//     int num = 0;
     
 #ifdef UNIQUE_PTR
     rhs[0]->setVal(0.0);
@@ -80,7 +79,7 @@ void initSphereOnGrid(container_t& rhs,
                     if ( x * x + y * y + z * z <= R * R ) {
                         IntVect idx(i, j, k);
                         rho(idx, 0) = -1.0;//qi;
-                        ++num;
+//                         ++num;
                     }
                 }
             }
@@ -243,9 +242,9 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     for (int i = 0; i <= finest_level; ++i) {
         Real invVol = (*(geom[i].CellSize()) * *(geom[i].CellSize()) * *(geom[i].CellSize()) );
 #ifdef UNIQUE_PTR
-        Real sum = rhs[i]->sum(0) * invVol;
+        Real sum = rhs[i]->sum(0);// * invVol;
 #else
-        Real sum = rhs[i].sum(0) * invVol;
+        Real sum = rhs[i].sum(0);// * invVol;
 #endif
         totalCharge += sum;
     }
@@ -389,21 +388,6 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
         nCells[i] = nr[i];
     
     AmrOpal myAmrOpal(&domain, nLevels - 1, nCells, 0 /* cartesian */, bunch);
-    
-    /*
-     * do tagging
-     */
-    dynamic_cast<AmrPartBunch*>(bunch)->Define (myAmrOpal.Geom(),
-                                                myAmrOpal.DistributionMap(),
-                                                myAmrOpal.boxArray(),
-                                                rr);
-    
-    
-    // ========================================================================
-    // 3. multi-level redistribute
-    // ========================================================================
-    for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
-        myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
     
     container_t rhs;
     container_t phi;

@@ -227,21 +227,17 @@ void write(tensor_t& phi, const double& h, const int& n) {
  * @param n is the number of discretization points
  */
 void initSphereOnGrid(tensor_t& rho, double a, double R, int n) {
-    
-    double eps = 8.854187817e-12;
-    double q = 2.78163e-15; // 1.112650056e-14;
     int num = 0;
     
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             for(int k = 0; k < n; ++k) {
-//                 rho[i][j][k] = -1.0;
                 double x = 2.0 * a / double(n - 1) * i - a;
                 double y = 2.0 * a / double(n - 1) * j - a;
                 double z = 2.0 * a / double(n - 1) * k - a;
                 
                 if ( x * x + y * y + z * z <= R * R ) {
-                    rho[i][j][k] = -1.0; //- q / (4.0 * M_PI * eps);
+                    rho[i][j][k] = -1.0;
                     ++num;
                 }
             }
@@ -260,7 +256,7 @@ void initSphereOnGrid(tensor_t& rho, double a, double R, int n) {
                 
                 if ( x * x + y * y + z * z <= R * R ) {
 //                     rho[i][j][k] /= double(num);
-                    sum += rho[i][j][k];// * (4.0 * M_PI * eps);
+                    sum += rho[i][j][k];
                 }
             }
         }
@@ -305,8 +301,10 @@ void initSphere(tensor_t& rho, double a, double R, int n) {
     long double eps = 8.854187817e-12;
     
     // total charge
-    long double q = 2.78163e-15; // 1.112650056e-14;
-    int num = 0;
+    long double q = 4.0 * M_PI * eps * R * R; // 2.78163e-15;
+    
+    // number of non-zero entries
+    int nnz = 0;
     
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
@@ -317,13 +315,15 @@ void initSphere(tensor_t& rho, double a, double R, int n) {
                 
                 if ( x * x + y * y + z * z <= R * R ) {
                     rho[i][j][k] = - q / (4.0 * M_PI * eps);
-                    ++num;
+                    ++nnz;
                 }
             }
         }
     }
     
-    
+    /* normalize every non-zero entry such that the
+     * total charge is 2.78163e-15 [C].
+     */
     double sum = 0.0;
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
@@ -334,7 +334,7 @@ void initSphere(tensor_t& rho, double a, double R, int n) {
                 double z = 2.0 * a / double(n - 1) * k - a;
                 
                 if ( x * x + y * y + z * z <= R * R ) {
-                    rho[i][j][k] /= double(num);
+                    rho[i][j][k] /= double(nnz);
                     sum += rho[i][j][k] * (4.0 * M_PI * eps);
                 }
             }
