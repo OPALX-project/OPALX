@@ -53,11 +53,18 @@ i, j, ex = np.loadtxt(opal + "/ippl/test/AMR/ex.dat", unpack=True)
 doPlot(i, j, ex, 'grid in x', 'grid in y', r'$E_{x}$', 222, 'Horizontal Electric Field',
        -1, max(i)+1, -1, max(j)+1)
 
+
+print 'max Ex = ', max(ex)
+print 'min Ex = ', min(ex)
+
 # vertical electric field
 i, j, ey = np.loadtxt(opal + "/ippl/test/AMR/ey.dat", unpack=True)
 
 doPlot(i, j, ey, 'grid in x', 'grid in y', r'$E_{y}$', 223, 'Vertical Electric Field',
        -1, max(i)+1, -1, max(j)+1)
+
+print 'max Ey = ', max(ey)
+print 'min Ey = ', min(ey)
 
 
 # longitudinal electric field
@@ -65,5 +72,8 @@ j, k, ez = np.loadtxt(opal + "/ippl/test/AMR/ez.dat", unpack=True)
 
 doPlot(j, k, ez, 'grid in y', 'grid in z', r'$E_{z}$', 224, 'Longitudinal Electric Field',
        -1, max(j)+1, -1, max(k)+1)
+
+print 'max Ez = ', max(ez)
+print 'min Ez = ', min(ez)
 
 plt.show()
