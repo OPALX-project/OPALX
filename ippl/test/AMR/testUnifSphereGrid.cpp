@@ -32,6 +32,53 @@ typedef Array<std::unique_ptr<MultiFab> > container_t;
 typedef PArray<MultiFab> container_t;
 #endif
 
+void initSphereOnGrid(container_t& rhs,
+                      const Array<Geometry>& geom,
+                      double a,
+                      double R,
+                      const Vektor<size_t, 3>& nr) {
+    
+//     double dx = *(geom[0].CellSize());
+    long double qi = 4.0 * Physics::pi * Physics::epsilon_0 * R * R;
+    int num = 0;
+    
+#ifdef UNIQUE_PTR
+    rhs[0]->setVal(0.0);
+    for (MFIter mfi(*rhs[0 /*level*/]); mfi.isValid(); ++mfi) {
+#else
+    rhs[0].setVal(0.0);
+    for (MFIter mfi(rhs[0 /*level*/]); mfi.isValid(); ++mfi) {
+#endif
+        const Box& bx = mfi.validbox();
+#ifdef UNIQUE_PTR
+        FArrayBox& rho = (*rhs[0])[mfi];
+#else
+        FArrayBox& rho = (rhs[0])[mfi];
+#endif
+        for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+            for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+                for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
+                    double x = 2.0 * a / double(nr[0] - 1) * i - a;
+                    double y = 2.0 * a / double(nr[1] - 1) * j - a;
+                    double z = 2.0 * a / double(nr[2] - 1) * k - a;
+                    
+                    if ( x * x + y * y + z * z <= R * R ) {
+                        IntVect idx(i, j, k);
+                        rho(idx, 0) = -1.0;//qi;
+                        ++num;
+                    }
+                }
+            }
+        }
+    }
+    
+// #ifdef UNIQUE_PTR
+//         rhs[0]->mult(1.0 / double(num), 0, 1);       // in [V m]
+// #else
+//         rhs[0].mult(1.0 / double(num), 0, 1);
+// #endif
+}
+
 void initSphere(double r, PartBunchBase* bunch, int nParticles) {
     bunch->create(nParticles);
     
@@ -165,7 +212,11 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
              container_t& grad_phi,
              const Array<Geometry>& geom,
              const Array<int>& rr, int nLevels,
-             Inform& msg)
+             Inform& msg,
+             double a,
+             double R,
+             const Vektor<size_t, 3>& nr,
+             bool grid = false)
 {
     static IpplTimings::TimerRef solvTimer = IpplTimings::getTimer("solv");
     // =======================================================================                                                                                                                                   
@@ -202,7 +253,11 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     int base_level   = 0;
     int finest_level = myAmrOpal.finestLevel();
     
-    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
+    if ( grid ) {
+        initSphereOnGrid(rhs, geom, a, R, nr);
+        
+    } else
+        dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
     
     // Check charge conservation
     Real totalCharge = 0.0;
@@ -223,14 +278,14 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
     
     // eps in C / (V * m)
-    double constant = -1.0/*Physics::q_e*/ / (4.0 * Physics::pi * Physics::epsilon_0);  // in [V m / C]
-    for (int i = 0; i <=finest_level; ++i) {
-#ifdef UNIQUE_PTR
-        rhs[i]->mult(constant, 0, 1);       // in [V m]
-#else
-        rhs[i].mult(constant, 0, 1);
-#endif
-    }
+//     double constant = -1.0/*Physics::q_e*/ / (4.0 * Physics::pi * Physics::epsilon_0);  // in [V m / C]
+//     for (int i = 0; i <=finest_level; ++i) {
+// #ifdef UNIQUE_PTR
+//         rhs[i]->mult(constant, 0, 1);       // in [V m]
+// #else
+//         rhs[i].mult(constant, 0, 1);
+// #endif
+//     }
     
     // **************************************************************************                                                                                                                                
     // Compute the total charge of all particles in order to compute the offset                                                                                                                                  
@@ -242,9 +297,9 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     // solve                                                                                                                                                                                                     
     Solver sol;
     IpplTimings::startTimer(solvTimer);
-    sol.solve_for_accel(rhs,            // [V m]
-                        phi,            // [V m^3]
-                        grad_phi,       // [V m^2]
+    sol.solve_for_accel(rhs,
+                        phi,
+                        grad_phi,
                         geom,
                         base_level,
                         finest_level,
@@ -389,7 +444,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     container_t grad_phi;
     
     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
-    doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels, msg);
+    doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels, msg, a, R, nr, true);
     
     
     for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {

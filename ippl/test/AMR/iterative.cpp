@@ -54,7 +54,7 @@ void jacobi(tensor_t& phi, const double& h, const int& n, const tensor_t& rho, c
         for (int i = 1; i < n + 1; ++i)
             for (int j = 1; j < n + 1; ++j)
                 for (int k = 1; k < n + 1; ++k) {
-                    newphi[i][j][k] = fac * rho[i][j][k] + inv * (phi[i+1][j][k] + phi[i-1][j][k] +
+                    newphi[i][j][k] = fac * rho[i-1][j-1][k-1] + inv * (phi[i+1][j][k] + phi[i-1][j][k] +
                                                                   phi[i][j+1][k] + phi[i][j-1][k] +
                                                                   phi[i][j][k+1] + phi[i][j][k-1]
                                                                  );
@@ -194,6 +194,64 @@ void write(tensor_t& phi, const double& h, const int& n) {
 }
 
 
+void initSphereOnGrid(tensor_t& rho, double a, double R, int n) {
+    
+    double eps = 8.854187817e-12;
+    double q = 2.78163e-15; // 1.112650056e-14;
+    int num = 0;
+    
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            for(int k = 0; k < n; ++k) {
+//                 rho[i][j][k] = -1.0;
+                double x = 2.0 * a / double(n - 1) * i - a;
+                double y = 2.0 * a / double(n - 1) * j - a;
+                double z = 2.0 * a / double(n - 1) * k - a;
+                
+                if ( x * x + y * y + z * z <= R * R ) {
+                    rho[i][j][k] = -1.0; //- q / (4.0 * M_PI * eps);
+                    ++num;
+                }
+            }
+        }
+    }
+    
+    
+    double sum = 0.0;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            for(int k = 0; k < n; ++k) {
+                
+                double x = 2.0 * a / double(n - 1) * i - a;
+                double y = 2.0 * a / double(n - 1) * j - a;
+                double z = 2.0 * a / double(n - 1) * k - a;
+                
+                if ( x * x + y * y + z * z <= R * R ) {
+//                     rho[i][j][k] /= double(num);
+                    sum += rho[i][j][k];// * (4.0 * M_PI * eps);
+                }
+            }
+        }
+    }
+    
+    std::cout << "Total Charge: " << sum << " [C]" << std::endl;
+    std::cout << "#Grid non-zero points: " << num << std::endl;
+}
+
+void initMinusOneEverywhere(tensor_t& rho, int n) {
+    
+    double sum = 0.0;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            for(int k = 0; k < n; ++k) {
+                rho[i][j][k] = -1.0;
+                sum += 1.0;
+            }
+        }
+    }
+    std::cout << "Total Charge: " << sum << " [C]" << std::endl;
+}
+
 int main(int argc, char* argv[]) {
     
     if (argc != 3) {
@@ -202,29 +260,21 @@ int main(int argc, char* argv[]) {
     }
     
     int n = std::atoi(argv[1]); // grid points
-    double h = 0.01 / double(n); // mesh size
+    double R = 0.005; // m
+    double a = 0.05;  // m
+    
+    double h = 2.0 * a / double(n); // mesh size
     int nSteps = std::atoi(argv[2]);
     
-    // charge density initialized with -1
+    // charge density
     tensor_t rho(n,
                  matrix_t(n,
                           vector_t(n)
                  )
              );
     
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            for(int k = 0; j < n; ++k) {
-                
-                if ( i >= 0.5 * n - 1 && i <= 0.5 * n + 1 &&
-                     j >= 0.5 * n - 1 && j <= 0.5 * n + 1 &&
-                     k >= 0.5 * n - 1 && k <= 0.5 * n + 1 )
-                {
-                    rho[i][j][k] = -1;
-                }
-            }
-        }
-    }
+//     initMinusOneEverywhere(rho, n);
+    initSphereOnGrid(rho, a, R, n);
     
     // unknowns (initialized to zero by default)
     /*
