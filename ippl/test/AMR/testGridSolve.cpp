@@ -1,3 +1,17 @@
+/*
+ * @file testGridSolve.cpp
+ * @author Matthias Frey
+ * @date 20. Dec. 2016
+ * @brief Solve the electrostatic potential for a cube
+ *        with Dirichlet boundary condition.
+ * @details In this example we put -1.0 on every grid
+ *          point (cell-centered) for the right-hand side
+ *          of the Poisson equation. The result can be compared
+ *          with the iterative.cpp using the
+ *          initMinusOneEverywhere() function for the right-hand
+ *          side initialization.\n
+ *          Domain: [-0.05 (m), 0.05 (m)]^3
+ */
 #include "Ippl.h"
 #include <string>
 #include <fstream>
@@ -185,16 +199,6 @@ void doSolve(const Array<BoxArray>& ba,
     
     Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
     msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
-    
-//     // eps in C / (V * m)
-//     double constant = -1.0/*Physics::q_e*/ / (4.0 * Physics::pi * Physics::epsilon_0);  // in [V m / C]
-//     for (int i = 0; i <=finest_level; ++i) {
-// #ifdef UNIQUE_PTR
-//         rhs[i]->mult(constant, 0, 1);       // in [V m]
-// #else
-//         rhs[i].mult(constant, 0, 1);
-// #endif
-//     }
     
     // **************************************************************************                                                                                                                                
     // Compute the total charge of all particles in order to compute the offset                                                                                                                                  

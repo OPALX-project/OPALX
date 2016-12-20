@@ -1,10 +1,5 @@
 #include "Solver.h"
 
-#ifdef USEHYPRE
-#include <HypreABecLap.H>
-#endif
-
-
 void 
 Solver::solve_for_accel(container_t& rhs,
                         container_t& phi,
@@ -199,23 +194,39 @@ Solver::solve_with_f90(container_t& rhs,
     
 }
 
-
-
 #ifdef USEHYPRE
-void Solver::solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha, 
-                              PArray<MultiFab>& beta, MultiFab& rhs,
-                              const BoxArray& bs, const Geometry& geom)
+// We solve (a alpha - b del dot beta grad) soln = rhs
+// where a and b are scalars, alpha and beta are arrays
+void Solver::solve_with_hypre(MultiFab& soln, MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
-  BL_PROFILE("solve_with_hypre()");
-  BndryData bd(bs, 1, geom);
-  set_boundary(bd, rhs, 0);
-
-  HypreABecLap hypreSolver(bs, geom);
-  hypreSolver.setScalars(a, b);
-  hypreSolver.setACoeffs(alpha);
-  hypreSolver.setBCoeffs(beta);
-  hypreSolver.setVerbose(verbose);
-  hypreSolver.solve(soln, rhs, tolerance_rel, tolerance_abs, maxiter, bd);
+    int  verbose       = 2;
+    Real tolerance_rel = 1.e-8;
+    Real tolerance_abs = 0.0;
+    int  maxiter       = 100;
+    BL_PROFILE("solve_with_hypre()");
+    BndryData bd(bs, 1, geom);
+    set_boundary(bd, rhs, 0);
+    
+    Real a = 0.0;
+    Real b = 1.0;
+    
+    // Set up the Helmholtz operator coefficients.
+    MultiFab alpha(bs, 1, 0);
+    alpha.setVal(0.0);
+    
+    PArray<MultiFab> beta(BL_SPACEDIM, PArrayManage);
+    for ( int n=0; n<BL_SPACEDIM; ++n ) {
+        BoxArray bx(bs);
+        beta.set(n, new MultiFab(bx.surroundingNodes(n), 1, 0, Fab_allocate));
+        beta[n].setVal(1.0);
+    }
+    
+    HypreABecLap hypreSolver(bs, geom);
+    hypreSolver.setScalars(a, b);
+    hypreSolver.setACoeffs(alpha);
+    hypreSolver.setBCoeffs(beta);
+    hypreSolver.setVerbose(verbose);
+    hypreSolver.solve(soln, rhs, tolerance_rel, tolerance_abs, maxiter, bd);
 }
 
 

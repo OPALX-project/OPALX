@@ -1,3 +1,14 @@
+/*
+ * @file testUnifSphere.cpp
+ * @author Matthias Frey
+ * @date 20. Dec. 2016
+ * @brief Solve the electrostatic potential for a cube
+ *        with Dirichlet boundary condition.
+ * @details In this example we initialize 1e6 particles
+ *          within a sphere of radius R = 0.005 [m].
+ *          We then solve the Poisson equation.\n
+ *          Domain: [-0.05 (m), 0.05 (m)]^3
+ */
 #include "Ippl.h"
 #include <string>
 #include <fstream>

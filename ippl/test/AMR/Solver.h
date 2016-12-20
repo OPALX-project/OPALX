@@ -21,6 +21,12 @@
     #include <PArray.H>
 #endif
 
+// #define USEHYPRE
+
+#ifdef USEHYPRE
+#include "HypreABecLap.H"
+#endif
+
 /*!
  * @file Solver.h
  * @author Matthias Frey
@@ -79,8 +85,7 @@ public:
                         const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol);
     
 #ifdef USEHYPRE
-    void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha,
-                          PArray<MultiFab>& beta, MultiFab& rhs, const BoxArray& bs,
+    void solve_with_hypre(MultiFab& soln, MultiFab& rhs, const BoxArray& bs,
                           const Geometry& geom);
     
 private:

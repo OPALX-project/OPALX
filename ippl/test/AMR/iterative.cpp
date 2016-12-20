@@ -2,8 +2,10 @@
  * @file iterative.cpp
  * @author Matthias Frey
  * @date 19. Oct. 2016, LBNL
- * @details Solve \f$\Delta\phi = -1\f$ in 3D iteratively [nsteps] with
- * Dirichlet boundary conditions (zero)
+ * @details Solve \f$\Delta\phi = -\rho\f$ in 3D iteratively [nsteps] with
+ *          Dirichlet boundary conditions (zero) \n
+ *          Domain [-0.05, 0.05]^3\n
+ *          There are several right-hand sides available.
  * 
  * Compiling:
  *      g++ -std=c++11 iterative.cpp -o iterative
@@ -15,7 +17,7 @@
  *      The program writes 4 files (phi.dat, ex.dat, ey.dat, ez.dat) that
  *      can be visualized using the Python script vis_iter.py
  *      (run: python vis_iter.py)
- * @brief Solve \f$\Delta\phi = -1\f$ in 3D iteratively
+ * @brief Solve \f$\Delta\phi = -\rho\f$ in 3D iteratively
  */
 
 #include <fstream>
