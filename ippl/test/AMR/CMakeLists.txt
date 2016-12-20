@@ -25,6 +25,7 @@ IF (ENABLE_AMR_SOLVER)
         ${H5Hut_INCLUDE_DIR}
         ${HDF5_INCLUDE_DIR}
         ${CCSE_INCLUDE_DIR}
+        ${HYPRE_INCLUDE_DIR}
     )
     
     link_directories (
@@ -32,6 +33,7 @@ IF (ENABLE_AMR_SOLVER)
         ${CMAKE_SOURCE_DIR}/src
         ${IPPL_LIBRARY_DIR}
         ${CCSE_LIBRARY_DIR}
+        ${HYPRE_LIBRARY_DIR}
     )
     
     # remove digits from hostname: edison03 -> edison
@@ -64,11 +66,15 @@ IF (ENABLE_AMR_SOLVER)
     
 #     add_executable (testAmrPartBunch testAmrPartBunch.cpp AmrOpal.cpp AmrPartBunch.cpp H5Reader.cpp Distribution.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp Solver.cpp)
 #     add_executable (testSolver testSolver.cpp H5Reader.cpp Distribution.cpp Solver.cpp)
-#     add_executable (iterative iterative.cpp)
+    add_executable (iterative iterative.cpp)
 #     add_executable (testError error.cpp AmrPartBunch.cpp H5Reader.cpp Distribution.cpp PoissonProblems.cpp Solver.cpp AmrOpal.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp)
 #     add_executable (testGaussian testGaussian.cpp AmrOpal.cpp AmrPartBunch.cpp H5Reader.cpp Distribution.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp Solver.cpp)
     
-    add_executable (testUnifSphere testUnifSphere.cpp AmrOpal.cpp AmrPartBunch.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp Solver.cpp)
+    add_executable (testUnifSphere testUnifSphere.cpp AmrOpal.cpp AmrPartBunch.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp Solver.cpp)# HypreABecLap.H HypreABecLap.cpp)
+    
+    add_executable (testGridSolve testGridSolve.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp Solver.cpp)
+    
+    add_executable (testUnifSphereGrid testUnifSphereGrid.cpp AmrOpal.cpp AmrPartBunch.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp Solver.cpp)
     
 #     add_executable (testH5Read testH5Read.cpp H5Reader.cpp Distribution.cpp)
     
@@ -82,4 +88,9 @@ IF (ENABLE_AMR_SOLVER)
 #     target_link_libraries (testGaussian ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testUnifSphere ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    
+    target_link_libraries (testGridSolve ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    
+     target_link_libraries (testUnifSphereGrid ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    
 ENDIF(ENABLE_AMR_SOLVER)

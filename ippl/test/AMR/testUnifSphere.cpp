@@ -335,7 +335,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     int nParticles = 1e6;
     initSphere(R, bunch, nParticles);
     
-    msg << "Bunch radius: " <<  bunch->getR(0) << " m" << endl
+    msg << "Bunch radius: " << R << " m" << endl
         << "#Particles: " << nParticles << endl
         << "Charge per particle: " << bunch->getQM(0) << " C" << endl
         << "Total charge: " << nParticles * bunch->getQM(0) << " C" << endl
