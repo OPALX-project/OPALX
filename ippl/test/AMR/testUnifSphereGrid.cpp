@@ -1,3 +1,18 @@
+/*
+ * @file testUnifSphereGrid.cpp
+ * @author Matthias Frey
+ * @date 20. Dec. 2016
+ * @brief Solve the electrostatic potential for a cube
+ *        with Dirichlet boundary condition.
+ * @details In this example we put -1.0 on every grid
+ *          point (cell-centered) within a sphere of radius
+ *          R = 0.005 [m] for the right-hand side of the Poisson equation.
+ *          The result can be compared
+ *          with the iterative.cpp using the
+ *          initMinusOneEverywhere() function for the right-hand
+ *          side initialization. \n
+ *          Domain: [-0.05 (m), 0.05 (m)]^3
+ */
 #include "Ippl.h"
 #include <string>
 #include <fstream>
