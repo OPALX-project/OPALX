@@ -2,6 +2,7 @@
 # @file visualize.py
 # @author Matthias Frey
 # @date 14. October 2016, LBNL
+# @version 1.1 (21. Dec. 2016)
 # 
 # @pre Environment variable OPAL_BUILD has to be set.
 # @details Plot the electric self-field, density and self-field
@@ -13,87 +14,80 @@
 import os
 import yt
 
-opal = os.environ['OPAL_BUILD']
-ds = yt.load(opal + "ippl/test/AMR/plt0000", unit_system='mks')
+try:
+    opal = os.environ['OPAL_BUILD']
+    ds = yt.load(opal + "ippl/test/AMR/plt0000", unit_system='mks')
+    
+    ds.print_stats()
+    
+    print ("Field list:", ds.field_list)
+    print ("Derived field list:", ds.derived_field_list)
 
-ds.print_stats()
+    ##
+    # @param ds is the data
+    # @param direct is the direction 'x', 'y' or 'z' (normal)
+    # @param field to plot
+    # @param unit the data should be converted to (otherwise it
+    #        takes the default given by the data)
+    # @param col is the color for the time stamp and scale annotation
+    def doSlicePlot(ds, direct, field, unit, col = 'white'):
+        slc = yt.SlicePlot(ds, normal=direct, fields=field)
+        
+        if unit is not None:
+            slc.set_unit(field, unit)
+        
+        slc.annotate_grids()
+        slc.annotate_timestamp(corner='upper_left', redshift=False, draw_inset_box=True)
+        slc.annotate_scale(corner='upper_right', size_bar_args={'color':col})
+        slc.save()
+    
+    ##
+    # @param ds is the data
+    # @param direct is the direction 'x', 'y' or 'z' (normal)
+    # @param field to plot
+    # @param unit the data should be converted to (otherwise it
+    #        takes the default given by the data)
+    # @param col is the color for the time stamp and scale annotation
+    def doProjectionPlot(ds, direct, field, unit, col = 'white'):
+        slc = yt.ProjectionPlot(ds, direct, fields=field)
+        
+        if unit is not None:
+            slc.set_unit(field, unit)
+        
+        slc.annotate_grids()
+        slc.annotate_timestamp(corner='upper_left', redshift=False, draw_inset_box=True)
+        slc.annotate_scale(corner='upper_right', size_bar_args={'color':col})
+        slc.save()
+    
+    
+    
+    doSlicePlot(ds, 'z', 'rho', 'C/m**3', 'gray')
+    
+    doSlicePlot(ds, 'y', 'rho', 'C/m**3', 'gray')
+    
+    doSlicePlot(ds, 'x', 'rho', 'C/m**3', 'gray')
+    
+    doProjectionPlot(ds, 'x', 'rho', 'C/m**2', 'gray')
+    
+    doProjectionPlot(ds, 'y', 'rho', 'C/m**2', 'gray')
+    
+    doProjectionPlot(ds, 'z', 'rho', 'C/m**2', 'gray')
+    
+    doSlicePlot(ds, 'z', 'Ex', 'V/m')
+    
+    doSlicePlot(ds, 'z', 'Ey', 'V/m')
+    
+    doSlicePlot(ds, 'x', 'Ez', 'V/m')
+    
+    doSlicePlot(ds, 'z', 'potential', 'V')
 
-
-print ("Field list:")
-print (ds.field_list)
-
-print ("Derived field list:")
-print (ds.derived_field_list)
-
-
-slc = yt.SlicePlot(ds, normal='z', fields='rho') #, width=(0.05, 0.05))
-#slc.set_unit('rho', 'e/m**3')
-slc.annotate_grids()
-slc.annotate_timestamp(corner='upper_left', redshift=False, draw_inset_box=True)
-slc.annotate_scale(corner='upper_right')
-slc.save()
-
-slc = yt.SlicePlot(ds, normal='y', fields='rho')
-#slc.set_unit('rho', 'e/m**3')
-slc.annotate_grids()
-slc.save()
-
-slc = yt.SlicePlot(ds, normal='x', fields='rho')
-#slc.set_unit('rho', 'e/m**3')
-slc.annotate_grids()
-slc.annotate_scale(corner='upper_right')
-slc.save()
-
-slc = yt.ProjectionPlot(ds, 'x', fields='rho')
-slc.annotate_grids()
-slc.annotate_scale(corner='upper_right')
-slc.save()
-
-
-slc = yt.ProjectionPlot(ds, 'y', fields='rho')
-slc.annotate_grids()
-slc.annotate_scale(corner='upper_right')
-slc.save()
-
-slc = yt.ProjectionPlot(ds, 'z', fields='rho') #, width=(0.05, 0.05))
-slc.annotate_grids()
-slc.annotate_scale(corner='upper_right')
-slc.save()
-
-slc = yt.SlicePlot(ds, normal='z', fields='Ex')
-slc.set_unit('Ex', 'V/m')
-slc.annotate_grids()
-slc.annotate_scale(corner='upper_right')
-slc.save()
-
-slc = yt.SlicePlot(ds, normal='z', fields='Ey')
-slc.set_unit('Ey', 'V/m')
-slc.annotate_grids()
-slc.annotate_scale(corner='upper_right')
-slc.save()
-
-slc = yt.SlicePlot(ds, normal='x', fields='Ez')
-slc.set_unit('Ez', 'V/m')
-slc.annotate_grids()
-slc.annotate_scale(corner='upper_right')
-slc.save()
-
-slc = yt.SlicePlot(ds, normal='z', fields='potential')
-slc.set_unit('potential', 'V')
-slc.annotate_grids()
-slc.annotate_scale(corner='upper_right')
-slc.save()
-
-ad = ds.all_data()
-
-print ( ad.quantities.extrema("rho") )
-
-rho = ad['rho']
-print ( "Density: ", rho.max().in_units('C/m**3') )
-print ( "dx: ", ad['dx'] )
-print ( "Potential: ", ad['potential'].in_units('V').max() )
-print ( "Ex: ", ad['Ex'].in_units('V/m').max() )
-
-
-#dx = ad['dx']
-#print ( "dx = ", dx )
+    ad = ds.all_data()
+    
+    print ( ad.quantities.extrema("rho").in_units('C/m**3') )
+    print ( ad.quantities.extrema("Ex").in_units('V/m') )
+    print ( ad.quantities.extrema("potential").in_units('V') )
+    
+except KeyError:
+    print ("Please export the environment variable 'OPAL_BUILD'.")
+except IOError as e:
+    print (e.strerror)
