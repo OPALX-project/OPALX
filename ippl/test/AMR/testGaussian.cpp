@@ -20,7 +20,8 @@ This test program sets up a simple sine-wave electric field in 3D,
   electric field using nearest-grid-point interpolation.
 
 Usage:
- mpirun -np 4 testGaussian BOXLIB 32 32 32 100 10 0
+ mpirun -np 4 testGaussian [#gridpoints x] [#gridpoints y] [#gridpoints z]
+                           [#particles] [#levels] [max. box size]
 
 ***************************************************************************/
 
@@ -269,7 +270,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
     Distribution dist;
     IpplTimings::startTimer(distTimer);
-    double sig = 0.01;
+    double sig = 0.01;  // m
     dist.gaussian(0.0, sig, nloc, ParallelDescriptor::MyProc());
     
     // copy particles to the PartBunchBase object.
@@ -292,7 +293,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         << "Total charge: " << nParticles * bunch->getQM(0) << " C" << endl;
     
     for (int i = 0; i < nLevels; ++i)
-        msg << "#Cells per dim of level " << i << " for bunch : " << 2.0 * sig / *(geom[i].CellSize()) << endl;
+        msg << "#Cells per dim of level " << i << " for bunch : "
+            << 2.0 * sig / *(geom[i].CellSize()) << endl;
     
     // ========================================================================
     // 2. tagging (i.e. create BoxArray's, DistributionMapping's of all
@@ -374,7 +376,8 @@ int main(int argc, char *argv[]) {
 
     std::stringstream call;
     call << "Call: mpirun -np [#procs] testGaussian"
-         << "[#gridpoints x] [#gridpoints y] [#gridpoints z] [#particles] [#levels] [max. box size]";
+         << "[#gridpoints x] [#gridpoints y] [#gridpoints z] [#particles] "
+         << "[#levels] [max. box size]";
     
     if ( argc < 7 ) {
         msg << call.str() << endl;
