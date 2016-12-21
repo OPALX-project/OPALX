@@ -54,6 +54,7 @@ void initSphere(double r, PartBunchBase* bunch, int nParticles) {
     
     std::string outfile = "amr-particles-level-" + std::to_string(0);
     std::ofstream out(outfile);
+    
     long double qi = 4.0 * Physics::pi * Physics::epsilon_0 * r * r / double(nParticles);
     
     for (int i = 0; i < nParticles; ++i) {
@@ -77,7 +78,7 @@ void initSphere(double r, PartBunchBase* bunch, int nParticles) {
 }
 
 
-void writePotential(const container_t& phi, double dx, double dlow) {
+void writePotential(const container_t& phi, double dx, double dlow, std::string filename) {
     // potential and efield a long x-direction (y = 0, z = 0)
     int lidx = 0;
 #ifdef UNIQUE_PTR
@@ -95,7 +96,7 @@ void writePotential(const container_t& phi, double dx, double dlow) {
          */
         for (int proc = 0; proc < ParallelDescriptor::NProcs(); ++proc) {
             if ( proc == ParallelDescriptor::MyProc() ) {
-                std::string outfile = "amr-phi_scalar-level-" + std::to_string(0);
+                std::string outfile = filename + std::to_string(0);
                 std::ofstream out;
                 
                 if ( proc == 0 )
@@ -215,6 +216,8 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
     
+    writePotential(rhs, *(geom[0].CellSize()), -0.05, "amr-rho_scalar-level-");
+    
     // Check charge conservation
     Real totalCharge = 0.0;
     for (int i = 0; i <= finest_level; ++i) {
@@ -234,7 +237,7 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
     
     // eps in C / (V * m)
-    double constant = -1.0/*Physics::q_e*/ / (4.0 * Physics::pi * Physics::epsilon_0);  // in [V m / C]
+    double constant = -1.0 / Physics::epsilon_0;  // in [V m / C]
     for (int i = 0; i <=finest_level; ++i) {
 #ifdef UNIQUE_PTR
         rhs[i]->mult(constant, 0, 1);       // in [V m]
@@ -417,7 +420,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
 #endif
     }
     
-    writePotential(phi, *(geom[0].CellSize()), -a);
+    writePotential(phi, *(geom[0].CellSize()), -a, "amr-phi_scalar-level-");
     writeElectricField(grad_phi, *(geom[0].CellSize()), -a);
     
     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);

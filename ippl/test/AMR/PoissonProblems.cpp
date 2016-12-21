@@ -299,7 +299,7 @@ double PoissonProblems::doSolveParticlesGaussian(int nParticles, double mean, do
     dynamic_cast<AmrPartBunch*>(bunch)->SetAllowParticlesNearBoundary(true);
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rho_m, base_level, 1, fine_level);
     
-    double constant = -1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
+    double constant = -1.0 / Physics::epsilon_0;
     for (int lev = 0; lev < nLevels_m; ++lev) {
         rho_m[lev]->mult(constant, 0, 1);
     }
@@ -309,9 +309,7 @@ double PoissonProblems::doSolveParticlesGaussian(int nParticles, double mean, do
 //         BoxLib::average_down(PartMF[lev+1], PartMF[lev], 0, 1, refRatio_m[lev]);
     
     // eps in C / (V * m)
-//     double constant = -1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
-    // eps in e / (V * m)
-//     double constant = -1.0 / (4.0 * Physics::pi * 5.5262322518e7 );
+//     double constant = -1.0 / Physics::epsilon_0;
     
 //     for (int lev = 0; lev < nLevels_m; lev++) {
 //         PartMF[lev].mult(constant, 0, 1);
@@ -456,9 +454,7 @@ double PoissonProblems::doSolveParticlesReal(int step, std::string h5file) {
 //         BoxLib::average_down(PartMF[lev+1], PartMF[lev], 0, 1, refRatio_m[lev]);
 
     // eps in C / (V * m)
-//     double constant = -1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
-    // eps in e / (V * m)
-//     double constant = -1.0 / (4.0 * Physics::pi * 5.5262322518e7 );
+//     double constant = -1.0 / Physics::epsilon_0;
 //     
 //     for (int lev = 0; lev < nLevels_m; lev++) {
 //         PartMF[lev].mult(constant, 0, 1);
@@ -600,7 +596,7 @@ double PoissonProblems::doSolveMultiGaussians(int nParticles, double stddev) {
 //     for (int lev = fine_level - 1 - base_level; lev >= 0; lev--)
 //         BoxLib::average_down(PartMF[lev+1], PartMF[lev], 0, 1, refRatio_m[lev]);
 
-//     double constant = -1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
+//     double constant = -1.0 / Physics::epsilon_0;
     
 //     for (int lev = 0; lev < nLevels_m; lev++) {
 //         PartMF[lev].mult(constant, 0, 1);

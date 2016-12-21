@@ -44,7 +44,7 @@ typedef PArray<MultiFab> container_t;
 #endif
 
 
-void writePotential(const container_t& phi, double dx, double dlow) {
+void writePotential(const container_t& phi, double dx, double dlow, std::string filename) {
     // potential and efield a long x-direction (y = 0, z = 0)
     int lidx = 0;
 #ifdef UNIQUE_PTR
@@ -62,7 +62,7 @@ void writePotential(const container_t& phi, double dx, double dlow) {
          */
         for (int proc = 0; proc < ParallelDescriptor::NProcs(); ++proc) {
             if ( proc == ParallelDescriptor::MyProc() ) {
-                std::string outfile = "amr-phi_scalar-level-" + std::to_string(0);
+                std::string outfile = filename + std::to_string(0);
                 std::ofstream out;
                 
                 if ( proc == 0 )
@@ -312,7 +312,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
 #endif
     }
     
-    writePotential(phi, *(geom[0].CellSize()), 0);
+    writePotential(phi, *(geom[0].CellSize()), 0, "amr-phi_scalar-level-");
     writeElectricField(grad_phi, *(geom[0].CellSize()), 0);
     
     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
