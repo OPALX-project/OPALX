@@ -187,11 +187,10 @@ void doSolve(const Array<BoxArray>& ba,
     // Check charge conservation
     Real totalCharge = 0.0;
     for (int i = 0; i <= finest_level; ++i) {
-        Real invVol = (*(geom[i].CellSize()) * *(geom[i].CellSize()) * *(geom[i].CellSize()) );
 #ifdef UNIQUE_PTR
-        Real sum = rhs[i]->sum(0);// * invVol;
+        Real sum = rhs[i]->sum(0);
 #else
-        Real sum = rhs[i].sum(0);// * invVol;
+        Real sum = rhs[i].sum(0);
 #endif
         totalCharge += sum;
     }

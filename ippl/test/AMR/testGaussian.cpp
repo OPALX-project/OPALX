@@ -51,36 +51,40 @@ Usage:
 
 #include "Physics/Physics.h"
 
-// #define SOLVER
 
-
-// typedef std::vector<std::unique_ptr<MultiFab> > container_t;
+#ifdef UNIQUE_PTR
 typedef Array<std::unique_ptr<MultiFab> > container_t;
+#else
+#include <PArray.H>
+typedef PArray<MultiFab> container_t;
+#endif
 
-double dt = 1.0;          // size of timestep
-
-double totalFieldEnergy(container_t& efield) {
+double totalFieldEnergy(container_t& efield, const Array<int>& rr) {
+    
+    for (int lev = efield.size() - 2; lev >= 0; lev--)
+        BoxLib::average_down(efield[lev+1], efield[lev], 0, 3, rr[lev]);
     
     double fieldEnergy = 0.0;
 //     long volume = 0;
-    for (unsigned int l = 0; l < efield.size(); ++l) {
+//     for (int l = 0; l < efield.size(); ++l) {
         long nPoints = 0;
+
+        int l = 0;
+#ifdef UNIQUE_PTR
         fieldEnergy += MultiFab::Dot(*efield[l], 0, *efield[l], 0, 3, 0);
         for (unsigned int b = 0; b < efield[l]->boxArray().size(); ++b) {
-//             volume += efield[l]->box(b).volume(); // cell-centered --> volume() == numPts()
+//             volume += efield[l]->box(b).volume(); // cell-centered --> volume() == numPts
             nPoints += efield[l]->box(b).numPts();
+#else
+        fieldEnergy += MultiFab::Dot(efield[l], 0, efield[l], 0, 3, 0);
+        for (unsigned int b = 0; b < efield[l].boxArray().size(); ++b) {
+            nPoints += efield[l].box(b).numPts();
+#endif
         }
         fieldEnergy /= double(nPoints);
-    }
+//     }
     
-    return 0.5 * Physics::epsilon_0 * fieldEnergy;
-}
-
-double totalPotential(container_t& potential) {
-    double sum = 0.0;
-    for (unsigned int l = 0; l < potential.size(); ++l)
-        sum += potential[l]->sum();
-    return sum;
+    return 0.5 * /*Physics::epsilon_0 * */fieldEnergy;
 }
 
 
@@ -89,7 +93,9 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
              container_t& phi,
              container_t& grad_phi,
              const Array<Geometry>& geom,
-             const Array<int>& rr, int nLevels)
+             const Array<int>& rr,
+             int nLevels,
+             Inform& msg)
 {
     static IpplTimings::TimerRef solvTimer = IpplTimings::getTimer("solv");
     // =======================================================================                                                                                                                                   
@@ -101,14 +107,25 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     grad_phi.resize(nLevels);
 
     for (int lev = 0; lev < nLevels; ++lev) {
+#ifdef UNIQUE_PTR
         //                                    # component # ghost cells                                                                                                                                          
         rhs[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev],1          ,0));
         phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev],1          ,1));
-        grad_phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev],BL_SPACEDIM, 0));
+        grad_phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev],BL_SPACEDIM, 1));
 
         rhs[lev]->setVal(0.0);
         phi[lev]->setVal(0.0);
         grad_phi[lev]->setVal(0.0);
+#else
+        //                                    # component # ghost cells                                                                                                                                          
+        rhs.set(lev, new MultiFab(myAmrOpal.boxArray()[lev],1          ,0));
+        phi.set(lev, new MultiFab(myAmrOpal.boxArray()[lev],1          ,1));
+        grad_phi.set(lev, new MultiFab(myAmrOpal.boxArray()[lev],BL_SPACEDIM, 1));
+        
+        rhs[lev].setVal(0.0);
+        phi[lev].setVal(0.0);
+        grad_phi[lev].setVal(0.0);
+#endif
     }
     
 
@@ -120,20 +137,28 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     
     Real totalCharge = 0.0;
     for (int i = 0; i <= finest_level; ++i) {
-        Real invVol = (*(geom[i].CellSize()) * *(geom[i].CellSize()) * *(geom[i].CellSize()) );
-        Real sum = rhs[i]->sum(0) * invVol;
-        std::cout << "level " << i << " sum = " << sum << std::endl;
+        Real vol = (*(geom[i].CellSize()) * *(geom[i].CellSize()) * *(geom[i].CellSize()) );
+        
+#ifdef UNIQUE_PTR
+        Real sum = rhs[i]->sum(0) * vol;
+#else
+        Real sum = rhs[i].sum(0) * vol;
+#endif
         totalCharge += sum;
     }
-    std::cout << "Total Charge: " << totalCharge << " C" << std::endl;
-    std::cout << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << std::endl;
+    msg << "Total Charge: " << totalCharge << " C" << endl
+        << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
     Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
-    std::cout << "Cell volume: " << vol << " m^3" << std::endl;
+    msg << "Cell volume: " << vol << " m^3" << endl;
     
     // eps in C / (V * m)
     double constant = -1.0 / Physics::epsilon_0;  // in [V m / C]
     for (int i = 0; i <=finest_level; ++i) {
+#ifdef UNIQUE_PTR
         rhs[i]->mult(constant, 0, 1);       // in [V m]
+#else
+        rhs[i].mult(constant, 0, 1);
+#endif
     }
     
     // **************************************************************************                                                                                                                                
@@ -142,42 +167,32 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     // **************************************************************************                                                                                                                                
 
     Real offset = 0.;
-//     if (geom[0].isAllPeriodic())
-//     {
-//         for (int lev = 0; lev < nLevels; lev++)
-//             offset = dynamic_cast<AmrPartBunch*>(bunch)->sumParticleMass(0,lev);
-//         offset /= geom[0].ProbSize();
-//     }
 
     // solve                                                                                                                                                                                                     
     Solver sol;
     IpplTimings::startTimer(solvTimer);
-    sol.solve_for_accel(rhs,            // [V m]
-                        phi,            // [V m^3]
-                        grad_phi,       // [V m^2]
+    sol.solve_for_accel(rhs,
+                        phi,
+                        grad_phi,
                         geom,
                         base_level,
                         finest_level,
                         offset);
     
+    // for plotting unnormalize
     for (int i = 0; i <=finest_level; ++i) {
-        rhs[i]->mult(1.0 / constant, 0, 1);
+#ifdef UNIQUE_PTR
+        rhs[i]->mult(1.0 / constant, 0, 1);       // in [V m]
+#else
+        rhs[i].mult(1.0 / constant, 0, 1);
+#endif
     }
-    
-//     for (int i = 0; i <= finest_level; ++i) {
-//         std::cout << "Level " << i << " " << phi[i]->min(0) << " " << phi[i]->max(0) << " "
-//                   << grad_phi[i]->min(0) << " " << grad_phi[i]->max(0) << " "
-//                   << grad_phi[i]->min(1) << " " << grad_phi[i]->max(1) << " "
-//                   << grad_phi[i]->min(2) << " " << grad_phi[i]->max(2) << " "
-//                   << std::endl;
-//     }
-    
     
     IpplTimings::stopTimer(solvTimer);
 }
 
 void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
-              int nLevels, size_t maxBoxSize, Inform& msg, Inform& msg2all)
+              int nLevels, size_t maxBoxSize, Inform& msg)
 {
     static IpplTimings::TimerRef distTimer = IpplTimings::getTimer("dist");
     // ========================================================================
@@ -198,17 +213,13 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     // box [-1,1]x[-1,1]x[-1,1]
     RealBox domain;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-        domain.setLo(i, -1.0);
-        domain.setHi(i,  1.0);
-    }
     
-    domain.setLo(0, -0.01); // m
-    domain.setHi(0,  0.01); // m
-    domain.setLo(1, -0.01); // m
-    domain.setHi(1,  0.01); // m
-    domain.setLo(2, -0.01); // m
-    domain.setHi(2,  0.01); // m
+    domain.setLo(0, -0.5); // m
+    domain.setHi(0,  0.5); // m
+    domain.setLo(1, -0.5); // m
+    domain.setHi(1,  0.5); // m
+    domain.setLo(2, -0.5); // m
+    domain.setHi(2,  0.5); // m
     
     // periodic boundary conditions in all directions
     int bc[BL_SPACEDIM] = {0, 0, 0};
@@ -258,11 +269,13 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
     Distribution dist;
     IpplTimings::startTimer(distTimer);
-    dist.gaussian(0.0, 0.001, nloc, ParallelDescriptor::MyProc());
-//     dist.uniform(-0.001, 0.001, nloc, ParallelDescriptor::MyProc());
+    double sig = 0.01;
+    dist.gaussian(0.0, sig, nloc, ParallelDescriptor::MyProc());
     
     // copy particles to the PartBunchBase object.
     dist.injectBeam(*bunch);
+    
+    
     
     
     for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
@@ -273,6 +286,13 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     bunch->gatherStatistics();
     
+    msg << "Bunch radius: " << sig << " m" << endl
+        << "#Particles: " << nParticles << endl
+        << "Charge per particle: " << bunch->getQM(0) << " C" << endl
+        << "Total charge: " << nParticles * bunch->getQM(0) << " C" << endl;
+    
+    for (int i = 0; i < nLevels; ++i)
+        msg << "#Cells per dim of level " << i << " for bunch : " << 2.0 * sig / *(geom[i].CellSize()) << endl;
     
     // ========================================================================
     // 2. tagging (i.e. create BoxArray's, DistributionMapping's of all
@@ -317,15 +337,22 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     container_t grad_phi;
     
     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
-    doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
+    doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels, msg);
     
-    msg << "Total field energy: " << totalFieldEnergy(grad_phi) << endl;
+    msg << "Total field energy: " << totalFieldEnergy(grad_phi, rr) << endl;
     
     for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
+#ifdef UNIQUE_PTR
         msg << "Max. potential level " << i << ": "<< phi[i]->max(0) << endl
             << "Min. potential level " << i << ": " << phi[i]->min(0) << endl
             << "Max. ex-field level " << i << ": " << grad_phi[i]->max(0) << endl
             << "Min. ex-field level " << i << ": " << grad_phi[i]->min(0) << endl;
+#else
+        msg << "Max. potential level " << i << ": "<< phi[i].max(0) << endl
+            << "Min. potential level " << i << ": " << phi[i].min(0) << endl
+            << "Max. ex-field level " << i << ": " << grad_phi[i].max(0) << endl
+            << "Min. ex-field level " << i << ": " << grad_phi[i].min(0) << endl;
+#endif
     }
     
     
@@ -340,7 +367,6 @@ int main(int argc, char *argv[]) {
     Ippl ippl(argc, argv);
     
     Inform msg("Solver");
-    Inform msg2all("Solver", INFORM_ALL_NODES);
     
 
     static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("main");
@@ -371,7 +397,7 @@ int main(int argc, char *argv[]) {
     BoxLib::Initialize(argc,argv, false);
     size_t nLevels = std::atoi(argv[5]) + 1; // i.e. nLevels = 0 --> only single level
     size_t maxBoxSize = std::atoi(argv[6]);
-    doBoxLib(nr, nParticles, nLevels, maxBoxSize, msg, msg2all);
+    doBoxLib(nr, nParticles, nLevels, maxBoxSize, msg);
     
     
     IpplTimings::stopTimer(mainTimer);
