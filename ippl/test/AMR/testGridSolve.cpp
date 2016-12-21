@@ -177,6 +177,8 @@ void doSolve(const Array<BoxArray>& ba,
 #endif
     }
     
+    writePotential(rhs, *(geom[0].CellSize()), 0, "amr-rho_scalar-level-");
+    
 
     // Define the density on level 0 from all particles at all levels                                                                                                                                            
     int base_level   = 0;
@@ -242,7 +244,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     IntVect high(nr[0] - 1, nr[1] - 1, nr[2] - 1);    
     Box bx(low, high);
     
-    // box [-0.05, 0.05] x [-0.05, 0.05] x [-0.05, 0.05]
+    // box [0, 0.05] x [0, 0.05] x [0, 0.05]
     RealBox domain;
     double a = 0.1;
     for (int i = 0; i < BL_SPACEDIM; ++i) {
