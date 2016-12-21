@@ -14,7 +14,7 @@ import os
 import yt
 
 opal = os.environ['OPAL_BUILD']
-ds = yt.load(opal + "ippl/test/AMR/plt0000", unit_system='accel')
+ds = yt.load(opal + "ippl/test/AMR/plt0000", unit_system='mks')
 
 ds.print_stats()
 
@@ -27,51 +27,61 @@ print (ds.derived_field_list)
 
 
 slc = yt.SlicePlot(ds, normal='z', fields='rho') #, width=(0.05, 0.05))
-slc.set_unit('rho', 'e/m**3')
+#slc.set_unit('rho', 'e/m**3')
 slc.annotate_grids()
+slc.annotate_timestamp(corner='upper_left', redshift=False, draw_inset_box=True)
+slc.annotate_scale(corner='upper_right')
 slc.save()
 
 slc = yt.SlicePlot(ds, normal='y', fields='rho')
-slc.set_unit('rho', 'e/m**3')
+#slc.set_unit('rho', 'e/m**3')
 slc.annotate_grids()
 slc.save()
 
 slc = yt.SlicePlot(ds, normal='x', fields='rho')
-slc.set_unit('rho', 'e/m**3')
+#slc.set_unit('rho', 'e/m**3')
 slc.annotate_grids()
+slc.annotate_scale(corner='upper_right')
 slc.save()
 
-#slc = yt.ProjectionPlot(ds, 'x', fields='rho')
-#slc.annotate_grids()
-#slc.save()
+slc = yt.ProjectionPlot(ds, 'x', fields='rho')
+slc.annotate_grids()
+slc.annotate_scale(corner='upper_right')
+slc.save()
 
 
-#slc = yt.ProjectionPlot(ds, 'y', fields='rho')
-#slc.annotate_grids()
-#slc.save()
+slc = yt.ProjectionPlot(ds, 'y', fields='rho')
+slc.annotate_grids()
+slc.annotate_scale(corner='upper_right')
+slc.save()
 
-#slc = yt.ProjectionPlot(ds, 'z', fields='rho') #, width=(0.05, 0.05))
-#slc.annotate_grids()
-#slc.save()
+slc = yt.ProjectionPlot(ds, 'z', fields='rho') #, width=(0.05, 0.05))
+slc.annotate_grids()
+slc.annotate_scale(corner='upper_right')
+slc.save()
 
 slc = yt.SlicePlot(ds, normal='z', fields='Ex')
 slc.set_unit('Ex', 'V/m')
 slc.annotate_grids()
+slc.annotate_scale(corner='upper_right')
 slc.save()
 
 slc = yt.SlicePlot(ds, normal='z', fields='Ey')
 slc.set_unit('Ey', 'V/m')
 slc.annotate_grids()
+slc.annotate_scale(corner='upper_right')
 slc.save()
 
 slc = yt.SlicePlot(ds, normal='x', fields='Ez')
 slc.set_unit('Ez', 'V/m')
 slc.annotate_grids()
+slc.annotate_scale(corner='upper_right')
 slc.save()
 
 slc = yt.SlicePlot(ds, normal='z', fields='potential')
 slc.set_unit('potential', 'V')
 slc.annotate_grids()
+slc.annotate_scale(corner='upper_right')
 slc.save()
 
 ad = ds.all_data()
@@ -79,9 +89,11 @@ ad = ds.all_data()
 print ( ad.quantities.extrema("rho") )
 
 rho = ad['rho']
-print ( "Density: ", rho.max() )
-print ( "Density: ", rho.max().in_units('e/m**3') )
-print ( "Potential: ", ad['potential'].max() )
+print ( "Density: ", rho.max().in_units('C/m**3') )
+print ( "dx: ", ad['dx'] )
 print ( "Potential: ", ad['potential'].in_units('V').max() )
+print ( "Ex: ", ad['Ex'].in_units('V/m').max() )
+
+
 #dx = ad['dx']
 #print ( "dx = ", dx )

@@ -442,8 +442,8 @@ int main(int argc, char* argv[]) {
                  )
              );
     
-//     initMinusOneEverywhere(rho, n);
-    initSphereOnGrid(rho, a, R, n);
+    initMinusOneEverywhere(rho, n);
+//     initSphereOnGrid(rho, a, R, n);
 //     initSphere(rho, a, R, n);
 //     initSphereNGP(rho, a, R, n);
     
