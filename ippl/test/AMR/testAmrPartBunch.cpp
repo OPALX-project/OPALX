@@ -98,7 +98,7 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
     
     // eps in C / (V * m)
-    double constant = -Physics::q_e / (4.0 * Physics::pi * Physics::epsilon_0);
+    double constant = -1.0 / Physics::epsilon_0;
     for (int i = 0; i <= finest_level; ++i)
         rhs[i]->mult(constant, 0, 1);
     

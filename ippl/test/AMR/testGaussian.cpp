@@ -131,7 +131,7 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     std::cout << "Cell volume: " << vol << " m^3" << std::endl;
     
     // eps in C / (V * m)
-    double constant = -1.0/*Physics::q_e*/ / (4.0 * Physics::pi * Physics::epsilon_0);  // in [V m / C]
+    double constant = -1.0 / Physics::epsilon_0;  // in [V m / C]
     for (int i = 0; i <=finest_level; ++i) {
         rhs[i]->mult(constant, 0, 1);       // in [V m]
     }
