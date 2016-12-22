@@ -27,9 +27,6 @@
 #include "Utilities/Options.h"
 
 #include "Physics/Physics.h"
-#ifdef HAVE_AMR_SOLVER
-#include <Amr.H>
-#endif
 
 class BMultipoleField;
 class PartBunch;
@@ -133,15 +130,6 @@ public:
                               const std::vector<unsigned long long> &maxSTEPS, const std::vector<double> &zstop,
                               int timeIntegrator, const std::vector<double> &dt, size_t N);
 
-    /// Constructor
-    //  Amr pointer is taken
-#ifdef HAVE_AMR_SOLVER
-    explicit ParallelTTracker(const Beamline &bl, PartBunch &bunch, DataSink &ds,
-                              const PartData &data, bool revBeam, bool revTrack,
-                              const std::vector<unsigned long long> &maxSTEPS, const std::vector<double> &zstop,
-                              int timeIntegrator, const std::vector<double> &dt, size_t N, Amr* amrptr_in);
-#endif
-
     virtual ~ParallelTTracker();
 
     virtual void visitAlignWrapper(const AlignWrapper &);
@@ -239,9 +227,6 @@ private:
     ParallelTTracker();
     ParallelTTracker(const ParallelTTracker &);
     void operator=(const ParallelTTracker &);
-#ifdef HAVE_AMR_SOLVER
-    Amr* amrptr;
-#endif
 
     /******************** STATE VARIABLES ***********************************/
 
