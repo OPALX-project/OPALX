@@ -14,6 +14,8 @@
 import os
 import yt
 
+from tools import doSlicePlot, doProjectionPlot
+
 try:
     opal = os.environ['OPAL_BUILD']
     ds = yt.load(opal + "ippl/test/AMR/plt0000", unit_system='mks')
@@ -21,44 +23,7 @@ try:
     ds.print_stats()
     
     print ("Field list:", ds.field_list)
-    print ("Derived field list:", ds.derived_field_list)
-
-    ##
-    # @param ds is the data
-    # @param direct is the direction 'x', 'y' or 'z' (normal)
-    # @param field to plot
-    # @param unit the data should be converted to (otherwise it
-    #        takes the default given by the data)
-    # @param col is the color for the time stamp and scale annotation
-    def doSlicePlot(ds, direct, field, unit, col = 'white'):
-        slc = yt.SlicePlot(ds, normal=direct, fields=field)
-        
-        if unit is not None:
-            slc.set_unit(field, unit)
-        
-        slc.annotate_grids()
-        slc.annotate_timestamp(corner='upper_left', redshift=False, draw_inset_box=True)
-        slc.annotate_scale(corner='upper_right', size_bar_args={'color':col})
-        slc.save()
-    
-    ##
-    # @param ds is the data
-    # @param direct is the direction 'x', 'y' or 'z' (normal)
-    # @param field to plot
-    # @param unit the data should be converted to (otherwise it
-    #        takes the default given by the data)
-    # @param col is the color for the time stamp and scale annotation
-    def doProjectionPlot(ds, direct, field, unit, col = 'white'):
-        slc = yt.ProjectionPlot(ds, direct, fields=field)
-        
-        if unit is not None:
-            slc.set_unit(field, unit)
-        
-        slc.annotate_grids()
-        slc.annotate_timestamp(corner='upper_left', redshift=False, draw_inset_box=True)
-        slc.annotate_scale(corner='upper_right', size_bar_args={'color':col})
-        slc.save()
-    
+    print ("Derived field list:", ds.derived_field_list)    
     
     
     doSlicePlot(ds, 'z', 'rho', 'C/m**3', 'gray')
