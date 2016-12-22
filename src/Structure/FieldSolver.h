@@ -23,10 +23,6 @@ class FieldSolver;
 #include "Algorithms/PartData.h"
 #include "Solvers/PoissonSolver.h"
 
-#ifdef HAVE_AMR_SOLVER
-    #include <Amr.H>
-#endif
-
 class PartBunch;
 
 
@@ -105,17 +101,6 @@ public:
     bool amrSubCycling();
     
     int amrMaxGridSize();
-    
-    Amr* getAmrPtr() {
-        if (amrptr_m)
-            return amrptr_m;
-        else
-            return 0;
-    }
-    
-    // TO BE REMOVED
-    std::vector<std::string>  filterString(std::string str);
-    std::pair<Box,unsigned int> getBlGrids(std::string str);
 #endif
 
     /// the actual solver, should be a base object
@@ -145,10 +130,6 @@ private:
     std::string fsType_m;
 
     double rpp_m;
-    
-#ifdef HAVE_AMR_SOLVER
-    Amr* amrptr_m;
-#endif
 
 };
 
