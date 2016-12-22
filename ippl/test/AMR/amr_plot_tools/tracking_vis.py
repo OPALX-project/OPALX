@@ -1,41 +1,43 @@
-# Matthias Frey
-# 14. October 2016, LBNL
-# 
-# Plot the electric self-field, density and self-field
+##
+# @file tracking_vis.py
+# @author Matthias Frey
+# @date 14. October 2016, LBNL
+# @version 1.1 (22. Dec. 2016)
+# @brief Plot the electric self-field, density and self-field
 # potential using the yt framework.
-# 1. mpirun -np #cores testSolver
-# 2. python visualize.py (make sure you sourced the yt directory $YT_DIR/yt-x86_64/bin/activate)
-
+# @details It reads in the all generated BoxLib plotfiles "plt_amr_*"
+# (* are four digits) of a directory and saves the content as slice
+# plots. It reads in the output of testReal.cpp.
+# Make sure you sourced the yt directory $YT_DIR/yt-x86_64/bin/activate.
+#
 
 import os
-import yt
 import sys
+import yt
 
-opal = os.environ['OPAL_BUILD']
+from tools import concatenate, doSlicePlot
 
-
-#ds = yt.load(opal + "ippl/test/AMR/amr0000", unit_system='accel')
-#slc = yt.SlicePlot(ds, normal='z', fields='rho')
-#slc.annotate_grids()
-#slc.save()
-
-nSteps = int(sys.argv[1])
-
-for i in range(0, nSteps):
+try:
+    opal = os.environ['OPAL_BUILD']
     
-    if i < 10:
-        ds = yt.load(opal + "ippl/test/AMR/amr_000" + str(i), unit_system='accel')
-    else:
-        ds = yt.load(opal + "ippl/test/AMR/amr_00" + str(i), unit_system='accel')
-    
-    slc = yt.SlicePlot(ds, normal='z', fields='rho')
-    #slc.set_unit('rho', 'e/m**3')
-    slc.annotate_grids()
-    slc.save()
+    nFiles = 0
 
-#for i in range(10, 25):
-    #ds = yt.load(opal + "ippl/test/AMR/amr_00" + str(i)), unit_system='accel')
-    #slc = yt.SlicePlot(ds, normal='z', fields='rho')
-    ##slc.set_unit('rho', 'e/m**3')
-    #slc.annotate_grids()
-    #slc.save()
+    for i in range(0, nFiles):
+        res = concatenate(i)
+        
+        ds = yt.load(opal + '/ippl/test/AMR/plt_amr_' + res, unit_system='mks')
+        
+        doSlicePlot(ds, 'z', 'rho', 'C/m**3', 'gray')
+        
+        doSlicePlot(ds, 'z', 'potential', 'V')
+        
+        doSlicePlot(ds, 'z', 'Ex', 'V/m')
+        
+        doSlicePlot(ds, 'z', 'Ey', 'V/m')
+        
+        doSlicePlot(ds, 'x', 'Ez', 'V/m')
+
+except KeyError:
+    print ("Please export the environment variable 'OPAL_BUILD'.")
+except IOError as e:
+    print (e.strerror)
