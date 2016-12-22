@@ -212,7 +212,6 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     IntVect high(nr[0] - 1, nr[1] - 1, nr[2] - 1);    
     Box bx(low, high);
     
-    // box [-1,1]x[-1,1]x[-1,1]
     RealBox domain;
     
     domain.setLo(0, -0.5); // m
