@@ -8,6 +8,7 @@
 #
 
 import yt
+import os
 
 ##
 # @param ds is the data
@@ -48,13 +49,30 @@ def doProjectionPlot(ds, direct, field, unit, col = 'white'):
 
 ##
 # Take an integer and transform it
-# to a string of for characters, e.g.\n
+# to a string of four characters, e.g.\n
 # \f$ 1 \rightarrow 0001 \f$ \n
 # \f$ 12 \rightarrow 0012 \f$ \n
 # \f$ 586 \rightarrow 0586 \f$ \n
 # @param step is an integer
 def concatenate(step):
-    res = str(i)
+    res = str(step)
     while len(res) < 4:
         res = '0' + res
     return res
+
+##
+# Count subdirectories
+# @param parent is the path to the parent directory
+# @param substr specifies the substring that should be contained
+# @returns the number of subdirectories containing
+# a given substring
+def countSubdirs(parent, substr):
+    nDirs = 0
+    
+    # 22. Dec. 2016
+    # http://stackoverflow.com/questions/10377998/how-can-i-iterate-over-files-in-a-given-directory
+    for filename in os.listdir(parent):
+        if substr in filename:
+            nDirs = nDirs + 1
+    return nDirs
+

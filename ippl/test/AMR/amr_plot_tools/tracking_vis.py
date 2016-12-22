@@ -15,17 +15,24 @@ import os
 import sys
 import yt
 
-from tools import concatenate, doSlicePlot
+from tools import countSubdirs, concatenate, doSlicePlot
 
 try:
     opal = os.environ['OPAL_BUILD']
     
-    nFiles = 0
-
+    # leading name of plotfiles
+    substr = 'plt_amr_'
+    
+    nFiles = countSubdirs(opal + '/ippl/test/AMR/', substr)
+    
+    print ('Found ' + str(nFiles) + ' plotfiles')
+    
     for i in range(0, nFiles):
+        
+        # do a string of four characters, e.g. 12 --> 0012
         res = concatenate(i)
         
-        ds = yt.load(opal + '/ippl/test/AMR/plt_amr_' + res, unit_system='mks')
+        ds = yt.load(opal + '/ippl/test/AMR/' + substr + res, unit_system='mks')
         
         doSlicePlot(ds, 'z', 'rho', 'C/m**3', 'gray')
         
@@ -41,3 +48,6 @@ except KeyError:
     print ("Please export the environment variable 'OPAL_BUILD'.")
 except IOError as e:
     print (e.strerror)
+except TypeError:
+    print ("No subdirectories containing the given substring " +
+           "found in " + opal + "'/ippl/test/AMR/'.")
