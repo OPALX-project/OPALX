@@ -199,4 +199,30 @@ void init(RealBox& domain,
     }
 }
 
+void initGridData(container_t& rhs,
+                  container_t& phi,
+                  container_t& grad_phi,
+                  const BoxArray& ba,
+                  int level)
+{
+#ifdef UNIQUE_PTR
+    //                                                  # component # ghost cells                                                                                                                                          
+    rhs[level] = std::unique_ptr<MultiFab>(new MultiFab(ba,1          ,0));
+    phi[level] = std::unique_ptr<MultiFab>(new MultiFab(ba,1          ,1));
+    grad_phi[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, BL_SPACEDIM, 1));
+
+    rhs[level]->setVal(0.0);
+    phi[level]->setVal(0.0);
+    grad_phi[level]->setVal(0.0);
+#else
+    //                       # component # ghost cells                                                                                                                                          
+    rhs.set(level, new MultiFab(ba,1          ,0));
+    phi.set(level, new MultiFab(ba,1          ,1));
+    grad_phi.set(level, new MultiFab(ba, BL_SPACEDIM, 1));
+    rhs[level].setVal(0.0);
+    phi[level].setVal(0.0);
+    grad_phi[level].setVal(0.0);
+#endif
+}
+
 #endif

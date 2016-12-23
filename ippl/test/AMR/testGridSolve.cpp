@@ -51,26 +51,13 @@ void doSolve(const Array<BoxArray>& ba,
     rhs.resize(nLevels);
     phi.resize(nLevels);
     grad_phi.resize(nLevels);
-
+    
     for (int lev = 0; lev < nLevels; ++lev) {
-#ifdef UNIQUE_PTR
-        //                                    # component # ghost cells                                                                                                                                          
-        rhs[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev],1          ,0));
-        phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev],1          ,1));
-        grad_phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev],BL_SPACEDIM, 1));
-
-        phi[lev]->setVal(0.0);
-        grad_phi[lev]->setVal(0.0);
+        initGridData(rhs, phi, grad_phi, ba[lev], lev);
         
+#ifdef UNIQUE_PTR
         rhs[lev]->setVal(-1.0);
 #else
-        //                                    # component # ghost cells                                                                                                                                          
-        rhs.set(lev, new MultiFab(ba[lev],1          ,0));
-        phi.set(lev, new MultiFab(ba[lev],1          ,1));
-        grad_phi.set(lev, new MultiFab(ba[lev],BL_SPACEDIM, 1));
-        phi[lev].setVal(0.0);
-        grad_phi[lev].setVal(0.0);
-        
         rhs[lev].setVal(-1.0);
 #endif
     }
