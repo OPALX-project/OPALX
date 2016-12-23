@@ -110,28 +110,10 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     rhs.resize(nLevels);
     phi.resize(nLevels);
     grad_phi.resize(nLevels);
-
-    for (int lev = 0; lev < nLevels; ++lev) {
-#ifdef UNIQUE_PTR
-        //                                    # component # ghost cells                                                                                                                                          
-        rhs[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev],1          ,0));
-        phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev],1          ,1));
-        grad_phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev],BL_SPACEDIM, 1));
-
-        rhs[lev]->setVal(0.0);
-        phi[lev]->setVal(0.0);
-        grad_phi[lev]->setVal(0.0);
-#else
-        //                                    # component # ghost cells                                                                                                                                          
-        rhs.set(lev, new MultiFab(myAmrOpal.boxArray()[lev],1          ,0));
-        phi.set(lev, new MultiFab(myAmrOpal.boxArray()[lev],1          ,1));
-        grad_phi.set(lev, new MultiFab(myAmrOpal.boxArray()[lev],BL_SPACEDIM, 1));
-        rhs[lev].setVal(0.0);
-        phi[lev].setVal(0.0);
-        grad_phi[lev].setVal(0.0);
-#endif
-    }
     
+    for (int lev = 0; lev < nLevels; ++lev) {
+        initGridData(rhs, phi, grad_phi, myAmrOpal.boxArray()[lev], lev);
+    }
 
     // Define the density on level 0 from all particles at all levels                                                                                                                                            
     int base_level   = 0;
