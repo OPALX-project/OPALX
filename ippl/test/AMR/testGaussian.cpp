@@ -33,10 +33,6 @@ Usage:
 #include <set>
 #include <sstream>
 
-
-#include <Array.H>
-#include <Geometry.H>
-#include <MultiFab.H>
 #include <ParmParse.H>
 
 #include "PartBunch.h"
@@ -46,48 +42,13 @@ Usage:
 #include "Solver.h"
 #include "AmrOpal.h"
 
+#include "helper_functions.h"
+
 #include "writePlotFile.H"
 
 #include <cmath>
 
 #include "Physics/Physics.h"
-
-
-#ifdef UNIQUE_PTR
-typedef Array<std::unique_ptr<MultiFab> > container_t;
-#else
-#include <PArray.H>
-typedef PArray<MultiFab> container_t;
-#endif
-
-double totalFieldEnergy(container_t& efield, const Array<int>& rr) {
-    
-    for (int lev = efield.size() - 2; lev >= 0; lev--)
-        BoxLib::average_down(efield[lev+1], efield[lev], 0, 3, rr[lev]);
-    
-    double fieldEnergy = 0.0;
-//     long volume = 0;
-//     for (int l = 0; l < efield.size(); ++l) {
-        long nPoints = 0;
-
-        int l = 0;
-#ifdef UNIQUE_PTR
-        fieldEnergy += MultiFab::Dot(*efield[l], 0, *efield[l], 0, 3, 0);
-        for (unsigned int b = 0; b < efield[l]->boxArray().size(); ++b) {
-//             volume += efield[l]->box(b).volume(); // cell-centered --> volume() == numPts
-            nPoints += efield[l]->box(b).numPts();
-#else
-        fieldEnergy += MultiFab::Dot(efield[l], 0, efield[l], 0, 3, 0);
-        for (unsigned int b = 0; b < efield[l].boxArray().size(); ++b) {
-            nPoints += efield[l].box(b).numPts();
-#endif
-        }
-        fieldEnergy /= double(nPoints);
-//     }
-    
-    return 0.5 * /*Physics::epsilon_0 * */fieldEnergy;
-}
-
 
 void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
              container_t& rhs,

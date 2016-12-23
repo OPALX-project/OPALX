@@ -17,10 +17,6 @@
 #include <set>
 #include <sstream>
 
-
-#include <Array.H>
-#include <Geometry.H>
-#include <MultiFab.H>
 #include <ParmParse.H>
 
 #include "PartBunch.h"
@@ -29,19 +25,14 @@
 #include "Solver.h"
 #include "AmrOpal.h"
 
+#include "helper_functions.h"
+
 #include "writePlotFile.H"
 
 #include <cmath>
 
 #include "Physics/Physics.h"
 #include <random>
-
-#ifdef UNIQUE_PTR
-typedef Array<std::unique_ptr<MultiFab> > container_t;
-#else
-#include <PArray.H>
-typedef PArray<MultiFab> container_t;
-#endif
 
 void initSphere(double r, PartBunchBase* bunch, int nParticles) {
     bunch->create(nParticles);
@@ -76,100 +67,6 @@ void initSphere(double r, PartBunchBase* bunch, int nParticles) {
     }
     out.close();
 }
-
-
-void writePotential(const container_t& phi, double dx, double dlow, std::string filename) {
-    // potential and efield a long x-direction (y = 0, z = 0)
-    int lidx = 0;
-#ifdef UNIQUE_PTR
-    for (MFIter mfi(*phi[0 /*level*/]); mfi.isValid(); ++mfi) {
-#else
-    for (MFIter mfi(phi[0 /*level*/]); mfi.isValid(); ++mfi) {
-#endif
-        const Box& bx = mfi.validbox();
-#ifdef UNIQUE_PTR
-        const FArrayBox& lhs = (*phi[0])[mfi];
-#else
-        const FArrayBox& lhs = (phi[0])[mfi];
-#endif
-        /* Write the potential of all levels to file in the format: x, y, z, \phi
-         */
-        for (int proc = 0; proc < ParallelDescriptor::NProcs(); ++proc) {
-            if ( proc == ParallelDescriptor::MyProc() ) {
-                std::string outfile = filename + std::to_string(0);
-                std::ofstream out;
-                
-                if ( proc == 0 )
-                    out.open(outfile);
-                else
-                    out.open(outfile, std::ios_base::app);
-                
-                int j = 0.5 * (bx.hiVect()[1] - bx.loVect()[1]);
-                int k = 0.5 * (bx.hiVect()[2] - bx.loVect()[2]);
-                
-                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
-//                     for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
-//                         for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
-                            IntVect ivec(i, j, k);
-                            // add one in order to have same convention as PartBunch::computeSelfField()
-                            out << i + 1 << " " << j + 1 << " " << k + 1 << " " << dlow + dx * i << " "
-                                << lhs(ivec, 0)  << std::endl;
-//                         }
-//                     }
-                }
-                out.close();
-            }
-            ParallelDescriptor::Barrier();
-        }
-    }
-}
-
-void writeElectricField(const container_t& efield, double dx, double dlow) {
-    // potential and efield a long x-direction (y = 0, z = 0)
-    int lidx = 0;
-#ifdef UNIQUE_PTR
-    for (MFIter mfi(*efield[0 /*level*/]); mfi.isValid(); ++mfi) {
-#else
-    for (MFIter mfi(efield[0 /*level*/]); mfi.isValid(); ++mfi) {
-#endif
-        const Box& bx = mfi.validbox();
-#ifdef UNIQUE_PTR
-        const FArrayBox& lhs = (*efield[0])[mfi];
-#else
-        const FArrayBox& lhs = (efield[0])[mfi];
-#endif
-        /* Write the potential of all levels to file in the format: x, y, z, ex, ey, ez
-         */
-        for (int proc = 0; proc < ParallelDescriptor::NProcs(); ++proc) {
-            if ( proc == ParallelDescriptor::MyProc() ) {
-                std::string outfile = "amr-efield_scalar-level-" + std::to_string(0);
-                std::ofstream out;
-                
-                if ( proc == 0 )
-                    out.open(outfile);
-                else
-                    out.open(outfile, std::ios_base::app);
-                
-                int j = 0.5 * (bx.hiVect()[1] - bx.loVect()[1]);
-                int k = 0.5 * (bx.hiVect()[2] - bx.loVect()[2]);
-                
-                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
-//                     for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
-//                         for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
-                            IntVect ivec(i, j, k);
-                            // add one in order to have same convention as PartBunch::computeSelfField()
-                            out << i + 1 << " " << j + 1 << " " << k + 1 << " " << dlow + dx * i << " "
-                                << lhs(ivec, 0) << " " << lhs(ivec, 1) << " " << lhs(ivec, 2) << std::endl;
-//                         }
-//                     }
-                }
-                out.close();
-            }
-            ParallelDescriptor::Barrier();
-        }
-    }
-}
-
 
 void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
              container_t& rhs,
