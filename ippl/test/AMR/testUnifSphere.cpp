@@ -177,62 +177,17 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    /*
-     * nLevel is the number of levels allowed, i.e if nLevel = 1
-     * we just run single-level
-     */
+    double lower = -0.05; // m
+    double upper =  0.05; // m
     
-    /*
-     * set up the geometry
-     */
-    IntVect low(0, 0, 0);
-    IntVect high(nr[0] - 1, nr[1] - 1, nr[2] - 1);    
-    Box bx(low, high);
-    
-    // box [-0.05, 0.05] x [-0.05, 0.05] x [-0.05, 0.05]
     RealBox domain;
-    double a = 0.05;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-        domain.setLo(i, -a); // m
-        domain.setHi(i,  a); // m
-    }
-    
-    // Dirichlet boundary conditions in all directions
-    int bc[BL_SPACEDIM] = {0, 0, 0};
-    
-    
-    Array<Geometry> geom;
-    geom.resize(nLevels);
-    
-    // level 0 describes physical domain
-    geom[0].define(bx, &domain, 0, bc);
-    
-    // Container for boxes at all levels
     Array<BoxArray> ba;
-    ba.resize(nLevels);
-    
-    // box at level 0
-    ba[0].define(bx);
-    ba[0].maxSize(maxBoxSize);
-    
-    /*
-     * distribution mapping
-     */
+    Array<Geometry> geom;
     Array<DistributionMapping> dmap;
-    dmap.resize(nLevels);
-    dmap[0].define(ba[0], ParallelDescriptor::NProcs() /*nprocs*/);
+    Array<int> rr;
     
-    // refinement ratio
-    Array<int> rr(nLevels - 1);
-    for (unsigned int lev = 0; lev < rr.size(); ++lev)
-        rr[lev] = 2;
-    
-    // geometries of refined levels
-    for (int lev = 1; lev < nLevels; ++lev) {
-        geom[lev].define(BoxLib::refine(geom[lev - 1].Domain(),
-                                        rr[lev - 1]),
-                         &domain, 0, bc);
-    }
+    // in helper_functions.h
+    init(domain, ba, dmap, geom, rr, nr, nLevels, maxBoxSize, lower, upper);
     
     // ========================================================================
     // 2. initialize all particles (just single-level)
@@ -317,8 +272,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
 #endif
     }
     
-    writePotential(phi, *(geom[0].CellSize()), -a, "amr-phi_scalar-level-");
-    writeElectricField(grad_phi, *(geom[0].CellSize()), -a);
+    writePotential(phi, *(geom[0].CellSize()), lower, "amr-phi_scalar-level-");
+    writeElectricField(grad_phi, *(geom[0].CellSize()), lower);
     
     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
 }
