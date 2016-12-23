@@ -225,4 +225,22 @@ void initGridData(container_t& rhs,
 #endif
 }
 
+double totalCharge(const container_t& rhs,
+                   int finest_level,
+                   const Array<Geometry>& geom,
+                   bool scale = true) {
+    
+    Real totCharge = 0.0;
+    for (int i = 0; i <= finest_level; ++i) {
+        Real vol = (*(geom[i].CellSize()) * *(geom[i].CellSize()) * *(geom[i].CellSize()) );
+#ifdef UNIQUE_PTR
+        Real sum = rhs[i]->sum(0) * vol * scale;
+#else
+        Real sum = rhs[i].sum(0) * vol * scale;
+#endif
+        totCharge += sum;
+    }
+    return totCharge;
+}
+
 #endif

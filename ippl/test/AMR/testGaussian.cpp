@@ -78,18 +78,9 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
 
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
     
-    Real totalCharge = 0.0;
-    for (int i = 0; i <= finest_level; ++i) {
-        Real vol = (*(geom[i].CellSize()) * *(geom[i].CellSize()) * *(geom[i].CellSize()) );
-        
-#ifdef UNIQUE_PTR
-        Real sum = rhs[i]->sum(0) * vol;
-#else
-        Real sum = rhs[i].sum(0) * vol;
-#endif
-        totalCharge += sum;
-    }
-    msg << "Total Charge: " << totalCharge << " C" << endl
+    
+    double totCharge = totalCharge(rhs, finest_level, geom);
+    msg << "Total Charge: " << totCharge << " C" << endl
         << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
     Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
     msg << "Cell volume: " << vol << " m^3" << endl;
