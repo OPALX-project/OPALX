@@ -135,4 +135,68 @@ double totalFieldEnergy(container_t& efield, const Array<int>& rr) {
     return 0.5 * /*Physics::epsilon_0 * */fieldEnergy;
 }
 
+
+void init(RealBox& domain,
+          Array<BoxArray>& ba,
+          Array<DistributionMapping>& dmap,
+          Array<Geometry>& geom,
+          Array<int>& rr,
+          const Vektor<size_t, 3>& nr,
+          int nLevels,
+          size_t maxBoxSize,
+          double lower,
+          double upper)
+{
+    /*
+     * nLevels is the number of levels allowed, i.e if nLevels = 1
+     * we just run single-level
+     */
+    
+    /*
+     * set up the geometry
+     */
+    IntVect low(0, 0, 0);
+    IntVect high(nr[0] - 1, nr[1] - 1, nr[2] - 1);    
+    Box bx(low, high);
+    
+    // box [lower, upper] x [lower, upper] x [lower, upper]
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+        domain.setLo(i, lower); // m
+        domain.setHi(i, upper); // m
+    }
+    
+    // Dirichlet boundary conditions in all directions
+    int bc[BL_SPACEDIM] = {0, 0, 0};
+    
+    geom.resize(nLevels);
+    
+    // level 0 describes physical domain
+    geom[0].define(bx, &domain, 0, bc);
+    
+    // Container for boxes at all levels
+    ba.resize(nLevels);
+    
+    // box at level 0
+    ba[0].define(bx);
+    ba[0].maxSize(maxBoxSize);
+    
+    /*
+     * distribution mapping
+     */
+    dmap.resize(nLevels);
+    dmap[0].define(ba[0], ParallelDescriptor::NProcs() /*nprocs*/);
+    
+    // refinement ratio
+    rr.resize(nLevels - 1);
+    for (unsigned int lev = 0; lev < rr.size(); ++lev)
+        rr[lev] = 2;
+    
+    // geometries of refined levels
+    for (int lev = 1; lev < nLevels; ++lev) {
+        geom[lev].define(BoxLib::refine(geom[lev - 1].Domain(),
+                                        rr[lev - 1]),
+                         &domain, 0, bc);
+    }
+}
+
 #endif

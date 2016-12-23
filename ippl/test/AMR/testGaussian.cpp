@@ -161,63 +161,17 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    /*
-     * nLevel is the number of levels allowed, i.e if nLevel = 1
-     * we just run single-level
-     */
-    
-    /*
-     * set up the geometry
-     */
-    IntVect low(0, 0, 0);
-    IntVect high(nr[0] - 1, nr[1] - 1, nr[2] - 1);    
-    Box bx(low, high);
+    double lower = -0.5; // m
+    double upper =  0.5; // m
     
     RealBox domain;
-    
-    domain.setLo(0, -0.5); // m
-    domain.setHi(0,  0.5); // m
-    domain.setLo(1, -0.5); // m
-    domain.setHi(1,  0.5); // m
-    domain.setLo(2, -0.5); // m
-    domain.setHi(2,  0.5); // m
-    
-    // periodic boundary conditions in all directions
-    int bc[BL_SPACEDIM] = {0, 0, 0};
-    
-    
-    Array<Geometry> geom;
-    geom.resize(nLevels);
-    
-    // level 0 describes physical domain
-    geom[0].define(bx, &domain, 0, bc);
-    
-    // Container for boxes at all levels
     Array<BoxArray> ba;
-    ba.resize(nLevels);
-    
-    // box at level 0
-    ba[0].define(bx);
-    ba[0].maxSize(maxBoxSize);
-    
-    /*
-     * distribution mapping
-     */
+    Array<Geometry> geom;
     Array<DistributionMapping> dmap;
-    dmap.resize(nLevels);
-    dmap[0].define(ba[0], ParallelDescriptor::NProcs() /*nprocs*/);
+    Array<int> rr;
     
-    
-    Array<int> rr(nLevels - 1);
-    for (unsigned int lev = 0; lev < rr.size(); ++lev)
-        rr[lev] = 2;
-    
-    // geometries of refined levels
-    for (int lev = 1; lev < nLevels; ++lev) {
-        geom[lev].define(BoxLib::refine(geom[lev - 1].Domain(),
-                                        rr[lev - 1]),
-                         &domain, 0, bc);
-    }
+    // in helper_functions.h
+    init(domain, ba, dmap, geom, rr, nr, nLevels, maxBoxSize, lower, upper);
     
     // ========================================================================
     // 2. initialize all particles (just single-level)
