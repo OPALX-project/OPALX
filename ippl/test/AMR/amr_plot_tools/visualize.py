@@ -18,7 +18,7 @@ from tools import doSlicePlot, doProjectionPlot
 
 try:
     opal = os.environ['OPAL_BUILD']
-    ds = yt.load(opal + "ippl/test/AMR/plt0000", unit_system='mks')
+    ds = yt.load(opal + "ippl/test/AMR/plt0000")
     
     ds.print_stats()
     
