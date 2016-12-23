@@ -99,18 +99,9 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     writePotential(rhs, *(geom[0].CellSize()), -0.05, "amr-rho_scalar-level-");
     
     // Check charge conservation
-    Real totalCharge = 0.0;
-    for (int i = 0; i <= finest_level; ++i) {
-        Real invVol = (*(geom[i].CellSize()) * *(geom[i].CellSize()) * *(geom[i].CellSize()) );
-#ifdef UNIQUE_PTR
-        Real sum = rhs[i]->sum(0) * invVol;
-#else
-        Real sum = rhs[i].sum(0) * invVol;
-#endif
-        totalCharge += sum;
-    }
+    double totCharge = totalCharge(rhs, finest_level, geom);
     
-    msg << "Total Charge (computed): " << totalCharge << " C" << endl
+    msg << "Total Charge (computed): " << totCharge << " C" << endl
         << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
     
     Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
