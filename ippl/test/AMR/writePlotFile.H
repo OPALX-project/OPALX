@@ -62,7 +62,7 @@ writePlotFile (const std::string& dir,
     //
     ParallelDescriptor::Barrier();
 
-    std::string HeaderFileName = dir + "/Header";
+    std::string HeaderFileName = dir + "/OpalAmrHeader";
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
@@ -84,7 +84,7 @@ writePlotFile (const std::string& dir,
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
         if (!HeaderFile.good())
             BoxLib::FileOpenFailed(HeaderFileName);
-        HeaderFile << "HyperCLaw-V1.1\n";
+        HeaderFile << "OpalAmr-V1.0\n";
 
         HeaderFile << nData << '\n';
 
