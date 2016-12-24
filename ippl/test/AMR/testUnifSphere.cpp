@@ -96,7 +96,7 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
     
-    writePotential(rhs, *(geom[0].CellSize()), -0.05, "amr-rho_scalar-level-");
+    writeScalarField(rhs, *(geom[0].CellSize()), -0.05, "amr-rho_scalar-level-");
     
     // Check charge conservation
     double totCharge = totalCharge(rhs, finest_level, geom);
@@ -246,8 +246,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
 #endif
     }
     
-    writePotential(phi, *(geom[0].CellSize()), lower, "amr-phi_scalar-level-");
-    writeElectricField(grad_phi, *(geom[0].CellSize()), lower);
+    writeScalarField(phi, *(geom[0].CellSize()), lower, "amr-phi_scalar-level-");
+    writeVectorField(grad_phi, *(geom[0].CellSize()), lower);
     
     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
 }
