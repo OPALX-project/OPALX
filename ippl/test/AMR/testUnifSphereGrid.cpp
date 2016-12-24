@@ -122,7 +122,7 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     
     initSphereOnGrid(rhs, geom, a, R, nr);
     
-    writePotential(rhs, *(geom[0].CellSize()), -a, "amr-rho_scalar-level-");
+    writeScalarField(rhs, *(geom[0].CellSize()), -a, "amr-rho_scalar-level-");
     
     // Check charge conservation
     double totCharge = totalCharge(rhs, finest_level, geom, false);
@@ -244,8 +244,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
 #endif
     }
     
-    writePotential(phi, *(geom[0].CellSize()), lower, "amr-phi_scalar-level-");
-    writeElectricField(grad_phi, *(geom[0].CellSize()), lower);
+    writeScalarField(phi, *(geom[0].CellSize()), lower, "amr-phi_scalar-level-");
+    writeVectorField(grad_phi, *(geom[0].CellSize()), lower);
     
     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
 }

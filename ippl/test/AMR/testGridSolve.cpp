@@ -23,7 +23,6 @@
 #include <ParmParse.H>
 
 #include "Solver.h"
-#include "AmrOpal.h"
 
 #include "helper_functions.h"
 
@@ -62,7 +61,7 @@ void doSolve(const Array<BoxArray>& ba,
 #endif
     }
     
-    writePotential(rhs, *(geom[0].CellSize()), 0, "amr-rho_scalar-level-");
+    writeScalarField(rhs, *(geom[0].CellSize()), 0, "amr-rho_scalar-level-");
     
 
     // Define the density on level 0 from all particles at all levels                                                                                                                                            
@@ -145,8 +144,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
 #endif
     }
     
-    writePotential(phi, *(geom[0].CellSize()), 0, "amr-phi_scalar-level-");
-    writeElectricField(grad_phi, *(geom[0].CellSize()), 0);
+    writeScalarField(phi, *(geom[0].CellSize()), 0, "amr-phi_scalar-level-");
+    writeVectorField(grad_phi, *(geom[0].CellSize()), 0);
     
     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
 }
