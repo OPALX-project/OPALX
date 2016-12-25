@@ -134,7 +134,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     // ========================================================================
     
     double lower = -0.5; // m
-    double upper =  0.5; // m
+    double upper = 0.5; // m
     
     RealBox domain;
     Array<BoxArray> ba;

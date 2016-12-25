@@ -68,6 +68,8 @@ void H5Reader::read(Distribution::container_t& x,
     READDATA(Float64, file_m, "x", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
         x[n] = f64buffer[n];
+        
+        x[n] -= int(x[n]);
     }
 
     READDATA(Float64, file_m, "y", f64buffer);
