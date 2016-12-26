@@ -32,6 +32,7 @@ Usage:
 #include <iostream>
 #include <set>
 #include <sstream>
+#include <tuple>
 
 #include <ParmParse.H>
 
@@ -126,15 +127,17 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
 
 void doBoxLib(const Vektor<size_t, 3>& nr,
               int nLevels, size_t maxBoxSize,
-              std::string h5file, Inform& msg)
+              std::string h5file,
+	      const std::tuple<int, int, int>& h5steps,
+	      Inform& msg)
 {
     static IpplTimings::TimerRef distTimer = IpplTimings::getTimer("dist");
     // ========================================================================
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    double lower = -0.5; // m
-    double upper = 0.5; // m
+    double lower = -0.2; // m
+    double upper = 0.2; // m
     
     RealBox domain;
     Array<BoxArray> ba;
@@ -155,10 +158,21 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     // initialize a particle distribution
     Distribution dist;
     IpplTimings::startTimer(distTimer);
-    dist.readH5(h5file, 0 /* step */);
-    
-    // copy particles to the PartBunchBase object.
-    dist.injectBeam(*bunch);
+
+    int begin = 0, end = 0, by = 0;
+    std::tie(begin, end, by) = h5steps;
+    for (int i = std::min(begin, end); i <= std::max(begin, end); i += by) {
+	msg << "Reading step " << i << endl;
+	dist.readH5(h5file, i /* step */);
+	// copy particles to the PartBunchBase object.
+	dist.injectBeam(*bunch, false);
+	msg << "Injected step " << i << endl;
+    }
+
+
+    for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
+	bunch->setQM(2.1717e-16, i);
+    }
     
     // redistribute on single-level
     bunch->myUpdate();
@@ -248,11 +262,11 @@ int main(int argc, char *argv[]) {
     IpplTimings::startTimer(mainTimer);
 
     std::stringstream call;
-    call << "Call: mpirun -np [#procs] testGaussian"
+    call << "Call: mpirun -np [#procs] testReal"
          << " [#gridpoints x] [#gridpoints y] [#gridpoints z] "
-         << "[#levels] [max. box size] [h5file]";
+         << "[#levels] [max. box size] [h5file] [start:by:end]";
     
-    if ( argc < 7 ) {
+    if ( argc < 8 ) {
         msg << call.str() << endl;
         return -1;
     }
@@ -268,13 +282,35 @@ int main(int argc, char *argv[]) {
     size_t nLevels = std::atoi(argv[4]) + 1; // i.e. nLevels = 0 --> only single level
     size_t maxBoxSize = std::atoi(argv[5]);
     std::string h5file = argv[6];
+    std::string stepping = argv[7];
+
+    std::string::size_type semipos1 = stepping.find_first_of(':');
+    std::string::size_type semipos2 = stepping.find_first_of(':', semipos1 + 1);
+    int begin = std::atoi( stepping.substr(0, semipos1).c_str() );
+    int by = std::atoi( stepping.substr(semipos1 + 1, semipos2 - semipos1 - 1).c_str() );
+    int end = std::atoi( stepping.substr(semipos2 + 1).c_str() );
+    
+    auto h5steps = std::make_tuple(begin, end, by);
+
+    if ( begin < 0 || end < 0 ) {
+	msg << "Negative values in range." << endl;
+	return -1;
+    } else if ( (begin > end && by >= 0) || (begin < end && by < 0) ) {
+	msg << "Please check [start:by:end]. Neither upward nor "
+	    << "downward stepping possible." << endl;
+	return -1;
+    } else if ( by && (end - begin) % by) {
+	msg << "Stepping not a multiplicative of range." << endl;
+	return -1;
+    }
     
     msg << "Particle test running with" << endl
-        << "- grid:   " << nr << endl
-        << "- #level: " << nLevels << endl
-        << "- H5:     " << h5file << endl;
+        << "- grid:         " << nr << endl
+        << "- #level:       " << nLevels << endl
+        << "- H5:           " << h5file << endl
+	<< "- start:by:end: " << begin << ":" << by << ":" << end << endl;
     
-    doBoxLib(nr, nLevels, maxBoxSize, h5file, msg);
+    doBoxLib(nr, nLevels, maxBoxSize, h5file, h5steps, msg);
     
     
     IpplTimings::stopTimer(mainTimer);

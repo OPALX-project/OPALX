@@ -55,8 +55,10 @@ public:
     
     /// Transfer distribution to particle bunch object.
     /*! @param bunch is either an AmrPartBunch or an PartBunch object
+     * @param doDelete removes all particles already in bunch before
+     * injection.
      */
-    void injectBeam(PartBunchBase& bunch);
+    void injectBeam(PartBunchBase& bunch, bool doDelete = true);
     
     /// Update a distribution (only single-core)
     /*! @param bunch is either an AmrPartBunch or an PartBunch object
