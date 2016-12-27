@@ -177,8 +177,8 @@ void init(RealBox& domain,
           const Vektor<size_t, 3>& nr,
           int nLevels,
           size_t maxBoxSize,
-          double lower,
-          double upper)
+          const std::array<double, BL_SPACEDIM>& lower,
+          const std::array<double, BL_SPACEDIM>& upper)
 {
     /*
      * nLevels is the number of levels allowed, i.e if nLevels = 1
@@ -192,10 +192,10 @@ void init(RealBox& domain,
     IntVect high(nr[0] - 1, nr[1] - 1, nr[2] - 1);    
     Box bx(low, high);
     
-    // box [lower, upper] x [lower, upper] x [lower, upper]
+    // box
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-        domain.setLo(i, lower); // m
-        domain.setHi(i, upper); // m
+        domain.setLo(i, lower[i]); // m
+        domain.setHi(i, upper[i]); // m
     }
     
     // Dirichlet boundary conditions in all directions
