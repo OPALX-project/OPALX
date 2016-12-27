@@ -151,8 +151,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    double lower = -0.05; // m
-    double upper =  0.05; // m
+    std::array<double, BL_SPACEDIM> lower = {{-0.05, -0.05, -0.05}}; // m
+    std::array<double, BL_SPACEDIM> upper = {{ 0.05,  0.05,  0.05}}; // m
     
     RealBox domain;
     Array<BoxArray> ba;
@@ -246,8 +246,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
 #endif
     }
     
-    writeScalarField(phi, *(geom[0].CellSize()), lower, "amr-phi_scalar-level-");
-    writeVectorField(grad_phi, *(geom[0].CellSize()), lower);
+    writeScalarField(phi, *(geom[0].CellSize()), lower[0], "amr-phi_scalar-level-");
+    writeVectorField(grad_phi, *(geom[0].CellSize()), lower[0]);
     
     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
 }

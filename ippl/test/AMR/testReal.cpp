@@ -21,7 +21,7 @@ This test program sets up a simple sine-wave electric field in 3D,
 
 Usage:
  mpirun -np 4 testReal [#gridpoints x] [#gridpoints y] [#gridpoints z]
-                       [#levels] [max. box size] [h5 file]
+                       [#levels] [max. box size] [h5 file] [start:by:end]
 
 ***************************************************************************/
 
@@ -136,8 +136,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    double lower = -0.2; // m
-    double upper = 0.2; // m
+    std::array<double, BL_SPACEDIM> lower = {{-0.2, -0.2, 0.2}}; // m
+    std::array<double, BL_SPACEDIM> upper = {{2.0, 0.2, 0.2}}; // m
     
     RealBox domain;
     Array<BoxArray> ba;
@@ -165,7 +165,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
 	msg << "Reading step " << i << endl;
 	dist.readH5(h5file, i /* step */);
 	// copy particles to the PartBunchBase object.
-	dist.injectBeam(*bunch, false);
+	dist.injectBeam(*bunch, false, {{i * 0.088, 0.0, 0.0}});
 	msg << "Injected step " << i << endl;
     }
 

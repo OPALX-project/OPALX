@@ -15,6 +15,7 @@
 
 #include <random>
 #include <iostream>
+#include <array>
 
 #include "PartBunchBase.h"
 
@@ -57,8 +58,9 @@ public:
     /*! @param bunch is either an AmrPartBunch or an PartBunch object
      * @param doDelete removes all particles already in bunch before
      * injection.
+     * @param shift all particles, each direction independently
      */
-    void injectBeam(PartBunchBase& bunch, bool doDelete = true);
+    void injectBeam(PartBunchBase& bunch, bool doDelete = true, std::array<double, 3> shift = {{0.0, 0.0, 0.0}});
     
     /// Update a distribution (only single-core)
     /*! @param bunch is either an AmrPartBunch or an PartBunch object
