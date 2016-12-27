@@ -14,7 +14,7 @@ IF (ENABLE_AMR_SOLVER)
         )
     
     set (CMAKE_CXX_FLAGS
-        "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
+        "${IPPL_CMAKE_CXX_FLAGS} -fopenmp -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
     )
     
     include_directories (
