@@ -136,8 +136,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    std::array<double, BL_SPACEDIM> lower = {{-0.2, -0.2, 0.2}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{2.0, 0.2, 0.2}}; // m
+    std::array<double, BL_SPACEDIM> lower = {{-0.15, -0.15, -0.15}}; // m
+    std::array<double, BL_SPACEDIM> upper = {{0.45, 0.15, 0.15}}; // m
     
     RealBox domain;
     Array<BoxArray> ba;
@@ -160,15 +160,37 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     IpplTimings::startTimer(distTimer);
 
     int begin = 0, end = 0, by = 0;
+    unsigned int nBunches = 0;
+
+    std::vector<double> xshift = {0.037,
+				  0.05814,
+				  0.0852,
+				  0.11325,
+				  0.13933,
+				  0.16177,
+				  0.18013,
+				  0.19567,
+				  0.21167,
+				  0.2313,
+				  0.25567,
+				  0.28326,
+				  0.31034,
+				  0.33308,
+				  0.35041};
+    
     std::tie(begin, end, by) = h5steps;
     for (int i = std::min(begin, end); i <= std::max(begin, end); i += by) {
 	msg << "Reading step " << i << endl;
 	dist.readH5(h5file, i /* step */);
 	// copy particles to the PartBunchBase object.
-	dist.injectBeam(*bunch, false, {{i * 0.088, 0.0, 0.0}});
+	dist.injectBeam(*bunch, false, {{xshift[nBunches], 0.0, 0.0}});
 	msg << "Injected step " << i << endl;
+
+	if ( ++nBunches == xshift.size() )
+	    break;
     }
 
+    msg << "#Bunches: " << nBunches << endl;
 
     for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
 	bunch->setQM(2.1717e-16, i);
