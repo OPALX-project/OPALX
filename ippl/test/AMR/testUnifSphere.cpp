@@ -264,8 +264,8 @@ int main(int argc, char *argv[]) {
     IpplTimings::startTimer(mainTimer);
 
     std::stringstream call;
-    call << "Call: mpirun -np [#procs] testGaussian"
-         << "[#gridpoints x] [#gridpoints y] [#gridpoints z] [#levels] [max. box size]";
+    call << "Call: mpirun -np [#procs] " << argv[0]
+         << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#levels] [max. box size]";
     
     if ( argc < 6 ) {
         msg << call.str() << endl;

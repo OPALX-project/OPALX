@@ -72,7 +72,7 @@ void initSphereOnGrid(container_t& rhs,
                     
                     if ( x * x + y * y + z * z <= R * R ) {
                         IntVect idx(i, j, k);
-                        rho(idx, 0) = qi;//-1.0;;
+                        rho(idx, 0) = qi;
                         ++nnz;
                     }
                 }
@@ -262,8 +262,8 @@ int main(int argc, char *argv[]) {
     IpplTimings::startTimer(mainTimer);
 
     std::stringstream call;
-    call << "Call: mpirun -np [#procs] testGaussian"
-         << "[#gridpoints x] [#gridpoints y] [#gridpoints z] [#levels] [max. box size]";
+    call << "Call: mpirun -np [#procs] " << argv[0]
+         << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#levels] [max. box size]";
     
     if ( argc < 6 ) {
         msg << call.str() << endl;
