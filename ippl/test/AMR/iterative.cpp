@@ -63,6 +63,7 @@ void jacobi(tensor_t& phi, const double& h, const int& n, const tensor_t& rho, c
      * (also for j and k direction)
      */
     for (int t = 0; t < nSteps; ++t) {
+	#pragma omp parallel for
         for (int i = 1; i < n + 1; ++i)
             for (int j = 1; j < n + 1; ++j)
                 for (int k = 1; k < n + 1; ++k) {
@@ -75,18 +76,21 @@ void jacobi(tensor_t& phi, const double& h, const int& n, const tensor_t& rho, c
         
         
         // update boundary
+	#pragma omp parallel for
         for (int i = 0; i < n + 2; ++i)
             for (int j = 0; j < n + 2; ++j) {
                 phi[i][j][0] = -phi[i][j][1];
                 phi[i][j][n+1] = -phi[i][j][n];
             }
         
+	#pragma omp parallel for
         for (int i = 0; i < n + 2; ++i)
             for (int k = 0; k < n + 2; ++k) {
                 phi[i][0][k] = -phi[i][1][k];
                 phi[i][n+1][k] = -phi[i][n][k];
             }
         
+	#pragma omp parallel for
         for (int j = 0; j < n + 2; ++j)
             for (int k = 0; k < n + 2; ++k) {
                 phi[0][j][k] = -phi[1][j][k];

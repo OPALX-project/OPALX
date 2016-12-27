@@ -284,7 +284,7 @@ int main(int argc, char *argv[]) {
     IpplTimings::startTimer(mainTimer);
 
     std::stringstream call;
-    call << "Call: mpirun -np [#procs] testReal"
+    call << "Call: mpirun -np [#procs] " << argv[0]
          << " [#gridpoints x] [#gridpoints y] [#gridpoints z] "
          << "[#levels] [max. box size] [h5file] [start:by:end]";
     
