@@ -14,7 +14,7 @@ IF (ENABLE_AMR_SOLVER)
         )
     
     set (CMAKE_CXX_FLAGS
-        "${IPPL_CMAKE_CXX_FLAGS} -fopenmp -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
+        "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
     )
     
     include_directories (
@@ -79,14 +79,14 @@ IF (ENABLE_AMR_SOLVER)
     
     add_executable(testReal testReal.cpp H5Reader.cpp Distribution.cpp AmrOpal.cpp AmrPartBunch.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp Solver.cpp)
     
-#     add_executable (testH5Read testH5Read.cpp H5Reader.cpp Distribution.cpp)
+    add_executable (testH5Read testH5Read.cpp H5Reader.cpp)
     
     # Boxlib has a circular dependency between -lcboxlib and -lfboxlib --> resolve by: -lcboxlib -lfboxlib -lcboxlib
 #     target_link_libraries (testAmrPartBunch ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 #     target_link_libraries (testSolver ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 #     target_link_libraries (testError ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
-#     target_link_libraries (testH5Read ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    target_link_libraries (testH5Read ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testGaussian ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     target_link_libraries (testUnifSphere ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
