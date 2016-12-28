@@ -15,6 +15,8 @@
 #include <MultiFab.H>
 #include <MultiFabUtil.H>
 
+#include <fstream>
+
 #ifdef UNIQUE_PTR
 typedef Array<std::unique_ptr<MultiFab> > container_t;
 #else
@@ -30,7 +32,11 @@ typedef PArray<MultiFab> container_t;
  * @param dlow is the lower boundary of the domain (not grid point)
  * @param filename where to write
  */
-void writeScalarField(const container_t& scalfield, double dx, double dlow, std::string filename) {
+inline void writeScalarField(const container_t& scalfield,
+                             double dx,
+                             double dlow,
+                             std::string filename)
+{
 #ifdef UNIQUE_PTR
     for (MFIter mfi(*scalfield[0 /*level*/]); mfi.isValid(); ++mfi) {
 #else
@@ -79,7 +85,10 @@ void writeScalarField(const container_t& scalfield, double dx, double dlow, std:
  * @param dx is the mesh spacing
  * @param dlow is the lower boundary of the domain (not grid point)
  */
-void writeVectorField(const container_t& vecfield, double dx, double dlow) {
+inline void writeVectorField(const container_t& vecfield,
+                             double dx,
+                             double dlow)
+{
 #ifdef UNIQUE_PTR
     for (MFIter mfi(*vecfield[0 /*level*/]); mfi.isValid(); ++mfi) {
 #else
@@ -129,7 +138,7 @@ void writeVectorField(const container_t& vecfield, double dx, double dlow) {
  * @param efield specifies the electric field
  * @param rr are the refinement ratios.
  */
-double totalFieldEnergy(container_t& efield, const Array<int>& rr) {
+inline double totalFieldEnergy(container_t& efield, const Array<int>& rr) {
     
     for (int lev = efield.size() - 2; lev >= 0; lev--)
         BoxLib::average_down(efield[lev+1], efield[lev], 0, 3, rr[lev]);
@@ -169,16 +178,16 @@ double totalFieldEnergy(container_t& efield, const Array<int>& rr) {
  * @param lower is the physical lower bound of the domain
  * @param upper is the physical upper bound of the domain
  */
-void init(RealBox& domain,
-          Array<BoxArray>& ba,
-          Array<DistributionMapping>& dmap,
-          Array<Geometry>& geom,
-          Array<int>& rr,
-          const Vektor<size_t, 3>& nr,
-          int nLevels,
-          size_t maxBoxSize,
-          const std::array<double, BL_SPACEDIM>& lower,
-          const std::array<double, BL_SPACEDIM>& upper)
+inline void init(RealBox& domain,
+                 Array<BoxArray>& ba,
+                 Array<DistributionMapping>& dmap,
+                 Array<Geometry>& geom,
+                 Array<int>& rr,
+                 const Vektor<size_t, 3>& nr,
+                 int nLevels,
+                 size_t maxBoxSize,
+                 const std::array<double, BL_SPACEDIM>& lower,
+                 const std::array<double, BL_SPACEDIM>& upper)
 {
     /*
      * nLevels is the number of levels allowed, i.e if nLevels = 1
@@ -241,11 +250,11 @@ void init(RealBox& domain,
  * @param ba is the box array per level
  * @param level for which we initialize the data
  */
-void initGridData(container_t& rhs,
-                  container_t& phi,
-                  container_t& grad_phi,
-                  const BoxArray& ba,
-                  int level)
+inline void initGridData(container_t& rhs,
+                         container_t& phi,
+                         container_t& grad_phi,
+                         const BoxArray& ba,
+                         int level)
 {
 #ifdef UNIQUE_PTR
     //                                                  # component # ghost cells                                                                                                                                          
@@ -274,10 +283,11 @@ void initGridData(container_t& rhs,
  * @param geom are the geometries of each level
  * @param scale with the cell volume
  */
-double totalCharge(const container_t& rhs,
-                   int finest_level,
-                   const Array<Geometry>& geom,
-                   bool scale = true) {
+inline double totalCharge(const container_t& rhs,
+                          int finest_level,
+                          const Array<Geometry>& geom,
+                          bool scale = true)
+{
     
     Real totCharge = 0.0;
     for (int i = 0; i <= finest_level; ++i) {
