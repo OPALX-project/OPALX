@@ -9,6 +9,10 @@ H5Reader::H5Reader(const std::string& filename)
     : filename_m(filename), file_m(0)
 { }
 
+H5Reader::H5Reader()
+    : filename_m(""), file_m(0)
+{ }
+
 void H5Reader::open(int step) {
     close();
     
@@ -114,4 +118,74 @@ void H5Reader::read(Distribution::container_t& x,
 
 h5_ssize_t H5Reader::getNumParticles() {
     return H5PartGetNumParticles(file_m);
+}
+
+
+void H5Reader::writeScalarField(const container_t& scalfield,
+                                const Array<Geometry>& geom)
+{
+    
+    std::string fname = "test_scalfield.h5";
+    h5_file_t file = H5OpenFile (fname.c_str(), H5_O_WRONLY, H5_PROP_DEFAULT);
+    H5SetStep (file, 0);
+    
+    for (int l = 0; l < scalfield.size(); ++l) {
+        int ii = 0;
+        int gridnr = 0;
+        for (MFIter mfi(scalfield[l]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.validbox();
+            const FArrayBox& field = (scalfield[l])[mfi];
+            
+            H5Block3dSetView(file,
+                             bx.loVect()[0], bx.hiVect()[0],
+                             bx.loVect()[1], bx.hiVect()[1],
+                             bx.loVect()[2], bx.hiVect()[2]);
+            
+            std::cout << "#points: " << bx.numPts()
+                      << " i_dim: " << bx.loVect()[0] << " " << bx.hiVect()[0]
+                      << " j_dim: " << bx.loVect()[1] << " " << bx.hiVect()[1]
+                      << " k_dim: " << bx.loVect()[2] << " " << bx.hiVect()[2]
+                      << std::endl;
+            
+            std::unique_ptr<h5_float64_t[]> data(
+                new h5_float64_t[bx.numPts()]
+            );
+            
+            // Fortran storing convention, i.e. column-major
+            for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+                for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+                    for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
+                        IntVect ivec(i, j, k);
+//                         std::cout << ii << " " << ivec << std::endl; std::cin.get();
+                        data[ii] = field(ivec, 0 /*component*/);
+                        ++ii;
+                    }
+                }
+            }
+            std::string group = "rho/level-" + std::to_string(l) + "/grid-" + std::to_string(gridnr);
+//             std::string group = "rho";
+            H5Block3dWriteScalarFieldFloat64(file, group.c_str(), data.get());
+            
+            RealBox rb = geom[l].ProbDomain();
+            
+            H5Block3dSetFieldOrigin(file, group.c_str(),
+                                    (h5_float64_t)rb.lo(0),
+                                    (h5_float64_t)rb.lo(1),
+                                    (h5_float64_t)rb.lo(2));
+            
+            H5Block3dSetFieldSpacing(file, group.c_str(),
+                                     (h5_float64_t)(geom[0].CellSize(0)),
+                                     (h5_float64_t)(geom[0].CellSize(1)),
+                                     (h5_float64_t)(geom[0].CellSize(2)));
+            
+            ++gridnr;
+        }
+    }
+    
+    H5CloseFile (file);
+}
+
+
+void H5Reader::writeVectorField(const container_t& vecfield) {
+    
 }
