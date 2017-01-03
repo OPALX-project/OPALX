@@ -136,8 +136,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    std::array<double, BL_SPACEDIM> lower = {{-0.15, -0.15, -0.15}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{0.45, 0.15, 0.15}}; // m
+    std::array<double, BL_SPACEDIM> lower = {{-0.2, -0.2, -0.2}}; // m
+    std::array<double, BL_SPACEDIM> upper = {{0.2, 0.2, 0.2}}; // m
     
     RealBox domain;
     Array<BoxArray> ba;
