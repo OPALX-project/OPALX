@@ -1,4 +1,4 @@
-/*
+/*!
  * @file testUnifSphere.cpp
  * @author Matthias Frey
  * @date 20. Dec. 2016

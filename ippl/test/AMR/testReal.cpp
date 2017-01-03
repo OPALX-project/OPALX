@@ -1,27 +1,15 @@
-// -*- C++ -*-
-/***************************************************************************
- *
- * The IPPL Framework
- *
- * This program was prepared by PSI.
- * All rights in the program are reserved by PSI.
- * Neither PSI nor the author(s)
- * makes any warranty, express or implied, or assumes any liability or
- * responsibility for the use of this software
- *
- *
- ***************************************************************************/
-
-/***************************************************************************
-
-This test program sets up a simple sine-wave electric field in 3D,
-  creates a population of particles with random q/m values (charge-to-mass
-  ratio) and velocities, and then tracks their motions in the static
-  electric field using nearest-grid-point interpolation.
-
-Usage:
- mpirun -np 4 testReal [#gridpoints x] [#gridpoints y] [#gridpoints z]
-                       [#levels] [max. box size] [h5 file] [step]
+/*!
+ * @file testReal.cpp
+ * @author Matthias Frey
+ * @date 3. Jan. 2017
+ * @brief Solve the electrostatic potential for a cube
+ *        with Dirichlet boundary condition.
+ * @details In this example we read in a step of a H5 file and
+ *          solve Poisson's equation.\n
+ *          Domain: [-0.2 (m), 0.2 (m)]^3\n
+ *          Call mpirun -np 4 testReal [#gridpoints x] [#gridpoints y] [#gridpoints z]
+ *                                     [#levels] [max. box size] [h5 file] [step]
+ */
 
 ***************************************************************************/
 
