@@ -11,8 +11,6 @@
  *                                     [#levels] [max. box size] [h5 file] [step]
  */
 
-***************************************************************************/
-
 #include "Ippl.h"
 #include <string>
 #include <fstream>
