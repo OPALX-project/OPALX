@@ -81,6 +81,8 @@ IF (ENABLE_AMR_SOLVER)
     
     add_executable (testH5Read testH5Read.cpp H5Reader.cpp)
     
+    add_executable(toFile toFile.cpp H5Reader.cpp Distribution.cpp)
+    
     # Boxlib has a circular dependency between -lcboxlib and -lfboxlib --> resolve by: -lcboxlib -lfboxlib -lcboxlib
 #     target_link_libraries (testAmrPartBunch ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 #     target_link_libraries (testSolver ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
@@ -93,5 +95,7 @@ IF (ENABLE_AMR_SOLVER)
     target_link_libraries (testGridSolve ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     target_link_libraries (testUnifSphereGrid ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     target_link_libraries (testReal ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    
+    target_link_libraries (toFile ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
 ENDIF(ENABLE_AMR_SOLVER)

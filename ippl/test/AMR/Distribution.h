@@ -29,6 +29,8 @@ public:
     
 public:
     
+    Distribution();
+    
     /// Generate an uniform particle distribution
     /*!
      * @param lower boundary
@@ -69,6 +71,12 @@ public:
      */
     void setDistribution(PartBunchBase& bunch, const std::string& filename, int step);
     
+    /// Write the particles to a text file that can be read by OPAL. (sec. 11.3 in OPAL manual)
+    /*!
+     * @param pathname where to store.
+     */
+    void print2file(std::string pathname);
+    
 private:
     container_t x_m;    ///< Horizontal particle positions [m]
     container_t y_m;    ///< Vertical particle positions [m]
@@ -80,6 +88,7 @@ private:
     container_t q_m;    ///< Particle charge (always set to 1.0, except for Distribution::readH5)
     
     size_t nloc_m;      ///< Local number of particles
+    size_t ntot_m;      ///< Total number of particles
 };
 
 #endif
