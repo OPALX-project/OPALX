@@ -79,6 +79,8 @@ IF (ENABLE_AMR_SOLVER)
     
     add_executable(testReal testReal.cpp H5Reader.cpp Distribution.cpp AmrOpal.cpp AmrPartBunch.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp Solver.cpp)
     
+    add_executable(testMultiBunch testMultiBunch.cpp H5Reader.cpp Distribution.cpp AmrOpal.cpp AmrPartBunch.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp Solver.cpp)
+    
     add_executable (testH5Read testH5Read.cpp H5Reader.cpp)
     
     add_executable(toFile toFile.cpp H5Reader.cpp Distribution.cpp)
@@ -95,6 +97,8 @@ IF (ENABLE_AMR_SOLVER)
     target_link_libraries (testGridSolve ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     target_link_libraries (testUnifSphereGrid ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     target_link_libraries (testReal ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    
+    target_link_libraries (testMultiBunch ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (toFile ${LIBS} -lgfortran ${CCSE_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
