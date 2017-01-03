@@ -1,29 +1,23 @@
-// -*- C++ -*-
-/***************************************************************************
- *
- * The IPPL Framework
- *
- * This program was prepared by PSI.
- * All rights in the program are reserved by PSI.
- * Neither PSI nor the author(s)
- * makes any warranty, express or implied, or assumes any liability or
- * responsibility for the use of this software
- *
- *
- ***************************************************************************/
-
-/***************************************************************************
-
-This test program sets up a simple sine-wave electric field in 3D,
-  creates a population of particles with random q/m values (charge-to-mass
-  ratio) and velocities, and then tracks their motions in the static
-  electric field using nearest-grid-point interpolation.
-
-Usage:
- mpirun -np 4 testGaussian [#gridpoints x] [#gridpoints y] [#gridpoints z]
-                           [#particles] [#levels] [max. box size]
-
-***************************************************************************/
+/*!
+ * @file testGaussian.cpp
+ * @author Matthias Frey
+ * @date November 2016
+ * @details Compute \f$\Delta\phi = -\rho\f$ where the charge
+ * density is a Gaussian distribution. Write plot files
+ * that can be visualized by yt (python visualize.py)
+ * or by AmrVis of the CCSE group at LBNL.
+ * 
+ * Domain:  [-0.5, 0.5] x [-0.5, 0.5] x [-0.5, 0.5]\n
+ * BC:      Dirichlet boundary conditions\n
+ * Charge/particle: elementary charge\n
+ * Gaussian particle distribution N(0.0, 0.01)
+ * 
+ * Call:\n
+ *  mpirun -np [#cores] testGaussian [#gridpoints x] [#gridpoints y] [#gridpoints z]
+ *                                   [#particles] [#levels] [max. box size]
+ * 
+ * @brief Computes \f$\Delta\phi = -\rho\f$
+ */
 
 #include "Ippl.h"
 #include <string>

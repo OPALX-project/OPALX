@@ -1,29 +1,16 @@
-// -*- C++ -*-
-/***************************************************************************
- *
- * The IPPL Framework
- *
- * This program was prepared by PSI.
- * All rights in the program are reserved by PSI.
- * Neither PSI nor the author(s)
- * makes any warranty, express or implied, or assumes any liability or
- * responsibility for the use of this software
- *
- *
- ***************************************************************************/
-
-/***************************************************************************
-
-This test program sets up a simple sine-wave electric field in 3D,
-  creates a population of particles with random q/m values (charge-to-mass
-  ratio) and velocities, and then tracks their motions in the static
-  electric field using nearest-grid-point interpolation.
-
-Usage:
- mpirun -np 4 testMultiBunch [#gridpoints x] [#gridpoints y] [#gridpoints z]
-                             [#levels] [max. box size] [h5 file] [start:by:end]
-
-***************************************************************************/
+/*!
+ * @file testMultiBunch.cpp
+ * @author Matthias Frey
+ * @date 3. Jan. 2017
+ * @brief Solve the electrostatic potential for multiple bunches
+ *        with Dirichlet boundary condition.
+ * @details In this example we read in a step of a H5 file and
+ *          solve Poisson's equation.\n
+ *          Domain: [-0.15 (m), 0.45 (m)] x [-0.15 (m), 0.15 (m)] x [-0.15 (m), 0.15 (m)]\n
+ *          Call: mpirun -np 4 testMultiBunch [#gridpoints x] [#gridpoints y] [#gridpoints z]
+ *                                            [#levels] [max. box size] [h5 file] [start:by:end]\n
+ *          start:by:end are three integers defining the range of steps.
+ */
 
 #include "Ippl.h"
 #include <string>
