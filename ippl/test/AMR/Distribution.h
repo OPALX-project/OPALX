@@ -15,6 +15,7 @@
 
 #include <random>
 #include <iostream>
+#include <array>
 
 #include "PartBunchBase.h"
 
@@ -27,6 +28,8 @@ public:
     
     
 public:
+    
+    Distribution();
     
     /// Generate an uniform particle distribution
     /*!
@@ -55,8 +58,11 @@ public:
     
     /// Transfer distribution to particle bunch object.
     /*! @param bunch is either an AmrPartBunch or an PartBunch object
+     * @param doDelete removes all particles already in bunch before
+     * injection.
+     * @param shift all particles, each direction independently
      */
-    void injectBeam(PartBunchBase& bunch);
+    void injectBeam(PartBunchBase& bunch, bool doDelete = true, std::array<double, 3> shift = {{0.0, 0.0, 0.0}});
     
     /// Update a distribution (only single-core)
     /*! @param bunch is either an AmrPartBunch or an PartBunch object
@@ -64,6 +70,12 @@ public:
      * @param step to be read in from a H5 file
      */
     void setDistribution(PartBunchBase& bunch, const std::string& filename, int step);
+    
+    /// Write the particles to a text file that can be read by OPAL. (sec. 11.3 in OPAL manual)
+    /*!
+     * @param pathname where to store.
+     */
+    void print2file(std::string pathname);
     
 private:
     container_t x_m;    ///< Horizontal particle positions [m]
@@ -76,6 +88,7 @@ private:
     container_t q_m;    ///< Particle charge (always set to 1.0, except for Distribution::readH5)
     
     size_t nloc_m;      ///< Local number of particles
+    size_t ntot_m;      ///< Total number of particles
 };
 
 #endif

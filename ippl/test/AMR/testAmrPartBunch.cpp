@@ -96,24 +96,11 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     int finest_level = myAmrOpal.finestLevel();
 
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
-
-//     for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
-//         BoxLib::average_down(PartMF[lev+1],PartMF[lev],0,1,rr[lev]);
-
-//     for (int lev = 0; lev < nLevels; lev++)
-//         MultiFab::Add(*rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
-    
     
     // eps in C / (V * m)
-//     double constant = -1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
-    // eps in e / (V * m)
-//     double constant = -1.0 / (4.0 * Physics::pi * 5.5262322518e7 );
-    
-//     for (int lev = 0; lev < nLevels; lev++) {
-//         PartMF[lev].mult(constant, 0, 1);
-        
-//         MultiFab::Add(*rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
-//     }
+    double constant = -1.0 / Physics::epsilon_0;
+    for (int i = 0; i <= finest_level; ++i)
+        rhs[i]->mult(constant, 0, 1);
     
     // **************************************************************************                                                                                                                                
     // Compute the total charge of all particles in order to compute the offset                                                                                                                                  
@@ -333,10 +320,10 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
     Distribution dist;
     IpplTimings::startTimer(distTimer);
-//     dist.gaussian(0.0, 0.001, nloc, ParallelDescriptor::MyProc());
+    dist.gaussian(0.0, 0.001, nloc, ParallelDescriptor::MyProc());
 //     dist.uniform(-0.02, 0.02, nloc, ParallelDescriptor::MyProc());
     
-    dist.readH5("/home/matthias/Accelerated.h5", 0);
+//     dist.readH5("/home/matthias/Accelerated.h5", 0);
     
     
     // copy particles to the PartBunchBase object.
@@ -447,11 +434,14 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         bunch->setP(Vector_t(1.0, 0.0, 0.0), i);         
     
     
-//     container_t rhs;
-//     container_t phi;
-//     container_t grad_phi;
+    container_t rhs;
+    container_t phi;
+    container_t grad_phi;
     
-//     doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
+    std::string plotsolve = BoxLib::Concatenate("solve_", 0, 4);
+    doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);
+    
+    writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
     
     // begin main timestep loop
     msg << "Starting iterations ..." << endl;
@@ -459,9 +449,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     for (unsigned int it=0; it<nTimeSteps; it++) {
         bunch->gatherStatistics();
         
-//         std::string plotfilename = BoxLib::Concatenate("amr_", it, 4);
+//         
 //         myAmrOpal.writePlotFile(plotfilename, it);
-//         writePlotFile(plotfilename, rhs, phi, grad_phi, rr, geom, it);
         myAmrOpal.assignDensity();
         
         

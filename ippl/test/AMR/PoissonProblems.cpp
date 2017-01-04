@@ -233,44 +233,6 @@ double PoissonProblems::doSolveParticlesUniform() {
 
 
 double PoissonProblems::doSolveParticlesGaussian(int nParticles, double mean, double stddev) {
-    
-//     // ------------------------------------------------------------------------
-//     // Refined Meshes
-//     // ------------------------------------------------------------------------
-//     int fine = 1.0;
-//     for (int lev = 1; lev < nLevels_m; ++lev) {
-//         fine *= refRatio_m[lev - 1];
-//         
-//         if ( lev == 1) {
-//             IntVect refined_lo(0.25 * nr_m[0] * fine,
-//                                0.25 * nr_m[1] * fine,
-//                                0.25 * nr_m[2] * fine);
-//             
-//             IntVect refined_hi(0.75 * nr_m[0] * fine - 1,
-//                                0.75 * nr_m[1] * fine - 1,
-//                                0.75 * nr_m[2] * fine - 1);
-//         
-//             Box refined_patch(refined_lo, refined_hi);
-//             ba_m[lev].define(refined_patch);
-//             
-//         } else if ( lev == 2 ) {
-//             IntVect refined_lo(0.375 * nr_m[0] * fine,
-//                                0.375 * nr_m[1] * fine,
-//                                0.375 * nr_m[2] * fine);
-//             
-//             IntVect refined_hi(0.625 * nr_m[0] * fine - 1,
-//                                0.625 * nr_m[1] * fine - 1,
-//                                0.625 * nr_m[2] * fine - 1);
-//         
-//             Box refined_patch(refined_lo, refined_hi);
-//             ba_m[lev].define(refined_patch);
-//         }
-//         
-//         ba_m[lev].maxSize(maxGridSize_m);
-//         dmap_m[lev].define(ba_m[lev], ParallelDescriptor::NProcs() /*nprocs*/);
-//     }
-    
-    
     // ------------------------------------------------------------------------
     // Generate particles
     // ------------------------------------------------------------------------
@@ -319,13 +281,6 @@ double PoissonProblems::doSolveParticlesGaussian(int nParticles, double mean, do
     dmap_m = myAmrOpal.DistributionMap();
     ba_m = myAmrOpal.boxArray();
     
-    
-    std::cout << "max. level = " << myAmrOpal.maxLevel() << std::endl
-              << "finest level = " << myAmrOpal.finestLevel() << std::endl;
-    
-    myAmrOpal.info();
-    
-    
     bunch->gatherStatistics();
     
     
@@ -341,25 +296,20 @@ double PoissonProblems::doSolveParticlesGaussian(int nParticles, double mean, do
     int base_level = 0;
     int fine_level = nLevels_m - 1;
     
-    
-//     PArray<MultiFab> PartMF;
-//     PartMF.resize(nLevels_m, PArrayManage);
-    
-//     for (int i = 0; i < nLevels_m; ++i) {
-//         PartMF.set(i, new MultiFab(ba_m[i], 1, 1));
-//         PartMF[i].setVal(0.0);
-//     }
-    
     dynamic_cast<AmrPartBunch*>(bunch)->SetAllowParticlesNearBoundary(true);
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rho_m, base_level, 1, fine_level);
+    
+    double constant = -1.0 / Physics::epsilon_0;
+    for (int lev = 0; lev < nLevels_m; ++lev) {
+        rho_m[lev]->mult(constant, 0, 1);
+    }
+        
 
 //     for (int lev = fine_level - 1 - base_level; lev >= 0; lev--)
 //         BoxLib::average_down(PartMF[lev+1], PartMF[lev], 0, 1, refRatio_m[lev]);
     
     // eps in C / (V * m)
-//     double constant = -1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
-    // eps in e / (V * m)
-//     double constant = -1.0 / (4.0 * Physics::pi * 5.5262322518e7 );
+//     double constant = -1.0 / Physics::epsilon_0;
     
 //     for (int lev = 0; lev < nLevels_m; lev++) {
 //         PartMF[lev].mult(constant, 0, 1);
@@ -504,9 +454,7 @@ double PoissonProblems::doSolveParticlesReal(int step, std::string h5file) {
 //         BoxLib::average_down(PartMF[lev+1], PartMF[lev], 0, 1, refRatio_m[lev]);
 
     // eps in C / (V * m)
-//     double constant = -1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
-    // eps in e / (V * m)
-//     double constant = -1.0 / (4.0 * Physics::pi * 5.5262322518e7 );
+//     double constant = -1.0 / Physics::epsilon_0;
 //     
 //     for (int lev = 0; lev < nLevels_m; lev++) {
 //         PartMF[lev].mult(constant, 0, 1);
@@ -648,7 +596,7 @@ double PoissonProblems::doSolveMultiGaussians(int nParticles, double stddev) {
 //     for (int lev = fine_level - 1 - base_level; lev >= 0; lev--)
 //         BoxLib::average_down(PartMF[lev+1], PartMF[lev], 0, 1, refRatio_m[lev]);
 
-//     double constant = -1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
+//     double constant = -1.0 / Physics::epsilon_0;
     
 //     for (int lev = 0; lev < nLevels_m; lev++) {
 //         PartMF[lev].mult(constant, 0, 1);

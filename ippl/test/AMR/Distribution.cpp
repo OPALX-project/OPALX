@@ -1,11 +1,24 @@
 #include "Distribution.h"
 
 #include "H5Reader.h"
+#include <fstream>
 
 
 // ----------------------------------------------------------------------------
 // PUBLIC MEMBER FUNCTIONS
 // ----------------------------------------------------------------------------
+
+Distribution::Distribution():
+    x_m(0),
+    y_m(0),
+    z_m(0),
+    px_m(0),
+    py_m(0),
+    pz_m(0),
+    nloc_m(0),
+    ntot_m(0)
+{ }
+
 
 void Distribution::uniform(double lower, double upper, size_t nloc, int seed) {
     
@@ -78,6 +91,8 @@ void Distribution::readH5(const std::string& filename, int step) {
     
     
     nloc_m = h5.getNumParticles();
+    ntot_m = nloc_m;
+    
     size_t numParticlesPerNode = nloc_m / Ippl::getNodes();
 
     size_t firstParticle = numParticlesPerNode * Ippl::myNode();
@@ -108,19 +123,22 @@ void Distribution::readH5(const std::string& filename, int step) {
 }
 
 
-void Distribution::injectBeam(PartBunchBase& bunch) {
+void Distribution::injectBeam(PartBunchBase& bunch, bool doDelete, std::array<double, 3> shift) {
     
     // destroy all partcles
-    if ( bunch.getLocalNum() )
+    if ( doDelete && bunch.getLocalNum() )
         bunch.destroyAll();
     
+    // previous number of particles
+    int prevnum = bunch.getLocalNum();
+
     // create memory space
     bunch.create(nloc_m);
-    
-    for (int i = bunch.getLocalNum() - 1; i >= 0; --i) {
-        bunch.setR(Vector_t(x_m[i], y_m[i], z_m[i]), i);
-        bunch.setP(Vector_t(px_m[i], py_m[i], pz_m[i]), i);
-        bunch.setQM(q_m[i], i);
+
+    for (int i = nloc_m - 1; i >= 0; --i) {
+        bunch.setR(Vector_t(x_m[i] + shift[0], y_m[i] + shift[1], z_m[i] + shift[2]), i + prevnum);
+        bunch.setP(Vector_t(px_m[i], py_m[i], pz_m[i]), i + prevnum);
+        bunch.setQM(q_m[i], i + prevnum);
         
         x_m.pop_back();
         y_m.pop_back();
@@ -140,4 +158,33 @@ void Distribution::setDistribution(PartBunchBase& bunch, const std::string& file
     
     for (unsigned int i = 0; i < bunch.getLocalNum(); ++i)
         bunch.setR(Vector_t(x_m[i], y_m[i], z_m[i]), i);
+}
+
+void Distribution::print2file(std::string pathname) {
+    
+    for (int n = 0; n < Ippl::getNodes(); ++n) {
+        
+        if ( n == Ippl::myNode() ) {
+            
+            std::ofstream out;
+            switch (n) {
+                case 0:
+                    out.open(pathname);
+                    out << ntot_m << std::endl;
+                    break;
+                default:
+                    out.open(pathname, std::ios::app);
+                    break;
+            }
+            
+            for (std::size_t i = 0; i < x_m.size(); ++i)
+                out << x_m[i] << " " << px_m[i] << " "
+                    << y_m[i] << " " << py_m[i] << " "
+                    << z_m[i] << " " << pz_m[i] << std::endl;
+            
+            out.close();
+        }
+        
+        Ippl::Comm->barrier();
+    }
 }

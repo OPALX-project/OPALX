@@ -30,7 +30,7 @@ def doPlot(var1, var2, col, xlab, ylab, clab, sub, tit,
 opal = os.environ['OPAL_BUILD']
 
 
-# density
+# potential
 i, j, k, phi = np.loadtxt(opal + "/ippl/test/AMR/phi.dat", unpack=True)
 
 h = int(0.5 * max(k))
@@ -44,26 +44,46 @@ print min(phi)
 
 
 
-doPlot(xi, yi, phi, 'grid in x', 'grid in y', r'$\phi$', 221, 'Density Plot',
+doPlot(xi, yi, phi, 'grid in x', 'grid in y', r'$\phi\quad [V]$', 221, 'Electrostatic Potential',
        0, max(xi)+1, 0, max(yi)+1)
 
 # horizontal electric field
 i, j, ex = np.loadtxt(opal + "/ippl/test/AMR/ex.dat", unpack=True)
 
-doPlot(i, j, ex, 'grid in x', 'grid in y', r'$E_{x}$', 222, 'Horizontal Electric Field',
+doPlot(i, j, ex, 'grid in x', 'grid in y', r'$E_{x}\quad [V/m]$', 222, 'Horizontal Electric Field',
        -1, max(i)+1, -1, max(j)+1)
+
+
+print 'max Ex = ', max(ex)
+print 'min Ex = ', min(ex)
 
 # vertical electric field
 i, j, ey = np.loadtxt(opal + "/ippl/test/AMR/ey.dat", unpack=True)
 
-doPlot(i, j, ey, 'grid in x', 'grid in y', r'$E_{y}$', 223, 'Vertical Electric Field',
+doPlot(i, j, ey, 'grid in x', 'grid in y', r'$E_{y}\quad [V/m]$', 223, 'Vertical Electric Field',
        -1, max(i)+1, -1, max(j)+1)
+
+print 'max Ey = ', max(ey)
+print 'min Ey = ', min(ey)
 
 
 # longitudinal electric field
 j, k, ez = np.loadtxt(opal + "/ippl/test/AMR/ez.dat", unpack=True)
 
-doPlot(j, k, ez, 'grid in y', 'grid in z', r'$E_{z}$', 224, 'Longitudinal Electric Field',
+doPlot(j, k, ez, 'grid in y', 'grid in z', r'$E_{z}\quad [V/m]$', 224, 'Longitudinal Electric Field',
        -1, max(j)+1, -1, max(k)+1)
+
+print 'max Ez = ', max(ez)
+print 'min Ez = ', min(ez)
+
+# 21. Dec. 2016
+# http://stackoverflow.com/questions/6541123/improve-subplot-size-spacing-with-many-subplots-in-matplotlib
+left  = 0.05
+right = 0.95
+bottom = 0.05
+top = 0.95
+wspace = 0.1
+hspace = 0.15
+plt.subplots_adjust(left, bottom, right, top, wspace, hspace)
 
 plt.show()
