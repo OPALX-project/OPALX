@@ -31,14 +31,7 @@
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplStats.h"
 
-
-#ifdef IPPL_STDSTL
-// Standard STL names this file "algorithm"
 #include <algorithm>
-#else
-#include <algo.h>
-#endif // IPPL_STDSTL
-
 
 ////////////////////////////////////////////////////////////////////////////
 // Reduce equally-sized arrays across the machine, by sending to node

@@ -48,26 +48,12 @@
 
 #include "PETE/IpplExpressions.h"
 
-#ifdef IPPL_STDSTL
 #include <map>
 #include <vector>
 #include <functional>
 #include <utility>
-#else
-#include <map.h>
-#include <vector.h>
-#include <function.h>
-#include <multimap.h>
-#endif
-
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
 #include <typeinfo>
-#else
-#include <iostream.h>
-#include <typeinfo.h>
-#endif
-
 
 //////////////////////////////////////////////////////////////////////
 //

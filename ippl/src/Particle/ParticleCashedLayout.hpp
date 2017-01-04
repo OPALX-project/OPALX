@@ -33,12 +33,7 @@
 #include "Message/Communicate.h"
 #include "Message/Message.h"
 
-
-#ifdef IPPL_STDSTL
 #include <algorithm>
-#else
-#include <algo.h>
-#endif // IPPL_STDSTL
 
 /* Here we check for every particle if its in one of the cashed region
  * of a neighbour and then add it as a ghost particle to this neighbor.

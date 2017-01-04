@@ -17,12 +17,7 @@
 #include "Utility/RefCounted.h"
 #include "Utility/Vec.h"
 
-#ifdef IPPL_STDSTL
 #include <vector>
-#else
-#include <vector.h>
-#endif // IPPL_STDSTL
-
 
 /***********************************************************************
  * 
@@ -43,18 +38,11 @@ public:
   typedef typename container_t::iterator     iterator;
   typedef typename container_t::const_iterator const_iterator;
   typedef typename container_t::size_type    size_type;
-#if ( defined(IPPL_KAI) && !defined(__KAI_STRICT) )
-  typedef container_t::allocator_type        allocator_type;
-#endif
 
 public:
   // constructors
   LSIndex(Vnode<Dim>* vn)
-#if ( defined(IPPL_KAI) && !defined(__KAI_STRICT) )
-    : compressed(false), VN(vn), IndexList(allocator_type())
-#else
     : compressed(false), VN(vn)
-#endif
     {
       Strides[0] = 1;
       for (unsigned int d=1; d < Dim; ++d)

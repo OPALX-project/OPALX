@@ -226,12 +226,7 @@ And that is how the put and get schedules are calculated.
 
 // include files
 #include "PETE/IpplExpressions.h"
-
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
 
 // forward declarations
 class Index;

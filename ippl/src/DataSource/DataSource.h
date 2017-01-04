@@ -44,12 +44,7 @@
  ***********************************************************************/
 
 // include files
-#ifdef IPPL_STDSTL
 #include <vector>
-#else
-#include <vector.h>
-#endif // IPPL_STDSTL
-
 
 // forward declarations
 class DataSourceObject;

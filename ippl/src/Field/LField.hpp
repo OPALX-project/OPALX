@@ -81,10 +81,7 @@ MAKE_INITIALIZER(int)
 MAKE_INITIALIZER(long)
 MAKE_INITIALIZER(float)
 MAKE_INITIALIZER(double)
-#ifdef IPPL_LONGLONG
 MAKE_INITIALIZER(long long)
-#endif
-
 
 //////////////////////////////////////////////////////////////////////
 //
@@ -728,35 +725,10 @@ LField<T,Dim>::allocateStorage(int newsize)
 
   // Allocate the storage, creating some extra to account for offset, and
   // then add in the offset.
-  // If DKS is used allocete in page-locked memory to increase data transfer speed and
-  // allow asynchronous data transfer
-  //#ifdef IPPL_DKS
-  //Ippl::DKS->allocateHostMemory(P, newsize+extra);
-  //#elif IPPL_DIRECTIO
 #ifdef IPPL_DIRECTIO
-
-  if (Pinned) {
-#ifdef IPPL_DKS
-    Ippl::DKS->allocateHostMemory(P, newsize+extra);
-#else
-    P = (T *)valloc(sizeof(T) * (newsize + extra));
-#endif
-  } else {
-    P = (T *)valloc(sizeof(T) * (newsize + extra));
-  }
-
-#else
-
-  if (Pinned) {
-#ifdef IPPL_DKS
-    Ippl::DKS->allocateHostMemory(P, newsize+extra);
+  P = (T *)valloc(sizeof(T) * (newsize + extra));
 #else
     P = new T[newsize + extra];
-#endif
-  } else {
-    P = new T[newsize + extra];
-  }
-
 #endif
   P += extra;
 
@@ -784,34 +756,10 @@ LField<T,Dim>::deallocateStorage()
 
       // Free the storage
 
-      //if DKS is used free page-locked host memory
-      //#ifdef IPPL_DKS
-      //Ippl::DKS->freeHostMemory(P, -1);
-      //#elif IPPL_DIRECTIO
 #ifdef IPPL_DIRECTIO
-
-      if(Pinned) {
-#ifdef IPPL_DKS
-	Ippl::DKS->freeHostMemory(P, -1);
+      free(P);
 #else
-	free(P);
-#endif
-      } else {
-	free(P);
-      }
-
-#else
-     
-      if (Pinned) {
-#ifdef IPPL_DKS
-	Ippl::DKS->freeHostMemory(P, -1);
-#else
-	delete [] P;
-#endif
-      } else {
-	delete [] P;
-      }
-
+      delete [] P;
 #endif
       // Reset our own pointer to zero
 

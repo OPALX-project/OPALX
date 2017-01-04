@@ -1,4 +1,5 @@
 cmake_minimum_required (VERSION 2.8.10)
+set (DKS_VERSION \"1.0.0\")
 
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 configure_file(revision.h.in ${CMAKE_CURRENT_SOURCE_DIR}/revision.h)
@@ -6,6 +7,9 @@ configure_file(revision.h.in ${CMAKE_CURRENT_SOURCE_DIR}/revision.h)
 set (CMAKE_CXX_FLAGS
     "${IPPL_CMAKE_CXX_FLAGS} -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
     )
+
+# remove digits from hostname: edison03 -> edison
+STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
 
 IF(ENABLE_SAAMG_SOLVER)
     set (CMAKE_CXX_FLAGS
@@ -19,10 +23,12 @@ IF(ENABLE_AMR_SOLVER)
     )
     # FIXME Find a better solution!
     # We get otherwise a "undefined reference" to "getLevelBld()" and "probinit_"
-    set (AMR_SRC Solvers/amr/AccelBld.cpp)
-    set (AMR_INCLUDE_DIR Solvers/amr)
-    set (CBOXLIB -lmpi -lmpi_mpifh -lcboxlib)
-
+    set (CBOXLIB -lcboxlib)
+    
+    IF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori")
+        set (CBOXLIB "-lmpi -lmpi_mpifh ${CBOXLIB}")
+    ENDIF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori")
+    
 ENDIF(ENABLE_AMR_SOLVER)
 
 set (OPAL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -67,11 +73,6 @@ add_subdirectory (ValueDefinitions)
 
 add_sources (opal.cpp)
 
-IF (ENABLE_AMR_SOLVER)
-    add_subdirectory (Solvers/amr)
-    include_directories(${AMR_INCLUDE_DIR})
-ENDIF (ENABLE_AMR_SOLVER)
-
 include_directories (
     ${OPAL_SRC_DIR}
     ${CLASSIC_SRC_DIR}
@@ -92,16 +93,12 @@ link_directories (
     ${CCSE_LIBRARY_DIR}
 )
 
-IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
+IF (ENABLE_DKS)
    include_directories (${DKS_INCLUDE_DIR})
    link_directories (${DKS_LIBRARY_DIR})
-ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
+ENDIF (ENABLE_DKS)
 
-
-# remove digits from hostname: edison03 -> edison
-STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
-
-IF(${HOSTNAME_BASE} MATCHES "edison")
+IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
  SET (OPAL_LIBS
     ${GSL_LIBRARY}
     ${H5Hut_LIBRARY}
@@ -110,7 +107,7 @@ IF(${HOSTNAME_BASE} MATCHES "edison")
     ${Boost_LIBRARIES}
     m
     z
- )
+)
 ELSE()
  SET (OPAL_LIBS
     ${GSL_LIBRARY}
@@ -123,22 +120,22 @@ ELSE()
     m
     z
 )
-ENDIF(${HOSTNAME_BASE} MATCHES "edison")
+ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
 
 
 
-IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
+IF (ENABLE_DKS)
    set (OPAL_LIBS
        ${OPAL_LIBS}
        ${DKS_LIBRARY_DIR}/libdks.a
        )
-ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
+ENDIF (ENABLE_DKS)
 
 add_library( OPALib ${OPAL_SRCS})
 set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
 target_link_libraries( OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} ${CBOXLIB} ${OTHER_CMAKE_EXE_LINKER_FLAGS} )
 
-add_executable( opal Main.cpp ${AMR_SRC})
+add_executable( opal Main.cpp)
 target_link_libraries( opal OPALib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")

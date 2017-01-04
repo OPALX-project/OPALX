@@ -36,7 +36,7 @@ void AmrPartBunch::buildIndexMapping_m() {
     
     int i = 0;
     nLocalParticles_m = 0;
-    for (int l = 0; l < m_particles.size(); ++l) {
+    for (unsigned int l = 0; l < m_particles.size(); ++l) {
         for (unsigned int g = 0; g <  m_particles[l].size(); ++g) {
             
             nLocalParticles_m += m_particles[l][g].size();
@@ -123,7 +123,7 @@ void AmrPartBunch::gatherStatistics() {
           <<   globalPartPerNode[i]/this->getTotalNum()*100.0 << " \% of the total particles " << endl;
     
     
-    for (int lev = 0; lev < m_particles.size(); ++lev)
+    for (unsigned int lev = 0; lev < m_particles.size(); ++lev)
         m << "#particles at level " << lev << ": "
           << NumberOfParticlesAtLevel(lev) << endl;
 }

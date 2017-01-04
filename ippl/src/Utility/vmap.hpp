@@ -25,13 +25,7 @@
 
 // include files
 #include "Utility/vmap.h"
-
-
-#ifdef IPPL_STDSTL
 #include <algorithm>
-#else
-#include <algo.h>
-#endif
 
 //////////////////////////////////////////////////////////////////////
 //

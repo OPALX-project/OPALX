@@ -30,17 +30,8 @@
 
 #include "FieldLayout/FieldLayout.h"
 
-#ifdef IPPL_STDSTL
 #include <vector>
-#else
-#include <vector.h>
-#endif
-
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
 
 //----------------------------------------------------------------------
 

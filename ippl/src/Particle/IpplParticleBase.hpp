@@ -33,14 +33,7 @@
 #include "Utility/PAssert.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplStats.h"
-
-
-#ifdef IPPL_STDSTL
 #include <algorithm>
-#else
-#include <algo.h>
-#endif // IPPL_STDSTL
-
 
 /////////////////////////////////////////////////////////////////////
 // For a IpplParticleBase that was created with the default constructor,

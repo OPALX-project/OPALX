@@ -14,12 +14,7 @@
 // include files
 #include "Index/NDIndex.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
-
 
 template<unsigned Dim>
 class GuardCellSizes

@@ -38,15 +38,9 @@
 #include "AppTypes/AppTypeTraits.h"
 
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
 #include <typeinfo>
 #include <vector>
-#else
-#include <vector.h>
-#include <iostream.h>
-#include <typeinfo.h>
-#endif
 
 //////////////////////////////////////////////////////////////////////
 

@@ -52,9 +52,7 @@
 
 #ifdef HAVE_AMR_SOLVER
 #define DIM 3
-#include <Amr.H>
 #include <ParallelDescriptor.H>
-#include "Solvers/amr/BoundaryDomain.h"
 #endif
 
 #include <fstream>
@@ -485,13 +483,6 @@ void TrackRun::setupTTracker(){
     *gmsg << level2
           << "Phase space dump frequency " << Options::psDumpFreq << " and "
           << "statistics dump frequency " << Options::statDumpFreq << " w.r.t. the time step." << endl;
-#ifdef HAVE_AMR_SOLVER
-    itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
-                                      dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
-                                      Track::block->reference, false, false, Track::block->localTimeSteps,
-                                      Track::block->zstop, Track::block->timeIntegrator, Track::block->dT,
-                                      beam->getNumberOfParticles(), fs->getAmrPtr());
-#else
     
 #ifdef P3M_TEST
 
@@ -503,7 +494,6 @@ void TrackRun::setupTTracker(){
                                       Track::block->reference, false, false, Track::block->localTimeSteps,
                                       Track::block->zstop, Track::block->timeIntegrator, Track::block->dT,  
 				      beam->getNumberOfParticles());
-#endif
 #endif
     itsTracker->setMpacflg(mpacflg); // set multipacting flag in ParallelTTracker
 }
@@ -624,7 +614,7 @@ void TrackRun::setupCyclotronTracker(){
     Track::block->bunch->setCouplingConstant(coefE);
 
     // statistical data are calculated (rms, eps etc.)
-    Track::block->bunch->calcBeamParameters_cycl();
+    Track::block->bunch->calcBeamParameters();
 
     if(!opal->inRestartRun())
         if(!opal->hasDataSinkAllocated()) {
@@ -688,7 +678,7 @@ void TrackRun::setupCyclotronTracker(){
     }
 
     // statistical data are calculated (rms, eps etc.)
-    Track::block->bunch->calcBeamParameters_cycl();
+    Track::block->bunch->calcBeamParameters();
 
     *gmsg << *dist << endl;
     *gmsg << *beam << endl;
@@ -957,7 +947,7 @@ void TrackRun::executeAutophaseTracker() {
 
 #ifdef HAVE_AMR_SOLVER
 void TrackRun::setupAMRSolver() {
-    
+    /*
     if ( fs->isAMRSolver() ) {
         *gmsg << *Track::block->bunch  << endl;
         *gmsg << *fs   << endl;
@@ -974,13 +964,12 @@ void TrackRun::setupAMRSolver() {
             //  IMPORTANT: THIS ORDERING IS ASSUMED WHEN WE FILL E AT THE PARTICLE LOCATION
             //             IN THE MOVEKICK CALL -- if Evec no longer starts at component 4
             //             then you must change "start_comp_for_e" in Accel_advance.cpp
-            /*
-              Q      : 0
-              Vvec   : 1, 2, 3 the velocity
-              Evec   : 4, 5, 6 the electric field at the particle location
-              Bvec   : 7, 8, 9 the electric field at the particle location
-              id+1   : 10 (we add 1 to make the particle ID > 0)
-            */
+	    //
+            // Q      : 0
+            //  Vvec   : 1, 2, 3 the velocity
+            //  Evec   : 4, 5, 6 the electric field at the particle location
+            //  Bvec   : 7, 8, 9 the electric field at the particle location
+            //  id+1   : 10 (we add 1 to make the particle ID > 0)
 
             // This is the charge
             attr[0] = Track::block->bunch->Q[i];
@@ -1001,7 +990,7 @@ void TrackRun::setupAMRSolver() {
             int particle_id = Track::block->bunch->ID[i] + 1;
             attr[3*DIM + 1] = particle_id;
 
-            fs->getAmrPtr()->addOneParticle(particle_id, Ippl::myNode(), x, attr);
+//             fs->getAmrPtr()->addOneParticle(particle_id, Ippl::myNode(), x, attr);
         }
 
         // It is essential that we call this routine since the particles
@@ -1019,6 +1008,7 @@ void TrackRun::setupAMRSolver() {
     
         *gmsg << "A M R Initialization DONE" << endl;
     }
+    */
 }
 
 #endif

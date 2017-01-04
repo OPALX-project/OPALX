@@ -31,13 +31,8 @@
 // include files
 #include "Utility/my_auto_ptr.h"
 #include "Ippl.h"
-#ifdef IPPL_STDSTL
 #include <vector>
 #include <map>
-#else
-#include <vector.h>
-#include <map.h>
-#endif // IPPL_STDSTL
 
 // a simple class used to store memory values
 class IpplMemoryInfo

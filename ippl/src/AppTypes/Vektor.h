@@ -17,12 +17,8 @@
 #include "PETE/IpplExpressions.h"
 #include "AppTypes/TSVMeta.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
 #include <iomanip>
-#else
-#include <iostream.h>
-#endif
 
 //////////////////////////////////////////////////////////////////////
 //

@@ -31,14 +31,8 @@
 #include "Message/Message.h"
 
 
-#ifdef IPPL_STDSTL
-// Standard STL names this header "algorithm"
 #include <algorithm>
 using namespace std;
-#else
-#include <algo.h>
-#endif // IPPL_STDSTL
-
 #include <cstring>
 #include <unistd.h>
 #include <cstdio>
