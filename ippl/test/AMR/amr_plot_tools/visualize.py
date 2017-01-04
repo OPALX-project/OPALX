@@ -18,7 +18,7 @@ from tools import doSlicePlot, doProjectionPlot
 
 try:
     opal = os.environ['OPAL_BUILD']
-    ds = yt.load(opal + "ippl/test/AMR/plt0000")
+    ds = yt.load(opal + "ippl/test/AMR/plt0000", dataset_type='opal')
     
     ds.print_stats()
     
@@ -45,6 +45,10 @@ try:
     doSlicePlot(ds, 'x', 'Ez', 'V/m')
     
     doSlicePlot(ds, 'z', 'potential', 'V')
+    
+    doSlicePlot(ds, 'y', 'potential', 'V')
+    
+    doSlicePlot(ds, 'x', 'potential', 'V')
 
     ad = ds.all_data()
     
