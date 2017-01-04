@@ -46,10 +46,17 @@ try:
         plt = doGridPlot(i, j, val, "horizontal grid", "vertical grid", r'$E_x$ [V/m]')
         plt.savefig(f + '_slice_z_Ex.png')#, bbox_inches='tight')
         
+        print ("max. Ex: ", max(val))
+        print ("min. Ex: ", min(val))
+        
+        
         # electric field in vertical direction
         val = np.extract(data[:, 2] == mid, data[:, 4])
         plt = doGridPlot(i, j, val, "horizontal grid", "vertical grid", r'$E_y$ [V/m]')
         plt.savefig(f + '_slice_z_Ey.png')#bbox_inches='tight')
+        
+        print ("max. Ey: ", max(val))
+        print ("min. Ey: ", min(val))
         
         # center in z
         mid = int(0.5 * max(data[:, 0]))
@@ -58,6 +65,9 @@ try:
         val = np.extract(data[:, 0] == mid, data[:, 5])
         plt = doGridPlot(i, j, val, "vertical grid", "longitudinal grid", r'$E_z$ [V/m]')
         plt.savefig(f + '_slice_x_Ez.png')# bbox_inches='tight')
+        
+        print ("max. Ez: ", max(val))
+        print ("min. Ez: ", min(val))
         
     elif 'scalar' in f:
         data = match(f, scalar_field_pattern)
@@ -91,6 +101,9 @@ try:
         val = np.extract(data[:, 2] == mid, data[:, 3])
         plt = doGridPlot(i, j, val, "horizontal grid", "vertical grid", clab)
         plt.savefig(f + '_slice_z.png')# bbox_inches='tight')
+        
+        print ("max. value (slice z): ", max(val))
+        print ("min. value (slice z): ", min(val))
         
     else:
         raise RuntimeError('This type of file is not supported.')
