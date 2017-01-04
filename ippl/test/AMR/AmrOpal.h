@@ -24,7 +24,11 @@
 class AmrOpal : public AmrCore {
     
 private:
-    typedef Array<std::unique_ptr<MultiFab> > mfs_mt; ///< instead of using PArray<MultiFab>
+//     typedef Array<std::unique_ptr<MultiFab> > mfs_mt; ///< instead of using PArray<MultiFab>
+    typedef PArray<MultiFab > mfs_mt;
+    
+    
+    
 //     typedef PArray<MultiFab> mp_mt;
     
 public:
@@ -76,12 +80,24 @@ public:
     void info() {
         for (int i = 0; i < finest_level; ++i)
             std::cout << "density level " << i << ": "
+#ifdef UNIQUE_PTR
                       << nPartPerCell_m[i]->min(0) << " "
                       << nPartPerCell_m[i]->max(0) << std::endl;
+#else
+                      
+                      << nPartPerCell_m[i].min(0) << " "
+                      << nPartPerCell_m[i].max(0) << std::endl;
+#endif
+                      
     }
     
     /*!
      * Write a timestamp file for displaying with yt.
+     */
+    void writePlotFileYt(std::string filename, int step);
+    
+    /*!
+     * Write a timestamp file for displaying with AmrVis.
      */
     void writePlotFile(std::string filename, int step);
     
@@ -92,7 +108,11 @@ public:
     void assignDensity() {
         
         for (int i = 0; i < finest_level; ++i)
+#ifdef UNIQUE_PTR
             chargeOnGrid_m[i]->setVal(0.0);
+#else
+            chargeOnGrid_m[i].setVal(0.0);
+#endif
         
         bunch_m->AssignDensity(0, false, chargeOnGrid_m, 0, 1, finest_level);
         

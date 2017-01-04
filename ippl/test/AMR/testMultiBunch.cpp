@@ -1,22 +1,15 @@
 /*!
- * @file testGaussian.cpp
+ * @file testMultiBunch.cpp
  * @author Matthias Frey
- * @date November 2016
- * @details Compute \f$\Delta\phi = -\rho\f$ where the charge
- * density is a Gaussian distribution. Write plot files
- * that can be visualized by yt (python visualize.py)
- * or by AmrVis of the CCSE group at LBNL.
- * 
- * Domain:  [-0.5, 0.5] x [-0.5, 0.5] x [-0.5, 0.5]\n
- * BC:      Dirichlet boundary conditions\n
- * Charge/particle: elementary charge\n
- * Gaussian particle distribution N(0.0, 0.01)
- * 
- * Call:\n
- *  mpirun -np [#cores] testGaussian [#gridpoints x] [#gridpoints y] [#gridpoints z]
- *                                   [#particles] [#levels] [max. box size]
- * 
- * @brief Computes \f$\Delta\phi = -\rho\f$
+ * @date 3. Jan. 2017
+ * @brief Solve the electrostatic potential for multiple bunches
+ *        with Dirichlet boundary condition.
+ * @details In this example we read in a step of a H5 file and
+ *          solve Poisson's equation.\n
+ *          Domain: [-0.15 (m), 0.45 (m)] x [-0.15 (m), 0.15 (m)] x [-0.15 (m), 0.15 (m)]\n
+ *          Call: mpirun -np 4 testMultiBunch [#gridpoints x] [#gridpoints y] [#gridpoints z]
+ *                                            [#levels] [max. box size] [h5 file] [start:by:end]\n
+ *          start:by:end are three integers defining the range of steps.
  */
 
 #include "Ippl.h"
@@ -26,17 +19,17 @@
 #include <iostream>
 #include <set>
 #include <sstream>
+#include <tuple>
 
 #include <ParmParse.H>
 
 #include "PartBunch.h"
 #include "AmrPartBunch.h"
+#include "helper_functions.h"
 
 #include "Distribution.h"
 #include "Solver.h"
 #include "AmrOpal.h"
-
-#include "helper_functions.h"
 
 #include "writePlotFile.H"
 
@@ -72,8 +65,8 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
 
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
     
-    
     double totCharge = totalCharge(rhs, finest_level, geom);
+    
     msg << "Total Charge: " << totCharge << " C" << endl
         << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
     Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
@@ -119,16 +112,19 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     IpplTimings::stopTimer(solvTimer);
 }
 
-void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
-              int nLevels, size_t maxBoxSize, Inform& msg)
+void doBoxLib(const Vektor<size_t, 3>& nr,
+              int nLevels, size_t maxBoxSize,
+              std::string h5file,
+	      const std::tuple<int, int, int>& h5steps,
+	      Inform& msg)
 {
     static IpplTimings::TimerRef distTimer = IpplTimings::getTimer("dist");
     // ========================================================================
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    std::array<double, BL_SPACEDIM> lower = {{-0.5, -0.5, -0.5}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ 0.5,  0.5,  0.5}}; // m
+    std::array<double, BL_SPACEDIM> lower = {{-0.15, -0.15, -0.15}}; // m
+    std::array<double, BL_SPACEDIM> upper = {{0.45, 0.15, 0.15}}; // m
     
     RealBox domain;
     Array<BoxArray> ba;
@@ -147,40 +143,60 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     
     // initialize a particle distribution
-    unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
     Distribution dist;
     IpplTimings::startTimer(distTimer);
-    double sig = 0.01;  // m
-    dist.gaussian(0.0, sig, nloc, ParallelDescriptor::MyProc());
+
+    int begin = 0, end = 0, by = 0;
+    unsigned int nBunches = 0;
+
+    std::vector<double> xshift = {0.037,
+				  0.05814,
+				  0.0852,
+				  0.11325,
+				  0.13933,
+				  0.16177,
+				  0.18013,
+				  0.19567,
+				  0.21167,
+				  0.2313,
+				  0.25567,
+				  0.28326,
+				  0.31034,
+				  0.33308,
+				  0.35041};
     
-    // copy particles to the PartBunchBase object.
-    dist.injectBeam(*bunch);
-    
-    
-    
-    
-    for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
-        bunch->setQM(Physics::q_e, i);  // in [C]
+    std::tie(begin, end, by) = h5steps;
+    for (int i = std::min(begin, end); i <= std::max(begin, end); i += by) {
+	msg << "Reading step " << i << endl;
+	dist.readH5(h5file, i /* step */);
+	// copy particles to the PartBunchBase object.
+	dist.injectBeam(*bunch, false, {{xshift[nBunches], 0.0, 0.0}});
+	msg << "Injected step " << i << endl;
+
+	if ( ++nBunches == xshift.size() )
+	    break;
+    }
+
+    msg << "#Bunches: " << nBunches << endl;
+
+    for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
+	bunch->setQM(2.1717e-16, i);
+    }
     
     // redistribute on single-level
     bunch->myUpdate();
     
     bunch->gatherStatistics();
     
-    msg << "Bunch radius: " << sig << " m" << endl
-        << "#Particles: " << nParticles << endl
+    int nParticles = bunch->getTotalNum();
+    msg << "#Particles: " << nParticles << endl
         << "Charge per particle: " << bunch->getQM(0) << " C" << endl
         << "Total charge: " << nParticles * bunch->getQM(0) << " C" << endl;
-    
-    for (int i = 0; i < nLevels; ++i)
-        msg << "#Cells per dim of level " << i << " for bunch : "
-            << 2.0 * sig / *(geom[i].CellSize()) << endl;
     
     // ========================================================================
     // 2. tagging (i.e. create BoxArray's, DistributionMapping's of all
     //    other levels)
     // ========================================================================
-    
     
     /*
      * create an Amr object
@@ -240,7 +256,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
     
-    dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
+//     dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
 }
 
 
@@ -256,10 +272,10 @@ int main(int argc, char *argv[]) {
 
     std::stringstream call;
     call << "Call: mpirun -np [#procs] " << argv[0]
-         << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#particles] "
-         << "[#levels] [max. box size]";
+         << " [#gridpoints x] [#gridpoints y] [#gridpoints z] "
+         << "[#levels] [max. box size] [h5file] [start:by:end]";
     
-    if ( argc < 7 ) {
+    if ( argc < 8 ) {
         msg << call.str() << endl;
         return -1;
     }
@@ -270,17 +286,40 @@ int main(int argc, char *argv[]) {
                          std::atoi(argv[3]));
     
     
-    size_t nParticles = std::atoi(argv[4]);
-    
-    
-    msg << "Particle test running with" << endl
-        << "- #particles = " << nParticles << endl
-        << "- grid       = " << nr << endl;
         
     BoxLib::Initialize(argc,argv, false);
-    size_t nLevels = std::atoi(argv[5]) + 1; // i.e. nLevels = 0 --> only single level
-    size_t maxBoxSize = std::atoi(argv[6]);
-    doBoxLib(nr, nParticles, nLevels, maxBoxSize, msg);
+    size_t nLevels = std::atoi(argv[4]) + 1; // i.e. nLevels = 0 --> only single level
+    size_t maxBoxSize = std::atoi(argv[5]);
+    std::string h5file = argv[6];
+    std::string stepping = argv[7];
+
+    std::string::size_type semipos1 = stepping.find_first_of(':');
+    std::string::size_type semipos2 = stepping.find_first_of(':', semipos1 + 1);
+    int begin = std::atoi( stepping.substr(0, semipos1).c_str() );
+    int by = std::atoi( stepping.substr(semipos1 + 1, semipos2 - semipos1 - 1).c_str() );
+    int end = std::atoi( stepping.substr(semipos2 + 1).c_str() );
+    
+    auto h5steps = std::make_tuple(begin, end, by);
+
+    if ( begin < 0 || end < 0 ) {
+	msg << "Negative values in range." << endl;
+	return -1;
+    } else if ( (begin > end && by >= 0) || (begin < end && by < 0) ) {
+	msg << "Please check [start:by:end]. Neither upward nor "
+	    << "downward stepping possible." << endl;
+	return -1;
+    } else if ( by && (end - begin) % by) {
+	msg << "Stepping not a multiplicative of range." << endl;
+	return -1;
+    }
+    
+    msg << "Particle test running with" << endl
+        << "- grid:         " << nr << endl
+        << "- #level:       " << nLevels << endl
+        << "- H5:           " << h5file << endl
+	<< "- start:by:end: " << begin << ":" << by << ":" << end << endl;
+    
+    doBoxLib(nr, nLevels, maxBoxSize, h5file, h5steps, msg);
     
     
     IpplTimings::stopTimer(mainTimer);

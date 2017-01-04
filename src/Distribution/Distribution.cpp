@@ -48,7 +48,6 @@
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 
-#include "MagneticField.h"
 
 extern Inform *gmsg;
 
@@ -174,6 +173,7 @@ namespace AttributesT
         MAGSYM,                     // number of sector magnets
         LINE,
         FMAPFN,
+        FMTYPE,                     // field map type used in matched gauss distribution
         RESIDUUM,
         MAXSTEPSCO,
         MAXSTEPSSI,
@@ -1333,11 +1333,6 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 	hE = E_m*1E-6;
       }
 
-      int nr, nth, nsc;
-      double rmin, dr, dth;
-
-      MagneticField::ReadHeader(&nr, &nth, &rmin, &dr, &dth, &nsc, Attributes::getString(itsAttr[AttributesT::FMAPFN]));
-
       int Nint = 1000;
       bool writeMap = true;
 
@@ -1352,29 +1347,27 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 						 lE,
 						 hE,
 						 (int)Attributes::getReal(itsAttr[AttributesT::MAGSYM]),
-						 rmin,
 						 Nint,
-						 nth,
-						 nr,
-						 dr,
 						 Attributes::getString(itsAttr[AttributesT::FMAPFN]),
 						 Attributes::getReal(itsAttr[AttributesT::ORDERMAPS]),
 						 writeMap);
 
 
       if(siggen->match(Attributes::getReal(itsAttr[AttributesT::RESIDUUM]),
-		      Attributes::getReal(itsAttr[AttributesT::MAXSTEPSSI]),
-		      Attributes::getReal(itsAttr[AttributesT::MAXSTEPSCO]),
-		      CyclotronElement->getPHIinit(),
-		      Attributes::getReal(itsAttr[AttributesT::RGUESS]),
-		      false))  {
+                       Attributes::getReal(itsAttr[AttributesT::MAXSTEPSSI]),
+                       Attributes::getReal(itsAttr[AttributesT::MAXSTEPSCO]),
+                       CyclotronElement->getPHIinit(),
+                       Attributes::getReal(itsAttr[AttributesT::RGUESS]),
+                       Attributes::getString(itsAttr[AttributesT::FMTYPE]),
+                       false))  {
 
 	std::array<double,3> Emit = siggen->getEmittances();
 
 	if (Attributes::getReal(itsAttr[AttributesT::RGUESS]) > 0)
 	  *gmsg << "* RGUESS " << Attributes::getReal(itsAttr[AttributesT::RGUESS])/1000.0 << " (m) " << endl;
 
-	*gmsg << "* Converged (Ex, Ey, Ez) = (" << Emit[0] << ", " << Emit[1] << ", " << Emit[2] << ") pi mm mrad for E= " << E_m*1E-6 << " (MeV)" << endl;
+	*gmsg << "* Converged (Ex, Ey, Ez) = (" << Emit[0] << ", " << Emit[1] << ", "
+              << Emit[2] << ") pi mm mrad for E= " << E_m*1E-6 << " (MeV)" << endl;
 	*gmsg << "* Sigma-Matrix " << endl;
 
 	for(unsigned int i = 0; i < siggen->getSigma().size1(); ++ i) {
@@ -1410,7 +1403,8 @@ void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, doub
 
 	for (unsigned int i = 0; i < 3; ++ i) {
           if ( sigma(2 * i, 2 * i) < 0 || sigma(2 * i + 1, 2 * i + 1) < 0 )
-              throw OpalException("Distribution::CreateMatchedGaussDistribution()", "Negative value on the diagonal of the sigma matrix.");
+              throw OpalException("Distribution::CreateMatchedGaussDistribution()",
+                                  "Negative value on the diagonal of the sigma matrix.");
 
 	  sigmaR_m[i] = std::sqrt(sigma(2 * i, 2 * i));
 	  sigmaP_m[i] = std::sqrt(sigma(2 * i + 1, 2 * i + 1));
@@ -3576,6 +3570,8 @@ void Distribution::SetAttributes() {
         = Attributes::makeString("LINE", "Beamline that contains a cyclotron or ring ", "");
     itsAttr[AttributesT::FMAPFN]
         = Attributes::makeString("FMAPFN", "File for reading fieldmap used to create matched distibution ", "");
+    itsAttr[AttributesT::FMTYPE]
+        = Attributes::makeString("FMTYPE", "File format for reading fieldmap used to create matched distribution ", "");
     itsAttr[AttributesT::EX]
         = Attributes::makeReal("EX", "Projected normalized emittance EX (m-rad), used to create matched distibution ", 1E-6);
     itsAttr[AttributesT::EY]

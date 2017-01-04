@@ -23,8 +23,6 @@ IF(ENABLE_AMR_SOLVER)
     )
     # FIXME Find a better solution!
     # We get otherwise a "undefined reference" to "getLevelBld()" and "probinit_"
-    set (AMR_SRC Solvers/amr/AccelBld.cpp)
-    set (AMR_INCLUDE_DIR Solvers/amr)
     set (CBOXLIB -lcboxlib)
     
     IF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori")
@@ -74,11 +72,6 @@ add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
 
 add_sources (opal.cpp)
-
-IF (ENABLE_AMR_SOLVER)
-    add_subdirectory (Solvers/amr)
-    include_directories(${AMR_INCLUDE_DIR})
-ENDIF (ENABLE_AMR_SOLVER)
 
 include_directories (
     ${OPAL_SRC_DIR}
@@ -142,7 +135,7 @@ add_library( OPALib ${OPAL_SRCS})
 set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
 target_link_libraries( OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} ${CBOXLIB} ${OTHER_CMAKE_EXE_LINKER_FLAGS} )
 
-add_executable( opal Main.cpp ${AMR_SRC})
+add_executable( opal Main.cpp)
 target_link_libraries( opal OPALib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")

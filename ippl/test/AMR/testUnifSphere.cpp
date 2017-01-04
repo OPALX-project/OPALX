@@ -1,24 +1,14 @@
 /*!
- * @file testGaussian.cpp
+ * @file testUnifSphere.cpp
  * @author Matthias Frey
- * @date November 2016
- * @details Compute \f$\Delta\phi = -\rho\f$ where the charge
- * density is a Gaussian distribution. Write plot files
- * that can be visualized by yt (python visualize.py)
- * or by AmrVis of the CCSE group at LBNL.
- * 
- * Domain:  [-0.5, 0.5] x [-0.5, 0.5] x [-0.5, 0.5]\n
- * BC:      Dirichlet boundary conditions\n
- * Charge/particle: elementary charge\n
- * Gaussian particle distribution N(0.0, 0.01)
- * 
- * Call:\n
- *  mpirun -np [#cores] testGaussian [#gridpoints x] [#gridpoints y] [#gridpoints z]
- *                                   [#particles] [#levels] [max. box size]
- * 
- * @brief Computes \f$\Delta\phi = -\rho\f$
+ * @date 20. Dec. 2016
+ * @brief Solve the electrostatic potential for a cube
+ *        with Dirichlet boundary condition.
+ * @details In this example we initialize 1e6 particles
+ *          within a sphere of radius R = 0.005 [m].
+ *          We then solve the Poisson equation.\n
+ *          Domain: [-0.05 (m), 0.05 (m)]^3
  */
-
 #include "Ippl.h"
 #include <string>
 #include <fstream>
@@ -32,7 +22,6 @@
 #include "PartBunch.h"
 #include "AmrPartBunch.h"
 
-#include "Distribution.h"
 #include "Solver.h"
 #include "AmrOpal.h"
 
@@ -43,14 +32,48 @@
 #include <cmath>
 
 #include "Physics/Physics.h"
+#include <random>
+
+void initSphere(double r, PartBunchBase* bunch, int nParticles) {
+    bunch->create(nParticles);
+    
+    std::mt19937_64 eng;
+    std::uniform_real_distribution<> ph(-1.0, 1.0);
+    std::uniform_real_distribution<> th(0.0, 2.0 * Physics::pi);
+    std::uniform_real_distribution<> u(0.0, 1.0);
+    
+    
+    std::string outfile = "amr-particles-level-" + std::to_string(0);
+    std::ofstream out(outfile);
+    
+    long double qi = 4.0 * Physics::pi * Physics::epsilon_0 * r * r / double(nParticles);
+    
+    for (int i = 0; i < nParticles; ++i) {
+        // 17. Dec. 2016,
+        // http://math.stackexchange.com/questions/87230/picking-random-points-in-the-volume-of-sphere-with-uniform-probability
+        // http://stackoverflow.com/questions/5408276/sampling-uniformly-distributed-random-points-inside-a-spherical-volume
+        double phi = std::acos( ph(eng) );
+        double theta = th(eng);
+        double radius = r * std::cbrt( u(eng) );
+        
+        double x = radius * std::cos( theta ) * std::sin( phi );
+        double y = radius * std::sin( theta ) * std::sin( phi );
+        double z = radius * std::cos( phi );
+        
+        out << x << " " << y << " " << z << std::endl;
+        
+        bunch->setR(Vector_t( x, y, z ), i);    // m
+        bunch->setQM(qi, i);   // C
+    }
+    out.close();
+}
 
 void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
              container_t& rhs,
              container_t& phi,
              container_t& grad_phi,
              const Array<Geometry>& geom,
-             const Array<int>& rr,
-             int nLevels,
+             const Array<int>& rr, int nLevels,
              Inform& msg)
 {
     static IpplTimings::TimerRef solvTimer = IpplTimings::getTimer("solv");
@@ -61,23 +84,28 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     rhs.resize(nLevels);
     phi.resize(nLevels);
     grad_phi.resize(nLevels);
-    
+
     for (int lev = 0; lev < nLevels; ++lev) {
         initGridData(rhs, phi, grad_phi, myAmrOpal.boxArray()[lev], lev);
     }
+    
 
     // Define the density on level 0 from all particles at all levels                                                                                                                                            
     int base_level   = 0;
     int finest_level = myAmrOpal.finestLevel();
-
+    
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
     
+    writeScalarField(rhs, *(geom[0].CellSize()), -0.05, "amr-rho_scalar-level-");
     
+    // Check charge conservation
     double totCharge = totalCharge(rhs, finest_level, geom);
-    msg << "Total Charge: " << totCharge << " C" << endl
+    
+    msg << "Total Charge (computed): " << totCharge << " C" << endl
         << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
+    
     Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
-    msg << "Cell volume: " << vol << " m^3" << endl;
+    msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
     
     // eps in C / (V * m)
     double constant = -1.0 / Physics::epsilon_0;  // in [V m / C]
@@ -99,36 +127,32 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     // solve                                                                                                                                                                                                     
     Solver sol;
     IpplTimings::startTimer(solvTimer);
-    sol.solve_for_accel(rhs,
-                        phi,
-                        grad_phi,
+    sol.solve_for_accel(rhs,            // [V m]
+                        phi,            // [V m^3]
+                        grad_phi,       // [V m^2]
                         geom,
                         base_level,
                         finest_level,
                         offset);
     
-    // for plotting unnormalize
-    for (int i = 0; i <=finest_level; ++i) {
-#ifdef UNIQUE_PTR
-        rhs[i]->mult(1.0 / constant, 0, 1);       // in [V m]
-#else
-        rhs[i].mult(1.0 / constant, 0, 1);
-#endif
-    }
+//     for (int i = 0; i <=finest_level; ++i) {
+//         rhs[i]->mult(1.0 / constant, 0, 1);
+//     }
     
     IpplTimings::stopTimer(solvTimer);
 }
 
-void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
-              int nLevels, size_t maxBoxSize, Inform& msg)
+void doBoxLib(const Vektor<size_t, 3>& nr,
+              int nLevels,
+              size_t maxBoxSize,
+              Inform& msg)
 {
-    static IpplTimings::TimerRef distTimer = IpplTimings::getTimer("dist");
     // ========================================================================
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    std::array<double, BL_SPACEDIM> lower = {{-0.5, -0.5, -0.5}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ 0.5,  0.5,  0.5}}; // m
+    std::array<double, BL_SPACEDIM> lower = {{-0.05, -0.05, -0.05}}; // m
+    std::array<double, BL_SPACEDIM> upper = {{ 0.05,  0.05,  0.05}}; // m
     
     RealBox domain;
     Array<BoxArray> ba;
@@ -147,34 +171,20 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     
     // initialize a particle distribution
-    unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
-    Distribution dist;
-    IpplTimings::startTimer(distTimer);
-    double sig = 0.01;  // m
-    dist.gaussian(0.0, sig, nloc, ParallelDescriptor::MyProc());
+    double R = 0.005; // radius of sphere [m]
+    int nParticles = 1e6;
+    initSphere(R, bunch, nParticles);
     
-    // copy particles to the PartBunchBase object.
-    dist.injectBeam(*bunch);
-    
-    
-    
-    
-    for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
-        bunch->setQM(Physics::q_e, i);  // in [C]
+    msg << "Bunch radius: " << R << " m" << endl
+        << "#Particles: " << nParticles << endl
+        << "Charge per particle: " << bunch->getQM(0) << " C" << endl
+        << "Total charge: " << nParticles * bunch->getQM(0) << " C" << endl
+        << "#Cells per dim for bunch: " << 2.0 * R / *(geom[0].CellSize()) << endl;
     
     // redistribute on single-level
     bunch->myUpdate();
     
-    bunch->gatherStatistics();
-    
-    msg << "Bunch radius: " << sig << " m" << endl
-        << "#Particles: " << nParticles << endl
-        << "Charge per particle: " << bunch->getQM(0) << " C" << endl
-        << "Total charge: " << nParticles * bunch->getQM(0) << " C" << endl;
-    
-    for (int i = 0; i < nLevels; ++i)
-        msg << "#Cells per dim of level " << i << " for bunch : "
-            << 2.0 * sig / *(geom[i].CellSize()) << endl;
+//     bunch->gatherStatistics();
     
     // ========================================================================
     // 2. tagging (i.e. create BoxArray's, DistributionMapping's of all
@@ -193,8 +203,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
     
-    Array<int> nCells(3);
-    for (int i = 0; i < 3; ++i)
+    Array<int> nCells(BL_SPACEDIM);
+    for (int i = 0; i < BL_SPACEDIM; ++i)
         nCells[i] = nr[i];
     
     AmrOpal myAmrOpal(&domain, nLevels - 1, nCells, 0 /* cartesian */, bunch);
@@ -221,7 +231,6 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
     doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels, msg);
     
-    msg << "Total field energy: " << totalFieldEnergy(grad_phi, rr) << endl;
     
     for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
 #ifdef UNIQUE_PTR
@@ -237,10 +246,10 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
 #endif
     }
     
+    writeScalarField(phi, *(geom[0].CellSize()), lower[0], "amr-phi_scalar-level-");
+    writeVectorField(grad_phi, *(geom[0].CellSize()), lower[0]);
     
     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
-    
-    dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
 }
 
 
@@ -256,10 +265,9 @@ int main(int argc, char *argv[]) {
 
     std::stringstream call;
     call << "Call: mpirun -np [#procs] " << argv[0]
-         << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#particles] "
-         << "[#levels] [max. box size]";
+         << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#levels] [max. box size]";
     
-    if ( argc < 7 ) {
+    if ( argc < 6 ) {
         msg << call.str() << endl;
         return -1;
     }
@@ -270,17 +278,13 @@ int main(int argc, char *argv[]) {
                          std::atoi(argv[3]));
     
     
-    size_t nParticles = std::atoi(argv[4]);
-    
-    
     msg << "Particle test running with" << endl
-        << "- #particles = " << nParticles << endl
         << "- grid       = " << nr << endl;
         
     BoxLib::Initialize(argc,argv, false);
-    size_t nLevels = std::atoi(argv[5]) + 1; // i.e. nLevels = 0 --> only single level
-    size_t maxBoxSize = std::atoi(argv[6]);
-    doBoxLib(nr, nParticles, nLevels, maxBoxSize, msg);
+    size_t nLevels = std::atoi(argv[4]) + 1; // i.e. nLevels = 0 --> only single level
+    size_t maxBoxSize = std::atoi(argv[5]);
+    doBoxLib(nr, nLevels, maxBoxSize, msg);
     
     
     IpplTimings::stopTimer(mainTimer);

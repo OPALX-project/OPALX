@@ -6,6 +6,7 @@
 #include <H5hut.h>
 
 #include "Distribution.h"
+#include "helper_functions.h" // container_t
 
 #define READDATA(type, file, name, value) H5PartReadData##type(file, name, value);
 
@@ -30,6 +31,8 @@ public:
      * @param filename specifies path and name of the file
      */
     H5Reader(const std::string& filename);
+    
+    H5Reader();
     
     /*!
      * Open the file and set the step to read
@@ -71,6 +74,11 @@ public:
      * @returns the number of particles
      */
     h5_ssize_t getNumParticles();
+    
+    void writeScalarField(const container_t& scalfield,
+                          const Array<Geometry>& geom);
+    
+    void writeVectorField(const container_t& vecfield);
     
 private:
     std::string filename_m;     ///< Path and filename

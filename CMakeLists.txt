@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 2.8.10)
 PROJECT (OPAL)
 SET (OPAL_VERSION_MAJOR 1)
-SET (OPAL_VERSION_MINOR 5.00.1)
+SET (OPAL_VERSION_MINOR 5.00.2)
 set (PACKAGE \"opal\")
 set (PACKAGE_BUGREPORT \"opal@lists.psi.ch\")
 set (PACKAGE_NAME \"OPAL\")
@@ -184,11 +184,6 @@ if (NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori
         message (FATAL  "")
     endif ()
 endif ()
-
-IF (AMR_DUMMY_SOLVE)
-    MESSAGE (STATUS "\nSolve Poisson equation with rhs equal 1")
-    SET (CMAKE_CXX_FLAGS "-DAMR_DUMMY_SOLVE ${CMAKE_CXX_FLAGS}")
-ENDIF (AMR_DUMMY_SOLVE)
 
 IF (DBG_SCALARFIELD)
     MESSAGE (STATUS "\nWrite scalar rho_m field is enabled ")
