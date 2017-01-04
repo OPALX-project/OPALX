@@ -38,6 +38,27 @@ try:
     if 'field' in f:
         data = match(f, vector_field_pattern)
         
+        # electric field in horizontal direction
+        mid = int(0.5 * max(data[:, 2]))
+        i = np.extract(data[:, 2] == mid, data[:, 0])
+        j = np.extract(data[:, 2] == mid, data[:, 1])
+        val = np.extract(data[:, 2] == mid, data[:, 3])
+        plt = doGridPlot(i, j, val, "horizontal grid", "vertical grid", r'$E_x$ [V/m]')
+        plt.savefig(f + '_slice_z_Ex.png')#, bbox_inches='tight')
+        
+        # electric field in vertical direction
+        val = np.extract(data[:, 2] == mid, data[:, 4])
+        plt = doGridPlot(i, j, val, "horizontal grid", "vertical grid", r'$E_y$ [V/m]')
+        plt.savefig(f + '_slice_z_Ey.png')#bbox_inches='tight')
+        
+        # center in z
+        mid = int(0.5 * max(data[:, 0]))
+        i = np.extract(data[:, 0] == mid, data[:, 1])
+        j = np.extract(data[:, 0] == mid, data[:, 2])
+        val = np.extract(data[:, 0] == mid, data[:, 5])
+        plt = doGridPlot(i, j, val, "vertical grid", "longitudinal grid", r'$E_z$ [V/m]')
+        plt.savefig(f + '_slice_x_Ez.png')# bbox_inches='tight')
+        
     elif 'scalar' in f:
         data = match(f, scalar_field_pattern)
         
@@ -45,7 +66,7 @@ try:
         if 'phi' in f:
             clab = r'$\phi$ [V]'
         elif 'rho' in f:
-            clab = 'r$\rho$ [C/m**3]'
+            clab = r'$\rho$ [C/m**3]'
         
         # center in x
         mid = int(0.5 * max(data[:, 0]))
