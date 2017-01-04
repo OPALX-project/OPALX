@@ -126,7 +126,7 @@ writePlotFile (const std::string& dir,
         HeaderFile << std::endl;
         
         // reference ratio
-        for (unsigned int i = 0; i < refRatio.size(); ++i)
+        for (std::size_t i = 0; i < refRatio.size(); ++i)
             HeaderFile << refRatio[i] << ' ';
         HeaderFile << std::endl;
         

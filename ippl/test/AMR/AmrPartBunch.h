@@ -105,7 +105,7 @@ public:
     
     
     void destroyAll() {
-        for (unsigned int i = 0; i < m_particles.size(); ++i)
+        for (std::size_t i = 0; i < m_particles.size(); ++i)
             this->RemoveParticlesAtLevel(i);
         nLocalParticles_m = 0;
     }
