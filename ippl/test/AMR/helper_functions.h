@@ -230,7 +230,7 @@ inline void init(RealBox& domain,
     
     // refinement ratio
     rr.resize(nLevels - 1);
-    for (unsigned int lev = 0; lev < rr.size(); ++lev)
+    for (std::size_t lev = 0; lev < rr.size(); ++lev)
         rr[lev] = 2;
     
     // geometries of refined levels
