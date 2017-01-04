@@ -9,6 +9,9 @@
 
 import yt
 import os
+import re
+import numpy as np
+import matplotlib.pyplot as plt
 
 ##
 # @param ds is the data
@@ -76,3 +79,45 @@ def countSubdirs(parent, substr):
             nDirs = nDirs + 1
     return nDirs
 
+##
+# Read field data written by OPAL (-DDBG_SCALARFIELD=1) using
+# regular expression
+# @param f is the file that is read line by line
+# @param pattern is a string specifying rule for matching
+# @returns a matrix where each row is matched line in the file
+def match(f, pattern):
+    
+    regex = re.compile(pattern)
+    
+    data = np.empty((0, regex.groups))
+    
+    # go through file line by line and match
+    with open(f) as ff:
+        for line in ff:
+            res = regex.match(line)
+            row = []
+            for i in range(1, regex.groups + 1):
+                row = np.append(row, [float(res.group(i))])
+            data = np.append(data, np.array([row]), axis=0)
+    return data
+
+##
+def doGridPlot(i, j, val, xlab, ylab, clab):
+    imin = int(i[0])
+    imax = int(i[-1])
+    
+    jmin = int(j[0])
+    jmax = int(j[-1])
+    
+    i = np.reshape(i, (imax, jmax))
+    j = np.reshape(j, (imax, jmax))
+    val = np.reshape(val, (imax, jmax))
+    
+    plt.figure()
+    plt.pcolor(i, j, val, cmap='YlGnBu')
+    plt.xlim(imin, imax)
+    plt.xlabel(xlab)
+    plt.ylim(imin, jmax)
+    plt.ylabel(ylab)
+    plt.colorbar(label=clab)
+    return plt
