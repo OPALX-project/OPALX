@@ -82,14 +82,8 @@
 #include "Utility/Inform.h"
 #include "Utility/IpplStats.h"
 
-#ifdef IPPL_STDSTL
 #include <vector>
 #include <utility>
-#else
-#include <vector.h>
-#include <pair.h>
-#endif // IPPL_STDSTL
-
 
 // forward declarations
 template<class T, unsigned Dim> class Vektor;

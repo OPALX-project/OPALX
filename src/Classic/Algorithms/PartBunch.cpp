@@ -33,6 +33,7 @@
 #include "Structure/FieldSolver.h"      // OPAL file
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
+#include "Utilities/GeneralClassicException.h"
 
 #include "Algorithms/ListElem.h"
 
@@ -1758,7 +1759,7 @@ void PartBunch::boundp() {
     /*
       Assume rmin_m < 0.0
      */
-    Inform m("boundp ", INFORM_ALL_NODES);
+    // Inform m("boundp ", INFORM_ALL_NODES);
 
     IpplTimings::startTimer(boundpTimer_m);
     //if(!R.isDirty() && stateOfLastBoundP_ == unit_state_) return;
@@ -1769,42 +1770,42 @@ void PartBunch::boundp() {
     if(!isGridFixed()) {
         const int dimIdx = 3;
 
-	/**
-	   In case of dcBeam_m && hr_m < 0
-	   this is the first call to boundp and we
-	   have to set hr completely i.e. x,y and z.
+        /**
+           In case of dcBeam_m && hr_m < 0
+           this is the first call to boundp and we
+           have to set hr completely i.e. x,y and z.
+        */
 
-	 */
+        const bool fullUpdate = (dcBeam_m && (hr_m[2] < 0.0)) || !dcBeam_m;
+        double hzSave;
 
-	const bool fullUpdate = (dcBeam_m && (hr_m[2] < 0.0)) || !dcBeam_m;
-	double hzSave;
+        NDIndex<3> domain = getFieldLayout().getDomain();
+        for(int i = 0; i < Dim; i++)
+            nr_m[i] = domain[i].length();
 
-	NDIndex<3> domain = getFieldLayout().getDomain();
-	for(int i = 0; i < Dim; i++)
-	  nr_m[i] = domain[i].length();
+        get_bounds(rmin_m, rmax_m);
+        Vector_t len = rmax_m - rmin_m;
 
-	get_bounds(rmin_m, rmax_m);
-	Vector_t len = rmax_m - rmin_m;
+        if (!fullUpdate) {
+            hzSave = hr_m[2];
+        }
+        else {
+            for(int i = 0; i < dimIdx; i++) {
+                double length = std::abs(rmax_m[i] - rmin_m[i]);
+                rmax_m[i] += dh_m * length;
+                rmin_m[i] -= dh_m * length;
+                if (length > 0)
+                    hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
+            }
+            // m << "It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl;
+        }
+        if (!fullUpdate) {
+            hr_m[2] = hzSave;
+            //INFOMSG("It is not a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
+        }
 
-	if (!fullUpdate) {
-	  hzSave = hr_m[2];
-	}
-	else {
-	  for(int i = 0; i < dimIdx; i++) {
-              double length = std::abs(rmax_m[i] - rmin_m[i]);
-              rmax_m[i] += dh_m * length;
-              rmin_m[i] -= dh_m * length;
-	      if (length > 0)
-		hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
-	  }
-
-	  //INFOMSG("It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
-	}
-
-	if (!fullUpdate) {
-	  hr_m[2] = hzSave;
-	  //INFOMSG("It is not a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
-	}
+        if (((hr_m[0] <= 0.0) || (hr_m[1] <= 0.0) || (hr_m[2] <= 0.0)) && (this->getTotalNum()>10))
+            throw GeneralClassicException("boundp() ", "h<0, can not build a mesh");
 
    // if (getTotalNum() < 200) m << "before set fields Nl= " << getLocalNum() << endl;
 
@@ -1919,6 +1920,21 @@ void PartBunch::calcMoments() {
         }
     }
 
+    /*
+      find particle with ID==0
+      and save index in zID
+     */
+
+    unsigned long zID = 0;
+    bool found = false;
+    for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
+        if (this->ID[k] == 0) {
+            found  = true;
+            zID = k;
+            break;
+        }
+    }
+    
     for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
         part[1] = this->P[k](0);
         part[3] = this->P[k](1);
@@ -1926,7 +1942,7 @@ void PartBunch::calcMoments() {
         part[0] = this->R[k](0);
         part[2] = this->R[k](1);
         part[4] = this->R[k](2);
-
+        
         for(int i = 0; i < 2 * Dim; i++) {
             loc_centroid[i]   += part[i];
             for(int j = 0; j <= i; j++) {
@@ -1934,6 +1950,23 @@ void PartBunch::calcMoments() {
             }
         }
     }
+    
+    if (found) {
+        part[1] = this->P[zID](0);
+        part[3] = this->P[zID](1);
+        part[5] = this->P[zID](2);
+        part[0] = this->R[zID](0);
+        part[2] = this->R[zID](1);
+        part[4] = this->R[zID](2);
+        
+        for(int i = 0; i < 2 * Dim; i++) {
+            loc_centroid[i]   -= part[i];
+            for(int j = 0; j <= i; j++) {
+                loc_moment[i][j]   -= part[i] * part[j];
+            }
+        }
+    } 
+
 
     for(int i = 0; i < 2 * Dim; i++) {
         for(int j = 0; j < i; j++) {
@@ -2035,10 +2068,7 @@ void PartBunch::calcBeamParameters() {
             psqsum(i) = 0;
         rpsum(i) = moments_m((2 * i), (2 * i) + 1) - N * rmean_m(i) * pmean_m(i);
     }
-
     eps2 = (rsqsum * psqsum - rpsum * rpsum) / (N * N);
-
-
     rpsum /= N;
 
     for(unsigned int i = 0 ; i < Dim; i++) {
@@ -2051,11 +2081,38 @@ void PartBunch::calcBeamParameters() {
 
     rprms_m = rpsum * fac;
 
-    Dx_m = moments_m(0, 5) / N;
-    DDx_m = moments_m(1, 5) / N;
+    if (nodes_m > 1) {
+        Dx_m = moments_m(0, 5) / N;
+        DDx_m = moments_m(1, 5) / N;
+      
+        Dy_m = moments_m(2, 5) / N;
+        DDy_m = moments_m(3, 5) / N;
 
-    Dy_m = moments_m(2, 5) / N;
-    DDy_m = moments_m(3, 5) / N;
+    }
+    else {
+      /** 
+	  This is a easy way to follow the linear dispersion
+
+	  The position of the first 4 particles when read from file
+	  can be set to zero and a dp/p0 can be set, hence the dispersion
+	  orbit can be followed.
+      */
+      
+        for(size_t i = 0; i < locNp; i++) {
+          if (ID[i] == 1) {
+              Dx_m = R[i](0);
+          }
+          else if (ID[i] == 2) {
+              DDx_m = R[i](0);
+          }
+          else if (ID[i] == 3) {
+              Dy_m = R[i](0);
+          }
+          else if (ID[i] == 4) {
+              DDy_m = R[i](0);
+          }
+        }
+    }
 
     /*
       double rmax = sqrt(dot(rmax_m,rmax_m));
@@ -2240,72 +2297,6 @@ Inform &PartBunch::print(Inform &os) {
 }
 
 
-void PartBunch::calcBeamParameters_cycl() {
-    using Physics::c;
-
-    Vector_t eps2, fac, rsqsum, psqsum, rpsum;
-
-    //const size_t locNp = this->getLocalNum();
-    //double localeKin = 0.0;
-
-    const double zero = 0.0;
-    const double TotalNp =  static_cast<double>(this->getTotalNum());
-
-    // calculate centroid_m and moments_m
-    calcMoments();
-
-    for(unsigned int i = 0 ; i < Dim; i++) {
-        rmean_m(i) = centroid_m[2 * i] / TotalNp;
-        pmean_m(i) = centroid_m[(2 * i) + 1] / TotalNp;
-        rsqsum(i) = moments_m(2 * i, 2 * i) - TotalNp * rmean_m(i) * rmean_m(i);
-        psqsum(i) = moments_m((2 * i) + 1, (2 * i) + 1) - TotalNp * pmean_m(i) * pmean_m(i);
-        rpsum(i) =  moments_m((2 * i), (2 * i) + 1) - TotalNp * rmean_m(i) * pmean_m(i);
-    }
-    eps2      = (rsqsum * psqsum - rpsum * rpsum) / (TotalNp * TotalNp);
-    rpsum /= TotalNp;
-
-    for(unsigned int i = 0 ; i < Dim; i++) {
-        rrms_m(i) = sqrt(rsqsum(i) / TotalNp);
-        prms_m(i) = sqrt(psqsum(i) / TotalNp);
-        //eps_m(i)  = sqrt( std::max( eps2(i), zero ) );
-        eps_norm_m(i)  = sqrt(std::max(eps2(i), zero));
-        double tmp    = rrms_m(i) * prms_m(i);
-        fac(i)  = (tmp == 0) ? zero : 1.0 / tmp;
-    }
-
-    rprms_m = rpsum * fac;
-
-    // y: longitudinal direction; z: vertical direction.
-    Dx_m = moments_m(0, 3) / TotalNp;
-    DDx_m = moments_m(1, 3) / TotalNp;
-
-    Dy_m = moments_m(4, 3) / TotalNp;
-    DDy_m = moments_m(5, 3) / TotalNp;
-
-    // calculate mean energy
-    calcEMean();
-
-    /*
-    *gmsg << endl;
-    *gmsg << "* In calcBeamParameters_cycl():" << endl;
-    *gmsg << "* eKin_m = " << eKin_m << endl;
-
-    double meanLocalBetaGamma = sqrt(pow(1 + localeKin / (getM() * 1.0e-6), 2.0) - 1);
-
-    double betagamma = meanLocalBetaGamma * locNp;
-
-    // sum the betagamma of all nodes
-    reduce(betagamma, betagamma, OpAddAssign());
-    betagamma /= TotalNp;
-    */
-
-    double betagamma = sqrt(pow(1.0 + eKin_m / (getM() * 1.0e-6), 2.0) - 1.0);
-    // *gmsg << "* betagamma = " << betagamma << endl;
-
-    // obtain the global RMS emmitance, it make no sense for multi-bunch simulation
-    eps_m = eps_norm_m / Vector_t(betagamma);
-}
-
 void PartBunch::correctEnergy(double avrgp_m) {
 
   const double totalNp = static_cast<double>(this->getTotalNum());
@@ -2435,7 +2426,7 @@ void PartBunch::boundp_destroy() {
     get_bounds(rmin_m, rmax_m);
     len = rmax_m - rmin_m;
 
-    calcBeamParameters_cycl();
+    calcBeamParameters();
 
     double checkfactor = Options::remotePartDel;
 

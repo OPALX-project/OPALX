@@ -36,12 +36,7 @@
 #include "Utility/my_auto_ptr.h"
 #include "Utility/vmap.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
-
 #include <cstdlib>
 
 // forward declarations

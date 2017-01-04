@@ -6,6 +6,8 @@
 
 #include <MultiFabUtil.H>
 
+#include <memory>
+
 /*!
  * @file AmrOpal.h
  * @authors Matthias Frey
@@ -20,6 +22,14 @@
 
 /// Concrete AMR implementation
 class AmrOpal : public AmrCore {
+    
+private:
+//     typedef Array<std::unique_ptr<MultiFab> > mfs_mt; ///< instead of using PArray<MultiFab>
+    typedef PArray<MultiFab > mfs_mt;
+    
+    
+    
+//     typedef PArray<MultiFab> mp_mt;
     
 public:
     /*!
@@ -62,20 +72,67 @@ public:
                        const BoxArray& new_grids, const DistributionMapping& new_dmap);
     
     
+    void ClearLevel(int lev);
+    
     /*!
      * Print the number of particles per cell (minimum and maximum)
      */
     void info() {
         for (int i = 0; i < finest_level; ++i)
             std::cout << "density level " << i << ": "
+#ifdef UNIQUE_PTR
+                      << nPartPerCell_m[i]->min(0) << " "
+                      << nPartPerCell_m[i]->max(0) << std::endl;
+#else
+                      
                       << nPartPerCell_m[i].min(0) << " "
                       << nPartPerCell_m[i].max(0) << std::endl;
+#endif
+                      
     }
     
     /*!
      * Write a timestamp file for displaying with yt.
      */
+    void writePlotFileYt(std::string filename, int step);
+    
+    /*!
+     * Write a timestamp file for displaying with AmrVis.
+     */
     void writePlotFile(std::string filename, int step);
+    
+    mfs_mt* getPartPerCell() {
+        return &nPartPerCell_m;
+    }
+    
+    void assignDensity() {
+        
+        for (int i = 0; i < finest_level; ++i)
+#ifdef UNIQUE_PTR
+            chargeOnGrid_m[i]->setVal(0.0);
+#else
+            chargeOnGrid_m[i].setVal(0.0);
+#endif
+        
+        bunch_m->AssignDensity(0, false, chargeOnGrid_m, 0, 1, finest_level);
+        
+//         double assign_sum = 0.0;
+//         double charge_sum = 0.0;
+//         std::cout << "---------------------------------------------" << std::endl;
+//         std::cout << "          CHARGE CONSERVATION TEST           " << std::endl;
+//         for (int i = 0; i <= finest_level; ++i) {
+//             Real charge = bunch_m->sumParticleMass(0 /*attribute*/, i /*level*/);
+//             Real invVol = (*(Geom(i).CellSize()) * *(Geom(i).CellSize()) * *(Geom(i).CellSize()) );
+//             std::cout << "dx * dy * dz = " << invVol << std::endl;
+//             assign_sum += chargeOnGrid_m[i]->sum() * invVol;
+//             std::cout << "Level " << i << " MultiFab sum * dx * dy * dz: " << chargeOnGrid_m[i]->sum() * invVol
+//                       << " Charge sum: " << charge
+//                       << " Spacing: " << *(Geom(i).CellSize()) << std::endl;
+//             charge_sum += charge;
+//         }
+//         std::cout << "Total charge: " << assign_sum << " " << charge_sum << std::endl;
+//         std::cout << "---------------------------------------------" << std::endl;
+    }
 
 protected:
     /*!
@@ -84,8 +141,9 @@ protected:
     virtual void ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override;
     
 private:
-    AmrPartBunch* bunch_m;                  ///< Particle bunch
-    PArray<MultiFab> nPartPerCell_m;        ///< used in tagging.
+    AmrPartBunch* bunch_m;      ///< Particle bunch
+    mfs_mt/*mp_mt*/ nPartPerCell_m;      ///< used in tagging.
+    mfs_mt chargeOnGrid_m;
     
 };
 

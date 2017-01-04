@@ -25,13 +25,8 @@
 // include files
 #include <cstddef>
 
-#ifdef IPPL_STDSTL
 #include <vector>
 #include <utility>
-#else
-#include <vector.h>
-#include <pair.h>
-#endif
 
 // forward declarations
 class Inform;

@@ -15,12 +15,7 @@
 #ifndef CENTERING_H
 #define CENTERING_H
 
-// include files
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
 
 // Cell-centered, all components, for all dimensions in cartesian-mesh case.
 // Recommendation: use CommonCartesianCenterings<D,NComponents,0U>::allCell

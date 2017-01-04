@@ -47,10 +47,6 @@
 **			  -DSGI_HW_COUNTERS for using SGI counters 	  **
 **			  -DPROFILE_CALLS  for trace of each invocation   **
 **                        -DSGI_TIMERS  for SGI fast nanosecs timer       **
-**			  -DTULIP_TIMERS for non-sgi Platform	 	  **
-**			  -DIPPL_STDSTL for using STD STL in IPPL src   **
-**			  -DIPPL_TFLOP for Intel Teraflop at SNL/NM 	  **
-**			  -DIPPL_KAI for KCC compiler 			  **
 **			  -DDEBUG_PROF  for internal debugging messages   **
 **	Documentation	: See http://www.acl.lanl.gov/tau	          **
 ***************************************************************************/
@@ -61,14 +57,8 @@
 
 #include "Profile/Profiler.h"
 
-
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
 using namespace std;
-#else
-#include <iostream.h>
-#endif
-
 #include <cstdio> 
 #include <fcntl.h>
 #include <ctime>
@@ -76,13 +66,6 @@ using namespace std;
 #include <cstdlib>
 #include <cstring>
 
-#if (defined(IPPL_TFLOP) || !defined(TULIP_TIMERS))
-#include <sys/time.h>
-#else
-#ifdef TULIP_TIMERS 
-#include "Profile/TulipTimers.h"
-#endif //TULIP_TIMERS 
-#endif //IPPL_TFLOP
 
 #ifdef TRACING_ON
 #define PCXX_EVENT_SRC
@@ -110,18 +93,6 @@ unsigned int RtsLayer::ProfileMask = TAU_DEFAULT;
 // Default value of Node.
 int RtsLayer::Node = -1;
 
-//////////////////////////////////////////////////////////////////////
-// Explicit Instantiations for templated entities needed for ASCI Red
-//////////////////////////////////////////////////////////////////////
-
-#ifdef IPPL_TFLOP
-template void vector<FunctionInfo *>::insert_aux(vector<FunctionInfo *>::pointer, FunctionInfo *const &);
-#ifndef IPPL_STDSTL
-// need a few other function templates instantiated
-template FunctionInfo** copy_backward(FunctionInfo**,FunctionInfo**,FunctionInfo**);
-template FunctionInfo** uninitialized_copy(FunctionInfo**,FunctionInfo**,FunctionInfo**);
-#endif // not IPPL_STDSTL
-#endif //IPPL_TFLOP
 
 //////////////////////////////////////////////////////////////////////
 // Member Function Definitions For class FunctionInfo

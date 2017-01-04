@@ -20,7 +20,7 @@
 
 #include "AbstractObjects/Action.h"
 #ifdef HAVE_AMR_SOLVER
-	#include <Amr.H>
+	#include <AmrCore.H>
 	#include <ParallelDescriptor.H>
 	#include <fstream>
 	#include <iomanip>

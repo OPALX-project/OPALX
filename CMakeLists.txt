@@ -1,13 +1,12 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 2.8.10)
 PROJECT (OPAL)
 SET (OPAL_VERSION_MAJOR 1)
-SET (OPAL_VERSION_MINOR 5.00.1)
+SET (OPAL_VERSION_MINOR 5.00.2)
 set (PACKAGE \"opal\")
 set (PACKAGE_BUGREPORT \"opal@lists.psi.ch\")
 set (PACKAGE_NAME \"OPAL\")
 set (PACKAGE_TARNAME \"opal\")
 set (PACKAGE_VERSION "\"${OPAL_VERSION_MAJOR}.${OPAL_VERSION_MINOR}\"")
-set (DKS_VERSION \"1.0.1\")
 
 IF (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     SET (CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
@@ -72,55 +71,24 @@ endif ()
 
 
 ### Uldis Locans 2014.09.05 ###
-OPTION (ENABLE_OPENCL "Enable OpenCL" OFF)
-OPTION (ENABLE_CUDA "Enable CUDA" OFF)
-OPTION (ENABLE_OPENMP "Enable OpenMP + offload" OFF)
-
-OPTION (USE_OPENCL "Use OpenCL" OFF)
-OPTION (USE_CUDA "Use CUDA" OFF)
-OPTION (USE_MIC "Use MIC" OFF)
+OPTION (ENABLE_DKS "Enable DKS" OFF)
 
 ### Load DKS package ###
-IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
+IF (ENABLE_DKS)
    FIND_PACKAGE(DKS REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
    MESSAGE (STATUS "Found DKS library: ${DKS_LIBRARY}")
    MESSAGE (STATUS "Found DKS include dir: ${DKS_INCLUDE_DIR}")
    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDKS_MPI")
-ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_MIC)
 
-### OpenCL compiler flags ###
-IF (ENABLE_OPENCL)
-	SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lOpenCL -pthread -DDKS_OPENCL")
-ENDIF (ENABLE_OPENCL)
-### End OpenCL ###
+   ### OpenCL compiler flags ###
+   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lOpenCL -pthread -DDKS_OPENCL")
 
-### CUDA compiler flags ###
-IF (ENABLE_CUDA)
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lcudart -lcufft -lcublas -lnvToolsExt -DDKS_CUDA")
-ENDIF (ENABLE_CUDA)
-### End Cuda ###
-
-### MIC compiler flags ###
-IF (ENABLE_OPENMP)
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -openmp -DDKS_MIC")
-ENDIF (ENABLE_OPENMP)
-### END MIC ###
-
-### if any accelerator enabled set flag to use DKS ###
-IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_OPENMP)
-	SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIPPL_DKS -DOPAL_DKS")
-ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_OPENMP)
-
-### select API for DKS (temporary - will be moved to runtime) ###
-IF (USE_OPENCL)
-	SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIPPL_DKS_OPENCL")
-ENDIF (USE_OPENCL)
-IF (USE_CUDA)
-	SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIPPL_DKS_CUDA")
-ENDIF (USE_CUDA)
-IF (USE_MIC)
-	SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIPPL_DKS_MIC")
-ENDIF (USE_MIC)
+   ### CUDA compiler flags ###
+   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lcudart -lcufft -lcublas -lnvToolsExt -DDKS_CUDA")
+   
+   ### if any accelerator enabled set flag to use DKS ###
+   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIPPL_DKS -DOPAL_DKS")
+ENDIF (ENABLE_DKS)
 ### END DKS part ###
 
 # Handle options
@@ -185,7 +153,14 @@ IF (ENABLE_AMR_SOLVER)
     MESSAGE (STATUS "  ENABLE_PROFILING = ${ENABLE_PROFILING}")
 ENDIF (ENABLE_AMR_SOLVER)
 
-if (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_SOLVER)
+# remove digits from hostname: edison03 -> edison
+STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
+
+# In case of Edison and Cori the find_package(Trilinos) gives the wrong
+# Trilinos_TPL_LIBRARIES, instead of cray-tpsl/16.07.1 it uses
+# cray-tpsl/16.06.1 libraries -> Linker error.
+# We can avoid this issue by not going into the if-statement
+if (NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_SOLVER) )
     MESSAGE ("Enable SAAMG_SOLVER  " ${ENABLE_SAAMG_SOLVER})
     MESSAGE ("Enable AMR_SOLVER    " ${ENABLE_AMR_SOLVER})
     find_package (Trilinos REQUIRED HINTS $ENV{TRILINOS_PREFIX} $ENV{TRILINOS_DIR} $ENV{TRILINOS})
@@ -209,11 +184,6 @@ if (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_SOLVER)
         message (FATAL  "")
     endif ()
 endif ()
-
-IF (AMR_DUMMY_SOLVE)
-    MESSAGE (STATUS "\nSolve Poisson equation with rhs equal 1")
-    SET (CMAKE_CXX_FLAGS "-DAMR_DUMMY_SOLVE ${CMAKE_CXX_FLAGS}")
-ENDIF (AMR_DUMMY_SOLVE)
 
 IF (DBG_SCALARFIELD)
     MESSAGE (STATUS "\nWrite scalar rho_m field is enabled ")

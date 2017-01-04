@@ -280,15 +280,15 @@ void Ring::appendElement(const Component &element) {
 
     double dphi = atan2(startNorm(0), startNorm(1));
     Inform msg("OPAL");
-    msg << "Added " << element.getName() << " to Ring" << endl;
-    msg << "  Start position ("
+    msg << "* Added " << element.getName() << " to Ring" << endl;
+    msg << "* Start position ("
         << section->getStartPosition()(0) << ", "
         << section->getStartPosition()(1) << ", "
         << section->getStartPosition()(2) << ") normal ("
         << section->getStartNormal()(0) << ", "
         << section->getStartNormal()(1) << ", "
         << section->getStartNormal()(2) << "), phi " << dphi << endl;
-    msg << "  End position ("
+    msg << "* End position ("
         << section->getEndPosition()(0) << ", "
         << section->getEndPosition()(1) << ", "
         << section->getEndPosition()(2) << ") normal ("

@@ -35,20 +35,10 @@
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplStats.h"
 
-
-#ifdef IPPL_STDSTL
 #include <map>
 #include <utility>
-#else
-#include <map.h>
-#include <multimap.h>
-#endif // IPPL_STDSTL
-
 #include <cstdlib>
 
-#ifdef IPPL_NETCDF
-#include <netcdf.h>
-#endif 
 
 //////////////////////////////////////////////////////////////////////
 //

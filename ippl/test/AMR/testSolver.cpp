@@ -31,6 +31,26 @@
 
 #include "Ippl.h"
 
+typedef Solver::container_t container_t;
+
+
+double totalFieldEnergy(container_t& efield) {
+    
+    double fieldEnergy = 0.0;
+    for (unsigned int l = 0; l < efield.size(); ++l)
+        fieldEnergy += MultiFab::Dot(*efield[l], 0, *efield[l], 0, 3, 0);
+    
+    return 0.5 * fieldEnergy;
+}
+
+double totalPotential(container_t& potential) {
+    double sum = 0.0;
+    for (unsigned int l = 0; l< potential.size(); ++l)
+        sum += potential[l]->sum();
+    return sum;
+}
+
+
 int main(int argc, char* argv[]) {
     
     if (argc != 7) {
@@ -70,7 +90,7 @@ int main(int argc, char* argv[]) {
     RealBox domain;
     for (int i = 0; i < BL_SPACEDIM; ++i) {
         domain.setLo(i, 0.0);
-        domain.setHi(i, 1.0);
+        domain.setHi(i, 0.01);
     }
     
     // dirichlet boundary conditions
@@ -94,7 +114,7 @@ int main(int argc, char* argv[]) {
     // Refined Meshes
     // ------------------------------------------------------------------------
     Array<int> refRatio(nLevels-1);
-    for (int i = 0; i < refRatio.size(); ++i)
+    for (unsigned int i = 0; i < refRatio.size(); ++i)
         refRatio[i] = 2;
     
     for (int lev = 1; lev < nLevels; ++lev) {
@@ -124,14 +144,14 @@ int main(int argc, char* argv[]) {
     // ------------------------------------------------------------------------
     
     
-    PArray<MultiFab> rho(nLevels);
-    PArray<MultiFab> phi(nLevels);
-    PArray<MultiFab> efield(nLevels);
+    container_t rho(nLevels);
+    container_t phi(nLevels);
+    container_t efield(nLevels);
     
     for (int l = 0; l < nLevels; ++l) {
-        rho.set(l, new MultiFab(ba[l], 1, 0));
-        phi.set(l, new MultiFab(ba[l], 1, 1));
-        efield.set(l, new MultiFab(ba[l], BL_SPACEDIM, 1));
+        rho[l] = std::unique_ptr<MultiFab>(new MultiFab(ba[l], 1, 0));
+        phi[l] = std::unique_ptr<MultiFab>(new MultiFab(ba[l], 1, 1));
+        efield[l] = std::unique_ptr<MultiFab>(new MultiFab(ba[l], BL_SPACEDIM, 1));
     }
     
     
@@ -141,7 +161,7 @@ int main(int argc, char* argv[]) {
     
     // rho is equal to one everywhere
     for (int l = 0; l < nLevels; ++l)
-        rho[l].setVal(-1.0);
+        rho[l]->setVal(-1.0);
     
     
     // ------------------------------------------------------------------------
@@ -151,8 +171,12 @@ int main(int argc, char* argv[]) {
     Solver sol;
     
     IpplTimings::startTimer(solverTimer);
-    sol.solve_for_accel(rho, phi, efield, geom,
-                        base_level, fine_level,
+    sol.solve_for_accel(rho,
+                        phi,
+                        efield,
+                        geom,
+                        base_level,
+                        fine_level,
                         offset);
     IpplTimings::stopTimer(solverTimer);
     
@@ -179,6 +203,13 @@ int main(int argc, char* argv[]) {
                         + "-gridsize=" + std::to_string(maxBoxSize);
                         
     IpplTimings::print(tfn);
+    
+    Inform msg("Solver");
+    
+    msg << "Field energy: " << totalFieldEnergy(efield) << endl
+        << "Total potential: " << totalPotential(phi) << endl;
+    double dx = *(geom[0].CellSize());
+    msg << "Cell volume: " << dx * dx * dx << endl;
     
     return 0;
 }

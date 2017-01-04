@@ -57,12 +57,7 @@
 #include "Particle/ParticleAttrib.h"
 #include "PETE/IpplExpressions.h"
 
-#ifdef IPPL_STDSTL
 #include <vector>
-#else
-#include <vector.h>
-#endif // IPPL_STDSTL
-
 
 // forward declarations
 class Inform;

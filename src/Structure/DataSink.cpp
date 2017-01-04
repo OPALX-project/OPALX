@@ -279,7 +279,7 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
     unsigned int pwi = 10;
 
     /// Calculate beam statistics and gather load balance statistics.
-    beam.calcBeamParameters();
+//    beam.calcBeamParameters_cycl();
     beam.gatherLoadBalanceStatistics();
 
     size_t npOutside = 0;
@@ -401,6 +401,24 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
             os_statData << beam.P[0](0) << setw(pwi) << "\t";                                   // 53 P0_x
             os_statData << beam.P[0](1) << setw(pwi) << "\t";                                   // 54 P0_y
             os_statData << beam.P[0](2) << setw(pwi) << "\t";                                   // 55 P0_z
+            os_statData << beam.R[0](0) << setw(pwi) << "\t";                                   // 50 R0_x
+            os_statData << beam.R[1](1) << setw(pwi) << "\t";                                   // 51 R0_y
+            os_statData << beam.R[1](2) << setw(pwi) << "\t";                                   // 52 R0_z
+            os_statData << beam.P[1](0) << setw(pwi) << "\t";                                   // 53 P0_x
+            os_statData << beam.P[1](1) << setw(pwi) << "\t";                                   // 54 P0_y
+            os_statData << beam.P[1](2) << setw(pwi) << "\t";                                   // 55 P0_z
+            os_statData << beam.R[2](0) << setw(pwi) << "\t";                                   // 50 R0_x
+            os_statData << beam.R[2](1) << setw(pwi) << "\t";                                   // 51 R0_y
+            os_statData << beam.R[2](2) << setw(pwi) << "\t";                                   // 52 R0_z
+            os_statData << beam.P[2](0) << setw(pwi) << "\t";                                   // 53 P0_x
+            os_statData << beam.P[2](1) << setw(pwi) << "\t";                                   // 54 P0_y
+            os_statData << beam.P[2](2) << setw(pwi) << "\t";                                   // 55 P0_z
+            os_statData << beam.R[3](0) << setw(pwi) << "\t";                                   // 50 R0_x
+            os_statData << beam.R[3](1) << setw(pwi) << "\t";                                   // 51 R0_y
+            os_statData << beam.R[3](2) << setw(pwi) << "\t";                                   // 52 R0_z
+            os_statData << beam.P[3](0) << setw(pwi) << "\t";                                   // 53 P0_x
+            os_statData << beam.P[3](1) << setw(pwi) << "\t";                                   // 54 P0_y
+            os_statData << beam.P[3](2) << setw(pwi) << "\t";                                   // 55 P0_z
         }
 
 
@@ -423,7 +441,6 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
 
 void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail) {
     /// Function steps:
-
     /// Start timer.
     IpplTimings::startTimer(StatMarkerTimer_m);
 
@@ -630,16 +647,28 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
     outputFile << "&column name=notused2, type=double, units=1 , ";
     outputFile << "description=\"25 notused2 in y  \" &end" << endl;
 
-    outputFile << "&column name=Dx, type=double, units=m , ";
-    outputFile << "description=\"26 Dispersion in x  \" &end" << endl;
-    outputFile << "&column name=DDx, type=double, units=1 , ";
-    outputFile << "description=\"27 Derivative of dispersion in x  \" &end" << endl;
+    if (Ippl::getNodes()>1) {
+      outputFile << "&column name=Dx, type=double, units=m , ";
+      outputFile << "description=\"26 Dispersion in x  \" &end" << endl;
+      outputFile << "&column name=DDx, type=double, units=1 , ";
+      outputFile << "description=\"27 Derivative of dispersion in x  \" &end" << endl;
 
-    outputFile << "&column name=Dy, type=double, units=m , ";
-    outputFile << "description=\"28 Dispersion in y  \" &end" << endl;
-    outputFile << "&column name=DDy, type=double, units=1 , ";
-    outputFile << "description=\"29 Derivative of dispersion in y  \" &end" << endl;
+      outputFile << "&column name=Dy, type=double, units=m , ";
+      outputFile << "description=\"28 Dispersion in y  \" &end" << endl;
+      outputFile << "&column name=DDy, type=double, units=1 , ";
+      outputFile << "description=\"29 Derivative of dispersion in y  \" &end" << endl;
+    }
+    else {
+      outputFile << "&column name=Dx1, type=double, units=m , ";
+      outputFile << "description=\"26 Dispersion in x particle 1  \" &end" << endl;
+      outputFile << "&column name=Dx2, type=double, units=m , ";
+      outputFile << "description=\"27 Dispersion in x particle 2  \" &end" << endl;
 
+      outputFile << "&column name=Dx3, type=double, units=m , ";
+      outputFile << "description=\"28 Dispersion in x particle 3  \" &end" << endl;
+      outputFile << "&column name=Dx4, type=double, units=m , ";
+      outputFile << "description=\"29 Dispersion in x particle 4  \" &end" << endl;
+    }
     outputFile << "&column name=Bx_head, type=double, units=T , ";
     outputFile << "description=\"30 Bx-Field component of head particle  \" &end" << endl;
     outputFile << "&column name=By_head, type=double, units=T , ";
@@ -691,18 +720,58 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
     unsigned int columnStart = 49;
     if(Ippl::getNodes() == 1) {
         outputFile << "&column name=R0_x, type=double, units=m , ";
-        outputFile << "description=\"49 R0 Particle Position in x  \" &end" << endl;
+        outputFile << "description=\"50 R0 Particle Position in x  \" &end" << endl;
         outputFile << "&column name=R0_y, type=double, units=m , ";
-        outputFile << "description=\"50 R0 Particle Position in y  \" &end" << endl;
+        outputFile << "description=\"51 R0 Particle Position in y  \" &end" << endl;
         outputFile << "&column name=R0_s, type=double, units=m , ";
-        outputFile << "description=\"51 R0 Particle Position in s  \" &end" << endl;
+        outputFile << "description=\"52 R0 Particle Position in s  \" &end" << endl;
         outputFile << "&column name=P0_x, type=double, units=1 , ";
-        outputFile << "description=\"52 R0 Particle Position in x  \" &end" << endl;
+        outputFile << "description=\"53 P0 Particle Position in px  \" &end" << endl;
         outputFile << "&column name=P0_y, type=double, units=1 , ";
-        outputFile << "description=\"53 R0 Particle Position in y  \" &end" << endl;
+        outputFile << "description=\"54 P0 Particle Position in py  \" &end" << endl;
         outputFile << "&column name=P0_s, type=double, units=1 , ";
-        outputFile << "description=\"54 R0 Particle Position in s  \" &end" << endl;
-        columnStart = 55;
+        outputFile << "description=\"55 P0 Particle Position in ps  \" &end" << endl;
+
+        outputFile << "&column name=R1_x, type=double, units=m , ";
+        outputFile << "description=\"56 R1 Particle Position in x  \" &end" << endl;
+        outputFile << "&column name=R1_y, type=double, units=m , ";
+        outputFile << "description=\"57 R1 Particle Position in y  \" &end" << endl;
+        outputFile << "&column name=R1_s, type=double, units=m , ";
+        outputFile << "description=\"58 R1 Particle Position in s  \" &end" << endl;
+        outputFile << "&column name=P1_x, type=double, units=1 , ";
+        outputFile << "description=\"59 P1 Particle Position in px  \" &end" << endl;
+        outputFile << "&column name=P1_y, type=double, units=1 , ";
+        outputFile << "description=\"60 P1 Particle Position in py  \" &end" << endl;
+        outputFile << "&column name=P1_s, type=double, units=1 , ";
+        outputFile << "description=\"61 P1 Particle Position in ps  \" &end" << endl;
+
+        outputFile << "&column name=R2_x, type=double, units=m , ";
+        outputFile << "description=\"62 R2 Particle Position in x  \" &end" << endl;
+        outputFile << "&column name=R2_y, type=double, units=m , ";
+        outputFile << "description=\"63 R2 Particle Position in y  \" &end" << endl;
+        outputFile << "&column name=R2_s, type=double, units=m , ";
+        outputFile << "description=\"64 R2 Particle Position in s  \" &end" << endl;
+        outputFile << "&column name=P2_x, type=double, units=1 , ";
+        outputFile << "description=\"65 P2 Particle Position in px  \" &end" << endl;
+        outputFile << "&column name=P2_y, type=double, units=1 , ";
+        outputFile << "description=\"66 P2 Particle Position in py  \" &end" << endl;
+        outputFile << "&column name=P2_s, type=double, units=1 , ";
+        outputFile << "description=\"67 P2 Particle Position in ps  \" &end" << endl;
+
+        outputFile << "&column name=R3_x, type=double, units=m , ";
+        outputFile << "description=\"68 R3 Particle Position in x  \" &end" << endl;
+        outputFile << "&column name=R3_y, type=double, units=m , ";
+        outputFile << "description=\"69 R3 Particle Position in y  \" &end" << endl;
+        outputFile << "&column name=R3_s, type=double, units=m , ";
+        outputFile << "description=\"70 R3 Particle Position in s  \" &end" << endl;
+        outputFile << "&column name=P3_x, type=double, units=1 , ";
+        outputFile << "description=\"71 P3 Particle Position in px  \" &end" << endl;
+        outputFile << "&column name=P3_y, type=double, units=1 , ";
+        outputFile << "description=\"72 P3 Particle Position in py  \" &end" << endl;
+        outputFile << "&column name=P3_s, type=double, units=1 , ";
+        outputFile << "description=\"73 P3 Particle Position in ps  \" &end" << endl;
+
+        columnStart = 73;
     }
 
     for (size_t i = 0; i < losses.size(); ++ i) {

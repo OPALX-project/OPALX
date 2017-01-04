@@ -129,8 +129,6 @@ FieldSolver::FieldSolver():
     itsAttr[AMRSUBCYCLE] = Attributes::makeBool("AMRSUBCYCLE",
                                                 "Subcycling in time for refined levels in AMR", false);
     itsAttr[AMRMAXGRID] = Attributes::makeReal("AMRMAXGRID", "Maximum grid size in AMR", 16);
-    
-    amrptr_m = 0;
 #endif
     
     mesh_m = 0;
@@ -350,25 +348,15 @@ void FieldSolver::initSolver(PartBunch &b) {
     else if (Attributes::getString(itsAttr[FSTYPE]) == "AMR") {
         Inform m("FieldSolver::initSolver-amr ");
         fsType_m = "AMR";
-        
+	/* 
         // Add the parsed AMR attributes to BoxLib (please check BoxLib/Src/C_AMRLib/Amr.cpp)
         ParmParse pp("amr");
     
         pp.add("max_level", Attributes::getReal(itsAttr[AMRMAXLEVEL]));
         
-        
-//     IntVect refRatios = { (int)Attributes::getReal(itsAttr[AMRREFX]),
-// 			  (int)Attributes::getReal(itsAttr[AMRREFY]),
-// 			  (int)Attributes::getReal(itsAttr[AMRREFT])
-// 			 };
-        pp.add("ref_ratio", (int)Attributes::getReal(itsAttr[AMRREFX])/*refRatios*/); //FIXME
+        pp.add("ref_ratio", (int)Attributes::getReal(itsAttr[AMRREFX])); //FIXME
     
         pp.add("max_grid_size", Attributes::getReal(itsAttr[AMRMAXGRID]));
-        
-        //BEGIN TO BE REMOVED
-        ParmParse ppr("accel");
-        ppr.add("fixed_dt", 1.0e-10);
-        //END TO BE REMOVED
     
         FieldLayout<3>::iterator_iv locDomBegin = FL_m->begin_iv();
         FieldLayout<3>::iterator_iv locDomEnd = FL_m->end_iv();
@@ -407,12 +395,12 @@ void FieldSolver::initSolver(PartBunch &b) {
         Array<Real> prob_lo(3);
         Array<Real> prob_hi(3);
         
-        prob_lo.set(0, -0.02); //-0.08);
-        prob_lo.set(1, -0.02); //-0.08);
-        prob_lo.set(2, 0.0); //-0.12);
-        prob_hi.set(0, 0.02); //0.08);
-        prob_hi.set(1, 0.02); //0.08);
-        prob_hi.set(2, 0.04); //0.16);
+        prob_lo[0] = -0.02; //-0.08);
+        prob_lo[1] = -0.02; //-0.08);
+        prob_lo[2] =  0.0; //-0.12);
+        prob_hi[0] =  0.02; //0.08);
+        prob_hi[1] =  0.02; //0.08);
+        prob_hi[2] =  0.04; //0.16);
         
         rb.setLo(prob_lo);
         rb.setHi(prob_hi);
@@ -448,13 +436,7 @@ void FieldSolver::initSolver(PartBunch &b) {
         
         if(amrptr_m)
             m << fsType_m << " solver: amrptr_m Init done " << endl;
-        
-        BoundaryDomain* bd = new BoundaryDomain(nr,hr);
-        
-        amrptr_m->setBoundaryGeometry(bd->GetIntersectLoX(), bd->GetIntersectHiX(),
-                                        bd->GetIntersectLoY(), bd->GetIntersectHiY());
-        
-        m << fsType_m << " solver boundary geometry initialized " << endl;
+	*/
     }
 #endif
     else {
@@ -528,60 +510,3 @@ Inform &FieldSolver::printInfo(Inform &os) const {
     os << "* ********************************************************************************** " << endl;
     return os;
 }
-
-#ifdef HAVE_AMR_SOLVER
-// TO BE REMOVED
-std::vector<std::string> FieldSolver::filterString(std::string str) {
-  /*
-    pid tokens[0]
-    il == tokens[2], ih == tokens[3]
-    jl == tokens[5], jh == tokens[6]
-    kl == tokens[9], kh == tokens[9]
-   */
-
-  // charakters to remove from the string
-  char chars[] = "Node=;vn_mDmain{[][][]}:,";
-
-  for (unsigned int i = 0; i < strlen(chars); ++i)
-    std::replace(str.begin(), str.end(), chars[i], ' ');
-
-  std::vector<std::string> tokens;
-
-  // filter spaces
-  std::istringstream iss(str);
-  copy(std::istream_iterator<std::string>(iss),
-       std::istream_iterator<std::string>(),
-       std::back_inserter<std::vector<std::string> >(tokens));
-  return tokens;
-}
-
-std::pair<Box,unsigned int> FieldSolver::getBlGrids(std::string str){
-
-  std::vector<std::string> tokens = filterString(str);
-
-  unsigned int theGrid;
-  std::istringstream (tokens[0]) >> theGrid;
-
-  int ilo,ihi,jlo,jhi,klo,khi;
-
-  std::istringstream (tokens[2]) >> ilo;
-  std::istringstream (tokens[5]) >> jlo;
-  std::istringstream (tokens[8]) >> klo;
-  std::istringstream (tokens[3]) >> ihi;
-  std::istringstream (tokens[6]) >> jhi;
-  std::istringstream (tokens[9]) >> khi;
-
-  Inform m2a("AMR ",INFORM_ALL_NODES);
-  /*
-  m2a << "Grid " << tokens[0]
-      << " i (" << tokens[2] << " ... " << tokens[3] << ")"
-      << " j (" << tokens[5] << " ... " << tokens[6] << ")"
-      << " k (" << tokens[8] << " ... " << tokens[9] << ")" << " myNode " << Ippl::myNode() << endl;
-  */
-  IntVect loEnd(ilo,jlo,klo);
-  IntVect hiEnd(ihi,jhi,khi);
-  Box bx(loEnd,hiEnd);
-
-  return std::pair<Box,unsigned int>(bx,theGrid);
-}
-#endif

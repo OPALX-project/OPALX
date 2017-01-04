@@ -26,17 +26,8 @@
 #include "FFT/fftpack_FFT.h"
 #endif
 
-#ifdef IPPL_STDSTL
 #include <map>
-#else
-#include <map.h>
-#endif
-
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
 
 // forward declarations
 template <unsigned Dim, class T> class FFTBase;
@@ -47,11 +38,12 @@ std::ostream& operator<<(std::ostream&, const FFTBase<Dim,T>&);
 inline 
 std::string getTransformType(unsigned int i) 
 {
-    static const char* transformTypeString_g[3] = { "complex-to-complex FFT",
+    static const char* transformTypeString_g[4] = { "complex-to-complex FFT",
                                                     "real-to-complex FFT",
-                                                    "sine transform" };
+                                                    "sine transform",
+                                                    "cosine transform" };
 
-    return std::string(transformTypeString_g[i % 3]);
+    return std::string(transformTypeString_g[i % 4]);
 }
 
 /*!
@@ -72,7 +64,7 @@ public:
     typedef NDIndex<Dim> Domain_t;           // domain type
 
     // Enumeration of transform types, used by derived FFT classes
-    enum FFT_e { ccFFT, rcFFT, sineFFT };
+    enum FFT_e { ccFFT, rcFFT, sineFFT, cosineFFT };
 
     // Type used for performing 1D FFTs
 #if defined(IPPL_USE_SCSL_FFT)

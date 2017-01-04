@@ -33,8 +33,6 @@
 #include "Utility/IpplStats.h"
 #include "AppTypes/AppTypeTraits.h"
 
-
-
 /////////////////////////////////////////////////////////////////////
 // Create a ParticleAttribElem to allow the user to access just the Nth
 // element of the attribute stored here.
@@ -493,47 +491,51 @@ void ParticleAttrib<T>::calcSortList(SortList_t &slist, bool ascending)
 template<class T>
 void ParticleAttrib<T>::sort(SortList_t &slist)
 {
-  // Make sure the sort-list has the proper length.
-  PAssert(slist.size() >= size());
-
-  // Inform dbgmsg("PA<T>::sort");
-  // dbgmsg << "Sorting " << size() << " items." << endl;
-
-  // Go through the sort-list instructions, and move items around.
-  int i, mysize = size();
-  for (i=0; i < mysize; ++i) {
-    PAssert(slist[i] < mysize);
-
-    // skip this swap if the swap-list value is negative.  This
-    // happens when we've already put the item in the proper place.
-    if (slist[i] >= 0 && slist[i] != i) {
-      // We should not have a negative slist value for the destination
-      PAssert(slist[slist[i]] >= 0);
-
-      // OK, swap the items
-      T tmpval = ParticleList[i];
-      ParticleList[i] = ParticleList[slist[i]];
-      ParticleList[slist[i]] = tmpval;
-      //dbgmsg << "Swapping item " << i << " to position " << slist[i] << endl;
-
-      // then indicate that we've put this
-      // item in the proper location.
-      slist[slist[i]] -= mysize;
-      // } else {
-      //  dbgmsg << "Skipping item " << i << " in sort: slist[" << i << "] = ";
-      //  dbgmsg << slist[i] << endl;
+    // Make sure the sort-list has the proper length.
+    PAssert(slist.size() >= size());
+    
+    // Inform dbgmsg("PA<T>::sort");
+    // dbgmsg << "Sorting " << size() << " items." << endl;
+    
+    // Go through the sort-list instructions, and move items around.
+    int i = 0, j = 0, k = -1, mysize = size();
+    while ( i < mysize ) {
+        PAssert(slist[i] < mysize);
+        
+        // skip this swap if the swap-list value is negative.  This
+        // happens when we've already put the item in the proper place.
+        if ( i == k || slist[i] < 0 ) {
+            ++i; k = -1;
+            // dbgmsg << "Skipping item " << i << " in sort: slist[" << i << "] = ";
+            // dbgmsg << slist[i] << endl;
+            continue;
+        }
+        
+        j = ( k > 0 ) ? k : slist[i];
+        k = slist[j];
+        
+        // We should not have a negative slist value for the destination
+        PAssert(k >= 0);
+        
+        // OK, swap the items
+        std::iter_swap(ParticleList.begin() + i, ParticleList.begin() + j);
+        // dbgmsg << "Swapping item " << i << " to position " << slist[i] << endl;
+        
+        
+        // then indicate that we've put this
+        // item in the proper location.
+        slist[j] -= mysize;
     }
-  }
+    
 
-  // Restore the sort-list
-  for (i=0; i < mysize; ++i) {
-    if (slist[i] < 0)
-      slist[i] += mysize;
-    // dbgmsg << "At end of sort: restored slist[" << i << "] = " << slist[i];
-    // dbgmsg << ", data[" << i << "] = " << ParticleList[i] << endl;
-  }
+    // Restore the sort-list
+    for (i=0; i < mysize; ++i) {
+        if (slist[i] < 0)
+        slist[i] += mysize;
+        // dbgmsg << "At end of sort: restored slist[" << i << "] = " << slist[i];
+        // dbgmsg << ", data[" << i << "] = " << ParticleList[i] << endl;
+    }
 }
-
 
 //////////////////////////////////////////////////////////////////////
 // scatter functions

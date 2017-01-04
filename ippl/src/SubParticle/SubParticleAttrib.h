@@ -52,11 +52,7 @@
 #include "SubField/SubFieldIter.h"
 #include "PETE/IpplExpressions.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
 
 // forward declarations
 template <class PA, class T, unsigned Dim> class SubParticleAttrib;

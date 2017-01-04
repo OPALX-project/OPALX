@@ -18,7 +18,7 @@ link_directories (
 
 SET (IPPL_LIBS ippl)
 
-IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_OPENMP)
+IF (ENABLE_DKS)
 
    include_directories (${DKS_INCLUDE_DIR})
    link_directories (${DKS_LIBRARY_DIR})
@@ -26,18 +26,20 @@ IF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_OPENMP)
    SET (IPPL_LIBS ${IPPL_LIBS} ${DKS_LIBRARY_DIR}/libdks.a)
 
 
-ENDIF (ENABLE_OPENCL OR ENABLE_CUDA OR ENABLE_OPENMP)
+ENDIF (ENABLE_DKS)
 
 
-#add_executable (TestFFT TestFFT.cpp)
-#add_executable (TestRC TestRC.cpp)
+add_executable (TestFFT TestFFT.cpp)
+add_executable (TestRC TestRC.cpp)
 #add_executable (TestRCGPU TestRCGPU.cpp)
-add_executable (TestRCMIC TestRCMIC.cpp)
+#add_executable (TestRCMIC TestRCMIC.cpp)
+add_executable (TestFFTCos TestFFTCos.cpp)
 
 
-#target_link_libraries (TestFFT ${IPPL_LIBS})
-#target_link_libraries (TestRC ${IPPL_LIBS})
+target_link_libraries (TestFFT ${IPPL_LIBS})
+target_link_libraries (TestRC ${IPPL_LIBS})
 #target_link_libraries (TestRCGPU ${IPPL_LIBS})
-target_link_libraries (TestRCMIC ${IPPL_LIBS})
+#target_link_libraries (TestRCMIC ${IPPL_LIBS})
+target_link_libraries (TestFFTCos ${IPPL_LIBS})
 
 

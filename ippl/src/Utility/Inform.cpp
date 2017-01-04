@@ -28,13 +28,7 @@
 
 #include "Utility/IpplInfo.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <fstream>
-//using namespace std;
-#else
-#include <fstream.h>
-#endif
-
 #include <cstring>
 
 /////////////////////////////////////////////////////////////////////
@@ -76,13 +70,7 @@ void Inform::setup(const char *myname, int pnode) {
 /////////////////////////////////////////////////////////////////////
 // class constructor
 Inform::Inform(const char *myname, int pnode)
-#ifdef IPPL_NO_STRINGSTREAM
     : FormatBuf(std::ios::out), OpenedSuccessfully(true) {
-#else
-    : FormatBuf(MsgBuf, MAX_INFORM_MSG_SIZE, std::ios::out),
-        OpenedSuccessfully(true) {
-#endif
-
 
     // in this case, the default destination stream is cout
     NeedClose = false;
@@ -97,12 +85,7 @@ Inform::Inform(const char *myname, int pnode)
 // class constructor specifying a file to open
 Inform::Inform(const char *myname, const char *fname, const WriteMode opnmode,
 	       int pnode)
-#ifdef IPPL_NO_STRINGSTREAM
     : FormatBuf(std::ios::out), OpenedSuccessfully(true) {
-#else
-    : FormatBuf(MsgBuf, MAX_INFORM_MSG_SIZE, std::ios::out),
-        OpenedSuccessfully(true) {
-#endif
 
   // only open a file if we're on the proper node
     MsgDest = 0;
@@ -133,12 +116,7 @@ Inform::Inform(const char *myname, const char *fname, const WriteMode opnmode,
 /////////////////////////////////////////////////////////////////////
 // class constructor specifying an output stream to use
 Inform::Inform(const char *myname, std::ostream& os, int pnode)
-#ifdef IPPL_NO_STRINGSTREAM
   : FormatBuf(std::ios::out), OpenedSuccessfully(true) {
-#else
-  : FormatBuf(MsgBuf, MAX_INFORM_MSG_SIZE, std::ios::out),
-      OpenedSuccessfully(true) {
-#endif
 
     // just store a ref to the provided stream
     NeedClose = false;
@@ -152,12 +130,7 @@ Inform::Inform(const char *myname, std::ostream& os, int pnode)
 /////////////////////////////////////////////////////////////////////
 // class constructor specifying an other Inform instance
 Inform::Inform(const char *myname, const Inform& os, int pnode)
-#ifdef IPPL_NO_STRINGSTREAM
     : FormatBuf(std::ios::out), OpenedSuccessfully(true), MsgDest(os.MsgDest) {
-#else
-  : FormatBuf(MsgBuf, MAX_INFORM_MSG_SIZE, std::ios::out),
-      OpenedSuccessfully(true), MsgDest(os.MsgDest) {
-#endif
 
     // just store a ref to the provided stream
     NeedClose = false;
@@ -272,7 +245,6 @@ Inform& Inform::outputMessage(void) {
     // print out the message (only if this is the master node)
     if (PrintNode < 0 || PrintNode == Ippl::myNode()) {
         FormatBuf << std::ends;
-#ifdef IPPL_NO_STRINGSTREAM
         // extract C string and display
         MsgBuf = FormatBuf.str();
         char* cstring = const_cast<char*>(MsgBuf.c_str());
@@ -280,9 +252,6 @@ Inform& Inform::outputMessage(void) {
         // clear buffer contents
         // MsgBuf = string("");
         // FormatBuf.str(MsgBuf);
-#else
-        display_message(MsgBuf);
-#endif
     }
 
     // reset this ostrstream to the start

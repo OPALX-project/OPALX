@@ -16,15 +16,8 @@
 #include "Utility/PAssert.h"
 #include "PETE/IpplExpressions.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
-#else
-#include <iostream.h>
-#endif
-
 #include "Field/BareFieldIterator.h"
-
-
 
 // forward declarations
 class Index;
