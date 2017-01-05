@@ -48,7 +48,7 @@ void initSphereOnGrid(container_t& rhs,
     int nnz = 0;
     
     // total charge
-    long double qi = /*4.0 * Physics::pi * Physics::epsilon_0 **/ R * R;
+    long double qi = 1.0; ///*4.0 * Physics::pi * Physics::epsilon_0 **/ R * R;
     
 #ifdef UNIQUE_PTR
     rhs[0]->setVal(0.0);
@@ -83,11 +83,11 @@ void initSphereOnGrid(container_t& rhs,
     std::cout << "#Non-zero grid points: " << nnz << std::endl;
     std::cout << "Total Charge: " << qi << std::endl;
     
-#ifdef UNIQUE_PTR
-        rhs[0]->mult(1.0 / double(nnz /**  * Physics::epsilon_0*/), 0, 1);
-#else
-        rhs[0].mult(1.0 / double(nnz /**  * Physics::epsilon_0*/), 0, 1);
-#endif
+// #ifdef UNIQUE_PTR
+//         rhs[0]->mult(1.0 / double(nnz /**  * Physics::epsilon_0*/), 0, 1);
+// #else
+//         rhs[0].mult(1.0 / double(nnz /**  * Physics::epsilon_0*/), 0, 1);
+// #endif
 }
 
 void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
