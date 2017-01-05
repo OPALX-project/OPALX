@@ -4,7 +4,7 @@
 # @date 14. October 2016, LBNL
 # @version 1.1 (21. Dec. 2016)
 # 
-# @pre Environment variable OPAL_BUILD has to be set.
+# @pre Environment variable OPAL_BUILD has to be set. Python >= 2.7
 # @details Plot the electric self-field, density and self-field
 # potential using the yt framework.
 # 1. mpirun -np #cores testSolver
@@ -13,10 +13,21 @@
 
 import os
 import yt
+import argparse
 
 from tools import doSlicePlot, doProjectionPlot
 
 try:
+    parser = argparse.ArgumentParser(description='Visualize BoxLib grid data.')
+    parser.add_argument('--zoom',
+                        help='zoom factor of images (default: 1)',
+                        default=1,
+                        type=int,
+                        nargs=1)
+    args = parser.parse_args()
+    
+    zoom = args.zoom
+    
     opal = os.environ['OPAL_BUILD']
     ds = yt.load(opal + "ippl/test/AMR/plt0000", dataset_type='opal')
     
@@ -26,29 +37,29 @@ try:
     print ("Derived field list:", ds.derived_field_list)    
     
     
-    doSlicePlot(ds, 'z', 'rho', 'C/m**3', 'gray')
+    doSlicePlot(ds, 'z', 'rho', 'C/m**3', zoom, 'gray')
     
-    doSlicePlot(ds, 'y', 'rho', 'C/m**3', 'gray')
+    doSlicePlot(ds, 'y', 'rho', 'C/m**3', zoom, 'gray')
     
-    doSlicePlot(ds, 'x', 'rho', 'C/m**3', 'gray')
+    doSlicePlot(ds, 'x', 'rho', 'C/m**3', zoom, 'gray')
     
-    doProjectionPlot(ds, 'x', 'rho', 'C/m**2', 'gray')
+    doProjectionPlot(ds, 'x', 'rho', 'C/m**2', zoom, 'gray')
     
-    doProjectionPlot(ds, 'y', 'rho', 'C/m**2', 'gray')
+    doProjectionPlot(ds, 'y', 'rho', 'C/m**2', zoom, 'gray')
     
-    doProjectionPlot(ds, 'z', 'rho', 'C/m**2', 'gray')
+    doProjectionPlot(ds, 'z', 'rho', 'C/m**2', zoom, 'gray')
     
-    doSlicePlot(ds, 'z', 'Ex', 'V/m')
+    doSlicePlot(ds, 'z', 'Ex', 'V/m', zoom)
     
-    doSlicePlot(ds, 'z', 'Ey', 'V/m')
+    doSlicePlot(ds, 'z', 'Ey', 'V/m', zoom)
     
-    doSlicePlot(ds, 'x', 'Ez', 'V/m')
+    doSlicePlot(ds, 'x', 'Ez', 'V/m', zoom)
     
-    doSlicePlot(ds, 'z', 'potential', 'V')
+    doSlicePlot(ds, 'z', 'potential', 'V', zoom)
     
-    doSlicePlot(ds, 'y', 'potential', 'V')
+    doSlicePlot(ds, 'y', 'potential', 'V', zoom)
     
-    doSlicePlot(ds, 'x', 'potential', 'V')
+    doSlicePlot(ds, 'x', 'potential', 'V', zoom)
 
     ad = ds.all_data()
     

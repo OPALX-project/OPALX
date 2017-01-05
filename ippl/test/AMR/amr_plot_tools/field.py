@@ -40,9 +40,11 @@ try:
         
         # electric field in horizontal direction
         mid = int(0.5 * max(data[:, 2]))
-        i = np.extract(data[:, 2] == mid, data[:, 0])
-        j = np.extract(data[:, 2] == mid, data[:, 1])
-        val = np.extract(data[:, 2] == mid, data[:, 3])
+        condition = (data[:, 2] == mid)
+        
+        i = data[condition, 0]
+        j = data[condition, 1]
+        val = data[condition, 3]
         plt = doGridPlot(i, j, val, "horizontal grid", "vertical grid", r'$E_x$ [V/m]')
         plt.savefig(f + '_slice_z_Ex.png')#, bbox_inches='tight')
         
@@ -51,7 +53,7 @@ try:
         
         
         # electric field in vertical direction
-        val = np.extract(data[:, 2] == mid, data[:, 4])
+        val = np.extract(condition, data[:, 4])
         plt = doGridPlot(i, j, val, "horizontal grid", "vertical grid", r'$E_y$ [V/m]')
         plt.savefig(f + '_slice_z_Ey.png')#bbox_inches='tight')
         
@@ -60,9 +62,11 @@ try:
         
         # center in z
         mid = int(0.5 * max(data[:, 0]))
-        i = np.extract(data[:, 0] == mid, data[:, 1])
-        j = np.extract(data[:, 0] == mid, data[:, 2])
-        val = np.extract(data[:, 0] == mid, data[:, 5])
+        condition = (data[:, 0] == mid)
+        
+        i = data[condition, 1]
+        j = data[condition, 2]
+        val = data[condition, 5]
         plt = doGridPlot(i, j, val, "vertical grid", "longitudinal grid", r'$E_z$ [V/m]')
         plt.savefig(f + '_slice_x_Ez.png')# bbox_inches='tight')
         
@@ -80,25 +84,33 @@ try:
         
         # center in x
         mid = int(0.5 * max(data[:, 0]))
-        i = np.extract(data[:, 0] == mid, data[:, 1])
-        j = np.extract(data[:, 0] == mid, data[:, 2])
-        val = np.extract(data[:, 0] == mid, data[:, 3])
+        
+        condition = (data[:, 0] == mid)
+        
+        i = data[condition, 1]
+        j = data[condition, 2]
+        val = data[condition, 3]
         plt = doGridPlot(i, j, val, "vertical grid", "longitudinal grid", clab)
         plt.savefig(f + '_slice_x.png')#, bbox_inches='tight')
         
         # center in y
         mid = int(0.5 * max(data[:, 1]))
-        i = np.extract(data[:, 1] == mid, data[:, 0])
-        j = np.extract(data[:, 1] == mid, data[:, 2])
-        val = np.extract(data[:, 1] == mid, data[:, 3])
+        condition = (data[:, 1] == mid)
+        
+        
+        i = data[condition, 0]
+        j = data[condition, 2]
+        val = data[condition, 3]
         plt = doGridPlot(i, j, val, "horizontal grid", "longitudinal grid", clab)
         plt.savefig(f + '_slice_y.png')#bbox_inches='tight')
         
         # center in z
         mid = int(0.5 * max(data[:, 2]))
-        i = np.extract(data[:, 2] == mid, data[:, 0])
-        j = np.extract(data[:, 2] == mid, data[:, 1])
-        val = np.extract(data[:, 2] == mid, data[:, 3])
+        condition = (data[:, 2] == mid)
+        
+        i = data[condition, 0]
+        j = data[condition, 1]
+        val = data[condition, 3]
         plt = doGridPlot(i, j, val, "horizontal grid", "vertical grid", clab)
         plt.savefig(f + '_slice_z.png')# bbox_inches='tight')
         

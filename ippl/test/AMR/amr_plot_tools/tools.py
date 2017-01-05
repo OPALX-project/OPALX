@@ -19,13 +19,15 @@ import matplotlib.pyplot as plt
 # @param field to plot
 # @param unit the data should be converted to (otherwise it
 #        takes the default given by the data)
+# @param zfactor is the zoom factor (default: 1, i.e. no zoom)
 # @param col is the color for the time stamp and scale annotation
-def doSlicePlot(ds, direct, field, unit, col = 'white'):
+def doSlicePlot(ds, direct, field, unit, zfactor = 1, col = 'white'):
     slc = yt.SlicePlot(ds, normal=direct, fields=field)
         
     if unit is not None:
         slc.set_unit(field, unit)
-        
+    
+    slc.zoom(zfactor)
     slc.annotate_grids()
     slc.annotate_timestamp(corner='upper_left', redshift=False, draw_inset_box=True)
     slc.annotate_scale(corner='upper_right', size_bar_args={'color':col})
@@ -37,13 +39,15 @@ def doSlicePlot(ds, direct, field, unit, col = 'white'):
 # @param field to plot
 # @param unit the data should be converted to (otherwise it
 #        takes the default given by the data)
+# @param zfactor is the zoom factor (default: 1, i.e. no zoom)
 # @param col is the color for the time stamp and scale annotation
-def doProjectionPlot(ds, direct, field, unit, col = 'white'):
+def doProjectionPlot(ds, direct, field, unit, zfactor = 1, col = 'white'):
     slc = yt.ProjectionPlot(ds, direct, fields=field)
         
     if unit is not None:
         slc.set_unit(field, unit)
-        
+    
+    slc.zoom(zfactor)
     slc.annotate_grids()
     slc.annotate_timestamp(corner='upper_left', redshift=False, draw_inset_box=True)
     slc.annotate_scale(corner='upper_right', size_bar_args={'color':col})
