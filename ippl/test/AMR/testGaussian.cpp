@@ -240,7 +240,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
     
-    dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
+//     dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
 }
 
 

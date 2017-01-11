@@ -24,9 +24,17 @@ void Distribution::uniform(double lower, double upper, size_t nloc, int seed) {
     
     nloc_m = nloc;
     
-    std::mt19937_64 mt(seed);
+    std::mt19937_64 mt(0/*seed*/ /*0*/);
     
     std::uniform_real_distribution<> dist(lower, upper);
+    
+//     // assume that seed == rank of node
+//     mt.discard(6 * (nloc + 1) * seed);
+    
+    // assume that seed == rank of node    
+    // inefficient but only way to make sure that parallel distribution is equal to sequential
+    for (size_t i = 0; i < 6 * nloc_m * seed; ++i)
+        dist(mt);
     
     x_m.resize(nloc);
     y_m.resize(nloc);
@@ -55,9 +63,17 @@ void Distribution::gaussian(double mean, double stddev, size_t nloc, int seed) {
     
     nloc_m = nloc;
     
-    std::mt19937_64 mt(seed);
+    std::mt19937_64 mt(0/*seed*/ /*0*/);
     
     std::normal_distribution<double> dist(mean, stddev);
+    
+//     // assume that seed == rank of node
+//     mt.discard(6 * (nloc + 1) * seed);
+
+    // assume that seed == rank of node    
+    // inefficient but only way to make sure that parallel distribution is equal to sequential
+    for (size_t i = 0; i < 6 * nloc_m * seed; ++i)
+        dist(mt);
     
     x_m.resize(nloc);
     y_m.resize(nloc);
