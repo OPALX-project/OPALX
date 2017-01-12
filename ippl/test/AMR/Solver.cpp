@@ -11,7 +11,7 @@ Solver::solve_for_accel(container_t& rhs,
                         int finest_level,
                         Real offset)
 {
-    static IpplTimings::TimerRef edge2centerTimer = IpplTimings::getTimer("gradient-edge2center");
+    static IpplTimings::TimerRef edge2centerTimer = IpplTimings::getTimer("grad-edge2center");
     
     Real tol     = 1.e-10;
     Real abs_tol = 1.e-14;
