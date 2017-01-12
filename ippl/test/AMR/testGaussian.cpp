@@ -53,7 +53,7 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
              int nLevels,
              Inform& msg)
 {
-    static IpplTimings::TimerRef allocTimer = IpplTimings::getTimer("allocate-memory-grid");
+    static IpplTimings::TimerRef allocTimer = IpplTimings::getTimer("alloc-memory-grid");
     
     static IpplTimings::TimerRef assignTimer = IpplTimings::getTimer("assign-charge");
     
@@ -129,6 +129,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
 {
     static IpplTimings::TimerRef distTimer = IpplTimings::getTimer("init-distribution");
     static IpplTimings::TimerRef regridTimer = IpplTimings::getTimer("regrid");
+    static IpplTimings::TimerRef redistTimer = IpplTimings::getTimer("particle-redistr");
     // ========================================================================
     // 1. initialize physical domain (just single-level)
     // ========================================================================
@@ -161,7 +162,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     // copy particles to the PartBunchBase object.
     dist.injectBeam(*bunch);
-    
+    IpplTimings::stopTimer(distTimer);
     
     
     
@@ -169,7 +170,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         bunch->setQM(Physics::q_e, i);  // in [C]
     
     // redistribute on single-level
+    IpplTimings::startTimer(redistTimer);
     bunch->myUpdate();
+    IpplTimings::stopTimer(redistTimer);
     
     bunch->gatherStatistics();
     
