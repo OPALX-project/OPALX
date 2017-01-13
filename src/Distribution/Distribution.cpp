@@ -180,6 +180,8 @@ namespace AttributesT
         ORDERMAPS,
         E2,
 	RGUESS,
+        ID1,                       // special particle that the user can set
+        ID2,                       // special particle that the user can set
         SIZE
     };
 }
@@ -2986,6 +2988,16 @@ void Distribution::InjectBeam(PartBunch &beam) {
 
     WriteOutFileInjection();
 
+    std::vector<double> id1 = Attributes::getRealArray(itsAttr[AttributesT::ID1]);
+    std::vector<double> id2 = Attributes::getRealArray(itsAttr[AttributesT::ID2]);
+
+    bool hasID1 = (id1.size() != 0);
+    bool hasID2 = (id2.size() != 0);
+
+    if (hasID1 || hasID2)
+        *gmsg << "* Use special ID1 or ID2 particle in distribution" << endl;
+
+
     size_t numberOfParticles = tOrZDist_m.size();
     beam.create(numberOfParticles);
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
@@ -2993,9 +3005,11 @@ void Distribution::InjectBeam(PartBunch &beam) {
         beam.R[partIndex] = Vector_t(xDist_m.at(partIndex),
                                      yDist_m.at(partIndex),
                                      tOrZDist_m.at(partIndex));
+
         beam.P[partIndex] = Vector_t(pxDist_m.at(partIndex),
                                      pyDist_m.at(partIndex),
                                      pzDist_m.at(partIndex));
+
         beam.Q[partIndex] = beam.getChargePerParticle();
         beam.Ef[partIndex] = Vector_t(0.0);
         beam.Bf[partIndex] = Vector_t(0.0);
@@ -3009,6 +3023,19 @@ void Distribution::InjectBeam(PartBunch &beam) {
         } else
             beam.Bin[partIndex] = 0;
 
+        if (hasID1) {
+            if (beam.ID[partIndex] == 1) {
+                beam.R[partIndex] = Vector_t(id1[0],id1[1],id1[2]);
+                beam.P[partIndex] = Vector_t(id1[3],id1[4],id1[5]);
+            }
+        }
+
+        if (hasID2) {
+            if (beam.ID[partIndex] == 2) {
+                beam.R[partIndex] = Vector_t(id2[0],id2[1],id2[2]);
+                beam.P[partIndex] = Vector_t(id2[3],id2[4],id2[5]);
+            }
+        }
     }
 
     xDist_m.clear();
@@ -3850,6 +3877,14 @@ void Distribution::SetAttributes() {
                                "surface for Furman-Pivi's model, 0 "
                                "for copper, 1 for stainless steel.", 0.0);
 
+    /*
+     *   Feature request Issue #14
+     */
+
+    itsAttr[AttributesT::ID1]
+        = Attributes::makeRealArray("ID1", "User defined particle with ID=1");
+    itsAttr[AttributesT::ID2]
+        = Attributes::makeRealArray("ID2", "User defined particle with ID=2");
 
     /*
      * Legacy attributes (or ones that need to be implemented.)
