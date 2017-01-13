@@ -1,5 +1,7 @@
 #include "Solver.h"
 
+#include "Ippl.h"
+
 void 
 Solver::solve_for_accel(container_t& rhs,
                         container_t& phi,
@@ -9,7 +11,8 @@ Solver::solve_for_accel(container_t& rhs,
                         int finest_level,
                         Real offset)
 {
- 
+    static IpplTimings::TimerRef edge2centerTimer = IpplTimings::getTimer("grad-edge2center");
+    
     Real tol     = 1.e-10;
     Real abs_tol = 1.e-14;
 
@@ -48,6 +51,7 @@ Solver::solve_for_accel(container_t& rhs,
                      abs_tol);
 
     // Average edge-centered gradients to cell centers and fill the values in ghost cells.
+    IpplTimings::startTimer(edge2centerTimer);
     for (int lev = base_level; lev <= finest_level; lev++)
     {
 #ifdef UNIQUE_PTR
@@ -79,6 +83,7 @@ Solver::solve_for_accel(container_t& rhs,
         grad_phi[lev].mult(-1.0, 0, 3);
     }
 #endif
+    IpplTimings::stopTimer(edge2centerTimer);
 }
 
 
@@ -92,6 +97,12 @@ Solver::solve_with_f90(container_t& rhs,
                        Real tol,
                        Real abs_tol)
 {
+    static IpplTimings::TimerRef initSolverTimer = IpplTimings::getTimer("init-solver");
+    static IpplTimings::TimerRef doSolveTimer = IpplTimings::getTimer("do-solve");
+    static IpplTimings::TimerRef gradientTimer = IpplTimings::getTimer("gradient");
+    
+    IpplTimings::startTimer(initSolverTimer);
+    
     int nlevs = finest_level - base_level + 1;
 
     int mg_bc[2*BL_SPACEDIM];
@@ -99,7 +110,7 @@ Solver::solve_with_f90(container_t& rhs,
     // This tells the solver that we are using Dirichlet bc's
     if (Geometry::isAllPeriodic()) {
 //         if ( ParallelDescriptor::IOProcessor() )
-            std::cerr << "Periodic BC" << std::endl;
+//             std::cerr << "Periodic BC" << std::endl;
         
         for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
             // periodic BC
@@ -108,7 +119,7 @@ Solver::solve_with_f90(container_t& rhs,
         }
     } else {
 //         if ( ParallelDescriptor::IOProcessor() )
-            std::cerr << "Dirichlet BC" << std::endl;
+//             std::cerr << "Dirichlet BC" << std::endl;
         
         for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
             // Dirichlet BC
@@ -177,8 +188,14 @@ Solver::solve_with_f90(container_t& rhs,
     int always_use_bnorm = 0;
     int need_grad_phi = 1;
     fmg.set_verbose(1);
-    fmg.solve(phi_p, rhs_p, tol, abs_tol, always_use_bnorm, need_grad_phi);
     
+    IpplTimings::stopTimer(initSolverTimer);
+    
+    IpplTimings::startTimer(doSolveTimer);
+    fmg.solve(phi_p, rhs_p, tol, abs_tol, always_use_bnorm, need_grad_phi);
+    IpplTimings::stopTimer(doSolveTimer);
+    
+    IpplTimings::startTimer(gradientTimer);
 #ifdef UNIQUE_PTR
     const Array<Array<MultiFab*> >& g_phi_edge = BoxLib::GetArrOfArrOfPtrs(grad_phi_edge);
     for (int ilev = 0; ilev < nlevs; ++ilev) {
@@ -191,7 +208,7 @@ Solver::solve_with_f90(container_t& rhs,
         fmg.get_fluxes(grad_phi_edge[amr_level], ilev);
     }
 #endif
-    
+    IpplTimings::stopTimer(gradientTimer);
 }
 
 #ifdef USEHYPRE

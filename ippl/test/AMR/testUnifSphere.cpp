@@ -35,9 +35,13 @@
 #include <random>
 
 void initSphere(double r, PartBunchBase* bunch, int nParticles) {
-    bunch->create(nParticles);
+    bunch->create(nParticles / Ippl::getNodes());
     
     std::mt19937_64 eng;
+    
+    if ( Ippl::myNode() )
+        eng.seed(42 + Ippl::myNode() );
+    
     std::uniform_real_distribution<> ph(-1.0, 1.0);
     std::uniform_real_distribution<> th(0.0, 2.0 * Physics::pi);
     std::uniform_real_distribution<> u(0.0, 1.0);
@@ -96,7 +100,7 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
     
-    writeScalarField(rhs, *(geom[0].CellSize()), -0.05, "amr-rho_scalar-level-");
+//     writeScalarField(rhs, *(geom[0].CellSize()), -0.05, "amr-rho_scalar-level-");
     
     // Check charge conservation
     double totCharge = totalCharge(rhs, finest_level, geom);
@@ -246,10 +250,10 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
 #endif
     }
     
-    writeScalarField(phi, *(geom[0].CellSize()), lower[0], "amr-phi_scalar-level-");
-    writeVectorField(grad_phi, *(geom[0].CellSize()), lower[0]);
+//     writeScalarField(phi, *(geom[0].CellSize()), lower[0], "amr-phi_scalar-level-");
+//     writeVectorField(grad_phi, *(geom[0].CellSize()), lower[0]);
     
-    writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
+//     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
 }
 
 

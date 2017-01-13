@@ -37,6 +37,10 @@
 
 #include "Physics/Physics.h"
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
+#include <boost/property_tree/exceptions.hpp>
+
 void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
              container_t& rhs,
              container_t& phi,
@@ -116,15 +120,14 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
               int nLevels, size_t maxBoxSize,
               std::string h5file,
 	      const std::tuple<int, int, int>& h5steps,
+	      const std::array<double, BL_SPACEDIM>& lower,
+	      const std::array<double, BL_SPACEDIM>& upper,
 	      Inform& msg)
 {
     static IpplTimings::TimerRef distTimer = IpplTimings::getTimer("dist");
     // ========================================================================
     // 1. initialize physical domain (just single-level)
     // ========================================================================
-    
-    std::array<double, BL_SPACEDIM> lower = {{-0.15, -0.15, -0.15}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{0.45, 0.15, 0.15}}; // m
     
     RealBox domain;
     Array<BoxArray> ba;
@@ -179,9 +182,16 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
 
     msg << "#Bunches: " << nBunches << endl;
 
+    std::size_t nZeros = 0;
     for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
 	bunch->setQM(2.1717e-16, i);
+	
+	if ( bunch->getR(i)[0] == 0.0 && bunch->getR(i)[1] == 0.0 && bunch->getR(i)[2] == 0.0 ) {
+	    nZeros++;
+	}
     }
+
+    msg << "#Zeroed Particles: " << nZeros << endl;
     
     // redistribute on single-level
     bunch->myUpdate();
@@ -256,7 +266,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     
     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
     
-//     dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
+    dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
 }
 
 
@@ -270,34 +280,47 @@ int main(int argc, char *argv[]) {
     static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("main");
     IpplTimings::startTimer(mainTimer);
 
-    std::stringstream call;
-    call << "Call: mpirun -np [#procs] " << argv[0]
-         << " [#gridpoints x] [#gridpoints y] [#gridpoints z] "
-         << "[#levels] [max. box size] [h5file] [start:by:end]";
-    
-    if ( argc < 8 ) {
-        msg << call.str() << endl;
-        return -1;
-    }
-    
-    // number of grid points in each direction
-    Vektor<size_t, 3> nr(std::atoi(argv[1]),
-                         std::atoi(argv[2]),
-                         std::atoi(argv[3]));
-    
-    
-        
-    BoxLib::Initialize(argc,argv, false);
-    size_t nLevels = std::atoi(argv[4]) + 1; // i.e. nLevels = 0 --> only single level
-    size_t maxBoxSize = std::atoi(argv[5]);
-    std::string h5file = argv[6];
-    std::string stepping = argv[7];
+    Vektor<size_t, 3> nr;
+    size_t nLevels = 0;
+    size_t maxBoxSize = 0;
+    std::string h5file = "";
+    int begin = 0, by = 0, end = 0;
+    std::array<double, BL_SPACEDIM> lower, upper;
 
-    std::string::size_type semipos1 = stepping.find_first_of(':');
-    std::string::size_type semipos2 = stepping.find_first_of(':', semipos1 + 1);
-    int begin = std::atoi( stepping.substr(0, semipos1).c_str() );
-    int by = std::atoi( stepping.substr(semipos1 + 1, semipos2 - semipos1 - 1).c_str() );
-    int end = std::atoi( stepping.substr(semipos2 + 1).c_str() );
+    try {
+	namespace pt = boost::property_tree;
+	
+	pt::ptree tree;
+	pt::read_ini(argv[1], tree);
+	
+	// number of grid points in each direction
+	nr = Vektor<size_t, 3>(tree.get<size_t>("grid.x"),
+			       tree.get<size_t>("grid.y"),
+			       tree.get<size_t>("grid.z"));
+	
+	// i.e. nLevels = 1 --> only single level
+	nLevels = tree.get<size_t>("grid.nLevels");
+	maxBoxSize = tree.get<size_t>("grid.maxSize");
+	h5file = tree.get<std::string>("path.h5file");
+	begin  = tree.get<int>("path.begin");
+	by = tree.get<int>("path.by");
+	end = tree.get<int>("path.end");
+
+	lower = {{tree.get<double>("domain.xmin"),
+		  tree.get<double>("domain.ymin"),
+		  tree.get<double>("domain.zmin")}
+	};
+	upper = {{tree.get<double>("domain.xmax"),
+		  tree.get<double>("domain.ymax"),
+		  tree.get<double>("domain.zmax")}
+	};
+
+    } catch(const std::exception& ex) {
+	msg << ex.what() << endl;
+	return -1;
+    }
+       
+    BoxLib::Initialize(argc,argv, false);
     
     auto h5steps = std::make_tuple(begin, end, by);
 
@@ -317,9 +340,12 @@ int main(int argc, char *argv[]) {
         << "- grid:         " << nr << endl
         << "- #level:       " << nLevels << endl
         << "- H5:           " << h5file << endl
-	<< "- start:by:end: " << begin << ":" << by << ":" << end << endl;
+	<< "- start:by:end: " << begin << ":" << by << ":" << end << endl
+	<< "- domain:       " << "[" << lower[0] << ", " << upper[0] << "] x ["
+	<< lower[1] << ", " << upper[1] << "] x ["
+	<< lower[2] << ", " << upper[2] << "]" << endl;
     
-    doBoxLib(nr, nLevels, maxBoxSize, h5file, h5steps, msg);
+    doBoxLib(nr, nLevels, maxBoxSize, h5file, h5steps, lower, upper, msg);
     
     
     IpplTimings::stopTimer(mainTimer);

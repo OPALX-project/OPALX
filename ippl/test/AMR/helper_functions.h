@@ -293,9 +293,9 @@ inline double totalCharge(const container_t& rhs,
     for (int i = 0; i <= finest_level; ++i) {
         Real vol = (*(geom[i].CellSize()) * *(geom[i].CellSize()) * *(geom[i].CellSize()) );
 #ifdef UNIQUE_PTR
-        Real sum = rhs[i]->sum(0) * vol * scale;
+        Real sum = (scale) ? rhs[i]->sum(0) * vol : rhs[i]->sum(0);
 #else
-        Real sum = rhs[i].sum(0) * vol * scale;
+        Real sum = (scale) ? rhs[i].sum(0) * vol : rhs[i].sum(0);
 #endif
         totCharge += sum;
     }
