@@ -12,14 +12,16 @@ size_t AmrPartBunch::nAttributes = 10;
 AmrPartBunch::AmrPartBunch(const Geometry& geom,
                            const DistributionMapping & dmap,
                            const BoxArray & ba)
-    : ParticleContainer(geom, dmap, ba)
+    : ParticleContainer(geom, dmap, ba),
+      nLocalParticles_m(0)
 { }
 
 AmrPartBunch::AmrPartBunch(const Array<Geometry>& geom,
                            const Array<DistributionMapping>& dmap,
                            const Array<BoxArray>& ba,
                            const Array<int>& rr)
-    : ParticleContainer(geom, dmap, ba, rr)
+    : ParticleContainer(geom, dmap, ba, rr),
+      nLocalParticles_m(0)
 { }
 
 

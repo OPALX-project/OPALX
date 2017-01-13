@@ -53,25 +53,33 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
              int nLevels,
              Inform& msg)
 {
-    static IpplTimings::TimerRef solvTimer = IpplTimings::getTimer("solv");
+    static IpplTimings::TimerRef allocTimer = IpplTimings::getTimer("alloc-memory-grid");
+    
+    static IpplTimings::TimerRef assignTimer = IpplTimings::getTimer("assign-charge");
+    
     // =======================================================================                                                                                                                                   
     // 4. prepare for multi-level solve                                                                                                                                                                          
     // =======================================================================
-
+    
     rhs.resize(nLevels);
     phi.resize(nLevels);
     grad_phi.resize(nLevels);
     
+    IpplTimings::startTimer(allocTimer);
+    
     for (int lev = 0; lev < nLevels; ++lev) {
         initGridData(rhs, phi, grad_phi, myAmrOpal.boxArray()[lev], lev);
     }
+    
+    IpplTimings::stopTimer(allocTimer);
 
     // Define the density on level 0 from all particles at all levels                                                                                                                                            
     int base_level   = 0;
     int finest_level = myAmrOpal.finestLevel();
 
+    IpplTimings::startTimer(assignTimer);
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
-    
+    IpplTimings::stopTimer(assignTimer);
     
     double totCharge = totalCharge(rhs, finest_level, geom);
     msg << "Total Charge: " << totCharge << " C" << endl
@@ -98,7 +106,6 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
 
     // solve                                                                                                                                                                                                     
     Solver sol;
-    IpplTimings::startTimer(solvTimer);
     sol.solve_for_accel(rhs,
                         phi,
                         grad_phi,
@@ -115,14 +122,14 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
         rhs[i].mult(1.0 / constant, 0, 1);
 #endif
     }
-    
-    IpplTimings::stopTimer(solvTimer);
 }
 
 void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
               int nLevels, size_t maxBoxSize, Inform& msg)
 {
-    static IpplTimings::TimerRef distTimer = IpplTimings::getTimer("dist");
+    static IpplTimings::TimerRef distTimer = IpplTimings::getTimer("init-distribution");
+    static IpplTimings::TimerRef regridTimer = IpplTimings::getTimer("regrid");
+    static IpplTimings::TimerRef redistTimer = IpplTimings::getTimer("particle-redistr");
     // ========================================================================
     // 1. initialize physical domain (just single-level)
     // ========================================================================
@@ -155,7 +162,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     // copy particles to the PartBunchBase object.
     dist.injectBeam(*bunch);
-    
+    IpplTimings::stopTimer(distTimer);
     
     
     
@@ -163,7 +170,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         bunch->setQM(Physics::q_e, i);  // in [C]
     
     // redistribute on single-level
+    IpplTimings::startTimer(redistTimer);
     bunch->myUpdate();
+    IpplTimings::stopTimer(redistTimer);
     
     bunch->gatherStatistics();
     
@@ -211,8 +220,10 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // ========================================================================
     // 3. multi-level redistribute
     // ========================================================================
+    IpplTimings::startTimer(regridTimer);
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
+    IpplTimings::stopTimer(regridTimer);
     
     container_t rhs;
     container_t phi;
@@ -240,7 +251,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
     
-    dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
+//     dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
 }
 
 
@@ -286,6 +297,13 @@ int main(int argc, char *argv[]) {
     IpplTimings::stopTimer(mainTimer);
 
     IpplTimings::print();
-
+    
+    std::string timefile = std::string(argv[0])
+        + "-timing-cores-"
+        + std::to_string(Ippl::getNodes())
+        + "-threads-1.dat";
+    
+    IpplTimings::print(timefile);
+    
     return 0;
 }
