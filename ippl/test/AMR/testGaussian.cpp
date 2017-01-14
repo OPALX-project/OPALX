@@ -26,6 +26,8 @@
 #include <iostream>
 #include <set>
 #include <sstream>
+#include <iomanip>
+
 
 #include <ParmParse.H>
 
@@ -174,6 +176,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     bunch->myUpdate();
     IpplTimings::stopTimer(redistTimer);
     
+    msg << "Single-level statistics" << endl;
     bunch->gatherStatistics();
     
     msg << "Bunch radius: " << sig << " m" << endl
@@ -224,6 +227,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
     IpplTimings::stopTimer(regridTimer);
+    
+    msg << "Multi-level statistics" << endl;
+    bunch->gatherStatistics();
     
     container_t rhs;
     container_t phi;
@@ -298,12 +304,12 @@ int main(int argc, char *argv[]) {
 
     IpplTimings::print();
     
-    std::string timefile = std::string(argv[0])
-        + "-timing-cores-"
-        + std::to_string(Ippl::getNodes())
-        + "-threads-1.dat";
+    std::stringstream timefile;
+    timefile << std::string(argv[0]) << "-timing-cores-"
+	     << std::setfill('0') << std::setw(6) << Ippl::getNodes()
+	     << "-threads-1.dat";
     
-    IpplTimings::print(timefile);
+    IpplTimings::print(timefile.str());
     
     return 0;
 }
