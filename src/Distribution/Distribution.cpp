@@ -26,7 +26,7 @@
 #include "AbstractObjects/Expressions.h"
 #include "Attributes/Attributes.h"
 #include "Utilities/Options.h"
-#include "Utilities/Options.h"
+#include "Utilities/OpalException.h"
 #include "halton1d_sequence.hh"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBunch.h"
@@ -1119,7 +1119,7 @@ void Distribution::CheckParticleNumber(size_t &numberOfParticles) {
 
     size_t numberOfDistParticles = tOrZDist_m.size();
     reduce(numberOfDistParticles, numberOfDistParticles, OpAddAssign());
-
+    
     if (numberOfDistParticles != numberOfParticles) {
         *gmsg << "\n--------------------------------------------------" << endl
               << "Warning!! The number of particles in the initial" << endl
@@ -1134,6 +1134,8 @@ void Distribution::CheckParticleNumber(size_t &numberOfParticles) {
               << "(" << numberOfDistParticles << ") "
               << "will take precedence." << endl
               << "---------------------------------------------------\n" << endl;
+        throw OpalException("Distribution::CheckParticleNumber",
+                            "Number of macro particles and NPART on BEAM are not equal");    
     }
     numberOfParticles = numberOfDistParticles;
 }
@@ -1575,6 +1577,9 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
         FillParticleBins();
         beam.setPBins(energyBins_m);
     }
+
+    // Check number of particles in distribution.
+    CheckParticleNumber(numberOfParticles);
 
     InitializeBeam(beam);
     WriteOutFileHeader();
