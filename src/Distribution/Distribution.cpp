@@ -1122,7 +1122,7 @@ void Distribution::CheckParticleNumber(size_t &numberOfParticles) {
     
     if (numberOfDistParticles != numberOfParticles) {
         *gmsg << "\n--------------------------------------------------" << endl
-              << "Warning!! The number of particles in the initial" << endl
+              << "Error!! The number of particles in the initial" << endl
               << "distribution is " << numberOfDistParticles << "." << endl << endl
               << "This is different from the number of particles" << endl
               << "defined by the BEAM command: " << numberOfParticles << endl << endl
