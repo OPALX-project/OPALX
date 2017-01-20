@@ -49,6 +49,8 @@ Inform *IpplInfo::Error = new Inform("Error", std::cerr, INFORM_ALL_NODES);
 Inform *IpplInfo::Debug = new Inform("**DEBUG**", std::cerr, INFORM_ALL_NODES);
 
 //dks base member of IpplInfo initialized to default values
+bool IpplInfo::DKSEnabled = false;
+
 #ifdef IPPL_DKS
 
 #ifdef IPPL_DKS_CUDA
@@ -331,6 +333,19 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
                 else
                     param_error(argv[i],
                             "Please specify an output level from 0 to 5", 0);
+
+            } else if ( ( strcmp(argv[i], "--use-dks") == 0 ) ) {
+                // Set DKSEnabled to true if OPAL is compiled with DKS.
+	      #ifdef IPPL_DKS
+	      DKSEnabled = true;
+	      INFOMSG("DKS enabled OPAL will use GPU where possible");
+	      INFOMSG(endl);
+	      //TODO: check if any device is available and disable DKS if there isn't
+	      #else
+	      DKSEnabled = false;
+	      INFOMSG("OPAL compiled without DKS, " << argv[i] << " flag has no effect");
+	      INFOMSG(endl);
+	      #endif
 
             } else if ( ( strcmp(argv[i], "--warn") == 0 ) ) {
                 // Set the output level for warning messages.
