@@ -26,6 +26,7 @@
 #include <iostream>
 #include <set>
 #include <sstream>
+#include <iomanip>
 
 #include <ParmParse.H>
 
@@ -292,12 +293,12 @@ int main(int argc, char *argv[]) {
 
     IpplTimings::print();
     
-    std::string timefile = std::string(argv[0])
-        + "-timing-cores-"
-        + std::to_string(Ippl::getNodes())
-        + "-threads-1.dat";
+    std::stringstream timefile;
+    timefile << std::string(argv[0]) << "-timing-cores-"
+             << std::setfill('0') << std::setw(6) << Ippl::getNodes()
+             << "-threads-1.dat";
     
-    IpplTimings::print(timefile);
+    IpplTimings::print(timefile.str());
     
     return 0;
 }
