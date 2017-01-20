@@ -99,6 +99,7 @@ public:
   // the statistics collection object
   static IpplStats *Stats;
 
+
 #ifdef IPPL_DKS
   static DKSBase *DKS;
 #endif
@@ -282,6 +283,9 @@ public:
   // compileUser: return the username of the user who compiled this
   // library (from IpplVersions.h)
   static const char *compileUser();
+
+  //Static flag telling wheteher to use DKS when runnign OPAL
+  static bool DKSEnabled;
 
   // Static flag telling whether to use optimization for reducing
   // communication by deferring guard cell fills.
