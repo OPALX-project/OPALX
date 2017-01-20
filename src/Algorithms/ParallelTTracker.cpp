@@ -203,7 +203,7 @@ timeIntegrationTimer2Push_m(IpplTimings::getTimer("TIntegration2Push"))
     //    itsBeamline = dynamic_cast<Beamline*>(beamline.clone());
 
 #ifdef OPAL_DKS
-    if (Options::enableDKS) {
+    if (IpplInfo::DKSEnabled) {
         dksbase.setAPI("Cuda", 4);
         dksbase.setDevice("-gpu", 4);
         dksbase.initDevice();
@@ -346,7 +346,7 @@ void ParallelTTracker::executeDefaultTracker() {
     surfaceStatus_m = false;
 
 #ifdef OPAL_DKS
-    if (Options::enableDKS) {
+    if (IpplInfo::DKSEnabled) {
         //get number of elements in the bunch
         numDeviceElements = itsBunch->getLocalNum();
 
@@ -466,7 +466,7 @@ void ParallelTTracker::executeDefaultTracker() {
     *gmsg << "done executing ParallelTTracker at " << myt3.time() << endl;
 
 #ifdef OPAL_DKS
-    if (Options::enableDKS) {
+    if (IpplInfo::DKSEnabled) {
         //free device memory
         freeDeviceMemory();
         dksbase.freeMemory<Vector_t>(orient_ptr, itsOpalBeamline_m.sections_m.size());
@@ -1283,7 +1283,7 @@ void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
 
     IpplTimings::startTimer(timeIntegrationTimer1Push_m);
 
-    if (Options::enableDKS) {
+    if (IpplInfo::DKSEnabled) {
 #ifdef OPAL_DKS
         //if bunch is largen than before reallocate memory
         if (itsBunch->getLocalNum() > numDeviceElements) {
@@ -1466,7 +1466,7 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
 
     //switchElements();
     IpplTimings::startTimer(timeIntegrationTimer2Push_m);
-    if (Options::enableDKS) {
+    if (IpplInfo::DKSEnabled) {
 #ifdef OPAL_DKS
     
         //if bunch is largen than before reallocate memory
