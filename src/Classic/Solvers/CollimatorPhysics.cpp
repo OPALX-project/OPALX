@@ -83,7 +83,7 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *eleme
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(FN_m, !Options::asciidump));
 
 #ifdef OPAL_DKS
-    if (Options::enableDKS) {
+    if (IpplInfo::DKSEnabled) {
       dksbase.setAPI("Cuda", 4);
       dksbase.setDevice("-gpu", 4);
       dksbase.initDevice();
@@ -103,7 +103,7 @@ CollimatorPhysics::~CollimatorPhysics() {
         gsl_rng_free(rGen_m);
 
 #ifdef OPAL_DKS
-    if (Options::enableDKS)
+    if (IpplInfo::DKSEnabled)
       clearCollimatorDKS();
 #endif
 
@@ -268,7 +268,7 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
 
 #ifdef OPAL_DKS
 
-    if (collshape_m == "DEGRADER" && Options::enableDKS) {
+    if (collshape_m == "DEGRADER" && IpplInfo::DKSEnabled) {
 
       //if firs call to apply setup needed accelerator resources
       setupCollimatorDKS(bunch, deg, numParticlesInSimulation);
@@ -874,7 +874,7 @@ void CollimatorPhysics::print(Inform &msg){
 
     // ToDo: need to move that to a statistics function
 #ifdef OPAL_DKS
-    if (collshape_m == "DEGRADER" && Options::enableDKS)
+    if (collshape_m == "DEGRADER" && IpplInfo::DKSEnabled)
       locPartsInMat_m = numparticles + dksParts_m.size();
     else
       locPartsInMat_m = locParts_m.size();
@@ -925,7 +925,7 @@ bool CollimatorPhysics::stillAlive(PartBunch &bunch) {
     if (bunchOrigin[2] > zBegin) {
       degraderAlive = false;
       #ifdef OPAL_DKS
-      if (Options::enableDKS)
+      if (IpplInfo::DKSEnabled)
 	clearCollimatorDKS();
       #endif
     }

@@ -202,7 +202,7 @@ FFTPoissonSolver::FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string 
   
 #ifdef OPAL_DKS
 
-    if (Options::enableDKS) {
+    if (IpplInfo::DKSEnabled) {
       int dkserr;
 
       dksbase.setAPI("Cuda", 4);
@@ -346,10 +346,8 @@ FFTPoissonSolver::FFTPoissonSolver(PartBunch &beam, std::string greensFunction):
                                           (2 * nr_m[i] - domain2_m[i]));
     }
 
-    std::cout << "Enable DKS: " << Options::enableDKS << std::endl;
-
 #ifdef OPAL_DKS
-    if (Options::enableDKS) {
+    if (IpplInfo::DKSEnabled) {
       int dkserr;
 
       dksbase.setAPI("Cuda", 4);
@@ -409,7 +407,7 @@ FFTPoissonSolver::~FFTPoissonSolver() {
 
 #ifdef OPAL_DKS
   //free all the allocated memory
-  if (Options::enableDKS) {
+  if (IpplInfo::DKSEnabled) {
     if (Ippl::myNode() == 0) {
       //get number of elements
       int sizegreen = tmpgreen.getLayout().getDomain().size();
@@ -499,7 +497,7 @@ void FFTPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     // needed in greens function
     hr_m = hr;
 
-    if (!Options::enableDKS) {
+    if (!IpplInfo::DKSEnabled) {
       // FFT double-sized charge density
       // we do a backward transformation so that we dont have to account for the normalization factor
       // that is used in the forward transformation of the IPPL FFT
