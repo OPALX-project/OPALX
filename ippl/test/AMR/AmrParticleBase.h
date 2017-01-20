@@ -31,6 +31,10 @@
 
 typedef double RealType;
 
+typedef long                    SortListIndex_t;
+typedef std::vector<SortListIndex_t> SortList_t;
+typedef std::vector<ParticleAttribBase *>      attrib_container_t;
+
 template<class PLayout>
 class AmrParticleBase : public IpplParticleBase<PLayout> {
 
@@ -82,6 +86,26 @@ public:
     
   }
 
+  //sort particles based on the grid and level that they belong to
+  void sort() {
+    size_t LocalNum = this->getLocalNum();
+
+    SortList_t slist;
+    m_grid.calcSortList(slist);
+    this->sort(slist);
+    m_lev.calcSortList(slist);
+    this->sort(slist);
+  }
+
+  void sort(SortList_t &sortlist) {
+    attrib_container_t::iterator abeg = this->begin();
+    attrib_container_t::iterator aend = this->end();
+    for ( ; abeg != aend; ++abeg )
+      (*abeg)->sort(sortlist);
+  }
+
+
+  
   //
   // Checks/sets a particle's location on a specific level.
   // (Yes this is distict from the functionality provided above)

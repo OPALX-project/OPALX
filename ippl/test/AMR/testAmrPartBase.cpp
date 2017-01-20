@@ -155,6 +155,7 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
   int N = 20;
   createRandomParticles(pbase, N, myNode);
   pbase->update();
+  pbase->sort();
 
   writeAscii(pbase, N, myNode);
 
