@@ -140,19 +140,42 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     std::array<double, BL_SPACEDIM> upper = {{ 0.5,  0.5,  0.5}}; // m
     
     RealBox domain;
-    Array<BoxArray> ba;
-    Array<Geometry> geom;
-    Array<DistributionMapping> dmap;
-    Array<int> rr;
     
     // in helper_functions.h
-    init(domain, ba, dmap, geom, rr, nr, nLevels, maxBoxSize, lower, upper);
+    init(domain, nr, lower, upper);
+    
+    
+    /*
+     * create an Amr object
+     */
+    ParmParse pp("amr");
+    pp.add("max_grid_size", int(maxBoxSize));
+    
+    Array<int> error_buf(nLevels, 0);
+    
+    pp.addarr("n_error_buf", error_buf);
+    pp.add("grid_eff", 0.95);
+    
+    Array<int> nCells(3);
+    for (int i = 0; i < 3; ++i)
+        nCells[i] = nr[i];
+    
+    AmrOpal myAmrOpal(&domain, nLevels - 1, nCells, 0 /* cartesian */);
+    
     
     // ========================================================================
     // 2. initialize all particles (just single-level)
     // ========================================================================
     
-    PartBunchBase* bunch = new AmrPartBunch(geom[0], dmap[0], ba[0]);
+    const Array<BoxArray>& ba = myAmrOpal.boxArray();
+    const Array<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
+    const Array<Geometry>& geom = myAmrOpal.Geom();
+    
+    Array<int> rr(nLevels);
+    for (int i = 0; i < nLevels; ++i)
+        rr[i] = 2;
+    
+    PartBunchBase* bunch = new AmrPartBunch(geom, dmap, ba, rr);
     
     
     // initialize a particle distribution
@@ -184,42 +207,28 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         << "Charge per particle: " << bunch->getQM(0) << " C" << endl
         << "Total charge: " << nParticles * bunch->getQM(0) << " C" << endl;
     
+    
+    myAmrOpal.setBunch(dynamic_cast<AmrPartBunch*>(bunch));
+        
+    const Array<Geometry>& geoms = myAmrOpal.Geom();
     for (int i = 0; i < nLevels; ++i)
         msg << "#Cells per dim of level " << i << " for bunch : "
-            << 2.0 * sig / *(geom[i].CellSize()) << endl;
+            << 2.0 * sig / *(geoms[i].CellSize()) << endl;
     
     // ========================================================================
     // 2. tagging (i.e. create BoxArray's, DistributionMapping's of all
     //    other levels)
     // ========================================================================
     
-    
-    /*
-     * create an Amr object
-     */
-    ParmParse pp("amr");
-    pp.add("max_grid_size", int(maxBoxSize));
-    
-    Array<int> error_buf(nLevels, 0);
-    
-    pp.addarr("n_error_buf", error_buf);
-    pp.add("grid_eff", 0.95);
-    
-    Array<int> nCells(3);
-    for (int i = 0; i < 3; ++i)
-        nCells[i] = nr[i];
-    
-    AmrOpal myAmrOpal(&domain, nLevels - 1, nCells, 0 /* cartesian */, bunch);
-    
     /*
      * do tagging
      */
-    dynamic_cast<AmrPartBunch*>(bunch)->Define (myAmrOpal.Geom(),
-                                                myAmrOpal.DistributionMap(),
-                                                myAmrOpal.boxArray(),
-                                                rr);
-    
-    
+//     dynamic_cast<AmrPartBunch*>(bunch)->Define (myAmrOpal.Geom(),
+//                                                 myAmrOpal.DistributionMap(),
+//                                                 myAmrOpal.boxArray(),
+//                                                 rr);
+//     
+//     
     // ========================================================================
     // 3. multi-level redistribute
     // ========================================================================
@@ -236,7 +245,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     container_t grad_phi;
     
     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
-    doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels, msg);
+    
+    doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geoms, rr, nLevels, msg);
     
     msg << "Total field energy: " << totalFieldEnergy(grad_phi, rr) << endl;
     
@@ -255,7 +265,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     }
     
     
-    writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
+    writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geoms, 0);
     
 //     dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
 }
@@ -306,8 +316,8 @@ int main(int argc, char *argv[]) {
     
     std::stringstream timefile;
     timefile << std::string(argv[0]) << "-timing-cores-"
-	     << std::setfill('0') << std::setw(6) << Ippl::getNodes()
-	     << "-threads-1.dat";
+             << std::setfill('0') << std::setw(6) << Ippl::getNodes()
+             << "-threads-1.dat";
     
     IpplTimings::print(timefile.str());
     

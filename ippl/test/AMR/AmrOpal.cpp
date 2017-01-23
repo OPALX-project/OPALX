@@ -29,6 +29,36 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
 //     bunch_m->myUpdate();
 }
 
+AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord)
+    : AmrCore(rb, max_level_in, n_cell_in, coord)
+{
+    finest_level = 0;
+    
+    const BoxArray& ba = MakeBaseGrids();
+    DistributionMapping dm(ba, ParallelDescriptor::NProcs());
+    
+    nPartPerCell_m.resize(max_level_in + 1);//, PArrayManage);
+    chargeOnGrid_m.resize(max_level_in + 1);
+    
+    MakeNewLevel(0, 0.0, ba, dm);
+    
+    
+// #ifdef UNIQUE_PTR
+//     nPartPerCell_m[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(0), 1, 1, this->DistributionMap(0)));
+//     nPartPerCell_m[0]->setVal(0.0);
+//     
+//     chargeOnGrid_m.resize(max_level_in + 1);
+//     chargeOnGrid_m[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(0), 1, 0, this->DistributionMap(0)));
+// #else
+//     nPartPerCell_m.set(0, new MultiFab(this->boxArray(0), 1, 1, this->DistributionMap(0)));
+//     nPartPerCell_m[0].setVal(0.0);
+//     
+//     chargeOnGrid_m.resize(max_level_in + 1);
+//     chargeOnGrid_m.set(0, new MultiFab(this->boxArray(0), 1, 0, this->DistributionMap(0)));
+// #endif
+}
+
+
 AmrOpal::~AmrOpal() { }
 
 
