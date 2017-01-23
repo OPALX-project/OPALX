@@ -337,9 +337,17 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
             } else if ( ( strcmp(argv[i], "--use-dks") == 0 ) ) {
                 // Set DKSEnabled to true if OPAL is compiled with DKS.
 	      #ifdef IPPL_DKS
-	      DKSEnabled = true;
-	      INFOMSG("DKS enabled OPAL will use GPU where possible");
-	      INFOMSG(endl);
+	      int ndev = 0;
+	      DKS->getDeviceCount(ndev);
+	      if (ndev > 0) {
+		DKSEnabled = true;
+		INFOMSG("DKS enabled OPAL will use GPU where possible");
+		INFOMSG(endl);
+	      } else {
+		DKSEnabled = false;
+		INFOMSG("No GPU device detected! --use-dks flag will have no effect");
+		INFOMSG(endl);
+	      }
 	      //TODO: check if any device is available and disable DKS if there isn't
 	      #else
 	      DKSEnabled = false;
