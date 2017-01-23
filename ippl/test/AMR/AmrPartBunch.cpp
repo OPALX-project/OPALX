@@ -191,22 +191,22 @@ Vector_t AmrPartBunch::getP(int i) {
 }
 
 
-Vector_t AmrPartBunch::getE(int i) {
-    int l, g, dq;
-    std::tie(l,g,dq) = idxMap_m[i];
-    return Vector_t(m_particles[l][g][dq].m_data[4],
-                    m_particles[l][g][dq].m_data[5],
-                    m_particles[l][g][dq].m_data[6]);
-}
-
-
-Vector_t AmrPartBunch::getB(int i) {
-    int l, g, dq;
-    std::tie(l,g,dq) = idxMap_m[i];
-    return Vector_t(m_particles[l][g][dq].m_data[7],
-                    m_particles[l][g][dq].m_data[8],
-                    m_particles[l][g][dq].m_data[9]);
-}
+// Vector_t AmrPartBunch::getE(int i) {
+//     int l, g, dq;
+//     std::tie(l,g,dq) = idxMap_m[i];
+//     return Vector_t(m_particles[l][g][dq].m_data[4],
+//                     m_particles[l][g][dq].m_data[5],
+//                     m_particles[l][g][dq].m_data[6]);
+// }
+// 
+// 
+// Vector_t AmrPartBunch::getB(int i) {
+//     int l, g, dq;
+//     std::tie(l,g,dq) = idxMap_m[i];
+//     return Vector_t(m_particles[l][g][dq].m_data[7],
+//                     m_particles[l][g][dq].m_data[8],
+//                     m_particles[l][g][dq].m_data[9]);
+// }
 
 
 void AmrPartBunch::setR(Vector_t pos, int i) {
@@ -235,19 +235,19 @@ void AmrPartBunch::setP(Vector_t v, int i) {
 }
 
 
-void AmrPartBunch::setE(Vector_t Ef, int i) {
-    int l, g, dq;
-    std::tie(l,g,dq) = idxMap_m[i];
-    
-    for (int d = 0; d < 3; ++d)
-        m_particles[l][g][dq].m_data[d + 4] = Ef(d);
-}
-
-
-void AmrPartBunch::setB(Vector_t Bf, int i) {
-    int l, g, dq;
-    std::tie(l,g,dq) = idxMap_m[i];
-    
-    for (int d = 0; d < 3; ++d)
-        m_particles[l][g][dq].m_data[d + 7] = Bf(d);
-}
+// void AmrPartBunch::setE(Vector_t Ef, int i) {
+//     int l, g, dq;
+//     std::tie(l,g,dq) = idxMap_m[i];
+//     
+//     for (int d = 0; d < 3; ++d)
+//         m_particles[l][g][dq].m_data[d + 4] = Ef(d);
+// }
+// 
+// 
+// void AmrPartBunch::setB(Vector_t Bf, int i) {
+//     int l, g, dq;
+//     std::tie(l,g,dq) = idxMap_m[i];
+//     
+//     for (int d = 0; d < 3; ++d)
+//         m_particles[l][g][dq].m_data[d + 7] = Bf(d);
+// }
