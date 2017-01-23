@@ -28,7 +28,7 @@
 
 /// Particle bunch class for BoxLib
 class AmrPartBunch : public PartBunchBase,
-                     public ParticleContainer<10 /*real attributes*/, 0>
+                     public ParticleContainer<4 /*real attributes*/, 0>
 {
 public:
     typedef std::map<int, std::tuple<int, int, int> > map_t;
