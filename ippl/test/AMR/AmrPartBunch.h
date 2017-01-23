@@ -89,9 +89,9 @@ public:
     
     inline Vector_t getP(int i);
     
-//     inline Vector_t getE(int i);
+    inline Vector_t getE(int i);
     
-//     inline Vector_t getB(int i);
+    inline Vector_t getB(int i);
     
     inline void setR(Vector_t pos, int i);
     
@@ -99,9 +99,9 @@ public:
     
     inline void setP(Vector_t v, int i);
     
-//     inline void setE(Vector_t Ef, int i);
+    inline void setE(Vector_t Ef, int i);
     
-//     inline void setB(Vector_t Bf, int i);
+    inline void setB(Vector_t Bf, int i);
     
     
     void destroyAll() {
