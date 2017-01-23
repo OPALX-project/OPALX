@@ -242,6 +242,39 @@ inline void init(RealBox& domain,
 }
 
 /*!
+ * @param domain is the physical domain
+ * @param nr are the number of grid points in each dimension
+ * @param lower is the physical lower bound of the domain
+ * @param upper is the physical upper bound of the domain
+ */
+inline void init(RealBox& domain,
+                 const Vektor<size_t, 3>& nr,
+                 const std::array<double, BL_SPACEDIM>& lower,
+                 const std::array<double, BL_SPACEDIM>& upper)
+{
+    /*
+     * nLevels is the number of levels allowed, i.e if nLevels = 1
+     * we just run single-level
+     */
+    
+    /*
+     * set up the geometry
+     */
+    IntVect low(0, 0, 0);
+    IntVect high(nr[0] - 1, nr[1] - 1, nr[2] - 1);    
+    Box bx(low, high);
+    
+    // box
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+        domain.setLo(i, lower[i]); // m
+        domain.setHi(i, upper[i]); // m
+    }
+    
+    // Dirichlet boundary conditions in all directions
+    int bc[BL_SPACEDIM] = {0, 0, 0};
+}
+
+/*!
  * Allocate memory for the solver and initialize
  * the grid data to zero.
  * @param rhs is the right-hand side of the equation

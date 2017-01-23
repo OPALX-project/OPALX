@@ -37,9 +37,19 @@ public:
      * @param rb is the physical domain
      * @param max_level_in is the max. number of allowed AMR levels
      * @param n_cell_in is the number of grid cells at the coarsest level
+     * @param coord is the coordinate system (0: cartesian)
      * @param bunch is the particle bunch
      */
     AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord, PartBunchBase* bunch);
+    
+    /*!
+     * Create an AMR object.
+     * @param rb is the physical domain
+     * @param max_level_in is the max. number of allowed AMR levels
+     * @param n_cell_in is the number of grid cells at the coarsest level
+     * @param coord is the coordinate system (0: cartesian)
+     */
+    AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord);
     
     virtual ~AmrOpal();     ///< does nothing
     
@@ -73,6 +83,10 @@ public:
     
     
     void ClearLevel(int lev);
+    
+    void setBunch(AmrPartBunch* bunch) {
+        bunch_m = bunch;
+    }
     
     /*!
      * Print the number of particles per cell (minimum and maximum)
