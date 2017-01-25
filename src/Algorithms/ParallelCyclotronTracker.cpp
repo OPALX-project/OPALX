@@ -5468,12 +5468,13 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     itsBunch->R *= Vector_t(0.001); // mm --> m
 
     // -------------- If flag DumpLocalFrame is not set, dump bunch in global frame ------------- //
-    if(!(Options::psDumpLocalFrame)) {
+    if (Options::psDumpFreq < std::numeric_limits<int>::max() ){
+        if(!(Options::psDumpLocalFrame) && (Options::psDumpFreq < std::numeric_limits<int>::max())) {
+            
+            FDext_m[0] = extB_m * 0.1; // kgauss --> T
+            FDext_m[1] = extE_m;
 
-        FDext_m[0] = extB_m * 0.1; // kgauss --> T
-        FDext_m[1] = extE_m;
-
-        lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, // Global and in m
+            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, // Global and in m
                                                              FDext_m, E,
                                                              referencePr,
                                                              referencePt,
@@ -5487,25 +5488,25 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 							                      // at ref. R/Th/Z
                                                              false);          // Flag localFrame
 
-        // Tell user in which mode we are dumping
-        *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
-                      << " (global frame) at integration step " << step_m + 1 << endl;
-    }
+            // Tell user in which mode we are dumping
+            *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
+                  << " (global frame) at integration step " << step_m + 1 << endl;
+        }
 
-    // ---------------- If flag DumpLocalFrame is set, dump bunch in local frame ---------------- //
-    else {
+        // ---------------- If flag DumpLocalFrame is set, dump bunch in local frame ---------------- //
+        else {
 
-        // The bunch is transformed into a local coordinate system with meanP in direction of y-axis
-        globalToLocal(itsBunch->R, phi, psi, meanR * Vector_t(0.001));
-        globalToLocal(itsBunch->P, phi, psi); // P should only be rotated
+            // The bunch is transformed into a local coordinate system with meanP in direction of y-axis
+            globalToLocal(itsBunch->R, phi, psi, meanR * Vector_t(0.001));
+            globalToLocal(itsBunch->P, phi, psi); // P should only be rotated
+            
+            globalToLocal(extB_m, phi, psi);
+            globalToLocal(extE_m, phi, psi);
 
-        globalToLocal(extB_m, phi, psi);
-        globalToLocal(extE_m, phi, psi);
+            FDext_m[0] = extB_m * 0.1; // kgauss --> T
+            FDext_m[1] = extE_m;
 
-        FDext_m[0] = extB_m * 0.1; // kgauss --> T
-        FDext_m[1] = extE_m;
-
-        lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, // Local and in m
+            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, // Local and in m
                                                              FDext_m, E,
                                                              referencePr,
                                                              referencePt,
@@ -5519,14 +5520,14 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 							                      // at ref. R/Th/Z
                                                              true);           // Flag localFrame
 
-        localToGlobal(itsBunch->R, phi, psi, meanR * Vector_t(0.001));
-        localToGlobal(itsBunch->P, phi, psi);
+            localToGlobal(itsBunch->R, phi, psi, meanR * Vector_t(0.001));
+            localToGlobal(itsBunch->P, phi, psi);
 
-        // Tell user in which mode we are dumping
-	*gmsg << endl << "* Phase space dump " << lastDumpedStep_m
-                      << " (local frame) at integration step " << step_m + 1 << endl;
+            // Tell user in which mode we are dumping
+            *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
+                  << " (local frame) at integration step " << step_m + 1 << endl;
+        }
     }
-
     // Everything is (back to) global, now return to mm
     itsBunch->R *= Vector_t(1000.0); // m --> mm
 
