@@ -42,7 +42,7 @@
 #include <Utility.H>
 #include <Geometry.H>
 #include <VisMF.H>
-#include <Particles_F.H>
+#include <Particles.H>
 #include <RealBox.H>
 
 template <class T, unsigned Dim>
@@ -66,13 +66,6 @@ private:
   ParGDBBase* m_gdb;
   ParGDB m_gdb_object;
 
-  //get the cell of the particle
-  static IntVect Index (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p, 
-			const unsigned int ip,
-			const Geometry& geom);
-
-  //get the cell of the particle
-  static IntVect Index (SingleParticlePos_t &R, const Geometry& geom);
   //
   // Checks/sets a particles location on levels lev_min and higher.
   // Returns false if the particle does not exist on that level.
@@ -166,6 +159,14 @@ public:
   { 
     return m_gdb; 
   }
+
+  //get the cell of the particle
+  static IntVect Index (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p, 
+			const unsigned int ip,
+			const Geometry& geom);
+
+  //get the cell of the particle
+  static IntVect Index (SingleParticlePos_t &R, const Geometry& geom);
 
   void Redistribute(AmrParticleBase< ParticleAmrLayout<T,Dim> >& PData,
 		    bool where_already_called = false,

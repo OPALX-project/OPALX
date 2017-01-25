@@ -63,15 +63,19 @@ typedef AmrParticleBase<amrplayout_t> amrbase_t;
 
 typedef std::deque<Particle<10,0> > PBox;
 typedef std::map<int, std::deque<Particle<10,0> > > PMap;
+typedef Array<std::unique_ptr<MultiFab> > container_t;
+
 
 void createRandomParticles(amrbase_t *pbase, int N, int myNode) {
 
   srand(1);
   for (int i = 0; i < N; ++i) {
     pbase->createWithID(myNode * N + i + 1);
+    pbase->qm[i] = (double)rand() / RAND_MAX;
+
     pbase->R[i][0] = (double)rand() / RAND_MAX;
     pbase->R[i][1] = (double)rand() / RAND_MAX;
-    pbase->R[i][2] = (double)rand() / RAND_MAX;
+    pbase->R[i][2] = (double)rand() / RAND_MAX;  
   }
     
 }
@@ -80,11 +84,13 @@ void createRandomParticles(ParticleContainer<10,0> *pc, int N, int myNode) {
 
   srand(1);
 
-  std::vector<double> attrib;
-  for (int i = 0; i < 10; i++)
-    attrib.push_back(0);
-
   for (int i = 0; i < N; ++i) {
+
+    std::vector<double> attrib;
+    double r = (double)rand() / RAND_MAX;
+    for (int i = 0; i < 10; i++) {
+      attrib.push_back(r);
+    }
 
     std::vector<double> xloc;
     xloc.push_back((double)rand() / RAND_MAX);
@@ -140,7 +146,8 @@ void writeAscii(ParticleContainer<10,0> *pc, int N, size_t nLevels, int myNode) 
 }
 
 void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba, 
-	    Array<DistributionMapping> &dmap, Array<int> &rr, int myNode) 
+	    Array<DistributionMapping> &dmap, Array<int> &rr, int myNode, 
+	    PArray<MultiFab> &chargeOnGrid) 
 {
 
   static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("main");
@@ -152,10 +159,18 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
   pbase->initialize(PL);
   pbase->initializeAmr();
 
-  int N = 20;
+  int N = 1e4;
   createRandomParticles(pbase, N, myNode);
+
   pbase->update();
   pbase->sort();
+
+  chargeOnGrid[0].setVal(0.0);
+
+  pbase->setAllowParticlesNearBoundary(true);
+  pbase->AssignDensitySingleLevel(pbase->qm, chargeOnGrid[0], 0);
+
+  std::cout << "Charge on grid: " << chargeOnGrid[0].sum() << std::endl;
 
   writeAscii(pbase, N, myNode);
 
@@ -169,14 +184,22 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
 
 void doBoxLib(Array<Geometry> &geom, Array<BoxArray> &ba, 
 	      Array<DistributionMapping> &dmap, Array<int> &rr,
-	      size_t nLevels, int myNode) 
+	      size_t nLevels, int myNode, PArray<MultiFab> &chargeOnGrid) 
 {
 
-  int N = 20;
+
+  int N = 1e4;
   ParticleContainer<10,0> *pc = new ParticleContainer<10,0>(geom, dmap, ba, rr);
 
   createRandomParticles(pc, N, myNode);
   pc->Redistribute();
+
+  chargeOnGrid[0].setVal(0.0);
+
+  pc->SetAllowParticlesNearBoundary(true);
+  pc->AssignDensitySingleLevel(0, chargeOnGrid[0], 0, 0);
+
+  std::cout << "Charge on grid: " << chargeOnGrid[0].sum() << std::endl;
 
   writeAscii(pc, N, nLevels, myNode);
 
@@ -273,10 +296,18 @@ int main(int argc, char *argv[]) {
     std::cout << std::endl;
     std::cout << ba[i] << std::endl;
   }
-  
-  doIppl(geom, ba, dmap, rr, Ippl::myNode());
 
-  doBoxLib(geom, ba, dmap, rr, nLevels, Ippl::myNode());
+
+  //create a multifab
+  PArray<MultiFab> chargeOnGrid;
+  chargeOnGrid.resize(nLevels);
+  for (size_t lev = 0; lev < nLevels; ++lev)
+    chargeOnGrid.set(lev, new MultiFab(ba[lev], 1, 1, dmap[lev]));
+
+    
+  doIppl(geom, ba, dmap, rr, Ippl::myNode(), chargeOnGrid);
+
+  doBoxLib(geom, ba, dmap, rr, nLevels, Ippl::myNode(), chargeOnGrid);
 
   return 0;
 }
