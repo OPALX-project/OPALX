@@ -24,7 +24,8 @@
 #include "Utilities/Random.h"
 #include <ctime>
 #include <iostream>
-
+#include <limits>
+#include <cstddef>
 extern Inform *gmsg;
 
 using namespace Options;
@@ -252,14 +253,20 @@ void Option::execute() {
 
     if(itsAttr[PSDUMPFREQ]) {
         psDumpFreq = int(Attributes::getReal(itsAttr[PSDUMPFREQ]));
+        if (psDumpFreq==0)
+            psDumpFreq = std::numeric_limits<int>::max();
     }
 
     if(itsAttr[STATDUMPFREQ]) {
         statDumpFreq = int(Attributes::getReal(itsAttr[STATDUMPFREQ]));
+        if (statDumpFreq==0)
+            statDumpFreq = std::numeric_limits<int>::max();
     }
 
     if(itsAttr[SPTDUMPFREQ]) {
         sptDumpFreq = int(Attributes::getReal(itsAttr[SPTDUMPFREQ]));
+        if (sptDumpFreq==0)
+            sptDumpFreq = std::numeric_limits<int>::max();
     }
 
 
