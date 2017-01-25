@@ -2911,7 +2911,10 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
                     // read initial distribution from h5 file
                     if (multiBunchMode_m == 1) {
-
+			
+			if (BunchCount_m == 2)
+			    saveOneBunch();
+			
                         readOneBunch(BunchCount_m - 1);
 
                         if (timeIntegrator_m == 0) itsBunch->resetPartBinID2(eta_m);
