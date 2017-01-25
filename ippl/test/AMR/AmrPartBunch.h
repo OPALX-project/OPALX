@@ -153,6 +153,12 @@ public:
         }
     }
     
+    int getLevel(int i) {
+        int l, g, dq;
+        std::tie(l,g,dq) = idxMap_m[i];
+        return l;
+    }
+    
     Vector_t interpolate(int i, MultiFab& quantity) {
         
         int lev, grid, dq;
@@ -173,18 +179,18 @@ public:
         }
         
         const FArrayBox& gfab = (*ac_pointer)[grid];
-        Real grav[1] = { 0.0 };
+        Real grav[3] = { 0.0, 0.0, 0.0 };
         
-        int idx[1] = { 0 };
+        int idx[3] = { 0, 1, 2 };
 
     ParticleBase::Interp(m_particles[lev][grid][dq],
                          m_gdb->Geom(lev),
                          gfab,
                          idx,
                          grav,
-                         1);
+                         BL_SPACEDIM);
         
-        return Vector_t(grav[0], 0, 0);
+        return Vector_t(grav[0], grav[1], grav[2]);
     }
     
 private:
