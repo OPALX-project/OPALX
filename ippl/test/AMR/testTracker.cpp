@@ -46,6 +46,27 @@
 
 #include "Physics/Physics.h"
 
+Vector_t kick(const Vector_t& R,
+              Vector_t P,
+              const Vector_t& Ef,
+              const Vector_t& Bf,
+              const double& dt,
+              const double& mass,
+              const double& charge)
+{
+    double const gamma = std::sqrt(1.0 + dot(P, P));
+    const Vector_t t = 0.5 * dt * charge * Physics::c * Physics::c / ( gamma * mass) * Bf;
+    const Vector_t w = P + cross(P, t);
+    const Vector_t s = 2.0 / (1.0 + dot(t, t)) * t;
+    P += cross(w, s);
+    
+    return P + 0.5 * dt * charge * Physics::c / mass * Ef;
+}
+
+Vector_t push(Vector_t R, const Vector_t& P, const double& dt) {
+    return R + 0.5 * dt * P / std::sqrt(1.0 + dot(P, P));
+}
+
 void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
              container_t& rhs,
              container_t& phi,
@@ -248,8 +269,10 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
     
-    double m = 1.0; // mass
-    double gam = 1.5; // relativistic factor
+    double charge = 1.0;
+    double beta = 1.0;
+    double mass = 1.0; // mass
+    double gamma = 1.5; // relativistic factor
     double dt = 0.0005;
     for (int t = 0; t < 100; ++t) {
         
@@ -258,22 +281,39 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
             int level = dynamic_cast<AmrPartBunch*>(bunch)->getLevel(i);
             
-            // update momentum half step
-            Vector_t force = dynamic_cast<AmrPartBunch*>(bunch)->interpolate(i, grad_phi[level]);
-            bunch->setP(bunch->getP(i) + 0.5 * dt * m * gam * force, i);
             
-            // update position full step
-            bunch->setR(bunch->getR(i) + dt / ( m * gam ) * bunch->getP(i), i);
-        }
-        
-        doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geoms, rr, nLevels, msg);
-        
-        for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
-            int level = dynamic_cast<AmrPartBunch*>(bunch)->getLevel(i);
-            Vector_t force = dynamic_cast<AmrPartBunch*>(bunch)->interpolate(i, grad_phi[level]);
+            Vector_t R = push(bunch->getR(i),
+                              bunch->getP(i),
+                              dt * 1.0e-9);
             
-            // update momentum half step
-            bunch->setP(bunch->getP(i) + 0.5 * dt * m * gam * force, i);
+            bunch->setR(R, i);
+            
+            Vector_t externalE = dynamic_cast<AmrPartBunch*>(bunch)->interpolate(i, grad_phi[level]);
+            Vector_t externalB = Vector_t(0.0, 0.0, 0.0);
+            
+            externalB[1] =  gamma * beta * externalE[2];
+            externalB[2] = -gamma * beta * externalE[1];
+            
+            externalE[1] *= gamma;
+            externalE[2] *= gamma;
+            
+            
+            
+            Vector_t P = kick(bunch->getR(i),
+                              bunch->getP(i),
+                              externalE,
+                              externalB,
+                              dt * 1.0e-9,
+                              mass * 1.0e9,
+                              charge / Physics::q_e);
+            
+            bunch->setP(P, i);
+            
+            R = push(bunch->getR(i),
+                     bunch->getP(i),
+                     dt * 1.0e-9);
+            
+            bunch->setR(R, i);
         }
         
         msg << "Total field energy: " << totalFieldEnergy(grad_phi, rr) << endl;
