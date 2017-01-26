@@ -157,8 +157,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    std::array<double, BL_SPACEDIM> lower = {{-0.5, -0.5, -0.5}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ 0.5,  0.5,  0.5}}; // m
+    std::array<double, BL_SPACEDIM> lower = {{-0.15, -0.15, -0.15}}; // m
+    std::array<double, BL_SPACEDIM> upper = {{ 0.15,  0.15,  0.15}}; // m
     
     RealBox domain;
     
@@ -214,7 +214,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
         bunch->setQM(1.0e-14, i);  // in [C]
-        bunch->setP(1.0e-2, i);
+        bunch->setP(Vector_t(0.0, 0.0, 1.0), i);
     }
     
     // redistribute on single-level
@@ -269,12 +269,10 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
     
-    double charge = 1.0;
-    double beta = 1.0;
-    double mass = 1.0; // mass
-    double gamma = 1.5; // relativistic factor
+    double charge = bunch->getQM(0);
+    double mass = 0.983272; // mass
     double dt = 0.0005;
-    for (int t = 0; t < 100; ++t) {
+    for (int t = 0; t < 50; ++t) {
         
         doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geoms, rr, nLevels, msg);
         
@@ -284,12 +282,15 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
             
             Vector_t R = push(bunch->getR(i),
                               bunch->getP(i),
-                              dt * 1.0e-9);
+                              dt);
             
             bunch->setR(R, i);
             
             Vector_t externalE = dynamic_cast<AmrPartBunch*>(bunch)->interpolate(i, grad_phi[level]);
             Vector_t externalB = Vector_t(0.0, 0.0, 0.0);
+            
+            double gamma = std::sqrt(1.0 + dot(bunch->getP(i), bunch->getP(i)));
+            double beta  = std::sqrt( 1.0 - 1.0 / ( gamma * gamma ) );
             
             externalB[1] =  gamma * beta * externalE[2];
             externalB[2] = -gamma * beta * externalE[1];
@@ -303,7 +304,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
                               bunch->getP(i),
                               externalE,
                               externalB,
-                              dt * 1.0e-9,
+                              dt,
                               mass * 1.0e9,
                               charge / Physics::q_e);
             
