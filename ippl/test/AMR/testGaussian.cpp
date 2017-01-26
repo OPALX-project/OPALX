@@ -15,6 +15,7 @@
  * Call:\n
  *  mpirun -np [#cores] testGaussian [#gridpoints x] [#gridpoints y] [#gridpoints z]
  *                                   [#particles] [#levels] [max. box size]
+ *                                   [out: timing file name (optiona)]
  * 
  * @brief Computes \f$\Delta\phi = -\rho\f$
  */
@@ -284,7 +285,7 @@ int main(int argc, char *argv[]) {
     std::stringstream call;
     call << "Call: mpirun -np [#procs] " << argv[0]
          << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#particles] "
-         << "[#levels] [max. box size]";
+         << "[#levels] [max. box size] [out: timing file name (optiona)]";
     
     if ( argc < 7 ) {
         msg << call.str() << endl;
@@ -318,6 +319,9 @@ int main(int argc, char *argv[]) {
     timefile << std::string(argv[0]) << "-timing-cores-"
              << std::setfill('0') << std::setw(6) << Ippl::getNodes()
              << "-threads-1.dat";
+    
+    if ( argc == 8 )
+        timefile << std::string(argv[7]);
     
     IpplTimings::print(timefile.str());
     
