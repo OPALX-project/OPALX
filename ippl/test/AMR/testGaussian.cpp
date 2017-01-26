@@ -320,8 +320,10 @@ int main(int argc, char *argv[]) {
              << std::setfill('0') << std::setw(6) << Ippl::getNodes()
              << "-threads-1.dat";
     
-    if ( argc == 8 )
+    if ( argc == 8 ) {
+        timefile.str(std::string());
         timefile << std::string(argv[7]);
+    }
     
     IpplTimings::print(timefile.str());
     
