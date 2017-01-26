@@ -61,8 +61,8 @@ Usage:
 typedef ParticleAmrLayout<double,Dim> amrplayout_t;
 typedef AmrParticleBase<amrplayout_t> amrbase_t;
 
-typedef std::deque<Particle<10,0> > PBox;
-typedef std::map<int, std::deque<Particle<10,0> > > PMap;
+//typedef std::deque<Particle<1,0> > PBox;
+//typedef std::map<int, std::deque<Particle<1,0> > > PMap;
 typedef Array<std::unique_ptr<MultiFab> > container_t;
 
 
@@ -80,7 +80,7 @@ void createRandomParticles(amrbase_t *pbase, int N, int myNode) {
     
 }
 
-void createRandomParticles(ParticleContainer<10,0> *pc, int N, int myNode) {
+void createRandomParticles(ParticleContainer<1,0> *pc, int N, int myNode) {
 
   srand(1);
 
@@ -88,7 +88,7 @@ void createRandomParticles(ParticleContainer<10,0> *pc, int N, int myNode) {
 
     std::vector<double> attrib;
     double r = (double)rand() / RAND_MAX;
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 1; i++) {
       attrib.push_back(r);
     }
 
@@ -119,7 +119,7 @@ void writeAscii(AmrParticleBase<amrplayout_t> *pbase, int N, int myNode) {
 
 }
 
-void writeAscii(ParticleContainer<10,0> *pc, int N, size_t nLevels, int myNode) {
+void writeAscii(ParticleContainer<1,0> *pc, int N, size_t nLevels, int myNode) {
   std::ofstream myfile;
   std::string fname = "BoxLib-";
   fname += std::to_string(myNode);
@@ -169,8 +169,13 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
 
   pbase->setAllowParticlesNearBoundary(true);
   pbase->AssignDensitySingleLevel(pbase->qm, chargeOnGrid[0], 0);
-
   std::cout << "Charge on grid: " << chargeOnGrid[0].sum() << std::endl;
+
+  pbase->AssignDensity(pbase->qm, false, chargeOnGrid, 0, 1);
+
+  for (int lev = 0; lev < chargeOnGrid.size(); ++lev)
+    std::cout << "Charge on grid in level " << lev << " : " << chargeOnGrid[lev].sum() 
+	      << std::endl;
 
   writeAscii(pbase, N, myNode);
 
@@ -189,7 +194,7 @@ void doBoxLib(Array<Geometry> &geom, Array<BoxArray> &ba,
 
 
   int N = 1e4;
-  ParticleContainer<10,0> *pc = new ParticleContainer<10,0>(geom, dmap, ba, rr);
+  ParticleContainer<1,0> *pc = new ParticleContainer<1,0>(geom, dmap, ba, rr);
 
   createRandomParticles(pc, N, myNode);
   pc->Redistribute();
@@ -200,6 +205,12 @@ void doBoxLib(Array<Geometry> &geom, Array<BoxArray> &ba,
   pc->AssignDensitySingleLevel(0, chargeOnGrid[0], 0, 0);
 
   std::cout << "Charge on grid: " << chargeOnGrid[0].sum() << std::endl;
+
+  pc->AssignDensity(0, false, chargeOnGrid, 0, 1, 1);
+
+  for (int lev = 0; lev < chargeOnGrid.size(); ++lev)
+    std::cout << "Charge on grid in level " << lev << " : " << chargeOnGrid[lev].sum() 
+	      << std::endl;
 
   writeAscii(pc, N, nLevels, myNode);
 
@@ -238,7 +249,7 @@ int main(int argc, char *argv[]) {
   }
 
   //periodic boundary conditions in all directions
-  int bc[BL_SPACEDIM] = {0, 0, 0};
+  int bc[BL_SPACEDIM] = {1, 1, 1};
 
   //Container for geometry at all levels
   Array<Geometry> geom;
@@ -259,7 +270,7 @@ int main(int argc, char *argv[]) {
   // geometries of refined levels
   for (unsigned int lev = 1; lev < nLevels; ++lev)
     geom[lev].define(BoxLib::refine(geom[lev - 1].Domain(), rr[lev - 1]), &domain, 0, bc);
-        
+       
   // box at level 0
   ba[0].define(bx);
   ba[0].maxSize(maxBoxSize);
