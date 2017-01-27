@@ -263,7 +263,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
      * 
      */
     
-    std::string statistics = "particle-per-core.dat";
+    std::string statistics = "particle-statistics-ncores-" + std::to_string(Ippl::getNodes()) + ".dat";
     IpplTimings::startTimer(totalTimer);
     for (int t = 0; t < 100; ++t) {
         
