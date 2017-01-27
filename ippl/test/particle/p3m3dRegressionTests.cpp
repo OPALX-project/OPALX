@@ -125,7 +125,7 @@ struct SpecializedGreensFunction<3> {
 
 
 template<class PL>
-class ChargedParticles : public ParticleBase<PL> {
+class ChargedParticles : public IpplParticleBase<PL> {
 	public:
 		ParticleAttrib<double>     	Q;
 		ParticleAttrib<double>     	m;
@@ -137,7 +137,7 @@ class ChargedParticles : public ParticleBase<PL> {
 		ParticleAttrib<Vektor<double,2> > Rphase; //velocity of the particles
 
 		ChargedParticles(PL* pl, Vektor<double,3> nr, e_dim_tag decomp[Dim],Vektor<double,3> extend_l_, Vektor<double,3> extend_r_, Vektor<int,3> Nx_, Vektor<int,3> Nv_, Vektor<double,3> Vmax_) :
-			ParticleBase<PL>(pl),
+			IpplParticleBase<PL>(pl),
 			nr_m(nr),
 			extend_l(extend_l_),
 			extend_r(extend_r_),
@@ -266,7 +266,7 @@ class ChargedParticles : public ParticleBase<PL> {
 			domain_m = this->getFieldLayout().getDomain();
 			lDomain_m = this->getFieldLayout().getLocalNDIndex(); 
 
-			ParticleBase<PL>::update();
+			IpplParticleBase<PL>::update();
 		}
 
 		void interpolate_distribution(Vektor<double,3> dx, Vektor<double,3> dv){
@@ -463,6 +463,8 @@ class ChargedParticles : public ParticleBase<PL> {
 		Vector_t getRmax() {
 			return this->rmax_m;
 		}
+		
+		Vector_t get_hr() { return hr_m;}
 
 		//private:
 		BConds<double, Dim, Mesh_t, Center_t> bc_m;

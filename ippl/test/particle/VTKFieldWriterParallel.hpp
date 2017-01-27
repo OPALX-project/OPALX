@@ -1,6 +1,8 @@
 #ifndef VTK_FIELD_WRITER_
 #define VTK_FIELD_WRITER_
 
+#include <H5hut.h>
+
 template<typename FieldType, typename ParticleType>
 void dumpVTKVector( FieldType & f, const ParticleType & p,int iteration = 0, std::string label="EField") {
 	if(Ippl::myNode()==0) {
