@@ -74,12 +74,9 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
              const Array<Geometry>& geom,
              const Array<int>& rr,
              int nLevels,
-             Inform& msg)
+             Inform& msg,
+             IpplTimings::TimerRef& assignTimer)
 {
-    static IpplTimings::TimerRef allocTimer = IpplTimings::getTimer("alloc-memory-grid");
-    
-    static IpplTimings::TimerRef assignTimer = IpplTimings::getTimer("assign-charge");
-    
     // =======================================================================                                                                                                                                   
     // 4. prepare for multi-level solve                                                                                                                                                                          
     // =======================================================================
@@ -88,13 +85,9 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     phi.resize(nLevels);
     grad_phi.resize(nLevels);
     
-    IpplTimings::startTimer(allocTimer);
-    
     for (int lev = 0; lev < nLevels; ++lev) {
         initGridData(rhs, phi, grad_phi, myAmrOpal.boxArray()[lev], lev);
     }
-    
-    IpplTimings::stopTimer(allocTimer);
 
     // Define the density on level 0 from all particles at all levels                                                                                                                                            
     int base_level   = 0;
@@ -103,12 +96,6 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     IpplTimings::startTimer(assignTimer);
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
     IpplTimings::stopTimer(assignTimer);
-    
-    double totCharge = totalCharge(rhs, finest_level, geom);
-    msg << "Total Charge: " << totCharge << " C" << endl
-        << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
-    Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
-    msg << "Cell volume: " << vol << " m^3" << endl;
     
     // eps in C / (V * m)
     double constant = -1.0 / Physics::epsilon_0;  // in [V m / C]
@@ -135,7 +122,8 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
                         geom,
                         base_level,
                         finest_level,
-                        offset);
+                        offset,
+                        false);
     
     // for plotting unnormalize
     for (int i = 0; i <=finest_level; ++i) {
@@ -150,9 +138,12 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
 void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
               int nLevels, size_t maxBoxSize, Inform& msg)
 {
-    static IpplTimings::TimerRef distTimer = IpplTimings::getTimer("init-distribution");
-    static IpplTimings::TimerRef regridTimer = IpplTimings::getTimer("regrid");
-    static IpplTimings::TimerRef redistTimer = IpplTimings::getTimer("particle-redistr");
+    static IpplTimings::TimerRef regridTimer = IpplTimings::getTimer("tracking-regrid");
+    static IpplTimings::TimerRef solveTimer = IpplTimings::getTimer("tracking-solve");
+    static IpplTimings::TimerRef stepTimer = IpplTimings::getTimer("tracking-step");
+    static IpplTimings::TimerRef totalTimer = IpplTimings::getTimer("tracking-total");
+    static IpplTimings::TimerRef statisticsTimer = IpplTimings::getTimer("tracking-statistics");
+    static IpplTimings::TimerRef assignTimer = IpplTimings::getTimer("assign-charge");
     // ========================================================================
     // 1. initialize physical domain (just single-level)
     // ========================================================================
@@ -202,25 +193,20 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // initialize a particle distribution
     unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
     Distribution dist;
-    IpplTimings::startTimer(distTimer);
-    double sig = 0.005;  // m
+    double sig = 0.02;  // m
     dist.gaussian(0.0, sig, nloc, ParallelDescriptor::MyProc());
     
     // copy particles to the PartBunchBase object.
     dist.injectBeam(*bunch);
-    IpplTimings::stopTimer(distTimer);
     
     
     
     for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
-        bunch->setQM(1.0e-14, i);  // in [C]
-        bunch->setP(Vector_t(0.0, 0.0, 1.0), i);
+        bunch->setQM(1.0e-8, i);  // in [C]
     }
     
     // redistribute on single-level
-    IpplTimings::startTimer(redistTimer);
     bunch->myUpdate();
-    IpplTimings::stopTimer(redistTimer);
     
     msg << "Single-level statistics" << endl;
     bunch->gatherStatistics();
@@ -255,10 +241,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // ========================================================================
     // 3. multi-level redistribute
     // ========================================================================
-    IpplTimings::startTimer(regridTimer);
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
-    IpplTimings::stopTimer(regridTimer);
     
     msg << "Multi-level statistics" << endl;
     bunch->gatherStatistics();
@@ -269,13 +253,24 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
     
-    double charge = bunch->getQM(0);
     double mass = 0.983272; // mass
-    double dt = 0.0005;
-    for (int t = 0; t < 50; ++t) {
+    double dt = 0.005;
+    
+    /* units:
+     * 
+     * [P] = \gamma\beta
+     * [R] = m
+     * 
+     */
+    
+    IpplTimings::startTimer(totalTimer);
+    for (int t = 0; t < 100; ++t) {
         
-        doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geoms, rr, nLevels, msg);
+        IpplTimings::startTimer(solveTimer);
+        doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geoms, rr, nLevels, msg, assignTimer);
+        IpplTimings::stopTimer(solveTimer);
         
+        IpplTimings::startTimer(stepTimer);
         for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
             int level = dynamic_cast<AmrPartBunch*>(bunch)->getLevel(i);
             
@@ -306,40 +301,31 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
                               externalB,
                               dt,
                               mass * 1.0e9,
-                              charge / Physics::q_e);
+                              bunch->getQM(i));
             
             bunch->setP(P, i);
             
             R = push(bunch->getR(i),
                      bunch->getP(i),
-                     dt * 1.0e-9);
+                     dt);
             
             bunch->setR(R, i);
         }
+        IpplTimings::stopTimer(stepTimer);
         
-        msg << "Total field energy: " << totalFieldEnergy(grad_phi, rr) << endl;
-    
-        for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
-#ifdef UNIQUE_PTR
-            msg << "Max. potential level " << i << ": "<< phi[i]->max(0) << endl
-                << "Min. potential level " << i << ": " << phi[i]->min(0) << endl
-                << "Max. ex-field level " << i << ": " << grad_phi[i]->max(0) << endl
-                << "Min. ex-field level " << i << ": " << grad_phi[i]->min(0) << endl;
-#else
-            msg << "Max. potential level " << i << ": "<< phi[i].max(0) << endl
-                << "Min. potential level " << i << ": " << phi[i].min(0) << endl
-                << "Max. ex-field level " << i << ": " << grad_phi[i].max(0) << endl
-                << "Min. ex-field level " << i << ": " << grad_phi[i].min(0) << endl;
-#endif
-        }
-        
+        IpplTimings::startTimer(regridTimer);
         for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
             myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
+        IpplTimings::stopTimer(regridTimer);
+        
+        IpplTimings::startTimer(statisticsTimer);
+        bunch->gatherStatistics();
+        IpplTimings::stopTimer(statisticsTimer);
         
 //         writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geoms, t);
         dynamic_cast<AmrPartBunch*>(bunch)->python_format(t);
     }
-    
+    IpplTimings::stopTimer(totalTimer);
 }
 
 
