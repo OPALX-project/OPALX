@@ -9,9 +9,13 @@ Solver::solve_for_accel(container_t& rhs,
                         const Array<Geometry>& geom,
                         int base_level,
                         int finest_level,
-                        Real offset)
+                        Real offset,
+                        bool timing)
 {
-    static IpplTimings::TimerRef edge2centerTimer = IpplTimings::getTimer("grad-edge2center");
+    static IpplTimings::TimerRef edge2centerTimer;
+    
+    if ( timing )
+        edge2centerTimer = IpplTimings::getTimer("grad-edge2center");
     
     Real tol     = 1.e-10;
     Real abs_tol = 1.e-14;
@@ -48,10 +52,13 @@ Solver::solve_for_accel(container_t& rhs,
                      base_level,
                      finest_level,
                      tol,
-                     abs_tol);
+                     abs_tol,
+                     timing);
 
     // Average edge-centered gradients to cell centers and fill the values in ghost cells.
-    IpplTimings::startTimer(edge2centerTimer);
+    if ( timing )
+        IpplTimings::startTimer(edge2centerTimer);
+    
     for (int lev = base_level; lev <= finest_level; lev++)
     {
 #ifdef UNIQUE_PTR
@@ -83,7 +90,8 @@ Solver::solve_for_accel(container_t& rhs,
         grad_phi[lev].mult(-1.0, 0, 3);
     }
 #endif
-    IpplTimings::stopTimer(edge2centerTimer);
+    if ( timing )
+        IpplTimings::stopTimer(edge2centerTimer);
 }
 
 
@@ -95,13 +103,21 @@ Solver::solve_with_f90(container_t& rhs,
                        int base_level,
                        int finest_level,
                        Real tol,
-                       Real abs_tol)
+                       Real abs_tol,
+                       bool timing)
 {
-    static IpplTimings::TimerRef initSolverTimer = IpplTimings::getTimer("init-solver");
-    static IpplTimings::TimerRef doSolveTimer = IpplTimings::getTimer("do-solve");
-    static IpplTimings::TimerRef gradientTimer = IpplTimings::getTimer("gradient");
+    static IpplTimings::TimerRef initSolverTimer;
+    static IpplTimings::TimerRef doSolveTimer;
+    static IpplTimings::TimerRef gradientTimer;
     
-    IpplTimings::startTimer(initSolverTimer);
+    if ( timing ) {
+        initSolverTimer = IpplTimings::getTimer("init-solver");
+        doSolveTimer = IpplTimings::getTimer("do-solve");
+        gradientTimer = IpplTimings::getTimer("gradient");
+    }
+    
+    if ( timing )
+        IpplTimings::startTimer(initSolverTimer);
     
     int nlevs = finest_level - base_level + 1;
 
@@ -189,13 +205,17 @@ Solver::solve_with_f90(container_t& rhs,
     int need_grad_phi = 1;
     fmg.set_verbose(1);
     
-    IpplTimings::stopTimer(initSolverTimer);
+    if ( timing )
+        IpplTimings::stopTimer(initSolverTimer);
     
-    IpplTimings::startTimer(doSolveTimer);
+    if ( timing )
+        IpplTimings::startTimer(doSolveTimer);
     fmg.solve(phi_p, rhs_p, tol, abs_tol, always_use_bnorm, need_grad_phi);
-    IpplTimings::stopTimer(doSolveTimer);
+    if ( timing )
+        IpplTimings::stopTimer(doSolveTimer);
     
-    IpplTimings::startTimer(gradientTimer);
+    if ( timing )
+        IpplTimings::startTimer(gradientTimer);
 #ifdef UNIQUE_PTR
     const Array<Array<MultiFab*> >& g_phi_edge = BoxLib::GetArrOfArrOfPtrs(grad_phi_edge);
     for (int ilev = 0; ilev < nlevs; ++ilev) {
@@ -208,7 +228,8 @@ Solver::solve_with_f90(container_t& rhs,
         fmg.get_fluxes(grad_phi_edge[amr_level], ilev);
     }
 #endif
-    IpplTimings::stopTimer(gradientTimer);
+    if ( timing )
+        IpplTimings::stopTimer(gradientTimer);
 }
 
 #ifdef USEHYPRE
