@@ -153,6 +153,12 @@ public:
     
     /// Delete all particles and free allocated memory
     virtual void destroyAll() = 0;
+    
+    /*!
+     * As gatherStatistics() but it dumps the data to file.
+     * @param filename is the pathname
+     */
+    virtual void dumpStatistics(const std::string& filename) = 0;
 };
 
 
