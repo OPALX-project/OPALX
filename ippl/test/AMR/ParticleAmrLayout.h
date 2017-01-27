@@ -332,8 +332,6 @@ public:
 
     Redistribute(PData, false, false, 0, 0);
 
-    std::cout << "AmrBase update" << std::endl;
-
   }
 
   

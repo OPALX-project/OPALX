@@ -145,11 +145,82 @@ void writeAscii(ParticleContainer<1,0> *pc, int N, size_t nLevels, int myNode) {
 
 }
 
+void readData(std::string fname, std::vector<int> &data) {
+  std::ifstream myfile;
+  myfile.open(fname);
+
+  std::string line;
+  while ( getline(myfile, line) ) {
+    std::istringstream ss(line);
+    int id;
+    ss >> id;
+    data.push_back(id);
+  }
+}
+
+void compareDistribution(int node) {
+
+  //read the data files containing particle information
+  std::vector<int> ippldata, bldata;
+  readData("Ippl-" + std::to_string(node) + ".dat", ippldata);
+  readData("BoxLib-" + std::to_string(node) + ".dat", bldata);
+
+  //check if the size of particles per node is the same for Ippl and BoxLib versions
+  if ( ippldata.size() != bldata.size() ) {
+    std::cout << "===ERROR=== Particle distribution on node " << node << " doesn't match!" 
+	      << std::endl; 
+    return;
+  }
+  
+  //sort the particle IDs
+  std::sort(ippldata.begin(), ippldata.end());
+  std::sort(bldata.begin(), bldata.end());
+
+  //check if both nodes contain the same particles
+  for (unsigned i = 0; i < ippldata.size(); ++i) {
+    if (ippldata[i] != bldata[i]) {
+      std::cout << "===ERROR=== Particle distribution on node " << node << " doesn't match!" 
+		<< std::endl; 
+      return;  
+    }
+  }
+
+  std::cout << "Particle distribution for Ippl and BoxLib matches for node " << node 
+	    << std::endl;
+}
+
+void compareFields(PArray<MultiFab> &field_ippl, PArray<MultiFab> &field_bl, int node) {
+
+  bool fields_match = true;
+  double ippl_sum, bl_sum;
+
+  for (int lev = 0; lev < field_ippl.size(); ++lev) {
+    //calculate the sum of all the components in multifab
+    ippl_sum = field_ippl[lev].sum();
+    bl_sum = field_bl[lev].sum();
+
+    //check if the sums are the same for Ippl and BoxLib
+    //only node 0 prints the error since the sum is the same on all nodes
+    if ( abs( ippl_sum - bl_sum) > 1e-6 && node == 0) {
+      std::cout << "===ERROR=== Fields don't match on level " << lev 
+		<< ": " << ippl_sum << " != " << bl_sum << std::endl; 
+      
+      fields_match = false;
+    }
+  }
+
+  if (fields_match && node == 0)
+    std::cout << "Fields match on all levels for BoxLib and Ippl AssignDensity" << std::endl;
+  
+}
+
 void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba, 
 	    Array<DistributionMapping> &dmap, Array<int> &rr, int myNode, 
-	    PArray<MultiFab> &chargeOnGrid) 
+	    PArray<MultiFab> &field,
+	    int N) 
 {
 
+  static IpplTimings::TimerRef createTimer = IpplTimings::getTimer("AMR create particles");
   static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("main");
   IpplTimings::startTimer(mainTimer);
 
@@ -159,23 +230,17 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
   pbase->initialize(PL);
   pbase->initializeAmr();
 
-  int N = 1e4;
+  IpplTimings::startTimer(createTimer);
   createRandomParticles(pbase, N, myNode);
+  IpplTimings::stopTimer(createTimer);
 
   pbase->update();
   pbase->sort();
 
-  chargeOnGrid[0].setVal(0.0);
-
   pbase->setAllowParticlesNearBoundary(true);
-  pbase->AssignDensitySingleLevel(pbase->qm, chargeOnGrid[0], 0);
-  std::cout << "Charge on grid: " << chargeOnGrid[0].sum() << std::endl;
+  pbase->AssignDensitySingleLevel(pbase->qm, field[0], 0);
 
-  pbase->AssignDensity(pbase->qm, false, chargeOnGrid, 0, 1);
-
-  for (int lev = 0; lev < chargeOnGrid.size(); ++lev)
-    std::cout << "Charge on grid in level " << lev << " : " << chargeOnGrid[lev].sum() 
-	      << std::endl;
+  pbase->AssignDensity(pbase->qm, false, field, 0, 1);
 
   writeAscii(pbase, N, myNode);
 
@@ -183,34 +248,24 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
   
   IpplTimings::stopTimer(mainTimer);
 
-  IpplTimings::print();
-
 }
 
 void doBoxLib(Array<Geometry> &geom, Array<BoxArray> &ba, 
 	      Array<DistributionMapping> &dmap, Array<int> &rr,
-	      size_t nLevels, int myNode, PArray<MultiFab> &chargeOnGrid) 
+	      size_t nLevels, int myNode, PArray<MultiFab> &field,
+	      int N) 
 {
 
 
-  int N = 1e4;
   ParticleContainer<1,0> *pc = new ParticleContainer<1,0>(geom, dmap, ba, rr);
 
   createRandomParticles(pc, N, myNode);
   pc->Redistribute();
 
-  chargeOnGrid[0].setVal(0.0);
-
   pc->SetAllowParticlesNearBoundary(true);
-  pc->AssignDensitySingleLevel(0, chargeOnGrid[0], 0, 0);
+  pc->AssignDensitySingleLevel(0, field[0], 0, 0);
 
-  std::cout << "Charge on grid: " << chargeOnGrid[0].sum() << std::endl;
-
-  pc->AssignDensity(0, false, chargeOnGrid, 0, 1, 1);
-
-  for (int lev = 0; lev < chargeOnGrid.size(); ++lev)
-    std::cout << "Charge on grid in level " << lev << " : " << chargeOnGrid[lev].sum() 
-	      << std::endl;
+  pc->AssignDensity(0, false, field, 0, 1, 1);
 
   writeAscii(pc, N, nLevels, myNode);
 
@@ -310,15 +365,25 @@ int main(int argc, char *argv[]) {
 
 
   //create a multifab
-  PArray<MultiFab> chargeOnGrid;
-  chargeOnGrid.resize(nLevels);
+  PArray<MultiFab> field_ippl;
+  field_ippl.resize(nLevels);
   for (size_t lev = 0; lev < nLevels; ++lev)
-    chargeOnGrid.set(lev, new MultiFab(ba[lev], 1, 1, dmap[lev]));
+    field_ippl.set(lev, new MultiFab(ba[lev], 1, 1, dmap[lev]));
 
-    
-  doIppl(geom, ba, dmap, rr, Ippl::myNode(), chargeOnGrid);
+  PArray<MultiFab> field_bl;
+  field_bl.resize(nLevels);
+  for (size_t lev = 0; lev < nLevels; ++lev)
+    field_bl.set(lev, new MultiFab(ba[lev], 1, 1, dmap[lev]));
 
-  doBoxLib(geom, ba, dmap, rr, nLevels, Ippl::myNode(), chargeOnGrid);
+   
+  int N = 1e5;
+  doIppl(geom, ba, dmap, rr, Ippl::myNode(), field_ippl, N);
+  doBoxLib(geom, ba, dmap, rr, nLevels, Ippl::myNode(), field_bl, N);
+
+  compareDistribution(Ippl::myNode());
+  compareFields(field_ippl, field_bl, Ippl::myNode());
+
+  IpplTimings::print();
 
   return 0;
 }

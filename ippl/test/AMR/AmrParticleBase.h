@@ -55,6 +55,9 @@ public:
 
 private:
 
+  IpplTimings::TimerRef AssignDensityTimer_m;
+  IpplTimings::TimerRef SortParticlesTimer_m;
+  IpplTimings::TimerRef UpdateParticlesTimer_m;
 
   bool allow_particles_near_boundary;
 
@@ -96,7 +99,11 @@ private:
   
 public: 
 
-  AmrParticleBase() : allow_particles_near_boundary(false) { }
+  AmrParticleBase() : allow_particles_near_boundary(false) { 
+    AssignDensityTimer_m = IpplTimings::getTimer("AMR AssignDensity");
+    SortParticlesTimer_m = IpplTimings::getTimer("AMR sort particles");
+    UpdateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
+  }
 
   // destructor - delete the layout if necessary
   ~AmrParticleBase() { }
@@ -115,7 +122,8 @@ public:
   // our local, total, create particle counts properly.
   void update() {
     
-    std::cout << "update Amr" << std::endl;
+    IpplTimings::startTimer(UpdateParticlesTimer_m);
+
     // make sure we've been initialized
     PLayout *Layout = &this->getLayout();
 
@@ -124,13 +132,16 @@ public:
     // ask the layout manager to update our atoms, etc.
     Layout->update(*this);
     INCIPPLSTAT(incParticleUpdates);
+    
+    IpplTimings::stopTimer(UpdateParticlesTimer_m);
 
   }
 
   void update(const ParticleAttrib<char>& canSwap) {
+
+    IpplTimings::startTimer(UpdateParticlesTimer_m);
+
     // make sure we've been initialized
-    
-    std::cout << "update Amr swap" << std::endl;
     PLayout *Layout = &this->getLayout();
     PAssert(Layout != 0);
     
@@ -138,10 +149,12 @@ public:
     Layout->update(*this, &canSwap);
     INCIPPLSTAT(incParticleUpdates);
     
+    IpplTimings::stopTimer(UpdateParticlesTimer_m);
   }
 
   //sort particles based on the grid and level that they belong to
   void sort() {
+    IpplTimings::startTimer(SortParticlesTimer_m);
     size_t LocalNum = this->getLocalNum();
 
     SortList_t slist;
@@ -149,6 +162,7 @@ public:
     this->sort(slist);
     m_lev.calcSortList(slist);
     this->sort(slist);
+    IpplTimings::stopTimer(SortParticlesTimer_m);
   }
 
   void sort(SortList_t &sortlist) {
@@ -167,6 +181,8 @@ public:
 		     int lev_min,
 		     int finest_level)
   {
+
+    IpplTimings::startTimer(AssignDensityTimer_m);
 
     PLayout *Layout = &this->getLayout();
     const ParGDBBase* m_gdb = Layout->GetParGDB();
@@ -897,7 +913,8 @@ public:
 	mf_to_be_filled[lev_index].copy(mf_part[lev_index],0,0,1);
       }
     }	  
-    
+
+    IpplTimings::stopTimer(AssignDensityTimer_m);
   }
 
 
@@ -907,13 +924,9 @@ public:
 				 int lev,
 				 int particle_lvl_offset = 0)
   {
-    std::cout << "Assign density single level" << std::endl;
-
     if (mf_to_be_filled.is_nodal()) {
-      std::cout << "Nodal" << std::endl;
       NodalDepositionSingleLevel(pa, mf_to_be_filled, lev, particle_lvl_offset);
     } else if (mf_to_be_filled.boxArray().ixType().cellCentered()) {
-      std::cout << "Cell" << std::endl;
       AssignCellDensitySingleLevel(pa, mf_to_be_filled, lev, particle_lvl_offset);
     } else {
       BoxLib::Abort("AssignCellDensitySingleLevel: mixed type not supported");
