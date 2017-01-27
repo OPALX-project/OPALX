@@ -47,11 +47,11 @@ target_link_libraries (p3m3dHeating ${IPPL_LIBS} ${H5Hut_LIBRARY} ${HDF5_LIBRARY
 #add_executable (p3m3dTwoStream p3m3dTwoStream.cpp)
 #target_link_libraries (p3m3dTwoStream ${IPPL_LIBS})
 
-#add_executable (p3m3dTwoStreamParallel p3m3dTwoStreamParallel.cpp)
-#target_link_libraries (p3m3dTwoStreamParallel ${IPPL_LIBS})
+add_executable (p3m3dTwoStreamParallel p3m3dTwoStreamParallel.cpp)
+target_link_libraries (p3m3dTwoStreamParallel ${IPPL_LIBS})
 
-#add_executable (p3m3dRegressionTests p3m3dRegressionTests.cpp)
-#target_link_libraries (p3m3dRegressionTests ${IPPL_LIBS})
+add_executable (p3m3dRegressionTests p3m3dRegressionTests.cpp)
+target_link_libraries (p3m3dRegressionTests ${IPPL_LIBS})
 
 #add_executable (p3m3dMicrobunching p3m3dMicrobunching.cpp)
 #target_link_libraries (p3m3dMicrobunching ${IPPL_LIBS} ${H5Hut_LIBRARY} ${HDF5_LIBRARY} z ${CMAKE_DL_LIBS})
