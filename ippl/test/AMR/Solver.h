@@ -60,6 +60,7 @@ public:
      * @param base_level from which the solve starts
      * @param finest_level up to which solver goes
      * @param offset is zero in case of Dirichlet boundary conditions.
+     * @param timing of solver parts
      */
     void solve_for_accel(container_t& rhs,
                          container_t& phi,
@@ -67,7 +68,8 @@ public:
                          const Array<Geometry>& geom,
                          int base_level,
                          int finest_level,
-                         Real offset);
+                         Real offset,
+                         bool timing=true);
     
     /*!
      * Actual solve.
@@ -79,10 +81,12 @@ public:
      * @param finest_level up to which solver goes
      * @param tol is \f$ 10^{-10}\f$ (specified in solve_for_accel)
      * @param abs_tol is \f$ 10^{-14}\f$ (specified in solve_for_accel)
+     * @param timing of solver parts
      */
     void solve_with_f90(container_t& rhs,
                         container_t& phi, Array< container_t >& grad_phi_edge, 
-                        const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol);
+                        const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol,
+                        bool timing);
     
 #ifdef USEHYPRE
     void solve_with_hypre(MultiFab& soln, MultiFab& rhs, const BoxArray& bs,
