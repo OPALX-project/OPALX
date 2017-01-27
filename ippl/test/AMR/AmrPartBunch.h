@@ -61,6 +61,8 @@ public:
     
     void gatherStatistics();
     
+    void dumpStatistics(const std::string& filename);
+    
     size_t getLocalNum() const;
     
     size_t getTotalNum() const;

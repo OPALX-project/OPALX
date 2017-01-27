@@ -110,6 +110,8 @@ public:
     void myUpdate();
 
     void gatherStatistics();
+    
+    void dumpStatistics(const std::string& filename) {}
 
     void initFields();
 

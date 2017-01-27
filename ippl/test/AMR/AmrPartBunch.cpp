@@ -1,5 +1,7 @@
 #include "AmrPartBunch.h"
 
+#include <memory>
+
 // ----------------------------------------------------------------------------
 // STATIC MEMBER VARIABLES
 // ----------------------------------------------------------------------------
@@ -130,6 +132,32 @@ void AmrPartBunch::gatherStatistics() {
           << NumberOfParticlesAtLevel(lev) << endl;
 }
 
+void AmrPartBunch::dumpStatistics(const std::string& filename) {
+    
+    
+    std::unique_ptr<double[]> partPerNode(new double[ParallelDescriptor::NProcs()]);
+    std::unique_ptr<double[]> globalPartPerNode(new double[ParallelDescriptor::NProcs()]);
+    
+    for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
+        partPerNode[i] = globalPartPerNode[i] = 0.0;
+    
+    partPerNode[ParallelDescriptor::MyProc()] = this->getLocalNum();
+    
+    reduce(partPerNode.get(),
+           partPerNode.get() + ParallelDescriptor::NProcs(),
+           globalPartPerNode.get(),
+           OpAddAssign());
+    
+    std::size_t total = this->getTotalNum();
+    
+    if ( Ippl::myNode() == 0 ) {
+        std::ofstream out(filename, std::ios::app);
+        for (int i = 0; i < ParallelDescriptor::NProcs(); ++i)
+            out << globalPartPerNode[i]/double(total)*100.0 << " ";
+        out << std::endl;
+        out.close();
+    }
+}
 
 size_t AmrPartBunch::getLocalNum() const {
     return nLocalParticles_m;

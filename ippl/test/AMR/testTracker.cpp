@@ -263,6 +263,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
      * 
      */
     
+    std::string statistics = "particle-per-core.dat";
     IpplTimings::startTimer(totalTimer);
     for (int t = 0; t < 100; ++t) {
         
@@ -319,11 +320,11 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         IpplTimings::stopTimer(regridTimer);
         
         IpplTimings::startTimer(statisticsTimer);
-        bunch->gatherStatistics();
+        bunch->dumpStatistics(statistics);
         IpplTimings::stopTimer(statisticsTimer);
         
 //         writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geoms, t);
-        dynamic_cast<AmrPartBunch*>(bunch)->python_format(t);
+//         dynamic_cast<AmrPartBunch*>(bunch)->python_format(t);
     }
     IpplTimings::stopTimer(totalTimer);
 }
