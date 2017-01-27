@@ -14,7 +14,7 @@
  * 
  * Call:\n
  *  mpirun -np [#cores] testTracker [#gridpoints x] [#gridpoints y] [#gridpoints z]
- *                                  [#particles] [#levels] [max. box size]
+ *                                  [#particles] [#levels] [max. box size] [#steps]
  * 
  * @brief Computes \f$\Delta\phi = -\rho\f$
  */
@@ -136,7 +136,7 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
 }
 
 void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
-              int nLevels, size_t maxBoxSize, Inform& msg)
+              int nLevels, size_t maxBoxSize, int nSteps, Inform& msg)
 {
     static IpplTimings::TimerRef regridTimer = IpplTimings::getTimer("tracking-regrid");
     static IpplTimings::TimerRef solveTimer = IpplTimings::getTimer("tracking-solve");
@@ -202,7 +202,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     
     for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
-        bunch->setQM(1.0e-8, i);  // in [C]
+        bunch->setQM(1.0e-14, i);  // in [C]
     }
     
     // redistribute on single-level
@@ -265,7 +265,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     std::string statistics = "particle-statistics-ncores-" + std::to_string(Ippl::getNodes()) + ".dat";
     IpplTimings::startTimer(totalTimer);
-    for (int t = 0; t < 100; ++t) {
+    for (int t = 0; t < nSteps; ++t) {
         
         IpplTimings::startTimer(solveTimer);
         doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geoms, rr, nLevels, msg, assignTimer);
@@ -343,9 +343,9 @@ int main(int argc, char *argv[]) {
     std::stringstream call;
     call << "Call: mpirun -np [#procs] " << argv[0]
          << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#particles] "
-         << "[#levels] [max. box size]";
+         << "[#levels] [max. box size] [#steps]";
     
-    if ( argc < 7 ) {
+    if ( argc < 8 ) {
         msg << call.str() << endl;
         return -1;
     }
@@ -366,7 +366,8 @@ int main(int argc, char *argv[]) {
     BoxLib::Initialize(argc,argv, false);
     size_t nLevels = std::atoi(argv[5]) + 1; // i.e. nLevels = 0 --> only single level
     size_t maxBoxSize = std::atoi(argv[6]);
-    doBoxLib(nr, nParticles, nLevels, maxBoxSize, msg);
+    int nSteps = std::atoi(argv[7]);
+    doBoxLib(nr, nParticles, nLevels, maxBoxSize, nSteps, msg);
     
     
     IpplTimings::stopTimer(mainTimer);
