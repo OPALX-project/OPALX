@@ -139,19 +139,42 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     std::array<double, BL_SPACEDIM> upper = {{ 0.5,  0.5,  0.5}}; // m
     
     RealBox domain;
-    Array<BoxArray> ba;
-    Array<Geometry> geom;
-    Array<DistributionMapping> dmap;
-    Array<int> rr;
     
     // in helper_functions.h
-    init(domain, ba, dmap, geom, rr, nr, nLevels, maxBoxSize, lower, upper);
+    init(domain, nr, lower, upper);
+    
+    /*
+     * create an Amr object
+     */
+    ParmParse pp("amr");
+    pp.add("max_grid_size", int(maxBoxSize));
+    
+    Array<int> error_buf(nLevels, 0);
+    
+    pp.addarr("n_error_buf", error_buf);
+    pp.add("grid_eff", 0.95);
+    
+    Array<int> nCells(3);
+    for (int i = 0; i < 3; ++i)
+        nCells[i] = nr[i];
+    
+    AmrOpal myAmrOpal(&domain, nLevels - 1, nCells, 0 /* cartesian */);
+    
     
     // ========================================================================
     // 2. initialize all particles (just single-level)
     // ========================================================================
     
-    PartBunchBase* bunch = new AmrPartBunch(geom[0], dmap[0], ba[0]);
+    const Array<BoxArray>& ba = myAmrOpal.boxArray();
+    const Array<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
+    const Array<Geometry>& geom = myAmrOpal.Geom();
+    
+    Array<int> rr(nLevels);
+    for (int i = 0; i < nLevels; ++i)
+        rr[i] = 2;
+    
+    
+    PartBunchBase* bunch = new AmrPartBunch(geom, dmap, ba, rr);
     
     
     // initialize a particle distribution
@@ -185,31 +208,10 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     //    other levels)
     // ========================================================================
     
-    
-    /*
-     * create an Amr object
-     */
-    ParmParse pp("amr");
-    pp.add("max_grid_size", int(maxBoxSize));
-    
-    Array<int> error_buf(nLevels, 0);
-    
-    pp.addarr("n_error_buf", error_buf);
-    pp.add("grid_eff", 0.95);
-    
-    Array<int> nCells(3);
-    for (int i = 0; i < 3; ++i)
-        nCells[i] = nr[i];
-    
-    AmrOpal myAmrOpal(&domain, nLevels - 1, nCells, 0 /* cartesian */, bunch);
-    
     /*
      * do tagging
      */
-    dynamic_cast<AmrPartBunch*>(bunch)->Define (myAmrOpal.Geom(),
-                                                myAmrOpal.DistributionMap(),
-                                                myAmrOpal.boxArray(),
-                                                rr);
+    myAmrOpal.setBunch(dynamic_cast<AmrPartBunch*>(bunch));
     
     
     // ========================================================================
@@ -244,7 +246,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     }
     
     
-    writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
+//     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
     
 //     dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
 }
