@@ -49,6 +49,19 @@ public:
      */
     void gaussian(double mean, double stddev, size_t nloc, int seed);
     
+    /// Generate a two stream instability distribution according to B.\ Ulmer
+    /*!
+     * @param lower boundary of domain
+     * @param upper boundary of domain
+     * @param nx is the number of grid points in cooordinate space
+     * @param nv is the number of grid points in velocity space
+     * @param vmax is the max. velocity
+     * @param alpha is the amplitude of the initial disturbance
+     */
+    void twostream(const Vector_t& lower, const Vector_t& upper,
+                   const Vektor<std::size_t, 3>& nx, const Vektor<std::size_t, 3>& nv,
+                   const Vektor<double, 3>& vmax, double alpha = 0.5);
+    
     /// Read in a distribution from an H5 file
     /*!
      * @param filename is the path and name of the H5 file.
@@ -86,6 +99,7 @@ private:
     container_t py_m;   ///< Vertical particle momentum
     container_t pz_m;   ///< Longitudinal particle momentum
     container_t q_m;    ///< Particle charge (always set to 1.0, except for Distribution::readH5)
+    container_t mass_m; ///< Particl mass (always set to 1.0, except for Distribution::readH5 and Distribution::twostream)
     
     size_t nloc_m;      ///< Local number of particles
     size_t ntot_m;      ///< Total number of particles
