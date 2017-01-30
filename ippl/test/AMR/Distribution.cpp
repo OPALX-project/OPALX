@@ -15,6 +15,8 @@ Distribution::Distribution():
     px_m(0),
     py_m(0),
     pz_m(0),
+    q_m(0),
+    mass_m(0),
     nloc_m(0),
     ntot_m(0)
 { }
@@ -45,6 +47,7 @@ void Distribution::uniform(double lower, double upper, size_t nloc, int seed) {
     pz_m.resize(nloc);
     
     q_m.resize(nloc);
+    mass_m.resize(nloc);
     
     for (size_t i = 0; i < nloc; ++i) {
         x_m[i] = dist(mt);
@@ -56,6 +59,7 @@ void Distribution::uniform(double lower, double upper, size_t nloc, int seed) {
         pz_m[i] = dist(mt);
         
         q_m[i] = 1.0;
+        mass_m[i] = 1.0;
     }
 }
 
@@ -84,6 +88,7 @@ void Distribution::gaussian(double mean, double stddev, size_t nloc, int seed) {
     pz_m.resize(nloc);
     
     q_m.resize(nloc);
+    mass_m.resize(nloc);
     
     for (size_t i = 0; i < nloc; ++i) {
         x_m[i] = dist(mt);
@@ -96,6 +101,73 @@ void Distribution::gaussian(double mean, double stddev, size_t nloc, int seed) {
         
         
         q_m[i] = 1.0;
+        mass_m[i] = 1.0;
+    }
+}
+
+void Distribution::twostream(const Vector_t& lower, const Vector_t& upper,
+                             const Vektor<std::size_t, 3>& nx, const Vektor<std::size_t, 3>& nv,
+                             const Vektor<double, 3>& vmax, double alpha)
+{
+    Vektor<double, 3> hx = (upper - lower) / Vector_t(nx);
+    Vektor<double, 3> hv = 2.0 * vmax / Vector_t(nv);
+    
+    double thr = 1.0e-12;
+    
+    double factor = 1.0 / ( M_PI * 30.0 );
+    
+    nloc_m = 0;
+    
+    if ( !Ippl::myNode() ) {
+        for (std::size_t i = 0; i < nx[0]; ++i) {
+            for (std::size_t j = 0; j < nx[1]; ++j) {
+                for ( std::size_t k = 0; k < nx[2]; ++k) {
+                    Vektor<double, 3> pos = Vektor<double,3>(
+                                                (0.5 + i) * hx[0] + lower[0],
+                                                (0.5 + j) * hx[1] + lower[1],
+                                                (0.5 + k) * hx[2] + lower[2]
+                                            );
+                    
+                    for (std::size_t iv = 0; iv < nv[0]; ++iv) {
+                        for (std::size_t jv = 0; jv < nv[1]; ++jv) {
+                            for (std::size_t kv = 0; kv < nv[2]; ++kv) {
+                                Vektor<double, 3> vel = -vmax + hv *
+                                                        Vektor<double, 3>(iv + 0.5,
+                                                                          jv + 0.5,
+                                                                          kv + 0.5);
+                                
+                                double v2 = vel[0] * vel[0] +
+                                            vel[1] * vel[1] +
+                                            vel[2] * vel[2];
+                                
+                                double f = factor * std::exp(-0.5 * v2) *
+                                           (1.0 + alpha * std::cos(0.5 * pos[2])) *
+                                           (1.0 + 0.5 * v2);
+                                
+                                double m = hx[0] * hv[0] *
+                                           hx[1] * hv[1] *
+                                           hx[2] * hv[2] * f;
+                                           
+                                
+                                if ( m > thr ) {
+                                    ++nloc_m;
+                                    x_m.push_back( pos[0] );
+                                    y_m.push_back( pos[1] );
+                                    z_m.push_back( pos[2] );
+                                    
+                                    px_m.push_back( vel[0] );
+                                    py_m.push_back( vel[1] );
+                                    pz_m.push_back( vel[2] );
+                                    
+                                    q_m.push_back( -m );
+                                    mass_m.push_back( m );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -127,11 +199,13 @@ void Distribution::readH5(const std::string& filename, int step) {
     pz_m.resize(nloc_m);
     
     q_m.resize(nloc_m);
+    mass_m.resize(nloc_m);
     
     h5.read(x_m, px_m,
             y_m, py_m,
             z_m, pz_m,
             q_m,
+            mass_m,
             firstParticle,
             lastParticle);
     
@@ -155,6 +229,7 @@ void Distribution::injectBeam(PartBunchBase& bunch, bool doDelete, std::array<do
         bunch.setR(Vector_t(x_m[i] + shift[0], y_m[i] + shift[1], z_m[i] + shift[2]), i + prevnum);
         bunch.setP(Vector_t(px_m[i], py_m[i], pz_m[i]), i + prevnum);
         bunch.setQM(q_m[i], i + prevnum);
+        bunch.setMass(mass_m[i], i + prevnum);
         
         x_m.pop_back();
         y_m.pop_back();
@@ -164,6 +239,7 @@ void Distribution::injectBeam(PartBunchBase& bunch, bool doDelete, std::array<do
         pz_m.pop_back();
         
         q_m.pop_back();
+        mass_m.pop_back();
     }
 }
 

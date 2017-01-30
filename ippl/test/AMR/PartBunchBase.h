@@ -94,6 +94,11 @@ public:
      */
     virtual double getQM(int i) = 0;
     
+    /// Access the mass of a particle
+    /*! @returns the mass of the i-th particle
+     */
+    virtual double getMass(int i) = 0;
+    
     /// Access the velocity of a particle
     /*! @returns the i-th particle velocity (px, py, pz)
      */
@@ -122,6 +127,13 @@ public:
      * @param i specifies the i-th particle
      */
     virtual void setQM(double q, int i) = 0;
+    
+    /// Set the particle charge-to-mass ratio
+    /*!
+     * @param m is the new mass
+     * @param i specifies the i-th particle
+     */
+    virtual void setMass(double q, int i) = 0;
     
     /// Set the particle velocity
     /*!

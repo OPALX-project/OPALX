@@ -5,7 +5,7 @@
 // ----------------------------------------------------------------------------
 // STATIC MEMBER VARIABLES
 // ----------------------------------------------------------------------------
-size_t AmrPartBunch::nAttributes = 4;
+size_t AmrPartBunch::nAttributes = 5;
 
 // ----------------------------------------------------------------------------
 // PUBLIC MEMBER FUNCTIONS
@@ -209,6 +209,13 @@ double AmrPartBunch::getQM(int i) {
     return m_particles[l][g][dq].m_data[0];
 }
 
+double AmrPartBunch::getMass(int i) {
+    int l, g, dq;
+    std::tie(l,g,dq) = idxMap_m[i];
+    return m_particles[l][g][dq].m_data[4];
+}
+
+
 
 Vector_t AmrPartBunch::getP(int i) {
     int l, g, dq;
@@ -255,6 +262,12 @@ void AmrPartBunch::setQM(double q, int i) {
     m_particles[l][g][dq].m_data[0] = q;
 }
 
+void AmrPartBunch::setMass(double m, int i) {
+    int l, g, dq;
+    std::tie(l,g,dq) = idxMap_m[i];
+    
+    m_particles[l][g][dq].m_data[4] = m;
+}
 
 void AmrPartBunch::setP(Vector_t v, int i) {
     int l, g, dq;
