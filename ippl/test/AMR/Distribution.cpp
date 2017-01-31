@@ -3,7 +3,6 @@
 #include "H5Reader.h"
 #include <fstream>
 
-
 // ----------------------------------------------------------------------------
 // PUBLIC MEMBER FUNCTIONS
 // ----------------------------------------------------------------------------
@@ -178,6 +177,77 @@ void Distribution::twostream(const Vector_t& lower, const Vector_t& upper,
 //         std::cout << "Total charge: " << total_charge << std::endl;
     }
 }
+
+void Distribution::uniformPerCell(const Array<Geometry>& geom,
+                                  const Array<BoxArray>& ba,
+                                  const Vektor<std::size_t, 3>& nr,
+                                  std::size_t nParticles, int seed) {
+    
+    nloc_m = 0;
+    
+    std::mt19937_64 mt(0);
+    std::uniform_real_distribution<> dist(0.0, 1.0);
+    std::vector<double> rn(nParticles);
+    
+    for (std::size_t i = 0; i < nParticles; ++i)
+        rn[i] = dist(mt);
+    
+    double dx[3] = {0.0, 0.0, 0.0};     // cell size
+    double inv[3] = {1.0, 1.0, 1.0};
+    
+    // go through levels and add "nParticles" particles per cell
+    for (std::size_t i = 0; i < geom.size(); ++i) {
+        
+        double refinement = std::pow(2, i);
+        
+        for (int d = 0; d < 3; ++d) {
+            dx[d] = geom[i].CellSize(d);
+            inv[d] = geom[i].ProbLength(d) / (nr(d) * refinement);
+        }
+        
+        // map [0, 1] --> to cell dimension [0, dx]
+        std::vector< Vektor<double, 3> > mapped2cell(nParticles);
+        
+        for (std::size_t pi = 0; pi < nParticles; ++pi) {
+            for (int d = 0; d < 3; ++d)
+                mapped2cell[pi](d) = dx[d] * rn[pi];
+        }
+        
+        for (int j = 0; j < ba[i].size(); ++j) {
+            Box bx = ba[j].get(j);
+            
+            for (int k = bx.loVect()[0]; k <= bx.hiVect()[0]; ++k) {
+                for (int l = bx.loVect()[1]; l <= bx.hiVect()[1]; ++l) {
+                    for (int m = bx.loVect()[2]; m <= bx.hiVect()[2]; ++m) {
+                        
+                        // assign particle position
+                        for (std::size_t pi = 0; pi < nParticles; ++pi) {
+                            // get global coordinates [as physical domain values] of cell
+                            double kk = inv[0] * k + geom[i].ProbLo(0);
+                            double ll = inv[1] * l + geom[i].ProbLo(1);
+                            double mm = inv[2] * m + geom[i].ProbLo(2);
+                            
+                            x_m.push_back( kk + mapped2cell[pi](0) );
+                            y_m.push_back( ll + mapped2cell[pi](1) );
+                            z_m.push_back( mm + mapped2cell[pi](2) );
+                            
+                            px_m.push_back( 1.0 );
+                            py_m.push_back( 1.0 );
+                            pz_m.push_back( 1.0 );
+                            q_m.push_back( 1.0 );
+                            mass_m.push_back( 1.0 );
+                            
+                            ++nloc_m;
+                        }
+                    }
+                }
+            }
+        }
+        
+    }
+    
+}
+
 
 void Distribution::readH5(const std::string& filename, int step) {
     H5Reader h5(filename);

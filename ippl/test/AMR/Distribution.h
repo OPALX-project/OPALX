@@ -17,6 +17,9 @@
 #include <iostream>
 #include <array>
 
+#include <Array.H>
+#include <Geometry.H>
+
 #include "PartBunchBase.h"
 
 
@@ -61,6 +64,20 @@ public:
     void twostream(const Vector_t& lower, const Vector_t& upper,
                    const Vektor<std::size_t, 3>& nx, const Vektor<std::size_t, 3>& nv,
                    const Vektor<double, 3>& vmax, double alpha = 0.5);
+    
+    /// Generate a uniform particle disitribution per cell
+    /*!
+     * Each cell of the domain receives the same number of particles.
+     * @param geom is the geometry obtained from Amr (for each level).
+     * @param ba are all boxes per level
+     * @param nr is the number of gridpoints in each direction of coarsest level
+     * @param nParticles is the number of particles per cell
+     * @param seed of the Mersenne-Twister
+     */
+    void uniformPerCell(const Array<Geometry>& geom,
+                        const Array<BoxArray>& ba,
+                        const Vektor<std::size_t, 3>& nr,
+                        std::size_t nParticles, int seed);
     
     /// Read in a distribution from an H5 file
     /*!
