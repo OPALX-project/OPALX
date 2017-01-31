@@ -57,18 +57,20 @@ Usage:
 
 #include "AmrParticleBase.h"
 #include "ParticleAmrLayout.h"
+#include "PartBunchAmr.h"
 
 typedef ParticleAmrLayout<double,Dim> amrplayout_t;
 typedef AmrParticleBase<amrplayout_t> amrbase_t;
+typedef PartBunchAmr<amrplayout_t> amrbunch_t;
 
 //typedef std::deque<Particle<1,0> > PBox;
 //typedef std::map<int, std::deque<Particle<1,0> > > PMap;
 typedef Array<std::unique_ptr<MultiFab> > container_t;
 
 
-void createRandomParticles(amrbase_t *pbase, int N, int myNode) {
+void createRandomParticles(amrbunch_t *pbase, int N, int myNode, int seed = 1) {
 
-  srand(1);
+  srand(seed);
   for (int i = 0; i < N; ++i) {
     pbase->createWithID(myNode * N + i + 1);
     pbase->qm[i] = (double)rand() / RAND_MAX;
@@ -80,9 +82,9 @@ void createRandomParticles(amrbase_t *pbase, int N, int myNode) {
     
 }
 
-void createRandomParticles(ParticleContainer<1,0> *pc, int N, int myNode) {
+void createRandomParticles(ParticleContainer<1,0> *pc, int N, int myNode, int seed = 1) {
 
-  srand(1);
+  srand(seed);
 
   for (int i = 0; i < N; ++i) {
 
@@ -101,7 +103,7 @@ void createRandomParticles(ParticleContainer<1,0> *pc, int N, int myNode) {
 
 }
 
-void writeAscii(AmrParticleBase<amrplayout_t> *pbase, int N, int myNode) {
+void writeAscii(amrbunch_t *pbase, int N, int myNode) {
   std::ofstream myfile;
   std::string fname = "Ippl-";
   fname += std::to_string(myNode);
@@ -177,16 +179,21 @@ void compareDistribution(int node) {
   std::sort(bldata.begin(), bldata.end());
 
   //check if both nodes contain the same particles
+  int match = 0;
   for (unsigned i = 0; i < ippldata.size(); ++i) {
     if (ippldata[i] != bldata[i]) {
       std::cout << "===ERROR=== Particle distribution on node " << node << " doesn't match!" 
 		<< std::endl; 
+      match = 0;
       return;  
     }
   }
 
-  std::cout << "Particle distribution for Ippl and BoxLib matches for node " << node 
-	    << std::endl;
+  int g_match = 0;
+  MPI_Reduce(&match, &g_match, 1, MPI_INT, MPI_SUM, 0, Ippl::getComm());
+
+  if (Ippl::myNode() == 0 && g_match == 0)
+    std::cout << "Particle distribution for Ippl and BoxLib matches" << std::endl;
 }
 
 void compareFields(PArray<MultiFab> &field_ippl, PArray<MultiFab> &field_bl, int node) {
@@ -217,31 +224,32 @@ void compareFields(PArray<MultiFab> &field_ippl, PArray<MultiFab> &field_bl, int
 void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba, 
 	    Array<DistributionMapping> &dmap, Array<int> &rr, int myNode, 
 	    PArray<MultiFab> &field,
-	    int N) 
+	    int N, int seed) 
 {
 
-  static IpplTimings::TimerRef createTimer = IpplTimings::getTimer("AMR create particles");
   static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("main");
   IpplTimings::startTimer(mainTimer);
 
+  //create a new layout using ParticleAmrLayout class
   amrplayout_t* PL = new amrplayout_t(geom, dmap, ba, rr);
 
-  AmrParticleBase<amrplayout_t>* pbase = new AmrParticleBase<amrplayout_t>();
+  //create a particle bunch
+  PartBunchAmr<amrplayout_t>* pbase = new PartBunchAmr<amrplayout_t>();
   pbase->initialize(PL);
   pbase->initializeAmr();
 
-  IpplTimings::startTimer(createTimer);
-  createRandomParticles(pbase, N, myNode);
-  IpplTimings::stopTimer(createTimer);
+  //create N random particles on each core
+  createRandomParticles(pbase, N, myNode, seed);
 
+  //update redistributes particles among the cores
   pbase->update();
-  pbase->sort();
 
+  //call assign density to scatter the paarticle attribute qm on the grid
   pbase->setAllowParticlesNearBoundary(true);
   pbase->AssignDensitySingleLevel(pbase->qm, field[0], 0);
-
   pbase->AssignDensity(pbase->qm, false, field, 0, 1);
 
+  //write the particles on the core to file - one file per core created
   writeAscii(pbase, N, myNode);
 
   delete pbase;
@@ -253,30 +261,48 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
 void doBoxLib(Array<Geometry> &geom, Array<BoxArray> &ba, 
 	      Array<DistributionMapping> &dmap, Array<int> &rr,
 	      size_t nLevels, int myNode, PArray<MultiFab> &field,
-	      int N) 
+	      int N, int seed) 
 {
 
-
+  //create new BoxLib particle container
   ParticleContainer<1,0> *pc = new ParticleContainer<1,0>(geom, dmap, ba, rr);
+  pc->SetVerbose(0);
 
-  createRandomParticles(pc, N, myNode);
+  //create N random particles on each core
+  createRandomParticles(pc, N, myNode, seed);
+
+  //redistribute particles among the cores
   pc->Redistribute();
 
+  //call assign density to scatter the paarticle attribute qm on the grid
   pc->SetAllowParticlesNearBoundary(true);
   pc->AssignDensitySingleLevel(0, field[0], 0, 0);
-
   pc->AssignDensity(0, false, field, 0, 1, 1);
 
+  //write the particles on the core to file - one file per core created
   writeAscii(pc, N, nLevels, myNode);
 
 }
 
 int main(int argc, char *argv[]) {
     
-  Ippl ippl(argc, argv);
-    
+  Ippl ippl(argc, argv);   
   Inform msg("AMRParticle");
 
+  //get command line arguments - number of particles and number of times the test is run
+  int L = 1;  //how many times the test should be run
+  int N = 10; //number of particles in tests
+  if (argc > 1) {
+    for (int arg = 1; arg < argc; ++arg) {
+      if (argv[arg] == std::string("-N"))
+	N = atoi(argv[arg+1]);
+      
+      if (argv[arg] == std::string("-loop"))
+	L = atoi(argv[arg+1]);
+    }
+  }
+
+  std::cout << "Start test with " << N << " particles and run " << L << " times." << std::endl;
 
   /* Setup BoxLib */
   BoxLib::Initialize(argc,argv, false);
@@ -354,17 +380,18 @@ int main(int argc, char *argv[]) {
    
 
   /* BoxLib geometry setup done */
-
   
+  //print out the geomety
+  /*
   for (size_t i = 0; i < nLevels; ++i) {
     std::cout << "Level: " << i << std::endl;
     std::cout << geom[i] << std::endl;
     std::cout << std::endl;
     std::cout << ba[i] << std::endl;
   }
+  */
 
-
-  //create a multifab
+  //create a multifabs one is used with BoxLib tests, one for Ippl tests
   PArray<MultiFab> field_ippl;
   field_ippl.resize(nLevels);
   for (size_t lev = 0; lev < nLevels; ++lev)
@@ -375,13 +402,28 @@ int main(int argc, char *argv[]) {
   for (size_t lev = 0; lev < nLevels; ++lev)
     field_bl.set(lev, new MultiFab(ba[lev], 1, 1, dmap[lev]));
 
-   
-  int N = 1e5;
-  doIppl(geom, ba, dmap, rr, Ippl::myNode(), field_ippl, N);
-  doBoxLib(geom, ba, dmap, rr, nLevels, Ippl::myNode(), field_bl, N);
+  //Do ippl and boxlib runs multiple times.
+  //At each step N particles are created at random location inside the domain.
+  //Update is called to distribute the particles ammong the processes.
+  //Each particle container contains additional attribute which also is assigned a random value.
+  //AssignDensity is used to scatter this attribute on the grids field_ippl and field_bl.
+  //The particles used for both tests are the same - same locations and attribute values.
+  //compareDistribution checks if the particles are the same on each core after update
+  //for BoxLib and Ippl particle containers.
+  //Compare fields check if field_ippl and field_bl are the same after AssignDensity
+  for (int i = 0; i < L; ++i) {
 
-  compareDistribution(Ippl::myNode());
-  compareFields(field_ippl, field_bl, Ippl::myNode());
+    doIppl(geom, ba, dmap, rr, Ippl::myNode(), field_ippl, N, i);
+    doBoxLib(geom, ba, dmap, rr, nLevels, Ippl::myNode(), field_bl, N, i);
+
+    if (Ippl::myNode() == 0)
+      std::cout << "Results for test " << i + 1 << std::endl;
+    compareDistribution(Ippl::myNode());
+    compareFields(field_ippl, field_bl, Ippl::myNode());
+
+    if (Ippl::myNode() == 0)
+      std::cout << std::endl;
+  }
 
   IpplTimings::print();
 
