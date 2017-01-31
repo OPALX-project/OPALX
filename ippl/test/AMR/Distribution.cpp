@@ -112,6 +112,8 @@ void Distribution::twostream(const Vector_t& lower, const Vector_t& upper,
     Vektor<double, 3> hx = (upper - lower) / Vector_t(nx);
     Vektor<double, 3> hv = 2.0 * vmax / Vector_t(nv);
     
+//     std::cout << hx << std::endl << hv << std::endl;
+    
     double thr = 1.0e-12;
     
     double factor = 1.0 / ( M_PI * 30.0 );
@@ -119,6 +121,9 @@ void Distribution::twostream(const Vector_t& lower, const Vector_t& upper,
     nloc_m = 0;
     
     if ( !Ippl::myNode() ) {
+        
+//         double total_charge = 0.0;
+        
         for (std::size_t i = 0; i < nx[0]; ++i) {
             for (std::size_t j = 0; j < nx[1]; ++j) {
                 for ( std::size_t k = 0; k < nx[2]; ++k) {
@@ -142,7 +147,7 @@ void Distribution::twostream(const Vector_t& lower, const Vector_t& upper,
                                 
                                 double f = factor * std::exp(-0.5 * v2) *
                                            (1.0 + alpha * std::cos(0.5 * pos[2])) *
-                                           (1.0 + 0.5 * v2);
+                                           (1.0 + 0.5 * vel[2] * vel[2]);
                                 
                                 double m = hx[0] * hv[0] *
                                            hx[1] * hv[1] *
@@ -159,6 +164,8 @@ void Distribution::twostream(const Vector_t& lower, const Vector_t& upper,
                                     py_m.push_back( vel[1] );
                                     pz_m.push_back( vel[2] );
                                     
+//                                     total_charge += m;
+                                    
                                     q_m.push_back( -m );
                                     mass_m.push_back( m );
                                 }
@@ -168,6 +175,7 @@ void Distribution::twostream(const Vector_t& lower, const Vector_t& upper,
                 }
             }
         }
+//         std::cout << "Total charge: " << total_charge << std::endl;
     }
 }
 
