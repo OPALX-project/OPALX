@@ -60,16 +60,18 @@ private:
 
   bool allow_particles_near_boundary;
 
+  // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
   static void CIC_Cells_Fracs_Basic (const SingleParticlePos_t &R, const Real* plo, 
 				     const Real* dx, Real* fracs,  IntVect* cells);
 
+  // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
   static int CIC_Cells_Fracs (const SingleParticlePos_t &R,
 			      const Real*         plo,
 			      const Real*         dx_geom,
 			      const Real*         dx_part,
 			      Array<Real>&        fracs,
 			      Array<IntVect>&     cells);
-
+  // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
   bool FineToCrse (const int ip,
 		   int                                flev,
 		   const ParGDBBase*                  gdb,
@@ -83,6 +85,7 @@ private:
 		   Array<IntVect>&                    pshifts,
 		   std::vector< std::pair<int,Box> >& isects);
 
+  // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
   void FineCellsToUpdateFromCrse (const int ip,
 				  int lev,
 				  const ParGDBBase* gdb,
@@ -93,11 +96,14 @@ private:
 				  Array<IntVect>& fcells,
 				  std::vector< std::pair<int,Box> >& isects);
 
+  //Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+  //sends/receivs the particles that are needed by other processes to during AssignDensity
   void AssignDensityDoit(int level, PArray<MultiFab>* mf, PMap& data,
 			 int ncomp, int lev_min = 0);
   
 public: 
 
+  //constructor: initializes timers and default variables
   AmrParticleBase() : allow_particles_near_boundary(false) { 
     AssignDensityTimer_m = IpplTimings::getTimer("AMR AssignDensity");
     SortParticlesTimer_m = IpplTimings::getTimer("AMR sort particles");
@@ -107,6 +113,7 @@ public:
   // destructor - delete the layout if necessary
   ~AmrParticleBase() { }
 
+  //initialize AmrParticleBase class - add level and grid variables to attribute list
   void initializeAmr() {
     this->addAttribute(m_lev);
     this->addAttribute(m_grid);
@@ -137,6 +144,8 @@ public:
 
   }
 
+  // Update the particle object after a timestep.  This routine will change
+  // our local, total, create particle counts properly.
   void update(const ParticleAttrib<char>& canSwap) {
 
     IpplTimings::startTimer(UpdateParticlesTimer_m);
@@ -182,6 +191,7 @@ public:
     IpplTimings::stopTimer(SortParticlesTimer_m);
   }
 
+  //sort the particles given a sortlist
   void sort(SortList_t &sortlist) {
     attrib_container_t::iterator abeg = this->begin();
     attrib_container_t::iterator aend = this->end();
@@ -190,7 +200,8 @@ public:
   }
 
 
-
+  //Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+  //Scatter the particle attribute pa on the grid 
   template <class AType>
   void AssignDensity(ParticleAttrib<AType> &pa,
 		     bool sub_cycle,
@@ -934,7 +945,8 @@ public:
     IpplTimings::stopTimer(AssignDensityTimer_m);
   }
 
-
+  //Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+  //Assign density for a single level
   template <class AType> 
   void AssignDensitySingleLevel (ParticleAttrib<AType> &pa, 
 				 MultiFab& mf_to_be_filled,
@@ -950,7 +962,7 @@ public:
     }
   }
 
-
+  // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
   template <class AType>
   void AssignCellDensitySingleLevel(ParticleAttrib<AType> &pa,
 				    MultiFab& mf_to_be_filled,
@@ -1061,6 +1073,7 @@ public:
     
   }
 
+  //Function from BoxLib adjusted to work with Ippl AmrParticleBase class
   template<class AType>
   void NodalDepositionSingleLevel(ParticleAttrib<AType> &pa,
 				  MultiFab& mf_to_be_filled,
@@ -1177,7 +1190,6 @@ public:
     }
 
   }
-
   
 };
 

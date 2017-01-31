@@ -4,6 +4,7 @@
 #include <ParmParse.H>
 #include <limits>
 
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
 template<class PLayout>
 void AmrParticleBase<PLayout>::CIC_Cells_Fracs_Basic(const SingleParticlePos_t &R, 
 						     const Real* plo, 
@@ -25,6 +26,7 @@ void AmrParticleBase<PLayout>::CIC_Cells_Fracs_Basic(const SingleParticlePos_t &
 
 }
 
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
 template<class PLayout>
 int AmrParticleBase<PLayout>::CIC_Cells_Fracs (const SingleParticlePos_t &R,
 					       const Real*         plo,
@@ -88,6 +90,7 @@ int AmrParticleBase<PLayout>::CIC_Cells_Fracs (const SingleParticlePos_t &R,
     return M;
 }
 
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
 template<class PLayout>
 bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
 					   int                               flev,
@@ -208,6 +211,7 @@ bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
 
 }
 
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
 template<class PLayout>
 void AmrParticleBase<PLayout>::FineCellsToUpdateFromCrse (
   const int ip,

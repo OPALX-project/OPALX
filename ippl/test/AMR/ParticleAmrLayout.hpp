@@ -1,3 +1,5 @@
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+//get the cell where particle is located - uses AmrParticleBase object and particle id
 template <class T, unsigned Dim>
 IntVect ParticleAmrLayout<T, Dim>::Index (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
 					  const unsigned int ip,
@@ -14,6 +16,7 @@ IntVect ParticleAmrLayout<T, Dim>::Index (AmrParticleBase< ParticleAmrLayout<T,D
     return iv;
 }
 
+//get the cell where particle is located - uses the particle position vector R
 template <class T, unsigned Dim>
 IntVect ParticleAmrLayout<T, Dim>::Index (SingleParticlePos_t &R,
 					  const Geometry&     geom)
@@ -29,6 +32,7 @@ IntVect ParticleAmrLayout<T, Dim>::Index (SingleParticlePos_t &R,
     return iv;
 }
 
+//sets the grid and level where particle belongs - returns flase if prticle is outside the domain
 template <class T, unsigned Dim>
 bool ParticleAmrLayout<T, Dim>::Where (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
 				       const unsigned int ip,
@@ -73,6 +77,9 @@ bool ParticleAmrLayout<T, Dim>::Where (AmrParticleBase< ParticleAmrLayout<T,Dim>
     return false;
 }
 
+//Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+//Checks/sets whether the particle has crossed a periodic boundary in such a way
+//that it is on levels lev_min and higher.
 template <class T, unsigned Dim>
 bool ParticleAmrLayout<T, Dim>::PeriodicWhere (AmrParticleBase<ParticleAmrLayout<T,Dim> >& p,
 					       const unsigned int ip,
@@ -120,6 +127,8 @@ bool ParticleAmrLayout<T, Dim>::PeriodicWhere (AmrParticleBase<ParticleAmrLayout
     return false;
 }
 
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// Checks/sets whether a particle is within its grid (including grow cells).
 template <class T, unsigned Dim>
 bool ParticleAmrLayout<T, Dim>::RestrictedWhere (AmrParticleBase<ParticleAmrLayout<T,Dim> >& p,
 						 const unsigned int ip,
@@ -138,6 +147,8 @@ bool ParticleAmrLayout<T, Dim>::RestrictedWhere (AmrParticleBase<ParticleAmrLayo
     return false;
 }
 
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// Returns true if the particle was shifted.
 template <class T, unsigned Dim>
 bool ParticleAmrLayout<T, Dim>::PeriodicShift (SingleParticlePos_t R,
 					       const ParGDBBase* gdb)
