@@ -122,7 +122,7 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     pp.add("grid_eff", 0.95);
     
     ParmParse pgeom("geometry");
-    Array<int> is_per = { 0, 0, 1};
+    Array<int> is_per = { 1, 1, 1};
     pgeom.addarr("is_periodic", is_per);
     
     Array<int> nCells(3);
@@ -151,8 +151,9 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     Distribution dist;
     dist.twostream(Vektor<double, 3>(lower[0], lower[1], lower[2]),
                    Vektor<double, 3>(upper[0], upper[1], upper[2]),
-                   nr, Vektor<std::size_t, 3>(8, 8, 128),
-                   Vektor<double, 3>(6.0, 6.0, 6.0), alpha);
+                   Vektor<std::size_t, 3>(4, 4, 8/*32*/),
+                   Vektor<std::size_t, 3>(8, 8, 16/*128*/),
+                   Vektor<double, 3>(3/*6.0*/, 3/*6.0*/, 3/*6.0*/), alpha);
     
     // copy particles to the PartBunchBase object.
     dist.injectBeam(*bunch);
@@ -160,7 +161,13 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     // redistribute on single-level
     bunch->myUpdate();
     
+//     dynamic_cast<AmrPartBunch*>(bunch)->SetAllowParticlesNearBoundary(true);
+    
+//     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geoms, 0);
+    
     myAmrOpal.setBunch(dynamic_cast<AmrPartBunch*>(bunch));
+    
+    const Array<Geometry>& geoms = myAmrOpal.Geom();
     
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
@@ -168,11 +175,9 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     msg << "Multi-level statistics" << endl;
     bunch->gatherStatistics();
     
-    container_t rhs;
-    container_t phi;
-    container_t grad_phi;
-    
-    for (int i = 0; i < nIter; ++i) {
+    for (std::size_t i = 0; i < nIter; ++i) {
+        
+        dynamic_cast<AmrPartBunch*>(bunch)->python_format(i);
         
         for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
             int level = dynamic_cast<AmrPartBunch*>(bunch)->getLevel(j);
@@ -182,12 +187,17 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
         for (int j = 0; j <= myAmrOpal.finestLevel() && j < myAmrOpal.maxLevel(); ++j)
             myAmrOpal.regrid(j /*lbase*/, 0.0 /*time*/);
         
+        container_t rhs;
+        container_t phi;
+        container_t grad_phi;
         doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geoms, rr, nLevels);
         
         for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
             int level = dynamic_cast<AmrPartBunch*>(bunch)->getLevel(j);
-            Vector_t externalE = dynamic_cast<AmrPartBunch*>(bunch)->interpolate(j, grad_phi[level]);
-            bunch->setP( bunch->getP(j) + dt * bunch->getQM(j) / bunch->getMass(j) * externalE, j);
+            Vector_t Ef = dynamic_cast<AmrPartBunch*>(bunch)->interpolate(j, grad_phi[level]);
+            
+            Ef *= Physics::epsilon_0; /* not used by Ulmer */
+            bunch->setP( bunch->getP(j) + dt * bunch->getQM(j) / bunch->getMass(j) * Ef, j);
         }
         
     }
