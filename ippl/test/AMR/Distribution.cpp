@@ -214,7 +214,7 @@ void Distribution::uniformPerCell(const Array<Geometry>& geom,
         }
         
         for (int j = 0; j < ba[i].size(); ++j) {
-            Box bx = ba[j].get(j);
+            Box bx = ba[i].get(j);
             
             for (int k = bx.loVect()[0]; k <= bx.hiVect()[0]; ++k) {
                 for (int l = bx.loVect()[1]; l <= bx.hiVect()[1]; ++l) {
@@ -245,7 +245,6 @@ void Distribution::uniformPerCell(const Array<Geometry>& geom,
         }
         
     }
-    
 }
 
 
