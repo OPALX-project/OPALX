@@ -252,6 +252,9 @@ void AmrPartBunch::setR(Vector_t pos, int i) {
     
     for (int d = 0; d < 3; ++d)
         m_particles[l][g][dq].m_pos[d] = pos(d);
+    
+    // if going over boundary
+    ParticleBase::PeriodicShift(m_particles[l][g][dq], m_gdb);
 }
 
 
