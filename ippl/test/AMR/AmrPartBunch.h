@@ -151,7 +151,10 @@ public:
                     
                     msg2all << m_particles[l][g][dq].m_pos[0] << " "
                             << m_particles[l][g][dq].m_pos[1] << " "
-                            << m_particles[l][g][dq].m_pos[2]
+                            << m_particles[l][g][dq].m_pos[2] << " "
+                            << m_particles[l][g][dq].m_data[1] << " "
+                            << m_particles[l][g][dq].m_data[2] << " "
+                            << m_particles[l][g][dq].m_data[3]
                             << endl;
                 }
             }
