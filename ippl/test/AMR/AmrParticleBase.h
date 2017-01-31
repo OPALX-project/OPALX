@@ -51,7 +51,6 @@ public:
 
   ParticleIndex_t m_lev;
   ParticleIndex_t m_grid;
-  ParticleAttrib<double> qm;
 
 private:
 
@@ -111,7 +110,6 @@ public:
   void initializeAmr() {
     this->addAttribute(m_lev);
     this->addAttribute(m_grid);
-    this->addAttribute(qm);
   }
 
   void setAllowParticlesNearBoundary(bool value) {
@@ -131,6 +129,8 @@ public:
     
     // ask the layout manager to update our atoms, etc.
     Layout->update(*this);
+    //sort the particles by grid and level
+    sort();
     INCIPPLSTAT(incParticleUpdates);
     
     IpplTimings::stopTimer(UpdateParticlesTimer_m);
@@ -147,6 +147,8 @@ public:
     
     // ask the layout manager to update our atoms, etc.
     Layout->update(*this, &canSwap);
+    //sort the particles by grid and level
+    sort();
     INCIPPLSTAT(incParticleUpdates);
     
     IpplTimings::stopTimer(UpdateParticlesTimer_m);
@@ -154,14 +156,29 @@ public:
 
   //sort particles based on the grid and level that they belong to
   void sort() {
+
     IpplTimings::startTimer(SortParticlesTimer_m);
     size_t LocalNum = this->getLocalNum();
+    SortList_t slist1(LocalNum); //slist1 holds the index of where each element should go
+    SortList_t slist2(LocalNum); //slist2 holds the index of which element should go in this position
 
-    SortList_t slist;
-    m_grid.calcSortList(slist);
-    this->sort(slist);
-    m_lev.calcSortList(slist);
-    this->sort(slist);
+    //sort the lists by grid and level
+    //slist1 hold the index of where each element should go in the list
+    std::iota(slist1.begin(), slist1.end(), 0);
+    std::sort(slist1.begin(), slist1.end(), [this](const SortListIndex_t &i, 
+						 const SortListIndex_t &j) 
+	      {
+		return (this->m_lev[i] < this->m_lev[j] || 
+			(this->m_lev[i] == this->m_lev[j] && this->m_grid[i] < this->m_grid[j]));
+	      });
+
+    //slist2 holds the index of which element should go in this position
+    for (unsigned int i = 0; i < LocalNum; ++i)
+      slist2[slist1[i]] = i;
+
+    //sort the array according to slist2
+    this->sort(slist2);
+
     IpplTimings::stopTimer(SortParticlesTimer_m);
   }
 
