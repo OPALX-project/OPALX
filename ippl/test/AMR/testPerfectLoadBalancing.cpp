@@ -199,7 +199,7 @@ void doBoxLib(const Vektor<std::size_t, 3>& nr, std::size_t nParticlesPerCell,
     
     bunch->gatherStatistics();
     
-    std::size_t nParticles = bunch->getLocalNum();
+    std::size_t nParticles = bunch->getTotalNum();
     msg << "#Particles: " << nParticles << endl
         << "Charge per particle: " << bunch->getQM(0) << " C" << endl
         << "Total charge: " << nParticles * bunch->getQM(0) << " C" << endl;
