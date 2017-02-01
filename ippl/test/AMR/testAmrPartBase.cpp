@@ -63,9 +63,11 @@ typedef ParticleAmrLayout<double,Dim> amrplayout_t;
 typedef AmrParticleBase<amrplayout_t> amrbase_t;
 typedef PartBunchAmr<amrplayout_t> amrbunch_t;
 
-//typedef std::deque<Particle<1,0> > PBox;
-//typedef std::map<int, std::deque<Particle<1,0> > > PMap;
+typedef std::deque<Particle<4,0> > PBox4;
+typedef typename std::map<int,PBox4> PMap4;
+
 typedef Array<std::unique_ptr<MultiFab> > container_t;
+
 
 
 void createRandomParticles(amrbunch_t *pbase, int N, int myNode, int seed = 1) {
@@ -82,7 +84,7 @@ void createRandomParticles(amrbunch_t *pbase, int N, int myNode, int seed = 1) {
     
 }
 
-void createRandomParticles(ParticleContainer<1,0> *pc, int N, int myNode, int seed = 1) {
+void createRandomParticles(ParticleContainer<4,0> *pc, int N, int myNode, int seed = 1) {
 
   srand(seed);
 
@@ -90,9 +92,10 @@ void createRandomParticles(ParticleContainer<1,0> *pc, int N, int myNode, int se
 
     std::vector<double> attrib;
     double r = (double)rand() / RAND_MAX;
-    for (int i = 0; i < 1; i++) {
-      attrib.push_back(r);
-    }
+    attrib.push_back(r);
+    attrib.push_back(0.0);
+    attrib.push_back(0.0);
+    attrib.push_back(0.0);
 
     std::vector<double> xloc;
     xloc.push_back((double)rand() / RAND_MAX);
@@ -110,35 +113,39 @@ void writeAscii(amrbunch_t *pbase, int N, int myNode) {
   fname += ".dat"; 
   myfile.open(fname);
 
+  myfile << "id\tR0\tR1\tR2\tgrid\tlevel\tE0\tE1\tE2\n";
   for (size_t i = 0; i < pbase->getLocalNum(); i++) {
     myfile << std::setprecision(3) << pbase->ID[i] << "\t" << pbase->R[i][0] 
-	   << "\t" << pbase->R[i][1] 
-	   << "\t" << pbase->R[i][2] << "\t" << pbase->m_lev[i] 
-	   << "\t" << pbase->m_grid[i] << "\n";
+	   << "\t" << pbase->R[i][1] << "\t" << pbase->R[i][2] 
+	   << "\t" << pbase->m_lev[i] << "\t" << pbase->m_grid[i]
+	   << "\t" << pbase->qm[i] << "\t" << pbase->E[i][0] 
+	   << "\t" << pbase->E[i][1] << "\t" << pbase->E[i][2] << "\n";
   }
 
   myfile.close();
 
 }
 
-void writeAscii(ParticleContainer<1,0> *pc, int N, size_t nLevels, int myNode) {
+void writeAscii(ParticleContainer<4,0> *pc, int N, size_t nLevels, int myNode) {
   std::ofstream myfile;
   std::string fname = "BoxLib-";
   fname += std::to_string(myNode);
   fname += ".dat"; 
   myfile.open(fname);
 
+  myfile << "id\tR0\tR1\tR2\tgrid\tlevel\tqm\tE0\tE1\tE2\n";
   for (unsigned int lev = 0; lev < nLevels; lev++) {
-    const PMap& pmap = pc->GetParticles(lev);
+    const PMap4& pmap = pc->GetParticles(lev);
 
     for (const auto& kv : pmap) {
-      const PBox& pbox = kv.second;
+      const PBox4& pbox = kv.second;
 
       for (auto it = pbox.cbegin(); it != pbox.cend(); ++it) {
 	myfile << std::setprecision(3) << it->m_id << "\t" << it->m_pos[0] 
 	       << "\t" << it->m_pos[1] << "\t" 
 	       << it->m_pos[2] << "\t" << it->m_lev << "\t" 
-	       << it->m_grid  << "\n";
+	       << it->m_grid  << "\t" << it->m_data[0] << "\t" 
+	       << it->m_data[1] << "\t" << it->m_data[2] << "\t" << it->m_data[3] << "\n";
       }
     }
   }
@@ -152,6 +159,7 @@ void readData(std::string fname, std::vector<int> &data) {
   myfile.open(fname);
 
   std::string line;
+  getline(myfile, line); //skip first line, since its a header
   while ( getline(myfile, line) ) {
     std::istringstream ss(line);
     int id;
@@ -222,8 +230,9 @@ void compareFields(PArray<MultiFab> &field_ippl, PArray<MultiFab> &field_bl, int
 }
 
 void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba, 
-	    Array<DistributionMapping> &dmap, Array<int> &rr, int myNode, 
-	    PArray<MultiFab> &field,
+	    Array<DistributionMapping> &dmap, Array<int> &rr, 
+	    size_t nLevels, int myNode, 
+	    PArray<MultiFab> &field, PArray<MultiFab> &efield,
 	    int N, int seed) 
 {
 
@@ -249,6 +258,18 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
   pbase->AssignDensitySingleLevel(pbase->qm, field[0], 0);
   pbase->AssignDensity(pbase->qm, false, field, 0, 1);
 
+  //copy the valies from field to all the components of efield
+  
+  for (size_t lev = 0; lev < nLevels; ++lev) {
+    efield[lev].setVal(0.0);
+    MultiFab::Copy(efield[lev], field[lev], 0, 0, 1, 0);
+    MultiFab::Copy(efield[lev], field[lev], 0, 1, 1, 0);
+    MultiFab::Copy(efield[lev], field[lev], 0, 2, 1, 0);
+  }
+
+  //get values from grid to particles
+  pbase->GetGravity(pbase->E, efield);
+  
   //write the particles on the core to file - one file per core created
   writeAscii(pbase, N, myNode);
 
@@ -259,13 +280,14 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
 }
 
 void doBoxLib(Array<Geometry> &geom, Array<BoxArray> &ba, 
-	      Array<DistributionMapping> &dmap, Array<int> &rr,
-	      size_t nLevels, int myNode, PArray<MultiFab> &field,
+	      Array<DistributionMapping> &dmap, Array<int> &rr, 
+	      size_t nLevels, int myNode, 
+	      PArray<MultiFab> &field, PArray<MultiFab> &efield,
 	      int N, int seed) 
 {
 
   //create new BoxLib particle container
-  ParticleContainer<1,0> *pc = new ParticleContainer<1,0>(geom, dmap, ba, rr);
+  ParticleContainer<4,0> *pc = new ParticleContainer<4,0>(geom, dmap, ba, rr);
   pc->SetVerbose(0);
 
   //create N random particles on each core
@@ -279,6 +301,44 @@ void doBoxLib(Array<Geometry> &geom, Array<BoxArray> &ba,
   pc->AssignDensitySingleLevel(0, field[0], 0, 0);
   pc->AssignDensity(0, false, field, 0, 1, 1);
 
+  
+  //copy the valies from field to all the components of efield
+  for (size_t lev = 0; lev < nLevels; ++lev) {
+    efield[lev].setVal(0.0);
+    MultiFab::Copy(efield[lev], field[lev], 0, 0, 1, 0);
+    MultiFab::Copy(efield[lev], field[lev], 0, 1, 1, 0);
+    MultiFab::Copy(efield[lev], field[lev], 0, 2, 1, 0);
+  }
+
+  
+  //loop trough all the levels
+  for (size_t lev = 0; lev < nLevels; ++lev) {
+    //get grids on the level
+    PMap4& pmap = pc->GetParticles(lev);
+
+    //loop trough grids on the level
+    for (auto& kv : pmap) {
+      int grid = kv.first;
+      PBox4& pbox = kv.second;
+      const int n = pbox.size();
+      const FArrayBox& gfab = efield[lev][grid];
+
+      //loop trough the particles in the grid and call GetGravity for each
+      //assign grav to particle data components 1,2,3
+      for (int i = 0; i < n; ++i) {
+	Particle<4,0> &p = pbox[i];
+	Real grav[BL_SPACEDIM];
+
+	ParticleBase::GetGravity(gfab, geom[lev], p, grav);
+
+	p.m_data[1] = grav[0];
+	p.m_data[2] = grav[1];
+	p.m_data[3] = grav[2];
+      }
+
+    }
+  }
+  
   //write the particles on the core to file - one file per core created
   writeAscii(pc, N, nLevels, myNode);
 
@@ -402,6 +462,11 @@ int main(int argc, char *argv[]) {
   for (size_t lev = 0; lev < nLevels; ++lev)
     field_bl.set(lev, new MultiFab(ba[lev], 1, 1, dmap[lev]));
 
+  PArray<MultiFab> efield;
+  efield.resize(nLevels);
+  for (size_t lev = 0; lev < nLevels; ++lev)
+    efield.set(lev, new MultiFab(ba[lev], BL_SPACEDIM, 1, dmap[lev]));
+
   //Do ippl and boxlib runs multiple times.
   //At each step N particles are created at random location inside the domain.
   //Update is called to distribute the particles ammong the processes.
@@ -413,8 +478,8 @@ int main(int argc, char *argv[]) {
   //Compare fields check if field_ippl and field_bl are the same after AssignDensity
   for (int i = 0; i < L; ++i) {
 
-    doIppl(geom, ba, dmap, rr, Ippl::myNode(), field_ippl, N, i);
-    doBoxLib(geom, ba, dmap, rr, nLevels, Ippl::myNode(), field_bl, N, i);
+    doIppl(geom, ba, dmap, rr, nLevels, Ippl::myNode(), field_ippl, efield, N, i);
+    doBoxLib(geom, ba, dmap, rr, nLevels, Ippl::myNode(), field_bl, efield, N, i);
 
     if (Ippl::myNode() == 0)
       std::cout << "Results for test " << i + 1 << std::endl;
