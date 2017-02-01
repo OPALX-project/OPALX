@@ -177,6 +177,7 @@ void doBoxLib(const Vektor<std::size_t, 3>& nr, std::size_t nParticlesPerCell,
     
     PartBunchBase* bunch = new AmrPartBunch(geom, dmap, ba, rr);
     
+    dynamic_cast<AmrPartBunch*>(bunch)->SetAllowParticlesNearBoundary(true);
     
     // initialize a particle distribution
     Distribution dist;
@@ -187,66 +188,67 @@ void doBoxLib(const Vektor<std::size_t, 3>& nr, std::size_t nParticlesPerCell,
     dist.injectBeam(*bunch);
     IpplTimings::stopTimer(distTimer);
     
+    
+    for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
+        bunch->setQM(Physics::q_e, i);  // in [C]
+    
+    // redistribute on single-level
+    IpplTimings::startTimer(redistTimer);
+    bunch->myUpdate();
+    IpplTimings::stopTimer(redistTimer);
+    
+    bunch->gatherStatistics();
+    
+    std::size_t nParticles = bunch->getLocalNum();
+    msg << "#Particles: " << nParticles << endl
+        << "Charge per particle: " << bunch->getQM(0) << " C" << endl
+        << "Total charge: " << nParticles * bunch->getQM(0) << " C" << endl;
+    
+    // ========================================================================
+    // 2. tagging (i.e. create BoxArray's, DistributionMapping's of all
+    //    other levels)
+    // ========================================================================
+    
+    /*
+     * do tagging
+     */
+    myAmrOpal.setBunch(dynamic_cast<AmrPartBunch*>(bunch));
+    
     dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
     
-//     for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
-//         bunch->setQM(Physics::q_e, i);  // in [C]
-//     
-//     // redistribute on single-level
-//     IpplTimings::startTimer(redistTimer);
-//     bunch->myUpdate();
-//     IpplTimings::stopTimer(redistTimer);
+    // ========================================================================
+    // 3. multi-level redistribute
+    // ========================================================================
+    IpplTimings::startTimer(regridTimer);
+    for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
+        myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
+    IpplTimings::stopTimer(regridTimer);
     
-//     bunch->gatherStatistics();
-//     
-//     msg << "#Particles: " << nParticles << endl
-//         << "Charge per particle: " << bunch->getQM(0) << " C" << endl
-//         << "Total charge: " << nParticles * bunch->getQM(0) << " C" << endl;
-//     
-//     // ========================================================================
-//     // 2. tagging (i.e. create BoxArray's, DistributionMapping's of all
-//     //    other levels)
-//     // ========================================================================
-//     
-//     /*
-//      * do tagging
-//      */
-//     myAmrOpal.setBunch(dynamic_cast<AmrPartBunch*>(bunch));
-//     
-//     
-//     // ========================================================================
-//     // 3. multi-level redistribute
-//     // ========================================================================
-//     IpplTimings::startTimer(regridTimer);
-//     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
-//         myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
-//     IpplTimings::stopTimer(regridTimer);
-//     
-//     container_t rhs;
-//     container_t phi;
-//     container_t grad_phi;
-//     
-//     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
-//     doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels, msg);
-//     
-//     msg << "Total field energy: " << totalFieldEnergy(grad_phi, rr) << endl;
-//     
-//     for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
-// #ifdef UNIQUE_PTR
-//         msg << "Max. potential level " << i << ": "<< phi[i]->max(0) << endl
-//             << "Min. potential level " << i << ": " << phi[i]->min(0) << endl
-//             << "Max. ex-field level " << i << ": " << grad_phi[i]->max(0) << endl
-//             << "Min. ex-field level " << i << ": " << grad_phi[i]->min(0) << endl;
-// #else
-//         msg << "Max. potential level " << i << ": "<< phi[i].max(0) << endl
-//             << "Min. potential level " << i << ": " << phi[i].min(0) << endl
-//             << "Max. ex-field level " << i << ": " << grad_phi[i].max(0) << endl
-//             << "Min. ex-field level " << i << ": " << grad_phi[i].min(0) << endl;
-// #endif
-//     }
+    container_t rhs;
+    container_t phi;
+    container_t grad_phi;
+    
+    std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
+    doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels, msg);
+    
+    msg << "Total field energy: " << totalFieldEnergy(grad_phi, rr) << endl;
+    
+    for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
+#ifdef UNIQUE_PTR
+        msg << "Max. potential level " << i << ": "<< phi[i]->max(0) << endl
+            << "Min. potential level " << i << ": " << phi[i]->min(0) << endl
+            << "Max. ex-field level " << i << ": " << grad_phi[i]->max(0) << endl
+            << "Min. ex-field level " << i << ": " << grad_phi[i]->min(0) << endl;
+#else
+        msg << "Max. potential level " << i << ": "<< phi[i].max(0) << endl
+            << "Min. potential level " << i << ": " << phi[i].min(0) << endl
+            << "Max. ex-field level " << i << ": " << grad_phi[i].max(0) << endl
+            << "Min. ex-field level " << i << ": " << grad_phi[i].min(0) << endl;
+#endif
+    }
     
     
-//     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
+    writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
     
 //     dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
 }
