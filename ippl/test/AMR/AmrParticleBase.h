@@ -100,6 +100,11 @@ private:
   //sends/receivs the particles that are needed by other processes to during AssignDensity
   void AssignDensityDoit(int level, PArray<MultiFab>* mf, PMap& data,
 			 int ncomp, int lev_min = 0);
+
+  // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+  // Assign values from grid back to particles
+  void Interp(const SingleParticlePos_t &R, const Geometry &geom, const FArrayBox& fab, 
+	      const int* idx, Real* val, int cnt);
   
 public: 
 
@@ -1190,7 +1195,41 @@ public:
     }
 
   }
-  
+
+  //gather values from grid back to the particles
+  //loop trough particles and use BoxLin Interp functions to get the particles value
+  //
+  template <class AType>
+  void GetGravity(ParticleAttrib<AType> &pa,
+		  PArray<MultiFab> &mf) 
+  {
+
+    PLayout *Layout = &this->getLayout();
+    const ParGDBBase* m_gdb = Layout->GetParGDB();
+    size_t LocalNum = this->getLocalNum();
+
+    //loop trough all the particles
+    for (size_t ip = 0; ip < LocalNum; ++ip) {
+      int lev = m_lev[ip];
+      int grid = m_grid[ip];
+
+      //get the FArrayBox where this particle is located
+      FArrayBox& fab = mf[lev][grid];
+      
+      Real grav[BL_SPACEDIM];
+      int idx[BL_SPACEDIM] = {  D_DECL(0,1,2) };
+      
+      //get the value at grid point in grav array
+      Interp(this->R[ip], m_gdb->Geom(lev), fab, idx, grav, BL_SPACEDIM);
+
+      //assign to particle attribute
+      for (int i = 0; i < BL_SPACEDIM; ++i)
+	pa[ip][i] = grav[0];
+    }
+
+  }
+
+ 
 };
 
 #include "AmrParticleBase.hpp"

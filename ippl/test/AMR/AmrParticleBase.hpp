@@ -6,6 +6,33 @@
 
 // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
 template<class PLayout>
+void AmrParticleBase<PLayout>::Interp(const SingleParticlePos_t &R,
+				      const Geometry &geom,
+				      const FArrayBox& fab,
+				      const int* idx,
+				      Real* val,
+				      int cnt)
+{
+  const int       M   = D_TERM(2,+2,+4);
+  const Real*     plo = geom.ProbLo();
+  const Real*     dx  = geom.CellSize();
+  
+  Real    fracs[M];
+  IntVect cells[M];
+  //
+  // Get "fracs" and "cells".
+  //
+  CIC_Cells_Fracs_Basic(R, plo, dx, fracs, cells);
+  
+  for (int i = 0; i < cnt; i++)
+  {
+    BL_ASSERT(idx[i] >= 0 && idx[i] < fab.nComp());
+    val[i] = ParticleBase::InterpDoit(fab,fracs,cells,idx[i]);
+  }
+}
+
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+template<class PLayout>
 void AmrParticleBase<PLayout>::CIC_Cells_Fracs_Basic(const SingleParticlePos_t &R, 
 						     const Real* plo, 
 						     const Real* dx, 
