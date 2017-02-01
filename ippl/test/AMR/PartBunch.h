@@ -89,6 +89,8 @@ public:
     
     inline double getQM(int i);
     
+    inline double getMass(int i);
+    
     inline Vector_t getP(int i);
     
     inline Vector_t getE(int i);
@@ -98,6 +100,8 @@ public:
     inline void setR(Vector_t pos, int i);
     
     inline void setQM(double q, int i);
+    
+    inline void setMass(double m, int i);
     
     inline void setP(Vector_t v, int i);
     
@@ -322,6 +326,11 @@ inline double PartBunch<PL>::getQM(int i) {
     return qm[i];
 }
 
+template <class PL>
+inline double PartBunch<PL>::getMass(int i) {
+    return 0.0;
+}
+
 
 template <class PL>
 inline Vector_t PartBunch<PL>::getP(int i) {
@@ -349,6 +358,11 @@ void PartBunch<PL>::setR(Vector_t pos, int i) {
 template <class PL>
 void PartBunch<PL>::setQM(double q, int i) {
     qm[i] = q;
+}
+
+template <class PL>
+void PartBunch<PL>::setMass(double m, int i) {
+    //TODO
 }
 
 template <class PL>

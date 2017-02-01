@@ -5,6 +5,8 @@
 
 #include "Ippl.h"
 
+#define DEFAULT_VERBOSITY       H5_VERBOSE_DEFAULT
+
 H5Reader::H5Reader(const std::string& filename)
     : filename_m(filename), file_m(0)
 { }
@@ -53,6 +55,7 @@ void H5Reader::read(Distribution::container_t& x,
                     Distribution::container_t& z,
                     Distribution::container_t& pz,
                     Distribution::container_t& q,
+                    Distribution::container_t& mass,
                     size_t firstParticle,
                     size_t lastParticle)
 {
@@ -109,11 +112,11 @@ void H5Reader::read(Distribution::container_t& x,
     for(long int n = 0; n < numParticles; ++ n) {
         q[n] = 1.0; //f64buffer[n];
     }
-/*
+
     READDATA(Float64, file_m, "mass", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
-        bunch.M[n] = f64buffer[n];
-    }*/
+        mass[n] = f64buffer[n];
+    }
 }
 
 h5_ssize_t H5Reader::getNumParticles() {
@@ -121,58 +124,120 @@ h5_ssize_t H5Reader::getNumParticles() {
 }
 
 
+#define _calc_index( i, i_dims, j, j_dims, k, k_dims ) \
+		(i + j*i_dims + k*i_dims*j_dims)
+
 void H5Reader::writeScalarField(const container_t& scalfield,
                                 const Array<Geometry>& geom)
 {
+    h5_int64_t verbosity = DEFAULT_VERBOSITY;
+    H5SetVerbosityLevel (verbosity);
     
+    h5_file_t file = 0;
     std::string fname = "test_scalfield.h5";
-    h5_file_t file = H5OpenFile (fname.c_str(), H5_O_WRONLY, H5_PROP_DEFAULT);
+#if defined (USE_H5HUT2)
+    h5_prop_t props = H5CreateFileProp ();
+    MPI_Comm comm = Ippl::getComm(); // ParallelDescriptor::m_comm_all; //
+    h5_err_t h5err = H5SetPropFileMPIOIndependent(props, &comm);
+//     h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
+#if defined (NDEBUG)
+    (void)h5err;
+#endif
+    assert (h5err != H5_ERR);
+    file = H5OpenFile (fname.c_str(), H5_O_WRONLY, props);
+    assert (file != (h5_file_t)H5_ERR);
+#else
+    file = H5OpenFile(fname.c_str(), H5_O_WRONLY, Ippl::getComm()); // ParallelDescriptor::m_comm_all); 
+    assert (file != (void*)H5_ERR);
+#endif
+    
     H5SetStep (file, 0);
     
-    for (int l = 0; l < scalfield.size(); ++l) {
-        int ii = 0;
+    h5_int64_t herr;
+    int l = 0;
+//     for (int l = 0; l < scalfield.size(); ++l) {
         int gridnr = 0;
         for (MFIter mfi(scalfield[l]); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.validbox();
             const FArrayBox& field = (scalfield[l])[mfi];
             
-            H5Block3dSetView(file,
-                             bx.loVect()[0], bx.hiVect()[0],
-                             bx.loVect()[1], bx.hiVect()[1],
-                             bx.loVect()[2], bx.hiVect()[2]);
+                      
             
+            h5_int64_t i_dims = bx.hiVect()[0] - bx.loVect()[0] + 1;
+            h5_int64_t j_dims = bx.hiVect()[1] - bx.loVect()[1] + 1;
+            h5_int64_t k_dims = bx.hiVect()[2] - bx.loVect()[2] + 1;
+//             h5_int64_t size = i_dims * j_dims * k_dims;
+            
+            if ( Ippl::myNode() == 0)
             std::cout << "#points: " << bx.numPts()
-                      << " i_dim: " << bx.loVect()[0] << " " << bx.hiVect()[0]
-                      << " j_dim: " << bx.loVect()[1] << " " << bx.hiVect()[1]
-                      << " k_dim: " << bx.loVect()[2] << " " << bx.hiVect()[2]
+                      << " i_dim: " << 0 << " " << i_dims
+                      << " j_dim: " << 0 << " " << j_dims
+                      << " k_dim: " << 0 << " " << k_dims
+                      << " proc:  " << Ippl::myNode()
                       << std::endl;
             
             std::unique_ptr<h5_float64_t[]> data(
                 new h5_float64_t[bx.numPts()]
             );
             
+            h5_int64_t ii = 0;
             // Fortran storing convention, i.e. column-major
-            for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
-                for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
-                    for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
+            for (h5_int64_t i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+                h5_int64_t jj = 0;
+                for (h5_int64_t j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+                    h5_int64_t kk = 0;
+                    for (h5_int64_t k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
                         IntVect ivec(i, j, k);
-//                         std::cout << ii << " " << ivec << std::endl; std::cin.get();
-                        data[ii] = field(ivec, 0 /*component*/);
-                        ++ii;
+                        h5_int64_t idx = _calc_index (ii, i_dims, jj, j_dims, kk, k_dims );
+//                         std::cout << idx << " " << ii << " " << jj << " " << kk << " "
+//                                   << ivec << " " << field(ivec, 0) << " " << Ippl::myNode() << std::endl; //std::cin.get();
+                        if ( Ippl::myNode() == 0)
+                            std::cout << idx << " " << i << " " << j << " " << k << " " << Ippl::myNode() << std::endl;
+                        data[idx] = field(ivec, 0 /*component*/);
+                        ++kk;
                     }
+                    ++jj;
                 }
+                ++ii;
             }
-            std::string group = "rho/level-" + std::to_string(l) + "/grid-" + std::to_string(gridnr);
-//             std::string group = "rho";
-            H5Block3dWriteScalarFieldFloat64(file, group.c_str(), data.get());
+            
+            herr = H5Block3dSetView(file,
+                             0, i_dims - 1,
+                             0, j_dims - 1,
+                             0, k_dims - 1);
+            
+//             if ( Ippl::myNode() == 0 )
+//                 std::cout << "#points: " << bx.numPts()
+//                       << " i_dim: " << bx.loVect()[0] << " " << bx.hiVect()[0]
+//                       << " j_dim: " << bx.loVect()[1] << " " << bx.hiVect()[1]
+//                       << " k_dim: " << bx.loVect()[2] << " " << bx.hiVect()[2]
+//                       << " proc:  " << Ippl::myNode()
+//                       << std::endl;
+            
+//             herr = H5Block3dSetView(file,
+//                              bx.loVect()[0], bx.hiVect()[0],
+//                              bx.loVect()[1], bx.hiVect()[1],
+//                              bx.loVect()[2], bx.hiVect()[2]);
+            
+            if ( herr < 0 )
+                std::cout << "Error" << std::endl;
+            
+            std::string group = "rho-level-" + std::to_string(l) + "-grid-" + std::to_string(gridnr)
+                                + "-proc-" + std::to_string(Ippl::myNode());
+            herr = H5Block3dWriteScalarFieldFloat64(file, group.c_str(), data.get());
+            
+            if ( herr < 0 )
+                std::cout << "Error" << std::endl;
             
             RealBox rb = geom[l].ProbDomain();
             
+            //FIXME Different origins for different grids of same level
             H5Block3dSetFieldOrigin(file, group.c_str(),
                                     (h5_float64_t)rb.lo(0),
                                     (h5_float64_t)rb.lo(1),
                                     (h5_float64_t)rb.lo(2));
             
+            //FIXME Do not repeat for every grid of same level
             H5Block3dSetFieldSpacing(file, group.c_str(),
                                      (h5_float64_t)(geom[0].CellSize(0)),
                                      (h5_float64_t)(geom[0].CellSize(1)),
@@ -180,8 +245,8 @@ void H5Reader::writeScalarField(const container_t& scalfield,
             
             ++gridnr;
         }
-    }
-    
+//     }
+    std::cout << gridnr << std::endl;
     H5CloseFile (file);
 }
 
