@@ -196,24 +196,22 @@ void Distribution::uniformPerCell(const Array<Geometry>& geom,
     }
     
     double dx[3] = {0.0, 0.0, 0.0};     // cell size (a bit smaller such that particles not a cell boundary)
-    double inv[3] = {1.0, 1.0, 1.0};
+    double cidx[3] = {0, 0, 0}; // max. cell index for a level
     
     // go through levels and add "nParticles" particles per cell
     for (std::size_t i = 0; i < geom.size(); ++i) {
         
-        double refinement = std::pow(2, i);
-        
         for (int d = 0; d < 3; ++d) {
             dx[d] = geom[i].CellSize(d);
-            inv[d] = geom[i].ProbLength(d) / (nr(d) * refinement);
+            cidx[d] = nr[d] * std::pow(2, i);
         }
         
-        // map [0, 1] --> to cell dimension [0 + 0.1 * dx, dx - 0.1 * dx]
+        // map [0, 1] --> to cell dimension [0 + 0.25 * dx, 0.75 * dx]
         std::vector< Vektor<double, 3> > mapped2cell(nParticles);
         
         for (std::size_t pi = 0; pi < nParticles; ++pi) {
             for (int d = 0; d < 3; ++d)
-                mapped2cell[pi](d) = dx[d] * (0.8 * rn[pi](d) + 0.1);
+                mapped2cell[pi](d) = dx[d] * (0.5 * rn[pi](d) + 0.25);
         }
         
         for (int j = 0; j < ba[i].size(); ++j) {
@@ -225,14 +223,14 @@ void Distribution::uniformPerCell(const Array<Geometry>& geom,
                         
                         // assign particle position
                         for (std::size_t pi = 0; pi < nParticles; ++pi) {
-                            // get global coordinates [as physical domain values] of cell
-                            double kk = inv[0] * k + geom[i].ProbLo(0);
-                            double ll = inv[1] * l + geom[i].ProbLo(1);
-                            double mm = inv[2] * m + geom[i].ProbLo(2);
+                            // [index space] --> [physical domain]
+                            double kk = geom[0].ProbLength(0) / cidx[0] * k + geom[0].ProbLo(0);
+                            double ll = geom[0].ProbLength(1) / cidx[1] * l + geom[0].ProbLo(1);
+                            double mm = geom[0].ProbLength(2) / cidx[2] * m + geom[0].ProbLo(2);
                             
                             x_m.push_back( kk + mapped2cell[pi](0) );
                             y_m.push_back( ll + mapped2cell[pi](1) );
-                            z_m.push_back( mm + mapped2cell[pi](2) );
+                            z_m.push_back( mm  + mapped2cell[pi](2) );
                             
                             px_m.push_back( 1.0 );
                             py_m.push_back( 1.0 );
