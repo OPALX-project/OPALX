@@ -28,7 +28,7 @@
 
 /// Particle bunch class for BoxLib
 class AmrPartBunch : public PartBunchBase,
-                     public ParticleContainer<4 /*real attributes*/, 0>
+                     public ParticleContainer<5 /*real attributes*/, 0>
 {
 public:
     typedef std::map<int, std::tuple<int, int, int> > map_t;
@@ -89,6 +89,8 @@ public:
     
     inline double getQM(int i);
     
+    inline double getMass(int i);
+    
     inline Vector_t getP(int i);
     
     inline Vector_t getE(int i);
@@ -98,6 +100,8 @@ public:
     inline void setR(Vector_t pos, int i);
     
     inline void setQM(double q, int i);
+    
+    inline void setMass(double m, int i);
     
     inline void setP(Vector_t v, int i);
     
@@ -147,7 +151,10 @@ public:
                     
                     msg2all << m_particles[l][g][dq].m_pos[0] << " "
                             << m_particles[l][g][dq].m_pos[1] << " "
-                            << m_particles[l][g][dq].m_pos[2]
+                            << m_particles[l][g][dq].m_pos[2] << " "
+                            << m_particles[l][g][dq].m_data[1] << " "
+                            << m_particles[l][g][dq].m_data[2] << " "
+                            << m_particles[l][g][dq].m_data[3]
                             << endl;
                 }
             }

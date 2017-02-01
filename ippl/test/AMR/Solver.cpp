@@ -133,6 +133,16 @@ Solver::solve_with_f90(container_t& rhs,
             mg_bc[2*dir + 0] = MGT_BC_PER;
             mg_bc[2*dir + 1] = MGT_BC_PER;
         }
+    } else if ( Geometry::isAnyPeriodic() ) {
+        for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+            if ( Geometry::isPeriodic(dir) ) {
+                mg_bc[2*dir + 0] = MGT_BC_PER;
+                mg_bc[2*dir + 1] = MGT_BC_PER;
+            } else {
+                mg_bc[2*dir + 0] = MGT_BC_DIR;
+                mg_bc[2*dir + 1] = MGT_BC_DIR;
+            }
+        }
     } else {
 //         if ( ParallelDescriptor::IOProcessor() )
 //             std::cerr << "Dirichlet BC" << std::endl;

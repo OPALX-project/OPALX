@@ -65,7 +65,7 @@ subroutine state_error(tag,tag_lo,tag_hi, &
         do    j = lo(2), hi(2)
             do i = lo(1), hi(1)
 !                 print *, "tagging ", i, j, k
-                if (state(i,j,k) .ge. phierr) then
+                if (abs(state(i,j,k)) .ge. phierr) then
                     tag(i,j,k) = set
                 endif
             enddo
