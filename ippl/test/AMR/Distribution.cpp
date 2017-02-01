@@ -187,12 +187,15 @@ void Distribution::uniformPerCell(const Array<Geometry>& geom,
     
     std::mt19937_64 mt(0);
     std::uniform_real_distribution<> dist(0.0, 1.0);
-    std::vector<double> rn(nParticles);
+    std::vector< Vektor<double, 3> > rn(nParticles);
     
-    for (std::size_t i = 0; i < nParticles; ++i)
-        rn[i] = dist(mt);
+    for (std::size_t i = 0; i < nParticles; ++i) {
+        for (int d = 0; d < 3; ++d) {
+            rn[i](d) = dist(mt);
+        }
+    }
     
-    double dx[3] = {0.0, 0.0, 0.0};     // cell size
+    double dx[3] = {0.0, 0.0, 0.0};     // cell size (a bit smaller such that particles not a cell boundary)
     double inv[3] = {1.0, 1.0, 1.0};
     
     // go through levels and add "nParticles" particles per cell
@@ -205,12 +208,12 @@ void Distribution::uniformPerCell(const Array<Geometry>& geom,
             inv[d] = geom[i].ProbLength(d) / (nr(d) * refinement);
         }
         
-        // map [0, 1] --> to cell dimension [0, dx]
+        // map [0, 1] --> to cell dimension [0 + 0.1 * dx, dx - 0.1 * dx]
         std::vector< Vektor<double, 3> > mapped2cell(nParticles);
         
         for (std::size_t pi = 0; pi < nParticles; ++pi) {
             for (int d = 0; d < 3; ++d)
-                mapped2cell[pi](d) = dx[d] * rn[pi];
+                mapped2cell[pi](d) = dx[d] * (0.8 * rn[pi](d) + 0.1);
         }
         
         for (int j = 0; j < ba[i].size(); ++j) {
