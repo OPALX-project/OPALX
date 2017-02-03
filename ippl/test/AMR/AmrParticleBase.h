@@ -221,8 +221,20 @@ public:
     const ParGDBBase* m_gdb = Layout->GetParGDB();
     size_t LocalNum = this->getLocalNum();
 
+    //TODO: lev min should be > 0 if there are no particles from level 0 in the node
     if (lev_min < 0 || lev_min > finest_level)
       lev_min = 0;
+
+    //if lev_min < m_lev[0] there are no particles from lev_min on the node
+    //move the lev_min to the first level that is present on the node
+    //if ((unsigned)lev_min < m_lev[0])
+    //  lev_min = m_lev[0];
+
+    //while lev_min > m_lev[start_idx] we need to skip these particles since there level is
+    //higher than the specified lev_min
+    int start_idx = 0;
+    while ((unsigned)lev_min > m_lev[start_idx])
+      start_idx++;
 
     if (finest_level == -1)
         finest_level = m_gdb->finestLevel();
@@ -333,11 +345,6 @@ public:
     // "compfvalid" grown by one.  Using these we can figure out whether or not a cell is in the
     // valid region of our MultiFab as well as whether or not we're at a Fine->Crse boundary.
     //   
-
-    //find the starting index of lev_min since we may not start with level 0
-    int start_idx = 0;
-    while (m_lev[start_idx] != (unsigned)lev_min)
-      start_idx++;
 
     for (int lev = lev_min; lev <= finest_level; lev++)
     {
@@ -499,9 +506,9 @@ public:
       //
       const bool GridsCoverDomain = fvalid.contains(m_gdb->Geom(lev).Domain());
 
-
       for (size_t ip = start_idx; ip < LocalNum; ++ip) {
-	//we have reached the next level, exit the loop and move to the next level
+	//there are no more particles in level lev on this node
+	//exit the loop and move to the next level
 	if (m_lev[ip] != (unsigned)lev) {
 	  start_idx = ip;
 	  break;

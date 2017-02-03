@@ -113,7 +113,7 @@ void writeAscii(amrbunch_t *pbase, int N, int myNode) {
   fname += ".dat"; 
   myfile.open(fname);
 
-  myfile << "id\tR0\tR1\tR2\tgrid\tlevel\tE0\tE1\tE2\n";
+  myfile << "id\tR0\tR1\tR2\tlevel\tgrid\tE0\tE1\tE2\n";
   for (size_t i = 0; i < pbase->getLocalNum(); i++) {
     myfile << std::setprecision(3) << pbase->ID[i] << "\t" << pbase->R[i][0] 
 	   << "\t" << pbase->R[i][1] << "\t" << pbase->R[i][2] 
@@ -133,7 +133,7 @@ void writeAscii(ParticleContainer<4,0> *pc, int N, size_t nLevels, int myNode) {
   fname += ".dat"; 
   myfile.open(fname);
 
-  myfile << "id\tR0\tR1\tR2\tgrid\tlevel\tqm\tE0\tE1\tE2\n";
+  myfile << "id\tR0\tR1\tR2\tlevel\tgrid\tqm\tE0\tE1\tE2\n";
   for (unsigned int lev = 0; lev < nLevels; lev++) {
     const PMap4& pmap = pc->GetParticles(lev);
 
@@ -269,7 +269,7 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
 
   //get values from grid to particles
   pbase->GetGravity(pbase->E, efield);
-  
+
   //write the particles on the core to file - one file per core created
   writeAscii(pbase, N, myNode);
 
@@ -466,6 +466,7 @@ int main(int argc, char *argv[]) {
   efield.resize(nLevels);
   for (size_t lev = 0; lev < nLevels; ++lev)
     efield.set(lev, new MultiFab(ba[lev], BL_SPACEDIM, 1, dmap[lev]));
+
 
   //Do ippl and boxlib runs multiple times.
   //At each step N particles are created at random location inside the domain.
