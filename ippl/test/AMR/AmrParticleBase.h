@@ -100,6 +100,11 @@ private:
   //sends/receivs the particles that are needed by other processes to during AssignDensity
   void AssignDensityDoit(int level, PArray<MultiFab>* mf, PMap& data,
 			 int ncomp, int lev_min = 0);
+
+  // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+  // Assign values from grid back to particles
+  void Interp(const SingleParticlePos_t &R, const Geometry &geom, const FArrayBox& fab, 
+	      const int* idx, Real* val, int cnt);
   
 public: 
 
@@ -216,8 +221,20 @@ public:
     const ParGDBBase* m_gdb = Layout->GetParGDB();
     size_t LocalNum = this->getLocalNum();
 
+    //TODO: lev min should be > 0 if there are no particles from level 0 in the node
     if (lev_min < 0 || lev_min > finest_level)
       lev_min = 0;
+
+    //if lev_min < m_lev[0] there are no particles from lev_min on the node
+    //move the lev_min to the first level that is present on the node
+    //if ((unsigned)lev_min < m_lev[0])
+    //  lev_min = m_lev[0];
+
+    //while lev_min > m_lev[start_idx] we need to skip these particles since there level is
+    //higher than the specified lev_min
+    int start_idx = 0;
+    while ((unsigned)lev_min > m_lev[start_idx])
+      start_idx++;
 
     if (finest_level == -1)
         finest_level = m_gdb->finestLevel();
@@ -328,11 +345,6 @@ public:
     // "compfvalid" grown by one.  Using these we can figure out whether or not a cell is in the
     // valid region of our MultiFab as well as whether or not we're at a Fine->Crse boundary.
     //   
-
-    //find the starting index of lev_min since we may not start with level 0
-    int start_idx = 0;
-    while (m_lev[start_idx] != (unsigned)lev_min)
-      start_idx++;
 
     for (int lev = lev_min; lev <= finest_level; lev++)
     {
@@ -494,9 +506,9 @@ public:
       //
       const bool GridsCoverDomain = fvalid.contains(m_gdb->Geom(lev).Domain());
 
-
       for (size_t ip = start_idx; ip < LocalNum; ++ip) {
-	//we have reached the next level, exit the loop and move to the next level
+	//there are no more particles in level lev on this node
+	//exit the loop and move to the next level
 	if (m_lev[ip] != (unsigned)lev) {
 	  start_idx = ip;
 	  break;
@@ -1190,7 +1202,41 @@ public:
     }
 
   }
-  
+
+  //gather values from grid back to the particles
+  //loop trough particles and use BoxLin Interp functions to get the particles value
+  //
+  template <class AType>
+  void GetGravity(ParticleAttrib<AType> &pa,
+		  PArray<MultiFab> &mf) 
+  {
+
+    PLayout *Layout = &this->getLayout();
+    const ParGDBBase* m_gdb = Layout->GetParGDB();
+    size_t LocalNum = this->getLocalNum();
+
+    //loop trough all the particles
+    for (size_t ip = 0; ip < LocalNum; ++ip) {
+      int lev = m_lev[ip];
+      int grid = m_grid[ip];
+
+      //get the FArrayBox where this particle is located
+      FArrayBox& fab = mf[lev][grid];
+      
+      Real grav[BL_SPACEDIM];
+      int idx[BL_SPACEDIM] = {  D_DECL(0,1,2) };
+      
+      //get the value at grid point in grav array
+      Interp(this->R[ip], m_gdb->Geom(lev), fab, idx, grav, BL_SPACEDIM);
+
+      //assign to particle attribute
+      for (int i = 0; i < BL_SPACEDIM; ++i)
+	pa[ip][i] = grav[0];
+    }
+
+  }
+
+ 
 };
 
 #include "AmrParticleBase.hpp"
