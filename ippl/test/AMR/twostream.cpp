@@ -21,9 +21,51 @@
 
 #include "writePlotFile.H"
 
+#include <PlotFileUtil.H>
+
 #include <cmath>
 
 #include "Physics/Physics.h"
+
+void printLongitudinalPhaseSpace(const AmrPartBunch& bunch, const AmrOpal& myAmrOpal, int step) {
+    container_t density;
+    density.resize(myAmrOpal.finestLevel() + 1);
+    
+    // 03. February 2017,
+    // http://stackoverflow.com/questions/225362/convert-a-number-to-a-string-with-specified-length-in-c
+    std::stringstream num;
+    num << "density"  << std::setw(4) << std::setfill('0') << step;
+    std::string plotfilename = num.str();
+    
+    for (int lev = 0; lev < myAmrOpal.finestLevel() + 1; ++lev) {
+#ifdef UNIQUE_PTR
+        //                                                  # component # ghost cells                                                                                                                                          
+        density[lev] = std::unique_ptr<MultiFab>(new MultiFab(myAmrOpal.boxArray()[lev], 1, 0));
+        density[lev]->setVal(0.0);
+#else
+        //                       # component # ghost cells                                                                                                                                          
+        density.set(lev, new MultiFab(myAmrOpal.boxArray()[lev], 1, 0));
+        density[lev].setVal(0.0);
+#endif
+    }
+    bunch.AssignDensity(0, false, density, 0, 1, myAmrOpal.finestLevel() + 1);
+    
+    Array<const MultiFab*> tmp(myAmrOpal.finestLevel() + 1);
+    for (int i = 0; i < myAmrOpal.finestLevel() + 1; ++i) {
+#ifdef UNIQUE_PTR
+        tmp[i] = density[i].get();
+#else
+        tmp[i] = &density[i];
+#endif
+    }
+    const auto& mf = tmp;
+    Array<std::string> varnames(1, "rho");
+    Array<int> level_steps(1, myAmrOpal.finestLevel() + 1);
+    Array<IntVect> ref_ratio(myAmrOpal.finestLevel() + 1, IntVect(2, 2, 2));
+    BoxLib::WriteMultiLevelPlotfile(plotfilename, myAmrOpal.finestLevel() + 1,
+                                    mf, varnames, myAmrOpal.Geom(), double(step),
+                                    level_steps, ref_ratio);
+}
 
 void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
              container_t& rhs,
@@ -200,6 +242,7 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
             bunch->setP( bunch->getP(j) + dt * bunch->getQM(j) / bunch->getMass(j) * Ef, j);
         }
         
+        printLongitudinalPhaseSpace(*dynamic_cast<AmrPartBunch*>(bunch), myAmrOpal, i);
     }
     
     
