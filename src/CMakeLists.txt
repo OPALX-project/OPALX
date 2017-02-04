@@ -73,7 +73,7 @@ add_subdirectory (ValueDefinitions)
 
 add_sources (opal.cpp)
 
-include_directories (
+include_directories ( BEFORE
     ${OPAL_SRC_DIR}
     ${CLASSIC_SRC_DIR}
     ${IPPL_INCLUDE_DIR}
