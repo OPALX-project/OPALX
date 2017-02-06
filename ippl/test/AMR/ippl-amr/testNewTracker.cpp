@@ -32,7 +32,7 @@
 #include <ParmParse.H>
 
 
-// #include "Distribution.h"
+#include "../Distribution.h"
 #include "../Solver.h"
 #include "../AmrOpal.h"
 
@@ -151,8 +151,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    std::array<double, BL_SPACEDIM> lower = {{-0.15, -0.15, -0.15}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ 0.15,  0.15,  0.15}}; // m
+    std::array<double, BL_SPACEDIM> lower = {{-0.45, -0.45, -0.45}}; // m
+    std::array<double, BL_SPACEDIM> upper = {{ 0.45,  0.45,  0.45}}; // m
     
     RealBox domain;
     
@@ -199,12 +199,12 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     // initialize a particle distribution
     unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
-//     Distribution dist;
-//     double sig = 0.02;  // m
-//     dist.gaussian(0.0, sig, nloc, ParallelDescriptor::MyProc());
-//     
-//     // copy particles to the PartBunchBase object.
-//     dist.injectBeam(*bunch);
+    Distribution dist;
+    double sig = 0.02;  // m
+    dist.gaussian(0.0, sig, nloc, ParallelDescriptor::MyProc());
+    
+    // copy particles to the PartBunchBase object.
+    dist.injectBeam(*bunch);
     
     
     
@@ -218,7 +218,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
 //     msg << "Single-level statistics" << endl;
 //     bunch->gatherStatistics();
     
-    msg //<< "Bunch radius: " << sig << " m" << endl
+    msg << "Bunch radius: " << sig << " m" << endl
         << "#Particles: " << nParticles << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
         << "Total charge: " << nParticles * bunch->qm[0] << " C" << endl;
@@ -227,9 +227,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     myAmrOpal.setBunch(bunch);
         
     const Array<Geometry>& geoms = myAmrOpal.Geom();
-//     for (int i = 0; i < nLevels; ++i)
-//         msg << "#Cells per dim of level " << i << " for bunch : "
-//             << 2.0 * sig / *(geoms[i].CellSize()) << endl;
+    for (int i = 0; i < nLevels; ++i)
+        msg << "#Cells per dim of level " << i << " for bunch : "
+            << 2.0 * sig / *(geoms[i].CellSize()) << endl;
     
     // ========================================================================
     // 2. tagging (i.e. create BoxArray's, DistributionMapping's of all
