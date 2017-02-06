@@ -149,8 +149,8 @@ const ConstChannel *ElementBase::getConstChannel(const std::string &aKey) const 
 }
 
 
-std::string ElementBase::getTypeString() const {
-    switch (getType()) {
+std::string ElementBase::getTypeString(ElementBase::ElementType type) {
+    switch (type) {
     case ALIGNWRAPPER:
         return "AlignWrapper";
     case BEAMBEAM:

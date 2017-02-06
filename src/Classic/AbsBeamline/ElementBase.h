@@ -181,6 +181,7 @@ public:
     virtual ElementType getType() const = 0;
 
     std::string getTypeString() const;
+    static std::string getTypeString(ElementType type);
 
     /// Get geometry.
     //  Return the element geometry.
@@ -497,5 +498,8 @@ inline ElemType ElementBase::getElType() const
 
 inline void ElementBase::setElType(ElemType elt)
 { elType_m = elt;}
+
+inline std::string ElementBase::getTypeString() const
+{ return getTypeString(getType());}
 
 #endif // CLASSIC_ElementBase_HH
