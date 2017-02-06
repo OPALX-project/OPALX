@@ -42,22 +42,13 @@ Usage:
 #include <MultiFab.H>
 #include <ParmParse.H>
 
-#include "PartBunch.h"
-#include "AmrPartBunch.h"
-
-#include "Distribution.h"
-#include "Solver.h"
-#include "AmrOpal.h"
-
-#include "writePlotFile.H"
-
 #include <cmath>
-
-#include "Physics/Physics.h"
 
 #include "AmrParticleBase.h"
 #include "ParticleAmrLayout.h"
 #include "PartBunchAmr.h"
+
+#define Dim 3
 
 typedef ParticleAmrLayout<double,Dim> amrplayout_t;
 typedef AmrParticleBase<amrplayout_t> amrbase_t;
