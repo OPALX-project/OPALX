@@ -20,15 +20,20 @@
 #include <Array.H>
 #include <Geometry.H>
 
-#include "PartBunchBase.h"
-
+#ifdef IPPL_AMR
+    #include "ippl-amr/AmrParticleBase.h"
+    #include "ippl-amr/ParticleAmrLayout.h"
+    #include "ippl-amr/PartBunchAmr.h"
+#else
+    #include "boxlib-amr/PartBunchBase.h"
+#endif
 
 /// Create particle distributions
 class Distribution {
     
 public:
     typedef std::vector<double> container_t;
-    
+    typedef Vektor<double, BL_SPACEDIM> Vector_t;
     
 public:
     
@@ -92,14 +97,26 @@ public:
      * injection.
      * @param shift all particles, each direction independently
      */
-    void injectBeam(PartBunchBase& bunch, bool doDelete = true, std::array<double, 3> shift = {{0.0, 0.0, 0.0}});
+    void injectBeam(
+#ifdef IPPL_AMR
+        PartBunchAmr< ParticleAmrLayout<double, BL_SPACEDIM> > & bunch,
+#else
+        PartBunchBase& bunch,
+#endif
+        bool doDelete = true, std::array<double, 3> shift = {{0.0, 0.0, 0.0}});
     
     /// Update a distribution (only single-core)
     /*! @param bunch is either an AmrPartBunch or an PartBunch object
      * @param filename is the path and name of the H5 file
      * @param step to be read in from a H5 file
      */
-    void setDistribution(PartBunchBase& bunch, const std::string& filename, int step);
+    void setDistribution(
+#ifdef IPPL_AMR
+        PartBunchAmr< ParticleAmrLayout<double, BL_SPACEDIM> >& bunch,
+#else
+        PartBunchBase& bunch,
+#endif
+        const std::string& filename, int step);
     
     /// Write the particles to a text file that can be read by OPAL. (sec. 11.3 in OPAL manual)
     /*!

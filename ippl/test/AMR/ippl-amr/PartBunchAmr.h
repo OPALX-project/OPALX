@@ -12,11 +12,13 @@ public:
   ParticleAttrib<double> qm;
   typename PLayout::ParticlePos_t E;
   typename PLayout::ParticlePos_t P;
+  ParticleAttrib<double> mass;
 
   PartBunchAmr() {
     this->addAttribute(qm);
     this->addAttribute(E);
     this->addAttribute(P);
+    this->addAttribute(mass);
   }
 
   ~PartBunchAmr() {}

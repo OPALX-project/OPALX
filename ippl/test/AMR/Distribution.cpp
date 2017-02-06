@@ -287,11 +287,20 @@ void Distribution::readH5(const std::string& filename, int step) {
 }
 
 
-void Distribution::injectBeam(PartBunchBase& bunch, bool doDelete, std::array<double, 3> shift) {
+void Distribution::injectBeam(
+#ifdef IPPL_AMR
+    PartBunchAmr< ParticleAmrLayout<double, BL_SPACEDIM> >& bunch,
+#else
+    PartBunchBase& bunch,
+#endif
+    bool doDelete, std::array<double, 3> shift)
+{
     
     // destroy all partcles
+#ifndef IPPL_AMR
     if ( doDelete && bunch.getLocalNum() )
         bunch.destroyAll();
+#endif
     
     // previous number of particles
     int prevnum = bunch.getLocalNum();
@@ -300,10 +309,17 @@ void Distribution::injectBeam(PartBunchBase& bunch, bool doDelete, std::array<do
     bunch.create(nloc_m);
 
     for (int i = nloc_m - 1; i >= 0; --i) {
+#ifdef IPPL_AMR
+      bunch.R[i + prevnum] = Vector_t(x_m[i] + shift[0], y_m[i] + shift[1], z_m[i] + shift[2]);
+      bunch.P[i + prevnum] = Vector_t(px_m[i], py_m[i], pz_m[i]);
+      bunch.qm[i + prevnum] = q_m[i];
+      bunch.mass[i + prevnum] = mass_m[i];
+#else
         bunch.setR(Vector_t(x_m[i] + shift[0], y_m[i] + shift[1], z_m[i] + shift[2]), i + prevnum);
         bunch.setP(Vector_t(px_m[i], py_m[i], pz_m[i]), i + prevnum);
         bunch.setQM(q_m[i], i + prevnum);
         bunch.setMass(mass_m[i], i + prevnum);
+#endif
         
         x_m.pop_back();
         y_m.pop_back();
@@ -318,12 +334,23 @@ void Distribution::injectBeam(PartBunchBase& bunch, bool doDelete, std::array<do
 }
 
 
-void Distribution::setDistribution(PartBunchBase& bunch, const std::string& filename, int step) {
+void Distribution::setDistribution(
+#ifdef IPPL_AMR
+    PartBunchAmr< ParticleAmrLayout<double, BL_SPACEDIM> >& bunch,
+#else
+    PartBunchBase& bunch,
+#endif
+    const std::string& filename, int step)
+{
     
     readH5(filename, step);
     
     for (unsigned int i = 0; i < bunch.getLocalNum(); ++i)
+#ifdef IPPL_AMR
+        bunch.R[i] = Vector_t(x_m[i], y_m[i], z_m[i]);
+#else
         bunch.setR(Vector_t(x_m[i], y_m[i], z_m[i]), i);
+#endif
 }
 
 void Distribution::print2file(std::string pathname) {
