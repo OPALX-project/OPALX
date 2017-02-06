@@ -5,9 +5,18 @@
 
 
 // AmrOpal::AmrOpal() { }
-AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord, PartBunchBase* bunch)
+AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord,
+#ifdef IPPL_AMR
+                 PartBunchAmr<amrplayout_t>* bunch)
+#else
+                 PartBunchBase* bunch)
+#endif
     : AmrCore(rb, max_level_in, n_cell_in, coord),
+#ifdef IPPL_AMR
+    bunch_m(bunch)
+#else
     bunch_m(dynamic_cast<AmrPartBunch*>(bunch))
+#endif
 {
     initBaseLevel();
     nPartPerCell_m.resize(max_level_in + 1);//, PArrayManage);
@@ -68,8 +77,14 @@ AmrOpal::~AmrOpal() { }
  */
 void AmrOpal::initBaseLevel() {
     finest_level = 0; // AmrCore protected member variable
+#ifdef IPPL_AMR
+    amrplayout_t* PLayout = &bunch_m->getLayout();
+    const BoxArray& ba = PLayout->ParticleBoxArray(0);
+    const DistributionMapping& dm = PLayout->ParticleDistributionMap(0 /*level*/);
+#else
     const BoxArray& ba = bunch_m->ParticleBoxArray(0 /*level*/);
     const DistributionMapping& dm = bunch_m->ParticleDistributionMap(0 /*level*/);
+#endif
     
     SetBoxArray(0 /*level*/, ba);
     SetDistributionMap(0 /*level*/, dm);
@@ -280,10 +295,18 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) {
     for (int i = lev; i <= finest_level; ++i) {
 #ifdef UNIQUE_PTR
         nPartPerCell_m[i]->setVal(0.0);
+    #ifdef IPPL_AMR
+        bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell_m[i], i);
+    #else
         bunch_m->AssignDensitySingleLevel(0, *nPartPerCell_m[i], i);
+    #endif
 #else
         nPartPerCell_m[i].setVal(0.0);
+    #ifdef IPPL_AMR
+        bunch_m->AssignDensitySingleLevel(bunch_m->qm, nPartPerCell_m[i], i);
+    #else
         bunch_m->AssignDensitySingleLevel(0, nPartPerCell_m[i], i);
+    #endif
 #endif
     }
 
@@ -380,8 +403,14 @@ AmrOpal::regrid (int lbase, Real time)
                  * particles need to know the BoxArray
                  * and DistributionMapping
                  */
+#ifdef IPPL_AMR
+                amrplayout_t* PLayout = &bunch_m->getLayout();
+                PLayout->SetParticleBoxArray(lev, new_grids[lev]);
+                PLayout->SetParticleDistributionMap(lev, new_dmap);
+#else
                 bunch_m->SetParticleBoxArray(lev, new_grids[lev]);
                 bunch_m->SetParticleDistributionMap(lev, new_dmap);
+#endif
 	    }
 	}
 	else  // a new level
@@ -393,8 +422,14 @@ AmrOpal::regrid (int lbase, Real time)
              * particles need to know the BoxArray
              * and DistributionMapping
              */
+#ifdef IPPL_AMR
+            amrplayout_t* PLayout = &bunch_m->getLayout();
+            PLayout->SetParticleBoxArray(lev, new_grids[lev]);
+            PLayout->SetParticleDistributionMap(lev, new_dmap);
+#else
             bunch_m->SetParticleBoxArray(lev, new_grids[lev]);
             bunch_m->SetParticleDistributionMap(lev, new_dmap);
+#endif
 	}
     }
     
@@ -402,7 +437,11 @@ AmrOpal::regrid (int lbase, Real time)
         finest_level = new_finest;
     
     // update to multilevel
+#ifdef IPPL_AMR
+    bunch_m->update();
+#else
     bunch_m->myUpdate();
+#endif
     
     
 //     for (int i = 0; i <= finest_level; ++i) {
