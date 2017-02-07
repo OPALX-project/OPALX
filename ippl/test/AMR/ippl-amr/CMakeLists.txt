@@ -76,10 +76,24 @@ add_executable( testNewTracker
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
 
+add_executable( new-twostream
+                new-twostream.cpp
+                ../AmrOpal.cpp
+                AmrParticleBase.hpp
+                ../Distribution.cpp
+                ../H5Reader.cpp
+                ${F90_source_files}
+                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                ../Solver.cpp)
+
 target_link_libraries (testAmrPartBase ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testNewTracker ${LIBS}
+                        -lgfortran ${CCSE_LIBRARIES}
+                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (new-twostream ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
