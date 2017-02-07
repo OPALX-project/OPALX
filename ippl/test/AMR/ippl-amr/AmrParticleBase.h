@@ -1231,7 +1231,7 @@ public:
 
       //assign to particle attribute
       for (int i = 0; i < BL_SPACEDIM; ++i)
-	pa[ip][i] = grav[0];
+	pa[ip][i] = grav[i];
     }
 
   }
