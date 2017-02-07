@@ -195,10 +195,10 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         rr[i] = 2;
     
     
-    std::unique_ptr<amrplayout_t> playout(new amrplayout_t(geom, dmap, ba, rr));
+    amrplayout_t* playout = new amrplayout_t(geom, dmap, ba, rr);
     
     std::unique_ptr<amrbunch_t> bunch( new amrbunch_t() );
-    bunch->initialize(playout.get());
+    bunch->initialize(playout);
     bunch->initializeAmr(); // add attributes: level, grid
     
     bunch->setAllowParticlesNearBoundary(true);
@@ -257,6 +257,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
      * 
      */
     
+    bool doUpdate = false;
+    
     std::string statistics = "particle-statistics-ncores-" + std::to_string(Ippl::getNodes()) + ".dat";
     IpplTimings::startTimer(totalTimer);
     for (int t = 0; t < nSteps; ++t) {
@@ -275,9 +277,12 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
             push(bunch->R[i], bunch->P[i], dt);
             
             // periodic shift
-            for (int d = 0; d < BL_SPACEDIM; ++d)
-                if ( std::abs( bunch->R[i](d) ) > 1.0 )
+            for (int d = 0; d < BL_SPACEDIM; ++d) {
+                if ( std::abs( bunch->R[i](d) ) > 1.0 ) {
                     bunch->R[i](d) = ( std::signbit(bunch->R[i](d)) ) ? 2.0 + bunch->R[i](d) : bunch->R[i](d) - 2;
+                }
+            }
+            
             
             Vector_t externalB = Vector_t(0.0, 0.0, 0.0);
             
@@ -301,10 +306,13 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
             push(bunch->R[i], bunch->P[i], dt);
             
             // periodic shift
-            for (int d = 0; d < BL_SPACEDIM; ++d)
-                if ( std::abs( bunch->R[i](d) ) > 1.0 )
+            for (int d = 0; d < BL_SPACEDIM; ++d) {
+                if ( std::abs( bunch->R[i](d) ) > 1.0 ) {
                     bunch->R[i](d) = ( std::signbit(bunch->R[i](d)) ) ? 2.0 + bunch->R[i](d) : bunch->R[i](d) - 2.0;
+                }
+            }
         }
+        
         IpplTimings::stopTimer(stepTimer);
         
         IpplTimings::startTimer(regridTimer);
