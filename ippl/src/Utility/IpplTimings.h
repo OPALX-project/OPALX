@@ -2,7 +2,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -44,6 +44,9 @@
 #include <limits>
 #include <string>
 
+#ifdef TIMERDEBUG
+#include <exception>
+#endif
 // a simple class used to store timer values
 class IpplTimerInfo
 {
@@ -67,6 +70,11 @@ public:
       t.clear();
       t.start();
     }
+#ifdef TIMERDEBUG
+    else {
+        throw std::runtime_error("Timer '" + name + "' already running");
+    }
+#endif
   }
 
   void stop() {
@@ -76,6 +84,11 @@ public:
       cpuTime += t.cpu_time();
       wallTime += t.clock_time();
     }
+#ifdef TIMERDEBUG
+    else {
+        throw std::runtime_error("Timer '" + name + "' already idling");
+    }
+#endif
   }
 
   void clear() {
@@ -173,6 +186,5 @@ private:
 /***************************************************************************
  * $RCSfile: addheaderfooter,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:17 $
- * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $
  ***************************************************************************/
-
