@@ -145,14 +145,14 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     static IpplTimings::TimerRef solveTimer = IpplTimings::getTimer("tracking-solve");
     static IpplTimings::TimerRef stepTimer = IpplTimings::getTimer("tracking-step");
     static IpplTimings::TimerRef totalTimer = IpplTimings::getTimer("tracking-total");
-//     static IpplTimings::TimerRef statisticsTimer = IpplTimings::getTimer("tracking-statistics");
+    static IpplTimings::TimerRef statisticsTimer = IpplTimings::getTimer("tracking-statistics");
     static IpplTimings::TimerRef assignTimer = IpplTimings::getTimer("assign-charge");
     // ========================================================================
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    std::array<double, BL_SPACEDIM> lower = {{-0.45, -0.45, -0.45}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ 0.45,  0.45,  0.45}}; // m
+    std::array<double, BL_SPACEDIM> lower = {{-1.0, -1.0, -1.0}}; // m
+    std::array<double, BL_SPACEDIM> upper = {{ 1.0,  1.0,  1.0}}; // m
     
     RealBox domain;
     
@@ -170,6 +170,10 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
+    
+    ParmParse pgeom("geometry");
+    Array<int> is_per = { 1, 1, 1};
+    pgeom.addarr("is_periodic", is_per);
     
     Array<int> nCells(3);
     for (int i = 0; i < 3; ++i)
@@ -193,66 +197,49 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     std::unique_ptr<amrplayout_t> playout(new amrplayout_t(geom, dmap, ba, rr));
     
-    amrbunch_t* bunch = new amrbunch_t();
+    std::unique_ptr<amrbunch_t> bunch( new amrbunch_t() );
     bunch->initialize(playout.get());
     bunch->initializeAmr(); // add attributes: level, grid
+    
+    bunch->setAllowParticlesNearBoundary(true);
     
     // initialize a particle distribution
     unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
     Distribution dist;
-    double sig = 0.02;  // m
-    dist.gaussian(0.0, sig, nloc, ParallelDescriptor::MyProc());
+    dist.uniform(-0.2, 0.2, nloc, ParallelDescriptor::MyProc());
     
     // copy particles to the PartBunchBase object.
-    dist.injectBeam(*bunch);
+    dist.injectBeam( *(bunch.get()) );
     
     
     
     for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
-        bunch->qm[i] = 1.0e-14;  // in [C]
+        bunch->qm[i] = 1.0e-19;  // in [C]
     }
     
     // redistribute on single-level
     bunch->update();
     
-//     msg << "Single-level statistics" << endl;
-//     bunch->gatherStatistics();
+    msg << "Single-level statistics" << endl;
+    bunch->gatherStatistics();
     
-    msg << "Bunch radius: " << sig << " m" << endl
-        << "#Particles: " << nParticles << endl
+    msg << "#Particles: " << nParticles << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
         << "Total charge: " << nParticles * bunch->qm[0] << " C" << endl;
     
     
-    myAmrOpal.setBunch(bunch);
-        
+    myAmrOpal.setBunch(bunch.get());
+    
     const Array<Geometry>& geoms = myAmrOpal.Geom();
-    for (int i = 0; i < nLevels; ++i)
-        msg << "#Cells per dim of level " << i << " for bunch : "
-            << 2.0 * sig / *(geoms[i].CellSize()) << endl;
     
-    // ========================================================================
-    // 2. tagging (i.e. create BoxArray's, DistributionMapping's of all
-    //    other levels)
-    // ========================================================================
-    
-    /*
-     * do tagging
-     */
-//     dynamic_cast<AmrPartBunch*>(bunch)->Define (myAmrOpal.Geom(),
-//                                                 myAmrOpal.DistributionMap(),
-//                                                 myAmrOpal.boxArray(),
-//                                                 rr);
-//     
-//     
     // ========================================================================
     // 3. multi-level redistribute
     // ========================================================================
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
     
-//     msg << "Multi-level statistics" << endl;
-//     bunch->gatherStatistics();
+    msg << "Multi-level statistics" << endl;
+    bunch->gatherStatistics();
     
     container_t rhs;
     container_t phi;
@@ -261,7 +248,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
     
     double mass = 0.983272; // mass
-    double dt = 0.005;
+    double dt = 5.0e-9;
     
     /* units:
      * 
@@ -274,16 +261,24 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     IpplTimings::startTimer(totalTimer);
     for (int t = 0; t < nSteps; ++t) {
         
+        bunch->python_format(t);
+        
         IpplTimings::startTimer(solveTimer);
-        doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geoms, rr, nLevels, msg, assignTimer);
+        doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels, msg, assignTimer);
         IpplTimings::stopTimer(solveTimer);
+        
+        bunch->GetGravity(bunch->E, grad_phi);
         
         IpplTimings::startTimer(stepTimer);
         for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
             
             push(bunch->R[i], bunch->P[i], dt);
             
-            bunch->GetGravity(bunch->E, grad_phi);
+            // periodic shift
+            for (int d = 0; d < BL_SPACEDIM; ++d)
+                if ( std::abs( bunch->R[i](d) ) > 1.0 )
+                    bunch->R[i](d) = ( std::signbit(bunch->R[i](d)) ) ? 2.0 + bunch->R[i](d) : bunch->R[i](d) - 2;
+            
             Vector_t externalB = Vector_t(0.0, 0.0, 0.0);
             
             double gamma = std::sqrt(1.0 + dot(bunch->P[i], bunch->P[i]));
@@ -304,20 +299,24 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
                  bunch->qm[i]);
             
             push(bunch->R[i], bunch->P[i], dt);
+            
+            // periodic shift
+            for (int d = 0; d < BL_SPACEDIM; ++d)
+                if ( std::abs( bunch->R[i](d) ) > 1.0 )
+                    bunch->R[i](d) = ( std::signbit(bunch->R[i](d)) ) ? 2.0 + bunch->R[i](d) : bunch->R[i](d) - 2.0;
         }
         IpplTimings::stopTimer(stepTimer);
         
         IpplTimings::startTimer(regridTimer);
         for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
-            myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
+            myAmrOpal.regrid(i /*lbase*/, i /*time*/);
         IpplTimings::stopTimer(regridTimer);
         
-//         IpplTimings::startTimer(statisticsTimer);
-//         bunch->dumpStatistics(statistics);
-//         IpplTimings::stopTimer(statisticsTimer);
+        IpplTimings::startTimer(statisticsTimer);
+        bunch->dumpStatistics(statistics);
+        IpplTimings::stopTimer(statisticsTimer);
         
 //         writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geoms, t);
-//         dynamic_cast<AmrPartBunch*>(bunch)->python_format(t);
     }
     IpplTimings::stopTimer(totalTimer);
 }
