@@ -316,8 +316,11 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         IpplTimings::stopTimer(stepTimer);
         
         IpplTimings::startTimer(regridTimer);
+        if ( myAmrOpal.maxLevel() > 0 ) {
         for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
-            myAmrOpal.regrid(i /*lbase*/, i /*time*/);
+            myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
+        } else
+            bunch->update();
         IpplTimings::stopTimer(regridTimer);
         
         IpplTimings::startTimer(statisticsTimer);
