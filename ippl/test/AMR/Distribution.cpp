@@ -145,8 +145,8 @@ void Distribution::twostream(const Vector_t& lower, const Vector_t& upper,
                                             vel[2] * vel[2];
                                 
                                 double f = factor * std::exp(-0.5 * v2) *
-                                           (1.0 + alpha * std::cos(0.5 * pos[2])) *
-                                           (1.0 + 0.5 * vel[2] * vel[2]);
+                                           (1.0 + alpha * std::cos(k * pos[2])) *
+                                           (1.0 + /*0.*/5.0 * vel[2] * vel[2]);
                                 
                                 double m = hx[0] * hv[0] *
                                            hx[1] * hv[1] *
