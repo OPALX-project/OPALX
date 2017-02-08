@@ -1,0 +1,116 @@
+\input{header}
+
+\chapter{Field Emission}
+\label{chp:femiss}
+\index{Field Emission|(}
+Field emission is a major source of both dark current particles and primary
+incident particles in secondary emission. The Fowler-Nordheim (F-N) formula
+we use here to predict the emitted current density is given in \eqnref{units}
+\cite{BC} \cite{FN}
+%
+\begin{equation}\label{eq:units}
+    J(\mathbf{r},t) = \frac{A(\beta E)^2}{\varphi t(y)^2}
+                      \exp{\left(\frac{-B v(y)\varphi^{3/2}}{\beta E}\right)}
+                      \left[\mathrm{A/m^2}\right]
+\end{equation}
+%
+where $J(\mathbf{r},t)$ stands for emitted electric current density in position
+$\mathbf{r}$ and time $t$. The Greek letters $\varphi$ and $\beta$ denote the
+work function of the surface material and the local field enhancement factor
+respectively. The parameter $E$ is the electric field in the normal direction
+of surface. The parameters $A$ and $B$ are empirical constants. The functions
+$v(y)$ and $t(y)$ representing the image charge effects \cite{BC} as a function
+of the Fowler-Nordheim parameter $y$ with the following definition\cite{DE}
+%
+\begin{equation}\label{eq:imagecharge}
+    y = \sqrt{\frac{e^3}{4\pi\varepsilon}}\frac{\sqrt{\beta E}}{\varphi}
+      = 3.795\times10^{-5}\frac{\sqrt{\beta E}}{\varphi} \text{.}
+\end{equation}
+%
+In our model, we have chosen a simpler approximation originated by J. H. Han\cite{DE}
+\begin{eqnarray*}
+v(y) &=& a-by^2 \\
+t(y) &\approx& 1 \text{.}
+\end{eqnarray*}
+These approximations are valid for a large range of $y$, corresponding to
+typical applied electric field ranges in RF guns.\\
+
+Whenever the normal components of an electric field are strong enough the field
+emission current density will be limited by space charge effect\cite{BC}.
+To cover this situation we incorporated the 1D Child-Langmuir law
+%
+\begin{align}\label{eq:SpaceCharge}
+    J(\mathbf{r},t) & =\frac{4\varepsilon_0}{9}\sqrt{2\frac{e}{m}}\left(\frac{V^{3/2}}{d^2}\right)\notag\\
+    &
+    =\frac{4\varepsilon_0}{9}\sqrt{2\frac{e}{m}}\left(\frac{E^{3/2}}{d^{1/2}}\right)
+    \left[\mathrm{A/m^2}\right]
+\end{align}
+%
+into our field emission model. $J(\mathbf{r},t)$ denotes space charge limited emission
+current density in position $\mathbf{r}$ and time $t$, $\varepsilon_0$ the
+permittivity in vacuum, $E$ the normal component of electric field on the surface
+and $d$ the distance from the position where $E$ is evaluated. Currently we
+choose $d$ to be equal to the distance traveled by emitted particles in one
+time step, i.e., $d=\frac{\displaystyle eE\Delta{t}^2}{\displaystyle 2m_0}$ where $\Delta{t}$ is simulation
+time step.
+
+\section{Field Emission Command}
+\label{sec:FieldEmissionCmd}
+\index{SURFACEEMISSION}
+To perform field emission related simulation, a triangulated surface geometry defined by \keyword{GEOMETRY} command \seechp{geometry} should be specified and attached to the elements (currently only \keyword{RFCavity} element is valid for field emission). A \keyword{SURFACEEMISSION} type of distribution, defined in \keyword{DISTRIBUTION} command should be attached to the \keyword{GEOMETRY} command. And users can customize dark current simulation by specifying the value of the work
+function $\varphi$, local field enhancement factor $\beta$ and other parameters
+present in \eqnref{units,imagecharge} in the \keyword{SURFACEEMISSION} type of distribution definition in input file. See the following example input file and \tabref{fieldfmissioncmd} for a summary of the field emission related command in the \keyword{SURFACEEMISSION} type of distribution definition.\\
+\begin{example}
+DistSurf: DISTRIBUTION, DISTRIBUTION = "SURFACEEMISSION",
+          NPDARKCUR = 0, INWARDMARGIN=0.0,
+          FNBETA = 30, FNMAXEMI = 2,
+          FNFIELDTHR = -0.1;
+ge:       GEOMETRY, FGEOM="../New_Gun.h5",
+          S=0.0, DISTR=DistSurf,
+          ZSHIFT=0.0;
+FINSSGUN: RFCavity, L = 0.175,
+          VOLT = 100.0, FMAPFN = "../RF_GUN_PSI-fieldmap.T7" ,
+          GEOMETRY = ge, ELEMEDGE =0.0,
+          TYPE = "STANDING", FREQ = 2997.922938148;
+\ldots
+\end{example}
+
+\begin{table}[ht] \footnotesize
+  \begin{center}
+    \caption{Field Emission Command summary}
+    \label{tab:fieldfmissioncmd}
+    \begin{tabular}{|l|p{0.8\textwidth}|l|}
+      \hline
+      \tabhead{Command & Purpose (Default)}
+      \hline
+      \tabline{FNA}{\index{FNA} Empirical constant A for F-N emission model (\num{1.54e-6})}
+      \tabline{FNB}{\index{FNB} Empirical constant B for F-N emission model (\num{6.83e9})}
+      \tabline{FNY}{\index{FNY} Constant for image charge effect parameter $y(E)$ (\num{3.795e-5})}
+      \tabline{FNVYZERO}{\index{FNVYZERO} Zero order constant for $v(y)$ function (\num{0.9632}}
+      \tabline{FNVYSECOND}{\index{FNVYSECOND} Second order constant for $v(y)$ function (\num{1.065})}
+      \tabline{FNPHIW}{\index{FNPHIW} Work function of gun surface material (\SI{4.65}{\electronvolt})}
+      \tabline{FNBETA}{\index{FNBETA} Field enhancement factor $\beta$ for F-N emission (\num{50.0})}
+      \tabline{FNFIELDTHR}{\index{FNFIELDTHR} Field threshold for F-N emission (\SI{30.0}{\mega\volt/\meter})}
+      \tabline{FNMAXEMI}{\index{FNMAXEMI} Maximum Number of electrons emitted from a single triangle in each time step (\num{10})}
+      \tabline{NPDARKCUR}{\index{NPDARKCUR} \TODO{Describe attribute}}
+      \tabline{INWARDMARGIN}{\index{INWARDMARGIN} \TODO{Describe attribute}}
+      \tabline{EINITHR}{\index{EINITHR} \TODO{Descirbe attribute}}
+      \tabline{SECONDARYFLAG}{\index{SECONDARYFLAG} \TODO{Descirbe attribute}}
+      \tabline{NEMISSIONMODE}{\index{NEMISSIONMODE} \TODO{Descirbe attribute}}
+      \tabline{VSEYZERO}{\index{VSEYZERO} \TODO{Descirbe attribute}}
+      \tabline{VEZERO}{\index{VEZERO} \TODO{Descirbe attribute}}
+      \tabline{VSEYMAX}{\index{VSEYMAX} \TODO{Descirbe attribute}}
+      \tabline{VEMAX}{\index{VEMAX} \TODO{Descirbe attribute}}
+      \tabline{VKENERGY}{\index{VKENERGY} \TODO{Descirbe attribute}}
+      \tabline{VKTHETA}{\index{VKTHETA} \TODO{Descirbe attribute}}
+      \tabline{VVTHERMAL}{\index{VVTHERMAL} \TODO{Descirbe attribute}}
+      \tabline{VW}{\index{VW} \TODO{Descirbe attribute}}
+      \tabline{SURFMATERIAL}{\index{SURFMATERIAL} \TODO{Descirbe attribute}}
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\index{Field Emission|)}
+
+\input{footer}

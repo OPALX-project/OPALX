@@ -1,0 +1,83 @@
+\input{header}
+\chapter{\opal - MADX Conversion Guide}
+%\section*{Gaussian Distribution and Twiss Parameters in \texttt{OPAL} and \texttt{MADX}}
+We note with $\alpha$,$\beta$ and $\gamma$ the Twiss parameters.
+\begin{eqnarray*}
+\sigma_{beam} &=& \begin{pmatrix}\sigma_{x} & \sigma_{x p_{x}}\\\sigma_{x p_{x}} &  \sigma_{ p_{x}}\end{pmatrix}
+= \begin{pmatrix} \sigma_{x} & \delta\cdot\sqrt{\sigma_{x}\sigma_{ p_{x}}}\\\delta\cdot\sqrt{\sigma_{x}\sigma_{ p_{x}}} & \sigma_{ p_{x}}\end{pmatrix}
+= \begin{pmatrix} <x^{2}> & <x p_{x}>\\<x p_{x}> & < p_{x}^{2}> \end{pmatrix} \\
+&=& \begin{pmatrix}
+  \frac{1}{N}\sum_{i=1}^{N}x_{i}^{2} & \frac{1}{N}\sum_{i=1}^{N}x_{i} p_{x_{i}}\\
+  \frac{1}{N}\sum_{i=1}^{N}x_{i} p_{x_{i}} & \frac{1}{N}\sum_{i=1}^{N} p_{x_{i}}^{2}
+ \end{pmatrix}
+= \epsilon\cdot\begin{pmatrix} \beta & -\alpha\\ -\alpha & \gamma\end{pmatrix}
+\end{eqnarray*}
+
+\begin{tabular}{l l l l l c l l l}
+$\bar{p}_{x}$ & = & $\sqrt{\frac{1}{N}\sum_{i=1}^{N} p_{x_{i}}^{2}}$ & = & $\sqrt{\sigma_{ p_{x}}}$ & & $\bar{x}$ & = & $\sqrt{\frac{1}{N}\sum_{i=1}^{N}x_{i}^{2}}$ \\
+
+$\bar{p}_{y}$ & = & $\sqrt{\frac{1}{N}\sum_{i=1}^{N}p_{y_{i}}^{2}}$ & = & $\sqrt{\sigma_{p_{y}}}$ & & $\bar{y}$ & = & $\sqrt{\frac{1}{N}\sum_{i=1}^{N}y_{i}^{2}}$ \\\\\\
+
+$\gamma$ & = & $\frac{E_{kin}+m_{p}}{m_{p}}$ & & & & $\beta$ & = & $\sqrt{1-\frac{1}{\gamma^{2}}} = \frac{v}{c}$\\
+
+$(\beta\gamma)$ & = & $\frac{E_{kin}+m_{p}}{m_{p}}\cdot\sqrt{1-\frac{1}{\gamma^{2}}}$& = & $\frac{\beta}{\sqrt{1-\beta^{2}}}$ & & $\text{B}\rho$ & = & $\frac{\left(\beta\gamma\right)\cdot m_{p}\cdot 10^{9}}{c}~\left[\text{T m}\right]$\\
+
+$m_{p}$ & = & $0.939277$ [GeV] & & & & $c$ & = & $299792458
+$ [m/s]\\
+\end{tabular}
+
+\begin{sidewaystable}
+\begin{tabular}{|l|c r|l c l |c r| }
+\hline
+Quantity & \multicolumn{2}{|c|}{\texttt{MADX}} & \multicolumn{3}{|c|}{Conversion} & \multicolumn{2}{c|}{\texttt{OPAL-Output}}\\\hline
+
+Momenta &$\bar{p}_{x}$ & [rad] & $\bar{p}_{x}$[$\beta\gamma$] &=& $\left(\bar{p}_{x}\left[\text{rad}\right]\right)\cdot\left(\beta\gamma\right)$ &$\bar{p}_{x}$ &[$\beta\gamma$]\\\hline
+
+Correlation of $\bar{x}$,$\bar{p}_{x}$ & $\delta$ & [1] & $\delta$ & = & $\left(\sigma_{x p_{x}}\left[\text{m }\text{rad}\right]\right)/\left(\left(\bar{p}_{x}\left[\text{rad}\right]\right)\cdot\left(
+\bar{x}\left[\text{m}\right]\right)\right)$ & $\delta$ & [1]\\
+
+ & & & & = &$\left(\sigma_{x p_{x}}\left[\text{m }\text{rad}\right]\right)/\sqrt{\left(\sigma_{x}\left[\text{m}^{2}\right]\right)\cdot\left(\sigma_{ p_{x}}\left[\text{rad}^{2}\right]\right)}$ & & \\\hline
+
+Emittance & $\epsilon_{x}$ & [m rad] &$\epsilon_{x}$[m $\beta\gamma$] &= & $\sqrt{\left( \bar{p}_{x}\left[ \beta\gamma \right] \right) ^{2} \cdot \left(\bar{x}\left[\text{m}\right]\right)^{2} - \left(\delta \cdot \left(\bar{x}\left[\text{m}\right]\right) \cdot \left(\bar{p}_{x}\left[\beta\gamma\right]\right)\right)^{2}} $ &$\epsilon_{x}$ &[m $\beta\gamma$] \\
+
+ & & & & = &$\sqrt{\left( \sigma_{{p}_{x}}\left[ \left(\beta\gamma\right)^{2} \right] \right)\cdot
+ \left(\sigma_{x}\left[\text{m}^{2}\right]\right) - \left(\delta \cdot
+ \sqrt{\left(\sigma_{x}\left[\text{m}^{2}\right]\right)\cdot\left(\sigma_{p_{x}}
+ \left[\left(\beta\gamma\right)^{2}\right]\right)}\right)^{2}} $  & & \\
+
+ & & & & = &$\sqrt{\left( \sigma_{{p}_{x}}\left[ \left(\beta\gamma\right)^{2} \right] \right)\cdot
+ \left(\sigma_{x}\left[\text{m}^{2}\right]\right) - \left(\sigma_{x p_{x}}\left[\text{m} ~\beta\gamma\right]\right)^{2}} $  & & \\\hline
+
+Twiss Parameter $\alpha$ & $\alpha$ & [1] & $\alpha\left[1\right]$ & = & $-\delta\cdot\left(\bar{x}\left[\text{m}\right]\right)\cdot\left(\bar{p}_{x}\left[\beta\gamma\right]\right)/\left(\epsilon_{x}\left[\text{m}~\beta\gamma\right]\right)$ &$\alpha_{T}$ & [1]  \\
+
+ & & & & = &  $-\delta\cdot\sqrt{\left(\sigma_{x}\left[\text{m}^{2}\right]\right)\cdot\left(\sigma_{ p_{x}}\left[\left(\beta\gamma\right)^{2}\right]\right)}/\left(\epsilon_{x}\left[\text{m}~\beta\gamma\right]\right)$ & & \\\hline
+
+
+Twiss  Parameter $\beta_{T}$ & $\beta_{T}$ & [m/rad] & $\beta_{T}\left[\text{m}/\beta\gamma\right]$ & = &
+$\left(\bar{x}\left[\text{m}\right]\right)^{2}/\left(\epsilon_{x}\left[\text{m}~\beta\gamma\right]
+\right)$ &$\beta_{T}$&[m/$\beta\gamma$] \\
+
+ & & & & = & $\left(\sigma_{x}\left[\text{m}^{2}\right]\right)/\left(\epsilon_{x}\left[\text{m}~\beta\gamma\right]
+\right)$  & & \\\hline
+
+
+Twiss Parameter $\gamma_{T}$ & $\gamma_{T}$ & [rad/m]  &$\gamma_{T}\left[\beta\gamma/\text{m}\right]$ & = &$\left(\bar{p}_{x}\left[\beta\gamma\right]\right)^{2}/\left(\epsilon_{x}\left[\text{m}~\beta\gamma\right]\right)$ &$\gamma_{T}$ &[$\beta\gamma$/m]  \\
+
+ & & & & = & $\left(\sigma_{p_{x}}\left[\left(\beta\gamma\right)^{2}\right]\right)/\left(\epsilon_{x}\left[\text{m}~\beta\gamma\right]\right)$& & \\\hline
+
+Focusing strength & $k_{1}$ & $\left[\text{m}^{-2}\right]$ & $k_{1}\left[\text{T}/\text{m}\right]$ & = & $\left(k_{1}\left[\text{m}^{-2}\right]\right)\cdot\left(\text{B}\rho\left[\text{T m}\right]\right)$ & $k_{1}$ & $\left[\text{T}/\text{m}\right]$\\\hline\hline
+
+Quantity & \multicolumn{2}{c|}{\texttt{MADX}} & \multicolumn{3}{c|}{Conversion} & \multicolumn{2}{c|}{\texttt{OPAL-Input}}\\\hline
+
+Element Position & \texttt{at :=} & $\left[\text{m}\right]$ & \keyword{ELEMEDGE} & = & (Center of the element) - (Length of the element)/2 & \keyword{ELEMEDGE =}  & $\left[\text{m}\right]$ \\
+
+ & \multicolumn{2}{c|}{\small{Center of the element}} & & & & \multicolumn{2}{|c|}{\small{Begin of the element}} \\\hline
+\hline
+
+Quantity & \multicolumn{2}{c|}{\texttt{OPAL-Output}} & \multicolumn{3}{c}{Conversion} & \multicolumn{2}{|c|}{\texttt{OPAL-Input}}\\\hline
+
+Momenta & $\bar{p}_{x}$ & $\left[\beta\gamma\right]$ & $p_{x}\left[\text{eV}\right]$ & = &  $m_{p}\cdot10^{9}\cdot\left(\sqrt{\left(\bar{p}_{x}\left[\beta\gamma\right]\right)^{2} +1}-1\right)$ &$\bar{p}_{x}$ & [eV]\\\hline
+
+\end{tabular}
+\end{sidewaystable}
+\input{footer}

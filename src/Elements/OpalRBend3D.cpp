@@ -1,0 +1,155 @@
+// ------------------------------------------------------------------------
+// $RCSfile: OpalRBend3D.cpp,v $
+// ------------------------------------------------------------------------
+// $Revision: 1.2.4.1 $
+// ------------------------------------------------------------------------
+// Copyright: see Copyright.readme
+// ------------------------------------------------------------------------
+//
+// Class: OpalRBend3D
+//   The parent class of all OPAL bending magnets.
+//   This class factors out all special behaviour for the DOOM interface
+//   and the printing in OPAL format, as well as the bend attributes.
+//
+// ------------------------------------------------------------------------
+//
+
+#include "Elements/OpalRBend3D.h"
+#include "Attributes/Attributes.h"
+#include "Structure/OpalWake.h"
+#include "Structure/SurfacePhysics.h"
+#include "AbsBeamline/RBend3D.h"
+#include "Utilities/OpalException.h"
+
+#include <iostream>
+
+
+// Class OpalRBend3D
+// ------------------------------------------------------------------------
+
+OpalRBend3D::OpalRBend3D():
+    OpalElement(SIZE, "RBEND3D", "The \"RBEND3D\" element defines an RBEND with 3D field maps"),
+    owk_m(0),
+    sphys_m(NULL) {
+    itsAttr[ANGLE] = Attributes::makeReal
+                     ("ANGLE", "Upright dipole coefficient in m^(-1)");
+    itsAttr[K0] = Attributes::makeReal
+                  ("K0", "Normal dipole coefficient in m^(-1)");
+    itsAttr[K0S] = Attributes::makeReal
+                   ("K0S", "Skew dipole coefficient in m^(-1)");
+    itsAttr[E1] = Attributes::makeReal
+        ("E1", "Entry pole face angle in rad", 0.0);
+    itsAttr[FMAPFN] = Attributes::makeString
+                      ("FMAPFN", "Filename for the fieldmap");
+    itsAttr[GAP] = Attributes::makeReal
+                   ("GAP", "Full gap height of the magnet (m)", 0.0);
+    itsAttr[HAPERT] = Attributes::makeReal
+                      ("HAPERT", "Bend plane magnet aperture (m)", 0.0);
+    itsAttr[DESIGNENERGY] = Attributes::makeReal
+                            ("DESIGNENERGY", "the mean energy of the particles in MeV");
+
+    registerRealAttribute("ANGLE");
+    registerRealAttribute("K0L");
+    registerRealAttribute("K0SL");
+    registerRealAttribute("E1");
+    registerRealAttribute("E2");
+    registerStringAttribute("FMAPFN");
+    registerRealAttribute("GAP");
+    registerRealAttribute("HAPERT");
+    registerRealAttribute("DESIGNENERGY");
+
+    setElement((new RBend3D("RBEND3D"))->makeWrappers());
+}
+
+OpalRBend3D::OpalRBend3D(const std::string &name, OpalRBend3D *parent):
+    OpalElement(name, parent),
+    owk_m(0),
+    sphys_m(NULL)
+{
+    setElement((new RBend3D(name))->makeWrappers());
+}
+
+OpalRBend3D::~OpalRBend3D() {
+    if(owk_m)
+        delete owk_m;
+    if(sphys_m)
+        delete sphys_m;
+}
+
+OpalRBend3D *OpalRBend3D::clone(const std::string &name) {
+    return new OpalRBend3D(name, this);
+}
+
+
+void OpalRBend3D::
+fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
+    OpalElement::fillRegisteredAttributes(base, flag);
+}
+
+void OpalRBend3D::update() {
+    OpalElement::update();
+
+    // Define geometry.
+    RBend3D *bend =
+        dynamic_cast<RBend3D *>(getElement()->removeWrappers());
+    double length = Attributes::getReal(itsAttr[LENGTH]);
+    double angle  = Attributes::getReal(itsAttr[ANGLE]);
+
+    double k0 =
+        itsAttr[K0] ? Attributes::getReal(itsAttr[K0]) :
+        length ? 2 * sin(angle / 2) / length : angle;
+    double k0s = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
+
+    // Set field amplitude or bend angle.
+    if(itsAttr[ANGLE])
+        bend->setBendAngle(Attributes::getReal(itsAttr[ANGLE]));
+    else
+        bend->setFieldAmplitude(k0, k0s);
+
+    if(itsAttr[FMAPFN])
+        bend->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
+    else if(bend->getName() != "RBEND3D") {
+        ERRORMSG(bend->getName() << ": No filename for a field map given." << endl);
+        throw OpalException("OpalRBend3D::update", bend->getName() + ": No filename for field map given");
+    }
+
+    bend->setEntranceAngle(Attributes::getReal(itsAttr[E1]));
+
+    // Energy in eV.
+    if(itsAttr[DESIGNENERGY]) {
+        bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]), false);
+    }
+
+    bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
+
+    if(itsAttr[HAPERT])
+        bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>(2, Attributes::getReal(itsAttr[HAPERT])));
+    else
+        bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>(2, 0.0));
+
+    if(itsAttr[LENGTH]) {
+        bend->setLength(Attributes::getReal(itsAttr[LENGTH]));
+    } else
+        bend->setLength(0.0);
+
+    if(itsAttr[WAKEF] && itsAttr[DESIGNENERGY] && owk_m == NULL) {
+        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
+        owk_m->initWakefunction(*bend);
+        bend->setWake(owk_m->wf_m);
+    }
+
+    if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
+        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
+        sphys_m->initSurfacePhysicsHandler(*bend);
+        bend->setSurfacePhysics(sphys_m->handler_m);
+    }
+
+    // Transmit "unknown" attributes.
+    OpalElement::updateUnknown(bend);
+}
+
+void OpalRBend3D::print(std::ostream &os) const {
+
+    OpalElement::print(os);
+
+}
