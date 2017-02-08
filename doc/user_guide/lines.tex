@@ -1,0 +1,76 @@
+\input{header}
+
+\chapter{Beam Lines}
+\label{chp:lines}
+\index{Line|(}
+
+\label{sec:line}
+\index{LINE}
+
+The accelerator to be studied is known to \opal
+as a sequence of physical elements called a \textbf{beam line}.
+A beam line is built from simpler beam lines whose definitions
+can be nested to any level.
+A powerful syntax allows to repeat or to reflect pieces of beam lines.
+Formally a beam line is defined by a \keyword{LINE} command:
+\begin{example}
+label:LINE=(member,...,member);
+\end{example}
+{label} \seesec{label} gives a name to the beam line
+for later reference.
+
+Each \texttt{member} may be one of the following:
+\begin{itemize}
+\item An element label,
+\item A beam line label,
+\item A sub-line, enclosed in parentheses,
+\end{itemize}
+Beam lines can be nested to any level.
+
+\section{Simple Beam Lines}
+\label{sec:line:simple}
+The simplest beam line consists of single elements:
+\begin{example}
+label:LINE=(member,...,member);
+\end{example}
+Example:
+\begin{example}
+L:LINE=(A,B,C,D,A,D);
+\end{example}
+
+\begin{kdescription}
+\item[ORIGIN] Position vector of the origin of the line. All elements in this line that are placed using \keyword{ELEMEDGE} use this position as reference.
+\item[ORIENTATION] Vector of Tait-Bryan angles \cite{bib:tait-bryan} of the orientation of the line at the origin.
+\end{kdescription}
+
+\section{Sub-lines}
+\label{sec:subline}
+Instead of referring to an element,
+a beam line member can refer to another beam line
+defined in a separate command.
+This provides a shorthand notation for sub-lines which occur
+several times in a beam line.
+Lines and sub-lines can be entered in any order,
+but when a line is used,
+all its sub-lines must be known.
+
+Example:
+\begin{example}
+L:LINE=(A,B,S,B,A,S,A,B);
+S:LINE=(C,D,E);
+\end{example}
+This example produces the following expansion steps:
+\begin{enumerate}
+\item Replace sub-line \texttt{S}:
+\begin{example}
+(A,B,(C,D,E),B,A,(C,D,E),A,B)
+\end{example}
+\item Omit parentheses:
+\begin{example}
+A,B,C,D,E,B,A,C,D,E,A,B
+\end{example}
+\end{enumerate}
+
+valuated to constants immediately.
+
+\input{footer}

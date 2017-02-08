@@ -1,0 +1,156 @@
+\input{header}
+
+
+%========================================================
+% OSX Lion installation
+%========================================================
+
+\section{Quick Installation}
+\subsection{OS X 10.7 -- Lion}
+
+
+\paragraph{gcc and supporting utilities}
+Download and install the following
+\begin{itemize}
+	\item MacPorts from \url{http://www.macports.org}
+	\item Xcode \url{http://developer.apple.com/xcode/}
+\end{itemize}
+With MacPorts installed, install the following
+\begin{footnotesize}
+\begin{verbatim}
+sudo port install gcc45
+sudo port select mp-gcc45 #selects gcc 4.5 
+sudo port install gsl
+sudo port install automake
+sudo port install autoconf #(already installed at this point)
+sudo port install libtool
+sudo port install cmake
+sudo port install wget
+\end{verbatim}
+\end{footnotesize}
+Make directories to work in:
+\begin{footnotesize}
+\begin{verbatim}
+mkdir -p opal_svn/util
+cd opal_svn/util
+\end{verbatim}
+\end{footnotesize}
+
+%========================================================
+% openmpi
+\paragraph{openmpi 1.4.4}
+Download {\tt openmpi} archive, make, and install:
+\begin{footnotesize}
+\begin{verbatim}
+wget http://www.open-mpi.org/software/ompi/v1.4/downloads/openmpi-1.4.4.tar.gz
+tar -xvzf openmpi-1.4.4.tar.gz 
+./configure --prefix=/opt/local/openmpi-1.4.4
+make
+sudo make install
+\end{verbatim}
+\end{footnotesize}
+Finally, add \verb+/opt/local/openmpi-1.4.4/bin+ to \verb+PATH+ in your \verb+~/.profile+ file. 
+
+
+%========================================================
+% hdf5 
+\paragraph{hdf5 1.8.7}
+Download {\tt hdf5} archive
+\begin{footnotesize}
+\begin{verbatim}
+wget http://www.hdfgroup.org/ftp/HDF5/current/src/hdf5-1.8.7.tar.gz
+tar -xzvf hdf5-1.8.7.tar.gz 
+\end{verbatim}
+\end{footnotesize}
+Build and install the serial version
+\begin{footnotesize}
+\begin{verbatim}
+CC=gcc CXX=g++ ./configure \
+   --prefix=/opt/local/hdf5-1.8.7 \
+   --enable-cxx --enable-fortran
+make
+sudo make install
+\end{verbatim}
+\end{footnotesize}
+Build and install the parallel version
+\begin{footnotesize}
+\begin{verbatim}
+make clean
+CXX=mpicxx CC=mpicc  ./configure \
+  --prefix=/opt/local/hdf5-1.8.7_p \
+  --enable-parallel --enable-fortran
+make
+sudo make install
+\end{verbatim}
+\end{footnotesize}
+
+%========================================================
+% h5hut
+\paragraph{h5hut}
+In directory \verb+opal_svn+, checkout from PSI (change {\tt yourusername)}:
+\begin{footnotesize}
+\begin{verbatim}
+svn co svn+ssh://yourusername@savannah.psi.ch/repos/H5hut/src/tags/1.99.8 \
+  H5hut-1.99.8
+ln -s H5hut-1.99.8 H5hut
+cd H5hut
+\end{verbatim}
+\end{footnotesize}
+Build and install the serial version
+\begin{footnotesize}
+\begin{verbatim}
+./autogen.sh
+ FC=gfortran CC=gcc CXX=g++ ./configure \
+      --disable-shared --enable-fortran \
+      --with-hdf5=/opt/local/hdf5-1.8.7 \
+      CFLAGS=-std=c99 \
+      --prefix=/opt/local/H5hut 
+make
+sudo make install
+\end{verbatim}
+\end{footnotesize}
+Build and install the parallel version
+\begin{footnotesize}
+\begin{verbatim}
+make clean
+CC=mpicc CXX=mpicxx ./configure \
+  --enable-parallel \
+  --with-hdf5=/opt/local/hdf5-1.8.7_p \
+  CFLAGS=-std=c99 \
+  --prefix=/opt/local/H5hut_p 
+make
+sudo make install
+\end{verbatim}
+\end{footnotesize}
+
+%========================================================
+% OPAL
+\paragraph{OPAL}
+%========================================================
+% definition file
+Edit \verb+opal_svn/OPAL_defs.bash+ to contain:
+\begin{footnotesize}
+\begin{verbatim}
+export PSI_SVNWORK=$HOME/Code/opal_svn
+export OPAL_ROOT=$PSI_SVNWORK/opal
+export H5hut=/opt/local/H5hut
+export CLASSIC_ROOT=$OPAL_ROOT/classic/5.0
+export HDF5_INCLUDE_PATH=/opt/local/hdf5-1.8.7/include
+export HDF5_LIBRARY_PATH=/opt/local/hdf5-1.8.7/lib
+export GSL_PREFIX=/opt/local
+\end{verbatim}
+\end{footnotesize}
+Change the permissions of this file with \verb|chmod +x OPAL_defs.bash|. Check out and build \opal in \verb+opal_svn+:
+\begin{footnotesize}
+\begin{verbatim}
+svn checkout svn+ssh://yourusername@savannah.psi.ch/repos/amas/amas/OPAL/trunk/
+cd opal;mkdir build;cd build
+. ../../OPAL_defs.bash
+CC=mpicc CXX=mpicxx cmake ../
+make -j 2 #(This builds with 2 processors)
+\end{verbatim}
+\end{footnotesize}
+
+
+\input{footer}
+

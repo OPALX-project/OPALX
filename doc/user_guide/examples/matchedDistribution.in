@@ -1,0 +1,83 @@
+OPTION, ECHO = FALSE;
+OPTION, PSDUMPFREQ  = 1;
+OPTION, SPTDUMPFREQ = 1;
+OPTION, PSDUMPEACHTURN = FALSE;
+OPTION, PSDUMPLOCALFRAME = FALSE;
+OPTION, REPARTFREQ = 20;
+OPTION, CZERO = FALSE;
+OPTION, TELL = TRUE;
+
+Title,string="OPAL-cycl: test matched distribution PSI Ring";
+
+Edes=.580;
+gamma=(Edes+PMASS)/PMASS;
+beta=sqrt(1-(1/gamma^2));
+gambet=gamma*beta;
+P0 = gamma*beta*PMASS;
+brho = (PMASS*1.0e9*gambet) / CLIGHT;
+
+//value,{gamma,brho,Edes,beta,gambet};
+
+phi01=139.4281;
+phi02=phi01+180.0;
+phi04=phi01;
+phi05=phi01+180.0;
+phi03=phi01+10.0;
+
+volt1st=0.9;
+volt3rd=0.9*4.0*0.112;
+
+turns = 0;
+nstep = 0;
+
+frequency=50.650;
+frequency3=3.0*frequency;
+
+ring: Cyclotron, TYPE="RING", CYHARMON=6, PHIINIT=0.0, PRINIT=-0.000174,
+                 RINIT=2130.0, SYMMETRY=8.0, RFFREQ=frequency,
+                 FMAPFN="s03av.nar", FMLOWE=72.0, FMHIGHE=590.0;
+
+rf0: RFCavity, VOLT=volt1st, FMAPFN="Cav1.dat", TYPE="SINGLEGAP",
+FREQ=frequency, RMIN = 1900.0, RMAX = 4500.0, ANGLE=35.0,  PDIS = 416.0,
+GAPWIDTH = 220.0, PHI0=phi01;
+
+rf1: RFCavity, VOLT=volt1st, FMAPFN="Cav1.dat", TYPE="SINGLEGAP",
+FREQ=frequency, RMIN = 1900.0, RMAX = 4500.0, ANGLE=125.0, PDIS = 416.0,
+GAPWIDTH = 220.0, PHI0=phi02;
+
+rf2: RFCavity, VOLT=volt3rd, FMAPFN="Cav3.dat", TYPE="SINGLEGAP",
+FREQ=frequency3,RMIN = 1900.0, RMAX = 4500.0, ANGLE=170.0, PDIS = 452.0,
+GAPWIDTH = 250.0, PHI0=phi03;
+
+rf3: RFCavity, VOLT=volt1st, FMAPFN="Cav1.dat", TYPE="SINGLEGAP",
+FREQ=frequency, RMIN = 1900.0, RMAX = 4500.0, ANGLE=215.0, PDIS = 416.0,
+GAPWIDTH = 220.0, PHI0=phi04;
+
+rf4: RFCavity, VOLT=volt1st, FMAPFN="Cav1.dat", TYPE="SINGLEGAP",
+FREQ=frequency, RMIN = 1900.0, RMAX = 4500.0, ANGLE=305.0, PDIS = 416.0,
+GAPWIDTH = 220.0, PHI0=phi05;
+
+l1:   LINE = (ring,rf0,rf1,rf2,rf3,rf4);
+
+
+Dist1:DISTRIBUTION, DISTRIBUTION=GAUSSMATCHED, LINE=l1,
+                    FMAPFN="ring590_bfld.dat", MAGSYM= 8,
+                    EX = 1.0e-06, EY = 1.0e-06, ET = 1.0e-06;
+
+
+
+Fs1:FIELDSOLVER, FSTYPE=FFT, MX=32, MY=32, MT=16,
+                 PARFFTX=true, PARFFTY=true, PARFFTT=true,
+                 BCFFTX=open, BCFFTY=open, BCFFTT=open;
+
+beam1: BEAM, PARTICLE=PROTON, pc=P0, NPART=1e7, BCURRENT=2.2E-3, CHARGE=1.0,
+       BFREQ= frequency;
+
+Select, Line=l1;
+
+TRACK,LINE=l1, BEAM=beam1, MAXSTEPS=nstep*turns, STEPSPERTURN=nstep,
+               TIMEINTEGRATOR="RK-4";
+ run, method = "CYCLOTRON-T", beam=beam1, fieldsolver=Fs1, distribution=Dist1;
+endtrack;
+
+Stop;
