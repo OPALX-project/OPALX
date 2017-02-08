@@ -466,8 +466,11 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
             bunch->setR( bunch->getR(j) + dt * bunch->getP(j), j );
         }
             
-        for (int j = 0; j <= myAmrOpal.finestLevel() && j < myAmrOpal.maxLevel(); ++j)
-            myAmrOpal.regrid(j /*lbase*/, 0.0 /*time*/);
+        if ( myAmrOpal.maxLevel() > 0 )
+            for (int j = 0; j <= myAmrOpal.finestLevel() && j < myAmrOpal.maxLevel(); ++j)
+                myAmrOpal.regrid(j /*lbase*/, 0.0 /*time*/);
+        else
+            bunch->myUpdate();
         
         container_t rhs;
         container_t phi;

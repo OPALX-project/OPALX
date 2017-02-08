@@ -368,9 +368,23 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
         
         
         assign(bunch->R, bunch->R + dt * bunch->P);
-            
-        for (int j = 0; j <= myAmrOpal.finestLevel() && j < myAmrOpal.maxLevel(); ++j)
-            myAmrOpal.regrid(j /*lbase*/, 0.0 /*time*/);
+        
+        // periodic shift
+        double up = 4.0 * Physics::pi;
+        for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
+            for (int d = 0; d < BL_SPACEDIM; ++d) {
+                if ( bunch->R[j](d) > up )
+                    bunch->R[j](d) = bunch->R[j](d) - up;
+                else if ( bunch->R[j](d) < 0.0 )
+                    bunch->R[j](d) = up + bunch->R[j](d);
+            }
+        }
+        
+        if ( myAmrOpal.maxLevel() > 0 )
+            for (int k = 0; k <= myAmrOpal.finestLevel() && k < myAmrOpal.maxLevel(); ++k)
+                myAmrOpal.regrid(k /*lbase*/, i /*time*/);
+        else
+            bunch->update();
         
         container_t rhs;
         container_t phi;
