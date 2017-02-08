@@ -1,8 +1,8 @@
 cmake_minimum_required (VERSION 2.8.10)
 set (DKS_VERSION \"1.0.0\")
 
-configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
-configure_file(revision.h.in ${CMAKE_CURRENT_SOURCE_DIR}/revision.h)
+configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALconfig.h)
+configure_file(revision.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALrevision.h)
 
 set (CMAKE_CXX_FLAGS
     "${IPPL_CMAKE_CXX_FLAGS} -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
@@ -24,15 +24,16 @@ IF(ENABLE_AMR_SOLVER)
     # FIXME Find a better solution!
     # We get otherwise a "undefined reference" to "getLevelBld()" and "probinit_"
     set (CBOXLIB -lcboxlib)
-    
+
     IF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori")
         set (CBOXLIB "-lmpi -lmpi_mpifh ${CBOXLIB}")
     ENDIF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori")
-    
+
 ENDIF(ENABLE_AMR_SOLVER)
 
-set (OPAL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-macro (add_sources)
+SET (OPAL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+SET (OPAL_SRCS )
+macro (ADD_OPAL_SOURCES)
     file (RELATIVE_PATH _relPath "${OPAL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
     foreach (_src ${ARGN})
         if (_relPath)
@@ -46,6 +47,21 @@ macro (add_sources)
         set (OPAL_SRCS ${OPAL_SRCS} PARENT_SCOPE)
     endif()
 endmacro()
+
+MACRO (ADD_OPAL_HEADERS )
+    FILE (RELATIVE_PATH _relPath "${OPAL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+    FOREACH (_hdr ${ARGN})
+        IF (_relPath)
+            LIST (APPEND OPAL_HDRS "${_relPath}/${_hdr}")
+        ELSE ()
+            LIST (APPEND OPAL_HDRS "${_hdr}")
+        ENDIF ()
+    ENDFOREACH ()
+    IF (_relPath)
+        # propagate HDRS to parent directory
+        SET (OPAL_HDRS ${OPAL_HDRS} PARENT_SCOPE)
+    ENDIF ()
+ENDMACRO ()
 
 add_subdirectory (AbstractObjects)
 add_subdirectory (Algebra)
@@ -71,7 +87,8 @@ add_subdirectory (Track)
 add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
 
-add_sources (opal.cpp)
+ADD_OPAL_SOURCES(opal.cpp)
+ADD_OPAL_SOURCES(changes.cpp)
 
 include_directories ( BEFORE
     ${OPAL_SRC_DIR}
@@ -82,6 +99,7 @@ include_directories ( BEFORE
     ${GSL_INCLUDE_DIR}
     ${Trilinos_INCLUDE_DIRS}
     ${Trilinos_TPL_INCLUDE_DIRS}
+    ${IPPL_SOURCE_DIRS}
     ${CCSE_INCLUDE_DIRS}
     ${GTEST_INCLUDE_DIR}
 )
@@ -123,26 +141,28 @@ ELSE()
 ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
 
 
-
 IF (ENABLE_DKS)
    set (OPAL_LIBS
        ${OPAL_LIBS}
-       ${DKS_LIBRARY_DIR}/libdks.a
-       )
+       ${DKS_LIBRARY_DIR}/libdks.a)
 ENDIF (ENABLE_DKS)
 
-add_library( OPALib ${OPAL_SRCS})
+add_library( OPALib ${OPAL_SRCS} )
 set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
-target_link_libraries( OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} ${CBOXLIB} ${OTHER_CMAKE_EXE_LINKER_FLAGS} )
+target_link_libraries( OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${CCSE_LIBRARIES} ${OTHER_CMAKE_EXE_LINKER_FLAGS} )
 
 add_executable( opal Main.cpp)
-target_link_libraries( opal OPALib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+target_link_libraries( opal OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} -lgfortran ${CCSE_LIBRARIES} ${CBOXLIB} ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS OPALib DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
-install (FILES opal.h DESTINATION "${CMAKE_INSTALL_PREFIX}/include")
-install (FILES Utilities/OpalException.h DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Utilities")
 
-set (OPAL_LIBS ${OPAL_LIBS} PARENT_SCOPE)
-set (OPAL_CXX_FLAGS ${CMAKE_CXX_FLAGS} PARENT_SCOPE)
+set (HDRS
+    config.h
+    opal.h
+    revision.h
+    changes.h
+)
+
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/src")

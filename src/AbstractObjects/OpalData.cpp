@@ -45,6 +45,7 @@
 #include "Algorithms/bet/EnvelopeBunch.h"
 // /DTA
 
+#define MAX_NUM_INSTANCES 10
 using namespace std;
 
 // Class OpalData::ClearReference
@@ -80,19 +81,21 @@ struct OpalDataImpl {
     typedef std::set<AttributeBase *>::iterator exprIterator;
 
     // The page title from the latest TITLE command.
-    std::string itsTitle;
+    std::string itsTitle_m;
+
+    bool hasPriorRun_m;
 
     // true if we restart a simulation
-    bool isRestart;
+    bool isRestart_m;
 
     // Input file name
-    std::string inputFn;
+    std::string inputFn_m;
 
     // Where to resume in a restart run
-    int restartStep;
+    int restartStep_m;
 
     // Where to resume in a restart run
-    std::string restartFn;
+    std::string restartFn_m;
 
     // true if the name of a restartFile is specified
     bool hasRestartFile_m;
@@ -136,21 +139,23 @@ struct OpalDataImpl {
     Layout_t *PL_m;
 
     // the accumulated (over all TRACKs) number of steps
-    unsigned long long maxTrackSteps;
+    unsigned long long maxTrackSteps_m;
 
     bool isInOPALCyclMode_m;
     bool isInOPALTMode_m;
     bool isInOPALEnvMode_m;
 
+    bool isInPrepState_m;
 };
 
 
 OpalDataImpl::OpalDataImpl():
-    mainDirectory(), referenceMomentum(0), modified(false), itsTitle(),
+    mainDirectory(), referenceMomentum(0), modified(false), itsTitle_m(),
     restart_dump_freq_m(1), last_step_m(0),
     isInOPALCyclMode_m(false),
     isInOPALTMode_m(false),
-    isInOPALEnvMode_m(false)
+    isInOPALEnvMode_m(false),
+    isInPrepState_m(false)
 {
     bunch_m = 0;
     slbunch_m = 0;
@@ -183,13 +188,14 @@ OpalDataImpl::~OpalDataImpl() {
 // Class OpalData
 // ------------------------------------------------------------------------
 
-bool OpalData::isInstatiated = false;
+bool OpalData::isInstantiated = false;
 OpalData *OpalData::instance = 0;
+std::stack<OpalData*> OpalData::stashedInstances;
 
 OpalData *OpalData::getInstance() {
-    if(!isInstatiated) {
+    if(!isInstantiated) {
         instance = new OpalData();
-        isInstatiated = true;
+        isInstantiated = true;
         return instance;
     } else {
         return instance;
@@ -199,35 +205,61 @@ OpalData *OpalData::getInstance() {
 void OpalData::deleteInstance() {
     delete instance;
     instance = 0;
-    isInstatiated = false;
+    isInstantiated = false;
+}
+
+void OpalData::stashInstance() {
+    if (!isInstantiated) return;
+    if (stashedInstances.size() + 1 > MAX_NUM_INSTANCES) {
+        throw OpalException("OpalData::stashInstance()",
+                            "too many OpalData instances stashed");
+    }
+    stashedInstances.push(instance);
+    instance = 0;
+    isInstantiated = false;
+}
+
+OpalData *OpalData::popInstance() {
+    if (stashedInstances.size() == 0) {
+        throw OpalException("OpalData::popInstance()",
+                            "no OpalData instances stashed");
+    }
+    if (isInstantiated) deleteInstance();
+    instance = stashedInstances.top();
+    isInstantiated = true;
+    stashedInstances.pop();
+
+    return instance;
 }
 
 unsigned long long OpalData::getMaxTrackSteps() {
-    return p->maxTrackSteps;
+    return p->maxTrackSteps_m;
 }
 
 void OpalData::setMaxTrackSteps(unsigned long long s) {
-    p->maxTrackSteps = s;
+    p->maxTrackSteps_m = s;
 }
 
 void OpalData::incMaxTrackSteps(unsigned long long s) {
-    p->maxTrackSteps += s;
+    p->maxTrackSteps_m += s;
 }
 
 
 OpalData::OpalData() {
     p = new OpalDataImpl();
-    p->isRestart = false;
+    p->hasPriorRun_m = false;
+    p->isRestart_m = false;
     p->hasRestartFile_m = false;
     p->hasBunchAllocated_m = false;
     p->hasDataSinkAllocated_m = false;
     p->hasSLBunchAllocated_m = false;
     p->gPhaseShift_m = 0.0;
     p->maxPhases_m.clear();
-    p->maxTrackSteps = 0;
+    p->maxTrackSteps_m = 0;
     p->isInOPALCyclMode_m = false;
     p->isInOPALTMode_m = false;
     p->isInOPALEnvMode_m = false;
+    p->isInPrepState_m = false;
 }
 
 OpalData::~OpalData() {
@@ -237,7 +269,8 @@ OpalData::~OpalData() {
 void OpalData::reset() {
     delete p;
     p = new OpalDataImpl();
-    p->isRestart = false;
+    p->hasPriorRun_m = false;
+    p->isRestart_m = false;
     p->hasRestartFile_m = false;
     p->hasBunchAllocated_m = false;
     p->hasDataSinkAllocated_m = false;
@@ -247,56 +280,73 @@ void OpalData::reset() {
     p->isInOPALCyclMode_m = false;
     p->isInOPALTMode_m = false;
     p->isInOPALEnvMode_m = false;
+    p->isInPrepState_m = false;
 }
 
 bool OpalData::isInOPALCyclMode() {
-  return p->isInOPALCyclMode_m;
+    return p->isInOPALCyclMode_m;
 }
 
 bool OpalData::isInOPALTMode() {
-  return  p->isInOPALTMode_m;
+    return  p->isInOPALTMode_m;
 }
 bool OpalData::isInOPALEnvMode() {
-  return p->isInOPALEnvMode_m;
+    return p->isInOPALEnvMode_m;
 }
 
 void OpalData::setInOPALCyclMode() {
-  p->isInOPALCyclMode_m = true;
+    p->isInOPALCyclMode_m = true;
 }
 
 void OpalData::setInOPALTMode() {
-  p->isInOPALTMode_m = true;
+    p->isInOPALTMode_m = true;
 }
 
 void OpalData::setInOPALEnvMode() {
-  p->isInOPALEnvMode_m = true;
+    p->isInOPALEnvMode_m = true;
+}
+
+bool OpalData::isInPrepState() {
+    return p->isInPrepState_m;
+}
+
+void OpalData::setInPrepState(bool state) {
+    p->isInPrepState_m = state;
+}
+
+bool OpalData::hasPriorTrack() {
+    return p->hasPriorRun_m;
+}
+
+void OpalData::setPriorTrack(const bool &value) {
+    p->hasPriorRun_m = value;
 }
 
 bool OpalData::inRestartRun() {
-    return p->isRestart;
+    return p->isRestart_m;
 }
 
 void OpalData::setRestartRun(const bool &value) {
-    p->isRestart = value;
+    p->isRestart_m = value;
 }
 
 
 void OpalData::setRestartStep(int s) {
-    p->restartStep = s;
+    p->restartStep_m = s;
 }
 
 int OpalData::getRestartStep() {
-    return p->restartStep;
+    return p->restartStep_m;
 }
 
 
 std::string OpalData::getRestartFileName() {
-    return p->restartFn;
+    return p->restartFn_m;
 }
 
 
 void OpalData::setRestartFileName(std::string s) {
-    p->restartFn = s;
+    p->restartFn_m = s;
     p->hasRestartFile_m = true;
 }
 
@@ -625,28 +675,28 @@ void OpalData::setP0(ValueDefinition *p0) {
 
 
 void OpalData::storeTitle(const std::string &title) {
-    p->itsTitle = title;
+    p->itsTitle_m = title;
 }
 
 void OpalData::storeInputFn(const std::string &fn) {
-    p->inputFn = fn;
+    p->inputFn_m = fn;
 }
 
 
 void OpalData::printTitle(std::ostream &os) {
-    os << p->itsTitle;
+    os << p->itsTitle_m;
 }
 
 std::string OpalData::getTitle() {
-    return p->itsTitle;
+    return p->itsTitle_m;
 }
 
 std::string OpalData::getInputFn() {
-    return p->inputFn;
+    return p->inputFn_m;
 }
 
 std::string OpalData::getInputBasename() {
-    std::string & fn = p->inputFn;
+    std::string & fn = p->inputFn_m;
     int const pdot = fn.rfind(".");
     return fn.substr(0, pdot);
 }

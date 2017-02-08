@@ -231,8 +231,8 @@ public:
     /// Substitute map into matrix.
     FVps substituteInto(const FMatrix<T, N, N> &lhs) const;
 
-    // Get a FTps that is a combination of the polynomials of FVps.                                                                 
-    // Computes a FTps by multiplying the FTps of FVps using the powers specified by [b]power[/b].                                   
+    // Get a FTps that is a combination of the polynomials of FVps.
+    // Computes a FTps by multiplying the FTps of FVps using the powers specified by [b]power[/b].
     FTps<T, N> getFTps(const FArray1D<int, N>& power) const;
 
     /// Get a FVps from stream [b]is[/b].

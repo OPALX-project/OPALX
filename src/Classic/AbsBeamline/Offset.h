@@ -147,36 +147,13 @@ class Offset : public Component {
     /** Just calls the copy constructor on *this */
     ElementBase* clone() const;
 
-    /** Return false
-     *
-     *  No bound checking is performed and no field value is calculated as this
-     *  element does not have an associated field or beam pipe aperture.
-     */
-    bool apply(const size_t &i, const double &t, double E[], double B[]);
-
-    /** Return false
-     *
-     *  No bound checking is performed and no field value is calculated as this
-     *  element does not have an associated field or beam pipe aperture.
-     */
-    bool apply(const size_t &i, const double &t,
-                       Vector_t &E, Vector_t &B);
-
-    /** Return false
-     *
-     *  No bound checking is performed and no field value is calculated as this
-     *  element does not have an associated field or beam pipe aperture.
-     */
-    bool apply(const Vector_t &R, const Vector_t &centroid,
-                       const double &t, Vector_t &E, Vector_t &B);
-
     /** Returns true if either input angle or output angle are greater than
      *  float_tolerance
      */
     bool bends() const;
 
     void initialise(PartBunch *bunch, double &startField,
-                            double &endField, const double &scaleFactor);
+                            double &endField);
     void finalise();
     void getDimensions(double &zBegin, double &zEnd) const {}
 

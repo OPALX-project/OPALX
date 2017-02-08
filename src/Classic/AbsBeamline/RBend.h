@@ -172,17 +172,16 @@ public:
      */
 
     virtual ElementBase::ElementType getType() const;
-    virtual void SetBendAngle(double angle);
-    virtual void SetEntranceAngle(double entranceAngle);
+    virtual void setBendAngle(double angle);
+    virtual void setEntranceAngle(double entranceAngle);
 
 private:
 
     // Not implemented.
     void operator=(const RBend &);
 
-    virtual bool FindChordLength(Inform &msg,
-                                 double &chordLength,
-                                 bool &chordLengthFromMap);
+    virtual bool findChordLength(Inform &msg,
+                                 double &chordLength);
 };
 
 #endif // CLASSIC_RBend_HH

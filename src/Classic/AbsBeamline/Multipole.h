@@ -21,6 +21,7 @@
 #include "AbsBeamline/Component.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/BMultipoleField.h"
+#include "Utilities/GeneralClassicException.h"
 
 class PartBunch;
 class Fieldmap;
@@ -78,10 +79,25 @@ public:
     //  If [b]n[/b] is larger than the maximum order, the component is created.
     void setNormalComponent(int, double);
 
+    /// Set normal component.
+    //  Set the normal component of order [b]n[/b] in T/m**(n-1).
+    //  If [b]n[/b] is larger than the maximum order, the component is created.
+    void setNormalComponent(int, double, double);
+
     /// Set skew component.
     //  Set the skew component of order [b]n[/b] in T/m**(n-1).
     //  If [b]n[/b] is larger than the maximum order, the component is created.
     void setSkewComponent(int, double);
+
+    /// Set skew component.
+    //  Set the skew component of order [b]n[/b] in T/m**(n-1).
+    //  If [b]n[/b] is larger than the maximum order, the component is created.
+    void setSkewComponent(int, double, double);
+
+    size_t getMaxNormalComponentIndex() const;
+    size_t getMaxSkewComponentIndex() const;
+
+    bool isFocusing(unsigned int component) const;
 
     /// Get geometry.
     virtual StraightGeometry &getGeometry() = 0;
@@ -93,13 +109,13 @@ public:
 
     virtual void addKT(int i, double t, Vector_t &K);
 
-    virtual bool apply(const size_t &i, const double &t, double E[], double B[]);
-
     virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
+    virtual bool applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
+
+    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
 
     virtual void finalise();
 
@@ -109,20 +125,38 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
-    double EngeFact(double z);
-    double EngeFunc(double z);
+    virtual bool isInside(const Vector_t &r) const;
 private:
-    void computeField(Vector_t R, const double &t, Vector_t &E, Vector_t &B);
+    void computeField(Vector_t R, Vector_t &E, Vector_t &B);
 
     // Not implemented.
     void operator=(const Multipole &);
     std::vector<double> NormalComponents;
+    std::vector<double> NormalComponentErrors;
     std::vector<double> SkewComponents;
-    double startField_m;
-    double endField_m;
+    std::vector<double> SkewComponentErrors;
     int max_SkewComponent_m;
     int max_NormalComponent_m;
-    Fieldmap *myFieldmap_m;
 };
+
+inline
+void Multipole::setNormalComponent(int n, double v) {
+    setNormalComponent(n, v, 0.0);
+}
+
+inline
+void Multipole::setSkewComponent(int n, double v) {
+    setSkewComponent(n, v, 0.0);
+}
+
+inline
+size_t Multipole::getMaxNormalComponentIndex() const {
+    return NormalComponents.size();
+}
+
+inline
+size_t Multipole::getMaxSkewComponentIndex() const {
+    return SkewComponents.size();
+}
 
 #endif // CLASSIC_Multipole_HH

@@ -21,8 +21,9 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Algorithms/AbstractTimeDependence.h"
+
 #include "AbsBeamline/Component.h"
+#include "Algorithms/AbstractTimeDependence.h"
 #include "Physics/Physics.h"
 
 class Fieldmap;
@@ -65,6 +66,9 @@ public:
     std::string getFieldMapFN() const;
 
     void setAmplitudem(double vPeak);
+    double getAmplitudem() const;
+    void setAmplitudeError(double vPeakError);
+    double getAmplitudeError() const;
 
     void setFrequencym(double freq);
 
@@ -74,9 +78,11 @@ public:
 
     void setPhasem(double phase);
 
-    void updatePhasem(double phase);
-
     double getPhasem() const;
+    double getPhasem(double t) const;
+
+    void setPhaseError(double phaseError);
+    double getPhaseError() const;
 
     void setCavityType(std::string type);
 
@@ -86,37 +92,45 @@ public:
 
     bool getFast() const;
 
-    void setAutophaseVeto(bool veto);
+    void setAutophaseVeto(bool veto = true);
 
     bool getAutophaseVeto() const;
 
     double getAutoPhaseEstimate(const double & E0, const double & t0, const double & q, const double & m);
 
-    std::pair<double, double> trackOnAxisParticle(const double & p0, 
-                                                  const double & t0, 
-                                                  const double & dt, 
-                                                  const double & q, 
+    std::pair<double, double> trackOnAxisParticle(const double & p0,
+                                                  const double & t0,
+                                                  const double & dt,
+                                                  const double & q,
                                                   const double & mass);
 
     virtual void addKR(int i, double t, Vector_t &K);
 
     virtual void addKT(int i, double t, Vector_t &K);
 
-    virtual bool apply(const size_t &i, const double &t, double E[], double B[]);
+    virtual bool apply(const size_t &i,
+                       const double &t,
+                       Vector_t &E,
+                       Vector_t &B);
 
-    virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool apply(const Vector_t &R,
+                       const Vector_t &P,
+                       const double &t,
+                       Vector_t &E,
+                       Vector_t &B);
 
-    virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool applyToReferenceParticle(const Vector_t &R,
+                                          const Vector_t &P,
+                                          const double &t,
+                                          Vector_t &E,
+                                          Vector_t &B);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
+    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
 
-//    virtual void initialise(PartBunch *bunch, const double &scaleFactor);
-
-    virtual void initialise(PartBunch *bunch, const double &scaleFactor, std::shared_ptr<AbstractTimeDependence> freq_atd,
-                            std::shared_ptr<AbstractTimeDependence> ampl_atd, std::shared_ptr<AbstractTimeDependence> phase_atd);
-
-
-
+    virtual void initialise(PartBunch *bunch,
+                            std::shared_ptr<AbstractTimeDependence> freq_atd,
+                            std::shared_ptr<AbstractTimeDependence> ampl_atd,
+                            std::shared_ptr<AbstractTimeDependence> phase_atd);
 
     virtual void finalise();
 
@@ -125,6 +139,9 @@ public:
     virtual void goOnline(const double &kineticEnergy);
 
     virtual void goOffline();
+
+    virtual void setDesignEnergy(double ekin);
+    virtual double getDesignEnergy() const;
 
     void setRmin(double rmin);
 
@@ -168,40 +185,40 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
+    virtual bool isInside(const Vector_t &r) const;
 
-    virtual void setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> time_dep);
-    void setAmplitudeModelName(std::string name) {amplitude_name_m=name;}
-    std::string getAmplitudeModelName() { return amplitude_name_m;}
+    void setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> time_dep);
+    void setAmplitudeModelName(std::string name);
+    std::string getAmplitudeModelName();
 
-    virtual void setPhaseModel(std::shared_ptr<AbstractTimeDependence> time_dep);
-    void setPhaseModelName(std::string name) {phase_name_m=name;}
-    std::string getPhaseModelName() { return phase_name_m;}
+    void setPhaseModel(std::shared_ptr<AbstractTimeDependence> time_dep);
+    void setPhaseModelName(std::string name);
+    std::string getPhaseModelName();
 
-    virtual void setFrequencyModel(std::shared_ptr<AbstractTimeDependence> time_dep);
-    virtual void setFrequencyModelName(std::string name);
-    std::string getFrequencyModelName() { return frequency_name_m;}
+    void setFrequencyModel(std::shared_ptr<AbstractTimeDependence> time_dep);
+    void setFrequencyModelName(std::string name);
+    std::string getFrequencyModelName();
 
- protected:
+protected:
     std::shared_ptr<AbstractTimeDependence> phase_td_m;
     std::string phase_name_m;
     std::shared_ptr<AbstractTimeDependence> amplitude_td_m;
     std::string amplitude_name_m;
     std::shared_ptr<AbstractTimeDependence> frequency_td_m;
     std::string frequency_name_m;
+
 private:
     std::string filename_m;             /**< The name of the inputfile*/
-    std::vector<std::string> multiFilenames_m;
-    std::vector<Fieldmap*> multiFieldmaps_m;
+    Fieldmap* fieldmap_m;
     double scale_m;              /**< scale multiplier*/
-    std::vector<double> multiScales_m;
-    double phase_m;              /**< phase shift of time varying field(degrees)*/
-    std::vector<double> multiPhases_m;
-    double frequency_m;          /**< Read in frequency of time varying field(MHz)*/
-    std::vector<double> multiFrequencies_m;
-    double ElementEdge_m;
+    double scaleError_m;         /**< additive scale error*/
+    double phase_m;              /**< phase shift of time varying field (rad)*/
+    double phaseError_m;         /**< phase shift error (rad)*/
+    double frequency_m;          /**< Read in frequency of time varying field(Hz)*/
+
     double startField_m;         /**< starting point of field(m)*/
     double endField_m;
-    std::vector<std::pair<double, double> > multi_start_end_field_m;
+    double length_m;
 
     CavityType type_m;
 
@@ -217,39 +234,34 @@ private:
     double gapwidth_m;
     double phi0_m;
 
+    double designEnergy_m;
+
     std::unique_ptr<double[]> RNormal_m;
     std::unique_ptr<double[]> VrNormal_m;
     std::unique_ptr<double[]> DvDr_m;
     int num_points_m;
 
-    inline size_t numFieldmaps() const {
-        return multiFilenames_m.size();
-    }
-
-    
-    double getdE(const int & i, 
-                 const std::vector<double> & t, 
+    double getdE(const int & i,
+                 const std::vector<double> & t,
                  const double & dz,
                  const double & phi,
                  const double & frequency,
                  const std::vector<double> & F) const;
 
-    double getdT(const int & i, 
+    double getdT(const int & i,
                  const std::vector<double> & E,
                  const double & dz,
                  const double mass) const;
-    
+
     double getdA(const int & i,
-                 const std::vector<double> & t, 
+                 const std::vector<double> & t,
                  const double & dz,
-                 const double & phi,
                  const double & frequency,
                  const std::vector<double> & F) const;
 
     double getdB(const int & i,
-                 const std::vector<double> & t, 
+                 const std::vector<double> & t,
                  const double & dz,
-                 const double & phi,
                  const double & frequency,
                  const std::vector<double> & F) const;
 
@@ -259,18 +271,18 @@ private:
 
 inline
 double RFCavity::getdE(const int & i,
-                       const std::vector<double> & t, 
+                       const std::vector<double> & t,
                        const double & dz,
                        const double & phi,
                        const double & frequency,
                        const std::vector<double> & F) const {
-    return dz / (frequency * frequency * (t[i] - t[i-1]) * (t[i] - t[i-1])) * 
+    return dz / (frequency * frequency * (t[i] - t[i-1]) * (t[i] - t[i-1])) *
         (frequency * (t[i] - t[i-1]) * (F[i] * sin(frequency * t[i] + phi) - F[i-1] * sin(frequency * t[i-1] + phi)) +
          (F[i] - F[i-1]) * (cos(frequency * t[i] + phi) - cos(frequency * t[i-1] + phi)));
 }
 
 inline
-double RFCavity::getdT(const int & i, 
+double RFCavity::getdT(const int & i,
                        const std::vector<double> & E,
                        const double & dz,
                        const double mass) const {
@@ -299,28 +311,188 @@ double RFCavity::getdT(const int & i,
 
 inline
 double RFCavity::getdA(const int & i,
-                       const std::vector<double> & t, 
+                       const std::vector<double> & t,
                        const double & dz,
-                       const double & phi,
                        const double & frequency,
                        const std::vector<double> & F) const {
     double dt = t[i] - t[i-1];
     return dz / (frequency * frequency * dt * dt) *
-        (frequency * dt * (F[i] * cos(frequency * t[i] + phi) - F[i-1] * cos(frequency * t[i-1] + phi)) -
-         (F[i] - F[i-1]) * (sin(frequency * t[i] + phi) - sin(frequency * t[i-1] + phi)));
+        (frequency * dt * (F[i] * cos(frequency * t[i]) - F[i-1] * cos(frequency * t[i-1])) -
+         (F[i] - F[i-1]) * (sin(frequency * t[i]) - sin(frequency * t[i-1])));
 }
 
 inline
 double RFCavity::getdB(const int & i,
-                       const std::vector<double> & t, 
+                       const std::vector<double> & t,
                        const double & dz,
-                       const double & phi,
                        const double & frequency,
                        const std::vector<double> & F) const {
     double dt = t[i] - t[i-1];
-    return dz / (frequency * frequency * dt * dt) * 
-        (frequency * dt * (F[i] * sin(frequency * t[i] + phi) - F[i-1] * sin(frequency * t[i-1] + phi)) +
-         (F[i] - F[i-1]) * (cos(frequency * t[i] + phi) - cos(frequency * t[i-1] + phi)));
+    return dz / (frequency * frequency * dt * dt) *
+        (frequency * dt * (F[i] * sin(frequency * t[i]) - F[i-1] * sin(frequency * t[i-1])) +
+         (F[i] - F[i-1]) * (cos(frequency * t[i]) - cos(frequency * t[i-1])));
+}
+
+inline
+void RFCavity::setDesignEnergy(double ekin)
+{
+    designEnergy_m = ekin;
+}
+
+inline
+double RFCavity::getDesignEnergy() const
+{
+    return designEnergy_m;
+}
+
+inline
+void RFCavity::dropFieldmaps() {
+    fieldmap_m = NULL;
+}
+
+inline
+void RFCavity::setFieldMapFN(std::string fn) {
+    filename_m = fn;
+}
+
+inline
+std::string RFCavity::getFieldMapFN() const {
+    return filename_m;
+}
+
+inline
+void RFCavity::setAmplitudem(double vPeak) {
+    scale_m = vPeak;
+}
+
+inline
+double RFCavity::getAmplitudem() const {
+    return scale_m;
+}
+
+inline
+void RFCavity::setAmplitudeError(double vPeakError) {
+    scaleError_m = vPeakError;
+}
+
+inline
+double RFCavity::getAmplitudeError() const {
+    return scaleError_m;
+}
+
+inline
+void RFCavity::setFrequency(double freq) {
+    frequency_m = freq;
+}
+
+inline
+void RFCavity::setFrequencym(double freq) {
+    frequency_m = freq;
+}
+
+inline
+double RFCavity::getFrequencym() const {
+    return frequency_m;
+}
+
+inline
+void RFCavity::setPhasem(double phase) {
+    phase_m = phase;
+}
+
+inline
+double RFCavity::getPhasem() const {
+    return phase_m;
+}
+
+inline
+double RFCavity::getPhasem(double t) const {
+    return phase_m + t * frequency_m;
+}
+
+inline
+void RFCavity::setPhaseError(double phaseError) {
+    phaseError_m = phaseError;
+}
+
+inline
+double RFCavity::getPhaseError() const {
+    return phaseError_m;
+}
+
+inline
+void RFCavity::setCavityType(std::string type) {
+
+}
+
+inline
+std::string RFCavity::getCavityType() const {
+    return "SW";
+}
+
+inline
+void RFCavity::setFast(bool fast) {
+    fast_m = fast;
+}
+
+inline
+bool RFCavity::getFast() const {
+    return fast_m;
+}
+
+inline
+void RFCavity::setAutophaseVeto(bool veto) {
+    autophaseVeto_m = veto;
+}
+
+inline
+bool RFCavity::getAutophaseVeto() const {
+    return autophaseVeto_m;
+}
+
+inline
+void RFCavity::setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> amplitude_td) {
+  amplitude_td_m = amplitude_td;
+}
+
+inline
+void RFCavity::setAmplitudeModelName(std::string name) {
+    amplitude_name_m=name;
+}
+
+inline
+std::string RFCavity::getAmplitudeModelName() {
+    return amplitude_name_m;
+}
+
+inline
+void RFCavity::setPhaseModel(std::shared_ptr<AbstractTimeDependence> phase_td) {
+  phase_td_m = phase_td;
+}
+
+inline
+void RFCavity::setPhaseModelName(std::string name) {
+    phase_name_m=name;
+}
+
+inline
+std::string RFCavity::getPhaseModelName() {
+    return phase_name_m;
+}
+
+inline
+void RFCavity::setFrequencyModel(std::shared_ptr<AbstractTimeDependence> frequency_td) {
+  frequency_td_m = frequency_td;
+}
+
+inline
+void RFCavity::setFrequencyModelName(std::string name) {
+  frequency_name_m=name;
+}
+
+inline
+std::string RFCavity::getFrequencyModelName() {
+    return frequency_name_m;
 }
 
 #endif // CLASSIC_RFCavity_HH

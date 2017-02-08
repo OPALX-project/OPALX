@@ -25,7 +25,7 @@
 // ------------------------------------------------------------------------
 
 Track *Track::block = 0;
-
+std::stack<Track*> Track::stashedTrack;
 
 /**
 
@@ -38,8 +38,8 @@ otherwise a new bunch is allocated in the dictionary.
 
 Track::Track(BeamSequence *u, const PartData &ref, const std::vector<double> & dt,
              const std::vector<unsigned long long> & maxtsteps, int stepsperturn,
-             const std::vector<double> & zStop, int timeintegrator, int nslices,
-             double t0, double dtScInit, double deltaTau):
+             double zStart, const std::vector<double> & zStop, int timeintegrator,
+             int nslices, double t0, double dtScInit, double deltaTau):
     reference(ref),
     use(u),
     parser(),
@@ -49,6 +49,7 @@ Track::Track(BeamSequence *u, const PartData &ref, const std::vector<double> & d
     t0_m(t0),
     localTimeSteps(maxtsteps),
     stepsPerTurn(stepsperturn),
+    zstart(zStart),
     zstop(zStop),
     timeIntegrator(timeintegrator) {
     if(nslices > 0) {
@@ -72,3 +73,18 @@ Track::Track(BeamSequence *u, const PartData &ref, const std::vector<double> & d
 
 Track::~Track()
 {}
+
+void Track::stash() {
+    PAssert(stashedTrack.size() == 0);
+
+    stashedTrack.push(block);
+    block = 0;
+}
+
+Track* Track::pop() {
+    delete block;
+    block = stashedTrack.top();
+    stashedTrack.pop();
+
+    return block;
+}

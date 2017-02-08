@@ -141,25 +141,8 @@ const EMField &VariableRFCavity::getField() const {
 
 
 bool VariableRFCavity::apply(const size_t &i, const double &t,
-                    Vector_t &E, Vector_t &B) {
-    return apply(RefPartBunch_m->R[i], RefPartBunch_m->get_centroid(), t,
-                 E, B);
-}
-
-bool VariableRFCavity::apply(const size_t &i, const double &t, double E[], double B[]) {
-    Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
-
-    if (apply(i, t, Ev, Bv))
-        return true;
-
-    E[0] = Ev(0);
-    E[1] = Ev(1);
-    E[2] = Ev(2);
-    B[0] = Bv(0);
-    B[1] = Bv(1);
-    B[2] = Bv(2);
-
-    return false;
+                             Vector_t &E, Vector_t &B) {
+    return apply(RefPartBunch_m->R[i], RefPartBunch_m->P[i], t, E, B);
 }
 
 // If this is too slow: a quicker implementation would be to use templates not
@@ -168,22 +151,41 @@ bool VariableRFCavity::apply(const size_t &i, const double &t, double E[], doubl
 //
 // Do I need bound checking here? I have no "radius" parameter, but I do have a
 // "length".
-bool VariableRFCavity::apply(const Vector_t &R, const Vector_t &centroid,
-           const double &t, Vector_t &E, Vector_t &B) {
+bool VariableRFCavity::apply(const Vector_t &R, const Vector_t &P,
+                             const double &t, Vector_t &E, Vector_t &B) {
     // std::cerr << "VariableRFCavity::apply " << R[0] << " " << R[1] << " " << R[2] << " * " << halfWidth_m << " " << halfHeight_m << std::endl;
-    if (R[2] < 0. || R[2] > _length ||
-        fabs(R[0]) > halfWidth_m || fabs(R[1]) > halfHeight_m)
-        return true;
-    double E0 = _amplitude_td->getValue(t);
-    double f = _frequency_td->getValue(t);
-    double phi = _phase_td->getValue(t);
-    E = Vector_t(0., 0., E0*sin(Physics::two_pi*f*t+phi));
+    if (R[2] >= 0. && R[2] < _length) {
+        if (std::abs(R[0]) > halfWidth_m || std::abs(R[1]) > halfHeight_m) {
+            return true;
+        }
+
+        double E0 = _amplitude_td->getValue(t);
+        double f = _frequency_td->getValue(t);
+        double phi = _phase_td->getValue(t);
+        E = Vector_t(0., 0., E0*sin(Physics::two_pi * f * t + phi));
     // std::cerr << "                        t: " << t << " f: " << f << " phi: " << phi << " E0: " << E0 << " E[2]: " << E[2] << std::endl;
+    }
     return false;
 }
 
-void VariableRFCavity::initialise(PartBunch *bunch, double &startField, double &endField,
-                const double &scaleFactor) {
+bool VariableRFCavity::applyToReferenceParticle(const Vector_t &R, const Vector_t &P,
+                                                const double &t, Vector_t &E, Vector_t &B) {
+    // std::cerr << "VariableRFCavity::apply " << R[0] << " " << R[1] << " " << R[2] << " * " << halfWidth_m << " " << halfHeight_m << std::endl;
+    if (R[2] >= 0. && R[2] < _length) {
+        if (std::abs(R[0]) > halfWidth_m || std::abs(R[1]) > halfHeight_m) {
+            return true;
+        }
+
+        double E0 = _amplitude_td->getValue(t);
+        double f = _frequency_td->getValue(t);
+        double phi = _phase_td->getValue(t);
+        E = Vector_t(0., 0., E0*sin(Physics::two_pi * f * t + phi));
+    // std::cerr << "                        t: " << t << " f: " << f << " phi: " << phi << " E0: " << E0 << " E[2]: " << E[2] << std::endl;
+    }
+    return false;
+}
+
+void VariableRFCavity::initialise(PartBunch *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
 }
 

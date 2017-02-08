@@ -34,8 +34,14 @@ OpalHKicker::OpalHKicker():
                 "acting on the horizontal plane.") {
     itsAttr[KICK] = Attributes::makeReal
                     ("KICK", "Horizontal deflection in rad");
+    itsAttr[DESIGNENERGY] = Attributes::makeReal
+                           ("DESIGNENERGY", "the mean energy of the particles", -1.0);
+    itsAttr[K0] = Attributes::makeReal
+                  ("K0", "Normal dipole field in T");
 
     registerRealAttribute("HKICK");
+    registerRealAttribute("DESIGNENERGY");
+    registerRealAttribute("K0");
 
     setElement((new XCorrectorRep("HKICKER"))->makeWrappers());
 }
@@ -78,15 +84,26 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalHKicker::update() {
+    OpalElement::update();
+
     XCorrectorRep *corr =
         dynamic_cast<XCorrectorRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double factor = OpalData::getInstance()->getP0() / Physics::c;
     double kick = Attributes::getReal(itsAttr[KICK]);
+
     corr->setElementLength(length);
     corr->setBy(- kick * factor);
 
-    corr->setKickX(Attributes::getReal(itsAttr[KICK]));
+    corr->setKickX(kick);
+    if(itsAttr[DESIGNENERGY]) {
+        double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
+        corr->setDesignEnergy(kineticEnergy, false);
+    }
+
+    if (itsAttr[K0]) {
+        corr->setKickField(Vector_t(0, Attributes::getReal(itsAttr[K0]), 0));
+    }
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(corr);

@@ -2,7 +2,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -150,7 +150,7 @@ public:
   bool read(IpplParticleBase<T> &pbase, unsigned int record) {
 
     // re-read the meta file since it might have changed
-    ConfigOK = read_meta(); 
+    ConfigOK = read_meta();
 
     // do some sanity checking first
     if (!ConfigOK) {
@@ -660,7 +660,7 @@ public:
 
 private:
   // a typedef used to select the data type for file offsets
-  typedef long  Offset_t; 
+  typedef long  Offset_t;
 
   // the configuration file mechanism
   DiscConfig *Config;
@@ -677,7 +677,7 @@ private:
   // file set
   struct RecordInfo {
     // a typedef used to select the data type for file offsets
-    typedef long  Offset_t; 
+    typedef long  Offset_t;
 
     int attributes;		 // number of attributes; 0 == just writing
 				 // one attribute, > 0 == writing a whole
@@ -744,5 +744,5 @@ private:
 /***************************************************************************
  * $RCSfile: DiscParticle.h,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: DiscParticle.h,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: DiscParticle.h,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $
  ***************************************************************************/

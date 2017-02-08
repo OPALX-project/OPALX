@@ -44,6 +44,7 @@ namespace {
                       // for continuing with same step size in follow-up tracks.
         T0,           // The elapsed time (sec) of the bunch
         MAXSTEPS,     // The maximum timesteps we integrate
+        ZSTART,       // Defines a z-location [m] where the reference particle starts
         ZSTOP,        // Defines a z-location [m], after which the simulation stops when the last particles passes
         STEPSPERTURN, // Return the timsteps per revolution period. ONLY available for OPAL-cycl.
         TIMEINTEGRATOR, // the name of time integrator
@@ -71,6 +72,8 @@ TrackCmd::TrackCmd():
                         ("MAXSTEPS", "THE MAXIMUM NUMBER OF INTEGRATION STEPS DT, should be larger ZSTOP/(beta*c average)");
     itsAttr[STEPSPERTURN] = Attributes::makeReal
                             ("STEPSPERTURN", "THE TIME STEPS PER REVOLUTION PERIOD, ONLY FOR OPAL-CYCL", 720);
+    itsAttr[ZSTART] = Attributes::makeReal
+                      ("ZSTART", "Defines a z-location [m] where the reference particle starts", 0.0);
     itsAttr[ZSTOP] = Attributes::makeRealArray
                      ("ZSTOP", "Defines a z-location [m], after which the simulation stops when the last particles passes");
     itsAttr[TIMEINTEGRATOR] = Attributes::makeString
@@ -110,6 +113,11 @@ double TrackCmd::getDTAU() const {
 
 double TrackCmd::getT0() const {
     return Attributes::getReal(itsAttr[T0]);
+}
+
+double TrackCmd::getZSTART() const {
+    double zstart = Attributes::getReal(itsAttr[ZSTART]);
+    return zstart;
 }
 
 std::vector<double> TrackCmd::getZSTOP() const {
@@ -173,6 +181,7 @@ void TrackCmd::execute() {
     double t0 = getT0();
     std::vector<unsigned long long> maxsteps = getMAXSTEPS();
     int    stepsperturn = getSTEPSPERTURN();
+    double zstart = getZSTART();
     std::vector<double> zstop = getZSTOP();
     int timeintegrator = getTIMEINTEGRATOR();
     int nslices = beam->getNumberOfSlices();
@@ -191,7 +200,7 @@ void TrackCmd::execute() {
     }
 
    // Execute track block.
-    Track::block = new Track(use, beam->getReference(), dt, maxsteps, stepsperturn, zstop, timeintegrator, nslices, t0, getDTSCINIT(), getDTAU());
+    Track::block = new Track(use, beam->getReference(), dt, maxsteps, stepsperturn, zstart, zstop, timeintegrator, nslices, t0, getDTSCINIT(), getDTAU());
     Track::block->parser.run();
 
     // Clean up.

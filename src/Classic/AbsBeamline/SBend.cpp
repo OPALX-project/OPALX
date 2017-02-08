@@ -94,31 +94,13 @@ ElementBase::ElementType SBend::getType() const {
 }
 
 
-bool SBend::FindChordLength(Inform &msg,
-                            double &chordLength,
-                            bool &chordLengthFromMap) {
+bool SBend::findChordLength(Inform &msg,
+                            double &chordLength) {
 
     /*
      * Find bend chord length. If this was not set by the user using the
      * L (length) attribute, infer it from the field map.
      */
     chordLength = getLength();
-    if(chordLength > 0.0) {
-        chordLengthFromMap = false;
-        return true;
-    } else {
-
-        if(chordLength == 0.0)
-            chordLength = getLength();
-
-        chordLengthFromMap = true;
-
-        if(chordLength <= 0.0) {
-            ERRORMSG(level2 << "Magnet length inferred from field map is less than or equal"
-                     << " to zero. Check your bend magnet input." << endl);
-            return false;
-        } else
-            return true;
-
-    }
+    return true;
 }

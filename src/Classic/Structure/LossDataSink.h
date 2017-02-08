@@ -4,6 +4,7 @@
 //////////////////////////////////////////////////////////////
 #include "Utility/IpplInfo.h"
 #include "Algorithms/Vektor.h"
+#include "AbsBeamline/ElementBase.h"
 
 #include <string>
 #include <fstream>
@@ -20,18 +21,28 @@ class LossDataSink {
  public:
     LossDataSink();
 
-    LossDataSink(std::string elem, bool hdf5Save);
+    LossDataSink(std::string elem, bool hdf5Save, ElementBase::ElementType type = ElementBase::ANY);
 
     LossDataSink(const LossDataSink &rsh);
     ~LossDataSink();
 
     bool inH5Mode() { return h5hut_mode_m;}
 
-    void save();
+    void save(unsigned int numSets = 1);
 
-    void addParticle(const Vector_t x, const Vector_t p, const size_t id);
+    void addReferenceParticle(const Vector_t &x,
+                              const Vector_t &p,
+                              double time,
+                              double spos,
+                              long long globalTrackStep);
 
-    void addParticle(const Vector_t x, const Vector_t p, const size_t  id, const double time, const size_t turn);
+    void addParticle(const Vector_t &x, const Vector_t &p, const size_t id);
+
+    void addParticle(const Vector_t &x, const Vector_t &p, const size_t  id, const double time, const size_t turn);
+
+    size_t size() const;
+
+    static void writeStatistics();
 
 private:
 
@@ -67,13 +78,16 @@ private:
 
     void writeHeaderH5();
 
-    void openH5();
+    void openH5(h5_int32_t mode = H5_O_WRONLY);
 
-    void saveH5();
+    void saveH5(unsigned int setIdx);
 
     void saveASCII();
 
-private:
+    void reportOnError(h5_int64_t rc, const char* file, int line);
+
+    void splitSets(unsigned int numSets);
+    void saveStatistics(unsigned int numSets);
 
     // filename without extension
     std::string fn_m;
@@ -91,7 +105,7 @@ private:
 #else
     h5_file_t *H5file_m;
 #endif
-    
+
     /// Current record, or time step, of H5 file.
     h5_int64_t H5call_m;
 
@@ -105,5 +119,28 @@ private:
 
     std::vector<size_t> turn_m;
     std::vector<double> time_m;
+
+    std::vector<Vector_t> RefPartR_m;
+    std::vector<Vector_t> RefPartP_m;
+    std::vector<h5_int64_t> globalTrackStep_m;
+    std::vector<double> refTime_m;
+    std::vector<double> spos_m;
+
+    std::vector<unsigned long> startSet_m;
+
+    ElementBase::ElementType type_m;
+    static std::map<double, std::string> statFileEntries_s;
 };
+
+inline
+size_t LossDataSink::size() const {
+    return x_m.size();
+}
+
+inline
+void LossDataSink::reportOnError(h5_int64_t rc, const char* file, int line) {
+    if (rc != H5_SUCCESS)
+        ERRORMSG("H5 rc= " << rc << " in " << file << " @ line " << line << endl);
+}
+
 #endif

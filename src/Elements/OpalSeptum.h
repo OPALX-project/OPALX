@@ -32,12 +32,12 @@ public:
 
     /// The attributes of class OpalSeptum.
     enum {
-        XSTART,           // Start of x coordinate
-        XEND,           // End of x coordinate
+        XSTART = COMMON, // Start of x coordinate
+        XEND,            // End of x coordinate
         YSTART,          // Start of y coordinate
-        YEND1,          // Not used now
-        YEND,          // End of y coordinate
-        WIDTH,       // Width of the septum
+        YEND1,           // Not used now
+        YEND,            // End of y coordinate
+        WIDTH,           // Width of the septum
         SIZE
     };
     ///YEND1 is not used since it is treated as a string in the input file which should be a real argument.

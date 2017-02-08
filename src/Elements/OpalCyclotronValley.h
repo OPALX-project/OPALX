@@ -32,11 +32,7 @@ public:
 
     /// The attributes of class OpalCyclotronValley.
     enum {
-
-        FMAPFN,         // The filename of the fieldmap
-        DX,             // Misalignment: translation in x direction
-        DY,             // Misalignment: translation in y direction
-        DZ,             // Misalignment: translation in z direction
+        FMAPFN = COMMON,         // The filename of the fieldmap
         BFLG,
         SIZE
     };

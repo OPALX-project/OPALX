@@ -79,10 +79,6 @@ public:
 
     bool isValid_m;
 
-    /// last em-field section
-    // PartBunch is created with 0 particles (all attribute containers empty)!
-    std::vector<long> LastSection;
-
     /// current profile of bunch (fit)
     std::unique_ptr<Profile> currentProfile_m;
 
@@ -162,7 +158,7 @@ public:
     /// returns the current time of the bunch
     double getT() { return t; }
     /// returns the mean energy
-    double get_meanEnergy() { return Eavg(); }
+    double get_meanKineticEnergy() { return Eavg(); }
     /// returns the energy spread
     double get_dEdt() { return dEdt_m; }
     /// returns vector with rms position

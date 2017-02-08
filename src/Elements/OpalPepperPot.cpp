@@ -44,11 +44,6 @@ OpalPepperPot::OpalPepperPot():
     itsAttr[R] = Attributes::makeReal
                  ("R", "Radios of a holes in m");
 
-    itsAttr[DX] = Attributes::makeReal
-      ("DX", "Misalignment in x direction",0.0);
-    itsAttr[DY] = Attributes::makeReal
-      ("DY", "Misalignment in y direction",0.0);
-
     registerStringAttribute("OUTFN");
     registerRealAttribute("XSIZE");
     registerRealAttribute("YSIZE");
@@ -56,8 +51,6 @@ OpalPepperPot::OpalPepperPot():
     registerRealAttribute("R");
     registerRealAttribute("NHOLX");
     registerRealAttribute("NHOLY");
-    registerRealAttribute("DX");
-    registerRealAttribute("DY");
 
     setElement((new CollimatorRep("PEPPERPOT"))->makeAlignWrapper());
 }
@@ -89,13 +82,12 @@ void OpalPepperPot::fillRegisteredAttributes(const ElementBase &base, ValueFlag 
         dynamic_cast<const CollimatorRep *>(base.removeWrappers());
     attributeRegistry["XSIZE"]->setReal(ppo->getXsize());
     attributeRegistry["YSIZE"]->setReal(ppo->getYsize());
-    double dx, dy, dz;
-    ppo->getMisalignment(dx, dy, dz);
-    attributeRegistry["DX"]->setReal(dx);
-    attributeRegistry["DY"]->setReal(dy);
+
 }
 
 void OpalPepperPot::update() {
+    OpalElement::update();
+
     CollimatorRep *ppo =
         dynamic_cast<CollimatorRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
@@ -108,24 +100,8 @@ void OpalPepperPot::update() {
     ppo->setPitch(Attributes::getReal(itsAttr[PITCH]));
     ppo->setNHoles(Attributes::getReal(itsAttr[NHOLX]), Attributes::getReal(itsAttr[NHOLY]));
 
-    double dx = Attributes::getReal(itsAttr[DX]);
-    double dy = Attributes::getReal(itsAttr[DY]);
-
-    ppo->setMisalignment(dx, dy, 0.0);
-
     ppo->setPepperPot();
-    /*
-    std::vector<double> apert = getApert();
-    double apert_major = -1., apert_minor = -1.;
-    if(apert.size() > 0) {
-        apert_major = apert[0];
-        if(apert.size() > 1) {
-            apert_minor = apert[1];
-        } else {
-            apert_minor = apert[0];
-        }
-    }
-    */
+
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
         sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
         sphys_m->initSurfacePhysicsHandler(*ppo);

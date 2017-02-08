@@ -1,4 +1,5 @@
 #include "Fields/Astra1DDynamic_fast.h"
+#include "Utilities/GeneralClassicException.h"
 #include "Physics/Physics.h"
 
 #include <fstream>
@@ -30,6 +31,8 @@ Astra1DDynamic_fast::Astra1DDynamic_fast(std::string aFilename):
     if(!parsing_passed) {
         disableFieldmapWarning();
         zend_m = zbegin_m - 1e-3;
+        throw GeneralClassicException("Astra1DDynamic_fast::Astra1DDynamic_fast",
+                                      "An error occured when reading the fieldmap '" + Filename_m + "'");
         return;
     }
 

@@ -21,8 +21,8 @@ public:
     TUNE_class(); //constructor
     virtual ~TUNE_class(void);       //destructor
 
-    int LombAnalysis(double *x, double *y, int Ndat, int nhis);
-    int LombAnalysis(std::vector<double> &x, std::vector<double> &y, int nhis, double Norm);
+    int lombAnalysis(double *x, double *y, int Ndat, int nhis);
+    int lombAnalysis(std::vector<double> &x, std::vector<double> &y, int nhis, double Norm);
 
 
 };

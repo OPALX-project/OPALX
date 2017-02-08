@@ -102,13 +102,27 @@ public:
 
     virtual void addKT(int i, double t, Vector_t &K) {};
 
-    virtual bool apply(const size_t &i, const double &t, double E[], double B[]) = 0;
+    virtual bool apply(const size_t &i,
+                       const double &t,
+                       Vector_t &E,
+                       Vector_t &B);
 
-    virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) = 0;
+    virtual bool apply(const Vector_t &R,
+                       const Vector_t &P,
+                       const double &t,
+                       Vector_t &E,
+                       Vector_t &B);
 
-    virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) = 0;
+    virtual bool applyToReferenceParticle(const Vector_t &R,
+                                          const Vector_t &P,
+                                          const double &t,
+                                          Vector_t &E,
+                                          Vector_t &B);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) = 0;
+    virtual double getDesignEnergy() const;
+    virtual void setDesignEnergy(double energy, bool changeable = true);
+
+    virtual void initialise(PartBunch *bunch, double &startField, double &endField) = 0;
 
     virtual void finalise() = 0;
 
@@ -122,13 +136,13 @@ public:
 
     virtual bool Online();
 
-    void getOrientation(Vector_t &, double &) const;  // first component is alpha, second is beta. the third component is always neglected.
-    // alpha is defined as the angle between projection of the normal of the face of the element onto
-    // the s-u plane and the s vector. for beta the following is valid:
-    // beta = arccos(|n_{parallel}|) where n_{parallel} is the projection of the normal onto the s-u
-    // plane
+    // void getOrientation(Vector_t &, double &) const;  // first component is alpha, second is beta. the third component is always neglected.
+    // // alpha is defined as the angle between projection of the normal of the face of the element onto
+    // // the s-u plane and the s vector. for beta the following is valid:
+    // // beta = arccos(|n_{parallel}|) where n_{parallel} is the projection of the normal onto the s-u
+    // // plane
 
-    void setOrientation(const Vector_t &direction);
+    // void setOrientation(const Vector_t &direction);
 
     virtual void getDimensions(double &zBegin, double &zEnd) const = 0;
 
@@ -157,18 +171,11 @@ public:
     virtual void trackMap(FVps<double, 6> &map, const PartData &,
                           bool revBeam, bool revTrack) const;
 
-    void setMisalignment(double x, double y, double s);
-
-    void getMisalignment(double &x, double &y, double &s) const;
-
     void setExitFaceSlope(const double &);
 
 protected:
 
-    double dx_m;
-    double dy_m;
-    double ds_m;
-    Vector_t Orientation_m;
+    // Vector_t Orientation_m;
     double exit_face_slope_m;
 
     PartBunch *RefPartBunch_m;
@@ -197,14 +204,23 @@ inline EBVectors Component::EBfield(const Point3D &P) const
 inline EBVectors Component::EBfield(const Point3D &P, double t) const
 { return getField().EBfield(P, t); }
 
-inline void Component::getOrientation(Vector_t &ori, double &m) const {
-    ori = Orientation_m;
-    m = exit_face_slope_m;
-}
+// inline void Component::getOrientation(Vector_t &ori, double &m) const {
+//     ori = Orientation_m;
+//     m = exit_face_slope_m;
+// }
 
-inline void Component::setOrientation(const Vector_t &direction)
-{ Orientation_m = direction; }
+// inline void Component::setOrientation(const Vector_t &direction)
+// { Orientation_m = direction; }
 
 inline void Component::setExitFaceSlope(const double &m)
 { exit_face_slope_m = m; }
+
+inline void Component::setDesignEnergy(double , bool )
+{ }
+
+inline double Component::getDesignEnergy() const
+{
+    return -1.0;
+}
+
 #endif // CLASSIC_Component_HH

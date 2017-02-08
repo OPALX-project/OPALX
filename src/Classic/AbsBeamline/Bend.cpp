@@ -23,8 +23,13 @@
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Utilities/Options.h"
+#include "Utilities/Util.h"
 #include "Fields/Fieldmap.h"
 #include "AbstractObjects/OpalData.h"
+#include "Structure/MeshGenerator.h"
+
+#include "gsl/gsl_poly.h"
+
 #include <iostream>
 #include <fstream>
 
@@ -34,176 +39,147 @@ extern Inform *gmsg;
 // ------------------------------------------------------------------------
 
 Bend::Bend():
-    Component(),
+    BendBase(),
     messageHeader_m(" * "),
     pusher_m(),
-    fileName_m(""),
     fieldmap_m(NULL),
     fast_m(false),
-    angle_m(0.0),
-    aperture_m(0.0),
-    designEnergy_m(0.0),
+    // aperture_m(0.0),
     designRadius_m(0.0),
-    fieldAmplitude_m(0.0),
-    bX_m(0.0),
-    bY_m(0.0),
-    angleGreaterThanPi_m(false),
-    entranceAngle_m(0.0),
     exitAngle_m(0.0),
     fieldIndex_m(0.0),
-    elementEdge_m(0.0),
     startField_m(0.0),
     endField_m(0.0),
     reinitialize_m(false),
     recalcRefTraj_m(false),
-    length_m(0.0),
-    gap_m(0.0),
-    refTrajMapSize_m(0),
-    refTrajMapStepSize_m(0.0),
     entranceParameter1_m(0.0),
     entranceParameter2_m(0.0),
     entranceParameter3_m(0.0),
     exitParameter1_m(0.0),
     exitParameter2_m(0.0),
     exitParameter3_m(0.0),
-    xOriginEngeEntry_m(0.0),
-    zOriginEngeEntry_m(0.0),
+    entryFieldValues_m(NULL),
+    exitFieldValues_m(NULL),
+    entryFieldAccel_m(NULL),
+    exitFieldAccel_m(NULL),
     deltaBeginEntry_m(0.0),
     deltaEndEntry_m(0.0),
     polyOrderEntry_m(0),
     xExit_m(0.0),
     zExit_m(0.0),
-    xOriginEngeExit_m(0.0),
-    zOriginEngeExit_m(0.0),
     deltaBeginExit_m(0.0),
     deltaEndExit_m(0.0),
     polyOrderExit_m(0),
     cosEntranceAngle_m(1.0),
     sinEntranceAngle_m(0.0),
-    exitEdgeAngle_m(0.0),
-    cosExitAngle_m(1.0),
-    sinExitAngle_m(0.0) {
+    tanEntranceAngle_m(0.0),
+    tanExitAngle_m(0.0) {
 
     setElType(isDipole);
 
 }
 
 Bend::Bend(const Bend &right):
-    Component(right),
+    BendBase(right),
     messageHeader_m(" * "),
     pusher_m(right.pusher_m),
-    fileName_m(right.fileName_m),
     fieldmap_m(right.fieldmap_m),
     fast_m(right.fast_m),
-    angle_m(right.angle_m),
-    aperture_m(right.aperture_m),
-    designEnergy_m(right.designEnergy_m),
+    // aperture_m(right.aperture_m),
     designRadius_m(right.designRadius_m),
-    fieldAmplitude_m(right.fieldAmplitude_m),
-    bX_m(right.bX_m),
-    bY_m(right.bY_m),
-    angleGreaterThanPi_m(right.angleGreaterThanPi_m),
-    entranceAngle_m(right.entranceAngle_m),
     exitAngle_m(right.exitAngle_m),
     fieldIndex_m(right.fieldIndex_m),
-    elementEdge_m(right.elementEdge_m),
     startField_m(right.startField_m),
     endField_m(right.endField_m),
     reinitialize_m(right.reinitialize_m),
     recalcRefTraj_m(right.recalcRefTraj_m),
-    length_m(right.length_m),
-    gap_m(right.gap_m),
-    refTrajMapX_m(right.refTrajMapX_m),
-    refTrajMapY_m(right.refTrajMapY_m),
-    refTrajMapZ_m(right.refTrajMapZ_m),
-    refTrajMapSize_m(right.refTrajMapSize_m),
-    refTrajMapStepSize_m(right.refTrajMapStepSize_m),
     entranceParameter1_m(right.entranceParameter1_m),
     entranceParameter2_m(right.entranceParameter2_m),
     entranceParameter3_m(right.entranceParameter3_m),
     exitParameter1_m(right.exitParameter1_m),
     exitParameter2_m(right.exitParameter2_m),
     exitParameter3_m(right.exitParameter3_m),
-    xOriginEngeEntry_m(right.xOriginEngeEntry_m),
-    zOriginEngeEntry_m(right.zOriginEngeEntry_m),
+    entryFieldValues_m(NULL),
+    exitFieldValues_m(NULL),
+    entryFieldAccel_m(NULL),
+    exitFieldAccel_m(NULL),
     deltaBeginEntry_m(right.deltaBeginEntry_m),
     deltaEndEntry_m(right.deltaEndEntry_m),
     polyOrderEntry_m(right.polyOrderEntry_m),
     xExit_m(right.xExit_m),
     zExit_m(right.zExit_m),
-    xOriginEngeExit_m(right.xOriginEngeExit_m),
-    zOriginEngeExit_m(right.zOriginEngeExit_m),
     deltaBeginExit_m(right.deltaBeginExit_m),
     deltaEndExit_m(right.deltaEndExit_m),
     polyOrderExit_m(right.polyOrderExit_m),
     cosEntranceAngle_m(right.cosEntranceAngle_m),
     sinEntranceAngle_m(right.sinEntranceAngle_m),
-    exitEdgeAngle_m(right.exitEdgeAngle_m),
-    cosExitAngle_m(right.cosExitAngle_m),
-    sinExitAngle_m(right.sinExitAngle_m) {
+    tanEntranceAngle_m(right.tanEntranceAngle_m),
+    tanExitAngle_m(right.tanExitAngle_m) {
 
     setElType(isDipole);
 
 }
 
 Bend::Bend(const std::string &name):
-    Component(name),
+    BendBase(name),
     messageHeader_m(" * "),
     pusher_m(),
-    fileName_m(""),
     fieldmap_m(NULL),
     fast_m(false),
-    angle_m(0.0),
-    aperture_m(0.0),
-    designEnergy_m(0.0),
+    // aperture_m(0.0),
     designRadius_m(0.0),
-    fieldAmplitude_m(0.0),
-    bX_m(0.0),
-    bY_m(0.0),
-    angleGreaterThanPi_m(false),
-    entranceAngle_m(0.0),
     exitAngle_m(0.0),
     fieldIndex_m(0.0),
-    elementEdge_m(0.0),
     startField_m(0.0),
     endField_m(0.0),
     reinitialize_m(false),
     recalcRefTraj_m(false),
-    length_m(0.0),
-    gap_m(0.0),
-    refTrajMapSize_m(0),
-    refTrajMapStepSize_m(0.0),
     entranceParameter1_m(0.0),
     entranceParameter2_m(0.0),
     entranceParameter3_m(0.0),
     exitParameter1_m(0.0),
     exitParameter2_m(0.0),
     exitParameter3_m(0.0),
-    xOriginEngeEntry_m(0.0),
-    zOriginEngeEntry_m(0.0),
+    entryFieldValues_m(NULL),
+    exitFieldValues_m(NULL),
+    entryFieldAccel_m(NULL),
+    exitFieldAccel_m(NULL),
     deltaBeginEntry_m(0.0),
     deltaEndEntry_m(0.0),
     polyOrderEntry_m(0),
     xExit_m(0.0),
     zExit_m(0.0),
-    xOriginEngeExit_m(0.0),
-    zOriginEngeExit_m(0.0),
     deltaBeginExit_m(0.0),
     deltaEndExit_m(0.0),
     polyOrderExit_m(0),
     cosEntranceAngle_m(1.0),
     sinEntranceAngle_m(0.0),
-    exitEdgeAngle_m(0.0),
-    cosExitAngle_m(1.0),
-    sinExitAngle_m(0.0) {
+    tanEntranceAngle_m(0.0),
+    tanExitAngle_m(0.0) {
 
     setElType(isDipole);
 
 }
 
 Bend::~Bend() {
-}
+    if (entryFieldAccel_m != NULL) {
+        for (unsigned int i = 0; i < 3u; ++ i) {
+            gsl_spline_free(entryFieldValues_m[i]);
+            gsl_spline_free(exitFieldValues_m[i]);
+            entryFieldValues_m[i] = NULL;
+            exitFieldValues_m[i] = NULL;
+        }
+        delete[] entryFieldValues_m;
+        delete[] exitFieldValues_m;
+        entryFieldValues_m = NULL;
+        exitFieldValues_m = NULL;
 
+        gsl_interp_accel_free(entryFieldAccel_m);
+        gsl_interp_accel_free(exitFieldAccel_m);
+        entryFieldAccel_m = NULL;
+        exitFieldAccel_m = NULL;
+    }
+}
 /*
  * OPAL-T Methods.
  * ===============
@@ -213,168 +189,138 @@ Bend::~Bend() {
  *  This function merely repackages the field arrays as type Vector_t and calls
  *  the equivalent method but with the Vector_t data types.
  */
-bool Bend::apply(const size_t &i, const double &t, double E[], double B[]) {
-
-    Vector_t Ev(0.0, 0.0, 0.0);
-    Vector_t Bv(0.0, 0.0, 0.0);
-    if(apply(RefPartBunch_m->R[i], RefPartBunch_m->get_rmean(), t, Ev, Bv))
-        return true;
-
-    E[0] = Ev(0);
-    E[1] = Ev(1);
-    E[2] = Ev(2);
-    B[0] = Bv(0);
-    B[1] = Bv(1);
-    B[2] = Bv(2);
-
-    return false;
-}
-
-bool Bend::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
+bool Bend::apply(const size_t &i,
+                 const double &t,
+                 Vector_t &E,
+                 Vector_t &B) {
 
     if(designRadius_m > 0.0) {
 
         // Shift position to magnet frame.
-        Vector_t X = RefPartBunch_m->X[i];
-        X(2) += startField_m - elementEdge_m;
+        Vector_t X = RefPartBunch_m->R[i];
 
-        /*
-         * Add in transverse bend displacements. (ds is already
-         * accounted for.)
-         */
-        X(0) -= dx_m;
-        X(1) -= dy_m;
+        Vector_t bField(0.0);
+        if (!calculateMapField(X, bField)) {
 
-        // Get field from field map.
-        Vector_t eField(0.0, 0.0, 0.0);
-        Vector_t bField(0.0, 0.0, 0.0);
-        CalculateMapField(X, eField, bField);
-        bField *= fieldAmplitude_m;
+            B += fieldAmplitude_m * bField;
 
-        B(0) += bField(0);
-        B(1) += bField(1);
-        B(2) += bField(2);
+            return false;
+        }
 
+        return true;
     }
 
     return false;
 }
 
 bool Bend::apply(const Vector_t &R,
-                  const Vector_t &centroid,
-                  const double &t,
-                  Vector_t &E,
-                  Vector_t &B) {
+                 const Vector_t &P,
+                 const double &t,
+                 Vector_t &E,
+                 Vector_t &B) {
 
     if(designRadius_m > 0.0) {
 
-        int index = static_cast<int>
-            (std::floor((R(2) - startField_m) / refTrajMapStepSize_m));
+        Vector_t X = R;
 
-        if(index > 0 && index + 1 < refTrajMapSize_m) {
+        Vector_t bField(0.0);
+        if (!calculateMapField(X, bField)) {
 
-            // Find indices for position in pre-computed central trajectory map.
-            double lever = (R(2) - startField_m) / refTrajMapStepSize_m - index;
-            double x = (1.0 - lever) * refTrajMapX_m.at(index)
-                + lever * refTrajMapX_m.at(index + 1);
-            double y = (1.0 - lever) * refTrajMapY_m.at(index)
-                + lever * refTrajMapY_m.at(index + 1);
-            double z = (1.0 - lever) * refTrajMapZ_m.at(index)
-                + lever * refTrajMapZ_m.at(index + 1);
+            B += fieldAmplitude_m * bField;
 
-            // Adjust position relative to pre-computed central trajectory map.
-            Vector_t X(0.0, 0.0, 0.0);
-            X(0) = R(0) + x;
-            X(1) = R(1) + y;
-            X(2) = z;
-
-            Vector_t tempE(0.0, 0.0, 0.0);
-            Vector_t tempB(0.0, 0.0, 0.0);
-            Vector_t XInBendFrame = RotateToBendFrame(X);
-
-            /*
-             * Add in transverse bend displacements. (ds is already
-             * accounted for.)
-             */
-            XInBendFrame(0) -= dx_m;
-            XInBendFrame(1) -= dy_m;
-
-            CalculateMapField(XInBendFrame, tempE, tempB);
-            tempB = fieldAmplitude_m * RotateOutOfBendFrame(tempB);
-
-            B(0) += tempB(0);
-            B(1) += tempB(1);
-            B(2) += tempB(2);
-
+            return false;
         }
+
+        return true;
     }
 
     return false;
 
 }
 
-bool Bend::bends() const {
-    return true;
-}
+bool Bend::applyToReferenceParticle(const Vector_t &R,
+                                    const Vector_t &P,
+                                    const double &t,
+                                    Vector_t &E,
+                                    Vector_t &B) {
+    if(designRadius_m > 0.0) {
 
-void Bend::finalise() {
-    online_m = false;
+        // Get field from field map.
+        Vector_t bField(0.0);
+        Vector_t X = R;// + Vector_t(0, 0, startField_m/* - elementEdge_m*/);
+        if (!calculateMapField(X, bField)) {
+
+            B += fieldAmplitude_m * bField;
+
+            return false;
+        }
+
+        return true;
+    }
+
+    return false;
 }
 
 void Bend::goOnline(const double &) {
 
-    // Check if we need to reinitialize the bend field amplitude.
-    if(reinitialize_m) {
-        reinitialize_m = Reinitialize();
-        recalcRefTraj_m = false;
-    }
+    // // Check if we need to reinitialize the bend field amplitude.
+    // if(reinitialize_m) {
+    //     reinitialize_m = reinitialize();
+    //     recalcRefTraj_m = false;
+    // }
 
-    /*
-     * Always recalculate the reference trajectory on first call even
-     * if we do not reinitialize the bend. The reference trajectory
-     * has to be calculated at the same energy as the actual beam or
-     * we do not get accurate values for the magnetic field in the output
-     * file.
-     */
-    if(recalcRefTraj_m) {
-        double angleX = 0.0;
-        double angleY = 0.0;
-        CalculateRefTrajectory(angleX, angleY);
-        recalcRefTraj_m = false;
-    }
+    // /*
+    //  * Always recalculate the reference trajectory on first call even
+    //  * if we do not reinitialize the bend. The reference trajectory
+    //  * has to be calculated at the same energy as the actual beam or
+    //  * we do not get accurate values for the magnetic field in the output
+    //  * file.
+    //  */
+    // if(recalcRefTraj_m) {
+    //     double angleX = 0.0;
+    //     double angleY = 0.0;
+    //     calculateRefTrajectory(angleX, angleY);
+    //     recalcRefTraj_m = false;
+    // }
 
     online_m = true;
 }
 
-void Bend::getDimensions(double &sBegin, double &sEnd) const {
-    sBegin = startField_m;
-    sEnd = endField_m;
-}
-
 void Bend::initialise(PartBunch *bunch,
                        double &startField,
-                       double &endField,
-                       const double &scaleFactor) {
+                       double &endField) {
 
     Inform msg(messageHeader_m.c_str(), *gmsg);
 
-    if(InitializeFieldMap(msg)) {
-        retrieveDesignEnergy(startField);
+    if(initializeFieldMap(msg)) {
+        std::string name = Util::toUpper(getName()) + " ";
+        msg << level2
+            << "======================================================================\n"
+            << "===== " << std::left << std::setw(64) << std::setfill('=') << name << "\n"
+            << "======================================================================\n";
 
-        SetupPusher(bunch);
-        ReadFieldMap(msg);
-        SetupBendGeometry(msg, startField, endField);
+        setupPusher(bunch);
+        readFieldMap(msg);
+        setupBendGeometry(msg, startField, endField);
 
         double bendAngleX = 0.0;
         double bendAngleY = 0.0;
-        CalculateRefTrajectory(bendAngleX, bendAngleY);
+        calculateRefTrajectory(bendAngleX, bendAngleY);
         recalcRefTraj_m = true;
-        Print(msg, bendAngleX, bendAngleY);
+        print(msg, bendAngleX, bendAngleY);
 
         // Pass start and end of field to calling function.
         startField = startField_m;
         endField = endField_m;
 
+        startField_m -= elementEdge_m;
+        endField_m -= elementEdge_m;
+        elementEdge_m = 0.0;
+
+        msg << level2
+            << "======================================================================\n"
+            << "======================================================================\n"
+            << endl;
     } else {
         ERRORMSG("There is something wrong with your field map \""
                  << fileName_m
@@ -383,84 +329,7 @@ void Bend::initialise(PartBunch *bunch,
     }
 }
 
-double Bend::GetBendAngle() const {
-    return angle_m;
-}
-
-double Bend::GetBendRadius() const {
-    return designRadius_m;
-}
-
-double Bend::GetEffectiveCenter() const {
-    return elementEdge_m + designRadius_m * angle_m / 2.0;
-}
-
-double Bend::GetEffectiveLength() const {
-    return designRadius_m * angle_m;
-}
-
-std::string Bend::GetFieldMapFN() const {
-    return fileName_m;
-}
-
-double Bend::GetStartElement() const {
-    return elementEdge_m;
-}
-
-void Bend::SetAngleGreaterThanPiFlag(bool angleGreaterThanPi) {
-    angleGreaterThanPi_m = angleGreaterThanPi;
-}
-
-void Bend::SetAperture(double aperture) {
-    aperture_m = std::abs(aperture);
-}
-
-void Bend::SetBendAngle(double angle) {
-    angle_m = angle;
-}
-
-void Bend::SetBeta(double beta) {
-    Orientation_m(1) = beta;
-}
-
-void Bend::SetDesignEnergy(double energy) {
-    designEnergy_m = std::abs(energy);
-}
-
-void Bend::SetEntranceAngle(double entranceAngle) {
-    entranceAngle_m = entranceAngle;
-}
-
-void Bend::setExitAngle(double exitAngle) {
-    exitAngle_m = exitAngle;
-}
-
-void Bend::SetFieldAmplitude(double k0, double k0s) {
-    bY_m = k0;
-    bX_m = k0s;
-}
-
-void Bend::SetFieldMapFN(std::string fileName) {
-    fileName_m = fileName;
-}
-
-void Bend::SetFullGap(double gap) {
-    gap_m = std::abs(gap);
-}
-
-void Bend::SetK1(double k1) {
-    fieldIndex_m = k1;
-}
-
-void Bend::SetLength(double length) {
-    length_m = std::abs(length);
-}
-
-void Bend::SetRotationAboutZ(double rotation) {
-    Orientation_m(2) = rotation;
-}
-
-void Bend::AdjustFringeFields(double ratio) {
+void Bend::adjustFringeFields(double ratio) {
 
     double delta = std::abs(entranceParameter1_m - entranceParameter2_m);
     entranceParameter1_m = entranceParameter2_m - delta * ratio;
@@ -476,63 +345,49 @@ void Bend::AdjustFringeFields(double ratio) {
 
 }
 
-double Bend::CalculateBendAngle() {
+double Bend::calculateBendAngle() {
 
     const double mass = RefPartBunch_m->getM();
     const double gamma = designEnergy_m / mass + 1.0;
     const double betaGamma = sqrt(pow(gamma, 2.0) - 1.0);
-    const double beta = betaGamma / gamma;
+    // const double beta = betaGamma / gamma;
     const double deltaT = RefPartBunch_m->getdT();
-
+    const double cdt = Physics::c * deltaT;
     // Integrate through field for initial angle.
-    Vector_t X(0.0, 0.0, startField_m - elementEdge_m);
-    Vector_t P(0.0, 0.0, betaGamma);
+    Vector_t oldX;
+    Vector_t X = -deltaBeginEntry_m * Vector_t(tan(entranceAngle_m), 0.0, 1.0);
+    Vector_t P = betaGamma * Vector_t(sin(entranceAngle_m), 0.0, cos(entranceAngle_m));
     double deltaS = 0.0;
     double bendLength = endField_m - startField_m;
+    const Vector_t eField(0.0);
 
     while(deltaS < bendLength) {
-
-        X /= Vector_t(Physics::c * deltaT);
+        oldX = X;
+        X /= cdt;
         pusher_m.push(X, P, deltaT);
-        X *= Vector_t(Physics::c * deltaT);
+        X *= cdt;
 
-        Vector_t eField(0.0, 0.0, 0.0);
         Vector_t bField(0.0, 0.0, 0.0);
-        CalculateMapField(X, eField, bField);
+        calculateMapField(X, bField);
         bField = fieldAmplitude_m * bField;
 
-        X /= Vector_t(Physics::c * deltaT);
+        X /= cdt;
         pusher_m.kick(X, P, eField, bField, deltaT);
 
         pusher_m.push(X, P, deltaT);
-        X *= Vector_t(Physics::c * deltaT);
+        X *= cdt;
 
-        deltaS += deltaT * beta * Physics::c;
+        deltaS += euclidian_norm(X - oldX);
 
     }
 
-    double angle =  -atan2(P(0), P(2));
+    double angle =  -atan2(P(0), P(2)) + entranceAngle_m;
 
     return angle;
 
 }
 
-void Bend::CalcCentralField(const Vector_t &R,
-                             double deltaX,
-                             double angle,
-                             Vector_t &B) {
-
-    double nOverRho = fieldIndex_m / designRadius_m;
-    double expFactor = exp(-nOverRho * deltaX);
-    double bxBzFactor = expFactor * nOverRho * R(1);
-
-    B(0) = -bxBzFactor * cos(angle);
-    B(1) = expFactor * (1.0 - pow(nOverRho * R(1), 2.0) / 2.0);
-    B(2) = -bxBzFactor * sin(angle);
-
-}
-
-void Bend::CalcEngeFunction(double zNormalized,
+void Bend::calcEngeFunction(double zNormalized,
                              const std::vector<double> &engeCoeff,
                              int polyOrder,
                              double &engeFunc,
@@ -596,184 +451,193 @@ void Bend::CalcEngeFunction(double zNormalized,
     }
 }
 
-void Bend::CalcEntranceFringeField(const Vector_t &REntrance,
-                                    double deltaX,
-                                    Vector_t &B) {
+Vector_t Bend::calcCentralField(const Vector_t &R,
+                                double deltaX) {
 
-    double zNormalized = -REntrance(2) / gap_m;
-    double engeFunc = 0.0;
-    double engeFuncDeriv = 0.0;
-    double engeFuncSecDerivNorm = 0.0;
+    Vector_t B(0, 0, 0);
+    // double nOverRho = fieldIndex_m / designRadius_m;
+    // double expFactor = exp(-nOverRho * deltaX);
+    // double bxBzFactor = expFactor * nOverRho * R(1);
+    // Vector_t rotationCenter(-designRadius_m, R(1), 0.0);
+    // double cosangle = dot(R - rotationCenter, Vector_t(1, 0, 0)) / euclidian_norm(R - rotationCenter);
 
-    CalcEngeFunction(zNormalized,
-                     engeCoeffsEntry_m,
-                     polyOrderEntry_m,
-                     engeFunc,
-                     engeFuncDeriv,
-                     engeFuncSecDerivNorm);
+    // B(0) = -bxBzFactor * cosangle;
+    // B(1) = expFactor * (1.0 - pow(nOverRho * R(1), 2.0) / 2.0);
+    // B(2) = -bxBzFactor * sqrt(1 - std::pow(cosangle, 2));
 
-    double nOverRho = fieldIndex_m / designRadius_m;
-    double expFactor = exp(-nOverRho * deltaX);
-    double trigFactor = pow(nOverRho, 2.0) + engeFuncSecDerivNorm;
+    B(1) = 1.0;
 
-    double bXEntrance = -engeFunc * nOverRho * expFactor* REntrance(1);
-    double bYEntrance = expFactor * engeFunc
-        * (1.0  - trigFactor * pow(REntrance(1), 2.0) / 2.0);
-    double bZEntrance = -expFactor * engeFuncDeriv * REntrance(1);
-
-    B(0) = bXEntrance * cosEntranceAngle_m - bZEntrance * sinEntranceAngle_m;
-    B(1) = bYEntrance;
-    B(2) = bXEntrance * sinEntranceAngle_m + bZEntrance * cosEntranceAngle_m;
+    return B;
 }
 
-void Bend::CalcExitFringeField(const Vector_t &RExit, double deltaX, Vector_t &B) {
+Vector_t Bend::calcEntranceFringeField(const Vector_t &R,
+                                       double deltaX) {
 
-    double zNormalized = RExit(2) / gap_m;
-    double engeFunc = 0.0;
-    double engeFuncDeriv = 0.0;
-    double engeFuncSecDerivNorm = 0.0;
-    CalcEngeFunction(zNormalized,
-                     engeCoeffsExit_m,
-                     polyOrderExit_m,
-                     engeFunc,
-                     engeFuncDeriv,
-                     engeFuncSecDerivNorm);
+    const CoordinateSystemTrafo toEntranceRegion(Vector_t(0, 0, entranceParameter2_m),
+                                                 Quaternion(0, 0, 1, 0));
+    const Vector_t Rprime = toEntranceRegion.transformTo(R);
 
-    double nOverRho = fieldIndex_m / designRadius_m;
-    double expFactor = exp(-nOverRho * deltaX);
-    double trigFactor = pow(nOverRho, 2.0) + engeFuncSecDerivNorm;
+    Vector_t B(0.0);
 
-    double bXExit = -engeFunc * nOverRho * expFactor* RExit(1);
-    double bYExit = expFactor * engeFunc
-        * (1.0 - trigFactor * pow(RExit(1), 2.0) / 2.0);
-    double bZExit = expFactor * engeFuncDeriv * RExit(1);
+    if (Rprime(2) <= -entranceParameter3_m) {
+        B(1) = 1;
+    } else if (Rprime(2) < -entranceParameter1_m) {
+        double engeFunc = gsl_spline_eval(entryFieldValues_m[0], Rprime(2), entryFieldAccel_m);
+        double engeFuncDeriv = gsl_spline_eval(entryFieldValues_m[1], Rprime(2), entryFieldAccel_m);
+        double engeFuncSecDeriv = gsl_spline_eval(entryFieldValues_m[2], Rprime(2), entryFieldAccel_m);
+        // double nOverRho = fieldIndex_m / designRadius_m;
+        // double expFactor = exp(-nOverRho * deltaX);
+        // double trigFactor = pow(nOverRho, 2.0) + engeFuncSecDerivNorm;
 
-    B(0) = bXExit * cosExitAngle_m - bZExit * sinExitAngle_m;
-    B(1) = bYExit;
-    B(2) = bXExit * sinExitAngle_m + bZExit * cosExitAngle_m;
+        // double bXEntrance = -nOverRho * expFactor * Rprime(1) * engeFunc;
+        // double bYEntrance = (expFactor * engeFunc *
+        //                      (1.0  - 0.5 * trigFactor * pow(Rprime(1), 2.0)));
+        // double bZEntrance = -expFactor * Rprime(1) * engeFuncDeriv;
+
+        // B(1) = (engeFunc *
+        //         (1.0 - 0.5 * engeFuncSecDerivNorm * pow(Rprime(1), 2.0)));
+        B(1) = (engeFunc - 0.5 * engeFuncSecDeriv * pow(Rprime(1), 2.0));
+        B(2) = engeFuncDeriv * Rprime(1);
+    }
+
+    return toEntranceRegion.rotateFrom(B);
 }
 
-void Bend::CalculateMapField(const Vector_t &R, Vector_t &E, Vector_t &B) {
+Vector_t Bend::calcExitFringeField(const Vector_t &R,
+                                   double deltaX) {
 
-    E = Vector_t(0.0);
+    const CoordinateSystemTrafo fromEndToExitRegion(Vector_t(0, 0, exitParameter2_m),
+                                                    Quaternion(1, 0, 0, 0));
+    const CoordinateSystemTrafo toExitRegion = (fromEndToExitRegion *
+                                                getBeginToEnd_local());
+    const Vector_t Rprime = toExitRegion.transformTo(R);
+
+    Vector_t B(0.0);
+
+    if (Rprime(2) <= exitParameter1_m) {
+        B(1) = 1;
+    } else if (Rprime(2) < exitParameter3_m) {
+        double engeFunc = gsl_spline_eval(exitFieldValues_m[0], Rprime(2), exitFieldAccel_m);
+        double engeFuncDeriv = gsl_spline_eval(exitFieldValues_m[1], Rprime(2), exitFieldAccel_m);
+        double engeFuncSecDeriv = gsl_spline_eval(exitFieldValues_m[2], Rprime(2), exitFieldAccel_m);
+        // double nOverRho = fieldIndex_m / designRadius_m;
+        // double expFactor = exp(-nOverRho * deltaX);
+        // double trigFactor = pow(nOverRho, 2.0) + engeFuncSecDerivNorm;
+
+        // double bXExit = -nOverRho * expFactor * Rprime(1) * engeFunc;
+        // double bYExit = (expFactor * engeFunc *
+        //                  (1.0 - 0.5 * trigFactor * pow(Rprime(1), 2.0)));
+        // double bZExit = expFactor * Rprime(1) * engeFuncDeriv;
+
+        // B(1) = (engeFunc *
+        //         (1.0 - 0.5 * engeFuncSecDerivNorm * pow(Rprime(1), 2.0)));
+        B(1) = (engeFunc - 0.5 * engeFuncSecDeriv * pow(Rprime(1), 2.0));
+        B(2) = engeFuncDeriv * Rprime(1);
+    }
+    return toExitRegion.rotateFrom(B);
+}
+
+bool Bend::calculateMapField(const Vector_t &R, Vector_t &B) {
+
     B = Vector_t(0.0);
 
-    //    Vector_t REntrance(0.0, 0.0, 0.0);
-    //    Vector_t RExit(0.0, 0.0, 0.0);
-    //    if (IsPositionInEntranceField(R, REntrance)) {
-    //        CalcEntranceFringeField(REntrance, 0.0, B);
-    //    } else if (IsPositionInExitField(R, RExit)) {
-    //        CalcExitFringeField(RExit, 0.0, B);
-    //    } else {
-    //        CalcCentralField(R, 0.0, 0.0, B);
-    //    }
+    bool verticallyInside = (std::abs(R(1)) < 0.5 * gap_m);
+    bool horizontallyInside = false;
+    Vector_t rotationCenter(-designRadius_m * cosEntranceAngle_m, R(1), designRadius_m * sinEntranceAngle_m);
 
-    double deltaXEntrance = 0.0;
-    double deltaXExit = 0.0;
-    bool inEntranceRegion = InMagnetEntranceRegion(R, deltaXEntrance);
-    bool inExitRegion = InMagnetExitRegion(R, deltaXExit);
+    if(inMagnetCentralRegion(R)) {
+        if (verticallyInside) {
+            double deltaX = 0.0;//euclidian_norm(R - rotationCenter) - designRadius_m;
+            if (isPositionInEntranceField(R)) {
+                B = calcEntranceFringeField(R, deltaX);
+            } else if (isPositionInExitField(R)) {
+                B = calcExitFringeField(R, deltaX);
+            } else {
+                B = calcCentralField(R, deltaX);
+            }
 
-    if(!inEntranceRegion && !inExitRegion) {
-
-        double deltaX = 0.0;
-        double angle = 0.0;
-        if(InMagnetCentralRegion(R, deltaX, angle)) {
-            Vector_t REntrance(0.0, 0.0, 0.0);
-            Vector_t RExit(0.0, 0.0, 0.0);
-            if(IsPositionInEntranceField(R, REntrance))
-                CalcEntranceFringeField(REntrance, deltaX, B);
-            else if(IsPositionInExitField(R, RExit))
-                CalcExitFringeField(RExit, deltaX, B);
-            else
-                CalcCentralField(R, deltaX, angle, B);
-
+            return false;
         }
-
-    } else if(inEntranceRegion && !inExitRegion) {
-
-        Vector_t REntrance(0.0, 0.0, 0.0);
-        if(IsPositionInEntranceField(R, REntrance)) {
-            CalcEntranceFringeField(REntrance, deltaXEntrance, B);
-        } else if(REntrance(2) > 0.0)
-            CalcCentralField(R, deltaXEntrance, 0.0, B);
-
-    } else if(!inEntranceRegion && inExitRegion) {
-
-        Vector_t RExit(0.0, 0.0, 0.0);
-        if(IsPositionInExitField(R, RExit)) {
-            CalcExitFringeField(RExit, deltaXExit, B);
-        } else if(RExit(2) < 0.0)
-            CalcCentralField(R, deltaXExit, angle_m, B);
-
-    } else if(inEntranceRegion && inExitRegion) {
-
-        /*
-         * This is an unusual condition and should only happen with
-         * a sector magnet that bends more than 180 degrees. Here, we
-         * have the possibility that the particle sees both the
-         * entrance and exit fringe fields.
-         */
-        Vector_t BEntrance(0.0, 0.0, 0.0);
-        Vector_t REntrance(0.0, 0.0, 0.0);
-        if(IsPositionInEntranceField(R, REntrance))
-            CalcEntranceFringeField(REntrance, deltaXEntrance, BEntrance);
-
-        Vector_t BExit(0.0, 0.0, 0.0);
-        Vector_t RExit(0.0, 0.0, 0.0);
-        if(IsPositionInExitField(R, RExit))
-            CalcExitFringeField(RExit, deltaXExit, BExit);
-
-        B(0) = BEntrance(0) + BExit(0);
-        B(1) = BEntrance(1) + BExit(1);
-        B(2) = BEntrance(2) + BExit(2);
-
+        return true;
     }
+
+    Vector_t BEntrance(0.0), BExit(0.0);
+    verticallyInside = (std::abs(R(1)) < gap_m);
+
+    if (inMagnetEntranceRegion(R)) {
+        horizontallyInside = true;
+        if (verticallyInside) {
+            BEntrance = calcEntranceFringeField(R, R(0));
+        }
+    }
+
+    if (inMagnetExitRegion(R)) {
+        horizontallyInside = true;
+        if (verticallyInside) {
+            Vector_t Rprime = getBeginToEnd_local().transformTo(R);
+
+            BExit = calcExitFringeField(R, Rprime(0));
+        }
+    }
+
+    B = BEntrance + BExit;
+
+    bool hitMaterial = (horizontallyInside && (!verticallyInside));
+    return hitMaterial;
 }
 
-void Bend::CalculateRefTrajectory(double &angleX, double &angleY) {
+void Bend::calculateRefTrajectory(double &angleX, double &angleY) {
 
     const double mass = RefPartBunch_m->getM();
     const double gamma = designEnergy_m / mass + 1.;
     const double betaGamma = sqrt(gamma * gamma - 1.);
     const double dt = RefPartBunch_m->getdT();
 
-    Vector_t X(0.0, 0.0, startField_m - elementEdge_m);
-    Vector_t P(0.0, 0.0, betaGamma);
+    std::ofstream trajectoryOutput;
+    if (Options::writeBendTrajectories && Ippl::myNode() == 0) {
+        trajectoryOutput.open("data/" + OpalData::getInstance()->getInputBasename() + "_" + getName() + "_traj.dat");
+        trajectoryOutput.precision(12);
+        trajectoryOutput << "# " << std::setw(18) << "s"
+                         << std::setw(20) << "x"
+                         << std::setw(20) << "z"
+                         << std::setw(20) << "By"
+                         << std::endl;
+    }
 
-    if(!refTrajMapX_m.empty())
-        refTrajMapX_m.clear();
-    if(!refTrajMapY_m.empty())
-        refTrajMapY_m.clear();
-    if(!refTrajMapZ_m.empty())
-        refTrajMapZ_m.clear();
+    double zRotation = rotationZAxis_m;
+    Quaternion toStandard = Quaternion(cos(0.5 * zRotation), sin(0.5 * zRotation) * Vector_t(0, 0, -1));
 
-    refTrajMapX_m.push_back(X(0));
-    refTrajMapY_m.push_back(X(1));
-    refTrajMapZ_m.push_back(X(2));
+    Vector_t X = -deltaBeginEntry_m * Vector_t(tan(entranceAngle_m), 0.0, 1.0);
+    Vector_t P = betaGamma * Vector_t(sin(entranceAngle_m), 0.0, cos(entranceAngle_m));
 
-    refTrajMapStepSize_m = betaGamma / gamma * Physics::c * dt;
+    if(!refTrajMap_m.empty())
+        refTrajMap_m.clear();
+
+    refTrajMap_m.push_back(X);
+
+    const Vector_t eField(0.0);
+    const double stepSize = betaGamma / gamma * Physics::c * dt;
+    const double bendLength = endField_m - startField_m;
     double deltaS = 0.0;
-    double bendLength = endField_m - startField_m;
-
     while(deltaS < bendLength) {
 
         X /= Vector_t(Physics::c * dt);
         pusher_m.push(X, P, dt);
         X *= Vector_t(Physics::c * dt);
 
-        Vector_t eField(0.0, 0.0, 0.0);
         Vector_t bField(0.0, 0.0, 0.0);
-        Vector_t XInBendFrame = RotateToBendFrame(X);
+        Vector_t XInBendFrame = X;
 
-        /*
-         * Add in transverse bend displacements. (ds is already
-         * accounted for.)
-         */
-        XInBendFrame(0) -= dx_m;
-        XInBendFrame(1) -= dy_m;
+        calculateMapField(XInBendFrame, bField);
+        bField = fieldAmplitude_m * bField;
 
-        CalculateMapField(XInBendFrame, eField, bField);
-        bField = fieldAmplitude_m * RotateOutOfBendFrame(bField);
+        if (Options::writeBendTrajectories && Ippl::myNode() == 0) {
+            trajectoryOutput << std::setw(20) << deltaS + 0.5 * stepSize
+                             << std::setw(20) << X(0)
+                             << std::setw(20) << X(2)
+                             << std::setw(20) << bField(1)
+                             << std::endl;
+        }
 
         X /= Vector_t(Physics::c * dt);
         pusher_m.kick(X, P, eField, bField, dt);
@@ -781,110 +645,44 @@ void Bend::CalculateRefTrajectory(double &angleX, double &angleY) {
         pusher_m.push(X, P, dt);
         X *= Vector_t(Physics::c * dt);
 
-        refTrajMapX_m.push_back(X(0));
-        refTrajMapY_m.push_back(X(1));
-        refTrajMapZ_m.push_back(X(2));
+        refTrajMap_m.push_back(X);
 
-        deltaS += refTrajMapStepSize_m;
-
+        deltaS += stepSize;
     }
 
-    refTrajMapSize_m = refTrajMapX_m.size();
-
-    if(std::abs(Orientation_m(2)) == Physics::pi / 2.0
-       || Orientation_m(2) == 3.0 * Physics::pi / 2.0)
-        angleX = 0.0;
-    else
-        angleX = -atan2(P(0), P(2));
-
-    if(Orientation_m(2) == 0.0
-       || Orientation_m(2) == Physics::pi)
-        angleY = 0.0;
-    else
-        angleY = atan2(P(1), P(2));
-
-
-    std::ofstream traj(std::string("data/") + getName() + std::string("_traj.dat"));
-    traj.precision(8);
-
-    double E1 = getEntranceAngle();
-    double cosE1 = cos(0.5 * E1), sinE1 = sin(0.5 * E1);
-    double zRotation = Orientation_m(2);
-    Quaternion toStandard = (Quaternion(cosE1, sinE1 * Vector_t(0, 1, 0)) *
-                             Quaternion(cos(0.5 * zRotation), sin(0.5 * zRotation) * Vector_t(0, 0, -1)));
-
-    X = Vector_t(0.0, 0.0, startField_m - elementEdge_m);
-    P = Vector_t(0.0, 0.0, betaGamma);
-
-    deltaS = 0.0;
-
-    while(deltaS < bendLength) {
-
-        X /= Vector_t(Physics::c * dt);
-        pusher_m.push(X, P, dt);
-        X *= Vector_t(Physics::c * dt);
-
-        Vector_t eField(0.0, 0.0, 0.0);
-        Vector_t bField(0.0, 0.0, 0.0);
-        Vector_t XInBendFrame = RotateToBendFrame(X);
-
-        /*
-         * Add in transverse bend displacements. (ds is already
-         * accounted for.)
-         */
-        CalculateMapField(XInBendFrame, eField, bField);
-        bField = fieldAmplitude_m * RotateOutOfBendFrame(bField);
-
-        X /= Vector_t(Physics::c * dt);
-        pusher_m.kick(X, P, eField, bField, dt);
-        Vector_t R = toStandard.rotate(X * Physics::c * dt);
-        traj << std::setw(16) << R(0)
-             << std::setw(16) << R(2)
-             << std::setw(16) << bField(1)
-             << std::endl;
-
-
-        pusher_m.push(X, P, dt);
-        X *= Vector_t(Physics::c * dt);
-
-        deltaS += refTrajMapStepSize_m;
-
-    }
-
+    angleX = -atan2(P(0), P(2)) + entranceAngle_m;
 }
 
-double Bend::EstimateFieldAdjustmentStep(double actualBendAngle,
+double Bend::estimateFieldAdjustmentStep(double actualBendAngle,
                                           double mass,
                                           double betaGamma) {
 
-    double amplitude1 = fieldAmplitude_m;
-    double bendAngle1 = actualBendAngle;
-
     // Estimate field adjustment step.
     double effectiveLength = angle_m * designRadius_m;
-    double fieldStep = (angle_m - bendAngle1) * betaGamma * mass / (2.0 * effectiveLength * Physics::c);
-    if(pow(fieldAmplitude_m * effectiveLength * Physics::c / (betaGamma * mass), 2.0) < 1.0)
-        fieldStep = (angle_m - bendAngle1) * betaGamma * mass / (2.0 * effectiveLength * Physics::c)
-            * std::sqrt(1.0 - pow(fieldAmplitude_m * effectiveLength * Physics::c / (betaGamma * mass), 2.0));
-
-    fieldStep *= amplitude1 / std::abs(amplitude1);
+    double tmp1 = betaGamma * mass / (2.0 * effectiveLength * Physics::c);
+    double tmp2 = pow(fieldAmplitude_m / tmp1, 2.0);
+    double fieldStep = (angle_m - actualBendAngle) * tmp1;
+    if (tmp2 < 1.0) {
+        fieldStep = (angle_m - actualBendAngle) * tmp1 * std::sqrt(1.0 - tmp2);
+    }
+    fieldStep *= fieldAmplitude_m / std::abs(fieldAmplitude_m);
 
     return fieldStep;
 
 }
 
-void Bend::FindBendEffectiveLength(double startField, double endField) {
+void Bend::findBendEffectiveLength(double startField, double endField) {
 
     /*
      * Use an iterative procedure to set the width of the
      * default field map for the defined field amplitude
      * and bend angle.
      */
-    SetEngeOriginDelta(0.0);
-    SetFieldCalcParam(false);
-    SetFieldBoundaries(startField, endField);
+    setEngeOriginDelta(0.0);
+    setFieldCalcParam();
+    setFieldBoundaries(startField, endField);
 
-    double actualBendAngle = CalculateBendAngle();
+    double actualBendAngle = calculateBendAngle();
     double error = std::abs(actualBendAngle - angle_m);
 
     if(error > 1.0e-6) {
@@ -899,26 +697,26 @@ void Bend::FindBendEffectiveLength(double startField, double endField) {
         double bendAngle1 = actualBendAngle;
 
         double delta2 = deltaStep;
-        SetEngeOriginDelta(delta2);
-        SetFieldCalcParam(false);
-        SetFieldBoundaries(startField, endField);
-        double bendAngle2 = CalculateBendAngle();
+        setEngeOriginDelta(delta2);
+        setFieldCalcParam();
+        setFieldBoundaries(startField, endField);
+        double bendAngle2 = calculateBendAngle();
 
         if(std::abs(bendAngle1) > std::abs(angle_m)) {
             while(std::abs(bendAngle2) > std::abs(angle_m)) {
                 delta2 += deltaStep;
-                SetEngeOriginDelta(delta2);
-                SetFieldCalcParam(false);
-                SetFieldBoundaries(startField, endField);
-                bendAngle2 = CalculateBendAngle();
+                setEngeOriginDelta(delta2);
+                setFieldCalcParam();
+                setFieldBoundaries(startField, endField);
+                bendAngle2 = calculateBendAngle();
             }
         } else {
             while(std::abs(bendAngle2) < std::abs(angle_m)) {
                 delta2 += deltaStep;
-                SetEngeOriginDelta(delta2);
-                SetFieldCalcParam(false);
-                SetFieldBoundaries(startField, endField);
-                bendAngle2 = CalculateBendAngle();
+                setEngeOriginDelta(delta2);
+                setFieldCalcParam();
+                setFieldBoundaries(startField, endField);
+                bendAngle2 = calculateBendAngle();
             }
         }
 
@@ -929,10 +727,10 @@ void Bend::FindBendEffectiveLength(double startField, double endField) {
         while(error > 1.0e-6 && iterations < 100) {
 
             delta = (delta1 + delta2) / 2.0;
-            SetEngeOriginDelta(delta);
-            SetFieldCalcParam(false);
-            SetFieldBoundaries(startField, endField);
-            double newBendAngle = CalculateBendAngle();
+            setEngeOriginDelta(delta);
+            setFieldCalcParam();
+            setFieldBoundaries(startField, endField);
+            double newBendAngle = calculateBendAngle();
 
             error = std::abs(newBendAngle - angle_m);
 
@@ -964,17 +762,22 @@ void Bend::FindBendEffectiveLength(double startField, double endField) {
     }
 }
 
-void Bend::FindBendStrength(double mass,
-                             double gamma,
-                             double betaGamma,
-                             double charge) {
+void Bend::findBendStrength(double mass,
+                            double gamma,
+                            double betaGamma,
+                            double charge) {
 
     /*
      * Use an iterative procedure to set the magnet field amplitude
      * for the defined bend angle.
      */
-    double actualBendAngle = CalculateBendAngle();
-    double fieldStep = EstimateFieldAdjustmentStep(actualBendAngle,
+    const double tolerance = 1e-7;
+    double actualBendAngle = calculateBendAngle();
+    double error = std::abs(actualBendAngle - angle_m) * Physics::rad2deg;
+    if (error < tolerance)
+        return;
+
+    double fieldStep = estimateFieldAdjustmentStep(actualBendAngle,
                                                    mass,
                                                    betaGamma);
     double amplitude1 = fieldAmplitude_m;
@@ -982,33 +785,38 @@ void Bend::FindBendStrength(double mass,
 
     double amplitude2 = fieldAmplitude_m + fieldStep;
     fieldAmplitude_m = amplitude2;
-    double bendAngle2 = CalculateBendAngle();
+    double bendAngle2 = calculateBendAngle();
 
     if(std::abs(bendAngle1) > std::abs(angle_m)) {
         while(std::abs(bendAngle2) > std::abs(angle_m)) {
+            amplitude1 = amplitude2;
+            bendAngle1 = bendAngle2;
+
             amplitude2 += fieldStep;
             fieldAmplitude_m = amplitude2;
-            bendAngle2 = CalculateBendAngle();
+            bendAngle2 = calculateBendAngle();
         }
     } else {
         while(std::abs(bendAngle2) < std::abs(angle_m)) {
+            amplitude1 = amplitude2;
+            bendAngle1 = bendAngle2;
+
             amplitude2 += fieldStep;
             fieldAmplitude_m = amplitude2;
-            bendAngle2 = CalculateBendAngle();
+            bendAngle2 = calculateBendAngle();
         }
     }
 
     // Now we should have the proper field amplitude bracketed.
     unsigned int iterations = 1;
-    double error = std::abs(actualBendAngle - angle_m);
-    while(error > 1.0e-6 && iterations < 100) {
+    while(error > tolerance && iterations < 100) {
 
         fieldAmplitude_m = (amplitude1 + amplitude2) / 2.0;
-        double newBendAngle = CalculateBendAngle();
+        double newBendAngle = calculateBendAngle();
 
-        error = std::abs(newBendAngle - angle_m);
+        error = std::abs(newBendAngle - angle_m) * Physics::rad2deg;
 
-        if(error > 1.0e-6) {
+        if(error > tolerance) {
 
             if(bendAngle1 - angle_m < 0.0) {
 
@@ -1035,70 +843,49 @@ void Bend::FindBendStrength(double mass,
     }
 }
 
-bool Bend::FindIdealBendParameters(double chordLength) {
+bool Bend::findIdealBendParameters(double chordLength) {
 
     double refMass = RefPartBunch_m->getM();
     double refGamma = designEnergy_m / refMass + 1.0;
     double refBetaGamma = sqrt(pow(refGamma, 2.0) - 1.0);
     double refCharge = RefPartBunch_m->getQ();
+    bool reinitialize = false;
 
     if(angle_m != 0.0) {
 
         if(angle_m < 0.0) {
             // Negative angle is a positive bend rotated 180 degrees.
+            entranceAngle_m = copysign(1, angle_m) * entranceAngle_m;
+            exitAngle_m = copysign(1, angle_m) * exitAngle_m;
             angle_m = std::abs(angle_m);
-            fieldIndex_m *= -1.0;
-            Orientation_m(2) += Physics::pi;
+            rotationZAxis_m += Physics::pi;
         }
         designRadius_m = chordLength / (2.0 * std::sin(angle_m / 2.0));
-        fieldAmplitude_m = (refCharge / std::abs(refCharge))
-            * refBetaGamma * refMass
-            / (Physics::c * designRadius_m);
-        return true;
-
-    } else if(bX_m == 0.0) {
-
-        // Negative angle is a positive bend rotated 180 degrees.
-        if((refCharge > 0.0 && bY_m < 0.0)
-           || (refCharge < 0.0 && bY_m > 0.0)) {
-            fieldIndex_m *= -1.0;
-            Orientation_m(2) += Physics::pi;
-        }
-
-        fieldAmplitude_m = refCharge * std::abs(bY_m / refCharge);
-        designRadius_m = std::abs(refBetaGamma * refMass / (Physics::c * fieldAmplitude_m));
-        double bendAngle = 2.0 * std::asin(chordLength / (2.0 * designRadius_m));
-
-        if(angleGreaterThanPi_m)
-            bendAngle = 2.0 * Physics::pi - bendAngle;
-
-        angle_m = bendAngle;
-        return false;
-
+        fieldAmplitude_m = ((refCharge / std::abs(refCharge)) *
+                            refBetaGamma * refMass /
+                            (Physics::c * designRadius_m));
+        reinitialize = true;
     } else {
 
-        Orientation_m(2) += atan2(bX_m, bY_m);
+        rotationZAxis_m += atan2(bX_m, bY_m);
         if(refCharge < 0.0) {
-            fieldIndex_m *= -1.0;
-            Orientation_m(2) -= Physics::pi;
+            rotationZAxis_m -= Physics::pi;
         }
 
-        fieldAmplitude_m = refCharge
-            * std::abs(sqrt(pow(bY_m, 2.0) + pow(bX_m, 2.0))
-                       / refCharge);
+        fieldAmplitude_m = (refCharge *
+                            std::abs(sqrt(pow(bY_m, 2.0) + pow(bX_m, 2.0)) / refCharge));
         designRadius_m = std::abs(refBetaGamma * refMass / (Physics::c * fieldAmplitude_m));
         double bendAngle = 2.0 * std::asin(chordLength / (2.0 * designRadius_m));
 
-        if(angleGreaterThanPi_m)
-            bendAngle = 2.0 * Physics::pi - bendAngle;
-
         angle_m = bendAngle;
 
-        return false;
+        reinitialize = false;
     }
+
+    return reinitialize;
 }
 
-void Bend::FindReferenceExitOrigin(double &x, double &z) {
+void Bend::findReferenceExitOrigin(double &x, double &z) {
 
     /*
      * Find x,z coordinates of reference trajectory as it passes exit edge
@@ -1119,7 +906,7 @@ void Bend::FindReferenceExitOrigin(double &x, double &z) {
     }
 }
 
-bool Bend::InitializeFieldMap(Inform &msg) {
+bool Bend::initializeFieldMap(Inform &msg) {
 
     fieldmap_m = Fieldmap::getFieldmap(fileName_m, fast_m);
 
@@ -1127,104 +914,63 @@ bool Bend::InitializeFieldMap(Inform &msg) {
         if(fileName_m != "1DPROFILE1-DEFAULT")
             return true;
         else
-            return SetupDefaultFieldMap(msg);
+            return setupDefaultFieldMap(msg);
 
     } else
         return false;
 
 }
 
-bool Bend::InMagnetCentralRegion(const Vector_t &R, double &deltaX, double &angle) {
+bool Bend::inMagnetCentralRegion(const Vector_t &R) const {
 
-    deltaX = sqrt(pow(R(2), 2.0) + pow(R(0) + designRadius_m, 2.0)) - designRadius_m;
-    if(std::abs(deltaX) <= aperture_m / 2.0) {
+    Vector_t rotationCenter(-designRadius_m * cosEntranceAngle_m, R(1), designRadius_m * sinEntranceAngle_m);
+    double distFromRotCenter = euclidian_norm(R - rotationCenter);
+    Vector_t Rprime = getBeginToEnd_local().transformTo(R);
+    Vector_t Rpprime = computeAngleTrafo_m.transformTo(R);
 
-        angle = atan2(R(2), R(0) + designRadius_m);
-        return true;
+    double effectiveAngle = fmod(Physics::two_pi - atan2(Rpprime(0), Rpprime(2)), Physics::two_pi);
 
-    } else
-        return false;
+    if (std::abs(distFromRotCenter - designRadius_m) < 0.5 * aperture_m.second[0] &&
+        effectiveAngle >= 0.0 && effectiveAngle < maxAngle_m) {
+        if (effectiveAngle < 0.5 * maxAngle_m) return R(2) >= 0.0;
+        return Rprime(2) < 0.0;
+    }
 
+    return false;
 }
 
-bool Bend::InMagnetEntranceRegion(const Vector_t &R, double &deltaX) {
+bool Bend::inMagnetEntranceRegion(const Vector_t &R) const {
 
-    if(std::abs(R(0)) <= aperture_m / 2.0) {
-
-        Vector_t RTransformed(0.0, R(1), 0.0);
-        RTransformed(0) = (R(0) - xOriginEngeEntry_m) * cosEntranceAngle_m
-            + (R(2) - zOriginEngeEntry_m) * sinEntranceAngle_m;
-        RTransformed(2) = -(R(0) - xOriginEngeEntry_m) * sinEntranceAngle_m
-            + (R(2) - zOriginEngeEntry_m) * cosEntranceAngle_m;
-
-        if(RTransformed(2) <= 0.0) {
-            deltaX = R(0);
-            return true;
-        } else
-            return false;
-
-    } else
-        return false;
-
+    return (R(2) >= entranceParameter1_m &&
+            R(2) < 0.0 &&
+            std::abs(R(0)) < aperture_m.second[0]);
 }
 
-bool Bend::InMagnetExitRegion(const Vector_t &R, double &deltaX) {
+bool Bend::inMagnetExitRegion(const Vector_t &R) const {
 
-    Vector_t RTransformed(0.0, R(1), 0.0);
-    RTransformed(0) = (R(0) - xExit_m) * cosExitAngle_m
-        + (R(2) - zExit_m) * sinExitAngle_m;
-    RTransformed(2) = -(R(0) - xExit_m) * sinExitAngle_m
-        + (R(2) - zExit_m) * cosExitAngle_m;
+    Vector_t Rprime = getBeginToEnd_local().transformTo(R);
 
-    if(RTransformed(2) >= 0.0) {
-
-        deltaX = (R(0) - xExit_m) * cos(angle_m)
-            + (R(2) - zExit_m) * sin(angle_m);
-        if(std::abs(deltaX) <= aperture_m / 2.0)
-            return true;
-        else
-            return false;
-
-    } else
-        return false;
+    return (Rprime(2) >= 0 &&
+            Rprime(2) < exitParameter3_m &&
+            std::abs(Rprime(0)) < aperture_m.second[0]);
 }
 
-bool Bend::IsPositionInEntranceField(const Vector_t &R, Vector_t &REntrance) {
-    if (polyOrderEntry_m < 0)
-        return false;
+bool Bend::isPositionInEntranceField(const Vector_t &R) const {
 
-    REntrance(1) = R(1);
-
-    REntrance(0) = (R(0) - xOriginEngeEntry_m) * cosEntranceAngle_m
-        + (R(2) - zOriginEngeEntry_m) * sinEntranceAngle_m;
-    REntrance(2) = -(R(0) - xOriginEngeEntry_m) * sinEntranceAngle_m
-        + (R(2) - zOriginEngeEntry_m) * cosEntranceAngle_m;
-
-    if(REntrance(2) >= -deltaBeginEntry_m && REntrance(2) <= deltaEndEntry_m)
-        return true;
-    else
-        return false;
+    return (polyOrderEntry_m >= 0 &&
+            R(2) >= entranceParameter1_m &&
+            R(2) < entranceParameter3_m);
 }
 
-bool Bend::IsPositionInExitField(const Vector_t &R, Vector_t &RExit) {
-    if (polyOrderExit_m < 0)
-        return false;
+bool Bend::isPositionInExitField(const Vector_t &R) const {
+    Vector_t Rprime = getBeginToEnd_local().transformTo(R);
 
-    RExit(1) = R(1);
-
-    RExit(0) = (R(0) - xOriginEngeExit_m) * cosExitAngle_m
-        + (R(2) - zOriginEngeExit_m) * sinExitAngle_m;
-    RExit(2) = -(R(0) - xOriginEngeExit_m) * sinExitAngle_m
-        + (R(2) - zOriginEngeExit_m) * cosExitAngle_m;
-
-    if(RExit(2) >= -deltaBeginExit_m && RExit(2) <= deltaEndExit_m)
-        return true;
-    else
-        return false;
-
+    return (polyOrderExit_m >= 0 &&
+            Rprime(2) >= exitParameter1_m &&
+            Rprime(2) < exitParameter3_m);
 }
 
-void Bend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
+void Bend::print(Inform &msg, double bendAngleX, double bendAngleY) {
     msg << level2 << "\n"
         << "Start of field map:      "
         << startField_m
@@ -1241,7 +987,7 @@ void Bend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
     msg << "\n"
         << "Reference Trajectory Properties"
         << "\n"
-        << "==============================="
+        << "======================================================================"
         << "\n\n";
     msg << "Bend angle magnitude:    "
         << angle_m
@@ -1272,7 +1018,7 @@ void Bend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
     msg << "\n"
         << "Bend Field and Rotation Properties"
         << "\n"
-        << "=================================="
+        << "======================================================================"
         << "\n\n";
     msg << "Field amplitude:         "
         << fieldAmplitude_m
@@ -1281,22 +1027,10 @@ void Bend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
     msg << "Field index:  "
         << fieldIndex_m
         << "\n";
-    msg << "Rotation about x axis:   "
-        << Orientation_m(1)
-        << " rad ("
-        << Orientation_m(1) * 180.0 / Physics::pi
-        << " degrees)"
-        << "\n";
-    msg << "Rotation about y axis:   "
-        << Orientation_m(0)
-        << " rad ("
-        << Orientation_m(0) * 180.0 / Physics::pi
-        << " degrees)"
-        << "\n";
     msg << "Rotation about z axis:   "
-        << Orientation_m(2)
+        << rotationZAxis_m
         << " rad ("
-        << Orientation_m(2) * 180.0 / Physics::pi
+        << rotationZAxis_m * 180.0 / Physics::pi
         << " degrees)"
         << "\n";
     msg << "\n"
@@ -1315,124 +1049,135 @@ void Bend::Print(Inform &msg, double bendAngleX, double bendAngleY) {
         << " rad ("
         << bendAngleY * 180.0 / Physics::pi
         << " degrees) in y plane"
-        << "\n" << endl;
+        << "\n";
+
+    if(fileName_m == "1DPROFILE1-DEFAULT") {
+        msg << "\n"
+            << "Effective Field Map\n"
+            << "======================================================================\n"
+            << "\n"
+            << "1DProfile1 " << polyOrderEntry_m << " " << polyOrderExit_m << " " << gap_m * 100 << "\n"
+            << entranceParameter1_m * 100 << " " << entranceParameter2_m * 100 << " " << entranceParameter3_m * 100 << " 0\n"
+            << exitParameter1_m * 100 << " " << exitParameter2_m * 100 << " " << exitParameter3_m * 100 << " 0\n";
+        for (auto coef: engeCoeffsEntry_m) {
+            msg << coef << "\n";
+        }
+        for (auto coef: engeCoeffsExit_m) {
+            msg << coef << "\n";
+        }
+    }
+
+    msg << endl;
 }
 
-void Bend::ReadFieldMap(Inform &msg) {
+void Bend::readFieldMap(Inform &msg) {
     msg << level2 << getName() << " using file ";
     fieldmap_m->getInfo(&msg);
 
     Fieldmap::readMap(fileName_m);
-    fieldmap_m->Get1DProfile1EntranceParam(entranceParameter1_m,
+    fieldmap_m->get1DProfile1EntranceParam(entranceParameter1_m,
                                            entranceParameter2_m,
                                            entranceParameter3_m);
-    fieldmap_m->Get1DProfile1ExitParam(exitParameter1_m,
+    fieldmap_m->get1DProfile1ExitParam(exitParameter1_m,
                                        exitParameter2_m,
                                        exitParameter3_m);
-    SetGapFromFieldMap();
-    fieldmap_m->Get1DProfile1EngeCoeffs(engeCoeffsEntry_m,
+    setGapFromFieldMap();
+    fieldmap_m->get1DProfile1EngeCoeffs(engeCoeffsEntry_m,
                                         engeCoeffsExit_m);
     polyOrderEntry_m = engeCoeffsEntry_m.size() - 1;
     polyOrderExit_m = engeCoeffsExit_m.size() - 1;
 
+    double stepSize = Physics::c * 1e-12;
+    double entryLength = std::abs(entranceParameter3_m - entranceParameter1_m);
+    unsigned int numStepsEntry = std::ceil(entryLength / stepSize) + 3;
+    double stepSizeEntry = entryLength / (numStepsEntry - 3);
+    std::vector<double> zvalsEntry(numStepsEntry);
+    std::vector<std::vector<double> > fieldValuesEntry(3);
+
+    double exitLength = std::abs(exitParameter3_m - exitParameter1_m);
+    unsigned int numStepsExit = std::ceil(exitLength / stepSize) + 3;
+    double stepSizeExit = exitLength / (numStepsExit - 3);
+    std::vector<double> zvalsExit(numStepsExit);
+    std::vector<std::vector<double> > fieldValuesExit(3);
+
+    entryFieldValues_m = new gsl_spline*[3];
+    exitFieldValues_m = new gsl_spline*[3];
+    entryFieldAccel_m = gsl_interp_accel_alloc();
+    exitFieldAccel_m = gsl_interp_accel_alloc();
+
+    for (unsigned int i = 0; i < 3u; ++ i) {
+        fieldValuesEntry[i].resize(numStepsEntry);
+        fieldValuesExit[i].resize(numStepsExit);
+
+        entryFieldValues_m[i] = gsl_spline_alloc(gsl_interp_cspline, numStepsEntry);
+        exitFieldValues_m[i] = gsl_spline_alloc(gsl_interp_cspline, numStepsExit);
+    }
+
+    for (unsigned int j = 0; j < numStepsEntry; ++ j) {
+        if (j == 0) {
+            zvalsEntry[j] = -entranceParameter3_m - stepSizeEntry;
+        } else {
+            zvalsEntry[j] = zvalsEntry[j - 1] + stepSizeEntry;
+        }
+        calcEngeFunction(zvalsEntry[j] / gap_m,
+                         engeCoeffsEntry_m,
+                         polyOrderEntry_m,
+                         fieldValuesEntry[0][j],
+                         fieldValuesEntry[1][j],
+                         fieldValuesEntry[2][j]);
+        fieldValuesEntry[2][j] *= fieldValuesEntry[0][j];
+    }
+
+    for (unsigned int j = 0; j < numStepsExit; ++ j) {
+        if (j == 0) {
+            zvalsExit[j] = exitParameter1_m - stepSizeExit;
+        } else {
+            zvalsExit[j] = zvalsExit[j - 1] + stepSizeExit;
+        }
+        calcEngeFunction(zvalsExit[j] / gap_m,
+                         engeCoeffsExit_m,
+                         polyOrderExit_m,
+                         fieldValuesExit[0][j],
+                         fieldValuesExit[1][j],
+                         fieldValuesExit[2][j]);
+        fieldValuesExit[2][j] *= fieldValuesExit[0][j];
+    }
+
+    for (unsigned int i = 0; i < 3u; ++ i) {
+        gsl_spline_init(entryFieldValues_m[i], &(zvalsEntry[0]), &(fieldValuesEntry[i][0]), numStepsEntry);
+        gsl_spline_init(exitFieldValues_m[i], &(zvalsExit[0]), &(fieldValuesExit[i][0]), numStepsExit);
+    }
 }
 
-bool Bend::Reinitialize() {
+bool Bend::reinitialize() {
 
-    designEnergy_m = RefPartBunch_m->get_meanEnergy() * 1.0e6;
-    SetBendStrength();
+    setBendStrength();
     double bendAngleX = 0.0;
     double bendAngleY = 0.0;
-    CalculateRefTrajectory(bendAngleX, bendAngleY);
+    calculateRefTrajectory(bendAngleX, bendAngleY);
 
-    INFOMSG(level2 << "Bend design energy changed to: "
-            << designEnergy_m * 1.0e-6
-            << " MeV"
-            << endl);
-    Print(*Ippl::Info, bendAngleX, bendAngleY);
+    // INFOMSG(level2 << "Bend design energy changed to: "
+    //         << designEnergy_m * 1.0e-6
+    //         << " MeV"
+    //         << endl);
+    print(*Ippl::Info, bendAngleX, bendAngleY);
 
     return false;
 }
 
-Vector_t Bend::RotateOutOfBendFrame(const Vector_t &X) {
-
-    /*
-     * Rotate vector out of the bend's local coordinate system back to
-     * the lab frame.
-     *
-     * 1) Rotate about the x axis by angle negative Orientation_m(1).
-     * 2) Rotate about the y axis by angle Orientation_m(0).
-     * 3) Rotate about the z axis by angle Orientation_m(3).
-     */
-
-    double sina = sin(Orientation_m(0));
-    double cosa = cos(Orientation_m(0));
-    double sinb = sin(Orientation_m(1));
-    double cosb = cos(Orientation_m(1));
-    double sinc = sin(Orientation_m(2));
-    double cosc = cos(Orientation_m(2));
-
-    Vector_t temp(0.0, 0.0, 0.0);
-
-    temp(0) = (cosa * cosc) *                       X(0)
-        + (-sina * sinb * cosc - cosb * sinc) * X(1)
-        + (sina * cosb * cosc - sinb * sinc)  * X(2);
-    temp(1) = (cosa * sinc) *                       X(0)
-        + (-sina * sinb * sinc + cosb * cosc) * X(1)
-        + (sina * cosb * sinc + sinb * cosc)  * X(2);
-    temp(2) =   -sina *                               X(0)
-        + (-cosa * sinb) *                      X(1)
-        + (cosa * cosb) *                       X(2);
-
-    return temp;
-
-}
-
-Vector_t Bend::RotateToBendFrame(const Vector_t &X) {
-
-    /*
-     * Rotate vector to the bend's local coordinate system.
-     *
-     * 1) Rotate about the z axis by angle negative Orientation_m(2).
-     * 2) Rotate about the y axis by angle negative Orientation_m(0).
-     * 3) Rotate about the x axis by angle Orientation_m(1).
-     */
-
-    double sina = sin(Orientation_m(0));
-    double cosa = cos(Orientation_m(0));
-    double sinb = sin(Orientation_m(1));
-    double cosb = cos(Orientation_m(1));
-    double sinc = sin(Orientation_m(2));
-    double cosc = cos(Orientation_m(2));
-
-    Vector_t temp(0.0, 0.0, 0.0);
-
-    temp(0) = (cosa * cosc) * X(0)
-        + (cosa * sinc) * X(1)
-        -  sina *         X(2);
-    temp(1) = (-cosb * sinc - sina * sinb * cosc) * X(0)
-        + (cosb * cosc - sina * sinb * sinc)  * X(1)
-        -  cosa * sinb *                        X(2);
-    temp(2) = (-sinb * sinc + sina * cosb * cosc) * X(0)
-        + (sinb * cosc + sina * cosb * sinc)  * X(1)
-        + cosa * cosb *                         X(2);
-
-    return temp;
-}
-
-void Bend::SetBendEffectiveLength(double startField, double endField) {
+void Bend::setBendEffectiveLength(double startField, double endField) {
 
     // Find initial angle.
-    double actualBendAngle = CalculateBendAngle();
+    double actualBendAngle = calculateBendAngle();
 
     // Adjust field map to match bend angle.
     double error = std::abs(actualBendAngle - angle_m);
     if(error > 1.0e-6)
-        FindBendEffectiveLength(startField, endField);
+        findBendEffectiveLength(startField, endField);
 
 }
 
-void Bend::SetBendStrength() {
+void Bend::setBendStrength() {
 
     // Estimate bend field magnitude.
     double mass = RefPartBunch_m->getM();
@@ -1440,20 +1185,14 @@ void Bend::SetBendStrength() {
     double betaGamma = sqrt(pow(gamma, 2.0) - 1.0);
     double charge = RefPartBunch_m->getQ();
 
-    fieldAmplitude_m = (charge / std::abs(charge)) * betaGamma * mass
-        / (Physics::c * designRadius_m);
-
-    // Find initial angle.
-    double actualBendAngle = CalculateBendAngle();
+    fieldAmplitude_m = ((charge / std::abs(charge)) * betaGamma * mass /
+                        (Physics::c * designRadius_m));
 
     // Search for angle if initial guess is not good enough.
-    double error = std::abs(actualBendAngle - angle_m);
-    if(error > 1.0e-6)
-        FindBendStrength(mass, gamma, betaGamma, charge);
-
+    findBendStrength(mass, gamma, betaGamma, charge);
 }
 
-void Bend::SetEngeOriginDelta(double delta) {
+void Bend::setEngeOriginDelta(double delta) {
     /*
      * This function is used to shift the perpendicular distance of the
      * entrance and exit Enge function origins with respect to the entrance
@@ -1471,81 +1210,124 @@ void Bend::SetEngeOriginDelta(double delta) {
     exitParameter2_m = -delta;
 }
 
-void Bend::SetFieldCalcParam(bool chordLengthFromMap) {
+void Bend::setFieldCalcParam() {
 
     cosEntranceAngle_m = cos(entranceAngle_m);
     sinEntranceAngle_m = sin(entranceAngle_m);
+    tanEntranceAngle_m = tan(entranceAngle_m);
 
     deltaBeginEntry_m = std::abs(entranceParameter1_m - entranceParameter2_m);
     deltaEndEntry_m = std::abs(entranceParameter2_m - entranceParameter3_m);
 
-    exitEdgeAngle_m = angle_m - exitAngle_m;
-    cosExitAngle_m = cos(exitEdgeAngle_m);
-    sinExitAngle_m = sin(exitEdgeAngle_m);
-
     deltaBeginExit_m = std::abs(exitParameter1_m - exitParameter2_m);
     deltaEndExit_m = std::abs(exitParameter2_m - exitParameter3_m);
 
-    if(chordLengthFromMap) {
-        /*
-         * The magnet chord length is taken from this field map. In this case,
-         * we assume that the origin points for the entrance and exit Enge
-         * functions correspond to the physical edges of the bend magnet. These
-         * are the points where the ideal reference particle trajectory intercepts
-         * the entrance and exit edges.
-         */
-        xOriginEngeEntry_m = 0.0;
-        zOriginEngeEntry_m = 0.0;
-        xOriginEngeExit_m = xExit_m;
-        zOriginEngeExit_m = zExit_m;
+    double bendAngle = getBendAngle();
+    double entranceAngle = getEntranceAngle();
+    double exitAngle = getExitAngle();
+    tanExitAngle_m = tan(exitAngle);
 
+    double rotationAngleAboutZ = getRotationAboutZ();
+    Quaternion_t rotationAboutZ(cos(0.5 * rotationAngleAboutZ),
+                                sin(0.5 * rotationAngleAboutZ) * Vector_t(0, 0, 1));
+
+    Vector_t rotationAxis(0, -1, 0);
+    Quaternion_t halfRotationAboutAxis(cos(0.5 * (0.5 * bendAngle - entranceAngle)),
+                                       sin(0.5 * (0.5 * bendAngle - entranceAngle)) * rotationAxis);
+    Quaternion_t exitFaceRotation(cos(0.5 * (bendAngle - entranceAngle - exitAngle)),
+                                  sin(0.5 * (bendAngle - entranceAngle - exitAngle)) * rotationAxis);
+    Vector_t chord = getChordLength() * halfRotationAboutAxis.rotate(Vector_t(0, 0, 1));
+    beginToEnd_lcs_m = CoordinateSystemTrafo(chord, exitFaceRotation.conjugate());
+    beginToEnd_m = beginToEnd_lcs_m * CoordinateSystemTrafo(Vector_t(0.0), rotationAboutZ.conjugate());
+
+    Vector_t rotationCenter = Vector_t(-designRadius_m * cosEntranceAngle_m, 0.0, designRadius_m * sinEntranceAngle_m);
+
+    Vector_t maxAngleEntranceAperture;
+    if (rotationCenter(2) < 0.0) {
+        double tau, tmp;
+        Vector_t P(0.5 * aperture_m.second[0], 0.0, 0.0), &R = rotationCenter;
+        gsl_poly_solve_quadratic(dot(P,P),
+                                 -2 * dot(P,R),
+                                 dot(R,R) - std::pow(designRadius_m + 0.5 * aperture_m.second[0], 2),
+                                 &tau,
+                                 &tmp);
+        tau = (std::abs(1.0 - tmp) < std::abs(1.0 - tau)? tmp: tau);
+        maxAngleEntranceAperture = tau * P;
     } else {
-        /*
-         * In this case, the chord length of the magnet is set in the input file
-         * and is not taken from the field map file. This allows us to set the
-         * origin points for the entrance and exit Enge functions some perpendicular
-         * distance away from the physical edges of the magnet.
-         */
-        xOriginEngeEntry_m = -entranceParameter2_m * sinEntranceAngle_m;
-        zOriginEngeEntry_m = entranceParameter2_m * cosEntranceAngle_m;
-
-        xOriginEngeExit_m = xExit_m - exitParameter2_m * sinExitAngle_m;
-        zOriginEngeExit_m = zExit_m + exitParameter2_m * cosExitAngle_m;
-
+        double tau, tmp;
+        Vector_t P(-0.5 * aperture_m.second[0], 0.0, 0.0), &R = rotationCenter;
+        gsl_poly_solve_quadratic(dot(P,P),
+                                 -2 * dot(P,R),
+                                 dot(R,R) - std::pow(designRadius_m - 0.5 * aperture_m.second[0], 2),
+                                 &tau,
+                                 &tmp);
+        tau = (std::abs(1.0 - tmp) < std::abs(1.0 - tau)? tmp: tau);
+        maxAngleEntranceAperture = tau * P;
     }
+    Vector_t maxAngleExitAperture;
+    if (getBeginToEnd_local().transformTo(rotationCenter)(2) > 0.0) {
+        double tau, tmp;
+        Vector_t P(0.5 * aperture_m.second[0], 0.0, 0.0), R = getBeginToEnd_local().transformTo(rotationCenter);
+        gsl_poly_solve_quadratic(dot(P,P),
+                                 -2 * dot(P,R),
+                                 dot(R,R) - std::pow(designRadius_m + 0.5 * aperture_m.second[0], 2),
+                                 &tau,
+                                 &tmp);
+        tau = (std::abs(1.0 - tmp) < std::abs(1.0 - tau)? tmp: tau);
+        maxAngleExitAperture = getBeginToEnd_local().transformFrom(tau * P);
+    } else {
+        double tau, tmp;
+        Vector_t P(-0.5 * aperture_m.second[0], 0.0, 0.0), R = getBeginToEnd_local().transformTo(rotationCenter);
+        gsl_poly_solve_quadratic(dot(P,P),
+                                 -2 * dot(P,R),
+                                 dot(R,R) - std::pow(designRadius_m - 0.5 * aperture_m.second[0], 2),
+                                 &tau,
+                                 &tmp);
+        tau = (std::abs(1.0 - tmp) < std::abs(1.0 - tau)? tmp: tau);
+        maxAngleExitAperture = getBeginToEnd_local().transformFrom(tau * P);
+    }
+
+    maxAngleEntranceAperture -= rotationCenter;
+
+    Quaternion rotation = getQuaternion(maxAngleEntranceAperture, Vector_t(0, 0, 1));
+    computeAngleTrafo_m = CoordinateSystemTrafo(rotationCenter,
+                                                rotation);
+    Vector_t tmp = computeAngleTrafo_m.transformTo(maxAngleExitAperture);
+    maxAngle_m = fmod(Physics::two_pi - atan2(tmp(0), tmp(2)), Physics::two_pi);
+
+    maxAngleExitAperture -= rotationCenter;
 }
 
-void Bend::SetGapFromFieldMap() {
+void Bend::setGapFromFieldMap() {
 
     if(gap_m <= 0.0)
-        gap_m = fieldmap_m->GetFieldGap();
-    else if(gap_m != fieldmap_m->GetFieldGap())
-        AdjustFringeFields(gap_m / fieldmap_m->GetFieldGap());
+        gap_m = fieldmap_m->getFieldGap();
+    else if(gap_m != fieldmap_m->getFieldGap())
+        adjustFringeFields(gap_m / fieldmap_m->getFieldGap());
 
 }
 
-bool Bend::SetupBendGeometry(Inform &msg, double &startField, double &endField) {
+bool Bend::setupBendGeometry(Inform &msg, double &startField, double &endField) {
 
-    double chordLength = 0.0;
-    bool chordLengthFromMap = false;
-    if(!FindChordLength(msg, chordLength, chordLengthFromMap))
+    chordLength_m = 0.0;
+    if(!findChordLength(msg, chordLength_m))
         return false;
 
-    if(TreatAsDrift(msg, chordLength)) {
+    if(treatAsDrift(msg, chordLength_m)) {
         startField_m = startField;
-        endField_m = startField + chordLength;
+        endField_m = startField + chordLength_m;
         return true;
     }
 
-    reinitialize_m = FindIdealBendParameters(chordLength);
-    FindReferenceExitOrigin(xExit_m, zExit_m);
+    reinitialize_m = findIdealBendParameters(chordLength_m);
+    findReferenceExitOrigin(xExit_m, zExit_m);
 
     /*
      * Set field map geometry.
      */
-    if(aperture_m <= 0.0)
-        aperture_m = designRadius_m / 2.0;
-    SetFieldCalcParam(chordLengthFromMap);
+    if(aperture_m.second[0] <= 0.0)
+        aperture_m.second[0] = designRadius_m / 2.0;
+    setFieldCalcParam();
 
     /*
      * If we are using the default field map, then the origins for the
@@ -1558,14 +1340,14 @@ bool Bend::SetupBendGeometry(Inform &msg, double &startField, double &endField) 
      * the bend strength) or we adjust the bend field to get the right
      * angle.
      */
-    elementEdge_m = startField + ds_m;
-    SetFieldBoundaries(startField, endField);
+    elementEdge_m = startField;
+    setFieldBoundaries(startField, endField);
 
     if(fileName_m != "1DPROFILE1-DEFAULT") {
         if(reinitialize_m)
-            SetBendStrength();
+            setBendStrength();
     } else {
-        SetBendEffectiveLength(startField, endField);
+        setBendEffectiveLength(startField, endField);
     }
 
     startField = startField_m;
@@ -1574,7 +1356,7 @@ bool Bend::SetupBendGeometry(Inform &msg, double &startField, double &endField) 
 
 }
 
-bool Bend::SetupDefaultFieldMap(Inform &msg) {
+bool Bend::setupDefaultFieldMap(Inform &msg) {
 
     if(length_m <= 0.0) {
         ERRORMSG("If using \"1DPROFILE1-DEFAULT\" field map you must set the "
@@ -1583,30 +1365,29 @@ bool Bend::SetupDefaultFieldMap(Inform &msg) {
                  << endl);
         return false;
     } else {
-        msg << level2;
-        fieldmap_m->getInfo(&msg);
+        // msg << level2;
+        // fieldmap_m->getInfo(&msg);
         return true;
     }
 
 }
 
-void Bend::SetFieldBoundaries(double startField, double endField) {
+void Bend::setFieldBoundaries(double startField, double endField) {
 
-    startField_m = startField - deltaBeginEntry_m / cos(entranceAngle_m) + ds_m;
-    endField_m = startField + angle_m * designRadius_m
-        + deltaEndExit_m / cos(exitAngle_m)
-        + ds_m;
+    startField_m = startField - deltaBeginEntry_m / cos(entranceAngle_m);
+    endField_m = (startField + angle_m * designRadius_m +
+                  deltaEndExit_m / cos(exitAngle_m));
 
 }
 
-void Bend::SetupPusher(PartBunch *bunch) {
+void Bend::setupPusher(PartBunch *bunch) {
 
     RefPartBunch_m = bunch;
     pusher_m.initialise(bunch->getReference());
 
 }
 
-bool Bend::TreatAsDrift(Inform &msg, double chordLength) {
+bool Bend::treatAsDrift(Inform &msg, double chordLength) {
     if(designEnergy_m <= 0.0) {
         WARNMSG("Warning: bend design energy is zero. Treating as drift."
                 << endl);
@@ -1644,10 +1425,357 @@ bool Bend::TreatAsDrift(Inform &msg, double chordLength) {
 }
 
 void Bend::retrieveDesignEnergy(double startField) {
-    energyEvolution_t::iterator it = OpalData::getInstance()->getFirstEnergyData();
-    energyEvolution_t::iterator end = OpalData::getInstance()->getLastEnergyData();
-    for (; it != end; ++ it) {
-        if ((*it).first > startField) break;
-        designEnergy_m = (*it).second;
+    // energyEvolution_t::iterator it = OpalData::getInstance()->getFirstEnergyData();
+    // energyEvolution_t::iterator end = OpalData::getInstance()->getLastEnergyData();
+    // for (; it != end; ++ it) {
+    //     if ((*it).first > startField) break;
+    //     designEnergy_m = (*it).second;
+    // }
+}
+
+std::pair<Vector_t, Vector_t> Bend::getDesignPathSecant(double startsAtDistFromEdge, double length) const {
+
+    length = std::abs(length);
+    Vector_t startPosition(0.0);
+    Vector_t tangent(0, 0, 1);
+
+    double pathLength = refTrajMap_m[0](2);
+    unsigned int size = refTrajMap_m.size();
+
+    for (unsigned int i = 1; i < size; ++ i) {
+        Vector_t step = refTrajMap_m[i] - refTrajMap_m[i-1];
+        double stepSize = euclidian_norm(step);
+        if (pathLength + stepSize > startsAtDistFromEdge) {
+            double diff = startsAtDistFromEdge - pathLength;
+            tangent = step / stepSize;
+            startPosition = refTrajMap_m[i-1] + diff * tangent;
+
+
+            if (length <= 1e-12) {
+                return std::make_pair(startPosition, tangent);
+            }
+
+            for (unsigned j = i; j < size; ++ j) {
+                Vector_t position = refTrajMap_m[j];
+
+                if (euclidian_norm(position - startPosition) >= length) {
+                    step = refTrajMap_m[j-1] - refTrajMap_m[j];
+                    double tau = (dot(startPosition - position, step) - sqrt(std::pow(dot(startPosition - position, step), 2) - dot(step, step) * (dot(startPosition - position, startPosition - position) - std::pow(length, 2)))) / dot(step, step);
+
+                    tangent = position + tau * step - startPosition;
+                    tangent /= euclidian_norm(tangent);
+
+                    return std::make_pair(startPosition, tangent);
+                }
+            }
+
+            Vector_t position = refTrajMap_m[size - 1];
+            Vector_t step = position - refTrajMap_m[size - 2];
+            step /= euclidian_norm(step);
+            double tau = (dot(startPosition - position, step) + sqrt(std::pow(dot(startPosition - position, step), 2) - dot(step, step) * (dot(startPosition - position, startPosition - position) - std::pow(length, 2)))) / dot(step, step);
+
+            tangent = position + tau * step - startPosition;
+            tangent /= euclidian_norm(tangent);
+
+            return std::make_pair(startPosition, tangent);
+        }
+
+        pathLength += stepSize;
     }
+
+    double diff = startsAtDistFromEdge - pathLength;
+    unsigned int i = size - 1;
+    Vector_t step = refTrajMap_m[i] - refTrajMap_m[i-1];
+    double stepSize = euclidian_norm(step);
+    tangent = step / stepSize;
+    startPosition = refTrajMap_m[i] + diff * tangent;
+    tangent = tangent;
+
+    return std::make_pair(startPosition, tangent);
+}
+
+std::vector<Vector_t> Bend::getOutline() const {
+    std::vector<Vector_t> outline;
+    Vector_t rotationCenter = Vector_t(-designRadius_m * cosEntranceAngle_m, 0.0, designRadius_m * sinEntranceAngle_m);
+    unsigned int numSteps = 2;
+
+    outline.push_back(Vector_t(-aperture_m.second[0], 0.0, 0.0));
+    outline.push_back(Vector_t(-aperture_m.second[0] + entranceParameter1_m * tanEntranceAngle_m, 0.0, entranceParameter1_m));
+    outline.push_back(Vector_t(entranceParameter1_m * tanEntranceAngle_m, 0.0, entranceParameter1_m));
+    outline.push_back(Vector_t(aperture_m.second[0] + entranceParameter1_m * tanEntranceAngle_m, 0.0, entranceParameter1_m));
+    outline.push_back(Vector_t(aperture_m.second[0], 0.0, 0.0));
+
+    {
+        double tau1, tau2;
+        Vector_t P(0.5 * aperture_m.second[0], 0.0, 0.0), R = rotationCenter;
+        gsl_poly_solve_quadratic(dot(P,P),
+                                 -2 * dot(P,R),
+                                 dot(R,R) - std::pow(designRadius_m + 0.5 * aperture_m.second[0], 2),
+                                 &tau1,
+                                 &tau2);
+        tau1 = (std::abs(1.0 - tau2) < std::abs(1.0 - tau1)? tau2: tau1);
+        Vector_t upperCornerAtEntry = tau1 * P;
+
+        R = getBeginToEnd_local().transformTo(rotationCenter);
+        gsl_poly_solve_quadratic(dot(P,P),
+                                 -2 * dot(P,R),
+                                 dot(R,R) - std::pow(designRadius_m + 0.5 * aperture_m.second[0], 2),
+                                 &tau1,
+                                 &tau2);
+        tau1 = (std::abs(1.0 - tau2) < std::abs(1.0 - tau1)? tau2: tau1);
+        Vector_t upperCornerAtExit = getBeginToEnd_local().transformFrom(tau1 * P);
+
+        Quaternion rotation = getQuaternion(upperCornerAtEntry - rotationCenter, Vector_t(0,0,1));
+        Vector_t tmp = CoordinateSystemTrafo(rotationCenter, rotation).transformTo(upperCornerAtExit);
+        double totalAngle = -fmod(Physics::two_pi - atan2(tmp(0), tmp(2)), Physics::two_pi);
+        numSteps = std::max(2.0, std::ceil(-totalAngle / (5.0 * Physics::deg2rad)));
+        double dAngle = 0.5 * totalAngle / (1.0 * numSteps - 1.0);
+
+        outline.push_back(upperCornerAtEntry);
+        double angle = 0.0;
+        for (unsigned int i = 0; i < numSteps; ++ i, angle += dAngle) {
+            Quaternion rot(cos(angle), 0.0, sin(angle), 0.0);
+            outline.push_back(rot.rotate(upperCornerAtEntry - rotationCenter) + rotationCenter);
+        }
+        outline.push_back(upperCornerAtExit);
+    }
+
+    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(aperture_m.second[0], 0.0, 0.0)));
+    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(aperture_m.second[0] - exitParameter3_m * tanExitAngle_m, 0.0, exitParameter3_m)));
+    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(-exitParameter3_m * tanExitAngle_m, 0.0, exitParameter3_m)));
+    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(-aperture_m.second[0] - exitParameter3_m * tanExitAngle_m, 0.0, exitParameter3_m)));
+    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(-aperture_m.second[0], 0.0, 0.0)));
+
+    {
+        double tau1, tau2;
+        Vector_t P(-0.5 * aperture_m.second[0], 0.0, 0.0), R = rotationCenter;
+        gsl_poly_solve_quadratic(dot(P,P),
+                                 -2 * dot(P,R),
+                                 dot(R,R) - std::pow(designRadius_m - 0.5 * aperture_m.second[0], 2),
+                                 &tau1,
+                                 &tau2);
+        tau1 = (std::abs(1.0 - tau2) < std::abs(1.0 - tau1)? tau2: tau1);
+        Vector_t lowerCornerAtEntry = tau1 * P;
+
+        R = getBeginToEnd_local().transformTo(rotationCenter);
+        gsl_poly_solve_quadratic(dot(P,P),
+                                 -2 * dot(P,R),
+                                 dot(R,R) - std::pow(designRadius_m - 0.5 * aperture_m.second[0], 2),
+                                 &tau1,
+                                 &tau2);
+        tau1 = (std::abs(1.0 - tau2) < std::abs(1.0 - tau1)? tau2: tau1);
+        Vector_t lowerCornerAtExit = getBeginToEnd_local().transformFrom(tau1 * P);
+
+        Quaternion rotation = getQuaternion(lowerCornerAtEntry - rotationCenter, Vector_t(0,0,1));
+        Vector_t tmp = CoordinateSystemTrafo(rotationCenter, rotation).transformTo(lowerCornerAtExit);
+        double totalAngle = -fmod(Physics::two_pi - atan2(tmp(0), tmp(2)), Physics::two_pi);
+        double dAngle = 0.5 * totalAngle / (1.0 * numSteps - 1.0);
+
+        outline.push_back(lowerCornerAtExit);
+        double angle = 0.5 * totalAngle;
+        for (unsigned int i = 0; i < numSteps; ++ i, angle -= dAngle) {
+            Quaternion rot(cos(angle), 0.0, sin(angle), 0.0);
+            outline.push_back(rot.rotate(lowerCornerAtEntry - rotationCenter) + rotationCenter);
+        }
+        outline.push_back(lowerCornerAtEntry);
+    }
+
+    std::ofstream outlineOutput;
+    if (Options::writeBendTrajectories && Ippl::myNode() == 0) {
+        outlineOutput.open("data/" + OpalData::getInstance()->getInputBasename() + "_" + getName() + "_outline.dat");
+        outlineOutput.precision(8);
+
+        for (auto a: outline) {
+            outlineOutput << std::setw(18) << a(2)
+                          << std::setw(18) << a(0)
+                          << "\n";
+        }
+        outlineOutput << std::setw(18) << outline.front()(2)
+                      << std::setw(18) << outline.front()(0)
+                      << std::endl;
+    }
+    return outline;
+}
+
+MeshData Bend::getSurfaceMesh() const {
+    MeshData mesh;
+    const Vector_t hgap(0, 0.5 * getFullGap(), 0);
+    std::vector<Vector_t> outline = getOutline();
+
+    unsigned int size = outline.size();
+    unsigned int last = size - 1;
+    unsigned int numSteps = (size - 14) / 2;
+    unsigned int midIdx = numSteps + 7;
+
+    for (unsigned int i = 0; i < 6; ++ i) {
+        mesh.vertices_m.push_back(outline[i] + 2 * hgap);
+    }
+    for (unsigned int i = 6; i < 6 + numSteps; ++ i) {
+        mesh.vertices_m.push_back(outline[i] + hgap);
+    }
+    for (unsigned int i = 6 + numSteps; i < 13 + numSteps; ++ i) {
+        mesh.vertices_m.push_back(outline[i] + 2 * hgap);
+    }
+    for (unsigned int i = 13 + numSteps; i < 13 + 2 * numSteps; ++ i) {
+        mesh.vertices_m.push_back(outline[i] + hgap);
+    }
+    mesh.vertices_m.push_back(outline[last] + 2 * hgap);
+
+    for (unsigned int i = 0; i < 6; ++ i) {
+        mesh.vertices_m.push_back(outline[i] - 2 * hgap);
+    }
+    for (unsigned int i = 6; i < 6 + numSteps; ++ i) {
+        mesh.vertices_m.push_back(outline[i] - hgap);
+    }
+    for (unsigned int i = 6 + numSteps; i < 13 + numSteps; ++ i) {
+        mesh.vertices_m.push_back(outline[i] - 2 * hgap);
+    }
+    for (unsigned int i = 13 + numSteps; i < 13 + 2 * numSteps; ++ i) {
+        mesh.vertices_m.push_back(outline[i] - hgap);
+    }
+    mesh.vertices_m.push_back(outline[last] - 2 * hgap);
+
+    mesh.vertices_m.push_back(outline[0]);
+    mesh.vertices_m.push_back(outline[4]);
+    mesh.vertices_m.push_back(outline[midIdx]);
+    mesh.vertices_m.push_back(outline[midIdx + 4]);
+
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(2, 1, 0));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(2, 4, 3));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(2, 5, 4));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(2, 0, last));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(2, last, 5));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(last, last - 1, 5));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(5, last - 1, 6));
+
+    // exit region top
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(midIdx + 2, midIdx + 1, midIdx));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(midIdx + 2, midIdx + 4, midIdx + 3));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(midIdx + 2, midIdx + 5, midIdx + 4));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(midIdx + 2, midIdx, midIdx - 1));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(midIdx + 2, midIdx - 1, midIdx + 5));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(midIdx - 1, midIdx - 2, midIdx + 5));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(midIdx + 5, midIdx - 2, midIdx + 6));
+
+    // entry region bottom
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + 2, size + 0, size + 1));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + 2, size + 3, size + 4));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + 2, size + 4, size + 5));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + 2, size + last, size + 0));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + 2, size + 5, size + last));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + last, size + 5, size + last - 1));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + 5, size + 6, size + last - 1));
+
+    // exit region bottom
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + midIdx + 2, size + midIdx + 0, size + midIdx + 1));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + midIdx + 2, size + midIdx + 3, size + midIdx + 4));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + midIdx + 2, size + midIdx + 4, size + midIdx + 5));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + midIdx + 2, size + midIdx - 1, size + midIdx + 0));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + midIdx + 2, size + midIdx + 5, size + midIdx - 1));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + midIdx - 1, size + midIdx + 5, size + midIdx - 2));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + midIdx + 5, size + midIdx + 6, size + midIdx - 2));
+
+    // central region
+    for (unsigned int i = 6; i < 5 + numSteps; ++ i) {
+        mesh.triangles_m.push_back(Vektor<unsigned int, 3>(i, last + 5 - i, i + 1));
+        mesh.triangles_m.push_back(Vektor<unsigned int, 3>(last + 5 - i, last + 4 - i, i + 1));
+
+        mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + i, size + i + 1, size + last + 5 - i));
+        mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + last + 5 - i, size + i + 1, size + last + 4 - i));
+    }
+
+    // side
+    for (unsigned int i = 0; i < size - 2; ++ i) {
+        if (i == 4u || i == 5u ||
+            i == 5 + numSteps || i == 6 + numSteps ||
+            i == 11 + numSteps || i == 12 + numSteps) continue;
+
+        unsigned int next = (i + 1) % size;
+        mesh.triangles_m.push_back(Vektor<unsigned int, 3>(i, next, next + size));
+        mesh.triangles_m.push_back(Vektor<unsigned int, 3>(i, next + size, i + size));
+    }
+
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(last, 0, last-1));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(2*size, last - 1, 0));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(2*size, size + last - 1, last - 1));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(2*size, size, size + last - 1));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + last, size + last - 1, size));
+
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(4, 5, 6));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(4, 6, 2*size + 1));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(2*size + 1, 6, size + 6));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + 4, 2*size + 1, size + 6));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + 4, size + 6, size + 5));
+
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(6 + numSteps, midIdx, 5 + numSteps));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(5 + numSteps, midIdx, 2*size + 2));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(5 + numSteps, 2*size + 2, size + 5 + numSteps));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + 5 + numSteps, 2*size + 2, size + midIdx));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + 6 + numSteps, size + 5 + numSteps, size + midIdx));
+
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(6 + midIdx, 4 + midIdx, 5 + midIdx));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(6 + midIdx, 2*size + 3, 4 + midIdx));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(2*size + 3, 6 + midIdx, size + 6 + midIdx));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + 4 + midIdx,  2*size + 3, size + 6 + midIdx));
+    mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + 4 + midIdx, size + 6 + midIdx, size + 5 + midIdx));
+
+    double tau1, tau2;
+    Vector_t rotationCenter(-designRadius_m * cosEntranceAngle_m, 0.0, designRadius_m * sinEntranceAngle_m);
+    Vector_t P(-0.5 * aperture_m.second[0], 0.0, 0.0);
+    Vector_t R = Vector_t(0, 0, entranceParameter3_m) - rotationCenter;
+    gsl_poly_solve_quadratic(dot(P,P),
+                             2 * dot(P,R),
+                             dot(R,R) - std::pow(designRadius_m - 0.5 * aperture_m.second[0],2),
+                             &tau1,
+                             &tau2);
+    tau1 = (std::abs(1.0 - tau2) < std::abs(1.0 - tau1)? tau2: tau1);
+    Vector_t lowerCornerFringeLimitEntrance = Vector_t(0, 0, entranceParameter3_m) + tau1 * P;
+
+    gsl_poly_solve_quadratic(dot(P,P),
+                             -2 * dot(P,R),
+                             dot(R,R) - std::pow(designRadius_m + 0.5 * aperture_m.second[0],2),
+                             &tau1,
+                             &tau2);
+    tau1 = (std::abs(1.0 - tau2) < std::abs(1.0 - tau1)? tau2: tau1);
+    Vector_t upperCornerFringeLimitEntrance = Vector_t(0, 0, entranceParameter3_m) - tau1 * P;
+
+    P = Vector_t(0.5 * aperture_m.second[0], 0.0, 0.0);
+    R = Vector_t(0, 0, exitParameter1_m) - getBeginToEnd_local().transformTo(rotationCenter);
+    gsl_poly_solve_quadratic(dot(P,P),
+                             2 * dot(P,R),
+                             dot(R,R) - std::pow(designRadius_m + 0.5 * aperture_m.second[0],2),
+                             &tau1,
+                             &tau2);
+    tau1 = (std::abs(1.0 - tau2) < std::abs(1.0 - tau1)? tau2: tau1);
+    Vector_t upperCornerFringeLimitExit = getBeginToEnd_local().transformFrom(Vector_t(0, 0, exitParameter1_m) + tau1 * P);
+
+    gsl_poly_solve_quadratic(dot(P,P),
+                             -2 * dot(P,R),
+                             dot(R,R) - std::pow(designRadius_m - 0.5 * aperture_m.second[0],2),
+                             &tau1,
+                             &tau2);
+    tau1 = (std::abs(1.0 - tau2) < std::abs(1.0 - tau1)? tau2: tau1);
+    Vector_t lowerCornerFringeLimitExit = getBeginToEnd_local().transformFrom(Vector_t(0, 0, exitParameter1_m) - tau1 * P);
+
+    mesh.decorations_m.push_back(std::make_pair(lowerCornerFringeLimitEntrance, upperCornerFringeLimitEntrance));
+    mesh.decorations_m.push_back(std::make_pair(lowerCornerFringeLimitExit, upperCornerFringeLimitExit));
+    mesh.decorations_m.push_back(std::make_pair(Vector_t(entranceParameter1_m * tanEntranceAngle_m, 0.0, entranceParameter1_m),
+                                                Vector_t(0.0)));
+    mesh.decorations_m.push_back(std::make_pair(getBeginToEnd_local().transformFrom(Vector_t(0.0)),
+                                                getBeginToEnd_local().transformFrom(Vector_t(-exitParameter3_m * tanExitAngle_m, 0.0, exitParameter3_m))));
+    return mesh;
+}
+
+bool Bend::isInside(const Vector_t &R) const {
+    if (std::abs(R(1)) > gap_m) return false;
+
+    if (inMagnetEntranceRegion(R)) {
+        return true;
+    }
+
+    if (inMagnetExitRegion(R)) {
+        return true;
+    }
+
+    return (std::abs(R(1)) < 0.5 * gap_m && inMagnetCentralRegion(R));
 }

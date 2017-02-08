@@ -39,8 +39,6 @@ public:
         LAG,            // The phase lag.
 
         PLENGTH,           //distance between two plates or length in s direction
-        DX,             // Misalignment: translation in x direction
-        DY,             // Misalignment: translation in y direction
         SIZE
     };
 

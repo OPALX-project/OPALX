@@ -19,6 +19,7 @@ public:
     virtual double getFrequency() const;
     virtual void setFrequency(double freq);
 
+    virtual bool isInside(const Vector_t &r) const;
 private:
     FM1DMagnetoStatic(std::string aFilename);
     ~FM1DMagnetoStatic();
@@ -49,5 +50,10 @@ private:
 
     friend class Fieldmap;
 };
+
+inline bool FM1DMagnetoStatic::isInside(const Vector_t &r) const
+{
+    return r(2) >= zBegin_m && r(2) < zEnd_m;
+}
 
 #endif

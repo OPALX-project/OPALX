@@ -79,23 +79,6 @@ class Ring : public Component {
     /** Destructor - deletes lossDS_m if not NULL */
     virtual ~Ring();
 
-    /** Overwrite data in array E and B with electric and magnetic fields and
-     *  flag particles outside of the ring aperture
-     *
-     *  @param id index of item in RefPartBunch_m - particle bunch
-     *  @param t time
-     *  @param E array where electric field vector is stored - any
-     *         existing data is overwritten
-     *  @param B array where magnetic field vector is stored - any
-     *         existing data is overwritten
-     *
-     *  @returns false if particle is outside of the field map apertures, else
-     *  true. If particle is off the field maps, then set flag on the particle
-     *  "Bin" data to -1
-     */
-    virtual bool apply(const size_t &id, const double &t, double E[],
-                       double B[]);
-
     /** Overwrite data in vector E and B with electric and magnetic field
      *
      *  @param i index of item in RefPartBunch_m - particle bunch
@@ -116,6 +99,7 @@ class Ring : public Component {
      *
      *  @param R 3 vector position at which the field is found in Cartesian
      *         coordinates (i.e. x, y, z with z=vertical)
+     *  @param P 3 vector momentum
      *  @param centroid unknown, but not used - bunch mean maybe?
      *  @param t time
      *  @param E vector where electric field vector will be stored - any
@@ -127,7 +111,7 @@ class Ring : public Component {
      *  If particle is off the field maps, then set flag on the particle
      *  "Bin" data to -1
      */
-    virtual bool apply(const Vector_t &R, const Vector_t &centroid,
+    virtual bool apply(const Vector_t &R, const Vector_t &P,
                        const double &t, Vector_t &E, Vector_t &B);
 
     /** Initialise the Ring
@@ -139,7 +123,7 @@ class Ring : public Component {
      *  @param scaleFactor - not used
      */
     virtual void initialise(PartBunch *bunch, double &startField,
-                            double &endField, const double &scaleFactor);
+                            double &endField);
 
     /** Initialise the Ring - set the bunch and allocate a new LossDataSink
      *

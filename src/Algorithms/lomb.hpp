@@ -229,7 +229,7 @@ int LOMB_class::avevar(std::vector<LOMB_TYPE> *data, double *ave, double *var)
 
 
 
-double LOMB_class::Signi(double *peak, int *nout, double *ofac)
+double LOMB_class::signi(double *peak, int *nout, double *ofac)
 /*---------------------------------------------------------------------------*
  * Calculate the significance of a peak in an Lomb Periodogram
  * ===========================================================

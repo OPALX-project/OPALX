@@ -32,10 +32,9 @@ public:
     /// The attributes of class OpalSolenoid.
     enum {
         KS = COMMON,  // The longitudinal magnetic field.
-        FMAPFN,          // The Field filename
-        FAST,           // Faster but less accurate
-        DX,             // Misalignment: translation in x direction
-        DY,             // Misalignment: translation in y direction
+        DKS,          // The longitudinal magnetic field error.
+        FMAPFN,       // The Field filename
+        FAST,         // Faster but less accurate
         SIZE
     };
 

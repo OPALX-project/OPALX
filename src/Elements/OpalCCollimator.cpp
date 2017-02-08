@@ -85,6 +85,8 @@ void OpalCCollimator::fillRegisteredAttributes(const ElementBase &base, ValueFla
 
 
 void OpalCCollimator::update() {
+    OpalElement::update();
+
     CollimatorRep *coll =
         dynamic_cast<CollimatorRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
@@ -106,24 +108,11 @@ void OpalCCollimator::update() {
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
     coll->setCColl();
 
-    /*
-    std::vector<double> apert = getApert();
-    double apert_major = -1., apert_minor = -1.;
-    if(apert.size() > 0) {
-        apert_major = apert[0];
-        if(apert.size() > 1) {
-            apert_minor = apert[1];
-        } else {
-            apert_minor = apert[0];
-        }
-    }
-    */
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
         sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
         sphys_m->initSurfacePhysicsHandler(*coll);
         coll->setSurfacePhysics(sphys_m->handler_m);
     }
-
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(coll);

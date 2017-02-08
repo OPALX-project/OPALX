@@ -25,13 +25,13 @@
 	#include <fstream>
 	#include <iomanip>
 	#include <iostream>
-	#include <string>
 	#include <sstream>
 	#include <algorithm>
 	#include <iterator>
 	#include <utility>
 #endif
 
+#include <string>
 
 class Beam;
 class OpalData;
@@ -73,12 +73,11 @@ private:
     void setupSliceTracker();
     void setupTTracker();
     void setupCyclotronTracker();
+    void setupStatisticalErrors(const std::string & method);
 
     void setupFieldsolver();
 
     double setDistributionParallelT(Beam *beam);
-    void findPhasesForMaxEnergy(bool writeToFile = false) const;
-    void executeAutophaseTracker();
 
     // Pointer to tracking algorithm.
     Tracker *itsTracker;

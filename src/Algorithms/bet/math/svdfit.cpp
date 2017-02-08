@@ -131,7 +131,7 @@ static double pythag(double a, double b) {
 }
 
 static void svdcmp(double **a, int m, int n, double w[], double **v) {
-    int flag, i, its, j, jj, k, l, nm;
+    int flag, i, its, j, jj, k, l, nm = 0;
     double anorm, c, f, g, h, s, scale, x, y, z, *rv1;
 
     rv1 = vector(n + 1);

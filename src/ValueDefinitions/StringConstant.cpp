@@ -20,7 +20,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Utilities/Options.h"
-#include "revision.h"
+#include "Utilities/Util.h"
 #include <iostream>
 
 
@@ -35,8 +35,7 @@ StringConstant::StringConstant():
     itsAttr[0] = Attributes::makeString("VALUE", "The constant value");
 
     OpalData *opal = OpalData::getInstance();
-    std::string gitRevision(GIT_VERSION);
-    opal->create(new StringConstant("GITREVISION", this, gitRevision));
+    opal->create(new StringConstant("GITREVISION", this, Util::getGitRevision()));
 }
 
 
@@ -78,4 +77,8 @@ std::string StringConstant::getString() const {
 void StringConstant::print(std::ostream &os) const {
     os << "STRING " << getOpalName() << '=' << itsAttr[0] << ';';
     os << std::endl;
+}
+
+void StringConstant::printValue(std::ostream &os) const {
+    os << itsAttr[0];
 }

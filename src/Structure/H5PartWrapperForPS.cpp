@@ -4,13 +4,12 @@
 
 #include "Structure/H5PartWrapperForPS.h"
 
-#include "config.h"
-#include "revision.h"
+#include "OPALconfig.h"
 #include "Algorithms/PartBunch.h"
 #include "Algorithms/bet/EnvelopeBunch.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Options.h"
-#include "Utilities/Options.h"
+#include "Utilities/Util.h"
 #include "Physics/Physics.h"
 
 #include <boost/filesystem.hpp>
@@ -176,7 +175,7 @@ void H5PartWrapperForPS::writeHeader() {
     h5_float64_t dphi = OpalData::getInstance()->getGlobalPhaseShift();
     std::stringstream OPAL_version;
 
-    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION << " git rev. " << GIT_VERSION;
+    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " git rev. " << Util::getGitRevision();
     WRITESTRINGFILEATTRIB(file_m, "OPAL_version", OPAL_version.str().c_str());
 
     WRITESTRINGFILEATTRIB(file_m, "xUnit", "m");
@@ -241,13 +240,13 @@ void H5PartWrapperForPS::writeStepHeader(PartBunch& bunch,
     double   actPos   = ebunch->get_sPos();
     double   t        = ebunch->getT();
     Vector_t rmin     = ebunch->get_origin();
-    Vector_t rmax     = ebunch->get_maxExtend();
+    Vector_t rmax     = ebunch->get_maxExtent();
 
     Vector_t xsigma = ebunch->get_rrms();
     Vector_t psigma = ebunch->get_prms();
     Vector_t vareps = ebunch->get_norm_emit();
 
-    double meanEnergy = ebunch->get_meanEnergy();
+    double meanEnergy = ebunch->get_meanKineticEnergy();
 
     double mass = 1.0e-9 * ebunch->getM();
     double charge = ebunch->getCharge();
@@ -425,7 +424,7 @@ void H5PartWrapperForPS::stashPhaseSpaceEnvelope(EnvelopeBunch &bunch,
     stash_minP.push_back(ebunch->minP());
 
     //in MeV
-    stash_meanEnergy.push_back(ebunch->get_meanEnergy() * 1e-6);
+    stash_meanEnergy.push_back(ebunch->get_meanKineticEnergy() * 1e-6);
 
     stash_sposHead.push_back(sposHead);
     stash_sposRef.push_back(sposRef);

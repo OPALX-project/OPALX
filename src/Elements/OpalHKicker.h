@@ -34,6 +34,8 @@ public:
     /// The attributes of class OpalHKicker.
     enum {
         KICK = COMMON,  // The kicker strength.
+        DESIGNENERGY,   // The mean kinetic energy at exit
+        K0,             // The magnetic field
         SIZE
     };
 

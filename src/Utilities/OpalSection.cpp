@@ -29,7 +29,7 @@ OpalSection::OpalSection(const CompVec &elements, const double &start, const dou
     for(CompVec::const_iterator clit = elements_m.begin(); clit != elements_m.end(); ++ clit) {
         if((*clit)->bends()) {
             bends_m = true;
-            (*clit)->getOrientation(orientation_m, exit_face_angle_m);
+            // (*clit)->getOrientation(orientation_m, exit_face_angle_m);
         }
         if((*clit)->hasWake()) {
             if(has_wake_m && wakefunction_m != (*clit)->getWake()) {

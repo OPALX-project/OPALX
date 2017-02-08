@@ -94,26 +94,13 @@ void Probe::accept(BeamlineVisitor &visitor) const {
     visitor.visitProbe(*this);
 }
 
-bool Probe::apply(const size_t &i, const double &t, double E[], double B[]) {
-    Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
-    return apply(i, t, Ev, Bv);
-}
-
-bool Probe::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
-    return false;
-}
-
-bool Probe::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
-    return false;
-}
-
-void Probe::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
+void Probe::initialise(PartBunch *bunch, double &startField, double &endField) {
     position_m = startField;
     startField -= 0.005;
     endField = position_m + 0.005;
 }
 
-void Probe::initialise(PartBunch *bunch, const double &scaleFactor) {
+void Probe::initialise(PartBunch *bunch) {
     *gmsg << "* Initialize probe" << endl;
     if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));

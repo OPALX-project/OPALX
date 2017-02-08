@@ -15,4 +15,19 @@ include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
   )
 
-add_sources(${_SRCS})
+ADD_OPAL_SOURCES(${_SRCS})
+
+set (HDRS
+    AbsFileStream.h
+    ClassicParser.h
+    FileStream.h
+    Parser.h
+    SimpleStatement.h
+    Statement.h
+    StringStream.h
+    TerminalStream.h
+    Token.h
+    TokenStream.h
+)
+
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Parser")

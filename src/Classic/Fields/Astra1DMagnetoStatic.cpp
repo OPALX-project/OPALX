@@ -1,6 +1,8 @@
 #include "Fields/Astra1DMagnetoStatic.h"
 #include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
+#include "Utilities/GeneralClassicException.h"
+
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
 #include "gsl/gsl_fft_real.h"
@@ -48,6 +50,8 @@ Astra1DMagnetoStatic::Astra1DMagnetoStatic(std::string aFilename)
         if(!parsing_passed && !file.eof()) {
             disableFieldmapWarning();
             zend_m = zbegin_m - 1e-3;
+            throw GeneralClassicException("Astra1DMagnetoStatic::Astra1DMagnetoStatic",
+                                          "An error occured when reading the fieldmap '" + Filename_m + "'");
         }
         length_m = 2.0 * num_gridpz_m * (zend_m - zbegin_m) / (num_gridpz_m - 1);
     } else {

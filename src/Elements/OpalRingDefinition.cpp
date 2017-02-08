@@ -36,7 +36,7 @@
 OpalRingDefinition::OpalRingDefinition() :
     OpalElement(SIZE, "RINGDEFINITION",
                 "The \"RINGDEFINITION\" element defines basic ring parameters.") {
-  
+
     itsAttr[HARMONIC_NUMBER] = Attributes::makeReal("HARMONIC_NUMBER",
                                                     "The assumed harmonic number of the ring (i.e. number of bunches in the ring on a given turn).");
     itsAttr[LAT_RINIT] = Attributes::makeReal("LAT_RINIT",
@@ -102,10 +102,12 @@ void OpalRingDefinition::update() {
     ring->setBeamPRInit(Attributes::getReal(itsAttr[BEAM_PRINIT]));
     ring->setBeamRInit(Attributes::getReal(itsAttr[BEAM_RINIT]));
     ring->setLatticeRInit(Attributes::getReal(itsAttr[LAT_RINIT]));
+
     ring->setLatticePhiInit(Attributes::getReal(itsAttr[LAT_PHIINIT])*degree);
     ring->setLatticeThetaInit(Attributes::getReal(itsAttr[LAT_THETAINIT])*degree);
     ring->setSymmetry(Attributes::getReal(itsAttr[SYMMETRY]));
     ring->setScale(Attributes::getReal(itsAttr[SCALE]));
+
     ring->setHarmonicNumber(Attributes::getReal(itsAttr[HARMONIC_NUMBER]));
     ring->setRFFreq(Attributes::getReal(itsAttr[RFFREQ]));
     ring->setIsClosed(!(Attributes::getString(itsAttr[IS_CLOSED])=="FALSE"));

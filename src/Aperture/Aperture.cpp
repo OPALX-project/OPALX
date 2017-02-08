@@ -650,14 +650,14 @@ void Aperture::calcul(Twiss::TLine::iterator i, A_row &a, int nslice, Twiss *tp)
             dat.erase(dat.begin(), dat.begin() + 4);
             ShapeBeamScreen = getShape(dat);
         } else {
-            vector<double> vec = elem.getApert();
+            auto vec = elem.getApert();
 
-            tolerance_x = vec[0];
-            tolerance_y = vec[1];
-            offsetx = vec[2];
-            offsety = vec[3];
-            vec.erase(vec.begin(), vec.begin() + 4);
-            ShapeBeamScreen = getShape(vec);
+            tolerance_x = vec.second[0];
+            tolerance_y = vec.second[1];
+            offsetx = vec.second[2];
+            offsety = vec.second[3];
+            vec.second.erase(vec.second.begin(), vec.second.begin() + 4);
+            ShapeBeamScreen = getShape(vec.second);
 
         }
     }
@@ -903,7 +903,7 @@ void Aperture::run() {
             } else {
                 OpalElement &elem = dynamic_cast<OpalElement &>(*Element::find(nam));
                 std::string Typ = elem.getBaseObject()->getOpalName();
-                if((elem.getApert().size() == 0) && (Typ != "MARKER")) i++;
+                if((elem.getApert().second.size() == 0) && (Typ != "MARKER")) i++;
                 else {
                     A_row row(*i, static_cast<int>(nslice));
                     i->accept(*this);
@@ -923,7 +923,7 @@ void Aperture::run() {
                 OpalElement &elem = dynamic_cast<OpalElement &>(*Element::find(nam));
                 std::string Typ = elem.getBaseObject()->getOpalName();
                 if(Typ == "MARKER") i++;
-                else if(elem.getApert().size() == 0) i++;
+                else if(elem.getApert().second.size() == 0) i++;
                 else {
                     A_row row(*i, static_cast<int>(nslice));
                     i->accept(*this);
