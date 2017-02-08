@@ -61,6 +61,9 @@ void RealVector::print(std::ostream &os) const {
        << itsAttr[0] << ';' << std::endl;
 }
 
+void RealVector::printValue(std::ostream &os) const {
+    os << itsAttr[0];
+}
 
 double RealVector::getRealComponent(int index) const {
     std::vector<double> array = Attributes::getRealArray(itsAttr[0]);

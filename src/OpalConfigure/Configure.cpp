@@ -36,6 +36,7 @@
 #include "BasicActions/Quit.h"
 #include "BasicActions/What.h"
 #include "BasicActions/System.h"
+#include "BasicActions/PSystem.h"
 #include "BasicActions/Title.h"
 #include "BasicActions/Value.h"
 
@@ -111,6 +112,7 @@
 #include "Elements/OpalQuadrupole.h"
 #include "Elements/OpalPolynomialTimeDependence.h"
 #include "Elements/OpalRBend.h"
+#include "Elements/OpalRBend3D.h"
 #include "Elements/OpalRCollimator.h"
 #include "Elements/OpalSBend.h"
 #include "Elements/OpalSBend3D.h"
@@ -119,6 +121,7 @@
 #include "Elements/OpalSextupole.h"
 #include "Elements/OpalSlit.h"
 #include "Elements/OpalSolenoid.h"
+#include "Elements/OpalSource.h"
 #include "Elements/OpalSRot.h"
 #include "Elements/OpalTravelingWave.h"
 #include "Elements/OpalVKicker.h"
@@ -135,6 +138,7 @@
 #include "Lines/Line.h"
 #include "Lines/Sequence.h"
 
+#include "changes.h"
 
 // Namespace Configure
 // Modify these methods to add new commands.
@@ -146,7 +150,6 @@ namespace Configure {
         OpalData *opal = OpalData::getInstance();
         opal->create(new Call());
         opal->create(new Dump());
-        opal->create(new DumpFields());
         opal->create(new Echo());
         opal->create(new Dynamic());
         opal->create(new Eigen());
@@ -167,6 +170,7 @@ namespace Configure {
         opal->create(new Static());
         opal->create(new Stop());
         opal->create(new Quit());
+        opal->create(new PSystem());
         opal->create(new System());
         opal->create(new ThreadAll());
         opal->create(new ThreadBpm());
@@ -235,6 +239,7 @@ namespace Configure {
         opal->create(new OpalPolynomialTimeDependence());
         opal->create(new OpalQuadrupole());
         opal->create(new OpalRBend());
+        opal->create(new OpalRBend3D());
         opal->create(new OpalRCollimator());
         opal->create(new OpalSBend());
         opal->create(new OpalSBend3D());
@@ -243,6 +248,7 @@ namespace Configure {
         opal->create(new OpalSextupole());
         opal->create(new OpalSlit());
         opal->create(new OpalSolenoid());
+        opal->create(new OpalSource());
         opal->create(new OpalSRot());
         opal->create(new OpalTravelingWave());
         opal->create(new OpalVariableRFCavity());
@@ -263,5 +269,6 @@ namespace Configure {
         makeDefinitions();
         makeElements();
         makeActions();
+        Versions::fillChanges();
     }
 };

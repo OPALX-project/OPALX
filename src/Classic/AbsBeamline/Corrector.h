@@ -26,7 +26,6 @@
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/BDipoleField.h"
 
-
 // Class Corrector
 // ------------------------------------------------------------------------
 /// Interface for general corrector.
@@ -77,13 +76,18 @@ public:
     /// Return the plane on which the corrector acts.
     virtual Plane getPlane() const = 0;
 
-    virtual bool apply(const size_t &i, const double &t, double E[], double B[]);
+    virtual bool apply(const size_t &i,
+                       const double &t,
+                       Vector_t &E,
+                       Vector_t &B);
 
-    virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool apply(const Vector_t &R,
+                       const Vector_t &P,
+                       const double &t,
+                       Vector_t &E,
+                       Vector_t &B);
 
-    virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
-
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
+    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
 
     virtual void goOnline(const double &kineticEnergy);
 
@@ -99,16 +103,20 @@ public:
 
     void setKickY(double k);
 
+    virtual void setDesignEnergy(double ekin, bool changeable = true);
+
     double getKickX() const;
 
     double getKickY() const;
 
+    void setKickField(const Vector_t &k0);
 
 private:
-    double startField_m;
-    double endField_m;
     double kickX_m;
     double kickY_m;
+    double designEnergy_m;
+    bool designEnergyChangeable_m;
+    bool kickFieldSet_m;
 
     Vector_t kickField_m;
 
@@ -118,11 +126,6 @@ protected:
     void operator=(const Corrector &);
 
     Plane plane_m;
-
-    double position_m;
-    bool   informed_m;
-
-
 };
 
 inline
@@ -145,4 +148,9 @@ double Corrector::getKickY() const {
     return kickY_m;
 }
 
+inline
+void Corrector::setKickField(const Vector_t &k0) {
+    kickField_m = k0;
+    kickFieldSet_m = true;
+}
 #endif // CLASSIC_Corrector_HH

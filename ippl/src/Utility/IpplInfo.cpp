@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -47,6 +47,7 @@ Inform *IpplInfo::Info = new Inform("Ippl");
 Inform *IpplInfo::Warn = new Inform("Warning", std::cerr);
 Inform *IpplInfo::Error = new Inform("Error", std::cerr, INFORM_ALL_NODES);
 Inform *IpplInfo::Debug = new Inform("**DEBUG**", std::cerr, INFORM_ALL_NODES);
+std::stack<StaticIpplInfo> IpplInfo::stashedStaticMembers;
 
 //dks base member of IpplInfo initialized to default values
 bool IpplInfo::DKSEnabled = false;
@@ -194,7 +195,7 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
         bool startcomm = false;
         bool comminit = true;         // do comm. system's init call
         int nprocs = (-1);		// num of processes to start; -1 means default
-        
+
 
         /*
           if no argument is given, we assume mpi as
@@ -230,7 +231,7 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
                 // whatever initialization routine it might have (like MPI_Init).
                 // This is in case another agency has already done the initialization.
                 comminit = false;
-            } 
+            }
         }
 
         // create Communicate object now.
@@ -241,6 +242,7 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
             Communicate *newcomm = CommCreator::create(commtype.c_str(),
                     argc, argv,
                     nprocs, comminit, mpicomm);
+
             if (newcomm == 0) {
                 if (CommCreator::supported(commtype.c_str()))
                     param_error("--commlib", "Could not initialize this ",
@@ -284,7 +286,7 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
             for (i=1; i < argc; ++i)
                 retargv[retargc++] = argv[i];
 
-        
+
         // Parse command-line options, looking for ippl options.  When found,
         // save their suggested values and use them at the end to create data, etc.
         for (i=1; i < argc; ++i) {
@@ -403,7 +405,7 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
                     ++i;
 
             } else if   ( strcmp(argv[i], "--profile") == 0 )  {
-                // handled above in 
+                // handled above in
                 if ( (i + 1) < argc && argv[i+1][0] != '-' )
                     ++i;
 
@@ -601,7 +603,7 @@ IpplInfo::~IpplInfo() {
     // close communication and clean up
     // Inform dbgmsg("IpplInfo::~IpplInfo", INFORM_ALL_NODES);
     // dbgmsg << "In destructor: Current NumCreated = " << NumCreated << endl;
-        
+
     if ((--NumCreated) == 0) {
         // at end of program, print statistics if requested to do so
         if (PrintStats) {
@@ -616,6 +618,7 @@ IpplInfo::~IpplInfo() {
              // dbgmsg << "  Deleting comm object, since now NumCreated = ";
              // dbgmsg << NumCreated << endl;
              delete Comm;
+             Comm = new Communicate();
 
              NeedDeleteComm = false;
         }
@@ -623,13 +626,19 @@ IpplInfo::~IpplInfo() {
 
         // delete other dynamically-allocated static objects
         delete [] MyArgv;
-        if (SMPIDList != 0)
+        if (SMPIDList != 0) {
             delete [] SMPIDList;
-        if (SMPNodeList != 0)
+        }
+        if (SMPNodeList != 0) {
             delete [] SMPNodeList;
-        
+        }
         delete Stats;
-    } 
+
+        MyArgv = 0;
+        SMPIDList = 0;
+        SMPNodeList = 0;
+        Stats = 0;
+    }
 }
 
 
@@ -667,7 +676,7 @@ void IpplInfo::abort(const char *msg, int exitcode) {
     }
 
     // that's it, folks this error will be propperly catched in the main
-    throw std::runtime_error("Error form IpplInfo::abort");   
+    throw std::runtime_error("Error form IpplInfo::abort");
 }
 
 
@@ -694,7 +703,7 @@ void IpplInfo::abortAllNodes(const char *msg, bool abortThisNode) {
     if (getNodes() > 1)
         Comm->broadcast_others(new Message, IPPL_ABORT_TAG);
 
-    throw std::runtime_error("Error form IpplInfo::abortAllNodes");   
+    throw std::runtime_error("Error form IpplInfo::abortAllNodes");
 
 }
 
@@ -801,7 +810,7 @@ void IpplInfo::printVersion(bool printFull) {
 
 /////////////////////////////////////////////////////////////////////
 // here: as in stop in IpplInfo::here (in the debugger)
-void IpplInfo::here() 
+void IpplInfo::here()
 {
 }
 
@@ -1006,6 +1015,110 @@ void IpplInfo::find_smp_nodes() {
     // }
 }
 
+void IpplInfo::stash() {
+    PAssert(stashedStaticMembers.size() == 0);
+
+    StaticIpplInfo obj;
+
+    obj.Comm =                Comm;
+    obj.Stats =               Stats;
+    obj.deferGuardCellFills = deferGuardCellFills;
+    obj.noFieldCompression =  noFieldCompression;
+    obj.offsetStorage =       offsetStorage;
+    obj.extraCompressChecks = extraCompressChecks;
+    obj.useDirectIO =         useDirectIO;
+    obj.communicator_m =      communicator_m;
+    obj.NumCreated =          NumCreated;
+    obj.CommInitialized =     CommInitialized;
+    obj.PrintStats =          PrintStats;
+    obj.NeedDeleteComm =      NeedDeleteComm;
+    obj.UseChecksums =        UseChecksums;
+    obj.Retransmit =          Retransmit;
+    obj.MyArgc =              MyArgc;
+    obj.MyArgv =              MyArgv;
+    obj.MyNode =              MyNode;
+    obj.TotalNodes =          TotalNodes;
+    obj.NumSMPs =             NumSMPs;
+    obj.SMPIDList =           SMPIDList;
+    obj.SMPNodeList =         SMPNodeList;
+    obj.MaxFFTNodes =         MaxFFTNodes;
+    obj.ChunkSize =           ChunkSize;
+    obj.PerSMPParallelIO =    PerSMPParallelIO;
+
+#ifdef IPPL_COMM_ALARMS
+    obj.CommTimeoutSeconds = CommTimeoutSeconds;
+#endif
+
+    stashedStaticMembers.push(obj);
+
+    Comm = new Communicate();
+    Stats = new IpplStats();
+    deferGuardCellFills = false;
+    noFieldCompression = false;
+    offsetStorage = false;
+    extraCompressChecks = false;
+    useDirectIO = false;
+    communicator_m = MPI_COMM_WORLD;
+    NumCreated = 0;
+    CommInitialized = false;
+    PrintStats = false;
+    NeedDeleteComm = false;
+    UseChecksums = false;
+    Retransmit = false;
+    MyArgc = 0;
+    MyArgv = 0;
+    MyNode = 0;
+    TotalNodes = 1;
+    NumSMPs = 1;
+    SMPIDList = 0;
+    SMPNodeList = 0;
+    MaxFFTNodes = 0;
+    ChunkSize = 512*1024; // 512K == 64K doubles
+    PerSMPParallelIO = false;
+}
+
+void IpplInfo::pop() {
+    PAssert(stashedStaticMembers.size() == 1);
+
+    StaticIpplInfo obj = stashedStaticMembers.top();
+    stashedStaticMembers.pop();
+    // Delete the communications object, if necessary, to shut down parallel
+    // environment
+    delete Comm;
+    delete [] MyArgv;
+    delete [] SMPIDList;
+    delete [] SMPNodeList;
+    delete Stats;
+
+    Comm =                obj.Comm;
+    Stats =               obj.Stats;
+    deferGuardCellFills = obj.deferGuardCellFills;
+    noFieldCompression =  obj.noFieldCompression;
+    offsetStorage =       obj.offsetStorage;
+    extraCompressChecks = obj.extraCompressChecks;
+    useDirectIO =         obj.useDirectIO;
+    communicator_m =      obj.communicator_m;
+    NumCreated =          obj.NumCreated;
+    CommInitialized =     obj.CommInitialized;
+    PrintStats =          obj.PrintStats;
+    NeedDeleteComm =      obj.NeedDeleteComm;
+    UseChecksums =        obj.UseChecksums;
+    Retransmit =          obj.Retransmit;
+    MyArgc =              obj.MyArgc;
+    MyArgv =              obj.MyArgv;
+    MyNode =              obj.MyNode;
+    TotalNodes =          obj.TotalNodes;
+    NumSMPs =             obj.NumSMPs;
+    SMPIDList =           obj.SMPIDList;
+    SMPNodeList =         obj.SMPNodeList;
+    MaxFFTNodes =         obj.MaxFFTNodes;
+    ChunkSize =           obj.ChunkSize;
+    PerSMPParallelIO =    obj.PerSMPParallelIO;
+
+#ifdef IPPL_COMM_ALARMS
+    CommTimeoutSeconds = obj.CommTimeoutSeconds;
+#endif
+}
 
 #ifdef IPPL_RUNTIME_ERRCHECK
 /////////////////////////////////////////////////////////////////////
@@ -1034,5 +1147,5 @@ void __C_runtime_error ( int trap_code, char *name, int line_no, ... ) {
 /***************************************************************************
  * $RCSfile: IpplInfo.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: IpplInfo.cpp,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: IpplInfo.cpp,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $
  ***************************************************************************/

@@ -44,11 +44,11 @@ class LoadFieldMap {
     // Load a field map
     // name - file name to which the field map will be written
     // polynomial_order - order of the polynomial fit to use
-    // smoothing_order - order at which the polynomial is smoothed (i.e. 
+    // smoothing_order - order at which the polynomial is smoothed (i.e.
     //                   derivatives set equal
     // skip_line - skip a line in the input file, index from 0; ignored if -ve
     LoadFieldMap(std::string name, int polynomial_order, int smoothing_order,
-                 int skip_line) 
+                 int skip_line)
         : fname_m(name), sbend3d_m(NULL) {
         writeFieldMap(skip_line);
         getFieldMap(polynomial_order, smoothing_order);
@@ -155,7 +155,7 @@ TEST(SBend3DTest, SBend3DGeometryTest) {
                     y,
                     (radius+r)*sin(phi)
                 );
-                field->apply(pos, centroid, 0, E, B);
+                field->apply(pos, Vector_t(0.0), 0, E, B);
                 if (r > -10. && r < 10. &&
                     phi > 0. && phi < Physics::pi/4. &&
                     y > -5. && y < 5.) {
@@ -190,7 +190,7 @@ void testField(double r, double y, double phi,
         y,
         (radius+r)*sin(phi)
     );
-    field->apply(pos, centroid, 0, E, B);
+    field->apply(pos, Vector_t(0.0), 0, E, B);
     // the field map is rotated through pi/8. (into start at z=0. coordinates)
     double sR = sin(Physics::pi/8.);
     double cR = cos(Physics::pi/8.);
@@ -246,11 +246,11 @@ TEST(SBend3DTest, SBend3DPolyPatchTest) {
                     Vector_t B, E, centroid;
                     Vector_t pos(r*cos(phi)-radius, y, r*sin(phi));
                     std::cerr << "pos: " << pos << " r: " << r << " phi: " << phi/Physics::pi*180. << std::endl;
-                    field1->apply(pos, centroid, 0, E, B);
+                    field1->apply(pos, Vector_t(0.0), 0, E, B);
                     std::cerr << "   field1: " << B << std::endl;
-                    field2->apply(pos, centroid, 0, E, B);
+                    field2->apply(pos, Vector_t(0.0), 0, E, B);
                     std::cerr << "   field2: " << B << std::endl;
-                    field3->apply(pos, centroid, 0, E, B);
+                    field3->apply(pos, Vector_t(0.0), 0, E, B);
                     std::cerr << "   field3: " << B << std::endl;
                 }
     } catch (LogicalError& err) {

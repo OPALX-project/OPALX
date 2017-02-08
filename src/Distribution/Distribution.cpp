@@ -26,8 +26,6 @@
 #include "AbstractObjects/Expressions.h"
 #include "Attributes/Attributes.h"
 #include "Utilities/Options.h"
-#include "Utilities/OpalException.h"
-#include "halton1d_sequence.hh"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBunch.h"
 #include "Algorithms/PartBins.h"
@@ -41,6 +39,7 @@
 #include "AbstractObjects/BeamSequence.h"
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPC.h"
+#include "Utilities/Util.h"
 
 #include <gsl/gsl_cdf.h>
 #include <gsl/gsl_randist.h>
@@ -179,7 +178,7 @@ namespace AttributesT
         MAXSTEPSSI,
         ORDERMAPS,
         E2,
-	RGUESS,
+        RGUESS,
         ID1,                       // special particle that the user can set
         ID2,                       // special particle that the user can set
         SIZE
@@ -230,7 +229,7 @@ Distribution::Distribution():
     numberOfSampleBins_m(0),
     energyBins_m(NULL),
     energyBinHist_m(NULL),
-    randGenEmit_m(NULL),
+    randGen_m(NULL),
     pTotThermal_m(0.0),
     pmean_m(0.0),
     cathodeWorkFunc_m(0.0),
@@ -238,6 +237,8 @@ Distribution::Distribution():
     cathodeFermiEnergy_m(0.0),
     cathodeTemp_m(0.0),
     emitEnergyUpperLimit_m(0.0),
+    totalNumberParticles_m(0),
+    totalNumberEmittedParticles_m(0),
     inputMoUnits_m(InputMomentumUnitsT::NONE),
     sigmaTRise_m(0.0),
     sigmaTFall_m(0.0),
@@ -270,7 +271,7 @@ Distribution::Distribution():
     bega_m(0.0),
     M_m(0.0)
 {
-    SetAttributes();
+    setAttributes();
 
     Distribution *defaultDistribution = clone("UNNAMED_Distribution");
     defaultDistribution->builtin = true;
@@ -281,7 +282,11 @@ Distribution::Distribution():
         delete defaultDistribution;
     }
 
-    SetFieldEmissionParameters();
+    setFieldEmissionParameters();
+
+    gsl_rng_env_setup();
+    randGen_m = gsl_rng_alloc(gsl_rng_default);
+    gsl_rng_set(randGen_m, Options::seed);
 }
 /**
  *
@@ -309,7 +314,7 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     numberOfSampleBins_m(parent->numberOfSampleBins_m),
     energyBins_m(NULL),
     energyBinHist_m(NULL),
-    randGenEmit_m(parent->randGenEmit_m),
+    randGen_m(NULL),
     pTotThermal_m(parent->pTotThermal_m),
     pmean_m(parent->pmean_m),
     cathodeWorkFunc_m(parent->cathodeWorkFunc_m),
@@ -317,6 +322,8 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     cathodeFermiEnergy_m(parent->cathodeFermiEnergy_m),
     cathodeTemp_m(parent->cathodeTemp_m),
     emitEnergyUpperLimit_m(parent->emitEnergyUpperLimit_m),
+    totalNumberParticles_m(parent->totalNumberParticles_m),
+    totalNumberEmittedParticles_m(parent->totalNumberEmittedParticles_m),
     xDist_m(parent->xDist_m),
     pxDist_m(parent->pxDist_m),
     yDist_m(parent->yDist_m),
@@ -368,6 +375,9 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     bega_m(parent->bega_m),
     M_m(parent->M_m)
 {
+    gsl_rng_env_setup();
+    randGen_m = gsl_rng_alloc(gsl_rng_default);
+    gsl_rng_set(randGen_m, Options::seed);
 }
 
 Distribution::~Distribution() {
@@ -385,9 +395,9 @@ Distribution::~Distribution() {
         energyBinHist_m = NULL;
     }
 
-    if (randGenEmit_m != NULL) {
-        gsl_rng_free(randGenEmit_m);
-        randGenEmit_m = NULL;
+    if (randGen_m != NULL) {
+        gsl_rng_free(randGen_m);
+        randGen_m = NULL;
     }
 
     if(laserProfile_m) {
@@ -414,7 +424,7 @@ Distribution::~Distribution() {
  * @param
  * @param
  */
-void Distribution::WriteToFile() {
+void Distribution::writeToFile() {
     /*
       if(Ippl::getNodes() == 1) {
       if(os_m.is_open()) {
@@ -448,32 +458,32 @@ void Distribution::execute() {
 void Distribution::update() {
 }
 
-void Distribution::Create(size_t &numberOfParticles, double massIneV) {
+void Distribution::create(size_t &numberOfParticles, double massIneV) {
 
-    SetFieldEmissionParameters();
+    setFieldEmissionParameters();
 
     switch (distrTypeT_m) {
 
     case DistrTypeT::MATCHEDGAUSS:
-        CreateMatchedGaussDistribution(numberOfParticles, massIneV);
+        createMatchedGaussDistribution(numberOfParticles, massIneV);
         break;
     case DistrTypeT::FROMFILE:
-        CreateDistributionFromFile(numberOfParticles, massIneV);
+        createDistributionFromFile(numberOfParticles, massIneV);
         break;
     case DistrTypeT::GAUSS:
-        CreateDistributionGauss(numberOfParticles, massIneV);
+        createDistributionGauss(numberOfParticles, massIneV);
         break;
     case DistrTypeT::BINOMIAL:
-        CreateDistributionBinomial(numberOfParticles, massIneV);
+        createDistributionBinomial(numberOfParticles, massIneV);
         break;
     case DistrTypeT::FLATTOP:
-        CreateDistributionFlattop(numberOfParticles, massIneV);
+        createDistributionFlattop(numberOfParticles, massIneV);
         break;
     case DistrTypeT::GUNGAUSSFLATTOPTH:
-        CreateDistributionFlattop(numberOfParticles, massIneV);
+        createDistributionFlattop(numberOfParticles, massIneV);
         break;
     case DistrTypeT::ASTRAFLATTOPTH:
-        CreateDistributionFlattop(numberOfParticles, massIneV);
+        createDistributionFlattop(numberOfParticles, massIneV);
         break;
     default:
         INFOMSG("Distribution unknown." << endl;);
@@ -481,8 +491,13 @@ void Distribution::Create(size_t &numberOfParticles, double massIneV) {
     }
 
     if (emitting_m) {
+
+        std::string model = Util::toUpper(Attributes::getString(itsAttr[AttributesT::EMISSIONMODEL]));
         unsigned int numAdditionalRNsPerParticle = 0;
-        if (emissionModel_m == EmissionModelT::ASTRA) {
+        if (model == "ASTRA" ||
+            distrTypeT_m == DistrTypeT::ASTRAFLATTOPTH ||
+            distrTypeT_m == DistrTypeT::GUNGAUSSFLATTOPTH) {
+
             numAdditionalRNsPerParticle = 2;
         }
 
@@ -502,29 +517,30 @@ void Distribution::Create(size_t &numberOfParticles, double massIneV) {
             if (Ippl::myNode() == saveProcessor) {
                 std::vector<double> rns;
                 for (unsigned int i = 0; i < numAdditionalRNsPerParticle; ++ i) {
-                    double x = gsl_rng_uniform(randGenEmit_m);
+                    double x = gsl_rng_uniform(randGen_m);
                     rns.push_back(x);
                 }
                 additionalRNs_m.push_back(rns);
             } else {
                 for (unsigned int i = 0; i < numAdditionalRNsPerParticle; ++ i) {
-                    gsl_rng_uniform(randGenEmit_m);
+                    gsl_rng_uniform(randGen_m);
                 }
             }
         }
     }
 
-    // AAA Scale and shift coordinates according to distribution input.
-    ScaleDistCoordinates();
+    // Scale coordinates according to distribution input.
+    scaleDistCoordinates();
+    Options::seed = gsl_rng_uniform_int(randGen_m, gsl_rng_max(randGen_m));
 }
 
-void  Distribution::CreatePriPart(PartBunch *beam, BoundaryGeometry &bg) {
+void  Distribution::createPriPart(PartBunch *beam, BoundaryGeometry &bg) {
 
     if(Options::ppdebug) {  // This is Parallel Plate Benchmark.
         int pc = 0;
         size_t lowMark = beam->getLocalNum();
-        double vw = this->GetVw();
-        double vt = this->GetvVThermal();
+        double vw = this->getVw();
+        double vt = this->getvVThermal();
         double f_max = vw / vt * exp(-0.5);
         double test_a = vt / vw;
         double test_asq = test_a * test_a;
@@ -565,7 +581,6 @@ void  Distribution::CreatePriPart(PartBunch *beam, BoundaryGeometry &bg) {
                         beam->PType[lowMark + count] = ParticleType::REGULAR;
                         beam->TriID[lowMark + count] = 0;
                         beam->Q[lowMark + count] = beam->getChargePerParticle();
-                        beam->LastSection[lowMark + count] = 0;
                         beam->Ef[lowMark + count] = Vector_t(0.0);
                         beam->Bf[lowMark + count] = Vector_t(0.0);
                         beam->dt[lowMark + count] = beam->getdT();
@@ -607,7 +622,6 @@ void  Distribution::CreatePriPart(PartBunch *beam, BoundaryGeometry &bg) {
                         beam->PType[lowMark + count] = ParticleType::REGULAR;
                         beam->TriID[lowMark + count] = 0;
                         beam->Q[lowMark + count] = beam->getChargePerParticle();
-                        beam->LastSection[lowMark + count] = 0;
                         beam->Ef[lowMark + count] = Vector_t(0.0);
                         beam->Bf[lowMark + count] = Vector_t(0.0);
                         beam->dt[lowMark + count] = beam->getdT();
@@ -629,7 +643,7 @@ void  Distribution::CreatePriPart(PartBunch *beam, BoundaryGeometry &bg) {
     *gmsg << *beam << endl;
 }
 
-void Distribution::DoRestartOpalT(PartBunch &beam, size_t Np, int restartStep, H5PartWrapper *dataSource) {
+void Distribution::doRestartOpalT(PartBunch &beam, size_t Np, int restartStep, H5PartWrapper *dataSource) {
 
     IpplTimings::startTimer(beam.distrReload_m);
 
@@ -663,7 +677,7 @@ void Distribution::DoRestartOpalT(PartBunch &beam, size_t Np, int restartStep, H
           << "time of restart= " << actualT << "; phishift= " << OpalData::getInstance()->getGlobalPhaseShift() << endl;
 }
 
-void Distribution::DoRestartOpalCycl(PartBunch &beam,
+void Distribution::doRestartOpalCycl(PartBunch &beam,
                                      size_t Np,
                                      int restartStep,
                                      const int specifiedNumBunch,
@@ -711,7 +725,8 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam,
         INFOMSG("Restart from hdf5 file generated by OPAL-cycl" << endl);
         if(specifiedNumBunch > 1) {
             // the allowed maximal bin number is set to 1000
-            beam.setPBins(new PartBinsCyc(1000, beam.getNumBunch()));
+            energyBins_m = new PartBinsCyc(1000, beam.getNumBunch());
+            beam.setPBins(energyBins_m);
         }
 
     } else {
@@ -742,7 +757,7 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam,
     IpplTimings::stopTimer(beam.distrReload_m);
 }
 
-void Distribution::DoRestartOpalE(EnvelopeBunch &beam, size_t Np, int restartStep,
+void Distribution::doRestartOpalE(EnvelopeBunch &beam, size_t Np, int restartStep,
                                   H5PartWrapper *dataSource) {
     IpplTimings::startTimer(beam.distrReload_m);
     int N = dataSource->getNumParticles();
@@ -770,12 +785,12 @@ Distribution *Distribution::find(const std::string &name) {
     return dist;
 }
 
-double Distribution::GetTEmission() {
+double Distribution::getTEmission() {
     if(tEmission_m > 0.0) {
         return tEmission_m;
     }
 
-    distT_m = Attributes::getString(itsAttr[AttributesT::DISTRIBUTION]);
+    distT_m = Util::toUpper(Attributes::getString(itsAttr[AttributesT::DISTRIBUTION]));
     if(distT_m == "GAUSS")
         distrTypeT_m = DistrTypeT::GAUSS;
     else if(distT_m == "GUNGAUSSFLATTOPTH")
@@ -822,37 +837,37 @@ double Distribution::GetTEmission() {
     return tEmission_m;
 }
 
-double Distribution::GetEkin() const {return Attributes::getReal(itsAttr[AttributesT::EKIN]);}
-double Distribution::GetLaserEnergy() const {return Attributes::getReal(itsAttr[AttributesT::ELASER]);}
-double Distribution::GetWorkFunctionRf() const {return Attributes::getReal(itsAttr[AttributesT::W]);}
+double Distribution::getEkin() const {return Attributes::getReal(itsAttr[AttributesT::EKIN]);}
+double Distribution::getLaserEnergy() const {return Attributes::getReal(itsAttr[AttributesT::ELASER]);}
+double Distribution::getWorkFunctionRf() const {return Attributes::getReal(itsAttr[AttributesT::W]);}
 
-size_t Distribution::GetNumberOfDarkCurrentParticles() { return (size_t) Attributes::getReal(itsAttr[AttributesT::NPDARKCUR]);}
-double Distribution::GetDarkCurrentParticlesInwardMargin() { return Attributes::getReal(itsAttr[AttributesT::INWARDMARGIN]);}
-double Distribution::GetEInitThreshold() { return Attributes::getReal(itsAttr[AttributesT::EINITHR]);}
-double Distribution::GetWorkFunction() { return Attributes::getReal(itsAttr[AttributesT::FNPHIW]); }
-double Distribution::GetFieldEnhancement() { return Attributes::getReal(itsAttr[AttributesT::FNBETA]); }
-size_t Distribution::GetMaxFNemissionPartPerTri() { return (size_t) Attributes::getReal(itsAttr[AttributesT::FNMAXEMI]);}
-double Distribution::GetFieldFNThreshold() { return Attributes::getReal(itsAttr[AttributesT::FNFIELDTHR]);}
-double Distribution::GetFNParameterA() { return Attributes::getReal(itsAttr[AttributesT::FNA]);}
-double Distribution::GetFNParameterB() { return Attributes::getReal(itsAttr[AttributesT::FNB]);}
-double Distribution::GetFNParameterY() { return Attributes::getReal(itsAttr[AttributesT::FNY]);}
-double Distribution::GetFNParameterVYZero() { return Attributes::getReal(itsAttr[AttributesT::FNVYZERO]);}
-double Distribution::GetFNParameterVYSecond() { return Attributes::getReal(itsAttr[AttributesT::FNVYSECOND]);}
-int    Distribution::GetSecondaryEmissionFlag() { return Attributes::getReal(itsAttr[AttributesT::SECONDARYFLAG]);}
-bool   Distribution::GetEmissionMode() { return Attributes::getBool(itsAttr[AttributesT::NEMISSIONMODE]);}
+size_t Distribution::getNumberOfDarkCurrentParticles() { return (size_t) Attributes::getReal(itsAttr[AttributesT::NPDARKCUR]);}
+double Distribution::getDarkCurrentParticlesInwardMargin() { return Attributes::getReal(itsAttr[AttributesT::INWARDMARGIN]);}
+double Distribution::getEInitThreshold() { return Attributes::getReal(itsAttr[AttributesT::EINITHR]);}
+double Distribution::getWorkFunction() { return Attributes::getReal(itsAttr[AttributesT::FNPHIW]); }
+double Distribution::getFieldEnhancement() { return Attributes::getReal(itsAttr[AttributesT::FNBETA]); }
+size_t Distribution::getMaxFNemissionPartPerTri() { return (size_t) Attributes::getReal(itsAttr[AttributesT::FNMAXEMI]);}
+double Distribution::getFieldFNThreshold() { return Attributes::getReal(itsAttr[AttributesT::FNFIELDTHR]);}
+double Distribution::getFNParameterA() { return Attributes::getReal(itsAttr[AttributesT::FNA]);}
+double Distribution::getFNParameterB() { return Attributes::getReal(itsAttr[AttributesT::FNB]);}
+double Distribution::getFNParameterY() { return Attributes::getReal(itsAttr[AttributesT::FNY]);}
+double Distribution::getFNParameterVYZero() { return Attributes::getReal(itsAttr[AttributesT::FNVYZERO]);}
+double Distribution::getFNParameterVYSecond() { return Attributes::getReal(itsAttr[AttributesT::FNVYSECOND]);}
+int    Distribution::getSecondaryEmissionFlag() { return Attributes::getReal(itsAttr[AttributesT::SECONDARYFLAG]);}
+bool   Distribution::getEmissionMode() { return Attributes::getBool(itsAttr[AttributesT::NEMISSIONMODE]);}
 
-std::string Distribution::GetTypeofDistribution() { return (std::string) Attributes::getString(itsAttr[AttributesT::DISTRIBUTION]);}
+std::string Distribution::getTypeofDistribution() { return (std::string) Attributes::getString(itsAttr[AttributesT::DISTRIBUTION]);}
 
-double Distribution::GetvSeyZero() {return Attributes::getReal(itsAttr[AttributesT::VSEYZERO]);}// return sey_0 in Vaughan's model
-double Distribution::GetvEZero() {return Attributes::getReal(itsAttr[AttributesT::VEZERO]);}// return the energy related to sey_0 in Vaughan's model
-double Distribution::GetvSeyMax() {return Attributes::getReal(itsAttr[AttributesT::VSEYMAX]);}// return sey max in Vaughan's model
-double Distribution::GetvEmax() {return Attributes::getReal(itsAttr[AttributesT::VEMAX]);}// return Emax in Vaughan's model
-double Distribution::GetvKenergy() {return Attributes::getReal(itsAttr[AttributesT::VKENERGY]);}// return fitting parameter denotes the roughness of surface for impact energy in Vaughan's model
-double Distribution::GetvKtheta() {return Attributes::getReal(itsAttr[AttributesT::VKTHETA]);}// return fitting parameter denotes the roughness of surface for impact angle in Vaughan's model
-double Distribution::GetvVThermal() {return Attributes::getReal(itsAttr[AttributesT::VVTHERMAL]);}// thermal velocity of Maxwellian distribution of secondaries in Vaughan's model
-double Distribution::GetVw() {return Attributes::getReal(itsAttr[AttributesT::VW]);}// velocity scalar for parallel plate benchmark;
+double Distribution::getvSeyZero() {return Attributes::getReal(itsAttr[AttributesT::VSEYZERO]);}// return sey_0 in Vaughan's model
+double Distribution::getvEZero() {return Attributes::getReal(itsAttr[AttributesT::VEZERO]);}// return the energy related to sey_0 in Vaughan's model
+double Distribution::getvSeyMax() {return Attributes::getReal(itsAttr[AttributesT::VSEYMAX]);}// return sey max in Vaughan's model
+double Distribution::getvEmax() {return Attributes::getReal(itsAttr[AttributesT::VEMAX]);}// return Emax in Vaughan's model
+double Distribution::getvKenergy() {return Attributes::getReal(itsAttr[AttributesT::VKENERGY]);}// return fitting parameter denotes the roughness of surface for impact energy in Vaughan's model
+double Distribution::getvKtheta() {return Attributes::getReal(itsAttr[AttributesT::VKTHETA]);}// return fitting parameter denotes the roughness of surface for impact angle in Vaughan's model
+double Distribution::getvVThermal() {return Attributes::getReal(itsAttr[AttributesT::VVTHERMAL]);}// thermal velocity of Maxwellian distribution of secondaries in Vaughan's model
+double Distribution::getVw() {return Attributes::getReal(itsAttr[AttributesT::VW]);}// velocity scalar for parallel plate benchmark;
 
-int Distribution::GetSurfMaterial() {return (int)Attributes::getReal(itsAttr[AttributesT::SURFMATERIAL]);}// Surface material number for Furman-Pivi's Model;
+int Distribution::getSurfMaterial() {return (int)Attributes::getReal(itsAttr[AttributesT::SURFMATERIAL]);}// Surface material number for Furman-Pivi's Model;
 
 Inform &Distribution::printInfo(Inform &os) const {
 
@@ -866,16 +881,16 @@ Inform &Distribution::printInfo(Inform &os) const {
                << "-----------------" << endl;
 
         if (particlesPerDist_m.empty())
-            PrintDist(os, 0);
+            printDist(os, 0);
         else
-            PrintDist(os, particlesPerDist_m.at(0));
+            printDist(os, particlesPerDist_m.at(0));
 
         size_t distCount = 1;
         for (unsigned distIndex = 0; distIndex < addedDistributions_m.size(); distIndex++) {
             os << "* " << endl;
             os << "* Added Distribution #" << distCount << endl;
             os << "* ----------------------" << endl;
-            addedDistributions_m.at(distIndex)->PrintDist(os, particlesPerDist_m.at(distCount));
+            addedDistributions_m.at(distIndex)->printDist(os, particlesPerDist_m.at(distCount));
             distCount++;
         }
 
@@ -884,7 +899,7 @@ Inform &Distribution::printInfo(Inform &os) const {
             os << "* Number of energy bins    = " << numberOfEnergyBins_m << endl;
 
             //            if (numberOfEnergyBins_m > 1)
-            //    PrintEnergyBins(os);
+            //    printEnergyBins(os);
         }
 
         if (emitting_m) {
@@ -893,7 +908,7 @@ Inform &Distribution::printInfo(Inform &os) const {
             os << "* Time per bin             = " << tEmission_m / numberOfEnergyBins_m << " [sec]" << endl;
             os << "* Delta t during emission  = " << tBin_m / numberOfSampleBins_m << " [sec]" << endl;
             os << "* " << endl;
-            PrintEmissionModel(os);
+            printEmissionModel(os);
             os << "* " << endl;
         } else
             os << "* Distribution is injected." << endl;
@@ -904,13 +919,13 @@ Inform &Distribution::printInfo(Inform &os) const {
     return os;
 }
 
-const PartData &Distribution::GetReference() const {
+const PartData &Distribution::getReference() const {
     // Cast away const, to allow logically constant Distribution to update.
     const_cast<Distribution *>(this)->update();
     return particleRefData_m;
 }
 
-void Distribution::AddDistributions() {
+void Distribution::addDistributions() {
     /*
      * Move particle coordinates from added distributions to main distribution.
      */
@@ -920,69 +935,69 @@ void Distribution::AddDistributions() {
          addedDistIt != addedDistributions_m.end(); addedDistIt++) {
 
         std::vector<double>::iterator distIt;
-        for (distIt = (*addedDistIt)->GetXDist().begin();
-             distIt != (*addedDistIt)->GetXDist().end();
+        for (distIt = (*addedDistIt)->getXDist().begin();
+             distIt != (*addedDistIt)->getXDist().end();
              distIt++) {
             xDist_m.push_back(*distIt);
         }
-        (*addedDistIt)->EraseXDist();
+        (*addedDistIt)->eraseXDist();
 
-        for (distIt = (*addedDistIt)->GetBGxDist().begin();
-             distIt != (*addedDistIt)->GetBGxDist().end();
+        for (distIt = (*addedDistIt)->getBGxDist().begin();
+             distIt != (*addedDistIt)->getBGxDist().end();
              distIt++) {
             pxDist_m.push_back(*distIt);
         }
-        (*addedDistIt)->EraseBGxDist();
+        (*addedDistIt)->eraseBGxDist();
 
-        for (distIt = (*addedDistIt)->GetYDist().begin();
-             distIt != (*addedDistIt)->GetYDist().end();
+        for (distIt = (*addedDistIt)->getYDist().begin();
+             distIt != (*addedDistIt)->getYDist().end();
              distIt++) {
             yDist_m.push_back(*distIt);
         }
-        (*addedDistIt)->EraseYDist();
+        (*addedDistIt)->eraseYDist();
 
-        for (distIt = (*addedDistIt)->GetBGyDist().begin();
-             distIt != (*addedDistIt)->GetBGyDist().end();
+        for (distIt = (*addedDistIt)->getBGyDist().begin();
+             distIt != (*addedDistIt)->getBGyDist().end();
              distIt++) {
             pyDist_m.push_back(*distIt);
         }
-        (*addedDistIt)->EraseBGyDist();
+        (*addedDistIt)->eraseBGyDist();
 
-        for (distIt = (*addedDistIt)->GetTOrZDist().begin();
-             distIt != (*addedDistIt)->GetTOrZDist().end();
+        for (distIt = (*addedDistIt)->getTOrZDist().begin();
+             distIt != (*addedDistIt)->getTOrZDist().end();
              distIt++) {
             tOrZDist_m.push_back(*distIt);
         }
-        (*addedDistIt)->EraseTOrZDist();
+        (*addedDistIt)->eraseTOrZDist();
 
-        for (distIt = (*addedDistIt)->GetBGzDist().begin();
-             distIt != (*addedDistIt)->GetBGzDist().end();
+        for (distIt = (*addedDistIt)->getBGzDist().begin();
+             distIt != (*addedDistIt)->getBGzDist().end();
              distIt++) {
             pzDist_m.push_back(*distIt);
         }
-        (*addedDistIt)->EraseBGzDist();
+        (*addedDistIt)->eraseBGzDist();
     }
 }
 
-void Distribution::ApplyEmissionModel(double eZ, double &px, double &py, double &pz, const std::vector<double> &additionalRNs) {
+void Distribution::applyEmissionModel(double eZ, double &px, double &py, double &pz, const std::vector<double> &additionalRNs) {
 
     switch (emissionModel_m) {
 
     case EmissionModelT::NONE:
-        ApplyEmissModelNone(pz);
+        applyEmissModelNone(pz);
         break;
     case EmissionModelT::ASTRA:
-        ApplyEmissModelAstra(px, py, pz, additionalRNs);
+        applyEmissModelAstra(px, py, pz, additionalRNs);
         break;
     case EmissionModelT::NONEQUIL:
-        ApplyEmissModelNonEquil(eZ, px, py, pz);
+        applyEmissModelNonEquil(eZ, px, py, pz);
         break;
     default:
         break;
     }
 }
 
-void Distribution::ApplyEmissModelAstra(double &px, double &py, double &pz, const std::vector<double> &additionalRNs) {
+void Distribution::applyEmissModelAstra(double &px, double &py, double &pz, const std::vector<double> &additionalRNs) {
 
     double phi = 2.0 * acos(sqrt(additionalRNs[0]));
     double theta = 2.0 * Physics::pi * additionalRNs[1];
@@ -993,11 +1008,11 @@ void Distribution::ApplyEmissModelAstra(double &px, double &py, double &pz, cons
 
 }
 
-void Distribution::ApplyEmissModelNone(double &pz) {
+void Distribution::applyEmissModelNone(double &pz) {
     pz += pTotThermal_m;
 }
 
-void Distribution::ApplyEmissModelNonEquil(double eZ,
+void Distribution::applyEmissModelNonEquil(double eZ,
                                            double &bgx,
                                            double &bgy,
                                            double &bgz) {
@@ -1011,8 +1026,8 @@ void Distribution::ApplyEmissModelNonEquil(double eZ,
     double energy = 0.0;
     bool allow = false;
     while (!allow) {
-        energy = lowEnergyLimit + (gsl_rng_uniform(randGenEmit_m)*emitEnergyUpperLimit_m);
-        double randFuncValue = gsl_rng_uniform(randGenEmit_m);
+        energy = lowEnergyLimit + (gsl_rng_uniform(randGen_m)*emitEnergyUpperLimit_m);
+        double randFuncValue = gsl_rng_uniform(randGen_m);
         double funcValue = (1.0
                             - 1.0
                             / (1.0
@@ -1032,9 +1047,9 @@ void Distribution::ApplyEmissModelNonEquil(double eZ,
 
     double thetaInMax = acos(sqrt((cathodeFermiEnergy_m + phiEffective)
                                   / (energy + laserEnergy_m)));
-    double thetaIn = gsl_rng_uniform(randGenEmit_m)*thetaInMax;
+    double thetaIn = gsl_rng_uniform(randGen_m)*thetaInMax;
     double sinThetaOut = sin(thetaIn) * sqrt(energyInternal / energyExternal);
-    double phi = Physics::two_pi * gsl_rng_uniform(randGenEmit_m);
+    double phi = Physics::two_pi * gsl_rng_uniform(randGen_m);
 
     // Compute emission momenta.
     double betaGammaExternal
@@ -1046,22 +1061,22 @@ void Distribution::ApplyEmissModelNonEquil(double eZ,
 
 }
 
-void Distribution::CalcPartPerDist(size_t numberOfParticles) {
+void Distribution::calcPartPerDist(size_t numberOfParticles) {
 
     typedef std::vector<Distribution *>::iterator iterator;
 
     if (numberOfDistributions_m == 1)
         particlesPerDist_m.push_back(numberOfParticles);
     else {
-        double totalWeight = GetWeight();
+        double totalWeight = getWeight();
         for (iterator it = addedDistributions_m.begin(); it != addedDistributions_m.end(); it++) {
-            totalWeight += (*it)->GetWeight();
+            totalWeight += (*it)->getWeight();
         }
 
         particlesPerDist_m.push_back(0);
         size_t numberOfCommittedPart = 0;
         for (iterator it = addedDistributions_m.begin(); it != addedDistributions_m.end(); it++) {
-            size_t particlesCurrentDist = numberOfParticles * (*it)->GetWeight() / totalWeight;
+            size_t particlesCurrentDist = numberOfParticles * (*it)->getWeight() / totalWeight;
             particlesPerDist_m.push_back(particlesCurrentDist);
             numberOfCommittedPart += particlesCurrentDist;
         }
@@ -1073,7 +1088,7 @@ void Distribution::CalcPartPerDist(size_t numberOfParticles) {
 
 }
 
-void Distribution::CheckEmissionParameters() {
+void Distribution::checkEmissionParameters() {
 
     // There must be at least on energy bin for an emitted beam.
     numberOfEnergyBins_m
@@ -1098,7 +1113,7 @@ void Distribution::CheckEmissionParameters() {
 
 }
 
-void Distribution::CheckIfEmitted() {
+void Distribution::checkIfEmitted() {
 
     emitting_m = Attributes::getBool(itsAttr[AttributesT::EMITTED]);
 
@@ -1115,11 +1130,11 @@ void Distribution::CheckIfEmitted() {
     }
 }
 
-void Distribution::CheckParticleNumber(size_t &numberOfParticles) {
+void Distribution::checkParticleNumber(size_t &numberOfParticles) {
 
     size_t numberOfDistParticles = tOrZDist_m.size();
     reduce(numberOfDistParticles, numberOfDistParticles, OpAddAssign());
-    
+
     if (numberOfDistParticles != numberOfParticles) {
         *gmsg << "\n--------------------------------------------------" << endl
               << "Error!! The number of particles in the initial" << endl
@@ -1134,18 +1149,18 @@ void Distribution::CheckParticleNumber(size_t &numberOfParticles) {
               << "(" << numberOfDistParticles << ") "
               << "will take precedence." << endl
               << "---------------------------------------------------\n" << endl;
-        throw OpalException("Distribution::CheckParticleNumber",
-                            "Number of macro particles and NPART on BEAM are not equal");    
+        throw OpalException("Distribution::checkParticleNumber",
+                            "Number of macro particles and NPART on BEAM are not equal");
     }
     numberOfParticles = numberOfDistParticles;
 }
 
-void Distribution::ChooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUnitsT inputMoUnits) {
+void Distribution::chooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUnitsT inputMoUnits) {
 
     /*
      * Toggle what units to use for inputing momentum.
      */
-    std::string inputUnits = Attributes::getString(itsAttr[AttributesT::INPUTMOUNITS]);
+    std::string inputUnits = Util::toUpper(Attributes::getString(itsAttr[AttributesT::INPUTMOUNITS]));
     if (inputUnits == "NONE")
         inputMoUnits_m = InputMomentumUnitsT::NONE;
     else if (inputUnits == "EV")
@@ -1155,44 +1170,44 @@ void Distribution::ChooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUn
 
 }
 
-double Distribution::ConvertBetaGammaToeV(double valueInBetaGamma, double massIneV) {
+double Distribution::convertBetaGammaToeV(double valueInBetaGamma, double massIneV) {
     if (valueInBetaGamma < 0)
         return -1.0 * (sqrt(pow(valueInBetaGamma, 2.0) + 1.0) - 1.0) * massIneV;
     else
         return (sqrt(pow(valueInBetaGamma, 2.0) + 1.0) - 1.0) * massIneV;
 }
 
-double Distribution::ConverteVToBetaGamma(double valueIneV, double massIneV) {
+double Distribution::converteVToBetaGamma(double valueIneV, double massIneV) {
     if (valueIneV < 0)
         return -1.0 * sqrt( pow( -1.0 * valueIneV / massIneV + 1.0, 2.0) - 1.0);
     else
         return sqrt( pow( valueIneV / massIneV + 1.0, 2.0) - 1.0);
 }
 
-double Distribution::ConvertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV) {
+double Distribution::convertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV) {
     return sqrt(pow(valueInMeVPerC * 1.0e6 * Physics::c / massIneV + 1.0, 2.0) - 1.0);
 }
 
-void Distribution::CreateDistributionBinomial(size_t numberOfParticles, double massIneV) {
+void Distribution::createDistributionBinomial(size_t numberOfParticles, double massIneV) {
 
-    SetDistParametersBinomial(massIneV);
-    GenerateBinomial(numberOfParticles);
+    setDistParametersBinomial(massIneV);
+    generateBinomial(numberOfParticles);
 }
 
-void Distribution::CreateDistributionFlattop(size_t numberOfParticles, double massIneV) {
+void Distribution::createDistributionFlattop(size_t numberOfParticles, double massIneV) {
 
-    SetDistParametersFlattop(massIneV);
+    setDistParametersFlattop(massIneV);
 
     if (emitting_m) {
         if (laserProfile_m == NULL)
-            GenerateFlattopT(numberOfParticles);
+            generateFlattopT(numberOfParticles);
         else
-            GenerateFlattopLaserProfile(numberOfParticles);
+            generateFlattopLaserProfile(numberOfParticles);
     } else
-        GenerateFlattopZ(numberOfParticles);
+        generateFlattopZ(numberOfParticles);
 }
 
-void Distribution::CreateDistributionFromFile(size_t numberOfParticles, double massIneV) {
+void Distribution::createDistributionFromFile(size_t numberOfParticles, double massIneV) {
 
     *gmsg << level3 << "\n"
           << "------------------------------------------------------------------------------------\n";
@@ -1208,13 +1223,17 @@ void Distribution::CreateDistributionFromFile(size_t numberOfParticles, double m
         std::string fileName = Attributes::getString(itsAttr[AttributesT::FNAME]);
         inputFile.open(fileName.c_str());
         if (inputFile.fail())
-            throw OpalException("Distribution::Create()",
+            throw OpalException("Distribution::create()",
                                 "Open file operation failed, please check if \""
                                 + fileName
                                 + "\" really exists.");
         else {
             int tempInt = 0;
             inputFile >> tempInt;
+            if (tempInt <= 0) {
+                throw OpalException("Distribution::createDistributionFromFile",
+                                    "The file '" + fileName + "' does not seem to be an ASCII file containing a distribution.");
+            }
             numberOfParticlesRead = static_cast<size_t>(tempInt);
         }
     }
@@ -1226,242 +1245,304 @@ void Distribution::CreateDistributionFromFile(size_t numberOfParticles, double m
      */
     int saveProcessor = -1;
 
-    for (size_t particleIndex = 0; particleIndex < numberOfParticlesRead; particleIndex++) {
+    pmean_m = 0.0;
+
+    size_t numPartsToSend = 0;
+    unsigned int distributeFrequency = 1000;
+    size_t singleDataSize = (sizeof(int) + 6 * sizeof(double));
+    size_t dataSize = distributeFrequency * singleDataSize;
+    std::vector<char> data;
+
+    data.reserve(dataSize);
+
+    const char* buffer;
+    for (size_t particleIndex = 0; particleIndex < numberOfParticlesRead; ++ particleIndex) {
 
         // Read particle.
-        double x = 0.0;
-        double px =0.0;
-        double y = 0.0;
-        double py = 0.0;
-        double tOrZ = 0.0;
-        double pz = 0.0;
-        if (Ippl::myNode() == 0) {
-            inputFile >> x
-                      >> px
-                      >> y
-                      >> py
-                      >> tOrZ
-                      >> pz;
+        Vector_t R(0.0);
+        Vector_t P(0.0);
 
-            switch (inputMoUnits_m) {
-
-            case InputMomentumUnitsT::EV:
-                px = ConverteVToBetaGamma(px, massIneV);
-                py = ConverteVToBetaGamma(py, massIneV);
-                pz = ConverteVToBetaGamma(pz, massIneV);
-                break;
-
-            default:
-                break;
-            }
-
-            saveProcessor++;
-            if (saveProcessor >= Ippl::getNodes())
-                saveProcessor = 0;
-        } else
+        ++ saveProcessor;
+        if (saveProcessor >= Ippl::getNodes())
             saveProcessor = 0;
 
-        // Share data.
-        reduce(saveProcessor, saveProcessor, OpAddAssign());
-        reduce(x, x, OpAddAssign());
-        reduce(px, px, OpAddAssign());
-        reduce(y, y, OpAddAssign());
-        reduce(py, py, OpAddAssign());
-        reduce(tOrZ, tOrZ, OpAddAssign());
-        reduce(pz, pz, OpAddAssign());
+        if (Ippl::myNode() == 0) {
+            inputFile >> R(0)
+                      >> P(0)
+                      >> R(1)
+                      >> P(1)
+                      >> R(2)
+                      >> P(2);
 
-        // Store particles on proper processor.
-        if (Ippl::myNode() == saveProcessor) {
-            xDist_m.push_back(x);
-            pxDist_m.push_back(px);
-            yDist_m.push_back(y);
-            pyDist_m.push_back(py);
-            tOrZDist_m.push_back(tOrZ);
-            pzDist_m.push_back(pz);
+            if (inputMoUnits_m == InputMomentumUnitsT::EV) {
+                P(0) = converteVToBetaGamma(P(0), massIneV);
+                P(1) = converteVToBetaGamma(P(1), massIneV);
+                P(2) = converteVToBetaGamma(P(2), massIneV);
+            }
+
+            pmean_m += P;
+
+            if (saveProcessor > 0) {
+                buffer = reinterpret_cast<const char*>(&saveProcessor);
+                data.insert(data.end(), buffer, buffer + sizeof(int));
+                buffer = reinterpret_cast<const char*>(&R[0]);
+                data.insert(data.end(), buffer, buffer + 3 * sizeof(double));
+                buffer = reinterpret_cast<const char*>(&P[0]);
+                data.insert(data.end(), buffer, buffer + 3 * sizeof(double));
+                ++ numPartsToSend;
+            } else {
+                xDist_m.push_back(R(0));
+                yDist_m.push_back(R(1));
+                tOrZDist_m.push_back(R(2));
+                pxDist_m.push_back(P(0));
+                pyDist_m.push_back(P(1));
+                pzDist_m.push_back(P(2));
+            }
+        } else {
+            if (saveProcessor > 0) {
+                ++ numPartsToSend;
+            }
+        }
+
+        if (numPartsToSend % distributeFrequency == distributeFrequency - 1) {
+            MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
+            numPartsToSend = 0;
+
+            if (Ippl::myNode() == 0) {
+                std::vector<char>().swap(data);
+                data.reserve(dataSize);
+            } else {
+                size_t i = 0;
+                while (i < dataSize) {
+                    int saveProcessor = *reinterpret_cast<const int*>(&data[i]);
+
+                    if (saveProcessor == Ippl::myNode()) {
+                        i += sizeof(int);
+                        const double *tmp = reinterpret_cast<const double*>(&data[i]);
+                        xDist_m.push_back(tmp[0]);
+                        yDist_m.push_back(tmp[1]);
+                        tOrZDist_m.push_back(tmp[2]);
+                        pxDist_m.push_back(tmp[3]);
+                        pyDist_m.push_back(tmp[4]);
+                        pzDist_m.push_back(tmp[5]);
+                        i += 6 * sizeof(double);
+                    } else {
+                        i += singleDataSize;
+                    }
+                }
+            }
         }
     }
+
+    MPI_Bcast(&data[0], numPartsToSend * singleDataSize, MPI_CHAR, 0, Ippl::getComm());
+
+    if (Ippl::myNode() > 0) {
+        size_t i = 0;
+        while (i < numPartsToSend * singleDataSize) {
+            int saveProcessor = *reinterpret_cast<const int*>(&data[i]);
+
+            if (saveProcessor == Ippl::myNode()) {
+                i += sizeof(int);
+                const double *tmp = reinterpret_cast<const double*>(&data[i]);
+                xDist_m.push_back(tmp[0]);
+                yDist_m.push_back(tmp[1]);
+                tOrZDist_m.push_back(tmp[2]);
+                pxDist_m.push_back(tmp[3]);
+                pyDist_m.push_back(tmp[4]);
+                pzDist_m.push_back(tmp[5]);
+                i += 6 * sizeof(double);
+            } else {
+                i += singleDataSize;
+            }
+        }
+    }
+
+    pmean_m /= numberOfParticlesRead;
+    reduce(pmean_m, pmean_m, OpAddAssign());
+
     if (Ippl::myNode() == 0)
         inputFile.close();
 }
 
 
-void Distribution::CreateMatchedGaussDistribution(size_t numberOfParticles, double massIneV) {
+void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, double massIneV) {
 
-  /*
-    ToDo:
-    - add flag in order to calculate tunes from FMLOWE to FMHIGHE
-    - eliminate physics and error
-  */
+    /*
+      ToDo:
+      - add flag in order to calculate tunes from FMLOWE to FMHIGHE
+      - eliminate physics and error
+    */
 
-  std::string LineName = Attributes::getString(itsAttr[AttributesT::LINE]);
-  if (LineName != "") {
-    const BeamSequence* LineSequence = BeamSequence::find(LineName);
-    if (LineSequence != NULL) {
-      SpecificElementVisitor<Cyclotron> CyclotronVisitor(*LineSequence->fetchLine());
-      CyclotronVisitor.execute();
-      size_t NumberOfCyclotrons = CyclotronVisitor.size();
+    std::string LineName = Attributes::getString(itsAttr[AttributesT::LINE]);
+    if (LineName != "") {
+        const BeamSequence* LineSequence = BeamSequence::find(LineName);
+        if (LineSequence != NULL) {
+            SpecificElementVisitor<Cyclotron> CyclotronVisitor(*LineSequence->fetchLine());
+            CyclotronVisitor.execute();
+            size_t NumberOfCyclotrons = CyclotronVisitor.size();
 
-      if (NumberOfCyclotrons > 1) {
-	throw OpalException("Distribution::CreateMatchedGaussDistribution",
-			    "I am confused, found more than one Cyclotron element in line");
-      }
-      if (NumberOfCyclotrons == 0) {
-	throw OpalException("Distribution::CreateMatchedGaussDistribution",
-			    "didn't find any Cyclotron element in line");
-      }
-      const Cyclotron* CyclotronElement = CyclotronVisitor.front();
+            if (NumberOfCyclotrons > 1) {
+                throw OpalException("Distribution::createMatchedGaussDistribution",
+                                    "I am confused, found more than one Cyclotron element in line");
+            }
+            if (NumberOfCyclotrons == 0) {
+                throw OpalException("Distribution::createMatchedGaussDistribution",
+                                    "didn't find any Cyclotron element in line");
+            }
+            const Cyclotron* CyclotronElement = CyclotronVisitor.front();
 
-      *gmsg << "* ----------------------------------------------------" << endl;
-      *gmsg << "* About to find closed orbit and matched distribution " << endl;
-      *gmsg << "* I= " << I_m*1E3 << " (mA)  E= " << E_m*1E-6 << " (MeV)" << endl;
-      *gmsg << "* EX= "  << Attributes::getReal(itsAttr[AttributesT::EX])
-	    << "* EY= " << Attributes::getReal(itsAttr[AttributesT::EY])
-	    << "* ET= " << Attributes::getReal(itsAttr[AttributesT::ET])
-	    << "* FMAPFN " << Attributes::getString(itsAttr[AttributesT::FMAPFN]) << endl //CyclotronElement->getFieldMapFN() << endl
-	    << "* FMSYM= " << (int)Attributes::getReal(itsAttr[AttributesT::MAGSYM])
-	    << "* HN= "   << CyclotronElement->getCyclHarm()
-	    << "* PHIINIT= " << CyclotronElement->getPHIinit() << endl;
-      *gmsg << "* ----------------------------------------------------" << endl;
+            *gmsg << "* ----------------------------------------------------" << endl;
+            *gmsg << "* About to find closed orbit and matched distribution " << endl;
+            *gmsg << "* I= " << I_m*1E3 << " (mA)  E= " << E_m*1E-6 << " (MeV)" << endl;
+            *gmsg << "* EX= "  << Attributes::getReal(itsAttr[AttributesT::EX])
+                  << "* EY= " << Attributes::getReal(itsAttr[AttributesT::EY])
+                  << "* ET= " << Attributes::getReal(itsAttr[AttributesT::ET])
+                  << "* FMAPFN " << Attributes::getString(itsAttr[AttributesT::FMAPFN]) << endl //CyclotronElement->getFieldMapFN() << endl
+                  << "* FMSYM= " << (int)Attributes::getReal(itsAttr[AttributesT::MAGSYM])
+                  << "* HN= "   << CyclotronElement->getCyclHarm()
+                  << "* PHIINIT= " << CyclotronElement->getPHIinit() << endl;
+            *gmsg << "* ----------------------------------------------------" << endl;
 
-      const double wo = CyclotronElement->getRfFrequ()*1E6/CyclotronElement->getCyclHarm()*2.0*Physics::pi;
+            const double wo = CyclotronElement->getRfFrequ()*1E6/CyclotronElement->getCyclHarm()*2.0*Physics::pi;
 
-      const double fmLowE  = CyclotronElement->getFMLowE();
-      const double fmHighE = CyclotronElement->getFMHighE();
+            const double fmLowE  = CyclotronElement->getFMLowE();
+            const double fmHighE = CyclotronElement->getFMHighE();
 
-      double lE,hE;
-      lE = fmLowE;
-      hE = fmHighE;
+            double lE,hE;
+            lE = fmLowE;
+            hE = fmHighE;
 
-      if ((lE<0) || (hE<0)) {
-	lE = E_m*1E-6;
-	hE = E_m*1E-6;
-      }
+            if ((lE<0) || (hE<0)) {
+                lE = E_m*1E-6;
+                hE = E_m*1E-6;
+            }
 
-      int Nint = 1000;
-      bool writeMap = true;
+            int Nint = 1000;
+            bool writeMap = true;
 
-      SigmaGenerator<double,unsigned int> *siggen = new SigmaGenerator<double,unsigned int>(I_m,
-						 Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
-						 Attributes::getReal(itsAttr[AttributesT::EY])*1E6,
-						 Attributes::getReal(itsAttr[AttributesT::ET])*1E6,
-						 wo,
-						 E_m*1E-6,
-						 CyclotronElement->getCyclHarm(),
-						 massIneV*1E-6,
-						 lE,
-						 hE,
-						 (int)Attributes::getReal(itsAttr[AttributesT::MAGSYM]),
-						 Nint,
-						 Attributes::getString(itsAttr[AttributesT::FMAPFN]),
-						 Attributes::getReal(itsAttr[AttributesT::ORDERMAPS]),
-						 writeMap);
-
-
-      if(siggen->match(Attributes::getReal(itsAttr[AttributesT::RESIDUUM]),
-                       Attributes::getReal(itsAttr[AttributesT::MAXSTEPSSI]),
-                       Attributes::getReal(itsAttr[AttributesT::MAXSTEPSCO]),
-                       CyclotronElement->getPHIinit(),
-                       Attributes::getReal(itsAttr[AttributesT::RGUESS]),
-                       Attributes::getString(itsAttr[AttributesT::FMTYPE]),
-                       false))  {
-
-	std::array<double,3> Emit = siggen->getEmittances();
-
-	if (Attributes::getReal(itsAttr[AttributesT::RGUESS]) > 0)
-	  *gmsg << "* RGUESS " << Attributes::getReal(itsAttr[AttributesT::RGUESS])/1000.0 << " (m) " << endl;
-
-	*gmsg << "* Converged (Ex, Ey, Ez) = (" << Emit[0] << ", " << Emit[1] << ", "
-              << Emit[2] << ") pi mm mrad for E= " << E_m*1E-6 << " (MeV)" << endl;
-	*gmsg << "* Sigma-Matrix " << endl;
-
-	for(unsigned int i = 0; i < siggen->getSigma().size1(); ++ i) {
-	  *gmsg << std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,0);
-	  for(unsigned int j = 1; j < siggen->getSigma().size2(); ++ j) {
-	    *gmsg << " & " <<  std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,j);
-	  }
-	  *gmsg << " \\\\" << endl;
-	}
-
-	/*
-
-	  Now setup the distribution generator
-	  Units of the Sigma Matrix:
-
-	  spatial: mm
-	  moment:  rad
-
-	*/
-
-	if(Options::cloTuneOnly)
-	  throw OpalException("Do only CLO and tune calculation","... ");
+            SigmaGenerator<double,unsigned int> *siggen = new SigmaGenerator<double,unsigned int>(I_m,
+                                                                                                  Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
+                                                                                                  Attributes::getReal(itsAttr[AttributesT::EY])*1E6,
+                                                                                                  Attributes::getReal(itsAttr[AttributesT::ET])*1E6,
+                                                                                                  wo,
+                                                                                                  E_m*1E-6,
+                                                                                                  CyclotronElement->getCyclHarm(),
+                                                                                                  massIneV*1E-6,
+                                                                                                  lE,
+                                                                                                  hE,
+                                                                                                  (int)Attributes::getReal(itsAttr[AttributesT::MAGSYM]),
+                                                                                                  Nint,
+                                                                                                  Attributes::getString(itsAttr[AttributesT::FMAPFN]),
+                                                                                                  Attributes::getReal(itsAttr[AttributesT::ORDERMAPS]),
+                                                                                                  writeMap);
 
 
-	auto sigma = siggen->getSigma();
-	// change units from mm to m
-	for (unsigned int i = 0; i < 3; ++ i) {
-	  for (unsigned int j = 0; j < 6; ++ j) {
-	    sigma(2 * i, j) *= 1e-3;
-	    sigma(j, 2 * i) *= 1e-3;
-	  }
-	}
+            if(siggen->match(Attributes::getReal(itsAttr[AttributesT::RESIDUUM]),
+                             Attributes::getReal(itsAttr[AttributesT::MAXSTEPSSI]),
+                             Attributes::getReal(itsAttr[AttributesT::MAXSTEPSCO]),
+                             CyclotronElement->getPHIinit(),
+                             Attributes::getReal(itsAttr[AttributesT::RGUESS]),
+                             Attributes::getString(itsAttr[AttributesT::FMTYPE]),
+                             false))  {
 
-	for (unsigned int i = 0; i < 3; ++ i) {
-          if ( sigma(2 * i, 2 * i) < 0 || sigma(2 * i + 1, 2 * i + 1) < 0 )
-              throw OpalException("Distribution::CreateMatchedGaussDistribution()",
-                                  "Negative value on the diagonal of the sigma matrix.");
+                std::array<double,3> Emit = siggen->getEmittances();
 
-	  sigmaR_m[i] = std::sqrt(sigma(2 * i, 2 * i));
-	  sigmaP_m[i] = std::sqrt(sigma(2 * i + 1, 2 * i + 1));
+                if (Attributes::getReal(itsAttr[AttributesT::RGUESS]) > 0)
+                    *gmsg << "* RGUESS " << Attributes::getReal(itsAttr[AttributesT::RGUESS])/1000.0 << " (m) " << endl;
+
+                *gmsg << "* Converged (Ex, Ey, Ez) = (" << Emit[0] << ", " << Emit[1] << ", "
+                      << Emit[2] << ") pi mm mrad for E= " << E_m*1E-6 << " (MeV)" << endl;
+                *gmsg << "* Sigma-Matrix " << endl;
+
+                for(unsigned int i = 0; i < siggen->getSigma().size1(); ++ i) {
+                    *gmsg << std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,0);
+                    for(unsigned int j = 1; j < siggen->getSigma().size2(); ++ j) {
+                        *gmsg << " & " <<  std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,j);
+                    }
+                    *gmsg << " \\\\" << endl;
+                }
+
+                /*
+
+                  Now setup the distribution generator
+                  Units of the Sigma Matrix:
+
+                  spatial: mm
+                  moment:  rad
+
+                */
+
+                if(Options::cloTuneOnly)
+                    throw OpalException("Do only CLO and tune calculation","... ");
 
 
-	}
+                auto sigma = siggen->getSigma();
+                // change units from mm to m
+                for (unsigned int i = 0; i < 3; ++ i) {
+                    for (unsigned int j = 0; j < 6; ++ j) {
+                        sigma(2 * i, j) *= 1e-3;
+                        sigma(j, 2 * i) *= 1e-3;
+                    }
+                }
 
-	if (inputMoUnits_m == InputMomentumUnitsT::EV) {
-	  for (unsigned int i = 0; i < 3; ++ i) {
-	    sigmaP_m[i] = ConverteVToBetaGamma(sigmaP_m[i], massIneV);
-	  }
-	}
+                for (unsigned int i = 0; i < 3; ++ i) {
+                    if ( sigma(2 * i, 2 * i) < 0 || sigma(2 * i + 1, 2 * i + 1) < 0 )
+                        throw OpalException("Distribution::CreateMatchedGaussDistribution()",
+                                            "Negative value on the diagonal of the sigma matrix.");
 
-	correlationMatrix_m(1, 0) = sigma(0, 1) / (sqrt(sigma(0, 0) * sigma(1, 1)));
-	correlationMatrix_m(3, 2) = sigma(2, 3) / (sqrt(sigma(2, 2) * sigma(3, 3)));
-	correlationMatrix_m(5, 4) = sigma(4, 5) / (sqrt(sigma(4, 4) * sigma(5, 5)));
-	correlationMatrix_m(4, 0) = sigma(0, 4) / (sqrt(sigma(0, 0) * sigma(4, 4)));
-	correlationMatrix_m(4, 1) = sigma(1, 4) / (sqrt(sigma(1, 1) * sigma(4, 4)));
-	correlationMatrix_m(5, 0) = sigma(0, 5) / (sqrt(sigma(0, 0) * sigma(5, 5)));
-	correlationMatrix_m(5, 1) = sigma(1, 5) / (sqrt(sigma(1, 1) * sigma(5, 5)));
+                    sigmaR_m[i] = std::sqrt(sigma(2 * i, 2 * i));
+                    sigmaP_m[i] = std::sqrt(sigma(2 * i + 1, 2 * i + 1));
+                }
 
-	CreateDistributionGauss(numberOfParticles, massIneV);
-      }
-      else {
-	*gmsg << "* Not converged for " << E_m*1E-6 << " MeV" << endl;
+                if (inputMoUnits_m == InputMomentumUnitsT::EV) {
+                    for (unsigned int i = 0; i < 3; ++ i) {
+                        sigmaP_m[i] = converteVToBetaGamma(sigmaP_m[i], massIneV);
+                    }
+                }
 
-        if (siggen)
-            delete siggen;
+                correlationMatrix_m(1, 0) = sigma(0, 1) / (sqrt(sigma(0, 0) * sigma(1, 1)));
+                correlationMatrix_m(3, 2) = sigma(2, 3) / (sqrt(sigma(2, 2) * sigma(3, 3)));
+                correlationMatrix_m(5, 4) = sigma(4, 5) / (sqrt(sigma(4, 4) * sigma(5, 5)));
+                correlationMatrix_m(4, 0) = sigma(0, 4) / (sqrt(sigma(0, 0) * sigma(4, 4)));
+                correlationMatrix_m(4, 1) = sigma(1, 4) / (sqrt(sigma(1, 1) * sigma(4, 4)));
+                correlationMatrix_m(5, 0) = sigma(0, 5) / (sqrt(sigma(0, 0) * sigma(5, 5)));
+                correlationMatrix_m(5, 1) = sigma(1, 5) / (sqrt(sigma(1, 1) * sigma(5, 5)));
 
-        throw OpalException("Distribution::CreateMatchedGaussDistribution", "didn't find any matched distribution.");
-      }
+                createDistributionGauss(numberOfParticles, massIneV);
+            }
+            else {
+                *gmsg << "* Not converged for " << E_m*1E-6 << " MeV" << endl;
 
-      if (siggen)
-	delete siggen;
+                if (siggen)
+                    delete siggen;
+
+                throw OpalException("Distribution::CreateMatchedGaussDistribution",
+                                    "didn't find any matched distribution.");
+            }
+
+            if (siggen)
+                delete siggen;
+
+        }
+        else
+            throw OpalException("Distribution::CreateMatchedGaussDistribution",
+                                "didn't find any Cyclotron element in line");
     }
-    else
-      throw OpalException("Distribution::CreateMatchedGaussDistribution", "didn't find any Cyclotron element in line");
-  }
 }
 
-void Distribution::CreateDistributionGauss(size_t numberOfParticles, double massIneV) {
+void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV) {
 
-    SetDistParametersGauss(massIneV);
+    setDistParametersGauss(massIneV);
 
     if (emitting_m) {
-        GenerateTransverseGauss(numberOfParticles);
-        GenerateLongFlattopT(numberOfParticles);
+        generateTransverseGauss(numberOfParticles);
+        generateLongFlattopT(numberOfParticles);
     } else {
-        GenerateGaussZ(numberOfParticles);
+        generateGaussZ(numberOfParticles);
     }
 }
 
-void  Distribution::CreateBoundaryGeometry(PartBunch &beam, BoundaryGeometry &bg) {
+void  Distribution::createBoundaryGeometry(PartBunch &beam, BoundaryGeometry &bg) {
 
     int pc = 0;
     size_t N_mean = static_cast<size_t>(floor(bg.getN() / Ippl::getNodes()));
@@ -1485,7 +1566,6 @@ void  Distribution::CreateBoundaryGeometry(PartBunch &beam, BoundaryGeometry &bg
                     beam.PType[lowMark + count] = ParticleType::FIELDEMISSION;
                     beam.TriID[lowMark + count] = 0;
                     beam.Q[lowMark + count] = beam.getChargePerParticle();
-                    beam.LastSection[lowMark + count] = 0;
                     beam.Ef[lowMark + count] = Vector_t(0.0);
                     beam.Bf[lowMark + count] = Vector_t(0.0);
                     beam.dt[lowMark + count] = beam.getdT();
@@ -1502,7 +1582,7 @@ void  Distribution::CreateBoundaryGeometry(PartBunch &beam, BoundaryGeometry &bg
     *gmsg << &beam << endl;
 }
 
-void Distribution::CreateOpalCycl(PartBunch &beam,
+void Distribution::createOpalCycl(PartBunch &beam,
                                   size_t numberOfParticles,
                                   double current, const Beamline &bl,
                                   bool scan) {
@@ -1511,9 +1591,9 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
      *  setup data for matched distribution generation
      */
 
-    E_m = (beam.getGamma()-1.0)*beam.getM();
+    E_m = (beam.getInitialGamma()-1.0)*beam.getM();
     I_m = current;
-    bega_m = beam.getGamma()*beam.getBeta();
+    bega_m = beam.getInitialGamma()*beam.getInitialBeta();
 
     /*
      * When scan mode is true, we need to destroy particles except
@@ -1526,6 +1606,7 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
       avrgpz_m = beam.getP()/beam.getM();
     */
     size_t numberOfPartToCreate = numberOfParticles;
+    totalNumberParticles_m = numberOfParticles;
     if (beam.getTotalNum() != 0) {
         scan_m = scan;
         numberOfPartToCreate = beam.getLocalNum();
@@ -1537,19 +1618,19 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
      * can create new particles.
      */
     if (scan_m)
-        DestroyBeam(beam);
+        destroyBeam(beam);
 
     // Setup particle bin structure.
-    SetupParticleBins(beam.getM(),beam);
+    setupParticleBins(beam.getM(),beam);
 
     /*
      * Set what units to use for input momentum units. Default is
      * eV.
      */
-    ChooseInputMomentumUnits(InputMomentumUnitsT::EV);
+    chooseInputMomentumUnits(InputMomentumUnitsT::EV);
 
     // Set distribution type.
-    SetDistType();
+    setDistType();
 
     // Emitting particles in not supported in OpalCyclT.
     emitting_m = false;
@@ -1564,31 +1645,31 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
         numberOfPartToCreate /= 2;
 
     // Create distribution.
-    Create(numberOfPartToCreate, beam.getM());
+    create(numberOfPartToCreate, beam.getM());
 
     // Now reflect particles if Options::cZero is true.
     if (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE))
-        ReflectDistribution(numberOfPartToCreate);
+        reflectDistribution(numberOfPartToCreate);
 
-    ShiftDistCoordinates(beam.getM());
+    shiftDistCoordinates(beam.getM());
 
     // Setup energy bins.
     if (numberOfEnergyBins_m > 0) {
-        FillParticleBins();
+        fillParticleBins();
         beam.setPBins(energyBins_m);
     }
 
     // Check number of particles in distribution.
-    CheckParticleNumber(numberOfParticles);
+    checkParticleNumber(numberOfParticles);
 
-    InitializeBeam(beam);
-    WriteOutFileHeader();
+    initializeBeam(beam);
+    writeOutFileHeader();
 
-    InjectBeam(beam);
+    injectBeam(beam);
 
 }
 
-void Distribution::CreateOpalE(Beam *beam,
+void Distribution::createOpalE(Beam *beam,
                                std::vector<Distribution *> addedDistributions,
                                EnvelopeBunch *envelopeBunch,
                                double distCenter,
@@ -1603,32 +1684,32 @@ void Distribution::CreateOpalE(Beam *beam,
      * Set what units to use for input momentum units. Default is
      * unitless (i.e. BetaXGamma, BetaYGamma, BetaZGamma).
      */
-    ChooseInputMomentumUnits(InputMomentumUnitsT::NONE);
+    chooseInputMomentumUnits(InputMomentumUnitsT::NONE);
 
-    SetDistType();
+    setDistType();
 
     // Check if this is to be an emitted beam.
-    CheckIfEmitted();
+    checkIfEmitted();
 
     switch (distrTypeT_m) {
 
     case DistrTypeT::FLATTOP:
-        SetDistParametersFlattop(beam->getMass());
+        setDistParametersFlattop(beam->getMass());
         beamEnergy = Attributes::getReal(itsAttr[AttributesT::EKIN]);
         break;
     case DistrTypeT::GAUSS:
-        SetDistParametersGauss(beam->getMass());
+        setDistParametersGauss(beam->getMass());
         break;
     case DistrTypeT::GUNGAUSSFLATTOPTH:
         INFOMSG("GUNGAUSSFLATTOPTH"<<endl);
-        SetDistParametersFlattop(beam->getMass());
+        setDistParametersFlattop(beam->getMass());
         beamEnergy = Attributes::getReal(itsAttr[AttributesT::EKIN]);
         break;
     default:
         *gmsg << "Only GAUSS and GUNGAUSSFLATTOPTH distribution types supported " << endl
               << "in envelope mode. Assuming FLATTOP." << endl;
         distrTypeT_m = DistrTypeT::FLATTOP;
-        SetDistParametersFlattop(beam->getMass());
+        setDistParametersFlattop(beam->getMass());
         break;
     }
 
@@ -1655,16 +1736,16 @@ void Distribution::CreateOpalE(Beam *beam,
     IpplTimings::stopTimer(envelopeBunch->distrCreate_m);
 }
 
-void Distribution::CreateOpalT(PartBunch &beam,
+void Distribution::createOpalT(PartBunch &beam,
                                std::vector<Distribution *> addedDistributions,
                                size_t &numberOfParticles,
                                bool scan) {
 
     addedDistributions_m = addedDistributions;
-    CreateOpalT(beam, numberOfParticles, scan);
+    createOpalT(beam, numberOfParticles, scan);
 }
 
-void Distribution::CreateOpalT(PartBunch &beam,
+void Distribution::createOpalT(PartBunch &beam,
                                size_t &numberOfParticles,
                                bool scan) {
 
@@ -1673,36 +1754,28 @@ void Distribution::CreateOpalT(PartBunch &beam,
     // This is PC from BEAM
     avrgpz_m = beam.getP()/beam.getM();
 
+    totalNumberParticles_m = numberOfParticles;
+
     /*
      * If in scan mode, destroy existing beam so we
      * can create new particles.
      */
     scan_m = scan;
     if (scan_m)
-        DestroyBeam(beam);
+        destroyBeam(beam);
 
     /*
      * Set what units to use for input momentum units. Default is
      * unitless (i.e. BetaXGamma, BetaYGamma, BetaZGamma).
      */
-    ChooseInputMomentumUnits(InputMomentumUnitsT::NONE);
+    chooseInputMomentumUnits(InputMomentumUnitsT::NONE);
 
     // Set distribution type(s).
-    SetDistType();
+    setDistType();
     std::vector<Distribution *>::iterator addedDistIt;
     for (addedDistIt = addedDistributions_m.begin();
          addedDistIt != addedDistributions_m.end(); addedDistIt++)
-        (*addedDistIt)->SetDistType();
-
-    // Check if this is to be an emitted beam.
-    CheckIfEmitted();
-
-    if (emitting_m) {
-        CheckEmissionParameters();
-        SetupEmissionModel(beam);
-    } else {
-        pmean_m = Vector_t(0.0, 0.0, ConverteVToBetaGamma(GetEkin(), beam.getM()));
-    }
+        (*addedDistIt)->setDistType();
 
     /*
      * If Options::cZero is true than we reflect generated distribution
@@ -1719,7 +1792,10 @@ void Distribution::CreateOpalT(PartBunch &beam,
      * the number of particles in that file will override what is
      * determined here.
      */
-    CalcPartPerDist(numberOfParticles);
+    calcPartPerDist(numberOfParticles);
+
+    // Check if this is to be an emitted beam.
+    checkIfEmitted();
 
     /*
      * Force added distributions to the same emission condition as the main
@@ -1727,37 +1803,44 @@ void Distribution::CreateOpalT(PartBunch &beam,
      */
     for (addedDistIt = addedDistributions_m.begin();
          addedDistIt != addedDistributions_m.end(); addedDistIt++)
-        (*addedDistIt)->SetDistToEmitted(emitting_m);
+        (*addedDistIt)->setDistToEmitted(emitting_m);
 
     // Create distributions.
-    Create(particlesPerDist_m.at(0), beam.getM());
+    create(particlesPerDist_m.at(0), beam.getM());
 
     size_t distCount = 1;
     for (addedDistIt = addedDistributions_m.begin();
          addedDistIt != addedDistributions_m.end(); addedDistIt++) {
-        (*addedDistIt)->Create(particlesPerDist_m.at(distCount), beam.getM());
+        (*addedDistIt)->create(particlesPerDist_m.at(distCount), beam.getM());
         distCount++;
     }
 
     // Move added distribution particles to main distribution.
-    AddDistributions();
+    addDistributions();
 
     // Now reflect particles if Options::cZero is true
     if (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE))
-        ReflectDistribution(numberOfParticles);
-
-    ShiftDistCoordinates(beam.getM());
+        reflectDistribution(numberOfParticles);
 
     // Check number of particles in distribution.
-    CheckParticleNumber(numberOfParticles);
+    checkParticleNumber(numberOfParticles);
+
+    if (emitting_m) {
+        checkEmissionParameters();
+        setupEmissionModel(beam);
+    } else {
+        if (distrTypeT_m != DistrTypeT::FROMFILE) {
+            pmean_m = Vector_t(0.0, 0.0, converteVToBetaGamma(getEkin(), beam.getM()));
+        }
+    }
 
     /*
      * Find max. and min. particle positions in the bunch. For the
      * case of an emitted beam these will be in time (seconds). For
      * an injected beam in z (meters).
      */
-    double maxTOrZ = GetMaxTOrZ();
-    double minTOrZ = GetMinTOrZ();
+    double maxTOrZ = getMaxTOrZ();
+    double minTOrZ = getMinTOrZ();
 
     /*
      * Set emission time and/or shift distributions if necessary.
@@ -1765,18 +1848,20 @@ void Distribution::CreateOpalT(PartBunch &beam,
      * For an injected beam we just ensure that there are no
      * particles at z < 0.
      */
-    if (emitting_m)
-        SetEmissionTime(maxTOrZ, minTOrZ);
-    ShiftBeam(maxTOrZ, minTOrZ);
+    if (emitting_m) {
+        setEmissionTime(maxTOrZ, minTOrZ);
+    }
+    shiftBeam(maxTOrZ, minTOrZ);
+
+    shiftDistCoordinates(beam.getM());
 
     if (numberOfEnergyBins_m > 0) {
-        SetupEnergyBins(maxTOrZ, minTOrZ);
-        FillEBinHistogram();
-    } else
-        energyBins_m = NULL;
+        setupEnergyBins(maxTOrZ, minTOrZ);
+        fillEBinHistogram();
+    }
 
-    InitializeBeam(beam);
-    WriteOutFileHeader();
+    initializeBeam(beam);
+    writeOutFileHeader();
 
     if (emitting_m && Options::cZero) {
         std::vector<std::vector<double> > mirrored;
@@ -1793,12 +1878,12 @@ void Distribution::CreateOpalT(PartBunch &beam,
      * Emitted beams get created during the course of the simulation.
      */
     if (!emitting_m)
-        InjectBeam(beam);
+        injectBeam(beam);
 
     IpplTimings::stopTimer(beam.distrCreate_m);
 }
 
-void Distribution::DestroyBeam(PartBunch &beam) {
+void Distribution::destroyBeam(PartBunch &beam) {
 
     particlesPerDist_m.clear();
     xDist_m.clear();
@@ -1845,12 +1930,12 @@ void Distribution::DestroyBeam(PartBunch &beam) {
  exists in the simulation. For the next integration time step, the particle's time step is set back to the global time step,
  \f$\Delta t_{full-timestep}\f$.
 */
-size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
+size_t Distribution::emitParticles(PartBunch &beam, double eZ) {
 
     // Number of particles that have already been emitted and are on this processor.
     size_t numberOfEmittedParticles = beam.getLocalNum();
     size_t oldNumberOfEmittedParticles = numberOfEmittedParticles;
-
+    static size_t counter = 0;
     if (!tOrZDist_m.empty() && emitting_m) {
 
         /*
@@ -1882,10 +1967,10 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
                 if (additionalRNs_m.size() > particleIndex) {
                     additionalRNs = additionalRNs_m[particleIndex];
                 } else {
-                    additionalRNs = std::vector<double>({gsl_rng_uniform(randGenEmit_m),
-                                                         gsl_rng_uniform(randGenEmit_m)});
+                    additionalRNs = std::vector<double>({gsl_rng_uniform(randGen_m),
+                                                         gsl_rng_uniform(randGen_m)});
                 }
-                ApplyEmissionModel(eZ, px, py, pz, additionalRNs);
+                applyEmissionModel(eZ, px, py, pz, additionalRNs);
 
                 double particleGamma
                     = std::sqrt(1.0
@@ -1903,12 +1988,12 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
                     = Vector_t(px, py, pz);
                 beam.Bin[numberOfEmittedParticles] = currentEnergyBin_m - 1;
                 beam.Q[numberOfEmittedParticles] = beam.getChargePerParticle();
-                beam.LastSection[numberOfEmittedParticles] = -1;
                 beam.Ef[numberOfEmittedParticles] = Vector_t(0.0);
                 beam.Bf[numberOfEmittedParticles] = Vector_t(0.0);
                 beam.PType[numberOfEmittedParticles] = ParticleType::REGULAR;
                 beam.TriID[numberOfEmittedParticles] = 0;
                 numberOfEmittedParticles++;
+
                 beam.iterateEmittedBin(currentEnergyBin_m - 1);
 
                 // Save particles to vectors for writing initial distribution.
@@ -1991,72 +2076,60 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
     currentEmissionTime_m += beam.getdT();
 
     // Write emitted particles to file.
-    WriteOutFileEmission();
+    writeOutFileEmission();
 
-    return numberOfEmittedParticles - oldNumberOfEmittedParticles;
+    size_t currentEmittedParticles = numberOfEmittedParticles - oldNumberOfEmittedParticles;
+    reduce(currentEmittedParticles, currentEmittedParticles, OpAddAssign());
+    totalNumberEmittedParticles_m += currentEmittedParticles;
+    ++ counter;
+    return currentEmittedParticles;
 
 }
 
-void Distribution::EraseXDist() {
+void Distribution::eraseXDist() {
     xDist_m.erase(xDist_m.begin(), xDist_m.end());
 }
 
-void Distribution::EraseBGxDist() {
+void Distribution::eraseBGxDist() {
     pxDist_m.erase(pxDist_m.begin(), pxDist_m.end());
 }
 
-void Distribution::EraseYDist() {
+void Distribution::eraseYDist() {
     yDist_m.erase(yDist_m.begin(), yDist_m.end());
 }
 
-void Distribution::EraseBGyDist() {
+void Distribution::eraseBGyDist() {
     pyDist_m.erase(pyDist_m.begin(), pyDist_m.end());
 }
 
-void Distribution::EraseTOrZDist() {
+void Distribution::eraseTOrZDist() {
     tOrZDist_m.erase(tOrZDist_m.begin(), tOrZDist_m.end());
 }
 
-void Distribution::EraseBGzDist() {
+void Distribution::eraseBGzDist() {
     pzDist_m.erase(pzDist_m.begin(), pzDist_m.end());
 }
 
-void Distribution::FillEBinHistogram() {
+void Distribution::fillEBinHistogram() {
+    double upper = 0.0;
+    double lower = 0.0;
+    gsl_histogram_get_range(energyBinHist_m,
+                            gsl_histogram_bins(energyBinHist_m) - 1,
+                            &lower, &upper);
+    const size_t numberOfParticles = tOrZDist_m.size();
+    for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
-    /*
-     * Loop over longitudinal beam coordinates and add them to the energy
-     * bin histogram. Because of how we defined the bin structure the maximum
-     * longitudinal coordinate will not be counted. So, we just force it in there
-     * by artificially incrementing the last bin.
-     */
-    for (int processor = 0; processor < Ippl::getNodes(); processor++) {
+        double &tOrZ = tOrZDist_m.at(partIndex);
 
-        size_t numberOfParticles = 0;
-        if (Ippl::myNode() == processor)
-            numberOfParticles = tOrZDist_m.size();
-        reduce(numberOfParticles, numberOfParticles, OpAddAssign());
-
-        for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
-
-            double tOrZ = 0.0;
-            if (Ippl::myNode() == processor)
-                tOrZ = tOrZDist_m.at(partIndex);
-            reduce(tOrZ, tOrZ, OpAddAssign());
-
-            if (gsl_histogram_increment(energyBinHist_m, tOrZ) == GSL_EDOM) {
-                double upper = 0.0;
-                double lower = 0.0;
-                gsl_histogram_get_range(energyBinHist_m,
-                                        gsl_histogram_bins(energyBinHist_m) - 1,
-                                        &lower, &upper);
-                gsl_histogram_increment(energyBinHist_m, lower);
-            }
-
+        if (gsl_histogram_increment(energyBinHist_m, tOrZ) == GSL_EDOM) {
+            gsl_histogram_increment(energyBinHist_m, 0.5 * (lower + upper));
         }
     }
+
+    reduce(energyBinHist_m->bin, energyBinHist_m->bin + energyBinHist_m->n, energyBinHist_m->bin, OpAddAssign());
 }
 
-void Distribution::FillParticleBins() {
+void Distribution::fillParticleBins() {
 
     for (size_t particleIndex = 0; particleIndex < tOrZDist_m.size(); particleIndex++) {
 
@@ -2077,35 +2150,27 @@ void Distribution::FillParticleBins() {
     energyBins_m->sortArray();
 }
 
-size_t Distribution::FindEBin(double tOrZ) {
+size_t Distribution::findEBin(double tOrZ) {
 
     if (tOrZ <= gsl_histogram_min(energyBinHist_m)) {
         return 0;
     } else if (tOrZ >= gsl_histogram_max(energyBinHist_m)) {
         return numberOfEnergyBins_m - 1;
     } else {
-        gsl_histogram *energyBinHist = gsl_histogram_alloc(numberOfEnergyBins_m);
-        gsl_histogram_set_ranges_uniform(energyBinHist,
-                                         gsl_histogram_min(energyBinHist_m),
-                                         gsl_histogram_max(energyBinHist_m));
-
         size_t binNumber;
-        gsl_histogram_find(energyBinHist, tOrZ, &binNumber);
-        gsl_histogram_free(energyBinHist);
-        return binNumber;
+        gsl_histogram_find(energyBinHist_m, tOrZ, &binNumber);
+        return binNumber / numberOfSampleBins_m;
     }
 }
 
-void Distribution::GenerateAstraFlattopT(size_t numberOfParticles) {
+void Distribution::generateAstraFlattopT(size_t numberOfParticles) {
 
     /*
      * Legacy function to support the ASTRAFLATTOPOTH
      * distribution type.
      */
-    CheckEmissionParameters();
+    checkEmissionParameters();
 
-    gsl_rng_env_setup();
-    gsl_rng *randGen = gsl_rng_alloc(gsl_rng_1dhalton);
     gsl_qrng *quasiRandGen = gsl_qrng_alloc(gsl_qrng_halton, 2);
 
     int numberOfSampleBins
@@ -2186,7 +2251,7 @@ void Distribution::GenerateAstraFlattopT(size_t numberOfParticles) {
         for(int i = 0; i < numParticlesInBin[k]; i++) {
             double xx[2];
             gsl_qrng_get(quasiRandGen, xx);
-            tCoord = hi * (xx[1] + static_cast<int>(gsl_ran_discrete(randGen, table))
+            tCoord = hi * (xx[1] + static_cast<int>(gsl_ran_discrete(randGen_m, table))
                            - binTotal / 2 + k * numberOfSampleBins) / (binTotal / 2);
 
             saveProcessor++;
@@ -2201,13 +2266,12 @@ void Distribution::GenerateAstraFlattopT(size_t numberOfParticles) {
         gsl_ran_discrete_free(table);
     }
 
-    gsl_rng_free(randGen);
     gsl_qrng_free(quasiRandGen);
     delete [] distributionTable;
 
 }
 
-void Distribution::GenerateBinomial(size_t numberOfParticles) {
+void Distribution::generateBinomial(size_t numberOfParticles) {
 
     /*!
      *
@@ -2384,7 +2448,7 @@ void Distribution::GenerateBinomial(size_t numberOfParticles) {
     }
 }
 
-void Distribution::GenerateFlattopLaserProfile(size_t numberOfParticles) {
+void Distribution::generateFlattopLaserProfile(size_t numberOfParticles) {
 
     int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
@@ -2410,16 +2474,14 @@ void Distribution::GenerateFlattopLaserProfile(size_t numberOfParticles) {
     }
 
     if (distrTypeT_m == DistrTypeT::ASTRAFLATTOPTH)
-        GenerateAstraFlattopT(numberOfParticles);
+        generateAstraFlattopT(numberOfParticles);
     else
-        GenerateLongFlattopT(numberOfParticles);
+        generateLongFlattopT(numberOfParticles);
 
 }
 
-void Distribution::GenerateFlattopT(size_t numberOfParticles) {
+void Distribution::generateFlattopT(size_t numberOfParticles) {
 
-    gsl_rng_env_setup();
-    gsl_rng  *randGenStandard = gsl_rng_alloc(gsl_rng_default);
     gsl_qrng *quasiRandGen2D = NULL;
 
     if(Options::rngtype != std::string("RANDOM")) {
@@ -2453,8 +2515,8 @@ void Distribution::GenerateFlattopT(size_t numberOfParticles) {
                 x = -1.0 + 2.0 * randNums[0];
                 y = -1.0 + 2.0 * randNums[1];
             } else {
-                x = -1.0 + 2.0 * gsl_rng_uniform(randGenStandard);
-                y = -1.0 + 2.0 * gsl_rng_uniform(randGenStandard);
+                x = -1.0 + 2.0 * gsl_rng_uniform(randGen_m);
+                y = -1.0 + 2.0 * gsl_rng_uniform(randGen_m);
             }
 
             allow = (pow(x, 2.0) + pow(y, 2.0) <= 1.0);
@@ -2477,22 +2539,18 @@ void Distribution::GenerateFlattopT(size_t numberOfParticles) {
 
     }
 
-    gsl_rng_free(randGenStandard);
-
     if (quasiRandGen2D != NULL)
         gsl_qrng_free(quasiRandGen2D);
 
     if (distrTypeT_m == DistrTypeT::ASTRAFLATTOPTH)
-        GenerateAstraFlattopT(numberOfParticles);
+        generateAstraFlattopT(numberOfParticles);
     else
-        GenerateLongFlattopT(numberOfParticles);
+        generateLongFlattopT(numberOfParticles);
 
 }
 
-void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
+void Distribution::generateFlattopZ(size_t numberOfParticles) {
 
-    gsl_rng_env_setup();
-    gsl_rng *randGenStandard = gsl_rng_alloc(gsl_rng_default);
     gsl_qrng *quasiRandGen1D = NULL;
     gsl_qrng *quasiRandGen2D = NULL;
     if(Options::rngtype != std::string("RANDOM")) {
@@ -2532,8 +2590,8 @@ void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
                 x = -1.0 + 2.0 * randNums[0];
                 y = -1.0 + 2.0 * randNums[1];
             } else {
-                x = -1.0 + 2.0 * gsl_rng_uniform(randGenStandard);
-                y = -1.0 + 2.0 * gsl_rng_uniform(randGenStandard);
+                x = -1.0 + 2.0 * gsl_rng_uniform(randGen_m);
+                y = -1.0 + 2.0 * gsl_rng_uniform(randGen_m);
             }
 
             allow = (pow(x, 2.0) + pow(y, 2.0) <= 1.0);
@@ -2545,7 +2603,7 @@ void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
         if (quasiRandGen1D != NULL)
             gsl_qrng_get(quasiRandGen1D, &z);
         else
-            z = gsl_rng_uniform(randGenStandard);
+            z = gsl_rng_uniform(randGen_m);
 
         z = (z - 0.5) * sigmaR_m[2];
 
@@ -2564,18 +2622,13 @@ void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
         }
     }
 
-    gsl_rng_free(randGenStandard);
-
     if (quasiRandGen1D != NULL) {
         gsl_qrng_free(quasiRandGen1D);
         gsl_qrng_free(quasiRandGen2D);
     }
 }
 
-void Distribution::GenerateGaussZ(size_t numberOfParticles) {
-
-    gsl_rng_env_setup();
-    gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);
+void Distribution::generateGaussZ(size_t numberOfParticles) {
 
     gsl_matrix * corMat  = gsl_matrix_alloc (6, 6);
     gsl_vector * rx = gsl_vector_alloc(6);
@@ -2644,12 +2697,12 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
         double pz = 0.0;
 
         while (!allow) {
-            gsl_vector_set(rx, 0, gsl_ran_gaussian(randGen, 1.0));
-            gsl_vector_set(rx, 1, gsl_ran_gaussian(randGen, 1.0));
-            gsl_vector_set(rx, 2, gsl_ran_gaussian(randGen, 1.0));
-            gsl_vector_set(rx, 3, gsl_ran_gaussian(randGen, 1.0));
-            gsl_vector_set(rx, 4, gsl_ran_gaussian(randGen, 1.0));
-            gsl_vector_set(rx, 5, gsl_ran_gaussian(randGen, 1.0));
+            gsl_vector_set(rx, 0, gsl_ran_gaussian(randGen_m, 1.0));
+            gsl_vector_set(rx, 1, gsl_ran_gaussian(randGen_m, 1.0));
+            gsl_vector_set(rx, 2, gsl_ran_gaussian(randGen_m, 1.0));
+            gsl_vector_set(rx, 3, gsl_ran_gaussian(randGen_m, 1.0));
+            gsl_vector_set(rx, 4, gsl_ran_gaussian(randGen_m, 1.0));
+            gsl_vector_set(rx, 5, gsl_ran_gaussian(randGen_m, 1.0));
 
             gsl_blas_dgemv(CblasNoTrans, 1.0, corMat, rx, 0.0, ry);
 
@@ -2704,13 +2757,13 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
             pzDist_m.push_back(avrgpz_m + pz);
         }
     }
-    gsl_rng_free(randGen);
+
     gsl_vector_free(rx);
     gsl_vector_free(ry);
     gsl_matrix_free(corMat);
 }
 
-void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
+void Distribution::generateLongFlattopT(size_t numberOfParticles) {
 
     double flattopTime = tPulseLengthFWHM_m
         - sqrt(2.0 * log(2.0)) * (sigmaTRise_m + sigmaTFall_m);
@@ -2728,8 +2781,6 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
     size_t numFlat = numberOfParticles - numRise - numFall;
 
     // Generate particles in tail.
-    gsl_rng_env_setup();
-    gsl_rng *randGenGSL = gsl_rng_alloc(gsl_rng_default);
     int saveProcessor = -1;
 
     for (size_t partIndex = 0; partIndex < numFall; partIndex++) {
@@ -2739,7 +2790,7 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
 
         bool allow = false;
         while (!allow) {
-            t = gsl_ran_gaussian_tail(randGenGSL, 0, sigmaTFall_m);
+            t = gsl_ran_gaussian_tail(randGen_m, 0, sigmaTFall_m);
             if (t <= sigmaTRise_m * cutoffR_m[2]) {
                 t = -t + sigmaTFall_m * cutoffR_m[2];
                 allow = true;
@@ -2771,8 +2822,6 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
     if (numModulationPeriods != 0.0)
         modulationPeriod = flattopTime / numModulationPeriods;
 
-    gsl_rng_env_setup();
-    gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);
     gsl_qrng *quasiRandGen1D = NULL;
     gsl_qrng *quasiRandGen2D = NULL;
     if(Options::rngtype != std::string("RANDOM")) {
@@ -2803,7 +2852,7 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
             if (quasiRandGen1D != NULL)
                 gsl_qrng_get(quasiRandGen1D, &t);
             else
-                t = gsl_rng_uniform(randGen);
+                t = gsl_rng_uniform(randGen_m);
 
             t = flattopTime * t + sigmaTFall_m * cutoffR_m[2];
 
@@ -2818,8 +2867,8 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
                     t = randNums[0] * flattopTime;
                     funcAmp = randNums[1];
                 } else {
-                    t = gsl_rng_uniform(randGen)*flattopTime;
-                    funcAmp = gsl_rng_uniform(randGen);
+                    t = gsl_rng_uniform(randGen_m)*flattopTime;
+                    funcAmp = gsl_rng_uniform(randGen_m);
                 }
 
                 double funcValue = (1.0 + modulationAmp
@@ -2850,7 +2899,7 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
 
         bool allow = false;
         while (!allow) {
-            t = gsl_ran_gaussian_tail(randGenGSL, 0, sigmaTRise_m);
+            t = gsl_ran_gaussian_tail(randGen_m, 0, sigmaTRise_m);
             if (t <= sigmaTRise_m * cutoffR_m[2]) {
                 t += sigmaTFall_m * cutoffR_m[2] + flattopTime;
                 allow = true;
@@ -2868,20 +2917,15 @@ void Distribution::GenerateLongFlattopT(size_t numberOfParticles) {
         }
     }
 
-    gsl_rng_free(randGenGSL);
-    gsl_rng_free(randGen);
-
     if (quasiRandGen1D != NULL) {
         gsl_qrng_free(quasiRandGen1D);
         gsl_qrng_free(quasiRandGen2D);
     }
 }
 
-void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
+void Distribution::generateTransverseGauss(size_t numberOfParticles) {
 
     // Generate coordinates.
-    gsl_rng_env_setup();
-    gsl_rng *randGen = gsl_rng_alloc(gsl_rng_default);
     gsl_matrix * corMat  = gsl_matrix_alloc (4, 4);
     gsl_vector * rx = gsl_vector_alloc(4);
     gsl_vector * ry = gsl_vector_alloc(4);
@@ -2918,10 +2962,10 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
         bool allow = false;
         while (!allow) {
 
-            gsl_vector_set(rx, 0, gsl_ran_gaussian (randGen,1.0));
-            gsl_vector_set(rx, 1, gsl_ran_gaussian (randGen,1.0));
-            gsl_vector_set(rx, 2, gsl_ran_gaussian (randGen,1.0));
-            gsl_vector_set(rx, 3, gsl_ran_gaussian (randGen,1.0));
+            gsl_vector_set(rx, 0, gsl_ran_gaussian (randGen_m,1.0));
+            gsl_vector_set(rx, 1, gsl_ran_gaussian (randGen_m,1.0));
+            gsl_vector_set(rx, 2, gsl_ran_gaussian (randGen_m,1.0));
+            gsl_vector_set(rx, 3, gsl_ran_gaussian (randGen_m,1.0));
 
             gsl_blas_dgemv(CblasNoTrans, 1.0, corMat, rx, 0.0, ry);
             x = gsl_vector_get(ry, 0);
@@ -2970,13 +3014,12 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
         }
     }
 
-    gsl_rng_free(randGen);
     gsl_matrix_free(corMat);
     gsl_vector_free(rx);
     gsl_vector_free(ry);
 }
 
-void Distribution::InitializeBeam(PartBunch &beam) {
+void Distribution::initializeBeam(PartBunch &beam) {
 
     /*
      * Set emission time, the current beam bunch number and
@@ -2985,13 +3028,12 @@ void Distribution::InitializeBeam(PartBunch &beam) {
     beam.setTEmission(tEmission_m);
     beam.setNumBunch(1);
     if (numberOfEnergyBins_m > 0)
-        beam.SetEnergyBins(numberOfEnergyBins_m);
-    beam.LastSection = 0;
+        beam.setEnergyBins(numberOfEnergyBins_m);
 }
 
-void Distribution::InjectBeam(PartBunch &beam) {
+void Distribution::injectBeam(PartBunch &beam) {
 
-    WriteOutFileInjection();
+    writeOutFileInjection();
 
     std::vector<double> id1 = Attributes::getRealArray(itsAttr[AttributesT::ID1]);
     std::vector<double> id2 = Attributes::getRealArray(itsAttr[AttributesT::ID2]);
@@ -3022,7 +3064,7 @@ void Distribution::InjectBeam(PartBunch &beam) {
         beam.TriID[partIndex] = 0;
 
         if (numberOfEnergyBins_m > 0) {
-            size_t binNumber = FindEBin(tOrZDist_m.at(partIndex));
+            size_t binNumber = findEBin(tOrZDist_m.at(partIndex));
             beam.Bin[partIndex] = binNumber;
             beam.iterateEmittedBin(binNumber);
         } else
@@ -3057,125 +3099,87 @@ void Distribution::InjectBeam(PartBunch &beam) {
     beam.calcEMean();
 }
 
-bool Distribution::GetIfDistEmitting() {
+bool Distribution::getIfDistEmitting() {
     return emitting_m;
 }
 
-int Distribution::GetLastEmittedEnergyBin() {
+int Distribution::getLastEmittedEnergyBin() {
     return currentEnergyBin_m;
 }
 
-double Distribution::GetMaxTOrZ() {
+double Distribution::getMaxTOrZ() {
 
-    double maxTOrZ = 0.0;
-    std::vector<double>::iterator longIt;
-    for (longIt = tOrZDist_m.begin(); longIt != tOrZDist_m.end(); longIt++) {
-        if (longIt == tOrZDist_m.begin())
+    std::vector<double>::iterator longIt = tOrZDist_m.begin();
+    double maxTOrZ = *longIt;
+    for (++longIt; longIt != tOrZDist_m.end(); longIt++) {
+        if (maxTOrZ < *longIt)
             maxTOrZ = *longIt;
-        else
-            if (maxTOrZ < *longIt)
-                maxTOrZ = *longIt;
     }
 
-    std::vector<double> maxTOrZs;
-    for (int nodeIndex = 0; nodeIndex < Ippl::getNodes(); nodeIndex++) {
-        if (nodeIndex == Ippl::myNode())
-            maxTOrZs.push_back(maxTOrZ);
-        else
-            maxTOrZs.push_back(0.0);
-
-        reduce(maxTOrZs.at(nodeIndex), maxTOrZs.at(nodeIndex), OpAddAssign());
-    }
-
-    std::vector<double>::iterator maxIt;
-    for (maxIt = maxTOrZs.begin(); maxIt != maxTOrZs.end(); maxIt++) {
-        if (maxIt == maxTOrZs.begin())
-            maxTOrZ = *maxIt;
-        else if (maxTOrZ < *maxIt)
-            maxTOrZ = *maxIt;
-    }
+    reduce(maxTOrZ, maxTOrZ, OpMaxAssign());
 
     return maxTOrZ;
 }
 
-double Distribution::GetMinTOrZ() {
+double Distribution::getMinTOrZ() {
 
-    double minTOrZ = 0.0;
-    std::vector<double>::iterator longIt;
-    for (longIt = tOrZDist_m.begin(); longIt != tOrZDist_m.end(); longIt++) {
-        if (longIt == tOrZDist_m.begin())
+    std::vector<double>::iterator longIt = tOrZDist_m.begin();
+    double minTOrZ = *longIt;
+    for (++longIt; longIt != tOrZDist_m.end(); longIt++) {
+        if (minTOrZ > *longIt)
             minTOrZ = *longIt;
-        else
-            if (minTOrZ > *longIt)
-                minTOrZ = *longIt;
     }
 
-    std::vector<double> minTOrZs;
-    for (int nodeIndex = 0; nodeIndex < Ippl::getNodes(); nodeIndex++) {
-        if (nodeIndex == Ippl::myNode())
-            minTOrZs.push_back(minTOrZ);
-        else
-            minTOrZs.push_back(0.0);
-
-        reduce(minTOrZs.at(nodeIndex), minTOrZs.at(nodeIndex), OpAddAssign());
-    }
-
-    std::vector<double>::iterator minIt;
-    for (minIt = minTOrZs.begin(); minIt != minTOrZs.end(); minIt++) {
-        if (minIt == minTOrZs.begin())
-            minTOrZ = *minIt;
-        else if (minTOrZ > *minIt)
-            minTOrZ = *minIt;
-    }
+    reduce(minTOrZ, minTOrZ, OpMinAssign());
 
     return minTOrZ;
 }
 
-size_t Distribution::GetNumberOfEmissionSteps() {
+size_t Distribution::getNumberOfEmissionSteps() {
     return static_cast<size_t> (numberOfEnergyBins_m * numberOfSampleBins_m);
 }
 
-int Distribution::GetNumberOfEnergyBins() {
+int Distribution::getNumberOfEnergyBins() {
     return numberOfEnergyBins_m;
 }
 
-double Distribution::GetEmissionDeltaT() {
+double Distribution::getEmissionDeltaT() {
     return tBin_m / numberOfSampleBins_m;
 }
 
-double Distribution::GetEnergyBinDeltaT() {
+double Distribution::getEnergyBinDeltaT() {
     return tBin_m;
 }
 
-double Distribution::GetWeight() {
+double Distribution::getWeight() {
     return std::abs(Attributes::getReal(itsAttr[AttributesT::WEIGHT]));
 }
 
-std::vector<double>& Distribution::GetXDist() {
+std::vector<double>& Distribution::getXDist() {
     return xDist_m;
 }
 
-std::vector<double>& Distribution::GetBGxDist() {
+std::vector<double>& Distribution::getBGxDist() {
     return pxDist_m;
 }
 
-std::vector<double>& Distribution::GetYDist() {
+std::vector<double>& Distribution::getYDist() {
     return yDist_m;
 }
 
-std::vector<double>& Distribution::GetBGyDist() {
+std::vector<double>& Distribution::getBGyDist() {
     return pyDist_m;
 }
 
-std::vector<double>& Distribution::GetTOrZDist() {
+std::vector<double>& Distribution::getTOrZDist() {
     return tOrZDist_m;
 }
 
-std::vector<double>& Distribution::GetBGzDist() {
+std::vector<double>& Distribution::getBGzDist() {
     return pzDist_m;
 }
 
-void Distribution::PrintDist(Inform &os, size_t numberOfParticles) const {
+void Distribution::printDist(Inform &os, size_t numberOfParticles) const {
 
     if (numberOfParticles > 0) {
         os << "* Number of particles: "
@@ -3187,31 +3191,31 @@ void Distribution::PrintDist(Inform &os, size_t numberOfParticles) const {
     switch (distrTypeT_m) {
 
     case DistrTypeT::FROMFILE:
-        PrintDistFromFile(os);
+        printDistFromFile(os);
         break;
     case DistrTypeT::GAUSS:
-        PrintDistGauss(os);
+        printDistGauss(os);
         break;
     case DistrTypeT::BINOMIAL:
-        PrintDistBinomial(os);
+        printDistBinomial(os);
         break;
     case DistrTypeT::FLATTOP:
-        PrintDistFlattop(os);
+        printDistFlattop(os);
         break;
     case DistrTypeT::SURFACEEMISSION:
-        PrintDistSurfEmission(os);
+        printDistSurfEmission(os);
         break;
     case DistrTypeT::SURFACERANDCREATE:
-        PrintDistSurfAndCreate(os);
+        printDistSurfAndCreate(os);
         break;
     case DistrTypeT::GUNGAUSSFLATTOPTH:
-        PrintDistFlattop(os);
+        printDistFlattop(os);
         break;
     case DistrTypeT::ASTRAFLATTOPTH:
-        PrintDistFlattop(os);
+        printDistFlattop(os);
         break;
     case DistrTypeT::MATCHEDGAUSS:
-        PrintDistMatchedGauss(os);
+        printDistMatchedGauss(os);
         break;
     default:
         INFOMSG("Distribution unknown." << endl;);
@@ -3220,7 +3224,7 @@ void Distribution::PrintDist(Inform &os, size_t numberOfParticles) const {
 
 }
 
-void Distribution::PrintDistBinomial(Inform &os) const {
+void Distribution::printDistBinomial(Inform &os) const {
 
     os << "* Distribution type: BINOMIAL" << endl;
     os << "* " << endl;
@@ -3248,7 +3252,7 @@ void Distribution::PrintDistBinomial(Inform &os) const {
     os << "* R52      = " << correlationMatrix_m(4, 1) << endl;
 }
 
-void Distribution::PrintDistFlattop(Inform &os) const {
+void Distribution::printDistFlattop(Inform &os) const {
 
     switch (distrTypeT_m) {
 
@@ -3313,7 +3317,7 @@ void Distribution::PrintDistFlattop(Inform &os) const {
            << " [m]" << endl;
 }
 
-void Distribution::PrintDistFromFile(Inform &os) const {
+void Distribution::printDistFromFile(Inform &os) const {
     os << "* Distribution type: FROMFILE" << endl;
     os << "* " << endl;
     os << "* Input file:        "
@@ -3321,7 +3325,7 @@ void Distribution::PrintDistFromFile(Inform &os) const {
 }
 
 
-void Distribution::PrintDistMatchedGauss(Inform &os) const {
+void Distribution::printDistMatchedGauss(Inform &os) const {
     os << "* Distribution type: MATCHEDGAUSS" << endl;
     os << "* SIGMAX   = " << sigmaR_m[0] << " [m]" << endl;
     os << "* SIGMAY   = " << sigmaR_m[1] << " [m]" << endl;
@@ -3346,7 +3350,7 @@ void Distribution::PrintDistMatchedGauss(Inform &os) const {
     os << "* CUTOFFPZ = " << cutoffP_m[2] << " [units of SIGMAPY]" << endl;
 }
 
-void Distribution::PrintDistGauss(Inform &os) const {
+void Distribution::printDistGauss(Inform &os) const {
     os << "* Distribution type: GAUSS" << endl;
     os << "* " << endl;
     if (emitting_m) {
@@ -3405,7 +3409,7 @@ void Distribution::PrintDistGauss(Inform &os) const {
     }
 }
 
-void Distribution::PrintDistSurfEmission(Inform &os) const {
+void Distribution::printDistSurfEmission(Inform &os) const {
 
     os << "* Distribution type: SURFACEEMISION" << endl;
     os << "* " << endl;
@@ -3466,7 +3470,7 @@ void Distribution::PrintDistSurfEmission(Inform &os) const {
        <<  Attributes::getReal(itsAttr[AttributesT::SURFMATERIAL]) << endl;
 }
 
-void Distribution::PrintDistSurfAndCreate(Inform &os) const {
+void Distribution::printDistSurfAndCreate(Inform &os) const {
 
     os << "* Distribution type: SURFACERANDCREATE" << endl;
     os << "* " << endl;
@@ -3479,20 +3483,20 @@ void Distribution::PrintDistSurfAndCreate(Inform &os) const {
        << Attributes::getReal(itsAttr[AttributesT::EINITHR]) << endl;
 }
 
-void Distribution::PrintEmissionModel(Inform &os) const {
+void Distribution::printEmissionModel(Inform &os) const {
 
     os << "* ------------- THERMAL EMITTANCE MODEL --------------------------------------------" << endl;
 
     switch (emissionModel_m) {
 
     case EmissionModelT::NONE:
-        PrintEmissionModelNone(os);
+        printEmissionModelNone(os);
         break;
     case EmissionModelT::ASTRA:
-        PrintEmissionModelAstra(os);
+        printEmissionModelAstra(os);
         break;
     case EmissionModelT::NONEQUIL:
-        PrintEmissionModelNonEquil(os);
+        printEmissionModelNonEquil(os);
         break;
     default:
         break;
@@ -3502,21 +3506,21 @@ void Distribution::PrintEmissionModel(Inform &os) const {
 
 }
 
-void Distribution::PrintEmissionModelAstra(Inform &os) const {
+void Distribution::printEmissionModelAstra(Inform &os) const {
     os << "*  THERMAL EMITTANCE in ASTRA MODE" << endl;
     os << "*  Kinetic energy (thermal emittance) = "
        << std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]))
        << " [eV]  " << endl;
 }
 
-void Distribution::PrintEmissionModelNone(Inform &os) const {
+void Distribution::printEmissionModelNone(Inform &os) const {
     os << "*  THERMAL EMITTANCE in NONE MODE" << endl;
     os << "*  Kinetic energy added to longitudinal momentum = "
        << std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]))
        << " [eV]  " << endl;
 }
 
-void Distribution::PrintEmissionModelNonEquil(Inform &os) const {
+void Distribution::printEmissionModelNonEquil(Inform &os) const {
     os << "*  THERMAL EMITTANCE in NONEQUIL MODE" << endl;
     os << "*  Cathode work function     = " << cathodeWorkFunc_m << " [eV]  " << endl;
     os << "*  Cathode Fermi energy      = " << cathodeFermiEnergy_m << " [eV]  " << endl;
@@ -3524,7 +3528,7 @@ void Distribution::PrintEmissionModelNonEquil(Inform &os) const {
     os << "*  Photocathode laser energy = " << laserEnergy_m << " [eV]  " << endl;
 }
 
-void Distribution::PrintEnergyBins(Inform &os) const {
+void Distribution::printEnergyBins(Inform &os) const {
 
     os << "* " << endl;
     for (int binIndex = numberOfEnergyBins_m - 1; binIndex >=0; binIndex--) {
@@ -3553,7 +3557,7 @@ bool Distribution::Rebin() {
     }
 }
 
-void Distribution::ReflectDistribution(size_t &numberOfParticles) {
+void Distribution::reflectDistribution(size_t &numberOfParticles) {
 
     size_t currentNumPart = tOrZDist_m.size();
     for (size_t partIndex = 0; partIndex < currentNumPart; partIndex++) {
@@ -3568,7 +3572,7 @@ void Distribution::ReflectDistribution(size_t &numberOfParticles) {
     reduce(numberOfParticles, numberOfParticles, OpAddAssign());
 }
 
-void Distribution::ScaleDistCoordinates() {
+void Distribution::scaleDistCoordinates() {
 
     for (size_t particleIndex = 0; particleIndex < tOrZDist_m.size(); particleIndex++) {
         xDist_m.at(particleIndex) *= Attributes::getReal(itsAttr[AttributesT::XMULT]);
@@ -3585,7 +3589,7 @@ void Distribution::ScaleDistCoordinates() {
     }
 }
 
-void Distribution::SetAttributes() {
+void Distribution::setAttributes() {
     itsAttr[AttributesT::DISTRIBUTION]
         = Attributes::makeString("DISTRIBUTION","Distribution type: FROMFILE, "
                                  "GAUSS, "
@@ -3619,24 +3623,26 @@ void Distribution::SetAttributes() {
     itsAttr[AttributesT::MAXSTEPSSI]
         = Attributes::makeReal("MAXSTEPSSI", "Maximum steps used to find matched distribution ",2000);
     itsAttr[AttributesT::ORDERMAPS]
-      = Attributes::makeReal("ORDERMAPS", "Order used in the field expansion ", 7);
+        = Attributes::makeReal("ORDERMAPS", "Order used in the field expansion ", 7);
     itsAttr[AttributesT::MAGSYM]
-      = Attributes::makeReal("MAGSYM", "Number of sector magnets ", 0);
+        = Attributes::makeReal("MAGSYM", "Number of sector magnets ", 0);
+
     itsAttr[AttributesT::RGUESS]
-      = Attributes::makeReal("RGUESS", "Guess value of radius (m) for closed orbit finder ", -1);
+        = Attributes::makeReal("RGUESS", "Guess value of radius (m) for closed orbit finder ", -1);
+
 
     itsAttr[AttributesT::FNAME]
-      = Attributes::makeString("FNAME", "File for reading in 6D particle "
-			       "coordinates.", "");
+        = Attributes::makeString("FNAME", "File for reading in 6D particle "
+                                 "coordinates.", "");
 
 
     itsAttr[AttributesT::WRITETOFILE]
-      = Attributes::makeBool("WRITETOFILE", "Write initial distribution to file.",
-			     false);
+        = Attributes::makeBool("WRITETOFILE", "Write initial distribution to file.",
+                               false);
 
     itsAttr[AttributesT::WEIGHT]
-      = Attributes::makeReal("WEIGHT", "Weight of distribution when used in a "
-			     "distribution list.", 1.0);
+        = Attributes::makeReal("WEIGHT", "Weight of distribution when used in a "
+                               "distribution list.", 1.0);
 
     itsAttr[AttributesT::INPUTMOUNITS]
         = Attributes::makeString("INPUTMOUNITS", "Tell OPAL what input units are for momentum."
@@ -3962,7 +3968,7 @@ void Distribution::SetAttributes() {
         = Attributes::makeReal("DDY", "First derivative of DY.", 0.0);
 }
 
-void Distribution::SetFieldEmissionParameters() {
+void Distribution::setFieldEmissionParameters() {
 
     darkCurrentParts_m = static_cast<size_t> (Attributes::getReal(itsAttr[AttributesT::NPDARKCUR]));
     darkInwardMargin_m = Attributes::getReal(itsAttr[AttributesT::INWARDMARGIN]);
@@ -3982,13 +3988,13 @@ void Distribution::SetFieldEmissionParameters() {
 
 }
 
-void Distribution::SetDistToEmitted(bool emitted) {
+void Distribution::setDistToEmitted(bool emitted) {
     emitting_m = emitted;
 }
 
-void Distribution::SetDistType() {
+void Distribution::setDistType() {
 
-    distT_m = Attributes::getString(itsAttr[AttributesT::DISTRIBUTION]);
+    distT_m = Util::toUpper(Attributes::getString(itsAttr[AttributesT::DISTRIBUTION]));
     if (distT_m == "FROMFILE")
         distrTypeT_m = DistrTypeT::FROMFILE;
     else if(distT_m == "GAUSS")
@@ -4010,7 +4016,7 @@ void Distribution::SetDistType() {
 
 }
 
-void Distribution::SetEmissionTime(double &maxT, double &minT) {
+void Distribution::setEmissionTime(double &maxT, double &minT) {
 
     if (addedDistributions_m.size() == 0) {
 
@@ -4068,7 +4074,7 @@ void Distribution::SetEmissionTime(double &maxT, double &minT) {
     tBin_m = tEmission_m / numberOfEnergyBins_m;
 }
 
-void Distribution::SetDistParametersBinomial(double massIneV) {
+void Distribution::setDistParametersBinomial(double massIneV) {
 
     /*
      * Set Distribution parameters. Do all the necessary checks depending
@@ -4107,9 +4113,9 @@ void Distribution::SetDistParametersBinomial(double massIneV) {
     switch (inputMoUnits_m) {
 
     case InputMomentumUnitsT::EV:
-        sigmaP_m[0] = ConverteVToBetaGamma(sigmaP_m[0], massIneV);
-        sigmaP_m[1] = ConverteVToBetaGamma(sigmaP_m[1], massIneV);
-        sigmaP_m[2] = ConverteVToBetaGamma(sigmaP_m[2], massIneV);
+        sigmaP_m[0] = converteVToBetaGamma(sigmaP_m[0], massIneV);
+        sigmaP_m[1] = converteVToBetaGamma(sigmaP_m[1], massIneV);
+        sigmaP_m[2] = converteVToBetaGamma(sigmaP_m[2], massIneV);
         break;
 
     default:
@@ -4139,7 +4145,7 @@ void Distribution::SetDistParametersBinomial(double massIneV) {
     }
 }
 
-void Distribution::SetDistParametersFlattop(double massIneV) {
+void Distribution::setDistParametersFlattop(double massIneV) {
 
     /*
      * Set distribution parameters. Do all the necessary checks depending
@@ -4153,9 +4159,9 @@ void Distribution::SetDistParametersFlattop(double massIneV) {
     switch (inputMoUnits_m) {
 
     case InputMomentumUnitsT::EV:
-        sigmaP_m[0] = ConverteVToBetaGamma(sigmaP_m[0], massIneV);
-        sigmaP_m[1] = ConverteVToBetaGamma(sigmaP_m[1], massIneV);
-        sigmaP_m[2] = ConverteVToBetaGamma(sigmaP_m[2], massIneV);
+        sigmaP_m[0] = converteVToBetaGamma(sigmaP_m[0], massIneV);
+        sigmaP_m[1] = converteVToBetaGamma(sigmaP_m[1], massIneV);
+        sigmaP_m[2] = converteVToBetaGamma(sigmaP_m[2], massIneV);
         break;
 
     default:
@@ -4245,7 +4251,7 @@ void Distribution::SetDistParametersFlattop(double massIneV) {
 
 }
 
-void Distribution::SetDistParametersGauss(double massIneV) {
+void Distribution::setDistParametersGauss(double massIneV) {
 
     /*
      * Set distribution parameters. Do all the necessary checks depending
@@ -4276,9 +4282,9 @@ void Distribution::SetDistParametersGauss(double massIneV) {
         switch (inputMoUnits_m) {
 
         case InputMomentumUnitsT::EV:
-            sigmaP_m[0] = ConverteVToBetaGamma(sigmaP_m[0], massIneV);
-            sigmaP_m[1] = ConverteVToBetaGamma(sigmaP_m[1], massIneV);
-            sigmaP_m[2] = ConverteVToBetaGamma(sigmaP_m[2], massIneV);
+            sigmaP_m[0] = converteVToBetaGamma(sigmaP_m[0], massIneV);
+            sigmaP_m[1] = converteVToBetaGamma(sigmaP_m[1], massIneV);
+            sigmaP_m[2] = converteVToBetaGamma(sigmaP_m[2], massIneV);
             break;
 
         default:
@@ -4372,9 +4378,9 @@ void Distribution::SetDistParametersGauss(double massIneV) {
     }
 }
 
-void Distribution::SetupEmissionModel(PartBunch &beam) {
+void Distribution::setupEmissionModel(PartBunch &beam) {
 
-    std::string model = Attributes::getString(itsAttr[AttributesT::EMISSIONMODEL]);
+    std::string model = Util::toUpper(Attributes::getString(itsAttr[AttributesT::EMISSIONMODEL]));
     if (model == "ASTRA")
         emissionModel_m = EmissionModelT::ASTRA;
     else if (model == "NONEQUIL")
@@ -4393,13 +4399,13 @@ void Distribution::SetupEmissionModel(PartBunch &beam) {
     switch (emissionModel_m) {
 
     case EmissionModelT::NONE:
-        SetupEmissionModelNone(beam);
+        setupEmissionModelNone(beam);
         break;
     case EmissionModelT::ASTRA:
-        SetupEmissionModelAstra(beam);
+        setupEmissionModelAstra(beam);
         break;
     case EmissionModelT::NONEQUIL:
-        SetupEmissionModelNonEquil();
+        setupEmissionModelNonEquil();
         break;
     default:
         break;
@@ -4407,29 +4413,27 @@ void Distribution::SetupEmissionModel(PartBunch &beam) {
 
 }
 
-void Distribution::SetupEmissionModelAstra(PartBunch &beam) {
+void Distribution::setupEmissionModelAstra(PartBunch &beam) {
 
     double wThermal = std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]));
-    pTotThermal_m = ConverteVToBetaGamma(wThermal, beam.getM());
+    pTotThermal_m = converteVToBetaGamma(wThermal, beam.getM());
     pmean_m = Vector_t(0.0, 0.0, 0.5 * pTotThermal_m);
-
-    gsl_rng_env_setup();
-    randGenEmit_m = gsl_rng_alloc(gsl_rng_default);
 }
 
-void Distribution::SetupEmissionModelNone(PartBunch &beam) {
+void Distribution::setupEmissionModelNone(PartBunch &beam) {
 
     double wThermal = std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]));
-    pTotThermal_m = ConverteVToBetaGamma(wThermal, beam.getM());
+    pTotThermal_m = converteVToBetaGamma(wThermal, beam.getM());
     double avgPz = std::accumulate(pzDist_m.begin(), pzDist_m.end(), 0.0);
     size_t numParticles = pzDist_m.size();
     reduce(avgPz, avgPz, OpAddAssign());
     reduce(numParticles, numParticles, OpAddAssign());
+    avgPz /= numParticles;
 
-    pmean_m = Vector_t(0.0, 0.0, pTotThermal_m + avgPz / numParticles);
+    pmean_m = Vector_t(0.0, 0.0, pTotThermal_m + avgPz);
 }
 
-void Distribution::SetupEmissionModelNonEquil() {
+void Distribution::setupEmissionModelNonEquil() {
 
     cathodeWorkFunc_m = std::abs(Attributes::getReal(itsAttr[AttributesT::W]));
     laserEnergy_m = std::abs(Attributes::getReal(itsAttr[AttributesT::ELASER]));
@@ -4443,14 +4447,11 @@ void Distribution::SetupEmissionModelNonEquil() {
     emitEnergyUpperLimit_m = cathodeFermiEnergy_m
         + Physics::kB * cathodeTemp_m * log(1.0e9 - 1.0);
 
-    gsl_rng_env_setup();
-    randGenEmit_m = gsl_rng_alloc(gsl_rng_default);
-
     // TODO: get better estimate of pmean
     pmean_m = 0.5 * (cathodeWorkFunc_m + emitEnergyUpperLimit_m);
 }
 
-void Distribution::SetupEnergyBins(double maxTOrZ, double minTOrZ) {
+void Distribution::setupEnergyBins(double maxTOrZ, double minTOrZ) {
 
     energyBinHist_m = gsl_histogram_alloc(numberOfSampleBins_m * numberOfEnergyBins_m);
 
@@ -4461,7 +4462,7 @@ void Distribution::SetupEnergyBins(double maxTOrZ, double minTOrZ) {
 
 }
 
-void Distribution::SetupParticleBins(double massIneV, PartBunch &beam) {
+void Distribution::setupParticleBins(double massIneV, PartBunch &beam) {
 
     numberOfEnergyBins_m
         = static_cast<int>(std::abs(Attributes::getReal(itsAttr[AttributesT::NBIN])));
@@ -4490,7 +4491,7 @@ void Distribution::SetupParticleBins(double massIneV, PartBunch &beam) {
     }
 }
 
-void Distribution::ShiftBeam(double &maxTOrZ, double &minTOrZ) {
+void Distribution::shiftBeam(double &maxTOrZ, double &minTOrZ) {
 
     std::vector<double>::iterator tOrZIt;
     if (emitting_m) {
@@ -4528,18 +4529,27 @@ void Distribution::ShiftBeam(double &maxTOrZ, double &minTOrZ) {
         }
 
     } else {
-        if (minTOrZ < 0.0) {
-            for (tOrZIt = tOrZDist_m.begin(); tOrZIt != tOrZDist_m.end(); tOrZIt++)
-                *tOrZIt -= minTOrZ;
-            maxTOrZ -= minTOrZ;
-            minTOrZ -= minTOrZ;
-        }
+        double avgZ[] = {0.0, 1.0 * tOrZDist_m.size()};
+        for (tOrZIt = tOrZDist_m.begin(); tOrZIt != tOrZDist_m.end(); tOrZIt++)
+            avgZ[0] += *tOrZIt;
+
+        reduce(avgZ, avgZ + 2, avgZ, OpAddAssign());
+        avgZ[0] /= avgZ[1];
+
+        for (tOrZIt = tOrZDist_m.begin(); tOrZIt != tOrZDist_m.end(); tOrZIt++)
+            *tOrZIt -= avgZ[0];
     }
 
 }
 
-void Distribution::ShiftDistCoordinates(double massIneV) {
+double Distribution::getEmissionTimeShift() const {
+    if (emitting_m)
+        return Attributes::getReal(itsAttr[AttributesT::OFFSETT]);
 
+    return 0.0;
+}
+
+void Distribution::shiftDistCoordinates(double massIneV) {
     double deltaX = Attributes::getReal(itsAttr[AttributesT::OFFSETX]);
     double deltaY = Attributes::getReal(itsAttr[AttributesT::OFFSETY]);
 
@@ -4550,7 +4560,7 @@ void Distribution::ShiftDistCoordinates(double massIneV) {
      */
     double deltaTOrZ = Attributes::getReal(itsAttr[ LegacyAttributesT::T]);
     if (emitting_m)
-        deltaTOrZ = Attributes::getReal(itsAttr[AttributesT::OFFSETT]);
+        deltaTOrZ = 0.0;
     else {
         if (Attributes::getReal(itsAttr[AttributesT::OFFSETZ]) != 0.0)
             deltaTOrZ = Attributes::getReal(itsAttr[AttributesT::OFFSETZ]);
@@ -4566,9 +4576,9 @@ void Distribution::ShiftDistCoordinates(double massIneV) {
     // Check input momentum units.
     switch (inputMoUnits_m) {
     case InputMomentumUnitsT::EV:
-        deltaPx = ConverteVToBetaGamma(deltaPx, massIneV);
-        deltaPy = ConverteVToBetaGamma(deltaPy, massIneV);
-        deltaPz = ConverteVToBetaGamma(deltaPz, massIneV);
+        deltaPx = converteVToBetaGamma(deltaPx, massIneV);
+        deltaPy = converteVToBetaGamma(deltaPy, massIneV);
+        deltaPz = converteVToBetaGamma(deltaPz, massIneV);
         break;
     default:
         break;
@@ -4584,17 +4594,20 @@ void Distribution::ShiftDistCoordinates(double massIneV) {
     }
 }
 
-void Distribution::WriteOutFileHeader() {
+void Distribution::writeOutFileHeader() {
 
     if (Attributes::getBool(itsAttr[AttributesT::WRITETOFILE])) {
 
+        unsigned int totalNum = tOrZDist_m.size();
+        reduce(totalNum, totalNum, OpAddAssign());
         if (Ippl::myNode() == 0) {
+            std::string fname = "data/" + OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat";
             *gmsg << "* **********************************************************************************" << endl;
-            *gmsg << "* Write initial distribution to file \"data/distribution.data\"" << endl;
+            *gmsg << "* Write initial distribution to file \"" << fname << "\"" << endl;
             *gmsg << "* **********************************************************************************" << endl;
-            std::ofstream outputFile("data/distribution.data");
+            std::ofstream outputFile(fname);
             if (outputFile.bad()) {
-                *gmsg << "Unable to open output file \"data/distribution.data\"" << endl;
+                *gmsg << "Unable to open output file \"" << fname << "\"" << endl;
             } else {
                 outputFile.setf(std::ios::left);
                 outputFile << "# ";
@@ -4623,7 +4636,7 @@ void Distribution::WriteOutFileHeader() {
                     outputFile.width(17);
                     outputFile << "py [betay gamma]";
                     outputFile.width(17);
-                    outputFile << "t [s]";
+                    outputFile << "z [m]";
                     outputFile.width(17);
                     outputFile << "pz [betaz gamma]";
                     if (numberOfEnergyBins_m > 0) {
@@ -4631,6 +4644,8 @@ void Distribution::WriteOutFileHeader() {
                         outputFile << "Bin Number";
                     }
                     outputFile << std::endl;
+
+                    outputFile << "# " << totalNum << std::endl;
                 }
             }
             outputFile.close();
@@ -4638,93 +4653,118 @@ void Distribution::WriteOutFileHeader() {
     }
 }
 
-void Distribution::WriteOutFileEmission() {
+void Distribution::writeOutFileEmission() {
 
-    if (Attributes::getBool(itsAttr[AttributesT::WRITETOFILE])) {
+    if (!Attributes::getBool(itsAttr[AttributesT::WRITETOFILE])) {
+        xWrite_m.clear();
+        pxWrite_m.clear();
+        yWrite_m.clear();
+        pyWrite_m.clear();
+        tOrZWrite_m.clear();
+        pzWrite_m.clear();
+        binWrite_m.clear();
 
-        // Gather particles to be written onto node 0.
-        int currentNode = 1;
-        for (int nodeIndex = 1; nodeIndex < Ippl::getNodes(); nodeIndex++) {
+        return;
+    }
 
-            size_t numberOfParticles = 0;
-            if (Ippl::myNode() == currentNode) {
-                if (!xWrite_m.empty())
-                    numberOfParticles = xWrite_m.size();
+    // Gather particles to be written onto node 0.
+    std::vector<char> msgbuf;
+    const size_t bitsPerParticle = (6 * sizeof(double) + sizeof(size_t));
+    size_t totalSendBits = xWrite_m.size() * bitsPerParticle;
+
+    std::vector<long> numberOfBits(Ippl::getNodes(), 0);
+    numberOfBits[Ippl::myNode()] = totalSendBits;
+
+    if (Ippl::myNode() == 0) {
+        MPI_Reduce(MPI_IN_PLACE, &(numberOfBits[0]), Ippl::getNodes(), MPI_UNSIGNED_LONG, MPI_SUM, 0, Ippl::getComm());
+    } else {
+        MPI_Reduce(&(numberOfBits[0]), NULL, Ippl::getNodes(), MPI_UNSIGNED_LONG, MPI_SUM, 0, Ippl::getComm());
+    }
+
+    Ippl::Comm->barrier();
+    int tag = Ippl::Comm->next_tag(IPPL_APP_TAG2, IPPL_APP_CYCLE);
+    if (Ippl::myNode() > 0) {
+        if (totalSendBits > 0) {
+            msgbuf.reserve(totalSendBits);
+            const char *buffer;
+            for (size_t idx = 0; idx < xWrite_m.size(); ++ idx) {
+                buffer = reinterpret_cast<const char*>(&(xWrite_m[idx]));
+                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(double));
+                buffer = reinterpret_cast<const char*>(&(pxWrite_m[idx]));
+                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(double));
+                buffer = reinterpret_cast<const char*>(&(yWrite_m[idx]));
+                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(double));
+                buffer = reinterpret_cast<const char*>(&(pyWrite_m[idx]));
+                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(double));
+                buffer = reinterpret_cast<const char*>(&(tOrZWrite_m[idx]));
+                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(double));
+                buffer = reinterpret_cast<const char*>(&(pzWrite_m[idx]));
+                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(double));
+                buffer = reinterpret_cast<const char*>(&(binWrite_m[idx]));
+                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(size_t));
             }
-            reduce(numberOfParticles, numberOfParticles, OpAddAssign());
 
-            for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
-
-                double x = 0.0;
-                double px = 0.0;
-                double y = 0.0;
-                double py = 0.0;
-                double tOrZ = 0.0;
-                double pz = 0.0;
-                size_t bin = 0;
-                if (Ippl::myNode() == currentNode) {
-                    x = xWrite_m.at(partIndex);
-                    px = pxWrite_m.at(partIndex);
-                    y = yWrite_m.at(partIndex);
-                    py = pyWrite_m.at(partIndex);
-                    tOrZ = tOrZWrite_m.at(partIndex);
-                    pz = pzWrite_m.at(partIndex);
-                    bin = binWrite_m.at(partIndex);
-                }
-                reduce(x, x, OpAddAssign());
-                reduce(px, px, OpAddAssign());
-                reduce(y, y, OpAddAssign());
-                reduce(py, py, OpAddAssign());
-                reduce(tOrZ, tOrZ, OpAddAssign());
-                reduce(pz, pz, OpAddAssign());
-                reduce(bin, bin, OpAddAssign());
-
-                if (Ippl::myNode() == 0) {
-                    xWrite_m.push_back(x);
-                    pxWrite_m.push_back(px);
-                    yWrite_m.push_back(y);
-                    pyWrite_m.push_back(py);
-                    tOrZWrite_m.push_back(tOrZ);
-                    pzWrite_m.push_back(pz);
-                    binWrite_m.push_back(bin);
-                }
-
-            }
-            currentNode++;
+            Ippl::Comm->raw_send(&(msgbuf[0]), totalSendBits, 0, tag);
         }
+    } else {
+        std::string fname = "data/" + OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat";
+        std::ofstream outputFile(fname, std::fstream::app);
+        if (outputFile.bad()) {
+            ERRORMSG(level1 << "Unable to write to file \"" << fname << "\"" << endl);
+            for (int node = 1; node < Ippl::getNodes(); ++ node) {
+                if (numberOfBits[node] == 0) continue;
+                char *recvbuf = new char[numberOfBits[node]];
+                Ippl::Comm->raw_receive(recvbuf, numberOfBits[node], node, tag);
+                delete[] recvbuf;
+            }
+        } else {
 
-        // Write to file only on node 0.
-        if (Ippl::myNode() == 0 && !xWrite_m.empty() > 0) {
-            std::ofstream outputFile("data/distribution.data", std::fstream::app);
-            if (outputFile.bad()) {
-                *gmsg << "Unable to write to file \"data/distribution.data\"" << endl;
-            } else {
+            outputFile.precision(9);
+            outputFile.setf(std::ios::scientific);
+            outputFile.setf(std::ios::right);
 
-                outputFile.precision(9);
-                outputFile.setf(std::ios::scientific);
-                outputFile.setf(std::ios::right);
-                for (size_t partIndex = 0; partIndex < xWrite_m.size(); partIndex++) {
+            for (size_t partIndex = 0; partIndex < xWrite_m.size(); partIndex++) {
 
-                    outputFile.width(17);
-                    outputFile << xWrite_m.at(partIndex);
-                    outputFile.width(17);
-                    outputFile << pxWrite_m.at(partIndex);
-                    outputFile.width(17);
-                    outputFile << yWrite_m.at(partIndex);
-                    outputFile.width(17);
-                    outputFile << pyWrite_m.at(partIndex);
-                    outputFile.width(17);
-                    outputFile << tOrZWrite_m.at(partIndex);
-                    outputFile.width(17);
-                    outputFile << pzWrite_m.at(partIndex);
-                    outputFile.width(17);
-                    outputFile << binWrite_m.at(partIndex) << std::endl;
+                outputFile << std::setw(17) << xWrite_m.at(partIndex)
+                           << std::setw(17) << pxWrite_m.at(partIndex)
+                           << std::setw(17) << yWrite_m.at(partIndex)
+                           << std::setw(17) << pyWrite_m.at(partIndex)
+                           << std::setw(17) << tOrZWrite_m.at(partIndex)
+                           << std::setw(17) << pzWrite_m.at(partIndex)
+                           << std::setw(17) << binWrite_m.at(partIndex) << std::endl;
+            }
 
+            int numSenders = 0;
+            for (int i = 1; i < Ippl::getNodes(); ++ i) {
+                if (numberOfBits[i] > 0) numSenders ++;
+            }
+
+            for (int i = 0; i < numSenders; ++ i) {
+                int node = Communicate::COMM_ANY_NODE;
+                char *recvbuf;
+                const int bufsize = Ippl::Comm->raw_probe_receive(recvbuf, node, tag);
+
+                int j = 0;
+                while (j < bufsize) {
+                    const double *dbuffer = reinterpret_cast<const double*>(recvbuf + j);
+                    const size_t *sbuffer = reinterpret_cast<const size_t*>(recvbuf + j + 6 * sizeof(double));
+                    outputFile << std::setw(17) << dbuffer[0]
+                               << std::setw(17) << dbuffer[1]
+                               << std::setw(17) << dbuffer[2]
+                               << std::setw(17) << dbuffer[3]
+                               << std::setw(17) << dbuffer[4]
+                               << std::setw(17) << dbuffer[5]
+                               << std::setw(17) << sbuffer[0]
+                               << std::endl;
+                    j += bitsPerParticle;
                 }
 
+                delete[] recvbuf;
+
             }
-            outputFile.close();
         }
+        outputFile.close();
+
     }
 
     // Clear write vectors.
@@ -4738,7 +4778,7 @@ void Distribution::WriteOutFileEmission() {
 
 }
 
-void Distribution::WriteOutFileInjection() {
+void Distribution::writeOutFileInjection() {
 
     if (Attributes::getBool(itsAttr[AttributesT::WRITETOFILE])) {
 
@@ -4748,12 +4788,11 @@ void Distribution::WriteOutFileInjection() {
             // Write to file if its our turn.
             size_t numberOfParticles = 0;
             if (Ippl::myNode() == nodeIndex) {
-
-                std::ofstream outputFile("data/distribution.data", std::fstream::app);
+                std::string fname = "data/" + OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat";
+                std::ofstream outputFile(fname, std::fstream::app);
                 if (outputFile.bad()) {
-		     *gmsg << "Node " << Ippl::myNode()
-			   << " unable to write to file \"data/distribution.data\""
-			   << endl;
+                    *gmsg << "Node " << Ippl::myNode() << " unable to write"
+                          << "to file \"" << fname << "\"" << endl;
                 } else {
 
                     outputFile.precision(9);
@@ -4776,7 +4815,7 @@ void Distribution::WriteOutFileInjection() {
                         outputFile.width(17);
                         outputFile << pzDist_m.at(partIndex);
                         if (numberOfEnergyBins_m > 0) {
-                            size_t binNumber = FindEBin(tOrZDist_m.at(partIndex));
+                            size_t binNumber = findEBin(tOrZDist_m.at(partIndex));
                             outputFile.width(17);
                             outputFile << binNumber;
                         }

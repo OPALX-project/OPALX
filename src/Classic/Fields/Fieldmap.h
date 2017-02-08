@@ -30,6 +30,7 @@ enum MapType {
     T3DDynamic,
     T3DElectroStatic,
     T3DMagnetoStatic,
+    T3DMagnetoStatic_Extended,
     T3DMagnetoStaticH5Block,
     T3DDynamicH5Block
 };
@@ -81,21 +82,22 @@ public:
     virtual void setEdgeConstants(const double &bendAngle, const double &entranceAngle, const double &exitAngle);
     virtual void setFieldLength(const double &);
 
-    virtual void Get1DProfile1EngeCoeffs(std::vector<double> &engeCoeffsEntry,
+    virtual void get1DProfile1EngeCoeffs(std::vector<double> &engeCoeffsEntry,
                                          std::vector<double> &engeCoeffsExit);
-    virtual void Get1DProfile1EntranceParam(double &entranceParameter1,
+    virtual void get1DProfile1EntranceParam(double &entranceParameter1,
                                            double &entranceParameter2,
                                            double &entranceParameter3);
-    virtual void Get1DProfile1ExitParam(double &exitParameter1,
+    virtual void get1DProfile1ExitParam(double &exitParameter1,
                                        double &exitParameter2,
                                        double &exitParameter3);
-    virtual double GetFieldGap();
-    virtual void SetFieldGap(double gap);
+    virtual double getFieldGap();
+    virtual void setFieldGap(double gap);
 
     MapType getType() { return Type;}
 
     virtual void getOnaxisEz(std::vector<std::pair<double, double> > & onaxis);
 
+    virtual bool isInside(const Vector_t &r) const;
 protected:
     Fieldmap(const std::string &aFilename);
     virtual ~Fieldmap() { ;};
@@ -174,5 +176,10 @@ private:
     static std::map<std::string, FieldmapDescription> FieldmapDictionary;
 
 };
+
+inline bool Fieldmap::isInside(const Vector_t &r) const
+{
+    return true;
+}
 
 #endif

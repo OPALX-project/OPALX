@@ -260,7 +260,7 @@ void OpalCyclotron::update() {
 
     unsigned int vsize = tcr1v.size();
 
-    if ((tcr1v.size() == vsize) && (tcr2v.size() == vsize) && 
+    if ((tcr1v.size() == vsize) && (tcr2v.size() == vsize) &&
 	(mbtcv.size() == vsize) && (slptcv.size() == vsize) && (vsize!=0)) {
       cycl->setTCr1V(tcr1v);
       cycl->setTCr2V(tcr2v);

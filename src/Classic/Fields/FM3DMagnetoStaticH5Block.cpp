@@ -39,7 +39,7 @@ FM3DMagnetoStaticH5Block::FM3DMagnetoStaticH5Block(string aFilename):
 
     h5_int64_t last_step = H5GetNumSteps(file) - 1;
     assert (last_step >= 0);
-    
+
     h5err = H5SetStep(file, last_step);
     assert (h5err != H5_ERR);
 

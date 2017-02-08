@@ -308,19 +308,19 @@ public:
 //BENI adds Periodic Boundary Conditions for Interpolations///////////
 //////////////////////////////////////////////////////////////////////
 template<class T,
-         unsigned D, 
-         class M=UniformCartesian<D,double>, 
+         unsigned D,
+         class M=UniformCartesian<D,double>,
          class C=typename M::DefaultCentering>
 class InterpolationFace : public BCondBase<T,D,M,C>
 {
 public:
-  // Constructor takes zero, one, or two int's specifying components of 
+  // Constructor takes zero, one, or two int's specifying components of
   // multicomponent types like Vektor/Tenzor/Anti/SymTenzor this BC applies to.
   // Zero int's specified means apply to all components; one means apply to
   // component (i), and two means apply to component (i,j),
   typedef BCondBase<T,D,M,C> BCondBaseTDMC;
 
-  InterpolationFace(unsigned f, 
+  InterpolationFace(unsigned f,
 	       int i = BCondBaseTDMC::allComponents,
 	       int j = BCondBaseTDMC::allComponents);
 
@@ -383,8 +383,8 @@ public:
 // BENI adds parallel Interpolation Face
 //////////////////////////////////////////////////////////////////////
 
-template<class T, unsigned D, 
-         class M=UniformCartesian<D,double>, 
+template<class T, unsigned D,
+         class M=UniformCartesian<D,double>,
          class C=typename M::DefaultCentering>
 class ParallelInterpolationFace : public InterpolationFace<T,D,M,C>
 {
@@ -398,10 +398,10 @@ public:
 
   typedef BCondBase<T,D,M,C> Base_t;
 
-  ParallelInterpolationFace(unsigned f, 
+  ParallelInterpolationFace(unsigned f,
 		       int i = Base_t::allComponents,
 		       int j = Base_t::allComponents)
-    : InterpolationFace<T,D,M,C>(f,i,j) 
+    : InterpolationFace<T,D,M,C>(f,i,j)
   { }
 
   // Apply the boundary condition to a particular Field.

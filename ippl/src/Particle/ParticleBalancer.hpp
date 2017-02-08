@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -39,13 +39,13 @@
 
 
 /////////////////////////////////////////////////////////////////////////////
-// calculate a new RegionLayout for a given IpplParticleBase, and distribute the
+// calculate a new RegionLayout for a given ParticleBase, and distribute the
 // new RegionLayout to all the nodes.  This uses a Field BinaryBalancer.
 template < class T, unsigned Dim, class Mesh, class CachingPolicy>
 bool
 BinaryRepartition(IpplParticleBase<ParticleSpatialLayout<T,Dim,Mesh,CachingPolicy> >& PB, double offset) {
-  
-  
+
+
 
   static IntNGP interp; // to scatter particle density
 
@@ -82,7 +82,7 @@ BinaryRepartition(IpplParticleBase<ParticleSpatialLayout<T,Dim,Mesh,CachingPolic
     CenterOffset[d] = (TotalDomain[d].length() < mesh.gridSizes[d]);
     CenteringTotal += CenterOffset[d];
   }
-  
+
 
   if (CenteringTotal == Dim) { // allCell centering
     Field<double,Dim,Mesh,Cell> BF(mesh,FL,GuardCellSizes<Dim>(1));
@@ -151,7 +151,5 @@ BinaryRepartition(IpplParticleBase<ParticleUniformLayout<T,Dim> >&, double offse
 /***************************************************************************
  * $RCSfile: ParticleBalancer.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:28 $
- * IPPL_VERSION_ID: $Id: ParticleBalancer.cpp,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: ParticleBalancer.cpp,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $
  ***************************************************************************/
-
-

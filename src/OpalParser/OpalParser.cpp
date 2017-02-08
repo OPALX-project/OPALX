@@ -192,7 +192,6 @@ void OpalParser::parseAssign(Statement &stat) const {
     }
 
     std::string objName = parseString(stat, "Object name expected.");
-
     // Test for attribute name.
     Object *object = 0;
     std::string attrName;
@@ -541,12 +540,10 @@ Statement *OpalParser::readStatement(TokenStream *is) const {
                              "Command should begin with a <name>.");
         }
     } catch(ParseError &ex) {
-        *gmsg << "\n*** Parse error detected by function \""
-              << "OpalParser::readStatement()" << "\"\n";
-        stat->printWhere(true);
-        *gmsg << "    ";
-        stat->print();
-        *gmsg << "    " << ex.what() << '\n' << endl;
+        ERRORMSG("\n*** Parse error detected by function \""
+                 << "OpalParser::readStatement()" << "\"\n");
+        stat->printWhere(*IpplInfo::Error, true);
+        ERRORMSG("     " << *stat <<"    " << ex.what() << '\n' << endl);
         stat = readStatement(is);
 	exit(1);
     }
@@ -564,50 +561,38 @@ void OpalParser::run() const {
             // treatment of structured statements.
             stat->execute(*this);
         } catch(ParseError &ex) {
-            *gmsg << "\n*** Parse error detected by function \""
-                  << ex.where() << "\"\n";
-            stat->printWhere(true);
-            *gmsg << "    ";
-            stat->print();
-            *gmsg << "    " << ex.what() << '\n' << endl;
+            ERRORMSG("\n*** Parse error detected by function \""
+                     << ex.where() << "\"" << endl);
+            stat->printWhere(*IpplInfo::Error, true);
+            ERRORMSG("    " << *stat << "    " << ex.what() << '\n' << endl);
 	    exit(1);
         } catch(OpalException &ex) {
-            *gmsg << "\n*** User error detected by function \""
-                  << ex.where() << "\"\n";
-            stat->printWhere(true);
-            *gmsg << "    ";
-            stat->print();
-            *gmsg << "    " << ex.what() << '\n' << endl;
+            ERRORMSG("\n*** User error detected by function \""
+                     << ex.where() << "\"" << endl);
+            stat->printWhere(*IpplInfo::Error, true);
+            ERRORMSG("    " << *stat << "    " << ex.what() << '\n' << endl);
         } catch(ClassicException &ex) {
-            *gmsg << "\n*** User error detected by function \""
-                  << ex.where() << "\"\n";
-            stat->printWhere(false);
-            *gmsg << "    ";
-            stat->print();
-            *gmsg << "    " << ex.what() << '\n' << endl;
+            ERRORMSG("\n*** User error detected by function \""
+                     << ex.where() << "\"" << endl);
+            stat->printWhere(*IpplInfo::Error, false);
+            ERRORMSG(*stat << "    " << ex.what() << '\n' << endl);
         } catch(bad_alloc &) {
-            *gmsg << "\n*** Error:\n";
-            stat->printWhere(false);
-            *gmsg << "    ";
-            stat->print();
-            *gmsg << "    Sorry, virtual memory exhausted.\n" << endl;
+            ERRORMSG("\n*** Error:" << endl);
+            stat->printWhere(*IpplInfo::Error, false);
+            ERRORMSG("    " << *stat << "    Sorry, virtual memory exhausted.\n" << endl);
         } catch(assertion &ex) {
-            ERRORMSG("\n*** Runtime-error ******************\n");
+            ERRORMSG("\n*** Runtime-error ******************" << endl);
             ERRORMSG(ex.what());
             ERRORMSG("\n************************************\n" << endl);
             throw std::runtime_error("in Parser");
         } catch(exception &ex) {
-            *gmsg << "\n*** Error:\n";
-            stat->printWhere(false);
-            *gmsg << "    ";
-            stat->print();
-            *gmsg << "    Internal OPAL error: " << ex.what() << '\n' << endl;
+            ERRORMSG("\n*** Error:" << endl);
+            stat->printWhere(*IpplInfo::Error, false);
+            ERRORMSG("    " << *stat << "    Internal OPAL error: " << ex.what() << '\n' << endl);
         } catch(...) {
-            *gmsg << "\n*** Error:\n";
-            stat->printWhere(false);
-            *gmsg << "    ";
-            stat->print();
-            *gmsg << "    Unexpected exception caught.\n" << endl;
+            ERRORMSG("\n*** Error:\n");
+            stat->printWhere(*IpplInfo::Error, false);
+            ERRORMSG("    " << *stat << "    Unexpected exception caught.\n" << endl);
 	    throw std::runtime_error("in Parser");
         }
 

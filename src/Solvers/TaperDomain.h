@@ -25,7 +25,7 @@ public:
     ~TaperDomain();
 
     /// calculates intersection with the elliptic beam pipe
-    void Compute(Vector_t hr);
+    void compute(Vector_t hr);
     //TODO: do we need to export this function??
     std::vector<double> getYDirIntersect(int x, int z);
     /// returns number of nodes in xy plane (here independent of z coordinate)
@@ -138,9 +138,9 @@ private:
     */
 
     /// different interpolation methods for boundary points
-    void ConstantInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
-    void LinearInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
-    void QuadraticInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
+    void constantInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
+    void linearInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
+    void quadraticInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
 
 };
 

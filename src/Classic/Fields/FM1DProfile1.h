@@ -19,13 +19,13 @@ public:
                                     Vector_t &E,
                                     Vector_t &B,
                                     const DiffDirection &dir) const;
-    virtual void Get1DProfile1EntranceParam(double &entranceParameter1,
+    virtual void get1DProfile1EntranceParam(double &entranceParameter1,
                                            double &entranceParameter2,
                                            double &entranceParameter3);
-    virtual void Get1DProfile1ExitParam(double &exitParameter1,
+    virtual void get1DProfile1ExitParam(double &exitParameter1,
                                        double &exitParameter2,
                                        double &exitParameter3);
-    virtual double GetFieldGap();
+    virtual double getFieldGap();
     virtual void getFieldDimensions(double &zBegin,
                                     double &zEnd,
                                     double &rBegin,
@@ -42,11 +42,11 @@ public:
     virtual double getFrequency() const;
     virtual void getInfo(Inform *);
     virtual void setFrequency(double freq);
-    virtual void Get1DProfile1EngeCoeffs(std::vector<double> &engeCoeffsEntry,
+    virtual void get1DProfile1EngeCoeffs(std::vector<double> &engeCoeffsEntry,
                                          std::vector<double> &engeCoeffsExit);
     virtual void swap();
 
-    virtual void SetFieldGap(double gap);
+    virtual void setFieldGap(double gap);
 
 private:
 

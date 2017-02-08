@@ -46,6 +46,9 @@ public:
     /// Print the constant.
     virtual void print(std::ostream &) const;
 
+    /// Print its value
+    virtual void printValue(std::ostream &os) const;
+
     /// Return value.
     virtual double getReal() const;
 

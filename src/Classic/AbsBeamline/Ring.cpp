@@ -97,7 +97,7 @@ Ring::~Ring() {
 bool Ring::apply(const size_t &id, const double &t, Vector_t &E,
                  Vector_t &B) {
     bool flagNeedUpdate =
-        apply(refPartBunch_m->R[id], refPartBunch_m->get_centroid(), t, E, B);
+        apply(refPartBunch_m->R[id], refPartBunch_m->P[id], t, E, B);
     if(flagNeedUpdate) {
         Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
         gmsgALL << getName() << ": particle " << id
@@ -110,24 +110,7 @@ bool Ring::apply(const size_t &id, const double &t, Vector_t &E,
     return flagNeedUpdate;
 }
 
-bool Ring::apply(const size_t &id, const double &t,
-                 double E[], double B[]) {
-    Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
-
-    if(apply(id, t, Ev, Bv))
-        return true;
-
-    E[0] = Ev(0);
-    E[1] = Ev(1);
-    E[2] = Ev(2);
-    B[0] = Bv(0);
-    B[1] = Bv(1);
-    B[2] = Bv(2);
-
-    return false;
-}
-
-bool Ring::apply(const Vector_t &R, const Vector_t &centroid,
+bool Ring::apply(const Vector_t &R, const Vector_t &P,
                  const double &t, Vector_t &E, Vector_t &B) {
     B = Vector_t(0.0, 0.0, 0.0);
     E = Vector_t(0.0, 0.0, 0.0);
@@ -138,7 +121,7 @@ bool Ring::apply(const Vector_t &R, const Vector_t &centroid,
     for (size_t i = 0; i < sections.size(); ++i) {
         Vector_t B_temp(0.0, 0.0, 0.0);
         Vector_t E_temp(0.0, 0.0, 0.0);
-        outOfBounds &= sections[i]->getFieldValue(R, centroid, t, E_temp, B_temp);
+        outOfBounds &= sections[i]->getFieldValue(R, refPartBunch_m->get_centroid(), t, E_temp, B_temp);
         B += (scale_m * B_temp);
         E += (scale_m * E_temp);
     }
@@ -165,7 +148,7 @@ void Ring::initialise(PartBunch *bunch) {
 }
 
 void Ring::initialise(PartBunch * bunch, double &startField,
-                      double &endField, const double &scaleFactor) {
+                      double &endField) {
     initialise(bunch);
 }
 

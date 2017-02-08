@@ -20,6 +20,7 @@
 #include "Algorithms/ParallelCyclotronTracker.h"
 #include "Algorithms/PolynomialTimeDependence.h"
 #include "Elements/OpalPolynomialTimeDependence.h"
+
 #include <cfloat>
 #include <iostream>
 #include <fstream>
@@ -227,7 +228,7 @@ void ParallelCyclotronTracker::bgf_main_collision_test() {
   int triId = 0;
   size_t Nimpact = 0;
   for(size_t i = 0; i < itsBunch->getLocalNum(); i++) {
-    int res = bgf_m->PartInside(itsBunch->R[i]*1.0e-3, itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId);
+    int res = bgf_m->partInside(itsBunch->R[i]*1.0e-3, itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId);
     if(res >= 0) {
       itsBunch->Bin[i] = -1;
       Nimpact++;
@@ -359,21 +360,21 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     Cyclotron *elptr = dynamic_cast<Cyclotron *>(cycl.clone());
     myElements.push_back(elptr);
 
-    // Is this a Spiral Inflector Simulation? If yes, we'll give the user some 
+    // Is this a Spiral Inflector Simulation? If yes, we'll give the user some
     // useful information
     spiral_flag = elptr->getSpiralFlag();
 
     if(spiral_flag) {
 
         *gmsg << endl << "* This is a Spiral Inflector Simulation! This means the following:" << endl;
-        *gmsg         << "* 1.) It is up to the user to provide appropriate geometry, electric and magnetic fields!" << endl;        
+        *gmsg         << "* 1.) It is up to the user to provide appropriate geometry, electric and magnetic fields!" << endl;
         *gmsg         << "*     (Use BANDRF type cyclotron and use RFMAPFN to load both magnetic" << endl;
         *gmsg         << "*     and electric fields, setting SUPERPOSE to an array of TRUE values.)" << endl;
-        *gmsg         << "* 2.) It is strongly recommended to use the SAAMG fieldsolver," << endl; 
+        *gmsg         << "* 2.) It is strongly recommended to use the SAAMG fieldsolver," << endl;
         *gmsg         << "*     FFT does not give the correct results (boundaty conditions are missing)." << endl;
         *gmsg         << "* 3.) The whole geometry will be meshed and used for the fieldsolve." << endl;
-        *gmsg         << "*     There will be no transformations of the bunch into a local frame und consequently," << endl; 
-        *gmsg         << "*     the problem will be treated non-relativistically!" << endl; 
+        *gmsg         << "*     There will be no transformations of the bunch into a local frame und consequently," << endl;
+        *gmsg         << "*     the problem will be treated non-relativistically!" << endl;
         *gmsg         << "*     (This is not an issue for spiral inflectors as they are typically < 100 keV/amu.)" << endl;
         *gmsg << endl << "* Note: For now, multi-bunch mode (MBM) needs to be de-activated for spiral inflector" << endl;
         *gmsg         << "* and space charge needs to be solved every time-step. numBunch_m and scSolveFreq are reset." << endl;
@@ -510,6 +511,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     double h = elptr->getCyclHarm();
     *gmsg << "* Number of trimcoils = " << elptr->getNumberOfTrimcoils() << endl;
     *gmsg << "* Harmonic number h = " << h << " " << endl;
+
     /**
     if (elptr->getSuperpose())
         *gmsg << "* Fields are superposed " << endl;
@@ -599,7 +601,7 @@ void ParallelCyclotronTracker::visitCollimator(const Collimator &coll) {
     double width = elptr->getWidth();
     *gmsg << "* Width= " << width << " [mm]" << endl;
 
-    elptr->initialise(itsBunch, 1.0);
+    elptr->initialise(itsBunch);
 
     double BcParameter[8];
     for(int i = 0; i < 8; i++)
@@ -736,7 +738,7 @@ void ParallelCyclotronTracker::visitProbe(const Probe &prob) {
 
 
     // initialise, do nothing
-    elptr->initialise(itsBunch, 1.0);
+    elptr->initialise(itsBunch);
 
     double BcParameter[8];
     for(int i = 0; i < 8; i++)
@@ -836,7 +838,7 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
     unityVec.push_back(0.);
     unityVec.push_back(0.);
     unityVec.push_back(0.);
-    
+
     if (elptr->getFrequencyModelName() != "") {
       freq_atd = AbstractTimeDependence::getTimeDependence(elptr->getFrequencyModelName());
       *gmsg << "* Variable frequency RF Model name " << elptr->getFrequencyModelName() << endl;
@@ -859,9 +861,7 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
         phase_atd = std::shared_ptr<AbstractTimeDependence>(new PolynomialTimeDependence(unityVec));
 
     // read cavity voltage profile data from file.
-    elptr->initialise(itsBunch, 1.0, freq_atd, ampl_atd, phase_atd);
-
-//    elptr->initialise(itsBunch, 1.0); 
+    elptr->initialise(itsBunch, freq_atd, ampl_atd, phase_atd);
 
     double BcParameter[8];
     for(int i = 0; i < 8; i++)
@@ -934,7 +934,7 @@ void ParallelCyclotronTracker::visitSeptum(const Septum &sept) {
 
 
     // initialise, do nothing
-    elptr->initialise(itsBunch, 1.0);
+    elptr->initialise(itsBunch);
 
     double BcParameter[8];
     for(int i = 0; i < 8; i++)
@@ -1032,7 +1032,7 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
     double opmass = elptr->getOPMass();
     *gmsg << "* Mass of the outcoming particle = " << opmass << " [GeV/c^2]" << endl;
 
-    elptr->initialise(itsBunch, 1.0);
+    elptr->initialise(itsBunch);
 
     double BcParameter[8];
     for(int i = 0; i < 8; i++)
@@ -1656,7 +1656,6 @@ void ParallelCyclotronTracker::Tracker_LF() {
 
             // Write Phase Space and Statistics Data to h5 and dat files
             bunchDumpPhaseSpaceData();
-
             IpplTimings::stopTimer(DumpTimer_m);
         }
     }
@@ -2704,7 +2703,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
     int scSolveFreq;
 
     if (spiral_flag)
-	scSolveFreq = 1;	    
+	scSolveFreq = 1;
     else
         scSolveFreq = Options::scSolveFreq;
 
@@ -3019,8 +3018,8 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
                     } else {
                         // --- Single bunch mode --- //
-			
-			// If we are doing a spiral inflector simulation and are using the SAAMG solver 
+
+			// If we are doing a spiral inflector simulation and are using the SAAMG solver
                         // we don't rotate or translate the bunch and gamma is 1.0 (non-relativistic).
 			if (spiral_flag and itsBunch->getFieldSolverType() == "SAAMG") {
 
@@ -3031,11 +3030,11 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 				itsBunch->setGlobalMeanR(Vector_t(0.0, 0.0, 0.0));
 				itsBunch->setGlobalToLocalQuaternion(Quaternion_t(1.0, 0.0, 0.0, 0.0));
 
-				itsBunch->computeSelfFields_cycl(1.0);	
+				itsBunch->computeSelfFields_cycl(1.0);
 
 				IpplTimings::startTimer(TransformTimer_m);
 
-				itsBunch->R *= Vector_t(1000.0); // m --> mm			
+				itsBunch->R *= Vector_t(1000.0); // m --> mm
 
 			} else {
 				double temp_meangamma = sqrt(1.0 + dot(PreviousMeanP, PreviousMeanP));
@@ -3956,7 +3955,7 @@ bool ParallelCyclotronTracker::getTunes(std::vector<double> &t, std::vector<doub
     int  stat = 0;
     // book tune class
     tune = new TUNE_class();
-    stat = tune->LombAnalysis(t, r, nhis_lomb, T / lastTurn);
+    stat = tune->lombAnalysis(t, r, nhis_lomb, T / lastTurn);
     if(stat != 0)
         *gmsg << "* TUNE: Lomb analysis failed" << endl;
     *gmsg << "* ************************************************************************************* *" << endl;
@@ -3974,7 +3973,7 @@ bool ParallelCyclotronTracker::getTunes(std::vector<double> &t, std::vector<doub
 
         // book tune class
         tune = new TUNE_class();
-        stat = tune->LombAnalysis(t, z, nhis_lomb, T / lastTurn);
+        stat = tune->lombAnalysis(t, z, nhis_lomb, T / lastTurn);
         if(stat != 0)
             *gmsg << "* TUNE: Lomb analysis failed" << endl;
         *gmsg << "* ************************************************************************************* *" << endl;
@@ -5363,7 +5362,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     IpplTimings::startTimer(DumpTimer_m);
 
     // --------------------------------- Get some Values ---------------------------------------- //
-    double const E = itsBunch->get_meanEnergy();
+    double const E = itsBunch->get_meanKineticEnergy();
     double const temp_t = itsBunch->getT() * 1e9; // s -> ns
     Vector_t const meanR = calcMeanR();
     Vector_t const meanP = calcMeanP();
@@ -5375,7 +5374,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     extE_m = Vector_t(0.0, 0.0, 0.0);
     extB_m = Vector_t(0.0, 0.0, 0.0);
 
-    (((*DumpSindex)->second).second)->apply(meanR, Vector_t(0.0), temp_t, extE_m, extB_m);
+    (((*DumpSindex)->second).second)->apply(meanR, meanP, temp_t, extE_m, extB_m);
 
     // If we are saving in local frame, bunch and fields at the bunch center have to be rotated
     // TODO: Make decision if we maybe want to always save statistics data in local frame? -DW
@@ -5397,16 +5396,15 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
         globalToLocal(itsBunch->P, phi, psi);
     }
 
-
-    itsBunch->R *= Vector_t(0.001); // mm --> m
+    itsBunch->R *= Vector_t(0.001); // mm -> m
 
     FDext_m[0] = extB_m / 10.0; // kgauss --> T
     FDext_m[1] = extE_m;
 
     // Save the stat file
-    itsDataSink->writeStatData(*itsBunch, FDext_m ,0.0, 0.0, 0.0, E);
+    itsDataSink->writeStatData(*itsBunch, FDext_m, E);
 
-    itsBunch->R *= Vector_t(1000.0); // mm --> m
+    itsBunch->R *= Vector_t(1000.0); // m -> mm
 
     // If we are in local mode, transform back after saving
     if(Options::psDumpLocalFrame) {
@@ -5434,7 +5432,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     Vector_t const meanP = calcMeanP();
 
     double const betagamma_temp = sqrt(dot(meanP, meanP));
-    double const E = itsBunch->get_meanEnergy();
+    double const E = itsBunch->get_meanKineticEnergy();
 
     // Bunch (global) angle w.r.t. x-axis (cylinder coordinates)
     double const theta = atan2(meanR(1), meanR(0));
@@ -5464,7 +5462,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     extE_m = Vector_t(0.0, 0.0, 0.0);
     extB_m = Vector_t(0.0, 0.0, 0.0);
 
-    (((*DumpSindex)->second).second)->apply(meanR, Vector_t(0.0), temp_t, extE_m, extB_m);
+    (((*DumpSindex)->second).second)->apply(meanR, meanP, temp_t, extE_m, extB_m);
     FDext_m[0] = extB_m * 0.1; // kgauss --> T
     FDext_m[1] = extE_m;
 

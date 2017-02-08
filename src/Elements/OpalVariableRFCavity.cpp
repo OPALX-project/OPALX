@@ -102,6 +102,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 }
 
 void OpalVariableRFCavity::update() {
+    OpalElement::update();
+
     VariableRFCavity *cavity = dynamic_cast<VariableRFCavity*>(
                                                 getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);

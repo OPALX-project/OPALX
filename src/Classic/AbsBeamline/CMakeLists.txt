@@ -4,6 +4,7 @@ set (_SRCS
   BeamBeam.cpp
   BeamlineVisitor.cpp
   Bend.cpp
+  BendBase.cpp
   Collimator.cpp
   Component.cpp
   Corrector.cpp
@@ -24,6 +25,7 @@ set (_SRCS
   Patch.cpp
   Probe.cpp
   RBend.cpp
+  RBend3D.cpp
   RFCavity.cpp
   RFQuadrupole.cpp
   Ring.cpp
@@ -32,6 +34,7 @@ set (_SRCS
   Separator.cpp
   Septum.cpp
   Solenoid.cpp
+  Source.cpp
   Stripper.cpp
   TravelingWave.cpp
   VariableRFCavity.cpp
@@ -41,4 +44,50 @@ include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
   )
 
-add_sources(${_SRCS})
+ADD_OPAL_SOURCES(${_SRCS})
+
+set (HDRS
+    AlignWrapper.h
+    AttributeSet.h
+    BeamBeam.h
+    BeamlineVisitor.h
+    Bend.h
+    BendBase.h
+    Collimator.h
+    Component.h
+    Corrector.h
+    Cyclotron.h
+    CyclotronValley.h
+    Degrader.h
+    Diagnostic.h
+    Drift.h
+    ElementBase.h
+    ElementImage.h
+    Integrator.h
+    Lambertson.h
+    Marker.h
+    Monitor.h
+    Multipole.h
+    Offset.h
+    ParallelPlate.h
+    Patch.h
+    Probe.h
+    RBend.h
+    RBend3D.h
+    RFCavity.h
+    RFQuadrupole.h
+    Ring.h
+    SBend3D.h
+    SBend.h
+    SectorFieldMapComponent.h
+    Separator.h
+    Septum.h
+    Solenoid.h
+    Source.h
+    SpecificElementVisitor.h
+    Stripper.h
+    TravelingWave.h
+    VariableRFCavity.h
+)
+
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/AbsBeamline")

@@ -54,7 +54,7 @@ public:
                int amp);
 
     int avevar(std::vector<LOMB_TYPE> *data, double *ave, double *var);
-    double Signi(double *peak, int *nout, double *ofac);
+    double signi(double *peak, int *nout, double *ofac);
 
     int moment(std::vector<LOMB_TYPE> *indata, double *ave, double *adev,
                double *sdev, double *var, double *skew, double *curt);

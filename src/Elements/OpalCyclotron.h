@@ -31,7 +31,7 @@ public:
 
     /// The attributes of class OpalCyclotron.
     enum {
-        TYPE,
+        TYPE = COMMON,
         GEOMETRY,  // geometry of boundary
         CYHARMON,  // The harmonic number of the cyclotron
         SYMMETRY,  // The symetry of the field
@@ -43,8 +43,8 @@ public:
         RFFREQ,    // First hamonic of the RF system [MHz]
         FMAPFN,    // The filename of the mid-plane fieldmap
         RFMAPFN,   // The filename(s) of the RF fieldmap
-	RFFCFN,    // The filename(s) of coefficients for RF frequency function f(t) 
-	RFVCFN,    // The filename(s) of coefficients for RF voltage function v(t) 
+	RFFCFN,    // The filename(s) of coefficients for RF frequency function f(t)
+	RFVCFN,    // The filename(s) of coefficients for RF voltage function v(t)
         BSCALE,    // A scalar to scale the B-field
         ESCALE,    // A scalar to scale the RF field
         TCR1,      // trim coil r1 (mm)

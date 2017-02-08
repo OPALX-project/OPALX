@@ -110,13 +110,13 @@ private:
     void applyDKS();
     void applyHost(PartBunch &bunch, Degrader *deg, Collimator *coll);
     void deleteParticleFromLocalVectorDKS();
-  
+
 #endif
 
 
     void deleteParticleFromLocalVector();
 
-    bool checkHit(Vector_t R, Vector_t P, double dt, Degrader *deg, Collimator *coll); 
+    bool checkHit(Vector_t R, Vector_t P, double dt, Degrader *deg, Collimator *coll);
 
     inline void calcStat(double Eng) {
       Eavg_m += Eng;
@@ -127,9 +127,9 @@ private:
     }
 
     bool allParticlesIn_m;
-  
+
     double  T_m;                     // own time, maybe larger than in the bunch object
-                                    
+
     double dT_m;                     // dt from bunch
 
     gsl_rng *rGen_m;
@@ -168,7 +168,7 @@ private:
 #ifdef OPAL_DKS
     DKSBase dksbase;
     int curandInitSet;
-  
+
     int ierr;
     int maxparticles;
     int numparticles;

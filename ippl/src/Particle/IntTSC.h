@@ -2,7 +2,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -285,7 +285,7 @@ public:
     *fiter += .25*(3.-4.dpos(0)*dpos(0)) * pdata;
     fiter.offset(-1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * pdata;
     fiter.offset(+1) += .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * pdata;
- 	*/
+	*/
 	auto W = [dpos](unsigned p, unsigned i) {
 		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
 		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
@@ -396,7 +396,7 @@ public:
 			/*
 	pdata = .25*(3.-4.dpos(0)*dpos(0)) * (*fiter) +
 			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * fiter.offset(-1) +
-			 .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * fiter.offset(+1); 
+			 .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * fiter.offset(+1);
 */
    auto W = [dpos](unsigned p, unsigned i) {
 		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
@@ -407,7 +407,7 @@ public:
 	for (int p0=-1; p0<=1; ++p0) {
 				 pdata += W(p0,0)*fiter.offset(p0);
 	}
- 
+
     return;
   }
 
@@ -438,9 +438,9 @@ public:
 	/*
 	pdata = .25*(3.-4.dpos(0)*dpos(0)) * (*fiter) +
 			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * fiter.offset(-1) +
-			 .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * fiter.offset(+1); 
+			 .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * fiter.offset(+1);
 	 */
- 	auto W = [dpos](unsigned p, unsigned i) {
+	auto W = [dpos](unsigned p, unsigned i) {
 		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
 		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
 		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
@@ -467,7 +467,7 @@ public:
 	/*
 	pdata = .25*(3.-4.dpos(0)*dpos(0)) * (*fiter) +
 			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * fiter.offset(-1) +
-			 .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * fiter.offset(+1); 
+			 .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * fiter.offset(+1);
 	 */
 	 auto W = [dpos](unsigned p, unsigned i) {
 		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
@@ -521,7 +521,7 @@ public:
     // accumulate into local elements
 	/*
     *fiter += .25*(3.-4.dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * pdata;
-    fiter.offset(-1,-1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;   
+    fiter.offset(-1,-1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
     fiter.offset(-1,0) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * pdata;
 	fiter.offset(-1,+1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
 	fiter.offset(0,-1) += .25*(3.-4.dpos(0)*dpos(0)) * .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
@@ -569,7 +569,7 @@ public:
     // accumulate into local elements
 	/*
    *fiter += .25*(3.-4.dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * pdata;
-    fiter.offset(-1,-1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;   
+    fiter.offset(-1,-1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
     fiter.offset(-1,0) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * pdata;
 	fiter.offset(-1,+1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
 	fiter.offset(0,-1) += .25*(3.-4.dpos(0)*dpos(0)) * .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
@@ -607,7 +607,7 @@ public:
     // accumulate into local elements
 	/*
   *fiter += .25*(3.-4.dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * pdata;
-    fiter.offset(-1,-1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;   
+    fiter.offset(-1,-1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
     fiter.offset(-1,0) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * pdata;
 	fiter.offset(-1,+1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
 	fiter.offset(0,-1) += .25*(3.-4.dpos(0)*dpos(0)) * .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
@@ -657,9 +657,9 @@ public:
     // accumulate into particle attrib
 	/*
    pdata = 	.25*(3.-4.dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * (*fiter) +
- 			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,-1) + 
-     		.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * fiter.offset(-1,0) +
-			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,+1) +	
+			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,-1) +
+		.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * fiter.offset(-1,0) +
+			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,+1) +
 			.25*(3.-4.dpos(0)*dpos(0)) * .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(0,-1) +
 			.25*(3.-4.dpos(0)*dpos(0)) * .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * 	fiter.offset(0,+1) +
 			.125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) *fiter.offset(+1,-1) +
@@ -707,15 +707,15 @@ public:
     // accumulate into particle attrib
 	/*
     pdata = 	.25*(3.-4.dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * (*fiter) +
- 			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,-1) + 
-     		.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * fiter.offset(-1,0) +
-			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,+1) +	
+			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,-1) +
+		.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * fiter.offset(-1,0) +
+			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,+1) +
 			.25*(3.-4.dpos(0)*dpos(0)) * .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(0,-1) +
 			.25*(3.-4.dpos(0)*dpos(0)) * .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * 	fiter.offset(0,+1) +
 			.125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) *fiter.offset(+1,-1) +
 			.125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * fiter.offset(+1,0) +
 			.125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(+1,+1) ;
- 	*/
+	*/
 
 	pdata = 0;
 	auto W = [dpos](unsigned p, unsigned i) {
@@ -744,9 +744,9 @@ public:
     // accumulate into particle attrib
 	/*
     pdata = 	.25*(3.-4.dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * (*fiter) +
- 			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,-1) + 
-     		.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * fiter.offset(-1,0) +
-			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,+1) +	
+			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,-1) +
+		.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * fiter.offset(-1,0) +
+			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,+1) +
 			.25*(3.-4.dpos(0)*dpos(0)) * .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(0,-1) +
 			.25*(3.-4.dpos(0)*dpos(0)) * .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * 	fiter.offset(0,+1) +
 			.125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) *fiter.offset(+1,-1) +
@@ -820,7 +820,7 @@ public:
 			}
 		}
 	}
-	//std::cout << "the total interpolation is = " << interpol_tot << std::endl;  
+	//std::cout << "the total interpolation is = " << interpol_tot << std::endl;
     return;
   }
 
@@ -863,7 +863,7 @@ public:
 		}
 	}
 
-//	std::cout << "the total interpolation is = " << interpol_tot << std::endl;  
+//	std::cout << "the total interpolation is = " << interpol_tot << std::endl;
     return;
   }
 
@@ -1085,6 +1085,5 @@ public:
 /***************************************************************************
  * $RCSfile: IntTSC.h,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:28 $
- * IPPL_VERSION_ID: $Id: IntTSC.h,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: IntTSC.h,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $
  ***************************************************************************/
-

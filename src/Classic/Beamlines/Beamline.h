@@ -21,6 +21,8 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/ElementBase.h"
+#include "Algorithms/Vektor.h"
+#include "Algorithms/Quaternion.h"
 
 class CLRangeError;
 
@@ -49,6 +51,9 @@ public:
     //  exception.
     virtual void iterate(BeamlineVisitor &, bool reverse) const = 0;
 
+    virtual Vector_t getOrigin3D() const;
+    virtual Quaternion getCoordTransformationTo() const;
+    virtual bool getRelativeFlag() const;
 private:
 
     // Not implemented.

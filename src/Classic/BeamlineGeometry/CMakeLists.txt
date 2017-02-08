@@ -17,4 +17,21 @@ include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
   )
 
-add_sources(${_SRCS})
+ADD_OPAL_SOURCES(${_SRCS})
+
+set (HDRS
+    Euclid3DGeometry.h
+    Euclid3D.h
+    Geometry.h
+    Matrix3D.h
+    NullGeometry.h
+    OffsetGeometry.h
+    PlanarArcGeometry.h
+    RBendGeometry.h
+    Rotation3D.h
+    SRotatedGeometry.h
+    StraightGeometry.h
+    Vector3D.h
+)
+
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/BeamlineGeometry")

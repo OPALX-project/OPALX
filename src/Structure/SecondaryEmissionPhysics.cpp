@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include "Algorithms/PartBunch.h"
 #include "Utilities/Options.h"
+#include "Utility/IpplTimings.h"
 
 using namespace myeps;
 using namespace Physics;
@@ -323,7 +324,6 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
 	itsBunch->TriID[lowMark] = 0;
 	//itsBunch->Q[lowMark] = incQ_l*seNum;// charge of simulation particle will be sum of secondaies
 	itsBunch->Q[lowMark] = incQ_l*seyNum;// charge of simulation particle will be multiplied by SEY.
-	itsBunch->LastSection[lowMark] = 0;
 	itsBunch->Ef[lowMark] = Vector_t(0.0);
 	itsBunch->Bf[lowMark] = Vector_t(0.0);
 	itsBunch->dt[lowMark] = itsBunch->getdT();
@@ -363,7 +363,6 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
 	    itsBunch->PType[lowMark+i] = ParticleType::NEWSECONDARY;
 	    itsBunch->TriID[lowMark+i] = 0;
 	    itsBunch->Q[lowMark+i] = incQ_l;
-	    itsBunch->LastSection[lowMark+i] = 0;
 	    itsBunch->Ef[lowMark+i] = Vector_t(0.0);
 	    itsBunch->Bf[lowMark+i] = Vector_t(0.0);
 	    itsBunch->dt[lowMark+i] = itsBunch->getdT();
@@ -580,7 +579,6 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,  const double &cosT
 	itsBunch->PType[lowMark] = ParticleType::NEWSECONDARY;
 	itsBunch->TriID[lowMark] = 0;
 	itsBunch->Q[lowMark] = incQ_l*seyNum;
-	itsBunch->LastSection[lowMark] = 0;// fixme: what about last section !=0 ?
 	itsBunch->Ef[lowMark] = Vector_t(0.0);
 	itsBunch->Bf[lowMark] = Vector_t(0.0);
 	itsBunch->dt[lowMark] = itsBunch->getdT();
@@ -616,7 +614,6 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,  const double &cosT
 	    itsBunch->PType[lowMark+i] = ParticleType::NEWSECONDARY;
 	    itsBunch->TriID[lowMark+i] = 0;
 	    itsBunch->Q[lowMark+i] = incQ_l;
-	    itsBunch->LastSection[lowMark+i] = 0;
 	    itsBunch->Ef[lowMark+i] = Vector_t(0.0);
 	    itsBunch->Bf[lowMark+i] = Vector_t(0.0);
 	    itsBunch->dt[lowMark+i] = itsBunch->getdT();

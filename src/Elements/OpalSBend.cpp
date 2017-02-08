@@ -25,6 +25,7 @@
 #include "Physics/Physics.h"
 #include "Structure/OpalWake.h"
 #include "Structure/SurfacePhysics.h"
+#include "Utilities/OpalException.h"
 #include <cmath>
 
 // Class OpalSBend
@@ -103,16 +104,11 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     attributeRegistry["SLICES"]->setReal(bend->getSlices());
     attributeRegistry["STEPSIZE"]->setReal(bend->getStepsize());
     //attributeRegistry["FMAPFN"]->setString(bend->getFieldMapFN());
-
-
-    double dx, dy, dz;
-    bend->getMisalignment(dx, dy, dz);
-    attributeRegistry["DX"]->setReal(dx);
-    attributeRegistry["DY"]->setReal(dy);
 }
 
 
 void OpalSBend::update() {
+    OpalElement::update();
 
     // Define geometry.
     SBendRep *bend = dynamic_cast<SBendRep *>(getElement()->removeWrappers());
@@ -157,69 +153,48 @@ void OpalSBend::update() {
 
     // Set field amplitude or bend angle.
     if(itsAttr[ANGLE])
-        bend->SetBendAngle(Attributes::getReal(itsAttr[ANGLE]));
+        bend->setBendAngle(Attributes::getReal(itsAttr[ANGLE]));
     else
-        bend->SetFieldAmplitude(k0, k0s);
+        bend->setFieldAmplitude(k0, k0s);
 
     if(itsAttr[GREATERTHANPI])
-        bend->SetAngleGreaterThanPiFlag(Attributes::getBool(itsAttr[GREATERTHANPI]));
-    else
-        bend->SetAngleGreaterThanPiFlag(false);
+        throw OpalException("OpalSBend::update",
+                            "GREATERTHANPI not supportet any more");
 
     if(itsAttr[ROTATION])
-        bend->SetRotationAboutZ(Attributes::getReal(itsAttr[ROTATION]));
-    else
-        bend->SetRotationAboutZ(0.0);
+        throw OpalException("OpalSBend::update",
+                            "ROTATION not supportet any more; use PSI instead");
 
     if(itsAttr[FMAPFN])
-        bend->SetFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
+        bend->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
     else if(bend->getName() != "SBEND") {
         ERRORMSG(bend->getName() << ": No filename for a field map given. "
                  "Will assume the default map "
                  "\"1DPROFILE1-DEFAULT\"."
                  << endl);
-        bend->SetFieldMapFN("1DPROFILE1-DEFAULT");
+        bend->setFieldMapFN("1DPROFILE1-DEFAULT");
     }
 
-    if(itsAttr[E1])
-        bend->SetEntranceAngle(Attributes::getReal(itsAttr[E1]));
-    else if(itsAttr[ALPHA])
-        bend->SetEntranceAngle(Attributes::getReal(itsAttr[ALPHA]));
-    else
-        bend->SetEntranceAngle(0.0);
-
-    if(itsAttr[BETA])
-        bend->SetBeta(Attributes::getReal(itsAttr[BETA]));
-    else
-        bend->SetBeta(0.0);
+    bend->setEntranceAngle(Attributes::getReal(itsAttr[E1]));
+    bend->setExitAngle(Attributes::getReal(itsAttr[E2]));
 
     // Units are eV.
     if(itsAttr[DESIGNENERGY]) {
-        bend->SetDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]));
+        bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]), false);
     }
 
-    if(itsAttr[GAP])
-        bend->SetFullGap(Attributes::getReal(itsAttr[GAP]));
-    else
-        bend->SetFullGap(0.0);
+    bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
 
-    if(itsAttr[HAPERT])
-        bend->SetAperture(Attributes::getReal(itsAttr[HAPERT]));
-    else
-        bend->SetAperture(0.0);
+    if(itsAttr[APERT])
+        throw OpalException("OpalRBend::fillRegisteredAttributes",
+                            "APERTURE in RBEND not supported; use GAP and HAPERT instead");
+
+    bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>(2, Attributes::getReal(itsAttr[HAPERT])));
 
     if(itsAttr[LENGTH])
-        bend->SetLength(Attributes::getReal(itsAttr[LENGTH]));
+        bend->setLength(Attributes::getReal(itsAttr[LENGTH]));
     else
-        bend->SetLength(0.0);
-
-    if(itsAttr[E2])
-        bend->setExitAngle(Attributes::getReal(itsAttr[E2]));
-    else if(itsAttr[EXITANGLE])
-        bend->setExitAngle(Attributes::getReal(itsAttr[EXITANGLE]));
-    //        bend->setExitFaceSlope(tan(Physics::pi * Attributes::getReal(itsAttr[EXITANGLE]) / 180.0));
-    else
-        bend->setExitAngle(0.0);
+        bend->setLength(0.0);
 
     if(itsAttr[WAKEF] && itsAttr[DESIGNENERGY] && owk_m == NULL) {
         owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
@@ -228,39 +203,15 @@ void OpalSBend::update() {
     }
 
     if(itsAttr[K1])
-        bend->SetK1(Attributes::getReal(itsAttr[K1]));
+        bend->setK1(Attributes::getReal(itsAttr[K1]));
     else
-        bend->SetK1(0.0);
+        bend->setK1(0.0);
 
-    bend->setMisalignment(Attributes::getReal(itsAttr[DX]),
-                          Attributes::getReal(itsAttr[DY]),
-                          0.0);
-
-    //  if (itsAttr[L])
-    //   bend->setL(Attributes::getReal(itsAttr[L]));
-    //  else
-    //    bend->setL(0.0);
-    /*
-    std::vector<double> apert = getApert();
-    double apert_major = -1., apert_minor = -1.;
-    if(apert.size() > 0) {
-        apert_major = apert[0];
-        if(apert.size() > 1) {
-            apert_minor = apert[1];
-        } else {
-            apert_minor = apert[0];
-        }
-    }
-    */
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
         sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
         sphys_m->initSurfacePhysicsHandler(*bend);
         bend->setSurfacePhysics(sphys_m->handler_m);
     }
-
-    double dx = Attributes::getReal(itsAttr[DX]);
-    double dy = Attributes::getReal(itsAttr[DY]);
-    bend->setMisalignment(dx, dy, 0.0);
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(bend);

@@ -22,7 +22,7 @@
 
 #include "AbsBeamline/Component.h"
 #include "Utilities/LogicalError.h"
-
+#include "Algorithms/PartBunch.h"
 
 // Class Component
 // ------------------------------------------------------------------------
@@ -33,10 +33,6 @@
 
 Component::Component():
     ElementBase(),
-    dx_m(0.0),
-    dy_m(0.0),
-    ds_m(0.0),
-    Orientation_m(Vector_t(0.0, 0.0, 0.0)),
     exit_face_slope_m(0.0),
     RefPartBunch_m(NULL),
     online_m(false)
@@ -45,10 +41,6 @@ Component::Component():
 
 Component::Component(const Component &right):
     ElementBase(right),
-    dx_m(right.dx_m),
-    dy_m(right.dy_m),
-    ds_m(right.ds_m),
-    Orientation_m(right.Orientation_m),
     exit_face_slope_m(right.exit_face_slope_m),
     RefPartBunch_m(right.RefPartBunch_m),
     online_m(right.online_m)
@@ -57,10 +49,6 @@ Component::Component(const Component &right):
 
 Component::Component(const std::string &name):
     ElementBase(name),
-    dx_m(0.0),
-    dy_m(0.0),
-    ds_m(0.0),
-    Orientation_m(Vector_t(0.0, 0.0, 0.0)),
     exit_face_slope_m(0.0),
     RefPartBunch_m(NULL),
     online_m(false)
@@ -99,18 +87,39 @@ bool Component::Online() {
     return online_m;
 }
 
-void Component::setMisalignment(double x, double y, double s) {
-    dx_m = x;
-    dy_m = y;
-    ds_m = s;
-}
-
-void Component::getMisalignment(double &x, double &y, double &s) const {
-    x = dx_m;
-    y = dy_m;
-    s = ds_m;
-}
-
 ElementBase::ElementType Component::getType() const {
     return ElementBase::ANY;
+}
+
+bool Component::apply(const size_t &i,
+                      const double &t,
+                      Vector_t &E,
+                      Vector_t &B) {
+    const Vector_t &R = RefPartBunch_m->R[i];
+    if (R(2) >= 0.0 && R(2) < getElementLength()) {
+        if (!isInsideTransverse(R)) return true;
+    }
+    return false;
+}
+
+bool Component::apply(const Vector_t &R,
+                      const Vector_t &P,
+                      const double &t,
+                      Vector_t &E,
+                      Vector_t &B) {
+    if (R(2) >= 0.0 && R(2) < getElementLength()) {
+        if (!isInsideTransverse(R)) return true;
+    }
+    return false;
+}
+
+bool Component::applyToReferenceParticle(const Vector_t &R,
+                                         const Vector_t &P,
+                                         const double &t,
+                                         Vector_t &E,
+                                         Vector_t &B) {
+    if (R(2) >= 0.0 && R(2) < getElementLength()) {
+        if (!isInsideTransverse(R)) return true;
+    }
+    return false;
 }

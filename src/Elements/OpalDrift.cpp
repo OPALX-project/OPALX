@@ -76,6 +76,7 @@ bool OpalDrift::isDrift() const {
 
 
 void OpalDrift::update() {
+    OpalElement::update();
 
     DriftRep *drf = static_cast<DriftRep *>(getElement());
     drf->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
@@ -84,18 +85,7 @@ void OpalDrift::update() {
         owk_m->initWakefunction(*drf);
         drf->setWake(owk_m->wf_m);
     }
-    /*
-    std::vector<double> apert = getApert();
-    double apert_major = -1., apert_minor = -1.;
-    if(apert.size() > 0) {
-        apert_major = apert[0];
-        if(apert.size() > 1) {
-            apert_minor = apert[1];
-        } else {
-            apert_minor = apert[0];
-        }
-    }
-    */
+
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
         sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
         sphys_m->initSurfacePhysicsHandler(*drf);
@@ -107,7 +97,6 @@ void OpalDrift::update() {
 	    drf->setBoundaryGeometry(obgeo_m);
         }
     }
-
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(drf);

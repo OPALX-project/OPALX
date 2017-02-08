@@ -106,7 +106,7 @@ public:
     ParticleAttrib<Vector_t> 	EF;
     ParticleAttrib<Vector_t>	v; //velocity of the particles
     ParticleAttrib<int>	ID; //velocity of the particles
-    
+
     ChargedParticles(PL* pl, Vektor<double,3> nr, e_dim_tag decomp[Dim],Vektor<double,3> extend_l_, Vektor<double,3> extend_r_) :
     IpplParticleBase<PL>(pl),
     nr_m(nr),
@@ -119,12 +119,12 @@ public:
         this->addAttribute(EF);
         this->addAttribute(v);
         this->addAttribute(ID);
-        
+
         for (unsigned int i = 0; i < 2 * Dim; ++i) {
             //use periodic boundary conditions for the particles
             this->getBConds()[i] = ParticlePeriodicBCond;
             //boundary conditions used for interpolation kernels allow writes to ghost cells
-            
+
             if (Ippl::getNodes()>1) {
                 bc_m[i] = new ParallelInterpolationFace<double, Dim, Mesh_t, Center_t>(i);
                 //std periodic boundary conditions for gradient computations etc.
@@ -138,36 +138,36 @@ public:
                 bcp_m[i] = new PeriodicFace<double, Dim, Mesh_t, Center_t>(i);
             }
         }
-        
+
         for (unsigned int d = 0;d<Dim;++d) {
             rmax_m[d] = extend_r[d];
             rmin_m[d] = extend_l[d];
         }
-        
+
         domain_m = this->getFieldLayout().getDomain();
         lDomain_m = this->getFieldLayout().getLocalNDIndex(); // local domain
-        
+
         //initialize the FFT
         bool compressTemps = true;
         fft_m = new FFT_t(domain_m,compressTemps);
-        
+
         fft_m->setDirectionName(+1, "forward");
         fft_m->setDirectionName(-1, "inverse");
         INFOMSG("INIT FFT DONE"<<endl);
     }
-    
+
     inline const Mesh_t& getMesh() const { return this->getLayout().getLayout().getMesh(); }
-    
+
     inline Mesh_t& getMesh() { return this->getLayout().getLayout().getMesh(); }
-    
+
     inline const FieldLayout_t& getFieldLayout() const {
         return dynamic_cast<FieldLayout_t&>( this->getLayout().getLayout().getFieldLayout());
     }
-    
+
     inline FieldLayout_t& getFieldLayout() {
         return dynamic_cast<FieldLayout_t&>(this->getLayout().getLayout().getFieldLayout());
     }
-    
+
     void update()
     {
         //should only be needed if meshspacing changes -----------
@@ -177,20 +177,20 @@ public:
         this->getMesh().set_meshSpacing(&(hr_m[0]));
         this->getMesh().set_origin(extend_l);
         //--------------------------------------------------------
-        
+
         //init resets the meshes to 0 ?!
         rhocmpl_m.initialize(getMesh(), getFieldLayout(), GuardCellSizes<Dim>(1));
         grncmpl_m.initialize(getMesh(), getFieldLayout(), GuardCellSizes<Dim>(1));
         rho_m.initialize(getMesh(), getFieldLayout(), GuardCellSizes<Dim>(1),bc_m);
         phi_m.initialize(getMesh(), getFieldLayout(), GuardCellSizes<Dim>(1),bcp_m);
         eg_m.initialize(getMesh(), getFieldLayout(), GuardCellSizes<Dim>(1), vbc_m);
-        
+
         domain_m = this->getFieldLayout().getDomain();
         lDomain_m = this->getFieldLayout().getLocalNDIndex();
-        
+
         IpplParticleBase<PL>::update();
     }
-    
+
     void compute_temperature() {
         Inform m("compute_temperature ");
         double loc_temp[Dim]={0.0,0.0,0.0};
@@ -208,9 +208,9 @@ public:
         avg_vel[0]=avg_vel[0]/N;
         avg_vel[1]=avg_vel[1]/N;
         avg_vel[2]=avg_vel[2]/N;
-        
+
         m << "avg_vel[0]= " << avg_vel[0] << " avg_vel[1]= " << avg_vel[1] << " avg_vel[2]= " << avg_vel[2] <<  endl;
-        
+
         for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
 	  for(unsigned i = 0; i < Dim; i++) {
 	    loc_temp[i]   += (this->v[k](i)-avg_vel[i])*(this->v[k](i)-avg_vel[i]);
@@ -222,14 +222,14 @@ public:
         temperature[1]=temperature[1]/N;
         temperature[2]=temperature[2]/N;
     }
-    
+
     void calcMoments() {
         double part[2 * Dim];
-        
+
         double loc_centroid[2 * Dim]={};
         double loc_moment[2 * Dim][2 * Dim]={};
         double moments[2 * Dim][2 * Dim]={};
-        
+
         for(unsigned i = 0; i < 2 * Dim; i++) {
             loc_centroid[i] = 0.0;
             for(unsigned j = 0; j <= i; j++) {
@@ -237,7 +237,7 @@ public:
                 loc_moment[j][i] = loc_moment[i][j];
             }
         }
-        
+
         //double p0=m0*gamma*beta0;
         for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
             part[1] = this->v[k](0);
@@ -246,7 +246,7 @@ public:
             part[0] = this->R[k](0);
             part[2] = this->R[k](1);
             part[4] = this->R[k](2);
-            
+
             for(unsigned i = 0; i < 2 * Dim; i++) {
                 loc_centroid[i]   += part[i];
                 for(unsigned j = 0; j <= i; j++) {
@@ -254,19 +254,19 @@ public:
                 }
             }
         }
-        
+
         for(unsigned i = 0; i < 2 * Dim; i++) {
             for(unsigned j = 0; j < i; j++) {
                 loc_moment[j][i] = loc_moment[i][j];
             }
         }
-        
+
         reduce(&(loc_moment[0][0]), &(loc_moment[0][0]) + 2 * Dim * 2 * Dim,
                &(moments[0][0]), OpAddAssign());
-        
+
         reduce(&(loc_centroid[0]), &(loc_centroid[0]) + 2 * Dim,
                &(centroid_m[0]), OpAddAssign());
-        
+
         for(unsigned i = 0; i < 2 * Dim; i++) {
             for(unsigned j = 0; j <= i; j++) {
                 moments_m[i][j] = moments[i][j];
@@ -274,13 +274,13 @@ public:
             }
         }
     }
-    
-    
+
+
     void computeBeamStatistics() {
         //const size_t locNp = this->getLocalNum();
         const double N =  static_cast<double>(this->getTotalNum());
         const double zero = 0.0;
-        
+
         Vector_t eps2, fac, rsqsum, vsqsum, rvsum;
         for(unsigned int i = 0 ; i < Dim; i++) {
             rmean_m(i) = centroid_m[2 * i] / N;
@@ -291,10 +291,10 @@ public:
                 vsqsum(i) = 0;
             rvsum(i) = moments_m[(2 * i)][(2 * i) + 1] - N * rmean_m(i) * vmean_m(i);
         }
-        
+
         eps2 = (rsqsum * vsqsum - rvsum * rvsum) / (N * N);
         rvsum /= N;
-        
+
         for(unsigned int i = 0 ; i < Dim; i++) {
             rrms_m(i) = sqrt(rsqsum(i) / N);
             vrms_m(i) = sqrt(vsqsum(i) / N);
@@ -303,9 +303,9 @@ public:
             fac(i) = (tmp == 0) ? zero : 1.0 / tmp;
         }
         rvrms_m = rvsum * fac;
-        
+
     }
-    
+
     void calc_kinetic_energy() {
         double loc_kinetic_energy=0;
         double v2;
@@ -315,35 +315,35 @@ public:
         }
         reduce(loc_kinetic_energy,kinetic_energy, OpAddAssign());
     }
-    
+
     void  calc_field_energy() {
         NDIndex<3> elem;
         double cell_volume = hr_m[0]*hr_m[1]*hr_m[2];
         field_energy=0;
         field_energy=0.5*cell_volume*sum(dot(eg_m,eg_m));
-        
+
         rhomax=max(abs(rho_m))/(hr_m[0]*hr_m[1]*hr_m[2]);
         //rhomax=max(rho_m);
         integral_phi_m=0.5*sum(rho_m*phi_m);
     }
-    
+
     void  calc_potential_energy() {
         potential_energy = 0;
         for (unsigned i=0; i<this->getLocalNum(); ++i) {
             potential_energy+=0.5*(Q[i])*Phi[i];
         }
     }
-    
+
     void calc_Amplitude_E(){
         //computes the maximum amplitude in the electric field
         AmplitudeEfield=max(sqrt(dot(eg_m,eg_m)));
         eg_m=eg_m*Vektor<double,3>(0,0,1);
         AmplitudeEFz=max(sqrt(dot(eg_m,eg_m)));
     }
-    
+
     void computeAvgSpaceChargeForces() {
         Inform m("computeAvgSpaceChargeForces ");
-        
+
         const double N =  static_cast<double>(this->getTotalNum());
         double locAvgEF[Dim]={};
         for (unsigned i=0; i<this->getLocalNum(); ++i) {
@@ -351,27 +351,27 @@ public:
             locAvgEF[1]+=fabs(EF[i](1));
             locAvgEF[2]+=fabs(EF[i](2));
         }
-        
+
         reduce(&(locAvgEF[0]), &(locAvgEF[0]) + Dim,
                &(globSumEF[0]), OpAddAssign());
-        
-        
+
+
         m << "globSumEF = " << globSumEF[0] << "\t" << globSumEF[1] << "\t" << globSumEF[2] << endl;
-        
+
         avgEF[0]=globSumEF[0]/N;
         avgEF[1]=globSumEF[1]/N;
         avgEF[2]=globSumEF[2]/N;
 
     }
-    
+
     void applyConstantFocusing(double f,double beam_radius) {
         double focusingForce=sqrt(dot(avgEF,avgEF));
         for (unsigned i=0; i<this->getLocalNum(); ++i) {
             EF[i]+=this->R[i]/beam_radius*f*focusingForce;
         }
     }
-    
-    
+
+
     void calculatePairForces(double interaction_radius, double eps, double alpha) {
         if (interaction_radius>0){
             if (Ippl::getNodes() > 1) {
@@ -384,7 +384,7 @@ public:
             }
         }
     }
-    
+
     void calculateGridForces(double interaction_radius, double alpha, double eps, int it=0, bool normalizeSphere=0) {
         // (1) scatter charge to charge density grid and transform to fourier space
         //this->Q.scatter(this->rho_m, this->R, IntrplTSC_t());
@@ -392,11 +392,11 @@ public:
         this->Q.scatter(this->rho_m, this->R, IntrplCIC_t());
         //this->Q.scatter(this->rho_m, this->R, IntrplNGP_t());
         //dumpVTKScalar(rho_m,this,it,"RhoInterpol");
-        
+
         //rhocmpl_m[domain_m] = rho_m[domain_m];
         rhocmpl_m[domain_m] = rho_m[domain_m]/(hr_m[0]*hr_m[1]*hr_m[2]);
         RhoSum=sum(real(rhocmpl_m));
-        
+
         //std::cout << "total charge in densitty field before ion subtraction is" << sum(real(rhocmpl_m))<< std::endl;
         //std::cout << "max total charge in densitty field before ion subtraction is" << max(real(rhocmpl_m)) << std::endl;
         //subtract the background charge of the ions
@@ -406,23 +406,23 @@ public:
          else
          rhocmpl_m[domain_m]=1.+rhocmpl_m[domain_m];
          */
-        
+
         //std::cout << "total charge in densitty field after ion subtraction is" << sum(real(rhocmpl_m)) << std::endl;
-        
+
         //compute rhoHat and store in rhocmpl_m
         fft_m->transform("inverse", rhocmpl_m);
-        
+
         // (2) compute Greens function in real space and transform to fourier space
         //calcGrealSpace(alpha,eps);
-        
+
         /////////compute G with Index Magic///////////////////
         // Fields used to eliminate excess calculation in greensFunction()
         IField_t grnIField_m[3];
-        
+
         // mesh and layout objects for rho_m
         Mesh_t *mesh_m = &(getMesh());
         FieldLayout_t *layout_m = &(getFieldLayout());
-        
+
         //This loop stores in grnIField_m[i] the index of the ith dimension mirrored at the central axis. e.g. grnIField_m[0]=[(0 1 2 3 ... 3 2 1) ; (0 1 2 3 ... 3 2 1; ...)]
         for (int i = 0; i < 3; ++i) {
             grnIField_m[i].initialize(*mesh_m, *layout_m);
@@ -434,62 +434,62 @@ public:
         Vector_t hrsq(hr_m * hr_m);
         SpecializedGreensFunction<3>::calculate(hrsq, grncmpl_m, grnIField_m, alpha,eps);
         /////////////////////////////////////////////////
-        
+
         //transform G -> Ghat and store in grncmpl_m
         fft_m->transform("inverse", grncmpl_m);
         //multiply in fourier space and obtain PhiHat in rhocmpl_m
         rhocmpl_m *= grncmpl_m;
-        
+
         // (3) Backtransformation: compute potential field in real space and E=-Grad Phi
         //compute electrostatic potential Phi in real space by FFT PhiHat -> Phi and store it in rhocmpl_m
         fft_m->transform("forward", rhocmpl_m);
-        
+
         //take only the real part and store in phi_m (has periodic bc instead of interpolation bc)
         phi_m = real(rhocmpl_m)*hr_m[0]*hr_m[1]*hr_m[2];
         //dumpVTKScalar( phi_m, this,it, "Phi_m") ;
-        
+
         //compute Electric field on the grid by -Grad(Phi) store in eg_m
         eg_m = -Grad1Ord(phi_m, eg_m);
-        
+
         //interpolate the electric field to the particle positions
         EF.gather(eg_m, this->R,  IntrplCIC_t());
         //interpolate electrostatic potenital to the particle positions
         Phi.gather(phi_m, this->R, IntrplCIC_t());
     }
-    
-    
+
+
     Vector_t getRmin() {
         return this->rmin_m;
     }
     Vector_t getRmax() {
         return this->rmax_m;
     }
-    
+
     Vector_t get_hr() { return hr_m;}
-    
+
     void closeH5(){
         H5CloseFile(H5f_m);
     }
-    
+
     void openH5(std::string fn){
         H5f_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, Ippl::getComm());
     }
-    
-    
-    
+
+
+
     //private:
     BConds<double, Dim, Mesh_t, Center_t> bc_m;
     BConds<double, Dim, Mesh_t, Center_t> bcp_m;
     BConds<Vector_t, Dim, Mesh_t, Center_t> vbc_m;
-    
+
     CxField_t rhocmpl_m;
     CxField_t grncmpl_m;
-    
+
     Field_t rho_m;
     Field_t phi_m;
-    
+
     VField_t eg_m;
-    
+
     Vektor<int,Dim> nr_m;
     Vector_t hr_m;
     Vector_t rmax_m;
@@ -500,7 +500,7 @@ public:
     FieldLayout_t *layout_m;
     NDIndex<Dim> domain_m;
     NDIndex<Dim> lDomain_m;
-    
+
     double kinetic_energy;
     double field_energy;
     double field_energy_gather;
@@ -510,11 +510,11 @@ public:
     double AmplitudeEFz;
     double total_charge;
     double rhomax;
-    
+
     FFT_t *fft_m;
-    
+
     e_dim_tag decomp_m[Dim];
-    
+
     Vektor<int,Dim> Nx;
     Vektor<int,Dim> Nv;
     Vektor<double,Dim> Vmax;
@@ -525,13 +525,13 @@ public:
     FieldLayout2d_t *layout2d_m;
     //TEMP debug variable
     double RhoSum=0;
-    
+
     h5_file_t *H5f_m;
-    
+
     double temperature[Dim];
     double avg_vel[Dim];
-    
-    
+
+
     //Moment calculations:
     /// 6x6 matrix of the moments of the beam
     //FMatrix<double, 2 * Dim, 2 * Dim> moments_m;
@@ -550,11 +550,11 @@ public:
     Vector_t eps_m;
     /// rms correlation
     Vector_t rvrms_m;
-    
-    
+
+
     Vektor<double,Dim> avgEF;
     double globSumEF[Dim];
-    
+
 };
 
 template<class T>
@@ -564,10 +564,10 @@ struct ApplyField {
     {
         Vector_t diff = P.R[i] - (P.R[j]+shift);
         double sqr = 0;
-        
+
         for (unsigned d = 0; d<Dim; ++d)
             sqr += diff[d]*diff[d];
-        
+
         //compute r with softening parameter, unsoftened r is obtained by sqrt(sqr)
         if(sqr!=0) {
             double r = std::sqrt(sqr+eps*eps);
@@ -575,10 +575,10 @@ struct ApplyField {
             if (P.Q[i]!=0 && P.Q[j]!=0) {
                 //compute potential energy
                 double phi =ke*(1.-erf(a*sqrt(sqr)))/r;
-                
+
                 //compute force
                 Vector_t Fij = ke*C*(diff/sqrt(sqr))*((2.*a*exp(-a*a*sqr))/(sqrt(M_PI)*r)+(1.-erf(a*sqrt(sqr)))/(r*r));
-                
+
                 //Actual Force is F_ij multiplied by Qi*Qj
                 //The electrical field on particle i is E=F/q_i and hence:
                 P.EF[i] -= P.Q[j]*Fij;
@@ -599,12 +599,12 @@ int main(int argc, char *argv[]){
     Ippl ippl(argc, argv);
     Inform msg(argv[0]);
     Inform msg2all(argv[0],INFORM_ALL_NODES);
-    
+
     IpplTimings::TimerRef allTimer = IpplTimings::getTimer("AllTimer");
     IpplTimings::startTimer(allTimer);
-    
+
     Vektor<int,Dim> nr;
-    
+
     nr = Vektor<int,Dim>(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]));
     int param = 4;
     double beam_radius =atof(argv[param++]);
@@ -621,55 +621,55 @@ int main(int argc, char *argv[]){
     double mass_per_part =  atof(argv[param++]);
     double focusingForce =  atof(argv[param++]);
     int print_every =  atof(argv[param++]);
-    
-    
+
+
     ///////// setup the initial layout ///////////////////////////////////////
     e_dim_tag decomp[Dim];
     Mesh_t *mesh;
     FieldLayout_t *FL;
     ChargedParticles<playout_t>  *P;
-    
+
     NDIndex<Dim> domain;
     for (unsigned i=0; i<Dim; i++)
         domain[i] = domain[i] = Index(nr[i]+1);
-    
+
     for (unsigned d=0; d < Dim; ++d)
         decomp[d] = PARALLEL;
-    
+
     // create mesh and layout objects for this problem domain
     mesh          = new Mesh_t(domain);
     FL            = new FieldLayout_t(*mesh, decomp);
     playout_t* PL = new playout_t(*FL, *mesh);
-    
+
     PL->setAllCacheDimensions(interaction_radius);
     PL->enableCaching();
-    
+
     /////////// Create the particle distribution /////////////////////////////////////////////////////
     double L = box_length/2.;
     Vektor<double,Dim> extend_l(-L,-L,-L);
     Vektor<double,Dim> extend_r(L,L,L);
-    
+
     Vektor<double,Dim> Vmax(6,6,6);
     P = new ChargedParticles<playout_t>(PL, nr, decomp, extend_l, extend_r);
     createParticleDistributionHeating(P,extend_l,extend_r,beam_radius, Nparticle,charge_per_part,mass_per_part);
-    
+
     //COmpute and write temperature
     P->compute_temperature();
     writeTemperature(P,0);
     /////////////////////////////////////////////////////////////////////////////////////////////
-    
+
     /////// Print mesh informations ////////////////////////////////////////////////////////////
     INFOMSG(P->getMesh() << endl);
     INFOMSG(P->getFieldLayout() << endl);
     msg << endl << endl;
     Ippl::Comm->barrier();
-    
+
     //dumpParticlesCSV(P,0);
-    
+
     INFOMSG(P->getMesh() << endl);
     INFOMSG(P->getFieldLayout() << endl);
     msg << endl << endl;
-    
+
     msg<<"number of particles = " << P->getTotalNum() << endl;
     msg<<"Total charge Q      = " << P->total_charge << endl;
 
@@ -677,22 +677,22 @@ int main(int argc, char *argv[]){
     std::string fname;
     fname = "data/particleData";
     fname += ".h5part";
-    
+
     P->openH5(fname);
     dumpH5partVelocity(P,0);
     unsigned printid=1;
-    
+
     msg << "Starting iterations ..." << endl;
     P->compute_temperature();
-    // calculate initial space charge forces 
+    // calculate initial space charge forces
     P->calculateGridForces(interaction_radius,alpha,0,0,0);
     P->calculatePairForces(interaction_radius,eps,alpha);
-    
+
     //avg space charge forces for constant focusing
-    P->computeAvgSpaceChargeForces();	
+    P->computeAvgSpaceChargeForces();
 
     //dumpVTKVector(P->eg_m, P,0,"EFieldAfterPMandPP");
-    
+
     //compute quantities to check correctness:
     /*
      P->calc_field_energy();
@@ -700,41 +700,41 @@ int main(int argc, char *argv[]){
      P->calc_kinetic_energy();
      writeEnergy(P,0);
      */
-    
+
     IpplTimings::TimerRef gridTimer = IpplTimings::getTimer("GridTimer");
     IpplTimings::TimerRef particleTimer = IpplTimings::getTimer("ParticleTimer");
-    
+
     for (int it=0; it<iterations; it++) {
       /*
         P->calcMoments();
         P->computeBeamStatistics();
         writeBeamStatisticsVelocity(P,it);
-        
+
         P->calc_kinetic_energy();
         P->calc_field_energy();
         writeEnergy(P,it);
-      */        
+      */
         // advance the particle positions
         // basic leapfrogging timestep scheme.  velocities are offset
         // by half a timestep from the positions.
-        
+
         assign(P->R, P->R + dt * P->v);
         // update particle distribution across processors
         P->update();
-        
+
         // compute the electric field
-        
-        
+
+
         IpplTimings::startTimer(gridTimer);
         P->calculateGridForces(interaction_radius,alpha,0,it+1,0);
         IpplTimings::stopTimer(gridTimer);
-        
+
         IpplTimings::startTimer(particleTimer);
         P->calculatePairForces(interaction_radius,eps,alpha);
         IpplTimings::stopTimer(particleTimer);
-        
+
         //P->update();
-        
+
         //second part of leapfrog: advance velocitites
         //P->computeAvgSpaceChargeForces();
         //if (Ippl::myNode()==0)
@@ -743,7 +743,7 @@ int main(int argc, char *argv[]){
         P->applyConstantFocusing(focusingForce,beam_radius);
 
         assign(P->v, P->v + dt * P->Q/P->m * (P->EF));
-        
+
         P->compute_temperature();
 
         if (it%print_every==0){
@@ -754,28 +754,28 @@ int main(int argc, char *argv[]){
              P->calc_kinetic_energy();
              P->calc_potential_energy();
              writeEnergy(P,printid);
-             */	
+             */
             P->compute_temperature();
             writeTemperature(P,it+1);
-            
+
             dumpH5partVelocity(P,printid++);
         }
-        
+
         msg << "Finished iteration " << it << endl;
     }
     Ippl::Comm->barrier();
-    
+
     P->closeH5();
     Ippl::Comm->barrier();
-    
+
     IpplTimings::stopTimer(allTimer);
-    
+
     IpplTimings::print();
-    
-    
+
+
     delete P;
     delete FL;
     delete mesh;
-    
+
     return 0;
 }

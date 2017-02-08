@@ -97,93 +97,95 @@ public:
     virtual void execute();
     virtual void update();
 
-    void CreateBoundaryGeometry(PartBunch &p, BoundaryGeometry &bg);
-    void CreateOpalCycl(PartBunch &beam,
+    void createBoundaryGeometry(PartBunch &p, BoundaryGeometry &bg);
+    void createOpalCycl(PartBunch &beam,
                         size_t numberOfParticles,
 			double current, const Beamline &bl,
                         bool scan);
-    void CreateOpalE(Beam *beam,
+    void createOpalE(Beam *beam,
                      std::vector<Distribution *> addedDistributions,
                      EnvelopeBunch *envelopeBunch,
                      double distCenter,
                      double Bz0);
-    void CreateOpalT(PartBunch &beam,
+    void createOpalT(PartBunch &beam,
                      std::vector<Distribution *> addedDistributions,
                      size_t &numberOfParticles,
                      bool scan);
-    void CreateOpalT(PartBunch &beam, size_t &numberOfParticles, bool scan);
-    void CreatePriPart(PartBunch *beam, BoundaryGeometry &bg);
-    void DoRestartOpalT(PartBunch &p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
-    void DoRestartOpalCycl(PartBunch &p, size_t Np, int restartStep,
+    void createOpalT(PartBunch &beam, size_t &numberOfParticles, bool scan);
+    void createPriPart(PartBunch *beam, BoundaryGeometry &bg);
+    void doRestartOpalT(PartBunch &p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
+    void doRestartOpalCycl(PartBunch &p, size_t Np, int restartStep,
                         const int specifiedNumBunch, H5PartWrapper *h5wrapper);
-    void DoRestartOpalE(EnvelopeBunch &p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
-    size_t EmitParticles(PartBunch &beam, double eZ);
+    void doRestartOpalE(EnvelopeBunch &p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
+    size_t emitParticles(PartBunch &beam, double eZ);
+    double getPercentageEmitted() const;
     static Distribution *find(const std::string &name);
 
-    void EraseXDist();
-    void EraseBGxDist();
-    void EraseYDist();
-    void EraseBGyDist();
-    void EraseTOrZDist();
-    void EraseBGzDist();
-    bool GetIfDistEmitting();
-    int GetLastEmittedEnergyBin();
-    double GetMaxTOrZ();
-    double GetMinTOrZ();
-    size_t GetNumberOfEmissionSteps();
-    int GetNumberOfEnergyBins();
-    double GetEmissionDeltaT();
-    double GetEnergyBinDeltaT();
-    double GetWeight();
-    std::vector<double>& GetXDist();
-    std::vector<double>& GetBGxDist();
-    std::vector<double>& GetYDist();
-    std::vector<double>& GetBGyDist();
-    std::vector<double>& GetTOrZDist();
-    std::vector<double>& GetBGzDist();
+    void eraseXDist();
+    void eraseBGxDist();
+    void eraseYDist();
+    void eraseBGyDist();
+    void eraseTOrZDist();
+    void eraseBGzDist();
+    bool getIfDistEmitting();
+    int getLastEmittedEnergyBin();
+    double getMaxTOrZ();
+    double getMinTOrZ();
+    size_t getNumberOfEmissionSteps();
+    int getNumberOfEnergyBins();
+    double getEmissionDeltaT();
+    double getEnergyBinDeltaT();
+    double getWeight();
+    std::vector<double>& getXDist();
+    std::vector<double>& getBGxDist();
+    std::vector<double>& getYDist();
+    std::vector<double>& getBGyDist();
+    std::vector<double>& getTOrZDist();
+    std::vector<double>& getBGzDist();
 
     /// Return the embedded CLASSIC PartData.
-    const PartData &GetReference() const;
-    double GetTEmission();
+    const PartData &getReference() const;
+    double getTEmission();
 
     Vector_t get_pmean() const;
-    double GetEkin() const;
-    double GetLaserEnergy() const;
-    double GetWorkFunctionRf() const;
+    double getEkin() const;
+    double getLaserEnergy() const;
+    double getWorkFunctionRf() const;
 
-    size_t GetNumberOfDarkCurrentParticles();
-    double GetDarkCurrentParticlesInwardMargin();
-    double GetEInitThreshold();
-    double GetWorkFunction();
-    double GetFieldEnhancement();
-    size_t GetMaxFNemissionPartPerTri();
-    double GetFieldFNThreshold();
-    double GetFNParameterA();
-    double GetFNParameterB();
-    double GetFNParameterY();
-    double GetFNParameterVYZero();
-    double GetFNParameterVYSecond();
-    int    GetSecondaryEmissionFlag();
-    bool   GetEmissionMode() ;
+    size_t getNumberOfDarkCurrentParticles();
+    double getDarkCurrentParticlesInwardMargin();
+    double getEInitThreshold();
+    double getWorkFunction();
+    double getFieldEnhancement();
+    size_t getMaxFNemissionPartPerTri();
+    double getFieldFNThreshold();
+    double getFNParameterA();
+    double getFNParameterB();
+    double getFNParameterY();
+    double getFNParameterVYZero();
+    double getFNParameterVYSecond();
+    int    getSecondaryEmissionFlag();
+    bool   getEmissionMode() ;
 
-    std::string GetTypeofDistribution();
+    std::string getTypeofDistribution();
 
-    double GetvSeyZero();//return sey_0 in Vaughan's model
-    double GetvEZero();//return the energy related to sey_0 in Vaughan's model
-    double GetvSeyMax();//return sey max in Vaughan's model
-    double GetvEmax();//return Emax in Vaughan's model
-    double GetvKenergy();//return fitting parameter denotes the roughness of surface for impact energy in Vaughan's model
-    double GetvKtheta();//return fitting parameter denotes the roughness of surface for impact angle in Vaughan's model
-    double GetvVThermal();//return thermal velocity of Maxwellian distribution of secondaries in Vaughan's model
-    double GetVw();//return velocity scalar for parallel plate benchmark;
-    int GetSurfMaterial();//material type for Furman-Pivi's model 0 for copper, 1 for stainless steel
+    double getvSeyZero();//return sey_0 in Vaughan's model
+    double getvEZero();//return the energy related to sey_0 in Vaughan's model
+    double getvSeyMax();//return sey max in Vaughan's model
+    double getvEmax();//return Emax in Vaughan's model
+    double getvKenergy();//return fitting parameter denotes the roughness of surface for impact energy in Vaughan's model
+    double getvKtheta();//return fitting parameter denotes the roughness of surface for impact angle in Vaughan's model
+    double getvVThermal();//return thermal velocity of Maxwellian distribution of secondaries in Vaughan's model
+    double getVw();//return velocity scalar for parallel plate benchmark;
+    int getSurfMaterial();//material type for Furman-Pivi's model 0 for copper, 1 for stainless steel
 
     Inform &printInfo(Inform &os) const;
 
     bool Rebin();
-    void SetDistToEmitted(bool emitted);
-    void SetDistType();
-    void ShiftBeam(double &maxTOrZ, double &minTOrZ);
+    void setDistToEmitted(bool emitted);
+    void setDistType();
+    void shiftBeam(double &maxTOrZ, double &minTOrZ);
+    double getEmissionTimeShift() const;
 
     // in case if OPAL-cycl in restart mode
     double GetBeGa() {return bega_m;}
@@ -199,6 +201,8 @@ public:
     bool GetPreviousH5Local() {return previousH5Local_m;}
 
     void setNumberOfDistributions(unsigned int n) { numberOfDistributions_m = n; }
+
+    DistrTypeT::DistrTypeT getType() const;
 private:
 #ifdef WITH_UNIT_TESTS
     FRIEND_TEST(GaussTest, FullSigmaTest1);
@@ -214,71 +218,71 @@ private:
 
     //    void printSigma(SigmaGenerator<double,unsigned int>::matrix_type& M, Inform& out);
 
-    void AddDistributions();
-    void ApplyEmissionModel(double eZ, double &px, double &py, double &pz, const std::vector<double> &additionalRNs);
-    void ApplyEmissModelAstra(double &px, double &py, double &pz, const std::vector<double> &additionalRNs);
-    void ApplyEmissModelNone(double &pz);
-    void ApplyEmissModelNonEquil(double eZ, double &px, double &py, double &pz);
-    void Create(size_t &numberOfParticles, double massIneV);
-    void CalcPartPerDist(size_t numberOfParticles);
-    void CheckEmissionParameters();
-    void CheckIfEmitted();
-    void CheckParticleNumber(size_t &numberOfParticles);
-    void ChooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUnitsT inputMoUnits);
-    double ConvertBetaGammaToeV(double valueInbega, double mass);
-    double ConverteVToBetaGamma(double valueIneV, double massIneV);
-    double ConvertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV);
-    void CreateDistributionBinomial(size_t numberOfParticles, double massIneV);
-    void CreateDistributionFlattop(size_t numberOfParticles, double massIneV);
-    void CreateDistributionFromFile(size_t numberOfParticles, double massIneV);
-    void CreateDistributionGauss(size_t numberOfParticles, double massIneV);
-    void CreateMatchedGaussDistribution(size_t numberOfParticles, double massIneV);
-    void DestroyBeam(PartBunch &beam);
-    void FillEBinHistogram();
-    void FillParticleBins();
-    size_t FindEBin(double tOrZ);
-    void GenerateAstraFlattopT(size_t numberOfParticles);
-    void GenerateBinomial(size_t numberOfParticles);
-    void GenerateFlattopLaserProfile(size_t numberOfParticles);
-    void GenerateFlattopT(size_t numberOfParticles);
-    void GenerateFlattopZ(size_t numberOfParticles);
-    void GenerateGaussZ(size_t numberOfParticles);
-    void GenerateLongFlattopT(size_t numberOfParticles);
-    void GenerateTransverseGauss(size_t numberOfParticles);
-    void InitializeBeam(PartBunch &beam);
-    void InjectBeam(PartBunch &beam);
-    void PrintDist(Inform &os, size_t numberOfParticles) const;
-    void PrintDistBinomial(Inform &os) const;
-    void PrintDistFlattop(Inform &os) const;
-    void PrintDistFromFile(Inform &os) const;
-    void PrintDistGauss(Inform &os) const;
-    void PrintDistMatchedGauss(Inform &os) const;
-    void PrintDistSurfEmission(Inform &os) const;
-    void PrintDistSurfAndCreate(Inform &os) const;
-    void PrintEmissionModel(Inform &os) const;
-    void PrintEmissionModelAstra(Inform &os) const;
-    void PrintEmissionModelNone(Inform &os) const;
-    void PrintEmissionModelNonEquil(Inform &os) const;
-    void PrintEnergyBins(Inform &os) const;
-    void ReflectDistribution(size_t &numberOfParticles);
-    void ScaleDistCoordinates();
-    void SetAttributes();
-    void SetDistParametersBinomial(double massIneV);
-    void SetDistParametersFlattop(double massIneV);
-    void SetDistParametersGauss(double massIneV);
-    void SetEmissionTime(double &maxT, double &minT);
-    void SetFieldEmissionParameters();
-    void SetupEmissionModel(PartBunch &beam);
-    void SetupEmissionModelAstra(PartBunch &beam);
-    void SetupEmissionModelNone(PartBunch &beam);
-    void SetupEmissionModelNonEquil();
-    void SetupEnergyBins(double maxTOrZ, double minTOrZ);
-    void SetupParticleBins(double massIneV, PartBunch &beam);
-    void ShiftDistCoordinates(double massIneV);
-    void WriteOutFileHeader();
-    void WriteOutFileEmission();
-    void WriteOutFileInjection();
-    void WriteToFile();
+    void addDistributions();
+    void applyEmissionModel(double eZ, double &px, double &py, double &pz, const std::vector<double> &additionalRNs);
+    void applyEmissModelAstra(double &px, double &py, double &pz, const std::vector<double> &additionalRNs);
+    void applyEmissModelNone(double &pz);
+    void applyEmissModelNonEquil(double eZ, double &px, double &py, double &pz);
+    void create(size_t &numberOfParticles, double massIneV);
+    void calcPartPerDist(size_t numberOfParticles);
+    void checkEmissionParameters();
+    void checkIfEmitted();
+    void checkParticleNumber(size_t &numberOfParticles);
+    void chooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUnitsT inputMoUnits);
+    double convertBetaGammaToeV(double valueInbega, double mass);
+    double converteVToBetaGamma(double valueIneV, double massIneV);
+    double convertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV);
+    void createDistributionBinomial(size_t numberOfParticles, double massIneV);
+    void createDistributionFlattop(size_t numberOfParticles, double massIneV);
+    void createDistributionFromFile(size_t numberOfParticles, double massIneV);
+    void createDistributionGauss(size_t numberOfParticles, double massIneV);
+    void createMatchedGaussDistribution(size_t numberOfParticles, double massIneV);
+    void destroyBeam(PartBunch &beam);
+    void fillEBinHistogram();
+    void fillParticleBins();
+    size_t findEBin(double tOrZ);
+    void generateAstraFlattopT(size_t numberOfParticles);
+    void generateBinomial(size_t numberOfParticles);
+    void generateFlattopLaserProfile(size_t numberOfParticles);
+    void generateFlattopT(size_t numberOfParticles);
+    void generateFlattopZ(size_t numberOfParticles);
+    void generateGaussZ(size_t numberOfParticles);
+    void generateLongFlattopT(size_t numberOfParticles);
+    void generateTransverseGauss(size_t numberOfParticles);
+    void initializeBeam(PartBunch &beam);
+    void injectBeam(PartBunch &beam);
+    void printDist(Inform &os, size_t numberOfParticles) const;
+    void printDistBinomial(Inform &os) const;
+    void printDistFlattop(Inform &os) const;
+    void printDistFromFile(Inform &os) const;
+    void printDistGauss(Inform &os) const;
+    void printDistMatchedGauss(Inform &os) const;
+    void printDistSurfEmission(Inform &os) const;
+    void printDistSurfAndCreate(Inform &os) const;
+    void printEmissionModel(Inform &os) const;
+    void printEmissionModelAstra(Inform &os) const;
+    void printEmissionModelNone(Inform &os) const;
+    void printEmissionModelNonEquil(Inform &os) const;
+    void printEnergyBins(Inform &os) const;
+    void reflectDistribution(size_t &numberOfParticles);
+    void scaleDistCoordinates();
+    void setAttributes();
+    void setDistParametersBinomial(double massIneV);
+    void setDistParametersFlattop(double massIneV);
+    void setDistParametersGauss(double massIneV);
+    void setEmissionTime(double &maxT, double &minT);
+    void setFieldEmissionParameters();
+    void setupEmissionModel(PartBunch &beam);
+    void setupEmissionModelAstra(PartBunch &beam);
+    void setupEmissionModelNone(PartBunch &beam);
+    void setupEmissionModelNonEquil();
+    void setupEnergyBins(double maxTOrZ, double minTOrZ);
+    void setupParticleBins(double massIneV, PartBunch &beam);
+    void shiftDistCoordinates(double massIneV);
+    void writeOutFileHeader();
+    void writeOutFileEmission();
+    void writeOutFileInjection();
+    void writeToFile();
 
     std::string distT_m;                 /// Distribution type. Declared as string
     DistrTypeT::DistrTypeT distrTypeT_m; /// and list type for switch statements.
@@ -318,8 +322,7 @@ private:
     gsl_histogram *energyBinHist_m; /// GSL histogram used to define energy bin
                                     /// structure.
 
-    gsl_rng *randGenEmit_m;         /// Random number generator for thermal emission
-                                    /// models.
+    gsl_rng *randGen_m;             /// Random number generator
 
     // ASTRA and NONE photo emission model.
     double pTotThermal_m;           /// Total thermal momentum.
@@ -333,6 +336,9 @@ private:
     double emitEnergyUpperLimit_m;  /// Upper limit on emission energy distribution (eV).
 
     std::vector<std::vector<double> > additionalRNs_m;
+
+    size_t totalNumberParticles_m;
+    size_t totalNumberEmittedParticles_m;
 
     // Beam coordinate containers.
     std::vector<double> xDist_m;
@@ -456,6 +462,15 @@ inline Inform &operator<<(Inform &os, const Distribution &d) {
 inline
 Vector_t Distribution::get_pmean() const {
     return pmean_m;
+}
+
+inline
+DistrTypeT::DistrTypeT Distribution::getType() const {
+    return distrTypeT_m;
+}
+
+inline double Distribution::getPercentageEmitted() const {
+    return (double)totalNumberEmittedParticles_m / (double)totalNumberParticles_m;
 }
 
 #endif // OPAL_Distribution_HH

@@ -76,13 +76,15 @@ public:
     /// Get plane on which monitor observes.
     virtual Plane getPlane() const = 0;
 
-    virtual bool apply(const size_t &i, const double &t, double E[], double B[]);
-
     virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool applyToReferenceParticle(const Vector_t &R,
+                                          const Vector_t &P,
+                                          const double &t,
+                                          Vector_t &E,
+                                          Vector_t &B);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
+    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
 
     virtual void finalise();
 
@@ -99,27 +101,25 @@ public:
     void setOutputFN(std::string fn);
 
     void setType(Type type);
-
-    void moveBy(const double & dz);
 private:
 
     // Not implemented.
     void operator=(const Monitor &);
     std::string filename_m;               /**< The name of the outputfile*/
     Plane plane_m;
-    double position_m;
     Type type_m;
-
-    bool informed_m;
-    unsigned int step_m;
+    unsigned int numPassages_m;
 
     static std::map<std::string, unsigned int> h5pfiles_s;
 
     std::unique_ptr<LossDataSink> lossDs_m;
+
+    static const double halfLength_s;
 };
 
 inline
 void Monitor::setType(Monitor::Type type) {
     type_m = type;
 }
+
 #endif // CLASSIC_Monitor_HH

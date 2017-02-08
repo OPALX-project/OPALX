@@ -46,7 +46,7 @@ TUNE_class::~TUNE_class(void)
 
 }
 
-int TUNE_class::LombAnalysis(std::vector<double> &x, std::vector<double> &y, int nhis, double Norm)
+int TUNE_class::lombAnalysis(std::vector<double> &x, std::vector<double> &y, int nhis, double Norm)
 /*-----------------------------------------------------------------------------
  *  Launch Lomb analysis and plot results
  *  =======================================
@@ -124,7 +124,7 @@ int TUNE_class::LombAnalysis(std::vector<double> &x, std::vector<double> &y, int
             pairy[pairc] = lodata2[i].y;
             if((pairy[pairc] > pairy[pairc-1]) &&
                (pairy[pairc] > lodata2[i+1].y)) {
-                probi = la->Signi(&pairy[pairc], &nout, &tofac);
+                probi = la->signi(&pairy[pairc], &nout, &tofac);
                 if(pairy[pairc] > 4.) {
                     memset(mess, '\0', sizeof(mess));
                     sprintf(mess, "%12.8f %8.2f %8.3f %d", pairx[pairc]*Norm, pairy[pairc], probi, i);
@@ -145,7 +145,7 @@ int TUNE_class::LombAnalysis(std::vector<double> &x, std::vector<double> &y, int
 }
 
 
-int TUNE_class::LombAnalysis(double *x, double *y, int Ndat, int nhis)
+int TUNE_class::lombAnalysis(double *x, double *y, int Ndat, int nhis)
 /*-----------------------------------------------------------------------------
  *  Launch Lomb analysis and plot results
  *  =======================================
@@ -242,7 +242,7 @@ int TUNE_class::LombAnalysis(double *x, double *y, int Ndat, int nhis)
             pairy[pairc] = lodata2[i].y;
             if((pairy[pairc] > pairy[pairc-1]) &&
                (pairy[pairc] > lodata2[i+1].y)) {
-                probi = la->Signi(&pairy[pairc], &nout, &tofac);
+                probi = la->signi(&pairy[pairc], &nout, &tofac);
                 if(pairy[pairc] > 4.) {
                     memset(mess, '\0', sizeof(mess));
                     sprintf(mess, "%12.8f %8.2f %8.3f %d", pairx[pairc], pairy[pairc],

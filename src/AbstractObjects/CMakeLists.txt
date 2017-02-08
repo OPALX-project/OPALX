@@ -23,4 +23,28 @@ include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_sources(${_SRCS})
+add_opal_sources(${_SRCS})
+
+set (HDRS
+    Action.h
+    AttributeBase.h
+    Attribute.h
+    AttributeHandler.h
+    BeamSequence.h
+    Definition.h
+    Directory.h
+    Editor.h
+    Element.h
+    Expressions.h
+    Invalidator.h
+    ObjectFunction.h
+    Object.h
+    OpalData.h
+    PlaceRep.h
+    RangeRep.h
+    Table.h
+    TableRowRep.h
+    ValueDefinition.h
+)
+
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/AbstractObjects")

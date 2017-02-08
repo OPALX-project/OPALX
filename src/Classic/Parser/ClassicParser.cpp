@@ -208,31 +208,31 @@ void ClassicParser::parse(Statement &statement) const {
     } catch(ParseError &ex) {
         *gmsg << endl << "*** Parse error detected by method \"" << ex.where()
               << "\"" << endl;
-        statement.printWhere(true);
-        statement.print();
-        *gmsg << ex.what() << endl << endl;
+        statement.printWhere(*IpplInfo::Error, true);
+        *gmsg << statement << "\n"
+              << ex.what() << endl << endl;
 	exit(1);
     } catch(ClassicException &ex) {
         *gmsg << endl << "*** Error detected by method \"" << ex.where()
               << "\"" << endl;
-        statement.printWhere(false);
-        statement.print();
-        *gmsg << ex.what() << endl << endl;
+        statement.printWhere(*IpplInfo::Error, false);
+        *gmsg << statement << "\n"
+              << ex.what() << endl << endl;
     } catch(std::bad_alloc &) {
         *gmsg << endl << "*** Error:" << endl;
-        statement.printWhere(false);
-        statement.print();
-        *gmsg << "Sorry, virtual memory exhausted." << endl << endl;
+        statement.printWhere(*IpplInfo::Error, false);
+        *gmsg << statement << "\n"
+              << "Sorry, virtual memory exhausted." << endl << endl;
     } catch(std::exception &ex) {
         *gmsg << endl << "*** Error:" << endl;
-        statement.printWhere(false);
-        statement.print();
-        *gmsg << "Internal CLASSIC error " << ex.what() << endl << endl;
+        statement.printWhere(*IpplInfo::Error, false);
+        *gmsg << statement << "\n"
+              << "Internal CLASSIC error " << ex.what() << endl << endl;
     } catch(...) {
         *gmsg << endl << "*** Error:" << endl;
-        statement.printWhere(false);
-        statement.print();
-        *gmsg << "Unexpected exception caught." << endl << endl;
+        statement.printWhere(*IpplInfo::Error, false);
+        *gmsg << statement << "\n"
+              << "Unexpected exception caught." << endl << endl;
 
 	// send problem to main where this will be propperly catched
 	throw std::runtime_error("Parser error");

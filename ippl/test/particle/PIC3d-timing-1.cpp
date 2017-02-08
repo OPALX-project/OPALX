@@ -2,9 +2,9 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
- * All rights in the program are reserved by PSI. 
+ *
+ * This program was prepared by PSI.
+ * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
  * responsibility for the use of this software
@@ -15,14 +15,14 @@
 
 /***************************************************************************
 
- This test program sets up a simple sine-wave electric field in 3D, 
+ This test program sets up a simple sine-wave electric field in 3D,
    creates a population of particles with random q/m values (charge-to-mass
    ratio) and velocities, and then tracks their motions in the static
-   electric field using nearest-grid-point interpolation. 
+   electric field using nearest-grid-point interpolation.
 
 Usage:
 
- 
+
  $MYMPIRUN -np 2 PIC3d 128 128 128 10000 10 NGP OOP GUARDCELLS --processes 2 --commlib mpi
 
 ***************************************************************************/
@@ -39,7 +39,7 @@ Usage:
 // dimension of our positions
 const unsigned Dim = 3;
 
-// some typedefs 
+// some typedefs
 typedef ParticleSpatialLayout<double,Dim>::SingleParticlePos_t Vector_t;
 typedef ParticleSpatialLayout<double,Dim> playout_t;
 typedef UniformCartesian<Dim,double> Mesh_t;
@@ -68,7 +68,7 @@ public:
   typename PL::ParticlePos_t E;  // electric field at particle position
   typename PL::ParticlePos_t B;  // magnetic field at particle position
 
-  ChargedParticles(PL* pl, BC_t bc, InterPol_t interpol, e_dim_tag decomp[Dim], bool gCells) : 
+  ChargedParticles(PL* pl, BC_t bc, InterPol_t interpol, e_dim_tag decomp[Dim], bool gCells) :
     IpplParticleBase<PL>(pl),
     bco_m(bc),
     interpol_m(interpol),
@@ -92,7 +92,7 @@ public:
     particles as in the OOO case.
   */
 
-  ChargedParticles(PL* pl, BC_t bc, InterPol_t interpol, Vector_t hr, Vector_t rmin, Vector_t rmax, e_dim_tag decomp[Dim], bool gCells) : 
+  ChargedParticles(PL* pl, BC_t bc, InterPol_t interpol, Vector_t hr, Vector_t rmin, Vector_t rmax, e_dim_tag decomp[Dim], bool gCells) :
     IpplParticleBase<PL>(pl),
     bco_m(bc),
     interpol_m(interpol),
@@ -118,14 +118,14 @@ public:
       setBCAllOpen();
     else if (bco_m == PPP)
       setBCAllPeriodic();
-    else 
+    else
       setBCOOP();
-  } 
+  }
 
   inline const Mesh_t& getMesh() const { return this->getLayout().getLayout().getMesh(); }
-  
+
   inline Mesh_t& getMesh() { return this->getLayout().getLayout().getMesh(); }
-    
+
   inline const FieldLayout_t& getFieldLayout() const {
     return dynamic_cast<FieldLayout_t&>( this->getLayout().getLayout().getFieldLayout());
   }
@@ -148,12 +148,12 @@ public:
       scatterCIC();
     else
       scatterNGP();
-    
+
     /*
       now sum over all gridpoints ... a bit nasty !
 
     */
-    
+
     Field<double,Dim> tmpf;
     NDIndex<Dim> domain = getFieldLayout().getDomain();
 
@@ -176,7 +176,7 @@ public:
 		Q +=  tmpf.localElement(elem);
 	    }
         }
-	
+
     }
     reduce(Q,Q,OpAddAssign());
     m << "sum(qm)= " << initialQ << " sum(EFDMag)= " << sum(EFDMag_m) << endl;
@@ -184,21 +184,21 @@ public:
   }
   
   void myUpdate() {
-    
+
     double hz   = hr_m[2];
     double zmin = rmin_m[2];
     double zmax = rmax_m[2];
 
     if (bco_m != PPP) {
       bounds(this->R, rmin_m, rmax_m);
-                  
-      NDIndex<Dim> domain = this->getFieldLayout().getDomain(); 
-      
+
+      NDIndex<Dim> domain = this->getFieldLayout().getDomain();
+
       for(int i=0; i<Dim; i++)
 	nr_m[i] = domain[i].length();
-	
+
       for(int i=0; i<Dim; i++)
-	  hr_m[i] = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1.0); 
+	  hr_m[i] = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1.0);
 
       if (bco_m == OOP) {
 	rmin_m[2] = zmin;
@@ -217,7 +217,7 @@ public:
 	  EFD_m.initialize(getMesh(), getFieldLayout(), vbc_m);
 	  EFDMag_m.initialize(getMesh(), getFieldLayout(), bc_m);
       }
-    } 
+    }
     else {
       if(fieldNotInitialized_m) {
 	fieldNotInitialized_m=false;
@@ -244,14 +244,14 @@ public:
     double *globalPartPerNode = new double[Ippl::getNodes()];
     for (int i=0; i<Ippl::getNodes(); i++) {
       partPerNode[i] = globalPartPerNode[i] = 0.0;
-    
+
     }
     partPerNode[Ippl::myNode()] = this->getLocalNum();
 
     reduce(partPerNode,partPerNode+Ippl::getNodes(),globalPartPerNode,OpAddAssign());
-    
+
     for (int i=0; i<Ippl::getNodes(); i++)
-      m << "Node " << i << " has " 
+      m << "Node " << i << " has "
 	<<   globalPartPerNode[i]/this->getTotalNum()*100.0 << " \% of the total particles " << endl;
   }
 
@@ -260,29 +260,29 @@ public:
 
   void initFields() {
     Inform m("initFields ");
-    
+
     NDIndex<Dim> domain = getFieldLayout().getDomain();
-    
+
     for(int i=0; i<Dim; i++)
       nr_m[i] = domain[i].length();
-  
+
     int nx = nr_m[0];
     int ny = nr_m[1];
     int nz = nr_m[2];
 
-    double phi0 = 0.1*nx;            
+    double phi0 = 0.1*nx;
 
     m << "rmin= " << rmin_m << " rmax= " << rmax_m << " h= " << hr_m << " n= " << nr_m << endl;
-    
+
     Index I(nx), J(ny), K(nz);
-  
+
     assign(EFD_m[I][J][K](0), -2.0*pi*phi0/nx * cos(2.0*pi*(I+0.5)/nx) * cos(4.0*pi*(J+0.5)/ny) * cos(pi*(K+0.5)/nz));
 
     assign(EFD_m[I][J][K](1),  4.0*pi*phi0/ny * sin(2.0*pi*(I+0.5)/nx) * sin(4.0*pi*(J+0.5)/ny));
 
     assign(EFD_m[I][J][K](2),  4.0*pi*phi0/ny * sin(2.0*pi*(I+0.5)/nx) * sin(4.0*pi*(J+0.5)/ny));
 
-    assign(EFDMag_m[I][J][K], 
+    assign(EFDMag_m[I][J][K],
 	   EFD_m[I][J][K](0) * EFD_m[I][J][K](0) +
 	   EFD_m[I][J][K](1) * EFD_m[I][J][K](1) +
 	   EFD_m[I][J][K](2) * EFD_m[I][J][K](2));
@@ -311,29 +311,29 @@ public:
       tmp.push_back(this->P[i](1));
       tmp.push_back(this->P[i](2));
     }
-    
+
     if(Ippl::myNode() == 0) {
       ofstream ostr;
       string Fn;
       char numbuf[6];
-      sprintf(numbuf, "%05d", idx);  
+      sprintf(numbuf, "%05d", idx);
       Fn = fn  + string(numbuf) + ".dat";
       ostr.open(Fn.c_str(), ios::out );
       ostr.precision(15);
       ostr.setf(ios::scientific, ios::floatfield);
-  
+
       ostr << " x, px, y, py t, pt, id, node" << endl;
 
       unsigned int dataBlocks=0;
       double x,y,z,px,py,pz,id;
       unsigned  vn;
-      
+
       for (unsigned i=0; i < tmp.size(); i+=7)
 	ostr << tmp[i+1] << " " << tmp[i+4] << " " << tmp[i+2]  << " " \
 	     << tmp[i+5] << " " << tmp[i+3] << " " << tmp[i+6]  << " " \
 	     << tmp[i]   << " " << Ippl::myNode() << endl;
-      
-      int notReceived =  Ippl::getNodes() - 1; 
+
+      int notReceived =  Ippl::getNodes() - 1;
       while (notReceived > 0) {
 	int node = COMM_ANY_NODE;
 	Message* rmsg =  Ippl::Comm->receive_block(node, tag);
@@ -364,10 +364,10 @@ public:
       dataBlocks = tmp.size();
       smsg->put(dataBlocks);
       smsg->put(Ippl::myNode());
-      for (unsigned i=0; i < tmp.size(); i++) 
+      for (unsigned i=0; i < tmp.size(); i++)
 	smsg->put(tmp[i]);
-      bool res = Ippl::Comm->send(smsg, 0, tag);	
-      if (! res) 
+      bool res = Ippl::Comm->send(smsg, 0, tag);
+      if (! res)
 	ERRORMSG("Ippl::Comm->send(smsg, 0, tag) failed " << endl;);
     }
   }
@@ -381,13 +381,13 @@ private:
       vbc_m[i] = new ZeroFace<Vector_t,Dim,Mesh_t,Center_t>(i);
     }
   }
-  
+
   inline void setBCAllPeriodic() {
     for (int i=0; i < 2*Dim; i++) {
       this->getBConds()[i] = ParticlePeriodicBCond;
       bc_m[i]  = new PeriodicFace<double  ,Dim,Mesh_t,Center_t>(i);
       vbc_m[i] = new PeriodicFace<Vector_t,Dim,Mesh_t,Center_t>(i);
-    }  
+    }
   }
 
   inline void setBCOOP() {
@@ -399,8 +399,8 @@ private:
     for (int i= 2*Dim - 2; i < 2*Dim; i++) {
       bc_m[i]  = new PeriodicFace<double  ,Dim,Mesh_t,Center_t>(i);
       vbc_m[i] = new PeriodicFace<Vector_t,Dim,Mesh_t,Center_t>(i);
-      this->getBConds()[i] = ParticlePeriodicBCond;    
-    }  
+      this->getBConds()[i] = ParticlePeriodicBCond;
+    }
   }
 
   inline void gatherNGP() {
@@ -429,12 +429,12 @@ private:
 
   Field<Vektor<double,Dim>,Dim> EFD_m;
   Field<double,Dim> EFDMag_m;
-  
+
   BConds<double,Dim,Mesh_t,Center_t> bc_m;
   BConds<Vector_t,Dim,Mesh_t,Center_t> vbc_m;
 
   Vektor<int,Dim> nr_m;
-    
+
   Vector_t hr_m;
   Vector_t rmin_m;
   Vector_t rmax_m;
@@ -443,7 +443,7 @@ private:
   InterPol_t interpol_m;
   bool fieldNotInitialized_m;
   bool doRepart_m;
-  bool withGuardCells_m;  
+  bool withGuardCells_m;
   e_dim_tag decomp_m[Dim];
 
 };
@@ -462,7 +462,7 @@ int main(int argc, char *argv[]){
   Inform msg(argv[0]);
   Inform msg2all(argv[0],INFORM_ALL_NODES);
 
-  IpplTimings::startTimer(mainTimer); 
+  IpplTimings::startTimer(mainTimer);
   Vektor<int,Dim> nr(atoi(argv[1]),atoi(argv[2]),atoi(argv[3]));
 
   const unsigned int totalP = atoi(argv[4]);
@@ -473,26 +473,26 @@ int main(int argc, char *argv[]){
     myInterpol = CIC;
   else
     myInterpol = NGP;
-  
+
   bool gCells;
   gCells =  (string(argv[8])==string("GUARDCELLS"));
-  
+
   msg << "Particle test PIC3d " << endl;
   msg << "nt " << nt << " Np= " << totalP << " grid = " << nr <<endl;
-  
+
   if (myInterpol==CIC)
-    msg << "Cloud in cell (CIC) interpolation selected" << endl; 
+    msg << "Cloud in cell (CIC) interpolation selected" << endl;
   else
-    msg << "Nearest grid point (NGP) interpolation selected" << endl; 
-  
+    msg << "Nearest grid point (NGP) interpolation selected" << endl;
+
   if (gCells)
       msg << "Using guard cells" << endl;
   else
       msg << "Not using guard cells" << endl;
 
-  BC_t myBC;  
+  BC_t myBC;
   if (string(argv[7])==string("OOO")) {
-    myBC = OOO; // open boundary 
+    myBC = OOO; // open boundary
     msg << "BC == OOO" << endl;
   }
   else if (string(argv[7])==string("OOP")) {
@@ -500,7 +500,7 @@ int main(int argc, char *argv[]){
     msg << "BC == OOP" << endl;
   }
   else {
-    myBC = PPP; // all periodic 
+    myBC = PPP; // all periodic
     msg << "BC == PPP" << endl;
   }
 
@@ -525,7 +525,7 @@ int main(int argc, char *argv[]){
 
   for (int d=0; d < Dim; ++d)
       decomp[d] = (d == serialDim) ? SERIAL : PARALLEL;
-  
+
   // create mesh and layout objects for this problem domain
   mesh          = new Mesh_t(domain);
   FL            = new FieldLayout_t(*mesh, decomp);
@@ -548,28 +548,28 @@ int main(int argc, char *argv[]){
   // and distribute to others
 
   unsigned long int nloc = totalP / Ippl::getNodes();
-  
-  IpplTimings::startTimer(part_creation_timer); 
+
+  IpplTimings::startTimer(part_creation_timer);
   P->create(nloc);
   for (unsigned long int i = 0; i< nloc; i++) {
     for (int d = 0; d<3; d++)
       P->R[i](d) =  IpplRandom() * nr[d];
   }
-  IpplTimings::stopTimer(part_creation_timer);  
+  IpplTimings::stopTimer(part_creation_timer);
 
   double q = 1.0/totalP;
-  
+
   // random initialization for charge-to-mass ratio
 
   IpplTimings::startTimer(assign_timer);
   assign(P->qm,q);
   IpplTimings::stopTimer(assign_timer);
- 
+
   msg << "particles created and initial conditions assigned " << endl;
-  
+
   // redistribute particles based on spatial layout
   IpplTimings::startTimer(part_update_timer);
-  P->myUpdate(); 
+  P->myUpdate();
   IpplTimings::stopTimer(part_update_timer);
 
   msg << "initial update and initial mesh done .... Q= " << sum(P->qm) << endl;
@@ -615,7 +615,7 @@ int main(int argc, char *argv[]){
     msg << "Finished iteration " << it << " - min/max r and h " << P->getRMin() << P->getRMax() << P->getHr() << endl;
   }
   Ippl::Comm->barrier();
-  IpplTimings::stopTimer(mainTimer); 
+  IpplTimings::stopTimer(mainTimer);
   IpplTimings::print();
   msg << "Particle test PIC3d: End." << endl;
   return 0;
@@ -624,6 +624,5 @@ int main(int argc, char *argv[]){
 /***************************************************************************
  * $RCSfile: addheaderfooter,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:17 $
- * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $
  ***************************************************************************/
-

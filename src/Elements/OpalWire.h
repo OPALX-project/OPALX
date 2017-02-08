@@ -36,8 +36,6 @@ public:
         XPOS,  // The horizontal position.
         YPOS,           // The vertical position.
         OUTFN,
-        DX,             // Misalignment: translation in x direction
-        DY,             // Misalignment: translation in y direction
         SIZE
     };
 

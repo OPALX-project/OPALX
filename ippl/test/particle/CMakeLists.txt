@@ -76,5 +76,3 @@ set_source_files_properties(SOURCE PIC3d.cpp p3m3d.cpp
 #add_executable (test-scatter-1 test-scatter-1.cpp)
 #target_link_libraries (test-scatter-1 ${IPPL_LIBS})
 
-
-

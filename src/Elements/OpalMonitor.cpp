@@ -20,20 +20,20 @@
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/MonitorRep.h"
+#include "Utilities/Util.h"
 
 // Class OpalMonitor
 // ------------------------------------------------------------------------
+
+extern Inform *gmsg;
 
 OpalMonitor::OpalMonitor():
     OpalElement(SIZE, "MONITOR",
                 "The \"MONITOR\" element defines a monitor for both planes.") {
     itsAttr[OUTFN] = Attributes::makeString
                      ("OUTFN", "Monitor output filename");
-    itsAttr[MONITORTYPE] = Attributes::makeString
-                           ("MONITORTYPE", "TEMPORAL or SPATIAL (default)");
 
     registerStringAttribute("OUTFN");
-    registerStringAttribute("MONITORTYPE");
 
     setElement((new MonitorRep("MONITOR"))->makeAlignWrapper());
 }
@@ -55,17 +55,20 @@ OpalMonitor *OpalMonitor::clone(const std::string &name) {
 
 
 void OpalMonitor::update() {
+    OpalElement::update();
+
     MonitorRep *mon =
         dynamic_cast<MonitorRep *>(getElement()->removeWrappers());
-    double length = Attributes::getReal(itsAttr[LENGTH]);
+    double length = std::max(0.01, Attributes::getReal(itsAttr[LENGTH]));
     mon->setElementLength(length);
     mon->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
-    if (Attributes::getString(itsAttr[MONITORTYPE]) == "TEMPORAL") {
+    if (Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "TEMPORAL") {
         mon->setType(Monitor::TEMPORAL);
     } else {
         mon->setType(Monitor::SPATIAL);
     }
+
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(mon);
 }

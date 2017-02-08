@@ -213,13 +213,11 @@ public:
     void setSpiralFlag(bool spiral_flag);
     virtual bool getSpiralFlag() const;
 
-    virtual bool apply(const size_t &id, const double &t, double E[], double B[]);
-
     virtual bool apply(const size_t &id, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
+    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
 
     virtual void initialise(PartBunch *bunch, const int &fieldflag, const double &scaleFactor);
 
@@ -230,7 +228,7 @@ public:
     virtual double getRmax() const;
 
     virtual double getRmin() const;
-    
+
 protected:
     void   getdiffs();
 
@@ -247,7 +245,7 @@ protected:
     void   getFieldFromFile_Synchrocyclotron(const double &scaleFactor);
 
     inline int idx(int irad, int ktet) {return (ktet + Bfield.ntetS * irad);}
-    
+
 private:
 
     std::string fmapfn_m; /* stores the filename of the fieldmap */
@@ -305,13 +303,13 @@ private:
     std::vector<std::string> RFfilename_m;
     std::vector<std::string> RFFCoeff_fn_m;
     std::vector<std::string> RFVCoeff_fn_m;
-    
+
     // handling for store the particle out of region
     std::unique_ptr<LossDataSink> lossDs_m;
 
     // Necessary for quick and dirty phase output -DW
     int waiting_for_gap = 1;
-    
+
 protected:
     // object of Matrics including magnetic field map and its derivates
     BfieldData Bfield;

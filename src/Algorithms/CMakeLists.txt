@@ -1,13 +1,19 @@
 set (_SRCS
+  IndexMap.cpp
+  OrbitThreader.cpp
   BeamBeam3D.cpp
   LieMapper.cpp
+  NilTracker.cpp
   MPSplitIntegrator.cpp
   ThickMapper.cpp
   ThickTracker.cpp
-  AutophaseTracker.cpp
+  # AutophaseTracker.cpp
+  CavityAutophaser.cpp
   ParallelTTracker.cpp
   ParallelCyclotronTracker.cpp
-  ParallelSliceTracker.cpp
+  # ParallelSliceTracker.cpp
+  StatisticalErrors.cpp
+  StatisticalErrorsUtilities.cpp
   TransportMapper.cpp
   bet/EnvelopeSlice.cpp
   bet/EnvelopeBunch.cpp
@@ -28,4 +34,43 @@ include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_sources(${_SRCS})
+add_opal_sources(${_SRCS})
+
+set (HDRS
+    AutophaseTracker.h
+    BeamBeam3D.h
+    CavityAutophaser.h
+    Ctunes.h
+    Ctunes.hpp
+    IndexMap.h
+    LieMapper.h
+    lomb.h
+    lomb.hpp
+    MPSplitIntegrator.h
+    NilTracker.h
+    OrbitThreader.h
+    ParallelCyclotronTracker.h
+    ParallelSliceTracker.h
+    ParallelTTracker.h
+    StatisticalErrors.h
+    StatisticalErrorsUtilities.h
+    ThickMapper.h
+    ThickTracker.h
+    TransportMapper.h
+    bet/BetError.h
+    bet/EnvelopeBunch.h
+    bet/EnvelopeSlice.h
+    bet/error.h
+    bet/profile.h
+    bet/math/functions.h
+    bet/math/integrate.h
+    bet/math/interpol.h
+    bet/math/linfit.h
+    bet/math/rk.h
+    bet/math/root.h
+    bet/math/savgol.h
+    bet/math/sort.h
+    bet/math/svdfit.h
+)
+
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Algorithms")

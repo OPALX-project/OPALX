@@ -10,6 +10,7 @@ set (_SRCS
   Show.cpp
   Stop.cpp
   Quit.cpp
+  PSystem.cpp
   System.cpp
   Title.cpp
   Value.cpp
@@ -20,4 +21,25 @@ include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_sources(${_SRCS})
+add_opal_sources(${_SRCS})
+
+set (HDRS
+    Call.h
+    DumpFields.h
+    Dump.h
+    Echo.h
+    Help.h
+    Option.h
+    PSystem.h
+    Quit.h
+    Save.h
+    Select.h
+    Show.h
+    Stop.h
+    System.h
+    Title.h
+    Value.h
+    What.h
+)
+
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/BasicActions")

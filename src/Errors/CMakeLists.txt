@@ -25,4 +25,29 @@ include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_sources(${_SRCS})
+add_opal_sources(${_SRCS})
+
+set (HDRS
+    AlignBase.h
+    AlignHandler.h
+    AlignReader.h
+    AlignRemover.h
+    AlignWriter.h
+    ErrorAlign.h
+    ErrorCmd.h
+    ErrorComp.h
+    ErrorEnd.h
+    ErrorField.h
+    Error.h
+    ErrorParser.h
+    ErrorPrint.h
+    ErrorSave.h
+    ErrorSelect.h
+    MPBase.h
+    MPHandler.h
+    MPReader.h
+    MPRemover.h
+    MPWriter.h
+)
+
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Errors")

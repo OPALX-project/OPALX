@@ -9,8 +9,10 @@ class PartBunch;
 
 class WakeFunction {
 public:
-    WakeFunction(std::string name, ElementBase *elref):
-        name_m(name) { }
+    WakeFunction(std::string name, ElementBase *elref, unsigned int n):
+        name_m(name),
+        nBins_m(n) { };
+
     virtual ~WakeFunction(){ };
     virtual void initialize(const ElementBase *ref){ };
     virtual void apply(PartBunch &bunch) = 0;
@@ -18,6 +20,9 @@ public:
     const std::string & getName() const {
         return name_m;
     }
+
+protected:
+    const unsigned int nBins_m;
 
 private:
     const std::string name_m;

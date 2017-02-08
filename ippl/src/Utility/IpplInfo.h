@@ -2,7 +2,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -11,7 +11,7 @@
 #ifndef IPPL_INFO_H
 #define IPPL_INFO_H
 
-/* 
+/*
  * IpplInfo.has the following capabilities:
  *   1) It initializes all globally-used Ippl variables, such as the
  *      Communicate class and other manager classes;
@@ -46,8 +46,10 @@
 // include files
 #include "Utility/Inform.h"
 #include "Message/Communicate.h"
+#include "Utility/StaticIpplInfo.h"
 
 #include <iostream>
+#include <stack>
 
 //FIXME: Including this header here (regardless of the used commlib) here is
 //necessary to enable IPPL to work on a user define communicator group
@@ -81,11 +83,6 @@ public:
   // or REMOVE them
   enum { KEEP = 0, REMOVE = 1 };
 
-  //
-  // global static objects, available to all Ippl applications (even if
-  // no IpplInfo object is instantiated)
-  //
-
   // Inform object to use to print messages to the console (or even to a
   // file if requested)
   static Inform *Info;
@@ -104,7 +101,6 @@ public:
   static DKSBase *DKS;
 #endif
 
-public:
   // Constructor 1: specify the argc, argv values from the cmd line.
   // The second argument controls whether the IPPL-specific command line
   // arguments are stripped out (the default) or left in (if the setting
@@ -179,7 +175,7 @@ public:
   //
   // Functions which return information about the current Ippl application.
   //
-  
+
   static MPI_Comm getComm() {return communicator_m;}
 
   // Return the number of the 'current' node.
@@ -287,6 +283,12 @@ public:
   //Static flag telling wheteher to use DKS when runnign OPAL
   static bool DKSEnabled;
 
+  // stash all static members
+  static void stash();
+
+  // restore all static members
+  static void pop();
+
   // Static flag telling whether to use optimization for reducing
   // communication by deferring guard cell fills.
   static bool deferGuardCellFills;
@@ -374,16 +376,18 @@ private:
   static unsigned int CommTimeoutSeconds;
 #endif
 
+  static std::stack<StaticIpplInfo> stashedStaticMembers;
+
   // Indicate an error occurred while trying to parse the given command-line
   // option, and quit.  Arguments are: parameter, error message, bad value
-  void param_error(const char *, const char *, const char *);
-  void param_error(const char *, const char *, const char *, const char *);
+  static void param_error(const char *, const char *, const char *);
+  static void param_error(const char *, const char *, const char *, const char *);
 
   // find out how many SMP's there are, and which processor we are on
   // our local SMP (e.g., if there are two SMP's with 4 nodes each,
   // the process will have a node number from 0 ... 7, and an SMP node
   // number from 0 ... 3
-  void find_smp_nodes();
+  static void find_smp_nodes();
 };
 
 // macros used to print out messages to the console or a directed file
@@ -408,5 +412,5 @@ typedef IpplInfo Ippl;
 /***************************************************************************
  * $RCSfile: IpplInfo.h,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: IpplInfo.h,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: IpplInfo.h,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $
  ***************************************************************************/

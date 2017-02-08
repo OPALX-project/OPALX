@@ -138,27 +138,14 @@ void Stripper::accept(BeamlineVisitor &visitor) const {
     visitor.visitStripper(*this);
 }
 
-bool Stripper::apply(const size_t &i, const double &t, double E[], double B[]) {
-    Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
-    return false;
-}
-
-bool Stripper::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
-    return false;
-}
-
-bool Stripper::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
-    return false;
-}
-
-void Stripper::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
+void Stripper::initialise(PartBunch *bunch, double &startField, double &endField) {
     if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     else
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
 }
 
-void Stripper::initialise(PartBunch *bunch, const double &scaleFactor) {
+void Stripper::initialise(PartBunch *bunch) {
     if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     else
