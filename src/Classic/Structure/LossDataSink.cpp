@@ -173,7 +173,11 @@ void LossDataSink::save(unsigned int numSets) {
             openH5(H5_O_RDONLY);
             H5call_m = H5GetNumSteps(H5file_m);
             H5CloseFile(H5file_m);
+#ifdef H5HUT_API_VERSION
+            openH5(H5_O_APPENDONLY);
+#else
             openH5(H5_O_APPEND);
+#endif
         }
 
         splitSets(numSets);
