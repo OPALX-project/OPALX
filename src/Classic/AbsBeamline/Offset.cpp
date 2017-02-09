@@ -95,23 +95,7 @@ const EMField &Offset::getField() const {
                         "No field defined for Offset");
 }
 
-bool Offset::apply(const size_t &i, const double &t,
-                    Vector_t &E, Vector_t &B) {
-    return false;
-}
-
-bool Offset::apply(const size_t &i, const double &t,
-                             double E[], double B[]) {
-    return false;
-}
-
-bool Offset::apply(const Vector_t &R, const Vector_t &centroid,
-                   const double &t, Vector_t &E, Vector_t &B) {
-    return false;
-}
-
-void Offset::initialise(PartBunch *bunch, double &startField, double &endField,
-                const double &scaleFactor) {
+void Offset::initialise(PartBunch *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
 }
 

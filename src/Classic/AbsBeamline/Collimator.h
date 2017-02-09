@@ -67,19 +67,17 @@ public:
     /// Return the vertical half-aperture.
     virtual double getYsize() const {return b_m;}
 
-    virtual bool apply(const size_t &i, const double &t, double E[], double B[]);
-
     virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
     virtual bool checkCollimator(PartBunch &bunch, const int turnnumber, const double t, const double tstep);
 
     virtual bool checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
+    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
 
-    virtual void initialise(PartBunch *bunch, const double &scaleFactor);
+    virtual void initialise(PartBunch *bunch);
 
     virtual void finalise();
 
@@ -159,7 +157,7 @@ private:
 
     std::string filename_m;               /**< The name of the outputfile*/
     Plane plane_m;
-    double position_m;
+
     std::vector<double> PosX_m;
     std::vector<double> PosY_m;
     std::vector<double> PosZ_m;
@@ -206,5 +204,161 @@ private:
 
 
 };
+
+inline
+unsigned int Collimator::getLosses() const {
+    return losses_m;
+}
+
+inline
+void Collimator::setXsize(double a) {
+    a_m = a;
+}
+
+inline
+void Collimator::setYsize(double b) {
+    b_m = b;
+}
+
+inline
+void Collimator::setXpos(double x0) {
+    x0_m = x0;
+}
+
+inline
+void Collimator::setYpos(double y0) {
+    y0_m = y0;
+}
+
+inline
+double Collimator::getXsize(double a) {
+    return a_m;
+}
+
+inline
+double Collimator::getYsize(double b) {
+    return b_m;
+}
+
+inline
+double Collimator::getXpos() {
+    return x0_m;
+}
+
+inline
+double Collimator::getYpos() {
+    return y0_m;
+}
+
+inline
+void Collimator::setXStart(double xstart) {
+    xstart_m = xstart;
+}
+
+inline
+void Collimator::setXEnd(double xend) {
+    xend_m = xend;
+}
+
+inline
+void Collimator::setYStart(double ystart) {
+    ystart_m = ystart;
+}
+
+inline
+void Collimator::setYEnd(double yend) {
+    yend_m = yend;
+}
+
+inline
+void Collimator::setZStart(double zstart) {
+    zstart_m = zstart;
+}
+
+inline
+void Collimator::setZEnd(double zend) {
+    zend_m = zend;
+}
+
+inline
+void Collimator::setWidth(double width) {
+    width_m = width;
+}
+
+inline
+double Collimator::getXStart() {
+    return xstart_m;
+}
+
+inline
+double Collimator::getXEnd() {
+    return xend_m;
+}
+
+inline
+double Collimator::getYStart() {
+    return ystart_m;
+}
+
+inline
+double Collimator::getYEnd() {
+    return yend_m;
+}
+
+inline
+double Collimator::getZStart() {
+    return zstart_m;
+}
+
+inline
+double Collimator::getZEnd() {
+    return zend_m;
+}
+
+inline
+double Collimator::getWidth() {
+    return width_m;
+}
+
+inline
+void Collimator::setRHole(double r) {
+    rHole_m = r;
+}
+
+inline
+void Collimator::setNHoles(unsigned int nx, unsigned int ny) {
+    nHolesX_m = nx;
+    nHolesY_m = ny;
+}
+
+inline
+void Collimator::setPitch(double p) {
+    pitch_m = p;
+}
+
+inline
+void Collimator::setPepperPot() {
+    isAPepperPot_m = true;
+}
+
+inline
+void Collimator::setSlit() {
+    isASlit_m = true;
+}
+
+inline
+void Collimator::setRColl() {
+    isARColl_m = true;
+}
+
+inline
+void Collimator::setCColl() {
+    isACColl_m = true;
+}
+
+inline
+void Collimator::setWire() {
+    isAWire_m = true;
+}
 
 #endif // CLASSIC_Collimator_HH

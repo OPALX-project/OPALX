@@ -36,69 +36,79 @@
 #include <iostream>
 #include <algorithm>
 // static data members of IpplTimings class
-IpplTimings::TimerList_t IpplTimings::TimerList;
-IpplTimings::TimerMap_t  IpplTimings::TimerMap;
 
+Timing* IpplTimings::instance = new Timing();
+std::stack<Timing*> IpplTimings::stashedInstance;
 
 //////////////////////////////////////////////////////////////////////
 // default constructor
-IpplTimings::IpplTimings() { }
+Timing::Timing():
+    TimerList(),
+    TimerMap()
+{ }
 
 
 //////////////////////////////////////////////////////////////////////
 // destructor
-IpplTimings::~IpplTimings() { }
+Timing::~Timing() {
+    for (TimerMap_t::iterator it = TimerMap.begin(); it != TimerMap.end(); ++ it) {
+        it->second = 0;
+    }
+    TimerMap.clear();
+
+    TimerList.clear();
+}
 
 
 //////////////////////////////////////////////////////////////////////
 // create a timer, or get one that already exists
-IpplTimings::TimerRef IpplTimings::getTimer(const char *nm) {
-  std::string s(nm);
-  TimerInfo *tptr = 0;
-  TimerMap_t::iterator loc = TimerMap.find(s);
-  if (loc == TimerMap.end()) {
-    tptr = new TimerInfo;
-    tptr->indx = TimerList.size();
-    tptr->name = s;
-    TimerMap.insert(TimerMap_t::value_type(s,tptr));
-    TimerList.push_back(my_auto_ptr<TimerInfo>(tptr));
-  } else {
-    tptr = (*loc).second;
-  }
-  return tptr->indx;
+Timing::TimerRef Timing::getTimer(const char *nm) {
+    std::string s(nm);
+    TimerInfo *tptr = 0;
+    TimerMap_t::iterator loc = TimerMap.find(s);
+    if (loc == TimerMap.end()) {
+        tptr = new TimerInfo;
+        tptr->indx = TimerList.size();
+        tptr->name = s;
+        TimerMap.insert(TimerMap_t::value_type(s,tptr));
+        TimerList.push_back(my_auto_ptr<TimerInfo>(tptr));
+    } else {
+        tptr = (*loc).second;
+    }
+    return tptr->indx;
 }
 
 
 //////////////////////////////////////////////////////////////////////
 // start a timer
-void IpplTimings::startTimer(TimerRef t) {
-  if (t >= TimerList.size())
-    return;
-  TimerList[t]->start();
+void Timing::startTimer(TimerRef t) {
+    if (t >= TimerList.size())
+        return;
+    TimerList[t]->start();
 }
 
 
 //////////////////////////////////////////////////////////////////////
 // stop a timer, and accumulate it's values
-void IpplTimings::stopTimer(TimerRef t) {
+void Timing::stopTimer(TimerRef t) {
     if (t >= TimerList.size())
-    return;
-  TimerList[t]->stop();
+        return;
+    TimerList[t]->stop();
 }
 
 
 //////////////////////////////////////////////////////////////////////
 // clear a timer, by turning it off and throwing away its time
-void IpplTimings::clearTimer(TimerRef t) {
-  if (t >= TimerList.size())
-    return;
-  TimerList[t]->clear();
+void Timing::clearTimer(TimerRef t) {
+    if (t >= TimerList.size())
+        return;
+    TimerList[t]->clear();
 }
 
 #ifdef IPPL_XT3
 //////////////////////////////////////////////////////////////////////
 // print out the timing results
-void IpplTimings::print() {
+void Timing::print() {
     int i,j;
     if (TimerList.size() < 1)
 	return;
@@ -154,7 +164,7 @@ void IpplTimings::print() {
 
 //////////////////////////////////////////////////////////////////////
 // print out the timing results
-void IpplTimings::print() {
+void Timing::print() {
     if (TimerList.size() < 1)
         return;
 
@@ -218,7 +228,7 @@ void IpplTimings::print() {
 
 //////////////////////////////////////////////////////////////////////
 // save the timing results into a file
-void IpplTimings::print(std::string fn) {
+void Timing::print(const std::string &fn) {
 
     std::ofstream *timer_stream;
     Inform *msg;
@@ -229,7 +239,7 @@ void IpplTimings::print(std::string fn) {
     timer_stream = new std::ofstream;
     timer_stream->open( fn.c_str(), std::ios::out );
     msg = new Inform( 0, *timer_stream, 0 );
-
+    Inform gmsg("bla ");
     // report the average time for each timer
     // Inform msg("Timings");
     /*
@@ -279,7 +289,7 @@ void IpplTimings::print(std::string fn) {
          << std::setw(11) << "Wall avg\n"
          << std::string().assign(87,'=')
          << "\n";
-    for (unsigned int i=1; i < TimerList.size(); ++i) {
+    for (unsigned int i=0; i < TimerList.size(); ++i) {
         TimerInfo *tptr = TimerList[i].get();
         double wallmax = 0.0, cpumax = 0.0, wallmin = 0.0, cpumin = 0.0;
         double wallavg = 0.0, cpuavg = 0.0;
@@ -308,6 +318,23 @@ void IpplTimings::print(std::string fn) {
     delete timer_stream;
 }
 
+IpplTimings::IpplTimings() { }
+IpplTimings::~IpplTimings() { }
+
+void IpplTimings::stash() {
+    PAssert(stashedInstance.size() == 0);
+
+    stashedInstance.push(instance);
+    instance = new Timing();
+}
+
+void IpplTimings::pop() {
+    PAssert(stashedInstance.size() > 0);
+
+    delete instance;
+    instance = stashedInstance.top();
+    stashedInstance.pop();
+}
 
 /***************************************************************************
  * $RCSfile: IpplTimings.cpp,v $   $Author: adelmann $

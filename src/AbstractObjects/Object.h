@@ -117,6 +117,8 @@ public:
     //  Print a OPAL-readable image of [b]this[/b] on the given output stream.
     virtual void print(std::ostream &) const;
 
+    virtual void printValue(std::ostream &) const;
+
     /// Print help.
     //  Print help information for [b]this[/b] on the given output stream.
     virtual void printHelp(std::ostream &) const;
@@ -269,5 +271,10 @@ private:
 // Implementation.
 // ------------------------------------------------------------------------
 extern std::ostream &operator<<(std::ostream &os, const Object &object);
+
+inline
+void Object::printValue(std::ostream &os) const {
+    print(os);
+}
 
 #endif // OPAL_Object_HH

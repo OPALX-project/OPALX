@@ -51,7 +51,7 @@ int BCondBase<T,D,M,C>::allComponents = -9999;
 
 // Use this macro to specialize PETE_apply functions for component-wise
 // operators and built-in types and print an error message.
- 
+
 #define COMPONENT_APPLY_BUILTIN(OP,T)                                       \
 inline void PETE_apply(const OP<T>&, T&, const T&)                          \
 {                                                                           \
@@ -2129,7 +2129,7 @@ void ParallelInterpolationFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 	  const Domain_t dest_domain = dest_lf_alloc.intersect(dest_slab);
 
 	  Domain_t src_domain = dest_domain;
-	  //BENI:sign change for offset occurs when we iterate over destination first and calulate 
+	  //BENI:sign change for offset occurs when we iterate over destination first and calulate
 	  // src domain from dest domain
 	  src_domain[d] = src_domain[d] - offset;
 
@@ -2393,7 +2393,7 @@ void ParallelInterpolationFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
       const Domain_t dest_domain = dest_lf_alloc.intersect(dest_slab);
 
       Domain_t src_domain = dest_domain;
-	  //BENI:sign change for offset occurs when we iterate over destination first and calulate 
+	  //BENI:sign change for offset occurs when we iterate over destination first and calulate
 	  // src domain from dest domain
       src_domain[d] = src_domain[d] - offset;
 
@@ -2702,9 +2702,10 @@ ExtrapolateFaceBCApply2(const NDIndex<D> &dest, const NDIndex<D> &src,
 	}
       else
 	{
-	  OpExtrapolateComponent<T>
-	    op(ef.getOffset(),ef.getSlope(),ef.getComponent());
-	  PETE_apply(op, a, b);
+          int d = (ef.getComponent() % D + D) % D;
+          OpExtrapolateComponent<T>
+            op(ef.getOffset(),ef.getSlope(),d);
+          PETE_apply(op, a, b);
 	}
       if (a == aref)
 	{

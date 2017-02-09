@@ -32,56 +32,56 @@ class AmrPartBunch : public PartBunchBase,
 {
 public:
     typedef std::map<int, std::tuple<int, int, int> > map_t;
-    
+
     static size_t nAttributes;
 
 public:
-    
+
     /// Just calls constructor of ParticleContainer
     AmrPartBunch(const Geometry & geom, const DistributionMapping & dmap,
                  const BoxArray & ba);
-    
+
     /// Just calls constructor of ParticleContainer
     AmrPartBunch(const Array<Geometry>& geom,
                  const Array<DistributionMapping>& dmap,
                  const Array<BoxArray>& ba,
                  const Array<int>& rr);
-                 
-    
+
+
     /// Does nothing.
     virtual ~AmrPartBunch();
-    
+
     // ------------------------------------------------------------------------
     // INHERITED MEMBER FUNCTIONS
     // ------------------------------------------------------------------------
-    
+
     void myUpdate();
-    
+
     void create(size_t m);
-    
+
     void gatherStatistics();
     
     void dumpStatistics(const std::string& filename);
     
     size_t getLocalNum() const;
-    
+
     size_t getTotalNum() const;
-    
+
     ///@todo Implement
     Vector_t getRMin();
-    
+
     ///@todo Implement
     Vector_t getRMax();
-    
+
     ///@todo Implement
     Vector_t getHr();
-    
+
     ///@todo Implement
     double scatter();
-    
+
     ///@todo Implement
     void initFields();
-    
+
     ///@todo Implement
     void gatherCIC();
     
@@ -109,13 +109,12 @@ public:
     
     inline void setB(Vector_t Bf, int i);
     
-    
     void destroyAll() {
         for (std::size_t i = 0; i < m_particles.size(); ++i)
             this->RemoveParticlesAtLevel(i);
         nLocalParticles_m = 0;
     }
-    
+
 //     void setParGDB(AmrParGDB* gdb) {
 //         Define(gdb);
 //     }
@@ -126,9 +125,9 @@ public:
         for (int i = 0; i < Ippl::getNodes(); ++i) {
             if ( i == Ippl::myNode() ) {
                 wm = (i == 0) ? wm : Inform::APPEND;
-                
+
                 const ParGDBBase* gdb = GetParGDB();
-                
+
                 std::string grid_file = "pyplot_grids_" + st + ".dat";
                 Inform msg("", grid_file.c_str(), wm, i);
                 for (int l = 0; l < gdb->finestLevel() + 1; ++l) {
@@ -141,14 +140,14 @@ public:
                         msg << endl;
                     }
                 }
-                
+
                 std::string particle_file = "pyplot_particles_" + st + ".dat";
                 Inform msg2all("", particle_file.c_str(), wm, i);
                 int l, g, dq;
                 for (size_t i = 0; i < this->getLocalNum(); ++i) {
-                    
+
                     std::tie(l,g,dq) = idxMap_m[i];
-                    
+
                     msg2all << m_particles[l][g][dq].m_pos[0] << " "
                             << m_particles[l][g][dq].m_pos[1] << " "
                             << m_particles[l][g][dq].m_pos[2] << " "
@@ -161,20 +160,20 @@ public:
             Ippl::Comm->barrier();
         }
     }
-    
+
     int getLevel(int i) {
         int l, g, dq;
         std::tie(l,g,dq) = idxMap_m[i];
         return l;
     }
-    
+
     Vector_t interpolate(int i, MultiFab& quantity) {
-        
+
         int lev, grid, dq;
         std::tie(lev, grid, dq) = idxMap_m[i];
-        
+
         const Real strttime  = ParallelDescriptor::second();
-        
+
         MultiFab* ac_pointer;
         if (OnSameGrids(lev,quantity)) {
             ac_pointer = &quantity;
@@ -186,10 +185,10 @@ public:
             ac_pointer->copy(quantity,0,0,quantity.nComp());
             ac_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
         }
-        
+
         const FArrayBox& gfab = (*ac_pointer)[grid];
         Real grav[3] = { 0.0, 0.0, 0.0 };
-        
+
         int idx[3] = { 0, 1, 2 };
 
     ParticleBase::Interp(m_particles[lev][grid][dq],
@@ -198,16 +197,16 @@ public:
                          idx,
                          grav,
                          BL_SPACEDIM);
-        
+
         return Vector_t(grav[0], grav[1], grav[2]);
     }
-    
+
 private:
     /// Create the index mapping in order to have random access
     void buildIndexMapping_m();
-    
+
     int nLocalParticles_m;
-    
+
 private:
     /* Mapping for
      * index --> (level, grid, deque length)

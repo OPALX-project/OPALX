@@ -31,21 +31,18 @@ OpalSolenoid::OpalSolenoid():
                 "The \"SOLENOID\" element defines a Solenoid.") {
     itsAttr[KS] = Attributes::makeReal
                   ("KS", "Normalised solenoid strength in m**(-1)");
+    itsAttr[DKS] = Attributes::makeReal
+                  ("DKS", "Normalised solenoid strength error in m**(-1)");
 
     registerRealAttribute("KS");
+    registerRealAttribute("DKS");
 
     itsAttr[FMAPFN] = Attributes::makeString
                       ("FMAPFN", "Solenoid field map filename ");
     itsAttr[FAST] = Attributes::makeBool
                     ("FAST", "Faster but less accurate", true);
-    itsAttr[DX] = Attributes::makeReal
-      ("DX", "Misalignment in x direction",0.0);
-    itsAttr[DY] = Attributes::makeReal
-      ("DY", "Misalignment in y direction",0.0);
 
     registerStringAttribute("FMAPFN");
-    registerRealAttribute("DX");
-    registerRealAttribute("DY");
 
     setElement((new SolenoidRep("SOLENOID"))->makeAlignWrapper());
 }
@@ -76,30 +73,25 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
         double length = sol->getElementLength();
         double ks = length * sol->getBz() * Physics::c / OpalData::getInstance()->getP0();
         attributeRegistry["KS"]->setReal(ks);
-        double dx, dy, dz;
-        sol->getMisalignment(dx, dy, dz);
-        attributeRegistry["DX"]->setReal(dx);
-        attributeRegistry["DY"]->setReal(dy);
     }
 }
 
 
 void OpalSolenoid::update() {
+    OpalElement::update();
+
     SolenoidRep *sol =
         dynamic_cast<SolenoidRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double Bz = Attributes::getReal(itsAttr[KS]) * OpalData::getInstance()->getP0() / Physics::c;
     bool fast = Attributes::getBool(itsAttr[FAST]);
-    double dx = Attributes::getReal(itsAttr[DX]);
-    double dy = Attributes::getReal(itsAttr[DY]);
-
-    sol->setMisalignment(dx, dy, 0.0);
 
     sol->setElementLength(length);
     sol->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
     sol->setFast(fast);
     sol->setBz(Bz);
     sol->setKS(Attributes::getReal(itsAttr[KS]));
+    sol->setDKS(Attributes::getReal(itsAttr[DKS]));
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(sol);

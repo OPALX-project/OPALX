@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -15,10 +15,10 @@
 
 /***************************************************************************
 
- This test program sets up a simple sine-wave electric field in 3D, 
+ This test program sets up a simple sine-wave electric field in 3D,
    creates a population of particles with random q/m values (charge-to-mass
    ratio) and velocities, and then tracks their motions in the static
-   electric field using nearest-grid-point interpolation. 
+   electric field using nearest-grid-point interpolation.
 
    After each timestep the full phase space is saved
 Usage:
@@ -52,7 +52,7 @@ Usage:
 // dimension of our positions
 const unsigned Dim = 3;
 
-// some typedefs 
+// some typedefs
 typedef ParticleSpatialLayout<double,Dim>::SingleParticlePos_t Vector_t;
 typedef ParticleSpatialLayout<double,Dim> playout_t;
 typedef UniformCartesian<Dim,double> Mesh_t;
@@ -81,7 +81,7 @@ public:
   typename PL::ParticlePos_t E;  // electric field at particle position
   typename PL::ParticlePos_t B;  // magnetic field at particle position
 
-  ChargedParticles(PL* pl, BC_t bc, InterPol_t interpol, e_dim_tag decomp[Dim], bool gCells) : 
+  ChargedParticles(PL* pl, BC_t bc, InterPol_t interpol, e_dim_tag decomp[Dim], bool gCells) :
     IpplParticleBase<PL>(pl),
     bco_m(bc),
     interpol_m(interpol),
@@ -101,18 +101,18 @@ public:
     openDataSink(string("dataH5.dat"));
 
   }
-  
+
   ~ChargedParticles() {
     H5PartCloseFile(file_m);
   }
-  
+
   /*
     In case we have OOP or PPP boundary conditions
     we must define the domain, i.e can not be deduced from the
     particles as in the OOO case.
   */
 
-  ChargedParticles(PL* pl, BC_t bc, InterPol_t interpol, Vector_t hr, Vector_t rmin, Vector_t rmax, e_dim_tag decomp[Dim], bool gCells) : 
+  ChargedParticles(PL* pl, BC_t bc, InterPol_t interpol, Vector_t hr, Vector_t rmin, Vector_t rmax, e_dim_tag decomp[Dim], bool gCells) :
     IpplParticleBase<PL>(pl),
     bco_m(bc),
     interpol_m(interpol),
@@ -132,7 +132,7 @@ public:
     for(int i=0; i<Dim; i++)
 	decomp_m[i]=decomp[i];
     openDataSink(string("dataH5.dat"));
-    
+
   }
   
   void setupBCs() {
@@ -140,14 +140,14 @@ public:
       setBCAllOpen();
     else if (bco_m == PPP)
       setBCAllPeriodic();
-    else 
+    else
       setBCOOP();
   }
 
   inline const Mesh_t& getMesh() const { return this->getLayout().getLayout().getMesh(); }
-  
+
   inline Mesh_t& getMesh() { return this->getLayout().getLayout().getMesh(); }
-    
+
   inline const FieldLayout_t& getFieldLayout() const {
     return dynamic_cast<FieldLayout_t&>(this->getLayout().getLayout().getFieldLayout());
   }
@@ -170,12 +170,12 @@ public:
       scatterCIC();
     else
       scatterNGP();
-    
+
     /*
       now sum over all gridpoints ... a bit nasty !
 
     */
-    
+
     Field<double,Dim> tmpf;
     NDIndex<Dim> domain = getFieldLayout().getDomain();
 
@@ -198,7 +198,7 @@ public:
 		Q +=  tmpf.localElement(elem);
 	    }
         }
-	
+
     }
     reduce(Q,Q,OpAddAssign());
     m << "sum(Q)= " << initialQ << " sum(EFDMag)= " << sum(EFDMag_m) << endl;
@@ -206,21 +206,21 @@ public:
   }
   
   void myUpdate() {
-    
+
     double hz   = hr_m[2];
     double zmin = rmin_m[2];
     double zmax = rmax_m[2];
 
     if (bco_m != PPP) {
       bounds(this->R, rmin_m, rmax_m);
-                  
-      NDIndex<Dim> domain = this->getFieldLayout().getDomain(); 
-      
+
+      NDIndex<Dim> domain = this->getFieldLayout().getDomain();
+
       for(int i=0; i<Dim; i++)
 	nr_m[i] = domain[i].length();
-	
+
       for(int i=0; i<Dim; i++)
-	  hr_m[i] = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1.0); 
+	  hr_m[i] = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1.0);
 
       if (bco_m == OOP) {
 	rmin_m[2] = zmin;
@@ -239,7 +239,7 @@ public:
 	  EFD_m.initialize(getMesh(), getFieldLayout(), vbc_m);
 	  EFDMag_m.initialize(getMesh(), getFieldLayout(), bc_m);
       }
-    } 
+    }
     else {
       if(fieldNotInitialized_m) {
 	fieldNotInitialized_m=false;
@@ -260,29 +260,29 @@ public:
 
   void initFields() {
     Inform m("initFields ");
-    
+
     NDIndex<Dim> domain = getFieldLayout().getDomain();
-    
+
     for(int i=0; i<Dim; i++)
       nr_m[i] = domain[i].length();
-  
+
     int nx = nr_m[0];
     int ny = nr_m[1];
     int nz = nr_m[2];
 
-    double phi0 = 0.1*nx;            
+    double phi0 = 0.1*nx;
 
     m << "rmin= " << rmin_m << " rmax= " << rmax_m << " h= " << hr_m << " n= " << nr_m << endl;
-    
+
     Index I(nx), J(ny), K(nz);
-  
+
     assign(EFD_m[I][J][K](0), -2.0*pi*phi0/nx * cos(2.0*pi*(I+0.5)/nx) * cos(4.0*pi*(J+0.5)/ny) * cos(pi*(K+0.5)/nz));
 
     assign(EFD_m[I][J][K](1),  4.0*pi*phi0/ny * sin(2.0*pi*(I+0.5)/nx) * sin(4.0*pi*(J+0.5)/ny));
 
     assign(EFD_m[I][J][K](2),  4.0*pi*phi0/ny * sin(2.0*pi*(I+0.5)/nx) * sin(4.0*pi*(J+0.5)/ny));
 
-    assign(EFDMag_m[I][J][K], 
+    assign(EFDMag_m[I][J][K],
 	   EFD_m[I][J][K](0) * EFD_m[I][J][K](0) +
 	   EFD_m[I][J][K](1) * EFD_m[I][J][K](1) +
 	   EFD_m[I][J][K](2) * EFD_m[I][J][K](2));
@@ -299,9 +299,9 @@ public:
 
     Inform msg("savePhaseSpaceData ");
     Inform msg2all("savePhaseSpaceData ",INFORM_ALL_NODES);
-    
+
     long long  N = this->getLocalNum();
-    
+
     void *varray = malloc(N*sizeof(double));
     double *farray = (double*)varray;
 <<<<<<< .mine
@@ -310,21 +310,21 @@ public:
 =======
     h5part_int64_t *larray = (h5part_int64_t *)varray;
 >>>>>>> .r6004
-  
-    /* ------------------------------------------------------------------------ 
+
+    /* ------------------------------------------------------------------------
        Get the particle decomposition from all the nodes
     */
     long long *locN = (long long *) malloc(Ippl::getNodes()*sizeof(long long));
     long long  *globN = (long long*) malloc(Ippl::getNodes()*sizeof(long long));
-    
+
     for(int i=0; i<Ippl::getNodes(); i++) {
       globN[i] = locN[i]=0;
     }
     locN[Ippl::myNode()] = N;
     reduce(locN, locN + Ippl::getNodes(), globN, OpAddAssign());
-    
+
     /* ------------------------------------------------------------------------ */
-    
+
     double actPos           = 0.0;
     double structLenght     = 0.0;
     Vector_t org(0.0);
@@ -337,59 +337,59 @@ public:
     Vector_t centroid(0.0);
     unsigned nTot           = this->getTotalNum();
 
-    H5PartSetStep(file_m,idx_m);  
-    H5PartSetNumParticles(file_m,N); 
-  
+    H5PartSetStep(file_m,idx_m);
+    H5PartSetNumParticles(file_m,N);
+
     /* write scalar data i.e the header */
     long long step = idx_m;
     H5PartWriteStepAttrib(file_m,"Step", H5T_NATIVE_INT64,&step,1);
-  
+
     H5PartWriteStepAttrib(file_m,"Spos",     H5T_NATIVE_DOUBLE,&actPos,1);
-    H5PartWriteStepAttrib(file_m,"structLen",H5T_NATIVE_DOUBLE,&structLenght,1);  
+    H5PartWriteStepAttrib(file_m,"structLen",H5T_NATIVE_DOUBLE,&structLenght,1);
     H5PartWriteStepAttrib(file_m,"org",      H5T_NATIVE_DOUBLE,&org,3);
     H5PartWriteStepAttrib(file_m,"maxX",     H5T_NATIVE_DOUBLE,&maxX,3);
     H5PartWriteStepAttrib(file_m,"minX",     H5T_NATIVE_DOUBLE,&minX,3);
     H5PartWriteStepAttrib(file_m,"maxP",     H5T_NATIVE_DOUBLE,&maxP,3);
     H5PartWriteStepAttrib(file_m,"minP",     H5T_NATIVE_DOUBLE,&minP,3);
     H5PartWriteStepAttrib(file_m,"centroid", H5T_NATIVE_DOUBLE,&centroid,3);
-  
+
     H5PartWriteStepAttrib(file_m,"nloc",H5T_NATIVE_INT64, globN, Ippl::getNodes());
 
     for (long long i=0; i<N;i++)
       farray[i] =  this->R[i](0);
-    H5PartWriteDataFloat64(file_m,"x",farray); 
-  
+    H5PartWriteDataFloat64(file_m,"x",farray);
+
     for (long long i=0; i<N;i++)
       farray[i] =  this->R[i](1);
-    H5PartWriteDataFloat64(file_m,"y",farray); 
+    H5PartWriteDataFloat64(file_m,"y",farray);
 
     for (long long i=0; i<N;i++)
       farray[i] =  this->R[i](2);
-    H5PartWriteDataFloat64(file_m,"z",farray); 
-    
+    H5PartWriteDataFloat64(file_m,"z",farray);
+
     for (long long i=0; i<N;i++)
       farray[i] =  P[i](0);
-    H5PartWriteDataFloat64(file_m,"px",farray); 
+    H5PartWriteDataFloat64(file_m,"px",farray);
 
     for (long long i=0; i<N;i++)
       farray[i] =  P[i](1);
-    H5PartWriteDataFloat64(file_m,"py",farray); 
+    H5PartWriteDataFloat64(file_m,"py",farray);
 
     for (long long i=0; i<N;i++)
       farray[i] =  P[i](2);
-    H5PartWriteDataFloat64(file_m,"pz",farray); 
-  
+    H5PartWriteDataFloat64(file_m,"pz",farray);
+
     for (long long i=0; i<N;i++) {
-      if (Q[i] > 0.0) 
+      if (Q[i] > 0.0)
 	larray[i] =  this->ID[i];
-      else           
+      else
 	larray[i] =  -1*(long long int)this->ID[i];
     }
-    H5PartWriteDataInt64(file_m,"id",larray);  
+    H5PartWriteDataInt64(file_m,"id",larray);
 <<<<<<< .mine
 
     // ada save block data
-    /*  
+    /*
   NDIndex<Dim> idx = getFieldLayout().getLocalNDIndex();
     NDIndex<Dim> elem;
     h5part_int64_t herr = H5BlockDefine3DFieldLayout (
@@ -411,21 +411,21 @@ public:
 	  ii++;
 	}
       }
-    } 
+    }
     herr = H5Block3dWriteScalarField ( file_m, "EFmag", data );
-    
+
     if(data)
       free(data);
 
 */
 
-    if(varray)  
+    if(varray)
 =======
 
     // ada save block data
 
     h5part_int64_t l[6];
-    
+
     NDIndex<Dim> idx = getFieldLayout().getLocalNDIndex();
     NDIndex<Dim> elem;
     h5part_int64_t herr = H5BlockDefine3DFieldLayout (
@@ -449,7 +449,7 @@ public:
 	  ii++;
 	}
       }
-    } 
+    }
 
     herr = H5Block3dWriteScalarField ( file_m, "EFmag", data );
     if (herr < 0)
@@ -462,17 +462,17 @@ public:
 	herr = H5Block3dGetPartitionOfProc(file_m, p, &l[0], &l[1], &l[2], &l[3], &l[4], &l[5]);
 	stringstream lstr;
 	lstr << "layout" << p;
-	H5BlockWriteFieldAttrib (file_m,"EFmag", lstr.str().c_str(), H5PART_INT64,l,6);       
+	H5BlockWriteFieldAttrib (file_m,"EFmag", lstr.str().c_str(), H5PART_INT64,l,6);
       }
     }
 
 
     if(data)
       free(data);
-  if(varray)  
+  if(varray)
 >>>>>>> .r6004
       free(varray);
-    
+
     idx_m++;
   }
 
@@ -488,7 +488,7 @@ private:
     if(!file_m) {
       INFOMSG("File open failed:  exiting!" << endl);
       exit(0);
-    }   
+    }
 
     idx_m = 0;
   }
@@ -500,13 +500,13 @@ private:
       vbc_m[i] = new ZeroFace<Vector_t,Dim,Mesh_t,Center_t>(i);
     }
   }
-  
+
   inline void setBCAllPeriodic() {
     for (int i=0; i < 2*Dim; i++) {
       this->getBConds()[i] = ParticlePeriodicBCond;
       bc_m[i]  = new PeriodicFace<double  ,Dim,Mesh_t,Center_t>(i);
       vbc_m[i] = new PeriodicFace<Vector_t,Dim,Mesh_t,Center_t>(i);
-    }  
+    }
   }
 
   inline void setBCOOP() {
@@ -518,8 +518,8 @@ private:
     for (int i= 2*Dim - 2; i < 2*Dim; i++) {
       bc_m[i]  = new PeriodicFace<double  ,Dim,Mesh_t,Center_t>(i);
       vbc_m[i] = new PeriodicFace<Vector_t,Dim,Mesh_t,Center_t>(i);
-      this->getBConds()[i] = ParticlePeriodicBCond;    
-    }  
+      this->getBConds()[i] = ParticlePeriodicBCond;
+    }
   }
 
   inline void gatherNGP() {
@@ -548,12 +548,12 @@ private:
 
   Field<Vektor<double,Dim>,Dim> EFD_m;
   Field<double,Dim> EFDMag_m;
-  
+
   BConds<double,Dim,Mesh_t,Center_t> bc_m;
   BConds<Vector_t,Dim,Mesh_t,Center_t> vbc_m;
 
   Vektor<int,Dim> nr_m;
-    
+
   Vector_t hr_m;
   Vector_t rmin_m;
   Vector_t rmax_m;
@@ -562,9 +562,9 @@ private:
   InterPol_t interpol_m;
   bool fieldNotInitialized_m;
   bool doRepart_m;
-  bool withGuardCells_m;  
+  bool withGuardCells_m;
   e_dim_tag decomp_m[Dim];
-  
+
 #ifdef GTHDF5
   H5PartFile *file_m;
 #endif
@@ -590,27 +590,27 @@ int main(int argc, char *argv[]){
     myInterpol = CIC;
   else
     myInterpol = NGP;
-  
+
   bool gCells;
   gCells =  (string(argv[8])==string("GUARDCELLS"));
-  
+
 
   msg << "Particle test PIC3d " << endl;
   msg << "nt " << nt << " Np= " << totalP << " grid = " << nr <<endl;
-  
+
   if (myInterpol==CIC)
-    msg << "Cloud in cell (CIC) interpolation selected" << endl; 
+    msg << "Cloud in cell (CIC) interpolation selected" << endl;
   else
-    msg << "Nearest grid point (NGP) interpolation selected" << endl; 
-  
+    msg << "Nearest grid point (NGP) interpolation selected" << endl;
+
   if (gCells)
       msg << "Using guard cells" << endl;
   else
       msg << "Not using guard cells" << endl;
 
-  BC_t myBC;  
+  BC_t myBC;
   if (string(argv[7])==string("OOO")) {
-    myBC = OOO; // open boundary 
+    myBC = OOO; // open boundary
     msg << "BC == OOO" << endl;
   }
   else if (string(argv[7])==string("OOP")) {
@@ -618,7 +618,7 @@ int main(int argc, char *argv[]){
     msg << "BC == OOP" << endl;
   }
   else {
-    myBC = PPP; // all periodic 
+    myBC = PPP; // all periodic
     msg << "BC == PPP" << endl;
   }
 
@@ -643,7 +643,7 @@ int main(int argc, char *argv[]){
 
   for (int d=0; d < Dim; ++d)
       decomp[d] = (d == serialDim) ? SERIAL : PARALLEL;
-  
+
   // create mesh and layout objects for this problem domain
   mesh          = new Mesh_t(domain);
   FL            = new FieldLayout_t(*mesh, decomp);
@@ -670,9 +670,9 @@ int main(int argc, char *argv[]){
   // initialize the particle object: do all initialization on one node,
   // and distribute to others
   P->create(totalP / Ippl::getNodes());
-    
+
   msg << "particles created " << endl;
-    
+
   // quiet start for particle positions
   assign(P->R(0), IpplRandom * nr[0]);
   assign(P->R(1), IpplRandom * nr[1]);
@@ -682,22 +682,22 @@ int main(int argc, char *argv[]){
 
   // random initialization for charge-to-mass ratio
   assign(P->Q,q);
-    
+
   msg << "initial conditions assigned " << endl;
 
   // redistribute particles based on spatial layout
-  P->myUpdate(); 
+  P->myUpdate();
 
   msg2all << "Nlocal= " << P->getLocalNum() << endl;
   Ippl::Comm->barrier();
 
   msg << "initial update and initial mesh done .... Q= " << sum(P->Q) << endl;
-  
+
   msg << P->getMesh() << endl;
   msg << P->getFieldLayout() << endl;
 
   msg << "scatter test done delta= " <<  P->scatter() << endl;
-    
+
   P->initFields();
   msg << "P->initField() done " << endl;
 
@@ -710,28 +710,28 @@ int main(int argc, char *argv[]){
     // basic leapfrogging timestep scheme.  velocities are offset
     // by half a timestep from the positions.
     assign(P->R, P->R + dt * P->P);
-    
+
     // update particle distribution across processors
     P->myUpdate();
-    
+
     // gather the local value of the E field
     P->gather();
-      
+
     // advance the particle velocities
     assign(P->P, P->P + dt * P->Q * P->E);
     msg << "Finished iteration " << it << " - min/max r and h " << P->getRMin() << P->getRMax() << P->getHr() << endl;
-    mytimer.clear();    
+    mytimer.clear();
     mytimer.start();
     P->savePhaseSpace();
     mytimer.stop();
 
     long long  N = P->getLocalNum();
-    double rate = ((6*N*sizeof(double) + N*sizeof(unsigned))/1000000.0) / mytimer.clock_time(); 
-    reduce(rate,rate,OpAddAssign());      
-    reduce(N,N,OpAddAssign());      
-    msg << "Number of particles (x,y,z,px,py,pz,id) " << N << " in file set Write to disk bw= " << rate << " [MB/s] "<< endl; 
+    double rate = ((6*N*sizeof(double) + N*sizeof(unsigned))/1000000.0) / mytimer.clock_time();
+    reduce(rate,rate,OpAddAssign());
+    reduce(N,N,OpAddAssign());
+    msg << "Number of particles (x,y,z,px,py,pz,id) " << N << " in file set Write to disk bw= " << rate << " [MB/s] "<< endl;
   }
-  
+
   Ippl::Comm->barrier();
   msg << "Particle test PIC3d: End." << endl;
 
@@ -743,6 +743,5 @@ int main(int argc, char *argv[]){
 /***************************************************************************
  * $RCSfile: addheaderfooter,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:17 $
- * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $
  ***************************************************************************/
-

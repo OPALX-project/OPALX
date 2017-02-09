@@ -4,12 +4,11 @@
 
 #include "Structure/H5PartWrapperForPT.h"
 
-#include "config.h"
-#include "revision.h"
+#include "OPALconfig.h"
 #include "Algorithms/PartBunch.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Options.h"
-#include "Utilities/Options.h"
+#include "Utilities/Util.h"
 #include "Physics/Physics.h"
 
 #include <boost/filesystem.hpp>
@@ -100,22 +99,33 @@ void H5PartWrapperForPT::readStepHeader(PartBunch& bunch) {
     READSTEPATTRIB(Float64, file_m, "TIME", &actualT);
     bunch.setT(actualT);
 
+    double spos;
+    READSTEPATTRIB(Float64, file_m, "SPOS", &spos);
+    bunch.set_sPos(spos);
+
     h5_int64_t ltstep;
     READSTEPATTRIB(Int64, file_m, "LocalTrackStep", &ltstep);
-    bunch.setLocalTrackStep((long long)ltstep);
+    bunch.setLocalTrackStep((long long)(ltstep + 1));
 
     h5_int64_t gtstep;
     READSTEPATTRIB(Int64, file_m, "GlobalTrackStep", &gtstep);
-    bunch.setGlobalTrackStep((long long)gtstep);
+    bunch.setGlobalTrackStep((long long)(gtstep + 1));
 
     Vector_t RefPartR;
     READSTEPATTRIB(Float64, file_m, "RefPartR", (h5_float64_t *)&RefPartR);
-    bunch.RefPart_R = RefPartR;
+    bunch.RefPartR_m = RefPartR;
 
     Vector_t RefPartP;
     READSTEPATTRIB(Float64, file_m, "RefPartP", (h5_float64_t *)&RefPartP);
-    bunch.RefPart_P = RefPartP;
+    bunch.RefPartP_m = RefPartP;
 
+    Vector_t TaitBryant;
+    READSTEPATTRIB(Float64, file_m, "TaitBryantAngles", (h5_float64_t *)&TaitBryant);
+    Quaternion rotTheta(cos(0.5 * TaitBryant[0]), 0, sin(0.5 * TaitBryant[0]), 0);
+    Quaternion rotPhi(cos(0.5 * TaitBryant[1]), sin(0.5 * TaitBryant[1]), 0, 0);
+    Quaternion rotPsi(cos(0.5 * TaitBryant[2]), 0, 0, sin(0.5 * TaitBryant[2]));
+    Quaternion rotation = rotTheta * (rotPhi * rotPsi);
+    bunch.toLabTrafo_m = CoordinateSystemTrafo(-rotation.conjugate().rotate(RefPartR), rotation);
 }
 
 void H5PartWrapperForPT::readStepData(PartBunch& bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
@@ -169,9 +179,9 @@ void H5PartWrapperForPT::readStepData(PartBunch& bunch, h5_ssize_t firstParticle
         bunch.Q[n] = f64buffer[n];
     }
 
-    READDATA(Int32, file_m, "lastsection", i32buffer);
+    READDATA(Int32, file_m, "id", i32buffer);
     for(long int n = 0; n < numParticles; ++ n) {
-        bunch.LastSection[n] = i32buffer[n];
+        bunch.ID[n] = i32buffer[n];
     }
 
     REPORTONERROR(H5PartSetView(file_m, -1, -1));
@@ -179,34 +189,21 @@ void H5PartWrapperForPT::readStepData(PartBunch& bunch, h5_ssize_t firstParticle
 
 void H5PartWrapperForPT::writeHeader() {
     std::stringstream OPAL_version;
-    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION << " git rev. " << GIT_VERSION;
+    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " git rev. " << Util::getGitRevision();
     WRITESTRINGFILEATTRIB(file_m, "OPAL_version", OPAL_version.str().c_str());
-
-    WRITESTRINGFILEATTRIB(file_m, "tUnit", "s");
-    WRITESTRINGFILEATTRIB(file_m, "xUnit", "m");
-    WRITESTRINGFILEATTRIB(file_m, "yUnit", "m");
-    WRITESTRINGFILEATTRIB(file_m, "zUnit", "m");
-    WRITESTRINGFILEATTRIB(file_m, "pxUnit", "#beta#gamma");
-    WRITESTRINGFILEATTRIB(file_m, "pyUnit", "#beta#gamma");
-    WRITESTRINGFILEATTRIB(file_m, "pzUnit", "#beta#gamma");
-    WRITESTRINGFILEATTRIB(file_m, "qUnit", "Cb");
-
-    WRITESTRINGFILEATTRIB(file_m, "idUnit", "1");
-    WRITESTRINGFILEATTRIB(file_m, "ptype", "1");
-    WRITESTRINGFILEATTRIB(file_m, "lastsection", "1");
 
     WRITESTRINGFILEATTRIB(file_m, "SPOSUnit", "m");
     WRITESTRINGFILEATTRIB(file_m, "TIMEUnit", "s");
     WRITESTRINGFILEATTRIB(file_m, "#gammaUnit", "1");
     WRITESTRINGFILEATTRIB(file_m, "ENERGYUnit", "MeV");
     WRITESTRINGFILEATTRIB(file_m, "#varepsilonUnit", "m rad");
-    WRITESTRINGFILEATTRIB(file_m, "#varepsilonrUnit", "m rad");
     WRITESTRINGFILEATTRIB(file_m, "#varepsilon-geomUnit", "m rad");
 
     WRITESTRINGFILEATTRIB(file_m, "#sigmaUnit", "1");
     WRITESTRINGFILEATTRIB(file_m, "RMSXUnit", "m");
-    WRITESTRINGFILEATTRIB(file_m, "RMSRUnit", "m");
+    WRITESTRINGFILEATTRIB(file_m, "centroidUnit", "m");
     WRITESTRINGFILEATTRIB(file_m, "RMSPUnit", "#beta#gamma");
+    WRITESTRINGFILEATTRIB(file_m, "MEANPUnit", "#beta#gamma");
 
     WRITESTRINGFILEATTRIB(file_m, "maxdEUnit", "MeV");
     WRITESTRINGFILEATTRIB(file_m, "max#phiUnit", "deg");
@@ -217,15 +214,8 @@ void H5PartWrapperForPT::writeHeader() {
     WRITESTRINGFILEATTRIB(file_m, "MASSUnit", "GeV");
     WRITESTRINGFILEATTRIB(file_m, "CHARGEUnit", "C");
 
-    WRITESTRINGFILEATTRIB(file_m, "spos-headUnit", "m");
-    WRITESTRINGFILEATTRIB(file_m, "E-headUnit", "MV/m");
-    WRITESTRINGFILEATTRIB(file_m, "B-headUnit", "T");
-    WRITESTRINGFILEATTRIB(file_m, "spos-refUnit", "m");
     WRITESTRINGFILEATTRIB(file_m, "E-refUnit", "MV/m");
     WRITESTRINGFILEATTRIB(file_m, "B-refUnit", "T");
-    WRITESTRINGFILEATTRIB(file_m, "spos-tailUnit", "m");
-    WRITESTRINGFILEATTRIB(file_m, "E-tailUnit", "MV/m");
-    WRITESTRINGFILEATTRIB(file_m, "B-tailUnit", "T");
 
     WRITESTRINGFILEATTRIB(file_m, "StepUnit", "1");
     WRITESTRINGFILEATTRIB(file_m, "LocalTrackStepUnit", "1");
@@ -260,7 +250,7 @@ void H5PartWrapperForPT::writeStepHeader(PartBunch& bunch, const std::map<std::s
     double   actPos   = bunch.get_sPos();
     double   t        = bunch.getT();
     Vector_t rmin     = bunch.get_origin();
-    Vector_t rmax     = bunch.get_maxExtend();
+    Vector_t rmax     = bunch.get_maxExtent();
     Vector_t centroid = bunch.get_centroid();
 
     Vector_t maxP(0.0);
@@ -270,11 +260,12 @@ void H5PartWrapperForPT::writeStepHeader(PartBunch& bunch, const std::map<std::s
     Vector_t psigma = bunch.get_prms();
     Vector_t vareps = bunch.get_norm_emit();
     Vector_t geomvareps = bunch.get_emit();
-    Vector_t RefPartR = bunch.RefPart_R;
-    Vector_t RefPartP = bunch.RefPart_P;
+    Vector_t RefPartR = bunch.RefPartR_m;
+    Vector_t RefPartP = bunch.RefPartP_m;
+    Vector_t TaitBryant = Util::getTaitBryantAngles(bunch.toLabTrafo_m.getRotation());
     Vector_t pmean = bunch.get_pmean();
 
-    double meanEnergy = bunch.get_meanEnergy();
+    double meanEnergy = bunch.get_meanKineticEnergy();
     double energySpread = bunch.getdE();
     double I_0 = 4.0 * Physics::pi * Physics::epsilon_0 * Physics::c * bunch.getM() / bunch.getQ();
     double sigma = ((xsigma[0] * xsigma[0]) + (xsigma[1] * xsigma[1])) /
@@ -305,6 +296,7 @@ void H5PartWrapperForPT::writeStepHeader(PartBunch& bunch, const std::map<std::s
     WRITESTEPATTRIB(Float64, file_m, "RefPartP", (h5_float64_t *)&RefPartP, 3);
     WRITESTEPATTRIB(Float64, file_m, "MEANP", (h5_float64_t *)&pmean, 3);
     WRITESTEPATTRIB(Float64, file_m, "RMSP", (h5_float64_t *)&psigma, 3);
+    WRITESTEPATTRIB(Float64, file_m, "TaitBryantAngles", (h5_float64_t *)&TaitBryant, 3);
 
     WRITESTEPATTRIB(Float64, file_m, "#varepsilon", (h5_float64_t *)&vareps, 3);
     WRITESTEPATTRIB(Float64, file_m, "#varepsilon-geom", (h5_float64_t *)&geomvareps, 3);
@@ -336,38 +328,15 @@ void H5PartWrapperForPT::writeStepHeader(PartBunch& bunch, const std::map<std::s
     WRITESTEPATTRIB(Int64, file_m, "SteptoLastInj", &SteptoLastInj, 1);
 
     try {
-        double sposHead = additionalStepAttributes.at("sposHead");
-        double sposRef = additionalStepAttributes.at("sposRef");
-        double sposTail = additionalStepAttributes.at("sposTail");
         Vector_t referenceB(additionalStepAttributes.at("B-ref_x"),
                             additionalStepAttributes.at("B-ref_z"),
                             additionalStepAttributes.at("B-ref_y"));
         Vector_t referenceE(additionalStepAttributes.at("E-ref_x"),
                             additionalStepAttributes.at("E-ref_z"),
                             additionalStepAttributes.at("E-ref_y"));
-        Vector_t headB(additionalStepAttributes.at("B-head_x"),
-                       additionalStepAttributes.at("B-head_z"),
-                       additionalStepAttributes.at("B-head_y"));
-        Vector_t headE(additionalStepAttributes.at("E-head_x"),
-                       additionalStepAttributes.at("E-head_z"),
-                       additionalStepAttributes.at("E-head_y"));
-        Vector_t tailB(additionalStepAttributes.at("B-tail_x"),
-                      additionalStepAttributes.at("B-tail_z"),
-                      additionalStepAttributes.at("B-tail_y"));
-        Vector_t tailE(additionalStepAttributes.at("E-tail_x"),
-                       additionalStepAttributes.at("E-tail_z"),
-                       additionalStepAttributes.at("E-tail_y"));
-
-        WRITESTEPATTRIB(Float64, file_m, "spos-head", &sposHead, 1);
-        WRITESTEPATTRIB(Float64, file_m, "spos-ref", &sposRef, 1);
-        WRITESTEPATTRIB(Float64, file_m, "spos-tail", &sposTail, 1);
 
         WRITESTEPATTRIB(Float64, file_m, "B-ref", (h5_float64_t *)&referenceB, 3);
         WRITESTEPATTRIB(Float64, file_m, "E-ref", (h5_float64_t *)&referenceE, 3);
-        WRITESTEPATTRIB(Float64, file_m, "B-head", (h5_float64_t *)&headB, 3);
-        WRITESTEPATTRIB(Float64, file_m, "E-head", (h5_float64_t *)&headE, 3);
-        WRITESTEPATTRIB(Float64, file_m, "B-tail", (h5_float64_t *)&tailB, 3);
-        WRITESTEPATTRIB(Float64, file_m, "E-tail", (h5_float64_t *)&tailE, 3);
     } catch (std::out_of_range & m) {
         ERRORMSG(m.what() << endl);
 
@@ -423,10 +392,6 @@ void H5PartWrapperForPT::writeStepData(PartBunch& bunch) {
     for(size_t i = 0; i < numLocalParticles; ++ i)
         i32buffer[i] = (h5_int32_t) bunch.PType[i];
     WRITEDATA(Int32, file_m, "ptype", i32buffer);
-
-    for(size_t i = 0; i < numLocalParticles; ++ i)
-        i32buffer[i] =  bunch.LastSection[i];
-    WRITEDATA(Int32, file_m, "lastsection", i32buffer);
 
     if(Options::ebDump) {
         for(size_t i = 0; i < numLocalParticles; ++ i)

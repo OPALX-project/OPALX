@@ -114,17 +114,17 @@ void CollimatorPhysics::doPhysics(PartBunch &bunch, Degrader *deg, Collimator *c
      Do physics if
      -- particle in material
      -- particle not dead (locParts_m[i].label != -1.0)
-     
+
      Absorbed particle i: locParts_m[i].label = -1.0;
-     
+
      Particle goes back to beam if
      -- not absorbed and out of material
      */
-   
+
     for(size_t i = 0; i < locParts_m.size(); ++i) {
         Vector_t &R = locParts_m[i].Rincol;
         Vector_t &P = locParts_m[i].Pincol;
-        
+
         double Eng = (sqrt(1.0  + dot(P, P)) - 1) * m_p;
         if(locParts_m[i].label != -1) {
             if(checkHit(R,P,dT_m, deg, col)) {
@@ -168,19 +168,19 @@ void CollimatorPhysics::doPhysics(PartBunch &bunch, Degrader *deg, Collimator *c
 
 bool CollimatorPhysics::EnergyLoss(double &Eng, double &deltat) {
     /// Eng GeV
-    
+
     Material();
     double dEdx = 0.0;
     const double gamma = (Eng + m_p) / m_p;
     const double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
     const double gamma2 = gamma * gamma;
     const double beta2 = beta * beta;
-    
+
     const double deltas = deltat * beta * Physics::c;
     const double deltasrho = deltas * 100 * rho_m;
     const double K = 4.0 * pi * Avo * r_e * r_e * m_e * 1E7;
     const double sigma_E = sqrt(K * m_e * rho_m * (Z_m/A_m)* deltas * 1E5);
-    
+
     if ((Eng > 0.00001) && (Eng < 0.0006)) {
         const double Ts = (Eng*1E6)/1.0073; // 1.0073 is the proton mass divided by the atomic mass number. T is in KeV
         const double epsilon_low = A2_c*pow(Ts,0.45);
@@ -191,13 +191,13 @@ bool CollimatorPhysics::EnergyLoss(double &Eng, double &deltat) {
         const double delta_E = delta_Eave + gsl_ran_gaussian(rGen_m,sigma_E);
         Eng = Eng + delta_E / 1E3;
     }
-    
+
     if (Eng >= 0.0006) {
         const double Tmax = 2.0 * m_e * 1e9 * beta2 * gamma2 /
         (1.0 + 2.0 * gamma * m_e / m_p + (m_e / m_p) * (m_e / m_p));
         dEdx = -K * z_p * z_p * Z_m / (A_m * beta2) *
         (1.0 / 2.0 * std::log(2 * m_e * 1e9 * beta2 * gamma2 * Tmax / I_m / I_m) - beta2);
-        
+
         // INFOMSG("stopping power_BB: " << dEdx << " MeV" << endl);
         const double delta_Eave = deltasrho * dEdx;
         double tmp = gsl_ran_gaussian(rGen_m,sigma_E);
@@ -255,7 +255,7 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
 
     /*
       Because this is not propper set in the Component class when calling in the Constructor
-    */  
+    */
     Degrader   *deg  = NULL;
     Collimator *coll = NULL;
 
@@ -279,13 +279,13 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
 
         //write particles to GPU if there are any to write
         if (dksParts_m.size() > 0) {
-	  //wrtie data from dksParts_m to the end of mem_ptr (offset = numparticles)  
+	  //wrtie data from dksParts_m to the end of mem_ptr (offset = numparticles)
 	  dksbase.writeDataAsync<PART_DKS>(mem_ptr, &dksParts_m[0],
 					   dksParts_m.size(), -1, numparticles);
-	  
+
 	  //update number of particles on Device
 	  numparticles += dksParts_m.size();
-	  
+
 	  //free locParts_m vector
 	  dksParts_m.erase(dksParts_m.begin(), dksParts_m.end());
         }
@@ -294,7 +294,7 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
         if (numparticles > 0) {
 	  dksbase.callCollimatorPhysics2(mem_ptr, par_ptr, numparticles);
         }
-	
+
         //sort device particles and get number of particles comming back to bunch
         numaddback = 0;
         if (numparticles > 0) {
@@ -323,10 +323,10 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
 				    -locParts_m[dksParts_m[i].localID].IDincol);
 	    }
 	  }
-	  
+
 	  //erase particles that came from device from host array
 	  dksParts_m.erase(dksParts_m.begin(), dksParts_m.end());
-	  
+
 	  //update number of particles on Device
 	  numparticles -= numaddback;
         }
@@ -342,21 +342,21 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
 
 	locPartsInMat_m = numparticles;
 	reduce(locPartsInMat_m,locPartsInMat_m, OpAddAssign());
-	
+
 	int maxPerNode = bunch.getLocalNum();
         reduce(maxPerNode, maxPerNode, OpMaxAssign());
-	
+
 	//more than one loop only if all the particles are in this degrader
 	if (allParticleInMat_m) {
 	  onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMinimumNumberOfParticlesPerCore() || locPartsInMat_m <= 0);
 	} else {
 	  onlyOneLoopOverParticles = true;
 	}
-	
+
       } while (onlyOneLoopOverParticles == false);
 
     } else {
-      
+
       do{
         IpplTimings::startTimer(DegraderLoopTimer_m);
 
@@ -372,13 +372,13 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
         */
         if (onlyOneLoopOverParticles)
 	  copyFromBunch(bunch);
-        
+
         T_m += dT_m;              // update local time
 
 	locPartsInMat_m = locParts_m.size();
 	reduce(locPartsInMat_m,locPartsInMat_m, OpAddAssign());
 
-	
+
 	int maxPerNode = bunch.getLocalNum();
         reduce(maxPerNode, maxPerNode, OpMaxAssign());
 	if (allParticleInMat_m) {
@@ -386,7 +386,7 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
 	} else {
 	  onlyOneLoopOverParticles = true;
 	}
-	
+
       } while (onlyOneLoopOverParticles == false);
 
     }
@@ -401,7 +401,7 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
         */
         deleteParticleFromLocalVector();
         IpplTimings::stopTimer(DegraderLoopTimer_m);
-      
+
         /*
           if we are not looping copy newly arrived particles
         */
@@ -420,7 +420,7 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
 	} else {
 	  onlyOneLoopOverParticles = true;
 	}
- 
+
     } while (onlyOneLoopOverParticles == false);
 
 #endif
@@ -437,7 +437,7 @@ const std::string CollimatorPhysics::getType() const {
 //  ------------------------------------------------------------------------
 void  CollimatorPhysics::Material() {
 
-    if(material_m == "Berilium") {
+    if(material_m == "BERILIUM") {
         Z_m = 4.0;
         A_m = 9.012;
         rho_m = 1.848;
@@ -453,7 +453,7 @@ void  CollimatorPhysics::Material() {
 
     }
 
-    else if(material_m == "Graphite") {
+    else if(material_m == "GRAPHITE") {
         Z_m = 6.0;
         A_m = 12.0107;
         rho_m = 2.210;
@@ -469,7 +469,7 @@ void  CollimatorPhysics::Material() {
 
     }
 
-    else if(material_m == "GraphiteR6710") {
+    else if(material_m == "GRAPHITER6710") {
         Z_m = 6.0;
         A_m = 12.0107;
         rho_m = 1.88;
@@ -485,7 +485,7 @@ void  CollimatorPhysics::Material() {
 
     }
 
-    else if(material_m == "Molybdenum") {
+    else if(material_m == "MOLYBDENUM") {
         Z_m = 42.0;
         A_m = 95.94;
         rho_m = 10.22;
@@ -506,7 +506,7 @@ void  CollimatorPhysics::Material() {
       Z from http://journals.aps.org/prb/pdf/10.1103/PhysRevB.40.8530
     */
 
-    else if(material_m == "Mylar") {
+    else if(material_m == "MYLAR") {
         Z_m = 6.702;
         A_m = 12.88;
         rho_m = 1.4;
@@ -522,7 +522,7 @@ void  CollimatorPhysics::Material() {
 
 
     //new materials
-    else if (material_m == "Aluminum") {
+    else if (material_m == "ALUMINUM") {
         Z_m = 13;
         A_m = 26.98;
         rho_m = 2.7;
@@ -537,7 +537,7 @@ void  CollimatorPhysics::Material() {
         A5_c = 2.023e-2;
     }
 
-    else if (material_m == "Copper") {
+    else if (material_m == "COPPER") {
         Z_m = 29;
         A_m = 63.54;
         rho_m = 8.96;
@@ -552,7 +552,7 @@ void  CollimatorPhysics::Material() {
         A5_c = 2.242e-2;
     }
 
-    else if (material_m == "Titan") {
+    else if (material_m == "TITAN") {
         Z_m = 22;
         A_m = 47.8;
         rho_m = 4.54;
@@ -567,7 +567,7 @@ void  CollimatorPhysics::Material() {
         A5_c = 8.930e-3;
     }
 
-    else if (material_m == "AluminaAl2O3") {
+    else if (material_m == "ALUMINAAL2O3") {
         Z_m = 50;
         A_m = 101.96;
         rho_m = 3.97;
@@ -582,7 +582,7 @@ void  CollimatorPhysics::Material() {
         A5_c = 4.474e-3;
     }
 
-    else if (material_m == "Air") {
+    else if (material_m == "AIR") {
         Z_m = 7;
         A_m = 14;
         rho_m = 0.0012;
@@ -597,7 +597,7 @@ void  CollimatorPhysics::Material() {
         A5_c = 2.513e-2;
     }
 
-    else if (material_m == "Kapton") {
+    else if (material_m == "KAPTON") {
         Z_m = 6;
         A_m = 12;
         rho_m = 1.4;
@@ -612,7 +612,7 @@ void  CollimatorPhysics::Material() {
         A5_c = 1.638e-2;
     }
 
-    else if (material_m == "Gold") {
+    else if (material_m == "GOLD") {
         Z_m = 79;
         A_m = 197;
         rho_m = 19.3;
@@ -627,7 +627,7 @@ void  CollimatorPhysics::Material() {
         A5_c = 2.077e-2;
     }
 
-    else if (material_m == "Water") {
+    else if (material_m == "WATER") {
         Z_m = 10;
         A_m = 18;
         rho_m = 1;
@@ -644,7 +644,7 @@ void  CollimatorPhysics::Material() {
 
     else {
       throw GeneralClassicException("CollimatorPhysics::Material","Material not found ...");
-    } 
+    }
     // mean exitation energy from Leo
     if (Z_m < 13.0)
         I_m = 12 * Z_m + 7.0;
@@ -814,7 +814,6 @@ void CollimatorPhysics::addBackToBunch(PartBunch &bunch, unsigned i) {
     bunch.R[bunch.getLocalNum()-1]           = locParts_m[i].Rincol;
     bunch.P[bunch.getLocalNum()-1]           = locParts_m[i].Pincol;
     bunch.Q[bunch.getLocalNum()-1]           = locParts_m[i].Qincol;
-    bunch.LastSection[bunch.getLocalNum()-1] = locParts_m[i].LastSecincol;
     bunch.Bf[bunch.getLocalNum()-1]          = locParts_m[i].Bfincol;
     bunch.Ef[bunch.getLocalNum()-1]          = locParts_m[i].Efincol;
     bunch.dt[bunch.getLocalNum()-1]          = locParts_m[i].DTincol;
@@ -842,7 +841,7 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
     const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore();
     for(unsigned int i = 0; i < nL; ++i) {
         if ((bunch.Bin[i]==-1 || bunch.Bin[i]==1) && ((nL-ne)>minNumOfParticlesPerCore)
-	    && checkHit(bunch.R[i],bunch.P[i],dT_m, deg, coll)) 
+	    && checkHit(bunch.R[i],bunch.P[i],dT_m, deg, coll))
 	  {
             PART x;
             x.localID      = i;
@@ -852,7 +851,6 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
             x.Rincol       = bunch.R[i];
             x.Pincol       = bunch.P[i];
             x.Qincol       = bunch.Q[i];
-            x.LastSecincol = bunch.LastSection[i];
             x.Bfincol      = bunch.Bf[i];
             x.Efincol      = bunch.Ef[i];
             x.label        = 0;            // allive in matter
@@ -865,7 +863,7 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
 	    bunch.destroy(1, i);
         }
     }
-    
+
 }
 
 
@@ -913,7 +911,7 @@ bool CollimatorPhysics::stillAlive(PartBunch &bunch) {
   if(collshape_m == "DEGRADER" && locPartsInMat_m == 0) {
     Degrader   *deg  = NULL;
     deg = dynamic_cast<Degrader *>(element_ref_m);
-    
+
     //get the size of the degrader
     double zBegin, zEnd;
     deg->getDimensions(zBegin, zEnd);
@@ -986,7 +984,6 @@ void CollimatorPhysics::addBackToBunchDKS(PartBunch &bunch, unsigned i) {
     bunch.P[bunch.getLocalNum()-1]           = dksParts_m[i].Pincol;
 
     bunch.Q[bunch.getLocalNum()-1]           = locParts_m[id].Qincol;
-    bunch.LastSection[bunch.getLocalNum()-1] = locParts_m[id].LastSecincol;
     bunch.Bf[bunch.getLocalNum()-1]          = locParts_m[id].Bfincol;
     bunch.Ef[bunch.getLocalNum()-1]          = locParts_m[id].Efincol;
     bunch.dt[bunch.getLocalNum()-1]          = locParts_m[id].DTincol;
@@ -1008,11 +1005,11 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch)
 
     const size_t nL = bunch.getLocalNum();
     size_t ne = 0;
-    const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore(); 
+    const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore();
 
     for(unsigned int i = 0; i < nL; ++i) {
-	if ((bunch.Bin[i]==-1 || bunch.Bin[i]==1) && ((nL-ne)>minNumOfParticlesPerCore) 
-	    && checkHit(bunch.R[i],bunch.P[i],dT_m, deg, coll)) 
+	if ((bunch.Bin[i]==-1 || bunch.Bin[i]==1) && ((nL-ne)>minNumOfParticlesPerCore)
+	    && checkHit(bunch.R[i],bunch.P[i],dT_m, deg, coll))
 	  {
 
             PART x;
@@ -1023,7 +1020,6 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch)
             x.Rincol       = bunch.R[i];
             x.Pincol       = bunch.P[i];
             x.Qincol       = bunch.Q[i];
-            x.LastSecincol = bunch.LastSection[i];
             x.Bfincol      = bunch.Bf[i];
             x.Efincol      = bunch.Ef[i];
             x.label        = 0;            // allive in matter
@@ -1045,11 +1041,11 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch)
 	    bunch.destroy(1, i);
 	  }
     }
-    
+
 }
 
-void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch, Degrader *deg, 
-					   size_t numParticlesInSimulation) 
+void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch, Degrader *deg,
+					   size_t numParticlesInSimulation)
 {
 
     if (curandInitSet == -1) {
@@ -1180,5 +1176,3 @@ void CollimatorPhysics::deleteParticleFromLocalVectorDKS() {
 }
 
 #endif
-
-

@@ -49,19 +49,7 @@ void RFQuadrupole::accept(BeamlineVisitor &visitor) const {
     visitor.visitRFQuadrupole(*this);
 }
 
-bool RFQuadrupole::apply(const size_t &i, const double &t, double E[], double B[]) {
-    return false;
-}
-
-bool RFQuadrupole::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
-    return false;
-}
-
-bool RFQuadrupole::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
-    return false;
-}
-
-void RFQuadrupole::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
+void RFQuadrupole::initialise(PartBunch *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
 }
 
@@ -81,4 +69,3 @@ void RFQuadrupole::getDimensions(double &zBegin, double &zEnd) const {
 ElementBase::ElementType RFQuadrupole::getType() const {
     return RFQUADRUPOLE;
 }
-

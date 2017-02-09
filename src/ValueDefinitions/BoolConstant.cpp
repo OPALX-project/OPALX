@@ -62,3 +62,7 @@ void BoolConstant::print(std::ostream &os) const {
     os << "BOOL CONST " << getOpalName() << '=' << itsAttr[0] << ';';
     os << std::endl;
 }
+
+void BoolConstant::printValue(std::ostream &os) const {
+    os << itsAttr[0];
+}

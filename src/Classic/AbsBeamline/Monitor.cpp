@@ -24,24 +24,27 @@
 #include "Fields/Fieldmap.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
+#include "Utilities/Util.h"
+#include <boost/filesystem.hpp>
+#include "AbstractObjects/OpalData.h"
 
 #include <memory>
 
 #include <fstream>
 #include <memory>
 
+extern Inform *gmsg;
+
 using namespace std;
 
 // Class Monitor
 // ------------------------------------------------------------------------
-
 Monitor::Monitor():
     Component(),
     filename_m(""),
     plane_m(OFF),
     type_m(SPATIAL),
-    position_m(0.0),
-    informed_m(false)
+    numPassages_m(0)
 {}
 
 
@@ -50,8 +53,7 @@ Monitor::Monitor(const Monitor &right):
     filename_m(right.filename_m),
     plane_m(right.plane_m),
     type_m(right.type_m),
-    position_m(right.position_m),
-    informed_m(right.informed_m)
+    numPassages_m(0)
 {}
 
 
@@ -60,8 +62,7 @@ Monitor::Monitor(const std::string &name):
     filename_m(""),
     plane_m(OFF),
     type_m(SPATIAL),
-    position_m(0.0),
-    informed_m(false)
+    numPassages_m(0)
 {}
 
 
@@ -73,54 +74,100 @@ void Monitor::accept(BeamlineVisitor &visitor) const {
     visitor.visitMonitor(*this);
 }
 
-bool Monitor::apply(const size_t &i, const double &t, double E[], double B[]) {
-    Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
-    return apply(i, t, Ev, Bv);
-}
-
 bool Monitor::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     const Vector_t &R = RefPartBunch_m->R[i];
     const Vector_t &P = RefPartBunch_m->P[i];
-    const double recpgamma = Physics::c * RefPartBunch_m->getdT() / sqrt(1.0  + dot(P, P));
-    if(online_m) {
-        if (type_m == SPATIAL) {
-            if (R(2) < position_m && R(2) + P(2) * recpgamma > position_m) {
-                double frac = (position_m - R(2)) / (P(2) * recpgamma);
+    const double &dt = RefPartBunch_m->dt[i];
+    const double recpgamma = Physics::c * dt / Util::getGamma(P);
+    const double middle = 0.5 * getElementLength();
+    if (online_m && type_m == SPATIAL) {
+        if (R(2) < middle && R(2) + P(2) * recpgamma > middle) {
+            double frac = (middle - R(2)) / (P(2) * recpgamma);
 
-                lossDs_m->addParticle(Vector_t(R(0) + frac * P(0) * recpgamma, R(1) + frac * P(1) * recpgamma, position_m),
-                                      P, RefPartBunch_m->ID[i], t + frac * RefPartBunch_m->getdT(), 0);
-            }
-        } else {
-            const Vector_t rmean = RefPartBunch_m->get_rmean();
-            const Vector_t pmean = RefPartBunch_m->get_pmean();
-            double recpgammamean = Physics::c * RefPartBunch_m->getdT() / sqrt(1.0  + dot(pmean, pmean));
-
-            if (rmean(2) < position_m && rmean(2) + pmean(2) * recpgammamean > position_m) {
-                double frac = (position_m - rmean(2)) / (pmean(2) * recpgammamean);
-
-                lossDs_m->addParticle(R + frac * P * recpgamma, P, RefPartBunch_m->ID[i],
-                                      t + frac * RefPartBunch_m->getdT(), 0);
-            }
+            lossDs_m->addParticle(R + frac * recpgamma * P,
+                                  P, RefPartBunch_m->ID[i], t + frac * dt, 0);
         }
     }
 
     return false;
 }
 
-bool Monitor::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
+bool Monitor::applyToReferenceParticle(const Vector_t &R,
+                                       const Vector_t &P,
+                                       const double &t,
+                                       Vector_t &,
+                                       Vector_t &) {
+    if (!OpalData::getInstance()->isInPrepState()) {
+        const double dt = RefPartBunch_m->getdT();
+        const double recpgamma = Physics::c * dt / Util::getGamma(P);
+        const double middle = 0.5 * getElementLength();
+
+        if (R(2) < middle && R(2) + P(2) * recpgamma > middle) {
+            double frac = (middle - R(2)) / (P(2) * recpgamma);
+            double time = t + frac * dt;
+            Vector_t dR = (0.5 + frac) * P * recpgamma;
+            double ds = euclidian_norm(dR);
+            lossDs_m->addReferenceParticle(csTrafoGlobal2Local_m.transformFrom(R + dR),
+                                           csTrafoGlobal2Local_m.rotateFrom(P),
+                                           time,
+                                           RefPartBunch_m->get_sPos() + ds,
+                                           RefPartBunch_m->getGlobalTrackStep());
+
+            if (type_m == TEMPORAL) {
+                const unsigned int localNum = RefPartBunch_m->getLocalNum();
+
+                for (unsigned int i = 0; i < localNum; ++ i) {
+                    const double recpgamma = Physics::c * dt / Util::getGamma(RefPartBunch_m->P[i]);
+                    lossDs_m->addParticle(RefPartBunch_m->R[i] + frac * RefPartBunch_m->P[i] * recpgamma,
+                                          RefPartBunch_m->P[i], RefPartBunch_m->ID[i],
+                                          time, 0);
+                }
+                Options::OPENMODE mode = Options::openMode;
+                if (numPassages_m > 0) {
+                    Options::openMode = Options::APPEND;
+                }
+                lossDs_m->save();
+                if (numPassages_m > 0) {
+                    Options::openMode = mode;
+                }
+            }
+
+            ++ numPassages_m;
+        }
+    }
     return false;
 }
 
-void Monitor::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
+void Monitor::initialise(PartBunch *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
-    position_m = startField;
-    startField -= 0.005;
-    endField = position_m + 0.005;
-    if (filename_m == std::string(""))
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-    else
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
+    endField = startField + halfLength_s;
+    startField -= halfLength_s;
 
+    if (filename_m == std::string(""))
+        filename_m = getName();
+    else
+        filename_m = filename_m.substr(0, filename_m.rfind("."));
+
+    const size_t totalNum = bunch->getTotalNum();
+    double currentPosition = endField;
+    if (totalNum > 0) {
+        currentPosition = bunch->get_sPos();
+    }
+
+    if (Options::openMode == Options::WRITE || currentPosition < startField) {
+        namespace fs = boost::filesystem;
+
+        fs::path lossFileName = fs::path(filename_m + ".h5");
+        if (fs::exists(lossFileName)) {
+            Ippl::Comm->barrier();
+            if (Ippl::myNode() == 0)
+                fs::remove(lossFileName);
+
+            Ippl::Comm->barrier();
+        }
+    }
+
+    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m, !Options::asciidump, getType()));
 }
 
 void Monitor::finalise() {
@@ -128,34 +175,18 @@ void Monitor::finalise() {
 }
 
 void Monitor::goOnline(const double &) {
-    if(RefPartBunch_m == NULL) {
-        if(!informed_m) {
-            Inform msg("Monitor ");
-            std::string errormsg;
-            errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
-            msg << errormsg << "\n"
-                << endl;
-            if(Ippl::myNode() == 0) {
-                ofstream omsg("errormsg.txt", ios_base::app);
-                omsg << errormsg << endl;
-                omsg.close();
-            }
-            informed_m = true;
-        }
-        return;
-    }
-
     if(Monitor::h5pfiles_s.find(filename_m) == Monitor::h5pfiles_s.end()) {
         Monitor::h5pfiles_s.insert(pair<string, unsigned int>(filename_m, 1));
-        step_m = 0;
     } else {
-        step_m = (*Monitor::h5pfiles_s.find(filename_m)).second ++;
+        (*Monitor::h5pfiles_s.find(filename_m)).second ++;
     }
     online_m = true;
 }
 
 void Monitor::goOffline() {
-    lossDs_m->save();
+    if (type_m != TEMPORAL) {
+        lossDs_m->save(numPassages_m);
+    }
 }
 
 bool Monitor::bends() const {
@@ -167,8 +198,8 @@ void Monitor::setOutputFN(std::string fn) {
 }
 
 void Monitor::getDimensions(double &zBegin, double &zEnd) const {
-    zBegin = position_m - 0.005;
-    zEnd = position_m + 0.005;
+    zBegin = -halfLength_s;
+    zEnd = halfLength_s;
 }
 
 
@@ -176,137 +207,5 @@ ElementBase::ElementType Monitor::getType() const {
     return MONITOR;
 }
 
-void Monitor::moveBy(const double &dz) {
-    position_m += dz;
-}
-
 map<string, unsigned int> Monitor::h5pfiles_s = map<string, unsigned int>();
-
-
-
-
-    /*
-    if (!Options::enableHDF5) return;
-
-	reduce(online_m, online_m, OpOr());
-
-    if(online_m) {
-        online_m = false;
-        if(filename_m == "") return;
-
-        unsigned long nLoc = PosX_m.size();
-        unsigned long i = 0;
-        h5_file_t *H5file;
-        h5_int64_t rc;
-        if(step_m == 0) {
-#ifdef PARALLEL_IO
-	    h5_prop_t props = H5CreateFileProp ();
-	    MPI_Comm = Ippl::getComm();
-	    H5SetPropFileMPIOCollective (props, &comm);
-            H5file = H5OpenFile(filename_m.c_str(), H5_O_WRONLY, props);
-#else
-            H5file = H5OpenFile(filename_m.c_str(), H5_O_WRONLY, H5_PROP_DEFAULT);
-#endif
-            rc = H5WriteFileAttribString(H5file, "timeUnit", "s");
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-            rc = H5WriteFileAttribString(H5file, "xUnit", "m");
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-            rc = H5WriteFileAttribString(H5file, "yUnit", "m");
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-            rc = H5WriteFileAttribString(H5file, "pxUnit", "#beta#gamma");
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-            rc = H5WriteFileAttribString(H5file, "pyUnit", "#beta#gamma");
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-            rc = H5WriteFileAttribString(H5file, "pzUnit", "#beta#gamma");
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-            rc = H5WriteFileAttribString(H5file, "SPOSUnit", "m");
-            if(rc != H5_SUCCESS)
-                ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        } else {
-#ifdef PARALLEL_IO
-            H5file = H5OpenFile(filename_m.c_str(), H5_O_APPEND, Ippl::getComm());
-#else
-            H5file = H5OpenFile(filename_m.c_str(), H5_O_APPEND, 0);
-#endif
-        }
-
-        rc = H5SetStep(H5file, step_m);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5WriteStepAttribFloat64(H5file, "SPOS", &position_m, 1);
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-        rc = H5PartSetNumParticles(H5file, PosX_m.size());
-        if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-        std::unique_ptr<char> varray(new char[nLoc * sizeof(double)]);
-        double *fvalues = reinterpret_cast<double*>(varray.get());
-        h5_int64_t *ids = reinterpret_cast<h5_int64_t*>(varray.get());
-
-	  FixMe: if I write with nLoc==0 -> rc == -2
-
-
-
-	if (nLoc > 0) {
-	  for(i = 0; i < nLoc; ++i) {
-            fvalues[i] = PosX_m.front();
-            PosX_m.pop_front();
-	  }
-	  rc = H5PartWriteDataFloat64(H5file, "x", fvalues);
-	  if(rc != H5_SUCCESS)
-	    ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << " nloc= " << nLoc << " fn= " << filename_m << endl);
-	  for(i = 0; i < nLoc; ++i) {
-            fvalues[i] = PosY_m.front();
-            PosY_m.pop_front();
-	  }
-	  rc = H5PartWriteDataFloat64(H5file, "y", fvalues);
-	  if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-	  for(i = 0; i < nLoc; ++i) {
-            fvalues[i] = MomentumX_m.front();
-            MomentumX_m.pop_front();
-	  }
-	  rc = H5PartWriteDataFloat64(H5file, "px", fvalues);
-	  if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-	  for(i = 0; i < nLoc; ++i) {
-            fvalues[i] = MomentumY_m.front();
-            MomentumY_m.pop_front();
-	  }
-	  rc = H5PartWriteDataFloat64(H5file, "py", fvalues);
-	  if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-	  for(i = 0; i < nLoc; ++i) {
-            fvalues[i] = MomentumZ_m.front();
-            MomentumZ_m.pop_front();
-	  }
-	  rc = H5PartWriteDataFloat64(H5file, "pz", fvalues);
-	  if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-	  for(i = 0; i < nLoc; ++i) {
-            fvalues[i] = time_m.front();
-            time_m.pop_front();
-	  }
-	  rc = H5PartWriteDataFloat64(H5file, "time", fvalues);
-	  if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-	  for(i = 0; i < nLoc; ++i) {
-            ids[i] = id_m.front();
-            id_m.pop_front();
-	  }
-	  rc = H5PartWriteDataInt64(H5file, "id", ids);
-	  if(rc != H5_SUCCESS)
-            ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-	}
-        rc = H5CloseFile(H5file);
-        if(rc != H5_SUCCESS)
-	  ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    }
-    */
+const double Monitor::halfLength_s = 0.005;

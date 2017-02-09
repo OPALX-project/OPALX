@@ -43,14 +43,8 @@ public:
     /// Apply visitor to Septum.
     virtual void accept(BeamlineVisitor &) const;
 
-    virtual bool apply(const size_t &i, const double &t, double E[], double B[]);
-
-    virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
-
-    virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
-
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
-    virtual void initialise(PartBunch *bunch, const double &scaleFactor);
+    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunch *bunch);
 
     virtual void finalise();
 

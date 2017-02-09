@@ -81,6 +81,8 @@ void OpalSeptum::fillRegisteredAttributes(const ElementBase &base, ValueFlag fla
 
 
 void OpalSeptum::update() {
+    OpalElement::update();
+
     SeptumRep *sept =
         dynamic_cast<SeptumRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);

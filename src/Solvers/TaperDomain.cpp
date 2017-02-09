@@ -15,11 +15,11 @@ TaperDomain::TaperDomain(double rb, double rs, Vector_t nr, Vector_t hr, std::st
     setNr(nr);
     setHr(hr);
 
-    if(interpl == "constant")
+    if(interpl == "CONSTANT")
         interpolationMethod = CONSTANT;
-    else if(interpl == "linear")
+    else if(interpl == "LINEAR")
         interpolationMethod = LINEAR;
-    else if(interpl == "quadratic")
+    else if(interpl == "QUADRATIC")
         interpolationMethod = QUADRATIC;
 }
 
@@ -31,7 +31,7 @@ TaperDomain::~TaperDomain() {
 // for this domain we only have to calculate the intersection on one z
 // cross-section
 //if(hr[0] == getHr()[0] && hr[1] == getHr()[1])
-void TaperDomain::Compute(Vector_t hr) {
+void TaperDomain::compute(Vector_t hr) {
 
     setHr(hr);
     nxy_m = 0;
@@ -115,13 +115,13 @@ void TaperDomain::getBoundaryStencil(int x, int y, int z, double &W, double &E, 
     // determine which interpolation method we use for points near the boundary
     switch(interpolationMethod) {
         case CONSTANT:
-            ConstantInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
+            constantInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
             break;
         case LINEAR:
-            LinearInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
+            linearInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
             break;
         case QUADRATIC:
-            QuadraticInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
+            quadraticInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
             break;
     }
 
@@ -134,7 +134,7 @@ void TaperDomain::getBoundaryStencil(int x, int y, int z, double &W, double &E, 
 
 // here we do not need to calculate intersection so we make use of the
 // isInside function to determin if a given point is inside the domain
-void TaperDomain::ConstantInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
+void TaperDomain::constantInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
 
     //scaleFactor = hr[0]*hr[1]*hr[2];
     scaleFactor = 1.0;
@@ -200,7 +200,7 @@ void TaperDomain::ConstantInterpolation(int x, int y, int z, double &W, double &
 }
 
 //TODO: remove isInside()
-void TaperDomain::LinearInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
+void TaperDomain::linearInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
 
     scaleFactor = 1.0;
 
@@ -299,7 +299,7 @@ void TaperDomain::LinearInterpolation(int x, int y, int z, double &W, double &E,
 
 }
 
-void TaperDomain::QuadraticInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
+void TaperDomain::quadraticInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
 
     double cx = (x - floor((double)(nr[0] / 2.0))) * hr[0];
     double cy = (y - floor((double)(nr[1] / 2.0))) * hr[1];

@@ -14,6 +14,7 @@
 #include <VisMF.H>
 #include <FMultiGrid.H>
 
+
 #include <memory>
 #include <vector>
 
@@ -50,7 +51,7 @@ public:
     typedef PArray<MultiFab> container_t;
 #endif
     typedef Array<MultiFab*> container_pt;      // instead of PArray<MultiFab>
-    
+
     /*!
      * Prepares the solver and calls the solve_with_f90 function.
      * @param rhs is the density at each level (cell-centered)
@@ -70,7 +71,6 @@ public:
                          int finest_level,
                          Real offset,
                          bool timing=true);
-    
     /*!
      * Actual solve.
      * @param rhs is the density at each level (cell-centered)
@@ -91,10 +91,10 @@ public:
 #ifdef USEHYPRE
     void solve_with_hypre(MultiFab& soln, MultiFab& rhs, const BoxArray& bs,
                           const Geometry& geom);
-    
+
 private:
     void set_boundary(BndryData& bd, const MultiFab& rhs, int comp);
-    
+
 #endif
 };
 

@@ -14,6 +14,8 @@ set (_SRCS
   FM3DH5Block.cpp
   FM3DH5Block_nonscale.cpp
   FM3DMagnetoStaticH5Block.cpp
+  FM3DMagnetoStatic.cpp
+  FM3DMagnetoStaticExtended.cpp
   FM3DDynamic.cpp
   FM2DElectroStatic.cpp
   FM2DMagnetoStatic.cpp
@@ -45,4 +47,52 @@ include_directories (
 
 add_subdirectory (Interpolation)
 
-add_sources(${_SRCS})
+ADD_OPAL_SOURCES(${_SRCS})
+
+set (HDRS
+    AcceleratingField.h
+    Astra1DDynamic_fast.h
+    Astra1DDynamic.h
+    Astra1DElectroStatic_fast.h
+    Astra1DElectroStatic.h
+    Astra1D_fast.h
+    Astra1DMagnetoStatic_fast.h
+    Astra1DMagnetoStatic.h
+    BDipoleField.h
+    BMultipoleField.h
+    BSingleMultipoleField.h
+    ConstBField.h
+    ConstBzField.h
+    ConstEField.h
+    ConstEzField.h
+    EDipoleField.h
+    EMField.h
+    Fieldmap.h
+    Fieldmap.hpp
+    FM1DDynamic_fast.h
+    FM1DDynamic.h
+    FM1DElectroStatic_fast.h
+    FM1DElectroStatic.h
+    FM1DMagnetoStatic_fast.h
+    FM1DMagnetoStatic.h
+    FM1DProfile1.h
+    FM1DProfile2.h
+    FM2DDynamic.h
+    FM2DElectroStatic.h
+    FM2DMagnetoStatic.h
+    FM3DDynamic.h
+    FM3DH5Block.h
+    FM3DH5Block_nonscale.h
+    FM3DMagnetoStaticH5Block.h
+    FM3DMagnetoStatic.h
+    FM3DMagnetoStaticExtended.h
+    FMDummy.h
+    NullField.h
+    OscillatingField.h
+    SectorField.h
+    SectorMagneticFieldMap.h
+    StaticElectricField.h
+    StaticMagneticField.h
+)
+
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Fields")

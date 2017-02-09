@@ -18,6 +18,7 @@
 
 #include "BasicActions/Echo.h"
 #include "Attributes/Attributes.h"
+#include "Utility/IpplInfo.h"
 #include <iostream>
 
 
@@ -46,7 +47,8 @@ Echo *Echo::clone(const std::string &name) {
 
 
 void Echo::execute() {
-    std::cerr << Attributes::getString(itsAttr[0]) << std::endl;
+    if (Ippl::myNode() == 0)
+        std::cerr << Attributes::getString(itsAttr[0]) << std::endl;
 }
 
 

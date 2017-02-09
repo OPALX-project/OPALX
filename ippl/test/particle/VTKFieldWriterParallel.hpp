@@ -30,8 +30,8 @@ void dumpVTKVector( FieldType & f, const ParticleType & p,int iteration = 0, std
 	vtkout << "DATASET STRUCTURED_POINTS" << std::endl;
 	vtkout << "DIMENSIONS " << nx << " " << ny << " " << nz << std::endl;
 	//vtkout << "ORIGIN 0 0 0" << std::endl;
-	//vtkout << "ORIGIN "<< p->extend_l[0]+.5*dx <<" " << p->extend_l[1]+.5*dy << " " << p->extend_l[2]+.5*dy << std::endl;			
-	vtkout << "ORIGIN "<< p->extend_l[0]+.5*dx+lDom[0].first()*dx <<" " << p->extend_l[1]+.5*dy+lDom[1].first()*dy << " " << p->extend_l[2]+.5*dy+lDom[2].first()*dz << std::endl;			
+	//vtkout << "ORIGIN "<< p->extend_l[0]+.5*dx <<" " << p->extend_l[1]+.5*dy << " " << p->extend_l[2]+.5*dy << std::endl;
+	vtkout << "ORIGIN "<< p->extend_l[0]+.5*dx+lDom[0].first()*dx <<" " << p->extend_l[1]+.5*dy+lDom[1].first()*dy << " " << p->extend_l[2]+.5*dy+lDom[2].first()*dz << std::endl;
 	vtkout << "SPACING " << dx << " " << dy << " " << dz << std::endl;
 	vtkout << "POINT_DATA " << nx*ny*nz << std::endl;
 	vtkout << "VECTORS Vector_Value float" << std::endl;
@@ -79,8 +79,8 @@ void dumpVTKScalar( FieldType & f, const ParticleType & p,int iteration = 0, std
 	vtkout << "DIMENSIONS " << nx << " " << ny << " " << nz << std::endl;
 	//vtkout << "DIMENSIONS " << lDom[0].length()  << " " <<  lDom[1].length()  << " " <<  lDom[2].length()  << std::endl;
 	//vtkout << "ORIGIN 0 0 0" << std::endl;
-	vtkout << "ORIGIN "<< p->extend_l[0]+.5*dx+lDom[0].first()*dx <<" " << p->extend_l[1]+.5*dy+lDom[1].first()*dy << " " << p->extend_l[2]+.5*dy+lDom[2].first()*dz << std::endl;			
-	//vtkout << "ORIGIN "<< p->rmin_m[0]<<" " << p->rmin_m[1] << " " << p->rmin_m[2] << std::endl;			
+	vtkout << "ORIGIN "<< p->extend_l[0]+.5*dx+lDom[0].first()*dx <<" " << p->extend_l[1]+.5*dy+lDom[1].first()*dy << " " << p->extend_l[2]+.5*dy+lDom[2].first()*dz << std::endl;
+	//vtkout << "ORIGIN "<< p->rmin_m[0]<<" " << p->rmin_m[1] << " " << p->rmin_m[2] << std::endl;
 	vtkout << "SPACING " << dx << " " << dy << " " << dz << std::endl;
 	vtkout << "POINT_DATA " << nx*ny*nz << std::endl;
 	vtkout << "SCALARS Scalar_Value float" << std::endl;
@@ -119,25 +119,25 @@ void dumpVTKScalar( FieldType & f, const ParticleType & p,int iteration = 0, std
 
 template<typename ParticleType>
 void dumpParticlesOPAL( const ParticleType & p, int iteration=0) {
-    
+
   //    std::cout <<" Node " << std::to_string(Ippl::myNode()) << " has cached particles : " << p->getGhostNum() << std::endl;
     std::ofstream csvout;
     csvout.precision(10);
     csvout.setf(std::ios::scientific, std::ios::floatfield);
-    
+
     std::stringstream fname;
     fname << "data/dist";
     fname << std::setw(1) << Ippl::myNode();
     fname << std::setw(5) << "_it_";
     fname << std::setw(4) << std::setfill('0') << iteration;
     fname << ".dat";
-    
+
     // open a new data file for this iteration
     // and start with header
     csvout.open(fname.str().c_str(), std::ios::out);
 
     csvout << p->getLocalNum() << std::endl;
-    
+
     for (unsigned i=0; i<p->getLocalNum()+p->getGhostNum(); ++i) {
         csvout << p->R[i][0] << "\t" << p->v[i][0] << "\t" << p->R[i][1] << "\t" << p->v[i][1]<< "\t" << p->R[i][2]<< "\t" << p->v[i][2] <<  std::endl;
     }
@@ -174,7 +174,7 @@ void dumpParticlesCSV( const ParticleType & p, int iteration=0) {
 
 		csvout << p->R[i][0] << "," << p->R[i][1] << "," << p->R[i][2] << "," << p->Q[i] << "," << sqrt(p->EF[i][0]*p->EF[i][0]+p->EF[i][1]*p->EF[i][1]+p->EF[i][2]*p->EF[i][2]) << "," << p->ID[i]<< "," << p->v[i][0]<< "," << p->v[i][1]<< "," << p->v[i][2] << "," << distributionf << std::endl;
 	}
-	csvout << std::endl;			
+	csvout << std::endl;
 
 	// close the output file for this iteration:
 	csvout.close();
@@ -208,11 +208,11 @@ void dumpParticlesCSVp( const ParticleType & p, int iteration=0) {
 			//if(p->R[i][0]>60*1e-6 && p->R[i][0]<120*1e-6 && p->R[i][1]>60*1e-6 && p->R[i][1]<120*1e-6){
 			double zlab=1./p->gamma*p->R[i][2];
 			double pz_lab = p->gamma*p->p[i][2];
-			double pz0=p->beta0*p->gamma*p->m0; 
+			double pz0=p->beta0*p->gamma*p->m0;
 			csvout << p->R[i][0] << "," << p->R[i][1] << "," << p->R[i][2] <<"," << zlab <<","<< zlab+p->R56*pz_lab/pz0 << "," << p->Q[i] << "," << sqrt(p->EF[i][0]*p->EF[i][0]+p->EF[i][1]*p->EF[i][1]+p->EF[i][2]*p->EF[i][2]) << "," << p->ID[i]<< "," << p->p[i][0]<< "," << p->p[i][1]<< "," << p->p[i][2] << ","<< pz_lab << std::endl;
 			//}
 		}
-		csvout << std::endl;			
+		csvout << std::endl;
 
 		// close the output file for this iteration:
 		csvout.close();
@@ -288,10 +288,10 @@ void dumpParticlesCSVp( const ParticleType & p, int iteration=0) {
 
 				for (unsigned i=0; i<p->getLocalNum(); ++i) {
 					csvout << p->R[i][2];
-					if (i!=p->getLocalNum()-1) 
+					if (i!=p->getLocalNum()-1)
 						csvout << ",";
 				}
-				csvout << std::endl;			
+				csvout << std::endl;
 
 				// close the output file for this iteration:
 				csvout.close();
@@ -314,10 +314,10 @@ void dumpParticlesCSVp( const ParticleType & p, int iteration=0) {
 
 				for (unsigned i=0; i<p->getLocalNum(); ++i) {
 					csvout << p->EF[i][2];
-					if (i!=p->getLocalNum()-1) 
+					if (i!=p->getLocalNum()-1)
 						csvout << ",";
 				}
-				csvout << std::endl;			
+				csvout << std::endl;
 
 				// close the output file for this iteration:
 				csvout.close();

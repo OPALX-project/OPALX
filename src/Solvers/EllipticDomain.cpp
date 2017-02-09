@@ -70,7 +70,7 @@ EllipticDomain::~EllipticDomain() {
 // for this geometry we only have to calculate the intersection on
 // one x-y-plane
 // for the moment we center the ellipse around the center of the grid
-void EllipticDomain::Compute(Vector_t hr){
+void EllipticDomain::compute(Vector_t hr){
     //there is nothing to be done if the mesh spacings have not changed
     if(hr[0] == getHr()[0] && hr[1] == getHr()[1] && hr[2] == getHr()[2]) {
         hasGeometryChanged_m = false;
@@ -147,7 +147,7 @@ void EllipticDomain::Compute(Vector_t hr){
     }
 }
 
-void EllipticDomain::Compute(Vector_t hr, NDIndex<3> localId){
+void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId){
     //there is nothing to be done if the mesh spacings have not changed
     if(hr[0] == getHr()[0] && hr[1] == getHr()[1] && hr[2] == getHr()[2]) {
         hasGeometryChanged_m = false;
@@ -229,13 +229,13 @@ void EllipticDomain::getBoundaryStencil(int x, int y, int z, double &W, double &
         // determine which interpolation method we use for points near the boundary
     switch(interpolationMethod) {
         case CONSTANT:
-            ConstantInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
+            constantInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
             break;
         case LINEAR:
-            LinearInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
+            linearInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
             break;
         case QUADRATIC:
-            QuadraticInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
+            quadraticInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
             break;
     }
 
@@ -291,7 +291,7 @@ void EllipticDomain::getNeighbours(int x, int y, int z, int &W, int &E, int &S, 
 
 }
 
-void EllipticDomain::ConstantInterpolation(int x, int y, int z, double &WV, double &EV, double &SV, double &NV, double &FV, double &BV, double &CV, double &scaleFactor) {
+void EllipticDomain::constantInterpolation(int x, int y, int z, double &WV, double &EV, double &SV, double &NV, double &FV, double &BV, double &CV, double &scaleFactor) {
 
     scaleFactor = 1.0;
 
@@ -351,7 +351,7 @@ void EllipticDomain::ConstantInterpolation(int x, int y, int z, double &WV, doub
 
 }
 
-void EllipticDomain::LinearInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
+void EllipticDomain::linearInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
 
     scaleFactor = 1.0;
 
@@ -443,7 +443,7 @@ void EllipticDomain::LinearInterpolation(int x, int y, int z, double &W, double 
 */
 }
 
-void EllipticDomain::QuadraticInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
+void EllipticDomain::quadraticInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
 
     double cx = (x - (nr[0] - 1) / 2.0) * hr[0];
     double cy = (y - (nr[1] - 1) / 2.0) * hr[1];

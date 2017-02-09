@@ -1,0 +1,34 @@
+CMAKE_MINIMUM_REQUIRED (VERSION 2.8.10)
+PROJECT (OPAL2SDDS)
+SET (OPAL2SDDS_VERSION_MAJOR 0)
+SET (OPAL2SDDS_VERSION_MINOR 1)
+
+configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
+
+INCLUDE_DIRECTORIES (
+    ${SDDS_INCLUDE_DIR}
+    ${H5Hut_INCLUDE_DIR}
+    ${HDF5_INCLUDE_DIR}
+)
+
+LINK_DIRECTORIES (
+    ${SDDS_LIBRARY_DIR}
+)
+
+SET (SDDS_LIBS
+    mdbcommon
+    SDDS1
+    mdblib
+    lzma
+    ${H5Hut_LIBRARY}
+    ${HDF5_LIBRARY}
+    z
+    mpi
+    mpi_cxx
+    dl
+)
+
+ADD_EXECUTABLE( opal2sdds main.cpp )
+TARGET_LINK_LIBRARIES( opal2sdds ${SDDS_LIBS} )
+
+INSTALL(TARGETS opal2sdds RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")

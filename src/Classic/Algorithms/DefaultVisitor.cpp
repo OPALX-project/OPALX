@@ -37,6 +37,7 @@
 #include "AbsBeamline/Patch.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
+#include "AbsBeamline/RBend3D.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/VariableRFCavity.h"
 #include "AbsBeamline/TravelingWave.h"
@@ -46,6 +47,7 @@
 #include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
+#include "AbsBeamline/Source.h"
 #include "AbsBeamline/ParallelPlate.h"
 #include "AbsBeamline/CyclotronValley.h"
 #include "AbsBeamline/Stripper.h"
@@ -160,6 +162,9 @@ void DefaultVisitor::visitRBend(const RBend &bend) {
     applyDefault(bend);
 }
 
+void DefaultVisitor::visitRBend3D(const RBend3D &bend) {
+    applyDefault(bend);
+}
 
 void DefaultVisitor::visitVariableRFCavity(const VariableRFCavity &vcav) {
     applyDefault(vcav);
@@ -202,6 +207,10 @@ void DefaultVisitor::visitSeptum(const Septum &sept) {
 
 void DefaultVisitor::visitSolenoid(const Solenoid &sol) {
     applyDefault(sol);
+}
+
+void DefaultVisitor::visitSource(const Source &sou) {
+    applyDefault(sou);
 }
 
 void DefaultVisitor::visitParallelPlate(const ParallelPlate &pplate) {

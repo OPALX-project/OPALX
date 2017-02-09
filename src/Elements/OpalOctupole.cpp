@@ -40,15 +40,12 @@ OpalOctupole::OpalOctupole():
                 "The \"OCTUPOLE\" element defines a Octupole.") {
     itsAttr[K3] = Attributes::makeReal
                   ("K3", "Normalised upright octupole coefficient in m^(-4)");
+    itsAttr[DK3] = Attributes::makeReal
+                  ("DK3", "Normalised upright octupole coefficient error in m^(-4)");
     itsAttr[K3S] = Attributes::makeReal
                    ("K3S", "Normalised skew octupole coefficient in m^(-4)");
-    itsAttr[DX] = Attributes::makeReal
-      ("DX", "Misalignment in x direction",0.0);
-    itsAttr[DY] = Attributes::makeReal
-      ("DY", "Misalignment in y direction",0.0);
-
-    registerRealAttribute("DX");
-    registerRealAttribute("DY");
+    itsAttr[DK3S] = Attributes::makeReal
+                   ("DK3S", "Normalised skew octupole coefficient error in m^(-4)");
 
     setElement((new MultipoleRep("OCTUPOLE"))->makeWrappers());
 }
@@ -122,6 +119,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalOctupole::update() {
+    OpalElement::update();
+
     MultipoleRep *oct =
         dynamic_cast<MultipoleRep *>(getElement()->removeWrappers());
     oct->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
@@ -131,12 +130,8 @@ void OpalOctupole::update() {
     field.setSkewComponent(4, factor * Attributes::getReal(itsAttr[K3S]));
     oct->setField(field);
 
-    oct->setNormalComponent(4, Attributes::getReal(itsAttr[K3]));
-    oct->setSkewComponent(4, Attributes::getReal(itsAttr[K3S]));
-
-    double dx = Attributes::getReal(itsAttr[DX]);
-    double dy = Attributes::getReal(itsAttr[DY]);
-    oct->setMisalignment(dx, dy, 0.0);
+    oct->setNormalComponent(4, Attributes::getReal(itsAttr[K3]), Attributes::getReal(itsAttr[DK3]));
+    oct->setSkewComponent(4, Attributes::getReal(itsAttr[K3S]), Attributes::getReal(itsAttr[DK3S]));
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(oct);

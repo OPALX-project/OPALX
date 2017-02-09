@@ -14,7 +14,7 @@ typedef ParticleInteractLayout<double, 3> playout_t;
 template<class PL>
 class ChargedParticles : public IpplParticleBase<PL> {
 
-  
+
   typedef UniformCartesian<3,double>               Mesh_t;
   typedef Cell                                     Center_t;
   typedef CenteredFieldLayout<3, Mesh_t, Center_t> FieldLayout_t;
@@ -30,7 +30,7 @@ class ChargedParticles : public IpplParticleBase<PL> {
 
 
  private:
-    
+
   Field_t  rho_m;
   BConds<double,3,Mesh_t,Center_t> bc_m;
 
@@ -47,7 +47,7 @@ class ChargedParticles : public IpplParticleBase<PL> {
   Vector_t rmean_m, pmean_m;
   Vector_t rrms_m, prms_m, eps_m, rprms_m;
   Vector_t csbeta_m,csgamma_m,csalpha_m;
-  
+
   // macroparticle charge in Cb
   double q_m;
   double spos_m;
@@ -77,10 +77,10 @@ class ChargedParticles : public IpplParticleBase<PL> {
   double deltau_analytic;
   double deltau_semianalytic;
   unsigned events;
-  
+
 public:
 
-  // the attributes for this set of particles (atoms).  
+  // the attributes for this set of particles (atoms).
 
   ParticleInteractAttrib< Vektor<double,3> > P;
   ParticleInteractAttrib< double > Q;
@@ -101,45 +101,45 @@ public:
     Inform msg("ChargedParticles ");
 
     IpplRandom.SetSeed(static_cast<unsigned long>(23131719));
-	
+
     Mesh_t *mesh;
     FieldLayout_t *FL;
     NDIndex<3> domain;
     e_dim_tag decomp[3];
 
     Vektor<int,3> nr(simCfg.nx,simCfg.ny,simCfg.nz);
-    
+
     for(int i=0; i<3; i++)
       domain[i] = domain[i] = Index(nr[i] + 1);
-  
-    for (int d=0; d < 3; ++d) 
-      decomp[d] = (d == parallelDim) ? PARALLEL : SERIAL; 
-  
+
+    for (int d=0; d < 3; ++d)
+      decomp[d] = (d == parallelDim) ? PARALLEL : SERIAL;
+
     // create mesh and layout objects for this problem domain
-    
+
     mesh = new Mesh_t(domain);
     FL   = new FieldLayout_t(*mesh, decomp);
 
     initialize(new PL(*FL,*mesh));
-    
+
     // register our attributes with the base class
     addAttribute(P);
     addAttribute(Q);
     addAttribute(collided);
-    
+
     // set the interaction radius for the atoms.
     getLayout().setInteractionRadius(interrad_m);
-    
+
     lost_num = 0;
     lost2_num = 0;
-    
+
     for (int i=0; i < 2*3; ++i) {
       bc_m[i] = new ZeroFace<double,3,Mesh_t,Center_t>(i);
       getBConds()[i] = ParticleNoBCond;
     }
-    
+
     rho_m.initialize(getMesh(), getFieldLayout(), GuardCellSizes<Dim>(1), bc_m);
-    
+
     msg << " Field and domain construction done = " << domain << endl;
 
     deltau = 0;
@@ -149,28 +149,28 @@ public:
     deltau_semianalytic = 0;
     events = 0;
   }
-  
-  /** 
+
+  /**
    * Interpolates the charge in Q onto a grid rho_m
    * @param none
    * @return none
-   */  
+   */
   void scatterQ() {
-    rho_m = 0.0;                                  
-    Q.scatter(rho_m, this->R, IntrplNGP_t());                             
+    rho_m = 0.0;
+    Q.scatter(rho_m, this->R, IntrplNGP_t());
   }
-  
-  /** 
-   * Shows how to work with fields and validated the 
+
+  /**
+   * Shows how to work with fields and validated the
    * charge deposition method. Is used if FIELDCHEK
    * is defined
    * @param none
    * @return none
-   */  
+   */
   void checkScatteredQ() {
-    
+
     Inform m("checkScatteredQ ");
-    
+
     NDIndex<Dim> idx = getFieldLayout().getLocalNDIndex();
     NDIndex<Dim> elem;
     double lQ = 0.0;
@@ -179,12 +179,12 @@ public:
     double gV = 0.0;
 
     for (int i=idx[0].min(); i<=idx[0].max(); ++i) {
-      elem[0]=Index(i,i); 
+      elem[0]=Index(i,i);
       for (int j=idx[1].min(); j<=idx[1].max(); ++j) {
 	elem[1]=Index(j,j);
 	for (int k=idx[2].min(); k<=idx[2].max(); ++k) {
-	  elem[2]=Index(k,k);	
-	  lQ += rho_m.localElement(elem);	
+	  elem[2]=Index(k,k);
+	  lQ += rho_m.localElement(elem);
 	  lV += getMesh().getCellVolume(elem);
 	}
       }
@@ -197,7 +197,7 @@ public:
     m << "gQ= " << gQ << " gV= " << gV << " hr= " << hr_m << endl;
     m << "s1Q= " << s1Q << " s2Q= " << s2Q << " delta= " << abs(s1Q-s2Q) << endl;
   }
-    
+
 
   double getLocalVolumes(Vector_t r) {
     double ret=0;
@@ -205,7 +205,7 @@ public:
     NDIndex<Dim> elem = getMesh().getCellContaining(r);
     if (lIdx.contains(elem)) {
       ret = getMesh().getCellVolume(elem);
-    }    
+    }
     return ret;
   }
 
@@ -216,18 +216,18 @@ public:
     NDIndex<Dim> elem = getMesh().getCellContaining(r);
     if (lIdx.contains(elem)) {
       ret = rho_m.localElement(elem);
-    }    
+    }
     return ret;
   }
 
 
 
 
-  /** 
+  /**
    * Calculats the local density at a given particle position r
-   * @param r position of the particle 
-   * @return local density in [Q m**-3] 
-   */  
+   * @param r position of the particle
+   * @return local density in [Q m**-3]
+   */
   double getLocalDensity(Vector_t r) {
     double den=0;
     NDIndex<Dim> lIdx = getFieldLayout().getLocalNDIndex();
@@ -236,16 +236,16 @@ public:
       double lDen = rho_m.localElement(elem);
       double lVol = getMesh().getCellVolume(elem);
       den = lDen/lVol;
-    }    
+    }
     return den;
   }
 
-  /** 
+  /**
    * Calculats the analytic local density at a given particle position r
-   * @param r position of the particle 
-   * @param p momentum of the particle 
-   * @return local density in [Q m**-3] 
-   */  
+   * @param r position of the particle
+   * @param p momentum of the particle
+   * @return local density in [Q m**-3]
+   */
   double getLocalDensityAnalytic(Vector_t r, Vector_t p) {
     Vector_t e = get_emit();
     Vector_t a = get_csalpha();
@@ -256,7 +256,7 @@ public:
 
     for(unsigned i = 0; i < 3; i++)
       rho(i) = 1 / (2 * Physics::pi * e(i)) * exp(- abs(1/(2 * e(i)) * (g(i) * r(i) * r(i) + (i == 2 ? 2 * a(i) * r(i) * p(i) : 0) + b(i) * p(i) * p(i))));
-    
+
     return rho(0) * rho(1) * rho(2);
   }
 
@@ -268,13 +268,13 @@ public:
     return Physics::pi * 4 / 3 * pow(5.0,3.0) * get_rrms()(0) * get_rrms()(1) * get_rrms()(2);
   }
 
- /** 
+ /**
    * Prototypes implemented in GTChargedParticles.cpp
-   * 
-   * 
-   * 
-   */   
-  
+   *
+   *
+   *
+   */
+
   void openFiles(string baseFn, string title,bool restartMode);
   void closeFiles();
   void calcBeamParameters();
@@ -286,12 +286,12 @@ public:
   void writePhaseSpaceSDDS(string baseName);
   void writePartSDDSHeader(string title, unsigned int N, double qTot);
 
- /** 
+ /**
    * Sets the interaction radius. This is the sphere in which getPairList
    * will be looking for particles
    * @param r radius of tghe sphere
-   * 
-   */  
+   *
+   */
   void setInteractionRadius(double r) {getLayout().setInteractionRadius(r);}
 
   /**
@@ -313,7 +313,7 @@ public:
     collided[i] = 1;
     collided[j] = 1;
   }
-  
+
   inline const Mesh_t& getMesh() const { return getLayout().getLayout().getMesh(); }
   inline       Mesh_t& getMesh() { return getLayout().getLayout().getMesh(); }
   inline const FieldLayout_t& getFieldLayout() const {
@@ -326,19 +326,19 @@ public:
   inline bool isRoot() { return Ippl::myNode()==0; }
 
   void boundp() {
-    
+
     bounds(R,rmin_m,rmax_m);
     bounds(P,pmin_m,pmax_m);
-    
+
     NDIndex<3> domain = getFieldLayout().getDomain();
     for(int i=0; i<3; i++)
       nr_m[i] = domain[i].length();
-    
+
     Vektor<double,3> len = (rmax_m - rmin_m);
-      
+
     for(int i=0; i<3; i++)
       hr_m[i]    = (len[i] / (nr_m[i]-1));
-      
+
     // rescale mesh
     getMesh().set_meshSpacing(&(hr_m[0]));
     getMesh().set_origin( rmin_m );
@@ -346,117 +346,117 @@ public:
     //    BinaryRepartition(*this);
     update();
 
-    rho_m.initialize(getMesh(), getFieldLayout(), GuardCellSizes<Dim>(1), bc_m);                     
+    rho_m.initialize(getMesh(), getFieldLayout(), GuardCellSizes<Dim>(1), bc_m);
   }
 
- /** 
-   * 
-   * 
-   * 
+ /**
+   *
+   *
+   *
    * @return the macroparticle charge in Cb
-   */  
+   */
   inline double getMoment(int i, int j) {return moments_m[i][j];}
 
 
- /** 
-   * 
-   * 
-   * 
+ /**
+   *
+   *
+   *
    * @return the macroparticle charge in Cb
-   */  
+   */
   //void writePartSDDSHeader(string title, unsigned int N, double qTot);
 
 
- /** 
-   * 
-   * 
-   * 
+ /**
+   *
+   *
+   *
    * @return the macroparticle charge in Cb
-   */  
+   */
   inline double getQ()    { return q_m;}
-  
-  
-  /** 
-   * 
-   * 
-   * 
+
+
+  /**
+   *
+   *
+   *
    * @return the actual simulation time [s]
-   */    
+   */
   inline double getTime()  { return spos_m; }
-  
 
-  /** 
-   * 
-   * 
-   * 
+
+  /**
+   *
+   *
+   *
    * @return increment the simulation time [s]
-   */  
+   */
   inline void incTime(double tInc) { actTime_m += tInc;}
- 
 
-  /** 
-   * 
-   * 
-   * 
+
+  /**
+   *
+   *
+   *
    * @return the relativistic factor []
-   */  
+   */
   inline double getGamma() {return pdata_m.getGamma();}
 
 
-  /** 
-   * 
-   * 
-   * 
+  /**
+   *
+   *
+   *
    * @return beta v/c []
-   */  
+   */
   inline double getBeta()  {return pdata_m.getBeta();}
-  
-  
-  /** 
-   * 
-   * 
-   * 
+
+
+  /**
+   *
+   *
+   *
    * @return get the actual position along the design orbit [m]
-   */  
+   */
   inline double set_spos(double s) { spos_m = s; }
- 
-  /** 
-   * 
-   * 
-   * 
+
+  /**
+   *
+   *
+   *
    * @return get the actual position along the design orbit [m]
-   */  
+   */
   inline double get_spos() { return spos_m; }
 
 
 
-  /** 
-   * 
-   * 
-   * 
+  /**
+   *
+   *
+   *
    * @return get the total charge of the bunch [Cb]
-   */  
+   */
   inline double getQTot() { return getTotalNum()*q_m; }
 
 
 
-  /** 
+  /**
    *    * --------- max
    *    *     0/0
    *    * --------- *
    *
    * @return get the maximal (max) extent of the bunch [m]
-   */  
+   */
   inline Vector_t get_maxExtend() { return rmax_m; }
 
-  
-  /** 
+
+  /**
    *    * --------- *
    *    *     0/0
    *  min --------- *
    *
    * @return get the minimal (min) extent of the bunch [m]
-   */  
+   */
   inline Vector_t get_origin() { return rmin_m; }
 
 
@@ -469,7 +469,7 @@ public:
   inline Vector_t get_csbeta() const { return csbeta_m; }
   inline Vector_t get_csgamma() const { return csgamma_m; }
   inline Vector_t get_csalpha() const { return csalpha_m; }
- 
+
   inline Vector_t get_rmean() const { return rmean_m; }
   inline Vector_t get_pmean() const { return pmean_m; }
   inline Vector_t get_rrms() const { return rrms_m; }
@@ -488,19 +488,19 @@ public:
 
   /**
    * @param the number of collisions during the computation
-   */  
+   */
   inline void set_collisionnum(unsigned n) {collision_num = n;}
-  /** 
+  /**
    * add_lost increases the number of particles lost by touschek scattering in the
    * longitudinal directions
    * @param i number of lost particles
    */
   inline void add_lost(int i) {lost_num+=i;}
-  /** 
+  /**
    * add_lost2 increases the number of particles lost by touschek scattering in the
    * transversal directions
    * @param i number of lost particles
-   */  
+   */
   inline void add_lost2(int i) {lost2_num =+ i;}
   /**
    * @return the number of particles lost due to longitudinal scattering
@@ -558,27 +558,27 @@ public:
   void writeRestartInfo(string basename, unsigned turn);
 
   void getInbalance(string fn, bool first) {
-  
+
     unsigned long int locN = getLocalNum();
     unsigned long int idealN = getTotalNum()/Ippl::getNodes();
     ofstream of;
- 
-    /* 
+
+    /*
        Get the particle inbalance from all the nodes
     */
     double  *locBal  = (double*) malloc(Ippl::getNodes()*sizeof(double));
     double  *globBal = (double*) malloc(Ippl::getNodes()*sizeof(double));
-  
-    for(int i=0; i<Ippl::getNodes(); i++) 
+
+    for(int i=0; i<Ippl::getNodes(); i++)
       locBal[i]=globBal[i]=0.0;
-  
+
     locBal[Ippl::myNode()] = locN;
-    
+
     reduce(locBal, locBal + Ippl::getNodes(), globBal, OpAddAssign());
-    
+
     if (first && isRoot()) {
       of.open(fn.c_str(),ios::out);
-      of << "# inbalance N_i, i=1.." << Ippl::getNodes() << " and Ntotal " << endl;  
+      of << "# inbalance N_i, i=1.." << Ippl::getNodes() << " and Ntotal " << endl;
       for(int i=0; i<Ippl::getNodes(); i++)
 	of << globBal[i] << "\t";
       of << getTotalNum() << endl;

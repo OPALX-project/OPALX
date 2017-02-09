@@ -360,15 +360,15 @@ public:
 
     /// Make representation unique.
     inline void unique();
-    
+
     /// Get a list containing the indexes of non-zero coefficients of a FTps
     // Returns a STL list containing the indexes
     std::list<int> getListOfNonzeroCoefficients() const;
-    
+
     /// Extract exponents of coefficient
     // Retuns a 1D Array containing the exponents to index [b]index[/b].
     FArray1D<int, N> extractExponents(int index) const;
-    
+
     /// Multiply FTps with itself
     // Return the power of the truncated power series
     FTps<T, N> makePower(int power) const;

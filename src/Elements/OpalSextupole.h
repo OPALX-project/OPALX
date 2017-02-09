@@ -32,9 +32,9 @@ public:
     /// The attributes of class OpalSextupole.
     enum {
         K2 = COMMON,  // The normal sextupole strength.
+        DK2,          // The normal sextupole strength error.
         K2S,          // The skew sextupole strength.
-        DX,
-        DY,
+        DK2S,         // The skew sextupole strength error.
         SIZE
     };
 

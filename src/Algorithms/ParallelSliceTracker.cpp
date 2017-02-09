@@ -212,8 +212,6 @@ void ParallelSliceTracker::prepareSections() {
     itsOpalBeamline_m->print(msg);
 
     for (int i = 0; i < itsBunch_m->getLocalNum(); i++) {
-        auto &l = itsBunch_m->LastSection[i];
-        l = -1;
         Vector_t pos = Vector_t(itsBunch_m->getX(i),
                 itsBunch_m->getY(i), itsBunch_m->getZ(i));
         itsOpalBeamline_m->getSectionIndexAt(pos, l);
@@ -238,12 +236,6 @@ void ParallelSliceTracker::computeExternalFields() {
         //FIXME: why not x=y=0.0?
         Vector_t pos = Vector_t(itsBunch_m->getX(i),
                 itsBunch_m->getY(i), itsBunch_m->getZ(i));
-
-        auto &ls = itsBunch_m->LastSection[i];
-        itsOpalBeamline_m->getSectionIndexAt(pos, ls);
-
-        if (ls != itsBunch_m->LastSection[i])
-            itsBunch_m->LastSection[i] = ls;
 
         unsigned long rtv = itsOpalBeamline_m->getFieldAt(i, pos, ls,
                 currentSimulationTime_m , externalE, externalB);

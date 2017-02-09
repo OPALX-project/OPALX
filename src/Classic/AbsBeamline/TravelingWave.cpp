@@ -38,13 +38,16 @@ TravelingWave::TravelingWave():
     CoreFilename_m(""),
     CoreFieldmap_m(NULL),
     scale_m(1.0),
+    scaleError_m(0.0),
     scaleCore_m(1.0),
+    scaleCoreError_m(0.0),
     phase_m(0.0),
     phaseCore1_m(0.0),
     phaseCore2_m(0.0),
     phaseExit_m(0.0),
+    phaseError_m(0.0),
     frequency_m(0.0),
-    startField_m(0.0),
+    length_m(0.0),
     startCoreField_m(0.0),
     startExitField_m(0.0),
     mappedStartExitField_m(0.0),
@@ -53,7 +56,8 @@ TravelingWave::TravelingWave():
     CellLength_m(0.0),
     Mode_m(1),
     fast_m(false),
-    autophaseVeto_m(false)
+    autophaseVeto_m(false),
+    designEnergy_m(-1.0)
 {}
 
 
@@ -62,13 +66,16 @@ TravelingWave::TravelingWave(const TravelingWave &right):
     CoreFilename_m(right.CoreFilename_m),
     CoreFieldmap_m(NULL),
     scale_m(right.scale_m),
+    scaleError_m(right.scaleError_m),
     scaleCore_m(right.scaleCore_m),
+    scaleCoreError_m(right.scaleCoreError_m),
     phase_m(right.phase_m),
     phaseCore1_m(right.phaseCore1_m),
     phaseCore2_m(right.phaseCore2_m),
     phaseExit_m(right.phaseExit_m),
+    phaseError_m(right.phaseError_m),
     frequency_m(right.frequency_m),
-    startField_m(right.startField_m),
+    length_m(right.length_m),
     startCoreField_m(right.startCoreField_m),
     startExitField_m(right.startExitField_m),
     mappedStartExitField_m(right.mappedStartExitField_m),
@@ -77,7 +84,8 @@ TravelingWave::TravelingWave(const TravelingWave &right):
     CellLength_m(right.CellLength_m),
     Mode_m(right.Mode_m),
     fast_m(right.fast_m),
-    autophaseVeto_m(right.autophaseVeto_m)
+    autophaseVeto_m(right.autophaseVeto_m),
+    designEnergy_m(right.designEnergy_m)
 {}
 
 
@@ -86,13 +94,16 @@ TravelingWave::TravelingWave(const std::string &name):
     CoreFilename_m(""),
     CoreFieldmap_m(NULL),
     scale_m(1.0),
+    scaleError_m(0.0),
     scaleCore_m(1.0),
+    scaleCoreError_m(0.0),
     phase_m(0.0),
     phaseCore1_m(0.0),
     phaseCore2_m(0.0),
     phaseExit_m(0.0),
+    phaseError_m(0.0),
     frequency_m(0.0),
-    startField_m(0.0),
+    length_m(0.0),
     startCoreField_m(0.0),
     startExitField_m(0.0),
     mappedStartExitField_m(0.0),
@@ -101,7 +112,8 @@ TravelingWave::TravelingWave(const std::string &name):
     CellLength_m(0.0),
     Mode_m(1),
     fast_m(false),
-    autophaseVeto_m(false)
+    autophaseVeto_m(false),
+    designEnergy_m(-1.0)
 {}
 
 
@@ -116,74 +128,6 @@ void TravelingWave::accept(BeamlineVisitor &visitor) const {
     visitor.visitTravelingWave(*this);
 }
 
-void TravelingWave::setFieldMapFN(std::string fn) {
-    CoreFilename_m = fn;
-}
-
-// void TravelingWave::setEntryFieldMapFN(std::string fn)
-// {
-//   EntryFilename_m = fn;
-// }
-
-// void TravelingWave::setExitFieldMapFN(std::string fn)
-// {
-//   ExitFilename_m = fn;
-// }
-
-std::string TravelingWave::getFieldMapFN() const {
-    return CoreFilename_m;
-}
-
-void TravelingWave::setAmplitudem(double vPeak) {
-    scale_m = vPeak;
-}
-
-void TravelingWave::setFrequencym(double freq) {
-    frequency_m = freq;
-}
-
-
-double TravelingWave::getFrequencym() const {
-    return frequency_m;
-}
-
-
-void TravelingWave::setPhasem(double phase) {
-    using Physics::pi;
-
-    phase_m = phase;
-    phaseCore1_m = phase_m + pi * Mode_m / 2.0;
-    phaseCore2_m = phase_m + pi * Mode_m * 1.5;
-    phaseExit_m = phase_m - 2.0 * pi * ((NumCells_m - 1) * Mode_m - std::floor((NumCells_m - 1) * Mode_m));
-}
-
-double TravelingWave::getPhasem() const {
-    return phase_m;
-}
-
-void TravelingWave::setNumCells(int NumCells) {
-    NumCells_m = NumCells;
-}
-
-void TravelingWave::setFast(bool fast) {
-    fast_m = fast;
-}
-
-
-bool TravelingWave::getFast() const {
-    return fast_m;
-}
-
-void TravelingWave::setAutophaseVeto(bool veto) {
-    autophaseVeto_m = veto;
-}
-
-
-bool TravelingWave::getAutophaseVeto() const {
-    return autophaseVeto_m;
-}
-
-
 /**
  * ENVELOPE COMPONENT for radial focussing of the beam
  * Calculates the transverse envelope component for the traveling wave
@@ -194,7 +138,7 @@ void TravelingWave::addKR(int i, double t, Vector_t &K) {
 
     Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
     Vector_t tmpE_diff(0.0, 0.0, 0.0), tmpB_diff(0.0, 0.0, 0.0);
-    Vector_t tmpA0(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m, RefPartBunch_m->getZ(i) - startField_m);
+    Vector_t tmpA0(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), RefPartBunch_m->getZ(i) - 0.5 * PeriodLength_m);
 
     double g = RefPartBunch_m->getGamma(i);
     double b = RefPartBunch_m->getBeta(i);
@@ -268,8 +212,8 @@ void TravelingWave::addKT(int i, double t, Vector_t &K) {
     double oldK = tempK(0);
 
     //get coordinates
-    double dx = RefPartBunch_m->getX0(i) - dx_m;
-    double dy = RefPartBunch_m->getY0(i) - dy_m;
+    double dx = RefPartBunch_m->getX0(i);
+    double dy = RefPartBunch_m->getY0(i);
 
     K += Vector_t(oldK * dx, oldK * dy, 0.0);
 }
@@ -306,34 +250,72 @@ void TravelingWave::addKT(int i, double t, Vector_t &K) {
 */
 
 
-bool TravelingWave::apply(const size_t &i, const double &t, double E[], double B[]) {
-    Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
-    Vector_t Rt(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), RefPartBunch_m->getZ(i));
-    if(apply(Rt, Vector_t(0.0), t, Ev, Bv)) return true;
+bool TravelingWave::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
+    return apply(RefPartBunch_m->R[i], RefPartBunch_m->P[i], t, E, B);
+}
 
-    E[0] = Ev(0);
-    E[1] = Ev(1);
-    E[2] = Ev(2);
-    B[0] = Bv(0);
-    B[1] = Bv(1);
-    B[2] = Bv(2);
+bool TravelingWave::apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) {
+    Vector_t tmpR = R - Vector_t(0, 0, 0.5 * PeriodLength_m);
+    double tmpcos, tmpsin;
+    Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+
+    if (tmpR(2) < 0.0 && tmpR(2) >= length_m) return false;
+    if (!CoreFieldmap_m->isInside(tmpR)) return true;
+
+    if (tmpR(2) < startCoreField_m) {
+        tmpcos =  (scale_m + scaleError_m) * cos(frequency_m * t + phase_m + phaseError_m);
+        tmpsin = -(scale_m + scaleError_m) * sin(frequency_m * t + phase_m + phaseError_m);
+
+    } else if (tmpR(2) < startExitField_m) {
+        Vector_t tmpE2(0.0, 0.0, 0.0), tmpB2(0.0, 0.0, 0.0);
+        tmpR(2) -= startCoreField_m;
+        const double z = tmpR(2);
+        tmpR(2) = tmpR(2) - PeriodLength_m * floor(tmpR(2) / PeriodLength_m);
+        tmpR(2) += startCoreField_m;
+
+        tmpcos =  (scaleCore_m + scaleCoreError_m) * cos(frequency_m * t + phaseCore1_m + phaseError_m);
+        tmpsin = -(scaleCore_m + scaleCoreError_m) * sin(frequency_m * t + phaseCore1_m + phaseError_m);
+        CoreFieldmap_m->getFieldstrength(R, tmpE, tmpB);
+        E += tmpcos * tmpE;
+        B += tmpsin * tmpB;
+
+        tmpE = 0.0;
+        tmpB = 0.0;
+
+        tmpR(2) = z + CellLength_m;
+        tmpR(2) = tmpR(2) - PeriodLength_m * floor(tmpR(2) / PeriodLength_m);
+        tmpR(2) += startCoreField_m;
+
+        tmpcos =  (scaleCore_m + scaleCoreError_m) * cos(frequency_m * t + phaseCore2_m + phaseError_m);
+        tmpsin = -(scaleCore_m + scaleCoreError_m) * sin(frequency_m * t + phaseCore2_m + phaseError_m);
+
+    } else {
+        tmpcos =  (scale_m + scaleError_m) * cos(frequency_m * t + phaseExit_m + phaseError_m);
+        tmpsin = -(scale_m + scaleError_m) * sin(frequency_m * t + phaseExit_m + phaseError_m);
+        tmpR(2) -= mappedStartExitField_m;
+    }
+
+    CoreFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
+
+    E += tmpcos * tmpE;
+    B += tmpsin * tmpB;
 
     return false;
 }
 
-bool TravelingWave::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
+bool TravelingWave::applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) {
     double tmpcos, tmpsin;
-
-    Vector_t tmpR(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m , RefPartBunch_m->getZ(i) - startField_m);
     Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-    bool out_of_bounds = false;
 
+    Vector_t tmpR(R(0), R(1), R(2) - 0.5 * PeriodLength_m);
+    if (tmpR(2) < 0.0 && tmpR(2) >= length_m) return false;
+    if (!CoreFieldmap_m->isInside(tmpR)) return true;
 
-    if(tmpR(2) < startCoreField_m) {
+    if (tmpR(2) < startCoreField_m) {
         tmpcos =  scale_m * cos(frequency_m * t + phase_m);
         tmpsin = -scale_m * sin(frequency_m * t + phase_m);
 
-    } else if(tmpR(2) < startExitField_m) {
+    } else if (tmpR(2) < startExitField_m) {
         Vector_t tmpE2(0.0, 0.0, 0.0), tmpB2(0.0, 0.0, 0.0);
         tmpR(2) -= startCoreField_m;
         const double z = tmpR(2);
@@ -342,54 +324,7 @@ bool TravelingWave::apply(const size_t &i, const double &t, Vector_t &E, Vector_
 
         tmpcos =  scaleCore_m * cos(frequency_m * t + phaseCore1_m);
         tmpsin = -scaleCore_m * sin(frequency_m * t + phaseCore1_m);
-        out_of_bounds = CoreFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
-        E += tmpcos * tmpE;
-        B += tmpsin * tmpB;
-
-        tmpE = 0.0;
-        tmpB = 0.0;
-
-        tmpR(2) = z + CellLength_m;
-        tmpR(2) = tmpR(2) - PeriodLength_m * floor(tmpR(2) / PeriodLength_m);
-        tmpR(2) += startCoreField_m;
-
-        tmpcos =  scaleCore_m * cos(frequency_m * t + phaseCore2_m);
-        tmpsin = -scaleCore_m * sin(frequency_m * t + phaseCore2_m);
-
-    } else {
-        tmpcos =  scale_m * cos(frequency_m * t + phaseExit_m);
-        tmpsin = -scale_m * sin(frequency_m * t + phaseExit_m);
-        tmpR(2) -= mappedStartExitField_m;
-
-    }
-
-    out_of_bounds = out_of_bounds || CoreFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
-    E += tmpcos * tmpE;
-    B += tmpsin * tmpB;
-
-    return out_of_bounds;
-}
-
-bool TravelingWave::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
-    double tmpcos, tmpsin;
-    Vector_t tmpR(R(0) - dx_m, R(1) - dy_m , R(2) - startField_m);
-    Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-    bool out_of_bounds = false;
-
-
-    if(tmpR(2) < startCoreField_m) {
-        tmpcos =  scale_m * cos(frequency_m * t + phase_m);
-        tmpsin = -scale_m * sin(frequency_m * t + phase_m);
-    } else if(tmpR(2) < startExitField_m) {
-        Vector_t tmpE2(0.0, 0.0, 0.0), tmpB2(0.0, 0.0, 0.0);
-        tmpR(2) -= startCoreField_m;
-        const double z = tmpR(2);
-        tmpR(2) = tmpR(2) - PeriodLength_m * floor(tmpR(2) / PeriodLength_m);
-        tmpR(2) += startCoreField_m;
-
-        tmpcos =  scaleCore_m * cos(frequency_m * t + phaseCore1_m);
-        tmpsin = -scaleCore_m * sin(frequency_m * t + phaseCore1_m);
-        out_of_bounds = CoreFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
+        CoreFieldmap_m->getFieldstrength(R, tmpE, tmpB);
         E += tmpcos * tmpE;
         B += tmpsin * tmpB;
 
@@ -409,17 +344,23 @@ bool TravelingWave::apply(const Vector_t &R, const Vector_t &centroid, const dou
         tmpR(2) -= mappedStartExitField_m;
     }
 
-    out_of_bounds = out_of_bounds || CoreFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
+    CoreFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
+
     E += tmpcos * tmpE;
     B += tmpsin * tmpB;
 
-    return out_of_bounds;
-
+    return false;
 }
 
-void TravelingWave::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
+void TravelingWave::initialise(PartBunch *bunch, double &startField, double &endField) {
     using Physics::pi;
     using Physics::two_pi;
+
+    if (bunch == NULL) {
+        startField = - 0.5 * PeriodLength_m;
+        endField = startExitField_m;
+        return;
+    }
 
     Inform msg("TravelingWave ", *gmsg);
     std::stringstream errormsg;
@@ -448,20 +389,6 @@ void TravelingWave::initialise(PartBunch *bunch, double &startField, double &end
                 frequency_m = CoreFieldmap_m->getFrequency();
             }
 
-
-            /**
-               NOT needed anymore in the new AUTOPHASE procedure
-               const double dPhi = OpalData::getInstance()->getGlobalPhaseShift() * frequency_m;
-
-               msg << "Global Phase-Shift is " << dPhi / two_pi * 360.0 << " (deg)"
-               << " old phase = " << phase_m << " (rad) ";
-               phase_m -= dPhi;
-               msg << "new phase = " << phase_m << " (rad) " << endl;
-            */
-
-            if(dx_m > 1e-10 || dy_m > 1e-10)
-                msg << level2 << "misaligned by dx = " << dx_m << ", dy = " << dy_m << endl;
-
             if(hasAttribute("MODE")) {
                 Mode_m = getAttribute("MODE");
             } else {
@@ -485,11 +412,12 @@ void TravelingWave::initialise(PartBunch *bunch, double &startField, double &end
             startExitField_m = startCoreField_m + (NumCells_m - 1) * CellLength_m;
             mappedStartExitField_m = startExitField_m - 3.0 * PeriodLength_m / 2.0;
 
-            startField -= PeriodLength_m / 2.0;
+            startField = -PeriodLength_m / 2.0;
             endField = startField + startExitField_m + PeriodLength_m / 2.0;
-            startField_m = startField;
+            length_m = endField - startField;
 
             scaleCore_m = scale_m / sin(2.0 * pi * Mode_m);
+            scaleCoreError_m = scaleError_m / sin(2.0 * pi * Mode_m);
             phaseCore1_m = phase_m + pi * Mode_m / 2.0;
             phaseCore2_m = phase_m + pi * Mode_m * 1.5;
             phaseExit_m = phase_m - 2.0 * pi * ((NumCells_m - 1) * Mode_m - floor((NumCells_m - 1) * Mode_m));
@@ -520,8 +448,8 @@ void TravelingWave::goOffline() {
 }
 
 void TravelingWave::getDimensions(double &zBegin, double &zEnd) const {
-    zBegin = startField_m;
-    zEnd = startField_m + (NumCells_m - 1) * CellLength_m + PeriodLength_m;
+    zBegin = -0.5 * PeriodLength_m;
+    zEnd = zBegin + length_m;
 }
 
 
@@ -752,4 +680,8 @@ std::pair<double, double> TravelingWave::trackOnAxisParticle(const double &p0,
     const double tErr  = (z - (startExitField_m + 0.5 * PeriodLength_m + zbegin)) / (Physics::c * beta);
 
     return std::pair<double, double>(p, t - tErr);
+}
+
+bool TravelingWave::isInside(const Vector_t &r) const {
+    return (isInsideTransverse(r) && r(2) >= -0.5 * PeriodLength_m && r(2) < startExitField_m);
 }

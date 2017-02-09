@@ -27,11 +27,11 @@ BoxCornerDomain::BoxCornerDomain(double A, double B, double C, double Length, do
     setNr(nr);
     setHr(hr);
 
-    if(interpl == "constant")
+    if(interpl == "CONSTANT")
         interpolationMethod = CONSTANT;
-    else if(interpl == "linear")
+    else if(interpl == "LINEAR")
         interpolationMethod = LINEAR;
-    else if(interpl == "quadratic")
+    else if(interpl == "QUADRATIC")
         interpolationMethod = QUADRATIC;
 
     if(Ippl::getNodes() == 1) {
@@ -55,7 +55,7 @@ BoxCornerDomain::~BoxCornerDomain() {
 // for the moment we center the box corner geometry around the center of the grid
 // hr holds the grid-spacings (boundary ellipse embedded in hr-grid)
 
-void BoxCornerDomain::Compute(Vector_t hr){
+void BoxCornerDomain::compute(Vector_t hr){
 
     //there is nothing to be done if the mesh spacings have not changed
     //    if(hr[0] == getHr()[0] && hr[1] == getHr()[1] && hr[2] == getHr()[2]) {
@@ -130,7 +130,7 @@ void BoxCornerDomain::Compute(Vector_t hr){
     */
 }
 
-void BoxCornerDomain::Compute(Vector_t hr, NDIndex<3> localId){
+void BoxCornerDomain::compute(Vector_t hr, NDIndex<3> localId){
 }
 
 void BoxCornerDomain::getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
@@ -138,13 +138,13 @@ void BoxCornerDomain::getBoundaryStencil(int x, int y, int z, double &W, double 
     // determine which interpolation method we use for points near the boundary
     switch(interpolationMethod) {
         case CONSTANT:
-            ConstantInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
+            constantInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
             break;
         case LINEAR:
-            LinearInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
+            linearInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
             break;
         case QUADRATIC:
-            QuadraticInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
+            quadraticInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
             break;
     }
 
@@ -200,7 +200,7 @@ void BoxCornerDomain::getNeighbours(int x, int y, int z, int &W, int &E, int &S,
 
 }
 
-void BoxCornerDomain::ConstantInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
+void BoxCornerDomain::constantInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
 
     scaleFactor = 1.0;
 
@@ -260,7 +260,7 @@ void BoxCornerDomain::ConstantInterpolation(int x, int y, int z, double &W, doub
 
 }
 
-void BoxCornerDomain::LinearInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
+void BoxCornerDomain::linearInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
 
     scaleFactor = 1.0;
 
@@ -363,7 +363,7 @@ void BoxCornerDomain::LinearInterpolation(int x, int y, int z, double &W, double
 }
 
 //FIXME: this probably needs some cleanup/rewriting
-void BoxCornerDomain::QuadraticInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
+void BoxCornerDomain::quadraticInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
 
     double cx = (x - (nr[0] - 1) / 2.0) * hr[0];
     double cy = (y - (nr[1] - 1) / 2.0) * hr[1];

@@ -34,9 +34,11 @@ public:
     /// The attributes of class OpalCavity.
     enum {
         VOLT = COMMON,  // The peak voltage.
+        DVOLT,          // The peak voltage error.
         GEOMETRY,       // geometry of boundary
         FREQ,           // The RF frequency.
         LAG,            // The phase lag.
+        DLAG,           // The phase lag error.
         HARMON,         // The harmonic number.
         BETARF,         // The beta_RF.
         PG,             // The RF power.
@@ -45,18 +47,16 @@ public:
         FMAPFN,         // The filename of the fieldmap
         FAST,           // Faster but less accurate
         APVETO,         // Do not use this cavity in the Autophase procedure
-        CAVITYTYPE,     // STANDING or SINGLEGAP structure
         RMIN,           // Minimal Radius
         RMAX,           // Maximal Radius
         ANGLE,          // the azimuth position of the cavity
         PDIS,           // perpendicular distance from symmetric line of cavity gap to machine center
         GAPWIDTH,       // constant gap width of cavity
         PHI0,           // initial phase of cavity
-	PHASE_MODEL,    // time dependent parameter
-	AMPLITUDE_MODEL,// time dependent parameter
-	FREQUENCY_MODEL,// time dependent parameter
-        DX,             // Misalignment: translation in x direction
-        DY,             // Misalignment: translation in y direction
+        DESIGNENERGY,   // The mean kinetic energy at exit
+	PHASE_MODEL,    // time dependent phase
+	AMPLITUDE_MODEL,// time dependent amplitude
+	FREQUENCY_MODEL,// time dependent frequency
         SIZE
     };
 

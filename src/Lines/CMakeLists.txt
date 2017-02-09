@@ -13,4 +13,17 @@ include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_sources(${_SRCS})
+add_opal_sources(${_SRCS})
+
+set (HDRS
+    FlatWriter.h
+    Line.h
+    LineTemplate.h
+    Replacer.h
+    Sequence.h
+    SequenceMember.h
+    SequenceParser.h
+    SequenceTemplate.h
+)
+
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Lines")

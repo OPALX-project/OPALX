@@ -174,9 +174,8 @@ private:
     // Not implemented.
     void operator=(const SBend &);
 
-    virtual bool FindChordLength(Inform &msg,
-                                 double &chordLength,
-                                 bool &chordLengthFromMap);
+    virtual bool findChordLength(Inform &msg,
+                                 double &chordLength);
 
 };
 

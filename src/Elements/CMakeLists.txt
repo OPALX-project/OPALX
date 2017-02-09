@@ -29,6 +29,7 @@ set (_SRCS
   OpalPolynomialTimeDependence.cpp
   OpalQuadrupole.cpp
   OpalRBend.cpp
+  OpalRBend3D.cpp
   OpalRCollimator.cpp
   OpalRingDefinition.cpp
   OpalSBend.cpp
@@ -38,6 +39,7 @@ set (_SRCS
   OpalSextupole.cpp
   OpalSlit.cpp
   OpalSolenoid.cpp
+  OpalSource.cpp
   OpalSRot.cpp
   OpalVariableRFCavity.cpp
   OpalVKicker.cpp
@@ -54,4 +56,60 @@ include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_sources(${_SRCS})
+add_opal_sources(${_SRCS})
+
+set (HDRS
+    AttCell.h
+    OpalBeamBeam3D.h
+    OpalBeamBeam.h
+    OpalBeamline.h
+    OpalBend.h
+    OpalCavity.h
+    OpalCCollimator.h
+    OpalCyclotron.h
+    OpalCyclotronValley.h
+    OpalDegrader.h
+    OpalDrift.h
+    OpalECollimator.h
+    OpalElement.h
+    OpalHKicker.h
+    OpalHMonitor.h
+    OpalInstrument.h
+    OpalKicker.h
+    OpalMarker.h
+    OpalMonitor.h
+    OpalMultipole.h
+    OpalOctupole.h
+    OpalParallelPlate.h
+    OpalPatch.h
+    OpalPepperPot.h
+    OpalPolynomialTimeDependence.h
+    OpalProbe.h
+    OpalQuadrupole.h
+    OpalRBend.h
+    OpalRBend3D.h
+    OpalRCollimator.h
+    OpalRingDefinition.h
+    OpalSBend3D.h
+    OpalSBend.h
+    OpalSeparator.h
+    OpalSeptum.h
+    OpalSextupole.h
+    OpalSlit.h
+    OpalSolenoid.h
+    OpalSource.h
+    OpalSRot.h
+    OpalStripper.h
+    OpalTravelingWave.h
+    OpalVariableRFCavity.h
+    OpalVKicker.h
+    OpalVMonitor.h
+    OpalWire.h
+    OpalYRot.h
+    OpalOffset/OpalGlobalCartesianOffset.h
+    OpalOffset/OpalGlobalCylindricalOffset.h
+    OpalOffset/OpalLocalCartesianOffset.h
+    OpalOffset/OpalLocalCylindricalOffset.h
+)
+
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Elements/OpalOffset")
