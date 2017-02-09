@@ -167,6 +167,13 @@ void ipplProjection(Vektor<int,Dim> nr,
     
     P->interpolate_distribution((extend_r-extend_l)/(Nx),2.*Vmax/(Nv));
     
+    /*
+    for (unsigned i=0; i< bunch->getLocalNum(); ++i)
+      bunch->Rphase[i]= Vektor<double,2>(bunch->R[i][2],bunch->P[i][2]);
+    
+    bunch->qm.scatter(P->f_m, bunch->Rphase, IntrplCIC_t());
+    */
+
     // ---------------
     Vektor<double,3> dx = (P->extend_r-P->extend_l)/(P->Nx);
     
@@ -357,7 +364,7 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     bunch->gatherStatistics();
     
     for (std::size_t i = 0; i < nIter; ++i) {
-        
+
         ipplProjection(nr,
                        Vektor<double, 3>(lower[0], lower[1], lower[2]),
                        Vektor<double, 3>(upper[0], upper[1], upper[2]),
