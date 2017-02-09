@@ -127,7 +127,6 @@ public:
      * @param i specifies the i-th particle
      */
     virtual void setQM(double q, int i) = 0;
-<<<<<<< HEAD:ippl/test/AMR/boxlib-amr/PartBunchBase.h
     
     /// Set the particle charge-to-mass ratio
     /*!
@@ -136,9 +135,6 @@ public:
      */
     virtual void setMass(double q, int i) = 0;
     
-=======
-
->>>>>>> 9ed5f0a1a45a57bfd0ad0edc41c7ca0e778eda95:ippl/test/AMR/PartBunchBase.h
     /// Set the particle velocity
     /*!
      * @param v is the velocity (vx, vy, vz)
