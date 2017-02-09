@@ -1,4 +1,5 @@
-#include "Utilities/Random.h"
+#include "OptionTypes.h"
+#include "Utilities/ClassicRandom.h"
 #include <string>
 
 namespace Options {
@@ -18,6 +19,11 @@ namespace Options {
     double remotePartDel = 0.0;
 
     double beamHaloBoundary = 0;
+
+    bool writeBendTrajectories = false;
+
+    OPENMODE openMode = WRITE;
+
 
     // The global program options.
     bool mtrace = false;
@@ -77,14 +83,15 @@ namespace Options {
 
     std::string rngtype = std::string("RANDOM");
 
-    bool schottkyCorrection = false;
+    bool cloTuneOnly = false;
 
-    double schottkyRennormalization = -1;
-
-    bool cloTuneOnly;
-   
     // Governs how often boundp_destroy is called to destroy lost particles
     // Mainly used in the CyclotronTracker as of now -DW
     int boundpDestroyFreq = 10;
 
+    // Using hard edge model for calculation of path length
+    bool idealized = false;
+
+    // opal version of input file
+    int version = 10000;
 }

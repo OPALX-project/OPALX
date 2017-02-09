@@ -57,6 +57,9 @@ public:
     /// In OPAL-cycl, timestep is calculated by STEPSPERTURN, rather than given in TRACK command.
     int getSTEPSPERTURN() const;
 
+    /// location at which the simulation starts
+    double getZSTART() const;
+
     /// location at which the simulation stops
     std::vector<double> getZSTOP() const;
 

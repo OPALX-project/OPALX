@@ -23,32 +23,32 @@ class PartBunch : public IpplParticleBase<PL>,
                   public PartBunchBase
 {
 private:
-    
+
     Field<Vektor<double,Dim>,Dim> EFD_m;
     Field<double,Dim> EFDMag_m;
-    
+
     // Boundary conditions (all periodic)
     BConds<double,Dim,Mesh_t,Center_t> bc_m;
     BConds<Vector_t,Dim,Mesh_t,Center_t> vbc_m;
-    
+
     Vektor<int,Dim> nr_m;           ///< Number of grid points in each direction (nx, ny, nz)
-    
+
     bool fieldNotInitialized_m;     ///< Check in case of myUpdate() if field is initialized
-    
+
     e_dim_tag decomp_m[Dim];
-    
+
     Vector_t hr_m;                  ///< Mesh spacing
     Vector_t rmin_m;                ///< Lower corner of domain
     Vector_t rmax_m;                ///< Upper corner of domain
-    
-    
+
+
     ParticleAttrib<double>     qm; ///< charge-to-mass ratio
     typename PL::ParticlePos_t P;  ///< particle velocity
     typename PL::ParticlePos_t E;  ///< electric field at particle position
     typename PL::ParticlePos_t B;  ///< magnetic field at particle position
-    
+
 public:
-    
+
     /*!
      * @param pl is the particle layout (defines the distribution mapping)
      * @param hr is the mesh spacing
@@ -57,8 +57,8 @@ public:
      */
     PartBunch(PL* pl, Vector_t hr, Vector_t rmin,
               Vector_t rmax, e_dim_tag decomp[Dim]);
-    
-    
+
+
     inline const Mesh_t& getMesh() const;
 
     /*!
@@ -66,49 +66,49 @@ public:
      * decomposition
      */
     inline Mesh_t& getMesh();
-    
+
     /*!
      * @return the layout of the field.
      */
     inline FieldLayout_t& getFieldLayout();
-    
+
     void savePhaseSpace(std::string fn, int idx);
-    
+
     inline void gatherCIC();
-    
+
     // ------------------------------------------------------------------------
     // INHERITED MEMBER FUNCTIONS
     // ------------------------------------------------------------------------
     inline void create(size_t m);
-    
+
     inline size_t getLocalNum() const;
-    
+
     inline size_t getTotalNum() const;
-    
+
     inline Vector_t getR(int i);
-    
+
     inline double getQM(int i);
     
     inline double getMass(int i);
     
     inline Vector_t getP(int i);
-    
+
     inline Vector_t getE(int i);
-    
+
     inline Vector_t getB(int i);
-    
+
     inline void setR(Vector_t pos, int i);
-    
+
     inline void setQM(double q, int i);
     
     inline void setMass(double m, int i);
     
     inline void setP(Vector_t v, int i);
-    
+
     inline void setE(Vector_t Ef, int i);
-    
+
     inline void setB(Vector_t Bf, int i);
-    
+
     double scatter();
 
     void myUpdate();
@@ -122,16 +122,16 @@ public:
     inline Vector_t getRMin();
     inline Vector_t getRMax();
     inline Vector_t getHr();
-    
-    
+
+
     void destroyAll() {
-        
+
     }
-    
+
 private:
 
     inline void setBCAllPeriodic_m();
-    
+
     inline void scatterCIC_m();
 };
 
@@ -157,9 +157,9 @@ PartBunch<PL>::PartBunch(PL* pl, Vector_t hr, Vector_t rmin,
     this->addAttribute(P);
     this->addAttribute(E);
     this->addAttribute(B);
-    
+
     setBCAllPeriodic_m();
-    
+
     for (unsigned int i = 0; i < Dim; ++i)
         decomp_m[i] = decomp[i];
 }
@@ -388,9 +388,9 @@ template <class PL>
 double PartBunch<PL>::scatter() {
     Inform m("scatter ");
     double initialQ = sum(qm);
-    
+
     scatterCIC_m();
-    
+
     Field<double,Dim> tmpf;
     NDIndex<Dim> domain = getFieldLayout().getDomain();
 
@@ -414,7 +414,7 @@ double PartBunch<PL>::scatter() {
             }
         }
     }
-    
+
     reduce(Q,Q,OpAddAssign());
     m << "sum(qm)= " << initialQ << " sum(EFDMag)= " << sum(EFDMag_m) << endl;
     return initialQ-Q;
@@ -427,11 +427,11 @@ void PartBunch<PL>::myUpdate() {
         fieldNotInitialized_m=false;
         getMesh().set_meshSpacing(&(hr_m[0]));
         getMesh().set_origin(rmin_m);
-            
+
         EFD_m.initialize(getMesh(), getFieldLayout(), GuardCellSizes<Dim>(1), vbc_m);
         EFDMag_m.initialize(getMesh(), getFieldLayout(), GuardCellSizes<Dim>(1), bc_m);
     }
-    
+
     this->update();
 }
 
@@ -443,14 +443,14 @@ void PartBunch<PL>::gatherStatistics() {
 
     double *partPerNode = new double[Ippl::getNodes()];
     double *globalPartPerNode = new double[Ippl::getNodes()];
-    
+
     for (int i=0; i<Ippl::getNodes(); i++)
         partPerNode[i] = globalPartPerNode[i] = 0.0;
-    
+
     partPerNode[Ippl::myNode()] = this->getLocalNum();
-    
+
     reduce(partPerNode,partPerNode+Ippl::getNodes(),globalPartPerNode,OpAddAssign());
-    
+
     for (int i = 0; i < Ippl::getNodes(); ++i)
         m << "Node " << i << " has "
           <<   globalPartPerNode[i]/this->getTotalNum()*100.0 << " \% of the total particles " << endl;
@@ -471,13 +471,13 @@ void PartBunch<PL>::initFields() {
     int nz = nr_m[2];
 
     double phi0 = 0.1*nx;
-    
+
     m << "rmin= " << rmin_m << " rmax= " << rmax_m << " h= " << hr_m << " n= " << nr_m << endl;
 
     Index I(nx), J(ny), K(nz);
-    
+
     assign(EFD_m[I][J][K](0), -2.0*pi*phi0/nx * cos(2.0*pi*(I+0.5)/nx) * cos(4.0*pi*(J+0.5)/ny) * cos(pi*(K+0.5)/nz));
-    
+
     assign(EFD_m[I][J][K](1),  4.0*pi*phi0/ny * sin(2.0*pi*(I+0.5)/nx) * sin(4.0*pi*(J+0.5)/ny));
 
     assign(EFD_m[I][J][K](2),  4.0*pi*phi0/ny * sin(2.0*pi*(I+0.5)/nx) * sin(4.0*pi*(J+0.5)/ny));

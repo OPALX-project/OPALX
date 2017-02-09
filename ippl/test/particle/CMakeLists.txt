@@ -80,5 +80,3 @@ target_link_libraries (p3m3dRegressionTests ${IPPL_LIBS})
 #add_executable (test-scatter-1 test-scatter-1.cpp)
 #target_link_libraries (test-scatter-1 ${IPPL_LIBS})
 
-
-

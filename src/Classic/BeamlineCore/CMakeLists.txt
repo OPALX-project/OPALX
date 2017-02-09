@@ -3,18 +3,19 @@ set (_SRCS
   CollimatorRep.cpp
   CorrectorRep.cpp
   CyclotronRep.cpp
+  CyclotronValleyRep.cpp
   DegraderRep.cpp
   DriftRep.cpp
   MarkerRep.cpp
   MonitorRep.cpp
   MultipoleRep.cpp
   Octupole.cpp
+  ParallelPlateRep.cpp
   PatchRep.cpp
   ProbeRep.cpp
   Quadrupole.cpp
   RBendRep.cpp
   RFCavityRep.cpp
-  TravelingWaveRep.cpp
   SBendRep.cpp
   SeparatorRep.cpp
   SeptumRep.cpp
@@ -23,17 +24,55 @@ set (_SRCS
   SkewQuadrupole.cpp
   SkewSextupole.cpp
   SolenoidRep.cpp
+  SourceRep.cpp
+  StripperRep.cpp
+  TravelingWaveRep.cpp
   XCorrectorRep.cpp
   XMonitorRep.cpp
   YCorrectorRep.cpp
   YMonitorRep.cpp
-  ParallelPlateRep.cpp
-  CyclotronValleyRep.cpp
-  StripperRep.cpp
   )
 
 include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
   )
 
-add_sources(${_SRCS})
+ADD_OPAL_SOURCES(${_SRCS})
+
+set (HDRS
+    BeamBeamRep.h
+    CollimatorRep.h
+    CorrectorRep.h
+    CyclotronRep.h
+    CyclotronValleyRep.h
+    DegraderRep.h
+    DriftRep.h
+    MarkerRep.h
+    MonitorRep.h
+    MultipoleRep.h
+    Octupole.h
+    ParallelPlateRep.h
+    PatchRep.h
+    ProbeRep.h
+    Quadrupole.h
+    RBendRep.h
+    RFCavityRep.h
+    SBendRep.h
+    SeparatorRep.h
+    SeptumRep.h
+    Sextupole.h
+    SingleMultipole.h
+    SkewOctupole.h
+    SkewQuadrupole.h
+    SkewSextupole.h
+    SolenoidRep.h
+    SourceRep.h
+    StripperRep.h
+    TravelingWaveRep.h
+    XCorrectorRep.h
+    XMonitorRep.h
+    YCorrectorRep.h
+    YMonitorRep.h
+)
+
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/BeamlineCore")

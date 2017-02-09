@@ -53,7 +53,7 @@ template <class InputIterator, class OutputIterator, class ReduceOp>
 bool reduce(Communicate& comm, InputIterator s1, InputIterator s2,
             OutputIterator t1, const ReduceOp& op, bool *IncludeVal)
 {
-   
+
 
     // Inform dbgmsg("reduce-vector", INFORM_ALL_NODES);
 
@@ -188,26 +188,12 @@ bool reduce(Communicate& comm, InputIterator s1, InputIterator s2,
 
 ////////////////////////////////////////////////////////////////////////////
 // same as above, but this uses the default Communicate object
-#if (defined(__GNUG__) && !defined(__ICC))
-#if (__GNUC_MAJOR__ >= 4 && __GNUC_MINOR__ >= 6)
-#pragma GCC diagnostic push
-#endif
-#pragma GCC diagnostic ignored "-Warray-bounds"
-#endif
 template <class InputIterator, class OutputIterator, class ReduceOp>
 bool reduce(InputIterator s1, InputIterator s2,
             OutputIterator t1, const ReduceOp& op, bool *IncludeVal)
-{   
-
+{
     return reduce(*Ippl::Comm, s1, s2, t1, op, IncludeVal);
 }
-#if (defined(__GNUG__) && !defined(__ICC))
-#if (__GNUC_MAJOR__ >= 4 && __GNUC_MINOR__ >= 6)
-#pragma GCC diagnostic pop
-#else
-#pragma GCC diagnostic error "-Warray-bounds"
-#endif
-#endif
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -219,7 +205,7 @@ bool reduce(InputIterator s1, InputIterator s2,
 template <class T, class ReduceOp>
 bool reduce_masked(Communicate& comm, T& input, T& output,
                    const ReduceOp& op, bool IncludeVal)
-{    
+{
 
     // Inform dbgmsg("reduce_masked", INFORM_ALL_NODES);
 

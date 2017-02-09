@@ -30,15 +30,15 @@
 
 /// Create particle distributions
 class Distribution {
-    
+
 public:
     typedef std::vector<double> container_t;
     typedef Vektor<double, BL_SPACEDIM> Vector_t;
     
 public:
-    
+
     Distribution();
-    
+
     /// Generate an uniform particle distribution
     /*!
      * @param lower boundary
@@ -47,7 +47,7 @@ public:
      * @param seed of the Mersenne-Twister
      */
     void uniform(double lower, double upper, size_t nloc, int seed);
-    
+
     /// Generate a Gaussian particle distribution
     /*!
      * @param mean also called centroid
@@ -90,7 +90,7 @@ public:
      * @param step to be read in.
      */
     void readH5(const std::string& filename, int step);
-    
+
     /// Transfer distribution to particle bunch object.
     /*! @param bunch is either an AmrPartBunch or an PartBunch object
      * @param doDelete removes all particles already in bunch before
@@ -123,12 +123,12 @@ public:
      * @param pathname where to store.
      */
     void print2file(std::string pathname);
-    
+
 private:
     container_t x_m;    ///< Horizontal particle positions [m]
     container_t y_m;    ///< Vertical particle positions [m]
     container_t z_m;    ///< Longitudinal particle positions [m]
-    
+
     container_t px_m;   ///< Horizontal particle momentum
     container_t py_m;   ///< Vertical particle momentum
     container_t pz_m;   ///< Longitudinal particle momentum

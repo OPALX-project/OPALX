@@ -45,3 +45,15 @@ Beamline::Beamline(const std::string &name):
 
 Beamline::~Beamline()
 {}
+
+Vector_t Beamline::getOrigin3D() const {
+    return Vector_t(0);
+}
+
+Quaternion Beamline::getCoordTransformationTo() const {
+    return Quaternion(1, 0, 0, 0);
+}
+
+bool Beamline::getRelativeFlag() const {
+    return false;
+}

@@ -76,7 +76,7 @@ IF (ENABLE_DKS)
 
    ### CUDA compiler flags ###
    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lcudart -lcufft -lcublas -lnvToolsExt -DDKS_CUDA")
-   
+
    ### if any accelerator enabled set flag to use DKS ###
    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIPPL_DKS -DIPPL_DKS_CUDA -DOPAL_DKS")
 ENDIF (ENABLE_DKS)
@@ -99,19 +99,19 @@ OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL fiel
 IF (ENABLE_AMR_SOLVER)
     # set specific parameters for BoxLib used in OPAL
     ENABLE_LANGUAGE (Fortran)
-    
+
     SET ( CCSE_DIR $ENV{BOXLIB_PREFIX} )
     SET ( CCSE_LIBRARY_DIR $ENV{BOXLIB_LIBRARY_DIR} )
-    
+
     FIND_PACKAGE (CCSE REQUIRED)
-    
+
     IF (CCSE_FOUND)
         MESSAGE (STATUS "Found BoxLib include dir: ${CCSE_INCLUDE_DIR}")
         MESSAGE (STATUS "Found BoxLib library dir: ${CCSE_LIBRARY_DIR}")
         MESSAGE (STATUS "Found BoxLib perl dir: ${CCSE_PERL_DIR}")
         INCLUDE_DIRECTORIES (${CCSE_INCLUDE_DIR})
     ENDIF (CCSE_FOUND)
-    
+
     SET (BL_SPACEDIM 3 CACHE INT "Dimension of BoxLib build")
     SET (ENABLE_MPI 1 CACHE INT "Enable build with MPI")
     SET (ENABLE_OpenMP 0 CACHE INT "Enable build with OpenMP")
@@ -119,10 +119,10 @@ IF (ENABLE_AMR_SOLVER)
     SET (BL_USE_PARTICLES 1 CACHE INT "Include Particles classes in BoxLib build")
     SET (ENABLE_PROFILING 0 CACHE INT "Include profiling information in BoxLib build")
     SET (ENABLE_BACKTRACE 0 CACHE INT "Include backtrace information in BoxLib build")
-    
+
     # disable due to BoxLib
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable")
-    
+
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBL_PRECISION=${BL_PRECISION}")
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_MPI=${ENABLE_MPI}")
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_OpenMP=${ENABLE_OpenMP}")
@@ -130,7 +130,7 @@ IF (ENABLE_AMR_SOLVER)
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBL_DEBUG=${BL_DEBUG}")
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_BACKTRACE=${ENABLE_BACKTRACE}")
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_PROFILING=${ENABLE_PROFILING}")
-    
+
     MESSAGE (STATUS "Use following BoxLib settings:")
     MESSAGE (STATUS "  BL_SPACEDIM = ${BL_SPACEDIM} (INT: 1, 2, 3)")
     MESSAGE (STATUS "  BL_MACHINE = ${BL_MACHINE} (STRING: <ARCH>)")
@@ -217,8 +217,8 @@ ENDIF()
 
 SET (IPPL_USED_FROM_OPAL "TRUE")
 ADD_SUBDIRECTORY (ippl)
-ADD_SUBDIRECTORY (classic/5.0/src)
-ADD_SUBDIRECTORY (src)
+#ADD_SUBDIRECTORY (classic/5.0/src)
+#ADD_SUBDIRECTORY (src)
 
 IF (BUILD_OPAL_UNIT_TESTS)
      ADD_SUBDIRECTORY(tests)
@@ -278,45 +278,6 @@ ENDIF (${CMAKE_BUILD_TYPE} STREQUAL "Release")
 SET (IPPL_CXX_FLAGS
     "-DIPPL_MPI -DMPICH_SKIP_MPICXX -DIPPL_DONT_POOL -DIPPL_USE_XDIV_RNG -DPETE_BITWISE_COPY -DIPPL_HAS_TEMPLATED_COMPLEX -DIPPL_USE_PARTIAL_SPECIALIZATION -Drestrict=__restrict__ -DNOCTAssert ${IPPL_CXX_FLAGS}"
     )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ### CXX_FLAGS common to all compilers and platforms which ###
 ### may *not* be written to the configure file            ###

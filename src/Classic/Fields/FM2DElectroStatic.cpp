@@ -1,5 +1,6 @@
 #include "Fields/FM2DElectroStatic.h"
 #include "Fields/Fieldmap.hpp"
+#include "Utilities/GeneralClassicException.h"
 
 #include <fstream>
 #include <ios>
@@ -50,6 +51,8 @@ FM2DElectroStatic::FM2DElectroStatic(std::string aFilename)
         if(!parsing_passed) {
             disableFieldmapWarning();
             zend_m = zbegin_m - 1e-3;
+            throw GeneralClassicException("FM2DElectroStatic::FM2DElectroStatic",
+                                          "An error occured when reading the fieldmap '" + Filename_m + "'");
         } else {
             // conversion from cm to m
             rbegin_m /= 100.;

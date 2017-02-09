@@ -44,11 +44,26 @@ public:
 
     /// The common attributes for all elements.
     enum {
-        TYPE,     // The design type.
-        APERT,    // The aperture data.
-        LENGTH,   // The element length.
-        WAKEF,    // The wake function to be used
+        TYPE,           // The design type.
+        APERT,          // The aperture data.
+        LENGTH,         // The element length.
+        // ELEMEDGE,       // The position of the element (in path length)
+        WAKEF,          // The wake function to be used
         SURFACEPHYSICS, // The surface physics handler to be used
+        ORIGIN,         // The location of the element in floor coordinates
+        ORIENTATION,    // The orientation of the element (Tait Bryan angles)
+        X,              // The x-coordinate of the location of the element in floor coordinates
+        Y,              // The y-coordinate of the location of the element in floor coordinates
+        Z,              // The z-coordinate of the location of the element in floor coordinates
+        THETA,          // The rotation about the y-axis
+        PHI,            // The rotation about the x-axis
+        PSI,            // The rotation about the z-axis
+        DX,             // Misalignment in x (local coordinate system)
+        DY,             // Misalignment in y (local coordinate system)
+        DZ,             // Misalignment in z (local coordinate system)
+        DTHETA,         // The rotation around y axis in rad.
+        DPHI,           // The rotation around x axis in rad.
+        DPSI,           // The rotation around s axis in rad.
         COMMON
     };
 
@@ -76,7 +91,7 @@ public:
     const std::string getTypeName() const;
 
     //return the element aperture vector
-    std::vector<double> getApert() const;
+    std::pair<ElementBase::ApertureType, std::vector<double> > getApert() const;
 
 
     /// Return the element's type name.
@@ -106,6 +121,9 @@ public:
 
     /// Store a registered string attribute.
     static void setRegisteredAttribute(const std::string &, const std::string &);
+
+    /// Update the embedded CLASSIC element.
+    virtual void update();
 
     /// Transmit the ``unknown'' (not known to OPAL) attributes to CLASSIC.
     virtual void updateUnknown(ElementBase *);

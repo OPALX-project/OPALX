@@ -18,16 +18,16 @@
 
 #include "Elements/OpalCavity.h"
 #include "AbstractObjects/Attribute.h"
-#include "Algorithms/AbstractTimeDependence.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/RFCavityRep.h"
+#include "Algorithms/AbstractTimeDependence.h"
 #include "Structure/OpalWake.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Physics/Physics.h"
 
 extern Inform *gmsg;
 
-// Class OpalCavity for all flavours
+// Class OpalCavity
 // ------------------------------------------------------------------------
 
 OpalCavity::OpalCavity():
@@ -35,12 +35,16 @@ OpalCavity::OpalCavity():
                 "The \"RFCAVITY\" element defines an RF cavity."),
     owk_m(NULL),
     obgeo_m(NULL) {
-    itsAttr[VOLT] = Attributes::makeRealArray
+    itsAttr[VOLT] = Attributes::makeReal
                     ("VOLT", "RF voltage in MV");
-    itsAttr[FREQ] = Attributes::makeRealArray
+    itsAttr[DVOLT] = Attributes::makeReal
+                     ("DVOLT", "RF voltage error in MV");
+    itsAttr[FREQ] = Attributes::makeReal
 	            ("FREQ", "RF frequency in MHz");
-    itsAttr[LAG] = Attributes::makeRealArray
-                   ("LAG", "Phase lag (rad), !!!! was before in multiples of (2*pi) !!!!");
+    itsAttr[LAG] = Attributes::makeReal
+                   ("LAG", "Phase lag (rad)");
+    itsAttr[DLAG] = Attributes::makeReal
+                    ("DLAG", "Phase lag error (rad)");
     itsAttr[HARMON] = Attributes::makeReal
                       ("HARMON", "Harmonic number");
     itsAttr[BETARF] = Attributes::makeReal
@@ -51,16 +55,14 @@ OpalCavity::OpalCavity():
                       ("SHUNT", "Shunt impedance in MOhm");
     itsAttr[TFILL] = Attributes::makeReal
                      ("TFILL", "Fill time in microseconds");
-    itsAttr[FMAPFN] = Attributes::makeStringArray
-                      ("FMAPFN", "Filenames of the fieldmap(s)");
+    itsAttr[FMAPFN] = Attributes::makeString
+                      ("FMAPFN", "Filename of the fieldmap");
     itsAttr[GEOMETRY] = Attributes::makeString
                         ("GEOMETRY", "BoundaryGeometry for Cavities");
     itsAttr[FAST] = Attributes::makeBool
                     ("FAST", "Faster but less accurate", true);
     itsAttr[APVETO] = Attributes::makeBool
                     ("APVETO", "Do not use this cavity in the Autophase procedure", false);
-    itsAttr[CAVITYTYPE] = Attributes::makeString
-                          ("CAVITYTYPE", "STANDING or SINGLEGAP cavity in photoinjector and LINAC; SINGLEGAP or DOUBLEGAP cavity in cyclotron");
     itsAttr[RMIN] = Attributes::makeReal
                     ("RMIN", " Minimal Radius of a cyclotron cavity");
     itsAttr[RMAX] = Attributes::makeReal
@@ -73,13 +75,8 @@ OpalCavity::OpalCavity():
                         ("GAPWIDTH", "Gap width of a cyclotron cavity");
     itsAttr[PHI0] = Attributes::makeReal
                     ("PHI0", "initial phase of cavity");
-
-    itsAttr[DX] = Attributes::makeReal
-      ("DX", "Misalignment in x direction",0.0);
-    itsAttr[DY] = Attributes::makeReal
-      ("DY", "Misalignment in y direction",0.0);
-
-
+    itsAttr[DESIGNENERGY] = Attributes::makeReal
+                            ("DESIGNENERGY", "the mean energy of the particles at exit", -1.0);
     // attibutes for timedependent values
     itsAttr[PHASE_MODEL] = Attributes::makeString("PHASE_MODEL",
 						  "The name of the phase time dependence model.");
@@ -87,20 +84,21 @@ OpalCavity::OpalCavity():
 						      "The name of the amplitude time dependence model.");
     itsAttr[FREQUENCY_MODEL] = Attributes::makeString("FREQUENCY_MODEL",
 						      "The name of the frequency time dependence model.");
+
     registerRealAttribute("VOLT");
+    registerRealAttribute("DVOLT");
     registerRealAttribute("FREQ");
     registerRealAttribute("LAG");
+    registerRealAttribute("DLAG");
     registerStringAttribute("FMAPFN");
     registerStringAttribute("GEOMETRY");
-    registerStringAttribute("CAVITYTYPE");
     registerRealAttribute("RMIN");
     registerRealAttribute("RMAX");
     registerRealAttribute("ANGLE");
     registerRealAttribute("PDIS");
     registerRealAttribute("GAPWIDTH");
     registerRealAttribute("PHI0");
-    registerRealAttribute("DX");
-    registerRealAttribute("DY");
+    registerRealAttribute("DESIGNENERGY");
 
     // attibutes for timedependent values
     registerStringAttribute("PHASE_MODEL");
@@ -136,36 +134,31 @@ void OpalCavity::fillRegisteredAttributes(const ElementBase &base, ValueFlag fla
     if(flag != ERROR_FLAG) {
         const RFCavityRep *rfc =
             dynamic_cast<const RFCavityRep *>(base.removeWrappers());
-
         attributeRegistry["VOLT"]->setReal(rfc->getAmplitude());
         attributeRegistry["FREQ"]->setReal(rfc->getFrequency());
         attributeRegistry["LAG"]->setReal(rfc->getPhase());
         attributeRegistry["FMAPFN"]->setString(rfc->getFieldMapFN());
-        attributeRegistry["CAVITYTYPE"]->setString(rfc->getCavityType());
-        double dx, dy, dz;
-        rfc->getMisalignment(dx, dy, dz);
-        attributeRegistry["DX"]->setReal(dx);
-        attributeRegistry["DY"]->setReal(dy);
     }
 }
 
 
 void OpalCavity::update() {
+    OpalElement::update();
 
     using Physics::two_pi;
     RFCavityRep *rfc =
         dynamic_cast<RFCavityRep *>(getElement()->removeWrappers());
 
     double length = Attributes::getReal(itsAttr[LENGTH]);
-    std::vector<double> vPeak  = Attributes::getRealArray(itsAttr[VOLT]);
-    std::vector<double> phase  = Attributes::getRealArray(itsAttr[LAG]);
-    std::vector<double> freq   = Attributes::getRealArray(itsAttr[FREQ]);
-    std::vector<std::string> fmapfns = Attributes::getStringArray(itsAttr[FMAPFN]);
+    double peak  = Attributes::getReal(itsAttr[VOLT]);
+    double peakError  = Attributes::getReal(itsAttr[DVOLT]);
+    double phase  = Attributes::getReal(itsAttr[LAG]);
+    double phaseError  = Attributes::getReal(itsAttr[DLAG]);
+    double freq   = 1e6 * two_pi * Attributes::getReal(itsAttr[FREQ]);
+    std::string fmapfn = Attributes::getString(itsAttr[FMAPFN]);
     std::string type = Attributes::getString(itsAttr[TYPE]);
     bool fast = Attributes::getBool(itsAttr[FAST]);
-    double max_freq = 0.0;
-    for (size_t i = 0; i < freq.size(); ++ i) max_freq = std::max(std::abs(freq[i]), max_freq);
-    bool apVeto = (Attributes::getBool(itsAttr[APVETO]) || max_freq < 1e-9);
+    bool apVeto = (Attributes::getBool(itsAttr[APVETO]) || freq < 1e-3);
 
     double rmin = Attributes::getReal(itsAttr[RMIN]);
     double rmax = Attributes::getReal(itsAttr[RMAX]);
@@ -173,8 +166,7 @@ void OpalCavity::update() {
     double pdis = Attributes::getReal(itsAttr[PDIS]);
     double gapwidth = Attributes::getReal(itsAttr[GAPWIDTH]);
     double phi0 = Attributes::getReal(itsAttr[PHI0]);
-    double dx = Attributes::getReal(itsAttr[DX]);
-    double dy = Attributes::getReal(itsAttr[DY]);
+    double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
 
     if(itsAttr[WAKEF] && owk_m == NULL) {
         owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
@@ -189,36 +181,20 @@ void OpalCavity::update() {
         }
     }
 
-    rfc->setMisalignment(dx, dy, 0.0);
-
     rfc->setElementLength(length);
 
-    double peak = 0.0, frequency = 0.0, phi = 0.0;
-    if (vPeak.size() > 0) peak = vPeak[0];
-    rfc->setAmplitude(1.0e6 * peak);
-    if (freq.size() > 0) frequency = 1.0e6 * two_pi * freq[0];
-    rfc->setFrequency(frequency);
-    if (phase.size() > 0) phi = phase[0];
-    rfc->setPhase(phi);
+    rfc->setAmplitude(1e6 * peak);
+    rfc->setFrequency(freq);
+    rfc->setPhase(phase);
 
     rfc->dropFieldmaps();
 
-    std::vector<double>::iterator peak_it;
-    for (peak_it = vPeak.begin(); peak_it != vPeak.end(); ++ peak_it) {
-        rfc->setAmplitudem(*peak_it);
-    }
-    std::vector<double>::iterator freq_it;
-    for (freq_it = freq.begin(); freq_it != freq.end(); ++ freq_it) {
-        rfc->setFrequencym(1.0e6 * two_pi * (*freq_it));
-    }
-    std::vector<double>::iterator phase_it;
-    for (phase_it = phase.begin(); phase_it != phase.end(); ++ phase_it) {
-        rfc->setPhasem(*phase_it);
-    }
-    std::vector<std::string>::iterator fmap_it;
-    for (fmap_it = fmapfns.begin(); fmap_it != fmapfns.end(); ++ fmap_it) {
-        rfc->setFieldMapFN(*fmap_it);
-    }
+    rfc->setAmplitudem(peak);
+    rfc->setAmplitudeError(peakError);
+    rfc->setFrequencym(freq);
+    rfc->setPhasem(phase);
+    rfc->setPhaseError(phaseError);
+    rfc->setFieldMapFN(fmapfn);
 
     rfc->setFast(fast);
     rfc->setAutophaseVeto(apVeto);
@@ -230,9 +206,10 @@ void OpalCavity::update() {
     rfc->setPerpenDistance(pdis);
     rfc->setGapWidth(gapwidth);
     rfc->setPhi0(phi0);
+    rfc->setDesignEnergy(kineticEnergy);
 
-    rfc->setPhaseModelName(Attributes::getString(itsAttr[PHASE_MODEL]));    
-    rfc->setAmplitudeModelName(Attributes::getString(itsAttr[AMPLITUDE_MODEL]));    
+    rfc->setPhaseModelName(Attributes::getString(itsAttr[PHASE_MODEL]));
+    rfc->setAmplitudeModelName(Attributes::getString(itsAttr[AMPLITUDE_MODEL]));
     rfc->setFrequencyModelName(Attributes::getString(itsAttr[FREQUENCY_MODEL]));
 
     // Transmit "unknown" attributes.

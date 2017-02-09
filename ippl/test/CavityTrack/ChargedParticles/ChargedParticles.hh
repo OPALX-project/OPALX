@@ -75,53 +75,53 @@
 
 template <class T, unsigned int Dim>
 class ChargedParticles : public IpplParticleBase< ParticleSpatialLayout<T,Dim> > {
-  
+
 private:
-    
+
     T coupling_m;
 
     unsigned long N0_m;
-    double current_m;    
+    double current_m;
 
     unsigned int numberOfClones;
 
 public:
-    
-    typedef IntCIC IntrplCIC_t; 
+
+    typedef IntCIC IntrplCIC_t;
     typedef IntNGP IntrplNGP_t;
-    
+
     typedef typename ParticleSpatialLayout<T,Dim>::ParticlePos_t Ppos_t;
     typedef typename ParticleSpatialLayout<T,Dim>::ParticleIndex_t PID_t;
-    
+
     typedef UniformCartesian<Dim,T> Mesh_t;
-    
+
     typedef typename ParticleSpatialLayout<T,Dim>::SingleParticlePos_t Vector_t;
-    
+
     typedef ParticleSpatialLayout<T, Dim, Mesh_t>      Layout_t;
-  
+
     typedef Cell                                       Center_t;
-    
+
     typedef CenteredFieldLayout<Dim, Mesh_t, Center_t> FieldLayout_t;
     typedef Field<T, Dim, Mesh_t, Center_t>            Field_t;
     typedef Field<Vector_t, Dim, Mesh_t, Center_t>     VField_t;
-    
+
     ParticleAttrib<T>          q_m; // charge (=mass if gravity)
     ParticleAttrib<T>          mass_m; //  mass
     ParticleAttrib<T>          h; // stepsize
     ParticleAttrib<T>          Ti;
     ParticleAttrib<T>          tact; // actual time
-    ParticleAttrib<Vector_t>   P;    // particle velocity 
+    ParticleAttrib<Vector_t>   P;    // particle velocity
     ParticleAttrib<Vector_t>   Ef;   // electric field at particle position
     ParticleAttrib<int>        bunchNo; // which bunch am  I
 
     Vector_t rmin_m, rmax_m;
     Vector_t CenterOfMass_m;
-    
+
     inline T getq() { return q_m[0]; }
     inline T getmass() { return mass_m[0]; }
-    
+
 /** Clone business
-    
+
 */
 
     Vector_t MeanR_m[MAXCLONE];
@@ -134,21 +134,21 @@ public:
 
     unsigned long int locNum_m[MAXCLONE];
     unsigned long int totNum_m[MAXCLONE];
-    
+
 
     inline void setNumOfClones(unsigned int nc) {numberOfClones=nc;}
     inline unsigned int getNumOfClones() {return numberOfClones;}
-    
-    inline Vector_t getMeanR() { 
+
+    inline Vector_t getMeanR() {
         /** assume all clones have the same number of particles
             and they are equal the number of particles of the mother bunch
         */
         double den = 1.0/(getTotalNum()/(numberOfClones+1));
-  
-        for (int j=0; j<MAXCLONE; j++) 
+
+        for (int j=0; j<MAXCLONE; j++)
             MeanR_loc[j] = MeanR_m[j] = 0.0;
-        
-        for (unsigned long int i=0; i<getLocalNum(); i++) 
+
+        for (unsigned long int i=0; i<getLocalNum(); i++)
             MeanR_loc[bunchNo[i]] += R[i]*den;
         reduce(MeanR_loc, MeanR_loc + MAXCLONE, MeanR_m, OpAddAssign());
         return MeanR_m[0];
@@ -156,16 +156,16 @@ public:
     /** assume a previous call to  getMeanR() */
     inline Vector_t getMeanR(int k) { return MeanR_m[k]; }
 
-    inline Vector_t getMeanP() { 
+    inline Vector_t getMeanP() {
         /** assume all clones have the same number of particles
             and they are equal the number of particles of the mother bunch
         */
         double den = 1.0/(getTotalNum()/(numberOfClones+1));
-  
-        for (int j=0; j<MAXCLONE; j++) 
+
+        for (int j=0; j<MAXCLONE; j++)
             MeanP_loc[j] = MeanP_m[j] = 0.0;
-        
-        for (unsigned long int i=0; i<getLocalNum(); i++) 
+
+        for (unsigned long int i=0; i<getLocalNum(); i++)
             MeanP_loc[bunchNo[i]] += P[i]*den;
         reduce(MeanP_loc, MeanP_loc + MAXCLONE, MeanP_m, OpAddAssign());
         return MeanP_m[0];
@@ -181,42 +181,42 @@ public:
         }
     }
 
-    inline T getGamma(int k) { 
+    inline T getGamma(int k) {
         return gamma_m[k];
     }
 
-    inline T getGamma() { 
+    inline T getGamma() {
         return gamma_m[0];
     }
-    
-    inline T getBeta() { 
+
+    inline T getBeta() {
         return sqrt(1.0-(1.0/(gamma_m[0]*gamma_m[0])));
     }
 
-    void updateBunches() {        
-        /** 
+    void updateBunches() {
+        /**
             Must be done after each integration step
             in consequence all getXXX(k) are valid
         */
-        
+
         Vector_t cm = getMeanP();
         Vector_t cv = getMeanR();
         compGamma();
-        
-        for (unsigned long int i=0; i<MAXCLONE ; i++) 
+
+        for (unsigned long int i=0; i<MAXCLONE ; i++)
             locNum_m[i] = totNum_m[i] = 0;
-        
+
         if (getNumOfClones()==0) {
             locNum_m[0]=getLocalNum();
             totNum_m[0]=getTotalNum();
         }
         else {
-            for (unsigned long int i=0; i<getLocalNum(); i++) 
+            for (unsigned long int i=0; i<getLocalNum(); i++)
                 locNum_m[bunchNo[i]]++;
             reduce(locNum_m,locNum_m+MAXCLONE,totNum_m,OpAddAssign());
         }
     }
-    
+
 
     inline unsigned long int getLocalnum(unsigned int clone) {return locNum_m[clone];}
     inline unsigned long int getTotalnum(unsigned int clone) {return totNum_m[clone];}
@@ -224,7 +224,7 @@ public:
     inline T getTime(int clone) {
         unsigned nPartLoc = 0;
         double ti = 0.0;
-        
+
         for (unsigned k=0; k<getLocalNum(); k++) {
             if (bunchNo[k] == clone) {
                 nPartLoc++;
@@ -233,15 +233,15 @@ public:
         }
         return ti/nPartLoc;
     }
-    
+
     inline void setTime(int clone, double t) {
-        for (unsigned k=0; k<getLocalNum(); k++) 
+        for (unsigned k=0; k<getLocalNum(); k++)
             if (bunchNo[k] == clone)
                 Ti[k] = t;
     }
-    
+
     inline Vector_t getCenterOfMass() { return CenterOfMass_m; }
-    
+
     inline Vector_t getGridSize() { return nr_m; }
     inline Vector_t getMeshSpacing() { return hr_m; }
 
@@ -249,12 +249,12 @@ public:
     inline Vector_t getRmax() { return rmax_m; }
 
     inline void setCurrent(double I) { current_m = I; }
-    inline double getCurrent() { return  current_m; }    
+    inline double getCurrent() { return  current_m; }
 
     inline void setN0() {N0_m = getTotalNum();}
     inline void setN0(unsigned long n) {N0_m = n;}
     inline unsigned long getN0() {return N0_m;}
-    
+
     inline bool isRoot() { return (Ippl::Comm->myNode() == 0); }
 
 
@@ -270,16 +270,16 @@ public:
         else
             return  CLIGHT*beta;
     }
-    
+
     inline double cu2mks(double p) {
-        double gamma2 = pow(p,2) + 1.0;     
+        double gamma2 = pow(p,2) + 1.0;
         double beta = sqrt(1.0 - (1.0/gamma2));
         if (p<0.0)
             return  -1.0*CLIGHT*beta;
         else
             return  CLIGHT*beta;
     }
-    
+
     inline double mks2mcu(double p) {
         double beta = p/CLIGHT;
         double gamma2 = 1.0 / (1.0 - (beta*beta));
@@ -288,40 +288,40 @@ public:
         else
             return  1.0e3*sqrt(gamma2-1.0);
     }
-    
+
 
     // Grid stuff
     Field_t  rho_m;                       // charge density/electric potential
     VField_t  eg_m;                       // electric field on grid
-    
+
     BCT bcType_m;                        // type of BC
-   
+
     Vector_t hr_m;
     Vektor<int,Dim> nr_m;
-    
+
     T act_s;
     T act_phi;
     T frequ_m;
-    
+
     BConds<T,Dim,Mesh_t,Center_t> bc_m;
     BConds<Vector_t,Dim,Mesh_t,Center_t> vbc_m;
-  
+
     
 
-    
+
     inline T   getFrequ() { return frequ_m; }
     inline void setFrequ(T f) { frequ_m = f; }
-    
+
     string getTitle() { return string("pcyclint"); }
-    
+
       
     //constructor
-    ChargedParticles(Layout_t *playout, BCT bc) : 
+    ChargedParticles(Layout_t *playout, BCT bc) :
             IpplParticleBase< ParticleSpatialLayout<T,Dim> >(playout),
             bcType_m(bc),
             numberOfClones(0)
         {
-        
+
         // register the particle attributes
         addAttribute(q_m);
         addAttribute(P);
@@ -330,7 +330,7 @@ public:
         addAttribute(h);
         addAttribute(Ti);
         addAttribute(tact);
-        addAttribute(bunchNo); 
+        addAttribute(bunchNo);
 
         if (bcType_m == PPP) {
             setBCAllPeriodic();
@@ -358,9 +358,9 @@ public:
 	R  = Vector_t(0.0);
     }
 
-    inline const Mesh_t& getMesh() const { 
+    inline const Mesh_t& getMesh() const {
         return getLayout().getLayout().getMesh(); }
-    inline Mesh_t& getMesh() { 
+    inline Mesh_t& getMesh() {
         return getLayout().getLayout().getMesh(); }
     inline const FieldLayout_t& getFieldLayout() const {
         return dynamic_cast<FieldLayout_t&>(getLayout().getLayout().getFieldLayout());
@@ -368,11 +368,11 @@ public:
     inline FieldLayout_t& getFieldLayout() {
         return dynamic_cast<FieldLayout_t&>(getLayout().getLayout().getFieldLayout());
     }
-    
+
     inline void setCoupling(T c) {
         coupling_m = c;
     }
-    
+
     inline T getCoupling() {
         return coupling_m;
     }
@@ -403,28 +403,28 @@ public:
     void boundp() {
       Inform msg2all("boundp ", INFORM_ALL_NODES);
       bounds(R, rmin_m, rmax_m);
-      
-      NDIndex<Dim> domain = getFieldLayout().getDomain(); 
+
+      NDIndex<Dim> domain = getFieldLayout().getDomain();
       for(int i=0; i<Dim; i++)
 	nr_m[i] = domain[i].length();
-      
-      // enlarge domaine 
+
+      // enlarge domaine
       Vector_t dr = 1.05 * (rmax_m - rmin_m);
-      
+
       for(int i=0; i<Dim; i++)
-	hr_m[i] = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1.0); 
-      
-      // rescale mesh 
+	hr_m[i] = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1.0);
+
+      // rescale mesh
       getMesh().set_meshSpacing( &(hr_m[0])  );
-      getMesh().set_origin( rmin_m ); 
+      getMesh().set_origin( rmin_m );
       // (re) initialize the fields
-      rho_m.initialize(getMesh(), 
-		       getFieldLayout(), 
-		       GuardCellSizes<Dim>(1), 
+      rho_m.initialize(getMesh(),
+		       getFieldLayout(),
+		       GuardCellSizes<Dim>(1),
 		       bc_m);
-      eg_m.initialize(getMesh(), 
-		      getFieldLayout(), 
-		      GuardCellSizes<Dim>(1), 
+      eg_m.initialize(getMesh(),
+		      getFieldLayout(),
+		      GuardCellSizes<Dim>(1),
 		      vbc_m);
       rho_m = 0.0;
       eg_m = Vector_t(0.0);
@@ -435,26 +435,26 @@ public:
 	totNum_m[0]=getTotalNum();
       }
       else {
-	for (unsigned long int i=0; i<getLocalNum(); i++) 
+	for (unsigned long int i=0; i<getLocalNum(); i++)
 	  locNum_m[bunchNo[i]]++;
 	reduce(locNum_m,locNum_m+MAXCLONE,totNum_m,OpAddAssign());
       }
     }
 
-    inline void scaleIn () { 
+    inline void scaleIn () {
         for (unsigned long int i=0; i<getLocalNum(); i++)
             R[i] -= MeanR_m[bunchNo[i]];
         boundp();
     }
-    
+
 
     inline void scaleOut (Vector_t center)  {
         /** special scaleOut for the first bunch in the machine
          */
         R += center;
     }
-    
-    inline void scaleOut ()  { 
+
+    inline void scaleOut ()  {
         for (unsigned long int i=0; i<getLocalNum(); i++)
             R[i] += MeanR_m[bunchNo[i]];
     }
@@ -462,16 +462,16 @@ public:
 
     inline void do_binaryRepart(int maxDev) {
         Inform msg("do_binaryRepart ");
-        if(maxDev>0) {            
+        if(maxDev>0) {
 #ifdef USE_PBE
             pbe_start(2,"binaryRepart");
-#endif  
+#endif
             double idealNp     = getTotalNum()/Ippl::getNodes();
             double localDev    = 100.0*std::abs((idealNp-getLocalNum())/idealNp);
             double actMaxDev = 0.0;
-            
+
             reduce(localDev, actMaxDev, OpMaxAssign());
-            
+
             if (actMaxDev > maxDev) {
                 msg << "do binaryRepart threshold is " << maxDev << " max inbalance reached is " << actMaxDev << endl;
                 do_binaryRepart();
@@ -485,9 +485,9 @@ public:
 #endif
         }
     }
-    
+
     inline void do_binaryRepart() {
-        scaleIn(); 
+        scaleIn();
         BinaryRepartition(*this);
         scaleOut();
     }
@@ -498,7 +498,7 @@ public:
         reduce(localmin, globalMin, OpMinAssign());
         return globalMin;
     }
-    
+
 
 
 
@@ -509,7 +509,7 @@ public:
             getBConds()[i] = ParticleNoBCond;
         }
     }
-  
+
     inline void setBCAllPeriodic() {
         for (int i=0; i < 2*Dim; ++i) {
             bc_m[i] = new PeriodicFace<T,Dim,Mesh_t,Center_t>(i);
@@ -517,18 +517,18 @@ public:
             getBConds()[i] = ParticlePeriodicBCond;
         }
     }
-  
+
     inline void setBCPeriodicInZOpenInXY() {
         bc_m[0] = new ZeroFace<T,Dim,Mesh_t,Center_t>(0);
         bc_m[1] = new ZeroFace<T,Dim,Mesh_t,Center_t>(1);
         bc_m[2] = new ZeroFace<T,Dim,Mesh_t,Center_t>(2);
         bc_m[3] = new ZeroFace<T,Dim,Mesh_t,Center_t>(3);
-    
+
         vbc_m[0] = new ZeroFace<Vector_t,Dim,Mesh_t,Center_t>(0);
         vbc_m[1] = new ZeroFace<Vector_t,Dim,Mesh_t,Center_t>(1);
         vbc_m[2] = new ZeroFace<Vector_t,Dim,Mesh_t,Center_t>(2);
         vbc_m[3] = new ZeroFace<Vector_t,Dim,Mesh_t,Center_t>(3);
-    
+
         getBConds()[0] = ParticleNoBCond;
         getBConds()[1] = ParticleNoBCond;
         getBConds()[2] = ParticleNoBCond;
@@ -541,19 +541,19 @@ public:
             bc_m[5] = new PeriodicFace<T,Dim,Mesh_t,Center_t>(5);
             vbc_m[4] = new PeriodicFace<Vector_t,Dim,Mesh_t,Center_t>(4);
             vbc_m[5] = new PeriodicFace<Vector_t,Dim,Mesh_t,Center_t>(5);
-    
+
         } else {
             bc_m[4] = new PeriodicFace<T,Dim,Mesh_t,Center_t>(4);
             bc_m[5] = new PeriodicFace<T,Dim,Mesh_t,Center_t>(5);
             vbc_m[4] = new PeriodicFace<Vector_t,Dim,Mesh_t,Center_t>(4);
             vbc_m[5] = new PeriodicFace<Vector_t,Dim,Mesh_t,Center_t>(5);
-        }    
+        }
     }
      
-    inline void writeHeader(ofstream &os, unsigned int idx, double ga, 
+    inline void writeHeader(ofstream &os, unsigned int idx, double ga,
         unsigned long int N, Vector_t pmin, Vector_t pmax,  Vector_t cm, double t,
         double I, unsigned long N0,  Vector_t rcm, double r, double phi, unsigned int turn) {
-        
+
         os << "# " << getTitle() << " format: x/m,y/m,z/m,px,y,pz,id (p == v/(beta*c)" << endl;
         os << "# s: "<< 0.0  << " rcm= " << rcm << " r= " << r << " phi= " << phi << " turn= " << turn << endl;
         os << "# struture lenght: 0 ... not used t= " << t << endl;
@@ -568,57 +568,57 @@ public:
         os << "# Energy drive beam (gamma) " << ga << endl;
         os << "# Data set  " << idx << endl;
     }
-        
+
     inline void writePhaseSpace(string fn,unsigned int fnum, double rcm, double phi, unsigned int turn, unsigned int clone) {
-        
+
         stringstream ff;
         ofstream of;
 	Inform msg("writePhaseSpace: ", INFORM_ALL_NODES);
-	
+
 #ifdef USE_PBE
         pbe_start(10,"writePhaseSpace");
-#endif                    
+#endif
         if (clone==0)
             ff << fn  << setw(4) << setfill('0') << fnum << ".dat";
         else
             ff << fn + string("-clone-") << setw(4) << setfill('0') << fnum << ".dat";
-        
+
         int tag = Ippl::Comm->next_tag(IPPL_APP_TAG4, IPPL_APP_CYCLE);
-        
+
 
         double ga = getGamma(clone);
-        double be = sqrt(1.0-(1.0/(ga*ga)));  
-        
+        double be = sqrt(1.0-(1.0/(ga*ga)));
+
         double v0 = be*CLIGHT;
         double t = getTime(clone);
-        
+
         Vector_t pmin, pmax;
         bounds(P,pmin, pmax);
-        
+
         Vector_t cm = getCenterOfMass();
         scaleIn();
-        
+
         double current = getCurrent();
         unsigned long N0 = getN0();
-        
+
         if(isRoot()) {
             of.open(ff.str().c_str(),ios::out);
             of.precision(15);
             of.setf(ios::scientific, ios::floatfield);
             writeHeader(of,fnum,ga,getTotalnum(clone),pmax,pmin,cm,t,current,N0,MeanR_m[clone],rcm,phi,turn);
-            
+
             unsigned int dataBlocks=0;
             unsigned int id=0;
-            
+
             double x,y,z,px,py,pz;
-            
+
             for (unsigned k = 0; k < getLocalNum(); k++) {
                 if (bunchNo[k] == clone)
                     of <<  R[k](0) << "  " << R[k](1)   << "  " << R[k](2) << "  "
                        <<  P[k](0) << "  " << P[k](1)   << "  " << P[k](2) << "  " << ID[k] << endl;
             }
-            
-            int notReceived =  Ippl::getNodes() - 1; 
+
+            int notReceived =  Ippl::getNodes() - 1;
             while (notReceived > 0) {
                 int node = COMM_ANY_NODE;
                 Message* rmsg =  Ippl::Comm->receive_block(node, tag);
@@ -642,7 +642,7 @@ public:
             of.close();
         }
         else {
-            
+
             Message* smsg = new Message();
             unsigned dataBlocks = 7*getLocalnum(clone);
             smsg->put(dataBlocks);
@@ -655,18 +655,18 @@ public:
                     smsg->put(ID[k]);
                 }
             }
-            bool res = Ippl::Comm->send(smsg, 0, tag);	
-            if (! res) 
+            bool res = Ippl::Comm->send(smsg, 0, tag);
+            if (! res)
                 ERRORMSG("Ippl::Comm->send(smsg, 0, tag) failed " << endl;);
         }
         IpplInfo::Comm->barrier();
         scaleOut();
 #ifdef USE_PBE
         pbe_stop(10);
-#endif                    
+#endif
     }
-    
-    
+
+
     inline void writeStatistics(string fn, int turn, bool calcTune, double r, double phi, double dT) {
         ofstream ofs1,ofs2;
         Vector_t MeanR;
@@ -678,67 +678,67 @@ public:
         Vector_t rmsEmit;
         Vector_t TotalP;
         Vector_t TotalL;
-        
+
         Vector_t rmsR;
         Vector_t rmsP;
 
 #ifdef USE_PBE
             pbe_start(9,"writeStatistics");
-#endif                    
-            scaleIn();  
-            
+#endif
+            scaleIn();
+
             T denN = 1.0 / getTotalNum();
             int Np  = getTotalNum();
-        
+
             MeanR = sum(R) * denN;
             MeanP = sum(P) * denN;
-            
+
             MeanR2 = sum(R*R) * denN;
             MeanP2 = sum(P*P) * denN;
-            
+
             MeanRP = sum(R*P) * denN;
             Mean2RP = MeanRP * MeanRP;
-            
+
             double ga = getGamma(0);
-            
+
 
             // Calculate rms emittance and standard deviation of R and P: rmsR and rmsP
             for (int i=0;i<Dim;i++) {
                 rmsEmit(i) = sqrt( (MeanR2*MeanP2)(i) - Mean2RP(i)  ) / ( getBeta()*CLIGHT );
                 rmsEmit(2) /= ga*ga;
-                rmsR(i) = sqrt( MeanR2(i) - (MeanR*MeanR)(i)  ); 
-                rmsP(i) = sqrt( MeanP2(i) - (MeanP*MeanP)(i)  ); 
+                rmsR(i) = sqrt( MeanR2(i) - (MeanR*MeanR)(i)  );
+                rmsP(i) = sqrt( MeanP2(i) - (MeanP*MeanP)(i)  );
             }
-            
+
             CenterOfMass_m = sum(mass_m*R) / sum(mass_m);
-            
+
             //Calculate total momentum and angular momentum
-            
+
             TotalP = sum(P);
             TotalL = sum(cross(R,P));
-            
+
             // maximal radius
             Vector_t maxR = max(R);
             Vector_t maxE = max(Ef);
-            
+
             Vector_t meanPrad = sum(MeanP - P)/MeanP;
             Vector_t rmsPrad = sum(rmsP - P)/rmsP;
             T actTime = getTime(0);
-            
-            
+
+
             if (isRoot()) {
-                ofs1.precision(14);  
+                ofs1.precision(14);
                 ofs1.open(fn.c_str(),ios::app);
-                ofs1.setf(ios_base::scientific); 
+                ofs1.setf(ios_base::scientific);
                 ofs1 << MeanR[0]  << "  "  << MeanR[1]  << "  "   << MeanR[2]  << "  " // 1 2 3      [m]
                      << meanPrad[0] << "  "  << meanPrad[1] << "  "   << meanPrad[2] << "  " // 4 5 6     [rad]
                      << actTime  << "  "                                                     // 7          [s]
                      << rmsR[0]   << "  "  << rmsR[1]    << "  "   << rmsR[2]   << "  " // 8 9 10    [m]
-                     << rmsPrad[0]  << "  "  << rmsPrad[1]   << "  "   << rmsPrad[2]  << "  " // 11 12 13    [rad]    
+                     << rmsPrad[0]  << "  "  << rmsPrad[1]   << "  "   << rmsPrad[2]  << "  " // 11 12 13    [rad]
                      << maxR[0]     << "  "  << maxR[1]      << "  "   << maxR[2]     << "  " // 14 15 16    [m]
                      << maxE[0]     << "  "  << maxE[1]      << "  "   << maxE[2]     << "  " // 17 18 19     [V/m]
-                     << rmsEmit[0] << "  " << rmsEmit[1] << "  "   << rmsEmit[2] << "  " // 20 21 22    
-                     << TotalP[0] << "  "  << TotalP[1]  << "  "   << TotalP[2] << "  "  // 23 24 25 
+                     << rmsEmit[0] << "  " << rmsEmit[1] << "  "   << rmsEmit[2] << "  " // 20 21 22
+                     << TotalP[0] << "  "  << TotalP[1]  << "  "   << TotalP[2] << "  "  // 23 24 25
                      << TotalL[0] << "  "  << TotalL[1]  << "  "   << TotalL[2] << "  "  // 26 27 28
                      << MeanR_m[0](0) << "  " << MeanR_m[0](1) << "  " << MeanR_m[0](2) << "  "                        // 29 30 31    [m]
                      << MeanP_m[0](0) << "  " << MeanP_m[0](1) << "  " << MeanP_m[0](2) << "  "                        // 32 33 34    [m]
@@ -752,26 +752,26 @@ public:
             long locNum = getLocalNum();
             long minLocNum = 0;
             long maxLocNum = 0;
-            
+
             reduce(locNum, minLocNum, OpMinAssign());
             reduce(locNum, maxLocNum, OpMaxAssign());
 
             if (isRoot()) {
-                ofs1.precision(14);  
+                ofs1.precision(14);
                 ofs1.open((fn+string("-comp")).c_str(),ios::app);
-                ofs1.setf(ios_base::scientific); 
-                
+                ofs1.setf(ios_base::scientific);
+
                 ofs1 << dT << "  " <<  minLocNum << "  " << maxLocNum << endl;
-                
+
                 ofs1.close();
             }
-            
+
             IpplInfo::Comm->barrier();
             scaleOut();
 #ifdef USE_PBE
             pbe_stop(9);
-#endif                    
+#endif
     }
-  
+
 };
 #endif

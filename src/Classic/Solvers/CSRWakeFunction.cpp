@@ -5,12 +5,15 @@
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/SBend.h"
 #include "Utilities/Options.h"
+#include "Utilities/Util.h"
 
 #include <iostream>
 #include <fstream>
 
+extern Inform *gmsg;
+
 CSRWakeFunction::CSRWakeFunction(const std::string &name, ElementBase *element, std::vector<Filter *> filters, const unsigned int &N):
-    WakeFunction(name, element),
+    WakeFunction(name, element, N),
     filters_m(filters.begin(), filters.end()),
     lineDensity_m(),
     dlineDensitydz_m(),
@@ -22,10 +25,11 @@ CSRWakeFunction::CSRWakeFunction(const std::string &name, ElementBase *element, 
 void CSRWakeFunction::apply(PartBunch &bunch) {
     Inform msg("CSRWake ");
 
-    const double &meshSpacing = bunch.getMesh().get_meshSpacing(2);
-    const double centerFirstCell = bunch.getMesh().get_origin()[2] + 0.5 * meshSpacing;
-
-    calculateLineDensity(bunch, meshSpacing);
+    const double sPos = bunch.get_sPos();
+    std::pair<double, double> meshInfo;
+    calculateLineDensity(bunch, meshInfo);
+    const double &meshSpacing = meshInfo.second;
+    const double &meshOrigin = meshInfo.first + 0.5 * meshSpacing;
 
     if(Ez_m.size() < lineDensity_m.size()) {
         Ez_m.resize(lineDensity_m.size(), 0.0);
@@ -34,7 +38,9 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
 
     Vector_t smin, smax;
     bunch.get_bounds(smin, smax);
-    double minPathLength = smin(2) - FieldBegin_m;
+    double minPathLength = smin(2) + sPos - FieldBegin_m;
+    if (sPos + smax(2) < FieldBegin_m) return;
+
     Ez_m[0] = 0.0;
     // calculate wake field of bunch
     for(unsigned int i = 1; i < lineDensity_m.size(); ++i) {
@@ -54,10 +60,10 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
     // calculate the wake field seen by the particles
     for(unsigned int i = 0; i < bunch.getLocalNum(); ++i) {
         const Vector_t &R = bunch.R[i];
-        double distanceToCenterFirstCell = (R(2) - centerFirstCell) / meshSpacing;
-        // linearly gathering data in CELL centered way
-        unsigned int indexz = (unsigned int)floor(distanceToCenterFirstCell);
-        double leverz = distanceToCenterFirstCell - indexz;
+        double distanceToOrigin = (R(2) - meshOrigin) / meshSpacing;
+
+        unsigned int indexz = (unsigned int)floor(distanceToOrigin);
+        double leverz = distanceToOrigin - indexz;
         PAssert(indexz < lineDensity_m.size() - 1);
 
         bunch.Ef[i](2) += (1. - leverz) * Ez_m[indexz] + leverz * Ez_m[indexz + 1];
@@ -74,20 +80,21 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
         if(print_criterion) {
             static unsigned int file_number = 0;
             if(counter == 0) file_number = 0;
-	    double spos = bunch.get_sPos();
 	    if (Ippl::myNode() == 0) {
-	      std::stringstream filename_str;
-	      filename_str << "data/" << bendName_m << "-CSRWake" << file_number << ".txt";
-	      std::ofstream csr(filename_str.str().c_str());
-	      csr << spos << std::endl;
-	      for(unsigned int i = 0; i < lineDensity_m.size(); ++ i) {
-                csr << i *meshSpacing << "\t"
-                    << Ez_m[i] << "\t"
-                    << lineDensity_m[i] << "\t"
-                    << dlineDensitydz_m[i] << std::endl;
-	      }
-	      csr.close();
-	      msg << "** wrote " << filename_str.str() << endl;
+                std::stringstream filename_str;
+                filename_str << "data/" << bendName_m << "-CSRWake" << file_number << ".txt";
+
+                std::ofstream csr(filename_str.str().c_str());
+                csr << std::setprecision(8);
+                csr << "# " << sPos + smin(2) - FieldBegin_m << "\t" << sPos + smax(2) - FieldBegin_m << std::endl;
+                for(unsigned int i = 0; i < lineDensity_m.size(); ++ i) {
+                  csr << i *meshSpacing << "\t"
+                      << Ez_m[i] << "\t"
+                      << lineDensity_m[i] << "\t"
+                      << dlineDensitydz_m[i] << std::endl;
+                }
+                csr.close();
+                msg << "** wrote " << filename_str.str() << endl;
 	    }
             ++ file_number;
         }
@@ -98,37 +105,28 @@ void CSRWakeFunction::apply(PartBunch &bunch) {
 
 void CSRWakeFunction::initialize(const ElementBase *ref) {
     double End;
-    if(dynamic_cast<const RBend *>(ref)) {
-        const RBend *bend = dynamic_cast<const RBend *>(ref);
-        bendRadius_m = bend->GetBendRadius();
+    if(ref->getType() == ElementBase::RBEND ||
+       ref->getType() == ElementBase::SBEND) {
+        const Bend *bend = static_cast<const Bend *>(ref);
+        bendRadius_m = bend->getBendRadius();
         bend->getDimensions(Begin_m, End);
-        Length_m = bend->GetEffectiveLength();
-        //xpang 09-19-2014 : removed "Begin_m +" from FieldBegin_m
-        FieldBegin_m = bend->GetEffectiveCenter() - Length_m / 2.0;
-        totalBendAngle_m = std::abs(bend->GetBendAngle());
-        bendName_m = bend->getName();
-    } else if(dynamic_cast<const SBend *>(ref)) {
-        const SBend *bend = dynamic_cast<const SBend *>(ref);
-        bendRadius_m = bend->GetBendRadius();
-        bend->getDimensions(Begin_m, End);
-        Length_m = bend->GetEffectiveLength();
-        //xpang 09-19-2014 : removed "Begin_m +" from FieldBegin_m
-        FieldBegin_m = bend->GetEffectiveCenter() - Length_m / 2.0;
-        totalBendAngle_m = bend->GetBendAngle();
+        Length_m = bend->getEffectiveLength();
+        FieldBegin_m = bend->getEffectiveCenter() - Length_m / 2.0;
+        totalBendAngle_m = std::abs(bend->getBendAngle());
         bendName_m = bend->getName();
     }
 }
 
-void CSRWakeFunction::calculateLineDensity(PartBunch &bunch, double meshSpacing) {
-    bunch.calcLineDensity();
-    bunch.getLineDensity(lineDensity_m);
+void CSRWakeFunction::calculateLineDensity(PartBunch &bunch, std::pair<double, double> &meshInfo) {
+    bunch.calcLineDensity(nBins_m, lineDensity_m, meshInfo);
 
     std::vector<Filter *>::const_iterator fit;
     for(fit = filters_m.begin(); fit != filters_m.end(); ++ fit) {
         (*fit)->apply(lineDensity_m);
     }
+
     dlineDensitydz_m.assign(lineDensity_m.begin(), lineDensity_m.end());
-    filters_m.back()->calc_derivative(dlineDensitydz_m, meshSpacing);
+    filters_m.back()->calc_derivative(dlineDensitydz_m, meshInfo.second);
 }
 
 void CSRWakeFunction::calculateContributionInside(size_t sliceNumber, double angleOfSlice, double meshSpacing) {
@@ -140,8 +138,8 @@ void CSRWakeFunction::calculateContributionInside(size_t sliceNumber, double ang
     if(relativeSlippageLength > sliceNumber) {
 
         /*
-        Break integral into sum of integrals between grid points, then
-        use linear interpolation between each grid point.
+          Break integral into sum of integrals between grid points, then
+          use linear interpolation between each grid point.
         */
 
         double dx1 = pow(sliceNumber, 2. / 3.);

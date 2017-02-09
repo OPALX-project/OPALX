@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -87,7 +87,7 @@ IpplParticleBaseDataSource::find_particle_base(ParticleAttribDataSource *pa,
 // should be called by the constructors of subclasses after a successful
 // connect.  Argument = name of this particle base
 void IpplParticleBaseDataSource::checkin() {
-  
+
 
   // first see if we're already here ...
   BaseList_t::iterator currbase = IpplParticleBaseDataSource::begin_base();
@@ -104,7 +104,7 @@ void IpplParticleBaseDataSource::checkin() {
 ///////////////////////////////////////////////////////////////////////////
 // unregister ourselves ... generally called by subclass destructors.
 void IpplParticleBaseDataSource::checkout() {
-  
+
 
   for (unsigned i=0; i < BaseList.size(); ++i) {
     if (BaseList[i] == this) {
@@ -123,7 +123,7 @@ bool IpplParticleBaseDataSource::connect_attrib(ParticleAttribDataSource *pa) {
   return true;
 }
 
-  
+
 ////////////////////////////////////////////////////////////////////////////
 // disconnect from the external agency the connection involving this
 // particle base and the given attribute.  Return success.
@@ -148,5 +148,5 @@ bool IpplParticleBaseDataSource::disconnect_attrib(ParticleAttribDataSource *pa)
 /***************************************************************************
  * $RCSfile: PtclBaseDataSource.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:25 $
- * IPPL_VERSION_ID: $Id: PtclBaseDataSource.cpp,v 1.1.1.1 2003/01/23 07:40:25 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: PtclBaseDataSource.cpp,v 1.1.1.1 2003/01/23 07:40:25 adelmann Exp $
  ***************************************************************************/

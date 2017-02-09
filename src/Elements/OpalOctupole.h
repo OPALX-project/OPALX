@@ -32,9 +32,9 @@ public:
     /// The attributes of class OpalOctupole.
     enum {
         K3 = COMMON,  // The normal octupole coefficient.
+        DK3,          // The normal octupole coefficient error.
         K3S,          // The skew octupole coefficient.
-        DX,
-        DY,
+        DK3S,          // The skew octupole coefficient error.
         SIZE
     };
 

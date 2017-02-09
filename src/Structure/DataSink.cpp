@@ -4,12 +4,11 @@
 
 #include "Structure/DataSink.h"
 
-#include "config.h"
-#include "revision.h"
+#include "OPALconfig.h"
 #include "Algorithms/bet/EnvelopeBunch.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Options.h"
-#include "Utilities/Options.h"
+#include "Utilities/Util.h"
 #include "Fields/Fieldmap.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/H5PartWrapper.h"
@@ -55,8 +54,8 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
                             "Can not restart when HDF5 is disabled");
     }
 
-    H5PartTimer_m = IpplTimings::getTimer("H5PartTimer");
-    StatMarkerTimer_m = IpplTimings::getTimer("StatMarkerTimer");
+    H5PartTimer_m = IpplTimings::getTimer("Write H5-File");
+    StatMarkerTimer_m = IpplTimings::getTimer("Write Stat");
 
     /// Set flags whether SDDS file exists or have to write header first.
     firstWriteToStat_m = true;
@@ -91,8 +90,8 @@ DataSink::DataSink(H5PartWrapper *h5wrapper):
 {
     /// Constructor steps:
     /// Get timers from IPPL.
-    H5PartTimer_m = IpplTimings::getTimer("H5PartTimer");
-    StatMarkerTimer_m = IpplTimings::getTimer("StatMarkerTimer");
+    H5PartTimer_m = IpplTimings::getTimer("Write H5-File");
+    StatMarkerTimer_m = IpplTimings::getTimer("Write Stat");
 
     /// Set file write flags to true. These will be set to false after first
     /// write operation.
@@ -119,33 +118,18 @@ void DataSink::storeCavityInformation() {
     h5wrapper_m->storeCavityInformation();
 }
 
-void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail) {
+void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[]) {
 
     if (!doHDF5_m) return;
 
     IpplTimings::startTimer(H5PartTimer_m);
     std::map<std::string, double> additionalAttributes = {
-        std::make_pair("sposHead", sposHead),
-        std::make_pair("sposRef", sposRef),
-        std::make_pair("sposTail", sposTail),
-        std::make_pair("B-head_x", FDext[0](0)),
-        std::make_pair("B-head_z", FDext[0](1)),
-        std::make_pair("B-head_y", FDext[0](2)),
-        std::make_pair("E-head_x", FDext[1](0)),
-        std::make_pair("E-head_z", FDext[1](1)),
-        std::make_pair("E-head_y", FDext[1](2)),
-        std::make_pair("B-ref_x", FDext[2](0)),
-        std::make_pair("B-ref_z", FDext[2](1)),
-        std::make_pair("B-ref_y", FDext[2](2)),
-        std::make_pair("E-ref_x", FDext[3](0)),
-        std::make_pair("E-ref_z", FDext[3](1)),
-        std::make_pair("E-ref_y", FDext[3](2)),
-        std::make_pair("B-tail_x", FDext[4](0)),
-        std::make_pair("B-tail_z", FDext[4](1)),
-        std::make_pair("B-tail_y", FDext[4](2)),
-        std::make_pair("E-tail_x", FDext[5](0)),
-        std::make_pair("E-tail_z", FDext[5](1)),
-        std::make_pair("E-tail_y", FDext[5](2))};
+        std::make_pair("B-ref_x", FDext[0](0)),
+        std::make_pair("B-ref_z", FDext[0](1)),
+        std::make_pair("B-ref_y", FDext[0](2)),
+        std::make_pair("E-ref_x", FDext[1](0)),
+        std::make_pair("E-ref_z", FDext[1](1)),
+        std::make_pair("E-ref_y", FDext[1](2))};
 
     h5wrapper_m->writeStep(beam, additionalAttributes);
     IpplTimings::stopTimer(H5PartTimer_m);
@@ -259,18 +243,16 @@ void DataSink::dumpStashedPhaseSpaceEnvelope() {
     IpplTimings::stopTimer(H5PartTimer_m);
 }
 
-void DataSink::writeStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail, double E) {
-    doWriteStatData(beam, FDext, sposHead, sposRef, sposTail, E, std::vector<std::pair<std::string, unsigned int> >());
+void DataSink::writeStatData(PartBunch &beam, Vector_t FDext[], double E) {
+    doWriteStatData(beam, FDext, E, std::vector<std::pair<std::string, unsigned int> >());
 }
 
-void DataSink::writeStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail, const std::vector<std::pair<std::string, unsigned int> >& losses) {
-    doWriteStatData(beam, FDext, sposHead, sposRef, sposTail, beam.get_meanEnergy(), losses);
+void DataSink::writeStatData(PartBunch &beam, Vector_t FDext[], const std::vector<std::pair<std::string, unsigned int> >& losses) {
+    doWriteStatData(beam, FDext, beam.get_meanKineticEnergy(), losses);
 }
 
 
-void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail, double E, const std::vector<std::pair<std::string, unsigned int> > &losses) {
-
-    /// Function steps:
+void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double E, const std::vector<std::pair<std::string, unsigned int> > &losses) {
 
     /// Start timer.
     IpplTimings::startTimer(StatMarkerTimer_m);
@@ -279,7 +261,7 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
     unsigned int pwi = 10;
 
     /// Calculate beam statistics and gather load balance statistics.
-//    beam.calcBeamParameters_cycl();
+    beam.calcBeamParameters();
     beam.gatherLoadBalanceStatistics();
 
     size_t npOutside = 0;
@@ -291,7 +273,7 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
     if (OpalData::getInstance()->isInOPALCyclMode())
         pathLength = beam.getLPath();
     else
-        pathLength = sposRef;
+        pathLength = beam.get_sPos();
 
     /// Write data to files. If this is the first write to the beam statistics file, write SDDS
     /// header information.
@@ -322,7 +304,7 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
             os_lBalData.setf(ios::scientific, ios::floatfield);
         }
 
-        os_statData << beam.getT() << setw(pwi) << "\t"                                       // 1
+        os_statData << beam.getT() * 1e9 << setw(pwi) << "\t"                                 // 1
                     << pathLength << setw(pwi) << "\t"                                        // 2
 
                     << beam.getTotalNum() << setw(pwi) << "\t"                                // 3
@@ -346,79 +328,50 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
                     << beam.get_rmean()(1)  << setw(pwi) << "\t"                              // 16
                     << beam.get_rmean()(2)  << setw(pwi) << "\t"                              // 17
 
-                    << beam.get_maxExtend()(0) << setw(pwi) << "\t"                           // 18
-                    << beam.get_maxExtend()(1) << setw(pwi) << "\t"                           // 19
-                    << beam.get_maxExtend()(2) << setw(pwi) << "\t"                           // 20
+                    << beam.RefPartR_m(0) << setw(pwi) << "\t"                                // 18
+                    << beam.RefPartR_m(1) << setw(pwi) << "\t"                                // 19
+                    << beam.RefPartR_m(2) << setw(pwi) << "\t"                                // 20
+
+                    << beam.RefPartP_m(0) << setw(pwi) << "\t"                                // 21
+                    << beam.RefPartP_m(1) << setw(pwi) << "\t"                                // 22
+                    << beam.RefPartP_m(2) << setw(pwi) << "\t"                                // 23
+
+                    << beam.get_maxExtent()(0) << setw(pwi) << "\t"                           // 24
+                    << beam.get_maxExtent()(1) << setw(pwi) << "\t"                           // 25
+                    << beam.get_maxExtent()(2) << setw(pwi) << "\t"                           // 26
 
             // Write out Courant Snyder parameters.
-                    << beam.get_rprrms()(0) << setw(pwi) << "\t"                              // 21
-                    << beam.get_rprrms()(1) << setw(pwi) << "\t"                              // 22
-                    << beam.get_rprrms()(2) << setw(pwi) << "\t"                              // 23
-
-                    << 0.0 << setw(pwi) << "\t"                                                // 24
-                    << 0.0 << setw(pwi) << "\t"                                                // 25
+                    << beam.get_rprms()(0) << setw(pwi) << "\t"                               // 27
+                    << beam.get_rprms()(1) << setw(pwi) << "\t"                               // 28
+                    << beam.get_rprms()(2) << setw(pwi) << "\t"                               // 29
 
             // Write out dispersion.
-                    << beam.get_Dx() << setw(pwi) << "\t"                                      // 26
-                    << beam.get_DDx() << setw(pwi) << "\t"                                     // 27
-                    << beam.get_Dy() << setw(pwi) << "\t"                                      // 28
-                    << beam.get_DDy() << setw(pwi) << "\t"                                     // 29
+                    << beam.get_Dx() << setw(pwi) << "\t"                                      // 30
+                    << beam.get_DDx() << setw(pwi) << "\t"                                     // 31
+                    << beam.get_Dy() << setw(pwi) << "\t"                                      // 32
+                    << beam.get_DDy() << setw(pwi) << "\t"                                     // 33
 
 
             // Write head/reference particle/tail field information.
-                    << FDext[0](0) << setw(pwi) << "\t"                                         // 30 B-head x
-                    << FDext[0](1) << setw(pwi) << "\t"                                         // 31 B-head y
-                    << FDext[0](2) << setw(pwi) << "\t"                                         // 32 B-head z
+                    << FDext[0](0) << setw(pwi) << "\t"                                         // 34 B-ref x
+                    << FDext[0](1) << setw(pwi) << "\t"                                         // 35 B-ref y
+                    << FDext[0](2) << setw(pwi) << "\t"                                         // 36 B-ref z
 
-                    << FDext[1](0) << setw(pwi) << "\t"                                         // 33 E-head x
-                    << FDext[1](1) << setw(pwi) << "\t"                                         // 34 E-head y
-                    << FDext[1](2) << setw(pwi) << "\t"                                         // 35 E-head z
+                    << FDext[1](0) << setw(pwi) << "\t"                                         // 37 E-ref x
+                    << FDext[1](1) << setw(pwi) << "\t"                                         // 38 E-ref y
+                    << FDext[1](2) << setw(pwi) << "\t"                                         // 39 E-ref z
 
-                    << FDext[2](0) << setw(pwi) << "\t"                                         // 36 B-ref x
-                    << FDext[2](1) << setw(pwi) << "\t"                                         // 37 B-ref y
-                    << FDext[2](2) << setw(pwi) << "\t"                                         // 38 B-ref z
-
-                    << FDext[3](0) << setw(pwi) << "\t"                                         // 39 E-ref x
-                    << FDext[3](1) << setw(pwi) << "\t"                                         // 40 E-ref y
-                    << FDext[3](2) << setw(pwi) << "\t"                                         // 41 E-ref z
-
-                    << FDext[4](0) << setw(pwi) << "\t"                                         // 42 B-tail x
-                    << FDext[4](1) << setw(pwi) << "\t"                                         // 43 B-tail y
-                    << FDext[4](2) << setw(pwi) << "\t"                                         // 44 B-tail z
-
-                    << FDext[5](0) << setw(pwi) << "\t"                                         // 45 E-tail x
-                    << FDext[5](1) << setw(pwi) << "\t"                                         // 46 E-tail y
-                    << FDext[5](2) << setw(pwi) << "\t"                                         // 47 E-tail z
-
-                    << beam.getdE() << setw(pwi) << "\t"                                        // 48 dE energy spread
-
-                    << npOutside << setw(pwi) << "\t";                                          // 49 number of particles outside n*sigma
+                    << beam.getdE() << setw(pwi) << "\t"                                        // 40 dE energy spread
+                    << beam.getdT() * 1e9 << setw(pwi) << "\t"                                        // 41 dt time step size
+                    << npOutside << setw(pwi) << "\t";                                          // 42 number of particles outside n*sigma
 
         if(Ippl::getNodes() == 1 && beam.getLocalNum() > 0) {
-            os_statData << beam.R[0](0) << setw(pwi) << "\t";                                   // 50 R0_x
-            os_statData << beam.R[0](1) << setw(pwi) << "\t";                                   // 51 R0_y
-            os_statData << beam.R[0](2) << setw(pwi) << "\t";                                   // 52 R0_z
-            os_statData << beam.P[0](0) << setw(pwi) << "\t";                                   // 53 P0_x
-            os_statData << beam.P[0](1) << setw(pwi) << "\t";                                   // 54 P0_y
-            os_statData << beam.P[0](2) << setw(pwi) << "\t";                                   // 55 P0_z
-            os_statData << beam.R[0](0) << setw(pwi) << "\t";                                   // 50 R0_x
-            os_statData << beam.R[1](1) << setw(pwi) << "\t";                                   // 51 R0_y
-            os_statData << beam.R[1](2) << setw(pwi) << "\t";                                   // 52 R0_z
-            os_statData << beam.P[1](0) << setw(pwi) << "\t";                                   // 53 P0_x
-            os_statData << beam.P[1](1) << setw(pwi) << "\t";                                   // 54 P0_y
-            os_statData << beam.P[1](2) << setw(pwi) << "\t";                                   // 55 P0_z
-            os_statData << beam.R[2](0) << setw(pwi) << "\t";                                   // 50 R0_x
-            os_statData << beam.R[2](1) << setw(pwi) << "\t";                                   // 51 R0_y
-            os_statData << beam.R[2](2) << setw(pwi) << "\t";                                   // 52 R0_z
-            os_statData << beam.P[2](0) << setw(pwi) << "\t";                                   // 53 P0_x
-            os_statData << beam.P[2](1) << setw(pwi) << "\t";                                   // 54 P0_y
-            os_statData << beam.P[2](2) << setw(pwi) << "\t";                                   // 55 P0_z
-            os_statData << beam.R[3](0) << setw(pwi) << "\t";                                   // 50 R0_x
-            os_statData << beam.R[3](1) << setw(pwi) << "\t";                                   // 51 R0_y
-            os_statData << beam.R[3](2) << setw(pwi) << "\t";                                   // 52 R0_z
-            os_statData << beam.P[3](0) << setw(pwi) << "\t";                                   // 53 P0_x
-            os_statData << beam.P[3](1) << setw(pwi) << "\t";                                   // 54 P0_y
-            os_statData << beam.P[3](2) << setw(pwi) << "\t";                                   // 55 P0_z
+            os_statData << beam.R[0](0) << setw(pwi) << "\t";                                   // 43 R0_x
+            os_statData << beam.R[0](1) << setw(pwi) << "\t";                                   // 44 R0_y
+            os_statData << beam.R[0](2) << setw(pwi) << "\t";                                   // 45 R0_z
+            os_statData << beam.P[0](0) << setw(pwi) << "\t";                                   // 46 P0_x
+            os_statData << beam.P[0](1) << setw(pwi) << "\t";                                   // 47 P0_y
+            os_statData << beam.P[0](2) << setw(pwi) << "\t";                                   // 48 P0_z
         }
 
 
@@ -455,7 +408,7 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
     /// header information.
     ofstream os_statData;
     ofstream os_lBalData;
-    double en = beam.get_meanEnergy() * 1e-6;
+    double en = beam.get_meanKineticEnergy() * 1e-6;
 
     if(Ippl::myNode() == 0) {
         if(firstWriteToStat_m) {
@@ -504,9 +457,9 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
                     << beam.get_rmean()(1)  << setw(pwi) << "\t"                              // 16
                     << beam.get_rmean()(2)  << setw(pwi) << "\t"                              // 17
 
-                    << beam.get_maxExtend()(0) << setw(pwi) << "\t"                           // 18
-                    << beam.get_maxExtend()(1) << setw(pwi) << "\t"                           // 19
-                    << beam.get_maxExtend()(2) << setw(pwi) << "\t"                           // 20
+                    << beam.get_maxExtent()(0) << setw(pwi) << "\t"                           // 18
+                    << beam.get_maxExtent()(1) << setw(pwi) << "\t"                           // 19
+                    << beam.get_maxExtent()(2) << setw(pwi) << "\t"                           // 20
 
             // Write out Courant Snyder parameters.
                     << 0.0  << setw(pwi) << "\t"                                              // 21
@@ -523,31 +476,15 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
 
 
             // Write head/reference particle/tail field information.
-                    << FDext[0](0) << setw(pwi) << "\t"                                       // 29 B-head x
-                    << FDext[0](1) << setw(pwi) << "\t"                                       // 30 B-head y
-                    << FDext[0](2) << setw(pwi) << "\t"                                       // 31 B-head z
+                    << FDext[2](0) << setw(pwi) << "\t"                                       // 29 B-ref x
+                    << FDext[2](1) << setw(pwi) << "\t"                                       // 30 B-ref y
+                    << FDext[2](2) << setw(pwi) << "\t"                                       // 31 B-ref z
 
-                    << FDext[1](0) << setw(pwi) << "\t"                                       // 32 E-head x
-                    << FDext[1](1) << setw(pwi) << "\t"                                       // 33 E-head y
-                    << FDext[1](2) << setw(pwi) << "\t"                                       // 34 E-head z
+                    << FDext[3](0) << setw(pwi) << "\t"                                       // 32 E-ref x
+                    << FDext[3](1) << setw(pwi) << "\t"                                       // 33 E-ref y
+                    << FDext[3](2) << setw(pwi) << "\t"                                       // 34 E-ref z
 
-                    << FDext[2](0) << setw(pwi) << "\t"                                       // 35 B-ref x
-                    << FDext[2](1) << setw(pwi) << "\t"                                       // 36 B-ref y
-                    << FDext[2](2) << setw(pwi) << "\t"                                       // 37 B-ref z
-
-                    << FDext[3](0) << setw(pwi) << "\t"                                       // 38 E-ref x
-                    << FDext[3](1) << setw(pwi) << "\t"                                       // 39 E-ref y
-                    << FDext[3](2) << setw(pwi) << "\t"                                       // 40 E-ref z
-
-                    << FDext[4](0) << setw(pwi) << "\t"                                       // 41 B-tail x
-                    << FDext[4](1) << setw(pwi) << "\t"                                       // 42 B-tail y
-                    << FDext[4](2) << setw(pwi) << "\t"                                       // 43 B-tail z
-
-                    << FDext[5](0) << setw(pwi) << "\t"                                       // 44 E-tail x
-                    << FDext[5](1) << setw(pwi) << "\t"                                       // 45 E-tail y
-                    << FDext[5](2) << setw(pwi) << "\t"                                       // 46 E-tail z
-
-                    << beam.get_dEdt() << setw(pwi) << "\t"                                   // 47 dE energy spread
+                    << beam.get_dEdt() << setw(pwi) << "\t"                                   // 35 dE energy spread
 
                     << endl;
 
@@ -574,214 +511,331 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
 
     string dateStr(simtimer.date());
     string timeStr(simtimer.time());
+    string indent("        ");
 
     outputFile << "SDDS1" << endl;
-    outputFile << "&description text=\"Statistics data " << OpalData::getInstance()->getInputFn() << " " << dateStr << " " << timeStr << "\" " << endl;
-    outputFile << ", contents=\"stat parameters\" &end" << endl;
+    outputFile << "&description\n"
+               << indent << "text=\"Statistics data '" << OpalData::getInstance()->getInputFn() << "' " << dateStr << "" << timeStr << "\",\n"
+               << indent << "contents=\"stat parameters\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=processors,\n"
+               << indent << "type=long,\n"
+               << indent << "description=\"Number of Cores used\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=revision,\n"
+               << indent << "type=string,\n"
+               << indent << "description=\"git revision of opal\" &end\n";
+    outputFile << "&column\n"
+               << indent << "name=t,\n"
+               << indent << "type=double,\n"
+               << indent << "units=ns,\n"
+               << indent << "description=\"1 Time\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=s,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"2 Average Longitudinal Position\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=numParticles,\n"
+               << indent << "type=long,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"3 Number of Macro Particles\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=charge,\n"
+               << indent << "type=double,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"4 Bunch Charge\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=energy,\n"
+               << indent << "type=double,\n"
+               << indent << "units=MeV,\n"
+               << indent << "description=\"5 Mean Energy\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=rms_x,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"6 RMS Beamsize in x\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=rms_y,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"7 RMS Beamsize in y\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=rms_s,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"8 RMS Beamsize in s\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=rms_px,\n"
+               << indent << "type=double,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"9 RMS Momenta in x\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=rms_py,\n"
+               << indent << "type=double,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"10 RMS Momenta in y\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=rms_ps,\n"
+               << indent << "type=double,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"11 RMS Momenta in s\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=emit_x,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"12 Normalized Emittance x\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=emit_y,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"13 Normalized Emittance y\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=emit_s,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"14 Normalized Emittance s\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=mean_x,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"15 Mean Beam Position in x\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=mean_y,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"16 Mean Beam Position in y\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=mean_s,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"17 Mean Beam Position in s\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=ref_x,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"18 x coordinate of reference particle in lab cs\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=ref_y,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"19 y coordinate of reference particle in lab cs\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=ref_z,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"20 z coordinate of reference particle in lab cs\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=ref_px,\n"
+               << indent << "type=double,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"21 x momentum of reference particle in lab cs\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=ref_py,\n"
+               << indent << "type=double,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"22 y momentum of reference particle in lab cs\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=ref_pz,\n"
+               << indent << "type=double,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"23 z momentum of reference particle in lab cs\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=max_x,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"24 Max Beamsize in x\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=max_y,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"25 Max Beamsize in y\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=max_s,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"26 Max Beamsize in s\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=xpx,\n"
+               << indent << "type=double,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"27 Correlation xpx\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=ypy,\n"
+               << indent << "type=double,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"28 Correlation ypyy\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=zpz,\n"
+               << indent << "type=double,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"29 Correlation zpz\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=Dx,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"30 Dispersion in x\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=DDx,\n"
+               << indent << "type=double,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"31 Derivative of dispersion in x\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=Dy,\n"
+               << indent << "type=double,\n"
+               << indent << "units=m,\n"
+               << indent << "description=\"32 Dispersion in y\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=DDy,\n"
+               << indent << "type=double,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"33 Derivative of dispersion in y\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=Bx_ref,\n"
+               << indent << "type=double,\n"
+               << indent << "units=T,\n"
+               << indent << "description=\"34 Bx-Field component of ref particle\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=By_ref,\n"
+               << indent << "type=double,\n"
+               << indent << "units=T,\n"
+               << indent << "description=\"35 By-Field component of ref particle\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=Bz_ref,\n"
+               << indent << "type=double,\n"
+               << indent << "units=T,\n"
+               << indent << "description=\"36 Bz-Field component of ref particle\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=Ex_ref,\n"
+               << indent << "type=double,\n"
+               << indent << "units=MV/m,\n"
+               << indent << "description=\"37 Ex-Field component of ref particle\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=Ey_ref,\n"
+               << indent << "type=double,\n"
+               << indent << "units=MV/m,\n"
+               << indent << "description=\"38 Ey-Field component of ref particle\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=Ez_ref,\n"
+               << indent << "type=double,\n"
+               << indent << "units=MV/m,\n"
+               << indent << "description=\"39 Ez-Field component of ref particle\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=dE,\n"
+               << indent << "type=double,\n"
+               << indent << "units=MeV,\n"
+               << indent << "description=\"40 energy spread of the beam\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=dt,\n"
+               << indent << "type=double,\n"
+               << indent << "units=ns,\n"
+               << indent << "description=\"41 time step size\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=partsOutside,\n"
+               << indent << "type=double,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"42 outside n*sigma of the beam\"\n"
+               << "&end\n";
 
-    outputFile << "&parameter name=processors, type=long, ";
-    outputFile << "description=\"Number of Cores used\" &end" << endl;
-
-    outputFile << "&parameter name=revision, type=string, "
-               << "description=\"git revision of opal\" &end\n";
-
-    outputFile << "&column name=t, type=double, units=s, ";
-    outputFile << "description=\"1 Time\" &end" << endl;
-    outputFile << "&column name=s, type=double, units=m, ";
-    outputFile << "description=\"2 Average Longitudinal Position\" &end" << endl;
-
-    outputFile << "&column name=numParticles, type=long, units=1, ";
-    outputFile << "description=\"3 Number of Macro Particles\" &end" << endl;
-    outputFile << "&column name=charge, type=double, units=1, ";
-    outputFile << "description=\"4 Bunch Charge\" &end" << endl;
-
-    outputFile << "&column name=energy, type=double, units=MeV, ";
-    outputFile << "description=\"5 Mean Energy\" &end" << endl;
-
-    outputFile << "&column name=rms_x, type=double, units=m , ";
-    outputFile << "description=\"6 RMS Beamsize in x  \" &end" << endl;
-    outputFile << "&column name=rms_y, type=double, units=m , ";
-    outputFile << "description=\"7 RMS Beamsize in y  \" &end" << endl;
-    outputFile << "&column name=rms_s, type=double, units=m , ";
-    outputFile << "description=\"8 RMS Beamsize in s  \" &end" << endl;
-
-    outputFile << "&column name=rms_px, type=double, units=1 , ";
-    outputFile << "description=\"9 RMS Momenta in x  \" &end" << endl;
-    outputFile << "&column name=rms_py, type=double, units=1 , ";
-    outputFile << "description=\"10 RMS Momenta in y  \" &end" << endl;
-    outputFile << "&column name=rms_ps, type=double, units=1 , ";
-    outputFile << "description=\"11 RMS Momenta in s  \" &end" << endl;
-
-    outputFile << "&column name=emit_x, type=double, units=m , ";
-    outputFile << "description=\"12 Normalized Emittance x  \" &end" << endl;
-    outputFile << "&column name=emit_y, type=double, units=m , ";
-    outputFile << "description=\"13 Normalized Emittance y  \" &end" << endl;
-    outputFile << "&column name=emit_s, type=double, units=m , ";
-    outputFile << "description=\"14 Normalized Emittance s  \" &end" << endl;
-
-    outputFile << "&column name=mean_x, type=double, units=m , ";
-    outputFile << "description=\"15 Mean Beam Position in x  \" &end" << endl;
-    outputFile << "&column name=mean_y, type=double, units=m , ";
-    outputFile << "description=\"16 Mean Beam Position in y  \" &end" << endl;
-    outputFile << "&column name=mean_s, type=double, units=m , ";
-    outputFile << "description=\"17 Mean Beam Position in s  \" &end" << endl;
-
-    outputFile << "&column name=max_x, type=double, units=m , ";
-    outputFile << "description=\"18 Max Beamsize in x  \" &end" << endl;
-    outputFile << "&column name=max_y, type=double, units=m , ";
-    outputFile << "description=\"19 Max Beamsize in y  \" &end" << endl;
-    outputFile << "&column name=max_s, type=double, units=m , ";
-    outputFile << "description=\"20 Max Beamsize in s  \" &end" << endl;
-
-    outputFile << "&column name=xpx, type=double, units=1 , ";
-    outputFile << "description=\"21 Correlation xpx  \" &end" << endl;
-    outputFile << "&column name=ypy, type=double, units=1 , ";
-    outputFile << "description=\"22 Correlation ypyy  \" &end" << endl;
-
-    outputFile << "&column name=zpz, type=double, units=1 , ";
-    outputFile << "description=\"23 Correlation zpz  \" &end" << endl;
-
-    outputFile << "&column name=notused1, type=double, units=1 , ";
-    outputFile << "description=\"24 notused1 in y  \" &end" << endl;
-
-    outputFile << "&column name=notused2, type=double, units=1 , ";
-    outputFile << "description=\"25 notused2 in y  \" &end" << endl;
-
-    if (Ippl::getNodes()>1) {
-      outputFile << "&column name=Dx, type=double, units=m , ";
-      outputFile << "description=\"26 Dispersion in x  \" &end" << endl;
-      outputFile << "&column name=DDx, type=double, units=1 , ";
-      outputFile << "description=\"27 Derivative of dispersion in x  \" &end" << endl;
-
-      outputFile << "&column name=Dy, type=double, units=m , ";
-      outputFile << "description=\"28 Dispersion in y  \" &end" << endl;
-      outputFile << "&column name=DDy, type=double, units=1 , ";
-      outputFile << "description=\"29 Derivative of dispersion in y  \" &end" << endl;
-    }
-    else {
-      outputFile << "&column name=Dx1, type=double, units=m , ";
-      outputFile << "description=\"26 Dispersion in x particle 1  \" &end" << endl;
-      outputFile << "&column name=Dx2, type=double, units=m , ";
-      outputFile << "description=\"27 Dispersion in x particle 2  \" &end" << endl;
-
-      outputFile << "&column name=Dx3, type=double, units=m , ";
-      outputFile << "description=\"28 Dispersion in x particle 3  \" &end" << endl;
-      outputFile << "&column name=Dx4, type=double, units=m , ";
-      outputFile << "description=\"29 Dispersion in x particle 4  \" &end" << endl;
-    }
-    outputFile << "&column name=Bx_head, type=double, units=T , ";
-    outputFile << "description=\"30 Bx-Field component of head particle  \" &end" << endl;
-    outputFile << "&column name=By_head, type=double, units=T , ";
-    outputFile << "description=\"31 By-Field component of head particle  \" &end" << endl;
-    outputFile << "&column name=Bz_head, type=double, units=T , ";
-    outputFile << "description=\"32 Bz-Field component of head particle  \" &end" << endl;
-
-    outputFile << "&column name=Ex_head, type=double, units=MV/m , ";
-    outputFile << "description=\"33 Ex-Field component of head particle  \" &end" << endl;
-    outputFile << "&column name=Ey_head, type=double, units=MV/m , ";
-    outputFile << "description=\"34 Ey-Field component of head particle  \" &end" << endl;
-    outputFile << "&column name=Ez_head, type=double, units=MV/m , ";
-    outputFile << "description=\"35 Ez-Field component of head particle  \" &end" << endl;
-
-    outputFile << "&column name=Bx_ref, type=double, units=T , ";
-    outputFile << "description=\"36 Bx-Field component of ref particle  \" &end" << endl;
-    outputFile << "&column name=By_ref, type=double, units=T , ";
-    outputFile << "description=\"37 By-Field component of ref particle  \" &end" << endl;
-    outputFile << "&column name=Bz_ref, type=double, units=T , ";
-    outputFile << "description=\"38 Bz-Field component of ref particle  \" &end" << endl;
-
-    outputFile << "&column name=Ex_ref, type=double, units=MV/m , ";
-    outputFile << "description=\"39 Ex-Field component of ref particle  \" &end" << endl;
-    outputFile << "&column name=Ey_ref, type=double, units=MV/m , ";
-    outputFile << "description=\"40 Ey-Field component of ref particle  \" &end" << endl;
-    outputFile << "&column name=Ez_ref, type=double, units=MV/m , ";
-    outputFile << "description=\"41 Ez-Field component of ref particle  \" &end" << endl;
-
-    outputFile << "&column name=Bx_tail, type=double, units=T , ";
-    outputFile << "description=\"42 Bx-Field component of tail particle  \" &end" << endl;
-    outputFile << "&column name=By_tail, type=double, units=T , ";
-    outputFile << "description=\"43 By-Field component of tail particle  \" &end" << endl;
-    outputFile << "&column name=Bz_tail, type=double, units=T , ";
-    outputFile << "description=\"44 Bz-Field component of tail particle  \" &end" << endl;
-
-    outputFile << "&column name=Ex_tail, type=double, units=MV/m , ";
-    outputFile << "description=\"45 Ex-Field component of tail particle  \" &end" << endl;
-    outputFile << "&column name=Ey_tail, type=double, units=MV/m , ";
-    outputFile << "description=\"46 Ey-Field component of tail particle  \" &end" << endl;
-    outputFile << "&column name=Ez_tail, type=double, units=MV/m , ";
-    outputFile << "description=\"47 Ez-Field component of tail particle  \" &end" << endl;
-
-    outputFile << "&column name=dE, type=double, units=MeV , ";
-    outputFile << "description=\"48 energy spread of the beam  \" &end" << endl;
-
-    outputFile << "&column name=partsOutside, type=double, units=1 , ";
-    outputFile << "description=\"49 outside n*sigma of the beam  \" &end" << endl;
-
-    unsigned int columnStart = 49;
+    unsigned int columnStart = 43;
     if(Ippl::getNodes() == 1) {
-        outputFile << "&column name=R0_x, type=double, units=m , ";
-        outputFile << "description=\"50 R0 Particle Position in x  \" &end" << endl;
-        outputFile << "&column name=R0_y, type=double, units=m , ";
-        outputFile << "description=\"51 R0 Particle Position in y  \" &end" << endl;
-        outputFile << "&column name=R0_s, type=double, units=m , ";
-        outputFile << "description=\"52 R0 Particle Position in s  \" &end" << endl;
-        outputFile << "&column name=P0_x, type=double, units=1 , ";
-        outputFile << "description=\"53 P0 Particle Position in px  \" &end" << endl;
-        outputFile << "&column name=P0_y, type=double, units=1 , ";
-        outputFile << "description=\"54 P0 Particle Position in py  \" &end" << endl;
-        outputFile << "&column name=P0_s, type=double, units=1 , ";
-        outputFile << "description=\"55 P0 Particle Position in ps  \" &end" << endl;
-
-        outputFile << "&column name=R1_x, type=double, units=m , ";
-        outputFile << "description=\"56 R1 Particle Position in x  \" &end" << endl;
-        outputFile << "&column name=R1_y, type=double, units=m , ";
-        outputFile << "description=\"57 R1 Particle Position in y  \" &end" << endl;
-        outputFile << "&column name=R1_s, type=double, units=m , ";
-        outputFile << "description=\"58 R1 Particle Position in s  \" &end" << endl;
-        outputFile << "&column name=P1_x, type=double, units=1 , ";
-        outputFile << "description=\"59 P1 Particle Position in px  \" &end" << endl;
-        outputFile << "&column name=P1_y, type=double, units=1 , ";
-        outputFile << "description=\"60 P1 Particle Position in py  \" &end" << endl;
-        outputFile << "&column name=P1_s, type=double, units=1 , ";
-        outputFile << "description=\"61 P1 Particle Position in ps  \" &end" << endl;
-
-        outputFile << "&column name=R2_x, type=double, units=m , ";
-        outputFile << "description=\"62 R2 Particle Position in x  \" &end" << endl;
-        outputFile << "&column name=R2_y, type=double, units=m , ";
-        outputFile << "description=\"63 R2 Particle Position in y  \" &end" << endl;
-        outputFile << "&column name=R2_s, type=double, units=m , ";
-        outputFile << "description=\"64 R2 Particle Position in s  \" &end" << endl;
-        outputFile << "&column name=P2_x, type=double, units=1 , ";
-        outputFile << "description=\"65 P2 Particle Position in px  \" &end" << endl;
-        outputFile << "&column name=P2_y, type=double, units=1 , ";
-        outputFile << "description=\"66 P2 Particle Position in py  \" &end" << endl;
-        outputFile << "&column name=P2_s, type=double, units=1 , ";
-        outputFile << "description=\"67 P2 Particle Position in ps  \" &end" << endl;
-
-        outputFile << "&column name=R3_x, type=double, units=m , ";
-        outputFile << "description=\"68 R3 Particle Position in x  \" &end" << endl;
-        outputFile << "&column name=R3_y, type=double, units=m , ";
-        outputFile << "description=\"69 R3 Particle Position in y  \" &end" << endl;
-        outputFile << "&column name=R3_s, type=double, units=m , ";
-        outputFile << "description=\"70 R3 Particle Position in s  \" &end" << endl;
-        outputFile << "&column name=P3_x, type=double, units=1 , ";
-        outputFile << "description=\"71 P3 Particle Position in px  \" &end" << endl;
-        outputFile << "&column name=P3_y, type=double, units=1 , ";
-        outputFile << "description=\"72 P3 Particle Position in py  \" &end" << endl;
-        outputFile << "&column name=P3_s, type=double, units=1 , ";
-        outputFile << "description=\"73 P3 Particle Position in ps  \" &end" << endl;
-
-        columnStart = 73;
+        outputFile << "&column\n"
+                   << indent << "name=R0_x,\n"
+                   << indent << "type=double,\n"
+                   << indent << "units=m,\n"
+                   << indent << "description=\"43 R0 Particle position in x\""
+                   << "&end\n";
+        outputFile << "&column\n"
+                   << indent << "name=R0_y,\n"
+                   << indent << "type=double,\n"
+                   << indent << "units=m,\n"
+                   << indent << "description=\"44 R0 Particle position in y\"\n"
+                   << "&end\n";
+        outputFile << "&column\n"
+                   << indent << "name=R0_s,\n"
+                   << indent << "type=double,\n"
+                   << indent << "units=m,\n"
+                   << indent << "description=\"45 R0 Particle position in s\"\n"
+                   << "&end\n";
+        outputFile << "&column\n"
+                   << indent << "name=P0_x,\n"
+                   << indent << "type=double,\n"
+                   << indent << "units=1,\n"
+                   << indent << "description=\"46 R0 Particle momentum in x\"\n"
+                   << "&end\n";
+        outputFile << "&column\n"
+                   << indent << "name=P0_y,\n"
+                   << indent << "type=double,\n"
+                   << indent << "units=1,\n"
+                   << indent << "description=\"47 R0 Particle momentum in y\"\n"
+                   << "&end\n";
+        outputFile << "&column\n"
+                   << indent << "name=P0_s,\n"
+                   << indent << "type=double,\n"
+                   << indent << "units=1,\n"
+                   << indent << "description=\"48 R0 Particle momentum in s\"\n"
+                   << "&end\n";
+        columnStart = 49;
     }
 
     for (size_t i = 0; i < losses.size(); ++ i) {
-        outputFile << "&column name=" << losses[i].first << ", type=long, units=1, ";
-        outputFile << "description=\"" << columnStart++ << " " << losses[i].second << "\" &end" << endl;
+        outputFile << "&column\n"
+                   << indent << "name=" << losses[i].first << ",\n"
+                   << indent << "type=long,\n"
+                   << indent << "units=1,\n"
+                   << indent << "description=\"" << columnStart ++ << "Number of lost particles in element\"\n"
+                   << "&end\n";
     }
-    outputFile << "&data mode=ascii, no_row_counts=1 &end" << endl;
+    outputFile << "&data\n"
+               << indent << "mode=ascii,\n"
+               << indent << "no_row_counts=1\n"
+               << "&end\n";
 
     outputFile << Ippl::getNodes() << endl;
-    outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION << " git rev. " << GIT_VERSION << endl;
+    outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " git rev. " << Util::getGitRevision() << endl;
 }
 
 
@@ -1133,79 +1187,6 @@ void DataSink::rewindLines(const std::string &fileName, size_t numberOfLines) co
         allLines.pop();
     }
     fs.close();
-}
-
-/** \brief
- *  rewind the SDDS file such that the spos of the last step is less or equal to maxSPos
- */
-unsigned int DataSink::rewindLinesSDDS(const std::string &fileName, double maxSPos) const {
-    std::string line;
-    std::queue<std::string> allLines;
-    std::fstream fs;
-    unsigned int numParameters = 0;
-    unsigned int numColumns = 0;
-    unsigned int sposColumnNr = 0;
-    double spos, lastSPos = -1.0;
-
-    boost::regex parameters("^&parameter name=");
-    boost::regex column("^&column name=([a-zA-Z0-9\\$_]+),");
-    boost::regex data("^&data mode=ascii");
-    boost::smatch match;
-
-    std::istringstream linestream;
-    fs.open (fileName.c_str(), std::fstream::in);
-
-    if (!fs.is_open()) return 0;
-
-    while (getline(fs, line)) {
-        allLines.push(line);
-    }
-    fs.close();
-
-
-    fs.open (fileName.c_str(), std::fstream::out);
-
-    if (!fs.is_open()) return 0;
-
-    do {
-        line = allLines.front();
-        allLines.pop();
-        fs << line << "\n";
-        if (boost::regex_search(line, match, parameters)) {
-            ++numParameters;
-        } else if (boost::regex_search(line, match, column)) {
-            ++numColumns;
-            if (match[1] == "s") {
-                sposColumnNr = numColumns;
-            }
-        }
-    } while (!boost::regex_search(line, match, data));
-
-    for (unsigned int i = 0; i < numParameters; ++ i) {
-        fs << allLines.front() << "\n";
-        allLines.pop();
-    }
-
-    while (allLines.size() > 0) {
-        line = allLines.front();
-        linestream.str(line);
-
-        for (unsigned int i = 0; i < sposColumnNr; ++ i) {
-            linestream >> spos;
-        }
-
-        if ((spos - maxSPos) > 1e-20 * Physics::c || (spos - lastSPos) < 1e-20 * Physics::c) break;
-
-        allLines.pop();
-
-        fs << line << "\n";
-
-        lastSPos = spos;
-    }
-
-    fs.close();
-
-    return allLines.size();
 }
 
 /***************************************************************************

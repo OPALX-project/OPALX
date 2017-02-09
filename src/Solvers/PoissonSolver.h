@@ -31,7 +31,7 @@ public:
     virtual double getZRangeMax() = 0;
     virtual void test(PartBunch &bunch) = 0 ;
     virtual ~PoissonSolver(){};
-    
+
 };
 
 inline Inform &operator<<(Inform &os, const PoissonSolver &fs) {

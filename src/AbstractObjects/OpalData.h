@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <stack>
 
 class PartBunch;
 class EnvelopeBunch;
@@ -55,6 +56,10 @@ public:
     static OpalData *getInstance();
 
     static void deleteInstance();
+
+    static void stashInstance();
+
+    static OpalData *popInstance();
 
     ~OpalData();
 
@@ -146,6 +151,15 @@ public:
     void setInOPALCyclMode();
     void setInOPALTMode();
     void setInOPALEnvMode();
+
+    bool isInPrepState();
+    void setInPrepState(bool state);
+
+    /// true if in follow-up track
+    bool hasPriorTrack();
+
+    /// true if in follow-up track
+    void setPriorTrack(const bool &value = true);
 
     /// true if we do a restart run
     bool inRestartRun();
@@ -243,8 +257,9 @@ public:
 
 private:
 
-    static bool isInstatiated;
+    static bool isInstantiated;
     static OpalData *instance;
+    static std::stack<OpalData*> stashedInstances;
 
     OpalData();
 

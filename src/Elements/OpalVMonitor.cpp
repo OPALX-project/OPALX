@@ -48,6 +48,8 @@ OpalVMonitor *OpalVMonitor::clone(const std::string &name) {
 
 
 void OpalVMonitor::update() {
+    OpalElement::update();
+
     YMonitorRep *mon =
         dynamic_cast<YMonitorRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);

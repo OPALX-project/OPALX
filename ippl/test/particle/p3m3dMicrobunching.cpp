@@ -13,7 +13,7 @@
  *	mpirun -n 32 ./p3m3dMicrobunching ${Nx} ${Ny} ${Nz} ${r_cut} ${alpha} ${epsilon} ${Nsteps} $SeedID} ${printSteps}
  * 	Nx,Ny,Nx is the poisson solver grid size, r_cut is the cutoff for pp interaction, alpha is the splitting parameter,
  * 	epsilon is the softening parameter, printSteps=10 prints every tenth step
- *  
+ *
  *
  *************************************************************************************************************************************/
 #include "Ippl.h"
@@ -76,7 +76,7 @@ struct SpecializedGreensFunction<3> {
 			double r;
 			NDIndex<3> elem0=NDIndex<3>(Index(0,0), Index(0,0),Index(0,0));
 			grn = grnI[0] * hrsq[0] + grnI[1] * hrsq[1] + grnI[2] * hrsq[2];
-			NDIndex<3> lDomain_m = grn.getLayout().getLocalNDIndex(); 
+			NDIndex<3> lDomain_m = grn.getLayout().getLocalNDIndex();
 			NDIndex<3> elem;
 			for (int i=lDomain_m[0].min(); i<=lDomain_m[0].max(); ++i) {
 				elem[0]=Index(i,i);
@@ -135,7 +135,7 @@ class ChargedParticles : public IpplParticleBase<PL> {
 		this->addAttribute(ID);
 
 		//read beam parameters from input file:
-		
+
 		if(Ippl::myNode()==0) {
 		std::cout << "we are reading the following beam parameters" << std::endl;
 		}
@@ -156,15 +156,15 @@ class ChargedParticles : public IpplParticleBase<PL> {
 		m0 = readNextBeamParamValue(input);
 		ke = readNextBeamParamValue(input);
 		c = readNextBeamParamValue(input);
-		
-		double NpartTotal = extend_r[2]*I/(c*1.6e-19); 
+
+		double NpartTotal = extend_r[2]*I/(c*1.6e-19);
 		std::cout << "total number of particles is = " << NpartTotal << std::endl;
 		double particleDensity =NpartTotal/extend_r[2]*1/(2*M_PI*sigmaX*sigmaX);
 		std::cout << "particle density = " << particleDensity << std::endl;
 		Npart=particleDensity*extend_r[0]*extend_r[1]*extend_r[2];
 		std::cout << "number of particles in simulation domain is = " << Npart << std::endl;
 		//q=I*extend_r[2]/double(Npart);
-		
+
 		//wavelength of interest
 		lambda = 0.5e-6;
 
@@ -199,12 +199,12 @@ class ChargedParticles : public IpplParticleBase<PL> {
 		for (unsigned int d = 0;d<Dim;++d) {
 			rmax_m[d] = extend_r[d];
 			rmin_m[d] = extend_l[d];
-		}  
+		}
 
 		domain_m = this->getFieldLayout().getDomain();
-		lDomain_m = this->getFieldLayout().getLocalNDIndex(); // local domain 
+		lDomain_m = this->getFieldLayout().getLocalNDIndex(); // local domain
 
-		//initialize the FFT 
+		//initialize the FFT
 		bool compressTemps = true;
 		fft_m = new FFT_t(domain_m,compressTemps);
 
@@ -242,7 +242,7 @@ class ChargedParticles : public IpplParticleBase<PL> {
 			eg_m.initialize(getMesh(), getFieldLayout(), GuardCellSizes<Dim>(1), vbc_m);
 
 			domain_m = this->getFieldLayout().getDomain();
-			lDomain_m = this->getFieldLayout().getLocalNDIndex(); 
+			lDomain_m = this->getFieldLayout().getLocalNDIndex();
 
 			IpplParticleBase<PL>::update();
 		}
@@ -305,15 +305,15 @@ class ChargedParticles : public IpplParticleBase<PL> {
 		double det(int n, double mat[2*Dim][2*Dim]) {
 			double d=0;
 			int c, subi, i, j, subj;
-			double submat[2*Dim][2*Dim];  
-			if (n == 2) 
+			double submat[2*Dim][2*Dim];
+			if (n == 2)
 				return( (mat[0][0] * mat[1][1]) - (mat[1][0] * mat[0][1]));
-			else {  
-				for(c = 0; c < n; c++) {  
-					subi = 0;  
-					for(i = 1; i < n; i++) {  
+			else {
+				for(c = 0; c < n; c++) {
+					subi = 0;
+					for(i = 1; i < n; i++) {
 						subj = 0;
-						for(j = 0; j < n; j++){    
+						for(j = 0; j < n; j++){
 							if (j == c)
 								continue;
 							submat[subi][subj] = mat[i][j];
@@ -372,7 +372,7 @@ class ChargedParticles : public IpplParticleBase<PL> {
 			}
 			rprms_m = rpsum * fac;
 
-			// Find normalized emittance.	
+			// Find normalized emittance.
 			double actual_gamma = 0.0;
 			for(size_t i = 0; i < locNp; i++)
 				actual_gamma += sqrt(1.0 + (gamma*p[i](2)+m0*gamma*beta0)*(gamma*p[i](2)+m0*gamma*beta0)/m0/m0 + p[i](1)*p[i](1)/m0/m0+p[i](0)*p[i](0)/m0/m0) ;
@@ -386,7 +386,7 @@ class ChargedParticles : public IpplParticleBase<PL> {
 			eps6x6_normalized_m = eps6x6_m*actual_gamma*beta0;
 		}
 
-		void calculatePairForces(double interaction_radius, double eps, double alpha) {	
+		void calculatePairForces(double interaction_radius, double eps, double alpha) {
 			if (interaction_radius>0){
 				if (Ippl::getNodes() > 1) {
 					HashPairBuilderPeriodicParallel< ChargedParticles<playout_t> > HPB(*this);
@@ -418,7 +418,7 @@ class ChargedParticles : public IpplParticleBase<PL> {
 
 			//compute rhoHat and store in rhocmpl_m
 			fft_m->transform("inverse", rhocmpl_m);
-			// (2) compute Greens function in real space and transform to fourier space 
+			// (2) compute Greens function in real space and transform to fourier space
 			/////////compute G with Index Magic///////////////////
 			// Fields used to eliminate excess calculation in greensFunction()
 			IField_t grnIField_m[3];
@@ -450,7 +450,7 @@ class ChargedParticles : public IpplParticleBase<PL> {
 
 			//take only the real part and store in phi_m (has periodic bc instead of interpolation bc)
 			phi_m = real(rhocmpl_m)*hr_m[0]*hr_m[1]*hr_m[2];
-			//dumpVTKScalar( phi_m, this,it, "Phi_m") ;	
+			//dumpVTKScalar( phi_m, this,it, "Phi_m") ;
 
 			//compute Electric field on the grid by -Grad(Phi) store in eg_m
 			eg_m = -Grad1Ord(phi_m, eg_m);
@@ -461,11 +461,11 @@ class ChargedParticles : public IpplParticleBase<PL> {
 			Phi.gather(phi_m, this->R, IntrplCIC_t());
 		}
 
-		void closeH5(){ 
+		void closeH5(){
 			H5CloseFile(H5f_m);
 		}
 
-		void openH5(std::string fn){ 
+		void openH5(std::string fn){
 			H5f_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, Ippl::getComm());
 		}
 
@@ -532,7 +532,7 @@ class ChargedParticles : public IpplParticleBase<PL> {
 		unsigned seedID;
 
 
-		//Moment calculations:  
+		//Moment calculations:
 		/// 6x6 matrix of the moments of the beam
 		//FMatrix<double, 2 * Dim, 2 * Dim> moments_m;
 		double moments_m[2*Dim][2*Dim];
@@ -648,12 +648,12 @@ int main(int argc, char *argv[]){
 	msg << endl << endl;
 
 	double tend = P->Ld/(P->beta0);
-	std::cout << "tend = "<< tend << std::endl; 
+	std::cout << "tend = "<< tend << std::endl;
 	//lorentz transform to beam frame:
-	//////// TODO check lorentz transformation of time 
+	//////// TODO check lorentz transformation of time
 	//tend = P->gamma*(tend-P->beta0*P->Ld);
 	tend /= P->gamma;
-	std::cout << "tend' = "<< tend << std::endl; 
+	std::cout << "tend' = "<< tend << std::endl;
 	double dt=tend/iterations;
 	std::cout << "TIMESTEP dt = " << dt << std::endl;
 	createParticleDistributionMicrobunching(P, myseedID);
@@ -684,7 +684,7 @@ int main(int argc, char *argv[]){
 	unsigned printid=1;
 	msg << "Starting iterations ..." << endl;
 
-	// calculate initial grid forces 
+	// calculate initial grid forces
 	P->calculateGridForces(interaction_radius,alpha,eps,0);
 	//dumpVTKVector(P->eg_m, P,0,"EFieldAfterPMandPP");
 
@@ -705,7 +705,7 @@ int main(int argc, char *argv[]){
 		//assign(P->R, P->R + dt * P->p/(P->gamma*P->m0)+rearrangez*1./P->gamma*(1.-sqrt(1.+dot(P->p,P->p)/(P->m0*P->m0*P->c*P->c)))*P->R56);
 		assign(P->R, P->R + dt * P->p/P->m0);
 		//shift particle due to longitudinal dispersion
-		//assign(P->R, P->R + kHat*P->gamma*P->R56*P->p/(P->beta0*P->m0));		
+		//assign(P->R, P->R + kHat*P->gamma*P->R56*P->p/(P->beta0*P->m0));
 		/*
 		   for (unsigned i=0; i<P->getLocalNum(); ++i) {
 		   P->R[i][2]+=(sqrt(P->p[i][2]+P->m0*P->m0)/(P->m0)-1.)*1./P->gamma*P->R56;

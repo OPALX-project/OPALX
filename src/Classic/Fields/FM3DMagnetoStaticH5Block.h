@@ -16,6 +16,8 @@ public:
     virtual void getInfo(Inform *msg);
     virtual double getFrequency() const;
     virtual void setFrequency(double freq);
+
+    virtual bool isInside(const Vector_t &r) const;
 private:
     FM3DMagnetoStaticH5Block(std::string aFilename);
     ~FM3DMagnetoStaticH5Block();
@@ -53,5 +55,12 @@ private:
     bool swap_m;
     friend class Fieldmap;
 };
+
+inline bool FM3DMagnetoStaticH5Block::isInside(const Vector_t &r) const
+{
+    return ((r(0) >= xbegin_m && r(0) < xend_m) &&
+            (r(1) >= ybegin_m && r(1) < yend_m) &&
+            (r(2) >= zbegin_m && r(2) < zend_m));
+}
 
 #endif

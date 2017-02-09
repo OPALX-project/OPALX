@@ -28,13 +28,13 @@
 ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
    	                          Vector_t nr,
 	                          Vector_t hr,
-	                          std::string interpl){ 
+	                          std::string interpl){
     bgeom_m  = bgeom;
     minCoords_m = bgeom->getmincoords();
     maxCoords_m = bgeom->getmaxcoords();
     geomCentroid_m = (minCoords_m + maxCoords_m)/2.0;
-    
-    // TODO: THis needs to be made into OPTION of the geometry. 
+
+    // TODO: THis needs to be made into OPTION of the geometry.
     // A user defined point that is INSIDE with 100% certainty. -DW
     globalInsideP0_m = Vector_t(0.0, 0.0, -0.13);
 
@@ -57,8 +57,8 @@ ArbitraryDomain::~ArbitraryDomain() {
     //nothing so far
 }
 
-void ArbitraryDomain::Compute(Vector_t hr){
-    
+void ArbitraryDomain::compute(Vector_t hr){
+
     setHr(hr);
 
     globalMeanR_m = getGlobalMeanR();
@@ -186,7 +186,7 @@ void ArbitraryDomain::Compute(Vector_t hr){
      }
 }
 
-void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId){
+void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
 
     INFOMSG(level2 << "* Starting the Boundary Intersection Tests..." << endl);
 
@@ -221,18 +221,18 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId){
     Vector_t P0 = globalInsideP0_m;
 
     // We cannot assume that the geometry is symmetric about the xy, xz, and yz planes!
-    // In my spiral inflector simulation, this is not the case for z direction for 
-    // example (-0.13 to +0.025). -DW   
+    // In my spiral inflector simulation, this is not the case for z direction for
+    // example (-0.13 to +0.025). -DW
     for (int idz = localId[2].first()-zGhostOffsetLeft; idz <= localId[2].last()+zGhostOffsetRight; idz++) {
 
 	 //saveP_old[2] = (idz - (nr[2]-1)/2.0)*hr[2];
 	 P[2] = minCoords_m[2] + (idz + 0.5) * hr[2];
- 
+
          for (int idy = localId[1].first()-yGhostOffsetLeft; idy <= localId[1].last()+yGhostOffsetRight; idy++) {
 
 	     //saveP_old[1] = (idy - (nr[1]-1)/2.0)*hr[1];
 	     P[1] = minCoords_m[1] + (idy + 0.5) * hr[1];
- 
+
    	     for (int idx = localId[0].first()-xGhostOffsetLeft; idx <= localId[0].last()+xGhostOffsetRight; idx++) {
 
 	          //saveP_old[0] = (idx - (nr[0]-1)/2.0)*hr[0];
@@ -260,7 +260,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId){
 		      P0 = P;
 
                       std::tuple<int, int, int> pos(idx, idy, idz);
-		     
+
 		      //rotateZAxisWithQuaternion(dir, localToGlobalQuaternion_m);
 		      dir = Vector_t(0, 0, 1);
 
@@ -310,7 +310,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId){
 			   *gmsg << "ydir=-1" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
 		     }
-		     
+
 	             //rotateXAxisWithQuaternion(dir, localToGlobalQuaternion_m);
 		     dir = Vector_t(1, 0, 0);
 
@@ -409,7 +409,7 @@ inline int ArbitraryDomain::toCoordIdx(int idx, int idy, int idz) {
 
 // Conversion from (x,y,z) to index on the 3D grid
 int ArbitraryDomain::getIdx(int idx, int idy, int idz) {
-       
+
      if(isInside(idx, idy, idz) && idx >= 0 && idy >= 0 && idz >= 0)
          return IdxMap[toCoordIdx(idx, idy, idz)];
      else
@@ -427,7 +427,7 @@ inline void ArbitraryDomain::getCoord(int idxyz, int &idx, int &idy, int &idz) {
 }
 
 inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
-  
+
     return IsInsideMap[toCoordIdx(idx, idy, idz)];
 }
 
@@ -436,9 +436,9 @@ inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
     Vector_t P;
 
     P[0] = minCoords_m[0] + (idx + 0.5) * hr[0];
-    P[1] = minCoords_m[1] + (idy + 0.5) * hr[1]; 
+    P[1] = minCoords_m[1] + (idy + 0.5) * hr[1];
     P[2] = minCoords_m[2] + (idz + 0.5) * hr[2];
-    
+
     return (bgeom_m->fastIsInside(globalInsideP0_m, P) % 2 == 0);
 }
 */
@@ -505,10 +505,10 @@ void ArbitraryDomain::getBoundaryStencil(int idx, int idy, int idz, double &W, d
    // determine which interpolation method we use for points near the boundary
     switch(interpolationMethod){
     	case CONSTANT:
-        	ConstantInterpolation(idx,idy,idz,W,E,S,N,F,B,C,scaleFactor);
+        	constantInterpolation(idx,idy,idz,W,E,S,N,F,B,C,scaleFactor);
         	break;
     	case LINEAR:
-                LinearInterpolation(idx,idy,idz,W,E,S,N,F,B,C,scaleFactor);
+                linearInterpolation(idx,idy,idz,W,E,S,N,F,B,C,scaleFactor);
         	break;
     	case QUADRATIC:
             //  QuadraticInterpolation(idx,idy,idz,W,E,S,N,F,B,C,scaleFactor);
@@ -519,7 +519,7 @@ void ArbitraryDomain::getBoundaryStencil(int idx, int idy, int idz, double &W, d
     assert(C > 0);
 }
 
-void ArbitraryDomain::ConstantInterpolation(int idx, int idy, int idz, double& W, double& E, double& S, double& N, double& F, double& B, double& C, double &scaleFactor) {
+void ArbitraryDomain::constantInterpolation(int idx, int idy, int idz, double& W, double& E, double& S, double& N, double& F, double& B, double& C, double &scaleFactor) {
 
     W = -1/(hr[0]*hr[0]);
     E = -1/(hr[0]*hr[0]);
@@ -545,7 +545,7 @@ void ArbitraryDomain::ConstantInterpolation(int idx, int idy, int idz, double& W
 	B = 0.0;
 }
 
-void ArbitraryDomain::LinearInterpolation(int idx, int idy, int idz, double& W, double& E, double& S, double& N, double& F, double& B, double& C, double &scaleFactor)
+void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz, double& W, double& E, double& S, double& N, double& F, double& B, double& C, double &scaleFactor)
 {
     scaleFactor = 1;
 
@@ -554,8 +554,8 @@ void ArbitraryDomain::LinearInterpolation(int idx, int idy, int idz, double& W, 
     double cz = (idz - (nr[2]-1)/2.0)*hr[2];
 
     double dx_w=hr[0];
-    double dx_e=hr[0]; 
-    double dy_n=hr[1]; 
+    double dx_e=hr[0];
+    double dy_n=hr[1];
     double dy_s=hr[1];
     double dz_f=hr[2];
     double dz_b=hr[2];

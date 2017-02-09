@@ -59,6 +59,8 @@ bool OpalPatch::isPatch() const {
 
 
 void OpalPatch::update() {
+    OpalElement::update();
+
     PatchRep *patch = static_cast<PatchRep *>(getElement());
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);

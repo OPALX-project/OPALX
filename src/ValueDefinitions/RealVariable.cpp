@@ -78,3 +78,7 @@ void RealVariable::print(std::ostream &os) const {
        << (itsAttr[0].isExpression() ? ":=" : "=") << itsAttr[0] << ';';
     os << std::endl;
 }
+
+void RealVariable::printValue(std::ostream &os) const {
+    os << itsAttr[0];
+}

@@ -43,7 +43,6 @@
 
 using namespace Expressions;
 
-
 // Class Line
 // ------------------------------------------------------------------------
 
@@ -52,6 +51,14 @@ namespace {
     enum {
         TYPE,        // The type attribute.
         LENGTH,      // The line length.
+        ORIGIN,      // The location of the particle source
+        ORIENTATION,      // The orientation of the particle source
+        X,
+        Y,
+        Z,
+        THETA,
+        PHI,
+        PSI,
         SIZE
     };
 
@@ -71,6 +78,30 @@ Line::Line():
     itsAttr[LENGTH] = Attributes::makeReal
                       ("L", "Total length of line in m");
     itsAttr[LENGTH].setReadOnly(true);
+
+    itsAttr[ORIGIN] = Attributes::makeRealArray
+        ("ORIGIN", "The location of the particle source");
+
+    itsAttr[ORIENTATION] = Attributes::makeRealArray
+        ("ORIENTATION", "The Tait-Bryan angles for the orientation of the particle source");
+
+    itsAttr[X] = Attributes::makeReal
+        ("X", "The x-coordinate of the location of the particle source", 0);
+
+    itsAttr[Y] = Attributes::makeReal
+        ("Y", "The y-coordinate of the location of the particle source", 0);
+
+    itsAttr[Z] = Attributes::makeReal
+        ("Z", "The z-coordinate of the location of the particle source", 0);
+
+    itsAttr[THETA] = Attributes::makeReal
+        ("THETA", "The rotation about the y-axis of the particle source", 0);
+
+    itsAttr[PHI] = Attributes::makeReal
+        ("PHI", "The rotation about the x-axis of the particle source", 0);
+
+    itsAttr[PSI] = Attributes::makeReal
+        ("PSI", "The rotation about the z-axis of the particle source", 0);
 
     setElement((new FlaggedBeamline("LINE"))->makeAlignWrapper());
 }
@@ -162,6 +193,78 @@ void Line::parse(Statement &stat) {
         i->setCounter(elem->increment());
     }
     if(expr.isValid()) itsAttr[LENGTH].set(new SAutomatic<double>(expr));
+
+    while(stat.delimiter(',')) {
+        std::string name = Expressions::parseString(stat, "Attribute name expected.");
+        Attribute *attr = findAttribute(name);
+
+        if (attr != 0) {
+            if(stat.delimiter('=')) {
+                attr->parse(stat, true);
+            } else if(stat.delimiter(":=")) {
+                attr->parse(stat, false);
+            } else {
+                attr->setDefault();
+            }
+        }
+    }
+
+    if (itsAttr[ORIGIN] || itsAttr[ORIENTATION]) {
+        std::vector<double> origin = Attributes::getRealArray(itsAttr[ORIGIN]);
+        if (origin.size() == 3) {
+            line->setOrigin3D(Vector_t(origin[0],
+                                       origin[1],
+                                       origin[2]));
+        } else {
+            line->setOrigin3D(Vector_t(0.0));
+            if (itsAttr[ORIGIN]) {
+                throw OpalException("Line::parse","Parameter origin is array of 3 values (x, y, z);\n" +
+                                    std::to_string(origin.size()) + " values provided");
+            }
+        }
+
+        std::vector<double> direction = Attributes::getRealArray(itsAttr[ORIENTATION]);
+        if (direction.size() == 3) {
+            const double &theta = direction[0];
+            const double &phi = direction[1];
+            const double &psi = direction[2];
+
+            Quaternion rotTheta(cos(0.5 * theta), 0, -sin(0.5 * theta), 0);
+            Quaternion rotPhi(cos(0.5 * phi), -sin(0.5 * phi), 0, 0);
+            Quaternion rotPsi(cos(0.5 * psi), 0, 0, -sin(0.5 * psi));
+            line->setCoordTransformationTo(rotPsi * rotPhi * rotTheta);
+        } else {
+            line->setCoordTransformationTo(Quaternion(1, 0, 0, 0));
+            if (itsAttr[ORIENTATION]) {
+                throw OpalException("Line::parse","Parameter orientation is array of 3 values (theta, phi, psi);\n" +
+                                    std::to_string(direction.size()) + " values provided");
+            }
+        }
+
+        line->setRelativeFlag(true);
+    } else {
+        const Vector_t origin(Attributes::getReal(itsAttr[X]),
+                              Attributes::getReal(itsAttr[Y]),
+                              Attributes::getReal(itsAttr[Z]));
+
+        const double theta = Attributes::getReal(itsAttr[THETA]);
+        const double phi = Attributes::getReal(itsAttr[PHI]);
+        const double psi = Attributes::getReal(itsAttr[PSI]);
+
+        Quaternion rotTheta(cos(0.5 * theta), 0, -sin(0.5 * theta), 0);
+        Quaternion rotPhi(cos(0.5 * phi), -sin(0.5 * phi), 0, 0);
+        Quaternion rotPsi(cos(0.5 * psi), 0, 0, -sin(0.5 * psi));
+
+        line->setOrigin3D(origin);
+        line->setCoordTransformationTo(rotPsi * rotPhi * rotTheta);
+
+        line->setRelativeFlag(!itsAttr[X].defaultUsed() ||
+                              !itsAttr[Y].defaultUsed() ||
+                              !itsAttr[Z].defaultUsed() ||
+                              !itsAttr[THETA].defaultUsed() ||
+                              !itsAttr[PHI].defaultUsed() ||
+                              !itsAttr[PSI].defaultUsed());
+    }
 }
 
 

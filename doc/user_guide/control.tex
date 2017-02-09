@@ -1,0 +1,780 @@
+\input{header}
+
+\chapter{Control Statements}
+\label{chp:control}
+\index{Control Statements|(}
+\index{Program Control}
+
+\section{Getting Help}
+
+\subsection{HELP Command}
+\label{sec:help}
+\index{HELP}
+A user who is uncertain about the attributes of a command
+should try the command \keyword{HELP}, which has three formats:
+\begin{example}
+HELP;                 // Give help on the "HELP" command
+HELP,NAME=label;      // List funct. and attr. types of
+                      // "label"
+HELP,label;           // Shortcut for the second format
+\end{example}
+\texttt{label} is an {identifier} \seesec{label}.
+If it is non-blank,
+\opal prints the function of the object \texttt{label} and lists its
+attribute types.
+Entering \keyword{HELP} alone displays help on the \keyword{HELP}
+command.
+
+\noindent Examples:
+\begin{example}
+HELP;
+HELP,NAME=TWISS;
+HELP,TWISS;
+\end{example}
+
+\subsection{SHOW Command}
+\label{sec:show}
+\index{SHOW}
+The \keyword{SHOW} statement displays the current attribute values
+of an object.
+It has three formats:
+\begin{example}
+SHOW;                 // Give help on the "SHOW" command
+SHOW,NAME=pattern;    // Show names matching of "pattern"
+SHOW,pattern;         // Shortcut for the second format
+\end{example}
+\texttt{pattern} is an {regular expression} \seesec{wildcard}.
+If it is non-blank,
+\opal displays all object names matching the \texttt{pattern}.
+Entering \keyword{SHOW} alone displays help on the \keyword{SHOW}
+command.
+
+\noindent Examples:
+\begin{example}
+SHOW;
+SHOW,NAME="QD.*\.L*";
+SHOW,"QD.*\.L*";
+\end{example}
+
+\subsection{WHAT Command}
+\label{sec:what}
+\index{WHAT}
+The \keyword{WHAT} statement displays all object names matching a given
+regular expression.
+It has three formats:
+\begin{example}
+WHAT;                   // Give help on the "WHAT" command
+WHAT,NAME=label;        // Show definition of "label"
+WHAT,label;             // Shortcut for the second format
+\end{example}
+\texttt{label} is an {identifier} \seesec{label}.
+If it is non-blank,
+\opal displays the object \texttt{label} in a format similar to the
+input statement that created the object.
+Entering \keyword{WHAT} alone displays help on the \keyword{WHAT}
+command.
+\noindent Examples:
+\begin{example}
+WHAT;
+WHAT,NAME=QD;
+WHAT,QD;
+\end{example}
+
+\section{STOP / QUIT Statement}
+\label{sec:stop}
+\index{STOP / QUIT}
+The statement
+\begin{example}
+STOP or QUIT;
+\end{example}
+terminates execution of the \opal program,
+or, when the statement occurs in a \keyword{CALL} file \seesec{call},
+returns to the calling file.
+Any statement following the \keyword{STOP} or  \keyword{QUIT} statement is ignored.
+
+\section{OPTION Statement}
+\label{sec:option}
+\index{OPTION}
+The \keyword{OPTION} command controls global command execution and sets
+a few global quantities:
+\begin{example}
+OPTION,ECHO=logical,INFO=logical,TRACE=logical,
+       VERIFY=logical,WARN=logical,
+       SEED=real,TELL=logical,PSDUMPFREQ=integer,
+       STATDUMPFREQ=integer, SPTDUMFREQ=integer,
+       REPARTFREQ=integer, REBINFREQ=integer;
+\end{example}
+The first five logical flags activate or deactivate execution options:
+\begin{kdescription}
+  \item[ECHO]
+  \index{OPTION!ECHO}
+  Controls printing of an echo of input lines on the standard error file.
+
+  \item[INFO]
+  \index{OPTION!INFO}
+  If this option is turned off, \opal suppresses all information messages. It also affects the \filename{gnu.out} and \filename{eb.out}  files in case of \opalcycl simulations.
+
+  %% \item[TRACE]
+  %%   \index{TRACE}
+  %%   When the \keyword{TRACE} option is on,
+  %%   \opal writes additional trace information on the standard error file
+  %%   for each executable command.
+  %%   This information includes the command name
+  %%   and elapsed CPU time before and after the command.
+  \item[VERIFY]
+  \index{OPTION!VERIFY}
+  If this option is on, \opal gives a message for each undefined variable
+  or element in a beam line.
+
+  \item[WARN]
+  \index{OPTION!WARN}
+  If this option is turned off, \opal suppresses all warning messages.
+
+  \item[TELL]
+  \index{OPTION!TELL}
+  If true, the current settings are listed.
+
+  \item[SEED]
+  \index{OPTION!SEED}
+  Selects a particular sequence of random values.
+  A SEED value is an integer in the range [0...999999999] (default: 123456789).
+  SEED can be an expression. If SEED $=$ -1, the time is used as seed and the generator is not portable anymore.
+  See also: random values \seesec{adefer}.
+
+  \item[PSDUMPFREQ]
+  \index{OPTION!PSDUMPFREQ}
+  Defines after how many time steps the phase space is dumped into the H5hut file. Default value is 10.
+
+  \item[STATDUMPFREQ]
+  \index{OPTION!STATDUMPFREQ}
+  Defines after how many time steps we dump statistical data, such as RMS beam emittance, to the .stat file.
+  The default value is 10. Currently only available for \opalt.
+
+  \item[SPTDUMPFREQ]
+  \index{OPTION!SPTDUMPFREQ}
+  Defines after how many time steps we dump the phase space of single particle.
+  It is always useful to record the trajectory of reference particle
+  or some specified particle for primary study. Its default value is 1.
+
+  \item[REPARTFREQ]
+  \index{OPTION!REPARTFREQ}
+  Defines after how many time steps we do particles repartition to balance the computational load of
+  the computer nodes. Its default value is 10.
+
+  \item[REBINFREQ]
+  \index{OPTION!REBINFREQ}
+  Defines after how many time steps we update the energy Bin ID of each particle. For the time being.
+  Only available for multi-bunch simulation in \opalcycl. Its default value is 100.
+
+  \item[PSDUMPEACHTURN]
+  \index{OPTION!PSDUMPEACHTURN}
+  Control option of phase space dumping. If true, dump phase space after each turn.
+  For the time being, this is only use for multi-bunch simulation in \opalcycl. Its default set is false.
+
+  \item[PSDUMPLOCALFRAME]
+  \index{OPTION!PSDUMPLOCALFRAME}
+  Control option whether the phase space data is dumped in the global Cartesian frame or in the local Cartesian frame.
+  If true, in local frame, otherwise in global Cartesian frame. Only available for \opalcycl. Its default set is false.
+  Note that restarting run cannot be launched by reading in phase space data in local frame.
+
+  \item[SCSOLVEFREQ]
+  \index{OPTION!SCSOLVEFREQ}
+  If the space charge field is slowly varying w.r.t. external fields,  this option allows to change the frequency of space charge calculation,
+  i.e. the space charge forces are evaluated every SCSOLVEFREQ step and then reused for the following steps. Affects integrators LF-2 and RK-4 of \opalcycl. Its default value is 1. Note: as the multiple-time-stepping (MTS) integrator maintains accuracy much better with reduced space charge solve frequency, this option should probably not be used anymore.
+
+  \item[MTSSUBSTEPS]
+  \index{OPTION!MTSSUBSTEPS}
+  Only used for multiple-time-stepping (MTS) integrator in \opalcycl. Specifies how many sub-steps for external field integration are done per step. Default value is 1.
+  Making less steps per turn and increasing this value is the recommended way to reduce space charge solve frequency.
+
+  \item[RHODUMP]
+  \index{OPTION!RHODUMP}
+  If true the scalar $\rho$ field is saved each time a phase space is written. There exists a reader in Visit with versions
+  greater or equal 1.11.1.
+
+  \item[EFDUMP]
+  \index{OPTION!EFDUMP}
+  Not supported anymore.
+
+  \item[EBDUMP]
+  \index{OPTION!EBDUMP}
+  If true the electric and magnetic field on the particle is saved each time a phase space is written.
+
+  \item[CSRDUMP]
+  \index{OPTION!CSRDUMP}
+  If true the electric csr field component, $E_z$, line density and the derivative of the line density is written into the \filename{data} directory.
+
+  %% \item[AUTOPHASE]
+  %% \index{OPTION!AUTOPHASE}
+  %% A phase scan of all $n$ RF-elements is performed, if  \keyword{AUTOPHASE} is greater than zero.   \keyword{AUTOPHASE} finds the maximum energy
+  %% in a way similar to the code Astra.
+  %% \begin{enumerate}
+  %%   \item  find the phase $\phi_i$ for maximum energy of the $i$\engordletters{th} cavity.
+  %%   \item  track is continued with $\phi_i + LAG$ to the element $i+1$.
+  %%   \item  if $i<n$ goto $1$
+  %% \end{enumerate}
+  %% For convenience a file (\filename{inputfn.phases}) with the phases corresponding to the maximum energies is written. A \keyword{AUTOPHASE} value of $4$ gives Astra comparable results.
+  %% An example is given in \seesec{trackautoph}.
+
+  %The range of the phase within which the energy is maximized is refined \keyword{AUTOPHASE} times. For each level of refinement, $i$, the energy is evaluated at $11$ evenly distributed  positions between $\phi_{i, \, \mathrm{low}}$ and $\phi_{i, \, \mathrm{high}}$ with spacing $\mathrm{d}\phi_i = \frac{\phi_{i, \, \mathrm{high}} - \phi_{i, \, \mathrm{low}}}{10}$ such that $\phi_{i,j} = \phi_{i, \, \mathrm{low}} + j \cdot \mathrm{d}\phi_i \quad \forall j \in [0 \ldots 10]$. The new search range is then defined by $\phi_{i,\,\mathrm{max}} \pm \mathrm{d}\phi_i$. The final phase after $N$ refinements has an accuracy of $\frac{2\pi}{5^{N}}$ where $N \equiv \mathrm{AUTOPHASE}$.
+  %The higher \keyword{AUTOPHASE} is the more accurate the result but also the more time is needed to compute the result.
+
+  \item[SCAN]
+  \index{OPTION!SCAN}
+  If true one can simulate in a loop several machines where some variables can be random variables. Find an
+  example in \secref{randmach}.
+
+  \item[CZERO]
+  \index{OPTION!CZERO}
+  If true the distributions are generated such that the centroid is exactly zero and not statistically dependent.
+
+  \item[RNGTYPE]
+  \index{OPTION!RNGTYPE}
+  The name \seesec{astring} of a random number generator can be provided. The default random number generator (RANDOM) is a portable 48-bit generator. Three quasi random generators are available:
+  \begin{enumerate}
+    \item HALTON
+    \item SOBOL
+    \item NIEDERREITER.
+  \end{enumerate}
+  For details see the GSL reference manual (18.5).
+
+  \item[ENABLEHDF5]
+  \index{OPTION!ENABLEHDF5}
+  If true (default), HDF5 read and write is enabled.
+
+  \item[ASCIIDUMP]
+  \index{OPTION!ASCIIDUMP}
+  If true, instead of HDF5, ASCII output is generated for the following elements: Probe, Collimator, Monitor, Stripper, Foil and global losses.
+
+  \item[NLHS]
+  \index{OPTION!NLHS}
+  Number of stored old solutions for extrapolating the new starting vector. Default value is 1 and just the last solution is used.
+
+  \item[NUMBLOCKS]
+  \index{OPTION!NUMBLOCKS}
+  Maximum number of vectors in the Krylov space (for RCGSolMgr). Default value is 0 and BlockCGSolMgr will be used.
+
+  \item[RECYCLEBLOCKS]
+  \index{OPTION!RECYCLEBLOCKS}
+  Number of vectors in the recycle space (for RCGSolMgr). Default value is 0 and BlockCGSolMgr will be used.
+
+  \item[BOUNDPDESTROYFQ]
+  \index{OPTION!BOUNDPDESTROYFQ}
+  The frequency to do \texttt{boundp\_destroy} to delete lost particles. Default 10
+
+  \item[REMOTEPARTDEL]
+  \index{OPTION!REMOTEPARTDEL}
+  Artificially delete the remote particle if its distance to the beam mass is larger than \keyword{REMOTEPARTDEL} times of the beam rms size, its default values is -1 (no delete)
+
+  \item[IDEALIZED]
+  \index{OPTION!IDEALIZE}
+  Instructs to use the hard edge model for the calculation of the path length in \opalt. The path length is computed to place the elements in the three-dimensional space from \keyword{ELEMEDGE}. Default is false.
+
+  \item[LOGBENDTRAJECTORY]
+  \index{OPTION!LOGBENDTRAJECTORY}
+  Save the reference trajectory inside dipoles in an ASCII file. For each dipole a separate file is written to the directory \filename{data/}. Default is false.
+
+  \item[VERSION]
+  \index{OPTION!VERSION}
+  Used to indicate for which version of \opal the input file is written. The versions of \opal and of the input file have to match. The format is \texttt{Mmmpp} where \texttt{M} stands for the major, \texttt{m} for the minor and \texttt{p} for the patch version. For version 1.6.0 of \opal \keyword{VERSION} should read \texttt{10600}. If the version doesn't match then \opal stops immediately and prints instructions on how to convert the input file.
+
+  \item[PPDEBUG]
+  \index{OPTION!PPDEBUG}
+  \TODO{Describe option PPDEBUG}
+
+  \item[SURFDUMPFREQ]
+  \index{OPTION!SURFDUMPFREQ}
+  \TODO{Describe option SURFDUMPFREQ}
+
+  \item[BEAMHALOBOUNDARY]
+  \index{OPTION!BEAMHALOBOUNDARY}
+  \TODO{Describe option BEAMHALOBOUNDARY}
+
+  \item[CLOTUNEONLY]
+  \index{OPTION!CLOTUNEONLY}
+  \TODO{Describe option CLOTUNEONLY}
+\end{kdescription}
+
+
+\noindent Examples:
+\begin{example}
+OPTION,ECHO=FALSE,TELL;
+OPTION,SEED=987456321
+\end{example}
+
+\begin{table}[ht] \footnotesize
+  \caption{Default Settings for Options}
+  \label{tab:option}
+  \begin{center}
+    \begin{tabular}{|ll|ll|ll|}
+      \hline
+         \keyword{ECHO}              & = \keyword{FALSE}     &
+         \keyword{INFO}              & = \keyword{TRUE}      &
+         \keyword{TRACE}             & = \keyword{FALSE}     \\
+      \hline
+         \keyword{WARN}              & = \keyword{TRUE}      &
+         \keyword{VERIFY}            & = \keyword{FALSE}     &
+         \keyword{TELL}              & = \keyword{FALSE}     \\
+      \hline
+         \keyword{SEED}              & = \texttt{123456789}  &
+         \keyword{VERIFY}            & = \keyword{FALSE}     &
+         \keyword{SPTDUMPFREQ}       & = \texttt{1}          \\
+      \hline
+         \keyword{PSDUMPFREQ}        & = \texttt{10}         &
+         \keyword{STATDUMPFREQ}      & = \texttt{10}         &
+         \keyword{REPARTFREQ}        & = \texttt{10}         \\
+      \hline
+         \keyword{BOUNDPDESTROYFQ}   & = \texttt{10}         &
+         \keyword{REBINFREQ}         & = \texttt{100}        &
+         \keyword{SCSOLVEFREQ}       & = \texttt{1}          \\
+      \hline
+         \keyword{PSDUMPEACHTURN}    & = \keyword{FALSE}     &
+         \keyword{PSDUMPLOCALFRAME}  & = \keyword{FALSE}     &
+         \keyword{MTSSUBSTEPS}       & = \texttt{1}          \\
+      \hline
+         \keyword{RHODUMP}           & = \keyword{FALSE}     &
+         \keyword{EBDUMP}            & = \keyword{FALSE}     &
+         \keyword{CSRDUMP}           & = \keyword{FALSE}     \\
+      \hline
+         \keyword{ASCIIDUMP}         & = \keyword{FALSE}     &
+         \keyword{CZERO}             & = \keyword{FALSE}     &
+         \keyword{RNGTYPE}           & = \texttt{"RANDOM"} \\
+      \hline
+         \keyword{SCAN}              & = \keyword{FALSE}     &
+         \keyword{NUMBLOCKS}         & = \texttt{0}          &
+         \keyword{RECYCLEBLOCKS}     & = \texttt{0}          \\
+      \hline
+         \keyword{NLHS}              & = \texttt{1}          &
+         \keyword{IDEALIZE}          & = \keyword{FALSE}     &
+         \keyword{ENABLEHDF5}        & = \keyword{TRUE}      \\
+      \hline
+         \keyword{REMOTEPARTDEL}     & = \texttt{-1}         &
+         \keyword{LOGBENDTRAJECTORY} & = \keyword{FALSE}     &
+         \keyword{PPDEBUG}           & = \keyword{FALSE}     \\
+      \hline
+         \keyword{SURFDUMPFREQ}      & = \texttt{-1}         &
+         \keyword{BEAMHALOBOUNDARY}  & = \texttt{0.0}        &
+         \keyword{CLOTUNEONLY}       & = \keyword{FALSE}     \\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\section{Parameter Statements}
+\label{sec:parameter}
+\index{Parameters}
+
+\subsection{Variable Definitions}
+\label{sec:variable}
+\index{Variable}
+\opal recognizes several types of variables.
+
+\subsubsection{Real Scalar Variables}
+\index{Variable!Real}
+\index{Real!Variable}
+\begin{example}
+REAL variable-name=real-expression;
+\end{example}
+The keyword \keyword{REAL} is optional.
+For backward compatibility the program also accepts the form
+\begin{example}
+variable-name:=real-expression;
+\end{example}
+This statement creates a new global variable \texttt{variable-name}
+and discards any old variable with the same name.
+Its value depends on all quantities occurring
+in {real-expression} \seesec{areal}.
+Whenever an operand changes in \texttt{real-expression},
+a new value is calculated.
+The definition may be thought of as a mathematical equation.
+However, \opal is not able to solve the equation for a quantity on the
+right-hand side.
+
+An assignment in the sense of the FORTRAN or C languages can be achieved
+by using the \keyword{EVAL} function \seesec{eval}.
+
+A reserved variable is the value \texttt{P0} which is used as the
+global reference momentum for normalizing all magnetic field coefficients.
+\noindent Example:
+\begin{example}
+REAL GEV=100;
+P0=GEV;
+\end{example}
+Circular definitions are not allowed:
+\begin{example}
+X=X+1;    // X cannot be equal to X+1
+A=B;
+B=A;      // A and B are equal, but of unknown value
+\end{example}
+However, redefinitions by assignment are allowed:
+\begin{example}
+X=EVAL(X+1);
+\end{example}
+
+\subsubsection{Real Vector Variables}
+\index{Real!Vector}
+\index{Variable!Vector}
+\index{Vector!Real}
+\begin{example}
+REAL VECTOR variable-name=vector-expression;
+\end{example}
+The keyword \keyword{REAL} is optional.
+This statement creates a new global variable \texttt{variable-name}
+and discards any old variable with the same name.
+Its value depends on all quantities occurring
+in {vector-expression} \seesec{anarray} on the right-hand side.
+Whenever an operand changes in \texttt{vector-expression},
+a new value is calculated.
+The definition may be thought of as a mathematical equation.
+However, \opal is not able to solve the equation for a quantity on the
+right-hand side.
+
+\noindent Example:
+\begin{example}
+REAL VECTOR A = TABLE(10, #);
+REAL VECTOR B = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+\end{example}
+Circular definitions are not allowed, but redefinitions by assignment
+are allowed.
+
+\subsubsection{Logical Variables}
+\index{Variable!Logical}
+\index{Logical!Variable}
+\begin{example}
+BOOL variable-name=logical-expression;
+\end{example}
+This statement creates a new global variable \texttt{variable-name}
+and discards any old variable with the same name.
+Its value depends on all quantities occurring
+in {logical-expression} \seesec{alogical}.
+Whenever an operand changes in \texttt{logical-expression},
+a new value is calculated.
+The definition may be thought of as a mathematical equation.
+However, \opal is not able to solve the equation for a quantity on the
+right-hand side.
+
+\noindent Example:
+\begin{example}
+BOOL FLAG = X != 0;
+\end{example}
+Circular definitions are not allowed, but redefinitions by assignment
+are allowed.
+
+\subsection{Symbolic Constants}
+\label{sec:constant}
+\index{Constants!Real}
+\index{Real!Constant}
+\opal recognizes a few build-in built-in mathematical and physical
+constants \seetab{constant}.
+Additional constants can be defined by the command
+\begin{example}
+REAL CONST label:CONSTANT=<real-expression>;
+\end{example}
+which defines a constant with the name \texttt{label}.
+The keyword \keyword{REAL} is optional, and \texttt{label} must be unique.
+An existing symbolic constant can never be redefined.
+The \texttt{real-expression} is evaluated at the time the
+\keyword{CONST} definition is read, and the result is stored as the
+value of the constant.
+
+\noindent Example:
+\begin{example}
+CONST IN=0.0254; // conversion of inches to meters
+\end{example}
+
+\subsection{Vector Values}
+\label{sec:vector}
+\index{Vector!Real}
+\index{Real!Vector}
+A vector of expressions is established by a statement
+\begin{example}
+REAL VECTOR vector-name=vector-expression;
+\end{example}
+The keyword \keyword{REAL} is optional.
+It creates a new global vector \texttt{vector-name}
+and discards any old vector with the same name.
+Its value depends on all quantities occurring in
+{vector-expression} \seesec{anarray}.
+Whenever an operand changes in \texttt{vector-expression},
+a new value is calculated.
+The definition may be thought of as a mathematical equation.
+However, \opal is not able to solve the equation for a quantity on the
+right-hand side.
+
+\noindent Example:
+\begin{example}
+VECTOR A_AMPL={2.5e-3,3.4e-2,0,4.5e-8};
+VECTOR A_ON=TABLE(10,1);
+\end{example}
+Circular definitions are not allowed.
+
+\subsection{Assignment to Variables}
+\label{sec:eval}
+\index{Variable!Assignment}
+\index{Assignment}
+A value is assigned to a variable or vector by using the function
+\keyword{EVAL(real- expression)}.
+When seen, this function is immediately evaluated and replaced by the
+result treated like a constant.
+\begin{example}
+variable-name=EVAL(real-expression);
+\end{example}
+This statement acts like a FORTRAN or C assignment.
+The \texttt{real-expression} or \texttt{vector-expression} is
+\textbf{evaluated},
+and the result is assigned as a constant to the variable or vector on
+the left-hand side.
+Finally the expression is discarded.
+The \keyword{EVAL} function can also be used within an expression, e.~g.:
+\begin{example}
+vector-name=TABLE(range,EVAL(real-expression));
+vector-name={...,EVAL(real-expression),...);
+\end{example}
+A sequence like the following is permitted:
+\begin{example}
+...                 // some definitions
+X=0;                // create variable X with value
+                    // zero
+WHILE (X <= 0.10) {
+  TWISS,LINE=...;   // uses X=0, 0.01, ..., 0.10
+  X=EVAL(X+.01);    // increment variable X by 0.01
+                    // CANNOT use: X=X+.01;
+}
+\end{example}
+
+\subsection{VALUE: Output of Expressions}
+\label{sec:value}
+\index{Variable!Value}
+\index{Value of Variable}
+The statement
+\begin{example}
+VALUE,VALUE=expression-vector;
+\end{example}
+\index{VALUE}
+evaluates a set of expressions using the most recent values of
+any operands and prints the results on the standard error file.
+
+\noindent Example:
+\begin{example}
+A=4;
+VALUE,VALUE=TABLE(5,#*A);
+P1=5;
+P2=7;
+VALUE,VALUE={P1,P2,P1*P2-3};
+\end{example}
+These commands give the results:
+\begin{example}
+value: {0*A,1*A,2*A,3*A,4*A} = {0,4,8,12,16}
+value: {P1,P2,P1*P2-3} = {5,7,32}
+\end{example}
+This commands serves mainly for printing one or more quantities
+which depend on matched attributes.
+It also allows use of \opal as a programmable calculator.
+One may also tabulate functions.
+
+
+\section{Miscellaneous Commands}
+
+\subsection{ECHO Statement}
+\label{sec:echo}
+\index{Echo of Commands}
+\index{ECHO}
+The \keyword{ECHO} statement has two formats:
+\begin{example}
+ECHO,MESSAGE=message;
+ECHO,message;           // shortcut
+\end{example}
+\texttt{message} is a string value \seesec{astring}.
+It is immediately transmitted to the \keyword{ECHO} stream.
+
+\subsection{SYSTEM: Execute System Command}
+\label{sec:system}
+\index{System Command}
+\index{SYSTEM}
+During an interactive \opal session the command \keyword{SYSTEM}
+allows to execute operating system commands.
+After execution of the system command, successful or not,
+control returns to \opal.
+At present this command is only available under UNIX-like OSes (including Linux and macOS).
+It has two formats:
+\begin{example}
+SYSTEM,CMD=string;
+SYSTEM,string;         // shortcut
+\end{example}
+The string \seesec{astring} \texttt{string} must be a valid operating
+system command.
+
+\subsection{SYSTEM Command under UNIX}
+Most UNIX commands can be issued directly.
+
+\noindent Example:
+\begin{example}
+SYSTEM,"ls -l"
+\end{example}
+causes a listing of the current directory in long form on the terminal.
+
+\section{TITLE Statement}
+\label{sec:title}
+\index{Page Title}
+\index{TITLE}
+The \keyword{TITLE} statement has three formats:
+\begin{example}
+TITLE,STRING=page-header;   // define new page header
+TITLE,page-header;          // shortcut for first format
+TITLE,STRING="";            // clear page header
+\end{example}
+\texttt{page-header} is a string value \seesec{astring}.
+It defines the page header which will be used as a title for
+subsequent output pages.
+Before the first \keyword{TITLE} statement is encountered,
+the page header is empty.
+It can be redefined at any time.
+
+\section{File Handling}
+
+\subsection{CALL Statement}
+\label{sec:call}
+\index{CALL}
+The \keyword{CALL} command has two formats:
+\begin{example}
+CALL,FILE=file-name;
+CALL,file-name;
+\end{example}
+\texttt{file-name} is a string \seesec{astring}.
+The statement causes the input to switch to the named file.
+Input continues on that file until a \keyword{STOP} or an end of file
+is encountered.
+\noindent Example:
+\begin{example}
+CALL,FILE="structure";
+CALL,"structure";
+\end{example}
+
+\subsection{SAVE Statement}
+\label{sec:save}
+\index{SAVE}
+The \keyword{SAVE} command has two formats:
+\begin{example}
+SAVE,FILE=file-name
+\end{example}
+\texttt{file-name} is a string \seesec{astring}.
+The command causes all beam element, beam line, and parameter definitions
+to be written on the named file.
+
+\noindent Examples:
+\begin{example}
+SAVE,FILE="structure";
+SAVE,"structure";
+\end{example}
+
+\ifthenelse{\boolean{ShowMap}}{
+\subsection{MAKESEQ Statement}
+\label{sec:makeseq}
+\index{MAKESEQ}
+A file containing a machine sequence can be generated in \opal by the
+command
+\begin{example}
+MAKESEQ,LINE=string,NAME=string,FILE=string;
+\end{example}
+
+Please note this is not yet supported for \opalt and \opalcycl.
+
+
+The named beam line \seesec{line} or sequence \seesec{sequence} is
+written as a flat \keyword{SEQUENCE} \seesec{sequence} with the given
+name on the named file.
+
+All required elements and parameters are also written.
+All expressions are evaluated and only their values appear in the
+output.
+The command has the following attributes:
+\begin{kdescription}
+\item[LINE]
+  The line for which a flat sequence is to be written.
+\item[NAME]
+  The name to be given to the sequence written.
+\item[FILE]
+  The name of the file to receive the output.
+\end{kdescription}
+}{}
+
+\section{IF: Conditional Execution}
+\label{sec:if}
+\index{IF}
+Conditional execution can be requested by an \texttt{IF} statement.
+It allows usages similar to the C language \texttt{if} statement:
+\begin{example}
+IF (logical) statement;
+IF (logical) statement; ELSE statement;
+IF (logical) { statement-group; }
+IF (logical) { statement-group; }
+  ELSE { statement-group; }
+\end{example}
+Note that all statements must be terminated with semicolons (\texttt{;}),
+but there is no semicolon after a closing brace.
+The statement or group of statements following the \texttt{IF} is
+executed if the condition is satisfied.
+If the condition is false, and there is an \keyword{ELSE},
+the statement or group following the \keyword{ELSE} is executed.
+
+\section{WHILE: Repeated Execution}
+\label{sec:while}
+\index{WHILE}
+Repeated execution can be requested by a \keyword{WHILE} statement.
+It allows usages similar to the C language \texttt{while} statement:
+\begin{example}
+WHILE (logical) statement;
+WHILE (logical) { statement-group; }
+\end{example}
+Note that all statements must be terminated with semicolons (\texttt{;}),
+but there is no semicolon after a closing brace.
+The condition is re-evaluated in each iteration.
+The statement or group of statements following the \keyword{WHILE} is
+repeated as long as the condition is satisfied.
+Of course some variable(s) must be changed within the \keyword{WHILE} group
+to allow the loop to terminate.
+
+\section{MACRO: Macro Statements (Subroutines)}
+\label{sec:macro}
+\index{MACRO}
+Subroutine-like commands can be defined by a \keyword{MACRO} statement.
+It allows usages similar to C language function call statements.
+A macro is defined by one of the following statements:
+\begin{example}
+name(formals): MACRO { token-list }
+name(): MACRO { token-list }
+\end{example}
+A macro may have formal arguments, which will be replaced by actual arguments
+at execution time. An empty formals list is denoted by \texttt{()}.
+Otherwise the \texttt{formals} consist of one or more names,
+separated by commas.
+The \texttt{token-list} consists of input tokens
+(strings, names, numbers, delimiters etc.)
+and is stored unchanged in the definition.
+
+A macro is executed by one of the statements:
+\begin{example}
+name(actuals);
+name();
+\end{example}
+Each actual consists of a set of tokens which replaces all occurrences of
+the corresponding formal name.
+The actuals are separated by commas.
+\noindent Example:
+\begin{example}
+// macro definitions:
+SHOWIT(X): MACRO {
+   SHOW, NAME = X;
+}
+DOIT(): MACRO {
+   DYNAMIC,LINE=RING,FILE="DYNAMIC.OUT";
+}
+
+// macro calls:
+SHOWIT(PI);
+DOIT();
+\end{example}
+
+\index{Control Statements|)}
+
+\input{footer}

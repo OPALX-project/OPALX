@@ -20,6 +20,7 @@
 
 #include "Parser/FileStream.h"
 #include "Utilities/ParseError.h"
+#include "Utility/IpplInfo.h"
 #include <iomanip>
 #include <iostream>
 
@@ -67,7 +68,7 @@ bool FileStream::fillLine() {
         std::getline(is, line, '\n');
         line += "\n";
         curr_line++;
-        if(echoFlag) {
+        if(echoFlag && Ippl::myNode() == 0) {
             std::cerr.width(5);
             std::cerr << curr_line << " " << line;
         }

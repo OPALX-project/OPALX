@@ -22,7 +22,6 @@
 #include "AbsBeamline/ParallelPlate.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Algorithms/PartBunch.h"
-#include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
 
 #include <iostream>
@@ -40,9 +39,6 @@ ParallelPlate::ParallelPlate():
     phase_m(0.0),
     frequency_m(0.0),
     length_m(0.0),
-    startField_m(0.0),
-    endField_m(0.0),
-    ElementEdge_m(0.0),
     ptime_m(0.0) {
     setElType(isRF);
 }
@@ -55,9 +51,6 @@ ParallelPlate::ParallelPlate(const ParallelPlate &right):
     phase_m(right.phase_m),
     frequency_m(right.frequency_m),
     length_m(right.length_m),
-    startField_m(right.startField_m),
-    endField_m(right.endField_m),
-    ElementEdge_m(right.ElementEdge_m),
     ptime_m(0.0) {
     setElType(isRF);
 }
@@ -70,9 +63,6 @@ ParallelPlate::ParallelPlate(const std::string &name):
     phase_m(0.0),
     frequency_m(0.0),
     length_m(0.0),
-    startField_m(0.0),
-    endField_m(0.0),
-    ElementEdge_m(0.0),
     ptime_m(0.0) {
     setElType(isRF);
 }
@@ -117,85 +107,50 @@ double ParallelPlate::getPhase() const {
     return phase_m;
 }
 
-void ParallelPlate::setElementLength(double length) {
-    length_m = length;
-}
+// void ParallelPlate::setElementLength(double length) {
+//     length_m = length;
+// }
 
-double ParallelPlate::getElementLength() const {
-    return length_m;
-}
-
-
-bool ParallelPlate::apply(const size_t &i, const double &t, double E[], double B[]) {
-    Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
-    Vector_t Rt(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), RefPartBunch_m->getZ(i));
-    if(apply(Rt, Vector_t(0.0), t, Ev, Bv)) return true;
-
-    E[0] = Ev(0);
-    E[1] = Ev(1);
-    E[2] = Ev(2);
-    B[0] = Bv(0);
-    B[1] = Bv(1);
-    B[2] = Bv(2);
-
-    return false;
-}
+// double ParallelPlate::getElementLength() const {
+//     return length_m;
+// }
 
 
 bool ParallelPlate::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
+    return applyToReferenceParticle(RefPartBunch_m->R[i], RefPartBunch_m->P[i], t, E, B);
+}
+
+bool ParallelPlate::apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) {
+    return applyToReferenceParticle(R, P, t, E, B);
+}
+
+bool ParallelPlate::applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) {
     const double phase = frequency_m * t + phase_m;
     Vector_t tmpE(0.0, 0.0, -1.0), tmpB(0.0, 0.0, 0.0);
-    if (ptime_m!=t) {
-        ptime_m=t;
-        //cout<<"time: "<<ptime_m<<" phase: "<<phase<<" E: "<<scale_m/length_m * sin(phase) * tmpE<<endl;
-
-    }
-    const Vector_t tmpR(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m , RefPartBunch_m->getZ(i) - startField_m - ds_m);
+    ptime_m = t;
 
     //Here we don't check if the particle is outof bounds, just leave the matter to the particle Boundary collision model in BoundaryGeometry
-    if( (tmpR(2)>=startField_m-0.00001)
-        && (tmpR(2)<=endField_m+0.00001) ) {
-        E += scale_m/length_m * sin(phase) * tmpE; //Here scale_m should be Voltage between the parallel plates(V).
+    if ((R(2) >= 0.0)
+        && (R(2) < length_m)) {
+        E += scale_m / length_m * sin(phase) * tmpE; //Here scale_m should be Voltage between the parallel plates(V).
         B = tmpB;       //B field is always zero for our parallel plate elements used for benchmarking.
         return false;
     }
     return true;
 }
 
-bool ParallelPlate::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
-    const double phase = frequency_m * t + phase_m;
-    Vector_t  tmpE(0.0, 0.0, -1.0), tmpB(0.0, 0.0, 0.0);
-    if (ptime_m!=t) {
-        ptime_m=t;
-        //cout<<"time: "<<ptime_m<<" phase: "<<phase<<" E: "<<scale_m/length_m * sin(phase) * tmpE<<endl;
+void ParallelPlate::initialise(PartBunch *bunch, double &startField, double &endField) {
 
-    }
-    const Vector_t tmpR(R(0) - dx_m, R(1) - dy_m, R(2) - startField_m - ds_m);// Fixme: check this.
-
-
-    //if(!fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB)) {
-    if( (tmpR(2)>=startField_m-0.00001)
-        && (tmpR(2)<=endField_m+0.00001) ) {
-        E += scale_m/length_m * sin(phase) * tmpE;
-        B = tmpB;
-        return false;
-    }
-    return true;
-}
-
-void ParallelPlate::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
-
-    Inform msg("PARALLELPLATE");
-    std::stringstream errormsg;
+    length_m = getElementLength();
     RefPartBunch_m = bunch;
-    startField_m = ElementEdge_m = startField;
-    //cout<<"Lenth_m in initialise: "<<length_m<<endl;
-    endField_m = endField = ElementEdge_m + length_m;//fixme:Has length_m already been initialised before?
+    startField = 0.0;
+
+    endField = length_m;
 
 }
 
 // In current version ,not implemented yet.
-void ParallelPlate::initialise(PartBunch *bunch, const double &scaleFactor) {
+void ParallelPlate::initialise(PartBunch *bunch) {
     using Physics::pi;
 
     Inform msg("ParallelPlate initialization for cyclotron tracker ");
@@ -216,8 +171,8 @@ bool ParallelPlate::bends() const {
 }
 
 void ParallelPlate::getDimensions(double &zBegin, double &zEnd) const {
-    zBegin = startField_m;
-    zEnd = endField_m;
+    zBegin = 0.0;
+    zEnd = length_m;
 }
 
 

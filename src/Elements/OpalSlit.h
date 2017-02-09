@@ -35,8 +35,6 @@ public:
         XSIZE = COMMON,  // The horizontal half-size.
         YSIZE,           // The vertical half-size.
         OUTFN,
-        DX,             // Misalignment: translation in x direction
-        DY,             // Misalignment: translation in y direction
         SIZE
     };
 

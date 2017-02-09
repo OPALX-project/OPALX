@@ -41,15 +41,12 @@ OpalSextupole::OpalSextupole():
                 "The \"SEXTUPOLE\" element defines a Sextupole.") {
     itsAttr[K2] = Attributes::makeReal
                   ("K2", "Normalised upright sextupole coefficient in m^(-3)");
+    itsAttr[DK2] = Attributes::makeReal
+                  ("DK2", "Normalised upright sextupole coefficient error in m^(-3)");
     itsAttr[K2S] = Attributes::makeReal
                    ("K2S", "Normalised skew sextupole coefficient in m^(-3)");
-    itsAttr[DX] = Attributes::makeReal
-      ("DX", "Misalignment in x direction",0.0);
-    itsAttr[DY] = Attributes::makeReal
-      ("DY", "Misalignment in y direction",0.0);
-
-    registerRealAttribute("DX");
-    registerRealAttribute("DY");
+    itsAttr[DK2S] = Attributes::makeReal
+                   ("DK2S", "Normalised skew sextupole coefficient error in m^(-3)");
 
     setElement((new MultipoleRep("SEXTUPOLE"))->makeWrappers());
 }
@@ -124,6 +121,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalSextupole::update() {
+    OpalElement::update();
+
     MultipoleRep *sext =
         dynamic_cast<MultipoleRep *>(getElement()->removeWrappers());
     sext->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
@@ -132,13 +131,8 @@ void OpalSextupole::update() {
     field.setNormalComponent(3, factor * Attributes::getReal(itsAttr[K2]));
     field.setSkewComponent(3, factor * Attributes::getReal(itsAttr[K2S]));
     sext->setField(field);
-
-    sext->setNormalComponent(3, Attributes::getReal(itsAttr[K2]));
-    sext->setSkewComponent(3, Attributes::getReal(itsAttr[K2S]));
-
-    double dx = Attributes::getReal(itsAttr[DX]);
-    double dy = Attributes::getReal(itsAttr[DY]);
-    sext->setMisalignment(dx, dy, 0.0);
+    sext->setNormalComponent(3, Attributes::getReal(itsAttr[K2]), Attributes::getReal(itsAttr[DK2]));
+    sext->setSkewComponent(3, Attributes::getReal(itsAttr[K2S]), Attributes::getReal(itsAttr[DK2S]));
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(sext);

@@ -61,15 +61,15 @@ FM3DH5Block::FM3DH5Block(std::string aFilename):Fieldmap(aFilename) {
     xend_m = xbegin_m + (num_gridpx_m - 1) * hx_m;
     yend_m = ybegin_m + (num_gridpy_m - 1) * hy_m;
     zend_m = zbegin_m + (num_gridpz_m - 1) * hz_m;
-    
+
     //         xcentral_idx_m = static_cast<int>(fabs(xbegin_m) / hx_m);
     //         ycentral_idx_m = static_cast<int>(fabs(ybegin_m) / hy_m);
-    
-    
+
+
     h5err = H5ReadFileAttribFloat64(file, "Resonance Frequency(Hz)", &frequency_m);
     assert (h5err != H5_ERR);
     frequency_m *= Physics::two_pi;
-    
+
     h5err = H5CloseFile(file);
     assert (h5err != H5_ERR);
 }
@@ -116,7 +116,7 @@ void FM3DH5Block::readMap() {
     //double lever_x;
     //double lever_y;
     //double Ezmax = 1.0 ;
-    
+
     h5_int64_t last_step = H5GetNumSteps(file) - 1;
     h5err = H5SetStep(file, last_step);
     assert (h5err != H5_ERR);
@@ -135,18 +135,18 @@ void FM3DH5Block::readMap() {
         Nz_read_start[i] = start;
     }
     Nz_read_start[Ippl::getNodes()] = start;
-    
+
     N_read_start = Nz_read_start[Ippl::myNode()] * num_gridpx_m * num_gridpy_m;
-    
+
     // rbuf_size = max(Nz_avrg, Nz_avrg - signNz);
     // std::unique_ptr<double> rbuf(new double[Ippl::getNodes() * rbuf_size]);
-    
+
     h5err = H5Block3dSetView(file,
                              0, num_gridpx_m - 1,
                              0, num_gridpy_m - 1,
                              Nz_read_start[Ippl::myNode()], Nz_read_start[Ippl::myNode() + 1] - 1);
     assert (h5err != H5_ERR);
-    
+
     field_size = (num_gridpx_m * num_gridpy_m * num_gridpz_m);
     FieldstrengthEx_m.resize(field_size);
     FieldstrengthEy_m.resize(field_size);
@@ -168,7 +168,7 @@ void FM3DH5Block::readMap() {
         &(FieldstrengthHy_m[N_read_start]),
         &(FieldstrengthHz_m[N_read_start]));
     assert (h5err != H5_ERR);
-    
+
     for(int i = 0; i < Nnodes; ++ i) {
         int N_read_start = Nz_read_start[i] * num_gridpx_m * num_gridpy_m;
         int N_read_length = Nz_read_length[i] * num_gridpx_m * num_gridpy_m;
@@ -179,10 +179,10 @@ void FM3DH5Block::readMap() {
         MPI_Bcast(&(FieldstrengthHy_m[N_read_start]), N_read_length, MPI_DOUBLE, i, Ippl::getComm());
         MPI_Bcast(&(FieldstrengthHz_m[N_read_start]), N_read_length, MPI_DOUBLE, i, Ippl::getComm());
     }
-    
+
     h5err = H5CloseFile(file);
     assert (h5err != H5_ERR);
-    
+
     delete[] Nz_read_start;
     delete[] Nz_read_length;
 

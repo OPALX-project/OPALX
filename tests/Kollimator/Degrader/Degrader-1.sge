@@ -6,7 +6,7 @@
 #$ -v LD_LIBRARY_PATH,OPAL_EXE_PATH,OPENMPI,REG_TEST_DIR
 
 MACHINE_FILE=$TMPDIR/machinefile
-awk '/^merlin/ {print $1" slots="$2}' $PE_HOSTFILE > $MACHINE_FILE 
+awk '/^merlin/ {print $1" slots="$2}' $PE_HOSTFILE > $MACHINE_FILE
 cp $MACHINE_FILE machinefile.last
 
 cd $REG_TEST_DIR

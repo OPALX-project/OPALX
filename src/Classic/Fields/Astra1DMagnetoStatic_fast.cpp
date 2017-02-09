@@ -1,4 +1,5 @@
 #include "Fields/Astra1DMagnetoStatic_fast.h"
+#include "Utilities/GeneralClassicException.h"
 #include "Physics/Physics.h"
 
 #include <fstream>
@@ -29,6 +30,8 @@ Astra1DMagnetoStatic_fast::Astra1DMagnetoStatic_fast(std::string aFilename):
     if(!parsing_passed) {
         disableFieldmapWarning();
         zend_m = zbegin_m - 1e-3;
+        throw GeneralClassicException("Astra1DMagnetoStatic_fast::Astra1DMagnetoStatic_fast",
+                                      "An error occured when reading the fieldmap '" + Filename_m + "'");
     }
     hz_m = (zend_m - zbegin_m) / (num_gridpz_m - 1);
     length_m = 2.0 * num_gridpz_m * hz_m;

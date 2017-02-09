@@ -157,11 +157,11 @@ namespace Expressions {
     double getEkin() {
         auto p = OpalData::getInstance()->getPartBunch();
         if (p)
-            return p->get_meanEnergy();
+            return p->get_meanKineticEnergy();
         else
             return -1.0;
     }
-    
+
 
     double ranf() {
         return Options::rangen.uniform();

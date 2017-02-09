@@ -39,7 +39,6 @@ Collimator::Collimator():
     Component(),
     filename_m(""),
     plane_m(OFF),
-    position_m(0.0),
     PosX_m(0),
     PosY_m(0),
     PosZ_m(0),
@@ -77,7 +76,6 @@ Collimator::Collimator(const Collimator &right):
     Component(right),
     filename_m(right.filename_m),
     plane_m(right.plane_m),
-    position_m(right.position_m),
     PosX_m(right.PosX_m),
     PosY_m(right.PosY_m),
     PosZ_m(right.PosZ_m),
@@ -119,7 +117,6 @@ Collimator::Collimator(const std::string &name):
     Component(name),
     filename_m(""),
     plane_m(OFF),
-    position_m(0.0),
     PosX_m(0),
     PosY_m(0),
     PosZ_m(0),
@@ -173,7 +170,7 @@ inline bool Collimator::isInColl(Vector_t R, Vector_t P, double recpgamma) {
     */
     const double z = R(2) + P(2) * recpgamma;
 
-    if((z > position_m) && (z <= position_m + getElementLength())) {
+    if((z > 0.0) && (z <= getElementLength())) {
         if(isAPepperPot_m) {
 
             /**
@@ -220,29 +217,30 @@ inline bool Collimator::isInColl(Vector_t R, Vector_t P, double recpgamma) {
     return false;
 }
 
-bool Collimator::apply(const size_t &i, const double &t, double E[], double B[]) {
-    Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
-    return apply(i, t, Ev, Bv);
-}
-
 bool Collimator::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
-    const Vector_t &R = RefPartBunch_m->R[i] - Vector_t(dx_m, dy_m, ds_m); // including the missaligment
+    const Vector_t &R = RefPartBunch_m->R[i];
     const Vector_t &P = RefPartBunch_m->P[i];
-    const double recpgamma = Physics::c * RefPartBunch_m->getdT() / sqrt(1.0  + dot(P, P));
-    bool pdead = false;
-    pdead = isInColl(R,P,recpgamma);
+    const double &dt = RefPartBunch_m->dt[i];
+    const double recpgamma = Physics::c * dt / sqrt(1.0  + dot(P, P));
+    bool pdead = isInColl(R, P, recpgamma);
+
     if(pdead) {
-      if (lossDs_m) {
-	double frac = (R(2) - position_m) / P(2) * recpgamma;
-	lossDs_m->addParticle(R,P, RefPartBunch_m->ID[i], t + frac * RefPartBunch_m->getdT(), 0);
-      }
-      ++losses_m;
+        if (lossDs_m) {
+            double frac = -R(2) / P(2) * recpgamma;
+            lossDs_m->addParticle(R, P,
+                                  RefPartBunch_m->ID[i],
+                                  t + frac * dt, 0);
+        }
+        ++ losses_m;
     }
+
     return pdead;
 }
 
-bool Collimator::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
-    return false;
+bool Collimator::applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) {
+    const double dt = RefPartBunch_m->getdT();
+    const double recpgamma = Physics::c * dt / sqrt(1.0  + dot(P, P));
+    return isInColl(R, P, recpgamma);
 }
 
 bool Collimator::checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax) {
@@ -300,35 +298,34 @@ bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const d
     return flagNeedUpdate;
 }
 
-void Collimator::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
+void Collimator::initialise(PartBunch *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
-    position_m = startField;
-    endField = position_m + getElementLength();
+    endField = startField + getElementLength();
 
     sphys_m = getSurfacePhysics();
 
-    //if (!sphys_m) {
+    // if (!sphys_m) {
     if (filename_m == std::string(""))
-      lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-    else 
-      lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
-      //}
-    
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
+    else
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
+    // }
+
     goOnline(-1e6);
 }
 
-void Collimator::initialise(PartBunch *bunch, const double &scaleFactor) {
+void Collimator::initialise(PartBunch *bunch) {
     RefPartBunch_m = bunch;
 
     sphys_m = getSurfacePhysics();
 
-    //    if (!sphys_m) {
+    // if (!sphys_m) {
     if (filename_m == std::string(""))
-      lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     else
-      lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
-    //    }
-    
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
+    // }
+
     goOnline(-1e6);
 }
 
@@ -374,10 +371,10 @@ void Collimator::print() {
               << " nx= " << nHolesX_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
     else if(isASlit_m)
         *gmsg << "* Slit x= " << getXsize() << " Slit y= " << getYsize()
-              << " start= " << position_m << " fn= " << filename_m << endl;
+              << " fn= " << filename_m << endl;
     else if(isARColl_m)
         *gmsg << "* RCollimator a= " << getXsize() << " b= " << getYsize()
-              << " start= " << position_m << " fn= " << filename_m
+              << " fn= " << filename_m
               << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
     else if(isACColl_m)
         *gmsg << "* CCollimator angle start " << xstart_m << " (Deg) angle end " << ystart_m << " (Deg) "
@@ -385,13 +382,14 @@ void Collimator::print() {
     else if(isAWire_m)
         *gmsg << "* Wire x= " << x0_m << " y= " << y0_m << endl;
     else
-        *gmsg << "* ECollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m
-              << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
+        *gmsg << "* ECollimator a= " << getXsize() << " b= " << b_m << " fn= " << filename_m
+              << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
 }
 
 void Collimator::goOffline() {
     if (online_m && lossDs_m)
         lossDs_m->save();
+    lossDs_m.reset(0);
     online_m = false;
 }
 
@@ -410,139 +408,9 @@ string Collimator::getOutputFN() {
         return filename_m.substr(0, filename_m.rfind("."));
 }
 
-unsigned int Collimator::getLosses() const {
-    return losses_m;
-}
-
-void Collimator::setXsize(double a) {
-    a_m = a;
-}
-
-void Collimator::setYsize(double b) {
-    b_m = b;
-}
-
-void Collimator::setXpos(double x0) {
-    x0_m = x0;
-}
-
-void Collimator::setYpos(double y0) {
-    y0_m = y0;
-}
-
-
-double Collimator::getXsize(double a) {
-    return a_m;
-}
-
-double Collimator::getYsize(double b) {
-    return b_m;
-}
-
-double Collimator::getXpos() {
-    return x0_m;
-}
-
-double Collimator::getYpos() {
-    return y0_m;
-
-    // --------Cyclotron collimator
-}
-void Collimator::setXStart(double xstart) {
-    xstart_m = xstart;
-}
-
-void Collimator::setXEnd(double xend) {
-    xend_m = xend;
-}
-
-void Collimator::setYStart(double ystart) {
-    ystart_m = ystart;
-}
-
-void Collimator::setYEnd(double yend) {
-    yend_m = yend;
-}
-
-void Collimator::setZStart(double zstart) {
-    zstart_m = zstart;
-}
-
-void Collimator::setZEnd(double zend) {
-    zend_m = zend;
-}
-
-void Collimator::setWidth(double width) {
-    width_m = width;
-}
-
-double Collimator::getXStart() {
-    return xstart_m;
-}
-
-double Collimator::getXEnd() {
-    return xend_m;
-}
-
-double Collimator::getYStart() {
-    return ystart_m;
-}
-
-double Collimator::getYEnd() {
-    return yend_m;
-}
-
-double Collimator::getZStart() {
-    return zstart_m;
-}
-
-double Collimator::getZEnd() {
-    return zend_m;
-}
-
-double Collimator::getWidth() {
-    return width_m;
-}
-
-//-------------------------------
-
-void Collimator::setRHole(double r) {
-    rHole_m = r;
-}
-void Collimator::setNHoles(unsigned int nx, unsigned int ny) {
-    nHolesX_m = nx;
-    nHolesY_m = ny;
-}
-void Collimator::setPitch(double p) {
-    pitch_m = p;
-}
-
-
-void Collimator::setPepperPot() {
-    isAPepperPot_m = true;
-}
-void Collimator::setSlit() {
-    isASlit_m = true;
-}
-
-void Collimator::setRColl() {
-    isARColl_m = true;
-}
-
-void Collimator::setCColl() {
-    isACColl_m = true;
-}
-
-void Collimator::setWire() {
-    isAWire_m = true;
-}
 void Collimator::getDimensions(double &zBegin, double &zEnd) const {
-    zBegin = position_m;
-    zEnd = position_m + getElementLength();
-
-    // zBegin = position_m - 0.005;
-    //  zEnd = position_m + 0.005;
-
+    zBegin = 0.0;
+    zEnd = getElementLength();
 }
 
 ElementBase::ElementType Collimator::getType() const {

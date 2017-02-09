@@ -63,19 +63,15 @@ void PartBins::updateStatus(const int bunchCount, const size_t partInBin) {
 }
 
 void PartBins::updateDeletedPartsInBin(size_t countLost[]) {
-    Inform m2all("updateDeletedPartsInBin ", INFORM_ALL_NODES);
+    Inform msg("updateDeletedPartsInBin ");
 
-    for(int ii = 0; ii < getLastemittedBin(); ii++) {
-        bool flagNeedUpdate = false;
-        flagNeedUpdate = (countLost[ii] > 0);
-
-        reduce(flagNeedUpdate, flagNeedUpdate, OpOr());
-
-        if(flagNeedUpdate) {
-            reduce(countLost[ii], countLost[ii], OpAddAssign());
+    const int lastEmittedBin = getLastemittedBin();
+    reduce(&(countLost[0]), &(countLost[0]) + lastEmittedBin, &(countLost[0]), OpAddAssign());
+    for(int ii = 0; ii < lastEmittedBin; ii++) {
+        if(countLost[ii] > 0) {
             nDelBin_m[ii] = countLost[ii];
+            msg << "In Bin: " << ii << ", " << nDelBin_m[ii] << " particle(s) lost" << endl;
         }
-        m2all << "In Bin: " << ii << ", " << nDelBin_m[ii] << " particle(s) lost" << endl;
     }
 }
 
@@ -83,18 +79,14 @@ void PartBins::updateDeletedPartsInBin(size_t countLost[]) {
 void PartBins::updatePartInBin(size_t countLost[]) {
 
     Inform msg0("updatePartInBin ");
-    //  for (int ii=0; ii < bins_m; ii++){
+
     for(int ii = 0; ii < nemittedBins_m; ii++) {
         msg0 << "In Bin: " << ii << ", " << nBin_m[ii] << " particles " << endl;
     }
+
+    reduce(&(countLost[0]), &(countLost[0]) + nemittedBins_m, &(countLost[0]), OpAddAssign());
     for(int ii = 0; ii < nemittedBins_m; ii++) {
-        bool flagNeedUpdate = false;
-        if(countLost[ii] > 0)
-            flagNeedUpdate = true;
-        reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
-        //          reduce(flagNeedUpdate, flagNeedUpdate, OpOr());
-        if(flagNeedUpdate) {
-            reduce(countLost[ii], countLost[ii], OpAddAssign());
+        if(countLost[ii] > 0) {
             nBin_m[ii] -= countLost[ii];
             msg0 << "In Bin: " << ii << ", " << countLost[ii] << " particle(s) lost" << endl;
         }
@@ -111,8 +103,8 @@ void PartBins::updatePartInBin_cyc(size_t countLost[]) {
 
 
 void PartBins::resetPartInBin(size_t newPartNum[]) {
+    reduce(&(newPartNum[0]), &(newPartNum[0]) + nemittedBins_m, &(newPartNum[0]), OpAddAssign());
     for(int ii = 0; ii < nemittedBins_m; ii++) {
-        reduce(newPartNum[ii], newPartNum[ii], OpAddAssign());
         nBin_m[ii] = newPartNum[ii];
         INFOMSG("After reset Bin: " << ii << ", particle(s): " << newPartNum[ii] << endl);
     }

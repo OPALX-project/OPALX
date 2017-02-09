@@ -21,6 +21,7 @@
 #include "Elements/OpalElement.h"
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/ElementImage.h"
+#include "AbsBeamline/Bend.h"
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
@@ -31,6 +32,8 @@
 #include "Utilities/Options.h"
 #include "Utilities/ParseError.h"
 #include "Utilities/Round.h"
+#include "Utilities/Util.h"
+
 #include <cmath>
 #include <cctype>
 #if defined(__GNUC__) && __GNUC__ < 3
@@ -39,12 +42,94 @@
 #include <sstream>
 #endif
 #include <vector>
+#include <boost/regex.hpp>
 
-
+extern Inform *gmsg;
 // Class OpalElement
 // ------------------------------------------------------------------------
 
 std::map < std::string, OwnPtr<AttCell> > OpalElement::attributeRegistry;
+
+OpalElement::OpalElement(int size, const char *name, const char *help):
+    Element(size, name, help), itsSize(size) {
+    itsAttr[TYPE]   = Attributes::makeString
+                      ("TYPE", "The element design type (the project name)");
+    itsAttr[LENGTH] = Attributes::makeReal
+                      ("L", "The element length in m");
+    itsAttr[APERT]  = Attributes::makeString
+                      ("APERTURE", "The element aperture");
+    itsAttr[WAKEF]   = Attributes::makeString
+                       ("WAKEF", "Defines the wake function");
+    itsAttr[SURFACEPHYSICS]   = Attributes::makeString
+                                ("SURFACEPHYSICS", "Defines the surface physics handler");
+    itsAttr[ORIGIN] = Attributes::makeRealArray
+                      ("ORIGIN", "The location of the element");
+
+    itsAttr[ORIENTATION] = Attributes::makeRealArray
+                           ("ORIENTATION", "The Tait-Bryan angles for the orientation of the element");
+
+    itsAttr[X] = Attributes::makeReal
+        ("X", "The x-coordinate of the location of the element", 0);
+
+    itsAttr[Y] = Attributes::makeReal
+        ("Y", "The y-coordinate of the location of the element", 0);
+
+    itsAttr[Z] = Attributes::makeReal
+        ("Z", "The z-coordinate of the location of the element", 0);
+
+    itsAttr[THETA] = Attributes::makeReal
+        ("THETA", "The rotation about the y-axis of the element", 0);
+
+    itsAttr[PHI] = Attributes::makeReal
+        ("PHI", "The rotation about the x-axis of the element", 0);
+
+    itsAttr[PSI] = Attributes::makeReal
+        ("PSI", "The rotation about the z-axis of the element", 0);
+
+    itsAttr[DX] = Attributes::makeReal
+                  ("DX", "Misalignment in x direction",0.0);
+    itsAttr[DY] = Attributes::makeReal
+                  ("DY", "Misalignment in y direction",0.0);
+    itsAttr[DZ] = Attributes::makeReal
+                  ("DZ", "Misalignment in z direction",0.0);
+    itsAttr[DTHETA] = Attributes::makeReal
+                  ("DTHETA", "Misalignment in theta (Tait-Bryan angles)",0.0);
+    itsAttr[DPHI] = Attributes::makeReal
+                  ("DPHI", "Misalignment in theta (Tait-Bryan angles)",0.0);
+    itsAttr[DPSI] = Attributes::makeReal
+                  ("DPSI", "Misalignment in theta (Tait-Bryan angles)",0.0);
+
+    static bool first = true;
+    if(first) {
+        registerStringAttribute("NAME");
+        registerStringAttribute("TYPE");
+        registerStringAttribute("CLASS");
+        registerStringAttribute("KEYWORD");
+        registerRealAttribute("L");
+        registerStringAttribute("WAKEF");
+        registerStringAttribute("SURFACEPHYSICS");
+        registerStringAttribute("APERT");
+        registerRealAttribute("X");
+        registerRealAttribute("Y");
+        registerRealAttribute("Z");
+        registerRealAttribute("THETA");
+        registerRealAttribute("PHI");
+        registerRealAttribute("PSI");
+        registerRealAttribute("DX");
+        registerRealAttribute("DY");
+        registerRealAttribute("DZ");
+        registerRealAttribute("DTHETA");
+        registerRealAttribute("DPHI");
+        registerRealAttribute("DPSI");
+        first = false;
+    }
+
+}
+
+
+OpalElement::OpalElement(const std::string &name, OpalElement *parent):
+    Element(name, parent), itsSize(parent->itsSize)
+{}
 
 
 OpalElement::~OpalElement()
@@ -60,18 +145,39 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag) {
     attributeRegistry["KEYWORD"]->setString(getBaseObject()->getOpalName());
     attributeRegistry["L"]->setReal(base.getElementLength());
 
+    CoordinateSystemTrafo global2local = base.getCSTrafoGlobal2Local();
+    Vector_t origin = global2local.getOrigin();
+    Vector_t orientation = Util::getTaitBryantAngles(global2local.getRotation().conjugate());
+    attributeRegistry["X"]->setReal(origin[0]);
+    attributeRegistry["Y"]->setReal(origin[1]);
+    attributeRegistry["Z"]->setReal(origin[2]);
+    attributeRegistry["THETA"]->setReal(orientation[0]);
+    attributeRegistry["PHI"]->setReal(orientation[1]);
+    attributeRegistry["PSI"]->setReal(orientation[2]);
+
     // Misalignments.
     const AlignWrapper *wrap = dynamic_cast<const AlignWrapper *>(&base);
     if(wrap) {
-        double dx, dy, ds, dphi, dtheta, dpsi;
-        wrap->offset().getAll(dx, dy, ds, dtheta, dphi, dpsi);
+        double dx, dy, dz, dphi, dtheta, dpsi;
+        wrap->offset().getAll(dx, dy, dz, dtheta, dphi, dpsi);
         attributeRegistry["DX"]->setReal(dx);
         attributeRegistry["DY"]->setReal(dy);
-        attributeRegistry["DELTAS"]->setReal(ds);
+        attributeRegistry["DZ"]->setReal(dz);
         attributeRegistry["DTHETA"]->setReal(dtheta);
         attributeRegistry["DPHI"]->setReal(dphi);
         attributeRegistry["DPSI"]->setReal(dpsi);
     }
+
+    CoordinateSystemTrafo misalignment = base.getMisalignment();
+    Vector_t misalignmentShift = misalignment.getOrigin();
+    Vector_t misalignmentAngles = Util::getTaitBryantAngles(misalignment.getRotation().conjugate());
+
+    attributeRegistry["DX"]->setReal(misalignmentShift(0));
+    attributeRegistry["DY"]->setReal(misalignmentShift(1));
+    attributeRegistry["DZ"]->setReal(misalignmentShift(2));
+    attributeRegistry["DTHETA"]->setReal(misalignmentAngles[0]);
+    attributeRegistry["DPHI"]->setReal(misalignmentAngles[1]);
+    attributeRegistry["DPSI"]->setReal(misalignmentAngles[2]);
 
     // Fill in the "unknown" attributes.
     ElementImage *image = base.ElementBase::getImage();
@@ -107,8 +213,154 @@ AttCell *OpalElement::findRegisteredAttribute(const std::string &name) {
     return cell;
 }
 
-std::vector<double> OpalElement::getApert() const {
-    return Attributes::getRealArray(itsAttr[APERT]);
+std::pair<ElementBase::ApertureType, std::vector<double> > OpalElement::getApert() const {
+    std::string aperture = Attributes::getString(itsAttr[APERT]);
+
+    std::pair<ElementBase::ApertureType, std::vector<double> > retvalue(ElementBase::ELLIPTICAL,
+                                                                        std::vector<double>({0.5, 0.5, 1.0}));
+    boost::regex square("square *\\((.*)\\)", boost::regex::icase);
+    boost::regex rectangle("rectangle *\\((.*)\\)", boost::regex::icase);
+    boost::regex circle("circle *\\((.*)\\)", boost::regex::icase);
+    boost::regex ellipse("ellipse *\\((.*)\\)", boost::regex::icase);
+
+    boost::regex twoArguments("([^,]*),([^,]*)");
+    boost::regex threeArguments("([^,]*),([^,]*),([^,]*)");
+
+    boost::smatch match;
+
+    const double width2HalfWidth = 0.5;
+
+    if (boost::regex_search(aperture, match, square)) {
+        std::string arguments = match[1];
+        if (!boost::regex_search(arguments, match, twoArguments)) {
+            retvalue.first = ElementBase::RECTANGULAR;
+
+            try {
+                retvalue.second[0] = width2HalfWidth * std::stod(arguments);
+                retvalue.second[1] = retvalue.second[0];
+            } catch (const std::exception &ex) {
+                throw OpalException("OpalElement::getApert()",
+                                    "could not convert '" + arguments + "' to double");
+            }
+
+        } else {
+            retvalue.first = ElementBase::CONIC_RECTANGULAR;
+
+            try {
+                retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
+                retvalue.second[1] = retvalue.second[0];
+                retvalue.second[2] = std::stod(match[2]);
+            } catch (const std::exception &ex) {
+                throw OpalException("OpalElement::getApert()",
+                                    "could not convert '" + arguments + "' to doubles");
+            }
+        }
+
+        return retvalue;
+    }
+
+    if (boost::regex_search(aperture, match, rectangle)) {
+        std::string arguments = match[1];
+
+        if (!boost::regex_search(arguments, match, threeArguments)) {
+            retvalue.first = ElementBase::RECTANGULAR;
+
+            try {
+                size_t sz = 0;
+
+                retvalue.second[0] = width2HalfWidth * std::stod(arguments, &sz);
+                sz = arguments.find_first_of(",", sz) + 1;
+                retvalue.second[1] = width2HalfWidth * std::stod(arguments.substr(sz));
+
+            } catch (const std::exception &ex) {
+                throw OpalException("OpalElement::getApert()",
+                                    "could not convert '" + arguments + "' to doubles");
+            }
+
+        } else {
+            retvalue.first = ElementBase::CONIC_RECTANGULAR;
+
+            try {
+                retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
+                retvalue.second[1] = width2HalfWidth * std::stod(match[2]);
+                retvalue.second[2] = std::stod(match[3]);
+            } catch (const std::exception &ex) {
+                throw OpalException("OpalElement::getApert()",
+                                    "could not convert '" + arguments + "' to doubles");
+            }
+        }
+
+        return retvalue;
+    }
+
+    if (boost::regex_search(aperture, match, circle)) {
+        std::string arguments = match[1];
+        if (!boost::regex_search(arguments, match, twoArguments)) {
+            retvalue.first = ElementBase::ELLIPTICAL;
+
+            try {
+                retvalue.second[0] = width2HalfWidth * std::stod(arguments);
+                retvalue.second[1] = retvalue.second[0];
+            } catch (const std::exception &ex) {
+                throw OpalException("OpalElement::getApert()",
+                                    "could not convert '" + arguments + "' to double");
+            }
+
+        } else {
+            retvalue.first = ElementBase::CONIC_ELLIPTICAL;
+
+            try {
+                retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
+                retvalue.second[1] = retvalue.second[0];
+                retvalue.second[2] = std::stod(match[2]);
+            } catch (const std::exception &ex) {
+                throw OpalException("OpalElement::getApert()",
+                                    "could not convert '" + arguments + "' to doubles");
+            }
+        }
+
+        return retvalue;
+    }
+
+    if (boost::regex_search(aperture, match, ellipse)) {
+        std::string arguments = match[1];
+
+        if (!boost::regex_search(arguments, match, threeArguments)) {
+            retvalue.first = ElementBase::ELLIPTICAL;
+
+            try {
+                size_t sz = 0;
+
+                retvalue.second[0] = width2HalfWidth * std::stod(arguments, &sz);
+                sz = arguments.find_first_of(",", sz) + 1;
+                retvalue.second[1] = width2HalfWidth * std::stod(arguments.substr(sz));
+
+            } catch (const std::exception &ex) {
+                throw OpalException("OpalElement::getApert()",
+                                    "could not convert '" + arguments + "' to doubles");
+            }
+
+        } else {
+            retvalue.first = ElementBase::CONIC_ELLIPTICAL;
+
+            try {
+                retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
+                retvalue.second[1] = width2HalfWidth * std::stod(match[2]);
+                retvalue.second[2] = std::stod(match[3]);
+            } catch (const std::exception &ex) {
+                throw OpalException("OpalElement::getApert()",
+                                    "could not convert '" + arguments + "' to doubles");
+            }
+        }
+
+        return retvalue;
+    }
+
+    if (aperture != "")
+        throw OpalException("OpalElement::getApert()",
+                            "Unknown aperture type '" + aperture + "'.");
+
+    return retvalue;
 }
 
 double OpalElement::getLength() const {
@@ -315,6 +567,91 @@ void OpalElement::printMultipoleStrength
     }
 }
 
+void OpalElement::update() {
+    ElementBase *base = getElement()->removeWrappers();
+
+    auto apert = getApert();
+    base->setAperture(apert.first, apert.second);
+
+    if (itsAttr[ORIGIN] || itsAttr[ORIENTATION]) {
+        std::vector<double> ori = Attributes::getRealArray(itsAttr[ORIGIN]);
+        std::vector<double> dir = Attributes::getRealArray(itsAttr[ORIENTATION]);
+        Vector_t origin(0.0);
+        Quaternion rotation;
+
+        if (dir.size() == 3) {
+            Quaternion rotTheta(cos(0.5 * dir[0]), 0,                 sin(0.5 * dir[0]), 0);
+            Quaternion rotPhi(cos(0.5 * dir[1]),   sin(0.5 * dir[1]), 0,                 0);
+            Quaternion rotPsi(cos(0.5 * dir[2]),   0,                 0,                 sin(0.5 * dir[2]));
+            rotation = rotTheta * (rotPhi * rotPsi);
+        } else {
+            if (itsAttr[ORIENTATION]) {
+                throw OpalException("Line::parse","Parameter orientation is array of 3 values (theta, phi, psi);\n" +
+                                    std::to_string(dir.size()) + " values provided");
+            }
+        }
+
+        if (ori.size() == 3) {
+            origin = Vector_t(ori[0], ori[1], ori[2]);
+        } else {
+            if (itsAttr[ORIGIN]) {
+                throw OpalException("Line::parse","Parameter origin is array of 3 values (x, y, z);\n" +
+                                    std::to_string(ori.size()) + " values provided");
+            }
+        }
+
+        CoordinateSystemTrafo global2local(origin,
+                                           rotation.conjugate());
+        base->setCSTrafoGlobal2Local(global2local);
+        base->fixPosition();
+
+    } else if (!itsAttr[PSI].defaultUsed() &&
+               itsAttr[X].defaultUsed() &&
+               itsAttr[Y].defaultUsed() &&
+               itsAttr[Z].defaultUsed() &&
+               itsAttr[THETA].defaultUsed() &&
+               itsAttr[PHI].defaultUsed()) {
+        base->setRotationAboutZ(Attributes::getReal(itsAttr[PSI]));
+    } else if (!itsAttr[X].defaultUsed() ||
+               !itsAttr[Y].defaultUsed() ||
+               !itsAttr[Z].defaultUsed() ||
+               !itsAttr[THETA].defaultUsed() ||
+               !itsAttr[PHI].defaultUsed() ||
+               !itsAttr[PSI].defaultUsed()) {
+        const Vector_t origin(Attributes::getReal(itsAttr[X]),
+                              Attributes::getReal(itsAttr[Y]),
+                              Attributes::getReal(itsAttr[Z]));
+
+        const double theta = Attributes::getReal(itsAttr[THETA]);
+        const double phi = Attributes::getReal(itsAttr[PHI]);
+        const double psi = Attributes::getReal(itsAttr[PSI]);
+
+        Quaternion rotTheta(cos(0.5 * theta), 0,              sin(0.5 * theta), 0);
+        Quaternion rotPhi(cos(0.5 * phi),     sin(0.5 * phi), 0,                0);
+        Quaternion rotPsi(cos(0.5 * psi),     0,              0,                sin(0.5 * psi));
+        Quaternion rotation = rotTheta * (rotPhi * rotPsi);
+
+        CoordinateSystemTrafo global2local(origin,
+                                           rotation.conjugate());
+        base->setCSTrafoGlobal2Local(global2local);
+        base->fixPosition();
+    }
+
+    Vector_t misalignmentShift(Attributes::getReal(itsAttr[DX]),
+                               Attributes::getReal(itsAttr[DY]),
+                               Attributes::getReal(itsAttr[DZ]));
+    double dtheta = Attributes::getReal(itsAttr[DTHETA]);
+    double dphi = Attributes::getReal(itsAttr[DPHI]);
+    double dpsi = Attributes::getReal(itsAttr[DPSI]);
+    Quaternion rotationY(cos(0.5 * dtheta), 0,               sin(0.5 * dtheta), 0);
+    Quaternion rotationX(cos(0.5 * dphi),   sin(0.5 * dphi), 0,                 0);
+    Quaternion rotationZ(cos(0.5 * dpsi),   0,               0,                 sin(0.5 * dpsi));
+    Quaternion misalignmentRotation = rotationY * rotationX * rotationZ;
+    CoordinateSystemTrafo misalignment(misalignmentShift,
+                                       misalignmentRotation.conjugate());
+
+    base->setMisalignment(misalignment);
+}
 
 void OpalElement::updateUnknown(ElementBase *base) {
     for(std::vector<Attribute>::size_type i = itsSize;
@@ -353,44 +690,6 @@ void OpalElement::printAttribute
     printAttribute(os, name, ss.str(), len);
 #endif
 }
-
-
-OpalElement::OpalElement(int size, const char *name, const char *help):
-    Element(size, name, help), itsSize(size) {
-    itsAttr[TYPE]   = Attributes::makeString
-                      ("TYPE", "The element design type (the project name)");
-    itsAttr[LENGTH] = Attributes::makeReal
-                      ("L", "The element length in m");
-    itsAttr[APERT]  = Attributes::makeRealArray
-                      ("APERTURE", "The element aperture");
-    itsAttr[WAKEF]   = Attributes::makeString
-                       ("WAKEF", "Defines the wake function");
-    itsAttr[SURFACEPHYSICS]   = Attributes::makeString
-                                ("SURFACEPHYSICS", "Defines the surface physics handler");
-    static bool first = true;
-    if(first) {
-        registerStringAttribute("NAME");
-        registerStringAttribute("TYPE");
-        registerStringAttribute("CLASS");
-        registerStringAttribute("KEYWORD");
-        registerRealAttribute("L");
-        registerRealAttribute("DELTAX");
-        registerRealAttribute("DELTAY");
-        registerRealAttribute("DELTAS");
-        registerRealAttribute("DTHETA");
-        registerRealAttribute("DPHI");
-        registerRealAttribute("DPSI");
-        registerStringAttribute("WAKEF");
-        registerStringAttribute("SURFACEPHYSICS");
-        first = false;
-    }
-
-}
-
-
-OpalElement::OpalElement(const std::string &name, OpalElement *parent):
-    Element(name, parent), itsSize(parent->itsSize)
-{}
 
 
 AttCell *OpalElement::registerRealAttribute(const std::string &name) {

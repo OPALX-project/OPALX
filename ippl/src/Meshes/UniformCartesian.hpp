@@ -480,10 +480,7 @@ MFLOAT UniformCartesian<Dim,MFLOAT>::
 get_meshSpacing(unsigned d) const
 {
   PAssert(d<Dim);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
   MFLOAT ms = meshSpacing[d];
-#pragma GCC diagnostic pop
   return ms;
 }
 

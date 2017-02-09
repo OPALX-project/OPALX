@@ -43,6 +43,9 @@ public:
     /// Print the vector.
     virtual void print(std::ostream &) const;
 
+    /// Print its value
+    virtual void printValue(std::ostream &os) const;
+
     /// Return indexed value.
     virtual double getRealComponent(int) const;
 

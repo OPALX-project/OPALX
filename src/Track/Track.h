@@ -20,6 +20,7 @@
 
 #include "Algorithms/PartData.h"
 #include "Track/TrackParser.h"
+#include <stack>
 
 class BeamSequence;
 class TrackParser;
@@ -37,8 +38,8 @@ public:
 
     Track(BeamSequence *, const PartData &, const std::vector<double> & dt,
           const std::vector<unsigned long long> & maxtsteps, int stepsperturn,
-          const std::vector<double> & zStop, int timeintegrator, int nslices,
-          double t0, double dtScInit, double deltaTau);
+          double zStart, const std::vector<double> & zStop, int timeintegrator,
+          int nslices, double t0, double dtScInit, double deltaTau);
     ~Track();
 
     /// The particle bunch to be tracked.
@@ -58,6 +59,9 @@ public:
     /// The block of track data.
     static Track *block;
 
+    static void stash();
+    static Track* pop();
+
     /// The initial timestep
     std::vector<double> dT;
 
@@ -73,6 +77,9 @@ public:
 
     /// The timsteps per revolution period. ONLY available for OPAL-cycl.
     int stepsPerTurn;
+
+    /// The location at which the simulation starts
+    double zstart;
 
     /// The location at which the simulation stops
     std::vector<double> zstop;
@@ -90,6 +97,8 @@ private:
     Track();
     Track(const Track &);
     void operator=(const Track &);
+
+    static std::stack<Track*> stashedTrack;
 };
 
 #endif // OPAL_Track_HH

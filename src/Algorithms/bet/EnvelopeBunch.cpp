@@ -19,6 +19,7 @@
 #include "Algorithms/bet/math/rk.h"       // Runge-Kutta Integration
 
 #include "Algorithms/bet/EnvelopeBunch.h"
+#include "Utility/IpplTimings.h"
 
 #define USE_HOMDYN_SC_MODEL
 
@@ -501,7 +502,6 @@ void EnvelopeBunch::createBunch() {
     //size_t nSlices = (3 / 100.0 + 1.0) * numMySlices_m;
 
     size_t nSlices = getLocalNum();
-    LastSection.resize(nSlices);
 
     KR = std::unique_ptr<Vector_t[]>(new Vector_t[nSlices]);
     KT = std::unique_ptr<Vector_t[]>(new Vector_t[nSlices]);
@@ -1531,7 +1531,7 @@ Inform &EnvelopeBunch::slprint(Inform &os) {
     if(this->getTotalNum() != 0) {  // to suppress Nan's
         os << "* ************** S L B U N C H ***************************************************** " << endl;
         os << "* NSlices= " << this->getTotalNum() << " Qtot= " << Q_m << endl; //" [nC]  Qi= " << std::abs(qi_m) << " [C]" << endl;
-        os << "* Emean= " << get_meanEnergy() * 1e-6 << " [MeV]" << endl;
+        os << "* Emean= " << get_meanKineticEnergy() * 1e-6 << " [MeV]" << endl;
         os << "* dT= " << this->getdT() << " [s]" << endl;
         os << "* spos= " << this->zAvg() << " [m]" << endl;
 

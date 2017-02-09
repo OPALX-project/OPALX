@@ -24,6 +24,7 @@
 #include "Utilities/OpalException.h"
 #include "AbsBeamline/ElementBase.h"
 #include "Utilities/OpalFilter.h"
+#include "Utilities/Util.h"
 
 extern Inform *gmsg;
 
@@ -58,37 +59,37 @@ OpalWake::OpalWake():
                "on an element."),
     wf_m(0) {
     itsAttr[TYPE] = Attributes::makeString
-                    ("TYPE", "Specifies the wake function: 1D-CSR, 1D-CSR-IGF, LONG-SHORT-RANGE, TRANSV-SHORT-RANGE, LONG-TRANSV-SHORT-RANGE");
+        ("TYPE", "Specifies the wake function: 1D-CSR, 1D-CSR-IGF, LONG-SHORT-RANGE, TRANSV-SHORT-RANGE, LONG-TRANSV-SHORT-RANGE");
 
     itsAttr[NBIN] = Attributes::makeReal
-                    ("NBIN", "Number of bins for the line density calculation");
+        ("NBIN", "Number of bins for the line density calculation");
 
     itsAttr[CONST_LENGTH] = Attributes::makeBool
-                            ("CONST_LENGTH", "True if the length of the Bunch is considered as constant");
+        ("CONST_LENGTH", "True if the length of the Bunch is considered as constant");
 
     itsAttr[CONDUCT] = Attributes::makeString
-                       ("CONDUCT", "Conductivity: DC, AC");
+        ("CONDUCT", "Conductivity: DC, AC");
 
     itsAttr[Z0] = Attributes::makeReal
-                  ("Z0", "Impedance of the beam pipe ");
+        ("Z0", "Impedance of the beam pipe ");
 
     itsAttr[FORM] = Attributes::makeString
-                    ("FORM", "The form of the  beam pipe: ROUND");
+        ("FORM", "The form of the  beam pipe: ROUND");
 
     itsAttr[RADIUS] = Attributes::makeReal
-                      ("RADIUS", "The radius of the beam pipe [m]");
+        ("RADIUS", "The radius of the beam pipe [m]");
 
     itsAttr[SIGMA] = Attributes::makeReal
-                     ("SIGMA", "Material constant dependant on the  beam pipe material");
+        ("SIGMA", "Material constant dependant on the  beam pipe material");
 
     itsAttr[TAU] = Attributes::makeReal
-                   ("TAU", "Material constant dependant on the  beam pipe material");
+        ("TAU", "Material constant dependant on the  beam pipe material");
 
     itsAttr[FILTERS] = Attributes::makeStringArray
-                       ("FILTERS", "List of filters to apply on line density");
+        ("FILTERS", "List of filters to apply on line density");
 
     itsAttr[FNAME] = Attributes::makeStringArray
-                     ("FNAME", "Filename of the wakefield file");
+        ("FNAME", "Filename of the wakefield file");
 
     OpalWake *defWake = clone("UNNAMED_WAKE");
     defWake->builtin = true;
@@ -109,7 +110,7 @@ OpalWake::OpalWake(const std::string &name, OpalWake *parent):
 
 
 OpalWake::~OpalWake() {
-    if(wf_m)
+    if (wf_m)
         delete wf_m;
 }
 
@@ -133,7 +134,7 @@ void OpalWake::execute() {
 OpalWake *OpalWake::find(const std::string &name) {
     OpalWake *wake = dynamic_cast<OpalWake *>(OpalData::getInstance()->find(name));
 
-    if(wake == 0) {
+    if (wake == 0) {
         throw OpalException("OpalWake::find()", "Wake \"" + name + "\" not found.");
     }
     return wake;
@@ -147,7 +148,7 @@ int OpalWake::getNumberOfBins() {
 
 void OpalWake::update() {
     // Set default name.
-    if(getOpalName().empty()) setOpalName("UNNAMED_WAKE");
+    if (getOpalName().empty()) setOpalName("UNNAMED_WAKE");
 }
 
 
@@ -165,37 +166,59 @@ void OpalWake::initWakefunction(ElementBase &element) {
     for(std::vector<std::string>::const_iterator fit = filters_str.begin(); fit != filters_str.end(); ++ fit) {
         OpalFilter *f = OpalFilter::find(*fit);
 
-        if(f) {
+        if (f) {
             f->initOpalFilter();
             filters.push_back(f->filter_m);
         }
     }
-    if(Attributes::getString(itsAttr[TYPE]) == "1D-CSR") {
-        wf_m = new CSRWakeFunction(getOpalName(), itsElement_m, filters, (int)(Attributes::getReal(itsAttr[NBIN])));
-    } else if(Attributes::getString(itsAttr[TYPE]) == "1D-CSR-IGF") {
-        wf_m = new CSRIGFWakeFunction(getOpalName(), itsElement_m, filters, (int)(Attributes::getReal(itsAttr[NBIN])));
-    } else if(Attributes::getString(itsAttr[TYPE]) == "LONG-SHORT-RANGE") {
-        int acMode = 1;
-        if(Attributes::getString(itsAttr[CONDUCT]).compare("DC") == 0) {
-            acMode = 2;
-        }
-        wf_m = new GreenWakeFunction(getOpalName(), itsElement_m, filters, (int)(Attributes::getReal(itsAttr[NBIN])),
-                                     (Attributes::getReal(itsAttr[Z0])), (Attributes::getReal(itsAttr[RADIUS])),
-                                     (Attributes::getReal(itsAttr[SIGMA])), acMode,
-                                     (Attributes::getReal(itsAttr[TAU])), 1, (Attributes::getBool(itsAttr[CONST_LENGTH])),
-                                     Attributes::getString(itsAttr[FNAME]));
-    } else if(Attributes::getString(itsAttr[TYPE]) == "TRANSV-SHORT-RANGE") {
-        int acMode = 1;
-        if(Attributes::getString(itsAttr[CONDUCT]).compare("DC") == 0) {
-            acMode = 2;
-        }
 
-        wf_m = new GreenWakeFunction(getOpalName(), itsElement_m, filters, (int)(Attributes::getReal(itsAttr[NBIN])),
-                                     (Attributes::getReal(itsAttr[Z0])), (Attributes::getReal(itsAttr[RADIUS])),
-                                     (Attributes::getReal(itsAttr[SIGMA])), acMode,
-                                     (Attributes::getReal(itsAttr[TAU])), 0, (Attributes::getBool(itsAttr[CONST_LENGTH])),
+    if (Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "1D-CSR") {
+
+        wf_m = new CSRWakeFunction(getOpalName(),
+                                   itsElement_m,
+                                   filters,
+                                   (int)(Attributes::getReal(itsAttr[NBIN])));
+
+    } else if (Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "1D-CSR-IGF") {
+
+        wf_m = new CSRIGFWakeFunction(getOpalName(),
+                                      itsElement_m,
+                                      filters,
+                                      (int)(Attributes::getReal(itsAttr[NBIN])));
+
+    } else if (Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "LONG-SHORT-RANGE") {
+        int acMode = Util::toUpper(Attributes::getString(itsAttr[CONDUCT])) == "DC"? 2: 1;
+
+        wf_m = new GreenWakeFunction(getOpalName(),
+                                     itsElement_m,
+                                     filters,
+                                     (int)(Attributes::getReal(itsAttr[NBIN])),
+                                     Attributes::getReal(itsAttr[Z0]),
+                                     Attributes::getReal(itsAttr[RADIUS]),
+                                     Attributes::getReal(itsAttr[SIGMA]),
+                                     acMode,
+                                     Attributes::getReal(itsAttr[TAU]),
+                                     1,
+                                     Attributes::getBool(itsAttr[CONST_LENGTH]),
                                      Attributes::getString(itsAttr[FNAME]));
-    } else if(Attributes::getString(itsAttr[TYPE]) == "LONG-TRANSV-SHORT-RANGE") {
+
+    } else if (Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "TRANSV-SHORT-RANGE") {
+        int acMode = Util::toUpper(Attributes::getString(itsAttr[CONDUCT])) == "DC"? 2: 1;
+
+        wf_m = new GreenWakeFunction(getOpalName(),
+                                     itsElement_m,
+                                     filters,
+                                     (int)(Attributes::getReal(itsAttr[NBIN])),
+                                     Attributes::getReal(itsAttr[Z0]),
+                                     Attributes::getReal(itsAttr[RADIUS]),
+                                     Attributes::getReal(itsAttr[SIGMA]),
+                                     acMode,
+                                     Attributes::getReal(itsAttr[TAU]),
+                                     0,
+                                     Attributes::getBool(itsAttr[CONST_LENGTH]),
+                                     Attributes::getString(itsAttr[FNAME]));
+
+    } else if (Attributes::getString(itsAttr[TYPE]) == "LONG-TRANSV-SHORT-RANGE") {
         //FIXME: NOT IMPLEMENTED YET!!!
     } else {
         wf_m = 0;
