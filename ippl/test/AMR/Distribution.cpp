@@ -185,62 +185,64 @@ void Distribution::uniformPerCell(const Array<Geometry>& geom,
     
     nloc_m = 0;
     
-    if ( Ippl::myNode() == 0 ) {
+    std::mt19937_64 mt(0);
+    std::uniform_real_distribution<> dist(0.0, 1.0);
+    std::vector< Vektor<double, 3> > rn(nParticles);
         
-        std::mt19937_64 mt(0);
-        std::uniform_real_distribution<> dist(0.0, 1.0);
-        std::vector< Vektor<double, 3> > rn(nParticles);
+    for (std::size_t i = 0; i < nParticles; ++i) {
+	for (int d = 0; d < 3; ++d) {
+	    rn[i](d) = dist(mt);
+	}
+    }
+    
+    double dx[3] = {0.0, 0.0, 0.0};     // cell size (a bit smaller such that particles not a cell boundary)
+    double cidx[3] = {0, 0, 0}; // max. cell index for a level
         
-        for (std::size_t i = 0; i < nParticles; ++i) {
-            for (int d = 0; d < 3; ++d) {
-                rn[i](d) = dist(mt);
-            }
-        }
-        
-        double dx[3] = {0.0, 0.0, 0.0};     // cell size (a bit smaller such that particles not a cell boundary)
-        double cidx[3] = {0, 0, 0}; // max. cell index for a level
-        
-        for (int d = 0; d < 3; ++d) 
-            dx[d] = geom[0].CellSize(d);
-        
+    for (int d = 0; d < 3; ++d) 
+	dx[d] = geom[0].CellSize(d);
+    
         // map [0, 1] --> to cell dimension [0 + 0.25 * dx, 0.75 * dx]
-        std::vector< Vektor<double, 3> > mapped2cell(nParticles);
-        
-        for (std::size_t pi = 0; pi < nParticles; ++pi) {
-            for (int d = 0; d < 3; ++d)
-                mapped2cell[pi](d) = dx[d] * (0.5 * rn[pi](d) + 0.25);
-        }
-        
-        for (int j = 0; j < ba[0].size(); ++j) {
-            Box bx = ba[0].get(j);
-            
-            for (int k = bx.loVect()[0]; k <= bx.hiVect()[0]; ++k) {
-                for (int l = bx.loVect()[1]; l <= bx.hiVect()[1]; ++l) {
-                    for (int m = bx.loVect()[2]; m <= bx.hiVect()[2]; ++m) {
+    std::vector< Vektor<double, 3> > mapped2cell(nParticles);
+    
+    for (std::size_t pi = 0; pi < nParticles; ++pi) {
+	for (int d = 0; d < 3; ++d)
+	    mapped2cell[pi](d) = dx[d] * (0.5 * rn[pi](d) + 0.25);
+    }
+    
+    for (int j = 0; j < ba[0].size(); ++j) {
+	
+	// make sure every processs gets a different chunk to initialize
+	if ( Ippl::myNode() != j % Ippl::getNodes() )
+	    continue;
+
+	Box bx = ba[0].get(j);
+	
+	for (int k = bx.loVect()[0]; k <= bx.hiVect()[0]; ++k) {
+	    for (int l = bx.loVect()[1]; l <= bx.hiVect()[1]; ++l) {
+		for (int m = bx.loVect()[2]; m <= bx.hiVect()[2]; ++m) {
                         
-                        // assign particle position
-                        for (std::size_t pi = 0; pi < nParticles; ++pi) {
-                            // [index space] --> [physical domain]
-                            double kk = geom[0].ProbLength(0) / nr[0] * k + geom[0].ProbLo(0);
-                            double ll = geom[0].ProbLength(1) / nr[1] * l + geom[0].ProbLo(1);
-                            double mm = geom[0].ProbLength(2) / nr[2] * m + geom[0].ProbLo(2);
-                            
-                            x_m.push_back( kk + mapped2cell[pi](0) );
-                            y_m.push_back( ll + mapped2cell[pi](1) );
-                            z_m.push_back( mm  + mapped2cell[pi](2) );
-                            
-                            px_m.push_back( 1.0 );
-                            py_m.push_back( 1.0 );
-                            pz_m.push_back( 1.0 );
-                            q_m.push_back( 1.0 );
-                            mass_m.push_back( 1.0 );
-                            
-                            ++nloc_m;
-                        }
-                    }
-                }
-            }
-        }
+		    // assign particle position
+		    for (std::size_t pi = 0; pi < nParticles; ++pi) {
+			// [index space] --> [physical domain]
+			double kk = geom[0].ProbLength(0) / nr[0] * k + geom[0].ProbLo(0);
+			double ll = geom[0].ProbLength(1) / nr[1] * l + geom[0].ProbLo(1);
+			double mm = geom[0].ProbLength(2) / nr[2] * m + geom[0].ProbLo(2);
+                        
+			x_m.push_back( kk + mapped2cell[pi](0) );
+			y_m.push_back( ll + mapped2cell[pi](1) );
+			z_m.push_back( mm  + mapped2cell[pi](2) );
+                        
+			px_m.push_back( 1.0 );
+			py_m.push_back( 1.0 );
+			pz_m.push_back( 1.0 );
+			q_m.push_back( 1.0 );
+			mass_m.push_back( 1.0 );
+                        
+			++nloc_m;
+		    }
+		}
+	    }
+	}
     }
 }
 
