@@ -77,7 +77,7 @@ void LossDataSink::openH5(h5_int32_t mode) {
     h5_prop_t props = H5CreateFileProp ();
     MPI_Comm comm = Ippl::getComm();
     H5SetPropFileMPIOCollective (props, &comm);
-    H5file_m = H5OpenFile (fn_m.c_str(), H5_O_RDONLY, props);
+    H5file_m = H5OpenFile (fn_m.c_str(), mode, props);
 
     if(H5file_m == (h5_file_t)H5_ERR) {
         throw GeneralClassicException("LossDataSink::openH5",
@@ -85,7 +85,7 @@ void LossDataSink::openH5(h5_int32_t mode) {
     }
 #else
 
-    H5file_m = H5OpenFile(fn_m.c_str(), H5_O_WRONLY, Ippl::getComm());
+    H5file_m = H5OpenFile(fn_m.c_str(), mode, Ippl::getComm());
     if(H5file_m == (void*)H5_ERR) {
         throw GeneralClassicException("LossDataSink::openH5",
                                       "failed to open h5 file '" + fn_m + "'");
@@ -170,10 +170,12 @@ void LossDataSink::save(unsigned int numSets) {
             openH5();
             writeHeaderH5();
         } else {
-            openH5(H5_O_RDONLY);
-            H5call_m = H5GetNumSteps(H5file_m);
-            H5CloseFile(H5file_m);
+#ifdef H5HUT_API_VERSION
+            openH5(H5_O_APPENDONLY);
+#else
             openH5(H5_O_APPEND);
+#endif
+            H5call_m = H5GetNumSteps(H5file_m);
         }
 
         splitSets(numSets);
