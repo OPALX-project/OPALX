@@ -38,6 +38,56 @@ typedef UniformCartesian<2, double>                                   Mesh2d_t;
 typedef CenteredFieldLayout<2, Mesh2d_t, Center_t>                    FieldLayout2d_t;
 typedef Field<double, 2, Mesh2d_t, Center_t>                          Field2d_t;
 
+
+void writeEnergy(amrbunch_t* bunch,
+                 container_t& rho,
+                 container_t& phi,
+                 container_t& grad_phi,
+                 const Array<int>& rr,
+                 double cell_volume,
+                 int step)
+{
+    double field_energy = totalFieldEnergy(grad_phi, rr);
+    
+    // kinetic energy
+    double ekin = 0.5 * sum( dot(bunch->P, bunch->P) );
+    
+    
+    std::cout << cell_volume << std::endl;
+    // potential energy
+    rho[0].mult(cell_volume, 0, 1);
+    MultiFab::Multiply(phi[0], rho[0], 0, 0, 1, 0);
+    double integral_phi_m = 0.5 * phi[0].sum();
+    
+    
+    if(Ippl::myNode()==0) {
+        std::ofstream csvout;
+        csvout.precision(10);
+        csvout.setf(std::ios::scientific, std::ios::floatfield);
+
+        std::stringstream fname;
+        fname << "data/energy";
+        fname << ".csv";
+
+        // open a new data file for this iteration
+        // and start with header
+        csvout.open(fname.str().c_str(), std::ios::out | std::ofstream::app);
+        
+        if (step == 0) {
+            //csvout << "it,Efield,Ekin,Epot,Etot,rhomax" << std::endl;
+            csvout << "it,Efield,Ekin,Etot,Epot" << std::endl;
+        }
+        
+        csvout << step << ", "
+               << field_energy << ","
+               << ekin << ","
+               << field_energy + ekin << "," 
+               << integral_phi_m << std::endl;
+        
+        csvout.close();
+    }
+}
+
 void ipplProjection(Field2d_t& field,
                     const Vektor<double, 3>& dx,
                     const Vektor<double, 3>& dv,
@@ -108,7 +158,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     bunch->AssignDensity(bunch->qm, false, rhs, base_level, finest_level);
     
     // eps in C / (V * m)
-    double constant = -1.0 / Physics::epsilon_0;  // in [V m / C]
+    double constant = -1.0; // / Physics::epsilon_0;  // in [V m / C]
     for (int i = 0; i <=finest_level; ++i) {
 #ifdef UNIQUE_PTR
         rhs[i]->mult(constant, 0, 1);       // in [V m]
@@ -238,6 +288,8 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     msg << "Multi-level statistics" << endl;
     bunch->gatherStatistics();
     
+    msg << "Total number of particles: " << bunch->getTotalNum() << endl;
+    
     
     // --------------------------------------------------------------------
     
@@ -295,6 +347,16 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     
     // --------------------------------------------------------------------
     
+    container_t rhs;
+    container_t phi;
+    container_t grad_phi;
+    doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels);
+    
+    Vector_t hr = ( extend_r - extend_l ) / Vector_t(nr);
+    double cell_volume = hr[0] * hr[1] * hr[2];
+    writeEnergy(bunch.get(), rhs, phi, grad_phi, rr, cell_volume, 0);
+    
+    
     for (std::size_t i = 0; i < nIter; ++i) {
         msg << "Processing step " << i << endl;
 
@@ -321,15 +383,18 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
         else
             bunch->update();
         
-        container_t rhs;
-        container_t phi;
-        container_t grad_phi;
         doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels);
         
         bunch->GetGravity(bunch->E, grad_phi);
         
+//         for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
+//             std::cout << bunch->R[j] << " " << bunch->E[j] * Physics::epsilon_0 << std::endl; std::cin.get();
+//         }
+        
         /* epsilon_0 not used by Ulmer --> multiply it away */
-        assign(bunch->P, bunch->P + dt * bunch->qm / bunch->mass * bunch->E * Physics::epsilon_0);
+        assign(bunch->P, bunch->P + dt * bunch->qm / bunch->mass * bunch->E ); //* Physics::epsilon_0);
+        
+        writeEnergy(bunch.get(), rhs, phi, grad_phi, rr, cell_volume, i + 1);
         
         msg << "Done with step " << i << endl;
     }
