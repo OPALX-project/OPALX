@@ -1,6 +1,8 @@
 #include "Fields/Astra1DDynamic.h"
 #include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
+#include "Utilities/GeneralClassicException.h"
+
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
 #include "gsl/gsl_fft_real.h"
@@ -50,6 +52,8 @@ Astra1DDynamic::Astra1DDynamic(std::string aFilename):
         if(!parsing_passed && !file.eof()) {
             disableFieldmapWarning();
             zend_m = zbegin_m - 1e-3;
+            throw GeneralClassicException("Astra1DDynamic::Astra1DDynamic",
+                                          "An error occured when reading the fieldmap '" + Filename_m + "'");
         } else {
             // conversion from MHz to Hz and from frequency to angular frequency
             frequency_m *= two_pi * 1e6;

@@ -34,8 +34,14 @@ OpalVKicker::OpalVKicker():
                 "acting on the vertical plane.") {
     itsAttr[KICK] = Attributes::makeReal
                     ("KICK", "Vertical deflection in rad");
+    itsAttr[DESIGNENERGY] = Attributes::makeReal
+                            ("DESIGNENERGY", "the mean energy of the particles", -1.0);
+    itsAttr[K0] = Attributes::makeReal
+                  ("K0", "Normal dipole field in T");
 
-    registerRealAttribute("VKICK");
+    registerRealAttribute("KICK");
+    registerRealAttribute("DESIGNENERGY");
+    registerRealAttribute("K0");
 
     setElement((new YCorrectorRep("VKICKER"))->makeWrappers());
 }
@@ -85,6 +91,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalVKicker::update() {
+    OpalElement::update();
+
     YCorrectorRep *corr = dynamic_cast<YCorrectorRep *>(getElement()->removeWrappers());
 
     double length = Attributes::getReal(itsAttr[LENGTH]);
@@ -93,8 +101,15 @@ void OpalVKicker::update() {
 
     corr->setElementLength(length);
     corr->setBx(kick * factor);
-    corr->setKickY(Attributes::getReal(itsAttr[KICK]));
+    corr->setKickY(kick);
+    if(itsAttr[DESIGNENERGY]) {
+        double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
+        corr->setDesignEnergy(kineticEnergy, false);
+    }
 
+    if (itsAttr[K0]) {
+        corr->setKickField(Vector_t(Attributes::getReal(itsAttr[K0]), 0, 0));
+    }
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(corr);
 }

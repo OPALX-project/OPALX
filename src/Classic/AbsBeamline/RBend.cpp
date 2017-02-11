@@ -87,8 +87,8 @@ void RBend::addKR(int i, double t, Vector_t &K) {
     Vector_t tmpB(0.0, 0.0, 0.0);
     Vector_t tmpE_diff(0.0, 0.0, 0.0);
     Vector_t tmpB_diff(0.0, 0.0, 0.0);
-    double pz = RefPartBunch_m->getZ(i) - getStartField() - ds_m;
-    const Vector_t tmpA(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m, pz);
+    double pz = RefPartBunch_m->getZ(i) - getStartField();
+    const Vector_t tmpA(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), pz);
 
     DiffDirection zdir(DZ);
     getFieldmap()->getFieldstrength(tmpA, tmpE, tmpB);
@@ -107,8 +107,8 @@ void RBend::addKT(int i, double t, Vector_t &K) {
 
     Vector_t tmpE(0.0, 0.0, 0.0);
     Vector_t tmpB(0.0, 0.0, 0.0);
-    double pz = RefPartBunch_m->getZ(i) - getStartField() - ds_m;
-    const Vector_t tmpA(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m, pz);
+    double pz = RefPartBunch_m->getZ(i) - getStartField();
+    const Vector_t tmpA(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), pz);
     getFieldmap()->getFieldstrength(tmpA, tmpE, tmpB);
 
     double b = RefPartBunch_m->getBeta(i);
@@ -135,44 +135,25 @@ ElementBase::ElementType RBend::getType() const {
     return RBEND;
 }
 
-void RBend::SetBendAngle(double angle) {
-    getAngle() = angle;
-    getExitAngle() = std::abs(angle) - getEntranceAngle();
+void RBend::setBendAngle(double angle) {
+    Bend::setBendAngle(angle);
+    setExitAngle(angle - getEntranceAngle());
 }
 
-void RBend::SetEntranceAngle(double entranceAngle) {
-    getEntranceAngle() = entranceAngle;
-    getExitAngle() = std::abs(getAngle()) - entranceAngle;
+void RBend::setEntranceAngle(double entranceAngle) {
+    Bend::setEntranceAngle(entranceAngle);
+    setExitAngle(getBendAngle() - entranceAngle);
 }
 
-bool RBend::FindChordLength(Inform &msg,
-                            double &chordLength,
-                            bool &chordLengthFromMap) {
+bool RBend::findChordLength(Inform &msg,
+                            double &chordLength) {
 
     /*
      * Find bend chord length. If this was not set by the user using the
      * L (length) attribute, infer it from the field map.
      */
-    chordLength = 2 * getLength() * sin(0.5 * std::abs(getAngle())) /
-        (sin(getEntranceAngle()) + sin(std::abs(getAngle()) - getEntranceAngle()));
-    if(chordLength > 0.0) {
-        chordLengthFromMap = false;
-        return true;
-    } else {
+    chordLength = std::abs(2 * getLength() * sin(0.5 * getBendAngle()) /
+                           (sin(getEntranceAngle()) + sin(getBendAngle() - getEntranceAngle())));
 
-        if(chordLength == 0.0) {
-            double length = getMapLength();
-            chordLength = 2 * length * sin(0.5 * getAngle()) /
-                (sin(getEntranceAngle()) + sin(getAngle() - getEntranceAngle()));
-        }
-        chordLengthFromMap = true;
-
-        if(chordLength <= 0.0) {
-            ERRORMSG(level2 << "Magnet length inferred from field map is less than or equal"
-                     << " to zero. Check your bend magnet input." << endl);
-            return false;
-        } else
-            return true;
-
-    }
+    return true;
 }

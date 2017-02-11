@@ -71,21 +71,24 @@ public:
 
     bool getFast() const;
 
-    void setAutophaseVeto(bool veto);
+    void setAutophaseVeto(bool veto = true);
 
     bool getAutophaseVeto() const;
 
     void setAmplitudem(double vPeak);
+    void setAmplitudeError(double voltError);
+    double getAmplitudem() const;
+    double getAmplitudeError() const;
 
     void setFrequencym(double freq);
-
     double getFrequencym() const;
 
     void setPhasem(double phase);
+    void setPhaseError(double phaseError);
+    double getPhasem() const;
+    double getPhaseError() const;
 
     void updatePhasem(double phase);
-
-    double getPhasem() const;
 
     void setNumCells(int NumCells);
 
@@ -101,13 +104,13 @@ public:
 
     virtual void addKT(int i, double t, Vector_t &K);
 
-    virtual bool apply(const size_t &i, const double &t, double E[], double B[]);
-
     virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
+    virtual bool applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
+
+    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
 
     virtual void finalise();
 
@@ -121,6 +124,10 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
+    virtual bool isInside(const Vector_t &r) const;
+
+    virtual void setDesignEnergy(double ekin);
+    virtual double getDesignEnergy() const;
 private:
     std::string CoreFilename_m;             /**< The name of the inputfile*/
     /*   std::string EntryFilename_m; */
@@ -132,15 +139,18 @@ private:
 
     double scale_m;              /**< scale multiplier*/
     double scaleCore_m;
+    double scaleError_m;
+    double scaleCoreError_m;
 
     double phase_m;              /**< phase shift of time varying field(degrees)*/
     double phaseCore1_m;
     double phaseCore2_m;
     double phaseExit_m;
+    double phaseError_m;
 
     double frequency_m;          /**< Read in frequency of time varying field(MHz)*/
 
-    double startField_m;
+    double length_m;
     double startCoreField_m;         /**< starting point of field(m)*/
     double startExitField_m;
     double mappedStartExitField_m;
@@ -153,6 +163,7 @@ private:
     bool fast_m;
 
     bool autophaseVeto_m;
+    double designEnergy_m;
 
     inline double getdE(const int & i,
                         const int & I,
@@ -244,6 +255,109 @@ double TravelingWave::getdB(const int & i,
     return (F[I].first - F[I-1].first) / (frequency_m * frequency_m * dt * dt) *
         (frequency_m * dt * (F[I].second * sin(frequency_m * t[i] + phi) - F[I-1].second * sin(frequency_m * t[i-1] + phi)) +
          (F[I].second - F[I-1].second) * (cos(frequency_m * t[i] + phi) - cos(frequency_m * t[i-1] + phi)));
+}
+
+
+inline
+void TravelingWave::setDesignEnergy(double ekin)
+{
+    designEnergy_m = ekin;
+}
+
+inline
+double TravelingWave::getDesignEnergy() const
+{
+    return designEnergy_m;
+}
+
+inline
+void TravelingWave::setFieldMapFN(std::string fn) {
+    CoreFilename_m = fn;
+}
+
+inline
+std::string TravelingWave::getFieldMapFN() const {
+    return CoreFilename_m;
+}
+
+inline
+void TravelingWave::setAmplitudem(double vPeak) {
+    scale_m = vPeak;
+}
+
+inline
+void TravelingWave::setAmplitudeError(double voltError) {
+    scaleError_m = voltError;
+}
+
+inline
+double TravelingWave::getAmplitudem() const {
+    return scale_m;
+}
+
+inline
+double TravelingWave::getAmplitudeError() const {
+    return scaleError_m;
+}
+
+inline
+void TravelingWave::setFrequencym(double freq) {
+    frequency_m = freq;
+}
+
+inline
+double TravelingWave::getFrequencym() const {
+    return frequency_m;
+}
+
+inline
+void TravelingWave::setPhasem(double phase) {
+    using Physics::pi;
+
+    phase_m = phase;
+    phaseCore1_m = phase_m + pi * Mode_m / 2.0;
+    phaseCore2_m = phase_m + pi * Mode_m * 1.5;
+    phaseExit_m = phase_m - 2.0 * pi * ((NumCells_m - 1) * Mode_m - std::floor((NumCells_m - 1) * Mode_m));
+}
+
+inline
+void TravelingWave::setPhaseError(double phaseError) {
+    phaseError_m = phaseError;
+}
+
+inline
+double TravelingWave::getPhasem() const {
+    return phase_m;
+}
+
+inline
+double TravelingWave::getPhaseError() const {
+    return phaseError_m;
+}
+
+inline
+void TravelingWave::setNumCells(int NumCells) {
+    NumCells_m = NumCells;
+}
+
+inline
+void TravelingWave::setFast(bool fast) {
+    fast_m = fast;
+}
+
+inline
+bool TravelingWave::getFast() const {
+    return fast_m;
+}
+
+inline
+void TravelingWave::setAutophaseVeto(bool veto) {
+    autophaseVeto_m = veto;
+}
+
+inline
+bool TravelingWave::getAutophaseVeto() const {
+    return autophaseVeto_m;
 }
 
 #endif // CLASSIC_TravelingWave_HH

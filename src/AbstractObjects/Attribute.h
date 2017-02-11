@@ -153,6 +153,7 @@ public:
     //  Print the attribute name, followed by an equals sign and its value.
     void print(int &len) const;
 
+    bool defaultUsed() const;
 private:
 
     // Pointer to the value.  The value can be shared for several objects.
@@ -160,6 +161,8 @@ private:
 
     // Pointer to the shared attribute parser.
     Pointer<AttributeHandler> handler;
+
+    bool isDefault;
 };
 
 
@@ -170,6 +173,9 @@ inline Attribute::operator bool() const {
     return base != 0;
 }
 
+inline bool Attribute::defaultUsed() const {
+    return isDefault;
+}
 
 extern std::ostream &operator<<(std::ostream &os, const Attribute &attr);
 

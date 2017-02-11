@@ -2,7 +2,14 @@
 #define AMROPAL_H
 
 #include <AmrCore.H>
-#include "AmrPartBunch.h"
+
+#ifdef IPPL_AMR
+    #include "ippl-amr/AmrParticleBase.h"
+    #include "ippl-amr/ParticleAmrLayout.h"
+    #include "ippl-amr/PartBunchAmr.h"
+#else
+    #include "boxlib-amr/AmrPartBunch.h"
+#endif
 
 #include <MultiFabUtil.H>
 
@@ -26,7 +33,14 @@ class AmrOpal : public AmrCore {
 private:
 //     typedef Array<std::unique_ptr<MultiFab> > mfs_mt; ///< instead of using PArray<MultiFab>
     typedef PArray<MultiFab > mfs_mt;
+
+public:
     
+#ifdef IPPL_AMR
+    typedef ParticleAmrLayout<double, BL_SPACEDIM> amrplayout_t;
+    typedef AmrParticleBase<amrplayout_t> amrbase_t;
+    typedef PartBunchAmr<amrplayout_t> amrbunch_t;
+#endif
     
     
 //     typedef PArray<MultiFab> mp_mt;
@@ -40,7 +54,12 @@ public:
      * @param coord is the coordinate system (0: cartesian)
      * @param bunch is the particle bunch
      */
-    AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord, PartBunchBase* bunch);
+    AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord,
+#ifdef IPPL_AMR
+            PartBunchAmr<amrplayout_t>* bunch);
+#else
+            PartBunchBase* bunch);
+#endif
     
     /*!
      * Create an AMR object.
@@ -84,7 +103,13 @@ public:
     
     void ClearLevel(int lev);
     
-    void setBunch(AmrPartBunch* bunch) {
+    void setBunch(
+#ifdef IPPL_AMR
+        PartBunchAmr<amrplayout_t>* bunch)
+#else
+        AmrPartBunch* bunch)
+#endif
+    {
         bunch_m = bunch;
     }
     
@@ -128,8 +153,11 @@ public:
             chargeOnGrid_m[i].setVal(0.0);
 #endif
         
+#ifdef IPPL_AMR
+        bunch_m->AssignDensity(bunch_m->qm, false, chargeOnGrid_m, 0, finest_level);
+#else
         bunch_m->AssignDensity(0, false, chargeOnGrid_m, 0, 1, finest_level);
-        
+#endif
 //         double assign_sum = 0.0;
 //         double charge_sum = 0.0;
 //         std::cout << "---------------------------------------------" << std::endl;
@@ -155,7 +183,12 @@ protected:
     virtual void ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override;
     
 private:
+    
+#ifdef IPPL_AMR
+    PartBunchAmr<amrplayout_t>* bunch_m;
+#else
     AmrPartBunch* bunch_m;      ///< Particle bunch
+#endif
     mfs_mt/*mp_mt*/ nPartPerCell_m;      ///< used in tagging.
     mfs_mt chargeOnGrid_m;
     

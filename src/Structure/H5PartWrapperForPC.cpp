@@ -4,12 +4,11 @@
 
 #include "Structure/H5PartWrapperForPC.h"
 
-#include "config.h"
-#include "revision.h"
+#include "OPALconfig.h"
 #include "Algorithms/PartBunch.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Options.h"
-#include "Utilities/Options.h"
+#include "Utilities/Util.h"
 #include "Physics/Physics.h"
 
 #include <boost/filesystem.hpp>
@@ -205,7 +204,7 @@ void H5PartWrapperForPC::readStepData(PartBunch& bunch, h5_ssize_t firstParticle
 
 void H5PartWrapperForPC::writeHeader() {
     std::stringstream OPAL_version;
-    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION << " git rev. " << GIT_VERSION;
+    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " git rev. " << Util::getGitRevision();
     WRITESTRINGFILEATTRIB(file_m, "OPAL_version", OPAL_version.str().c_str());
 
     WRITESTRINGFILEATTRIB(file_m, "tUnit", "s");
@@ -283,7 +282,7 @@ void H5PartWrapperForPC::writeStepHeader(PartBunch& bunch, const std::map<std::s
     double   t          = bunch.getT();
     double   pathLength = bunch.getLPath();
     Vector_t rmin       = bunch.get_origin();
-    Vector_t rmax       = bunch.get_maxExtend();
+    Vector_t rmax       = bunch.get_maxExtent();
     Vector_t centroid   = bunch.get_centroid();
 
     Vector_t meanR = bunch.get_rmean();
@@ -293,10 +292,10 @@ void H5PartWrapperForPC::writeStepHeader(PartBunch& bunch, const std::map<std::s
     Vector_t vareps = bunch.get_norm_emit();
     Vector_t geomvareps = bunch.get_emit();
 
-    Vector_t RefPartR = bunch.RefPart_R;
-    Vector_t RefPartP = bunch.RefPart_P;
+    Vector_t RefPartR = bunch.RefPartR_m;
+    Vector_t RefPartP = bunch.RefPartP_m;
 
-    double meanEnergy = bunch.get_meanEnergy();
+    double meanEnergy = bunch.get_meanKineticEnergy();
     double energySpread = bunch.getdE();
     double I_0 = 4.0 * Physics::pi * Physics::epsilon_0 * Physics::c * bunch.getM() / bunch.getQ();
     double sigma = ((xsigma[0] * xsigma[0]) + (xsigma[1] * xsigma[1])) /
@@ -499,7 +498,7 @@ void H5PartWrapperForPC::writeStepData(PartBunch& bunch) {
         for(size_t i = 0; i < numLocalParticles; ++ i)
             f64buffer[i] =  bunch.Bf[i](0);
         WRITEDATA(Float64, file_m, "Bx", f64buffer);
-	
+
         for(size_t i = 0; i < numLocalParticles; ++ i)
             f64buffer[i] =  bunch.Bf[i](1);
         WRITEDATA(Float64, file_m, "By", f64buffer);

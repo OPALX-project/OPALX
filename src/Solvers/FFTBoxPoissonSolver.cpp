@@ -12,6 +12,7 @@
 
 #include "Algorithms/PartBunch.h"
 #include "Physics/Physics.h"
+#include "Utility/IpplTimings.h"
 #include <fstream>
 //////////////////////////////////////////////////////////////////////////////
 // a little helper class to specialize the action of the Green's function

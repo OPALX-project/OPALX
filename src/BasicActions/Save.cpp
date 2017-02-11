@@ -34,10 +34,10 @@
 #include "Attributes/Attributes.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
+#include "Utilities/Util.h"
 #include <fstream>
 #include <string>
-#include "config.h"
-#include "revision.h"
+#include "OPALconfig.h"
 
 extern Inform *gmsg;
 
@@ -161,8 +161,8 @@ void Save::execute() {
 
         std::string comchar = "// ";
 
-        os << comchar << "<OPAL Version " << PACKAGE_VERSION << " GIT version "
-           << GIT_VERSION << "  (c) PSI, http://amas.web.psi.ch"
+        os << comchar << "<OPAL Version " << PACKAGE_VERSION_STR << " GIT version "
+           << Util::getGitRevision() << "  (c) PSI, http://amas.web.psi.ch"
            << std::endl << ";" << std::endl ;
 
         os << comchar << "<Parameter definitions> ;" << std::endl ;
@@ -186,8 +186,8 @@ void Save::execute() {
         os << comchar << "</Special definitions> ;"
            << std::endl << ";" << std::endl ;
 
-        os << comchar << "<OPAL Version " << PACKAGE_VERSION << " GIT version "
-           << GIT_VERSION << "  (c) PSI, http://amas.web.psi.ch"
+        os << comchar << "<OPAL Version " << PACKAGE_VERSION_STR << " GIT version "
+           << Util::getGitRevision() << "  (c) PSI, http://amas.web.psi.ch"
            << std::endl << ";" << std::endl ;
     }
 }

@@ -5,6 +5,8 @@
 #include <vector>
 #include <string>
 #include "Algorithms/PBunchDefs.h"
+#include "Algorithms/Quaternion.h"
+
 #define TK_PRINT(...) do{printf("TK:%s:%d:",__FILE__,__LINE__);printf(__VA_ARGS__);fflush(stdout);}while(0)
 
 /// enumeration corresponding to different interpolation methods at the boundary
@@ -22,8 +24,8 @@ public:
     /** method to compute the intersection points with the boundary geometry (stored in some appropriate data structure)
      * \param hr updated mesh spacings
      */
-    virtual void Compute(Vector_t hr) = 0;
-    virtual void Compute(Vector_t hr, NDIndex<3> localId) = 0;
+    virtual void compute(Vector_t hr) = 0;
+    virtual void compute(Vector_t hr, NDIndex<3> localId) = 0;
     /** method to get the number of gridpoints in a given z plane
      * \param z coordinate of the z plane
      * \return int number of grid nodes in the given z plane

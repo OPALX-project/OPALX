@@ -166,7 +166,7 @@ TEST(VariableRFCavityTest, TestApplyField) {
     Vector_t E(0., 0., 0.);
     for (double t = 0.; t < 10.; t += 1.) {
         double e_test = (1.+2.*t)*sin(Physics::two_pi*t*(3.+4.*t)+(5.+6.*t));
-        ASSERT_FALSE(cav1.apply(R, centroid, t, E, B));
+        ASSERT_FALSE(cav1.apply(R, Vector_t(0.0), t, E, B));
         EXPECT_NEAR(0., E[0], 1.e-6);
         EXPECT_NEAR(0., E[1], 1.e-6);
         EXPECT_NEAR(e_test, E[2], 1.e-6);
@@ -192,27 +192,26 @@ TEST(VariableRFCavityTest, TestApplyBoundingBox) {
     Vector_t B(0., 0., 0.);
     Vector_t E(0., 0., 0.);
     double t = 0;
-    EXPECT_FALSE(cav1.apply(R, centroid, t, E, B));
+    EXPECT_FALSE(cav1.apply(R, Vector_t(0.0), t, E, B));
     R[2] = 2.-1e-9;
-    EXPECT_FALSE(cav1.apply(R, centroid, t, E, B));
+    EXPECT_FALSE(cav1.apply(R, Vector_t(0.0), t, E, B));
     R[2] = 1.e-9;
-    EXPECT_FALSE(cav1.apply(R, centroid, t, E, B));
+    EXPECT_FALSE(cav1.apply(R, Vector_t(0.0), t, E, B));
     R[2] = -1.e-9;
-    EXPECT_TRUE(cav1.apply(R, centroid, t, E, B));
+    EXPECT_TRUE(cav1.apply(R, Vector_t(0.0), t, E, B));
     R[2] = 2.+1.e-9;
-    EXPECT_TRUE(cav1.apply(R, centroid, t, E, B));
+    EXPECT_TRUE(cav1.apply(R, Vector_t(0.0), t, E, B));
     R[2] = 1.;
     R[1] = -1.5-1e-9;
-    EXPECT_TRUE(cav1.apply(R, centroid, t, E, B));
+    EXPECT_TRUE(cav1.apply(R, Vector_t(0.0), t, E, B));
     R[1] = +1.5+1e-9;
-    EXPECT_TRUE(cav1.apply(R, centroid, t, E, B));
+    EXPECT_TRUE(cav1.apply(R, Vector_t(0.0), t, E, B));
     R[1] = 0.;
-    EXPECT_FALSE(cav1.apply(R, centroid, t, E, B));
+    EXPECT_FALSE(cav1.apply(R, Vector_t(0.0), t, E, B));
     R[0] = -2.-1e-9;
-    EXPECT_TRUE(cav1.apply(R, centroid, t, E, B));
+    EXPECT_TRUE(cav1.apply(R, Vector_t(0.0), t, E, B));
     R[0] = +2.+1e-9;
-    EXPECT_TRUE(cav1.apply(R, centroid, t, E, B));
+    EXPECT_TRUE(cav1.apply(R, Vector_t(0.0), t, E, B));
     R[0] = 0.;
-    EXPECT_FALSE(cav1.apply(R, centroid, t, E, B));
+    EXPECT_FALSE(cav1.apply(R, Vector_t(0.0), t, E, B));
 }
-

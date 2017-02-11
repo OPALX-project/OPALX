@@ -25,7 +25,6 @@
 #include "AbsBeamline/Component.h"
 
 class PartBunch;
-class Fieldmap;
 
 // Class ParallelPlate
 // ------------------------------------------------------------------------
@@ -65,18 +64,18 @@ public:
     void setPhase(double phase);
     double getPhase() const ;
 
-    void setElementLength(double length);
-    double getElementLength() const;
-
-    virtual bool apply(const size_t &i, const double &t, double E[], double B[]);
+    // void setElementLength(double length);
+    // double getElementLength() const;
 
     virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
+    virtual bool applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual void initialise(PartBunch *bunch, const double &scaleFactor);
+    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
+
+    virtual void initialise(PartBunch *bunch);
 
     virtual void finalise();
 
@@ -90,9 +89,6 @@ private:
     double phase_m;              /**< phase shift of time varying field(degrees)*/
     double frequency_m;          /**< Read in frequency of time varying field(MHz)*/
     double length_m;             /**< Read in distance/length of Parallel Plate*/
-    double startField_m;
-    double endField_m;
-    double ElementEdge_m;
     double ptime_m;
 
     // Not implemented.

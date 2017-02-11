@@ -40,8 +40,6 @@ public:
         XSIZE,
         YSIZE,
         OUTFN,
-        DX,             // Misalignment: translation in x direction
-        DY,             // Misalignment: translation in y direction
         SIZE
     };
 

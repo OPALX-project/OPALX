@@ -76,23 +76,7 @@ void Septum::accept(BeamlineVisitor &visitor) const {
     visitor.visitSeptum(*this);
 }
 
-bool Septum::apply(const size_t &i, const double &t, double E[], double B[]) {
-
-    Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
-    return apply(i, t, Ev, Bv);
-}
-
-bool Septum::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
-
-    return false;
-}
-
-bool Septum::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
-
-    return false;
-}
-
-void Septum::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
+void Septum::initialise(PartBunch *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
     position_m = startField;
     startField -= 0.005;
@@ -101,7 +85,7 @@ void Septum::initialise(PartBunch *bunch, double &startField, double &endField, 
 
 }
 
-void Septum::initialise(PartBunch *bunch, const double &scaleFactor) {
+void Septum::initialise(PartBunch *bunch) {
     *gmsg << "Septum initialise" << endl;
 }
 

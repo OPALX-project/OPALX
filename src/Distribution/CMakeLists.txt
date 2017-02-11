@@ -1,6 +1,5 @@
 set (_SRCS
   Distribution.cpp
-  halton1d_sequence.cpp
   LaserProfile.cpp
   MagneticField.cpp
   )
@@ -9,4 +8,18 @@ include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_sources(${_SRCS})
+add_opal_sources(${_SRCS})
+
+set (HDRS
+    ClosedOrbitFinder.h
+    Distribution.h
+    Harmonics.h
+    LaserProfile.h
+    MagneticField.h
+    MapGenerator.h
+    matrix_vector_operation.h
+    rdm.h
+    SigmaGenerator.h
+)
+
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Distribution")

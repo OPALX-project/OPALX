@@ -243,14 +243,14 @@ double FM1DProfile1::getFrequency() const {
 void FM1DProfile1::setFrequency(double freq)
 {}
 
-void FM1DProfile1::Get1DProfile1EngeCoeffs(std::vector<double> &engeCoeffsEntry,
+void FM1DProfile1::get1DProfile1EngeCoeffs(std::vector<double> &engeCoeffsEntry,
         std::vector<double> &engeCoeffsExit) {
     engeCoeffsEntry = engeCoeffsEntry_m;
     engeCoeffsExit = engeCoeffsExit_m;
 
 }
 
-void FM1DProfile1::Get1DProfile1EntranceParam(double &entranceParameter1,
+void FM1DProfile1::get1DProfile1EntranceParam(double &entranceParameter1,
         double &entranceParameter2,
         double &entranceParameter3) {
     entranceParameter1 = entranceParameter1_m;
@@ -258,7 +258,7 @@ void FM1DProfile1::Get1DProfile1EntranceParam(double &entranceParameter1,
     entranceParameter3 = entranceParameter3_m;
 }
 
-void FM1DProfile1::Get1DProfile1ExitParam(double &exitParameter1,
+void FM1DProfile1::get1DProfile1ExitParam(double &exitParameter1,
         double &exitParameter2,
         double &exitParameter3) {
     exitParameter1 = exitParameter1_m;
@@ -266,10 +266,10 @@ void FM1DProfile1::Get1DProfile1ExitParam(double &exitParameter1,
     exitParameter3 = exitParameter3_m;
 }
 
-double FM1DProfile1::GetFieldGap() {
+double FM1DProfile1::getFieldGap() {
     return gapHeight_m;
 }
-void FM1DProfile1::SetFieldGap(double gap) {
+void FM1DProfile1::setFieldGap(double gap) {
 
     gapHeight_m = gap;
 

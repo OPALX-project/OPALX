@@ -48,19 +48,7 @@ void Patch::accept(BeamlineVisitor &visitor) const {
     visitor.visitPatch(*this);
 }
 
-bool Patch::apply(const size_t &i, const double &t, double E[], double B[]) {
-    return false;
-}
-
-bool Patch::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
-    return false;
-}
-
-bool Patch::apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B) {
-    return false;
-}
-
-void Patch::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
+void Patch::initialise(PartBunch *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
 }
 
@@ -79,4 +67,3 @@ void Patch::getDimensions(double &zBegin, double &zEnd) const {
 ElementBase::ElementType Patch::getType() const {
     return PATCH;
 }
-

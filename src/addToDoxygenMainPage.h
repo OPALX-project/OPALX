@@ -15,28 +15,28 @@ OPAL-CYCL tracks particles with 3D space charge including neighbouring turns in 
 FFAG’s with time as the independent variable.
 OPAL-T can be used to model beam lines, linacs, rf-photo injectors and complete XFEL’s excluding
 the undulator.
-<P>
+</B>
+</P>
 
 <P>
-Developed by 
+<B>
+Developed by
 Andreas Adelmann, Achim Gsell, Valeria Rizzoglio (PSI),
-Christof Metzger-Kraus (HZB), 
-Yves Ineichen (IBM), 
-Xiaoying Pang, Steve Russell (LANL), 
-Chuan Wang, Jianjun Yang (CIAE), 
-Suzanne Sheehy, Chris Rogers (RAL) and 
+Christof Metzger-Kraus (HZB),
+Yves Ineichen (IBM),
+Xiaoying Pang, Steve Russell (LANL),
+Chuan Wang, Jianjun Yang (CIAE),
+Suzanne Sheehy, Chris Rogers (RAL) and
 Daniel Winklehner (MIT)
 </B>
 <P>
 For further information contact: <a href="mailto:andreas.adelmann@psi.ch">andreas.adelmann@psi.ch</a> -
 Andreas Adelmann
-<P>
+</P>
 Last modified today
-<P>
+</P>
 
 <P>
 <a href="http://www.psi.ch">PSI Disclaimers</a><br>
+</P>
 */
-
-
-

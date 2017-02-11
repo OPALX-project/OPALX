@@ -82,11 +82,9 @@ void PriEmissionPhysics::Fieldemission(PartBunch *itsBunch, const double &fa, co
                 itsBunch->PType[count[pc]] = ParticleType::FIELDEMISSION;
                 itsBunch->TriID[count[pc]] = 0;
                 itsBunch->Q[count[pc]] = chargeScalFactor * itsBunch->getChargePerParticle();
-                itsBunch->LastSection[count[pc]] = 0;
                 itsBunch->Ef[count[pc]] = Vector_t(0.0);
                 itsBunch->Bf[count[pc]] = Vector_t(0.0);
                 itsBunch->dt[count[pc]] = itsBunch->getdT();
-                itsBunch->LastSection[count[pc]] = 0;
 
                 count[pc]++;
 
@@ -128,11 +126,9 @@ void PriEmissionPhysics::Fieldemission(PartBunch *itsBunch, const double &fa, co
                 itsBunch->PType[count[pc]] = ParticleType::FIELDEMISSION;
                 itsBunch->TriID[count[pc]] = 0;
                 itsBunch->Q[count[pc]] = chargeScalFactor * itsBunch->getChargePerParticle();
-                itsBunch->LastSection[count[pc]] = 0;
                 itsBunch->Ef[count[pc]] = Vector_t(0.0);
                 itsBunch->Bf[count[pc]] = Vector_t(0.0);
                 itsBunch->dt[count[pc]] = itsBunch->getdT();
-                itsBunch->LastSection[count[pc]] = 0;
                 count[pc]++;
 
             }

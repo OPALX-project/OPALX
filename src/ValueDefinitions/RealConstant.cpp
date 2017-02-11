@@ -21,7 +21,7 @@
 #include "Attributes/Attributes.h"
 #include "Utilities/Options.h"
 #include "Physics/Physics.h"
-#include "config.h"
+#include "OPALconfig.h"
 
 #include "Utility/IpplInfo.h"
 
@@ -57,20 +57,7 @@ RealConstant::RealConstant():
 
     opal->create(new RealConstant("CLIGHT", this, Physics::c));
 
-    std::string version_str(PACKAGE_VERSION);
-    int version = 0;
-    {
-        size_t i = 0;
-        while (i < version_str.size()) {
-            size_t n = version_str.find_first_of("0123456789",i);
-            if (n != std::string::npos) {
-                version = version * 10 + version_str[n] - 48;
-                version_str[n] = '.';
-            }
-            i = n;
-        }
-    }
-    opal->create(new RealConstant("OPALVERSION", this, version));
+    opal->create(new RealConstant("OPALVERSION", this, PACKAGE_VERSION));
     opal->create(new RealConstant("RANK", this, Ippl::myNode()));
 }
 
@@ -111,4 +98,8 @@ double RealConstant::getReal() const {
 void RealConstant::print(std::ostream &os) const {
     os << "REAL CONST " << getOpalName() << '=' << itsAttr[0] << ';';
     os << std::endl;
+}
+
+void RealConstant::printValue(std::ostream &os) const {
+    os << itsAttr[0];
 }

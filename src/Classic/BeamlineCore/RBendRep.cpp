@@ -41,31 +41,6 @@ namespace {
             &RBendRep::getElementLength,
             &RBendRep::setElementLength
         },
-        {
-            "BY",
-            &RBendRep::getB,
-            &RBendRep::setB
-        },
-        {
-            "E1",
-            &RBendRep::getEntryFaceRotation,
-            &RBendRep::setEntryFaceRotation
-        },
-        {
-            "E2",
-            &RBendRep::getExitFaceRotation,
-            &RBendRep::setExitFaceRotation
-        },
-        {
-            "H1",
-            &RBendRep::getEntryFaceCurvature,
-            &RBendRep::setEntryFaceCurvature
-        },
-        {
-            "H2",
-            &RBendRep::getExitFaceCurvature,
-            &RBendRep::setExitFaceCurvature
-        },
         { 0, 0, 0 }
     };
 }
@@ -111,35 +86,7 @@ ElementBase *RBendRep::clone() const {
 
 
 Channel *RBendRep::getChannel(const std::string &aKey, bool create) {
-    if(aKey[0] == 'a'  ||  aKey[0] == 'b') {
-        int n = 0;
-
-        for(std::string::size_type k = 1; k < aKey.length(); k++) {
-            if(isdigit(aKey[k])) {
-                n = 10 * n + aKey[k] - '0';
-            } else {
-                return 0;
-            }
-        }
-
-        if(aKey[0] == 'b') {
-            return new IndexedChannel<RBendRep>
-                   (*this, &RBendRep::getNormalComponent,
-                    &RBendRep::setNormalComponent, n);
-        } else {
-            return new IndexedChannel<RBendRep>
-                   (*this, &RBendRep::getSkewComponent,
-                    &RBendRep::setSkewComponent, n);
-        }
-    } else {
-        for(const Entry *entry = entries; entry->name != 0; ++entry) {
-            if(aKey == entry->name) {
-                return new IndirectChannel<RBendRep>(*this, entry->get, entry->set);
-            }
-        }
-
-        return ElementBase::getChannel(aKey, create);
-    }
+    return ElementBase::getChannel(aKey, create);
 }
 
 
@@ -166,32 +113,6 @@ ElementImage *RBendRep::getImage() const {
 
     for(const Entry *entry = entries; entry->name != 0; ++entry) {
         image->setAttribute(entry->name, (this->*(entry->get))());
-    }
-
-    for(int n = 1; n <= field.order(); n++) {
-        char buffer[20];
-        char *p = buffer;
-        int k = n;
-
-        while(k != 0) {
-            *p++ = k % 10 + '0';
-            k /= 10;
-        }
-
-        std::string name(" ");
-        while(p > buffer) name += *--p;
-
-        double b = field.getNormalComponent(n);
-        if(b != 0.0) {
-            name[0] = 'b';
-            image->setAttribute(name, b);
-        }
-
-        double a = field.getSkewComponent(n);
-        if(a != 0.0) {
-            name[0] = 'a';
-            image->setAttribute(name, a);
-        }
     }
 
     return image;

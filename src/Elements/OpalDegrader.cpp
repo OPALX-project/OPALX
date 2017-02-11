@@ -35,14 +35,8 @@ OpalDegrader::OpalDegrader():
         ("YSIZE", "not used",0.0);
     itsAttr[OUTFN] = Attributes::makeString
         ("OUTFN", "Degrader output filename");
-    itsAttr[DX] = Attributes::makeReal
-        ("DX", "not used",0.0);
-    itsAttr[DY] = Attributes::makeReal
-        ("DY", "not used",0.0);
 
     registerStringAttribute("OUTFN");
-    registerRealAttribute("DX");
-    registerRealAttribute("DY");
 
     setElement((new DegraderRep("DEGRADER"))->makeAlignWrapper());
 }
@@ -68,38 +62,19 @@ OpalDegrader *OpalDegrader::clone(const std::string &name) {
 
 void OpalDegrader::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     OpalElement::fillRegisteredAttributes(base, flag);
-
-    const DegraderRep *deg =
-        dynamic_cast<const DegraderRep *>(base.removeWrappers());
-
-    double dx, dy, dz;
-    deg->getMisalignment(dx, dy, dz);
 }
 
 
 void OpalDegrader::update() {
+    OpalElement::update();
 
     DegraderRep *deg =
         dynamic_cast<DegraderRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     deg->setElementLength(length);
-    deg->setZSize(length);
 
     deg->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
-    deg->setMisalignment(0.0, 0.0, 0.0);
 
-    /*
-    std::vector<double> apert = getApert();
-    double apert_major = -1., apert_minor = -1.;
-    if(apert.size() > 0) {
-        apert_major = apert[0];
-        if(apert.size() > 1) {
-            apert_minor = apert[1];
-        } else {
-            apert_minor = apert[0];
-        }
-    }
-    */
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
         sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
         sphys_m->initSurfacePhysicsHandler(*deg);

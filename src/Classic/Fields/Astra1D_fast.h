@@ -16,6 +16,7 @@ public:
     virtual void setFrequency(double freq) = 0;
     virtual void getOnaxisEz(std::vector<std::pair<double, double> > & F);
 
+    virtual bool isInside(const Vector_t &r) const;
 protected:
     Astra1D_fast(std::string aFilename);
     virtual ~Astra1D_fast();
@@ -48,5 +49,10 @@ protected:
 
     friend class Fieldmap;
 };
+
+inline bool Astra1D_fast::isInside(const Vector_t &r) const
+{
+    return r(2) >= zbegin_m && r(2) < zend_m;
+}
 
 #endif

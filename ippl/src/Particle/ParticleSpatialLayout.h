@@ -533,7 +533,7 @@ protected:
                                 }
                                 else
                                 {
-				    
+
 				    // the node has been found - add index to put list
 				    unsigned node = (*(touchingVN.first)).second->getNode();
 				    PAssert(SwapNodeList[d][node]);
@@ -541,7 +541,7 @@ protected:
 
 				    // .. and then add to DestroyList
 				    PData.destroy(1, ip);
-				    
+
 				    // indicate we found it to quit this check
 				    foundit = true;
                                 }

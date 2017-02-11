@@ -4,7 +4,7 @@
 
 #include "Structure/H5PartWrapper.h"
 
-#include "config.h"
+#include "OPALconfig.h"
 #include "Algorithms/PartBunch.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Options.h"
@@ -39,6 +39,7 @@ H5PartWrapper::H5PartWrapper(const std::string &fileName, int restartStep, std::
     namespace fs = boost::filesystem;
 
     if (sourceFile == "") sourceFile = fileName_m;
+
     copyFile(sourceFile, restartStep, flags);
 
     open(H5_O_RDWR);
@@ -76,14 +77,19 @@ void H5PartWrapper::open(h5_int32_t flags) {
     assert (file_m != (void*)H5_ERR);
 #endif
 
-    
+
 }
 
 void H5PartWrapper::storeCavityInformation() {
-    if (startedFromExistingFile_m) return;
-
     /// Write number of Cavities with autophase information
     h5_int64_t nAutopPhaseCavities = OpalData::getInstance()->getNumberOfMaxPhases();
+    h5_int64_t nFormerlySavedAutoPhaseCavities = 0;
+
+    if (H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &nFormerlySavedAutoPhaseCavities) == -1) {
+        nFormerlySavedAutoPhaseCavities = 0;
+    }
+
+    if (nFormerlySavedAutoPhaseCavities == nAutopPhaseCavities) return;
 
     WRITEFILEATTRIB(Int64, file_m, "nAutoPhaseCavities", &nAutopPhaseCavities, 1);
 
@@ -91,6 +97,8 @@ void H5PartWrapper::storeCavityInformation() {
     std::vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases();
     std::vector<MaxPhasesT>::iterator end = OpalData::getInstance()->getLastMaxPhases();
     for(; it < end; ++ it, ++ elementNumber) {
+        if (elementNumber <= nFormerlySavedAutoPhaseCavities) continue;
+
         std::string nameAttributeName = "Cav-" + std::to_string(elementNumber) + "-name";
         std::string valueAttributeName  = "Cav-" + std::to_string(elementNumber) + "-value";
 

@@ -35,13 +35,13 @@ public:
     /// returns type of boundary condition
     std::string getType() {return "Geometric";}
     /// queries if a given (x,y,z) coordinate lies inside the domain
-    inline bool isInside(int idx, int idy, int idz);
+    bool isInside(int idx, int idy, int idz);
     /// returns number of nodes in xy plane
     int getNumXY(int idz);
-    // calculates intersection  
-    void Compute(Vector_t hr);
-    // calculates intersection with rotated and shifted geometry 
-    void Compute(Vector_t hr, NDIndex<3> localId);
+    // calculates intersection
+    void compute(Vector_t hr);
+    // calculates intersection with rotated and shifted geometry
+    void compute(Vector_t hr, NDIndex<3> localId);
 
     int getStartId() {return startId;}
 
@@ -78,8 +78,8 @@ private:
 
     /// all intersection points with gridlines in Z direction
     PointList IntersectHiZ, IntersectLoZ;
-    
-    // meanR to shift from global to local frame 
+
+    // meanR to shift from global to local frame
     Vector_t globalMeanR_m;
     Quaternion_t globalToLocalQuaternion_m;
     Quaternion_t localToGlobalQuaternion_m;
@@ -103,7 +103,7 @@ private:
 
     // Interpolation type
     int interpolationMethod;
- 
+
     // Flag indicating if geometry has changed for the current time-step
     bool hasGeometryChanged_m;
 
@@ -125,13 +125,13 @@ private:
     inline double dotProduct(double v1[], double v2[]) { return (v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2]); }
 
     // Different interpolation methods for boundary points
-    void ConstantInterpolation(int idx, int idy, int idz, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
-    void LinearInterpolation(int idx, int idy, int idz, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
-    void QuadraticInterpolation(int idx, int idy, int idz, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
+    void constantInterpolation(int idx, int idy, int idz, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
+    void linearInterpolation(int idx, int idy, int idz, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
+    void quadraticInterpolation(int idx, int idy, int idz, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
 
     // Rotate positive axes with quaternion -DW
     inline void rotateWithQuaternion(Vector_t &v, Quaternion_t const quaternion);
- 	
+
     inline void rotateXAxisWithQuaternion(Vector_t &v, Quaternion_t const quaternion);
     inline void rotateYAxisWithQuaternion(Vector_t &v, Quaternion_t const quaternion);
     inline void rotateZAxisWithQuaternion(Vector_t &v, Quaternion_t const quaternion);

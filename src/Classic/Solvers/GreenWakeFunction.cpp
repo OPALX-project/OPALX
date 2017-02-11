@@ -1,9 +1,9 @@
 #include "Solvers/GreenWakeFunction.hh"
 #include "Algorithms/PartBunch.h"
 #include "Utilities/GeneralClassicException.h"
-//#ifdef ENABLE_WAKE_TESTS
+#ifdef ENABLE_WAKE_TESTS
 #include "Solvers/TestLambda.h" // used for tests
-//#endif
+#endif
 
 #include <fstream>
 #include <string>
@@ -55,7 +55,7 @@ GreenWakeFunction::GreenWakeFunction(const std::string &name,
                                      int direction,
                                      bool constLength,
                                      std::string fname):
-    WakeFunction(name, element),
+    WakeFunction(name, element, NBIN),
     lineDensity_m(),
     //~ FftWField_m(0),
     NBin_m(NBIN),
@@ -153,9 +153,8 @@ void GreenWakeFunction::apply(PartBunch &bunch) {
     }
 
     // Calculate the line density of the particle bunch
-    bunch.boundp(); //IFF: added boundp (need if no FS available)
-    bunch.calcLineDensity();
-    bunch.getLineDensity(lineDensity_m);
+    std::pair<double, double> meshInfo;
+    bunch.calcLineDensity(nBins_m, lineDensity_m, meshInfo);
 
 #ifdef ENABLE_WAKE_DEBUG
     *gmsg << "* ************* W A K E ************************************************************ " << endl;
@@ -243,6 +242,7 @@ void GreenWakeFunction::apply(PartBunch &bunch) {
  * @brief   Just a test function
  */
 void GreenWakeFunction::testApply(PartBunch &bunch) {
+#ifdef ENABLE_WAKE_TESTS
     double spacing;
     // determine K and charge
     double charge = 0.8e-9; // nC
@@ -260,7 +260,6 @@ void GreenWakeFunction::testApply(PartBunch &bunch) {
 
     compEnergy(K, charge, testLambda, OutEnergy.data());
 
-#ifdef ENABLE_WAKE_TESTS
     ofstream  f2("OutEnergy.dat");
     f2 << "# Energy of the Wake calculated in Opal\n"
        << "# Z0 = " << Z0_m << "\n"

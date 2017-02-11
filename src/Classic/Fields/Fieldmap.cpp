@@ -3,6 +3,8 @@
 #include "Fields/FM3DH5Block.h"
 #include "Fields/FM3DH5Block_nonscale.h"
 #include "Fields/FM3DMagnetoStaticH5Block.h"
+#include "Fields/FM3DMagnetoStatic.h"
+#include "Fields/FM3DMagnetoStaticExtended.h"
 #include "Fields/FM2DDynamic.h"
 #include "Fields/FM2DElectroStatic.h"
 #include "Fields/FM2DMagnetoStatic.h"
@@ -209,6 +211,22 @@ Fieldmap *Fieldmap::getFieldmap(std::string Filename, bool fast) {
             return (*position.first).second.Map;
             break;
 
+        case T3DMagnetoStatic:
+            position = FieldmapDictionary.insert(
+                std::make_pair(
+                    Filename, FieldmapDescription(
+                        T3DMagnetoStatic, new FM3DMagnetoStatic(Filename))));
+            return (*position.first).second.Map;
+            break;
+
+        case T3DMagnetoStatic_Extended:
+            position = FieldmapDictionary.insert(
+                std::make_pair(
+                    Filename, FieldmapDescription(
+                        T3DMagnetoStatic_Extended, new FM3DMagnetoStaticExtended(Filename))));
+            return (*position.first).second.Map;
+            break;
+
         case T3DDynamicH5Block:
             if(fast) {
                 position = FieldmapDictionary.insert(
@@ -279,27 +297,34 @@ MapType Fieldmap::readHeader(std::string Filename) {
     if(strcmp(magicnumber, "3DDy") == 0)
         return T3DDynamic;
 
-    if(strcmp(magicnumber, "3DMa") == 0)
-        return T3DMagnetoStatic;
+    if(strcmp(magicnumber, "3DMa") == 0) {
+        char tmpString[21] = "                    ";
+        interpreter.read(tmpString, 20);
+
+        if(strcmp(tmpString, "gnetoStatic_Extended") == 0)
+            return T3DMagnetoStatic_Extended;
+        else
+            return T3DMagnetoStatic;
+    }
 
     if(strcmp(magicnumber, "3DEl") == 0)
         return T3DElectroStatic;
 
     if(strcmp(magicnumber, "2DDy") == 0) {
-        char tmpString[14] = "             ";
-        interpreter.read(tmpString, 13);
+        // char tmpString[14] = "             ";
+        // interpreter.read(tmpString, 13);
         return T2DDynamic;
     }
 
     if(strcmp(magicnumber, "2DMa") == 0) {
-        char tmpString[20] = "                   ";
-        interpreter.read(tmpString, 19);
+        // char tmpString[20] = "                   ";
+        // interpreter.read(tmpString, 19);
         return T2DMagnetoStatic;
     }
 
     if(strcmp(magicnumber, "2DEl") == 0) {
-        char tmpString[20] = "                   ";
-        interpreter.read(tmpString, 19);
+        // char tmpString[20] = "                   ";
+        // interpreter.read(tmpString, 19);
         return T2DElectroStatic;
     }
 
@@ -310,12 +335,12 @@ MapType Fieldmap::readHeader(std::string Filename) {
         return T1DMagnetoStatic;
 
     if(strcmp(magicnumber, "1DPr") == 0) {
-        char tmpString[7] = "      ";
-        interpreter.read(tmpString, 6);
-        if(strcmp(tmpString, "ofile1") == 0)
-            return T1DProfile1;
-        if(strcmp(tmpString, "ofile2") == 0)
-            return T1DProfile2;
+        // char tmpString[7] = "      ";
+        // interpreter.read(tmpString, 6);
+        // if(strcmp(tmpString, "ofile1") == 0)
+        return T1DProfile1;
+        // if(strcmp(tmpString, "ofile2") == 0)
+        //     return T1DProfile2;
     }
 
     if(strcmp(magicnumber, "1DEl") == 0)
@@ -340,7 +365,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
 	h5_file_t *file = H5OpenFile (Filename.c_str(), H5_O_RDONLY, Ippl::getComm());
 	assert (file != (void*)H5_ERR);
 #endif
-	
+
 	h5err = H5SetStep(file, 0);
         assert (h5err != H5_ERR);
 
@@ -388,8 +413,10 @@ MapType Fieldmap::readHeader(std::string Filename) {
 void Fieldmap::readMap(std::string Filename) {
     std::map<std::string, FieldmapDescription>::iterator position = FieldmapDictionary.find(Filename);
     if(position != FieldmapDictionary.end())
-        if(!(*position).second.read)
+        if(!(*position).second.read) {
             (*position).second.Map->readMap();
+            (*position).second.read = true;
+        }
 }
 
 void Fieldmap::freeMap(std::string Filename) {
@@ -437,9 +464,12 @@ void Fieldmap::checkMap(unsigned int accuracy,
     double ezMax = 0.0;
     double ezSquare = 0.0;
     size_t lastDot = Filename_m.find_last_of(".");
+    size_t lastSlash = Filename_m.find_last_of("/");
+    lastSlash = (lastSlash == std::string::npos)? 0: lastSlash + 1;
+
     std::ofstream out;
     if (Ippl::myNode() == 0) {
-        out.open("data/" + Filename_m.substr(0, lastDot) + ".check");
+        out.open("data/" + Filename_m.substr(lastSlash, lastDot) + ".check");
         out << "# z  original reproduced\n";
     }
     auto it = zSampling.begin();
@@ -701,28 +731,28 @@ std::string Fieldmap::typeset_msg(const std::string &msg, const std::string &tit
 void Fieldmap::getOnaxisEz(std::vector<std::pair<double, double> > &onaxis)
 { }
 
-void Fieldmap::Get1DProfile1EngeCoeffs(std::vector<double> &engeCoeffsEntry,
+void Fieldmap::get1DProfile1EngeCoeffs(std::vector<double> &engeCoeffsEntry,
                                        std::vector<double> &engeCoeffsExit) {
 
 }
 
-void Fieldmap::Get1DProfile1EntranceParam(double &entranceParameter1,
+void Fieldmap::get1DProfile1EntranceParam(double &entranceParameter1,
         double &entranceParameter2,
         double &entranceParameter3) {
 
 }
 
-void Fieldmap::Get1DProfile1ExitParam(double &exitParameter1,
+void Fieldmap::get1DProfile1ExitParam(double &exitParameter1,
                                       double &exitParameter2,
                                       double &exitParameter3) {
 
 }
 
-double Fieldmap::GetFieldGap() {
+double Fieldmap::getFieldGap() {
     return 0.0;
 }
 
-void Fieldmap::SetFieldGap(double gap) {
+void Fieldmap::setFieldGap(double gap) {
 
 }
 
@@ -734,10 +764,3 @@ REGISTER_PARSE_TYPE(std::string);
 std::string Fieldmap::alpha_numeric("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-+\211");
 std::map<std::string, Fieldmap::FieldmapDescription> Fieldmap::FieldmapDictionary = std::map<std::string, Fieldmap::FieldmapDescription>();
 char Fieldmap::buffer_m[READ_BUFFER_LENGTH];
-
-// vi: set et ts=4 sw=4 sts=4:
-// Local Variables:
-// mode:c
-// c-basic-offset: 4
-// indent-tabs-mode:nil
-// End:

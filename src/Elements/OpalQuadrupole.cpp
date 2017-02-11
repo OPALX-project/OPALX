@@ -44,16 +44,18 @@ OpalQuadrupole::OpalQuadrupole():
     sphys_m(NULL) {
     itsAttr[K1] = Attributes::makeReal
                   ("K1", "Normalised upright quadrupole coefficient in m^(-2)");
+    itsAttr[DK1] = Attributes::makeReal
+                  ("DK1", "Normalised upright quadrupole coefficient error in m^(-2)");
     itsAttr[K1S] = Attributes::makeReal
                    ("K1S", "Normalised skew quadrupole coefficient in m^(-2)");
 
-    itsAttr[DX] = Attributes::makeReal
-      ("DX", "Misalignment in x direction",0.0);
-    itsAttr[DY] = Attributes::makeReal
-      ("DY", "Misalignment in y direction",0.0);
+    itsAttr[DK1S] = Attributes::makeReal
+                   ("DK1S", "Normalised skew quadrupole coefficient error in m^(-2)");
 
-    registerRealAttribute("DX");
-    registerRealAttribute("DY");
+    registerRealAttribute("K1");
+    registerRealAttribute("DK1");
+    registerRealAttribute("K1S");
+    registerRealAttribute("DK1S");
 
     setElement((new MultipoleRep("QUADRUPOLE"))->makeWrappers());
 }
@@ -126,15 +128,12 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
         scale *= double(order);
     }
-
-    double dx, dy, dz;
-    mult->getMisalignment(dx, dy, dz);
-    attributeRegistry["DX"]->setReal(dx);
-    attributeRegistry["DY"]->setReal(dy);
 }
 
 
 void OpalQuadrupole::update() {
+    OpalElement::update();
+
     MultipoleRep *quad =
         dynamic_cast<MultipoleRep *>(getElement()->removeWrappers());
     quad->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
@@ -144,25 +143,9 @@ void OpalQuadrupole::update() {
     field.setNormalComponent(2, factor * Attributes::getReal(itsAttr[K1]));   // this is for the maps
     field.setSkewComponent(2, factor * Attributes::getReal(itsAttr[K1S]));    // this is for the maps
     quad->setField(field);
-    quad->setNormalComponent(2, Attributes::getReal(itsAttr[K1]));
-    quad->setSkewComponent(2, Attributes::getReal(itsAttr[K1S]));
+    quad->setNormalComponent(2, Attributes::getReal(itsAttr[K1]), Attributes::getReal(itsAttr[DK1]));
+    quad->setSkewComponent(2, Attributes::getReal(itsAttr[K1S]), Attributes::getReal(itsAttr[DK1S]));
 
-    double dx = Attributes::getReal(itsAttr[DX]);
-    double dy = Attributes::getReal(itsAttr[DY]);
-    quad->setMisalignment(dx, dy, 0.0);
-
-    /*
-    std::vector<double> apert = getApert();
-    double apert_major = -1., apert_minor = -1.;
-    if(apert.size() > 0) {
-        apert_major = apert[0];
-        if(apert.size() > 1) {
-            apert_minor = apert[1];
-        } else {
-            apert_minor = apert[0];
-        }
-    }
-    */
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
         sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
         sphys_m->initSurfacePhysicsHandler(*quad);

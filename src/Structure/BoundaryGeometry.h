@@ -80,7 +80,7 @@ public:
         OpalBeamline& itsOpalBeamline,
         PartBunch* itsBunch);
 
-    int PartInside (
+    int partInside (
         const Vector_t& r,
         const Vector_t& v,
         const double dt,

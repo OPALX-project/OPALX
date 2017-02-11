@@ -21,6 +21,7 @@
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 #include "AbsBeamline/ElementBase.h"
+#include "Utilities/Util.h"
 
 extern Inform *gmsg;
 
@@ -128,14 +129,18 @@ void SurfacePhysics::initSurfacePhysicsHandler(ElementBase &element) {
     *gmsg << "* ********************************************************************************** " << endl;
 
     itsElement_m = &element;
-    material_m = Attributes::getString(itsAttr[MATERIAL]);
+    material_m = Util::toUpper(Attributes::getString(itsAttr[MATERIAL]));
 
-    if(Attributes::getString(itsAttr[TYPE]) == "CCOLLIMATOR" || Attributes::getString(itsAttr[TYPE]) == "COLLIMATOR" || Attributes::getString(itsAttr[TYPE]) == "DEGRADER") {
+    const std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
+    if(type == "CCOLLIMATOR" ||
+       type == "COLLIMATOR" ||
+       type == "DEGRADER") {
+
         handler_m = new CollimatorPhysics(getOpalName(), itsElement_m, material_m);
         *gmsg << *this << endl;
     } else {
         handler_m = 0;
-        INFOMSG("no surface physics handler attached, TYPE == " << Attributes::getString(itsAttr[TYPE]) << endl);
+        INFOMSG(getOpalName() + ": no surface physics handler attached, TYPE == " << Attributes::getString(itsAttr[TYPE]) << endl);
     }
 
 }

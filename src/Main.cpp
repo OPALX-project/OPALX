@@ -40,7 +40,7 @@ Inform *gmsg;
 #include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
 
-#include "config.h"
+#include "OPALconfig.h"
 
 #ifdef HAVE_AMR_SOLVER
 #include <ParallelDescriptor.H>
@@ -120,12 +120,12 @@ int main(int argc, char *argv[]) {
 
 
     *gmsg << endl
-          << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << PACKAGE_VERSION << "\n\n"
+          << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << PACKAGE_VERSION_STR << "\n\n"
           << "                (c) PSI, http://amas.web.psi.ch" << endl
           << endl;
 
 #ifdef OPAL_DKS
-    *gmsg << "OPAL compiled with DKS (Dynamic Kernel Scheduler) Version " 
+    *gmsg << "OPAL compiled with DKS (Dynamic Kernel Scheduler) Version "
 	  << DKS_VERSION << endl << endl;
 #endif
 
@@ -294,8 +294,8 @@ int main(int argc, char *argv[]) {
         return 0;
 
     } catch(ClassicException &ex) {
-      *gmsg << endl << "*** User error detected by function \""
-	    << ex.where() << "\"" << endl;
+      *gmsg << endl << "*** User error detected by function \"" << ex.where() << "\":\n"
+            << ex.what() << endl;
       abort();
 
     } catch(std::bad_alloc &) {

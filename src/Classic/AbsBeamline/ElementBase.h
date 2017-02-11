@@ -27,7 +27,12 @@
 #include "AbsBeamline/AttributeSet.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "MemoryManagement/RCObject.h"
+#include "Algorithms/Vektor.h"
+#include "Algorithms/Quaternion.h"
+#include "Algorithms/CoordinateSystemTrafo.h"
+
 #include <string>
+#include <queue>
 
 class Beamline;
 class BeamlineVisitor;
@@ -38,6 +43,7 @@ class ElementImage;
 enum ElemType {
     isDrift,
     isSolenoid,
+    isSource,
     isRF,
     isDipole,
     isMultipole,
@@ -136,6 +142,11 @@ public:
     /// Set element name.
     virtual void setName(const std::string &name);
 
+    enum ApertureType {RECTANGULAR
+                     , ELLIPTICAL
+                     , CONIC_RECTANGULAR
+                     , CONIC_ELLIPTICAL
+    };
 
     enum ElementType {ALIGNWRAPPER
                     , BEAMBEAM
@@ -162,6 +173,7 @@ public:
                     , PATCH
                     , PROBE
                     , RBEND
+                    , RBEND3D
                     , RBENDWRAPPER
                     , RFCAVITY
                     , RFQUADRUPOLE
@@ -172,6 +184,7 @@ public:
                     , SEPARATOR
                     , SEPTUM
                     , SOLENOID
+                    , SOURCE
                     , STRIPPER
                     , TRAVELINGWAVE
                     , VARIABLERFCAVITY
@@ -181,6 +194,7 @@ public:
     virtual ElementType getType() const = 0;
 
     std::string getTypeString() const;
+    static std::string getTypeString(ElementType type);
 
     /// Get geometry.
     //  Return the element geometry.
@@ -402,11 +416,46 @@ public:
     /// set the element type as enumeration needed in the envelope tracker
     void setElType(ElemType elt);
 
+    void setCSTrafoGlobal2Local(const CoordinateSystemTrafo &ori);
+    CoordinateSystemTrafo getCSTrafoGlobal2Local() const;
+    void fixPosition();
+    bool isPositioned();
+
+    virtual CoordinateSystemTrafo getBeginToEnd() const;
+
+    void setAperture(const ApertureType& type, const std::vector<double> &args);
+    std::pair<ElementBase::ApertureType, std::vector<double> > getAperture() const;
+
+    virtual bool isInside(const Vector_t &r) const;
+
+    void setMisalignment(double x, double y, double s);
+    void setMisalignment(const CoordinateSystemTrafo &cst);
+
+    void getMisalignment(double &x, double &y, double &s) const;
+    CoordinateSystemTrafo getMisalignment() const;
+
+    void setActionRange(const std::queue<std::pair<double, double> > &range);
+    void setCurrentSCoordinate(double s);
+
+    /// Set rotation about z axis in bend frame.
+    void setRotationAboutZ(double rotation);
+    double getRotationAboutZ() const;
+
 protected:
+    bool isInsideTransverse(const Vector_t &r, double f = 1) const;
 
     // Sharable flag.
     // If this flag is true, the element is always shared.
     mutable bool shareFlag;
+
+    CoordinateSystemTrafo csTrafoGlobal2Local_m;
+    CoordinateSystemTrafo misalignment_m;
+
+    std::pair<ApertureType, std::vector<double> > aperture_m;
+
+    double elementEdge_m;
+
+    double rotationZAxis_m;
 
 private:
 
@@ -426,76 +475,202 @@ private:
     SurfacePhysicsHandler *sphys_m;
 
     ElemType elType_m;
+
+    bool positionIsFixed;
+
+    std::queue<std::pair<double, double> > actionRange_m;
 };
 
 
 // Inline functions.
 // ------------------------------------------------------------------------
 
-inline double ElementBase::getArcLength() const
+inline
+double ElementBase::getArcLength() const
 { return getGeometry().getArcLength(); }
 
-inline double ElementBase::getElementLength() const
+inline
+double ElementBase::getElementLength() const
 { return getGeometry().getElementLength(); }
 
-inline void ElementBase::setElementLength(double length)
+inline
+void ElementBase::setElementLength(double length)
 { getGeometry().setElementLength(length); }
 
-inline double ElementBase::getOrigin() const
+inline
+double ElementBase::getOrigin() const
 { return getGeometry().getOrigin(); }
 
-inline double ElementBase::getEntrance() const
+inline
+double ElementBase::getEntrance() const
 { return getGeometry().getEntrance(); }
 
-inline double ElementBase::getExit() const
+inline
+double ElementBase::getExit() const
 { return getGeometry().getExit(); }
 
-inline Euclid3D ElementBase::getTransform(double fromS, double toS) const
+inline
+Euclid3D ElementBase::getTransform(double fromS, double toS) const
 { return getGeometry().getTransform(fromS, toS); }
 
-inline Euclid3D ElementBase::getTotalTransform() const
+inline
+Euclid3D ElementBase::getTotalTransform() const
 { return getGeometry().getTotalTransform(); }
 
-inline Euclid3D ElementBase::getTransform(double s) const
+inline
+Euclid3D ElementBase::getTransform(double s) const
 { return getGeometry().getTransform(s); }
 
-inline Euclid3D ElementBase::getEntranceFrame() const
+inline
+Euclid3D ElementBase::getEntranceFrame() const
 { return getGeometry().getEntranceFrame(); }
 
-inline Euclid3D ElementBase::getExitFrame() const
+inline
+Euclid3D ElementBase::getExitFrame() const
 { return getGeometry().getExitFrame(); }
 
-inline Euclid3D ElementBase::getEntrancePatch() const
+inline
+Euclid3D ElementBase::getEntrancePatch() const
 { return getGeometry().getEntrancePatch(); }
 
-inline Euclid3D ElementBase::getExitPatch() const
+inline
+Euclid3D ElementBase::getExitPatch() const
 { return getGeometry().getExitPatch(); }
 
-inline bool ElementBase::isSharable() const
+inline
+bool ElementBase::isSharable() const
 { return shareFlag; }
 
-inline WakeFunction *ElementBase::getWake() const
+inline
+WakeFunction *ElementBase::getWake() const
 { return wake_m; }
 
-inline bool ElementBase::hasWake() const
+inline
+bool ElementBase::hasWake() const
 { return wake_m != NULL; }
 
-inline BoundaryGeometry *ElementBase::getBoundaryGeometry() const
+inline
+BoundaryGeometry *ElementBase::getBoundaryGeometry() const
 { return bgeometry_m; }
 
-inline bool ElementBase::hasBoundaryGeometry() const
+inline
+bool ElementBase::hasBoundaryGeometry() const
 { return bgeometry_m != NULL; }
 
-inline SurfacePhysicsHandler *ElementBase::getSurfacePhysics() const
+inline
+SurfacePhysicsHandler *ElementBase::getSurfacePhysics() const
 { return sphys_m; }
 
-inline bool ElementBase::hasSurfacePhysics() const
+inline
+bool ElementBase::hasSurfacePhysics() const
 { return sphys_m != NULL; }
 
-inline ElemType ElementBase::getElType() const
+inline
+ElemType ElementBase::getElType() const
 { return elType_m;}
 
-inline void ElementBase::setElType(ElemType elt)
+inline
+void ElementBase::setElType(ElemType elt)
 { elType_m = elt;}
+
+inline
+void ElementBase::setCSTrafoGlobal2Local(const CoordinateSystemTrafo &trafo)
+{
+    if (positionIsFixed) return;
+
+    csTrafoGlobal2Local_m = trafo;
+}
+
+inline
+CoordinateSystemTrafo ElementBase::getCSTrafoGlobal2Local() const
+{ return csTrafoGlobal2Local_m; }
+
+inline
+CoordinateSystemTrafo ElementBase::getBeginToEnd() const
+{
+    CoordinateSystemTrafo ret(Vector_t(0, 0, getElementLength()),
+                              Quaternion(1, 0, 0, 0));
+
+    return ret;
+}
+
+inline
+void ElementBase::setAperture(const ApertureType& type, const std::vector<double> &args)
+{
+    aperture_m.first = type;
+    aperture_m.second = args;
+}
+
+inline
+std::pair<ElementBase::ApertureType, std::vector<double> > ElementBase::getAperture() const
+{
+    return aperture_m;
+}
+
+inline
+bool ElementBase::isInside(const Vector_t &r) const
+{
+    const double length = getElementLength();
+    return isInsideTransverse(r, r(2) / length * aperture_m.second[2]) && r(2) >= 0.0 && r(2) < length;
+}
+
+inline
+bool ElementBase::isInsideTransverse(const Vector_t &r, double f) const
+{
+    switch(aperture_m.first) {
+    case RECTANGULAR:
+        return (std::abs(r[0]) < aperture_m.second[0] && std::abs(r[1]) < aperture_m.second[1]);
+    case ELLIPTICAL:
+        return (std::pow(r[0] / aperture_m.second[0], 2) + std::pow(r[1] / aperture_m.second[1], 2) < 1.0);
+    case CONIC_RECTANGULAR:
+        return (std::abs(r[0]) < (1.0 - f) * aperture_m.second[0] && std::abs(r[1]) < (1.0 - f) * aperture_m.second[1]);
+    case CONIC_ELLIPTICAL:
+        return (std::pow(r[0] / ((1.0 - f) * aperture_m.second[0]), 2) + std::pow(r[1] / ((1.0 - f) * aperture_m.second[1]), 2) < 1.0);
+    default:
+        return false;
+    }
+}
+
+inline
+void ElementBase::setMisalignment(const CoordinateSystemTrafo &cst) {
+    misalignment_m = cst;
+}
+
+inline
+CoordinateSystemTrafo ElementBase::getMisalignment() const {
+    return misalignment_m;
+}
+
+inline
+void ElementBase::fixPosition() {
+    positionIsFixed = true;
+}
+
+inline
+bool ElementBase::isPositioned() {
+    return positionIsFixed;
+}
+
+inline
+void ElementBase::setActionRange(const std::queue<std::pair<double, double> > &range) {
+    actionRange_m = range;
+
+    if (actionRange_m.size() > 0)
+        elementEdge_m = actionRange_m.front().first;
+}
+
+inline
+void ElementBase::setRotationAboutZ(double rotation) {
+    rotationZAxis_m = rotation;
+}
+
+inline
+double ElementBase::getRotationAboutZ() const {
+    return rotationZAxis_m;
+}
+
+inline
+std::string ElementBase::getTypeString() const
+{ return getTypeString(getType());}
 
 #endif // CLASSIC_ElementBase_HH

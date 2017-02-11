@@ -1,5 +1,6 @@
 #include "Fields/FM3DDynamic.h"
 #include "Fields/Fieldmap.hpp"
+#include "Utilities/GeneralClassicException.h"
 
 #include "Physics/Physics.h"
 
@@ -27,22 +28,16 @@ FM3DDynamic::FM3DDynamic(std::string aFilename):
     ifstream file(Filename_m.c_str());
 
     if(file.good()) {
-        bool parsing_passed = interpreteLine<std::string, std::string>(file, tmpString, tmpString);
-        if(tmpString == "XYZ") {
-            swap_m = false;
-            parsing_passed = parsing_passed &&
-                             interpreteLine<double>(file, frequency_m);
-            parsing_passed = parsing_passed &&
-                             interpreteLine<double, double, unsigned int>(file, xbegin_m, xend_m, num_gridpx_m);
-            parsing_passed = parsing_passed &&
-                             interpreteLine<double, double, unsigned int>(file, ybegin_m, yend_m, num_gridpy_m);
-            parsing_passed = parsing_passed &&
-                             interpreteLine<double, double, unsigned int>(file, zbegin_m, zend_m, num_gridpz_m);
-        } else {
-            cerr << "at the moment only the XYZ orientation is supported!\n"
-                 << "unknown orientation of 3D dynamic fieldmap" << endl;
-            parsing_passed = false;
-        }
+        bool parsing_passed = interpreteLine<std::string>(file, tmpString);
+        parsing_passed = parsing_passed &&
+                         interpreteLine<double>(file, frequency_m);
+        parsing_passed = parsing_passed &&
+                         interpreteLine<double, double, unsigned int>(file, xbegin_m, xend_m, num_gridpx_m);
+        parsing_passed = parsing_passed &&
+                         interpreteLine<double, double, unsigned int>(file, ybegin_m, yend_m, num_gridpy_m);
+        parsing_passed = parsing_passed &&
+                         interpreteLine<double, double, unsigned int>(file, zbegin_m, zend_m, num_gridpz_m);
+
         for(unsigned long i = 0; (i < (num_gridpz_m + 1) * (num_gridpx_m + 1) * (num_gridpy_m + 1)) && parsing_passed; ++ i) {
             parsing_passed = parsing_passed &&
                              interpreteLine<double>(file,
@@ -62,6 +57,8 @@ FM3DDynamic::FM3DDynamic(std::string aFilename):
         if(!parsing_passed) {
             disableFieldmapWarning();
             zend_m = zbegin_m - 1e-3;
+            throw GeneralClassicException("FM3DDynamic::FM3DDynamic",
+                                          "An error occured when reading the fieldmap '" + Filename_m + "'");
         } else {
             frequency_m *= Physics::two_pi * 1e6;
 
@@ -101,7 +98,7 @@ void FM3DDynamic::readMap() {
         std::string tmpString;
         double tmpDouble, Ezmax = 0.0;
 
-        interpreteLine<std::string, std::string>(in, tmpString, tmpString);
+        interpreteLine<std::string>(in, tmpString);
         interpreteLine<double>(in, tmpDouble);
         interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
         interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);

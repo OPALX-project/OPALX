@@ -1,0 +1,86 @@
+\input{header}
+
+\chapter{Beam Command}
+\label{chp:beam}
+\index{BEAM}
+All \opal commands working on a beam require the setting of various
+quantities related to this beam.
+These are entered by a \keyword{BEAM} command:
+\begin{example}
+label:BEAM, PARTICLE=name, MASS=real, CHARGE=real,
+      ENERGY=real, PC=real, GAMMA=real, BCURRENT=real,
+       NPART=real, BUNCHED=logical, BFREQ=real;
+\end{example}
+The \texttt{label} is optional, it defaults to \keyword{UNNAMED\_BEAM}.
+\index{UNNAMED\_BEAM}. The particle mass and charge are defined by:
+\begin{kdescription}
+\item[PARTICLE]
+  The name of particles in the machine.
+\end{kdescription}
+
+\opal knows the mass and the charge for the following particles:
+\begin{kdescription}
+  \item[POSITRON]
+    The particles are positrons (\texttt{MASS}=$m_e$,
+    \texttt{CHARGE}=1),
+
+  \item[ELECTRON]
+    The particles are electrons (\texttt{MASS}=$m_e$,
+    \texttt{CHARGE}=-1),
+
+  \item[PROTON]
+    The particles are protons (default, \texttt{MASS}=$m_p$,
+    \texttt{CHARGE}=1),
+
+  \item[ANTIPROTON]
+    The particles are anti-protons (\texttt{MASS}=$m_p$,
+    \texttt{CHARGE}=-1).
+
+  \item[HMINUS]
+    The particles are h- protons (\texttt{MASS}=$m\_{h^{-}}$,
+    \texttt{CHARGE}=-1).
+
+  \item[CARBON]
+    The particles are carbons (\texttt{MASS}=$m_c$,
+    \texttt{CHARGE}=12).
+
+  \item[URANIUM]
+    The particles are of type uranium (\texttt{MASS}=$m_u$,
+    \texttt{CHARGE}=35).
+
+  \item[MUON]
+    The particles are of type muon (\texttt{MASS}=$m_\mu$,
+    \texttt{CHARGE}=-1).
+
+  \item[DEUTERON]
+    The particles are of type deuteron (\texttt{MASS}=$m_d$,
+    \texttt{CHARGE}=1).
+
+  \item[XENON]
+    The particles are of type xenon (\texttt{MASS}=$m_{xe}$,
+    \texttt{CHARGE}=20).
+\end{kdescription}
+
+For other particle names one may enter:
+\begin{kdescription}
+\item[MASS]
+  \index{Particle!Mass}\index{Mass}
+  The particle mass in GeV.
+\item[CHARGE]
+  \index{Particle!Charge}\index{Charge}
+  The particle charge expressed in elementary charges.
+\end{kdescription}
+
+The other attributes are:
+
+\begin{kdescription}
+\item[BFREQ]
+  The bunch frequency in MHz.
+\item[BCURRENT]
+The bunch current in A.
+$\text{\keyword{BCURRENT}} = Q \times \text{\keyword{BFREQ}}$ with $Q$ the total charge.
+\item[NPART]
+The number of macro particles for the simulations
+\end{kdescription}
+
+\input{footer}

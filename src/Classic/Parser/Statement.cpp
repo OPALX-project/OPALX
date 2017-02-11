@@ -190,30 +190,30 @@ void Statement::skip() {
 }
 
 
-void Statement::print() const {
+void Statement::print(std::ostream &msg) const {
     bool white = false;
 
     for(TokenList::const_iterator c = tokens.begin(); c != tokens.end(); c++) {
-        if(white && !c->isDel()) *gmsg << ' ';
+        if(white && !c->isDel()) msg << ' ';
         white = !c->isDel();
-        *gmsg << *c;
+        msg << *c;
     }
 
-    *gmsg << ';' << endl;
+    msg << ';' << std::endl;
 }
 
 
-void Statement::printWhere(bool withToken) const {
+void Statement::printWhere(Inform &msg, bool withToken) const {
 
-    *gmsg << "*** in line " << stat_line << " of file \"" << buffer_name << "\"";
+    msg << "*** in line " << stat_line << " of file \"" << buffer_name << "\"";
 
     if(withToken) {
         if(TokenList::const_iterator(curr) == tokens.end()) {
-            *gmsg << " at end of statement:" << endl;
+            msg << " at end of statement:" << endl;
         } else {
-            *gmsg << " before token \"" << *curr << "\":" << endl;
+            msg << " before token \"" << *curr << "\":" << endl;
         }
     } else {
-        *gmsg << ":\n";
+        msg << ":\n";
     }
 }

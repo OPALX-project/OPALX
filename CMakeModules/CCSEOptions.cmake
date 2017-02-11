@@ -21,7 +21,7 @@ elseif(FortranCInterface_GLOBAL_SUFFIX STREQUAL "_" AND FortranCInterface_GLOBAL
 #    message(STATUS "   Fortran name mangling scheme to UNDERSCORE (lower case, append underscore)")
     set(BL_FORTLINK "UNDERSCORE")
 #else()
-#    message(AUTHOR_WARNING "Fortran to C mangling not backward compatible with older style BoxLib code") 
+#    message(AUTHOR_WARNING "Fortran to C mangling not backward compatible with older style BoxLib code")
 endif()
 
 set(BL_MACHINE ${CMAKE_SYSTEM_NAME})

@@ -24,7 +24,8 @@
 /// The global OPAL option flags.
 //  This namespace contains the global option flags.
 
-#include "Utilities/Random.h"
+#include "OptionTypes.h"
+#include "Utilities/ClassicRandom.h"
 
 namespace Options {
 
@@ -56,6 +57,11 @@ namespace Options {
 
     extern double beamHaloBoundary;
 
+    extern bool writeBendTrajectories;
+
+    extern OPENMODE openMode;
+
+    extern bool idealized;
 
     // CKR: nowhere used
     // // true if in bet mode
@@ -146,15 +152,10 @@ namespace Options {
 
     extern std::string rngtype;
 
-    /// if true
-    extern bool schottkyCorrection;
-
-    ///
-    extern double schottkyRennormalization;
-
     /// Do closed orbit and tune calculation only.
     extern bool cloTuneOnly;
 
+    extern int version;
 }
 
-#endif // OPAL_Options_HH 
+#endif // OPAL_Options_HH

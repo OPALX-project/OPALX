@@ -60,15 +60,11 @@ public:
     /// Apply visitor to Degrader.
     virtual void accept(BeamlineVisitor &) const;
 
-    virtual bool apply(const size_t &i, const double &t, double E[], double B[]);
-
     virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
+    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
-
-    virtual void initialise(PartBunch *bunch, const double &scaleFactor);
+    virtual void initialise(PartBunch *bunch);
 
     virtual void finalise();
 
@@ -87,15 +83,6 @@ public:
     void setOutputFN(std::string fn);
     std::string getOutputFN();
 
-    void setZSize( double z) ;
-
-    void setZStart(double zstart) ;
-    void setZEnd(double zend) ;
-
-    double getZStart() ;
-    double getZEnd() ;
-    double getZSize();
-
     virtual bool isInMaterial(double z);
 
 private:
@@ -105,9 +92,6 @@ private:
 
     std::string filename_m;               /**< The name of the outputfile*/
 
-    double position_m;
-    double deg_width_m;
-
     std::vector<double> PosX_m;
     std::vector<double> PosY_m;
     std::vector<double> PosZ_m;
@@ -116,10 +100,6 @@ private:
     std::vector<double> MomentumZ_m;
     std::vector<double> time_m;
     std::vector<int> id_m;
-    bool informed_m;
-
-    double zstart_m;
-    double zend_m;
 
     std::unique_ptr<LossDataSink> lossDs_m;
 };

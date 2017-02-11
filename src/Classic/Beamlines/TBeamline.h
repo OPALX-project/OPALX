@@ -24,6 +24,8 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Beamlines/BeamlineGeometry.h"
 #include "Utilities/CLRangeError.h"
+#include "Algorithms/Vektor.h"
+#include "Algorithms/Quaternion.h"
 #include <algorithm>
 #include <list>
 
@@ -143,11 +145,23 @@ public:
     /// Prepend a T object.
     virtual void prepend(const T &);
 
+    void setOrigin3D(const Vector_t& ori);
+    Vector_t getOrigin3D() const;
+
+    void setCoordTransformationTo(const Quaternion& trafoTo);
+    Quaternion getCoordTransformationTo() const;
+
+    void setRelativeFlag(bool flag);
+    bool getRelativeFlag() const;
 protected:
 
     /// The beamline geometry.
     //  Exists to match the interface for ElementBase.
     BeamlineGeometry itsGeometry;
+
+    Vector_t itsOrigin_m;
+    Quaternion itsCoordTrafoTo_m;
+    bool relativePositions_m;
 };
 
 
@@ -156,19 +170,34 @@ protected:
 
 template <class T>
 TBeamline<T>::TBeamline():
-    Beamline(), std::list<T>(), itsGeometry(*this)
+    Beamline(),
+    std::list<T>(),
+    itsGeometry(*this),
+    itsOrigin_m(0),
+    itsCoordTrafoTo_m(1.0, 0.0, 0.0, 0.0),
+    relativePositions_m(false)
 {}
 
 
 template <class T>
 TBeamline<T>::TBeamline(const std::string &name):
-    Beamline(name), std::list<T>(), itsGeometry(*this)
+    Beamline(name),
+    std::list<T>(),
+    itsGeometry(*this),
+    itsOrigin_m(0),
+    itsCoordTrafoTo_m(1.0, 0.0, 0.0, 0.0),
+    relativePositions_m(false)
 {}
 
 
 template <class T>
 TBeamline<T>::TBeamline(const TBeamline<T> &rhs):
-    Beamline(rhs), std::list<T>(rhs), itsGeometry(*this)
+    Beamline(rhs),
+    std::list<T>(rhs),
+    itsGeometry(*this),
+    itsOrigin_m(rhs.itsOrigin_m),
+    itsCoordTrafoTo_m(rhs.itsCoordTrafoTo_m),
+    relativePositions_m(rhs.relativePositions_m)
 {}
 
 
@@ -211,6 +240,10 @@ TBeamline<T> *TBeamline<T>::clone() const {
         line->append(newObj);
     }
 
+    line->itsOrigin_m = itsOrigin_m;
+    line->itsCoordTrafoTo_m = itsCoordTrafoTo_m;
+    line->relativePositions_m = relativePositions_m;
+
     return line;
 }
 
@@ -229,6 +262,10 @@ TBeamline<T> *TBeamline<T>::copyStructure() {
             newObj.setElement(iter->getElement()->copyStructure());
             line->append(newObj);
         }
+
+        line->itsOrigin_m = itsOrigin_m;
+        line->itsCoordTrafoTo_m = itsCoordTrafoTo_m;
+        line->relativePositions_m = relativePositions_m;
 
         return line;
     }
@@ -405,4 +442,33 @@ void TBeamline<T>::prepend(const T &obj) {
     this->push_front(obj);
 }
 
+template <class T> inline
+void TBeamline<T>::setOrigin3D(const Vector_t& ori) {
+    itsOrigin_m = ori;
+}
+
+template <class T> inline
+Vector_t TBeamline<T>::getOrigin3D() const {
+    return itsOrigin_m;
+}
+
+template <class T> inline
+void TBeamline<T>::setCoordTransformationTo(const Quaternion& trafoTo) {
+    itsCoordTrafoTo_m = trafoTo;
+}
+
+template <class T> inline
+Quaternion TBeamline<T>::getCoordTransformationTo() const {
+    return itsCoordTrafoTo_m;
+}
+
+template <class T> inline
+void TBeamline<T>::setRelativeFlag(bool flag) {
+    relativePositions_m = flag;
+}
+
+template <class T> inline
+bool TBeamline<T>::getRelativeFlag() const {
+    return relativePositions_m;
+}
 #endif // CLASSIC_TBeamline_HH

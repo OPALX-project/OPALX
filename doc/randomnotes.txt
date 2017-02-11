@@ -1,0 +1,13 @@
+
+A note on documentation etc. for collegues starting work on OPAL:
+
+1) Please take the time and get custom to LaTex: http://www.ctan.org/tex-archive/info/lshort/english/lshort.pdf
+
+2) Also the C++ source code must be documented please read: http://en.wikipedia.org/wiki/Doxygen and document
+   your source code accordingly.
+
+3) We have to do some artwork for our paper(s) and documentation. Please use only TikZ and see the power of
+   this package (and many examples to start) at http://www.texample.net/tikz/examples/ .
+
+
+

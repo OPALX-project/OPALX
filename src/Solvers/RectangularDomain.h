@@ -16,7 +16,7 @@ public:
     RectangularDomain(double a, double b, Vector_t nr, Vector_t hr);
 
     /// calculates intersection with the beam pipe
-    void Compute(Vector_t hr);
+    void compute(Vector_t hr);
 
     /// returns number of nodes in xy plane (here independent of z coordinate)
     int getNumXY(int z);

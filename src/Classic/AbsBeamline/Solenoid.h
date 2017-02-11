@@ -50,18 +50,19 @@ public:
     virtual double getBz() const = 0;
 
     void setKS(double ks);
+    void setDKS(double ks);
 
     virtual void addKR(int i, double t, Vector_t &K);
 
     virtual void addKT(int i, double t, Vector_t &K);
 
-    virtual bool apply(const size_t &i, const double &t, double E[], double B[]);
-
     virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
+    virtual bool applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
+
+    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
 
     virtual void finalise();
 
@@ -82,15 +83,17 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
+    virtual bool isInside(const Vector_t &r) const;
 private:
 
     //  std::string name;                   /**< The name of the object*/
     std::string filename_m;               /**< The name of the inputfile*/
     Fieldmap *myFieldmap_m;
     double scale_m;                /**< scale multiplier*/
-    double ElementEdge_m;
+    double scaleError_m;                /**< scale multiplier error*/
+
     double startField_m;           /**< startingpoint of field, m*/
-    double endField_m;
+    double length_m;
 
     bool fast_m;
     // Not implemented.

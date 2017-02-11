@@ -114,11 +114,11 @@ TEST(GaussTest, FullSigmaTest1) {
     if (distObj) {
         Distribution *dist = dynamic_cast<Distribution*>(distObj);
 
-        dist->SetDistType();
-        dist->CheckIfEmitted();
+        dist->setDistType();
+        dist->checkIfEmitted();
 
         size_t numParticles = 1000000;
-        dist->Create(numParticles, Physics::m_p);
+        dist->create(numParticles, Physics::m_p);
 
 
         double R11 = gsl_stats_variance(&(dist->xDist_m[0]), 1, dist->xDist_m.size()) * 1e6;
@@ -243,11 +243,11 @@ TEST(GaussTest, FullSigmaTest2) {
     if (distObj) {
         Distribution *dist = dynamic_cast<Distribution*>(distObj);
 
-        dist->SetDistType();
-        dist->CheckIfEmitted();
+        dist->setDistType();
+        dist->checkIfEmitted();
 
         size_t numParticles = 1000000;
-        dist->Create(numParticles, Physics::m_p);
+        dist->create(numParticles, Physics::m_p);
 
 
         double R11 = gsl_stats_variance(&(dist->xDist_m[0]), 1, dist->xDist_m.size()) * 1e6;

@@ -32,7 +32,9 @@ public:
     /// The attributes of class OpalMultipole.
     enum {
         KN = COMMON,  // The normal field components.
+        DKN,          // The normal field component errors.
         KS,           // The skewed field components.
+        DKS,          // The skewed field component errors.
         SIZE
     };
 

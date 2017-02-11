@@ -45,10 +45,6 @@ OpalParallelPlate::OpalParallelPlate():
 
     itsAttr[PLENGTH] = Attributes::makeReal
                        ("PLENGTH", " Gap length in Meter");
-    itsAttr[DX] = Attributes::makeReal
-      ("DX", "Misalignment in x direction",0.0);
-    itsAttr[DY] = Attributes::makeReal
-      ("DY", "Misalignment in y direction",0.0);
 
 
     registerRealAttribute("VOLT");
@@ -57,8 +53,6 @@ OpalParallelPlate::OpalParallelPlate():
     registerStringAttribute("GEOMETRY");
     registerRealAttribute("PLENGTH");
 
-    registerRealAttribute("DX");
-    registerRealAttribute("DY");
     setElement((new ParallelPlateRep("ParallelPlate"))->makeAlignWrapper());
 }
 
@@ -91,16 +85,15 @@ void OpalParallelPlate::fillRegisteredAttributes(const ElementBase &base, ValueF
         attributeRegistry["FREQ"]->setReal(pplate->getFrequency());
         attributeRegistry["LAG"]->setReal(pplate->getPhase());
         attributeRegistry["PLENGTH"]->setReal(pplate->getElementLength());
-        double dx, dy, dz;
-        pplate->getMisalignment(dx, dy, dz);
-        attributeRegistry["DX"]->setReal(dx);
-        attributeRegistry["DY"]->setReal(dy);
     }
 }
 
 
 void OpalParallelPlate::update() {
     using Physics::two_pi;
+
+    OpalElement::update();
+
     ParallelPlateRep *pplate =
         dynamic_cast<ParallelPlateRep *>(getElement()->removeWrappers());
 
@@ -109,8 +102,6 @@ void OpalParallelPlate::update() {
     double phase  = Attributes::getReal(itsAttr[LAG]);
     double freq   = (1.0e6 * two_pi) * Attributes::getReal(itsAttr[FREQ]);
     double length = Attributes::getReal(itsAttr[PLENGTH]);
-    double dx = Attributes::getReal(itsAttr[DX]);
-    double dy = Attributes::getReal(itsAttr[DY]);
 
     if(itsAttr[GEOMETRY] && obgeo_m == NULL) {
         obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + std::string("_geometry"));
@@ -121,7 +112,6 @@ void OpalParallelPlate::update() {
         }
     }
 
-    pplate->setMisalignment(dx, dy, 0.0);
     pplate->setAmplitude(1.0e6 * vPeak);
     pplate->setFrequency(freq);
     pplate->setPhase(phase);

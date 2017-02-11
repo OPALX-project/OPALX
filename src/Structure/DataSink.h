@@ -29,6 +29,7 @@
 #include <fstream>
 
 #include "Algorithms/PBunchDefs.h"
+#include "Utilities/Util.h"
 #include "H5hut.h"
 
 class PartBunch;
@@ -57,7 +58,6 @@ public:
 
     void reset();
 
-    void rewindLinesSDDS(size_t numberOfLines) const;
     void rewindLinesLBal(size_t numberOfLines) const;
     unsigned int rewindSDDStoSPos(double maxSpos) const;
 
@@ -87,21 +87,18 @@ public:
      *  - FDext[3] = E at reference particle location (in x, y and z).
      *  - FDext[4] = B at tail particle location (in x, y, and z).
      *  - FDext[5] = E at tail particle location (in x, y, and z).
-     *  \param sposHead Longitudinal position of the head particle.
-     *  \param sposRef Longitudinal position of the reference particle.
-     *  \param sposTail Longitudinal position of the tail particles.
      */
-    void doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail, double E, const std::vector<std::pair<std::string, unsigned int> > &losses);
+    void doWriteStatData(PartBunch &beam, Vector_t FDext[], double E, const std::vector<std::pair<std::string, unsigned int> > &losses);
 
     /** \brief for OPAL-t
 
      */
-    void writeStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail, const std::vector<std::pair<std::string, unsigned int> > &losses);
+    void writeStatData(PartBunch &beam, Vector_t FDext[], const std::vector<std::pair<std::string, unsigned int> > &losses = std::vector<std::pair<std::string, unsigned int> >());
 
-    /** \brief for OPAL-cycl
+    // /** \brief for OPAL-cycl
 
-     */
-    void writeStatData(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail, double E);
+    //  */
+    void writeStatData(PartBunch &beam, Vector_t FDext[], double E);
 
 
     /** \brief Write SDDS header.
@@ -126,11 +123,8 @@ public:
      *  - FDext[3] = E at reference particle location (in x, y and z).
      *  - FDext[4] = B at tail particle location (in x, y, and z).
      *  - FDext[5] = E at tail particle location (in x, y, and z).
-     *  \param sposHead Longitudinal position of the head particle.
-     *  \param sposRef Longitudinal position of the reference particle.
-     *  \param sposTail Longitudinal position of the tail particles.
      */
-    void writePhaseSpace(PartBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail);
+    void writePhaseSpace(PartBunch &beam, Vector_t FDext[]);
 
     /** \brief Dumps phase space to H5 file in OPAL cyclotron calculation.
      *
@@ -210,7 +204,6 @@ private:
     static std::string convertToString(int number);
 
     void rewindLines(const std::string &fileName, size_t numberOfLines) const;
-    unsigned int rewindLinesSDDS(const std::string &fileName, double maxSPos) const;
 
     /** \brief First write to the statistics output file.
      *
@@ -242,7 +235,7 @@ private:
 #else
     h5_file_t *H5fileS_m;
 #endif
-    
+
     /// Current record, or time step, of H5 file.
     int H5call_m;
 
@@ -267,16 +260,6 @@ void DataSink::reset() {
 }
 
 /** \brief
- *  delete the last 'numberOfLines' lines of the statistics file
- */
-inline
-void DataSink::rewindLinesSDDS(size_t numberOfLines) const {
-    if (Ippl::myNode() == 0) {
-        rewindLines(statFileName_m, numberOfLines);
-    }
-}
-
-/** \brief
  *   delete the last 'numberOfLines' lines of the load balance file
  */
 inline
@@ -292,7 +275,7 @@ void DataSink::rewindLinesLBal(size_t numberOfLines) const {
 inline
 unsigned int DataSink::rewindSDDStoSPos(double maxSPos) const {
     if (Ippl::myNode() == 0) {
-        return rewindLinesSDDS(statFileName_m, maxSPos);
+        return Util::rewindLinesSDDS(statFileName_m, maxSPos);
     }
 
     return 0;

@@ -20,6 +20,7 @@ public:
     virtual void setFrequency(double freq);
     virtual void getOnaxisEz(std::vector<std::pair<double, double>> &eZ);
 
+    virtual bool isInside(const Vector_t &r) const;
 private:
     FM1DDynamic(std::string aFilename);
     ~FM1DDynamic();
@@ -56,5 +57,10 @@ private:
 
     friend class Fieldmap;
 };
+
+inline bool FM1DDynamic::isInside(const Vector_t &r) const
+{
+    return r(2) >= zBegin_m && r(2) < zEnd_m;
+}
 
 #endif

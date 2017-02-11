@@ -89,17 +89,17 @@ public:
 
 #ifdef HAVE_AMR_SOLVER
     bool isAMRSolver();
-    
+
     int amrMaxLevel();
-    
+
     int amrRefRatioX();
-    
+
     int amrRefRatioY();
-    
+
     int amrRefRatioT();
-    
+
     bool amrSubCycling();
-    
+
     int amrMaxGridSize();
 #endif
 

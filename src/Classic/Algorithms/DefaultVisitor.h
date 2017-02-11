@@ -102,6 +102,9 @@ public:
     /// Apply the algorithm to a rectangular bend.
     virtual void visitRBend(const RBend &);
 
+    /// Apply the algorithm to a rectangular bend.
+    virtual void visitRBend3D(const RBend3D &);
+
     /// Apply the algorithm to a RF cavity.
     virtual void visitVariableRFCavity(const VariableRFCavity &vcav);
 
@@ -128,6 +131,9 @@ public:
 
     /// Apply the algorithm to a solenoid.
     virtual void visitSolenoid(const Solenoid &);
+
+    /// Apply the algorithm to a source.
+    virtual void visitSource(const Source &);
 
     /// Apply the algorithm to a ParallelPlate.
     virtual void visitParallelPlate(const ParallelPlate &);
