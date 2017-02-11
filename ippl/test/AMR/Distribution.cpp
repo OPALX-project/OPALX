@@ -118,14 +118,20 @@ void Distribution::twostream(const Vector_t& lower, const Vector_t& upper,
     double factor = 1.0 / ( M_PI * 30.0 );
     
     nloc_m = 0;
-    
-    if ( !Ippl::myNode() ) {
-        
-//         double total_charge = 0.0;
-        
+
+    /* we parallelize only the longitudinal direction
+     * since there we use the most grid points
+     */
+    int nMaxInitializer = std::min(nx[2], nv[2]);
+    if ( Ippl::myNode() < nMaxInitializer ) {
+
+	// number of processes really used for initialization of particles
+	int nInitializer = ( Ippl::getNodes() < nMaxInitializer ) ? Ippl::getNodes() : nMaxInitializer;
+
         for (std::size_t i = 0; i < nx[0]; ++i) {
             for (std::size_t j = 0; j < nx[1]; ++j) {
                 for ( std::size_t k = 0; k < nx[2]; ++k) {
+
                     Vektor<double, 3> pos = Vektor<double,3>(
                                                 (0.5 + i) * hx[0] + lower[0],
                                                 (0.5 + j) * hx[1] + lower[1],
@@ -135,6 +141,10 @@ void Distribution::twostream(const Vector_t& lower, const Vector_t& upper,
                     for (std::size_t iv = 0; iv < nv[0]; ++iv) {
                         for (std::size_t jv = 0; jv < nv[1]; ++jv) {
                             for (std::size_t kv = 0; kv < nv[2]; ++kv) {
+
+				if ( Ippl::myNode() != int(kv) % nInitializer )
+				    continue;
+
                                 Vektor<double, 3> vel = -vmax + hv *
                                                         Vektor<double, 3>(iv + 0.5,
                                                                           jv + 0.5,
