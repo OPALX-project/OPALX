@@ -32,6 +32,7 @@
 #include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
+#include "AbsBeamline/Source.h"
 #include "AbsBeamline/ParallelPlate.h"
 #include "AbsBeamline/CyclotronValley.h"
 #include "AbsBeamline/Stripper.h"
@@ -123,6 +124,9 @@ public:
     /// Apply the algorithm to a rectangular bend.
     virtual void visitRBend(const RBend &);
 
+    /// Apply the algorithm to a rectangular bend.
+    virtual void visitRBend3D(const RBend3D &);
+
     /// Apply the algorithm to a RF cavity.
     virtual void visitVariableRFCavity(const VariableRFCavity &vcav);
 
@@ -149,6 +153,9 @@ public:
 
     /// Apply the algorithm to a solenoid.
     virtual void visitSolenoid(const Solenoid &);
+
+    /// Apply the algorithm to a solenoid.
+    virtual void visitSource(const Source &);
 
     /// Apply the algorithm to a ParallelPlate.
     virtual void visitParallelPlate(const ParallelPlate &);
@@ -314,6 +321,11 @@ void SpecificElementVisitor<ELEM>::visitRBend(const RBend &element) {
 }
 
 template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitRBend3D(const RBend3D &element) {
+    CastsTrait<ELEM, RBend3D>::apply(allElementsOfTypeE, element);
+}
+
+template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitVariableRFCavity(const VariableRFCavity &element) {
     CastsTrait<ELEM, VariableRFCavity>::apply(allElementsOfTypeE, element);
 }
@@ -356,6 +368,11 @@ void SpecificElementVisitor<ELEM>::visitSeptum(const Septum &element) {
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSolenoid(const Solenoid &element) {
     CastsTrait<ELEM, Solenoid>::apply(allElementsOfTypeE, element);
+}
+
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitSource(const Source &element) {
+    CastsTrait<ELEM, Source>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>

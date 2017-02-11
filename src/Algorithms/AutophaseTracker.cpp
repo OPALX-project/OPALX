@@ -35,7 +35,6 @@ AutophaseTracker::AutophaseTracker(const Beamline &beamline,
         itsBunch_m.Bin[0] = 0;
         itsBunch_m.Q[0] = itsBunch_m.getChargePerParticle();
         itsBunch_m.PType[0] = ParticleType::REGULAR;
-        itsBunch_m.LastSection[0] = 0;
     }
 
     visitBeamline(beamline);
@@ -63,15 +62,13 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
     std::queue<double> maxSPosAutoPhasing(maxZ);
     std::queue<unsigned long long> maxStepsAutoPhasing(maxTrackSteps);
 
-    maxSPosAutoPhasing.back() = itsOpalBeamline_m.calcBeamlineLenght();
+    maxSPosAutoPhasing.back() = itsOpalBeamline_m.calcBeamlineLength();
 
     size_t step = 0;
     const int dtfraction = DTFRACTION;
     double newDt = dtAutoPhasing.front() / dtfraction;
     double scaleFactor = newDt * Physics::c;
 
-    itsBunch_m.LastSection[0] -= 1;
-    itsOpalBeamline_m.getSectionIndexAt(refR, itsBunch_m.LastSection[0]);
     itsOpalBeamline_m.print(*gmsg);
 
     itsOpalBeamline_m.switchAllElements();
@@ -397,10 +394,6 @@ void AutophaseTracker::evaluateField() {
 
     itsBunch_m.Ef = Vector_t(0.0);
     itsBunch_m.Bf = Vector_t(0.0);
-
-    long ls = itsBunch_m.LastSection[0];
-    itsOpalBeamline_m.getSectionIndexAt(refR, ls);
-    itsBunch_m.LastSection[0] = ls;
 
     Vector_t externalE, externalB;
     itsOpalBeamline_m.getFieldAt(0, refR, ls, itsBunch_m.getT() + itsBunch_m.dt[0] / 2., externalE, externalB);

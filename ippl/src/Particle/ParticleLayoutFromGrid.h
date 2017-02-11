@@ -1,7 +1,7 @@
 //
 // C++ Interface: ParticleLayoutFromGrid
 //
-// Description: 
+// Description:
 //
 //
 // Author: Roman Geus <geus@maxwell>, (C) 2005
@@ -34,28 +34,28 @@ public:
         geom_domain_(domain),
         my_corner_min_(local_min),
         my_corner_max_(local_max)
-    {}    
+    {}
     /**
      * Does "book--keeping" after particles have been integrated one time step.
      *
-     * "Book--keeping" includes 
-     *    - Detecting particles which have moved across a boundary and 
+     * "Book--keeping" includes
+     *    - Detecting particles which have moved across a boundary and
      *      taking appropriate measures. (not yet implemented)
      *    - Redistributing particles which have moved out of the domain
      *      assigned to the local processor.
      *    - Updating the total particle count.
      * @param particles Particle container.
      */
-    void update(IpplParticleBase< ParticleLayoutFromGrid >& particles);    
+    void update(IpplParticleBase< ParticleLayoutFromGrid >& particles);
     /**
      * Test if x is inside the domain assigned to my processor.
      * @param x Position to test.
      * @return  True if inside.
      */
     inline bool is_local_pos(const Vector_t& x) const {
-      const D3vector y(x[0],x[1],x[2]);      
+      const D3vector y(x[0],x[1],x[2]);
       return is_inside_box(my_corner_min_, my_corner_max_, y);
-    }    
+    }
     /**
      * Test if x is inside the domain assigned to my processor.
      * @param x Position to test.
@@ -63,7 +63,7 @@ public:
      */
     inline bool is_local_pos(const D3vector& x) const {
       return is_inside_box(my_corner_min_, my_corner_max_, x);
-    }    
+    }
 
     /**
      * Test if x is inside the geometric domain
@@ -95,7 +95,7 @@ public:
                corner_min[1] <= x[1] && x[1] < corner_max[1] &&
                corner_min[2] <= x[2] && x[2] < corner_max[2];
     }
-   
+
 private:
     /**
      * Dummy function for boundary treatment (currently not used)
@@ -103,7 +103,7 @@ private:
      */
     void apply_bconds(ParticlePos_t& R);
     /**
-     * Go through all local particles, and send particles which are no longer in 
+     * Go through all local particles, and send particles which are no longer in
      * the local bounding box to the corresponding processors.
      *
      * @param particles Particle container

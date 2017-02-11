@@ -1,0 +1,85 @@
+% Sketch output, version 0.2 (build 161d, Sat Feb 6 10:42:28 2010)
+% Output language: PGF/TikZ,LaTeX
+\begin{tikzpicture}[line join=round]
+\draw[arrows=->,line width=2pt](1.481,-5.204)--(.33,-5.582);
+\filldraw[fill opacity=0.,fill=white](2.243,-5.829)--(.643,-6.07)--(.643,-2.882)--(2.243,-2.641)--cycle;
+\filldraw[fill=white](3.414,-6.21)--(.643,-6.07)--(2.243,-5.829)--(5.014,-5.968)--cycle;
+\filldraw[fill=blue!20!red,fill opacity=0.5](5.014,-5.968)--(2.243,-5.829)--(2.243,-2.641)--(5.014,-2.78)--cycle;
+\filldraw[fill=blue!20,fill opacity=0.5](3.414,-3.022)--(5.014,-2.78)--(2.243,-2.641)--(.643,-2.882)--cycle;
+\draw[arrows=->,line width=2pt](3.899,11.322)--(6.635,11.291);
+\draw[arrows=-,line width=2pt](1.538,-5.185)--(1.481,-5.204);
+\draw[line width=2pt](4.214,-4.495)--(3.884,-4.571)--(3.556,-4.648)--(3.236,-4.726)--(2.927,-4.802)--(2.634,-4.877)--(2.361,-4.948)--(2.111,-5.016)--(1.889,-5.078)--(1.697,-5.135)--(1.538,-5.185);
+\filldraw[fill=green!50,fill opacity=0.5](3.414,-6.21)--(5.014,-5.968)--(5.014,-2.78)--(3.414,-3.022)--cycle;
+\filldraw[fill opacity=0.,fill=white](5.69,10.226)--(1.932,10.694)--(1.932,14.453)--(5.69,13.985)--cycle;
+\filldraw[fill=white](.563,9.409)--(1.932,10.694)--(5.69,10.226)--(4.322,8.941)--cycle;
+\filldraw[fill=yellow!50,fill opacity=0.5,color=yellow!50,line width=2pt](4.216,-2.901)--(4.216,-6.088)--(7.125,-6.068)--(7.125,-2.88)--cycle;
+\filldraw[fill=blue!20!red,fill opacity=0.3](.643,-6.07)--(3.414,-6.21)--(3.414,-3.022)--(.643,-2.882)--cycle;
+\draw[arrows=-,line width=2pt](3.764,11.323)--(3.899,11.322);
+\draw[arrows=<-,color=blue,densely dotted,line width=1pt](4.76,-4.491)--(7.123,-4.474);
+\draw[line width=1pt](6.397,-4.479)--(6.397,-4.433)--(6.395,-4.388)--(6.393,-4.342)--(6.39,-4.297)--(6.385,-4.251)--(6.38,-4.206)--(6.374,-4.161)--(6.367,-4.115)--(6.358,-4.07)--(6.349,-4.026);
+\draw[arrows=-<,line width=2pt](4.214,-4.495)--(7.022,-3.856);
+\draw[line width=2pt](2.43,11.062)--(2.363,11.104)--(2.332,11.15)--(2.35,11.191)--(2.418,11.228)--(2.535,11.26)--(2.698,11.285)--(2.905,11.304)--(3.155,11.317)--(3.442,11.324)--(3.764,11.323);
+\draw[color=blue,densely dotted,line width=1pt](4.214,-4.495)--(4.76,-4.491);
+\filldraw[fill=blue!20!red,fill opacity=0.5](4.322,8.941)--(5.69,10.226)--(5.69,13.985)--(4.322,12.7)--cycle;
+\filldraw[fill=blue!20,fill opacity=0.5](.563,13.168)--(4.322,12.7)--(5.69,13.985)--(1.932,14.453)--cycle;
+\draw[arrows=->](8.078,-7)--(7.386,-6.965);
+\draw[arrows=->](8.078,-7)--(8.078,-6.203);
+\draw[arrows=<-](7.678,-7.06)--(8.078,-7);
+\draw[arrows=->](-2,8.06)--(-1.658,8.382);
+\draw[line width=2pt](2.443,11.054)--(2.43,11.062);
+\filldraw[fill=green!50,fill opacity=0.5](.563,9.409)--(4.322,8.941)--(4.322,12.7)--(.563,13.168)--cycle;
+\draw[arrows=->](0,0)--(0,.8);
+\draw[arrows=<-](-.8,0)--(0,0);
+\draw[arrows=<-](-2.94,8.177)--(-2,8.06);
+\filldraw[fill=yellow!50,fill opacity=0.5,color=yellow!50,line width=2pt](2.448,12.933)--(2.448,9.174)--(3.371,7.967)--(3.371,11.726)--cycle;
+\draw[arrows=->](-2,8.06)--(-2,9);
+\filldraw[fill=blue!20!red,fill opacity=0.5](4.8,1.6)--(4.8,4.8)--(4.8,4.8)--(4.8,1.6)--cycle;
+\filldraw[fill=white](1.6,1.6)--(1.6,4.8)--(4.8,4.8)--(4.8,1.6)--cycle;
+\filldraw[fill opacity=0.,fill=white](4.8,4.8)--(1.6,4.8)--(1.6,4.8)--(4.8,4.8)--cycle;
+\filldraw[fill=blue!20!red,fill opacity=0.3](1.6,4.8)--(1.6,1.6)--(1.6,1.6)--(1.6,4.8)--cycle;
+\filldraw[fill=green!50,fill opacity=0.5](1.6,1.6)--(4.8,1.6)--(4.8,1.6)--(1.6,1.6)--cycle;
+\filldraw[fill=yellow!50,fill opacity=0.5,color=yellow!50,line width=2pt](3.204,1.6)--(3.204,1.6)--(4.864,-.8)--(4.864,-.8)--cycle;
+\draw[arrows=->,line width=2pt](3.275,4.8)--(4.8,7.009);
+\draw[color=blue,line width=1pt](2.272,10.894)--(2.443,11.054);
+\draw[color=blue,densely dotted,line width=1pt](2.443,11.054)--(2.617,10.828);
+\draw[arrows=-<,line width=2pt](2.443,11.054)--(3.331,10.619);
+\draw[arrows=->,color=blue,line width=1pt](1.759,10.411)--(2.272,10.894);
+\draw[arrows=-,line width=2pt](3.2,4.691)--(3.275,4.8);
+\draw[line width=2pt](3.2,1.6)--(3.029,1.883)--(2.893,2.183)--(2.795,2.496)--(2.735,2.819)--(2.716,3.145)--(2.735,3.472)--(2.795,3.795)--(2.893,4.108)--(3.029,4.408)--(3.2,4.691);
+\draw[arrows=<-,color=blue,densely dotted,line width=1pt](2.617,10.828)--(3.367,9.847);
+\draw[line width=1pt](1.93,10.572)--(2.014,10.563)--(2.099,10.555)--(2.185,10.549)--(2.272,10.545)--(2.36,10.542)--(2.448,10.541)--(2.537,10.542)--(2.624,10.545)--(2.712,10.55)--(2.798,10.556);
+\draw[arrows=->,color=blue,line width=1pt](3.2,0)--(3.2,1.2);
+\draw[color=blue,line width=1pt](3.2,1.2)--(3.2,1.6);
+\draw[line width=1pt](3.2,.4)--(3.271,.402)--(3.341,.408)--(3.411,.419)--(3.48,.433)--(3.548,.451)--(3.615,.474)--(3.68,.5)--(3.744,.53)--(3.806,.564)--(3.866,.602);
+\draw[arrows=-<,line width=2pt](3.2,1.6)--(4.8,-.718);
+\draw[line width=1pt](3.139,10.149)--(3.139,10.203)--(3.139,10.257)--(3.138,10.312)--(3.137,10.367)--(3.136,10.423)--(3.134,10.478)--(3.132,10.534)--(3.13,10.59)--(3.128,10.647)--(3.125,10.703);
+\filldraw[fill=blue!20,fill opacity=0.5](1.6,1.6)--(4.8,1.6)--(4.8,4.8)--(1.6,4.8)--cycle;
+\path (7.678,-7.06) node[left]  {$u$};
+          
+\path (8.078,-6.203) node[left]  {$v$};
+          
+\path (7.386,-6.965) node[right]  {$s$};
+          
+\path (6.536,-4.327) node[right] {$\beta$};
+\path (6.397,-4.479) node[below] {$\vec{n}_{\text{proj}}$};
+             
+\path (3.52,-.12) node[right] {$\alpha$};
+\path (3.2,.8) node[left] {$\vec{n}$};
+             
+\path (-.8,0) node[left]  {$u$};
+          
+\path (0,.8) node[right]  {$s$};
+          
+\path (3.071,10.272) node[right] {$\beta$};
+\path (3.139,10.149) node[below] {$\vec{n}_{\text{proj}}$};
+             
+\path (2.083,10.316) node[right] {$\alpha$};
+\path (2.101,10.733) node[left] {$\vec{n}$};
+             
+\path (-2,9) node[left]  {$v$};
+          
+\path (-2.94,8.177) node[left]  {$u$};
+          
+\path (-1.658,8.382) node[right]  {$s$};
+          
+\end{tikzpicture}% End sketch output

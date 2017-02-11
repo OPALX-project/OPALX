@@ -32,14 +32,14 @@ b) follow instructions of website
 c) in order to run you add following line either to your
    .bashrc file or you execute it everytime you want to start
    a new session in a new terminal
-   
+
    source $YT_DIR/yt-x86_64/bin/activate
-    
+
 d) just run the script with python
-   
+
    $ python visualize.py
-   
-   
+
+
 The following programs are in this directory:
     - testAmrPartBunch:     OPAL - BoxLib - Particle - Marriage example
     - testSolver:           Solving \Lap\phi = -1 using FMultiGrid solver of BoxLib

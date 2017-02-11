@@ -18,7 +18,7 @@ RectangularDomain::RectangularDomain(double a, double b, Vector_t nr, Vector_t h
     nxy_m = nr[0] * nr[1];
 }
 
-void RectangularDomain::Compute(Vector_t hr){
+void RectangularDomain::compute(Vector_t hr){
     setHr(hr);
     nxy_m = nr[0] * nr[1];
 }
@@ -159,7 +159,7 @@ void RectangularDomain::getNeighbours(int x, int y, int z, double &W, double &E,
 }
 
 /*
-void MGPoissonSolver::GetNeighbours(const int idx, int& W, int& E, int& S, int& N, int& F, int& B, int& numOutOfDomain)
+void MGPoissonSolver::getNeighbours(const int idx, int& W, int& E, int& S, int& N, int& F, int& B, int& numOutOfDomain)
 {
 
     int ixy, iz, iy, ix;
@@ -223,7 +223,7 @@ void MGPoissonSolver::GetNeighbours(const int idx, int& W, int& E, int& S, int& 
 
 //at the moment this stencil has neumann everywhere except on the z=0 plane (Dirichlet)
 //this code is experimental/not-optimized/not-final at the moment
-inline Epetra_CrsMatrix* MGPoissonSolver::Stencil3DOneSidedDirichlet(Vector_t hr)
+inline Epetra_CrsMatrix* MGPoissonSolver::stencil3DOneSidedDirichlet(Vector_t hr)
 {
     Epetra_CrsMatrix* Matrix = new Epetra_CrsMatrix(Copy, *Map,  7);
 
@@ -242,7 +242,7 @@ inline Epetra_CrsMatrix* MGPoissonSolver::Stencil3DOneSidedDirichlet(Vector_t hr
 
     for (int i = 0 ; i < NumMyElements ; ++i)
     {
-        GetNeighbours(MyGlobalElements[i], W, E, S, N, F, B, numout);
+        getNeighbours(MyGlobalElements[i], W, E, S, N, F, B, numout);
 
         int NumEntries = 0;
         double diag = a;
@@ -555,7 +555,7 @@ inline Epetra_CrsMatrix* MGPoissonSolver::Stencil3DOneSidedDirichlet(Vector_t hr
 
 //stencil for longitudinal neumann and transversal dirichlet BC
 //this code is experimental/not-optimized/not-final at the moment
-inline Epetra_CrsMatrix* MGPoissonSolver::Stencil3DLongitudinalNeumann(Vector_t hr)
+inline Epetra_CrsMatrix* MGPoissonSolver::stencil3DLongitudinalNeumann(Vector_t hr)
 {
     Epetra_CrsMatrix* Matrix = new Epetra_CrsMatrix(Copy, *Map,  7);
 
@@ -574,7 +574,7 @@ inline Epetra_CrsMatrix* MGPoissonSolver::Stencil3DLongitudinalNeumann(Vector_t 
 
     for (int i = 0 ; i < NumMyElements ; ++i)
     {
-        GetNeighbours(MyGlobalElements[i], W, E, S, N, F, B, numout);
+        getNeighbours(MyGlobalElements[i], W, E, S, N, F, B, numout);
 
         int NumEntries = 0;
         double diag = a;

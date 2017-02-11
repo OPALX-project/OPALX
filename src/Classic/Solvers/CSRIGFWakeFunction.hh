@@ -19,7 +19,8 @@ public:
     virtual const std::string getType() const;
 
 private:
-    void calculateLineDensity(PartBunch & bunch, double meshSpacing);
+    void calculateLineDensity(PartBunch & bunch, std::pair<double, double> &meshInfo);
+
     void calculateContributionInside(size_t sliceNumber, double angleOfSlice, double meshSpacing);
     void calculateContributionAfter(size_t sliceNumber, double angleOfSlice, double meshSpacing);
     void calculateGreenFunction(PartBunch &bunch, double meshSpacing);

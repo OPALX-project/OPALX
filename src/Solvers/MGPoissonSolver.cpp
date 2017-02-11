@@ -80,7 +80,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch &beam,
     }
 
     if(itsolver == "CG") itsolver_m = AZ_cg;
-    else if(itsolver == "BiCGStab") itsolver_m = AZ_bicgstab;
+    else if(itsolver == "BICGSTAB") itsolver_m = AZ_bicgstab;
     else if(itsolver == "GMRES") itsolver_m = AZ_gmres;
     else throw OpalException("MGPoissonSolver", "No valid iterative solver selected!");
 
@@ -95,7 +95,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch &beam,
     forcePreconditionerRecomputation_m = false;
 
     hasParallelDecompositionChanged_m = true;
-    repartFreq_m = 1000; 
+    repartFreq_m = 1000;
     useRCB_m = false;
     if(Ippl::Info->getOutputLevel() > 1)
         verbose_m = true;
@@ -109,12 +109,12 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch &beam,
             bp = new EllipticDomain(currentGeometry, orig_nr_m, hr_m, interpl);
 	} else if (currentGeometry->getTopology() == "BOXCORNER") {
             bp = new BoxCornerDomain(currentGeometry->getA(), currentGeometry->getB(), currentGeometry->getC(), currentGeometry->getLength(),currentGeometry->getL1(), currentGeometry->getL2(), orig_nr_m, hr_m, interpl);
-            bp->Compute(itsBunch_m->get_hr());
+            bp->compute(itsBunch_m->get_hr());
         } else {
             throw OpalException("MGPoissonSolver::MGPoissonSolver",
                                 "Geometry not known");
         }
-    } else 
+    } else
 	bp = new ArbitraryDomain(currentGeometry, orig_nr_m, hr_m, interpl);
 
     Map = 0;
@@ -183,7 +183,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr, double zshift)
 
 void MGPoissonSolver::computeMap(NDIndex<3> localId) {
     if (itsBunch_m->getLocalTrackStep()%repartFreq_m == 0){
-        deletePtr(); 
+        deletePtr();
         if(useRCB_m)
             redistributeWithRCB(localId);
         else
@@ -267,7 +267,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     IpplTimings::startTimer(FunctionTimer1_m);
     // Compute boundary intersections (only do on the first step)
     if(!itsBunch_m->getLocalTrackStep())
-        bp->Compute(hr, localId);
+        bp->compute(hr, localId);
     IpplTimings::stopTimer(FunctionTimer1_m);
 
     // Define the Map
@@ -278,7 +278,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     INFOMSG(level2 << "* Done." << endl);
 
     // Allocate the RHS with the new Epetra Map
-    if (Teuchos::is_null(RHS)) 
+    if (Teuchos::is_null(RHS))
         RHS = rcp(new Epetra_Vector(*Map));
     RHS->PutScalar(0.0);
 
@@ -290,7 +290,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     int id = 0;
     float scaleFactor = itsBunch_m->getdT();
 
- 
+
     std::cout << "* Node:" << Ippl::myNode() << ", Rho for final element: " << rho[localId[0].last()][localId[1].last()][localId[2].last()].get() << std::endl;
 
     Ippl::Comm->barrier();
@@ -411,7 +411,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
         LHS = Teuchos::null;
         RHS = Teuchos::null;
         prec_m = Teuchos::null;
-    }	
+    }
 }
 
 

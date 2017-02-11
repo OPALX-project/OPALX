@@ -34,7 +34,7 @@
 /** Mockups for an Opal Component (e.g. field object). The idea is to test
  *  field lookup routines and placement routines and the like by generating a
  *  "fake" component.
- */ 
+ */
 class MockComponent : public Component {
 public:
     MockComponent() : Component("MockComponent"), geom_m(NULL) {
@@ -49,11 +49,13 @@ public:
     ElementBase* clone() const {return new MockComponent(*this);}
     EMField& getField() {EMField* em = NULL; return *em;}
     EMField& getField() const {EMField* em = NULL; return *em;}
-    bool apply(const size_t&, const double&, double*, double*) {return true;}
+    bool apply(const double&, Vector_t&, Vector_t&) {
+        return false;
+    }
     bool apply(const size_t&, const double&, Vector_t&, Vector_t&) {
         return true;
     }
-    bool apply(const Vector_t& r, const Vector_t& c, const double& t,
+    bool apply(const Vector_t& r, const Vector_t& P, const double& t,
                Vector_t& E, Vector_t& B) {
         if (r(0) < 0. || r(0) > 1. ||
             r(1) < -1. || r(1) > 0. ||
@@ -67,7 +69,7 @@ public:
         E(2) = -r(2);
         return false; // NOT isOutOfBounds
     }
-    void initialise(PartBunch*, double&, double&, const double&) {}
+    void initialise(PartBunch*, double&, double&) {}
     void finalise() {}
     bool bends() const {return true;}
     void getDimensions(double&, double&) const {}
@@ -84,24 +86,23 @@ private:
 class MockComponent2 : public Component {
 public:
     MockComponent2() : Component("MockComponent"), geom_m(NULL), refB(1,2,3) {
-        // std::cout << "MOCK2 CONSTRUCTOR " << this << std::endl;
     }
     MockComponent2(const MockComponent2& rhs)
         : Component("MockComponent"), geom_m(rhs.geom_m), refB(rhs.refB) {
-        // std::cout << "MOCK2 COPY CONSTRUCTOR " << this << std::endl;
     }
-    ~MockComponent2() { };//std::cout << "MOCK2 DESTRUCTOR " << this << std::endl;}
+    ~MockComponent2() { };
     void accept(BeamlineVisitor&) const {}
     ElementBase* clone() const {return new MockComponent2(*this);}
     EMField& getField() {EMField* em = NULL; return *em;}
     EMField& getField() const {EMField* em = NULL; return *em;}
-    bool apply(const size_t&, const double&, double*, double*) {return true;}
+    bool apply(const double&, Vector_t&, Vector_t&) {
+        return false;
+    }
     bool apply(const size_t&, const double&, Vector_t&, Vector_t&) {
         return true;
     }
-    bool apply(const Vector_t& r, const Vector_t& c, const double& t,
+    bool apply(const Vector_t& r, const Vector_t& P, const double& t,
                Vector_t& E, Vector_t& B) {
-        std::cerr << "  MockComponent2::apply " << this << " " << r << std::endl;
         lastPos = r;
         if (r(0) < -1. || r(0) > 1. ||
             r(1) < -1. || r(1) > 1. ||
@@ -113,7 +114,7 @@ public:
         E(2) = 0.;
         return false; // NOT isOutOfBounds
     }
-    void initialise(PartBunch*, double&, double&, const double&) {}
+    void initialise(PartBunch*, double&, double&) {}
     void finalise() {}
     bool bends() const {return true;}
     void getDimensions(double&, double&) const {}

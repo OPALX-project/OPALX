@@ -39,24 +39,35 @@ using namespace std;
 ElementBase::ElementBase():
     RCObject(),
     shareFlag(true),
+    csTrafoGlobal2Local_m(),
+    misalignment_m(),
+    elementEdge_m(0),
+    rotationZAxis_m(0.0),
     elementID(""),
     userAttribs(),
     wake_m(NULL),
     bgeometry_m(NULL),
     sphys_m(NULL),
-    elType_m(isOther)
+    elType_m(isOther),
+    positionIsFixed(false)
 {}
 
 
 ElementBase::ElementBase(const ElementBase &right):
     RCObject(),
     shareFlag(true),
+    csTrafoGlobal2Local_m(right.csTrafoGlobal2Local_m),
+    misalignment_m(right.misalignment_m),
+    aperture_m(right.aperture_m),
+    elementEdge_m(right.elementEdge_m),
+    rotationZAxis_m(right.rotationZAxis_m),
     elementID(right.elementID),
     userAttribs(right.userAttribs),
     wake_m(right.wake_m),
     bgeometry_m(right.bgeometry_m),
     sphys_m(right.sphys_m),
-    elType_m(right.elType_m)
+    elType_m(right.elType_m),
+    positionIsFixed(right.positionIsFixed)
 {
 
     if(sphys_m) {
@@ -70,12 +81,17 @@ ElementBase::ElementBase(const ElementBase &right):
 ElementBase::ElementBase(const std::string &name):
     RCObject(),
     shareFlag(true),
+    csTrafoGlobal2Local_m(),
+    misalignment_m(),
+    elementEdge_m(0),
+    rotationZAxis_m(0.0),
     elementID(name),
     userAttribs(),
     wake_m(NULL),
     bgeometry_m(NULL),
     sphys_m(NULL),
-    elType_m(isOther)
+    elType_m(isOther),
+    positionIsFixed(false)
 {}
 
 
@@ -149,8 +165,8 @@ const ConstChannel *ElementBase::getConstChannel(const std::string &aKey) const 
 }
 
 
-std::string ElementBase::getTypeString() const {
-    switch (getType()) {
+std::string ElementBase::getTypeString(ElementBase::ElementType type) {
+    switch (type) {
     case ALIGNWRAPPER:
         return "AlignWrapper";
     case BEAMBEAM:
@@ -161,8 +177,12 @@ std::string ElementBase::getTypeString() const {
         return "Collimator";
     case CORRECTOR:
         return "Corrector";
+    case CORRECTORWRAPPER:
+        return "Correctorwrapper";
     case CYCLOTRON:
         return "Cyclotron";
+    case CYCLOTRONWRAPPER:
+        return "Cyclotronwrapper";
     case CYCLOTRONVALLEY:
         return "CyclotronValley";
     case DEGRADER:
@@ -181,6 +201,8 @@ std::string ElementBase::getTypeString() const {
         return "Monitor";
     case MULTIPOLE:
         return "Multipole";
+    case MULTIPOLEWRAPPER:
+        return "Multipolewrapper";
     case OFFSET:
         return "Offset";
     case PARALLELPLATE:
@@ -191,6 +213,8 @@ std::string ElementBase::getTypeString() const {
         return "Probe";
     case RBEND:
         return "RBend";
+    case RBENDWRAPPER:
+        return "RBendwrapper";
     case RFCAVITY:
         return "RFCavity";
     case RFQUADRUPOLE:
@@ -201,6 +225,8 @@ std::string ElementBase::getTypeString() const {
         return "SBend3D";
     case SBEND:
         return "SBend";
+    case SBENDWRAPPER:
+        return "SBendwrapper";
     case SEPARATOR:
         return "Separator";
     case SEPTUM:
@@ -215,7 +241,7 @@ std::string ElementBase::getTypeString() const {
         return "VariableRFCavity";
     case ANY:
     default:
-        return "";
+        return "'unknown' type";
     }
 }
 
@@ -304,4 +330,13 @@ void ElementBase::setBoundaryGeometry(BoundaryGeometry *geo) {
 
 void ElementBase::setSurfacePhysics(SurfacePhysicsHandler *sphys) {
     sphys_m = sphys;
+}
+
+void ElementBase::setCurrentSCoordinate(double s) {
+    if (actionRange_m.size() > 0 && actionRange_m.front().second < s) {
+        actionRange_m.pop();
+        if (actionRange_m.size() > 0) {
+            elementEdge_m = actionRange_m.front().first;
+        }
+    }
 }

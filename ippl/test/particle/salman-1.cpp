@@ -2,27 +2,27 @@
 /***********************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
- * All rights in the program are reserved by PSI. 
+ *
+ * This program was prepared by PSI.
+ * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
  * responsibility for the use of this software
  *
  * Visit http://www.
  *
- * This test program sets up a simple sine-wave electric field in 3D, 
+ * This test program sets up a simple sine-wave electric field in 3D,
  * creates a population of particles with random q/m values (charge-to-mass
  * ratio) and velocities, and then tracks their motions in the static
- * electric field using nearest-grid-point interpolation. 
+ * electric field using nearest-grid-point interpolation.
  *
  * Usage:
  *
  * $MYMPIRUN -np 2 salman-1 128 128 ??? 10000 10 NGP initialx initialy --commlib mpi
  *
  *          nx,ny xx  xxx NP NTstep  Interp  xini yini dx  dy  meshorgx meshorgy hx  hy
- *          |     |       |  |       |       |    |    |   |   |        |        |   |  
- * salman-1 4     xx  xxx 1  7       NGP     1.0  1.0  1.0 1.0 1.0      1.0      1.0 1.0 --commlib mpi 
+ *          |     |       |  |       |       |    |    |   |   |        |        |   |
+ * salman-1 4     xx  xxx 1  7       NGP     1.0  1.0  1.0 1.0 1.0      1.0      1.0 1.0 --commlib mpi
  *
  *
  *          nx,ny Interp  meshorgx meshorgy hx  hy  domplus steps
@@ -40,7 +40,7 @@
 // dimension of our positions
 const unsigned Dim = 2;
 
-// some typedefs 
+// some typedefs
 typedef ParticleSpatialLayout<double,Dim>::SingleParticlePos_t Vector_t;
 typedef ParticleSpatialLayout<double,Dim> playout_t;
 typedef UniformCartesian<Dim,double> Mesh_t;
@@ -68,7 +68,7 @@ public:
   typename PL::ParticlePos_t E;  // electric field at particle position
   typename PL::ParticlePos_t B;  // magnetic field at particle position
 
-  ChargedParticles(PL* pl, InterPol_t interpol, Vector_t hr, e_dim_tag decomp[Dim], Vector_t mesh_org) : 
+  ChargedParticles(PL* pl, InterPol_t interpol, Vector_t hr, e_dim_tag decomp[Dim], Vector_t mesh_org) :
     IpplParticleBase<PL>(pl),
     interpol_m(interpol),
     hr_m(hr),
@@ -78,25 +78,25 @@ public:
     // register the particle attributes
     this->addAttribute(qm);
 
-    NDIndex<Dim> domain = getFieldLayout().getDomain(); 
+    NDIndex<Dim> domain = getFieldLayout().getDomain();
 
     for(int i=0; i<Dim; i++)
       nr_m[i] = domain[i].length();
-    
-    hr_m = hr; 
+
+    hr_m = hr;
     getMesh().set_meshSpacing(&(hr_m[0]));
     getMesh().set_origin(mesh_org);
-    
+
     for(int i=0; i<Dim; i++)
       decomp_m[i]=decomp[i];
 
-    setBCAllPeriodic();  
+    setBCAllPeriodic();
   }
   
   inline const Mesh_t& getMesh() const { return this->getLayout().getLayout().getMesh(); }
-  
+
   inline Mesh_t& getMesh() { return this->getLayout().getLayout().getMesh(); }
-    
+
   inline const FieldLayout_t& getFieldLayout() const {
     return dynamic_cast<FieldLayout_t&>( this->getLayout().getLayout().getFieldLayout());
   }
@@ -112,12 +112,12 @@ public:
       scatterCIC();
     else
       scatterNGP();
-    
+
     /*
       now sum over all gridpoints ... a bit nasty !
 
-   
-    
+
+
     Field<double,Dim> tmpf;
     NDIndex<Dim> domain = getFieldLayout().getDomain();
 
@@ -140,7 +140,7 @@ public:
 		Q +=  tmpf.localElement(elem);
 	    }
         }
-	
+
     }
     reduce(Q,Q,OpAddAssign());
     m << "sum(qm)= " << initialQ << " sum(rho_m)= " << sum(rho_m) << endl;
@@ -152,16 +152,16 @@ public:
     bounds(this->R, rmin_m, rmax_m);
     if(fieldNotInitialized_m) {
 
-      // rescale mesh 
+      // rescale mesh
       // getMesh().set_meshSpacing(&(hr_m[0]));
-      // getMesh().set_origin( -hr_m/2.0 ); 
+      // getMesh().set_origin( -hr_m/2.0 );
       // getMesh().set_origin(Vector_t(1.0));
       rho_m.initialize(getMesh(), getFieldLayout(), GuardCellSizes<Dim>(GUARDCELL), bc_m);
       fieldNotInitialized_m=false;
     }
     this->update();
   }
-  
+
   void myUpdate() {
     bounds(this->R, rmin_m, rmax_m);
     this->update();
@@ -178,24 +178,24 @@ public:
   void savePhaseSpace(string fn, int idx) {
   }
 
-  inline void setBCAllPeriodic() {    
+  inline void setBCAllPeriodic() {
     for (int i=0; i < 2*Dim; i++) {
       this->getBConds()[i] = ParticlePeriodicBCond;
       bc_m[i]  = new PeriodicFace<double  ,Dim,Mesh_t,Center_t>(i);
       vbc_m[i] = new PeriodicFace<Vector_t,Dim,Mesh_t,Center_t>(i);
-    }  
+    }
   }
 
   void printField(Inform& m, Field<double,Dim>& f)
   {
-    NDIndex<Dim> domain = getFieldLayout().getDomain();   
+    NDIndex<Dim> domain = getFieldLayout().getDomain();
     NDIndex<Dim> loop;
-    
+
     m << "sum(rho)= "<< sum(rho_m) << endl;
-    for (int j=domain[1].min(); j<=domain[1].max(); ++j) 
-      m << "\t" << j;    
+    for (int j=domain[1].min(); j<=domain[1].max(); ++j)
+      m << "\t" << j;
     m << endl << endl;
-    
+
     for (int i=domain[0].min(); i<=domain[0].max(); ++i) {
       loop[0]=Index(i,i);
       	m << i ;
@@ -207,7 +207,7 @@ public:
     }
     m << endl;
   }
-  
+
   Field<double,Dim> rho_m;
 
 private:
@@ -229,7 +229,7 @@ private:
   BConds<Vector_t,Dim,Mesh_t,Center_t> vbc_m;
 
   Vektor<int,Dim> nr_m;
-    
+
   Vector_t hr_m;
   Vector_t rmin_m;
   Vector_t rmax_m;
@@ -265,16 +265,16 @@ int main(int argc, char *argv[]){
     myInterpol = CIC;
   else
     myInterpol = NGP;
-  
+
   msg << "Np= " << totalP << " grid = " << nr <<endl;
   msg << "0 <= x <= " << nx-1 << " 0 <= y <= " << ny-1 << endl;
-  
+
   if (myInterpol==CIC)
-    msg << "Cloud in cell (CIC) interpolation selected" << endl; 
+    msg << "Cloud in cell (CIC) interpolation selected" << endl;
   else
-    msg << "Nearest grid point (NGP) interpolation selected" << endl; 
-  
-  msg << "BC: periodic in all dimensions" << endl; 
+    msg << "Nearest grid point (NGP) interpolation selected" << endl;
+
+  msg << "BC: periodic in all dimensions" << endl;
 
   e_dim_tag decomp[Dim];
   int serialDim = Dim-1;
@@ -288,61 +288,61 @@ int main(int argc, char *argv[]){
   NDIndex<Dim> domain;
   for(int i=0; i<Dim; i++) {
     domain[i] = domain[i] = Index(nr[i] + domplus);
-    decomp[i] = (i == serialDim) ? SERIAL : PARALLEL; 
+    decomp[i] = (i == serialDim) ? SERIAL : PARALLEL;
   }
 
   // create mesh and layout objects for this problem domain
   mesh          = new Mesh_t(domain);
   FL            = new FieldLayout_t(*mesh, decomp);
   playout_t* PL = new playout_t(*FL, *mesh);
-  
+
   P = new ChargedParticles<playout_t>(PL,myInterpol,hr,decomp,mesh_org);
-  
-  P->create(totalP);  
- 
+
+  P->create(totalP);
+
   size_t k = 0;
   for (int i=0; i<nx; i++)
     for (int j=0; j<ny; j++) {
       P->R[k]  = Vector_t(i,j);
       k++;
     }
-  
+
   double q = 1.0;
   assign(P->qm,q);
   P->update();
 
   // redistribute particles based on spatial layout
-  P->myInitialUpdate(); 
-  
+  P->myInitialUpdate();
+
   msg << P->getMesh() << endl;
   msg << P->getFieldLayout() << endl;
   msg << "particles created and initial conditions assigned Q=" << sum(P->qm) << endl;
 
   size_t loc = (nx*ny) - 1;
-  
-  
-  P->scatter();     
+
+
+  P->scatter();
   P->printField(msg, P->rho_m);
-  P->myUpdate(); 
+  P->myUpdate();
 
 
   for (int n=0; n<steps; n++) {
     P->rho_m= 0.0;
     P->R[loc] += Vector_t(0.0,0.1);
     P->update();
-  
+
     k = 0;
     for (int i=0; i<nx; i++) {
       msg << endl;
       for (int j=0; j<ny; j++) {
-	msg << P->R[k] << " "; 
+	msg << P->R[k] << " ";
 	k++;
       }
     }
     msg << endl << endl;
-  
-    P->scatter();     
-    P->myUpdate(); 
+
+    P->scatter();
+    P->myUpdate();
     P->printField(msg, P->rho_m);
   }
   Ippl::Comm->barrier();
@@ -353,7 +353,7 @@ int main(int argc, char *argv[]){
 /***************************************************************************
  * $RCSfile: addheaderfooter,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:17 $
- * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $
  ***************************************************************************/
 
 
@@ -363,7 +363,7 @@ int main(int argc, char *argv[]){
       }
 
 
-  msg << "Particle at " << xi << " beign pushed by dL= " << hr[0] << endl;   
+  msg << "Particle at " << xi << " beign pushed by dL= " << hr[0] << endl;
 
   P->R[0]  = xi;
   Vector_t xf = xi;
@@ -387,4 +387,3 @@ int main(int argc, char *argv[]){
 
 
   */
-

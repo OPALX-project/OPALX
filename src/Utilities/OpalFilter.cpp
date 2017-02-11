@@ -21,6 +21,7 @@
 #include "Attributes/Attributes.h"
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Util.h"
 #include "AbsBeamline/ElementBase.h"
 
 #include "Utility/IpplInfo.h"
@@ -99,7 +100,7 @@ OpalFilter::OpalFilter(const std::string &name, OpalFilter *parent):
 
 
 OpalFilter::~OpalFilter() {
-    if(filter_m)
+    if (filter_m)
         delete filter_m;
 }
 
@@ -123,7 +124,7 @@ void OpalFilter::execute() {
 OpalFilter *OpalFilter::find(const std::string &name) {
     OpalFilter *filter = dynamic_cast<OpalFilter *>(OpalData::getInstance()->find(name));
 
-    if(filter == 0) {
+    if (filter == 0) {
         throw OpalException("OpalFilter::find()", "OpalFilter \"" + name + "\" not found.");
     }
     return filter;
@@ -132,46 +133,47 @@ OpalFilter *OpalFilter::find(const std::string &name) {
 
 void OpalFilter::update() {
     // Set default name.
-    if(getOpalName().empty()) setOpalName("UNNAMED_FILTER");
+    if (getOpalName().empty()) setOpalName("UNNAMED_FILTER");
 }
 
 
 void OpalFilter::initOpalFilter() {
-    if(filter_m == 0) {
+    if (filter_m == 0) {
         *gmsg << "* ************* F I L T E R ************************************************************" << endl;
         *gmsg << "OpalFilter::initOpalFilterfunction " << endl;
         *gmsg << "* **********************************************************************************" << endl;
 
-        if(Attributes::getString(itsAttr[TYPE]) == "Savitzky-Golay") {
+        std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
+        if (type == "SAVITZKY-GOLAY") {
             int num_points = (int)(Attributes::getReal(itsAttr[NPOINTS]));
             int num_points_left = (int)(Attributes::getReal(itsAttr[NLEFT]));
             int num_points_right = (int)(Attributes::getReal(itsAttr[NRIGHT]));
             int polynomial_order = std::abs((int)(Attributes::getReal(itsAttr[POLYORDER])));
 
             Inform svg("Savitzky-Golay: ");
-            if(num_points_left < 0) {
+            if (num_points_left < 0) {
                 svg << "Number of points to the left negative; using default (" << NLEFT_DEFAULT << ");" << endl;
                 num_points_left = NLEFT_DEFAULT;
             }
-            if(num_points_right < 0) {
+            if (num_points_right < 0) {
                 svg << "Number of points to the right negative; using default (" << NRIGHT_DEFAULT << ");" << endl;
                 num_points_right = NRIGHT_DEFAULT;
             }
-            if(num_points < num_points_left + num_points_right) {
+            if (num_points < num_points_left + num_points_right) {
                 svg << "Total number of points small than sum of the ones to the left and to the right plus 1; using default (NLEFT + NRIGHT + 1);" << endl;
                 num_points = num_points_left + num_points_right + 1;
             }
-            if(polynomial_order > num_points_left + num_points_right) {
+            if (polynomial_order > num_points_left + num_points_right) {
                 svg << "Polynomial order bigger than sum of points to the left and to the right; using default (NLEFT + NRIGHT);" << endl;
                 polynomial_order = num_points_left + num_points_right;
             }
 
             filter_m = new SavitzkyGolayFilter(num_points, num_points_left, num_points_right, polynomial_order);
-        } else if(Attributes::getString(itsAttr[TYPE]) == "FixedFFTLowPass") {
+        } else if (type == "FIXEDFFTLOWPASS") {
             filter_m = new FixedFFTLowPassFilter(std::abs((int)(Attributes::getReal(itsAttr[NFREQ]))));
-        } else if(Attributes::getString(itsAttr[TYPE]) == "RelativeFFTLowPass") {
+        } else if (type == "RELATIVEFFTLOWPASS") {
             filter_m = new RelativeFFTLowPassFilter(std::abs(Attributes::getReal(itsAttr[THRESHOLD])));
-        } else if(Attributes::getString(itsAttr[TYPE]) == "Stencil") {
+        } else if (type == "STENCIL") {
             filter_m = new IlyaPogorelovFilter();
         } else {
             filter_m = 0;

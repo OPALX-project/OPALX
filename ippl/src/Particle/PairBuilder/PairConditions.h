@@ -15,7 +15,7 @@ public:
     {
         return true;
     }
-    
+
     T getRange(unsigned dim) const { return std::numeric_limits<T>::max(); }
 };
 
@@ -25,7 +25,7 @@ class RadiusCondition
 public:
     RadiusCondition(T r) : sqradius(r*r), radius(r)
     {  }
-    
+
     template<class V>
     bool operator()(const V &a, const V &b) const
     {
@@ -36,7 +36,7 @@ public:
         }
         return sqr <= sqradius;
     }
-    
+
     //periodic version of radius condition
     template<class V, class Vec>
     bool operator()(const V &a, const V &b, const Vec &period) const
@@ -56,8 +56,8 @@ public:
          */
         return sqr <= sqradius;
     }
-    
-    
+
+
     T getRange(unsigned d) const { return radius; }
 private:
     T sqradius, radius;
@@ -69,7 +69,7 @@ class BoxCondition
 public:
     BoxCondition(T b[Dim]) : box(b)
     {  }
-    
+
     template<class V>
     bool operator()(const V &a, const V &b) const
     {
@@ -81,7 +81,7 @@ public:
         }
         return true;
     }
-    
+
     T getRange(unsigned d) const { return box[d]; }
 private:
     T box[Dim];

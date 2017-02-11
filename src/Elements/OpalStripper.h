@@ -31,13 +31,13 @@ public:
 
     /// The attributes of class OpalStripper.
     enum {
-        XSTART,           // Start of x coordinate
+        XSTART = COMMON,  // Start of x coordinate
         XEND,             // End of x coordinate
         YSTART,           // Start of y coordinate
         YEND,             // End of y coordinate
         WIDTH,            // Width of the probe
-        OPCHARGE,           // Charge number of the outcome particle
-        OPMASS,             // Mass of the outcome particle
+        OPCHARGE,         // Charge number of the outcome particle
+        OPMASS,           // Mass of the outcome particle
         OPYIELD,
         STOP,
         SIZE

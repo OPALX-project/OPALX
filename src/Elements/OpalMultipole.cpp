@@ -36,6 +36,7 @@
 #endif
 #include <vector>
 
+
 // Class OpalMultipole
 // ------------------------------------------------------------------------
 
@@ -48,8 +49,12 @@ OpalMultipole::OpalMultipole():
                 "* With zero length no synchrotron radiation can be calculated.") {
     itsAttr[KN] = Attributes::makeRealArray
                   ("KN", "Normalised multipole strengths (normal) in m^(-k)");
+    itsAttr[DKN] = Attributes::makeRealArray
+                  ("DKN", "Normalised multipole strengths errors(normal) in m^(-k)");
     itsAttr[KS] = Attributes::makeRealArray
                   ("KS", "Normalised multipole strengths (skew) in m^(-k)");
+    itsAttr[DKS] = Attributes::makeRealArray
+                  ("DKS", "Normalised multipole strength errors (skew) in m^(-k)");
 
     setElement((new MultipoleRep("MULTIPOLE"))->makeWrappers());
 }
@@ -121,6 +126,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalMultipole::update() {
+    OpalElement::update();
+
     // Magnet length.
     MultipoleRep *mult =
         dynamic_cast<MultipoleRep *>(getElement()->removeWrappers());
@@ -131,9 +138,13 @@ void OpalMultipole::update() {
     BMultipoleField field;
 
     const std::vector<double> norm = Attributes::getRealArray(itsAttr[KN]);
+    std::vector<double> normErrors = Attributes::getRealArray(itsAttr[DKN]);
     const std::vector<double> skew = Attributes::getRealArray(itsAttr[KS]);
+    std::vector<double> skewErrors = Attributes::getRealArray(itsAttr[DKS]);
     int normSize = norm.size();
     int skewSize = skew.size();
+    normErrors.resize(normSize, 0.0);
+    skewErrors.resize(skewSize, 0.0);
     double factor = OpalData::getInstance()->getP0() / Physics::c;
     int top = (normSize > skewSize) ? normSize : skewSize;
 
@@ -141,18 +152,16 @@ void OpalMultipole::update() {
         factor /= double(comp);
         if(comp <= normSize) {
             field.setNormalComponent(comp, norm[comp-1] * factor);
-            // if (comp > 1) // dipole not supported in opal-t yet
-            mult->setNormalComponent(comp, norm[comp-1]);
+            mult->setNormalComponent(comp, norm[comp-1], normErrors[comp-1]);
         }
         if(comp <= skewSize) {
             field.setSkewComponent(comp, skew[comp-1] * factor);
-            // if (comp > 1) //dipole not supported in opal-t yet
-            mult->setSkewComponent(comp, skew[comp-1]);
+            mult->setSkewComponent(comp, skew[comp-1], skewErrors[comp-1]);
         }
     }
 
     mult->setField(field);
 
-    // Transmit "unknown" attributes.
+   // Transmit "unknown" attributes.
     OpalElement::updateUnknown(mult);
 }

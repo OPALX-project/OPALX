@@ -1,27 +1,27 @@
-/* 
+/*
  *  Copyright (c) 2012, Chris Rogers
  *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without 
- *  modification, are permitted provided that the following conditions are met: 
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
  *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer. 
- *  2. Redistributions in binary form must reproduce the above copyright notice, 
- *     this list of conditions and the following disclaimer in the documentation 
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
  *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to 
- *     endorse or promote products derived from this software without specific 
+ *  3. Neither the name of STFC nor the names of its contributors may be used to
+ *     endorse or promote products derived from this software without specific
  *     prior written permission.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -63,36 +63,18 @@ const EMField &SBend3D::getField() const {
     return dummy;
 }
 
-bool SBend3D::apply(const size_t &i, const double &t, double E[], double B[]) {
-    Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
-
-    if (apply(i, t, Ev, Bv))
-        return true;
-
-    E[0] = Ev(0);
-    E[1] = Ev(1);
-    E[2] = Ev(2);
-    B[0] = Bv(0);
-    B[1] = Bv(1);
-    B[2] = Bv(2);
-
-    return false;
-}
-
 bool SBend3D::apply(const size_t &i, const double &t,
                     Vector_t &E, Vector_t &B) {
-    return apply(RefPartBunch_m->R[i], RefPartBunch_m->get_centroid(), t,
-                 E, B);
+    return apply(RefPartBunch_m->R[i], RefPartBunch_m->P[i], t, E, B);
 }
 
-bool SBend3D::apply(const Vector_t &R, const Vector_t &centroid,
-           const double &t, Vector_t &E, Vector_t &B) {
+bool SBend3D::apply(const Vector_t &R, const Vector_t &P,
+                    const double &t, Vector_t &E, Vector_t &B) {
     //std::cerr << "ROGERS SBend3D::apply " << R << " " << B << std::endl;
     return map_m->getFieldstrength(R, E, B);
 }
 
-void SBend3D::initialise(PartBunch *bunch, double &startField, double &endField,
-                const double &scaleFactor) {
+void SBend3D::initialise(PartBunch *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
 }
 
@@ -136,5 +118,3 @@ void SBend3D::setFieldMapFileName(std::string name) {
 void SBend3D::accept(BeamlineVisitor& visitor) const {
     visitor.visitSBend3D(*this);
 }
-
-

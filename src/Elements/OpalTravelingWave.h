@@ -33,8 +33,10 @@ public:
     /// The attributes of class OpalTravelingWave.
     enum {
         VOLT = COMMON,  // The peak voltage.
+        DVOLT,          // The peak voltage error
         FREQ,           // The RF frequency.
         LAG,            // The phase lag.
+        DLAG,           // The phase lag error
         HARMON,         // The harmonic number.
         BETARF,         // The beta_RF.
         PG,             // The RF power.
@@ -45,8 +47,7 @@ public:
         FAST,           // Faster but less accurate
         CAVITYTYPE,     // STANDING or TRAVELING wave structure
         NUMCELLS,       // Number of cells in a TW structure
-        DX,             // Misalignment: translation in x direction
-        DY,             // Misalignment: translation in y direction
+        DESIGNENERGY,   // The mean kinetic energy at exit
         SIZE
     };
 

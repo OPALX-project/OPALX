@@ -29,7 +29,7 @@ void Astra1D_fast::freeMap() {
         delete[] zvals_m;
         zvals_m = NULL;
 
-        INFOMSG(typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << endl);
+        INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << endl);
     }
 }
 

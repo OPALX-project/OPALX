@@ -37,9 +37,9 @@ Solenoid::Solenoid():
     filename_m(""),
     myFieldmap_m(NULL),
     scale_m(1.0),
-    ElementEdge_m(0.0),
+    scaleError_m(0.0),
     startField_m(0.0),
-    endField_m(0.0),
+    length_m(0.0),
     fast_m(false) {
     setElType(isSolenoid);
 }
@@ -50,9 +50,9 @@ Solenoid::Solenoid(const Solenoid &right):
     filename_m(right.filename_m),
     myFieldmap_m(right.myFieldmap_m),
     scale_m(right.scale_m),
-    ElementEdge_m(right.ElementEdge_m),
+    scaleError_m(right.scaleError_m),
     startField_m(right.startField_m),
-    endField_m(right.endField_m),
+    length_m(right.length_m),
     fast_m(right.fast_m) {
     setElType(isSolenoid);
 }
@@ -63,9 +63,9 @@ Solenoid::Solenoid(const std::string &name):
     filename_m(""),
     myFieldmap_m(NULL),
     scale_m(1.0),
-    ElementEdge_m(0.0),
+    scaleError_m(0.0),
     startField_m(0.0),
-    endField_m(0.0),
+    length_m(0.0),
     fast_m(false) {
     setElType(isSolenoid);
 }
@@ -103,8 +103,8 @@ void Solenoid::addKR(int i, double t, Vector_t &K) {
 
     Vector_t tmpE(0.0, 0.0, 0.0);
     Vector_t tmpB(0.0, 0.0, 0.0);
-    double pz = RefPartBunch_m->getZ(i) - startField_m - ds_m;
-    const Vector_t tmpA(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m, pz);
+    double pz = RefPartBunch_m->getZ(i) - startField_m;
+    const Vector_t tmpA(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), pz);
 
     myFieldmap_m->getFieldstrength(tmpA, tmpE, tmpB);
     double k = Physics::q_e * scale_m * tmpB(2) / (2.0 * Physics::EMASS * RefPartBunch_m->getGamma(i));
@@ -125,8 +125,8 @@ void Solenoid::addKT(int i, double t, Vector_t &K) {
     Vector_t tmpB(0.0, 0.0, 0.0);
     Vector_t tmpE_diff(0.0, 0.0, 0.0);
     Vector_t tmpB_diff(0.0, 0.0, 0.0);
-    double pz = RefPartBunch_m->getZ(i) - startField_m - ds_m;
-    const Vector_t tmpA(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m, pz);
+    double pz = RefPartBunch_m->getZ(i) - startField_m;
+    const Vector_t tmpA(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), pz);
 
     // define z direction:
     DiffDirection zdir(DZ);
@@ -149,8 +149,8 @@ void Solenoid::addKT(int i, double t, Vector_t &K) {
      *              0.0);
     */
 
-    double dx = RefPartBunch_m->getX0(i) - dx_m;
-    double dy = RefPartBunch_m->getY0(i) - dy_m;
+    double dx = RefPartBunch_m->getX0(i);
+    double dy = RefPartBunch_m->getY0(i);
 
     //FIXME: Py0, Px0?
     Vector_t temp(emg * (bz * (RefPartBunch_m->getPy0(i)) + dbdz * dy),
@@ -160,46 +160,39 @@ void Solenoid::addKT(int i, double t, Vector_t &K) {
     K += temp;
 }
 
-bool Solenoid::apply(const size_t &i, const double &t, double E[], double B[]) {
-    Vector_t Ev(0, 0, 0), Bv(0, 0, 0);
-    Vector_t Rt(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), RefPartBunch_m->getZ(i));
-    if(apply(Rt, Vector_t(0.0), t, Ev, Bv)) return true;
+bool Solenoid::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
+    return apply(RefPartBunch_m->R[i], RefPartBunch_m->P[i], t, E, B);
+}
 
-    E[0] = Ev(0);
-    E[1] = Ev(1);
-    E[2] = Ev(2);
-    B[0] = Bv(0);
-    B[1] = Bv(1);
-    B[2] = Bv(2);
+bool Solenoid::apply(const Vector_t &R, const Vector_t &P, const  double &t, Vector_t &E, Vector_t &B) {
+    const Vector_t tmpR(R(0), R(1), R(2) - startField_m);
+    Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+
+    if (tmpR(2) >= 0.0 && tmpR(2) < length_m) {
+        const bool out_of_bounds = myFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
+        if (out_of_bounds) return true;
+
+        B += (scale_m + scaleError_m) * tmpB;
+    }
 
     return false;
 }
 
-bool Solenoid::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
+bool Solenoid::applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const  double &t, Vector_t &E, Vector_t &B) {
+    const Vector_t tmpR(R(0), R(1), R(2) - startField_m);
     Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-    const Vector_t tmpR(RefPartBunch_m->getX(i) - dx_m, RefPartBunch_m->getY(i) - dy_m, RefPartBunch_m->getZ(i) - startField_m - ds_m);
 
-    if(!myFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB)) {
+    if (tmpR(2) >= 0.0 && tmpR(2) < length_m) {
+        const bool out_of_bounds = myFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
+        if (out_of_bounds) return true;
+
         B += scale_m * tmpB;
-        return false;
     }
 
-    return true;
+    return false;
 }
 
-bool Solenoid::apply(const Vector_t &R, const Vector_t &centroid, const  double &t, Vector_t &E, Vector_t &B) {
-    // why was it here R(2) - ElementEdge_m - ds_m ?
-    //     const Vector_t tmpR(R(0) - dx_m, R(1) - dy_m, R(2) - ElementEdge_m - ds_m);
-    const Vector_t tmpR(R(0) - dx_m, R(1) - dy_m, R(2) - startField_m - ds_m);
-    Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-
-    const bool out_of_bounds = myFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
-    B += scale_m * tmpB;
-
-    return out_of_bounds;
-}
-
-void Solenoid::initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor) {
+void Solenoid::initialise(PartBunch *bunch, double &startField, double &endField) {
     Inform msg("Solenoid ", *gmsg);
     double zBegin = 0.0, zEnd = 0.0, rBegin = 0.0, rEnd = 0.0;
 
@@ -210,15 +203,12 @@ void Solenoid::initialise(PartBunch *bunch, double &startField, double &endField
     if(myFieldmap_m != NULL) {
         msg << level2 << getName() << " using file ";
         myFieldmap_m->getInfo(&msg);
-        if(std::abs(dx_m) > EPS_MISALIGNMENT || std::abs(dy_m) > EPS_MISALIGNMENT || std::abs(ds_m) > EPS_MISALIGNMENT) {
-            msg << level2 << "misaligned by dx = " << dx_m << ", dy = " << dy_m << ", dz = " << ds_m << endl;
-        }
 
         myFieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
 
-        ElementEdge_m = startField;
-        startField_m = startField = ElementEdge_m + zBegin;
-        endField_m = endField = ElementEdge_m + zEnd;
+        startField_m = zBegin;
+        length_m = zEnd - zBegin;
+        endField = startField + length_m;
     } else {
         endField = startField;
     }
@@ -246,12 +236,20 @@ void Solenoid::setKS(double ks) {
     scale_m = ks;
 }
 
+void Solenoid::setDKS(double ks) {
+    scaleError_m = ks;
+}
+
 void Solenoid::getDimensions(double &zBegin, double &zEnd) const {
     zBegin = startField_m;
-    zEnd = endField_m;
+    zEnd = startField_m + length_m;
 }
 
 
 ElementBase::ElementType Solenoid::getType() const {
     return SOLENOID;
+}
+
+bool Solenoid::isInside(const Vector_t &r) const {
+    return (r(2) >= startField_m && r(2) < startField_m + length_m && isInsideTransverse(r) && myFieldmap_m->isInside(r));
 }

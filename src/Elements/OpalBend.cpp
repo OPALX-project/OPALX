@@ -48,9 +48,9 @@ OpalBend::OpalBend(const char *name, const char *help):
     itsAttr[K3S] = Attributes::makeReal
                    ("K3S", "Skew octupole coefficient in m^(-4)");
     itsAttr[E1] = Attributes::makeReal
-                  ("E1", "Entry pole face angle in rad");
+        ("E1", "Entry pole face angle in rad", 0.0);
     itsAttr[E2] = Attributes::makeReal
-                  ("E2", "Exit pole face angle in rad");
+        ("E2", "Exit pole face angle in rad", 0.0);
     itsAttr[H1] = Attributes::makeReal
                   ("H1", "Entry pole face curvature in m^(-1)");
     itsAttr[H2] = Attributes::makeReal
@@ -68,25 +68,14 @@ OpalBend::OpalBend(const char *name, const char *help):
     itsAttr[GAP] = Attributes::makeReal
                    ("GAP", "Full gap height of the magnet (m)", 0.0);
     itsAttr[HAPERT] = Attributes::makeReal
-                      ("HAPERT", "Non-bend plane magnet aperture (m)", 0.0);
+                      ("HAPERT", "Bend plane magnet aperture (m)", 0.0);
     itsAttr[ROTATION] = Attributes::makeReal
-                        ("ROTATION", "Magnet rotation about z axis in degrees");
-    itsAttr[ALPHA] = Attributes::makeReal
-                     ("ALPHA", "Pole face angle in degree");
-    itsAttr[BETA] = Attributes::makeReal
-                    ("BETA", "Pole face angle in degree");
-    itsAttr[EXITANGLE] = Attributes::makeReal
-                         ("EXITANGLE", "Angle between the entry and exit face (SBEND only)");
+                        ("ROTATION", "-- not supported any more; use PSI instead --");
     itsAttr[DESIGNENERGY] = Attributes::makeReal
-                            ("DESIGNENERGY", "the mean energy of the particles");
+                            ("DESIGNENERGY", "the mean energy of the particles in MeV");
     itsAttr[GREATERTHANPI] = Attributes::makeBool
                              ("GREATERTHANPI",
-                              "Set to true if bend angle is greater than 180 degrees",
-                              false);
-    itsAttr[DX] = Attributes::makeReal
-                  ("DX", "Misalignment in x direction", 0.0);
-    itsAttr[DY] = Attributes::makeReal
-                  ("DY", "Misalignment in y direction", 0.0);
+                              "-- not supported any more --");
 
     registerRealAttribute("ANGLE");
     registerRealAttribute("K0L");
@@ -109,12 +98,7 @@ OpalBend::OpalBend(const char *name, const char *help):
     registerRealAttribute("GAP");
     registerRealAttribute("HAPERT");
     registerRealAttribute("ROTATION");
-    registerRealAttribute("ALPHA");
-    registerRealAttribute("BETA");
-    registerRealAttribute("EXITANGLE");
     registerRealAttribute("DESIGNENERGY");
-    registerRealAttribute("DX");
-    registerRealAttribute("DY");
 }
 
 

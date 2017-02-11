@@ -30,17 +30,23 @@ extern Inform *gmsg;
 // ------------------------------------------------------------------------
 
 Attribute::Attribute():
-    base(), handler()
+    base(),
+    handler(),
+    isDefault(true)
 {}
 
 
 Attribute::Attribute(const Attribute &rhs):
-    base(rhs.base), handler(rhs.handler)
+    base(rhs.base),
+    handler(rhs.handler),
+    isDefault(rhs.isDefault)
 {}
 
 
 Attribute::Attribute(AttributeHandler *h, AttributeBase *b):
-    base(b), handler(h)
+    base(b),
+    handler(h),
+    isDefault(true)
 {}
 
 
@@ -118,21 +124,25 @@ void Attribute::setReadOnly(bool flag) {
 
 void Attribute::parse(Statement &stat, bool eval) {
     handler->parse(*this, stat, eval);
+    isDefault = false;
 }
 
 
 void Attribute::parseComponent(Statement &stat, bool eval, int index) {
     handler->parseComponent(*this, stat, eval, index);
+    isDefault = false;
 }
 
 
 void Attribute::set(AttributeBase *newBase) {
     base = newBase;
+    isDefault = false;
 }
 
 
 void Attribute::setDefault() {
     base = handler->getDefault();
+    isDefault = true;
 }
 
 

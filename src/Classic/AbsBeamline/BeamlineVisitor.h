@@ -50,6 +50,7 @@ class Offset;
 class Patch;
 class Probe;
 class RBend;
+class RBend3D;
 class RFCavity;
 class VariableRFCavity;
 class TravelingWave;
@@ -60,6 +61,7 @@ class Cyclotron;
 class Separator;
 class Septum;
 class Solenoid;
+class Source;
 class ParallelPlate;
 class CyclotronValley;
 class Stripper;
@@ -152,6 +154,9 @@ public:
     /// Apply the algorithm to a rectangular bend.
     virtual void visitRBend(const RBend &) = 0;
 
+    /// Apply the algorithm to a rectangular bend.
+    virtual void visitRBend3D(const RBend3D &);
+
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity &) = 0;
 
@@ -178,6 +183,9 @@ public:
 
     /// Apply the algorithm to a solenoid.
     virtual void visitSolenoid(const Solenoid &) = 0;
+
+    /// Apply the algorithm to a source.
+    virtual void visitSource(const Source &) = 0;
 
     /// Apply the algorithm to a Beamline.
     virtual void visitBeamline(const Beamline &) = 0;
@@ -227,5 +235,10 @@ private:
     BeamlineVisitor(const BeamlineVisitor &);
     void operator=(const BeamlineVisitor &);
 };
+
+inline
+void BeamlineVisitor::visitRBend3D(const RBend3D &) {
+
+}
 
 #endif // CLASSIC_BeamlineVisitor_HH

@@ -5,7 +5,7 @@ set (TEST_EXE opal_unit_tests)
 set (SRC_DIRS classic_src opal_src)
 
 set (CMAKE_CXX_FLAGS
-    "${OPAL_CXX_FLAGS} -DWITH_UNIT_TESTS"
+    "${IPPL_CMAKE_CXX_FLAGS} -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS} -DWITH_UNIT_TESTS"
 )
 
 set (TEST_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -51,7 +51,7 @@ INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIR}
     ${Trilinos_TPL_INCLUDE_DIRS}
     ${IPPL_SOURCE_DIRS}
     ${CCSE_INCLUDE_DIRS}
-    ${GTest_INCLUDE_DIRS}
+    ${GTEST_INCLUDE_DIR}
 )
 
 # Check to see if cmake finds the test files

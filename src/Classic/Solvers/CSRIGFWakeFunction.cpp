@@ -5,12 +5,15 @@
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/SBend.h"
 #include "Utilities/Options.h"
+#include "Utilities/Util.h"
 
 #include <iostream>
 #include <fstream>
 
+extern Inform *gmsg;
+
 CSRIGFWakeFunction::CSRIGFWakeFunction(const std::string &name, ElementBase *element, std::vector<Filter *> filters, const unsigned int &N):
-    WakeFunction(name, element),
+    WakeFunction(name, element, N),
     filters_m(filters.begin(), filters.end()),
     lineDensity_m(),
     dlineDensitydz_m(),
@@ -21,11 +24,11 @@ CSRIGFWakeFunction::CSRIGFWakeFunction(const std::string &name, ElementBase *ele
 void CSRIGFWakeFunction::apply(PartBunch &bunch) {
     Inform msg("CSRWake ");
 
-    const double &meshSpacing = bunch.getMesh().get_meshSpacing(2);
-    const Vector_t &meshOrigin = bunch.getMesh().get_origin();
-
-    calculateLineDensity(bunch, meshSpacing);
-    unsigned int numOfSlices = lineDensity_m.size();
+    std::pair<double, double> meshInfo;
+    calculateLineDensity(bunch, meshInfo);
+    const double &meshOrigin = meshInfo.first;
+    const double &meshSpacing = meshInfo.second;
+    const unsigned int numOfSlices = lineDensity_m.size();
 
     if(Ez_m.size() < numOfSlices) {
         Ez_m.resize(numOfSlices, 0.0);
@@ -35,34 +38,33 @@ void CSRIGFWakeFunction::apply(PartBunch &bunch) {
     }
 
     for(unsigned int i = 0; i < numOfSlices; ++i) {
-      Ez_m[i] = 0.0;
+        Ez_m[i] = 0.0;
     }
 
     Vector_t smin, smax;
     bunch.get_bounds(smin, smax);
-    double minPathLength = smin(2) - FieldBegin_m;
+    double minPathLength = smin(2) + bunch.get_sPos() - FieldBegin_m;
     for(unsigned int i = 1; i < numOfSlices; i++) {
-      double pathLengthOfSlice = minPathLength + i * meshSpacing;
-      double angleOfSlice = 0.0;
-      angleOfSlice = pathLengthOfSlice/bendRadius_m;
-      if (angleOfSlice > 0.0 && angleOfSlice <= totalBendAngle_m){
-        calculateGreenFunction(bunch, meshSpacing);
-      }
-      // convolute with line density
-      calculateContributionInside(i, angleOfSlice, meshSpacing);
-      calculateContributionAfter(i, angleOfSlice, meshSpacing);
-      Ez_m[i] /= 4 * Physics::pi * Physics::epsilon_0;
+        double pathLengthOfSlice = minPathLength + i * meshSpacing;
+        double angleOfSlice = 0.0;
+        angleOfSlice = pathLengthOfSlice/bendRadius_m;
+        if (angleOfSlice > 0.0 && angleOfSlice <= totalBendAngle_m){
+            calculateGreenFunction(bunch, meshSpacing);
+        }
+        // convolute with line density
+        calculateContributionInside(i, angleOfSlice, meshSpacing);
+        calculateContributionAfter(i, angleOfSlice, meshSpacing);
+        Ez_m[i] /= 4 * Physics::pi * Physics::epsilon_0;
     }
 
     // calculate the wake field seen by the particles
     for(unsigned int i = 0; i < bunch.getLocalNum(); ++i) {
         const Vector_t &R = bunch.R[i];
-        unsigned int indexz = (unsigned int)floor((R(2) - meshOrigin(2)) / meshSpacing);
-        double leverz = (R(2) - meshOrigin(2)) / meshSpacing - indexz;
-        if(indexz < numOfSlices - 1)
-          bunch.Ef[i](2) += (1. - leverz) * Ez_m[indexz] + leverz * Ez_m[indexz + 1];
-        else
-          bunch.Ef[i](2) += Ez_m[numOfSlices-1];
+        unsigned int indexz = (unsigned int)floor((R(2) - meshOrigin) / meshSpacing);
+        double leverz = (R(2) - meshOrigin) / meshSpacing - indexz;
+        PAssert(indexz < numOfSlices - 1);
+
+        bunch.Ef[i](2) += (1. - leverz) * Ez_m[indexz] + leverz * Ez_m[indexz + 1];
     }
 
     if(Options::csrDump) {
@@ -78,17 +80,17 @@ void CSRIGFWakeFunction::apply(PartBunch &bunch) {
             if(counter == 0) file_number = 0;
 	    double spos = bunch.get_sPos();
 	    if (Ippl::myNode() == 0) {
-	      std::stringstream filename_str;
-	      filename_str << "data/" << bendName_m << "-CSRWake" << file_number << ".txt";
-	      std::ofstream csr(filename_str.str().c_str());
-	      csr << spos << ", " << FieldBegin_m << ", " << smin(2) << ", " << smax(2) << ", " << meshSpacing*64 << std::endl;
-	      for(unsigned int i = 0; i < lineDensity_m.size(); ++ i) {
-                csr << i *meshSpacing << "\t"
-                    << Ez_m[i] << "\t"
-                    << lineDensity_m[i] << std::endl;
-	      }
-	      csr.close();
-	      msg << "** wrote " << filename_str.str() << endl;
+                std::stringstream filename_str;
+                filename_str << "data/" << bendName_m << "-CSRWake" << file_number << ".txt";
+                std::ofstream csr(filename_str.str().c_str());
+                csr << spos << ", " << FieldBegin_m << ", " << smin(2) << ", " << smax(2) << ", " << meshSpacing*64 << std::endl;
+                for(unsigned int i = 0; i < lineDensity_m.size(); ++ i) {
+                    csr << i *meshSpacing << "\t"
+                        << Ez_m[i] << "\t"
+                        << lineDensity_m[i] << std::endl;
+                }
+                csr.close();
+                msg << "** wrote " << filename_str.str() << endl;
 	    }
             ++ file_number;
         }
@@ -99,43 +101,47 @@ void CSRIGFWakeFunction::apply(PartBunch &bunch) {
 
 void CSRIGFWakeFunction::initialize(const ElementBase *ref) {
     double End;
-    if(dynamic_cast<const RBend *>(ref)) {
-        const RBend *bend = dynamic_cast<const RBend *>(ref);
-        bendRadius_m = bend->GetBendRadius();
+    if(ref->getType() == ElementBase::RBEND ||
+       ref->getType() == ElementBase::SBEND) {
+
+        const Bend *bend = static_cast<const Bend *>(ref);
+        // const RBend *bend = dynamic_cast<const RBend *>(ref);
+        bendRadius_m = bend->getBendRadius();
         bend->getDimensions(Begin_m, End);
-        Length_m = bend->GetEffectiveLength();
-        FieldBegin_m = bend->GetEffectiveCenter() - Length_m / 2.0;
-        totalBendAngle_m = std::abs(bend->GetBendAngle());
+        Length_m = bend->getEffectiveLength();
+        FieldBegin_m = bend->getEffectiveCenter() - Length_m / 2.0;
+        totalBendAngle_m = std::abs(bend->getBendAngle());
         bendName_m = bend->getName();
-    } else if(dynamic_cast<const SBend *>(ref)) {
-        const SBend *bend = dynamic_cast<const SBend *>(ref);
-        bendRadius_m = bend->GetBendRadius();
-        bend->getDimensions(Begin_m, End);
-        Length_m = bend->GetEffectiveLength();
-        FieldBegin_m = bend->GetEffectiveCenter() - Length_m / 2.0;
-        totalBendAngle_m = bend->GetBendAngle();
-        bendName_m = bend->getName();
+
+    // } else if(dynamic_cast<const SBend *>(ref)) {
+    //     const SBend *bend = dynamic_cast<const SBend *>(ref);
+    //     bendRadius_m = bend->getBendRadius();
+    //     bend->getDimensions(Begin_m, End);
+    //     Length_m = bend->getEffectiveLength();
+    //     FieldBegin_m = bend->getEffectiveCenter() - Length_m / 2.0;
+    //     totalBendAngle_m = bend->getBendAngle();
+    //     bendName_m = bend->getName();
     }
+
+    *gmsg << level1 << __DBGMSG__ << "\t" << getName() << "\t" << bendName_m << endl;
 }
 
-void CSRIGFWakeFunction::calculateLineDensity(PartBunch &bunch, double meshSpacing) {
-    bunch.calcLineDensity();
-    bunch.getLineDensity(lineDensity_m);
+void CSRIGFWakeFunction::calculateLineDensity(PartBunch &bunch, std::pair<double, double> &meshInfo) {
+    bunch.calcLineDensity(nBins_m, lineDensity_m, meshInfo);
 
-// the following is only needed for after dipole
+    // the following is only needed for after dipole
     std::vector<Filter *>::const_iterator fit;
     for(fit = filters_m.begin(); fit != filters_m.end(); ++ fit) {
         (*fit)->apply(lineDensity_m);
     }
     dlineDensitydz_m.assign(lineDensity_m.begin(), lineDensity_m.end());
-    filters_m.back()->calc_derivative(dlineDensitydz_m, meshSpacing);
-
+    filters_m.back()->calc_derivative(dlineDensitydz_m, meshInfo.second);
 }
 
 void CSRIGFWakeFunction::calculateGreenFunction(PartBunch &bunch, double meshSpacing)
 {
     unsigned int numOfSlices = lineDensity_m.size();
-    double gamma = bunch.get_meanEnergy()/(bunch.getM()*1e-6)+1.0;
+    double gamma = bunch.get_meanKineticEnergy()/(bunch.getM()*1e-6)+1.0;
     double xmu_const = 3.0 * gamma * gamma * gamma / (2.0 * bendRadius_m);
     double chi_const = 9.0 / 16.0 * (6.0 - log(27.0 / 4.0));
 
@@ -145,16 +151,16 @@ void CSRIGFWakeFunction::calculateGreenFunction(PartBunch &bunch, double meshSpa
         double xmu = xmu_const * z;
         double b = sqrt(xmu * xmu + 1.0) + xmu;
         if(xmu < 1e-3)
-          Chi_m[i] = chi_const + 0.5 * pow(xmu, 2) - 7.0 / 54.0 * pow(xmu, 4) + 140.0 / 2187.0 * pow(xmu, 6);
+            Chi_m[i] = chi_const + 0.5 * pow(xmu, 2) - 7.0 / 54.0 * pow(xmu, 4) + 140.0 / 2187.0 * pow(xmu, 6);
         else
-          Chi_m[i] = 9.0 / 16.0 * (3.0 * (-2.0 * xmu * pow(b, 1.0/3.0) + pow(b, 2.0/3.0) + pow(b, 4.0/3.0)) +
-                     log(pow((1 - pow(b, 2.0 / 3.0)) / xmu, 2) / (1 + pow(b, 2.0 / 3.0) + pow(b, 4.0 / 3.0))));
+            Chi_m[i] = 9.0 / 16.0 * (3.0 * (-2.0 * xmu * pow(b, 1.0/3.0) + pow(b, 2.0/3.0) + pow(b, 4.0/3.0)) +
+                                     log(pow((1 - pow(b, 2.0 / 3.0)) / xmu, 2) / (1 + pow(b, 2.0 / 3.0) + pow(b, 4.0 / 3.0))));
     }
     double grn_const = -16.0/(27.0 * gamma * gamma * meshSpacing);
     Grn_m[0] = grn_const * (Chi_m[1] - Chi_m[0]);
     Grn_m[numOfSlices - 1] = 0.0;
     for(unsigned int i = 1; i < numOfSlices - 1; ++i) {
-      Grn_m[i] = grn_const * (Chi_m[i + 1] - 2.0 * Chi_m[i] + Chi_m[i - 1]);
+        Grn_m[i] = grn_const * (Chi_m[i + 1] - 2.0 * Chi_m[i] + Chi_m[i - 1]);
     }
 }
 
@@ -163,7 +169,7 @@ void CSRIGFWakeFunction::calculateContributionInside(size_t sliceNumber, double 
     if(angleOfSlice > totalBendAngle_m || angleOfSlice < 0.0) return;
     int startSliceNum = 0;
     for(int j = sliceNumber; j >= startSliceNum; j--)
-      Ez_m[sliceNumber] += lineDensity_m[j] * Grn_m[sliceNumber - j];
+        Ez_m[sliceNumber] += lineDensity_m[j] * Grn_m[sliceNumber - j];
 }
 
 void CSRIGFWakeFunction::calculateContributionAfter(size_t sliceNumber, double angleOfSlice, double meshSpacing) {

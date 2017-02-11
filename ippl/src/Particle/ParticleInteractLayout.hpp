@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -40,9 +40,9 @@
 // constructor, from a FieldLayout
 template < class T, unsigned Dim, class Mesh >
 ParticleInteractLayout<T,Dim,Mesh>::ParticleInteractLayout(FieldLayout<Dim>&
-							   fl) 
+							   fl)
   : ParticleSpatialLayout<T,Dim,Mesh>(fl) {
-  setup();			// perform necessary setup 
+  setup();			// perform necessary setup
 }
 
 
@@ -52,7 +52,7 @@ template < class T, unsigned Dim, class Mesh >
 ParticleInteractLayout<T,Dim,Mesh>::ParticleInteractLayout(FieldLayout<Dim>&
 							   fl, Mesh& mesh)
   : ParticleSpatialLayout<T,Dim,Mesh>(fl,mesh) {
-  setup();			// perform necessary setup 
+  setup();			// perform necessary setup
 }
 
 
@@ -61,7 +61,7 @@ ParticleInteractLayout<T,Dim,Mesh>::ParticleInteractLayout(FieldLayout<Dim>&
 template < class T, unsigned Dim, class Mesh >
 ParticleInteractLayout<T,Dim,Mesh>::ParticleInteractLayout(const
   RegionLayout<T,Dim,Mesh>& rl) : ParticleSpatialLayout<T,Dim,Mesh>(rl) {
-  setup();			// perform necessary setup 
+  setup();			// perform necessary setup
 }
 
 
@@ -71,7 +71,7 @@ ParticleInteractLayout<T,Dim,Mesh>::ParticleInteractLayout(const
 template < class T, unsigned Dim, class Mesh >
 ParticleInteractLayout<T,Dim,Mesh>::ParticleInteractLayout()
   : ParticleSpatialLayout<T,Dim,Mesh>() {
-  setup();			// perform necessary setup 
+  setup();			// perform necessary setup
 }
 
 
@@ -434,7 +434,7 @@ void ParticleInteractLayout<T,Dim,Mesh>::update(
   // local field space.  This is done in several passes, one for each
   // spatial dimension.  The NodeCount values are updated by this routine.
   if (N > 1 && getUpdateFlag(this->SWAP)) {
-    if (canSwap==0) 
+    if (canSwap==0)
       LocalNum = swap_particles(LocalNum, PData);
     else
       LocalNum = swap_particles(LocalNum, PData, *canSwap);
@@ -458,7 +458,7 @@ void ParticleInteractLayout<T,Dim,Mesh>::update(
 
       // put local particle count in the message
       msg->put(LocalNum);
-      
+
       // also put in our maximum interaction radius
       msg->put(maxrad);
 
@@ -540,12 +540,12 @@ void ParticleInteractLayout<T,Dim,Mesh>::update(
 
 /////////////////////////////////////////////////////////////////////
 // copy particles to other nodes for pairlist computation.  The arguments
-// are the current number of local particles, and the IpplParticleBase object.
+// are the current number of local particles, and the ParticleBase object.
 // Make sure not to send any particles to, or receive particles from,
 // nodes which have no particles on them.  This also takes care of
 // building the pairlists.
 template < class T, unsigned Dim, class Mesh >
-void ParticleInteractLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned 
+void ParticleInteractLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
 							      LocalNum,
    IpplParticleBase< ParticleInteractLayout<T,Dim,Mesh> >& PData) {
 
@@ -591,20 +591,20 @@ void ParticleInteractLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
   for (i=0; i < N; i++)
     if (InterNodeList[i] && this->NodeCount[i] > 0)
       this->SwapMsgList[i] = new Message;
-  
+
   // Go through the particles, find those with interaction radius
   // which overlaps with a neighboring left node, and copy into a message.
   // The interaction radius used to check for whether to send the particle
   // is (max inter. radius of system)*2.
-  
-  
+
+
   //  for (i=0; i < LocalNum; ++i) {
-  
+
   // initialize the flags which indicate which node the particle will be
   // sent to
-  
+
   // ada    memset((void *)SentToNodeList, 0, N * sizeof(bool));
-  
+
   // get the position of the ith particle, and form an NDRegion which
   // is a cube with sides of length twice the interaction radius
   // ada    for (j=0; j < Dim; ++j)
@@ -617,7 +617,7 @@ void ParticleInteractLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
   // ada   for ( ; tVNit != touchingVN.second; ++tVNit) {
   // ada   Rnode<T,Dim> *tVN = (*tVNit).second;
   // ada  unsigned node = tVN->getNode();
-  
+
   // the node has been found - copy particle data into a message,
   // ada  if (this->NodeCount[node] > 0 && ! SentToNodeList[node]) {
   // ada	if (! InterNodeList[node]) {
@@ -631,10 +631,10 @@ void ParticleInteractLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
   //      }
   //    }
   //  }
-  
+
   // send out messages with ghost particles
 
-  /* 
+  /*
      ada: buggy     BUGGY node hangs in later receive_block
 
   int tag = Ippl::Comm->next_tag(P_SPATIAL_GHOST_TAG, P_LAYOUT_CYCLE);
@@ -651,7 +651,7 @@ void ParticleInteractLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
 
   // while we're waiting for messages to arrive, calculate our local pairs
   find_pairs(LocalNum, 0, LocalNum, true, PData);
-  
+
   // receive ghost particles from other nodes, and add them to our list
 
   /*
@@ -662,7 +662,7 @@ void ParticleInteractLayout<T,Dim,Mesh>::swap_ghost_particles(unsigned
 
     while (PData.ghostGetMessage(*recmsg, node) > 0);
     delete recmsg;
-    
+
     // find pairs with these ghost particles
     find_pairs(LocalNum, LocalNum + oldGN, LocalNum + PData.getGhostNum(),
     false, PData);
@@ -948,7 +948,7 @@ void ParticleInteractLayout<T,Dim,Mesh>::find_pairs(const unsigned LocalNum,
       // add interaction radius of this particle
       T intrad2 = intrad1 + getInteractionRadius(j);
       intrad2 *= intrad2;	// (intrad1 + intrad2)^2
- 
+
       // find distance^2 between these two particles
       Vektor<T,Dim> rsep = PData.R[j];
       rsep -= PData.R[i];
@@ -968,7 +968,7 @@ void ParticleInteractLayout<T,Dim,Mesh>::find_pairs(const unsigned LocalNum,
       // get interaction radius of this particle
       T intrad2 = intrad1 + getInteractionRadius(j);
       intrad2 *= intrad2;	// (intrad1 + intrad2)^2
- 
+
       // find distance^2 between these two particles
       Vektor<T,Dim> rsep = PData.R[j];
       rsep -= PData.R[i];
@@ -1024,5 +1024,5 @@ void ParticleInteractLayout<T,Dim,Mesh>::Repartition(UserList* userlist) {
 /***************************************************************************
  * $RCSfile: ParticleInteractLayout.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:29 $
- * IPPL_VERSION_ID: $Id: ParticleInteractLayout.cpp,v 1.1.1.1 2003/01/23 07:40:29 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: ParticleInteractLayout.cpp,v 1.1.1.1 2003/01/23 07:40:29 adelmann Exp $
  ***************************************************************************/

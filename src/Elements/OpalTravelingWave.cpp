@@ -32,11 +32,15 @@ OpalTravelingWave::OpalTravelingWave():
                 "The \"TRAVELINGWAVE\" element defines a traveling wave structure."),
     owk_m(NULL) {
     itsAttr[VOLT] = Attributes::makeReal
-                    ("VOLT", "RF voltage in MV");
+                    ("VOLT", "RF voltage in MV/m");
+    itsAttr[DVOLT] = Attributes::makeReal
+                     ("DVOLT", "RF voltage error in MV/m");
     itsAttr[FREQ] = Attributes::makeReal
                     ("FREQ", "RF frequency in MHz");
     itsAttr[LAG] = Attributes::makeReal
-                   ("LAG", "Phase lag, in multiples of (2*pi)");
+                   ("LAG", "Phase lag in rad");
+    itsAttr[DLAG] = Attributes::makeReal
+                    ("DLAG", "Phase lag error in rad");
     itsAttr[HARMON] = Attributes::makeReal
                       ("HARMON", "Harmonic number");
     itsAttr[BETARF] = Attributes::makeReal
@@ -57,19 +61,18 @@ OpalTravelingWave::OpalTravelingWave():
                           ("CAVITYTYPE", "STANDING or TRAVELING wave cavity in photoinjector and LINAC; SINGLEGAP or DOUBLEGAP cavity in cyclotron");
     itsAttr[NUMCELLS] = Attributes::makeReal
                         ("NUMCELLS", "Number of cells in a TW structure");
-    itsAttr[DX] = Attributes::makeReal
-      ("DX", "Misalignment in x direction",0.0);
-    itsAttr[DY] = Attributes::makeReal
-      ("DY", "Misalignment in y direction",0.0);
+    itsAttr[DESIGNENERGY] = Attributes::makeReal
+                            ("DESIGNENERGY", "the mean energy of the particles at exit", -1.0);
 
     registerRealAttribute("VOLT");
+    registerRealAttribute("DVOLT");
     registerRealAttribute("FREQ");
     registerRealAttribute("LAG");
+    registerRealAttribute("DLAG");
     registerStringAttribute("FMAPFN");
     registerStringAttribute("CAVITYTYPE");
     registerRealAttribute("NUMCELLS");
-    registerRealAttribute("DX");
-    registerRealAttribute("DY");
+    registerRealAttribute("DESIGNENERGY");
 
     setElement((new TravelingWaveRep("TRAVELINGWAVE"))->makeAlignWrapper());
 }
@@ -101,35 +104,35 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
         const TravelingWaveRep *rfc =
             dynamic_cast<const TravelingWaveRep *>(base.removeWrappers());
         attributeRegistry["VOLT"]->setReal(rfc->getAmplitude());
+        attributeRegistry["DVOLT"]->setReal(rfc->getAmplitudeError());
         attributeRegistry["FREQ"]->setReal(rfc->getFrequency());
         attributeRegistry["LAG"]->setReal(rfc->getPhase());
+        attributeRegistry["DLAG"]->setReal(rfc->getPhaseError());
         attributeRegistry["FMAPFN"]->setString(rfc->getFieldMapFN());
-        double dx, dy, dz;
-        rfc->getMisalignment(dx, dy, dz);
-        attributeRegistry["DX"]->setReal(dx);
-        attributeRegistry["DY"]->setReal(dy);
     }
 }
 
 
 void OpalTravelingWave::update() {
     using Physics::two_pi;
+
+    OpalElement::update();
+
     TravelingWaveRep *rfc =
         dynamic_cast<TravelingWaveRep *>(getElement()->removeWrappers());
 
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double vPeak  = Attributes::getReal(itsAttr[VOLT]);
+    double vPeakError  = Attributes::getReal(itsAttr[DVOLT]);
     double phase  = Attributes::getReal(itsAttr[LAG]);
+    double phaseError  = Attributes::getReal(itsAttr[DLAG]);
     double freq   = (1.0e6 * two_pi) * Attributes::getReal(itsAttr[FREQ]);
     std::string fmapfm = Attributes::getString(itsAttr[FMAPFN]);
     bool fast = Attributes::getBool(itsAttr[FAST]);
     bool apVeto = Attributes::getBool(itsAttr[APVETO]);
 
     std::string type = Attributes::getString(itsAttr[TYPE]);
-    double dx = Attributes::getReal(itsAttr[DX]);
-    double dy = Attributes::getReal(itsAttr[DY]);
-
-    rfc->setMisalignment(dx, dy, 0.0);
+    double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
 
     rfc->setElementLength(length);
     rfc->setAmplitude(1.0e6 * vPeak);
@@ -140,15 +143,20 @@ void OpalTravelingWave::update() {
     rfc->setFast(fast);
     rfc->setAutophaseVeto(apVeto);
     rfc->setAmplitudem(vPeak);
+    rfc->setAmplitudeError(vPeakError);
     rfc->setFrequencym(freq);
     rfc->setPhasem(phase);
+    rfc->setPhaseError(phaseError);
     rfc->setNumCells((int)Attributes::getReal(itsAttr[NUMCELLS]));
+
+    rfc->setDesignEnergy(kineticEnergy);
 
     if(itsAttr[WAKEF] && owk_m == NULL) {
         owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
         owk_m->initWakefunction(*rfc);
         rfc->setWake(owk_m->wf_m);
     }
+
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(rfc);
 }

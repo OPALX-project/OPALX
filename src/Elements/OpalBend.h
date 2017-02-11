@@ -46,14 +46,9 @@ public:
         GAP,              // Full gap of magnet.
         HAPERT,           // Horizontal aperture of magnet.
         ROTATION,         // Magnet rotation about z axis.
-        ALPHA,            // The edge angle 1
-        BETA,             // The edge angle 2
         DESIGNENERGY,     // the design energy of the particles
-        EXITANGLE,        // the relative angle between the entry and the exit face
         GREATERTHANPI,    // Boolean flag set to true if bend angle is greater
         // than 180 degrees.
-        DX,             // Misalignment: translation in x direction
-        DY,             // Misalignment: translation in y direction
         SIZE              // Total number of attributes.
     };
 

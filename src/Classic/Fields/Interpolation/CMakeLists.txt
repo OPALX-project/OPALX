@@ -17,4 +17,22 @@ include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_sources(${_SRCS})
+ADD_OPAL_SOURCES(${_SRCS})
+
+set (HDRS
+    Interpolator3dGridTo1d.h
+    Interpolator3dGridTo3d.h
+    Mesh.h
+    MMatrix.h
+    MVector.h
+    PolynomialCoefficient.h
+    PolynomialPatch.h
+    PPSolveFactory.h
+    SolveFactory.h
+    SquarePolynomialVector.h
+    ThreeDGrid.h
+    TriLinearInterpolator.h
+    VectorMap.h
+)
+
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Interpolation")

@@ -33,9 +33,9 @@ public:
     /// The attributes of class OpalQuadrupole.
     enum {
         K1 = COMMON,  // The normal quadrupole coefficient.
+        DK1,          // The normal quadupole coefficient error.
         K1S,          // The skew quadrupole coefficient.
-	DX,             // Misalignment: translation in x direction
-        DY,             // Misalignment: translation in y direction
+        DK1S,         // The skew quadrupole coefficient error.
         SIZE
     };
 

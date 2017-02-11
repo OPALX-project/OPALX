@@ -17,6 +17,7 @@ SET (_SRCS
   RNGXDiv.cpp
   RNGXCI.cpp
   RandomNumberGen.cpp
+  StaticIpplInfo.cpp
   Timer.cpp
   Unique.cpp
   User.cpp
@@ -72,6 +73,7 @@ SET (_HDRS
   RNGXCI.h
   RNGXDiv.h
   SequenceGen.h
+  StaticIpplInfo.h
   Timer.h
   Unique.h
   User.h
@@ -85,7 +87,7 @@ INCLUDE_DIRECTORIES (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-ADD_SOURCES (${_SRCS})
-ADD_HEADERS (${_HDRS})
+ADD_IPPL_SOURCES (${_SRCS})
+ADD_IPPL_HEADERS (${_HDRS})
 
 INSTALL (FILES ${_HDRS} DESTINATION include/Utility)

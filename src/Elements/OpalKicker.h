@@ -35,6 +35,9 @@ public:
     enum {
         HKICK = COMMON,  // The horizontal kicker strength.
         VKICK,           // The vertical kicker strength.
+        DESIGNENERGY,    // The mean kinetic energy at exit
+        K0,              // The normal dipole field
+        K0S,             // The skew dipole field
         SIZE
     };
 

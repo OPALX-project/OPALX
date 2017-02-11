@@ -20,12 +20,14 @@
 #include "Attributes/Attributes.h"
 #include "Parser/FileStream.h"
 #include "Utilities/Options.h"
-#include "Utilities/Options.h"
-#include "Utilities/Random.h"
+#include "Utilities/ClassicRandom.h"
+#include "Utility/IpplInfo.h"
+
 #include <ctime>
 #include <iostream>
 #include <limits>
 #include <cstddef>
+
 extern Inform *gmsg;
 
 using namespace Options;
@@ -65,13 +67,14 @@ namespace {
         NLHS,
         CZERO,
         RNGTYPE,
-        SCHOTTKYCORR,
-        SCHOTTKYRENO,
         ENABLEHDF5,
         ASCIIDUMP,
         BOUNDPDESTROYFQ,
 	BEAMHALOBOUNDARY,
-	CLOTUNEONLY,
+        CLOTUNEONLY,
+        IDEALIZED,
+        LOGBENDTRAJECTORY,
+        VERSION,
         SIZE
     };
 }
@@ -80,37 +83,54 @@ namespace {
 Option::Option():
     Action(SIZE, "OPTION",
            "The \"OPTION\" statement defines OPAL execution options.") {
+
     itsAttr[ECHO] = Attributes::makeBool
                     ("ECHO", "If true, give echo of input", echo);
+
     itsAttr[INFO] = Attributes::makeBool
                     ("INFO", "If true, print information messages", info);
+
     itsAttr[TRACE] = Attributes::makeBool
                      ("TRACE", "If true, print execution trace", mtrace);
+
     itsAttr[VERIFY] = Attributes::makeBool
                       ("VERIFY", "If true, print warnings about assumptions", verify);
+
     itsAttr[WARN] = Attributes::makeBool
                     ("WARN", "If true, print warning messages", warn);
+
     itsAttr[SEED] = Attributes::makeReal
                     ("SEED", "The seed for the random generator, -1 will use time(0) as seed ");
+
     itsAttr[TELL] = Attributes::makeBool
                     ("TELL", "If true, print the current settings", false);
+
     itsAttr[PSDUMPFREQ] = Attributes::makeReal
                           ("PSDUMPFREQ", "The frequency to dump the phase space, i.e.dump data when step%psDumpFreq==0, its default value is 10.");
+
     itsAttr[STATDUMPFREQ] = Attributes::makeReal
                             ("STATDUMPFREQ", "The frequency to dump statistical data (e.g. RMS beam quantities), i.e. dump data when step%statDumpFreq == 0, its default value is 10.");
+
     itsAttr[PSDUMPEACHTURN] = Attributes::makeBool
                               ("PSDUMPEACHTURN", "If true, dump phase space after each turn ,only aviable for OPAL-cycl, its default value is false");
+
     itsAttr[SCSOLVEFREQ] = Attributes::makeReal
                            ("SCSOLVEFREQ", "The frequency to solve space charge fields. its default value is 1");
+
     itsAttr[MTSSUBSTEPS] = Attributes::makeReal("MTSSUBSTEPS", "How many small timesteps are inside the large timestep used in multiple time stepping (MTS) integrator");
+
     itsAttr[REMOTEPARTDEL] = Attributes::makeReal
       ("REMOTEPARTDEL", "Artifically delete the remote particle if its distance to the beam mass is larger than REMOTEPARTDEL times of the beam rms size, its default values is 0 (no delete) ",0.0);
+
     itsAttr[PSDUMPLOCALFRAME] = Attributes::makeBool
                                 ("PSDUMPLOCALFRAME", "If true, in local Cartesian frame, otherwise in global Cartesian frame, only aviable for OPAL-cycl, its default value is false");
+
     itsAttr[SPTDUMPFREQ] = Attributes::makeReal
                            ("SPTDUMPFREQ", "The frequency to dump single particle trajectory of particles with ID = 0 & 1, its default value is 1. ");
+
     itsAttr[REPARTFREQ] = Attributes::makeReal
                           ("REPARTFREQ", "The frequency to do particles repartition for better load balance between nodes,its default value is 10. ");
+
     itsAttr[REBINFREQ] = Attributes::makeReal
                          ("REBINFREQ", "The frequency to reset energy bin ID for all particles, its default value is 100. ");
 
@@ -131,6 +151,7 @@ Option::Option():
 
     itsAttr[PPDEBUG] = Attributes::makeBool
                        ("PPDEBUG", "If true, use special initial velocity distribution for parallel plate and print special debug output", ppdebug);
+
     itsAttr[SURFDUMPFREQ] =  Attributes::makeReal
                              ("SURFDUMPFREQ", "The frequency to dump surface-partcle interaction data, its default value is -1 (no dump). ");
 
@@ -140,15 +161,9 @@ Option::Option():
     itsAttr[RNGTYPE] =  Attributes::makeString
                         ("RNGTYPE", "RANDOM (default), Quasi-random number gernerators: HALTON, SOBOL, NIEDERREITER (Gsl ref manual 18.5)", rngtype);
 
-    itsAttr[SCHOTTKYCORR] =  Attributes::makeBool
-                                   ("SCHOTTKYCORR", "If set to true a Schottky correction to the charge is applied ", schottkyCorrection);
 
     itsAttr[CLOTUNEONLY] =  Attributes::makeBool
                                    ("CLOTUNEONLY", "If set to true stop after CLO and tune calculation ", cloTuneOnly);
-
-    itsAttr[SCHOTTKYRENO] =  Attributes::makeReal
-                                         ("SCHOTTKYRENO", "IF set to a value greater than 0.0 the Schottky correction scan is disabled and the value is used for charge renormalization ", schottkyRennormalization);
-
 
     itsAttr[NUMBLOCKS] = Attributes::makeReal
                           ("NUMBLOCKS", "Maximum number of vectors in the Krylov space (for RCGSolMgr). Default value is 0 and BlockCGSolMgr will be used.");
@@ -167,7 +182,16 @@ Option::Option():
       ("BOUNDPDESTROYFQ", "The frequency to do boundp_destroy to delete lost particles. Default 10",10.0);
 
     itsAttr[BEAMHALOBOUNDARY] = Attributes::makeReal
-      ("BEAMHALOBOUNDARY", "Defines in therms of sigma where the halo starts Default 0.0",0.0);
+      ("BEAMHALOBOUNDARY", "Defines in therms of sigma where the halo starts. Default 0.0",0.0);
+
+    itsAttr[IDEALIZED] = Attributes::makeBool
+        ("IDEALIZED", "Using the hard edge model for the calculation of path length. Default: false", false);
+
+    itsAttr[LOGBENDTRAJECTORY] = Attributes::makeBool
+        ("LOGBENDTRAJECTORY", "Writing the trajectory of every bend to disk. Default: false", false);
+
+    itsAttr[VERSION] = Attributes::makeReal
+        ("VERSION", "Version of OPAL for which input file was written", 10000);
 
     FileStream::setEcho(echo);
     rangen.init55(seed);
@@ -200,17 +224,18 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setBool(itsAttr[PPDEBUG], ppdebug);
     Attributes::setReal(itsAttr[SURFDUMPFREQ], surfDumpFreq);
     Attributes::setBool(itsAttr[CZERO], cZero);
-    Attributes::setBool(itsAttr[SCHOTTKYCORR], schottkyCorrection);
     Attributes::setBool(itsAttr[CLOTUNEONLY], cloTuneOnly);
     Attributes::setString(itsAttr[RNGTYPE], std::string(rngtype));
-    Attributes::setReal(itsAttr[SCHOTTKYRENO], schottkyRennormalization);
     Attributes::setReal(itsAttr[NUMBLOCKS], numBlocks);
     Attributes::setReal(itsAttr[RECYCLEBLOCKS], recycleBlocks);
     Attributes::setReal(itsAttr[NLHS], nLHS);
     Attributes::setBool(itsAttr[ENABLEHDF5], enableHDF5);
     Attributes::setBool(itsAttr[ASCIIDUMP], asciidump);
-    Attributes::setReal(itsAttr[BOUNDPDESTROYFQ], 10);
-    Attributes::setReal(itsAttr[BEAMHALOBOUNDARY], 0);
+    Attributes::setReal(itsAttr[BOUNDPDESTROYFQ], boundpDestroyFreq);
+    Attributes::setReal(itsAttr[BEAMHALOBOUNDARY], beamHaloBoundary);
+    Attributes::setBool(itsAttr[IDEALIZED], idealized);
+    Attributes::setBool(itsAttr[LOGBENDTRAJECTORY], writeBendTrajectories);
+    Attributes::setReal(itsAttr[VERSION], version);
 }
 
 
@@ -238,6 +263,10 @@ void Option::execute() {
     csrDump = Attributes::getBool(itsAttr[CSRDUMP]);
     ppdebug = Attributes::getBool(itsAttr[PPDEBUG]);
     enableHDF5 = Attributes::getBool(itsAttr[ENABLEHDF5]);
+    version = Attributes::getReal(itsAttr[VERSION]);
+
+    IpplInfo::Info->on(info);
+    IpplInfo::Warn->on(warn);
 
     if(itsAttr[ASCIIDUMP]) {
         asciidump = Attributes::getBool(itsAttr[ASCIIDUMP]);
@@ -312,18 +341,6 @@ void Option::execute() {
         cZero = bool(Attributes::getBool(itsAttr[CZERO]));
     }
 
-    if(itsAttr[SCHOTTKYCORR]) {
-        schottkyCorrection = bool(Attributes::getBool(itsAttr[SCHOTTKYCORR]));
-    } else {
-        schottkyCorrection = false;
-    }
-
-    if(itsAttr[SCHOTTKYRENO]) {
-        schottkyRennormalization = double(Attributes::getReal(itsAttr[SCHOTTKYRENO]));
-    } else {
-        schottkyRennormalization = -1.0;
-    }
-
     if(itsAttr[RNGTYPE]) {
         rngtype = std::string(Attributes::getString(itsAttr[RNGTYPE]));
     } else {
@@ -337,6 +354,10 @@ void Option::execute() {
         beamHaloBoundary = 0;
     }
 
+    idealized = Attributes::getBool(itsAttr[IDEALIZED]);
+
+    writeBendTrajectories = Attributes::getBool(itsAttr[LOGBENDTRAJECTORY]);
+
     if(itsAttr[CLOTUNEONLY]) {
         cloTuneOnly = bool(Attributes::getBool(itsAttr[CLOTUNEONLY]));
     } else {
@@ -349,5 +370,4 @@ void Option::execute() {
     if(Attributes::getBool(itsAttr[TELL])) {
         *gmsg << "\nCurrent settings of options:\n" << *this << endl;
     }
-
 }

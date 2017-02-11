@@ -10,7 +10,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: CyclotronValley
-//   Defines the abstract interface for an element modeling the valley of 
+//   Defines the abstract interface for an element modeling the valley of
 //   a cyclotron.
 //
 // ------------------------------------------------------------------------
@@ -37,7 +37,7 @@ class CyclotronValley: public Component {
 
 public:
 
-   
+
     /// Constructor with given name.
     explicit CyclotronValley(const std::string &name);
 
@@ -48,7 +48,7 @@ public:
     /// Apply visitor to CyclotronValley.
     virtual void accept(BeamlineVisitor &) const;
 
-   
+
     /// Set the name of the field map
     void setFieldMapFN(std::string fmapfn);
 
@@ -58,15 +58,16 @@ public:
 
     bool getFast() const;
     ElementBase::ElementType getType() const;
-    virtual bool apply(const size_t &i, const double &t, double E[], double B[]);
-   
+
     virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual bool apply(const Vector_t &R, const Vector_t &centroid, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField, const double &scaleFactor);
+    virtual bool applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
-    //virtual void initialise(PartBunch *bunch, const double &scaleFactor);
+    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
+
+    //virtual void initialise(PartBunch *bunch);
 
     virtual void finalise();
 
@@ -82,12 +83,12 @@ private:
     std::string filename_m;             /**< The name of the inputfile*/
     Fieldmap *fieldmap_m;
     double scale_m;              /**< scale multiplier*/
-   
+
     double ElementEdge_m;
     double startField_m;         /**< starting point of field(m)*/
     double endField_m;
     bool fast_m;
-   
+
 
     // Not implemented.
     void operator=(const CyclotronValley &);

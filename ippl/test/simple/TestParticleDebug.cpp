@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -62,8 +62,8 @@ class Particles: public IpplParticleBase< ParticleSpatialLayout<double, 3> > {
 public:
   //tjwdebug: add a scalar attribute:
   ParticleAttrib<double> sa;
-  // Constructor: 
-  Particles(ParticleSpatialLayout<double,3>* psl) : 
+  // Constructor:
+  Particles(ParticleSpatialLayout<double,3>* psl) :
     IpplParticleBase<ParticleSpatialLayout<double, 3> >(psl) {
       //tjwdebug: add a scalar attribute:
       addAttribute(sa);
@@ -88,7 +88,7 @@ void  dpap(ParticleAttrib<double>& pattr, bool docomm) {
 void depap(ParticleAttrib<double>& pattr, int i, bool docomm) {
   epap(pattr, i, docomm);
 }
-void dspap(ParticleAttrib<double>& pattr, int base, int bnd, int stride, 
+void dspap(ParticleAttrib<double>& pattr, int base, int bnd, int stride,
 	   bool docomm) {
   spap(pattr, base, bnd, stride, docomm);
 }
@@ -99,7 +99,7 @@ void  dv3pap(ParticleAttrib<Vektor<double,3> >& pattr, bool docomm) {
 void dv3epap(ParticleAttrib<Vektor<double,3> >& pattr, int i, bool docomm) {
   epap(pattr, i, docomm);
 }
-void dv3spap(ParticleAttrib<Vektor<double,3> >& pattr, int base, int bnd, 
+void dv3spap(ParticleAttrib<Vektor<double,3> >& pattr, int base, int bnd,
 	     int stride, bool docomm) {
   spap(pattr, base, bnd, stride, docomm);
 }
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
   parts.update();
 
   // Inform output objects for test output:
-  Inform* fdip = 
+  Inform* fdip =
     new Inform(NULL,"text.test.TestParticleDebug",Inform::OVERWRITE,0);
   Inform& fdi = *fdip;
 
@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
 
   // Compare the two files by mocking up the Unix "diff" command:
   delete fdip;
-  passed = 
+  passed =
     thediff("text.test.TestParticleDebug","text.correct.TestParticleDebug");
 
   testmsg << ( (passed) ? "PASSED" : "FAILED" ) << endl;
@@ -261,7 +261,7 @@ bool thediff(char* filename1, char* filename2)
 void hardCodedOutput(char* filename)
 {
   ofstream of(filename);
-  of << endl 
+  of << endl
      << "--------pap(parts.ID, true)-------" << endl
      << "....PE = 0 GLOBAL ptcle index subrange (0 : 15 : 1)...." << endl
      << "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 " << endl
@@ -360,5 +360,5 @@ void hardCodedOutput(char* filename)
 /***************************************************************************
  * $RCSfile: TestParticleDebug.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:39 $
- * IPPL_VERSION_ID: $Id: TestParticleDebug.cpp,v 1.1.1.1 2003/01/23 07:40:39 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: TestParticleDebug.cpp,v 1.1.1.1 2003/01/23 07:40:39 adelmann Exp $
  ***************************************************************************/

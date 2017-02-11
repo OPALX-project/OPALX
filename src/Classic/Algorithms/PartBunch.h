@@ -23,17 +23,19 @@
 #include "Ippl.h"
 #include "Algorithms/PBunchDefs.h"
 #include "Algorithms/Particle.h"
+#include "Algorithms/CoordinateSystemTrafo.h"
 #include "FixedAlgebra/FMatrix.h"
 #include "FixedAlgebra/FVector.h"
 #include "Algorithms/PartBins.h"
 #include "Algorithms/PartBinsCyc.h"
 #include "Algorithms/PartData.h"
+#include "Algorithms/Quaternion.h"
 #include "Utilities/SwitcherError.h"
 #include "Physics/Physics.h"
 
 #include <iosfwd>
 #include <vector>
-#include <memory>
+
 
 class Distribution;
 class LossDataSink;
@@ -63,14 +65,14 @@ public:
     ~PartBunch();
 
     void runTests();
-    
-    bool GetIfBeamEmitting();
-    int GetLastEmittedEnergyBin();
-    size_t GetNumberOfEmissionSteps();
-    int GetNumberOfEnergyBins();
+
+    bool getIfBeamEmitting();
+    int getLastEmittedEnergyBin();
+    size_t getNumberOfEmissionSteps();
+    int getNumberOfEnergyBins();
     void Rebin();
-    void SetEnergyBins(int numberOfEnergyBins);
-    bool WeHaveEnergyBins();
+    void setEnergyBins(int numberOfEnergyBins);
+    bool weHaveEnergyBins();
 
     enum UnitState_t { units = 0, unitless = 1 };
 
@@ -92,9 +94,7 @@ public:
 
     void do_binaryRepart();
 
-    void calcLineDensity();
-    void fillArray(double *lineDensity, const std::list<ListElem> &l);
-    void getLineDensity(std::vector<double> &lineDensity);
+    void calcLineDensity(unsigned int nBins, std::vector<double> &lineDensity, std::pair<double, double> &meshInfo);
 
     void setDistribution(Distribution *d,
                          std::vector<Distribution *> addedDistributions,
@@ -122,7 +122,9 @@ public:
         i.e. copy the particles from the bin structure into the
         particle container
     */
-    size_t EmitParticles(double eZ);
+    size_t emitParticles(double eZ);
+
+    void updateNumTotal();
 
     void rebin();
 
@@ -162,12 +164,11 @@ public:
 
     FieldLayout_t &getFieldLayout();
 
+    void setBCAllPeriodic();
     void setBCAllOpen();
 
     void setBCForDCBeam();
 
-    void setBCAllPeriodic();
-    
     void boundp();
 
     /** delete particles which are too far away from the center of beam*/
@@ -175,6 +176,7 @@ public:
 
     /** This is only temporary in order to get the collimator and pepperpot workinh */
     size_t boundp_destroyT();
+    size_t destroyT();
 
     /* Definiere virtuelle Funktionen, um die Koordinaten auszulesen
      *     */
@@ -235,15 +237,6 @@ public:
 
     void resetInterpolationCache(bool clearCache = false);
 
-    /** EulerAngle[0] = rotation about the y-axis, EulerAngle[1] = rotation about x-axis
-     *  EulerAngle[2] = rotation about the y'-axis */
-
-    void rotateAbout(const Vector_t &Center, const Vector_t &EulerAngles);
-
-    void moveBy(const Vector_t &Center);
-
-    void ResetLocalCoordinateSystem(const int &i, const Vector_t &Orientation, const double &origin);
-
     /**
      * get the spos of the primary beam
      *
@@ -251,24 +244,24 @@ public:
      *
      */
     double get_sPos();
+    void set_sPos(double s);
 
     double   get_gamma() const;
 
-    double get_meanEnergy() const;
+    double get_meanKineticEnergy() const;
     Vector_t get_origin() const;
-    Vector_t get_maxExtend() const;
+    Vector_t get_maxExtent() const;
     Vector_t get_centroid() const;
     Vector_t get_rrms() const;
     Vector_t get_rmean() const;
     Vector_t get_prms() const;
-    Vector_t get_rprrms() const;
+    Vector_t get_rprms() const;
     Vector_t get_pmean() const;
     Vector_t get_pmean_Distribution() const;
     Vector_t get_emit() const;
     Vector_t get_norm_emit() const;
-    
     Vector_t get_hr() const;
-    
+
     double get_Dx() const;
     double get_Dy() const;
 
@@ -326,29 +319,28 @@ public:
     int getStepsPerTurn() const;
 
     /// step in multiple TRACK commands
-    inline void setGlobalTrackStep(long long n) {globalTrackStep_m = n;}
-    inline long long getGlobalTrackStep() const {return globalTrackStep_m;}
+    void setGlobalTrackStep(long long n);
+    long long getGlobalTrackStep() const;
 
     /// step in a TRACK command
-    inline void setLocalTrackStep(long long n) {localTrackStep_m = n;}
-    inline void incTrackSteps() {globalTrackStep_m++; localTrackStep_m++;}
-    inline long long getLocalTrackStep() const {return localTrackStep_m;}
+    void setLocalTrackStep(long long n);
+    void incTrackSteps();
+    long long getLocalTrackStep() const;
 
-    inline void setNumBunch(int n);
-    inline int getNumBunch() const;
+    void setNumBunch(int n);
+    int getNumBunch() const;
 
-    inline void setGlobalMeanR(Vector_t globalMeanR) {globalMeanR_m = globalMeanR;}
-    inline Vector_t getGlobalMeanR() {return globalMeanR_m;}
-    inline void setGlobalToLocalQuaternion(Quaternion_t globalToLocalQuaternion) {
-        globalToLocalQuaternion_m = globalToLocalQuaternion;}
-    inline Quaternion_t getGlobalToLocalQuaternion() {return globalToLocalQuaternion_m;}
+    void setGlobalMeanR(Vector_t globalMeanR);
+    Vector_t getGlobalMeanR();
+    void setGlobalToLocalQuaternion(Quaternion_t globalToLocalQuaternion);
+    Quaternion_t getGlobalToLocalQuaternion();
 
     void setSteptoLastInj(int n);
     int getSteptoLastInj();
 
     /// calculate average angle of longitudinal direction of bins
     double calcMeanPhi();
-    
+
     /// reset Bin[] for each particle according to the method given in paper PAST-AB(064402) by  G. Fubiani et al.
     bool resetPartBinID2(const double eta);
 
@@ -362,37 +354,47 @@ public:
     void resetM(double m);
 
     double getdE();
-    double getBeta() const;
-    double getGamma() const;
+    double getInitialBeta() const;
+    double getInitialGamma() const;
     virtual double getGamma(int i);
     virtual double getBeta(int i);
     virtual void actT();
     const PartData *getReference() const;
 
-    double GetEmissionDeltaT();
+    double getEmissionDeltaT();
+
+    Quaternion_t getQKs3D();
+    void         setQKs3D(Quaternion_t q);
+    Vector_t     getKs3DRefr();
+    void         setKs3DRefr(Vector_t r);
+    Vector_t     getKs3DRefp();
+    void         setKs3DRefp(Vector_t p);
 
     void iterateEmittedBin(int binNumber);
 
+    void calcEMean();
+    void correctEnergy(double avrgp);
+
+    void swap(unsigned int i, unsigned int j);
+
     // Particle container attributes
-    ParticleAttrib< Vector_t > X;      // local 'lab frame' coordinates;
     ParticleAttrib< Vector_t > P;      // particle momentum //  ParticleSpatialLayout<double, 3>::ParticlePos_t P;
     ParticleAttrib< double >   Q;      // charge per simulation particle, unit: C.
     ParticleAttrib< double >   M;      // mass per simulation particle, for multi-species particle tracking, unit:GeV/c^2.
-    ParticleAttrib< double >   Phi;
+    ParticleAttrib< double >   Phi;    // the electric potential
     ParticleAttrib< Vector_t > Ef;     // e field vector
     ParticleAttrib< Vector_t > Eftmp;  // e field vector for gun simulations
 
     ParticleAttrib< Vector_t > Bf;   // b field vector
     ParticleAttrib< int >      Bin;   // holds the bin in which the particle is in, if zero particle is marked for deletion
     ParticleAttrib< double >   dt;   // holds the dt timestep for particle
-    ParticleAttrib< long >     LastSection; // last em-field section
-
 
     ParticleAttrib< short >    PType; // we can distinguish dark current particles from primary particle
     ParticleAttrib< int >      TriID; // holds the ID of triangle that the particle hit. Only for BoundaryGeometry case.
 
-    Vector_t RefPart_R;
-    Vector_t RefPart_P;
+    Vector_t RefPartR_m;
+    Vector_t RefPartP_m;
+    CoordinateSystemTrafo toLabTrafo_m;
 
     /// scalar potential
     Field_t rho_m;
@@ -446,11 +448,6 @@ private:
     double calculateAngle(double x, double y);
     double calculateAngle2(double x, double y);
 
-public:
-    void calcEMean(); // update eKin_m;
-    void correctEnergy(double avrgp);
-private:
-
     /*
       Member variables starts here
     */
@@ -458,11 +455,6 @@ private:
     // unit state of PartBunch
     UnitState_t unit_state_;
     UnitState_t stateOfLastBoundP_;
-
-    /// hold the line-density
-    std::unique_ptr<double[]> lineDensity_m;
-    /// how many bins the line-density has
-    unsigned int nBinsLineDensity_m;
 
     /// holds the centroid of the beam
     double centroid_m[2 * Dim];
@@ -479,10 +471,10 @@ private:
     double t_m;
     /// mean energy of the bunch (MeV)
     double eKin_m;
-    /// energy of the bunch
-    double *energy_m;
     /// energy spread of the beam in keV
     double dE_m;
+    /// the position along design trajectory
+    double spos_m;
 
     /// Initialize the translation vector and rotation quaternion
     /// here. Cyclotron tracker will reset these values each timestep
@@ -491,6 +483,13 @@ private:
     //Quaternion_t globalToLocalQuaternion_m = Quaternion_t(1.0, 0.0, 0.0, 0.0);
     Vector_t globalMeanR_m;
     Quaternion_t globalToLocalQuaternion_m;
+
+    /// for coordinate transformation to Ks
+    /// Ks is the coordinate system to calculate statistics
+    Quaternion_t QKs3D_m;
+    /// holds the referernce particle
+    Vector_t     Ks3DRefr_m;
+    Vector_t     Ks3DRefp_m;
 
     /// maximal extend of particles
     Vector_t rmax_m;
@@ -544,22 +543,6 @@ private:
 
     /// counter to store the distributin dump
     int distDump_m;
-
-    /*
-      For saving particles on a collimator or
-      dead particles (absobed)
-    */
-
-    // variables for stashing a bunch
-    unsigned int stash_Nloc_m;
-    Vector_t stash_iniR_m;
-    PID_t stash_id_m;
-    Ppos_t stash_r_m, stash_p_m, stash_x_m;
-    ParticleAttrib<double> stash_q_m, stash_dt_m;
-    ParticleAttrib<int> stash_bin_m;
-    ParticleAttrib<long> stash_ls_m;
-    ParticleAttrib<short> stash_ptype_m;
-    bool bunchStashed_m;
 
     PartBunch &operator=(const PartBunch &) = delete;
 
@@ -618,6 +601,30 @@ private:
 };
 
 
+inline Quaternion_t PartBunch::getQKs3D() {
+    return QKs3D_m;
+}
+
+inline void PartBunch::setQKs3D(Quaternion_t q) {
+    QKs3D_m=q;
+}
+
+inline Vector_t PartBunch::getKs3DRefr() {
+    return Ks3DRefr_m;
+}
+
+inline void PartBunch::setKs3DRefr(Vector_t r) {
+    Ks3DRefr_m=r;
+}
+
+inline Vector_t PartBunch::getKs3DRefp() {
+    return Ks3DRefp_m;
+}
+
+inline void PartBunch::setKs3DRefp(Vector_t p) {
+    Ks3DRefp_m=p;
+}
+
 inline
 void PartBunch::switchToUnitlessPositions(bool use_dt_per_particle) {
 
@@ -634,7 +641,6 @@ void PartBunch::switchToUnitlessPositions(bool use_dt_per_particle) {
             dt = this->dt[i];
 
         R[i] /= Vector_t(Physics::c * dt);
-        X[i] /= Vector_t(Physics::c * dt);
     }
 
     unit_state_ = unitless;
@@ -659,7 +665,6 @@ void PartBunch::switchOffUnitlessPositions(bool use_dt_per_particle) {
             dt = this->dt[i];
 
         R[i] *= Vector_t(Physics::c * dt);
-        X[i] *= Vector_t(Physics::c * dt);
     }
 
     unit_state_ = units;
@@ -876,22 +881,24 @@ double PartBunch::get_sPos() {
             z = z / numPrimBeamParts;
         return z;
     } else {
-        const size_t n = getTotalNum();
-        if(n > 0)
-            return sum(R(2)) / getTotalNum();
-        else
-            return 0.0;
+        return spos_m;
     }
 }
 
 inline
-double   PartBunch::get_gamma() const {
-    return 1.0;
+void PartBunch::set_sPos(double s) {
+    spos_m = s;
 }
 
 
 inline
-double PartBunch::get_meanEnergy() const {
+double   PartBunch::get_gamma() const {
+    return eKin_m / (getM()*1e-6) + 1.0;
+}
+
+
+inline
+double PartBunch::get_meanKineticEnergy() const {
     return eKin_m;
 }
 
@@ -901,7 +908,7 @@ Vector_t PartBunch::get_origin() const {
 }
 
 inline
-Vector_t PartBunch::get_maxExtend() const {
+Vector_t PartBunch::get_maxExtent() const {
     return rmax_m;
 }
 
@@ -916,7 +923,7 @@ Vector_t PartBunch::get_rrms() const {
 }
 
 inline
-Vector_t PartBunch::get_rprrms() const {
+Vector_t PartBunch::get_rprms() const {
     return rprms_m;
 }
 
@@ -1045,6 +1052,31 @@ int PartBunch::getStepsPerTurn() const {
 }
 
 inline
+void PartBunch::setGlobalTrackStep(long long n) {
+    globalTrackStep_m = n;
+}
+
+inline
+long long PartBunch::getGlobalTrackStep() const {
+    return globalTrackStep_m;
+}
+
+inline
+void PartBunch::setLocalTrackStep(long long n) {
+    localTrackStep_m = n;
+}
+
+inline
+void PartBunch::incTrackSteps() {
+    globalTrackStep_m++; localTrackStep_m++;
+}
+
+inline
+long long PartBunch::getLocalTrackStep() const {
+    return localTrackStep_m;
+}
+
+inline
 void PartBunch::setNumBunch(int n) {
     numBunch_m = n;
 }
@@ -1052,6 +1084,27 @@ void PartBunch::setNumBunch(int n) {
 inline
 int PartBunch::getNumBunch() const {
     return numBunch_m;
+}
+
+inline
+void PartBunch::setGlobalMeanR(Vector_t globalMeanR) {
+    globalMeanR_m = globalMeanR;
+}
+
+inline
+Vector_t PartBunch::getGlobalMeanR() {
+    return globalMeanR_m;
+}
+
+inline
+void PartBunch::setGlobalToLocalQuaternion(Quaternion_t globalToLocalQuaternion) {
+
+    globalToLocalQuaternion_m = globalToLocalQuaternion;
+}
+
+inline
+Quaternion_t PartBunch::getGlobalToLocalQuaternion() {
+    return globalToLocalQuaternion_m;
 }
 
 inline
@@ -1100,12 +1153,12 @@ double PartBunch::getdE() {
 }
 
 inline
-double PartBunch::getBeta() const {
+double PartBunch::getInitialBeta() const {
     return reference->getBeta();
 }
 
 inline
-double PartBunch::getGamma() const {
+double PartBunch::getInitialGamma() const {
     return reference->getGamma();
 }
 

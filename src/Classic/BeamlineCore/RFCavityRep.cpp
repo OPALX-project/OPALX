@@ -70,7 +70,8 @@ RFCavityRep::RFCavityRep():
 
 
 RFCavityRep::RFCavityRep(const RFCavityRep &right):
-    RFCavity(right)
+    RFCavity(right),
+    geometry(right.geometry)
 {}
 
 

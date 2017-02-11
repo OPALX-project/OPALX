@@ -1,6 +1,7 @@
 #include "Fields/FM2DDynamic.h"
 #include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
+#include "Utilities/GeneralClassicException.h"
 
 #include <fstream>
 #include <ios>
@@ -61,6 +62,8 @@ FM2DDynamic::FM2DDynamic(std::string aFilename)
         if(!parsing_passed) {
             disableFieldmapWarning();
             zend_m = zbegin_m - 1e-3;
+            throw GeneralClassicException("FM2DDynamic::FM2DDynamic",
+                                          "An error occured when reading the fieldmap '" + Filename_m + "'");
         } else {
             // convert MHz to Hz and frequency to angular frequency
             frequency_m *= Physics::two_pi * 1e6;

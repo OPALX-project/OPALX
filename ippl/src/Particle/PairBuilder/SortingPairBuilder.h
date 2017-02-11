@@ -8,11 +8,11 @@ template<class A>
 struct ProxyPred_t
 {
     ProxyPred_t(const A &a, unsigned d) : array(a), dim(d) { }
-    
+
     template<class T>
     bool operator()(const T &a, const T &b)
     { return array[a][dim] < array[b][dim]; }
-    
+
     unsigned dim;
     const A &array;
 };
@@ -30,32 +30,32 @@ class SortingPairBuilder
 public:
     enum { Dim = PBase::Dim };
     typedef typename PBase::Position_t      Position_t;
-    
+
     SortingPairBuilder(PBase &p) : particles(p) { }
-    
+
     template<class Pred, class OP>
     void for_each(const Pred& pred, const OP &op)
     {
         std::size_t size = particles.getLocalNum()+particles.getGhostNum();
-        
+
         Position_t mean[Dim];
         Position_t variance[Dim];
-        
+
         //calculate mean position
         std::fill(mean, mean+Dim, 0);
         for(std::size_t i = 0;i<size;++i)
             for(int d = 0;d<Dim;++d)
                 mean[d] += particles.R[i][d];
-        
+
         for(int d = 0;d<Dim;++d)
             mean[d] /= size;
-        
+
         //calculate variance for each dimension
         std::fill(variance, variance+Dim, 0);
         for(std::size_t i = 0;i<size;++i)
             for(int d = 0;d<Dim;++d)
                 variance[d] += (mean[d]-particles.R[i][d])*(mean[d]-particles.R[i][d]);
-        
+
         int dimension = 0;
         int var = variance[0];
         for(int d = 1;d<Dim;++d)
@@ -64,14 +64,14 @@ public:
                 dimension = d;
                 var = variance[d];
             }
-        
+
         //sort index array
         std::size_t *indices = new std::size_t[size];
         for(std::size_t i = 0;i<size;++i)
             indices[i] = i;
-        
+
         std::sort(indices, indices+size, ProxyPred(particles.R, dimension));
-        
+
         for(std::size_t i = 0;i<size;++i)
             for(std::size_t j = i+1;j<size;++j)
                 if(pred(particles.R[indices[i]], particles.R[indices[j]]))

@@ -380,15 +380,15 @@ FTps<T, N> erf(const FTps<T, N> &x, int trunc) {
 
     T aZero = x[0];
     if(x.getMinOrder() != 0) aZero = T(0);
-    
+
     Array1D<T> series(trcOrder + 1);
     series[0] = std::erf(aZero);
     series[1] = 2.0 / std::sqrt(M_PI) * std::exp(-aZero*aZero);
-    
+
     for(int i = 2; i <= trcOrder; ++i) {
         series[i] = - 2.0 / double(i-1) * double((i-2)) * series[i-2] / double(i);
     }
-    
+
     return x.taylor(series, trcOrder);
 }
 
@@ -396,7 +396,7 @@ FTps<T, N> erf(const FTps<T, N> &x, int trunc) {
 template <class T, int N>
 FTps<T, N> erfc(const FTps<T, N> &x, int trunc) {
     // Default: trunc = EXACT
-    
+
     return T(1) - erf(x, trunc);
 }
 
