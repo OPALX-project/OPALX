@@ -125,8 +125,8 @@ void Distribution::twostream(const Vector_t& lower, const Vector_t& upper,
     int nMaxInitializer = std::min(nx[2], nv[2]);
     if ( Ippl::myNode() < nMaxInitializer ) {
 
-	// number of processes really used for initialization of particles
-	int nInitializer = ( Ippl::getNodes() < nMaxInitializer ) ? Ippl::getNodes() : nMaxInitializer;
+        // number of processes really used for initialization of particles
+        int nInitializer = ( Ippl::getNodes() < nMaxInitializer ) ? Ippl::getNodes() : nMaxInitializer;
 
         for (std::size_t i = 0; i < nx[0]; ++i) {
             for (std::size_t j = 0; j < nx[1]; ++j) {
@@ -142,8 +142,8 @@ void Distribution::twostream(const Vector_t& lower, const Vector_t& upper,
                         for (std::size_t jv = 0; jv < nv[1]; ++jv) {
                             for (std::size_t kv = 0; kv < nv[2]; ++kv) {
 
-				if ( Ippl::myNode() != int(kv) % nInitializer )
-				    continue;
+                                if ( Ippl::myNode() != int(kv) % nInitializer )
+                                    continue;
 
                                 Vektor<double, 3> vel = -vmax + hv *
                                                         Vektor<double, 3>(iv + 0.5,
