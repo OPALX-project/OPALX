@@ -86,16 +86,15 @@
 
 class Beamline;
 class PartData;
-using Physics::c;
+
 using Physics::m_p; // GeV
 using Physics::PMASS;
 using Physics::PCHARGE;
 using Physics::pi;
 using Physics::q_e;
 
-const double c_mmtns = c * 1.0e-6; // m/s --> mm/ns
-const double mass_coeff = 1.0e18 * q_e / c / c; // from GeV/c^2 to basic unit: GV*C*s^2/m^2
-const double PIOVER180 = pi / 180.0;
+const double c_mmtns = Physics::c * 1.0e-6; // m/s --> mm/ns
+const double mass_coeff = 1.0e18 * q_e / Physics::c / Physics::c; // from GeV/c^2 to basic unit: GV*C*s^2/m^2
 
 Vector_t const ParallelCyclotronTracker::xaxis = Vector_t(1.0, 0.0, 0.0);
 Vector_t const ParallelCyclotronTracker::yaxis = Vector_t(0.0, 1.0, 0.0);
@@ -322,15 +321,15 @@ void ParallelCyclotronTracker::visitRing(const Ring &ring) {
     if(referencePtot < 0.0)
         referencePt *= -1.0;
 
-    sinRefTheta_m = sin(referenceTheta * PIOVER180);
-    cosRefTheta_m = cos(referenceTheta * PIOVER180);
+    sinRefTheta_m = sin(referenceTheta * Physics::deg2rad);
+    cosRefTheta_m = cos(referenceTheta * Physics::deg2rad);
 
     double BcParameter[8];
 
     for(int i = 0; i < 8; i++)
         BcParameter[i] = 0.0;
 
-    buildupFieldList(BcParameter, "OPALRING", opalRing_m);
+    buildupFieldList(BcParameter, ElementBase::RING, opalRing_m);
 
     // Finally print some diagnostic
     *gmsg << "* Initial beam radius = " << referenceR << " [mm] " << endl;
@@ -448,8 +447,8 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
         }
 
         // Adjust some of the reference variables from the h5 file
-        referencePhi *= PIOVER180;
-        referencePsi *= PIOVER180;
+        referencePhi *= Physics::deg2rad;
+        referencePsi *= Physics::deg2rad;
         referencePtot = bega;
 
         if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
@@ -459,8 +458,8 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
         }
     }
 
-    sinRefTheta_m = sin(referenceTheta * PIOVER180);
-    cosRefTheta_m = cos(referenceTheta * PIOVER180);
+    sinRefTheta_m = sin(referenceTheta * Physics::deg2rad);
+    cosRefTheta_m = cos(referenceTheta * Physics::deg2rad);
 
     *gmsg << endl;
     *gmsg << "* Bunch global starting position:" << endl;
@@ -557,7 +556,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     BcParameter[1] = elptr->getRmax();
 
     // Store inner radius and outer radius of cyclotron field map in the list
-    buildupFieldList(BcParameter, "CYCLOTRON", elptr);
+    buildupFieldList(BcParameter, ElementBase::CYCLOTRON, elptr);
 }
 
 /**
@@ -606,13 +605,13 @@ void ParallelCyclotronTracker::visitCollimator(const Collimator &coll) {
     double BcParameter[8];
     for(int i = 0; i < 8; i++)
         BcParameter[i] = 0.0;
-    std::string ElementType = "CCOLLIMATOR";
+
     BcParameter[0] = xstart ;
     BcParameter[1] = xend;
     BcParameter[2] = ystart ;
     BcParameter[3] = yend;
     BcParameter[4] = width ;
-    buildupFieldList(BcParameter, ElementType, elptr);
+    buildupFieldList(BcParameter, ElementBase::COLLIMATOR, elptr);
 }
 
 /**
@@ -743,7 +742,7 @@ void ParallelCyclotronTracker::visitProbe(const Probe &prob) {
     double BcParameter[8];
     for(int i = 0; i < 8; i++)
         BcParameter[i] = 0.0;
-    std::string ElementType = "PROBE";
+
     BcParameter[0] = xstart ;
     BcParameter[1] = xend;
     BcParameter[2] = ystart ;
@@ -751,7 +750,7 @@ void ParallelCyclotronTracker::visitProbe(const Probe &prob) {
     BcParameter[4] = width ;
 
     // store probe parameters in the list
-    buildupFieldList(BcParameter, ElementType, elptr);
+    buildupFieldList(BcParameter, ElementBase::PROBE, elptr);
 }
 
 /**
@@ -866,13 +865,13 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
     double BcParameter[8];
     for(int i = 0; i < 8; i++)
         BcParameter[i] = 0.0;
-    std::string ElementType = "CAVITY";
+
     BcParameter[0] = rmin;
     BcParameter[1] = rmax;
     BcParameter[2] = pdis;
     BcParameter[3] = angle;
 
-    buildupFieldList(BcParameter, ElementType, elptr);
+    buildupFieldList(BcParameter, ElementBase::RFCAVITY, elptr);
 }
 
 /**
@@ -939,7 +938,7 @@ void ParallelCyclotronTracker::visitSeptum(const Septum &sept) {
     double BcParameter[8];
     for(int i = 0; i < 8; i++)
         BcParameter[i] = 0.0;
-    std::string ElementType = "SEPTUM";
+
     BcParameter[0] = xstart ;
     BcParameter[1] = xend;
     BcParameter[2] = ystart ;
@@ -947,7 +946,7 @@ void ParallelCyclotronTracker::visitSeptum(const Septum &sept) {
     BcParameter[4] = width ;
 
     // store septum parameters in the list
-    buildupFieldList(BcParameter, ElementType, elptr);
+    buildupFieldList(BcParameter, ElementBase::SEPTUM, elptr);
 }
 
 /**
@@ -1037,7 +1036,7 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
     double BcParameter[8];
     for(int i = 0; i < 8; i++)
         BcParameter[i] = 0.0;
-    std::string ElementType = "STRIPPER";
+
     BcParameter[0] = xstart ;
     BcParameter[1] = xend;
     BcParameter[2] = ystart ;
@@ -1046,7 +1045,7 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
     BcParameter[5] = opcharge;
     BcParameter[6] = opmass;
 
-    buildupFieldList(BcParameter, ElementType, elptr);
+    buildupFieldList(BcParameter, ElementBase::STRIPPER, elptr);
 }
 
 
@@ -1063,11 +1062,11 @@ void ParallelCyclotronTracker::applyExitFringe(double angle, double curve,
  * @param ElementType
  * @param elptr
  */
-void ParallelCyclotronTracker::buildupFieldList(double BcParameter[], std::string ElementType, Component *elptr) {
+void ParallelCyclotronTracker::buildupFieldList(double BcParameter[], ElementBase::ElementType elementType, Component *elptr) {
     beamline_list::iterator sindex;
 
     type_pair *localpair = new type_pair();
-    localpair->first = ElementType;
+    localpair->first = elementType;
 
     for(int i = 0; i < 8; i++)
         *(((localpair->second).first) + i) = *(BcParameter + i);
@@ -1075,7 +1074,7 @@ void ParallelCyclotronTracker::buildupFieldList(double BcParameter[], std::strin
     (localpair->second).second = elptr;
 
     // always put cyclotron as the first element in the list.
-    if(ElementType == "OPALRING" || ElementType == "CYCLOTRON") {
+    if(elementType == ElementBase::RING || elementType == ElementBase::CYCLOTRON) {
         sindex = FieldDimensions.begin();
     } else {
         sindex = FieldDimensions.end();
@@ -1131,7 +1130,7 @@ void ParallelCyclotronTracker::execute() {
     *gmsg << "* The selected Beam line elements are :" << endl;
 
     for(beamline_list::iterator sindex = FieldDimensions.begin(); sindex != FieldDimensions.end(); sindex++)
-        *gmsg << "* -> " <<  ((*sindex)->first) << endl;
+        *gmsg << "* -> " <<  ElementBase::getTypeString((*sindex)->first) << endl;
 
     *gmsg << "* -------------------------------------" << endl;
 
@@ -1230,7 +1229,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
     if(initialTotalNum_m == 1)
         openFiles(OpalData::getInstance()->getInputBasename());
 
-    double const initialReferenceTheta = referenceTheta * PIOVER180;
+    double const initialReferenceTheta = referenceTheta * Physics::deg2rad;
 
     initDistInGlobalFrame();
 
@@ -1581,7 +1580,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
                 outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << std::endl;
                 outfThetaEachTurn_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                                     << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
-                                    << " " << temp_meanTheta / PIOVER180
+                                    << " " << temp_meanTheta / Physics::deg2rad
                                     << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
                                     << " " << variable_m[2]
                                     << " " << variable_m[5] << std::endl;
@@ -1589,13 +1588,13 @@ void ParallelCyclotronTracker::Tracker_LF() {
             // FixMe: should be defined elesewhere !
             // define 3 special azimuthal angles where dump particle's six parameters  at each turn into 3 ASCII files.
             const double azimuth_angle0 = 0.0;
-            const double azimuth_angle1 = 22.5 * PIOVER180;
-            const double azimuth_angle2 = 45.0 * PIOVER180;
+            const double azimuth_angle1 = 22.5 * Physics::deg2rad;
+            const double azimuth_angle2 = 45.0 * Physics::deg2rad;
             if((oldReferenceTheta < azimuth_angle0 - deltaTheta) && (temp_meanTheta >= azimuth_angle0 - deltaTheta)) {
                 outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << std::endl;
                 outfTheta0_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
-                             << " " << temp_meanTheta / PIOVER180
+                             << " " << temp_meanTheta / Physics::deg2rad
                              << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
                              << " " << variable_m[2]
                              << " " << variable_m[5] << std::endl;
@@ -1605,7 +1604,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
                 outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << std::endl;
                 outfTheta1_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
-                             << " " << temp_meanTheta / PIOVER180
+                             << " " << temp_meanTheta / Physics::deg2rad
                              << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
                              << " " << variable_m[2]
                              << " " << variable_m[5] << std::endl;
@@ -1615,7 +1614,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
                 outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << itsBunch->getT() * 1e9 << " [ns]" << std::endl;
                 outfTheta2_m << " " << sqrt(variable_m[0]*variable_m[0] + variable_m[1]*variable_m[1])
                              << " " << variable_m[3]*cos(temp_meanTheta) + variable_m[4]*sin(temp_meanTheta)
-                             << " " << temp_meanTheta / PIOVER180
+                             << " " << temp_meanTheta / Physics::deg2rad
                              << " " << -variable_m[3]*sin(temp_meanTheta) + variable_m[4]*cos(temp_meanTheta)
                              << " " << variable_m[2]
                              << " " << variable_m[5] << std::endl;
@@ -2292,6 +2291,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 	    bgf_main_collision_test();  // New
             // ****************************************************************************************
 
+            IpplTimings::startTimer(IntegrationTimer_m);
             for(size_t i = 0; i < (itsBunch->getLocalNum()); i++) {
                 flagNoDeletion = true;
                 // change phase space parameters from localframe of bunch (dr,dtheta,dz) to global Cartesian frame (X,Y,Z)
@@ -2302,10 +2302,8 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                     pold_m[j] = variable_m[j+3]; // used for gap cross
                 }
                 // integrate for one step in the lab Cartesian frame (absolute value).
-                // IpplTimings::startTimer(IntegrationTimer_m);
                 flagNoDeletion = rk4(variable_m, t, dt, i);
 
-                // IpplTimings::stopTimer(IntegrationTimer_m);
                 for(int j = 0; j < 3; j++) {
                     itsBunch->R[i](j) = variable_m[j];    //[x,y,z]  units: [mm]
                     itsBunch->P[i](j) = variable_m[j+3];  //[px,py,pz]  units: dimensionless, beta*gama
@@ -2318,7 +2316,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                     bool tag_crossing = false;
                     double DistOld = 0.0; //mm
                     RFCavity * rfcav;
-                    if(((*sindex)->first) == "CAVITY") {
+                    if(((*sindex)->first) == ElementBase::RFCAVITY) {
                         // here check gap cross in the list, if do , set tag_crossing to TRUE
                         for(int j = 0; j < 3; j++)
                             rnew_m[j] = variable_m[j];
@@ -2330,7 +2328,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                         double oldBetgam = sqrt(oldMomentum2);
                         double oldGamma = sqrt(1.0 + oldMomentum2);
                         double oldBeta = oldBetgam / oldGamma;
-                        double dt1 = DistOld / (c * oldBeta * 1.0e-6); // ns
+                        double dt1 = DistOld / (Physics::c * oldBeta * 1.0e-6); // ns
                         double dt2 = dt - dt1;
 
                         // retrack particle from the old postion to cavity gap point
@@ -2365,6 +2363,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                     } // end if: gap-crossing monentum kicking at certain cavity
                 } //end for: finish checking for all cavities
             } //end for: finish one step tracking for all particles for initialTotalNum_m != 2 mode
+            IpplTimings::stopTimer(IntegrationTimer_m);
 
             // *** This has to go before the actual timestep -DW ******************************
             // apply the plugin elements: probe, collimator, stripper, septum
@@ -2402,6 +2401,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
             // trigger SEO mode (swith off cavity) and calculate betatron osciliation tuning.
             double r_tuning[2], z_tuning[2] ;
 
+            IpplTimings::startTimer(IntegrationTimer_m);
             for(size_t i = 0; i < (itsBunch->getLocalNum()); i++) {
 
                 // change phase space parameters from local frame of bunch (dr,dtheta,dz) to global Cartesian frame (X,Y,Z)
@@ -2428,6 +2428,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 for(int j = 0; j < 3; j++) itsBunch->P[i](j) = variable_m[j+3] ; //[px,py,pz]  units: dimensionless, beta*gama
 
             }//end for: finish one step tracking for all particles for initialTotalNum_m != 2 mode
+            IpplTimings::stopTimer(IntegrationTimer_m);
 
             // store dx and dz for future tune calculation if higher precision needed, reduce freqSample.
             if(step_m % SinglePartDumpFreq == 0) {
@@ -2453,6 +2454,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
           // ****************************************************************************************
 
           // track for one step
+            IpplTimings::startTimer(IntegrationTimer_m);
           for( unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
 
             if((step_m % SinglePartDumpFreq == 0)) {
@@ -2539,7 +2541,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
               bool tag_crossing = false;
               double DistOld = 0.0; //mm
               RFCavity * rfcav;
-              if(((*sindex)->first) == "CAVITY") {
+                    if(((*sindex)->first) == ElementBase::RFCAVITY) {
                 // here check gap cross in the list, if do , set tag_crossing to TRUE
                 for(int j = 0; j < 3; j++)
                   rnew_m[j] = variable_m[j];
@@ -2551,7 +2553,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                 double oldBetgam = sqrt(oldMomentum2);
                 double oldGamma = sqrt(1.0 + oldMomentum2);
                 double oldBeta = oldBetgam / oldGamma;
-                double dt1 = DistOld / (c * oldBeta * 1.0e-6); // ns
+                        double dt1 = DistOld / (Physics::c * oldBeta * 1.0e-6); // ns
                 double dt2 = dt - dt1;
 
                 // retrack particle from the old postion to cavity gap point
@@ -2586,6 +2588,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
               }// end if: gap-crossing monentum kicking at certain cavity
             }//end for: finish checking for all cavities
           }
+          IpplTimings::stopTimer(IntegrationTimer_m);
 
           // *** This has to go before the actual timestep -DW ******************************
           // apply the plugin elements: probe, collimator, stripper, septum
@@ -2719,10 +2722,10 @@ void ParallelCyclotronTracker::Tracker_Generic() {
     // Define 3 special azimuthal angles where dump particle's six parameters
     // at each turn into 3 ASCII files. only important in single particle tracking
     const double azimuth_angle0 = 0.0;
-    const double azimuth_angle1 = 22.5 * PIOVER180;
-    const double azimuth_angle2 = 45.0 * PIOVER180;
+    const double azimuth_angle1 = 22.5 * Physics::deg2rad;
+    const double azimuth_angle2 = 45.0 * Physics::deg2rad;
 
-    const double initialReferenceTheta = referenceTheta * PIOVER180;
+    const double initialReferenceTheta = referenceTheta * Physics::deg2rad;
     double oldReferenceTheta = initialReferenceTheta; // init here, reset each step
     const double deltaTheta = pi / (stepsPerTurn);    // half of the average angle per step
 
@@ -2910,10 +2913,10 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
                     // read initial distribution from h5 file
                     if (multiBunchMode_m == 1) {
-			
+
 			if (BunchCount_m == 2)
 			    saveOneBunch();
-			
+
                         readOneBunch(BunchCount_m - 1);
 
                         if (timeIntegrator_m == 0) itsBunch->resetPartBinID2(eta_m);
@@ -3100,8 +3103,6 @@ void ParallelCyclotronTracker::Tracker_Generic() {
             // If field solver is not available or number of particles is less than 1000
             // we don't need to do anything space charge related.
 
-            // IpplTimings::startTimer(IntegrationTimer_m);
-
             // *** This was moved here b/c collision should be tested before the **********************
             // *** actual timestep (bgf_main_collision_test() predicts the next step automatically) -DW
             // Apply the plugin elements: probe, collimator, stripper, septum
@@ -3125,6 +3126,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
             }
 
+            IpplTimings::startTimer(IntegrationTimer_m);
             for(size_t i = 0; i < (itsBunch->getLocalNum()); i++) {
 
                 flagNoDeletion = true;
@@ -3178,7 +3180,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                         double DistOld = 0.0; //mm
                         RFCavity * rfcav;
 
-                        if(((*sindex)->first) == "CAVITY") {
+                        if(((*sindex)->first) == ElementBase::RFCAVITY) {
 
                             // here check gap cross in the list, if do , set tag_crossing to TRUE
                             for(int j = 0; j < 3; j++)
@@ -3194,7 +3196,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                             double oldBetgam = sqrt(oldMomentum2);
                             double oldGamma = sqrt(1.0 + oldMomentum2);
                             double oldBeta = oldBetgam / oldGamma;
-                            double dt1 = DistOld / (c * oldBeta * 1.0e-6); // ns
+                            double dt1 = DistOld / (Physics::c * oldBeta * 1.0e-6); // ns
                             double dt2 = dt - dt1;
 
                             // retrack particle from the old postion to cavity gap point
@@ -3230,6 +3232,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                     } // end for: finish checking for all cavities
                 } // end if: which mode are we in LF2 or RK4
             } // end for: finish one step tracking for all particles for initialTotalNum_m != 2 mode
+            IpplTimings::stopTimer(IntegrationTimer_m);
 
             if (timeIntegrator_m == 1) { // LF-2 method
 
@@ -3263,7 +3266,6 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                       << itsBunch->getTotalNum() << endl;
             }
 
-            // IpplTimings::stopTimer(IntegrationTimer_m);
             Ippl::Comm->barrier();
 
         } // end if: more than 2 particles -> bunch or multi-bunch tracking
@@ -3283,6 +3285,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
             }
 
+            IpplTimings::startTimer(IntegrationTimer_m);
             for(size_t i = 0; i < (itsBunch->getLocalNum()); i++) {
 
                 for(int j = 0; j < 3; j++) variable_m[j]   = itsBunch->R[i](j); //[x,y,z]    (mm)
@@ -3314,8 +3317,6 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
                     getFieldsAtPoint(t, i, externalE, externalB);
 
-                    IpplTimings::startTimer(IntegrationTimer_m);
-
                     // Do LF2 momentum kick
                     pusher.kick(itsBunch->R[i],
                                 itsBunch->P[i],
@@ -3324,8 +3325,6 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                                 dt * 1.0e-9,
                                 itsBunch->M[i] * 1.0e9,
                                 itsBunch->Q[i] / q_e);
-
-                    IpplTimings::stopTimer(IntegrationTimer_m);
 
                 }
 
@@ -3342,6 +3341,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
 		if( (i == 0) && (step_m > 10) && ((step_m%stepsPerTurn) == 0)) turnnumber_m++;
             } // end for: finish one step tracking for all particles for initialTotalNum_m == 2 mode
+            IpplTimings::stopTimer(IntegrationTimer_m);
 
             if (timeIntegrator_m == 1) { // LF-2 method
 
@@ -3391,6 +3391,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
             }
 
+            IpplTimings::startTimer(IntegrationTimer_m);
             for( unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
 
                 if((step_m % SinglePartDumpFreq == 0)) {
@@ -3421,7 +3422,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                     outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
                     outfThetaEachTurn_m << " " << sqrt(variable_m[0] * variable_m[0] + variable_m[1] * variable_m[1])
                                         << " " << variable_m[3] * cos(temp_meanTheta) + variable_m[4] * sin(temp_meanTheta)
-                                        << " " << temp_meanTheta / PIOVER180
+                                        << " " << temp_meanTheta / Physics::deg2rad
                                         << " " << -variable_m[3] * sin(temp_meanTheta) + variable_m[4] * cos(temp_meanTheta)
                                         << " " << variable_m[2]
                                         << " " << variable_m[5] << std::endl;
@@ -3431,7 +3432,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                     outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
                     outfTheta0_m << " " << sqrt(variable_m[0] * variable_m[0] + variable_m[1] * variable_m[1])
                                  << " " << variable_m[3] * cos(temp_meanTheta) + variable_m[4] * sin(temp_meanTheta)
-                                 << " " << temp_meanTheta / PIOVER180
+                                 << " " << temp_meanTheta / Physics::deg2rad
                                  << " " << -variable_m[3] * sin(temp_meanTheta) + variable_m[4] * cos(temp_meanTheta)
                                  << " " << variable_m[2]
                                  << " " << variable_m[5] << std::endl;
@@ -3441,7 +3442,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                     outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
                     outfTheta1_m << " " << sqrt(variable_m[0] * variable_m[0] + variable_m[1] * variable_m[1])
                                  << " " << variable_m[3] * cos(temp_meanTheta) + variable_m[4] * sin(temp_meanTheta)
-                                 << " " << temp_meanTheta / PIOVER180
+                                 << " " << temp_meanTheta / Physics::deg2rad
                                  << " " << -variable_m[3] * sin(temp_meanTheta) + variable_m[4] * cos(temp_meanTheta)
                                  << " " << variable_m[2]
                                  << " " << variable_m[5] << std::endl;
@@ -3451,7 +3452,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                     outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
                     outfTheta2_m << " " << sqrt(variable_m[0] * variable_m[0] + variable_m[1] * variable_m[1])
                                  << " " << variable_m[3] * cos(temp_meanTheta) + variable_m[4] * sin(temp_meanTheta)
-                                 << " " << temp_meanTheta / PIOVER180
+                                 << " " << temp_meanTheta / Physics::deg2rad
                                  << " " << -variable_m[3] * sin(temp_meanTheta) + variable_m[4] * cos(temp_meanTheta)
                                  << " " << variable_m[2]
                                  << " " << variable_m[5] << std::endl;
@@ -3468,11 +3469,8 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                     if (outOfBound) flagNoDeletion = false;
 
                     // Do LF2 momentum kick
-                    IpplTimings::startTimer(IntegrationTimer_m);
 
                     pusher.kick(itsBunch->R[i], itsBunch->P[i], externalE, externalB, dt * 1.0e-9, itsBunch->M[i] * 1.0e9, itsBunch->Q[i] / q_e);
-
-                    IpplTimings::stopTimer(IntegrationTimer_m);
 
                     if(!flagNoDeletion) {
 
@@ -3505,7 +3503,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                         double DistOld = 0.0; //mm
                         RFCavity * rfcav;
 
-                        if (((*sindex)->first) == "CAVITY") {
+                        if (((*sindex)->first) == ElementBase::RFCAVITY) {
 
                             // here check gap cross in the list, if do , set tag_crossing to TRUE
                             for(int j = 0; j < 3; j++)
@@ -3521,7 +3519,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                             double oldBetgam = sqrt(oldMomentum2);
                             double oldGamma = sqrt(1.0 + oldMomentum2);
                             double oldBeta = oldBetgam / oldGamma;
-                            double dt1 = DistOld / (c * oldBeta * 1.0e-6); // ns
+                            double dt1 = DistOld / (Physics::c * oldBeta * 1.0e-6); // ns
                             double dt2 = dt - dt1;
 
                             // retrack particle from the old postion to cavity gap point
@@ -3561,6 +3559,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                     } // end for: finish checking for all cavities
                 } // end if: LF2 or RK4 method
             } // end for: track one particle one step
+            IpplTimings::stopTimer(IntegrationTimer_m);
 
             if (timeIntegrator_m == 1) { // LF-2 method
 
@@ -3765,9 +3764,9 @@ bool ParallelCyclotronTracker::derivate(double *y, const double &t, double *yp, 
     yp[1] = c_mmtns / tempgamma * y[4]; // [mm/ns]
     yp[2] = c_mmtns / tempgamma * y[5]; // [mm/ns]
 
-    yp[3] = (externalE(0) / c  + (externalB(2) * y[4] - externalB(1) * y[5]) / tempgamma) * qtom; // [1/ns]
-    yp[4] = (externalE(1) / c  - (externalB(2) * y[3] - externalB(0) * y[5]) / tempgamma) * qtom; // [1/ns];
-    yp[5] = (externalE(2) / c  + (externalB(1) * y[3] - externalB(0) * y[4]) / tempgamma) * qtom; // [1/ns];
+    yp[3] = (externalE(0) / Physics::c  + (externalB(2) * y[4] - externalB(1) * y[5]) / tempgamma) * qtom; // [1/ns]
+    yp[4] = (externalE(1) / Physics::c  - (externalB(2) * y[3] - externalB(0) * y[5]) / tempgamma) * qtom; // [1/ns];
+    yp[5] = (externalE(2) / Physics::c  + (externalB(1) * y[3] - externalB(0) * y[4]) / tempgamma) * qtom; // [1/ns];
 
     return outOfBound;
 }
@@ -3791,8 +3790,6 @@ bool ParallelCyclotronTracker::rk4(double x[], const double &t, const double &ta
     //   tau        Step size (usually time step)
     //   Pindex     index of particel, not used yet
 
-    IpplTimings::startTimer(IntegrationTimer_m);
-
     bool outOfBound = false;
     double  deriv1[PSdim];
     double  deriv2[PSdim];
@@ -3804,7 +3801,6 @@ bool ParallelCyclotronTracker::rk4(double x[], const double &t, const double &ta
 
     outOfBound = derivate(x, t, deriv1 , Pindex);
     if (outOfBound) {
-        IpplTimings::stopTimer(IntegrationTimer_m);
         return false;
     }
 
@@ -3817,7 +3813,6 @@ bool ParallelCyclotronTracker::rk4(double x[], const double &t, const double &ta
 
     outOfBound = derivate(xtemp, t_half, deriv2 , Pindex);
     if (outOfBound) {
-        IpplTimings::stopTimer(IntegrationTimer_m);
         return false;
     }
 
@@ -3827,7 +3822,6 @@ bool ParallelCyclotronTracker::rk4(double x[], const double &t, const double &ta
 
     outOfBound = derivate(xtemp, t_half, deriv3 , Pindex);
     if (outOfBound) {
-        IpplTimings::stopTimer(IntegrationTimer_m);
         return false;
     }
 
@@ -3838,7 +3832,6 @@ bool ParallelCyclotronTracker::rk4(double x[], const double &t, const double &ta
 
     outOfBound = derivate(xtemp, t_full, deriv4 , Pindex);
     if (outOfBound) {
-        IpplTimings::stopTimer(IntegrationTimer_m);
         return false;
     }
 
@@ -3846,7 +3839,6 @@ bool ParallelCyclotronTracker::rk4(double x[], const double &t, const double &ta
     for(int i = 0; i < PSdim; i++)
         x[i] += tau / 6.*(deriv1[i] + deriv4[i] + 2.*(deriv2[i] + deriv3[i]));
 
-    IpplTimings::stopTimer(IntegrationTimer_m);
     return true;
 }
 
@@ -4840,7 +4832,7 @@ void ParallelCyclotronTracker::push(double h) {
 
     std::list<CavityCrossData> cavCrossDatas;
     for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); ++sindex) {
-        if(((*sindex)->first) == "CAVITY") {
+        if(((*sindex)->first) == ElementBase::RFCAVITY) {
             RFCavity * cav = static_cast<RFCavity *>(((*sindex)->second).second);
             CavityCrossData ccd = {cav, cav->getSinAzimuth(), cav->getCosAzimuth(), cav->getPerpenDistance() * 0.001};
             cavCrossDatas.push_back(ccd);
@@ -4849,7 +4841,7 @@ void ParallelCyclotronTracker::push(double h) {
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
         Vector_t const oldR = itsBunch->R[i];
         double const gamma = sqrt(1.0 + dot(itsBunch->P[i], itsBunch->P[i]));
-        double const c_gamma = c / gamma;
+        double const c_gamma = Physics::c / gamma;
         Vector_t const v = itsBunch->P[i] * c_gamma;
         itsBunch->R[i] += h * v;
         for(std::list<CavityCrossData>::const_iterator ccd = cavCrossDatas.begin(); ccd != cavCrossDatas.end(); ++ccd) {
@@ -4881,7 +4873,7 @@ void ParallelCyclotronTracker::push(double h) {
     // Path length update
     double const dotP = dot(itsBunch->P[0], itsBunch->P[0]);
     double const gamma = sqrt(1.0 + dotP);
-    PathLength_m += h * sqrt(dotP) * c / gamma;
+    PathLength_m += h * sqrt(dotP) * Physics::c / gamma;
     itsBunch->setLPath(PathLength_m);
 
     IpplTimings::stopTimer(IntegrationTimer_m);
@@ -4891,8 +4883,8 @@ void ParallelCyclotronTracker::kick(double h) {
     IpplTimings::startTimer(IntegrationTimer_m);
     double const q = itsBunch->Q[0] / q_e; // For now all particles have the same charge
     double const M = itsBunch->M[0] * 1.0e9; // For now all particles have the same rest energy
-    double const h12Halfqc_M = 0.5 * h * q * c / M;
-    double const h12Halfqcc_M = h12Halfqc_M * c;
+    double const h12Halfqc_M = 0.5 * h * q * Physics::c / M;
+    double const h12Halfqcc_M = h12Halfqc_M * Physics::c;
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
 
         // Half step E
@@ -4959,15 +4951,15 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
 void ParallelCyclotronTracker::applyPluginElements(const double dt) {
 
   for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); sindex++) {
-    if(((*sindex)->first) == "SEPTUM")    {
+        if(((*sindex)->first) == ElementBase::SEPTUM)    {
       (static_cast<Septum *>(((*sindex)->second).second))->checkSeptum(*itsBunch);
     }
 
-    if(((*sindex)->first) == "PROBE")    {
+        if(((*sindex)->first) == ElementBase::PROBE)    {
       (static_cast<Probe *>(((*sindex)->second).second))->checkProbe(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
     }
 
-    if(((*sindex)->first) == "STRIPPER")    {
+        if(((*sindex)->first) == ElementBase::STRIPPER)    {
       bool flag_stripper = (static_cast<Stripper *>(((*sindex)->second).second))
         -> checkStripper(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
       if(flag_stripper) {
@@ -4976,7 +4968,7 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
       }
     }
 
-    if(((*sindex)->first) == "CCOLLIMATOR") {
+        if(((*sindex)->first) == ElementBase::COLLIMATOR) {
       Collimator * collim;
       collim = static_cast<Collimator *>(((*sindex)->second).second);
       collim->checkCollimator(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
@@ -5060,7 +5052,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     if(!OpalData::getInstance()->inRestartRun()) {
         // Start a new run (no restart)
 
-        double const initialReferenceTheta = referenceTheta * PIOVER180;
+        double const initialReferenceTheta = referenceTheta * Physics::deg2rad;
         PathLength_m = 0.0;
 
         // Force the initial phase space values of the particle with ID = 0 to zero,
@@ -5446,7 +5438,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     // ---------------- Re-calculate reference values in format of input values ----------------- //
     // Position:
     referenceR = sqrt(meanR(0) * meanR(0) + meanR(1) * meanR(1));
-    referenceTheta = theta / PIOVER180;
+    referenceTheta = theta / Physics::deg2rad;
     referenceZ = meanR(2);
 
     // Momentum in Theta-hat, R-hat, Z-hat coordinates at position meanR:
@@ -5471,7 +5463,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     // -------------- If flag DumpLocalFrame is not set, dump bunch in global frame ------------- //
     if (Options::psDumpFreq < std::numeric_limits<int>::max() ){
         if(!(Options::psDumpLocalFrame) && (Options::psDumpFreq < std::numeric_limits<int>::max())) {
-            
+
             FDext_m[0] = extB_m * 0.1; // kgauss --> T
             FDext_m[1] = extE_m;
 
@@ -5483,9 +5475,9 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
                                                              referenceR,
                                                              referenceTheta,
                                                              referenceZ,
-                                                             phi / PIOVER180, // P_mean azimuth
+                                                             phi / Physics::deg2rad, // P_mean azimuth
 							                      // at ref. R/Th/Z
-                                                             psi / PIOVER180, // P_mean elevation
+                                                             psi / Physics::deg2rad, // P_mean elevation
 							                      // at ref. R/Th/Z
                                                              false);          // Flag localFrame
 
@@ -5500,7 +5492,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
             // The bunch is transformed into a local coordinate system with meanP in direction of y-axis
             globalToLocal(itsBunch->R, phi, psi, meanR * Vector_t(0.001));
             globalToLocal(itsBunch->P, phi, psi); // P should only be rotated
-            
+
             globalToLocal(extB_m, phi, psi);
             globalToLocal(extE_m, phi, psi);
 
@@ -5515,9 +5507,9 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
                                                              referenceR,
                                                              referenceTheta,
                                                              referenceZ,
-                                                             phi / PIOVER180, // P_mean azimuth
+                                                             phi / Physics::deg2rad, // P_mean azimuth
 							                      // at ref. R/Th/Z
-                                                             psi / PIOVER180, // P_mean elevation
+                                                             psi / Physics::deg2rad, // P_mean elevation
 							                      // at ref. R/Th/Z
                                                              true);           // Flag localFrame
 
@@ -5540,8 +5532,8 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     *gmsg << "* Bunch position: R =  " << referenceR << " mm"
           << ", Theta = " << referenceTheta << " Deg"
           << ", Z = " << referenceZ << " mm" << endl;
-    *gmsg << "* Local Azimuth = " << phi / PIOVER180 << " Deg"
-          << ", Local Elevation = " << psi / PIOVER180 << " Deg" << endl;
+    *gmsg << "* Local Azimuth = " << phi / Physics::deg2rad << " Deg"
+          << ", Local Elevation = " << psi / Physics::deg2rad << " Deg" << endl;
 
     IpplTimings::stopTimer(DumpTimer_m);
 }
