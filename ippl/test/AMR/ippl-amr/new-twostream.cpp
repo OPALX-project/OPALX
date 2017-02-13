@@ -42,23 +42,24 @@ typedef Field<double, 2, Mesh2d_t, Center_t>                          Field2d_t;
 void writeEnergy(amrbunch_t* bunch,
                  container_t& rho,
                  container_t& phi,
-                 container_t& grad_phi,
+                 container_t& efield,
                  const Array<int>& rr,
                  double cell_volume,
                  int step)
 {
-    double field_energy = totalFieldEnergy(grad_phi, rr);
+    for (int lev = efield.size() - 2; lev >= 0; lev--)
+        BoxLib::average_down(efield[lev+1], efield[lev], 0, 3, rr[lev]);
+    
+    // field energy (Ulmer version, i.e. cell_volume instead #points)
+    double field_energy = 0.5 * cell_volume * MultiFab::Dot(efield[0], 0, efield[0], 0, 3, 0);
     
     // kinetic energy
     double ekin = 0.5 * sum( dot(bunch->P, bunch->P) );
     
-    
-    std::cout << cell_volume << std::endl;
     // potential energy
     rho[0].mult(cell_volume, 0, 1);
     MultiFab::Multiply(phi[0], rho[0], 0, 0, 1, 0);
-    double integral_phi_m = 0.5 * phi[0].sum();
-    
+    double integral_phi_m = 0.5 * phi[0].sum(0);
     
     if(Ippl::myNode()==0) {
         std::ofstream csvout;
@@ -74,7 +75,6 @@ void writeEnergy(amrbunch_t* bunch,
         csvout.open(fname.str().c_str(), std::ios::out | std::ofstream::app);
         
         if (step == 0) {
-            //csvout << "it,Efield,Ekin,Epot,Etot,rhomax" << std::endl;
             csvout << "it,Efield,Ekin,Etot,Epot" << std::endl;
         }
         
@@ -86,6 +86,26 @@ void writeEnergy(amrbunch_t* bunch,
         
         csvout.close();
     }
+}
+
+void writeGridSum(container_t& container, int step, std::string label) {
+    std::ofstream csvout;
+    csvout.precision(10);
+    csvout.setf(std::ios::scientific, std::ios::floatfield);
+    
+    std::stringstream fname;
+    fname << "data/" << label << "Sum";
+    fname << ".csv";
+
+    // open a new data file for this iteration
+    // and start with header
+    csvout.open(fname.str().c_str(), std::ios::out | std::ofstream::app);
+    
+    if ( step == 0 )
+        csvout << "it,FieldSum" << std::endl;
+    
+    csvout << step << ", "<< container[0].sum(0) << std::endl;
+    csvout.close();
 }
 
 void ipplProjection(Field2d_t& field,
@@ -354,7 +374,11 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     
     Vector_t hr = ( extend_r - extend_l ) / Vector_t(nr);
     double cell_volume = hr[0] * hr[1] * hr[2];
+    std::cout << "Cell volume: " << cell_volume << std::endl;
     writeEnergy(bunch.get(), rhs, phi, grad_phi, rr, cell_volume, 0);
+    
+    writeGridSum(rhs, 0, "RhoInterpol");
+    writeGridSum(phi, 0, "Phi_m");
     
     
     for (std::size_t i = 0; i < nIter; ++i) {
@@ -395,6 +419,8 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
         assign(bunch->P, bunch->P + dt * bunch->qm / bunch->mass * bunch->E ); //* Physics::epsilon_0);
         
         writeEnergy(bunch.get(), rhs, phi, grad_phi, rr, cell_volume, i + 1);
+       writeGridSum(rhs, i + 1, "RhoInterpol");
+       writeGridSum(phi, i + 1, "Phi_m");
         
         msg << "Done with step " << i << endl;
     }
