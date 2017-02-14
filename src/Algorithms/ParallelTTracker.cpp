@@ -221,6 +221,7 @@ void ParallelTTracker::execute() {
 
     BorisPusher pusher(itsReference);
     const double globalTimeShift = itsBunch_m->weHaveEnergyBins()? OpalData::getInstance()->getGlobalPhaseShift(): 0.0;
+    OpalData::getInstance()->setGlobalPhaseShift(0.0);
 
     dtCurrentTrack_m = itsBunch_m->getdT();
 
@@ -308,8 +309,6 @@ void ParallelTTracker::execute() {
     itsBunch_m->RefPartR_m = referenceToLabCSTrafo_m.transformTo(RefPartR_m);
     itsBunch_m->RefPartP_m = referenceToLabCSTrafo_m.rotateTo(RefPartP_m);
 
-    t = itsBunch_m->getT();
-
     *gmsg << level1 << *itsBunch_m << endl;
 
     unsigned long long step = itsBunch_m->getGlobalTrackStep();
@@ -379,7 +378,8 @@ void ParallelTTracker::execute() {
 
             itsBunch_m->incTrackSteps();
 
-            if (pathLength_m > zStop_m.front())
+            double driftPerTimeStep = euclidian_norm(itsBunch_m->getdT() * Physics::c * RefPartP_m / Util::getGamma(RefPartP_m));
+            if (std::abs(zStop_m.front() - pathLength_m) < 0.5 * driftPerTimeStep)
                 localTrackSteps_m.front() = step;
         }
 
@@ -878,9 +878,9 @@ void ParallelTTracker::writePhaseSpace(const long long step, bool psDump, bool s
     if (psDump && (itsBunch_m->getTotalNum() > 0)) {
         // Write fields to .h5 file.
         const size_t localNum = itsBunch_m->getLocalNum();
-        double distToLastStop = std::abs(pathLength_m - zStop_m.back());
+        double distToLastStop = zStop_m.back() - pathLength_m;
         Vector_t driftPerTimeStep = itsBunch_m->getdT() * Physics::c * RefPartP_m / Util::getGamma(RefPartP_m);
-        bool driftToCorrectPosition = distToLastStop < 0.5 * euclidian_norm(driftPerTimeStep);
+        bool driftToCorrectPosition = std::abs(distToLastStop) < 0.5 * euclidian_norm(driftPerTimeStep);
         Ppos_t stashedR;
 
         if (driftToCorrectPosition) {
