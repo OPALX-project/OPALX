@@ -63,14 +63,19 @@ def computeRatio(fieldmap):
 
 def main(argv):
     fieldmap = ""
+    fieldmapSet = False
     for arg in argv:
         if arg.startswith("--fieldmap"):
             fieldmap = arg.split("=")[1]
+            fieldmapSet = True
         elif arg.startswith("--help"):
             printUsage()
             sys.exit()
 
-    computeRatio(fieldmap)
+    if fieldmapSet:
+        computeRatio(fieldmap)
+    else:
+        printUsage()
 
 #call main
 if __name__ == "__main__":
