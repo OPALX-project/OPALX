@@ -21,6 +21,7 @@
 
 #include "Algorithms/Tracker.h"
 #include "Structure/DataSink.h"
+#include "AbsBeamline/ElementBase.h"
 #include <vector>
 
 class BMultipoleField;
@@ -47,7 +48,7 @@ class ParallelCyclotronTracker: public Tracker {
 public:
 
     typedef std::pair<double[8], Component *>      element_pair;
-    typedef std::pair<std::string, element_pair>        type_pair;
+    typedef std::pair<ElementBase::ElementType, element_pair>        type_pair;
     typedef std::list<type_pair *>                 beamline_list;
     /// Constructor.
     //  The beam line to be tracked is "bl".
@@ -268,7 +269,7 @@ private:
 #endif // GENERICTRACKER
 
     /*
-     Local Variables both used by the integration methods
+      Local Variables both used by the integration methods
     */
 
     Vector_t rold_m, pold_m, rnew_m, ptmp_m;
@@ -339,7 +340,7 @@ private:
     void applyExitFringe(double edge, double curve,
                          const BMultipoleField &field, double scale);
 
-    void buildupFieldList(double BcParameter[], std::string ElementType, Component *elptr);
+    void buildupFieldList(double BcParameter[], ElementBase::ElementType elementType, Component *elptr);
 
     bool derivate(double *y, const double &t, double *yp, const size_t &Pindex);
 

@@ -23,6 +23,7 @@
 #include "Parser/FileStream.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
+#include "Utility/IpplInfo.h"
 #include <iostream>
 
 using std::cerr;
@@ -58,18 +59,14 @@ Call *Call::clone(const std::string &name) {
 void Call::execute() {
     std::string file = Attributes::getString(itsAttr[0]);
 
-    if(Options::info) {
-        cerr << endl
-             << "Start reading input stream \"" << file << "\"." << endl
-             << endl;
+    if(Options::info && Ippl::myNode() == 0) {
+        cerr << "Start reading input stream \"" << file << "\"." << endl;
     }
 
     OpalParser().run(new FileStream(file));
 
-    if(Options::info) {
-        cerr << endl
-             << "End reading input stream \"" << file << "\"." << endl
-             << endl;
+    if(Options::info && Ippl::myNode() == 0) {
+        cerr << "End reading input stream \"" << file << "\"." << endl;
     }
 }
 

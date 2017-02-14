@@ -11,9 +11,6 @@ namespace Versions {
                     "* The normalization of the 2-dimensional field maps has changed.\n"
                     "  Instead of normalizing with the overall maximum value of longitudinal\n"
                     "  component Opal now uses the maximum value on axis.\n"
-                    "\n"
-                    "* OPAL-T: The design energy of dipoles is now expected to be in MeV instead\n"
-                    "  of eV.\n"
                     });
 
         changes.insert({109,
@@ -23,6 +20,11 @@ namespace Versions {
                     "\n"
                     "* OPAL-T: Beamlines containing a cathode have to have a SOURCE element to\n"
                     "  indicate this fact\n"
+                    "\n"
+                    "* OPAL-T: The design energy of dipoles is now expected to be in MeV instead\n"
+                    "  of eV.\n"
+                    "* OPAL-T: The attribute 'ROTATION' of RBEND and SBEND have been replaced\n"
+                    "  by 'PSI'. Can be applyied to all elements to rotate them.\n"
                     });
     }
 }
