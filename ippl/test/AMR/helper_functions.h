@@ -24,6 +24,47 @@ typedef Array<std::unique_ptr<MultiFab> > container_t;
 typedef PArray<MultiFab> container_t;
 #endif
 
+
+inline void writeScalarField(const container_t& scalfield, std::string filename)
+{
+#ifdef UNIQUE_PTR
+    for (MFIter mfi(*scalfield[0 /*level*/]); mfi.isValid(); ++mfi) {
+#else
+    for (MFIter mfi(scalfield[0 /*level*/]); mfi.isValid(); ++mfi) {
+#endif
+        const Box& bx = mfi.validbox();
+#ifdef UNIQUE_PTR
+        const FArrayBox& lhs = (*scalfield[0])[mfi];
+#else
+        const FArrayBox& lhs = (scalfield[0])[mfi];
+#endif
+        for (int proc = 0; proc < ParallelDescriptor::NProcs(); ++proc) {
+            if ( proc == ParallelDescriptor::MyProc() ) {
+                std::string outfile = filename + std::to_string(0);
+                std::ofstream out;
+                
+                if ( proc == 0 )
+                    out.open(outfile);
+                else
+                    out.open(outfile, std::ios_base::app);
+                
+                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+                    for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+                        for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
+                            IntVect ivec(i, j, k);
+                            // add one in order to have same convention as PartBunch::computeSelfField()
+                            out << i + 1 << " " << j + 1 << " " << k + 1 << " "
+                                << lhs(ivec, 0)  << std::endl;
+                        }
+                    }
+                }
+                out.close();
+            }
+            ParallelDescriptor::Barrier();
+        }
+    }
+}
+
 /*!
  * Write the grid data along the horizontal direction
  * (centered in y and z) to a file. Just single level supported.
@@ -260,9 +301,9 @@ inline void init(RealBox& domain,
     /*
      * set up the geometry
      */
-    IntVect low(0, 0, 0);
-    IntVect high(nr[0] - 1, nr[1] - 1, nr[2] - 1);    
-    Box bx(low, high);
+//     IntVect low(0, 0, 0);
+//     IntVect high(nr[0] - 1, nr[1] - 1, nr[2] - 1);    
+//     Box bx(low, high);
     
     // box
     for (int i = 0; i < BL_SPACEDIM; ++i) {
@@ -270,8 +311,8 @@ inline void init(RealBox& domain,
         domain.setHi(i, upper[i]); // m
     }
     
-    // Dirichlet boundary conditions in all directions
-    int bc[BL_SPACEDIM] = {0, 0, 0};
+//     // Dirichlet boundary conditions in all directions
+//     int bc[BL_SPACEDIM] = {0, 0, 0};
 }
 
 /*!

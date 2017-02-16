@@ -104,9 +104,9 @@ void Distribution::gaussian(double mean, double stddev, size_t nloc, int seed) {
     }
 }
 
-void Distribution::twostream(const Vector_t& lower, const Vector_t& upper,
-                             const Vektor<std::size_t, 3>& nx, const Vektor<std::size_t, 3>& nv,
-                             const Vektor<double, 3>& vmax, double alpha)
+void Distribution::special(const Vector_t& lower, const Vector_t& upper,
+                           const Vektor<std::size_t, 3>& nx, const Vektor<std::size_t, 3>& nv,
+                           const Vektor<double, 3>& vmax, Type type, double alpha)
 {
     Vektor<double, 3> hx = (upper - lower) / Vector_t(nx);
     Vektor<double, 3> hv = 2.0 * vmax / Vector_t(nv);
@@ -144,19 +144,26 @@ void Distribution::twostream(const Vector_t& lower, const Vector_t& upper,
 
                                 if ( Ippl::myNode() != int(kv) % nInitializer )
                                     continue;
-
+                                
                                 Vektor<double, 3> vel = -vmax + hv *
                                                         Vektor<double, 3>(iv + 0.5,
                                                                           jv + 0.5,
                                                                           kv + 0.5);
-                                
-                                double v2 = vel[0] * vel[0] +
-                                            vel[1] * vel[1] +
-                                            vel[2] * vel[2];
-                                
-                                double f = factor * std::exp(-0.5 * v2) *
-                                           (1.0 + alpha * std::cos(k * pos[2])) *
-                                           (1.0 + /*0.*/5.0 * vel[2] * vel[2]);
+                                double f = 0.0;
+                                switch ( type ) {
+                                    case kTwoStream:
+                                        f = twoStream(pos, vel, alpha, k);
+                                        break;
+                                    case kLandauDamping:
+                                        f = landauDamping(pos, vel, alpha, k);
+                                        break;
+                                    case kRecurrence:
+                                        f = recurrence(pos, vel, alpha, k);
+                                        break;
+                                    default:
+                                        // we should throw an error
+                                        break;
+                                }
                                 
                                 double m = hx[0] * hv[0] *
                                            hx[1] * hv[1] *
