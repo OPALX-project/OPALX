@@ -16,7 +16,7 @@
 
 #include "../helper_functions.h"
 
-// #include "writePlotFile.H"
+#include "../boxlib-amr/writePlotFile.H"
 
 #include <cmath>
 
@@ -38,6 +38,49 @@ typedef UniformCartesian<2, double>                                   Mesh2d_t;
 typedef CenteredFieldLayout<2, Mesh2d_t, Center_t>                    FieldLayout2d_t;
 typedef Field<double, 2, Mesh2d_t, Center_t>                          Field2d_t;
 
+void writeParticles(amrbunch_t* bunch, int step) {
+    std::ofstream csvout;
+    csvout.precision(10);
+    csvout.setf(std::ios::scientific, std::ios::floatfield);
+
+    std::stringstream fname;
+    fname << "data/charges_nod_";
+    fname << std::setw(1) << Ippl::myNode();
+    fname << std::setw(5) << "_it_";
+    fname << std::setw(4) << std::setfill('0') << step;
+    fname << ".csv";
+    
+    // open a new data file for this iteration
+    // and start with header
+    csvout.open(fname.str().c_str(), std::ios::out);
+    csvout << "x coord, y coord, z coord, charge, EfieldMagnitude, ID, vx, vy, vz, f" << std::endl;
+    
+    for (std::size_t i = 0; i< bunch->getLocalNum(); ++i) {
+        double distributionf = bunch->P[i][2] * bunch->P[i][2] * 
+                               std::exp( - ( bunch->P[i][0] * bunch->P[i][0] +
+                                             bunch->P[i][1] * bunch->P[i][1] +
+                                             bunch->P[i][2] * bunch->P[i][2] ) /2.
+                                       );
+        
+        csvout << bunch->R[i](0) << ","
+               << bunch->R[i](1) << ","
+               << bunch->R[i](2) << ","
+               << bunch->qm[i] << ","
+               << std::sqrt( bunch->E[i][0] * bunch->E[i][0] +
+                             bunch->E[i][1] * bunch->E[i][1] +
+                             bunch->E[i][2] * bunch->E[i][2]
+                           )
+               << ","
+               << bunch->ID[i] << ","
+               << bunch->P[i][0] << ","
+               << bunch->P[i][1] << ","
+               << bunch->P[i][2] << ","
+               << distributionf << std::endl;
+    }
+    csvout << std::endl;
+    
+    csvout.close();
+}
 
 void writeEnergy(amrbunch_t* bunch,
                  container_t& rho,
@@ -177,6 +220,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     
     bunch->AssignDensity(bunch->qm, false, rhs, base_level, finest_level);
     
+    
+    
     // eps in C / (V * m)
     double constant = -1.0; // / Physics::epsilon_0;  // in [V m / C]
     for (int i = 0; i <=finest_level; ++i) {
@@ -193,6 +238,20 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // **************************************************************************                                                                                                                                
 
     Real offset = 0.;
+    
+    if (geom[0].isAllPeriodic()) 
+    {
+//     std::cout << "total charge in density field before ion subtraction is " << rhs[0].sum(0) << std::endl;
+//     std::cout << "max total charge in densitty field before ion subtraction is " << rhs[0].max(0) << std::endl;
+//     rhs[0].plus(1.0, 0, 1);
+//     std::cout << "total charge in density field after ion subtraction is " << rhs[0].sum(0) << std::endl; std::cin.get();
+        for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
+            offset += bunch->qm[i];
+        
+        offset /= geom[0].ProbSize();
+    }
+    
+    std::cout << "Offset: " << offset << std::endl;
 
     // solve                                                                                                                                                                                                     
     Solver sol;
@@ -281,22 +340,42 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     
     Vektor<double, 3> extend_l = Vektor<double, 3>(lower[0], lower[1], lower[2]);
     Vektor<double, 3> extend_r = Vektor<double, 3>(upper[0], upper[1], upper[2]);
+    // 2-stream
+    /*
     Vektor<std::size_t, 3> Nx = Vektor<std::size_t, 3>(4, 4, 32);
     Vektor<std::size_t, 3> Nv = Vektor<std::size_t, 3>(8, 8, 128);
+    */
     Vektor<double, 3> Vmax = Vektor<double, 3>(6.0, 6.0, 6.0);
     
-    dist.twostream(extend_l,
+    /*
+    dist.special(extend_l,
                    extend_r,
                    Nx,
                    Nv,
                    Vmax,
+                   Distribution::Type::kTwoStream,
                    0.05);
+    */
+    
+    // recurrence
+    Vektor<std::size_t, 3> Nx = Vektor<std::size_t, 3>(8, 8, 8);
+    Vektor<std::size_t, 3> Nv = Vektor<std::size_t, 3>(32, 32, 32);
+    
+    dist.special(extend_l,
+                   extend_r,
+                   Nx,
+                   Nv,
+                   Vmax,
+                   Distribution::Type::kRecurrence,
+                   0.01);
     
     // copy particles to the PartBunchAmr object.
     dist.injectBeam( *(bunch.get()) );
     
     // redistribute on single-level
-    bunch->update();
+//     bunch->update();
+    
+    writeParticles(bunch.get(), 0);
     
     myAmrOpal.setBunch( bunch.get() );
     
@@ -372,6 +451,13 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     container_t grad_phi;
     doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels);
     
+    
+    writeScalarField(rhs, "rho_0.dat");
+    
+    std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
+    
+    writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geoms, 0);
+    
     Vector_t hr = ( extend_r - extend_l ) / Vector_t(nr);
     double cell_volume = hr[0] * hr[1] * hr[2];
     std::cout << "Cell volume: " << cell_volume << std::endl;
@@ -380,13 +466,21 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     writeGridSum(rhs, 0, "RhoInterpol");
     writeGridSum(phi, 0, "Phi_m");
     
+//     bunch->python_format(0);
+    
+//     writeScalarField(phi, "potential");
+    
+//     bunch->GetGravity(bunch->E, grad_phi);
+    
+//     for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
+//         std::cout << bunch->ID[j] << " " << bunch->R[j] << " " << bunch->E[j] << std::endl; std::cin.get();
+//     }
     
     for (std::size_t i = 0; i < nIter; ++i) {
         msg << "Processing step " << i << endl;
 
         ipplProjection(field, dx, dv, Vmax, lDom,
                        bunch.get(), i);
-        
         
         assign(bunch->R, bunch->R + dt * bunch->P);
         
@@ -409,18 +503,20 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
         
         doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels);
         
+        writeScalarField(rhs, "rho_" + std::to_string(i) + ".dat");
+        
         bunch->GetGravity(bunch->E, grad_phi);
         
 //         for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
-//             std::cout << bunch->R[j] << " " << bunch->E[j] * Physics::epsilon_0 << std::endl; std::cin.get();
+//             std::cout << bunch->R[j] << " " << bunch->E[j] << std::endl; std::cin.get();
 //         }
         
         /* epsilon_0 not used by Ulmer --> multiply it away */
         assign(bunch->P, bunch->P + dt * bunch->qm / bunch->mass * bunch->E ); //* Physics::epsilon_0);
         
         writeEnergy(bunch.get(), rhs, phi, grad_phi, rr, cell_volume, i + 1);
-       writeGridSum(rhs, i + 1, "RhoInterpol");
-       writeGridSum(phi, i + 1, "Phi_m");
+        writeGridSum(rhs, i + 1, "RhoInterpol");
+        writeGridSum(phi, i + 1, "Phi_m");
         
         msg << "Done with step " << i << endl;
     }

@@ -67,15 +67,20 @@ public:
         this->addAttribute(Q);
         this->addAttribute(Rphase);
         this->addAttribute(v);
+    }
+    
+    void interpolate_distribution(Vektor<double,3> dx, Vektor<double,3> dv, int step){
         
         double spacings[2] = {(extend_r[2]-extend_l[2])/(Nx[2]),2.*Vmax[2]/(Nv[2])};
         Vektor<double,2> origin;
         origin(0) = extend_l[2]; origin(1) = -Vmax[2]; 
         Index I(Nx[2]+1); Index J(Nv[2]+1);
+        
+        NDIndex<2> domain2d_m;
         domain2d_m[0]=I; domain2d_m[1]=J;
 
-        mesh2d_m=Mesh2d_t(domain2d_m, spacings, origin);
-        layout2d_m = new FieldLayout2d_t(mesh2d_m);
+        Mesh2d_t mesh2d_m = Mesh2d_t(domain2d_m, spacings, origin);
+        std::unique_ptr<FieldLayout2d_t>  layout2d_m = std::unique_ptr<FieldLayout2d_t>( new FieldLayout2d_t(mesh2d_m) );
         
         //set origin and spacing is needed for correct results, even if mesh was created with these paremeters ?!
         mesh2d_m.set_meshSpacing(&(spacings[0]));
@@ -84,7 +89,7 @@ public:
         domain2d_m = layout2d_m->getDomain();
         //f_m is used for twostream instability as 2D phase space mesh
         
-        BConds<double,2,UniformCartesian<2,double>,Cell> BC;
+        BConds<double, 2, Mesh2d_t, Center_t> BC;
         if (Ippl::getNodes()>1) {
             BC[0] = new ParallelInterpolationFace<double,2,Mesh2d_t,Cell>(0);
             BC[1] = new ParallelInterpolationFace<double,2,Mesh2d_t,Cell>(1);
@@ -98,17 +103,51 @@ public:
             BC[3] = new InterpolationFace<double,2,Mesh2d_t,Cell>(3);
         }
         
-        f_m.initialize(mesh2d_m, *layout2d_m, GuardCellSizes<2>(1),BC);
-    }
-    
-    void interpolate_distribution(Vektor<double,3> dx, Vektor<double,3> dv){
-        f_m=0;
-        for (unsigned i=0; i<this->getLocalNum(); ++i) {
-//             SpaceQ[i]=Q[i]/(dx[0]*dx[1]*dv[0]*dv[1]);
+        Field2d_t f_m;
+        f_m.initialize(mesh2d_m, *(layout2d_m.get()), GuardCellSizes<2>(1),BC);
+        for (unsigned i=0; i<this->getLocalNum(); ++i)
             Rphase[i]=Vektor<double,2>(this->R[i][2],v[i][2]);
+        this->Q.scatter(f_m, this->Rphase, IntrplCIC_t());
+        
+        std::ofstream csvout;
+        csvout.precision(10);
+        csvout.setf(std::ios::scientific, std::ios::floatfield);
+        
+        std::cout << "Hi 6b" << std::endl;
+        
+        std::stringstream fname;
+        fname << "data/f_mesh_";
+        fname << std::setw(4) << std::setfill('0') << step;
+        fname << ".csv";
+        
+        std::cout << "Hi 6c" << std::endl;
+        
+        // open a new data file for this iteration
+        // and start with header
+        csvout.open(fname.str().c_str(), std::ios::out);
+        csvout << "z, vz, f" << std::endl;
+        NDIndex<2> lDom = domain2d_m;
+        
+        std::cout << "Hi 6d" << std::endl;
+        
+        std::cout << lDom[0].first() << " " << lDom[0].last() << std::endl
+                  << lDom[1].first() << " " << lDom[1].last() << std::endl;
+        
+        for (int i=lDom[0].first(); i<=lDom[0].last(); i++) {
+        
+            for (int j=lDom[1].first(); j<=lDom[1].last(); j++) {
+            
+                csvout << (i+0.5)*dx[2] << ","
+                       << (j+0.5)*dv[2]-Vmax[2]
+                       << "," << f_m[i][j].get() << std::endl;
+            }
         }
-        //this->SpaceQ.scatter(this->f_m, this->Rphase, IntrplCIC_t());
-        this->Q.scatter(this->f_m, this->Rphase, IntrplCIC_t());
+        // close the output file for this iteration:
+        csvout.close();
+        
+//         fname.str("");
+        
+//         delete BC[0];
     }
     
 public:
@@ -118,88 +157,22 @@ public:
     Vektor<int,Dim> Nx;
     Vektor<int,Dim> Nv; 
     Vektor<double,Dim> Vmax;
-    //Fields for tracking distribution function
-    Field2d_t f_m;
-    Mesh2d_t mesh2d_m;
-    NDIndex<2> domain2d_m;	
-    FieldLayout2d_t *layout2d_m;
-    
 };
 
-void ipplProjection(Vektor<int,Dim> nr,
-                    Vektor<double,Dim> extend_l,
-                    Vektor<double,Dim> extend_r,
-                    Vektor<int,Dim> Nx,
-                    Vektor<int,Dim> Nv,
-                    Vektor<double,Dim> Vmax,
+void ipplProjection(std::unique_ptr<TempParticle<playout_t> >& P,
                     PartBunchBase* bunch, int step) {
-    e_dim_tag decomp[Dim];
-    Mesh_t *mesh;
-    FieldLayout_t *FL;
-
-    NDIndex<Dim> domain;
-    for (unsigned i=0; i<Dim; i++)
-        domain[i] = domain[i] = Index(nr[i]+1);
-
-    for (unsigned d=0; d < Dim; ++d)
-        decomp[d] = PARALLEL;
-    
-    // create mesh and layout objects for this problem domain
-    mesh          = new Mesh_t(domain);
-    FL            = new FieldLayout_t(*mesh, decomp);
-    playout_t* PL = new playout_t(*FL, *mesh);
-    
-    TempParticle<playout_t>  *P = new TempParticle<playout_t>(PL, nr, decomp, extend_l, extend_r,Nx,Nv,Vmax);
     
     //**************
     // copy the particles to Ippl container
     for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
-        P->create(1);
         P->Q[i] = bunch->getQM(i);
         P->v[i] = bunch->getP(i);
         P->R[i] = bunch->getR(i);
     }
     //**************
+    std::cout << "Hi 5" << std::endl;
     
-    
-    P->interpolate_distribution((extend_r-extend_l)/(Nx),2.*Vmax/(Nv));
-    
-    // ---------------
-    Vektor<double,3> dx = (P->extend_r-P->extend_l)/(P->Nx);
-    
-    Vektor<double,3> dv = 2.*P->Vmax/(P->Nv);
-    std::ofstream csvout;
-    csvout.precision(10);
-    csvout.setf(std::ios::scientific, std::ios::floatfield);
-
-    std::stringstream fname;
-    fname << "data/f_mesh_";
-    fname << std::setw(4) << std::setfill('0') << step;
-    fname << ".csv";
-    
-    // open a new data file for this iteration
-    // and start with header
-    csvout.open(fname.str().c_str(), std::ios::out);
-    csvout << "z, vz, f" << std::endl;
-    NDIndex<2> lDom = P->domain2d_m;
-    
-    for (int i=lDom[0].first(); i<=lDom[0].last(); i++) {
-    
-        for (int j=lDom[1].first(); j<=lDom[1].last(); j++) {
-        
-            csvout << (i+0.5)*dx[2] << ","
-                   << (j+0.5)*dv[2]-P->Vmax[2]
-                   << "," << P->f_m[i][j].get() << std::endl;
-        }
-    }
-    // close the output file for this iteration:
-    csvout.close();
-    // -------------------
-    
-    delete P;
-//     delete PL;
-    delete FL;
-    delete mesh;
+    P->interpolate_distribution((P->extend_r-P->extend_l)/(P->Nx),2.*P->Vmax/(P->Nv), step);
 }
     
     
@@ -324,8 +297,6 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
 
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
     
-    std::cout << rhs[0].sum() << std::endl;
-    
     // eps in C / (V * m)
     double constant = -1.0 / Physics::epsilon_0;  // in [V m / C]
     for (int i = 0; i <=finest_level; ++i) {
@@ -423,11 +394,13 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     
     // initialize a particle distribution
     Distribution dist;
-    dist.twostream(Vektor<double, 3>(lower[0], lower[1], lower[2]),
+    dist.special(Vektor<double, 3>(lower[0], lower[1], lower[2]),
                    Vektor<double, 3>(upper[0], upper[1], upper[2]),
                    Vektor<std::size_t, 3>(4, 4, 32),
                    Vektor<std::size_t, 3>(8, 8, 128),
-                   Vektor<double, 3>(6.0, 6.0, 6.0), 0.05);
+                   Vektor<double, 3>(6.0, 6.0, 6.0),
+                 Distribution::Type::kTwoStream,
+                 0.05);
     
     // copy particles to the PartBunchBase object.
     dist.injectBeam(*bunch);
@@ -449,22 +422,50 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     msg << "Multi-level statistics" << endl;
     bunch->gatherStatistics();
     
+    // -----------------------------------------------------
+    
+    e_dim_tag decomp[Dim];
+    Mesh_t *mesh;
+    FieldLayout_t *FL;
+
+    NDIndex<Dim> domain_ippl;
+    for (unsigned i=0; i<Dim; i++)
+        domain_ippl[i] = domain_ippl[i] = Index(nr[i]+1);
+
+    for (unsigned d=0; d < Dim; ++d)
+        decomp[d] = PARALLEL;
+    
+    std::cout << "Hi 2" << std::endl;
+    
+    // create mesh and layout objects for this problem domain
+    mesh          = new Mesh_t(domain_ippl);
+    FL            = new FieldLayout_t(*mesh, decomp);
+    playout_t* PL = new playout_t(*FL, *mesh);
+    
+    std::unique_ptr<TempParticle<playout_t> > P( new TempParticle<playout_t>(PL, nr,
+                                                                             decomp,
+                                                                             Vektor<double, 3>(lower[0], lower[1], lower[2]),
+                                                                             Vektor<double, 3>(upper[0], upper[1], upper[2]),
+                                                                             Vektor<std::size_t, 3>(4, 4, 32),
+                                                                             Vektor<std::size_t, 3>(8, 8, 128),
+                                                                             Vektor<double, 3>(6.0, 6.0, 6.0)) );
+    P->create(bunch->getLocalNum());
+    // ----------------------------------------------------
+    
     for (std::size_t i = 0; i < nIter; ++i) {
+        msg << "Processing step: " << i << endl;
+// //         dynamic_cast<AmrPartBunch*>(bunch)->python_format(i);
+// //         printLongitudinalPhaseSpace(bunch, myAmrOpal, i);
+        ipplProjection(P, bunch, i);
         
-//         dynamic_cast<AmrPartBunch*>(bunch)->python_format(i);
-//         printLongitudinalPhaseSpace(bunch, myAmrOpal, i);
-        ipplProjection(nr,
-                       Vektor<double, 3>(lower[0], lower[1], lower[2]),
-                       Vektor<double, 3>(upper[0], upper[1], upper[2]),
-                       Vektor<std::size_t, 3>(4, 4, 32),
-                       Vektor<std::size_t, 3>(8, 8, 128),
-                       Vektor<double, 3>(6.0, 6.0, 6.0),
-                       bunch, i);
+        msg << "Done writing projection." << endl;
         
         for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
             int level = dynamic_cast<AmrPartBunch*>(bunch)->getLevel(j);
             bunch->setR( bunch->getR(j) + dt * bunch->getP(j), j );
         }
+        
+        msg << "Done pushing particles." << endl;
             
         if ( myAmrOpal.maxLevel() > 0 )
             for (int j = 0; j <= myAmrOpal.finestLevel() && j < myAmrOpal.maxLevel(); ++j)
@@ -472,10 +473,14 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
         else
             bunch->myUpdate();
         
+        msg << "Done updating." << endl;
+        
         container_t rhs;
         container_t phi;
         container_t grad_phi;
         doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geoms, rr, nLevels);
+        
+        msg << "Done solving Poisson's equation." << endl;
         
         for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
             int level = dynamic_cast<AmrPartBunch*>(bunch)->getLevel(j);
@@ -487,7 +492,15 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
             bunch->setP( bunch->getP(j) + dt * bunch->getQM(j) / bunch->getMass(j) * Ef, j);
         }
         
+        msg << "Done with step: " << i << endl;
     }
+    
+    // ----------------------------------------------
+    P->destroy(bunch->getLocalNum(), 0);
+    P.reset(nullptr);
+    delete FL;
+    delete mesh;
+    
 }
 
 
@@ -543,9 +556,9 @@ int main(int argc, char *argv[]) {
              << std::setfill('0') << std::setw(6) << Ippl::getNodes()
              << "-threads-1.dat";
     
-    if ( argc == 8 ) {
+    if ( argc == 9 ) {
         timefile.str(std::string());
-        timefile << std::string(argv[7]);
+        timefile << std::string(argv[8]);
     }
     
     IpplTimings::print(timefile.str());

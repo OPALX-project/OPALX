@@ -34,6 +34,74 @@ class Distribution {
 public:
     typedef std::vector<double> container_t;
     typedef Vektor<double, BL_SPACEDIM> Vector_t;
+    typedef std::function<double(const Vector_t&,
+                         const Vector_t&,
+                         double,
+                         double)> function_t;
+    
+    // Only used in the function "special"
+    enum Type {
+        kTwoStream,
+        kLandauDamping,
+        kRecurrence
+    };
+
+private:
+    function_t twoStream = [&](const Vector_t& pos,
+                               const Vector_t& vel,
+                               double alpha, double k)
+    {
+        double factor = 1.0 / ( M_PI * 30.0 );
+        double v2 = vel[0] * vel[0] +
+                    vel[1] * vel[1] +
+                    vel[2] * vel[2];
+        
+        double f = factor * std::exp(-0.5 * v2) *
+                    (1.0 + alpha * std::cos(k * pos[2])) *
+                    (1.0 + /*0.*/5.0 * vel[2] * vel[2]);
+        
+        return f;
+    };
+    
+    function_t landauDamping = [&](const Vector_t& pos,
+                                   const Vector_t& vel,
+                                   double alpha, double k)
+    {
+        double factor = 1.0 / ( 2.0 * M_PI * std::sqrt(2.0 * M_PI) );
+        double v2 = vel[0] * vel[0] +
+                    vel[1] * vel[1] +
+                    vel[2] * vel[2];
+        
+        double f = factor * std::exp( -0.5 * v2) *
+                    (1.0 + alpha * ( std::cos( k * pos[2] ) +
+                                     std::cos( k * pos[1] ) +
+                                     std::cos( k * pos[0])
+                                   )
+                    );
+        
+        return f;
+    };
+    
+    
+    // free-streaming
+    function_t recurrence = [&](const Vector_t& pos,
+                               const Vector_t& vel,
+                               double alpha, double k)
+    {
+        double factor = 1.0 / ( 2.0 * M_PI * std::sqrt(2.0 * M_PI) );
+        double v2 = vel[0] * vel[0] +
+                    vel[1] * vel[1] +
+                    vel[2] * vel[2];
+        
+        double f = alpha * factor * std::exp(-0.5 * v2) *
+                    (
+                        std::cos( k * pos[2] ) +
+                        std::cos( k * pos[1] ) +
+                        std::cos( k * pos[0] )
+                    );
+        
+        return f;
+    };
     
 public:
 
@@ -57,18 +125,23 @@ public:
      */
     void gaussian(double mean, double stddev, size_t nloc, int seed);
     
-    /// Generate a two stream instability distribution according to B.\ Ulmer
+    /// Generate particle distributions according to B.\ Ulmer
     /*!
+     * Supported distributions:\n
+     * - 2-stream instability
+     * - Landau damping
+     * - recurrence
      * @param lower boundary of domain
      * @param upper boundary of domain
      * @param nx is the number of grid points in cooordinate space
      * @param nv is the number of grid points in velocity space
      * @param vmax is the max. velocity
+     * @param type is either kTwoStream, kLandauDamping or kRecurrence
      * @param alpha is the amplitude of the initial disturbance
      */
-    void twostream(const Vector_t& lower, const Vector_t& upper,
+    void special(const Vector_t& lower, const Vector_t& upper,
                    const Vektor<std::size_t, 3>& nx, const Vektor<std::size_t, 3>& nv,
-                   const Vektor<double, 3>& vmax, double alpha = 0.5);
+                   const Vektor<double, 3>& vmax, Type type, double alpha = 0.5);
     
     /// Generate a uniform particle disitribution per cell
     /*!
