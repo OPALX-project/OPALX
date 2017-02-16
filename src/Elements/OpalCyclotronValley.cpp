@@ -37,6 +37,9 @@ OpalCyclotronValley::OpalCyclotronValley():
                   ("BFLG", "B flag");
     registerStringAttribute("FMAPFN");
     registerRealAttribute("BFLG");
+
+    registerOwnership();
+
     setElement((new CyclotronValleyRep("CyclotronValley"))->makeAlignWrapper());
 }
 

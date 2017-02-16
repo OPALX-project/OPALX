@@ -52,6 +52,8 @@ OpalSeptum::OpalSeptum():
     registerRealAttribute("YEND");
     registerRealAttribute("WIDTH");
 
+    registerOwnership();
+
     setElement((new SeptumRep("SEPTUM"))->makeAlignWrapper());
 }
 

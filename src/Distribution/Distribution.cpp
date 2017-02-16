@@ -3966,6 +3966,8 @@ void Distribution::setAttributes() {
         = Attributes::makeReal("DY", "Dispersion in y (R36 in Transport notation).", 0.0);
     itsAttr[ LegacyAttributesT::DDY]
         = Attributes::makeReal("DDY", "First derivative of DY.", 0.0);
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 void Distribution::setFieldEmissionParameters() {

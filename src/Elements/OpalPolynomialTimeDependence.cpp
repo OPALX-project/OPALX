@@ -57,6 +57,8 @@ OpalPolynomialTimeDependence::OpalPolynomialTimeDependence()
     registerRealAttribute("P1");
     registerRealAttribute("P2");
     registerRealAttribute("P3");
+
+    registerOwnership();
 }
 
 OpalPolynomialTimeDependence* OpalPolynomialTimeDependence::clone(const std::string &name) {

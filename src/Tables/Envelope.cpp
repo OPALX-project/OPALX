@@ -53,6 +53,8 @@ Envelope::Envelope():
                      ("TABLE", "Name of table to be listed");
     itsAttr[FNAME] = Attributes::makeString
                      ("FILE", "Name of file to receive output", "ENVELOPE");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

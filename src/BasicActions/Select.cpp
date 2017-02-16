@@ -74,6 +74,8 @@ Select::Select():
     itsAttr[PATTERN] = Attributes::makeString
                        ("PATTERN",
                         "Regular expression for matching names (default: all names)");
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
 

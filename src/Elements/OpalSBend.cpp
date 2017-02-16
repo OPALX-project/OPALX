@@ -36,6 +36,9 @@ OpalSBend::OpalSBend():
              "The \"SBEND\" element defines a sector bending magnet."),
     owk_m(NULL),
     sphys_m(NULL) {
+
+    registerOwnership();
+
     setElement((new SBendRep("SBEND"))->makeWrappers());
 }
 

@@ -208,6 +208,8 @@ public:
     //  will no longer be notified of any change to [b]this[/b].
     void unregisterReference(Invalidator *a);
 
+    void registerOwnership(const AttributeHandler::OwnerType &itsClass) const;
+
     /// The object attributes (see Attribute.hh).
     std::vector<Attribute> itsAttr;
 

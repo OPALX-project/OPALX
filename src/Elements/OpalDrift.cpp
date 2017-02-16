@@ -42,6 +42,9 @@ OpalDrift::OpalDrift():
     itsAttr[GEOMETRY] = Attributes::makeString
                         ("GEOMETRY", "BoundaryGeometry for Drifts");
     registerStringAttribute("GEOMETRY");
+
+    registerOwnership();
+
     setElement(new DriftRep("DRIFT"));
 }
 
