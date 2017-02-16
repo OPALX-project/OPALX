@@ -50,6 +50,8 @@ ThreadAll::ThreadAll():
                      ("LISTM", "List the monitors after correction");
     itsAttr[LISTC] = Attributes::makeBool
                      ("LISTC", "List the correctors after correction");
+
+    registerOwnership(AttributeHandler::COMMAND);
 }
 
 

@@ -51,6 +51,8 @@ EditInstall::EditInstall():
                    "Position in metres for installation relative to origin(s)");
     itsAttr[FROM] = Attributes::makePlace
                     ("FROM", "Position of element defining origin (default is start)");
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
 

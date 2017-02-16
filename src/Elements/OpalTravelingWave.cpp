@@ -74,6 +74,8 @@ OpalTravelingWave::OpalTravelingWave():
     registerRealAttribute("NUMCELLS");
     registerRealAttribute("DESIGNENERGY");
 
+    registerOwnership();
+
     setElement((new TravelingWaveRep("TRAVELINGWAVE"))->makeAlignWrapper());
 }
 

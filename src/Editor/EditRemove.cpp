@@ -46,6 +46,8 @@ EditRemove::EditRemove():
                         ("SELECTED", "If true, all selected elements are removed");
     itsAttr[CLASS] = Attributes::makePlace
                      ("CLASS", "Name of element class to be removed");
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
 

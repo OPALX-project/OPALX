@@ -30,6 +30,8 @@ EditEnd::EditEnd():
            "The \"ENDEDIT\" sub-command terminates sequence editing mode.") {
     itsAttr[0] = Attributes::makeString
                  ("NAME", "New name for the edited sequence (default = old name)");
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
 

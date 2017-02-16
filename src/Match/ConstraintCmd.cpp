@@ -52,6 +52,8 @@ ConstraintCmd::ConstraintCmd():
     itsAttr[WGT] = Attributes::makeRealArray
                    ("WGT", "the weight(s) for this constraint");
     relation = 0;
+
+    registerOwnership(AttributeHandler::COMMAND);
 }
 
 

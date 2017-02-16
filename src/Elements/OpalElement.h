@@ -47,7 +47,7 @@ public:
         TYPE,           // The design type.
         APERT,          // The aperture data.
         LENGTH,         // The element length.
-        // ELEMEDGE,       // The position of the element (in path length)
+        ELEMEDGE,       // The position of the element (in path length)
         WAKEF,          // The wake function to be used
         SURFACEPHYSICS, // The surface physics handler to be used
         ORIGIN,         // The location of the element in floor coordinates
@@ -171,6 +171,7 @@ protected:
     /// The registry for named attributes.
     static std::map < std::string, OwnPtr<AttCell> > attributeRegistry;
 
+    void registerOwnership() const;
 private:
 
     // Not implemented.

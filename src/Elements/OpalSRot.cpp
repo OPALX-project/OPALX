@@ -31,7 +31,9 @@ OpalSRot::OpalSRot():
     itsAttr[ANGLE] = Attributes::makeReal
                      ("ANGLE", "Angle for the transformation");
 
-    registerRealAttribute("SANGLE");
+    registerRealAttribute("ANGLE");
+
+    registerOwnership();
 
     setElement(new PatchRep("SROT"));
 }

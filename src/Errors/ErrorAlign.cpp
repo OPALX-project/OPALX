@@ -94,6 +94,8 @@ ErrorAlign::ErrorAlign():
     itsAttr[MREDY] = Attributes::makeReal
                      ("MREDY", "Monitor D_y read error in m");
     itsAttr[MREDY].setDeferred(true);
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
 

@@ -36,6 +36,9 @@ OpalRBend::OpalRBend():
              "The \"RBEND\" element defines a rectangular bending magnet."),
     owk_m(0),
     sphys_m(NULL) {
+
+    registerOwnership();
+
     setElement((new RBendRep("RBEND"))->makeWrappers());
 }
 

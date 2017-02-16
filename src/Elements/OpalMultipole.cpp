@@ -56,6 +56,8 @@ OpalMultipole::OpalMultipole():
     itsAttr[DKS] = Attributes::makeRealArray
                   ("DKS", "Normalised multipole strength errors (skew) in m^(-k)");
 
+    registerOwnership();
+
     setElement((new MultipoleRep("MULTIPOLE"))->makeWrappers());
 }
 

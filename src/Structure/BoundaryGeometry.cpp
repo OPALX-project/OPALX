@@ -840,6 +840,8 @@ BoundaryGeometry::BoundaryGeometry() :
     itsAttr[APERTURE]  = Attributes::makeRealArray
         ("APERTURE", "The element aperture");
 
+    registerOwnership(AttributeHandler::STATEMENT);
+
     BoundaryGeometry* defGeometry = clone ("UNNAMED_GEOMETRY");
     defGeometry->builtin = true;
 

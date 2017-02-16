@@ -33,6 +33,8 @@ OpalYRot::OpalYRot():
 
     registerRealAttribute("YANGLE");
 
+    registerOwnership();
+
     setElement(new PatchRep("YROT"));
 }
 

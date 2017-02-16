@@ -50,6 +50,8 @@ EditReplace::EditReplace():
     itsAttr[CLASS] = Attributes::makePlace
                      ("CLASS", "Name of element class to be replaced");
     itsAttr[BY] = Attributes::makeString("BY", "name of replacement class");
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
 

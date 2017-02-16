@@ -30,6 +30,7 @@
 #include "Algorithms/Vektor.h"
 #include "Algorithms/Quaternion.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
+#include "Utilities/GeneralClassicException.h"
 
 #include <string>
 #include <queue>
@@ -386,6 +387,9 @@ public:
     //  "*this".  The return value [b]true[/b] indicates success.
     bool update(const AttributeSet &);
 
+    void setElementPosition(double elemedge);
+    double getElementPosition() const;
+    bool isElementPositionSet() const;
 
     /// attach a boundary geometry field to the element
     virtual void setBoundaryGeometry(BoundaryGeometry *geo);
@@ -477,6 +481,9 @@ private:
     ElemType elType_m;
 
     bool positionIsFixed;
+
+    double elementPosition_m;
+    bool elemedgeSet_m;
 
     std::queue<std::pair<double, double> > actionRange_m;
 };
@@ -672,5 +679,25 @@ double ElementBase::getRotationAboutZ() const {
 inline
 std::string ElementBase::getTypeString() const
 { return getTypeString(getType());}
+
+inline
+void ElementBase::setElementPosition(double elemedge) {
+    elementPosition_m = elemedge;
+    elemedgeSet_m = true;
+}
+
+inline
+double ElementBase::getElementPosition() const {
+    if (elemedgeSet_m)
+        return elementPosition_m;
+
+    throw GeneralClassicException("ElementBase::getElementPosition()",
+                                  std::string("ELEMEDGE for \"") + getName() + "\" not set");
+}
+
+inline
+bool ElementBase::isElementPositionSet() const
+{ return elemedgeSet_m; }
+
 
 #endif // CLASSIC_ElementBase_HH
