@@ -241,7 +241,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     IpplTimings::startTimer(totalTimer);
     for (int t = 0; t < nSteps; ++t) {
         
-        bunch->python_format(t);
+        //        bunch->python_format(t);
         
         IpplTimings::startTimer(solveTimer);
         doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels, msg, assignTimer);
