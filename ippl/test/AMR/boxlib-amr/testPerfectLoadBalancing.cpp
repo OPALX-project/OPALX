@@ -7,7 +7,7 @@
  * Write plot files that can be visualized by yt (python visualize.py)
  * or by AmrVis of the CCSE group at LBNL.
  * 
- * Domain:  [-0.15, 0.15] x [-0.15, 0.15] x [-0.15, 0.15]\n
+ * Domain:  [0.0, 1.0] x [0.0, 1.0] x [0.0, 1.0]\n
  * BC:      Dirichlet boundary conditions\n
  * Charge/particle: elementary charge\n
  * Uniform particle distribution per cell
@@ -136,8 +136,8 @@ void doBoxLib(const Vektor<std::size_t, 3>& nr, std::size_t nParticlesPerCell,
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    std::array<double, 3> lower = {{-0.15, -0.15, -0.15}}; // m
-    std::array<double, 3> upper = {{ 0.15,  0.15,  0.15}}; // m
+    std::array<double, 3> lower = {{0.0, 0.0, 0.0}}; // m
+    std::array<double, 3> upper = {{1.0, 1.0, 1.0}}; // m
     
     RealBox domain;
     
@@ -214,7 +214,7 @@ void doBoxLib(const Vektor<std::size_t, 3>& nr, std::size_t nParticlesPerCell,
      */
     myAmrOpal.setBunch(dynamic_cast<AmrPartBunch*>(bunch));
     
-    dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
+    //    dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
     
     // ========================================================================
     // 3. multi-level redistribute
@@ -248,7 +248,7 @@ void doBoxLib(const Vektor<std::size_t, 3>& nr, std::size_t nParticlesPerCell,
     }
     
     
-    writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
+    //writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geom, 0);
     
 //     dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
 }
