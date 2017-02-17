@@ -63,7 +63,7 @@ void LossDataSink::openH5() {
     h5_prop_t props = H5CreateFileProp ();
     MPI_Comm comm = Ippl::getComm();
     H5SetPropFileMPIOCollective (props, &comm);
-    H5file_m = H5OpenFile (fn_m.c_str(), H5_O_RDONLY, props);
+    H5file_m = H5OpenFile (fn_m.c_str(), H5_O_WRONLY, props);
 
     if(H5file_m == (h5_file_t)H5_ERR) {
         throw GeneralClassicException("LossDataSink::openH5",
