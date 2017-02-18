@@ -57,13 +57,13 @@ void System::execute() {
         std::string command = Attributes::getString(itsAttr[0]);
         boost::regex variablesRe("\\$\\$\\{([^\\}]+?)\\}");
         boost::smatch match;
-        OpalData *OPAL = OpalData::getInstance();
+        OpalData *opal = OpalData::getInstance();
         while (boost::regex_search(command, match, variablesRe)) {
             Object *object = 0;
 
             std::string variableName = match[1];
             boost::to_upper(variableName);
-            if ((object = OPAL->find(variableName)) == 0) {
+            if ((object = opal->find(variableName)) == 0) {
                 ERRORMSG("SYSTEM: Could not replace $${" << match[1] << "}, "
                          << "unknown variable" << endl);
 
