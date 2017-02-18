@@ -61,12 +61,15 @@ LossDataSink::LossDataSink(const LossDataSink &rsh):
 LossDataSink::LossDataSink() {
     LossDataSink(std::string("NULL"), false);
 }
+#define _unused(x) ((void)(x))
 
 LossDataSink::~LossDataSink() {
     if (H5file_m) {
         h5_int64_t rc;
         rc = H5CloseFile(H5file_m);
         assert (rc != H5_ERR);
+        _unused(rc);
+
         H5file_m = 0;
     }
     Ippl::Comm->barrier();
