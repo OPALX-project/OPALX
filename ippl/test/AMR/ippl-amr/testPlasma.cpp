@@ -274,12 +274,13 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     }
 }
 
-void doTwoStream(Vektor<std::size_t, 3> nr,
-                 std::size_t nLevels,
-                 std::size_t maxBoxSize,
-                 double dt,
-                 std::size_t nIter,
-                 Inform& msg)
+void doPlasma(Vektor<std::size_t, 3> nr,
+              std::size_t nLevels,
+              std::size_t maxBoxSize,
+              double dt,
+              std::size_t nIter,
+              Distribution::Type type,
+              Inform& msg)
 {
     std::array<double, BL_SPACEDIM> lower = {{0.0, 0.0, 0.0}}; // m
     std::array<double, BL_SPACEDIM> upper = {{4.0 * Physics::pi,
@@ -340,34 +341,47 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     
     Vektor<double, 3> extend_l = Vektor<double, 3>(lower[0], lower[1], lower[2]);
     Vektor<double, 3> extend_r = Vektor<double, 3>(upper[0], upper[1], upper[2]);
-    // 2-stream
-    /*
-    Vektor<std::size_t, 3> Nx = Vektor<std::size_t, 3>(4, 4, 32);
-    Vektor<std::size_t, 3> Nv = Vektor<std::size_t, 3>(8, 8, 128);
-    */
-    Vektor<double, 3> Vmax = Vektor<double, 3>(6.0, 6.0, 6.0);
     
-    /*
-    dist.special(extend_l,
-                   extend_r,
-                   Nx,
-                   Nv,
-                   Vmax,
-                   Distribution::Type::kTwoStream,
-                   0.05);
-    */
+    Vektor<std::size_t, 3> Nx, Nv;
+    Vektor<double, 3> Vmax;
     
-    // recurrence
-    Vektor<std::size_t, 3> Nx = Vektor<std::size_t, 3>(8, 8, 8);
-    Vektor<std::size_t, 3> Nv = Vektor<std::size_t, 3>(32, 32, 32);
-    
-    dist.special(extend_l,
-                   extend_r,
-                   Nx,
-                   Nv,
-                   Vmax,
-                   Distribution::Type::kRecurrence,
-                   0.01);
+    if ( type == Distribution::Type::kTwoStream ) {
+        Nx = Vektor<std::size_t, 3>(4, 4, 32);
+        Nv = Vektor<std::size_t, 3>(8, 8, 128);
+        Vmax = Vektor<double, 3>(6.0, 6.0, 6.0);
+        
+        dist.special(extend_l,
+                     extend_r,
+                     Nx,
+                     Nv,
+                     Vmax,
+                     type,
+                     0.05);
+    } else if ( type == Distribution::Type::kRecurrence ) {
+        Nx = Vektor<std::size_t, 3>(8, 8, 8);
+        Nv = Vektor<std::size_t, 3>(32, 32, 32);
+        Vmax = Vektor<double, 3>(6.0, 6.0, 6.0);
+        
+        dist.special(extend_l,
+                     extend_r,
+                     Nx,
+                     Nv,
+                     Vmax,
+                     type,
+                     0.01);
+    } else if ( type == Distribution::Type::kLandauDamping ) {
+        Nx = Vektor<std::size_t, 3>(8, 8, 8);
+        Nv = Vektor<std::size_t, 3>(32, 32, 32);
+        Vmax = Vektor<double, 3>(6.0, 6.0, 6.0);
+        
+        dist.special(extend_l,
+                     extend_r,
+                     Nx,
+                     Nv,
+                     Vmax,
+                     type,
+                     0.05);
+    }
     
     // copy particles to the PartBunchAmr object.
     dist.injectBeam( *(bunch.get()) );
@@ -452,23 +466,23 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels);
     
     
-    writeScalarField(rhs, "rho_0.dat");
+//     writeScalarField(rhs, "rho_0.dat");
     
-    std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
+//     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
     
-    writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geoms, 0);
+//     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geoms, 0);
     
     Vector_t hr = ( extend_r - extend_l ) / Vector_t(nr);
     double cell_volume = hr[0] * hr[1] * hr[2];
     std::cout << "Cell volume: " << cell_volume << std::endl;
     writeEnergy(bunch.get(), rhs, phi, grad_phi, rr, cell_volume, 0);
     
-    writeGridSum(rhs, 0, "RhoInterpol");
-    writeGridSum(phi, 0, "Phi_m");
+//     writeGridSum(rhs, 0, "RhoInterpol");
+//     writeGridSum(phi, 0, "Phi_m");
     
 //     bunch->python_format(0);
     
-//     writeScalarField(phi, "potential");
+    writeScalarField(rhs, "data/rho", 0);
     
 //     bunch->GetGravity(bunch->E, grad_phi);
     
@@ -479,8 +493,8 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     for (std::size_t i = 0; i < nIter; ++i) {
         msg << "Processing step " << i << endl;
 
-        ipplProjection(field, dx, dv, Vmax, lDom,
-                       bunch.get(), i);
+//         ipplProjection(field, dx, dv, Vmax, lDom,
+//                        bunch.get(), i);
         
         assign(bunch->R, bunch->R + dt * bunch->P);
         
@@ -503,7 +517,7 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
         
         doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels);
         
-        writeScalarField(rhs, "rho_" + std::to_string(i) + ".dat");
+        writeScalarField(rhs, "data/rho", i + 1);
         
         bunch->GetGravity(bunch->E, grad_phi);
         
@@ -515,8 +529,8 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
         assign(bunch->P, bunch->P + dt * bunch->qm / bunch->mass * bunch->E ); //* Physics::epsilon_0);
         
         writeEnergy(bunch.get(), rhs, phi, grad_phi, rr, cell_volume, i + 1);
-        writeGridSum(rhs, i + 1, "RhoInterpol");
-        writeGridSum(phi, i + 1, "Phi_m");
+//         writeGridSum(rhs, i + 1, "RhoInterpol");
+//         writeGridSum(phi, i + 1, "Phi_m");
         
         msg << "Done with step " << i << endl;
     }
@@ -528,7 +542,6 @@ int main(int argc, char *argv[]) {
     Ippl ippl(argc, argv);
     BoxLib::Initialize(argc,argv, false);
     
-    Inform msg("TwoStream");
     
 
     static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("main");
@@ -537,11 +550,11 @@ int main(int argc, char *argv[]) {
     std::stringstream call;
     call << "Call: mpirun -np [#procs] " << argv[0]
          << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#levels]"
-         << " [max. box size] [timstep] [#iterations]"
+         << " [max. box size] [timstep] [#iterations]" "[test: twostream, recurrence, landau]"
          << " [out: timing file name (optiona)]";
     
-    if ( argc < 7 ) {
-        msg << call.str() << endl;
+    if ( argc < 8 ) {
+        std::cerr << call.str() << endl;
         return -1;
     }
     
@@ -555,16 +568,32 @@ int main(int argc, char *argv[]) {
     std::size_t maxBoxSize = std::atoi( argv[5] );
     double dt              = std::atof( argv[6] );
     std::size_t nIter      = std::atof( argv[7] );
+    std::string test       = argv[8];
+    
+    Inform msg(test);
+    
+    Distribution::Type type = Distribution::Type::kTwoStream;
+    if ( test == "twostream" )
+        type = Distribution::Type::kTwoStream;
+    else if ( test == "recurrence" )
+        type = Distribution::Type::kRecurrence;
+    else if ( test == "landau" )
+        type = Distribution::Type::kLandauDamping;
+    else {
+        msg << "No such plasma test." << endl;
+        return -1;
+    }
     
     msg << "Particle test running with" << endl
         << "- #level     = " << nLevels << endl
         << "- grid       = " << nr << endl
         << "- max. size  = " << maxBoxSize << endl
         << "- time step  = " << dt << endl
-        << "- #steps     = " << nIter << endl;
+        << "- #steps     = " << nIter << endl
+        << "- test       = " << test << endl;
     
-    doTwoStream(nr, nLevels, maxBoxSize,
-                dt, nIter, msg);
+    doPlasma(nr, nLevels, maxBoxSize,
+             dt, nIter, type, msg);
     
     IpplTimings::stopTimer(mainTimer);
 
@@ -575,7 +604,7 @@ int main(int argc, char *argv[]) {
              << std::setfill('0') << std::setw(6) << Ippl::getNodes()
              << "-threads-1.dat";
     
-    if ( argc == 9 ) {
+    if ( argc == 10 ) {
         timefile.str(std::string());
         timefile << std::string(argv[8]);
     }

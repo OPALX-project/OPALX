@@ -86,8 +86,8 @@ add_executable( testPerformance
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
 
-add_executable( new-twostream
-                new-twostream.cpp
+add_executable( testPlasma
+                testPlasma.cpp
                 ../AmrOpal.cpp
                 AmrParticleBase.hpp
                 ../Distribution.cpp
@@ -108,6 +108,6 @@ target_link_libraries (testPerformance ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
-target_link_libraries (new-twostream ${LIBS}
+target_link_libraries (testPlasma ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})

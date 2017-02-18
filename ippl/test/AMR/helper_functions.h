@@ -25,7 +25,7 @@ typedef PArray<MultiFab> container_t;
 #endif
 
 
-inline void writeScalarField(const container_t& scalfield, std::string filename)
+inline void writeScalarField(const container_t& scalfield, std::string filename, int step)
 {
 #ifdef UNIQUE_PTR
     for (MFIter mfi(*scalfield[0 /*level*/]); mfi.isValid(); ++mfi) {
@@ -40,7 +40,7 @@ inline void writeScalarField(const container_t& scalfield, std::string filename)
 #endif
         for (int proc = 0; proc < ParallelDescriptor::NProcs(); ++proc) {
             if ( proc == ParallelDescriptor::MyProc() ) {
-                std::string outfile = filename + std::to_string(0);
+                std::string outfile = filename + "_step_" + std::to_string(step) + ".grid";
                 std::ofstream out;
                 
                 if ( proc == 0 )
