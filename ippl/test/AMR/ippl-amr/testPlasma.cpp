@@ -554,7 +554,7 @@ int main(int argc, char *argv[]) {
          << " [out: timing file name (optiona)]";
     
     if ( argc < 8 ) {
-        std::cerr << call.str() << endl;
+        std::cerr << call.str() << std::endl;
         return -1;
     }
     
@@ -570,7 +570,7 @@ int main(int argc, char *argv[]) {
     std::size_t nIter      = std::atof( argv[7] );
     std::string test       = argv[8];
     
-    Inform msg(test);
+    Inform msg(argv[8]);
     
     Distribution::Type type = Distribution::Type::kTwoStream;
     if ( test == "twostream" )
