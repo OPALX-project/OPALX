@@ -237,21 +237,16 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     //     to make the Poisson equations solvable                                                                                                                                                                
     // **************************************************************************                                                                                                                                
 
-    Real offset = 0.;
+    Real offset = 0.0;
     
-    if (geom[0].isAllPeriodic()) 
-    {
-//     std::cout << "total charge in density field before ion subtraction is " << rhs[0].sum(0) << std::endl;
-//     std::cout << "max total charge in densitty field before ion subtraction is " << rhs[0].max(0) << std::endl;
-//     rhs[0].plus(1.0, 0, 1);
-//     std::cout << "total charge in density field after ion subtraction is " << rhs[0].sum(0) << std::endl; std::cin.get();
+    if ( geom[0].isAllPeriodic() ) {
+        std::cout << "total charge in density field before ion subtraction is " << rhs[0].sum(0) << std::endl;
+        std::cout << "max total charge in densitty field before ion subtraction is " << rhs[0].max(0) << std::endl;
         for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
             offset += bunch->qm[i];
         
         offset /= geom[0].ProbSize();
     }
-    
-    std::cout << "Offset: " << offset << std::endl;
 
     // solve                                                                                                                                                                                                     
     Solver sol;
@@ -263,6 +258,10 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
                         finest_level,
                         offset,
                         false);
+    
+    if ( geom[0].isAllPeriodic() ) {
+        std::cout << "total charge in density field after ion subtraction is " << rhs[0].sum(0) << std::endl;
+    }
     
     // for plotting unnormalize
     for (int i = 0; i <=finest_level; ++i) {
@@ -387,7 +386,7 @@ void doPlasma(Vektor<std::size_t, 3> nr,
     dist.injectBeam( *(bunch.get()) );
     
     // redistribute on single-level
-//     bunch->update();
+    bunch->update();
     
     writeParticles(bunch.get(), 0);
     
@@ -553,7 +552,7 @@ int main(int argc, char *argv[]) {
          << " [max. box size] [timstep] [#iterations]" "[test: twostream, recurrence, landau]"
          << " [out: timing file name (optiona)]";
     
-    if ( argc < 8 ) {
+    if ( argc < 9 ) {
         std::cerr << call.str() << std::endl;
         return -1;
     }
