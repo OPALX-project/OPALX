@@ -252,7 +252,7 @@ void DataSink::writeStatData(PartBunch &beam, Vector_t FDext[], const std::vecto
 }
 
 
-void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double E, const std::vector<std::pair<std::string, unsigned int> > &losses) {
+void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double Ekin, const std::vector<std::pair<std::string, unsigned int> > &losses) {
 
     /// Start timer.
     IpplTimings::startTimer(StatMarkerTimer_m);
@@ -310,7 +310,7 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double E, cons
                     << beam.getTotalNum() << setw(pwi) << "\t"                                // 3
                     << Q << setw(pwi) << "\t"                                                 // 4
 
-                    << E << setw(pwi) << "\t"                                                 // 5
+                    << Ekin << setw(pwi) << "\t"                                              // 5
 
                     << beam.get_rrms()(0) << setw(pwi) << "\t"                                // 6
                     << beam.get_rrms()(1) << setw(pwi) << "\t"                                // 7
@@ -526,7 +526,13 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
     outputFile << "&parameter\n"
                << indent << "name=revision,\n"
                << indent << "type=string,\n"
-               << indent << "description=\"git revision of opal\" &end\n";
+               << indent << "description=\"git revision of opal\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=flavor,\n"
+               << indent << "type=string,\n"
+               << indent << "description=\"OPAL flavor that wrote file\""
+               << "&end\n";
     outputFile << "&column\n"
                << indent << "name=t,\n"
                << indent << "type=double,\n"
@@ -836,6 +842,8 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
 
     outputFile << Ippl::getNodes() << endl;
     outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " git rev. " << Util::getGitRevision() << endl;
+    outputFile << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
+                   (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << endl;
 }
 
 
