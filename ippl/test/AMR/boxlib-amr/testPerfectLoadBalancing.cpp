@@ -190,7 +190,7 @@ void doBoxLib(const Vektor<std::size_t, 3>& nr, std::size_t nParticlesPerCell,
     
     
     for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
-        bunch->setQM(Physics::q_e, i);  // in [C]
+        bunch->setQM(Physics::q_e /** 1.0e10*/, i);  // in [C]
     
     // redistribute on single-level
     IpplTimings::startTimer(redistTimer);
@@ -223,6 +223,10 @@ void doBoxLib(const Vektor<std::size_t, 3>& nr, std::size_t nParticlesPerCell,
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
     IpplTimings::stopTimer(regridTimer);
+    
+    bunch->gatherStatistics();
+    
+    dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
     
     container_t rhs;
     container_t phi;
