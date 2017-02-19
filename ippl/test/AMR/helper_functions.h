@@ -24,7 +24,11 @@ typedef Array<std::unique_ptr<MultiFab> > container_t;
 typedef PArray<MultiFab> container_t;
 #endif
 
-
+/*!
+ * @param scalfield to write
+ * @param filename to be written to
+ * @param step of the file
+ */
 inline void writeScalarField(const container_t& scalfield, std::string filename, int step)
 {
 #ifdef UNIQUE_PTR
