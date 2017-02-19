@@ -200,7 +200,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              container_t& grad_phi,
              const Array<Geometry>& geom,
              const Array<int>& rr,
-             int nLevels)
+             int nLevels,
+             int step)
 {
     // =======================================================================                                                                                                                                   
     // 4. prepare for multi-level solve                                                                                                                                                                          
@@ -220,8 +221,6 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     
     bunch->AssignDensity(bunch->qm, false, rhs, base_level, finest_level);
     
-    
-    
     // eps in C / (V * m)
     double constant = -1.0; // / Physics::epsilon_0;  // in [V m / C]
     for (int i = 0; i <=finest_level; ++i) {
@@ -229,6 +228,32 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         rhs[i]->mult(constant, 0, 1);       // in [V m]
 #else
         rhs[i].mult(constant, 0, 1);
+#endif
+    }
+    
+    // we need to write in the format of Ulmer
+    for (int i = 0; i <=finest_level; ++i) {
+        double cell_volume = geom[i].CellSize(0) *
+                             geom[i].CellSize(1) *
+                             geom[i].CellSize(2);
+#ifdef UNIQUE_PTR
+        rhs[i]->mult(cell_volume, 0, 1);       // in [V m]
+#else
+        rhs[i].mult(cell_volume, 0, 1);
+#endif
+    }
+    
+    writeScalarField(rhs, "data/rho", step);
+    
+    // undo Ulmer scaling
+    for (int i = 0; i <=finest_level; ++i) {
+        double cell_volume = geom[i].CellSize(0) *
+                             geom[i].CellSize(1) *
+                             geom[i].CellSize(2);
+#ifdef UNIQUE_PTR
+        rhs[i]->mult(1.0 / cell_volume, 0, 1);       // in [V m]
+#else
+        rhs[i].mult(1.0 / cell_volume, 0, 1);
 #endif
     }
     
@@ -242,10 +267,11 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     if ( geom[0].isAllPeriodic() ) {
         std::cout << "total charge in density field before ion subtraction is " << rhs[0].sum(0) << std::endl;
         std::cout << "max total charge in densitty field before ion subtraction is " << rhs[0].max(0) << std::endl;
-        for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
-            offset += bunch->qm[i];
+//         for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
+//             offset += bunch->qm[i];
         
-        offset /= geom[0].ProbSize();
+//         offset /= geom[0].ProbSize();
+        offset = -1.0;
     }
 
     // solve                                                                                                                                                                                                     
@@ -462,7 +488,7 @@ void doPlasma(Vektor<std::size_t, 3> nr,
     container_t rhs;
     container_t phi;
     container_t grad_phi;
-    doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels);
+    doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels, 0);
     
     
 //     writeScalarField(rhs, "rho_0.dat");
@@ -480,8 +506,6 @@ void doPlasma(Vektor<std::size_t, 3> nr,
 //     writeGridSum(phi, 0, "Phi_m");
     
 //     bunch->python_format(0);
-    
-    writeScalarField(rhs, "data/rho", 0);
     
 //     bunch->GetGravity(bunch->E, grad_phi);
     
@@ -514,9 +538,7 @@ void doPlasma(Vektor<std::size_t, 3> nr,
         else
             bunch->update();
         
-        doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels);
-        
-        writeScalarField(rhs, "data/rho", i + 1);
+        doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels, i + 1);
         
         bunch->GetGravity(bunch->E, grad_phi);
         
