@@ -41,6 +41,15 @@ Solver::solve_for_accel(container_t& rhs,
 
     Real     strt    = ParallelDescriptor::second();
 
+    
+    // ***************************************************
+    // Make sure the RHS sums to 0 if fully periodic
+    // ***************************************************
+    for (int lev = base_level; lev <= finest_level; lev++)
+        rhs[lev].plus(+offset, 0, 1, 0);
+    
+    
+    
     // ***************************************************
     // Solve for phi and return both phi and grad_phi_edge
     // ***************************************************
