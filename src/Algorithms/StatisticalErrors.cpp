@@ -168,10 +168,10 @@ void StatisticalErrors::runSimulation(const std::string &inputFileName, MPI_Comm
     IpplInfo::Error->setDestination(output);
     IpplInfo::Warn->setDestination(output);
 
-    OpalData *OPAL = OpalData::getInstance();
+    OpalData *opal = OpalData::getInstance();
 
     Configure::configure();
-    OPAL->storeInputFn(inputFileName);
+    opal->storeInputFn(inputFileName);
 
     IpplTimings::startTimer(mainTimer);
 
