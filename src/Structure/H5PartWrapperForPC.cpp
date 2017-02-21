@@ -417,94 +417,134 @@ void H5PartWrapperForPC::writeStepHeader(PartBunch& bunch, const std::map<std::s
 }
 
 void H5PartWrapperForPC::writeStepData(PartBunch& bunch) {
-    size_t numLocalParticles = bunch.getLocalNum();
-
-    std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
-    h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
-    h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
-
-    REPORTONERROR(H5PartSetNumParticles(file_m, numLocalParticles));
-
     /*
       find particle with ID==0
       and save index in zID
      */
 
-    size_t zID = 0;
+    size_t IDZero = bunch.getLocalNum();
     bool found = false;
-    for(size_t k = 0; k < numLocalParticles; ++k) {
+    for(size_t k = 0; k < IDZero; ++ k) {
         if (bunch.ID[k] == 0) {
             found = true;
-            zID = k;
-            break;
+            IDZero = k;
         }
     }
 
-    for(size_t i = 0; i < numLocalParticles; ++ i)
-      f64buffer[i] =  bunch.R[i](0);
-    if (found)
-        f64buffer[zID] = bunch.R[zID+1](0);
+    const size_t numLocalParticles = (found? bunch.getLocalNum() - 1: bunch.getLocalNum());
+    const size_t skipID = IDZero;
+
+    std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
+    h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
+    h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
+
+
+    REPORTONERROR(H5PartSetNumParticles(file_m, numLocalParticles));
+
+    for(size_t i = 0; i < skipID; ++ i)
+        f64buffer[i] =  bunch.R[i](0);
+    for (size_t i = skipID; i < numLocalParticles; ++ i)
+        f64buffer[i] = bunch.R[i + 1](0);
+
     WRITEDATA(Float64, file_m, "x", f64buffer);
 
-    for(size_t i = 0; i < numLocalParticles; ++ i)
+    for(size_t i = 0; i < skipID; ++ i)
         f64buffer[i] =  bunch.R[i](1);
-    if (found)
-        f64buffer[zID] = bunch.R[zID+1](1);
+    for (size_t i = skipID; i < numLocalParticles; ++ i)
+        f64buffer[i] = bunch.R[i + 1](1);
+
     WRITEDATA(Float64, file_m, "y", f64buffer);
 
-    for(size_t i = 0; i < numLocalParticles; ++ i)
-      f64buffer[i] =  bunch.R[i](2);
-    if (found)
-        f64buffer[zID] = bunch.R[zID+1](2);
+    for(size_t i = 0; i < skipID; ++ i)
+        f64buffer[i] =  bunch.R[i](2);
+    for (size_t i = skipID; i < numLocalParticles; ++ i)
+        f64buffer[i] = bunch.R[i + 1](2);
+
     WRITEDATA(Float64, file_m, "z", f64buffer);
 
-    for(size_t i = 0; i < numLocalParticles; ++ i)
-      f64buffer[i] =  bunch.P[i](0);
+    for(size_t i = 0; i < skipID; ++ i)
+        f64buffer[i] =  bunch.P[i](0);
+    for (size_t i = skipID; i < numLocalParticles; ++ i)
+        f64buffer[i] = bunch.P[i + 1](0);
+
     WRITEDATA(Float64, file_m, "px", f64buffer);
 
-    for(size_t i = 0; i < numLocalParticles; ++ i)
-      f64buffer[i] =  bunch.P[i](1);
+    for(size_t i = 0; i < skipID; ++ i)
+        f64buffer[i] =  bunch.P[i](1);
+    for (size_t i = skipID; i < numLocalParticles; ++ i)
+        f64buffer[i] = bunch.P[i + 1](1);
+
     WRITEDATA(Float64, file_m, "py", f64buffer);
 
-    for(size_t i = 0; i < numLocalParticles; ++ i)
-      f64buffer[i] =  bunch.P[i](2);
+    for(size_t i = 0; i < skipID; ++ i)
+        f64buffer[i] =  bunch.P[i](2);
+    for (size_t i = skipID; i < numLocalParticles; ++ i)
+        f64buffer[i] = bunch.P[i + 1](2);
+
     WRITEDATA(Float64, file_m, "pz", f64buffer);
 
-    for(size_t i = 0; i < numLocalParticles; ++ i)
-      f64buffer[i] =  bunch.Q[i];
+    for(size_t i = 0; i < skipID; ++ i)
+        f64buffer[i] =  bunch.Q[i];
+    for (size_t i = skipID; i < numLocalParticles; ++ i)
+        f64buffer[i] = bunch.Q[i + 1];
+
     WRITEDATA(Float64, file_m, "q", f64buffer);
 
-    for(size_t i = 0; i < numLocalParticles; ++ i)
+    for(size_t i = 0; i < skipID; ++ i)
         f64buffer[i] =  bunch.M[i];
+    for (size_t i = skipID; i < numLocalParticles; ++ i)
+        f64buffer[i] = bunch.M[i + 1];
+
     WRITEDATA(Float64, file_m, "mass", f64buffer);
 
-    for(size_t i = 0; i < numLocalParticles; ++ i)
+    for(size_t i = 0; i < skipID; ++ i)
         i64buffer[i] =  bunch.ID[i];
+    for (size_t i = skipID; i < numLocalParticles; ++ i)
+        i64buffer[i] = bunch.ID[i + 1];
+
     WRITEDATA(Int64, file_m, "id", i64buffer);
 
-    if(Options::ebDump) {
-        for(size_t i = 0; i < numLocalParticles; ++ i)
+    if (Options::ebDump) {
+        for(size_t i = 0; i < skipID; ++ i)
             f64buffer[i] =  bunch.Ef[i](0);
+        for (size_t i = skipID; i < numLocalParticles; ++ i)
+            f64buffer[i] = bunch.Ef[i + 1](0);
+
         WRITEDATA(Float64, file_m, "Ex", f64buffer);
 
-        for(size_t i = 0; i < numLocalParticles; ++ i)
+        for(size_t i = 0; i < skipID; ++ i)
             f64buffer[i] =  bunch.Ef[i](1);
+        for (size_t i = skipID; i < numLocalParticles; ++ i)
+            f64buffer[i] = bunch.Ef[i + 1](1);
+
         WRITEDATA(Float64, file_m, "Ey", f64buffer);
 
-        for(size_t i = 0; i < numLocalParticles; ++ i)
+        for(size_t i = 0; i < skipID; ++ i)
             f64buffer[i] =  bunch.Ef[i](2);
+        for (size_t i = skipID; i < numLocalParticles; ++ i)
+            f64buffer[i] = bunch.Ef[i + 1](2);
+
         WRITEDATA(Float64, file_m, "Ez", f64buffer);
 
-        for(size_t i = 0; i < numLocalParticles; ++ i)
+        for(size_t i = 0; i < skipID; ++ i)
             f64buffer[i] =  bunch.Bf[i](0);
+        for (size_t i = skipID; i < numLocalParticles; ++ i)
+            f64buffer[i] = bunch.Bf[i + 1](0);
+
         WRITEDATA(Float64, file_m, "Bx", f64buffer);
 
-        for(size_t i = 0; i < numLocalParticles; ++ i)
+        for(size_t i = 0; i < skipID; ++ i)
             f64buffer[i] =  bunch.Bf[i](1);
+        for (size_t i = skipID; i < numLocalParticles; ++ i)
+            f64buffer[i] = bunch.Bf[i + 1](1);
+
         WRITEDATA(Float64, file_m, "By", f64buffer);
 
-        for(size_t i = 0; i < numLocalParticles; ++ i)
+        for(size_t i = 0; i < skipID; ++ i)
             f64buffer[i] =  bunch.Bf[i](2);
+        for (size_t i = skipID; i < numLocalParticles; ++ i)
+            f64buffer[i] = bunch.Bf[i + 1](2);
+
         WRITEDATA(Float64, file_m, "Bz", f64buffer);
 
     }

@@ -1137,7 +1137,7 @@ void Distribution::checkParticleNumber(size_t &numberOfParticles) {
 
     if (numberOfDistParticles != numberOfParticles) {
         *gmsg << "\n--------------------------------------------------" << endl
-              << "Error!! The number of particles in the initial" << endl
+              << "Warning!! The number of particles in the initial" << endl
               << "distribution is " << numberOfDistParticles << "." << endl << endl
               << "This is different from the number of particles" << endl
               << "defined by the BEAM command: " << numberOfParticles << endl << endl
@@ -1149,8 +1149,6 @@ void Distribution::checkParticleNumber(size_t &numberOfParticles) {
               << "(" << numberOfDistParticles << ") "
               << "will take precedence." << endl
               << "---------------------------------------------------\n" << endl;
-        throw OpalException("Distribution::checkParticleNumber",
-                            "Number of macro particles and NPART on BEAM are not equal");
     }
     numberOfParticles = numberOfDistParticles;
 }
@@ -4833,7 +4831,7 @@ void Distribution::writeOutFileInjection() {
 }
 // vi: set et ts=4 sw=4 sts=4:
 // Local Variables:
-// mode:c
+// mode:c++
 // c-basic-offset: 4
 // indent-tabs-mode:nil
 // End:
