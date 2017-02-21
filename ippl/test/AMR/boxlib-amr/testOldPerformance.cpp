@@ -76,7 +76,7 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     int finest_level = myAmrOpal.finestLevel();
 
     IpplTimings::startTimer(assignTimer);
-    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, finest_level);
+    dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
     IpplTimings::stopTimer(assignTimer);
     
     // eps in C / (V * m)
@@ -262,6 +262,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         } else
             bunch->myUpdate();
         IpplTimings::stopTimer(regridTimer);
+        
+        bunch->gatherStatistics();
         
         IpplTimings::startTimer(statisticsTimer);
         bunch->dumpStatistics(statistics);
