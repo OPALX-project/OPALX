@@ -4,8 +4,8 @@
 #include "Utilities/Options.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/GeneralClassicException.h"
-#include "config.h"
-#include "revision.h"
+#include "OPALconfig.h"
+#include "OPALrevision.h"
 
 #include <assert.h>
 

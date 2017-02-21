@@ -4,7 +4,7 @@
 
 #include "Structure/H5PartWrapper.h"
 
-#include "config.h"
+#include "OPALconfig.h"
 #include "Algorithms/PartBunch.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Options.h"

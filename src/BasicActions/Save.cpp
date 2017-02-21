@@ -36,8 +36,8 @@
 #include "Utilities/Options.h"
 #include <fstream>
 #include <string>
-#include "config.h"
-#include "revision.h"
+#include "OPALconfig.h"
+#include "OPALrevision.h"
 
 extern Inform *gmsg;
 

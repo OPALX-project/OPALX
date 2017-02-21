@@ -4,8 +4,8 @@
 
 #include "Structure/H5PartWrapperForPS.h"
 
-#include "config.h"
-#include "revision.h"
+#include "OPALconfig.h"
+#include "OPALrevision.h"
 #include "Algorithms/PartBunch.h"
 #include "Algorithms/bet/EnvelopeBunch.h"
 #include "AbstractObjects/OpalData.h"

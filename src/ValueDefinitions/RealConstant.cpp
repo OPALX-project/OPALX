@@ -21,7 +21,7 @@
 #include "Attributes/Attributes.h"
 #include "Utilities/Options.h"
 #include "Physics/Physics.h"
-#include "config.h"
+#include "OPALconfig.h"
 
 #include "Utility/IpplInfo.h"
 

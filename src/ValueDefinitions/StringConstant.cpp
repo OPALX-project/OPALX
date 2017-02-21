@@ -20,7 +20,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Utilities/Options.h"
-#include "revision.h"
+#include "OPALrevision.h"
 #include <iostream>
 
 

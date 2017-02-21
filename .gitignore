@@ -9,6 +9,8 @@ cmake_install.cmake
 config.h
 Makefile
 revision.h
+OPALconfig.h
+OPALrevision.h
 src/opal
 tests/tools/gtest
 tests/opal_unit_test

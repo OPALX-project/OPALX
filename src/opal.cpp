@@ -11,7 +11,7 @@ Inform *gmsg;
 #include "Utilities/OpalException.h"
 #include "Fields/Fieldmap.h"
 
-#include "config.h"
+#include "OPALconfig.h"
 
 
 int run_opal(char *arg[], std::string inputfile, int restartStep, MPI_Comm comm) {
