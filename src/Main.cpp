@@ -40,7 +40,7 @@ Inform *gmsg;
 #include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
 
-#include "config.h"
+#include "OPALconfig.h"
 
 #ifdef HAVE_AMR_SOLVER
 #include <ParallelDescriptor.H>

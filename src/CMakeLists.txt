@@ -1,8 +1,8 @@
 cmake_minimum_required (VERSION 2.8.10)
 set (DKS_VERSION \"1.0.0\")
 
-configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
-configure_file(revision.h.in ${CMAKE_CURRENT_SOURCE_DIR}/revision.h)
+configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALconfig.h)
+configure_file(revision.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALrevision.h)
 
 set (CMAKE_CXX_FLAGS
     "${IPPL_CMAKE_CXX_FLAGS} -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
@@ -24,11 +24,11 @@ IF(ENABLE_AMR_SOLVER)
     # FIXME Find a better solution!
     # We get otherwise a "undefined reference" to "getLevelBld()" and "probinit_"
     set (CBOXLIB -lcboxlib)
-    
+
     IF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori")
         set (CBOXLIB "-lmpi -lmpi_mpifh ${CBOXLIB}")
     ENDIF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori")
-    
+
 ENDIF(ENABLE_AMR_SOLVER)
 
 set (OPAL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})

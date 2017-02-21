@@ -3,11 +3,10 @@
 REV=`git rev-parse HEAD`
 echo "#define GIT_VERSION \"$REV\"" > revision.tmp
 
-diff revision.tmp src/revision.h 2>&1 > /dev/null
+diff revision.tmp src/OPALrevision.h 2>&1 > /dev/null
 
 if [ $? -eq 1 ];then
-   cp revision.tmp src/revision.h
-   mv revision.tmp classic/5.0/src/revision.h
+   mv revision.tmp src/OPALrevision.h
 else
    rm revision.tmp
 fi

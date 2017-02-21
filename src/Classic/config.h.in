@@ -1,4 +1,4 @@
-#include "revision.h"
+#include "OPALrevision.h"
 
 /* Name of package */
 #define PACKAGE ${PACKAGE}
