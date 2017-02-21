@@ -1608,6 +1608,7 @@ void PartBunch::calcMoments() {
     double loc_centroid[2 * Dim];
     double loc_moment[2 * Dim][2 * Dim];
     double moments[2 * Dim][2 * Dim];
+    const unsigned long localNum = getLocalNum();
 
     for(int i = 0; i < 2 * Dim; i++) {
         loc_centroid[i] = 0.0;
@@ -1617,18 +1618,40 @@ void PartBunch::calcMoments() {
         }
     }
 
-    for(unsigned long k = 0; k < getLocalNum(); ++k) {
-        part[1] = this->P[k](0);
-        part[3] = this->P[k](1);
-        part[5] = this->P[k](2);
-        part[0] = this->R[k](0);
-        part[2] = this->R[k](1);
-        part[4] = this->R[k](2);
+    for(unsigned long k = 0; k < localNum; ++ k) {
+        part[1] = P[k](0);
+        part[3] = P[k](1);
+        part[5] = P[k](2);
+        part[0] = R[k](0);
+        part[2] = R[k](1);
+        part[4] = R[k](2);
 
-        for(int i = 0; i < 2 * Dim; i++) {
-            loc_centroid[i]   += part[i];
-            for(int j = 0; j <= i; j++) {
-                loc_moment[i][j]   += part[i] * part[j];
+        for(int i = 0; i < 2 * Dim; ++ i) {
+            loc_centroid[i] += part[i];
+            for(int j = 0; j <= i; ++ j) {
+                loc_moment[i][j] += part[i] * part[j];
+            }
+        }
+    }
+
+    if (OpalData::getInstance()->isInOPALCyclMode()) {
+        for(unsigned long k = 0; k < localNum; ++ k) {
+            if (ID[k] == 0) {
+                part[1] = P[k](0);
+                part[3] = P[k](1);
+                part[5] = P[k](2);
+                part[0] = R[k](0);
+                part[2] = R[k](1);
+                part[4] = R[k](2);
+
+                for(int i = 0; i < 2 * Dim; i++) {
+                    loc_centroid[i] -= part[i];
+                    for(int j = 0; j <= i; j++) {
+                        loc_moment[i][j] -= part[i] * part[j];
+                    }
+                }
+
+                break;
             }
         }
     }
