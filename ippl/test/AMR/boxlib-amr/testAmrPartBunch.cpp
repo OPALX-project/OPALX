@@ -434,9 +434,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         bunch->setP(Vector_t(1.0, 0.0, 0.0), i);         
     
     
-    container_t rhs;
-    container_t phi;
-    container_t grad_phi;
+    container_t rhs(PArrayManage);
+    container_t phi(PArrayManage);
+    container_t grad_phi(PArrayManage);
     
     std::string plotsolve = BoxLib::Concatenate("solve_", 0, 4);
     doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels);

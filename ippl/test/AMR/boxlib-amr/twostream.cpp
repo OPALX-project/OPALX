@@ -475,9 +475,9 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
         
         msg << "Done updating." << endl;
         
-        container_t rhs;
-        container_t phi;
-        container_t grad_phi;
+        container_t rhs(PArrayManage);
+        container_t phi(PArrayManage);
+        container_t grad_phi(PArrayManage);
         doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geoms, rr, nLevels);
         
         msg << "Done solving Poisson's equation." << endl;

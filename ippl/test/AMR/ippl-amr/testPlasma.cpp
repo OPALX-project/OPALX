@@ -485,9 +485,9 @@ void doPlasma(Vektor<std::size_t, 3> nr,
     
     // --------------------------------------------------------------------
     
-    container_t rhs;
-    container_t phi;
-    container_t grad_phi;
+    container_t rhs(PArrayManage);
+    container_t phi(PArrayManage);
+    container_t grad_phi(PArrayManage);
     doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels, 0);
     
     
