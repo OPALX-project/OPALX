@@ -344,6 +344,9 @@ inline void initGridData(container_t& rhs,
     phi[level]->setVal(0.0);
     grad_phi[level]->setVal(0.0);
 #else
+    rhs.clear(level);
+    phi.clear(level);
+    grad_phi.clear(level);
     //                       # component # ghost cells                                                                                                                                          
     rhs.set(level, new MultiFab(ba,1          ,0));
     phi.set(level, new MultiFab(ba,1          ,1));

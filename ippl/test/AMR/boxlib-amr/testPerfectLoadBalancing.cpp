@@ -228,9 +228,9 @@ void doBoxLib(const Vektor<std::size_t, 3>& nr, std::size_t nParticlesPerCell,
     
     dynamic_cast<AmrPartBunch*>(bunch)->python_format(0);
     
-    container_t rhs;
-    container_t phi;
-    container_t grad_phi;
+    container_t rhs(PArrayManage);
+    container_t phi(PArrayManage);
+    container_t grad_phi(PArrayManage);
     
     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
     doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels, msg);

@@ -222,9 +222,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
     IpplTimings::stopTimer(regridTimer);
     
-    container_t rhs;
-    container_t phi;
-    container_t grad_phi;
+    container_t rhs(PArrayManage);
+    container_t phi(PArrayManage);
+    container_t grad_phi(PArrayManage);
     
     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
     doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geom, rr, nLevels, msg);
