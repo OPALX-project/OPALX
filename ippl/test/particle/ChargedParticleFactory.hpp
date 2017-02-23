@@ -273,7 +273,7 @@ void createParticleDistributionTwoStream(Particles & P,
                                 double f = ( 1. / ( 30 * M_PI ) ) *
                                            exp( -0.5 * v2 ) *
                                            ( 1. + alpha * cos( kk * pos[2] ) ) *
-                                           ( 1.0 + 5.0 * vel[2] * vel[2]);
+                                           ( 1.0 + 0.5 * vel[2] * vel[2]);
                                 
                                 //std::cout << "f = " << f << std::endl;
                                 double m = hx[0] * hv[0] *

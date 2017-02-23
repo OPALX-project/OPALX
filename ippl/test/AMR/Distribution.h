@@ -58,7 +58,7 @@ private:
         
         double f = factor * std::exp(-0.5 * v2) *
                     (1.0 + alpha * std::cos(k * pos[2])) *
-                    (1.0 + /*0.*/5.0 * vel[2] * vel[2]);
+                    (1.0 + 0.5 * vel[2] * vel[2]);
         
         return f;
     };
@@ -138,10 +138,11 @@ public:
      * @param vmax is the max. velocity
      * @param type is either kTwoStream, kLandauDamping or kRecurrence
      * @param alpha is the amplitude of the initial disturbance
+     * @param kk is phase
      */
     void special(const Vector_t& lower, const Vector_t& upper,
                    const Vektor<std::size_t, 3>& nx, const Vektor<std::size_t, 3>& nv,
-                   const Vektor<double, 3>& vmax, Type type, double alpha = 0.5);
+                   const Vektor<double, 3>& vmax, Type type, double alpha = 0.5, double kk = 0.5);
     
     /// Generate a uniform particle disitribution per cell
     /*!

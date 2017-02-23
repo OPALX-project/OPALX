@@ -106,7 +106,7 @@ void Distribution::gaussian(double mean, double stddev, size_t nloc, int seed) {
 
 void Distribution::special(const Vector_t& lower, const Vector_t& upper,
                            const Vektor<std::size_t, 3>& nx, const Vektor<std::size_t, 3>& nv,
-                           const Vektor<double, 3>& vmax, Type type, double alpha)
+                           const Vektor<double, 3>& vmax, Type type, double alpha, double kk)
 {
     Vektor<double, 3> hx = (upper - lower) / Vector_t(nx);
     Vektor<double, 3> hv = 2.0 * vmax / Vector_t(nv);
@@ -152,13 +152,13 @@ void Distribution::special(const Vector_t& lower, const Vector_t& upper,
                                 double f = 0.0;
                                 switch ( type ) {
                                     case kTwoStream:
-                                        f = twoStream(pos, vel, alpha, k);
+                                        f = twoStream(pos, vel, alpha, kk);
                                         break;
                                     case kLandauDamping:
-                                        f = landauDamping(pos, vel, alpha, k);
+                                        f = landauDamping(pos, vel, alpha, kk);
                                         break;
                                     case kRecurrence:
-                                        f = recurrence(pos, vel, alpha, k);
+                                        f = recurrence(pos, vel, alpha, kk);
                                         break;
                                     default:
                                         // we should throw an error
