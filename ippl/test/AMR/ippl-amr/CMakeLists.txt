@@ -110,4 +110,5 @@ target_link_libraries (testPerformance ${LIBS}
 
 target_link_libraries (testPlasma ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
-                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS}
+                        -lboost_system -lboost_filesystem)
