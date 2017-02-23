@@ -392,7 +392,7 @@ class ChargedParticles : public IpplParticleBase<PL> {
 			rho_m[domain_m]=0; //!!!!!! there has to be a better way than setting rho to 0 every time
 			this->Q.scatter(this->rho_m, this->R, IntrplCIC_t());
 			//this->Q.scatter(this->rho_m, this->R, IntrplNGP_t());
-			//dumpVTKScalar(rho_m,this,it,"RhoInterpol");
+			dumpVTKScalar(rho_m,this,it,"RhoInterpol");
 
 			//rhocmpl_m[domain_m] = rho_m[domain_m];
 			rhocmpl_m[domain_m] = rho_m[domain_m]/(hr_m[0]*hr_m[1]*hr_m[2]);
