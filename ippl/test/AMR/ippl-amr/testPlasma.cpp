@@ -533,7 +533,7 @@ void doPlasma(Vektor<std::size_t, 3> nr,
         msg << "Processing step " << i << endl;
 
         if ( type == Distribution::Type::kTwoStream )
-            ipplProjection(field, dx, dv, Vmax, lDom, bunch.get(), i);
+            ipplProjection(field, dx, dv, Vmax, lDom, bunch.get(), i, dir.string());
         
         assign(bunch->R, bunch->R + dt * bunch->P);
         
