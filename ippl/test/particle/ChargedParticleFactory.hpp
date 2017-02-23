@@ -224,175 +224,237 @@ void createParticleDistribution(Particles & P, std::string distribution, unsigne
 }
 
 template<typename Particles>
-void createParticleDistributionTwoStream(Particles & P, Vektor<double,3> extend_l,Vektor<double,3> extend_r,Vektor<int,3> Nx,Vektor<int,3> Nv, Vektor<double,3>Vmax, double alpha = 0.05, double k = 0.5) {
-	Vektor<double,3>L = extend_r-extend_l;
-	//Vektor<double,3>Nx(2,2,16);
-	//Vektor<double,3>Nv(4,4,32);
-	//Vektor<double,3>Vmax(6,6,6);
-	Vektor<double,3>Vmin = -Vmax;
+void createParticleDistributionTwoStream(Particles & P,
+                                         Vektor<double,3> extend_l,
+                                         Vektor<double,3> extend_r,
+                                         Vektor<int,3> Nx,
+                                         Vektor<int,3> Nv,
+                                         Vektor<double,3>Vmax,
+                                         double alpha = 0.05,
+                                         double k = 0.5)
+{
+    Vektor<double,3>L = extend_r - extend_l;
+    //Vektor<double,3>Nx(2,2,16);
+    //Vektor<double,3>Nv(4,4,32);
+    //Vektor<double,3>Vmax(6,6,6);
+    Vektor<double,3>Vmin = - Vmax;
+    Vektor<double,3> hx = L / Nx;
+    Vektor<double,3> hv = ( Vmax - Vmin ) / Nv;
 
-	Vektor<double,3> hx = L/Nx;
-	Vektor<double,3> hv =(Vmax-Vmin)/Nv;
-
-	std::cout << "hx = " << hx << std::endl;
-	std::cout << "hv = " << hv << std::endl;
-
-	double thresh = 1e-12;
-	P->total_charge=0;
-
-
-	Vektor<double,3>pos = extend_l;
-	std::cout << "pos = " << pos << std::endl;
-	std::cout << "Initializing TwoStream instability" << std::endl;
-	size_t index = 0;
-	if (P->singleInitNode()) {
-		for (int i =0; i<Nx[0]; ++i) {
-			for (int j =0; j<Nx[1]; ++j) {
-				for (int k =0; k<Nx[2]; ++k) {
-					pos = Vektor<double,3> ((.5+i)*hx[0]+extend_l[0], (.5+j)*hx[1]+extend_l[1], (.5+k)*hx[2]+extend_l[2]);
-					//std::cout << "pos = " << pos << std::endl;
-					for (int iv =0; iv<Nv[0]; ++iv) {
-						for (int jv =0; jv<Nv[1]; ++jv) {
-							for (int kv =0; kv<Nv[2]; ++kv) {
-								//double vx = (iv+.5)*hv+vmin; double vy = (jv+.5)*hv+vmin; double vz = (kv+.5)*hv+vmin;
-								Vektor<double,3>vel = Vektor<double,3>(iv+.5,jv+.5,kv+.5)*hv+Vmin;
-								double v2 = vel[0]*vel[0]+vel[1]*vel[1]+vel[2]*vel[2];
-								double f = (1./(30*M_PI))*exp(-0.5*v2)*(1.+alpha*cos(k*pos[2]))*(1.0 + 5.0*vel[2]*vel[2]);
-								//std::cout << "f = " << f << std::endl;
-								double m = hx[0]*hv[0]*hx[1]*hv[1]*hx[2]*hv[2]*f;
-								if(m>thresh){
-									double q =-m;
-									P->create(1);
-									P->Q[index] = q;
-									P->m[index]=m;
-									P->total_charge+=q;
-									P->v[index]= vel;
-									P->R[index]=pos;
-									index++;
-								}
-							}
-						}
-					}
+    std::cout << "hx = " << hx << std::endl;
+    std::cout << "hv = " << hv << std::endl;
+    double thresh = 1e-12;
+    P->total_charge=0;
 
 
-				}
-			}
-		}
-	}
-	dumpParticlesCSV(P,0);
-
-	P->update();
+    Vektor<double,3>pos = extend_l;
+    std::cout << "pos = " << pos << std::endl;
+    std::cout << "Initializing TwoStream instability" << std::endl;
+    size_t index = 0;
+    if ( P->singleInitNode() ) {
+        for (int i = 0; i < Nx[0]; ++i) {
+            for (int j = 0; j < Nx[1]; ++j) {
+                for (int k = 0; k < Nx[2]; ++k) {
+                    pos = Vektor<double,3> ( (.5 + i) * hx[0] + extend_l[0],
+                                             (.5 + j) * hx[1] + extend_l[1],
+                                             (.5 + k) * hx[2] + extend_l[2]);
+                    //std::cout << "pos = " << pos << std::endl;
+                    for (int iv = 0; iv < Nv[0]; ++iv) {
+                        for (int jv = 0; jv < Nv[1]; ++jv) {
+                            for (int kv = 0; kv < Nv[2]; ++kv) {
+                                //double vx = (iv+.5)*hv+vmin; double vy = (jv+.5)*hv+vmin; double vz = (kv+.5)*hv+vmin;
+                                Vektor<double,3>vel = Vektor<double,3>(iv + .5,
+                                                                       jv + .5,
+                                                                       kv + .5) * hv + Vmin;
+                                double v2 = vel[0] * vel[0] + 
+                                            vel[1] * vel[1] +
+                                            vel[2] * vel[2];
+                                
+                                double f = ( 1. / ( 30 * M_PI ) ) *
+                                           exp( -0.5 * v2 ) *
+                                           ( 1. + alpha * cos( k * pos[2] ) ) *
+                                           ( 1.0 + 5.0 * vel[2] * vel[2]);
+                                
+                                //std::cout << "f = " << f << std::endl;
+                                double m = hx[0] * hv[0] *
+                                           hx[1] * hv[1] *
+                                           hx[2] * hv[2] * f;
+                                
+                                if ( m > thresh ) {
+                                    double q =-m;
+                                    P->create(1);
+                                    P->Q[index] = q;
+                                    P->m[index]=m;
+                                    P->total_charge+=q;
+                                    P->v[index]= vel;
+                                    P->R[index]=pos;
+                                    index++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    dumpParticlesCSV(P,0);
+    P->update();
 }
 
 
 template<typename Particles>
-void createParticleDistributionLandau(Particles & P, Vektor<double,3> extend_l,Vektor<double,3> extend_r, Vektor<int,3> Nx,Vektor<int,3> Nv, Vektor<double,3>Vmax, double alpha = 0.05, double k = 0.5) {
-	Vektor<double,3>L = extend_r-extend_l;
-	Vektor<double,3>Vmin = -Vmax;
+void createParticleDistributionLandau(Particles & P,
+                                      Vektor<double,3> extend_l,
+                                      Vektor<double,3> extend_r,
+                                      Vektor<int,3> Nx,
+                                      Vektor<int,3> Nv,
+                                      Vektor<double,3>Vmax,
+                                      double alpha = 0.05,
+                                      double k = 0.5)
+{
+    Vektor<double,3>L = extend_r - extend_l;
+    Vektor<double,3>Vmin = - Vmax;
 
-	Vektor<double,3> hx = L/Nx;
-	Vektor<double,3> hv =(Vmax-Vmin)/Nv;
+    Vektor<double,3> hx = L / Nx;
+    Vektor<double,3> hv = ( Vmax - Vmin) / Nv;
 
-	std::cout << "hx = " << hx << std::endl;
-	std::cout << "hv = " << hv << std::endl;
+    std::cout << "hx = " << hx << std::endl;
+    std::cout << "hv = " << hv << std::endl;
 
-	double thresh = 1e-12;
-	P->total_charge=0;
+    double thresh = 1e-12;
+    P->total_charge=0;
 
-	Vektor<double,3>pos = extend_l;
-	std::cout << "pos = " << pos << std::endl;
-	std::cout << "Initializing Landau Damping" << std::endl;
-	size_t index = 0;
-	if (P->singleInitNode()) {
-		for (int i =0; i<Nx[0]; ++i) {
-			for (int j =0; j<Nx[1]; ++j) {
-				for (int k =0; k<Nx[2]; ++k) {
-					pos = Vektor<double,3> ((.5+i)*hx[0]+extend_l[0], (.5+j)*hx[1]+extend_l[1], (.5+k)*hx[2]+extend_l[2]);
+    Vektor<double,3>pos = extend_l;
+    std::cout << "pos = " << pos << std::endl;
+    std::cout << "Initializing Landau Damping" << std::endl;
+    size_t index = 0;
+    if ( P->singleInitNode() ) {
+        for (int i = 0; i < Nx[0]; ++i) {
+            for (int j = 0; j < Nx[1]; ++j) {
+                for (int k = 0; k < Nx[2]; ++k) {
+                    pos = Vektor<double,3> ( (.5 + i) * hx[0] + extend_l[0],
+                                             (.5 + j) * hx[1] + extend_l[1],
+                                             (.5 + k) * hx[2] + extend_l[2]
+                                           );
 
-					for (int iv =0; iv<Nv[0]; ++iv) {
-						for (int jv =0; jv<Nv[1]; ++jv) {
-							for (int kv =0; kv<Nv[2]; ++kv) {
-								Vektor<double,3>vel = Vektor<double,3>(iv+.5,jv+.5,kv+.5)*hv+Vmin;
-								double v2 = vel[0]*vel[0]+vel[1]*vel[1]+vel[2]*vel[2];
+                    for (int iv = 0; iv < Nv[0]; ++iv) {
+                        for (int jv = 0; jv < Nv[1]; ++jv) {
+                            for (int kv = 0; kv < Nv[2]; ++kv) {
+                                Vektor<double,3>vel = Vektor<double,3>(iv + .5,
+                                                                       jv + .5,
+                                                                       kv + .5) * hv + Vmin;
+                                double v2 = vel[0] * vel[0] +
+                                            vel[1] * vel[1] +
+                                            vel[2] * vel[2];
 
-								double f = (1./(2.*M_PI*sqrt(2.*M_PI)))*exp(-0.5*v2)*(1.+alpha*(cos(k*pos[2])+cos(k*pos[1])+cos(k*pos[0])));
+                                double f = ( 1. / ( 2. * M_PI * sqrt( 2.* M_PI ) ) ) *
+                                           exp( -0.5 *v2 ) *
+                                           ( 1. + alpha * ( cos( k * pos[2] ) +
+                                                            cos( k * pos[1] ) +
+                                                            cos( k * pos[0] )
+                                                          )
+                                           );
 
-								double m = hx[0]*hv[0]*hx[1]*hv[1]*hx[2]*hv[2]*f;
-								if(m>thresh){
-									double q = -m;
-									P->create(1);
-									P->Q[index] = q;
-									P->m[index] = m;
-									P->total_charge+=q;
-									P->v[index]= vel;
-									P->R[index++]=pos;
-								}
-							}
-						}
-					}
-
-
-				}
-			}
-		}
-	}
-	P->update();
+                                double m = hx[0] * hv[0] *
+                                           hx[1] * hv[1] *
+                                           hx[2] * hv[2] * f;
+                                
+                                if ( m > thresh ) {
+                                    double q = -m;
+                                    P->create(1);
+                                    P->Q[index] = q;
+                                    P->m[index] = m;
+                                    P->total_charge+=q;
+                                    P->v[index]= vel;
+                                    P->R[index++]=pos;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    P->update();
 }
 
 
 template<typename Particles>
-void createParticleDistributionRecurrence(Particles & P, Vektor<double,3> extend_l,Vektor<double,3> extend_r, Vektor<int,3> Nx,Vektor<int,3> Nv, Vektor<double,3>Vmax, double alpha = 0.05, double k = 0.5) {
-	Vektor<double,3>L = extend_r-extend_l;
-	Vektor<double,3>Vmin = -Vmax;
+void createParticleDistributionRecurrence(Particles & P,
+                                          Vektor<double,3> extend_l,
+                                          Vektor<double,3> extend_r,
+                                          Vektor<int,3> Nx,
+                                          Vektor<int,3> Nv,
+                                          Vektor<double,3>Vmax,
+                                          double alpha = 0.05,
+                                          double k = 0.5)
+{
+    Vektor<double,3>L = extend_r - extend_l;
+    Vektor<double,3>Vmin = - Vmax;
 
-	Vektor<double,3> hx = L/Nx;
-	Vektor<double,3> hv =(Vmax-Vmin)/Nv;
+    Vektor<double,3> hx = L / Nx;
+    Vektor<double,3> hv = ( Vmax - Vmin ) / Nv;
 
-	std::cout << "hx = " << hx << std::endl;
-	std::cout << "hv = " << hv << std::endl;
+    std::cout << "hx = " << hx << std::endl;
+    std::cout << "hv = " << hv << std::endl;
 
-	double thresh = 1e-12;
-	P->total_charge=0;
+    double thresh = 1e-12;
+    P->total_charge=0;
 
-	Vektor<double,3>pos = extend_l;
-	std::cout << "pos = " << pos << std::endl;
-	std::cout << "Initializing Landau Damping" << std::endl;
-	size_t index = 0;
-	if (P->singleInitNode()) {
-		for (int i =0; i<Nx[0]; ++i) {
-			for (int j =0; j<Nx[1]; ++j) {
-				for (int k =0; k<Nx[2]; ++k) {
-					pos = Vektor<double,3> ((.5+i)*hx[0]+extend_l[0], (.5+j)*hx[1]+extend_l[1], (.5+k)*hx[2]+extend_l[2]);
+    Vektor<double,3>pos = extend_l;
+    std::cout << "pos = " << pos << std::endl;
+    std::cout << "Initializing free streaming (recurrence time)" << std::endl;
+    size_t index = 0;
+    if ( P->singleInitNode() ) {
+        for (int i = 0; i < Nx[0]; ++i) {
+            for (int j = 0; j < Nx[1]; ++j) {
+                for (int k = 0; k < Nx[2]; ++k) {
+                    pos = Vektor<double,3> ( (.5 + i) * hx[0] + extend_l[0],
+                                             (.5 + j) * hx[1] + extend_l[1],
+                                             (.5 + k) * hx[2] + extend_l[2]);
 
-					for (int iv =0; iv<Nv[0]; ++iv) {
-						for (int jv =0; jv<Nv[1]; ++jv) {
-							for (int kv =0; kv<Nv[2]; ++kv) {
-								Vektor<double,3>vel = Vektor<double,3>(iv+.5,jv+.5,kv+.5)*hv+Vmin;
-								double v2 = vel[0]*vel[0]+vel[1]*vel[1]+vel[2]*vel[2];
+                    for (int iv = 0; iv < Nv[0]; ++iv) {
+                        for (int jv = 0; jv < Nv[1]; ++jv) {
+                            for (int kv = 0; kv < Nv[2]; ++kv) {
+                                Vektor<double,3>vel = Vektor<double,3>(iv + .5,
+                                                                       jv + .5,
+                                                                       kv + .5) * hv + Vmin;
+                                
+                                double v2 = vel[0] * vel[0] +
+                                            vel[1] * vel[1] +
+                                            vel[2] * vel[2];
 
-								//Free-streaming:
-								double f = alpha*(1./(2.*M_PI*sqrt(2.*M_PI)))*exp(-0.5*v2)*(cos(k*pos[2])+cos(k*pos[1])+cos(k*pos[0]));
+                                //Free-streaming:
+                                double f = alpha *
+                                           ( 1. / ( 2. * M_PI * sqrt( 2. * M_PI ) ) ) *
+                                           exp( -0.5 * v2 ) *
+                                           (
+                                               cos( k * pos[2] ) +
+                                               cos( k * pos[1] ) +
+                                               cos( k * pos[0] )
+                                           );
 
-								double m = hx[0]*hv[0]*hx[1]*hv[1]*hx[2]*hv[2]*f;
-								if(m>thresh){
-									double q = -m;
-									P->create(1);
-									P->Q[index] = q;
-									P->m[index] = m;
-									P->total_charge+=q;
-									P->v[index]= vel;
-									P->R[index++]=pos;
-								}
-							}
-						}
-					}
-
-
-				}
-			}
-		}
-	}
-	P->update();
+                                double m = hx[0] * hv[0] *
+                                           hx[1] * hv[1] *
+                                           hx[2] * hv[2] * f;
+                                           
+                                if ( m > thresh ) {
+                                    double q = -m;
+                                    P->create(1);
+                                    P->Q[index] = q;
+                                    P->m[index] = m;
+                                    P->total_charge+=q;
+                                    P->v[index]= vel;
+                                    P->R[index++]=pos;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    P->update();
 }
 
 
