@@ -231,7 +231,7 @@ void createParticleDistributionTwoStream(Particles & P,
                                          Vektor<int,3> Nv,
                                          Vektor<double,3>Vmax,
                                          double alpha = 0.05,
-                                         double k = 0.5)
+                                         double kk = 0.5)
 {
     Vektor<double,3>L = extend_r - extend_l;
     //Vektor<double,3>Nx(2,2,16);
@@ -272,7 +272,7 @@ void createParticleDistributionTwoStream(Particles & P,
                                 
                                 double f = ( 1. / ( 30 * M_PI ) ) *
                                            exp( -0.5 * v2 ) *
-                                           ( 1. + alpha * cos( k * pos[2] ) ) *
+                                           ( 1. + alpha * cos( kk * pos[2] ) ) *
                                            ( 1.0 + 5.0 * vel[2] * vel[2]);
                                 
                                 //std::cout << "f = " << f << std::endl;
@@ -310,7 +310,7 @@ void createParticleDistributionLandau(Particles & P,
                                       Vektor<int,3> Nv,
                                       Vektor<double,3>Vmax,
                                       double alpha = 0.05,
-                                      double k = 0.5)
+                                      double kk = 0.5)
 {
     Vektor<double,3>L = extend_r - extend_l;
     Vektor<double,3>Vmin = - Vmax;
@@ -349,9 +349,9 @@ void createParticleDistributionLandau(Particles & P,
 
                                 double f = ( 1. / ( 2. * M_PI * sqrt( 2.* M_PI ) ) ) *
                                            exp( -0.5 *v2 ) *
-                                           ( 1. + alpha * ( cos( k * pos[2] ) +
-                                                            cos( k * pos[1] ) +
-                                                            cos( k * pos[0] )
+                                           ( 1. + alpha * ( cos( kk * pos[2] ) +
+                                                            cos( kk * pos[1] ) +
+                                                            cos( kk * pos[0] )
                                                           )
                                            );
 
@@ -387,7 +387,7 @@ void createParticleDistributionRecurrence(Particles & P,
                                           Vektor<int,3> Nv,
                                           Vektor<double,3>Vmax,
                                           double alpha = 0.05,
-                                          double k = 0.5)
+                                          double kk = 0.5)
 {
     Vektor<double,3>L = extend_r - extend_l;
     Vektor<double,3>Vmin = - Vmax;
@@ -429,9 +429,9 @@ void createParticleDistributionRecurrence(Particles & P,
                                            ( 1. / ( 2. * M_PI * sqrt( 2. * M_PI ) ) ) *
                                            exp( -0.5 * v2 ) *
                                            (
-                                               cos( k * pos[2] ) +
-                                               cos( k * pos[1] ) +
-                                               cos( k * pos[0] )
+                                               cos( kk * pos[2] ) +
+                                               cos( kk * pos[1] ) +
+                                               cos( kk * pos[0] )
                                            );
 
                                 double m = hx[0] * hv[0] *
