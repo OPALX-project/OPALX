@@ -28,7 +28,8 @@
 
 #include "Physics/Physics.h"
 
-class OrbitThreader;
+#include "Algorithms/OrbitThreader.h"
+#include "Algorithms/IndexMap.h"
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/Collimator.h"
@@ -63,8 +64,7 @@ class OrbitThreader;
 #include <queue>
 
 class BorisPusher;
-
-typedef std::pair<double, Vector_t > PhaseEnT;
+class SurfacePhysicsHandler;
 
 class ParallelTTracker: public Tracker {
 
@@ -244,6 +244,11 @@ private:
 
     CoordinateSystemTrafo referenceToLabCSTrafo_m;
 
+    std::set<SurfacePhysicsHandler*> activeSurfacePhysicsHandlers_m;
+    bool surfaceStatus_m;
+
+    unsigned long totalParticlesInSimulation_m;
+
     /********************** END VARIABLES ***********************************/
 
     void kickParticles(const BorisPusher &pusher);
@@ -267,6 +272,8 @@ private:
     void changeDT();
     void emitParticles(long long step);
     void computeExternalFields(OrbitThreader &oth);
+    void computeWakefield(IndexMap::value_t &elements);
+    void computeParticleMatterInteraction(IndexMap::value_t elements, OrbitThreader &oth);
     void computeSpaceChargeFields(unsigned long long step);
     void prepareOpalBeamlineSections();
     void dumpStats(long long step, bool psDump, bool statDump);
