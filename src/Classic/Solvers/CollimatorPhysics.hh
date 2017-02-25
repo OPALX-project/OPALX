@@ -190,6 +190,7 @@ private:
     IpplTimings::TimerRef DegraderApplyTimer_m;
     IpplTimings::TimerRef DegraderLoopTimer_m;
     IpplTimings::TimerRef DegraderInitTimer_m;
+    IpplTimings::TimerRef DegraderDestroyTimer_m;
 };
 
 inline
