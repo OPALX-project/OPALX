@@ -35,6 +35,13 @@ private:
     typedef PArray<MultiFab > mfs_mt;
 
 public:
+    /// Methods for tag cells for refinement
+    enum TaggingCriteria {
+        kChargeDensity, // default
+        kPotentialStrength,
+        kEfieldGradient
+    };
+        
     
 #ifdef IPPL_AMR
     typedef ParticleAmrLayout<double, BL_SPACEDIM> amrplayout_t;
@@ -175,14 +182,24 @@ public:
 //         std::cout << "Total charge: " << assign_sum << " " << charge_sum << std::endl;
 //         std::cout << "---------------------------------------------" << std::endl;
     }
+    
+    void setTagging(TaggingCriteria tagging) {
+        tagging_m = tagging_m;
+    }
 
 protected:
     /*!
      * Is called in the AmrCore function for performing tagging.
      */
-    virtual void ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override;
+    virtual void ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) override;
     
 private:
+    
+    void tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    
+    
     
 #ifdef IPPL_AMR
     PartBunchAmr<amrplayout_t>* bunch_m;
@@ -191,6 +208,8 @@ private:
 #endif
     mfs_mt/*mp_mt*/ nPartPerCell_m;      ///< used in tagging.
     mfs_mt chargeOnGrid_m;
+    
+    TaggingCriteria tagging_m;
     
 };
 
