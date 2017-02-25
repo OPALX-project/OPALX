@@ -29,6 +29,11 @@ public:
     void saveSDDS(double startS) const;
     size_t size() const;
 
+    size_t numElements() const;
+    std::pair<double, double> getRange(const IndexMap::value_t::value_type &element,
+                                       double position) const;
+    IndexMap::value_t getTouchingElements(const std::pair<double, double> &range);
+
     class OutOfBounds: public OpalException {
     public:
         OutOfBounds(const std::string &meth, const std::string &msg):
@@ -59,21 +64,19 @@ private:
     };
 
     typedef std::map<key_t, value_t, myCompare> map_t;
-    map_t map_m;
+    typedef std::multimap<value_t::value_type, key_t> invertedMap_t;
+    map_t mapRange2Element_m;
+    invertedMap_t mapElement2Range_m;
+
     double totalPathLength_m;
-    const double oneMinusEpsilon_m;
+
+    static bool almostEqual(double, double);
+    static const double oneMinusEpsilon_m;
 };
 
 inline
-void IndexMap::add(key_t::first_type initialS, key_t::second_type finalS, const value_t &val) {
-    key_t key(initialS, finalS * oneMinusEpsilon_m);
-    map_m.insert(std::pair<key_t, value_t>(key, val));
-    totalPathLength_m = (*map_m.rbegin()).first.second;
-}
-
-inline
 size_t IndexMap::size() const {
-    return map_m.size();
+    return mapRange2Element_m.size();
 }
 
 inline

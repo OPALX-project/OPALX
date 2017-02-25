@@ -14,17 +14,19 @@
 
 extern Inform *gmsg;
 
+const double IndexMap::oneMinusEpsilon_m = 1.0 - std::numeric_limits<double>::epsilon();
+
 IndexMap::IndexMap():
-    map_m(),
-    totalPathLength_m(0.0),
-    oneMinusEpsilon_m(1.0 - std::numeric_limits<double>::epsilon())
+    mapRange2Element_m(),
+    mapElement2Range_m(),
+    totalPathLength_m(0.0)
 { }
 
 void IndexMap::print(std::ostream &out) const {
-    out << "Size of map " << map_m.size() << " sections " << std::endl;
+    out << "Size of map " << mapRange2Element_m.size() << " sections " << std::endl;
     out << std::fixed << std::setprecision(6);
-    auto mapIti = map_m.begin();
-    auto mapItf = map_m.end();
+    auto mapIti = mapRange2Element_m.begin();
+    auto mapItf = mapRange2Element_m.end();
     for (; mapIti != mapItf; mapIti++) {
         const auto key = (*mapIti).first;
         const auto val = (*mapIti).second;
@@ -40,13 +42,13 @@ IndexMap::value_t IndexMap::query(key_t::first_type s, key_t::second_type ds) {
     const double upperLimit = std::min(totalPathLength_m, s + ds);
     value_t elementSet;
 
-    map_t::reverse_iterator rit = map_m.rbegin();
-    if (rit != map_m.rend() && lowerLimit > (*rit).first.second) {
+    map_t::reverse_iterator rit = mapRange2Element_m.rbegin();
+    if (rit != mapRange2Element_m.rend() && lowerLimit > (*rit).first.second) {
         throw OutOfBounds("IndexMap::query", "out of bounds");
     }
 
-    map_t::iterator it = map_m.begin();
-    const map_t::iterator end = map_m.end();
+    map_t::iterator it = mapRange2Element_m.begin();
+    const map_t::iterator end = mapRange2Element_m.end();
 
     for (; it != end; ++ it) {
         const double low = (*it).first.first;
@@ -72,11 +74,42 @@ IndexMap::value_t IndexMap::query(key_t::first_type s, key_t::second_type ds) {
     return elementSet;
 }
 
-void IndexMap::tidyUp() {
-    map_t::reverse_iterator rit = map_m.rbegin();
+void IndexMap::add(key_t::first_type initialS, key_t::second_type finalS, const value_t &val) {
+    key_t key(initialS, finalS * oneMinusEpsilon_m);
+    mapRange2Element_m.insert(std::pair<key_t, value_t>(key, val));
+    totalPathLength_m = (*mapRange2Element_m.rbegin()).first.second;
 
-    if (rit != map_m.rend() && (*rit).second.size() == 0) {
-        map_m.erase(std::next(rit).base());
+    value_t::iterator setIt = val.begin();
+    const value_t::iterator setEnd = val.end();
+
+    for (; setIt != setEnd; ++ setIt) {
+        if (mapElement2Range_m.find(*setIt) == mapElement2Range_m.end()) {
+            mapElement2Range_m.insert(std::make_pair(*setIt, key));
+        } else {
+            auto itpair = mapElement2Range_m.equal_range(*setIt);
+
+            bool extendedExisting = false;
+            for (auto it = itpair.first; it != itpair.second; ++ it) {
+                key_t &currentRange = it->second;
+
+                if (almostEqual(key.first, currentRange.second / oneMinusEpsilon_m)) {
+                    currentRange.second = key.second;
+                    extendedExisting = true;
+                    break;
+                }
+            }
+            if (!extendedExisting) {
+                mapElement2Range_m.insert(std::make_pair(*setIt, key));
+            }
+        }
+    }
+}
+
+void IndexMap::tidyUp() {
+    map_t::reverse_iterator rit = mapRange2Element_m.rbegin();
+
+    if (rit != mapRange2Element_m.rend() && (*rit).second.size() == 0) {
+        mapRange2Element_m.erase(std::next(rit).base());
     }
 }
 
@@ -94,6 +127,7 @@ enum elements {
 };
 
 void IndexMap::saveSDDS(double startS) const {
+
     std::string fileName(OpalData::getInstance()->getInputBasename() + "_ElementPositions.sdds");
     std::ofstream sdds;
     if (OpalData::getInstance()->hasPriorTrack() && boost::filesystem::exists(fileName)) {
@@ -193,8 +227,8 @@ void IndexMap::saveSDDS(double startS) const {
     std::vector<double> typeMultipliers = {3.3333e-1, 1.0, 0.5, 0.25, 1.0, 1.0, 1.0, 1.0, 1.0};
     unsigned int counter = 0;
 
-    auto mapIti = map_m.begin();
-    auto mapItf = map_m.end();
+    auto mapIti = mapRange2Element_m.begin();
+    auto mapItf = mapRange2Element_m.end();
     for (; mapIti != mapItf; mapIti++) {
         const auto key = (*mapIti).first;
         const auto val = (*mapIti).second;
@@ -306,4 +340,44 @@ void IndexMap::saveSDDS(double startS) const {
     }
 
     sdds.close();
+}
+
+std::pair<double, double> IndexMap::getRange(const IndexMap::value_t::value_type &element,
+                                             double position) const {
+    double minDistance = std::numeric_limits<double>::max();
+    std::pair<double, double> range(0.0, 0.0);
+    const std::pair<invertedMap_t::const_iterator, invertedMap_t::const_iterator> its = mapElement2Range_m.equal_range(element);
+    if (std::distance(its.first, its.second) == 0)
+        throw OpalException("IndexMap::getRange()",
+                            "Element \"" + element->getName() + "\" not registered");
+
+    for (invertedMap_t::const_iterator it = its.first; it != its.second; ++ it) {
+        double distance = std::min(std::abs((*it).second.first - position),
+                                   std::abs((*it).second.second - position));
+        if (distance < minDistance) {
+            minDistance = distance;
+            range = (*it).second;
+        }
+    }
+
+    return range;
+}
+
+IndexMap::value_t IndexMap::getTouchingElements(const std::pair<double, double> &range) {
+    map_t::iterator it = mapRange2Element_m.begin();
+    const map_t::iterator end = mapRange2Element_m.end();
+    IndexMap::value_t touchingElements;
+
+    for (; it != end; ++ it) {
+        if (almostEqual(it->first.first, range.second) ||
+            almostEqual(it->first.second, range.first))
+            touchingElements.insert((it->second).begin(), (it->second).end());
+    }
+
+    return touchingElements;
+}
+
+bool IndexMap::almostEqual(double x, double y) {
+    return (std::abs(x - y) < std::numeric_limits<double>::epsilon() * std::abs(x + y) * 2 ||
+            std::abs(x - y) < std::numeric_limits<double>::min());
 }
