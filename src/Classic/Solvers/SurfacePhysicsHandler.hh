@@ -23,6 +23,7 @@ public:
     void setFlagAllParticlesIn(bool p);
     bool getFlagAllParticlesIn() const;
     void updateElement(ElementBase *newref);
+    ElementBase* getElement();
 
 protected:
     ElementBase *element_ref_m;
@@ -42,6 +43,11 @@ SurfacePhysicsHandler::SurfacePhysicsHandler(std::string name, ElementBase *elre
 inline
 void SurfacePhysicsHandler::updateElement(ElementBase *newref) {
     element_ref_m = newref;
+}
+
+inline
+ElementBase* SurfacePhysicsHandler::getElement() {
+    return element_ref_m;
 }
 
 inline
