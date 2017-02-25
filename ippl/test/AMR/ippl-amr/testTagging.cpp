@@ -49,7 +49,7 @@ typedef AmrOpal::amrbunch_t amrbunch_t;
 typedef Vektor<double, BL_SPACEDIM> Vector_t;
 
 void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
-              int nLevels, size_t maxBoxSize, int nSteps, Inform& msg)
+              int nLevels, size_t maxBoxSize, Inform& msg)
 {
     static IpplTimings::TimerRef tag1Timer = IpplTimings::getTimer("regrid-pot");
     static IpplTimings::TimerRef tag2Timer = IpplTimings::getTimer("regrid-efield");
@@ -136,32 +136,43 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // tagging using potential strength
     myAmrOpal.setTagging(AmrOpal::kPotentialStrength);
     
+    IpplTimings::startTimer(tag1Timer);
+    
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
     
+    IpplTimings::stopTimer(tag1Timer);
+    
     msg << "Distribution after tagging with potential:" << endl;
-    bunch->gatherStatistics();
+//     bunch->gatherStatistics();
     bunch->python_format(0);
     
     // tagging using efield
     myAmrOpal.setTagging(AmrOpal::kEfieldGradient);
     
+    IpplTimings::startTimer(tag2Timer);
+    
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
     
+    IpplTimings::stopTimer(tag2Timer);
     
     msg << "Distribution after tagging with efield:" << endl;
-    bunch->gatherStatistics();
+//     bunch->gatherStatistics();
     bunch->python_format(1);
     
     // tagging using charge
     myAmrOpal.setTagging(AmrOpal::kChargeDensity);
     
+    IpplTimings::startTimer(tag3Timer);
+    
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
     
+    IpplTimings::stopTimer(tag3Timer);
+    
     msg << "Distribution after tagging with charge:" << endl;
-    bunch->gatherStatistics();
+//     bunch->gatherStatistics();
     bunch->python_format(2);
 }
 
@@ -202,8 +213,7 @@ int main(int argc, char *argv[]) {
     BoxLib::Initialize(argc,argv, false);
     size_t nLevels = std::atoi(argv[5]) + 1; // i.e. nLevels = 0 --> only single level
     size_t maxBoxSize = std::atoi(argv[6]);
-    int nSteps = std::atoi(argv[7]);
-    doBoxLib(nr, nParticles, nLevels, maxBoxSize, nSteps, msg);
+    doBoxLib(nr, nParticles, nLevels, maxBoxSize, msg);
     
     
     IpplTimings::stopTimer(mainTimer);
