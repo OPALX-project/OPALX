@@ -20,29 +20,37 @@ public:
     virtual std::string getName() = 0;
     virtual size_t getParticlesInMat() = 0;
     virtual unsigned getRedifused() = 0;
-    void AllParticlesIn(bool p);
+    void setFlagAllParticlesIn(bool p);
+    bool getFlagAllParticlesIn() const;
     void updateElement(ElementBase *newref);
-  
+
 protected:
     ElementBase *element_ref_m;
-    bool allParticleInMat_m;  
+    bool allParticleInMat_m;
 private:
     const std::string name_m;
 
 };
 
-inline SurfacePhysicsHandler::SurfacePhysicsHandler(std::string name, ElementBase *elref):
+inline
+SurfacePhysicsHandler::SurfacePhysicsHandler(std::string name, ElementBase *elref):
     element_ref_m(elref),
     name_m(name),
     allParticleInMat_m(false)
 {}
 
-inline void SurfacePhysicsHandler::updateElement(ElementBase *newref) {
+inline
+void SurfacePhysicsHandler::updateElement(ElementBase *newref) {
     element_ref_m = newref;
 }
 
-inline void SurfacePhysicsHandler::AllParticlesIn(bool p) {
+inline
+void SurfacePhysicsHandler::setFlagAllParticlesIn(bool p) {
   allParticleInMat_m = p;
-} 
+}
 
+inline
+bool SurfacePhysicsHandler::getFlagAllParticlesIn() const {
+    return allParticleInMat_m;
+}
 #endif // SURFACEPHYSICS_HH
