@@ -195,7 +195,6 @@ void CollimatorPhysics::doPhysics(PartBunch &bunch, Degrader *deg, Collimator *c
 bool CollimatorPhysics::EnergyLoss(double &Eng, const double &deltat) {
     /// Eng GeV
 
-    // Material();
     double dEdx = 0.0;
     const double gamma = (Eng + m_p) / m_p;
     const double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
@@ -820,7 +819,8 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
     const size_t nL = bunch.getLocalNum();
     size_t ne = 0;
     const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore();
-    for (unsigned int i = 0; i < nL; ++i) {
+    for (unsigned int j = nL; j > 0; -- j) {
+        unsigned int i = j - 1;
         if ((bunch.Bin[i] == -1 || bunch.Bin[i] == 1) &&
             ((nL - ne) > minNumOfParticlesPerCore) &&
 	    checkHit(bunch.R[i], bunch.P[i], dT_m, deg, coll))
