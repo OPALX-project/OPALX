@@ -114,11 +114,13 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *eleme
         dksbase.initDevice();
         curandInitSet = -1;
     }
+
+    DegraderInitTimer_m = IpplTimings::getTimer("DegraderInit");
 #endif
 
     DegraderApplyTimer_m = IpplTimings::getTimer("DegraderApply");
     DegraderLoopTimer_m = IpplTimings::getTimer("DegraderLoop");
-    DegraderInitTimer_m = IpplTimings::getTimer("DegraderInit");
+    DegraderDestroyTimer_m = IpplTimings::getTimer("DegraderDestroy");
 }
 
 CollimatorPhysics::~CollimatorPhysics() {
@@ -221,7 +223,7 @@ bool CollimatorPhysics::EnergyLoss(double &Eng, const double &deltat) {
         const double epsilon_low = A2_c * pow(Ts, 0.45);
         const double epsilon_high = (A3_c / Ts) * log(1 + (A4_c / Ts) + (A5_c * Ts));
         const double epsilon = (epsilon_low * epsilon_high) / (epsilon_low + epsilon_high);
-        dEdx = - epsilon / (1e21 * (A_m / Avo)); // Stopping_power is in MeV INFOMSG("stopping power: " << dEdx << " MeV" << endl);
+        dEdx = -epsilon / (1e21 * (A_m / Avo)); // Stopping_power is in MeV INFOMSG("stopping power: " << dEdx << " MeV" << endl);
         const double delta_Eave = deltasrho * dEdx;
         const double delta_E = delta_Eave + gsl_ran_gaussian(rGen_m, sigma_E);
         Eng = Eng + delta_E / 1e3;
@@ -807,19 +809,21 @@ void CollimatorPhysics::addBackToBunch(PartBunch &bunch, unsigned i) {
 
 void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
 {
+    const size_t nL = bunch.getLocalNum();
+    if (nL == 0) return;
+
     Degrader   *deg  = NULL;
     Collimator *coll = NULL;
 
     if (collshape_m == DEGRADER)
-        deg = dynamic_cast<Degrader *>(element_ref_m);
+        deg = static_cast<Degrader *>(element_ref_m);
     else
-        coll = dynamic_cast<Collimator *>(element_ref_m);
+        coll = static_cast<Collimator *>(element_ref_m);
 
-    const size_t nL = bunch.getLocalNum();
     size_t ne = 0;
+    IpplTimings::startTimer(DegraderDestroyTimer_m);
     const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore();
-    for (unsigned int j = nL; j > 0; -- j) {
-        unsigned int i = j - 1;
+    for (size_t i = 0; i < nL; ++ i) {
         if ((bunch.Bin[i] == -1 || bunch.Bin[i] == 1) &&
             ((nL - ne) > minNumOfParticlesPerCore) &&
             checkHit(bunch.R[i], bunch.P[i], dT_m, deg, coll))
@@ -840,13 +844,15 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
             ne++;
             bunchToMatStat_m++;
 
-            //mark particle to be deleted from bunch as soon as it enters the material
-            bunch.destroy(1, i, true);
+            bunch.destroy(1, i);
         }
     }
 
+    if (ne > 0) {
+        bunch.performDestroy(true);
+    }
+    IpplTimings::stopTimer(DegraderDestroyTimer_m);
 }
-
 
 void CollimatorPhysics::print(Inform &msg) {
     Inform::FmtFlags_t ff = msg.flags();
@@ -899,8 +905,7 @@ bool CollimatorPhysics::stillAlive(PartBunch &bunch) {
 
     //free GPU memory in case element is degrader, it is empty and bunch has moved past it
     if (collshape_m == DEGRADER && locPartsInMat_m == 0) {
-        Degrader   *deg  = NULL;
-        deg = dynamic_cast<Degrader *>(element_ref_m);
+        Degrader *deg = static_cast<Degrader *>(element_ref_m);
 
         //get the size of the degrader
         double zBegin, zEnd;
@@ -990,9 +995,9 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch)
     Collimator *coll = NULL;
 
     if (collshape_m == DEGRADER)
-        deg = dynamic_cast<Degrader *>(element_ref_m);
+        deg = static_cast<Degrader *>(element_ref_m);
     else
-        coll = dynamic_cast<Collimator *>(element_ref_m);
+        coll = static_cast<Collimator *>(element_ref_m);
 
 
     const size_t nL = bunch.getLocalNum();
