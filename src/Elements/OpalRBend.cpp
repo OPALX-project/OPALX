@@ -114,8 +114,12 @@ void OpalRBend::update() {
         dynamic_cast<RBendRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double angle  = Attributes::getReal(itsAttr[ANGLE]);
+    double e1     = Attributes::getReal(itsAttr[E1]);
     RBendGeometry &geometry = bend->getGeometry();
     geometry.setElementLength(length);
+    if (angle < 0) {
+
+    }
     geometry.setBendAngle(angle);
 
     // Define pole face angles.
@@ -149,10 +153,23 @@ void OpalRBend::update() {
     bend->setField(field);
 
     // Set field amplitude or bend angle.
-    if(itsAttr[ANGLE])
-        bend->setBendAngle(Attributes::getReal(itsAttr[ANGLE]));
-    else
+    if(itsAttr[ANGLE]) {
+        if (bend->isPositioned() && angle < 0.0) {
+            e1 = -e1;
+            angle = -angle;
+
+            Quaternion rotAboutZ(0, 0, 0, 1);
+            CoordinateSystemTrafo g2l = bend->getCSTrafoGlobal2Local();
+            bend->releasePosition();
+            bend->setCSTrafoGlobal2Local(CoordinateSystemTrafo(g2l.getOrigin(),
+                                                               rotAboutZ * g2l.getRotation()));
+            bend->fixPosition();
+        }
+        bend->setBendAngle(angle);
+    } else {
         bend->setFieldAmplitude(k0, k0s);
+    }
+        bend->setEntranceAngle(e1);
 
     if(itsAttr[ROTATION])
         throw OpalException("OpalRBend::update",
@@ -168,8 +185,6 @@ void OpalRBend::update() {
                  << endl);
         bend->setFieldMapFN("1DPROFILE1-DEFAULT");
     }
-
-    bend->setEntranceAngle(Attributes::getReal(itsAttr[E1]));
 
     // Energy in eV.
     if(itsAttr[DESIGNENERGY]) {

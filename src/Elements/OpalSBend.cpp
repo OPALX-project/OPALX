@@ -114,6 +114,8 @@ void OpalSBend::update() {
     SBendRep *bend = dynamic_cast<SBendRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double angle  = Attributes::getReal(itsAttr[ANGLE]);
+    double e1     = Attributes::getReal(itsAttr[E1]);
+    double e2     = Attributes::getReal(itsAttr[E2]);
     PlanarArcGeometry &geometry = bend->getGeometry();
 
     if(length) {
@@ -152,10 +154,23 @@ void OpalSBend::update() {
     bend->setField(field);
 
     // Set field amplitude or bend angle.
-    if(itsAttr[ANGLE])
-        bend->setBendAngle(Attributes::getReal(itsAttr[ANGLE]));
-    else
+    if(itsAttr[ANGLE]) {
+        if (bend->isPositioned() && angle < 0.0) {
+            e1 = -e1;
+            e2 = -e2;
+            angle = -angle;
+
+            Quaternion rotAboutZ(0, 0, 0, 1);
+            CoordinateSystemTrafo g2l = bend->getCSTrafoGlobal2Local();
+            bend->releasePosition();
+            bend->setCSTrafoGlobal2Local(CoordinateSystemTrafo(g2l.getOrigin(),
+                                                               rotAboutZ * g2l.getRotation()));
+            bend->fixPosition();
+        }
+        bend->setBendAngle(angle);
+    } else {
         bend->setFieldAmplitude(k0, k0s);
+    }
 
     if(itsAttr[GREATERTHANPI])
         throw OpalException("OpalSBend::update",
@@ -175,8 +190,8 @@ void OpalSBend::update() {
         bend->setFieldMapFN("1DPROFILE1-DEFAULT");
     }
 
-    bend->setEntranceAngle(Attributes::getReal(itsAttr[E1]));
-    bend->setExitAngle(Attributes::getReal(itsAttr[E2]));
+    bend->setEntranceAngle(e1);
+    bend->setExitAngle(e2);
 
     // Units are eV.
     if(itsAttr[DESIGNENERGY]) {
