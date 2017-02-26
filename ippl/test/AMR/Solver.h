@@ -62,6 +62,7 @@ public:
      * @param finest_level up to which solver goes
      * @param offset is zero in case of Dirichlet boundary conditions.
      * @param timing of solver parts
+     * @param doGradient compute the gradient (true) or not (false)
      */
     void solve_for_accel(container_t& rhs,
                          container_t& phi,
@@ -70,7 +71,8 @@ public:
                          int base_level,
                          int finest_level,
                          Real offset,
-                         bool timing=true);
+                         bool timing=true,
+                         bool doGradient=true);
     /*!
      * Actual solve.
      * @param rhs is the density at each level (cell-centered)
@@ -82,11 +84,12 @@ public:
      * @param tol is \f$ 10^{-10}\f$ (specified in solve_for_accel)
      * @param abs_tol is \f$ 10^{-14}\f$ (specified in solve_for_accel)
      * @param timing of solver parts
+     * @param doGradient  compute the gradient (true) or not (false)
      */
     void solve_with_f90(container_t& rhs,
                         container_t& phi, Array< container_t >& grad_phi_edge, 
                         const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol,
-                        bool timing);
+                        bool timing, bool doGradient);
     
 #ifdef USEHYPRE
     void solve_with_hypre(MultiFab& soln, MultiFab& rhs, const BoxArray& bs,

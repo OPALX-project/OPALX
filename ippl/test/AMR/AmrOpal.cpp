@@ -542,27 +542,28 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, i
      */
     
     // 1. Assign charge onto grid of level lev
+    int base_level   = 0;
+    int finest_level = 0;
+    
 #ifdef UNIQUE_PTR
-    nPartPerCell_m[lev]->setVal(0.0);
+    nPartPerCell_m[base_level]->setVal(0.0);
     
     #ifdef IPPL_AMR
-        bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell_m[lev], lev);
+        bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell_m[base_level], lev);
     #else
-        bunch_m->AssignDensitySingleLevel(0, *nPartPerCell_m[lev], lev);
+        bunch_m->AssignDensitySingleLevel(0, *nPartPerCell_m[base_level], lev);
     #endif
 #else
-    nPartPerCell_m[lev].setVal(0.0);
+    nPartPerCell_m[base_level].setVal(0.0);
     
     #ifdef IPPL_AMR
-        bunch_m->AssignDensitySingleLevel(bunch_m->qm, nPartPerCell_m[lev], lev);
+        bunch_m->AssignDensitySingleLevel(bunch_m->qm, nPartPerCell_m[base_level], lev);
     #else
-        bunch_m->AssignDensitySingleLevel(0, nPartPerCell_m[lev], lev);
+        bunch_m->AssignDensitySingleLevel(0, nPartPerCell_m[base_level], lev);
     #endif
 #endif
     
     // 2. Solve Poisson's equation on level lev
-    int base_level   = 0;
-    int finest_level = 0;
     
     Real offset = 0.0;
     
@@ -607,7 +608,8 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, i
                         base_level,
                         finest_level,
                         offset,
-                        false);
+                        false,
+                        false); // we need no gradient
     
     // 3. Tag cells for refinement
     const int clearval = TagBox::CLEAR;
@@ -683,28 +685,27 @@ void AmrOpal::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int 
      */
     
     // 1. Assign charge onto grid of level lev
+    int base_level   = 0;
+    int finest_level = 0;
 #ifdef UNIQUE_PTR
     nPartPerCell_m[lev]->setVal(0.0);
     
     #ifdef IPPL_AMR
-        bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell_m[lev], lev);
+        bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell_m[base_level], lev);
     #else
-        bunch_m->AssignDensitySingleLevel(0, *nPartPerCell_m[lev], lev);
+        bunch_m->AssignDensitySingleLevel(0, *nPartPerCell_m[base_level], lev);
     #endif
 #else
-    nPartPerCell_m[lev].setVal(0.0);
+    nPartPerCell_m[base_level].setVal(0.0);
     
     #ifdef IPPL_AMR
-        bunch_m->AssignDensitySingleLevel(bunch_m->qm, nPartPerCell_m[lev], lev);
+        bunch_m->AssignDensitySingleLevel(bunch_m->qm, nPartPerCell_m[base_level], lev);
     #else
-        bunch_m->AssignDensitySingleLevel(0, nPartPerCell_m[lev], lev);
+        bunch_m->AssignDensitySingleLevel(0, nPartPerCell_m[base_level], lev);
     #endif
 #endif
     
     // 2. Solve Poisson's equation on level lev
-    int base_level   = 0;
-    int finest_level = 0;
-    
     Real offset = 0.0;
     
     if ( geom[0].isAllPeriodic() ) {
