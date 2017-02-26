@@ -84,7 +84,7 @@ public:
     size_t getParticlesInMat() { return locPartsInMat_m;}
     unsigned getRedifused() { return redifusedStat_m;}
 
-    inline void doPhysics(PartBunch &bunch, Degrader *deg, Collimator *col);
+    inline void doPhysics(PartBunch &bunch);
 
 
 private:
@@ -104,7 +104,7 @@ private:
     void copyFromBunchDKS(PartBunch &bunch);
     void addBackToBunchDKS(PartBunch &bunch, unsigned i);
 
-    void setupCollimatorDKS(PartBunch &bunch, Degrader *deg, size_t numParticlesInSimulation);
+    void setupCollimatorDKS(PartBunch &bunch, size_t numParticlesInSimulation);
     void clearCollimatorDKS();
 
     void applyDKS();
@@ -190,6 +190,7 @@ private:
     IpplTimings::TimerRef DegraderApplyTimer_m;
     IpplTimings::TimerRef DegraderLoopTimer_m;
     IpplTimings::TimerRef DegraderInitTimer_m;
+    IpplTimings::TimerRef DegraderDestroyTimer_m;
 };
 
 inline

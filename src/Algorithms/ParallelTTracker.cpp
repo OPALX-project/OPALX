@@ -811,13 +811,29 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
 
             unsigned redifusedParticles = 0;
             for (auto it: activeSurfacePhysicsHandlers_m) {
+                ElementBase* element = it->getElement();
+                CoordinateSystemTrafo refToLocalCSTrafo = (element->getMisalignment() *
+                                                           (element->getCSTrafoGlobal2Local() * referenceToLabCSTrafo_m));
+                CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
+
+                const unsigned int localNum = itsBunch_m->getLocalNum();
+                for (unsigned int i = 0; i < localNum; ++i) {
+                    itsBunch_m->R[i] = refToLocalCSTrafo.transformTo(itsBunch_m->R[i]);
+                    itsBunch_m->P[i] = refToLocalCSTrafo.rotateTo(itsBunch_m->P[i]);
+                }
+
                 it->apply(*itsBunch_m, totalParticlesInSimulation_m);
                 it->print(msg);
+
+                const unsigned int newLocalNum = itsBunch_m->getLocalNum();
+                for (unsigned int i = 0; i < newLocalNum; ++i) {
+                    itsBunch_m->R[i] = localToRefCSTrafo.transformTo(itsBunch_m->R[i]);
+                    itsBunch_m->P[i] = localToRefCSTrafo.rotateTo(itsBunch_m->P[i]);
+                }
 
                 redifusedParticles += it->getRedifused();
                 //if all particles where in material update time to time in degrader
                 if (it->getFlagAllParticlesIn()) {
-                    *gmsg << __DBGMSG__ << endl;
                     double timeDifference = it->getTime() - itsBunch_m->getdT() - itsBunch_m->getT();
                     if (timeDifference > 0.0) {
                         const unsigned int numSteps = std::ceil(timeDifference / itsBunch_m->getdT());
@@ -832,7 +848,7 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
                     itsBunch_m->setT(it->getTime() - itsBunch_m->getdT());
                 }
             }
-            numParticlesInSimulation_m += redifusedParticles;
+
             //perform boundp only if there are particles in the bunch, or there are particles
             //comming out of the degrader
             if (maxPerNode > 0 || redifusedParticles > 0) {
