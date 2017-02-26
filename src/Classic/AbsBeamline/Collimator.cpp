@@ -272,6 +272,9 @@ bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const d
     double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
     double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
     double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
+    std::pair<Vector_t, double> boundingSphere;
+    boundingSphere.first = 0.5 * (rmax + rmin);
+    boundingSphere.second = euclidian_norm(rmax - boundingSphere.first);
 
     if(rmax(2) >= zstart_m && rmin(2) <= zend_m) {
 //        if( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
@@ -293,7 +296,7 @@ bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const d
     }
     reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
     if (flagNeedUpdate && sphys_m) {
-        sphys_m->apply(bunch);
+        sphys_m->apply(bunch, boundingSphere);
     }
     return flagNeedUpdate;
 }

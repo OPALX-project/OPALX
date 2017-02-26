@@ -259,7 +259,9 @@ bool CollimatorPhysics::checkHit(const Vector_t &R, const Vector_t &P, double dt
     return hit;
 }
 
-void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation) {
+void CollimatorPhysics::apply(PartBunch &bunch,
+                              const std::pair<Vector_t, double> &boundingSphere,
+                              size_t numParticlesInSimulation) {
     IpplTimings::startTimer(DegraderApplyTimer_m);
 
     Inform m ("CollimatorPhysics::apply ", INFORM_ALL_NODES);
@@ -399,7 +401,7 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
               if we are not looping copy newly arrived particles
             */
             if (onlyOneLoopOverParticles)
-                copyFromBunch(bunch);
+                copyFromBunch(bunch, boundingSphere);
 
             T_m += dT_m;              // update local time
 
@@ -433,7 +435,7 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
           if we are not looping copy newly arrived particles
         */
         if (onlyOneLoopOverParticles)
-            copyFromBunch(bunch);
+            copyFromBunch(bunch, boundingSphere);
 
         T_m += dT_m;              // update local time
 
@@ -805,15 +807,16 @@ void CollimatorPhysics::addBackToBunch(PartBunch &bunch, unsigned i) {
     ++ redifusedStat_m;
 }
 
-void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
+void CollimatorPhysics::copyFromBunch(PartBunch &bunch,
+                                      const std::pair<Vector_t, double> &boundingSphere)
 {
     const size_t nL = bunch.getLocalNum();
     if (nL == 0) return;
 
     IpplTimings::startTimer(DegraderDestroyTimer_m);
-    Vector_t rmin, rmax;
-    bunch.getLocalBounds(rmin, rmax);
-    if (rmax(2) < 0.0 || rmin(2) > element_ref_m->getElementLength()) {
+    double zmax = boundingSphere.first(2) + boundingSphere.second;
+    double zmin = boundingSphere.first(2) - boundingSphere.second;
+    if (zmax < 0.0 || zmin > element_ref_m->getElementLength()) {
         IpplTimings::stopTimer(DegraderDestroyTimer_m);
         return;
     }
