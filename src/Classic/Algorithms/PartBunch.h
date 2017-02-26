@@ -199,6 +199,8 @@ public:
 
     void get_bounds(Vector_t &rmin, Vector_t &rmax);
     void getLocalBounds(Vector_t &rmin, Vector_t &rmax);
+    std::pair<Vector_t, double> getBoundingSphere();
+    std::pair<Vector_t, double> getLocalBoundingSphere();
 
     /*
       Compatibility function push_back
@@ -781,6 +783,30 @@ void PartBunch::setZ(int i, double zcoo) {};
 inline
 void PartBunch::get_bounds(Vector_t &rmin, Vector_t &rmax) {
     bounds(this->R, rmin, rmax);
+}
+
+inline
+std::pair<Vector_t, double> PartBunch::getBoundingSphere() {
+    Vector_t rmin, rmax;
+    get_bounds(rmin, rmax);
+
+    std::pair<Vector_t, double> sphere;
+    sphere.first = 0.5 * (rmin + rmax);
+    sphere.second = sqrt(dot(rmax - sphere.first, rmax - sphere.first));
+
+    return sphere;
+}
+
+inline
+std::pair<Vector_t, double> PartBunch::getLocalBoundingSphere() {
+    Vector_t rmin, rmax;
+    getLocalBounds(rmin, rmax);
+
+    std::pair<Vector_t, double> sphere;
+    sphere.first = 0.5 * (rmin + rmax);
+    sphere.second = sqrt(dot(rmax - sphere.first, rmax - sphere.first));
+
+    return sphere;
 }
 
 inline
