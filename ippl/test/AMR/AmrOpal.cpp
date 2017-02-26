@@ -19,14 +19,18 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
 #else
       bunch_m(dynamic_cast<AmrPartBunch*>(bunch)),
 #endif
-      tagging_m(kChargeDensity)
+      tagging_m(kChargeDensity),
+      scaling_m(0.75),
+      nCharge_m(1.0e-15)
 {
     initBaseLevel();
 }
 
 AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord)
     : AmrCore(rb, max_level_in, n_cell_in, coord),
-      tagging_m(kChargeDensity)
+      tagging_m(kChargeDensity),
+      scaling_m(0.75),
+      nCharge_m(1.0e-15)
 {
     finest_level = 0;
     
@@ -457,7 +461,6 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
 
     const Real* dx      = geom[lev].CellSize();
     const Real* prob_lo = geom[lev].ProbLo();
-    Real nPart = 1.0e-15;
     
 #ifdef _OPENMP
 #pragma omp parallel
@@ -490,7 +493,7 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
 #endif
                         &tagval, &clearval, 
                         ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                        ZFILL(dx), ZFILL(prob_lo), &time, &nPart);
+                        ZFILL(dx), ZFILL(prob_lo), &time, &nCharge_m);
             //
             // Now update the tags in the TagBox.
             //
@@ -594,11 +597,11 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, i
     Real minp = 0.0;
     Real maxp = 0.0;
 #ifdef UNIQUE_PTR
-    maxp = 0.75 * phi[base_level]->max(0);
-    minp = 0.75 * phi[base_level]->min(0);
+    maxp = scaling_m * phi[base_level]->max(0);
+    minp = scaling_m * phi[base_level]->min(0);
 #else
-    maxp = 0.75 * phi[base_level].max(0);
-    minp = 0.75 * phi[base_level].min(0);
+    maxp = scaling_m * phi[base_level].max(0);
+    minp = scaling_m * phi[base_level].min(0);
 #endif
     Real value = std::max( std::abs(minp), std::abs(maxp) );
     
@@ -736,11 +739,11 @@ void AmrOpal::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int 
     Real max[3] = {0.0, 0.0, 0.0};
     for (int i = 0; i < 3; ++i) {
 #ifdef UNIQUE_PTR
-        max[i] = 0.75 * grad_phi[base_level]->max(i);
-        min[i] = 0.75 * grad_phi[base_level]->min(i);
+        max[i] = scaling_m * grad_phi[base_level]->max(i);
+        min[i] = scaling_m * grad_phi[base_level]->min(i);
 #else
-        max[i] = 0.75 * grad_phi[base_level].max(i);
-        min[i] = 0.75 * grad_phi[base_level].min(i);
+        max[i] = scaling_m * grad_phi[base_level].max(i);
+        min[i] = scaling_m * grad_phi[base_level].min(i);
 #endif
     }
     Real efield[3] = {0.0, 0.0, 0.0};

@@ -133,7 +133,24 @@ public:
     void setTagging(TaggingCriteria tagging) {
         tagging_m = tagging_m;
     }
-
+    
+    /*!
+     * Scaling factor for tagging.
+     * It is used in tagForPotentialStrength_m and tagForEfieldGradient_m
+     * @param scaling factor in [0, 1]
+     */
+    void setScalingFactor(double scaling) {
+        scaling_m = scaling;
+    }
+    
+    /*!
+     * Charge for tagging in tagForChargeDensity_m
+     * @param charge >= 0.0 (e.g. 1e-14)
+     */
+    void setCharge(double charge) {
+        nCharge_m = charge;
+    }
+    
 protected:
     /*!
      * Is called in the AmrCore function for performing tagging.
@@ -154,6 +171,10 @@ private:
     AmrPartBunch* bunch_m;      ///< Particle bunch
 #endif
     TaggingCriteria tagging_m;
+    
+    double scaling_m;           ///< Scaling factor for tagging [0, 1]
+                                // (tagForPotentialStrength_m, tagForEfieldGradient_m)
+    Real   nCharge_m;           ///< Tagging value for tagForChargeDensity_m
     
 };
 
