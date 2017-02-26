@@ -121,23 +121,6 @@ public:
     }
     
     /*!
-     * Print the number of particles per cell (minimum and maximum)
-     */
-    void info() {
-        for (int i = 0; i < finest_level; ++i)
-            std::cout << "density level " << i << ": "
-#ifdef UNIQUE_PTR
-                      << nPartPerCell_m[i]->min(0) << " "
-                      << nPartPerCell_m[i]->max(0) << std::endl;
-#else
-                      
-                      << nPartPerCell_m[i].min(0) << " "
-                      << nPartPerCell_m[i].max(0) << std::endl;
-#endif
-                      
-    }
-    
-    /*!
      * Write a timestamp file for displaying with yt.
      */
     void writePlotFileYt(std::string filename, int step);
@@ -146,10 +129,6 @@ public:
      * Write a timestamp file for displaying with AmrVis.
      */
     void writePlotFile(std::string filename, int step);
-    
-    mfs_mt* getPartPerCell() {
-        return &nPartPerCell_m;
-    }
     
     void setTagging(TaggingCriteria tagging) {
         tagging_m = tagging_m;
@@ -174,8 +153,6 @@ private:
 #else
     AmrPartBunch* bunch_m;      ///< Particle bunch
 #endif
-    mfs_mt/*mp_mt*/ nPartPerCell_m;      ///< used in tagging.
-    
     TaggingCriteria tagging_m;
     
 };

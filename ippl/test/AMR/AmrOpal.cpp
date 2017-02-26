@@ -20,41 +20,18 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
       bunch_m(dynamic_cast<AmrPartBunch*>(bunch)),
 #endif
       tagging_m(kChargeDensity)
-#ifdef UNIQUE_PTR
-    // do nothing
-#else
-      , nPartPerCell_m(PArrayManage)
-#endif
 {
     initBaseLevel();
-    
-    
-    nPartPerCell_m.resize(1);
-#ifdef UNIQUE_PTR
-    nPartPerCell_m[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(0), 1, 1, this->DistributionMap(0)));
-    nPartPerCell_m[0]->setVal(0.0);
-#else
-    nPartPerCell_m.set(0, new MultiFab(this->boxArray(0), 1, 1, this->DistributionMap(0)));
-    nPartPerCell_m[0].setVal(0.0);
-#endif
 }
 
 AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord)
     : AmrCore(rb, max_level_in, n_cell_in, coord),
       tagging_m(kChargeDensity)
-#ifdef UNIQUE_PTR
-    // do nothing
-#else
-     , nPartPerCell_m(PArrayManage)
-#endif
 {
     finest_level = 0;
     
     const BoxArray& ba = MakeBaseGrids();
     DistributionMapping dm(ba, ParallelDescriptor::NProcs());
-    
-    
-    nPartPerCell_m.resize(1);
     
     MakeNewLevel(0, 0.0, ba, dm);
 }
@@ -267,7 +244,6 @@ void AmrOpal::writePlotFileYt(std::string filename, int step) {
         * dstcmop: the component where to copy
         * numcomp: how many components to copy
         */
-//         data.copy(*nPartPerCell_m[lev],0,0,0);
 #ifdef UNIQUE_PTR
         MultiFab::Copy(data, *chargeOnGrid[lev],    0, 0, 1, 0);
 #else
@@ -312,8 +288,8 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
     
     Array<std::string> varnames(1, "rho");
     
-    Array<const MultiFab*> tmp(finest_level + 1/*nPartPerCell_m.size()*/);
-    for (/*unsigned*/ int i = 0; i < finest_level + 1/*nPartPerCell_m.size()*/; ++i) {
+    Array<const MultiFab*> tmp(finest_level + 1);
+    for (/*unsigned*/ int i = 0; i < finest_level + 1; ++i) {
 #ifdef UNIQUE_PTR
         tmp[i] = chargeOnGrid[i].get();
 #else
@@ -447,30 +423,32 @@ void AmrOpal::ClearLevel(int lev) {
 
 
 void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
+    
 #ifdef UNIQUE_PTR
-    nPartPerCell_m[0].reset(nullptr);
-    nPartPerCell_m[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(lev), 1, 1,
+    mfs_mt nPartPerCell(1);
+    nPartPerCell[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(lev), 1, 1,
                                                                this->DistributionMap(lev))
                                                  );
-    nPartPerCell_m[0]->setVal(0.0);
+    nPartPerCell[0]->setVal(0.0);
     
     #ifdef IPPL_AMR
-        bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell_m[0], lev);
+        bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell[0], lev);
     #else
-        bunch_m->AssignDensitySingleLevel(0, *nPartPerCell_m[0], lev);
+        bunch_m->AssignDensitySingleLevel(0, *nPartPerCell[0], lev);
     #endif
 
 #else
-    nPartPerCell_m.clear(0);
-    nPartPerCell_m.set(0, new MultiFab(this->boxArray(lev), 1, 1,
+    mfs_mt nPartPerCell(PArrayManage);
+    nPartPerCell.resize(1);
+    nPartPerCell.set(0, new MultiFab(this->boxArray(lev), 1, 1,
                                        this->DistributionMap(lev))
                       );
-    nPartPerCell_m[0].setVal(0.0);
+    nPartPerCell[0].setVal(0.0);
     
     #ifdef IPPL_AMR
-        bunch_m->AssignDensitySingleLevel(bunch_m->qm, nPartPerCell_m[0], lev);
+        bunch_m->AssignDensitySingleLevel(bunch_m->qm, nPartPerCell[0], lev);
     #else
-        bunch_m->AssignDensitySingleLevel(0, nPartPerCell_m[0], lev);
+        bunch_m->AssignDensitySingleLevel(0, nPartPerCell[0], lev);
     #endif
 #endif
     
@@ -487,9 +465,9 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
     {
         Array<int>  itags;
 #ifdef UNIQUE_PTR
-        for (MFIter mfi(*nPartPerCell_m[0],false/*true*/); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(*nPartPerCell[0],false/*true*/); mfi.isValid(); ++mfi) {
 #else
-        for (MFIter mfi(nPartPerCell_m[0],false/*true*/); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(nPartPerCell[0],false/*true*/); mfi.isValid(); ++mfi) {
 #endif
             const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
@@ -506,9 +484,9 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
 
             state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
 #ifdef UNIQUE_PTR
-                        BL_TO_FORTRAN_3D((*nPartPerCell_m[0])[mfi]),
+                        BL_TO_FORTRAN_3D((*nPartPerCell[0])[mfi]),
 #else
-                        BL_TO_FORTRAN_3D((nPartPerCell_m[0])[mfi]),
+                        BL_TO_FORTRAN_3D((nPartPerCell[0])[mfi]),
 #endif
                         &tagval, &clearval, 
                         ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
@@ -519,6 +497,12 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
             tagfab.tags_and_untags(itags, tilebx);
         }
     }
+    
+#ifdef UNIQUE_PTR
+    nPartPerCell[0].reset(nullptr);
+#else
+    nPartPerCell.clear(0);
+#endif
 }
 
 void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
@@ -532,20 +516,23 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, i
     int finest_level = 0;
     
 #ifdef UNIQUE_PTR
-    nPartPerCell_m[base_level]->setVal(0.0);
+    mfs_mt nPartPerCell(1);
+    nPartPerCell[base_level]->setVal(0.0);
     
     #ifdef IPPL_AMR
-        bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell_m[base_level], lev);
+        bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell[base_level], lev);
     #else
-        bunch_m->AssignDensitySingleLevel(0, *nPartPerCell_m[base_level], lev);
+        bunch_m->AssignDensitySingleLevel(0, *nPartPerCell[base_level], lev);
     #endif
 #else
-    nPartPerCell_m[base_level].setVal(0.0);
+    mfs_mt nPartPerCell(PArrayManage);
+    nPartPerCell.resize(1);
+    nPartPerCell[base_level].setVal(0.0);
     
     #ifdef IPPL_AMR
-        bunch_m->AssignDensitySingleLevel(bunch_m->qm, nPartPerCell_m[base_level], lev);
+        bunch_m->AssignDensitySingleLevel(bunch_m->qm, nPartPerCell[base_level], lev);
     #else
-        bunch_m->AssignDensitySingleLevel(0, nPartPerCell_m[base_level], lev);
+        bunch_m->AssignDensitySingleLevel(0, nPartPerCell[base_level], lev);
     #endif
 #endif
     
@@ -587,7 +574,7 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, i
 #endif
     
     Solver sol;
-    sol.solve_for_accel(nPartPerCell_m,
+    sol.solve_for_accel(nPartPerCell,
                         phi,
                         grad_phi,
                         geom,
@@ -655,12 +642,13 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, i
         }
     }
     
-    
 #ifdef UNIQUE_PTR
     // releases memory itself
+    nPartPerCell[0].reset(nullptr);
 #else
     phi.clear(base_level);
     grad_phi.clear(base_level);
+    nPartPerCell.clear(0);
 #endif
 }
 
@@ -674,20 +662,23 @@ void AmrOpal::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int 
     int base_level   = 0;
     int finest_level = 0;
 #ifdef UNIQUE_PTR
-    nPartPerCell_m[lev]->setVal(0.0);
+    mfs_mt nPartPerCell(1);
+    nPartPerCell[base_level]->setVal(0.0);
     
     #ifdef IPPL_AMR
-        bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell_m[base_level], lev);
+        bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell[base_level], lev);
     #else
-        bunch_m->AssignDensitySingleLevel(0, *nPartPerCell_m[base_level], lev);
+        bunch_m->AssignDensitySingleLevel(0, *nPartPerCell[base_level], lev);
     #endif
 #else
-    nPartPerCell_m[base_level].setVal(0.0);
+    mfs_mt nPartPerCell(PArrayManage);
+    nPartPerCell.resize(1);
+    nPartPerCell[base_level].setVal(0.0);
     
     #ifdef IPPL_AMR
-        bunch_m->AssignDensitySingleLevel(bunch_m->qm, nPartPerCell_m[base_level], lev);
+        bunch_m->AssignDensitySingleLevel(bunch_m->qm, nPartPerCell[base_level], lev);
     #else
-        bunch_m->AssignDensitySingleLevel(0, nPartPerCell_m[base_level], lev);
+        bunch_m->AssignDensitySingleLevel(0, nPartPerCell[base_level], lev);
     #endif
 #endif
     
@@ -728,7 +719,7 @@ void AmrOpal::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int 
 #endif
     
     Solver sol;
-    sol.solve_for_accel(nPartPerCell_m,
+    sol.solve_for_accel(nPartPerCell,
                         phi,
                         grad_phi,
                         geom,
@@ -809,8 +800,10 @@ void AmrOpal::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int 
     
 #ifdef UNIQUE_PTR
     // releases memory itself
+    nPartPerCell[0].reset(nullptr);
 #else
     phi.clear(base_level);
     grad_phi.clear(base_level);
+    nPartPerCell.clear(base_level);
 #endif
 }
