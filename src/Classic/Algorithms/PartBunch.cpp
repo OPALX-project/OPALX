@@ -2075,25 +2075,38 @@ size_t PartBunch::destroyT() {
         }
     } else {
         Inform dmsg("destroy: ", INFORM_ALL_NODES);
-        unsigned int i = 0, j = localNum;
-        while (j > 0 && Bin[j - 1] < 0) -- j;
-
-        while (i + 1 < j) {
-            if (Bin[i] < 0) {
-                this->swap(i,j - 1);
-                -- j;
-
-                while (i + 1 < j && Bin[j - 1] < 0) -- j;
+        size_t ne = 0;
+        for(size_t i = 0; i < localNum; i++) {
+            if((Bin[i] < 0) && ((localNum - ne) > minNumParticlesPerCore)) {   // need in minimum x particles per node
+                ne++;
+                destroy(1, i);
             }
-            ++ i;
         }
-
-        j = std::max(j, minNumParticlesPerCore);
-        for(unsigned int i = localNum; i > j; -- i) {
-            destroy(1, i-1, true);
-        }
-        lowParticleCount_m = (j == minNumParticlesPerCore);
+        lowParticleCount_m = ((localNum - ne) <= minNumParticlesPerCore);
         reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
+        // unsigned int i = 0, j = localNum;
+        // while (j > 0 && Bin[j - 1] < 0) -- j;
+
+        // while (i + 1 < j) {
+        //     if (Bin[i] < 0) {
+        //         this->swap(i,j - 1);
+        //         -- j;
+
+        //         while (i + 1 < j && Bin[j - 1] < 0) -- j;
+        //     }
+        //     ++ i;
+        // }
+
+        // j = std::max(j, minNumParticlesPerCore);
+        // for(unsigned int i = localNum; i > j; -- i) {
+        //     destroy(1, i-1, true);
+        // }
+        // lowParticleCount_m = (j == minNumParticlesPerCore);
+        // reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
+
+        if (ne > 0) {
+            performDestroy(true);
+        }
     }
 
     calcBeamParameters();
@@ -2442,4 +2455,18 @@ void PartBunch::swap(unsigned int i, unsigned int j) {
 
     if (interpolationCacheSet_m)
         std::swap(interpolationCache_m[i], interpolationCache_m[j]);
+}
+
+void PartBunch::getLocalBounds(Vector_t &rmin, Vector_t &rmax) {
+    const size_t localNum = getLocalNum();
+    if (localNum == 0) return;
+
+    rmin = R[0];
+    rmax = R[0];
+    for (size_t i = 1; i < localNum; ++ i) {
+        for (unsigned short d = 0; d < 3u; ++ d) {
+            if (rmin(d) > R[i](d)) rmin(d) = R[i](d);
+            else if (rmax(d) < R[i](2)) rmax(d) = R[i](d);
+        }
+    }
 }

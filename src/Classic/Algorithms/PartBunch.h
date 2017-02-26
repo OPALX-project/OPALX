@@ -198,6 +198,7 @@ public:
     virtual void setZ(int i, double zcoo);
 
     void get_bounds(Vector_t &rmin, Vector_t &rmax);
+    void getLocalBounds(Vector_t &rmin, Vector_t &rmax);
 
     /*
       Compatibility function push_back
