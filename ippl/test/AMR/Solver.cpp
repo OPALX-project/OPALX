@@ -10,7 +10,8 @@ Solver::solve_for_accel(container_t& rhs,
                         int base_level,
                         int finest_level,
                         Real offset,
-                        bool timing)
+                        bool timing,
+                        bool doGradient)
 {
     static IpplTimings::TimerRef edge2centerTimer;
     
@@ -25,22 +26,22 @@ Solver::solve_for_accel(container_t& rhs,
 #else
     Array< PArray<MultiFab> > grad_phi_edge(rhs.size());
 #endif
-    for (int lev = base_level; lev <= finest_level ; lev++)
-    {
-        grad_phi_edge[lev].resize(BL_SPACEDIM);
-        for (int n = 0; n < BL_SPACEDIM; ++n) {
+    
+    if ( doGradient ) {
+        for (int lev = base_level; lev <= finest_level ; lev++)
+        {
+            grad_phi_edge[lev].resize(BL_SPACEDIM);
+            for (int n = 0; n < BL_SPACEDIM; ++n) {
 #ifdef UNIQUE_PTR
-            BoxArray ba = rhs[lev]->boxArray();
-            grad_phi_edge[lev][n].reset(new MultiFab(ba.surroundingNodes(n), 1, 1));
+                BoxArray ba = rhs[lev]->boxArray();
+                grad_phi_edge[lev][n].reset(new MultiFab(ba.surroundingNodes(n), 1, 1));
 #else
-            BoxArray ba = rhs[lev].boxArray();
-            grad_phi_edge[lev].set(n, new MultiFab(ba.surroundingNodes(n), 1, 1));
+                BoxArray ba = rhs[lev].boxArray();
+                grad_phi_edge[lev].set(n, new MultiFab(ba.surroundingNodes(n), 1, 1));
 #endif
+            }
         }
     }
-
-    Real     strt    = ParallelDescriptor::second();
-
     
     // ***************************************************
     // Make sure the RHS sums to 0 if fully periodic
@@ -62,43 +63,42 @@ Solver::solve_for_accel(container_t& rhs,
                      finest_level,
                      tol,
                      abs_tol,
-                     timing);
+                     timing,
+                     doGradient);
 
     // Average edge-centered gradients to cell centers and fill the values in ghost cells.
     if ( timing )
         IpplTimings::startTimer(edge2centerTimer);
     
-    for (int lev = base_level; lev <= finest_level; lev++)
-    {
+    if ( doGradient ) {
+        for (int lev = base_level; lev <= finest_level; lev++)
+        {
 #ifdef UNIQUE_PTR
-        BoxLib::average_face_to_cellcenter(*grad_phi[lev],
-                                           BoxLib::GetArrOfConstPtrs(grad_phi_edge[lev]),
-                                           geom[lev]);
+            BoxLib::average_face_to_cellcenter(*grad_phi[lev],
+                                               BoxLib::GetArrOfConstPtrs(grad_phi_edge[lev]),
+                                               geom[lev]);
         
-        grad_phi[lev]->FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
+            grad_phi[lev]->FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
 #else
-        BoxLib::average_face_to_cellcenter(grad_phi[lev],
-                                           grad_phi_edge[lev],
-                                           geom[lev]);
+            BoxLib::average_face_to_cellcenter(grad_phi[lev],
+                                               grad_phi_edge[lev],
+                                               geom[lev]);
         
-        grad_phi[lev].FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
+            grad_phi[lev].FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
+#endif
+        }
+        
+#ifdef UNIQUE_PTR
+        for (int lev = base_level; lev <= finest_level; ++lev) {
+            grad_phi[lev]->mult(-1.0, 0, 3);
+        }
+#else
+        for (int lev = base_level; lev <= finest_level; ++lev) {
+            grad_phi[lev].mult(-1.0, 0, 3);
+        }
 #endif
     }
 
-    {
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
-        Real      end    = ParallelDescriptor::second() - strt;
-    }
-    
-#ifdef UNIQUE_PTR
-    for (int lev = base_level; lev <= finest_level; ++lev) {
-        grad_phi[lev]->mult(-1.0, 0, 3);
-    }
-#else
-    for (int lev = base_level; lev <= finest_level; ++lev) {
-        grad_phi[lev].mult(-1.0, 0, 3);
-    }
-#endif
     if ( timing )
         IpplTimings::stopTimer(edge2centerTimer);
 }
@@ -113,7 +113,8 @@ Solver::solve_with_f90(container_t& rhs,
                        int finest_level,
                        Real tol,
                        Real abs_tol,
-                       bool timing)
+                       bool timing,
+                       bool doGradient)
 {
     static IpplTimings::TimerRef initSolverTimer;
     static IpplTimings::TimerRef doSolveTimer;
@@ -122,7 +123,8 @@ Solver::solve_with_f90(container_t& rhs,
     if ( timing ) {
         initSolverTimer = IpplTimings::getTimer("init-solver");
         doSolveTimer = IpplTimings::getTimer("do-solve");
-        gradientTimer = IpplTimings::getTimer("gradient");
+        if ( doGradient )
+            gradientTimer = IpplTimings::getTimer("gradient");
     }
     
     if ( timing )
@@ -221,7 +223,7 @@ Solver::solve_with_f90(container_t& rhs,
     fmg.set_maxorder(3);
 
     int always_use_bnorm = 0;
-    int need_grad_phi = 1;
+    int need_grad_phi = (doGradient) ? 1 : 0;
     fmg.set_verbose(1);
     
     if ( timing )
@@ -233,22 +235,25 @@ Solver::solve_with_f90(container_t& rhs,
     if ( timing )
         IpplTimings::stopTimer(doSolveTimer);
     
-    if ( timing )
-        IpplTimings::startTimer(gradientTimer);
+    if ( doGradient ) {
+        
+        if ( timing )
+            IpplTimings::startTimer(gradientTimer);
 #ifdef UNIQUE_PTR
-    const Array<Array<MultiFab*> >& g_phi_edge = BoxLib::GetArrOfArrOfPtrs(grad_phi_edge);
-    for (int ilev = 0; ilev < nlevs; ++ilev) {
-        int amr_level = ilev + base_level;
-        fmg.get_fluxes(g_phi_edge[amr_level], ilev);
-    }
+        const Array<Array<MultiFab*> >& g_phi_edge = BoxLib::GetArrOfArrOfPtrs(grad_phi_edge);
+        for (int ilev = 0; ilev < nlevs; ++ilev) {
+            int amr_level = ilev + base_level;
+            fmg.get_fluxes(g_phi_edge[amr_level], ilev);
+        }
 #else
-    for (int ilev = 0; ilev < nlevs; ++ilev) {
-        int amr_level = ilev + base_level;
-        fmg.get_fluxes(grad_phi_edge[amr_level], ilev);
-    }
+        for (int ilev = 0; ilev < nlevs; ++ilev) {
+            int amr_level = ilev + base_level;
+            fmg.get_fluxes(grad_phi_edge[amr_level], ilev);
+        }
 #endif
-    if ( timing )
-        IpplTimings::stopTimer(gradientTimer);
+        if ( timing )
+            IpplTimings::stopTimer(gradientTimer);
+    }
 }
 
 #ifdef USEHYPRE
