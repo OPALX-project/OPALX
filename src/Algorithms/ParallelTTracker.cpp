@@ -146,7 +146,6 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
 }
 
 ParallelTTracker::~ParallelTTracker() {
-
 }
 
 void ParallelTTracker::visitBeamline(const Beamline &bl) {
@@ -758,10 +757,8 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
                                         leftBehindSPHandlers.begin());
         leftBehindSPHandlers.resize(last - leftBehindSPHandlers.begin());
 
-
         for (auto it: leftBehindSPHandlers) {
             if (!it->stillActive()) {
-                it = NULL;
                 activeSurfacePhysicsHandlers_m.erase(it);
             }
         }
