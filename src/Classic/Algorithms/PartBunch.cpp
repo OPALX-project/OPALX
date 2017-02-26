@@ -2456,3 +2456,17 @@ void PartBunch::swap(unsigned int i, unsigned int j) {
     if (interpolationCacheSet_m)
         std::swap(interpolationCache_m[i], interpolationCache_m[j]);
 }
+
+void PartBunch::getLocalBounds(Vector_t &rmin, Vector_t &rmax) {
+    const size_t localNum = getLocalNum();
+    if (localNum == 0) return;
+
+    rmin = R[0];
+    rmax = R[0];
+    for (size_t i = 1; i < localNum; ++ i) {
+        for (unsigned short d = 0; d < 3u; ++ d) {
+            if (rmin(d) > R[i](d)) rmin(d) = R[i](d);
+            else if (rmax(d) < R[i](2)) rmax(d) = R[i](d);
+        }
+    }
+}

@@ -34,7 +34,6 @@ using Physics::r_e;
 using Physics::z_p;
 using Physics::Avo;
 
-
 CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *element, std::string &material):
     SurfacePhysicsHandler(name, element),
     material_m(material),
@@ -423,7 +422,6 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
 
     do {
         IpplTimings::startTimer(DegraderLoopTimer_m);
-
         doPhysics(bunch);
         /*
           delete absorbed particles and particles that went to the bunch
@@ -812,6 +810,14 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
     const size_t nL = bunch.getLocalNum();
     if (nL == 0) return;
 
+    IpplTimings::startTimer(DegraderDestroyTimer_m);
+    Vector_t rmin, rmax;
+    bunch.getLocalBounds(rmin, rmax);
+    if (rmax(2) < 0.0 || rmin(2) > element_ref_m->getElementLength()) {
+        IpplTimings::stopTimer(DegraderDestroyTimer_m);
+        return;
+    }
+
     Degrader   *deg  = NULL;
     Collimator *coll = NULL;
 
@@ -821,7 +827,6 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
         coll = static_cast<Collimator *>(element_ref_m);
 
     size_t ne = 0;
-    IpplTimings::startTimer(DegraderDestroyTimer_m);
     const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore();
     for (size_t i = 0; i < nL; ++ i) {
         if ((bunch.Bin[i] == -1 || bunch.Bin[i] == 1) &&
