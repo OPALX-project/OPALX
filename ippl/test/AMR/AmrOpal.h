@@ -37,9 +37,9 @@ private:
 public:
     /// Methods for tag cells for refinement
     enum TaggingCriteria {
-        kChargeDensity, // default
-        kPotentialStrength,
-        kEfieldGradient
+        kChargeDensity = 0, // default
+        kPotentialStrength = 1,
+        kEfieldGradient = 2
     };
         
     
@@ -131,7 +131,7 @@ public:
     void writePlotFile(std::string filename, int step);
     
     void setTagging(TaggingCriteria tagging) {
-        tagging_m = tagging_m;
+        tagging_m = tagging;
     }
     
     /*!

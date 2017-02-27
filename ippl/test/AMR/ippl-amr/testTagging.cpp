@@ -49,7 +49,7 @@ typedef AmrOpal::amrbunch_t amrbunch_t;
 typedef Vektor<double, BL_SPACEDIM> Vector_t;
 
 void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
-              int nLevels, size_t maxBoxSize, AmrOpal::TaggingCriteria criteria, Inform& msg)
+              int nLevels, size_t maxBoxSize, AmrOpal::TaggingCriteria criteria, double factor, Inform& msg)
 {
     static IpplTimings::TimerRef regridTimer = IpplTimings::getTimer("regrid");
     // ========================================================================
@@ -134,6 +134,11 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // tagging using potential strength
     myAmrOpal.setTagging(criteria);
     
+    if ( criteria == AmrOpal::kChargeDensity )
+        myAmrOpal.setCharge(factor);
+    else
+        myAmrOpal.setScalingFactor(factor);
+    
     IpplTimings::startTimer(regridTimer);
     
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
@@ -158,9 +163,9 @@ int main(int argc, char *argv[]) {
     std::stringstream call;
     call << "Call: mpirun -np [#procs] " << argv[0]
          << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#particles] "
-         << "[#levels] [max. box size] [tagging (i.e. charge, efield, potential)]";
+         << "[#levels] [max. box size] [tagging (i.e. charge, efield, potential)] [factor (charge or 0..1]";
     
-    if ( argc < 8 ) {
+    if ( argc < 9 ) {
         msg << call.str() << endl;
         return -1;
     }
@@ -173,24 +178,26 @@ int main(int argc, char *argv[]) {
     
     size_t nParticles = std::atoi(argv[4]);
     std::string tagging = argv[7];
+    double factor = std::atof(argv[8]);
     
     AmrOpal::TaggingCriteria criteria = AmrOpal::kChargeDensity;
-    if ( tagging == "efield" )
+    if ( !tagging.compare("efield") )
         criteria = AmrOpal::kEfieldGradient;
-    else if ( tagging == "potential")
+    else if ( !tagging.compare("potential") )
         criteria = AmrOpal::kPotentialStrength;
     else
         tagging = "charge"; // take default method: kChargeDensity
     
     msg << "Particle test running with" << endl
-        << "- #particles = " << nParticles << endl
-        << "- grid       = " << nr << endl
-        << "- tagging    = " << tagging << endl;
+        << "- #particles     = " << nParticles << endl
+        << "- grid           = " << nr << endl
+        << "- tagging        = " << tagging << endl
+        << "- charge/scaling = " << factor << endl;
     
     BoxLib::Initialize(argc,argv, false);
     size_t nLevels = std::atoi(argv[5]) + 1; // i.e. nLevels = 0 --> only single level
     size_t maxBoxSize = std::atoi(argv[6]);
-    doBoxLib(nr, nParticles, nLevels, maxBoxSize, criteria, msg);
+    doBoxLib(nr, nParticles, nLevels, maxBoxSize, criteria, factor, msg);
     
     
     IpplTimings::stopTimer(mainTimer);
