@@ -806,6 +806,7 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
                 msg << "All particles in degrader" << endl;
             }
 
+            auto boundingSphere = itsBunch_m->getLocalBoundingSphere();
             unsigned redifusedParticles = 0;
             for (auto it: activeSurfacePhysicsHandlers_m) {
                 ElementBase* element = it->getElement();
@@ -818,9 +819,12 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
                     itsBunch_m->R[i] = refToLocalCSTrafo.transformTo(itsBunch_m->R[i]);
                     itsBunch_m->P[i] = refToLocalCSTrafo.rotateTo(itsBunch_m->P[i]);
                 }
+                boundingSphere.first = refToLocalCSTrafo.transformTo(boundingSphere.first);
 
-                it->apply(*itsBunch_m, totalParticlesInSimulation_m);
+                it->apply(*itsBunch_m, boundingSphere, totalParticlesInSimulation_m);
                 it->print(msg);
+
+                boundingSphere.first = localToRefCSTrafo.transformTo(boundingSphere.first);
 
                 const unsigned int newLocalNum = itsBunch_m->getLocalNum();
                 for (unsigned int i = 0; i < newLocalNum; ++i) {

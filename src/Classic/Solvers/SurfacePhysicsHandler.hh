@@ -2,6 +2,7 @@
 #define SURFACEPHYSICSHANDLER_HH
 
 #include <string>
+#include "Algorithms/Vektor.h"
 
 class ElementBase;
 class PartBunch;
@@ -11,7 +12,9 @@ class SurfacePhysicsHandler {
 public:
     SurfacePhysicsHandler(std::string name, ElementBase *elref);
     virtual ~SurfacePhysicsHandler() { };
-    virtual void apply(PartBunch &bunch, size_t numParticlesInSimulation = 0) = 0;
+    virtual void apply(PartBunch &bunch,
+                       const std::pair<Vector_t, double> &boundingSphere,
+                       size_t numParticlesInSimulation = 0) = 0;
     virtual const std::string getType() const = 0;
     virtual void print(Inform& os) = 0;
     virtual bool stillActive() = 0;

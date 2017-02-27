@@ -71,7 +71,9 @@ public:
     CollimatorPhysics(const std::string &name, ElementBase *element, std::string &mat);
     ~CollimatorPhysics();
 
-    void apply(PartBunch &bunch, size_t numParticlesInSimulation = 0);
+    void apply(PartBunch &bunch,
+               const std::pair<Vector_t, double> &boundingSphere,
+               size_t numParticlesInSimulation = 0);
 
     virtual const std::string getType() const;
 
@@ -97,7 +99,8 @@ private:
     void Rot(double &px, double &pz, double &x, double &z, double xplane, double Norm_P,
 	     double thetacou, double deltas, int coord);
 
-    void copyFromBunch(PartBunch &bunch);
+    void copyFromBunch(PartBunch &bunch,
+                       const std::pair<Vector_t, double> &boundingSphere);
     void addBackToBunch(PartBunch &bunch, unsigned i);
 
 #ifdef OPAL_DKS
