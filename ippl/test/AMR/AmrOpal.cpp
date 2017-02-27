@@ -520,6 +520,9 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, i
     
 #ifdef UNIQUE_PTR
     mfs_mt nPartPerCell(1);
+    nPartPerCell[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(lev), 1, 1,
+                                                               this->DistributionMap(lev))
+                                                 );
     nPartPerCell[base_level]->setVal(0.0);
     
     #ifdef IPPL_AMR
@@ -530,6 +533,8 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, i
 #else
     mfs_mt nPartPerCell(PArrayManage);
     nPartPerCell.resize(1);
+    nPartPerCell.set(0, new MultiFab(this->boxArray(lev), 1, 1,
+                                       this->DistributionMap(lev)));
     nPartPerCell[base_level].setVal(0.0);
     
     #ifdef IPPL_AMR
@@ -666,6 +671,9 @@ void AmrOpal::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int 
     int finest_level = 0;
 #ifdef UNIQUE_PTR
     mfs_mt nPartPerCell(1);
+    nPartPerCell[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(lev), 1, 1,
+                                                               this->DistributionMap(lev))
+                                                 );
     nPartPerCell[base_level]->setVal(0.0);
     
     #ifdef IPPL_AMR
@@ -676,6 +684,8 @@ void AmrOpal::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int 
 #else
     mfs_mt nPartPerCell(PArrayManage);
     nPartPerCell.resize(1);
+    nPartPerCell.set(0, new MultiFab(this->boxArray(lev), 1, 1,
+                                       this->DistributionMap(lev)));
     nPartPerCell[base_level].setVal(0.0);
     
     #ifdef IPPL_AMR
@@ -767,11 +777,11 @@ void AmrOpal::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int 
 #ifdef UNIQUE_PTR
             FArrayBox&  fab     = (*grad_phi[base_level])[mfi];
 #else
-            FArrayBox&  fab     = (grad_phi[lev])[mfi];
+            FArrayBox&  fab     = (grad_phi[base_level])[mfi];
 #endif
             // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
             // So we are going to get a temporary integer array.
-            tagfab.get_itags(itags, tilebx);
+//             tagfab.get_itags(itags, tilebx);
             
             // data pointer and index space
             int*        tptr    = itags.dataPtr();
@@ -782,12 +792,14 @@ void AmrOpal::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int 
                 for (int j = tlo[1]; j <= thi[1]; ++j) {
                     for (int k = tlo[2]; k <= thi[2]; ++k) {
                         IntVect iv(i,j,k);
-                        if (fab(iv, 0) >= efield[0])
-                            tptr[0] = tagval;
-                        else if (fab(iv, 1) >= efield[1])
-                            tptr[1] = tagval;
-                        else if (fab(iv, 2) >= efield[2])
-                            tptr[2] = tagval;
+                        if (std::abs(fab(iv, 0)) >= efield[0])
+                            tagfab(iv) = tagval;
+                        else if (std::abs(fab(iv, 1)) >= efield[1])
+                            tagfab(iv) = tagval;
+                        else if (std::abs(fab(iv, 2)) >= efield[2])
+                            tagfab(iv) = tagval;
+                        else
+                            tagfab(iv) = clearval;
                     }
                 }
             }
@@ -796,7 +808,7 @@ void AmrOpal::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int 
             //
             // Now update the tags in the TagBox.
             //
-            tagfab.tags_and_untags(itags, tilebx);
+//             tagfab.tags_and_untags(itags, tilebx);
         }
     }
     
