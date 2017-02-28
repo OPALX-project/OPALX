@@ -58,19 +58,37 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              const Array<Geometry>& geom,
              const Array<int>& rr,
              int nLevels,
+             bool reuse,
              Inform& msg,
-             IpplTimings::TimerRef& assignTimer)
+             IpplTimings::TimerRef& assignTimer,
+             IpplTimings::TimerRef& actualSolveTimer)
 {
     // =======================================================================                                                                                                                                   
     // 4. prepare for multi-level solve                                                                                                                                                                          
     // =======================================================================
     
-    rhs.resize(nLevels);
-    phi.resize(nLevels);
-    grad_phi.resize(nLevels);
-    
-    for (int lev = 0; lev < nLevels; ++lev) {
-        initGridData(rhs, phi, grad_phi, myAmrOpal.boxArray()[lev], lev);
+    if ( reuse ) {
+        for (int lev = 0; lev < nLevels; ++lev) {
+            initGridData(rhs, grad_phi, myAmrOpal.boxArray()[lev], lev);
+        }
+        
+        for (int i = myAmrOpal.finestLevel()-1; i >= 0; --i) {
+            MultiFab tmp(phi[i].boxArray(), 1, 0, phi[i].DistributionMap());
+            tmp.setVal(0.0);
+            BoxLib::average_down(phi[i+1], tmp, 0, 1, myAmrOpal.refRatio(i));
+            MultiFab::Add(phi[i], tmp, 0, 0, 1, 0);
+        }
+        
+        for (int lev = 1; lev < nLevels; ++lev) {
+            phi.clear(lev);
+            phi.set(lev, new MultiFab(myAmrOpal.boxArray()[lev],1          ,1));
+            phi[lev].setVal(0.0);
+        }
+        
+    } else {
+        for (int lev = 0; lev < nLevels; ++lev) {
+            initGridData(rhs, phi, grad_phi, myAmrOpal.boxArray()[lev], lev);
+        }
     }
 
     // Define the density on level 0 from all particles at all levels                                                                                                                                            
@@ -100,6 +118,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
 
     // solve                                                                                                                                                                                                     
     Solver sol;
+    IpplTimings::startTimer(actualSolveTimer);
     sol.solve_for_accel(rhs,
                         phi,
                         grad_phi,
@@ -108,6 +127,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
                         finest_level,
                         offset,
                         false);
+    IpplTimings::stopTimer(actualSolveTimer);
     
     // for plotting unnormalize
     for (int i = 0; i <=finest_level; ++i) {
@@ -128,6 +148,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     static IpplTimings::TimerRef totalTimer = IpplTimings::getTimer("tracking-total");
     static IpplTimings::TimerRef statisticsTimer = IpplTimings::getTimer("tracking-statistics");
     static IpplTimings::TimerRef assignTimer = IpplTimings::getTimer("assign-charge");
+    static IpplTimings::TimerRef actualSolveTimer = IpplTimings::getTimer("actual-solve");
     static IpplTimings::TimerRef gravityTimer = IpplTimings::getTimer("gravity-eval");
     // ========================================================================
     // 1. initialize physical domain (just single-level)
@@ -224,6 +245,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     container_t rhs(PArrayManage);
     container_t phi(PArrayManage);
     container_t grad_phi(PArrayManage);
+    rhs.resize(nLevels);
+    phi.resize(nLevels);
+    grad_phi.resize(nLevels);
     
 //     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
     
@@ -244,7 +268,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         //        bunch->python_format(t);
         
         IpplTimings::startTimer(solveTimer);
-        doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels, msg, assignTimer);
+        doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms,
+                rr, nLevels, bool(t), msg, assignTimer, actualSolveTimer);
         IpplTimings::stopTimer(solveTimer);
         
         IpplTimings::startTimer(gravityTimer);

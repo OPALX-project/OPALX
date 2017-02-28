@@ -358,6 +358,37 @@ inline void initGridData(container_t& rhs,
 }
 
 /*!
+ * Allocate memory for the solver and initialize
+ * the grid data to zero.
+ * @param rhs is the right-hand side of the equation
+ * @param is the electric field
+ * @param ba is the box array per level
+ * @param level for which we initialize the data
+ */
+inline void initGridData(container_t& rhs,
+                         container_t& grad_phi,
+                         const BoxArray& ba,
+                         int level)
+{
+#ifdef UNIQUE_PTR
+    //                                                  # component # ghost cells                                                                                                                                          
+    rhs[level] = std::unique_ptr<MultiFab>(new MultiFab(ba,1          ,0));
+    grad_phi[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, BL_SPACEDIM, 1));
+
+    rhs[level]->setVal(0.0);
+    grad_phi[level]->setVal(0.0);
+#else
+    rhs.clear(level);
+    grad_phi.clear(level);
+    //                       # component # ghost cells                                                                                                                                          
+    rhs.set(level, new MultiFab(ba,1          ,0));
+    grad_phi.set(level, new MultiFab(ba, BL_SPACEDIM, 1));
+    rhs[level].setVal(0.0);
+    grad_phi[level].setVal(0.0);
+#endif
+}
+
+/*!
  * Compute the total charge from the grid data
  * @param rhs is the charge density on the grid
  * @param finest_level of AMR
