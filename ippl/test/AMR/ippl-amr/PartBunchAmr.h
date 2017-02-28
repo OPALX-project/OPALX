@@ -13,14 +13,14 @@ public:
     typename PLayout::ParticlePos_t E;
     typename PLayout::ParticlePos_t P;
     ParticleAttrib<double> mass;
-  ParticleAttrib<Vektor<double,2> > Rphase; //velocity of the particles
+    ParticleAttrib<Vektor<double,2> > Rphase; //velocity of the particles
     
     PartBunchAmr() {
         this->addAttribute(qm);
         this->addAttribute(E);
         this->addAttribute(P);
         this->addAttribute(mass);
-	this->addAttribute(Rphase);
+        this->addAttribute(Rphase);
     }
     
     ~PartBunchAmr() {}
