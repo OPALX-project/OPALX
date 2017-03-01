@@ -15,7 +15,7 @@
  * 
  * Call:\n
  *  mpirun -np [#cores] testPerformance [#gridpoints x] [#gridpoints y] [#gridpoints z]
- *                                     [#particles] [#levels] [max. box size] [#steps]
+ *                                     [#particles] [#levels] [max. box size] [#steps] [reuse]
  * 
  * @brief Perturbes particles randomly in space for several time steps.
  */
@@ -31,6 +31,8 @@
 
 
 #include <ParmParse.H>
+
+#include <Interpolater.H>
 
 
 #include "../Distribution.h"
@@ -51,6 +53,76 @@ typedef AmrOpal::amrbunch_t amrbunch_t;
 
 typedef Vektor<double, BL_SPACEDIM> Vector_t;
 
+void precondition(AmrOpal& myAmrOpal,
+                  container_t& rhs,
+                  container_t& phi,
+                  container_t& grad_phi,
+                  int nLevels,
+                  const Array<Geometry>& geom)
+{
+    for (int lev = 0; lev < nLevels; ++lev) {
+        initGridData(rhs, grad_phi, myAmrOpal.boxArray()[lev], lev);
+    }
+        
+    for (int i = myAmrOpal.finestLevel()-1; i >= 0; --i) {
+        MultiFab tmp(phi[i].boxArray(), 1, 0, phi[i].DistributionMap());
+        tmp.setVal(0.0);
+        BoxLib::average_down(phi[i+1], tmp, 0, 1, myAmrOpal.refRatio(i));
+        MultiFab::Add(phi[i], tmp, 0, 0, 1, 0);
+    }
+    
+    
+    
+    for (int lev = 1; lev < nLevels; ++lev) {
+        phi.clear(lev);
+        phi.set(lev, new MultiFab(myAmrOpal.boxArray()[lev],1          ,1));
+        phi[lev].setVal(0.0);
+    }
+        
+    PCInterp mapper;
+    Array<BCRec> bc(1);
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+        bc[0].setLo(i, INT_DIR);
+        bc[0].setHi(i, INT_DIR);
+    }
+    
+    IntVect fine_ratio(2, 2, 2);
+    for (int lev = 0; lev < nLevels - 1; ++lev) {
+        /*
+         * fmfi: MultiFab iterator for fine grids
+         * cmfi: MultiFab iterator for coarse grids
+         */
+        for (MFIter fmfi(phi[lev + 1], false); fmfi.isValid(); ++fmfi) {
+            
+            const Box& bx = fmfi.validbox();
+            FArrayBox& fab = phi[lev + 1][fmfi];
+            
+            
+            FArrayBox finefab(bx, 1);
+            FArrayBox crsefab(mapper.CoarseBox(finefab.box(), fine_ratio), 1);
+            
+            for (MFIter cmfi(phi[lev], false); cmfi.isValid(); ++cmfi) {
+                crsefab.copy(phi[lev][cmfi]);
+            }
+            
+            mapper.interp(crsefab,
+                          0, // comp
+                          finefab,
+                          0, // comp
+                          1, // ncomp
+                          finefab.box(),
+                          fine_ratio,
+                          geom[lev],
+                          geom[lev + 1],
+                          bc,
+                          0,
+                          0);
+            
+            fab.copy(finefab);
+        }
+    }
+}
+
 void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              container_t& rhs,
              container_t& phi,
@@ -68,22 +140,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // =======================================================================
     
     if ( reuse ) {
-        for (int lev = 0; lev < nLevels; ++lev) {
-            initGridData(rhs, grad_phi, myAmrOpal.boxArray()[lev], lev);
-        }
-        
-        for (int i = myAmrOpal.finestLevel()-1; i >= 0; --i) {
-            MultiFab tmp(phi[i].boxArray(), 1, 0, phi[i].DistributionMap());
-            tmp.setVal(0.0);
-            BoxLib::average_down(phi[i+1], tmp, 0, 1, myAmrOpal.refRatio(i));
-            MultiFab::Add(phi[i], tmp, 0, 0, 1, 0);
-        }
-        
-        for (int lev = 1; lev < nLevels; ++lev) {
-            phi.clear(lev);
-            phi.set(lev, new MultiFab(myAmrOpal.boxArray()[lev],1          ,1));
-            phi[lev].setVal(0.0);
-        }
+        precondition(myAmrOpal, rhs, phi, grad_phi, nLevels, geom);
         
     } else {
         for (int lev = 0; lev < nLevels; ++lev) {
@@ -140,7 +197,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
 }
 
 void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
-              int nLevels, size_t maxBoxSize, int nSteps, Inform& msg)
+              int nLevels, size_t maxBoxSize, int nSteps, bool reuse, Inform& msg)
 {
     static IpplTimings::TimerRef regridTimer = IpplTimings::getTimer("tracking-regrid");
     static IpplTimings::TimerRef solveTimer = IpplTimings::getTimer("tracking-solve");
@@ -269,7 +326,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         
         IpplTimings::startTimer(solveTimer);
         doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms,
-                rr, nLevels, bool(t), msg, assignTimer, actualSolveTimer);
+                rr, nLevels, (reuse && bool(t)), msg, assignTimer, actualSolveTimer);
         IpplTimings::stopTimer(solveTimer);
         
         IpplTimings::startTimer(gravityTimer);
@@ -316,9 +373,9 @@ int main(int argc, char *argv[]) {
     std::stringstream call;
     call << "Call: mpirun -np [#procs] " << argv[0]
          << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#particles] "
-         << "[#levels] [max. box size] [#steps]";
+         << "[#levels] [max. box size] [#steps] [reuse solution of previous step: true / false]";
     
-    if ( argc < 8 ) {
+    if ( argc < 9 ) {
         msg << call.str() << endl;
         return -1;
     }
@@ -332,15 +389,30 @@ int main(int argc, char *argv[]) {
     size_t nParticles = std::atoi(argv[4]);
     
     
-    msg << "Particle test running with" << endl
-        << "- #particles = " << nParticles << endl
-        << "- grid       = " << nr << endl;
         
     BoxLib::Initialize(argc,argv, false);
     size_t nLevels = std::atoi(argv[5]) + 1; // i.e. nLevels = 0 --> only single level
     size_t maxBoxSize = std::atoi(argv[6]);
     int nSteps = std::atoi(argv[7]);
-    doBoxLib(nr, nParticles, nLevels, maxBoxSize, nSteps, msg);
+    std::string reuse_str = argv[8];
+    bool reuse = false;
+    
+    if ( reuse_str.find('1') != std::string::npos ||
+         reuse_str.find("true") != std::string::npos )
+        reuse = true;
+        
+    
+    
+    msg << "Particle test running with" << endl
+        << "- #particles      = " << nParticles << endl
+        << "- grid            = " << nr << endl
+        << "- max grid        = " << maxBoxSize << endl
+        << "- #steps          = " << nSteps << endl
+        << "- #level          = " << nLevels << endl
+        << "- reuse prev. sol = " << ((reuse) ? "True" : "False") << endl;
+    
+    
+    doBoxLib(nr, nParticles, nLevels, maxBoxSize, nSteps, reuse, msg);
     
     
     IpplTimings::stopTimer(mainTimer);
