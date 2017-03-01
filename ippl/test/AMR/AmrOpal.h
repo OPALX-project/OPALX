@@ -171,6 +171,7 @@ private:
     AmrPartBunch* bunch_m;      ///< Particle bunch
 #endif
     TaggingCriteria tagging_m;
+    mfs_mt nChargePerCell_m;    ///< use in tagging tagForChargeDensity_m (needed when tracking)
     
     double scaling_m;           ///< Scaling factor for tagging [0, 1]
                                 // (tagForPotentialStrength_m, tagForEfieldGradient_m)

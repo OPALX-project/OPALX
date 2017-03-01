@@ -22,8 +22,21 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
       tagging_m(kChargeDensity),
       scaling_m(0.75),
       nCharge_m(1.0e-15)
+#ifdef UNIQUE_PTR
+      // do nothing
+#endif
+      , nChargePerCell_m(PArrayManage)
 {
     initBaseLevel();
+    
+    nChargePerCell_m.resize(max_level_in + 1);
+#ifdef UNIQUE_PTR
+    nChargePerCell_m[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(0), 1, 1, this->DistributionMap(0)));
+    nChargePerCell_m[0]->setVal(0.0);
+#else
+    nChargePerCell_m.set(0, new MultiFab(this->boxArray(0), 1, 1, this->DistributionMap(0)));
+    nChargePerCell_m[0].setVal(0.0);
+#endif
 }
 
 AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord)
@@ -31,11 +44,17 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
       tagging_m(kChargeDensity),
       scaling_m(0.75),
       nCharge_m(1.0e-15)
+#ifdef UNIQUE_PTR
+      // do nothing
+#endif
+      , nChargePerCell_m(PArrayManage)
 {
     finest_level = 0;
     
     const BoxArray& ba = MakeBaseGrids();
     DistributionMapping dm(ba, ParallelDescriptor::NProcs());
+    
+    nChargePerCell_m.resize(max_level_in + 1);
     
     MakeNewLevel(0, 0.0, ba, dm);
 }
@@ -339,7 +358,7 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
 void
 AmrOpal::regrid (int lbase, Real time)
 {
-    int new_finest;
+    int new_finest = 0;
     Array<BoxArray> new_grids(finest_level+2);
     
     MakeNewGrids(lbase, time, new_finest, new_grids);
@@ -347,7 +366,7 @@ AmrOpal::regrid (int lbase, Real time)
     BL_ASSERT(new_finest <= finest_level+1);
 
     DistributionMapping::FlushCache();
-
+    
     for (int lev = lbase+1; lev <= new_finest; ++lev)
     {
         if (lev <= finest_level) // an old level
@@ -404,22 +423,41 @@ AmrOpal::regrid (int lbase, Real time)
 
 void
 AmrOpal::RemakeLevel (int lev, Real time,
-		     const BoxArray& new_grids, const DistributionMapping& new_dmap)
+                      const BoxArray& new_grids, const DistributionMapping& new_dmap)
 {
-    
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
+    
+#ifdef UNIQUE_PTR
+    nChargePerCell_m[lev].reset(new MultiFab(new_grids, 1, 1, new_dmap));
+#else
+    nChargePerCell_m.clear(lev);
+    nChargePerCell_m.set(lev, new MultiFab(new_grids, 1, 1, new_dmap));
+#endif
 }
 
 void
 AmrOpal::MakeNewLevel (int lev, Real time,
-		      const BoxArray& new_grids, const DistributionMapping& new_dmap)
+                       const BoxArray& new_grids, const DistributionMapping& new_dmap)
 {
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
+    
+#ifdef UNIQUE_PTR
+    nChargePerCell_m[lev] = std::unique_ptr<MultiFab>(new MultiFab(new_grids, 1, 1, dmap[lev]));
+#else
+    nChargePerCell_m.set(lev, new MultiFab(new_grids, 1, 1, dmap[lev]));
+#endif
 }
 
 void AmrOpal::ClearLevel(int lev) {
+    
+#ifdef UNIQUE_PTR
+    nChargePerCell_m[lev].reset(nullptr);
+#else
+    nChargePerCell_m.clear(lev);
+#endif
+    
     ClearBoxArray(lev);
     ClearDistributionMap(lev);
 }
@@ -428,33 +466,42 @@ void AmrOpal::ClearLevel(int lev) {
 
 void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
     
+    for (int i = lev; i <= finest_level; ++i) {
 #ifdef UNIQUE_PTR
-    mfs_mt nPartPerCell(1);
-    nPartPerCell[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(lev), 1, 1,
-                                                               this->DistributionMap(lev))
-                                                 );
-    nPartPerCell[0]->setVal(0.0);
-    
-    #ifdef IPPL_AMR
-        bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell[0], lev);
-    #else
-        bunch_m->AssignDensitySingleLevel(0, *nPartPerCell[0], lev);
-    #endif
+        nChargePerCell_m[i]->setVal(0.0);
+        #ifdef IPPL_AMR
+            bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nChargePerCell_m[i], i);
+        #else
+            bunch_m->AssignDensitySingleLevel(0, *nChargePerCell_m[i], i);
+        #endif
 
 #else
-    mfs_mt nPartPerCell(PArrayManage);
-    nPartPerCell.resize(1);
-    nPartPerCell.set(0, new MultiFab(this->boxArray(lev), 1, 1,
-                                       this->DistributionMap(lev))
-                      );
-    nPartPerCell[0].setVal(0.0);
-    
-    #ifdef IPPL_AMR
-        bunch_m->AssignDensitySingleLevel(bunch_m->qm, nPartPerCell[0], lev);
-    #else
-        bunch_m->AssignDensitySingleLevel(0, nPartPerCell[0], lev);
-    #endif
+        nChargePerCell_m[i].setVal(0.0);
+        
+        #ifdef IPPL_AMR
+            bunch_m->AssignDensitySingleLevel(bunch_m->qm, nChargePerCell_m[i], i);
+        #else
+            bunch_m->AssignDensitySingleLevel(0, nChargePerCell_m[i], i);
+        #endif
 #endif
+    }
+    
+#ifdef UNIQUE_PTR
+    for (int i = finest_level-1; i >= lev; --i) {
+        MultiFab tmp(nChargePerCell_m[i]->boxArray(), 1, 0, nChargePerCell_m[i]->DistributionMap());
+        tmp.setVal(0.0);
+        BoxLib::average_down(*nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
+        MultiFab::Add(*nChargePerCell_m[i], tmp, 0, 0, 1, 0);
+    }
+#else
+    for (int i = finest_level-1; i >= lev; --i) {
+        MultiFab tmp(nChargePerCell_m[i].boxArray(), 1, 0, nChargePerCell_m[i].DistributionMap());
+        tmp.setVal(0.0);
+        BoxLib::average_down(nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
+        MultiFab::Add(nChargePerCell_m[i], tmp, 0, 0, 1, 0);
+    }
+#endif
+    
     
     const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
@@ -468,9 +515,9 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
     {
         Array<int>  itags;
 #ifdef UNIQUE_PTR
-        for (MFIter mfi(*nPartPerCell[0],false/*true*/); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
 #else
-        for (MFIter mfi(nPartPerCell[0],false/*true*/); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
 #endif
             const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
@@ -487,9 +534,9 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
 
             state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
 #ifdef UNIQUE_PTR
-                        BL_TO_FORTRAN_3D((*nPartPerCell[0])[mfi]),
+                        BL_TO_FORTRAN_3D((*nChargePerCell_m[lev])[mfi]),
 #else
-                        BL_TO_FORTRAN_3D((nPartPerCell[0])[mfi]),
+                        BL_TO_FORTRAN_3D((nChargePerCell_m[lev])[mfi]),
 #endif
                         &tagval, &clearval, 
                         ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
@@ -500,12 +547,6 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
             tagfab.tags_and_untags(itags, tilebx);
         }
     }
-    
-#ifdef UNIQUE_PTR
-    nPartPerCell[0].reset(nullptr);
-#else
-    nPartPerCell.clear(0);
-#endif
 }
 
 void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
