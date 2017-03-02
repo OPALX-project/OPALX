@@ -57,7 +57,6 @@ void precondition(AmrOpal& myAmrOpal,
                   container_t& phi,
                   container_t& grad_phi,
                   int nLevels,
-                  const Array<Geometry>& geom,
                   bool isRegrid)
 {
     for (int lev = 0; lev < nLevels; ++lev) {
@@ -81,46 +80,123 @@ void precondition(AmrOpal& myAmrOpal,
         PCInterp mapper;
         Array<BCRec> bc(1);
         for (int i = 0; i < BL_SPACEDIM; ++i) {
-            bc[0].setLo(i, INT_DIR);
-            bc[0].setHi(i, INT_DIR);
+            bc[0].setLo(i, EXT_DIR);
+            bc[0].setHi(i, EXT_DIR);
         }
         
+        
         IntVect fine_ratio(2, 2, 2);
+        const InterpolaterBoxCoarsener& coarsener = mapper.BoxCoarsener(fine_ratio);
+        
         for (int lev = 0; lev < nLevels - 1; ++lev) {
-            /*
-            * fmfi: MultiFab iterator for fine grids
-            * cmfi: MultiFab iterator for coarse grids
-            */
-            for (MFIter fmfi(phi[lev + 1], false); fmfi.isValid(); ++fmfi) {
-                
-                const Box& bx = fmfi.validbox();
-                FArrayBox& fab = phi[lev + 1][fmfi];
-                
-                
-                FArrayBox finefab(bx, 1);
-                FArrayBox crsefab(mapper.CoarseBox(finefab.box(), fine_ratio), 1);
-                
-                for (MFIter cmfi(phi[lev], false); cmfi.isValid(); ++cmfi) {
-                    crsefab.copy(phi[lev][cmfi]);
+            const BoxArray& ba = phi[lev + 1].boxArray();
+            const DistributionMapping& dm = phi[lev + 1].DistributionMap();
+            int ngrow = phi[lev + 1].nGrow();
+    
+            const IndexType& typ = ba.ixType();
+    
+            BL_ASSERT(typ == phi[lev].boxArray().ixType());
+            
+            Geometry& fgeom = myAmrOpal.Geom(lev + 1);
+            Geometry& cgeom = myAmrOpal.Geom(lev);
+    
+            Box fdomain = fgeom.Domain();
+            fdomain.convert(typ);
+    
+            Box fdomain_g(fdomain);
+            for (int i = 0; i < BL_SPACEDIM; ++i) {
+                if (fgeom.isPeriodic(i)) {
+                    fdomain_g.grow(i,ngrow);
                 }
+            }
+    
+            BoxArray ba_crse_patch(ba.size());
+            {  // TODO: later we might want to cache this
+                for (int i = 0, N = ba.size(); i < N; ++i)
+                {
+                    Box bx = BoxLib::convert(BoxLib::grow(ba[i],ngrow), typ);
+                    bx &= fdomain_g;
+                    ba_crse_patch.set(i, coarsener.doit(bx));
+                }
+            }
+            
+            int ncomp = 1;
+            int scomp = 0;
+            int dcomp = 0;
+            MultiFab mf_crse_patch(ba_crse_patch, ncomp, 0, dm);
+    
+            mf_crse_patch.copy(phi[lev], scomp, 0, ncomp, cgeom.periodicity());
+    
+//             cbc.FillBoundary(mf_crse_patch, 0, ncomp, time);
+    
+            int idummy1=0, idummy2=0;
+    
+#ifdef _OPENMP
+            #pragma omp parallel
+#endif
+            for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
+            {
+                FArrayBox& dfab = phi[lev+1][mfi];
+                const Box& dbx = dfab.box() & fdomain_g;
+
+                Array<BCRec> bcr(ncomp);
+                BoxLib::setBC(dbx,fdomain,0,0,1,bc,bcr);
+//                 BoxLib::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
                 
-                mapper.interp(crsefab,
-                              0, // comp
-                              finefab,
-                              0, // comp
-                              1, // ncomp
-                              finefab.box(),
-                              fine_ratio,
-                              geom[lev],
-                              geom[lev + 1],
-                              bc,
-                              0,
-                              0);
-                
-                fab.copy(finefab);
+                mapper.interp(mf_crse_patch[mfi],
+                            0,
+                            phi[lev+1][mfi],
+                            dcomp,
+                            ncomp,
+                            dbx,
+                            fine_ratio,
+                            cgeom,
+                            fgeom,
+                            bcr,
+                            idummy1, idummy2);	    
             }
         }
+            
+//             for (MFIter fmfi(phi[lev + 1], false); fmfi.isValid(); ++fmfi) {
+//                 
+//                 const Box& bx = fmfi.fabbox(); //validbox();
+//                 FArrayBox& fab = phi[lev + 1][fmfi];
+//                 
+//                 std::cout << bx << std::endl;
+//                 
+// //                 FArrayBox finefab(bx, 1);
+// //                 FArrayBox crsefab(mapper.CoarseBox(bx, fine_ratio), 1);
+// //                 
+// //                 for (MFIter cmfi(phi[lev], false); cmfi.isValid(); ++cmfi) {
+// //                     crsefab.copy(phi[lev][cmfi], 0, 0);
+// //                 }
+// //                 
+// //                 mapper.interp(crsefab,
+// //                               0, // comp
+// //                               finefab,
+// //                               0, // comp
+// //                               1, // ncomp
+// //                               bx,
+// //                               fine_ratio,
+// //                               gcrse,
+// //                               gfine,
+// //                               bc,
+// //                               0,
+// //                               0);
+// //                 
+// // //                 std::cout << "Before: " << fab << std::endl; std::cin.get();
+// //                 fab.copy(finefab, 0, 0);
+// // //                 break;
+// // //                 std::cout << "After: " << fab << std::endl; std::cin.get();
+//             }
+//         }
     }
+    
+    Array<int> rr(nLevels);
+    for (int i = 0; i < nLevels; ++i)
+        rr[i] = 2;
+    std::string plotnormal = BoxLib::Concatenate("init_p", 10, 4);
+    writePlotFile(plotnormal, rhs, phi, grad_phi, rr, myAmrOpal.Geom(), 10);
 }
     
 void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
@@ -143,7 +219,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     
     if ( reuse ) {
         IpplTimings::startTimer(initGuessTimer);
-        precondition(myAmrOpal, rhs, phi, grad_phi, nLevels, geom, isRegrid);
+        precondition(myAmrOpal, rhs, phi, grad_phi, nLevels, isRegrid);
         IpplTimings::stopTimer(initGuessTimer);
     } else {
         IpplTimings::startTimer(initGuessTimer);
@@ -333,16 +409,16 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
                 rr, nLevels, bool(t), isRegrid, msg, assignTimer, actualSolveWithTimer, initGuessWithTimer);
         IpplTimings::stopTimer(solveWithTimer);
         
-        std::string plotsmart = BoxLib::Concatenate("smart", t, 4);
-        writePlotFile(plotsmart, rhs_w, phi_w, grad_phi_w, rr, geoms, t);
+//         std::string plotsmart = BoxLib::Concatenate("smart", t, 4);
+//         writePlotFile(plotsmart, rhs_w, phi_w, grad_phi_w, rr, geoms, t);
         
         IpplTimings::startTimer(solveWithoutTimer);
         doSolve(myAmrOpal, bunch.get(), rhs_wo, phi_wo, grad_phi_wo, geoms,
                 rr, nLevels, false, isRegrid, msg, assignTimer, actualSolveWithoutTimer, initGuessWithoutTimer);
         IpplTimings::stopTimer(solveWithoutTimer);
         
-        std::string plotnormal = BoxLib::Concatenate("normal", t, 4);
-        writePlotFile(plotnormal, rhs_wo, phi_wo, grad_phi_wo, rr, geoms, t);
+//         std::string plotnormal = BoxLib::Concatenate("normal", t, 4);
+//         writePlotFile(plotnormal, rhs_wo, phi_wo, grad_phi_wo, rr, geoms, t);
         
         /*
          * compare results of potential
@@ -352,7 +428,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
             /* we can overwrite the solution "without smart guess"
             * since it will be reset to zero anyway
             */
-            phi_wo[lev].minus(phi_w[lev], 0, 1, 0 /* nghost */);
+            MultiFab::Subtract(phi_wo[lev], phi_w[lev], 0, 0, 1, 0);
+//             phi_wo[lev].minus(phi_w[lev], 0, 1, 0 /* nghost */);
             double l0error = phi_wo[lev].norm0();
             double l1error = phi_wo[lev].norm1();
             double l2error = phi_wo[lev].norm2();
