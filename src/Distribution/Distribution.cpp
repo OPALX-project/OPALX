@@ -3589,7 +3589,8 @@ void Distribution::scaleDistCoordinates() {
 
 void Distribution::setAttributes() {
     itsAttr[AttributesT::DISTRIBUTION]
-        = Attributes::makeString("DISTRIBUTION","Distribution type: FROMFILE, "
+        = Attributes::makeString("TYPE","Distribution type: "
+                                 "FROMFILE, "
                                  "GAUSS, "
                                  "BINOMIAL, "
                                  "FLATTOP, "
