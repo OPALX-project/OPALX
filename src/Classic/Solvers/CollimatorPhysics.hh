@@ -43,10 +43,10 @@ typedef struct __align__(16) {
 } PART;
 
 typedef struct {
-  int label;
-  unsigned localID;
-  Vector_t Rincol;
-  Vector_t Pincol;
+    int label;
+    unsigned localID;
+    Vector_t Rincol;
+    Vector_t Pincol;
 } PART_DKS;
 
 #else
@@ -71,7 +71,9 @@ public:
     CollimatorPhysics(const std::string &name, ElementBase *element, std::string &mat);
     ~CollimatorPhysics();
 
-    void apply(PartBunch &bunch, size_t numParticlesInSimulation = 0);
+    void apply(PartBunch &bunch,
+               const std::pair<Vector_t, double> &boundingSphere,
+               size_t numParticlesInSimulation = 0);
 
     virtual const std::string getType() const;
 
@@ -84,27 +86,28 @@ public:
     size_t getParticlesInMat() { return locPartsInMat_m;}
     unsigned getRedifused() { return redifusedStat_m;}
 
-    inline void doPhysics(PartBunch &bunch, Degrader *deg, Collimator *col);
+    inline void doPhysics(PartBunch &bunch);
 
 
 private:
 
     void Material();
-    void CoulombScat(Vector_t &R, Vector_t &P, double &deltat);
-    void EnergyLoss(double &Eng, bool &pdead, double &deltat);
-    bool EnergyLoss(double &Eng, double &deltat);
+    void CoulombScat(Vector_t &R, Vector_t &P, const double &deltat);
+    void EnergyLoss(double &Eng, bool &pdead, const double &deltat);
+    bool EnergyLoss(double &Eng, const double &deltat);
 
     void Rot(double &px, double &pz, double &x, double &z, double xplane, double Norm_P,
 	     double thetacou, double deltas, int coord);
 
-    void copyFromBunch(PartBunch &bunch);
+    void copyFromBunch(PartBunch &bunch,
+                       const std::pair<Vector_t, double> &boundingSphere);
     void addBackToBunch(PartBunch &bunch, unsigned i);
 
 #ifdef OPAL_DKS
     void copyFromBunchDKS(PartBunch &bunch);
     void addBackToBunchDKS(PartBunch &bunch, unsigned i);
 
-    void setupCollimatorDKS(PartBunch &bunch, Degrader *deg, size_t numParticlesInSimulation);
+    void setupCollimatorDKS(PartBunch &bunch, size_t numParticlesInSimulation);
     void clearCollimatorDKS();
 
     void applyDKS();
@@ -116,15 +119,9 @@ private:
 
     void deleteParticleFromLocalVector();
 
-    bool checkHit(Vector_t R, Vector_t P, double dt, Degrader *deg, Collimator *coll);
+    bool checkHit(const Vector_t &R, const Vector_t &P, double dt, Degrader *deg, Collimator *coll);
 
-    inline void calcStat(double Eng) {
-      Eavg_m += Eng;
-      if (Emin_m > Eng)
-	Emin_m = Eng;
-      if (Emax_m < Eng)
-	Emax_m = Eng;
-    }
+    void calcStat(double Eng);
 
     bool allParticlesIn_m;
 
@@ -134,9 +131,21 @@ private:
 
     gsl_rng *rGen_m;
 
+    enum ElementShape {
+        DEGRADER,
+        PEPPERPOT,
+        SLIT,
+        RCOLLIMATOR,
+        CCOLLIMATOR,
+        WIRE,
+        ECOLLIMATOR
+    };
+
     std::string material_m;
     std::string FN_m;
-    std::string collshape_m;
+    ElementShape collshape_m;
+    std::string collshapeStr_m;
+
     double Z_m;
     double A_m;
     double A2_c;
@@ -181,11 +190,24 @@ private:
     static const int numpar = 12;
 #endif
 
-  IpplTimings::TimerRef DegraderApplyTimer_m;
-  IpplTimings::TimerRef DegraderLoopTimer_m;
-  IpplTimings::TimerRef DegraderInitTimer_m;
-
-
+    IpplTimings::TimerRef DegraderApplyTimer_m;
+    IpplTimings::TimerRef DegraderLoopTimer_m;
+    IpplTimings::TimerRef DegraderInitTimer_m;
+    IpplTimings::TimerRef DegraderDestroyTimer_m;
 };
+
+inline
+void CollimatorPhysics::calcStat(double Eng) {
+    Eavg_m += Eng;
+    if (Emin_m > Eng)
+	Emin_m = Eng;
+    if (Emax_m < Eng)
+	Emax_m = Eng;
+}
+
+inline
+void CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, const double &deltat) {
+    pdead = EnergyLoss(Eng, deltat);
+}
 
 #endif //COLLIMATORPHYSICS_HH

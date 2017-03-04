@@ -7,6 +7,8 @@
 #include <sstream>
 #include <iomanip>
 
+#include <boost/filesystem.hpp>
+
 
 #include <ParmParse.H>
 
@@ -69,7 +71,7 @@ public:
         this->addAttribute(v);
     }
     
-    void interpolate_distribution(Vektor<double,3> dx, Vektor<double,3> dv, int step){
+    void interpolate_distribution(Vektor<double,3> dx, Vektor<double,3> dv, int step, std::string dir){
         
         double spacings[2] = {(extend_r[2]-extend_l[2])/(Nx[2]),2.*Vmax[2]/(Nv[2])};
         Vektor<double,2> origin;
@@ -116,7 +118,7 @@ public:
         std::cout << "Hi 6b" << std::endl;
         
         std::stringstream fname;
-        fname << "data/f_mesh_";
+        fname << dir << "/f_mesh_";
         fname << std::setw(4) << std::setfill('0') << step;
         fname << ".csv";
         
@@ -159,8 +161,79 @@ public:
     Vektor<double,Dim> Vmax;
 };
 
+void writeEnergy(PartBunchBase* bunch,
+                 container_t& rho,
+                 container_t& phi,
+                 container_t& efield,
+                 const Array<int>& rr,
+                 const Array<Geometry>& geom,
+                 int step,
+                 std::string dir = "./")
+{
+    for (int lev = efield.size() - 2; lev >= 0; lev--)
+        BoxLib::average_down(efield[lev+1], efield[lev], 0, 3, rr[lev]);
+    
+    double cell_volume_0 = geom[0].CellSize(0) *
+                           geom[0].CellSize(1) *
+                           geom[0].CellSize(2);
+    
+    // field energy (Ulmer version, i.e. cell_volume instead #points)
+    double field_energy = 0.5 * cell_volume_0 * MultiFab::Dot(efield[0], 0, efield[0], 0, 3, 0);
+    
+    // kinetic energy
+    double ekin_local = 0.0;
+    double ekin_global = 0.0;
+    for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
+        Vector_t PP = bunch->getP(i);
+        ekin_local += 0.5 * (
+            PP(0) * PP(0) +
+            PP(1) * PP(1) +
+            PP(2) * PP(2)
+        );
+    }
+    
+    reduce(ekin_local, ekin_global, OpAddAssign());
+    
+    // potential energy
+    double integral_phi = 0.0;
+    for (int lev = 0; lev < rho.size(); ++lev) {
+        double cell_volume = geom[lev].CellSize(0) *
+                             geom[lev].CellSize(1) *
+                             geom[lev].CellSize(2);
+        rho[lev].mult(cell_volume, 0, 1);
+        MultiFab::Multiply(phi[lev], rho[lev], 0, 0, 1, 0);
+        integral_phi += 0.5 * phi[lev].sum(0);
+    }
+    
+    if(Ippl::myNode()==0) {
+        std::ofstream csvout;
+        csvout.precision(10);
+        csvout.setf(std::ios::scientific, std::ios::floatfield);
+
+        std::stringstream fname;
+        fname << dir << "/energy";
+        fname << ".csv";
+
+        // open a new data file for this iteration
+        // and start with header
+        csvout.open(fname.str().c_str(), std::ios::out | std::ofstream::app);
+        
+        if (step == 0) {
+            csvout << "it,Efield,Ekin,Etot,Epot" << std::endl;
+        }
+        
+        csvout << step << ", "
+               << field_energy << ","
+               << ekin_global << ","
+               << field_energy + ekin_global << "," 
+               << integral_phi << std::endl;
+        
+        csvout.close();
+    }
+}
+
 void ipplProjection(std::unique_ptr<TempParticle<playout_t> >& P,
-                    PartBunchBase* bunch, int step) {
+                    PartBunchBase* bunch, int step, std::string dir = "./") {
     
     //**************
     // copy the particles to Ippl container
@@ -172,7 +245,7 @@ void ipplProjection(std::unique_ptr<TempParticle<playout_t> >& P,
     //**************
     std::cout << "Hi 5" << std::endl;
     
-    P->interpolate_distribution((P->extend_r-P->extend_l)/(P->Nx),2.*P->Vmax/(P->Nv), step);
+    P->interpolate_distribution((P->extend_r-P->extend_l)/(P->Nx),2.*P->Vmax/(P->Nv), step, dir);
 }
     
     
@@ -277,7 +350,9 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
              container_t& grad_phi,
              const Array<Geometry>& geom,
              const Array<int>& rr,
-             int nLevels)
+             int nLevels,
+             Inform& msg,
+             std::string dir = "./")
 {
     // =======================================================================                                                                                                                                   
     // 4. prepare for multi-level solve                                                                                                                                                                          
@@ -298,7 +373,7 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     dynamic_cast<AmrPartBunch*>(bunch)->AssignDensity(0, false, rhs, base_level, 1, finest_level);
     
     // eps in C / (V * m)
-    double constant = -1.0 / Physics::epsilon_0;  // in [V m / C]
+    double constant = -1.0;
     for (int i = 0; i <=finest_level; ++i) {
 #ifdef UNIQUE_PTR
         rhs[i]->mult(constant, 0, 1);       // in [V m]
@@ -313,6 +388,21 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     // **************************************************************************                                                                                                                                
 
     Real offset = 0.;
+    
+    if ( geom[0].isAllPeriodic() ) {
+        double sum = 0, max = 0;
+        for (int lev = 0; lev < rhs.size(); ++lev) {
+            sum = rhs[lev].sum(0);
+            max = rhs[lev].max(0);
+        }
+        msg << "total charge in density field before ion subtraction is " << sum << endl;
+        msg << "max total charge in density field before ion subtraction is " << max << endl;
+        for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
+                offset += bunch->getQM(i);
+        offset /= geom[0].ProbSize();
+//         offset = -1.0;
+    }
+
 
     // solve                                                                                                                                                                                                     
     Solver sol;
@@ -335,15 +425,15 @@ void doSolve(AmrOpal& myAmrOpal, PartBunchBase* bunch,
     }
 }
 
-void doTwoStream(Vektor<std::size_t, 3> nr,
-                 std::size_t nLevels,
-                 std::size_t maxBoxSize,
-                 double dt,
-                 std::size_t nIter,
-                 Inform& msg)
+void doPlasma(Vektor<std::size_t, 3> nr,
+              std::size_t nLevels,
+              std::size_t maxBoxSize,
+              double dt,
+              std::size_t nIter,
+              Distribution::Type type,
+              Inform& msg)
 {
     std::array<double, BL_SPACEDIM> lower = {{0.0, 0.0, 0.0}}; // m
-//     std::array<double, BL_SPACEDIM> upper = {{1.0, 1.0, 1.0}};
     std::array<double, BL_SPACEDIM> upper = {{4.0 * Physics::pi,
                                               4.0 * Physics::pi,
                                               4.0 * Physics::pi}
@@ -394,13 +484,66 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     
     // initialize a particle distribution
     Distribution dist;
-    dist.special(Vektor<double, 3>(lower[0], lower[1], lower[2]),
-                   Vektor<double, 3>(upper[0], upper[1], upper[2]),
-                   Vektor<std::size_t, 3>(4, 4, 32),
-                   Vektor<std::size_t, 3>(8, 8, 128),
-                   Vektor<double, 3>(6.0, 6.0, 6.0),
-                 Distribution::Type::kTwoStream,
-                 0.05);
+    
+    Vektor<double, 3> extend_l = Vektor<double, 3>(lower[0], lower[1], lower[2]);
+    Vektor<double, 3> extend_r = Vektor<double, 3>(upper[0], upper[1], upper[2]);
+    
+    Vektor<std::size_t, 3> Nx, Nv;
+    Vektor<double, 3> Vmax;
+    
+    std::string dirname = "";
+    
+    if ( type == Distribution::Type::kTwoStream ) {
+        dirname = "twostream";
+        Nx = Vektor<std::size_t, 3>(4, 4, 32);
+        Nv = Vektor<std::size_t, 3>(8, 8, 128);
+        Vmax = Vektor<double, 3>(6.0, 6.0, 6.0);
+        
+        dist.special(extend_l,
+                     extend_r,
+                     Nx,
+                     Nv,
+                     Vmax,
+                     type,
+                     0.05);
+    } else if ( type == Distribution::Type::kRecurrence ) {
+        dirname = "recurrence";
+        Nx = Vektor<std::size_t, 3>(8, 8, 8);
+        Nv = Vektor<std::size_t, 3>(32, 32, 32);
+        Vmax = Vektor<double, 3>(6.0, 6.0, 6.0);
+        
+        dist.special(extend_l,
+                     extend_r,
+                     Nx,
+                     Nv,
+                     Vmax,
+                     type,
+                     0.01);
+    } else if ( type == Distribution::Type::kLandauDamping ) {
+        dirname = "landau";
+        Nx = Vektor<std::size_t, 3>(8, 8, 8);
+        Nv = Vektor<std::size_t, 3>(32, 32, 32);
+        Vmax = Vektor<double, 3>(6.0, 6.0, 6.0);
+        
+        dist.special(extend_l,
+                     extend_r,
+                     Nx,
+                     Nv,
+                     Vmax,
+                     type,
+                     0.05);
+    }
+    
+    dirname += (
+        "-data-grid-" +
+        std::to_string(nr[0]) + "-" + 
+        std::to_string(nr[1]) + "-" + 
+        std::to_string(nr[2])
+    );
+    
+    boost::filesystem::path dir(dirname);
+    if ( Ippl::myNode() == 0 )
+        boost::filesystem::create_directory(dir);
     
     // copy particles to the PartBunchBase object.
     dist.injectBeam(*bunch);
@@ -452,13 +595,21 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
     P->create(bunch->getLocalNum());
     // ----------------------------------------------------
     
+    
+    container_t rhs(PArrayManage);
+    container_t phi(PArrayManage);
+    container_t grad_phi(PArrayManage);
+    doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geoms, rr, nLevels, msg, dir.string());
+    
+    writeEnergy(bunch, rhs, phi, grad_phi, rr, geom, 0, dir.string());
+    
     for (std::size_t i = 0; i < nIter; ++i) {
         msg << "Processing step: " << i << endl;
-// //         dynamic_cast<AmrPartBunch*>(bunch)->python_format(i);
-// //         printLongitudinalPhaseSpace(bunch, myAmrOpal, i);
-        ipplProjection(P, bunch, i);
         
-        msg << "Done writing projection." << endl;
+        if ( type == Distribution::Type::kTwoStream ) {
+            ipplProjection(P, bunch, i, dir.string());
+            msg << "Done writing projection." << endl;
+        }
         
         for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
             int level = dynamic_cast<AmrPartBunch*>(bunch)->getLevel(j);
@@ -475,10 +626,7 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
         
         msg << "Done updating." << endl;
         
-        container_t rhs;
-        container_t phi;
-        container_t grad_phi;
-        doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geoms, rr, nLevels);
+        doSolve(myAmrOpal, bunch, rhs, phi, grad_phi, geoms, rr, nLevels, msg, dir.string());
         
         msg << "Done solving Poisson's equation." << endl;
         
@@ -486,11 +634,10 @@ void doTwoStream(Vektor<std::size_t, 3> nr,
             int level = dynamic_cast<AmrPartBunch*>(bunch)->getLevel(j);
             Vector_t Ef = dynamic_cast<AmrPartBunch*>(bunch)->interpolate(j, grad_phi[level]);
             
-//             std::cout << bunch->getR(j) << " " << Ef << " " << Ef * Physics::epsilon_0 << std::endl;
-            
-            Ef *= Physics::epsilon_0; /* not used by Ulmer */
             bunch->setP( bunch->getP(j) + dt * bunch->getQM(j) / bunch->getMass(j) * Ef, j);
         }
+        
+        writeEnergy(bunch, rhs, phi, grad_phi, rr, geom, i + 1, dir.string());
         
         msg << "Done with step: " << i << endl;
     }
@@ -509,7 +656,6 @@ int main(int argc, char *argv[]) {
     Ippl ippl(argc, argv);
     BoxLib::Initialize(argc,argv, false);
     
-    Inform msg("TwoStream");
     
 
     static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("main");
@@ -518,11 +664,11 @@ int main(int argc, char *argv[]) {
     std::stringstream call;
     call << "Call: mpirun -np [#procs] " << argv[0]
          << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#levels]"
-         << " [max. box size] [timstep] [#iterations]"
+         << " [max. box size] [timstep] [#iterations]" "[test: twostream, recurrence, landau]"
          << " [out: timing file name (optiona)]";
     
-    if ( argc < 7 ) {
-        msg << call.str() << endl;
+    if ( argc < 9 ) {
+        std::cerr << call.str() << std::endl;
         return -1;
     }
     
@@ -536,16 +682,32 @@ int main(int argc, char *argv[]) {
     std::size_t maxBoxSize = std::atoi( argv[5] );
     double dt              = std::atof( argv[6] );
     std::size_t nIter      = std::atof( argv[7] );
+    std::string test       = argv[8];
+    
+    Inform msg(argv[8]);
+    
+    Distribution::Type type = Distribution::Type::kTwoStream;
+    if ( test == "twostream" )
+        type = Distribution::Type::kTwoStream;
+    else if ( test == "recurrence" )
+        type = Distribution::Type::kRecurrence;
+    else if ( test == "landau" )
+        type = Distribution::Type::kLandauDamping;
+    else {
+        msg << "No such plasma test." << endl;
+        return -1;
+    }
     
     msg << "Particle test running with" << endl
         << "- #level     = " << nLevels << endl
         << "- grid       = " << nr << endl
         << "- max. size  = " << maxBoxSize << endl
         << "- time step  = " << dt << endl
-        << "- #steps     = " << nIter << endl;
+        << "- #steps     = " << nIter << endl
+        << "- test       = " << test << endl;
     
-    doTwoStream(nr, nLevels, maxBoxSize,
-                dt, nIter, msg);
+    doPlasma(nr, nLevels, maxBoxSize,
+             dt, nIter, type, msg);
     
     IpplTimings::stopTimer(mainTimer);
 
@@ -556,7 +718,7 @@ int main(int argc, char *argv[]) {
              << std::setfill('0') << std::setw(6) << Ippl::getNodes()
              << "-threads-1.dat";
     
-    if ( argc == 9 ) {
+    if ( argc == 10 ) {
         timefile.str(std::string());
         timefile << std::string(argv[8]);
     }

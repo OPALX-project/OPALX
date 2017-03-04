@@ -94,17 +94,29 @@ void OpalRBend3D::update() {
         dynamic_cast<RBend3D *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double angle  = Attributes::getReal(itsAttr[ANGLE]);
-
+    double e1     = Attributes::getReal(itsAttr[E1]);
     double k0 =
         itsAttr[K0] ? Attributes::getReal(itsAttr[K0]) :
         length ? 2 * sin(angle / 2) / length : angle;
     double k0s = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
 
     // Set field amplitude or bend angle.
-    if(itsAttr[ANGLE])
-        bend->setBendAngle(Attributes::getReal(itsAttr[ANGLE]));
-    else
+    if(itsAttr[ANGLE]) {
+        if (bend->isPositioned() && angle < 0.0) {
+            e1 = -e1;
+            angle = -angle;
+
+            Quaternion rotAboutZ(0, 0, 0, 1);
+            CoordinateSystemTrafo g2l = bend->getCSTrafoGlobal2Local();
+            bend->releasePosition();
+            bend->setCSTrafoGlobal2Local(CoordinateSystemTrafo(g2l.getOrigin(),
+                                                               rotAboutZ * g2l.getRotation()));
+            bend->fixPosition();
+        }
+        bend->setBendAngle(angle);
+    } else {
         bend->setFieldAmplitude(k0, k0s);
+    }
 
     if(itsAttr[FMAPFN])
         bend->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
@@ -113,7 +125,7 @@ void OpalRBend3D::update() {
         throw OpalException("OpalRBend3D::update", bend->getName() + ": No filename for field map given");
     }
 
-    bend->setEntranceAngle(Attributes::getReal(itsAttr[E1]));
+    bend->setEntranceAngle(e1);
 
     // Energy in eV.
     if(itsAttr[DESIGNENERGY]) {

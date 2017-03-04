@@ -418,8 +418,9 @@ public:
 
     void setCSTrafoGlobal2Local(const CoordinateSystemTrafo &ori);
     CoordinateSystemTrafo getCSTrafoGlobal2Local() const;
+    void releasePosition();
     void fixPosition();
-    bool isPositioned();
+    bool isPositioned() const;
 
     virtual CoordinateSystemTrafo getBeginToEnd() const;
 
@@ -642,12 +643,17 @@ CoordinateSystemTrafo ElementBase::getMisalignment() const {
 }
 
 inline
+void ElementBase::releasePosition() {
+    positionIsFixed = false;
+}
+
+inline
 void ElementBase::fixPosition() {
     positionIsFixed = true;
 }
 
 inline
-bool ElementBase::isPositioned() {
+bool ElementBase::isPositioned() const {
     return positionIsFixed;
 }
 

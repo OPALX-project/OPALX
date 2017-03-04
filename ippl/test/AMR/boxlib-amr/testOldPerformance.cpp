@@ -29,6 +29,9 @@
 #include <sstream>
 #include <iomanip>
 
+// #include <sys/time.h>
+// #include <sys/resource.h>
+
 
 #include <ParmParse.H>
 
@@ -213,10 +216,6 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     msg << "Multi-level statistics" << endl;
     bunch->gatherStatistics();
     
-    container_t rhs;
-    container_t phi;
-    container_t grad_phi;
-    
 //     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
     
     /* units:
@@ -227,6 +226,15 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
      */
     std::mt19937_64 eng(0);
     std::uniform_real_distribution<> perturbation(-0.01, 0.01);
+    
+    
+//     std::ofstream ram("ram_usage.dat");
+//     ram << "kB" << std::endl;
+//     rusage ru;
+    
+    container_t rhs(PArrayManage);
+    container_t phi(PArrayManage);
+    container_t grad_phi(PArrayManage);
     
     
     std::string statistics = "particle-statistics-ncores-" + std::to_string(Ippl::getNodes()) + ".dat";
@@ -240,18 +248,18 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         IpplTimings::stopTimer(solveTimer);
         
         IpplTimings::startTimer(gravityTimer);
-	for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
-	    int level = dynamic_cast<AmrPartBunch*>(bunch)->getLevel(i);
-	    dynamic_cast<AmrPartBunch*>(bunch)->interpolate(i, grad_phi[level]);
-	}
+        for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
+            int level = dynamic_cast<AmrPartBunch*>(bunch)->getLevel(i);
+            dynamic_cast<AmrPartBunch*>(bunch)->interpolate(i, grad_phi[level]);
+        }
         IpplTimings::stopTimer(gravityTimer);
         
         IpplTimings::startTimer(stepTimer);
         for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
             bunch->setR(bunch->getR(i) + Vector_t(perturbation(eng),
-						  perturbation(eng),
-						  perturbation(eng)),
-			i);
+                                                  perturbation(eng),
+                                                  perturbation(eng)),
+                        i);
         }
         IpplTimings::stopTimer(stepTimer);
         
@@ -268,7 +276,13 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         IpplTimings::startTimer(statisticsTimer);
         bunch->dumpStatistics(statistics);
         IpplTimings::stopTimer(statisticsTimer);
+        
+//         ru.ru_maxrss = 0;
+//         getrusage(RUSAGE_SELF, &ru);
+//         ram << ru.ru_maxrss << std::endl;
+        
     }
+//     ram.close();
     IpplTimings::stopTimer(totalTimer);
 }
 

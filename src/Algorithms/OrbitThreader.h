@@ -29,6 +29,10 @@ public:
     IndexMap::value_t query(IndexMap::key_t::first_type step,
                             IndexMap::key_t::second_type length);
 
+    std::pair<double, double> getRange(const IndexMap::value_t::value_type &element,
+                                       double position) const;
+    IndexMap::value_t getTouchingElements(const std::pair<double, double> &range);
+
 private:
     Vector_t r_m;
     Vector_t p_m;
@@ -80,6 +84,17 @@ inline
 IndexMap::value_t OrbitThreader::query(IndexMap::key_t::first_type pathLength,
                                        IndexMap::key_t::second_type length) {
     return imap_m.query(pathLength, length);
+}
+
+inline
+std::pair<double, double> OrbitThreader::getRange(const IndexMap::value_t::value_type &element,
+                                                  double position) const {
+    return imap_m.getRange(element, position);
+}
+
+inline
+IndexMap::value_t OrbitThreader::getTouchingElements(const std::pair<double, double> &range) {
+    return imap_m.getTouchingElements(range);
 }
 
 #endif

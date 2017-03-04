@@ -7,6 +7,8 @@
 #include <sstream>
 #include <iomanip>
 
+#include <boost/filesystem.hpp>
+
 
 #include <ParmParse.H>
 
@@ -88,7 +90,8 @@ void writeEnergy(amrbunch_t* bunch,
                  container_t& efield,
                  const Array<int>& rr,
                  double cell_volume,
-                 int step)
+                 int step,
+                 std::string dir = "./")
 {
     for (int lev = efield.size() - 2; lev >= 0; lev--)
         BoxLib::average_down(efield[lev+1], efield[lev], 0, 3, rr[lev]);
@@ -110,7 +113,7 @@ void writeEnergy(amrbunch_t* bunch,
         csvout.setf(std::ios::scientific, std::ios::floatfield);
 
         std::stringstream fname;
-        fname << "data/energy";
+        fname << dir << "/energy";
         fname << ".csv";
 
         // open a new data file for this iteration
@@ -131,13 +134,13 @@ void writeEnergy(amrbunch_t* bunch,
     }
 }
 
-void writeGridSum(container_t& container, int step, std::string label) {
+void writeGridSum(container_t& container, int step, std::string label, std::string dir = "./") {
     std::ofstream csvout;
     csvout.precision(10);
     csvout.setf(std::ios::scientific, std::ios::floatfield);
     
     std::stringstream fname;
-    fname << "data/" << label << "Sum";
+    fname << dir << "/" << label << "Sum";
     fname << ".csv";
 
     // open a new data file for this iteration
@@ -156,7 +159,8 @@ void ipplProjection(Field2d_t& field,
                     const Vektor<double, 3>& dv,
                     const Vektor<double, 3>& Vmax,
                     const NDIndex<2>& lDom,
-                    amrbunch_t* bunch, int step)
+                    amrbunch_t* bunch, int step,
+                    std::string dir = "./")
 {
     field = 0; // otherwise values are accumulated over steps
     
@@ -170,7 +174,7 @@ void ipplProjection(Field2d_t& field,
     csvout.setf(std::ios::scientific, std::ios::floatfield);
 
     std::stringstream fname;
-    fname << "data/f_mesh_";
+    fname << dir << "/f_mesh_";
     fname << std::setw(4) << std::setfill('0') << step;
     fname << ".csv";
     
@@ -201,7 +205,9 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              const Array<Geometry>& geom,
              const Array<int>& rr,
              int nLevels,
-             int step)
+             int step,
+             Inform& msg,
+             std::string dir = "./")
 {
     // =======================================================================                                                                                                                                   
     // 4. prepare for multi-level solve                                                                                                                                                                          
@@ -243,7 +249,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
 #endif
     }
     
-    writeScalarField(rhs, "data/rho", step);
+    writeScalarField(rhs, dir + "/rho", step);
     
     // undo Ulmer scaling
     for (int i = 0; i <=finest_level; ++i) {
@@ -265,8 +271,10 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     Real offset = 0.0;
     
     if ( geom[0].isAllPeriodic() ) {
-        std::cout << "total charge in density field before ion subtraction is " << rhs[0].sum(0) << std::endl;
-        std::cout << "max total charge in densitty field before ion subtraction is " << rhs[0].max(0) << std::endl;
+        double sum = rhs[0].sum(0);
+        double max = rhs[0].max(0);
+        msg << "total charge in density field before ion subtraction is " << sum << endl;
+        msg << "max total charge in densitty field before ion subtraction is " << max << endl;
 //         for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
 //             offset += bunch->qm[i];
         
@@ -286,7 +294,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
                         false);
     
     if ( geom[0].isAllPeriodic() ) {
-        std::cout << "total charge in density field after ion subtraction is " << rhs[0].sum(0) << std::endl;
+        double sum = rhs[0].sum(0);
+        msg << "total charge in density field after ion subtraction is " << sum << endl;
     }
     
     // for plotting unnormalize
@@ -370,7 +379,10 @@ void doPlasma(Vektor<std::size_t, 3> nr,
     Vektor<std::size_t, 3> Nx, Nv;
     Vektor<double, 3> Vmax;
     
+    std::string dirname = "";
+    
     if ( type == Distribution::Type::kTwoStream ) {
+        dirname = "twostream";
         Nx = Vektor<std::size_t, 3>(4, 4, 32);
         Nv = Vektor<std::size_t, 3>(8, 8, 128);
         Vmax = Vektor<double, 3>(6.0, 6.0, 6.0);
@@ -383,6 +395,7 @@ void doPlasma(Vektor<std::size_t, 3> nr,
                      type,
                      0.05);
     } else if ( type == Distribution::Type::kRecurrence ) {
+        dirname = "recurrence";
         Nx = Vektor<std::size_t, 3>(8, 8, 8);
         Nv = Vektor<std::size_t, 3>(32, 32, 32);
         Vmax = Vektor<double, 3>(6.0, 6.0, 6.0);
@@ -395,6 +408,7 @@ void doPlasma(Vektor<std::size_t, 3> nr,
                      type,
                      0.01);
     } else if ( type == Distribution::Type::kLandauDamping ) {
+        dirname = "landau";
         Nx = Vektor<std::size_t, 3>(8, 8, 8);
         Nv = Vektor<std::size_t, 3>(32, 32, 32);
         Vmax = Vektor<double, 3>(6.0, 6.0, 6.0);
@@ -407,6 +421,17 @@ void doPlasma(Vektor<std::size_t, 3> nr,
                      type,
                      0.05);
     }
+    
+    dirname += (
+        "-data-grid-" +
+        std::to_string(nr[0]) + "-" + 
+        std::to_string(nr[1]) + "-" + 
+        std::to_string(nr[2])
+    );
+    
+    boost::filesystem::path dir(dirname);
+    if ( Ippl::myNode() == 0 )
+        boost::filesystem::create_directory(dir);
     
     // copy particles to the PartBunchAmr object.
     dist.injectBeam( *(bunch.get()) );
@@ -485,39 +510,30 @@ void doPlasma(Vektor<std::size_t, 3> nr,
     
     // --------------------------------------------------------------------
     
-    container_t rhs;
-    container_t phi;
-    container_t grad_phi;
-    doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels, 0);
+    container_t rhs(PArrayManage);
+    container_t phi(PArrayManage);
+    container_t grad_phi(PArrayManage);
+    doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels, 0, msg, dir.string());
     
     
-//     writeScalarField(rhs, "rho_0.dat");
+//     writeScalarField(rhs, dir.string() + "/rho_0.dat");
     
-//     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
+//     std::string plotsolve = BoxLib::Concatenate(dir.string() + "/plt", 0, 4);
     
 //     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geoms, 0);
     
     Vector_t hr = ( extend_r - extend_l ) / Vector_t(nr);
     double cell_volume = hr[0] * hr[1] * hr[2];
-    std::cout << "Cell volume: " << cell_volume << std::endl;
-    writeEnergy(bunch.get(), rhs, phi, grad_phi, rr, cell_volume, 0);
+    writeEnergy(bunch.get(), rhs, phi, grad_phi, rr, cell_volume, 0, dir.string());
     
-//     writeGridSum(rhs, 0, "RhoInterpol");
-//     writeGridSum(phi, 0, "Phi_m");
-    
-//     bunch->python_format(0);
-    
-//     bunch->GetGravity(bunch->E, grad_phi);
-    
-//     for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
-//         std::cout << bunch->ID[j] << " " << bunch->R[j] << " " << bunch->E[j] << std::endl; std::cin.get();
-//     }
+//     writeGridSum(rhs, 0, "RhoInterpol", dir.string());
+//     writeGridSum(phi, 0, "Phi_m", dir.string());
     
     for (std::size_t i = 0; i < nIter; ++i) {
         msg << "Processing step " << i << endl;
 
-//         ipplProjection(field, dx, dv, Vmax, lDom,
-//                        bunch.get(), i);
+        if ( type == Distribution::Type::kTwoStream )
+            ipplProjection(field, dx, dv, Vmax, lDom, bunch.get(), i, dir.string());
         
         assign(bunch->R, bunch->R + dt * bunch->P);
         
@@ -538,20 +554,16 @@ void doPlasma(Vektor<std::size_t, 3> nr,
         else
             bunch->update();
         
-        doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels, i + 1);
+        doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels, i + 1, msg, dir.string());
         
         bunch->GetGravity(bunch->E, grad_phi);
-        
-//         for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
-//             std::cout << bunch->R[j] << " " << bunch->E[j] << std::endl; std::cin.get();
-//         }
         
         /* epsilon_0 not used by Ulmer --> multiply it away */
         assign(bunch->P, bunch->P + dt * bunch->qm / bunch->mass * bunch->E ); //* Physics::epsilon_0);
         
-        writeEnergy(bunch.get(), rhs, phi, grad_phi, rr, cell_volume, i + 1);
-//         writeGridSum(rhs, i + 1, "RhoInterpol");
-//         writeGridSum(phi, i + 1, "Phi_m");
+        writeEnergy(bunch.get(), rhs, phi, grad_phi, rr, cell_volume, i + 1, dir.string());
+//         writeGridSum(rhs, i + 1, "RhoInterpol", dir.string());
+//         writeGridSum(phi, i + 1, "Phi_m", dir.string());
         
         msg << "Done with step " << i << endl;
     }

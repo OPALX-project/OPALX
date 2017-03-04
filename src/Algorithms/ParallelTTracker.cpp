@@ -78,11 +78,13 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     repartFreq_m(-1),
     emissionSteps_m(std::numeric_limits<unsigned int>::max()),
     numParticlesInSimulation_m(0),
+    totalParticlesInSimulation_m(0),
     timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
     timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
     fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
     BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
-    WakeFieldTimer_m(IpplTimings::getTimer("WakeField"))
+    WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
+    surfaceStatus_m(false)
     // , logger_m("designPath_" + std::to_string(Ippl::myNode()) + ".dat")
 {
 
@@ -118,11 +120,13 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     repartFreq_m(-1),
     emissionSteps_m(numeric_limits<unsigned int>::max()),
     numParticlesInSimulation_m(0),
+    totalParticlesInSimulation_m(0),
     timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
     timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
     fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
     BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
-    WakeFieldTimer_m(IpplTimings::getTimer("WakeField"))
+    WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
+    surfaceStatus_m(false)
     // , logger_m("designPath_" + std::to_string(Ippl::myNode()) + ".dat")
 {
 
@@ -142,7 +146,6 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
 }
 
 ParallelTTracker::~ParallelTTracker() {
-
 }
 
 void ParallelTTracker::visitBeamline(const Beamline &bl) {
@@ -300,6 +303,7 @@ void ParallelTTracker::execute() {
     saveCavityPhases();
 
     numParticlesInSimulation_m = itsBunch_m->getTotalNum();
+    totalParticlesInSimulation_m = itsBunch_m->getTotalNum();
 
     setTime();
 
@@ -571,9 +575,6 @@ void ParallelTTracker::computeExternalFields(OrbitThreader &oth) {
     Inform msg("ParallelTTracker ", *gmsg);
     const unsigned int localNum = itsBunch_m->getLocalNum();
 
-    bool hasWake = false;
-    WakeFunction *wfInstance;
-
     Vector_t rmin, rmax;
     itsBunch_m->get_bounds(rmin, rmax);
     IndexMap::value_t elements;
@@ -617,9 +618,50 @@ void ParallelTTracker::computeExternalFields(OrbitThreader &oth) {
             itsBunch_m->Ef[i] += localToRefCSTrafo.rotateTo(localE);
             itsBunch_m->Bf[i] += localToRefCSTrafo.rotateTo(localB);
         }
+    }
 
+    IpplTimings::stopTimer(fieldEvaluationTimer_m);
+
+    computeWakefield(elements);
+    computeParticleMatterInteraction(elements, oth);
+
+    size_t ne = 0;
+    bool globPartOutOfBounds = (min(itsBunch_m->Bin) < 0) && (itsBunch_m->getTotalNum() > 1);
+    if (globPartOutOfBounds) {
+        if (itsBunch_m->hasFieldSolver()) {
+            ne = itsBunch_m->boundp_destroyT();
+        } else {
+            ne = itsBunch_m->destroyT();
+        }
+        numParticlesInSimulation_m  = itsBunch_m->getTotalNum();
+        totalParticlesInSimulation_m -= ne;
+        deletedParticles_m = true;
+    }
+
+    size_t totalNum = itsBunch_m->getTotalNum();
+    if (numParticlesInSimulation_m > minBinEmitted_m || totalNum > minBinEmitted_m) {
+        numParticlesInSimulation_m = totalNum;
+    }
+
+    if (ne > 0) {
+        msg << level1 << "* Deleted " << ne << " particles, "
+            << "remaining " << itsBunch_m->getTotalNum() << " particles" << endl;
+    }
+}
+
+void ParallelTTracker::computeWakefield(IndexMap::value_t &elements) {
+    bool hasWake = false;
+    WakeFunction *wfInstance;
+
+    Inform msg("ParallelTTracker ", *gmsg);
+
+    const unsigned int localNum = itsBunch_m->getLocalNum();
+
+    IndexMap::value_t::const_iterator it = elements.begin();
+    const IndexMap::value_t::const_iterator end = elements.end();
+
+    for (; it != end; ++ it) {
         if ((*it)->hasWake() && !hasWake) {
-            IpplTimings::stopTimer(fieldEvaluationTimer_m);
             IpplTimings::startTimer(WakeFieldTimer_m);
 
             hasWake = true;
@@ -638,7 +680,7 @@ void ParallelTTracker::computeExternalFields(OrbitThreader &oth) {
             }
 
             if (!wfInstance) {
-                throw OpalException("ParallelTTracker::computeExternalFields",
+                throw OpalException("ParallelTTracker::computeWakefield",
                                     "empty wake function");
             }
 
@@ -667,37 +709,168 @@ void ParallelTTracker::computeExternalFields(OrbitThreader &oth) {
             }
 
             IpplTimings::stopTimer(WakeFieldTimer_m);
-            IpplTimings::startTimer(fieldEvaluationTimer_m);
         }
     }
-
-    IpplTimings::stopTimer(fieldEvaluationTimer_m);
 
     if (wakeStatus_m && !hasWake) {
         msg << level2 << "=============== END WAKE CALCULATION ==============" << endl;
         wakeStatus_m = false;
     }
+}
 
-    size_t ne = 0;
-    bool globPartOutOfBounds = (min(itsBunch_m->Bin) < 0) && (itsBunch_m->getTotalNum() > 1);
-    if (globPartOutOfBounds) {
-        if (itsBunch_m->hasFieldSolver()) {
-            ne = itsBunch_m->boundp_destroyT();
-        } else {
-            ne = itsBunch_m->destroyT();
+void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elements, OrbitThreader &oth) {
+    Inform msg("ParallelTTracker ", *gmsg);
+    IndexMap::value_t::const_iterator it = elements.begin();
+    const IndexMap::value_t::const_iterator end = elements.end();
+    std::set<IndexMap::value_t::value_type> elementsWithSurfacePhysics;
+    std::set<SurfacePhysicsHandler*> surfacePhysicsHandlers;
+    std::pair<double, double> currentRange(0.0, 0.0);
+
+    while (elements.size() > 0) {
+        auto it = elements.begin();
+        if ((*it)->hasSurfacePhysics()) {
+            elementsWithSurfacePhysics.insert(*it);
+            surfacePhysicsHandlers.insert((*it)->getSurfacePhysics());
+
+            std::pair<double, double> range = oth.getRange(*it, pathLength_m);
+            currentRange.first = std::min(currentRange.first, range.first);
+            currentRange.second = std::max(currentRange.second, range.second);
+
+            IndexMap::value_t touching = oth.getTouchingElements(range);
+            elements.insert(touching.begin(), touching.end());
         }
-        numParticlesInSimulation_m  = itsBunch_m->getTotalNum();
-        deletedParticles_m = true;
+
+        elements.erase(it);
     }
 
-    size_t totalNum = itsBunch_m->getTotalNum();
-    if (numParticlesInSimulation_m > minBinEmitted_m || totalNum > minBinEmitted_m) {
-        numParticlesInSimulation_m = totalNum;
+    if (elementsWithSurfacePhysics.size() > 0) {
+        std::set<SurfacePhysicsHandler*> oldSPHandlers;
+        std::vector<SurfacePhysicsHandler*> leftBehindSPHandlers, newSPHandlers;
+        for (auto it: activeSurfacePhysicsHandlers_m) {
+            oldSPHandlers.insert(it);
+        }
+
+        leftBehindSPHandlers.resize(std::max(oldSPHandlers.size(),
+                                             surfacePhysicsHandlers.size()));
+        auto last = std::set_difference(oldSPHandlers.begin(), oldSPHandlers.end(),
+                                        surfacePhysicsHandlers.begin(), surfacePhysicsHandlers.end(),
+                                        leftBehindSPHandlers.begin());
+        leftBehindSPHandlers.resize(last - leftBehindSPHandlers.begin());
+
+        for (auto it: leftBehindSPHandlers) {
+            if (!it->stillActive()) {
+                activeSurfacePhysicsHandlers_m.erase(it);
+            }
+        }
+
+        newSPHandlers.resize(std::max(oldSPHandlers.size(),
+                                      elementsWithSurfacePhysics.size()));
+        last = std::set_difference(surfacePhysicsHandlers.begin(), surfacePhysicsHandlers.end(),
+                                   oldSPHandlers.begin(), oldSPHandlers.end(),
+                                   newSPHandlers.begin());
+        newSPHandlers.resize(last - newSPHandlers.begin());
+
+        for (auto it: newSPHandlers) {
+            activeSurfacePhysicsHandlers_m.insert(it);
+        }
+
+        if(!surfaceStatus_m) {
+            msg << level2 << "============== START SURFACE PHYSICS CALCULATION =============" << endl;
+            surfaceStatus_m = true;
+        }
     }
 
-    if (ne > 0) {
-        msg << level1 << "* Deleted " << ne << " particles, "
-            << "remaining " << itsBunch_m->getTotalNum() << " particles" << endl;
+    if (surfaceStatus_m) {
+        do {
+            ///all particles in material if max per node is 2 and other degraders have 0 particles
+            //check if more than one degrader has particles
+            SurfacePhysicsHandler* onlyDegraderWithParticles = NULL;
+            int degradersWithParticlesCount = 0;
+            for (auto it: activeSurfacePhysicsHandlers_m) {
+                it->setFlagAllParticlesIn(false);
+                if (it->getParticlesInMat() > 0) {
+                    onlyDegraderWithParticles = it;
+                    ++ degradersWithParticlesCount;
+                }
+            }
+
+            //if max particles per node is 2, and only one degrader has particles set
+            //AllParticlesIn for this degrader to true
+            int maxPerNode = itsBunch_m->getLocalNum();
+            reduce(maxPerNode, maxPerNode, OpMaxAssign());
+            bool allParticlesInMat = (maxPerNode == 0 &&
+                                      degradersWithParticlesCount == 1);
+
+            if (allParticlesInMat) {
+                onlyDegraderWithParticles->setFlagAllParticlesIn(true);
+                msg << "All particles in degrader" << endl;
+            }
+
+            auto boundingSphere = itsBunch_m->getLocalBoundingSphere();
+            unsigned redifusedParticles = 0;
+            for (auto it: activeSurfacePhysicsHandlers_m) {
+                ElementBase* element = it->getElement();
+                CoordinateSystemTrafo refToLocalCSTrafo = (element->getMisalignment() *
+                                                           (element->getCSTrafoGlobal2Local() * referenceToLabCSTrafo_m));
+                CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
+
+                const unsigned int localNum = itsBunch_m->getLocalNum();
+                for (unsigned int i = 0; i < localNum; ++i) {
+                    itsBunch_m->R[i] = refToLocalCSTrafo.transformTo(itsBunch_m->R[i]);
+                    itsBunch_m->P[i] = refToLocalCSTrafo.rotateTo(itsBunch_m->P[i]);
+                }
+                boundingSphere.first = refToLocalCSTrafo.transformTo(boundingSphere.first);
+
+                it->apply(*itsBunch_m, boundingSphere, totalParticlesInSimulation_m);
+                it->print(msg);
+
+                boundingSphere.first = localToRefCSTrafo.transformTo(boundingSphere.first);
+
+                const unsigned int newLocalNum = itsBunch_m->getLocalNum();
+                for (unsigned int i = 0; i < newLocalNum; ++i) {
+                    itsBunch_m->R[i] = localToRefCSTrafo.transformTo(itsBunch_m->R[i]);
+                    itsBunch_m->P[i] = localToRefCSTrafo.rotateTo(itsBunch_m->P[i]);
+                }
+
+                redifusedParticles += it->getRedifused();
+                //if all particles where in material update time to time in degrader
+                if (it->getFlagAllParticlesIn()) {
+                    double timeDifference = it->getTime() - itsBunch_m->getdT() - itsBunch_m->getT();
+                    if (timeDifference > 0.0) {
+                        const unsigned int numSteps = std::ceil(timeDifference / itsBunch_m->getdT());
+                        const double origdT = itsBunch_m->getdT();
+                        itsBunch_m->setdT(timeDifference / numSteps);
+                        BorisPusher pusher(itsReference);
+                        for (unsigned int i = 0; i < numSteps; ++ i) {
+                            updateReferenceParticle(pusher);
+                        }
+                        itsBunch_m->setdT(origdT);
+                    }
+                    itsBunch_m->setT(it->getTime() - itsBunch_m->getdT());
+                }
+            }
+
+            //perform boundp only if there are particles in the bunch, or there are particles
+            //comming out of the degrader
+            if (maxPerNode > 0 || redifusedParticles > 0) {
+                if (itsBunch_m->hasFieldSolver()) {
+                    itsBunch_m->boundp();
+                } else {
+                    itsBunch_m->updateNumTotal();
+                }
+            }
+
+            //if bunch has no particles update time to time in degrader
+            if (itsBunch_m->getTotalNum() == 0)
+                itsBunch_m->setT(itsBunch_m->getT() + itsBunch_m->getdT());
+
+        } while (itsBunch_m->getTotalNum() == 0);
+
+
+        if (activeSurfacePhysicsHandlers_m.size() == 0) {
+            msg << level2 << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
+            surfaceStatus_m = false;
+        }
     }
 }
 
@@ -952,6 +1125,7 @@ void ParallelTTracker::updateReferenceParticle(const BorisPusher &pusher) {
                                             itsBunch_m->getT() - 0.5 * dt,
                                             localE,
                                             localB)) {
+            // *gmsg << __DBGMSG__ << (*it)->getName() << endl;
             globalEOL_m = true;
         }
 

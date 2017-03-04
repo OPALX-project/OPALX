@@ -122,9 +122,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr,
     msg << "Charge per grid point: 1.0 C" << endl
         << "Total charge: " << 1.0 * nr[0] * nr[1] * nr[2] << " C" << endl;
     
-    container_t rhs;
-    container_t phi;
-    container_t grad_phi;
+    container_t rhs(PArrayManage);
+    container_t phi(PArrayManage);
+    container_t grad_phi(PArrayManage);
     
     std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
     doSolve(ba, rhs, phi, grad_phi, geom, rr, nLevels, msg);
