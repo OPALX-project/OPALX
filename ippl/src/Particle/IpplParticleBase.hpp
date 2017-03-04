@@ -552,7 +552,7 @@ void IpplParticleBase<PLayout>::update(const ParticleAttrib<char>& canSwap) {
 // calls to destroy() only stored a list of what to do.  This actually
 // does it.  This should in most cases only be called by the layout manager.
 template<class PLayout>
-void IpplParticleBase<PLayout>::performDestroy() {
+void IpplParticleBase<PLayout>::performDestroy(bool updateLocalNum) {
 
 
 
@@ -565,8 +565,8 @@ void IpplParticleBase<PLayout>::performDestroy() {
   // before processing the list, we should make sure it is sorted
   bool isSorted = true;
   typedef std::vector< std::pair<size_t,size_t> > dlist_t;
-  dlist_t::const_iterator curr = DestroyList.begin(),
-                          last = DestroyList.end();
+  dlist_t::const_iterator curr = DestroyList.begin();
+  const dlist_t::const_iterator last = DestroyList.end();
   dlist_t::const_iterator next = curr + 1;
   while (next != last && isSorted) {
     if (*next++ < *curr++) isSorted = false;
@@ -581,6 +581,12 @@ void IpplParticleBase<PLayout>::performDestroy() {
   attrib_container_t::iterator abeg, aend = AttribList.end();
   for (abeg = AttribList.begin(); abeg != aend; ++abeg)
     (*abeg)->destroy(DestroyList,optDestroy);
+
+  if (updateLocalNum) {
+      for (curr = DestroyList.begin(); curr != last; ++ curr) {
+          LocalNum -= curr->second;
+      }
+  }
 
   // clear destroy list and update destroy num counter
   DestroyList.erase(DestroyList.begin(),DestroyList.end());

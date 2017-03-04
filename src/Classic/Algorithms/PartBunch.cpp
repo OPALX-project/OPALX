@@ -1516,7 +1516,6 @@ void PartBunch::boundp() {
 	 */
 
 	const bool fullUpdate = (dcBeam_m && (hr_m[2] < 0.0)) || !dcBeam_m;
-	double hzSave;
 
 	NDIndex<3> domain = getFieldLayout().getDomain();
 	for(int i = 0; i < Dim; i++)
@@ -1525,17 +1524,20 @@ void PartBunch::boundp() {
 	get_bounds(rmin_m, rmax_m);
 	Vector_t len = rmax_m - rmin_m;
 
-	if (!fullUpdate) {
-            hzSave = hr_m[2];
-	}
-	else {
             double volume = 1.0;
+	if (fullUpdate) {
+            // double volume = 1.0;
             for(int i = 0; i < dimIdx; i++) {
-                double length = std::max(1e-10, std::abs(rmax_m[i] - rmin_m[i]));
-                rmax_m[i] += dh_m * length;
-                rmin_m[i] -= dh_m * length;
+                double length = std::abs(rmax_m[i] - rmin_m[i]);
+                if (length < 1e-10) {
+                    rmax_m[i] += 1e-10;
+                    rmin_m[i] -= 1e-10;
+                } else {
+                    rmax_m[i] += dh_m * length;
+                    rmin_m[i] -= dh_m * length;
+                }
                 hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
-                volume *= length;
+                volume *= std::abs(rmax_m[i] - rmin_m[i]);
             }
 
             if (getIfBeamEmitting() && dist_m != NULL) {
@@ -1560,11 +1562,6 @@ void PartBunch::boundp() {
             //INFOMSG("It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
 	}
 
-	if (!fullUpdate) {
-            hr_m[2] = hzSave;
-            //INFOMSG("It is not a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
-	}
-
 	if(hr_m[0] * hr_m[1] * hr_m[2] > 0) {
             getMesh().set_meshSpacing(&(hr_m[0]));
             getMesh().set_origin(rmin_m - Vector_t(hr_m[0] / 2.0, hr_m[1] / 2.0, hr_m[2] / 2.0));
@@ -1577,6 +1574,8 @@ void PartBunch::boundp() {
                             GuardCellSizes<Dim>(1),
                             vbc_m);
 	} else {
+            *gmsg << __DBGMSG__ << std::scientific << volume << "\t" << dh_m << endl;
+
             throw GeneralClassicException("boundp() ", "h<0, can not build a mesh");
         }
     }
@@ -2076,25 +2075,38 @@ size_t PartBunch::destroyT() {
         }
     } else {
         Inform dmsg("destroy: ", INFORM_ALL_NODES);
-        unsigned int i = 0, j = localNum;
-        while (j > 0 && Bin[j - 1] < 0) -- j;
-
-        while (i + 1 < j) {
-            if (Bin[i] < 0) {
-                this->swap(i,j - 1);
-                -- j;
-
-                while (i + 1 < j && Bin[j - 1] < 0) -- j;
+        size_t ne = 0;
+        for(size_t i = 0; i < localNum; i++) {
+            if((Bin[i] < 0) && ((localNum - ne) > minNumParticlesPerCore)) {   // need in minimum x particles per node
+                ne++;
+                destroy(1, i);
             }
-            ++ i;
         }
-
-        j = std::max(j, minNumParticlesPerCore);
-        for(unsigned int i = localNum; i > j; -- i) {
-            destroy(1, i-1, true);
-        }
-        lowParticleCount_m = (j == minNumParticlesPerCore);
+        lowParticleCount_m = ((localNum - ne) <= minNumParticlesPerCore);
         reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
+        // unsigned int i = 0, j = localNum;
+        // while (j > 0 && Bin[j - 1] < 0) -- j;
+
+        // while (i + 1 < j) {
+        //     if (Bin[i] < 0) {
+        //         this->swap(i,j - 1);
+        //         -- j;
+
+        //         while (i + 1 < j && Bin[j - 1] < 0) -- j;
+        //     }
+        //     ++ i;
+        // }
+
+        // j = std::max(j, minNumParticlesPerCore);
+        // for(unsigned int i = localNum; i > j; -- i) {
+        //     destroy(1, i-1, true);
+        // }
+        // lowParticleCount_m = (j == minNumParticlesPerCore);
+        // reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
+
+        if (ne > 0) {
+            performDestroy(true);
+        }
     }
 
     calcBeamParameters();
@@ -2443,4 +2455,18 @@ void PartBunch::swap(unsigned int i, unsigned int j) {
 
     if (interpolationCacheSet_m)
         std::swap(interpolationCache_m[i], interpolationCache_m[j]);
+}
+
+void PartBunch::getLocalBounds(Vector_t &rmin, Vector_t &rmax) {
+    const size_t localNum = getLocalNum();
+    if (localNum == 0) return;
+
+    rmin = R[0];
+    rmax = R[0];
+    for (size_t i = 1; i < localNum; ++ i) {
+        for (unsigned short d = 0; d < 3u; ++ d) {
+            if (rmin(d) > R[i](d)) rmin(d) = R[i](d);
+            else if (rmax(d) < R[i](2)) rmax(d) = R[i](d);
+        }
+    }
 }

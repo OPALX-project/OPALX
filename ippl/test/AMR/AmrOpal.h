@@ -35,6 +35,13 @@ private:
     typedef PArray<MultiFab > mfs_mt;
 
 public:
+    /// Methods for tag cells for refinement
+    enum TaggingCriteria {
+        kChargeDensity = 0, // default
+        kPotentialStrength = 1,
+        kEfieldGradient = 2
+    };
+        
     
 #ifdef IPPL_AMR
     typedef ParticleAmrLayout<double, BL_SPACEDIM> amrplayout_t;
@@ -114,23 +121,6 @@ public:
     }
     
     /*!
-     * Print the number of particles per cell (minimum and maximum)
-     */
-    void info() {
-        for (int i = 0; i < finest_level; ++i)
-            std::cout << "density level " << i << ": "
-#ifdef UNIQUE_PTR
-                      << nPartPerCell_m[i]->min(0) << " "
-                      << nPartPerCell_m[i]->max(0) << std::endl;
-#else
-                      
-                      << nPartPerCell_m[i].min(0) << " "
-                      << nPartPerCell_m[i].max(0) << std::endl;
-#endif
-                      
-    }
-    
-    /*!
      * Write a timestamp file for displaying with yt.
      */
     void writePlotFileYt(std::string filename, int step);
@@ -140,57 +130,52 @@ public:
      */
     void writePlotFile(std::string filename, int step);
     
-    mfs_mt* getPartPerCell() {
-        return &nPartPerCell_m;
+    void setTagging(TaggingCriteria tagging) {
+        tagging_m = tagging;
     }
     
-    void assignDensity() {
-        
-        for (int i = 0; i < finest_level; ++i)
-#ifdef UNIQUE_PTR
-            chargeOnGrid_m[i]->setVal(0.0);
-#else
-            chargeOnGrid_m[i].setVal(0.0);
-#endif
-        
-#ifdef IPPL_AMR
-        bunch_m->AssignDensity(bunch_m->qm, false, chargeOnGrid_m, 0, finest_level);
-#else
-        bunch_m->AssignDensity(0, false, chargeOnGrid_m, 0, 1, finest_level);
-#endif
-//         double assign_sum = 0.0;
-//         double charge_sum = 0.0;
-//         std::cout << "---------------------------------------------" << std::endl;
-//         std::cout << "          CHARGE CONSERVATION TEST           " << std::endl;
-//         for (int i = 0; i <= finest_level; ++i) {
-//             Real charge = bunch_m->sumParticleMass(0 /*attribute*/, i /*level*/);
-//             Real invVol = (*(Geom(i).CellSize()) * *(Geom(i).CellSize()) * *(Geom(i).CellSize()) );
-//             std::cout << "dx * dy * dz = " << invVol << std::endl;
-//             assign_sum += chargeOnGrid_m[i]->sum() * invVol;
-//             std::cout << "Level " << i << " MultiFab sum * dx * dy * dz: " << chargeOnGrid_m[i]->sum() * invVol
-//                       << " Charge sum: " << charge
-//                       << " Spacing: " << *(Geom(i).CellSize()) << std::endl;
-//             charge_sum += charge;
-//         }
-//         std::cout << "Total charge: " << assign_sum << " " << charge_sum << std::endl;
-//         std::cout << "---------------------------------------------" << std::endl;
+    /*!
+     * Scaling factor for tagging.
+     * It is used in tagForPotentialStrength_m and tagForEfieldGradient_m
+     * @param scaling factor in [0, 1]
+     */
+    void setScalingFactor(double scaling) {
+        scaling_m = scaling;
     }
-
+    
+    /*!
+     * Charge for tagging in tagForChargeDensity_m
+     * @param charge >= 0.0 (e.g. 1e-14)
+     */
+    void setCharge(double charge) {
+        nCharge_m = charge;
+    }
+    
 protected:
     /*!
      * Is called in the AmrCore function for performing tagging.
      */
-    virtual void ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override;
+    virtual void ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) override;
     
 private:
+    
+    void tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    
+    
     
 #ifdef IPPL_AMR
     PartBunchAmr<amrplayout_t>* bunch_m;
 #else
     AmrPartBunch* bunch_m;      ///< Particle bunch
 #endif
-    mfs_mt/*mp_mt*/ nPartPerCell_m;      ///< used in tagging.
-    mfs_mt chargeOnGrid_m;
+    TaggingCriteria tagging_m;
+    mfs_mt nChargePerCell_m;    ///< use in tagging tagForChargeDensity_m (needed when tracking)
+    
+    double scaling_m;           ///< Scaling factor for tagging [0, 1]
+                                // (tagForPotentialStrength_m, tagForEfieldGradient_m)
+    Real   nCharge_m;           ///< Tagging value for tagForChargeDensity_m
     
 };
 

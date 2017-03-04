@@ -96,6 +96,26 @@ add_executable( testPlasma
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
 
+add_executable( testTagging
+                testTagging.cpp
+                ../AmrOpal.cpp
+                AmrParticleBase.hpp
+                ../Distribution.cpp
+                ../H5Reader.cpp
+                ${F90_source_files}
+                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                ../Solver.cpp)
+
+add_executable( testInitGuessSolver
+                testInitGuessSolver.cpp
+                ../AmrOpal.cpp
+                AmrParticleBase.hpp
+                ../Distribution.cpp
+                ../H5Reader.cpp
+                ${F90_source_files}
+                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                ../Solver.cpp)
+
 target_link_libraries (testAmrPartBase ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
@@ -109,5 +129,14 @@ target_link_libraries (testPerformance ${LIBS}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testPlasma ${LIBS}
+                        -lgfortran ${CCSE_LIBRARIES}
+                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS}
+                        -lboost_system -lboost_filesystem)
+
+target_link_libraries (testTagging ${LIBS}
+                        -lgfortran ${CCSE_LIBRARIES}
+                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testInitGuessSolver ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})

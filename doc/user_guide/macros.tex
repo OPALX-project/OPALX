@@ -77,7 +77,6 @@
 \newcommand{\Z}{{\mathbb Z}} % integer numbers
 \newcommand{\N}{{\mathbb N}} % natural numbers
 
-\newcommand{\opalversion}[1]{\ifstrempty{#1}{@OPAL_VERSION@\xspace}{#1}}
 \newcommand{\mad}{\textsc{mad}\xspace}
 \newcommand{\madnine}{\textsc{mad9}\xspace}
 \newcommand{\madninep}{\textsc{mad9p}\xspace}
@@ -199,3 +198,5 @@
 \renewcommand*{\chapter}{\if@openright\cleardoublepage\else\clearpage\fi\stdchapter}
 
 \makeatother
+
+\input{version}

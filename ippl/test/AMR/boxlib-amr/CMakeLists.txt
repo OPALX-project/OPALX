@@ -131,8 +131,8 @@ add_executable (testTracker
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
     
-add_executable (twostream
-                twostream.cpp
+add_executable (testOldPlasma
+                testOldPlasma.cpp
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ../H5Reader.cpp ../Distribution.cpp
                 ${F90_source_files}
@@ -202,9 +202,10 @@ target_link_libraries (testTracker ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
-target_link_libraries (twostream ${LIBS}
+target_link_libraries (testOldPlasma ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
-                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS}
+                        -lboost_system -lboost_filesystem)
     
 target_link_libraries (testPerfectLoadBalancing ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
