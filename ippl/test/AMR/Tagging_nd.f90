@@ -57,16 +57,23 @@ subroutine state_error(tag,tag_lo,tag_hi, &
     integer          :: set,clear
     
     integer          :: i, j, k
+    double precision :: x, y, z
     
     !   print *, "lo ", lo(:)
     !   print *, "hi ", hi(:)
     ! Tag on regions of high phi
     do       k = lo(3), hi(3)
+       z = problo(3) + k*dx(3) + 0.5d0*dx(3)
         do    j = lo(2), hi(2)
+           y = problo(2) + j*dx(2) + 0.5d0*dx(2)
             do i = lo(1), hi(1)
-!                 print *, "tagging ", i, j, k
-                if (abs(state(i,j,k)) .ge. phierr) then
-                    tag(i,j,k) = set
+                x = problo(1) + i*dx(1) + 0.5d0*dx(1)
+                if (x .ge. -0.125 .and. x .lt. 0.125 .and. &
+                    y .ge. -0.125 .and. y .lt. 0.125 .and. &
+                    z .ge. -0.125 .and. z .lt. 0.125) then
+                  tag(i,j,k) = set
+!                if (abs(state(i,j,k)) .ge. phierr) then
+!                    tag(i,j,k) = set
                 endif
             enddo
         enddo
