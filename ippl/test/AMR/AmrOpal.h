@@ -38,8 +38,9 @@ public:
     /// Methods for tag cells for refinement
     enum TaggingCriteria {
         kChargeDensity = 0, // default
-        kPotentialStrength = 1,
-        kEfieldGradient = 2
+        kPotentialStrength,
+        kEfieldGradient,
+        kCenteredRegion     // only for boxlib-only/testDeposition comparison
     };
         
     
@@ -162,6 +163,7 @@ private:
     void tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow);
     void tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, int ngrow);
     void tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForCenteredRegion_m(int lev, TagBoxArray& tags, Real time, int ngrow);
     
     
     

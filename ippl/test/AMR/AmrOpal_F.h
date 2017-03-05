@@ -41,6 +41,13 @@ extern "C"
                                 const int* lo, const int* hi,
                                 const Real* dx, const Real* problo,
                                 const Real* time, const Real* phi);
+    
+    void centered_region(int* tag, const int* tag_lo, const int* tag_hi,
+                         const BL_FORT_FAB_ARG_3D(state),
+                         const int* tagval, const int* clearval,
+                         const int* lo, const int* hi,
+                         const Real* dx, const Real* problo,
+                         const Real* time, const Real* phierr);
 }
 
 #endif

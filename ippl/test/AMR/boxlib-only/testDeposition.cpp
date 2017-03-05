@@ -1,3 +1,12 @@
+/*!
+ * @file testDeposition.cpp
+ * @details Fully BoxLib charge deposition timing. It initializes
+ *          Gaussian distribution and refines the centere eighth.
+ * @authors Andrew Myers
+ * @date February 2017
+ * @brief Charge deposition timing
+ */
+
 #include <iostream>
 
 #include <BoxLib.H>
@@ -5,6 +14,10 @@
 #include <MultiFabUtil.H>
 #include <Particles.H>
 #include <PlotFileUtil.H>
+
+#include <chrono>
+
+typedef std::chrono::time_point<std::chrono::high_resolution_clock> chrono_t;
 
 #include <random>
 
@@ -194,8 +207,19 @@ void test_assign_density(TestParams& parms)
     int iseed = 451;
     Real mass = 10.0;
     myPC.InitParticles(num_particles, iseed, mass);
+    
+    chrono_t start, end;
+    if ( parms.verbose && ParallelDescriptor::IOProcessor() )
+        start = std::chrono::high_resolution_clock::now();
 
     myPC.AssignDensity(0, false, partMF, 0, 1, 1);
+    
+    if ( parms.verbose && ParallelDescriptor::IOProcessor() ) {
+        end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> diff = end-start;
+        std::cout << "Time for AssignDensity: " << diff.count()
+                  << " s" << std::endl;
+    }
 }
 
 int main(int argc, char* argv[])

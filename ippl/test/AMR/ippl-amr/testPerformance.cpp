@@ -290,6 +290,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     const Array<Geometry>& geoms = myAmrOpal.Geom();
     
+    myAmrOpal.setTagging(AmrOpal::kCenteredRegion);
+    
     // ========================================================================
     // 3. multi-level redistribute
     // ========================================================================

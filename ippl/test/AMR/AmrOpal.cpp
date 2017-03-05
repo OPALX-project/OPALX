@@ -348,6 +348,9 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
         case kEfieldGradient:
             tagForEfieldGradient_m(lev, tags, time, ngrow);
             break;
+        case kCenteredRegion:
+            tagForCenteredRegion_m(lev, tags, time, ngrow);
+            break;
         default:
             tagForChargeDensity_m(lev, tags, time, ngrow);
             break;
@@ -862,4 +865,90 @@ void AmrOpal::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int 
     grad_phi.clear(base_level);
     nPartPerCell.clear(base_level);
 #endif
+}
+
+
+void AmrOpal::tagForCenteredRegion_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
+    
+    for (int i = lev; i <= finest_level; ++i) {
+#ifdef UNIQUE_PTR
+        nChargePerCell_m[i]->setVal(0.0);
+        #ifdef IPPL_AMR
+            bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nChargePerCell_m[i], i);
+        #else
+            bunch_m->AssignDensitySingleLevel(0, *nChargePerCell_m[i], i);
+        #endif
+
+#else
+        nChargePerCell_m[i].setVal(0.0);
+        
+        #ifdef IPPL_AMR
+            bunch_m->AssignDensitySingleLevel(bunch_m->qm, nChargePerCell_m[i], i);
+        #else
+            bunch_m->AssignDensitySingleLevel(0, nChargePerCell_m[i], i);
+        #endif
+#endif
+    }
+    
+#ifdef UNIQUE_PTR
+    for (int i = finest_level-1; i >= lev; --i) {
+        MultiFab tmp(nChargePerCell_m[i]->boxArray(), 1, 0, nChargePerCell_m[i]->DistributionMap());
+        tmp.setVal(0.0);
+        BoxLib::average_down(*nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
+        MultiFab::Add(*nChargePerCell_m[i], tmp, 0, 0, 1, 0);
+    }
+#else
+    for (int i = finest_level-1; i >= lev; --i) {
+        MultiFab tmp(nChargePerCell_m[i].boxArray(), 1, 0, nChargePerCell_m[i].DistributionMap());
+        tmp.setVal(0.0);
+        BoxLib::average_down(nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
+        MultiFab::Add(nChargePerCell_m[i], tmp, 0, 0, 1, 0);
+    }
+#endif
+    
+    
+    const int clearval = TagBox::CLEAR;
+    const int   tagval = TagBox::SET;
+
+    const Real* dx      = geom[lev].CellSize();
+    const Real* prob_lo = geom[lev].ProbLo();
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        Array<int>  itags;
+#ifdef UNIQUE_PTR
+        for (MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+#else
+        for (MFIter mfi(nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+#endif
+            const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
+            
+            TagBox&     tagfab  = tags[mfi];
+            
+            // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
+            // So we are going to get a temporary integer array.
+            tagfab.get_itags(itags, tilebx);
+            
+            // data pointer and index space
+            int*        tptr    = itags.dataPtr();
+            const int*  tlo     = tilebx.loVect();
+            const int*  thi     = tilebx.hiVect();
+
+            centered_region(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
+#ifdef UNIQUE_PTR
+                        BL_TO_FORTRAN_3D((*nChargePerCell_m[lev])[mfi]),
+#else
+                        BL_TO_FORTRAN_3D((nChargePerCell_m[lev])[mfi]),
+#endif
+                        &tagval, &clearval, 
+                        ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
+                        ZFILL(dx), ZFILL(prob_lo), &time, &nCharge_m);
+            //
+            // Now update the tags in the TagBox.
+            //
+            tagfab.tags_and_untags(itags, tilebx);
+        }
+    }
 }
