@@ -70,6 +70,7 @@ SymTenzor<double, 6> getUnit6x6() {
 namespace AttributesT
 {
     enum AttributesT {
+        TYPE,
         DISTRIBUTION,
         FNAME,
         WRITETOFILE,
@@ -790,15 +791,7 @@ double Distribution::getTEmission() {
         return tEmission_m;
     }
 
-    distT_m = Util::toUpper(Attributes::getString(itsAttr[AttributesT::DISTRIBUTION]));
-    if(distT_m == "GAUSS")
-        distrTypeT_m = DistrTypeT::GAUSS;
-    else if(distT_m == "GUNGAUSSFLATTOPTH")
-        distrTypeT_m = DistrTypeT::GUNGAUSSFLATTOPTH;
-    else if(distT_m == "FROMFILE")
-        distrTypeT_m = DistrTypeT::FROMFILE;
-    else if(distT_m == "BINOMIAL")
-        distrTypeT_m = DistrTypeT::BINOMIAL;
+    setDistType();
 
     tPulseLengthFWHM_m = Attributes::getReal(itsAttr[AttributesT::TPULSEFWHM]);
     cutoff_m = Attributes::getReal(itsAttr[ LegacyAttributesT::CUTOFF]);
@@ -856,7 +849,7 @@ double Distribution::getFNParameterVYSecond() { return Attributes::getReal(itsAt
 int    Distribution::getSecondaryEmissionFlag() { return Attributes::getReal(itsAttr[AttributesT::SECONDARYFLAG]);}
 bool   Distribution::getEmissionMode() { return Attributes::getBool(itsAttr[AttributesT::NEMISSIONMODE]);}
 
-std::string Distribution::getTypeofDistribution() { return (std::string) Attributes::getString(itsAttr[AttributesT::DISTRIBUTION]);}
+std::string Distribution::getTypeofDistribution() { return (std::string) Attributes::getString(itsAttr[AttributesT::TYPE]);}
 
 double Distribution::getvSeyZero() {return Attributes::getReal(itsAttr[AttributesT::VSEYZERO]);}// return sey_0 in Vaughan's model
 double Distribution::getvEZero() {return Attributes::getReal(itsAttr[AttributesT::VEZERO]);}// return the energy related to sey_0 in Vaughan's model
@@ -1704,7 +1697,7 @@ void Distribution::createOpalE(Beam *beam,
         beamEnergy = Attributes::getReal(itsAttr[AttributesT::EKIN]);
         break;
     default:
-        *gmsg << "Only GAUSS and GUNGAUSSFLATTOPTH distribution types supported " << endl
+        *gmsg << "Only FLATTOP, GAUSS and GUNGAUSSFLATTOPTH distribution types supported " << endl
               << "in envelope mode. Assuming FLATTOP." << endl;
         distrTypeT_m = DistrTypeT::FLATTOP;
         setDistParametersFlattop(beam->getMass());
@@ -3588,8 +3581,9 @@ void Distribution::scaleDistCoordinates() {
 }
 
 void Distribution::setAttributes() {
-    itsAttr[AttributesT::DISTRIBUTION]
-        = Attributes::makeString("DISTRIBUTION","Distribution type: FROMFILE, "
+    itsAttr[AttributesT::TYPE]
+        = Attributes::makeString("TYPE","Distribution type: "
+                                 "FROMFILE, "
                                  "GAUSS, "
                                  "BINOMIAL, "
                                  "FLATTOP, "
@@ -3599,7 +3593,8 @@ void Distribution::setAttributes() {
                                  "ASTRAFLATTOPTH, "
                                  "GAUSS, "
                                  "GAUSSMATCHED");
-
+    itsAttr[AttributesT::DISTRIBUTION]
+        = Attributes::makeString("DISTRIBUTION","This attribute isn't supported any more. Use TYPE instead");
     itsAttr[AttributesT::LINE]
         = Attributes::makeString("LINE", "Beamline that contains a cyclotron or ring ", "");
     itsAttr[AttributesT::FMAPFN]
@@ -3991,8 +3986,12 @@ void Distribution::setDistToEmitted(bool emitted) {
 }
 
 void Distribution::setDistType() {
+    if (itsAttr[AttributesT::DISTRIBUTION]) {
+        throw OpalException("Distribution::setDistType()",
+                            "The attribute DISTRIBUTION isn't supported any more, use TYPE instead");
+    }
 
-    distT_m = Util::toUpper(Attributes::getString(itsAttr[AttributesT::DISTRIBUTION]));
+    distT_m = Util::toUpper(Attributes::getString(itsAttr[AttributesT::TYPE]));
     if (distT_m == "FROMFILE")
         distrTypeT_m = DistrTypeT::FROMFILE;
     else if(distT_m == "GAUSS")
@@ -4011,7 +4010,20 @@ void Distribution::setDistType() {
         distrTypeT_m = DistrTypeT::SURFACERANDCREATE;
     else if(distT_m == "GAUSSMATCHED")
         distrTypeT_m = DistrTypeT::MATCHEDGAUSS;
-
+    else {
+        throw OpalException("Distribution::setDistType()",
+                            "The distribution \"" + distT_m + "\" isnt'know.\n" +
+                            "Known distributions are:\n"
+                            "FROMFILE\n"
+                            "GAUSS\n"
+                            "BINOMIAL\n"
+                            "FLATTOP\n"
+                            "GUNGAUSSFLATTOPTH\n"
+                            "ASTRAFLATTTOPTH\n"
+                            "SURFACEEMISSION\n"
+                            "SURFACERANDCREATE\n"
+                            "GAUSSMATCHED");
+    }
 }
 
 void Distribution::setEmissionTime(double &maxT, double &minT) {
