@@ -293,11 +293,11 @@ void H5PartWrapper::copyHeader(
     h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(&buffer[0]);
     h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
 
-    const h5_int64_t H5TypesCHAR = H5T_NATIVE_CHAR;
-    const h5_int64_t H5TypesFLOAT = H5T_NATIVE_FLOAT;
-    const h5_int64_t H5TypesDOUBLE = H5T_NATIVE_DOUBLE;
-    const h5_int64_t H5TypesINT32 = H5T_NATIVE_INT32;
-    const h5_int64_t H5TypesINT64 = H5T_NATIVE_INT64;
+    const h5_int64_t H5TypesFLOAT = H5_FLOAT32_T;
+    const h5_int64_t H5TypesDOUBLE = H5_FLOAT64_T;
+    const h5_int64_t H5TypesINT32 = H5_INT32_T;
+    const h5_int64_t H5TypesINT64 = H5_INT64_T;
+    const h5_int64_t H5TypesSTRING = H5_STRING_T;
 
     for (h5_int64_t i = 0; i < numFileAttributes; ++ i) {
         REPORTONERROR(H5GetFileAttribInfo(source,
@@ -307,7 +307,8 @@ void H5PartWrapper::copyHeader(
                                           &attributeType,
                                           &numAttributeElements));
 
-        if (attributeType == H5TypesCHAR) {
+        if (//attributeType == H5TypesCHAR ||
+            attributeType == H5TypesSTRING) {
             if (buffer.size() < numAttributeElements) {
                 buffer.resize(numAttributeElements);
             }
@@ -348,7 +349,6 @@ void H5PartWrapper::copyHeader(
             WRITEFILEATTRIB(Int64, file_m, attributeName, i64buffer, numAttributeElements);
 
         } else {
-
             throw OpalException("H5PartWrapper::copyHeader",
                                 "unknown data type: " + std::to_string(attributeType));
         }
@@ -390,11 +390,11 @@ void H5PartWrapper::copyStepHeader(
     h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(&buffer[0]);
     h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
 
-    const h5_int64_t H5TypesCHAR = H5T_NATIVE_CHAR;
-    const h5_int64_t H5TypesFLOAT = H5T_NATIVE_FLOAT;
-    const h5_int64_t H5TypesDOUBLE = H5T_NATIVE_DOUBLE;
-    const h5_int64_t H5TypesINT32 = H5T_NATIVE_INT32;
-    const h5_int64_t H5TypesINT64 = H5T_NATIVE_INT64;
+    const h5_int64_t H5TypesCHAR = H5_STRING_T;
+    const h5_int64_t H5TypesFLOAT = H5_FLOAT32_T;
+    const h5_int64_t H5TypesDOUBLE = H5_FLOAT64_T;
+    const h5_int64_t H5TypesINT32 = H5_INT32_T;
+    const h5_int64_t H5TypesINT64 = H5_INT64_T;
 
     READSTEPATTRIB(String, source, "OPAL_flavour", &buffer[0]);
     predecessorOPALFlavour_m = std::string(&buffer[0]);
@@ -555,7 +555,7 @@ size_t H5PartWrapper::getNumParticles() const {
 
 // vi: set et ts=4 sw=4 sts=4:
 // Local Variables:
-// mode:c
+// mode:c++
 // c-basic-offset: 4
 // indent-tabs-mode:nil
 // End:
