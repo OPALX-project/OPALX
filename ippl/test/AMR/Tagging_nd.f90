@@ -57,23 +57,12 @@ subroutine state_error(tag,tag_lo,tag_hi, &
     integer          :: set,clear
     
     integer          :: i, j, k
-    double precision :: x, y, z
     
-    !   print *, "lo ", lo(:)
-    !   print *, "hi ", hi(:)
-    ! Tag on regions of high phi
     do       k = lo(3), hi(3)
-       z = problo(3) + k*dx(3) + 0.5d0*dx(3)
         do    j = lo(2), hi(2)
-           y = problo(2) + j*dx(2) + 0.5d0*dx(2)
             do i = lo(1), hi(1)
-                x = problo(1) + i*dx(1) + 0.5d0*dx(1)
-                if (x .ge. -0.125 .and. x .lt. 0.125 .and. &
-                    y .ge. -0.125 .and. y .lt. 0.125 .and. &
-                    z .ge. -0.125 .and. z .lt. 0.125) then
-                  tag(i,j,k) = set
-!                if (abs(state(i,j,k)) .ge. phierr) then
-!                    tag(i,j,k) = set
+               if (abs(state(i,j,k)) .ge. phierr) then
+                   tag(i,j,k) = set
                 endif
             enddo
         enddo
@@ -114,3 +103,53 @@ subroutine tag_potential_strength(tag, tag_lo, tag_hi, &
     enddo
     
 end subroutine tag_potential_strength
+
+!> Just tag 1/8 of the coarser domain. The tagged region is centered.
+!! @param tag integer tag array
+!! @param tag_lo lower index extent of tag array
+!! @param tag_hi upper index extent of tag array
+!! @param state is the state array
+!! @param set is the integer value to tag cell fo refinement
+!! @param clear is the integer value to untag a cell
+!! @param lo is the lower left corner of the work region we are allowed to change
+!! @param hi is the upper right corner of the work region we are allowed to change
+!! @param dx is the cell size
+!! @param problo is the physical location of the lower left corner of the problem domain
+!! @param time is the problem evolution time
+!! @param level is the refinement level of this array
+subroutine centered_region(tag,tag_lo,tag_hi, &
+                           state,state_lo,state_hi, &
+                           set,clear,&
+                           lo,hi,&
+                           dx,problo,time,phierr) bind(C, name="centered_region")
+
+    implicit none
+    
+    integer          :: lo(3),hi(3)
+    integer          :: state_lo(3),state_hi(3)
+    integer          :: tag_lo(3),tag_hi(3)
+    double precision :: state(state_lo(1):state_hi(1), &
+                              state_lo(2):state_hi(2), &
+                              state_lo(3):state_hi(3))
+    integer          :: tag(tag_lo(1):tag_hi(1),tag_lo(2):tag_hi(2),tag_lo(3):tag_hi(3))
+    double precision :: problo(3),dx(3),time,phierr
+    integer          :: set,clear
+    
+    integer          :: i, j, k
+    double precision :: x, y, z
+    
+    do       k = lo(3), hi(3)
+       z = problo(3) + k*dx(3) + 0.5d0*dx(3)
+        do    j = lo(2), hi(2)
+           y = problo(2) + j*dx(2) + 0.5d0*dx(2)
+            do i = lo(1), hi(1)
+                x = problo(1) + i*dx(1) + 0.5d0*dx(1)
+                if (x .ge. -0.125 .and. x .lt. 0.125 .and. &
+                    y .ge. -0.125 .and. y .lt. 0.125 .and. &
+                    z .ge. -0.125 .and. z .lt. 0.125) then
+                  tag(i,j,k) = set
+                endif
+            enddo
+        enddo
+    enddo
+end subroutine centered_region
