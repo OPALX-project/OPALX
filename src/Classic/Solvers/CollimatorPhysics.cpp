@@ -55,6 +55,7 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *eleme
 
     gsl_rng_env_setup();
     rGen_m = gsl_rng_alloc(gsl_rng_default);
+    gsl_rng_set(rGen_m, Options::seed);
 
     if(dynamic_cast<Collimator *>(element_ref_m)) {
         Collimator *coll = dynamic_cast<Collimator *>(element_ref_m);
