@@ -199,4 +199,9 @@
 
 \makeatother
 
-\input{version}
+\IfFileExists{./version.tex}{%
+  \input{version}%
+}%
+{%
+  \input{noversion}%
+}

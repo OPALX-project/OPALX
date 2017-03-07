@@ -1,6 +1,8 @@
 OPTION (ENABLE_DOCUMENTATION "Enable build of documentation" OFF)
 OPTION (EXCLUDE_DOC_FROM_ALL "Exclude the target doc from all" ON)
 
+configure_file(version.tex.in ${CMAKE_CURRENT_SOURCE_DIR}/version.tex)
+
 IF (ENABLE_DOCUMENTATION)
     project(opal_user_guide NONE)
 
@@ -11,8 +13,6 @@ IF (ENABLE_DOCUMENTATION)
     MESSAGE(STATUS "MAKEINDEX_COMPILER is '${MAKEINDEX_COMPILER}'")
     MESSAGE(STATUS "BIBER_COMPILER is '${BIBER_COMPILER}'")
     MESSAGE(STATUS "")
-
-    configure_file(version.tex.in ${CMAKE_CURRENT_SOURCE_DIR}/version.tex)
 
     IF (EXCLUDE_DOC_FROM_ALL)
         add_latex_document(opal_user_guide.tex
