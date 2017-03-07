@@ -152,9 +152,6 @@ void SurfacePhysics::updateElement(ElementBase *element) {
 void SurfacePhysics::print(std::ostream &os) const {
     os << "* ************* S U R F A C E P H Y S I C S **************************************** " << std::endl;
     os << "* SURFACEPHYSICS " << getOpalName() << '\n'
-       << "* MATERIAL       " << Attributes::getString(itsAttr[MATERIAL]) << '\n'
-      //    << "* RADIUS         " << Attributes::getReal(itsAttr[RADIUS]) << '\n'
-      // << "* SIGMA          " << Attributes::getReal(itsAttr[SIGMA]) << '\n'
-      // << "* TAU            " << Attributes::getReal(itsAttr[TAU]) << '\n';
+       << "* MATERIAL       " << Attributes::getString(itsAttr[MATERIAL]) << '\n';
     os << "* ********************************************************************************** " << std::endl;
 }
