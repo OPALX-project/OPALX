@@ -72,6 +72,8 @@ ErrorField::ErrorField():
     itsAttr[ROT] = Attributes::makeRealArray
                    ("ROT", "Rotation angles in rad");
     itsAttr[ROT].setDeferred(true);
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
 

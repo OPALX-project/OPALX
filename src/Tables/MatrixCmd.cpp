@@ -53,6 +53,8 @@ MatrixCmd::MatrixCmd():
                      ("TABLE", "Name of table to be listed");
     itsAttr[FNAME] = Attributes::makeString
                      ("FILE", "Name of file to receive output", "MATRIX");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

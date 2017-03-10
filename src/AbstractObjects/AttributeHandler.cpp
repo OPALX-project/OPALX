@@ -24,6 +24,11 @@
 // Class AttributeHandler
 // ------------------------------------------------------------------------
 
+std::multimap<std::string,
+              std::pair<AttributeHandler::OwnerType,
+                        std::string>
+              > AttributeHandler::attributeOwnerDictionary_s;
+
 AttributeHandler::AttributeHandler
 (const std::string &name, const std::string &help, AttributeBase *def):
     RCObject(), itsName(name), itsHelp(help), itsDefault(def),
@@ -89,3 +94,28 @@ void AttributeHandler::setReadOnly(bool flag) {
     is_readonly = flag;
 }
 
+std::multimap<AttributeHandler::OwnerType, std::string> AttributeHandler::getOwner(const std::string &att) {
+    std::multimap<OwnerType, std::string> possibleOwners;
+
+    if (attributeOwnerDictionary_s.find(att) != attributeOwnerDictionary_s.end()) {
+        auto its = attributeOwnerDictionary_s.equal_range(att);
+
+        for (auto it = its.first; it != its.second; ++ it) {
+            auto owner = it->second;
+
+            possibleOwners.insert(std::make_pair(owner.first, owner.second));
+        }
+    }
+
+    return possibleOwners;
+}
+
+void AttributeHandler::addAttributeOwner(const std::string &owner,
+                                         const AttributeHandler::OwnerType &type,
+                                         const std::string &name) {
+    attributeOwnerDictionary_s.insert(std::make_pair(name,
+                                                     std::make_pair(type,
+                                                                    owner)
+                                                     )
+                                      );
+}

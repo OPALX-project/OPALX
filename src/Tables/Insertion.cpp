@@ -93,6 +93,8 @@ Insertion::Insertion():
     itsAttr[DELTAP] = Attributes::makeReal
                       ("DELTAP", "Differential momentum variation");
     itsAttr[DELTAP].setReadOnly(true);
+
+    registerOwnership(AttributeHandler::COMMAND);
 }
 
 

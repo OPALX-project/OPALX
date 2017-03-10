@@ -469,7 +469,7 @@ Twiss::Twiss(int size, const char *name, const char *help):
     itsAttr[DXRMS].setReadOnly(true);
 
     itsAttr[DYRMS] = Attributes::makeReal
-                     ("DYRMS", "R.m.s. verticla dispersion in m");
+                     ("DYRMS", "R.m.s. vertical dispersion in m");
     itsAttr[DYRMS].setReadOnly(true);
 }
 

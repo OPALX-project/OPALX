@@ -225,8 +225,12 @@ void OpalBeamline::compute3DLattice() {
         CoordinateSystemTrafo currentCoordTrafo = coordTransformationTo_m;
 
         elements_m.sort([](const ClassicField& a, const ClassicField& b) {
-                double edgeA = a.getElement()->getAttribute("ELEMEDGE");
-                double edgeB = b.getElement()->getAttribute("ELEMEDGE");
+                double edgeA = 0.0, edgeB = 0.0;
+                if (a.getElement()->isElementPositionSet())
+                    edgeA = a.getElement()->getElementPosition();
+
+                if (b.getElement()->isElementPositionSet())
+                    edgeB = b.getElement()->getElementPosition();
 
                 return edgeA < edgeB;
             });
@@ -241,7 +245,7 @@ void OpalBeamline::compute3DLattice() {
                 element->getType() == ElementBase::RBEND ||
                 element->getType() == ElementBase::RBEND3D) {
 
-                double beginThisPathLength = element->getAttribute("ELEMEDGE");
+                double beginThisPathLength = element->getElementPosition();
                 Vector_t beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
                 BendBase * bendElement = static_cast<BendBase*>(element.get());
                 double thisLength = bendElement->getChordLength();
@@ -302,7 +306,7 @@ void OpalBeamline::compute3DLattice() {
         (*it).order_m = order ++;
 
         std::shared_ptr<Component> element = (*it).getElement();
-        double beginThisPathLength = element->getAttribute("ELEMEDGE");
+        double beginThisPathLength = element->getElementPosition();
         double thisLength = element->getElementLength();
         Vector_t beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
 
@@ -358,7 +362,7 @@ void OpalBeamline::compute3DLattice() {
 
             // if (priorDipole != it) {
             //     Bend * bendElement = static_cast<Bend*>((*priorDipole).getElement().get());
-            //     double pathDifference = beginThisPathLength - bendElement->getAttribute("ELEMEDGE");
+            //     double pathDifference = beginThisPathLength - bendElement->getElementPosition();
 
             //     auto secant = bendElement->getDesignPathSecant(pathDifference, thisLength);
             //     Vector_t position = (*priorDipole).getCoordTransformationTo().transformFrom(secant.first);
@@ -393,8 +397,14 @@ void OpalBeamline::plot3DLattice() {
     if (Ippl::myNode() != 0) return;
 
     elements_m.sort([](const ClassicField& a, const ClassicField& b) {
-            return a.getElement()->getAttribute("ELEMEDGE") < b.getElement()->getAttribute("ELEMEDGE");
-            //return a.order_m < b.order_m;
+            double edgeA = 0.0, edgeB = 0.0;
+            if (a.getElement()->isElementPositionSet())
+                edgeA = a.getElement()->getElementPosition();
+
+            if (b.getElement()->isElementPositionSet())
+                edgeB = b.getElement()->getElementPosition();
+
+            return edgeA < edgeB;
         });
 
     FieldList::iterator it = elements_m.begin();
@@ -716,7 +726,7 @@ FieldList::iterator OpalBeamline::partiallyInsideDipole(const FieldList::iterato
     while (true) {
         std::shared_ptr<Component> element = (*prior).getElement();
 
-        if ((*prior).getEnd() > /*(*it).getStart()*/ (*it).getElement()->getAttribute("ELEMEDGE") &&
+        if ((*prior).getEnd() > /*(*it).getStart()*/ (*it).getElement()->getElementPosition() &&
             (element->getType() == ElementBase::SBEND ||
              element->getType() == ElementBase::RBEND)) {
 
@@ -738,8 +748,8 @@ FieldList::iterator OpalBeamline::partiallyInsideDipole(const FieldList::iterato
 
         if ((element->getType() == ElementBase::SBEND ||
              element->getType() == ElementBase::RBEND) &&
-            (*it).getElement()->getAttribute("ELEMEDGE") > (*next).getStart() &&
-            (*it).getElement()->getAttribute("ELEMEDGE") < (*next).getEnd()) {
+            (*it).getElement()->getElementPosition() > (*next).getStart() &&
+            (*it).getElement()->getElementPosition() < (*next).getEnd()) {
 
             if ((*next).order_m >= minOrder)
                 return next;

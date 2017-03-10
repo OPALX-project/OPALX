@@ -43,7 +43,7 @@ const std::string OpalGlobalCylindricalOffset::doc_string =
 
 OpalGlobalCylindricalOffset::OpalGlobalCylindricalOffset()
        : OpalElement(int(SIZE),
-                     "LOCAL_CYLINDRICAL_OFFSET",
+                     "GLOBAL_CYLINDRICAL_OFFSET",
                      doc_string.c_str()) {
     itsAttr[RADIUS] = Attributes::makeReal("RADIUS",
              "Angle between the previous element and the displacement vector.");
@@ -54,6 +54,8 @@ OpalGlobalCylindricalOffset::OpalGlobalCylindricalOffset()
     registerRealAttribute("RADIUS");
     registerRealAttribute("AZIMUTHAL_ANGLE");
     registerRealAttribute("TANGENTIAL_OFFSET");
+
+    registerOwnership();
 }
 
 OpalGlobalCylindricalOffset* OpalGlobalCylindricalOffset::clone(const std::string &name) {

@@ -45,6 +45,8 @@ OpalWire::OpalWire():
     registerRealAttribute("XPOS");
     registerRealAttribute("YPOS");
 
+    registerOwnership();
+
     setElement((new CollimatorRep("WIRE"))->makeAlignWrapper());
 }
 

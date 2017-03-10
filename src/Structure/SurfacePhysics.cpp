@@ -76,6 +76,8 @@ SurfacePhysics::SurfacePhysics():
     } catch(...) {
         delete defSurfacePhysics;
     }
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 
