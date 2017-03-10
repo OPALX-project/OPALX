@@ -35,6 +35,8 @@ EditCycle::EditCycle():
            "by cyclic interchange.") {
     itsAttr[0] = Attributes::makePlace
                  ("START", "The new start position for the sequence");
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
 

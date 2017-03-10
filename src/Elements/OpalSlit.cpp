@@ -40,6 +40,8 @@ OpalSlit::OpalSlit():
     registerRealAttribute("XSIZE");
     registerRealAttribute("YSIZE");
 
+    registerOwnership();
+
     setElement((new CollimatorRep("SLIT"))->makeAlignWrapper());
 }
 

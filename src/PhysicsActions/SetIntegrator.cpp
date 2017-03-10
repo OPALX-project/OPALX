@@ -151,6 +151,8 @@ SetIntegrator::SetIntegrator():
                     ("TYPE", "Type of integrator to be attached: default = THIN", "THIN");
     itsAttr[SLICES] = Attributes::makeReal
                       ("SLICES", "Number of slices to be used for \"TYPE=THIN\"", 1.0);
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

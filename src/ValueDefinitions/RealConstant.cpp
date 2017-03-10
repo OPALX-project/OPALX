@@ -38,6 +38,8 @@ RealConstant::RealConstant():
                     "\tREAL CONSTANT <name> = <real-expression>;\n") {
     itsAttr[0] = Attributes::makeReal("VALUE", "The constant value", 0.0);
 
+    registerOwnership(AttributeHandler::STATEMENT);
+
     // Define the standard constants.
     OpalData *opal = OpalData::getInstance();
     opal->create(new RealConstant("PI",     this, Physics::pi));

@@ -76,6 +76,8 @@ ErrorComp::ErrorComp():
     itsAttr[DKS] = Attributes::makeRealArray
                    ("DKS", "Absolute skewed error components in m^(-n)");
     itsAttr[DKS].setDeferred(true);
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
 

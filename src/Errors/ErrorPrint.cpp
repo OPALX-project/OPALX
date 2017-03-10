@@ -64,6 +64,8 @@ ErrorPrint::ErrorPrint():
                       ("RADIUS", "Normalising radius in m", 1.0);
     itsAttr[ORDER] = Attributes::makeReal
                      ("ORDER", "Order of component used for normalisation");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

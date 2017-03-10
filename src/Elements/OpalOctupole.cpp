@@ -47,6 +47,8 @@ OpalOctupole::OpalOctupole():
     itsAttr[DK3S] = Attributes::makeReal
                    ("DK3S", "Normalised skew octupole coefficient error in m^(-4)");
 
+    registerOwnership();
+
     setElement((new MultipoleRep("OCTUPOLE"))->makeWrappers());
 }
 

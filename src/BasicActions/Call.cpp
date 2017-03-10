@@ -39,6 +39,8 @@ Call::Call():
            "named file.") {
     itsAttr[0] =
         Attributes::makeString("FILE", "Name of file to be read", "CALL");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

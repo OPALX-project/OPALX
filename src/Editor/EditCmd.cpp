@@ -31,6 +31,16 @@ EditCmd::EditCmd():
            "The \"SEQEDIT\" command specifies a sequence for editing.") {
     itsAttr[0] = Attributes::makeString
                  ("SEQUENCE", "Name of sequence to be edited");
+
+    registerOwnership(AttributeHandler::COMMAND);
+    AttributeHandler::addAttributeOwner("SEQEDIT", AttributeHandler::COMMAND, "REPLACE");
+    AttributeHandler::addAttributeOwner("SEQEDIT", AttributeHandler::COMMAND, "SELECT");
+    AttributeHandler::addAttributeOwner("SEQEDIT", AttributeHandler::COMMAND, "ENDEDIT");
+    AttributeHandler::addAttributeOwner("SEQEDIT", AttributeHandler::COMMAND, "MOVE");
+    AttributeHandler::addAttributeOwner("SEQEDIT", AttributeHandler::COMMAND, "INSTALL");
+    AttributeHandler::addAttributeOwner("SEQEDIT", AttributeHandler::COMMAND, "FLATTEN");
+    AttributeHandler::addAttributeOwner("SEQEDIT", AttributeHandler::COMMAND, "CYCLE");
+    AttributeHandler::addAttributeOwner("SEQEDIT", AttributeHandler::COMMAND, "REMOVE");
 }
 
 

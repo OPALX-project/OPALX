@@ -38,6 +38,8 @@ OpalDegrader::OpalDegrader():
 
     registerStringAttribute("OUTFN");
 
+    registerOwnership();
+
     setElement((new DegraderRep("DEGRADER"))->makeAlignWrapper());
 }
 

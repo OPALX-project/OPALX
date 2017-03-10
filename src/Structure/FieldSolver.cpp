@@ -138,6 +138,8 @@ FieldSolver::FieldSolver():
     PL_m = 0;
 
     solver_m = 0;
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

@@ -43,6 +43,8 @@ OpalHKicker::OpalHKicker():
     registerRealAttribute("DESIGNENERGY");
     registerRealAttribute("K0");
 
+    registerOwnership();
+
     setElement((new XCorrectorRep("HKICKER"))->makeWrappers());
 }
 
