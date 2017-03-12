@@ -100,15 +100,13 @@ void OpalParser::parse(Statement &stat) const {
 
             std::string name = tok.getLex();
             std::string hint = getHint(name);
-            if (hint != "") {
-                unsigned int position = stat.position();
-                std::string positionIndicator = std::string(position, ' ') + "^\n";
+            unsigned int position = stat.position();
+            std::string positionIndicator = std::string(position, ' ') + "^\n";
 
-                throw ParseError("OpalParser::parse()",
-                                 positionIndicator +
-                                 "Syntax error, either the keyword REAL is missing or\n" +
-                                 hint);
-            }
+            throw ParseError("OpalParser::parse()",
+                             positionIndicator +
+                             "Syntax error, either the keyword REAL is missing or\n" +
+                             hint);
 
             parseAssign(stat);
         }
