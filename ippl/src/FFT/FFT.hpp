@@ -1148,7 +1148,7 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
 				       typename FFT<RCTransform,Dim,T>::RealField_t& f,
 				       void* real_ptr,
 				       void* comp_ptr,
-				       DKSBase &dksbase,
+				       DKSOPAL &dksbase,
 				       int streamId,
 				       const bool& constInput)
 {
@@ -1866,7 +1866,7 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
 				       RealField_t& g,
 				       void* real_ptr,
 				       void* comp_ptr,
-				       DKSBase &dksbase,
+				       DKSOPAL &dksbase,
 				       int streamId,
 				       const bool& constInput)
 {

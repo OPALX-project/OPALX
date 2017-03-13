@@ -58,7 +58,7 @@
 
 //DKS include
 #ifdef IPPL_DKS
-#include "DKSBase.h"
+#include "DKSOPAL.h"
 #endif
 
 
@@ -98,7 +98,7 @@ public:
 
 
 #ifdef IPPL_DKS
-  static DKSBase *DKS;
+  static DKSOPAL *DKS;
 #endif
 
   // Constructor 1: specify the argc, argv values from the cmd line.
