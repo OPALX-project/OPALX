@@ -19,7 +19,7 @@
 #include "FFT/FFTBase.h"
 
 #ifdef IPPL_DKS
-#include "DKSBase.h"
+#include "DKSOPAL.h"
 #endif
 
 // forward declarations
@@ -64,7 +64,7 @@ class FFT<CCTransform,Dim,T> : public FFTBase<Dim,T> {
 
 private:
 #ifdef IPPL_DKS
-  DKSBase base;
+  DKSOPAL base;
 #endif
 
 public:
@@ -435,12 +435,6 @@ template <unsigned Dim, class T>
 class FFT<RCTransform,Dim,T> : public FFTBase<Dim,T> {
 
 private:
-/*
-#ifdef IPPL_DKS
-  DKSBase base;
-  int fftStreamId;
-#endif
-*/
 
 public:
 
@@ -489,7 +483,7 @@ public:
   */     
 #ifdef IPPL_DKS
   void transformDKSRC(int direction, RealField_t &f, void* real_ptr, void* comp_ptr,
-		      DKSBase &dksbase, int streamId = -1, const bool& constInput=false);
+		      DKSOPAL &dksbase, int streamId = -1, const bool& constInput=false);
 #endif
   /** complex-to-real FFT
       Same as above, but with input and output field types reversed.
@@ -504,7 +498,7 @@ public:
   */
 #ifdef IPPL_DKS
   void transformDKSCR(int direction, RealField_t& g, void* real_ptr, void* comp_ptr, 
-		      DKSBase &dksbase, int streamId = -1, const bool& constInput=false);
+		      DKSOPAL &dksbase, int streamId = -1, const bool& constInput=false);
 #endif
 
 private:

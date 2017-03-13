@@ -33,7 +33,7 @@
 #include "PoissonSolver.h"
 
 #ifdef OPAL_DKS
-#include "DKSBase.h"
+#include "DKSOPAL.h"
 #include "nvToolsExt.h"
 #endif
 
@@ -51,7 +51,7 @@ public:
     ~FFTPoissonSolver();
 
 #ifdef OPAL_DKS
-    DKSBase dksbase;
+    DKSOPAL dksbase;
 #endif
 
     // given a charge-density field rho and a set of mesh spacings hr,
