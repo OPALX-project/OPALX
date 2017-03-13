@@ -91,6 +91,11 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     CoordinateSystemTrafo labToRef(beamline.getOrigin3D(),
                                    beamline.getCoordTransformationTo().conjugate());
     referenceToLabCSTrafo_m = labToRef.inverted();
+
+    #ifdef OPAL_DKS
+    if (IpplInfo::DKSEnabled)
+        setupDKS();
+    #endif
 }
 
 ParallelTTracker::ParallelTTracker(const Beamline &beamline,
@@ -143,9 +148,18 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     for (std::vector<double>::const_iterator it = zstop.begin(); it != zstop.end(); ++ it) {
         zStop_m.push(*it);
     }
+
+    #ifdef OPAL_DKS
+    if (IpplInfo::DKSEnabled)
+        setupDKS();
+    #endif
 }
 
 ParallelTTracker::~ParallelTTracker() {
+    #ifdef OPAL_DKS
+    if (IpplInfo::DKSEnabled)
+        delete dksbase;
+    #endif
 }
 
 void ParallelTTracker::visitBeamline(const Beamline &bl) {
@@ -331,6 +345,11 @@ void ParallelTTracker::execute() {
 
     itsBunch_m->toLabTrafo_m = referenceToLabCSTrafo_m;
 
+    #ifdef OPAL_DKS
+    if (IpplInfo::DKSEnabled)
+        allocateDeviceMemory();
+    #endif
+
     // loggingFrequency_m = floor(1e-11/itsBunch_m->getdT() + 0.5);
     globalEOL_m = false;
     wakeStatus_m = false;
@@ -415,6 +434,11 @@ void ParallelTTracker::execute() {
     OPALTimer::Timer myt3;
     *gmsg << "done executing ParallelTTracker at " << myt3.time() << endl;
 
+    #ifdef OPAL_DKS
+    if (IpplInfo::DKSEnabled)
+        freeDeviceMemory();
+    #endif
+
     LossDataSink::writeStatistics();
 
     OpalData::getInstance()->setPriorTrack();
@@ -429,8 +453,14 @@ void ParallelTTracker::prepareSections() {
 void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
 
     IpplTimings::startTimer(timeIntegrationTimer1_m);
-
+#ifdef OPAL_DKS
+    if (IpplInfo::DKSEnabled)
+        pushParticlesDKS();
+    else
+        pushParticles(pusher);
+#else
     pushParticles(pusher);
+#endif
 
     IpplTimings::stopTimer(timeIntegrationTimer1_m);
 }
@@ -456,15 +486,26 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
     */
 
     IpplTimings::startTimer(timeIntegrationTimer2_m);
+    #ifdef OPAL_DKS
+    if (IpplInfo::DKSEnabled) {
+        kickParticlesDKS();
+        pushParticlesDKS(false);
+    } else {
+        kickParticles(pusher);
+        pushParticles(pusher);
+    }
+    #else
     kickParticles(pusher);
 
     //switchElements();
     pushParticles(pusher);
+    #endif
 
     const unsigned int localNum = itsBunch_m->getLocalNum();
     for (unsigned int i = 0; i < localNum; ++ i) {
         itsBunch_m->dt[i] = itsBunch_m->getdT();
     }
+
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
 
