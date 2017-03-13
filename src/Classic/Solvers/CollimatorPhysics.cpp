@@ -1071,9 +1071,6 @@ void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch,
 
     if (curandInitSet == -1) {
 
-      std::cout << std::endl << " DEBUG: setup, num particles" << numParticlesInSimulation 
-		<< std::endl << std::endl;
-
         IpplTimings::startTimer(DegraderInitTimer_m);
 
         //int size = bunch.getLocalNum() + 0.5 * bunch.getLocalNum();
@@ -1094,7 +1091,7 @@ void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch,
         locParts_m.reserve(size);
 
         //init curand
-        dksbase.callInitRandoms(size);
+        dksbase.callInitRandoms(size, Options::seed);
         curandInitSet = 1;
 
         //create and transfer parameter array
