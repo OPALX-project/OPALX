@@ -19,7 +19,7 @@
 #include "Utility/IpplTimings.h"
 
 #ifdef OPAL_DKS
-#include "DKSBase.h"
+#include "DKSOPAL.h"
 #endif
 
 class ElementBase;
@@ -104,7 +104,8 @@ private:
     void addBackToBunch(PartBunch &bunch, unsigned i);
 
 #ifdef OPAL_DKS
-    void copyFromBunchDKS(PartBunch &bunch);
+  void copyFromBunchDKS(PartBunch &bunch, 
+			const std::pair<Vector_t, double> &boundingSphere);
     void addBackToBunchDKS(PartBunch &bunch, unsigned i);
 
     void setupCollimatorDKS(PartBunch &bunch, size_t numParticlesInSimulation);
@@ -175,7 +176,7 @@ private:
     std::unique_ptr<LossDataSink> lossDs_m;
 
 #ifdef OPAL_DKS
-    DKSBase dksbase;
+    DKSOPAL dksbase;
     int curandInitSet;
 
     int ierr;
