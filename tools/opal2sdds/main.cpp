@@ -215,27 +215,48 @@ void writeSDDSFile(const std::string &fname, const data_t &data, const attribute
                                                         {"xp", "1"},
                                                         {"yp", "1"},
                                                         {"p", "beta * gamma"}};
+    const std::map<std::string, std::string> nameSymbol {{"x", "x"},
+                                                        {"y", "y"},
+                                                        {"t", "t"},
+                                                        {"xp", "x'"},
+                                                        {"yp", "y'"},
+                                                        {"p", "p"}};
     SDDS_DATASET SDDS_dataset;
     const long rows = data.at("x").size();
     std::vector<std::vector<double> > fileData;
 
-    char buffer[256];
-    strcpy(buffer, fname.c_str());
-    if (SDDS_InitializeOutput(&SDDS_dataset, form, 1, "extracted OPAL data", NULL, buffer ) != 1) {
+    char buffer0[256];
+    char buffer1[64];
+    char buffer2[8];
+
+    strcpy(buffer0, fname.c_str());
+    strcpy(buffer1, "extracted OPAL data");
+    if (SDDS_InitializeOutput(&SDDS_dataset, form, 1, buffer1, NULL, buffer0 ) != 1) {
         std::cerr << "Error: couldn't open file '" << fname << "'\n" << std::endl;
         std::exit(1);
     }
 
     for (auto at: attr) {
-            std::cerr << at.name << "\t" << at.unit << std::endl;
-        if (SDDS_DefineSimpleParameter(&SDDS_dataset, at.name.c_str(), at.unit.c_str(), SDDS_DOUBLE) != 1) {
+        strcpy(buffer0, at.name.c_str());
+        strcpy(buffer1, at.unit.c_str());
+        if (SDDS_DefineSimpleParameter(&SDDS_dataset, buffer0, buffer1, SDDS_DOUBLE) != 1) {
             std::cerr << "Error: couldn't append parameter '" << at.name << "'\n" << std::endl;
             std::exit(1);
         }
     }
 
     for (auto names: nameConversion) {
-        if (SDDS_DefineSimpleColumn(&SDDS_dataset, names.first.c_str(), nameUnits.at(names.first).c_str(), SDDS_DOUBLE) != 1) {
+        strcpy(buffer0, names.first.c_str());
+        strcpy(buffer2, nameSymbol.at(names.first).c_str());
+        strcpy(buffer1, nameUnits.at(names.first).c_str());
+        if (SDDS_DefineColumn(&SDDS_dataset,
+                              buffer0,
+                              buffer2,
+                              buffer1,
+                              NULL,
+                              NULL,
+                              SDDS_DOUBLE,
+                              0) != 1) {
             std::cerr << "Error: couldn't append column '" << names.first << "'\n" << std::endl;
             std::exit(1);
         }
