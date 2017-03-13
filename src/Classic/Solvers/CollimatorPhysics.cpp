@@ -302,7 +302,7 @@ void CollimatorPhysics::apply(PartBunch &bunch,
     if (collshape_m == DEGRADER && IpplInfo::DKSEnabled) {
 
         //if firs call to apply setup needed accelerator resources
-        setupCollimatorDKS(bunch, deg, numParticlesInSimulation);
+        setupCollimatorDKS(bunch, numParticlesInSimulation);
 
         int numaddback;
         do {
@@ -365,9 +365,7 @@ void CollimatorPhysics::apply(PartBunch &bunch,
             IpplTimings::stopTimer(DegraderLoopTimer_m);
 
             if (onlyOneLoopOverParticles)
-                copyFromBunchDKS(bunch);
-
-            //bunch.boundp();
+	      copyFromBunchDKS(bunch, boundingSphere);
 
             T_m += dT_m;
 
@@ -996,10 +994,24 @@ void CollimatorPhysics::addBackToBunchDKS(PartBunch &bunch, unsigned i) {
 
     dksParts_m[i].label = -1.0;
 
+    ++ redifusedStat_m;
+
 }
 
-void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch)
+void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch, 
+					 const std::pair<Vector_t, double> &boundingSphere)
 {
+    const size_t nL = bunch.getLocalNum();
+    if (nL == 0) return;
+
+    IpplTimings::startTimer(DegraderDestroyTimer_m);
+    double zmax = boundingSphere.first(2) + boundingSphere.second;
+    double zmin = boundingSphere.first(2) - boundingSphere.second;
+    if (zmax < 0.0 || zmin > element_ref_m->getElementLength()) {
+        IpplTimings::stopTimer(DegraderDestroyTimer_m);
+        return;
+    }
+
     Degrader   *deg  = NULL;
     Collimator *coll = NULL;
 
@@ -1008,8 +1020,6 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch)
     else
         coll = static_cast<Collimator *>(element_ref_m);
 
-
-    const size_t nL = bunch.getLocalNum();
     size_t ne = 0;
     const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore();
 
@@ -1048,6 +1058,10 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch)
             bunch.destroy(1, i);
         }
     }
+    if (ne > 0) {
+      bunch.performDestroy(true);
+    }
+    IpplTimings::stopTimer(DegraderDestroyTimer_m);
 
 }
 
@@ -1056,6 +1070,9 @@ void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch,
 {
 
     if (curandInitSet == -1) {
+
+      std::cout << std::endl << " DEBUG: setup, num particles" << numParticlesInSimulation 
+		<< std::endl << std::endl;
 
         IpplTimings::startTimer(DegraderInitTimer_m);
 
@@ -1085,7 +1102,7 @@ void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch,
         double zBegin, zEnd;
         deg->getDimensions(zBegin, zEnd);
 
-        double params[numpar] = {zBegin, deg->getZSize(), rho_m, Z_m,
+        double params[numpar] = {zBegin, zEnd, rho_m, Z_m,
                                  A_m, A2_c, A3_c, A4_c, A5_c, X0_m, I_m, dT_m
                                 };
         dksbase.writeDataAsync<double>(par_ptr, params, numpar);
@@ -1101,72 +1118,6 @@ void CollimatorPhysics::clearCollimatorDKS() {
         dksbase.freeMemory<double>(par_ptr, numpar);
         dksbase.freeMemory<PART_DKS>(mem_ptr, maxparticles);
         curandInitSet = -1;
-    }
-
-}
-
-void CollimatorPhysics::applyHost(PartBunch &bunch) {
-
-    Degrader   *deg  = NULL;
-    Collimator *coll = NULL;
-
-    if (collshape_m == DEGRADER) {
-        deg = static_cast<Degrader *>(element_ref_m);
-    }
-    else {
-        coll = static_cast<Collimator *>(element_ref_m);
-    }
-
-    //loop trough particles in dksParts_m
-    for (unsigned int i = 0; i < dksParts_m.size(); ++i) {
-        if (dksParts_m[i].label != -1) {
-            bool pdead = false;
-            Vector_t &R = dksParts_m[i].Rincol;
-            Vector_t &P = dksParts_m[i].Pincol;
-            double Eng = (sqrt(1.0  + dot(P, P)) - 1) * m_p;
-
-            if (checkHit(R, P, dT_m, deg, coll)) {
-                EnergyLoss(Eng, pdead, dT_m);
-
-                if (!pdead) {
-
-                    double ptot =  sqrt((m_p + Eng) * (m_p + Eng) - (m_p) * (m_p)) / m_p;
-                    P = P * ptot / sqrt(dot(P, P));
-                    /*
-                      Now scatter and transport particle in material.
-                      The checkInColl call just above will detect if the
-                      particle is rediffused from the material into vacuum.
-                    */
-
-                    CoulombScat(R, P, dT_m);
-
-                    dksParts_m[i].Rincol = R;
-                    dksParts_m[i].Pincol = P;
-
-                    calcStat(Eng);
-
-                } else {
-                    // The particle is stopped in the material, set lable_m to -1
-                    dksParts_m[i].label = -1.0;
-                    stoppedPartStat_m++;
-                    lossDs_m->addParticle(R, P, -locParts_m[dksParts_m[i].localID].IDincol);
-                }
-            } else {
-                /* The particle exits the material but is still in the loop of the substep,
-                   Finish the timestep by letting the particle drift and after the last
-                   substep call addBackToBunch
-                */
-                double gamma = (Eng + m_p) / m_p;
-                double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
-                if (collshape_m == CCOLLIMATOR) {
-                    R = R + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) * 1000;
-                } else {
-                    dksParts_m[i].Rincol = dksParts_m[i].Rincol + dT_m * Physics::c * P / sqrt(1.0 + dot(P, P)) ;
-                    addBackToBunchDKS(bunch, i);
-                    redifusedStat_m++;
-                }
-            }
-        }
     }
 
 }
