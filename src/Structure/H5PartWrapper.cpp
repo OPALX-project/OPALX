@@ -293,12 +293,6 @@ void H5PartWrapper::copyHeader(
     h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(&buffer[0]);
     h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
 
-    const h5_int64_t H5TypesFLOAT = H5_FLOAT32_T;
-    const h5_int64_t H5TypesDOUBLE = H5_FLOAT64_T;
-    const h5_int64_t H5TypesINT32 = H5_INT32_T;
-    const h5_int64_t H5TypesINT64 = H5_INT64_T;
-    const h5_int64_t H5TypesSTRING = H5_STRING_T;
-
     for (h5_int64_t i = 0; i < numFileAttributes; ++ i) {
         REPORTONERROR(H5GetFileAttribInfo(source,
                                           i,
@@ -307,8 +301,7 @@ void H5PartWrapper::copyHeader(
                                           &attributeType,
                                           &numAttributeElements));
 
-        if (//attributeType == H5TypesCHAR ||
-            attributeType == H5TypesSTRING) {
+        if (attributeType == H5_STRING_T) {
             if (buffer.size() < numAttributeElements) {
                 buffer.resize(numAttributeElements);
             }
@@ -316,7 +309,7 @@ void H5PartWrapper::copyHeader(
             READFILEATTRIB(String, source, attributeName, &buffer[0]);
             WRITESTRINGFILEATTRIB(file_m, attributeName, &buffer[0]);
 
-        } else if (attributeType == H5TypesFLOAT) {
+        } else if (attributeType == H5_FLOAT32_T) {
             if (buffer.size() < numAttributeElements * sizeof(h5_float32_t)) {
                 buffer.resize(numAttributeElements * sizeof(h5_float32_t));
             }
@@ -324,7 +317,7 @@ void H5PartWrapper::copyHeader(
             READFILEATTRIB(Float32, source, attributeName, f32buffer);
             WRITEFILEATTRIB(Float32, file_m, attributeName, f32buffer, numAttributeElements);
 
-        } else if (attributeType == H5TypesDOUBLE) {
+        } else if (attributeType == H5_FLOAT64_T) {
             if (buffer.size() < numAttributeElements * sizeof(h5_float64_t)) {
                 buffer.resize(numAttributeElements * sizeof(h5_float64_t));
             }
@@ -332,7 +325,7 @@ void H5PartWrapper::copyHeader(
             READFILEATTRIB(Float64, source, attributeName, f64buffer);
             WRITEFILEATTRIB(Float64, file_m, attributeName, f64buffer, numAttributeElements);
 
-        } else if (attributeType == H5TypesINT32) {
+        } else if (attributeType == H5_INT32_T) {
             if (buffer.size() < numAttributeElements * sizeof(h5_int32_t)) {
                 buffer.resize(numAttributeElements * sizeof(h5_int32_t));
             }
@@ -340,7 +333,7 @@ void H5PartWrapper::copyHeader(
             READFILEATTRIB(Int32, source, attributeName, i32buffer);
             WRITEFILEATTRIB(Int32, file_m, attributeName, i32buffer, numAttributeElements);
 
-        } else if (attributeType == H5TypesINT64) {
+        } else if (attributeType == H5_INT64_T) {
             if (buffer.size() < numAttributeElements * sizeof(h5_int64_t)) {
                 buffer.resize(numAttributeElements * sizeof(h5_int64_t));
             }
@@ -390,12 +383,6 @@ void H5PartWrapper::copyStepHeader(
     h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(&buffer[0]);
     h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
 
-    const h5_int64_t H5TypesCHAR = H5_STRING_T;
-    const h5_int64_t H5TypesFLOAT = H5_FLOAT32_T;
-    const h5_int64_t H5TypesDOUBLE = H5_FLOAT64_T;
-    const h5_int64_t H5TypesINT32 = H5_INT32_T;
-    const h5_int64_t H5TypesINT64 = H5_INT64_T;
-
     READSTEPATTRIB(String, source, "OPAL_flavour", &buffer[0]);
     predecessorOPALFlavour_m = std::string(&buffer[0]);
 
@@ -407,7 +394,7 @@ void H5PartWrapper::copyStepHeader(
                                           &attributeType,
                                           &numAttributeElements));
 
-        if (attributeType == H5TypesCHAR) {
+        if (attributeType == H5_STRING_T) {
             if (buffer.size() < numAttributeElements) {
                 buffer.resize(numAttributeElements);
             }
@@ -415,7 +402,7 @@ void H5PartWrapper::copyStepHeader(
             READSTEPATTRIB(String, source, attributeName, &buffer[0]);
             WRITESTRINGSTEPATTRIB(file_m, attributeName, &buffer[0]);
 
-        } else if (attributeType == H5TypesFLOAT) {
+        } else if (attributeType == H5_FLOAT32_T) {
             if (buffer.size() < numAttributeElements * sizeof(h5_float32_t)) {
                 buffer.resize(numAttributeElements * sizeof(h5_float32_t));
             }
@@ -423,7 +410,7 @@ void H5PartWrapper::copyStepHeader(
             READSTEPATTRIB(Float32, source, attributeName, f32buffer);
             WRITESTEPATTRIB(Float32, file_m, attributeName, f32buffer, numAttributeElements);
 
-        } else if (attributeType == H5TypesDOUBLE) {
+        } else if (attributeType == H5_FLOAT64_T) {
             if (buffer.size() < numAttributeElements * sizeof(h5_float64_t)) {
                 buffer.resize(numAttributeElements * sizeof(h5_float64_t));
             }
@@ -431,7 +418,7 @@ void H5PartWrapper::copyStepHeader(
             READSTEPATTRIB(Float64, source, attributeName, f64buffer);
             WRITESTEPATTRIB(Float64, file_m, attributeName, f64buffer, numAttributeElements);
 
-        } else if (attributeType == H5TypesINT32) {
+        } else if (attributeType == H5_INT32_T) {
             if (buffer.size() < numAttributeElements * sizeof(h5_int32_t)) {
                 buffer.resize(numAttributeElements * sizeof(h5_int32_t));
             }
@@ -439,7 +426,7 @@ void H5PartWrapper::copyStepHeader(
             READSTEPATTRIB(Int32, source, attributeName, i32buffer);
             WRITESTEPATTRIB(Int32, file_m, attributeName, i32buffer, numAttributeElements);
 
-        } else if (attributeType == H5TypesINT64) {
+        } else if (attributeType == H5_INT64_T) {
             if (buffer.size() < numAttributeElements * sizeof(h5_int64_t)) {
                 buffer.resize(numAttributeElements * sizeof(h5_int64_t));
             }

@@ -35,6 +35,7 @@
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Diagnostic.h"
+#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Lambertson.h"
