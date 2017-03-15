@@ -48,6 +48,8 @@ OpalSextupole::OpalSextupole():
     itsAttr[DK2S] = Attributes::makeReal
                    ("DK2S", "Normalised skew sextupole coefficient error in m^(-3)");
 
+    registerOwnership();
+
     setElement((new MultipoleRep("SEXTUPOLE"))->makeWrappers());
 }
 

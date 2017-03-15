@@ -28,10 +28,10 @@
 OpalBeamBeam::OpalBeamBeam():
     OpalElement(SIZE, "BEAMBEAM",
                 "The \"BEAMBEAM\" element defines a beam-beam interaction.") {
-    itsAttr[DX] = Attributes::makeReal
-                  ("DX", "Horizontal displacement of opposite beam");
-    itsAttr[DY] = Attributes::makeReal
-                  ("DY", "Vertical displacement of opposite beam");
+    itsAttr[HORD] = Attributes::makeReal
+                  ("HORD", "Horizontal displacement of opposite beam");
+    itsAttr[VERTD] = Attributes::makeReal
+                  ("VERTD", "Vertical displacement of opposite beam");
     itsAttr[SIGX] = Attributes::makeReal
                     ("SIGX", "Horizontal half-width of opposite beam");
     itsAttr[SIGY] = Attributes::makeReal
@@ -43,12 +43,14 @@ OpalBeamBeam::OpalBeamBeam():
     itsAttr[NPART] = Attributes::makeReal
                      ("NPART", "Number of particles in opposite beam");
 
-    registerRealAttribute("DX");
-    registerRealAttribute("DY");
+    registerRealAttribute("HORD");
+    registerRealAttribute("VERTD");
     registerRealAttribute("SIGX");
     registerRealAttribute("SIGY");
     registerRealAttribute("CHARGE");
     registerRealAttribute("NPART");
+
+    registerOwnership();
 
     setElement(new BeamBeamRep("BEAMBEAM"));
 }
@@ -80,8 +82,8 @@ void OpalBeamBeam::update() {
     BeamBeamRep *bb = dynamic_cast<BeamBeamRep *>(getElement());
 
     bb->setElementLength(0.0);
-    Vector3D displacement(Attributes::getReal(itsAttr[DX]),
-                          Attributes::getReal(itsAttr[DY]),
+    Vector3D displacement(Attributes::getReal(itsAttr[HORD]),
+                          Attributes::getReal(itsAttr[VERTD]),
                           0.0);
     bb->setBunchDisplacement(displacement);
     double sigx = Attributes::getReal(itsAttr[SIGX]);

@@ -40,6 +40,8 @@ OpalRCollimator::OpalRCollimator():
     registerRealAttribute("XSIZE");
     registerRealAttribute("YSIZE");
 
+    registerOwnership();
+
     setElement((new CollimatorRep("RCOLLIMATOR"))->makeAlignWrapper());
 }
 

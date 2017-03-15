@@ -25,6 +25,15 @@ namespace Versions {
                     "  of eV.\n"
                     "* OPAL-T: The attribute 'ROTATION' of RBEND and SBEND have been replaced\n"
                     "  by 'PSI'. Can be applyied to all elements to rotate them.\n"
+                    "\n"
+                    " The attribute DISTRIBUTION of the command DISTRIBUTION has been renamed to\n"
+                    " TYPE.\n"
+                    "\n"
+                    " The parser has been modified to check the type of all variables. All real \n"
+                    " variables have to be prefixed with the keyword REAL.\n"
+                    "\n"
+                    " The string indicating the orientation (sofar always XYZ) of 3D fieldmaps has\n"
+                    " been dropped.\n"
                     });
     }
 }

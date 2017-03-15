@@ -89,6 +89,8 @@ Sequence::Sequence():
                        "\tsequence is nested in another sequence with \"REFER=CENTRE\")");
 
     setElement((new TLine("SEQUENCE"))->makeAlignWrapper());
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

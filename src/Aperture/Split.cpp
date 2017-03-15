@@ -167,6 +167,8 @@ MSplit::MSplit():
                       ("STATIC", "recalculation if static equal false", true);
     itsAttr[FILE] = Attributes::makeString
                     ("FILE", "Name of file to receive SPLIT output", "SPLIT.dat");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 MSplit::MSplit(const std::string &name, MSplit *parent):
     DefaultVisitor(itsTable, false, false),

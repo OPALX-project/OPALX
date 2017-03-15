@@ -57,6 +57,8 @@ OpalQuadrupole::OpalQuadrupole():
     registerRealAttribute("K1S");
     registerRealAttribute("DK1S");
 
+    registerOwnership();
+
     setElement((new MultipoleRep("QUADRUPOLE"))->makeWrappers());
 }
 

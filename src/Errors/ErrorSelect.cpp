@@ -58,6 +58,8 @@ ErrorSelect::ErrorSelect():
                     ("FULL", "If true, all element are selected");
     itsAttr[CLEAR] = Attributes::makeBool
                      ("CLEAR", "If true, all selections are cleared");
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
 

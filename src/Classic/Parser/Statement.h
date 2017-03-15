@@ -154,6 +154,9 @@ public:
     //  Skip tokens up to next comma or end of statement, whichever comes first.
     void skip();
 
+    /// Return current character number in line
+    unsigned int position() const;
+
     /// Print statement.
     //  Print the statement on [b]os[/b].
     virtual void print(std::ostream &os) const;

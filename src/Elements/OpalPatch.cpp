@@ -28,9 +28,9 @@ OpalPatch::OpalPatch():
     OpalElement(SIZE, "PATCH",
                 "The \"PATCH\" element implements a local reference change.") {
     itsAttr[LENGTH].setReadOnly(true);
-    itsAttr[DX] = Attributes::makeReal("DX", "Horizontal orbit shift");
-    itsAttr[DY] = Attributes::makeReal("DY", "Vertical orbit shift");
-    itsAttr[DS] = Attributes::makeReal("DS", "Longitudinal orbit shift");
+    itsAttr[HORD] = Attributes::makeReal("HORD", "Horizontal orbit shift");
+    itsAttr[VERTD] = Attributes::makeReal("VERTD", "Vertical orbit shift");
+    itsAttr[LONGD] = Attributes::makeReal("LONGD", "Longitudinal orbit shift");
     itsAttr[VX] = Attributes::makeReal("VX", "Rotation around x-axis.");
     itsAttr[VY] = Attributes::makeReal("VY", "Rotation around y-axis.");
     itsAttr[VS] = Attributes::makeReal("VS", "Rotation around s-axis.");
@@ -62,9 +62,9 @@ void OpalPatch::update() {
     OpalElement::update();
 
     PatchRep *patch = static_cast<PatchRep *>(getElement());
-    double dx = Attributes::getReal(itsAttr[DX]);
-    double dy = Attributes::getReal(itsAttr[DY]);
-    double ds = Attributes::getReal(itsAttr[DS]);
+    double dx = Attributes::getReal(itsAttr[HORD]);
+    double dy = Attributes::getReal(itsAttr[VERTD]);
+    double ds = Attributes::getReal(itsAttr[LONGD]);
     double vx = Attributes::getReal(itsAttr[VX]);
     double vy = Attributes::getReal(itsAttr[VY]);
     double vs = Attributes::getReal(itsAttr[VS]);

@@ -35,6 +35,8 @@ OpalSeparator::OpalSeparator():
     registerRealAttribute("EXL");
     registerRealAttribute("EYL");
 
+    registerOwnership();
+
     setElement((new SeparatorRep("SEPARATOR"))->makeAlignWrapper());
 }
 

@@ -53,6 +53,8 @@ OpalParallelPlate::OpalParallelPlate():
     registerStringAttribute("GEOMETRY");
     registerRealAttribute("PLENGTH");
 
+    registerOwnership();
+
     setElement((new ParallelPlateRep("ParallelPlate"))->makeAlignWrapper());
 }
 
