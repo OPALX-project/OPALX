@@ -291,7 +291,7 @@ void FieldSolver::initSolver(PartBunch &b) {
             //split and add all to list
             std::vector<BoundaryGeometry *> geometries;
             for(unsigned int i = 0; i <= geoms.length(); i++) {
-                if(geoms[i] == ',' || i == geoms.length()) {
+                if(i == geoms.length() || geoms[i] == ',') {
                     BoundaryGeometry *geom = BoundaryGeometry::find(tmp);
                     if(geom != 0)
                         geometries.push_back(geom);
@@ -327,7 +327,7 @@ void FieldSolver::initSolver(PartBunch &b) {
         //split and add all to list
         std::vector<BoundaryGeometry *> geometries;
         for(unsigned int i = 0; i <= geoms.length(); i++) {
-            if(geoms[i] == ',' || i == geoms.length()) {
+            if(i == geoms.length() || geoms[i] == ',') {
                 BoundaryGeometry *geom = OpalData::getInstance()->getGlobalGeometry();
                 if(geom != 0) {
                     geometries.push_back(geom);
