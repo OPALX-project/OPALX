@@ -58,6 +58,8 @@ List::List():
                    ("ALL", "Set true to list all columns");
     itsAttr[COLUMN] = Attributes::makeTokenListArray
                       ("COLUMN", "Column specifiers");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

@@ -56,6 +56,13 @@ ErrorCmd::ErrorCmd():
                    ("ADD", "If true, error definitions are added on top of existing ones");
     itsAttr[CLEAR] = Attributes::makeBool
                      ("CLEAR", "If true, all selections are cleared before execution.");
+
+    registerOwnership(AttributeHandler::COMMAND);
+    AttributeHandler::addAttributeOwner("ERROR", AttributeHandler::COMMAND, "EALIGN");
+    AttributeHandler::addAttributeOwner("ERROR", AttributeHandler::COMMAND, "EFCOMP");
+    AttributeHandler::addAttributeOwner("ERROR", AttributeHandler::COMMAND, "EFIELD");
+    AttributeHandler::addAttributeOwner("ERROR", AttributeHandler::COMMAND, "SELECT");
+    AttributeHandler::addAttributeOwner("ERROR", AttributeHandler::COMMAND, "ENDERROR");
 }
 
 

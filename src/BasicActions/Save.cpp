@@ -126,6 +126,8 @@ Save::Save():
            "followed by elements, and finally all sequences.") {
     itsAttr[0] = Attributes::makeString
                  ("FILE", "Name of file to be written", "SAVE");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

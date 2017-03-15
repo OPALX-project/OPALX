@@ -31,8 +31,8 @@ public:
 
     /// The attributes of class OpalBeamBeam.
     enum {
-        DX = COMMON, // Horizontal displacement of opposite beam.
-        DY,          // Vertical displacement of opposite beam.
+        HORD = COMMON, // Horizontal displacement of opposite beam.
+        VERTD,          // Vertical displacement of opposite beam.
         SIGX,        // Horizontal extent of opposite beam.
         SIGY,        // Vertical extent of opposite beam.
         CHARGE,      // Particle charge in opposite beam.

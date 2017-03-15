@@ -193,6 +193,8 @@ Option::Option():
     itsAttr[VERSION] = Attributes::makeReal
         ("VERSION", "Version of OPAL for which input file was written", 10000);
 
+    registerOwnership(AttributeHandler::STATEMENT);
+
     FileStream::setEcho(echo);
     rangen.init55(seed);
 }

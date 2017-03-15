@@ -57,6 +57,8 @@ OpalCCollimator::OpalCCollimator():
     registerRealAttribute("WIDTH");
     registerStringAttribute("OUTFN");
 
+    registerOwnership();
+
     setElement((new CollimatorRep("CCOLLIMATOR"))->makeAlignWrapper());
 }
 

@@ -30,6 +30,8 @@ Title::Title():
            "output.") {
     itsAttr[0] = Attributes::makeString
                  ("STRING", "The title string");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

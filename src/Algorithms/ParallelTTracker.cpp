@@ -1125,7 +1125,7 @@ void ParallelTTracker::updateReferenceParticle(const BorisPusher &pusher) {
                                             itsBunch_m->getT() - 0.5 * dt,
                                             localE,
                                             localB)) {
-            // *gmsg << __DBGMSG__ << (*it)->getName() << endl;
+            *gmsg << level1 << "The reference particle hit an element" << endl;
             globalEOL_m = true;
         }
 

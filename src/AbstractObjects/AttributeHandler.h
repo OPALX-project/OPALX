@@ -22,6 +22,7 @@
 #include "AbstractObjects/AttributeBase.h"
 #include "MemoryManagement/Pointer.h"
 #include <string>
+#include <map>
 
 class Attribute;
 class AttributeBase;
@@ -111,6 +112,15 @@ public:
     //  then [b]OpalException[/b] is thrown.
     void setReadOnly(bool);
 
+    enum OwnerType {
+        ELEMENT,
+        COMMAND,
+        SUB_COMMAND,
+        STATEMENT,
+        NONE};
+
+    static std::multimap<OwnerType, std::string> getOwner(const std::string &att);
+    static void addAttributeOwner(const std::string &owner, const OwnerType &type, const std::string &name);
 protected:
 
     /// Attribute name.
@@ -134,6 +144,8 @@ private:
     AttributeHandler();
     AttributeHandler(const AttributeHandler &);
     void operator=(const AttributeHandler &);
+
+    static std::multimap<std::string, std::pair<OwnerType, std::string> > attributeOwnerDictionary_s;
 };
 
 #endif // OPAL_AttributeHandler_HH
