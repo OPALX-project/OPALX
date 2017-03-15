@@ -62,13 +62,13 @@ endif ()
 
 
 ### Uldis Locans 2014.09.05 ###
-OPTION (ENABLE_DKS "Enable DKS" OFF)
+#OPTION (ENABLE_DKS "Enable DKS" OFF)
 
 ### Load DKS package ###
 IF (ENABLE_DKS)
-   FIND_PACKAGE(DKS REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
-   MESSAGE (STATUS "Found DKS library: ${DKS_LIBRARY}")
-   MESSAGE (STATUS "Found DKS include dir: ${DKS_INCLUDE_DIR}")
+   #FIND_PACKAGE(DKS 1.1.0 REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
+   #MESSAGE (STATUS "Found DKS library: ${DKS_LIBRARY}")
+   #MESSAGE (STATUS "Found DKS include dir: ${DKS_INCLUDE_DIR}")
    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDKS_MPI")
 
    ### OpenCL compiler flags ###
@@ -286,13 +286,13 @@ SET (OTHER_CXX_FLAGS
     )
 
 ### Uldis Locans 2014.09.05 ###
-OPTION (ENABLE_DKS "Enable DKS" OFF)
+#OPTION (ENABLE_DKS "Enable DKS" OFF)
 
 ### Load DKS package ###
 IF (ENABLE_DKS)
-    FIND_PACKAGE(DKS REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
-    MESSAGE (STATUS "Found DKS library: ${DKS_LIBRARY_DIR}")
-    MESSAGE (STATUS "Found DKS include dir: ${DKS_INCLUDE_DIR}")
+    #FIND_PACKAGE(DKS 1.1.0 REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
+    #MESSAGE (STATUS "Found DKS library: ${DKS_LIBRARY_DIR}")
+    #MESSAGE (STATUS "Found DKS include dir: ${DKS_INCLUDE_DIR}")
     SET (IPPL_CXX_FLAGS "${IPPL_CXX_FLAGS} -DDKS_MPI")
 
     ### OpenCL compiler flags ###
