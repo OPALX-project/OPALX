@@ -922,6 +922,9 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
             << secondaryPLoss << std::setw(40) << t << endl;
     }
     lossWrCounter_m++;
+    delete[] prPartLossZ;
+    delete[] sePartLossZ;
+    delete[] fePartLossZ;
 }
 
 void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, BoundaryGeometry &bg, string fn) {
