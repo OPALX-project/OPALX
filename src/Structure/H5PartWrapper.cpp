@@ -30,7 +30,7 @@ H5PartWrapper::H5PartWrapper(const std::string &fileName, h5_int32_t flags):
 }
 
 H5PartWrapper::H5PartWrapper(const std::string &fileName, int restartStep, std::string sourceFile, h5_int32_t flags):
-	file_m(0),
+    file_m(0),
     fileName_m(fileName),
     predecessorOPALFlavour_m("NOT SET"),
     numSteps_m(0),
@@ -85,9 +85,11 @@ void H5PartWrapper::storeCavityInformation() {
     h5_int64_t nAutopPhaseCavities = OpalData::getInstance()->getNumberOfMaxPhases();
     h5_int64_t nFormerlySavedAutoPhaseCavities = 0;
 
-    if (H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &nFormerlySavedAutoPhaseCavities) == -1) {
+    H5SetErrorHandler(H5ReportErrorhandler);
+    if (H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &nFormerlySavedAutoPhaseCavities) != H5_SUCCESS) {
         nFormerlySavedAutoPhaseCavities = 0;
     }
+    H5SetErrorHandler(H5AbortErrorhandler);
 
     if (nFormerlySavedAutoPhaseCavities == nAutopPhaseCavities) return;
 
