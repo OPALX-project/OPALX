@@ -92,10 +92,10 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
                                    beamline.getCoordTransformationTo().conjugate());
     referenceToLabCSTrafo_m = labToRef.inverted();
 
-    #ifdef OPAL_DKS
+#ifdef OPAL_DKS
     if (IpplInfo::DKSEnabled)
         setupDKS();
-    #endif
+#endif
 }
 
 ParallelTTracker::ParallelTTracker(const Beamline &beamline,
@@ -149,17 +149,17 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
         zStop_m.push(*it);
     }
 
-    #ifdef OPAL_DKS
+#ifdef OPAL_DKS
     if (IpplInfo::DKSEnabled)
         setupDKS();
-    #endif
+#endif
 }
 
 ParallelTTracker::~ParallelTTracker() {
-    #ifdef OPAL_DKS
+#ifdef OPAL_DKS
     if (IpplInfo::DKSEnabled)
         delete dksbase;
-    #endif
+#endif
 }
 
 void ParallelTTracker::visitBeamline(const Beamline &bl) {
@@ -345,10 +345,10 @@ void ParallelTTracker::execute() {
 
     itsBunch_m->toLabTrafo_m = referenceToLabCSTrafo_m;
 
-    #ifdef OPAL_DKS
+#ifdef OPAL_DKS
     if (IpplInfo::DKSEnabled)
         allocateDeviceMemory();
-    #endif
+#endif
 
     // loggingFrequency_m = floor(1e-11/itsBunch_m->getdT() + 0.5);
     globalEOL_m = false;
@@ -434,10 +434,10 @@ void ParallelTTracker::execute() {
     OPALTimer::Timer myt3;
     *gmsg << "done executing ParallelTTracker at " << myt3.time() << endl;
 
-    #ifdef OPAL_DKS
+#ifdef OPAL_DKS
     if (IpplInfo::DKSEnabled)
         freeDeviceMemory();
-    #endif
+#endif
 
     LossDataSink::writeStatistics();
 
@@ -486,7 +486,7 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
     */
 
     IpplTimings::startTimer(timeIntegrationTimer2_m);
-    #ifdef OPAL_DKS
+#ifdef OPAL_DKS
     if (IpplInfo::DKSEnabled) {
         kickParticlesDKS();
         pushParticlesDKS(false);
@@ -494,12 +494,12 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
         kickParticles(pusher);
         pushParticles(pusher);
     }
-    #else
+#else
     kickParticles(pusher);
 
     //switchElements();
     pushParticles(pusher);
-    #endif
+#endif
 
     const unsigned int localNum = itsBunch_m->getLocalNum();
     for (unsigned int i = 0; i < localNum; ++ i) {
