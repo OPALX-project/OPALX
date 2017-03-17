@@ -95,19 +95,21 @@ void OpalParser::parse(Statement &stat) const {
             // Assignment beginning with a name.
             stat.mark();
             stat.start();
-            Token tok = stat.getCurrent();
-            stat.restore();
+            std::string objName = parseString(stat, "Object name expected.");
+            if (OpalData::getInstance()->find(objName) == 0) {
+                Token tok = stat.getCurrent();
+                stat.restore();
 
-            std::string name = tok.getLex();
-            std::string hint = getHint(name);
-            unsigned int position = stat.position();
-            std::string positionIndicator = std::string(position, ' ') + "^\n";
+                std::string name = tok.getLex();
+                std::string hint = getHint(name);
+                unsigned int position = stat.position();
+                std::string positionIndicator = std::string(position, ' ') + "^\n";
 
-            throw ParseError("OpalParser::parse()",
-                             positionIndicator +
-                             "Syntax error, either the keyword REAL is missing or\n" +
-                             hint);
-
+                throw ParseError("OpalParser::parse()",
+                                 positionIndicator +
+                                 "Syntax error, either the keyword REAL is missing or\n" +
+                                 hint);
+            }
             parseAssign(stat);
         }
     }
