@@ -88,7 +88,7 @@ The 1-dimensional approach also neglects any influence of the transverse dimensi
 
 In addition to the \keyword{1D-CSR} model also one that makes use of an integrated Green function  \cite{bib:mitchell2013}, \keyword{1D-CSR-IGF}.
 
-\section{The \keyword{WAKE} Command}
+\section{The \keywordinheader{WAKE} Command}
 \label{sec:wakecmd}
 The general input format is
 \begin{example}
@@ -190,7 +190,7 @@ Whenever a file is specified \opal will use the wakefield found in the file and 
   Array of names of filters to be applied to the longitudinal histogram of the bunch to get rid of the noise and to calculate derivatives. All the filters are applied to the line density in the order they appear in the array. The last filter is also used for calculating the derivatives. The actual filters have to be defined elsewhere.
 
 
-\section{The \keyword{FILTER} Command}
+\section{The \keywordinheader{FILTER} Command}
 Filters can be defined which then are applied to the line density of the bunch. The following smoothing filters are implemented: \keyword{Savitzky-Golay}, \keyword{Stencil}, \keyword{FixedFFTLowPass}, \keyword{RelativFFTLowPass}. The input format for them is
 \begin{example}
 label:FILTER, TYPE=string, NFREQ=real, THRESHOLD=real,
