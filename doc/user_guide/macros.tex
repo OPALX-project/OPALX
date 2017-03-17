@@ -123,6 +123,8 @@
 \newcommand{\keyword}[2][]{\ifstrempty{#1}{\texttt{\expandafter\MakeUppercase\expandafter{#2}}}{\hyperref[#1]{\texttt{\expandafter\MakeUppercase\expandafter{#2}}}}}
 \newcommand{\tabline}[3][]{\keyword[#1]{#2}& #3 \\}
 \newcommand{\tabheadcell}[1]{{\bfseries #1}}
+%% keyword not allowed in PDFDocEncoded string
+\newcommand{\keywordinheader}[1]{\texorpdfstring{\keyword{#1}}{#1}}
 
 \newcommand*\kdescriptionlabel[1]{\hspace\labelsep
                                 \normalfont\keyword{#1}\index{#1}}
