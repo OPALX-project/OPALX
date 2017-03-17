@@ -72,12 +72,20 @@ void H5PartWrapperForPS::readHeader() {
         char name[128];
         h5_float64_t phase;
         h5_int64_t numAutoPhaseCavities;
+#ifdef USE_H5HUT2
+        if (!H5HasFileAttrib(file_m, "nAutoPhaseCavities") ||
+            H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &numAutoPhaseCavities) != H5_SUCCESS) {
+            numAutoPhaseCavities = 0;
+        }
+#else
         H5SetErrorHandler(H5ReportErrorhandler);
         h5_int64_t rc = H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &numAutoPhaseCavities);
         H5SetErrorHandler(H5AbortErrorhandler);
         if (rc != H5_SUCCESS) {
             numAutoPhaseCavities = 0;
-        } else {
+        }
+#endif
+        else {
             for(long i = 0; i < numAutoPhaseCavities; ++ i) {
                 std::string elementName  = "Cav-" + std::to_string(i + 1) + "-name";
                 std::string elementPhase = "Cav-" + std::to_string(i + 1) + "-value";
