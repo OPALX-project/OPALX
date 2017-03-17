@@ -1075,7 +1075,7 @@ void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch, Degrader *deg,
         locParts_m.reserve(size);
 
         //init curand
-        dksbase.callInitRandoms(size);
+        dksbase.callInitRandoms(size, Options::seed);
         curandInitSet = 1;
 
         //create and transfer parameter array
