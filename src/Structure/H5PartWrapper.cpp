@@ -85,12 +85,18 @@ void H5PartWrapper::storeCavityInformation() {
     h5_int64_t nAutopPhaseCavities = OpalData::getInstance()->getNumberOfMaxPhases();
     h5_int64_t nFormerlySavedAutoPhaseCavities = 0;
 
+#ifdef USE_H5HUT2
+    if (!H5HasFileAttrib(file_m, "nAutoPhaseCavities") ||
+        H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &nFormerlySavedAutoPhaseCavities) != H5_SUCCESS) {
+        nFormerlySavedAutoPhaseCavities = 0;
+    }
+#else
     H5SetErrorHandler(H5ReportErrorhandler);
     if (H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &nFormerlySavedAutoPhaseCavities) != H5_SUCCESS) {
         nFormerlySavedAutoPhaseCavities = 0;
     }
     H5SetErrorHandler(H5AbortErrorhandler);
-
+#endif
     if (nFormerlySavedAutoPhaseCavities == nAutopPhaseCavities) return;
 
     WRITEFILEATTRIB(Int64, file_m, "nAutoPhaseCavities", &nAutopPhaseCavities, 1);
