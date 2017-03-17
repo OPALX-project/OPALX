@@ -16,7 +16,7 @@ install:
 	cp opal_user_guide.pdf $(PREFIX)
 
 clean:
-	rm -f *~ *.lot *.bbl *.aux *.blg *.log *.dvi *.ps *.toc *.idx *.lof *.run.xml *.bcf
+	rm -f *~ *.lot *.bbl *.aux *.blg *.log *.dvi *.ps *.toc *.idx *.ilg *.ind *.lof *.out *.pdf *.run.xml *.bcf
 	rm -f introduction.pdf introduction.out
 	rm -f conventions.pdf conventions.out
 	rm -f tutorial.pdf tutorial.out
