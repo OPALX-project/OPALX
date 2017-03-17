@@ -71,7 +71,7 @@ The emission energy obeys the thermal energy distribution:
 \begin{equation}
 f(\epsilon) = \frac{\epsilon}{(k_BT)^2}exp\left(\frac{-\epsilon}{k_BT}\right) \label{eq:emienergy}
 \end{equation}
-The polar angles of emitted secondaries $\theta \in [0, \pi/2]$ are with probability density $cos^{\alpha}\theta$, and the azimuthal angles $\phi \in [0, 2\pi]$ are with uniform probability density. These emission angles of the secondary electrons is relative to the local coordinate system which is centered at the collision point and whose ‘‘z’’ axis is along the inward normal of the surface.
+The polar angles of emitted secondaries $\theta \in [0, \pi/2]$ are with probability density $\cos^{\alpha}\theta$, and the azimuthal angles $\phi \in [0, 2\pi]$ are with uniform probability density. These emission angles of the secondary electrons is relative to the local coordinate system which is centered at the collision point and whose $z$ axis is along the inward normal of the surface.
 
 Motivated by the fact that the population of particles in simulation domain may continually grow exponentially and lead to tens of magnitude larger within limited simulation time steps, which may cause the exhaust of computing memory, a re-normalization of simulation particle number approach is also implemented. In each electron impacting events, instead of emitting the real number of simulation particles predicted by secondary emission models, this re-normalization approach emit only one particle, and the current of newly emitted particle will be the current of incident particle multiplied by SEY value $\delta$.
 \clearpage

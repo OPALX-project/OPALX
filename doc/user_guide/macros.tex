@@ -123,6 +123,8 @@
 \newcommand{\keyword}[2][]{\ifstrempty{#1}{\texttt{\expandafter\MakeUppercase\expandafter{#2}}}{\hyperref[#1]{\texttt{\expandafter\MakeUppercase\expandafter{#2}}}}}
 \newcommand{\tabline}[3][]{\keyword[#1]{#2}& #3 \\}
 \newcommand{\tabheadcell}[1]{{\bfseries #1}}
+%% keyword not allowed in PDFDocEncoded string
+\newcommand{\keywordinheader}[1]{\texorpdfstring{\keyword{#1}}{#1}}
 
 \newcommand*\kdescriptionlabel[1]{\hspace\labelsep
                                 \normalfont\keyword{#1}\index{#1}}
@@ -182,8 +184,8 @@
 \newcommand{\seessec}[1]{(see~\ssecref{#1})}
 \newcommand{\seetab}[1]{(see~\tabref{#1})}
 \newcommand{\seeeqn}[1]{(see~\eqnref{#1})}
-
-\newcommand{\filename}[1]{\emph{#1}}
+%% renew as filename command might already be defined
+\renewcommand{\filename}[1]{\emph{#1}}
 
 
 % Define distances for bordering

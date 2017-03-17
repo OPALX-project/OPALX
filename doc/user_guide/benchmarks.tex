@@ -45,7 +45,7 @@ In TRACE 3D, the input beam is described by the following set of parameters:
 \item \textbf{Q}: charge state (+1 for protons);
 \item \textbf{W}: beam kinetic energy [\si{\mega\electronvolt}]
 \item \textbf{XI}: beam current [\si{\milli\ampere}]
-\item \textbf{BEAMI}: array with initial Twiss parameters in the three phase planes\\
+\item \textbf{BEAMI}: array with initial Twiss parameters in the three phase planes
 \begin{center}
 BEAMI = $\alpha_x , \beta_x, \alpha_y, \beta_y, \alpha_{\phi}, \beta_{\phi} $ \\
 \end{center}
@@ -59,7 +59,7 @@ The transversal emittances are expressed in $\pi$-mm-mrad and in $\pi$-deg-keV t
 In this beam dynamics code, the total emittance in each phase plane is five times the RMS emittance in that plane and the displayed beam envelopes are $\sqrt{5}$-times their respective RMS values.
 \subsubsection{TRACE 3D Graphic Interface}
 \label{ssec:T3D_graphic}
-An example of TRACE 3D graphic interface is shown in \figref{trace}. \\
+An example of TRACE 3D graphic interface is shown in \figref{trace}.
 \begin{figure}[!htb]
 \centering
   \includegraphics[width=\textwidth-1cm, keepaspectratio=true]{figures/Benchmarks/Trace.png}
@@ -170,7 +170,7 @@ Before entering the TRACE 3D sigma-matrix coefficients in TRANSPORT, a changing 
 15. 5. 'MM' 0.1 ; //express in mm the beam length
 \end{example}
 
-At this point, the TRANSPORT input beam is defined by \textbf{card 1}: \\
+At this point, the TRANSPORT input beam is defined by \textbf{card 1}:
 \begin{example}
 1.0 1.709 0.427 1.709 0.427 0.11 0.0717 0.1148 /BEAM/ ;
 \end{example}
@@ -513,7 +513,7 @@ E1=10*Pi/180.0, E2=5* Pi/180.0,
 
 Even in this case, a good overall agreement has been found between the two codes in term of beam size and emittance.
 
-\item \textbf{SBEND with field index:}\\
+\item \textbf{SBEND with field index:}
 
 The field index parameter K1 is defined as:
 
@@ -527,11 +527,13 @@ K1 = \frac{1}{B\rho}\diffp{B_y}{x},
 n = -\frac{\rho}{B_y}\diffp{B_y}{x}.
 \end{equation}
 
-In order to have a significant focusing effect on both transverse planes, the transport line has been simulated in TRACE 3D using $ n = 1.5$. Since, a different definition exists between \opal and TRACE 3D on the field index, the n-parameter translation in \opal language has been done with the following test: \\
+In order to have a significant focusing effect on both transverse planes, the transport line has been simulated in TRACE 3D using $n = 1.5$. Since, a different definition exists between \opal and TRACE 3D on the field index, the n-parameter translation in \opal language has been done with the following tests:
 
-TEST 1: K1 $=$ n/$\rho^2$\\
-TEST 2: K1 $=$ n\\
-TEST 3: K1 $=$ n/$\rho$\\
+\begin{itemize}[noitemsep]
+\item[] TEST 1: K1 $=$ n/$\rho^2$
+\item[] TEST 2: K1 $=$ n
+\item[] TEST 3: K1 $=$ n/$\rho$
+\end{itemize}
 
 Only the TEST 2 reports a reasonable behavior on the beam size and emittance, as shown in \figref{SBEND_FI} using:
 
