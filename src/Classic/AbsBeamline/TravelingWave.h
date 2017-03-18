@@ -22,7 +22,7 @@
 // ------------------------------------------------------------------------
 
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/RFCavity.h"
 #include "Physics/Physics.h"
 
 class Fieldmap;
@@ -34,7 +34,7 @@ class Fieldmap;
 //  Class TravelingWave defines the abstract interface for RF cavities.
 
 
-class TravelingWave: public Component {
+class TravelingWave: public RFCavity {
 
 public:
 
@@ -58,47 +58,17 @@ public:
     /// Get RF phase.
     virtual double getPhase() const = 0;
 
-    /// Set the name of the field map
-    void setFieldMapFN(std::string fmapfn);
-
-    /*   void setExitFieldMapFN(std::string fn); */
-
-    /*   void setExitFieldMapFN(std::string fn); */
-
-    std::string getFieldMapFN() const;
-
-    void setFast(bool fast);
-
-    bool getFast() const;
-
-    void setAutophaseVeto(bool veto = true);
-
-    bool getAutophaseVeto() const;
-
-    void setAmplitudem(double vPeak);
-    void setAmplitudeError(double voltError);
-    double getAmplitudem() const;
-    double getAmplitudeError() const;
-
-    void setFrequencym(double freq);
-    double getFrequencym() const;
-
-    void setPhasem(double phase);
-    void setPhaseError(double phaseError);
-    double getPhasem() const;
-    double getPhaseError() const;
-
-    void updatePhasem(double phase);
+    virtual void setPhasem(double phase);
 
     void setNumCells(int NumCells);
 
-    double getAutoPhaseEstimate(const double & E0, const double & t0, const double & q, const double & m);
+    virtual double getAutoPhaseEstimate(const double & E0, const double & t0, const double & q, const double & m);
 
-    std::pair<double, double> trackOnAxisParticle(const double & p0,
-                                                  const double & t0,
-                                                  const double & dt,
-                                                  const double & q,
-                                                  const double & mass);
+    virtual std::pair<double, double> trackOnAxisParticle(const double & p0,
+                                                          const double & t0,
+                                                          const double & dt,
+                                                          const double & q,
+                                                          const double & mass);
 
     virtual void addKR(int i, double t, Vector_t &K);
 
@@ -125,14 +95,7 @@ public:
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
     virtual bool isInside(const Vector_t &r) const;
-
-    virtual void setDesignEnergy(double ekin);
-    virtual double getDesignEnergy() const;
 private:
-    std::string CoreFilename_m;             /**< The name of the inputfile*/
-    /*   std::string EntryFilename_m; */
-    /*   std::string ExitFilename_m; */
-
     Fieldmap *CoreFieldmap_m;
     /*   Fieldmap *EntryFringeField_m; */
     /*   Fieldmap *ExitFringeField_m; */
@@ -191,11 +154,6 @@ private:
     // Not implemented.
     void operator=(const TravelingWave &);
 };
-
-inline
-void TravelingWave::updatePhasem(double phase) {
-    setPhasem(phase);
-}
 
 double TravelingWave::getdE(const int & i,
                             const int & I,
@@ -257,59 +215,6 @@ double TravelingWave::getdB(const int & i,
          (F[I].second - F[I-1].second) * (cos(frequency_m * t[i] + phi) - cos(frequency_m * t[i-1] + phi)));
 }
 
-
-inline
-void TravelingWave::setDesignEnergy(double ekin)
-{
-    designEnergy_m = ekin;
-}
-
-inline
-double TravelingWave::getDesignEnergy() const
-{
-    return designEnergy_m;
-}
-
-inline
-void TravelingWave::setFieldMapFN(std::string fn) {
-    CoreFilename_m = fn;
-}
-
-inline
-std::string TravelingWave::getFieldMapFN() const {
-    return CoreFilename_m;
-}
-
-inline
-void TravelingWave::setAmplitudem(double vPeak) {
-    scale_m = vPeak;
-}
-
-inline
-void TravelingWave::setAmplitudeError(double voltError) {
-    scaleError_m = voltError;
-}
-
-inline
-double TravelingWave::getAmplitudem() const {
-    return scale_m;
-}
-
-inline
-double TravelingWave::getAmplitudeError() const {
-    return scaleError_m;
-}
-
-inline
-void TravelingWave::setFrequencym(double freq) {
-    frequency_m = freq;
-}
-
-inline
-double TravelingWave::getFrequencym() const {
-    return frequency_m;
-}
-
 inline
 void TravelingWave::setPhasem(double phase) {
     using Physics::pi;
@@ -321,43 +226,8 @@ void TravelingWave::setPhasem(double phase) {
 }
 
 inline
-void TravelingWave::setPhaseError(double phaseError) {
-    phaseError_m = phaseError;
-}
-
-inline
-double TravelingWave::getPhasem() const {
-    return phase_m;
-}
-
-inline
-double TravelingWave::getPhaseError() const {
-    return phaseError_m;
-}
-
-inline
 void TravelingWave::setNumCells(int NumCells) {
     NumCells_m = NumCells;
-}
-
-inline
-void TravelingWave::setFast(bool fast) {
-    fast_m = fast;
-}
-
-inline
-bool TravelingWave::getFast() const {
-    return fast_m;
-}
-
-inline
-void TravelingWave::setAutophaseVeto(bool veto) {
-    autophaseVeto_m = veto;
-}
-
-inline
-bool TravelingWave::getAutophaseVeto() const {
-    return autophaseVeto_m;
 }
 
 #endif // CLASSIC_TravelingWave_HH
