@@ -55,11 +55,12 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
         amplitude = element->getAmplitudem();
         designEnergy = element->getDesignEnergy();
 
-        if (amplitude == 0.0 && (designEnergy <= 0.0 || length <= 0.0))
-            throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
-                                "neither amplitude or design energy given to cavity " + element->getName());
-
         if (amplitude == 0.0) {
+            if (designEnergy <= 0.0 || length <= 0.0) {
+                throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
+                                    "neither amplitude or design energy given to cavity " + element->getName());
+            }
+
             amplitude = 2 * (designEnergy - initialEnergy) / (std::abs(itsReference_m.getQ()) * length);
 
             element->setAmplitudem(amplitude);
@@ -263,7 +264,7 @@ double CavityAutophaser::track(Vector_t R,
                                                                 itsReference_m.getQ(),
                                                                 itsReference_m.getM() * 1e-6);
         finalMomentum = pe.first;
-        tws->updatePhasem(initialPhase);
+        tws->setPhasem(initialPhase);
     } else {
         RFCavity *rfc = static_cast<RFCavity *>(itsCavity_m.get());
         initialPhase = rfc->getPhasem();
