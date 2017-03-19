@@ -143,8 +143,8 @@ void FM3DDynamic::readMap() {
             -- index_y;
         }
 
-        static unsigned int deltaX = num_gridpy_m * num_gridpz_m;
-        static unsigned int deltaY = num_gridpz_m;
+        const unsigned int deltaX = num_gridpy_m * num_gridpz_m;
+        const unsigned int deltaY = num_gridpz_m;
 
         ii = index_x * deltaX + index_y * deltaY;
         for(unsigned int i = 0; i < num_gridpz_m; i++) {
@@ -208,9 +208,9 @@ bool FM3DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) 
         return true;
     }
 
-    static unsigned int deltaX = num_gridpy_m * num_gridpz_m;
-    static unsigned int deltaY = num_gridpz_m;
-    static unsigned int deltaZ = 1;
+    const unsigned int deltaX = num_gridpy_m * num_gridpz_m;
+    const unsigned int deltaY = num_gridpz_m;
+    const unsigned int deltaZ = 1;
 
     const unsigned long index1 = index_x * deltaX + index_y * deltaY + index_z * deltaZ;
 
