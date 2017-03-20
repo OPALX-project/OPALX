@@ -328,7 +328,7 @@ When implementing an \keyword{RBEND} or \keyword{SBEND} in an \opalt simulation,
 \item If the \keyword{ANGLE} attribute is set to a non-zero value, the \keyword{K0} and \keyword{K0S} attributes
   will be ignored.
 \item When using the \keyword{ANGLE} attribute to define a bend, the actual beam will be bent through
-  a different angle if its mean kinetic energy doesn't correspont to the \keyword{DESIGNENERGY}.
+  a different angle if its mean kinetic energy doesn't correspond to the \keyword{DESIGNENERGY}.
 \item Internally the bend geometry is setup based on the ideal reference trajectory, as shown in
   \figref{rbend,sbend}.\item If the default field map, ``\keyword{1DPROFILE-DEFAULT}''
  \seessec{benddefaultfieldmapopalt}, is used, the fringe fields will be adjusted
@@ -2005,7 +2005,7 @@ They have the following attributes:
 A positive kick increases $p_{x}$ or $p_{y}$
 respectively. Use \keyword{KICK} for an \keyword{HKICKER} or \keyword{VKICKER} and \keyword{HKICK} and \keyword{VKICK} for a \keyword{KICKER}. Instead of using a \keyword{KICKER} or a \keyword{VKICKER} one could use an \keyword{HKICKER} and rotate it appropriately using \keyword[sec:Element:common]{PSI}.
 
-Correctors don't change the reference trajectory. Otherwise they are implemented as \keyword{RBEND} with $\texttt{E1} = 0$ and without fringe fields (hard edge model). They can be used to model earth's magnetic field which is neglected in the design trajectory but which has a noticable effect on the trajectory of a bunch at low energies.
+Correctors don't change the reference trajectory. Otherwise they are implemented as \keyword{RBEND} with $\texttt{E1} = 0$ and without fringe fields (hard edge model). They can be used to model earth's magnetic field which is neglected in the design trajectory but which has a noticeable effect on the trajectory of a bunch at low energies.
 
 \noindent Examples:
 \begin{example}

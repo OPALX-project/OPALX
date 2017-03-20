@@ -51,7 +51,7 @@ The attributes of the command are:
   The label of a preceding \keyword[sec:line]{LINE} \seesec{line}
   \ifthenelse{\boolean{ShowMap}}{ or \keyword[sec:sequence]{SEQUENCE} \seesec{sequence}}{} (no default).
 \item[BEAM]
-  The named \keyword{BEAM} command defines the particle mass, charge
+  \sloppy The named \keyword{BEAM} command defines the particle mass, charge
   and reference momentum (default: \keyword{UNNAMED\_BEAM}).
   \index{UNNAMED\_BEAM}
 \item[T0]
@@ -229,7 +229,7 @@ Its attributes are:
     \item[CYCLOTRON-T]
     This method puts \opal in \opalcycl mode \seechp{opalcycl}.
     \item[STATISTICAL-ERRORS]
-    This is a method to let \opal run multiple times in parallel while adding imperfections to aligment and other physical quantities.
+    This is a method to let \opal run multiple times in parallel while adding imperfections to alignment and other physical quantities.
   \end{kdescription}
   \item[FIELDSOLVER]
   The field solver to be used \seechp{fieldsolver}.
@@ -241,7 +241,7 @@ Its attributes are:
   The particle beam \seechp{beam} to be used is specified.
 
   \item[FILE]
-  The name of the file to be writen (default="\texttt{track}").
+  The name of the file to be written (default="\texttt{track}").
   \item[TURNS]
   The number of turns (integer) to be tracked (default: 1, namely single bunch).
 
@@ -254,7 +254,7 @@ Its attributes are:
   See \secref{opalcycl:MultiBunch} for their explanations in detail.
 
   For restarting run with \texttt{TURNS} larger than one, if the existing bunches of the read-in step is large than one,
-  the mode is forcely set to \texttt{FORCE}. Otherwise, it is forcely set to \texttt{AUTO}.
+  the mode is forcedly set to \texttt{FORCE}. Otherwise, it is forcedly set to \texttt{AUTO}.
 
   This argument is available for \opalcycl.
 
@@ -278,7 +278,7 @@ This command tracks 5 bunches in cyclotron and writes the results on file \textt
 \subsection{\keywordinheader{STATISTICAL-ERRORS}}
 \label{ssec:statistical-errors}
 \index{STATISTICAL-ERRORS}
-This method can be used to quantify the effects of imperfections to alignment or other physical quantities such as e.g. the phase or the amplitude. It doesn't propagate the particles directly. Instead it scans through the input file and replaces all occurances of \keyword[tab:realfun]{GAUSS} and \keyword[tab:realfun]{TGAUSS} with randomly generated values of appropriate distribution. Then one of the other methods, e.g. \keyword{PARALLEL-T} is called. These two steps are then repeated many times.
+This method can be used to quantify the effects of imperfections to alignment or other physical quantities such as e.g. the phase or the amplitude. It doesn't propagate the particles directly. Instead it scans through the input file and replaces all occurrences of \keyword[tab:realfun]{GAUSS} and \keyword[tab:realfun]{TGAUSS} with randomly generated values of appropriate distribution. Then one of the other methods, e.g. \keyword{PARALLEL-T} is called. These two steps are then repeated many times.
 
 To use this method one has to specify the \keyword{METHOD} using the following form:
 \begin{center}
@@ -286,7 +286,7 @@ To use this method one has to specify the \keyword{METHOD} using the following f
 \end{center}
 \noindent where \texttt{<track{\textunderscore}method>} is the method that should track the particles, \texttt{<ncores>} is the number of cores used for a run and \texttt{<nruns>} is the number of individual runs that should be performed. \textbf{It should be noted that the total number of cores available has to be greater or equal to \texttt{ncores} + 1.} One core is needed to manage the distribution of tasks and to collect the results. The other cores are used to perform the simulations. If in total $N \times \texttt{ncores} + 1$ cores are available then $N$ individual runs are processed in parallel each using \texttt{ncores}.
 
-For each run of the method \keyword{STATISTICAL-ERRORS} a unique base name is generated of the form \filename{\%\%\%\%\%\%\%\%-\%\%\%\%-\%\%\%\%}. Each individual run is then performed in a directory \filename{\%\%\%\%\%\%\%\%-\%\%\%\%-\%\%\%\%{\textunderscore}run{\textunderscore}ddddd}. The files that are produced by the \texttt{<track{\textunderscore}method>} are kept. \textbf{This can lead to a large amount of data especially when snapshots of the phase space are stored frequently. The user should make sure that the file system can handle the amount of data or set the option \keyword[sec:option]{PSDUMPFREQ} to a big number.}
+\sloppy For each run of the method \keyword{STATISTICAL-ERRORS} a unique base name is generated of the form \filename{\%\%\%\%\%\%\%\%-\%\%\%\%-\%\%\%\%}. Each individual run is then performed in a directory \filename{\%\%\%\%\%\%\%\%-\%\%\%\%-\%\%\%\%{\textunderscore}run{\textunderscore}ddddd}. The files that are produced by the \texttt{<track{\textunderscore}method>} are kept. \textbf{This can lead to a large amount of data especially when snapshots of the phase space are stored frequently. The user should make sure that the file system can handle the amount of data or set the option \keyword[sec:option]{PSDUMPFREQ} to a big number.}
 
 In the end the method \keyword{STATISTICAL-ERRORS} computes the mean and the standard deviation for each variable in the array \keyword{OBJECTIVES} along the machine and stores this information in to the \filename{.stat} file.
 \input{footer}

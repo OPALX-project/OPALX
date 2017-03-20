@@ -33,11 +33,15 @@
 #include <gsl/gsl_sf_pow_int.h>
 #include <gsl/gsl_sf_gamma.h>
 
+#include "Utility/Inform.h" // ippl
+
 #include "Utilities/GeneralClassicException.h"
 
 #include "Fields/Interpolation/SolveFactory.h"
 #include "Fields/Interpolation/PolynomialPatch.h"
 #include "Fields/Interpolation/PPSolveFactory.h"
+
+extern Inform* gmsg;
 
 namespace interpolation {
 
@@ -308,7 +312,7 @@ PolynomialPatch* PPSolveFactory::solve() {
          --it) {
         double newPercentage = (total-it.toInteger())/double(total)*100.;
         if (newPercentage - oldPercentage > 10.) {
-            std::cout << "    Done " << newPercentage << " %" << std::endl;
+            *gmsg << "    Done " << newPercentage << " %" << endl;
             oldPercentage = newPercentage;
         }
         // find the set of values and derivatives for this point in the mesh

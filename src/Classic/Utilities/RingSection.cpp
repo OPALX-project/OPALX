@@ -95,14 +95,11 @@ bool RingSection::isPastEndPlane(const Vector_t& pos) const {
 bool RingSection::getFieldValue(const Vector_t& pos,
                                 const Vector_t& centroid, const double& t,
                                 Vector_t& E, Vector_t& B) const {
-    // std::cerr << startOrientation_m << " " << componentPosition_m << " " << componentOrientation_m(2) << std::endl;
     // transform position into local coordinate system
     Vector_t pos_local = pos-componentPosition_m;
     rotate(pos_local);
-    // std::cerr << "RingSection::getFieldValue for " << component_m->getName() << " at " << startPosition_m << "\n    Global: " << pos << " Local: " << pos_local << std::endl;
     rotateToTCoordinates(pos_local);
     bool outOfBounds = component_m->apply(pos_local, Vector_t(0.0), t, E, B);
-    // std::cerr << "    B: " << B << std::endl;
     if (outOfBounds) {
         return true;
     }
