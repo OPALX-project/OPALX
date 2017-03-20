@@ -34,11 +34,8 @@ extern Inform *gmsg;
 // ------------------------------------------------------------------------
 
 TravelingWave::TravelingWave():
-    Component(),
-    CoreFilename_m(""),
+    RFCavity(),
     CoreFieldmap_m(NULL),
-    scale_m(1.0),
-    scaleError_m(0.0),
     scaleCore_m(1.0),
     scaleCoreError_m(0.0),
     phase_m(0.0),
@@ -62,8 +59,7 @@ TravelingWave::TravelingWave():
 
 
 TravelingWave::TravelingWave(const TravelingWave &right):
-    Component(right),
-    CoreFilename_m(right.CoreFilename_m),
+    RFCavity(right),
     CoreFieldmap_m(NULL),
     scale_m(right.scale_m),
     scaleError_m(right.scaleError_m),
@@ -90,8 +86,7 @@ TravelingWave::TravelingWave(const TravelingWave &right):
 
 
 TravelingWave::TravelingWave(const std::string &name):
-    Component(name),
-    CoreFilename_m(""),
+    RFCavity(name),
     CoreFieldmap_m(NULL),
     scale_m(1.0),
     scaleError_m(0.0),
@@ -118,7 +113,7 @@ TravelingWave::TravelingWave(const std::string &name):
 
 
 TravelingWave::~TravelingWave() {
-    // Fieldmap::deleteFieldmap(CoreFilename_m);
+    // Fieldmap::deleteFieldmap(filename_m);
     //   Fieldmap::deleteFieldmap(EntryFilename_m);
     //   Fieldmap::deleteFieldmap(ExitFilename_m);
 }
@@ -367,7 +362,7 @@ void TravelingWave::initialise(PartBunch *bunch, double &startField, double &end
 
     RefPartBunch_m = bunch;
 
-    CoreFieldmap_m = Fieldmap::getFieldmap(CoreFilename_m, fast_m);
+    CoreFieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m);
     if(CoreFieldmap_m != NULL) {
         double zBegin = 0.0, zEnd = 0.0, rBegin = 0.0, rEnd = 0.0;
         CoreFieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
@@ -376,7 +371,7 @@ void TravelingWave::initialise(PartBunch *bunch, double &startField, double &end
             msg << level2 << getName() << " using file ";
             CoreFieldmap_m->getInfo(&msg);
             if(std::abs((frequency_m - CoreFieldmap_m->getFrequency()) / frequency_m) > 0.01) {
-                errormsg << "FREQUENCY IN INPUT FILE DIFFERENT THAN IN FIELD MAP '" <<  CoreFilename_m + "';\n"
+                errormsg << "FREQUENCY IN INPUT FILE DIFFERENT THAN IN FIELD MAP '" <<  filename_m + "';\n"
                          << frequency_m / two_pi * 1e-6 << " MHz <> "
                          << CoreFieldmap_m->getFrequency() / two_pi * 1e-6 << " MHz; TAKE ON THE LATTER\n";
                 std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
@@ -439,12 +434,12 @@ bool TravelingWave::bends() const {
 
 
 void TravelingWave::goOnline(const double &) {
-    Fieldmap::readMap(CoreFilename_m);
+    Fieldmap::readMap(filename_m);
     online_m = true;
 }
 
 void TravelingWave::goOffline() {
-    Fieldmap::freeMap(CoreFilename_m);
+    Fieldmap::freeMap(filename_m);
 }
 
 void TravelingWave::getDimensions(double &zBegin, double &zEnd) const {

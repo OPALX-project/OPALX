@@ -127,7 +127,7 @@ void OrbitThreader::execute() {
              errorFlag_m != EOL);
 
     // imap_m.tidyUp();
-    *gmsg << level1 << __DBGMSG__ << imap_m << endl;
+    *gmsg << level1 << imap_m << endl;
     imap_m.saveSDDS(initialPathLength);
 
     processElementRegister();
@@ -211,10 +211,8 @@ bool OrbitThreader::containsCavity(const IndexMap::value_t &activeSet) {
     const IndexMap::value_t::const_iterator end = activeSet.end();
 
     for (; it != end; ++ it) {
-        if ((*it)->getType() == ElementBase::TRAVELINGWAVE) {
-            return true;
-
-        } else if ((*it)->getType() == ElementBase::RFCAVITY) {
+        if ((*it)->getType() == ElementBase::TRAVELINGWAVE ||
+            (*it)->getType() == ElementBase::RFCAVITY) {
             return true;
         }
     }
@@ -227,31 +225,19 @@ void OrbitThreader::autophaseCavities(const IndexMap::value_t &activeSet) {
     const IndexMap::value_t::const_iterator end = activeSet.end();
 
     for (; it != end; ++ it) {
-        if ((*it)->getType() == ElementBase::TRAVELINGWAVE) {
-            const TravelingWave *element = static_cast<const TravelingWave *>((*it).get());
-            if (!element->getAutophaseVeto()) {
-                Vector_t initialR = itsOpalBeamline_m.transformToLocalCS(*it, r_m);
-                Vector_t initialP = itsOpalBeamline_m.rotateToLocalCS(*it, p_m);
-
-                CavityAutophaser ap(reference_m, *it);
-                ap.getPhaseAtMaxEnergy(initialR,
-                                       initialP,
-                                       time_m,
-                                       dt_m);
-            }
-
-        } else if ((*it)->getType() == ElementBase::RFCAVITY) {
+        if ((*it)->getType() == ElementBase::TRAVELINGWAVE ||
+            (*it)->getType() == ElementBase::RFCAVITY) {
             const RFCavity *element = static_cast<const RFCavity *>((*it).get());
-            if (!element->getAutophaseVeto()) {
-                Vector_t initialR = itsOpalBeamline_m.transformToLocalCS(*it, r_m);
-                Vector_t initialP = itsOpalBeamline_m.rotateToLocalCS(*it, p_m);
+            if (element->getAutophaseVeto()) continue;
 
-                CavityAutophaser ap(reference_m, *it);
-                ap.getPhaseAtMaxEnergy(initialR,
-                                       initialP,
-                                       time_m,
-                                       dt_m);
-            }
+            Vector_t initialR = itsOpalBeamline_m.transformToLocalCS(*it, r_m);
+            Vector_t initialP = itsOpalBeamline_m.rotateToLocalCS(*it, p_m);
+
+            CavityAutophaser ap(reference_m, *it);
+            ap.getPhaseAtMaxEnergy(initialR,
+                                   initialP,
+                                   time_m,
+                                   dt_m);
         }
     }
 }
@@ -264,11 +250,8 @@ double OrbitThreader::getMaxDesignEnergy(const IndexMap::value_t &elementSet) co
 
     double designEnergy = 0.0;
     for (; it != end; ++ it) {
-        if ((*it)->getType() == ElementBase::TRAVELINGWAVE) {
-            const TravelingWave *element = static_cast<const TravelingWave *>((*it).get());
-            designEnergy = std::max(designEnergy, element->getDesignEnergy());
-
-        } else if ((*it)->getType() == ElementBase::RFCAVITY) {
+        if ((*it)->getType() == ElementBase::TRAVELINGWAVE ||
+            (*it)->getType() == ElementBase::RFCAVITY) {
             const RFCavity *element = static_cast<const RFCavity *>((*it).get());
             designEnergy = std::max(designEnergy, element->getDesignEnergy());
         }
@@ -375,8 +358,8 @@ void OrbitThreader::setDesignEnergy(FieldList &allElements, const std::set<std::
     for (; it != end; ++ it) {
         std::shared_ptr<Component> element = (*it).getElement();
         if (visitedElements.find(element->getName()) == visitedElements.end() &&
-            element->getType() != ElementBase::RFCAVITY &&
-            element->getType() != ElementBase::TRAVELINGWAVE) {
+            !(element->getType() != ElementBase::RFCAVITY ||
+              element->getType() != ElementBase::TRAVELINGWAVE)) {
 
             element->setDesignEnergy(kineticEnergyeV);
         }

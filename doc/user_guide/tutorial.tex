@@ -99,7 +99,7 @@ with the first entry defining the number of cavities in the simulation.
 
 
 
-\subsection{PSI  Injector II Cyclotron}
+\subsection{PSI Injector II Cyclotron}
 \label{sec:inj2}
 \index{INJECTOR II}
 \index{CYCLOTRON}
@@ -202,7 +202,7 @@ If restart a job from the last step of an existing \filename{.h5} file, add a ne
 
 
 %%%%%%%%%%%%%%
-\subsection{PSI  Ring Cyclotron}
+\subsection{PSI Ring Cyclotron}
 \label{sec:Ring}
 \index{RING}
 \index{CYCLOTRON}
@@ -228,7 +228,7 @@ Limited by size of the user guide, we don't plan to show too much details as in 
 \clearpage
 
 
-\section{Translate Old Distribution Commands to New Distribution Commands}
+\section{Translate Old to New Distribution Commands}
 \label{sec:oldtonewdist}
 \index{Distribution!Translate Old}
 As of \opal 1.2, the distribution command \seechp{distribution} was changed significantly. Many of the changes were internal to the code, allowing us to more easily add new distribution command options. However, other changes were made to make creating a distribution easier, clearer and so that the command attributes were more consistent across distribution types. Therefore, we encourage our users to refer to \chpref{distribution} when creating any new input files, or if they wish to update existing input files.
@@ -237,7 +237,7 @@ With the new distribution command, we did attempt as much as possible to make it
 
 \textbf{\emph{An important point to note is that it is very likely you will see small changes in your simulation even when the new distribution command is nominally generating particles in exactly the same way.}} This is because random number generators and their seeds will likely not be the same as before. These changes are only due to \opal using a different sequence of numbers to create your distribution, and not because of errors in the calculation. (Or at least we hope not.)
 
-\subsection{\keyword{GUNGAUSSFLATTOPTH} and \keyword{ASTRAFLATTOPTH} Distribution Types}
+\subsection{\keywordinheader{GUNGAUSSFLATTOPTH} and \keywordinheader{ASTRAFLATTOPTH} Distribution Types}
 \label{sec:oldtonewdistgungaussandastra}
 \index{Distribution!Translate GUNGAUSSFLATTOPTH}
 \index{Distribution!Translate ASTRAFLATTOPTH}
@@ -246,7 +246,7 @@ The \keyword{GUNGAUSSFLATTOPTH} and \keyword{ASTRAFLATTOPTH} distribution types 
 Having said this, however, old input files that use the \keyword{GUNGAUSSFLATTOPTH} and \keyword{ASTRAFLATTOPTH} distribution types will still work as before, with the following exception. Previously, \opal had a Boolean \keyword{OPTION} command \keyword{FINEEMISSION} (default value was \keyword{TRUE}). This \keyword{OPTION} is no longer supported. Instead you will need to set the distribution attribute \keyword{EMISSIONSTEPS} \seetab{distattremitted} to a value that is 10 $\times$ the value of the distribution attribute \keyword{NBIN} \seetab{distattruniversal} in order for your simulation to behave the same as before.
 \input{footer}
 
-\subsection{\keyword{FROMFILE}, \keyword{GAUSS} and \keyword{BINOMIAL} Distribution Types}
+\subsection{\keywordinheader{FROMFILE}, \keywordinheader{GAUSS} and \keywordinheader{BINOMIAL} Distribution Types}
 \index{Distribution!Translate FROMFILE}
 \index{Distribution!Translate GAUSS}
 \index{Distribution!Translate BINOMIAL}

@@ -56,6 +56,9 @@ OpalVariableRFCavity::OpalVariableRFCavity():
     registerStringAttribute("FREQUENCY_MODEL");
     registerRealAttribute("WIDTH");
     registerRealAttribute("HEIGHT");
+
+    registerOwnership();
+
     setElement((new VariableRFCavity("VARIABLE_RF_CAVITY"))->makeAlignWrapper());
 }
 

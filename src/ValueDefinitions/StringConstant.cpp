@@ -34,6 +34,8 @@ StringConstant::StringConstant():
                     "\tSTRING CONSTANT <name> = <String-expression>;\n") {
     itsAttr[0] = Attributes::makeString("VALUE", "The constant value");
 
+    registerOwnership(AttributeHandler::STATEMENT);
+
     OpalData *opal = OpalData::getInstance();
     opal->create(new StringConstant("GITREVISION", this, Util::getGitRevision()));
 }

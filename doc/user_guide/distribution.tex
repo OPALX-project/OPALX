@@ -232,7 +232,7 @@ distribution type. These are defined in \secref{universaldistattributes,injected
   \end{center}
 \end{table}
 
-\section{\keyword{FROMFILE} Distribution Type}
+\section{\keywordinheader{FROMFILE} Distribution Type}
 \label{sec:fromfiledisttype}
 \index{Distribution!FROMFILE}
 \FloatBarrier
@@ -324,7 +324,7 @@ distribution coordinates at all.
 
 To maintain consistency $N$ and \keyword{NPART} from the \keyword{BEAM} command in \chpref{beam} must be equal.
 
-\section{\keyword{GAUSS} Distribution Type}
+\section{\keywordinheader{GAUSS} Distribution Type}
 \label{sec:gaussdisttype}
 \index{Distribution!GAUSS|(}
 \FloatBarrier
@@ -339,7 +339,7 @@ where $\bar{x}$ is the average value of $x$. However, the \keyword{GAUSS} distri
 generate an emitted beam with a flat top time profile. We will go over the various options for the \keyword{GAUSS}
 distribution type in this section.
 
-\subsection{Simple \keyword{GAUSS} Distribution Type}
+\subsection{Simple \keywordinheader{GAUSS} Distribution Type}
 We will begin by describing how to create a simple \keyword{GAUSS} distribution type. That is, a simple
 6-dimensional distribution with a Gaussian distribution in all dimensions.
 
@@ -429,7 +429,7 @@ at an average position of $(\bar{x},\bar{y},\bar{z})=(\SI{1.0}{\milli\meter}, \S
 
 
 
-\subsection{\keyword{GAUSS} Distribution for Photoinjector}
+\subsection{\keywordinheader{GAUSS} Distribution for Photoinjector}
 \label{sec:gaussdisttypephotoinjector}
 
 \begin{table}[!htb]
@@ -460,7 +460,7 @@ at an average position of $(\bar{x},\bar{y},\bar{z})=(\SI{1.0}{\milli\meter}, \S
   \end{center}
 \end{table}
 
-\begin{figure}[h]
+\begin{figure}[ht]
   \begin{center}
     \includegraphics[width=0.8\textwidth]{./figures/flattop.pdf}
     \caption{\opal emitted \keyword{GAUSS} distribution with flat top.}
@@ -504,7 +504,7 @@ oscillations in percentage of the average profile amplitude during $t_\mathrm{fl
 set $\texttt{FTOSCAMPLITUDE} = 5$, and the amplitude of the profile is equal to $1.0$ during $t_\mathrm{flattop}$,
 the amplitude of the oscillation will be $0.05$.
 
-\subsection{Correlations for \keyword{GAUSS} Distribution (Experimental)}
+\subsection{Correlations for \keywordinheader{GAUSS} Distribution (Experimental)}
 
 \begin{table}[!htb]
   \begin{center}\footnotesize
@@ -595,7 +595,7 @@ Dist:DISTRIBUTION, DISTRIBUTION = GAUSS,
 \end{example}
 \index{Distribution!GAUSS|)}
 
-\section{\keyword{FLATTOP} Distribution Type}
+\section{\keywordinheader{FLATTOP} Distribution Type}
 \label{sec:flattopdisttype}
 \index{Distribution!FLATTOP|(}
 \FloatBarrier
@@ -605,7 +605,7 @@ a more or less uniformly filled cylinder of charge, although as we will see this
 of the \keyword{FLATTOP} is to mimic laser pulses in photoinjectors, and so we usually will make this an \emph{emitted}
 distribution. However it can be \emph{injected} as well.
 
-\subsection{Injected \keyword{FLATTOP}}
+\subsection{Injected \keywordinheader{FLATTOP}}
 The attributes for an \emph{injected} \keyword{FLATTOP} distribution are defined in \tabref{distattrflattopinj,distattruniversal}.
 At the moment, we cannot define a spread in the beam momentum, so an \emph{injected} \keyword{FLATTOP}
 distribution will currently have zero emittance. An \emph{injected} \keyword{FLATTOP} will be a uniformly filled ellipse transversely
@@ -632,7 +632,7 @@ with a uniform distribution in $z$. (Basically a cylinder with an elliptical cro
 \end{table}
 
 
-\subsection{Emitted \keyword{FLATTOP}}
+\subsection{Emitted \keywordinheader{FLATTOP}}
 
 \begin{table}[!htb]
   \begin{center}\footnotesize
@@ -702,7 +702,7 @@ Dist:DISTRIBUTION, DISTRIBUTION = FLATTOP,
                    EKIN = 0.5,
                    EMITTED = TRUE;
 \end{example}
-\index{Distribution!FLATTOP|(}
+\index{Distribution!FLATTOP|)}
 
 \subsection{Transverse Distribution from Laser Profile (Under Development)}
 \index{Distribution!Laser Profile}
@@ -713,21 +713,21 @@ to sample the transverse distribution.
 \textbf{\emph{This distribution option is not yet available.}}
 
 
-\subsection{\keyword{GUNGAUSSFLATTOPTH} Distribution Type}
+\subsection{\keywordinheader{GUNGAUSSFLATTOPTH} Distribution Type}
 \label{sec:gungaussflattopthdisttype}
 \index{Distribution!GUNGAUSSFLATTOPTH}
 This is a legacy distribution type. A \keyword{GUNGAUSSFLATTOPTH} is the equivalent of a \keyword{FLATTOP} distribution, except that
 the \keyword{EMITTED} attribute will set to \keyword{TRUE} automatically and the \keyword{EMISSIONMODEL} will be automatically set
 to \keyword{ASTRA}.
 
-\subsection{\keyword{ASTRAFLATTOPTH} Distribution Type}
+\subsection{\keywordinheader{ASTRAFLATTOPTH} Distribution Type}
 \label{sec:astraflattopthdisttype}
 \index{Distribution!ASTRAFLATTOPTH}
 This is a legacy distribution type. A \keyword{ASTRAFLATTOPTH} is the equivalent of a \keyword{FLATTOP} distribution, except that
 the \keyword{EMITTED} attribute will set to \keyword{TRUE} automatically and the \keyword{EMISSIONMODEL} will be automatically set
 to \keyword{ASTRA}. There are a few other differences with how the longitudinal time profile of the distribution is generated.
 
-\section{\keyword{BINOMIAL} Distribution Type}
+\section{\keywordinheader{BINOMIAL} Distribution Type}
 \label{sec:binomialdisttype}
 \index{Distribution!BINOMIAL}
 \FloatBarrier
@@ -770,7 +770,7 @@ as listed in \tabref{binomdist}.
 When emitting a distribution from a cathode, there are several ways in which we can model the emission process in order
 to calculate the thermal emittance of the beam. In this section we discuss the various options available.
 
-\subsection{Emission Model: \keyword{NONE} (default)}
+\subsection{Emission Model: \keywordinheader{NONE} (default)}
 \index{Emission Model!NONE}
 The emission model \keyword{NONE} is the default emission model used in \opalt. It has a single attribute, listed in
 \tabref{distattremitmodelnoneastra}. The \keyword{NONE} emission model is very simplistic. It merely adds the amount
@@ -816,7 +816,7 @@ One thing to note, it may be that if you are emitting your own distribution usin
 option, you may want to set \keyword{EKIN = 0} if you have already added some amount of momentum, $p_{z}$, to the
 particles.
 
-\subsection{Emission Model: \keyword{ASTRA}}
+\subsection{Emission Model: \keywordinheader{ASTRA}}
 \index{Emission Model!ASTRA}
 The \keyword{ASTRA} emittance model uses the same single parameter as the \keyword{NONE} option as listed in
 \tabref{distattremitmodelnoneastra}. However, in this case, the energy defined by the \keyword{EKIN} attribute is
@@ -837,7 +837,7 @@ where $\theta$ is a random angle between $0$ and $\pi$, and $\phi$ is given by
 \end{equation*}
 with $x$ a random number between $0$ and $1$.
 
-\subsection{Emission Model: \keyword{NONEQUIL}}
+\subsection{Emission Model: \keywordinheader{NONEQUIL}}
 \index{Emission Model!NONEQUIL}
 The \keyword{NONEQUIL} emission model is based on an actual physical model of particle emission as described in
 \cite{flo:97, clen:2000, dowe:2009}. The attributes needed by this emission model are listed in

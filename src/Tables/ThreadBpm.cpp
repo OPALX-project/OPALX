@@ -48,6 +48,8 @@ ThreadBpm::ThreadBpm():
                      ("LISTC", "List the correctors after correction");
     itsAttr[LISTM] = Attributes::makeBool
                      ("LISTM", "List the monitors after correction");
+
+    registerOwnership(AttributeHandler::COMMAND);
 }
 
 

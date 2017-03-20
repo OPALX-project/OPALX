@@ -35,6 +35,8 @@ OpalMonitor::OpalMonitor():
 
     registerStringAttribute("OUTFN");
 
+    registerOwnership();
+
     setElement((new MonitorRep("MONITOR"))->makeAlignWrapper());
 }
 

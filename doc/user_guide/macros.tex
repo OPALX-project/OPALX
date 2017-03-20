@@ -59,16 +59,14 @@
 \newcommand{\nprimed}[1]{^{\myrepeat{#1}{\prime}}}
 
 %Editing Macros
-\newcommand{\TODO}[1]{{\color{red}\ifthenelse{\boolean{ShowDebug}}{[TODO: #1]}{}}}
-
-
+\newcommand{\TODO}[1]{\ifthenelse{\boolean{ShowDebug}}{\color{red}TODO: #1}{}}
 
 %text in gray box
 \newsavebox{\fmbox}
 \definecolor{lightgray}{gray}{0.95}
 \newenvironment{fmpage}
-   {\vspace{-1.0cm}\begin{lrbox}{\fmbox}\begin{minipage}[t]{13.5cm}\vspace{0.1cm}}
-   {\vspace{-0.4cm}\end{minipage}\end{lrbox}\begin{center}\fcolorbox{black}{lightgray}{\usebox{\fmbox}}\end{center}}
+   {\begin{lrbox}{\fmbox}\begin{minipage}[ht]{13.5cm}}
+   {\end{minipage}\end{lrbox}\begin{center}\fcolorbox{black}{lightgray}{\usebox{\fmbox}}\end{center}}
 
 
 % Definition new signes
@@ -123,6 +121,8 @@
 \newcommand{\keyword}[2][]{\ifstrempty{#1}{\texttt{\expandafter\MakeUppercase\expandafter{#2}}}{\hyperref[#1]{\texttt{\expandafter\MakeUppercase\expandafter{#2}}}}}
 \newcommand{\tabline}[3][]{\keyword[#1]{#2}& #3 \\}
 \newcommand{\tabheadcell}[1]{{\bfseries #1}}
+%% keyword not allowed in PDFDocEncoded string
+\newcommand{\keywordinheader}[1]{\texorpdfstring{\keyword{#1}}{#1}}
 
 \newcommand*\kdescriptionlabel[1]{\hspace\labelsep
                                 \normalfont\keyword{#1}\index{#1}}
@@ -182,8 +182,8 @@
 \newcommand{\seessec}[1]{(see~\ssecref{#1})}
 \newcommand{\seetab}[1]{(see~\tabref{#1})}
 \newcommand{\seeeqn}[1]{(see~\eqnref{#1})}
-
-\newcommand{\filename}[1]{\emph{#1}}
+%% renew as filename command might already be defined
+\renewcommand{\filename}[1]{\emph{#1}}
 
 
 % Define distances for bordering

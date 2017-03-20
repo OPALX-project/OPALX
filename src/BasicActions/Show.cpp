@@ -32,6 +32,8 @@ Show::Show():
            " regular expression.") {
     itsAttr[0] = Attributes::makeString
                  ("PATTERN", "Regular expression for pattern match");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

@@ -33,6 +33,8 @@ Help::Help():
            "types of an object.") {
     itsAttr[0] =
         Attributes::makeString("NAME", "Name of object for which help is wanted");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

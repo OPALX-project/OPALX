@@ -17,6 +17,8 @@ OpalSource::OpalSource():
 
     registerStringAttribute("DISTRIBUTION");
 
+    registerOwnership();
+
     setElement((new SourceRep("SOURCE"))->makeAlignWrapper());
 }
 

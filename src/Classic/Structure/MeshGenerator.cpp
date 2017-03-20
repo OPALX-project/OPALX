@@ -118,10 +118,12 @@ void MeshGenerator::write(const std::string &fname) {
     out.seekp(-2, std::ios_base::end);
     out << "]\n";
 
-    boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
-    in.push(boost::iostreams::zlib_compressor());
-    in.push(vertices_ascii);
-    boost::iostreams::copy(in, vertices_compressed);
+    {
+        boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
+        in.push(boost::iostreams::zlib_compressor());
+        in.push(vertices_ascii);
+        boost::iostreams::copy(in, vertices_compressed);
+    }
 
     std::string vertices_base64 = Util::base64_encode(vertices_compressed.str());
     out << "vertices_base64 = \"" << vertices_base64 << "\"\n";
@@ -161,7 +163,92 @@ void MeshGenerator::write(const std::string &fname) {
     out.seekp(-2, std::ios_base::end);
     out << "]\n\n";
 
-    out << "index_base64 = 'eJylVm2L4zYQ/ryF/gedl4IXEjnZUjh2k4UkDXRhcxt2l8K1lKLY41iHLaWSHF9a7r93JDk520m2XNcfbNkz88zomRd59O7nx9nLx+WcZKbI777/blQ/CV6jDFhSr917AYahotn04a+Sb8fBTAoDwvRfdhsISOzfxoGBzyayQLckzpjSYMalSfvvAxIhXAPQcJPD3ZStdrkU9JMmmhWbHBApgVHkpQ31d/0+aSj3+02hjhXfGKJVPA5sjDdRVFUVXXn9T5rGsogyJhJacMFTDkl/SK8RJ7gbRd74m+FiJoSL5Q0YkhfybQirAyVnQMyuxaO9bHZ6ZCWTHfmnLbGX3IJKc1ndkIwnCYjbY5WKJya7IcPB4IcT0gz4OjNnxQVTay5uyOCEbMOShIv1sfBLs3TsdalAJKBmTGyZPrWNN8VoZBlnfRYbLjFSTDMcx7NfIusNjkdR3Tgjy+/+Y+zD5Mk4aMZtU+ZFe8WjBG6ZIrX1mCQyLgvsMroGM8/BLqe7+yRsg17dts1BIN+A5gIqMp1MPz48fqBz9zH00D1iVAnWruNYATPwHIMzT0vhCCHhVZPwC6upa52mC2cXeu9t7IsomrhEE0Zym4jjDFhQJ+qALiUX5sEKwuCxEDzotcS/Qmyk+jEc9Egfc9sjg6ueD+7qRJqjyLmgCU/TUnfjn8ncQdH3CFPfTqF4DL2BuMwx6jMgQ2vvb6+FslayFImzOoOEEHZb5wgVZKJi8iQNZo7MWAGKnWY3drKOE7T1pt4yDPwzsHGj2wUzGV3e98hP+NLhnP4GSoan6L7wrigzhsWZPTeUzA+ll7Jcn8xObVVlAPlSQcy1Lb4xuR50905eMiApV9rgBFFoZsB1DVkBwbwm2M/E5oenO1JlPM5IATqzX3mxkcpQ8gsoIBXU74TluVMB3fLTquwHybDn6L2zWKByGCBNgdu9juzSgDb7cR3UvPQabYTEL5yTdj99o5fLy+nkef5hsphfXv5ZT4Wl1Nz60P/DveXzGQwxyKnBWY1Lmbq3umKQNnPg2xOGFFu6mih19moEV2Xe2++DP26707xbmwVWoOIsH3ZHisEznKlkUctD97tRKhgGr7T51x474NKKK0htqaAHO/ya5XrRjJXubVDxYP7f2hQKrjXfwmutTK9tX/lbq2G+dNpbAW5S+B029Nyp2B7Z+0HcGN1hG8wPZKpK8eROjQcpN+GZ2W4vh0j9CRM2o+wEiWXzBJr/DV8/VVwksqJ4qM+3YMe2xn9ERMHzyioGvXNnSjNOp3rs2C4aPzyjqD5vR+7n8+5f1rP4FQ=='\n\n";
+    std::stringstream index_ascii;
+    std::ostringstream index_compressed;
+    index_ascii << "<!DOCTYPE html>\n"
+                << "<html>\n"
+                << "    <head>\n"
+                << "        <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n"
+                << "\n"
+                << "        <title>Babylon.js sample code</title>\n"
+                << "        <!-- Babylon.js -->\n"
+                << "        <script src=\"http://www.babylonjs.com/hand.minified-1.2.js\"></script>\n"
+                << "        <script src=\"http://www.babylonjs.com/cannon.js\"></script>\n"
+                << "        <script src=\"http://www.babylonjs.com/oimo.js\"></script>\n"
+                << "        <script src=\"http://www.babylonjs.com/babylon.js\"></script>\n"
+                << "        <style>\n"
+                << "            html, body {\n"
+                << "                overflow: hidden;\n"
+                << "                width: 100%;\n"
+                << "                height: 100%;\n"
+                << "                margin: 0;\n"
+                << "                padding: 0;\n"
+                << "            }\n"
+                << "\n"
+                << "            #renderCanvas {\n"
+                << "                width: 100%;\n"
+                << "                height: 100%;\n"
+                << "                touch-action: none;\n"
+                << "            }\n"
+                << "        </style>\n"
+                << "    </head>\n"
+                << "<body>\n"
+                << "    <canvas id=\"renderCanvas\"></canvas>\n"
+                << "    <script>\n"
+                << "        var canvas = document.getElementById(\"renderCanvas\");\n"
+                << "        var engine = new BABYLON.Engine(canvas, true);\n"
+                << "\n"
+                << "        var createScene = function () {\n"
+                << "            var scene = new BABYLON.Scene(engine);\n"
+                << "\n"
+                << "            //Adding a light\n"
+                << "                var light = new BABYLON.PointLight(\"Omni\", new BABYLON.Vector3(0, -100, 0), scene);\n"
+                << "                //light.diffuse = new BABYLON.Color3(0.8, 0.8, 0.8);\n"
+                << "                light.specular = new BABYLON.Color3(0.1, 0.1, 0.1);\n"
+                << "                //light.groundColor = new BABYLON.Color3(0, 0, 0);\n"
+                << "\n"
+                << "            //Adding an Arc Rotate Camera\n"
+                << "                var camera = new BABYLON.ArcRotateCamera(\"Camera\", 0.0, Math.PI, 50, BABYLON.Vector3.Zero(), scene);\n"
+                << "            camera.attachControl(canvas, false);\n"
+                << "                camera.wheelPrecision = 20;\n"
+                << "\n"
+                << "            var mymesh = ##DATA##;\n"
+                << "            // The first parameter can be used to specify which mesh to import. Here we import all meshes\n"
+                << "            BABYLON.SceneLoader.ImportMesh(\"\", \"\", mymesh, scene, function (newMeshes) {\n"
+                << "                // Set the target of the camera to the first imported mesh\n"
+                << "                camera.target = newMeshes[0];\n"
+                << "\n"
+                << "                        var material1 = new BABYLON.StandardMaterial(\"texture1\", scene);\n"
+                << "                        //material1.wireframe = true;\n"
+                << "                newMeshes[0].material = material1;\n"
+                << "                newMeshes[0].material.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);\n"
+                << "            });\n"
+                << "\n"
+                << "            return scene;\n"
+                << "        }\n"
+                << "\n"
+                << "\n"
+                << "        var scene = createScene();\n"
+                << "\n"
+                << "        engine.runRenderLoop(function () {\n"
+                << "            scene.render();\n"
+                << "        });\n"
+                << "\n"
+                << "        // Resize\n"
+                << "        window.addEventListener(\"resize\", function () {\n"
+                << "            engine.resize();\n"
+                << "        });\n"
+                << "    </script>\n"
+                << "</body>\n"
+                << "</html>";
+    {
+        boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
+        in.push(boost::iostreams::zlib_compressor());
+        in.push(index_ascii);
+        boost::iostreams::copy(in, index_compressed);
+    }
+
+    out << "index_base64 = '" << Util::base64_encode(index_compressed.str()) << "'\n\n";
 
     out << "def decodeVertices():\n";
     out << indent << "vertices_binary = zlib.decompress(base64.b64decode(vertices_base64))\n";
@@ -312,10 +399,10 @@ void MeshGenerator::write(const std::string &fname) {
     out << indent << "return normalize(cross(vec1,vec2))\n\n";
 
     out << "def exportWeb():\n";
-    out << indent << "if not os.path.exists('scenes'):\n";
-    out << indent << indent << "os.makedirs('scenes')\n";
-    out << indent << "fh = open('scenes/" << fname << "_ElementPositions.babylon','w')\n";
-    out << indent << "indent = \"    \";\n\n";
+    // out << indent << "if not os.path.exists('scenes'):\n";
+    // out << indent << indent << "os.makedirs('scenes')\n";
+    // out << indent << "fh = open('scenes/" << fname << "_ElementPositions.babylon','w')\n";
+    // out << indent << "indent = \"\";\n\n";
 
     out << indent << "lookup_table = []\n";
     out << indent << "lookup_table.append([0.5, 0.5, 0.5])\n";
@@ -328,39 +415,40 @@ void MeshGenerator::write(const std::string &fname) {
 
     out << indent << "decodeVertices()\n\n";
 
-    out << indent << "fh.write(\"{\\n\")\n";
-    out << indent << "fh.write(\"\\\"autoClear\\\":true,\\n\")\n";
-    out << indent << "fh.write(\"\\\"clearColor\\\":[0.0000,0.0000,0.0000],\\n\")\n";
-    out << indent << "fh.write(\"\\\"ambientColor\\\":[0.0000,0.0000,0.0000],\\n\")\n";
-    out << indent << "fh.write(\"\\\"gravity\\\":[0.0000,-9.8100,0.0000],\\n\")\n";
-    out << indent << "fh.write(\"\\\"cameras\\\":[\\n\")\n";
-    out << indent << "fh.write(indent + \"{\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"name\\\":\\\"Camera\\\",\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"id\\\":\\\"Camera\\\",\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"position\\\":[21.7936,2.2312,-85.7292],\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"rotation\\\":[0.0432,-0.1766,-0.0668],\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"fov\\\":0.8578,\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"minZ\\\":10.0000,\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"maxZ\\\":10000.0000,\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"speed\\\":1.0000,\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"inertia\\\":0.9000,\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"checkCollisions\\\":false,\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"applyGravity\\\":false,\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"ellipsoid\\\":[0.2000,0.9000,0.2000]\\n\")\n";
-    out << indent << "fh.write(indent + \"}],\\n\")\n";
-    out << indent << "fh.write(\"\\\"activeCamera\\\":\\\"Camera\\\",\\n\")\n";
-    out << indent << "fh.write(\"\\\"lights\\\":[\\n\")\n";
-    out << indent << "fh.write(indent + \"{\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"name\\\":\\\"Lamp\\\",\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"id\\\":\\\"Lamp\\\",\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"type\\\":0.0000,\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"position\\\":[4.0762,34.9321,-63.5788],\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"intensity\\\":1.0000,\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"diffuse\\\":[1.0000,1.0000,1.0000],\\n\")\n";
-    out << indent << "fh.write(indent + \"\\\"specular\\\":[1.0000,1.0000,1.0000]\\n\")\n";
-    out << indent << "fh.write(indent + \"}],\\n\")\n";
-    out << indent << "fh.write(\"\\\"materials\\\":[],\\n\")\n";
-    out << indent << "fh.write(\"\\\"meshes\\\":[\\n\")\n\n";
+    out << indent << "mesh = \"'data:\"\n";
+    out << indent << "mesh += \"{\"\n";
+    out << indent << "mesh += \"\\\"autoClear\\\":true,\"\n";
+    out << indent << "mesh += \"\\\"clearColor\\\":[0.0000,0.0000,0.0000],\"\n";
+    out << indent << "mesh += \"\\\"ambientColor\\\":[0.0000,0.0000,0.0000],\"\n";
+    out << indent << "mesh += \"\\\"gravity\\\":[0.0000,-9.8100,0.0000],\"\n";
+    out << indent << "mesh += \"\\\"cameras\\\":[\"\n";
+    out << indent << "mesh += \"{\"\n";
+    out << indent << "mesh += \"\\\"name\\\":\\\"Camera\\\",\"\n";
+    out << indent << "mesh += \"\\\"id\\\":\\\"Camera\\\",\"\n";
+    out << indent << "mesh += \"\\\"position\\\":[21.7936,2.2312,-85.7292],\"\n";
+    out << indent << "mesh += \"\\\"rotation\\\":[0.0432,-0.1766,-0.0668],\"\n";
+    out << indent << "mesh += \"\\\"fov\\\":0.8578,\"\n";
+    out << indent << "mesh += \"\\\"minZ\\\":10.0000,\"\n";
+    out << indent << "mesh += \"\\\"maxZ\\\":10000.0000,\"\n";
+    out << indent << "mesh += \"\\\"speed\\\":1.0000,\"\n";
+    out << indent << "mesh += \"\\\"inertia\\\":0.9000,\"\n";
+    out << indent << "mesh += \"\\\"checkCollisions\\\":false,\"\n";
+    out << indent << "mesh += \"\\\"applyGravity\\\":false,\"\n";
+    out << indent << "mesh += \"\\\"ellipsoid\\\":[0.2000,0.9000,0.2000]\"\n";
+    out << indent << "mesh += \"}],\"\n";
+    out << indent << "mesh += \"\\\"activeCamera\\\":\\\"Camera\\\",\"\n";
+    out << indent << "mesh += \"\\\"lights\\\":[\"\n";
+    out << indent << "mesh += \"{\"\n";
+    out << indent << "mesh += \"\\\"name\\\":\\\"Lamp\\\",\"\n";
+    out << indent << "mesh += \"\\\"id\\\":\\\"Lamp\\\",\"\n";
+    out << indent << "mesh += \"\\\"type\\\":0.0000,\"\n";
+    out << indent << "mesh += \"\\\"position\\\":[4.0762,34.9321,-63.5788],\"\n";
+    out << indent << "mesh += \"\\\"intensity\\\":1.0000,\"\n";
+    out << indent << "mesh += \"\\\"diffuse\\\":[1.0000,1.0000,1.0000],\"\n";
+    out << indent << "mesh += \"\\\"specular\\\":[1.0000,1.0000,1.0000]\"\n";
+    out << indent << "mesh += \"}],\"\n";
+    out << indent << "mesh += \"\\\"materials\\\":[],\"\n";
+    out << indent << "mesh += \"\\\"meshes\\\":[\"\n\n";
 
     out << indent << "for i in xrange(len(triangles)):\n";
     out << indent << indent << "vertex_list = []\n";
@@ -381,47 +469,45 @@ void MeshGenerator::write(const std::string &fname) {
     out << indent << indent << indent << "normal = getNormal(tri_vertices)\n";
     out << indent << indent << indent << "normals_list.append(','.join(\"%.5f\" % (round(n,5) + 0.0) for n in normal * 3))\n";
     out << indent << indent << indent << "color_list.append(','.join([str(n) for n in lookup_table[color[i]]] * 3))\n";
-    out << indent << indent << "fh.write(indent + \"{\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"\\\"name\\\":\\\"element_\" + str(i) + \"\\\",\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"\\\"id\\\":\\\"element_\" + str(i) + \"\\\",\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"\\\"position\\\":[0.0,0.0,0.0],\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"\\\"rotation\\\":[0.0,0.0,0.0],\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"\\\"scaling\\\":[1.0,1.0,1.0],\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"\\\"isVisible\\\":true,\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"\\\"isEnabled\\\":true,\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"\\\"useFlatShading\\\":false,\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"\\\"checkCollisions\\\":false,\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"\\\"billboardMode\\\":0,\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"\\\"receiveShadows\\\":false,\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"\\\"positions\\\":[\" + ','.join(vertex_list) + \"],\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"\\\"normals\\\":[\" + ','.join(normals_list) + \"],\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"\\\"indices\\\":[\" + ','.join(indices_list) + \"],\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"\\\"colors\\\":[\" + ','.join(color_list) + \"],\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"\\\"subMeshes\\\":[\\n\")\n";
-    out << indent << indent << "fh.write(indent + indent + \"{\\n\")\n";
-    out << indent << indent << "fh.write(indent + indent + \"\\\"materialIndex\\\":0,\\n\")\n";
-    out << indent << indent << "fh.write(indent + indent + \" \\\"verticesStart\\\":0,\\n\")\n";
-    out << indent << indent << "fh.write(indent + indent + \" \\\"verticesCount\\\":\" + str(len(triangles[i])) + \",\\n\")\n";
-    out << indent << indent << "fh.write(indent + indent + \" \\\"indexStart\\\":0,\\n\")\n";
-    out << indent << indent << "fh.write(indent + indent + \" \\\"indexCount\\\":\" + str(len(triangles[i])) + \"\\n\")\n";
-    out << indent << indent << "fh.write(indent + indent + \"}]\\n\")\n";
-    out << indent << indent << "fh.write(indent + \"}\")\n";
-    out << indent << indent << "fh.write(\",\\n\")\n\n";
+    out << indent << indent << "mesh += \"{\"\n";
+    out << indent << indent << "mesh += \"\\\"name\\\":\\\"element_\" + str(i) + \"\\\",\"\n";
+    out << indent << indent << "mesh += \"\\\"id\\\":\\\"element_\" + str(i) + \"\\\",\"\n";
+    out << indent << indent << "mesh += \"\\\"position\\\":[0.0,0.0,0.0],\"\n";
+    out << indent << indent << "mesh += \"\\\"rotation\\\":[0.0,0.0,0.0],\"\n";
+    out << indent << indent << "mesh += \"\\\"scaling\\\":[1.0,1.0,1.0],\"\n";
+    out << indent << indent << "mesh += \"\\\"isVisible\\\":true,\"\n";
+    out << indent << indent << "mesh += \"\\\"isEnabled\\\":true,\"\n";
+    out << indent << indent << "mesh += \"\\\"useFlatShading\\\":false,\"\n";
+    out << indent << indent << "mesh += \"\\\"checkCollisions\\\":false,\"\n";
+    out << indent << indent << "mesh += \"\\\"billboardMode\\\":0,\"\n";
+    out << indent << indent << "mesh += \"\\\"receiveShadows\\\":false,\"\n";
+    out << indent << indent << "mesh += \"\\\"positions\\\":[\" + ','.join(vertex_list) + \"],\"\n";
+    out << indent << indent << "mesh += \"\\\"normals\\\":[\" + ','.join(normals_list) + \"],\"\n";
+    out << indent << indent << "mesh += \"\\\"indices\\\":[\" + ','.join(indices_list) + \"],\"\n";
+    out << indent << indent << "mesh += \"\\\"colors\\\":[\" + ','.join(color_list) + \"],\"\n";
+    out << indent << indent << "mesh += \"\\\"subMeshes\\\":[\"\n";
+    out << indent << indent << "mesh += \"{\"\n";
+    out << indent << indent << "mesh += \"\\\"materialIndex\\\":0,\"\n";
+    out << indent << indent << "mesh += \" \\\"verticesStart\\\":0,\"\n";
+    out << indent << indent << "mesh += \" \\\"verticesCount\\\":\" + str(len(triangles[i])) + \",\"\n";
+    out << indent << indent << "mesh += \" \\\"indexStart\\\":0,\"\n";
+    out << indent << indent << "mesh += \" \\\"indexCount\\\":\" + str(len(triangles[i])) + \"\"\n";
+    out << indent << indent << "mesh += \"}]\"\n";
+    out << indent << indent << "mesh += \"}\"\n";
+    out << indent << indent << "mesh += \",\"\n\n";
 
     out << indent << indent << "del normals_list[:]\n";
     out << indent << indent << "del vertex_list[:]\n";
     out << indent << indent << "del color_list[:]\n";
     out << indent << indent << "del indices_list[:]\n\n";
 
-    out << indent << "fh.seek(-2,1)\n";
-    out << indent << "fh.write(\"]\\n\")\n";
-    out << indent << "fh.write(\"}\")\n";
-    out << indent << "fh.close()\n\n";
+    out << indent << "mesh = mesh[:-1] + \"]\"\n";
+    out << indent << "mesh += \"}'\"\n";
 
     out << indent << "index_compressed = base64.b64decode(index_base64)\n";
     out << indent << "index = zlib.decompress(index_compressed)\n";
-    out << indent << "index = index.replace('##BASENAME##','" << fname << "')\n";
-    out << indent << "fh = open('index.html','w')\n";
+    out << indent << "index = index.replace('##DATA##', mesh)\n";
+    out << indent << "fh = open('" << fname << "_ElementPositions.html','w')\n";
     out << indent << "fh.write(index)\n";
     out << indent << "fh.close()\n\n";
 
