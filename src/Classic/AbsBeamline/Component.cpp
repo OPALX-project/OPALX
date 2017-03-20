@@ -17,7 +17,7 @@
 //
 // $Date: 2000/03/27 09:32:31 $
 // $Author: fci $
-//
+//c
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Component.h"
@@ -30,29 +30,39 @@
 //   the basic element in the accelerator model, and can be thought of as
 //   acting as a leaf in the Composite pattern.  A Component is associated
 //   with an electromagnetic field.
+// 2017-03-20 (Rogers) set default aperture to something huge; else we get a
+//         segmentation fault by default from NULL dereference during tracking
+
+const std::vector<double> Component::defaultAperture_m = 
+                                                    std::vector<double>(3, 1e15);
+
 
 Component::Component():
     ElementBase(),
     exit_face_slope_m(0.0),
     RefPartBunch_m(NULL),
-    online_m(false)
-{}
+    online_m(false) {
+    setAperture(ElementBase::RECTANGULAR, defaultAperture_m);
+}
 
 
 Component::Component(const Component &right):
     ElementBase(right),
     exit_face_slope_m(right.exit_face_slope_m),
     RefPartBunch_m(right.RefPartBunch_m),
-    online_m(right.online_m)
-{}
+    online_m(right.online_m) {
+    setAperture(ElementBase::RECTANGULAR, defaultAperture_m);
+}
 
 
 Component::Component(const std::string &name):
     ElementBase(name),
     exit_face_slope_m(0.0),
     RefPartBunch_m(NULL),
-    online_m(false)
-{}
+    online_m(false) {
+    setAperture(ElementBase::RECTANGULAR, defaultAperture_m);
+
+}
 
 
 Component::~Component()

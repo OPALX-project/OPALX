@@ -30,6 +30,8 @@
 
 using interpolation::ThreeDGrid;
 
+namespace threegridtest {
+
 TEST(ThreeDGridTest, LowerBoundTest) {
     std::vector<double> xVar(7), yVar(8), zVar(9);
     for (size_t i = 0; i < xVar.size(); ++i) {
@@ -81,4 +83,5 @@ TEST(ThreeDGridTest, LowerBoundTest) {
             EXPECT_EQ(index, int(j)) << "grid" << i << " " << j;
         }
     }
+}
 }

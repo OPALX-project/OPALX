@@ -14,6 +14,8 @@ Inform *gmsg;
 #include "Parser/FileStream.h"
 #include "Physics/Physics.h"
 
+#include "opal_test_utilities/SilenceTest.h"
+
 #include "gsl/gsl_statistics_double.h"
 
 #include <cstdio>
@@ -33,13 +35,7 @@ namespace {
 }
 
 TEST(GaussTest, FullSigmaTest1) {
-
-    std::streambuf *defaultCout;
-    std::streambuf *defaultCerr;
-    std::ostringstream debugOutput;
-    defaultCout = std::cout.rdbuf(debugOutput.rdbuf());
-    defaultCerr = std::cerr.rdbuf(debugOutput.rdbuf());
-
+    OpalTestUtilities::SilenceTest silencer(true);
     char inputFileName[] = "GaussDistributionTest.in";
     std::string input = "OPTION, ECHO=FALSE;\n"
         "OPTION, CZERO=FALSE;\n"
@@ -85,8 +81,6 @@ TEST(GaussTest, FullSigmaTest1) {
         is = new FileStream(inputFileName);
     } catch(...) {
         is = 0;
-        std::cout.rdbuf(defaultCout);
-        std::cerr.rdbuf(defaultCerr);
         throw new OpalException("FullSigmaTest", "Could not read string");
     }
 
@@ -95,8 +89,6 @@ TEST(GaussTest, FullSigmaTest1) {
         try {
             parser->run(is);
         } catch (...) {
-            std::cout.rdbuf(defaultCout);;
-            std::cerr.rdbuf(defaultCerr);;
             throw new OpalException("FullSigmaTest", "Could not parse input");
         }
     }
@@ -106,8 +98,6 @@ TEST(GaussTest, FullSigmaTest1) {
         distObj = OPAL->find("DIST1");
     } catch(...) {
         distObj = 0;
-        std::cout.rdbuf(defaultCout);;
-        std::cerr.rdbuf(defaultCerr);;
         throw new OpalException("FullSigmaTest", "Could not find distribution");
     }
 
@@ -138,17 +128,15 @@ TEST(GaussTest, FullSigmaTest1) {
         const double expectedR61 = 1.362;
         const double expectedR62 = -0.2685;
 
-        EXPECT_LT(std::abs(expectedR11 - R11),  0.05 * expectedR11) << ::burnAfterReading(debugOutput);
-        EXPECT_LT(std::abs(expectedR21 - R21), -0.05 * expectedR21) << ::burnAfterReading(debugOutput);
-        EXPECT_LT(std::abs(expectedR22 - R22),  0.05 * expectedR22) << ::burnAfterReading(debugOutput);
-        EXPECT_LT(std::abs(expectedR51 - R51),  0.05 * expectedR51) << ::burnAfterReading(debugOutput);
-        EXPECT_LT(std::abs(expectedR52 - R52),  0.05 * expectedR52) << ::burnAfterReading(debugOutput);
-        EXPECT_LT(std::abs(expectedR61 - R61),  0.05 * expectedR61) << ::burnAfterReading(debugOutput);
-        EXPECT_LT(std::abs(expectedR62 - R62), -0.05 * expectedR62) << ::burnAfterReading(debugOutput);
+        EXPECT_LT(std::abs(expectedR11 - R11),  0.05 * expectedR11);
+        EXPECT_LT(std::abs(expectedR21 - R21), -0.05 * expectedR21);
+        EXPECT_LT(std::abs(expectedR22 - R22),  0.05 * expectedR22);
+        EXPECT_LT(std::abs(expectedR51 - R51),  0.05 * expectedR51);
+        EXPECT_LT(std::abs(expectedR52 - R52),  0.05 * expectedR52);
+        EXPECT_LT(std::abs(expectedR61 - R61),  0.05 * expectedR61);
+        EXPECT_LT(std::abs(expectedR62 - R62), -0.05 * expectedR62);
     }
 
-    std::cout.rdbuf(defaultCout);;
-    std::cerr.rdbuf(defaultCerr);;
 
     OpalData::deleteInstance();
     delete parser;
@@ -160,13 +148,7 @@ TEST(GaussTest, FullSigmaTest1) {
 }
 
 TEST(GaussTest, FullSigmaTest2) {
-
-    std::streambuf *defaultCout;
-    std::streambuf *defaultCerr;
-    std::ostringstream debugOutput;
-    defaultCout = std::cout.rdbuf(debugOutput.rdbuf());
-    defaultCerr = std::cerr.rdbuf(debugOutput.rdbuf());
-
+    OpalTestUtilities::SilenceTest silencer(true);
     char inputFileName[] = "GaussDistributionTest.in";
     std::string input = "OPTION, ECHO=FALSE;\n"
         "OPTION, CZERO=FALSE;\n"
@@ -214,8 +196,6 @@ TEST(GaussTest, FullSigmaTest2) {
         is = new FileStream(inputFileName);
     } catch(...) {
         is = 0;
-        std::cout.rdbuf(defaultCout);;
-        std::cerr.rdbuf(defaultCerr);;
         throw new OpalException("FullSigmaTest", "Could not read string");
     }
 
@@ -224,8 +204,6 @@ TEST(GaussTest, FullSigmaTest2) {
         try {
             parser->run(is);
         } catch (...) {
-            std::cout.rdbuf(defaultCout);;
-            std::cerr.rdbuf(defaultCerr);;
             throw new OpalException("FullSigmaTest", "Could not parse input");
         }
     }
@@ -235,8 +213,6 @@ TEST(GaussTest, FullSigmaTest2) {
         distObj = OPAL->find("DIST1");
     } catch(...) {
         distObj = 0;
-        std::cout.rdbuf(defaultCout);;
-        std::cerr.rdbuf(defaultCerr);;
         throw new OpalException("FullSigmaTest", "Could not find distribution");
     }
 
@@ -267,17 +243,14 @@ TEST(GaussTest, FullSigmaTest2) {
         const double expectedR61 = 1.362;
         const double expectedR62 = -0.2685;
 
-        EXPECT_LT(std::abs(expectedR11 - R11),  0.05 * expectedR11) << ::burnAfterReading(debugOutput);
-        EXPECT_LT(std::abs(expectedR21 - R21), -0.05 * expectedR21) << ::burnAfterReading(debugOutput);
-        EXPECT_LT(std::abs(expectedR22 - R22),  0.05 * expectedR22) << ::burnAfterReading(debugOutput);
-        EXPECT_LT(std::abs(expectedR51 - R51),  0.05 * expectedR51) << ::burnAfterReading(debugOutput);
-        EXPECT_LT(std::abs(expectedR52 - R52),  0.05 * expectedR52) << ::burnAfterReading(debugOutput);
-        EXPECT_LT(std::abs(expectedR61 - R61),  0.05 * expectedR61) << ::burnAfterReading(debugOutput);
-        EXPECT_LT(std::abs(expectedR62 - R62), -0.05 * expectedR62) << ::burnAfterReading(debugOutput);
+        EXPECT_LT(std::abs(expectedR11 - R11),  0.05 * expectedR11);
+        EXPECT_LT(std::abs(expectedR21 - R21), -0.05 * expectedR21);
+        EXPECT_LT(std::abs(expectedR22 - R22),  0.05 * expectedR22);
+        EXPECT_LT(std::abs(expectedR51 - R51),  0.05 * expectedR51);
+        EXPECT_LT(std::abs(expectedR52 - R52),  0.05 * expectedR52);
+        EXPECT_LT(std::abs(expectedR61 - R61),  0.05 * expectedR61);
+        EXPECT_LT(std::abs(expectedR62 - R62), -0.05 * expectedR62);
     }
-
-    std::cout.rdbuf(defaultCout);;
-    std::cerr.rdbuf(defaultCerr);;
 
     OpalData::deleteInstance();
     delete parser;

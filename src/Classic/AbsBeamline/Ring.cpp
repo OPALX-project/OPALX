@@ -105,8 +105,10 @@ bool Ring::apply(const size_t &id, const double &t, Vector_t &E,
                 << " out of the field map boundary" << endl;
         lossDS_m->addParticle(refPartBunch_m->R[id], refPartBunch_m->P[id], id);
         lossDS_m->save();
+
         refPartBunch_m->Bin[id] = -1;
     }
+
     return flagNeedUpdate;
 }
 
