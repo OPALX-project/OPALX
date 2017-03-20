@@ -27,20 +27,31 @@
 
 #ifndef OPALTESTUTILITIES_SILENCETEST_H_
 
+#include <sstream>
+#include <iostream>
+
 namespace OpalTestUtilities {
-/** Shutup test output */
+/** Shutup test output
+ *
+ *  If more than one is called, will shutup output on any alloc if it is loud
+ *  and will make loud on any dealloc if it is quiet.
+ */
 class SilenceTest {
   public:
     SilenceTest(bool willSilence) {
-        if (willSilence) {
+        if (willSilence && _defaultCout == NULL ) {
             _defaultCout = std::cout.rdbuf(_debugOutput.rdbuf());
             _defaultCerr = std::cerr.rdbuf(_debugOutput.rdbuf());
         }
     }
 
     ~SilenceTest() { // return buffer to normal on delete
-        std::cout.rdbuf(_defaultCout);
-        std::cerr.rdbuf(_defaultCerr);
+        if (_defaultCout != NULL) {
+            std::cout.rdbuf(_defaultCout);
+            std::cerr.rdbuf(_defaultCerr);
+            _defaultCout = NULL;
+            _defaultCerr = NULL;
+        }
     }
 
   private:
@@ -48,8 +59,8 @@ class SilenceTest {
     SilenceTest(const SilenceTest& test); // disable default copy ctor
 
     std::ostringstream _debugOutput;
-    std::streambuf *_defaultCout;
-    std::streambuf *_defaultCerr;
+    static std::streambuf *_defaultCout;
+    static std::streambuf *_defaultCerr;
 };
 }
 
