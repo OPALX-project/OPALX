@@ -152,6 +152,14 @@ struct OpalDataImpl {
 OpalDataImpl::OpalDataImpl():
     mainDirectory(), referenceMomentum(0), modified(false), itsTitle_m(),
     restart_dump_freq_m(1), last_step_m(0),
+    hasPriorRun_m(false),
+    isRestart_m(false),
+    hasRestartFile_m(false),
+    hasBunchAllocated_m(false),
+    hasDataSinkAllocated_m(false),
+    hasSLBunchAllocated_m(false),
+    gPhaseShift_m(0.0),
+    maxTrackSteps_m(0),
     isInOPALCyclMode_m(false),
     isInOPALTMode_m(false),
     isInOPALEnvMode_m(false),
@@ -247,19 +255,6 @@ void OpalData::incMaxTrackSteps(unsigned long long s) {
 
 OpalData::OpalData() {
     p = new OpalDataImpl();
-    p->hasPriorRun_m = false;
-    p->isRestart_m = false;
-    p->hasRestartFile_m = false;
-    p->hasBunchAllocated_m = false;
-    p->hasDataSinkAllocated_m = false;
-    p->hasSLBunchAllocated_m = false;
-    p->gPhaseShift_m = 0.0;
-    p->maxPhases_m.clear();
-    p->maxTrackSteps_m = 0;
-    p->isInOPALCyclMode_m = false;
-    p->isInOPALTMode_m = false;
-    p->isInOPALEnvMode_m = false;
-    p->isInPrepState_m = false;
 }
 
 OpalData::~OpalData() {

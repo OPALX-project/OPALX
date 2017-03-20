@@ -2,6 +2,7 @@
 #include "AppTypes/Tenzor.h"
 #include "Physics/Physics.h"
 #include "Utility/RandomNumberGen.h"
+#include "Utilities/GeneralClassicException.h"
 
 extern Inform *gmsg;
 
@@ -21,7 +22,11 @@ Vector_t normalize(const Vector_t & vec)
 {
     double length = sqrt(dot(vec, vec));
 
-    PAssert(length > 1e-12);
+#ifndef NOPAssert
+    if (length < 1e-12)
+        throw GeneralClassicException("normalize()",
+                                      "length of vector less than 1e-12");
+#endif
 
     return vec / length;
 }
@@ -96,7 +101,11 @@ Quaternion Quaternion::operator/(const double & d) const
 
 Quaternion & Quaternion::normalize()
 {
-    PAssert(this->Norm() > 1e-12);
+#ifndef NOPAssert
+    if (this->Norm() < 1e-12)
+        throw GeneralClassicException("Quaternion::normalize()",
+                                      "length of quaternion less than 1e-12");
+#endif
 
     (*this) /= this->length();
 
@@ -105,8 +114,6 @@ Quaternion & Quaternion::normalize()
 
 Quaternion Quaternion::inverse() const
 {
-    PAssert(this->Norm() > 1e-12);
-
     Quaternion returnValue = conjugate();
 
     return returnValue.normalize();
@@ -114,7 +121,11 @@ Quaternion Quaternion::inverse() const
 
 Vector_t Quaternion::rotate(const Vector_t & vec) const
 {
-    PAssert(this->isUnit());
+#ifndef NOPAssert
+    if (!this->isUnit())
+        throw GeneralClassicException("Quaternion::rotate()",
+                                      "quaternion isn't unit quaternion. Norm: " + std::to_string(this->Norm()));
+#endif
 
     Quaternion quat(vec);
 

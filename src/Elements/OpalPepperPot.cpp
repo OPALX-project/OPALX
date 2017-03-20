@@ -52,6 +52,8 @@ OpalPepperPot::OpalPepperPot():
     registerRealAttribute("NHOLX");
     registerRealAttribute("NHOLY");
 
+    registerOwnership();
+
     setElement((new CollimatorRep("PEPPERPOT"))->makeAlignWrapper());
 }
 

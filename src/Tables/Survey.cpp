@@ -288,6 +288,8 @@ Survey::Survey():
     itsAttr[L] = Attributes::makeReal
                  ("L", "Sum of design lengths in m");
     itsAttr[L].setReadOnly(true);
+
+    registerOwnership(AttributeHandler::COMMAND);
 }
 
 

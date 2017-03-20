@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.8.10)
-set (DKS_VERSION \"1.0.0\")
+set (DKS_VERSION_OPAL \"${DKS_VERSION}\")
 
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALconfig.h)
 configure_file(revision.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALrevision.h)

@@ -32,7 +32,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
     double tErr  = (initialR_m(2) - R(2)) * sqrt(dot(P,P) + 1.0) / (P(2) * Physics::c);
 
     double initialEnergy = Util::getEnergy(P, itsReference_m.getM()) * 1e-6;
-    double originalPhase = 0.0;
+    double originalPhase = 0.0, newPhase = 0.0, AstraPhase = 0.0;
     double initialPhase = guessCavityPhase(t + tErr);
     double optimizedPhase = 0.0;
     double amplitude = 0.0;
@@ -40,88 +40,66 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
     double finalEnergy = 0.0;
     const double length = itsCavity_m->getElementLength();
 
-    if(itsCavity_m->getType() == ElementBase::TRAVELINGWAVE) {
-        TravelingWave *element = static_cast<TravelingWave *>(itsCavity_m.get());
-        amplitude = element->getAmplitudem();
-        designEnergy = element->getDesignEnergy();
-
-        if (amplitude <= 0.0 && designEnergy <= 0.0)
-            throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
-                                "neither amplitude or design energy given to cavity " + element->getName());
-
-
-    } else if(itsCavity_m->getType() == ElementBase::RFCAVITY) {
-        RFCavity *element = static_cast<RFCavity *>(itsCavity_m.get());
-        amplitude = element->getAmplitudem();
-        designEnergy = element->getDesignEnergy();
-
-        if (amplitude == 0.0 && (designEnergy <= 0.0 || length <= 0.0))
-            throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
-                                "neither amplitude or design energy given to cavity " + element->getName());
-
-        if (amplitude == 0.0) {
-            amplitude = 2 * (designEnergy - initialEnergy) / (std::abs(itsReference_m.getQ()) * length);
-
-            element->setAmplitudem(amplitude);
-        }
-
-        if (designEnergy > 0.0) {
-            int count = 0;
-            while (count < 1000) {
-                initialPhase = guessCavityPhase(t + tErr);
-                auto status = optimizeCavityPhase(initialPhase, t + tErr, dt);
-
-                optimizedPhase = status.first;
-                finalEnergy = status.second;
-
-                if (std::abs(designEnergy - finalEnergy) < 1e-7) break;
-
-                amplitude *= std::abs(designEnergy / finalEnergy);
-                element->setAmplitudem(amplitude);
-                initialPhase = optimizedPhase;
-
-                ++ count;
-            }
-        } else {
-            auto status = optimizeCavityPhase(initialPhase, t + tErr, dt);
-
-            optimizedPhase = status.first;
-            finalEnergy = status.second;
-        }
-    } else {
+    if(!(itsCavity_m->getType() == ElementBase::TRAVELINGWAVE ||
+         itsCavity_m->getType() == ElementBase::RFCAVITY)) {
         throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
                             "given element is not a cavity");
     }
 
-    if(itsCavity_m->getType() == ElementBase::TRAVELINGWAVE) {
-        TravelingWave *element = static_cast<TravelingWave *>(itsCavity_m.get());
-        originalPhase = element->getPhasem();
-        double newPhase = std::fmod(originalPhase + optimizedPhase + Physics::two_pi, Physics::two_pi);
-        element->setPhasem(newPhase);
-    } else {
-        RFCavity *element = static_cast<RFCavity *>(itsCavity_m.get());
-        originalPhase = element->getPhasem();
-        double newPhase = std::fmod(originalPhase + optimizedPhase + Physics::two_pi, Physics::two_pi);
-        element->setPhasem(newPhase);
+    RFCavity *element = static_cast<RFCavity *>(itsCavity_m.get());
+    amplitude = element->getAmplitudem();
+    designEnergy = element->getDesignEnergy();
+    originalPhase = element->getPhasem();
+
+    if (amplitude == 0.0) {
+        if (designEnergy <= 0.0 || length <= 0.0) {
+            throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
+                                "neither amplitude or design energy given to cavity " + element->getName());
+        }
+
+        amplitude = 2 * (designEnergy - initialEnergy) / (std::abs(itsReference_m.getQ()) * length);
+
+        element->setAmplitudem(amplitude);
     }
 
-    double PhiAstra = std::fmod((optimizedPhase * Physics::rad2deg) + 90.0, 360.0);
+    if (designEnergy > 0.0) {
+        int count = 0;
+        while (count < 1000) {
+            initialPhase = guessCavityPhase(t + tErr);
+            auto status = optimizeCavityPhase(initialPhase, t + tErr, dt);
 
-    INFOMSG(itsCavity_m->getName() << "_phi = "  << optimizedPhase << " [rad] / "
-            << optimizedPhase * Physics::rad2deg <<  " [deg], AstraPhi = " << PhiAstra << " [deg],\n"
+            optimizedPhase = status.first;
+            finalEnergy = status.second;
+
+            if (std::abs(designEnergy - finalEnergy) < 1e-7) break;
+
+            amplitude *= std::abs(designEnergy / finalEnergy);
+            element->setAmplitudem(amplitude);
+            initialPhase = optimizedPhase;
+
+            ++ count;
+        }
+    }
+    auto status = optimizeCavityPhase(initialPhase, t + tErr, dt);
+
+    optimizedPhase = status.first;
+    finalEnergy = status.second;
+
+
+    AstraPhase = std::fmod(optimizedPhase + Physics::pi / 2, Physics::two_pi);
+    newPhase = std::fmod(originalPhase + optimizedPhase + Physics::two_pi, Physics::two_pi);
+    element->setPhasem(newPhase);
+    element->setAutophaseVeto();
+
+
+    INFOMSG(itsCavity_m->getName() << "_phi = "  << optimizedPhase * Physics::rad2deg <<  " [deg], "
+            << "corresp. in Astra = " << AstraPhase * Physics::rad2deg << " [deg],\n"
             << "E = " << finalEnergy << " [MeV], " << "phi_nom = " << originalPhase * Physics::rad2deg << " [deg]\n"
             << "Ez_0 = " << amplitude << " [MV/m]" << "\n"
             << "time = " << (t + tErr) * 1e9 << " [ns], dt = " << dt * 1e12 << " [ps]" << endl);
 
     OpalData::getInstance()->setMaxPhase(itsCavity_m->getName(), optimizedPhase);
 
-    if(itsCavity_m->getType() == ElementBase::TRAVELINGWAVE) {
-        TravelingWave *element = static_cast<TravelingWave *>(itsCavity_m.get());
-        element->setAutophaseVeto();
-    } else {
-        RFCavity *element = static_cast<RFCavity *>(itsCavity_m.get());
-        element->setAutophaseVeto();
-    }
 
     return optimizedPhase;
 }
@@ -130,40 +108,19 @@ double CavityAutophaser::guessCavityPhase(double t) {
     const Vector_t &refP = initialP_m;
     double Phimax = 0.0;
     bool apVeto;
-    if(itsCavity_m->getType() == ElementBase::TRAVELINGWAVE) {
-        TravelingWave *element = static_cast<TravelingWave *>(itsCavity_m.get());
-        double orig_phi = element->getPhasem();
-        apVeto = element->getAutophaseVeto();
-        if (apVeto) {
-            INFOMSG(level1 << " ----> APVETO -----> "
-                    << element->getName() <<  endl);
-            return orig_phi;
-        }
-        // INFOMSG(level1 << itsCavity_m->getName() << ", "
-        //         << "phase = " << orig_phi << " rad" << endl);
-
-        Phimax = element->getAutoPhaseEstimate(getEnergyMeV(refP),
-                                               t,
-                                               itsReference_m.getQ(),
-                                               itsReference_m.getM() * 1e-6);
-
-    } else {
-        RFCavity *element = static_cast<RFCavity *>(itsCavity_m.get());
-        double orig_phi = element->getPhasem();
-        apVeto = element->getAutophaseVeto();
-        if (apVeto) {
-            INFOMSG(level1 << " ----> APVETO -----> "
-                    << element->getName() << endl);
-            return orig_phi;
-        }
-        // INFOMSG(level1 << itsCavity_m->getName() << ", "
-        //         << "phase = " << orig_phi << " rad" << endl);
-
-        Phimax = element->getAutoPhaseEstimate(getEnergyMeV(refP),
-                                               t,
-                                               itsReference_m.getQ(),
-                                               itsReference_m.getM() * 1e-6);
+    RFCavity *element = static_cast<RFCavity *>(itsCavity_m.get());
+    double orig_phi = element->getPhasem();
+    apVeto = element->getAutophaseVeto();
+    if (apVeto) {
+        INFOMSG(level1 << " ----> APVETO -----> "
+                << element->getName() << endl);
+        return orig_phi;
     }
+
+    Phimax = element->getAutoPhaseEstimate(getEnergyMeV(refP),
+                                           t,
+                                           itsReference_m.getQ(),
+                                           itsReference_m.getM() * 1e-6);
 
     return std::fmod(Phimax + Physics::two_pi, Physics::two_pi);
 }
@@ -173,22 +130,12 @@ std::pair<double, double> CavityAutophaser::optimizeCavityPhase(double initialPh
                                                                 double dt) {
 
     double originalPhase = 0.0;
-    if(itsCavity_m->getType() == ElementBase::TRAVELINGWAVE) {
-        TravelingWave *element = static_cast<TravelingWave *>(itsCavity_m.get());
-        originalPhase = element->getPhasem();
+    RFCavity *element = static_cast<RFCavity *>(itsCavity_m.get());
+    originalPhase = element->getPhasem();
 
-        if (element->getAutophaseVeto()) {
-            std::pair<double, double> status(originalPhase, Util::getEnergy(initialP_m, itsReference_m.getM() * 1e-6));
-            return status;
-        }
-    } else {
-        RFCavity *element = static_cast<RFCavity *>(itsCavity_m.get());
-        originalPhase = element->getPhasem();
-
-        if (element->getAutophaseVeto()) {
-            std::pair<double, double> status(originalPhase, Util::getEnergy(initialP_m, itsReference_m.getM() * 1e-6));
-            return status;
-        }
+    if (element->getAutophaseVeto()) {
+        std::pair<double, double> status(originalPhase, Util::getEnergy(initialP_m, itsReference_m.getM() * 1e-6));
+        return status;
     }
 
     double Phimax = initialPhase;
@@ -197,9 +144,9 @@ std::pair<double, double> CavityAutophaser::optimizeCavityPhase(double initialPh
     const int numRefinements = Options::autoPhase;
 
     int j = -1;
-
     double E = track(initialR_m, initialP_m, t, dt, phi);
     double Emax = E;
+
     do {
         j ++;
         Emax = E;
@@ -253,31 +200,20 @@ double CavityAutophaser::track(Vector_t R,
     double initialPhase = 0.0;
     double finalMomentum = 0.0;
 
-    if(itsCavity_m->getType() == ElementBase::TRAVELINGWAVE) {
-        TravelingWave *tws = static_cast<TravelingWave *>(itsCavity_m.get());
-        initialPhase = tws->getPhasem();
-        tws->setPhasem(phase);
-        std::pair<double, double> pe = tws->trackOnAxisParticle(refP(2),
-                                                                t,
-                                                                dt,
-                                                                itsReference_m.getQ(),
-                                                                itsReference_m.getM() * 1e-6);
-        finalMomentum = pe.first;
-        tws->updatePhasem(initialPhase);
-    } else {
-        RFCavity *rfc = static_cast<RFCavity *>(itsCavity_m.get());
-        initialPhase = rfc->getPhasem();
-        rfc->setPhasem(phase);
+    RFCavity *rfc = static_cast<RFCavity *>(itsCavity_m.get());
+    initialPhase = rfc->getPhasem();
+    rfc->setPhasem(phase);
 
-        std::pair<double, double> pe = rfc->trackOnAxisParticle(refP(2),
-                                                                t,
-                                                                dt,
-                                                                itsReference_m.getQ(),
-                                                                itsReference_m.getM() * 1e-6);
-        finalMomentum = pe.first;
-        rfc->setPhasem(initialPhase);
-    }
+    std::pair<double, double> pe = rfc->trackOnAxisParticle(refP(2),
+                                                            t,
+                                                            dt,
+                                                            itsReference_m.getQ(),
+                                                            itsReference_m.getM() * 1e-6);
+    finalMomentum = pe.first;
+    rfc->setPhasem(initialPhase);
+
     double finalGamma = sqrt(1.0 + finalMomentum * finalMomentum);
     double finalKineticEnergy = (finalGamma - 1.0) * itsReference_m.getM() * 1e-6;
+
     return finalKineticEnergy;
 }

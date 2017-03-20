@@ -189,6 +189,19 @@ void Statement::skip() {
         curr++;
 }
 
+unsigned int Statement::position() const {
+    std::ostringstream os;
+    bool white = false;
+
+    for(TokenList::const_iterator c = tokens.begin(); c != curr; c++) {
+        if(white && !c->isDel()) os << ' ';
+        white = !c->isDel();
+        os << *c;
+    }
+    if(white && !std::next(curr)->isDel()) os << ' ';
+
+    return os.str().length() - 1;
+}
 
 void Statement::print(std::ostream &msg) const {
     bool white = false;

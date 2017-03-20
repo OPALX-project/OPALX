@@ -31,6 +31,8 @@ What::What():
            " values of an object.") {
     itsAttr[0] = Attributes::makeString
                  ("NAME", "Name of object to be displayed");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

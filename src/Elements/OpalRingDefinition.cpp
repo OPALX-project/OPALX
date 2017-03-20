@@ -72,6 +72,8 @@ OpalRingDefinition::OpalRingDefinition() :
     registerRealAttribute("RFFREQ");
     registerStringAttribute("IS_CLOSED");
 
+    registerOwnership();
+
     setElement((new Ring("RING"))->makeAlignWrapper());
 }
 

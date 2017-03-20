@@ -33,16 +33,16 @@ OpalSolenoid::OpalSolenoid():
                   ("KS", "Normalised solenoid strength in m**(-1)");
     itsAttr[DKS] = Attributes::makeReal
                   ("DKS", "Normalised solenoid strength error in m**(-1)");
-
-    registerRealAttribute("KS");
-    registerRealAttribute("DKS");
-
     itsAttr[FMAPFN] = Attributes::makeString
                       ("FMAPFN", "Solenoid field map filename ");
     itsAttr[FAST] = Attributes::makeBool
                     ("FAST", "Faster but less accurate", true);
 
+    registerRealAttribute("KS");
+    registerRealAttribute("DKS");
     registerStringAttribute("FMAPFN");
+
+    registerOwnership();
 
     setElement((new SolenoidRep("SOLENOID"))->makeAlignWrapper());
 }

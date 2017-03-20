@@ -131,6 +131,8 @@ TrackRun::TrackRun():
     itsAttr[OBJECTIVES] = Attributes::makeStringArray
                           ("OBJECTIVES", "List of SDDS columns that should be considered when evaluating statistical errors");
 
+    registerOwnership(AttributeHandler::SUB_COMMAND);
+
     opal = OpalData::getInstance();
 }
 

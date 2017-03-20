@@ -275,7 +275,7 @@ run, file="table", turns=5, mbmode="AUTO", paramb=10.0,
 
 This command tracks 5 bunches in cyclotron and writes the results on file \texttt{table}.
 
-\subsection{\keyword{STATISTICAL-ERRORS}}
+\subsection{\keywordinheader{STATISTICAL-ERRORS}}
 \label{ssec:statistical-errors}
 \index{STATISTICAL-ERRORS}
 This method can be used to quantify the effects of imperfections to alignment or other physical quantities such as e.g. the phase or the amplitude. It doesn't propagate the particles directly. Instead it scans through the input file and replaces all occurances of \keyword[tab:realfun]{GAUSS} and \keyword[tab:realfun]{TGAUSS} with randomly generated values of appropriate distribution. Then one of the other methods, e.g. \keyword{PARALLEL-T} is called. These two steps are then repeated many times.

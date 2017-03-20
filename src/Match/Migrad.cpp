@@ -54,6 +54,8 @@ Migrad::Migrad():
                          ("TOLERANCE", "The desired tolerance", 1.0e-6);
     itsAttr[CALLS] = Attributes::makeReal
                      ("CALLS", "Maximum number of calls to the matching functions", 1000.);
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
 
