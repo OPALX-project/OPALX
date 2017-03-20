@@ -26,6 +26,8 @@ endmacro()
 
 add_subdirectory (opal_src)
 add_subdirectory (classic_src)
+add_subdirectory (opal_test_utilities)
+
 
 set(TEST_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp ${TEST_SRCS_LOCAL})
 

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Chris Rogers
+ *  Copyright (c) 2017, Chris Rogers
  *  All rights reserved.
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
@@ -25,23 +25,24 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef OPAL_DUMPFIELDS_HH
-#define OPAL_DUMPFIELDS_HH
+#ifndef OPAL_BASICACTIONS_DUMPEMFIELDS_HH
+#define OPAL_BASICACTIONS_DUMPEMFIELDS_HH
 
 #include <unordered_set>
 #include <string>
 #include "AbstractObjects/Action.h"
 
 namespace interpolation {
-  class ThreeDGrid;
+  class NDGrid;
 }
 
 class Component;
 
-/** DumpFields dumps the static magnetic field of a Ring in a user-defined grid
+/** DumpEMFields dumps the dynamically changing fields of a Ring in a user-
+ *  defined grid.
  *
- *  The idea is to print out the field map across a grid in space for
- *  debugging purposes. The problem is to manage the DumpFields object through
+ *  The idea is to print out the field map across a 4D grid in space-time for
+ *  debugging purposes. The problem is to manage the DumpEMFields object through
  *  three phases of program execution; initial construction, parsing and then
  *  actual field map writing (where we need to somehow let DumpFields know what
  *  the field maps are). So for each  DumpFields object created, we store in a
@@ -53,40 +54,38 @@ class Component;
  *  each one. It is not the cleanest implementation, but I can't see a better
  *  way.
  *
- *  The DumpFields themselves operate by iterating over a ThreeDGrid object
+ *  The DumpEMFields themselves operate by iterating over a NDGrid object
  *  and looking up the field/writing it out on each grid point.
  *
- *  In order to dump time dependent fields, for example RF, see the DumpEMFields
- *  action.
  */
-class DumpFields : public Action {
+class DumpEMFields : public Action {
   public:
     /** Constructor */
-    DumpFields();
+    DumpEMFields();
 
     /** Destructor deletes grid_m and if in the dumps set, take it out */
-    virtual ~DumpFields();
+    virtual ~DumpEMFields();
 
     /** Make a clone (overloadable copy-constructor).
      *    @param name not used
      *  If this is in the dumpsSet_m, so will the clone. Not sure how the
      *  itsAttr stuff works, so this may not get properly copied?
      */
-    virtual DumpFields *clone(const std::string &name);
+    virtual DumpEMFields *clone(const std::string &name);
 
     /** Builds the grid but does not write the field map
      *
-     *  Builds a grid of points in x-y-z space using the ThreeDGrid algorithm.
+     *  Builds a grid of points in x-y-z space using the NDGrid algorithm.
      *  Checks that X_STEPS, Y_STEPS, Z_STEPS are integers or throws
      *  OpalException.
      */
     virtual void execute();
 
-    /** Write the fields for all defined DumpFields objects
+    /** Write the fields for all defined DumpEMFields objects
      *    @param field borrowed reference to the Component object that holds the
      *    field map; caller owns the memory.
-     *  Iterates over the DumpFields in the dumpsSet_m and calls writeFieldThis
-     *  on each DumpFields. This writes each field map in turn. Format is:
+     *  Iterates over the DumpEMFields in the dumpsSet_m and calls writeFieldThis
+     *  on each DumpEMFields. This writes each field map in turn. Format is:
      *  <number of rows>
      *  <column 1> <units>
      *  <column 2> <units>
@@ -104,14 +103,14 @@ class DumpFields : public Action {
     virtual void buildGrid();
     static void checkInt(double value, std::string name, double tolerance = 1e-9);
 
-    interpolation::ThreeDGrid* grid_m;
+    interpolation::NDGrid* grid_m;
     std::string filename_m;
 
-    static std::unordered_set<DumpFields*> dumpsSet_m;
-    static std::string dumpfields_docstring;
+    static std::unordered_set<DumpEMFields*> dumpsSet_m;
+    static std::string dumpemfields_docstring;
 
-    DumpFields(const DumpFields& dump);  // disabled
-    DumpFields& operator=(const DumpFields& dump);  // disabled
+    DumpEMFields(const DumpEMFields& dump);  // disabled
+    DumpEMFields& operator=(const DumpEMFields& dump);  // disabled
 };
 
 #endif // ifdef OPAL_DUMPFIELDS_HH
