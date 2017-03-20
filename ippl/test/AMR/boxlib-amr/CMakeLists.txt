@@ -120,6 +120,8 @@ add_executable(testMultiBunch
                 ../Solver.cpp)
     
 add_executable (testH5Read testH5Read.cpp ../H5Reader.cpp)
+
+add_executable (testHdf5 testHdf5.cpp)
     
 add_executable(toFile toFile.cpp ../H5Reader.cpp ../Distribution.cpp)
     
@@ -163,6 +165,10 @@ add_executable (testOldPerformance
 target_link_libraries (iterative)
 
 target_link_libraries (testH5Read ${LIBS}
+                        -lgfortran ${CCSE_LIBRARIES}
+                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testHdf5 ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
