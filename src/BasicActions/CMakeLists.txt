@@ -2,6 +2,7 @@ set (_SRCS
   Call.cpp
   Dump.cpp
   DumpFields.cpp
+  DumpEMFields.cpp
   Echo.cpp
   Help.cpp
   Option.cpp
@@ -26,6 +27,7 @@ add_opal_sources(${_SRCS})
 set (HDRS
     Call.h
     DumpFields.h
+    DumpEMFields.h
     Dump.h
     Echo.h
     Help.h

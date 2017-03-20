@@ -26,6 +26,7 @@
 #include "BasicActions/Call.h"
 #include "BasicActions/Dump.h"
 #include "BasicActions/DumpFields.h"
+#include "BasicActions/DumpEMFields.h"
 #include "BasicActions/Echo.h"
 #include "BasicActions/Help.h"
 #include "BasicActions/Option.h"

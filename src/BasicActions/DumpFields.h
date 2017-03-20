@@ -38,9 +38,9 @@ namespace interpolation {
 
 class Component;
 
-/** DumpFields dumps the fields of a Ring in a user-defined grid
+/** DumpFields dumps the static magnetic field of a Ring in a user-defined grid
  *
- *  The idea is to print out the field map across a grid in space-time for
+ *  The idea is to print out the field map across a grid in space for
  *  debugging purposes. The problem is to manage the DumpFields object through
  *  three phases of program execution; initial construction, parsing and then
  *  actual field map writing (where we need to somehow let DumpFields know what
@@ -56,6 +56,8 @@ class Component;
  *  The DumpFields themselves operate by iterating over a ThreeDGrid object
  *  and looking up the field/writing it out on each grid point.
  *
+ *  In order to dump time dependent fields, for example RF, see the DumpEMFields
+ *  action.
  */
 class DumpFields : public Action {
   public:

@@ -27,6 +27,8 @@
 
 #include "gtest/gtest.h"
 
+#include "Algorithms/PartData.h"
+#include "Algorithms/PartBunch.h"
 #include "AbsBeamline/Offset.h"
 #include "opal_src/Utilities/MockComponent.h"
 #include "AbsBeamline/Ring.h"
@@ -110,21 +112,12 @@ class OffsetFactory {
     std::vector<MockComponent*> mockVec_m;
 };
 
-
 TEST(RingTest, TestConstructDestruct) {
     // something here? someday...
 }
 
 TEST(RingTest, TestAppend1) {
-    std::streambuf *defaultCout;
-    std::streambuf *defaultCerr;
-    std::ostringstream debugOutput;
-    defaultCout = std::cout.rdbuf(debugOutput.rdbuf());
-    defaultCerr = std::cerr.rdbuf(debugOutput.rdbuf());
-
     try {
-        std::cout.setstate(std::ios::failbit);
-        std::cerr.setstate(std::ios::failbit);
         double radius = 5.;
         Ring ring("my_ring");
         ring.setLatticeRInit(radius);
@@ -135,43 +128,29 @@ TEST(RingTest, TestAppend1) {
         Offset off = Offset::localCylindricalOffset("cyl1", 0., Physics::pi/6., 1.);
         ring.appendElement(off);
         for (int i = 0; i < 3; ++i) {
-            EXPECT_NEAR(ring.getNextPosition()(i), Vector_t(5., -1., 0.)(i), 1e-6)  << ::burnAfterReading(debugOutput);
+            EXPECT_NEAR(ring.getNextPosition()(i), Vector_t(5., -1., 0.)(i), 1e-6);
             EXPECT_NEAR(ring.getNextNormal()(i), Vector_t(-sin(Physics::pi/6.),
                                                           -cos(Physics::pi/6.),
-                                                          0.)(i), 1e-6) << ::burnAfterReading(debugOutput);
+                                                          0.)(i), 1e-6);
         }
         ring.appendElement(off);
         for (int i = 0; i < 3; ++i) {
             EXPECT_NEAR(ring.getNextPosition()(i),
                         Vector_t(5.-sin(Physics::pi/6.),
-                                 -1.-cos(Physics::pi/6.), 0.)(i), 1e-6)  << ::burnAfterReading(debugOutput);
-            EXPECT_NEAR(ring.getNextNormal()(i), Vector_t(-sin(Physics::pi/3.),
-                                                         -cos(Physics::pi/3.),
-                                                          0.)(i), 1e-6)  << ::burnAfterReading(debugOutput);
+                                 -1.-cos(Physics::pi/6.), 0.)(i), 1e-6);
+            Vector_t expected(-sin(Physics::pi/3.), -cos(Physics::pi/3.), 0.);
+            EXPECT_NEAR(ring.getNextNormal()(i),
+                        expected(i),
+                        1e-6);
         }
-        std::cout.clear();
-        std::cerr.clear();
     } catch (OpalException& exc) {
-        std::cout.rdbuf(defaultCout);
-        std::cerr.rdbuf(defaultCerr);
         std::cerr << exc.what() << std::endl;
-        EXPECT_TRUE(false) << "Threw an exception\n" << ::burnAfterReading(debugOutput);
+        EXPECT_TRUE(false) << "Threw an exception\n";
     }
-
-    std::cout.rdbuf(defaultCout);
-    std::cerr.rdbuf(defaultCerr);
 }
 
 TEST(RingTest, TestAppend2) {
-    std::streambuf *defaultCout;
-    std::streambuf *defaultCerr;
-    std::ostringstream debugOutput;
-    defaultCout = std::cout.rdbuf(debugOutput.rdbuf());
-    defaultCerr = std::cerr.rdbuf(debugOutput.rdbuf());
-
     try {
-        std::cout.setstate(std::ios::failbit);
-        std::cerr.setstate(std::ios::failbit);
         double radius = 5.;
         Ring ring("my_ring");
         ring.setLatticeRInit(radius);
@@ -185,44 +164,26 @@ TEST(RingTest, TestAppend2) {
             EXPECT_NEAR(ring.getNextPosition()(i),
                         Vector_t(cos(Physics::pi/24.),
                                  5.-sin(Physics::pi/24.), 0.)(i), 1e-6)
-                << i << "\n"
-                << ::burnAfterReading(debugOutput);
+                << i << "\n";
             EXPECT_NEAR(ring.getNextNormal()(i), Vector_t(cos(Physics::pi/6.),
                                                          -sin(Physics::pi/6.),
                                                           0.)(i), 1e-6)
-                << i << "\n"
-                << ::burnAfterReading(debugOutput);
+                << i << "\n";
         }
         ring.appendElement(off);
         ring.appendElement(off);
         for (int i = 0; i < 3; ++i) {
             EXPECT_NEAR(ring.getNextNormal()(i), Vector_t(0., -1., 0.)(i), 1e-6)
-                << i << "\n"
-                << ::burnAfterReading(debugOutput);
+                << i << "\n";
         }
-        std::cout.clear();
-        std::cerr.clear();
     } catch (OpalException& exc) {
-        std::cout.rdbuf(defaultCout);
-        std::cerr.rdbuf(defaultCerr);
         std::cerr << exc.what() << std::endl;
-        EXPECT_TRUE(false) << "Threw an exception\n" << ::burnAfterReading(debugOutput);
+        EXPECT_TRUE(false) << "Threw an exception\n";
     }
-
-    std::cout.rdbuf(defaultCout);
-    std::cerr.rdbuf(defaultCerr);
 }
 
 TEST(RingTest, TestAppend3) {
-    std::streambuf *defaultCout;
-    std::streambuf *defaultCerr;
-    std::ostringstream debugOutput;
-    defaultCout = std::cout.rdbuf(debugOutput.rdbuf());
-    defaultCerr = std::cerr.rdbuf(debugOutput.rdbuf());
-
     try {
-        std::cout.setstate(std::ios::failbit);
-        std::cerr.setstate(std::ios::failbit);
         double radius = 5.;
         Ring ring("my_ring");
         ring.setLatticeRInit(radius);
@@ -235,26 +196,13 @@ TEST(RingTest, TestAppend3) {
             ring.appendElement(off);
         }
         ring.lockRing();
-        std::cout.clear();
-        std::cerr.clear();
     } catch (OpalException& exc) {
-        std::cout.rdbuf(defaultCout);
-        std::cerr.rdbuf(defaultCerr);
         std::cerr << exc.what() << std::endl;
-        EXPECT_TRUE(false) << "Threw an exception\n" << ::burnAfterReading(debugOutput);
+        EXPECT_TRUE(false) << "Threw an exception\n";
     }
-
-    std::cout.rdbuf(defaultCout);
-    std::cerr.rdbuf(defaultCerr);
 }
 
 TEST(RingTest, TestLatticeRInitPhiInit) {
-    std::streambuf *defaultCout;
-    std::streambuf *defaultCerr;
-    std::ostringstream debugOutput;
-    defaultCout = std::cout.rdbuf(debugOutput.rdbuf());
-    defaultCerr = std::cerr.rdbuf(debugOutput.rdbuf());
-
     for (double phi = -2.*Physics::pi;
          phi < 2.*Physics::pi;
          phi += Physics::pi/6.) {
@@ -271,38 +219,28 @@ TEST(RingTest, TestLatticeRInitPhiInit) {
                 for (size_t i = 0; i < 3; ++i) {
                     EXPECT_EQ(pos(i), refPos(i))
                         << i << " f: " << phi
-                        << " t: " << theta << " r: " << radius << "\n"
-                        << ::burnAfterReading(debugOutput);
+                        << " t: " << theta << " r: " << radius << "\n";
                 }
                 Vector_t norm = ring.getNextNormal();
                 Vector_t refNorm(cos(phi+theta), -sin(phi+theta), 0.);
                 for (size_t i = 0; i < 3; ++i) {
                     EXPECT_EQ(norm(i), refNorm(i))
                         << i << " f: " << phi
-                        << " t: " << theta << " r: " << radius << "\n"
-                        << ::burnAfterReading(debugOutput);
+                        << " t: " << theta << " r: " << radius << "\n";
                 }
             }
         }
     }
-
-    std::cout.rdbuf(defaultCout);
-    std::cerr.rdbuf(defaultCerr);
 }
 
 // Check that we get the bounding box and rotation correct
 TEST(RingTest, TestApply) {
-    std::streambuf *defaultCout;
-    std::streambuf *defaultCerr;
-    std::ostringstream debugOutput;
-    defaultCout = std::cout.rdbuf(debugOutput.rdbuf());
-    defaultCerr = std::cerr.rdbuf(debugOutput.rdbuf());
-
     Ring ring("my_ring");
     try {
-        std::cout.setstate(std::ios::failbit);
-        std::cerr.setstate(std::ios::failbit);
         double radius = 2.*(2.*sin(Physics::pi/6.)+1.*sin(Physics::pi/3.)+1.0);
+        PartData data;
+        PartBunch bunch(&data);
+        ring.setRefPartBunch(&bunch);
         ring.setLatticeRInit(radius-2.);
         ring.setLatticePhiInit(0.);
         ring.setLatticeThetaInit(0.);
@@ -317,49 +255,41 @@ TEST(RingTest, TestApply) {
         for (double x = -1.0001; x < 2.; x += 0.1) {
             double y = -2.2;
             Vector_t pos(x, y, -0.5);
-            Vector_t centroid, B, E;
+            Vector_t zero(0.0);
+            Vector_t centroid(0., 0., 0), B(0., 0., 0), E(0., 0., 0);
+            double t = 0;
             // std::cout << pos << " ** " << std::flush;
-            EXPECT_FALSE(ring.apply(pos, Vector_t(0.0), 0., E, B)) << " for pos " << pos << ::burnAfterReading(debugOutput);
+            EXPECT_FALSE(ring.apply(pos, zero, t, E, B));
             // std::cout << B << " " << E << std::endl;
             Vector_t BRef(0.0, 0.0, 0.0);
             if (x > 0. and x < 1.)
                 BRef = Vector_t(x-1., y+2., -0.5);
             for (int i = 0; i < 3; ++i) {
-                EXPECT_NEAR(B(i), BRef(i), 1e-6)   << " for pos " << pos << ::burnAfterReading(debugOutput);
-                EXPECT_NEAR(E(i), -BRef(i), 1e-6)  << " for pos " << pos << ::burnAfterReading(debugOutput);
+                EXPECT_NEAR(B(i), BRef(i), 1e-6)   << " for pos " << pos;
+                EXPECT_NEAR(E(i), -BRef(i), 1e-6)  << " for pos " << pos;
             }
         }
         // check that we get something reasonable for all phi
         for (double phi = 0.; phi < 2.*Physics::pi+0.1; phi += Physics::pi/100.) {
             Vector_t pos(radius/2.*sin(phi), radius/2.+radius/2.*cos(phi), 0.5);
             Vector_t centroid, B, E;
-            EXPECT_FALSE(ring.apply(pos, Vector_t(0.0), 0., E, B)) << ::burnAfterReading(debugOutput); // check we don't throw for all angles
+            EXPECT_FALSE(ring.apply(pos, Vector_t(0.0), 0., E, B)); // check we don't throw for all angles
             // std::cout << phi << " " << pos << " " << B << std::endl;
         }
-        std::cout.clear();
-        std::cerr.clear();
     } catch (OpalException& exc) {
-        std::cout.rdbuf(defaultCout);
-        std::cerr.rdbuf(defaultCerr);
         std::cout << exc.what() << std::endl;
-        EXPECT_TRUE(false) << "Threw an exception\n" << ::burnAfterReading(debugOutput);
+        EXPECT_TRUE(false) << "Threw an exception\n";
     }
-
-    std::cout.rdbuf(defaultCout);
-    std::cerr.rdbuf(defaultCerr);
 }
 
 // Check that we get the bounding box correct - for exact sector geometry
 TEST(RingTest, TestApply2) {
-    std::streambuf *defaultCout;
-    std::streambuf *defaultCerr;
-    std::ostringstream debugOutput;
-    defaultCout = std::cout.rdbuf(debugOutput.rdbuf());
-    defaultCerr = std::cerr.rdbuf(debugOutput.rdbuf());
-
     Ring ring("my_ring");
     try {
         double radius = 1.5;
+        PartData data;
+        PartBunch bunch(&data);
+        ring.setRefPartBunch(&bunch);
         ring.setLatticeRInit(radius);
         ring.setLatticePhiInit(7.*Physics::pi/4.);
         ring.setLatticeThetaInit(0.);
@@ -374,29 +304,26 @@ TEST(RingTest, TestApply2) {
             Vector_t pos((radius+0.5)*sin(phi), (radius+0.5)*cos(phi), -0.5);
             Vector_t centroid, B, E;
             std::vector<RingSection*> sections = ring.getSectionsAt(pos);
-            EXPECT_FALSE(ring.apply(pos, Vector_t(0.0), 0., E, B)) << ::burnAfterReading(debugOutput);
+            EXPECT_FALSE(ring.apply(pos, Vector_t(0.0), 0., E, B));
             // check we don't throw for all angles
             // a few are coming out with Bz = 1. instead of Bz = 0.5; looks like
             // floating point precision issue? It's okay, Ring is not
             // responsible for bounding the field, Components are.
-            EXPECT_GE(-B(2), 0.1) << ::burnAfterReading(debugOutput);
-            EXPECT_LE(-B(2), 1.1) << ::burnAfterReading(debugOutput);
+            EXPECT_GE(-B(2), 0.1);
+            EXPECT_LE(-B(2), 1.1);
             // std::cout << phi << " " << pos << " " << B << " " << sections.size() << std::endl;
         }
-        std::cout.clear();
-        std::cerr.clear();
     } catch (OpalException& exc) {
-        std::cout.rdbuf(defaultCout);
-        std::cerr.rdbuf(defaultCerr);
         std::cout << exc.what() << std::endl;
-        EXPECT_TRUE(false) << "Threw an exception\n"  << ::burnAfterReading(debugOutput);
+        EXPECT_TRUE(false) << "Threw an exception\n" ;
     }
     // Now apply symmetry 2x10 fields instead of 20x1
     Ring ring2("my_ring");
     try {
-        std::cout.setstate(std::ios::failbit);
-        std::cerr.setstate(std::ios::failbit);
         double radius = 1.5;
+        PartData data;
+        PartBunch bunch(&data);
+        ring2.setRefPartBunch(&bunch);
         ring2.setLatticeRInit(radius);
         ring2.setLatticePhiInit(7.*Physics::pi/4.);
         ring2.setLatticeThetaInit(0.);
@@ -413,24 +340,21 @@ TEST(RingTest, TestApply2) {
             std::vector<RingSection*> sections = ring2.getSectionsAt(pos);
             ring.apply(pos, Vector_t(0.0), 0., E, B1);
             ring2.apply(pos, Vector_t(0.0), 0., E, B2);
-            EXPECT_NEAR(B1(2), B2(2), 1e-6) << ::burnAfterReading(debugOutput);
+            EXPECT_NEAR(B1(2), B2(2), 1e-6);
             // std::cout << phi << " " << pos << " " << B << " " << sections.size() << std::endl;
         }
-        std::cout.clear();
-        std::cerr.clear();
     } catch (OpalException& exc) {
-        std::cout.rdbuf(defaultCout);
-        std::cerr.rdbuf(defaultCerr);
         std::cout << exc.what() << std::endl;
-        EXPECT_TRUE(false) << "Threw an exception\n"  << ::burnAfterReading(debugOutput);
+        EXPECT_TRUE(false) << "Threw an exception\n" ;
     }
     // Now overlapping - we have two elements in each position, should get twice
     // the field
     Ring ring3("my_ring");
     try {
-        std::cout.setstate(std::ios::failbit);
-        std::cerr.setstate(std::ios::failbit);
         double radius = 1.5;
+        PartData data;
+        PartBunch bunch(&data);
+        ring3.setRefPartBunch(&bunch);
         ring3.setLatticeRInit(radius);
         ring3.setLatticePhiInit(7.*Physics::pi/4.);
         ring3.setLatticeThetaInit(0.);
@@ -446,32 +370,22 @@ TEST(RingTest, TestApply2) {
             std::vector<RingSection*> sections = ring3.getSectionsAt(pos);
             ring.apply(pos, Vector_t(0.0), 0., E, B1);
             ring3.apply(pos, Vector_t(0.0), 0., E, B2);
-            EXPECT_NEAR(2.*B1(2), B2(2), 1e-6) << ::burnAfterReading(debugOutput);
+            EXPECT_NEAR(2.*B1(2), B2(2), 1e-6);
             // std::cout << phi << " " << pos << " " << B << " " << sections.size() << std::endl;
         }
-        std::cout.clear();
-        std::cerr.clear();
     } catch (OpalException& exc) {
-        std::cout.rdbuf(defaultCout);
-        std::cerr.rdbuf(defaultCerr);
         std::cout << exc.what() << std::endl;
-        EXPECT_TRUE(false) << "Threw an exception\n" << ::burnAfterReading(debugOutput);
+        EXPECT_TRUE(false) << "Threw an exception\n";
     }
-
-    std::cout.rdbuf(defaultCout);
-    std::cerr.rdbuf(defaultCerr);
 }
 
 void testField(double s, double r, double y, double phi,
                double bx, double by, double bz, double tol) {
-    std::streambuf *defaultCout;
-    std::streambuf *defaultCerr;
-    std::ostringstream debugOutput;
-    defaultCout = std::cout.rdbuf(debugOutput.rdbuf());
-    defaultCerr = std::cerr.rdbuf(debugOutput.rdbuf());
-
     double radius = 2.;
     Ring ring("test");
+    PartData data;
+    PartBunch bunch(&data);
+    ring.setRefPartBunch(&bunch);
     ring.setLatticeRInit(radius);
     ring.setLatticePhiInit(phi);
     ring.setLatticeThetaInit(0.);
@@ -487,18 +401,13 @@ void testField(double s, double r, double y, double phi,
                  radius*cos(phi)-s*sin(phi)+r*cos(phi),
                  y);
     ring.apply(pos, Vector_t(0.0), 0., E, B);
-    EXPECT_NEAR(B(0), bx, 1e-6) << ::burnAfterReading(debugOutput);
-    EXPECT_NEAR(B(1), by, 1e-6) << ::burnAfterReading(debugOutput);
-    EXPECT_NEAR(B(2), bz, 1e-6) << ::burnAfterReading(debugOutput);
+    EXPECT_NEAR(B(0), bx, 1e-6);
+    EXPECT_NEAR(B(1), by, 1e-6);
+    EXPECT_NEAR(B(2), bz, 1e-6);
     // std::cout << pos << " ** " << B << " ** " << Vector_t(bx, by, bz) << std::endl;
-
-    std::cout.rdbuf(defaultCout);
-    std::cerr.rdbuf(defaultCerr);
 }
 
 TEST(RingTest, TestApply3) {
-    std::cout.setstate(std::ios::failbit);
-    std::cerr.setstate(std::ios::failbit);
     testField(0.1, 0., 0.2, 0., 3., 1., 2., 1e-6);
     testField(0.1, 0., 0.2, Physics::pi, -3., -1., 2., 1e-6);
     testField(0.1, 0., 0.2, Physics::pi/2., 1., -3., 2., 1e-6);
@@ -506,7 +415,4 @@ TEST(RingTest, TestApply3) {
     testField(0.1, 0.15, 0.2, Physics::pi/6.,
               3.*cos(Physics::pi/6)+1.*sin(Physics::pi/6),
               -3.*sin(Physics::pi/6)+1.*cos(Physics::pi/6), 2., 1e-6);
-
-    std::cout.clear();
-    std::cerr.clear();
 }
