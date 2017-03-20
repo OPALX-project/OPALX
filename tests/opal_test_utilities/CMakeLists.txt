@@ -1,4 +1,5 @@
 set (_SRCS
+  SilenceTest.cpp
 )
 
 include_directories (
