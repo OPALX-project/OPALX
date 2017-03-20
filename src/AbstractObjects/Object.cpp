@@ -191,6 +191,15 @@ void Object::unregisterReference(Invalidator *ref) {
     references.erase(ref);
 }
 
+void Object::registerOwnership(const AttributeHandler::OwnerType &itsClass) const {
+    if (getParent() != 0) return;
+
+    const unsigned int end = itsAttr.size();
+    const std::string name = getOpalName();
+    for (unsigned int i = 0; i < end; ++ i) {
+        AttributeHandler::addAttributeOwner(name, itsClass, itsAttr[i].getName());
+    }
+}
 
 void Object::printHelp(std::ostream &os) const {
     *gmsg << endl << itsHelp << endl;

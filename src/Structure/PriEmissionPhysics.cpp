@@ -140,8 +140,5 @@ void PriEmissionPhysics::Fieldemission(PartBunch *itsBunch, const double &fa, co
 
         }
     }
-
-    if(count) {
-        delete count;
-    }
+    delete[] count;
 }

@@ -58,6 +58,8 @@ OpalRBend3D::OpalRBend3D():
     registerRealAttribute("HAPERT");
     registerRealAttribute("DESIGNENERGY");
 
+    registerOwnership();
+
     setElement((new RBend3D("RBEND3D"))->makeWrappers());
 }
 

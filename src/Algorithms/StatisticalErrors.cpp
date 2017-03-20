@@ -92,7 +92,7 @@ void StatisticalErrors::execute() {
                 std::string replicasFormerDirectory = runningJobs[source.second - 1];
 
                 char runNumber[6];
-                sprintf(runNumber, "%05d", instance);
+                sprintf(runNumber, "%05u", instance);
                 std::string nextDir = directoryBaseName + "_run_" + std::string(runNumber);
                 if (!referenceDone) {
                     nextDir = getNextDirectoryName(true);

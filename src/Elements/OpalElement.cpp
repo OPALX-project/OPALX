@@ -56,6 +56,8 @@ OpalElement::OpalElement(int size, const char *name, const char *help):
                       ("TYPE", "The element design type (the project name)");
     itsAttr[LENGTH] = Attributes::makeReal
                       ("L", "The element length in m");
+    itsAttr[ELEMEDGE] = Attributes::makeReal
+                        ("ELEMEDGE", "The position of the element in path length (in m)");
     itsAttr[APERT]  = Attributes::makeString
                       ("APERTURE", "The element aperture");
     itsAttr[WAKEF]   = Attributes::makeString
@@ -98,6 +100,11 @@ OpalElement::OpalElement(int size, const char *name, const char *help):
                   ("DPHI", "Misalignment in theta (Tait-Bryan angles)",0.0);
     itsAttr[DPSI] = Attributes::makeReal
                   ("DPSI", "Misalignment in theta (Tait-Bryan angles)",0.0);
+
+    const unsigned int end = COMMON;
+    for (unsigned int i = 0; i < end; ++ i) {
+        AttributeHandler::addAttributeOwner("Any", AttributeHandler::ELEMENT, itsAttr[i].getName());
+    }
 
     static bool first = true;
     if(first) {
@@ -651,6 +658,12 @@ void OpalElement::update() {
                                        misalignmentRotation.conjugate());
 
     base->setMisalignment(misalignment);
+
+    // if (getOpalName() == "CAVH1GAF")
+    //     std::cout << Attributes::getReal(itsAttr[ELEMEDGE]) << std::endl;
+
+    if (itsAttr[ELEMEDGE])
+        base->setElementPosition(Attributes::getReal(itsAttr[ELEMEDGE]));
 }
 
 void OpalElement::updateUnknown(ElementBase *base) {
@@ -707,4 +720,14 @@ AttCell *OpalElement::registerStringAttribute(const std::string &name) {
         cell = new AttString();
     }
     return &*cell;
+}
+
+void OpalElement::registerOwnership() const {
+    if (getParent() != 0) return;
+
+    const unsigned int end = itsSize;
+    const std::string name = getOpalName();
+    for (unsigned int i = COMMON; i < end; ++ i) {
+        AttributeHandler::addAttributeOwner(name, AttributeHandler::ELEMENT, itsAttr[i].getName());
+    }
 }

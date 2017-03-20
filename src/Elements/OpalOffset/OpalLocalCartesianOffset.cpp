@@ -58,6 +58,9 @@ OpalLocalCartesianOffset::OpalLocalCartesianOffset()
     registerRealAttribute("END_POSITION_Y");
     registerRealAttribute("END_NORMAL_X");
     registerRealAttribute("END_NORMAL_Y");
+
+    registerOwnership();
+
     setElement((new Offset("LOCAL_CARTESIAN_OFFSET"))->makeAlignWrapper());
 }
 

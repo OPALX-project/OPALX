@@ -31,9 +31,9 @@ public:
 
     /// The attributes of class OpalPatch.
     enum {
-        DX = COMMON,  // The horizontal orbit displacement.
-        DY,           // The vertical orbit displacement.
-        DS,           // The longitudinal orbit displacement.
+        HORD = COMMON,  // The horizontal orbit displacement.
+        VERTD,          // The vertical orbit displacement.
+        LONGD,          // The longitudinal orbit displacement.
         VX,           // The rotation around the x-axis.
         VY,           // The rotation around the y-axis.
         VS,           // The rotation around the s-axis.

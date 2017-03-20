@@ -51,6 +51,8 @@ OpalKicker::OpalKicker():
     registerRealAttribute("K0");
     registerRealAttribute("K0S");
 
+    registerOwnership();
+
     setElement((new CorrectorRep("KICKER"))->makeWrappers());
 }
 

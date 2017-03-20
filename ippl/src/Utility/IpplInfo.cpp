@@ -55,15 +55,15 @@ bool IpplInfo::DKSEnabled = false;
 #ifdef IPPL_DKS
 
 #ifdef IPPL_DKS_CUDA
-DKSBase *IpplInfo::DKS = new DKSBase("Cuda", "-gpu");
+DKSOPAL *IpplInfo::DKS = new DKSOPAL("Cuda", "-gpu");
 #endif
 
 #ifdef IPPL_DKS_OPENCL
-DKSBase *IpplInfo::DKS = new DKSBase("OpenCL", "-gpu");
+DKSOPAL *IpplInfo::DKS = new DKSOPAL("OpenCL", "-gpu");
 #endif
 
 #ifdef IPPL_DKS_MIC
-DKSBase *IpplInfo::DKS = new DKSBase("OpenMP", "-mic");
+DKSOPAL *IpplInfo::DKS = new DKSOPAL("OpenMP", "-mic");
 #endif
 
 #endif

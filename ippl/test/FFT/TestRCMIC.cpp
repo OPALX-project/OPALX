@@ -22,7 +22,7 @@ using namespace std;
 #endif
 
 #ifdef IPPL_DKS
-#include "DKSBase.h"
+#include "DKSOPAL.h"
 #endif
 
 bool Configure(int argc, char *argv[],
@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
   int sizereal = nx*ny*nz;
   int sizecomp = (nx / 2 + 1) * ny * nz;
 
-  DKSBase dks;
+  DKSOPAL dks;
   dks.setAPI("OpenMP", 6);
   dks.setDevice("-mic", 4);
   dks.initDevice();

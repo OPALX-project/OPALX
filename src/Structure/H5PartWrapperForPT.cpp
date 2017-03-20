@@ -70,17 +70,30 @@ void H5PartWrapperForPT::readHeader() {
         auto opal = OpalData::getInstance();
         char name[128];
         h5_float64_t phase;
-        h5_int64_t numAutoPhaseCavities;
-        READFILEATTRIB(Int64, file_m, "nAutoPhaseCavities", &numAutoPhaseCavities);
+        h5_int64_t numAutoPhaseCavities = 0;
+#ifdef USE_H5HUT2
+        if (!H5HasFileAttrib(file_m, "nAutoPhaseCavities") ||
+            H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &numAutoPhaseCavities) != H5_SUCCESS) {
+            numAutoPhaseCavities = 0;
+        }
+#else
+        H5SetErrorHandler(H5ReportErrorhandler);
+        h5_int64_t rc = H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &numAutoPhaseCavities);
+        H5SetErrorHandler(H5AbortErrorhandler);
+        if (rc != H5_SUCCESS) {
+            numAutoPhaseCavities = 0;
+        }
+#endif
+        else {
+            for(long i = 0; i < numAutoPhaseCavities; ++ i) {
+                std::string elementName  = "Cav-" + std::to_string(i + 1) + "-name";
+                std::string elementPhase = "Cav-" + std::to_string(i + 1) + "-value";
 
-        for(long i = 0; i < numAutoPhaseCavities; ++ i) {
-            std::string elementName  = "Cav-" + std::to_string(i + 1) + "-name";
-            std::string elementPhase = "Cav-" + std::to_string(i + 1) + "-value";
+                READFILEATTRIB(String, file_m, elementName.c_str(), name);
+                READFILEATTRIB(Float64, file_m, elementPhase.c_str(), &phase);
 
-            READFILEATTRIB(String, file_m, elementName.c_str(), name);
-            READFILEATTRIB(Float64, file_m, elementPhase.c_str(), &phase);
-
-            opal->setMaxPhase(name, phase);
+                opal->setMaxPhase(name, phase);
+            }
         }
     }
 }

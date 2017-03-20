@@ -30,6 +30,8 @@ MatchOption::MatchOption():
            "The \"OPTION\" sub-command sets matching options.") {
     itsAttr[0] = Attributes::makeReal
                  ("LEVEL", "The desired verbosity for output", 0.0);
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
 

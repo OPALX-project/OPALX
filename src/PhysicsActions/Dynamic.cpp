@@ -63,6 +63,8 @@ Dynamic::Dynamic():
                      ("FILE", "Name of the file to be written", "DYNAMIC");
     itsAttr[ORDER] = Attributes::makeReal
                      ("ORDER", "Order of the analysis; must be at least 2", 6.0);
+
+    registerOwnership(AttributeHandler::COMMAND);
 }
 
 

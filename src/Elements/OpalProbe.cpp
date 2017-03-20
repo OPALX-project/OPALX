@@ -52,6 +52,8 @@ OpalProbe::OpalProbe():
     registerRealAttribute("YEND");
     registerRealAttribute("WIDTH");
 
+    registerOwnership();
+
     setElement((new ProbeRep("PROBE"))->makeAlignWrapper());
 }
 
