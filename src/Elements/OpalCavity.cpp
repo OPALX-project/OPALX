@@ -105,6 +105,8 @@ OpalCavity::OpalCavity():
     registerStringAttribute("AMPLITUDE_MODEL");
     registerStringAttribute("FREQUENCY_MODEL");
 
+    registerOwnership();
+
     setElement((new RFCavityRep("RFCAVITY"))->makeAlignWrapper());
 }
 

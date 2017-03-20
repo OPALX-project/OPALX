@@ -53,7 +53,7 @@ For an isolated distribution of charge this reduces to
 where
 
 \begin{equation}
-G(u,v,w)={1\over \sqrt{u^2+v^2+w^2}}.
+G(u,v,w)={\frac{1}{\sqrt{u^2+v^2+w^2}}}.
 \label{eq:isolatedgreenfunction}
 \end{equation}
 A simple discretization of \eqnref{convolutionsolution}
@@ -67,7 +67,7 @@ leads to,
 where $\rho_{i,j,k}$ and $G_{i-i',j-j',k-k'}$ denote the values of the charge density and the Green function, respectively, defined on the grid $M$.
 
 \subsubsection{FFT-based Convolutions and Zero Padding}
-FFT's can be used to compute convolutions by appropriate zero-padding of the sequences.
+FFTs can be used to compute convolutions by appropriate zero-padding of the sequences.
 Discrete convolutions arise in solving the Poisson equation, and one is typically interested in the following,
 
 \begin{equation}
@@ -103,7 +103,7 @@ G_{m+iN}=G_{m} & \quad \text{for } i \text{ integer }.
 \end{equation}
 Now consider the sum
 \begin{equation}
-{\phi}_j={1\over N}\sum_{k=0}^{N-1} W^{-jk}
+{\phi}_j=\frac{1}{N}\sum_{k=0}^{N-1} W^{-jk}
                     \left(\sum_{n=0}^{N-1} \rho_n W^{nk}\right)
                     \left(\sum_{m=0}^{N-1} G_m W^{mk}\right),
 ~~~~~~0 \le j \le N-1,
@@ -115,7 +115,7 @@ Then,
 {\phi}_j=
           \sum_{n=0}^{K-1}~
           \sum_{m=0}^{N-1} \bar{\rho}_n G_m
-{1\over N}\sum_{k=0}^{N-1} W^{(m+n-j)k}
+\frac{1}{N}\sum_{k=0}^{N-1} W^{(m+n-j)k}
 ~~~~~~0 \le j \le N-1.
 \end{equation}
 Now use the relation
@@ -314,7 +314,7 @@ Lorentz frames  can be used so that within each Lorentz frame the energy
 spread is small and hence the electrostatic approximation is valid.
  \latermore
 
-\section{The \keyword{FIELDSOLVER} Command}
+\section{The \keywordinheader{FIELDSOLVER} Command}
 \label{sec:fieldsolvercmd}
 \index{Field Solver!Command}
 \index{FIELDSOLVER}

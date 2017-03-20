@@ -61,44 +61,44 @@ public:
     void dropFieldmaps();
 
     /// Set the name of the field map
-    void setFieldMapFN(std::string fmapfn);
+    virtual void setFieldMapFN(std::string fmapfn);
 
-    std::string getFieldMapFN() const;
+    virtual std::string getFieldMapFN() const;
 
-    void setAmplitudem(double vPeak);
-    double getAmplitudem() const;
-    void setAmplitudeError(double vPeakError);
-    double getAmplitudeError() const;
+    virtual void setAmplitudem(double vPeak);
+    virtual double getAmplitudem() const;
+    virtual void setAmplitudeError(double vPeakError);
+    virtual double getAmplitudeError() const;
 
-    void setFrequencym(double freq);
+    virtual void setFrequencym(double freq);
 
     void setFrequency(double freq);
 
-    double getFrequencym() const ;
+    virtual double getFrequencym() const ;
 
-    void setPhasem(double phase);
+    virtual void setPhasem(double phase);
 
-    double getPhasem() const;
+    virtual double getPhasem() const;
     double getPhasem(double t) const;
 
-    void setPhaseError(double phaseError);
-    double getPhaseError() const;
+    virtual void setPhaseError(double phaseError);
+    virtual double getPhaseError() const;
 
     void setCavityType(std::string type);
 
     std::string getCavityType() const;
 
-    void setFast(bool fast);
+    virtual void setFast(bool fast);
 
-    bool getFast() const;
+    virtual bool getFast() const;
 
-    void setAutophaseVeto(bool veto = true);
+    virtual void setAutophaseVeto(bool veto = true);
 
-    bool getAutophaseVeto() const;
+    virtual bool getAutophaseVeto() const;
 
-    double getAutoPhaseEstimate(const double & E0, const double & t0, const double & q, const double & m);
+    virtual double getAutoPhaseEstimate(const double & E0, const double & t0, const double & q, const double & m);
 
-    std::pair<double, double> trackOnAxisParticle(const double & p0,
+    virtual std::pair<double, double> trackOnAxisParticle(const double & p0,
                                                   const double & t0,
                                                   const double & dt,
                                                   const double & q,
@@ -207,23 +207,25 @@ protected:
     std::shared_ptr<AbstractTimeDependence> frequency_td_m;
     std::string frequency_name_m;
 
-private:
     std::string filename_m;             /**< The name of the inputfile*/
-    Fieldmap* fieldmap_m;
+
     double scale_m;              /**< scale multiplier*/
     double scaleError_m;         /**< additive scale error*/
     double phase_m;              /**< phase shift of time varying field (rad)*/
     double phaseError_m;         /**< phase shift error (rad)*/
     double frequency_m;          /**< Read in frequency of time varying field(Hz)*/
 
+    bool fast_m;
+    bool autophaseVeto_m;
+
+    double designEnergy_m;
+private:
+    Fieldmap* fieldmap_m;
     double startField_m;         /**< starting point of field(m)*/
     double endField_m;
     double length_m;
 
     CavityType type_m;
-
-    bool fast_m;
-    bool autophaseVeto_m;
 
     double rmin_m;
     double rmax_m;
@@ -233,8 +235,6 @@ private:
     double pdis_m;
     double gapwidth_m;
     double phi0_m;
-
-    double designEnergy_m;
 
     std::unique_ptr<double[]> RNormal_m;
     std::unique_ptr<double[]> VrNormal_m;

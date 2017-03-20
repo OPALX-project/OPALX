@@ -737,18 +737,18 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
 }
 
 pair<double, double> RFCavity::trackOnAxisParticle(const double &p0,
-        const double &t0,
-        const double &dt,
-        const double &q,
-        const double &mass) {
+                                                   const double &t0,
+                                                   const double &dt,
+                                                   const double &q,
+                                                   const double &mass) {
     Vector_t p(0, 0, p0);
     double t = t0;
     BorisPusher integrator(*RefPartBunch_m->getReference());
-    double cdt = Physics::c * dt;
-    double zbegin = startField_m;
-    double zend = length_m + startField_m;
+    const double cdt = Physics::c * dt;
+    const double zbegin = startField_m;
+    const double zend = length_m + startField_m;
 
-    Vector_t z(0.0, 0.0, startField_m);
+    Vector_t z(0.0, 0.0, zbegin);
     double dz = 0.5 * p(2) / sqrt(1.0 + dot(p, p)) * cdt;
     Vector_t Ef(0.0), Bf(0.0);
 
@@ -759,6 +759,7 @@ pair<double, double> RFCavity::trackOnAxisParticle(const double &p0,
 
         if(z(2) >= zbegin && z(2) <= zend) {
             Ef = 0.0;
+            Bf = 0.0;
             applyToReferenceParticle(z, p, t + 0.5 * dt, Ef, Bf);
         }
         integrator.kick(z, p, Ef, Bf, dt);

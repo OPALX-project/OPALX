@@ -109,6 +109,9 @@ private:
     // Parse a token list into statement.
     static void parseTokenList(Statement &);
 
+    // get hint on cause of error
+    static std::string getHint(const std::string &, const std::string & = "attribute");
+
     // This flag is set by all commands which return from a mode.
     mutable bool stopFlag;
 

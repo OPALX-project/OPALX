@@ -62,7 +62,7 @@ found instead: '_found_'.
 **************************************************************
 \end{example}
 Where \texttt{\footnotesize \_error\_msg\_} is either
-\begin{table}[h!] \footnotesize
+\begin{table}[ht!] \footnotesize
     \begin{tabular}{lp{6cm}}
       \hline
       \texttt{\footnotesize Didn't find enough values!} & If \opalt expects more values on this line. \\
@@ -286,7 +286,7 @@ structure of unknown origin, but presumably due to errors in the Superfish~\cite
 %===========================================================
 
 
-\clearpage
+%\clearpage
 \section{1DMagnetoStatic}
 \label{sec:1DMagnetoStatic}
 \index{1DMagnetoStatic}
@@ -315,7 +315,7 @@ structure of unknown origin, but presumably due to errors in the Superfish~\cite
     longitudinal grid point.}
   \label{fig:1DMagnetoStatic}
 \end{figure}
-\begin{table}[h!]
+\begin{table}[ht!]
     \caption{Layout of a \texttt{1DMagnetoStatic} field map file.}
     \label{tab:1DMagnetoStatic}
     \begin{center}
@@ -353,7 +353,7 @@ simulation.
 
 \figref{1DMagnetoStatic} gives an example of a \texttt{1DMagnetoStatic} field file.
 
-\clearpage
+%\clearpage
 
 \section{AstraMagnetostatic}
 \label{sec: AstraMagnetostatic}
@@ -390,7 +390,7 @@ AstraMagnetostatic 40
   \label{fig:AstraMagnetoStatic}
 \end{figure}
 
-\begin{table}[h!]
+\begin{table}[ht!]
     \caption{Layout of an \texttt{AstraMagnetoStatic} field map file.}
     \label{tab:AstraMagnetoStatic}
     \begin{center}
@@ -423,7 +423,7 @@ are calculated, of which only $N_{Fourier}$ are used when finding field values d
 
 \figref{AstraMagnetoStatic} gives an example of an \texttt{AstraMagnetoStatic} field file.
 
-\clearpage
+%\clearpage
 
 \section{1DDynamic}
 \label{sec:1DDynamic}
@@ -455,7 +455,7 @@ are calculated, of which only $N_{Fourier}$ are used when finding field values d
   \label{fig:1DDynamic}
 \end{figure}
 
-\begin{table}[h!]
+\begin{table}[ht!]
     \caption{Layout of a \texttt{1DDynamic} field map file.}
     \label{tab:1DDynamic}
     \begin{center}
@@ -495,7 +495,7 @@ simulation.
 
 \figref{1DDynamic} gives an example of a \texttt{1DDynamic} field file.
 
-\clearpage
+%\clearpage
 
 \section{AstraDynamic}
 \label{sec:AstraDynamic}
@@ -530,7 +530,7 @@ AstraDynamic 40
 \label{fig:AstraDynamic}
 \end{figure}
 
-\begin{table}[h!]
+\begin{table}[ht!]
     \caption{Layout of an \texttt{AstraDynamic} field map file.}
     \label{tab:AstraDynamic}
     \begin{center}
@@ -565,7 +565,7 @@ are calculated, of which only $N_{Fourier}$ are used when finding field values d
 
 \figref{AstraDynamic} gives an example of an \texttt{AstraDynamic} field file.
 
-\clearpage
+%\clearpage
 
 
 \section{1DProfile1}
@@ -583,7 +583,6 @@ A \texttt{1DProfile1} field map describes two Enge functions: one for the magnet
 
 Currently, \texttt{1DProfile1} field maps are only implemented for \keyword{RBEND} and \keyword{SBEND} elements \seessec{RBend,SBend,opaltrbendsbendfields}.
 
-
 \begin{figure}[tb]
 \begin{center}
 \includegraphics[width=\textwidth]{./figures/Fieldmaps/profile-1.pdf}
@@ -592,7 +591,7 @@ Currently, \texttt{1DProfile1} field maps are only implemented for \keyword{RBEN
 \label{fig:rbend_field_profile}
 \end{figure}
 
-\clearpage
+%\clearpage
 
 A \texttt{1DProfile1} field map has the general form shown in \tabref{1DProfile1}. The first three lines form
 the file header and tell \opalt how the field map data is being presented:
@@ -616,7 +615,7 @@ There are two types of \texttt{1DProfile1} field map files: \texttt{1DProfile Ty
 between the two is a small change in how the entrance and exit fringe field regions are described. This will be explained in
 \ssecref{1DProfile1Type1} and \ssecref{1DProfile1Type2}.
 
-\begin{table}[h!]
+\begin{table}[ht!]
     \caption{Layout of a \texttt{1DProfile1} field map file.}
     \label{tab:1DProfile1}
     \begin{center}
@@ -642,9 +641,9 @@ between the two is a small change in how the entrance and exit fringe field regi
     \end{center}
 \end{table}
 
-\clearpage
+%\clearpage
 
-\begin{figure}[h]
+\begin{figure}[ht]
   \begin{center}
     \begin{tikzpicture}[scale=4]
     \pgfmathsetmacro\Alpha{60}
@@ -721,7 +720,7 @@ between the two is a small change in how the entrance and exit fringe field regi
   \label{fig:rbendengetype1}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[ht]
   \begin{center}
     \begin{tikzpicture}[scale=4]
       % Draw magnet shape.
@@ -795,7 +794,7 @@ between the two is a small change in how the entrance and exit fringe field regi
   \label{fig:sbendengetype1}
 \end{figure}
 
-\clearpage
+%\clearpage
 
 \subsection{1DProfile1 Type 1 for Bend Magnet}
 \label{ssec:1DProfile1Type1}
@@ -826,10 +825,9 @@ L &= Exit\,Parameter\,2 - Entrance\,Parameter\,2 \\
 \end{align*}
 These values, combined with the entrance fringe field Enge coefficients $c_0$ through $c_{N_{Enge_Entrance}}$ and exit fringe field Enge coefficients $c_0$ through $c_{N_{Enge_Exit}}$, allow \opal to find field values anywhere within the magnet. (Again, note that a \texttt{1DProfile Type 1} map always places the entrance Enge function origin at the entrance point of the reference trajectory and the exit Enge function origin at the exit point of the reference trajectory.)
 
-\figref{1DProfile1Type1} shows and example of a \texttt{1DProfile1 Type 1} field map file.\\
+\figref{1DProfile1Type1} shows an example of a \texttt{1DProfile1 Type 1} field map file.
 
-
-\begin{figure}[h]
+\begin{figure}[ht]
   \begin{fmpage}
 \begin{verbatim}
 1DProfile1 6 7 3.0
@@ -853,7 +851,7 @@ These values, combined with the entrance fringe field Enge coefficients $c_0$ th
   \label{fig:1DProfile1Type1}
 \end{figure}
 
-\clearpage
+%\clearpage
 
 \subsection{1DProfile1 Type 2 for Bend Magnet}
 \label{ssec:1DProfile1Type2}
@@ -913,7 +911,7 @@ The \texttt{1DProfile1 Type 2} field map file format has two main advantages:
 \label{fig:1DProfile1Type2}
 \end{figure}
 
-\clearpage
+%\clearpage
 
 
 \section{2DElectroStatic}
@@ -944,7 +942,7 @@ The \texttt{1DProfile1 Type 2} field map file format has two main advantages:
   \label{fig:2DElectroStatic}
 \end{figure}
 
-\begin{table}[h!]
+\begin{table}[ht!]
     \caption{Layout of a \texttt{2DElectroStatic} field map file.}
     \label{tab:2DElectroStatic}
     \begin{center}
@@ -986,7 +984,7 @@ The order of these depend on the field orientation \seesec{fieldorientation} and
 
 \figref{2DElectroStatic} gives an example of a \texttt{2DElectroStatic} field file.
 
-\clearpage
+%\clearpage
 
 \section{2DMagnetoStatic}
 \label{sec:2DMagnetoStatic}
@@ -1016,7 +1014,7 @@ The order of these depend on the field orientation \seesec{fieldorientation} and
   \label{fig:2DMagnetoStatic}
 \end{figure}
 
-\begin{table}[h!]
+\begin{table}[ht!]
     \caption{Layout of a \texttt{2DMagnetoStatic} field map file.}
     \label{tab:2DMagnetoStatic}
     \begin{center}
@@ -1058,7 +1056,7 @@ The order of these depend on the field orientation \seesec{fieldorientation} and
 
 \figref{2DMagnetoStatic} gives an example of a \texttt{2DMagnetoStatic} field file.
 
-\clearpage
+%\clearpage
 
 \section{2DDynamic}
 \label{sec:2DDynamic}
@@ -1092,7 +1090,7 @@ The order of these depend on the field orientation \seesec{fieldorientation} and
   \label{fig:2DDynamic}
 \end{figure}
 
-\begin{table}[h!]
+\begin{table}[ht!]
     \caption{Layout of a \texttt{2DDynamic} field map file.}
     \label{tab:2DDynamic}
     \begin{center}
@@ -1135,7 +1133,7 @@ order of these depend on the field orientation \seesec{fieldorientation} and can
 The third item (the field magnitude) on each data line is not used by \opalt, but must be there.
 
 \figref{2DDynamic} gives an example of a \texttt{2DDynamic} field file.
-\clearpage
+%\clearpage
 \section{3DMagnetoStatic}
 \label{sec:3DMagnetoStatic}
 \index{3DMagnetoStatic}
@@ -1165,7 +1163,7 @@ The third item (the field magnitude) on each data line is not used by \opalt, bu
   \label{fig:3DMagnetoStatic}
 \end{figure}
 
-\begin{table}[h!]
+\begin{table}[ht!]
     \caption{Layout of a \texttt{3DMagnetoStatic} field map file.}
     \label{tab:3DMagnetoStatic}
     \begin{center}
@@ -1202,7 +1200,7 @@ the file header and tell \opalt how the field map data is being presented:
 The lines following the header give the 3D field map grid values from $1$ to $N= (N_{z} + 1) \times (N_{y} + 1) \times (N_{x} + 1)$.
 \figref{3DMagnetoStatic} gives an example of a \texttt{3DMagnetoStatic} field file.
 
-\clearpage
+\newpage
 \section{3DMagnetoStatic\_Extended}
 \label{sec:3DMagnetoStatic_Extended}
 \index{3DMagnetoStatic\_Extended}
@@ -1227,7 +1225,7 @@ The lines following the header give the 3D field map grid values from $1$ to $N=
   \label{fig:3DMagnetoStatic_Extended}
 \end{figure}
 
-\begin{table}[h!]
+\begin{table}[ht!]
     \caption{Layout of a \texttt{3DMagnetoStatic\_Extended} field map file.}
     \label{tab:3DMagnetoStatic_Extended}
     \begin{center}
@@ -1263,7 +1261,7 @@ format shown in \tabref{3DMagnetoStatic_Extended}.
 
 \figref{3DMagnetoStatic_Extended} gives an example of a \texttt{3DMagnetoStatic\_Extended} field file.
 
-\clearpage
+%\clearpage
 \section{3DDynamic}
 \label{sec:3DDynamic}
 \index{3DDynamic}
@@ -1294,7 +1292,7 @@ format shown in \tabref{3DMagnetoStatic_Extended}.
   \label{fig:3DDynamic}
 \end{figure}
 
-\begin{table}[h!]
+\begin{table}[ht!]
     \caption{Layout of a \texttt{3DDynamic} field map file.}
     \label{tab:3DDynamic}
     \begin{center}

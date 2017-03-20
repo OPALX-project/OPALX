@@ -88,7 +88,7 @@ The 1-dimensional approach also neglects any influence of the transverse dimensi
 
 In addition to the \keyword{1D-CSR} model also one that makes use of an integrated Green function  \cite{bib:mitchell2013}, \keyword{1D-CSR-IGF}.
 
-\section{The \keyword{WAKE} Command}
+\section{The \keywordinheader{WAKE} Command}
 \label{sec:wakecmd}
 The general input format is
 \begin{example}
@@ -110,7 +110,7 @@ label:WAKE, TYPE=string, NBIN=real, FILTERS=string-array;
       \tabhead{Command & Purpose}
       \hline
       \tabline[sec:wakefield]{WAKE}{Specify a wakefield}
-      \tabline[sec:WTYPE]{TYPE}{Specify the wake function [\keyword{1D-CSR}, \keyword{1D-CSR-IGF}, \keyword{LONG-SHORT-RANGE}, \keyword{TRANSV-SHORT-RANGE}, \keyword{LONG-TRANSV-SHORT-RANGE}]}
+      \tabline[sec:WTYPE]{TYPE}{\sloppy Specify the wake function [\keyword{1D-CSR}, \keyword{1D-CSR-IGF}, \keyword{LONG-SHORT-RANGE}, \keyword{TRANSV-SHORT-RANGE}, \keyword{LONG-TRANSV-SHORT-RANGE}]}
       \tabline[sec:NBIN]{NBIN}{Number of bins used in the calculation of the line density}
       \tabline[sec:CONSTLEN]{CONST\_LENGTH}{\keyword{TRUE} if the length of the bunch is considered to be constant}
       \tabline[sec:CONDUCT]{CONDUCT}{Conductivity [\keyword{AC}, \keyword{DC}]}
@@ -167,12 +167,12 @@ The form of the beam pipe can be set to \keyword{ROUND}. This has no effect on C
 \index{RADIUS}
 The radius of the beam pipe in [m]. This has no effect on CSR wakefunctions.
 
-\section{Define the $\sigma$ of the beam pipe}
+\section{Define the \texorpdfstring{$\sigma$}{sigma} of the beam pipe}
 \label{sec:SIGMA}
 \index{SIGMA}
 The $\sigma$ of the beam pipe (material constant), see \eqnref{dc_cond}. This has no effect on CSR wakefunctions.
 
-\section{Define the relaxation time ($\tau$) of the beam pipe}
+\section{Define the relaxation time (\texorpdfstring{$\tau$}{tau}) of the beam pipe}
 \label{sec:TAU}
 \index{TAU}
 The $\tau$ defines the relaxation time and is needed to calculate the impedance of the beam pipe \seeeqn{dc_cond}. This has no effect on CSR wakefunctions.
@@ -190,7 +190,7 @@ Whenever a file is specified \opal will use the wakefield found in the file and 
   Array of names of filters to be applied to the longitudinal histogram of the bunch to get rid of the noise and to calculate derivatives. All the filters are applied to the line density in the order they appear in the array. The last filter is also used for calculating the derivatives. The actual filters have to be defined elsewhere.
 
 
-\section{The \keyword{FILTER} Command}
+\section{The \keywordinheader{FILTER} Command}
 Filters can be defined which then are applied to the line density of the bunch. The following smoothing filters are implemented: \keyword{Savitzky-Golay}, \keyword{Stencil}, \keyword{FixedFFTLowPass}, \keyword{RelativFFTLowPass}. The input format for them is
 \begin{example}
 label:FILTER, TYPE=string, NFREQ=real, THRESHOLD=real,

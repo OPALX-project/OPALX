@@ -158,6 +158,8 @@ OpalCyclotron::OpalCyclotron():
     registerRealAttribute("FMLOWE");
     registerRealAttribute("FMHIGHE");
 
+    registerOwnership();
+
     setElement((new CyclotronRep("CYCLOTRON"))->makeAlignWrapper());
 }
 
@@ -215,7 +217,7 @@ void OpalCyclotron::update() {
     double fmHighE = Attributes::getReal(itsAttr[FMHIGHE]);
 
     bool spiral_flag = Attributes::getBool(itsAttr[SPIRAL]);
- 
+
     cycl->setFieldMapFN(fmapfm);
     cycl->setSymmetry(symmetry);
 

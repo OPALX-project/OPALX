@@ -65,6 +65,8 @@ Micado::Micado():
                       ("LISTM1", "List the monitors before correction");
     itsAttr[LISTM2] = Attributes::makeBool
                       ("LISTM2", "List the monitors after correction");
+
+    registerOwnership(AttributeHandler::COMMAND);
 }
 
 

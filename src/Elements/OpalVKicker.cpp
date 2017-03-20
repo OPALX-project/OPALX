@@ -43,6 +43,8 @@ OpalVKicker::OpalVKicker():
     registerRealAttribute("DESIGNENERGY");
     registerRealAttribute("K0");
 
+    registerOwnership();
+
     setElement((new YCorrectorRep("VKICKER"))->makeWrappers());
 }
 

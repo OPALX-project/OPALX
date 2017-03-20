@@ -179,7 +179,7 @@ void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunch *bunch) 
     std::shared_ptr<T> elptr(dynamic_cast<T *>(element.clone()->removeWrappers()));
 
     if (elptr->hasAttribute("ELEMEDGE")) {
-        startField = elptr->getAttribute("ELEMEDGE");
+        startField = elptr->getElementPosition();
     }
 
     elptr->initialise(bunch, startField, endField);
@@ -194,7 +194,7 @@ void OpalBeamline::visit<Source>(const Source &element, BeamlineVisitor &, PartB
     // std::shared_ptr<Source> elptr(static_cast<Source*>(element.clone()->removeWrappers()));
 
     // if(!elptr->hasAttribute("ELEMEDGE")) {
-    //     startField = elptr->getAttribute("ELEMEDGE");
+    //     startField = elptr->getElementPosition();
     // }
 
     // elptr->initialise(bunch, startField, endField);

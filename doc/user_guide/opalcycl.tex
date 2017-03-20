@@ -15,7 +15,7 @@ by using a self-consistent numerical simulation model.
 Apart from the multi-particle simulation mode, \opalcycl also has two other serial tracking modes for conventional cyclotron machine design. One mode is the single particle tracking mode, which is a useful tool for the preliminary design of a new cyclotron.  It allows one to compute basic parameters, such as reference orbit, phase shift history, stable region, and matching phase ellipse. The other one is the tune calculation mode, which can be used to compute the betatron oscillation frequency.
 This is useful for evaluating the focusing characteristics of a given magnetic field map.
 
-In additions, the widely used plugin elements, including collimator,  radial profile probe, septum, trim-coil field and charge stripper,  are currently implemented in \opalcycl.  These functionalities are very useful for designing, commissioning and upgrading of cyclotrons and FFAG's.
+In addition, the widely used plugin elements, including collimator, radial profile probe, septum, trim-coil field and charge stripper,  are currently implemented in \opalcycl. These functionalities are very useful for designing, commissioning and upgrading of cyclotrons and FFAGs.
 
 \section{Tracking modes}
 According to the number of particles defined by the argument \keyword{npart} in \keyword{beam} \seechp{beam} ,
@@ -430,7 +430,7 @@ separation, single bunch space charge effects are not the only contribution. Alo
 current, the mutual interaction of neighboring bunches in radial direction becomes more and more important,
 especially at large radius where the distances between neighboring bunches get increasingly small and even they
 can overlap each other. One good example is PSI \SI{590}{\mega\electronvolt} Ring cyclotron with a current of about \SI{2}{\milli\ampere} in
-CW operation and the beam power amounts to \SI{1.2}{\mega\watt}. A upgrade project for Ring is in process with
+CW operation and the beam power amounts to \SI{1.2}{\mega\watt}. An upgrade project for Ring is in process with
 the goal of \SI{1.8}{\mega\watt} CW on target by replacing four old aluminum resonators by four new copper cavities with peak
 voltage increasing from about \SI{0.7}{\mega\watt} to above \SI{0.9}{\mega\watt}. After upgrade, the total turn
 number is reduced from 200 turns to less then 170 turns.
@@ -467,7 +467,7 @@ For the  {\bfseries Tune Calculation mode}, one additional auxiliary file with t
    84.000 2278.0    0.025
 \end{example}
 In each line the three values represent energy $E$, radius $r$ and $P_r$ for the SEO (Static Equilibrium Orbit)
-at starting point respectively and their units are \si{\mega\electronvolt},  \si{\milli\meter} and  \si{\milli\radian}.
+at starting point respectively and their units are \si{\mega\electronvolt}, \si{\milli\meter} and \si{\milli\radian}.
 
 A bash script \filename{tuning.sh} is shown on the next page, to execute \opalcycl for tune calculations.
 \examplefromfile{examples/tuning.sh}
@@ -477,10 +477,10 @@ The output file is \filename{plotdata} from which one can plot the tune diagram.
 
 % -- -- -- -- -- -- Section -- -- -- -- -- --
 \section{Output}
-{\bfseries Single Particle Tracking mode}
+\subsubsection{Single Particle Tracking mode}
 
 The intermediate phase space data is stored in an ASCII file which can be used to
-the plot the orbit. The file's name is combined by input file name (without extension) and  \filename{-trackOrbit.dat}.
+the plot the orbit. The file's name is combined by input file name (without extension) and \filename{-trackOrbit.dat}.
 The data are stored in the global Cartesian coordinates.
 The frequency of the data output can be set using the  option \keyword{SPTDUMPFREQ} of \keyword{OPTION} statement \seesec{option}
 
@@ -488,17 +488,17 @@ The phase space data per \keyword{STEPSPERTURN} (a parameter in the \keyword{TRA
 The file's name is a combination of input file name (without extension) and \filename{-afterEachTurn.dat}.
 The data is stored in the global cylindrical coordinate system.
 Please note that if the field map is ideally isochronous, the reference particle of a given energy take exactly one revolution in \keyword{STEPPERTURN} steps;
-Otherwise,the particle may not go through a full \SI{360}{\degree} in \keyword{STEPPERTURN} steps.
+Otherwise, the particle may not go through a full \SI{360}{\degree} in \keyword{STEPPERTURN} steps.
 
 There are 3 ASCII files which store the phase space data around $0$, $\pi/8$ and $\pi/4$ azimuths.
 Their names are the combinations of input file name (without extension) and \filename{-Angle0.dat}, \filename{-Angle1.dat} and \filename{-Angle2.dat} respectively.
-The data is stored in the global cylindrical coordinate system, which can be used to check the property of the closed orbit.\\
+The data is stored in the global cylindrical coordinate system, which can be used to check the property of the closed orbit.
 
-{\bfseries Tune calculation mode}
+\subsubsection{Tune calculation mode}
 
- The tunes $\nu_r$ and $\nu_z$ of each energy are stored in a ASCII file with name \filename{tuningresult}.\\
+ The tunes $\nu_r$ and $\nu_z$ of each energy are stored in a ASCII file with name \filename{tuningresult}.
 
-{\bfseries Multi-particle tracking mode}
+\subsubsection{Multi-particle tracking mode}
 
 The intermediate phase space data of all particles and some interesting parameters,
 including RMS envelop size, RMS emittance, external field, time, energy, length of path, number of bunches and
@@ -514,7 +514,7 @@ The frequency of the data output can be set using the \keyword{SPTDUMPFREQ} opti
 
 
 \section{Matched Distribution}
-In order to run matched distribution simulation one has to specify a periodic accelerator.\ The function call also needs
+In order to run matched distribution simulation one has to specify a periodic accelerator. The function call also needs
 the symmetry of the machine as well as a field map. The user then specifies the emittance $\pi\si{\milli\meter\milli\radian}$.
 \begin{verbatim}
 /*
@@ -529,11 +529,11 @@ Dist1:DISTRIBUTION, DISTRIBUTION=GAUSSMATCHED, LINE=l1, FMAPFN=...,
                     MAGSYM=..., EX = ..., EY = ..., ET = ...;
 \end{verbatim}
 \subsection{Example}
-Simulation of the PSI Ring Cyclotron at \SI{580}{\mega\electronvolt} and current \SI{2.2}{\milli\ampere}.\ The program finds a matched
+Simulation of the PSI Ring Cyclotron at \SI{580}{\mega\electronvolt} and current \SI{2.2}{\milli\ampere}. The program finds a matched
 distribution followed by a bunch initialization according to the matched covariance matrix.\\
 The matched distribution algorithm works with normalized emittances, i.e. normalized by the lowest energy of the
-machine.\ The printed emittances, however, are the geometric emittances. In addition, it has to
-be paid attention that the computation is based on $(x,x',y,y',z,\delta)$ instead of $(x,p_{x},y,p_{y},z,p_{z})$.\ Since
+machine. The printed emittances, however, are the geometric emittances. In addition, it has to
+be paid attention that the computation is based on $(x,x',y,y',z,\delta)$ instead of $(x,p_{x},y,p_{y},z,p_{z})$. Since
 the particles are represented in the latter coordinate system, the corresponding transformation has to be applied to
 obtain the rms emittances that are given in the output.
 \subsubsection{Input file}

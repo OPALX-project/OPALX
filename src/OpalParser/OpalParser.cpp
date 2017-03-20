@@ -40,6 +40,7 @@
 #include <exception>
 #include <iostream>
 #include <new>
+#include <boost/algorithm/string.hpp>
 
 #include <Ippl.h>
 using namespace std;
@@ -92,6 +93,23 @@ void OpalParser::parse(Statement &stat) const {
             parseAction(stat);
         } else {
             // Assignment beginning with a name.
+            stat.mark();
+            stat.start();
+            std::string objName = parseString(stat, "Object name expected.");
+            if (OpalData::getInstance()->find(objName) == 0) {
+                Token tok = stat.getCurrent();
+                stat.restore();
+
+                std::string name = tok.getLex();
+                std::string hint = getHint(name);
+                unsigned int position = stat.position();
+                std::string positionIndicator = std::string(position, ' ') + "^\n";
+
+                throw ParseError("OpalParser::parse()",
+                                 positionIndicator +
+                                 "Syntax error, either the keyword REAL is missing or\n" +
+                                 hint);
+            }
             parseAssign(stat);
         }
     }
@@ -152,6 +170,12 @@ void OpalParser::parseAction(Statement &stat) const {
             throw;
         }
     } else {
+        std::string hint = getHint(cmdName, "command");
+        if (hint != "") {
+            throw ParseError("OpalParser::parse()",
+                             "Syntax error, " + hint);
+        }
+
         throw ParseError("OpalParser::parseAction()",
                          "Command \"" + cmdName + "\" is unknown.");
     }
@@ -337,7 +361,12 @@ void OpalParser::parseDefine(Statement &stat) const {
 
 void OpalParser::parseEnd(Statement &stat) const {
     if(! stat.atEnd()  &&  ! stat.delimiter(';')) {
+
+        unsigned int position = stat.position();
+        std::string positionIndicator = std::string(position + 1, ' ') + "^\n";
+
         throw ParseError("OpalParser::parseEnd()",
+                         positionIndicator +
                          "Syntax error (maybe missing comma or semicolon ? )");
     }
 }
@@ -543,7 +572,11 @@ Statement *OpalParser::readStatement(TokenStream *is) const {
         ERRORMSG("\n*** Parse error detected by function \""
                  << "OpalParser::readStatement()" << "\"\n");
         stat->printWhere(*IpplInfo::Error, true);
-        ERRORMSG("     " << *stat <<"    " << ex.what() << '\n' << endl);
+
+        std::string what = ex.what();
+        boost::replace_all(what, "\n", "\n    ");
+
+        ERRORMSG("     " << *stat <<"    " << what << '\n' << endl);
         stat = readStatement(is);
 	exit(1);
     }
@@ -564,31 +597,46 @@ void OpalParser::run() const {
             ERRORMSG("\n*** Parse error detected by function \""
                      << ex.where() << "\"" << endl);
             stat->printWhere(*IpplInfo::Error, true);
-            ERRORMSG("    " << *stat << "    " << ex.what() << '\n' << endl);
+            std::string what = ex.what();
+            boost::replace_all(what, "\n", "\n    ");
+
+            ERRORMSG("     " << *stat <<"    " << what << '\n' << endl);
 	    exit(1);
         } catch(OpalException &ex) {
             ERRORMSG("\n*** User error detected by function \""
                      << ex.where() << "\"" << endl);
             stat->printWhere(*IpplInfo::Error, true);
-            ERRORMSG("    " << *stat << "    " << ex.what() << '\n' << endl);
+            std::string what = ex.what();
+            boost::replace_all(what, "\n", "\n    ");
+
+            ERRORMSG("     " << *stat <<"    " << what << '\n' << endl);
         } catch(ClassicException &ex) {
             ERRORMSG("\n*** User error detected by function \""
                      << ex.where() << "\"" << endl);
             stat->printWhere(*IpplInfo::Error, false);
-            ERRORMSG(*stat << "    " << ex.what() << '\n' << endl);
+            std::string what = ex.what();
+            boost::replace_all(what, "\n", "\n    ");
+
+            ERRORMSG("     " << *stat <<"    " << what << '\n' << endl);
         } catch(bad_alloc &) {
             ERRORMSG("\n*** Error:" << endl);
             stat->printWhere(*IpplInfo::Error, false);
             ERRORMSG("    " << *stat << "    Sorry, virtual memory exhausted.\n" << endl);
         } catch(assertion &ex) {
             ERRORMSG("\n*** Runtime-error ******************" << endl);
-            ERRORMSG(ex.what());
+            std::string what = ex.what();
+            boost::replace_all(what, "\n", "\n    ");
+
+            ERRORMSG("    " << what << '\n' << endl);
             ERRORMSG("\n************************************\n" << endl);
             throw std::runtime_error("in Parser");
         } catch(exception &ex) {
             ERRORMSG("\n*** Error:" << endl);
             stat->printWhere(*IpplInfo::Error, false);
-            ERRORMSG("    " << *stat << "    Internal OPAL error: " << ex.what() << '\n' << endl);
+            std::string what = ex.what();
+            boost::replace_all(what, "\n", "\n    ");
+
+            ERRORMSG("     " << *stat <<"    " << what << '\n' << endl);
         } catch(...) {
             ERRORMSG("\n*** Error:\n");
             stat->printWhere(*IpplInfo::Error, false);
@@ -611,4 +659,66 @@ void OpalParser::run(TokenStream *is) const {
 
 void OpalParser::stop() const {
     stopFlag = true;
+}
+
+std::string OpalParser::getHint(const std::string &name, const std::string &type) {
+    auto owner = AttributeHandler::getOwner(name);
+    if (owner.size() > 0) {
+        std::string hint = "the " + type + " '" + name + "' could belong to\n";
+        {
+            std::string elements = "";
+            auto its = owner.equal_range(AttributeHandler::ELEMENT);
+            if (its.first != its.second) {
+                elements = (its.first)->second;
+                bool any = (its.first)->second == "Any";
+                for (auto it = std::next(its.first); it != its.second && !any; ++ it) {
+                    elements += ", " + it->second;
+                    any = it->second == "Any";
+                }
+                if (any) {
+                    hint += std::string("  - any element\n");
+                } else {
+                    hint += std::string("  - the element") + (std::distance(its.first, its.second) > 1? "s ": " ") + elements + "\n";
+                }
+            }
+        }
+        {
+            std::string commands = "";
+            auto its = owner.equal_range(AttributeHandler::COMMAND);
+            if (its.first != its.second) {
+                commands = (its.first)->second;
+                for (auto it = std::next(its.first); it != its.second; ++ it) {
+                    commands += ", " + it->second;
+                }
+                hint += std::string("  - the command") + (std::distance(its.first, its.second) > 1? "s ": " ") + commands + "\n";
+            }
+        }
+        {
+            std::string sub_commands = "";
+            auto its = owner.equal_range(AttributeHandler::SUB_COMMAND);
+            if (its.first != its.second) {
+                sub_commands = (its.first)->second;
+                for (auto it = std::next(its.first); it != its.second; ++ it) {
+                    sub_commands += ", " + it->second;
+                }
+                hint += std::string("  - the sub-command") + (std::distance(its.first, its.second) > 1? "s ": " ") + sub_commands + "\n";
+            }
+        }
+        {
+            std::string statements = "";
+            auto its = owner.equal_range(AttributeHandler::STATEMENT);
+            if (its.first != its.second) {
+                statements = (its.first)->second;
+                for (auto it = std::next(its.first); it != its.second; ++ it) {
+                    statements += ", " + it->second;
+                }
+                hint += std::string("  - the statement") + (std::distance(its.first, its.second) > 1? "s ": " ") + statements + "\n";
+            }
+        }
+
+        hint += "but it's not present!";
+        return hint;
+    }
+
+    return "";
 }

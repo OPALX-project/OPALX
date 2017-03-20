@@ -63,6 +63,8 @@ Static::Static():
                      ("FILE", "Name of the file to be written", "STATIC");
     itsAttr[ORDER] = Attributes::makeReal
                      ("ORDER", "Order of the analysis; must be at least 2", 2.0);
+
+    registerOwnership(AttributeHandler::COMMAND);
 }
 
 

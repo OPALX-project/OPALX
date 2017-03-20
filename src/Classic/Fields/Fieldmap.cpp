@@ -29,11 +29,15 @@
 
 #include "H5hut.h"
 
+#include <boost/filesystem.hpp>
+
 #include <iostream>
 #include <fstream>
 #include <ios>
 
 #include <assert.h>
+
+namespace fs = boost::filesystem;
 
 #define REGISTER_PARSE_TYPE(X) template <> struct Fieldmap::TypeParseTraits<X> \
     { static const char* name; } ; const char* Fieldmap::TypeParseTraits<X>::name = #X
@@ -245,10 +249,8 @@ Fieldmap *Fieldmap::getFieldmap(std::string Filename, bool fast) {
             break;
 
         default:
-            position = FieldmapDictionary.insert(
-                std::make_pair(
-                    Filename, FieldmapDescription(UNKNOWN, new FMDummy(Filename))));
-            return (*position.first).second.Map;
+            throw GeneralClassicException("Fieldmap::getFieldmap()",
+                                          "Couldn't determine type of fieldmap in file \"" + Filename + "\"");
         }
     }
 }
@@ -282,6 +284,10 @@ MapType Fieldmap::readHeader(std::string Filename) {
     // Check for default map(s).
     if(Filename == "1DPROFILE1-DEFAULT")
         return T1DProfile1;
+
+    if (!fs::exists(Filename))
+        throw GeneralClassicException("Fieldmap::readHeader()",
+                                      "File \"" + Filename + "\" doesn't exist");
 
     std::ifstream File(Filename.c_str());
     if(!File.good()) {
@@ -563,13 +569,8 @@ void Fieldmap::interpreteWarning(const std::string &error_msg,
              << "expecting: '" << expecting << "' on line " << lines_read_m << ",\n"
              << "found instead: '" << found << "'.";
     std::string errormsg_str = typeset_msg(errormsg.str(), "error");
-    ERRORMSG(errormsg_str << "\n" << endl);
-
-    if(Ippl::myNode() == 0) {
-        std::ofstream omsg("errormsg.txt", std::ios_base::app);
-        omsg << errormsg_str << std::endl;
-        omsg.close();
-    }
+    throw GeneralClassicException("Fieldmap::interpretWarning()",
+                                  errormsg.str());
 }
 
 void Fieldmap::interpreteWarning(const std::ios_base::iostate &state,
@@ -594,13 +595,8 @@ void Fieldmap::missingValuesWarning() {
              << "Please check the section about field maps in the user manual.";
     std::string errormsg_str = typeset_msg(errormsg.str(), "error");
 
-    ERRORMSG(errormsg_str << "\n" << endl);
-
-    if(Ippl::myNode() == 0) {
-        std::ofstream omsg("errormsg.txt", std::ios_base::app);
-        omsg << errormsg_str << std::endl;
-        omsg.close();
-    }
+    throw GeneralClassicException("Fieldmap::missingValuesWarning()",
+                                  errormsg.str());
 }
 
 void Fieldmap::exceedingValuesWarning() {
@@ -610,13 +606,8 @@ void Fieldmap::exceedingValuesWarning() {
              << "Please check the section about field maps in the user manual.";
     std::string errormsg_str = typeset_msg(errormsg.str(), "error");
 
-    ERRORMSG(errormsg_str << "\n" << endl);
-
-    if(Ippl::myNode() == 0) {
-        std::ofstream omsg("errormsg.txt", std::ios_base::app);
-        omsg << errormsg_str << std::endl;
-        omsg.close();
-    }
+    throw GeneralClassicException("Fieldmap::exceedingValuesWarning()",
+                                  errormsg.str());
 }
 
 void Fieldmap::disableFieldmapWarning() {
@@ -624,13 +615,8 @@ void Fieldmap::disableFieldmapWarning() {
     errormsg << "DISABLING FIELD MAP '" + Filename_m + "' DUE TO PARSING ERRORS." ;
     std::string errormsg_str = typeset_msg(errormsg.str(), "error");
 
-    ERRORMSG(errormsg_str << "\n" << endl);
-
-    if(Ippl::myNode() == 0) {
-        std::ofstream omsg("errormsg.txt", std::ios_base::app);
-        omsg << errormsg_str << std::endl;
-        omsg.close();
-    }
+    throw GeneralClassicException("Fieldmap::disableFieldmapsWarning()",
+                                  errormsg.str());
 }
 
 void Fieldmap::noFieldmapWarning() {
@@ -638,13 +624,8 @@ void Fieldmap::noFieldmapWarning() {
     errormsg << "DISABLING FIELD MAP '" << Filename_m << "' SINCE FILE COULDN'T BE FOUND!";
     std::string errormsg_str = typeset_msg(errormsg.str(), "error");
 
-    ERRORMSG(errormsg_str << "\n" << endl);
-
-    if(Ippl::myNode() == 0) {
-        std::ofstream omsg("errormsg.txt", std::ios_base::app);
-        omsg << errormsg.str() << std::endl;
-        omsg.close();
-    }
+    throw GeneralClassicException("Fieldmap::noFieldmapsWarning()",
+                                  errormsg.str());
 }
 
 void Fieldmap::lowResolutionWarning(double squareError, double maxError) {

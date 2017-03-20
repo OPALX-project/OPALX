@@ -3,7 +3,7 @@
 #include "Utility/IpplStats.h"
 
 #ifdef IPPL_DKS
-#include "DKSBase.h"
+#include "DKSOPAL.h"
 #endif
 
 StaticIpplInfo::StaticIpplInfo() { }

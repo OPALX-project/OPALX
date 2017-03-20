@@ -7,7 +7,7 @@ class Communicate;
 class IpplStats;
 //DKS include
 #ifdef IPPL_DKS
-class DKSBase;
+class DKSOPAL;
 #endif
 
 class StaticIpplInfo {
@@ -27,7 +27,7 @@ public:
     IpplStats *Stats;
 
 #ifdef IPPL_DKS
-    DKSBase *DKS;
+    DKSOPAL *DKS;
 #endif
 
     // flag telling whether to use optimization for reducing

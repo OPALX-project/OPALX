@@ -49,7 +49,9 @@ ElementBase::ElementBase():
     bgeometry_m(NULL),
     sphys_m(NULL),
     elType_m(isOther),
-    positionIsFixed(false)
+    positionIsFixed(false),
+    elementPosition_m(0.0),
+    elemedgeSet_m(false)
 {}
 
 
@@ -67,7 +69,9 @@ ElementBase::ElementBase(const ElementBase &right):
     bgeometry_m(right.bgeometry_m),
     sphys_m(right.sphys_m),
     elType_m(right.elType_m),
-    positionIsFixed(right.positionIsFixed)
+    positionIsFixed(right.positionIsFixed),
+    elementPosition_m(right.elementPosition_m),
+    elemedgeSet_m(right.elemedgeSet_m)
 {
 
     if(sphys_m) {
@@ -91,7 +95,9 @@ ElementBase::ElementBase(const std::string &name):
     bgeometry_m(NULL),
     sphys_m(NULL),
     elType_m(isOther),
-    positionIsFixed(false)
+    positionIsFixed(false),
+    elementPosition_m(0.0),
+    elemedgeSet_m(false)
 {}
 
 
