@@ -175,6 +175,7 @@ public:
 
 protected:
 
+    const std::vector<double> defaultAperture_m;
     // Vector_t Orientation_m;
     double exit_face_slope_m;
 
