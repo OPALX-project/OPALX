@@ -219,10 +219,10 @@ private:
     //    void printSigma(SigmaGenerator<double,unsigned int>::matrix_type& M, Inform& out);
 
     void addDistributions();
-    void applyEmissionModel(double eZ, double &px, double &py, double &pz, const std::vector<double> &additionalRNs);
-    void applyEmissModelAstra(double &px, double &py, double &pz, const std::vector<double> &additionalRNs);
+    void applyEmissionModel(double lowEnergyLimit, double &px, double &py, double &pz, std::vector<double> &additionalRNs);
+    void applyEmissModelAstra(double &px, double &py, double &pz, std::vector<double> &additionalRNs);
     void applyEmissModelNone(double &pz);
-    void applyEmissModelNonEquil(double eZ, double &px, double &py, double &pz);
+    void applyEmissModelNonEquil(double eZ, double &px, double &py, double &pz, std::vector<double> &additionalRNs);
     void create(size_t &numberOfParticles, double massIneV);
     void calcPartPerDist(size_t numberOfParticles);
     void checkEmissionParameters();
@@ -452,7 +452,6 @@ private:
     double phi_m;
     double psi_m;
     bool previousH5Local_m;
-
 };
 
 inline Inform &operator<<(Inform &os, const Distribution &d) {
