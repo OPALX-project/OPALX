@@ -59,16 +59,14 @@
 \newcommand{\nprimed}[1]{^{\myrepeat{#1}{\prime}}}
 
 %Editing Macros
-\newcommand{\TODO}[1]{{\color{red}\ifthenelse{\boolean{ShowDebug}}{[TODO: #1]}{}}}
-
-
+\newcommand{\TODO}[1]{\ifthenelse{\boolean{ShowDebug}}{\color{red}TODO: #1}{}}
 
 %text in gray box
 \newsavebox{\fmbox}
 \definecolor{lightgray}{gray}{0.95}
 \newenvironment{fmpage}
-   {\vspace{-1.0cm}\begin{lrbox}{\fmbox}\begin{minipage}[t]{13.5cm}\vspace{0.1cm}}
-   {\vspace{-0.4cm}\end{minipage}\end{lrbox}\begin{center}\fcolorbox{black}{lightgray}{\usebox{\fmbox}}\end{center}}
+   {\begin{lrbox}{\fmbox}\begin{minipage}[ht]{13.5cm}}
+   {\end{minipage}\end{lrbox}\begin{center}\fcolorbox{black}{lightgray}{\usebox{\fmbox}}\end{center}}
 
 
 % Definition new signes
