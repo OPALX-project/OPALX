@@ -120,7 +120,7 @@ The beam elements are numbered $e_0, \ldots , e_i, \ldots e_n$.
 A local coordinate system $K'_i$ is attached to each element $e_i$. This is simply a frame in which $(0,0,0)$ is at the entrance of  each element. For an illustration see \figref{KS1}. The local reference system $(x, y, z) \in K'_n$
 may thus be referred to a global Cartesian coordinate system $(X, Y, Z) \in K$.
 
-The local coordinates $(x_i, y_i, z_i)$ at element $e_i$ with respect to the global cordinates $(X, Y, Z)$ are defined by three displacements $(X_i, Y_i, Z_i)$ and three angles $(\Theta_i, \Phi_i, \Psi_i)$.
+The local coordinates $(x_i, y_i, z_i)$ at element $e_i$ with respect to the global coordinates $(X, Y, Z)$ are defined by three displacements $(X_i, Y_i, Z_i)$ and three angles $(\Theta_i, \Phi_i, \Psi_i)$.
 
 $\Psi$ is the roll angle about the global $Z$-axis. $\Phi$ is the pitch angle about the global $Y$-axis. Lastly, $\Theta$ is the yaw angle about the global $X$-axis. All three angles form right-handed screws with their corresponding axes. The angles ($\Theta,\Phi,\Psi$) are the  Tait-Bryan angles \cite{bib:tait-bryan}.
 
@@ -256,9 +256,9 @@ The \texttt{OrbitThreader} integrates a design particle through the lattice and 
 
 \subsection{Flow Diagram of \opalt}
 \input{figures/opalt/flowdiagram}
-A regular time step in \opalt is sketched in \figref{OPALTSchemeSimple}. In order to compute the coordinate system transformation from the reference coordinate system $K_s$ to the local coordinatesystems $K'_n$ we join the transformation from floor coordinate system $K$ to $K'_n$ to the transformation from $K_s$ to $K$. All computations of rotations which are involved in the computation of coordinate system transformations are performed using quaternions. The resulting quaternions are then converted to the appropriate matrix representation before applying the rotation operation onto the particle positions and momenta.
+A regular time step in \opalt is sketched in \figref{OPALTSchemeSimple}. In order to compute the coordinate system transformation from the reference coordinate system $K_s$ to the local coordinate systems $K'_n$ we join the transformation from floor coordinate system $K$ to $K'_n$ to the transformation from $K_s$ to $K$. All computations of rotations which are involved in the computation of coordinate system transformations are performed using quaternions. The resulting quaternions are then converted to the appropriate matrix representation before applying the rotation operation onto the particle positions and momenta.
 
-As can seen from \figref{OPALTSchemeSimple} the integration of the trajectories of the particles are integrated and the computionation of the statistics of the six-dimensional phase space are performed in the reference coordinate system.
+As can be seen from \figref{OPALTSchemeSimple} the integration of the trajectories of the particles are integrated and the computation of the statistics of the six-dimensional phase space are performed in the reference coordinate system.
 
 \section{Output}
 In addition to the progress report that \opalt writes to the standard output (stdout) it also writes different files for various purposes.
@@ -387,7 +387,7 @@ This file is used to log the statistical properties of the bunch in the ASCII va
 \end{center}
 
 \subsubsection*{\filename{\textless input\_file\_name \textgreater\_3D.opal}}
-\opalt copies the input file into this file and replaces all occurances of \keyword{ELEMEDGE} with the corresponding position using \keyword{X}, \keyword{Y}, \keyword{Z}, \keyword{THETA}, \keyword{PHI} and \keyword{PSI}.
+\opalt copies the input file into this file and replaces all occurrences of \keyword{ELEMEDGE} with the corresponding position using \keyword{X}, \keyword{Y}, \keyword{Z}, \keyword{THETA}, \keyword{PHI} and \keyword{PSI}.
 
 \subsubsection*{\filename{\textless input\_file\_name \textgreater\_ElementPositions.txt}}
 \opalt stores for every element the position of the entrance and the exit. Additionally the reference trajectory inside dipoles is stored. On the first column the name of the element is written prefixed with ``BEGIN: '', ``END: '' and ``MID: '' respectively. The remaining columns store the z-component then the x-component and finally the y-component of the position in floor coordinates.
@@ -431,7 +431,7 @@ This file can be used when plotting the statistics of the bunch to indicate the 
 2 & dipole & \nicefrac{1}{3} & Whether the field of a dipole is present\\
 3 & quadrupole & 1 & Whether the field of a quadrupole is present\\
 4 & sextupole & \nicefrac{1}{2} & Whether the field of a sextupole is present\\
-5 & octapole & \nicefrac{1}{4} & Whether the field of a octapole is present\\
+5 & octupole & \nicefrac{1}{4} & Whether the field of a octupole is present\\
 6 & decapole & 1 & Whether the field of a decapole is present\\
 7 & multipole & 1 & Whether the field of a general multipole is present\\
 8 & solenoid & 1 &  Whether the field of a solenoid is present\\

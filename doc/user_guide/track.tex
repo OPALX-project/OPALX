@@ -229,7 +229,7 @@ Its attributes are:
     \item[CYCLOTRON-T]
     This method puts \opal in \opalcycl mode \seechp{opalcycl}.
     \item[STATISTICAL-ERRORS]
-    This is a method to let \opal run multiple times in parallel while adding imperfections to aligment and other physical quantities.
+    This is a method to let \opal run multiple times in parallel while adding imperfections to alignment and other physical quantities.
   \end{kdescription}
   \item[FIELDSOLVER]
   The field solver to be used \seechp{fieldsolver}.
@@ -241,7 +241,7 @@ Its attributes are:
   The particle beam \seechp{beam} to be used is specified.
 
   \item[FILE]
-  The name of the file to be writen (default="\texttt{track}").
+  The name of the file to be written (default="\texttt{track}").
   \item[TURNS]
   The number of turns (integer) to be tracked (default: 1, namely single bunch).
 
@@ -254,7 +254,7 @@ Its attributes are:
   See \secref{opalcycl:MultiBunch} for their explanations in detail.
 
   For restarting run with \texttt{TURNS} larger than one, if the existing bunches of the read-in step is large than one,
-  the mode is forcely set to \texttt{FORCE}. Otherwise, it is forcely set to \texttt{AUTO}.
+  the mode is forcedly set to \texttt{FORCE}. Otherwise, it is forcedly set to \texttt{AUTO}.
 
   This argument is available for \opalcycl.
 
@@ -278,7 +278,7 @@ This command tracks 5 bunches in cyclotron and writes the results on file \textt
 \subsection{\keywordinheader{STATISTICAL-ERRORS}}
 \label{ssec:statistical-errors}
 \index{STATISTICAL-ERRORS}
-This method can be used to quantify the effects of imperfections to alignment or other physical quantities such as e.g. the phase or the amplitude. It doesn't propagate the particles directly. Instead it scans through the input file and replaces all occurances of \keyword[tab:realfun]{GAUSS} and \keyword[tab:realfun]{TGAUSS} with randomly generated values of appropriate distribution. Then one of the other methods, e.g. \keyword{PARALLEL-T} is called. These two steps are then repeated many times.
+This method can be used to quantify the effects of imperfections to alignment or other physical quantities such as e.g. the phase or the amplitude. It doesn't propagate the particles directly. Instead it scans through the input file and replaces all occurrences of \keyword[tab:realfun]{GAUSS} and \keyword[tab:realfun]{TGAUSS} with randomly generated values of appropriate distribution. Then one of the other methods, e.g. \keyword{PARALLEL-T} is called. These two steps are then repeated many times.
 
 To use this method one has to specify the \keyword{METHOD} using the following form:
 \begin{center}
