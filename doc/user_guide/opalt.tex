@@ -265,7 +265,7 @@ In addition to the progress report that \opalt writes to the standard output (st
 \subsubsection*{\filename{\textless input\_file\_name \textgreater.stat}}
 This file is used to log the statistical properties of the bunch in the ASCII variant of the SDDS format \cite{bib:borland1995}. It can be viewed with the SDDS Tools \cite{bib:borland2016} or GNUPLOT. The frequency with which the statistics are computed and written to file can be controlled With the option \keyword{STATDUMPFREQ}. The information that is stored are found in the following table.
 \begin{center}
-\begin{longtable}{p{1.5cm}p{1.7cm}p{1.3cm}p{9.5cm}}
+\begin{longtable}{p{1.2cm}p{1.9cm}p{1.3cm}p{9.5cm}}
 \caption{Information stored in the file \filename{\textless input\_file\_name \textgreater.stat}}\\
 \hline
 \tabhead{Column Nr. & Name & Units & Meaning}
@@ -323,7 +323,7 @@ This file is used to log the statistical properties of the bunch in the ASCII va
 39 & Ez\_ref & \si{\mega\volt\per\meter} & Z-component of electric field at reference particle\\
 40 & dE & \si{\mega\electronvolt} & Energy spread of the bunch\\
 41 & dt & \si{\nano\second} & Size of time step\\
-42 & partsOutside & 1 & Number of particles outsid $n \times \sigma$ of beam, where $n$ is controlled with \keyword[sec:option]{BEAMHALOBOUNDARY}\\
+42 & partsOutside & 1 & Number of particles outside $n \times \sigma$ of beam, where $n$ is controlled with \keyword[sec:option]{BEAMHALOBOUNDARY}\\
 43 & R0\_x & \si{\meter} & X-component of position of particle with ID 0 (only when run serial)\\
 44 & R0\_y & \si{\meter} & Y-component of position of particle with ID 0 (only when run serial)\\
 45 & R0\_s & \si{\meter} & S-component of position of particle with ID 0 (only when run serial)\\
@@ -336,7 +336,7 @@ This file is used to log the statistical properties of the bunch in the ASCII va
 \subsubsection*{\filename{\textless input\_file\_name \textgreater\_Monitors.sdds}}
 \opalt computes the statistics of the bunch for every \keyword{MONITOR} that it passes. The information that is written can be found in the following table.
 \begin{center}
-\begin{longtable}{p{1.5cm}p{1.7cm}p{1.3cm}p{9.5cm}}
+\begin{longtable}{p{1.2cm}p{1.9cm}p{1.3cm}p{9.5cm}}
 \caption{Information stored in the file \filename{\textless input\_file\_name \textgreater\_Monitors.stat}}\\
 \hline
 \tabhead{Column Nr. & Name & Units & Meaning}
@@ -410,7 +410,7 @@ The following arguments can be passed
 \subsubsection*{\filename{\textless input\_file\_name \textgreater\_ElementPositions.stat}}
 This file can be used when plotting the statistics of the bunch to indicate the positions of the magnets. It is written in the SDDS format.  The information that is written can be found in the following table.
 \begin{center}
-\begin{longtable}{p{1.5cm}p{2cm}p{1.3cm}p{9.2cm}}
+\begin{longtable}{p{1.2cm}p{2.2cm}p{1.3cm}p{9.2cm}}
 \caption{Information stored in the file \filename{\textless input\_file\_name \textgreater\_ElementPositions.stat}}\\
 \hline
 \tabhead{Column Nr. & Name & Units & Meaning}
@@ -445,7 +445,7 @@ This file can be used when plotting the statistics of the bunch to indicate the 
 The trajectory of the reference particle is stored in this ASCII file. The content of the columns are listed in the following table.
 
 \begin{center}
-\begin{longtable}{p{1.5cm}p{1.3cm}p{11.2cm}}
+\begin{longtable}{p{1.2cm}p{1.3cm}p{11.2cm}}
 \caption{Information stored in the file \filename{\textless input\_file\_name \textgreater\_DesignPath.dat}}\\
 \hline
 \tabhead{Column Nr. & Units & Meaning}
