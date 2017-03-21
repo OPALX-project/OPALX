@@ -84,7 +84,6 @@ int main (int argc, char **argv) {
     hsize_t      maxdims[3] = {H5S_UNLIMITED, H5S_UNLIMITED, H5S_UNLIMITED};
     hid_t dataspace = H5Screate_simple (3 /*number of dimensions*/, dims, maxdims); 
     hid_t file = H5Fcreate (FILENAME, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
-    H5Pclose(plist_id);
     
     hsize_t      chunk_dims[3] = {1, 1, 1};
     hid_t prop = H5Pcreate (H5P_DATASET_CREATE);
@@ -92,8 +91,21 @@ int main (int argc, char **argv) {
     
     hid_t dataset = H5Dcreate2 (file, DATASETNAME, H5T_NATIVE_INT, dataspace,
                                 H5P_DEFAULT, prop, H5P_DEFAULT);
+    status = H5Pclose (prop);
     
     int count = 0;
+    
+    // minimal box extent per level
+    Box minBox = rhs[0].boxArray().minimalBox();
+    IntVect minsm = minBox.smallEnd();
+    IntVect minbg = minBox.bigEnd();
+    int xmax = minbg[0] - minsm[0] + 1;
+    int ymax = minbg[1] - minsm[1] + 1;
+    int zmax = minbg[2] - minsm[2] + 1;
+    
+    
+    std::cout << "Minimal box: " << rhs[0].boxArray().minimalBox() << std::endl;
+    
     for (MFIter mfi(rhs[0]); mfi.isValid(); ++mfi) {
         const FArrayBox& field = (rhs[0])[mfi];
         const Box& bx = field.box();
@@ -106,14 +118,7 @@ int main (int argc, char **argv) {
             hsize_t(bg[2] - sm[2] + 1)
         };
         
-        std::vector< /*std::vector< std::vector< */int/* > >*/ > dataext(dimsext[0] * dimsext[1] * dimsext[2]);
-//             bg[0] - sm[0] + 1,
-//             std::vector< std::vector<int> >(bg[1] - sm[1] + 1,
-//                                             std::vector<int>(bg[2] - sm[2] + 1)
-//                                            )
-//                                                                 );
-        
-//         std::cout << "Size: " << dataext.size() << " x " << dataext[0].size() << " x " << dataext[1].size() << std::endl;
+        std::vector< int > dataext(dimsext[0] * dimsext[1] * dimsext[2]);
         int i = 0;
         for(IntVect p(sm); p <= bg; bx.next(p)) {
             for(int k(0); k < 1/*num_comp*/; ++k) {
@@ -122,10 +127,16 @@ int main (int argc, char **argv) {
             }
         }
         
+//         xmax = ( xmax > bg[0] ) ? xmax : bg[0] + 1;
+//         ymax = ( ymax > bg[1] ) ? ymax : bg[1] + 1;
+//         zmax = ( zmax > bg[2] ) ? zmax : bg[2] + 1;
+        
+//         std::cout << "max: " << xmax << " " << ymax << " " << zmax << std::endl;
+        
         hsize_t size[3] = {
-            4, //dims[0] + dimsext[0],
-            4, //dims[1] + dimsext[1],
-            4 //dims[2] + dimsext[2]
+            /*4, */ hsize_t(xmax),
+            /*4, */ hsize_t(ymax),
+            /*4  */ hsize_t(zmax)
         };
         
         status = H5Dset_extent (dataset, size);
@@ -145,21 +156,25 @@ int main (int argc, char **argv) {
                        H5P_DEFAULT, &dataext[0]);
             
         status = H5Sclose (memspace);
+        
+//         std::cout << "Status memspace: " << status << std::endl;
+        
         status = H5Sclose (filespace);
         
-//         if ( count++ == 1 )
-//             break;
+//         std::cout << "Status filespace: " << status << std::endl;
     }
     
     rhs.clear();
     
-    
-    status = H5Dclose (dataset);
-    status = H5Pclose (prop);
     status = H5Sclose (dataspace);
+//     std::cout << "Status dataspace: " << status << std::endl;
+    status = H5Dclose (dataset);
+//     std::cout << "Status dataset: " << status << std::endl;
+    status = H5Pclose(plist_id);
+//     std::cout << "Status plist_id: " << status << std::endl;
     status = H5Fclose (file);
     
-    std::cout << "Status: " << status << std::endl;
-
+    std::cout << "Status file: " << status << std::endl;
+    
     return 0;
 }     
