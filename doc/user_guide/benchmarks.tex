@@ -60,7 +60,7 @@ In this beam dynamics code, the total emittance in each phase plane is five time
 \subsubsection{TRACE 3D Graphic Interface}
 \label{ssec:T3D_graphic}
 An example of TRACE 3D graphic interface is shown in \figref{trace}.
-\begin{figure}[!htb]
+\begin{figure}[htbp]
 \centering
   \includegraphics[width=\textwidth-1cm, keepaspectratio=true]{figures/Benchmarks/Trace.png}
     \caption{TRACE 3D graphic interface where: (1) input beam in transverse plane (above) and longitudinal plane (below); (2) output beam in transverse plane (above) and longitudinal plane (below); (3) summary of beam parameters such as input and output emittances and desired value for matching function; (4) line lattice with different elements and beam envelope. The color legend is: blue line for horizontal plane, red line for vertical plane, green line for longitudinal plane and yellow line for dispersion.}
@@ -103,7 +103,7 @@ If the input beam is tilted (Twiss alphas not zero), \textbf{ card 12} must be u
 r_{ij}=\frac{\sigma_{ij}}{\sqrt{\sigma_{ii}\sigma_{jj}}}
 \end{equation}
 As explained before, with the \textbf{card 15}, it is possible to transform the TRANSPORT standard units in TRACE-like units. In this way, the TRACE 3D sigma-matrix for the input beam, printed out by \textit{command Z}, can be directly used as input beam in TRANSPORT. An example of TRACE 3D sigma-matrix structure is shown in \figref{trace_z}.
-\begin{figure}[!htb]
+\begin{figure}[htbp]
  \centering
      \includegraphics[width=0.5\textwidth-0.6cm, keepaspectratio=true]{figures/Benchmarks/TRACE_z.png}
     \caption{Sigma-matrix structure in TRACE 3D \cite{Trace_man}}
@@ -113,7 +113,7 @@ From the sigma-matrix coefficients, TRANSPORT reports in output the Twiss parame
 \subsubsection{TRANSPORT Graphic Interface}
 \label{ssec:TRAN_graphic}
 An improved version of TRANSPORT has been embedded in a new graphic shell written in C++ and is providing GUI type tools, which makes it easier to design new beam lines. A screen shot of a modern GUI Transport interface \cite{Transport_GUI} is shown in \figref{TRANSPORT}.
-\begin{figure}[!htb]
+\begin{figure}[htbp]
  \centering
      \includegraphics[width=\textwidth-1cm, keepaspectratio=true]{figures/Benchmarks/TRANSPORT.png}
     \caption{GUI TRANSPORT graphic interface \cite{Tran_ex}. The continuous lines describe the beam envelope in the vertical plane (above) and horizontal plane (below). The dashed line displays the dispersion. The elements in the beam line are drawn as blue and red rectangles}
@@ -151,14 +151,14 @@ EMITI = 0.730, 0.730, 7.56
 
 Thanks to the TRACE 3D graphic interface, the input beam can immediately be visualized in the three phase plane as shown in \figref{Input_TRACE}.
 
-\begin{figure}[!htb]
+\begin{figure}[htbp]
  \centering
      \includegraphics[width=0.5\textwidth-0.6cm, keepaspectratio=true]{figures/Benchmarks/Input_Trace.png}
     \caption{TRACE 3D input beam in the transversal plane (above) and in the longitudinal plane (below)}
     \label{fig:Input_TRACE}
 \end{figure}
 The corresponding sigma-matrix with the relative units is displayed by command Z:
-\begin{figure}[!htb]
+\begin{figure}[htbp]
  \centering
      \includegraphics[width=0.5\textwidth-0.6cm, keepaspectratio=true]{figures/Benchmarks/TRACE_z_input.png}
     \caption{TRACE 3D sigma-matrix for the input beam}
@@ -182,7 +182,7 @@ using exactly the same sigma-matrix coefficients of \figref{TRACE_z_Input}. Othe
 \end{example}
 \subsubsection{SBEND in TRACE 3D}
 The bending magnet definition in TRACE 3D requires:
-\begin{table}[!htb]
+\begin{table}[htbp]
 \centering
   \caption{Bending magnet description in TRACE 3D and values used in the simulation}
   \label{tab:Bend_Trace}
@@ -199,7 +199,7 @@ The bending magnet definition in TRACE 3D requires:
   \end{tabular}
 \end{table}
 The edge angles are described with another type code and parameters which include also the fringe field. They must be added before and after the bending magnet if entrance and exit edge angles are present and if the fringe field has to be taken into account. In particular for the entrance edge angle:
-\begin{table}[!htb]
+\begin{table}[htbp]
 \centering
   \caption{Edge angle description in TRACE 3D and values used in the simulation}
   \label{tab:Edge_Trace}
@@ -217,7 +217,7 @@ The edge angles are described with another type code and parameters which includ
   \end{tabular}
 \end{table}
 A same configuration has been used for exit edge angle using $\beta = \SI{5}{\degree}$. The beam envelopes in the three phase planes for this simulation are shown in \figref{Trace_env}.
-\begin{figure}[!htb]
+\begin{figure}[htbp]
  \centering
      \includegraphics[width=\textwidth-1cm, keepaspectratio=true]{figures/Benchmarks/Trace_SBEND_edge.png}
     \caption{Beam envelopes in TRACE 3D for a SBEND with entrance and exit edge angles. The blue line describes the beam envelope in the horizontal plane, the red line in the vertical plane, the green line in the longitudinal plane. The yellow line displays the dispersion}
@@ -225,7 +225,7 @@ A same configuration has been used for exit edge angle using $\beta = \SI{5}{\de
 \end{figure}
 \subsubsection{SBEND in TRANSPORT}
 The bending magnet definition in TRANSPORT requires:
-\begin{table}[!htb]
+\begin{table}[htbp]
 \centering
 \caption{Bending magnet description in TRANSPORT and values used in the simulation}
 \label{tab:Bend_Trans}
@@ -241,7 +241,7 @@ The bending magnet definition in TRANSPORT requires:
        \end{tabular}
 \end{table}
 As for TRACE 3D, the edge angles are described with another card and parameters. In TRANSPORT, however, the fringe field is not automatically included with the edge angle, but it is described by a own card as reported in the \tabref{Edge_Trans}.
-\begin{table}[!htb]
+\begin{table}[htbp]
 \centering
 \caption{Edge angle and fringe field description in TRANSPORT and values used in the simulation}
 \label{tab:Edge_Trans}
@@ -260,7 +260,7 @@ As for TRACE 3D, the edge angles are described with another card and parameters.
         \end{tabular}
 \end{table}
 Running the Graphic TRANSPORT version, the beam envelopes in the transverse phase planes for this simulation are shown in \figref{Tran_env}.
-\begin{figure}[!htb]
+\begin{figure}[htbp]
  \centering
      \includegraphics[width=0.5\textwidth-0.6cm, keepaspectratio=true]{figures/Benchmarks/TRANS_SBEND_edge.png}
     \caption{Beam envelopes in TRANSPORT for a SBEND with entrance and exit edge angles. The continuous lines describe the beam envelope in the vertical plane (above) and horizontal plane (below). The dashed line displays the dispersion.}
@@ -268,7 +268,7 @@ Running the Graphic TRANSPORT version, the beam envelopes in the transverse phas
 \end{figure}
 \subsubsection{Beam size and emittance comparison}
 In the next table, the results of the comparison between TRACE 3D and TRANSPORT in terms of the transversal beam sizes at the end of each element in the line are summarized.
-\begin{table}[!htb]
+\begin{table}[htbp]
 \centering
 \caption{Transversal beam size at the end of each element in the line printed out by TRACE 3D and TRANSPORT}
 \label{tab:Beam_size}
@@ -293,14 +293,14 @@ In the next table, the results of the comparison between TRACE 3D and TRANSPORT 
         \end{tabular}
 \end{table}
 The perfect agreement between these two codes arises immediately looking at \figref{T3D_Tra_env}.
-\begin{figure}[!htb]
+\begin{figure}[htbp]
  \centering
      \includegraphics[width=0.5\textwidth-1cm, keepaspectratio=true]{figures/Benchmarks/T3D_Tra_SBEND_edge_env.pdf}
     \caption{Transversal beam size comparison between TRACE 3D and TRANSPORT}
     \label{fig:T3D_Tra_env}
 \end{figure}
 The same comparison has been performed in terms of horizontal and longitudinal emittance, both expressed in $\pi$-mm-mrad. While the vertical emittance remains constant and equal to the initial value ($\epsilon_y = $ 0.730 $\pi$-mm-mrad) , the horizontal and longitudinal emittances are expected growing after the bending magnet. The results are reported in \tabref{Emittance} and in \figref{T3D_Tra_emi}.
-\begin{table}[!htb]
+\begin{table}[htbp]
 \centering
 \caption{Horizontal and longitudinal emittance comparison between TRACE 3D and TRANSPORT, both expressed in $\pi$-mm-mrad}
 \label{tab:Emittance}
@@ -324,7 +324,7 @@ The same comparison has been performed in terms of horizontal and longitudinal e
         \hline
         \end{tabular}
 \end{table}
-\begin{figure}[!htb]
+\begin{figure}[htbp]
  \centering
      \includegraphics[width=0.5\textwidth-1cm, keepaspectratio=true]{figures/Benchmarks/T3D_Tra_SBEND_edge_emi.pdf}
     \caption{Emittance comparison between TRACE and TRANSPORT}
@@ -334,7 +334,7 @@ The same comparison has been performed in terms of horizontal and longitudinal e
 \subsubsection{From TRACE 3D to TRANSPORT}
 \label{ssec:T3DtoTRAN}
 
-\begin{table}[!htb]
+\begin{table}[!ht]
 \centering
 \caption{Bending magnet features in TRACE 3D and TRANSPORT}
 \label{tab:Bend_Trace_Tra2}
@@ -371,6 +371,7 @@ The same comparison has been performed in terms of horizontal and longitudinal e
         \end{tabular}
 \end{table}
 
+\clearpage
 %----------------------------------------------------------------------------------------
 %    SECTION: \opal
 %----------------------------------------------------------------------------------------
@@ -380,7 +381,7 @@ The same comparison has been performed in terms of horizontal and longitudinal e
 
 In \opal, the beam dynamics approach (time integration) is hence completely different from the envelope-like supported by TRACE 3D and TRANSPORT. The three codes support different units and require diverse parameters for the input beam. A summary of their main features is reported in \tabref{Features}.
 
-\begin{table}[!htb]
+\begin{table}[htbp]
     \centering
 \caption{Main features of the three beam dynamics codes: TRACE 3D, TRANSPORT and \opal}
 \label{tab:Features}
@@ -480,7 +481,7 @@ K1=0.0,
 E1=0, E2=0,
 \end{example}
 
-\begin{figure}[!htb]
+\begin{figure}[htbp]
 \begin{center}
     \subfloat[Transverse beam size]{\includegraphics[width=0.5\textwidth-1cm, keepaspectratio=true]{figures/Benchmarks/SBEND_noEdge_Env}}
     \hspace{1.8cm}
@@ -501,7 +502,7 @@ E1=10*Pi/180.0, E2=5* Pi/180.0,
 \end{example}
 
 
-\begin{figure}[!htb]
+\begin{figure}[htbp]
 \begin{center}
     \subfloat[Transverse beam size]{\includegraphics[width=0.5\textwidth-1cm, keepaspectratio=true]{figures/Benchmarks/SBEND_Edges_Env.pdf}}
     \hspace{1.8cm}
@@ -543,7 +544,7 @@ K1=1.5
 E1=0, E2=0,
 \end{example}
 
-\begin{figure}[!htb]
+\begin{figure}[htbp]
 \begin{center}
     \subfloat[Transverse beam size]{\includegraphics[width=0.5\textwidth-1cm, keepaspectratio=true]{figures/Benchmarks/FI_SBEND_FMDef_Env_T2.pdf}}
     \hspace{1.8cm}
@@ -555,7 +556,7 @@ E1=0, E2=0,
 
 Concerning the emittances and vertical beam size, a perfect agreement has been found, instead a defocusing effect appears in the horizontal plane. These results have been obtained with the default field map provided by \opal. However, a better result, only in the beam size as shown in \figref{SBEND_FI_test}, is achieved using a test field map in which the fringe field extension has been changed in the thin lens approximation.
 
-\begin{figure}[!htb]
+\begin{figure}[htbp]
 \begin{center}
     \subfloat[Transverse beam size]{\includegraphics[width=0.5\textwidth-1cm, keepaspectratio=true]{figures/Benchmarks/FI_SBEND_FMTest_Env_T2.pdf}}
     \hspace{1.8cm}
@@ -569,7 +570,7 @@ Concerning the emittances and vertical beam size, a perfect agreement has been f
 \subsubsection{From TRACE 3D to \opalt}
 \label{ssec:T3DtoOPAL}
 
-\begin{table}[!htb]
+\begin{table}[!ht]
 \centering
 \caption{Bending magnet features in TRACE 3D and \opalt}
 \label{tab:Bend_Trace_OPAL}
@@ -606,6 +607,8 @@ Concerning the emittances and vertical beam size, a perfect agreement has been f
         \hline
         \end{tabular}
 \end{table}
+
+\clearpage
 
 %----------------------------------------------------------------------------------------
 % Conclusion
@@ -660,7 +663,7 @@ The proposed default map for a hard edge dipole can be:
 \end{example}
 \end{description}
 On the first line, the two zeros following  \texttt{1DProfile1} are the orders of the Enge coefficient for the entrance and exit edge of the dipole. $2 cm$ is the default dipole gap width. The second line defines the fringe field region of the entrance edge of the dipole which extends from $-0.00000001 cm$ to $0.00000001 cm$.  The third line defines the same fringe field region for the exit edge of the dipole. The $3$s on both line don't mean anything, they are just placeholders. On the fourth and fifth line, the zeroth order Enge coefficients for both edges are given. Since they are large negative numbers, the field in the fringe field region has no $B_z$ component and its $B_y$ component is just like the field in the middle of the dipole.
-\begin{figure}[!htb]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[height=0.5\textwidth-0.6cm, angle = -90, trim = 8mm 10mm 2mm 10mm, clip]{figures/Benchmarks/report-compare-default}
 \caption{Compare emittances and beam sizes obtained by using the hard edge map (\opal), the default map (\opal), and the ELEGANT}
@@ -670,7 +673,7 @@ On the first line, the two zeros following  \texttt{1DProfile1} are the orders o
 
 \subsection{Integration Time Step}
 When the hard edge map is used for a dipole, finer integration time step is needed to ensure the accurate of the calculation. \figref{plot-emit-dt} compares the normalized emittances generated using the hard edge map in \opal with varying time steps to those from the ELEGANT. \SI{0.01}{\pico\second} seems to be a optimal time step for the fringe field region. To speed up the simulations, one can use larger time steps outside the fringe field regions. In \figref{plot-emit-dt}, one can observe a discontinuity in the horizontal emittance when the hard edge map is used in the calculation. This discontinuity comes from the fact that \opal emittance is calculated at an instant time. Once the beam or part of the beam gets into the dipole, its $P_x$ gets a kick which will result in a sudden emittance change.
-\begin{figure}[!htb]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.5\textwidth-0.6cm,
 %angle = -90,
@@ -680,13 +683,13 @@ trim = 20mm 0mm 8mm 0mm, clip]{figures/Benchmarks/report-emit-dt}
 \end{figure}
 
 \figref{plot-fringe-size,plot-fringe-size-zoom} examine the effects of the fringe field range and the integration time step on the simulation accuracy. \figref{plot-fringe-size-zoom} is a zoom-in plot of \figref{plot-fringe-size}. We can conclude that the size of the integration time step has more influence on the accuracy of the simulation.
-\begin{figure}[!htb]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[height=0.5\textwidth-0.6cm, angle = -90, trim = 3mm 0mm 2mm 0mm, clip]{figures/Benchmarks/report-fringe-size}
 \caption{Normalized horizontal emittance for different fringe field ranges and integration time steps}
 \label{fig:plot-fringe-size}
 \end{figure}
-\begin{figure}[!htb]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[height=0.5\textwidth-0.6cm, angle = -90, trim = 3mm 0mm 2mm 0mm, clip]{figures/Benchmarks/report-fringe-size-zoom}
 \caption{Zoom in on the final emittance in \figref{plot-fringe-size-zoom}}
@@ -721,7 +724,7 @@ P_x &=& x'\beta\gamma, \\ P_y &=& y'\beta\gamma, \\ s &=& (\bar t-t)\beta c .
 
 
 To benchmark the CSR effect, we set up a simple beamline with 0.1m drift $+$ 30 degree sbend $+$ 0.4m drift. When the CSR effect is turn off, \figref{plot-emit-csr-off} shows that the normalized emittances calculated using both \opal and ELEGANT agree. The emittance values from \opal are obtained from the {\it .stat} file, while for ELEGANT, the transverse emittances are obtained from the sigma output file (enx, and eny), the longitudinal emittance is calculated using the watch point beam distribution output.
-\begin{figure}[!htb]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[height=0.5\textwidth-0.6cm, angle = -90, trim = 3mm 0mm 2mm 0mm, clip]{figures/Benchmarks/emit-csr-off}
 \caption{Comparison of the trace space using ELEGANT and \opal}
@@ -729,14 +732,14 @@ To benchmark the CSR effect, we set up a simple beamline with 0.1m drift $+$ 30 
 \end{figure}
 
 When CSR calculations are enabled for both the bending magnet and the following drift, \figref{plot-dpp-csr-on} shows the average $\delta$ or $\frac{\Delta p}{p}$ change along the beam line, and \figref{plot-emit-csr-on} compares the normalized transverse and longitudinal emittances obtained by these two codes. The average $\frac{\Delta p}{p}$ can be found in the centroid output file (Cdelta) from ELEGANT, while in \opal, one can calculate it using $\frac{\Delta p}{p} = \frac{1}{\beta^2}\frac{\Delta \overline{E}}{\overline{E}+mc^2}$, where $\Delta \overline{E}$ is the average kinetic energy from the {\it .stat} output file.
-\begin{figure}[!htb]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[height=0.5\textwidth-0.6cm, angle = -90, trim = 3mm 0mm 2mm 0mm, clip]{figures/Benchmarks/dpp-csr-on}
 \caption{$\frac{\Delta p}{p}$ in Elegant and \opal}
 \label{fig:plot-dpp-csr-on}
 \end{figure}
 In the drift space following the bending magnet, the CSR effects are calculated using Stupakov's algorithm with the same setting in both codes. The average fractional momentum change $\frac{\Delta p}{p}$ and the longitudinal emittance show good agreements between these codes. However, they produce different horizontal emittances as indicated in \figref{plot-emit-csr-on}.
-\begin{figure}[!htb]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[height=0.5\textwidth-0.6cm, angle = -90, trim = 3mm 0mm 2mm 0mm, clip]{figures/Benchmarks/emit-csr-on}
 \caption{Transverse emittances in ELEGANT and \opal}
@@ -854,7 +857,7 @@ STOP;
 A good agreement is shown in the \figref{plot-opal-impact1,plot-opal-impact2}. This proves to some extend the compatibility of the
 space charge solvers of \opal and \impactt.
 
-\begin{figure}[!htb]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.5\textwidth-0.6cm, angle = 0, trim = 20mm 0mm 15mm 0mm, clip]{figures/Benchmarks/opal-impact-1MHz-x}
 \hspace{1cm}
@@ -863,7 +866,7 @@ space charge solvers of \opal and \impactt.
 \label{fig:plot-opal-impact1}
 \end{figure}
 
-\begin{figure}[!htb]
+\begin{figure}[!htbp]
 \centering
 \includegraphics[width=0.5\textwidth-0.6cm, angle = 0, trim = 20mm 0mm 15mm 0mm, clip]{figures/Benchmarks/opal-impact-1MHz-z}
 \caption{Longitudinal beam size and emittance in \impactt and \opal}

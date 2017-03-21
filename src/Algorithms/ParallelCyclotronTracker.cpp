@@ -73,6 +73,7 @@
 #include "Utilities/OpalException.h"
 
 #include "BasicActions/DumpFields.h"
+#include "BasicActions/DumpEMFields.h"
 
 #include "Structure/H5PartWrapperForPC.h"
 #include "Structure/BoundaryGeometry.h"
@@ -1145,6 +1146,7 @@ void ParallelCyclotronTracker::execute() {
     extE_m = Vector_t(0.0, 0.0, 0.0);
     extB_m = Vector_t(0.0, 0.0, 0.0);
     DumpFields::writeFields((((*FieldDimensions.begin())->second).second));
+    DumpEMFields::writeFields((((*FieldDimensions.begin())->second).second));
 
     if(timeIntegrator_m == 0) {
         *gmsg << "* 4th order Runge-Kutta integrator" << endl;

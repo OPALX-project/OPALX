@@ -4,6 +4,7 @@ set (_SRCS
   Mesh.cpp
   MMatrix.cpp
   MVector.cpp
+  NDGrid.cpp
   PolynomialPatch.cpp
   PPSolveFactory.cpp
   SolveFactory.cpp
@@ -25,6 +26,7 @@ set (HDRS
     Mesh.h
     MMatrix.h
     MVector.h
+    NDGrid.cpp
     PolynomialCoefficient.h
     PolynomialPatch.h
     PPSolveFactory.h

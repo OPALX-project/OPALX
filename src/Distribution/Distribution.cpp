@@ -493,13 +493,14 @@ void Distribution::create(size_t &numberOfParticles, double massIneV) {
 
     if (emitting_m) {
 
-        std::string model = Util::toUpper(Attributes::getString(itsAttr[AttributesT::EMISSIONMODEL]));
         unsigned int numAdditionalRNsPerParticle = 0;
-        if (model == "ASTRA" ||
+        if (emissionModel_m == EmissionModelT::ASTRA ||
             distrTypeT_m == DistrTypeT::ASTRAFLATTOPTH ||
             distrTypeT_m == DistrTypeT::GUNGAUSSFLATTOPTH) {
 
             numAdditionalRNsPerParticle = 2;
+        } else if (emissionModel_m == EmissionModelT::NONEQUIL) {
+            numAdditionalRNsPerParticle = 20;
         }
 
         if (Options::cZero) {
@@ -972,7 +973,7 @@ void Distribution::addDistributions() {
     }
 }
 
-void Distribution::applyEmissionModel(double eZ, double &px, double &py, double &pz, const std::vector<double> &additionalRNs) {
+void Distribution::applyEmissionModel(double lowEnergyLimit, double &px, double &py, double &pz, std::vector<double> &additionalRNs) {
 
     switch (emissionModel_m) {
 
@@ -983,14 +984,14 @@ void Distribution::applyEmissionModel(double eZ, double &px, double &py, double 
         applyEmissModelAstra(px, py, pz, additionalRNs);
         break;
     case EmissionModelT::NONEQUIL:
-        applyEmissModelNonEquil(eZ, px, py, pz);
+        applyEmissModelNonEquil(lowEnergyLimit, px, py, pz, additionalRNs);
         break;
     default:
         break;
     }
 }
 
-void Distribution::applyEmissModelAstra(double &px, double &py, double &pz, const std::vector<double> &additionalRNs) {
+void Distribution::applyEmissModelAstra(double &px, double &py, double &pz, std::vector<double> &additionalRNs) {
 
     double phi = 2.0 * acos(sqrt(additionalRNs[0]));
     double theta = 2.0 * Physics::pi * additionalRNs[1];
@@ -1005,44 +1006,51 @@ void Distribution::applyEmissModelNone(double &pz) {
     pz += pTotThermal_m;
 }
 
-void Distribution::applyEmissModelNonEquil(double eZ,
+void Distribution::applyEmissModelNonEquil(double lowEnergyLimit,
                                            double &bgx,
                                            double &bgy,
-                                           double &bgz) {
-
-    double phiEffective = cathodeWorkFunc_m
-        - sqrt(Physics::q_e * eZ /
-               (4.0 * Physics::pi * Physics::epsilon_0));
-    double lowEnergyLimit = cathodeFermiEnergy_m + phiEffective - laserEnergy_m;
+                                           double &bgz,
+                                           std::vector<double> &additionalRNs) {
 
     // Generate emission energy.
     double energy = 0.0;
     bool allow = false;
+
+    const double expRelativeLaserEnergy = exp(laserEnergy_m / cathodeTemp_m);
+    // double energyRange = emitEnergyUpperLimit_m - lowEnergyLimit;
+    unsigned int counter = 0;
     while (!allow) {
-        energy = lowEnergyLimit + (gsl_rng_uniform(randGen_m)*emitEnergyUpperLimit_m);
-        double randFuncValue = gsl_rng_uniform(randGen_m);
-        double funcValue = (1.0
-                            - 1.0
-                            / (1.0
-                               + exp((energy + laserEnergy_m - cathodeFermiEnergy_m)
-                                     / (Physics::kB * cathodeTemp_m))))
-            / (1.0
-               + exp((energy - cathodeFermiEnergy_m)
-                     / (Physics::kB * cathodeTemp_m)));
+        energy = lowEnergyLimit + additionalRNs[counter++] * emitEnergyUpperLimit_m;
+        double randFuncValue = additionalRNs[counter++];
+        double expRelativeEnergy = exp((energy - cathodeFermiEnergy_m) / cathodeTemp_m);
+        double funcValue = ((1.0
+                            - 1.0 / (1.0 + expRelativeEnergy * expRelativeLaserEnergy)) /
+                            (1.0 + expRelativeEnergy));
+
         if (randFuncValue <= funcValue)
             allow = true;
+
+        if (counter == additionalRNs.size()) {
+            for (unsigned int i = 0; i < counter; ++ i) {
+                additionalRNs[i] = gsl_rng_uniform(randGen_m);
+            }
+
+            counter = 0;
+        }
+    }
+    while (additionalRNs.size() - counter < 2) {
+        -- counter;
+        additionalRNs[counter] = gsl_rng_uniform(randGen_m);
     }
 
     // Compute emission angles.
     double energyInternal = energy + laserEnergy_m;
-    double energyExternal = energy + laserEnergy_m
-        - cathodeFermiEnergy_m - phiEffective;
+    double energyExternal = energy - lowEnergyLimit;
 
-    double thetaInMax = acos(sqrt((cathodeFermiEnergy_m + phiEffective)
-                                  / (energy + laserEnergy_m)));
-    double thetaIn = gsl_rng_uniform(randGen_m)*thetaInMax;
+    double thetaInMax = acos(sqrt((lowEnergyLimit + laserEnergy_m) / (energyInternal)));
+    double thetaIn = additionalRNs[counter++] * thetaInMax;
     double sinThetaOut = sin(thetaIn) * sqrt(energyInternal / energyExternal);
-    double phi = Physics::two_pi * gsl_rng_uniform(randGen_m);
+    double phi = Physics::two_pi * additionalRNs[counter];
 
     // Compute emission momenta.
     double betaGammaExternal
@@ -1796,6 +1804,10 @@ void Distribution::createOpalT(PartBunch &beam,
          addedDistIt != addedDistributions_m.end(); addedDistIt++)
         (*addedDistIt)->setDistToEmitted(emitting_m);
 
+    if (emitting_m) {
+        setupEmissionModel(beam);
+    }
+
     // Create distributions.
     create(particlesPerDist_m.at(0), beam.getM());
 
@@ -1818,7 +1830,6 @@ void Distribution::createOpalT(PartBunch &beam,
 
     if (emitting_m) {
         checkEmissionParameters();
-        setupEmissionModel(beam);
     } else {
         if (distrTypeT_m != DistrTypeT::FROMFILE) {
             pmean_m = Vector_t(0.0, 0.0, converteVToBetaGamma(getEkin(), beam.getM()));
@@ -1926,7 +1937,7 @@ size_t Distribution::emitParticles(PartBunch &beam, double eZ) {
     // Number of particles that have already been emitted and are on this processor.
     size_t numberOfEmittedParticles = beam.getLocalNum();
     size_t oldNumberOfEmittedParticles = numberOfEmittedParticles;
-    static size_t counter = 0;
+
     if (!tOrZDist_m.empty() && emitting_m) {
 
         /*
@@ -1935,6 +1946,10 @@ size_t Distribution::emitParticles(PartBunch &beam, double eZ) {
          * "to be emitted" list.
          */
         std::vector<size_t> particlesToBeErased;
+        double phiEffective = (cathodeWorkFunc_m
+                                     - sqrt(std::max(0.0, (Physics::q_e * beam.getQ() * eZ) /
+                                                     (4.0 * Physics::pi * Physics::epsilon_0))));
+        double lowEnergyLimit = cathodeFermiEnergy_m + phiEffective - laserEnergy_m;
         for (size_t particleIndex = 0; particleIndex < tOrZDist_m.size(); particleIndex++) {
 
             // Advance particle time.
@@ -1958,10 +1973,10 @@ size_t Distribution::emitParticles(PartBunch &beam, double eZ) {
                 if (additionalRNs_m.size() > particleIndex) {
                     additionalRNs = additionalRNs_m[particleIndex];
                 } else {
-                    additionalRNs = std::vector<double>({gsl_rng_uniform(randGen_m),
-                                                         gsl_rng_uniform(randGen_m)});
+                    throw OpalException("Distribution::emitParticles",
+                                        "not enough additional particles");
                 }
-                applyEmissionModel(eZ, px, py, pz, additionalRNs);
+                applyEmissionModel(lowEnergyLimit, px, py, pz, additionalRNs);
 
                 double particleGamma
                     = std::sqrt(1.0
@@ -2072,7 +2087,7 @@ size_t Distribution::emitParticles(PartBunch &beam, double eZ) {
     size_t currentEmittedParticles = numberOfEmittedParticles - oldNumberOfEmittedParticles;
     reduce(currentEmittedParticles, currentEmittedParticles, OpAddAssign());
     totalNumberEmittedParticles_m += currentEmittedParticles;
-    ++ counter;
+
     return currentEmittedParticles;
 
 }
@@ -3515,7 +3530,7 @@ void Distribution::printEmissionModelNonEquil(Inform &os) const {
     os << "*  THERMAL EMITTANCE in NONEQUIL MODE" << endl;
     os << "*  Cathode work function     = " << cathodeWorkFunc_m << " [eV]  " << endl;
     os << "*  Cathode Fermi energy      = " << cathodeFermiEnergy_m << " [eV]  " << endl;
-    os << "*  Cathode temperature       = " << cathodeTemp_m << " [K]  " << endl;
+    os << "*  Cathode temperature       = " << cathodeTemp_m / Physics::kB << " [K]  " << endl;
     os << "*  Photocathode laser energy = " << laserEnergy_m << " [eV]  " << endl;
 }
 
@@ -4450,14 +4465,14 @@ void Distribution::setupEmissionModelNonEquil() {
     cathodeWorkFunc_m = std::abs(Attributes::getReal(itsAttr[AttributesT::W]));
     laserEnergy_m = std::abs(Attributes::getReal(itsAttr[AttributesT::ELASER]));
     cathodeFermiEnergy_m = std::abs(Attributes::getReal(itsAttr[AttributesT::FE]));
-    cathodeTemp_m = std::abs(Attributes::getReal(itsAttr[AttributesT::CATHTEMP]));
+    cathodeTemp_m = Physics::kB * std::abs(Attributes::getReal(itsAttr[AttributesT::CATHTEMP]));
 
     /*
      * Upper limit on energy distribution theoretically goes to infinity.
      * Practically we limit to a probability of 1 part in a billion.
      */
     emitEnergyUpperLimit_m = cathodeFermiEnergy_m
-        + Physics::kB * cathodeTemp_m * log(1.0e9 - 1.0);
+        + cathodeTemp_m * log(1.0e9 - 1.0);
 
     // TODO: get better estimate of pmean
     pmean_m = 0.5 * (cathodeWorkFunc_m + emitEnergyUpperLimit_m);

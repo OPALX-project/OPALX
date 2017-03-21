@@ -58,6 +58,9 @@ class Fieldmap;
  *  so unless I keep that alive in Offset I get memory errors (seg fault)
  *  @float_tolerance bends() and operator==(...) use float_tolerance when
  *  evaluating equality between doubles.
+ *
+ *  WARNING: this object uses a default aperture that is large. It will screw up
+ *  any calculation based on aperture (e.g. wakefields etc)
  */
 class Offset : public Component {
   public:

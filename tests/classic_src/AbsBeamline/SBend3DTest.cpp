@@ -245,13 +245,9 @@ TEST(SBend3DTest, SBend3DPolyPatchTest) {
                 for (double phi =-dphi/2.; phi < dphi*3.1; phi += dphi/2.) {
                     Vector_t B, E, centroid;
                     Vector_t pos(r*cos(phi)-radius, y, r*sin(phi));
-                    std::cerr << "pos: " << pos << " r: " << r << " phi: " << phi/Physics::pi*180. << std::endl;
                     field1->apply(pos, Vector_t(0.0), 0, E, B);
-                    std::cerr << "   field1: " << B << std::endl;
                     field2->apply(pos, Vector_t(0.0), 0, E, B);
-                    std::cerr << "   field2: " << B << std::endl;
                     field3->apply(pos, Vector_t(0.0), 0, E, B);
-                    std::cerr << "   field3: " << B << std::endl;
                 }
     } catch (LogicalError& err) {
         std::cerr << err.what() << std::endl;

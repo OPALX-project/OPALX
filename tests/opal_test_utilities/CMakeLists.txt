@@ -1,6 +1,5 @@
 set (_SRCS
-    DumpFieldsTest.cpp
-    DumpEMFieldsTest.cpp
+  SilenceTest.cpp
 )
 
 include_directories (

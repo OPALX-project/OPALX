@@ -140,7 +140,7 @@ void SectorMagneticFieldMap::setInterpolator(VectorMap* interpolator) {
                                      grid->maxX(), grid->maxY(), grid->maxZ(),
                                      0., 0., 0.);
     }
-    print(std::cerr);
+    getInfo(gmsg);
 }
 
 std::string SectorMagneticFieldMap::getSymmetry() const {
@@ -152,8 +152,10 @@ void SectorMagneticFieldMap::setSymmetry(std::string name) {
 }
 
 void SectorMagneticFieldMap::readMap() {
-    setInterpolator(IO::readMap
-            (filename_m, units_m, symmetry_m, poly_order_m, smoothing_order_m));
+    VectorMap* interpolator = IO::readMap
+             (filename_m, units_m, symmetry_m, poly_order_m, smoothing_order_m);
+    setInterpolator(interpolator);
+
 }
 
 void SectorMagneticFieldMap::freeMap() {
@@ -306,14 +308,16 @@ VectorMap* SectorMagneticFieldMap::IO::readMap(
         ThreeDGrid* grid = generateGrid(field_points, sym);
         // build interpolator (convert grid to useful units)
         if (polynomial_order == 1 && smoothing_order == 1) {
-            return getInterpolator(field_points, grid, sym);
+            VectorMap* interpolator = getInterpolator(field_points, grid, sym);
+            return interpolator;
         } else {
-            return getInterpolatorPolyPatch(
+            VectorMap* interpolator = getInterpolatorPolyPatch(
                                   field_points,
                                   grid,
                                   sym,
                                   polynomial_order,
                                   smoothing_order);
+            return interpolator;
         }
     } catch(std::exception& exc) {
         throw(LogicalError(
@@ -346,14 +350,15 @@ VectorMap* SectorMagneticFieldMap::IO::getInterpolatorPolyPatch(
     }
     // symmetry is dipole
     try {
-        INFOMSG("Calculating polynomials..." << endl);
+        *gmsg << "Calculating polynomials..." << endl;
         PPSolveFactory solver(grid, data, polynomial_order, smoothing_order);
         PolynomialPatch* patch = solver.solve();
-        INFOMSG("                       ... done" << endl);
+        *gmsg << "                       ... done" << endl;
         return patch;
     } catch (GeneralClassicException& exc) {
         throw exc;
     }
+
 }
 
 VectorMap* SectorMagneticFieldMap::IO::getInterpolator
@@ -395,7 +400,8 @@ VectorMap* SectorMagneticFieldMap::IO::getInterpolator
                ));
     }
     Interpolator3dGridTo3d* interpolator = new Interpolator3dGridTo3d(grid, Bx, By, Bz);
-    return dynamic_cast<VectorMap*>(interpolator);
+    VectorMap* interpolatorMap = dynamic_cast<VectorMap*>(interpolator);
+    return interpolatorMap;
 }
 
 bool SectorMagneticFieldMap::IO::comparator(std::vector<double> field_item1,
