@@ -33,6 +33,7 @@ SBend3D::SBend3D(const std::string &name)
         : Component(name), map_m(NULL),
          planarArcGeometry_m(1., 1.), fieldUnits_m(1.), lengthUnits_m(1.),
          polyOrder_m(1), smoothOrder_m(1), dummy() {
+    setElType(isDrift);
 }
 
 SBend3D::SBend3D(const SBend3D &right)
@@ -44,6 +45,7 @@ SBend3D::SBend3D(const SBend3D &right)
     RefPartBunch_m = right.RefPartBunch_m;
     if (right.map_m != NULL)
         map_m = new SectorMagneticFieldMap(*right.map_m);
+    setElType(isDrift);
 }
 
 SBend3D::~SBend3D() {
