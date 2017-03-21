@@ -63,7 +63,7 @@ public:
     ~PartBunch();
 
     void runTests();
-    
+
     bool GetIfBeamEmitting();
     int GetLastEmittedEnergyBin();
     size_t GetNumberOfEmissionSteps();
@@ -167,7 +167,7 @@ public:
     void setBCForDCBeam();
 
     void setBCAllPeriodic();
-    
+
     void boundp();
 
     /** delete particles which are too far away from the center of beam*/
@@ -266,9 +266,9 @@ public:
     Vector_t get_pmean_Distribution() const;
     Vector_t get_emit() const;
     Vector_t get_norm_emit() const;
-    
+
     Vector_t get_hr() const;
-    
+
     double get_Dx() const;
     double get_Dy() const;
 
@@ -348,7 +348,7 @@ public:
 
     /// calculate average angle of longitudinal direction of bins
     double calcMeanPhi();
-    
+
     /// reset Bin[] for each particle according to the method given in paper PAST-AB(064402) by  G. Fubiani et al.
     bool resetPartBinID2(const double eta);
 

@@ -332,22 +332,22 @@ std::string PartBunch::getFieldSolverType() const {
 
 
 void PartBunch::runTests() {
-    
+
     Vector_t ll(-0.005);
     Vector_t ur(0.005);
 
     this->setBCAllPeriodic();
-    
+
     NDIndex<3> domain = getFieldLayout().getDomain();
     for(int i = 0; i < Dim; i++)
         nr_m[i] = domain[i].length();
-    
+
     for(int i = 0; i < 3; i++)
         hr_m[i] = (ur[i] - ll[i]) / nr_m[i];
-    
+
     getMesh().set_meshSpacing(&(hr_m[0]));
     getMesh().set_origin(ll);
-    
+
     rho_m.initialize(getMesh(),
                      getFieldLayout(),
                      GuardCellSizes<Dim>(1),
@@ -1711,7 +1711,7 @@ void PartBunch::computeSelfFields_cycl(int bin) {
 
 void PartBunch::setBCAllPeriodic() {
     for(int i = 0; i < 2 * 3; ++i) {
-        
+
         if (Ippl::getNodes()>1) {
             bc_m[i] = new ParallelInterpolationFace<double, Dim, Mesh_t, Center_t>(i);
             //std periodic boundary conditions for gradient computations etc.
@@ -1927,14 +1927,19 @@ void PartBunch::calcMoments() {
 
     unsigned long zID = 0;
     bool found = false;
-    for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
-        if (this->ID[k] == 0) {
-            found  = true;
-            zID = k;
-            break;
+    // TODO: this removes a particle from the data but the
+    //       number of particles remains the same. This will
+    //       inevitably lead to wrong results.
+    if (OpalData::getInstance()->isInOPALCyclMode()) {
+        for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
+            if (this->ID[k] == 0) {
+                found  = true;
+                zID = k;
+                break;
+            }
         }
     }
-    
+
     for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
         part[1] = this->P[k](0);
         part[3] = this->P[k](1);
@@ -1942,7 +1947,7 @@ void PartBunch::calcMoments() {
         part[0] = this->R[k](0);
         part[2] = this->R[k](1);
         part[4] = this->R[k](2);
-        
+
         for(int i = 0; i < 2 * Dim; i++) {
             loc_centroid[i]   += part[i];
             for(int j = 0; j <= i; j++) {
@@ -1950,7 +1955,7 @@ void PartBunch::calcMoments() {
             }
         }
     }
-    
+
     if (found) {
         part[1] = this->P[zID](0);
         part[3] = this->P[zID](1);
@@ -1958,14 +1963,14 @@ void PartBunch::calcMoments() {
         part[0] = this->R[zID](0);
         part[2] = this->R[zID](1);
         part[4] = this->R[zID](2);
-        
+
         for(int i = 0; i < 2 * Dim; i++) {
             loc_centroid[i]   -= part[i];
             for(int j = 0; j <= i; j++) {
                 loc_moment[i][j]   -= part[i] * part[j];
             }
         }
-    } 
+    }
 
 
     for(int i = 0; i < 2 * Dim; i++) {
@@ -2041,7 +2046,6 @@ void PartBunch::calcBeamParameters() {
     const size_t locNp = this->getLocalNum();
     const double N =  static_cast<double>(this->getTotalNum());
     const double zero = 0.0;
-
     if(N == 0) {
         for(unsigned int i = 0 ; i < Dim; i++) {
             rmean_m(i) = 0.0;
@@ -2084,20 +2088,20 @@ void PartBunch::calcBeamParameters() {
     if (nodes_m > 1) {
         Dx_m = moments_m(0, 5) / N;
         DDx_m = moments_m(1, 5) / N;
-      
+
         Dy_m = moments_m(2, 5) / N;
         DDy_m = moments_m(3, 5) / N;
 
     }
     else {
-      /** 
+      /**
 	  This is a easy way to follow the linear dispersion
 
 	  The position of the first 4 particles when read from file
 	  can be set to zero and a dp/p0 can be set, hence the dispersion
 	  orbit can be followed.
       */
-      
+
         for(size_t i = 0; i < locNp; i++) {
           if (ID[i] == 1) {
               Dx_m = R[i](0);
@@ -2447,9 +2451,9 @@ void PartBunch::boundp_destroy() {
                 }
             }
         }
-        else { // cut in 2D only 
+        else { // cut in 2D only
             // Caveats: only make sense for OPAL-cycl
-            // Caveats caveats: need to make OPAL-cycl compatible with OPAL-t w.r.t. the meaning of x,y,z! 
+            // Caveats caveats: need to make OPAL-cycl compatible with OPAL-t w.r.t. the meaning of x,y,z!
             // check the bunch if its full size is larger than checkfactor times of its rms size
             if(len[0] > checkfactor * rrms_m[0] || len[2] > checkfactor * rrms_m[2]) {
                 for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
