@@ -673,7 +673,7 @@ void LossDataSink::saveStatistics(unsigned int numSets) {
 }
 
 void LossDataSink::writeStatistics() {
-    if (Ippl::myNode() != 0) return;
+    if (Ippl::myNode() != 0 || statFileEntries_s.size() == 0) return;
 
     namespace fs = boost::filesystem;
 
