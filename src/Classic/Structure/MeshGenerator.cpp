@@ -95,7 +95,7 @@ void MeshGenerator::add(const ElementBase &element) {
 #include <boost/iostreams/filter/zlib.hpp>
 
 void MeshGenerator::write(const std::string &fname) {
-    std::ofstream out(fname + "_ElementPositions.py");
+    std::ofstream out("data/" + fname + "_ElementPositions.py");
     const char *buffer;
     const std::string indent("    ");
 
