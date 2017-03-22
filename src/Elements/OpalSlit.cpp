@@ -93,7 +93,8 @@ void OpalSlit::update() {
     }
 
     std::vector<double> apert = {Attributes::getReal(itsAttr[XSIZE]),
-                                 Attributes::getReal(itsAttr[YSIZE])};
+                                 Attributes::getReal(itsAttr[YSIZE]),
+                                 1.0};
     coll->setAperture(ElementBase::RECTANGULAR, apert );
 
     // Transmit "unknown" attributes.
