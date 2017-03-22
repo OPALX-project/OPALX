@@ -221,10 +221,13 @@ AttCell *OpalElement::findRegisteredAttribute(const std::string &name) {
 }
 
 std::pair<ElementBase::ApertureType, std::vector<double> > OpalElement::getApert() const {
-    std::string aperture = Attributes::getString(itsAttr[APERT]);
 
     std::pair<ElementBase::ApertureType, std::vector<double> > retvalue(ElementBase::ELLIPTICAL,
                                                                         std::vector<double>({0.5, 0.5, 1.0}));
+    if (!itsAttr[APERT]) return retvalue;
+
+    std::string aperture = Attributes::getString(itsAttr[APERT]);
+
     boost::regex square("square *\\((.*)\\)", boost::regex::icase);
     boost::regex rectangle("rectangle *\\((.*)\\)", boost::regex::icase);
     boost::regex circle("circle *\\((.*)\\)", boost::regex::icase);

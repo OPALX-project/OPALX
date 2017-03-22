@@ -207,7 +207,10 @@ void OpalSBend::update() {
         throw OpalException("OpalRBend::fillRegisteredAttributes",
                             "APERTURE in RBEND not supported; use GAP and HAPERT instead");
 
-    bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>(2, Attributes::getReal(itsAttr[HAPERT])));
+    if(itsAttr[HAPERT]) {
+        double hapert = Attributes::getReal(itsAttr[HAPERT]);
+        bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>({hapert, hapert, 1.0}));
+    }
 
     if(itsAttr[LENGTH])
         bend->setLength(Attributes::getReal(itsAttr[LENGTH]));
