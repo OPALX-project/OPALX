@@ -1044,13 +1044,11 @@ void ParallelTTracker::writePhaseSpace(const long long step, bool psDump, bool s
     Vector_t rmin, rmax;
     itsBunch_m->get_bounds(rmin, rmax);
 
-    Vector_t position = referenceToLabCSTrafo_m.transformTo(RefPartR_m);
-    Vector_t momentum = referenceToLabCSTrafo_m.rotateTo(RefPartP_m);
     if (psDump || statDump) {
         externalB = Vector_t(0.0);
         externalE = Vector_t(0.0);
-        itsOpalBeamline_m.getFieldAt(position,
-                                     momentum,
+        itsOpalBeamline_m.getFieldAt(referenceToLabCSTrafo_m.transformTo(RefPartR_m),
+                                     referenceToLabCSTrafo_m.rotateTo(RefPartP_m),
                                      itsBunch_m->getT() - 0.5 * itsBunch_m->getdT(),
                                      externalE,
                                      externalB);

@@ -136,10 +136,10 @@ void OpalRBend3D::update() {
 
     bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
 
-    if(itsAttr[HAPERT])
-        bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>(2, Attributes::getReal(itsAttr[HAPERT])));
-    else
-        bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>(2, 0.0));
+    if(itsAttr[HAPERT]) {
+        double hapert = Attributes::getReal(itsAttr[HAPERT]);
+        bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>({hapert, hapert, 1.0}));
+    }
 
     if(itsAttr[LENGTH]) {
         bend->setLength(Attributes::getReal(itsAttr[LENGTH]));

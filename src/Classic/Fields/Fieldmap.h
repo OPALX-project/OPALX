@@ -148,6 +148,15 @@ protected:
                   gsl_spline *splineCoefficients,
                   gsl_interp_accel *splineAccelerator);
 
+    void write3DField(unsigned int nx,
+                      unsigned int ny,
+                      unsigned int nz,
+                      const std::pair<double, double> &xrange,
+                      const std::pair<double, double> &yrange,
+                      const std::pair<double, double> &zrange,
+                      const std::vector<Vector_t> &ef,
+                      const std::vector<Vector_t> &bf);
+
 public:
     virtual void readMap() = 0;
     virtual void freeMap() = 0;

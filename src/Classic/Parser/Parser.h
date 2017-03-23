@@ -52,4 +52,12 @@ private:
     void operator=(const Parser &);
 };
 
+inline
+Parser::Parser()
+{ }
+
+inline
+Parser::~Parser()
+{ }
+
 #endif // CLASSIC_Parser_HH

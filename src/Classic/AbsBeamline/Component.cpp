@@ -33,8 +33,8 @@
 // 2017-03-20 (Rogers) set default aperture to something huge; else we get a
 //         segmentation fault by default from NULL dereference during tracking
 
-const std::vector<double> Component::defaultAperture_m = 
-                                                    std::vector<double>(3, 1e15);
+const std::vector<double> Component::defaultAperture_m =
+                                std::vector<double>({1e6, 1e6, 1.0});
 
 
 Component::Component():
@@ -42,7 +42,7 @@ Component::Component():
     exit_face_slope_m(0.0),
     RefPartBunch_m(NULL),
     online_m(false) {
-    setAperture(ElementBase::RECTANGULAR, defaultAperture_m);
+    setAperture(ElementBase::ELLIPTICAL, defaultAperture_m);
 }
 
 
@@ -51,7 +51,6 @@ Component::Component(const Component &right):
     exit_face_slope_m(right.exit_face_slope_m),
     RefPartBunch_m(right.RefPartBunch_m),
     online_m(right.online_m) {
-    setAperture(ElementBase::RECTANGULAR, defaultAperture_m);
 }
 
 
@@ -60,7 +59,7 @@ Component::Component(const std::string &name):
     exit_face_slope_m(0.0),
     RefPartBunch_m(NULL),
     online_m(false) {
-    setAperture(ElementBase::RECTANGULAR, defaultAperture_m);
+    setAperture(ElementBase::ELLIPTICAL, defaultAperture_m);
 
 }
 

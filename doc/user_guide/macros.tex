@@ -183,8 +183,13 @@
 \newcommand{\seetab}[1]{(see~\tabref{#1})}
 \newcommand{\seeeqn}[1]{(see~\eqnref{#1})}
 %% renew as filename command might already be defined
+\makeatletter
+\@ifundefined{filename}{
+\newcommand{\filename}[1]{\emph{#1}}
+}{
 \renewcommand{\filename}[1]{\emph{#1}}
-
+}
+\makeatother
 
 % Define distances for bordering
 \newcommand{\blockdist}{1.3}

@@ -2,6 +2,7 @@
 #include "Fields/Fieldmap.hpp"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
+#include "Utilities/Options.h"
 
 #include "Physics/Physics.h"
 
@@ -164,6 +165,36 @@ void FM3DDynamic::readMap() {
 
         INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
                 << endl);
+
+        if (Options::ebDump) {
+            std::vector<Vector_t> ef(num_gridpz_m * num_gridpy_m * num_gridpx_m, 0.0);
+            std::vector<Vector_t> bf(ef);
+            unsigned long l = 0;
+            for (unsigned long k = 0; k < num_gridpz_m; ++ k) {
+                const unsigned long index_z = k;
+                for (unsigned long j = 0; j < num_gridpy_m; ++ j) {
+                    const unsigned long index_y = j * deltaY;
+                    for (unsigned long i = 0; i < num_gridpx_m; ++ i) {
+                        const unsigned long index = i * deltaX + index_y + index_z;
+                        ef[l] = Vector_t(FieldstrengthEx_m[index],
+                                         FieldstrengthEy_m[index],
+                                         FieldstrengthEz_m[index]);
+                        bf[l] = Vector_t(FieldstrengthBx_m[index],
+                                         FieldstrengthBy_m[index],
+                                         FieldstrengthBz_m[index]);
+                        ++ l;
+                    }
+                }
+            }
+            write3DField(num_gridpx_m,
+                         num_gridpy_m,
+                         num_gridpz_m,
+                         std::make_pair(xbegin_m, xend_m),
+                         std::make_pair(ybegin_m, yend_m),
+                         std::make_pair(zbegin_m, zend_m),
+                         ef,
+                         bf);
+        }
     }
 }
 
@@ -195,8 +226,8 @@ bool FM3DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) 
     const unsigned int index_y = static_cast<int>(floor((R(1) - ybegin_m) / hy_m));
     const double lever_y = (R(1) - ybegin_m) / hy_m - index_y;
 
-    const unsigned int index_z = (int)floor((R(2) - zbegin_m) / hz_m);
-    const double lever_z = (R(2) - zbegin_m) / hz_m - index_z;
+    const unsigned int index_z = (int)floor(R(2) / hz_m);
+    const double lever_z = R(2) / hz_m - index_z;
 
     if(index_z >= num_gridpz_m - 2) {
         return false;

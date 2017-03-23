@@ -45,7 +45,7 @@ OrbitThreader::OrbitThreader(const PartData &ref,
     reference_m(ref)
 {
     if (Ippl::myNode() == 0) {
-        std::string fileName = OpalData::getInstance()->getInputBasename() + "_DesignPath.dat";
+        std::string fileName = "data/" + OpalData::getInstance()->getInputBasename() + "_DesignPath.dat";
         if (Options::openMode == Options::WRITE || !boost::filesystem::exists(fileName)) {
             logger_m.open(fileName);
             logger_m << "#"
