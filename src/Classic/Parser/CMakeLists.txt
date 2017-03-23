@@ -1,8 +1,6 @@
 set (_SRCS
   AbsFileStream.cpp
-  ClassicParser.cpp
   FileStream.cpp
-  Parser.cpp
   SimpleStatement.cpp
   Statement.cpp
   StringStream.cpp
@@ -19,7 +17,6 @@ ADD_OPAL_SOURCES(${_SRCS})
 
 set (HDRS
     AbsFileStream.h
-    ClassicParser.h
     FileStream.h
     Parser.h
     SimpleStatement.h

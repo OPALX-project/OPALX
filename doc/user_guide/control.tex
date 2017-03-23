@@ -375,10 +375,9 @@ OPTION,SEED=987456321
 \begin{example}
 REAL variable-name=real-expression;
 \end{example}
-The keyword \keyword{REAL} is optional.
 For backward compatibility the program also accepts the form
 \begin{example}
-variable-name:=real-expression;
+REAL variable-name:=real-expression;
 \end{example}
 This statement creates a new global variable \texttt{variable-name}
 and discards any old variable with the same name.
@@ -403,8 +402,8 @@ P0=GEV;
 Circular definitions are not allowed:
 \begin{example}
 X=X+1;    // X cannot be equal to X+1
-A=B;
-B=A;      // A and B are equal, but of unknown value
+REAL A=B;
+REAL B=A;      // A and B are equal, but of unknown value
 \end{example}
 However, redefinitions by assignment are allowed:
 \begin{example}

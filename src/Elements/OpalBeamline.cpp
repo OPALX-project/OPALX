@@ -465,7 +465,7 @@ void OpalBeamline::plot3DLattice() {
     if (origin(1) < minX(1)) minX(1) = origin(1);
 
     std::ofstream gpl;
-    std::string fileName = OpalData::getInstance()->getInputBasename() + "_ElementPositions.gpl";
+    std::string fileName = "data/" + OpalData::getInstance()->getInputBasename() + "_ElementPositions.gpl";
     if (Options::openMode == Options::APPEND && boost::filesystem::exists(fileName)) {
         gpl.open(fileName, std::ios_base::app);
     } else {
@@ -504,7 +504,7 @@ void OpalBeamline::save3DLattice() {
     FieldList::iterator end = elements_m.end();
 
     std::ofstream pos;
-    std::string fileName = OpalData::getInstance()->getInputBasename() + "_ElementPositions.txt";
+    std::string fileName = "data/" + OpalData::getInstance()->getInputBasename() + "_ElementPositions.txt";
     if (Options::openMode == Options::APPEND && boost::filesystem::exists(fileName)) {
         pos.open(fileName, std::ios_base::app);
     } else {
@@ -653,7 +653,7 @@ void OpalBeamline::save3DInput() {
     FieldList::iterator end = elements_m.end();
 
     std::string input = parseInput();
-    std::ofstream pos(OpalData::getInstance()->getInputBasename() + "_3D.opal");
+    std::ofstream pos("data/" + OpalData::getInstance()->getInputBasename() + "_3D.opal");
 
     for (; it != end; ++ it) {
         std::string element = (*it).getElement()->getName();

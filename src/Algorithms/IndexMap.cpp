@@ -128,7 +128,7 @@ enum elements {
 
 void IndexMap::saveSDDS(double startS) const {
 
-    std::string fileName(OpalData::getInstance()->getInputBasename() + "_ElementPositions.sdds");
+    std::string fileName("data/" + OpalData::getInstance()->getInputBasename() + "_ElementPositions.sdds");
     std::ofstream sdds;
     if (OpalData::getInstance()->hasPriorTrack() && boost::filesystem::exists(fileName)) {
         Util::rewindLinesSDDS(fileName, startS, false);

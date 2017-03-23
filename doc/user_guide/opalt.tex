@@ -333,7 +333,7 @@ This file is used to log the statistical properties of the bunch in the ASCII va
 \end{longtable}
 \end{center}
 
-\subsubsection*{\filename{\textless input\_file\_name \textgreater\_Monitors.sdds}}
+\subsubsection*{\filename{data/\textless input\_file\_name \textgreater\_Monitors.stat}}
 \opalt computes the statistics of the bunch for every \keyword{MONITOR} that it passes. The information that is written can be found in the following table.
 \begin{center}
 \begin{longtable}{p{1.2cm}p{1.9cm}p{1.3cm}p{9.5cm}}
@@ -386,13 +386,13 @@ This file is used to log the statistical properties of the bunch in the ASCII va
 \end{longtable}
 \end{center}
 
-\subsubsection*{\filename{\textless input\_file\_name \textgreater\_3D.opal}}
+\subsubsection*{\filename{data/\textless input\_file\_name \textgreater\_3D.opal}}
 \opalt copies the input file into this file and replaces all occurrences of \keyword{ELEMEDGE} with the corresponding position using \keyword{X}, \keyword{Y}, \keyword{Z}, \keyword{THETA}, \keyword{PHI} and \keyword{PSI}.
 
-\subsubsection*{\filename{\textless input\_file\_name \textgreater\_ElementPositions.txt}}
+\subsubsection*{\filename{data/\textless input\_file\_name \textgreater\_ElementPositions.txt}}
 \opalt stores for every element the position of the entrance and the exit. Additionally the reference trajectory inside dipoles is stored. On the first column the name of the element is written prefixed with ``BEGIN: '', ``END: '' and ``MID: '' respectively. The remaining columns store the z-component then the x-component and finally the y-component of the position in floor coordinates.
 
-\subsubsection*{\filename{\textless input\_file\_name \textgreater\_ElementPositions.py}}
+\subsubsection*{\filename{data/\textless input\_file\_name \textgreater\_ElementPositions.py}}
 This Python script can be used to generate visualizations of the beam line in different formats. Beside an ASCII file that can be printed using GNUPLOT a VTK file and an HTML file can be generated. The VTK file can then be opened in e.g. ParaView \cite{paraview,bib:paraview} or VisIt \cite{bib:visit}. The HTML file can be opened in any modern web browser. Both the VTK and the HTML output are three-dimensional. For the ASCII format on the other hand you have provide the normal of a plane onto which the beam line is projected.
 
 The script is not directly executable. Instead one has to pass it as argument to \texttt{python}:
@@ -407,7 +407,7 @@ The following arguments can be passed
 \item \texttt{-{}-export-web} to export for the web
 \item \texttt{-{}-project-to-plane x y z} to project the beam line to the plane with the normal with the components \texttt{x}, \texttt{y} and \texttt{z}
 \end{itemize}
-\subsubsection*{\filename{\textless input\_file\_name \textgreater\_ElementPositions.stat}}
+\subsubsection*{\filename{data/\textless input\_file\_name \textgreater\_ElementPositions.stat}}
 This file can be used when plotting the statistics of the bunch to indicate the positions of the magnets. It is written in the SDDS format.  The information that is written can be found in the following table.
 \begin{center}
 \begin{longtable}{p{1.2cm}p{2.2cm}p{1.3cm}p{9.2cm}}
@@ -441,7 +441,7 @@ This file can be used when plotting the statistics of the bunch to indicate the 
 \end{longtable}
 \end{center}
 
-\subsubsection*{\filename{\textless input\_file\_name \textgreater\_DesignPath.dat}}
+\subsubsection*{\filename{data/\textless input\_file\_name \textgreater\_DesignPath.dat}}
 The trajectory of the reference particle is stored in this ASCII file. The content of the columns are listed in the following table.
 
 \begin{center}
