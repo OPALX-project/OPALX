@@ -659,9 +659,6 @@ void OpalElement::update() {
 
     base->setMisalignment(misalignment);
 
-    // if (getOpalName() == "CAVH1GAF")
-    //     std::cout << Attributes::getReal(itsAttr[ELEMEDGE]) << std::endl;
-
     if (itsAttr[ELEMEDGE])
         base->setElementPosition(Attributes::getReal(itsAttr[ELEMEDGE]));
 }
