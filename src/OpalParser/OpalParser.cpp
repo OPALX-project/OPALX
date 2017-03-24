@@ -105,10 +105,16 @@ void OpalParser::parse(Statement &stat) const {
                 unsigned int position = stat.position();
                 std::string positionIndicator = std::string(position, ' ') + "^\n";
 
-                throw ParseError("OpalParser::parse()",
-                                 positionIndicator +
-                                 "Syntax error, either the keyword REAL is missing or\n" +
-                                 hint);
+                if (hint != "") {
+                    throw ParseError("OpalParser::parse()",
+                                     positionIndicator +
+                                     "Syntax error, either the keyword REAL is missing or\n" +
+                                     hint);
+                } else {
+                    throw ParseError("OpalParser::parse()",
+                                     positionIndicator +
+                                     "Syntax error, the keyword REAL is missing\n");
+                }
             }
             parseAssign(stat);
         }
