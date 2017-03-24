@@ -34,6 +34,9 @@ OpalPatch::OpalPatch():
     itsAttr[VX] = Attributes::makeReal("VX", "Rotation around x-axis.");
     itsAttr[VY] = Attributes::makeReal("VY", "Rotation around y-axis.");
     itsAttr[VS] = Attributes::makeReal("VS", "Rotation around s-axis.");
+
+    registerOwnership();
+
     setElement(new PatchRep("PATCH"));
 }
 
