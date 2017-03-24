@@ -36,6 +36,7 @@
 #include "Algorithms/PartBunch.h"
 
 #ifdef HAVE_AMR_SOLVER
+    #include "Solvers/BoxLibSolvers/FMGPoissonSolver.h"
     #include <ParmParse.H>
 #endif
 
@@ -356,6 +357,10 @@ void FieldSolver::initSolver(PartBunch &b) {
     else if (Attributes::getString(itsAttr[FSTYPE]) == "AMR") {
         Inform m("FieldSolver::initSolver-amr ");
         fsType_m = "AMR";
+        
+        //FIXME
+        AmrBoxLib *amrobject_p = new AmrBoxLib();
+        solver_m = new FMGPoissonSolver(amrobject_p);
 
 	/*
         // Add the parsed AMR attributes to BoxLib (please check BoxLib/Src/C_AMRLib/Amr.cpp)

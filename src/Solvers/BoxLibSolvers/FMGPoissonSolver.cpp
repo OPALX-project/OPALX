@@ -1,7 +1,7 @@
 #include "FMGPoissonSolver.h"
 
 FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* amrobject_p)
-    : AmrPoissonSolver<AmrBoxlib>(amrobject_p),
+    : AmrPoissonSolver<AmrBoxLib>(amrobject_p),
       tol_m(1.e-10),
       abstol_m(1.e-14),
       phi_m(PArrayManage)
@@ -18,7 +18,7 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t &rho,
                              unsigned short baseLevel,
                              unsigned short finestLevel)
 {
-    const GeomContainer_t& geom = amrobject_p->Geom();
+    const GeomContainer_t& geom = amrobject_mp->Geom();
     
     
     if (Geometry::isAllPeriodic()) {
@@ -36,7 +36,7 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t &rho,
     }
     
     
-    Array<AmrFieldContainer_t> grad_phi_edge(rho.size(), PArrayManage);
+    Array<AmrFieldContainer_t> grad_phi_edge(rho.size());
     
     
     for (int lev = baseLevel; lev <= finestLevel ; ++lev) {
@@ -51,7 +51,7 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t &rho,
     initGrids_m(efield);
     
     this->solveWithF90_m(rho, grad_phi_edge, geom,
-                         baseLevel, finestLevel, tol_m, abstol_m);
+                         baseLevel, finestLevel);
     
     
     
@@ -66,32 +66,32 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t &rho,
 }
 
 
-void FMGPoissonSolver::getXRangeMin(unsigned short level) {
+double FMGPoissonSolver::getXRangeMin(unsigned short level) {
     return amrobject_mp->Geom(level).ProbLo(0);
 }
 
 
-void FMGPoissonSolver::getXRangeMax(unsigned short level) {
+double FMGPoissonSolver::getXRangeMax(unsigned short level) {
     return amrobject_mp->Geom(level).ProbHi(0);
 }
 
 
-void FMGPoissonSolver::getYRangeMin(unsigned short level) {
+double FMGPoissonSolver::getYRangeMin(unsigned short level) {
     return amrobject_mp->Geom(level).ProbLo(1);
 }
 
 
-void FMGPoissonSolver::getYRangeMax(unsigned short level) {
+double FMGPoissonSolver::getYRangeMax(unsigned short level) {
     return amrobject_mp->Geom(level).ProbHi(1);
 }
 
 
-void FMGPoissonSolver::getYRangeMin(unsigned short level) {
+double FMGPoissonSolver::getZRangeMin(unsigned short level) {
     return amrobject_mp->Geom(level).ProbLo(2);
 }
 
 
-void FMGPoissonSolver::getZRangeMax(unsigned short level) {
+double FMGPoissonSolver::getZRangeMax(unsigned short level) {
     return amrobject_mp->Geom(level).ProbHi(2);
 }
 
@@ -157,13 +157,13 @@ void FMGPoissonSolver::solveWithF90_m(AmrFieldContainer_t& rho,
 }
 
 void FMGPoissonSolver::initGrids_m(AmrFieldContainer_t& efield) {
-    for (std::size_t lev = 0; lev < efield.size(); ++lev) {
+    for (int lev = 0; lev < efield.size(); ++lev) {
         phi_m.clear(lev);
         efield.clear(lev);
         
         const BoxArray& ba = amrobject_mp->boxArray()[lev];
         
-        //                                 #components  #ghost cells                                                                                                                                          
+        //                                      #components  #ghost cells                                                                                                                                          
         phi_m.set(lev,  new AmrField_t(ba, 1,           1) );
         efield.set(lev, new AmrField_t(ba, 3,           1) );
         

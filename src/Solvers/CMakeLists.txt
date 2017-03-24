@@ -9,6 +9,10 @@ set (_SRCS
   BoxCornerDomain.cpp
   TaperDomain.cpp
   )
+  
+if ( ENABLE_AMR_SOLVER )
+    list(APPEND _SRCS BoxLibSolvers/FMGPoissonSolver.cpp)
+endif (ENABLE_AMR_SOLVER )
 
 include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -31,9 +35,7 @@ set (HDRS
 )
 
 if ( ENABLE_AMR_SOLVER )
-    list(APPEND HDRS AmrPoissonSolver.h)
-    
-    add_subdirectory(BoxLibSolvers)
+    list(APPEND HDRS AmrPoissonSolver.h BoxLibSolvers/FMGPoissonSolver.h)
 endif (ENABLE_AMR_SOLVER )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Solvers")
