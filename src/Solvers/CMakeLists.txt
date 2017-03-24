@@ -30,4 +30,10 @@ set (HDRS
     TaperDomain.h
 )
 
+if ( ENABLE_AMR_SOLVER )
+    list(APPEND HDRS AmrPoissonSolver.h)
+    
+    add_subdirectory(BoxLibSolvers)
+endif (ENABLE_AMR_SOLVER )
+
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Solvers")

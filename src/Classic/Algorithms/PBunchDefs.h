@@ -15,6 +15,11 @@
 #include "Field/Field.h"
 #include "FFT/FFT.h"
 
+#ifdef HAVE_AMR_SOLVER
+    #include <MultiFab.H>
+    #include <PArray.H>
+#endif
+
 typedef IntCIC  IntrplCIC_t;
 typedef IntNGP  IntrplNGP_t;
 typedef IntSUDS IntrplSUDS_t;
@@ -48,6 +53,13 @@ typedef Field<dcomplex, 3, Mesh_t, Center_t>     CxField_t;
 typedef FFT<RCTransform, 3, double>              FFT_t;
 typedef FFT<SineTransform, 3, double>            SINE_t;
 typedef FFT<CCTransform, 3, double>              FFTC_t;
+
+#ifdef HAVE_AMR_SOLVER
+    //TODO make it AMR object dependent (i.e. typedef in AMR object class
+    typedef MultiFab           AmrField_t;
+    typedef PArray<AmrField_t> AmrFieldContainer_t;
+#endif
+
 
 namespace ParticleType {
     enum { REGULAR,

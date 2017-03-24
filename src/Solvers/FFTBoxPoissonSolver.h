@@ -54,12 +54,12 @@ public:
     /// compute the shifted integrated Green function as described in <A HREF="http://prst-ab.aps.org/abstract/PRSTAB/v9/i4/e044204">Three-dimensional quasistatic model for high brightness beam dynamics simulation</A> by Qiang et al.
     void shiftedIntGreensFunction(double zshift);
 
-    double getXRangeMin() {return -a_m;}
-    double getXRangeMax() {return  a_m;}
-    double getYRangeMin() {return -a_m;}
-    double getYRangeMax() {return  a_m;}
-    double getZRangeMin() {return -a_m; }
-    double getZRangeMax() {return  a_m; }
+    double getXRangeMin(unsigned short level) {return -a_m;}
+    double getXRangeMax(unsigned short level) {return  a_m;}
+    double getYRangeMin(unsigned short level) {return -a_m;}
+    double getYRangeMax(unsigned short level) {return  a_m;}
+    double getZRangeMin(unsigned short level) {return -a_m; }
+    double getZRangeMax(unsigned short level) {return  a_m; }
     void test(PartBunch &bunch) { }
 
 
