@@ -72,6 +72,7 @@ add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
 
 add_sources (opal.cpp)
+add_sources (changes.cpp)
 
 include_directories ( BEFORE
     ${OPAL_SRC_DIR}
@@ -141,7 +142,7 @@ target_link_libraries( opal OPALib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LI
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS OPALib DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
-install (FILES opal.h DESTINATION "${CMAKE_INSTALL_PREFIX}/include")
+install (FILES opal.h changes.h DESTINATION "${CMAKE_INSTALL_PREFIX}/include")
 install (FILES Utilities/OpalException.h DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Utilities")
 
 set (OPAL_LIBS ${OPAL_LIBS} PARENT_SCOPE)

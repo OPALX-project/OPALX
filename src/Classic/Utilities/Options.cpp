@@ -82,9 +82,11 @@ namespace Options {
     double schottkyRennormalization = -1;
 
     bool cloTuneOnly;
-   
+
     // Governs how often boundp_destroy is called to destroy lost particles
     // Mainly used in the CyclotronTracker as of now -DW
     int boundpDestroyFreq = 10;
 
+    // opal version of input file
+    int version = 10000;
 }
