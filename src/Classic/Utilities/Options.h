@@ -155,6 +155,7 @@ namespace Options {
     /// Do closed orbit and tune calculation only.
     extern bool cloTuneOnly;
 
+    extern int version;
 }
 
-#endif // OPAL_Options_HH 
+#endif // OPAL_Options_HH

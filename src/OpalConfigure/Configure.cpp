@@ -135,6 +135,7 @@
 #include "Lines/Line.h"
 #include "Lines/Sequence.h"
 
+#include "changes.h"
 
 // Namespace Configure
 // Modify these methods to add new commands.
@@ -263,5 +264,6 @@ namespace Configure {
         makeDefinitions();
         makeElements();
         makeActions();
+        Versions::fillChanges();
     }
 };

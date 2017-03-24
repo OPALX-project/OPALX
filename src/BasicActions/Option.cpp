@@ -72,6 +72,7 @@ namespace {
         BOUNDPDESTROYFQ,
 	BEAMHALOBOUNDARY,
 	CLOTUNEONLY,
+        VERSION,
         SIZE
     };
 }
@@ -169,6 +170,9 @@ Option::Option():
     itsAttr[BEAMHALOBOUNDARY] = Attributes::makeReal
       ("BEAMHALOBOUNDARY", "Defines in therms of sigma where the halo starts Default 0.0",0.0);
 
+    itsAttr[VERSION] = Attributes::makeReal
+       ("VERSION", "Version of OPAL for which input file was written", 10000);
+
     FileStream::setEcho(echo);
     rangen.init55(seed);
 }
@@ -211,6 +215,7 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setBool(itsAttr[ASCIIDUMP], asciidump);
     Attributes::setReal(itsAttr[BOUNDPDESTROYFQ], 10);
     Attributes::setReal(itsAttr[BEAMHALOBOUNDARY], 0);
+    Attributes::setReal(itsAttr[VERSION], version);
 }
 
 
@@ -238,6 +243,7 @@ void Option::execute() {
     csrDump = Attributes::getBool(itsAttr[CSRDUMP]);
     ppdebug = Attributes::getBool(itsAttr[PPDEBUG]);
     enableHDF5 = Attributes::getBool(itsAttr[ENABLEHDF5]);
+    version = Attributes::getReal(itsAttr[VERSION]);
 
     if(itsAttr[ASCIIDUMP]) {
         asciidump = Attributes::getBool(itsAttr[ASCIIDUMP]);

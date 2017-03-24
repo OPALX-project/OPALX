@@ -50,6 +50,9 @@
 #include "Distribution/Distribution.h"
 #include "Structure/BoundaryGeometry.h"
 
+#include "OPALconfig.h"
+#include "changes.h"
+
 #ifdef HAVE_AMR_SOLVER
 #define DIM 3
 #include <ParallelDescriptor.H>
@@ -149,6 +152,38 @@ TrackRun *TrackRun::clone(const std::string &name) {
 
 
 void TrackRun::execute() {
+    std::string packageVersionStr = PACKAGE_VERSION;
+    unsigned int posFirstDot = packageVersionStr.find_first_of('.');
+    unsigned int posSecondDot = packageVersionStr.find_first_of('.', posFirstDot + 1);
+
+    if (posSecondDot - posFirstDot < 3) {
+        packageVersionStr.replace(posFirstDot, 1, "0");
+    } else {
+        packageVersionStr.replace(posFirstDot, 1, "");
+    }
+
+    if (posSecondDot != std::string::npos)
+        packageVersionStr = packageVersionStr.substr(0, posSecondDot);
+
+    const int currentVersion = std::atoi(packageVersionStr.c_str()) * 100;
+
+    if (Options::version < currentVersion) {
+        unsigned int fileVersion = Options::version / 100;
+        if (Ippl::myNode() == 0) {
+            ERRORMSG("\n******************** V E R S I O N   M I S M A T C H ***********************\n" << endl);
+            for (auto it = Versions::changes.begin(); it != Versions::changes.end(); ++ it) {
+                if (it->first > fileVersion) {
+                    ERRORMSG(it->second << endl);
+                }
+            }
+            ERRORMSG("\nMake sure you do understand these changes and adjust your input file \n"
+                     << "accordingly. Then add\n"
+                     << "OPTION, VERSION = " << currentVersion << ";\n"
+                     << "to your input file. " << endl);
+            ERRORMSG("\n****************************************************************************\n" << endl);
+        }
+        throw OpalException("TrackRun::execute", "Version mismatch");
+    }
 
     // Get algorithm to use.
     std::string method = Attributes::getString(itsAttr[METHOD]);
@@ -483,7 +518,7 @@ void TrackRun::setupTTracker(){
     *gmsg << level2
           << "Phase space dump frequency " << Options::psDumpFreq << " and "
           << "statistics dump frequency " << Options::statDumpFreq << " w.r.t. the time step." << endl;
-    
+
 #ifdef P3M_TEST
 
     Track::block->bunch->runTests();
@@ -492,7 +527,7 @@ void TrackRun::setupTTracker(){
     itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
                                       dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
                                       Track::block->reference, false, false, Track::block->localTimeSteps,
-                                      Track::block->zstop, Track::block->timeIntegrator, Track::block->dT,  
+                                      Track::block->zstop, Track::block->timeIntegrator, Track::block->dT,
 				      beam->getNumberOfParticles());
 #endif
     itsTracker->setMpacflg(mpacflg); // set multipacting flag in ParallelTTracker
@@ -941,7 +976,7 @@ void TrackRun::setupAMRSolver() {
     if ( fs->isAMRSolver() ) {
         *gmsg << *Track::block->bunch  << endl;
         *gmsg << *fs   << endl;
-        
+
         std::vector<double> x(3);
         std::vector<double> attr(11);
 
@@ -987,15 +1022,15 @@ void TrackRun::setupAMRSolver() {
         //    may not currently be defined on the same processor as the grid
         //    that will hold them in the AMR world.
         fs->getAmrPtr()->RedistributeParticles();
-    
+
         // This part of the call must come after we add the particles
         // since this one calls post_init which does the field solve.
         double start_time = 0.0;
         double stop_time = 1.0;
-        
+
         fs->getAmrPtr()->FinalizeInit(start_time, stop_time);
         fs->getAmrPtr()->writePlotFile();
-    
+
         *gmsg << "A M R Initialization DONE" << endl;
     }
     */
