@@ -51,6 +51,8 @@ OpalMultipole::OpalMultipole():
     itsAttr[KS] = Attributes::makeRealArray
                   ("KS", "Normalised multipole strengths (skew) in m^(-k)");
 
+    registerOwnership();
+
     setElement((new MultipoleRep("MULTIPOLE"))->makeWrappers());
 }
 
@@ -121,6 +123,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalMultipole::update() {
+    OpalElement::update();
+
     // Magnet length.
     MultipoleRep *mult =
         dynamic_cast<MultipoleRep *>(getElement()->removeWrappers());

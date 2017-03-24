@@ -35,6 +35,8 @@ TrackSave::TrackSave():
            "on the given file.") {
     itsAttr[0] = Attributes::makeString
                  ("FILE", "Name of file to be written", "TRACKSAVE");
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
 

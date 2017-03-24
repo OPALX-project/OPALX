@@ -27,7 +27,16 @@ MatchCmd::MatchCmd():
     Action(0, "MATCH",
            "The \"MATCH\" sub-command defines a match of values "
            "which can be matched.")
-{}
+{
+    AttributeHandler::addAttributeOwner("MATCH", AttributeHandler::COMMAND, "OPTION");
+    AttributeHandler::addAttributeOwner("MATCH", AttributeHandler::COMMAND, "CONSTRAINT");
+    AttributeHandler::addAttributeOwner("MATCH", AttributeHandler::COMMAND, "VARY");
+    AttributeHandler::addAttributeOwner("MATCH", AttributeHandler::COMMAND, "MATCH");
+    AttributeHandler::addAttributeOwner("MATCH", AttributeHandler::COMMAND, "LMDIF");
+    AttributeHandler::addAttributeOwner("MATCH", AttributeHandler::COMMAND, "ENDMATCH");
+    AttributeHandler::addAttributeOwner("MATCH", AttributeHandler::COMMAND, "MIGRAD");
+    AttributeHandler::addAttributeOwner("MATCH", AttributeHandler::COMMAND, "SIMPLEX");
+}
 
 
 MatchCmd::MatchCmd(const std::string &name, MatchCmd *parent):

@@ -50,6 +50,8 @@ OpalOctupole::OpalOctupole():
     registerRealAttribute("DX");
     registerRealAttribute("DY");
 
+    registerOwnership();
+
     setElement((new MultipoleRep("OCTUPOLE"))->makeWrappers());
 }
 
@@ -122,6 +124,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalOctupole::update() {
+    OpalElement::update();
+
     MultipoleRep *oct =
         dynamic_cast<MultipoleRep *>(getElement()->removeWrappers());
     oct->setElementLength(Attributes::getReal(itsAttr[LENGTH]));

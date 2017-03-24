@@ -31,6 +31,8 @@ BoolConstant::BoolConstant():
                     "logical constant:\n"
                     "\tBOOL CONSTANT <name> = <Bool-expression>;\n") {
     itsAttr[0] = Attributes::makeBool("VALUE", "The constant value");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

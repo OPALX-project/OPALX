@@ -49,6 +49,8 @@ OpalInstrument *OpalInstrument::clone(const std::string &name) {
 
 
 void OpalInstrument::update() {
+    OpalElement::update();
+
     DriftRep *ins = dynamic_cast<DriftRep *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     ins->setElementLength(length);

@@ -32,6 +32,8 @@ System::System():
            "operating system.") {
     itsAttr[0] = Attributes::makeString
                  ("CMD", "A system command to be executed");
+
+    registerOwnership(AttributeHandler::COMMAND);
 }
 
 

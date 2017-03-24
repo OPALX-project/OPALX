@@ -99,6 +99,8 @@ OpalWake::OpalWake():
     } catch(...) {
         delete defWake;
     }
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

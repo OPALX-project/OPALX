@@ -49,6 +49,7 @@ public:
         LENGTH,   // The element length.
         WAKEF,    // The wake function to be used
         SURFACEPHYSICS, // The surface physics handler to be used
+        ELEMEDGE,       // The position of the element (in path length)
         COMMON
     };
 
@@ -153,6 +154,9 @@ protected:
     /// The registry for named attributes.
     static std::map < std::string, OwnPtr<AttCell> > attributeRegistry;
 
+    void registerOwnership() const;
+
+    void update();
 private:
 
     // Not implemented.

@@ -46,6 +46,9 @@ OpalCyclotronValley::OpalCyclotronValley():
     registerRealAttribute("DY");
     registerRealAttribute("DZ");
     registerRealAttribute("BFLG");
+
+    registerOwnership();
+
     setElement((new CyclotronValleyRep("CyclotronValley"))->makeAlignWrapper());
 }
 
@@ -85,6 +88,8 @@ void OpalCyclotronValley::fillRegisteredAttributes(const ElementBase &base, Valu
 
 
 void OpalCyclotronValley::update() {
+    OpalElement::update();
+
     using Physics::two_pi;
     CyclotronValleyRep *cv =
         dynamic_cast<CyclotronValleyRep *>(getElement()->removeWrappers());

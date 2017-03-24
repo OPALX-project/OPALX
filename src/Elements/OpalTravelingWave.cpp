@@ -71,6 +71,8 @@ OpalTravelingWave::OpalTravelingWave():
     registerRealAttribute("DX");
     registerRealAttribute("DY");
 
+    registerOwnership();
+
     setElement((new TravelingWaveRep("TRAVELINGWAVE"))->makeAlignWrapper());
 }
 
@@ -113,6 +115,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalTravelingWave::update() {
+    OpalElement::update();
+
     using Physics::two_pi;
     TravelingWaveRep *rfc =
         dynamic_cast<TravelingWaveRep *>(getElement()->removeWrappers());

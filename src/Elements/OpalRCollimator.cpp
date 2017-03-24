@@ -47,6 +47,8 @@ OpalRCollimator::OpalRCollimator():
     registerRealAttribute("XSIZE");
     registerRealAttribute("YSIZE");
 
+    registerOwnership();
+
     setElement((new CollimatorRep("RCOLLIMATOR"))->makeAlignWrapper());
 }
 
@@ -85,6 +87,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalRCollimator::update() {
+    OpalElement::update();
+
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);
 

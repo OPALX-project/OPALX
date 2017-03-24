@@ -58,6 +58,8 @@ OpalStripper::OpalStripper():
     registerRealAttribute("OPMASS");
     registerRealAttribute("OPYIELD");
 
+    registerOwnership();
+
     setElement((new StripperRep("STRIPPER"))->makeAlignWrapper());
 }
 
@@ -84,6 +86,8 @@ void OpalStripper::fillRegisteredAttributes(const ElementBase &base, ValueFlag f
 
 
 void OpalStripper::update() {
+    OpalElement::update();
+
     StripperRep *strp =dynamic_cast<StripperRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double xstart = Attributes::getReal(itsAttr[XSTART]);

@@ -67,6 +67,8 @@ DumpFields::DumpFields() :
                  ("Z_STEPS", "Number of steps in z");
     itsAttr[9] = Attributes::makeString
                  ("FILE_NAME", "Name of the file to which field data is dumped");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 DumpFields::~DumpFields() {
@@ -187,4 +189,3 @@ void DumpFields::writeFieldThis(Component* field) {
     }
     fout.close();
 }
-

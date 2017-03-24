@@ -35,6 +35,9 @@ OpalSBend::OpalSBend():
              "The \"SBEND\" element defines a sector bending magnet."),
     owk_m(NULL),
     sphys_m(NULL) {
+
+    registerOwnership();
+
     setElement((new SBendRep("SBEND"))->makeWrappers());
 }
 
@@ -113,6 +116,7 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalSBend::update() {
+    OpalElement::update();
 
     // Define geometry.
     SBendRep *bend = dynamic_cast<SBendRep *>(getElement()->removeWrappers());

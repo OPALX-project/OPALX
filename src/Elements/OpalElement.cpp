@@ -361,12 +361,20 @@ OpalElement::OpalElement(int size, const char *name, const char *help):
                       ("TYPE", "The element design type (the project name)");
     itsAttr[LENGTH] = Attributes::makeReal
                       ("L", "The element length in m");
+    itsAttr[ELEMEDGE] = Attributes::makeReal
+                        ("ELEMEDGE", "The position of the element in path length (in m)");
     itsAttr[APERT]  = Attributes::makeRealArray
                       ("APERTURE", "The element aperture");
     itsAttr[WAKEF]   = Attributes::makeString
                        ("WAKEF", "Defines the wake function");
     itsAttr[SURFACEPHYSICS]   = Attributes::makeString
                                 ("SURFACEPHYSICS", "Defines the surface physics handler");
+
+    const unsigned int end = COMMON;
+    for (unsigned int i = 0; i < end; ++ i) {
+        AttributeHandler::addAttributeOwner("Any", AttributeHandler::ELEMENT, itsAttr[i].getName());
+    }
+
     static bool first = true;
     if(first) {
         registerStringAttribute("NAME");
@@ -392,6 +400,13 @@ OpalElement::OpalElement(const std::string &name, OpalElement *parent):
     Element(name, parent), itsSize(parent->itsSize)
 {}
 
+void OpalElement::update() {
+    ElementBase *base = getElement()->removeWrappers();
+
+    if (itsAttr[ELEMEDGE])
+        base->setElementPosition(Attributes::getReal(itsAttr[ELEMEDGE]));
+}
+
 
 AttCell *OpalElement::registerRealAttribute(const std::string &name) {
     OwnPtr<AttCell> &cell = attributeRegistry[name];
@@ -408,4 +423,14 @@ AttCell *OpalElement::registerStringAttribute(const std::string &name) {
         cell = new AttString();
     }
     return &*cell;
+}
+
+void OpalElement::registerOwnership() const {
+    if (getParent() != 0) return;
+
+    const unsigned int end = itsSize;
+    const std::string name = getOpalName();
+    for (unsigned int i = COMMON; i < end; ++ i) {
+        AttributeHandler::addAttributeOwner(name, AttributeHandler::ELEMENT, itsAttr[i].getName());
+    }
 }

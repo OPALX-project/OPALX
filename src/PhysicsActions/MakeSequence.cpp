@@ -174,6 +174,8 @@ MakeSequence::MakeSequence():
     itsAttr[FNAME] = Attributes::makeString
                      ("FILE",
                       "Name to be given to the generated file (default = new sequence name).");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

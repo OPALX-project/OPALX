@@ -34,6 +34,8 @@ Value::Value():
            "their values.") {
     itsAttr[0] = Attributes::makeRealArray
                  ("VALUE", "The values to be evaluated");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

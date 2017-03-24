@@ -301,7 +301,7 @@ template<class T> inline
 void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunch *bunch) {
     Inform msg("OPAL ");
     std::shared_ptr<T> elptr(dynamic_cast<T *>(element.clone()->removeWrappers()));
-    if(!elptr->hasAttribute("ELEMEDGE")) {
+    if(!elptr->isElementPositionSet()) {
         msg << elptr->getType() << ": no position of the element given!" << endl;
         return;
     }
@@ -309,7 +309,7 @@ void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunch *bunch) 
     //         const Wake *wf = elptr->getWake();
     //     }
 
-    double startField = elptr->getAttribute("ELEMEDGE");
+    double startField = elptr->getElementPosition();
     double endField;
     elptr->initialise(bunch, startField, endField, 1.0);
     elements_m.push_back(ClassicField(elptr, startField, endField));

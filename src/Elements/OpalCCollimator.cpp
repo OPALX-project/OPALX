@@ -57,6 +57,8 @@ OpalCCollimator::OpalCCollimator():
     registerRealAttribute("WIDTH");
     registerStringAttribute("OUTFN");
 
+    registerOwnership();
+
     setElement((new CollimatorRep("CCOLLIMATOR"))->makeAlignWrapper());
 }
 
@@ -85,6 +87,8 @@ void OpalCCollimator::fillRegisteredAttributes(const ElementBase &base, ValueFla
 
 
 void OpalCCollimator::update() {
+    OpalElement::update();
+
     CollimatorRep *coll =
         dynamic_cast<CollimatorRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);

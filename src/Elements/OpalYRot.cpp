@@ -33,6 +33,8 @@ OpalYRot::OpalYRot():
 
     registerRealAttribute("YANGLE");
 
+    registerOwnership();
+
     setElement(new PatchRep("YROT"));
 }
 
@@ -61,6 +63,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalYRot::update() {
+    OpalElement::update();
+
     // Define geometry.
     PatchRep *yrot = dynamic_cast<PatchRep *>(getElement());
     double angle = Attributes::getReal(itsAttr[ANGLE]);

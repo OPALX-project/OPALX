@@ -27,6 +27,8 @@
 #include "AbsBeamline/AttributeSet.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "MemoryManagement/RCObject.h"
+#include "Utilities/GeneralClassicException.h"
+
 #include <string>
 
 class Beamline;
@@ -372,6 +374,9 @@ public:
     //  "*this".  The return value [b]true[/b] indicates success.
     bool update(const AttributeSet &);
 
+    void setElementPosition(double elemedge);
+    double getElementPosition() const;
+    bool isElementPositionSet() const;
 
     /// attach a boundary geometry field to the element
     virtual void setBoundaryGeometry(BoundaryGeometry *geo);
@@ -426,6 +431,9 @@ private:
     SurfacePhysicsHandler *sphys_m;
 
     ElemType elType_m;
+
+    double elementPosition_m;
+    bool elemedgeSet_m;
 };
 
 
@@ -497,5 +505,24 @@ inline ElemType ElementBase::getElType() const
 
 inline void ElementBase::setElType(ElemType elt)
 { elType_m = elt;}
+
+inline
+void ElementBase::setElementPosition(double elemedge) {
+    elementPosition_m = elemedge;
+    elemedgeSet_m = true;
+}
+
+inline
+double ElementBase::getElementPosition() const {
+    if (elemedgeSet_m)
+        return elementPosition_m;
+
+    throw GeneralClassicException("ElementBase::getElementPosition()",
+                                  std::string("ELEMEDGE for \"") + getName() + "\" not set");
+}
+
+inline
+bool ElementBase::isElementPositionSet() const
+{ return elemedgeSet_m; }
 
 #endif // CLASSIC_ElementBase_HH

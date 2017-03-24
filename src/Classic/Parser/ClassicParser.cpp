@@ -208,30 +208,30 @@ void ClassicParser::parse(Statement &statement) const {
     } catch(ParseError &ex) {
         *gmsg << endl << "*** Parse error detected by method \"" << ex.where()
               << "\"" << endl;
-        statement.printWhere(true);
-        statement.print();
+        statement.printWhere(*gmsg, true);
+        *gmsg << statement;
         *gmsg << ex.what() << endl << endl;
 	exit(1);
     } catch(ClassicException &ex) {
         *gmsg << endl << "*** Error detected by method \"" << ex.where()
               << "\"" << endl;
-        statement.printWhere(false);
-        statement.print();
+        statement.printWhere(*gmsg, false);
+        *gmsg << statement;
         *gmsg << ex.what() << endl << endl;
     } catch(std::bad_alloc &) {
         *gmsg << endl << "*** Error:" << endl;
-        statement.printWhere(false);
-        statement.print();
+        statement.printWhere(*gmsg, false);
+        *gmsg << statement;
         *gmsg << "Sorry, virtual memory exhausted." << endl << endl;
     } catch(std::exception &ex) {
         *gmsg << endl << "*** Error:" << endl;
-        statement.printWhere(false);
-        statement.print();
+        statement.printWhere(*gmsg, false);
+        *gmsg << statement;
         *gmsg << "Internal CLASSIC error " << ex.what() << endl << endl;
     } catch(...) {
         *gmsg << endl << "*** Error:" << endl;
-        statement.printWhere(false);
-        statement.print();
+        statement.printWhere(*gmsg, false);
+        *gmsg << statement;
         *gmsg << "Unexpected exception caught." << endl << endl;
 
 	// send problem to main where this will be propperly catched

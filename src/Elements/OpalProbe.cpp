@@ -52,6 +52,8 @@ OpalProbe::OpalProbe():
     registerRealAttribute("YEND");
     registerRealAttribute("WIDTH");
 
+    registerOwnership();
+
     setElement((new ProbeRep("PROBE"))->makeAlignWrapper());
 }
 
@@ -81,6 +83,8 @@ void OpalProbe::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag
 
 
 void OpalProbe::update() {
+    OpalElement::update();
+
     ProbeRep *prob =
         dynamic_cast<ProbeRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);

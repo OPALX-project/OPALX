@@ -59,6 +59,9 @@ OpalParallelPlate::OpalParallelPlate():
 
     registerRealAttribute("DX");
     registerRealAttribute("DY");
+
+    registerOwnership();
+
     setElement((new ParallelPlateRep("ParallelPlate"))->makeAlignWrapper());
 }
 
@@ -100,6 +103,8 @@ void OpalParallelPlate::fillRegisteredAttributes(const ElementBase &base, ValueF
 
 
 void OpalParallelPlate::update() {
+    OpalElement::update();
+
     using Physics::two_pi;
     ParallelPlateRep *pplate =
         dynamic_cast<ParallelPlateRep *>(getElement()->removeWrappers());

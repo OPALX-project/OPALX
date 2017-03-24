@@ -107,6 +107,8 @@ OpalCavity::OpalCavity():
     registerStringAttribute("AMPLITUDE_MODEL");
     registerStringAttribute("FREQUENCY_MODEL");
 
+    registerOwnership();
+
     setElement((new RFCavityRep("RFCAVITY"))->makeAlignWrapper());
 }
 
@@ -151,6 +153,7 @@ void OpalCavity::fillRegisteredAttributes(const ElementBase &base, ValueFlag fla
 
 
 void OpalCavity::update() {
+    OpalElement::update();
 
     using Physics::two_pi;
     RFCavityRep *rfc =
@@ -231,8 +234,8 @@ void OpalCavity::update() {
     rfc->setGapWidth(gapwidth);
     rfc->setPhi0(phi0);
 
-    rfc->setPhaseModelName(Attributes::getString(itsAttr[PHASE_MODEL]));    
-    rfc->setAmplitudeModelName(Attributes::getString(itsAttr[AMPLITUDE_MODEL]));    
+    rfc->setPhaseModelName(Attributes::getString(itsAttr[PHASE_MODEL]));
+    rfc->setAmplitudeModelName(Attributes::getString(itsAttr[AMPLITUDE_MODEL]));
     rfc->setFrequencyModelName(Attributes::getString(itsAttr[FREQUENCY_MODEL]));
 
     // Transmit "unknown" attributes.

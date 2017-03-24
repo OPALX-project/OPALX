@@ -77,6 +77,12 @@ TrackCmd::TrackCmd():
                               ("TIMEINTEGRATOR", "Name of time integrator to be used", "RK-4");
     itsAttr[NNB] = Attributes::makeReal
                    ("NNB", "Number of neighbouring bunches in OPAL-cycl", 0.0);
+
+    registerOwnership(AttributeHandler::COMMAND);
+    AttributeHandler::addAttributeOwner("TRACK", AttributeHandler::COMMAND, "RUN");
+    AttributeHandler::addAttributeOwner("TRACK", AttributeHandler::COMMAND, "START");
+    AttributeHandler::addAttributeOwner("TRACK", AttributeHandler::COMMAND, "TSAVE");
+    AttributeHandler::addAttributeOwner("TRACK", AttributeHandler::COMMAND, "ENDTRACK");
 }
 
 TrackCmd::TrackCmd(const std::string &name, TrackCmd *parent):

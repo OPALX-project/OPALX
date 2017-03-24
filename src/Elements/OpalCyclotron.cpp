@@ -158,6 +158,8 @@ OpalCyclotron::OpalCyclotron():
     registerRealAttribute("FMLOWE");
     registerRealAttribute("FMHIGHE");
 
+    registerOwnership();
+
     setElement((new CyclotronRep("CYCLOTRON"))->makeAlignWrapper());
 }
 
@@ -184,6 +186,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalCyclotron::update() {
+    OpalElement::update();
+
     using Physics::two_pi;
     CyclotronRep *cycl =
         dynamic_cast<CyclotronRep *>(getElement()->removeWrappers());
@@ -215,7 +219,7 @@ void OpalCyclotron::update() {
     double fmHighE = Attributes::getReal(itsAttr[FMHIGHE]);
 
     bool spiral_flag = Attributes::getBool(itsAttr[SPIRAL]);
- 
+
     cycl->setFieldMapFN(fmapfm);
     cycl->setSymmetry(symmetry);
 
@@ -260,7 +264,7 @@ void OpalCyclotron::update() {
 
     unsigned int vsize = tcr1v.size();
 
-    if ((tcr1v.size() == vsize) && (tcr2v.size() == vsize) && 
+    if ((tcr1v.size() == vsize) && (tcr2v.size() == vsize) &&
 	(mbtcv.size() == vsize) && (slptcv.size() == vsize) && (vsize!=0)) {
       cycl->setTCr1V(tcr1v);
       cycl->setTCr2V(tcr2v);

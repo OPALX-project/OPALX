@@ -165,6 +165,8 @@ Beam::Beam():
     } catch(...) {
         delete defBeam;
     }
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

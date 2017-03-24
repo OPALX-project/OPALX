@@ -154,14 +154,17 @@ public:
     //  Skip tokens up to next comma or end of statement, whichever comes first.
     void skip();
 
+    /// Return current character number in line
+    unsigned int position() const;
+
     /// Print statement.
     //  Print the statement on [b]os[/b].
-    virtual void print() const;
+    virtual void print(std::ostream &os) const;
 
     /// Print position.
     //  Print a message, containing the stream name and its line in the input
     //  stream.  If [b]withToken[/b] is true, print also the last token parsed.
-    virtual void printWhere(bool withToken) const;
+    virtual void printWhere(Inform &os, bool withToken) const;
 
 protected:
 
@@ -180,7 +183,15 @@ protected:
 
 // Output operator.
 inline std::ostream &operator<<(std::ostream &os, const Statement &statement) {
-    statement.print();
+    statement.print(os);
+    return os;
+}
+
+inline Inform &operator<<(Inform &os, const Statement &statement) {
+    std::ostringstream msg;
+    statement.print(msg);
+    os << msg.str();
+
     return os;
 }
 

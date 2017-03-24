@@ -51,6 +51,8 @@ OpalSextupole::OpalSextupole():
     registerRealAttribute("DX");
     registerRealAttribute("DY");
 
+    registerOwnership();
+
     setElement((new MultipoleRep("SEXTUPOLE"))->makeWrappers());
 }
 
@@ -124,6 +126,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalSextupole::update() {
+    OpalElement::update();
+
     MultipoleRep *sext =
         dynamic_cast<MultipoleRep *>(getElement()->removeWrappers());
     sext->setElementLength(Attributes::getReal(itsAttr[LENGTH]));

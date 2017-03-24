@@ -44,6 +44,8 @@ OpalDegrader::OpalDegrader():
     registerRealAttribute("DX");
     registerRealAttribute("DY");
 
+    registerOwnership();
+
     setElement((new DegraderRep("DEGRADER"))->makeAlignWrapper());
 }
 
@@ -78,6 +80,7 @@ void OpalDegrader::fillRegisteredAttributes(const ElementBase &base, ValueFlag f
 
 
 void OpalDegrader::update() {
+    OpalElement::update();
 
     DegraderRep *deg =
         dynamic_cast<DegraderRep *>(getElement()->removeWrappers());

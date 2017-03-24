@@ -33,6 +33,8 @@ RealVariable::RealVariable():
                     "\tREAL VARIABLE <name>=<real-expression>;\n") {
     itsAttr[0] = Attributes::makeReal("VALUE", "The variable value", 0.0);
 
+    registerOwnership(AttributeHandler::STATEMENT);
+
     // Construct the P0 variable.
     RealVariable *p0 = new RealVariable("P0", this, 1.0);
     OpalData::getInstance()->create(p0);

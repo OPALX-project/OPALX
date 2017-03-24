@@ -48,12 +48,6 @@ OpalBeamBeam3D::OpalBeamBeam3D():
         Attributes::makeReal
         ("ZMA", "Longitudinal displacement of strong beam.");
 
-    registerRealAttribute("SIGX");
-    registerRealAttribute("SIGY");
-    registerRealAttribute("XMA");
-    registerRealAttribute("YMA");
-    registerRealAttribute("ZMA");
-
     // Data for 6-D element.
     itsAttr[SLICES] =
         Attributes::makeReal
@@ -87,6 +81,14 @@ OpalBeamBeam3D::OpalBeamBeam3D():
     itsAttr[SIGES] = Attributes::makeReal
                      ("SIGES", "Energy spread of strong beam.");
 
+    registerRealAttribute("SIGX");
+    registerRealAttribute("SIGY");
+    registerRealAttribute("XMA");
+    registerRealAttribute("YMA");
+    registerRealAttribute("ZMA");
+
+    registerOwnership();
+
     setElement(new BeamBeam3D("BEAMINT"));
 }
 
@@ -114,6 +116,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalBeamBeam3D::update() {
+    OpalElement::update();
+
     BeamBeam3D *bb = dynamic_cast<BeamBeam3D *>(getElement());
 
     bb->setElementLength(0.0);

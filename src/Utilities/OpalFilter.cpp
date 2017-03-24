@@ -80,6 +80,8 @@ OpalFilter::OpalFilter():
     itsAttr[POLYORDER] = Attributes::makeReal
                          ("POLYORDER", "Polynomial order for local fit-function in Savitzky-Golay filter", POLYORDER_DEFAULT);
 
+    registerOwnership(AttributeHandler::STATEMENT);
+
     OpalFilter *defFilter = clone("UNNAMED_FILTER");
     defFilter->builtin = true;
 

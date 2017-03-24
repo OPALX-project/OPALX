@@ -63,6 +63,8 @@ AttList::AttList():
                      ("VALUE", "Which value is desired: ACTUAL, IDEAL, or ERROR.", "ACTUAL");
     itsAttr[COLUMN] = Attributes::makeStringArray
                       ("COLUMN", "The columns to be written");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

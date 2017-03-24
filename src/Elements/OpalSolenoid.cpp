@@ -47,6 +47,8 @@ OpalSolenoid::OpalSolenoid():
     registerRealAttribute("DX");
     registerRealAttribute("DY");
 
+    registerOwnership();
+
     setElement((new SolenoidRep("SOLENOID"))->makeAlignWrapper());
 }
 
@@ -85,6 +87,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalSolenoid::update() {
+    OpalElement::update();
+
     SolenoidRep *sol =
         dynamic_cast<SolenoidRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
