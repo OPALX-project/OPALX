@@ -60,12 +60,12 @@ public:
     void applyConstantFocusing(PartBunch &bunch, double f, double r);
     void test(PartBunch &bunch);
 
-    double getXRangeMin() {return 1.0;}
-    double getXRangeMax() {return 1.0;}
-    double getYRangeMin() {return 1.0;}
-    double getYRangeMax() {return 1.0;}
-    double getZRangeMin() {return 1.0;}
-    double getZRangeMax() {return 1.0;}
+    double getXRangeMin(unsigned short level) {return 1.0;}
+    double getXRangeMax(unsigned short level) {return 1.0;}
+    double getYRangeMin(unsigned short level) {return 1.0;}
+    double getYRangeMax(unsigned short level) {return 1.0;}
+    double getZRangeMin(unsigned short level) {return 1.0;}
+    double getZRangeMax(unsigned short level) {return 1.0;}
 
     void computeAvgSpaceChargeForces(PartBunch &bunch);
     void compute_temperature(PartBunch &bunch);

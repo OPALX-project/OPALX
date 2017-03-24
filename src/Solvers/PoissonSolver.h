@@ -4,6 +4,10 @@
 
 //////////////////////////////////////////////////////////////
 #include "Algorithms/PBunchDefs.h"
+
+#ifdef HAVE_AMR_SOLVER
+    #include "Utilities/OpalException.h"
+#endif
 //////////////////////////////////////////////////////////////
 class PartBunch;
 //use Barton and Nackman Trick to avoid virtual functions
@@ -21,14 +25,30 @@ public:
     // given a charge-density field rho and a set of mesh spacings hr,
     // compute the scalar potential in open space
     virtual void computePotential(Field_t &rho, Vector_t hr) = 0;
+    
+    /*!
+     * @param rho specifies the charge-density field
+     * @param baseLevel of adaptive mesh refinement solvers (AMR). Used in case of sub-cycling in time.
+     * @param finestLevel of AMR.
+     */
+#ifdef HAVE_AMR_SOLVER
+    virtual void solve(AmrFieldContainer_t &rho,
+                       AmrFieldContainer_t &efield,
+                       unsigned short baseLevel,
+                       unsigned short finestLevel)
+    {
+        throw OpalException("PoissonSolver", "Not implemented.");
+    };
+#endif
+                                  
     virtual void computePotential(Field_t &rho, Vector_t hr, double zshift) = 0;
 
-    virtual double getXRangeMin() = 0;
-    virtual double getXRangeMax() = 0;
-    virtual double getYRangeMin() = 0;
-    virtual double getYRangeMax() = 0;
-    virtual double getZRangeMin() = 0;
-    virtual double getZRangeMax() = 0;
+    virtual double getXRangeMin(unsigned short level = 0) = 0;
+    virtual double getXRangeMax(unsigned short level = 0) = 0;
+    virtual double getYRangeMin(unsigned short level = 0) = 0;
+    virtual double getYRangeMax(unsigned short level = 0) = 0;
+    virtual double getZRangeMin(unsigned short level = 0) = 0;
+    virtual double getZRangeMax(unsigned short level = 0) = 0;
     virtual void test(PartBunch &bunch) = 0 ;
     virtual ~PoissonSolver(){};
 

@@ -119,6 +119,7 @@ IF (USE_H5HUT2)
 ENDIF (USE_H5HUT2)
 
 IF (ENABLE_AMR_SOLVER)
+    MESSAGE (STATUS "Enable AMR_SOLVER    " ${ENABLE_AMR_SOLVER})
     ENABLE_LANGUAGE (Fortran)
 
     SET ( CCSE_DIR $ENV{BOXLIB_PREFIX} )
@@ -169,9 +170,8 @@ STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
 # Trilinos_TPL_LIBRARIES, instead of cray-tpsl/16.07.1 it uses
 # cray-tpsl/16.06.1 libraries -> Linker error.
 # We can avoid this issue by not going into the if-statement
-if (NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_SOLVER) )
+if (NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND ENABLE_SAAMG_SOLVER )
     MESSAGE (STATUS "Enable SAAMG_SOLVER  " ${ENABLE_SAAMG_SOLVER})
-    MESSAGE (STATUS "Enable AMR_SOLVER    " ${ENABLE_AMR_SOLVER})
     find_package (Trilinos REQUIRED HINTS $ENV{TRILINOS_PREFIX} $ENV{TRILINOS_DIR} $ENV{TRILINOS})
 
     message (STATUS "Found Trilinos: ${Trilinos_DIR}")
@@ -193,6 +193,7 @@ if (NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori
         message (FATAL  "")
     endif ()
 endif ()
+
 
 IF (DBG_SCALARFIELD)
     MESSAGE (STATUS "\nWrite scalar rho_m field is enabled ")

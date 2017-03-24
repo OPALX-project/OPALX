@@ -117,12 +117,12 @@ public:
     /// force Solver to recompute Epetra_Map
     void recomputeMap() { hasParallelDecompositionChanged_m = true; }
 
-    double getXRangeMin() { return bp->getXRangeMin(); }
-    double getXRangeMax() { return bp->getXRangeMax(); }
-    double getYRangeMin() { return bp->getYRangeMin(); }
-    double getYRangeMax() { return bp->getYRangeMax(); }
-    double getZRangeMin() { return bp->getZRangeMin(); }
-    double getZRangeMax() { return bp->getZRangeMax(); }
+    double getXRangeMin(unsigned short level) { return bp->getXRangeMin(); }
+    double getXRangeMax(unsigned short level) { return bp->getXRangeMax(); }
+    double getYRangeMin(unsigned short level) { return bp->getYRangeMin(); }
+    double getYRangeMax(unsigned short level) { return bp->getYRangeMax(); }
+    double getZRangeMin(unsigned short level) { return bp->getZRangeMin(); }
+    double getZRangeMax(unsigned short level) { return bp->getZRangeMax(); }
     void test(PartBunch &bunch) { }
     /// useful load balance information
     void printLoadBalanceStats();
