@@ -419,7 +419,7 @@ void P3MPoissonSolver::test(PartBunch &bunch) {
     OpalData *opal = OpalData::getInstance();
     DataSink *ds = opal->getDataSink();
 
-    std::vector<std::pair<std::string, unsigned int> > collimatorLosses; // just empty
+    //    std::vector<std::pair<std::string, unsigned int> > collimatorLosses; // just empty
     Vector_t FDext[6];
 
     bunch.Q = qi;

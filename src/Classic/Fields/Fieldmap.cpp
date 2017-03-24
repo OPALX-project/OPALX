@@ -548,7 +548,6 @@ bool Fieldmap::interpreteEOF(std::ifstream &in) {
         ++lines_read_m;
         in.getline(buffer_m, READ_BUFFER_LENGTH);
         std::string buffer(buffer_m);
-        std::string rest;
         size_t comment = buffer.find_first_of("#");
         buffer = buffer.substr(0, comment);
         size_t lasto = buffer.find_first_of(alpha_numeric);
@@ -564,11 +563,10 @@ void Fieldmap::interpreteWarning(const std::string &error_msg,
                                  const std::string &expecting,
                                  const std::string &found) {
     std::stringstream errormsg;
-    std::stringstream tmpmsg;
     errormsg << "THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELD MAP '" << Filename_m << "'.\n"
              << "expecting: '" << expecting << "' on line " << lines_read_m << ",\n"
              << "found instead: '" << found << "'.";
-    std::string errormsg_str = typeset_msg(errormsg.str(), "error");
+    //    std::string errormsg_str = typeset_msg(errormsg.str(), "error");
     throw GeneralClassicException("Fieldmap::interpretWarning()",
                                   errormsg.str());
 }
@@ -593,8 +591,7 @@ void Fieldmap::missingValuesWarning() {
     errormsg << "THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELD MAP '" << Filename_m << "'.\n"
              << "There are only " << lines_read_m - 1 << " lines in the file, expecting more.\n"
              << "Please check the section about field maps in the user manual.";
-    std::string errormsg_str = typeset_msg(errormsg.str(), "error");
-
+    //    std::string errormsg_str = typeset_msg(errormsg.str(), "error");
     throw GeneralClassicException("Fieldmap::missingValuesWarning()",
                                   errormsg.str());
 }
@@ -604,8 +601,7 @@ void Fieldmap::exceedingValuesWarning() {
     errormsg << "THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELD MAP '" << Filename_m << "'.\n"
              << "There are too many lines in the file, expecting only " << lines_read_m << " lines.\n"
              << "Please check the section about field maps in the user manual.";
-    std::string errormsg_str = typeset_msg(errormsg.str(), "error");
-
+    //    std::string errormsg_str = typeset_msg(errormsg.str(), "error");
     throw GeneralClassicException("Fieldmap::exceedingValuesWarning()",
                                   errormsg.str());
 }
@@ -613,8 +609,7 @@ void Fieldmap::exceedingValuesWarning() {
 void Fieldmap::disableFieldmapWarning() {
     std::stringstream errormsg;
     errormsg << "DISABLING FIELD MAP '" + Filename_m + "' DUE TO PARSING ERRORS." ;
-    std::string errormsg_str = typeset_msg(errormsg.str(), "error");
-
+    //    std::string errormsg_str = typeset_msg(errormsg.str(), "error");
     throw GeneralClassicException("Fieldmap::disableFieldmapsWarning()",
                                   errormsg.str());
 }
@@ -622,8 +617,7 @@ void Fieldmap::disableFieldmapWarning() {
 void Fieldmap::noFieldmapWarning() {
     std::stringstream errormsg;
     errormsg << "DISABLING FIELD MAP '" << Filename_m << "' SINCE FILE COULDN'T BE FOUND!";
-    std::string errormsg_str = typeset_msg(errormsg.str(), "error");
-
+    //    std::string errormsg_str = typeset_msg(errormsg.str(), "error");
     throw GeneralClassicException("Fieldmap::noFieldmapsWarning()",
                                   errormsg.str());
 }

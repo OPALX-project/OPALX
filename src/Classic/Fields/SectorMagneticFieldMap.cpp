@@ -474,8 +474,8 @@ bool SectorMagneticFieldMap::IO::floatGreaterEqual(double in1, double in2) {
 ThreeDGrid* SectorMagneticFieldMap::IO::generateGrid
                        (const std::vector< std::vector<double> > field_points,
                         SectorMagneticFieldMap::symmetry sym) {
-    std::vector<double> r_grid(1, field_points[0][0]);
-    std::vector<double> y_grid(1, field_points[0][1]), y_grid_neg;
+    std::vector<double>   r_grid(1, field_points[0][0]);
+    std::vector<double>   y_grid(1, field_points[0][1]);
     std::vector<double> phi_grid(1, field_points[0][2]);
     for (size_t i = 0; i < field_points.size(); ++i) {
         if (floatGreaterEqual(field_points[i][0], r_grid.back())) {

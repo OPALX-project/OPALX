@@ -562,7 +562,6 @@ void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz, double& W, 
     C = 0.0;
 
     std::tuple<int, int, int> coordxyz(idx, idy, idz);
-    std::multimap < std::tuple<int, int, int>, double >::iterator itrH, itrL;
 
     if (idx == nr[0]-1)
        dx_e = fabs(IntersectHiX.find(coordxyz)->second - cx);
