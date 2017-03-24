@@ -101,8 +101,6 @@ void Macro::parseFormals(Statement &stat) {
     // We start after the opening '('.
     formals.clear();
     if(! stat.delimiter(')')) {
-        std::string form;
-
         do {
             std::string form =
                 Expressions::parseString(stat, "Expected formal argument name.");

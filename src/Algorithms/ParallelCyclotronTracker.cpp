@@ -2415,9 +2415,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                                      << variable_m[4] << " " << variable_m[2] << " " << variable_m[5] << std::endl;
                 }
 
-                double OldTheta = 0.0;
-
-                OldTheta = calculateAngle(variable_m[0], variable_m[1]);
+                double OldTheta = calculateAngle(variable_m[0], variable_m[1]);
                 r_tuning[i] = variable_m[0] * cos(OldTheta) + variable_m[1] * sin(OldTheta);
                 z_tuning[i] = variable_m[2];
 
@@ -3304,9 +3302,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                                      << " " << variable_m[5] << std::endl;
                 }
 
-                double OldTheta = 0.0;
-
-                OldTheta = calculateAngle(variable_m[0], variable_m[1]);
+                double OldTheta = calculateAngle(variable_m[0], variable_m[1]);
                 r_tuning[i] = variable_m[0] * cos(OldTheta) + variable_m[1] * sin(OldTheta);
                 z_tuning[i] = variable_m[2];
 
@@ -3792,7 +3788,6 @@ bool ParallelCyclotronTracker::rk4(double x[], const double &t, const double &ta
     //   tau        Step size (usually time step)
     //   Pindex     index of particel, not used yet
 
-    bool outOfBound = false;
     double  deriv1[PSdim];
     double  deriv2[PSdim];
     double  deriv3[PSdim];
@@ -3801,7 +3796,7 @@ bool ParallelCyclotronTracker::rk4(double x[], const double &t, const double &ta
 
     // Evaluate f1 = f(x,t).
 
-    outOfBound = derivate(x, t, deriv1 , Pindex);
+    bool outOfBound = derivate(x, t, deriv1 , Pindex);
     if (outOfBound) {
         return false;
     }

@@ -494,7 +494,6 @@ Token OpalParser::readToken() {
 Statement *OpalParser::readStatement(TokenStream *is) const {
     Statement *stat = 0;
     Token token = is->readToken();
-    std::string name;
 
     try {
         if(token.isDel('{')) {

@@ -115,7 +115,7 @@ namespace  MakeSequenceNS {
     SequenceWriter::SequenceWriter(const Beamline &beamline, const std::string &name,
                                    std::ostream &os):
         DefaultVisitor(beamline, false, false),
-        itsName(name), itsStream(os)
+        itsName(name), itsStream(os), sum_length(0.0)
     {}
 
     void SequenceWriter::execute() {

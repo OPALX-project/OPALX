@@ -510,10 +510,8 @@ void RFCavity::getMomentaKick(const double normalRadius, double momentum[], cons
 
     Voltage *= Ufactor;
 
-    double dgam = 0.0;
     double nphase = (frequency * (t + dtCorrt) * 1.0e-9) - phi0_m / 180.0 * pi ; // rad/s, ns --> rad
-
-    dgam = Voltage * cos(nphase) / (restMass);
+    double dgam = Voltage * cos(nphase) / (restMass);
 
     double tempdegree = fmod(nphase * 360.0 / two_pi, 360.0);
     if(tempdegree > 270.0) tempdegree -= 360.0;
@@ -711,12 +709,12 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
             E2[i] += q * scale_m * getdE(i, t2, dz, phi + dphi, frequency_m, F);
         }
 
-        double totalEz0 = 0.0, cosine_part = 0.0, sine_part = 0.0;
+        double cosine_part = 0.0, sine_part = 0.0;
         double p0 = sqrt((E0 / mass + 1) * (E0 / mass + 1) - 1);
         cosine_part += scale_m * cos(frequency_m * t0) * F[0];
         sine_part += scale_m * sin(frequency_m * t0) * F[0];
 
-        totalEz0 = cos(phi) * cosine_part - sin(phi) * sine_part;
+        double totalEz0 = cos(phi) * cosine_part - sin(phi) * sine_part;
 
         if(p0 + q * totalEz0 * (t[1] - t[0]) * Physics::c / mass < 0) {
             // make totalEz0 = 0
