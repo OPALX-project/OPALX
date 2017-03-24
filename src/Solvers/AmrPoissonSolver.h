@@ -16,7 +16,20 @@ public:
     
     virtual ~AmrPoissonSolver();
     
-    void test(PartBunch &bunch) { };
+    
+    void computePotential(Field_t &rho, Vector_t hr) {
+        throw OpalException("AmrPoissonSolver::computePotential(Field_t, Vector_t)",
+                            "Not implemented.");
+    };
+    
+    void computePotential(Field_t &rho, Vector_t hr, double zshift) {
+        throw OpalException("AmrPoissonSolver::computePotential(Field_t, Vector_t, double)",
+                            "Not implemented.");
+    };
+    
+    void test(PartBunch &bunch) {
+        throw OpalException("AmrPoissonSolver::test(PartBunch)", "Not implemented.");
+    };
     
     
 private:

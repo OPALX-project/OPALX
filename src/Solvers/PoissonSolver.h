@@ -37,7 +37,7 @@ public:
                        unsigned short baseLevel,
                        unsigned short finestLevel)
     {
-        throw OpalException("PoissonSolver", "Not implemented.");
+        throw OpalException("PoissonSolver::solve()", "Not supported for non-AMR code.");
     };
 #endif
                                   
