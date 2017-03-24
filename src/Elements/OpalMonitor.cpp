@@ -35,6 +35,8 @@ OpalMonitor::OpalMonitor():
     registerStringAttribute("OUTFN");
     registerStringAttribute("MONITORTYPE");
 
+    registerOwnership();
+
     setElement((new MonitorRep("MONITOR"))->makeAlignWrapper());
 }
 
@@ -55,6 +57,8 @@ OpalMonitor *OpalMonitor::clone(const std::string &name) {
 
 
 void OpalMonitor::update() {
+    OpalElement::update();
+
     MonitorRep *mon =
         dynamic_cast<MonitorRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);

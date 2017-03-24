@@ -178,6 +178,8 @@ Aperture::Aperture():
                                ("DEFAULTAPERTURE", "The default beam screen for markers and drift generated in sequences");
     itsAttr[FILE] = Attributes::makeString
                     ("FILE", "Name of file to receive APERTURE output", "APERTURE.dat");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 Aperture::Aperture(const std::string &name, Aperture *parent):
     DefaultVisitor(itsTable, false, false),

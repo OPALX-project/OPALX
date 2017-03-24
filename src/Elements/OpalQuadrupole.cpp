@@ -55,6 +55,8 @@ OpalQuadrupole::OpalQuadrupole():
     registerRealAttribute("DX");
     registerRealAttribute("DY");
 
+    registerOwnership();
+
     setElement((new MultipoleRep("QUADRUPOLE"))->makeWrappers());
 }
 
@@ -135,6 +137,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalQuadrupole::update() {
+    OpalElement::update();
+
     MultipoleRep *quad =
         dynamic_cast<MultipoleRep *>(getElement()->removeWrappers());
     quad->setElementLength(Attributes::getReal(itsAttr[LENGTH]));

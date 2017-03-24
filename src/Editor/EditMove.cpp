@@ -55,6 +55,8 @@ EditMove::EditMove():
                   ("TO", "New position in m relative to origin");
     itsAttr[FROM] = Attributes::makePlace
                     ("FROM", "Name of element defining the origin (default is start)");
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
 

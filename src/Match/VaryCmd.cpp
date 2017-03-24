@@ -51,6 +51,8 @@ VaryCmd::VaryCmd():
                      ("LOWER", "the lower limit, if any");
     itsAttr[UPPER] = Attributes::makeReal
                      ("UPPER", "the upper limit, if any");
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
 

@@ -123,6 +123,9 @@ TrackRun::TrackRun():
                              ("DISTRIBUTION", "List of particle distributions to be used ");
     itsAttr[MULTIPACTING] = Attributes::makeBool
                             ("MULTIPACTING", "Multipacting flag, default: false. Set true to initialize primary particles according to BoundaryGeometry", false);
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
+
     opal = OpalData::getInstance();
 }
 

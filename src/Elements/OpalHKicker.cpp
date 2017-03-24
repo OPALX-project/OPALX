@@ -37,6 +37,8 @@ OpalHKicker::OpalHKicker():
 
     registerRealAttribute("HKICK");
 
+    registerOwnership();
+
     setElement((new XCorrectorRep("HKICKER"))->makeWrappers());
 }
 
@@ -78,6 +80,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalHKicker::update() {
+    OpalElement::update();
+
     XCorrectorRep *corr =
         dynamic_cast<XCorrectorRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);

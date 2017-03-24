@@ -46,6 +46,9 @@ OpalECollimator::OpalECollimator():
     registerRealAttribute("YSIZE");
     registerRealAttribute("DX");
     registerRealAttribute("DY");
+
+    registerOwnership();
+
     setElement((new CollimatorRep("ECOLLIMATOR"))->makeAlignWrapper());
 }
 
@@ -83,6 +86,7 @@ void OpalECollimator::fillRegisteredAttributes(const ElementBase &base, ValueFla
 
 
 void OpalECollimator::update() {
+    OpalElement::update();
 
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);

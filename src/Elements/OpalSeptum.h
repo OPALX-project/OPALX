@@ -32,7 +32,7 @@ public:
 
     /// The attributes of class OpalSeptum.
     enum {
-        XSTART,           // Start of x coordinate
+        XSTART = COMMON, // Start of x coordinate
         XEND,           // End of x coordinate
         YSTART,          // Start of y coordinate
         YEND1,          // Not used now

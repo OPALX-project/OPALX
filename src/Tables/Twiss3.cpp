@@ -55,6 +55,8 @@ Twiss3::Twiss3():
                      ("TABLE", "Name of table to be listed");
     itsAttr[FNAME] = Attributes::makeString
                      ("FILE", "Name of file to receive output", "TWISS3");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

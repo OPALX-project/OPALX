@@ -35,6 +35,9 @@ OpalRBend::OpalRBend():
              "The \"RBEND\" element defines a rectangular bending magnet."),
     owk_m(0),
     sphys_m(NULL) {
+
+    registerOwnership();
+
     setElement((new RBendRep("RBEND"))->makeWrappers());
 }
 
@@ -111,6 +114,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalRBend::update() {
+    OpalElement::update();
+
     // Define geometry.
     RBendRep *bend =
         dynamic_cast<RBendRep *>(getElement()->removeWrappers());

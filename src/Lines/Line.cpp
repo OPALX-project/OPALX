@@ -72,6 +72,8 @@ Line::Line():
                       ("L", "Total length of line in m");
     itsAttr[LENGTH].setReadOnly(true);
 
+    registerOwnership(AttributeHandler::STATEMENT);
+
     setElement((new FlaggedBeamline("LINE"))->makeAlignWrapper());
 }
 
@@ -232,14 +234,8 @@ void Line::parseList(Statement &stat) {
             Pointer<Object> obj = OpalData::getInstance()->find(name);
 
             if(! obj.isValid()) {
-                // Name not found; create marker instead.
-                obj = OpalData::getInstance()->find("MARKER")->clone(name);
-                OpalData::getInstance()->define(&*obj);
-
-                if(Options::verify) {
-                    std::cerr << "\nElement \"" << name << "\" is undefined; "
-                              << "\"MARKER\" created with this name.\n" << std::endl;
-                }
+                throw ParseError("Line::parseList()",
+                                 "Element \"" + name + "\" is undefined.");
             }
 
             if(stat.delimiter('(')) {

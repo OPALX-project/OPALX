@@ -50,6 +50,8 @@ OpalHMonitor *OpalHMonitor::clone(const std::string &name) {
 
 
 void OpalHMonitor::update() {
+    OpalElement::update();
+
     XMonitorRep *mon =
         dynamic_cast<XMonitorRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);

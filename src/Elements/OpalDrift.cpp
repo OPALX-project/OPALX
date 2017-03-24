@@ -42,6 +42,9 @@ OpalDrift::OpalDrift():
     itsAttr[GEOMETRY] = Attributes::makeString
                         ("GEOMETRY", "BoundaryGeometry for Drifts");
     registerStringAttribute("GEOMETRY");
+
+    registerOwnership();
+
     setElement(new DriftRep("DRIFT"));
 }
 
@@ -76,6 +79,7 @@ bool OpalDrift::isDrift() const {
 
 
 void OpalDrift::update() {
+    OpalElement::update();
 
     DriftRep *drf = static_cast<DriftRep *>(getElement());
     drf->setElementLength(Attributes::getReal(itsAttr[LENGTH]));

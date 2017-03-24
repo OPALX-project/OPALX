@@ -36,6 +36,9 @@ StringConstant::StringConstant():
 
     OpalData *opal = OpalData::getInstance();
     std::string gitRevision(GIT_VERSION);
+
+    registerOwnership(AttributeHandler::STATEMENT);
+
     opal->create(new StringConstant("GITREVISION", this, gitRevision));
 }
 

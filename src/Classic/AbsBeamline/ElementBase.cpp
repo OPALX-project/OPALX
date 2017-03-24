@@ -44,7 +44,9 @@ ElementBase::ElementBase():
     wake_m(NULL),
     bgeometry_m(NULL),
     sphys_m(NULL),
-    elType_m(isOther)
+    elType_m(isOther),
+    elementPosition_m(0.0),
+    elemedgeSet_m(false)
 {}
 
 
@@ -56,7 +58,9 @@ ElementBase::ElementBase(const ElementBase &right):
     wake_m(right.wake_m),
     bgeometry_m(right.bgeometry_m),
     sphys_m(right.sphys_m),
-    elType_m(right.elType_m)
+    elType_m(right.elType_m),
+    elementPosition_m(right.elementPosition_m),
+    elemedgeSet_m(right.elemedgeSet_m)
 {
 
     if(sphys_m) {
@@ -75,7 +79,9 @@ ElementBase::ElementBase(const std::string &name):
     wake_m(NULL),
     bgeometry_m(NULL),
     sphys_m(NULL),
-    elType_m(isOther)
+    elType_m(isOther),
+    elementPosition_m(0.0),
+    elemedgeSet_m(false)
 {}
 
 

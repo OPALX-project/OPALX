@@ -37,6 +37,8 @@ OpalVKicker::OpalVKicker():
 
     registerRealAttribute("VKICK");
 
+    registerOwnership();
+
     setElement((new YCorrectorRep("VKICKER"))->makeWrappers());
 }
 
@@ -85,6 +87,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalVKicker::update() {
+    OpalElement::update();
+
     YCorrectorRep *corr = dynamic_cast<YCorrectorRep *>(getElement()->removeWrappers());
 
     double length = Attributes::getReal(itsAttr[LENGTH]);

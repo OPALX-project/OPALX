@@ -28,6 +28,8 @@ Echo::Echo():
     Action(1, "ECHO",
            "The \"ECHO\" statement sends a message to the ECHO file.") {
     itsAttr[0] = Attributes::makeString("MESSAGE", "The message to be sent.");
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 

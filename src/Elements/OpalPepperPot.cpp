@@ -59,6 +59,8 @@ OpalPepperPot::OpalPepperPot():
     registerRealAttribute("DX");
     registerRealAttribute("DY");
 
+    registerOwnership();
+
     setElement((new CollimatorRep("PEPPERPOT"))->makeAlignWrapper());
 }
 
@@ -96,6 +98,8 @@ void OpalPepperPot::fillRegisteredAttributes(const ElementBase &base, ValueFlag 
 }
 
 void OpalPepperPot::update() {
+    OpalElement::update();
+
     CollimatorRep *ppo =
         dynamic_cast<CollimatorRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);

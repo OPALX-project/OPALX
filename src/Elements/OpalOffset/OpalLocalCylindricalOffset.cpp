@@ -53,6 +53,8 @@ OpalLocalCylindricalOffset::OpalLocalCylindricalOffset()
     registerRealAttribute("THETA_IN");
     registerRealAttribute("THETA_OUT");
     registerRealAttribute("LENGTH");
+
+    registerOwnership();
 }
 
 OpalLocalCylindricalOffset* OpalLocalCylindricalOffset::clone(const std::string &name) {

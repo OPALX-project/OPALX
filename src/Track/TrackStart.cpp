@@ -55,6 +55,8 @@ TrackStart::TrackStart():
                   ("T",  "Initial horizontal position in m");
     itsAttr[PT] = Attributes::makeReal
                   ("PT", "Initial horizontal momentum in 1");
+
+    registerOwnership(AttributeHandler::SUB_COMMAND);
 }
 
 

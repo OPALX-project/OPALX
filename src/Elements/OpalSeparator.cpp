@@ -35,6 +35,8 @@ OpalSeparator::OpalSeparator():
     registerRealAttribute("EXL");
     registerRealAttribute("EYL");
 
+    registerOwnership();
+
     setElement((new SeparatorRep("SEPARATOR"))->makeAlignWrapper());
 }
 
@@ -69,6 +71,8 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalSeparator::update() {
+    OpalElement::update();
+
     SeparatorRep *sep =
         dynamic_cast<SeparatorRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);

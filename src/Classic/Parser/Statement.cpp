@@ -189,31 +189,44 @@ void Statement::skip() {
         curr++;
 }
 
+unsigned int Statement::position() const {
+    std::ostringstream os;
+    bool white = false;
 
-void Statement::print() const {
+    for(TokenList::const_iterator c = tokens.begin(); c != curr; c++) {
+        if(white && !c->isDel()) os << ' ';
+        white = !c->isDel();
+        os << *c;
+    }
+    if(white && !std::next(curr)->isDel()) os << ' ';
+
+    return os.str().length() - 1;
+}
+
+void Statement::print(std::ostream &os) const {
     bool white = false;
 
     for(TokenList::const_iterator c = tokens.begin(); c != tokens.end(); c++) {
-        if(white && !c->isDel()) *gmsg << ' ';
+        if(white && !c->isDel()) os << ' ';
         white = !c->isDel();
-        *gmsg << *c;
+        os << *c;
     }
 
-    *gmsg << ';' << endl;
+    os << ';' << std::endl;
 }
 
 
-void Statement::printWhere(bool withToken) const {
+void Statement::printWhere(Inform &msg, bool withToken) const {
 
-    *gmsg << "*** in line " << stat_line << " of file \"" << buffer_name << "\"";
+    msg << "*** in line " << stat_line << " of file \"" << buffer_name << "\"";
 
     if(withToken) {
         if(TokenList::const_iterator(curr) == tokens.end()) {
-            *gmsg << " at end of statement:" << endl;
+            msg << " at end of statement:" << endl;
         } else {
-            *gmsg << " before token \"" << *curr << "\":" << endl;
+            msg << " before token \"" << *curr << "\":" << endl;
         }
     } else {
-        *gmsg << ":\n";
+        msg << ":\n";
     }
 }

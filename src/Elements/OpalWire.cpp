@@ -52,6 +52,8 @@ OpalWire::OpalWire():
     registerRealAttribute("DX");
     registerRealAttribute("DY");
 
+    registerOwnership();
+
     setElement((new CollimatorRep("WIRE"))->makeAlignWrapper());
 }
 
@@ -93,6 +95,8 @@ void OpalWire::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag)
 
 
 void OpalWire::update() {
+    OpalElement::update();
+
     double dx = Attributes::getReal(itsAttr[DX]);
     double dy = Attributes::getReal(itsAttr[DY]);
 

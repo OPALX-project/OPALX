@@ -47,6 +47,8 @@ OpalSlit::OpalSlit():
     registerRealAttribute("DX");
     registerRealAttribute("DY");
 
+    registerOwnership();
+
     setElement((new CollimatorRep("SLIT"))->makeAlignWrapper());
 }
 
@@ -85,6 +87,8 @@ void OpalSlit::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag)
 
 
 void OpalSlit::update() {
+    OpalElement::update();
+
     CollimatorRep *coll =
         dynamic_cast<CollimatorRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);

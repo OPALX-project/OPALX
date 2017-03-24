@@ -1119,7 +1119,7 @@ void Distribution::CheckParticleNumber(size_t &numberOfParticles) {
 
     size_t numberOfDistParticles = tOrZDist_m.size();
     reduce(numberOfDistParticles, numberOfDistParticles, OpAddAssign());
-    
+
     if (numberOfDistParticles != numberOfParticles) {
         *gmsg << "\n--------------------------------------------------" << endl
               << "Error!! The number of particles in the initial" << endl
@@ -1135,7 +1135,7 @@ void Distribution::CheckParticleNumber(size_t &numberOfParticles) {
               << "will take precedence." << endl
               << "---------------------------------------------------\n" << endl;
         throw OpalException("Distribution::CheckParticleNumber",
-                            "Number of macro particles and NPART on BEAM are not equal");    
+                            "Number of macro particles and NPART on BEAM are not equal");
     }
     numberOfParticles = numberOfDistParticles;
 }
@@ -3960,6 +3960,8 @@ void Distribution::SetAttributes() {
         = Attributes::makeReal("DY", "Dispersion in y (R36 in Transport notation).", 0.0);
     itsAttr[ LegacyAttributesT::DDY]
         = Attributes::makeReal("DDY", "First derivative of DY.", 0.0);
+
+    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 void Distribution::SetFieldEmissionParameters() {
