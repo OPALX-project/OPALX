@@ -462,8 +462,7 @@ void Collimator::setGeom() {
     geom_m[4].y = geom_m[0].y;
 
     if (zstart_m > zend_m){
-        double tempz = 0.0;
-        tempz = zstart_m;
+        double tempz = zstart_m;
         zstart_m = zend_m;
         zend_m = tempz;
     }

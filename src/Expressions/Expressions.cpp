@@ -508,7 +508,6 @@ namespace Expressions {
 
     std::vector<std::string> parseStringArray(Statement &stat) {
         std::vector<std::string> array;
-        std::string value;
 
         if(stat.delimiter('{')) {
             // List of string values within braces.

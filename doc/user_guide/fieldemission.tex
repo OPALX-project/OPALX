@@ -33,7 +33,7 @@ v(y) &=& a-by^2 \\
 t(y) &\approx& 1 \text{.}
 \end{eqnarray*}
 These approximations are valid for a large range of $y$, corresponding to
-typical applied electric field ranges in RF guns.\\
+typical applied electric field ranges in RF guns.
 
 Whenever the normal components of an electric field are strong enough the field
 emission current density will be limited by space charge effect\cite{BC}.
@@ -59,7 +59,7 @@ time step.
 \index{SURFACEEMISSION}
 To perform field emission related simulation, a triangulated surface geometry defined by \keyword{GEOMETRY} command \seechp{geometry} should be specified and attached to the elements (currently only \keyword{RFCavity} element is valid for field emission). A \keyword{SURFACEEMISSION} type of distribution, defined in \keyword{DISTRIBUTION} command should be attached to the \keyword{GEOMETRY} command. And users can customize dark current simulation by specifying the value of the work
 function $\varphi$, local field enhancement factor $\beta$ and other parameters
-present in \eqnref{units,imagecharge} in the \keyword{SURFACEEMISSION} type of distribution definition in input file. See the following example input file and \tabref{fieldfmissioncmd} for a summary of the field emission related command in the \keyword{SURFACEEMISSION} type of distribution definition.\\
+present in \eqnref{units,imagecharge} in the \keyword{SURFACEEMISSION} type of distribution definition in input file. See the following example input file and \tabref{fieldfmissioncmd} for a summary of the field emission related command in the \keyword{SURFACEEMISSION} type of distribution definition.
 \begin{example}
 DistSurf: DISTRIBUTION, DISTRIBUTION = "SURFACEEMISSION",
           NPDARKCUR = 0, INWARDMARGIN=0.0,

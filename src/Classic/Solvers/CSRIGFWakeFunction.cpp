@@ -46,8 +46,7 @@ void CSRIGFWakeFunction::apply(PartBunch &bunch) {
     double minPathLength = smin(2) + bunch.get_sPos() - FieldBegin_m;
     for(unsigned int i = 1; i < numOfSlices; i++) {
         double pathLengthOfSlice = minPathLength + i * meshSpacing;
-        double angleOfSlice = 0.0;
-        angleOfSlice = pathLengthOfSlice/bendRadius_m;
+        double angleOfSlice = pathLengthOfSlice/bendRadius_m;
         if (angleOfSlice > 0.0 && angleOfSlice <= totalBendAngle_m){
             calculateGreenFunction(bunch, meshSpacing);
         }

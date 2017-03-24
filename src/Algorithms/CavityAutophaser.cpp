@@ -129,9 +129,8 @@ std::pair<double, double> CavityAutophaser::optimizeCavityPhase(double initialPh
                                                                 double t,
                                                                 double dt) {
 
-    double originalPhase = 0.0;
     RFCavity *element = static_cast<RFCavity *>(itsCavity_m.get());
-    originalPhase = element->getPhasem();
+    double originalPhase = element->getPhasem();
 
     if (element->getAutophaseVeto()) {
         std::pair<double, double> status(originalPhase, Util::getEnergy(initialP_m, itsReference_m.getM() * 1e-6));
@@ -197,11 +196,10 @@ double CavityAutophaser::track(Vector_t R,
                                const double dt,
                                const double phase) const {
     const Vector_t &refP = initialP_m;
-    double initialPhase = 0.0;
     double finalMomentum = 0.0;
 
     RFCavity *rfc = static_cast<RFCavity *>(itsCavity_m.get());
-    initialPhase = rfc->getPhasem();
+    double initialPhase = rfc->getPhasem();
     rfc->setPhasem(phase);
 
     std::pair<double, double> pe = rfc->trackOnAxisParticle(refP(2),

@@ -361,7 +361,6 @@ void FM3DH5Block::setFrequency(double freq) {
 
 void FM3DH5Block::getOnaxisEz(vector<pair<double, double> > & F) {
     double Ez_max = 0.0, dz = (zend_m - zbegin_m) / (num_gridpz_m - 1);
-    std::string tmpString;
     const int index_x = -static_cast<int>(floor(xbegin_m / hx_m));
     const double lever_x = -xbegin_m / hx_m - index_x;
 

@@ -821,6 +821,7 @@ where $D$ is the full gap of the magnet, $N_{order}$ is the Enge function order 
 of the Enge function perpendicular to the edge of the dipole. The origin of the Enge function, the order of the Enge function, $N_{order}$, and the constants $c_0$ to $c_{N_{order}}$ are free parameters that are chosen so that the function closely approximates the fringe region of the magnet being modeled. An example of the entrance fringe field is shown in \figref{rbend_enge_fringe}.
 
 Let us assume we have a correctly defined positive \keyword{RBEND} or \keyword{SBEND} element as illustrated in \figref{rbend,sbend}. (As already stated, any bend can be described by a rotated positive bend.) \opalt then has the following information:
+
 \begin{align*}
 B_0 &= \text{Field amplitude (T)} \\
 R &= \text{Bend radius (m)} \\
@@ -1039,12 +1040,12 @@ A \keyword{QUADRUPOLE} has three real attributes:
   The default is $\SI{0}{\tesla\per\meter}$.
   The component is positive, if $B_y$ is positive on the positive $x$-axis.
   This implies horizontal focusing of positively charged particles which
-  travel in positive $s$-direction.\\
+  travel in positive $s$-direction.
 
 \item[K1S]
   The skew quadrupole component. $K_{1s}=-\diffp{B_x}{x}$.
   The default is $\SI{0}{\tesla\per\meter}$.
-  The component is negative, if $B_x$ is positive on the positive $x$-axis.\\
+  The component is negative, if $B_x$ is positive on the positive $x$-axis.
 \end{kdescription}
 
 \noindent Example:
@@ -1142,7 +1143,7 @@ The number of poles of each component is ($2 n + 2$).
 
 Superposition of many multipole components is permitted.
 The reference system for a multipole is a Cartesian coordinate system
-\ifthenelse{\boolean{ShowMap}}{\seefig{straight}}{}.\\
+\ifthenelse{\boolean{ShowMap}}{\seefig{straight}}{}.
 
 \noindent The following example is equivalent to the quadruple example in \secref{quadrupole}.
 \begin{example}
@@ -1794,7 +1795,7 @@ The width of the septum. [\si{\milli\meter}]
           (2.5,-2.0) --(4.0,-0.7)
           (4.0,-0.7) --(3.5,-0.2);
     \fill[red] (2.25,-1.75)  circle (1pt) node (start)[below] {(xstart,ystart)};
-    \fill[red] (3.75,-0.45)  circle (1pt) node (end)[above] {(xend,yend)};;
+    \fill[red] (3.75,-0.45)  circle (1pt) node (end)[above] {(xend,yend)};
     \node (collimator) at (2.55,-0.55)[anchor=mid] {collimator};
     \draw [<->,thick,blue] (2.75,-0.85)--(3.25,-1.35) node [right] {width};
 
@@ -1848,7 +1849,7 @@ The width of the septum. [\si{\milli\meter}]
           (2.1,-1.6) --(3.6,-0.3)
           (3.6,-0.3) --(3.5,-0.2);
     \fill[red] (2.05,-1.55)  circle (1pt) node (start)[below] {(xstart,ystart)};
-    \fill[red] (3.55,-0.25)  circle (1pt) node (end)[above] {(xend,yend)};;
+    \fill[red] (3.55,-0.25)  circle (1pt) node (end)[above] {(xend,yend)};
     \node (steptum) at (2.55,-0.55)[anchor=mid] {septum};
     \draw [<->,thick,blue] (2.75,-0.85)--(2.85,-0.95) node [right] {width};
 
@@ -1888,7 +1889,7 @@ The y coordinate of the end point. [\si{\milli\meter}]
           (3.1,-1.4) --(1.6,-0.4)
           (1.6,-0.4) --(1.5,-0.5);
     \fill[red] (1.55,-0.45)  circle (1pt) node (start)[above] {(xstart,ystart)};
-    \fill[red] (3.05,-1.45)  circle (1pt) node (end)[below] {(xend,yend)};;
+    \fill[red] (3.05,-1.45)  circle (1pt) node (end)[below] {(xend,yend)};
     \node (steptum) at (2.55,-0.55)[anchor=mid] {probe};
     \draw [<->,thick,blue] (2.25,-1.0)--(2.35,-0.9) node [right] {width};
 \end{tikzpicture}
@@ -1947,7 +1948,7 @@ No matter what the value of STOP is, the particles hitting on the STRIPPER are r
 \clearpage
 \section{Degrader (\opalt)}
 \index{DEGRADER}
-Rectangular degrader with an overall length \keyword{L}.\\
+Rectangular degrader with an overall length \keyword{L}.
 \begin{kdescription}
 \item[OUTFN]
   \TODO{Describe attributes OUTFN}

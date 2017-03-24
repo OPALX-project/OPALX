@@ -2342,15 +2342,13 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
     Vector_t p = Vector_t(0.0);
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
-        double S1 = 0.0;
-        double S2 = 0.0;
         double A = 0.0;
         double AL = 0.0;
         double U = 0.0;
         double V = 0.0;
 
-        S1 = IpplRandom();
-        S2 = IpplRandom();
+        double S1 = IpplRandom();
+        double S2 = IpplRandom();
 
         if (mBinomial_m[0] <= 10000) {
 
@@ -4508,9 +4506,8 @@ void Distribution::setupParticleBins(double massIneV, PartBunch &beam) {
             WARNMSG("PT & PZ are obsolet and will be ignored. The moments of the beam is defined with PC or use OFFSETPZ" << endl);
 
         // we get gamma from PC of the beam
-        double gamma = 0.0;
         const double pz    = beam.getP()/beam.getM();
-        gamma = sqrt(pow(pz, 2.0) + 1.0);
+        double gamma = sqrt(pow(pz, 2.0) + 1.0);
         energyBins_m->setGamma(gamma);
 
     } else {
