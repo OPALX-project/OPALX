@@ -2,8 +2,8 @@
 #define FMG_POISSON_SOLVER_H_
 
 #include "Solvers/AmrPoissonSolver.h"
+#include "Amr/AmrBoxLib.h"
 
-#include <BoxLib.H>
 #include <MultiFabUtil.H>
 #include <BLFort.H>
 #include <MacBndry.H>
@@ -11,19 +11,6 @@
 #include <mg_cpp_f.h>
 #include <stencil_types.H>
 #include <FMultiGrid.H>
-
-//TODO remote AmrBoxLib
-class AmrBoxLib {
-    
-private:
-    Array<Geometry> geoms;
-    Array<BoxArray> boxarrays;
-public:
-    Array<Geometry>& Geom() { return geoms; }
-    Geometry Geom(int level) { return geoms[level]; }
-    const Array<BoxArray>& boxArray() { return boxarrays; }
-    
-};
 
 class FMGPoissonSolver : public AmrPoissonSolver< AmrBoxLib > {
     

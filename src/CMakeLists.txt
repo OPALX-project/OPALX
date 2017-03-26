@@ -84,6 +84,10 @@ add_subdirectory (Track)
 add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
 
+IF(ENABLE_AMR_SOLVER)
+    add_subdirectory (Amr)
+ENDIF(ENABLE_AMR_SOLVER)
+
 ADD_OPAL_SOURCES(opal.cpp)
 ADD_OPAL_SOURCES(changes.cpp)
 
