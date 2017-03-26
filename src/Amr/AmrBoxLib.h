@@ -13,6 +13,10 @@ class AmrBoxLib : public AmrObject,
 {
     
 public:
+    typedef MultiFab AmrField_t;
+    typedef PArray<AmrField_t> AmrFieldContainer_t;
+    
+public:
     
     /*!
      * Set all parameters for the AMR object, like #grid points per dimension etc.
@@ -20,12 +24,12 @@ public:
      */
     void initialize();
     
-    void regrid();
-    
-    Array<Geometry>& Geom() { return geoms; } //TODO remove
-    Geometry Geom(int level) { return geoms[level]; } //TODO remove
-    const Array<BoxArray>& boxArray() { return boxarrays; } //TODO remove
-    
+    /*!
+     * @param lbase start of regridding.
+     * @param lfine end of regridding.
+     * @param time of simulation (step).
+     */
+    void regrid(int lbase, int lfine, double time);
     
 protected:
     /*!
@@ -48,6 +52,9 @@ protected:
     void MakeNewLevel (int lev, Real time,
                        const BoxArray& new_grids, const DistributionMapping& new_dmap);
     
+    /*!
+     * @param lev to free allocated memory.
+     */
     void ClearLevel(int lev);
     
     /*!
@@ -61,10 +68,8 @@ private:
     void tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int ngrow);
     
 private:
-    Array<Geometry> geoms; //TODO remove
-    Array<BoxArray> boxarrays; //TODO remove
-    
-    PArray<MultiFab> nChargePerCell_m;
+    /// use in tagging tagForChargeDensity_m (needed when tracking)
+    AmrFieldContainer_t nChargePerCell_m;
 };
 
 #endif
