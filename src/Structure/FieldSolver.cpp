@@ -37,7 +37,6 @@
 
 #ifdef HAVE_AMR_SOLVER
     #include "Solvers/BoxLibSolvers/FMGPoissonSolver.h"
-    #include <ParmParse.H>
 #endif
 
 using namespace Expressions;
