@@ -192,23 +192,18 @@ namespace LegacyAttributesT
         // DESCRIPTION OF THE DISTRIBUTION:
         DEBIN = AttributesT::SIZE,
         SBIN,
-        TEMISSION,
-        SIGLASER,
-        AG,
         SIGMAPT,
-        TRANSVCUTOFF,
         CUTOFF,
-        Z,
         T,
         PT,
-        ALPHAX,
-        ALPHAY,
-        BETAX,
-        BETAY,
-        DX,
-        DDX,
-        DY,
-        DDY,
+        // ALPHAX,
+        // ALPHAY,
+        // BETAX,
+        // BETAY,
+        // DX,
+        // DDX,
+        // DY,
+        // DDY,
         SIZE
     };
 }
@@ -795,7 +790,7 @@ double Distribution::getTEmission() {
     setDistType();
 
     tPulseLengthFWHM_m = Attributes::getReal(itsAttr[AttributesT::TPULSEFWHM]);
-    cutoff_m = Attributes::getReal(itsAttr[ LegacyAttributesT::CUTOFF]);
+    cutoff_m = Attributes::getReal(itsAttr[LegacyAttributesT::CUTOFF]);
     tRise_m = Attributes::getReal(itsAttr[AttributesT::TRISE]);
     tFall_m = Attributes::getReal(itsAttr[AttributesT::TFALL]);
     double tratio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
@@ -3908,70 +3903,52 @@ void Distribution::setAttributes() {
      */
 
     // Parameters for emitting a distribution.
-    itsAttr[ LegacyAttributesT::DEBIN]
+    itsAttr[LegacyAttributesT::DEBIN]
         = Attributes::makeReal("DEBIN", "Energy band for a bin in keV that defines "
                                "when to combine bins. That is, when the energy "
                                "spread of all bins is below this number "
                                "combine bins into a single bin.", 1000000.0);
-    itsAttr[ LegacyAttributesT::SBIN]
+    itsAttr[LegacyAttributesT::SBIN]
         = Attributes::makeReal("SBIN", "Number of sample bins to use per energy bin "
                                "when emitting a distribution.", 100.0);
-    itsAttr[ LegacyAttributesT::TEMISSION]
-        = Attributes::makeReal("TEMISSION", "Time it takes to emit distribution.", 0.0);
-
-    itsAttr[ LegacyAttributesT::SIGLASER]
-        = Attributes::makeReal("SIGLASER","Sigma of (uniform) laser spot size.", 0.0);
-    itsAttr[ LegacyAttributesT::AG]
-        = Attributes::makeReal("AG", "Acceleration gradient at photocathode surface "
-                               "(MV/m).", 0.0);
-
-
     /*
      * Specific to type GAUSS and GUNGAUSSFLATTOPTH and ASTRAFLATTOPTH. These
      * last two distribution will eventually just become a subset of GAUSS.
      */
-    itsAttr[ LegacyAttributesT::SIGMAPT] = Attributes::makeReal("SIGMAPT", "SIGMApt", 0.0);
+    itsAttr[LegacyAttributesT::SIGMAPT] = Attributes::makeReal("SIGMAPT", "SIGMApt", 0.0);
 
-    itsAttr[ LegacyAttributesT::TRANSVCUTOFF]
-        = Attributes::makeReal("TRANSVCUTOFF", "Transverse cut-off in units of sigma.",
-                               -3.0);
-
-    itsAttr[ LegacyAttributesT::CUTOFF]
+    itsAttr[LegacyAttributesT::CUTOFF]
         = Attributes::makeReal("CUTOFF", "Longitudinal cutoff for Gaussian in units "
                                "of sigma.", 3.0);
 
 
     // Mixed use attributes (used by more than one distribution type).
-    itsAttr[ LegacyAttributesT::Z]
-        = Attributes::makeReal("Z", "Average longitudinal position of distribution "
-                               "in z coordinates (m).", -99.0);
-    itsAttr[ LegacyAttributesT::T]
-        = Attributes::makeReal("T", "Average longitudinal position of distribution "
-                               "in t coordinates (s).", 0.0);
-    itsAttr[ LegacyAttributesT::PT]
-        = Attributes::makeReal("PT", "Average longitudinal momentum of distribution.",
-                               0.0);
+    itsAttr[LegacyAttributesT::T]
+        = Attributes::makeReal("T", "Not supported anymore");
+
+    itsAttr[LegacyAttributesT::PT]
+        = Attributes::makeReal("PT", "Not supported anymore.");
 
 
     // Attributes that are not yet implemented.
-    itsAttr[ LegacyAttributesT::ALPHAX]
-        = Attributes::makeReal("ALPHAX", "Courant Snyder parameter.", 0.0);
-    itsAttr[ LegacyAttributesT::ALPHAY]
-        = Attributes::makeReal("ALPHAY", "Courant Snyder parameter.", 0.0);
-    itsAttr[ LegacyAttributesT::BETAX]
-        = Attributes::makeReal("BETAX", "Courant Snyder parameter.", 1.0);
-    itsAttr[ LegacyAttributesT::BETAY]
-        = Attributes::makeReal("BETAY", "Courant Snyder parameter.", 1.0);
+    // itsAttr[LegacyAttributesT::ALPHAX]
+    //     = Attributes::makeReal("ALPHAX", "Courant Snyder parameter.", 0.0);
+    // itsAttr[LegacyAttributesT::ALPHAY]
+    //     = Attributes::makeReal("ALPHAY", "Courant Snyder parameter.", 0.0);
+    // itsAttr[LegacyAttributesT::BETAX]
+    //     = Attributes::makeReal("BETAX", "Courant Snyder parameter.", 1.0);
+    // itsAttr[LegacyAttributesT::BETAY]
+    //     = Attributes::makeReal("BETAY", "Courant Snyder parameter.", 1.0);
 
-    itsAttr[ LegacyAttributesT::DX]
-        = Attributes::makeReal("DX", "Dispersion in x (R16 in Transport notation).", 0.0);
-    itsAttr[ LegacyAttributesT::DDX]
-        = Attributes::makeReal("DDX", "First derivative of DX.", 0.0);
+    // itsAttr[LegacyAttributesT::DX]
+    //     = Attributes::makeReal("DX", "Dispersion in x (R16 in Transport notation).", 0.0);
+    // itsAttr[LegacyAttributesT::DDX]
+    //     = Attributes::makeReal("DDX", "First derivative of DX.", 0.0);
 
-    itsAttr[ LegacyAttributesT::DY]
-        = Attributes::makeReal("DY", "Dispersion in y (R36 in Transport notation).", 0.0);
-    itsAttr[ LegacyAttributesT::DDY]
-        = Attributes::makeReal("DDY", "First derivative of DY.", 0.0);
+    // itsAttr[LegacyAttributesT::DY]
+    //     = Attributes::makeReal("DY", "Dispersion in y (R36 in Transport notation).", 0.0);
+    // itsAttr[LegacyAttributesT::DDY]
+    //     = Attributes::makeReal("DDY", "First derivative of DY.", 0.0);
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -4128,12 +4105,14 @@ void Distribution::setDistParametersBinomial(double massIneV) {
 
     sigmaP_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPX])),
                         std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPY])),
-                        std::abs(Attributes::getReal(itsAttr[LegacyAttributesT::SIGMAPT])));
+                        std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPZ])));
 
-    // SIGMAPZ overrides SIGMAPT. We initially use SIGMAPT for legacy compatibility.
-    if (Attributes::getReal(itsAttr[AttributesT::SIGMAPZ]) != 0.0)
-        sigmaP_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPZ]));
-
+    // SIGMAPZ overrides SIGMAPT.
+    if (itsAttr[LegacyAttributesT::SIGMAPT]) {
+        WARNMSG("The attribute SIGMAPT may be removed in a future version\n"
+                << "use  SIGMAPZ instead" << endl;)
+        sigmaP_m[2] = std::abs(Attributes::getReal(itsAttr[LegacyAttributesT::SIGMAPT]));
+    }
     // Check what input units we are using for momentum.
     switch (inputMoUnits_m) {
 
@@ -4499,11 +4478,12 @@ void Distribution::setupParticleBins(double massIneV, PartBunch &beam) {
         int sampleBins = static_cast<int>(std::abs(Attributes::getReal(itsAttr[LegacyAttributesT::SBIN])));
         energyBins_m = new PartBins(numberOfEnergyBins_m, sampleBins);
 
-        double dEBins = Attributes::getReal(itsAttr[ LegacyAttributesT::DEBIN]);
+        double dEBins = Attributes::getReal(itsAttr[LegacyAttributesT::DEBIN]);
         energyBins_m->setRebinEnergy(dEBins);
 
-        if (Attributes::getReal(itsAttr[ LegacyAttributesT::PT])!=0.0)
-            WARNMSG("PT & PZ are obsolet and will be ignored. The moments of the beam is defined with PC or use OFFSETPZ" << endl);
+        if (itsAttr[LegacyAttributesT::PT])
+            throw OpalException("Distribution::setupParticleBins",
+                                "PT is obsolet. The moments of the beam is defined with OFFSETPZ");
 
         // we get gamma from PC of the beam
         const double pz    = beam.getP()/beam.getM();
@@ -4582,13 +4562,16 @@ void Distribution::shiftDistCoordinates(double massIneV) {
      * for legacy compatiblity. OFFSETT always overrides T, even
      * when zero, for an emitted beam.
      */
-    double deltaTOrZ = Attributes::getReal(itsAttr[ LegacyAttributesT::T]);
-    if (emitting_m)
-        deltaTOrZ = 0.0;
-    else {
+    if (itsAttr[LegacyAttributesT::T]) {
+        throw OpalException("Distribution::shiftDistCoordinates",
+                            "Attribute T isn't supported anymore; use OFFSETZ instead");
+    }
+
+    double deltaTOrZ = 0.0;
+    if (!emitting_m)
         if (Attributes::getReal(itsAttr[AttributesT::OFFSETZ]) != 0.0)
             deltaTOrZ = Attributes::getReal(itsAttr[AttributesT::OFFSETZ]);
-    }
+
 
     double deltaPx = Attributes::getReal(itsAttr[AttributesT::OFFSETPX]);
     double deltaPy = Attributes::getReal(itsAttr[AttributesT::OFFSETPY]);
