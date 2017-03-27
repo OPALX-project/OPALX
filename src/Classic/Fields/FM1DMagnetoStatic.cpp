@@ -1,6 +1,9 @@
 #include "Fields/FM1DMagnetoStatic.h"
 #include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
+#include "Utilities/GeneralClassicException.h"
+#include "Utilities/Util.h"
+
 #include "gsl/gsl_fft_real.h"
 
 #include <fstream>
@@ -188,24 +191,21 @@ void FM1DMagnetoStatic::computeFieldOnAxis(double z,
 }
 
 void FM1DMagnetoStatic::computeFourierCoefficients(double maxBz,
-        double fieldData[]) {
+                                                   double fieldData[]) {
+    const unsigned int totalSize = 2 * numberOfGridPoints_m - 1;
+    gsl_fft_real_wavetable *waveTable = gsl_fft_real_wavetable_alloc(totalSize);
+    gsl_fft_real_workspace *workSpace = gsl_fft_real_workspace_alloc(totalSize);
 
-    gsl_fft_real_wavetable *waveTable = gsl_fft_real_wavetable_alloc(2
-                                        * numberOfGridPoints_m - 1);
-    gsl_fft_real_workspace *workSpace = gsl_fft_real_workspace_alloc(2
-                                        * numberOfGridPoints_m - 1);
-    gsl_fft_real_transform(fieldData, 1, 2 * numberOfGridPoints_m - 1,
-                           waveTable, workSpace);
+    gsl_fft_real_transform(fieldData, 1, totalSize, waveTable, workSpace);
 
     /*
      * Normalize the Fourier coefficients such that the max field
      * value is 1 V/m.
      */
-    fourierCoefs_m.push_back(fieldData[0]
-                             / (2.0 * (2 * numberOfGridPoints_m - 1) * maxBz));
+
+    fourierCoefs_m.push_back(fieldData[0] / (totalSize * maxBz));
     for(int coefIndex = 1; coefIndex < 2 * accuracy_m - 1; coefIndex++)
-        fourierCoefs_m.push_back(fieldData[coefIndex] * 2.0
-                                 / ((2 * numberOfGridPoints_m - 1) * maxBz));
+        fourierCoefs_m.push_back(2.0 * fieldData[coefIndex] / (totalSize * maxBz));
 
     gsl_fft_real_workspace_free(workSpace);
     gsl_fft_real_wavetable_free(waveTable);
@@ -219,9 +219,6 @@ void FM1DMagnetoStatic::convertHeaderData() {
     rEnd_m /= 100.0;
     zBegin_m /= 100.0;
     zEnd_m /= 100.0;
-
-    // Convert number of grid spacings to number of grid points.
-    numberOfGridPoints_m++;
 }
 
 double FM1DMagnetoStatic::readFileData(std::ifstream &fieldFile,
@@ -243,6 +240,9 @@ double FM1DMagnetoStatic::readFileData(std::ifstream &fieldFile,
             = fieldData[numberOfGridPoints_m + dataIndex];
     }
 
+    if (!normalize_m)
+        maxBz = 1.0;
+
     return maxBz;
 }
 
@@ -251,8 +251,26 @@ bool FM1DMagnetoStatic::readFileHeader(std::ifstream &fieldFile) {
     std::string tempString;
     int tempInt;
 
-    bool parsingPassed = interpreteLine<std::string, int>(fieldFile,
-                         tempString, accuracy_m);
+    bool parsingPassed = true;
+    try {
+        parsingPassed = interpreteLine<std::string, int>(fieldFile,
+                                                         tempString,
+                                                         accuracy_m);
+    } catch (GeneralClassicException &e) {
+        parsingPassed = interpreteLine<std::string, int, std::string>(fieldFile,
+                                                                      tempString,
+                                                                      accuracy_m,
+                                                                      tempString);
+
+        tempString = Util::toUpper(tempString);
+        if (tempString != "TRUE" &&
+            tempString != "FALSE")
+            throw GeneralClassicException("FM1DMagnetoStatic::readFileHeader",
+                                          "The third string on the first line of 1D field "
+                                          "maps has to be either TRUE or FALSE");
+
+        normalize_m = (tempString == "TRUE");
+    }
     parsingPassed = parsingPassed &&
                     interpreteLine<double, double, int>(fieldFile, zBegin_m,
                             zEnd_m,
@@ -261,6 +279,8 @@ bool FM1DMagnetoStatic::readFileHeader(std::ifstream &fieldFile) {
                     interpreteLine<double, double, int>(fieldFile, rBegin_m,
                             rEnd_m, tempInt);
 
+    ++ numberOfGridPoints_m;
+    
     if(accuracy_m > numberOfGridPoints_m)
         accuracy_m = numberOfGridPoints_m;
 
@@ -270,13 +290,8 @@ bool FM1DMagnetoStatic::readFileHeader(std::ifstream &fieldFile) {
 void FM1DMagnetoStatic::stripFileHeader(std::ifstream &fieldFile) {
 
     std::string tempString;
-    int tempInt;
-    double tempDouble;
 
-    interpreteLine<std::string, int>(fieldFile, tempString, tempInt);
-    interpreteLine<double, double, int>(fieldFile, tempDouble,
-                                        tempDouble, tempInt);
-    interpreteLine<double, double, int>(fieldFile, tempDouble,
-                                        tempDouble, tempInt);
-
+    getLine(fieldFile, tempString);
+    getLine(fieldFile, tempString);
+    getLine(fieldFile, tempString);
 }

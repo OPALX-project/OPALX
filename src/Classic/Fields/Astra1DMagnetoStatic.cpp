@@ -2,6 +2,7 @@
 #include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
+#include "Utilities/Util.h"
 
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
@@ -29,7 +30,21 @@ Astra1DMagnetoStatic::Astra1DMagnetoStatic(std::string aFilename)
     // open field map, parse it and disable element on error
     file.open(Filename_m.c_str());
     if(file.good()) {
-        bool parsing_passed = interpreteLine<std::string, int>(file, tmpString, accuracy_m);
+        bool parsing_passed = true;
+        try {
+            parsing_passed = interpreteLine<std::string, int>(file, tmpString, accuracy_m);
+        } catch (GeneralClassicException &e) {
+            parsing_passed = interpreteLine<std::string, int, std::string>(file, tmpString, accuracy_m, tmpString);
+
+            tmpString = Util::toUpper(tmpString);
+            if (tmpString != "TRUE" &&
+                tmpString != "FALSE")
+                throw GeneralClassicException("Astra1DMagnetoStatic::Astra1DMagnetoStatic",
+                                              "The third string on the first line of 1D field "
+                                              "maps has to be either TRUE or FALSE");
+
+            normalize_m = (tmpString == "TRUE");
+        }
         parsing_passed = parsing_passed &&
                          interpreteLine<double, double>(file, zbegin_m, tmpDouble);
 
@@ -71,7 +86,6 @@ void Astra1DMagnetoStatic::readMap() {
         ifstream in;
 
         bool parsing_passed = true;
-        int tmpInt;
 
         std::string tmpString;
 
@@ -92,7 +106,7 @@ void Astra1DMagnetoStatic::readMap() {
 
         // read in and parse field map
         in.open(Filename_m.c_str());
-        interpreteLine<std::string, int>(in, tmpString, tmpInt);
+        getLine(in, tmpString);
 
         for(int i = 0; i < num_gridpz_m && parsing_passed;/* skip increment on i here */) {
             parsing_passed = interpreteLine<double, double>(in, zvals[i], RealValues[i]);
@@ -126,6 +140,9 @@ void Astra1DMagnetoStatic::readMap() {
 
         gsl_fft_real_transform(RealValues, 1, 2 * num_gridpz_m, real, work);
 
+        if (!normalize_m) {
+            Bz_max = 1.0;
+        }
         // normalize to Bz_max = 1 A/m
         FourCoefs_m[0] = RealValues[0] / (Bz_max * 2. * num_gridpz_m);
         for(int i = 1; i < 2 * accuracy_m - 1; i++) {

@@ -1,6 +1,7 @@
 #include "Fields/FM2DElectroStatic.h"
 #include "Fields/Fieldmap.hpp"
 #include "Utilities/GeneralClassicException.h"
+#include "Utilities/Util.h"
 
 #include <fstream>
 #include <ios>
@@ -19,15 +20,33 @@ FM2DElectroStatic::FM2DElectroStatic(std::string aFilename)
 
     // open field map, parse it and disable element on error
     file.open(Filename_m.c_str());
-    if(file.good()) {
-        bool parsing_passed = interpreteLine<std::string, std::string>(file, tmpString, tmpString);
-        if(tmpString == "ZX") {
+    if (file.good()) {
+        bool parsing_passed = true;
+        try {
+            parsing_passed = interpreteLine<std::string, std::string>(file, tmpString, tmpString);
+        } catch (GeneralClassicException &e) {
+            parsing_passed = interpreteLine<std::string, std::string, std::string>(file,
+                                                                                   tmpString,
+                                                                                   tmpString,
+                                                                                   tmpString);
+
+            tmpString = Util::toUpper(tmpString);
+            if (tmpString != "TRUE" &&
+                tmpString != "FALSE")
+                throw GeneralClassicException("FM2DElectroStatic::FM2DElectroStatic",
+                                              "The third string on the first line of 2D field "
+                                              "maps has to be either TRUE or FALSE");
+
+            normalize_m = (tmpString == "TRUE");
+        }
+
+        if (tmpString == "ZX") {
             swap_m = true;
             parsing_passed = parsing_passed &&
                              interpreteLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
             parsing_passed = parsing_passed &&
                              interpreteLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
-        } else if(tmpString == "XZ") {
+        } else if (tmpString == "XZ") {
             swap_m = false;
             parsing_passed = parsing_passed &&
                              interpreteLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
@@ -38,7 +57,7 @@ FM2DElectroStatic::FM2DElectroStatic(std::string aFilename)
             parsing_passed = false;
         }
 
-        for(long i = 0; (i < (num_gridpz_m + 1) * (num_gridpr_m + 1)) && parsing_passed; ++ i) {
+        for (long i = 0; (i < (num_gridpz_m + 1) * (num_gridpr_m + 1)) && parsing_passed; ++ i) {
             parsing_passed = parsing_passed && interpreteLine<double, double>(file, tmpDouble, tmpDouble);
         }
 
@@ -48,7 +67,7 @@ FM2DElectroStatic::FM2DElectroStatic(std::string aFilename)
         file.close();
         lines_read_m = 0;
 
-        if(!parsing_passed) {
+        if (!parsing_passed) {
             disableFieldmapWarning();
             zend_m = zbegin_m - 1e-3;
             throw GeneralClassicException("FM2DElectroStatic::FM2DElectroStatic",
@@ -64,8 +83,8 @@ FM2DElectroStatic::FM2DElectroStatic(std::string aFilename)
             hz_m = (zend_m - zbegin_m) / num_gridpz_m;
 
             // num spacings -> num grid points
-            num_gridpr_m++;
-            num_gridpz_m++;
+            ++ num_gridpr_m;
+            ++ num_gridpz_m;
         }
     } else {
         noFieldmapWarning();
@@ -79,12 +98,10 @@ FM2DElectroStatic::~FM2DElectroStatic() {
 }
 
 void FM2DElectroStatic::readMap() {
-    if(FieldstrengthEz_m == NULL) {
+    if (FieldstrengthEz_m == NULL) {
         // declare variables and allocate memory
         ifstream in;
-        int tmpInt;
         std::string tmpString;
-        double tmpDouble;
         double Ezmax = 0.0;
 
         FieldstrengthEz_m = new double[num_gridpz_m * num_gridpr_m];
@@ -92,39 +109,42 @@ void FM2DElectroStatic::readMap() {
 
         // read in and parse field map
         in.open(Filename_m.c_str());
-        interpreteLine<std::string, std::string>(in, tmpString, tmpString);
-        interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
-        interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
+        getLine(in, tmpString);
+        getLine(in, tmpString);
+        getLine(in, tmpString);
 
 
-        if(swap_m) {
-            for(int i = 0; i < num_gridpz_m; i++) {
-                for(int j = 0; j < num_gridpr_m; j++) {
+        if (swap_m) {
+            for (int i = 0; i < num_gridpz_m; ++ i) {
+                for (int j = 0; j < num_gridpr_m; ++ j) {
                     interpreteLine<double, double>(in,
                                                    FieldstrengthEr_m[i + j * num_gridpz_m],
                                                    FieldstrengthEz_m[i + j * num_gridpz_m]);
                 }
-                if(fabs(FieldstrengthEz_m[i]) > Ezmax) Ezmax = fabs(FieldstrengthEz_m[i]);
+                if (fabs(FieldstrengthEz_m[i]) > Ezmax) Ezmax = fabs(FieldstrengthEz_m[i]);
             }
         } else {
-            for(int j = 0; j < num_gridpr_m; j++) {
-                for(int i = 0; i < num_gridpz_m; i++) {
+            for (int j = 0; j < num_gridpr_m; ++ j) {
+                for (int i = 0; i < num_gridpz_m; ++ i) {
                     interpreteLine<double, double>(in,
                                                    FieldstrengthEz_m[i + j * num_gridpz_m],
                                                    FieldstrengthEr_m[i + j * num_gridpz_m]);
                 }
             }
 
-            for(int i = 0; i < num_gridpz_m; i++) {
-                if(std::abs(FieldstrengthEz_m[i]) > Ezmax) {
+            for (int i = 0; i < num_gridpz_m; ++ i) {
+                if (std::abs(FieldstrengthEz_m[i]) > Ezmax) {
                     Ezmax = std::abs(FieldstrengthEz_m[i]);
                 }
             }
         }
         in.close();
 
+        if (!normalize_m) 
+            Ezmax = 1.0;
+
         // conversion MV/m to V/m and normalization to Ez_max = 1 MV/m
-        for(int i = 0; i < num_gridpr_m * num_gridpz_m; ++ i) {
+        for (int i = 0; i < num_gridpr_m * num_gridpz_m; ++ i) {
             FieldstrengthEz_m[i] *= 1e6 / Ezmax;
             FieldstrengthEr_m[i] *= 1e6 / Ezmax;
         }
@@ -134,7 +154,7 @@ void FM2DElectroStatic::readMap() {
 }
 
 void FM2DElectroStatic::freeMap() {
-    if(FieldstrengthEz_m != NULL) {
+    if (FieldstrengthEz_m != NULL) {
         delete[] FieldstrengthEz_m;
         FieldstrengthEz_m = NULL;
         delete[] FieldstrengthEr_m;
@@ -155,9 +175,9 @@ bool FM2DElectroStatic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_
     const int indexz = (int)floor((R(2)) / hz_m);
     const double leverz = (R(2) / hz_m) - indexz;
 
-    if((indexz < 0) || (indexz + 2 > num_gridpz_m))
+    if ((indexz < 0) || (indexz + 2 > num_gridpz_m))
         return false;
-    if(indexr + 2 > num_gridpr_m)
+    if (indexr + 2 > num_gridpr_m)
         return true;
 
     const int index1 = indexz + indexr * num_gridpz_m;
@@ -172,7 +192,7 @@ bool FM2DElectroStatic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_
                            + (1.0 - leverz) * leverr         * FieldstrengthEz_m[index2]
                            + leverz         * leverr         * FieldstrengthEz_m[index2 + 1];
 
-    if(RR > 1e-10) {
+    if (RR > 1e-10) {
         E(0) += EfieldR * R(0) / RR;
         E(1) += EfieldR * R(1) / RR;
     }
@@ -193,7 +213,7 @@ void FM2DElectroStatic::getFieldDimensions(double &zBegin, double &zEnd, double 
 void FM2DElectroStatic::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {}
 
 void FM2DElectroStatic::swap() {
-    if(swap_m) swap_m = false;
+    if (swap_m) swap_m = false;
     else swap_m = true;
 }
 

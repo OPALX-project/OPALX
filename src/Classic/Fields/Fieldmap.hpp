@@ -7,23 +7,13 @@
 #include <fstream>
 #include "Fields/Fieldmap.h"
 
-inline Fieldmap::Fieldmap(const std::string & aFilename) :
-    Filename_m(aFilename),
-    lines_read_m(0)
-{ }
-
-
-inline void Fieldmap::getLine(std::ifstream & in, std::string & buffer)
-{
-    getLine(in, lines_read_m, buffer);
-}
-
 template<class T>
 bool Fieldmap::interpreteLine(std::ifstream & in, T & value, const bool & file_length_known)
 {
     static std::string expecting(TypeParseTraits<T>::name);
     bool read_all = true;
     std::string buffer;
+    std::streampos start = in.tellg();
 
     getLine(in, buffer);
     if (in.eof() && !file_length_known) {
@@ -34,6 +24,7 @@ bool Fieldmap::interpreteLine(std::ifstream & in, T & value, const bool & file_l
     interpreter >> value;
 
     if (interpreter.rdstate() ^ std::ios_base::eofbit) {
+        in.seekg(start);
         if (in.eof()) {
             missingValuesWarning();
             return false;
@@ -49,6 +40,7 @@ bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, T & value2, const 
     static std::string expecting(std::string(TypeParseTraits<S>::name) + std::string(" ") + std::string(TypeParseTraits<T>::name));
     bool read_all = true;
     std::string buffer;
+    std::streampos start = in.tellg();
 
     getLine(in, buffer);
     if (in.eof() && !file_length_known) {
@@ -62,6 +54,7 @@ bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, T & value2, const 
     interpreter >> value2;
 
     if (interpreter.rdstate() ^ std::ios_base::eofbit) {
+        in.seekg(start);
         if (in.eof()) {
             missingValuesWarning();
             return false;
@@ -79,6 +72,7 @@ bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, T & value2, U & va
                             std::string(TypeParseTraits<U>::name));
     bool read_all = true;
     std::string buffer;
+    std::streampos start = in.tellg();
 
     getLine(in, buffer);
     if (in.eof() && !file_length_known) {
@@ -94,6 +88,7 @@ bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, T & value2, U & va
     interpreter >> value3;
 
     if (interpreter.rdstate() ^ std::ios_base::eofbit) {
+        in.seekg(start);
         if (in.eof()) {
             missingValuesWarning();
             return false;
@@ -112,6 +107,7 @@ bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, T & value2, U & va
                             std::string(TypeParseTraits<V>::name));
     bool read_all = true;
     std::string buffer;
+    std::streampos start = in.tellg();
 
     getLine(in, buffer);
     if (in.eof() && !file_length_known) {
@@ -129,6 +125,7 @@ bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, T & value2, U & va
     interpreter >> value4;
 
     if (interpreter.rdstate() ^ std::ios_base::eofbit) {
+        in.seekg(start);
         if (in.eof()) {
             missingValuesWarning();
             return false;
@@ -149,6 +146,7 @@ bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, S & value2, S & va
                             std::string(TypeParseTraits<S>::name));
     bool read_all = true;
     std::string buffer;
+    std::streampos start = in.tellg();
 
     getLine(in, buffer);
     if (in.eof() && !file_length_known) {
@@ -170,6 +168,7 @@ bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, S & value2, S & va
     interpreter >> value6;
 
     if (interpreter.rdstate() ^ std::ios_base::eofbit) {
+        in.seekg(start);
         if (in.eof()) {
             missingValuesWarning();
             return false;

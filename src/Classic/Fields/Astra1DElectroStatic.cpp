@@ -2,6 +2,7 @@
 #include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
+#include "Utilities/Util.h"
 
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
@@ -10,16 +11,14 @@
 #include <fstream>
 #include <ios>
 
-using namespace std;
 using Physics::mu_0;
-using Physics::c;
 using Physics::two_pi;
 
 Astra1DElectroStatic::Astra1DElectroStatic(std::string aFilename)
     : Fieldmap(aFilename),
       FourCoefs_m(NULL) {
 
-    ifstream file;
+    std::ifstream file;
     int skippedValues = 0;
     std::string tmpString;
     double tmpDouble;
@@ -30,7 +29,25 @@ Astra1DElectroStatic::Astra1DElectroStatic(std::string aFilename)
     // open field map, parse it and disable element on error
     file.open(Filename_m.c_str());
     if(file.good()) {
-        bool parsing_passed = interpreteLine<std::string, int>(file, tmpString, accuracy_m);
+        bool parsing_passed = true;
+        try {
+            parsing_passed = interpreteLine<std::string, int>(file, tmpString, accuracy_m);
+        } catch (GeneralClassicException &e) {
+            parsing_passed = interpreteLine<std::string, int, std::string>(file,
+                                                                           tmpString,
+                                                                           accuracy_m,
+                                                                           tmpString);
+
+            tmpString = Util::toUpper(tmpString);
+            if (tmpString != "TRUE" &&
+                tmpString != "FALSE")
+                throw GeneralClassicException("Astra1DElectroStatic::Astra1DElectroStatic",
+                                              "The third string on the first line of 1D field "
+                                              "maps has to be either TRUE or FALSE");
+
+            normalize_m = (tmpString == "TRUE");
+        }
+
         parsing_passed = parsing_passed &&
                          interpreteLine<double, double>(file, zbegin_m, tmpDouble);
 
@@ -70,7 +87,7 @@ void Astra1DElectroStatic::readMap() {
     if(FourCoefs_m == NULL) {
         // declare variables and allocate memory
 
-        ifstream in;
+        std::ifstream in;
 
         bool parsing_passed = true;
 
@@ -93,15 +110,15 @@ void Astra1DElectroStatic::readMap() {
 
         // read in and parse field map
         in.open(Filename_m.c_str());
-        interpreteLine<std::string, int>(in, tmpString, accuracy_m);
+        getLine(in, tmpString);
 
         for(int i = 0; i < num_gridpz_m && parsing_passed; /* skip increment of i here */) {
             parsing_passed = interpreteLine<double, double>(in, zvals[i], RealValues[i]);
             // the sequence of z-position should be strictly increasing
             // drop sampling points that don't comply to this
             if(zvals[i] - tmpDouble > 1e-10) {
-                if(fabs(RealValues[i]) > Ez_max) {
-                    Ez_max = fabs(RealValues[i]);
+                if(std::abs(RealValues[i]) > Ez_max) {
+                    Ez_max = std::abs(RealValues[i]);
                 }
                 tmpDouble = zvals[i];
                 ++ i; // increment i only if sampling point is accepted
@@ -129,6 +146,9 @@ void Astra1DElectroStatic::readMap() {
         num_gridpz_m *= 2; // we doubled the sampling points
 
         gsl_fft_real_transform(RealValues, 1, num_gridpz_m, real, work);
+
+        if (!normalize_m)
+            Ez_max = 1.0;
 
         // normalize to Ez_max = 1 MV/m
         FourCoefs_m[0] = 1e6 * RealValues[0] / (Ez_max * num_gridpz_m); // factor 1e6 due to conversion MV/m to V/m
