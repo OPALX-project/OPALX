@@ -15,11 +15,11 @@
 class FMGPoissonSolver : public AmrPoissonSolver< AmrBoxLib > {
     
 private:
-    typedef Array<Geometry> GeomContainer_t;
+    typedef AmrBoxLib::AmrGeomContainer_t GeomContainer_t;
     
 public:
     
-    FMGPoissonSolver(AmrBoxLib* amrobject_p);
+    FMGPoissonSolver(AmrBoxLib* itsAmrObject_p);
     
     void solve(AmrFieldContainer_t &rho,
                AmrFieldContainer_t &efield,

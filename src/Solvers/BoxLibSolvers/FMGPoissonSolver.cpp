@@ -1,7 +1,7 @@
 #include "FMGPoissonSolver.h"
 
-FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* amrobject_p)
-    : AmrPoissonSolver<AmrBoxLib>(amrobject_p),
+FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* itsAmrObject_p)
+    : AmrPoissonSolver<AmrBoxLib>(itsAmrObject_p),
       tol_m(1.e-10),
       abstol_m(1.e-14),
       phi_m(PArrayManage)
@@ -18,7 +18,7 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t &rho,
                              unsigned short baseLevel,
                              unsigned short finestLevel)
 {
-    const GeomContainer_t& geom = amrobject_mp->Geom();
+    const GeomContainer_t& geom = itsAmrObject_mp->Geom();
     
     
     if (Geometry::isAllPeriodic()) {
@@ -67,32 +67,32 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t &rho,
 
 
 double FMGPoissonSolver::getXRangeMin(unsigned short level) {
-    return amrobject_mp->Geom(level).ProbLo(0);
+    return itsAmrObject_mp->Geom(level).ProbLo(0);
 }
 
 
 double FMGPoissonSolver::getXRangeMax(unsigned short level) {
-    return amrobject_mp->Geom(level).ProbHi(0);
+    return itsAmrObject_mp->Geom(level).ProbHi(0);
 }
 
 
 double FMGPoissonSolver::getYRangeMin(unsigned short level) {
-    return amrobject_mp->Geom(level).ProbLo(1);
+    return itsAmrObject_mp->Geom(level).ProbLo(1);
 }
 
 
 double FMGPoissonSolver::getYRangeMax(unsigned short level) {
-    return amrobject_mp->Geom(level).ProbHi(1);
+    return itsAmrObject_mp->Geom(level).ProbHi(1);
 }
 
 
 double FMGPoissonSolver::getZRangeMin(unsigned short level) {
-    return amrobject_mp->Geom(level).ProbLo(2);
+    return itsAmrObject_mp->Geom(level).ProbLo(2);
 }
 
 
 double FMGPoissonSolver::getZRangeMax(unsigned short level) {
-    return amrobject_mp->Geom(level).ProbHi(2);
+    return itsAmrObject_mp->Geom(level).ProbHi(2);
 }
 
 
@@ -161,7 +161,7 @@ void FMGPoissonSolver::initGrids_m(AmrFieldContainer_t& efield) {
         phi_m.clear(lev);
         efield.clear(lev);
         
-        const BoxArray& ba = amrobject_mp->boxArray()[lev];
+        const BoxArray& ba = itsAmrObject_mp->boxArray()[lev];
         
         //                                      #components  #ghost cells                                                                                                                                          
         phi_m.set(lev,  new AmrField_t(ba, 1,           1) );

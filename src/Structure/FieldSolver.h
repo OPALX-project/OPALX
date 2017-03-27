@@ -90,17 +90,17 @@ public:
 #ifdef HAVE_AMR_SOLVER
     bool isAMRSolver();
 
-    int amrMaxLevel();
+    int getAmrMaxLevel();
 
-    int amrRefRatioX();
+    int getAmrRefRatioX();
 
-    int amrRefRatioY();
+    int getAmrRefRatioY();
 
-    int amrRefRatioT();
+    int getAmrRefRatioT();
 
-    bool amrSubCycling();
+    bool isAmrSubCycling();
 
-    int amrMaxGridSize();
+    int getAmrMaxGridSize();
 #endif
 
     /// the actual solver, should be a base object
