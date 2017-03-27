@@ -2,10 +2,62 @@
 
 #include <ParmParse.H> // used in initialize function
 
+AmrBoxLib::AmrBoxLib() : AmrObject(),
+                         AmrCore(),
+                         nChargePerCell_m(PArrayManage)
+{}
 
-void AmrBoxLib::initialize() {
-    //TODO
-}
+
+AmrBoxLib::AmrBoxLib(TaggingCriteria tagging,
+                     double scaling,
+                     double nCharge)
+    : AmrObject(tagging, scaling, nCharge),
+      AmrCore(),
+      nChargePerCell_m(PArrayManage)
+{}
+
+
+// AmrBoxLib::AmrBoxLib(const DomainBoundary_t& realbox,
+//               const NDIndex<3>& nGridPts,
+//               short maxLevel,
+//               const RefineRatios_t& refRatio)
+//     : AmrObject(realbox, nGridPts, maxLevel, refRatio)
+// {
+//     
+//     
+// }
+
+
+AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
+                     const AmrIntArray_t& nGridPts,
+                     short maxLevel,
+                     const AmrIntArray_t& refRatio)
+    : AmrObject(),
+      AmrCore(&domain, maxLevel, nGridPts, 0 /* cartesian */)
+{}
+
+
+// void AmrBoxLib::initialize(const DomainBoundary_t& lower,
+//                            const DomainBoundary_t& upper,
+//                            const NDIndex<3>& nGridPts,
+//                            short maxLevel,
+//                            const RefineRatios_t& refRatio)
+// {
+//     // setup the physical domain
+//     RealBox domain;
+//     for (int i = 0; i < 3; ++i) {
+//         domain.setLo(i, lower[i]); // m
+//         domain.setHi(i, upper[i]); // m
+//     }
+//     
+//     Array<int> nCells(3);
+//     for (int i = 0; i < 3; ++i)
+//         nCells = nGridPts[i];
+//     
+//     AmrCore::Initialize();
+//     Geometry::Setup(&domain, 0 /* cartesian coordinates */);
+//     AmrCore::InitAmrCore(maxLevel, nCells);
+// }
 
 
 void AmrBoxLib::regrid(int lbase, int lfine, double time) {

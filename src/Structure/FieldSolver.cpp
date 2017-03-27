@@ -248,31 +248,31 @@ bool FieldSolver::hasPeriodicZ() {
 }
 
 #ifdef HAVE_AMR_SOLVER
-bool FieldSolver::isAMRSolver() {
+inline bool FieldSolver::isAMRSolver() {
     return Util::toUpper(Attributes::getString(itsAttr[FSTYPE])) == std::string("AMR");
 }
 
-int FieldSolver::amrMaxLevel() {
+inline int FieldSolver::getAmrMaxLevel() {
     return Attributes::getReal(itsAttr[AMRMAXLEVEL]);
 }
 
-int FieldSolver::amrRefRatioX() {
+inline int FieldSolver::getAmrRefRatioX() {
     return Attributes::getReal(itsAttr[AMRREFX]);
 }
 
-int FieldSolver::amrRefRatioY() {
+inline int FieldSolver::getAmrRefRatioY() {
     return Attributes::getReal(itsAttr[AMRREFY]);
 }
 
-int FieldSolver::amrRefRatioT() {
+inline int FieldSolver::getAmrRefRatioT() {
     return Attributes::getReal(itsAttr[AMRREFT]);
 }
 
-bool FieldSolver::amrSubCycling() {
+inline bool FieldSolver::isAmrSubCycling() {
     return Attributes::getBool(itsAttr[AMRSUBCYCLE]);
 }
 
-int FieldSolver::amrMaxGridSize() {
+inline int FieldSolver::getAmrMaxGridSize() {
     return Attributes::getReal(itsAttr[AMRMAXGRID]);
 }
 #endif
@@ -357,10 +357,34 @@ void FieldSolver::initSolver(PartBunch &b) {
         Inform m("FieldSolver::initSolver-amr ");
         fsType_m = "AMR";
         
-        //FIXME
-        AmrBoxLib *amrobject_p = new AmrBoxLib();
-        solver_m = new FMGPoissonSolver(amrobject_p);
-
+        //FIXME How to set the domain? Can't be adjusted anymore!
+        /* Further attributes missing,
+         * e.g. max_grid_size
+         */
+        AmrBoxLib::AmrDomain_t domain;
+        for (int i = 0; i < 3; ++i) {
+            domain.setLo(i, -1.0); // m
+            domain.setHi(i, -1.0); // m
+        }
+        
+        AmrBoxLib::AmrIntArray_t nGridPts = {
+            (int)this->getMX(),
+            (int)this->getMY(),
+            (int)this->getMT()
+        };
+        
+        short maxLevel = this->getAmrMaxLevel();
+        
+        AmrBoxLib::AmrIntArray_t refRatio = {
+            this->getAmrRefRatioX(),
+            this->getAmrRefRatioY(),
+            this->getAmrRefRatioT()
+        };
+                                             
+        solver_m = new FMGPoissonSolver(
+            new AmrBoxLib(domain, nGridPts, maxLevel, refRatio)
+        );
+        
 	/*
         // Add the parsed AMR attributes to BoxLib (please check BoxLib/Src/C_AMRLib/Amr.cpp)
         ParmParse pp("amr");

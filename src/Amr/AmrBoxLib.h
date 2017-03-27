@@ -13,16 +13,42 @@ class AmrBoxLib : public AmrObject,
 {
     
 public:
-    typedef MultiFab AmrField_t;
-    typedef PArray<AmrField_t> AmrFieldContainer_t;
+    typedef MultiFab                    AmrField_t;
+    typedef PArray<AmrField_t>          AmrFieldContainer_t;
+    typedef Array<Geometry>             AmrGeomContainer_t;
+    typedef Array<BoxArray>             AmrGridContainer_t;
+    typedef Array<DistributionMapping>  AmrProcMapContainer_t;
+    typedef RealBox                     AmrDomain_t;
+    typedef Array<int>                  AmrIntArray_t;
     
 public:
     
-    /*!
-     * Set all parameters for the AMR object, like #grid points per dimension etc.
-     * (inherited from AmrObject)
-     */
-    void initialize();
+//     AmrBoxLib(const DomainBoundary_t& realbox,
+//               const NDIndex<3>& nGridPts,
+//               short maxLevel,
+//               const RefineRatios_t& refRatio);
+    
+    AmrBoxLib();
+    
+    AmrBoxLib(TaggingCriteria tagging,
+              double scaling,
+              double nCharge);
+    
+    AmrBoxLib(const AmrDomain_t& domain,
+              const AmrIntArray_t& nGridPts,
+              short maxLevel,
+              const AmrIntArray_t& refRatio);
+    
+    
+//     /*!
+//      * Set all parameters for the AMR object, like #grid points per dimension etc.
+//      * (inherited from AmrObject)
+//      */
+//     void initialize(const DomainBoundary_t& lower,
+//                     const DomainBoundary_t& upper,
+//                     const NDIndex<3>& nGridPts,
+//                     short maxLevel,
+//                     const RefineRatios_t& refRatio);
     
     /*!
      * @param lbase start of regridding.

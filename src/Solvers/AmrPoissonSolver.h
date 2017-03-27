@@ -10,9 +10,9 @@ class AmrPoissonSolver : public PoissonSolver {
     
 public:
     /*!
-     * @param amrobject_p holds information about grids and domain
+     * @param itsAmrObject_p holds information about grids and domain
      */
-    AmrPoissonSolver(AmrObject* amrobject_p) : amrobject_mp(amrobject_p) {}
+    AmrPoissonSolver(AmrObject* itsAmrObject_p) : itsAmrObject_mp(itsAmrObject_p) {}
     
     virtual ~AmrPoissonSolver() {}
     
@@ -33,7 +33,7 @@ public:
     
     
 protected:
-    std::unique_ptr<AmrObject> amrobject_mp;    
+    std::unique_ptr<AmrObject> itsAmrObject_mp;    
 };
 
 
