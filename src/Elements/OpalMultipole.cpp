@@ -27,7 +27,6 @@
 #include "Expressions/SRefExpr.h"
 #include "Physics/Physics.h"
 #include "Utilities/Options.h"
-#include "Attributes/Attributes.h"  // JMJ added 20/12/2000
 #include <iostream>
 #if defined(__GNUC__) && __GNUC__ < 3
 #include <strstream>

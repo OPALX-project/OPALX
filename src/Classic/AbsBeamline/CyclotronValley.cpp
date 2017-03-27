@@ -125,14 +125,12 @@ bool CyclotronValley::applyToReferenceParticle(const Vector_t &tmpR, const Vecto
 }
 
 void CyclotronValley::initialise(PartBunch *bunch, double &startField, double &endField) {// called by ParallelTTracker::visitCyclotronValley --> OpalBeamline::visit
-    using Physics::two_pi;
-    double zBegin = 0.0, zEnd = 0.0, rBegin = 0.0, rEnd = 0.0;
     Inform msg("CyclotronValley ");
-    std::stringstream errormsg;
     RefPartBunch_m = bunch;
 
     fieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m);
     if(fieldmap_m != NULL) {
+        double zBegin = 0.0, zEnd = 0.0, rBegin = 0.0, rEnd = 0.0;
         fieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
         if(zEnd > zBegin) {
             msg << getName() << " using file: " << "  ";
@@ -148,9 +146,6 @@ void CyclotronValley::initialise(PartBunch *bunch, double &startField, double &e
     } else {
         endField = startField - 1e-3;
     }
-
-
-
 }
 
 
