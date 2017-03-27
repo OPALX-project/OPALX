@@ -23,7 +23,6 @@
 #include "Errors/MPHandler.h"
 #include "Fields/BMultipoleField.h"
 #include "Utilities/Options.h"
-#include "Utilities/Options.h"
 #include "Utilities/Round.h"
 #include <cmath>
 #include <iostream>
@@ -154,7 +153,6 @@ void ErrorField::fieldError(const std::string &, int,
     for(vector<double>::size_type comp = 0; comp < top; comp++) {
         // Compute error amplitude.
         double normal = 0.0;
-        double skewed = 0.0;
 
         if(comp < absolute.size()) {
             normal  = absolute[comp] * absFactor(comp);
@@ -166,6 +164,7 @@ void ErrorField::fieldError(const std::string &, int,
 
         // Convert to components.
         if(normal != 0.0) {
+            double skewed = 0.0;
             if(comp < rotation.size()) {
                 double angle = - rotation[comp] * double(comp + 1);
                 skewed = normal * sin(angle);

@@ -72,12 +72,8 @@ DumpFields::DumpFields() :
 }
 
 DumpFields::~DumpFields() {
-    if (grid_m != NULL) {
-        delete grid_m;
-    }
-    if (dumpsSet_m.find(this) != dumpsSet_m.end()) {
-        dumpsSet_m.erase(this);
-    }
+    delete grid_m;
+    dumpsSet_m.erase(this);
 }
 
 DumpFields* DumpFields::clone(const std::string &name) {

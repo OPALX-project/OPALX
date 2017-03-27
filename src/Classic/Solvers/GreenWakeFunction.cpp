@@ -514,7 +514,7 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     Inform msg("readSDDS ");
     std::string name;
     char temp[256];
-    int Np, j;
+    int Np;
     double dummy;
     gsl_fft_real_wavetable *real;
     gsl_fft_real_workspace *work;
@@ -537,9 +537,6 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
         throw GeneralClassicException("GreenWakeFunction::setWake",
                             " No SDDS1 File. A SDDS1 file should start with a SDDS1 String. Check file \""
                             + filename_m +  "\" ");
-
-        msg << "No SDDS1 File. A SDDS1 file should start with a SDDS1 String. Check file \"" << filename_m <<  "\" " << endl;
-        return;
     }
 
     for(int i = 0; i < 6; i++) {
@@ -553,7 +550,6 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
         throw GeneralClassicException("GreenWakeFunction::setWake",
                             " The particle number should be bigger than zero! Please check the first line of file \""
                             + filename_m +  "\".");
-        msg << " The particle number should be bigger than zero! Please check the first line of file " << filename_m << endl;
     }
 
     msg  << " Np = " << Np << endl;
@@ -569,9 +565,6 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
             throw GeneralClassicException("GreenWakeFunction::setWake",
                                 " End of file reached before the whole wakefield is imported, please check file \""
                                 + filename_m +  "\".");
-
-            msg << " End of file reached before the whole wakefield is imported, please check file " << filename_m << endl;
-            return;
         }
     }
     // if needed interpolate the wake in a way that the wake form the file fits to the wake needs in the code (??)
@@ -579,7 +572,7 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     FftWField_m.resize(NBin_m);
 
     for(int i = 0; i < NBin_m; i ++) {
-        j = 0;
+        int j = 0;
         while(dist[j] < i * spacing) {
             j++;
         }
