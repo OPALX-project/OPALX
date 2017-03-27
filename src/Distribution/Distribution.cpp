@@ -3887,9 +3887,9 @@ void Distribution::SetAttributes() {
      */
 
     itsAttr[AttributesT::ID1]
-        = Attributes::makeRealArray("ID1", "User defined particle with ID=1");
+        = Attributes::makeRealArray("ID1", "User defined particle with ID=1: x,y,z,px,py,pz");
     itsAttr[AttributesT::ID2]
-        = Attributes::makeRealArray("ID2", "User defined particle with ID=2");
+        = Attributes::makeRealArray("ID2", "User defined particle with ID=2: x,y,z,px,py,pz");
 
     /*
      * Legacy attributes (or ones that need to be implemented.)
