@@ -19,7 +19,6 @@
 #include "AbstractObjects/PlaceRep.h"
 #include "AbstractObjects/Element.h"
 #include "AbstractObjects/OpalData.h"
-#include "AbstractObjects/Element.h"
 #include "Beamlines/FlaggedElmPtr.h"
 #include "Utilities/OpalException.h"
 

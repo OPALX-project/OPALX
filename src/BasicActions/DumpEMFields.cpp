@@ -76,12 +76,8 @@ DumpEMFields::DumpEMFields() :
 }
 
 DumpEMFields::~DumpEMFields() {
-    if (grid_m != NULL) {
-        delete grid_m;
-    }
-    if (dumpsSet_m.find(this) != dumpsSet_m.end()) {
-        dumpsSet_m.erase(this);
-    }
+    delete grid_m;
+    dumpsSet_m.erase(this);
 }
 
 DumpEMFields* DumpEMFields::clone(const std::string &name) {
@@ -173,7 +169,6 @@ void DumpEMFields::writeFieldThis(Component* field) {
         throw OpalException("DumpEMFields::writeFieldThis",
                             "The field to be written was NULL.");
     }
-    double time = 0.;
     std::vector<double> point_std(4);
     Vector_t point(0., 0., 0.);
     Vector_t centroid(0., 0., 0.);
@@ -210,7 +205,7 @@ void DumpEMFields::writeFieldThis(Component* field) {
         for (size_t i = 0; i < 3; ++i) {
             point[i] = point_std[i];
         }
-        time = point_std[3];
+        double time = point_std[3];
 
         field->apply(point, centroid, time, E, B);
         fout << point[0] << " " << point[1] << " " << point[2] << " " << time << " ";

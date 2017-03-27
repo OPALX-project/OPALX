@@ -356,7 +356,7 @@ VectorMap* SectorMagneticFieldMap::IO::getInterpolatorPolyPatch(
         *gmsg << "                       ... done" << endl;
         return patch;
     } catch (GeneralClassicException& exc) {
-        throw exc;
+        throw;
     }
 
 }

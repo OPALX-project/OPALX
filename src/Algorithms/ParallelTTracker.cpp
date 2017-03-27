@@ -622,9 +622,8 @@ void ParallelTTracker::computeExternalFields(OrbitThreader &oth) {
 
     try {
         elements = oth.query(pathLength_m + 0.5 * (rmax(2) + rmin(2)), rmax(2) - rmin(2));
-    } catch(IndexMap::OutOfBounds e) {
+    } catch(IndexMap::OutOfBounds &e) {
         globalEOL_m = true;
-
         return;
     }
 
@@ -1138,7 +1137,7 @@ void ParallelTTracker::writePhaseSpace(const long long step, bool psDump, bool s
 }
 
 void ParallelTTracker::updateReferenceParticle(const BorisPusher &pusher) {
-    static size_t step = 0;
+    //static size_t step = 0;
     const double dt = std::min(itsBunch_m->getT(), itsBunch_m->getdT());
     const double scaleFactor = Physics::c * dt;
     Vector_t Ef(0.0), Bf(0.0);
@@ -1201,7 +1200,7 @@ void ParallelTTracker::updateReferenceParticle(const BorisPusher &pusher) {
     pusher.push(RefPartR_m, RefPartP_m, dt);
     RefPartR_m *= scaleFactor;
 
-    ++ step;
+    //++ step;
 }
 
 void ParallelTTracker::transformBunch(const CoordinateSystemTrafo &trafo) {

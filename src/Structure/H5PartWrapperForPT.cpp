@@ -68,7 +68,6 @@ void H5PartWrapperForPT::readHeader() {
 
     if (attributeNames.find("nAutoPhaseCavities") != attributeNames.end()) {
         auto opal = OpalData::getInstance();
-        char name[128];
         h5_float64_t phase;
         h5_int64_t numAutoPhaseCavities = 0;
 #ifdef USE_H5HUT2
@@ -89,6 +88,7 @@ void H5PartWrapperForPT::readHeader() {
                 std::string elementName  = "Cav-" + std::to_string(i + 1) + "-name";
                 std::string elementPhase = "Cav-" + std::to_string(i + 1) + "-value";
 
+                char name[128];
                 READFILEATTRIB(String, file_m, elementName.c_str(), name);
                 READFILEATTRIB(Float64, file_m, elementPhase.c_str(), &phase);
 

@@ -722,11 +722,10 @@ void Bend::findBendEffectiveLength(double startField, double endField) {
 
         // Now we should have the proper field map width bracketed.
         unsigned int iterations = 1;
-        double delta = 0.0;
         error = std::abs(actualBendAngle - angle_m);
         while(error > 1.0e-6 && iterations < 100) {
 
-            delta = (delta1 + delta2) / 2.0;
+            double delta = (delta1 + delta2) / 2.0;
             setEngeOriginDelta(delta);
             setFieldCalcParam();
             setFieldBoundaries(startField, endField);

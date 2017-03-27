@@ -226,12 +226,10 @@ void ParallelCyclotronTracker::bgf_main_collision_test() {
     double dtime = itsBunch->getdT() * getHarmonicNumber();  // New
 
     int triId = 0;
-    size_t Nimpact = 0;
     for(size_t i = 0; i < itsBunch->getLocalNum(); i++) {
         int res = bgf_m->partInside(itsBunch->R[i]*1.0e-3, itsBunch->P[i], dtime, itsBunch->PType[i], itsBunch->Q[i], intecoords, triId);
         if(res >= 0) {
             itsBunch->Bin[i] = -1;
-            Nimpact++;
         }
     }
 }
@@ -1252,9 +1250,6 @@ void ParallelCyclotronTracker::Tracker_LF() {
 
     // if initialTotalNum_m = 2, trigger SEO mode
     // prepare for transverse tuning calculation
-    std::vector<double> Ttime, Tdeltr, Tdeltz;
-    // prepare for transverse tuning calculation
-    std::vector<int> TturnNumber;
     turnnumber_m = 1;
 
 

@@ -196,7 +196,6 @@ double CavityAutophaser::track(Vector_t R,
                                const double dt,
                                const double phase) const {
     const Vector_t &refP = initialP_m;
-    double finalMomentum = 0.0;
 
     RFCavity *rfc = static_cast<RFCavity *>(itsCavity_m.get());
     double initialPhase = rfc->getPhasem();
@@ -207,7 +206,7 @@ double CavityAutophaser::track(Vector_t R,
                                                             dt,
                                                             itsReference_m.getQ(),
                                                             itsReference_m.getM() * 1e-6);
-    finalMomentum = pe.first;
+    double finalMomentum = pe.first;
     rfc->setPhasem(initialPhase);
 
     double finalGamma = sqrt(1.0 + finalMomentum * finalMomentum);
