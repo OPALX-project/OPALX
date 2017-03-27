@@ -133,7 +133,7 @@ void OpalTravelingWave::update() {
     bool fast = Attributes::getBool(itsAttr[FAST]);
     bool apVeto = Attributes::getBool(itsAttr[APVETO]);
 
-    std::string type = Attributes::getString(itsAttr[TYPE]);
+    //    std::string type = Attributes::getString(itsAttr[TYPE]);
     double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
 
     rfc->setElementLength(length);

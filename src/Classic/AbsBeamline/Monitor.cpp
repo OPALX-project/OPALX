@@ -28,8 +28,6 @@
 #include <boost/filesystem.hpp>
 #include "AbstractObjects/OpalData.h"
 
-#include <memory>
-
 #include <fstream>
 #include <memory>
 

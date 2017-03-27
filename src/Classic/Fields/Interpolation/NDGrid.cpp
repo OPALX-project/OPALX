@@ -160,7 +160,7 @@ void NDGrid::setConstantSpacing() {
 bool NDGrid::isGreater(const Mesh::Iterator& lhs, const Mesh::Iterator& rhs) const {
     unsigned int i = 0;
     // if all equal; rhs[i] = rhs.last
-    while (lhs.state_m[i] == rhs.state_m[i] && i < rhs.state_m.size()-1) {
+    while (i < rhs.state_m.size()-1 && lhs.state_m[i] == rhs.state_m[i]) {
         i++; 
     }
     return (lhs[i] > rhs[i]);
