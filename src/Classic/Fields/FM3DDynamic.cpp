@@ -21,7 +21,8 @@ FM3DDynamic::FM3DDynamic(std::string aFilename):
     FieldstrengthEy_m(NULL),
     FieldstrengthBz_m(NULL),
     FieldstrengthBx_m(NULL),
-    FieldstrengthBy_m(NULL) {
+    FieldstrengthBy_m(NULL)
+{
 
     std::string tmpString;
     double tmpDouble;
@@ -30,7 +31,22 @@ FM3DDynamic::FM3DDynamic(std::string aFilename):
     ifstream file(Filename_m.c_str());
 
     if(file.good()) {
-        bool parsing_passed = interpreteLine<std::string>(file, tmpString);
+        bool parsing_passed = true;
+        try {
+            parsing_passed = interpreteLine<std::string>(file, tmpString);
+        } catch (GeneralClassicException &e) {
+            parsing_passed = interpreteLine<std::string, std::string>(file, tmpString, tmpString);
+
+            tmpString = Util::toUpper(tmpString);
+            if (tmpString != "TRUE" &&
+                tmpString != "FALSE")
+                throw GeneralClassicException("FM3DDynamic::FM3DDynamic",
+                                              "The second string on the first line of 3D field "
+                                              "maps has to be either TRUE or FALSE");
+
+            normalize_m = (tmpString == "TRUE");
+        }
+
         parsing_passed = parsing_passed &&
                          interpreteLine<double>(file, frequency_m);
         parsing_passed = parsing_passed &&
@@ -96,22 +112,21 @@ void FM3DDynamic::readMap() {
     if(FieldstrengthEz_m == NULL) {
 
         ifstream in(Filename_m.c_str());
-        int tmpInt;
         std::string tmpString;
-        double tmpDouble, Ezmax = 0.0;
+        const size_t totalSize = num_gridpx_m * num_gridpy_m * num_gridpz_m;
 
-        interpreteLine<std::string>(in, tmpString);
-        interpreteLine<double>(in, tmpDouble);
-        interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
-        interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
-        interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
+        getLine(in, tmpString);
+        getLine(in, tmpString);
+        getLine(in, tmpString);
+        getLine(in, tmpString);
+        getLine(in, tmpString);
 
-        FieldstrengthEz_m = new double[num_gridpz_m * num_gridpx_m * num_gridpy_m];
-        FieldstrengthEx_m = new double[num_gridpz_m * num_gridpx_m * num_gridpy_m];
-        FieldstrengthEy_m = new double[num_gridpz_m * num_gridpx_m * num_gridpy_m];
-        FieldstrengthBz_m = new double[num_gridpz_m * num_gridpx_m * num_gridpy_m];
-        FieldstrengthBx_m = new double[num_gridpz_m * num_gridpx_m * num_gridpy_m];
-        FieldstrengthBy_m = new double[num_gridpz_m * num_gridpx_m * num_gridpy_m];
+        FieldstrengthEz_m = new double[totalSize];
+        FieldstrengthEx_m = new double[totalSize];
+        FieldstrengthEy_m = new double[totalSize];
+        FieldstrengthBz_m = new double[totalSize];
+        FieldstrengthBx_m = new double[totalSize];
+        FieldstrengthBy_m = new double[totalSize];
 
         long ii = 0;
         for(unsigned int i = 0; i < num_gridpx_m; ++ i) {
@@ -130,37 +145,43 @@ void FM3DDynamic::readMap() {
         }
         in.close();
 
-        int index_x = static_cast<int>(ceil(-xbegin_m / hx_m));
-        double lever_x = index_x * hx_m + xbegin_m;
-        if(lever_x > 0.5) {
-            -- index_x;
-        }
-
-        int index_y = static_cast<int>(ceil(-ybegin_m / hy_m));
-        double lever_y = index_y * hy_m + ybegin_m;
-        if(lever_y > 0.5) {
-            -- index_y;
-        }
-
         const unsigned int deltaX = num_gridpy_m * num_gridpz_m;
         const unsigned int deltaY = num_gridpz_m;
+        double Ezmax = 0.0;
 
-        ii = index_x * deltaX + index_y * deltaY;
-        for(unsigned int i = 0; i < num_gridpz_m; i++) {
-            if(std::abs(FieldstrengthEz_m[ii]) > Ezmax) {
-                Ezmax = std::abs(FieldstrengthEz_m[ii]);
+        if (normalize_m) {
+            int index_x = static_cast<int>(ceil(-xbegin_m / hx_m));
+            double lever_x = index_x * hx_m + xbegin_m;
+            if(lever_x > 0.5) {
+                -- index_x;
             }
-            ++ ii;
+
+            int index_y = static_cast<int>(ceil(-ybegin_m / hy_m));
+            double lever_y = index_y * hy_m + ybegin_m;
+            if(lever_y > 0.5) {
+                -- index_y;
+            }
+
+
+            ii = index_x * deltaX + index_y * deltaY;
+            for(unsigned int i = 0; i < num_gridpz_m; i++) {
+                if(std::abs(FieldstrengthEz_m[ii]) > Ezmax) {
+                    Ezmax = std::abs(FieldstrengthEz_m[ii]);
+                }
+                ++ ii;
+            }
+        } else {
+            Ezmax = 1.0;
         }
 
-        for(unsigned long i = 0; i < num_gridpx_m * num_gridpy_m * num_gridpz_m; i++) {
+        for(unsigned long i = 0; i < totalSize; ++ i) {
 
-            FieldstrengthEz_m[i] *= 1e6 / Ezmax;
             FieldstrengthEx_m[i] *= 1e6 / Ezmax;
             FieldstrengthEy_m[i] *= 1e6 / Ezmax;
-            FieldstrengthBz_m[i] *= Physics::mu_0 / Ezmax;
+            FieldstrengthEz_m[i] *= 1e6 / Ezmax;
             FieldstrengthBx_m[i] *= Physics::mu_0 / Ezmax;
             FieldstrengthBy_m[i] *= Physics::mu_0 / Ezmax;
+            FieldstrengthBz_m[i] *= Physics::mu_0 / Ezmax;
         }
 
         INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"

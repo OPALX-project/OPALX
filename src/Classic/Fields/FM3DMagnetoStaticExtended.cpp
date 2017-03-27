@@ -1,9 +1,11 @@
 #include "Fields/FM3DMagnetoStaticExtended.h"
 #include "Fields/Fieldmap.hpp"
 #include "Utilities/GeneralClassicException.h"
+#include "Utilities/Util.h"
 
 #include <fstream>
 #include <ios>
+#include <algorithm>
 
 extern Inform *gmsg;
 
@@ -21,7 +23,21 @@ FM3DMagnetoStaticExtended::FM3DMagnetoStaticExtended(std::string aFilename):
     // open field map, parse it and disable element on error
     file.open(Filename_m.c_str());
     if(file.good()) {
-        bool parsing_passed = interpreteLine<std::string>(file, tmpString);
+        bool parsing_passed = true;
+        try {
+            parsing_passed = interpreteLine<std::string>(file, tmpString);
+        } catch (GeneralClassicException &e) {
+            parsing_passed = interpreteLine<std::string, std::string>(file, tmpString, tmpString);
+
+            tmpString = Util::toUpper(tmpString);
+            if (tmpString != "TRUE" &&
+                tmpString != "FALSE")
+                throw GeneralClassicException("FM3DMagnetoStaticExtended::FM3DMagnetoStaticExtended",
+                                              "The second string on the first line of 3D field "
+                                              "maps has to be either TRUE or FALSE");
+
+            normalize_m = (tmpString == "TRUE");
+        }
         parsing_passed = (parsing_passed &&
                           interpreteLine<double, double, unsigned int>(file, xbegin_m, xend_m, num_gridpx_m));
         parsing_passed = (parsing_passed &&
@@ -77,20 +93,18 @@ void FM3DMagnetoStaticExtended::readMap() {
     if(FieldstrengthBz_m == NULL) {
         // declare variables and allocate memory
         std::ifstream in;
-        unsigned int tmpInt;
         std::string tmpString;
-        double tmpDouble, Bymax = 0.0;
-
-        FieldstrengthBx_m = new double[num_gridpx_m * num_gridpy_m * num_gridpz_m];
-        FieldstrengthBy_m = new double[num_gridpx_m * num_gridpy_m * num_gridpz_m];
-        FieldstrengthBz_m = new double[num_gridpx_m * num_gridpy_m * num_gridpz_m];
+        const size_t totalSize = num_gridpx_m * num_gridpy_m * num_gridpz_m;
+        FieldstrengthBx_m = new double[totalSize];
+        FieldstrengthBy_m = new double[totalSize];
+        FieldstrengthBz_m = new double[totalSize];
 
         // read in and parse field map
         in.open(Filename_m.c_str());
-        interpreteLine<std::string>(in, tmpString);
-        interpreteLine<double, double, unsigned int>(in, tmpDouble, tmpDouble, tmpInt);
-        interpreteLine<double, double, unsigned int>(in, tmpDouble, tmpDouble, tmpInt);
-        interpreteLine<double, double, unsigned int>(in, tmpDouble, tmpDouble, tmpInt);
+        getLine(in, tmpString);
+        getLine(in, tmpString);
+        getLine(in, tmpString);
+        getLine(in, tmpString);
 
         for(unsigned int i = 0; i < num_gridpx_m; i++) {
             for(unsigned int k = 0; k < num_gridpz_m; k++) {
@@ -100,22 +114,27 @@ void FM3DMagnetoStaticExtended::readMap() {
         }
         in.close();
 
-        // find maximum field
-        unsigned int centerX = static_cast<unsigned int>(std::floor(-xbegin_m / hx_m + 0.5));
-        for(unsigned int k = 0; k < num_gridpz_m; ++ k) {
-            double By = FieldstrengthBy_m[getIndex(centerX, 0, k)];
-            if(std::abs(By) > std::abs(Bymax)) {
-                Bymax = By;
-            }
-        }
+        std::fill(FieldstrengthBx_m, FieldstrengthBx_m + totalSize, 0.0);
+        std::fill(FieldstrengthBz_m, FieldstrengthBz_m + totalSize, 0.0);
 
-        // normalize field
-        for(unsigned int i = 0; i < num_gridpx_m; i ++) {
-            for(unsigned int k = 0; k < num_gridpz_m; k ++) {
-                unsigned long index = getIndex(i,0,k);
-                FieldstrengthBx_m[index] = 0.0;
-                FieldstrengthBy_m[index] /= Bymax;
-                FieldstrengthBz_m[index] = 0.0;
+        if (normalize_m) {
+            double Bymax = 0.0;
+
+            // find maximum field
+            unsigned int centerX = static_cast<unsigned int>(std::floor(-xbegin_m / hx_m + 0.5));
+            for(unsigned int k = 0; k < num_gridpz_m; ++ k) {
+                double By = FieldstrengthBy_m[getIndex(centerX, 0, k)];
+                if(std::abs(By) > std::abs(Bymax)) {
+                    Bymax = By;
+                }
+            }
+
+            // normalize field
+            for(unsigned int i = 0; i < num_gridpx_m; i ++) {
+                for(unsigned int k = 0; k < num_gridpz_m; k ++) {
+                    unsigned long index = getIndex(i,0,k);
+                    FieldstrengthBy_m[index] /= Bymax;
+                }
             }
         }
 
