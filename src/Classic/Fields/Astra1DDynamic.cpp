@@ -2,6 +2,7 @@
 #include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
+#include "Utilities/Util.h"
 
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
@@ -29,8 +30,28 @@ Astra1DDynamic::Astra1DDynamic(std::string aFilename):
 
     // open field map, parse it and disable element on error
     file.open(Filename_m.c_str());
-    if(file.good()) {
-        bool parsing_passed = interpreteLine<std::string, int>(file, tmpString, accuracy_m);
+    if (file.good()) {
+        bool parsing_passed = true;
+        try {
+            parsing_passed = interpreteLine<std::string, int>(file,
+                                                              tmpString,
+                                                              accuracy_m);
+        } catch (GeneralClassicException &e) {
+            parsing_passed = interpreteLine<std::string, int, std::string>(file,
+                                                                           tmpString,
+                                                                           accuracy_m,
+                                                                           tmpString);
+
+            tmpString = Util::toUpper(tmpString);
+            if (tmpString != "TRUE" &&
+                tmpString != "FALSE")
+                throw GeneralClassicException("Astra1DDynamic::Astra1DDynamic",
+                                              "The third string on the first line of 1D field "
+                                              "maps has to be either TRUE or FALSE");
+
+            normalize_m = (tmpString == "TRUE");
+        }
+
         parsing_passed = parsing_passed &&
                          interpreteLine<double>(file, frequency_m);
         parsing_passed = parsing_passed &&
@@ -39,9 +60,9 @@ Astra1DDynamic::Astra1DDynamic(std::string aFilename):
         tmpDouble2 = zbegin_m;
         while(!file.eof() && parsing_passed) {
             parsing_passed = interpreteLine<double, double>(file, zend_m, tmpDouble, false);
-            if(zend_m - tmpDouble2 > 1e-10) {
+            if (zend_m - tmpDouble2 > 1e-10) {
                 tmpDouble2 = zend_m;
-            } else if(parsing_passed) {
+            } else if (parsing_passed) {
                 ++ skippedValues;
             }
         }
@@ -49,7 +70,7 @@ Astra1DDynamic::Astra1DDynamic(std::string aFilename):
         num_gridpz_m = lines_read_m - 3 - skippedValues;
         lines_read_m = 0;
 
-        if(!parsing_passed && !file.eof()) {
+        if (!parsing_passed && !file.eof()) {
             disableFieldmapWarning();
             zend_m = zbegin_m - 1e-3;
             throw GeneralClassicException("Astra1DDynamic::Astra1DDynamic",
@@ -73,13 +94,11 @@ Astra1DDynamic::~Astra1DDynamic() {
 }
 
 void Astra1DDynamic::readMap() {
-    if(FourCoefs_m == NULL) {
+    if (FourCoefs_m == NULL) {
         // declare variables and allocate memory
         ifstream in;
 
         bool parsing_passed = true;
-
-        int tmpInt;
 
         std::string tmpString;
 
@@ -100,17 +119,17 @@ void Astra1DDynamic::readMap() {
 
         // read in and parse field map
         in.open(Filename_m.c_str());
-        interpreteLine<std::string, int>(in, tmpString, tmpInt);
-        interpreteLine<double>(in, tmpDouble);
+        getLine(in, tmpString);
+        getLine(in, tmpString);
 
         tmpDouble = zbegin_m - dz;
-        for(int i = 0; i < num_gridpz_m && parsing_passed; /* skip increment of i here */) {
+        for (int i = 0; i < num_gridpz_m && parsing_passed; /* skip increment of i here */) {
             parsing_passed = interpreteLine<double, double>(in, zvals[i], RealValues[i]);
             // the sequence of z-position should be strictly increasing
             // drop sampling points that don't comply to this
-            if(zvals[i] - tmpDouble > 1e-10) {
-                if(fabs(RealValues[i]) > Ez_max) {
-                    Ez_max = fabs(RealValues[i]);
+            if (zvals[i] - tmpDouble > 1e-10) {
+                if (std::abs(RealValues[i]) > Ez_max) {
+                    Ez_max = std::abs(RealValues[i]);
                 }
                 tmpDouble = zvals[i];
                 ++ i; // increment i only if sampling point is accepted
@@ -123,23 +142,27 @@ void Astra1DDynamic::readMap() {
         // get equidistant sampling from the, possibly, non-equidistant sampling
         // using cubic spline for this
         int ii = num_gridpz_m;
-        for(int i = 0; i < num_gridpz_m - 1; ++ i, ++ ii) {
+        for (int i = 0; i < num_gridpz_m - 1; ++ i, ++ ii) {
             double z = zbegin_m + dz * i;
             RealValues[ii] = gsl_spline_eval(Ez_interpolant, z, Ez_accel);
         }
         RealValues[ii ++] = RealValues[num_gridpz_m - 1];
         // prepend mirror sampling points such that field values are periodic for sure
         -- ii; // ii == 2*num_gridpz_m at the moment
-        for(int i = 0; i < num_gridpz_m; ++ i, -- ii) {
+        for (int i = 0; i < num_gridpz_m; ++ i, -- ii) {
             RealValues[i] = RealValues[ii];
         }
 
         gsl_fft_real_transform(RealValues, 1, 2 * num_gridpz_m, real, work);
 
+        if (!normalize_m) {
+            Ez_max = 1.0;
+        }
+
         // normalize to Ez_max = 1 MV/m
-        FourCoefs_m[0] = 1.e6 * RealValues[0] / (Ez_max * 2. * num_gridpz_m); // factor 1e6 due to conversion MV/m to V/m
-        for(int i = 1; i < 2 * accuracy_m - 1; i++) {
-            FourCoefs_m[i] = 1.e6 * RealValues[i] / (Ez_max * num_gridpz_m);
+        FourCoefs_m[0] = 1.0e6 * RealValues[0] / (Ez_max * 2. * num_gridpz_m); // factor 1e6 due to conversion MV/m to V/m
+        for (int i = 1; i < 2 * accuracy_m - 1; ++ i) {
+            FourCoefs_m[i] = 1.0e6 * RealValues[i] / (Ez_max * num_gridpz_m);
         }
 
         gsl_spline_free(Ez_interpolant);
@@ -156,7 +179,7 @@ void Astra1DDynamic::readMap() {
 }
 
 void Astra1DDynamic::freeMap() {
-    if(FourCoefs_m != NULL) {
+    if (FourCoefs_m != NULL) {
         delete[] FourCoefs_m;
         FourCoefs_m = NULL;
 
@@ -179,7 +202,7 @@ bool Astra1DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &
     double sinkzl;
 
     int n = 1;
-    for(int l = 1; l < accuracy_m ; l++, n += 2) {
+    for (int l = 1; l < accuracy_m ; ++ l, n += 2) {
         somefactor_base = two_pi / length_m * l;       // = \frac{d(kz*l)}{dz}
         somefactor = 1.0;
         coskzl = cos(kz * l);
@@ -213,7 +236,7 @@ bool Astra1DDynamic::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t
     double ezp = 0.0;
 
     int n = 1;
-    for(int l = 1; l < accuracy_m; l++, n += 2)
+    for (int l = 1; l < accuracy_m; ++ l, n += 2)
         ezp += two_pi / length_m * l * (-FourCoefs_m[n] * sin(kz * l) - FourCoefs_m[n + 1] * cos(kz * l));
 
     E(2) +=  ezp;
@@ -254,15 +277,15 @@ void Astra1DDynamic::getOnaxisEz(vector<pair<double, double> > & F) {
     interpreteLine<std::string, int>(in, tmpString, tmpInt);
     interpreteLine<double>(in, tmpDouble);
 
-    for(int i = 0; i < num_gridpz_m; ++ i) {
+    for (int i = 0; i < num_gridpz_m; ++ i) {
         interpreteLine<double, double>(in, F[i].first, F[i].second);
-        if(fabs(F[i].second) > Ez_max) {
-            Ez_max = fabs(F[i].second);
+        if (std::abs(F[i].second) > Ez_max) {
+            Ez_max = std::abs(F[i].second);
         }
     }
     in.close();
 
-    for(int i = 0; i < num_gridpz_m; ++ i) {
+    for (int i = 0; i < num_gridpz_m; ++ i) {
         F[i].second /= Ez_max;
     }
 }

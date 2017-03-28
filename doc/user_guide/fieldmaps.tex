@@ -30,6 +30,10 @@ The following examples will break the parsing of the field maps:
 0.0 2.0 199
 \end{example}
 
+\section{Normalization}
+\index{Field Map!Normalization}
+All field maps that are in ASCII are normalized with the maximum absolute value of the longitudinal field on the axis. The only exceptions is the type 1DProfile1. This behavior can be disabled by adding \keyword{FALSE} at the end of the first line of the field map.
+
 \section{Field Map Warnings and Errors}
 \index{Field Map!Warnings}
 \index{Field Map!Errors}
@@ -321,7 +325,7 @@ structure of unknown origin, but presumably due to errors in the Superfish~\cite
     \begin{center}
     \begin{tabular}{lll}
       \hline
-      1DMagnetoStatic & $N_{Fourier}$ & \\
+      1DMagnetoStatic & $N_{Fourier}$ & TRUE | FALSE (optional) \\
       $z_{start}$ (in cm) & $z_{end}$ (in cm) & $N_{z}$ \\
       $r_{start}$ (in cm) & $r_{end}$ (in cm) & $N_{r}$ \\
       $B_{z,\,1}$ (T) & & \\
@@ -394,15 +398,15 @@ AstraMagnetostatic 40
     \caption{Layout of an \texttt{AstraMagnetoStatic} field map file.}
     \label{tab:AstraMagnetoStatic}
     \begin{center}
-    \begin{tabular}{ll}
+    \begin{tabular}{lll}
       \hline
-      AstraMagnetoStatic & $N_{Fourier}$ \\
-      $z_{1}$ (in meters) & $B_{z,\,1}$ (T) \\
-      $z_{2}$ (in meters) & $B_{z,\,s}$ (T) \\
-      . & \\
-      . & \\
-      . & \\
-      $z_{N}$ (in meters) & $B_{z,\,N}$ (T) \\
+      AstraMagnetoStatic & $N_{Fourier}$ & TRUE | FALSE (optional) \\
+      $z_{1}$ (in meters) & $B_{z,\,1}$ (T) & \\
+      $z_{2}$ (in meters) & $B_{z,\,s}$ (T) & \\
+      . & & \\
+      . & & \\
+      . & & \\
+      $z_{N}$ (in meters) & $B_{z,\,N}$ (T) & \\
       \hline
     \end{tabular}
     \end{center}
@@ -461,7 +465,7 @@ are calculated, of which only $N_{Fourier}$ are used when finding field values d
     \begin{center}
     \begin{tabular}{lll}
       \hline
-      1DDynamic & $N_{Fourier}$ & \\
+      1DDynamic & $N_{Fourier}$ & TRUE | FALSE (optional) \\
       $z_{start}$ (in cm) & $z_{end}$ (in cm) & $N_{z}$ \\
       $Frequency$ (in MHz)& & \\
       $r_{start}$ (in cm) & $r_{end}$ (in cm) & $N_{r}$ \\
@@ -534,16 +538,16 @@ AstraDynamic 40
     \caption{Layout of an \texttt{AstraDynamic} field map file.}
     \label{tab:AstraDynamic}
     \begin{center}
-    \begin{tabular}{ll}
+    \begin{tabular}{lll}
       \hline
-      AstraMagnetoStatic & $N_{Fourier}$ \\
-      $Frequency$ (in MHz) & \\
-      $z_{1}$ (in meters) & $E_{z,\,1}$ (MV/m) \\
-      $z_{2}$ (in meters) & $E_{z,\,s}$ (MV/m) \\
-      . & \\
-      . & \\
-      . & \\
-      $z_{N}$ (in meters) & $E_{z,\,N}$ (MV/m) \\
+      AstraMagnetoStatic & $N_{Fourier}$ & TRUE | FALSE (optional) \\
+      $Frequency$ (in MHz) & & \\
+      $z_{1}$ (in meters) & $E_{z,\,1}$ (MV/m) & \\
+      $z_{2}$ (in meters) & $E_{z,\,s}$ (MV/m) & \\
+      . & & \\
+      . & & \\
+      . & & \\
+      $z_{N}$ (in meters) & $E_{z,\,N}$ (MV/m) & \\
       \hline
     \end{tabular}
     \end{center}
@@ -948,7 +952,7 @@ The \texttt{1DProfile1 Type 2} field map file format has two main advantages:
     \begin{center}
     \begin{tabular}{lll}
       \hline
-      2DElectroStatic & Orientation (XZ or ZX) & \\
+      2DElectroStatic & Orientation (XZ or ZX) & TRUE | FALSE (optional) \\
       $z_{start}$ (or $r_{start}$) (in cm) & $z_{end}$ (or $r_{end}$) (in cm) & $N_{z}$ (or $N_{r}$) \\
       $r_{start}$ (or $z_{start}$) (in cm) & $r_{end}$ (or $z_{end}$) (in cm) & $N_{r}$ (or $N_{z}$) \\
       $E_{z,\,1}$ (or $E_{r,\,1}$) (MV/m) & $E_{r,\,1}$ (or $E_{z,\,1}$) (MV/m)& \\
@@ -1020,7 +1024,7 @@ The order of these depend on the field orientation \seesec{fieldorientation} and
     \begin{center}
     \begin{tabular}{lll}
       \hline
-      2DMagnetoStatic & Orientation (XZ or ZX) & \\
+      2DMagnetoStatic & Orientation (XZ or ZX) & TRUE | FALSE (optional) \\
       $z_{start}$ (or $r_{start}$) (in cm) & $z_{end}$ (or $r_{end}$) (in cm) & $N_{z}$ (or $N_{r}$) \\
       $r_{start}$ (or $z_{start}$) (in cm) & $r_{end}$ (or $z_{end}$) (in cm) & $N_{r}$ (or $N_{z}$) \\
       $B_{z,\,1}$ (or $B_{r,\,1}$) (T) & $B_{r,\,1}$ (or $B_{z,\,1}$) (T)& \\
@@ -1096,7 +1100,7 @@ The order of these depend on the field orientation \seesec{fieldorientation} and
     \begin{center}
     \begin{tabular}{llll}
       \hline
-      2DDynamic & Orientation (XZ or ZX) & & \\
+      2DDynamic & Orientation (XZ or ZX) & TRUE | FALSE (optional) & \\
       $z_{start}$ (or $r_{start}$) (in cm) & $z_{end}$ (or $r_{end}$) (in cm) & $N_{z}$ (or $N_{r}$)& \\
       $Frequency$ (in MHz) & & & \\
       $r_{start}$ (or $z_{start}$) (in cm) & $r_{end}$ (or $z_{end}$) (in cm) & $N_{r}$ (or $N_{z}$)& \\
@@ -1169,7 +1173,7 @@ The third item (the field magnitude) on each data line is not used by \opalt, bu
     \begin{center}
     \begin{tabular}{llllll}
       \hline
-      3DMagnetoStatic     &                   &                   \\
+      3DMagnetoStatic     & TRUE | FALSE (optional) &                   \\
       $x_{start}$ (in cm) & $x_{end}$ (in cm) & $N_{x}$           \\
       $y_{start}$ (in cm) & $y_{end}$ (in cm) & $N_{y}$           \\
       $z_{start}$ (in cm) & $z_{end}$ (in cm) & $N_{z}$           \\
@@ -1231,7 +1235,7 @@ The lines following the header give the 3D field map grid values from $1$ to $N=
     \begin{center}
     \begin{tabular}{lll}
       \hline
-      \multicolumn{2}{l}{3DMagnetoStatic\_Extended}  &           \\
+      \multicolumn{2}{l}{3DMagnetoStatic\_Extended}  &  TRUE | FALSE (optional)  \\
       $x_{start}$ (in cm)       & $x_{end}$ (in cm)  & $N_{x}$   \\
       $y_{start}$ (in cm)       & $y_{end}$ (in cm)  & $N_{y}$   \\
       $z_{start}$ (in cm)       & $z_{end}$ (in cm)  & $N_{z}$   \\
@@ -1270,7 +1274,7 @@ format shown in \tabref{3DMagnetoStatic_Extended}.
   \begin{fmpage}
 \begin{verbatim}
 3DDynamic
-1498.953425154
+1498.9534
 -1.5 1.5 227
 -1.0 1.0 151
 -3.0 51.0 4121
@@ -1283,12 +1287,12 @@ format shown in \tabref{3DMagnetoStatic_Extended}.
 2.18e-05 0.00e+00 2.18e-05 0.00e+00 2.18e-05 0.00e+00
 \end{verbatim}
   \end{fmpage}
-  \caption[Example of a 3DDynamic field map]{A 3D field map describing a dynamic field oscillating with \SI{1.498953425154}{\giga\hertz}.
+  \caption[Example of a 3DDynamic field map]{A 3D field map describing a dynamic field oscillating with \SI{1.4989534}{\giga\hertz}.
     The field map provides 4122 grid points in z-direction times 228 grid points in x-direction and 152 grid points in y-direction.
     The field between the grid points is calculated with a tri-linear interpolation. The field is non-negligible between \SI{-3.0}{\centi\meter}
     to \SI{51.0}{\centi\meter} relative to \keyword{ELEMEDGE}, the 228 grid points in x-direction range from \SI{-1.5}{\centi\meter} to \SI{1.5}{\centi\meter} and the 152 grid
     points in y-direction range from \SI{-1.0}{\centi\meter} to \SI{1.0}{\centi\meter} relative to the design path. The field values are ordered such that the index in z-direction changes fastest, then the index in y-direction while the index in x-direction changes
-    slowest. The columns correspond to $E_x$, $E_y$, $E_z$, $H_x$, $H_y$ and $H_z$.}
+    slowest. The columns correspond to $E_x$, $E_y$, $E_z$, $H_x$, $H_y$ and $H_z$. \opalt normalizes the field so that $max(|E_{z,\text{ on axis}}|) = \SI{1}{\mega\volt\per\meter}$.}
   \label{fig:3DDynamic}
 \end{figure}
 
@@ -1298,7 +1302,7 @@ format shown in \tabref{3DMagnetoStatic_Extended}.
     \begin{center}
     \begin{tabular}{llllll}
       \hline
-      3DDynamic            &                    &                    &                   &                   &                   \\
+      3DDynamic            & TRUE | FALSE (optional) &                 &                   &                   &                   \\
       $Frequency$ (in MHz) &                    &                    &                   &                   &                   \\
       $x_{start}$ (in cm)  & $x_{end}$ (in cm)  & $N_{x}$            &                   &                   &                   \\
       $y_{start}$ (in cm)  & $y_{end}$ (in cm)  & $N_{y}$            &                   &                   &                   \\

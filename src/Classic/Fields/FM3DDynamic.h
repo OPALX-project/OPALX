@@ -49,7 +49,7 @@ private:
     unsigned int num_gridpy_m;              /**< Read in number of points after 0(not counted here) in grid, r-direction*/
     unsigned int num_gridpz_m;              /**< Read in number of points after 0(not counted here) in grid, z-direction*/
 
-    bool swap_m;
+    bool normalize_m;
     friend class Fieldmap;
 };
 

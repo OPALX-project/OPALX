@@ -29,14 +29,13 @@ private:
     virtual void freeMap();
 
     bool checkFileData(std::ifstream &fieldFile, bool parsingPassed);
-    void computeFieldDerivatives(int accuracy, std::vector<double> fourierCoefs,
+    void computeFieldDerivatives(std::vector<double> fourierCoefs,
                                  double onAxisFieldP[], double onAxisFieldPP[],
                                  double onAxisFieldPPP[]);
     void computeFieldOffAxis(const Vector_t &R, Vector_t &E, Vector_t &B,
                              std::vector<double> fieldComponents) const;
     void computeFieldOnAxis(double z, std::vector<double> &fieldComponents) const;
-    std::vector<double> computeFourierCoefficients(int accuracy,
-                                                   double fieldData[]);
+    std::vector<double> computeFourierCoefficients(double fieldData[]);
     void computeInterpolationVectors(double onAxisFieldP[],
                                      double onAxisFieldPP[],
                                      double onAxisFieldPPP[]);
@@ -47,9 +46,9 @@ private:
                         std::vector<std::pair<double, double>> &eZ);
     bool readFileHeader(std::ifstream &fieldFile);
     void scaleField(double maxEz, std::vector<std::pair<double, double>> &eZ);
-    int stripFileHeader(std::ifstream &fieldFile);
+    void stripFileHeader(std::ifstream &fieldFile);
 
-    void prepareForMapCheck(unsigned int accuracy, std::vector<double> &fourierCoefs);
+    void prepareForMapCheck(std::vector<double> &fourierCoefs);
 
     double frequency_m;                     /// Field angular frequency (Hz).
     double twoPiOverLambdaSq_m;             /// 2 Pi divided by the field RF wavelength squared.
@@ -59,8 +58,9 @@ private:
     double zBegin_m;                        /// Longitudinal start of field.
     double zEnd_m;                          /// Longitudinal end of field.
     double length_m;                        /// Field length.
-    int numberOfGridPoints_m;               /// Number of grid points in field input file.
+    unsigned int numberOfGridPoints_m;      /// Number of grid points in field input file.
     double deltaZ_m;                        /// Field grid point spacing.
+    unsigned int accuracy_m;
 
     double* onAxisField_m;                      /// On axis field data.
     gsl_spline *onAxisFieldInterpolants_m;      /// On axis field interpolation structure.
