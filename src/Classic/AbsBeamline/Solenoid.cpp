@@ -194,7 +194,6 @@ bool Solenoid::applyToReferenceParticle(const Vector_t &R, const Vector_t &P, co
 
 void Solenoid::initialise(PartBunch *bunch, double &startField, double &endField) {
     Inform msg("Solenoid ", *gmsg);
-    double zBegin = 0.0, zEnd = 0.0, rBegin = 0.0, rEnd = 0.0;
 
     RefPartBunch_m = bunch;
 
@@ -204,6 +203,7 @@ void Solenoid::initialise(PartBunch *bunch, double &startField, double &endField
         msg << level2 << getName() << " using file ";
         myFieldmap_m->getInfo(&msg);
 
+        double zBegin = 0.0, zEnd = 0.0, rBegin = 0.0, rEnd = 0.0;
         myFieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
 
         startField_m = zBegin;

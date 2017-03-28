@@ -1535,13 +1535,13 @@ Change orientation if diff is:
                 bg->maxExtent_m[2] * (1.1 + gsl_rng_uniform(bg->randGen_m)));
 
             std::vector<Vector_t> intersection_points;
-            int num_intersections = 0;
+            //int num_intersections = 0;
 
             for (int triangle_id = 0; triangle_id < bg->numTriangles_m; triangle_id++) {
                 Vector_t result;
                 if (bg->intersectLineTriangle (SEGMENT, x, y, triangle_id, result)) {
                     intersection_points.push_back (result);
-                    num_intersections++;
+                    //num_intersections++;
                 }
             }
             IpplTimings::stopTimer (bg->TisInside_m);
@@ -1659,7 +1659,7 @@ Change orientation if diff is:
             do {
                 parts++;
                 makeTriangleNormalInwardPointingSubMesh (bg, triangle_id);
-                while (bg->isOriented_m[triangle_id] && (triangle_id < bg->numTriangles_m))
+                while ((triangle_id < bg->numTriangles_m) && bg->isOriented_m[triangle_id])
                     triangle_id++;
             } while (triangle_id < bg->numTriangles_m);
 
@@ -2446,9 +2446,9 @@ void BoundaryGeometry::createPriPart (
     OpalBeamline& itsOpalBeamline,
     PartBunch* itsBunch
     ) {
+    int tag = 1001;
+    int Parent = 0;
     if (Options::ppdebug) {
-        int tag = 1001;
-        int Parent = 0;
         if (Ippl::myNode () == 0) {
             Vector_t len = maxExtent_m - minExtent_m;
             /* limit the initial particle in the center of the lower
@@ -2551,8 +2551,6 @@ void BoundaryGeometry::createPriPart (
             }
         }
     } else {
-        int tag = 1001;
-        int Parent = 0;
         if (Ippl::myNode () == 0) {
             for (size_t i = 0; i < n; i++) {
                 short BGtag = BGphysics::Absorption;

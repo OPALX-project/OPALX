@@ -30,8 +30,8 @@
 #include <limits>
 
 #include "AbsBeamline/Ring.h"
-
 #include "Attributes/Attributes.h"
+#include "Physics/Physics.h"
 
 OpalRingDefinition::OpalRingDefinition() :
     OpalElement(SIZE, "RINGDEFINITION",

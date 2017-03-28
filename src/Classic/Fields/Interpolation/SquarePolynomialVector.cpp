@@ -187,7 +187,7 @@ std::vector<int> SquarePolynomialVector::IndexByVector(int index, int point_dim)
     if (index < int(_polyKeyByVector[point_dim-1].size()))
         return _polyKeyByVector[point_dim-1][index];
     // make sure _polyKeyByPower is big enough
-    std::vector<int> index_by_power = IndexByPower(index, point_dim);
+    IndexByPower(index, point_dim);
     // update _polyKeyByVector with values from _polyKeyByPower
     for (size_t i = _polyKeyByVector[point_dim-1].size(); i < _polyKeyByPower[point_dim-1].size(); ++i) {
         _polyKeyByVector[point_dim-1].push_back(std::vector<int>());

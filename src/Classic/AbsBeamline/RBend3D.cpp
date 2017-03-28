@@ -124,7 +124,6 @@ bool RBend3D::applyToReferenceParticle(const Vector_t &R, const Vector_t &P, con
 
 void RBend3D::initialise(PartBunch *bunch, double &startField, double &endField) {
     Inform msg("RBend3D ", *gmsg);
-    double zBegin = 0.0, zEnd = 0.0, rBegin = 0.0, rEnd = 0.0;
 
     RefPartBunch_m = bunch;
 
@@ -134,6 +133,7 @@ void RBend3D::initialise(PartBunch *bunch, double &startField, double &endField)
         myFieldmap_m->getInfo(&msg);
         goOnline(0.0);
 
+        double zBegin = 0.0, zEnd = 0.0, rBegin = 0.0, rEnd = 0.0;
         myFieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
 
         if (length_m == 0.0) {
