@@ -2,6 +2,7 @@
 #include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
+#include "Utilities/Util.h"
 
 #include <fstream>
 #include <ios>
@@ -25,7 +26,22 @@ FM2DDynamic::FM2DDynamic(std::string aFilename)
     // open field map, parse it and disable element on error
     file.open(Filename_m.c_str());
     if(file.good()) {
-        bool parsing_passed = interpreteLine<std::string, std::string>(file, tmpString, tmpString);
+        bool parsing_passed = true;
+        try {
+            parsing_passed = interpreteLine<std::string, std::string>(file, tmpString, tmpString);
+        } catch (GeneralClassicException &e) {
+            parsing_passed = interpreteLine<std::string, std::string, std::string>(file, tmpString, tmpString, tmpString);
+
+            tmpString = Util::toUpper(tmpString);
+            if (tmpString != "TRUE" &&
+                tmpString != "FALSE")
+                throw GeneralClassicException("FM2DDynamic::FM2DDynamic",
+                                              "The third string on the first line of 2D field "
+                                              "maps has to be either TRUE or FALSE");
+
+            normalize_m = (tmpString == "TRUE");
+        }
+
         if(tmpString == "ZX") {
             swap_m = true;
             parsing_passed = parsing_passed &&
@@ -97,7 +113,6 @@ void FM2DDynamic::readMap() {
     if(FieldstrengthEz_m == NULL) {
         // declare variables and allocate memory
         std::ifstream in;
-        int tmpInt;
         std::string tmpString;
         double tmpDouble, Ezmax = 0.0;
 
@@ -107,10 +122,10 @@ void FM2DDynamic::readMap() {
 
         // read in field map and parse it
         in.open(Filename_m.c_str());
-        interpreteLine<std::string, std::string>(in, tmpString, tmpString);
-        interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
-        interpreteLine<double>(in, tmpDouble);
-        interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
+        getLine(in, tmpString);
+        getLine(in, tmpString);
+        getLine(in, tmpString);
+        getLine(in, tmpString);
 
         if(swap_m) {
             for(int i = 0; i < num_gridpz_m; i++) {
@@ -137,11 +152,15 @@ void FM2DDynamic::readMap() {
         in.close();
 
 
-        // find maximum field
-        for(int i = 0; i < num_gridpz_m; ++ i) {
-            if(std::abs(FieldstrengthEz_m[i]) > Ezmax) {
-                Ezmax = std::abs(FieldstrengthEz_m[i]);
+        if (normalize_m) {
+            // find maximum field
+            for(int i = 0; i < num_gridpz_m; ++ i) {
+                if(std::abs(FieldstrengthEz_m[i]) > Ezmax) {
+                    Ezmax = std::abs(FieldstrengthEz_m[i]);
+                }
             }
+        } else {
+            Ezmax = 1.0;
         }
 
         for(int i = 0; i < num_gridpr_m * num_gridpz_m; i++) {

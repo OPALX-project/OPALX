@@ -98,6 +98,10 @@ public:
     virtual void getOnaxisEz(std::vector<std::pair<double, double> > & onaxis);
 
     virtual bool isInside(const Vector_t &r) const;
+
+    virtual void readMap() = 0;
+    virtual void freeMap() = 0;
+
 protected:
     Fieldmap(const std::string &aFilename);
     virtual ~Fieldmap() { ;};
@@ -106,6 +110,7 @@ protected:
     std::string Filename_m;
     int lines_read_m;
 
+    bool normalize_m;
     void getLine(std::ifstream &in, std::string &buffer);
     static void getLine(std::ifstream &in, int &lines_read, std::string &buffer);
     template<class S>
@@ -157,9 +162,6 @@ protected:
                       const std::vector<Vector_t> &ef,
                       const std::vector<Vector_t> &bf);
 
-public:
-    virtual void readMap() = 0;
-    virtual void freeMap() = 0;
 private:
     template<typename T>
     struct TypeParseTraits {
@@ -185,6 +187,18 @@ private:
     static std::map<std::string, FieldmapDescription> FieldmapDictionary;
 
 };
+
+inline Fieldmap::Fieldmap(const std::string & aFilename) :
+    Filename_m(aFilename),
+    lines_read_m(0),
+    normalize_m(true)
+{ }
+
+
+inline void Fieldmap::getLine(std::ifstream & in, std::string & buffer)
+{
+    getLine(in, lines_read_m, buffer);
+}
 
 inline bool Fieldmap::isInside(const Vector_t &r) const
 {
