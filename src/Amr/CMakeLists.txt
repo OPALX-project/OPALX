@@ -11,6 +11,8 @@ add_opal_sources(${_SRCS})
 set (HDRS
     AmrObject.h
     AmrBoxLib.h
+    BoxLibLayout.h
+    BoxLibLayout.hpp
 )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Amr")
