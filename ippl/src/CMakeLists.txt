@@ -135,6 +135,10 @@ ADD_SUBDIRECTORY (SubField)
 ADD_SUBDIRECTORY (SubParticle)
 ADD_SUBDIRECTORY (Utility)
 
+IF ( ENABLE_AMR_SOLVER )
+    ADD_SUBDIRECTORY(AmrParticle)
+ENDIF ( ENABLE_AMR_SOLVER )
+
 SET (MAKE_DEF
     ../test/Makefile.def
     )
