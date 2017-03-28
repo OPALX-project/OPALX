@@ -15,9 +15,24 @@ public:
     ParticleIndex_t grid;  // m_grid
     
 public:
+    AmrParticleBase();
+    
+    ~AmrParticleBase() {}
+    
+    // Update the particle object after a timestep.  This routine will change
+    // our local, total, create particle counts properly.
     void update();
     
+    
+    // Update the particle object after a timestep.  This routine will change
+    // our local, total, create particle counts properly.
     void update(const ParticleAttrib<char>& canSwap);
+    
+    // sort particles based on the grid and level that they belong to
+    void sort();
+    
+    // sort the particles given a sortlist
+    void sort(SortList_t &sortlist);
     
 private:
     IpplTimings::TimerRef AssignDensityTimer_m;
