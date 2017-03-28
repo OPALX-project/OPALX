@@ -1,12 +1,10 @@
 SET (_SRCS
-#     BoxLibLayout.cpp
     )
 
 SET (_HDRS
     ParticleAmrLayout.h
     AmrParticleBase.h
     AmrParticleBase.hpp
-#     BoxLibLayout.h
     )
 
 INCLUDE_DIRECTORIES (
