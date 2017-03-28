@@ -8,7 +8,6 @@
 #include "Algorithms/PartBunch.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Options.h"
-#include "Utilities/Options.h"
 #include "Physics/Physics.h"
 
 #include <boost/filesystem.hpp>

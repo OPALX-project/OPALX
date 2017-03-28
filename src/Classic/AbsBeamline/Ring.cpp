@@ -88,8 +88,7 @@ Ring::Ring(const Ring& ring)
 }
 
 Ring::~Ring() {
-    if (lossDS_m != NULL)
-        delete lossDS_m;
+    delete lossDS_m;
     for (size_t i = 0; i < section_list_m.size(); ++i)
         delete section_list_m[i];
 }
@@ -132,9 +131,7 @@ bool Ring::apply(const Vector_t &R, const Vector_t &P,
 }
 
 void Ring::setLossDataSink(LossDataSink* sink) {
-    if (lossDS_m != NULL) {
-        delete lossDS_m;
-    }
+    delete lossDS_m;
     lossDS_m = sink;
 }
 
