@@ -373,6 +373,10 @@ private:
 
     int LastVisited;
 
+    void initTrackOrbitFile();
+    void writeTrackOrbitFile(double spos);
+    std::ofstream outfTrackOrbit_m;
+
     // Fringe fields for entrance and exit of magnetic elements.
     void applyEntranceFringe(double edge, double curve,
                              const BMultipoleField &field, double scale);

@@ -217,6 +217,148 @@ ParallelTTracker::~ParallelTTracker() {
 
 }
 
+void ParallelTTracker::writeTrackOrbitFile(double spos) {
+
+    /// note this is needs to be changed adapting 
+    /// the OPAL-cyc idea 
+
+    int locIdofPart0 = -1;
+    int locIdofPart1 = -1;
+    int locIdofPart2 = -1;
+
+    int tag = Ippl::Comm->next_tag(IPPL_APP_TAG4, IPPL_APP_CYCLE);
+
+    /// find the particles
+    for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
+        if(itsBunch->ID[ii] == 0) 
+            locIdofPart0 = ii;
+        if(itsBunch->ID[ii] == 1) 
+            locIdofPart1 = ii;
+        if(itsBunch->ID[ii] == 2) 
+            locIdofPart2 = ii;        
+    }
+
+    if(Ippl::myNode() == 0) {
+        /// write my one particle first 
+        if (locIdofPart0 > 0)
+            outfTrackOrbit_m << "ID" << itsBunch->ID[locIdofPart0] << "\t "
+                             << spos << "\t "
+                             << itsBunch->R[locIdofPart0](0) << "\t "
+                             << itsBunch->R[locIdofPart0](1) << "\t "
+                             << itsBunch->R[locIdofPart0](2) << "\t "
+                             << itsBunch->P[locIdofPart0](0) << "\t "
+                             << itsBunch->P[locIdofPart0](1) << "\t "
+                             << itsBunch->P[locIdofPart0](2) << "\t "
+                             << std::endl;
+
+        if (locIdofPart1 > 0)
+            outfTrackOrbit_m << "ID" << itsBunch->ID[locIdofPart1] << "\t "
+                             << spos << "\t "
+                             << itsBunch->R[locIdofPart1](0) << "\t "
+                             << itsBunch->R[locIdofPart1](1) << "\t "
+                             << itsBunch->R[locIdofPart1](2) << "\t "
+                             << itsBunch->P[locIdofPart1](0) << "\t "
+                             << itsBunch->P[locIdofPart1](1) << "\t "
+                             << itsBunch->P[locIdofPart1](2) << "\t "
+                             << std::endl;
+
+        if (locIdofPart2 > 0)
+            outfTrackOrbit_m << "ID" << itsBunch->ID[locIdofPart2] << "\t "
+                             << spos << "\t "
+                             << itsBunch->R[locIdofPart2](0) << "\t "                            
+                             << itsBunch->R[locIdofPart2](1) << "\t "
+                             << itsBunch->R[locIdofPart2](2) << "\t "
+                             << itsBunch->P[locIdofPart2](0) << "\t "
+                             << itsBunch->P[locIdofPart2](1) << "\t "
+                             << itsBunch->P[locIdofPart2](2) << "\t "
+                             << std::endl;
+
+        int notReceived = Ippl::getNodes() - 1;
+        int dataBlocks = 0;    
+        Vector_t x,p;
+        size_t id;
+        while(notReceived > 0) {
+            int node = COMM_ANY_NODE;
+            std::unique_ptr<Message> rmsg(Ippl::Comm->receive_block(node, tag));
+            if(!bool(rmsg)) {
+                ERRORMSG("Could not receive from client nodes in writeTrackOrbitFile." << endl);
+            }
+            notReceived--;
+            rmsg->get(&dataBlocks);
+            for(int i = 0; i < dataBlocks; i++) {
+                rmsg->get(&id);
+                rmsg->get(x);
+                rmsg->get(p);
+                
+                outfTrackOrbit_m << "ID" << id << "\t "
+                                 << spos << "\t "
+                                 << x(0) << "\t "
+                                 << x(1) << "\t "
+                                 << x(2) << "\t "
+                                 << p(0) << "\t "
+                                 << p(1) << "\t "
+                                 << p(2) << "\t "
+                                 << std::endl;
+            }
+        }
+    }
+    else {
+        Message *smsg = new Message();
+        int dataToSend = 0;
+        if (locIdofPart0>0)
+            dataToSend++;
+        if (locIdofPart1>0)
+            dataToSend++;
+        if (locIdofPart2>0)
+            dataToSend++;
+
+        smsg->put(dataToSend);
+
+        if (locIdofPart0>0){
+            smsg->put(itsBunch->ID[locIdofPart0]);
+            smsg->put(itsBunch->R[locIdofPart0]);
+            smsg->put(itsBunch->P[locIdofPart0]);
+        }
+
+        if (locIdofPart1>0){
+            smsg->put(itsBunch->ID[locIdofPart1]);
+            smsg->put(itsBunch->R[locIdofPart1]);
+            smsg->put(itsBunch->P[locIdofPart1]);
+        }
+
+        if (locIdofPart2>0){
+            smsg->put(itsBunch->ID[locIdofPart2]);
+            smsg->put(itsBunch->R[locIdofPart2]);
+            smsg->put(itsBunch->P[locIdofPart2]);
+        }
+        bool res = Ippl::Comm->send(smsg, 0, tag);
+        if(! res)
+            ERRORMSG("Ippl::Comm->send(smsg, 0, tag) failed in writeTrackOrbitFile" << endl);
+    }
+}
+
+void ParallelTTracker::initTrackOrbitFile() {
+
+    std::string f = std::string("data/") + OpalData::getInstance()->getInputBasename() + std::string("-trackOrbit.dat");
+
+    outfTrackOrbit_m.setf(std::ios::scientific, std::ios::floatfield);
+    outfTrackOrbit_m.precision(8);
+
+    if(Ippl::myNode() == 0) {
+
+        if(OpalData::getInstance()->inRestartRun()) {
+
+            outfTrackOrbit_m.open(f.c_str(), std::ios::app);
+            outfTrackOrbit_m << "# Restart at integration step " << itsBunch->getLocalTrackStep() << std::endl;
+        } else {
+
+            outfTrackOrbit_m.open(f.c_str());
+            outfTrackOrbit_m << "# The six-dimensional phase space data in the global Cartesian coordinates" << std::endl;
+            outfTrackOrbit_m << "# Part. ID \t  SPOS [m] \t  x [m] \t  beta_x*gamma \t y [m] \t beta_y*gamma \t z [m] \t beta_z*gamma" << std::endl;
+        }
+    }
+}
+
 void ParallelTTracker::applyEntranceFringe(double angle, double curve,
                                            const BMultipoleField &field, double scale) {
 }
@@ -273,11 +415,16 @@ void ParallelTTracker::handleAutoPhasing() {
 }
 
 void ParallelTTracker::execute() {
+ 
+    initTrackOrbitFile() ;
+ 
     if(timeIntegrator_m == 3) {
         executeAMTSTracker();
     } else {
         executeDefaultTracker();
     }
+
+    if(Ippl::myNode() == 0) outfTrackOrbit_m.close();
 }
 
 void ParallelTTracker::executeDefaultTracker() {
@@ -2734,6 +2881,8 @@ void ParallelTTracker::writePhaseSpace(const long long step, const double &sposR
         // Write statistical data.
         msg << level3 << "* Wrote beam statistics." << endl;
         itsDataSink_m->writeStatData(*itsBunch, FDext, rmax(2), sposRef, rmin(2), collimatorLosses);
+        
+        writeTrackOrbitFile(sposRef);
     }
 }
 
