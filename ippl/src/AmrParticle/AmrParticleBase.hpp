@@ -1,6 +1,9 @@
 #ifndef AMR_PARTICLE_BASE_HPP
 #define AMR_PARTICLE_BASE_HPP
 
+#include <numeric>
+#include <algorithm>
+
 template<class PLayout>
 AmrParticleBase<PLayout>::AmrParticleBase() {
     UpdateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");

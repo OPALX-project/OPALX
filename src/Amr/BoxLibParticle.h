@@ -32,7 +32,8 @@ public:
     typedef typename AmrParticleBase<PLayout>::ParticlePos_t               ParticlePos_t;
     typedef typename AmrParticleBase<PLayout>::ParticleIndex_t             ParticleIndex_t;
     typedef typename AmrParticleBase<PLayout>::SingleParticlePos_t         SingleParticlePos_t;
-//     typedef typename AmrParticleBase<PLayout>::AmrField_t AmrField_t;
+    typedef typename AmrParticleBase<PLayout>::AmrField_t AmrField_t;
+    typedef typename AmrParticleBase<PLayout>::AmrFieldContainer_t AmrFieldContainer_t;
     
 typedef double RealType;
 typedef std::deque<Particle<1,0> > C;
@@ -103,7 +104,7 @@ private:
     
     //Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     //sends/receivs the particles that are needed by other processes to during AssignDensity
-    void AssignDensityDoit(int level, PArray<MultiFab>* mf, PMap& data,
+    void AssignDensityDoit(int level, AmrFieldContainer_t* mf, PMap& data,
                            int ncomp, int lev_min = 0);
     
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class

@@ -36,7 +36,7 @@ void BoxLibParticle<PLayout>::scatter(const ParticleAttrib<FT>& attrib, AmrField
                                       const ParticleAttrib<Vektor<PT, Dim> >& pp,
                                       int lbase, int lfine) const
 {
-    
+    this->AssignDensity(attrib, false, f, lbase, lfine);
 }
 
 
@@ -46,7 +46,7 @@ void BoxLibParticle<PLayout>::gather(ParticleAttrib<FT>& attrib, const AmrField_
                                      const ParticleAttrib<Vektor<PT, Dim> >& pp,
                                      int lbase, int lfine) const
 {
-    
+    this->GetGravity(attrib, f);
 }
 
 

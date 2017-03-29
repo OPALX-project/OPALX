@@ -3,8 +3,8 @@
 
 #include "AmrParticle/ParticleAmrLayout.h"
 
-#include "Amr/AmrBoxLib.h"
-
+#include <MultiFab.H>
+#include <PArray.H>
 #include <ParGDB.H>
 
 template<class T, unsigned Dim>
@@ -18,20 +18,21 @@ public:
     typedef typename ParticleAmrLayout<T, Dim>::SingleParticlePos_t SingleParticlePos_t;
     typedef typename ParticleAmrLayout<T, Dim>::Index_t Index_t;
     
-//     typedef AmrBoxLib::AmrField_t AmrField_t;
-//     typedef AmrBoxLib::AmrFieldContainer_t AmrFieldContainer_t;
+    typedef MultiFab AmrField_t;
+    typedef PArray<MultiFab> AmrFieldContainer_t;
     typedef typename ParticleAmrLayout<T, Dim>::ParticlePos_t ParticlePos_t;
     typedef Index_t ParticleIndex_t;
 
 public:
     
-//     void update(ParticleBase_t& PData, const ParticleAttrib<char> canSwap = 0);
-    void update(AmrParticleBase< ParticleAmrLayout<T,Dim> >& PData, int lev_min,
-                const ParticleAttrib<char> canSwap);
+    void update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData, const ParticleAttrib<char>* canSwap = 0);
+    
+    void update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData, int lev_min = 0,
+                const ParticleAttrib<char>* canSwap = 0);
     
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     //get the cell of the particle
-    /*static*/ IntVect Index (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p, 
+    /*static*/ IntVect Index (AmrParticleBase< BoxLibLayout<T,Dim> >& p, 
                           const unsigned int ip,
                           const Geometry& geom);
     
@@ -44,7 +45,7 @@ public:
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     // Checks/sets a particles location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
-    /*static*/ bool Where_m(AmrParticleBase< ParticleAmrLayout<T,Dim> >& prt,
+    /*static*/ bool Where_m(AmrParticleBase< BoxLibLayout<T,Dim> >& prt,
 //                         const PLayout* layout_p,
                         const unsigned int ip,
                         int lev_min = 0, int finest_level = -1);
@@ -53,7 +54,7 @@ public:
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     // Checks/sets whether the particle has crossed a periodic boundary in such a way
     // that it is on levels lev_min and higher.
-    /*static*/ bool PeriodicWhere_m(AmrParticleBase< ParticleAmrLayout<T,Dim> >& prt,
+    /*static*/ bool PeriodicWhere_m(AmrParticleBase< BoxLibLayout<T,Dim> >& prt,
 //                                 const PLayout* layout_p
                                 const unsigned int ip,
                                 int lev_min = 0, int finest_level = -1);
@@ -61,7 +62,7 @@ public:
     
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     // Checks/sets whether a particle is within its grid (including grow cells).
-    /*static*/ bool RestrictedWhere_m(AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
+    /*static*/ bool RestrictedWhere_m(AmrParticleBase< BoxLibLayout<T,Dim> >& p,
 //                                   const PLayout* layout_p
                                   const unsigned int ip,
                                   int ngrow);
