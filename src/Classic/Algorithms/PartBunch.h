@@ -59,7 +59,7 @@ public:
     PartBunch(const PartData *ref);
 
     /// Conversion.
-    PartBunch(const std::vector<Particle> &, const PartData *ref);
+    PartBunch(const std::vector<classic::Particle> &, const PartData *ref);
 
     PartBunch(const PartBunch &);
     ~PartBunch();
@@ -207,13 +207,13 @@ public:
 
     */
 
-    void push_back(Particle p);
+    void push_back(classic::Particle p);
 
     void set_part(FVector<double, 6> z, int ii);
 
-    void set_part(Particle p, int ii);
+    void set_part(classic::Particle p, int ii);
 
-    Particle get_part(int ii);
+    classic::Particle get_part(int ii);
 
     /// Return maximum amplitudes.
     //  The matrix [b]D[/b] is used to normalise the first two modes.
@@ -810,7 +810,7 @@ std::pair<Vector_t, double> PartBunch::getLocalBoundingSphere() {
 }
 
 inline
-void PartBunch::push_back(Particle p) {
+void PartBunch::push_back(classic::Particle p) {
     Inform msg("PartBunch ");
 
     create(1);
@@ -839,7 +839,7 @@ void PartBunch::set_part(FVector<double, 6> z, int ii) {
 }
 
 inline
-void PartBunch::set_part(Particle p, int ii) {
+void PartBunch::set_part(classic::Particle p, int ii) {
     R[ii](0) = p[0];
     P[ii](0) = p[1];
     R[ii](1) = p[2];
@@ -849,8 +849,8 @@ void PartBunch::set_part(Particle p, int ii) {
 }
 
 inline
-Particle PartBunch::get_part(int ii) {
-    Particle part;
+classic::Particle PartBunch::get_part(int ii) {
+    classic::Particle part;
     part[0] = R[ii](0);
     part[1] = P[ii](0);
     part[2] = R[ii](1);

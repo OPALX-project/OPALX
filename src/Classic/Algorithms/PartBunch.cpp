@@ -221,7 +221,7 @@ PartBunch::PartBunch(const PartBunch &rhs):
     std::exit(0);
 }
 
-PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
+PartBunch::PartBunch(const std::vector<classic::Particle> &rhs, const PartData *ref):
     myNode_m(Ippl::myNode()),
     nodes_m(Ippl::getNodes()),
     fixed_grid(false),
@@ -1854,7 +1854,7 @@ void PartBunch::setSolver(FieldSolver *fs) {
 void PartBunch::maximumAmplitudes(const FMatrix<double, 6, 6> &D,
                                   double &axmax, double &aymax) {
     axmax = aymax = 0.0;
-    Particle part;
+    classic::Particle part;
 
     for(unsigned int ii = 0; ii < getLocalNum(); ii++) {
 

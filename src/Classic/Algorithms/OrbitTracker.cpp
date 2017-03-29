@@ -110,7 +110,7 @@ void OrbitTracker::visitCyclotronValley(const CyclotronValley &cv) {
 
 void OrbitTracker::visitComponent(const Component &comp) {
     PartBunch bunch(&itsReference);
-    Particle part(itsOrbit[X], itsOrbit[PX],
+    classic::Particle part(itsOrbit[X], itsOrbit[PX],
                   itsOrbit[Y], itsOrbit[PY],
                   itsOrbit[T], itsOrbit[PT]);
     bunch.push_back(part);

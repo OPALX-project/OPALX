@@ -25,6 +25,8 @@
 // Class Particle
 // ------------------------------------------------------------------------
 
+namespace classic {
+
 Particle::Particle()
 {}
 
@@ -39,4 +41,6 @@ Particle::Particle
     phase[PY] = py;
     phase[T]  = t;
     phase[PT] = pt;
+}
+
 }
