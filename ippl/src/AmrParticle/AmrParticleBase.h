@@ -33,7 +33,8 @@ public:
     typedef typename PLayout::ParticlePos_t         ParticlePos_t;
     typedef typename PLayout::ParticleIndex_t       ParticleIndex_t;
     typedef typename PLayout::SingleParticlePos_t   SingleParticlePos_t;
-//     typedef typename PLayout::AmrField_t            AmrField_t;
+    typedef typename PLayout::AmrField_t            AmrField_t;
+    typedef typename PLayout::AmrFieldContainer_t   AmrFieldContainer_t;
     
     typedef long                                    SortListIndex_t;
     typedef std::vector<SortListIndex_t>            SortList_t;
