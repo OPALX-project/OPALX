@@ -29,7 +29,10 @@
 
 class BMultipoleField;
 class Euclid3D;
+
+namespace classic {
 class Particle;
+}
 
 
 // Class Tracker
@@ -109,7 +112,7 @@ public:
     const PartBunch &getBunch() const;
 
     /// Add particle to bunch.
-    void addToBunch(const Particle &);
+    void addToBunch(const classic::Particle &);
 
     /// Store the bunch.
     //~ void setBunch(const PartBunch &);

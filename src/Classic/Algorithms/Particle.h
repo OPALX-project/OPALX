@@ -35,6 +35,8 @@
 //  by the compiler perform the correct operation.  For speed reasons
 //  they are not implemented.
 
+namespace classic {
+
 class Particle {
 
 public:
@@ -148,6 +150,8 @@ inline double Particle::py() const
 
 inline double Particle::pt() const {
     return phase[PT];
+}
+
 }
 
 #endif // CLASSIC_Particle_HH

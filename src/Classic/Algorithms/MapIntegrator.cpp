@@ -50,7 +50,7 @@ void MapIntegrator::accept(BeamlineVisitor &visitor) const {
 }
 
 
-void MapIntegrator::trackParticle(Particle &part, const PartData &ref,
+void MapIntegrator::trackParticle(classic::Particle &part, const PartData &ref,
                                   bool backBeam, bool backTrack) const {
     // Default behaviour: track particle using own map.
     FVps<double, 6> ownMap;
@@ -82,7 +82,7 @@ void MapIntegrator::trackBunch(PartBunch &bunch, const PartData &ref,
     //  PartBunch::iterator last = bunch.end();
     //  for (PartBunch::iterator part = bunch.begin(); part != last; ++part) {
     for(unsigned int i = 0; i < bunch.getLocalNum(); i++) {
-        const Particle part = bunch.get_part(i);
+        const classic::Particle part = bunch.get_part(i);
         z[0] = part[0];
         z[1] = part[1];
         z[2] = part[2];

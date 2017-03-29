@@ -62,7 +62,7 @@ const PartBunch &Tracker::getBunch() const {
 }
 
 
-void Tracker::addToBunch(const Particle &part) {
+void Tracker::addToBunch(const classic::Particle &part) {
     itsBunch.push_back(part);
 }
 
@@ -121,7 +121,7 @@ void Tracker::applyDrift(double length) {
     double refTime = length / itsReference.getBeta();
 
     for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-        Particle part = itsBunch.get_part(i);
+        classic::Particle part = itsBunch.get_part(i);
         if(part.x() != DBL_MAX) {
             double px = part.px();
             double py = part.py();
@@ -142,7 +142,7 @@ void Tracker::applyThinMultipole
 
     if(order > 0) {
         for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-            Particle part = itsBunch.get_part(i);
+            classic::Particle part = itsBunch.get_part(i);
             if(part.x() != DBL_MAX) {
                 double x = part.x();
                 double y = part.y();
@@ -174,7 +174,7 @@ void Tracker::applyThinSBend
     // These substitutions work because As depends on x and y only,
     // and not on px or py.
     for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-        Particle part = itsBunch.get_part(i);
+        classic::Particle part = itsBunch.get_part(i);
         FVector<double, 2> z;
         z[0] = part.x();
         z[1] = part.y();
@@ -191,7 +191,7 @@ void Tracker::applyTransform(const Euclid3D &euclid, double refLength) {
         double refTime = refLength / itsReference.getBeta();
 
         for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-            Particle part = itsBunch.get_part(i);
+            classic::Particle part = itsBunch.get_part(i);
             double px = part.px();
             double py = part.py();
             double pt = part.pt() + 1.0;

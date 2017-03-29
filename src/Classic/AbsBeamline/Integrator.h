@@ -25,7 +25,11 @@
 
 class PartBunch;
 class PartData;
+
+namespace classic {
 class Particle;
+
+}
 
 template <class T, int N> class FVps;
 
@@ -58,7 +62,7 @@ public:
     //  the second argument describes the particle's momentum and mass,
     //  [b]revBeam[/b] true, means that the beam runs backwards, and
     //  [b]revTrack[/b] true, means that we track against the beam.
-    virtual void trackParticle(Particle &, const PartData &,
+    virtual void trackParticle(classic::Particle &, const PartData &,
                                bool revBeam, bool revTrack) const = 0;
 
     /// Track a particle bunch.

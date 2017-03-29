@@ -23,7 +23,10 @@
 #include "AbsBeamline/Integrator.h"
 
 class PartData;
+
+namespace classic {
 class Particle;
+}
 
 template <class T, int N> class FVps;
 

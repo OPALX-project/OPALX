@@ -70,7 +70,7 @@ void TrackSave::execute() {
     PartBunch *bunch = Track::block->bunch;
 
     for(unsigned int i = 0; i < bunch->getLocalNum(); i++) {
-        Particle part = bunch->get_part(i);
+        classic::Particle part = bunch->get_part(i);
         os << part.x() << ' ' << part.px() << ' '
            << part.y() << ' ' << part.py() << ' '
            << part.t() << ' ' << part.pt() << '\n';

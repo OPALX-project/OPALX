@@ -79,7 +79,7 @@ EnvelopeBunch::EnvelopeBunch(const EnvelopeBunch &rhs):
 {}
 
 
-EnvelopeBunch::EnvelopeBunch(const std::vector<Particle> &rhs, const PartData *ref):
+EnvelopeBunch::EnvelopeBunch(const std::vector<classic::Particle> &rhs, const PartData *ref):
     PartBunch(ref),
     reference(ref),
     numSlices_m(0),
