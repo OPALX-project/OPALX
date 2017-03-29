@@ -37,6 +37,7 @@ namespace {
         TYPE,       // The type of the wake
         MATERIAL,   // From of the tube
         RADIUS, // Radius of the tube
+	ENABLERUTHERFORD,
         SIGMA,
         TAU,
 	NPART,
@@ -65,6 +66,8 @@ SurfacePhysics::SurfacePhysics():
                    ("TAU", "Material constant dependant on the  beam pipe material");
 
     itsAttr[NPART] = Attributes::makeReal("NPART", "Number of particles in bunch");
+
+    itsAttr[ENABLERUTHERFORD] = Attributes::makeBool("ENABLERUTHERFORD", "Enable large angle scattering",true);
 
     SurfacePhysics *defSurfacePhysics = clone("UNNAMED_SURFACEPHYSICS");
     defSurfacePhysics->builtin = true;
@@ -148,10 +151,14 @@ void SurfacePhysics::updateElement(ElementBase *element) {
 
 void SurfacePhysics::print(std::ostream &os) const {
     os << "* ************* S U R F A C E P H Y S I C S **************************************** " << std::endl;
-    os << "* SURFACEPHYSICS " << getOpalName() << '\n'
-       << "* MATERIAL       " << Attributes::getString(itsAttr[MATERIAL]) << '\n'
-       << "* RADIUS         " << Attributes::getReal(itsAttr[RADIUS]) << '\n'
-       << "* SIGMA          " << Attributes::getReal(itsAttr[SIGMA]) << '\n'
-       << "* TAU            " << Attributes::getReal(itsAttr[TAU]) << '\n';
+    os << "* SURFACEPHYSICS \t" << getOpalName() << '\n'
+       << "* MATERIAL       \t" << Attributes::getString(itsAttr[MATERIAL]) << '\n'
+       << "* RADIUS         \t" << Attributes::getReal(itsAttr[RADIUS]) << '\n'
+       << "* SIGMA          \t" << Attributes::getReal(itsAttr[SIGMA]) << '\n'
+       << "* TAU            \t" << Attributes::getReal(itsAttr[TAU]) << '\n';
+    if (Attributes::getBool(itsAttr[ENABLERUTHERFORD]))
+      os << "* RUTHERFORD SCAT \t ENABLED" << '\n';
+    else
+      os << "* RUTHERFORD SCAT \t DISABLED" << '\n';
     os << "* ********************************************************************************** " << std::endl;
 }
