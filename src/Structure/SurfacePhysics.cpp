@@ -134,9 +134,10 @@ void SurfacePhysics::initSurfacePhysicsHandler(ElementBase &element) {
 
     itsElement_m = &element;
     material_m = Attributes::getString(itsAttr[MATERIAL]);
+    enableRutherfordScattering_m = Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
 
     if(Attributes::getString(itsAttr[TYPE]) == "CCOLLIMATOR" || Attributes::getString(itsAttr[TYPE]) == "COLLIMATOR" || Attributes::getString(itsAttr[TYPE]) == "DEGRADER") {
-        handler_m = new CollimatorPhysics(getOpalName(), itsElement_m, material_m);
+      handler_m = new CollimatorPhysics(getOpalName(), itsElement_m, material_m, enableRutherfordScattering_m);
         *gmsg << *this << endl;
     } else {
         handler_m = 0;

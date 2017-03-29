@@ -35,10 +35,11 @@ using Physics::z_p;
 using Physics::Avo;
 
 
-CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *element, std::string &material):
+CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *element, 
+				     std::string &material, bool enableRutherfordScattering):
     SurfacePhysicsHandler(name, element),
     material_m(material),
-    enableRutherfordScattering(true),
+    enableRutherfordScattering_m(enableRutherfordScattering),
     Z_m(0),
     A_m(0.0),
     A2_c(0.0),
@@ -774,7 +775,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
         R = R * 1000.0;
 
     double P2 = gsl_rng_uniform(rGen_m);
-    if ((P2 < 0.0047) && enableRutherfordScattering) {
+    if ((P2 < 0.0047) && enableRutherfordScattering_m) {
         double P3 = gsl_rng_uniform(rGen_m);
         double thetaru = 2.5 * sqrt(1 / P3) * sqrt(2.0) * theta0;
         double P4 = gsl_rng_uniform(rGen_m);
@@ -804,7 +805,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
         R = R * 1000.0;
 
     P2 = gsl_rng_uniform(rGen_m);
-    if ((P2 < 0.0047) && enableRutherfordScattering) {
+    if ((P2 < 0.0047) && enableRutherfordScattering_m) {
         double P3 = gsl_rng_uniform(rGen_m);
         double thetaru = 2.5 * sqrt(1 / P3) * sqrt(2.0) * theta0;
         double P4 = gsl_rng_uniform(rGen_m);
