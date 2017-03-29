@@ -24,10 +24,7 @@
 
 class PartBunch;
 class PartData;
-
-namespace classic {
-class Particle;
-}
+class OpalParticle;
 
 template <class T, int N> class FVps;
 
@@ -60,7 +57,7 @@ public:
     //  The particle reference data are taken from [b]data[/b].
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
-    virtual void trackParticle(classic::Particle &part, const PartData &,
+    virtual void trackParticle(OpalParticle &part, const PartData &,
                                bool revBeam, bool revTrack) const;
 
     /// Track a particle bunch.

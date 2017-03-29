@@ -107,7 +107,7 @@ void MPSplitIntegrator::trackMap(FVps<double, 6> &map,
 }
 
 
-void MPSplitIntegrator::trackParticle(classic::Particle &part, const PartData &ref,
+void MPSplitIntegrator::trackParticle(OpalParticle &part, const PartData &ref,
                                       bool revBeam, bool revTrack) const {
     double length = itsMultipole->getElementLength();
     if(revTrack) length = - length;
@@ -151,7 +151,7 @@ void MPSplitIntegrator::trackBunch(PartBunch &bunch,
         getSlices(slices);
         scale *= length / double(itsSlices);
         for(unsigned int i = 0; i < bunch.getLocalNum(); i++) {
-            classic::Particle part = bunch.get_part(i);
+            OpalParticle part = bunch.get_part(i);
 
             // Drift to first slice position.
             applyDrift(part, length * slices[0], ref);
@@ -168,7 +168,7 @@ void MPSplitIntegrator::trackBunch(PartBunch &bunch,
     } else {
         // Length == 0, slicing not possible.
         for(unsigned int i = 0; i < bunch.getLocalNum(); i++) {
-            classic::Particle part = bunch.get_part(i);
+            OpalParticle part = bunch.get_part(i);
             applyMultipole(part, field, scale);
             bunch.set_part(part, i);
         }
@@ -190,7 +190,7 @@ void MPSplitIntegrator::applyDrift(FVps<double, 6> &map, double length,
 }
 
 
-void MPSplitIntegrator::applyDrift(classic::Particle &part, double length,
+void MPSplitIntegrator::applyDrift(OpalParticle &part, double length,
                                    const PartData &reference) const {
     double kin = reference.getM() / reference.getP();
     double ref  = kin * kin;
@@ -228,7 +228,7 @@ void MPSplitIntegrator::applyMultipole(FVps<double, 6> &map,
 }
 
 
-void MPSplitIntegrator::applyMultipole(classic::Particle &part,
+void MPSplitIntegrator::applyMultipole(OpalParticle &part,
                                        const BMultipoleField &field,
                                        double scale) const {
     int order = field.order();

@@ -26,10 +26,7 @@ class BMultipoleField;
 class Multipole;
 class PartBunch;
 class PartData;
-
-namespace classic {
-class Particle;
-}
+class OpalParticle;
 
 template <class T, int N> class FVps;
 
@@ -109,7 +106,7 @@ public:
     /// Track particle through MPSplitIntegrator.
     // The particle tracked is [b]part[/b], the other values are the same
     // as in the calling mapper.
-    virtual void trackParticle(classic::Particle &part, const PartData &data,
+    virtual void trackParticle(OpalParticle &part, const PartData &data,
                                bool revBeam, bool revTrack) const;
 
     /// Track particle bunch through MPSplitIntegrator.
@@ -135,8 +132,8 @@ private:
                         const BMultipoleField &field, double factor) const;
 
     // Track a particle through a particular element.
-    void applyDrift(classic::Particle &, double, const PartData &) const;
-    void applyMultipole(classic::Particle &,
+    void applyDrift(OpalParticle &, double, const PartData &) const;
+    void applyMultipole(OpalParticle &,
                         const BMultipoleField &field, double factor) const;
 
     // The embedded multipole.
