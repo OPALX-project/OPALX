@@ -21,7 +21,7 @@
 #include "Algorithms/OrbitTracker.h"
 #include "Algorithms/PartBunch.h"
 #include "Algorithms/PartData.h"
-#include "Algorithms/Particle.h"
+#include "Algorithms/OpalParticle.h"
 #include "Algorithms/MapIntegrator.h"
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
@@ -110,9 +110,9 @@ void OrbitTracker::visitCyclotronValley(const CyclotronValley &cv) {
 
 void OrbitTracker::visitComponent(const Component &comp) {
     PartBunch bunch(&itsReference);
-    classic::Particle part(itsOrbit[X], itsOrbit[PX],
-                  itsOrbit[Y], itsOrbit[PY],
-                  itsOrbit[T], itsOrbit[PT]);
+    OpalParticle part(itsOrbit[X], itsOrbit[PX],
+                      itsOrbit[Y], itsOrbit[PY],
+                      itsOrbit[T], itsOrbit[PT]);
     bunch.push_back(part);
     comp.trackBunch(bunch, itsReference, back_beam, back_track);
     itsOrbit[X]  = part.x();

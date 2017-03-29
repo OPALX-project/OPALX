@@ -218,7 +218,7 @@ void BeamBeam3D::trackMap
 void BeamBeam3D::boost(PartBunch &bunch) const {
 
     for(unsigned int i = 0; i < bunch.getLocalNum(); i++) {
-        classic::Particle part = bunch.get_part(i);
+        OpalParticle part = bunch.get_part(i);
 
         double a = (sqr(part.px()) + sqr(part.py())) / sqr(1.0 + part.pt());
         double sqr1a = sqrt(1.0 - a);
@@ -265,7 +265,7 @@ void BeamBeam3D::boost(FVps<double, 6> &map) const {
 
 void BeamBeam3D::boosti(PartBunch &bunch) const {
     for(unsigned int i = 0; i < bunch.getLocalNum(); i++) {
-        classic::Particle part = bunch.get_part(i);
+        OpalParticle part = bunch.get_part(i);
 
         double a1 = (sqr(part.px()) + sqr(part.py())) / sqr(1.0 + part.pt());
         double sqr1a = sqrt(1.0 - a1);
@@ -350,7 +350,7 @@ void BeamBeam3D::synchroBeamCollision(PartBunch &bunch) const {
     for(; slice != last_slice; ++slice) {
 
         for(unsigned int i = 0; i < bunch.getLocalNum(); i++) {
-            classic::Particle part = bunch.get_part(i);
+            OpalParticle part = bunch.get_part(i);
             double s  = (part.t() - slice->zstar) / 2.0;
             double sx = slice->sigx + slice->sigpx * s * s;
             double sy = slice->sigy + slice->sigpy * s * s;

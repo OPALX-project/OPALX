@@ -19,7 +19,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/BeamBeam.h"
-#include "Algorithms/Particle.h"
+#include "Algorithms/OpalParticle.h"
 #include "BeamlineGeometry/NullGeometry.h"
 #include "Fields/NullField.h"
 #include "FixedAlgebra/FMatrix.h"

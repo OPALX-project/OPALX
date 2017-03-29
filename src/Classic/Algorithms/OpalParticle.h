@@ -1,15 +1,15 @@
-#ifndef CLASSIC_Particle_HH
-#define CLASSIC_Particle_HH
+#ifndef CLASSIC_OpalParticle_HH
+#define CLASSIC_OpalParticle_HH
 
 // ------------------------------------------------------------------------
-// $RCSfile: Particle.h,v $
+// $RCSfile: OpalParticle.h,v $
 // ------------------------------------------------------------------------
 // $Revision: 1.1.1.1 $
 // ------------------------------------------------------------------------
 // Copyright: see Copyright.readme
 // ------------------------------------------------------------------------
 //
-// Class: Particle
+// Class: OpalParticle
 //
 // ------------------------------------------------------------------------
 // Class category: Algorithms
@@ -21,9 +21,9 @@
 // ------------------------------------------------------------------------
 
 
-// Class Particle
+// Class OpalParticle
 // ------------------------------------------------------------------------
-/// Particle position.
+/// OpalParticle position.
 //  This class represents the canonical coordinates of a particle.
 //  {P}
 //  NOTE. The order of phase space coordinates is,
@@ -35,9 +35,7 @@
 //  by the compiler perform the correct operation.  For speed reasons
 //  they are not implemented.
 
-namespace classic {
-
-class Particle {
+class OpalParticle {
 
 public:
 
@@ -46,9 +44,9 @@ public:
 
     /// Constructor.
     //  Construct particle with the given coordinates.
-    Particle(double x, double px, double y, double py, double t, double pt);
+    OpalParticle(double x, double px, double y, double py, double t, double pt);
 
-    Particle();
+    OpalParticle();
 
     /// Get coordinate.
     //  Access coordinate by index.
@@ -105,53 +103,51 @@ private:
 // Inline member functions.
 // ------------------------------------------------------------------------
 
-inline double &Particle::operator[](int i) {
+inline double &OpalParticle::operator[](int i) {
     return phase[i];
 }
 
-inline double &Particle::x()
+inline double &OpalParticle::x()
 { return phase[X]; }
 
-inline double &Particle::y()
+inline double &OpalParticle::y()
 { return phase[Y]; }
 
-inline double &Particle::t()
+inline double &OpalParticle::t()
 { return phase[T]; }
 
-inline double &Particle::px()
+inline double &OpalParticle::px()
 { return phase[PX]; }
 
-inline double &Particle::py()
+inline double &OpalParticle::py()
 { return phase[PY]; }
 
-inline double &Particle::pt() {
+inline double &OpalParticle::pt() {
     return phase[PT];
 }
 
 
-inline double Particle::operator[](int i) const {
+inline double OpalParticle::operator[](int i) const {
     return phase[i];
 }
 
-inline double Particle::x() const
+inline double OpalParticle::x() const
 { return phase[X]; }
 
-inline double Particle::y() const
+inline double OpalParticle::y() const
 { return phase[Y]; }
 
-inline double Particle::t() const
+inline double OpalParticle::t() const
 { return phase[T]; }
 
-inline double Particle::px() const
+inline double OpalParticle::px() const
 { return phase[PX]; }
 
-inline double Particle::py() const
+inline double OpalParticle::py() const
 { return phase[PY]; }
 
-inline double Particle::pt() const {
+inline double OpalParticle::pt() const {
     return phase[PT];
 }
 
-}
-
-#endif // CLASSIC_Particle_HH
+#endif // CLASSIC_OpalParticle_HH

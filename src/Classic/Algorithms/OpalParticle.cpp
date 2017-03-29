@@ -1,13 +1,13 @@
 // ------------------------------------------------------------------------
-// $RCSfile: Particle.cpp,v $
+// $RCSfile: OpalParticle.cpp,v $
 // ------------------------------------------------------------------------
 // $Revision: 1.1.1.1 $
 // ------------------------------------------------------------------------
 // Copyright: see Copyright.readme
 // ------------------------------------------------------------------------
 //
-// Class: Particle
-//   A Particle represents the phase space coordinates of a particle.
+// Class: OpalParticle
+//   A OpalParticle represents the phase space coordinates of a particle.
 //   It can be propagated through a beamline.
 //
 // ------------------------------------------------------------------------
@@ -19,19 +19,17 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Algorithms/Particle.h"
+#include "Algorithms/OpalParticle.h"
 
 
-// Class Particle
+// Class OpalParticle
 // ------------------------------------------------------------------------
 
-namespace classic {
-
-Particle::Particle()
+OpalParticle::OpalParticle()
 {}
 
 
-Particle::Particle
+OpalParticle::OpalParticle
 (double x, double px, double y, double py, double t, double pt)
 
 {
@@ -41,6 +39,4 @@ Particle::Particle
     phase[PY] = py;
     phase[T]  = t;
     phase[PT] = pt;
-}
-
 }
