@@ -5,46 +5,47 @@
 
 #include "Amr/AmrBoxLib.h"
 
+#include <ParGDB.H>
+
 template<class T, unsigned Dim>
-class BoxLibLayout : public ParGDB {
+class BoxLibLayout : public ParticleLayout<T, Dim>,
+                     public ParGDB
+{
     
 public:
-    typedef AmrBoxLib::AmrField_t AmrField_t;
-    typedef typename ParticleAmrLayout<T, Dim, BoxLibLayout>::ParticleBase_t
-    ParticleBase_t;
+    typedef typename ParticleAmrLayout<T, Dim>::pair_t pair_t;
+    typedef typename ParticleAmrLayout<T, Dim>::pair_iterator pair_iterator;
+    typedef typename ParticleAmrLayout<T, Dim>::SingleParticlePos_t SingleParticlePos_t;
+    typedef typename ParticleAmrLayout<T, Dim>::Index_t Index_t;
     
+//     typedef AmrBoxLib::AmrField_t AmrField_t;
+//     typedef AmrBoxLib::AmrFieldContainer_t AmrFieldContainer_t;
+    typedef typename ParticleAmrLayout<T, Dim>::ParticlePos_t ParticlePos_t;
+    typedef Index_t ParticleIndex_t;
+
 public:
     
-    void update(ParticleBase_t& PData, const ParticleAttrib<char> canSwap = 0);
-    
-    template <class PT, class CacheData>
-    void scatter(AmrField_t& f, const ParticleAttrib<Vektor<PT, Dim>& pp,
-                 ParticleAttrib<CacheData>& cache,
-                 int lbase, int lfine) const;
-    
-    template <unsigned Dim, class PT, class CacheData>
-    void gather(AmrField_t& f, const ParticleAttrib<Vektor<PT, Dim>& pp,
-                ParticleAttrib<CacheData>& cache,
-                int lbase, int lfine) const
-    
-private:
+//     void update(ParticleBase_t& PData, const ParticleAttrib<char> canSwap = 0);
+    void update(AmrParticleBase< ParticleAmrLayout<T,Dim> >& PData, int lev_min,
+                const ParticleAttrib<char> canSwap);
     
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     //get the cell of the particle
-    static IntVect Index (ParticleBase_t& p, 
+    /*static*/ IntVect Index (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p, 
                           const unsigned int ip,
                           const Geometry& geom);
     
     
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     //get the cell of the particle
-    static IntVect Index (SingleParticlePos_t &R, const Geometry& geom);
+    /*static*/ IntVect Index (SingleParticlePos_t &R, const Geometry& geom);
     
     
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     // Checks/sets a particles location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
-    static bool Where_m(ParticleBase_t& prt,
+    /*static*/ bool Where_m(AmrParticleBase< ParticleAmrLayout<T,Dim> >& prt,
+//                         const PLayout* layout_p,
                         const unsigned int ip,
                         int lev_min = 0, int finest_level = -1);
     
@@ -52,21 +53,24 @@ private:
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     // Checks/sets whether the particle has crossed a periodic boundary in such a way
     // that it is on levels lev_min and higher.
-    static bool PeriodicWhere_m(ParticleBase_& prt,
+    /*static*/ bool PeriodicWhere_m(AmrParticleBase< ParticleAmrLayout<T,Dim> >& prt,
+//                                 const PLayout* layout_p
                                 const unsigned int ip,
                                 int lev_min = 0, int finest_level = -1);
     
     
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     // Checks/sets whether a particle is within its grid (including grow cells).
-    static bool RestrictedWhere_m(ParticleBase_t& p,
+    /*static*/ bool RestrictedWhere_m(AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
+//                                   const PLayout* layout_p
                                   const unsigned int ip,
                                   int ngrow);
     
     
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     // Returns true if the particle was shifted.
-    static bool PeriodicShift_m(SingleParticlePos_t R);
+    /*static*/ bool PeriodicShift_m(SingleParticlePos_t R/*, const PLayout* layout_p*/);
+    
 };
 
 #include "BoxLibLayout.hpp"
