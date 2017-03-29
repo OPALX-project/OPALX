@@ -13,6 +13,8 @@ set (HDRS
     AmrBoxLib.h
     BoxLibLayout.h
     BoxLibLayout.hpp
+    BoxLibParticle.h
+    BoxLibParticle.hpp
 )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Amr")

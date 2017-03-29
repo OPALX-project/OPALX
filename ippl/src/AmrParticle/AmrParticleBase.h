@@ -1,15 +1,43 @@
 #ifndef AMR_PARTICLE_BASE_H
 #define AMR_PARTICLE_BASE_H
 
+#include "Ippl.h"
+
 #include "Particle/IpplParticleBase.h"
+
+/* The derived classes need to extend the base class by subsequent methods.
+ * 
+ * scatter the data from the given attribute onto the given Field, using
+ * the given Position attribute
+ * 
+ * template <class FT, unsigned Dim, class PT>
+ * void scatter(const ParticleAttrib<FT>& attrib, AmrField_t& f,
+ *              const ParticleAttrib<Vektor<PT, Dim> >& pp,
+ *              int lbase = 0, int lfine = -1) const;
+ * 
+ * 
+ * gather the data from the given Field into the given attribute, using
+ * the given Position attribute
+ * 
+ * template <class FT, unsigned Dim, class PT>
+ * void gather(ParticleAttrib<FT>& attrib, const AmrField_t& f,
+ *             const ParticleAttrib<Vektor<PT, Dim> >& pp,
+ *             int lbase = 0, int lfine = -1) const;
+ */
+
 
 template<class PLayout>
 class AmrParticleBase : public IpplParticleBase<PLayout> {
 
 public:
-    typedef typename PLayout::ParticlePos_t   ParticlePos_t;
-    typedef typename PLayout::ParticleIndex_t ParticleIndex_t;
-    typedef typename PLayout::SingleParticlePos_t SingleParticlePos_t;
+    typedef typename PLayout::ParticlePos_t         ParticlePos_t;
+    typedef typename PLayout::ParticleIndex_t       ParticleIndex_t;
+    typedef typename PLayout::SingleParticlePos_t   SingleParticlePos_t;
+//     typedef typename PLayout::AmrField_t            AmrField_t;
+    
+    typedef long                                    SortListIndex_t;
+    typedef std::vector<SortListIndex_t>            SortList_t;
+    typedef std::vector<ParticleAttribBase *>       attrib_container_t;
 
     ParticleIndex_t level; // m_lev
     ParticleIndex_t grid;  // m_grid
@@ -34,10 +62,9 @@ public:
     // sort the particles given a sortlist
     void sort(SortList_t &sortlist);
     
-private:
-    IpplTimings::TimerRef AssignDensityTimer_m;
-    IpplTimings::TimerRef SortParticlesTimer_m;
+protected:
     IpplTimings::TimerRef UpdateParticlesTimer_m;
+    IpplTimings::TimerRef SortParticlesTimer_m;
 };
 
 #include "AmrParticleBase.hpp"

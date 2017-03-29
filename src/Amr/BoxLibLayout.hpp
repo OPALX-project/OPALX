@@ -5,17 +5,14 @@
 
 #include "Message/Formatter.h"
 
-#include <map>
-#include <vector>
-
-// #include <mpi.h>
+// #include <Particles.H>
 
 // // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
 // // redistribute the particles using BoxLibs ParGDB class to determine where particle should go
 template<class T, unsigned Dim>
-void BoxLibLayout<T, Dim::update(ParticleBase_t& PData,
-                                 int lev_min,
-                                 const ParticleAttrib<char> canSwap)
+void BoxLibLayout<T, Dim>::update(AmrParticleBase< ParticleAmrLayout<T,Dim> >& PData,
+                                  int lev_min,
+                                  const ParticleAttrib<char> canSwap)
 {
     // Input parameters of ParticleContainer::Redistribute of BoxLib
     bool where_already_called = false;
@@ -163,34 +160,10 @@ void BoxLibLayout<T, Dim::update(ParticleBase_t& PData,
 }
 
 
-template <class T, unsigned Dim, class PT, class CacheData>
-void BoxLibLayout::scatter(AmrField_t& f,
-                           const ParticleAttrib<Vektor<PT, Dim>& pp,
-                           ParticleAttrib<CacheData>& cache,
-                           int lbase, int lfine) const
-{
-    
-    
-    
-}
-
-
-template <class T, unsigned Dim, class PT, class CacheData>
-void BoxLibLayout::gather(AmrField_t& f,
-                          const ParticleAttrib<Vektor<PT, Dim>& pp,
-                          ParticleAttrib<CacheData>& cache,
-                          int lbase, int lfine) const
-{
-    
-    
-    
-}
-
-
 // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
 //get the cell where particle is located - uses AmrParticleBase object and particle id
 template <class T, unsigned Dim>
-IntVect BoxLibLayout<T, Dim>::Index (ParticleBase_t>& p,
+IntVect BoxLibLayout<T, Dim>::Index (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
                                      const unsigned int ip,
                                      const Geometry&     geom)
 {
@@ -225,12 +198,12 @@ IntVect BoxLibLayout<T, Dim>::Index (SingleParticlePos_t &R,
 
 //sets the grid and level where particle belongs - returns flase if prticle is outside the domain
 template <class T, unsigned Dim>
-bool BoxLibLayout<T, Dim>::Where_m(ParticleBase_t& p,
+bool BoxLibLayout<T, Dim>::Where_m(AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
                                    const unsigned int ip,
                                    int lev_min,
                                    int finest_level)
 {
-    BL_ASSERT(this != 0);
+//     BL_ASSERT(this != 0);
 
     if (finest_level == -1)
         finest_level = this->finestLevel();
@@ -272,12 +245,12 @@ bool BoxLibLayout<T, Dim>::Where_m(ParticleBase_t& p,
 //Checks/sets whether the particle has crossed a periodic boundary in such a way
 //that it is on levels lev_min and higher.
 template <class T, unsigned Dim>
-bool BoxLibLayout<T, Dim>::PeriodicWhere_m(ParticleBase_t& p,
+bool BoxLibLayout<T, Dim>::PeriodicWhere_m(AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
                                            const unsigned int ip,
                                            int lev_min,
                                            int finest_level)
 {
-    BL_ASSERT(this != 0);
+//     BL_ASSERT(this != 0);
 
     if (!this->Geom(0).isAnyPeriodic()) return false;
 
@@ -321,11 +294,11 @@ bool BoxLibLayout<T, Dim>::PeriodicWhere_m(ParticleBase_t& p,
 // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
 // Checks/sets whether a particle is within its grid (including grow cells).
 template <class T, unsigned Dim>
-bool BoxLibLayout<T, Dim>::RestrictedWhere_m(ParticleBase_t& p,
+bool BoxLibLayout<T, Dim>::RestrictedWhere_m(AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
                                              const unsigned int ip,
                                              int ngrow)
 {
-    BL_ASSERT(this != 0);
+//     BL_ASSERT(this != 0);
 
     const IntVect& iv = Index(p,ip,this->Geom(p.level[ip]));
 
@@ -346,7 +319,7 @@ bool BoxLibLayout<T, Dim>::PeriodicShift_m(SingleParticlePos_t R)
     //
     // This routine should only be called when Where() returns false.
     //
-    BL_ASSERT(this != 0);
+//     BL_ASSERT(this != 0);
     //
     // We'll use level 0 stuff since ProbLo/ProbHi are the same for every level.
     //
@@ -410,5 +383,12 @@ bool BoxLibLayout<T, Dim>::PeriodicShift_m(SingleParticlePos_t R)
     //
     return shifted;
 }
+
+// template<class T, unsigned Dim>
+// void BoxLibLayout::update(AmrParticleBase< ParticleAmrLayout<T,Dim> >& PData, const ParticleAttrib<char> canSwap = 0)
+// {
+//     
+//     
+// }
 
 #endif

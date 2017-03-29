@@ -1,12 +1,10 @@
 #ifndef AMR_PARTICLE_BASE_HPP
 #define AMR_PARTICLE_BASE_HPP
 
-
 template<class PLayout>
 AmrParticleBase<PLayout>::AmrParticleBase() {
-    AssignDensityTimer_m = IpplTimings::getTimer("AMR AssignDensity");
-    SortParticlesTimer_m = IpplTimings::getTimer("AMR sort particles");
     UpdateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
+    SortParticlesTimer_m = IpplTimings::getTimer("AMR sort particles");
 }
 
 
