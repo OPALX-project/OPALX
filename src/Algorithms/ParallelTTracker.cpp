@@ -222,7 +222,6 @@ void ParallelTTracker::writeTrackOrbitFile(double spos) {
     /// note this is needs to be changed adapting 
     /// the OPAL-cyc idea 
 
-    int locIdofPart0 = -1;
     int locIdofPart1 = -1;
     int locIdofPart2 = -1;
 
@@ -230,8 +229,6 @@ void ParallelTTracker::writeTrackOrbitFile(double spos) {
 
     /// find the particles
     for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-        if(itsBunch->ID[ii] == 0) 
-            locIdofPart0 = ii;
         if(itsBunch->ID[ii] == 1) 
             locIdofPart1 = ii;
         if(itsBunch->ID[ii] == 2) 
@@ -240,17 +237,6 @@ void ParallelTTracker::writeTrackOrbitFile(double spos) {
 
     if(Ippl::myNode() == 0) {
         /// write my one particle first 
-        if (locIdofPart0 > 0)
-            outfTrackOrbit_m << "ID" << itsBunch->ID[locIdofPart0] << "\t "
-                             << spos << "\t "
-                             << itsBunch->R[locIdofPart0](0) << "\t "
-                             << itsBunch->R[locIdofPart0](1) << "\t "
-                             << itsBunch->R[locIdofPart0](2) << "\t "
-                             << itsBunch->P[locIdofPart0](0) << "\t "
-                             << itsBunch->P[locIdofPart0](1) << "\t "
-                             << itsBunch->P[locIdofPart0](2) << "\t "
-                             << std::endl;
-
         if (locIdofPart1 > 0)
             outfTrackOrbit_m << "ID" << itsBunch->ID[locIdofPart1] << "\t "
                              << spos << "\t "
@@ -305,20 +291,12 @@ void ParallelTTracker::writeTrackOrbitFile(double spos) {
     else {
         Message *smsg = new Message();
         int dataToSend = 0;
-        if (locIdofPart0>0)
-            dataToSend++;
         if (locIdofPart1>0)
             dataToSend++;
         if (locIdofPart2>0)
             dataToSend++;
 
         smsg->put(dataToSend);
-
-        if (locIdofPart0>0){
-            smsg->put(itsBunch->ID[locIdofPart0]);
-            smsg->put(itsBunch->R[locIdofPart0]);
-            smsg->put(itsBunch->P[locIdofPart0]);
-        }
 
         if (locIdofPart1>0){
             smsg->put(itsBunch->ID[locIdofPart1]);
