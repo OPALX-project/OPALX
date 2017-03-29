@@ -237,7 +237,7 @@ void ParallelTTracker::writeTrackOrbitFile(double spos) {
 
     if(Ippl::myNode() == 0) {
         /// write my one particle first 
-        if (locIdofPart1 > 0)
+        if (locIdofPart1 >= 0)
             outfTrackOrbit_m << "ID" << itsBunch->ID[locIdofPart1] << "\t "
                              << spos << "\t "
                              << itsBunch->R[locIdofPart1](0) << "\t "
@@ -248,7 +248,7 @@ void ParallelTTracker::writeTrackOrbitFile(double spos) {
                              << itsBunch->P[locIdofPart1](2) << "\t "
                              << std::endl;
 
-        if (locIdofPart2 > 0)
+        if (locIdofPart2 >= 0)
             outfTrackOrbit_m << "ID" << itsBunch->ID[locIdofPart2] << "\t "
                              << spos << "\t "
                              << itsBunch->R[locIdofPart2](0) << "\t "                            
@@ -295,20 +295,20 @@ void ParallelTTracker::writeTrackOrbitFile(double spos) {
     else {
         Message *smsg = new Message();
         int dataToSend = 0;
-        if (locIdofPart1>0)
+        if (locIdofPart1>=0)
             dataToSend++;
-        if (locIdofPart2>0)
+        if (locIdofPart2>=0)
             dataToSend++;
 
         smsg->put(dataToSend);
 
-        if (locIdofPart1>0){
+        if (locIdofPart1>=0){
             smsg->put(itsBunch->ID[locIdofPart1]);
             smsg->put(itsBunch->R[locIdofPart1]);
             smsg->put(itsBunch->P[locIdofPart1]);
         }
 
-        if (locIdofPart2>0){
+        if (locIdofPart2>=0){
             smsg->put(itsBunch->ID[locIdofPart2]);
             smsg->put(itsBunch->R[locIdofPart2]);
             smsg->put(itsBunch->P[locIdofPart2]);
