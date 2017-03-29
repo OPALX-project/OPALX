@@ -258,11 +258,14 @@ void ParallelTTracker::writeTrackOrbitFile(double spos) {
                              << itsBunch->P[locIdofPart2](1) << "\t "
                              << itsBunch->P[locIdofPart2](2) << "\t "
                              << std::endl;
+        
+        outfTrackOrbit_m.flush();
+        
 
         int notReceived = Ippl::getNodes() - 1;
         int dataBlocks = 0;    
         Vector_t x,p;
-        size_t id;
+        int id;
         while(notReceived > 0) {
             int node = COMM_ANY_NODE;
             std::unique_ptr<Message> rmsg(Ippl::Comm->receive_block(node, tag));
@@ -271,21 +274,22 @@ void ParallelTTracker::writeTrackOrbitFile(double spos) {
             }
             notReceived--;
             rmsg->get(&dataBlocks);
-            for(int i = 0; i < dataBlocks; i++) {
+            for(int i = 0; i < dataBlocks; ++i) {
                 rmsg->get(&id);
                 rmsg->get(x);
                 rmsg->get(p);
                 
-                outfTrackOrbit_m << "ID" << id << "\t "
-                                 << spos << "\t "
-                                 << x(0) << "\t "
-                                 << x(1) << "\t "
-                                 << x(2) << "\t "
-                                 << p(0) << "\t "
-                                 << p(1) << "\t "
-                                 << p(2) << "\t "
+                outfTrackOrbit_m << "ID" << id << " \t "
+                                 << spos << " \t "
+                                 << x(0) << " \t "
+                                 << x(1) << " \t "
+                                 << x(2) << " \t "
+                                 << p(0) << " \t "
+                                 << p(1) << " \t "
+                                 << p(2) << " \t "
                                  << std::endl;
-            }
+                outfTrackOrbit_m.flush();
+            }            
         }
     }
     else {
@@ -317,13 +321,11 @@ void ParallelTTracker::writeTrackOrbitFile(double spos) {
 
 void ParallelTTracker::initTrackOrbitFile() {
 
-    std::string f = std::string("data/") + OpalData::getInstance()->getInputBasename() + std::string("-trackOrbit.dat");
-
-    outfTrackOrbit_m.setf(std::ios::scientific, std::ios::floatfield);
-    outfTrackOrbit_m.precision(8);
-
     if(Ippl::myNode() == 0) {
-
+        std::string f = std::string("data/") + OpalData::getInstance()->getInputBasename() + std::string("-trackOrbit.dat");
+        outfTrackOrbit_m.setf(std::ios::scientific, std::ios::floatfield);
+        outfTrackOrbit_m.precision(8);
+        
         if(OpalData::getInstance()->inRestartRun()) {
 
             outfTrackOrbit_m.open(f.c_str(), std::ios::app);
