@@ -82,7 +82,7 @@ private:
     // the element the surface physics is attached to
     ElementBase *itsElement_m;
     std::string material_m;
-
+    bool enableRutherfordScattering_m;
 };
 
 inline std::ostream &operator<<(std::ostream &os, const SurfacePhysics &b) {

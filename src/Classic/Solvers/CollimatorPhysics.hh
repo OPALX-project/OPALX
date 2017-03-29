@@ -68,7 +68,7 @@ typedef struct {
 
 class CollimatorPhysics: public SurfacePhysicsHandler {
 public:
-    CollimatorPhysics(const std::string &name, ElementBase *element, std::string &mat);
+    CollimatorPhysics(const std::string &name, ElementBase *element, std::string &mat, bool enableRutherfordScattering);
     ~CollimatorPhysics();
 
     void apply(PartBunch &bunch, size_t numParticlesInSimulation = 0);
@@ -148,7 +148,7 @@ private:
     double I_m;
     double n_m;
 
-    bool enableRutherfordScattering;
+    bool enableRutherfordScattering_m;
 
     unsigned bunchToMatStat_m;
     unsigned stoppedPartStat_m;
