@@ -68,8 +68,8 @@ void AmrParticleBase<PLayout>::sort() {
     std::sort(slist1.begin(), slist1.end(), [this](const SortListIndex_t &i, 
                                                    const SortListIndex_t &j)
     {
-        return (this->m_lev[i] < this->m_lev[j] ||
-               (this->m_lev[i] == this->m_lev[j] && this->m_grid[i] < this->m_grid[j]));
+        return (this->level[i] < this->level[j] ||
+               (this->level[i] == this->level[j] && this->grid[i] < this->grid[j]));
     });
 
     //slist2 holds the index of which element should go in this position
