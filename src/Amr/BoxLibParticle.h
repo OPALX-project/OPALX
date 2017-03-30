@@ -29,17 +29,17 @@ template<class PLayout>
 class BoxLibParticle : public AmrParticleBase<PLayout>
 {
 public:
-    typedef typename AmrParticleBase<PLayout>::ParticlePos_t               ParticlePos_t;
-    typedef typename AmrParticleBase<PLayout>::ParticleIndex_t             ParticleIndex_t;
-    typedef typename AmrParticleBase<PLayout>::SingleParticlePos_t         SingleParticlePos_t;
-    typedef typename AmrParticleBase<PLayout>::AmrField_t AmrField_t;
-    typedef typename AmrParticleBase<PLayout>::AmrFieldContainer_t AmrFieldContainer_t;
+    typedef typename AmrParticleBase<PLayout>::ParticlePos_t        ParticlePos_t;
+    typedef typename AmrParticleBase<PLayout>::ParticleIndex_t      ParticleIndex_t;
+    typedef typename AmrParticleBase<PLayout>::SingleParticlePos_t  SingleParticlePos_t;
+    typedef typename AmrParticleBase<PLayout>::AmrField_t           AmrField_t;
+    typedef typename AmrParticleBase<PLayout>::AmrFieldContainer_t  AmrFieldContainer_t;
     
-typedef double RealType;
-typedef std::deque<Particle<1,0> > C;
-typedef C PBox;
-typedef Particle<1,0> ParticleType;
-typedef typename std::map<int,PBox> PMap;
+    typedef double RealType;
+    typedef std::deque<Particle<1,0> > C;
+    typedef C PBox;
+    typedef Particle<1,0> ParticleType;
+    typedef typename std::map<int,PBox> PMap;
     
 public:
     BoxLibParticle();
