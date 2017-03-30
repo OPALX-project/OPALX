@@ -3,6 +3,8 @@
 
 #include "AmrParticle/ParticleAmrLayout.h"
 
+#include "Amr/AmrBoxLib.h"
+
 #include <MultiFab.H>
 #include <PArray.H>
 #include <ParGDB.H>
@@ -18,8 +20,8 @@ public:
     typedef typename ParticleAmrLayout<T, Dim>::SingleParticlePos_t SingleParticlePos_t;
     typedef typename ParticleAmrLayout<T, Dim>::Index_t Index_t;
     
-    typedef MultiFab AmrField_t;
-    typedef PArray<MultiFab> AmrFieldContainer_t;
+    typedef AmrBoxLib::AmrField_t AmrField_t;
+    typedef AmrBoxLib::AmrFieldContainer_t AmrFieldContainer_t;
     typedef typename ParticleAmrLayout<T, Dim>::ParticlePos_t ParticlePos_t;
     typedef ParticleAttrib<Index_t> ParticleIndex_t;
 
