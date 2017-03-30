@@ -22,7 +22,6 @@ set (_SRCS
   TrackIntegrator.cpp
   Tracker.cpp
   Quaternion.cpp
-  PartBunchBase.cpp
   )
 
 if ( ENABLE_AMR_SOLVER )
@@ -64,7 +63,6 @@ set (HDRS
     Tracker.h
     TrackIntegrator.h
     Vektor.h
-    PartBunchBase.h
 )
 
 if ( ENABLE_AMR_SOLVER )

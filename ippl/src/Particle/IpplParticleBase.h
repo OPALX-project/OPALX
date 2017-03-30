@@ -255,8 +255,8 @@ public:
 
     // Update the particle object after a timestep.  This routine will change
     // our local, total, create particle counts properly.
-    void update();
-    void update(const ParticleAttrib<char>& canSwap);
+    virtual void update();
+    virtual void update(const ParticleAttrib<char>& canSwap);
 
     // create 1 new particle with a given ID
     void createWithID(unsigned id);

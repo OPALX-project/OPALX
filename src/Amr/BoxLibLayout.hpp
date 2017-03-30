@@ -54,11 +54,11 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
         bool particleLeftDomain = false;
         //check to which level and grid the particle belongs to
         if (!where_already_called) {
-            if (!Where(PData, ip, lev_min, theEffectiveFinestLevel)) {
+            if (!Where_m(PData, ip, lev_min, theEffectiveFinestLevel)) {
                 if (full_where) {
-                    if (!PeriodicWhere(PData, ip, lev_min, theEffectiveFinestLevel)) {
+                    if (!PeriodicWhere_m(PData, ip, lev_min, theEffectiveFinestLevel)) {
                         if (lev_min != 0) {
-                            if (!RestrictedWhere(PData, ip, nGrow))
+                            if (!RestrictedWhere_m(PData, ip, nGrow))
                                 BoxLib::Abort("RestrictedWhere failed in redistribute");
                         } else {
                             //the particle has left the domain - invalidate it.
@@ -270,7 +270,7 @@ bool BoxLibLayout<T, Dim>::PeriodicWhere_m(AmrParticleBase< BoxLibLayout<T,Dim> 
     //
     SingleParticlePos_t R = p.R[ip];
 
-    if (PeriodicShift(R))
+    if (PeriodicShift_m(R))
     {
         std::vector< std::pair<int,Box> > isects;
 

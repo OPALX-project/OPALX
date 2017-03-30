@@ -230,13 +230,13 @@ public:
 
     void   setT(double t);
     double getT() const;
-    void   computeSelfFields();
+    virtual void   computeSelfFields();
 
     /** /brief used for self fields with binned distribution */
-    void   computeSelfFields(int b);
+    virtual void   computeSelfFields(int b);
 
-    void computeSelfFields_cycl(double gamma);
-    void computeSelfFields_cycl(int b);
+    virtual void computeSelfFields_cycl(double gamma);
+    virtual void computeSelfFields_cycl(int b);
 
     void resetInterpolationCache(bool clearCache = false);
 

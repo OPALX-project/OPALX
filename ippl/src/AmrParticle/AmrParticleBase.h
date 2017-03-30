@@ -48,6 +48,12 @@ public:
     
     ~AmrParticleBase() {}
     
+    //initialize AmrParticleBase class - add level and grid variables to attribute list
+    void initializeAmr() {
+        this->addAttribute(level);
+        this->addAttribute(grid);
+    }
+    
     // Update the particle object after a timestep.  This routine will change
     // our local, total, create particle counts properly.
     void update();
