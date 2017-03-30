@@ -17,6 +17,28 @@ public:
 
     AmrPartBunch(const AmrPartBunch &);
     
+    /* virtual member functions of PartBunch that
+     * we reimplement
+     */
+    
+    void runTests();
+    
+    void calcLineDensity(unsigned int nBins,
+                         std::vector<double> &lineDensity,
+                         std::pair<double, double> &meshInfo);
+    
+//     const Mesh_t &getMesh() const;
+
+//     Mesh_t &getMesh();
+    
+//     FieldLayout_t &getFieldLayout();
+    
+    void boundp();
+    
+    void boundp_destroy();
+    
+    size_t boundp_destroyT();
+    
     void computeSelfFields();
     
     void computeSelfFields(int b);
@@ -24,6 +46,10 @@ public:
     void computeSelfFields_cycl(double gamma);
     
     void computeSelfFields_cycl(int b);
+    
+    /* virtual member functions of IpplParticleBase
+     * that we reimplement
+     */
     
     void update();
     

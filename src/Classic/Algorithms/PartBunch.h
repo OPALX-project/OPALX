@@ -64,7 +64,7 @@ public:
     PartBunch(const PartBunch &);
     ~PartBunch();
 
-    void runTests();
+    virtual void runTests();
 
     bool getIfBeamEmitting();
     int getLastEmittedEnergyBin();
@@ -94,7 +94,7 @@ public:
 
     void do_binaryRepart();
 
-    void calcLineDensity(unsigned int nBins, std::vector<double> &lineDensity, std::pair<double, double> &meshInfo);
+    virtual void calcLineDensity(unsigned int nBins, std::vector<double> &lineDensity, std::pair<double, double> &meshInfo);
 
     void setDistribution(Distribution *d,
                          std::vector<Distribution *> addedDistributions,
@@ -158,24 +158,24 @@ public:
 
     */
 
-    const Mesh_t &getMesh() const;
+    virtual const Mesh_t &getMesh() const;
 
-    Mesh_t &getMesh();
+    virtual Mesh_t &getMesh();
 
-    FieldLayout_t &getFieldLayout();
+    virtual FieldLayout_t &getFieldLayout();
 
     void setBCAllPeriodic();
     void setBCAllOpen();
 
     void setBCForDCBeam();
 
-    void boundp();
+    virtual void boundp();
 
     /** delete particles which are too far away from the center of beam*/
-    void boundp_destroy();
+    virtual void boundp_destroy();
 
     /** This is only temporary in order to get the collimator and pepperpot workinh */
-    size_t boundp_destroyT();
+    virtual size_t boundp_destroyT();
     size_t destroyT();
 
     /* Definiere virtuelle Funktionen, um die Koordinaten auszulesen
