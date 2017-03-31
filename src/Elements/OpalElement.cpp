@@ -141,11 +141,8 @@ void OpalElement::parse(Statement &stat) {
         Attribute *attr = findAttribute(name);
 
         if(attr == 0) {
-            // Append unknown attribute to the attribute list. Keep the original
-            // size in itsSize, so as to recognize the added attributes.
-            itsAttr.push_back(Attributes::makeReal(name, "user-defined"));
-            attr = &itsAttr.back();
-            registerRealAttribute(name);
+            throw OpalException("OpalElement::parse",
+                                "unknown attribute \"" + name + "\"");
         }
 
         if(stat.delimiter('[')) {
