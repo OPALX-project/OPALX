@@ -7,6 +7,8 @@
 #include <string>
 #include <cstring>
 #include <sstream>
+#include <type_traits>
+#include <functional>
 
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define __DBGMSG__ __FILENAME__ << ": " << __LINE__ << "\t"
@@ -145,6 +147,9 @@ namespace Util {
 
     std::string toUpper(const std::string &str);
 
+    template <typename T>
+    std::string toStringWithThousandSep(T value, char sep = '\'');
+
     struct KahanAccumulation
     {
         long double sum;
@@ -160,6 +165,40 @@ namespace Util {
 
     std::string base64_encode(const std::string &string_to_encode);//unsigned char const* , unsigned int len);
     std::string base64_decode(std::string const& s);
+}
+
+template <typename T>
+std::string Util::toStringWithThousandSep(T value, char sep) {
+    static_assert(std::is_integral<T>::value, "Util::toStringWithThousandSep: T must be of integer type");
+
+    unsigned int powers = std::floor(std::max(0.0,
+                                              std::log(std::abs((double)value)) / std::log(10.0))
+                          );
+    powers -= powers % 3u;
+
+    std::ostringstream ret;
+    unsigned int i = 0;
+    while (powers >= 3u) {
+        T multiplicator = std::pow(T(10), powers);
+        T pre = value / multiplicator;
+        if (i > 0) {
+            ret << std::setw(3) << std::setfill('0') << pre << sep;
+        } else {
+            ret << pre << sep;
+        }
+        value -= pre * multiplicator;
+
+        powers -= 3;
+        ++ i;
+    }
+
+    if (i > 0) {
+        ret << std::setw(3) << std::setfill('0') << value;
+    } else {
+        ret << value;
+    }
+
+    return ret.str();
 }
 
 #endif

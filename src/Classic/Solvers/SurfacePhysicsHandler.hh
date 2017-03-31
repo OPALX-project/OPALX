@@ -22,7 +22,7 @@ public:
     virtual double getTime() = 0;
     virtual std::string getName() = 0;
     virtual size_t getParticlesInMat() = 0;
-    virtual unsigned getRedifused() = 0;
+    virtual unsigned getRediffused() = 0;
     void setFlagAllParticlesIn(bool p);
     bool getFlagAllParticlesIn() const;
     void updateElement(ElementBase *newref);
@@ -39,8 +39,8 @@ private:
 inline
 SurfacePhysicsHandler::SurfacePhysicsHandler(std::string name, ElementBase *elref):
     element_ref_m(elref),
-    name_m(name),
-    allParticleInMat_m(false)
+    allParticleInMat_m(false),
+    name_m(name)
 {}
 
 inline
