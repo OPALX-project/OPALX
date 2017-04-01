@@ -62,6 +62,8 @@ public:
 
     void setNumCells(int NumCells);
 
+    void setMode(double mode);
+
     virtual double getAutoPhaseEstimate(const double & E0, const double & t0, const double & q, const double & m);
 
     virtual std::pair<double, double> trackOnAxisParticle(const double & p0,
@@ -230,4 +232,8 @@ void TravelingWave::setNumCells(int NumCells) {
     NumCells_m = NumCells;
 }
 
+inline
+void TravelingWave::setMode(double mode) {
+    Mode_m = mode;
+}
 #endif // CLASSIC_TravelingWave_HH
