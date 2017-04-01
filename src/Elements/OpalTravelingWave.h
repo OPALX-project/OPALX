@@ -45,6 +45,7 @@ public:
         FAST,           // Faster but less accurate
         CAVITYTYPE,     // STANDING or TRAVELING wave structure
         NUMCELLS,       // Number of cells in a TW structure
+        MODE,           // The phase shift between cells
         DX,             // Misalignment: translation in x direction
         DY,             // Misalignment: translation in y direction
         SIZE
