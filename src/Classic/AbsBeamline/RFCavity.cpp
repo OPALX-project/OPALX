@@ -50,7 +50,7 @@ RFCavity::RFCavity():
     startField_m(0.0),
     endField_m(0.0),
     type_m(SW),
-    fast_m(false),
+    fast_m(true),
     autophaseVeto_m(false),
     rmin_m(0.0),
     rmax_m(0.0),
@@ -141,7 +141,7 @@ RFCavity::RFCavity(const std::string &name):
     startField_m(0.0),
     endField_m(0.0),
     type_m(SW),
-    fast_m(false),
+    fast_m(true),
     autophaseVeto_m(false),
     rmin_m(0.0),
     rmax_m(0.0),
@@ -592,7 +592,7 @@ void RFCavity::initialise(PartBunch *bunch, const double &scaleFactor, std::shar
 
     if (frequency_name_m != "")
       *gmsg << "* Timedependent frequency model " << frequency_name_m << endl;
-    
+
     *gmsg << "* Cavity voltage data read successfully!" << endl;
 }
 
@@ -715,7 +715,7 @@ double RFCavity::getCycFrequency()const {
 /**
    \brief used in OPAL-cycl
 
-   Is called from OPAL-cycl and can handle 
+   Is called from OPAL-cycl and can handle
    time dependent frequency, amplitude and phase
 
    At the moment (test) only the frequence is time

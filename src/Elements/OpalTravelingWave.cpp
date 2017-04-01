@@ -57,6 +57,8 @@ OpalTravelingWave::OpalTravelingWave():
                           ("CAVITYTYPE", "STANDING or TRAVELING wave cavity in photoinjector and LINAC; SINGLEGAP or DOUBLEGAP cavity in cyclotron");
     itsAttr[NUMCELLS] = Attributes::makeReal
                         ("NUMCELLS", "Number of cells in a TW structure");
+    itsAttr[MODE] = Attributes::makeReal
+                     ("MODE", "The phase shift between neighboring cells in 2*pi", 1.0/3.0);
     itsAttr[DX] = Attributes::makeReal
       ("DX", "Misalignment in x direction",0.0);
     itsAttr[DY] = Attributes::makeReal
@@ -68,6 +70,7 @@ OpalTravelingWave::OpalTravelingWave():
     registerStringAttribute("FMAPFN");
     registerStringAttribute("CAVITYTYPE");
     registerRealAttribute("NUMCELLS");
+    registerRealAttribute("MODE");
     registerRealAttribute("DX");
     registerRealAttribute("DY");
 
@@ -147,6 +150,7 @@ void OpalTravelingWave::update() {
     rfc->setFrequencym(freq);
     rfc->setPhasem(phase);
     rfc->setNumCells((int)Attributes::getReal(itsAttr[NUMCELLS]));
+    rfc->setMode(Attributes::getReal(itsAttr[MODE]));
 
     if(itsAttr[WAKEF] && owk_m == NULL) {
         owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));

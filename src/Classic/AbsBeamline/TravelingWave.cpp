@@ -52,7 +52,7 @@ TravelingWave::TravelingWave():
     NumCells_m(1),
     CellLength_m(0.0),
     Mode_m(1),
-    fast_m(false),
+    fast_m(true),
     autophaseVeto_m(false)
 {}
 
@@ -100,7 +100,7 @@ TravelingWave::TravelingWave(const std::string &name):
     NumCells_m(1),
     CellLength_m(0.0),
     Mode_m(1),
-    fast_m(false),
+    fast_m(true),
     autophaseVeto_m(false)
 {}
 
@@ -461,22 +461,6 @@ void TravelingWave::initialise(PartBunch *bunch, double &startField, double &end
 
             if(dx_m > 1e-10 || dy_m > 1e-10)
                 msg << level2 << "misaligned by dx = " << dx_m << ", dy = " << dy_m << endl;
-
-            if(hasAttribute("MODE")) {
-                Mode_m = getAttribute("MODE");
-            } else {
-                Mode_m = 1. / 3.;
-                errormsg.str("");
-                errormsg  << "NO MODE GIVEN; 2\\pi/3 MODE ASSUMED.";
-                std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
-                ERRORMSG(errormsg_str << "\n" << endl);
-
-                if(Ippl::myNode() == 0) {
-                    std::ofstream omsg("errormsg.txt", std::ios_base::app);
-                    omsg << errormsg_str << std::endl;
-                    omsg.close();
-                }
-            }
 
             PeriodLength_m = (zEnd - zBegin) / 2.0;
             CellLength_m = PeriodLength_m * Mode_m;
