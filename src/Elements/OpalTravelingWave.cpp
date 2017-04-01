@@ -75,6 +75,7 @@ OpalTravelingWave::OpalTravelingWave():
     registerStringAttribute("CAVITYTYPE");
     registerRealAttribute("NUMCELLS");
     registerRealAttribute("DESIGNENERGY");
+    registerRealAttribute("MODE");
 
     registerOwnership();
 
