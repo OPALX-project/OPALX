@@ -83,6 +83,7 @@ private:
     ElementBase *itsElement_m;
     std::string material_m;
     bool enableRutherfordScattering_m;
+    double lowEnergyThr_m;
 };
 
 inline std::ostream &operator<<(std::ostream &os, const SurfacePhysics &b) {
