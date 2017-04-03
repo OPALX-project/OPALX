@@ -36,10 +36,12 @@ using Physics::Avo;
 
 
 CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *element, 
-				     std::string &material, bool enableRutherfordScattering):
+				     std::string &material, bool enableRutherfordScattering,
+				     double lowEnergyThr):
     SurfacePhysicsHandler(name, element),
     material_m(material),
     enableRutherfordScattering_m(enableRutherfordScattering),
+    lowEnergyThr_m(lowEnergyThr),
     Z_m(0),
     A_m(0.0),
     A2_c(0.0),
@@ -209,7 +211,7 @@ bool CollimatorPhysics::EnergyLoss(double &Eng, double &deltat) {
         Eng = Eng+delta_E / 1E3;
     }
     //    INFOMSG("final energy: " << Eng/1000 << " MeV" <<endl);
-    return ((Eng<1E-4) || (dEdx>0));
+    return ((Eng<lowEnergyThr_m) || (dEdx>0));
 }
 
 
@@ -701,7 +703,7 @@ void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, double &deltat) {
     }
 
     //INFOMSG("final energy: " << Eng/1000 << " MeV" <<endl);
-    pdead = ((Eng<1E-4) || (dEdx>0));
+    pdead = ((Eng<lowEnergyThr_m) || (dEdx>0));
 }
 
 // Implement the rotation in 2 dimensions here

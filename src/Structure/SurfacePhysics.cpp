@@ -38,6 +38,7 @@ namespace {
         MATERIAL,   // From of the tube
         RADIUS, // Radius of the tube
 	ENABLERUTHERFORD,
+	LOWENERGYTHR,
         SIGMA,
         TAU,
 	NPART,
@@ -68,6 +69,8 @@ SurfacePhysics::SurfacePhysics():
     itsAttr[NPART] = Attributes::makeReal("NPART", "Number of particles in bunch");
 
     itsAttr[ENABLERUTHERFORD] = Attributes::makeBool("ENABLERUTHERFORD", "Enable large angle scattering",true);
+
+    itsAttr[LOWENERGYTHR] = Attributes::makeReal("LOWENERGYTHR", "Lower Energy threshold Bethe-Block, manual Ch. 18 ",1E-4);
 
     SurfacePhysics *defSurfacePhysics = clone("UNNAMED_SURFACEPHYSICS");
     defSurfacePhysics->builtin = true;
@@ -135,9 +138,10 @@ void SurfacePhysics::initSurfacePhysicsHandler(ElementBase &element) {
     itsElement_m = &element;
     material_m = Attributes::getString(itsAttr[MATERIAL]);
     enableRutherfordScattering_m = Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
+    lowEnergyThr_m = Attributes::getReal(itsAttr[LOWENERGYTHR]);
 
     if(Attributes::getString(itsAttr[TYPE]) == "CCOLLIMATOR" || Attributes::getString(itsAttr[TYPE]) == "COLLIMATOR" || Attributes::getString(itsAttr[TYPE]) == "DEGRADER") {
-      handler_m = new CollimatorPhysics(getOpalName(), itsElement_m, material_m, enableRutherfordScattering_m);
+      handler_m = new CollimatorPhysics(getOpalName(), itsElement_m, material_m, enableRutherfordScattering_m, lowEnergyThr_m);
         *gmsg << *this << endl;
     } else {
         handler_m = 0;
@@ -156,7 +160,9 @@ void SurfacePhysics::print(std::ostream &os) const {
        << "* MATERIAL       \t" << Attributes::getString(itsAttr[MATERIAL]) << '\n'
        << "* RADIUS         \t" << Attributes::getReal(itsAttr[RADIUS]) << '\n'
        << "* SIGMA          \t" << Attributes::getReal(itsAttr[SIGMA]) << '\n'
-       << "* TAU            \t" << Attributes::getReal(itsAttr[TAU]) << '\n';
+       << "* TAU            \t" << Attributes::getReal(itsAttr[TAU]) << '\n'
+       << "* LOWENERGYTHR   \t" << Attributes::getReal(itsAttr[LOWENERGYTHR]) << " (MeV) \n";
+
     if (Attributes::getBool(itsAttr[ENABLERUTHERFORD]))
       os << "* RUTHERFORD SCAT \t ENABLED" << '\n';
     else
