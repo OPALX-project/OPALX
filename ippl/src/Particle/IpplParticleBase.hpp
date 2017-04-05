@@ -72,6 +72,10 @@ void IpplParticleBase<PLayout>::setup() {
   addAttribute(R);
   addAttribute(ID);
 
+  // set pointer for base class AbstractParticle
+  this->R_p  = &R;
+  this->ID_p = &ID;
+  
   // indicate we have created a new IpplParticleBase object
   INCIPPLSTAT(incIpplParticleBases);
 }
