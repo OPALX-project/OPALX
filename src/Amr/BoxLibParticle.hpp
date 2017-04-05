@@ -26,15 +26,23 @@ template<class PLayout>
 BoxLibParticle<PLayout>::BoxLibParticle() : AmrParticleBase<PLayout>()
 {
     AssignDensityTimer_m = IpplTimings::getTimer("AMR AssignDensity");
+    this->initializeAmr();
 }
 
+
+template<class PLayout>
+BoxLibParticle<PLayout>::BoxLibParticle(PLayout *layout) : AmrParticleBase<PLayout>(layout)
+{
+    AssignDensityTimer_m = IpplTimings::getTimer("AMR AssignDensity");
+    this->initializeAmr();
+}
 
 
 template<class PLayout>
 template<class FT, unsigned Dim, class PT>
-void BoxLibParticle<PLayout>::scatter(const ParticleAttrib<FT>& attrib, AmrField_t& f,
-                                      const ParticleAttrib<Vektor<PT, Dim> >& pp,
-                                      int lbase, int lfine) const
+void BoxLibParticle<PLayout>::scatter(ParticleAttrib<FT>& attrib, AmrFieldContainer_t& f,
+                                      ParticleAttrib<Vektor<PT, Dim> >& pp,
+                                      int lbase, int lfine)
 {
     this->AssignDensity(attrib, false, f, lbase, lfine);
 }
@@ -42,9 +50,9 @@ void BoxLibParticle<PLayout>::scatter(const ParticleAttrib<FT>& attrib, AmrField
 
 template<class PLayout>
 template<class FT, unsigned Dim, class PT>
-void BoxLibParticle<PLayout>::gather(ParticleAttrib<FT>& attrib, const AmrField_t& f,
-                                     const ParticleAttrib<Vektor<PT, Dim> >& pp,
-                                     int lbase, int lfine) const
+void BoxLibParticle<PLayout>::gather(ParticleAttrib<FT>& attrib, AmrFieldContainer_t& f,
+                                     ParticleAttrib<Vektor<PT, Dim> >& pp,
+                                     int lbase, int lfine)
 {
     this->GetGravity(attrib, f);
 }
@@ -636,7 +644,7 @@ void BoxLibParticle<PLayout>::AssignDensity(ParticleAttrib<AType> &pa,
     //while lev_min > level[start_idx] we need to skip these particles since there level is
     //higher than the specified lev_min
     int start_idx = 0;
-    while ((unsigned)lev_min > this->leve[start_idx])
+    while ((unsigned)lev_min > this->level[start_idx])
         start_idx++;
 
     if (finest_level == -1)
@@ -912,7 +920,7 @@ void BoxLibParticle<PLayout>::AssignDensity(ParticleAttrib<AType> &pa,
         for (size_t ip = start_idx; ip < LocalNum; ++ip) {
             //there are no more particles in level lev on this node
             //exit the loop and move to the next level
-            if (this->leve[ip] != (unsigned)lev) {
+            if (this->level[ip] != (unsigned)lev) {
                 start_idx = ip;
                 break;
             }
@@ -1105,7 +1113,7 @@ void BoxLibParticle<PLayout>::AssignDensity(ParticleAttrib<AType> &pa,
                 //
                 bool AnyFineToCrse = false;
                 if (lev_index > 0 && !GridsCoverDomain)
-                    AnyFineToCrse = FineToCrse(ip,lev,this,cells,fvalid,compfvalid_grown,
+                    AnyFineToCrse = FineToCrse(ip,lev,layout_p,cells,fvalid,compfvalid_grown,
                                                 ccells,cfracs,fwhich,cgrid,pshifts,isects);
         
                 BL_ASSERT(!(AnyCrseToFine && AnyFineToCrse));
@@ -1284,7 +1292,7 @@ void BoxLibParticle<PLayout>::AssignDensity(ParticleAttrib<AType> &pa,
                             //
                             // We're at a Crse->Fine boundary.
                             //
-                            FineCellsToUpdateFromCrse(ip,lev,this,cells[i],cfshifts[i],
+                            FineCellsToUpdateFromCrse(ip,lev,layout_p,cells[i],cfshifts[i],
                                                     fgrid,ffracs,fcells,isects);
             
                             for (int j = 0, nj=fcells.size(); j < nj; ++j)
@@ -1422,7 +1430,7 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevel(ParticleAttrib<AType>
     for (size_t ip = 0; ip < LocalNum; ++ip) 
     {
         //if particle doesn't belong on this level exit loop
-        if (this->leve[ip] != (unsigned)lev)
+        if (this->level[ip] != (unsigned)lev)
             break;
 
         FArrayBox& fab = (*mf_pointer)[this->grid[ip]];
@@ -1618,7 +1626,7 @@ void BoxLibParticle<PLayout>::GetGravity(ParticleAttrib<AType> &pa,
 
     //loop trough all the particles
     for (size_t ip = 0; ip < LocalNum; ++ip) {
-        int lev = this->leve[ip];
+        int lev = this->level[ip];
         int grid = this->grid[ip];
 
         //get the FArrayBox where this particle is located
