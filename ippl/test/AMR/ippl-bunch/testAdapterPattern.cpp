@@ -28,7 +28,7 @@ void initBunch(std::unique_ptr<PartBunchBase<double, 3> >& bunch) {
     size_t maxBoxSize = 8;
     
     //set up the geometry
-    int n_cell = 16;
+    int n_cell = 32;
     IntVect low(0, 0, 0);
     IntVect high(n_cell - 1, n_cell - 1, n_cell - 1);    
     Box bx(low, high);
@@ -36,8 +36,8 @@ void initBunch(std::unique_ptr<PartBunchBase<double, 3> >& bunch) {
     //physical domain boundaries
     RealBox domain;
     for (int i = 0; i < BL_SPACEDIM; ++i) {
-        domain.setLo(i, 0.0);
-        domain.setHi(i, 1.0);
+        domain.setLo(i, -2.0);
+        domain.setHi(i, 2.0);
     }
     
     RealBox fine_domain;
@@ -122,21 +122,26 @@ int main(int argc, char** argv) {
     );
     
     
-    createRandomParticles(bunch.get(), 10, Ippl::myNode());
-    
-    std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
-    
-    bunch->update();
-    
-    std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
-    
-    std::cout << "bunch->R[0] = " << bunch->R[0] << std::endl;
-    
+//     createRandomParticles(bunch.get(), 10, Ippl::myNode());
+//     
+//     std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
+//     
+//     bunch->update();
+//     
+//     std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
+//     
+//     std::cout << "bunch->R[0] = " << bunch->R[0] << std::endl;
+//     
     double two = 2.0;
-    bunch->R *= Vector_t(two);
-    
-    std::cout << "2 * bunch->R[0] = " << bunch->R[0] << std::endl;
-    std::cout << "max(bunch->R) = " << max(bunch->R) << std::endl;
+//     bunch->R *= Vector_t(two);
+//     
+//     std::cout << "2 * bunch->R[0] = " << bunch->R[0] << std::endl;
+//     std::cout << "max(bunch->R) = " << max(bunch->R) << std::endl;
+//     
+//     std::cout << "Destroy R[0]" << std::endl;
+//     bunch->destroy(1, 0);
+//     bunch->update();
+//     std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
     
     std::cout << std::endl << "Init AmrPartBunch" << std::endl
               << "-----------------" << std::endl;
@@ -157,11 +162,19 @@ int main(int argc, char** argv) {
     
     std::cout << "bunch->R[0] = " << bunch->R[0] << std::endl;
     
-    bunch->R *= Vector_t(two);
+    bunch->R *= Vector_t(2.0);
     
     std::cout << "2 * bunch->R[0] = " << bunch->R[0] << std::endl;
     std::cout << "max(bunch->R) = " << max(bunch->R) << std::endl;
     
+    bunch->update();
+    
+    std::cout << "Destroy R[0]" << std::endl;
+    std::cout << "level[0] = " << dynamic_cast<BoxLibParticle<BoxLibLayout<double, 3> >*>(bunch->pbase)->level[0] << std::endl;
+    std::cout << "grid[0] = " << dynamic_cast<BoxLibParticle<BoxLibLayout<double, 3> >*>(bunch->pbase)->grid[0] << std::endl;
+    bunch->destroy(1, 0);
+    bunch->update();
+    std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
     
     return 0;
 }

@@ -30,6 +30,10 @@ public:
         pb->addAttribute(TriID);
     }
     
+    /*
+     * Wrapped member functions of IpplParticleBase
+     */
+    
     size_t getTotalNum() const {
         return pbase->getTotalNum();
     }
@@ -79,6 +83,22 @@ public:
         pbase->destroy(M, I, doNow);
     }
     
+    
+    /*
+     * (Pure) virtual member functions 
+     */
+    
+    virtual Mesh_t &getMesh() = 0;
+
+    virtual FieldLayout_t &getFieldLayout() = 0;
+    
+    
+    
+    /*
+     * Bunch attributes
+     */
+    
+    
     ParticlePos_t& R;
     ParticleIndex_t& ID;
     
@@ -99,7 +119,7 @@ public:
     ParticleAttrib< short >    PType; // we can distinguish dark current particles from primary particle
     ParticleAttrib< int >      TriID; // holds the ID of triangle that the particle hit. Only for BoundaryGeometry case.
     
-protected:
+// protected:
     /*std::unique_ptr<*/AbstractParticle<T, Dim>*/* >*/ pbase;
 };
 
