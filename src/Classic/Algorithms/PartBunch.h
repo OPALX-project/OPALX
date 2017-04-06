@@ -20,46 +20,22 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Ippl.h"
-#include "Algorithms/PBunchDefs.h"
-#include "Algorithms/Particle.h"
-#include "Algorithms/CoordinateSystemTrafo.h"
-#include "FixedAlgebra/FMatrix.h"
-#include "FixedAlgebra/FVector.h"
-#include "Algorithms/PartBins.h"
-#include "Algorithms/PartBinsCyc.h"
-#include "Algorithms/PartData.h"
-#include "Algorithms/Quaternion.h"
-#include "Utilities/SwitcherError.h"
-#include "Physics/Physics.h"
-
-#include <iosfwd>
-#include <vector>
-
-
-class Distribution;
-class LossDataSink;
-class FieldSolver;
-class ListElem;
-
-template <class T, int, int> class FMatrix;
-template <class T, int> class FVector;
+#include "Algorithms/PartBunchBase.h"
 
 // Class PartBunch.
 // ------------------------------------------------------------------------
 /// Particle Bunch.
 //  A representation of a particle bunch as a vector of particles.
 
-// class PartBunch: public std::vector<Particle>, public IpplParticleBase< ParticleSpatialLayout<double, 3> > {
-class PartBunch: public IpplParticleBase< ParticleSpatialLayout<double, 3> > {
-
+class PartBunch: public PartBunchBase<double, 3> {
+    
 public:
     /// Default constructor.
     //  Construct empty bunch.
     PartBunch(const PartData *ref);
 
     /// Conversion.
-    PartBunch(const std::vector<Particle> &, const PartData *ref);
+    PartBunch(const std::vector<OpalParticle> &, const PartData *ref);
 
     PartBunch(const PartBunch &);
     ~PartBunch();
@@ -93,14 +69,12 @@ public:
 
     */
     
-    Inform &print(Inform &os);
+    VectorPair_t getEExtrema();
     
-    std::pair<Vector_t, Vector_t> PartBunch::getEExtrema();
-    
-    void   computeSelfFields();
+    void computeSelfFields();
 
     /** /brief used for self fields with binned distribution */
-    void   computeSelfFields(int b);
+    void computeSelfFields(int b);
 
     void computeSelfFields_cycl(double gamma);
     void computeSelfFields_cycl(int b);
@@ -138,6 +112,16 @@ private:
     
 
     PartBunch &operator=(const PartBunch &) = delete;
+    
+    //FIXME
+    ParticleLayout<double, 3> & getLayout() {
+        return pbase->getLayout();
+    }
+    
+    //FIXME
+    const ParticleLayout<double, 3>& getLayout() const {
+        return pbase->getLayout();
+    }
 };
 
 
@@ -149,17 +133,20 @@ double PartBunch::getRho(int x, int y, int z) {
 
 inline
 const Mesh_t &PartBunch::getMesh() const {
-    return getLayout().getLayout().getMesh();
+    const ParticleSpatialLayout<double, 3>* layout = static_cast<const ParticleSpatialLayout<double, 3>* >(&getLayout());
+    return layout->getLayout().getMesh();
 }
 
 inline
 Mesh_t &PartBunch::getMesh() {
-    return getLayout().getLayout().getMesh();
+    ParticleSpatialLayout<double, 3>* layout = static_cast<ParticleSpatialLayout<double, 3>* >(&getLayout());
+    return layout->getLayout().getMesh();
 }
 
 inline
 FieldLayout_t &PartBunch::getFieldLayout() {
-    return dynamic_cast<FieldLayout_t &>(getLayout().getLayout().getFieldLayout());
+    ParticleSpatialLayout<double, 3>* layout = static_cast<ParticleSpatialLayout<double, 3>* >(&getLayout());
+    return dynamic_cast<FieldLayout_t &>(layout->getLayout().getFieldLayout());
 }
 
 #endif // OPAL_PartBunch_HH

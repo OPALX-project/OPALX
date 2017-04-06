@@ -29,13 +29,11 @@
 #include <memory>
 #include <utility>
 
-#include "AbstractObjects/OpalData.h"   // OPAL file
+
 #include "Distribution/Distribution.h"  // OPAL file
 #include "Structure/FieldSolver.h"      // OPAL file
-#include "Structure/LossDataSink.h"
-#include "Utilities/Options.h"
 #include "Utilities/GeneralClassicException.h"
-#include "Utilities/Util.h"
+#include "Structure/LossDataSink.h"
 
 #include "Algorithms/ListElem.h"
 
@@ -53,231 +51,31 @@
 //#define DBG_SCALARFIELD
 //#define FIELDSTDOUT
 
-using Physics::pi;
-
 using namespace std;
-
-extern Inform *gmsg;
 
 // Class PartBunch
 // ------------------------------------------------------------------------
 
 PartBunch::PartBunch(const PartData *ref):
-    myNode_m(Ippl::myNode()),
-    nodes_m(Ippl::getNodes()),
-    fixed_grid(false),
-    pbin_m(nullptr),
-    lossDs_m(nullptr),
-    pmsg_m(nullptr),
-    f_stream(nullptr),
-    reference(ref),
-    unit_state_(units),
-    stateOfLastBoundP_(unitless),
-    moments_m(),
-    dt_m(0.0),
-    t_m(0.0),
-    eKin_m(0.0),
-    dE_m(0.0),
-    spos_m(0.0),
-    rmax_m(0.0),
-    rmin_m(0.0),
-    rrms_m(0.0),
-    prms_m(0.0),
-    rmean_m(0.0),
-    pmean_m(0.0),
-    eps_m(0.0),
-    eps_norm_m(0.0),
-    rprms_m(0.0),
-    Dx_m(0.0),
-    Dy_m(0.0),
-    DDx_m(0.0),
-    DDy_m(0.0),
-    hr_m(-1.0),
-    nr_m(0),
-    fs_m(nullptr),
-    couplingConstant_m(0.0),
-    qi_m(0.0),
+    PartBunchBase<double, 3>(ref),
     interpolationCacheSet_m(false),
-    distDump_m(0),
-    fieldDBGStep_m(0),
-    dh_m(1e-12),
-    tEmission_m(0.0),
-    bingamma_m(nullptr),
-    binemitted_m(nullptr),
-    lPath_m(0.0),
-    stepsPerTurn_m(0),
-    localTrackStep_m(0),
-    globalTrackStep_m(0),
-    numBunch_m(1),
-    SteptoLastInj_m(0),
-    partPerNode_m(nullptr),
-    globalPartPerNode_m(nullptr),
-    dist_m(nullptr),
-    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
-    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
-    lowParticleCount_m(false),
-    dcBeam_m(false),
-    minLocNum_m(0) {
-    addAttribute(P);
-    addAttribute(Q);
-    addAttribute(M);
-    addAttribute(Phi);
-    addAttribute(Ef);
-    addAttribute(Eftmp);
+{
+    
+}
 
-    addAttribute(Bf);
-    addAttribute(Bin);
-    addAttribute(dt);
-    addAttribute(PType);
-    addAttribute(TriID);
-
-    boundpTimer_m = IpplTimings::getTimer("Boundingbox");
-    statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
-    selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
-    compPotenTimer_m  = IpplTimings::getTimer("SF: Potential");
-
-    histoTimer_m = IpplTimings::getTimer("Histogram");
-
-    distrCreate_m = IpplTimings::getTimer("Create Distr");
-    distrReload_m = IpplTimings::getTimer("Load Distr");
-
-
-    partPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
-    globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
-
-    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(std::string("GlobalLosses"), !Options::asciidump));
-
-    pmsg_m.release();
-    //    f_stream.release();
-    /*
-      if(Ippl::getNodes() == 1) {
-          f_stream = std::unique_ptr<ofstream>(new ofstream);
-          f_stream->open("data/dist.dat", ios::out);
-          pmsg_m = std::unique_ptr<Inform>(new Inform(0, *f_stream, 0));
-      }
-    */
-
-    // set the default IPPL behaviour
-    setMinimumNumberOfParticlesPerCore(0);
+PartBunch::PartBunch(const std::vector<OpalParticle> &rhs, const PartData *ref):
+    PartBunchBase<double, 3>(rhs, ref),
+    interpolationCacheSet_m(false),
+{
+    ERRORMSG("should not be here: PartBunch::PartBunch(const std::vector<OpalParticle> &rhs, const PartData *ref):" << endl);
 }
 
 PartBunch::PartBunch(const PartBunch &rhs):
-    myNode_m(Ippl::myNode()),
-    nodes_m(Ippl::getNodes()),
-    fixed_grid(rhs.fixed_grid),
-    pbin_m(nullptr),
-    lossDs_m(nullptr),
-    pmsg_m(nullptr),
-    f_stream(nullptr),
-    reference(rhs.reference),
-    unit_state_(rhs.unit_state_),
-    stateOfLastBoundP_(rhs.stateOfLastBoundP_),
-    moments_m(rhs.moments_m),
-    dt_m(rhs.dt_m),
-    t_m(rhs.t_m),
-    eKin_m(rhs.eKin_m),
-    dE_m(rhs.dE_m),
-    spos_m(0.0),
-    rmax_m(rhs.rmax_m),
-    rmin_m(rhs.rmin_m),
-    rrms_m(rhs.rrms_m),
-    prms_m(rhs.prms_m),
-    rmean_m(rhs.rmean_m),
-    pmean_m(rhs.pmean_m),
-    eps_m(rhs.eps_m),
-    eps_norm_m(rhs.eps_norm_m),
-    rprms_m(rhs.rprms_m),
-    Dx_m(rhs.Dx_m),
-    Dy_m(rhs.Dy_m),
-    DDx_m(rhs.DDx_m),
-    DDy_m(rhs.DDy_m),
-    hr_m(rhs.hr_m),
-    nr_m(rhs.nr_m),
-    fs_m(nullptr),
-    couplingConstant_m(rhs.couplingConstant_m),
-    qi_m(rhs.qi_m),
+    PartBunchBase<double, 3>(rhs),
     interpolationCacheSet_m(rhs.interpolationCacheSet_m),
-    distDump_m(rhs.distDump_m),
-    fieldDBGStep_m(rhs.fieldDBGStep_m),
-    dh_m(rhs.dh_m),
-    tEmission_m(rhs.tEmission_m),
-    bingamma_m(nullptr),
-    binemitted_m(nullptr),
-    lPath_m(rhs.lPath_m),
-    stepsPerTurn_m(rhs.stepsPerTurn_m),
-    localTrackStep_m(rhs.localTrackStep_m),
-    globalTrackStep_m(rhs.globalTrackStep_m),
-    numBunch_m(rhs.numBunch_m),
-    SteptoLastInj_m(rhs.SteptoLastInj_m),
-    partPerNode_m(nullptr),
-    globalPartPerNode_m(nullptr),
-    dist_m(nullptr),
-    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
-    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
-    lowParticleCount_m(rhs.lowParticleCount_m),
-    dcBeam_m(rhs.dcBeam_m),
-    minLocNum_m(rhs.minLocNum_m) {
+{
     ERRORMSG("should not be here: PartBunch::PartBunch(const PartBunch &rhs):" << endl);
     std::exit(0);
-}
-
-PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
-    myNode_m(Ippl::myNode()),
-    nodes_m(Ippl::getNodes()),
-    fixed_grid(false),
-    pbin_m(nullptr),
-    lossDs_m(nullptr),
-    pmsg_m(nullptr),
-    f_stream(nullptr),
-    reference(ref),
-    unit_state_(units),
-    stateOfLastBoundP_(unitless),
-    moments_m(),
-    dt_m(0.0),
-    t_m(0.0),
-    eKin_m(0.0),
-    dE_m(0.0),
-    spos_m(0.0),
-    rmax_m(0.0),
-    rmin_m(0.0),
-    rrms_m(0.0),
-    prms_m(0.0),
-    rmean_m(0.0),
-    pmean_m(0.0),
-    eps_m(0.0),
-    eps_norm_m(0.0),
-    rprms_m(0.0),
-    Dx_m(0.0),
-    Dy_m(0.0),
-    DDx_m(0.0),
-    DDy_m(0.0),
-    hr_m(-1.0),
-    nr_m(0),
-    fs_m(nullptr),
-    couplingConstant_m(0.0),
-    qi_m(0.0),
-    interpolationCacheSet_m(false),
-    distDump_m(0),
-    fieldDBGStep_m(0),
-    dh_m(1e-12),
-    tEmission_m(0.0),
-    bingamma_m(nullptr),
-    binemitted_m(nullptr),
-    lPath_m(0.0),
-    stepsPerTurn_m(0),
-    localTrackStep_m(0),
-    globalTrackStep_m(0),
-    numBunch_m(1),
-    SteptoLastInj_m(0),
-    partPerNode_m(nullptr),
-    globalPartPerNode_m(nullptr),
-    dist_m(nullptr),
-    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
-    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
-    dcBeam_m(false),
-    lowParticleCount_m(false),
-    minLocNum_m(0) {
-    ERRORMSG("should not be here: PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):" << endl);
 }
 
 PartBunch::~PartBunch() {
@@ -1429,44 +1227,15 @@ void PartBunch::updateFields(const Vector_t& hr, const Vector_t& origin) {
 
 
 
-Inform &PartBunch::print(Inform &os) {
-    if(getTotalNum() != 0) {  // to suppress Nan's
-        Inform::FmtFlags_t ff = os.flags();
-        os << std::scientific;
-        os << level1 << "\n";
-        os << "* ************** B U N C H ********************************************************* \n";
-        os << "* NP              = " << getTotalNum() << "\n";
-        os << "* Qtot            = " << std::setw(17) << Util::getChargeString(abs(sum(Q))) << "         "
-           << "Qi    = "             << std::setw(17) << Util::getChargeString(std::abs(qi_m)) << "\n";
-        os << "* Ekin            = " << std::setw(17) << Util::getEnergyString(eKin_m) << "         "
-           << "dEkin = "             << std::setw(17) << Util::getEnergyString(dE_m) << "\n";
-        os << "* rmax            = " << Util::getLengthString(rmax_m, 5) << "\n";
-        os << "* rmin            = " << Util::getLengthString(rmin_m, 5) << "\n";
-        os << "* rms beam size   = " << Util::getLengthString(rrms_m, 5) << "\n";
-        os << "* rms momenta     = " << std::setw(12) << std::setprecision(5) << prms_m << " [beta gamma]\n";
-        os << "* mean position   = " << Util::getLengthString(rmean_m, 5) << "\n";
-        os << "* mean momenta    = " << std::setw(12) << std::setprecision(5) << pmean_m << " [beta gamma]\n";
-        os << "* rms emittance   = " << std::setw(12) << std::setprecision(5) << eps_m << " (not normalized)\n";
-        os << "* rms correlation = " << std::setw(12) << std::setprecision(5) << rprms_m << "\n";
-        os << "* hr              = " << Util::getLengthString(hr_m, 5) << "\n";
-        os << "* dh              = " << std::setw(13) << std::setprecision(5) << dh_m * 100 << " [%]\n";
-        os << "* t               = " << std::setw(17) << Util::getTimeString(getT()) << "         "
-           << "dT    = "             << std::setw(17) << Util::getTimeString(getdT()) << "\n";
-        os << "* spos            = " << std::setw(17) << Util::getLengthString(get_sPos()) << "\n";
-        os << "* ********************************************************************************** " << endl;
-        os.flags(ff);
-    }
-    return os;
-}
 
 
 inline
-std::pair<Vector_t, Vector_t> PartBunch::getEExtrema() {
+PartBunch::VectorPair_t PartBunch::getEExtrema() {
     const Vector_t maxE = max(eg_m);
     //      const double maxL = max(dot(eg_m,eg_m));
     const Vector_t minE = min(eg_m);
     // INFOMSG("MaxE= " << maxE << " MinE= " << minE << endl);
-    return std::pair<Vector_t, Vector_t>(maxE, minE);
+    return VectorPair_t(maxE, minE);
 }
 
 
@@ -1485,4 +1254,8 @@ void PartBunch::swap(unsigned int i, unsigned int j) {
     
     if (interpolationCacheSet_m)
         std::swap(interpolationCache_m[i], interpolationCache_m[j]);
+}
+
+Inform &operator<<(Inform &os, PartBunch &p) {
+    return p.print(os);
 }

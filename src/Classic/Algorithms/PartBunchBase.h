@@ -1,9 +1,35 @@
 #ifndef PART_BUNCH_BASE_H
 #define PART_BUNCH_BASE_H
 
-#include "Particle/AbstractParticle.h"
-
+#include "Ippl.h"
+#include "Particle/AbstractParticle.h" //TODO should be in Ippl.h
 #include "Algorithms/PBunchDefs.h"
+#include "Algorithms/OpalParticle.h"
+#include "Algorithms/CoordinateSystemTrafo.h"
+#include "FixedAlgebra/FMatrix.h"
+#include "FixedAlgebra/FVector.h"
+#include "Algorithms/PartBins.h"
+#include "Algorithms/PartBinsCyc.h"
+#include "Algorithms/PartData.h"
+#include "Algorithms/Quaternion.h"
+#include "Utilities/SwitcherError.h"
+#include "Physics/Physics.h"
+
+#include <iosfwd>
+#include <vector>
+
+
+#include "Distribution/Distribution.h"
+#include "Structure/LossDataSink.h"
+#include "Structure/FieldSolver.h"
+#include "Algorithms/ListElem.h"
+// class Distribution;
+// class LossDataSink;
+// class FieldSolver;
+// class ListElem;
+
+template <class T, int, int> class FMatrix;
+template <class T, int> class FVector;
 
 template <class T, unsigned Dim>
 class PartBunchBase
@@ -13,6 +39,8 @@ public:
     typedef typename AbstractParticle<T, Dim>::ParticleIndex_t ParticleIndex_t;
     typedef typename AbstractParticle<T, Dim>::UpdateFlags UpdateFlags;
     typedef typename AbstractParticle<T, Dim>::Position_t Position_t;
+    
+    typedef std::pair<Vector_t, Vector_t> VectorPair_t;
     
     static const unsigned Dimension = Dim;
     
@@ -27,10 +55,12 @@ public:
      * Bunch common member functions
      */
     
+    PartBunchBase(const PartData *ref);
+    
     /// Conversion.
     PartBunchBase(const std::vector<OpalParticle> &, const PartData *ref); //TODO
     
-    PartBunchBase(const PartBunchBase &); //TODO
+    PartBunchBase(const PartBunchBase &rhs); //TODO
     
     bool getIfBeamEmitting();
     
@@ -114,9 +144,6 @@ public:
     /** \brief Set the charge of all other the ones in bin to zero */
     void setBinCharge(int bin);
     
-    /** \brief calculates back the max/min of the efield on the grid */
-    std::pair<Vector_t, Vector_t> getEExtrema();
-    
     /** \brief returns the number of particles outside of a box defined by x */
     size_t calcNumPartsOutside(Vector_t x);
     
@@ -170,13 +197,13 @@ public:
        Compatibility function push_back
      */
     
-    void push_back(Particle p);
+    void push_back(OpalParticle p);
     
     void set_part(FVector<double, 6> z, int ii);
 
-    void set_part(Particle p, int ii);
+    void set_part(OpalParticle p, int ii);
     
-    Particle get_part(int ii);
+    OpalParticle get_part(int ii);
     
     /// Return maximum amplitudes.
     //  The matrix [b]D[/b] is used to normalise the first two modes.
@@ -330,26 +357,28 @@ public:
     
     void correctEnergy(double avrgp);
     
+    Inform &print(Inform &os);
+    
     /*
      * (Pure) virtual member functions 
      */
     
     virtual void runTests();
     
+    virtual void resetInterpolationCache(bool clearCache = false);
     
-    std::pair<Vector_t, Vector_t> PartBunch::getEExtrema() = 0;
+    /** \brief calculates back the max/min of the efield on the grid */
+    virtual VectorPair_t getEExtrema() = 0;
     
     virtual double getRho(int x, int y, int z) = 0;
     
-    virtual Inform &print(Inform &os) = 0;
-    
-    void computeSelfFields() = 0;
+    virtual void computeSelfFields() = 0;
 
     /** /brief used for self fields with binned distribution */
-    void computeSelfFields(int b) = 0;
+    virtual void computeSelfFields(int b) = 0;
 
-    void computeSelfFields_cycl(double gamma) = 0;
-    void computeSelfFields_cycl(int b) = 0;
+    virtual void computeSelfFields_cycl(double gamma) = 0;
+    virtual void computeSelfFields_cycl(int b) = 0;
     
     virtual void swap(unsigned int i, unsigned int j);
     
@@ -398,6 +427,22 @@ public:
         pbase->setLocalNum(n);
     }
     
+    unsigned int getMinimumNumberOfParticlesPerCore() const {
+        return pbase->getMinimumNumberOfParticlesPerCore();
+    }
+    
+    void setMinimumNumberOfParticlesPerCore(unsigned int n) {
+        pbase->setMinimumNumberOfParticlesPerCore(n);
+    }
+    
+    ParticleLayout<T, Dim> & getLayout() {
+        return pbase->getLayout();
+    }
+    
+    const ParticleLayout<T, Dim>& getLayout() const {
+        return pbase->getLayout();
+    }
+    
     bool getUpdateFlag(UpdateFlags f) const {
         return pbase->getUpdateFlag(f);
     }
@@ -444,6 +489,10 @@ public:
     
     void destroy(size_t M, size_t I, bool doNow = false) {
         pbase->destroy(M, I, doNow);
+    }
+    
+    void performDestroy(bool updateLocalNum = false) {
+        pbase->performDestroy(updateLocalNum);
     }
     
     void ghostDestroy(size_t M, size_t I) {

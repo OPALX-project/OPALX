@@ -15,6 +15,7 @@ public:
     typedef ParticleAttrib<Index_t>             ParticleIndex_t;
     typedef typename ParticleLayout<T, Dim>::UpdateFlags UpdateFlags;
     typedef typename ParticleLayout<T, Dim>::Position_t Position_t;
+    typedef ParticleLayout<T, Dim> Layout_t;
     
 public:
     
@@ -35,6 +36,25 @@ public:
     virtual void setTotalNum(size_t n) = 0;
     virtual void setLocalNum(size_t n) = 0;
     
+    virtual unsigned int getMinimumNumberOfParticlesPerCore() const = 0;
+    virtual void setMinimumNumberOfParticlesPerCore(unsigned int n) = 0;
+    
+    virtual Layout_t& getLayout() = 0;
+    virtual const Layout_t& getLayout() const = 0;
+    
+    virtual bool getUpdateFlag(UpdateFlags f) const = 0;
+    
+    virtual void setUpdateFlag(UpdateFlags f, bool val) = 0;
+    
+    virtual ParticleBConds<Position_t, Dim>& getBConds() = 0;
+    
+    virtual void setBConds(const ParticleBConds<Position_t, Dim>& bc) = 0;
+    
+    virtual bool singleInitNode() const = 0;
+    
+    virtual void resetID() = 0;
+    
+    
     virtual void update() = 0;
     virtual void update(const ParticleAttrib<char>& canSwap) = 0;
     
@@ -43,6 +63,10 @@ public:
     virtual void globalCreate(size_t np) = 0;
     
     virtual void destroy(size_t, size_t, bool = false) = 0;
+    
+    virtual void performDestroy(bool updateLocalNum = false) = 0;
+    
+    virtual void ghostDestroy(size_t M, size_t I) = 0;
     
 public:
     ParticlePos_t* R_p;
