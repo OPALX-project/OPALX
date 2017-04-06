@@ -420,6 +420,54 @@ size_t PartBunchBase<T, Dim>::calcNumPartsOutside(Vector_t x) {
 }
 
 
+/**
+ * \method calcLineDensity()
+ * \brief calculates the 1d line density (not normalized) and append it to a file.
+ * \see ParallelTTracker
+ * \warning none yet
+ *
+ * DETAILED TODO
+ *
+ */
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::calcLineDensity(unsigned int nBins,
+                                            std::vector<double> &lineDensity,
+                                            std::pair<double, double> &meshInfo)
+{
+    Vector_t rmin, rmax;
+    get_bounds(rmin, rmax);
+
+    if (nBins < 2) {
+        NDIndex<3> grid;
+        this->updateDomainLength(grid);
+        nBins = grid[2];
+    }
+
+    double length = rmax(2) - rmin(2);
+    double zmin = rmin(2) - dh_m * length, zmax = rmax(2) + dh_m * length;
+    double hz = (zmax - zmin) / (nBins - 2);
+    double perMeter = 1.0 / hz;//(zmax - zmin);
+    zmin -= hz;
+
+    lineDensity.resize(nBins, 0.0);
+    std::fill(lineDensity.begin(), lineDensity.end(), 0.0);
+
+    const unsigned int lN = getLocalNum();
+    for (unsigned int i = 0; i < lN; ++ i) {
+        const double z = R[i](2) - 0.5 * hz;
+        unsigned int idx = (z - zmin) / hz;
+        double tau = z - (zmin + idx * hz);
+
+        lineDensity[idx] += Q[i] * (1.0 - tau) * perMeter;
+        lineDensity[idx + 1] += Q[i] * tau * perMeter;
+    }
+
+    reduce(&(lineDensity[0]), &(lineDensity[0]) + nBins, &(lineDensity[0]), OpAddAssign());
+
+    meshInfo.first = zmin;
+    meshInfo.second = hz;
+}
+
 
 
 template <class T, unsigned Dim>
@@ -445,7 +493,7 @@ void PartBunchBase<T, Dim>::boundp() {
 
         const bool fullUpdate = (dcBeam_m && (hr_m[2] < 0.0)) || !dcBeam_m;
         
-        this->updateDomainLength();
+        this->updateDomainLength(nr_m);
         
         get_bounds(rmin_m, rmax_m);
         Vector_t len = rmax_m - rmin_m;
@@ -520,7 +568,7 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
         for(int ii = 0; ii < tempN; ii++) countLost[ii] = 0;
     }
     
-    this->updateDomainLength();
+    this->updateDomainLength(nr_m);
 
     get_bounds(rmin_m, rmax_m);
     len = rmax_m - rmin_m;
@@ -607,7 +655,7 @@ size_t PartBunchBase<T, Dim>::boundp_destroyT() {
 
     const unsigned int minNumParticlesPerCore = getMinimumNumberOfParticlesPerCore();
 
-    this->updateDomainLength();
+    this->updateDomainLength(nr_m);
 
     std::unique_ptr<size_t[]> tmpbinemitted;
 
@@ -1863,6 +1911,11 @@ void PartBunchBase<T, Dim>::runTests() {
     throw OpalException("PartBunchBase<T, Dim>::runTests() ", "No test supported.");
 }
 
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::resetInterpolationCache(bool clearCache) {
+    
+}
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::swap(unsigned int i, unsigned int j) {
