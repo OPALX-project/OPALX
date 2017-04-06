@@ -11,6 +11,10 @@ class PartBunchBase
 public:
     typedef typename AbstractParticle<T, Dim>::ParticlePos_t ParticlePos_t;
     typedef typename AbstractParticle<T, Dim>::ParticleIndex_t ParticleIndex_t;
+    typedef typename AbstractParticle<T, Dim>::UpdateFlags UpdateFlags;
+    typedef typename AbstractParticle<T, Dim>::Position_t Position_t;
+    
+    static const unsigned Dimension = Dim;
     
     PartBunchBase(AbstractParticle<T, Dim>* pb) : pbase(pb),
                                                   R(*(pb->R_p)),
@@ -59,6 +63,30 @@ public:
         pbase->setLocalNum(n);
     }
     
+    bool getUpdateFlag(UpdateFlags f) const {
+        return pbase->getUpdateFlag(f);
+    }
+    
+    void setUpdateFlag(UpdateFlags f, bool val) {
+        pbase->setUpdateFlag(f, val);
+    }
+    
+    ParticleBConds<Position_t, Dimension>& getBConds() {
+        return pbase->getBConds();
+    }
+    
+    void setBConds(const ParticleBConds<Position_t, Dimension>& bc) {
+        pbase->setBConds(bc);
+    }
+    
+    bool singleInitNode() const {
+        return pbase->singleInitNode();
+    }
+    
+    void resetID() {
+        pbase->resetID();
+    }
+    
     void update() {
         pbase->update();
     }
@@ -83,6 +111,9 @@ public:
         pbase->destroy(M, I, doNow);
     }
     
+    void ghostDestroy(size_t M, size_t I) {
+        pbase->ghostDestroy(M, I);
+    }
     
     /*
      * (Pure) virtual member functions 
