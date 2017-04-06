@@ -145,8 +145,14 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     }
 
     //destroy the particles that are sent to other domains
-    LocalNum -= PData.getDestroyNum();  // update local num
-    PData.performDestroy();
+    
+    std::cout << "Sent: " << sent << std::endl;
+    if ( LocalNum < PData.getDestroyNum() )
+        std::cout << "Can't destroy more particles" << std::endl;
+    else {
+        LocalNum -= PData.getDestroyNum();  // update local num
+        PData.performDestroy();
+    }
 
     //receive new particles
     for (int k = 0; k<msgrecv[myN]; ++k)
