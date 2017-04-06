@@ -420,6 +420,319 @@ size_t PartBunchBase<T, Dim>::calcNumPartsOutside(Vector_t x) {
 }
 
 
+
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::boundp() {
+    /*
+      Assume rmin_m < 0.0
+     */
+
+    IpplTimings::startTimer(boundpTimer_m);
+    //if(!R.isDirty() && stateOfLastBoundP_ == unit_state_) return;
+    if ( !(R.isDirty() || ID.isDirty() ) && stateOfLastBoundP_ == unit_state_) return; //-DW
+
+    stateOfLastBoundP_ = unit_state_;
+
+    if(!isGridFixed()) {
+        const int dimIdx = 3;
+
+        /**
+           In case of dcBeam_m && hr_m < 0
+           this is the first call to boundp and we
+           have to set hr completely i.e. x,y and z.
+           */
+
+        const bool fullUpdate = (dcBeam_m && (hr_m[2] < 0.0)) || !dcBeam_m;
+        
+        this->updateDomainLength();
+        
+        get_bounds(rmin_m, rmax_m);
+        Vector_t len = rmax_m - rmin_m;
+        
+        double volume = 1.0;
+        if (fullUpdate) {
+            // double volume = 1.0;
+            for(int i = 0; i < dimIdx; i++) {
+                double length = std::abs(rmax_m[i] - rmin_m[i]);
+                if (length < 1e-10) {
+                    rmax_m[i] += 1e-10;
+                    rmin_m[i] -= 1e-10;
+                } else {
+                    rmax_m[i] += dh_m * length;
+                    rmin_m[i] -= dh_m * length;
+                }
+                hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
+                volume *= std::abs(rmax_m[i] - rmin_m[i]);
+            }
+
+            if (getIfBeamEmitting() && dist_m != NULL) {
+                // keep particles per cell ratio high, don't spread a hand full particles across the whole grid
+                double percent = std::max((1.0 + (3 - nr_m[2]) * dh_m) / (nr_m[2] - 1), dist_m->getPercentageEmitted());
+                double length   = std::abs(rmax_m[2] - rmin_m[2]);
+                if (percent < 1.0 && percent > 0.0) {
+                    length /= (1.0 + 2 * dh_m);
+                    rmax_m[2] -= dh_m * length;
+                    rmin_m[2] = rmax_m[2] * (1.0 - 1.0 / percent);
+
+                    length = std::abs(rmax_m[2] - rmin_m[2]);
+                    rmax_m[2] += dh_m * length;
+                    rmin_m[2] -= dh_m * length;
+                    hr_m[2] = length * (1.0 + 2 * dh_m) / (nr_m[2] - 1);
+                }
+            }
+
+            if (volume < 1e-21 && getTotalNum() > 1 && std::abs(sum(Q)) > 0.0) {
+                WARNMSG(level1 << "!!! Extremly high particle density detected !!!" << endl);
+            }
+            //INFOMSG("It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
+        }
+        
+        if(hr_m[0] * hr_m[1] * hr_m[2] > 0) {
+            Vector_t origin = rmin_m - Vector_t(hr_m[0] / 2.0, hr_m[1] / 2.0, hr_m[2] / 2.0);
+            this->updateFields(hr, origin);
+        } else {
+            *gmsg << __DBGMSG__ << std::scientific << volume << "\t" << dh_m << endl;
+            
+            throw GeneralClassicException("boundp() ", "h<0, can not build a mesh");
+        }
+    }
+    update();
+    R.resetDirtyFlag();
+
+    IpplTimings::stopTimer(boundpTimer_m);
+}
+
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::boundp_destroy() {
+
+    Inform gmsgAll("boundp_destroy ", INFORM_ALL_NODES);
+
+    Vector_t len;
+    const int dimIdx = 3;
+    IpplTimings::startTimer(boundpTimer_m);
+
+    std::unique_ptr<size_t[]> countLost;
+    if(weHaveBins()) {
+        const int tempN = pbin_m->getLastemittedBin();
+        countLost = std::unique_ptr<size_t[]>(new size_t[tempN]);
+        for(int ii = 0; ii < tempN; ii++) countLost[ii] = 0;
+    }
+    
+    this->updateDomainLength();
+
+    get_bounds(rmin_m, rmax_m);
+    len = rmax_m - rmin_m;
+
+    calcBeamParameters();
+
+    int checkfactor = Options::remotePartDel;
+    if (checkfactor != 0) {
+        //INFOMSG("checkfactor= " << checkfactor << endl);
+        // check the bunch if its full size is larger than checkfactor times of its rms size
+        if(checkfactor < 0) {
+            checkfactor *= -1;
+            if (len[0] > checkfactor * rrms_m[0] ||
+                len[1] > checkfactor * rrms_m[1] ||
+                len[2] > checkfactor * rrms_m[2])
+            {
+                for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
+                    /* delete the particle if the ditance to the beam center
+                     * is larger than 8 times of beam's rms size
+                     */
+                    if (abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] ||
+                        abs(R[ii](1) - rmean_m(1)) > checkfactor * rrms_m[1] ||
+                        abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2])
+                    {
+                        // put particle onto deletion list
+                        destroy(1, ii);
+                        //update bin parameter
+                        if (weHaveBins())
+                            countLost[Bin[ii]] += 1 ;
+                        /* INFOMSG("REMOTE PARTICLE DELETION: ID = " << ID[ii] << ", R = " << R[ii]
+                         * << ", beam rms = " << rrms_m << endl;);
+                         */
+                    }
+                }
+            }
+        }
+        else {
+            if (len[0] > checkfactor * rrms_m[0] ||
+                len[2] > checkfactor * rrms_m[2])
+            {
+                for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
+                    /* delete the particle if the ditance to the beam center
+                     * is larger than 8 times of beam's rms size
+                     */
+                    if (abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] ||
+                        abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2])
+                    {
+                        // put particle onto deletion list
+                        destroy(1, ii);
+                        //update bin parameter
+                        if (weHaveBins())
+                            countLost[Bin[ii]] += 1 ;
+                        /* INFOMSG("REMOTE PARTICLE DELETION: ID = " << ID[ii] << ", R = " << R[ii]
+                         * << ", beam rms = " << rrms_m << endl;);
+                         */
+                    }
+                }
+            }
+        }
+    }
+
+    for(int i = 0; i < dimIdx; i++) {
+        double length = std::abs(rmax_m[i] - rmin_m[i]);
+        rmax_m[i] += dh_m * length;
+        rmin_m[i] -= dh_m * length;
+        hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
+    }
+
+    // rescale mesh
+    this->updateFields(hr, rmin_m);
+    
+    if(weHaveBins()) {
+        pbin_m->updatePartInBin_cyc(countLost.get());
+    }
+    
+    update();
+    
+    IpplTimings::stopTimer(boundpTimer_m);
+}
+
+
+template <class T, unsigned Dim>
+size_t PartBunchBase<T, Dim>::boundp_destroyT() {
+
+    const unsigned int minNumParticlesPerCore = getMinimumNumberOfParticlesPerCore();
+
+    this->updateDomainLength();
+
+    std::unique_ptr<size_t[]> tmpbinemitted;
+
+    boundp();
+
+    size_t ne = 0;
+    const size_t localNum = getLocalNum();
+
+    if(weHaveEnergyBins()) {
+        tmpbinemitted = std::unique_ptr<size_t[]>(new size_t[getNumberOfEnergyBins()]);
+        for(int i = 0; i < getNumberOfEnergyBins(); i++) {
+            tmpbinemitted[i] = 0;
+        }
+        for(unsigned int i = 0; i < localNum; i++) {
+            if (Bin[i] < 0) {
+                ne++;
+                destroy(1, i);
+            } else
+                tmpbinemitted[Bin[i]]++;
+        }
+    } else {
+        for(unsigned int i = 0; i < localNum; i++) {
+            if((Bin[i] < 0) && ((localNum - ne) > minNumParticlesPerCore)) {   // need in minimum x particles per node
+                ne++;
+                destroy(1, i);
+            }
+        }
+        lowParticleCount_m = ((localNum - ne) <= minNumParticlesPerCore);
+        reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
+    }
+
+    if (lowParticleCount_m) {
+        Inform m ("boundp_destroyT a) ", INFORM_ALL_NODES);
+        m << level3 << "Warning low number of particles on some cores localNum= "
+          << localNum << " ne= " << ne << " NLocal= " << getLocalNum() << endl;
+    } else {
+        boundp();
+    }
+    calcBeamParameters();
+    gatherLoadBalanceStatistics();
+
+    if(weHaveEnergyBins()) {
+        const int lastBin = dist_m->getLastEmittedEnergyBin();
+        for(int i = 0; i < lastBin; i++) {
+            binemitted_m[i] = tmpbinemitted[i];
+        }
+    }
+    reduce(ne, ne, OpAddAssign());
+    return ne;
+}
+
+
+template <class T, unsigned Dim>
+size_t PartBunchBase<T, Dim>::destroyT() {
+
+    const unsigned int minNumParticlesPerCore = getMinimumNumberOfParticlesPerCore();
+    std::unique_ptr<size_t[]> tmpbinemitted;
+
+    const size_t localNum = getLocalNum();
+    const size_t totalNum = getTotalNum();
+
+    if(weHaveEnergyBins()) {
+        tmpbinemitted = std::unique_ptr<size_t[]>(new size_t[getNumberOfEnergyBins()]);
+        for(int i = 0; i < getNumberOfEnergyBins(); i++) {
+            tmpbinemitted[i] = 0;
+        }
+        for(unsigned int i = 0; i < localNum; i++) {
+            if (Bin[i] < 0) {
+                destroy(1, i);
+            } else
+                tmpbinemitted[Bin[i]]++;
+        }
+    } else {
+        Inform dmsg("destroy: ", INFORM_ALL_NODES);
+        size_t ne = 0;
+        for(size_t i = 0; i < localNum; i++) {
+            if((Bin[i] < 0) && ((localNum - ne) > minNumParticlesPerCore)) {   // need in minimum x particles per node
+                ne++;
+                destroy(1, i);
+            }
+        }
+        lowParticleCount_m = ((localNum - ne) <= minNumParticlesPerCore);
+        reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
+        // unsigned int i = 0, j = localNum;
+        // while (j > 0 && Bin[j - 1] < 0) -- j;
+
+        // while (i + 1 < j) {
+        //     if (Bin[i] < 0) {
+        //         this->swap(i,j - 1);
+        //         -- j;
+
+        //         while (i + 1 < j && Bin[j - 1] < 0) -- j;
+        //     }
+        //     ++ i;
+        // }
+
+        // j = std::max(j, minNumParticlesPerCore);
+        // for(unsigned int i = localNum; i > j; -- i) {
+        //     destroy(1, i-1, true);
+        // }
+        // lowParticleCount_m = (j == minNumParticlesPerCore);
+        // reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
+
+        if (ne > 0) {
+            performDestroy(true);
+        }
+    }
+
+    calcBeamParameters();
+    gatherLoadBalanceStatistics();
+
+    if (weHaveEnergyBins()) {
+        const int lastBin = dist_m->getLastEmittedEnergyBin();
+        for(int i = 0; i < lastBin; i++) {
+            binemitted_m[i] = tmpbinemitted[i];
+        }
+    }
+    size_t newTotalNum = getLocalNum();
+    reduce(newTotalNum, newTotalNum, OpAddAssign());
+
+    setTotalNum(newTotalNum);
+
+    return totalNum - newTotalNum;
+}
+
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::getPx(int i) {
     return 0.0;
@@ -1551,7 +1864,48 @@ void PartBunchBase<T, Dim>::runTests() {
 }
 
 
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::swap(unsigned int i, unsigned int j) {
+    if (i >= getLocalNum() || j >= getLocalNum() || i == j) return;
 
+    std::swap(R[i], R[j]);
+    std::swap(P[i], P[j]);
+    std::swap(Q[i], Q[j]);
+    std::swap(M[i], M[j]);
+    std::swap(Phi[i], Phi[j]);
+    std::swap(Ef[i], Ef[j]);
+    std::swap(Eftmp[i], Eftmp[j]);
+    std::swap(Bf[i], Bf[j]);
+    std::swap(Bin[i], Bin[j]);
+    std::swap(dt[i], dt[j]);
+    std::swap(PType[i], PType[j]);
+    std::swap(TriID[i], TriID[j]);
+}
+
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setBCAllPeriodic() {
+    throw OpalException("PartBunchBase<T, Dim>::setBCAllPeriodic() ", "Not supported BC.");
+}
+
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setBCAllOpen() {
+    throw OpalException("PartBunchBase<T, Dim>::setBCAllOpen() ", "Not supported BC.");
+}
+
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setBCForDCBeam() {
+    throw OpalException("PartBunchBase<T, Dim>::setBCForDCBeam() ", "Not supported BC.");
+}
+
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::updateFields()
+{
+    
+}
 
 // --------------------------------------------------------------------
 

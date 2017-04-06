@@ -124,6 +124,15 @@ public:
        Mesh and Field Layout related functions
      */
     
+    void boundp();
+    
+    /** delete particles which are too far away from the center of beam*/
+    void boundp_destroy();
+    
+    /** This is only temporary in order to get the collimator and pepperpot workinh */
+    size_t boundp_destroyT();
+    
+    size_t destroyT();
     
     /*
        Read out coordinates
@@ -339,6 +348,17 @@ public:
     void computeSelfFields_cycl(double gamma) = 0;
     void computeSelfFields_cycl(int b) = 0;
     
+    virtual void swap(unsigned int i, unsigned int j);
+    
+    /*
+       Mesh and Field Layout related functions
+     */
+    
+    virtual void setBCAllPeriodic();
+    virtual void setBCAllOpen();
+
+    virtual void setBCForDCBeam();
+    
     
     
 //     virtual Mesh_t &getMesh() = 0;
@@ -438,6 +458,11 @@ protected:
     double calculateAngle(double x, double y);
     double calculateAngle2(double x, double y);
     
+    
+private:
+    virtual void updateDomainLength() = 0;
+    
+    virtual void updateFields(const Vector_t& hr, const Vector_t& origin);
     
 public:
     /*
