@@ -318,53 +318,6 @@ void PartBunch::runTests() {
 }
 
 
-
-
-
-
-/**
- * \method calcLineDensity()
- * \brief calculates the 1d line density (not normalized) and append it to a file.
- * \see ParallelTTracker
- * \warning none yet
- *
- * DETAILED TODO
- *
- */
-void PartBunch::calcLineDensity(unsigned int nBins, std::vector<double> &lineDensity, std::pair<double, double> &meshInfo) {
-    Vector_t rmin, rmax;
-    get_bounds(rmin, rmax);
-
-    if (nBins < 2) {
-        NDIndex<3> grid = getFieldLayout().getDomain();
-        nBins = grid[2].length();
-    }
-
-    double length = rmax(2) - rmin(2);
-    double zmin = rmin(2) - dh_m * length, zmax = rmax(2) + dh_m * length;
-    double hz = (zmax - zmin) / (nBins - 2);
-    double perMeter = 1.0 / hz;//(zmax - zmin);
-    zmin -= hz;
-
-    lineDensity.resize(nBins, 0.0);
-    std::fill(lineDensity.begin(), lineDensity.end(), 0.0);
-
-    const unsigned int lN = getLocalNum();
-    for (unsigned int i = 0; i < lN; ++ i) {
-        const double z = R[i](2) - 0.5 * hz;
-        unsigned int idx = (z - zmin) / hz;
-        double tau = z - (zmin + idx * hz);
-
-        lineDensity[idx] += Q[i] * (1.0 - tau) * perMeter;
-        lineDensity[idx + 1] += Q[i] * tau * perMeter;
-    }
-
-    reduce(&(lineDensity[0]), &(lineDensity[0]) + nBins, &(lineDensity[0]), OpAddAssign());
-
-    meshInfo.first = zmin;
-    meshInfo.second = hz;
-}
-
 void PartBunch::computeSelfFields(int binNumber) {
     IpplTimings::startTimer(selfFieldTimer_m);
 
@@ -1423,10 +1376,10 @@ void PartBunch::calcMomentsInitial() {
 }
 
 
-void PartBunch::updateDomainLength() {
+void PartBunch::updateDomainLength(Vector_t& grid) {
     NDIndex<3> domain = getFieldLayout().getDomain();
     for(int i = 0; i < Dim; i++)
-        nr_m[i] = domain[i].length();
+        grid[i] = domain[i].length();
 }
 
 
@@ -1517,7 +1470,13 @@ std::pair<Vector_t, Vector_t> PartBunch::getEExtrema() {
 }
 
 
-
+inline
+void PartBunch::resetInterpolationCache(bool clearCache) {
+    interpolationCacheSet_m = false;
+    if(clearCache) {
+        interpolationCache_m.destroy(interpolationCache_m.size(), 0, true);
+    }
+}
 
 void PartBunch::swap(unsigned int i, unsigned int j) {
     

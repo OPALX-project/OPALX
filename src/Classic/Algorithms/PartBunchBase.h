@@ -120,6 +120,9 @@ public:
     /** \brief returns the number of particles outside of a box defined by x */
     size_t calcNumPartsOutside(Vector_t x);
     
+    void calcLineDensity(unsigned int nBins, std::vector<double> &lineDensity,
+                         std::pair<double, double> &meshInfo);
+    
     /*
        Mesh and Field Layout related functions
      */
@@ -460,7 +463,7 @@ protected:
     
     
 private:
-    virtual void updateDomainLength() = 0;
+    virtual void updateDomainLength(Vector_t& grid) = 0;
     
     virtual void updateFields(const Vector_t& hr, const Vector_t& origin);
     
@@ -610,10 +613,6 @@ protected:
     Vector_t hr_m;
     /// meshsize of cartesian mesh
     Vektor<int, 3> nr_m;
-
-    /// for defining the boundary conditions
-    BConds<double, 3, Mesh_t, Center_t> bc_m;
-    BConds<Vector_t, 3, Mesh_t, Center_t> vbc_m;
 
     /// stores the used field solver
     FieldSolver *fs_m;

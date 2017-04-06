@@ -68,9 +68,6 @@ public:
 
     double getRho(int x, int y, int z);
 
-    // MATTHIAS CHECK
-    void calcLineDensity(unsigned int nBins, std::vector<double> &lineDensity, std::pair<double, double> &meshInfo);
-
     /*
 
       Mesh and Field Layout related functions
@@ -108,7 +105,6 @@ public:
     void computeSelfFields_cycl(double gamma);
     void computeSelfFields_cycl(int b);
     
-    // MATTHIAS CHECK
     void resetInterpolationCache(bool clearCache = false);
     
     void swap(unsigned int i, unsigned int j);
@@ -119,16 +115,20 @@ public:
 
     /// vector field on the grid
     VField_t  eg_m;
+    
 
 private:
     
-    void updateDomainLength();
+    void updateDomainLength(Vector_t& grid);
     
     void updateFields(const Vector_t& hr, const Vector_t& origin);
     
     /// resize mesh to geometry specified
     void resizeMesh();
 
+    /// for defining the boundary conditions
+    BConds<double, 3, Mesh_t, Center_t> bc_m;
+    BConds<Vector_t, 3, Mesh_t, Center_t> vbc_m;
     
 
     bool interpolationCacheSet_m;
@@ -160,14 +160,6 @@ Mesh_t &PartBunch::getMesh() {
 inline
 FieldLayout_t &PartBunch::getFieldLayout() {
     return dynamic_cast<FieldLayout_t &>(getLayout().getLayout().getFieldLayout());
-}
-
-inline
-void PartBunch::resetInterpolationCache(bool clearCache) {
-    interpolationCacheSet_m = false;
-    if(clearCache) {
-        interpolationCache_m.destroy(interpolationCache_m.size(), 0, true);
-    }
 }
 
 #endif // OPAL_PartBunch_HH
