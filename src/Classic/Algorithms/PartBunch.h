@@ -77,25 +77,19 @@ public:
 
     */
 
+    // MATTHIAS CHECK
     const Mesh_t &getMesh() const;
 
+    // MATTHIAS CHECK
     Mesh_t &getMesh();
 
+    // MATTHIAS CHECK
     FieldLayout_t &getFieldLayout();
 
     void setBCAllPeriodic();
     void setBCAllOpen();
 
     void setBCForDCBeam();
-
-    void boundp();
-
-    /** delete particles which are too far away from the center of beam*/
-    void boundp_destroy();
-
-    /** This is only temporary in order to get the collimator and pepperpot workinh */
-    size_t boundp_destroyT();
-    size_t destroyT();
 
     /*
       Compatibility function push_back
@@ -116,14 +110,10 @@ public:
     
     // MATTHIAS CHECK
     void resetInterpolationCache(bool clearCache = false);
-
     
-    
-
     void swap(unsigned int i, unsigned int j);
-
     
-
+    
     /// scalar potential
     Field_t rho_m;
 
@@ -131,6 +121,10 @@ public:
     VField_t  eg_m;
 
 private:
+    
+    void updateDomainLength();
+    
+    void updateFields(const Vector_t& hr, const Vector_t& origin);
     
     /// resize mesh to geometry specified
     void resizeMesh();
