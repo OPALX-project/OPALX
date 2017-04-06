@@ -221,7 +221,7 @@ PartBunch::PartBunch(const PartBunch &rhs):
     std::exit(0);
 }
 
-PartBunch::PartBunch(const std::vector<OpalParticle> &rhs, const PartData *ref):
+PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     myNode_m(Ippl::myNode()),
     nodes_m(Ippl::getNodes()),
     fixed_grid(false),
@@ -284,36 +284,9 @@ PartBunch::~PartBunch() {
 
 }
 
-/// \brief Need Ek for the Schottky effect calculation (eV)
-double PartBunch::getEkin() const {
-    if(dist_m)
-        return dist_m->getEkin();
-    else
-        return 0.0;
-}
 
-/// \brief Need the work function for the Schottky effect calculation (eV)
-double PartBunch::getWorkFunctionRf() const {
-    if(dist_m)
-        return dist_m->getWorkFunctionRf();
-    else
-        return 0.0;
-}
-/// \brief Need the laser energy for the Schottky effect calculation (eV)
-double PartBunch::getLaserEnergy() const {
-    if(dist_m)
-        return dist_m->getLaserEnergy();
-    else
-        return 0.0;
-}
 
-/// \brief Return the fieldsolver type if we have a fieldsolver
-std::string PartBunch::getFieldSolverType() const {
-    if(fs_m)
-        return fs_m->getFieldSolverType();
-    else
-        return "";
-}
+
 
 void PartBunch::runTests() {
 
@@ -345,91 +318,8 @@ void PartBunch::runTests() {
 }
 
 
-/** \brief After each Schottky scan we delete all the particles.
-
- */
-void PartBunch::cleanUpParticles() {
-
-    size_t np = getTotalNum();
-    bool scan = false;
-
-    destroy(getLocalNum(), 0, true);
-
-    dist_m->createOpalT(*this, np, scan);
-
-    update();
-}
-
-void PartBunch::setDistribution(Distribution *d,
-                                std::vector<Distribution *> addedDistributions,
-                                size_t &np,
-                                bool scan) {
-    Inform m("setDistribution " );
-    dist_m = d;
-
-    dist_m->createOpalT(*this, addedDistributions, np, scan);
-
-//    if (Options::cZero)
-//        dist_m->create(*this, addedDistributions, np / 2, scan);
-//    else
-//        dist_m->create(*this, addedDistributions, np, scan);
-}
-
-void PartBunch::resetIfScan()
-/*
-  In case of a scan we have
-  to reset some variables
- */
-{
-    dt = 0.0;
-    localTrackStep_m = 0;
-}
 
 
-
-bool PartBunch::hasFieldSolver() {
-    if(fs_m)
-        return fs_m->hasValidSolver();
-    else
-        return false;
-}
-
-double PartBunch::getPx(int i) {
-    return 0.0;
-}
-
-double PartBunch::getPy(int i) {
-    return 0.0;
-}
-
-double PartBunch::getPz(int i) {
-    return 0.0;
-}
-
-//ff
-double PartBunch::getX(int i) {
-    return this->R[i](0);
-}
-
-//ff
-double PartBunch::getY(int i) {
-    return this->R[i](1);
-}
-
-//ff
-double PartBunch::getX0(int i) {
-    return 0.0;
-}
-
-//ff
-double PartBunch::getY0(int i) {
-    return 0.0;
-}
-
-//ff
-double PartBunch::getZ(int i) {
-    return this->R[i](2);
-}
 
 
 /**
@@ -473,85 +363,6 @@ void PartBunch::calcLineDensity(unsigned int nBins, std::vector<double> &lineDen
 
     meshInfo.first = zmin;
     meshInfo.second = hz;
-}
-
-void PartBunch::calcGammas() {
-
-    const int emittedBins = dist_m->getNumberOfEnergyBins();
-
-    size_t s = 0;
-
-    for(int i = 0; i < emittedBins; i++)
-        bingamma_m[i] = 0.0;
-
-    for(unsigned int n = 0; n < getLocalNum(); n++)
-        bingamma_m[this->Bin[n]] += sqrt(1.0 + dot(this->P[n], this->P[n]));
-
-    std::unique_ptr<size_t[]> particlesInBin(new size_t[emittedBins]);
-    reduce(bingamma_m.get(), bingamma_m.get() + emittedBins, bingamma_m.get(), OpAddAssign());
-    reduce(binemitted_m.get(), binemitted_m.get() + emittedBins, particlesInBin.get(), OpAddAssign());
-    for(int i = 0; i < emittedBins; i++) {
-        size_t &pInBin = particlesInBin[i];
-        if(pInBin != 0) {
-            bingamma_m[i] /= pInBin;
-            INFOMSG(level2 << "Bin " << std::setw(3) << i << " gamma = " << std::setw(8) << std::scientific << std::setprecision(5) << bingamma_m[i] << "; NpInBin= " << std::setw(8) << std::setfill(' ') << pInBin << endl);
-        } else {
-            bingamma_m[i] = 1.0;
-            INFOMSG(level2 << "Bin " << std::setw(3) << i << " has no particles " << endl);
-        }
-        s += pInBin;
-    }
-    particlesInBin.reset();
-
-
-    if(s != getTotalNum() && !OpalData::getInstance()->hasGlobalGeometry())
-        ERRORMSG("sum(Bins)= " << s << " != sum(R)= " << getTotalNum() << endl;);
-
-    if(emittedBins >= 2) {
-        for(int i = 1; i < emittedBins; i++) {
-            if(binemitted_m[i - 1] != 0 && binemitted_m[i] != 0)
-                INFOMSG(level2 << "d(gamma)= " << 100.0 * std::abs(bingamma_m[i - 1] - bingamma_m[i]) / bingamma_m[i] << " [%] "
-                        << "between bin " << i - 1 << " and " << i << endl);
-        }
-    }
-}
-
-
-void PartBunch::calcGammas_cycl() {
-
-    const int emittedBins = pbin_m->getLastemittedBin();
-
-    for(int i = 0; i < emittedBins; i++)
-        bingamma_m[i] = 0.0;
-    for(unsigned int n = 0; n < getLocalNum(); n++)
-        bingamma_m[this->Bin[n]] += sqrt(1.0 + dot(this->P[n], this->P[n]));
-    for(int i = 0; i < emittedBins; i++) {
-        reduce(bingamma_m[i], bingamma_m[i], OpAddAssign());
-        if(pbin_m->getTotalNumPerBin(i) > 0)
-            bingamma_m[i] /= pbin_m->getTotalNumPerBin(i);
-        else
-            bingamma_m[i] = 0.0;
-        INFOMSG("Bin " << i << " : particle number = " << pbin_m->getTotalNumPerBin(i) << " gamma = " << bingamma_m[i] << endl);
-    }
-
-}
-
-size_t PartBunch::calcNumPartsOutside(Vector_t x) {
-
-    partPerNode_m[Ippl::myNode()] = 0;
-    const Vector_t meanR = get_rmean();
-
-    for(unsigned long k = 0; k < getLocalNum(); ++ k)
-        if (abs(R[k](0) - meanR(0)) > x(0) ||
-            abs(R[k](1) - meanR(1)) > x(1) ||
-            abs(R[k](2) - meanR(2)) > x(2)) {
-
-            ++ partPerNode_m[Ippl::myNode()];
-        }
-
-    reduce(partPerNode_m.get(), partPerNode_m.get() + Ippl::getNodes(), globalPartPerNode_m.get(), OpAddAssign());
-
-    return *globalPartPerNode_m.get();
 }
 
 void PartBunch::computeSelfFields(int binNumber) {
@@ -1585,20 +1396,7 @@ void PartBunch::boundp() {
     IpplTimings::stopTimer(boundpTimer_m);
 }
 
-void PartBunch::gatherLoadBalanceStatistics() {
-    minLocNum_m =  std::numeric_limits<size_t>::max();
 
-    for(int i = 0; i < Ippl::getNodes(); i++)
-        partPerNode_m[i] = globalPartPerNode_m[i] = 0;
-
-    partPerNode_m[Ippl::myNode()] = getLocalNum();
-
-    reduce(partPerNode_m.get(), partPerNode_m.get() + Ippl::getNodes(), globalPartPerNode_m.get(), OpAddAssign());
-
-    for(int i = 0; i < Ippl::getNodes(); i++)
-        if (globalPartPerNode_m[i] <  minLocNum_m)
-	    minLocNum_m = globalPartPerNode_m[i];
-}
 
 void PartBunch::calcMoments() {
 
@@ -1716,167 +1514,11 @@ void PartBunch::calcMomentsInitial() {
     }
 }
 
-void PartBunch::calcBeamParameters() {
-    using Physics::c;
 
-    Vector_t eps2, fac, rsqsum, psqsum, rpsum;
 
-    const double m0 = getM() * 1.E-6;
 
-    IpplTimings::startTimer(statParamTimer_m);
 
-    const size_t locNp = getLocalNum();
-    const double N =  static_cast<double>(getTotalNum());
-    const double zero = 0.0;
 
-    get_bounds(rmin_m, rmax_m);
-
-    if(N == 0) {
-        for(unsigned int i = 0 ; i < Dim; i++) {
-            rmean_m(i) = 0.0;
-            pmean_m(i) = 0.0;
-            rrms_m(i) = 0.0;
-            prms_m(i) = 0.0;
-            eps_norm_m(i)  = 0.0;
-        }
-        rprms_m = 0.0;
-        eKin_m = 0.0;
-        eps_m = 0.0;
-        IpplTimings::stopTimer(statParamTimer_m);
-        return;
-    }
-
-    calcMoments();
-
-    for(unsigned int i = 0 ; i < Dim; i++) {
-        rmean_m(i) = centroid_m[2 * i] / N;
-        pmean_m(i) = centroid_m[(2 * i) + 1] / N;
-        rsqsum(i) = moments_m(2 * i, 2 * i) - N * rmean_m(i) * rmean_m(i);
-        psqsum(i) = moments_m((2 * i) + 1, (2 * i) + 1) - N * pmean_m(i) * pmean_m(i);
-        if(psqsum(i) < 0)
-            psqsum(i) = 0;
-        rpsum(i) = moments_m((2 * i), (2 * i) + 1) - N * rmean_m(i) * pmean_m(i);
-    }
-    eps2 = (rsqsum * psqsum - rpsum * rpsum) / (N * N);
-    rpsum /= N;
-
-    for(unsigned int i = 0 ; i < Dim; i++) {
-        rrms_m(i) = sqrt(rsqsum(i) / N);
-        prms_m(i) = sqrt(psqsum(i) / N);
-        eps_norm_m(i)  =  std::sqrt(std::max(eps2(i), zero));
-        double tmp = rrms_m(i) * prms_m(i);
-        fac(i) = (tmp == 0) ? zero : 1.0 / tmp;
-    }
-
-    rprms_m = rpsum * fac;
-
-    Dx_m = moments_m(0, 5) / N;
-    DDx_m = moments_m(1, 5) / N;
-
-    Dy_m = moments_m(2, 5) / N;
-    DDy_m = moments_m(3, 5) / N;
-
-    // Find unnormalized emittance.
-    double gamma = 0.0;
-    for(size_t i = 0; i < locNp; i++)
-        gamma += sqrt(1.0 + dot(P[i], P[i]));
-
-    reduce(gamma, gamma, OpAddAssign());
-    gamma /= N;
-
-    calcEMean();
-
-    // calculate energy spread
-    dE_m = prms_m(2) * sqrt(eKin_m * (eKin_m + 2.*m0) / (1. + eKin_m * (eKin_m + 2.*m0) / (m0 * m0)));
-
-    eps_m = eps_norm_m / Vector_t(gamma * sqrt(1.0 - 1.0 / (gamma * gamma)));
-    IpplTimings::stopTimer(statParamTimer_m);
-}
-
-void PartBunch::calcBeamParametersInitial() {
-    using Physics::c;
-
-    const double N =  static_cast<double>(getTotalNum());
-
-    if(N == 0) {
-        rmean_m = Vector_t(0.0);
-        pmean_m = Vector_t(0.0);
-        rrms_m  = Vector_t(0.0);
-        prms_m  = Vector_t(0.0);
-        eps_m   = Vector_t(0.0);
-    } else {
-        if(Ippl::myNode() == 0) {
-            // fixme:  the following code is crap!
-            // Only use one node as this function will get called only once before
-            // particles have been emitted (at least in principle).
-            Vector_t eps2, fac, rsqsum, psqsum, rpsum;
-
-            const double zero = 0.0;
-            const double  N =  static_cast<double>(pbin_m->getNp());
-            calcMomentsInitial();
-
-            for(unsigned int i = 0 ; i < Dim; i++) {
-                rmean_m(i) = centroid_m[2 * i] / N;
-                pmean_m(i) = centroid_m[(2 * i) + 1] / N;
-                rsqsum(i) = moments_m(2 * i, 2 * i) - N * rmean_m(i) * rmean_m(i);
-                psqsum(i) = moments_m((2 * i) + 1, (2 * i) + 1) - N * pmean_m(i) * pmean_m(i);
-                if(psqsum(i) < 0)
-                    psqsum(i) = 0;
-                rpsum(i) =  moments_m((2 * i), (2 * i) + 1) - N * rmean_m(i) * pmean_m(i);
-            }
-            eps2 = (rsqsum * psqsum - rpsum * rpsum) / (N * N);
-            rpsum /= N;
-
-            for(unsigned int i = 0 ; i < Dim; i++) {
-
-                rrms_m(i) = sqrt(rsqsum(i) / N);
-                prms_m(i) = sqrt(psqsum(i) / N);
-                eps_m(i)  = sqrt(std::max(eps2(i), zero));
-                double tmp = rrms_m(i) * prms_m(i);
-                fac(i) = (tmp == 0) ? zero : 1.0 / tmp;
-            }
-            rprms_m = rpsum * fac;
-        }
-    }
-}
-
-void PartBunch::setSolver(FieldSolver *fs) {
-    fs_m = fs;
-    fs_m->initSolver(*this);
-    /**
-       CAN not re-inizialize ParticleLayout
-       this is an IPPL issue
-     */
-    if(!OpalData::getInstance()->hasBunchAllocated())
-        initialize(&(fs_m->getParticleLayout()));
-}
-
-void PartBunch::maximumAmplitudes(const FMatrix<double, 6, 6> &D,
-                                  double &axmax, double &aymax) {
-    axmax = aymax = 0.0;
-    OpalParticle part;
-
-    for(unsigned int ii = 0; ii < getLocalNum(); ii++) {
-
-        part = get_part(ii);
-
-        double xnor =
-            D(0, 0) * part.x()  + D(0, 1) * part.px() + D(0, 2) * part.y() +
-            D(0, 3) * part.py() + D(0, 4) * part.t()  + D(0, 5) * part.pt();
-        double pxnor =
-            D(1, 0) * part.x()  + D(1, 1) * part.px() + D(1, 2) * part.y() +
-            D(1, 3) * part.py() + D(1, 4) * part.t()  + D(1, 5) * part.pt();
-        double ynor =
-            D(2, 0) * part.x()  + D(2, 1) * part.px() + D(2, 2) * part.y() +
-            D(2, 3) * part.py() + D(2, 4) * part.t()  + D(2, 5) * part.pt();
-        double pynor =
-            D(3, 0) * part.x()  + D(3, 1) * part.px() + D(3, 2) * part.y() +
-            D(3, 3) * part.py() + D(3, 4) * part.t()  + D(3, 5) * part.pt();
-
-        axmax = std::max(axmax, (xnor * xnor + pxnor * pxnor));
-        aymax = std::max(aymax, (ynor * ynor + pynor * pynor));
-    }
-}
 
 /**
  * Here we emit particles from the cathode. All particles in a new simulation (not a restart) initially reside in the bin
@@ -1908,21 +1550,7 @@ void PartBunch::maximumAmplitudes(const FMatrix<double, 6, 6> &D,
  \f$\Delta t_{full-timestep}\f$.
   */
 
-double PartBunch::getEmissionDeltaT() {
-    return dist_m->getEmissionDeltaT();
-}
 
-size_t PartBunch::emitParticles(double eZ) {
-
-    return dist_m->emitParticles(*this, eZ);
-
-}
-
-void PartBunch::updateNumTotal() {
-    size_t numParticles = getLocalNum();
-    reduce(numParticles, numParticles, OpAddAssign());
-    setTotalNum(numParticles);
-}
 
 Inform &PartBunch::print(Inform &os) {
     if(getTotalNum() != 0) {  // to suppress Nan's
@@ -1954,47 +1582,10 @@ Inform &PartBunch::print(Inform &os) {
     return os;
 }
 
-void PartBunch::correctEnergy(double avrgp_m) {
-
-    const double totalNp = static_cast<double>(getTotalNum());
-    const double locNp = static_cast<double>(getLocalNum());
-
-    double avrgp = 0.0;
-    for(unsigned int k = 0; k < locNp; k++)
-        avrgp += sqrt(dot(P[k], P[k]));
-
-    reduce(avrgp, avrgp, OpAddAssign());
-    avrgp /= totalNp;
-
-    for(unsigned int k = 0; k < locNp; k++)
-        P[k](2) =  P[k](2) - avrgp + avrgp_m;
-}
 
 
-void PartBunch::calcEMean() {
 
-    const double totalNp = static_cast<double>(getTotalNum());
-    const double locNp = static_cast<double>(getLocalNum());
 
-    //Vector_t meanP_temp = Vector_t(0.0);
-
-    eKin_m = 0.0;
-
-    for(unsigned int k = 0; k < locNp; k++)
-        //meanP_temp += P[k];
-        eKin_m += sqrt(dot(P[k], P[k]) + 1.0);
-
-    eKin_m -= locNp;
-    eKin_m *= getM() * 1.0e-6;
-
-    //reduce(meanP_temp, meanP_temp, OpAddAssign());
-    reduce(eKin_m, eKin_m, OpAddAssign());
-
-    //meanP_temp /= totalNp;
-    eKin_m /= totalNp;
-
-    //eKin_m = (sqrt(dot(meanP_temp, meanP_temp) + 1.0) - 1.0) * getM() * 1.0e-6;
-}
 
 
 size_t PartBunch::boundp_destroyT() {
@@ -2217,225 +1808,19 @@ void PartBunch::boundp_destroy() {
 
 }
 
-// angle range [0~2PI) degree
-double PartBunch::calculateAngle(double x, double y) {
-    double thetaXY = atan2(y, x);
-
-    // if(x < 0)                   thetaXY = pi + atan(y / x);
-    // else if((x > 0) && (y >= 0))  thetaXY = atan(y / x);
-    // else if((x > 0) && (y < 0))   thetaXY = 2.0 * pi + atan(y / x);
-    // else if((x == 0) && (y > 0)) thetaXY = pi / 2.0;
-    // else if((x == 0) && (y < 0)) thetaXY = 3.0 / 2.0 * pi;
-
-    return thetaXY >= 0 ? thetaXY : thetaXY + Physics::two_pi;
-
-}
-
-// angle range [-PI~PI) degree
-double PartBunch::calculateAngle2(double x, double y) {
-
-    // double thetaXY = atan2(y, x);
-    // if(x > 0)              thetaXY = atan(y / x);
-    // else if((x < 0)  && (y > 0)) thetaXY = pi + atan(y / x);
-    // else if((x < 0)  && (y <= 0)) thetaXY = -pi + atan(y / x);
-    // else if((x == 0) && (y > 0)) thetaXY = pi / 2.0;
-    // else if((x == 0) && (y < 0)) thetaXY = -pi / 2.0;
-
-    return atan2(y, x);
-
-}
-
-double PartBunch::calcMeanPhi() {
-
-    const int emittedBins = pbin_m->getLastemittedBin();
-    double phi[emittedBins];
-    double px[emittedBins];
-    double py[emittedBins];
-    double meanPhi = 0.0;
-
-    for(int ii = 0; ii < emittedBins; ii++) {
-        phi[ii] = 0.0;
-        px[ii] = 0.0;
-        py[ii] = 0.0;
-    }
-
-    for(unsigned int ii = 0; ii < getLocalNum(); ii++) {
-
-        px[Bin[ii]] += P[ii](0);
-        py[Bin[ii]] += P[ii](1);
-    }
-
-    reduce(px, px + emittedBins, px, OpAddAssign());
-    reduce(py, py + emittedBins, py, OpAddAssign());
-    for(int ii = 0; ii < emittedBins; ii++) {
-        phi[ii] = calculateAngle(px[ii], py[ii]);
-        meanPhi += phi[ii];
-        INFOMSG("Bin " << ii  << "  mean phi = " << phi[ii] * 180.0 / pi - 90.0 << "[degree]" << endl);
-    }
-
-    meanPhi /= emittedBins;
-
-    INFOMSG("mean phi of all particles " <<  meanPhi * 180.0 / pi - 90.0 << "[degree]" << endl);
-
-    return meanPhi;
-}
-
-// this function reset the BinID for each particles according to its current beta*gamma
-// it is for multi-turn extraction cyclotron with small energy gain
-// the bin number can be different with the bunch number
-
-bool PartBunch::resetPartBinID2(const double eta) {
 
 
-    INFOMSG("Before reset Bin: " << endl);
-    calcGammas_cycl();
-    int maxbin = pbin_m->getNBins();
-    size_t partInBin[maxbin];
-    for(int ii = 0; ii < maxbin; ii++) partInBin[ii] = 0;
-
-    double pMin0 = 1.0e9;
-    double pMin = 0.0;
-    double maxbinIndex = 0;
-
-    for(unsigned long int n = 0; n < getLocalNum(); n++) {
-        double temp_betagamma = sqrt(pow(P[n](0), 2) + pow(P[n](1), 2));
-        if(pMin0 > temp_betagamma)
-            pMin0 = temp_betagamma;
-    }
-    reduce(pMin0, pMin, OpMinAssign());
-    INFOMSG("minimal beta*gamma = " << pMin << endl);
-
-    double asinh0 = asinh(pMin);
-    for(unsigned long int n = 0; n < getLocalNum(); n++) {
-
-        double temp_betagamma = sqrt(pow(P[n](0), 2) + pow(P[n](1), 2));
-
-        int itsBinID = floor((asinh(temp_betagamma) - asinh0) / eta + 1.0E-6);
-        Bin[n] = itsBinID;
-        if(maxbinIndex < itsBinID) {
-            maxbinIndex = itsBinID;
-        }
-
-        if(itsBinID >= maxbin) {
-            ERRORMSG("The bin number limit is " << maxbin << ", please increase the energy interval and try again" << endl);
-            return false;
-        } else
-            partInBin[itsBinID]++;
-
-    }
-
-    // partInBin only count particle on the local node.
-    pbin_m->resetPartInBin_cyc(partInBin, maxbinIndex);
-
-    // after reset Particle Bin ID, update mass gamma of each bin again
-    INFOMSG("After reset Bin: " << endl);
-    calcGammas_cycl();
-
-    return true;
-
-}
-
-void PartBunch::setPBins(PartBins *pbin) {
-    pbin_m = pbin;
-    *gmsg << *pbin_m << endl;
-    setEnergyBins(pbin_m->getNBins());
+inline
+std::pair<Vector_t, Vector_t> PartBunch::getEExtrema() {
+    const Vector_t maxE = max(eg_m);
+    //      const double maxL = max(dot(eg_m,eg_m));
+    const Vector_t minE = min(eg_m);
+    // INFOMSG("MaxE= " << maxE << " MinE= " << minE << endl);
+    return std::pair<Vector_t, Vector_t>(maxE, minE);
 }
 
 
-void PartBunch::setPBins(PartBinsCyc *pbin) {
 
-    pbin_m = pbin;
-    setEnergyBins(pbin_m->getNBins());
-}
-
-void PartBunch::iterateEmittedBin(int binNumber) {
-    binemitted_m[binNumber]++;
-}
-
-bool PartBunch::doEmission() {
-    if (dist_m != NULL)
-        return dist_m->getIfDistEmitting();
-    else
-        return false;
-}
-
-bool PartBunch::getIfBeamEmitting() {
-
-    if (dist_m != NULL) {
-        size_t isBeamEmitted = dist_m->getIfDistEmitting();
-        reduce(isBeamEmitted, isBeamEmitted, OpAddAssign());
-        if (isBeamEmitted > 0)
-            return true;
-        else
-            return false;
-    } else
-        return false;
-
-}
-
-int PartBunch::getLastEmittedEnergyBin() {
-    /*
-     * Get maximum last emitted energy bin.
-     */
-    int lastEmittedBin = dist_m->getLastEmittedEnergyBin();
-    reduce(lastEmittedBin, lastEmittedBin, OpMaxAssign());
-    return lastEmittedBin;
-}
-
-size_t PartBunch::getNumberOfEmissionSteps() {
-    return dist_m->getNumberOfEmissionSteps();
-}
-
-bool PartBunch::weHaveBins() const {
-
-    if(pbin_m != NULL)
-        return pbin_m->weHaveBins();
-    else
-        return false;
-}
-
-int PartBunch::getNumberOfEnergyBins() {
-    return dist_m->getNumberOfEnergyBins();
-}
-
-void PartBunch::Rebin() {
-
-    size_t isBeamEmitting = dist_m->getIfDistEmitting();
-    reduce(isBeamEmitting, isBeamEmitting, OpAddAssign());
-    if (isBeamEmitting > 0) {
-        *gmsg << "*****************************************************" << endl
-              << "Warning: attempted to rebin, but not all distribution" << endl
-              << "particles have been emitted. Rebin failed." << endl
-              << "*****************************************************" << endl;
-    } else {
-        if (dist_m->Rebin())
-            this->Bin = 0;
-    }
-
-}
-
-void PartBunch::setEnergyBins(int numberOfEnergyBins) {
-    bingamma_m = std::unique_ptr<double[]>(new double[numberOfEnergyBins]);
-    binemitted_m = std::unique_ptr<size_t[]>(new size_t[numberOfEnergyBins]);
-    for(int i = 0; i < numberOfEnergyBins; i++)
-        binemitted_m[i] = 0;
-}
-
-bool PartBunch::weHaveEnergyBins() {
-
-    if (dist_m != NULL)
-        return dist_m->getNumberOfEnergyBins() > 0;
-    else
-        return false;
-}
-
-Vector_t PartBunch::get_pmean_Distribution() const {
-    if (dist_m && dist_m->getType() != DistrTypeT::FROMFILE)
-        return dist_m->get_pmean();
-
-    double gamma = 0.1 / getM() + 1; // set default 0.1 eV
-    return Vector_t(0, 0, sqrt(std::pow(gamma, 2) - 1));
-}
 
 void PartBunch::swap(unsigned int i, unsigned int j) {
     if (i >= getLocalNum() || j >= getLocalNum() || i == j) return;
@@ -2455,18 +1840,4 @@ void PartBunch::swap(unsigned int i, unsigned int j) {
 
     if (interpolationCacheSet_m)
         std::swap(interpolationCache_m[i], interpolationCache_m[j]);
-}
-
-void PartBunch::getLocalBounds(Vector_t &rmin, Vector_t &rmax) {
-    const size_t localNum = getLocalNum();
-    if (localNum == 0) return;
-
-    rmin = R[0];
-    rmax = R[0];
-    for (size_t i = 1; i < localNum; ++ i) {
-        for (unsigned short d = 0; d < 3u; ++ d) {
-            if (rmin(d) > R[i](d)) rmin(d) = R[i](d);
-            else if (rmax(d) < R[i](2)) rmax(d) = R[i](d);
-        }
-    }
 }
