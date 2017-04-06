@@ -1,12 +1,11 @@
 #ifndef AMR_PART_BUNCH_H
 #define AMR_PART_BUNCH_H
 
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Amr/BoxLibParticle.h"
 #include "Amr/BoxLibLayout.h"
 
-class AmrPartBunch : public PartBunch,
-                     public BoxLibParticle<BoxLibLayout<double, 3> >
+class AmrPartBunch : public PartBunchBase<double, 3>
 {
 public:
     
@@ -17,15 +16,9 @@ public:
 
     AmrPartBunch(const AmrPartBunch &);
     
-    /* virtual member functions of PartBunch that
-     * we reimplement
-     */
+    VectorPair_t PartBunch::getEExtrema();
     
-    void runTests();
-    
-    void calcLineDensity(unsigned int nBins,
-                         std::vector<double> &lineDensity,
-                         std::pair<double, double> &meshInfo);
+    double getRho(int x, int y, int z);
     
 //     const Mesh_t &getMesh() const;
 
@@ -33,11 +26,6 @@ public:
     
 //     FieldLayout_t &getFieldLayout();
     
-    void boundp();
-    
-    void boundp_destroy();
-    
-    size_t boundp_destroyT();
     
     void computeSelfFields();
     
@@ -47,13 +35,22 @@ public:
     
     void computeSelfFields_cycl(int b);
     
-    /* virtual member functions of IpplParticleBase
-     * that we reimplement
-     */
+private:
+    void updateFieldContainers_m();
     
-    void update();
+    void updateDomainLength(Vector_t& grid);
     
-    void update(const ParticleAttrib<char>& canSwap);
+private:
+    
+    /// charge density on the grid for all levels
+    AmrFieldContainer_t rho_m;
+    
+    /// scalar potential on the grid for all levels
+    AmrFieldContainer_t phi_m;
+    
+    /// vector field on the grid for all levels
+    AmrFieldContainer_t eg_m;
+    
 };
 
 #endif

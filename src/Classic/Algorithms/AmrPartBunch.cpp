@@ -2,39 +2,44 @@
 
 #include "Utilities/OpalException.h"
 
-AmrPartBunch::AmrPartBunch(const PartData *ref) : PartBunch(ref)
+AmrPartBunch::AmrPartBunch(const PartData *ref)
+    : PartBunchBase<double, 3>(ref),
+      rho_m(PArrayManage),
+      phi_m(PArrayManage),
+      eg_m(PArrayManage)
 {
     initializeAmr();
 }
 
 
 AmrPartBunch::AmrPartBunch(const std::vector<OpalParticle> &rhs, const PartData *ref)
-    : PartBunch(rhs, ref)
+    : PartBunchBase<double, 3>(rhs, ref),
+      rho_m(PArrayManage),
+      phi_m(PArrayManage),
+      eg_m(PArrayManage)
 {
     initializeAmr();
 }
 
 
-AmrPartBunch::AmrPartBunch(const AmrPartBunch &rhs) : PartBunch(rhs)
+AmrPartBunch::AmrPartBunch(const AmrPartBunch &rhs)
+    : PartBunchBase<double, 3>(rhs),
+      rho_m(PArrayManage),
+      phi_m(PArrayManage),
+      eg_m(PArrayManage)
 {
     initializeAmr();
 }
 
-
-void AmrPartBunch::runTests() {
-    //TODO Implement
-    throw OpalException("AmrPartBunch::runTests() ", "Not yet Implemented.");
+AmrPartBunch::VectorPair_t AmrPartBunch::getEExtrema() {
+    return VectorPair_t();
 }
 
 
-void AmrPartBunch::calcLineDensity(unsigned int nBins,
-                                   std::vector<double> &lineDensity,
-                                   std::pair<double, double> &meshInfo)
-{
-    //TODO Implement
-    throw OpalException("&AmrPartBunch::calcLineDensity() ", "Not yet Implemented.");
+double AmrPartBunch::getRho(int x, int y, int z) {
+    throw OpalException("AmrPartBunch::getRho(x, y, z) ", "Not yet Implemented.");
+    return 0.0;
 }
-
 
 // const Mesh_t &AmrPartBunch::getMesh() const {
 //     //TODO Implement
@@ -54,27 +59,42 @@ void AmrPartBunch::calcLineDensity(unsigned int nBins,
 // }
 
 
-void AmrPartBunch::boundp() {
-    //TODO Implement
-    throw OpalException("AmrPartBunch::boundp() ", "Not yet Implemented.");
-}
-
-
-void AmrPartBunch::boundp_destroy() {
-    //TODO Implement
-    throw OpalException("AmrPartBunch::boundp_destroy() ", "Not yet Implemented.");
-}
-
-
-size_t AmrPartBunch::boundp_destroyT() {
-    //TODO Implement
-    throw OpalException("AmrPartBunch::boundp_destroyT() ", "Not yet Implemented.");
-}
-
-
 void AmrPartBunch::computeSelfFields() {
-    //TODO Implement
-    throw OpalException("AmrPartBunch::computeSelfFields() ", "Not yet Implemented.");
+    
+//     if ( !fs_m->hasValidSolver() )
+//         throw OpalException("AmrPartBunch::computeSelfFields() ", "No field solver.");
+//     
+//     IpplTimings::startTimer(selfFieldTimer_m);
+//     
+//     //scatter charges onto grid
+//     this->Q *= this->dt;
+//     this->scatter(this->Q, this->rho_m, /*BoxLibParticle<BoxLibLayout<double, 3u> >::*/this->R, 0, -1);
+//     this->Q /= this->dt;
+//     
+//     int baseLevel = 0;
+//     int finestLevel = (&this->getAmrLayout())->finestLevel();
+//     
+//     int nLevel = finestLevel + 1;
+//     rho_m.resize(nLevel);
+//     phi_m.resize(nLevel);
+//     eg_m.resize(nLevel);
+//     
+//     double invDt = 1.0 / getdT() * getCouplingConstant();
+//     for (int i = 0; i <= finestLevel; ++i) {
+//         this->rho_m[i].mult(invDt, 0, 1);
+//     }
+//     
+//     // charge density is in rho_m
+//     IpplTimings::startTimer(compPotenTimer_m);
+//     
+// //     fs_m->solver_m->solve(rho_m, eg_m, baseLevel, finestLevel);
+// 
+//     IpplTimings::stopTimer(compPotenTimer_m);
+//     
+//     
+//     
+//     
+//     IpplTimings::stopTimer(selfFieldTimer_m);
 }
 
 
@@ -96,11 +116,12 @@ void AmrPartBunch::computeSelfFields_cycl(int b) {
 }
 
 
-void AmrPartBunch::update() {
-    BoxLibParticle<BoxLibLayout<double, 3> >::update();
+void AmrPartBunch::updateFieldContainers_m() {
+    
+    
+    
 }
 
-
-void AmrPartBunch::update(const ParticleAttrib<char>& canSwap) {
-    BoxLibParticle<BoxLibLayout<double, 3> >::update(canSwap);
+void AmrPartBunch::updateDomainLength(Vector_t& grid) {
+    
 }
