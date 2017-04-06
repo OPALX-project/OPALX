@@ -119,9 +119,9 @@ public:
      * (Pure) virtual member functions 
      */
     
-    virtual Mesh_t &getMesh() = 0;
+//     virtual Mesh_t &getMesh() = 0;
 
-    virtual FieldLayout_t &getFieldLayout() = 0;
+//     virtual FieldLayout_t &getFieldLayout() = 0;
     
     
     
