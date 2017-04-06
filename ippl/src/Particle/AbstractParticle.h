@@ -13,6 +13,8 @@ public:
     typedef typename ParticleLayout<T, Dim>::Index_t Index_t;
     typedef ParticleAttrib<SingleParticlePos_t> ParticlePos_t;
     typedef ParticleAttrib<Index_t>             ParticleIndex_t;
+    typedef typename ParticleLayout<T, Dim>::UpdateFlags UpdateFlags;
+    typedef typename ParticleLayout<T, Dim>::Position_t Position_t;
     
 public:
     
