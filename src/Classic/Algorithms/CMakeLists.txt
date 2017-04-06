@@ -50,6 +50,7 @@ set (HDRS
     PartBinsCyc.h
     PartBins.h
     PartBunch.h
+    PartBunchBase.h
     PartData.h
     OpalParticle.h
     PartPusher.h
