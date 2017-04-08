@@ -35,7 +35,7 @@
 #include "Fields/EMField.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Structure/LossDataSink.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 
 // fairly generous tolerance here... maybe too generous? Maybe should be
 // user parameter?
@@ -140,13 +140,13 @@ void Ring::getDimensions(double &zBegin, double &zEnd) const {
                                   "Cannot get s-dimension of a ring");
 }
 
-void Ring::initialise(PartBunch *bunch) {
+void Ring::initialise(PartBunchBase<double, 3> *bunch) {
     online_m = true;
     setRefPartBunch(bunch);
     setLossDataSink(new LossDataSink(getName(), false));
 }
 
-void Ring::initialise(PartBunch * bunch, double &startField,
+void Ring::initialise(PartBunchBase<double, 3> * bunch, double &startField,
                       double &endField) {
     initialise(bunch);
 }

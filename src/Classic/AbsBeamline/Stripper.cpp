@@ -20,7 +20,7 @@
 
 #include "AbsBeamline/Stripper.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
@@ -138,14 +138,14 @@ void Stripper::accept(BeamlineVisitor &visitor) const {
     visitor.visitStripper(*this);
 }
 
-void Stripper::initialise(PartBunch *bunch, double &startField, double &endField) {
+void Stripper::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     else
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
 }
 
-void Stripper::initialise(PartBunch *bunch) {
+void Stripper::initialise(PartBunchBase<double, 3> *bunch) {
     if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     else
@@ -238,7 +238,7 @@ bool  Stripper::getStop () const {
 
 
 //change the stripped particles to outcome particles
-bool  Stripper::checkStripper(PartBunch &bunch, const int turnnumber, const double t, const double tstep) {
+bool  Stripper::checkStripper(PartBunchBase<double, 3> &bunch, const int turnnumber, const double t, const double tstep) {
 
     bool flagNeedUpdate = false;
     bool flagresetMQ = false;

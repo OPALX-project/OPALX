@@ -20,7 +20,7 @@
 
 #include "AbsBeamline/Collimator.h"
 #include "Physics/Physics.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
 #include "Structure/LossDataSink.h"
@@ -263,7 +263,7 @@ bool Collimator::checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax) {
 
 // rectangle collimators in cyclotron cyclindral coordiantes
 // without surfacephysics, the particle hitting collimator is deleted directly
-bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const double t, const double tstep) {
+bool Collimator::checkCollimator(PartBunchBase<double, 3> &bunch, const int turnnumber, const double t, const double tstep) {
 
     bool flagNeedUpdate = false;
     Vector_t rmin, rmax;
@@ -301,7 +301,7 @@ bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const d
     return flagNeedUpdate;
 }
 
-void Collimator::initialise(PartBunch *bunch, double &startField, double &endField) {
+void Collimator::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
     endField = startField + getElementLength();
 
@@ -317,7 +317,7 @@ void Collimator::initialise(PartBunch *bunch, double &startField, double &endFie
     goOnline(-1e6);
 }
 
-void Collimator::initialise(PartBunch *bunch) {
+void Collimator::initialise(PartBunchBase<double, 3> *bunch) {
     RefPartBunch_m = bunch;
 
     sphys_m = getSurfacePhysics();

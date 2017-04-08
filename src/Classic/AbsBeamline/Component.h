@@ -30,7 +30,10 @@
 #define EPS_MISALIGNMENT 1e-8
 
 class PartData;
-class PartBunch;
+
+template <class T, unsigned Dim>
+class PartBunchBase;
+
 template <class T, int N> class FVps;
 
 struct Point
@@ -122,7 +125,7 @@ public:
     virtual double getDesignEnergy() const;
     virtual void setDesignEnergy(double energy, bool changeable = true);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField) = 0;
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) = 0;
 
     virtual void finalise() = 0;
 
@@ -161,7 +164,7 @@ public:
     //  This catch-all method implements a hook for tracking a particle
     //  bunch through a non-standard component.
     //  The default version throws a LogicalError.
-    virtual void trackBunch(PartBunch &bunch, const PartData &,
+    virtual void trackBunch(PartBunchBase<double, 3> &bunch, const PartData &,
                             bool revBeam, bool revTrack) const;
 
     /// Track a map.
@@ -179,7 +182,7 @@ protected:
     // Vector_t Orientation_m;
     double exit_face_slope_m;
 
-    PartBunch *RefPartBunch_m;
+    PartBunchBase<double, 3> *RefPartBunch_m;
     bool online_m;
 };
 

@@ -22,7 +22,7 @@
 
 #include "AbsBeamline/Component.h"
 #include "Utilities/LogicalError.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 
 // Class Component
 // ------------------------------------------------------------------------
@@ -72,7 +72,7 @@ const ElementBase &Component::getDesign() const {
     return *this;
 }
 
-void Component::trackBunch(PartBunch &, const PartData &, bool, bool) const {
+void Component::trackBunch(PartBunchBase<double, 3> &, const PartData &, bool, bool) const {
     throw LogicalError("Component::trackBunch()",
                        "Called for component \"" + getName() + "\".");
 }

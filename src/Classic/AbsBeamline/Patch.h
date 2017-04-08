@@ -48,7 +48,7 @@ public:
     /// Get patch transform.
     virtual const Euclid3D &getPatch() const = 0;
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
 
     virtual void finalise();
 

@@ -20,7 +20,7 @@
 
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h" // OPAL file
 #include <iostream>
@@ -76,7 +76,7 @@ void Septum::accept(BeamlineVisitor &visitor) const {
     visitor.visitSeptum(*this);
 }
 
-void Septum::initialise(PartBunch *bunch, double &startField, double &endField) {
+void Septum::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
     position_m = startField;
     startField -= 0.005;
@@ -85,7 +85,7 @@ void Septum::initialise(PartBunch *bunch, double &startField, double &endField) 
 
 }
 
-void Septum::initialise(PartBunch *bunch) {
+void Septum::initialise(PartBunchBase<double, 3> *bunch) {
     *gmsg << "Septum initialise" << endl;
 }
 
@@ -145,7 +145,7 @@ double  Septum::getWidth() const {
 
 }
 
-bool  Septum::checkSeptum(PartBunch &bunch) {
+bool  Septum::checkSeptum(PartBunchBase<double, 3> &bunch) {
 
     bool flag = false;
     Vector_t rmin;

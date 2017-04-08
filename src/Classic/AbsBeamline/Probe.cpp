@@ -20,7 +20,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Probe.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
@@ -94,13 +94,13 @@ void Probe::accept(BeamlineVisitor &visitor) const {
     visitor.visitProbe(*this);
 }
 
-void Probe::initialise(PartBunch *bunch, double &startField, double &endField) {
+void Probe::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     position_m = startField;
     startField -= 0.005;
     endField = position_m + 0.005;
 }
 
-void Probe::initialise(PartBunch *bunch) {
+void Probe::initialise(PartBunchBase<double, 3> *bunch) {
     *gmsg << "* Initialize probe" << endl;
     if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
@@ -189,7 +189,7 @@ void Probe::setGeom(const double dist) {
     geom_m[4].y = geom_m[0].y;
 }
 
-bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, const double tstep) {
+bool  Probe::checkProbe(PartBunchBase<double, 3> &bunch, const int turnnumber, const double t, const double tstep) {
 
     bool flagprobed = false;
     Vector_t rmin, rmax, probepoint;

@@ -42,8 +42,8 @@ public:
     /// Apply visitor to Stripper.
     virtual void accept(BeamlineVisitor &) const;
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
-    virtual void initialise(PartBunch *bunch);
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunchBase<double, 3> *bunch);
 
     virtual void finalise();
 
@@ -78,7 +78,7 @@ public:
     void setStop(bool stopflag);
     virtual bool getStop() const;
 
-    bool  checkStripper(PartBunch &bunch, const int turnnumber, const double t, const double tsetp);
+    bool  checkStripper(PartBunchBase<double, 3> &bunch, const int turnnumber, const double t, const double tsetp);
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 

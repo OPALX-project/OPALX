@@ -49,7 +49,7 @@ void RFQuadrupole::accept(BeamlineVisitor &visitor) const {
     visitor.visitRFQuadrupole(*this);
 }
 
-void RFQuadrupole::initialise(PartBunch *bunch, double &startField, double &endField) {
+void RFQuadrupole::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
 }
 

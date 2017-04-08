@@ -23,7 +23,8 @@
 
 #include "AbsBeamline/Component.h"
 
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 class LossDataSink;
 
 // Class Probe
@@ -45,8 +46,8 @@ public:
     /// Apply visitor to Probe.
     virtual void accept(BeamlineVisitor &) const;
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
-    virtual void initialise(PartBunch *bunch);
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunchBase<double, 3> *bunch);
 
     virtual void finalise();
 
@@ -73,7 +74,7 @@ public:
 
 
     virtual double getWidth() const;
-    bool  checkProbe(PartBunch &bunch, const int turnnumber, const double t, const double tstep);
+    bool  checkProbe(PartBunchBase<double, 3> &bunch, const int turnnumber, const double t, const double tstep);
     virtual ElementBase::ElementType getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
