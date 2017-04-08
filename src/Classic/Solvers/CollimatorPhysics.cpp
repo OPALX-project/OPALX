@@ -8,7 +8,7 @@
 //-------------------------------------------------------------------------
 #include "Solvers/CollimatorPhysics.hh"
 #include "Physics/Physics.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
@@ -136,7 +136,7 @@ CollimatorPhysics::~CollimatorPhysics() {
 
 }
 
-void CollimatorPhysics::doPhysics(PartBunch &bunch) {
+void CollimatorPhysics::doPhysics(PartBunchBase<double, 3> &bunch) {
     /***
         Do physics if
         -- particle in material
@@ -260,7 +260,7 @@ bool CollimatorPhysics::checkHit(const Vector_t &R, const Vector_t &P, double dt
     return hit;
 }
 
-void CollimatorPhysics::apply(PartBunch &bunch,
+void CollimatorPhysics::apply(PartBunchBase<double, 3> &bunch,
                               const std::pair<Vector_t, double> &boundingSphere,
                               size_t numParticlesInSimulation) {
     IpplTimings::startTimer(DegraderApplyTimer_m);
@@ -778,7 +778,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, const double &del
     }
 }
 
-void CollimatorPhysics::addBackToBunch(PartBunch &bunch, unsigned i) {
+void CollimatorPhysics::addBackToBunch(PartBunchBase<double, 3> &bunch, unsigned i) {
 
     bunch.createWithID(locParts_m[i].IDincol);
 
@@ -806,7 +806,7 @@ void CollimatorPhysics::addBackToBunch(PartBunch &bunch, unsigned i) {
     ++ redifusedStat_m;
 }
 
-void CollimatorPhysics::copyFromBunch(PartBunch &bunch,
+void CollimatorPhysics::copyFromBunch(PartBunchBase<double, 3> &bunch,
                                       const std::pair<Vector_t, double> &boundingSphere)
 {
     const size_t nL = bunch.getLocalNum();
@@ -906,7 +906,7 @@ bool CollimatorPhysics::stillActive() {
     return locPartsInMat_m != 0;
 }
 
-bool CollimatorPhysics::stillAlive(PartBunch &bunch) {
+bool CollimatorPhysics::stillAlive(PartBunchBase<double, 3> &bunch) {
 
     bool degraderAlive = true;
 
@@ -971,7 +971,7 @@ bool myCompFDKS(PART_DKS x, PART_DKS y) {
     return x.label > y.label;
 }
 
-void CollimatorPhysics::addBackToBunchDKS(PartBunch &bunch, unsigned i) {
+void CollimatorPhysics::addBackToBunchDKS(PartBunchBase<double, 3> &bunch, unsigned i) {
 
     int id = dksParts_m[i].localID;
 
@@ -998,7 +998,7 @@ void CollimatorPhysics::addBackToBunchDKS(PartBunch &bunch, unsigned i) {
 
 }
 
-void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch, 
+void CollimatorPhysics::copyFromBunchDKS(PartBunchBase<double, 3> &bunch, 
 					 const std::pair<Vector_t, double> &boundingSphere)
 {
     const size_t nL = bunch.getLocalNum();
@@ -1065,7 +1065,7 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch,
 
 }
 
-void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch,
+void CollimatorPhysics::setupCollimatorDKS(PartBunchBase<double, 3> &bunch,
         size_t numParticlesInSimulation)
 {
 

@@ -1,5 +1,5 @@
 #include "Solvers/GreenWakeFunction.hh"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Utilities/GeneralClassicException.h"
 #ifdef ENABLE_WAKE_TESTS
 #include "Solvers/TestLambda.h" // used for tests
@@ -107,7 +107,7 @@ pair<int, int> GreenWakeFunction::distrIndices(int vectLen) {
     return dist;
 }
 
-void GreenWakeFunction::apply(PartBunch &bunch) {
+void GreenWakeFunction::apply(PartBunchBase<double, 3> &bunch) {
 #ifdef ENABLE_WAKE_TESTS
     // overwrite the line density
     testApply(bunch);
@@ -241,7 +241,7 @@ void GreenWakeFunction::apply(PartBunch &bunch) {
 /**
  * @brief   Just a test function
  */
-void GreenWakeFunction::testApply(PartBunch &bunch) {
+void GreenWakeFunction::testApply(PartBunchBase<double, 3> &bunch) {
 #ifdef ENABLE_WAKE_TESTS
     double spacing;
     // determine K and charge

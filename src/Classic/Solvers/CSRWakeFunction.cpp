@@ -1,5 +1,5 @@
 #include "Solvers/CSRWakeFunction.hh"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Filters/Filter.h"
 #include "Physics/Physics.h"
 #include "AbsBeamline/RBend.h"
@@ -22,7 +22,7 @@ CSRWakeFunction::CSRWakeFunction(const std::string &name, ElementBase *element, 
     totalBendAngle_m(0.0)
 { }
 
-void CSRWakeFunction::apply(PartBunch &bunch) {
+void CSRWakeFunction::apply(PartBunchBase<double, 3> &bunch) {
     Inform msg("CSRWake ");
 
     const double sPos = bunch.get_sPos();
@@ -117,7 +117,7 @@ void CSRWakeFunction::initialize(const ElementBase *ref) {
     }
 }
 
-void CSRWakeFunction::calculateLineDensity(PartBunch &bunch, std::pair<double, double> &meshInfo) {
+void CSRWakeFunction::calculateLineDensity(PartBunchBase<double, 3> &bunch, std::pair<double, double> &meshInfo) {
     bunch.calcLineDensity(nBins_m, lineDensity_m, meshInfo);
 
     std::vector<Filter *>::const_iterator fit;

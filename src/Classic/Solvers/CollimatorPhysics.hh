@@ -23,7 +23,10 @@
 #endif
 
 class ElementBase;
-class PartBunch;
+
+template <class T, unsigned Dim>
+class PartBunchBase;
+
 class LossDataSink;
 class Inform;
 
@@ -71,7 +74,7 @@ public:
     CollimatorPhysics(const std::string &name, ElementBase *element, std::string &mat);
     ~CollimatorPhysics();
 
-    void apply(PartBunch &bunch,
+    void apply(PartBunchBase<double, 3> &bunch,
                const std::pair<Vector_t, double> &boundingSphere,
                size_t numParticlesInSimulation = 0);
 
@@ -79,14 +82,14 @@ public:
 
     void print(Inform& os);
     bool stillActive();
-    bool stillAlive(PartBunch &bunch);
+    bool stillAlive(PartBunchBase<double, 3> &bunch);
 
     inline double getTime() {return T_m;}
     std::string getName() { return FN_m;}
     size_t getParticlesInMat() { return locPartsInMat_m;}
     unsigned getRedifused() { return redifusedStat_m;}
 
-    inline void doPhysics(PartBunch &bunch);
+    inline void doPhysics(PartBunchBase<double, 3> &bunch);
 
 
 private:
@@ -99,20 +102,20 @@ private:
     void Rot(double &px, double &pz, double &x, double &z, double xplane, double Norm_P,
 	     double thetacou, double deltas, int coord);
 
-    void copyFromBunch(PartBunch &bunch,
+    void copyFromBunch(PartBunchBase<double, 3> &bunch,
                        const std::pair<Vector_t, double> &boundingSphere);
-    void addBackToBunch(PartBunch &bunch, unsigned i);
+    void addBackToBunch(PartBunchBase<double, 3> &bunch, unsigned i);
 
 #ifdef OPAL_DKS
-  void copyFromBunchDKS(PartBunch &bunch, 
+  void copyFromBunchDKS(PartBunchBase<double, 3> &bunch, 
 			const std::pair<Vector_t, double> &boundingSphere);
-    void addBackToBunchDKS(PartBunch &bunch, unsigned i);
+    void addBackToBunchDKS(PartBunchBase<double, 3> &bunch, unsigned i);
 
-    void setupCollimatorDKS(PartBunch &bunch, size_t numParticlesInSimulation);
+    void setupCollimatorDKS(PartBunchBase<double, 3> &bunch, size_t numParticlesInSimulation);
     void clearCollimatorDKS();
 
     void applyDKS();
-    void applyHost(PartBunch &bunch, Degrader *deg, Collimator *coll);
+    void applyHost(PartBunchBase<double, 3> &bunch, Degrader *deg, Collimator *coll);
     void deleteParticleFromLocalVectorDKS();
 
 #endif
