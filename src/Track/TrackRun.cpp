@@ -844,6 +844,11 @@ void TrackRun::setupFieldsolver() {
         Track::block->bunch->setBCForDCBeam();
     else
         Track::block->bunch->setBCAllOpen();
+    
+#ifdef HAVE_AMR_SOLVER
+    if (fs->isAmrSolver() || fs->getAmrMaxLevel() > 0)
+        OpalData::getInstance()->setInAmrMode();
+#endif
 }
 
 double TrackRun::setDistributionParallelT(Beam *beam) {

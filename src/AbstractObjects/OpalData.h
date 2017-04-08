@@ -25,7 +25,9 @@
 #include <map>
 #include <stack>
 
-class PartBunch;
+template <class T = double, unsigned Dim = 3>
+class PartBunchBase;
+
 class EnvelopeBunch;
 class AttributeBase;
 class Object;
@@ -151,6 +153,11 @@ public:
     void setInOPALCyclMode();
     void setInOPALTMode();
     void setInOPALEnvMode();
+    
+#ifdef HAVE_AMR_SOLVER
+    void setInAmrMode();
+    bool isInAmrMode() const;
+#endif
 
     bool isInPrepState();
     void setInPrepState(bool state);
@@ -208,9 +215,9 @@ public:
 
     void bunchIsAllocated();
 
-    PartBunch *getPartBunch();
+    PartBunchBase<double, 3> *getPartBunch();
 
-    void setPartBunch(PartBunch *p);
+    void setPartBunch(PartBunchBase<double, 3> *p);
 
     /// true if we already allocated a DataSink object
     bool hasDataSinkAllocated();
