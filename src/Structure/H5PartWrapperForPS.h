@@ -25,10 +25,10 @@ public:
     virtual ~H5PartWrapperForPS();
 
     virtual void readHeader();
-    virtual void readStep(PartBunch&, h5_ssize_t firstParticle, h5_ssize_t lastParticle);
+    virtual void readStep(PartBunchBase<double, 3>&, h5_ssize_t firstParticle, h5_ssize_t lastParticle);
 
     virtual void writeHeader();
-    virtual void writeStep(PartBunch&, const std::map<std::string, double> &additionalStepAttributes);
+    virtual void writeStep(PartBunchBase<double, 3>&, const std::map<std::string, double> &additionalStepAttributes);
 
     virtual bool predecessorIsSameFlavour() const;
 
@@ -40,11 +40,11 @@ public:
     void dumpStashedPhaseSpaceEnvelope();
 
 private:
-    void readStepHeader(PartBunch&);
-    void readStepData(PartBunch&, h5_ssize_t, h5_ssize_t);
+    void readStepHeader(PartBunchBase<double, 3>&);
+    void readStepData(PartBunchBase<double, 3>&, h5_ssize_t, h5_ssize_t);
 
-    void writeStepHeader(PartBunch&, const std::map<std::string, double> &);
-    void writeStepData(PartBunch&);
+    void writeStepHeader(PartBunchBase<double, 3>&, const std::map<std::string, double> &);
+    void writeStepData(PartBunchBase<double, 3>&);
 
     std::vector< Vektor<h5_float64_t, 3> > stash_RefPartR;
     std::vector< Vektor<h5_float64_t, 3> > stash_RefPartP;

@@ -10,11 +10,10 @@
 */
 
 #include "Algorithms/PBunchDefs.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Utilities/OpalException.h"
 
 #include "H5hut.h"
-
-class PartBunch;
 
 #define REPORTONERROR(rc) H5PartWrapper::reportOnError(rc, __FILE__, __LINE__)
 #define READFILEATTRIB(type, file, name, value) REPORTONERROR(H5ReadFileAttrib##type(file, name, value));
@@ -36,10 +35,10 @@ public:
 
     double getLastPosition();
     virtual void readHeader() = 0;
-    virtual void readStep(PartBunch&, h5_ssize_t firstParticle, h5_ssize_t lastParticle) = 0;
+    virtual void readStep(PartBunchBase<double, 3>&, h5_ssize_t firstParticle, h5_ssize_t lastParticle) = 0;
 
     virtual void writeHeader() = 0;
-    virtual void writeStep(PartBunch&, const std::map<std::string, double> &) = 0;
+    virtual void writeStep(PartBunchBase<double, 3>&, const std::map<std::string, double> &) = 0;
 
     virtual bool predecessorIsSameFlavour() const = 0;
 

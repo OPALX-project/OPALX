@@ -33,7 +33,7 @@
 #include "Utilities/Util.h"
 #include "BoundaryGeometry.h"
 #include "AbstractObjects/Element.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 
 #ifdef HAVE_AMR_SOLVER
     #include "Solvers/BoxLibSolvers/FMGPoissonSolver.h"
@@ -248,7 +248,7 @@ bool FieldSolver::hasPeriodicZ() {
 }
 
 #ifdef HAVE_AMR_SOLVER
-inline bool FieldSolver::isAMRSolver() {
+inline bool FieldSolver::isAmrSolver() {
     return Util::toUpper(Attributes::getString(itsAttr[FSTYPE])) == std::string("AMR");
 }
 
@@ -277,7 +277,7 @@ inline int FieldSolver::getAmrMaxGridSize() {
 }
 #endif
 
-void FieldSolver::initSolver(PartBunch &b) {
+void FieldSolver::initSolver(PartBunchBase<double, 3> &b) {
     itsBunch_m = &b;
     std::string bcx = Attributes::getString(itsAttr[BCFFTX]);
     std::string bcy = Attributes::getString(itsAttr[BCFFTY]);

@@ -118,7 +118,7 @@ void DataSink::storeCavityInformation() {
     h5wrapper_m->storeCavityInformation();
 }
 
-void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[]) {
+void DataSink::writePhaseSpace(PartBunchBase<double, 3> &beam, Vector_t FDext[]) {
 
     if (!doHDF5_m) return;
 
@@ -139,7 +139,7 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[]) {
 
 
 
-int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double meanEnergy,
+int DataSink::writePhaseSpace_cycl(PartBunchBase<double, 3> &beam, Vector_t FDext[], double meanEnergy,
                                    double refPr, double refPt, double refPz,
                                    double refR, double refTheta, double refZ,
                                    double azimuth, double elevation, bool local) {
@@ -243,16 +243,16 @@ void DataSink::dumpStashedPhaseSpaceEnvelope() {
     IpplTimings::stopTimer(H5PartTimer_m);
 }
 
-void DataSink::writeStatData(PartBunch &beam, Vector_t FDext[], double E) {
+void DataSink::writeStatData(PartBunchBase<double, 3> &beam, Vector_t FDext[], double E) {
     doWriteStatData(beam, FDext, E, std::vector<std::pair<std::string, unsigned int> >());
 }
 
-void DataSink::writeStatData(PartBunch &beam, Vector_t FDext[], const std::vector<std::pair<std::string, unsigned int> >& losses) {
+void DataSink::writeStatData(PartBunchBase<double, 3> &beam, Vector_t FDext[], const std::vector<std::pair<std::string, unsigned int> >& losses) {
     doWriteStatData(beam, FDext, beam.get_meanKineticEnergy(), losses);
 }
 
 
-void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double Ekin, const std::vector<std::pair<std::string, unsigned int> > &losses) {
+void DataSink::doWriteStatData(PartBunchBase<double, 3> &beam, Vector_t FDext[], double Ekin, const std::vector<std::pair<std::string, unsigned int> > &losses) {
 
     /// Start timer.
     IpplTimings::startTimer(StatMarkerTimer_m);
@@ -847,7 +847,7 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
 }
 
 
-void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string fn) {
+void DataSink::writePartlossZASCII(PartBunchBase<double, 3> &beam, BoundaryGeometry &bg, string fn) {
 
     size_t temp = lossWrCounter_m ;
 
@@ -927,7 +927,7 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
     delete[] fePartLossZ;
 }
 
-void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, BoundaryGeometry &bg, string fn) {
+void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> &beam, long long &step, BoundaryGeometry &bg, string fn) {
 
     if (!doHDF5_m) return;
 
@@ -1110,7 +1110,7 @@ void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, Boundar
 
 }
 
-void DataSink::writeImpactStatistics(PartBunch &beam, long long &step, size_t &impact, double &sey_num,
+void DataSink::writeImpactStatistics(PartBunchBase<double, 3> &beam, long long &step, size_t &impact, double &sey_num,
                                      size_t numberOfFieldEmittedParticles, bool nEmissionMode, string fn) {
 
     double charge = 0.0;
