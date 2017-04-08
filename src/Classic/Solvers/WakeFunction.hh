@@ -5,7 +5,9 @@
 #include <vector>
 
 class ElementBase;
-class PartBunch;
+
+template <class T, unsigned Dim>
+class PartBunchBase;
 
 class WakeFunction {
 public:
@@ -15,7 +17,7 @@ public:
 
     virtual ~WakeFunction(){ };
     virtual void initialize(const ElementBase *ref){ };
-    virtual void apply(PartBunch &bunch) = 0;
+    virtual void apply(PartBunchBase<double, 3> &bunch) = 0;
     virtual const std::string getType() const = 0;
     const std::string & getName() const {
         return name_m;

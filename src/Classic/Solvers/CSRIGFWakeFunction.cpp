@@ -1,5 +1,5 @@
 #include "Solvers/CSRIGFWakeFunction.hh"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Filters/Filter.h"
 #include "Physics/Physics.h"
 #include "AbsBeamline/RBend.h"
@@ -21,7 +21,7 @@ CSRIGFWakeFunction::CSRIGFWakeFunction(const std::string &name, ElementBase *ele
     totalBendAngle_m(0.0)
 { }
 
-void CSRIGFWakeFunction::apply(PartBunch &bunch) {
+void CSRIGFWakeFunction::apply(PartBunchBase<double, 3> &bunch) {
     Inform msg("CSRWake ");
 
     std::pair<double, double> meshInfo;
@@ -125,7 +125,7 @@ void CSRIGFWakeFunction::initialize(const ElementBase *ref) {
     *gmsg << level1 << __DBGMSG__ << "\t" << getName() << "\t" << bendName_m << endl;
 }
 
-void CSRIGFWakeFunction::calculateLineDensity(PartBunch &bunch, std::pair<double, double> &meshInfo) {
+void CSRIGFWakeFunction::calculateLineDensity(PartBunchBase<double, 3> &bunch, std::pair<double, double> &meshInfo) {
     bunch.calcLineDensity(nBins_m, lineDensity_m, meshInfo);
 
     // the following is only needed for after dipole
@@ -137,7 +137,7 @@ void CSRIGFWakeFunction::calculateLineDensity(PartBunch &bunch, std::pair<double
     filters_m.back()->calc_derivative(dlineDensitydz_m, meshInfo.second);
 }
 
-void CSRIGFWakeFunction::calculateGreenFunction(PartBunch &bunch, double meshSpacing)
+void CSRIGFWakeFunction::calculateGreenFunction(PartBunchBase<double, 3> &bunch, double meshSpacing)
 {
     unsigned int numOfSlices = lineDensity_m.size();
     double gamma = bunch.get_meanKineticEnergy()/(bunch.getM()*1e-6)+1.0;

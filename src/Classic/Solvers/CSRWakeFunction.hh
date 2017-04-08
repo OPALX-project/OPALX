@@ -12,14 +12,14 @@ class CSRWakeFunction: public WakeFunction {
 public:
     CSRWakeFunction(const std::string &name, ElementBase *element, std::vector<Filter *> filters, const unsigned int &N);
 
-    void apply(PartBunch &bunch);
+    void apply(PartBunchBase<double, 3> &bunch);
 
     void initialize(const ElementBase * ref);
 
     virtual const std::string getType() const;
 
 private:
-    void calculateLineDensity(PartBunch & bunch, std::pair<double, double> &meshInfo);
+    void calculateLineDensity(PartBunchBase<double, 3> & bunch, std::pair<double, double> &meshInfo);
 
     void calculateContributionInside(size_t sliceNumber, double angleOfSlice, double meshSpacing);
     void calculateContributionAfter(size_t sliceNumber, double angleOfSlice, double meshSpacing);
