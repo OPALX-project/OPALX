@@ -19,7 +19,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Multipole.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
@@ -384,7 +384,7 @@ bool Multipole::applyToReferenceParticle(const Vector_t &R, const Vector_t &, co
     return false;
 }
 
-void Multipole::initialise(PartBunch *bunch, double &startField, double &endField) {
+void Multipole::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
     endField = startField + getElementLength();
     online_m = true;

@@ -19,7 +19,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Degrader.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
 #include "Structure/LossDataSink.h"
@@ -122,7 +122,7 @@ bool Degrader::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B)
     return false;
 }
 
-void Degrader::initialise(PartBunch *bunch, double &startField, double &endField) {
+void Degrader::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
     endField = startField + getElementLength();
 
@@ -132,7 +132,7 @@ void Degrader::initialise(PartBunch *bunch, double &startField, double &endField
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
 }
 
-void Degrader::initialise(PartBunch *bunch) {
+void Degrader::initialise(PartBunchBase<double, 3> *bunch) {
     RefPartBunch_m = bunch;
     if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));

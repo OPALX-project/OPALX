@@ -23,7 +23,8 @@
 #include "AbsBeamline/ElementBase.h"
 #include "MemoryManagement/Pointer.h"
 
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 class PartData;
 class OpalParticle;
 
@@ -66,7 +67,7 @@ public:
     //  the second argument describes the reference momentum and mass,
     //  [b]revBeam[/b] true, means that the beam runs backwards, and
     //  [b]revTrack[/b] true, means that we track against the beam.
-    virtual void trackBunch(PartBunch &, const PartData &,
+    virtual void trackBunch(PartBunchBase<double, 3> &, const PartData &,
                             bool revBeam, bool revTrack) const = 0;
 
     /// Track a map.

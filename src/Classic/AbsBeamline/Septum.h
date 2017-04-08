@@ -43,8 +43,8 @@ public:
     /// Apply visitor to Septum.
     virtual void accept(BeamlineVisitor &) const;
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
-    virtual void initialise(PartBunch *bunch);
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunchBase<double, 3> *bunch);
 
     virtual void finalise();
 
@@ -71,7 +71,7 @@ public:
 
 
     virtual double getWidth() const;
-    bool  checkSeptum(PartBunch &bunch);
+    bool  checkSeptum(PartBunchBase<double, 3> &bunch);
     double calculateAngle(double x, double y);
 
     virtual ElementBase::ElementType getType() const;

@@ -20,7 +20,7 @@
 
 #include "AbsBeamline/Bend.h"
 #include "Algorithms/PartPusher.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
@@ -286,7 +286,7 @@ void Bend::goOnline(const double &) {
     online_m = true;
 }
 
-void Bend::initialise(PartBunch *bunch,
+void Bend::initialise(PartBunchBase<double, 3> *bunch,
                        double &startField,
                        double &endField) {
 
@@ -1379,7 +1379,7 @@ void Bend::setFieldBoundaries(double startField, double endField) {
 
 }
 
-void Bend::setupPusher(PartBunch *bunch) {
+void Bend::setupPusher(PartBunchBase<double, 3> *bunch) {
 
     RefPartBunch_m = bunch;
     pusher_m.initialise(bunch->getReference());

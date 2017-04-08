@@ -49,7 +49,7 @@ void Marker::accept(BeamlineVisitor &visitor) const {
     visitor.visitMarker(*this);
 }
 
-void Marker::initialise(PartBunch *bunch, double &startField, double &endField) {
+void Marker::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
 }
 

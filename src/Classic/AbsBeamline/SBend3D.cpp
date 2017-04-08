@@ -26,7 +26,7 @@
  */
 
 #include "AbsBeamline/SBend3D.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 
 SBend3D::SBend3D(const std::string &name)
@@ -76,7 +76,7 @@ bool SBend3D::apply(const Vector_t &R, const Vector_t &P,
     return map_m->getFieldstrength(R, E, B);
 }
 
-void SBend3D::initialise(PartBunch *bunch, double &startField, double &endField) {
+void SBend3D::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
 }
 
