@@ -27,7 +27,8 @@
 #include "Algorithms/CoordinateSystemTrafo.h"
 
 class Tracker;
-// class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 class SurfacePhysicsHandler;
 class BoundaryGeometry;
 class WakeFunction;
