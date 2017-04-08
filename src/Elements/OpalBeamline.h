@@ -27,7 +27,7 @@
 #include "Algorithms/CoordinateSystemTrafo.h"
 
 class Tracker;
-class PartBunch;
+// class PartBunch;
 class SurfacePhysicsHandler;
 class BoundaryGeometry;
 class WakeFunction;
@@ -106,7 +106,7 @@ public:
     unsigned long getFieldAt(const Vector_t &, const Vector_t &, const double &, Vector_t &, Vector_t &);
 
     template<class T>
-    void visit(const T &, BeamlineVisitor &, PartBunch *);
+    void visit(const T &, BeamlineVisitor &, PartBunchBase<double, 3> *);
 
     void prepareSections();
     void compute3DLattice();
@@ -172,7 +172,7 @@ private:
 // }
 
 template<class T> inline
-void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunch *bunch) {
+void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunchBase<double, 3> *bunch) {
     Inform msg("OPAL ");
     double startField = 0.0;
     double endField = 0.0;
@@ -187,7 +187,7 @@ void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunch *bunch) 
 }
 
 template<> inline
-void OpalBeamline::visit<Source>(const Source &element, BeamlineVisitor &, PartBunch *bunch) {
+void OpalBeamline::visit<Source>(const Source &element, BeamlineVisitor &, PartBunchBase<double, 3> *bunch) {
     // Inform msg("OPAL ");
     // double startField = 0.0;
     // double endField = 0.0;
@@ -204,41 +204,41 @@ void OpalBeamline::visit<Source>(const Source &element, BeamlineVisitor &, PartB
 }
 
 template<> inline
-void OpalBeamline::visit<AlignWrapper>(const AlignWrapper &wrap, BeamlineVisitor &visitor, PartBunch *) {
+void OpalBeamline::visit<AlignWrapper>(const AlignWrapper &wrap, BeamlineVisitor &visitor, PartBunchBase<double, 3> *) {
     wrap.getElement()->accept(visitor);
 }
 
 template<> inline
-void OpalBeamline::visit<BeamBeam>(const BeamBeam &element, BeamlineVisitor &, PartBunch *) {
+void OpalBeamline::visit<BeamBeam>(const BeamBeam &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
     WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
 }
 
 template<> inline
-void OpalBeamline::visit<Diagnostic>(const Diagnostic &element, BeamlineVisitor &, PartBunch *) {
+void OpalBeamline::visit<Diagnostic>(const Diagnostic &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
     WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
 }
 
 template<> inline
-void OpalBeamline::visit<Lambertson>(const Lambertson &element, BeamlineVisitor &, PartBunch *) {
+void OpalBeamline::visit<Lambertson>(const Lambertson &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
     WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
 }
 
 template<> inline
-void OpalBeamline::visit<Marker>(const Marker &element, BeamlineVisitor &, PartBunch *) {
+void OpalBeamline::visit<Marker>(const Marker &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
 }
 
 template<> inline
-void OpalBeamline::visit<RFQuadrupole>(const RFQuadrupole &element, BeamlineVisitor &, PartBunch *) {
+void OpalBeamline::visit<RFQuadrupole>(const RFQuadrupole &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
     WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
 }
 
 template<> inline
-void OpalBeamline::visit<Separator>(const Separator &element, BeamlineVisitor &, PartBunch *) {
+void OpalBeamline::visit<Separator>(const Separator &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
     WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
 }
 
 template<> inline
-void OpalBeamline::visit<Septum>(const Septum &element, BeamlineVisitor &, PartBunch *) {
+void OpalBeamline::visit<Septum>(const Septum &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
     WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
 }
 
