@@ -25,7 +25,6 @@
 #include <map>
 
 class Attribute;
-class AttributeBase;
 class Statement;
 
 

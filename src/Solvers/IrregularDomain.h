@@ -7,8 +7,6 @@
 #include "Algorithms/PBunchDefs.h"
 #include "Algorithms/Quaternion.h"
 
-#define TK_PRINT(...) do{printf("TK:%s:%d:",__FILE__,__LINE__);printf(__VA_ARGS__);fflush(stdout);}while(0)
-
 /// enumeration corresponding to different interpolation methods at the boundary
 enum {
     CONSTANT,

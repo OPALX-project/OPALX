@@ -64,12 +64,12 @@ void Directory::erase(const std::string &name) {
 
 
 Object *Directory::find(const std::string &name) const {
-    ObjectDir::const_iterator index = dir.find(name);
+    ObjectDir::const_iterator it = dir.find(name);
 
-    if(index == dir.end()) {
-        return 0;
+    if(it == dir.end()) {
+        return NULL;
     } else {
-        return &*index->second;
+        return &*it->second;
     }
 }
 

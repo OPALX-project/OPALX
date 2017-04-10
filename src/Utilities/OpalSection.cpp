@@ -1,5 +1,4 @@
 #include "Utilities/OpalSection.h"
-#include "Structure/OpalWake.h"
 #include "Structure/SurfacePhysics.h"
 #include "Solvers/WakeFunction.hh"
 #include "Solvers/SurfacePhysicsHandler.hh"

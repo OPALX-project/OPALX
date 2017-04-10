@@ -22,11 +22,12 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Component.h"
-#include "AbsBeamline/BeamlineVisitor.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 
-#include <list>
+#include <map>
+#include <string>
 
+class BeamlineVisitor;
 class PartBunch;
 class LossDataSink;
 

@@ -24,7 +24,6 @@
 
 #include "BasicActions/Option.h"
 #include "Utilities/Options.h"
-#include "Utilities/Options.h"
 
 #include "Physics/Physics.h"
 

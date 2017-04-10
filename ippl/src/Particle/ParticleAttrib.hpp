@@ -560,7 +560,7 @@ void ParticleAttrib<T>::sort(SortList_t &slist)
 template <class FT, unsigned Dim, class M, class C, class PT, class IntOp>
 void
 scatter(Field<FT,Dim,M,C>& f, const ParticleAttrib< Vektor<PT,Dim> >& pp,
-        const IntOp& intop, FT val) {
+        const IntOp& /*intop*/, FT val) {
 
   // make sure field is uncompressed and guard cells are zeroed
   f.Uncompress();
@@ -585,7 +585,7 @@ template <class FT, unsigned Dim, class M, class C, class PT,
           class IntOp, class CacheData>
 void
 scatter(Field<FT,Dim,M,C>& f, const ParticleAttrib< Vektor<PT,Dim> >& pp,
-  const IntOp& intop, ParticleAttrib<CacheData>& cache, FT val) {
+  const IntOp& /*intop*/, ParticleAttrib<CacheData>& cache, FT val) {
 
   // make sure field is uncompressed and guard cells are zeroed
   f.Uncompress();
@@ -610,7 +610,7 @@ scatter(Field<FT,Dim,M,C>& f, const ParticleAttrib< Vektor<PT,Dim> >& pp,
 template <class FT, unsigned Dim, class M, class C,
           class IntOp, class CacheData>
 void
-scatter(Field<FT,Dim,M,C>& f, const IntOp& intop,
+scatter(Field<FT,Dim,M,C>& f, const IntOp& /*intop*/,
         const ParticleAttrib<CacheData>& cache, FT val) {
 
   // make sure field is uncompressed and guard cells are zeroed

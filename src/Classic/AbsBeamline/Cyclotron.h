@@ -23,7 +23,9 @@
 
 #include "AbsBeamline/Component.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
-#include "Fields/BMultipoleField.h"
+
+#include <string>
+#include <vector>
 
 class Fieldmap;
 class LossDataSink;

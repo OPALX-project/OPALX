@@ -22,9 +22,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/BendBase.h"
-#include "Fields/BMultipoleField.h"
 #include "Algorithms/PartPusher.h"
-#include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
 
 #include "gsl/gsl_spline.h"

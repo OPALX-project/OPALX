@@ -23,6 +23,7 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 
+class ElementBase;
 
 // Class DefaultVisitor
 // ------------------------------------------------------------------------
