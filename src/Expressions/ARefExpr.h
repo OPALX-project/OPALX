@@ -98,6 +98,7 @@ namespace Expressions {
 
     template <class T>
     ARefExpr<T>::ARefExpr(const ARefExpr<T> &rhs):
+        OArray<T>(rhs),Invalidator(rhs),
         obj_name(rhs.obj_name), att_name(rhs.att_name),
         itsObject(rhs.itsObject), itsAttr(rhs.itsAttr)
     {}

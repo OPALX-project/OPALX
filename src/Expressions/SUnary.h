@@ -82,6 +82,7 @@ namespace Expressions {
 
     template <class T, class U> inline
     SUnary<T, U>::SUnary(const SUnary<T, U> &rhs):
+        Scalar<T>(rhs),
         fun(rhs.fun), opr(rhs.opr->clone())
     {}
 

@@ -162,6 +162,7 @@ PartBunch::PartBunch(const PartData *ref):
 }
 
 PartBunch::PartBunch(const PartBunch &rhs):
+    IpplParticleBase<ParticleSpatialLayout<double, 3u> >(rhs),
     myNode_m(Ippl::myNode()),
     nodes_m(Ippl::getNodes()),
     fixed_grid(rhs.fixed_grid),

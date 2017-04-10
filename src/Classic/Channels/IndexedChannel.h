@@ -92,6 +92,7 @@ IndexedChannel<T>::IndexedChannel(T &object, double(T::*get)(int) const,
 
 template <class T>
 IndexedChannel<T>::IndexedChannel(const IndexedChannel &rhs):
+    Channel(),
     itsObject(rhs.itsObject), getF(rhs.getF), setF(rhs.setF), bias(rhs.bias)
 {}
 

@@ -74,6 +74,7 @@ namespace Expressions {
 
     template <class T> inline
     Indexer<T>::Indexer(const Indexer &rhs):
+        Scalar<T>(rhs),
         lft(rhs.lft->clone()), rgt(rhs.rgt->clone())
     {}
 
