@@ -27,7 +27,8 @@ NullField::NullField()
 {}
 
 
-NullField::NullField(const NullField &)
+NullField::NullField(const NullField & rhs):
+  EMField(rhs)
 {}
 
 

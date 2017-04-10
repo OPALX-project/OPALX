@@ -88,6 +88,7 @@ IndirectChannel<T>::IndirectChannel(T &object, double(T::*get)() const,
 
 template <class T>
 IndirectChannel<T>::IndirectChannel(const IndirectChannel &rhs):
+    Channel(),
     itsObject(rhs.itsObject), getF(rhs.getF), setF(rhs.setF)
 {}
 

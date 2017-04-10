@@ -85,6 +85,7 @@ namespace Expressions {
 
     template <class T> inline
     ASUnary<T>::ASUnary(const ASUnary<T> &rhs):
+        Scalar<T>(rhs),
         fun(rhs.fun), opr(rhs.opr->clone())
     {}
 

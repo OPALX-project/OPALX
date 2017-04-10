@@ -80,6 +80,7 @@ namespace Expressions {
 
     template <class T>
     AList<T>::AList(const AList<T> &rhs):
+        OArray<T>(rhs),
         itsValue(rhs.itsValue)
     {}
 

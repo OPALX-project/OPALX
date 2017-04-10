@@ -66,7 +66,7 @@ public:
 inline NullGeometry::NullGeometry()
 {}
 
-inline NullGeometry::NullGeometry(const NullGeometry &)
+inline NullGeometry::NullGeometry(const NullGeometry & o) : BGeometryBase(o)
 {}
 
 inline const NullGeometry &

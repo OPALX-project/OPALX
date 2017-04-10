@@ -29,7 +29,9 @@
 
 namespace interpolation {
 
-TriLinearInterpolator::TriLinearInterpolator(const TriLinearInterpolator& lhs) {
+TriLinearInterpolator::TriLinearInterpolator(const TriLinearInterpolator& lhs):
+  Interpolator3dGridTo1d(lhs)
+{
     coordinates_m = new ThreeDGrid(*lhs.coordinates_m);
     f_m = new double**[coordinates_m->xSize()];
     for (int i = 0; i < coordinates_m->xSize(); i++) {
