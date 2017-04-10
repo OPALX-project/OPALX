@@ -22,7 +22,6 @@
 // ------------------------------------------------------------------------
 
 // Generic element classes interacting with a BeamlineVisitor.
-class ElementBase;
 class Component;
 
 // Beam line structure classes.

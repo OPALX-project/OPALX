@@ -35,7 +35,6 @@
 #include <string>
 #include <queue>
 
-class Beamline;
 class BeamlineVisitor;
 class Channel;
 class ConstChannel;

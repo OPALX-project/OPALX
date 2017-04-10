@@ -41,6 +41,7 @@ std::stringstream debug_output;
 
   functions
  */
+namespace {
 struct VectorLessX {
     bool operator() (Vector_t x1, Vector_t x2) {
         return x1 (0) < x2 (0);
@@ -71,6 +72,7 @@ Vector_t get_max_extent (std::vector<Vector_t>& coords) {
         coords.begin (), coords.end (), VectorLessZ ());
     return Vector_t (x (0), y (1), z (2));
 }
+
 
 /*
    Compute the minimum of coordinates of geometry, i.e the minimum of X,Y,Z
@@ -152,6 +154,7 @@ static void write_voxel_mesh (
         of << "1.0" << " 1.0 " << "0.0 " << "1.0" << std::endl;
     }
     of << std::endl;
+}
 }
 
 /*___________________________________________________________________________

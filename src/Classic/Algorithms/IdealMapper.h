@@ -19,16 +19,11 @@
 // ------------------------------------------------------------------------
 
 #include "Algorithms/LinearMapper.h"
-#include "FixedAlgebra/LinearMap.h"
-
 
 class BMultipoleField;
 class Euclid3D;
 
 template <class T, int M, int N> class FMatrix;
-template <class T, int N> class FTps;
-template <class T, int N> class FVps;
-
 
 // Class IdealMapper
 // ------------------------------------------------------------------------

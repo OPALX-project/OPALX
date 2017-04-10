@@ -53,7 +53,7 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
     double incQ_l = incQ;
 
 
-    /*===========================Definations for benchmark===================================*/
+    /*===========================Definitions for benchmark===================================*/
     double vw=ppVw; //1.6*1e-19*1200/9.10938188*1e-31/(2*3.1415926*2.0*1e8)/0.03;//benchmark
     double vt=vVThermal;//7.268929821*1e5;//1.5eV//benchmark
     double f_max=vw/vt*exp(-0.5);//benchmark
@@ -234,10 +234,10 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
             double y2 = invgammp(invarg, parg);
             double y2_n[seNum];
             double multisin = 1.0;
-            double Eemisum = 0.0;
 
 	    if (!nEmissionMode) {// only emit 1 particle
 
+                double Eemisum = 0.0;
 		for(int i = 0; i < seNum - 1; i++) {
 		    double mu = sePn_m[seNum-1] * (seNum  - i);
 		    double nu =  sePn_m[seNum-1];

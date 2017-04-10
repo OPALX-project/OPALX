@@ -25,9 +25,6 @@
 #include "AbsBeamline/AttributeSet.h"
 #include <string>
 
-class ElementBase;
-
-
 // Class ElementImage
 // ------------------------------------------------------------------------
 /// An image of an element.

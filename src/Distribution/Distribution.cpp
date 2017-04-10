@@ -50,17 +50,16 @@
 
 extern Inform *gmsg;
 
-#define DISTDBG1
-#define noDISTDBG2
-
 #define SMALLESTCUTOFF 1e-12
 
-SymTenzor<double, 6> getUnit6x6() {
-    SymTenzor<double, 6> unit6x6;
-    for (unsigned int i = 0; i < 6u; ++ i) {
-        unit6x6(i,i) = 1.0;
+namespace {
+    SymTenzor<double, 6> getUnit6x6() {
+        SymTenzor<double, 6> unit6x6;
+        for (unsigned int i = 0; i < 6u; ++ i) {
+            unit6x6(i,i) = 1.0;
+        }
+        return unit6x6;
     }
-    return unit6x6;
 }
 
 //

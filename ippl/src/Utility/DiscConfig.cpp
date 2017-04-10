@@ -39,10 +39,8 @@ using namespace std;
 
 // debugging macros
 #ifdef IPPL_PRINTDEBUG
-#define DCDBG(x) x
 #define CDCDBG(x) x
 #else
-#define DCDBG(x)
 #define CDCDBG(x)
 #endif
 

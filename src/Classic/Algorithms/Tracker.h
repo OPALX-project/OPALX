@@ -133,35 +133,35 @@ public:
     virtual void visitMapIntegrator(const MapIntegrator &);
 
     /// set total number of tracked bunches
-    virtual void setNumBunch(int n) {};
+    virtual void setNumBunch(int) {};
 
     /// get total number of tracked bunches
     virtual int  getNumBunch() { return 0; }
 
     /// set the working sub-mode for multi-bunch mode
-    virtual void  setMultiBunchMode(const int flag) {};
+    virtual void  setMultiBunchMode(const int /*flag*/) {};
 
     /// set the control parameter for sub-mode of multi-bunch mode
-    virtual void  setParaAutoMode(const double para) {};
+    virtual void  setParaAutoMode(const double /*para*/) {};
 
     /// set last dumped step
-    virtual void setLastDumpedStep(const int para) { };
+    virtual void setLastDumpedStep(const int /*para*/) { };
 
     /// set coefficients for track (default value is for proton in cyclotron)
-    virtual void setTrackCoeff(double para) {};
+    virtual void setTrackCoeff(double /* para */) {};
     /// set multipacting flag
-    virtual void setMpacflg(bool mpacflg) {};
+    virtual void setMpacflg(bool /* mpacflg */) {};
 
-    virtual void setPr(double x) { } ;
-    virtual void setPt(double x) { } ;
-    virtual void setPz(double x) { } ;
-    virtual void setR(double x) { } ;
-    virtual void setTheta(double x) { } ;
-    virtual void setZ(double x) { } ;
-    virtual void setBeGa(double x) { } ;
-    virtual void setPhi(double x) { } ;
-    virtual void setPsi(double x) { } ;
-    virtual void setPreviousH5Local(bool x) { } ;
+    virtual void setPr(double) { } ;
+    virtual void setPt(double) { } ;
+    virtual void setPz(double) { } ;
+    virtual void setR(double) { } ;
+    virtual void setTheta(double) { } ;
+    virtual void setZ(double) { } ;
+    virtual void setBeGa(double) { } ;
+    virtual void setPhi(double) { } ;
+    virtual void setPsi(double) { } ;
+    virtual void setPreviousH5Local(bool) { } ;
 
     // standing wave structures
     FieldList cavities_m;

@@ -152,8 +152,8 @@ void StatisticalErrors::execute() {
 
 void StatisticalErrors::runSimulation(const std::string &inputFileName, MPI_Comm comm) {
     IpplInfoWrapper *newippl = new IpplInfoWrapper(inputFileName, comm);
-    unsigned int startExtension = inputFileName.find_last_of('.');
-    unsigned int startRelativePath = inputFileName.find_last_of('/');
+    std::string::size_type startExtension    = inputFileName.find_last_of('.');
+    std::string::size_type startRelativePath = inputFileName.find_last_of('/');
     std::string relativePath("");
     if (startRelativePath != std::string::npos) {
         relativePath = inputFileName.substr(0, startRelativePath + 1);

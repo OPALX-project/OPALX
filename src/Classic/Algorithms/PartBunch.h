@@ -768,17 +768,17 @@ FieldLayout_t &PartBunch::getFieldLayout() {
 }
 
 inline
-double PartBunch::getPx0(int i) {
+double PartBunch::getPx0(int) {
     return 0;
 }
 
 inline
-double PartBunch::getPy0(int i) {
+double PartBunch::getPy0(int) {
     return 0;
 }
 
 inline
-void PartBunch::setZ(int i, double zcoo) {};
+void PartBunch::setZ(int /* i */, double /* zcoo */) {};
 
 inline
 void PartBunch::get_bounds(Vector_t &rmin, Vector_t &rmax) {
@@ -1190,12 +1190,12 @@ double PartBunch::getInitialGamma() const {
 }
 
 inline
-double PartBunch::getGamma(int i) {
+double PartBunch::getGamma(int) {
     return 0;
 }
 
 inline
-double PartBunch::getBeta(int i) {
+double PartBunch::getBeta(int) {
     return 0;
 }
 

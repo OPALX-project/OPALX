@@ -260,7 +260,7 @@ public:
     // the precomputed mesh information
     template <unsigned Dim, class M, class C, class IntOp, class CacheData>
     void
-    scatter(Field<T,Dim,M,C>& f, const IntOp& intop,
+    scatter(Field<T,Dim,M,C>& f, const IntOp& /*intop*/,
             const ParticleAttrib<CacheData>& cache) const {
 
 
@@ -289,7 +289,7 @@ public:
     void
     gather(const Field<T,Dim,M,C>& f,
            const ParticleAttrib< Vektor<PT,Dim> >& pp,
-           const IntOp& intop) {
+           const IntOp& /*intop*/) {
 
 
         // make sure field is uncompressed
@@ -319,7 +319,7 @@ public:
     void
     gather(const Field<T,Dim,M,C>& f,
            const ParticleAttrib< Vektor<PT,Dim> >& pp,
-           const IntOp& intop,
+           const IntOp& /*intop*/,
            ParticleAttrib<CacheData>& cache) {
 
 
@@ -348,7 +348,7 @@ public:
     // the precomputed mesh information
     template <unsigned Dim, class M, class C, class IntOp, class CacheData>
     void
-    gather(const Field<T,Dim,M,C>& f, const IntOp& intop,
+    gather(const Field<T,Dim,M,C>& f, const IntOp& /*intop*/,
            const ParticleAttrib<CacheData>& cache) {
 
 

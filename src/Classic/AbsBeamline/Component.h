@@ -148,7 +148,7 @@ public:
 
     virtual ElementBase::ElementType getType() const;
 
-    virtual void setComponentType(std::string name) { };
+    virtual void setComponentType(std::string /*name*/) { };
     virtual std::string getComponentType() const { return ""; };
 
     /// Return design element.

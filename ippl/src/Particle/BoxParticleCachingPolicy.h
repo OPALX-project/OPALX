@@ -152,7 +152,7 @@ template<class C>
 template<class C>
 	void updateGhostParticles(
 		IpplParticleBase< ParticleSpatialLayout<T,Dim,Mesh,C > > &PData,
-		ParticleSpatialLayout<T, Dim, Mesh, C > &PLayout
+		ParticleSpatialLayout<T, Dim, Mesh, C > &/*PLayout*/
 		)
 	{
 
