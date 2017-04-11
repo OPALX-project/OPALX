@@ -75,10 +75,10 @@ namespace {
         IDEALIZED,
         LOGBENDTRAJECTORY,
         VERSION,
-        SIZE
 #ifdef HAVE_AMR_SOLVER
-        , AMR
+        AMR,
 #endif
+        SIZE
     };
 }
 
@@ -198,7 +198,7 @@ Option::Option():
     
 #ifdef HAVE_AMR_SOLVER
     itsAttr[AMR] = Attributes::makeBool
-        ("AMR", "Use adaptive mesh refinement. Default: false", false);
+        ("AMR", "Use adaptive mesh refinement.", amr);
 #endif
     
     registerOwnership(AttributeHandler::STATEMENT);
@@ -379,7 +379,7 @@ void Option::execute() {
     } else {
         cloTuneOnly = false;
     }
-
+    
     // Set message flags.
     FileStream::setEcho(echo);
 
