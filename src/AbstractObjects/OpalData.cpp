@@ -154,6 +154,7 @@ OpalDataImpl::OpalDataImpl():
     restart_dump_freq_m(1), last_step_m(0),
     hasPriorRun_m(false),
     isRestart_m(false),
+    restartStep_m(0),
     hasRestartFile_m(false),
     hasBunchAllocated_m(false),
     hasDataSinkAllocated_m(false),
@@ -178,7 +179,7 @@ OpalDataImpl::~OpalDataImpl() {
     // Make sure the main directory is cleared before the directories
     // for tables and expressions are deleted.
     delete mesh_m;// somehow this needs to be deleted first
-	delete FL_m;
+    delete FL_m;
     //delete PL_m; //this gets deleted by FL_m
 
     delete bunch_m;
@@ -615,7 +616,7 @@ void OpalData::printNames(std::ostream &os, const std::string &pattern) {
        << pattern << "\":" << endl;
 
     for(ObjectDir::const_iterator index = p->mainDirectory.begin();
-        index != p->mainDirectory.end(); index++) {
+        index != p->mainDirectory.end(); ++index) {
         const std::string name = (*index).first;
 
         if(! name.empty()  &&  regex.match(name)) {
@@ -726,7 +727,7 @@ std::vector<std::string> OpalData::getAllNames() {
     std::vector<std::string> result;
 
     for(ObjectDir::const_iterator index = p->mainDirectory.begin();
-        index != p->mainDirectory.end(); index++) {
+        index != p->mainDirectory.end(); ++index) {
         std::string tmpName = (*index).first;
         if(!tmpName.empty()) result.push_back(tmpName);
         //// DTA
@@ -747,7 +748,7 @@ std::vector<std::string> OpalData::getAllNames() {
     // StringStream *ss;
     // ss = new StringStream("myVar:=ALPHA+BETA;");
     for(ObjectDir::const_iterator index = p->mainDirectory.begin();
-        index != p->mainDirectory.end(); index++) {
+        index != p->mainDirectory.end(); ++index) {
         std::string tmpName = (*index).first;
         if(!tmpName.empty()) {
             Object *tmpObject = OpalData::getInstance()->find(tmpName);

@@ -40,7 +40,7 @@ Solenoid::Solenoid():
     scaleError_m(0.0),
     startField_m(0.0),
     length_m(0.0),
-    fast_m(false) {
+    fast_m(true) {
     setElType(isSolenoid);
 }
 
@@ -66,7 +66,7 @@ Solenoid::Solenoid(const std::string &name):
     scaleError_m(0.0),
     startField_m(0.0),
     length_m(0.0),
-    fast_m(false) {
+    fast_m(true) {
     setElType(isSolenoid);
 }
 

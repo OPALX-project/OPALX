@@ -109,8 +109,8 @@ private:
 inline StraightGeometry::StraightGeometry(double l): len(l)
 {}
 
-inline StraightGeometry::StraightGeometry(const StraightGeometry &right)
-    : len(right.len)
+inline StraightGeometry::StraightGeometry(const StraightGeometry &right):
+    BGeometryBase(right), len(right.len)
 {}
 
 inline const StraightGeometry &StraightGeometry::operator=

@@ -48,6 +48,7 @@ public:
         CAVITYTYPE,     // STANDING or TRAVELING wave structure
         NUMCELLS,       // Number of cells in a TW structure
         DESIGNENERGY,   // The mean kinetic energy at exit
+        MODE,           // The phase shift between cells
         SIZE
     };
 

@@ -24,12 +24,7 @@
 #include "AbsBeamline/Bend.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "Fields/BMultipoleField.h"
-#include "Algorithms/PartPusher.h"
-#include "Physics/Physics.h"
-#include <vector>
-
-
-class Fieldmap;
+#include <string>
 
 /*
  * Class SBend
@@ -163,8 +158,8 @@ public:
     /*
      * Methods for OPAL-SLICE.
      */
-    virtual void addKR(int i, double t, Vector_t &K) { };
-    virtual void addKT(int i, double t, Vector_t &K) { };
+    virtual void addKR(int /* i */, double /* t */, Vector_t &/* K */) { };
+    virtual void addKT(int /* i */, double /* t */, Vector_t &/* K */) { };
 
 
     virtual ElementBase::ElementType getType() const;

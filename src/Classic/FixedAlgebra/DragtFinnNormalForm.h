@@ -21,11 +21,11 @@
 // ------------------------------------------------------------------------
 
 #include "FixedAlgebra/FVector.h"
+#include "FixedAlgebra/FLieGenerator.h"
 #include <algorithm>
 #include <complex>
 
 template <int> class DragtFinnMap;
-template <class T, int> class FLieGenerator;
 template <class T, int, int> class FMatrix;
 
 

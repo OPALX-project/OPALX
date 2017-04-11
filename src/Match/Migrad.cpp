@@ -313,13 +313,12 @@ void Migrad::derivatives(Vector<double> &x, Vector<double> &f,
 
         for(int icycle = 1; icycle <= 10; ++icycle) {
             Vector<double> f1(m), f2(m);
-            double fu, fl;
             x1(i) = x(i) - xstep(i);
             x2(i) = x(i) + xstep(i);
 
             if(Match::block->evaluate(x1, f1)  &&  Match::block->evaluate(x2, f2)) {
-                fl = f1 * f1;
-                fu = f2 * f2;
+                double fl = f1 * f1;
+                double fu = f2 * f2;
                 g(i)  = (fu - fl) / (2.0 * xstep(i));
                 g2(i) = (fu - 2.0 * fmin + fl) / (xstep(i) * xstep(i));
                 if(g2(i) == 0.0) g2(i) = 1.0;

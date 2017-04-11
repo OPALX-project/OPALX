@@ -23,11 +23,10 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Component.h"
-#include "AbsBeamline/BeamlineVisitor.h"
-#include "BeamlineGeometry/StraightGeometry.h"
 
 #include <vector>
 
+class BeamlineVisitor;
 class LossDataSink;
 
 // Class Collimator

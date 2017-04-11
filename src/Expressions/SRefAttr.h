@@ -121,6 +121,7 @@ namespace Expressions {
 
     template <class T>
     SRefAttr<T>::SRefAttr(const SRefAttr &rhs):
+        AttributeBase(),
         obj_name(rhs.obj_name), att_name(rhs.att_name), itsIndex(rhs.itsIndex),
         itsObject(rhs.itsObject), itsAttr(rhs.itsAttr)
     {}

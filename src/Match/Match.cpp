@@ -173,7 +173,6 @@ void Match::print(const char *method, MatchState state) {
 
     // Print function values.
     Vector<double> f(constraintCount, 0.0);
-    int index = 0;
     callCount++;
     if(( state == INTERNAL && printLevel <= 3 ) ||
        ( state == PROGRESS && printLevel <= 2 )) {
@@ -181,6 +180,7 @@ void Match::print(const char *method, MatchState state) {
     } else {
         cout << "\nCurrent matching conditions:\n";
         OpalData::getInstance()->update();
+        int index = 0;
         for(FunList::const_iterator fun = theFunctions.begin();
             fun != theFunctions.end(); ++fun) {
             (*fun)->evaluate(f, index);

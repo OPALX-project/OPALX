@@ -7,13 +7,13 @@
 #include <hdf5.h>
 #include "H5hut.h"
 
-#include <vector>
 #include <map>
 #include <string>
-#include <math.h>
-#include <cmath>
+#include <tuple>
+#include <vector>
 #include "IrregularDomain.h"
-#include "Structure/BoundaryGeometry.h"
+
+class BoundaryGeometry;
 
 class ArbitraryDomain : public IrregularDomain {
 

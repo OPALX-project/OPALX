@@ -20,12 +20,13 @@
 //
 // ------------------------------------------------------------------------
 
+#include "FixedAlgebra/FTps.h"
+
 #include <algorithm>
 #include <iosfwd>
 
 template <class T> class Array1D;
 template <class T, int M, int N> class FMatrix;
-template <class T, int N> class FTps;
 template <class T, int N> class FVector;
 template <class T, int N> class LinearMap;
 template <class T, int N> class TransportMap;

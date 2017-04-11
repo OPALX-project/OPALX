@@ -76,6 +76,7 @@ namespace Expressions {
 
     template <class T> inline
     SNull<T>::SNull(const SNull<T> &rhs):
+        Scalar<T>(rhs),
         fun(rhs.fun)
     {}
 

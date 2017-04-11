@@ -28,6 +28,7 @@
 namespace Expressions {
 
     SHash::SHash(const SHash &rhs):
+        Scalar<double>(rhs),
         itsTable(rhs.itsTable)
     {}
 

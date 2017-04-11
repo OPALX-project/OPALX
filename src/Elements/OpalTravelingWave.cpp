@@ -63,6 +63,8 @@ OpalTravelingWave::OpalTravelingWave():
                         ("NUMCELLS", "Number of cells in a TW structure");
     itsAttr[DESIGNENERGY] = Attributes::makeReal
                             ("DESIGNENERGY", "the mean energy of the particles at exit", -1.0);
+    itsAttr[MODE] = Attributes::makeReal
+                     ("MODE", "The phase shift between neighboring cells in 2*pi", 1.0/3.0);
 
     registerRealAttribute("VOLT");
     registerRealAttribute("DVOLT");
@@ -73,6 +75,7 @@ OpalTravelingWave::OpalTravelingWave():
     registerStringAttribute("CAVITYTYPE");
     registerRealAttribute("NUMCELLS");
     registerRealAttribute("DESIGNENERGY");
+    registerRealAttribute("MODE");
 
     registerOwnership();
 
@@ -150,7 +153,7 @@ void OpalTravelingWave::update() {
     rfc->setPhasem(phase);
     rfc->setPhaseError(phaseError);
     rfc->setNumCells((int)Attributes::getReal(itsAttr[NUMCELLS]));
-
+    rfc->setMode(Attributes::getReal(itsAttr[MODE]));
     rfc->setDesignEnergy(kineticEnergy);
 
     if(itsAttr[WAKEF] && owk_m == NULL) {

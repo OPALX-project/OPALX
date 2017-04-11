@@ -21,7 +21,6 @@
 #include "AbsBeamline/Component.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/BMultipoleField.h"
-#include "Utilities/GeneralClassicException.h"
 
 template <class T, unsigned Dim>
 class PartBunchBase;

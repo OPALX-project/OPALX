@@ -18,6 +18,8 @@
 #include "Structure/LossDataSink.h" // OPAL file
 #include "Utilities/Options.h"
 #include "Utilities/GeneralClassicException.h"
+#include "Utilities/Util.h"
+#include "Utilities/Timer.h"
 
 #include "Ippl.h"
 
@@ -34,8 +36,15 @@ using Physics::r_e;
 using Physics::z_p;
 using Physics::Avo;
 
+#ifdef OPAL_DKS
+const int CollimatorPhysics::numpar = 12;
+#endif
+
 CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *element, std::string &material):
     SurfacePhysicsHandler(name, element),
+    allParticlesIn_m(false),
+    T_m(0.0),
+    dT_m(0.0),
     material_m(material),
     Z_m(0),
     A_m(0.0),
@@ -47,9 +56,22 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *eleme
     X0_m(0.0),
     I_m(0.0),
     n_m(0.0),
-    dT_m(0.0),
-    T_m(0.0),
-    allParticlesIn_m(false)
+    bunchToMatStat_m(0),
+    stoppedPartStat_m(0),
+    rediffusedStat_m(0),
+    locPartsInMat_m(0),
+    Eavg_m(0.0),
+    Emax_m(0.0),
+    Emin_m(0.0)
+#ifdef OPAL_DKS
+    , curandInitSet(0),
+    , ierr(0),
+    , maxparticles(0),
+    , numparticles(0),
+    , numlocalparts(0),
+    , par_ptr(NULL),
+    , mem_ptr(NULL)
+#endif
 {
 
     gsl_rng_env_setup();
@@ -100,10 +122,6 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *eleme
                                           "Unknown collimator type \"" + collshapeStr_m + "\"");
         }
     }
-    // statistics counters
-    bunchToMatStat_m = 0;
-    stoppedPartStat_m = 0;
-    redifusedStat_m   = 0;
 
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(FN_m, !Options::asciidump));
 
@@ -284,7 +302,7 @@ void CollimatorPhysics::apply(PartBunchBase<double, 3> *bunch,
     Emin_m = 0.0;
 
     bunchToMatStat_m  = 0;
-    redifusedStat_m   = 0;
+    rediffusedStat_m   = 0;
     stoppedPartStat_m = 0;
     locPartsInMat_m   = 0;
 
@@ -347,7 +365,7 @@ void CollimatorPhysics::apply(PartBunchBase<double, 3> *bunch,
                 for (unsigned int i = 0; i < dksParts_m.size(); ++i) {
                     if (dksParts_m[i].label == -2) {
                         addBackToBunchDKS(bunch, i);
-                        redifusedStat_m++;
+                        rediffusedStat_m++;
                     } else {
                         stoppedPartStat_m++;
                         lossDs_m->addParticle(dksParts_m[i].Rincol, dksParts_m[i].Pincol,
@@ -803,7 +821,7 @@ void CollimatorPhysics::addBackToBunch(PartBunchBase<double, 3> *bunch, unsigned
     */
     locParts_m[i].label = -1.0;
 
-    ++ redifusedStat_m;
+    ++ rediffusedStat_m;
 }
 
 void CollimatorPhysics::copyFromBunch(PartBunchBase<double, 3> *bunch,
@@ -875,7 +893,7 @@ void CollimatorPhysics::print(Inform &msg) {
 #endif
     reduce(locPartsInMat_m, locPartsInMat_m, OpAddAssign());
     reduce(bunchToMatStat_m, bunchToMatStat_m, OpAddAssign());
-    reduce(redifusedStat_m, redifusedStat_m, OpAddAssign());
+    reduce(rediffusedStat_m, rediffusedStat_m, OpAddAssign());
     reduce(stoppedPartStat_m, stoppedPartStat_m, OpAddAssign());
 
     /*
@@ -885,17 +903,19 @@ void CollimatorPhysics::print(Inform &msg) {
       deg->getDimensions(zBegin, zEnd);
     */
 
-    if (locPartsInMat_m + bunchToMatStat_m + redifusedStat_m + stoppedPartStat_m > 0) {
+    if (locPartsInMat_m + bunchToMatStat_m + rediffusedStat_m + stoppedPartStat_m > 0) {
+        OPALTimer::Timer time;
         msg << level2
             << "--- CollimatorPhysics - Type is " << collshapeStr_m << " Name " << FN_m
             << " Material " << material_m << "\n"
-            << "Particle Statistics \n"
-            << std::setw(21) << "entered: " << bunchToMatStat_m << "\n"
-            << std::setw(21) << "redifused: " << redifusedStat_m << "\n"
-            << std::setw(21) << "stopped: " << stoppedPartStat_m << "\n"
-            << std::setw(21) << "total in material: " << locPartsInMat_m << endl;
+            << "Particle Statistics @ " << time.time() << "\n"
+            << std::setw(21) << "entered: " << Util::toStringWithThousandSep(bunchToMatStat_m) << "\n"
+            << std::setw(21) << "rediffused: " << Util::toStringWithThousandSep(rediffusedStat_m) << "\n"
+            << std::setw(21) << "stopped: " << Util::toStringWithThousandSep(stoppedPartStat_m) << "\n"
+            << std::setw(21) << "total in material: " << Util::toStringWithThousandSep(locPartsInMat_m)
+            << endl;
         // msg << "Coll/Deg statistics: "
-        //     << " bunch to material " << bunchToMatStat_m << " redifused " << redifusedStat_m
+        //     << " bunch to material " << bunchToMatStat_m << " rediffused " << rediffusedStat_m
         //     << " stopped " << stoppedPartStat_m << endl;
     }
 
@@ -994,11 +1014,11 @@ void CollimatorPhysics::addBackToBunchDKS(PartBunchBase<double, 3> *bunch, unsig
 
     dksParts_m[i].label = -1.0;
 
-    ++ redifusedStat_m;
+    ++ rediffusedStat_m;
 
 }
 
-void CollimatorPhysics::copyFromBunchDKS(PartBunchBase<double, 3> *bunch, 
+void CollimatorPhysics::copyFromBunchDKS(PartBunchBase<double, 3> *bunch,
 					 const std::pair<Vector_t, double> &boundingSphere)
 {
     const size_t nL = bunch->getLocalNum();
@@ -1128,7 +1148,7 @@ void CollimatorPhysics::deleteParticleFromLocalVectorDKS() {
     sort(dksParts_m.begin(), dksParts_m.end(), myCompFDKS);
 
     // find start of particles to delete
-    std::vector<PART_DKS>::iterator inv = dksParts_m.begin() + stoppedPartStat_m + redifusedStat_m;
+    std::vector<PART_DKS>::iterator inv = dksParts_m.begin() + stoppedPartStat_m + rediffusedStat_m;
 
     /*
       for (; inv != dksParts_m.end(); inv++) {

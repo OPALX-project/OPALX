@@ -134,7 +134,7 @@ bool FM1DMagnetoStatic::checkFileData(std::ifstream &fieldFile,
                                       bool parsingPassed) {
 
     double tempDouble;
-    for(int dataIndex = 0; dataIndex <= numberOfGridPoints_m; dataIndex++)
+    for(int dataIndex = 0; dataIndex < numberOfGridPoints_m; ++ dataIndex)
         parsingPassed = parsingPassed
                         && interpreteLine<double>(fieldFile, tempDouble);
 
@@ -280,7 +280,7 @@ bool FM1DMagnetoStatic::readFileHeader(std::ifstream &fieldFile) {
                             rEnd_m, tempInt);
 
     ++ numberOfGridPoints_m;
-    
+
     if(accuracy_m > numberOfGridPoints_m)
         accuracy_m = numberOfGridPoints_m;
 

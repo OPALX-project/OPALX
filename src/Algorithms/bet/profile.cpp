@@ -12,7 +12,6 @@
    $Id: profile.C 106 2007-05-08 19:12:24Z bakker $
 */
 
-#define SVN_DATE "$Date: 2007-05-08 21:12:24 +0200 (Tue, 08 May 2007) $"
 #include "Ippl.h"
 #include <iostream>
 #include <cmath>

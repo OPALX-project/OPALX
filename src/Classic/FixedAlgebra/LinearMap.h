@@ -20,10 +20,11 @@
 //
 // ------------------------------------------------------------------------
 
+#include "FixedAlgebra/LinearFun.h"
+
 #include <iosfwd>
 
 template <class T, int M, int N> class FMatrix;
-template <class T, int N> class LinearFun;
 template <class T, int N> class FVector;
 template <class T, int N> class FVps;
 

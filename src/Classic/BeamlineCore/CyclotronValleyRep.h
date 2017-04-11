@@ -83,9 +83,6 @@ public:
 
     /// The cavity's field.
     AcceleratingField field;
-
-    /// Cavities are ignored (amplitude = 0) when this switch is set.
-    static bool ignoreCavities;
 };
 
 #endif // CLASSIC_CyclotronValleyRep_HH

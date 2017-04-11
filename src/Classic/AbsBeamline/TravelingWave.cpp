@@ -52,7 +52,7 @@ TravelingWave::TravelingWave():
     NumCells_m(1),
     CellLength_m(0.0),
     Mode_m(1),
-    fast_m(false),
+    fast_m(true),
     autophaseVeto_m(false),
     designEnergy_m(-1.0)
 {}
@@ -106,7 +106,7 @@ TravelingWave::TravelingWave(const std::string &name):
     NumCells_m(1),
     CellLength_m(0.0),
     Mode_m(1),
-    fast_m(false),
+    fast_m(true),
     autophaseVeto_m(false),
     designEnergy_m(-1.0)
 {}
@@ -382,22 +382,6 @@ void TravelingWave::initialise(PartBunchBase<double, 3> *bunch, double &startFie
                     omsg.close();
                 }
                 frequency_m = CoreFieldmap_m->getFrequency();
-            }
-
-            if(hasAttribute("MODE")) {
-                Mode_m = getAttribute("MODE");
-            } else {
-                Mode_m = 1. / 3.;
-                errormsg.str("");
-                errormsg  << "NO MODE GIVEN; 2\\pi/3 MODE ASSUMED.";
-                std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
-                ERRORMSG(errormsg_str << "\n" << endl);
-
-                if(Ippl::myNode() == 0) {
-                    std::ofstream omsg("errormsg.txt", std::ios_base::app);
-                    omsg << errormsg_str << std::endl;
-                    omsg.close();
-                }
             }
 
             PeriodLength_m = (zEnd - zBegin) / 2.0;

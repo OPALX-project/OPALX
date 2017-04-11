@@ -146,7 +146,7 @@ void FM1DDynamic::getOnaxisEz(std::vector<std::pair<double, double> > &eZ) {
 bool FM1DDynamic::checkFileData(std::ifstream &fieldFile, bool parsingPassed) {
 
     double tempDouble;
-    for(int dataIndex = 0; dataIndex <= numberOfGridPoints_m; ++ dataIndex)
+    for(int dataIndex = 0; dataIndex < numberOfGridPoints_m; ++ dataIndex)
         parsingPassed = parsingPassed
             && interpreteLine<double>(fieldFile, tempDouble);
 
@@ -265,7 +265,7 @@ double FM1DDynamic::readFileData(std::ifstream &fieldFile, double fieldData[]) {
                 = fieldData[numberOfGridPoints_m + dataIndex];
     }
 
-    if (!normalize_m) 
+    if (!normalize_m)
         maxEz = 1.0;
 
     return maxEz;
@@ -283,7 +283,7 @@ double FM1DDynamic::readFileData(std::ifstream &fieldFile,
             maxEz = std::abs(eZ.at(dataIndex).second);
     }
 
-    if (!normalize_m) 
+    if (!normalize_m)
         maxEz = 1.0;
 
     return maxEz;

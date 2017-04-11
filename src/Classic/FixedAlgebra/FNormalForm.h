@@ -22,13 +22,11 @@
 
 #include "FixedAlgebra/FMatrix.h"
 #include "FixedAlgebra/FVector.h"
+#include "FixedAlgebra/FTps.h"
 #include <algorithm>
 #include <complex>
 
-template <class T, int, int> class FMatrix;
-template <class T, int> class FTps;
 template <class T, int> class FVps;
-
 
 // Tolerance for accepting an eigenvalue.
 namespace {

@@ -157,7 +157,6 @@ Mesh_t &PartBunch::getMesh() {
 
 // inline
 
-
 inline Inform &operator<<(Inform &os, PartBunch &p) {
     return p.print(os);
 }

@@ -84,6 +84,7 @@ namespace Expressions {
 
     template <class T, class U> inline
     SBinary<T, U>::SBinary(const SBinary &rhs):
+        Scalar<T>(rhs),
         fun(rhs.fun), lft(rhs.lft->clone()), rgt(rhs.rgt->clone())
     {}
 
