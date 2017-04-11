@@ -23,7 +23,8 @@ class FieldSolver;
 #include "Algorithms/PartData.h"
 #include "Solvers/PoissonSolver.h"
 
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 
 
 // Class FieldSolver
@@ -74,7 +75,7 @@ public:
 
     void initCartesianFields();
 
-    void initSolver(PartBunch &b);
+    void initSolver(PartBunchBase<double, 3> *b);
 
     bool hasValidSolver();
 
@@ -88,7 +89,7 @@ public:
     bool hasPeriodicZ();
 
 #ifdef HAVE_AMR_SOLVER
-    bool isAMRSolver();
+    bool isAmrSolver();
 
     int getAmrMaxLevel();
 
@@ -125,7 +126,7 @@ private:
     Layout_t *PL_m;
 
     /// all the particles are here ...
-    PartBunch *itsBunch_m;
+    PartBunchBase<double, 3> *itsBunch_m;
 
     std::string fsType_m;
 

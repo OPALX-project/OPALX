@@ -6,8 +6,30 @@
 #include "Message/Formatter.h"
 
 template<class T, unsigned Dim>
-void update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData, 
-            const ParticleAttrib<char>* canSwap=0)
+BoxLibLayout<T, Dim>::BoxLibLayout()
+{ }
+
+
+template<class T, unsigned Dim>
+BoxLibLayout<T, Dim>::BoxLibLayout(const Geometry &geom,
+                                   const DistributionMapping &dmap,
+                                   const BoxArray &ba)
+    : ParGDB(geom, dmap, ba)
+{ }
+
+
+template<class T, unsigned Dim>
+BoxLibLayout<T, Dim>::BoxLibLayout(const Array<Geometry> &geom,
+                                   const Array<DistributionMapping> &dmap,
+                                   const Array<BoxArray> &ba,
+                                   const Array<int> &rr)
+    : ParGDB(geom, dmap, ba, rr)
+{ }
+
+
+template<class T, unsigned Dim>
+void BoxLibLayout<T, Dim>::update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData,
+                                  const ParticleAttrib<char>* canSwap)
 {
     std::cout << "IpplBase update" << std::endl;
     //TODO: exit since we need AmrParticleBase with grids and levels for particles for this layout
@@ -21,6 +43,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
                                   int lev_min,
                                   const ParticleAttrib<char>* canSwap)
 {
+    std::cout << "BoxLibLayout::update()" << std::endl;
     // Input parameters of ParticleContainer::Redistribute of BoxLib
     bool where_already_called = false;
     bool full_where = false;
@@ -122,8 +145,14 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     }
 
     //destroy the particles that are sent to other domains
-    LocalNum -= PData.getDestroyNum();  // update local num
-    PData.performDestroy();
+    
+    std::cout << "Sent: " << sent << std::endl;
+    if ( LocalNum < PData.getDestroyNum() )
+        std::cout << "Can't destroy more particles" << std::endl;
+    else {
+        LocalNum -= PData.getDestroyNum();  // update local num
+        PData.performDestroy();
+    }
 
     //receive new particles
     for (int k = 0; k<msgrecv[myN]; ++k)

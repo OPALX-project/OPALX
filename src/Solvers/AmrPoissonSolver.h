@@ -27,8 +27,8 @@ public:
                             "Not implemented.");
     }
     
-    void test(PartBunch &bunch) {
-        throw OpalException("AmrPoissonSolver::test(PartBunch)", "Not implemented.");
+    void test(PartBunchBase<double, 3> *bunch) {
+        throw OpalException("AmrPoissonSolver::test(PartBunchBase<double, 3>)", "Not implemented.");
     }
     
     

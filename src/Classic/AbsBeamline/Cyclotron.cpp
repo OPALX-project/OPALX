@@ -19,7 +19,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Cyclotron.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
@@ -1034,12 +1034,12 @@ void Cyclotron::initR(double rmin, double dr, int nrad) {
     BP.delr = dr;
 }
 
-void Cyclotron::initialise(PartBunch *bunch, double &startField, double &endField) {
+void Cyclotron::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
     online_m = true;
 }
 
-void Cyclotron::initialise(PartBunch *bunch, const int &fieldflag, const double &scaleFactor) {
+void Cyclotron::initialise(PartBunchBase<double, 3> *bunch, const int &fieldflag, const double &scaleFactor) {
     RefPartBunch_m = bunch;
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
 

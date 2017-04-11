@@ -5,20 +5,22 @@
 #include "Algorithms/Vektor.h"
 
 class ElementBase;
-class PartBunch;
+
+template <class T, unsigned Dim>
+class PartBunchBase;
 class Inform;
 
 class SurfacePhysicsHandler {
 public:
     SurfacePhysicsHandler(std::string name, ElementBase *elref);
     virtual ~SurfacePhysicsHandler() { };
-    virtual void apply(PartBunch &bunch,
+    virtual void apply(PartBunchBase<double, 3> *bunch,
                        const std::pair<Vector_t, double> &boundingSphere,
                        size_t numParticlesInSimulation = 0) = 0;
     virtual const std::string getType() const = 0;
     virtual void print(Inform& os) = 0;
     virtual bool stillActive() = 0;
-    virtual bool stillAlive(PartBunch &bunch) = 0;
+    virtual bool stillAlive(PartBunchBase<double, 3> *bunch) = 0;
     virtual double getTime() = 0;
     virtual std::string getName() = 0;
     virtual size_t getParticlesInMat() = 0;

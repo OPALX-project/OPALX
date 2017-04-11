@@ -15,7 +15,7 @@ CavityAutophaser::CavityAutophaser(const PartData &ref,
     itsCavity_m(cavity)
 {
     double zbegin = 0.0, zend = 0.0;
-    PartBunch *fakeBunch = NULL;
+    PartBunchBase<double, 3> *fakeBunch = NULL;
     cavity->initialise(fakeBunch, zbegin, zend);
     initialR_m = Vector_t(0, 0, zbegin);
 }

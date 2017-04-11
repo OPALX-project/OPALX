@@ -94,7 +94,7 @@
  */
 
 // include files
-#include "Particle/ParticleAttrib.h"
+#include "Particle/AbstractParticle.h"
 #include "AppTypes/Vektor.h"
 #include "DataSource/DataSource.h"
 #include "DataSource/MakeDataSource.h"
@@ -103,6 +103,7 @@
 #include <algorithm>  // Include algorithms
 #include <utility>
 #include <iostream>
+
 
 // forward declarations
 class Inform;
@@ -117,7 +118,8 @@ template <class T, unsigned D> class ParticleBConds;
 // ParticleLayout-derived class which determines how the particles are
 // distributed among processors.
 template<class PLayout>
-class IpplParticleBase : public DataSource {
+class IpplParticleBase : public DataSource,
+                         public AbstractParticle<typename PLayout::Position_t, PLayout::Dimension> {
 
 public:
     // useful enums

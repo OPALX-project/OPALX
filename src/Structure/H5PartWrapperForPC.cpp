@@ -5,7 +5,7 @@
 #include "Structure/H5PartWrapperForPC.h"
 
 #include "OPALconfig.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
@@ -29,7 +29,10 @@ H5PartWrapperForPC::H5PartWrapperForPC(const std::string &fileName, h5_int32_t f
     elevation_m(0.0)
 { }
 
-H5PartWrapperForPC::H5PartWrapperForPC(const std::string &fileName, int restartStep, std::string sourceFile, h5_int32_t flags):
+H5PartWrapperForPC::H5PartWrapperForPC(const std::string &fileName,
+                                       int restartStep,
+                                       std::string sourceFile,
+                                       h5_int32_t flags):
     H5PartWrapper(fileName, restartStep, sourceFile, flags),
     previousH5Local_m(false),
     referenceMomentum_m(0.0),
@@ -70,7 +73,10 @@ void H5PartWrapperForPC::readHeader() {
     }
 }
 
-void H5PartWrapperForPC::readStep(PartBunch& bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
+void H5PartWrapperForPC::readStep(PartBunchBase<double, 3>* bunch,
+                                  h5_ssize_t firstParticle,
+                                  h5_ssize_t lastParticle)
+{
     h5_ssize_t numStepsInSource = H5GetNumSteps(file_m);
     h5_ssize_t readStep = numStepsInSource - 1;
     REPORTONERROR(H5SetStep(file_m, readStep));
@@ -79,32 +85,32 @@ void H5PartWrapperForPC::readStep(PartBunch& bunch, h5_ssize_t firstParticle, h5
     readStepData(bunch, firstParticle, lastParticle);
 }
 
-void H5PartWrapperForPC::readStepHeader(PartBunch& bunch) {
+void H5PartWrapperForPC::readStepHeader(PartBunchBase<double, 3>* bunch) {
     h5_float64_t pathLength;
     READSTEPATTRIB(Float64, file_m, "SPOS", &pathLength);
-    bunch.setLPath(pathLength);
+    bunch->setLPath(pathLength);
 
     h5_int64_t ltstep;
     READSTEPATTRIB(Int64, file_m, "LocalTrackStep", &ltstep);
-    bunch.setLocalTrackStep((long long)ltstep);
+    bunch->setLocalTrackStep((long long)ltstep);
 
     h5_int64_t gtstep;
     READSTEPATTRIB(Int64, file_m, "GlobalTrackStep", &gtstep);
-    bunch.setGlobalTrackStep((long long)gtstep);
+    bunch->setGlobalTrackStep((long long)gtstep);
 
     READSTEPATTRIB(Float64, file_m, "ENERGY", &meanE_m);
 
     double actualT;
     READSTEPATTRIB(Float64, file_m, "TIME", &actualT);
-    bunch.setT(actualT);
+    bunch->setT(actualT);
 
     h5_int64_t SteptoLastInj;
     READSTEPATTRIB(Int64, file_m, "SteptoLastInj", &SteptoLastInj);
-    bunch.setSteptoLastInj((int)SteptoLastInj);
+    bunch->setSteptoLastInj((int)SteptoLastInj);
 
     h5_int64_t numBunch;
     READSTEPATTRIB(Int64, file_m, "NumBunch", &numBunch);
-    bunch.setNumBunch((int)numBunch);
+    bunch->setNumBunch((int)numBunch);
 
     if (predecessorOPALFlavour_m == "opal-cycl") {
         READSTEPATTRIB(Float64, file_m, "REFPR", (h5_float64_t*) &referenceMomentum_m[0]);
@@ -134,15 +140,18 @@ void H5PartWrapperForPC::readStepHeader(PartBunch& bunch) {
             if (localDump == 1) previousH5Local_m = true;
         }
     } else {
-        bunch.setT(0.0);
-        bunch.setLocalTrackStep((long long) 0 );
+        bunch->setT(0.0);
+        bunch->setLocalTrackStep((long long) 0 );
     }
 
-    double mass = bunch.getM() * 1e-6;
+    double mass = bunch->getM() * 1e-6;
     meanMomentum_m = sqrt(std::pow(meanE_m,2.0) + 2 * meanE_m * mass) / mass;
 }
 
-void H5PartWrapperForPC::readStepData(PartBunch& bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
+void H5PartWrapperForPC::readStepData(PartBunchBase<double, 3>* bunch,
+                                      h5_ssize_t firstParticle,
+                                      h5_ssize_t lastParticle)
+{
     h5_ssize_t numParticles = getNumParticles();
     if (lastParticle >= numParticles || firstParticle > lastParticle) {
         throw OpalException("H5PartWrapperForPC::readStepData",
@@ -160,43 +169,43 @@ void H5PartWrapperForPC::readStepData(PartBunch& bunch, h5_ssize_t firstParticle
 
     READDATA(Float64, file_m, "x", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
-        bunch.R[n](0) = f64buffer[n];
-        bunch.Bin[n] = 0;
+        bunch->R[n](0) = f64buffer[n];
+        bunch->Bin[n] = 0;
     }
 
     READDATA(Float64, file_m, "y", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
-        bunch.R[n](yIndex) = f64buffer[n];
+        bunch->R[n](yIndex) = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "z", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
-        bunch.R[n](zIndex) = f64buffer[n];
+        bunch->R[n](zIndex) = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "px", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
-        bunch.P[n](0) = f64buffer[n];
+        bunch->P[n](0) = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "py", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
-        bunch.P[n](yIndex) = f64buffer[n];
+        bunch->P[n](yIndex) = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "pz", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
-        bunch.P[n](zIndex) = f64buffer[n];
+        bunch->P[n](zIndex) = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "q", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
-        bunch.Q[n] = f64buffer[n];
+        bunch->Q[n] = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "mass", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
-        bunch.M[n] = f64buffer[n];
+        bunch->M[n] = f64buffer[n];
     }
 
     REPORTONERROR(H5PartSetView(file_m, -1, -1));
@@ -267,8 +276,10 @@ void H5PartWrapperForPC::writeHeader() {
     WRITEFILEATTRIB(Int64, file_m, "dump frequency", &dumpfreq, 1);
 }
 
-void H5PartWrapperForPC::writeStep(PartBunch& bunch, const std::map<std::string, double> &additionalStepAttributes) {
-    if (bunch.getTotalNum() == 0) return;
+void H5PartWrapperForPC::writeStep(PartBunchBase<double, 3>* bunch,
+                                   const std::map<std::string, double> &additionalStepAttributes)
+{
+    if (bunch->getTotalNum() == 0) return;
 
     writeStepHeader(bunch, additionalStepAttributes);
     writeStepData(bunch);
@@ -276,39 +287,41 @@ void H5PartWrapperForPC::writeStep(PartBunch& bunch, const std::map<std::string,
     ++ numSteps_m;
 }
 
-void H5PartWrapperForPC::writeStepHeader(PartBunch& bunch, const std::map<std::string, double> &additionalStepAttributes) {
-    bunch.calcBeamParameters();
+void H5PartWrapperForPC::writeStepHeader(PartBunchBase<double, 3>* bunch,
+                                         const std::map<std::string, double> &additionalStepAttributes)
+{
+    bunch->calcBeamParameters();
 
-    double   t          = bunch.getT();
-    double   pathLength = bunch.getLPath();
-    Vector_t rmin       = bunch.get_origin();
-    Vector_t rmax       = bunch.get_maxExtent();
-    Vector_t centroid   = bunch.get_centroid();
+    double   t          = bunch->getT();
+    double   pathLength = bunch->getLPath();
+    Vector_t rmin       = bunch->get_origin();
+    Vector_t rmax       = bunch->get_maxExtent();
+    Vector_t centroid   = bunch->get_centroid();
 
-    Vector_t meanR = bunch.get_rmean();
-    Vector_t meanP = bunch.get_pmean();
-    Vector_t xsigma = bunch.get_rrms();
-    Vector_t psigma = bunch.get_prms();
-    Vector_t vareps = bunch.get_norm_emit();
-    Vector_t geomvareps = bunch.get_emit();
+    Vector_t meanR = bunch->get_rmean();
+    Vector_t meanP = bunch->get_pmean();
+    Vector_t xsigma = bunch->get_rrms();
+    Vector_t psigma = bunch->get_prms();
+    Vector_t vareps = bunch->get_norm_emit();
+    Vector_t geomvareps = bunch->get_emit();
 
-    Vector_t RefPartR = bunch.RefPartR_m;
-    Vector_t RefPartP = bunch.RefPartP_m;
+    Vector_t RefPartR = bunch->RefPartR_m;
+    Vector_t RefPartP = bunch->RefPartP_m;
 
-    double meanEnergy = bunch.get_meanKineticEnergy();
-    double energySpread = bunch.getdE();
-    double I_0 = 4.0 * Physics::pi * Physics::epsilon_0 * Physics::c * bunch.getM() / bunch.getQ();
+    double meanEnergy = bunch->get_meanKineticEnergy();
+    double energySpread = bunch->getdE();
+    double I_0 = 4.0 * Physics::pi * Physics::epsilon_0 * Physics::c * bunch->getM() / bunch->getQ();
     double sigma = ((xsigma[0] * xsigma[0]) + (xsigma[1] * xsigma[1])) /
-        (2.0 * bunch.get_gamma() * I_0 * (geomvareps[0] * geomvareps[0] + geomvareps[1] * geomvareps[1]));
+        (2.0 * bunch->get_gamma() * I_0 * (geomvareps[0] * geomvareps[0] + geomvareps[1] * geomvareps[1]));
 
-    h5_int64_t localTrackStep = (h5_int64_t)bunch.getLocalTrackStep();
-    h5_int64_t globalTrackStep = (h5_int64_t)bunch.getGlobalTrackStep();
+    h5_int64_t localTrackStep = (h5_int64_t)bunch->getLocalTrackStep();
+    h5_int64_t globalTrackStep = (h5_int64_t)bunch->getGlobalTrackStep();
 
-    h5_int64_t numBunch = (h5_int64_t)bunch.getNumBunch();
-    h5_int64_t SteptoLastInj = (h5_int64_t)bunch.getSteptoLastInj();
+    h5_int64_t numBunch = (h5_int64_t)bunch->getNumBunch();
+    h5_int64_t SteptoLastInj = (h5_int64_t)bunch->getSteptoLastInj();
 
-    double mass = 1.0e-9 * bunch.getM();
-    double charge = bunch.getCharge();
+    double mass = 1.0e-9 * bunch->getM();
+    double charge = bunch->getCharge();
 
     h5_int64_t localFrame = Options::psDumpLocalFrame? 1: 0;
 
@@ -318,7 +331,7 @@ void H5PartWrapperForPC::writeStepHeader(PartBunch& bunch, const std::map<std::s
 
     Vector_t maxP(0.0);
     Vector_t minP(0.0);
-    bunch.get_PBounds(minP, maxP);
+    bunch->get_PBounds(minP, maxP);
 
     REPORTONERROR(H5SetStep(file_m, numSteps_m));
 
@@ -416,22 +429,22 @@ void H5PartWrapperForPC::writeStepHeader(PartBunch& bunch, const std::map<std::s
     }
 }
 
-void H5PartWrapperForPC::writeStepData(PartBunch& bunch) {
+void H5PartWrapperForPC::writeStepData(PartBunchBase<double, 3>* bunch) {
     /*
       find particle with ID==0
       and save index in zID
      */
 
-    size_t IDZero = bunch.getLocalNum();
+    size_t IDZero = bunch->getLocalNum();
     bool found = false;
     for(size_t k = 0; k < IDZero; ++ k) {
-        if (bunch.ID[k] == 0) {
+        if (bunch->ID[k] == 0) {
             found = true;
             IDZero = k;
         }
     }
 
-    const size_t numLocalParticles = (found? bunch.getLocalNum() - 1: bunch.getLocalNum());
+    const size_t numLocalParticles = (found? bunch->getLocalNum() - 1: bunch->getLocalNum());
     const size_t skipID = IDZero;
 
     std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
@@ -442,108 +455,108 @@ void H5PartWrapperForPC::writeStepData(PartBunch& bunch) {
     REPORTONERROR(H5PartSetNumParticles(file_m, numLocalParticles));
 
     for(size_t i = 0; i < skipID; ++ i)
-        f64buffer[i] =  bunch.R[i](0);
+        f64buffer[i] =  bunch->R[i](0);
     for (size_t i = skipID; i < numLocalParticles; ++ i)
-        f64buffer[i] = bunch.R[i + 1](0);
+        f64buffer[i] = bunch->R[i + 1](0);
 
     WRITEDATA(Float64, file_m, "x", f64buffer);
 
     for(size_t i = 0; i < skipID; ++ i)
-        f64buffer[i] =  bunch.R[i](1);
+        f64buffer[i] =  bunch->R[i](1);
     for (size_t i = skipID; i < numLocalParticles; ++ i)
-        f64buffer[i] = bunch.R[i + 1](1);
+        f64buffer[i] = bunch->R[i + 1](1);
 
     WRITEDATA(Float64, file_m, "y", f64buffer);
 
     for(size_t i = 0; i < skipID; ++ i)
-        f64buffer[i] =  bunch.R[i](2);
+        f64buffer[i] =  bunch->R[i](2);
     for (size_t i = skipID; i < numLocalParticles; ++ i)
-        f64buffer[i] = bunch.R[i + 1](2);
+        f64buffer[i] = bunch->R[i + 1](2);
 
     WRITEDATA(Float64, file_m, "z", f64buffer);
 
     for(size_t i = 0; i < skipID; ++ i)
-        f64buffer[i] =  bunch.P[i](0);
+        f64buffer[i] =  bunch->P[i](0);
     for (size_t i = skipID; i < numLocalParticles; ++ i)
-        f64buffer[i] = bunch.P[i + 1](0);
+        f64buffer[i] = bunch->P[i + 1](0);
 
     WRITEDATA(Float64, file_m, "px", f64buffer);
 
     for(size_t i = 0; i < skipID; ++ i)
-        f64buffer[i] =  bunch.P[i](1);
+        f64buffer[i] =  bunch->P[i](1);
     for (size_t i = skipID; i < numLocalParticles; ++ i)
-        f64buffer[i] = bunch.P[i + 1](1);
+        f64buffer[i] = bunch->P[i + 1](1);
 
     WRITEDATA(Float64, file_m, "py", f64buffer);
 
     for(size_t i = 0; i < skipID; ++ i)
-        f64buffer[i] =  bunch.P[i](2);
+        f64buffer[i] =  bunch->P[i](2);
     for (size_t i = skipID; i < numLocalParticles; ++ i)
-        f64buffer[i] = bunch.P[i + 1](2);
+        f64buffer[i] = bunch->P[i + 1](2);
 
     WRITEDATA(Float64, file_m, "pz", f64buffer);
 
     for(size_t i = 0; i < skipID; ++ i)
-        f64buffer[i] =  bunch.Q[i];
+        f64buffer[i] =  bunch->Q[i];
     for (size_t i = skipID; i < numLocalParticles; ++ i)
-        f64buffer[i] = bunch.Q[i + 1];
+        f64buffer[i] = bunch->Q[i + 1];
 
     WRITEDATA(Float64, file_m, "q", f64buffer);
 
     for(size_t i = 0; i < skipID; ++ i)
-        f64buffer[i] =  bunch.M[i];
+        f64buffer[i] =  bunch->M[i];
     for (size_t i = skipID; i < numLocalParticles; ++ i)
-        f64buffer[i] = bunch.M[i + 1];
+        f64buffer[i] = bunch->M[i + 1];
 
     WRITEDATA(Float64, file_m, "mass", f64buffer);
 
     for(size_t i = 0; i < skipID; ++ i)
-        i64buffer[i] =  bunch.ID[i];
+        i64buffer[i] =  bunch->ID[i];
     for (size_t i = skipID; i < numLocalParticles; ++ i)
-        i64buffer[i] = bunch.ID[i + 1];
+        i64buffer[i] = bunch->ID[i + 1];
 
     WRITEDATA(Int64, file_m, "id", i64buffer);
 
     if (Options::ebDump) {
         for(size_t i = 0; i < skipID; ++ i)
-            f64buffer[i] =  bunch.Ef[i](0);
+            f64buffer[i] =  bunch->Ef[i](0);
         for (size_t i = skipID; i < numLocalParticles; ++ i)
-            f64buffer[i] = bunch.Ef[i + 1](0);
+            f64buffer[i] = bunch->Ef[i + 1](0);
 
         WRITEDATA(Float64, file_m, "Ex", f64buffer);
 
         for(size_t i = 0; i < skipID; ++ i)
-            f64buffer[i] =  bunch.Ef[i](1);
+            f64buffer[i] =  bunch->Ef[i](1);
         for (size_t i = skipID; i < numLocalParticles; ++ i)
-            f64buffer[i] = bunch.Ef[i + 1](1);
+            f64buffer[i] = bunch->Ef[i + 1](1);
 
         WRITEDATA(Float64, file_m, "Ey", f64buffer);
 
         for(size_t i = 0; i < skipID; ++ i)
-            f64buffer[i] =  bunch.Ef[i](2);
+            f64buffer[i] =  bunch->Ef[i](2);
         for (size_t i = skipID; i < numLocalParticles; ++ i)
-            f64buffer[i] = bunch.Ef[i + 1](2);
+            f64buffer[i] = bunch->Ef[i + 1](2);
 
         WRITEDATA(Float64, file_m, "Ez", f64buffer);
 
         for(size_t i = 0; i < skipID; ++ i)
-            f64buffer[i] =  bunch.Bf[i](0);
+            f64buffer[i] =  bunch->Bf[i](0);
         for (size_t i = skipID; i < numLocalParticles; ++ i)
-            f64buffer[i] = bunch.Bf[i + 1](0);
+            f64buffer[i] = bunch->Bf[i + 1](0);
 
         WRITEDATA(Float64, file_m, "Bx", f64buffer);
 
         for(size_t i = 0; i < skipID; ++ i)
-            f64buffer[i] =  bunch.Bf[i](1);
+            f64buffer[i] =  bunch->Bf[i](1);
         for (size_t i = skipID; i < numLocalParticles; ++ i)
-            f64buffer[i] = bunch.Bf[i + 1](1);
+            f64buffer[i] = bunch->Bf[i + 1](1);
 
         WRITEDATA(Float64, file_m, "By", f64buffer);
 
         for(size_t i = 0; i < skipID; ++ i)
-            f64buffer[i] =  bunch.Bf[i](2);
+            f64buffer[i] =  bunch->Bf[i](2);
         for (size_t i = skipID; i < numLocalParticles; ++ i)
-            f64buffer[i] = bunch.Bf[i + 1](2);
+            f64buffer[i] = bunch->Bf[i + 1](2);
 
         WRITEDATA(Float64, file_m, "Bz", f64buffer);
 
@@ -551,7 +564,7 @@ void H5PartWrapperForPC::writeStepData(PartBunch& bunch) {
 
     /// Write space charge field map if asked for.
     if(Options::rhoDump) {
-        NDIndex<3> idx = bunch.getFieldLayout().getLocalNDIndex();
+        NDIndex<3> idx = bunch->getFieldLayout().getLocalNDIndex();
         NDIndex<3> elem;
         REPORTONERROR(H5Block3dSetView(file_m,
                                        idx[0].min(), idx[0].max(),
@@ -567,7 +580,7 @@ void H5PartWrapperForPC::writeStepData(PartBunch& bunch) {
         for(int i = idx[2].min(); i <= idx[2].max(); ++ i) {
             for(int j = idx[1].min(); j <= idx[1].max(); ++ j) {
                 for(int k = idx[0].min(); k <= idx[0].max(); ++ k) {
-                    data[ii] = bunch.getRho(k, j, i);
+                    data[ii] = bunch->getRho(k, j, i);
                     ++ ii;
                 }
             }
@@ -576,13 +589,13 @@ void H5PartWrapperForPC::writeStepData(PartBunch& bunch) {
 
         /// Need this to align particles and fields when writing space charge map.
         REPORTONERROR(H5Block3dSetFieldOrigin(file_m, "rho",
-                                              (h5_float64_t)bunch.get_origin()(0),
-                                              (h5_float64_t)bunch.get_origin()(1),
-                                              (h5_float64_t)bunch.get_origin()(2)));
+                                              (h5_float64_t)bunch->get_origin()(0),
+                                              (h5_float64_t)bunch->get_origin()(1),
+                                              (h5_float64_t)bunch->get_origin()(2)));
 
         REPORTONERROR(H5Block3dSetFieldSpacing(file_m, "rho",
-                                               (h5_float64_t)bunch.get_hr()(0),
-                                               (h5_float64_t)bunch.get_hr()(1),
-                                               (h5_float64_t)bunch.get_hr()(2)));
+                                               (h5_float64_t)bunch->get_hr()(0),
+                                               (h5_float64_t)bunch->get_hr()(1),
+                                               (h5_float64_t)bunch->get_hr()(2)));
     }
 }

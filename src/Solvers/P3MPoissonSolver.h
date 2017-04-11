@@ -31,8 +31,10 @@ const unsigned Dim = 3;
 #include <memory>
 //////////////////////////////////////////////////////////////
 #include "PoissonSolver.h"
-#include "Algorithms/PartBunch.h"
-class PartBunch;
+#include "Algorithms/PartBunchBase.h"
+
+template <class T, unsigned Dim>
+class PartBunchBase;
 
 //////////////////////////////////////////////////////////////
 
@@ -45,9 +47,9 @@ public:
 
     void initFields();
 
-    void calculateGridForces(PartBunch &bunch, double interaction_radius, double alpha, double eps);
+    void calculateGridForces(PartBunchBase<double, 3> *bunch, double interaction_radius, double alpha, double eps);
 
-    void calculatePairForces(PartBunch &bunch, double interaction_radius, double alpha, double eps);
+    void calculatePairForces(PartBunchBase<double, 3> *bunch, double interaction_radius, double alpha, double eps);
 
     // given a charge-density field rho and a set of mesh spacings hr,
     // compute the scalar potential with image charges at  -z
@@ -57,8 +59,8 @@ public:
     // compute the scalar potential in open space
     void computePotential(Field_t &rho, Vector_t hr);
 
-    void applyConstantFocusing(PartBunch &bunch, double f, double r);
-    void test(PartBunch &bunch);
+    void applyConstantFocusing(PartBunchBase<double, 3> *bunch, double f, double r);
+    void test(PartBunchBase<double, 3> *bunch);
 
     double getXRangeMin(unsigned short level) {return 1.0;}
     double getXRangeMax(unsigned short level) {return 1.0;}
@@ -67,8 +69,8 @@ public:
     double getZRangeMin(unsigned short level) {return 1.0;}
     double getZRangeMax(unsigned short level) {return 1.0;}
 
-    void computeAvgSpaceChargeForces(PartBunch &bunch);
-    void compute_temperature(PartBunch &bunch);
+    void computeAvgSpaceChargeForces(PartBunchBase<double, 3> *bunch);
+    void compute_temperature(PartBunchBase<double, 3> *bunch);
     Inform &print(Inform &os) const;
 private:
 

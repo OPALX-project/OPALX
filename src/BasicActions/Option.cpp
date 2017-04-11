@@ -76,6 +76,9 @@ namespace {
         LOGBENDTRAJECTORY,
         VERSION,
         SIZE
+#ifdef HAVE_AMR_SOLVER
+        , AMR
+#endif
     };
 }
 
@@ -192,7 +195,12 @@ Option::Option():
 
     itsAttr[VERSION] = Attributes::makeReal
         ("VERSION", "Version of OPAL for which input file was written", 10000);
-
+    
+#ifdef HAVE_AMR_SOLVER
+    itsAttr[AMR] = Attributes::makeBool
+        ("AMR", "Use adaptive mesh refinement. Default: false", false);
+#endif
+    
     registerOwnership(AttributeHandler::STATEMENT);
 
     FileStream::setEcho(echo);
@@ -238,6 +246,9 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setBool(itsAttr[IDEALIZED], idealized);
     Attributes::setBool(itsAttr[LOGBENDTRAJECTORY], writeBendTrajectories);
     Attributes::setReal(itsAttr[VERSION], version);
+#ifdef HAVE_AMR_SOLVER
+    Attributes::setBool(itsAttr[AMR], amr);
+#endif
 }
 
 
@@ -266,6 +277,9 @@ void Option::execute() {
     ppdebug = Attributes::getBool(itsAttr[PPDEBUG]);
     enableHDF5 = Attributes::getBool(itsAttr[ENABLEHDF5]);
     version = Attributes::getReal(itsAttr[VERSION]);
+#ifdef HAVE_AMR_SOLVER
+    amr = Attributes::getBool(itsAttr[AMR]);
+#endif
 
     IpplInfo::Info->on(info);
     IpplInfo::Warn->on(warn);
