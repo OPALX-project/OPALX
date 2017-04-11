@@ -1,43 +1,37 @@
 #ifndef AMR_PART_BUNCH_H
 #define AMR_PART_BUNCH_H
 
-#include "Algorithms/PartBunch.h"
-#include "Amr/BoxLibParticle.h"
-#include "Amr/BoxLibLayout.h"
+#include "Algorithms/PartBunchBase.h"
 
-class AmrPartBunch : public PartBunch,
-                     public BoxLibParticle<BoxLibLayout<double, 3> >
+class AmrPartBunch : public PartBunchBase<double, 3>
 {
+public:
+    typedef AmrParticle_t pbase_t;
+    
 public:
     
     AmrPartBunch(const PartData *ref);
 
     /// Conversion.
-    AmrPartBunch(const std::vector<OpalParticle> &, const PartData *ref);
+    AmrPartBunch(const std::vector<OpalParticle> &,
+                 const PartData *ref);
 
     AmrPartBunch(const AmrPartBunch &);
     
-    /* virtual member functions of PartBunch that
-     * we reimplement
-     */
+    ~AmrPartBunch();
     
-    void runTests();
+    pbase_t* clone();
     
-    void calcLineDensity(unsigned int nBins,
-                         std::vector<double> &lineDensity,
-                         std::pair<double, double> &meshInfo);
+    VectorPair_t getEExtrema();
+    
+    double getRho(int x, int y, int z);
     
 //     const Mesh_t &getMesh() const;
 
 //     Mesh_t &getMesh();
     
-//     FieldLayout_t &getFieldLayout();
+    FieldLayout_t &getFieldLayout();
     
-    void boundp();
-    
-    void boundp_destroy();
-    
-    size_t boundp_destroyT();
     
     void computeSelfFields();
     
@@ -47,13 +41,26 @@ public:
     
     void computeSelfFields_cycl(int b);
     
-    /* virtual member functions of IpplParticleBase
-     * that we reimplement
-     */
+private:
+    void updateFieldContainers_m();
     
-    void update();
+    void updateDomainLength(Vektor<int, 3>& grid);
     
-    void update(const ParticleAttrib<char>& canSwap);
+private:
+    
+//     /// charge density on the grid for all levels
+//     AmrFieldContainer_t rho_m;
+    
+//     /// scalar potential on the grid for all levels
+//     AmrFieldContainer_t phi_m;
+    
+//     /// vector field on the grid for all levels
+//     AmrFieldContainer_t eg_m;
+    
+    
+    Mesh_t mesh_m;
+    FieldLayout_t fieldlayout_m;
+    
 };
 
 #endif

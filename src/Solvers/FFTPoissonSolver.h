@@ -83,7 +83,7 @@ public:
     double getYRangeMax(unsigned short level) {return 1.0;}
     double getZRangeMin(unsigned short level) {return 1.0;}
     double getZRangeMax(unsigned short level) {return 1.0;}
-    void test(PartBunch &bunch) { }
+    void test(PartBunchBase<double, 3> *bunch) { }
 
     Inform &print(Inform &os) const;
 private:

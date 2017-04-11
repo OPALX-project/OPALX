@@ -19,7 +19,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Solenoid.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
@@ -192,7 +192,7 @@ bool Solenoid::applyToReferenceParticle(const Vector_t &R, const Vector_t &P, co
     return false;
 }
 
-void Solenoid::initialise(PartBunch *bunch, double &startField, double &endField) {
+void Solenoid::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     Inform msg("Solenoid ", *gmsg);
 
     RefPartBunch_m = bunch;

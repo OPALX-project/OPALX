@@ -94,7 +94,7 @@ public:
     virtual void finalise();
     virtual void getDimensions(double &sBegin, double &sEnd) const;
     virtual ElementBase::ElementType getType() const = 0;
-    virtual void initialise(PartBunch *bunch,
+    virtual void initialise(PartBunchBase<double, 3> *bunch,
                             double &startField,
                             double &endField);
 
@@ -188,7 +188,7 @@ private:
     bool setupBendGeometry(Inform &msg, double &startField, double &endField);
     bool setupDefaultFieldMap(Inform &msg);
     void setFieldBoundaries(double startField, double endField);
-    void setupPusher(PartBunch *bunch);
+    void setupPusher(PartBunchBase<double, 3> *bunch);
     bool treatAsDrift(Inform &msg, double chordlength);
     void retrieveDesignEnergy(double startField);
 

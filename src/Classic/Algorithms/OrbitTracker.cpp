@@ -109,12 +109,12 @@ void OrbitTracker::visitCyclotronValley(const CyclotronValley &cv) {
 }
 
 void OrbitTracker::visitComponent(const Component &comp) {
-    PartBunch bunch(&itsReference);
+    std::unique_ptr<PartBunchBase<double, 3> > bunch(new PartBunch(&itsReference));
     OpalParticle part(itsOrbit[X], itsOrbit[PX],
                       itsOrbit[Y], itsOrbit[PY],
                       itsOrbit[T], itsOrbit[PT]);
-    bunch.push_back(part);
-    comp.trackBunch(bunch, itsReference, back_beam, back_track);
+    bunch->push_back(part);
+    comp.trackBunch(bunch.get(), itsReference, back_beam, back_track);
     itsOrbit[X]  = part.x();
     itsOrbit[PX] = part.px();
     itsOrbit[Y]  = part.y();

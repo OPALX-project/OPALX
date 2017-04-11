@@ -73,12 +73,12 @@ public:
     void createParticlesOnSurface (
         size_t n, double darkinward,
         OpalBeamline& itsOpalBeamline,
-        PartBunch& itsBunch);
+        PartBunchBase<double, 3>* itsBunch);
 
     void createPriPart (
         size_t n, double darkinward,
         OpalBeamline& itsOpalBeamline,
-        PartBunch* itsBunch);
+        PartBunchBase<double, 3>* itsBunch);
 
     int partInside (
         const Vector_t& r,
@@ -98,19 +98,19 @@ public:
     int emitSecondaryFurmanPivi (
         const Vector_t& intecoords,
         const int i,
-        PartBunch* itsBunch,
+        PartBunchBase<double, 3>* itsBunch,
         double& seyNum);
 
     // call Vaughan's model
     int emitSecondaryVaughan (
         const Vector_t& intecoords,
         const int i,
-        PartBunch* itsBunch,
+        PartBunchBase<double, 3>* itsBunch,
         double& seyNum);
 
     size_t doFNemission (
         OpalBeamline& itsOpalBeamline,
-        PartBunch* itsBunch,
+        PartBunchBase<double, 3>* itsBunch,
         const double t);
 
     Inform& printInfo (

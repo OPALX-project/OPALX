@@ -22,7 +22,8 @@
 
 #include "Algorithms/TrackIntegrator.h"
 
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 class PartData;
 class OpalParticle;
 
@@ -65,7 +66,7 @@ public:
     //  The particle reference data are taken from [b]data[/b].
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
-    virtual void trackBunch(PartBunch &, const PartData &,
+    virtual void trackBunch(PartBunchBase<double, 3> *, const PartData &,
                             bool revBeam, bool revTrack) const;
 
     /// Track a map.

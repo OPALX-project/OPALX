@@ -1,6 +1,6 @@
 
 #include "AbsBeamline/Source.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
@@ -79,13 +79,13 @@ bool Source::apply(const double &t) {
                            externalE,
                            externalB);
     for (Distribution* dist: distrs_m) {
-        dist->emitParticles(*RefPartBunch_m, externalE(2));
+        dist->emitParticles(RefPartBunch_m, externalE(2));
     }
 
     return false;
 }
 
-void Source::initialise(PartBunch *bunch, double &startField, double &endField) {
+void Source::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     // Inform msg("Source ", *gmsg);
     // double zBegin = 0.0, zEnd = 0.0, rBegin = 0.0, rEnd = 0.0;
 

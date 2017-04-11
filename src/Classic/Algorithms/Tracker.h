@@ -21,7 +21,7 @@
 // ------------------------------------------------------------------------
 
 #include "Algorithms/AbstractTracker.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Algorithms/PartData.h"
 #include "FixedAlgebra/FTps.h"
 
@@ -100,13 +100,13 @@ public:
     //  The particle bunch is taken from [b]bunch[/b].
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
-    Tracker(const Beamline &, const PartBunch &bunch,
+    Tracker(const Beamline &, PartBunchBase<double, 3> *bunch,
             const PartData &, bool backBeam, bool backTrack);
 
     virtual ~Tracker();
 
     /// Return the current bunch.
-    const PartBunch &getBunch() const;
+    const PartBunchBase<double, 3> *getBunch() const;
 
     /// Add particle to bunch.
     void addToBunch(const OpalParticle &);
@@ -195,7 +195,7 @@ protected:
     FTps<double, 6> buildSBendVectorPotential(const BMultipoleField &, double h);
 
     /// The bunch of particles to be tracked.
-    PartBunch itsBunch;
+    PartBunchBase<double, 3>* itsBunch;
     //  typedef PartBunch::iterator iterator;
 
 private:

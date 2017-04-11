@@ -9,7 +9,8 @@
     #include "Utilities/OpalException.h"
 #endif
 //////////////////////////////////////////////////////////////
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 //use Barton and Nackman Trick to avoid virtual functions
 //template <class T_Leaftype>
 class PoissonSolver {
@@ -49,7 +50,7 @@ public:
     virtual double getYRangeMax(unsigned short level = 0) = 0;
     virtual double getZRangeMin(unsigned short level = 0) = 0;
     virtual double getZRangeMax(unsigned short level = 0) = 0;
-    virtual void test(PartBunch &bunch) = 0 ;
+    virtual void test(PartBunchBase<double, 3> *bunch) = 0 ;
     virtual ~PoissonSolver(){};
 
 };

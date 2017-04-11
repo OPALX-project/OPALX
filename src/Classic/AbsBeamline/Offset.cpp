@@ -100,7 +100,7 @@ const EMField &Offset::getField() const {
                         "No field defined for Offset");
 }
 
-void Offset::initialise(PartBunch *bunch, double &startField, double &endField) {
+void Offset::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
 }
 

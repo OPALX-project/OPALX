@@ -44,7 +44,10 @@ public:
     ParticleIndex_t grid;  // m_grid
     
 public:
+    
     AmrParticleBase();
+    
+    AmrParticleBase(PLayout* layout) : IpplParticleBase<PLayout>(layout) { }
     
     ~AmrParticleBase() {}
     
@@ -68,6 +71,9 @@ public:
     
     // sort the particles given a sortlist
     void sort(SortList_t &sortlist);
+    
+    PLayout& getAmrLayout() { return this->getLayout(); }
+    const PLayout& getAmrLayout() const { return this->getLayout(); }
     
 protected:
     IpplTimings::TimerRef UpdateParticlesTimer_m;

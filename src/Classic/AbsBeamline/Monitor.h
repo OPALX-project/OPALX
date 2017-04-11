@@ -27,7 +27,8 @@
 
 #include <list>
 
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 class LossDataSink;
 
 // Class Monitor
@@ -84,7 +85,7 @@ public:
                                           Vector_t &E,
                                           Vector_t &B);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
 
     virtual void finalise();
 

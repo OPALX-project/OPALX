@@ -2,6 +2,7 @@
 #define BOXLIB_LAYOUT_H
 
 #include "AmrParticle/ParticleAmrLayout.h"
+#include "AmrParticle/AmrParticleBase.h"
 
 #include "Amr/AmrBoxLib.h"
 
@@ -10,7 +11,7 @@
 #include <ParGDB.H>
 
 template<class T, unsigned Dim>
-class BoxLibLayout : public ParticleLayout<T, Dim>,
+class BoxLibLayout : public ParticleAmrLayout<T, Dim>,
                      public ParGDB
 {
     
@@ -26,6 +27,17 @@ public:
     typedef ParticleAttrib<Index_t> ParticleIndex_t;
 
 public:
+    
+    BoxLibLayout();
+    
+    BoxLibLayout(const Geometry &geom,
+                 const DistributionMapping &dmap,
+                 const BoxArray &ba);
+    
+    BoxLibLayout(const Array<Geometry> &geom,
+                 const Array<DistributionMapping> &dmap,
+                 const Array<BoxArray> &ba,
+                 const Array<int> &rr);
     
     void update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData, const ParticleAttrib<char>* canSwap = 0);
     

@@ -26,7 +26,7 @@
 
     
 template<class PLayout>
-class BoxLibParticle : public AmrParticleBase<PLayout>
+class BoxLibParticle : public virtual AmrParticleBase<PLayout>
 {
 public:
     typedef typename AmrParticleBase<PLayout>::ParticlePos_t        ParticlePos_t;
@@ -44,20 +44,22 @@ public:
 public:
     BoxLibParticle();
     
+    BoxLibParticle(PLayout *layout);
+    
     // scatter the data from the given attribute onto the given Field, using
     // the given Position attribute
     
     template <class FT, unsigned Dim, class PT>
-    void scatter(const ParticleAttrib<FT>& attrib, AmrField_t& f,
-                 const ParticleAttrib<Vektor<PT, Dim> >& pp,
-                 int lbase = 0, int lfine = -1) const;
+    void scatter(ParticleAttrib<FT>& attrib, AmrFieldContainer_t& f,
+                 ParticleAttrib<Vektor<PT, Dim> >& pp,
+                 int lbase = 0, int lfine = -1);
     
     // gather the data from the given Field into the given attribute, using
     // the given Position attribute
     template <class FT, unsigned Dim, class PT>
-    void gather(ParticleAttrib<FT>& attrib, const AmrField_t& f,
-                const ParticleAttrib<Vektor<PT, Dim> >& pp,
-                int lbase = 0, int lfine = -1) const;
+    void gather(ParticleAttrib<FT>& attrib, AmrFieldContainer_t& f,
+                ParticleAttrib<Vektor<PT, Dim> >& pp,
+                int lbase = 0, int lfine = -1);
     
 private:
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
@@ -122,17 +124,17 @@ private:
     void AssignDensitySingleLevel (ParticleAttrib<AType> &pa,
                                    AmrField_t& mf_to_be_filled,
                                    int lev,
-                                   int particle_lvl_offset);
+                                   int particle_lvl_offset = 0);
     
     template<class AType>
     void AssignCellDensitySingleLevel(ParticleAttrib<AType> &pa,
                                       AmrField_t& mf_to_be_filled,
-                                      int lev, int particle_lvl_offset);
+                                      int lev, int particle_lvl_offset = 0);
     
     template<class AType>
     void NodalDepositionSingleLevel(ParticleAttrib<AType> &pa,
                                     AmrField_t& mf_to_be_filled,
-                                    int lev, int particle_lvl_offset);
+                                    int lev, int particle_lvl_offset = 0);
     
     template<class AType>
     void GetGravity(ParticleAttrib<AType> &pa, AmrFieldContainer_t &mf);

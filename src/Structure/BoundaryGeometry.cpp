@@ -2203,7 +2203,7 @@ int BoundaryGeometry::emitSecondaryNone (
 int BoundaryGeometry::emitSecondaryFurmanPivi (
     const Vector_t& intecoords,
     const int i,
-    PartBunch* itsBunch,
+    PartBunchBase<double, 3>* itsBunch,
     double& seyNum
     ) {
     const int& triId = itsBunch->TriID[i];
@@ -2267,7 +2267,7 @@ int BoundaryGeometry::emitSecondaryFurmanPivi (
 int BoundaryGeometry::emitSecondaryVaughan (
     const Vector_t& intecoords,
     const int i,
-    PartBunch* itsBunch,
+    PartBunchBase<double, 3>* itsBunch,
     double& seyNum
     ) {
     const int& triId = itsBunch->TriID[i];
@@ -2339,7 +2339,7 @@ int BoundaryGeometry::emitSecondaryVaughan (
  */
 size_t BoundaryGeometry::doFNemission (
     OpalBeamline& itsOpalBeamline,
-    PartBunch* itsBunch,
+    PartBunchBase<double, 3>* itsBunch,
     const double t
     ) {
     // Self-field is not considered at moment. Only 1D Child-Langmuir law is
@@ -2388,7 +2388,7 @@ void BoundaryGeometry::createParticlesOnSurface (
     size_t n,
     double darkinward,
     OpalBeamline& itsOpalBeamline,
-    PartBunch& itsBunch
+    PartBunchBase<double, 3>* itsBunch
     ) {
     int tag = 1002;
     int Parent = 0;
@@ -2411,7 +2411,7 @@ void BoundaryGeometry::createParticlesOnSurface (
                 k = tmp;
                 Vector_t centroid (0.0);
                 itsOpalBeamline.getFieldAt (TriBarycenters_m[k] + darkinward * TriNormals_m[k],
-                                            centroid, itsBunch.getdT (), E, B);
+                                            centroid, itsBunch->getdT (), E, B);
             }
             partsr_m.push_back (TriBarycenters_m[k] + darkinward * TriNormals_m[k]);
 
@@ -2444,7 +2444,7 @@ void BoundaryGeometry::createPriPart (
     size_t n,
     double darkinward,
     OpalBeamline& itsOpalBeamline,
-    PartBunch* itsBunch
+    PartBunchBase<double, 3>* itsBunch
     ) {
     int tag = 1001;
     int Parent = 0;
