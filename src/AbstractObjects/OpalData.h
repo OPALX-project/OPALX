@@ -153,11 +153,6 @@ public:
     void setInOPALCyclMode();
     void setInOPALTMode();
     void setInOPALEnvMode();
-    
-#ifdef HAVE_AMR_SOLVER
-    void setInAmrMode();
-    bool isInAmrMode() const;
-#endif
 
     bool isInPrepState();
     void setInPrepState(bool state);

@@ -79,7 +79,7 @@ bool Source::apply(const double &t) {
                            externalE,
                            externalB);
     for (Distribution* dist: distrs_m) {
-        dist->emitParticles(*RefPartBunch_m, externalE(2));
+        dist->emitParticles(RefPartBunch_m, externalE(2));
     }
 
     return false;

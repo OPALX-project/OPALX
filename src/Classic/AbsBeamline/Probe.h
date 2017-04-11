@@ -74,7 +74,7 @@ public:
 
 
     virtual double getWidth() const;
-    bool  checkProbe(PartBunchBase<double, 3> &bunch, const int turnnumber, const double t, const double tstep);
+    bool  checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep);
     virtual ElementBase::ElementType getType() const;
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;

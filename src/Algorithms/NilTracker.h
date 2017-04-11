@@ -14,7 +14,8 @@
 #include "Algorithms/Tracker.h"
 
 class BMultipoleField;
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 class AlignWrapper;
 class BeamBeam;
 class Collimator;

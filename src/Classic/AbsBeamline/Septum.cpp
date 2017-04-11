@@ -145,16 +145,16 @@ double  Septum::getWidth() const {
 
 }
 
-bool  Septum::checkSeptum(PartBunchBase<double, 3> &bunch) {
+bool  Septum::checkSeptum(PartBunchBase<double, 3> *bunch) {
 
     bool flag = false;
     Vector_t rmin;
     Vector_t rmax;
-    bunch.get_bounds(rmin, rmax);
+    bunch->get_bounds(rmin, rmax);
     double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
     if(r1 > sqrt(xstart_m * xstart_m + ystart_m * ystart_m) - 100)  {
-        for(unsigned int i = 0; i < bunch.getLocalNum(); ++i) {
-            Vector_t R = bunch.R[i];
+        for(unsigned int i = 0; i < bunch->getLocalNum(); ++i) {
+            Vector_t R = bunch->R[i];
             double slope = (yend_m - ystart_m) / (xend_m - xstart_m);
             double intcept = ystart_m - slope * xstart_m;
             double intcept1 = intcept - width_m / 2.0 * sqrt(slope * slope + 1);
@@ -167,8 +167,8 @@ bool  Septum::checkSeptum(PartBunchBase<double, 3> &bunch) {
 
             if(fabs(R(1)) > line2 && fabs(R(1)) < line1 && R(0) > xstart_m && R(0) < xend_m && R(1) > ystart_m && R(1) < yend_m) {
 
-                bunch.lossDs_m->addParticle(R, bunch.P[i], bunch.ID[i]);
-                bunch.Bin[i] = -1;
+                bunch->lossDs_m->addParticle(R, bunch->P[i], bunch->ID[i]);
+                bunch->Bin[i] = -1;
                 flag = true;
 
             }

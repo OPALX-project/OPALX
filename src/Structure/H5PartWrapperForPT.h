@@ -23,19 +23,19 @@ public:
     virtual ~H5PartWrapperForPT();
 
     virtual void readHeader();
-    virtual void readStep(PartBunchBase<double, 3>&, h5_ssize_t firstParticle, h5_ssize_t lastParticle);
+    virtual void readStep(PartBunchBase<double, 3>*, h5_ssize_t firstParticle, h5_ssize_t lastParticle);
 
     virtual void writeHeader();
-    virtual void writeStep(PartBunchBase<double, 3>&, const std::map<std::string, double> &additionalStepAttributes);
+    virtual void writeStep(PartBunchBase<double, 3>*, const std::map<std::string, double> &additionalStepAttributes);
 
     virtual bool predecessorIsSameFlavour() const;
 
 private:
-    void readStepHeader(PartBunchBase<double, 3>&);
-    void readStepData(PartBunchBase<double, 3>&, h5_ssize_t, h5_ssize_t);
+    void readStepHeader(PartBunchBase<double, 3>*);
+    void readStepData(PartBunchBase<double, 3>*, h5_ssize_t, h5_ssize_t);
 
-    void writeStepHeader(PartBunchBase<double, 3>&, const std::map<std::string, double> &);
-    void writeStepData(PartBunchBase<double, 3>&);
+    void writeStepHeader(PartBunchBase<double, 3>*, const std::map<std::string, double> &);
+    void writeStepData(PartBunchBase<double, 3>*);
 };
 
 inline

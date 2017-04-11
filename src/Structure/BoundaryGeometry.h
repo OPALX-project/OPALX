@@ -73,7 +73,7 @@ public:
     void createParticlesOnSurface (
         size_t n, double darkinward,
         OpalBeamline& itsOpalBeamline,
-        PartBunchBase<double, 3>& itsBunch);
+        PartBunchBase<double, 3>* itsBunch);
 
     void createPriPart (
         size_t n, double darkinward,

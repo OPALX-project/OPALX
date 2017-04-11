@@ -19,11 +19,11 @@
 #include <vector>
 
 
-#include "Distribution/Distribution.h"
+// #include "Distribution/Distribution.h"
 #include "Structure/LossDataSink.h"
 #include "Structure/FieldSolver.h"
 #include "Algorithms/ListElem.h"
-// class Distribution;
+class Distribution;
 // class LossDataSink;
 // class FieldSolver;
 // class ListElem;
@@ -47,18 +47,29 @@ public:
     enum UnitState_t { units = 0, unitless = 1 };
     
 public:
+    
+//     PartBunchBase();
+    
     PartBunchBase(AbstractParticle<T, Dim>* pb);
     
     virtual ~PartBunchBase() { }
+    
+//     AbstractParticle<T, Dim>* getParticleBase();
+    
+//     const AbstractParticle<T, Dim>* getParticleBase() const;
+    
+    virtual AbstractParticle<T, Dim>* clone() = 0;
     
     /*
      * Bunch common member functions
      */
     
-    PartBunchBase(const PartData *ref);
+    PartBunchBase(AbstractParticle<T, Dim>* pb, const PartData *ref);
     
     /// Conversion.
-    PartBunchBase(const std::vector<OpalParticle> &, const PartData *ref); //TODO
+    PartBunchBase(AbstractParticle<T, Dim>* pb,
+                  const std::vector<OpalParticle> &,
+                  const PartData *ref); //TODO
     
     PartBunchBase(const PartBunchBase &rhs); //TODO
     
@@ -89,8 +100,6 @@ public:
     void cleanUpParticles();
     
     void resetIfScan();
-    
-    void do_binaryRepart();
     
     void setDistribution(Distribution *d,
                          std::vector<Distribution *> addedDistributions,
@@ -365,6 +374,8 @@ public:
     
     virtual void runTests();
     
+    virtual void do_binaryRepart();
+    
     virtual void resetInterpolationCache(bool clearCache = false);
     
     /** \brief calculates back the max/min of the efield on the grid */
@@ -395,7 +406,7 @@ public:
     
 //     virtual Mesh_t &getMesh() = 0;
 
-//     virtual FieldLayout_t &getFieldLayout() = 0;
+    virtual FieldLayout_t &getFieldLayout() = 0;
     
     
     /*
@@ -512,9 +523,11 @@ protected:
     
     
 private:
-    virtual void updateDomainLength(Vector_t& grid) = 0;
+    virtual void updateDomainLength(Vektor<int, 3>& grid) = 0;
     
     virtual void updateFields(const Vector_t& hr, const Vector_t& origin);
+    
+    void setup(AbstractParticle<T, Dim>* pb);
     
 public:
     /*

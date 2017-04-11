@@ -50,7 +50,7 @@ public:
     virtual double getYRangeMax(unsigned short level = 0) = 0;
     virtual double getZRangeMin(unsigned short level = 0) = 0;
     virtual double getZRangeMax(unsigned short level = 0) = 0;
-    virtual void test(PartBunchBase<double, 3> &bunch) = 0 ;
+    virtual void test(PartBunchBase<double, 3> *bunch) = 0 ;
     virtual ~PoissonSolver(){};
 
 };

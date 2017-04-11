@@ -12,18 +12,18 @@ class CSRIGFWakeFunction: public WakeFunction {
 public:
     CSRIGFWakeFunction(const std::string &name, ElementBase *element, std::vector<Filter *> filters, const unsigned int &N);
 
-    void apply(PartBunchBase<double, 3> &bunch);
+    void apply(PartBunchBase<double, 3> *bunch);
 
     void initialize(const ElementBase * ref);
 
     virtual const std::string getType() const;
 
 private:
-    void calculateLineDensity(PartBunchBase<double, 3> & bunch, std::pair<double, double> &meshInfo);
+    void calculateLineDensity(PartBunchBase<double, 3> * bunch, std::pair<double, double> &meshInfo);
 
     void calculateContributionInside(size_t sliceNumber, double angleOfSlice, double meshSpacing);
     void calculateContributionAfter(size_t sliceNumber, double angleOfSlice, double meshSpacing);
-    void calculateGreenFunction(PartBunchBase<double, 3> &bunch, double meshSpacing);
+    void calculateGreenFunction(PartBunchBase<double, 3> *bunch, double meshSpacing);
     double calcPsi(const double &psiInitial, const double &x, const double &Ds) const;
 
     std::vector<Filter *> filters_m;

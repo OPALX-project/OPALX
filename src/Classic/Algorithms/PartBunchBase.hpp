@@ -3,6 +3,8 @@
 
 #include "PartBunchBase.h"
 
+#include "Distribution/Distribution.h"
+
 #include "AbstractObjects/OpalData.h"   // OPAL file
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
@@ -11,6 +13,67 @@
 using Physics::pi;
 
 extern Inform *gmsg;
+
+// template <class T, unsigned Dim>
+// PartBunchBase<T, Dim>::PartBunchBase()
+//     : pbase(nullptr),
+//       myNode_m(Ippl::myNode()),
+//       nodes_m(Ippl::getNodes()),
+//       fixed_grid(false),
+//       pbin_m(nullptr),
+//       lossDs_m(nullptr),
+//       pmsg_m(nullptr),
+//       f_stream(nullptr),
+//       unit_state_(units),
+//       stateOfLastBoundP_(unitless),
+//       moments_m(),
+//       dt_m(0.0),
+//       t_m(0.0),
+//       eKin_m(0.0),
+//       dE_m(0.0),
+//       spos_m(0.0),
+//       rmax_m(0.0),
+//       rmin_m(0.0),
+//       rrms_m(0.0),
+//       prms_m(0.0),
+//       rmean_m(0.0),
+//       pmean_m(0.0),
+//       eps_m(0.0),
+//       eps_norm_m(0.0),
+//       rprms_m(0.0),
+//       Dx_m(0.0),
+//       Dy_m(0.0),
+//       DDx_m(0.0),
+//       DDy_m(0.0),
+//       hr_m(-1.0),
+//       nr_m(0),
+//       fs_m(nullptr),
+//       couplingConstant_m(0.0),
+//       qi_m(0.0),
+//       distDump_m(0),
+//       fieldDBGStep_m(0),
+//       dh_m(1e-12),
+//       tEmission_m(0.0),
+//       bingamma_m(nullptr),
+//       binemitted_m(nullptr),
+//       lPath_m(0.0),
+//       stepsPerTurn_m(0),
+//       localTrackStep_m(0),
+//       globalTrackStep_m(0),
+//       numBunch_m(1),
+//       SteptoLastInj_m(0),
+//       partPerNode_m(nullptr),
+//       globalPartPerNode_m(nullptr),
+//       dist_m(nullptr),
+//       globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
+//       globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
+//       lowParticleCount_m(false),
+//       dcBeam_m(false),
+//       minLocNum_m(0)
+// {
+//     R(*(pbase->R_p));   // undefined behaviour due to reference to null pointer
+//     ID(*(pbase->ID_p));   // undefined behaviour due to reference to null pointer
+// }
 
 template <class T, unsigned Dim>
 PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
@@ -72,52 +135,15 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
       dcBeam_m(false),
       minLocNum_m(0)
 {
-    pb->addAttribute(P);
-    pb->addAttribute(Q);
-    pb->addAttribute(M);
-    pb->addAttribute(Phi);
-    pb->addAttribute(Ef);
-    pb->addAttribute(Eftmp);
-    
-    pb->addAttribute(Bf);
-    pb->addAttribute(Bin);
-    pb->addAttribute(dt);
-    pb->addAttribute(PType);
-    pb->addAttribute(TriID);
-    
-    boundpTimer_m = IpplTimings::getTimer("Boundingbox");
-    statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
-    selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
-    compPotenTimer_m  = IpplTimings::getTimer("SF: Potential");
-
-    histoTimer_m = IpplTimings::getTimer("Histogram");
-
-    distrCreate_m = IpplTimings::getTimer("Create Distr");
-    distrReload_m = IpplTimings::getTimer("Load Distr");
-    
-    
-    partPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
-    globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
-
-    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(std::string("GlobalLosses"), !Options::asciidump));
-
-    pmsg_m.release();
-    //    f_stream.release();
-    /*
-      if(Ippl::getNodes() == 1) {
-          f_stream = std::unique_ptr<ofstream>(new ofstream);
-          f_stream->open("data/dist.dat", ios::out);
-          pmsg_m = std::unique_ptr<Inform>(new Inform(0, *f_stream, 0));
-      }
-    */
-    
-    // set the default IPPL behaviour
-    setMinimumNumberOfParticlesPerCore(0);
+    setup(pb);
 }
 
 template <class T, unsigned Dim>
-PartBunchBase<T, Dim>::PartBunchBase(const PartData *ref)
-    : myNode_m(Ippl::myNode()),
+PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartData *ref)
+    : pbase(pb),
+      R(*(pb->R_p)),
+      ID(*(pb->ID_p)),
+      myNode_m(Ippl::myNode()),
       nodes_m(Ippl::getNodes()),
       fixed_grid(false),
       pbin_m(nullptr),
@@ -172,12 +198,16 @@ PartBunchBase<T, Dim>::PartBunchBase(const PartData *ref)
       dcBeam_m(false),
       minLocNum_m(0)
 {
-    
+    setup(pb);
 }
 
 template <class T, unsigned Dim>
-PartBunchBase<T, Dim>::PartBunchBase(const std::vector<OpalParticle>& rhs,
+PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb,
+                                     const std::vector<OpalParticle>& rhs,
                                      const PartData *ref):
+    pbase(pb),
+    R(*(pb->R_p)),
+    ID(*(pb->ID_p)),
     myNode_m(Ippl::myNode()),
     nodes_m(Ippl::getNodes()),
     fixed_grid(false),
@@ -239,6 +269,9 @@ PartBunchBase<T, Dim>::PartBunchBase(const std::vector<OpalParticle>& rhs,
 
 template <class T, unsigned Dim>
 PartBunchBase<T, Dim>::PartBunchBase(const PartBunchBase<T, Dim>& rhs):
+    pbase(rhs.pbase),
+    R(rhs.R),
+    ID(rhs.ID),
     myNode_m(Ippl::myNode()),
     nodes_m(Ippl::getNodes()),
     fixed_grid(rhs.fixed_grid),
@@ -296,6 +329,19 @@ PartBunchBase<T, Dim>::PartBunchBase(const PartBunchBase<T, Dim>& rhs):
 {
     
 }
+
+
+// template <class T, unsigned Dim>
+// AbstractParticle<T, Dim>* PartBunchBase<T, Dim>::getParticleBase() {
+//     return pbase;
+// }
+
+
+// template <class T, unsigned Dim>
+// const AbstractParticle<T, Dim>* PartBunchBase<T, Dim>::getParticleBase() const {
+//     return pbase;
+// }
+
 
 /*
  * Bunch common member functions
@@ -436,7 +482,7 @@ void PartBunchBase<T, Dim>::cleanUpParticles() {
 
     destroy(getLocalNum(), 0, true);
 
-    dist_m->createOpalT(*this, np, scan);
+    dist_m->createOpalT(this, np, scan);
 
     update();
 }
@@ -457,11 +503,7 @@ void PartBunchBase<T, Dim>::resetIfScan()
 template <class T, unsigned Dim>
 // inline
 void PartBunchBase<T, Dim>::do_binaryRepart() {
-    get_bounds(rmin_m, rmax_m);
-    BinaryRepartition(*this);
-    update();
-    get_bounds(rmin_m, rmax_m);
-    boundp();
+    // do nothing here
 }
 
 
@@ -474,12 +516,12 @@ void PartBunchBase<T, Dim>::setDistribution(Distribution *d,
     Inform m("setDistribution " );
     dist_m = d;
 
-    dist_m->createOpalT(*this, addedDistributions, np, scan);
+    dist_m->createOpalT(this, addedDistributions, np, scan);
 
 //    if (Options::cZero)
-//        dist_m->create(*this, addedDistributions, np / 2, scan);
+//        dist_m->create(this, addedDistributions, np / 2, scan);
 //    else
-//        dist_m->create(*this, addedDistributions, np, scan);
+//        dist_m->create(this, addedDistributions, np, scan);
 }
 
 
@@ -540,7 +582,7 @@ void PartBunchBase<T, Dim>::setPBins(PartBinsCyc *pbin) {
 
 template <class T, unsigned Dim>
 size_t PartBunchBase<T, Dim>::emitParticles(double eZ) {
-    return dist_m->emitParticles(*this, eZ);
+    return dist_m->emitParticles(this, eZ);
 }
 
 
@@ -709,7 +751,7 @@ void PartBunchBase<T, Dim>::calcLineDensity(unsigned int nBins,
     get_bounds(rmin, rmax);
 
     if (nBins < 2) {
-        NDIndex<3> grid;
+        Vektor<int, 3>/*NDIndex<3>*/ grid;
         this->updateDomainLength(grid);
         nBins = grid[2];
     }
@@ -1705,13 +1747,14 @@ double PartBunchBase<T, Dim>::getChargePerParticle() const {
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setSolver(FieldSolver *fs) {
     fs_m = fs;
-    fs_m->initSolver(*this);
+    fs_m->initSolver(this);
     /**
        CAN not re-inizialize ParticleLayout
        this is an IPPL issue
      */
-    if(!OpalData::getInstance()->hasBunchAllocated())
-        pbase->initialize(&(fs_m->getParticleLayout()));
+    //FIXME Commented
+//     if(!OpalData::getInstance()->hasBunchAllocated())
+//         pbase->initialize(&(fs_m->getParticleLayout()));
 }
 
 
@@ -2132,6 +2175,7 @@ void PartBunchBase<T, Dim>::correctEnergy(double avrgp_m) {
         P[k](2) =  P[k](2) - avrgp + avrgp_m;
 }
 
+
 template <class T, unsigned Dim>
 Inform &PartBunchBase<T, Dim>::print(Inform &os) {
     if(getTotalNum() != 0) {  // to suppress Nan's
@@ -2161,6 +2205,126 @@ Inform &PartBunchBase<T, Dim>::print(Inform &os) {
         os.flags(ff);
     }
     return os;
+}
+
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::calcMoments() {
+
+    double part[2 * Dimension];
+
+    double loc_centroid[2 * Dimension];
+    double loc_moment[2 * Dimension][2 * Dimension];
+    double moments[2 * Dimension][2 * Dimension];
+    const unsigned long localNum = getLocalNum();
+
+    for(unsigned int i = 0; i < 2 * Dimension; i++) {
+        loc_centroid[i] = 0.0;
+        for(unsigned int j = 0; j <= i; j++) {
+            loc_moment[i][j] = 0.0;
+            loc_moment[j][i] = loc_moment[i][j];
+        }
+    }
+
+    for(unsigned long k = 0; k < localNum; ++ k) {
+        part[1] = P[k](0);
+        part[3] = P[k](1);
+        part[5] = P[k](2);
+        part[0] = R[k](0);
+        part[2] = R[k](1);
+        part[4] = R[k](2);
+
+        for(unsigned int i = 0; i < 2 * Dimension; ++ i) {
+            loc_centroid[i] += part[i];
+            for(unsigned int j = 0; j <= i; ++ j) {
+                loc_moment[i][j] += part[i] * part[j];
+            }
+        }
+    }
+
+    if (OpalData::getInstance()->isInOPALCyclMode()) {
+        for(unsigned long k = 0; k < localNum; ++ k) {
+            if (ID[k] == 0) {
+                part[1] = P[k](0);
+                part[3] = P[k](1);
+                part[5] = P[k](2);
+                part[0] = R[k](0);
+                part[2] = R[k](1);
+                part[4] = R[k](2);
+
+                for(unsigned int i = 0; i < 2 * Dimension; i++) {
+                    loc_centroid[i] -= part[i];
+                    for(unsigned int j = 0; j <= i; j++) {
+                        loc_moment[i][j] -= part[i] * part[j];
+                    }
+                }
+
+                break;
+            }
+        }
+    }
+
+    for(unsigned int i = 0; i < 2 * Dimension; i++) {
+        for(unsigned int j = 0; j < i; j++) {
+            loc_moment[j][i] = loc_moment[i][j];
+        }
+    }
+
+    reduce(&(loc_moment[0][0]), &(loc_moment[0][0]) + 2 * Dimension * 2 * Dimension,
+           &(moments[0][0]), OpAddAssign());
+
+    reduce(&(loc_centroid[0]), &(loc_centroid[0]) + 2 * Dimension,
+           &(centroid_m[0]), OpAddAssign());
+
+    for(unsigned int i = 0; i < 2 * Dimension; i++) {
+        for(unsigned int j = 0; j <= i; j++) {
+            moments_m(i, j) = moments[i][j];
+            moments_m(j, i) = moments_m(i, j);
+        }
+    }
+}
+
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::calcMomentsInitial() {
+
+    double part[2 * Dimension];
+
+    for(unsigned int i = 0; i < 2 * Dimension; ++i) {
+        centroid_m[i] = 0.0;
+        for(unsigned int j = 0; j <= i; ++j) {
+            moments_m(i, j) = 0.0;
+            moments_m(j, i) = moments_m(i, j);
+        }
+    }
+
+    for(size_t k = 0; k < pbin_m->getNp(); k++) {
+        for(int binNumber = 0; binNumber < pbin_m->getNBins(); binNumber++) {
+            std::vector<double> p;
+
+            if(pbin_m->getPart(k, binNumber, p)) {
+                part[0] = p.at(0);
+                part[1] = p.at(3);
+                part[2] = p.at(1);
+                part[3] = p.at(4);
+                part[4] = p.at(2);
+                part[5] = p.at(5);
+
+                for(unsigned int i = 0; i < 2 * Dimension; ++i) {
+                    centroid_m[i] += part[i];
+                    for(unsigned int j = 0; j <= i; ++j) {
+                        moments_m(i, j) += part[i] * part[j];
+                    }
+                }
+            }
+        }
+    }
+
+    for(unsigned int i = 0; i < 2 * Dimension; ++i) {
+        for(unsigned int j = 0; j < i; ++j) {
+            moments_m(j, i) = moments_m(i, j);
+        }
+    }
 }
 
 
@@ -2260,6 +2424,52 @@ template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::updateFields(const Vector_t& hr, const Vector_t& origin)
 {
     
+}
+
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
+    pb->addAttribute(P);
+    pb->addAttribute(Q);
+    pb->addAttribute(M);
+    pb->addAttribute(Phi);
+    pb->addAttribute(Ef);
+    pb->addAttribute(Eftmp);
+    
+    pb->addAttribute(Bf);
+    pb->addAttribute(Bin);
+    pb->addAttribute(dt);
+    pb->addAttribute(PType);
+    pb->addAttribute(TriID);
+    
+    boundpTimer_m = IpplTimings::getTimer("Boundingbox");
+    statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
+    selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
+    compPotenTimer_m  = IpplTimings::getTimer("SF: Potential");
+
+    histoTimer_m = IpplTimings::getTimer("Histogram");
+
+    distrCreate_m = IpplTimings::getTimer("Create Distr");
+    distrReload_m = IpplTimings::getTimer("Load Distr");
+    
+    
+    partPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
+    globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
+
+    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(std::string("GlobalLosses"), !Options::asciidump));
+
+    pmsg_m.release();
+    //    f_stream.release();
+    /*
+      if(Ippl::getNodes() == 1) {
+          f_stream = std::unique_ptr<ofstream>(new ofstream);
+          f_stream->open("data/dist.dat", ios::out);
+          pmsg_m = std::unique_ptr<Inform>(new Inform(0, *f_stream, 0));
+      }
+    */
+    
+    // set the default IPPL behaviour
+    setMinimumNumberOfParticlesPerCore(0);
 }
 
 #endif

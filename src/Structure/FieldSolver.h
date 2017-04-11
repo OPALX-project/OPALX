@@ -75,7 +75,7 @@ public:
 
     void initCartesianFields();
 
-    void initSolver(PartBunchBase<double, 3> &b);
+    void initSolver(PartBunchBase<double, 3> *b);
 
     bool hasValidSolver();
 

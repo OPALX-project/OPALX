@@ -157,7 +157,7 @@ void Ring::finalise() {
     setLossDataSink(NULL);
 }
 
-void Ring::setRefPartBunch(PartBunch* bunch) {
+void Ring::setRefPartBunch(PartBunchBase<double, 3>* bunch) {
     RefPartBunch_m = bunch; // inherited from Component
     refPartBunch_m = bunch; // private data (obeys style guide)
 }

@@ -72,14 +72,15 @@ EnvelopeBunch::EnvelopeBunch(const PartData *ref):
 
 
 EnvelopeBunch::EnvelopeBunch(const EnvelopeBunch &rhs):
-    PartBunch(rhs.reference),
+    PartBunch(rhs),
     reference(rhs.reference),
     numSlices_m(0),
     numMySlices_m(0)
 {}
 
 
-EnvelopeBunch::EnvelopeBunch(const std::vector<OpalParticle> &rhs, const PartData *ref):
+EnvelopeBunch::EnvelopeBunch(const std::vector<OpalParticle> &rhs,
+                             const PartData *ref):
     PartBunch(ref),
     reference(ref),
     numSlices_m(0),

@@ -60,7 +60,7 @@ public:
     double getYRangeMax(unsigned short level) {return  a_m;}
     double getZRangeMin(unsigned short level) {return -a_m; }
     double getZRangeMax(unsigned short level) {return  a_m; }
-    void test(PartBunch &bunch) { }
+    void test(PartBunchBase<double, 3> *bunch) { }
 
 
     Inform &print(Inform &os) const;

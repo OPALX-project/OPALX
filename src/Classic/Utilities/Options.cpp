@@ -94,4 +94,8 @@ namespace Options {
 
     // opal version of input file
     int version = 10000;
+    
+#ifdef HAVE_AMR_SOLVER
+    bool amr = false;
+#endif
 }

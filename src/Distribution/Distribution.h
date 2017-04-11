@@ -42,7 +42,10 @@
 #endif
 
 class Beam;
-class PartBunch;
+
+template <class T, unsigned Dim>
+class PartBunchBase;
+
 class PartBins;
 class EnvelopeBunch;
 class BoundaryGeometry;
@@ -97,8 +100,8 @@ public:
     virtual void execute();
     virtual void update();
 
-    void createBoundaryGeometry(PartBunch &p, BoundaryGeometry &bg);
-    void createOpalCycl(PartBunch &beam,
+    void createBoundaryGeometry(PartBunchBase<double, 3> *p, BoundaryGeometry &bg);
+    void createOpalCycl(PartBunchBase<double, 3> *beam,
                         size_t numberOfParticles,
 			double current, const Beamline &bl,
                         bool scan);
@@ -107,17 +110,17 @@ public:
                      EnvelopeBunch *envelopeBunch,
                      double distCenter,
                      double Bz0);
-    void createOpalT(PartBunch &beam,
+    void createOpalT(PartBunchBase<double, 3> *beam,
                      std::vector<Distribution *> addedDistributions,
                      size_t &numberOfParticles,
                      bool scan);
-    void createOpalT(PartBunch &beam, size_t &numberOfParticles, bool scan);
-    void createPriPart(PartBunch *beam, BoundaryGeometry &bg);
-    void doRestartOpalT(PartBunch &p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
-    void doRestartOpalCycl(PartBunch &p, size_t Np, int restartStep,
+    void createOpalT(PartBunchBase<double, 3> *beam, size_t &numberOfParticles, bool scan);
+    void createPriPart(PartBunchBase<double, 3> *beam, BoundaryGeometry &bg);
+    void doRestartOpalT(PartBunchBase<double, 3> *p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
+    void doRestartOpalCycl(PartBunchBase<double, 3> *p, size_t Np, int restartStep,
                         const int specifiedNumBunch, H5PartWrapper *h5wrapper);
-    void doRestartOpalE(EnvelopeBunch &p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
-    size_t emitParticles(PartBunch &beam, double eZ);
+    void doRestartOpalE(EnvelopeBunch *p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
+    size_t emitParticles(PartBunchBase<double, 3> *beam, double eZ);
     double getPercentageEmitted() const;
     static Distribution *find(const std::string &name);
 
@@ -237,7 +240,7 @@ private:
     void createDistributionFromFile(size_t numberOfParticles, double massIneV);
     void createDistributionGauss(size_t numberOfParticles, double massIneV);
     void createMatchedGaussDistribution(size_t numberOfParticles, double massIneV);
-    void destroyBeam(PartBunch &beam);
+    void destroyBeam(PartBunchBase<double, 3> *beam);
     void fillEBinHistogram();
     void fillParticleBins();
     size_t findEBin(double tOrZ);
@@ -249,8 +252,8 @@ private:
     void generateGaussZ(size_t numberOfParticles);
     void generateLongFlattopT(size_t numberOfParticles);
     void generateTransverseGauss(size_t numberOfParticles);
-    void initializeBeam(PartBunch &beam);
-    void injectBeam(PartBunch &beam);
+    void initializeBeam(PartBunchBase<double, 3> *beam);
+    void injectBeam(PartBunchBase<double, 3> *beam);
     void printDist(Inform &os, size_t numberOfParticles) const;
     void printDistBinomial(Inform &os) const;
     void printDistFlattop(Inform &os) const;
@@ -272,12 +275,12 @@ private:
     void setDistParametersGauss(double massIneV);
     void setEmissionTime(double &maxT, double &minT);
     void setFieldEmissionParameters();
-    void setupEmissionModel(PartBunch &beam);
-    void setupEmissionModelAstra(PartBunch &beam);
-    void setupEmissionModelNone(PartBunch &beam);
+    void setupEmissionModel(PartBunchBase<double, 3> *beam);
+    void setupEmissionModelAstra(PartBunchBase<double, 3> *beam);
+    void setupEmissionModelNone(PartBunchBase<double, 3> *beam);
     void setupEmissionModelNonEquil();
     void setupEnergyBins(double maxTOrZ, double minTOrZ);
-    void setupParticleBins(double massIneV, PartBunch &beam);
+    void setupParticleBins(double massIneV, PartBunchBase<double, 3> *beam);
     void shiftDistCoordinates(double massIneV);
     void writeOutFileHeader();
     void writeOutFileEmission();
@@ -287,7 +290,7 @@ private:
     std::string distT_m;                 /// Distribution type. Declared as string
     DistrTypeT::DistrTypeT distrTypeT_m; /// and list type for switch statements.
     std::ofstream os_m;                  /// Output file to write distribution.
-    void writeToFileCycl(PartBunch &beam, size_t Np);
+    void writeToFileCycl(PartBunchBase<double, 3> *beam, size_t Np);
 
     unsigned int numberOfDistributions_m;
 

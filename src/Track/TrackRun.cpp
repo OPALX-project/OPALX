@@ -200,12 +200,12 @@ void TrackRun::execute() {
     if(method == "THIN") {
         //std::cerr << "  method == \"THIN\"" << std::endl;
         itsTracker = new ThinTracker(*Track::block->use->fetchLine(),
-                                     *Track::block->bunch, Track::block->reference,
+                                     Track::block->bunch, Track::block->reference,
                                      false, false);
     } else if(method == "THICK") {
         //std::cerr << "  method == \"THICK\"" << std::endl;
         itsTracker = new ThickTracker(*Track::block->use->fetchLine(),
-                                      *Track::block->bunch, Track::block->reference,
+                                      Track::block->bunch, Track::block->reference,
                                       false, false);
     // } else if(method == "PARALLEL-SLICE" || method == "OPAL-E") {
     //     setupSliceTracker();
@@ -538,7 +538,7 @@ void TrackRun::setupTTracker(){
 #else
 
     itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
-                                      dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
+                                      Track::block->bunch, *ds,
                                       Track::block->reference, false, false, Track::block->localTimeSteps,
                                       Track::block->zstart, Track::block->zstop, Track::block->dT);
 #endif
@@ -595,7 +595,7 @@ void TrackRun::setupCyclotronTracker(){
     if(beam->getNumberOfParticles() < 3 || beam->getCurrent() == 0.0) {
         macrocharge = beam->getCharge() * q_e;
         macromass = beam->getMass();
-        dist->createOpalCycl(*Track::block->bunch,
+        dist->createOpalCycl(Track::block->bunch,
                              beam->getNumberOfParticles(),
                              beam->getCurrent(),*Track::block->use->fetchLine(),
                              Options::scan);
@@ -613,14 +613,14 @@ void TrackRun::setupCyclotronTracker(){
             if(!opal->inRestartRun()) {
                 macrocharge /= beam->getNumberOfParticles();
                 macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
-                dist->createOpalCycl(*Track::block->bunch,
+                dist->createOpalCycl(Track::block->bunch,
                                      beam->getNumberOfParticles(),
                                      beam->getCurrent(),
                                      *Track::block->use->fetchLine(),
                                      Options::scan);
 
             } else {
-                dist->doRestartOpalCycl(*Track::block->bunch,
+                dist->doRestartOpalCycl(Track::block->bunch,
                                         beam->getNumberOfParticles(),
                                         opal->getRestartStep(),
                                         specifiedNumBunch,
@@ -631,7 +631,7 @@ void TrackRun::setupCyclotronTracker(){
         } else if(opal->hasBunchAllocated() && Options::scan) {
             macrocharge /= beam->getNumberOfParticles();
             macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
-            dist->createOpalCycl(*Track::block->bunch,
+            dist->createOpalCycl(Track::block->bunch,
                                  beam->getNumberOfParticles(),
                                  beam->getCurrent(),
                                  *Track::block->use->fetchLine(),
@@ -691,7 +691,7 @@ void TrackRun::setupCyclotronTracker(){
     *gmsg << "* ********************************************************************************** " << endl;
 
     itsTracker = new ParallelCyclotronTracker(*Track::block->use->fetchLine(),
-                                              dynamic_cast<PartBunch &>(*Track::block->bunch), *ds, Track::block->reference,
+                                              Track::block->bunch, *ds, Track::block->reference,
                                               false, false, Track::block->localTimeSteps.front(), Track::block->timeIntegrator);
 
     itsTracker->setNumBunch(specifiedNumBunch);
@@ -844,11 +844,6 @@ void TrackRun::setupFieldsolver() {
         Track::block->bunch->setBCForDCBeam();
     else
         Track::block->bunch->setBCAllOpen();
-    
-#ifdef HAVE_AMR_SOLVER
-    if (fs->isAmrSolver() || fs->getAmrMaxLevel() > 0)
-        OpalData::getInstance()->setInAmrMode();
-#endif
 }
 
 double TrackRun::setDistributionParallelT(Beam *beam) {
@@ -921,7 +916,7 @@ double TrackRun::setDistributionParallelT(Beam *beam) {
             /*
              * Read in beam from restart file.
              */
-            dist->doRestartOpalT(*Track::block->bunch, numberOfParticles, opal->getRestartStep(), phaseSpaceSink_m);
+            dist->doRestartOpalT(Track::block->bunch, numberOfParticles, opal->getRestartStep(), phaseSpaceSink_m);
         }
     } else if (opal->hasBunchAllocated() && Options::scan) {
         /*
