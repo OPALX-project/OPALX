@@ -26,7 +26,8 @@
 #include <complex>
 #include <vector>
 
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 
 template <class T, int N> class FTps;
 template <class T, int N> class FVps;
@@ -136,7 +137,7 @@ public:
 
     /// Track a particle bunch.
     virtual void trackBunch
-    (PartBunch &, const PartData &, bool revBeam, bool revTrack) const;
+    (PartBunchBase<double, 3> *, const PartData &, bool revBeam, bool revTrack) const;
 
     /// Track a transfer map.
     virtual void trackMap
@@ -154,11 +155,11 @@ private:
     void operator=(const BeamBeam3D &);
 
     // Lorenz boost.
-    void boost(PartBunch &bunch) const;
+    void boost(PartBunchBase<double, 3> *bunch) const;
     void boost(Map &map) const;
 
     // Inverse Lorenz boost.
-    void boosti(PartBunch &bunch) const;
+    void boosti(PartBunchBase<double, 3> *bunch) const;
     void boosti(Map &map) const;
 
     // Compute internal quantities.
@@ -166,7 +167,7 @@ private:
     void computeSlices();
 
     // Apply synchro-beam collision.
-    void synchroBeamCollision(PartBunch &bunch) const;
+    void synchroBeamCollision(PartBunchBase<double, 3> *bunch) const;
     void synchroBeamCollision(Map &map) const;
 
     // Apply beam-beam kick for one slice.

@@ -78,7 +78,7 @@ public:
     void setStop(bool stopflag);
     virtual bool getStop() const;
 
-    bool  checkStripper(PartBunchBase<double, 3> &bunch, const int turnnumber, const double t, const double tsetp);
+    bool  checkStripper(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tsetp);
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 

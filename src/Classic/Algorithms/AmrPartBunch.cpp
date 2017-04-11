@@ -3,32 +3,44 @@
 #include "Utilities/OpalException.h"
 
 AmrPartBunch::AmrPartBunch(const PartData *ref)
-    : PartBunchBase<double, 3>(ref),
-      rho_m(PArrayManage),
-      phi_m(PArrayManage),
-      eg_m(PArrayManage)
+    : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(), ref),
+      mesh_m(), fieldlayout_m(mesh_m) //FIXME
+//       rho_m(PArrayManage),
+//       phi_m(PArrayManage),
+//       eg_m(PArrayManage)
 {
-    initializeAmr();
+    dynamic_cast<AmrPartBunch::pbase_t*>(pbase)->initializeAmr();
 }
 
 
-AmrPartBunch::AmrPartBunch(const std::vector<OpalParticle> &rhs, const PartData *ref)
-    : PartBunchBase<double, 3>(rhs, ref),
-      rho_m(PArrayManage),
-      phi_m(PArrayManage),
-      eg_m(PArrayManage)
+AmrPartBunch::AmrPartBunch(const std::vector<OpalParticle> &rhs,
+                           const PartData *ref)
+    : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(), rhs, ref),
+      mesh_m(), fieldlayout_m(mesh_m) //FIXME
+//       rho_m(PArrayManage),
+//       phi_m(PArrayManage),
+//       eg_m(PArrayManage)
 {
-    initializeAmr();
+    dynamic_cast<AmrPartBunch::pbase_t*>(pbase)->initializeAmr();
 }
 
 
 AmrPartBunch::AmrPartBunch(const AmrPartBunch &rhs)
     : PartBunchBase<double, 3>(rhs),
-      rho_m(PArrayManage),
-      phi_m(PArrayManage),
-      eg_m(PArrayManage)
+      mesh_m(), fieldlayout_m(mesh_m) //FIXME
+//       rho_m(PArrayManage),
+//       phi_m(PArrayManage),
+//       eg_m(PArrayManage)
 {
-    initializeAmr();
+    dynamic_cast<AmrPartBunch::pbase_t*>(pbase)->initializeAmr();
+}
+
+AmrPartBunch::~AmrPartBunch() {
+
+}
+
+AmrPartBunch::pbase_t* AmrPartBunch::clone() {
+    return new pbase_t(new BoxLibLayout<double, 3>());
 }
 
 AmrPartBunch::VectorPair_t AmrPartBunch::getEExtrema() {
@@ -53,10 +65,11 @@ double AmrPartBunch::getRho(int x, int y, int z) {
 // }
 
 
-// FieldLayout_t &AmrPartBunch::getFieldLayout() {
-//     //TODO Implement
-//     throw OpalException("&AmrPartBunch::getFieldLayout() ", "Not yet Implemented.");
-// }
+FieldLayout_t &AmrPartBunch::getFieldLayout() {
+    //TODO Implement
+    throw OpalException("&AmrPartBunch::getFieldLayout() ", "Not yet Implemented.");
+    return fieldlayout_m;
+}
 
 
 void AmrPartBunch::computeSelfFields() {
@@ -122,6 +135,6 @@ void AmrPartBunch::updateFieldContainers_m() {
     
 }
 
-void AmrPartBunch::updateDomainLength(Vector_t& grid) {
+void AmrPartBunch::updateDomainLength(Vektor<int, 3>& grid) {
     
 }

@@ -277,8 +277,8 @@ inline int FieldSolver::getAmrMaxGridSize() {
 }
 #endif
 
-void FieldSolver::initSolver(PartBunchBase<double, 3> &b) {
-    itsBunch_m = &b;
+void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
+    itsBunch_m = b;
     std::string bcx = Attributes::getString(itsAttr[BCFFTX]);
     std::string bcy = Attributes::getString(itsAttr[BCFFTY]);
     std::string bcz = Attributes::getString(itsAttr[BCFFTT]);

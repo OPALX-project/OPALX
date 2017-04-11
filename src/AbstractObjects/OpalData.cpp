@@ -145,10 +145,6 @@ struct OpalDataImpl {
     bool isInOPALTMode_m;
     bool isInOPALEnvMode_m;
     
-#ifdef HAVE_AMR_SOLVER
-    bool isInAmrMode_m;
-#endif
-    
     bool isInPrepState_m;
 };
 
@@ -304,16 +300,6 @@ void OpalData::setInOPALTMode() {
 void OpalData::setInOPALEnvMode() {
     p->isInOPALEnvMode_m = true;
 }
-
-#ifdef HAVE_AMR_SOLVER
-void OpalData::setInAmrMode() {
-    p->isInAmrMode_m = true;
-}
-
-bool OpalData::isInAmrMode() const {
-    return p->isInAmrMode_m;
-}
-#endif
 
 bool OpalData::isInPrepState() {
     return p->isInPrepState_m;

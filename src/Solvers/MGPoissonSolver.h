@@ -123,7 +123,7 @@ public:
     double getYRangeMax(unsigned short level) { return bp->getYRangeMax(); }
     double getZRangeMin(unsigned short level) { return bp->getZRangeMin(); }
     double getZRangeMax(unsigned short level) { return bp->getZRangeMax(); }
-    void test(PartBunch &bunch) { }
+    void test(PartBunchBase<double, 3> *bunch) { }
     /// useful load balance information
     void printLoadBalanceStats();
 

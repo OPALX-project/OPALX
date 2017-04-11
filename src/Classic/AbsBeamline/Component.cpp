@@ -72,7 +72,7 @@ const ElementBase &Component::getDesign() const {
     return *this;
 }
 
-void Component::trackBunch(PartBunchBase<double, 3> &, const PartData &, bool, bool) const {
+void Component::trackBunch(PartBunchBase<double, 3> *, const PartData &, bool, bool) const {
     throw LogicalError("Component::trackBunch()",
                        "Called for component \"" + getName() + "\".");
 }

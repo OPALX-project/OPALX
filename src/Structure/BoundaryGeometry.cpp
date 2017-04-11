@@ -2388,7 +2388,7 @@ void BoundaryGeometry::createParticlesOnSurface (
     size_t n,
     double darkinward,
     OpalBeamline& itsOpalBeamline,
-    PartBunchBase<double, 3>& itsBunch
+    PartBunchBase<double, 3>* itsBunch
     ) {
     int tag = 1002;
     int Parent = 0;
@@ -2411,7 +2411,7 @@ void BoundaryGeometry::createParticlesOnSurface (
                 k = tmp;
                 Vector_t centroid (0.0);
                 itsOpalBeamline.getFieldAt (TriBarycenters_m[k] + darkinward * TriNormals_m[k],
-                                            centroid, itsBunch.getdT (), E, B);
+                                            centroid, itsBunch->getdT (), E, B);
             }
             partsr_m.push_back (TriBarycenters_m[k] + darkinward * TriNormals_m[k]);
 

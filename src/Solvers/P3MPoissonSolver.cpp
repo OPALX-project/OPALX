@@ -251,28 +251,30 @@ void P3MPoissonSolver::initFields() {
 P3MPoissonSolver::~P3MPoissonSolver() {
 }
 
-void P3MPoissonSolver::calculatePairForces(PartBunch &bunch, double interaction_radius, double alpha, double eps) {
+void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, double interaction_radius, double alpha, double eps) {
     if (interaction_radius>0){
         if (Ippl::getNodes() > 1) {
-            HashPairBuilderPeriodicParallel<PartBunch> HPB(bunch);
+            PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
+            HashPairBuilderPeriodicParallel<PartBunch> HPB(tmpBunch);
             HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius,eps,alpha),extend_l, extend_r);
         }
         else {
-            HashPairBuilderPeriodic<PartBunch> HPB(bunch);
+            PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
+            HashPairBuilderPeriodic<PartBunch> HPB(tmpBunch);
             HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius,eps,alpha),extend_l, extend_r);
         }
     }
 
 }
 
-void P3MPoissonSolver::calculateGridForces(PartBunch &bunch, double interaction_radius, double alpha, double eps){
+void P3MPoissonSolver::calculateGridForces(PartBunchBase<double, 3> *bunch, double interaction_radius, double alpha, double eps){
 
     Inform msg ("calculateGridForces ");
     Vector_t l,h;
 
     // (1) scatter charge to charge density grid and transform to fourier space
     rho_m[domain_m]=0;
-    bunch.Q.scatter(rho_m, bunch.R, IntrplCIC_t());
+    bunch->Q.scatter(rho_m, bunch->R, IntrplCIC_t());
 
     rhocmpl_m[domain_m] = rho_m[domain_m]/(hr_m[0]*hr_m[1]*hr_m[2]);
 
@@ -310,9 +312,9 @@ void P3MPoissonSolver::calculateGridForces(PartBunch &bunch, double interaction_
     eg_m = -Grad1Ord(phi_m, eg_m);
 
     //interpolate the electric field to the particle positions
-    bunch.Ef.gather(eg_m, bunch.R,  IntrplCIC_t());
+    bunch->Ef.gather(eg_m, bunch->R,  IntrplCIC_t());
     //interpolate electrostatic potenital to the particle positions
-    bunch.Phi.gather(phi_m, bunch.R, IntrplCIC_t());
+    bunch->Phi.gather(phi_m, bunch->R, IntrplCIC_t());
 }
 
 
@@ -327,16 +329,16 @@ void P3MPoissonSolver::computePotential(Field_t &rho, Vector_t hr, double zshift
 
 }
 
-void P3MPoissonSolver::computeAvgSpaceChargeForces(PartBunch &bunch) {
+void P3MPoissonSolver::computeAvgSpaceChargeForces(PartBunchBase<double, 3> *bunch) {
 
     Inform m("computeAvgSpaceChargeForces ");
 
-    const double N =  static_cast<double>(bunch.getTotalNum());
+    const double N =  static_cast<double>(bunch->getTotalNum());
     double locAvgEf[Dim]={};
-    for (unsigned i=0; i<bunch.getLocalNum(); ++i) {
-        locAvgEf[0]+=fabs(bunch.Ef[i](0));
-        locAvgEf[1]+=fabs(bunch.Ef[i](1));
-        locAvgEf[2]+=fabs(bunch.Ef[i](2));
+    for (unsigned i=0; i<bunch->getLocalNum(); ++i) {
+        locAvgEf[0]+=fabs(bunch->Ef[i](0));
+        locAvgEf[1]+=fabs(bunch->Ef[i](1));
+        locAvgEf[2]+=fabs(bunch->Ef[i](2));
     }
 
     reduce(&(locAvgEf[0]), &(locAvgEf[0]) + Dim,
@@ -351,13 +353,13 @@ void P3MPoissonSolver::computeAvgSpaceChargeForces(PartBunch &bunch) {
 }
 
 
-void P3MPoissonSolver::applyConstantFocusing(PartBunch &bunch, double f, double r){
+void P3MPoissonSolver::applyConstantFocusing(PartBunchBase<double, 3> *bunch, double f, double r){
     Vektor<double,Dim> beam_center(0,0,0);
     Vector_t Rrel;
     double scFoc = sqrt(dot(avgEF_m,avgEF_m));
-    for (unsigned i=0; i<bunch.getLocalNum(); ++i) {
-        Rrel=bunch.R[i] - beam_center;
-        bunch.Ef[i] += Rrel/r*f*scFoc;
+    for (unsigned i=0; i<bunch->getLocalNum(); ++i) {
+        Rrel=bunch->R[i] - beam_center;
+        bunch->Ef[i] += Rrel/r*f*scFoc;
     }
 
 }
@@ -369,22 +371,22 @@ void P3MPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 
 }
 
-void P3MPoissonSolver::compute_temperature(PartBunch &bunch) {
+void P3MPoissonSolver::compute_temperature(PartBunchBase<double, 3> *bunch) {
 
     Inform m("compute_temperature ");
     // double loc_temp[Dim]={0.0,0.0,0.0};
     double loc_avg_vel[Dim]={0.0,0.0,0.0};
     double avg_vel[Dim]={0.0,0.0,0.0};
 
-    for(unsigned long k = 0; k < bunch.getLocalNum(); ++k) {
+    for(unsigned long k = 0; k < bunch->getLocalNum(); ++k) {
         for(unsigned i = 0; i < Dim; i++) {
-            loc_avg_vel[i]   += bunch.P[k](i);
+            loc_avg_vel[i]   += bunch->P[k](i);
         }
     }
     reduce(&(loc_avg_vel[0]), &(loc_avg_vel[0]) + Dim,
            &(avg_vel[0]), OpAddAssign());
 
-    const double N =  static_cast<double>(bunch.getTotalNum());
+    const double N =  static_cast<double>(bunch->getTotalNum());
     avg_vel[0]=avg_vel[0]/N;
     avg_vel[1]=avg_vel[1]/N;
     avg_vel[2]=avg_vel[2]/N;
@@ -405,7 +407,7 @@ void P3MPoissonSolver::compute_temperature(PartBunch &bunch) {
     */
 }
 
-void P3MPoissonSolver::test(PartBunch &bunch) {
+void P3MPoissonSolver::test(PartBunchBase<double, 3> *bunch) {
     Inform msg("P3MPoissonSolver::test ");
 
     // set special conditions for this test
@@ -414,7 +416,7 @@ void P3MPoissonSolver::test(PartBunch &bunch) {
     const double qom = qi/mi;
     const double beam_radius = 0.001774;
     const double f = 1.5;
-    const double dt = bunch.getdT();
+    const double dt = bunch->getdT();
 
     OpalData *opal = OpalData::getInstance();
     DataSink *ds = opal->getDataSink();
@@ -422,10 +424,10 @@ void P3MPoissonSolver::test(PartBunch &bunch) {
     //    std::vector<std::pair<std::string, unsigned int> > collimatorLosses; // just empty
     Vector_t FDext[6];
 
-    bunch.Q = qi;
-    bunch.M = mi;
+    bunch->Q = qi;
+    bunch->M = mi;
 
-    bunch.calcBeamParameters();
+    bunch->calcBeamParameters();
 
     initFields();
 
@@ -449,18 +451,18 @@ void P3MPoissonSolver::test(PartBunch &bunch) {
         // basic leapfrogging timestep scheme.  velocities are offset
         // by half a timestep from the positions.
 
-        assign(bunch.R, bunch.R + dt * bunch.P);
+        assign(bunch->R, bunch->R + dt * bunch->P);
 
-        bunch.update();
+        bunch->update();
 
         calculateGridForces(bunch, interaction_radius_m, alpha_m, eps_m);
         calculatePairForces(bunch, interaction_radius_m, alpha_m, eps_m);
         applyConstantFocusing(bunch,f,beam_radius);
 
-        assign(bunch.P, bunch.P + dt * qom * bunch.Ef);
+        assign(bunch->P, bunch->P + dt * qom * bunch->Ef);
 
         if (it%10 == 0){
-            bunch.calcBeamParameters();
+            bunch->calcBeamParameters();
             ds->writeStatData(bunch, FDext, it);
         }
         msg << "Finished iteration " << it << endl;

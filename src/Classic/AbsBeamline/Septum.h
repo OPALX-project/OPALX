@@ -71,7 +71,7 @@ public:
 
 
     virtual double getWidth() const;
-    bool  checkSeptum(PartBunchBase<double, 3> &bunch);
+    bool  checkSeptum(PartBunchBase<double, 3> *bunch);
     double calculateAngle(double x, double y);
 
     virtual ElementBase::ElementType getType() const;

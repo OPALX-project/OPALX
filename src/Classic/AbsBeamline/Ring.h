@@ -200,7 +200,7 @@ class Ring : public Component {
      *
      *  Ring still owns the memory to which lossDataSink points.
      */
-    PartBunch* getLossDataSink() const;
+    PartBunchBase<double, 3>* getLossDataSink() const;
 
     /** Set RefPartBunchBase<double, 3> to bunch.
      *
@@ -209,13 +209,13 @@ class Ring : public Component {
      *  Note for compliance with style guide and compatibility with parent two
      *  pointer to RefPartBunchBase<double, 3> are stored; this keeps them aligned
      */
-    void setRefPartBunch(PartBunch* bunch);
+    void setRefPartBunch(PartBunchBase<double, 3>* bunch);
 
     /** Get pointer to RefPartBunchBase<double, 3> from the bunch.
      *
      *  Ring does not own this memory (so neither does caller).
      */
-    PartBunch* getRefPartBunch() const;
+    PartBunchBase<double, 3>* getRefPartBunch() const;
 
     /** Set the harmonic number for RF (number of bunches in the ring) */
     void setHarmonicNumber(double cyclHarm) {cyclHarm_m = cyclHarm;}

@@ -30,17 +30,27 @@
 class PartBunch: public PartBunchBase<double, 3> {
     
 public:
+    typedef IpplParticleBase<Layout_t> pbase_t;
+    enum { Dim = Dimension };
+    
+public:
+    
     /// Default constructor.
     //  Construct empty bunch.
     PartBunch(const PartData *ref);
 
     /// Conversion.
-    PartBunch(const std::vector<OpalParticle> &, const PartData *ref);
+    PartBunch(const std::vector<OpalParticle> &,
+              const PartData *ref);
 
     PartBunch(const PartBunch &);
     ~PartBunch();
+    
+    pbase_t* clone();
 
     void runTests();
+    
+    void do_binaryRepart();
 
     double getRho(int x, int y, int z);
 
@@ -90,10 +100,12 @@ public:
     /// vector field on the grid
     VField_t  eg_m;
     
+    Inform &print(Inform &os);
+    
 
 private:
     
-    void updateDomainLength(Vector_t& grid);
+    void updateDomainLength(Vektor<int, 3>& grid);
     
     void updateFields(const Vector_t& hr, const Vector_t& origin);
     
@@ -133,20 +145,21 @@ double PartBunch::getRho(int x, int y, int z) {
 
 inline
 const Mesh_t &PartBunch::getMesh() const {
-    const ParticleSpatialLayout<double, 3>* layout = static_cast<const ParticleSpatialLayout<double, 3>* >(&getLayout());
+    const Layout_t* layout = static_cast<const Layout_t*>(&getLayout());
     return layout->getLayout().getMesh();
 }
 
 inline
 Mesh_t &PartBunch::getMesh() {
-    ParticleSpatialLayout<double, 3>* layout = static_cast<ParticleSpatialLayout<double, 3>* >(&getLayout());
+    Layout_t* layout = static_cast<Layout_t*>(&getLayout());
     return layout->getLayout().getMesh();
 }
 
-inline
-FieldLayout_t &PartBunch::getFieldLayout() {
-    ParticleSpatialLayout<double, 3>* layout = static_cast<ParticleSpatialLayout<double, 3>* >(&getLayout());
-    return dynamic_cast<FieldLayout_t &>(layout->getLayout().getFieldLayout());
+// inline
+
+
+inline Inform &operator<<(Inform &os, PartBunch &p) {
+    return p.print(os);
 }
 
 #endif // OPAL_PartBunch_HH

@@ -91,7 +91,7 @@ ThickTracker::ThickTracker(const Beamline &beamline,
 
 
 ThickTracker::ThickTracker(const Beamline &beamline,
-                           const PartBunch &bunch,
+                           PartBunchBase<double, 3> *bunch,
                            const PartData &reference,
                            bool revBeam, bool revTrack):
     Tracker(beamline, bunch, reference, revBeam, revTrack)
@@ -125,11 +125,11 @@ void ThickTracker::visitCorrector(const Corrector &corr) {
     if(length != 0.0) scale *= length; // Is this right?!?
     const BDipoleField &field = corr.getField();
 
-    for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-        OpalParticle part = itsBunch.get_part(i);
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
+        OpalParticle part = itsBunch->get_part(i);
         part.px() -= field.getBy() * scale;
         part.py() += field.getBx() * scale;
-        itsBunch.set_part(part, i);
+        itsBunch->set_part(part, i);
     }
 
     // Drift through second half of length.
@@ -200,8 +200,8 @@ void ThickTracker::visitMultipole(const Multipole &mult) {
         As.setTruncOrder(Series::EXACT);
 
         // Use implicit integration to propagate particles.
-        for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-            OpalParticle part = itsBunch.get_part(i);
+        for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
+            OpalParticle part = itsBunch->get_part(i);
             Vector zin;
             zin[X] = part.x();
             zin[PX] = part.px();
@@ -254,7 +254,7 @@ void ThickTracker::visitMultipole(const Multipole &mult) {
                     part.pt() = DBL_MAX;
                 }
             }
-            itsBunch.set_part(part, i);
+            itsBunch->set_part(part, i);
         }
 
         // Apply exit fringe field.
@@ -325,8 +325,8 @@ void ThickTracker::visitRBend(const RBend &bend) {
 
         // Use implicit integration to propagate particles.
 
-        for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-            OpalParticle part = itsBunch.get_part(i);
+        for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
+            OpalParticle part = itsBunch->get_part(i);
             Vector zin, zf;
             zin[X] = part.x();
             zin[PX] = part.px();
@@ -385,7 +385,7 @@ void ThickTracker::visitRBend(const RBend &bend) {
                     part.pt() = DBL_MAX;
                 }
             }
-            itsBunch.set_part(part, i);
+            itsBunch->set_part(part, i);
         }
 
         if(back_path) {
@@ -416,13 +416,13 @@ void ThickTracker::visitRFCavity(const RFCavity &as) {
     double kin = itsReference.getM() / itsReference.getP();
     double peak = flip_s * as.getAmplitude() / itsReference.getP();
 
-    for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-        OpalParticle part = itsBunch.get_part(i);
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
+        OpalParticle part = itsBunch->get_part(i);
         double pt    = (part.pt() + 1.0);
         double speed = (c * pt) / sqrt(pt * pt + kin * kin);
         double phase = as.getPhase() + (freq * part.t()) / speed;
         part.pt() += peak * sin(phase) / pt;
-        itsBunch.set_part(part, i);
+        itsBunch->set_part(part, i);
     }
 
     // Drift through half length.
@@ -489,8 +489,8 @@ void ThickTracker::visitSBend(const SBend &bend) {
         // Use implicit integration to propagate particles.
 
 
-        for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-            OpalParticle part = itsBunch.get_part(i);
+        for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
+            OpalParticle part = itsBunch->get_part(i);
 
             Vector zin, zf;
             zin[X] = part.x();
@@ -557,7 +557,7 @@ void ThickTracker::visitSBend(const SBend &bend) {
                     part.pt() = DBL_MAX;
                 }
             }
-            itsBunch.set_part(part, i);
+            itsBunch->set_part(part, i);
         }
 
         // Apply exit fringe field.
@@ -581,12 +581,12 @@ void ThickTracker::visitSeparator(const Separator &sep) {
         double Ex = scale * sep.getEx();
         double Ey = scale * sep.getEy();
 
-        for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-            OpalParticle part = itsBunch.get_part(i);
+        for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
+            OpalParticle part = itsBunch->get_part(i);
             double pt = 1.0 + part.pt();
             part.px() += Ex / pt;
             part.py() += Ey / pt;
-            itsBunch.set_part(part, i);
+            itsBunch->set_part(part, i);
         }
 
         // Drift through second half of length.
@@ -614,8 +614,8 @@ void ThickTracker::visitSolenoid(const Solenoid &solenoid) {
             double refTime = length / itsReference.getBeta();
 
 
-            for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-                OpalParticle part = itsBunch.get_part(i);
+            for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
+                OpalParticle part = itsBunch->get_part(i);
                 double pt = part.pt() + 1.0;
                 double px = part.px() + ks * part.y();
                 double py = part.py() - ks * part.x();
@@ -636,7 +636,7 @@ void ThickTracker::visitSolenoid(const Solenoid &solenoid) {
                 part.px() = C * pxt - (S * k) * xt;
                 part.py() = C * pyt - (S * k) * yt;
                 part.t() += pt * (refTime / E - length / pz);
-                itsBunch.set_part(part, i);
+                itsBunch->set_part(part, i);
             }
         } else {
             applyDrift(length);
@@ -669,8 +669,8 @@ void ThickTracker::applyEntranceFringe(double angle, double curve,
 
     //Track particles.
 
-    for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-        OpalParticle part = itsBunch.get_part(i);
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
+        OpalParticle part = itsBunch->get_part(i);
         // Read particle coordinates.
         double x = part.x();
         double px = part.px();
@@ -719,7 +719,7 @@ void ThickTracker::applyEntranceFringe(double angle, double curve,
             part.t() = t;
             part.pt() = pt;
         }
-        itsBunch.set_part(part, i);
+        itsBunch->set_part(part, i);
     }
 }
 
@@ -738,8 +738,8 @@ void ThickTracker::applyExitFringe(double angle, double curve,
     by *= scale;
 
     //Track particles.
-    for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-        OpalParticle part = itsBunch.get_part(i);
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
+        OpalParticle part = itsBunch->get_part(i);
         // Read particle coordinates.
         double x = part.x();
         double px = part.px();
@@ -787,7 +787,7 @@ void ThickTracker::applyExitFringe(double angle, double curve,
             part.t() = t;
             part.pt() = pt;
         }
-        itsBunch.set_part(part, i);
+        itsBunch->set_part(part, i);
     }
 }
 

@@ -24,7 +24,8 @@
 class BeamlineVisitor;
 class BMultipoleField;
 class Multipole;
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 class PartData;
 class OpalParticle;
 
@@ -112,7 +113,7 @@ public:
     /// Track particle bunch through MPSplitIntegrator.
     // The bunch tracked is [b]buch[/b], the other values are the same
     // as in the calling mapper.
-    virtual void trackBunch(PartBunch &bunch, const PartData &data,
+    virtual void trackBunch(PartBunchBase<double, 3> *bunch, const PartData &data,
                             bool revBeam, bool revTrack) const;
 
     /// Return slice positions.

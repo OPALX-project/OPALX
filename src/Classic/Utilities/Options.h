@@ -156,6 +156,10 @@ namespace Options {
     extern bool cloTuneOnly;
 
     extern int version;
+    
+#ifdef HAVE_AMR_SOLVER
+    extern bool amr;
+#endif
 }
 
 #endif // OPAL_Options_HH

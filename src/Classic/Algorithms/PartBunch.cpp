@@ -51,28 +51,29 @@
 //#define DBG_SCALARFIELD
 //#define FIELDSTDOUT
 
-using namespace std;
+// using namespace std;
 
 // Class PartBunch
 // ------------------------------------------------------------------------
 
 PartBunch::PartBunch(const PartData *ref):
-    PartBunchBase<double, 3>(ref),
-    interpolationCacheSet_m(false),
+    PartBunchBase<double, 3>(new PartBunch::pbase_t(), ref),
+    interpolationCacheSet_m(false)
 {
     
 }
 
-PartBunch::PartBunch(const std::vector<OpalParticle> &rhs, const PartData *ref):
-    PartBunchBase<double, 3>(rhs, ref),
-    interpolationCacheSet_m(false),
+PartBunch::PartBunch(const std::vector<OpalParticle> &rhs,
+                     const PartData *ref):
+    PartBunchBase<double, 3>(new PartBunch::pbase_t(), rhs, ref),
+    interpolationCacheSet_m(false)
 {
     ERRORMSG("should not be here: PartBunch::PartBunch(const std::vector<OpalParticle> &rhs, const PartData *ref):" << endl);
 }
 
 PartBunch::PartBunch(const PartBunch &rhs):
     PartBunchBase<double, 3>(rhs),
-    interpolationCacheSet_m(rhs.interpolationCacheSet_m),
+    interpolationCacheSet_m(rhs.interpolationCacheSet_m)
 {
     ERRORMSG("should not be here: PartBunch::PartBunch(const PartBunch &rhs):" << endl);
     std::exit(0);
@@ -82,7 +83,9 @@ PartBunch::~PartBunch() {
 
 }
 
-
+PartBunch::pbase_t* PartBunch::clone() {
+    return new pbase_t(new Layout_t());
+}
 
 
 
@@ -94,7 +97,7 @@ void PartBunch::runTests() {
     setBCAllPeriodic();
 
     NDIndex<3> domain = getFieldLayout().getDomain();
-    for(int i = 0; i < Dim; i++)
+    for(unsigned int i = 0; i < Dimension; i++)
         nr_m[i] = domain[i].length();
 
     for(int i = 0; i < 3; i++)
@@ -105,14 +108,27 @@ void PartBunch::runTests() {
 
     rho_m.initialize(getMesh(),
                      getFieldLayout(),
-                     GuardCellSizes<Dim>(1),
+                     GuardCellSizes<Dimension>(1),
                      bc_m);
     eg_m.initialize(getMesh(),
                     getFieldLayout(),
-                    GuardCellSizes<Dim>(1),
+                    GuardCellSizes<Dimension>(1),
                     vbc_m);
 
-    fs_m->solver_m->test(*this);
+    fs_m->solver_m->test(this);
+}
+
+
+void PartBunch::do_binaryRepart() {
+    get_bounds(rmin_m, rmax_m);
+    
+    pbase_t* bunch =
+        dynamic_cast<pbase_t*>(this);
+    
+    BinaryRepartition(*bunch);
+    update();
+    get_bounds(rmin_m, rmax_m);
+    boundp();
 }
 
 
@@ -440,11 +456,11 @@ void PartBunch::resizeMesh() {
 
     rho_m.initialize(getMesh(),
                      getFieldLayout(),
-                     GuardCellSizes<Dim>(1),
+                     GuardCellSizes<Dimension>(1),
                      bc_m);
     eg_m.initialize(getMesh(),
                     getFieldLayout(),
-                    GuardCellSizes<Dim>(1),
+                    GuardCellSizes<Dimension>(1),
                     vbc_m);
 
     update();
@@ -1011,18 +1027,23 @@ void PartBunch::computeSelfFields_cycl(int bin) {
     IpplTimings::stopTimer(selfFieldTimer_m);
 }
 
+FieldLayout_t &PartBunch::getFieldLayout() {
+    Layout_t* layout = static_cast<Layout_t*>(&getLayout());
+    return dynamic_cast<FieldLayout_t &>(layout->getLayout().getFieldLayout());
+}
+
 void PartBunch::setBCAllPeriodic() {
     for(int i = 0; i < 2 * 3; ++i) {
 
         if (Ippl::getNodes()>1) {
-            bc_m[i] = new ParallelInterpolationFace<double, Dim, Mesh_t, Center_t>(i);
+            bc_m[i] = new ParallelInterpolationFace<double, Dimension, Mesh_t, Center_t>(i);
             //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new ParallelPeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
+            vbc_m[i] = new ParallelPeriodicFace<Vector_t, Dimension, Mesh_t, Center_t>(i);
         }
         else {
-            bc_m[i] = new InterpolationFace<double, Dim, Mesh_t, Center_t>(i);
+            bc_m[i] = new InterpolationFace<double, Dimension, Mesh_t, Center_t>(i);
             //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new PeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
+            vbc_m[i] = new PeriodicFace<Vector_t, Dimension, Mesh_t, Center_t>(i);
         }
         getBConds()[i] =  ParticlePeriodicBCond;
     }
@@ -1057,126 +1078,9 @@ void PartBunch::setBCForDCBeam() {
 }
 
 
-void PartBunch::calcMoments() {
-
-    double part[2 * Dim];
-
-    double loc_centroid[2 * Dim];
-    double loc_moment[2 * Dim][2 * Dim];
-    double moments[2 * Dim][2 * Dim];
-    const unsigned long localNum = getLocalNum();
-
-    for(int i = 0; i < 2 * Dim; i++) {
-        loc_centroid[i] = 0.0;
-        for(int j = 0; j <= i; j++) {
-            loc_moment[i][j] = 0.0;
-            loc_moment[j][i] = loc_moment[i][j];
-        }
-    }
-
-    for(unsigned long k = 0; k < localNum; ++ k) {
-        part[1] = P[k](0);
-        part[3] = P[k](1);
-        part[5] = P[k](2);
-        part[0] = R[k](0);
-        part[2] = R[k](1);
-        part[4] = R[k](2);
-
-        for(int i = 0; i < 2 * Dim; ++ i) {
-            loc_centroid[i] += part[i];
-            for(int j = 0; j <= i; ++ j) {
-                loc_moment[i][j] += part[i] * part[j];
-            }
-        }
-    }
-
-    if (OpalData::getInstance()->isInOPALCyclMode()) {
-        for(unsigned long k = 0; k < localNum; ++ k) {
-            if (ID[k] == 0) {
-                part[1] = P[k](0);
-                part[3] = P[k](1);
-                part[5] = P[k](2);
-                part[0] = R[k](0);
-                part[2] = R[k](1);
-                part[4] = R[k](2);
-
-                for(int i = 0; i < 2 * Dim; i++) {
-                    loc_centroid[i] -= part[i];
-                    for(int j = 0; j <= i; j++) {
-                        loc_moment[i][j] -= part[i] * part[j];
-                    }
-                }
-
-                break;
-            }
-        }
-    }
-
-    for(int i = 0; i < 2 * Dim; i++) {
-        for(int j = 0; j < i; j++) {
-            loc_moment[j][i] = loc_moment[i][j];
-        }
-    }
-
-    reduce(&(loc_moment[0][0]), &(loc_moment[0][0]) + 2 * Dim * 2 * Dim,
-           &(moments[0][0]), OpAddAssign());
-
-    reduce(&(loc_centroid[0]), &(loc_centroid[0]) + 2 * Dim,
-           &(centroid_m[0]), OpAddAssign());
-
-    for(int i = 0; i < 2 * Dim; i++) {
-        for(int j = 0; j <= i; j++) {
-            moments_m(i, j) = moments[i][j];
-            moments_m(j, i) = moments_m(i, j);
-        }
-    }
-}
-
-void PartBunch::calcMomentsInitial() {
-
-    double part[2 * Dim];
-
-    for(int i = 0; i < 2 * Dim; ++i) {
-        centroid_m[i] = 0.0;
-        for(int j = 0; j <= i; ++j) {
-            moments_m(i, j) = 0.0;
-            moments_m(j, i) = moments_m(i, j);
-        }
-    }
-
-    for(size_t k = 0; k < pbin_m->getNp(); k++) {
-        for(int binNumber = 0; binNumber < pbin_m->getNBins(); binNumber++) {
-            std::vector<double> p;
-
-            if(pbin_m->getPart(k, binNumber, p)) {
-                part[0] = p.at(0);
-                part[1] = p.at(3);
-                part[2] = p.at(1);
-                part[3] = p.at(4);
-                part[4] = p.at(2);
-                part[5] = p.at(5);
-
-                for(int i = 0; i < 2 * Dim; ++i) {
-                    centroid_m[i] += part[i];
-                    for(int j = 0; j <= i; ++j) {
-                        moments_m(i, j) += part[i] * part[j];
-                    }
-                }
-            }
-        }
-    }
-
-    for(int i = 0; i < 2 * Dim; ++i) {
-        for(int j = 0; j < i; ++j) {
-            moments_m(j, i) = moments_m(i, j);
-        }
-    }
-}
-
-
-void PartBunch::updateDomainLength(Vector_t& grid) {
+void PartBunch::updateDomainLength(Vektor<int, 3>& grid) {
     NDIndex<3> domain = getFieldLayout().getDomain();
-    for(int i = 0; i < Dim; i++)
+    for(unsigned int i = 0; i < Dimension; i++)
         grid[i] = domain[i].length();
 }
 
@@ -1186,11 +1090,11 @@ void PartBunch::updateFields(const Vector_t& hr, const Vector_t& origin) {
     getMesh().set_origin(origin);
     rho_m.initialize(getMesh(),
                      getFieldLayout(),
-                     GuardCellSizes<Dim>(1),
+                     GuardCellSizes<Dimension>(1),
                      bc_m);
     eg_m.initialize(getMesh(),
                     getFieldLayout(),
-                    GuardCellSizes<Dim>(1),
+                    GuardCellSizes<Dimension>(1),
                     vbc_m);
 }
 
@@ -1256,6 +1160,6 @@ void PartBunch::swap(unsigned int i, unsigned int j) {
         std::swap(interpolationCache_m[i], interpolationCache_m[j]);
 }
 
-Inform &operator<<(Inform &os, PartBunch &p) {
-    return p.print(os);
+Inform &PartBunch::print(Inform &os) {
+    return PartBunchBase<double, 3>::print(os);
 }

@@ -98,7 +98,7 @@ void H5PartWrapperForPS::readHeader() {
     }
 }
 
-void H5PartWrapperForPS::readStep(PartBunchBase<double, 3>& bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
+void H5PartWrapperForPS::readStep(PartBunchBase<double, 3>* bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
     h5_ssize_t numStepsInSource = H5GetNumSteps(file_m);
     h5_ssize_t readStep = numStepsInSource - 1;
     REPORTONERROR(H5SetStep(file_m, readStep));
@@ -107,20 +107,20 @@ void H5PartWrapperForPS::readStep(PartBunchBase<double, 3>& bunch, h5_ssize_t fi
     readStepData(bunch, firstParticle, lastParticle);
 }
 
-void H5PartWrapperForPS::readStepHeader(PartBunchBase<double, 3>& bunch) {
+void H5PartWrapperForPS::readStepHeader(PartBunchBase<double, 3>* bunch) {
     double actualT;
     READSTEPATTRIB(Float64, file_m, "TIME", &actualT);
-    bunch.setT(actualT);
+    bunch->setT(actualT);
 }
 
-void H5PartWrapperForPS::readStepData(PartBunchBase<double, 3>& bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
+void H5PartWrapperForPS::readStepData(PartBunchBase<double, 3>* bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
     h5_ssize_t numParticles = getNumParticles();
     if (lastParticle >= numParticles || firstParticle > lastParticle) {
         throw OpalException("H5PartWrapperForPS::readStepData",
                             "the provided particle numbers don't match the number of particles in the file");
     }
 
-    EnvelopeBunch *ebunch = static_cast<EnvelopeBunch*>(&bunch);
+    EnvelopeBunch *ebunch = static_cast<EnvelopeBunch*>(bunch);
 
     REPORTONERROR(H5PartSetView(file_m, firstParticle, lastParticle));
 
@@ -237,16 +237,16 @@ void H5PartWrapperForPS::writeHeader() {
     WRITEFILEATTRIB(Float64, file_m, "dPhiGlobal", &dphi, 1);
 }
 
-void H5PartWrapperForPS::writeStep(PartBunchBase<double, 3>& bunch, const std::map<std::string, double> &additionalStepAttributes) {
-    if (static_cast<EnvelopeBunch*>(&bunch)->getTotalNum() == 0) return;
+void H5PartWrapperForPS::writeStep(PartBunchBase<double, 3>* bunch, const std::map<std::string, double> &additionalStepAttributes) {
+    if (static_cast<EnvelopeBunch*>(bunch)->getTotalNum() == 0) return;
 
     writeStepHeader(bunch, additionalStepAttributes);
     writeStepData(bunch);
 }
 
-void H5PartWrapperForPS::writeStepHeader(PartBunchBase<double, 3>& bunch,
+void H5PartWrapperForPS::writeStepHeader(PartBunchBase<double, 3>* bunch,
                                          const std::map<std::string, double> &additionalStepAttributes) {
-    EnvelopeBunch *ebunch = static_cast<EnvelopeBunch*>(&bunch);
+    EnvelopeBunch *ebunch = static_cast<EnvelopeBunch*>(bunch);
     ebunch->calcBeamParameters();
 
     double   actPos   = ebunch->get_sPos();
@@ -348,8 +348,8 @@ void H5PartWrapperForPS::writeStepHeader(PartBunchBase<double, 3>& bunch,
     ++ numSteps_m;
 }
 
-void H5PartWrapperForPS::writeStepData(PartBunchBase<double, 3>& bunch) {
-    EnvelopeBunch *ebunch = static_cast<EnvelopeBunch*>(&bunch);
+void H5PartWrapperForPS::writeStepData(PartBunchBase<double, 3>* bunch) {
+    EnvelopeBunch *ebunch = static_cast<EnvelopeBunch*>(bunch);
 
     size_t numLocalParticles = ebunch->getLocalNum();
 
@@ -455,22 +455,22 @@ void H5PartWrapperForPS::stashPhaseSpaceEnvelope(EnvelopeBunch &bunch,
 
     /// Write bunch phase space.
     //for (size_t i=0; i<numLocalParticles;i++)
-    //farray[i] =  bunch.getX(i);
+    //farray[i] =  bunch->getX(i);
 
     //for (size_t i=0; i<numLocalParticles;i++)
-    //farray[i] =  bunch.getY(i);
+    //farray[i] =  bunch->getY(i);
 
     //for (size_t i=0; i<numLocalParticles;i++)
-    //farray[i] =  bunch.getZ(i);
+    //farray[i] =  bunch->getZ(i);
 
     //for (size_t i=0; i<numLocalParticles;i++)
-    //farray[i] =  bunch.getPx(i);
+    //farray[i] =  bunch->getPx(i);
 
     //for (size_t i=0; i<numLocalParticles;i++)
-    //farray[i] =  bunch.getPy(i);
+    //farray[i] =  bunch->getPy(i);
 
     //for (size_t i=0; i<numLocalParticles;i++)
-    //farray[i] =  bunch.getPz(i);
+    //farray[i] =  bunch->getPz(i);
 
      ++ numSteps_m;
 }
@@ -526,19 +526,19 @@ void H5PartWrapperForPS::dumpStashedPhaseSpaceEnvelope() {
             f64buffer[i] =  0.0;
         WRITEDATA(Float64, file_m, "x", f64buffer);
         for(size_t i = 0; i < numLocalParticles; i++)
-            f64buffer[i] =  0.0; //bunch.getY(i);
+            f64buffer[i] =  0.0; //bunch->getY(i);
         WRITEDATA(Float64, file_m, "y", f64buffer);
         for(size_t i = 0; i < numLocalParticles; i++)
-            f64buffer[i] =  0.0; //bunch.getZ(i);
+            f64buffer[i] =  0.0; //bunch->getZ(i);
         WRITEDATA(Float64, file_m, "z", f64buffer);
         for(size_t i = 0; i < numLocalParticles; i++)
-            f64buffer[i] =  0.0; //bunch.getPx(i);
+            f64buffer[i] =  0.0; //bunch->getPx(i);
         WRITEDATA(Float64, file_m, "px", f64buffer);
         for(size_t i = 0; i < numLocalParticles; i++)
-            f64buffer[i] =  0.0; //bunch.getPy(i);
+            f64buffer[i] =  0.0; //bunch->getPy(i);
         WRITEDATA(Float64, file_m, "py", f64buffer);
         for(size_t i = 0; i < numLocalParticles; i++)
-            f64buffer[i] =  0.0; //bunch.getPz(i);
+            f64buffer[i] =  0.0; //bunch->getPz(i);
         WRITEDATA(Float64, file_m, "pz", f64buffer);
         //rc = H5Fflush, file_m->file, rc = H5F_SCOPE_GLOBAL);
     }

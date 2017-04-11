@@ -19,7 +19,7 @@
 #include "Algorithms/BeamBeam3D.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/ElementImage.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "BeamlineGeometry/Matrix3D.h"
 #include "BeamlineGeometry/Vector3D.h"
 #include "FixedAlgebra/FTpsMath.h"
@@ -196,12 +196,12 @@ void BeamBeam3D::setSlices(int slices) {
 
 
 void BeamBeam3D::trackBunch
-(PartBunch &bunch, const PartData &, bool revBeam, bool revTrack) const {
+(PartBunchBase<double, 3> *bunch, const PartData &, bool revBeam, bool revTrack) const {
     boost(bunch);
     synchroBeamCollision(bunch);
     boosti(bunch);
     double ax, ay;
-    bunch.maximumAmplitudes(D, ax, ay);
+    bunch->maximumAmplitudes(D, ax, ay);
     axmax = max(axmax, ax);
     aymax = max(aymax, ay);
 }
@@ -215,10 +215,10 @@ void BeamBeam3D::trackMap
 }
 
 
-void BeamBeam3D::boost(PartBunch &bunch) const {
+void BeamBeam3D::boost(PartBunchBase<double, 3> *bunch) const {
 
-    for(unsigned int i = 0; i < bunch.getLocalNum(); i++) {
-        OpalParticle part = bunch.get_part(i);
+    for(unsigned int i = 0; i < bunch->getLocalNum(); i++) {
+        OpalParticle part = bunch->get_part(i);
 
         double a = (sqr(part.px()) + sqr(part.py())) / sqr(1.0 + part.pt());
         double sqr1a = sqrt(1.0 - a);
@@ -237,7 +237,7 @@ void BeamBeam3D::boost(PartBunch &bunch) const {
         part.y() = part.y() + sphi * h1y * part.x();
         part.t() = part.t() / cphi - sphi * h1z * part.x();
         part.x() = x1;
-        bunch.set_part(part, i);
+        bunch->set_part(part, i);
     }
 }
 
@@ -263,9 +263,9 @@ void BeamBeam3D::boost(FVps<double, 6> &map) const {
 }
 
 
-void BeamBeam3D::boosti(PartBunch &bunch) const {
-    for(unsigned int i = 0; i < bunch.getLocalNum(); i++) {
-        OpalParticle part = bunch.get_part(i);
+void BeamBeam3D::boosti(PartBunchBase<double, 3> *bunch) const {
+    for(unsigned int i = 0; i < bunch->getLocalNum(); i++) {
+        OpalParticle part = bunch->get_part(i);
 
         double a1 = (sqr(part.px()) + sqr(part.py())) / sqr(1.0 + part.pt());
         double sqr1a = sqrt(1.0 - a1);
@@ -281,7 +281,7 @@ void BeamBeam3D::boosti(PartBunch &bunch) const {
         part.pt() = part.pt() + sphi * part.px();
         part.px() = (part.px() + sphi * h1) * cphi;
         part.py() = part.py() * cphi;
-        bunch.set_part(part, i);
+        bunch->set_part(part, i);
     }
 }
 
@@ -342,15 +342,15 @@ void BeamBeam3D::computeSlices() {
 }
 
 
-void BeamBeam3D::synchroBeamCollision(PartBunch &bunch) const {
+void BeamBeam3D::synchroBeamCollision(PartBunchBase<double, 3> *bunch) const {
     std::vector<Slice>::const_iterator last_slice = slices.end();
     std::vector<Slice>::const_iterator slice = slices.begin();
 
 
     for(; slice != last_slice; ++slice) {
 
-        for(unsigned int i = 0; i < bunch.getLocalNum(); i++) {
-            OpalParticle part = bunch.get_part(i);
+        for(unsigned int i = 0; i < bunch->getLocalNum(); i++) {
+            OpalParticle part = bunch->get_part(i);
             double s  = (part.t() - slice->zstar) / 2.0;
             double sx = slice->sigx + slice->sigpx * s * s;
             double sy = slice->sigy + slice->sigpy * s * s;
@@ -387,7 +387,7 @@ void BeamBeam3D::synchroBeamCollision(PartBunch &bunch) const {
             part.py() -= bbfy;
             part.pt() -= s * (slice->sigpx * bbgx + slice->sigpy * bbgy) +
                          (bbfx * (part.px() - bbfx / 2.0) + bbfy * (part.py() - bbfy / 2.0)) / 2.0;
-            bunch.set_part(part, i);
+            bunch->set_part(part, i);
         }
     }
 }

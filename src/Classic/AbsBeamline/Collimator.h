@@ -71,7 +71,7 @@ public:
 
     virtual bool applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual bool checkCollimator(PartBunchBase<double, 3> &bunch, const int turnnumber, const double t, const double tstep);
+    virtual bool checkCollimator(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep);
 
     virtual bool checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax);
 

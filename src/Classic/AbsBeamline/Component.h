@@ -164,7 +164,7 @@ public:
     //  This catch-all method implements a hook for tracking a particle
     //  bunch through a non-standard component.
     //  The default version throws a LogicalError.
-    virtual void trackBunch(PartBunchBase<double, 3> &bunch, const PartData &,
+    virtual void trackBunch(PartBunchBase<double, 3> *bunch, const PartData &,
                             bool revBeam, bool revTrack) const;
 
     /// Track a map.
