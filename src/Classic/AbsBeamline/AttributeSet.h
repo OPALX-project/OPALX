@@ -27,7 +27,6 @@
 #include <string>
 #include <map>
 
-class ElementBase;
 class Channel;
 class ConstChannel;
 

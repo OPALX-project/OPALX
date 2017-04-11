@@ -81,15 +81,15 @@ public:
     /** \brief Is true if we still have particles to emit */
     bool doEmission() {return getNp() > 0;}
 
-    bool isEmitted(int n, int bin) {
+    bool isEmitted(int n, int /*bin*/) {
         return isEmitted_m[n]; //(isEmitted_m[n][0]==1) && (isEmitted_m[n][1] == bin);
     }
 
-    void setEmitted(int n, int bin) {
+    void setEmitted(int n, int /*bin*/) {
         isEmitted_m[n] = true;
     }
 
-    void updatePartPos(int n, int bin, double z) {
+    void updatePartPos(int n, int /*bin*/, double z) {
         tmppart_m[n][2] = z;
     }
 

@@ -26,9 +26,6 @@
 #include "Errors/AlignHandler.h"
 #include "Errors/AlignReader.h"
 #include "Errors/AlignWriter.h"
-#include "Errors/MPHandler.h"
-#include "Errors/MPReader.h"
-#include "Errors/MPWriter.h"
 #include "Lines/FlatWriter.h"
 
 #include "Lines/Replacer.h"

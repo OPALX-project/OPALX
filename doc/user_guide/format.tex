@@ -401,7 +401,7 @@ acting on operands \seesec{operand}.
   \begin{center}
     \caption{Real Functions in \opal}
     \label{tab:realfun}
-    \begin{tabular}{|l|p{0.6\textwidth}|l|p{1.3cm}|}
+    \begin{tabular}{|l|l|l|l|}
       \hline
       \tabhead{Function & Meaning & result type & argument type(s)}
       \hline
@@ -409,11 +409,11 @@ acting on operands \seesec{operand}.
       \hline%
       \keyword{RANF()} & random number, uniform distribution in [0,1) &
       real &- \\
-      \keyword{GAUSS()} & random number, Gaussian distribution with $\sigma=1$ &
+      \keyword{GAUSS()} & random number, Gaussian distribution with $\mu=0$ and $\sigma=1$ &
       real &- \\
       \keyword{GETEKIN()} & returns the kinetic energy of the bunch (MeV) &
       real &- \\
-            \keyword{USER0()} & random number, user-defined distribution &
+      \keyword{USER0()} & random number, user-defined distribution &
       real &-
       \ifthenelse{\boolean{ShowMap}}{\\
       \keyword{SI()} &
@@ -482,10 +482,10 @@ acting on operands \seesec{operand}.
       \keyword{ATAN2(X,Y)} &
       return inverse trigonometric tangent of \texttt{Y/X} &
       real &real,real \\
-      \keyword{MAX(X,Y)} & return the larger of \texttt{X, Y} &
+      \keyword{MAX(X,Y)} & return the larger of \texttt{X}, \texttt{Y} &
       real &real,real \\
       \keyword{MIN(X,Y)} &
-      return the smaller of \texttt{X, Y} &
+      return the smaller of \texttt{X}, \texttt{Y} &
       real &real,real \\
       \keyword{MOD(X,Y)} &
       return the largest value less than \texttt{Y}

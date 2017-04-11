@@ -93,7 +93,7 @@ inline void BorisPusher::kick(const Vector_t &R, Vector_t &P, const Vector_t &Ef
 }
 
 
-inline void BorisPusher::push(Vector_t &R, const Vector_t &P, const double &dt) const {
+inline void BorisPusher::push(Vector_t &R, const Vector_t &P, const double &/* dt */) const {
     /** \f[ \vec{x}_{n+1/2} = \vec{x}_{n} + \frac{1}{2}\vec{v}_{n-1/2}\quad (= \vec{x}_{n} + \frac{\Delta t}{2} \frac{\vec{\beta}_{n-1/2}\gamma_{n-1/2}}{\gamma_{n-1/2}}) \f]
      *
      * \code

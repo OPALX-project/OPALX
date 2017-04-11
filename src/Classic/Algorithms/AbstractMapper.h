@@ -24,7 +24,6 @@
 #include "Algorithms/PartData.h"
 
 class BMultipoleField;
-class Euclid3D;
 template <class T, int N> class LinearMap;
 template <class T, int N> class FTps;
 template <class T, int N> class FVps;

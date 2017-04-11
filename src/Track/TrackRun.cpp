@@ -164,7 +164,7 @@ TrackRun *TrackRun::clone(const std::string &name) {
 void TrackRun::execute() {
     std::string packageVersionStr = PACKAGE_VERSION_STR;
     packageVersionStr.replace(packageVersionStr.find_first_of('.'), 1, "");
-    unsigned int posDot = packageVersionStr.find_first_of('.');
+    std::string::size_type posDot = packageVersionStr.find_first_of('.');
     if (posDot != std::string::npos)
         packageVersionStr = packageVersionStr.substr(0, posDot);
 

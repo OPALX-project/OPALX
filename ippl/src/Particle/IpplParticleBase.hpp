@@ -712,7 +712,7 @@ IpplParticleBase<PLayout>::ghostGetMessage(Message& msg, int node) {
 
 template<class PLayout>
 size_t
-IpplParticleBase<PLayout>::ghostGetSingleMessage(Message& msg, int node) {
+IpplParticleBase<PLayout>::ghostGetSingleMessage(Message& msg, int /*node*/) {
 
   // make sure we've been initialized
   PAssert(Layout != 0);

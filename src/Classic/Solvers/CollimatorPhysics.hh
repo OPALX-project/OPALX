@@ -87,7 +87,7 @@ public:
     inline double getTime() {return T_m;}
     std::string getName() { return FN_m;}
     size_t getParticlesInMat() { return locPartsInMat_m;}
-    unsigned getRedifused() { return redifusedStat_m;}
+    unsigned getRediffused() { return rediffusedStat_m;}
 
     inline void doPhysics(PartBunchBase<double, 3> *bunch);
 
@@ -163,7 +163,7 @@ private:
 
     unsigned bunchToMatStat_m;
     unsigned stoppedPartStat_m;
-    unsigned redifusedStat_m;
+    unsigned rediffusedStat_m;
     size_t locPartsInMat_m;
 
     // some statistics
@@ -191,7 +191,7 @@ private:
 
     std::vector<PART_DKS> dksParts_m;
 
-    static const int numpar = 12;
+    static const int numpar;
 #endif
 
     IpplTimings::TimerRef DegraderApplyTimer_m;

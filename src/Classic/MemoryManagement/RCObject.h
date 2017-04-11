@@ -102,7 +102,7 @@ inline RCObject::RCObject():
 {}
 
 
-inline RCObject::RCObject(const RCObject &rhs):
+inline RCObject::RCObject(const RCObject &/*rhs*/):
     refCount(0)
 {}
 
@@ -111,7 +111,7 @@ inline RCObject::~RCObject()
 {}
 
 
-inline RCObject &RCObject::operator=(const RCObject &rhs) {
+inline RCObject &RCObject::operator=(const RCObject &/*rhs*/) {
     return *this;
 }
 

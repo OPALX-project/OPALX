@@ -254,7 +254,7 @@ public:
     double betacf(const double a, const double b, const double x);
     double betaiapprox(double a, double b, double x);
     double invbetai(double p, double a, double b);
-    void coordConverter (const Vector_t &TriNormal, Vector_t &x) {  }
+    void coordConverter (const Vector_t &/*TriNormal*/, Vector_t &/*x*/) {  }
 
 
 

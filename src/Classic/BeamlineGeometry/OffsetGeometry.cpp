@@ -37,6 +37,7 @@ OffsetGeometry::OffsetGeometry(const BGeometryBase &g, const Euclid3D &t):
 
 
 OffsetGeometry::OffsetGeometry(const OffsetGeometry &og):
+    BGeometryBase(og),
     global(og.global), local(og.local), g2l(og.g2l)
 {}
 

@@ -72,6 +72,7 @@ inline DirectChannel::DirectChannel(double &value):
 
 
 inline DirectChannel::DirectChannel(const DirectChannel &rhs):
+    Channel(),
     reference(rhs.reference)
 {}
 

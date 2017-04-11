@@ -151,7 +151,7 @@ bool FM1DMagnetoStatic_fast::checkFileData(std::ifstream &fieldFile,
                                            bool parsingPassed) {
 
     double tempDouble;
-    for (unsigned int dataIndex = 0; dataIndex <= numberOfGridPoints_m; ++ dataIndex)
+    for (unsigned int dataIndex = 0; dataIndex < numberOfGridPoints_m; ++ dataIndex)
         parsingPassed = parsingPassed
             && interpreteLine<double>(fieldFile, tempDouble);
 

@@ -872,7 +872,7 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
                     itsBunch_m->P[i] = localToRefCSTrafo.rotateTo(itsBunch_m->P[i]);
                 }
 
-                redifusedParticles += it->getRedifused();
+                redifusedParticles += it->getRediffused();
                 //if all particles where in material update time to time in degrader
                 if (it->getFlagAllParticlesIn()) {
                     double timeDifference = it->getTime() - itsBunch_m->getdT() - itsBunch_m->getT();

@@ -15,15 +15,14 @@
 
 #ifdef HAVE_SAAMG_SOLVER
 #include "Solvers/ArbitraryDomain.h"
+#include "Structure/BoundaryGeometry.h"
 
-#include <map>
 #include <cmath>
 #include <iostream>
+#include <tuple>
 #include <assert.h>
 
 #include <math.h>
-#define MIN2(a,b) (((a) < (b)) ? (a) : (b))
-#define MAX2(a,b) (((a) > (b)) ? (a) : (b))
 
 ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
    	                          Vector_t nr,
@@ -361,11 +360,10 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
     INFOMSG(level2 << "* Finding number of xy points in each plane along z..." << endl);
 
     //xy points in z plane
-    int numxy = 0;
     int numtotal = 0;
     numXY.clear();
     for(int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
-        numxy = 0;
+        int numxy = 0;
         for(int idx = 0; idx < nr[0]; idx++) {
             for(int idy = 0; idy < nr[1]; idy++) {
                 if(isInside(idx, idy, idz))

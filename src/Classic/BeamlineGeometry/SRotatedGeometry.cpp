@@ -38,6 +38,7 @@ SRotatedGeometry::SRotatedGeometry(const BGeometryBase &g,
 }
 
 SRotatedGeometry::SRotatedGeometry(const SRotatedGeometry &rhs):
+    BGeometryBase(rhs),
     srotIn(rhs.srotIn), srotOut(rhs.srotOut), geom(rhs.geom)
 {}
 

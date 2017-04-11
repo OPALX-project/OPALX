@@ -2,6 +2,7 @@
 *~
 *.o
 *.a
+*.aux
 build
 CMakeCache.txt
 CMakeFiles
@@ -14,3 +15,13 @@ src/OPALrevision.h
 src/opal
 tests/tools/gtest
 tests/opal_unit_tests
+doc/user_guide/opal_user_guide.bcf
+doc/user_guide/opal_user_guide.idx
+doc/user_guide/opal_user_guide.lof
+doc/user_guide/opal_user_guide.log
+doc/user_guide/opal_user_guide.lot
+doc/user_guide/opal_user_guide.out
+doc/user_guide/opal_user_guide.pdf
+doc/user_guide/opal_user_guide.run.xml
+doc/user_guide/opal_user_guide.synctex.gz
+doc/user_guide/opal_user_guide.toc

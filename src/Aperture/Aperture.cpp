@@ -136,6 +136,7 @@ namespace {
 
 
     Column::Column(const Column &rhs):
+        Scalar<double>(rhs),
         itsTable(rhs.itsTable), colName(rhs.colName),
         get(rhs.get), ind_1(rhs.ind_1), ind_2(rhs.ind_2)
     {}

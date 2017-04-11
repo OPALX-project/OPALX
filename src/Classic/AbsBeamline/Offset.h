@@ -33,7 +33,7 @@
 #include "BeamlineGeometry/Euclid3DGeometry.h"
 #include "AbsBeamline/Component.h"
 
-class Fieldmap;
+#include <string>
 
 /** @Class Offset
  *

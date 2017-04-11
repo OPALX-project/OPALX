@@ -24,7 +24,6 @@
 #include "AbsBeamline/Bend.h"
 #include "BeamlineGeometry/RBendGeometry.h"
 #include "Fields/BMultipoleField.h"
-#include "Physics/Physics.h"
 
 /*
  * Class RBend

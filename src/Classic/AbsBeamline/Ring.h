@@ -30,13 +30,11 @@
 
 #include <string>
 
-#include "Physics/Physics.h"
 #include "AbsBeamline/Component.h"
 
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 
 #include "Utilities/RingSection.h"
-#include "Utilities/ClassicField.h"
 #include "Utilities/GeneralClassicException.h"
 
 class LossDataSink;

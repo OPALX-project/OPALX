@@ -259,7 +259,7 @@ void Period::findClosedOrbit() {
     //fixPoint[5]=0.e0;
     //std::cerr << " [findCO:] fixPoint =" << fixPoint << std::endl;
 
-    double error = 0.0, errold = 0.0;
+    double error = 0.0;
     for(int count = 0; count < iteration_limit; ++count) {
         //std::cerr << " [findCO:] count = " << count << std::endl;
         // Initial guess for closed orbit.
@@ -276,7 +276,7 @@ void Period::findClosedOrbit() {
         // Get system of equations for fixed point.
         FMatrix<double, 6, 6> A   = mapAtEnd.linearTerms();
         FVector<double, 6> Error = mapAtEnd.constantTerm() - fixPoint;
-        errold = error;
+        double errold = error;
         error = 0.0;
 
         //std::cerr << " [findCO:] count " << count << ": Error =\n {";

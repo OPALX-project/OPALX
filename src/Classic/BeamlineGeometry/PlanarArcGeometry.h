@@ -156,7 +156,7 @@ inline PlanarArcGeometry::PlanarArcGeometry(double phi):
 
 
 inline PlanarArcGeometry::PlanarArcGeometry(const PlanarArcGeometry &rhs):
-    len(rhs.len), h(rhs.h), angle(rhs.angle)
+    BGeometryBase(rhs),len(rhs.len), h(rhs.h), angle(rhs.angle)
 {}
 
 
