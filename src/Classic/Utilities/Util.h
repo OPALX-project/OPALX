@@ -45,7 +45,7 @@ namespace Util {
         }
 
         std::stringstream timeOutput;
-        timeOutput << std::fixed << std::setw(precision + 2) << std::setprecision(precision) << time << timeUnit;
+        timeOutput << std::scientific << std::setw(precision + 2) << std::setprecision(precision) << time << timeUnit;
         return timeOutput.str();
     }
 
@@ -64,7 +64,7 @@ namespace Util {
         }
 
         std::stringstream positionOutput;
-        positionOutput << std::fixed << std::setw(precision + 2) << std::setprecision(precision) << spos << sposUnit;
+        positionOutput << std::scientific << std::setw(precision + 2) << std::setprecision(precision) << spos << sposUnit;
         return positionOutput.str();
     }
 
@@ -117,7 +117,7 @@ namespace Util {
         }
 
         std::stringstream energyOutput;
-        energyOutput << std::fixed << std::setw(precision + 2) << std::setprecision(precision) << energy << energyUnit;
+        energyOutput << std::scientific << std::setw(precision + 2) << std::setprecision(precision) << energy << energyUnit;
 
         return energyOutput.str();
     }
@@ -138,7 +138,7 @@ namespace Util {
         }
 
         std::stringstream chargeOutput;
-        chargeOutput << std::fixed << std::setw(precision + 2) << std::setprecision(precision) << charge << chargeUnit;
+        chargeOutput << std::scientific << std::setw(precision + 2) << std::setprecision(precision) << charge << chargeUnit;
 
         return chargeOutput.str();
     }
