@@ -136,8 +136,6 @@ public:
   // version, however.
   FieldLayout<Dim>& getFieldLayout() { return *FLayout; }
   const FieldLayout<Dim>& getFieldLayout() const { return *FLayout; }
-  
-  void setFieldLayout(FieldLayout<Dim> *fl) { FLayout = fl; }
 
   // get the mesh
   MeshType& getMesh() { return *theMesh; }

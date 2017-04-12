@@ -82,7 +82,9 @@ public:
     std::string getFieldSolverType() {return fsType_m; }
 
     inline Layout_t &getParticleLayout() { return *PL_m; }
-
+    
+    FieldLayout_t *getFieldLayout() { return FL_m; }
+    
     Inform &printInfo(Inform &os) const;
     unsigned int getInteractionRadius() {return (unsigned int) rpp_m; }
 
