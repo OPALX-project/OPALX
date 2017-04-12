@@ -22,13 +22,18 @@ public:
     
     pbase_t* clone();
     
+    void initialize(FieldLayout_t *fLayout);
+    
     VectorPair_t getEExtrema();
     
     double getRho(int x, int y, int z);
     
 //     const Mesh_t &getMesh() const;
-
+    
+//     void setMesh(Mesh_t *mesh);
 //     Mesh_t &getMesh();
+    
+//     void setFieldLayout(FieldLayout_t* fLayout);
     
     FieldLayout_t &getFieldLayout();
     

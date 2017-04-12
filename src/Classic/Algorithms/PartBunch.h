@@ -50,6 +50,8 @@ public:
 
     void runTests();
     
+    void initialize(FieldLayout_t *fLayout);
+    
     void do_binaryRepart();
 
     double getRho(int x, int y, int z);
@@ -62,10 +64,14 @@ public:
 
     // MATTHIAS CHECK
     const Mesh_t &getMesh() const;
-
+    
+//     void setMesh(Mesh_t* mesh);
+    
     // MATTHIAS CHECK
     Mesh_t &getMesh();
-
+    
+//     void setFieldLayout(FieldLayout_t* fLayout);
+    
     // MATTHIAS CHECK
     FieldLayout_t &getFieldLayout();
 
