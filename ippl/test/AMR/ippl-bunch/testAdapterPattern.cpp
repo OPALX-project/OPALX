@@ -3,8 +3,6 @@
 #include "PartBunch.h"
 #include "AmrPartBunch.h"
 
-#include "Amr/BoxLibLayout.h"
-#include "Amr/BoxLibParticle.h"
 // #include "BoxLibClasses.h"
 
 #include <memory>
@@ -121,8 +119,83 @@ int main(int argc, char** argv) {
         )
     );
     
+//     std::unique_ptr<PartBunchBase<double, 3> > bunch(new PartBunch(new IpplParticleBase<ParticleSpatialLayout<double, 3> >()));
     
+    
+    
+    
+//     dynamic_cast<PartBunch::pbase_t*>(bunch->pbase)->initialize(new PartBunch::pbase_t::Layout_t());
+    
+//     bunch->R = *bunch->pbase->R_p;
+//     bunch->ID = *bunch->pbase->ID_p;
+    
+    createRandomParticles(bunch.get(), 10, Ippl::myNode());
+    
+//     FieldLayout_t fl = bunch->getFieldLayout();
+    
+    
+    
+    e_dim_tag decomp[3] = {SERIAL, SERIAL, SERIAL};
+
+    NDIndex<3> domain;
+    domain[0] = Index(16 + 1);
+    domain[1] = Index(16 + 1);
+    domain[2] = Index(16 + 1);
+
+    
+        decomp[0] = PARALLEL;
+    
+//         decomp[1] = PARALLEL;
+    
+//         decomp[2] = PARALLEL;
+    // create prototype mesh and layout objects for this problem domain
+    Mesh_t* mesh_m   = new Mesh_t(domain);
+    FieldLayout_t* FL_m     = new FieldLayout_t(*mesh_m, decomp);
+//     PL_m     = new Layout_t(*FL_m, *mesh_m);
+//     FieldLayout_t fl =
+    bunch->setFieldLayout(*FL_m);
+    
+//     bunch.reset(
+//         new PartBunch(
+//             new IpplParticleBase<ParticleSpatialLayout<double, 3> >(
+//                 new ParticleSpatialLayout<double, 3>(*FL_m, *mesh_m)
+//             )
+//         )
+//     );
+    
+    
+    
+    std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
+    
+    bunch->update();
+    
+    bunch->getFieldLayout();
+    
+    std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
+    
+    std::cout << "bunch->R[0] = " << bunch->R[0] << std::endl;
+    
+    double two = 2.0;
+    bunch->R *= Vector_t(two);
+    
+    std::cout << "2 * bunch->R[0] = " << bunch->R[0] << std::endl;
+    std::cout << "max(bunch->R) = " << max(bunch->R) << std::endl;
+    
+    std::cout << "Destroy R[0]" << std::endl;
+    bunch->destroy(1, 0);
+    bunch->update();
+    std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
+    
+//     std::cout << std::endl << "Init AmrPartBunch" << std::endl
+//               << "-----------------" << std::endl;
+//     
+//     BoxLib::Initialize(argc,argv, false);
+//     
+//     bunch.reset(nullptr);
+//     initBunch(bunch);
+//     
 //     createRandomParticles(bunch.get(), 10, Ippl::myNode());
+//     
 //     
 //     std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
 //     
@@ -132,49 +205,19 @@ int main(int argc, char** argv) {
 //     
 //     std::cout << "bunch->R[0] = " << bunch->R[0] << std::endl;
 //     
-    double two = 2.0;
-//     bunch->R *= Vector_t(two);
+//     bunch->R *= Vector_t(2.0);
 //     
 //     std::cout << "2 * bunch->R[0] = " << bunch->R[0] << std::endl;
 //     std::cout << "max(bunch->R) = " << max(bunch->R) << std::endl;
 //     
+//     bunch->update();
+//     
 //     std::cout << "Destroy R[0]" << std::endl;
+//     std::cout << "level[0] = " << dynamic_cast<BoxLibParticle<BoxLibLayout<double, 3> >*>(bunch->pbase)->level[0] << std::endl;
+//     std::cout << "grid[0] = " << dynamic_cast<BoxLibParticle<BoxLibLayout<double, 3> >*>(bunch->pbase)->grid[0] << std::endl;
 //     bunch->destroy(1, 0);
 //     bunch->update();
 //     std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
-    
-    std::cout << std::endl << "Init AmrPartBunch" << std::endl
-              << "-----------------" << std::endl;
-    
-    BoxLib::Initialize(argc,argv, false);
-    
-    bunch.reset(nullptr);
-    initBunch(bunch);
-    
-    createRandomParticles(bunch.get(), 10, Ippl::myNode());
-    
-    
-    std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
-    
-    bunch->update();
-    
-    std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
-    
-    std::cout << "bunch->R[0] = " << bunch->R[0] << std::endl;
-    
-    bunch->R *= Vector_t(2.0);
-    
-    std::cout << "2 * bunch->R[0] = " << bunch->R[0] << std::endl;
-    std::cout << "max(bunch->R) = " << max(bunch->R) << std::endl;
-    
-    bunch->update();
-    
-    std::cout << "Destroy R[0]" << std::endl;
-    std::cout << "level[0] = " << dynamic_cast<BoxLibParticle<BoxLibLayout<double, 3> >*>(bunch->pbase)->level[0] << std::endl;
-    std::cout << "grid[0] = " << dynamic_cast<BoxLibParticle<BoxLibLayout<double, 3> >*>(bunch->pbase)->grid[0] << std::endl;
-    bunch->destroy(1, 0);
-    bunch->update();
-    std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
     
     return 0;
 }

@@ -5,11 +5,18 @@
 
 #include "PartBunchBase.h"
 
+#include "Amr/BoxLibLayout.h"
+#include "Amr/BoxLibParticle.h"
+
 class AmrPartBunch : public PartBunchBase<double, 3>
 {
 public:
     
-    AmrPartBunch(AbstractParticle<double, 3>* pb) : PartBunchBase<double, 3>(pb)/*,
+    typedef BoxLibParticle<BoxLibLayout<double, 3> > pbase_t;
+    
+public:
+    
+    AmrPartBunch(AbstractParticle<double, 3>* pb) : PartBunchBase<double, 3>(pb),
                                                     mesh_m(), fieldlayout_m(mesh_m) //FIXME*/
     {
 //         this->initialize(new BoxLibLayout<double, 3>()); // TODO Where is this done?
@@ -21,17 +28,17 @@ public:
 //         return mesh_m;
 //     }
 
-//     FieldLayout_t &getFieldLayout() {
-//         return fieldlayout_m;
-//     }
+    FieldLayout_t &getFieldLayout() {
+        return fieldlayout_m;
+    }
     
 private:
     static_assert(std::is_same<UniformCartesian<3, double>, Mesh_t>::value,
                   "Mesh_t has to be of type UniformCartesian<3, double>");
     
     
-//     Mesh_t mesh_m;
-//     FieldLayout_t fieldlayout_m;
+    Mesh_t mesh_m;
+    FieldLayout_t fieldlayout_m;
     
 };
 
