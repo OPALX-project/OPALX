@@ -56,8 +56,8 @@
 // Class PartBunch
 // ------------------------------------------------------------------------
 
-PartBunch::PartBunch(const PartData *ref):
-    PartBunchBase<double, 3>(new PartBunch::pbase_t(), ref),
+PartBunch::PartBunch(const PartData *ref): // Layout is set using setSolver()
+    PartBunchBase<double, 3>(new PartBunch::pbase_t(new Layout_t()), ref),
     interpolationCacheSet_m(false)
 {
     
@@ -65,7 +65,7 @@ PartBunch::PartBunch(const PartData *ref):
 
 PartBunch::PartBunch(const std::vector<OpalParticle> &rhs,
                      const PartData *ref):
-    PartBunchBase<double, 3>(new PartBunch::pbase_t(), rhs, ref),
+    PartBunchBase<double, 3>(new PartBunch::pbase_t(new Layout_t()), rhs, ref),
     interpolationCacheSet_m(false)
 {
     ERRORMSG("should not be here: PartBunch::PartBunch(const std::vector<OpalParticle> &rhs, const PartData *ref):" << endl);
@@ -88,6 +88,10 @@ PartBunch::pbase_t* PartBunch::clone() {
 }
 
 
+void PartBunch::initialize(FieldLayout_t *fLayout) {
+    Layout_t* layout = static_cast<Layout_t*>(&getLayout());
+    layout->getLayout().changeDomain(*fLayout);
+}
 
 void PartBunch::runTests() {
 
@@ -122,10 +126,10 @@ void PartBunch::runTests() {
 void PartBunch::do_binaryRepart() {
     get_bounds(rmin_m, rmax_m);
     
-    pbase_t* bunch =
-        dynamic_cast<pbase_t*>(this);
+    pbase_t* underlyingPbase =
+        dynamic_cast<pbase_t*>(pbase);
     
-    BinaryRepartition(*bunch);
+    BinaryRepartition(*underlyingPbase);
     update();
     get_bounds(rmin_m, rmax_m);
     boundp();
@@ -1026,6 +1030,21 @@ void PartBunch::computeSelfFields_cycl(int bin) {
 
     IpplTimings::stopTimer(selfFieldTimer_m);
 }
+
+
+// void PartBunch::setMesh(Mesh_t* mesh) {
+//     Layout_t* layout = static_cast<Layout_t*>(&getLayout());
+// //     layout->getLayout().setMesh(mesh);
+// }
+
+
+// void PartBunch::setFieldLayout(FieldLayout_t* fLayout) {
+//     Layout_t* layout = static_cast<Layout_t*>(&getLayout());
+// //     layout->getLayout().setFieldLayout(fLayout);
+// //     layout->rebuild_neighbor_data();
+//     layout->getLayout().changeDomain(*fLayout);
+// }
+
 
 FieldLayout_t &PartBunch::getFieldLayout() {
     Layout_t* layout = static_cast<Layout_t*>(&getLayout());

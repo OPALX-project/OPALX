@@ -1748,13 +1748,16 @@ template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setSolver(FieldSolver *fs) {
     fs_m = fs;
     fs_m->initSolver(this);
+    
     /**
        CAN not re-inizialize ParticleLayout
        this is an IPPL issue
      */
-    //FIXME Commented
-//     if(!OpalData::getInstance()->hasBunchAllocated())
-//         pbase->initialize(&(fs_m->getParticleLayout()));
+    if(!OpalData::getInstance()->hasBunchAllocated()) {
+        this->initialize(fs_m->getFieldLayout());
+//         this->setMesh(fs_m->getMesh());
+//         this->setFieldLayout(fs_m->getFieldLayout());
+    }
 }
 
 
@@ -2184,7 +2187,7 @@ Inform &PartBunchBase<T, Dim>::print(Inform &os) {
         os << level1 << "\n";
         os << "* ************** B U N C H ********************************************************* \n";
         os << "* NP              = " << getTotalNum() << "\n";
-        os << "* Qtot            = " << std::setw(17) << Util::getChargeString(abs(sum(Q))) << "         "
+        os << "* Qtot            = " << std::setw(17) << Util::getChargeString(std::abs(sum(Q))) << "         "
            << "Qi    = "             << std::setw(17) << Util::getChargeString(std::abs(qi_m)) << "\n";
         os << "* Ekin            = " << std::setw(17) << Util::getEnergyString(eKin_m) << "         "
            << "dEkin = "             << std::setw(17) << Util::getEnergyString(dE_m) << "\n";

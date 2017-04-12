@@ -73,6 +73,9 @@ public:
     
     PartBunchBase(const PartBunchBase &rhs); //TODO
     
+    // This is required since we initialize the Layout and the RegionLayout with default constructor
+    virtual void initialize(FieldLayout_t *fLayout) = 0;
+    
     bool getIfBeamEmitting();
     
     int getLastEmittedEnergyBin();
@@ -403,11 +406,11 @@ public:
     virtual void setBCForDCBeam();
     
     
-    
+//     virtual void setMesh(Mesh_t* mesh) = 0;
 //     virtual Mesh_t &getMesh() = 0;
-
-    virtual FieldLayout_t &getFieldLayout() = 0;
     
+//     virtual void setFieldLayout(FieldLayout_t* fLayout) = 0;
+    virtual FieldLayout_t &getFieldLayout() = 0;
     
     /*
      * Wrapped member functions of IpplParticleBase

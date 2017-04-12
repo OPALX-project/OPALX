@@ -3,7 +3,7 @@
 #include "Utilities/OpalException.h"
 
 AmrPartBunch::AmrPartBunch(const PartData *ref)
-    : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(), ref),
+    : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(new AmrLayout_t()), ref),
       mesh_m(), fieldlayout_m(mesh_m) //FIXME
 //       rho_m(PArrayManage),
 //       phi_m(PArrayManage),
@@ -15,7 +15,7 @@ AmrPartBunch::AmrPartBunch(const PartData *ref)
 
 AmrPartBunch::AmrPartBunch(const std::vector<OpalParticle> &rhs,
                            const PartData *ref)
-    : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(), rhs, ref),
+    : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(new AmrLayout_t()), rhs, ref),
       mesh_m(), fieldlayout_m(mesh_m) //FIXME
 //       rho_m(PArrayManage),
 //       phi_m(PArrayManage),
@@ -48,6 +48,11 @@ AmrPartBunch::VectorPair_t AmrPartBunch::getEExtrema() {
 }
 
 
+void AmrPartBunch::initialize(FieldLayout_t *fLayout) {
+    Layout_t* layout = static_cast<Layout_t*>(&getLayout());
+    layout->getLayout().changeDomain(*fLayout);
+}
+
 double AmrPartBunch::getRho(int x, int y, int z) {
     throw OpalException("AmrPartBunch::getRho(x, y, z) ", "Not yet Implemented.");
     return 0.0;
@@ -62,6 +67,19 @@ double AmrPartBunch::getRho(int x, int y, int z) {
 // Mesh_t &AmrPartBunch::getMesh() {
 //     //TODO Implement
 //     throw OpalException("AmrPartBunch::getMesh() ", "Not yet Implemented.");
+// }
+
+
+// void AmrPartBunch::setMesh(Mesh_t* mesh) {
+//     Layout_t* layout = static_cast<Layout_t*>(&getLayout());
+//     layout->getLayout().setMesh(mesh);
+// }
+// 
+// 
+// void AmrPartBunch::setFieldLayout(FieldLayout_t* fLayout) {
+//     Layout_t* layout = static_cast<Layout_t*>(&getLayout());
+//     layout->getLayout().setFieldLayout(fLayout);
+//     layout->getLayout().changeDomain(*fLayout);
 // }
 
 

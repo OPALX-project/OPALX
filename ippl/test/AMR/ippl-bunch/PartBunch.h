@@ -36,7 +36,9 @@ public:
         if ( layout->getLayout().initialized() ) {
             std::cout << "Initialized" << std::endl;
         } else {
-            layout->getLayout().setFieldLayout(&fl);
+//             layout->getLayout().setFieldLayout(&fl);
+            
+            layout->getLayout().changeDomain(fl);
             std::cout << "Uninitialized" << std::endl;
         }
     }

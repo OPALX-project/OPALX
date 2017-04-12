@@ -163,28 +163,56 @@ int main(int argc, char** argv) {
 //         )
 //     );
     
+    std::cout << "Hallo" << std::endl;
     
     
-    std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
+    PartBunch::pbase_t::Layout_t* layout = static_cast<PartBunch::pbase_t::Layout_t*>(&bunch->getLayout());
     
-    bunch->update();
+    RegionLayout<double ,3,Mesh_t>& RL = layout->getLayout();
+//     RegionLayout<double ,3,Mesh_t>& RL = dynamic_cast<PartBunch::pbase_t*>(bunch.get())->getLayout().getLayout();
     
-    bunch->getFieldLayout();
+    if ( ! RL.initialized()) {
+        ERRORMSG("Cannot repartition particles: uninitialized layout." << endl);
+        return false;
+    }
     
-    std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
+    FieldLayout<3>& FL = RL.getFieldLayout();
+    Mesh_t& mesh = RL.getMesh();
     
-    std::cout << "bunch->R[0] = " << bunch->R[0] << std::endl;
+    const NDIndex<3>& TotalDomain = FL.getDomain();
+//     NDIndex<Dim> indx;
     
-    double two = 2.0;
-    bunch->R *= Vector_t(two);
+    bool CenterOffset[3];
+    int CenteringTotal = 0;
+    unsigned int d;
+    for (d=0; d<3; ++d) {
+        CenterOffset[d] = (TotalDomain[d].length() < mesh.gridSizes[d]);
+        CenteringTotal += CenterOffset[d];
+    }
     
-    std::cout << "2 * bunch->R[0] = " << bunch->R[0] << std::endl;
-    std::cout << "max(bunch->R) = " << max(bunch->R) << std::endl;
     
-    std::cout << "Destroy R[0]" << std::endl;
-    bunch->destroy(1, 0);
-    bunch->update();
-    std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
+    std::cout << "Hallo" << std::endl;
+    
+//     std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
+    
+//     bunch->update();
+    
+//     bunch->getFieldLayout();
+    
+//     std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
+//     
+//     std::cout << "bunch->R[0] = " << bunch->R[0] << std::endl;
+//     
+//     double two = 2.0;
+//     bunch->R *= Vector_t(two);
+//     
+//     std::cout << "2 * bunch->R[0] = " << bunch->R[0] << std::endl;
+//     std::cout << "max(bunch->R) = " << max(bunch->R) << std::endl;
+//     
+//     std::cout << "Destroy R[0]" << std::endl;
+//     bunch->destroy(1, 0);
+//     bunch->update();
+//     std::cout << bunch->getTotalNum() << " " << bunch->getLocalNum() << std::endl;
     
 //     std::cout << std::endl << "Init AmrPartBunch" << std::endl
 //               << "-----------------" << std::endl;
