@@ -90,7 +90,7 @@ namespace Util {
             sposUnit = std::string(" [um]");
         }
 
-        positionOutput << std::scientific << std::setprecision(precision)
+        positionOutput << std::fixed << std::setprecision(precision)
                        << "( "
                        << std::setw(precision + 7) << spos(0) << " , "
                        << std::setw(precision + 7) << spos(1) << " , "
@@ -124,9 +124,15 @@ namespace Util {
 
     inline
     std::string getChargeString(double charge, unsigned int precision = 3) {
-        std::string chargeUnit(" [pC]");
+        std::string chargeUnit(" [fC]");
 
-        charge *= 1e12;
+        charge *= 1e15;
+        
+        if (std::abs(charge) > 1000.0) {
+            charge /= 1000.0;
+            chargeUnit = std::string(" [pC]");
+        }
+        
         if (std::abs(charge) > 1000.0) {
             charge /= 1000.0;
             chargeUnit = std::string(" [nC]");
