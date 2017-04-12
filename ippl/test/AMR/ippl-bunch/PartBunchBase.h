@@ -34,9 +34,13 @@ public:
         pb->addAttribute(TriID);
     }
     
+//     PartBunchBase() : pbase(nullptr) { }
+    
     /*
      * Wrapped member functions of IpplParticleBase
      */
+    
+    virtual void setFieldLayout(FieldLayout_t& fl) { }
     
     size_t getTotalNum() const {
         return pbase->getTotalNum();
@@ -121,15 +125,20 @@ public:
     
 //     virtual Mesh_t &getMesh() = 0;
 
-//     virtual FieldLayout_t &getFieldLayout() = 0;
+    virtual FieldLayout_t &getFieldLayout() = 0;
     
+    ParticleLayout<T, Dim> & getLayout() {
+        return pbase->getLayout();
+    }
+    
+    const ParticleLayout<T, Dim>& getLayout() const {
+        return pbase->getLayout();
+    }
     
     
     /*
      * Bunch attributes
      */
-    
-    
     ParticlePos_t& R;
     ParticleIndex_t& ID;
     
