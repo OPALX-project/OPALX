@@ -45,7 +45,7 @@ namespace Util {
         }
 
         std::stringstream timeOutput;
-        timeOutput << std::scientific << std::setw(precision + 2) << std::setprecision(precision) << time << timeUnit;
+        timeOutput << std::fixed << std::setw(precision + 2) << std::setprecision(precision) << time << timeUnit;
         return timeOutput.str();
     }
 
@@ -64,7 +64,7 @@ namespace Util {
         }
 
         std::stringstream positionOutput;
-        positionOutput << std::scientific << std::setw(precision + 2) << std::setprecision(precision) << spos << sposUnit;
+        positionOutput << std::fixed << std::setw(precision + 2) << std::setprecision(precision) << spos << sposUnit;
         return positionOutput.str();
     }
 
@@ -90,7 +90,7 @@ namespace Util {
             sposUnit = std::string(" [um]");
         }
 
-        positionOutput << std::scientific << std::setprecision(precision)
+        positionOutput << std::fixed << std::setprecision(precision)
                        << "( "
                        << std::setw(precision + 7) << spos(0) << " , "
                        << std::setw(precision + 7) << spos(1) << " , "
@@ -117,16 +117,22 @@ namespace Util {
         }
 
         std::stringstream energyOutput;
-        energyOutput << std::scientific << std::setw(precision + 2) << std::setprecision(precision) << energy << energyUnit;
+        energyOutput << std::fixed << std::setw(precision + 2) << std::setprecision(precision) << energy << energyUnit;
 
         return energyOutput.str();
     }
 
     inline
     std::string getChargeString(double charge, unsigned int precision = 3) {
-        std::string chargeUnit(" [pC]");
+        std::string chargeUnit(" [fC]");
 
-        charge *= 1e12;
+        charge *= 1e15;
+        
+        if (std::abs(charge) > 1000.0) {
+            charge /= 1000.0;
+            chargeUnit = std::string(" [pC]");
+        }
+        
         if (std::abs(charge) > 1000.0) {
             charge /= 1000.0;
             chargeUnit = std::string(" [nC]");
@@ -138,7 +144,7 @@ namespace Util {
         }
 
         std::stringstream chargeOutput;
-        chargeOutput << std::scientific << std::setw(precision + 2) << std::setprecision(precision) << charge << chargeUnit;
+        chargeOutput << std::fixed << std::setw(precision + 2) << std::setprecision(precision) << charge << chargeUnit;
 
         return chargeOutput.str();
     }
