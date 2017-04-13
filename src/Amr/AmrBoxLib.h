@@ -96,6 +96,8 @@ private:
 private:
     /// use in tagging tagForChargeDensity_m (needed when tracking)
     AmrFieldContainer_t nChargePerCell_m;
+    
+    AmrPartBunch *bunch_mp;
 };
 
 #endif
