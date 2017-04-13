@@ -70,6 +70,7 @@ PartBunch::PartBunch(const PartData *ref):
     lossDs_m(nullptr),
     pmsg_m(nullptr),
     f_stream(nullptr),
+    lowParticleCount_m(false),
     reference(ref),
     unit_state_(units),
     stateOfLastBoundP_(unitless),
@@ -79,6 +80,8 @@ PartBunch::PartBunch(const PartData *ref):
     eKin_m(0.0),
     dE_m(0.0),
     spos_m(0.0),
+    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
+    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
     rmax_m(0.0),
     rmin_m(0.0),
     rrms_m(0.0),
@@ -112,12 +115,9 @@ PartBunch::PartBunch(const PartData *ref):
     SteptoLastInj_m(0),
     partPerNode_m(nullptr),
     globalPartPerNode_m(nullptr),
+    minLocNum_m(0),
     dist_m(nullptr),
-    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
-    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
-    lowParticleCount_m(false),
-    dcBeam_m(false),
-    minLocNum_m(0) {
+    dcBeam_m(false) {
     addAttribute(P);
     addAttribute(Q);
     addAttribute(M);
@@ -170,6 +170,7 @@ PartBunch::PartBunch(const PartBunch &rhs):
     lossDs_m(nullptr),
     pmsg_m(nullptr),
     f_stream(nullptr),
+    lowParticleCount_m(rhs.lowParticleCount_m),
     reference(rhs.reference),
     unit_state_(rhs.unit_state_),
     stateOfLastBoundP_(rhs.stateOfLastBoundP_),
@@ -179,6 +180,8 @@ PartBunch::PartBunch(const PartBunch &rhs):
     eKin_m(rhs.eKin_m),
     dE_m(rhs.dE_m),
     spos_m(0.0),
+    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
+    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
     rmax_m(rhs.rmax_m),
     rmin_m(rhs.rmin_m),
     rrms_m(rhs.rrms_m),
@@ -212,12 +215,9 @@ PartBunch::PartBunch(const PartBunch &rhs):
     SteptoLastInj_m(rhs.SteptoLastInj_m),
     partPerNode_m(nullptr),
     globalPartPerNode_m(nullptr),
+    minLocNum_m(rhs.minLocNum_m),
     dist_m(nullptr),
-    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
-    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
-    lowParticleCount_m(rhs.lowParticleCount_m),
-    dcBeam_m(rhs.dcBeam_m),
-    minLocNum_m(rhs.minLocNum_m) {
+    dcBeam_m(rhs.dcBeam_m) {
     ERRORMSG("should not be here: PartBunch::PartBunch(const PartBunch &rhs):" << endl);
     std::exit(0);
 }
@@ -230,6 +230,7 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     lossDs_m(nullptr),
     pmsg_m(nullptr),
     f_stream(nullptr),
+    lowParticleCount_m(false),
     reference(ref),
     unit_state_(units),
     stateOfLastBoundP_(unitless),
@@ -239,6 +240,8 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     eKin_m(0.0),
     dE_m(0.0),
     spos_m(0.0),
+    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
+    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
     rmax_m(0.0),
     rmin_m(0.0),
     rrms_m(0.0),
@@ -272,12 +275,9 @@ PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):
     SteptoLastInj_m(0),
     partPerNode_m(nullptr),
     globalPartPerNode_m(nullptr),
+    minLocNum_m(0),
     dist_m(nullptr),
-    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
-    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
-    dcBeam_m(false),
-    lowParticleCount_m(false),
-    minLocNum_m(0) {
+    dcBeam_m(false) {
     ERRORMSG("should not be here: PartBunch::PartBunch(const std::vector<Particle> &rhs, const PartData *ref):" << endl);
 }
 

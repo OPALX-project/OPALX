@@ -78,13 +78,13 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     repartFreq_m(-1),
     emissionSteps_m(std::numeric_limits<unsigned int>::max()),
     numParticlesInSimulation_m(0),
-    totalParticlesInSimulation_m(0),
     timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
     timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
     fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
     BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
     WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
-    surfaceStatus_m(false)
+    surfaceStatus_m(false),
+    totalParticlesInSimulation_m(0)
     // , logger_m("designPath_" + std::to_string(Ippl::myNode()) + ".dat")
 {
 
@@ -125,13 +125,13 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     repartFreq_m(-1),
     emissionSteps_m(numeric_limits<unsigned int>::max()),
     numParticlesInSimulation_m(0),
-    totalParticlesInSimulation_m(0),
     timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
     timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
     fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
     BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
     WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
-    surfaceStatus_m(false)
+    surfaceStatus_m(false),
+    totalParticlesInSimulation_m(0)
     // , logger_m("designPath_" + std::to_string(Ippl::myNode()) + ".dat")
 {
 
