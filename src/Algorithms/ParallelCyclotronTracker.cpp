@@ -87,7 +87,9 @@
 
 //FIXME Remove headers and dynamic_cast in readOneBunchFromFile
 #include "Algorithms/PartBunch.h"
-#include "Algorithms/AmrPartBunch.h"
+#ifdef HAVE_AMR_SOLVER
+    #include "Algorithms/AmrPartBunch.h"
+#endif
 
 class Beamline;
 class PartData;

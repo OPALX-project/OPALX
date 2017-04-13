@@ -19,7 +19,9 @@
 #include "Track/Track.h"
 // #include "Algorithms/PartBunchBase.h"
 #include "Algorithms/PartBunch.h" //FIXME
-#include "Algorithms/AmrPartBunch.h"
+#ifdef HAVE_AMR_SOLVER
+    #include "Algorithms/AmrPartBunch.h"
+#endif
 #include "Algorithms/bet/EnvelopeBunch.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Options.h"
