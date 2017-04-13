@@ -16,7 +16,7 @@
 #include "FFT/FFT.h"
 
 #ifdef HAVE_AMR_SOLVER
-    #include "Amr/AmrBoxLib.h"
+    #include "Amr/AmrDefs.h"
     #include "Amr/BoxLibParticle.h"
     #include "Amr/BoxLibLayout.h"
 #endif
@@ -56,8 +56,8 @@ typedef FFT<SineTransform, 3, double>            SINE_t;
 typedef FFT<CCTransform, 3, double>              FFTC_t;
 
 #ifdef HAVE_AMR_SOLVER
-    typedef AmrBoxLib::AmrField_t                AmrField_t;
-    typedef AmrBoxLib::AmrFieldContainer_t       AmrFieldContainer_t;
+    typedef amr::AmrField_t                      AmrField_t;
+    typedef amr::AmrFieldContainer_t             AmrFieldContainer_t;
     typedef BoxLibLayout<double, 3>              AmrLayout_t;
     typedef BoxLibParticle<AmrLayout_t>          AmrParticle_t;
 #endif

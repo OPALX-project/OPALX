@@ -1,5 +1,6 @@
 set (_SRCS
   AmrBoxLib.cpp
+  Tagging_nd.f90
   )
 
 include_directories (
@@ -11,6 +12,7 @@ add_opal_sources(${_SRCS})
 set (HDRS
     AmrObject.h
     AmrBoxLib.h
+    AmrBoxLib_F.h
     BoxLibLayout.h
     BoxLibLayout.hpp
     BoxLibParticle.h
