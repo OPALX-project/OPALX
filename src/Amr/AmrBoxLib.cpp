@@ -83,9 +83,9 @@ void AmrBoxLib::regrid(int lbase, int lfine, double time) {
                  * particles need to know the BoxArray
                  * and DistributionMapping
                  */
-//                 amrplayout_t* PLayout = &bunch_m->getLayout();
-//                 PLayout->SetParticleBoxArray(lev, new_grids[lev]);
-//                 PLayout->SetParticleDistributionMap(lev, new_dmap);
+                AmrLayout_t* layout_p = &bunch_mp->getLayout();
+                layout_p->SetParticleBoxArray(lev, new_grids[lev]);
+                layout_p->SetParticleDistributionMap(lev, new_dmap);
 	    }
 	}
 	else  // a new level
@@ -97,9 +97,9 @@ void AmrBoxLib::regrid(int lbase, int lfine, double time) {
              * particles need to know the BoxArray
              * and DistributionMapping
              */
-//             amrplayout_t* PLayout = &bunch_m->getLayout();
-//             PLayout->SetParticleBoxArray(lev, new_grids[lev]);
-//             PLayout->SetParticleDistributionMap(lev, new_dmap);
+            AmrLayout_t* layout_p = &bunch_mp->getLayout();
+            layout_p->SetParticleBoxArray(lev, new_grids[lev]);
+            layout_p->SetParticleDistributionMap(lev, new_dmap);
         }
     }
     
@@ -159,15 +159,266 @@ void AmrBoxLib::ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
 
 
 void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
-    //TODO
+    for (int i = lev; i <= finest_level; ++i) {
+        nChargePerCell_m[i].setVal(0.0);
+        bunch_mp->AssignDensitySingleLevel(bunch_mp->Q, nChargePerCell_m[i], i);
+    }
+    
+    for (int i = finest_level-1; i >= lev; --i) {
+        MultiFab tmp(nChargePerCell_m[i].boxArray(), 1, 0, nChargePerCell_m[i].DistributionMap());
+        tmp.setVal(0.0);
+        BoxLib::average_down(nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
+        MultiFab::Add(nChargePerCell_m[i], tmp, 0, 0, 1, 0);
+    }
+    
+    
+    const int clearval = TagBox::CLEAR;
+    const int   tagval = TagBox::SET;
+
+    const Real* dx      = geom[lev].CellSize();
+    const Real* prob_lo = geom[lev].ProbLo();
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        Array<int>  itags;
+        for (MFIter mfi(nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+            const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
+            
+            TagBox&     tagfab  = tags[mfi];
+            
+            // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
+            // So we are going to get a temporary integer array.
+            tagfab.get_itags(itags, tilebx);
+            
+            // data pointer and index space
+            int*        tptr    = itags.dataPtr();
+            const int*  tlo     = tilebx.loVect();
+            const int*  thi     = tilebx.hiVect();
+
+            state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
+                        BL_TO_FORTRAN_3D((nChargePerCell_m[lev])[mfi]),
+                        &tagval, &clearval, 
+                        ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
+                        ZFILL(dx), ZFILL(prob_lo), &time, &nCharge_m);
+            //
+            // Now update the tags in the TagBox.
+            //
+            tagfab.tags_and_untags(itags, tilebx);
+        }
+    }
 }
 
 
 void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
-    //TODO
+    /* Perform a single level solve a level lev and tag all cells for refinement
+     * where the value of the potential is higher than 75 percent of the maximum potential
+     * value of this level.
+     */
+    
+    // 1. Assign charge onto grid of level lev
+    int base_level   = 0;
+    int finest_level = 0;
+    
+    mfs_mt nPartPerCell(PArrayManage);
+    nPartPerCell.resize(1);
+    nPartPerCell.set(0, new MultiFab(this->boxArray(lev), 1, 1,
+                                       this->DistributionMap(lev)));
+    nPartPerCell[base_level].setVal(0.0);
+    
+    bunch_mp->AssignDensitySingleLevel(bunch_mp->Q, nPartPerCell[base_level], lev);
+    
+    // 2. Solve Poisson's equation on level lev
+    
+    Real offset = 0.0;
+    
+    if ( geom[0].isAllPeriodic() ) {
+        for (std::size_t i = 0; i < bunch_m->getLocalNum(); ++i)
+            offset += bunch_mp->Q[i];
+        offset /= geom[0].ProbSize();
+    }
+    
+    Solver::container_t phi(PArrayManage);
+    Solver::container_t grad_phi(PArrayManage);
+    phi.resize(1);
+    grad_phi.resize(1);
+    
+    //                                                   # component # ghost cells                                                                                                                                          
+    phi.set(base_level, new MultiFab(this->boxArray(lev),1          ,1));
+    grad_phi.set(base_level, new MultiFab(this->boxArray(lev), BL_SPACEDIM, 1));
+    phi[base_level].setVal(0.0);
+    grad_phi[base_level].setVal(0.0);
+    
+    Solver sol;
+    sol.solve_for_accel(nPartPerCell,
+                        phi,
+                        grad_phi,
+                        geom,
+                        base_level,
+                        finest_level,
+                        offset,
+                        false,
+                        false); // we need no gradient
+    
+    // 3. Tag cells for refinement
+    const int clearval = TagBox::CLEAR;
+    const int   tagval = TagBox::SET;
+
+    const Real* dx      = geom[lev].CellSize();
+    const Real* prob_lo = geom[lev].ProbLo();
+    
+    Real minp = 0.0;
+    Real maxp = 0.0;
+    maxp = scaling_m * phi[base_level].max(0);
+    minp = scaling_m * phi[base_level].min(0);
+    Real value = std::max( std::abs(minp), std::abs(maxp) );
+    
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        Array<int>  itags;
+        for (MFIter mfi(phi[base_level],false/*true*/); mfi.isValid(); ++mfi) {
+            const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
+            
+            TagBox&     tagfab  = tags[mfi];
+            
+            // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
+            // So we are going to get a temporary integer array.
+            tagfab.get_itags(itags, tilebx);
+            
+            // data pointer and index space
+            int*        tptr    = itags.dataPtr();
+            const int*  tlo     = tilebx.loVect();
+            const int*  thi     = tilebx.hiVect();
+
+            tag_potential_strength(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
+                        BL_TO_FORTRAN_3D((phi[base_level])[mfi]),
+                        &tagval, &clearval, 
+                        ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
+                        ZFILL(dx), ZFILL(prob_lo), &time, &value);
+            //
+            // Now update the tags in the TagBox.
+            //
+            tagfab.tags_and_untags(itags, tilebx);
+        }
+    }
+    
+    phi.clear(base_level);
+    grad_phi.clear(base_level);
+    nPartPerCell.clear(0);
 }
 
 
 void AmrBoxLib::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
-    //TODO
+    /* Perform a single level solve a level lev and tag all cells for refinement
+     * where the value of the potential is higher than 75 percent of the maximum potential
+     * value of this level.
+     */
+    
+    // 1. Assign charge onto grid of level lev
+    int base_level   = 0;
+    int finest_level = 0;
+    
+    mfs_mt nPartPerCell(PArrayManage);
+    nPartPerCell.resize(1);
+    nPartPerCell.set(0, new MultiFab(this->boxArray(lev), 1, 1,
+                                       this->DistributionMap(lev)));
+    nPartPerCell[base_level].setVal(0.0);
+    
+    bunch_mp->AssignDensitySingleLevel(bunch_mp->Q, nPartPerCell[base_level], lev);
+    
+    // 2. Solve Poisson's equation on level lev
+    Real offset = 0.0;
+    
+    if ( geom[0].isAllPeriodic() ) {
+        for (std::size_t i = 0; i < bunch_m->getLocalNum(); ++i)
+            offset += bunch_mp->Q[i];
+        offset /= geom[0].ProbSize();
+    }
+    
+    Solver::container_t phi(PArrayManage);
+    Solver::container_t grad_phi(PArrayManage);
+    phi.resize(1);
+    grad_phi.resize(1);
+    
+    //                                                   # component # ghost cells                                                                                                                                          
+    phi.set(base_level, new MultiFab(this->boxArray(lev),1          ,1));
+    grad_phi.set(base_level, new MultiFab(this->boxArray(lev), BL_SPACEDIM, 1));
+    phi[base_level].setVal(0.0);
+    grad_phi[base_level].setVal(0.0);
+    
+    Solver sol;
+    sol.solve_for_accel(nPartPerCell,
+                        phi,
+                        grad_phi,
+                        geom,
+                        base_level,
+                        finest_level,
+                        offset,
+                        false);
+    
+    // 3. Tag cells for refinement
+    const int clearval = TagBox::CLEAR;
+    const int   tagval = TagBox::SET;
+    
+    Real min[3] = {0.0, 0.0, 0.0};
+    Real max[3] = {0.0, 0.0, 0.0};
+    for (int i = 0; i < 3; ++i) {
+        max[i] = scaling_m * grad_phi[base_level].max(i);
+        min[i] = scaling_m * grad_phi[base_level].min(i);
+    }
+    Real efield[3] = {0.0, 0.0, 0.0};
+    for (int i = 0; i < 3; ++i)
+        efield[i] = std::max( std::abs(min[i]), std::abs(max[i]) );
+    
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        Array<int>  itags;
+        for (MFIter mfi(grad_phi[base_level],false/*true*/); mfi.isValid(); ++mfi) {
+            const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
+            
+            TagBox&     tagfab  = tags[mfi];
+            FArrayBox&  fab     = (grad_phi[base_level])[mfi];
+            // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
+            // So we are going to get a temporary integer array.
+//             tagfab.get_itags(itags, tilebx);
+            
+            // data pointer and index space
+            int*        tptr    = itags.dataPtr();
+            const int*  tlo     = tilebx.loVect();
+            const int*  thi     = tilebx.hiVect();
+
+            for (int i = tlo[0]; i <= thi[0]; ++i) {
+                for (int j = tlo[1]; j <= thi[1]; ++j) {
+                    for (int k = tlo[2]; k <= thi[2]; ++k) {
+                        IntVect iv(i,j,k);
+                        if (std::abs(fab(iv, 0)) >= efield[0])
+                            tagfab(iv) = tagval;
+                        else if (std::abs(fab(iv, 1)) >= efield[1])
+                            tagfab(iv) = tagval;
+                        else if (std::abs(fab(iv, 2)) >= efield[2])
+                            tagfab(iv) = tagval;
+                        else
+                            tagfab(iv) = clearval;
+                    }
+                }
+            }
+                            
+                        
+            //
+            // Now update the tags in the TagBox.
+            //
+//             tagfab.tags_and_untags(itags, tilebx);
+        }
+    }
+    
+    phi.clear(base_level);
+    grad_phi.clear(base_level);
+    nPartPerCell.clear(base_level);
 }
