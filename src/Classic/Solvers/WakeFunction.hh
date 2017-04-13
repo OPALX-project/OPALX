@@ -10,8 +10,8 @@ class PartBunch;
 class WakeFunction {
 public:
     WakeFunction(std::string name, ElementBase *elref, unsigned int n):
-        name_m(name),
-        nBins_m(n) { };
+        nBins_m(n),
+        name_m(name) { };
 
     virtual ~WakeFunction(){ };
     virtual void initialize(const ElementBase *ref){ };

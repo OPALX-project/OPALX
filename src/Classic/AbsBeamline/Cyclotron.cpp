@@ -74,11 +74,11 @@ Cyclotron::Cyclotron(const Cyclotron &right):
     maxr_m(right.maxr_m),
     minz_m(right.minz_m),
     maxz_m(right.maxz_m),
+    fmLowE_m(right.fmLowE_m),
+    fmHighE_m(right.fmHighE_m),
     RFfilename_m(right.RFfilename_m),
     RFFCoeff_fn_m(right.RFFCoeff_fn_m),
-    RFVCoeff_fn_m(right.RFVCoeff_fn_m),
-    fmLowE_m(right.fmLowE_m),
-    fmHighE_m(right.fmHighE_m) {
+    RFVCoeff_fn_m(right.RFVCoeff_fn_m) {
 }
 
 

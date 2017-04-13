@@ -27,7 +27,7 @@
 #include "Utilities/Util.h"
 
 #include "gsl/gsl_interp.h"
-//#include "gsl/gsl_spline.h"
+#include "gsl/gsl_spline.h"
 #include <iostream>
 #include <fstream>
 #ifdef OPAL_NOCPLUSPLUS11_NULLPTR
@@ -43,18 +43,22 @@ using namespace std;
 
 RFCavity::RFCavity():
     Component(),
+    phase_td_m(nullptr),
+    amplitude_td_m(nullptr),
+    frequency_td_m(nullptr),
     filename_m(""),
     scale_m(1.0),
     scaleError_m(0.0),
     phase_m(0.0),
     phaseError_m(0.0),
     frequency_m(0.0),
+    fast_m(true),
+    autophaseVeto_m(false),
+    designEnergy_m(-1.0),
     startField_m(0.0),
     endField_m(0.0),
     length_m(0.0),
     type_m(SW),
-    fast_m(true),
-    autophaseVeto_m(false),
     rmin_m(0.0),
     rmax_m(0.0),
     angle_m(0.0),
@@ -63,17 +67,10 @@ RFCavity::RFCavity():
     pdis_m(0.0),
     gapwidth_m(0.0),
     phi0_m(0.0),
-    designEnergy_m(-1.0),
     RNormal_m(nullptr),
     VrNormal_m(nullptr),
     DvDr_m(nullptr),
-    num_points_m(0),
-    phase_td_m(nullptr),
-    amplitude_td_m(nullptr),
-    frequency_td_m(nullptr),
-    phase_name_m(""),
-    amplitude_name_m(""),
-    frequency_name_m("")
+    num_points_m(0)
 {
     setElType(isRF);
 }
@@ -81,18 +78,25 @@ RFCavity::RFCavity():
 
 RFCavity::RFCavity(const RFCavity &right):
     Component(right),
+    phase_td_m(right.phase_td_m),
+    phase_name_m(right.phase_name_m),
+    amplitude_td_m(right.amplitude_td_m),
+    amplitude_name_m(right.amplitude_name_m),
+    frequency_td_m(right.frequency_td_m),
+    frequency_name_m(right.frequency_name_m),
     filename_m(right.filename_m),
     scale_m(right.scale_m),
     scaleError_m(right.scaleError_m),
     phase_m(right.phase_m),
     phaseError_m(right.phaseError_m),
     frequency_m(right.frequency_m),
+    fast_m(right.fast_m),
+    autophaseVeto_m(right.autophaseVeto_m),
+    designEnergy_m(right.designEnergy_m),
     startField_m(right.startField_m),
     endField_m(right.endField_m),
     length_m(right.length_m),
     type_m(right.type_m),
-    fast_m(right.fast_m),
-    autophaseVeto_m(right.autophaseVeto_m),
     rmin_m(right.rmin_m),
     rmax_m(right.rmax_m),
     angle_m(right.angle_m),
@@ -101,17 +105,10 @@ RFCavity::RFCavity(const RFCavity &right):
     pdis_m(right.pdis_m),
     gapwidth_m(right.gapwidth_m),
     phi0_m(right.phi0_m),
-    designEnergy_m(right.designEnergy_m),
     RNormal_m(nullptr),
     VrNormal_m(nullptr),
     DvDr_m(nullptr),
-    num_points_m(right.num_points_m),
-    phase_td_m(right.phase_td_m),
-    amplitude_td_m(right.amplitude_td_m),
-    frequency_td_m(right.frequency_td_m),
-    phase_name_m(right.phase_name_m),
-    amplitude_name_m(right.amplitude_name_m),
-    frequency_name_m(right.frequency_name_m)
+    num_points_m(right.num_points_m)
 {
     setElType(isRF);
 }
@@ -119,18 +116,22 @@ RFCavity::RFCavity(const RFCavity &right):
 
 RFCavity::RFCavity(const std::string &name):
     Component(name),
+    phase_td_m(nullptr),
+    amplitude_td_m(nullptr),
+    frequency_td_m(nullptr),
     filename_m(""),
     scale_m(1.0),
     scaleError_m(0.0),
     phase_m(0.0),
     phaseError_m(0.0),
     frequency_m(0.0),
+    fast_m(true),
+    autophaseVeto_m(false),
+    designEnergy_m(-1.0),
     startField_m(0.0),
     endField_m(0.0),
     length_m(0.0),
     type_m(SW),
-    fast_m(true),
-    autophaseVeto_m(false),
     rmin_m(0.0),
     rmax_m(0.0),
     angle_m(0.0),
@@ -139,17 +140,13 @@ RFCavity::RFCavity(const std::string &name):
     pdis_m(0.0),
     gapwidth_m(0.0),
     phi0_m(0.0),
-    designEnergy_m(-1.0),
     RNormal_m(nullptr),
     VrNormal_m(nullptr),
     DvDr_m(nullptr),
     //     RNormal_m(std::nullptr_t(NULL)),
     //     VrNormal_m(std::nullptr_t(NULL)),
     //     DvDr_m(std::nullptr_t(NULL)),
-    num_points_m(0),
-    phase_td_m(nullptr),
-    amplitude_td_m(nullptr),
-    frequency_td_m(nullptr)
+    num_points_m(0)
 {
     setElType(isRF);
 }

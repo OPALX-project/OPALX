@@ -119,12 +119,12 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    const PartData &reference,
                                                    bool revBeam, bool revTrack):
     Tracker(beamline, reference, revBeam, revTrack),
+    lastDumpedStep_m(0),
     eta_m(0.01),
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(0),
     initialTotalNum_m(0),
-    opalRing_m(NULL),
-    lastDumpedStep_m(0) {
+    opalRing_m(NULL) {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
 }
 
@@ -148,13 +148,13 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    int maxSTEPS, int timeIntegrator):
     Tracker(beamline, reference, revBeam, revTrack),
     maxSteps_m(maxSTEPS),
+    lastDumpedStep_m(0),
     timeIntegrator_m(timeIntegrator),
     eta_m(0.01),
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(bunch.getLocalNum()),
     initialTotalNum_m(bunch.getTotalNum()),
-    opalRing_m(NULL),
-    lastDumpedStep_m(0) {
+    opalRing_m(NULL) {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
     itsBunch = &bunch;
     itsDataSink = &ds;
