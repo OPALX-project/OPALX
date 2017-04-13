@@ -156,9 +156,9 @@ install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS OPALib DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
 
 set (HDRS
-    config.h
+    OPALconfig.h
     opal.h
-    revision.h
+    OPALrevision.h
     changes.h
 )
 
