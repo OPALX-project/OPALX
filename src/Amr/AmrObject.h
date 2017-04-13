@@ -3,11 +3,20 @@
 
 #include "Index/NDIndex.h"
 
+#include "Algorithms/PBunchDefs.h"
+
+// #include "Algorithms/AmrPartBunch.h"
+
+// class AmrPartBunch;
+
 #include <array>
 
 class AmrObject {
     
 public:
+    // FIXME Why not using typedef of PartBunchBase
+    typedef std::pair<Vector_t, Vector_t> VectorPair_t;
+//     using VectorPair_t = typename AmrPartBunch::VectorPair_t;
     
 //     typedef std::array<short, 3> RefineRatios_t;
 //     typedef std::array<double, 3> DomainBoundary_t;
@@ -91,6 +100,21 @@ public:
     void setCharge(double charge) {
         nCharge_m = charge;
     }
+    
+    /* Methods that are needeb by the
+     * bunch
+     */
+    virtual VectorPair_t getEExtrema() = 0;
+    
+    virtual double getRho(int x, int y, int z) = 0;
+    
+    virtual void computeSelfFields() = 0;
+    
+    virtual void computeSelfFields(int b) = 0;
+    
+    virtual void computeSelfFields_cycl(double gamma) = 0;
+    
+    virtual void computeSelfFields_cycl(int b) = 0;
     
 protected:
     TaggingCriteria tagging_m;

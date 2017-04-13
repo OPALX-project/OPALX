@@ -1,10 +1,19 @@
 #include "AmrBoxLib.h"
 
+#include "Algorithms/AmrPartBunch.h"
+
+#include "AmrBoxLib_F.h"
+#include <MultiFabUtil.H>
+
 #include <ParmParse.H> // used in initialize function
 
 AmrBoxLib::AmrBoxLib() : AmrObject(),
                          AmrCore(),
-                         nChargePerCell_m(PArrayManage)
+                         nChargePerCell_m(PArrayManage),
+                         bunch_mp(nullptr),
+                         rho_m(PArrayManage),
+                         phi_m(PArrayManage),
+                         eg_m(PArrayManage)
 {}
 
 
@@ -13,7 +22,11 @@ AmrBoxLib::AmrBoxLib(TaggingCriteria tagging,
                      double nCharge)
     : AmrObject(tagging, scaling, nCharge),
       AmrCore(),
-      nChargePerCell_m(PArrayManage)
+      nChargePerCell_m(PArrayManage),
+      bunch_mp(nullptr),
+      rho_m(PArrayManage),
+      phi_m(PArrayManage),
+      eg_m(PArrayManage)
 {}
 
 
@@ -33,7 +46,12 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
                      short maxLevel,
                      const AmrIntArray_t& refRatio)
     : AmrObject(),
-      AmrCore(&domain, maxLevel, nGridPts, 0 /* cartesian */)
+      AmrCore(&domain, maxLevel, nGridPts, 0 /* cartesian */),
+      nChargePerCell_m(PArrayManage),
+      bunch_mp(nullptr),
+      rho_m(PArrayManage),
+      phi_m(PArrayManage),
+      eg_m(PArrayManage)
 {}
 
 
@@ -62,7 +80,7 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
 
 void AmrBoxLib::regrid(int lbase, int lfine, double time) {
     int new_finest = 0;
-    Array<BoxArray> new_grids(finest_level+2);
+    AmrGridContainer_t new_grids(finest_level+2);
     
     MakeNewGrids(lbase, time, new_finest, new_grids);
 
@@ -83,7 +101,7 @@ void AmrBoxLib::regrid(int lbase, int lfine, double time) {
                  * particles need to know the BoxArray
                  * and DistributionMapping
                  */
-                AmrLayout_t* layout_p = &bunch_mp->getLayout();
+                AmrLayout_t* layout_p = static_cast<AmrLayout_t*>(&bunch_mp->getLayout());
                 layout_p->SetParticleBoxArray(lev, new_grids[lev]);
                 layout_p->SetParticleDistributionMap(lev, new_dmap);
 	    }
@@ -97,7 +115,7 @@ void AmrBoxLib::regrid(int lbase, int lfine, double time) {
              * particles need to know the BoxArray
              * and DistributionMapping
              */
-            AmrLayout_t* layout_p = &bunch_mp->getLayout();
+            AmrLayout_t* layout_p = static_cast<AmrLayout_t*>(&bunch_mp->getLayout());
             layout_p->SetParticleBoxArray(lev, new_grids[lev]);
             layout_p->SetParticleDistributionMap(lev, new_dmap);
         }
@@ -107,6 +125,89 @@ void AmrBoxLib::regrid(int lbase, int lfine, double time) {
     
 //     // update to multilevel
 //     bunch_m->update();
+}
+
+
+AmrBoxLib::VectorPair_t AmrBoxLib::getEExtrema() {
+    Vector_t maxE = Vector_t(0, 0, 0), minE = Vector_t(0, 0, 0);
+    /* check for maximum / minimum values over all levels
+     * and all components, i.e. Ex, Ey, Ez
+     */
+    for (int lev = 0; lev < eg_m.size(); ++lev) {
+        for (std::size_t i = 0; i < bunch_mp->Dimension; ++i) {
+            /* calls:
+             *  - max(comp, nghost (to search), local)
+             *  - min(cmop, nghost, local)
+             */
+            double max = eg_m[lev].max(i, 0, false);
+            maxE[i] = (maxE[i] < max) ? max : maxE[i];
+            
+            double min = eg_m[lev].min(i, 0, false);
+            minE[i] = (minE[i] > min) ? min : minE[i];
+        }
+    }
+    
+    return VectorPair_t(maxE, minE);
+}
+
+
+double AmrBoxLib::getRho(int x, int y, int z) {
+    //TODO
+    for (int lev = eg_m.size() - 2; lev >= 0; lev--)
+        BoxLib::average_down(eg_m[lev+1], eg_m[lev], 0, 3, this->refRatio(lev));
+    
+    
+    
+    throw OpalException("AmrPartBunch::getRho(x, y, z) ", "Not yet Implemented.");
+    return 0.0;
+}
+
+
+void AmrBoxLib::computeSelfFields() {
+//     IpplTimings::startTimer(selfFieldTimer_m);
+    
+    //scatter charges onto grid
+    bunch_mp->Q *= bunch_mp->dt;
+//     amrpbase_mp->scatter(bunch_mp->Q, bunch_mp->rho_m, bunch_mp->R, 0, -1);
+    bunch_mp->Q /= bunch_mp->dt;
+    
+    int baseLevel = 0;
+    int finestLevel = 0; //(&amrpbase_mp->getAmrLayout())->finestLevel();
+    
+    int nLevel = finestLevel + 1;
+    rho_m.resize(nLevel);
+    phi_m.resize(nLevel);
+    eg_m.resize(nLevel);
+    
+    double invDt = 1.0 / bunch_mp->getdT() * bunch_mp->getCouplingConstant();
+    for (int i = 0; i <= finestLevel; ++i) {
+        this->rho_m[i].mult(invDt, 0, 1);
+    }
+    
+    // charge density is in rho_m
+//     IpplTimings::startTimer(compPotenTimer_m);
+    
+    //FIXME
+//     fs_m->solver_m->solve(rho_m, eg_m, baseLevel, finestLevel);
+
+//     IpplTimings::stopTimer(compPotenTimer_m);
+    
+//     IpplTimings::stopTimer(selfFieldTimer_m);
+}
+
+
+void AmrBoxLib::computeSelfFields(int b) {
+    //TODO
+}
+
+
+void AmrBoxLib::computeSelfFields_cycl(double gamma) {
+    //TODO
+}
+
+
+void AmrBoxLib::computeSelfFields_cycl(int b) {
+    //TODO
 }
 
 
@@ -161,14 +262,14 @@ void AmrBoxLib::ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
 void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
     for (int i = lev; i <= finest_level; ++i) {
         nChargePerCell_m[i].setVal(0.0);
-        bunch_mp->AssignDensitySingleLevel(bunch_mp->Q, nChargePerCell_m[i], i);
+//         bunch_mp->AssignDensitySingleLevel(bunch_mp->Q, nChargePerCell_m[i], i);
     }
     
     for (int i = finest_level-1; i >= lev; --i) {
-        MultiFab tmp(nChargePerCell_m[i].boxArray(), 1, 0, nChargePerCell_m[i].DistributionMap());
+        AmrField_t tmp(nChargePerCell_m[i].boxArray(), 1, 0, nChargePerCell_m[i].DistributionMap());
         tmp.setVal(0.0);
         BoxLib::average_down(nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
-        MultiFab::Add(nChargePerCell_m[i], tmp, 0, 0, 1, 0);
+        AmrField_t::Add(nChargePerCell_m[i], tmp, 0, 0, 1, 0);
     }
     
     
@@ -221,32 +322,33 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time,
     int base_level   = 0;
     int finest_level = 0;
     
-    mfs_mt nPartPerCell(PArrayManage);
+    AmrFieldContainer_t nPartPerCell(PArrayManage);
     nPartPerCell.resize(1);
-    nPartPerCell.set(0, new MultiFab(this->boxArray(lev), 1, 1,
+    nPartPerCell.set(0, new AmrField_t(this->boxArray(lev), 1, 1,
                                        this->DistributionMap(lev)));
     nPartPerCell[base_level].setVal(0.0);
     
-    bunch_mp->AssignDensitySingleLevel(bunch_mp->Q, nPartPerCell[base_level], lev);
+//     bunch_mp->AssignDensitySingleLevel(bunch_mp->Q, nPartPerCell[base_level], lev);
     
     // 2. Solve Poisson's equation on level lev
     
     Real offset = 0.0;
     
     if ( geom[0].isAllPeriodic() ) {
-        for (std::size_t i = 0; i < bunch_m->getLocalNum(); ++i)
+        for (std::size_t i = 0; i < bunch_mp->getLocalNum(); ++i)
             offset += bunch_mp->Q[i];
         offset /= geom[0].ProbSize();
     }
-    
+    /*
+    //FIXME SOLVER
     Solver::container_t phi(PArrayManage);
     Solver::container_t grad_phi(PArrayManage);
     phi.resize(1);
     grad_phi.resize(1);
     
     //                                                   # component # ghost cells                                                                                                                                          
-    phi.set(base_level, new MultiFab(this->boxArray(lev),1          ,1));
-    grad_phi.set(base_level, new MultiFab(this->boxArray(lev), BL_SPACEDIM, 1));
+    phi.set(base_level, new AmrField_t(this->boxArray(lev),1          ,1));
+    grad_phi.set(base_level, new AmrField_t(this->boxArray(lev), BL_SPACEDIM, 1));
     phi[base_level].setVal(0.0);
     grad_phi[base_level].setVal(0.0);
     
@@ -280,7 +382,7 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time,
 #endif
     {
         Array<int>  itags;
-        for (MFIter mfi(phi[base_level],false/*true*/); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(phi[base_level],false); mfi.isValid(); ++mfi) {
             const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
             TagBox&     tagfab  = tags[mfi];
@@ -309,6 +411,7 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time,
     phi.clear(base_level);
     grad_phi.clear(base_level);
     nPartPerCell.clear(0);
+    */
 }
 
 
@@ -322,31 +425,31 @@ void AmrBoxLib::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, in
     int base_level   = 0;
     int finest_level = 0;
     
-    mfs_mt nPartPerCell(PArrayManage);
+    AmrFieldContainer_t nPartPerCell(PArrayManage);
     nPartPerCell.resize(1);
-    nPartPerCell.set(0, new MultiFab(this->boxArray(lev), 1, 1,
+    nPartPerCell.set(0, new AmrField_t(this->boxArray(lev), 1, 1,
                                        this->DistributionMap(lev)));
     nPartPerCell[base_level].setVal(0.0);
     
-    bunch_mp->AssignDensitySingleLevel(bunch_mp->Q, nPartPerCell[base_level], lev);
+//     bunch_mp->AssignDensitySingleLevel(bunch_mp->Q, nPartPerCell[base_level], lev);
     
     // 2. Solve Poisson's equation on level lev
     Real offset = 0.0;
     
     if ( geom[0].isAllPeriodic() ) {
-        for (std::size_t i = 0; i < bunch_m->getLocalNum(); ++i)
+        for (std::size_t i = 0; i < bunch_mp->getLocalNum(); ++i)
             offset += bunch_mp->Q[i];
         offset /= geom[0].ProbSize();
     }
-    
+    /*
     Solver::container_t phi(PArrayManage);
     Solver::container_t grad_phi(PArrayManage);
     phi.resize(1);
     grad_phi.resize(1);
     
     //                                                   # component # ghost cells                                                                                                                                          
-    phi.set(base_level, new MultiFab(this->boxArray(lev),1          ,1));
-    grad_phi.set(base_level, new MultiFab(this->boxArray(lev), BL_SPACEDIM, 1));
+    phi.set(base_level, new AmrField_t(this->boxArray(lev),1          ,1));
+    grad_phi.set(base_level, new AmrField_t(this->boxArray(lev), BL_SPACEDIM, 1));
     phi[base_level].setVal(0.0);
     grad_phi[base_level].setVal(0.0);
     
@@ -380,7 +483,8 @@ void AmrBoxLib::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, in
 #endif
     {
         Array<int>  itags;
-        for (MFIter mfi(grad_phi[base_level],false/*true*/); mfi.isValid(); ++mfi) {
+        // mfi(grad_phi[base_level], true)
+        for (MFIter mfi(grad_phi[base_level],false); mfi.isValid(); ++mfi) {
             const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
             TagBox&     tagfab  = tags[mfi];
@@ -421,4 +525,5 @@ void AmrBoxLib::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, in
     phi.clear(base_level);
     grad_phi.clear(base_level);
     nPartPerCell.clear(base_level);
+    */
 }

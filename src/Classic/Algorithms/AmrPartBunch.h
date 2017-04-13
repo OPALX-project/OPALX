@@ -2,6 +2,7 @@
 #define AMR_PART_BUNCH_H
 
 #include "Algorithms/PartBunchBase.h"
+#include "Amr/AmrObject.h"
 
 class AmrPartBunch : public PartBunchBase<double, 3>
 {
@@ -51,21 +52,15 @@ private:
     
     void updateDomainLength(Vektor<int, 3>& grid);
     
+    void updateFields(const Vector_t& hr, const Vector_t& origin);
+    
 private:
     
-//     /// charge density on the grid for all levels
-//     AmrFieldContainer_t rho_m;
-    
-//     /// scalar potential on the grid for all levels
-//     AmrFieldContainer_t phi_m;
-    
-//     /// vector field on the grid for all levels
-//     AmrFieldContainer_t eg_m;
+    AmrObject *amrobj_mp;
     
     
     Mesh_t mesh_m;
     FieldLayout_t fieldlayout_m;
-    
 };
 
 #endif

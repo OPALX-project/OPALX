@@ -3,23 +3,35 @@
 
 #include "Amr/AmrObject.h"
 
+class AmrPartBunch;
+
+#include "Amr/AmrDefs.h"
+
 // BoxLib headers
 #include <AmrCore.H>
 #include <BoxLib.H>
-#include <Geometry.H>
 
 class AmrBoxLib : public AmrObject,
                   public AmrCore
 {
     
 public:
-    typedef MultiFab                    AmrField_t;
-    typedef PArray<AmrField_t>          AmrFieldContainer_t;
-    typedef Array<Geometry>             AmrGeomContainer_t;
-    typedef Array<BoxArray>             AmrGridContainer_t;
-    typedef Array<DistributionMapping>  AmrProcMapContainer_t;
-    typedef RealBox                     AmrDomain_t;
-    typedef Array<int>                  AmrIntArray_t;
+    typedef amr::AmrField_t             AmrField_t;
+    typedef amr::AmrFieldContainer_t    AmrFieldContainer_t;
+    typedef amr::AmrGeomContainer_t     AmrGeomContainer_t;
+    typedef amr::AmrGridContainer_t     AmrGridContainer_t;
+    typedef amr::AmrProcMapContainer_t  AmrProcMapContainer_t;
+    typedef amr::AmrDomain_t            AmrDomain_t;
+    typedef amr::AmrIntArray_t          AmrIntArray_t;
+//     typedef MultiFab                    AmrField_t;
+//     typedef PArray<AmrField_t>          AmrFieldContainer_t;
+//     typedef Array<Geometry>             AmrGeomContainer_t;
+//     typedef Array<BoxArray>             AmrGridContainer_t;
+//     typedef Array<DistributionMapping>  AmrProcMapContainer_t;
+//     typedef RealBox                     AmrDomain_t;
+//     typedef Array<int>                  AmrIntArray_t;
+    
+//     typedef typename AmrPartBunch::VectorPair_t VectorPair_t;
     
 public:
     
@@ -56,6 +68,19 @@ public:
      * @param time of simulation (step).
      */
     void regrid(int lbase, int lfine, double time);
+    
+    
+    VectorPair_t getEExtrema();
+    
+    double getRho(int x, int y, int z);
+    
+    void computeSelfFields();
+    
+    void computeSelfFields(int b);
+    
+    void computeSelfFields_cycl(double gamma);
+    
+    void computeSelfFields_cycl(int b);
     
 protected:
     /*!
@@ -98,6 +123,15 @@ private:
     AmrFieldContainer_t nChargePerCell_m;
     
     AmrPartBunch *bunch_mp;
+    
+    /// charge density on the grid for all levels
+    AmrFieldContainer_t rho_m;
+    
+    /// scalar potential on the grid for all levels
+    AmrFieldContainer_t phi_m;
+    
+    /// vector field on the grid for all levels
+    AmrFieldContainer_t eg_m;
 };
 
 #endif
