@@ -21,8 +21,6 @@ public:
     
     typedef amr::AmrField_t AmrField_t;
     typedef amr::AmrFieldContainer_t AmrFieldContainer_t;
-//     typedef AmrBoxLib::AmrField_t AmrField_t;
-//     typedef AmrBoxLib::AmrFieldContainer_t AmrFieldContainer_t;
     typedef typename ParticleAmrLayout<T, Dim>::ParticlePos_t ParticlePos_t;
     typedef ParticleAttrib<Index_t> ParticleIndex_t;
 

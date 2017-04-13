@@ -4,35 +4,48 @@
 
 AmrPartBunch::AmrPartBunch(const PartData *ref)
     : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(new AmrLayout_t()), ref),
-      mesh_m(), fieldlayout_m(mesh_m) //FIXME
+      mesh_m(), fieldlayout_m(mesh_m), //FIXME
+      amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase))
 {
-    dynamic_cast<AmrPartBunch::pbase_t*>(pbase)->initializeAmr();
+    amrpbase_mp->initializeAmr();
 }
 
 
 AmrPartBunch::AmrPartBunch(const std::vector<OpalParticle> &rhs,
                            const PartData *ref)
     : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(new AmrLayout_t()), rhs, ref),
-      mesh_m(), fieldlayout_m(mesh_m) //FIXME
+      mesh_m(), fieldlayout_m(mesh_m), //FIXME
+      amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase))
 {
-    dynamic_cast<AmrPartBunch::pbase_t*>(pbase)->initializeAmr();
+    amrpbase_mp->initializeAmr();
 }
 
 
 AmrPartBunch::AmrPartBunch(const AmrPartBunch &rhs)
     : PartBunchBase<double, 3>(rhs),
-      mesh_m(), fieldlayout_m(mesh_m) //FIXME
+      mesh_m(), fieldlayout_m(mesh_m), //FIXME
+      amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase))
 {
-    dynamic_cast<AmrPartBunch::pbase_t*>(pbase)->initializeAmr();
+    amrpbase_mp->initializeAmr();
 }
 
 AmrPartBunch::~AmrPartBunch() {
 
 }
 
-AmrPartBunch::pbase_t* AmrPartBunch::clone() {
-    return new pbase_t(new BoxLibLayout<double, 3>());
+
+AmrPartBunch::pbase_t *AmrPartBunch::getAmrParticleBase() {
+    return amrpbase_mp;
 }
+
+
+const AmrPartBunch::pbase_t *AmrPartBunch::getAmrParticleBase() const {
+    return amrpbase_mp;
+}
+
+// AmrPartBunch::pbase_t* AmrPartBunch::clone() {
+//     return new pbase_t(new BoxLibLayout<double, 3>());
+// }
 
 
 void AmrPartBunch::initialize(FieldLayout_t *fLayout) {

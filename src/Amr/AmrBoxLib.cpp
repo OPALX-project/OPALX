@@ -168,11 +168,12 @@ void AmrBoxLib::computeSelfFields() {
     
     //scatter charges onto grid
     bunch_mp->Q *= bunch_mp->dt;
-//     amrpbase_mp->scatter(bunch_mp->Q, bunch_mp->rho_m, bunch_mp->R, 0, -1);
+    AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
+    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, -1);
     bunch_mp->Q /= bunch_mp->dt;
     
     int baseLevel = 0;
-    int finestLevel = 0; //(&amrpbase_mp->getAmrLayout())->finestLevel();
+    int finestLevel = (&amrpbase_p->getAmrLayout())->finestLevel();
     
     int nLevel = finestLevel + 1;
     rho_m.resize(nLevel);
@@ -243,13 +244,13 @@ void AmrBoxLib::ClearLevel(int lev) {
 
 void AmrBoxLib::ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
     switch ( tagging_m ) {
-        case kChargeDensity:
+        case CHARGE_DENSITY:
             tagForChargeDensity_m(lev, tags, time, ngrow);
             break;
-        case kPotentialStrength:
+        case POTENTIAL_STRENGTH:
             tagForPotentialStrength_m(lev, tags, time, ngrow);
             break;
-        case kEfieldGradient:
+        case EFIELD_GRADIENT:
             tagForEfieldGradient_m(lev, tags, time, ngrow);
             break;
         default:
@@ -260,9 +261,11 @@ void AmrBoxLib::ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
 
 
 void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
+    
+    AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     for (int i = lev; i <= finest_level; ++i) {
         nChargePerCell_m[i].setVal(0.0);
-//         bunch_mp->AssignDensitySingleLevel(bunch_mp->Q, nChargePerCell_m[i], i);
+        amrpbase_p->AssignDensitySingleLevel(bunch_mp->Q, nChargePerCell_m[i], i);
     }
     
     for (int i = finest_level-1; i >= lev; --i) {
@@ -328,7 +331,8 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time,
                                        this->DistributionMap(lev)));
     nPartPerCell[base_level].setVal(0.0);
     
-//     bunch_mp->AssignDensitySingleLevel(bunch_mp->Q, nPartPerCell[base_level], lev);
+    AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
+    amrpbase_p->AssignDensitySingleLevel(bunch_mp->Q, nPartPerCell[base_level], lev);
     
     // 2. Solve Poisson's equation on level lev
     
@@ -431,7 +435,8 @@ void AmrBoxLib::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, in
                                        this->DistributionMap(lev)));
     nPartPerCell[base_level].setVal(0.0);
     
-//     bunch_mp->AssignDensitySingleLevel(bunch_mp->Q, nPartPerCell[base_level], lev);
+    AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
+    amrpbase_p->AssignDensitySingleLevel(bunch_mp->Q, nPartPerCell[base_level], lev);
     
     // 2. Solve Poisson's equation on level lev
     Real offset = 0.0;

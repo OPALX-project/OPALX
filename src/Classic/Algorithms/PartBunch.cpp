@@ -83,9 +83,9 @@ PartBunch::~PartBunch() {
 
 }
 
-PartBunch::pbase_t* PartBunch::clone() {
-    return new pbase_t(new Layout_t());
-}
+// PartBunch::pbase_t* PartBunch::clone() {
+//     return new pbase_t(new Layout_t());
+// }
 
 
 void PartBunch::initialize(FieldLayout_t *fLayout) {

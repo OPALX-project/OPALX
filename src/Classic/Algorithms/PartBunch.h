@@ -46,7 +46,7 @@ public:
     PartBunch(const PartBunch &);
     ~PartBunch();
     
-    pbase_t* clone();
+//     pbase_t* clone();
 
     void runTests();
     

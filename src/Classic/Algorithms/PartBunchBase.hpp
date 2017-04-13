@@ -335,8 +335,8 @@ PartBunchBase<T, Dim>::PartBunchBase(const PartBunchBase<T, Dim>& rhs):
 // AbstractParticle<T, Dim>* PartBunchBase<T, Dim>::getParticleBase() {
 //     return pbase;
 // }
-
-
+// 
+// 
 // template <class T, unsigned Dim>
 // const AbstractParticle<T, Dim>* PartBunchBase<T, Dim>::getParticleBase() const {
 //     return pbase;

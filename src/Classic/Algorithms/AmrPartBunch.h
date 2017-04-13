@@ -21,7 +21,11 @@ public:
     
     ~AmrPartBunch();
     
-    pbase_t* clone();
+    pbase_t *getAmrParticleBase();
+    
+    const pbase_t *getAmrParticleBase() const;
+    
+//     pbase_t* clone();
     
     void initialize(FieldLayout_t *fLayout);
     
@@ -57,6 +61,7 @@ private:
 private:
     
     AmrObject *amrobj_mp;
+    pbase_t *amrpbase_mp;
     
     
     Mesh_t mesh_m;

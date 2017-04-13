@@ -61,6 +61,14 @@ public:
                 ParticleAttrib<Vektor<PT, Dim> >& pp,
                 int lbase = 0, int lfine = -1);
     
+    
+    template<class AType>
+    void AssignDensitySingleLevel (ParticleAttrib<AType> &pa,
+                                   AmrField_t& mf_to_be_filled,
+                                   int lev,
+                                   int particle_lvl_offset = 0);
+    
+    
 private:
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     static void CIC_Cells_Fracs_Basic (const SingleParticlePos_t &R,
@@ -120,11 +128,6 @@ private:
                        AmrFieldContainer_t& mf_to_be_filled,
                        int lev_min, int finest_level);
     
-    template<class AType>
-    void AssignDensitySingleLevel (ParticleAttrib<AType> &pa,
-                                   AmrField_t& mf_to_be_filled,
-                                   int lev,
-                                   int particle_lvl_offset = 0);
     
     template<class AType>
     void AssignCellDensitySingleLevel(ParticleAttrib<AType> &pa,
