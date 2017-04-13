@@ -380,9 +380,11 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
             this->getAmrRefRatioY(),
             this->getAmrRefRatioT()
         };
-                                             
-        solver_m = new FMGPoissonSolver(
-            new AmrBoxLib(domain, nGridPts, maxLevel, refRatio)
+        
+        amrsolver_m.reset(
+            new FMGPoissonSolver(
+                new AmrBoxLib(domain, nGridPts, maxLevel, refRatio)
+            )
         );
         
 	/*

@@ -23,6 +23,12 @@ class FieldSolver;
 #include "Algorithms/PartData.h"
 #include "Solvers/PoissonSolver.h"
 
+#ifdef HAVE_AMR_SOLVER
+    #include "Amr/AmrBoxLib.h"
+    #include "Solvers/AmrPoissonSolver.h"
+    #include <memory>
+#endif
+
 template <class T, unsigned Dim>
 class PartBunchBase;
 
@@ -104,6 +110,8 @@ public:
     bool isAmrSubCycling();
 
     int getAmrMaxGridSize();
+    
+    std::unique_ptr< AmrPoissonSolver<AmrBoxLib> > amrsolver_m;
 #endif
 
     /// the actual solver, should be a base object

@@ -153,12 +153,9 @@ AmrBoxLib::VectorPair_t AmrBoxLib::getEExtrema() {
 
 double AmrBoxLib::getRho(int x, int y, int z) {
     //TODO
-    for (int lev = eg_m.size() - 2; lev >= 0; lev--)
-        BoxLib::average_down(eg_m[lev+1], eg_m[lev], 0, 3, this->refRatio(lev));
-    
-    
-    
-    throw OpalException("AmrPartBunch::getRho(x, y, z) ", "Not yet Implemented.");
+//     for (int lev = phi_m.size() - 2; lev >= 0; lev--)
+//         BoxLib::average_down(phi_m[lev+1], phi_m[lev], 0, 1, this->refRatio(lev));
+    throw OpalException("AmrBoxLib::getRho(x, y, z) ", "Not yet Implemented.");
     return 0.0;
 }
 

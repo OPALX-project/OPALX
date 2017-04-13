@@ -299,7 +299,7 @@ public:
     /// get the macro particle charge
     double getChargePerParticle() const;
     
-    void setSolver(FieldSolver *fs);
+    virtual void setSolver(FieldSolver *fs);
     
     bool hasFieldSolver();
     
