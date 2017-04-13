@@ -32,6 +32,14 @@ public:
     }
     
     
+    AmrObject *getAmrObject() {
+        return itsAmrObject_mp.get();
+    }
+    
+    const AmrObject *getAmrObject() const {
+        return itsAmrObject_mp.get();
+    }
+    
 protected:
     std::unique_ptr<AmrObject> itsAmrObject_mp;    
 };

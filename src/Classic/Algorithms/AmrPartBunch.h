@@ -51,6 +51,11 @@ public:
     
     void computeSelfFields_cycl(int b);
     
+    void setSolver(FieldSolver *fs) {
+        PartBunchBase<double, 3>::setSolver(fs);
+        this->amrobj_mp = fs->amrsolver_m->getAmrObject();
+    }
+    
 private:
     void updateFieldContainers_m();
     
@@ -60,6 +65,9 @@ private:
     
 private:
     
+    /* pointer to AMR object that is part
+     * of the amrsolver_m in src/Structure/FieldSolver.h
+     */
     AmrObject *amrobj_mp;
     pbase_t *amrpbase_mp;
     
