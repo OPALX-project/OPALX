@@ -23,14 +23,14 @@ public:
     
     /// Methods for tagging cells for refinement
     enum TaggingCriteria {
-        kChargeDensity = 0, // default
-        kPotentialStrength,
-        kEfieldGradient
+        CHARGE_DENSITY = 0, // default
+        POTENTIAL_STRENGTH,
+        EFIELD_GRADIENT
     };
     
 public:
     
-    AmrObject() : tagging_m(kChargeDensity),
+    AmrObject() : tagging_m(CHARGE_DENSITY),
                   scaling_m(0.75),
                   nCharge_m(1.0e-15)
     {}
@@ -52,7 +52,7 @@ public:
 //               const NDIndex<3>& nGridPts,
 //               short maxLevel,
 //               const RefineRatios_t& refRatio)
-//         : tagging_m(kChargeDensity),
+//         : tagging_m(CHARGE_DENSITY),
 //           scaling_m(0.75),
 //           nCharge_m(1.0e-15)
 //     {}
@@ -94,7 +94,7 @@ public:
     }
     
     /*!
-     * Charge for tagging with kChargeDensity
+     * Charge for tagging with CHARGE_DENSITY
      * @param charge >= 0.0 (e.g. 1e-14)
      */
     void setCharge(double charge) {
@@ -121,7 +121,7 @@ protected:
     
     double scaling_m;           ///< Scaling factor for tagging [0, 1]
                                 // (kPotentialStrength, kEfieldGradient)
-    double nCharge_m;           ///< Tagging value for kChargeDensity
+    double nCharge_m;           ///< Tagging value for CHARGE_DENSITY
     
 };
 

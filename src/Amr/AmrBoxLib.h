@@ -5,8 +5,6 @@
 
 class AmrPartBunch;
 
-#include "Amr/AmrDefs.h"
-
 // BoxLib headers
 #include <AmrCore.H>
 #include <BoxLib.H>
@@ -23,13 +21,6 @@ public:
     typedef amr::AmrProcMapContainer_t  AmrProcMapContainer_t;
     typedef amr::AmrDomain_t            AmrDomain_t;
     typedef amr::AmrIntArray_t          AmrIntArray_t;
-//     typedef MultiFab                    AmrField_t;
-//     typedef PArray<AmrField_t>          AmrFieldContainer_t;
-//     typedef Array<Geometry>             AmrGeomContainer_t;
-//     typedef Array<BoxArray>             AmrGridContainer_t;
-//     typedef Array<DistributionMapping>  AmrProcMapContainer_t;
-//     typedef RealBox                     AmrDomain_t;
-//     typedef Array<int>                  AmrIntArray_t;
     
 //     typedef typename AmrPartBunch::VectorPair_t VectorPair_t;
     

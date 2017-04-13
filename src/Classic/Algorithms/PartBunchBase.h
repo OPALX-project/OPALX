@@ -58,7 +58,7 @@ public:
     
 //     const AbstractParticle<T, Dim>* getParticleBase() const;
     
-    virtual AbstractParticle<T, Dim>* clone() = 0;
+//     virtual AbstractParticle<T, Dim>* clone() = 0;
     
     /*
      * Bunch common member functions
