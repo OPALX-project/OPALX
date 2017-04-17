@@ -60,6 +60,9 @@ public:
     // type of attributes this layout should use for position and ID
     typedef ParticleAttrib<SingleParticlePos_t> ParticlePos_t;
     typedef ParticleAttrib<Index_t>             ParticleIndex_t;
+    
+    static bool do_tiling;
+    static IntVect tile_size;
 
 private:
   
@@ -71,25 +74,20 @@ private:
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     // Checks/sets a particles location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
-    static bool Where (AmrParticleBase< ParticleAmrLayout<T,Dim> >& prt, 
-                       const unsigned int ip, const ParGDBBase* gdb, 
-                       int lev_min = 0, int finest_level = -1);
+    bool Where (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
+                const unsigned int ip, 
+                int lev_min = 0, int lev_max = -1, int nGrow=0) const;
 
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     // Checks/sets whether the particle has crossed a periodic boundary in such a way
     // that it is on levels lev_min and higher.
-    static bool PeriodicWhere (AmrParticleBase< ParticleAmrLayout<T,Dim> >& prt, 
-                               const unsigned int ip, const ParGDBBase* gdb, 
-                               int lev_min = 0, int finest_level = -1);
-
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
-    // Checks/sets whether a particle is within its grid (including grow cells).
-    static bool RestrictedWhere (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p, 
-                                 const unsigned int ip, const ParGDBBase* gdb, int ngrow);
+    bool EnforcePeriodicWhere (AmrParticleBase< ParticleAmrLayout<T,Dim> >& prt,
+                               const unsigned int ip,
+                               int lev_min = 0, int lev_max = -1) const;
 
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     // Returns true if the particle was shifted.
-    static bool PeriodicShift (SingleParticlePos_t R, const ParGDBBase* gdb);
+    bool PeriodicShift (SingleParticlePos_t R) const;
 
 public:
 
@@ -172,6 +170,11 @@ public:
     { 
         return m_gdb->ParticleDistributionMap(lev); 
     }
+    
+    const Geometry& Geom (int lev) const { return m_gdb->Geom(lev); }
+    
+    int finestLevel () const { return m_gdb->finestLevel(); }
+    int maxLevel ()    const { return m_gdb->maxLevel(); }
 
     //get the PartGDBBase object
     const ParGDBBase* GetParGDB () const
@@ -181,21 +184,17 @@ public:
 
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     //get the cell of the particle
-    static IntVect Index (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p, 
-                          const unsigned int ip,
-                          const Geometry& geom);
+    IntVect Index (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
+                   const unsigned int ip, int leve) const;
 
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     //get the cell of the particle
-    static IntVect Index (SingleParticlePos_t &R, const Geometry& geom);
+    IntVect Index (SingleParticlePos_t &R, int lev) const;
 
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     //redistribute the particles using BoxLibs ParGDB class to determine where particle should go
     void Redistribute(AmrParticleBase< ParticleAmrLayout<T,Dim> >& PData,
-                      bool where_already_called = false,
-                      bool full_where = false,
-                      int lev_min = 0,
-                      int nGrow = 0)
+                      int lev_min = 0, int lev_max = -1, int nGrow = 0)
     {
 
         unsigned N = Ippl::getNodes();
@@ -204,6 +203,9 @@ public:
         int theEffectiveFinestLevel = m_gdb->finestLevel();
         while (!m_gdb->LevelDefined(theEffectiveFinestLevel))
             theEffectiveFinestLevel--;
+        
+        if (lev_max == -1)
+            lev_max = theEffectiveFinestLevel;
 
         //loop trough the particles and assigne the grid and level where each particle belongs
         size_t LocalNum = PData.getLocalNum();
@@ -222,29 +224,15 @@ public:
         //if particle doesn't belong to this process save the index of the particle to be sent
         for (unsigned int ip=0; ip < LocalNum; ++ip) {
             bool particleLeftDomain = false;
+            
             //check to which level and grid the particle belongs to
-            if (!where_already_called) {
-                if (!Where(PData, ip, m_gdb, lev_min, theEffectiveFinestLevel)) {
-                    if (full_where) {
-                        if (!PeriodicWhere(PData, ip, m_gdb, lev_min, theEffectiveFinestLevel)) {
-                            if (lev_min != 0) {
-                                if (!RestrictedWhere(PData, ip, m_gdb, nGrow))
-                                    BoxLib::Abort("RestrictedWhere failed in redistribute");
-                            } else {
-                                //the particle has left the domain - invalidate it.
-                                particleLeftDomain = true;
-                                PData.destroy(1, ip);
-                            }
-                        }
-                    } else {
-                        std::cout << "Bad Particle: " << PData.R[ip] << std::endl;
-                    }
-                }
-            }
-
-            if (!particleLeftDomain) {
-                //get the node the particle belongs to
-                unsigned int who = m_gdb->ParticleDistributionMap(PData.m_lev[ip])[PData.m_grid[ip]];
+            locateParticle(PData, ip, lev_min, lev_max, nGrow, particleLeftDomain);
+            
+            if ( !particleLeftDomain ) {
+                // The owner of the particle is the CPU owning the finest grid
+                // in state data that contains the particle.
+                const unsigned int who = ParticleDistributionMap(PData.m_lev[ip])[PData.m_grid[ip]];
+                
                 if (who != myN) {
                     msgsend[who] = 1;
                     p2n.insert(std::pair<unsigned, unsigned>(who, ip));
@@ -252,7 +240,7 @@ public:
                     particlesLeft--;
                 }
             }
-        } 
+        }
 
         //reduce message count so every node knows how many messages to receive
         MPI_Allreduce(msgsend, msgrecv, N, MPI_INT, MPI_SUM, Ippl::getComm());
@@ -352,7 +340,7 @@ public:
         size_t TotalNum;
         int node;
 
-        Redistribute(PData, false, false, 0, 0);
+        Redistribute(PData);
 
     }
 
@@ -364,7 +352,50 @@ public:
         //TODO: exit since we need AmrParticleBase with grids and levels for particles for this layout
         //if IpplParticleBase is used something went wrong
     }
-  
+    
+private:
+    int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);
+    
+    void locateParticle(AmrParticleBase< ParticleAmrLayout<T,Dim> >& p, 
+                        const unsigned int ip,
+                        int lev_min, int lev_max, int nGrow,
+                        bool &particleLeftDomain) const
+    {
+        bool outside = D_TERM( p.R[ip](0) <  Geometry::ProbLo(0)
+                            || p.R[ip](0) >= Geometry::ProbHi(0),
+                            || p.R[ip](1) <  Geometry::ProbLo(1)
+                            || p.R[ip](1) >= Geometry::ProbHi(1),
+                            || p.R[ip](2) <  Geometry::ProbLo(2)
+                            || p.R[ip](2) >= Geometry::ProbHi(2));
+        
+        bool success;
+        if (outside)
+        {
+            // Note that EnforcePeriodicWhere may shift the particle if it is successful.
+            success = EnforcePeriodicWhere(p, ip, lev_min, lev_max);
+            if (!success && lev_min == 0)
+            {
+                // The particle has left the domain; invalidate it.
+                particleLeftDomain = true;
+                p.destroy(1, ip);
+                success = true;
+            }
+        }
+        else
+        {
+            success = Where(p, ip, lev_min, lev_max);
+        }
+    
+        if (!success)
+        {
+            success = (nGrow > 0) && Where(p, ip, lev_min, lev_min, nGrow);
+        }
+    
+        if (!success)
+        {
+            BoxLib::Abort("ParticleContainer<NR, NI, NA>::locateParticle(): invalid particle.");
+        }
+    }
 
 };
 
