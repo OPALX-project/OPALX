@@ -34,6 +34,7 @@ public:
      */
 #ifdef HAVE_AMR_SOLVER
     virtual void solve(AmrFieldContainer_t &rho,
+                       AmrFieldContainer_t &phi,
                        AmrFieldContainer_t &efield,
                        unsigned short baseLevel,
                        unsigned short finestLevel)

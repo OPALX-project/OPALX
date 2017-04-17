@@ -3,8 +3,8 @@
 FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* itsAmrObject_p)
     : AmrPoissonSolver<AmrBoxLib>(itsAmrObject_p),
       tol_m(1.e-10),
-      abstol_m(1.e-14),
-      phi_m(PArrayManage)
+      abstol_m(1.e-14)//,
+//       phi_m(PArrayManage)
 {
     // Dirichlet boundary conditions are default
     for (int d = 0; d < BL_SPACEDIM; ++d) {
@@ -14,6 +14,7 @@ FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* itsAmrObject_p)
 }
 
 void FMGPoissonSolver::solve(AmrFieldContainer_t &rho,
+                             AmrFieldContainer_t& phi,
                              AmrFieldContainer_t &efield,
                              unsigned short baseLevel,
                              unsigned short finestLevel)
@@ -48,9 +49,9 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t &rho,
     }
     
     // initialize potential and electric field grids on each level
-    initGrids_m(efield);
+    initGrids_m(phi, efield);
     
-    this->solveWithF90_m(rho, grad_phi_edge, geom,
+    this->solveWithF90_m(rho, phi, grad_phi_edge, geom,
                          baseLevel, finestLevel);
     
     
@@ -106,10 +107,11 @@ Inform &FMGPoissonSolver::print(Inform &os) const {
 
 
 void FMGPoissonSolver::solveWithF90_m(AmrFieldContainer_t& rho,
-                               Array<AmrFieldContainer_t>& grad_phi_edge,
-                               const GeomContainer_t& geom,
-                               int baseLevel,
-                               int finestLevel)
+                                      AmrFieldContainer_t& phi,
+                                      Array<AmrFieldContainer_t>& grad_phi_edge,
+                                      const GeomContainer_t& geom,
+                                      int baseLevel,
+                                      int finestLevel)
 {
     int nlevs = finestLevel - baseLevel + 1;
     
@@ -120,7 +122,7 @@ void FMGPoissonSolver::solveWithF90_m(AmrFieldContainer_t& rho,
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         geom_p.set(ilev, &geom[ilev + baseLevel]);
         rho_p.set(ilev, &rho[ilev + baseLevel]);
-        phi_p.set(ilev, &phi_m[ilev + baseLevel]);
+        phi_p.set(ilev, &phi[ilev + baseLevel]);
     }
     
     // Refinement ratio is hardwired to 2 here.
@@ -130,9 +132,9 @@ void FMGPoissonSolver::solveWithF90_m(AmrFieldContainer_t& rho,
     FMultiGrid fmg(geom_p, baseLevel, crse_ratio);
 
     if (baseLevel == 0)
-        fmg.set_bc(bc_m, phi_m[baseLevel]);
+        fmg.set_bc(bc_m, phi[baseLevel]);
     else
-        fmg.set_bc(bc_m, phi_m[baseLevel-1], phi_m[baseLevel]);
+        fmg.set_bc(bc_m, phi[baseLevel-1], phi[baseLevel]);
     
     /* (alpha * a - beta * (del dot b grad)) phi = rho
      * (b = 1)
@@ -156,18 +158,19 @@ void FMGPoissonSolver::solveWithF90_m(AmrFieldContainer_t& rho,
     }
 }
 
-void FMGPoissonSolver::initGrids_m(AmrFieldContainer_t& efield) {
+void FMGPoissonSolver::initGrids_m(AmrFieldContainer_t& phi,
+                                   AmrFieldContainer_t& efield) {
     for (int lev = 0; lev < efield.size(); ++lev) {
-        phi_m.clear(lev);
+        phi.clear(lev);
         efield.clear(lev);
         
         const BoxArray& ba = itsAmrObject_mp->boxArray()[lev];
         
         //                                      #components  #ghost cells                                                                                                                                          
-        phi_m.set(lev,  new AmrField_t(ba, 1,           1) );
+        phi.set(lev,  new AmrField_t(ba, 1,           1) );
         efield.set(lev, new AmrField_t(ba, 3,           1) );
         
-        phi_m[lev].setVal(0.0);
+        phi[lev].setVal(0.0);
         efield[lev].setVal(0.0);
     }
 }

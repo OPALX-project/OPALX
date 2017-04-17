@@ -22,6 +22,7 @@ public:
     FMGPoissonSolver(AmrBoxLib* itsAmrObject_p);
     
     void solve(AmrFieldContainer_t &rho,
+               AmrFieldContainer_t& phi,
                AmrFieldContainer_t &efield,
                unsigned short baseLevel,
                unsigned short finestLevel);
@@ -38,6 +39,7 @@ public:
     
 private:
     void solveWithF90_m(AmrFieldContainer_t& rho,
+                        AmrFieldContainer_t& phi,
                         Array< AmrFieldContainer_t >& grad_phi_edge, 
                         const GeomContainer_t& geom,
                         int baseLevel,
@@ -47,13 +49,14 @@ private:
      * on each level and grid.
      * @param efield to be intialized.
      */
-    void initGrids_m(AmrFieldContainer_t& efield);
+    void initGrids_m(AmrFieldContainer_t& phi,
+                     AmrFieldContainer_t& efield);
     
 private:
     int bc_m[2*BL_SPACEDIM];        ///< Boundary conditions
     double tol_m;
     double abstol_m;
-    AmrFieldContainer_t phi_m;
+//     AmrFieldContainer_t phi_m;
 };
 
 inline Inform &operator<<(Inform &os, const FMGPoissonSolver &fs) {
