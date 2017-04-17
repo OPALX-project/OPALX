@@ -1136,7 +1136,7 @@ public:
                 {
                     FArrayBox& fab = (*mf_pointer)[m_grid[ip]];
       
-                    IntVect m_cell = Layout->Index(this->R[ip], gm);
+                    IntVect m_cell = Layout->Index(this->R[ip], this->m_lev[ip]);
                     cells[0] = m_cell;
                     cells[1] = m_cell+IntVect(1,0,0);
                     cells[2] = m_cell+IntVect(0,1,0);

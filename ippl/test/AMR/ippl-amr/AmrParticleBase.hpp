@@ -158,7 +158,7 @@ bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
   }
 
   const Box& ibx = BoxLib::grow(gdb->ParticleBoxArray(flev)[m_grid[ip]],-1);
-  IntVect m_cell = Layout->Index(this->R[ip], gdb->Geom(flev));
+  IntVect m_cell = Layout->Index(this->R[ip], flev);
 
   BL_ASSERT(ibx.ok());
 
