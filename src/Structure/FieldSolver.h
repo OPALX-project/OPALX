@@ -97,7 +97,7 @@ public:
     bool hasPeriodicZ();
 
 #ifdef HAVE_AMR_SOLVER
-    bool isAmrSolver();
+    bool isAmrSolverType();
 
     int getAmrMaxLevel();
 
@@ -111,13 +111,26 @@ public:
 
     int getAmrMaxGridSize();
     
-    std::unique_ptr< AmrPoissonSolver<AmrBoxLib> > amrsolver_m;
+    AmrObject *getAmrObject() {
+        return itsAmrObject_mp.get();
+    }
+    
+    const AmrObject *getAmrObject() const {
+        return itsAmrObject_mp.get();
+    }
 #endif
 
     /// the actual solver, should be a base object
     PoissonSolver *solver_m;
 
 private:
+#ifdef HAVE_AMR_SOLVER
+    void initAmrObject_m();
+    
+    void initAmrSolver_m();
+    
+    std::unique_ptr<AmrObject> itsAmrObject_mp;
+#endif
 
     // Not implemented.
     FieldSolver(const FieldSolver &);

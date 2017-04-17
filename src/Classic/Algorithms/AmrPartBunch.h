@@ -53,8 +53,18 @@ public:
     
     void setSolver(FieldSolver *fs) {
         PartBunchBase<double, 3>::setSolver(fs);
-        this->amrobj_mp = fs->amrsolver_m->getAmrObject();
+        this->amrobj_mp = fs->getAmrObject();
     }
+    
+    // AmrPartBunch only
+    PoissonSolver *getFieldSolver() {
+        return fs_m->solver_m;
+    }
+    
+    const PoissonSolver *getFieldSolver() const {
+        return fs_m->solver_m;
+    }
+    
     
 private:
     void updateFieldContainers_m();

@@ -31,17 +31,8 @@ public:
         throw OpalException("AmrPoissonSolver::test(PartBunchBase<double, 3>)", "Not implemented.");
     }
     
-    
-    AmrObject *getAmrObject() {
-        return itsAmrObject_mp.get();
-    }
-    
-    const AmrObject *getAmrObject() const {
-        return itsAmrObject_mp.get();
-    }
-    
 protected:
-    std::unique_ptr<AmrObject> itsAmrObject_mp;    
+    AmrObject* itsAmrObject_mp;    
 };
 
 
