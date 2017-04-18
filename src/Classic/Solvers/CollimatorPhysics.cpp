@@ -64,12 +64,12 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *eleme
     Emax_m(0.0),
     Emin_m(0.0)
 #ifdef OPAL_DKS
-    , curandInitSet(0),
-    , ierr(0),
-    , maxparticles(0),
-    , numparticles(0),
-    , numlocalparts(0),
-    , par_ptr(NULL),
+    , curandInitSet(0)
+    , ierr(0)
+    , maxparticles(0)
+    , numparticles(0)
+    , numlocalparts(0)
+    , par_ptr(NULL)
     , mem_ptr(NULL)
 #endif
 {
