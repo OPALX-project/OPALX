@@ -182,11 +182,6 @@ void Ring::setRefPartBunch(PartBunch* bunch) {
 
 std::vector<RingSection*> Ring::getSectionsAt(const Vector_t& r) {
     return section_list_m;
-    double phi = atan2(r(1), -r(0))+Physics::pi;
-    // std::cerr << "GetSectionsAt " << phi << " " << phiStep_m << " " << int((phi)/phiStep_m) << " " << ringSections_m.size() << std::endl;
-    if (phi >= 2.*Physics::pi)
-        phi -= 2.*Physics::pi;
-    return ringSections_m[(phi)/phiStep_m];
 }
 
 Rotation3D Ring::getRotationStartToEnd(Euclid3D delta) const {
