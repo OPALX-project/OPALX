@@ -784,7 +784,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
         if(P4 > 0.5)
             thetaru = -thetaru;
 	coord = 0; // no change in coordinates but one in momenta-direction
-	//	Rot(P(0),P(2),R(0),R(2), xplane, normP, thetaru, deltas, coord);
+	Rot(P(0),P(2),R(0),R(2), xplane, normP, thetaru, deltas, coord);
     }
 
     // y-direction: See Physical Review, "Multiple Scattering"
@@ -814,7 +814,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
         if(P4 > 0.5)
             thetaru = -thetaru;
 	coord = 0; // no change in coordinates but one in momenta-direction
-	//	Rot(P(1),P(2),R(1),R(2), yplane, normP, thetaru, deltas, coord);
+       	Rot(P(1),P(2),R(1),R(2), yplane, normP, thetaru, deltas, coord);
     }
 }
 
