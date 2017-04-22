@@ -1921,6 +1921,8 @@ void PartBunch::calcMoments() {
     }
 
     /*
+      Issue #72 is touching on this
+
       In OPAL Cycl the particle with ID=0
       is a special particle, a kind of design particle. 
 
