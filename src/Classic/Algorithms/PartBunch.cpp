@@ -1921,25 +1921,42 @@ void PartBunch::calcMoments() {
     }
 
     /*
-      find particle with ID==0
-      and save index in zID
+      In OPAL Cycl the particle with ID=0
+      is a special particle, a kind of design particle. 
+
+      Later on we will maintain a seperate structure like in OPAL-t
+      for now we will exclude the particle with ID==0.
+
+      - find particle with ID==0
+
+      - substract the R and P of particle with ID==0 from the 
+        moment calculation. 
      */
-
-    unsigned long zID = 0;
-    bool found = false;
-    // TODO: this removes a particle from the data but the
-    //       number of particles remains the same. This will
-    //       inevitably lead to wrong results.
+    
     if (OpalData::getInstance()->isInOPALCyclMode()) {
-        for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
-            if (this->ID[k] == 0) {
-                found  = true;
-                zID = k;
-                break;
-            }
-        }
+      for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
+	if (this->ID[k] == 0) {
+	  part[1] = this->P[k](0);
+	  part[3] = this->P[k](1);
+	  part[5] = this->P[k](2);
+	  part[0] = this->R[k](0);
+	  part[2] = this->R[k](1);
+	  part[4] = this->R[k](2);	
+	  for(int i = 0; i < 2 * Dim; i++) {
+	    loc_centroid[i]   -= part[i];
+	    for(int j = 0; j <= i; j++) {
+	      loc_moment[i][j]   -= part[i] * part[j];
+	    }
+	  }
+	  break;
+	}
+      }
     }
-
+    
+    /*
+      This is now the regular loop
+    */
+    
     for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
         part[1] = this->P[k](0);
         part[3] = this->P[k](1);
@@ -1955,23 +1972,6 @@ void PartBunch::calcMoments() {
             }
         }
     }
-
-    if (found) {
-        part[1] = this->P[zID](0);
-        part[3] = this->P[zID](1);
-        part[5] = this->P[zID](2);
-        part[0] = this->R[zID](0);
-        part[2] = this->R[zID](1);
-        part[4] = this->R[zID](2);
-
-        for(int i = 0; i < 2 * Dim; i++) {
-            loc_centroid[i]   -= part[i];
-            for(int j = 0; j <= i; j++) {
-                loc_moment[i][j]   -= part[i] * part[j];
-            }
-        }
-    }
-
 
     for(int i = 0; i < 2 * Dim; i++) {
         for(int j = 0; j < i; j++) {
