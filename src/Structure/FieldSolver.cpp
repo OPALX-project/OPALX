@@ -89,7 +89,7 @@ FieldSolver::FieldSolver():
     Definition(SIZE, "FIELDSOLVER",
                "The \"FIELDSOLVER\" statement defines data for a the field solver ") {
 
-    itsAttr[FSTYPE] = Attributes::makeString("FSTYPE", "Name of the attached field solver: FFT, FFTPERIODIC, SAAMG, AMR, and NONE ");
+  itsAttr[FSTYPE] = Attributes::makeString("FSTYPE", "Name of the attached field solver: FFT, FFTPERIODIC, SAAMG, AMR, and NONE ","NONE");
 
     itsAttr[MX] = Attributes::makeReal("MX", "Meshsize in x");
     itsAttr[MY] = Attributes::makeReal("MY", "Meshsize in y");
@@ -183,6 +183,10 @@ FieldSolver *FieldSolver::find(const std::string &name) {
     return fs;
 }
 
+
+std::string FieldSolver::getType() {
+    return Attributes::getString(itsAttr[FSTYPE]);
+}
 
 double FieldSolver::getMX() const {
     return Attributes::getReal(itsAttr[MX]);

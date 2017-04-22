@@ -50,6 +50,8 @@
 #include "Distribution/Distribution.h"
 #include "Structure/BoundaryGeometry.h"
 
+#include <boost/algorithm/string.hpp>
+
 #include "OPALconfig.h"
 #include "changes.h"
 
@@ -786,6 +788,16 @@ void TrackRun::setupCyclotronTracker(){
 
 void TrackRun::setupFieldsolver() {
     fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
+
+    size_t m = fs->getMX()*fs->getMY()*fs->getMT(); // total number of gridpoints 
+
+    Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
+    size_t np = beam->getNumberOfParticles();
+
+    if (np < m && boost::to_upper_copy<std::string>(fs->getType()) != std::string("NONE"))
+      throw OpalException("TrackRun::setupFieldsolver()",
+			  "Panik: The number of simulation particles is smaller than the number of gridpoints");
+
     fs->initCartesianFields();
     Track::block->bunch->setSolver(fs);
     if (fs->hasPeriodicZ())
