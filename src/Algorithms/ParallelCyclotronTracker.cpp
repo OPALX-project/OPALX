@@ -1398,8 +1398,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
             }
         }
 
-        // calculate self fields Space Charge effects are included only when total macropaticles number is NOT LESS THAN 1000.
-        if(itsBunch->hasFieldSolver() && initialTotalNum_m >= 1000) {
+        if(itsBunch->hasFieldSolver()) {
             if(step_m % scSolveFreq == 0) {
                 //    *gmsg << "Calculate space charge at step " << step_m<<endl;
                 // Firstly reset E and B to zero before fill new space charge field data for each track step
@@ -1496,7 +1495,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
             // if field solver is not available , only update bunch, to transfer particles between nodes if needed,
             // reset parameters such as LocalNum, initialTotalNum_m.
             // INFOMSG("No space charge Effects are included!"<<endl;);
-            if((step_m % Options::repartFreq * 100) == 0 && initialTotalNum_m >= 1000) {
+            if((step_m % Options::repartFreq * 100) == 0) {
                 Vector_t const meanR = calcMeanR();
                 Vector_t const meanP = calcMeanP();
                 double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
@@ -2001,7 +2000,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
             // Calculate SC field before each time step and keep constant during integration.
             // Space Charge effects are included only when total macropaticles number is NOT LESS THAN 1000.
-            if(itsBunch->hasFieldSolver() && initialTotalNum_m >= 1000) {
+            if(itsBunch->hasFieldSolver()) {
 
                 if(step_m % scSolveFreq == 0) {
 
@@ -2950,7 +2949,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
             // Calculate SC field before each time step and keep constant during integration.
             // Space Charge effects are included only when total macropaticles number is NOT LESS THAN 1000.
-            if (itsBunch->hasFieldSolver() && initialTotalNum_m >= 1000) {
+            if (itsBunch->hasFieldSolver()) {
 
                 if (step_m % scSolveFreq == 0) {
 
@@ -3095,8 +3094,6 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                     globalToLocal(itsBunch->Bf, quaternionToNewMeanP);
                 }
             }
-            // If field solver is not available or number of particles is less than 1000
-            // we don't need to do anything space charge related.
 
             // *** This was moved here b/c collision should be tested before the **********************
             // *** actual timestep (bgf_main_collision_test() predicts the next step automatically) -DW
@@ -4223,7 +4220,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
     *gmsg << "* ---------------------------- Start tracking ----------------------------" << endl;
     IpplTimings::stopTimer(IpplTimings::getTimer("MTS-Various"));
     IpplTimings::startTimer(IpplTimings::getTimer("MTS-SpaceCharge"));
-    if(itsBunch->hasFieldSolver() && initialTotalNum_m >= 1000) {
+    if(itsBunch->hasFieldSolver()) {
         evaluateSpaceChargeField();
     }
     IpplTimings::stopTimer(IpplTimings::getTimer("MTS-SpaceCharge"));
@@ -4240,7 +4237,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
 
         // First half kick from space charge force
         IpplTimings::startTimer(IpplTimings::getTimer("MTS-Kick"));
-        if(itsBunch->hasFieldSolver() && initialTotalNum_m >= 1000) {
+        if(itsBunch->hasFieldSolver()) {
             kick(0.5 * dt);
         }
         IpplTimings::stopTimer(IpplTimings::getTimer("MTS-Kick"));
@@ -4329,14 +4326,13 @@ void ParallelCyclotronTracker::Tracker_MTS() {
 
 	IpplTimings::startTimer(IpplTimings::getTimer("MTS-SpaceCharge"));
 
-        // calculate self fields Space Charge effects are included only when total macropaticles number is NOT LESS THAN 1000.
-        if(itsBunch->hasFieldSolver() && initialTotalNum_m >= 1000) {
+        if(itsBunch->hasFieldSolver()) {
             evaluateSpaceChargeField();
         } else {
             // if field solver is not available , only update bunch, to transfer particles between nodes if needed,
             // reset parameters such as LocalNum, initialTotalNum_m.
             // INFOMSG("No space charge Effects are included!"<<endl;);
-            if((step_m % Options::repartFreq * 100) == 0 && initialTotalNum_m >= 1000) { //TODO: why * 100?
+            if((step_m % Options::repartFreq * 100) == 0) { //TODO: why * 100?
                 Vector_t const meanP = calcMeanP();
                 double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
                 Vector_t const meanR = calcMeanR();
@@ -4350,7 +4346,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
 
         // Second half kick from space charge force
         IpplTimings::startTimer(IpplTimings::getTimer("MTS-Kick"));
-        if(itsBunch->hasFieldSolver() && initialTotalNum_m >= 1000) {
+        if(itsBunch->hasFieldSolver()) {
             kick(0.5 * dt);
         }
         IpplTimings::stopTimer(IpplTimings::getTimer("MTS-Kick"));
