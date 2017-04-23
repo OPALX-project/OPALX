@@ -721,7 +721,7 @@ void StatisticalErrors::writeSDDSData(std::ofstream &out,
                                       const std::map<std::string, std::vector<double> > &data,
                                       const std::vector<std::string> &order) {
     out << Ippl::getNodes() << "\n"
-        << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " git rev. " << Util::getGitRevision() << std::endl;
+        << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " # git rev. " << Util::getGitRevision() << std::endl;
 
     size_t sizeData = data.find("s")->second.size();
     size_t numColumns = order.size();
