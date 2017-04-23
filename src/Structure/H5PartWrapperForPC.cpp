@@ -310,7 +310,7 @@ void H5PartWrapperForPC::writeStepHeader(PartBunch& bunch, const std::map<std::s
     double mass = 1.0e-9 * bunch.getM();
     double charge = bunch.getCharge();
 
-    h5_int64_t localFrame = Options::psDumpLocalFrame? 1: 0;
+    h5_int64_t localFrame = Options::psDumpLocalFrame;
 
     double sposHead = 0.0;
     double sposRef = 0.0;

@@ -28,7 +28,6 @@
 #include "Utilities/ClassicRandom.h"
 
 namespace Options {
-
     /// Echo flag.
     //  If true, print an input echo.
     extern bool echo;
@@ -114,8 +113,10 @@ namespace Options {
     extern int boundpDestroyFreq;
 
     /// flag to decide in which coordinate frame the phase space will be dumped for OPAL-cycl
-    // if true, in local Cartesian frame, otherwise in global Cartesian frame
-    extern bool psDumpLocalFrame;
+    //  - GLOBAL, in Cartesian frame of the global particle
+    //  - BUNCH_MEAN, in Cartesian frame of the bunch mean
+    //  - REFERENCE, in Cartesian frame of the reference (0) particle
+    extern DumpFrame psDumpLocalFrame;
 
     /// The frequency to solve space charge fields.
     extern int scSolveFreq;
