@@ -185,6 +185,9 @@ FieldSolver *FieldSolver::find(const std::string &name) {
     return fs;
 }
 
+std::string FieldSolver::getType() {
+    return Attributes::getString(itsAttr[FSTYPE]);
+}
 
 double FieldSolver::getMX() const {
     return Attributes::getReal(itsAttr[MX]);
