@@ -23,6 +23,7 @@ set (_SRCS
   SDDSParser/version.cpp
   OpalInputInterpreter.cpp
   IpplInfoWrapper.cpp
+  TracerParticles.cpp
 )
 
 include_directories (
@@ -69,6 +70,7 @@ set (HDRS
     SDDSParser/skipper.hpp
     SDDSParser/version_def.hpp
     SDDSParser/version.hpp
+    TracerParticles.hpp
 )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Structure")
