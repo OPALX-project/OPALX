@@ -1,3 +1,4 @@
+#include "Utilities/OptionTypes.h"
 #include "Utilities/Random.h"
 #include <string>
 
@@ -24,7 +25,7 @@ namespace Options {
     bool verify = false;
     bool warn = true;
     bool psDumpEachTurn = false;
-    bool psDumpLocalFrame = false;
+    DumpFrame psDumpLocalFrame = GLOBAL;
     bool scan = false;
     bool rhoDump = false;
     bool ebDump = false;
