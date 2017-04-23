@@ -18,7 +18,6 @@
 
 #include <Algorithms/Ctunes.hpp>
 #include "Algorithms/ParallelCyclotronTracker.h"
-#include "Algorithms/BunchDumpStatData.h"
 #include "Algorithms/PolynomialTimeDependence.h"
 #include "Elements/OpalPolynomialTimeDependence.h"
 
