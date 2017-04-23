@@ -1618,21 +1618,20 @@ void PartBunch::calcMoments() {
         }
     }
 
-    for(unsigned long k = 0; k < localNum; ++ k) {
-        part[1] = P[k](0);
-        part[3] = P[k](1);
-        part[5] = P[k](2);
-        part[0] = R[k](0);
-        part[2] = R[k](1);
-        part[4] = R[k](2);
+    /*
+      Issue #72 is touching on this
 
-        for(int i = 0; i < 2 * Dim; ++ i) {
-            loc_centroid[i] += part[i];
-            for(int j = 0; j <= i; ++ j) {
-                loc_moment[i][j] += part[i] * part[j];
-            }
-        }
-    }
+      In OPAL Cycl the particle with ID=0
+      is a special particle, a kind of design particle. 
+
+      Later on we will maintain a seperate structure like in OPAL-t
+      for now we will exclude the particle with ID==0.
+
+      - find particle with ID==0
+
+      - substract the R and P of particle with ID==0 from the 
+        moment calculation. 
+     */
 
     if (OpalData::getInstance()->isInOPALCyclMode()) {
         for(unsigned long k = 0; k < localNum; ++ k) {
@@ -1650,8 +1649,23 @@ void PartBunch::calcMoments() {
                         loc_moment[i][j] -= part[i] * part[j];
                     }
                 }
-
                 break;
+            }
+        }
+    }
+
+    for(unsigned long k = 0; k < localNum; ++ k) {
+        part[1] = P[k](0);
+        part[3] = P[k](1);
+        part[5] = P[k](2);
+        part[0] = R[k](0);
+        part[2] = R[k](1);
+        part[4] = R[k](2);
+
+        for(int i = 0; i < 2 * Dim; ++ i) {
+            loc_centroid[i] += part[i];
+            for(int j = 0; j <= i; ++ j) {
+                loc_moment[i][j] += part[i] * part[j];
             }
         }
     }
