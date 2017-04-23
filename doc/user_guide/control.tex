@@ -171,11 +171,14 @@ The first five logical flags activate or deactivate execution options:
   Control option of phase space dumping. If true, dump phase space after each turn.
   For the time being, this is only use for multi-bunch simulation in \opalcycl. Its default set is false.
 
-  \item[PSDUMPLOCALFRAME]
-  \index{OPTION!PSDUMPLOCALFRAME}
-  Control option whether the phase space data is dumped in the global Cartesian frame or in the local Cartesian frame.
-  If true, in local frame, otherwise in global Cartesian frame. Only available for \opalcycl. Its default set is false.
-  Note that restarting run cannot be launched by reading in phase space data in local frame.
+  \item[PSDUMPFRAME]
+  \index{OPTION!PSDUMPFRAME}
+  Control option that defines the frame in which the phase space data is written for h5 and stat files.
+    \begin{itemize}
+      \item \verb|GLOBAL|: data is written in the global Cartesian frame;
+      \item \verb|BUNCH_MEAN|: data is written in the bunch mean frame or;
+      \item \verb|REFERENCE|: data is written in the frame of the reference particle.
+    \end{itemize}
 
   \item[SCSOLVEFREQ]
   \index{OPTION!SCSOLVEFREQ}
