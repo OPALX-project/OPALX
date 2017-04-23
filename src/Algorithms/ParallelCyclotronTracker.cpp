@@ -429,19 +429,15 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
         // If the user wants to save the restarted run in local frame,
         // make sure the previous h5 file was local too
-        if (Options::psDumpLocalFrame) {
-
-	    if (!previousH5Local) {
-
+      if (Options::psDumpLocalFrame != Options::GLOBAL) {
+        if (!previousH5Local) {
                 throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
                                     "You are trying a local restart from a global h5 file!");
-	    }
+        }
             // Else, if the user wants to save the restarted run in global frame,
             // make sure the previous h5 file was global too
-        } else {
-
-	    if (previousH5Local) {
-
+      } else {
+        if (previousH5Local) {
                 throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
                                     "You are trying a global restart from a local h5 file!");
             }
@@ -451,9 +447,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
         referencePhi *= Physics::deg2rad;
         referencePsi *= Physics::deg2rad;
         referencePtot = bega;
-
         if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
-
             throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
                                 "PHIINIT is out of [-180, 180)!");
         }
@@ -3515,7 +3509,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
             itsBunch->P[i](0) += referencePr;
             itsBunch->P[i](1) += referencePt;
             itsBunch->P[i](2) += referencePz;
-	}
+        }
 
         // Out of the three coordinates of meanR (R, Theta, Z) only the angle
         // changes the momentum vector...
@@ -3545,7 +3539,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         // Do a local frame restart (we have already checked that the old h5 file was saved in local
         // frame as well).
         // Cave: Multi-bunch must not be done in the local frame! (TODO: Is this still true? -DW)
-        if((Options::psDumpLocalFrame)) {
+        if((Options::psDumpLocalFrame != Options::GLOBAL)) {
 
             *gmsg << "* Restart in the local frame" << endl;
 
@@ -3786,8 +3780,15 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     // --------------------------------- Get some Values ---------------------------------------- //
     double const E = itsBunch->get_meanKineticEnergy();
     double const temp_t = itsBunch->getT() * 1e9; // s -> ns
-    Vector_t const meanR = calcMeanR();
-    Vector_t const meanP = calcMeanP();
+    Vector_t meanR;
+    Vector_t meanP;
+    if (Options::psDumpLocalFrame == Options::BUNCH_MEAN) {
+        meanR = calcMeanR();
+        meanP = calcMeanP();
+    } else {
+        meanR = itsBunch->R[0];
+        meanP = itsBunch->P[0];
+    }
     double phi = 0;
     double psi = 0;
     // --------------  Calculate the external fields at the center of the bunch ----------------- //
@@ -3800,9 +3801,8 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
 
     // If we are saving in local frame, bunch and fields at the bunch center have to be rotated
     // TODO: Make decision if we maybe want to always save statistics data in local frame? -DW
-    if(Options::psDumpLocalFrame) {
+    if(Options::psDumpLocalFrame != Options::GLOBAL) {
         // -------------------- ----------- Do Transformations ---------------------------------- //
-
         // Bunch (local) azimuth at meanR w.r.t. y-axis
         phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
 
@@ -3829,7 +3829,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     //itsBunch->R *= Vector_t(1000.0); // m -> mm
 
     // If we are in local mode, transform back after saving
-    if(Options::psDumpLocalFrame) {
+    if(Options::psDumpLocalFrame != Options::GLOBAL) {
         localToGlobal(itsBunch->R, phi, psi);
         localToGlobal(itsBunch->P, phi, psi);
     }
@@ -3850,8 +3850,15 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     // --------------------------------- Get some Values ---------------------------------------- //
     double const temp_t = itsBunch->getT() * 1.0e9; // s -> ns
 
-    Vector_t const meanR = calcMeanR();
-    Vector_t const meanP = calcMeanP();
+    Vector_t meanR;
+    Vector_t meanP;
+    if (Options::psDumpLocalFrame == Options::BUNCH_MEAN) {
+        meanR = calcMeanR();
+        meanP = calcMeanP();
+    } else {
+        meanR = itsBunch->R[0];
+        meanP = itsBunch->P[0];
+    }
 
     double const betagamma_temp = sqrt(dot(meanP, meanP));
     double const E = itsBunch->get_meanKineticEnergy();
@@ -3893,7 +3900,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 
     // -------------- If flag DumpLocalFrame is not set, dump bunch in global frame ------------- //
     if (Options::psDumpFreq < std::numeric_limits<int>::max() ){
-        if(!(Options::psDumpLocalFrame) && (Options::psDumpFreq < std::numeric_limits<int>::max())) {
+        if (Options::psDumpLocalFrame == Options::GLOBAL) {
 
             FDext_m[0] = extB_m * 0.1; // kgauss --> T
             FDext_m[1] = extE_m;

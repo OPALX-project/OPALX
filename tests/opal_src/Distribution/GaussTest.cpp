@@ -25,15 +25,6 @@ Inform *gmsg;
 #include <cstring>
 #include <sstream>
 
-namespace {
-    std::string burnAfterReading(std::ostringstream &ostr) {
-        std::string returnValue = ostr.str();
-        ostr.str("");
-
-        return returnValue;
-    }
-}
-
 TEST(GaussTest, FullSigmaTest1) {
     OpalTestUtilities::SilenceTest silencer(true);
     char inputFileName[] = "GaussDistributionTest.in";
