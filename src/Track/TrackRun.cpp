@@ -52,8 +52,6 @@
 #include "Distribution/Distribution.h"
 #include "Structure/BoundaryGeometry.h"
 
-#include <boost/algorithm/string.hpp>
-
 #include "OPALconfig.h"
 #include "changes.h"
 
@@ -841,13 +839,16 @@ void TrackRun::setupStatisticalErrors(const std::string & method) {
 void TrackRun::setupFieldsolver() {
     fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
 
-    size_t m = fs->getMX()*fs->getMY()*fs->getMT(); // total number of gridpoints                                              
-    Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
-    size_t np = beam->getNumberOfParticles();
+    if (Util::toUpper(fs->getType()) != std::string("NONE")) {
+        size_t numGridPoints = fs->getMX()*fs->getMY()*fs->getMT(); // total number of gridpoints
+        Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
+        size_t numParticles = beam->getNumberOfParticles();
 
-    if (np < m && boost::to_upper_copy<std::string>(fs->getType()) != std::string("NONE"))
-      throw OpalException("TrackRun::setupFieldsolver()",
-                          "Panik: The number of simulation particles is smaller than the number of gridpoints");
+        if (numParticles < numGridPoints)
+            throw OpalException("TrackRun::setupFieldsolver()",
+                                "Panik: The number of simulation particles (" + std::to_string(numParticles) + ") " +
+                                "is smaller than the number of gridpoints (" + std::to_string(numGridPoints) + ")");
+    }
 
     fs->initCartesianFields();
     Track::block->bunch->setSolver(fs);
