@@ -20,70 +20,75 @@
 #include "Algorithms/PartPusher.h"
 #include "Structure/DataSink.h"
 
+#include "Ippl.h"
+
 #include <vector>
 #include <cassert>
 #include <sstream>
 #include <fstream>
 
-class TracerParticles {
+// define our particle layout type                                              
+typedef ParticleUniformLayout<double,3> playout_t;
+
+class TracerParticles { // : public IpplParticleBase< ParticleUniformLayout<double, 3> > {
 
  public:
 
   TracerParticles() {  
-    tracePartR_m.reserve(1);
-    tracePartP_m.reserve(1);
-    tracePartE_m.reserve(1);
-    tracePartB_m.reserve(1);
+    R.create(1);
+    P.create(1);
+    Ef.create(1);
+    Bf.create(1);
 
-    tracePartR_m[0] = Vector_t(0.0);
-    tracePartP_m[0] = Vector_t(0.0);
-    tracePartE_m[0] = Vector_t(0.0);
-    tracePartB_m[0] = Vector_t(0.0);
+    R[0] = Vector_t(0.0);
+    P[0] = Vector_t(0.0);
+    Ef[0] = Vector_t(0.0);
+    Bf[0] = Vector_t(0.0);
   }
 
   TracerParticles(size_t n) {  
-    tracePartR_m.reserve(n);
-    tracePartP_m.reserve(n);
-    tracePartE_m.reserve(n);
-    tracePartB_m.reserve(n);
+    R.create(n);
+    P.create(n);
+    Ef.create(n);
+    Bf.create(n);
     for (auto i=0; i<1; i++) { 
-      tracePartR_m[i] = Vector_t(0.0);
-      tracePartP_m[i] = Vector_t(0.0);
-      tracePartE_m[i] = Vector_t(0.0);
-      tracePartB_m[i] = Vector_t(0.0);
+      R[i] = Vector_t(0.0);
+      P[i] = Vector_t(0.0);
+      Ef[i] = Vector_t(0.0);
+      Bf[i] = Vector_t(0.0);
     }
   }
 
-  inline size_t size() const { return tracePartR_m.size();}
+  inline size_t size() const { return R.size();}
 
-  inline Vector_t getRefR() { return tracePartR_m[0]; }
-  inline Vector_t getRefP() { return tracePartP_m[0]; }
-  inline Vector_t getRefE() { return tracePartE_m[0]; }
-  inline Vector_t getRefB() { return tracePartB_m[0]; }
+  inline Vector_t getRefR() { return R[0]; }
+  inline Vector_t getRefP() { return P[0]; }
+  inline Vector_t getRefE() { return Ef[0]; }
+  inline Vector_t getRefB() { return Bf[0]; }
 
-  inline void setRefR(Vector_t r) { tracePartR_m[0] = r; }
-  inline void setRefP(Vector_t p) { tracePartP_m[0] = p; }
-  inline void setRefE(Vector_t e) { tracePartE_m[0] = e; }
-  inline void setRefB(Vector_t b) { tracePartB_m[0] = b; }
+  inline void setRefR(Vector_t r) { R[0] = r; }
+  inline void setRefP(Vector_t p) { P[0] = p; }
+  inline void setRefE(Vector_t e) { Ef[0] = e; }
+  inline void setRefB(Vector_t b) { Bf[0] = b; }
 
-  inline Vector_t getTracePartR(size_t i) { return tracePartR_m[i]; }
-  inline Vector_t getTracePartP(size_t i) { return tracePartP_m[i]; }
-  inline Vector_t getTracePartE(size_t i) { return tracePartE_m[i]; }
-  inline Vector_t getTracePartB(size_t i) { return tracePartB_m[i]; }
+  inline Vector_t getTracePartR(size_t i) { return R[i]; }
+  inline Vector_t getTracePartP(size_t i) { return P[i]; }
+  inline Vector_t getTracePartE(size_t i) { return Ef[i]; }
+  inline Vector_t getTracePartB(size_t i) { return Bf[i]; }
 
-  inline void setTracePartR(Vector_t r, size_t i) { tracePartR_m[i] = r; }
-  inline void setTracePartP(Vector_t p, size_t i) { tracePartP_m[i] = p; }
-  inline void setTracePartE(Vector_t e, size_t i) { tracePartE_m[i] = e; }
-  inline void setTracePartB(Vector_t b, size_t i) { tracePartB_m[i] = b; }
+  inline void setTracePartR(Vector_t r, size_t i) { R[i] = r; }
+  inline void setTracePartP(Vector_t p, size_t i) { P[i] = p; }
+  inline void setTracePartE(Vector_t e, size_t i) { Ef[i] = e; }
+  inline void setTracePartB(Vector_t b, size_t i) { Bf[i] = b; }
 
 
   inline void operator = (const TracerParticles &p ) { 
-    assert(p.size() != tracePartR_m.size());
+    assert(p.size() != R.size());
     for (auto i=0; i<1; i++) { 
-      tracePartR_m[i] = p.tracePartR_m[i];
-      tracePartP_m[i] = p.tracePartP_m[i];
-      tracePartE_m[i] = p.tracePartE_m[i];
-      tracePartB_m[i] = p.tracePartB_m[i];
+      R[i] = p.R[i];
+      P[i] = p.P[i];
+      Ef[i] = p.Ef[i];
+      Bf[i] = p.Bf[i];
     }
   }
 
@@ -96,12 +101,13 @@ class TracerParticles {
   void closeFile();
   void writeToFile();
   
- private:
+  /// make it public to mimic PartBunch
+  ParticleAttrib<Vector_t> R;
+  ParticleAttrib<Vector_t> P;
+  ParticleAttrib<Vector_t> Ef;
+  ParticleAttrib<Vector_t> Bf;
 
-  std::vector<Vector_t> tracePartR_m;
-  std::vector<Vector_t> tracePartP_m;
-  std::vector<Vector_t> tracePartE_m;
-  std::vector<Vector_t> tracePartB_m;
+ private:
 
   std::ofstream of_m;
 };
