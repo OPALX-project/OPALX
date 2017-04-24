@@ -298,7 +298,8 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
 
         //execute CollimatorPhysics kernels on GPU if any particles are there
         if (numparticles > 0) {
-	  dksbase.callCollimatorPhysics2(mem_ptr, par_ptr, numparticles);
+	  dksbase.callCollimatorPhysics2(mem_ptr, par_ptr, 
+					 numparticles, enableRutherfordScattering_m);
         }
 	
         //sort device particles and get number of particles comming back to bunch
@@ -1100,7 +1101,7 @@ void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch, Degrader *deg,
         deg->getDimensions(zBegin, zEnd);
 
         double params[numpar] = {zBegin, deg->getZSize(), rho_m, Z_m,
-                                 A_m, A2_c, A3_c, A4_c, A5_c, X0_m, I_m, dT_m};
+                                 A_m, A2_c, A3_c, A4_c, A5_c, X0_m, I_m, dT_m, lowEnergyThr_m};
         dksbase.writeDataAsync<double>(par_ptr, params, numpar);
 
         IpplTimings::stopTimer(DegraderInitTimer_m);
