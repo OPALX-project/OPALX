@@ -42,6 +42,9 @@ Inform *gmsg;
 
 #include "OPALconfig.h"
 
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+
 #ifdef HAVE_AMR_SOLVER
 #include <ParallelDescriptor.H>
 #endif
@@ -175,10 +178,11 @@ int main(int argc, char *argv[]) {
         FileStream::setEcho(Options::echo);
 
         char *startup = getenv("HOME");
-        if (startup != NULL && fs::exists(strncat(startup, "/init.opal", 20))) {
-
-            FileStream::setEcho(false);
-            FileStream *is;
+	boost::filesystem::path p = strncat(startup, "/init.opal", 20);
+	if (startup != NULL && is_regular_file(p)) {
+	  
+	    FileStream::setEcho(false);
+	    FileStream *is;
 
             try {
                 is = new FileStream(startup);
