@@ -95,7 +95,7 @@ using Physics::pi;
 using Physics::q_e;
 
 const double c_mmtns = Physics::c * 1.0e-6; // m/s --> mm/ns
-const double c_mtns = Physics::c * 1.0e-3;  // m/s --> m/ns
+const double c_mtns = Physics::c * 1.0e-9;  // m/s --> m/ns
 const double mass_coeff = 1.0e18 * q_e / Physics::c / Physics::c; // from GeV/c^2 to basic unit: GV*C*s^2/m^2
 
 Vector_t const ParallelCyclotronTracker::xaxis = Vector_t(1.0, 0.0, 0.0);
@@ -792,6 +792,7 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
 
     std::string fmfn = elptr->getFieldMapFN();
     *gmsg << "* RF Field map file name= " << fmfn << endl;
+
     double angle = elptr->getAzimuth();
     *gmsg << "* Cavity azimuth position= " << angle << " [deg] " << endl;
 
@@ -849,7 +850,7 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
 
     BcParameter[0] = 0.001 * rmin;
     BcParameter[1] = 0.001 * rmax;
-    BcParameter[2] = pdis;
+    BcParameter[2] = 0.001 * pdis;
     BcParameter[3] = angle;
 
     buildupFieldList(BcParameter, ElementBase::RFCAVITY, elptr);
@@ -2280,7 +2281,8 @@ bool ParallelCyclotronTracker::checkGapCross(Vector_t Rold, Vector_t Rnew, RFCav
     bool flag = false;
     double sinx = rfcavity->getSinAzimuth();
     double cosx = rfcavity->getCosAzimuth();
-    double PerpenDistance = rfcavity->getPerpenDistance();
+    // TODO: Presumably this is still in mm, so for now, change to m -DW
+    double PerpenDistance = 0.001 * rfcavity->getPerpenDistance();
     double distNew = (Rnew[0] * sinx - Rnew[1] * cosx) - PerpenDistance;
     double distOld = (Rold[0] * sinx - Rold[1] * cosx) - PerpenDistance;
     if(distOld > 0.0 && distNew <= 0.0) flag = true;
