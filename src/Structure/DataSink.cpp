@@ -841,7 +841,7 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
                << "&end\n";
 
     outputFile << Ippl::getNodes() << endl;
-    outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " git rev. " << Util::getGitRevision() << endl;
+    outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " # git rev. " << Util::getGitRevision() << endl;
     outputFile << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
                    (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << endl;
 }
