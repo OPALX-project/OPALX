@@ -53,7 +53,7 @@ enum ElemType {
 
 
 class WakeFunction;
-class SurfacePhysicsHandler;
+class ParticleMaterInteractionHandler;
 class BoundaryGeometry;
 
 // Class ElementBase
@@ -407,11 +407,11 @@ public:
 
     virtual bool hasWake() const;
 
-    virtual void setSurfacePhysics(SurfacePhysicsHandler *spys);
+    virtual void setParticleMaterInteraction(ParticleMaterInteractionHandler *spys);
 
-    virtual SurfacePhysicsHandler *getSurfacePhysics() const;
+    virtual ParticleMaterInteractionHandler *getParticleMaterInteraction() const;
 
-    virtual bool hasSurfacePhysics() const;
+    virtual bool hasParticleMaterInteraction() const;
 
     /// returns element type as enumeration needed in the envelope tracker
     ElemType getElType() const;
@@ -476,7 +476,7 @@ private:
 
     BoundaryGeometry *bgeometry_m;
 
-    SurfacePhysicsHandler *sphys_m;
+    ParticleMaterInteractionHandler *parmatint_m;
 
     ElemType elType_m;
 
@@ -565,12 +565,12 @@ bool ElementBase::hasBoundaryGeometry() const
 { return bgeometry_m != NULL; }
 
 inline
-SurfacePhysicsHandler *ElementBase::getSurfacePhysics() const
-{ return sphys_m; }
+ParticleMaterInteractionHandler *ElementBase::getParticleMaterInteraction() const
+{ return parmatint_m; }
 
 inline
-bool ElementBase::hasSurfacePhysics() const
-{ return sphys_m != NULL; }
+bool ElementBase::hasParticleMaterInteraction() const
+{ return parmatint_m != NULL; }
 
 inline
 ElemType ElementBase::getElType() const

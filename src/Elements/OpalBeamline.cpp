@@ -96,8 +96,8 @@ unsigned long OpalBeamline::getFieldAt(const Vector_t &position,
     //         if(section.hasWake()) {
     //             rtv |= BEAMLINE_WAKE;
     //         }
-    //         if(section.hasSurfacePhysics()) {
-    //             rtv |= BEAMLINE_SURFACEPHYSICS;
+    //         if(section.hasParticleMaterInteraction()) {
+    //             rtv |= BEAMLINE_PARTICLEMATERINTERACTION;
     //         }
 
     return rtv;

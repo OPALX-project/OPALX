@@ -41,7 +41,7 @@ const int CollimatorPhysics::numpar = 12;
 #endif
 
 CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *element, std::string &material):
-    SurfacePhysicsHandler(name, element),
+    ParticleMaterInteractionHandler(name, element),
     allParticlesIn_m(false),
     T_m(0.0),
     dT_m(0.0),

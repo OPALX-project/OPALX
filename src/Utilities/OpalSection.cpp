@@ -1,7 +1,7 @@
 #include "Utilities/OpalSection.h"
-#include "Structure/SurfacePhysics.h"
+#include "Structure/ParticleMaterInteraction.h"
 #include "Solvers/WakeFunction.hh"
-#include "Solvers/SurfacePhysicsHandler.hh"
+#include "Solvers/ParticleMaterInteractionHandler.hh"
 #include "Structure/BoundaryGeometry.h"
 
 extern Inform *gmsg;
@@ -13,10 +13,10 @@ OpalSection::OpalSection(const CompVec &elements, const double &start, const dou
     bends_m(false),
     has_wake_m(false),
     has_boundarygeometry_m(false),
-    has_surface_physics_m(false),
+    has_partmater_interaction_m(false),
     is_live_m(false),
     wakefunction_m(NULL),
-    sphys_handler_m(NULL),
+    parmatint_handler_m(NULL),
     boundarygeometry_m(NULL),
     orientation_m(0.0),
     exit_face_angle_m(0.0),
@@ -46,16 +46,16 @@ OpalSection::OpalSection(const CompVec &elements, const double &start, const dou
             }
             has_wake_m = true;
         }
-        if((*clit)->hasSurfacePhysics()) {
-            if(has_surface_physics_m && sphys_handler_m != (*clit)->getSurfacePhysics()) {
-                *gmsg << "more than one surface physics handler in one section! dismiss all." << endl;
-                sphys_handler_m = NULL;
+        if((*clit)->hasParticleMaterInteraction()) {
+            if(has_partmater_interaction_m && parmatint_handler_m != (*clit)->getParticleMaterInteraction()) {
+                *gmsg << "more than one particle mater interaction handler in one section! dismiss all." << endl;
+                parmatint_handler_m = NULL;
             } else {
-                sphys_handler_m = (*clit)->getSurfacePhysics();
+                parmatint_handler_m = (*clit)->getParticleMaterInteraction();
             }
-            has_surface_physics_m = true;
+            has_partmater_interaction_m = true;
         } else
-            has_surface_physics_m = false;
+            has_partmater_interaction_m = false;
 
         if((*clit)->hasBoundaryGeometry()) {
             /**
@@ -71,8 +71,8 @@ OpalSection::OpalSection(const CompVec &elements, const double &start, const dou
         has_wake_m = false;
     }
 
-    if(has_surface_physics_m && !sphys_handler_m) {
-        has_surface_physics_m = false;
+    if(has_partmater_interaction_m && !parmatint_handler_m) {
+        has_partmater_interaction_m = false;
     }
 
     updateStartCache();
@@ -122,8 +122,8 @@ void OpalSection::print(Inform &msg) const {
         if(boundarygeometry_m)
             mymsg  << " has boundary geometry ";
 
-        if(hasSurfacePhysics())
-            mymsg  << " has surface physics ";
+        if(hasParticleMaterInteraction())
+            mymsg  << " has particle mater interaction ";
         msg << mymsg.str() << closure.substr(mymsg.str().length());
     }
     for(CompVec::const_iterator clit = elements_m.begin(); clit != elements_m.end(); ++ clit) {

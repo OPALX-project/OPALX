@@ -27,7 +27,7 @@ class BoundaryGeometry;
 /// The DRIFT element.
 
 class OpalWake;
-class SurfacePhysics;
+class ParticleMaterInteraction;
 
 class OpalDrift: public OpalElement {
 
@@ -63,7 +63,7 @@ private:
     OpalDrift(const std::string &name, OpalDrift *parent);
 
     OpalWake *owk_m;
-    SurfacePhysics *sphys_m;
+    ParticleMaterInteraction *parmatint_m;
     BoundaryGeometry *obgeo_m;
 };
 
