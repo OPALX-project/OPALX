@@ -25,7 +25,7 @@
 #include "Fields/Fieldmap.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
-#include "Solvers/SurfacePhysicsHandler.hh"
+#include "Solvers/ParticleMaterInteractionHandler.hh"
 #include <memory>
 
 extern Inform *gmsg;
@@ -68,7 +68,7 @@ Collimator::Collimator():
     pitch_m(0.0),
     losses_m(0),
     lossDs_m(nullptr),
-    sphys_m(NULL)
+    parmatint_m(NULL)
 {}
 
 
@@ -107,7 +107,7 @@ Collimator::Collimator(const Collimator &right):
     pitch_m(right.pitch_m),
     losses_m(0),
     lossDs_m(nullptr),
-    sphys_m(NULL)
+    parmatint_m(NULL)
 {
     setGeom();
 }
@@ -148,7 +148,7 @@ Collimator::Collimator(const std::string &name):
     pitch_m(0.0),
     losses_m(0),
     lossDs_m(nullptr),
-    sphys_m(NULL)
+    parmatint_m(NULL)
 {}
 
 
@@ -262,7 +262,7 @@ bool Collimator::checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax) {
 
 
 // rectangle collimators in cyclotron cyclindral coordiantes
-// without surfacephysics, the particle hitting collimator is deleted directly
+// without particlematerinteraction, the particle hitting collimator is deleted directly
 bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const double t, const double tstep) {
 
     bool flagNeedUpdate = false;
@@ -285,7 +285,7 @@ bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const d
                 if(bunch.PType[i] == ParticleType::REGULAR && bunch.R[i](2) < zend_m && bunch.R[i](2) > zstart_m ) {
                     pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
                     if(pflag != 0) {
-                        if (!sphys_m)
+                        if (!parmatint_m)
                             lossDs_m->addParticle(bunch.R[i], bunch.P[i], bunch.ID[i]);
                         bunch.Bin[i] = -1;
                         flagNeedUpdate = true;
@@ -295,8 +295,8 @@ bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const d
         }
     }
     reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
-    if (flagNeedUpdate && sphys_m) {
-        sphys_m->apply(bunch, boundingSphere);
+    if (flagNeedUpdate && parmatint_m) {
+        parmatint_m->apply(bunch, boundingSphere);
     }
     return flagNeedUpdate;
 }
@@ -305,9 +305,9 @@ void Collimator::initialise(PartBunch *bunch, double &startField, double &endFie
     RefPartBunch_m = bunch;
     endField = startField + getElementLength();
 
-    sphys_m = getSurfacePhysics();
+    parmatint_m = getParticleMaterInteraction();
 
-    // if (!sphys_m) {
+    // if (!parmatint_m) {
     if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     else
@@ -320,9 +320,9 @@ void Collimator::initialise(PartBunch *bunch, double &startField, double &endFie
 void Collimator::initialise(PartBunch *bunch) {
     RefPartBunch_m = bunch;
 
-    sphys_m = getSurfacePhysics();
+    parmatint_m = getParticleMaterInteraction();
 
-    // if (!sphys_m) {
+    // if (!parmatint_m) {
     if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     else

@@ -64,7 +64,7 @@
 #include <queue>
 
 class BorisPusher;
-class SurfacePhysicsHandler;
+class ParticleMaterInteractionHandler;
 
 class ParallelTTracker: public Tracker {
 
@@ -244,8 +244,8 @@ private:
 
     CoordinateSystemTrafo referenceToLabCSTrafo_m;
 
-    std::set<SurfacePhysicsHandler*> activeSurfacePhysicsHandlers_m;
-    bool surfaceStatus_m;
+    std::set<ParticleMaterInteractionHandler*> activeParticleMaterInteractionHandlers_m;
+    bool particleMaterStatus_m;
 
     unsigned long totalParticlesInSimulation_m;
 

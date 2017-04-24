@@ -24,7 +24,7 @@
 #include "ComponentWrappers/SBendWrapper.h"
 #include "Physics/Physics.h"
 #include "Structure/OpalWake.h"
-#include "Structure/SurfacePhysics.h"
+#include "Structure/ParticleMaterInteraction.h"
 #include "Utilities/OpalException.h"
 #include <cmath>
 
@@ -35,7 +35,7 @@ OpalSBend::OpalSBend():
     OpalBend("SBEND",
              "The \"SBEND\" element defines a sector bending magnet."),
     owk_m(NULL),
-    sphys_m(NULL) {
+    parmatint_m(NULL) {
 
     registerOwnership();
 
@@ -46,7 +46,7 @@ OpalSBend::OpalSBend():
 OpalSBend::OpalSBend(const std::string &name, OpalSBend *parent):
     OpalBend(name, parent),
     owk_m(NULL),
-    sphys_m(NULL) {
+    parmatint_m(NULL) {
     setElement((new SBendRep(name))->makeWrappers());
 }
 
@@ -54,8 +54,8 @@ OpalSBend::OpalSBend(const std::string &name, OpalSBend *parent):
 OpalSBend::~OpalSBend() {
     if(owk_m)
         delete owk_m;
-    if(sphys_m)
-        delete sphys_m;
+    if(parmatint_m)
+        delete parmatint_m;
 }
 
 
@@ -228,10 +228,10 @@ void OpalSBend::update() {
     else
         bend->setK1(0.0);
 
-    if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
-        sphys_m->initSurfacePhysicsHandler(*bend);
-        bend->setSurfacePhysics(sphys_m->handler_m);
+    if(itsAttr[PARTICLEMATERINTERACTION] && parmatint_m == NULL) {
+        parmatint_m = (ParticleMaterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+        parmatint_m->initParticleMaterInteractionHandler(*bend);
+        bend->setParticleMaterInteraction(parmatint_m->handler_m);
     }
 
     // Transmit "unknown" attributes.

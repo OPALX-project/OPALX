@@ -9,7 +9,7 @@
 // $Author: Bi, Yang, Stachel, Adelmann$
 //-------------------------------------------------------------------------
 #include <vector>
-#include "Solvers/SurfacePhysicsHandler.hh"
+#include "Solvers/ParticleMaterInteractionHandler.hh"
 #include "Algorithms/Vektor.h"
 #include "AbsBeamline/Component.h"
 #include "AbsBeamline/Collimator.h"
@@ -66,7 +66,7 @@ typedef struct {
 #endif
 
 
-class CollimatorPhysics: public SurfacePhysicsHandler {
+class CollimatorPhysics: public ParticleMaterInteractionHandler {
 public:
     CollimatorPhysics(const std::string &name, ElementBase *element, std::string &mat);
     ~CollimatorPhysics();
