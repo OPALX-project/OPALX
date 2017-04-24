@@ -60,6 +60,7 @@ class TracerParticles { // : public IpplParticleBase< ParticleUniformLayout<doub
   }
 
   inline size_t size() const { return R.size();}
+  inline size_t getLocalNum() const { return size();}
 
   inline Vector_t getRefR() { return R[0]; }
   inline Vector_t getRefP() { return P[0]; }
