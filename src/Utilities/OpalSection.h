@@ -4,11 +4,11 @@
 #include <vector>
 #include <memory>
 
-#include "Solvers/SurfacePhysicsHandler.hh"
+#include "Solvers/ParticleMaterInteractionHandler.hh"
 #include "AbsBeamline/Component.h"
 
 class WakeFunction;
-class SurfacePhysicsHandler;
+class ParticleMaterInteractionHandler;
 class BoundaryGeometry;
 
 typedef std::vector<std::shared_ptr<Component> > CompVec;
@@ -34,13 +34,13 @@ public:
     WakeFunction *getWakeFunction();
     std::shared_ptr<const ElementBase> getWakeFunctionOwner();
 
-    SurfacePhysicsHandler *getSurfacePhysicsHandler();
+    ParticleMaterInteractionHandler *getParticleMaterInteractionHandler();
     BoundaryGeometry *getBoundaryGeometry();
 
     const bool &doesBend() const;
     const bool &hasWake() const;
     const bool &hasBoundaryGeometry() const;
-    const bool &hasSurfacePhysics() const;
+    const bool &hasParticleMaterInteraction() const;
 
     void push_back(std::shared_ptr<Component>);
     bool find(std::shared_ptr<const Component>) const;
@@ -82,11 +82,11 @@ private:
     bool bends_m;
     bool has_wake_m;
     bool has_boundarygeometry_m;
-    bool has_surface_physics_m;
+    bool has_partmater_interaction_m;
     bool is_live_m;
     WakeFunction *wakefunction_m;
     std::shared_ptr<const ElementBase> wakeFunctionOwner_m;
-    SurfacePhysicsHandler *sphys_handler_m;
+    ParticleMaterInteractionHandler *parmatint_handler_m;
     BoundaryGeometry *boundarygeometry_m;
 
     Vector_t orientation_m;
@@ -166,12 +166,12 @@ inline BoundaryGeometry *OpalSection::getBoundaryGeometry() {
     return boundarygeometry_m;
 }
 
-inline const bool &OpalSection::hasSurfacePhysics() const {
-    return has_surface_physics_m;
+inline const bool &OpalSection::hasParticleMaterInteraction() const {
+    return has_partmater_interaction_m;
 }
 
-inline SurfacePhysicsHandler *OpalSection::getSurfacePhysicsHandler() {
-    return sphys_handler_m;
+inline ParticleMaterInteractionHandler *OpalSection::getParticleMaterInteractionHandler() {
+    return parmatint_handler_m;
 }
 
 inline const bool &OpalSection::doesBend() const {

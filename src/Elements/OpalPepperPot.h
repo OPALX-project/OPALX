@@ -25,7 +25,7 @@
 // ------------------------------------------------------------------------
 /// The PEPPERPOT element.
 
-class SurfacePhysics;
+class ParticleMaterInteraction;
 
 class OpalPepperPot: public OpalElement {
 
@@ -66,7 +66,7 @@ private:
     // Clone constructor.
     OpalPepperPot(const std::string &name, OpalPepperPot *parent);
 
-    SurfacePhysics *sphys_m;
+    ParticleMaterInteraction *parmatint_m;
 };
 
 #endif // OPAL_OpalPepperPot_HH

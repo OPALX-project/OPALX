@@ -46,7 +46,7 @@
 #include "ValueDefinitions/RealVariable.h"
 #include "Utilities/Timer.h"
 #include "Utilities/OpalException.h"
-#include "Solvers/SurfacePhysicsHandler.hh"
+#include "Solvers/ParticleMaterInteractionHandler.hh"
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/LossDataSink.h"
 
@@ -83,7 +83,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
     BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
     WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
-    surfaceStatus_m(false),
+    particleMaterStatus_m(false),
     totalParticlesInSimulation_m(0)
     // , logger_m("designPath_" + std::to_string(Ippl::myNode()) + ".dat")
 {
@@ -130,7 +130,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
     BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
     WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
-    surfaceStatus_m(false),
+    particleMaterStatus_m(false),
     totalParticlesInSimulation_m(0)
     // , logger_m("designPath_" + std::to_string(Ippl::myNode()) + ".dat")
 {
@@ -762,15 +762,15 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
     Inform msg("ParallelTTracker ", *gmsg);
     IndexMap::value_t::const_iterator it = elements.begin();
     const IndexMap::value_t::const_iterator end = elements.end();
-    std::set<IndexMap::value_t::value_type> elementsWithSurfacePhysics;
-    std::set<SurfacePhysicsHandler*> surfacePhysicsHandlers;
+    std::set<IndexMap::value_t::value_type> elementsWithParticleMaterInteraction;
+    std::set<ParticleMaterInteractionHandler*> particleMaterInteractionHandlers;
     std::pair<double, double> currentRange(0.0, 0.0);
 
     while (elements.size() > 0) {
         auto it = elements.begin();
-        if ((*it)->hasSurfacePhysics()) {
-            elementsWithSurfacePhysics.insert(*it);
-            surfacePhysicsHandlers.insert((*it)->getSurfacePhysics());
+        if ((*it)->hasParticleMaterInteraction()) {
+            elementsWithParticleMaterInteraction.insert(*it);
+            particleMaterInteractionHandlers.insert((*it)->getParticleMaterInteraction());
 
             std::pair<double, double> range = oth.getRange(*it, pathLength_m);
             currentRange.first = std::min(currentRange.first, range.first);
@@ -783,50 +783,50 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
         elements.erase(it);
     }
 
-    if (elementsWithSurfacePhysics.size() > 0) {
-        std::set<SurfacePhysicsHandler*> oldSPHandlers;
-        std::vector<SurfacePhysicsHandler*> leftBehindSPHandlers, newSPHandlers;
-        for (auto it: activeSurfacePhysicsHandlers_m) {
+    if (elementsWithParticleMaterInteraction.size() > 0) {
+        std::set<ParticleMaterInteractionHandler*> oldSPHandlers;
+        std::vector<ParticleMaterInteractionHandler*> leftBehindSPHandlers, newSPHandlers;
+        for (auto it: activeParticleMaterInteractionHandlers_m) {
             oldSPHandlers.insert(it);
         }
 
         leftBehindSPHandlers.resize(std::max(oldSPHandlers.size(),
-                                             surfacePhysicsHandlers.size()));
+                                             particleMaterInteractionHandlers.size()));
         auto last = std::set_difference(oldSPHandlers.begin(), oldSPHandlers.end(),
-                                        surfacePhysicsHandlers.begin(), surfacePhysicsHandlers.end(),
+                                        particleMaterInteractionHandlers.begin(), particleMaterInteractionHandlers.end(),
                                         leftBehindSPHandlers.begin());
         leftBehindSPHandlers.resize(last - leftBehindSPHandlers.begin());
 
         for (auto it: leftBehindSPHandlers) {
             if (!it->stillActive()) {
-                activeSurfacePhysicsHandlers_m.erase(it);
+                activeParticleMaterInteractionHandlers_m.erase(it);
             }
         }
 
         newSPHandlers.resize(std::max(oldSPHandlers.size(),
-                                      elementsWithSurfacePhysics.size()));
-        last = std::set_difference(surfacePhysicsHandlers.begin(), surfacePhysicsHandlers.end(),
+                                      elementsWithParticleMaterInteraction.size()));
+        last = std::set_difference(particleMaterInteractionHandlers.begin(), particleMaterInteractionHandlers.end(),
                                    oldSPHandlers.begin(), oldSPHandlers.end(),
                                    newSPHandlers.begin());
         newSPHandlers.resize(last - newSPHandlers.begin());
 
         for (auto it: newSPHandlers) {
-            activeSurfacePhysicsHandlers_m.insert(it);
+            activeParticleMaterInteractionHandlers_m.insert(it);
         }
 
-        if(!surfaceStatus_m) {
-            msg << level2 << "============== START SURFACE PHYSICS CALCULATION =============" << endl;
-            surfaceStatus_m = true;
+        if(!particleMaterStatus_m) {
+            msg << level2 << "============== START PARTICLE MATER INTERACTION CALCULATION =============" << endl;
+            particleMaterStatus_m = true;
         }
     }
 
-    if (surfaceStatus_m) {
+    if (particleMaterStatus_m) {
         do {
             ///all particles in material if max per node is 2 and other degraders have 0 particles
             //check if more than one degrader has particles
-            SurfacePhysicsHandler* onlyDegraderWithParticles = NULL;
+            ParticleMaterInteractionHandler* onlyDegraderWithParticles = NULL;
             int degradersWithParticlesCount = 0;
-            for (auto it: activeSurfacePhysicsHandlers_m) {
+            for (auto it: activeParticleMaterInteractionHandlers_m) {
                 it->setFlagAllParticlesIn(false);
                 if (it->getParticlesInMat() > 0) {
                     onlyDegraderWithParticles = it;
@@ -848,7 +848,7 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
 
             auto boundingSphere = itsBunch_m->getLocalBoundingSphere();
             unsigned redifusedParticles = 0;
-            for (auto it: activeSurfacePhysicsHandlers_m) {
+            for (auto it: activeParticleMaterInteractionHandlers_m) {
                 ElementBase* element = it->getElement();
                 CoordinateSystemTrafo refToLocalCSTrafo = (element->getMisalignment() *
                                                            (element->getCSTrafoGlobal2Local() * referenceToLabCSTrafo_m));
@@ -907,9 +907,9 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
         } while (itsBunch_m->getTotalNum() == 0);
 
 
-        if (activeSurfacePhysicsHandlers_m.size() == 0) {
-            msg << level2 << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
-            surfaceStatus_m = false;
+        if (activeParticleMaterInteractionHandlers_m.size() == 0) {
+            msg << level2 << "============== END PARTICLE MATER INTERACTION CALCULATION =============" << endl;
+            particleMaterStatus_m = false;
         }
     }
 }
