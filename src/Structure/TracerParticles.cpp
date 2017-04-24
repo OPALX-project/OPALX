@@ -18,11 +18,11 @@ void TracerParticles::closeFile() {
 void TracerParticles::writeToFile() { 
   /// only core 0 is writing
   if ((Ippl::myNode() == 0) && (of_m)) {
-    for (unsigned i=0; i<tracePartR_m.size(); i++) {
+    for (unsigned i=0; i<R.size(); i++) {
       of_m << i << "\t";
       for (auto d=0; d<3; d++)
-	of_m << tracePartR_m[i](d) << "\t" << tracePartP_m[i](d) << "\t"
-	     << tracePartE_m[i](d) << "\t" << tracePartB_m[i](d) << "\t" ;
+	of_m << R[i](d) << "\t" << P[i](d) << "\t"
+	     << Ef[i](d) << "\t" << Bf[i](d) << "\t" ;
     }
     of_m << std::endl;
   } 
