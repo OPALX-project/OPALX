@@ -62,8 +62,8 @@ OpalElement::OpalElement(int size, const char *name, const char *help):
                       ("APERTURE", "The element aperture");
     itsAttr[WAKEF]   = Attributes::makeString
                        ("WAKEF", "Defines the wake function");
-    itsAttr[SURFACEPHYSICS]   = Attributes::makeString
-                                ("SURFACEPHYSICS", "Defines the surface physics handler");
+    itsAttr[PARTICLEMATERINTERACTION]   = Attributes::makeString
+                                ("PARTICLEMATERINTERACTION", "Defines the particle mater interaction handler");
     itsAttr[ORIGIN] = Attributes::makeRealArray
                       ("ORIGIN", "The location of the element");
 
@@ -114,7 +114,7 @@ OpalElement::OpalElement(int size, const char *name, const char *help):
         registerStringAttribute("KEYWORD");
         registerRealAttribute("L");
         registerStringAttribute("WAKEF");
-        registerStringAttribute("SURFACEPHYSICS");
+        registerStringAttribute("PARTICLEMATERINTERACTION");
         registerStringAttribute("APERT");
         registerRealAttribute("X");
         registerRealAttribute("Y");
@@ -392,8 +392,8 @@ const std::string OpalElement::getWakeF() const {
     return attr ? Attributes::getString(*attr) : std::string();
 }
 
-const std::string OpalElement::getSurfacePhysics() const {
-    const Attribute *attr = findAttribute("SURFACEPHYSICS");
+const std::string OpalElement::getParticleMaterInteraction() const {
+    const Attribute *attr = findAttribute("PARTICLEMATERINTERACTION");
     return attr ? Attributes::getString(*attr) : std::string();
 }
 

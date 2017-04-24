@@ -17,7 +17,7 @@
 #include "Elements/OpalRBend3D.h"
 #include "Attributes/Attributes.h"
 #include "Structure/OpalWake.h"
-#include "Structure/SurfacePhysics.h"
+#include "Structure/ParticleMaterInteraction.h"
 #include "AbsBeamline/RBend3D.h"
 #include "Utilities/OpalException.h"
 
@@ -30,7 +30,7 @@
 OpalRBend3D::OpalRBend3D():
     OpalElement(SIZE, "RBEND3D", "The \"RBEND3D\" element defines an RBEND with 3D field maps"),
     owk_m(0),
-    sphys_m(NULL) {
+    parmatint_m(NULL) {
     itsAttr[ANGLE] = Attributes::makeReal
                      ("ANGLE", "Upright dipole coefficient in m^(-1)");
     itsAttr[K0] = Attributes::makeReal
@@ -66,7 +66,7 @@ OpalRBend3D::OpalRBend3D():
 OpalRBend3D::OpalRBend3D(const std::string &name, OpalRBend3D *parent):
     OpalElement(name, parent),
     owk_m(0),
-    sphys_m(NULL)
+    parmatint_m(NULL)
 {
     setElement((new RBend3D(name))->makeWrappers());
 }
@@ -74,8 +74,8 @@ OpalRBend3D::OpalRBend3D(const std::string &name, OpalRBend3D *parent):
 OpalRBend3D::~OpalRBend3D() {
     if(owk_m)
         delete owk_m;
-    if(sphys_m)
-        delete sphys_m;
+    if(parmatint_m)
+        delete parmatint_m;
 }
 
 OpalRBend3D *OpalRBend3D::clone(const std::string &name) {
@@ -152,10 +152,10 @@ void OpalRBend3D::update() {
         bend->setWake(owk_m->wf_m);
     }
 
-    if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
-        sphys_m->initSurfacePhysicsHandler(*bend);
-        bend->setSurfacePhysics(sphys_m->handler_m);
+    if(itsAttr[PARTICLEMATERINTERACTION] && parmatint_m == NULL) {
+        parmatint_m = (ParticleMaterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+        parmatint_m->initParticleMaterInteractionHandler(*bend);
+        bend->setParticleMaterInteraction(parmatint_m->handler_m);
     }
 
     // Transmit "unknown" attributes.
