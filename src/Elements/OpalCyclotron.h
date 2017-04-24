@@ -30,8 +30,10 @@ class OpalCyclotron: public OpalElement {
 public:
 
     /// The attributes of class OpalCyclotron.
+    /// Need to remove common, old TYPE = COMMON, prevents the identification of the fieldmap type in the Cyclotron 
+    /// element issue #84
     enum {
-        TYPE = COMMON,
+        TYPE,
         GEOMETRY,  // geometry of boundary
         CYHARMON,  // The harmonic number of the cyclotron
         SYMMETRY,  // The symetry of the field
