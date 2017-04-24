@@ -332,8 +332,12 @@ void OpalParser::parseDefine(Statement &stat) const {
         Object *classObject = find(clsName);
 
         if(classObject == 0) {
-            throw ParseError("OpalParser::parseDefine()",
-                             "The object \"" + clsName + "\" is unknown.");
+	  if (clsName == "SURFACEPHYSICS")
+              throw ParseError("OpalParser::parseDefine()",
+			       "The object \"" + clsName + "\" is changed to \"PARTICLEMATERINTERACTION\".");
+	  else
+	      throw ParseError("OpalParser::parseDefine()",
+			       "The object \"" + clsName + "\" is unknown.");
         }
 
         Object *copy = 0;
@@ -581,7 +585,8 @@ Statement *OpalParser::readStatement(TokenStream *is) const {
         std::string what = ex.what();
         boost::replace_all(what, "\n", "\n    ");
 
-        ERRORMSG("     " << *stat <<"    " << what << '\n' << endl);
+        ERRORMSG("     " << *stat <<"    a" << what << '\n' << endl);
+	
         stat = readStatement(is);
 	exit(1);
     }
