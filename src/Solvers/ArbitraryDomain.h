@@ -81,7 +81,7 @@ private:
     
     // meanR to shift from global to local frame 
     Vector_t globalMeanR_m;
-    Quaternion_t globalToLocalQuaternion_m;
+    //    Quaternion_t globalToLocalQuaternion_m;
     Quaternion_t localToGlobalQuaternion_m;
 
     int startId;
