@@ -175,7 +175,8 @@ int main(int argc, char *argv[]) {
         FileStream::setEcho(Options::echo);
 
         char *startup = getenv("HOME");
-        if (startup != NULL && fs::exists(strncat(startup, "/init.opal", 20))) {
+	boost::filesystem::path p = strncat(startup, "/init.opal", 20);
+	if (startup != NULL && is_regular_file(p)) {
 
             FileStream::setEcho(false);
             FileStream *is;
