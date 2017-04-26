@@ -781,7 +781,7 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
     outputFile << "&data mode=ascii, no_row_counts=1 &end" << endl;
 
     outputFile << Ippl::getNodes() << endl;
-    outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION << " git rev. " << GIT_VERSION << endl;
+    outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION << " # git rev. " << GIT_VERSION << endl;
 }
 
 
