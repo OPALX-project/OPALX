@@ -283,7 +283,8 @@ bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const d
             for(unsigned int i = 0; i < tempnum; ++i) {
                 if(bunch.PType[i] == ParticleType::REGULAR && bunch.R[i](2) < zend_m && bunch.R[i](2) > zstart_m ) {
                     pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
-                    if(pflag != 0) {
+		    /// bunch.Bin[i] != -1 makes sure the partcile is not stored in more than one collimator
+                    if ((pflag != 0) && (bunch.Bin[i] != -1))  { 
                         if (!sphys_m)
                             lossDs_m->addParticle(bunch.R[i], bunch.P[i], bunch.ID[i]);
                         bunch.Bin[i] = -1;
