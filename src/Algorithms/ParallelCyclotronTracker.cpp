@@ -567,31 +567,33 @@ void ParallelCyclotronTracker::visitBeamBeam(const BeamBeam &) {
  */
 void ParallelCyclotronTracker::visitCollimator(const Collimator &coll) {
 
-    *gmsg << "* --------- Collimator -----------------------------" << endl;
+
 
     Collimator* elptr = dynamic_cast<Collimator *>(coll.clone());
     myElements.push_back(elptr);
 
+    *gmsg << "* CCollimator " + elptr->getName();
+
     double xstart = elptr->getXStart();
-    *gmsg << "* Xstart= " << xstart << " [mm]" << endl;
+    *gmsg << " Xstart=" << xstart;
 
     double xend = elptr->getXEnd();
-    *gmsg << "* Xend= " << xend << " [mm]" << endl;
+    *gmsg << " Xend=" << xend;
 
     double ystart = elptr->getYStart();
-    *gmsg << "* Ystart= " << ystart << " [mm]" << endl;
+    *gmsg << " Ystart=" << ystart;
 
     double yend = elptr->getYEnd();
-    *gmsg << "* Yend= " << yend << " [mm]" << endl;
+    *gmsg << " Yend=" << yend;
 
     double zstart = elptr->getZStart();
-    *gmsg << "* Zstart= " << zstart << " [mm]" << endl;
+    *gmsg << " Zstart=" << zstart;
 
     double zend = elptr->getZEnd();
-    *gmsg << "* Zend= " << zend << " [mm]" << endl;
+    *gmsg << " Zend=" << zend;
 
     double width = elptr->getWidth();
-    *gmsg << "* Width= " << width << " [mm]" << endl;
+    *gmsg << " Width=" << width << " all in [mm]" << endl;
 
     elptr->initialise(itsBunch, 1.0);
 
@@ -709,24 +711,26 @@ void ParallelCyclotronTracker::visitMultipole(const Multipole &mult) {
  * @param prob
  */
 void ParallelCyclotronTracker::visitProbe(const Probe &prob) {
-    *gmsg << "* -----------  Probe -------------------------------" << endl;
+
     Probe *elptr = dynamic_cast<Probe *>(prob.clone());
     myElements.push_back(elptr);
 
+    *gmsg << "* Probe " + elptr->getName();
+
     double xstart = elptr->getXstart();
-    *gmsg << "XStart= " << xstart << " [mm]" << endl;
+    *gmsg << " XStart= " << xstart;
 
     double xend = elptr->getXend();
-    *gmsg << "XEnd= " << xend << " [mm]" << endl;
+    *gmsg << " XEnd= " << xend;
 
     double ystart = elptr->getYstart();
-    *gmsg << "YStart= " << ystart << " [mm]" << endl;
+    *gmsg << " YStart= " << ystart;
 
     double yend = elptr->getYend();
-    *gmsg << "YEnd= " << yend << " [mm]" << endl;
+    *gmsg << " YEnd= " << yend;
 
     double width = elptr->getWidth();
-    *gmsg << "Width= " << width << " [mm]" << endl;
+    *gmsg << " Width= " << width << " all in [mm]" << endl;
 
 
     // initialise, do nothing
@@ -1000,31 +1004,30 @@ void ParallelCyclotronTracker::applyEntranceFringe(double angle, double curve,
 
 void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
 
-    *gmsg << "* ---------Stripper------------------------------" << endl;
-
     Stripper *elptr = dynamic_cast<Stripper *>(stripper.clone());
     myElements.push_back(elptr);
+    *gmsg << "* Stripper " << elptr->getName();
 
     double xstart = elptr->getXstart();
-    *gmsg << "XStart= " << xstart << " [mm]" << endl;
+    *gmsg << " XStart= " << xstart;
 
     double xend = elptr->getXend();
-    *gmsg << "XEnd= " << xend << " [mm]" << endl;
+    *gmsg << " XEnd= " << xend;
 
     double ystart = elptr->getYstart();
-    *gmsg << "YStart= " << ystart << " [mm]" << endl;
+    *gmsg << " YStart= " << ystart;
 
     double yend = elptr->getYend();
-    *gmsg << "YEnd= " << yend << " [mm]" << endl;
+    *gmsg << " YEnd= " << yend;
 
     double width = elptr->getWidth();
-    *gmsg << "Width= " << width << " [mm]" << endl;
+    *gmsg << " Width= " << width << " all in [mm]";
 
     double opcharge = elptr->getOPCharge();
-    *gmsg << "Charge of outcoming particle = +e * " << opcharge << endl;
+    *gmsg << " Charge of outcoming particle = +e * " << opcharge;
 
     double opmass = elptr->getOPMass();
-    *gmsg << "* Mass of the outcoming particle = " << opmass << " [GeV/c^2]" << endl;
+    *gmsg << " Mass of the outcoming particle = " << opmass << " [GeV/c^2]" << endl;
 
     elptr->initialise(itsBunch, 1.0);
 
@@ -1125,7 +1128,7 @@ void ParallelCyclotronTracker::execute() {
     *gmsg << "* The selected Beam line elements are :" << endl;
 
     for(beamline_list::iterator sindex = FieldDimensions.begin(); sindex != FieldDimensions.end(); sindex++)
-        *gmsg << "* -> " <<  ((*sindex)->first) << endl;
+      *gmsg << "* -> " <<  ((*sindex)->first) << endl;
 
     *gmsg << "* -------------------------------------" << endl;
 
