@@ -19,7 +19,7 @@
 #include "Utility/IpplTimings.h"
 
 #ifdef OPAL_DKS
-#include "DKSBase.h"
+#include "DKSOPAL.h"
 #endif
 
 class ElementBase;
@@ -168,7 +168,7 @@ private:
     std::unique_ptr<LossDataSink> lossDs_m;
 
 #ifdef OPAL_DKS
-    DKSBase dksbase;
+    DKSOPAL dksbase;
     int curandInitSet;
   
     int ierr;
