@@ -830,43 +830,6 @@ FFT<RCTransform,Dim,T>::FFT(
                    transformTheseDims, compressTemps), 
     complexDomain_m(cdomain), serialAxes_m(1)
 {
-/*
-#ifdef IPPL_DKS
-#ifdef IPPL_DKS_OPENCL
-  INFOMSG("Init DKS base opencl" << endl);
-  //base = DKSBase();
-  base.setAPI("OpenCL", 6);
-  base.setDevice("-gpu", 4);
-  base.initDevice();
-    		
-#endif
-    	
-#ifdef IPPL_DKS_CUDA
-  INFOMSG("Init DKS base cuda" << endl);
-  base.setAPI("Cuda", 4);
-  base.setDevice("-gpu", 4);
-  base.initDevice();
-
-  //create a stream for fft execution other than default
-  base.createStream(fftStreamId);
-
-#endif
-    	
-#ifdef IPPL_DKS_MIC
-  INFOMSG("Init DKS base MIC" <<  endl);
-  base.setAPI("OpenMP", 6);
-  base.setDevice("-mic", 4);
-  base.initDevice();
-
-  int dimsize[Dim];
-  for (int d=0; d<Dim; ++d)
-    dimsize[d] = rdomain[d].length();
-
-  base.setupFFTRC(Dim, dimsize);
-  base.setupFFTCR(Dim, dimsize,1./(dimsize[0]*dimsize[1]*dimsize[2]));
-#endif
-#endif
-*/
   // construct array of axis lengths
   unsigned nTransformDims = this->numTransformDims();
   int* lengths = new int[nTransformDims];
@@ -910,43 +873,6 @@ FFT<RCTransform,Dim,T>::FFT(
 {
   // Tau profiling
   
-/*
-#ifdef IPPL_DKS
-#ifdef IPPL_DKS_OPENCL
-  INFOMSG("Init DKS base opencl" << endl);
-  base.setAPI("OpenCL", 6);
-  base.setDevice("-gpu", 4);
-  base.initDevice();
-    		
-#endif
-  
-#ifdef IPPL_DKS_CUDA
-  INFOMSG("Init DKS base cuda" << endl);
-  base.setAPI("Cuda", 4);
-  base.setDevice("-gpu", 4);
-  base.initDevice();
-  base.setupFFT(0, NULL);
-
-  base.createStream(fftStreamId);
-#endif
-    	
-
-#ifdef IPPL_DKS_MIC
-  INFOMSG("Init DKS base MIC" << endl);
-  base.setAPI("OpenMP", 6);
-  base.setDevice("-mic", 4);
-  base.initDevice();
-//BENI: Setup MIC for RC FFT and CR FFT (creates the different handles)
-
-  int dimsize[Dim];
-  for (int d=0; d<Dim; ++d)
-    dimsize[d] = rdomain[d].length();
-
-  base.setupFFTRC(Dim, dimsize);
-  base.setupFFTCR(Dim, dimsize,1./(dimsize[0]*dimsize[1]*dimsize[2]));
-#endif
-#endif
-*/
   // construct array of axis lengths
   int lengths[Dim];
   unsigned d;
@@ -1148,7 +1074,7 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
 				       typename FFT<RCTransform,Dim,T>::RealField_t& f,
 				       void* real_ptr,
 				       void* comp_ptr,
-				       DKSBase &dksbase,
+				       DKSOPAL &dksbase,
 				       int streamId,
 				       const bool& constInput)
 {
@@ -1866,7 +1792,7 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
 				       RealField_t& g,
 				       void* real_ptr,
 				       void* comp_ptr,
-				       DKSBase &dksbase,
+				       DKSOPAL &dksbase,
 				       int streamId,
 				       const bool& constInput)
 {
