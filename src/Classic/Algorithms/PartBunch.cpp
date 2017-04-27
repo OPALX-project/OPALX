@@ -46,10 +46,6 @@
 #include <gsl/gsl_sf_erf.h>
 #include <gsl/gsl_qrng.h>
 
-#ifdef OPAL_NOCPLUSPLUS11_NULLPTR
-#define nullptr NULL
-#endif
-
 //#define DBG_SCALARFIELD
 //#define FIELDSTDOUT
 

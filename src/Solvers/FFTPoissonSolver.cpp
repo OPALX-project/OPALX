@@ -27,10 +27,6 @@
 // template parameter is the full type of the Field to compute, and the second
 // is the dimension of the data, which should be specialized.
 
-#ifdef OPAL_NOCPLUSPLUS11_NULLPTR
-#define nullptr NULL
-#endif
-
 template<unsigned int Dim>
 struct SpecializedGreensFunction { };
 

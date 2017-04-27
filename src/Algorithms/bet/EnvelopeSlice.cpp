@@ -1,17 +1,10 @@
 #include "Algorithms/bet/EnvelopeSlice.h"
 #include <Physics/Physics.h>
-#ifdef OPAL_NOCPLUSPLUS11_FOREACH
-#include <algorithm>
-#endif
+
 EnvelopeSlice::EnvelopeSlice() {
 
-#ifdef OPAL_NOCPLUSPLUS11_FOREACH
-    std::fill(p, p + SLNPAR, 0.0);
-    std::fill(p_old, p_old + SLNPAR, 0.0);
-#else
     for(auto &slice_param : p) slice_param = 0.0;
     for(auto &slice_param : p_old) slice_param = 0.0;
-#endif
     double initial_gamma  = 1.0 + (1.0e6 * Physics::q_e /
                            (Physics::EMASS * Physics::c * Physics::c));
     p[SLI_beta] = sqrt(1.0 / (1.0 - (1.0 / (initial_gamma * initial_gamma))));
