@@ -14,4 +14,4 @@
 #define PACKAGE_VERSION ${PACKAGE_VERSION}
 
 /* Define DKS version used in this package. */
-#define DKS_VERSION ${DKS_VERSION}
+#define DKS_VERSION ${DKS_PACKAGE_VERSION}

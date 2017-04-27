@@ -245,7 +245,7 @@ private:
 
 
 #ifdef OPAL_DKS
-  DKSBase dksbase;
+  DKSOPAL dksbase;
 
   void *r_ptr;
   void *p_ptr;
