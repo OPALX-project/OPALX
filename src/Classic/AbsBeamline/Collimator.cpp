@@ -337,7 +337,18 @@ void Collimator::finalise()
 {
     if(online_m)
         goOffline();
-    *gmsg << "* Finalize probe" << endl;
+    if(isAPepperPot_m)
+      *gmsg << "* Finalize pepperpot " << getName() << endl;
+    else if(isASlit_m)
+      *gmsg << "* Finalize slit " << getName() << endl;
+    else if(isARColl_m)
+      *gmsg << "* Finalize collimator " << getName() << endl;
+    else if(isACColl_m)
+      *gmsg << "* Finalize cyclotron collimator " << getName() << endl;
+    else if(isAWire_m)
+      *gmsg << "* Finalize wire " << getName() << endl;
+    else
+      *gmsg << "* Finalize ecollimator " << getName() << endl;
 }
 
 void Collimator::goOnline(const double &) {
@@ -369,24 +380,24 @@ void Collimator::print() {
         return;
     }
 
-    *gmsg << level3;
+    *gmsg << level1;
     if(isAPepperPot_m)
-        *gmsg << "* Pepperpot x= " << a_m << " y= " << b_m << " r= " << rHole_m
+      *gmsg << "* Pepperpot " + getName() + " x= " << a_m << " y= " << b_m << " r= " << rHole_m
               << " nx= " << nHolesX_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
     else if(isASlit_m)
-        *gmsg << "* Slit x= " << getXsize() << " Slit y= " << getYsize()
+        *gmsg << "* Slit " + getName() + " x= " << getXsize() << " Slit y= " << getYsize()
               << " start= " << position_m << " fn= " << filename_m << endl;
     else if(isARColl_m)
-        *gmsg << "* RCollimator a= " << getXsize() << " b= " << getYsize()
+      *gmsg << "* RCollimator " + getName() + " a= " << getXsize() << " b= " << getYsize()
               << " start= " << position_m << " fn= " << filename_m
               << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
     else if(isACColl_m)
-        *gmsg << "* CCollimator angle start " << xstart_m << " (Deg) angle end " << ystart_m << " (Deg) "
-              << "R start " << xend_m << " (mm) R rend " << yend_m << " (mm)" << endl;
+      *gmsg << "* CCollimator " + getName() + " angle start " << xstart_m << " angle end " << ystart_m << " all (Deg) "
+              << "R start " << xend_m << " R rend " << yend_m << " all (mm)" << endl;
     else if(isAWire_m)
-        *gmsg << "* Wire x= " << x0_m << " y= " << y0_m << endl;
+      *gmsg << "* Wire " + getName() + " x= " << x0_m << " y= " << y0_m << endl;
     else
-        *gmsg << "* ECollimator a= " << getXsize() << " b= " << b_m << " start= " << position_m
+      *gmsg << "* ECollimator "+ getName() + " a= " << getXsize() << " b= " << b_m << " start= " << position_m
               << " fn= " << filename_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
 }
 
