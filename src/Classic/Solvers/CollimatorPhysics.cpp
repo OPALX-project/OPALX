@@ -37,7 +37,7 @@ using Physics::z_p;
 using Physics::Avo;
 
 #ifdef OPAL_DKS
-const int CollimatorPhysics::numpar = 12;
+const int CollimatorPhysics::numpar = 13;
 #endif
 
 CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *element, std::string &material):
@@ -1120,7 +1120,7 @@ void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch,
         deg->getDimensions(zBegin, zEnd);
 
         double params[numpar] = {zBegin, zEnd, rho_m, Z_m,
-                                 A_m, A2_c, A3_c, A4_c, A5_c, X0_m, I_m, dT_m
+                                 A_m, A2_c, A3_c, A4_c, A5_c, X0_m, I_m, dT_m, 1e-4
                                 };
         dksbase.writeDataAsync<double>(par_ptr, params, numpar);
 
