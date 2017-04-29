@@ -187,18 +187,6 @@ void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunch *bunch) 
 
 template<> inline
 void OpalBeamline::visit<Source>(const Source &element, BeamlineVisitor &, PartBunch *bunch) {
-    // Inform msg("OPAL ");
-    // double startField = 0.0;
-    // double endField = 0.0;
-    // std::shared_ptr<Source> elptr(static_cast<Source*>(element.clone()->removeWrappers()));
-
-    // if(!elptr->hasAttribute("ELEMEDGE")) {
-    //     startField = elptr->getElementPosition();
-    // }
-
-    // elptr->initialise(bunch, startField, endField);
-    // elptr->setBeamline(this);
-    // elements_m.push_back(ClassicField(elptr, startField, endField));
     containsSource_m = true;
 }
 

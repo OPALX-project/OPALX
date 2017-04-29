@@ -120,7 +120,7 @@ public:
     double getExitAngle() const;
     double getMapLength() const;
 
-    std::pair<Vector_t, Vector_t> getDesignPathSecant(double startsAtDistFromEdge, double length) const;
+    std::vector<Vector_t> getPartialDesignPath(double startsAtDistFromEdge, double length) const;
 
     std::vector<Vector_t> getOutline() const;
     MeshData getSurfaceMesh() const;
@@ -191,6 +191,8 @@ private:
     void retrieveDesignEnergy(double startField);
 
     CoordinateSystemTrafo getBeginToEnd_local() const;
+
+    void transformFrom(std::vector<Vector_t> & points) const;
 
     std::string messageHeader_m;
 
@@ -377,6 +379,13 @@ inline
 CoordinateSystemTrafo Bend::getBeginToEnd_local() const
 {
     return beginToEnd_lcs_m;
+}
+
+inline
+void Bend::transformFrom(std::vector<Vector_t> & points) const {
+    for (auto it = points.begin(); it != points.end(); ++ it) {
+        *it = getCSTrafoGlobal2Local().transformFrom(*it);
+    }
 }
 
 #endif // CLASSIC_BEND_H
