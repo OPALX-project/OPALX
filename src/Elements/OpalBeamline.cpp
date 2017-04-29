@@ -4,6 +4,7 @@
 #include "Utilities/Util.h"
 #include "AbstractObjects/OpalData.h"
 #include "AbsBeamline/Bend.h"
+#include "AbsBeamline/Collimator.h"
 #include "Structure/MeshGenerator.h"
 
 #include <boost/filesystem.hpp>
@@ -358,26 +359,33 @@ void OpalBeamline::compute3DLattice() {
         } else {
             Quaternion rotation(1, 0, 0, 0);
 
-            // FieldList::iterator priorDipole = partiallyInsideDipole(it, elements_m.begin(), elements_m.end(), minOrder);
+            if (element->getType() == ElementBase::COLLIMATOR) {
+                FieldList::iterator priorDipole = partiallyInsideDipole(it, elements_m.begin(), elements_m.end(), minOrder);
+                Collimator *col = static_cast<Collimator*>((*it).getElement().get());
 
-            // if (priorDipole != it) {
-            //     Bend * bendElement = static_cast<Bend*>((*priorDipole).getElement().get());
-            //     double pathDifference = beginThisPathLength - bendElement->getElementPosition();
+                if (priorDipole != it && col->getWarpFlag()) {
+                    Bend * bendElement = static_cast<Bend*>((*priorDipole).getElement().get());
+                    double pathDifference = beginThisPathLength - bendElement->getElementPosition();
 
-            //     auto secant = bendElement->getDesignPathSecant(pathDifference, thisLength);
-            //     Vector_t position = (*priorDipole).getCoordTransformationTo().transformFrom(secant.first);
-            //     Vector_t orientation = (*priorDipole).getCoordTransformationTo().rotateFrom(secant.second);
+                    auto designPath = bendElement->getPartialDesignPath(pathDifference, thisLength);
+                    Vector_t orientation = designPath[1] - designPath[0];
 
-            //     beginThis3D = currentCoordTrafo.transformTo(position);
-            //     rotation = getQuaternion(orientation,
-            //                              currentCoordTrafo.rotateFrom(Vector_t(0, 0, 1)));
+                    rotation = getQuaternion(orientation,
+                                             Vector_t(0, 0, 1));
 
-            //     CoordinateSystemTrafo fromLastToThis(beginThis3D, rotation);
-            //     fromLastToThis *= currentCoordTrafo;
-            //     Vector_t origin = fromLastToThis.getOrigin();
-            //     Vector_t end = origin + thisLength * fromLastToThis.rotateFrom(Vector_t(0,0,1));
-            // }
+                    CoordinateSystemTrafo cst(designPath.front(), rotation);
+                    (*it).setCoordTransformationTo(cst);
 
+                    for (auto it = designPath.begin(); it != designPath.end(); ++ it) {
+                        (*it) = cst.transformTo(*it);
+                    }
+
+                    col->setWarpCurve(designPath);
+
+                    *gmsg << __DBGMSG__ << cst.transformFrom(Vector_t(0.0)) << "\t" << cst.rotateFrom(Vector_t(0, 0, 1)) << "\t" << minOrder << endl;
+                    continue;
+                }
+            }
             double rotationAngleAboutZ = (*it).getElement()->getRotationAboutZ();
             Quaternion_t rotationAboutZ(cos(0.5 * rotationAngleAboutZ),
                                         sin(-0.5 * rotationAngleAboutZ) * Vector_t(0, 0, 1));
@@ -726,41 +734,62 @@ FieldList::iterator OpalBeamline::partiallyInsideDipole(const FieldList::iterato
     while (true) {
         std::shared_ptr<Component> element = (*prior).getElement();
 
-        if ((*prior).getEnd() > /*(*it).getStart()*/ (*it).getElement()->getElementPosition() &&
-            (element->getType() == ElementBase::SBEND ||
-             element->getType() == ElementBase::RBEND)) {
-
-            if ((*prior).order_m >= minOrder)
-                return prior;
+        if (element->getType() == ElementBase::SBEND ||
+            element->getType() == ElementBase::RBEND) {
+            *gmsg << __DBGMSG__ << element->getName() << "\t" << element->getElementPosition() << "\t" << (*prior).getEnd() << "\t"
+                  << (*it).getElement()->getName() << "\t" << (*it).getElement()->getElementPosition() << endl;
         }
 
         if (prior == begin) break;
         -- prior;
     }
 
-    if (it == end) return it;
-    FieldList::iterator next = it;
-    ++ next;
-    if (next == end) return it;
-
     while (true) {
-        std::shared_ptr<Component> element = (*next).getElement();
+        std::shared_ptr<Component> element = (*prior).getElement();
 
-        if ((element->getType() == ElementBase::SBEND ||
-             element->getType() == ElementBase::RBEND) &&
-            (*it).getElement()->getElementPosition() > (*next).getStart() &&
-            (*it).getElement()->getElementPosition() < (*next).getEnd()) {
-
-            if ((*next).order_m >= minOrder)
-                return next;
+        if (element->getType() == ElementBase::SBEND ||
+            element->getType() == ElementBase::RBEND) {
+            *gmsg << __DBGMSG__ << element->getName() << "\t" << (*prior).getEnd() << "\t"
+                  << (*it).getElement()->getName() << "\t" << (*it).getElement()->getElementPosition() << endl;
         }
 
-        ++ next;
+        if ((*prior).getEnd() < (*it).getElement()->getElementPosition()) break;
 
-        if (next == end) break;
+        if (element->getType() == ElementBase::SBEND ||
+            element->getType() == ElementBase::RBEND) {
+
+            return prior;
+        }
+
+        if (prior == begin) break;
+        -- prior;
     }
 
     return it;
+
+    // if (it == end) return it;
+    // FieldList::iterator next = it;
+    // ++ next;
+    // if (next == end) return it;
+
+    // while (true) {
+    //     std::shared_ptr<Component> element = (*next).getElement();
+
+    //     if ((element->getType() == ElementBase::SBEND ||
+    //          element->getType() == ElementBase::RBEND) &&
+    //         (*it).getElement()->getElementPosition() > (*next).getStart() &&
+    //         (*it).getElement()->getElementPosition() < (*next).getEnd()) {
+
+    //         if ((*next).order_m >= minOrder)
+    //             return next;
+    //     }
+
+    //     ++ next;
+
+    //     if (next == end) break;
+    // }
+
+    // return it;
 }
 
 void OpalBeamline::activateElements() {

@@ -85,21 +85,22 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
     optimizedPhase = status.first;
     finalEnergy = status.second;
 
-
     AstraPhase = std::fmod(optimizedPhase + Physics::pi / 2, Physics::two_pi);
     newPhase = std::fmod(originalPhase + optimizedPhase + Physics::two_pi, Physics::two_pi);
     element->setPhasem(newPhase);
     element->setAutophaseVeto();
 
+    OpalData::getInstance()->setMaxPhase(itsCavity_m->getName(), optimizedPhase);
 
-    INFOMSG(itsCavity_m->getName() << "_phi = "  << optimizedPhase * Physics::rad2deg <<  " [deg], "
+    double frequency = element->getFrequencym();
+    double basePhase = std::fmod(frequency * (t + tErr), 1.0);
+    basePhase = std::fmod(optimizedPhase - basePhase + Physics::two_pi, Physics::two_pi);
+
+    INFOMSG(itsCavity_m->getName() << "_phi = "  << std::fmod(newPhase + basePhase, Physics::two_pi) * Physics::rad2deg <<  " [deg], "
             << "corresp. in Astra = " << AstraPhase * Physics::rad2deg << " [deg],\n"
             << "E = " << finalEnergy << " [MeV], " << "phi_nom = " << originalPhase * Physics::rad2deg << " [deg]\n"
             << "Ez_0 = " << amplitude << " [MV/m]" << "\n"
             << "time = " << (t + tErr) * 1e9 << " [ns], dt = " << dt * 1e12 << " [ps]" << endl);
-
-    OpalData::getInstance()->setMaxPhase(itsCavity_m->getName(), optimizedPhase);
-
 
     return optimizedPhase;
 }
@@ -133,7 +134,11 @@ std::pair<double, double> CavityAutophaser::optimizeCavityPhase(double initialPh
     double originalPhase = element->getPhasem();
 
     if (element->getAutophaseVeto()) {
-        std::pair<double, double> status(originalPhase, Util::getEnergy(initialP_m, itsReference_m.getM() * 1e-6));
+        double frequency = element->getFrequencym();
+        double basePhase = std::fmod(frequency * t, 1.0);
+        double phase = std::fmod(originalPhase - basePhase + Physics::two_pi, Physics::two_pi);
+        double E = track(initialR_m, initialP_m, t, dt, phase);
+        std::pair<double, double> status(-basePhase, E);//Util::getEnergy(initialP_m, itsReference_m.getM() * 1e-6));
         return status;
     }
 
@@ -186,6 +191,8 @@ std::pair<double, double> CavityAutophaser::optimizeCavityPhase(double initialPh
     Phimax = std::fmod(initialPhase + Physics::two_pi, Physics::two_pi);
 
     E = track(initialR_m, initialP_m, t, dt, Phimax + originalPhase);
+
+    *gmsg << level1 << __DBGMSG__ << element->getName() << ": phase = " << Phimax + originalPhase << ", energy = " << E << endl;
     std::pair<double, double> status(Phimax, E);
     return status;
 }
