@@ -315,7 +315,7 @@ void Bend::initialise(PartBunch *bunch,
 
         startField_m -= elementEdge_m;
         endField_m -= elementEdge_m;
-        // elementEdge_m = 0.0;
+        elementEdge_m = 0.0;
 
         msg << level2
             << "======================================================================\n"
@@ -1432,97 +1432,65 @@ void Bend::retrieveDesignEnergy(double startField) {
     // }
 }
 
-std::vector<Vector_t> Bend::getPartialDesignPath(double startsAtDistFromEdge, double length) const {
+std::pair<Vector_t, Vector_t> Bend::getDesignPathSecant(double startsAtDistFromEdge, double length) const {
 
-    if (length <= 0.0 || startsAtDistFromEdge < 0.0)
-        throw GeneralClassicException("Bend::getDesignPath",
-                                      "both length and path length from edge have to be positive");
+    length = std::abs(length);
+    Vector_t startPosition(0.0);
+    Vector_t tangent(0, 0, 1);
 
-    const unsigned int size = refTrajMap_m.size();
+    double pathLength = refTrajMap_m[0](2);
+    unsigned int size = refTrajMap_m.size();
 
-    unsigned int firstIdx = 1;
-    while (firstIdx < size && refTrajMap_m[firstIdx](2) < 0.0) {
-        ++ firstIdx;
-    }
+    for (unsigned int i = 1; i < size; ++ i) {
+        Vector_t step = refTrajMap_m[i] - refTrajMap_m[i-1];
+        double stepSize = euclidian_norm(step);
+        if (pathLength + stepSize > startsAtDistFromEdge) {
+            double diff = startsAtDistFromEdge - pathLength;
+            tangent = step / stepSize;
+            startPosition = refTrajMap_m[i-1] + diff * tangent;
 
-    if (firstIdx == size)
-        throw GeneralClassicException("Bend::getDesignPath",
-                                      "never crossing edge");
 
-    Vector_t step = refTrajMap_m[firstIdx] - refTrajMap_m[firstIdx - 1];
-    double stepSize = euclidian_norm(step);
-    double minPathLength = (refTrajMap_m[firstIdx](2) /
-                            (refTrajMap_m[firstIdx](2) - refTrajMap_m[firstIdx - 1](2))) * stepSize;
-    double pathLength = 0.0;
-    std::vector<Vector_t> designPath;
+            if (length <= 1e-12) {
+                return std::make_pair(startPosition, tangent);
+            }
 
-    unsigned int idx = firstIdx + 1;
-    if (startsAtDistFromEdge < minPathLength) {
-        pathLength = (minPathLength - startsAtDistFromEdge);
+            for (unsigned j = i; j < size; ++ j) {
+                Vector_t position = refTrajMap_m[j];
 
-        if (pathLength > length) {
-            designPath.push_back(refTrajMap_m[firstIdx] -
-                                 pathLength / stepSize * step);
-            designPath.push_back(designPath[0] + length / stepSize * step);
+                if (euclidian_norm(position - startPosition) >= length) {
+                    step = refTrajMap_m[j-1] - refTrajMap_m[j];
+                    double tau = (dot(startPosition - position, step) - sqrt(std::pow(dot(startPosition - position, step), 2) - dot(step, step) * (dot(startPosition - position, startPosition - position) - std::pow(length, 2)))) / dot(step, step);
 
-            transformFrom(designPath);
+                    tangent = position + tau * step - startPosition;
+                    tangent /= euclidian_norm(tangent);
 
-            return designPath;
-        } else {
-            designPath.push_back(refTrajMap_m[firstIdx] -
-                                 (minPathLength - startsAtDistFromEdge) / stepSize * step);
-            designPath.push_back(refTrajMap_m[firstIdx]);
-        }
-    } else {
-        pathLength = minPathLength;
-        const CoordinateSystemTrafo fromEndToExitRegion(Vector_t(0, 0, exitParameter2_m),
-                                                        Quaternion(1, 0, 0, 0));
-        const CoordinateSystemTrafo toExitRegion = (fromEndToExitRegion *
-                                                    getBeginToEnd_local());
+                    return std::make_pair(startPosition, tangent);
+                }
+            }
 
-        while (idx < size && pathLength < startsAtDistFromEdge) {
-            step = refTrajMap_m[idx] - refTrajMap_m[idx - 1];
-            stepSize = euclidian_norm(step);
-            pathLength += stepSize;
+            Vector_t position = refTrajMap_m[size - 1];
+            Vector_t step = position - refTrajMap_m[size - 2];
+            step /= euclidian_norm(step);
+            double tau = (dot(startPosition - position, step) + sqrt(std::pow(dot(startPosition - position, step), 2) - dot(step, step) * (dot(startPosition - position, startPosition - position) - std::pow(length, 2)))) / dot(step, step);
 
-            ++ idx;
+            tangent = position + tau * step - startPosition;
+            tangent /= euclidian_norm(tangent);
+
+            return std::make_pair(startPosition, tangent);
         }
 
-        if (idx == size || toExitRegion.transformTo(refTrajMap_m[idx - 1])(2) > 0.0)
-            throw GeneralClassicException("Bend::getDesignPath",
-                                          "start position outside dipole");
-
-        -- idx;
-        designPath.push_back(refTrajMap_m[idx] -
-                             (pathLength - startsAtDistFromEdge) / stepSize * step);
-        designPath.push_back(refTrajMap_m[idx]);
-        pathLength -= startsAtDistFromEdge;
-
-        if (pathLength > length) {
-            designPath.back() -= (pathLength - length) / stepSize * step;
-
-            transformFrom(designPath);
-
-            return designPath;
-        }
-
-        ++ idx;
-    }
-
-    while (idx < size && pathLength < length) {
-        designPath.push_back(refTrajMap_m[idx]);
-        step = refTrajMap_m[idx] - refTrajMap_m[idx - 1];
-        stepSize = euclidian_norm(step);
         pathLength += stepSize;
-
-        ++ idx;
     }
 
-    designPath.back() -= (pathLength - length) / stepSize * step;
+    double diff = startsAtDistFromEdge - pathLength;
+    unsigned int i = size - 1;
+    Vector_t step = refTrajMap_m[i] - refTrajMap_m[i-1];
+    double stepSize = euclidian_norm(step);
+    tangent = step / stepSize;
+    startPosition = refTrajMap_m[i] + diff * tangent;
+    tangent = tangent;
 
-    transformFrom(designPath);
-
-    return designPath;
+    return std::make_pair(startPosition, tangent);
 }
 
 std::vector<Vector_t> Bend::getOutline() const {
