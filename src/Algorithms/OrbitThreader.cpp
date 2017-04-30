@@ -91,7 +91,7 @@ void OrbitThreader::execute() {
     errorFlag_m = EVERYTHINGFINE;
     do {
         if (containsCavity(elementSet)) {
-            autophaseCavities(elementSet);
+            autophaseCavities(elementSet, visitedElements);
         }
 
         double initialS = pathLength_m;
@@ -127,7 +127,7 @@ void OrbitThreader::execute() {
              errorFlag_m != EOL);
 
     // imap_m.tidyUp();
-    *gmsg << level1 << imap_m << endl;
+    *gmsg << level1 << "\n" << imap_m << endl;
     imap_m.saveSDDS(initialPathLength);
 
     processElementRegister();
@@ -220,15 +220,15 @@ bool OrbitThreader::containsCavity(const IndexMap::value_t &activeSet) {
     return false;
 }
 
-void OrbitThreader::autophaseCavities(const IndexMap::value_t &activeSet) {
+void OrbitThreader::autophaseCavities(const IndexMap::value_t &activeSet,
+                                      const std::set<std::string> &visitedElements) {
     IndexMap::value_t::const_iterator it = activeSet.begin();
     const IndexMap::value_t::const_iterator end = activeSet.end();
 
     for (; it != end; ++ it) {
-        if ((*it)->getType() == ElementBase::TRAVELINGWAVE ||
-            (*it)->getType() == ElementBase::RFCAVITY) {
-            const RFCavity *element = static_cast<const RFCavity *>((*it).get());
-            if (element->getAutophaseVeto()) continue;
+        if (((*it)->getType() == ElementBase::TRAVELINGWAVE ||
+             (*it)->getType() == ElementBase::RFCAVITY) &&
+            visitedElements.find((*it)->getName()) == visitedElements.end()) {
 
             Vector_t initialR = itsOpalBeamline_m.transformToLocalCS(*it, r_m);
             Vector_t initialP = itsOpalBeamline_m.rotateToLocalCS(*it, p_m);

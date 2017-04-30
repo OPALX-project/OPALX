@@ -178,34 +178,16 @@ void ParallelTTracker::visitBeamline(const Beamline &bl) {
 }
 
 void ParallelTTracker::updateRFElement(std::string elName, double maxPhase) {
-    /**
-       The maximum phase is added to the nominal phase of
-       the element. This is done on all nodes except node 0 where
-       the Autophase took place.
-    */
     FieldList cavities = itsOpalBeamline_m.getElementByType(ElementBase::RFCAVITY);
     FieldList travelingwaves = itsOpalBeamline_m.getElementByType(ElementBase::TRAVELINGWAVE);
+    cavities.insert(cavities.end(), travelingwaves.begin(), travelingwaves.end());
 
     for (FieldList::iterator fit = cavities.begin(); fit != cavities.end(); ++ fit) {
         if ((*fit).getElement()->getName() == elName) {
 
             RFCavity *element = static_cast<RFCavity *>((*fit).getElement().get());
-            double phase  =  element->getPhasem();
 
-            element->setPhasem(phase + maxPhase);
-            element->setAutophaseVeto();
-
-            INFOMSG("Restored cavity phase from the h5 file. Name: " << element->getName() << ", phase: " << maxPhase << " rad" << endl);
-            return;
-        }
-    }
-    for (FieldList::iterator fit = travelingwaves.begin(); fit != travelingwaves.end(); ++ fit) {
-        if ((*fit).getElement()->getName() == elName) {
-
-            TravelingWave *element = static_cast<TravelingWave *>((*fit).getElement().get());
-            double phase  =  element->getPhasem();
-
-            element->setPhasem(phase + maxPhase);
+            element->setPhasem(maxPhase);
             element->setAutophaseVeto();
 
             INFOMSG("Restored cavity phase from the h5 file. Name: " << element->getName() << ", phase: " << maxPhase << " rad" << endl);
