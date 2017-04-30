@@ -358,8 +358,8 @@ void OrbitThreader::setDesignEnergy(FieldList &allElements, const std::set<std::
     for (; it != end; ++ it) {
         std::shared_ptr<Component> element = (*it).getElement();
         if (visitedElements.find(element->getName()) == visitedElements.end() &&
-            !(element->getType() != ElementBase::RFCAVITY ||
-              element->getType() != ElementBase::TRAVELINGWAVE)) {
+            !(element->getType() == ElementBase::RFCAVITY ||
+              element->getType() == ElementBase::TRAVELINGWAVE)) {
 
             element->setDesignEnergy(kineticEnergyeV);
         }
