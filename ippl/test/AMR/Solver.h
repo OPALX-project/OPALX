@@ -18,7 +18,7 @@
 #include <memory>
 #include <vector>
 
-#ifdef UNIQUE_PTR
+#ifndef UNIQUE_PTR
     #include <PArray.H>
 #endif
 
