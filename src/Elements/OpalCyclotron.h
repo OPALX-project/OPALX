@@ -30,15 +30,17 @@ class OpalCyclotron: public OpalElement {
 public:
 
     /// The attributes of class OpalCyclotron.
+    /// Need to remove common, old TYPE = COMMON, prevents the identification of the fieldmap type in the Cyclotron 
+    /// element issue #84
     enum {
-        TYPE = COMMON,
+        TYPE,
         GEOMETRY,  // geometry of boundary
         CYHARMON,  // The harmonic number of the cyclotron
         SYMMETRY,  // The symetry of the field
-        RINIT,     // The initial radius [m]
+        RINIT,     // The initial radius [mm]
         PRINIT,    // The initial radial momentum [pr/p0] []
         PHIINIT,   // The initial phase [deg]
-        ZINIT,     // The initial z coordinate [m]
+        ZINIT,     // The initial z coordinate [mm]
         PZINIT,    // The initial vertical momentum [pz/p0] []
         RFFREQ,    // First hamonic of the RF system [MHz]
         FMAPFN,    // The filename of the mid-plane fieldmap

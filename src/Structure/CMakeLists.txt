@@ -1,7 +1,7 @@
 set (_SRCS
   Beam.cpp
   OpalWake.cpp
-  SurfacePhysics.cpp
+  ParticleMaterInteraction.cpp
   SecondaryEmissionPhysics.cpp
   PriEmissionPhysics.cpp
   BoundaryGeometry.cpp
@@ -23,6 +23,7 @@ set (_SRCS
   SDDSParser/version.cpp
   OpalInputInterpreter.cpp
   IpplInfoWrapper.cpp
+  TracerParticles.cpp
 )
 
 include_directories (
@@ -46,7 +47,7 @@ set (HDRS
     PriEmissionPhysics.h
     SDDSParser.h
     SecondaryEmissionPhysics.h
-    SurfacePhysics.h
+    ParticleMaterInteraction.h
     SDDSParser/array_def.hpp
     SDDSParser/array.hpp
     SDDSParser/associate_def.hpp
@@ -69,6 +70,7 @@ set (HDRS
     SDDSParser/skipper.hpp
     SDDSParser/version_def.hpp
     SDDSParser/version.hpp
+    TracerParticles.hpp
 )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Structure")

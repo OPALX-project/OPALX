@@ -31,10 +31,6 @@
 // template parameter is the full type of the Field to compute, and the second
 // is the dimension of the data, which should be specialized.
 
-#ifdef OPAL_NOCPLUSPLUS11_NULLPTR
-#define nullptr NULL
-#endif
-
 //const double ke=1./(4.*M_PI*8.8e-14);
 const double ke=2.532638e8;
 

@@ -37,7 +37,7 @@ OpalCyclotron::OpalCyclotron():
                         ("SYMMETRY", "defines how the field is stored");
 
     itsAttr[RINIT]    = Attributes::makeReal
-                        ("RINIT", "Initial radius of the reference particle [m]");
+                        ("RINIT", "Initial radius of the reference particle [mm]");
 
     itsAttr[PRINIT]   = Attributes::makeReal
                         ("PRINIT", "Initial radial momentum of the reference particle, pr = beta_r * gamma");
@@ -46,7 +46,7 @@ OpalCyclotron::OpalCyclotron():
                         ("PHIINIT", "Initial azimuth of the reference particle [deg]");
 
     itsAttr[ZINIT]    = Attributes::makeReal
-                        ("ZINIT", "Initial z-coordinate of the reference particle [m]. Default = 0 m", 0.0);
+                        ("ZINIT", "Initial z-coordinate of the reference particle [mm]. Default = 0 mm", 0.0);
 
     itsAttr[PZINIT]   = Attributes::makeReal
                         ("PZINIT", "Initial vertical momentum of the reference particle pz = beta_z * gamma. Default = 0", 0.0);

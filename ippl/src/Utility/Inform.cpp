@@ -130,7 +130,7 @@ Inform::Inform(const char *myname, std::ostream& os, int pnode)
 /////////////////////////////////////////////////////////////////////
 // class constructor specifying an other Inform instance
 Inform::Inform(const char *myname, const Inform& os, int pnode)
-    : FormatBuf(std::ios::out), OpenedSuccessfully(true), MsgDest(os.MsgDest) {
+    : FormatBuf(std::ios::out), MsgDest(os.MsgDest), OpenedSuccessfully(true) {
 
     // just store a ref to the provided stream
     NeedClose = false;

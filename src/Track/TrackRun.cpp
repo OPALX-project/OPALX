@@ -838,6 +838,18 @@ void TrackRun::setupStatisticalErrors(const std::string & method) {
 
 void TrackRun::setupFieldsolver() {
     fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
+
+    if (Util::toUpper(fs->getType()) != std::string("NONE")) {
+        size_t numGridPoints = fs->getMX()*fs->getMY()*fs->getMT(); // total number of gridpoints
+        Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
+        size_t numParticles = beam->getNumberOfParticles();
+
+        if (numParticles < numGridPoints)
+            throw OpalException("TrackRun::setupFieldsolver()",
+                                "Panik: The number of simulation particles (" + std::to_string(numParticles) + ") " +
+                                "is smaller than the number of gridpoints (" + std::to_string(numGridPoints) + ")");
+    }
+
     fs->initCartesianFields();
     Track::block->bunch->setSolver(fs);
     if (fs->hasPeriodicZ())

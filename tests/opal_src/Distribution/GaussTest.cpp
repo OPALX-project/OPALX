@@ -25,22 +25,13 @@ Inform *gmsg;
 #include <cstring>
 #include <sstream>
 
-namespace {
-    std::string burnAfterReading(std::ostringstream &ostr) {
-        std::string returnValue = ostr.str();
-        ostr.str("");
-
-        return returnValue;
-    }
-}
-
 TEST(GaussTest, FullSigmaTest1) {
-    OpalTestUtilities::SilenceTest silencer(true);
+    OpalTestUtilities::SilenceTest silencer(false);
     char inputFileName[] = "GaussDistributionTest.in";
     std::string input = "OPTION, ECHO=FALSE;\n"
         "OPTION, CZERO=FALSE;\n"
         "TITLE, STRING=\"gauss distribution unit test\";\n"
-        "DIST1: DISTRIBUTION, DISTRIBUTION = \"GAUSS\", \n"
+        "DIST1: DISTRIBUTION, TYPE = \"GAUSS\", \n"
         "SIGMAX = 1.978e-3, SIGMAY = 2.498e-3, SIGMAZ = 1.537e-3, \n"
         "SIGMAPX = 0.7998, SIGMAPY = 0.6212, SIGMAPZ = 0.9457, \n"
         "R = {-0.40993, 0, 0, 0.14935, 0.72795,   0, 0, 0.59095, -0.3550,   0.77208, 0, 0,   0, 0,  0.12051}, \n"
@@ -103,13 +94,10 @@ TEST(GaussTest, FullSigmaTest1) {
 
     if (distObj) {
         Distribution *dist = dynamic_cast<Distribution*>(distObj);
-
         dist->setDistType();
         dist->checkIfEmitted();
-
         size_t numParticles = 1000000;
         dist->create(numParticles, Physics::m_p);
-
 
         double R11 = gsl_stats_variance(&(dist->xDist_m[0]), 1, dist->xDist_m.size()) * 1e6;
         double R21 = gsl_stats_covariance(&(dist->xDist_m[0]), 1, &(dist->pxDist_m[0]), 1, dist->xDist_m.size()) * 1e3;
@@ -153,14 +141,13 @@ TEST(GaussTest, FullSigmaTest2) {
     std::string input = "OPTION, ECHO=FALSE;\n"
         "OPTION, CZERO=FALSE;\n"
         "TITLE, STRING=\"gauss distribution unit test\";\n"
-        "DIST1: DISTRIBUTION, DISTRIBUTION = \"GAUSS\", \n"
+        "DIST1: DISTRIBUTION, TYPE = \"GAUSS\", \n"
         "SIGMAX = 1.978e-3, SIGMAY = 2.498e-3, SIGMAZ = 1.537e-3, \n"
         "SIGMAPX = 0.7998, SIGMAPY = 0.6212, SIGMAPZ = 0.9457, \n"
         "CORRX= -0.40993, CORRY=0.77208, CORRZ=0.12051, \n"
         "R51=0.14935, R52=0.59095, R61=0.72795, R62=-0.3550, \n"
         "EKIN = 0.63, \n"
         "EMITTED = FALSE;\n";
-
 
     int narg = 7;
     char exe_name[] = "opal_unit_tests";

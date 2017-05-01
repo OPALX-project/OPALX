@@ -23,6 +23,8 @@
 #include "Utilities/ClassicRandom.h"
 #include "Utility/IpplInfo.h"
 
+#include "Utilities/OpalException.h"
+
 #include <ctime>
 #include <iostream>
 #include <limits>
@@ -49,6 +51,7 @@ namespace {
         STATDUMPFREQ,
         PSDUMPEACHTURN,
         PSDUMPLOCALFRAME,
+        PSDUMPFRAME,
         SPTDUMPFREQ,
         REPARTFREQ,
         REBINFREQ,
@@ -126,7 +129,10 @@ Option::Option():
       ("REMOTEPARTDEL", "Artifically delete the remote particle if its distance to the beam mass is larger than REMOTEPARTDEL times of the beam rms size, its default values is 0 (no delete) ",0.0);
 
     itsAttr[PSDUMPLOCALFRAME] = Attributes::makeBool
-                                ("PSDUMPLOCALFRAME", "If true, in local Cartesian frame, otherwise in global Cartesian frame, only aviable for OPAL-cycl, its default value is false");
+                                ("PSDUMPLOCALFRAME", "Deprecated; please use PSDUMPFRAME.");
+
+    itsAttr[PSDUMPFRAME] = Attributes::makeString
+                                ("PSDUMPFRAME", "Controls the frame of phase space dump in stat file and h5 file. If 'GLOBAL' OPAL will dump in the lab (global) Cartesian frame; if 'BUNCH_MEAN' OPAL will dump in the local Cartesian frame of the beam mean; if 'REFERENCE'  OPAL will dump in the local Cartesian frame of the reference particle 0. Only aviable for OPAL-cycl, its default value is 'GLOBAL'");
 
     itsAttr[SPTDUMPFREQ] = Attributes::makeReal
                            ("SPTDUMPFREQ", "The frequency to dump single particle trajectory of particles with ID = 0 & 1, its default value is 1. ");
@@ -219,7 +225,8 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
     Attributes::setReal(itsAttr[STATDUMPFREQ], statDumpFreq);
     Attributes::setBool(itsAttr[PSDUMPEACHTURN], psDumpEachTurn);
-    Attributes::setBool(itsAttr[PSDUMPLOCALFRAME], psDumpLocalFrame);
+    Attributes::setBool(itsAttr[PSDUMPLOCALFRAME], psDumpLocalFrame_m);
+    Attributes::setString(itsAttr[PSDUMPFRAME], psDumpFrame_m);
     Attributes::setReal(itsAttr[SPTDUMPFREQ], sptDumpFreq);
     Attributes::setReal(itsAttr[SCSOLVEFREQ], scSolveFreq);
     Attributes::setReal(itsAttr[MTSSUBSTEPS], mtsSubsteps);
@@ -269,7 +276,6 @@ void Option::execute() {
     verify    = Attributes::getBool(itsAttr[VERIFY]);
     warn      = Attributes::getBool(itsAttr[WARN]);
     psDumpEachTurn =   Attributes::getBool(itsAttr[PSDUMPEACHTURN]);
-    psDumpLocalFrame = Attributes::getBool(itsAttr[PSDUMPLOCALFRAME]);
     scan = Attributes::getBool(itsAttr[SCAN]);
     rhoDump = Attributes::getBool(itsAttr[RHODUMP]);
     ebDump = Attributes::getBool(itsAttr[EBDUMP]);
@@ -283,6 +289,10 @@ void Option::execute() {
 
     IpplInfo::Info->on(info);
     IpplInfo::Warn->on(warn);
+
+    psDumpLocalFrame_m = Attributes::getBool(itsAttr[PSDUMPLOCALFRAME]);
+    psDumpFrame_m = Attributes::getString(itsAttr[PSDUMPFRAME]);
+    handlePsDumpFrame();
 
     if(itsAttr[ASCIIDUMP]) {
         asciidump = Attributes::getBool(itsAttr[ASCIIDUMP]);
@@ -387,3 +397,30 @@ void Option::execute() {
         *gmsg << "\nCurrent settings of options:\n" << *this << endl;
     }
 }
+
+void Option::handlePsDumpFrame() {
+    if (psDumpLocalFrame_m) {
+        if (psDumpFrame_m == "GLOBAL") {
+            psDumpFrame_m == "BUNCH_MEAN";
+        } else {
+            std::string msg = std::string("Either set 'PSDUMPLOCALFRAME' Option")+\
+                              std::string(" or 'PSDUMPFRAME' Option but not both."); 
+            throw OpalException("Option::handlePsDumpFrame", msg);
+        }
+    }
+    if (psDumpFrame_m == "GLOBAL") {
+        // do nothing; leave as defaults (this gets called for every option,
+        // so we have to implicitly take default otherwise we will overwrite
+        // other settings)
+    } else if (psDumpFrame_m == "BUNCH_MEAN") {
+        psDumpLocalFrame = BUNCH_MEAN;
+    } else if (psDumpFrame_m == "REFERENCE") {
+        psDumpLocalFrame = REFERENCE;
+    } else {
+        std::string msg = std::string("Did not recognise PSDUMPFRAME '")+\
+                    psDumpFrame_m+std::string("'. It should be one of 'GLOBAL',")+\
+                    std::string(" 'BUNCH_MEAN' or 'REFERENCE'");
+        throw OpalException("Option::handlePsDumpFrame", msg);
+    }
+}
+

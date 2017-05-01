@@ -4,7 +4,7 @@
 #include "Elements/OpalPolynomialTimeDependence.h"
 
 class BeamlineVisitor;
-
+// some comment
 class TestElement : public ElementBase {
   public:
 

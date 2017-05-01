@@ -55,6 +55,8 @@ public:
     /// Find named FieldSolver.
     static FieldSolver *find(const std::string &name);
 
+    std::string getType();
+
     /// Return meshsize
     double getMX() const;
 

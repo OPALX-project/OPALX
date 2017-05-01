@@ -213,7 +213,7 @@ void H5PartWrapperForPC::readStepData(PartBunchBase<double, 3>* bunch,
 
 void H5PartWrapperForPC::writeHeader() {
     std::stringstream OPAL_version;
-    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " git rev. " << Util::getGitRevision();
+    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " # git rev. " << Util::getGitRevision();
     WRITESTRINGFILEATTRIB(file_m, "OPAL_version", OPAL_version.str().c_str());
 
     WRITESTRINGFILEATTRIB(file_m, "tUnit", "s");
@@ -323,7 +323,7 @@ void H5PartWrapperForPC::writeStepHeader(PartBunchBase<double, 3>* bunch,
     double mass = 1.0e-9 * bunch->getM();
     double charge = bunch->getCharge();
 
-    h5_int64_t localFrame = Options::psDumpLocalFrame? 1: 0;
+    h5_int64_t localFrame = Options::psDumpLocalFrame;
 
     double sposHead = 0.0;
     double sposRef = 0.0;

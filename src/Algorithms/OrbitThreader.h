@@ -72,7 +72,7 @@ private:
     void trackBack();
     void integrate(const IndexMap::value_t &activeSet, size_t maxSteps);
     bool containsCavity(const IndexMap::value_t &activeSet);
-    void autophaseCavities(const IndexMap::value_t &activeSet);
+    void autophaseCavities(const IndexMap::value_t &activeSet, const std::set<std::string> &visitedElements);
     double getMaxDesignEnergy(const IndexMap::value_t &elementSet) const;
 
     void registerElement(const IndexMap::value_t &elementSet, double, const Vector_t &r, const Vector_t &p);
