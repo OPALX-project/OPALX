@@ -195,14 +195,14 @@ void compareDistribution(int node) {
     std::cout << "Particle distribution for Ippl and BoxLib matches" << std::endl;
 }
 
-void compareFields(PArray<MultiFab> &field_ippl, PArray<MultiFab> &field_bl, int node) {
+void compareFields(container_t &field_ippl, PArray<MultiFab> &field_bl, int node) {
 
   bool fields_match = true;
   double ippl_sum, bl_sum;
 
-  for (int lev = 0; lev < field_ippl.size(); ++lev) {
+  for (unsigned int lev = 0; lev < field_ippl.size(); ++lev) {
     //calculate the sum of all the components in multifab
-    ippl_sum = field_ippl[lev].sum();
+    ippl_sum = field_ippl[lev]->sum();
     bl_sum = field_bl[lev].sum();
 
     //check if the sums are the same for Ippl and BoxLib
@@ -223,7 +223,7 @@ void compareFields(PArray<MultiFab> &field_ippl, PArray<MultiFab> &field_bl, int
 void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba, 
 	    Array<DistributionMapping> &dmap, Array<int> &rr, 
 	    size_t nLevels, int myNode, 
-	    PArray<MultiFab> &field, PArray<MultiFab> &efield,
+	    container_t &field, container_t &efield,
 	    int N, int seed) 
 {
 
@@ -246,16 +246,16 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
 
   //call assign density to scatter the paarticle attribute qm on the grid
   pbase->setAllowParticlesNearBoundary(true);
-  pbase->AssignDensitySingleLevel(pbase->qm, field[0], 0);
+  pbase->AssignDensitySingleLevel(pbase->qm, *(field[0].get()), 0);
   pbase->AssignDensity(pbase->qm, false, field, 0, 1);
 
   //copy the valies from field to all the components of efield
   
   for (size_t lev = 0; lev < nLevels; ++lev) {
-    efield[lev].setVal(0.0);
-    MultiFab::Copy(efield[lev], field[lev], 0, 0, 1, 0);
-    MultiFab::Copy(efield[lev], field[lev], 0, 1, 1, 0);
-    MultiFab::Copy(efield[lev], field[lev], 0, 2, 1, 0);
+    efield[lev]->setVal(0.0);
+    MultiFab::Copy(*(efield[lev].get()), *(field[lev].get()), 0, 0, 1, 0);
+    MultiFab::Copy(*(efield[lev].get()), *(field[lev].get()), 0, 1, 1, 0);
+    MultiFab::Copy(*(efield[lev].get()), *(field[lev].get()), 0, 2, 1, 0);
   }
 
   //get values from grid to particles
@@ -443,10 +443,10 @@ int main(int argc, char *argv[]) {
   */
 
   //create a multifabs one is used with BoxLib tests, one for Ippl tests
-  PArray<MultiFab> field_ippl;
+  container_t field_ippl;
   field_ippl.resize(nLevels);
   for (size_t lev = 0; lev < nLevels; ++lev)
-    field_ippl.set(lev, new MultiFab(ba[lev], 1, 1, dmap[lev]));
+    field_ippl[lev].reset(new MultiFab(ba[lev], 1, 1, dmap[lev]));
 
   PArray<MultiFab> field_bl;
   field_bl.resize(nLevels);
@@ -455,8 +455,11 @@ int main(int argc, char *argv[]) {
 
   PArray<MultiFab> efield;
   efield.resize(nLevels);
-  for (size_t lev = 0; lev < nLevels; ++lev)
+  container_t efield_ippl(nLevels);
+  for (size_t lev = 0; lev < nLevels; ++lev) {
     efield.set(lev, new MultiFab(ba[lev], BL_SPACEDIM, 1, dmap[lev]));
+    efield_ippl[lev].reset(new MultiFab(ba[lev], BL_SPACEDIM, 1, dmap[lev]));
+  }
 
 
   //Do ippl and boxlib runs multiple times.
@@ -470,7 +473,7 @@ int main(int argc, char *argv[]) {
   //Compare fields check if field_ippl and field_bl are the same after AssignDensity
   for (int i = 0; i < L; ++i) {
 
-    doIppl(geom, ba, dmap, rr, nLevels, Ippl::myNode(), field_ippl, efield, N, i);
+    doIppl(geom, ba, dmap, rr, nLevels, Ippl::myNode(), field_ippl, efield_ippl, N, i);
     doBoxLib(geom, ba, dmap, rr, nLevels, Ippl::myNode(), field_bl, efield, N, i);
 
     if (Ippl::myNode() == 0)

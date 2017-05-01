@@ -78,7 +78,7 @@ int ParticleAmrLayout<T, Dim>::getTileIndex(const IntVect& iv, const Box& box, B
     }
 }
 
-//sets the grid and level where particle belongs - returns flase if prticle is outside the domain
+//sets the grid and level where particle belongs - returns false if particle is outside the domain
 template <class T, unsigned Dim>
 bool ParticleAmrLayout<T, Dim>::Where (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
 				       const unsigned int ip,

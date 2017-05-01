@@ -74,7 +74,6 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     bool FineToCrse (const int ip,
                      int                                flev,
-                     const ParGDBBase*                  gdb,
                      const Array<IntVect>&              fcells,
                      const BoxArray&                    fvalid,
                      const BoxArray&                    compfvalid_grown,
@@ -88,7 +87,6 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     void FineCellsToUpdateFromCrse (const int ip,
                                     int lev,
-                                    const ParGDBBase* gdb,
                                     const IntVect& ccell,
                                     const IntVect& cshift,
                                     Array<int>& fgrid,
@@ -98,7 +96,7 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
 
     //Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     //sends/receivs the particles that are needed by other processes to during AssignDensity
-    void AssignDensityDoit(int level, PArray<MultiFab>* mf, PMap& data,
+    void AssignDensityDoit(int level, Array<std::unique_ptr<MultiFab> >& mf, PMap& data,
                            int ncomp, int lev_min = 0);
 
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
@@ -210,7 +208,7 @@ public:
     template <class AType>
         void AssignDensity(ParticleAttrib<AType> &pa,
                            bool sub_cycle,
-                           PArray<MultiFab>& mf_to_be_filled,
+                           Array<std::unique_ptr<MultiFab> >& mf_to_be_filled,
                            int lev_min,
                            int finest_level)
         {
@@ -247,64 +245,54 @@ public:
             // finest_level. In the following code, lev is the real level, 
             // lev_index is the corresponding index for mf. 
             //
-            PArray<MultiFab>* mf;
-            PArray<MultiFab>  mf_part;
 
             // Create the space for mf_to_be_filled, regardless of whether we'll need a temporary mf
-            mf_to_be_filled.resize(finest_level+1-lev_min, PArrayManage);
+            mf_to_be_filled.resize(finest_level+1-lev_min);
             for (int lev = lev_min; lev <= finest_level; lev++)
             { 
                 const int lev_index = lev - lev_min;
-                mf_to_be_filled.set(lev_index, new MultiFab(m_gdb->boxArray(lev), 1, 1));
-
-                for (MFIter mfi(mf_to_be_filled[lev_index]); mfi.isValid(); ++mfi) {
-                    mf_to_be_filled[lev_index][mfi].setVal(0);
-                }
+                mf_to_be_filled[lev_index].reset(new MultiFab(m_gdb->boxArray(lev), 1, 1,
+                                                              m_gdb->DistributionMap(lev)));
+                mf_to_be_filled[lev_index]->setVal(0.0);
             }
 
             // Test whether the grid structure of the boxArray is the same
             //       as the ParticleBoxArray at all levels 
             bool all_grids_the_same = true; 
             for (int lev = lev_min; lev <= finest_level; lev++) {
-                if (!m_gdb->OnSameGrids(lev, mf_to_be_filled[lev-lev_min])) {
+                if (!m_gdb->OnSameGrids(lev, *mf_to_be_filled[lev-lev_min])) {
                     all_grids_the_same = false;
                     break;
                 }
             }
-
-            if (all_grids_the_same)
-            {
-                mf = &mf_to_be_filled;
-            } 
-            else     
+            
+            Array<std::unique_ptr<MultiFab> > mf_part;
+            if (!all_grids_the_same)
             { 
                 // Create the space for the temporary, mf_part
-                mf_part.resize(finest_level+1-lev_min, PArrayManage);
+                mf_part.resize(finest_level+1-lev_min);
                 for (int lev = lev_min; lev <= finest_level; lev++)
                 {
                     const int lev_index = lev - lev_min;
-                    mf_part.set(lev_index, new MultiFab(m_gdb->ParticleBoxArray(lev), 1, 1,
-                                                        m_gdb->ParticleDistributionMap(lev)));
-    
-                    for (MFIter mfi(mf_to_be_filled[lev_index]); mfi.isValid(); ++mfi) {
-                        mf_part[lev_index][mfi].setVal(0);
-                    }
+                    mf_part[lev_index].reset(new MultiFab(m_gdb->ParticleBoxArray(lev), 1, 1,
+                                                          m_gdb->ParticleDistributionMap(lev)));
+                    mf_part[lev_index]->setVal(0.0);
                 }
-
-                mf = &mf_part;
             }
-
+            
+            auto & mf = (all_grids_the_same) ? mf_to_be_filled : mf_part;
+            
             if (finest_level == 0)
             {
                 //
                 // Just use the far simpler single-level version.
                 //
-                AssignDensitySingleLevel(pa, (*mf)[0], 0);
+                AssignDensitySingleLevel(pa, *mf[0], 0, 1);
                 //
                 // I believe that we don't need any information in ghost cells so we don't copy those.
                 //
                 if ( ! all_grids_the_same) {
-                    mf_to_be_filled[0].copy((*mf)[0],0,0,1);
+                    mf_to_be_filled[0]->copy(*mf[0],0,0,1);
                 }
                 return;
             }
@@ -357,10 +345,10 @@ public:
                 const Real*     dx_fine   = (lev < finest_level) ? m_gdb->Geom(lev+1).CellSize() : dx;
                 const Real*     dx_coarse = (lev > 0) ? m_gdb->Geom(lev-1).CellSize() : dx;
                 const int       lev_index = lev - lev_min;
-                const BoxArray& grids     = (*mf)[lev_index].boxArray();
+                const BoxArray& grids     = mf[lev_index]->boxArray();
                 const int       dgrow     = (lev == 0) ? 1 : m_gdb->MaxRefRatio(lev-1);
 
-                BoxArray compfvalid, compfvalid_grown, fvalid = (*mf)[lev_index].boxArray();
+                BoxArray compfvalid, compfvalid_grown, fvalid = mf[lev_index]->boxArray();
 
                 //
                 // Do we have Fine->Crse overlap on a periodic boundary?
@@ -424,7 +412,7 @@ public:
                     cfba = m_gdb->boxArray(lev+1);
                     cfba.coarsen(m_gdb->refRatio(lev));
 
-                    BL_ASSERT((*mf)[lev_index].boxArray().contains(cfba));
+                    BL_ASSERT(mf[lev_index]->boxArray().contains(cfba));
                 }
 
                 //
@@ -436,13 +424,13 @@ public:
                 {
                     BoxList cvalid;
 
-                    const BoxArray& cgrids = (*mf)[lev_index].boxArray();
+                    const BoxArray& cgrids = mf[lev_index]->boxArray();
 
                     for (int i = 0; i < cfba.size(); i++)
                     {
                         if (gm.isAnyPeriodic())
                         {
-                            const Box& dest = BoxLib::grow(cfba[i],(*mf)[lev_index].nGrow());
+                            const Box& dest = BoxLib::grow(cfba[i], mf[lev_index]->nGrow());
 
                             if ( ! dm.contains(dest))
                             {
@@ -452,9 +440,9 @@ public:
 
                                     gm.periodicShift(dest, cgrids[j], pshifts);
 
-                                    for (const auto& iv : pshifts)
+                                    for (const auto& kiv : pshifts)
                                     {
-                                        const Box& sbx = cfba[i] - iv;
+                                        const Box& sbx = cfba[i] - kiv;
 
                                         cvalid.push_back(sbx);
                                     }
@@ -514,7 +502,7 @@ public:
                         break;
                     }
 
-                    FArrayBox&  fab = (*mf)[lev_index][m_grid[ip]];
+                    FArrayBox&  fab = (*mf[lev_index])[m_grid[ip]];
     
                     //
                     // Get "fracs" and "cells" for the particle "p" at this level.
@@ -608,19 +596,19 @@ public:
                                         BL_ASSERT(pshifts.size() == 1);
                                         fcells[j] = fcells[j] - pshifts[0];
                                     }
-                                    (*mf)[lev_index+1].boxArray().intersections(Box(fcells[j], fcells[j]),
-                                                                                isects,true,0);
+                                    mf[lev_index+1]->boxArray().intersections(Box(fcells[j], fcells[j]),
+                                                                             isects,true,0);
                                     if (isects.size() == 0) {
                                         continue;
                                     }
                                     const int grid = isects[0].first; 
-                                    const int who  = (*mf)[lev_index+1].DistributionMap()[m_grid[ip]];
+                                    const int who  = mf[lev_index+1]->DistributionMap()[m_grid[ip]];
                                     if (who == ParallelDescriptor::MyProc())
                                     {
                                         //
                                         // Sum up mass in first component.
                                         //
-                                        (*mf)[lev_index+1][m_grid[ip]](fcells[j],0) += pa[ip] * ffracs[j];
+                                        (*mf[lev_index+1])[m_grid[ip]](fcells[j],0) += pa[ip] * ffracs[j];
                                     }
                                     else
                                     {
@@ -657,19 +645,19 @@ public:
                                     //
                                     // Find its resident grid.
                                     //
-                                    (*mf)[lev_index - 1].boxArray().intersections(Box(ccells[j],ccells[j]),
-                                                                                    isects,true,0);
+                                    mf[lev_index - 1]->boxArray().intersections(Box(ccells[j],ccells[j]),
+                                                                                isects,true,0);
                                     if (isects.size() == 0) {
                                         continue;
                                     }
                                     const int grid = isects[0].first;
-                                    const int who  = (*mf)[lev_index-1].DistributionMap()[grid];
+                                    const int who  = mf[lev_index-1]->DistributionMap()[grid];
                                     if (who == ParallelDescriptor::MyProc())
                                     {
                                         //
                                         // Sum up mass in first component.
                                         //
-                                        (*mf)[lev_index-1][m_grid[ip]](ccells[j],0) += pa[ip] * cfracs[j];
+                                        (*mf[lev_index-1])[m_grid[ip]](ccells[j],0) += pa[ip] * cfracs[j];
                                     }
                                     else
                                     {
@@ -702,7 +690,7 @@ public:
                         //
                         bool AnyFineToCrse = false;
                         if (lev_index > 0 && !GridsCoverDomain)
-                            AnyFineToCrse = FineToCrse(ip,lev,m_gdb,cells,fvalid,compfvalid_grown,
+                            AnyFineToCrse = FineToCrse(ip,lev,cells,fvalid,compfvalid_grown,
                                                         ccells,cfracs,fwhich,cgrid,pshifts,isects);
 	  
                         BL_ASSERT(!(AnyCrseToFine && AnyFineToCrse));
@@ -740,16 +728,16 @@ public:
                                     // We're at a Fine->Crse boundary.
                                     //
                                     BL_ASSERT(cgrid[i] >= 0);
-                                    BL_ASSERT(cgrid[i] < (*mf)[lev_index-1].size());
+                                    BL_ASSERT(cgrid[i] < mf[lev_index-1]->size());
                                     //
                                     // Here we need to update the crse region.  The coarse
                                     // region is always going to be updated if we have a
                                     // particle in a cell bordering a Fine->Crse boundary.
                                     //
-                                    const int who = (*mf)[lev_index-1].DistributionMap()[cgrid[i]];
+                                    const int who = mf[lev_index-1]->DistributionMap()[cgrid[i]];
                                     if (who == ParallelDescriptor::MyProc())
                                     {
-                                        if ( ! (*mf)[lev_index-1][cgrid[i]].box().contains(ccells[i])) {
+                                        if ( ! (*mf[lev_index-1])[cgrid[i]].box().contains(ccells[i])) {
                                             continue;
                                         }
 
@@ -766,7 +754,7 @@ public:
                                         // Sum up mass in first component.
                                         //
                                         {
-                                            (*mf)[lev_index-1][cgrid[i]](ccells[i],0) += pa[ip] * cfracs[i];
+                                            (*mf[lev_index-1])[cgrid[i]](ccells[i],0) += pa[ip] * cfracs[i];
                                         }
                                     }
                                     else
@@ -881,18 +869,18 @@ public:
                                     //
                                     // We're at a Crse->Fine boundary.
                                     //
-                                    FineCellsToUpdateFromCrse(ip,lev,m_gdb,cells[i],cfshifts[i],
+                                    FineCellsToUpdateFromCrse(ip,lev,cells[i],cfshifts[i],
                                                             fgrid,ffracs,fcells,isects);
             
                                     for (int j = 0, nj=fcells.size(); j < nj; ++j)
                                     {
-                                        const int who = (*mf)[lev_index+1].DistributionMap()[fgrid[j]];
+                                        const int who = mf[lev_index+1]->DistributionMap()[fgrid[j]];
                                         if (who == ParallelDescriptor::MyProc())
                                         {
                                             //
                                             // Sum up mass in first component.
                                             //
-                                            (*mf)[lev_index+1][fgrid[j]](fcells[j],0) += pa[ip] * fracs[i] * ffracs[j];
+                                            (*mf[lev_index+1])[fgrid[j]](fcells[j],0) += pa[ip] * fracs[i] * ffracs[j];
                                         }
                                         else
                                         {
@@ -925,14 +913,14 @@ public:
                 const Real*     dx        = gm.CellSize();
                 const Real      vol       = D_TERM(dx[0], *dx[1], *dx[2]);
     
-                (*mf)[lev_index].SumBoundary(gm.periodicity());
+                mf[lev_index]->SumBoundary(gm.periodicity());
 
                 //
                 // Only multiply the first component by (1/vol) because this converts mass
                 // to density. If there are additional components (like velocity), we don't
                 // want to divide those by volume.
                 //
-                (*mf)[lev_index].mult(1/vol,0,1);
+                mf[lev_index]->mult(1/vol,0,1);
             }
 
             //
@@ -947,7 +935,7 @@ public:
                 for (int lev = lev_min; lev <= finest_level; lev++)
                 {
                     const int lev_index = lev - lev_min;
-                    mf_to_be_filled[lev_index].copy(mf_part[lev_index],0,0,1);
+                    mf_to_be_filled[lev_index]->copy(*mf_part[lev_index],0,0,1);
                 }
             }
 
@@ -990,8 +978,9 @@ public:
             } else {
                 // If mf_to_be_filled is not defined on the particle_box_array, then we need 
                 // to make a temporary here and copy into mf_to_be_filled at the end.
-                mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), 0, mf_to_be_filled.nGrow(),
-                                          m_gdb->ParticleDistributionMap(lev), Fab_allocate);
+                mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), 1,
+                                          mf_to_be_filled.nGrow(),
+                                          m_gdb->ParticleDistributionMap(lev));
             }
   
             // We must have ghost cells for each FAB so that a particle in one grid can spread its effect to an
@@ -1105,8 +1094,8 @@ public:
                     // to make a temporary here and copy into mf_to_be_filled at the end.
                     mf_pointer = new MultiFab(BoxLib::convert(m_gdb->ParticleBoxArray(lev),
                                                               mf_to_be_filled.boxArray().ixType()),
-                                              0, mf_to_be_filled.nGrow(),
-                                              m_gdb->ParticleDistributionMap(lev), Fab_allocate);
+                                              1, mf_to_be_filled.nGrow(),
+                                              m_gdb->ParticleDistributionMap(lev));
                 }
 
             const Geometry& gm          = m_gdb->Geom(lev);
@@ -1135,7 +1124,10 @@ public:
             for (size_t ip = 0; ip < LocalNum; ++ip) 
                 {
                     FArrayBox& fab = (*mf_pointer)[m_grid[ip]];
-      
+                    
+//                     // FIXME Is "Where" really needed?
+//                     Where(this->R, ip);
+                    
                     IntVect m_cell = Layout->Index(this->R[ip], this->m_lev[ip]);
                     cells[0] = m_cell;
                     cells[1] = m_cell+IntVect(1,0,0);
@@ -1205,7 +1197,7 @@ public:
     //
     template <class AType>
         void GetGravity(ParticleAttrib<AType> &pa,
-                        PArray<MultiFab> &mf) 
+                        Array<std::unique_ptr<MultiFab> > &mf) 
         {
 
             PLayout *Layout = &this->getLayout();
@@ -1218,7 +1210,7 @@ public:
                 int grid = m_grid[ip];
 
                 //get the FArrayBox where this particle is located
-                FArrayBox& fab = mf[lev][grid];
+                FArrayBox& fab = (*(mf[lev].get()))[grid];
       
                 Real grav[BL_SPACEDIM];
                 int idx[BL_SPACEDIM] = {  D_DECL(0,1,2) };
