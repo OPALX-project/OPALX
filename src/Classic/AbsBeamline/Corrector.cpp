@@ -46,7 +46,7 @@ Corrector::Corrector(const Corrector &right):
   kickX_m(right.kickX_m),
   kickY_m(right.kickY_m),
   designEnergy_m(right.designEnergy_m),
-  designEnergyChangeable_m(true),
+  designEnergyChangeable_m(right.designEnergyChangeable_m),
   kickFieldSet_m(right.kickFieldSet_m),
   kickField_m(right.kickField_m)
 { }
@@ -106,11 +106,6 @@ void Corrector::finalise()
 { }
 
 void Corrector::goOnline(const double &) {
-    // if (kineticEnergy < 0.0) {
-    //     throw GeneralClassicException("Corrector::goOnline", "given kinetic energy is negative");
-    // }
-
-
     const double pathLength = getGeometry().getElementLength();
     const double minLength = Physics::c * RefPartBunch_m->getdT();
     if (pathLength < minLength) {
@@ -134,9 +129,6 @@ void Corrector::setDesignEnergy(double ekin, bool changeable) {
         designEnergyChangeable_m = changeable;
     }
     if (RefPartBunch_m) {
-        // designEnergy_m = ekin;
-        // designEnergyChangeable_m = changeable;
-
         if (!kickFieldSet_m) {
             const double pathLength = getGeometry().getElementLength();
             const double momentum = sqrt(std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * RefPartBunch_m->getM());

@@ -2002,6 +2002,8 @@ They have the following attributes:
 \item[VKICK]
   The vertical kick angle in \si{\radian} for a corrector in both planes
   (default: \SI{0}{\radian}).
+\item[DESIGNENERGY]
+  Fix the magnitude of the magnetic field using the given \keyword{DESIGNENERGY} and the angle (\keyword{KICK}, \keyword{HKICK} or \keyword{VKICK}). If the designenergy isn't set then the actual energy of the reference particle at the position of the corrector is used. The \keyword{DESIGNENERGY} is expected in \si{\mega\electronvolt}.
 \end{kdescription}
 A positive kick increases $p_{x}$ or $p_{y}$
 respectively. Use \keyword{KICK} for an \keyword{HKICKER} or \keyword{VKICKER} and \keyword{HKICK} and \keyword{VKICK} for a \keyword{KICKER}. Instead of using a \keyword{KICKER} or a \keyword{VKICKER} one could use an \keyword{HKICKER} and rotate it appropriately using \keyword[sec:Element:common]{PSI}.
