@@ -103,15 +103,13 @@ VectorMap* PolynomialPatch::clone() const {
 }
 
 PolynomialPatch::PolynomialPatch()
-  : grid_points_(NULL), validity_region_(NULL), points_(), point_dimension_(0),
+  : validity_region_(NULL), grid_points_(NULL), points_(), point_dimension_(0),
     value_dimension_(0) {
 }
 
 PolynomialPatch::~PolynomialPatch() {
-    if (grid_points_ != NULL)
-        delete grid_points_;
-    if (validity_region_ != NULL)
-        delete validity_region_; 
+    delete grid_points_;
+    delete validity_region_; 
     for (size_t i = 0; i < points_.size(); ++i)
         delete points_[i];
 }

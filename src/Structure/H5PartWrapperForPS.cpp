@@ -187,7 +187,7 @@ void H5PartWrapperForPS::writeHeader() {
     h5_float64_t dphi = OpalData::getInstance()->getGlobalPhaseShift();
     std::stringstream OPAL_version;
 
-    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " git rev. " << Util::getGitRevision();
+    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " # git rev. " << Util::getGitRevision();
     WRITESTRINGFILEATTRIB(file_m, "OPAL_version", OPAL_version.str().c_str());
 
     WRITESTRINGFILEATTRIB(file_m, "xUnit", "m");

@@ -43,6 +43,7 @@ public:
     virtual void execute();
 
 private:
+    void handlePsDumpFrame();
 
     // Not implemented.
     Option(const Option &);
@@ -50,6 +51,9 @@ private:
 
     // Clone constructor.
     Option(const std::string &name, Option *parent);
+
+    bool psDumpLocalFrame_m = false;
+    std::string psDumpFrame_m = "GLOBAL";
 };
 
 #endif // OPAL_Option_HH

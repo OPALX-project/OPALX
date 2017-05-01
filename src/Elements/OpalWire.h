@@ -20,7 +20,7 @@
 
 #include "Elements/OpalElement.h"
 
-class SurfacePhysics;
+class ParticleMaterInteraction;
 // Class OpalWire
 // ------------------------------------------------------------------------
 /// The ECOLLIMATOR element.
@@ -61,7 +61,7 @@ private:
 
     // Clone constructor.
     OpalWire(const std::string &name, OpalWire *parent);
-    SurfacePhysics *sphys_m;
+    ParticleMaterInteraction *parmatint_m;
 };
 
 #endif // OPAL_OpalWire_HH

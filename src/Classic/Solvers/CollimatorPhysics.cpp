@@ -37,11 +37,11 @@ using Physics::z_p;
 using Physics::Avo;
 
 #ifdef OPAL_DKS
-const int CollimatorPhysics::numpar = 12;
+const int CollimatorPhysics::numpar = 13;
 #endif
 
 CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *element, std::string &material):
-    SurfacePhysicsHandler(name, element),
+    ParticleMaterInteractionHandler(name, element),
     allParticlesIn_m(false),
     T_m(0.0),
     dT_m(0.0),
@@ -64,12 +64,12 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *eleme
     Emax_m(0.0),
     Emin_m(0.0)
 #ifdef OPAL_DKS
-    , curandInitSet(0),
-    , ierr(0),
-    , maxparticles(0),
-    , numparticles(0),
-    , numlocalparts(0),
-    , par_ptr(NULL),
+    , curandInitSet(0)
+    , ierr(0)
+    , maxparticles(0)
+    , numparticles(0)
+    , numlocalparts(0)
+    , par_ptr(NULL)
     , mem_ptr(NULL)
 #endif
 {
@@ -1120,7 +1120,7 @@ void CollimatorPhysics::setupCollimatorDKS(PartBunchBase<double, 3> *bunch,
         deg->getDimensions(zBegin, zEnd);
 
         double params[numpar] = {zBegin, zEnd, rho_m, Z_m,
-                                 A_m, A2_c, A3_c, A4_c, A5_c, X0_m, I_m, dT_m
+                                 A_m, A2_c, A3_c, A4_c, A5_c, X0_m, I_m, dT_m, 1e-4
                                 };
         dksbase.writeDataAsync<double>(par_ptr, params, numpar);
 

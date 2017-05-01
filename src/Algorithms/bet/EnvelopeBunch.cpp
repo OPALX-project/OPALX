@@ -540,19 +540,10 @@ void EnvelopeBunch::createBunch() {
     dfi_x    = 0.0;
     dfi_y    = 0.0;     // no rotation of coordinate system
 
-    //for(unsigned int i = 0; i < nSlices; i++)
-        //s.push_back(std::shared_ptr<EnvelopeSlice>(new EnvelopeSlice()));
-
     s.resize(nSlices);
-#ifdef OPAL_NOCPLUSPLUS11_FOREACH
-    for( auto slice = s.begin(); slice != s.end(); ++ slice ) {
-        (*slice) = std::shared_ptr<EnvelopeSlice>(new EnvelopeSlice());
-    }
-#else
     for( auto & slice : s ) {
         slice = std::shared_ptr<EnvelopeSlice>(new EnvelopeSlice());
     }
-#endif
     //XXX: not supported by clang at the moment
     //std::generate(s.begin(), s.end(),
         //[]()

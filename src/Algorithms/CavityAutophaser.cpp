@@ -85,21 +85,30 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
     optimizedPhase = status.first;
     finalEnergy = status.second;
 
+    bool apVeto = element->getAutophaseVeto();
 
     AstraPhase = std::fmod(optimizedPhase + Physics::pi / 2, Physics::two_pi);
     newPhase = std::fmod(originalPhase + optimizedPhase + Physics::two_pi, Physics::two_pi);
     element->setPhasem(newPhase);
     element->setAutophaseVeto();
 
+    double basePhase = std::fmod(element->getFrequencym() * (t + tErr), Physics::two_pi);
+    newPhase = std::fmod(newPhase + basePhase, Physics::two_pi);
 
-    INFOMSG(itsCavity_m->getName() << "_phi = "  << optimizedPhase * Physics::rad2deg <<  " [deg], "
+    INFOMSG(level1 << endl);
+    if (apVeto)
+        INFOMSG(level1 << ">>>>>> APVETO >>>>>> " << endl);
+
+    INFOMSG(itsCavity_m->getName() << "_phi = "  << std::setprecision(4) << std::fixed << newPhase * Physics::rad2deg <<  " [deg], "
             << "corresp. in Astra = " << AstraPhase * Physics::rad2deg << " [deg],\n"
             << "E = " << finalEnergy << " [MeV], " << "phi_nom = " << originalPhase * Physics::rad2deg << " [deg]\n"
             << "Ez_0 = " << amplitude << " [MV/m]" << "\n"
             << "time = " << (t + tErr) * 1e9 << " [ns], dt = " << dt * 1e12 << " [ps]" << endl);
 
-    OpalData::getInstance()->setMaxPhase(itsCavity_m->getName(), optimizedPhase);
+    if (apVeto)
+        INFOMSG(level1 << " <<<<<< APVETO <<<<<< " << endl);
 
+    OpalData::getInstance()->setMaxPhase(itsCavity_m->getName(), newPhase);
 
     return optimizedPhase;
 }
@@ -112,8 +121,6 @@ double CavityAutophaser::guessCavityPhase(double t) {
     double orig_phi = element->getPhasem();
     apVeto = element->getAutophaseVeto();
     if (apVeto) {
-        INFOMSG(level1 << " ----> APVETO -----> "
-                << element->getName() << endl);
         return orig_phi;
     }
 
@@ -133,7 +140,10 @@ std::pair<double, double> CavityAutophaser::optimizeCavityPhase(double initialPh
     double originalPhase = element->getPhasem();
 
     if (element->getAutophaseVeto()) {
-        std::pair<double, double> status(originalPhase, Util::getEnergy(initialP_m, itsReference_m.getM() * 1e-6));
+        double basePhase = std::fmod(element->getFrequencym() * t, Physics::two_pi);
+        double phase = std::fmod(originalPhase - basePhase + Physics::two_pi, Physics::two_pi);
+        double E = track(initialR_m, initialP_m, t, dt, phase);
+        std::pair<double, double> status(-basePhase, E);
         return status;
     }
 

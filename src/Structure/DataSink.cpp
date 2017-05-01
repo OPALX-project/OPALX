@@ -35,16 +35,16 @@ using namespace std;
 #endif
 
 DataSink::DataSink() :
+    H5call_m(0),
     lossWrCounter_m(0),
     doHDF5_m(true),
-    h5wrapper_m(NULL),
-    H5call_m(0)
+    h5wrapper_m(NULL)
 { }
 
 DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
+    H5call_m(0),
     lossWrCounter_m(0),
-    h5wrapper_m(h5wrapper),
-    H5call_m(0)
+    h5wrapper_m(h5wrapper)
 {
     namespace fs = boost::filesystem;
 
@@ -84,9 +84,9 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
 }
 
 DataSink::DataSink(H5PartWrapper *h5wrapper):
+    H5call_m(0),
     lossWrCounter_m(0),
-    h5wrapper_m(h5wrapper),
-    H5call_m(0)
+    h5wrapper_m(h5wrapper)
 {
     /// Constructor steps:
     /// Get timers from IPPL.
@@ -841,7 +841,7 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
                << "&end\n";
 
     outputFile << Ippl::getNodes() << endl;
-    outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " git rev. " << Util::getGitRevision() << endl;
+    outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " # git rev. " << Util::getGitRevision() << endl;
     outputFile << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
                    (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << endl;
 }

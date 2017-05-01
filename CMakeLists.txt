@@ -78,7 +78,7 @@ OPTION (ENABLE_DKS "Enable DKS" OFF)
 
 ### Load DKS package ###
 IF (ENABLE_DKS)
-   FIND_PACKAGE(DKS 1.1.0 REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
+   FIND_PACKAGE(DKS 1.1.1 REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
    MESSAGE (STATUS "Found DKS version: ${DKS_VERSION}")
    MESSAGE (STATUS "Found DKS library: ${DKS_LIBRARY}")
    MESSAGE (STATUS "Found DKS include dir: ${DKS_INCLUDE_DIR}")
@@ -103,9 +103,6 @@ OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
 OPTION (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
 OPTION (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
 OPTION (BUILD_LIBOPAL "Enable building the OPAL library" OFF)
-
-OPTION (NOCPLUSPLUS11_FOREACH "Disable C++11 foreach support" OFF)
-OPTION (NOCPLUSPLUS11_NULLPTR "Disable C++11 nullptr support" OFF)
 
 OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
 
@@ -209,20 +206,6 @@ IF (BUILD_LIBOPAL)
     MESSAGE (STATUS "\nBuilding OPAL library")
 ENDIF (BUILD_LIBOPAL)
 
-IF (NOCPLUSPLUS11_FOREACH)
-    MESSAGE (STATUS "\nBuilding OPAL without c++11 foreach support")
-    SET (CMAKE_CXX_FLAGS
-        "-DOPAL_NOCPLUSPLUS11_FOREACH ${CMAKE_CXX_FLAGS}"
-	)
-ENDIF (NOCPLUSPLUS11_FOREACH)
-
-IF (NOCPLUSPLUS11_NULLPTR)
-    MESSAGE (STATUS "\nBuilding OPAL without c++11 nullptr support")
-    SET (CMAKE_CXX_FLAGS
-        "-DOPAL_NOCPLUSPLUS11_NULLPTR ${CMAKE_CXX_FLAGS}"
-	)
-ENDIF (NOCPLUSPLUS11_NULLPTR)
-
 IF (NO_FIELD_ASSIGN_OPTIMIZATION)
     MESSAGE (STATUS "\nCompiler will not try to optimize field assignment")
     SET (CMAKE_CXX_FLAGS
@@ -254,7 +237,7 @@ IF (BUILD_OPAL_UNIT_TESTS)
      ADD_SUBDIRECTORY(tests)
 ENDIF (BUILD_OPAL_UNIT_TESTS)
 
-# make variables visible in other CMakeKists files
+# make variables visible in other CMakeLists files
 set(OPAL_CXX_FLAGS ${OPAL_CXX_FLAGS}
          CACHE INTERNAL "" FORCE
 )

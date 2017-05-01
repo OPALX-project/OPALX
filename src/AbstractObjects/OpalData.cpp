@@ -151,11 +151,11 @@ struct OpalDataImpl {
 
 OpalDataImpl::OpalDataImpl():
     mainDirectory(), referenceMomentum(0), modified(false), itsTitle_m(),
-    restart_dump_freq_m(1), last_step_m(0),
     hasPriorRun_m(false),
     isRestart_m(false),
     restartStep_m(0),
     hasRestartFile_m(false),
+    restart_dump_freq_m(1), last_step_m(0),
     hasBunchAllocated_m(false),
     hasDataSinkAllocated_m(false),
     hasSLBunchAllocated_m(false),

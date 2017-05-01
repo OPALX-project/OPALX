@@ -1,20 +1,20 @@
 // ------------------------------------------------------------------------
-// $RCSfile: SurfacePhysics.cpp,v $
+// $RCSfile: ParticleMaterInteraction.cpp,v $
 // ------------------------------------------------------------------------
 // $Revision: 1.3.4.1 $
 // ------------------------------------------------------------------------
 // Copyright: see Copyright.readme
 // ------------------------------------------------------------------------
 //
-// Class: SurfacePhysics
-//   The class for the OPAL SURFACEPHYSICS command.
+// Class: ParticleMaterInteraction
+//   The class for the OPAL PARTICLEMATERINTERACTION command.
 //
 // $Date: 2009/07/14 22:09:00 $
 // $Author: C. Kraus $
 //
 // ------------------------------------------------------------------------
 
-#include "Structure/SurfacePhysics.h"
+#include "Structure/ParticleMaterInteraction.h"
 #include "Solvers/CollimatorPhysics.hh"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
@@ -28,10 +28,10 @@ extern Inform *gmsg;
 using namespace Physics;
 
 
-// Class SurfacePhysics
+// Class ParticleMaterInteraction
 // ------------------------------------------------------------------------
 
-// The attributes of class SurfacePhysics.
+// The attributes of class ParticleMaterInteraction.
 namespace {
     enum {
         // DESCRIPTION OF SINGLE PARTICLE:
@@ -45,13 +45,13 @@ namespace {
     };
 }
 
-SurfacePhysics::SurfacePhysics():
-    Definition(SIZE, "SURFACEPHYSICS",
-               "The \"SURFACE_PHYSICS\" statement defines data for the surface physics handler "
+ParticleMaterInteraction::ParticleMaterInteraction():
+    Definition(SIZE, "PARTICLEMATERINTERACTION",
+               "The \"SURFACE_PHYSICS\" statement defines data for the particle mater interaction handler "
                "on an element."),
     handler_m(0) {
     itsAttr[TYPE] = Attributes::makeString
-                    ("TYPE", "Specifies the surface physics handler: Collimator");
+                    ("TYPE", "Specifies the particle mater interaction handler: Collimator");
 
     itsAttr[MATERIAL] = Attributes::makeString
                         ("MATERIAL", "The material of the surface");
@@ -67,67 +67,67 @@ SurfacePhysics::SurfacePhysics():
 
     itsAttr[NPART] = Attributes::makeReal("NPART", "Number of particles in bunch");
 
-    SurfacePhysics *defSurfacePhysics = clone("UNNAMED_SURFACEPHYSICS");
-    defSurfacePhysics->builtin = true;
+    ParticleMaterInteraction *defParticleMaterInteraction = clone("UNNAMED_PARTICLEMATERINTERACTION");
+    defParticleMaterInteraction->builtin = true;
 
     try {
-        defSurfacePhysics->update();
-        OpalData::getInstance()->define(defSurfacePhysics);
+        defParticleMaterInteraction->update();
+        OpalData::getInstance()->define(defParticleMaterInteraction);
     } catch(...) {
-        delete defSurfacePhysics;
+        delete defParticleMaterInteraction;
     }
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
 
-SurfacePhysics::SurfacePhysics(const std::string &name, SurfacePhysics *parent):
+ParticleMaterInteraction::ParticleMaterInteraction(const std::string &name, ParticleMaterInteraction *parent):
     Definition(name, parent),
     handler_m(parent->handler_m)
 {}
 
 
-SurfacePhysics::~SurfacePhysics() {
+ParticleMaterInteraction::~ParticleMaterInteraction() {
     if(handler_m)
         delete handler_m;
 }
 
 
-bool SurfacePhysics::canReplaceBy(Object *object) {
-    // Can replace only by another SURFACEPHYSICS.
-    return dynamic_cast<SurfacePhysics *>(object) != 0;
+bool ParticleMaterInteraction::canReplaceBy(Object *object) {
+    // Can replace only by another PARTICLEMATERINTERACTION.
+    return dynamic_cast<ParticleMaterInteraction *>(object) != 0;
 }
 
 
-SurfacePhysics *SurfacePhysics::clone(const std::string &name) {
-    return new SurfacePhysics(name, this);
+ParticleMaterInteraction *ParticleMaterInteraction::clone(const std::string &name) {
+    return new ParticleMaterInteraction(name, this);
 }
 
 
-void SurfacePhysics::execute() {
+void ParticleMaterInteraction::execute() {
     update();
 }
 
 
-SurfacePhysics *SurfacePhysics::find(const std::string &name) {
-    SurfacePhysics *sphys = dynamic_cast<SurfacePhysics *>(OpalData::getInstance()->find(name));
+ParticleMaterInteraction *ParticleMaterInteraction::find(const std::string &name) {
+    ParticleMaterInteraction *parmatint = dynamic_cast<ParticleMaterInteraction *>(OpalData::getInstance()->find(name));
 
-    if(sphys == 0) {
-        throw OpalException("SurfacePhysics::find()", "SurfacePhysics \"" + name + "\" not found.");
+    if(parmatint == 0) {
+        throw OpalException("ParticleMaterInteraction::find()", "ParticleMaterInteraction \"" + name + "\" not found.");
     }
-    return sphys;
+    return parmatint;
 }
 
 
-void SurfacePhysics::update() {
+void ParticleMaterInteraction::update() {
     // Set default name.
-    if(getOpalName().empty()) setOpalName("UNNAMED_SURFACEPHYSICS");
+    if(getOpalName().empty()) setOpalName("UNNAMED_PARTICLEMATERINTERACTION");
 }
 
 
-void SurfacePhysics::initSurfacePhysicsHandler(ElementBase &element) {
-    *gmsg << "* ************* S U R F A C E P H Y S I C S **************************************** " << endl;
-    *gmsg << "* SurfacePhysics::initSurfacePhysicsHandler " << endl;
+void ParticleMaterInteraction::initParticleMaterInteractionHandler(ElementBase &element) {
+    *gmsg << "* ************* P A R T I C L E  M A T E R  I N T E R A C T I O N ****************** " << endl;
+    *gmsg << "* ParticleMaterInteraction::initParticleMaterInteractionHandler " << endl;
     *gmsg << "* ********************************************************************************** " << endl;
 
     itsElement_m = &element;
@@ -142,18 +142,18 @@ void SurfacePhysics::initSurfacePhysicsHandler(ElementBase &element) {
         *gmsg << *this << endl;
     } else {
         handler_m = 0;
-        INFOMSG(getOpalName() + ": no surface physics handler attached, TYPE == " << Attributes::getString(itsAttr[TYPE]) << endl);
+        INFOMSG(getOpalName() + ": no particle mater interaction handler attached, TYPE == " << Attributes::getString(itsAttr[TYPE]) << endl);
     }
 
 }
 
-void SurfacePhysics::updateElement(ElementBase *element) {
+void ParticleMaterInteraction::updateElement(ElementBase *element) {
     handler_m->updateElement(element);
 }
 
-void SurfacePhysics::print(std::ostream &os) const {
-    os << "* ************* S U R F A C E P H Y S I C S **************************************** " << std::endl;
-    os << "* SURFACEPHYSICS " << getOpalName() << '\n'
+void ParticleMaterInteraction::print(std::ostream &os) const {
+    os << "* ************* P A R T I C L E  M A T E R  I N T E R A C T I O N ****************** " << std::endl;
+    os << "* PARTICLEMATERINTERACTION " << getOpalName() << '\n'
        << "* MATERIAL       " << Attributes::getString(itsAttr[MATERIAL]) << '\n';
     os << "* ********************************************************************************** " << std::endl;
 }

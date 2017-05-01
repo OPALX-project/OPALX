@@ -37,15 +37,6 @@
 #include <iostream>
 #include <sstream>
 
-namespace {
-    std::string burnAfterReading(std::ostringstream &ostr) {
-        std::string returnValue = ostr.str();
-        ostr.str("");
-
-        return returnValue;
-    }
-}
-
 // generate a set of weird, but closed, elements
 // reaches theta sum after 16 elements
 class OffsetFactory {
