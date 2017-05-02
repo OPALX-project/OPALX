@@ -20,7 +20,6 @@
 
 #include "AbstractObjects/Action.h"
 
-
 // Class Option
 // ------------------------------------------------------------------------
 /// The OPTION command.
@@ -43,7 +42,8 @@ public:
     virtual void execute();
 
 private:
-    void handlePsDumpFrame();
+    void handlePsDumpFrame(bool localFrame, const std::string &dumpFrame);
+    bool psDumpLocalFrame_m;
 
     // Not implemented.
     Option(const Option &);
@@ -51,9 +51,6 @@ private:
 
     // Clone constructor.
     Option(const std::string &name, Option *parent);
-
-    bool psDumpLocalFrame_m = false;
-    std::string psDumpFrame_m = "GLOBAL";
 };
 
 #endif // OPAL_Option_HH
