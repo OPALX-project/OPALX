@@ -504,7 +504,7 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << "* PRECMODE     " << Attributes::getString(itsAttr[PRECMODE])   << endl;
     }
 #ifdef HAVE_AMR_SOLVER
-    else if (fsType == "AMR") {
+    else if (fsType == "AMR" || Option::amr) {
         os << "* AMRMAXLEVEL   " << Attributes::getReal(itsAttr[AMRMAXLEVEL]) << '\n'
            << "* AMRREFX       " << Attributes::getReal(itsAttr[AMRREFX]) << '\n'
            << "* AMRREFY       " << Attributes::getReal(itsAttr[AMRREFY]) << '\n'
