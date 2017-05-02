@@ -1457,6 +1457,10 @@ void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
         //write LastSection to device
         dksbase.writeDataAsync<long> (lastSec_ptr, &itsBunch->LastSection[0], 
                                       itsBunch->getLocalNum(), stream2);
+
+        //sync the device to guarantee that p_ptr has been transfered
+        dksbase.syncDevice();
+
         //calc push
         dksbase.callParallelTTrackerPushTransform(x_ptr, p_ptr, lastSec_ptr, orient_ptr,
                                                   itsBunch->getLocalNum(),
@@ -1639,6 +1643,10 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
         //write LastSection to device
         dksbase.writeDataAsync<long>(lastSec_ptr, &itsBunch->LastSection[0],
                                      itsBunch->getLocalNum(), stream2);
+
+        //sync the device to guarantee that p_ptr has been transfered
+        dksbase.syncDevice();
+
         //calc push
         dksbase.callParallelTTrackerPushTransform(x_ptr, p_ptr, lastSec_ptr, orient_ptr,
                                                   itsBunch->getLocalNum(),
@@ -1683,6 +1691,7 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
         itsBunch->dt[i] = itsBunch->getdT();
     }
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
+
 }
 
 void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {

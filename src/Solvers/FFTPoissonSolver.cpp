@@ -497,7 +497,7 @@ void FFTPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     // needed in greens function
     hr_m = hr;
 
-    if (!IpplInfo::DKSEnabled) {
+    if (!IpplInfo::DKSEnabled && greensFunction_m == std::string("INTEGRATED")) {
       // FFT double-sized charge density
       // we do a backward transformation so that we dont have to account for the normalization factor
       // that is used in the forward transformation of the IPPL FFT
@@ -532,6 +532,7 @@ void FFTPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 	IpplTimings::stopTimer(GreensFunctionTimer_m);
 	//transform the greens function
 	int dimsize[3] = {2*nr_m[0], 2*nr_m[1], 2*nr_m[2]}; 
+	dksbase.syncDevice();
 	dksbase.callR2CFFT(rho2_m_ptr, grntr_m_ptr, 3, dimsize, streamGreens);
       }  
       MPI_Barrier(Ippl::getComm());
