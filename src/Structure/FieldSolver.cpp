@@ -79,6 +79,9 @@ namespace {
         AMRREFT,     // AMR, refinement ration in z
         AMRSUBCYCLE, // AMR, subcycling in time for refined levels (default: false)
         AMRMAXGRID,  // AMR, maximum grid size (default: 16)
+        AMRTAGGING,
+        CHARGEPERCELL,
+        SCALING,
 #endif
         // FOR XXX BASED SOLVER
         SIZE
@@ -130,7 +133,14 @@ FieldSolver::FieldSolver():
     itsAttr[AMRSUBCYCLE] = Attributes::makeBool("AMRSUBCYCLE",
                                                 "Subcycling in time for refined levels in AMR", false);
     itsAttr[AMRMAXGRID] = Attributes::makeReal("AMRMAXGRID", "Maximum grid size in AMR", 16);
-
+    
+    itsAttr[AMRTAGGING] = Attributes::makeString("AMRTAGGING",
+                                                 "Refinement criteria [CHARGE | POTENTIAL | EFIELD]", "CHARGE");
+    itsAttr[CHARGEPERCELL] = Attributes::makeReal("CHARGEPERCELL",
+                                                  "Tagging value for CHARGE refinement", 1.0e-14);
+    itsAttr[SCALING] = Attributes::makeReal("SCALING",
+                                            "Scaling value for maximum value tagging (only POTENTIAL / CHARGE)",
+                                            0.75);
 #endif
 
     mesh_m = 0;
@@ -495,12 +505,15 @@ Inform &FieldSolver::printInfo(Inform &os) const {
     }
 #ifdef HAVE_AMR_SOLVER
     else if (fsType == "AMR") {
-        os << "* AMRMAXLEVEL  " << Attributes::getReal(itsAttr[AMRMAXLEVEL]) << '\n'
-           << "* AMRREFX      " << Attributes::getReal(itsAttr[AMRREFX]) << '\n'
-           << "* AMRREFY      " << Attributes::getReal(itsAttr[AMRREFY]) << '\n'
-           << "* AMRREFT      " << Attributes::getReal(itsAttr[AMRREFT]) << '\n'
-           << "* AMRSUBCYCLE  " << Attributes::getBool(itsAttr[AMRSUBCYCLE]) << '\n'
-           << "* AMRMAXGRID   " << Attributes::getReal(itsAttr[AMRMAXGRID]) << endl;
+        os << "* AMRMAXLEVEL   " << Attributes::getReal(itsAttr[AMRMAXLEVEL]) << '\n'
+           << "* AMRREFX       " << Attributes::getReal(itsAttr[AMRREFX]) << '\n'
+           << "* AMRREFY       " << Attributes::getReal(itsAttr[AMRREFY]) << '\n'
+           << "* AMRREFT       " << Attributes::getReal(itsAttr[AMRREFT]) << '\n'
+           << "* AMRSUBCYCLE   " << Attributes::getBool(itsAttr[AMRSUBCYCLE]) << '\n'
+           << "* AMRMAXGRID    " << Attributes::getReal(itsAttr[AMRMAXGRID]) << '\n'
+           << "* AMRTAGGING    " << Attributes::getString(itsAttr[AMRTAGGING]) <<'\n'
+           << "* CHARGEPERCELL " << Attributes::getReal(itsAttr[CHARGEPERCELL]) << '\n'
+           << "* SCALING       " << Attributes::getReal(itsAttr[SCALING]) << endl;
     }
 #endif
 
@@ -530,30 +543,44 @@ Inform &FieldSolver::printInfo(Inform &os) const {
 
 void FieldSolver::initAmrObject_m() {
     //FIXME How to set the domain? Can't be adjusted anymore!
-        /* Further attributes missing,
-         * e.g. max_grid_size
-         */
-        AmrBoxLib::AmrDomain_t domain;
-        for (int i = 0; i < 3; ++i) {
-            domain.setLo(i, -1.0); // m
-            domain.setHi(i, -1.0); // m
-        }
+    /* Further attributes missing,
+     * e.g. max_grid_size
+     */
+    AmrBoxLib::AmrDomain_t domain;
+    for (int i = 0; i < 3; ++i) {
+        domain.setLo(i, -1.0); // m
+        domain.setHi(i, -1.0); // m
+    }
+    
+    AmrBoxLib::AmrIntArray_t nGridPts = {
+        (int)this->getMX(),
+        (int)this->getMY(),
+        (int)this->getMT()
+    };
+    
+    short maxLevel = this->getAmrMaxLevel();
+    
+    AmrBoxLib::AmrIntArray_t refRatio = {
+        this->getAmrRefRatioX(),
+        this->getAmrRefRatioY(),
+        this->getAmrRefRatioT()
+    };
+    
+    itsAmrObject_mp = std::unique_ptr<AmrBoxLib>(new AmrBoxLib(domain, nGridPts, maxLevel, refRatio));
+    
+    AmrObject::TaggingCriteria tagging = AmrObject::TaggingCriteria::CHARGE_DENSITY;
         
-        AmrBoxLib::AmrIntArray_t nGridPts = {
-            (int)this->getMX(),
-            (int)this->getMY(),
-            (int)this->getMT()
-        };
-        
-        short maxLevel = this->getAmrMaxLevel();
-        
-        AmrBoxLib::AmrIntArray_t refRatio = {
-            this->getAmrRefRatioX(),
-            this->getAmrRefRatioY(),
-            this->getAmrRefRatioT()
-        };
-        
-        itsAmrObject_mp = std::unique_ptr<AmrBoxLib>(new AmrBoxLib(domain, nGridPts, maxLevel, refRatio));
+    if ( Attributes::getString(itsAttr[AMRTAGGING]) == "POTENTIAL" )
+        tagging = AmrObject::TaggingCriteria::POTENTIAL;
+    else if ( Attributes::getString(itsAttr[AMRTAGGING]) == "EFIELD" )
+        tagging = AmrObject::TaggingCriteria::EFIELD;
+    else
+        throw OpalException("FieldSolver::initAmrObject_m()",
+                            "Not supported refinement criteria [CHARGE | POTENTIAL | EFIELD].");
+    
+    itsAmrObject_mp->setTagging(tagging);
+    itsAmrObject_mp->setScalingFactor( Attributes::getReal(itsAttr[SCALING]) );
+    itsAmrObject_mp->setCharge( Attributes::getReal(itsAttr[CHARGEPERCELL]) );
 }
 
 
