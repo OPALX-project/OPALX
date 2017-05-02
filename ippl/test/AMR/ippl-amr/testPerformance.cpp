@@ -64,6 +64,19 @@ void precondition(AmrOpal& myAmrOpal,
         initGridData(rhs, grad_phi, myAmrOpal.boxArray()[lev], lev);
     }
         
+#ifdef UNIQUE_PTR
+    for (int i = myAmrOpal.finestLevel()-1; i >= 0; --i) {
+        MultiFab tmp(phi[i]->boxArray(), 1, 0, phi[i]->DistributionMap());
+        tmp.setVal(0.0);
+        BoxLib::average_down(*(phi[i+1].get()), tmp, 0, 1, myAmrOpal.refRatio(i));
+        MultiFab::Add(*(phi[i].get()), tmp, 0, 0, 1, 0);
+    }
+    
+    for (int lev = 1; lev < nLevels; ++lev) {
+        phi[lev].reset(new MultiFab(myAmrOpal.boxArray()[lev],1,1));
+        phi[lev]->setVal(0.0);
+    }
+#else
     for (int i = myAmrOpal.finestLevel()-1; i >= 0; --i) {
         MultiFab tmp(phi[i].boxArray(), 1, 0, phi[i].DistributionMap());
         tmp.setVal(0.0);
@@ -71,13 +84,15 @@ void precondition(AmrOpal& myAmrOpal,
         MultiFab::Add(phi[i], tmp, 0, 0, 1, 0);
     }
     
-    
-    
     for (int lev = 1; lev < nLevels; ++lev) {
         phi.clear(lev);
         phi.set(lev, new MultiFab(myAmrOpal.boxArray()[lev],1          ,1));
         phi[lev].setVal(0.0);
     }
+#endif
+    
+    
+    
         
     PCInterp mapper;
     Array<BCRec> bc(1);
@@ -92,18 +107,34 @@ void precondition(AmrOpal& myAmrOpal,
          * fmfi: MultiFab iterator for fine grids
          * cmfi: MultiFab iterator for coarse grids
          */
-        for (MFIter fmfi(phi[lev + 1], false); fmfi.isValid(); ++fmfi) {
+#ifdef UNIQUE_PTR
+        for (MFIter fmfi(*(phi[lev + 1].get()), false);
+#else
+        for (MFIter fmfi(phi[lev + 1], false);
+#endif
+             fmfi.isValid(); ++fmfi) {
             
             const Box& bx = fmfi.validbox();
-            FArrayBox& fab = phi[lev + 1][fmfi];
+            FArrayBox& fab = 
+#ifdef UNIQUE_PTR
+            (*(phi[lev + 1].get()))[fmfi];
+#else
+            phi[lev + 1][fmfi];
+#endif
             
             
             FArrayBox finefab(bx, 1);
             FArrayBox crsefab(mapper.CoarseBox(finefab.box(), fine_ratio), 1);
             
-            for (MFIter cmfi(phi[lev], false); cmfi.isValid(); ++cmfi) {
+#ifdef UNIQUE_PTR
+            for (MFIter cmfi(*(phi[lev].get()), false);cmfi.isValid(); ++cmfi) {
+                crsefab.copy((*(phi[lev].get()))[cmfi]);
+            }
+#else
+            for (MFIter cmfi(phi[lev], false);cmfi.isValid(); ++cmfi) {
                 crsefab.copy(phi[lev][cmfi]);
             }
+#endif
             
             mapper.interp(crsefab,
                           0, // comp

@@ -64,6 +64,7 @@ ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
 
 set(F90_source_files ../Tagging_nd.f90)
 
+# set_property(SOURCE testAmrPartBase.cpp testPerformance.cpp testPlasma.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -DUNIQUE_PTR ")
 add_executable(testAmrPartBase testAmrPartBase.cpp AmrParticleBase.hpp)
 
 add_executable( testNewTracker
@@ -106,15 +107,15 @@ add_executable( testTagging
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
 
-add_executable( testInitGuessSolver
-                testInitGuessSolver.cpp
-                ../AmrOpal.cpp
-                AmrParticleBase.hpp
-                ../Distribution.cpp
-                ../H5Reader.cpp
-                ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                ../Solver.cpp)
+# add_executable( testInitGuessSolver
+#                 testInitGuessSolver.cpp
+#                 ../AmrOpal.cpp
+#                 AmrParticleBase.hpp
+#                 ../Distribution.cpp
+#                 ../H5Reader.cpp
+#                 ${F90_source_files}
+#                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+#                 ../Solver.cpp)
 
 target_link_libraries (testAmrPartBase ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
@@ -137,6 +138,6 @@ target_link_libraries (testTagging ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
-target_link_libraries (testInitGuessSolver ${LIBS}
-                        -lgfortran ${CCSE_LIBRARIES}
-                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+# target_link_libraries (testInitGuessSolver ${LIBS}
+#                         -lgfortran ${CCSE_LIBRARIES}
+#                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})

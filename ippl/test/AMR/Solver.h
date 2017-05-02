@@ -18,9 +18,9 @@
 #include <memory>
 #include <vector>
 
-#ifndef UNIQUE_PTR
-    #include <PArray.H>
-#endif
+// #ifndef UNIQUE_PTR
+#include <PArray.H>
+// #endif
 
 // #define USEHYPRE
 
@@ -50,7 +50,7 @@ public:
 #else
     typedef PArray<MultiFab> container_t;
 #endif
-    typedef Array<MultiFab*> container_pt;      // instead of PArray<MultiFab>
+    typedef /*Array<MultiFab*>*/PArray<MultiFab> container_pt;      // instead of PArray<MultiFab>
 
     /*!
      * Prepares the solver and calls the solve_with_f90 function.
@@ -87,7 +87,7 @@ public:
      * @param doGradient  compute the gradient (true) or not (false)
      */
     void solve_with_f90(container_t& rhs,
-                        container_t& phi, Array< container_t >& grad_phi_edge, 
+                        container_t& phi, Array< container_pt >& grad_phi_edge, 
                         const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol,
                         bool timing, bool doGradient);
     

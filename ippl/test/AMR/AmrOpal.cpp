@@ -87,7 +87,7 @@ void AmrOpal::initBaseLevel() {
 
 void AmrOpal::writePlotFileYt(std::string filename, int step) {
     
-#ifdef UNIQUE_PTR
+#if defined IPPL_AMR && UNIQUE_PTR
     mfs_mt chargeOnGrid;
 #else
     mfs_mt chargeOnGrid(PArrayManage);
@@ -96,7 +96,7 @@ void AmrOpal::writePlotFileYt(std::string filename, int step) {
     
     for (int i = 0; i < finest_level; ++i) {
 #ifdef UNIQUE_PTR
-        chargeOnGrid.set(i, new MultiFab(this->boxArray(i), 1, 0, this->DistributionMap(i)));
+        chargeOnGrid[i].reset(new MultiFab(this->boxArray(i), 1, 0, this->DistributionMap(i)));
         chargeOnGrid[i]->setVal(0.0);
 #else
         chargeOnGrid.set(i, new MultiFab(this->boxArray(i), 1, 0, this->DistributionMap(i)));
@@ -104,9 +104,9 @@ void AmrOpal::writePlotFileYt(std::string filename, int step) {
 #endif
     }
         
-#ifdef IPPL_AMR
+#if defined IPPL_AMR && defined UNIQUE_PTR
         bunch_m->AssignDensity(bunch_m->qm, false, chargeOnGrid, 0, finest_level);
-#else
+#elif !defined IPPL_AMR && !defined UNIQUE_PTR
         bunch_m->AssignDensity(0, false, chargeOnGrid, 0, 1, finest_level);
 #endif
     
@@ -301,7 +301,7 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
     
     for (int i = 0; i < finest_level; ++i) {
 #ifdef UNIQUE_PTR
-        chargeOnGrid.set(i, new MultiFab(this->boxArray(i), 1, 0, this->DistributionMap(i)));
+        chargeOnGrid[i].reset(new MultiFab(this->boxArray(i), 1, 0, this->DistributionMap(i)));
         chargeOnGrid[i]->setVal(0.0);
 #else
         chargeOnGrid.set(i, new MultiFab(this->boxArray(i), 1, 0, this->DistributionMap(i)));

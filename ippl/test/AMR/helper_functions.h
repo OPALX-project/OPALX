@@ -186,7 +186,11 @@ inline void writeVectorField(const container_t& vecfield,
 inline double totalFieldEnergy(container_t& efield, const Array<int>& rr) {
     
     for (int lev = efield.size() - 2; lev >= 0; lev--)
+#ifdef UNIQUE_PTR
+        BoxLib::average_down(*(efield[lev+1].get()), *(efield[lev].get()), 0, 3, rr[lev]);
+#else
         BoxLib::average_down(efield[lev+1], efield[lev], 0, 3, rr[lev]);
+#endif
     
     double fieldEnergy = 0.0;
 //     long volume = 0;

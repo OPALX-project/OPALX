@@ -157,12 +157,19 @@ void H5Reader::writeScalarField(const container_t& scalfield,
     int l = 0;
 //     for (int l = 0; l < scalfield.size(); ++l) {
         int gridnr = 0;
-        for (MFIter mfi(scalfield[l]); mfi.isValid(); ++mfi) {
+#ifdef UNIQUE_PTR
+        for (MFIter mfi(*(scalfield[l].get()));
+#else
+        for (MFIter mfi(scalfield[l]);
+#endif
+             mfi.isValid(); ++mfi) {
             const Box& bx = mfi.validbox();
-            const FArrayBox& field = (scalfield[l])[mfi];
-            
-                      
-            
+            const FArrayBox& field =
+#ifdef UNIQUE_PTR
+                (*(scalfield[l].get()))[mfi];
+#else
+                (scalfield[l])[mfi];
+#endif
             h5_int64_t i_dims = bx.hiVect()[0] - bx.loVect()[0] + 1;
             h5_int64_t j_dims = bx.hiVect()[1] - bx.loVect()[1] + 1;
             h5_int64_t k_dims = bx.hiVect()[2] - bx.loVect()[2] + 1;
