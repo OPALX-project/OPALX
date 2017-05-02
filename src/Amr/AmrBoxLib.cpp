@@ -163,13 +163,67 @@ double AmrBoxLib::getRho(int x, int y, int z) {
 
 
 void AmrBoxLib::computeSelfFields() {
-//     IpplTimings::startTimer(selfFieldTimer_m);
-    
+    //FIXME Lorentz transformation
     //scatter charges onto grid
-    bunch_mp->Q *= bunch_mp->dt;
+//     bunch_mp->Q *= bunch_mp->dt;
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, -1);
-    bunch_mp->Q /= bunch_mp->dt;
+//     bunch_mp->Q /= bunch_mp->dt;
+    
+    int baseLevel = 0;
+    int finestLevel = (&amrpbase_p->getAmrLayout())->finestLevel();
+    
+    int nLevel = finestLevel + 1;
+    rho_m.resize(nLevel);
+    phi_m.resize(nLevel);
+    eg_m.resize(nLevel);
+    
+    double invDt = 1.0 / bunch_mp->getdT() * bunch_mp->getCouplingConstant();
+    for (int i = 0; i <= finestLevel; ++i) {
+        this->rho_m[i].mult(invDt, 0, 1);
+    }
+    
+    //calculating mesh-scale factor
+    double gammaz = sum(bunch_mp->P)[2] / bunch_mp->getTotalNum();
+    gammaz *= gammaz;
+    gammaz = std::sqrt(gammaz + 1.0);
+    
+    // charge density is in rho_m
+    PoissonSolver *solver = bunch_mp->getFieldSolver();
+    
+    IpplTimings::startTimer(bunch_mp->compPotenTimer_m);
+    solver->solve(rho_m, phi_m, eg_m, baseLevel, finestLevel);
+    IpplTimings::stopTimer(bunch_mp->compPotenTimer_m);
+    
+    amrpbase_p->gather(bunch_mp->Ef, this->eg_m, bunch_mp->R, 0, -1);
+    
+    /** Magnetic field in x and y direction induced by the eletric field
+     *
+     *  \f[ B_x = \gamma(B_x^{'} - \frac{beta}{c}E_y^{'}) = -\gamma \frac{beta}{c}E_y^{'} = -\frac{beta}{c}E_y \f]
+     *  \f[ B_y = \gamma(B_y^{'} - \frac{beta}{c}E_x^{'}) = +\gamma \frac{beta}{c}E_x^{'} = +\frac{beta}{c}E_x \f]
+     *  \f[ B_z = B_z^{'} = 0 \f]
+     *
+     */
+    double betaC = sqrt(gammaz * gammaz - 1.0) / gammaz / Physics::c;
+
+    bunch_mp->Bf(0) = bunch_mp->Bf(0) - betaC * bunch_mp->Ef(1);
+    bunch_mp->Bf(1) = bunch_mp->Bf(1) + betaC * bunch_mp->Ef(0);
+}
+
+
+void AmrBoxLib::computeSelfFields(int bin) {
+    //TODO
+    throw OpalException("AmrBoxLib::computeSelfFields(int bin) ", "Not yet Implemented.");
+}
+
+
+void AmrBoxLib::computeSelfFields_cycl(double gamma) {
+    //FIXME Lorentz transformation
+    //scatter charges onto grid
+//     bunch_mp->Q *= bunch_mp->dt;
+    AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
+    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, -1);
+//     bunch_mp->Q /= bunch_mp->dt;
     
     int baseLevel = 0;
     int finestLevel = (&amrpbase_p->getAmrLayout())->finestLevel();
@@ -185,29 +239,55 @@ void AmrBoxLib::computeSelfFields() {
     }
     
     // charge density is in rho_m
-//     IpplTimings::startTimer(compPotenTimer_m);
+    PoissonSolver *solver = bunch_mp->getFieldSolver();
     
-    //FIXME
-//     fs_m->solver_m->solve(rho_m, eg_m, baseLevel, finestLevel);
-
-//     IpplTimings::stopTimer(compPotenTimer_m);
+    IpplTimings::startTimer(bunch_mp->compPotenTimer_m);
+    solver->solve(rho_m, phi_m, eg_m, baseLevel, finestLevel);
+    IpplTimings::stopTimer(bunch_mp->compPotenTimer_m);
     
-//     IpplTimings::stopTimer(selfFieldTimer_m);
+    amrpbase_p->gather(bunch_mp->Ef, this->eg_m, bunch_mp->R, 0, -1);
+    
+    /// calculate coefficient
+    // Relativistic E&M says gamma*v/c^2 = gamma*beta/c = sqrt(gamma*gamma-1)/c
+    // but because we already transformed E_trans into the moving frame we have to
+    // add 1/gamma so we are using the E_trans from the rest frame -DW
+    double betaC = sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
+
+    /// calculate B field from E field
+    bunch_mp->Bf(0) =  betaC * bunch_mp->Ef(2);
+    bunch_mp->Bf(2) = -betaC * bunch_mp->Ef(0);
 }
 
 
-void AmrBoxLib::computeSelfFields(int b) {
+void AmrBoxLib::computeSelfFields_cycl(int bin) {
     //TODO
+    throw OpalException("AmrBoxLib::computeSelfFields_cycl(int bin) ", "Not yet Implemented.");
 }
 
 
-void AmrBoxLib::computeSelfFields_cycl(double gamma) {
-    //TODO
+void AmrBoxLib::updateMesh() {
+    //FIXME What about resizing mesh, i.e. geometry?
+    const AmrGeomContainer_t& geom = this->Geom();
+    
+    const Real* tmp = geom[0].CellSize();
+    
+    Vector_t hr;
+    for (int i = 0; i < 3; ++i)
+        hr[i] = tmp[i];
+    
+    bunch_mp->setBaseLevelMeshSpacing(hr);
 }
 
-
-void AmrBoxLib::computeSelfFields_cycl(int b) {
-    //TODO
+Vektor<int, 3> AmrBoxLib::getBaseLevelGridPoints() {
+    const AmrGeomContainer_t& geom = this->Geom();
+    const Box& bx = geom[0].Domain();
+    
+    const IntVect& low = bx.smallEnd();
+    const IntVect& high = bx.bigEnd();
+    
+    return Vektor<int, 3>(high[0] - low[0] + 1,
+                          high[1] - low[1] + 1,
+                          high[2] - low[2] + 1);
 }
 
 

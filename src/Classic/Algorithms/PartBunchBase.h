@@ -389,10 +389,10 @@ public:
     virtual void computeSelfFields() = 0;
 
     /** /brief used for self fields with binned distribution */
-    virtual void computeSelfFields(int b) = 0;
+    virtual void computeSelfFields(int bin) = 0;
 
     virtual void computeSelfFields_cycl(double gamma) = 0;
-    virtual void computeSelfFields_cycl(int b) = 0;
+    virtual void computeSelfFields_cycl(int bin) = 0;
     
     virtual void swap(unsigned int i, unsigned int j);
     
@@ -591,10 +591,12 @@ public:
     /// if a local node has less than 2 particles  lowParticleCount_m == true
     bool lowParticleCount_m;
     
+    /// timer for selfField calculation (also used in concrete AmrObject classes)
+    IpplTimings::TimerRef compPotenTimer_m;
+    
 protected:
     /// timer for selfField calculation
     IpplTimings::TimerRef selfFieldTimer_m;
-    IpplTimings::TimerRef compPotenTimer_m;
     IpplTimings::TimerRef boundpTimer_m;
     IpplTimings::TimerRef statParamTimer_m;
 

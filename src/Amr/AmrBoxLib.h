@@ -67,11 +67,15 @@ public:
     
     void computeSelfFields();
     
-    void computeSelfFields(int b);
+    void computeSelfFields(int bin);
     
     void computeSelfFields_cycl(double gamma);
     
-    void computeSelfFields_cycl(int b);
+    void computeSelfFields_cycl(int bin);
+    
+    void updateMesh();
+    
+    Vektor<int, 3> getBaseLevelGridPoints();
     
 protected:
     /*!

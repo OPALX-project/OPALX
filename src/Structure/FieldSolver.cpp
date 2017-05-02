@@ -504,7 +504,7 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << "* PRECMODE     " << Attributes::getString(itsAttr[PRECMODE])   << endl;
     }
 #ifdef HAVE_AMR_SOLVER
-    else if (fsType == "AMR" || Option::amr) {
+    else if (fsType == "AMR" || Options::amr) {
         os << "* AMRMAXLEVEL   " << Attributes::getReal(itsAttr[AMRMAXLEVEL]) << '\n'
            << "* AMRREFX       " << Attributes::getReal(itsAttr[AMRREFX]) << '\n'
            << "* AMRREFY       " << Attributes::getReal(itsAttr[AMRREFY]) << '\n'
@@ -569,12 +569,14 @@ void FieldSolver::initAmrObject_m() {
     itsAmrObject_mp = std::unique_ptr<AmrBoxLib>(new AmrBoxLib(domain, nGridPts, maxLevel, refRatio));
     
     AmrObject::TaggingCriteria tagging = AmrObject::TaggingCriteria::CHARGE_DENSITY;
-        
-    if ( Attributes::getString(itsAttr[AMRTAGGING]) == "POTENTIAL" )
+    
+    std::string tag = Attributes::getString(itsAttr[AMRTAGGING]);
+    
+    if ( tag == "POTENTIAL" )
         tagging = AmrObject::TaggingCriteria::POTENTIAL;
-    else if ( Attributes::getString(itsAttr[AMRTAGGING]) == "EFIELD" )
+    else if (tag == "EFIELD" )
         tagging = AmrObject::TaggingCriteria::EFIELD;
-    else
+    else if ( tag != "CHARGE" )
         throw OpalException("FieldSolver::initAmrObject_m()",
                             "Not supported refinement criteria [CHARGE | POTENTIAL | EFIELD].");
     
@@ -585,16 +587,18 @@ void FieldSolver::initAmrObject_m() {
 
 
 void FieldSolver::initAmrSolver_m() {
-    if (Attributes::getString(itsAttr[FSTYPE]) == "FMG") {
+    std::string fsType = Attributes::getString(itsAttr[FSTYPE]);
+    if (fsType == "FMG") {
         
         if ( dynamic_cast<AmrBoxLib*>( itsAmrObject_mp.get() ) == 0 )
             throw OpalException("FieldSolver::initAmrSolver_m()", "FMultiGrid solver requires BoxLib.");
         
         solver_m = new FMGPoissonSolver(static_cast<AmrBoxLib*>(itsAmrObject_mp.get()));
         
-    } else if (Attributes::getString(itsAttr[FSTYPE]) == "HYPRE") {
+    } else if (fsType == "HYPRE") {
         throw OpalException("FieldSolver::initAmrSolver_m()", "HYPRE solver not yet implemented.");
-    } else if (Attributes::getString(itsAttr[FSTYPE]) == "HPGMG") {
+    } else if (fsType == "HPGMG") {
         throw OpalException("FieldSolver::initAmrSolver_m()", "HPGMG solver not yet implemented.");
-    }
+    } else
+        throw OpalException("FieldSolver::initAmrSolver_m()", "Unknown solver " + fsType + ".");
 }
