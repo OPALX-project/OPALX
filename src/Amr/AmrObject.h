@@ -101,7 +101,7 @@ public:
         nCharge_m = charge;
     }
     
-    /* Methods that are needeb by the
+    /* Methods that are needed by the
      * bunch
      */
     virtual VectorPair_t getEExtrema() = 0;
@@ -115,6 +115,10 @@ public:
     virtual void computeSelfFields_cycl(double gamma) = 0;
     
     virtual void computeSelfFields_cycl(int b) = 0;
+    
+    virtual void updateMesh() = 0;
+    
+    virtual Vektor<int, 3> getBaseLevelGridPoints() = 0;
     
 protected:
     TaggingCriteria tagging_m;

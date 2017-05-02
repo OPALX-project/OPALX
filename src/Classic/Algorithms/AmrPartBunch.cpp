@@ -50,7 +50,7 @@ const AmrPartBunch::pbase_t *AmrPartBunch::getAmrParticleBase() const {
 
 void AmrPartBunch::initialize(FieldLayout_t *fLayout) {
     Layout_t* layout = static_cast<Layout_t*>(&getLayout());
-    layout->getLayout().changeDomain(*fLayout);
+//     layout->getLayout().changeDomain(*fLayout);
 }
 
 
@@ -104,40 +104,48 @@ FieldLayout_t &AmrPartBunch::getFieldLayout() {
 
 
 void AmrPartBunch::computeSelfFields() {
+    IpplTimings::startTimer(selfFieldTimer_m);
+    
     if ( !fs_m->hasValidSolver() )
         throw OpalException("AmrPartBunch::computeSelfFields() ", "No field solver.");
     
     amrobj_mp->computeSelfFields();
+    
+    IpplTimings::stopTimer(selfFieldTimer_m);
 }
 
 
-void AmrPartBunch::computeSelfFields(int b) {
-    amrobj_mp->computeSelfFields(b);
+void AmrPartBunch::computeSelfFields(int bin) {
+    IpplTimings::startTimer(selfFieldTimer_m);
+    amrobj_mp->computeSelfFields(bin);
+    IpplTimings::stopTimer(selfFieldTimer_m);
 }
 
 
 void AmrPartBunch::computeSelfFields_cycl(double gamma) {
+    IpplTimings::startTimer(selfFieldTimer_m);
     amrobj_mp->computeSelfFields_cycl(gamma);
+    IpplTimings::stopTimer(selfFieldTimer_m);
 }
 
 
-void AmrPartBunch::computeSelfFields_cycl(int b) {
-    amrobj_mp->computeSelfFields_cycl(b);
+void AmrPartBunch::computeSelfFields_cycl(int bin) {
+    IpplTimings::startTimer(selfFieldTimer_m);
+    amrobj_mp->computeSelfFields_cycl(bin);
+    IpplTimings::stopTimer(selfFieldTimer_m);
 }
 
 
 void AmrPartBunch::updateFieldContainers_m() {
     
-    
-    
 }
 
 void AmrPartBunch::updateDomainLength(Vektor<int, 3>& grid) {
-    
+    grid = amrobj_mp->getBaseLevelGridPoints();
 }
 
 
 void AmrPartBunch::updateFields(const Vector_t& hr, const Vector_t& origin) {
     //TODO regrid; called in boundp()
-    
+//     amrobj_mp->updateMesh();
 }

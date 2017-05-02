@@ -45,11 +45,11 @@ public:
     
     void computeSelfFields();
     
-    void computeSelfFields(int b);
+    void computeSelfFields(int bin);
     
     void computeSelfFields_cycl(double gamma);
     
-    void computeSelfFields_cycl(int b);
+    void computeSelfFields_cycl(int bin);
     
     void setSolver(FieldSolver *fs) {
         PartBunchBase<double, 3>::setSolver(fs);
@@ -65,6 +65,16 @@ public:
         return fs_m->solver_m;
     }
     
+    void setBaseLevelMeshSpacing(const Vector_t& hr) {
+        for (int i = 0; i < 3; ++i)
+            hr_m[i] = hr[i];
+    }
+    
+    //FIXME BCs
+    void setBCAllPeriodic() {}
+    void setBCAllOpen() {}
+    void setBCForDCBeam() {}
+    
     
 private:
     void updateFieldContainers_m();
@@ -76,7 +86,7 @@ private:
 private:
     
     /* pointer to AMR object that is part
-     * of the amrsolver_m in src/Structure/FieldSolver.h
+     * of solver_m (AmrPoissonSolver) in src/Structure/FieldSolver.h
      */
     AmrObject *amrobj_mp;
     pbase_t *amrpbase_mp;

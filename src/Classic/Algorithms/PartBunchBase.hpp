@@ -136,6 +136,32 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
       minLocNum_m(0)
 {
     setup(pb);
+    
+    boundpTimer_m = IpplTimings::getTimer("Boundingbox");
+    statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
+    selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
+    compPotenTimer_m  = IpplTimings::getTimer("SF: Potential");
+
+    histoTimer_m = IpplTimings::getTimer("Histogram");
+
+    distrCreate_m = IpplTimings::getTimer("Create Distr");
+    distrReload_m = IpplTimings::getTimer("Load Distr");
+
+
+    partPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
+    globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
+
+    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(std::string("GlobalLosses"), !Options::asciidump));
+
+    pmsg_m.release();
+    //    f_stream.release();
+    /*
+      if(Ippl::getNodes() == 1) {
+          f_stream = std::unique_ptr<ofstream>(new ofstream);
+          f_stream->open("data/dist.dat", ios::out);
+          pmsg_m = std::unique_ptr<Inform>(new Inform(0, *f_stream, 0));
+      }
+    */
 }
 
 template <class T, unsigned Dim>
@@ -199,6 +225,32 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
       minLocNum_m(0)
 {
     setup(pb);
+    
+    boundpTimer_m = IpplTimings::getTimer("Boundingbox");
+    statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
+    selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
+    compPotenTimer_m  = IpplTimings::getTimer("SF: Potential");
+
+    histoTimer_m = IpplTimings::getTimer("Histogram");
+
+    distrCreate_m = IpplTimings::getTimer("Create Distr");
+    distrReload_m = IpplTimings::getTimer("Load Distr");
+
+
+    partPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
+    globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
+
+    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(std::string("GlobalLosses"), !Options::asciidump));
+
+    pmsg_m.release();
+    //    f_stream.release();
+    /*
+      if(Ippl::getNodes() == 1) {
+          f_stream = std::unique_ptr<ofstream>(new ofstream);
+          f_stream->open("data/dist.dat", ios::out);
+          pmsg_m = std::unique_ptr<Inform>(new Inform(0, *f_stream, 0));
+      }
+    */
 }
 
 template <class T, unsigned Dim>
