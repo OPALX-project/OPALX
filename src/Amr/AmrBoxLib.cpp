@@ -246,11 +246,11 @@ void AmrBoxLib::ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
         case CHARGE_DENSITY:
             tagForChargeDensity_m(lev, tags, time, ngrow);
             break;
-        case POTENTIAL_STRENGTH:
+        case POTENTIAL:
             tagForPotentialStrength_m(lev, tags, time, ngrow);
             break;
-        case EFIELD_GRADIENT:
-            tagForEfieldGradient_m(lev, tags, time, ngrow);
+        case EFIELD:
+            tagForEfield_m(lev, tags, time, ngrow);
             break;
         default:
             tagForChargeDensity_m(lev, tags, time, ngrow);
@@ -401,9 +401,9 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time,
 }
 
 
-void AmrBoxLib::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
+void AmrBoxLib::tagForEfield_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
     /* Perform a single level solve a level lev and tag all cells for refinement
-     * where the value of the potential is higher than 75 percent of the maximum potential
+     * where the value of the efield is higher than 75 percent of the maximum efield
      * value of this level.
      */
     

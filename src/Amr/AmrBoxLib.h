@@ -107,7 +107,7 @@ protected:
 private:
     void tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow);
     void tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, int ngrow);
-    void tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForEfield_m(int lev, TagBoxArray& tags, Real time, int ngrow);
     
 private:
     /// use in tagging tagForChargeDensity_m (needed when tracking)

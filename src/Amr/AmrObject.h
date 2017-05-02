@@ -24,8 +24,8 @@ public:
     /// Methods for tagging cells for refinement
     enum TaggingCriteria {
         CHARGE_DENSITY = 0, // default
-        POTENTIAL_STRENGTH,
-        EFIELD_GRADIENT
+        POTENTIAL,
+        EFIELD
     };
     
 public:
@@ -86,7 +86,7 @@ public:
     
     /*!
      * Scaling factor for tagging.
-     * It is used with kPotentialStrength and kEfieldGradient
+     * It is used with POTENTIAL and EFIELD
      * @param scaling factor in [0, 1]
      */
     void setScalingFactor(double scaling) {
@@ -120,7 +120,7 @@ protected:
     TaggingCriteria tagging_m;
     
     double scaling_m;           ///< Scaling factor for tagging [0, 1]
-                                // (kPotentialStrength, kEfieldGradient)
+                                // (POTENTIAL, EFIELD)
     double nCharge_m;           ///< Tagging value for CHARGE_DENSITY
     
 };
