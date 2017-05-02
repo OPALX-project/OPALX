@@ -94,18 +94,18 @@ void writeEnergy(amrbunch_t* bunch,
                  std::string dir = "./")
 {
     for (int lev = efield.size() - 2; lev >= 0; lev--)
-        BoxLib::average_down(efield[lev+1], efield[lev], 0, 3, rr[lev]);
+        BoxLib::average_down(*(efield[lev+1].get()), *(efield[lev].get()), 0, 3, rr[lev]);
     
     // field energy (Ulmer version, i.e. cell_volume instead #points)
-    double field_energy = 0.5 * cell_volume * MultiFab::Dot(efield[0], 0, efield[0], 0, 3, 0);
+    double field_energy = 0.5 * cell_volume * MultiFab::Dot(*(efield[0].get()), 0, *(efield[0].get()), 0, 3, 0);
     
     // kinetic energy
     double ekin = 0.5 * sum( dot(bunch->P, bunch->P) );
     
     // potential energy
-    rho[0].mult(cell_volume, 0, 1);
-    MultiFab::Multiply(phi[0], rho[0], 0, 0, 1, 0);
-    double integral_phi_m = 0.5 * phi[0].sum(0);
+    rho[0]->mult(cell_volume, 0, 1);
+    MultiFab::Multiply(*(phi[0].get()), *(rho[0].get()), 0, 0, 1, 0);
+    double integral_phi_m = 0.5 * phi[0]->sum(0);
     
     if(Ippl::myNode()==0) {
         std::ofstream csvout;
@@ -150,7 +150,7 @@ void writeGridSum(container_t& container, int step, std::string label, std::stri
     if ( step == 0 )
         csvout << "it,FieldSum" << std::endl;
     
-    csvout << step << ", "<< container[0].sum(0) << std::endl;
+    csvout << step << ", "<< container[0]->sum(0) << std::endl;
     csvout.close();
 }
 
@@ -271,8 +271,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     Real offset = 0.0;
     
     if ( geom[0].isAllPeriodic() ) {
-        double sum = rhs[0].sum(0);
-        double max = rhs[0].max(0);
+        double sum = rhs[0]->sum(0);
+        double max = rhs[0]->max(0);
         msg << "total charge in density field before ion subtraction is " << sum << endl;
         msg << "max total charge in densitty field before ion subtraction is " << max << endl;
 //         for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
@@ -294,7 +294,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
                         false);
     
     if ( geom[0].isAllPeriodic() ) {
-        double sum = rhs[0].sum(0);
+        double sum = rhs[0]->sum(0);
         msg << "total charge in density field after ion subtraction is " << sum << endl;
     }
     

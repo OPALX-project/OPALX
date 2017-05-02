@@ -31,8 +31,11 @@
 class AmrOpal : public AmrCore {
     
 private:
-//     typedef Array<std::unique_ptr<MultiFab> > mfs_mt; ///< instead of using PArray<MultiFab>
+#ifdef UNIQUE_PTR
+    typedef Array<std::unique_ptr<MultiFab> > mfs_mt; ///< instead of using PArray<MultiFab>
+#else
     typedef PArray<MultiFab > mfs_mt;
+#endif
 
 public:
     /// Methods for tag cells for refinement

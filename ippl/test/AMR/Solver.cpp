@@ -21,11 +21,7 @@ Solver::solve_for_accel(container_t& rhs,
     Real tol     = 1.e-10;
     Real abs_tol = 1.e-14;
 
-#ifdef UNIQUE_PTR
-    Array< Array<std::unique_ptr<MultiFab> > > grad_phi_edge(rhs.size());
-#else
-    Array< PArray<MultiFab> > grad_phi_edge(rhs.size());
-#endif
+    Array< container_pt > grad_phi_edge(rhs.size());
     
     if ( doGradient ) {
         for (int lev = base_level; lev <= finest_level ; lev++)
@@ -34,11 +30,10 @@ Solver::solve_for_accel(container_t& rhs,
             for (int n = 0; n < BL_SPACEDIM; ++n) {
 #ifdef UNIQUE_PTR
                 BoxArray ba = rhs[lev]->boxArray();
-                grad_phi_edge[lev][n].reset(new MultiFab(ba.surroundingNodes(n), 1, 1));
 #else
                 BoxArray ba = rhs[lev].boxArray();
-                grad_phi_edge[lev].set(n, new MultiFab(ba.surroundingNodes(n), 1, 1));
 #endif
+                grad_phi_edge[lev].set(n, new MultiFab(ba.surroundingNodes(n), 1, 1));
             }
         }
     }
@@ -47,7 +42,11 @@ Solver::solve_for_accel(container_t& rhs,
     // Make sure the RHS sums to 0 if fully periodic
     // ***************************************************
     for (int lev = base_level; lev <= finest_level; lev++)
+#ifdef UNIQUE_PTR
+        rhs[lev]->plus(+offset, 0, 1, 0);
+#else
         rhs[lev].plus(+offset, 0, 1, 0);
+#endif
     
     
     
@@ -74,8 +73,8 @@ Solver::solve_for_accel(container_t& rhs,
         for (int lev = base_level; lev <= finest_level; lev++)
         {
 #ifdef UNIQUE_PTR
-            BoxLib::average_face_to_cellcenter(*grad_phi[lev],
-                                               BoxLib::GetArrOfConstPtrs(grad_phi_edge[lev]),
+            BoxLib::average_face_to_cellcenter(*(grad_phi[lev].get()),
+                                               grad_phi_edge[lev],
                                                geom[lev]);
         
             grad_phi[lev]->FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
@@ -107,7 +106,7 @@ Solver::solve_for_accel(container_t& rhs,
 void 
 Solver::solve_with_f90(container_t& rhs,
                        container_t& phi,
-                       Array< container_t >& grad_phi_edge,
+                       Array< container_pt >& grad_phi_edge,
                        const Array<Geometry>& geom,
                        int base_level,
                        int finest_level,
@@ -173,8 +172,8 @@ Solver::solve_with_f90(container_t& rhs,
     
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         geom_p[ilev] = geom[ilev+base_level];
-        rhs_p[ilev] = rhs[ilev+base_level].get();
-        phi_p[ilev] = phi[ilev+base_level].get();
+        rhs_p.set(ilev, rhs[ilev+base_level].get());
+        phi_p.set(ilev, phi[ilev+base_level].get());
     }
     
     // Refinement ratio is hardwired to 2 here.
@@ -239,18 +238,10 @@ Solver::solve_with_f90(container_t& rhs,
         
         if ( timing )
             IpplTimings::startTimer(gradientTimer);
-#ifdef UNIQUE_PTR
-        const Array<Array<MultiFab*> >& g_phi_edge = BoxLib::GetArrOfArrOfPtrs(grad_phi_edge);
-        for (int ilev = 0; ilev < nlevs; ++ilev) {
-            int amr_level = ilev + base_level;
-            fmg.get_fluxes(g_phi_edge[amr_level], ilev);
-        }
-#else
         for (int ilev = 0; ilev < nlevs; ++ilev) {
             int amr_level = ilev + base_level;
             fmg.get_fluxes(grad_phi_edge[amr_level], ilev);
         }
-#endif
         if ( timing )
             IpplTimings::stopTimer(gradientTimer);
     }
