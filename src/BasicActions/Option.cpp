@@ -111,7 +111,7 @@ Option::Option():
                     ("SEED", "The seed for the random generator, -1 will use time(0) as seed ");
 
     itsAttr[TELL] = Attributes::makeBool
-                    ("TELL", "If true, print the current settings. Must be the last option in the inputfile in order to render correct reults", false);
+                    ("TELL", "If true, print the current settings. Must be the last option in the inputfile in order to render correct results", false);
 
     itsAttr[PSDUMPFREQ] = Attributes::makeReal
                           ("PSDUMPFREQ", "The frequency to dump the phase space, i.e.dump data when step%psDumpFreq==0, its default value is 10.");
