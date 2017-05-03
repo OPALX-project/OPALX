@@ -304,7 +304,7 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
 
             } else if ( ( strcmp(argv[i], "--version") == 0 ) ) {
                 printVersion(false);
-                IpplInfo::abort(0, 0);
+		std::exit(0);
 
             } else if ( ( strcmp(argv[i], "--checksums") == 0 ) ||
                     ( strcmp(argv[i], "--checksum") == 0 ) ) {
@@ -316,7 +316,7 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
             } else if ( ( strcmp(argv[i], "--versionall") == 0 ) ||
                     ( strcmp(argv[i], "-vall") == 0 ) ) {
                 printVersion(true);
-                IpplInfo::abort(0, 0);
+		std::exit(0); // IpplInfo::abort(0, 0);
 
             } else if ( ( strcmp(argv[i], "--time") == 0 ) ||
                     ( strcmp(argv[i], "-time") == 0 ) ||
@@ -523,7 +523,9 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
                 INFOMSG("   --version       : Print a brief version summary.\n");
                 INFOMSG("   --versionall    : Print a detailed version summary.\n");
                 INFOMSG(endl);
-                IpplInfo::abort(0, 0);
+		std::exit(0);
+
+		//                IpplInfo::abort(0, 0);
 
             } else {
                 // Unknown option; just ignore it.
