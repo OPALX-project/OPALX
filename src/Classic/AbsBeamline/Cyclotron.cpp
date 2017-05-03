@@ -563,7 +563,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double 
 	    bool SuperPose = *superposei;
             if (fcount > 0 && !SuperPose) {
 	      //INFOMSG ("Field maps taken : " << fcount << "Superpose false" << endl);
-	      break;
+	      continue;
             }
             if (R(0) >= xBegin && R(0) <= xEnd && R(1) >= yBegin && R(1) <= yEnd && R(2) >= zBegin && R(2) <= zEnd) {
                 Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
