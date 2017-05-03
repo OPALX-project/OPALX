@@ -790,6 +790,10 @@ int IpplInfo::mySMPNode() {
 // printVersion: print out a version summary.  If the argument is true,
 // print out a detailed listing, otherwise a summary.
 void IpplInfo::printVersion(bool printFull) {
+     INFOMSG("OPAL Version " << OPAL_VERSION << endl);
+#ifdef OPAL_DKS
+     INFOMSG("DKS Version " << DKS_VERSION << endl);
+#endif
     INFOMSG("IPPL Framework version " << version() << endl);
     INFOMSG("Last build date: " << compileDate() << " by user ");
     INFOMSG(compileUser() << endl);
