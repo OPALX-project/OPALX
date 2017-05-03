@@ -1,22 +1,28 @@
 /* Name of package */
-#define PACKAGE ${PACKAGE}
+// #define PACKAGE ${PACKAGE}	
 
-/* Define to the address where bug reports for this package should be sent. */
-#define PACKAGE_BUGREPORT ${PACKAGE_BUGREPORT}
+// /* Define to the address where bug reports for this package should be sent. */
+// #define PACKAGE_BUGREPORT ${PACKAGE_BUGREPORT}
 
-/* Define to the full name of this package. */
-#define PACKAGE_NAME ${PACKAGE_NAME}
+// /* Define to the full name of this package. */
+// #define PACKAGE_NAME ${PACKAGE_NAME}
 
-/* Define to the one symbol short name of this package. */
-#define PACKAGE_TARNAME ${PACKAGE_TARNAME}
+// /* Define to the one symbol short name of this package. */
+// #define PACKAGE_TARNAME ${PACKAGE_TARNAME}
 
-/* Define to the version of this package. */
-#define PACKAGE_VERSION ${PACKAGE_VERSION}
+// /* Define to the version of this package. */
+// #define PACKAGE_VERSION ${PACKAGE_VERSION}
 
-/* repository svn version */
-#define SVN_VERSION ${OPAL_WC_REVISION}
+// /* repository svn version */
+// #define SVN_VERSION ${OPAL_WC_REVISION}
 
-/*#define GIT_VERSION ${GIT_VERSION}*/
+// /*#define GIT_VERSION ${GIT_VERSION}*/
 
-/* Version number of package */
-#define VERSION ${VERSION}
+// /* Version number of package */
+// #define VERSION ${VERSION}
+
+/* OPAL version number */
+#define OPAL_VERSION ${OPAL_PACKAGE_VERSION}
+
+/* Define DKS version used in this package. */
+#define DKS_VERSION ${DKS_PACKAGE_VERSION}
