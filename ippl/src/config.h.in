@@ -22,10 +22,10 @@
 //#define VERSION ${VERSION}
 
 /* OPAL version number */
-#define OPAL_VERSION ${OPAL_PACKAGE_VERSION}
+#define IPPL_OPAL_VERSION ${OPAL_PACKAGE_VERSION}
 
 /* DKS version number */
-#define DKS_VERSION ${DKS_VERSION_OPAL}
+#define IPPL_DKS_VERSION ${DKS_VERSION_OPAL}
 
 
 
