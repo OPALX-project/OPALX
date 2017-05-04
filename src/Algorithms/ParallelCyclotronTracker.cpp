@@ -3925,8 +3925,14 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
                                                                  false);          // Flag localFrame
 
             // Tell user in which mode we are dumping
-            *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
-                  << " (global frame) at integration step " << step_m + 1 << endl;
+	    // New: no longer dumping for num part < 3, omit phase space dump number info
+	    if (lastDumpedStep_m == -1){
+		    *gmsg << endl << "* Integration step " << step_m + 1 
+                          << " (no phase space dump for <= 2 particles)" << endl;
+	    } else {
+                *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
+                      << " (global frame) at integration step " << step_m + 1 << endl;
+	    }
         }
 
         // ---------------- If flag DumpLocalFrame is set, dump bunch in local frame ---------------- //
@@ -3962,8 +3968,14 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
             localToGlobal(itsBunch->P, phi, psi);
 
             // Tell user in which mode we are dumping
-            *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
-                  << " (local frame) at integration step " << step_m + 1 << endl;
+	    // New: no longer dumping for num part < 3, omit phase space dump number info
+	    if (lastDumpedStep_m == -1){
+		*gmsg << endl << "* Integration step " << step_m + 1
+                      << " (no phase space dump for <= 2 particles)" << endl;
+	    } else {
+                *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
+                      << " (local frame) at integration step " << step_m + 1 << endl;
+	    }
         }
     }
     // Everything is (back to) global, now return to mm
