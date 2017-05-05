@@ -50,7 +50,7 @@ void RectangularDomain::getBoundaryStencil(int x, int y, int z, double &W, doubl
     N = -hr[0] * hr[2] / hr[1];
     S = -hr[0] * hr[2] / hr[1];
     F = -hr[0] * hr[1] / hr[2];
-    S = -hr[0] * hr[1] / hr[2];
+    B = -hr[0] * hr[1] / hr[2];
     C = 2 * hr[1] * hr[2] / hr[0] + 2 * hr[0] * hr[2] / hr[1] + 2 * hr[0] * hr[1] / hr[2];
 
     if(!isInside(x + 1, y, z))
