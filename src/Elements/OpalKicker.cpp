@@ -116,7 +116,7 @@ void OpalKicker::update() {
     corr->setKickX(hKick);
     corr->setKickY(vKick);
     if(itsAttr[DESIGNENERGY]) {
-        double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
+        double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]) * 1e6;
         corr->setDesignEnergy(kineticEnergy, false);
     }
 

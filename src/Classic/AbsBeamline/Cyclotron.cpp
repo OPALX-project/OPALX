@@ -536,6 +536,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
     } else {
         return true;
     }
+
     if(myBFieldType_m == BANDRF) {
       //The RF field is suppose to be sampled on a cartesian grid
         vector<Fieldmap *>::const_iterator fi  = RFfields_m.begin();
@@ -547,14 +548,20 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
         int fcount = 0;
         for(; fi != RFfields_m.end(); ++fi, ++rffi, ++rfphii, ++escali, ++superposei) {
             (*fi)->getFieldDimensions(xBegin, xEnd, yBegin, yEnd, zBegin, zEnd);
+	    
 	    bool SuperPose = *superposei;
             if (fcount > 0 && !SuperPose) {
 	      //INFOMSG ("Field maps taken : " << fcount << "Superpose false" << endl);
 	      break;
             }
-            if (R(0) >= xBegin && R(0) <= xEnd && R(1) >= yBegin && R(1) <= yEnd && R(2) >= zBegin && R(2) <= zEnd) {
+
+            // Ok, this is a total patch job, but now that the internal cyclotron units are in m, we have to
+            // change stuff here to match with the input units of mm in the fieldmaps. -DW
+	    const Vector_t temp_R = R * Vector_t(1000.0); //Keep this until we have transitioned fully to m -DW
+
+            if (temp_R(0) >= xBegin && temp_R(0) <= xEnd && temp_R(1) >= yBegin && temp_R(1) <= yEnd && temp_R(2) >= zBegin && temp_R(2) <= zEnd) {
                 Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-                if(!(*fi)->getFieldstrength(R, tmpE, tmpB)) {
+                if(!(*fi)->getFieldstrength(temp_R, tmpE, tmpB)) {
 		  ++fcount;
                   double phase = 2.0 * pi * (1E-3 * (*rffi)) * t + *rfphii;
 
@@ -587,9 +594,14 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
 	      //INFOMSG ("Field maps taken : " << fcount << "Superpose false" << endl);
 	      break;
             }
-            if (R(0) >= xBegin && R(0) <= xEnd && R(1) >= yBegin && R(1) <= yEnd && R(2) >= zBegin && R(2) <= zEnd) {
+
+            // Ok, this is a total patch job, but now that the internal cyclotron units are in m, we have to
+            // change stuff here to match with the input units of mm in the fieldmaps. -DW
+	    const Vector_t temp_R = R * Vector_t(1000.0); //Keep this until we have transitioned fully to m -DW
+
+            if (temp_R(0) >= xBegin && temp_R(0) <= xEnd && temp_R(1) >= yBegin && temp_R(1) <= yEnd && temp_R(2) >= zBegin && temp_R(2) <= zEnd) {
                 Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-                if(!(*fi)->getFieldstrength(R, tmpE, tmpB)) {
+                if(!(*fi)->getFieldstrength(temp_R, tmpE, tmpB)) {
 
 		    ++fcount;
 
@@ -646,7 +658,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
 //                  INFOMSG("Field " << fcount << " BANDRF E= " << tmpE << " R= " << R << " phase " << phase << endl);
                 }
             }
-    	}
+   	}
     }
     return false;
 }
@@ -1508,8 +1520,8 @@ void Cyclotron::getFieldFromFile_BandRF(const double &scaleFactor) {
                                           "failed to open file '" + *fm + "', please check if it exists");
         }
         f->readMap();
-	//	if (IPPL::Comm->getOutputLevel() != 0)
-	//  f->getInfo(gmsg);
+	// if (IPPL::Comm->getOutputLevel() != 0)
+	//     f->getInfo(gmsg);
         RFfields_m.push_back(f);
     }
     // read CARBON type B field
