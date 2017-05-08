@@ -100,9 +100,9 @@ a few global quantities:
 \begin{example}
 OPTION,ECHO=logical,INFO=logical,TRACE=logical,
        VERIFY=logical,WARN=logical,
-       SEED=real,TELL=logical,PSDUMPFREQ=integer,
+       SEED=real,PSDUMPFREQ=integer,
        STATDUMPFREQ=integer, SPTDUMFREQ=integer,
-       REPARTFREQ=integer, REBINFREQ=integer;
+       REPARTFREQ=integer, REBINFREQ=integer, TELL=logical;
 \end{example}
 The first five logical flags activate or deactivate execution options:
 \begin{kdescription}
@@ -132,7 +132,7 @@ The first five logical flags activate or deactivate execution options:
 
   \item[TELL]
   \index{OPTION!TELL}
-  If true, the current settings are listed.
+  If true, the current settings are listed. Must be the last option in the inputfile in order to render correct results.
 
   \item[SEED]
   \index{OPTION!SEED}
