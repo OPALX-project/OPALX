@@ -7,7 +7,18 @@
 
 template<class T, unsigned Dim>
 BoxLibLayout<T, Dim>::BoxLibLayout()
-{ }
+{
+    /* figure out how big the maximum grid can
+     * be in order that all processes have some data at the beginning
+     */
+    int nProcs = Ippl::getNodes();
+    int nGridPoints = 16 * nProcs;      //FIXME
+    int maxGridSize = 16;
+    double lower = -0.1; // m
+    double upper =  0.1; // m
+    
+    this->initDefaultBox(nGridPoints, maxGridSize, lower, upper);
+}
 
 
 template<class T, unsigned Dim>
@@ -426,5 +437,54 @@ bool BoxLibLayout<T, Dim>::PeriodicShift_m(SingleParticlePos_t R)
 //     
 //     
 // }
+
+
+template <class T, unsigned Dim>
+void BoxLibLayout<T, Dim>::initDefaultBox(int nGridPoints, int maxGridSize,
+                                          double lower, double upper)
+{
+    // physical box [-0.1, 0.1]^3 (in meters)
+    RealBox real_box;
+    for (int d = 0; d < BL_SPACEDIM; ++d) {
+        real_box.setLo(d, -lower);
+        real_box.setHi(d,  upper);
+    }
+    
+    // define underlying box for physical domain
+    IntVect domain_lo(0 , 0, 0); 
+    IntVect domain_hi(nGridPoints - 1, nGridPoints - 1, nGridPoints - 1); 
+    const Box domain(domain_lo, domain_hi);
+
+    // use Cartesian coordinates
+    int coord = 0;
+
+    // Dirichelt boundary conditions
+    int is_per[BL_SPACEDIM];
+    for (int i = 0; i < BL_SPACEDIM; i++) 
+        is_per[i] = 0;
+    
+    Geometry geom;
+    geom.define(domain, &real_box, coord, is_per);
+
+    BoxArray ba;
+    ba.define(domain);
+    // break the BoxArrays at both levels into max_grid_size^3 boxes
+    ba.maxSize(maxGridSize);
+    
+    DistributionMapping dmap;
+    dmap.define(ba, Ippl::getNodes());
+    
+    // set protected ParGDB member variables
+    this->m_geom.resize(1);
+    this->m_geom[0] = geom;
+    
+    this->m_dmap.resize(1);
+    this->m_dmap[0] = dmap;
+    
+    this->m_ba.resize(1);
+    this->m_ba[0] = ba;
+    
+    this->m_nlevels = 1;
+}
 
 #endif
