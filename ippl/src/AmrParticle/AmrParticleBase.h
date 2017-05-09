@@ -40,8 +40,8 @@ public:
     typedef std::vector<SortListIndex_t>            SortList_t;
     typedef std::vector<ParticleAttribBase *>       attrib_container_t;
 
-    ParticleIndex_t level; // m_lev
-    ParticleIndex_t grid;  // m_grid
+    ParticleIndex_t Level; // m_lev
+    ParticleIndex_t Grid;  // m_grid
     
 public:
     
@@ -53,8 +53,8 @@ public:
     
     //initialize AmrParticleBase class - add level and grid variables to attribute list
     void initializeAmr() {
-        this->addAttribute(level);
-        this->addAttribute(grid);
+        this->addAttribute(Level);
+        this->addAttribute(Grid);
     }
     
     // Update the particle object after a timestep.  This routine will change

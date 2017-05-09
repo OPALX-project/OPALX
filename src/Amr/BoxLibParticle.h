@@ -24,6 +24,12 @@
 #include <Particles.H>
 #include <RealBox.H>
 
+#include <BLFort.H>
+#include <MultiFabUtil.H>
+#include <MultiFabUtil_F.H>
+#include <Interpolater.H>
+#include <FillPatchUtil.H>
+
     
 template<class PLayout>
 class BoxLibParticle : public virtual AmrParticleBase<PLayout>
@@ -33,7 +39,7 @@ public:
     typedef typename AmrParticleBase<PLayout>::ParticleIndex_t      ParticleIndex_t;
     typedef typename AmrParticleBase<PLayout>::SingleParticlePos_t  SingleParticlePos_t;
     typedef typename AmrParticleBase<PLayout>::AmrField_t           AmrField_t;
-    typedef typename AmrParticleBase<PLayout>::AmrFieldContainer_t  AmrFieldContainer_t;
+    typedef typename AmrParticleBase<PLayout>::AmrFieldContainer_t  AmrFieldContainer_t; // Array<std::unique_ptr<MultiFab> >
     
     typedef double RealType;
     typedef std::deque<Particle<1,0> > C;
@@ -62,85 +68,62 @@ public:
                 int lbase = 0, int lfine = -1);
     
     
-    template<class AType>
-    void AssignDensitySingleLevel (ParticleAttrib<AType> &pa,
-                                   AmrField_t& mf_to_be_filled,
-                                   int lev,
-                                   int particle_lvl_offset = 0);
-    
-    
 private:
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
-    static void CIC_Cells_Fracs_Basic (const SingleParticlePos_t &R,
-                                       const Real* plo, const Real* dx,
-                                       Real* fracs,  IntVect* cells);
     
     
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
-    static int CIC_Cells_Fracs (const SingleParticlePos_t &R,
-                                const Real*         plo,
-                                const Real*         dx_geom,
-                                const Real*         dx_part,
-                                Array<Real>&        fracs,
-                                Array<IntVect>&     cells);
+    template <class AType>
+    void AssignDensityFort(ParticleAttrib<AType> &pa,
+                           AmrFieldContainer_t& mf_to_be_filled, 
+                           int lev_min, int ncomp, int finest_level) const;
     
+    template <class AType>
+    void InterpolateFort(ParticleAttrib<AType> &pa,
+                         AmrFieldContainer_t& mesh_data, 
+                         int lev_min, int lev_max);
     
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
-    bool FineToCrse (const int ip,
-                     int                                flev,
-                     PLayout*                           layout_p,
-                     const Array<IntVect>&              fcells,
-                     const BoxArray&                    fvalid,
-                     const BoxArray&                    compfvalid_grown,
-                     Array<IntVect>&                    ccells,
-                     Array<Real>&                       cfracs,
-                     Array<int>&                        which,
-                     Array<int>&                        cgrid,
-                     Array<IntVect>&                    pshifts,
-                     std::vector< std::pair<int,Box> >& isects);
+    template <class AType>
+    void InterpolateSingleLevelFort(ParticleAttrib<AType> &pa, MultiFab& mesh_data, int lev);
     
+    template <class AType>
+    void AssignCellDensitySingleLevelFort(ParticleAttrib<AType> &pa, MultiFab& mf, int level,
+                                          int ncomp=1, int particle_lvl_offset = 0) const;
     
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
-    void FineCellsToUpdateFromCrse (const int ip,
-                                    int lev,
-                                    PLayout* layout_p,
-                                    const IntVect& ccell,
-                                    const IntVect& cshift,
-                                    Array<int>& fgrid,
-                                    Array<Real>& ffrac,
-                                    Array<IntVect>& fcells,
-                                    std::vector< std::pair<int,Box> >& isects);
-    
-    
-    //Function from BoxLib adjusted to work with Ippl AmrParticleBase class
-    //sends/receivs the particles that are needed by other processes to during AssignDensity
-    void AssignDensityDoit(int level, AmrFieldContainer_t* mf, PMap& data,
-                           int ncomp, int lev_min = 0);
-    
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
-    // Assign values from grid back to particles
-    void Interp(const SingleParticlePos_t &R, const Geometry &geom, const FArrayBox& fab, 
-                const int* idx, Real* val, int cnt);
-    
-    template<class AType>
-    void AssignDensity(ParticleAttrib<AType> &pa,
-                       bool sub_cycle,
-                       AmrFieldContainer_t& mf_to_be_filled,
-                       int lev_min, int finest_level);
-    
-    
-    template<class AType>
-    void AssignCellDensitySingleLevel(ParticleAttrib<AType> &pa,
-                                      AmrField_t& mf_to_be_filled,
-                                      int lev, int particle_lvl_offset = 0);
-    
-    template<class AType>
-    void NodalDepositionSingleLevel(ParticleAttrib<AType> &pa,
-                                    AmrField_t& mf_to_be_filled,
-                                    int lev, int particle_lvl_offset = 0);
-    
-    template<class AType>
-    void GetGravity(ParticleAttrib<AType> &pa, AmrFieldContainer_t &mf);
+    // amrex repository AMReX_MultiFabUtil.H (missing in BoxLib repository)
+    void sum_fine_to_coarse(/*const */MultiFab& S_fine, MultiFab& S_crse,
+                            int scomp, int ncomp, const IntVect& ratio,
+                            const Geometry& cgeom, const Geometry& fgeom) const
+    {
+        BL_ASSERT(S_crse.nComp() == S_fine.nComp());
+        BL_ASSERT(ratio == ratio[0]);
+        BL_ASSERT(S_fine.nGrow() % ratio[0] == 0);
+
+        const int nGrow = S_fine.nGrow() / ratio[0];
+
+        //
+        // Coarsen() the fine stuff on processors owning the fine data.
+        //
+        BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
+
+        MultiFab crse_S_fine(crse_S_fine_BA, ncomp, nGrow, S_fine.DistributionMap());
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(crse_S_fine, true); mfi.isValid(); ++mfi)
+        {
+            //  NOTE: The tilebox is defined at the coarse level.
+            const Box& tbx = mfi.growntilebox(nGrow);
+            
+            BL_FORT_PROC_CALL(BL_AVGDOWN, bl_avgdown)
+                (tbx.loVect(), tbx.hiVect(),
+                 BL_TO_FORTRAN_N(S_fine[mfi] , scomp),
+                 BL_TO_FORTRAN_N(crse_S_fine[mfi], 0),
+                 ratio.getVect(),&ncomp);
+        }
+        
+        S_crse.copy(crse_S_fine, 0, scomp, ncomp, nGrow, 0,
+                    cgeom.periodicity(), FabArrayBase::ADD);
+    }
     
 private:
     bool allow_particles_near_boundary_m;
