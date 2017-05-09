@@ -41,12 +41,6 @@ public:
     typedef typename AmrParticleBase<PLayout>::AmrField_t           AmrField_t;
     typedef typename AmrParticleBase<PLayout>::AmrFieldContainer_t  AmrFieldContainer_t; // Array<std::unique_ptr<MultiFab> >
     
-    typedef double RealType;
-    typedef std::deque<Particle<1,0> > C;
-    typedef C PBox;
-    typedef Particle<1,0> ParticleType;
-    typedef typename std::map<int,PBox> PMap;
-    
 public:
     BoxLibParticle();
     
