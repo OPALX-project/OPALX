@@ -26,6 +26,9 @@ public:
 
 public:
     
+    /*!
+     * This constructor does not initialize the Geometry, DistributionMapping and BoxArray.
+     */
     BoxLibLayout();
     
     BoxLibLayout(const Geometry &geom,
@@ -83,6 +86,10 @@ public:
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     // Returns true if the particle was shifted.
     /*static*/ bool PeriodicShift_m(SingleParticlePos_t R/*, const PLayout* layout_p*/);
+    
+    
+    void initDefaultBox(int nGridPoints, int maxGridSize,
+                        double lower, double upper);
     
 };
 
