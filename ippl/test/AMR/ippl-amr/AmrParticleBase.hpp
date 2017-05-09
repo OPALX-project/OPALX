@@ -784,12 +784,18 @@ void AmrParticleBase<PLayout>::InterpolateSingleLevelFort (ParticleAttrib<AType>
     //loop trough particles and distribute values on the grid
     size_t LocalNum = this->getLocalNum();
     
+    //while lev_min > m_lev[start_idx] we need to skip these particles since there level is
+    //higher than the specified lev_min
+    int start_idx = 0;
+    while ((unsigned)lev > m_lev[start_idx])
+        start_idx++;
+    
     Real inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
     double lxyz[3] = { 0.0, 0.0, 0.0 };
     double wxyz_hi[3] = { 0.0, 0.0, 0.0 };
     double wxyz_lo[3] = { 0.0, 0.0, 0.0 };
     int ijk[3] = {0, 0, 0};
-    for (size_t ip = 0; ip < LocalNum; ++ip) {
+    for (size_t ip = start_idx; ip < LocalNum; ++ip) {
         //if particle doesn't belong on this level exit loop
         if (m_lev[ip] != (unsigned)lev)
             break;
