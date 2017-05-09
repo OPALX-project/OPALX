@@ -49,6 +49,16 @@ void BoxLibParticle<PLayout>::scatter(ParticleAttrib<FT>& attrib, AmrFieldContai
 
 
 template<class PLayout>
+template <class FT, unsigned Dim, class PT>
+void BoxLibParticle<PLayout>::scatter(ParticleAttrib<FT>& attrib, AmrField_t& f,
+                                      ParticleAttrib<Vektor<PT, Dim> >& pp,
+                                      int level)
+{
+    this->AssignCellDensitySingleLevelFort(attrib, f, level);
+}
+
+
+template<class PLayout>
 template<class FT, unsigned Dim, class PT>
 void BoxLibParticle<PLayout>::gather(ParticleAttrib<FT>& attrib, AmrFieldContainer_t& f,
                                      ParticleAttrib<Vektor<PT, Dim> >& pp,
@@ -68,8 +78,7 @@ void BoxLibParticle<PLayout>::AssignDensityFort(ParticleAttrib<AType> &pa,
 {
 //     BL_PROFILE("AssignDensityFort()");
     IpplTimings::startTimer(AssignDensityTimer_m);
-    const PLayout *Layout = &this->getLayout();
-    const ParGDBBase* m_gdb = Layout->GetParGDB();
+    const PLayout *layout_p = &this->getLayout();
     
     // not done in amrex
     int rho_index = 0;
@@ -84,7 +93,7 @@ void BoxLibParticle<PLayout>::AssignDensityFort(ParticleAttrib<AType> &pa,
     for (int lev = lev_min; lev <= finest_level; ++lev) {
         const BoxArray& ba = mf_to_be_filled[lev]->boxArray();
         const DistributionMapping& dm = mf_to_be_filled[lev]->DistributionMap();
-        tmp[lev].reset(new MultiFab(ba, 1, 0, dm));
+        tmp[lev].reset(new AmrField_t(ba, 1, 0, dm));
         tmp[lev]->setVal(0.0);
     }
     
@@ -94,9 +103,9 @@ void BoxLibParticle<PLayout>::AssignDensityFort(ParticleAttrib<AType> &pa,
         if (lev < finest_level) {
             BoxLib::InterpFromCoarseLevel(*tmp[lev+1], 0.0, *mf_to_be_filled[lev],
                                           rho_index, rho_index, ncomp, 
-                                          m_gdb->Geom(lev), m_gdb->Geom(lev+1),
+                                          layout_p->Geom(lev), layout_p->Geom(lev+1),
                                           cphysbc, fphysbc,
-                                          m_gdb->refRatio(lev), &mapper, bcs);
+                                          layout_p->refRatio(lev), &mapper, bcs);
         }
 
         if (lev > lev_min) {
@@ -105,8 +114,8 @@ void BoxLibParticle<PLayout>::AssignDensityFort(ParticleAttrib<AType> &pa,
             // below in the call to average_down.
             sum_fine_to_coarse(*mf_to_be_filled[lev],
                                *mf_to_be_filled[lev-1],
-                               rho_index, 1, m_gdb->refRatio(lev-1),
-                               m_gdb->Geom(lev-1), m_gdb->Geom(lev));
+                               rho_index, 1, layout_p->refRatio(lev-1),
+                               layout_p->Geom(lev-1), layout_p->Geom(lev));
         }
         
         mf_to_be_filled[lev]->plus(*tmp[lev], rho_index, ncomp, 0);
@@ -114,7 +123,7 @@ void BoxLibParticle<PLayout>::AssignDensityFort(ParticleAttrib<AType> &pa,
     
     for (int lev = finest_level - 1; lev >= lev_min; --lev) {
         BoxLib::average_down(*mf_to_be_filled[lev+1], 
-                             *mf_to_be_filled[lev], rho_index, ncomp, m_gdb->refRatio(lev));
+                             *mf_to_be_filled[lev], rho_index, ncomp, layout_p->refRatio(lev));
     }
     
     IpplTimings::stopTimer(AssignDensityTimer_m);
@@ -125,23 +134,22 @@ void BoxLibParticle<PLayout>::AssignDensityFort(ParticleAttrib<AType> &pa,
 template<class PLayout>
 template <class AType>
 void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AType> &pa,
-                                                               MultiFab& mf_to_be_filled,
-                                                               int       lev,
+                                                               AmrField_t& mf_to_be_filled,
+                                                               int       level,
                                                                int       ncomp,
                                                                int       particle_lvl_offset) const
 {
 //     BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignCellDensitySingleLevelFort()");
     
-    const PLayout *Layout = &this->getLayout();
-    const ParGDBBase* m_gdb = Layout->GetParGDB();
+    const PLayout *layout_p = &this->getLayout();
     
     int rho_index = 0;
     
 //     if (rho_index != 0) amrex::Abort("AssignCellDensitySingleLevel only works if rho_index = 0");
 
-    MultiFab* mf_pointer;
+    AmrField_t* mf_pointer;
 
-    if (m_gdb->OnSameGrids(lev, mf_to_be_filled)) {
+    if (layout_p->OnSameGrids(level, mf_to_be_filled)) {
       // If we are already working with the internal mf defined on the 
       // particle_box_array, then we just work with this.
       mf_pointer = &mf_to_be_filled;
@@ -149,9 +157,9 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
     else {
       // If mf_to_be_filled is not defined on the particle_box_array, then we need 
       // to make a temporary here and copy into mf_to_be_filled at the end.
-      mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), 
+      mf_pointer = new AmrField_t(layout_p->ParticleBoxArray(level), 
                                 ncomp, mf_to_be_filled.nGrow(),
-                                m_gdb->ParticleDistributionMap(lev));
+                                layout_p->ParticleDistributionMap(level));
     }
 
     // We must have ghost cells for each FAB so that a particle in one grid can spread 
@@ -159,12 +167,12 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
     // own grid.  The mf->sumBoundary call then adds the value from one grid's ghost cell
     // to another grid's valid region.
     if (mf_pointer->nGrow() < 1) 
-       BoxLib::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
+       BoxLib::Error("Must have at least one ghost cell when in AssignCellDensitySingleLevelFort");
 
     const Real      strttime    = ParallelDescriptor::second();
-    const Geometry& gm          = m_gdb->Geom(lev);
+    const Geometry& gm          = layout_p->Geom(level);
     const Real*     plo         = gm.ProbLo();
-    const Real*     dx_particle = m_gdb->Geom(lev + particle_lvl_offset).CellSize();
+    const Real*     dx_particle = layout_p->Geom(level + particle_lvl_offset).CellSize();
     const Real*     dx          = gm.CellSize();
 
     if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
@@ -181,7 +189,7 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
     //while lev_min > this->Level[start_idx] we need to skip these particles since there level is
     //higher than the specified lev_min
     int start_idx = 0;
-    while ((unsigned)lev > this->Level[start_idx])
+    while ((unsigned)level > this->Level[start_idx])
         start_idx++;
     
     Real inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
@@ -191,7 +199,7 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
     int ijk[3] = {0, 0, 0};
     for (size_t ip = start_idx; ip < LocalNum; ++ip) {
         //if particle doesn't belong on this level exit loop
-        if (this->Level[ip] != (unsigned)lev)
+        if (this->Level[ip] != (unsigned)level)
             break;
         
         const int grid = this->Grid[ip];
@@ -265,15 +273,14 @@ void BoxLibParticle<PLayout>::InterpolateFort(ParticleAttrib<AType> &pa,
 template<class PLayout>
 template <class AType>
 void BoxLibParticle<PLayout>::InterpolateSingleLevelFort(ParticleAttrib<AType> &pa,
-                                                         MultiFab& mesh_data, int lev)
+                                                         AmrField_t& mesh_data, int lev)
 {
     if (mesh_data.nGrow() < 1)
         BoxLib::Error("Must have at least one ghost cell when in InterpolateSingleLevelFort");
     
-    PLayout *Layout = &this->getLayout();
-    const ParGDBBase* m_gdb = Layout->GetParGDB();
+    PLayout *layout_p = &this->getLayout();
     
-    const Geometry& gm          = m_gdb->Geom(lev);
+    const Geometry& gm          = layout_p->Geom(lev);
     const Real*     plo         = gm.ProbLo();
     const Real*     dx          = gm.CellSize();
     

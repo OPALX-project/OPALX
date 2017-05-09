@@ -60,6 +60,12 @@ public:
                  ParticleAttrib<Vektor<PT, Dim> >& pp,
                  int lbase = 0, int lfine = -1);
     
+    
+    template <class FT, unsigned Dim, class PT>
+    void scatter(ParticleAttrib<FT>& attrib, AmrField_t& f,
+                 ParticleAttrib<Vektor<PT, Dim> >& pp,
+                 int level = 0);
+    
     // gather the data from the given Field into the given attribute, using
     // the given Position attribute
     template <class FT, unsigned Dim, class PT>
@@ -82,10 +88,10 @@ private:
                          int lev_min, int lev_max);
     
     template <class AType>
-    void InterpolateSingleLevelFort(ParticleAttrib<AType> &pa, MultiFab& mesh_data, int lev);
+    void InterpolateSingleLevelFort(ParticleAttrib<AType> &pa, AmrField_t& mesh_data, int lev);
     
     template <class AType>
-    void AssignCellDensitySingleLevelFort(ParticleAttrib<AType> &pa, MultiFab& mf, int level,
+    void AssignCellDensitySingleLevelFort(ParticleAttrib<AType> &pa, AmrField_t& mf, int level,
                                           int ncomp=1, int particle_lvl_offset = 0) const;
     
     // amrex repository AMReX_MultiFabUtil.H (missing in BoxLib repository)

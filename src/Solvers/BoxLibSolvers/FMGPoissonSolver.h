@@ -11,6 +11,7 @@
 #include <mg_cpp_f.h>
 #include <stencil_types.H>
 #include <FMultiGrid.H>
+#include <PArray.H>
 
 class FMGPoissonSolver : public AmrPoissonSolver< AmrBoxLib > {
     
@@ -40,7 +41,7 @@ public:
 private:
     void solveWithF90_m(AmrFieldContainer_t& rho,
                         AmrFieldContainer_t& phi,
-                        Array< AmrFieldContainer_t >& grad_phi_edge, 
+                        Array< PArray<MultiFab> >& grad_phi_edge, 
                         const GeomContainer_t& geom,
                         int baseLevel,
                         int finestLevel);
