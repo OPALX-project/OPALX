@@ -37,13 +37,13 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t &rho,
     }
     
     
-    Array<AmrFieldContainer_t> grad_phi_edge(rho.size());
+    Array<PArray<MultiFab> > grad_phi_edge(rho.size());
     
     
     for (int lev = baseLevel; lev <= finestLevel ; ++lev) {
         grad_phi_edge[lev].resize(BL_SPACEDIM);
         for (int n = 0; n < BL_SPACEDIM; ++n) {
-            BoxArray ba = rho[lev].boxArray();
+            BoxArray ba = rho[lev]->boxArray();
             grad_phi_edge[lev].set(n, new MultiFab(ba.surroundingNodes(n), 1, 1));
         }
     }
@@ -57,12 +57,12 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t &rho,
     
     
     for (int lev = baseLevel; lev <= finestLevel; ++lev) {
-        BoxLib::average_face_to_cellcenter(efield[lev],
+        BoxLib::average_face_to_cellcenter(*(efield[lev].get()),
                                            grad_phi_edge[lev],
                                            geom[lev]);
         
-        efield[lev].FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
-        efield[lev].mult(-1.0, 0, 3);
+        efield[lev]->FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
+        efield[lev]->mult(-1.0, 0, 3);
     }
 }
 
@@ -108,21 +108,21 @@ Inform &FMGPoissonSolver::print(Inform &os) const {
 
 void FMGPoissonSolver::solveWithF90_m(AmrFieldContainer_t& rho,
                                       AmrFieldContainer_t& phi,
-                                      Array<AmrFieldContainer_t>& grad_phi_edge,
+                                      Array<PArray<MultiFab> >& grad_phi_edge,
                                       const GeomContainer_t& geom,
                                       int baseLevel,
                                       int finestLevel)
 {
     int nlevs = finestLevel - baseLevel + 1;
     
-    PArray<Geometry> geom_p(nlevs, PArrayManage);
-    AmrFieldContainer_t rho_p(nlevs, PArrayManage);
-    AmrFieldContainer_t phi_p(nlevs, PArrayManage);
+    PArray<Geometry> geom_p(nlevs);
+    PArray<MultiFab> rho_p(nlevs);
+    PArray<MultiFab> phi_p(nlevs);
     
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         geom_p.set(ilev, &geom[ilev + baseLevel]);
-        rho_p.set(ilev, &rho[ilev + baseLevel]);
-        phi_p.set(ilev, &phi[ilev + baseLevel]);
+        rho_p.set(ilev, &(*rho[ilev + baseLevel].get()));
+        phi_p.set(ilev, &(*phi[ilev + baseLevel].get()));
     }
     
     // Refinement ratio is hardwired to 2 here.
@@ -132,9 +132,9 @@ void FMGPoissonSolver::solveWithF90_m(AmrFieldContainer_t& rho,
     FMultiGrid fmg(geom_p, baseLevel, crse_ratio);
 
     if (baseLevel == 0)
-        fmg.set_bc(bc_m, phi[baseLevel]);
+        fmg.set_bc(bc_m, *phi[baseLevel].get());
     else
-        fmg.set_bc(bc_m, phi[baseLevel-1], phi[baseLevel]);
+        fmg.set_bc(bc_m, *phi[baseLevel-1].get(), *phi[baseLevel].get());
     
     /* (alpha * a - beta * (del dot b grad)) phi = rho
      * (b = 1)
@@ -160,17 +160,14 @@ void FMGPoissonSolver::solveWithF90_m(AmrFieldContainer_t& rho,
 
 void FMGPoissonSolver::initGrids_m(AmrFieldContainer_t& phi,
                                    AmrFieldContainer_t& efield) {
-    for (int lev = 0; lev < efield.size(); ++lev) {
-        phi.clear(lev);
-        efield.clear(lev);
-        
+    for (unsigned int lev = 0; lev < efield.size(); ++lev) {
         const BoxArray& ba = itsAmrObject_mp->boxArray()[lev];
         
-        //                                      #components  #ghost cells                                                                                                                                          
-        phi.set(lev,  new AmrField_t(ba, 1,           1) );
-        efield.set(lev, new AmrField_t(ba, 3,           1) );
+        //                                   #components  #ghost cells                                                                                                                                          
+        phi[lev].reset(   new AmrField_t(ba, 1,           1) );
+        efield[lev].reset(new AmrField_t(ba, 3,           1) );
         
-        phi[lev].setVal(0.0);
-        efield[lev].setVal(0.0);
+        phi[lev]->setVal(0.0);
+        efield[lev]->setVal(0.0);
     }
 }
