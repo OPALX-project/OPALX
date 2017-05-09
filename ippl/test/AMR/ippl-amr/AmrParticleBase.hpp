@@ -565,5 +565,272 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
     }
   }
 }
-  
 
+
+template<class PLayout>
+template <class AType>
+void AmrParticleBase<PLayout>::AssignDensityFort (ParticleAttrib<AType> &pa,
+                                                  Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
+                                                  int lev_min, int ncomp, int finest_level) const
+{
+//     BL_PROFILE("AssignDensityFort()");
+    IpplTimings::startTimer(AssignDensityTimer_m);
+    const PLayout *Layout = &this->getLayout();
+    const ParGDBBase* m_gdb = Layout->GetParGDB();
+    
+    // not done in amrex
+    int rho_index = 0;
+    
+    PhysBCFunct cphysbc, fphysbc;
+    int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
+    int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+    Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
+    CellConservativeLinear mapper;
+    
+    Array<std::unique_ptr<MultiFab> > tmp(finest_level+1);
+    for (int lev = lev_min; lev <= finest_level; ++lev) {
+        const BoxArray& ba = mf_to_be_filled[lev]->boxArray();
+        const DistributionMapping& dm = mf_to_be_filled[lev]->DistributionMap();
+        tmp[lev].reset(new MultiFab(ba, 1, 0, dm));
+        tmp[lev]->setVal(0.0);
+    }
+    
+    for (int lev = lev_min; lev <= finest_level; ++lev) {
+        AssignCellDensitySingleLevelFort(pa, *mf_to_be_filled[lev], lev, 1, 0);
+
+        if (lev < finest_level) {
+            BoxLib::InterpFromCoarseLevel(*tmp[lev+1], 0.0, *mf_to_be_filled[lev],
+                                          rho_index, rho_index, ncomp, 
+                                          m_gdb->Geom(lev), m_gdb->Geom(lev+1),
+                                          cphysbc, fphysbc,
+                                          m_gdb->refRatio(lev), &mapper, bcs);
+        }
+
+        if (lev > lev_min) {
+            // Note - this will double count the mass on the coarse level in 
+            // regions covered by the fine level, but this will be corrected
+            // below in the call to average_down.
+            sum_fine_to_coarse(*mf_to_be_filled[lev],
+                               *mf_to_be_filled[lev-1],
+                               rho_index, 1, m_gdb->refRatio(lev-1),
+                               m_gdb->Geom(lev-1), m_gdb->Geom(lev));
+        }
+        
+        mf_to_be_filled[lev]->plus(*tmp[lev], rho_index, ncomp, 0);
+    }
+    
+    for (int lev = finest_level - 1; lev >= lev_min; --lev) {
+        BoxLib::average_down(*mf_to_be_filled[lev+1], 
+                             *mf_to_be_filled[lev], rho_index, ncomp, m_gdb->refRatio(lev));
+    }
+    
+    IpplTimings::stopTimer(AssignDensityTimer_m);
+}
+
+// This is the single-level version for cell-centered density
+template<class PLayout>
+template <class AType>
+void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<AType> &pa,
+                                                                 MultiFab& mf_to_be_filled,
+                                                                 int       lev,
+                                                                 int       ncomp,
+                                                                 int       particle_lvl_offset) const
+{
+//     BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignCellDensitySingleLevelFort()");
+    
+    const PLayout *Layout = &this->getLayout();
+    const ParGDBBase* m_gdb = Layout->GetParGDB();
+    
+    int rho_index = 0;
+    
+//     if (rho_index != 0) amrex::Abort("AssignCellDensitySingleLevel only works if rho_index = 0");
+
+    MultiFab* mf_pointer;
+
+    if (m_gdb->OnSameGrids(lev, mf_to_be_filled)) {
+      // If we are already working with the internal mf defined on the 
+      // particle_box_array, then we just work with this.
+      mf_pointer = &mf_to_be_filled;
+    }
+    else {
+      // If mf_to_be_filled is not defined on the particle_box_array, then we need 
+      // to make a temporary here and copy into mf_to_be_filled at the end.
+      mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), 
+                                ncomp, mf_to_be_filled.nGrow(),
+                                m_gdb->ParticleDistributionMap(lev));
+    }
+
+    // We must have ghost cells for each FAB so that a particle in one grid can spread 
+    // its effect to an adjacent grid by first putting the value into ghost cells of its
+    // own grid.  The mf->sumBoundary call then adds the value from one grid's ghost cell
+    // to another grid's valid region.
+    if (mf_pointer->nGrow() < 1) 
+       BoxLib::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
+
+    const Real      strttime    = ParallelDescriptor::second();
+    const Geometry& gm          = m_gdb->Geom(lev);
+    const Real*     plo         = gm.ProbLo();
+    const Real*     dx_particle = m_gdb->Geom(lev + particle_lvl_offset).CellSize();
+    const Real*     dx          = gm.CellSize();
+
+    if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
+      BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
+    }
+    
+    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
+        (*mf_pointer)[mfi].setVal(0);
+    }
+    
+    //loop trough particles and distribute values on the grid
+    size_t LocalNum = this->getLocalNum();
+    
+    //while lev_min > m_lev[start_idx] we need to skip these particles since there level is
+    //higher than the specified lev_min
+    int start_idx = 0;
+    while ((unsigned)lev > m_lev[start_idx])
+        start_idx++;
+    
+    Real inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
+    double lxyz[3] = { 0.0, 0.0, 0.0 };
+    double wxyz_hi[3] = { 0.0, 0.0, 0.0 };
+    double wxyz_lo[3] = { 0.0, 0.0, 0.0 };
+    int ijk[3] = {0, 0, 0};
+    for (size_t ip = start_idx; ip < LocalNum; ++ip) {
+        //if particle doesn't belong on this level exit loop
+        if (m_lev[ip] != (unsigned)lev)
+            break;
+        
+        const int grid = m_grid[ip];
+        FArrayBox& fab = (*mf_pointer)[grid];
+        const Box& box = fab.box();
+        
+        // not callable:
+        // begin amrex_deposit_cic(pbx.data(), nstride, N, fab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);
+        for (int i = 0; i < 3; ++i) {
+            lxyz[i] = ( this->R[ip](i) - plo[i] ) * inv_dx[i] + 0.5;
+            ijk[i] = lxyz[i];
+            wxyz_hi[i] = lxyz[i] - ijk[i];
+            wxyz_lo[i] = 1.0 - wxyz_hi[i];
+        }
+        
+        int& i = ijk[0];
+        int& j = ijk[1];
+        int& k = ijk[2];
+        
+        IntVect i1(i-1, j-1, k-1);
+        IntVect i2(i-1, j-1, k);
+        IntVect i3(i-1, j,   k-1);
+        IntVect i4(i-1, j,   k);
+        IntVect i5(i,   j-1, k-1);
+        IntVect i6(i,   j-1, k);
+        IntVect i7(i,   j,   k-1);
+        IntVect i8(i,   j,   k);
+        
+        fab(i1, 0) += wxyz_lo[0]*wxyz_lo[1]*wxyz_lo[2]*pa[ip];
+        fab(i2, 0) += wxyz_lo[0]*wxyz_lo[1]*wxyz_hi[2]*pa[ip];
+        fab(i3, 0) += wxyz_lo[0]*wxyz_hi[1]*wxyz_lo[2]*pa[ip];
+        fab(i4, 0) += wxyz_lo[0]*wxyz_hi[1]*wxyz_hi[2]*pa[ip];
+        fab(i5, 0) += wxyz_hi[0]*wxyz_lo[1]*wxyz_lo[2]*pa[ip];
+        fab(i6, 0) += wxyz_hi[0]*wxyz_lo[1]*wxyz_hi[2]*pa[ip];
+        fab(i7, 0) += wxyz_hi[0]*wxyz_hi[1]*wxyz_lo[2]*pa[ip];
+        fab(i8, 0) += wxyz_hi[0]*wxyz_hi[1]*wxyz_hi[2]*pa[ip];
+        // end of amrex_deposit_cic
+    }
+    
+    mf_pointer->SumBoundary(gm.periodicity());
+
+    // Only multiply the first component by (1/vol) because this converts mass
+    // to density. If there are additional components (like velocity), we don't
+    // want to divide those by volume.
+    const Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
+
+    mf_pointer->mult(1.0/vol, 0, 1, mf_pointer->nGrow());
+
+    // If mf_to_be_filled is not defined on the particle_box_array, then we need
+    // to copy here from mf_pointer into mf_to_be_filled. I believe that we don't
+    // need any information in ghost cells so we don't copy those.
+    if (mf_pointer != &mf_to_be_filled) {
+      mf_to_be_filled.copy(*mf_pointer,0,0,ncomp);
+      delete mf_pointer;
+    }
+}
+
+template<class PLayout>
+template <class AType>
+void AmrParticleBase<PLayout>::InterpolateFort (ParticleAttrib<AType> &pa,
+                                                Array<std::unique_ptr<MultiFab> >& mesh_data, 
+                                                int lev_min, int lev_max)
+{
+    for (int lev = lev_min; lev <= lev_max; ++lev) {
+        InterpolateSingleLevelFort(pa, *mesh_data[lev], lev); 
+    }
+}
+
+template<class PLayout>
+template <class AType>
+void AmrParticleBase<PLayout>::InterpolateSingleLevelFort (ParticleAttrib<AType> &pa,
+                                                           MultiFab& mesh_data, int lev)
+{
+    if (mesh_data.nGrow() < 1)
+        BoxLib::Error("Must have at least one ghost cell when in InterpolateSingleLevelFort");
+    
+    PLayout *Layout = &this->getLayout();
+    const ParGDBBase* m_gdb = Layout->GetParGDB();
+    
+    const Geometry& gm          = m_gdb->Geom(lev);
+    const Real*     plo         = gm.ProbLo();
+    const Real*     dx          = gm.CellSize();
+    
+    //loop trough particles and distribute values on the grid
+    size_t LocalNum = this->getLocalNum();
+    
+    Real inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
+    double lxyz[3] = { 0.0, 0.0, 0.0 };
+    double wxyz_hi[3] = { 0.0, 0.0, 0.0 };
+    double wxyz_lo[3] = { 0.0, 0.0, 0.0 };
+    int ijk[3] = {0, 0, 0};
+    for (size_t ip = 0; ip < LocalNum; ++ip) {
+        //if particle doesn't belong on this level exit loop
+        if (m_lev[ip] != (unsigned)lev)
+            break;
+        
+        const int grid = m_grid[ip];
+        FArrayBox& fab = mesh_data[grid];
+        const Box& box = fab.box();
+        int nComp = fab.nComp();
+        
+        // not callable
+        // begin amrex_interpolate_cic(pbx.data(), nstride, N, fab.dataPtr(), box.loVect(), box.hiVect(), nComp, plo, dx);
+        for (int i = 0; i < 3; ++i) {
+            lxyz[i] = ( this->R[ip](i) - plo[i] ) * inv_dx[i] + 0.5;
+            ijk[i] = lxyz[i];
+            wxyz_hi[i] = lxyz[i] - ijk[i];
+            wxyz_lo[i] = 1.0 - wxyz_hi[i];
+        }
+        
+        int& i = ijk[0];
+        int& j = ijk[1];
+        int& k = ijk[2];
+        
+        IntVect i1(i-1, j-1, k-1);
+        IntVect i2(i-1, j-1, k);
+        IntVect i3(i-1, j,   k-1);
+        IntVect i4(i-1, j,   k);
+        IntVect i5(i,   j-1, k-1);
+        IntVect i6(i,   j-1, k);
+        IntVect i7(i,   j,   k-1);
+        IntVect i8(i,   j,   k);
+        
+        for (int nc = 0; nc < nComp; ++nc) {
+            pa[ip](nc) = wxyz_lo[0]*wxyz_lo[1]*wxyz_lo[2]*fab(i1, nc) +
+                         wxyz_lo[0]*wxyz_lo[1]*wxyz_hi[2]*fab(i2, nc) +
+                         wxyz_lo[0]*wxyz_hi[1]*wxyz_lo[2]*fab(i3, nc) +
+                         wxyz_lo[0]*wxyz_hi[1]*wxyz_hi[2]*fab(i4, nc) +
+                         wxyz_hi[0]*wxyz_lo[1]*wxyz_lo[2]*fab(i5, nc) +
+                         wxyz_hi[0]*wxyz_lo[1]*wxyz_hi[2]*fab(i6, nc) +
+                         wxyz_hi[0]*wxyz_hi[1]*wxyz_lo[2]*fab(i7, nc) +
+                         wxyz_hi[0]*wxyz_hi[1]*wxyz_hi[2]*fab(i8, nc);
+        }
+        // end amrex_interpolate_cic
+    }
+}

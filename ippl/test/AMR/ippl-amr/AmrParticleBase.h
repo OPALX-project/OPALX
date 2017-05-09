@@ -25,6 +25,12 @@
 #include <RealBox.H>
 
 
+#include <BLFort.H>
+#include <MultiFabUtil.H>
+#include <MultiFabUtil_F.H>
+#include <Interpolater.H>
+#include <FillPatchUtil.H>
+
 
 //AMRPArticleBase class definition. Template parameter is the specific AmrParticleLayout-derived
 //class which determines how the particles are distribute amoung processors.
@@ -103,6 +109,47 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
     // Assign values from grid back to particles
     void Interp(const SingleParticlePos_t &R, const Geometry &geom, const FArrayBox& fab, 
                 const int* idx, Real* val, int cnt);
+    
+    
+    
+    
+    
+    // amrex repository AMReX_MultiFabUtil.H (missing in BoxLib repository)
+    void sum_fine_to_coarse(/*const */MultiFab& S_fine, MultiFab& S_crse,
+                            int scomp, int ncomp, const IntVect& ratio,
+                            const Geometry& cgeom, const Geometry& fgeom) const
+    {
+        BL_ASSERT(S_crse.nComp() == S_fine.nComp());
+        BL_ASSERT(ratio == ratio[0]);
+        BL_ASSERT(S_fine.nGrow() % ratio[0] == 0);
+
+        const int nGrow = S_fine.nGrow() / ratio[0];
+
+        //
+        // Coarsen() the fine stuff on processors owning the fine data.
+        //
+        BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
+
+        MultiFab crse_S_fine(crse_S_fine_BA, ncomp, nGrow, S_fine.DistributionMap());
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(crse_S_fine, true); mfi.isValid(); ++mfi)
+        {
+            //  NOTE: The tilebox is defined at the coarse level.
+            const Box& tbx = mfi.growntilebox(nGrow);
+            
+            BL_FORT_PROC_CALL(BL_AVGDOWN, bl_avgdown)
+                (tbx.loVect(), tbx.hiVect(),
+                 BL_TO_FORTRAN_N(S_fine[mfi] , scomp),
+                 BL_TO_FORTRAN_N(crse_S_fine[mfi], 0),
+                 ratio.getVect(),&ncomp);
+        }
+        
+        S_crse.copy(crse_S_fine, 0, scomp, ncomp, nGrow, 0,
+                    cgeom.periodicity(), FabArrayBase::ADD);
+    }
   
 public: 
 
@@ -201,6 +248,23 @@ public:
         for ( ; abeg != aend; ++abeg )
             (*abeg)->sort(sortlist);
     }
+    
+    template <class AType>
+    void AssignDensityFort (ParticleAttrib<AType> &pa,
+                            Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
+                            int lev_min, int ncomp, int finest_level) const;
+    
+    template <class AType>
+    void InterpolateFort (ParticleAttrib<AType> &pa,
+                          Array<std::unique_ptr<MultiFab> >& mesh_data, 
+                          int lev_min, int lev_max);
+    
+    template <class AType>
+    void InterpolateSingleLevelFort (ParticleAttrib<AType> &pa, MultiFab& mesh_data, int lev);
+    
+    template <class AType>
+    void AssignCellDensitySingleLevelFort (ParticleAttrib<AType> &pa, MultiFab& mf, int level,
+					   int ncomp=1, int particle_lvl_offset = 0) const;
 
 
     //Function from BoxLib adjusted to work with Ippl AmrParticleBase class

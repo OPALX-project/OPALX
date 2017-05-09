@@ -117,6 +117,9 @@ add_executable( testTagging
 #                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
 #                 ../Solver.cpp)
 
+add_executable(testScatterAMReX testScatterAMReX.cpp AmrParticleBase.hpp)
+
+
 target_link_libraries (testAmrPartBase ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
@@ -141,3 +144,7 @@ target_link_libraries (testTagging ${LIBS}
 # target_link_libraries (testInitGuessSolver ${LIBS}
 #                         -lgfortran ${CCSE_LIBRARIES}
 #                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testScatterAMReX ${LIBS}
+                        -lgfortran ${CCSE_LIBRARIES}
+                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
