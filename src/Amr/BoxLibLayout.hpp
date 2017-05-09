@@ -97,7 +97,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
 
         if (!particleLeftDomain) {
             //get the node the particle belongs to
-            unsigned int who = this->ParticleDistributionMap(PData.level[ip])[PData.grid[ip]];
+            unsigned int who = this->ParticleDistributionMap(PData.Level[ip])[PData.Grid[ip]];
             if (who != myN) {
                 msgsend[who] = 1;
                 p2n.insert(std::pair<unsigned, unsigned>(who, ip));
@@ -252,12 +252,12 @@ bool BoxLibLayout<T, Dim>::Where_m(AmrParticleBase< BoxLibLayout<T,Dim> >& p,
     {
       const IntVect& iv = Index(p, ip, this->Geom(lev));
 
-        if (lev == p.level[ip]) { 
+        if (lev == p.Level[ip]) { 
             // We may take a shortcut because the fact that we are here means 
             // this particle does not belong to any finer grids.
-            const BoxArray& ba = this->ParticleBoxArray(p.level[ip]);
-            if (0 <= p.grid[ip] && p.grid[ip] < ba.size() && 
-                ba[p.grid[ip]].contains(iv)) 
+            const BoxArray& ba = this->ParticleBoxArray(p.Level[ip]);
+            if (0 <= p.Grid[ip] && p.Grid[ip] < ba.size() && 
+                ba[p.Grid[ip]].contains(iv)) 
             {
                 return true;
             }
@@ -267,8 +267,8 @@ bool BoxLibLayout<T, Dim>::Where_m(AmrParticleBase< BoxLibLayout<T,Dim> >& p,
 
         if (!isects.empty())
         {
-            p.level[ip]  = lev;
-            p.grid[ip] = isects[0].first;
+            p.Level[ip]  = lev;
+            p.Grid[ip] = isects[0].first;
 
             return true;
         }
@@ -315,8 +315,8 @@ bool BoxLibLayout<T, Dim>::PeriodicWhere_m(AmrParticleBase< BoxLibLayout<T,Dim> 
                        p.R[ip][1] = R[1];,
                        p.R[ip][2] = R[2];);
 
-                p.level[ip]  = lev;
-                p.grid[ip] = isects[0].first;
+                p.Level[ip]  = lev;
+                p.Grid[ip] = isects[0].first;
 
                 return true;
             }
@@ -336,9 +336,9 @@ bool BoxLibLayout<T, Dim>::RestrictedWhere_m(AmrParticleBase< BoxLibLayout<T,Dim
 {
 //     BL_ASSERT(this != 0);
 
-    const IntVect& iv = Index(p,ip,this->Geom(p.level[ip]));
+    const IntVect& iv = Index(p,ip,this->Geom(p.Level[ip]));
 
-    if (BoxLib::grow(this->ParticleBoxArray(p.level[ip])[p.grid[ip]], ngrow).contains(iv))
+    if (BoxLib::grow(this->ParticleBoxArray(p.Level[ip])[p.Grid[ip]], ngrow).contains(iv))
     {
         return true;
     }
