@@ -42,6 +42,13 @@ public:
               short maxLevel,
               const AmrIntArray_t& refRatio);
     
+    AmrBoxLib(const AmrDomain_t& domain,
+              const AmrIntArray_t& nGridPts,
+              short maxLevel,
+              const AmrIntArray_t& refRatio,
+              AmrPartBunch* bunch);
+    
+    inline void setBunch(AmrPartBunch* bunch);
     
 //     /*!
 //      * Set all parameters for the AMR object, like #grid points per dimension etc.
@@ -76,6 +83,7 @@ public:
     void updateMesh();
     
     Vektor<int, 3> getBaseLevelGridPoints();
+    
     
 protected:
     /*!
@@ -112,6 +120,11 @@ private:
     void tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow);
     void tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, int ngrow);
     void tagForEfield_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    
+    /*!
+     * Use particle BoxArray and DistributionMapping for AmrObject
+     */
+    void initBaseLevel_m();
     
 private:
     /// use in tagging tagForChargeDensity_m (needed when tracking)

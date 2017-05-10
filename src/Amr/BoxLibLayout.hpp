@@ -22,6 +22,14 @@ BoxLibLayout<T, Dim>::BoxLibLayout()
 
 
 template<class T, unsigned Dim>
+BoxLibLayout<T, Dim>::BoxLibLayout(int nGridPoints, int maxGridSize,
+                                   double lower, double upper)
+{
+    this->initDefaultBox(nGridPoints, maxGridSize, lower, upper);
+}
+
+
+template<class T, unsigned Dim>
 BoxLibLayout<T, Dim>::BoxLibLayout(const Geometry &geom,
                                    const DistributionMapping &dmap,
                                    const BoxArray &ba)
@@ -54,7 +62,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
                                   int lev_min,
                                   const ParticleAttrib<char>* canSwap)
 {
-    std::cout << "BoxLibLayout::update()" << std::endl;
+//     std::cout << "BoxLibLayout::update()" << std::endl;
     // Input parameters of ParticleContainer::Redistribute of BoxLib
     bool where_already_called = false;
     bool full_where = false;
@@ -157,7 +165,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
 
     //destroy the particles that are sent to other domains
     
-    std::cout << "Sent: " << sent << std::endl;
+//     std::cout << "Sent: " << sent << std::endl;
     if ( LocalNum < PData.getDestroyNum() )
         std::cout << "Can't destroy more particles" << std::endl;
     else {
@@ -203,7 +211,9 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
 
     // update our particle number counts
     PData.setTotalNum(TotalNum);	// set the total atom count
-    PData.setLocalNum(LocalNum);	// set the number of local atoms    
+    PData.setLocalNum(LocalNum);	// set the number of local atoms
+    
+//     std::cout << "TotalNum: " << TotalNum << std::endl;
 }
 
 
@@ -446,8 +456,8 @@ void BoxLibLayout<T, Dim>::initDefaultBox(int nGridPoints, int maxGridSize,
     // physical box [-0.1, 0.1]^3 (in meters)
     RealBox real_box;
     for (int d = 0; d < BL_SPACEDIM; ++d) {
-        real_box.setLo(d, -lower);
-        real_box.setHi(d,  upper);
+        real_box.setLo(d, lower);
+        real_box.setHi(d, upper);
     }
     
     // define underlying box for physical domain

@@ -566,7 +566,13 @@ void FieldSolver::initAmrObject_m() {
         this->getAmrRefRatioT()
     };
     
-    itsAmrObject_mp = std::unique_ptr<AmrBoxLib>(new AmrBoxLib(domain, nGridPts, maxLevel, refRatio));
+    itsAmrObject_mp = std::unique_ptr<AmrBoxLib>(new AmrBoxLib(domain,
+                                                               nGridPts,
+                                                               maxLevel,
+                                                               refRatio,
+                                                               reinterpret_cast<AmrPartBunch*>(itsBunch_m)
+                                                              )
+                                                );
     
     AmrObject::TaggingCriteria tagging = AmrObject::TaggingCriteria::CHARGE_DENSITY;
     
