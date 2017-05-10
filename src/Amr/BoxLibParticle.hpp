@@ -26,7 +26,6 @@ template<class PLayout>
 BoxLibParticle<PLayout>::BoxLibParticle() : AmrParticleBase<PLayout>()
 {
     AssignDensityTimer_m = IpplTimings::getTimer("AMR AssignDensity");
-    this->initializeAmr();
 }
 
 
@@ -34,7 +33,6 @@ template<class PLayout>
 BoxLibParticle<PLayout>::BoxLibParticle(PLayout *layout) : AmrParticleBase<PLayout>(layout)
 {
     AssignDensityTimer_m = IpplTimings::getTimer("AMR AssignDensity");
-    this->initializeAmr();
 }
 
 
