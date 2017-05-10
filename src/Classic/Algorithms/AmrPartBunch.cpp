@@ -4,17 +4,20 @@
 
 AmrPartBunch::AmrPartBunch(const PartData *ref)
     : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(new AmrLayout_t()), ref),
-      mesh_m(), fieldlayout_m(mesh_m), //FIXME
+      fieldlayout_m(nullptr),
       amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase))
 {
+    std::cout << "Init bunch" << std::endl;
     amrpbase_mp->initializeAmr();
+    
+//     std::cout << "Init bunch" << std::endl;
 }
 
 
 AmrPartBunch::AmrPartBunch(const std::vector<OpalParticle> &rhs,
                            const PartData *ref)
     : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(new AmrLayout_t()), rhs, ref),
-      mesh_m(), fieldlayout_m(mesh_m), //FIXME
+      fieldlayout_m(nullptr),
       amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase))
 {
     amrpbase_mp->initializeAmr();
@@ -23,7 +26,7 @@ AmrPartBunch::AmrPartBunch(const std::vector<OpalParticle> &rhs,
 
 AmrPartBunch::AmrPartBunch(const AmrPartBunch &rhs)
     : PartBunchBase<double, 3>(rhs),
-      mesh_m(), fieldlayout_m(mesh_m), //FIXME
+      fieldlayout_m(nullptr),
       amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase))
 {
     amrpbase_mp->initializeAmr();
@@ -99,7 +102,7 @@ double AmrPartBunch::getRho(int x, int y, int z) {
 FieldLayout_t &AmrPartBunch::getFieldLayout() {
     //TODO Implement
     throw OpalException("&AmrPartBunch::getFieldLayout() ", "Not yet Implemented.");
-    return fieldlayout_m;
+    return *fieldlayout_m;
 }
 
 

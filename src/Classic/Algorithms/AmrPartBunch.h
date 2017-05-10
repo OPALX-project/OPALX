@@ -91,9 +91,10 @@ private:
     AmrObject *amrobj_mp;
     pbase_t *amrpbase_mp;
     
-    
-    Mesh_t mesh_m;
-    FieldLayout_t fieldlayout_m;
+    /* We need this due to H5PartWrapper etc, but it's always nullptr.
+     * Thus, don't use it.
+     */
+    FieldLayout_t* fieldlayout_m;
 };
 
 #endif
