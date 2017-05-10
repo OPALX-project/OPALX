@@ -27,9 +27,11 @@ public:
 public:
     
     /*!
-     * This constructor does not initialize the Geometry, DistributionMapping and BoxArray.
+     * Initializes default Geometry, DistributionMapping and BoxArray.
      */
     BoxLibLayout();
+    
+    BoxLibLayout(int nGridPoints, int maxGridSize, double lower, double upper);
     
     BoxLibLayout(const Geometry &geom,
                  const DistributionMapping &dmap,
