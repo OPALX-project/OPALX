@@ -37,6 +37,7 @@
 
 #ifdef HAVE_AMR_SOLVER
     #include "Solvers/BoxLibSolvers/FMGPoissonSolver.h"
+    #include "Amr/AmrDefs.h"
 #endif
 
 using namespace Expressions;
@@ -542,15 +543,11 @@ Inform &FieldSolver::printInfo(Inform &os) const {
 
 
 void FieldSolver::initAmrObject_m() {
-    //FIXME How to set the domain? Can't be adjusted anymore!
-    /* Further attributes missing,
-     * e.g. max_grid_size
+    /* The bunch is initialize first with a Geometry, BoxArray and DistributionMapping on
+     * the base level (level = 0). Thus, we take the domain specified there in order to create the Amr object.
      */
-    AmrBoxLib::AmrDomain_t domain;
-    for (int i = 0; i < 3; ++i) {
-        domain.setLo(i, -1.0); // m
-        domain.setHi(i, -1.0); // m
-    }
+    AmrLayout_t* layout_p = static_cast<AmrLayout_t*>(&itsBunch_m->getLayout());
+    AmrBoxLib::AmrDomain_t domain = layout_p->Geom(0).ProbDomain();
     
     AmrBoxLib::AmrIntArray_t nGridPts = {
         (int)this->getMX(),
@@ -566,10 +563,33 @@ void FieldSolver::initAmrObject_m() {
         this->getAmrRefRatioT()
     };
     
+    int maxGridSize = (int)this->getAmrMaxGridSize();
+    
+    /*
+     * further attributes are given by the BoxLib's ParmParse class.
+     */
+    ParmParse pAmr("amr");
+    pAmr.add("max_grid_size", maxGridSize);
+    
+    pAmr.addarr("ref_ratio_vect", refRatio);
+    
+    Array<int> error_buf(maxLevel, 0);
+    pAmr.addarr("n_error_buf", error_buf);
+    
+    pAmr.add("grid_eff", 0.95);
+    
+    ParmParse pGeom("geometry");
+    Array<int> isPeriodic = {
+        layout_p->Geom(0).isPeriodic(0),
+        layout_p->Geom(0).isPeriodic(1),
+        layout_p->Geom(0).isPeriodic(2)
+    };
+    pGeom.addarr("is_periodic", isPeriodic);
+    
+    
     itsAmrObject_mp = std::unique_ptr<AmrBoxLib>(new AmrBoxLib(domain,
                                                                nGridPts,
                                                                maxLevel,
-                                                               refRatio,
                                                                reinterpret_cast<AmrPartBunch*>(itsBunch_m)
                                                               )
                                                 );
