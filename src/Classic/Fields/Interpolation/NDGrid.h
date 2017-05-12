@@ -356,6 +356,9 @@ Mesh::Iterator NDGrid::begin() const {
 }
 
 Mesh::Iterator NDGrid::end() const {
+    if (coord_m.size() == 0) {
+        return Mesh::Iterator(std::vector<int>(), this);
+    }
     std::vector<int> end(coord_m.size(), 1);
     end[0] = coord_m[0].size()+1;
     return Mesh::Iterator(end, this);

@@ -54,7 +54,7 @@ TEST(ThreeDGridTest, LowerBoundTest) {
     for (size_t i = 0; i < 2; ++i) {
         ThreeDGrid* grid = gridArray[i];
         int index = -99;
-        for (size_t j = 0; j < grid->xSize(); ++j) {
+        for (int j = 0; j < grid->xSize(); ++j) {
             grid->xLowerBound(grid->x(j+1)-1e-9, index);
             EXPECT_EQ(index, int(j)-1) << "grid" << i << " " << j;
             grid->xLowerBound(grid->x(j+1)+0e-9, index);
@@ -64,7 +64,7 @@ TEST(ThreeDGridTest, LowerBoundTest) {
         }
 
         index = -99;
-        for (size_t j = 0; j < grid->ySize(); ++j) {
+        for (int j = 0; j < grid->ySize(); ++j) {
             grid->yLowerBound(grid->y(j+1)-1e-9, index);
             EXPECT_EQ(index, int(j)-1) << "grid" << i << " " << j;
             grid->yLowerBound(grid->y(j+1)+0e-9, index);
@@ -74,7 +74,7 @@ TEST(ThreeDGridTest, LowerBoundTest) {
         }
 
         index = -99;
-        for (size_t j = 0; j < grid->zSize(); ++j) {
+        for (int j = 0; j < grid->zSize(); ++j) {
             grid->zLowerBound(grid->z(j+1)-1e-9, index);
             EXPECT_EQ(index, int(j)-1) << "grid" << i << " " << j;
             grid->zLowerBound(grid->z(j+1)+0e-9, index);
