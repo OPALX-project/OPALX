@@ -29,7 +29,7 @@
 
 #include "gtest/gtest.h"
 
-#define PolynomialPatchTest_MakePlots
+//  #define PolynomialPatchTest_MakePlots
 #ifdef PolynomialPatchTest_MakePlots
 #include "TCanvas.h"
 #include "TH2D.h"
@@ -174,8 +174,7 @@ TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic) {
 
 // check smoothed quadratic fit exactly reproduces data on and off grid points
 // except near to the boundary
-TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadraticSmoothed) {
-    ASSERT_TRUE(false);
+TEST_F(PPSolveFactoryTestFixture, DISABLED_TestSolvePolynomialQuadraticSmoothed) {
     PPSolveFactory fac2(grid->clone(),
                        values,
                        1,
