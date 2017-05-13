@@ -146,6 +146,19 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     IpplTimings::stopTimer(regridTimer);
     
+//     // single core
+//     unsigned int lev = 0, nLocParticles = 0;
+//     for (unsigned int ip = 0; ip < bunch->getLocalNum(); ++ip) {
+//         if ( lev != bunch->m_lev[ip] ) {
+//             std::cout << "#Local Particles at level " << lev << ": " << nLocParticles << std::endl;
+//             nLocParticles = 0;
+//             lev++;
+//         }
+//         nLocParticles++;
+//     }
+//     
+//     std::cout << "#Local Particles at level " << lev << ": " << nLocParticles << std::endl;
+    
     bunch->python_format(0);
 }
 

@@ -57,6 +57,9 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
     nChargePerCell_m.resize(max_level_in + 1);
     
     MakeNewLevel(0, 0.0, ba, dm);
+    
+    std::cout << ba << std::endl;
+    std::cout << this->boxArray().size() << std::endl;
 }
 
 
@@ -468,6 +471,7 @@ void AmrOpal::ClearLevel(int lev) {
 
 
 void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
+    std::cout << "Tagging of level " << lev << std::endl;
     
     for (int i = lev; i <= finest_level; ++i) {
 #ifdef UNIQUE_PTR
@@ -496,6 +500,10 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
         BoxLib::average_down(*nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
         MultiFab::Add(*nChargePerCell_m[i], tmp, 0, 0, 1, 0);
     }
+    
+    for (int i = lev; i <= finest_level; ++i) {
+        std::cout << "lev = " << i << " sum = " << nChargePerCell_m[i]->sum() << std::endl;
+    }
 #else
     for (int i = finest_level-1; i >= lev; --i) {
         MultiFab tmp(nChargePerCell_m[i].boxArray(), 1, 0, nChargePerCell_m[i].DistributionMap());
@@ -503,8 +511,22 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
         BoxLib::average_down(nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
         MultiFab::Add(nChargePerCell_m[i], tmp, 0, 0, 1, 0);
     }
+    
+    for (int i = lev; i <= finest_level; ++i) {
+        std::cout << "lev = " << i << " sum = " << nChargePerCell_m[i].sum() << std::endl;
+    }
 #endif
     
+    /* BoxLib stores charge per cell volume, we thus need to 
+     * divide by the charge per level by the cell volume of this level
+     */
+    double cell_volume = 1.0;
+    for (int i = 0; i < BL_SPACEDIM; ++i) {        
+        double dx = geom[lev].CellSize(i);
+        cell_volume *= dx;
+    }
+    double charge = nCharge_m / cell_volume;
+//     std::cout << "lev = " << lev << " charge = " << charge << " cell_volume = " << cell_volume << std::endl;
     
     const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
@@ -543,7 +565,7 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
 #endif
                         &tagval, &clearval, 
                         ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                        ZFILL(dx), ZFILL(prob_lo), &time, &nCharge_m);
+                        ZFILL(dx), ZFILL(prob_lo), &time, &charge);
             //
             // Now update the tags in the TagBox.
             //
