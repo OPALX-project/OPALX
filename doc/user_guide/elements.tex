@@ -1741,9 +1741,8 @@ The reference system for a collimator is a Cartesian coordinate system
 
 
 \subsection{\opalt mode}
- The \keyword{RCOLLIMATOR} and \keyword{CCOLLIMATOR} are not supported at the moment. A \keyword{ECOLLIMATOR} detects all particles which are outside the aperture defined by
-\keyword{XSIZE} and \keyword{YSIZE}. The lost particles are saved  into an H5hut file defined by \keyword{OUTFN}.  The \keyword{ELEMEDGE} defines the
-location of the collimator and \keyword{L} the length.
+ The \keyword{CCOLLIMATOR} isn't supported. \keyword{ECOLLIMATOR}s and \keyword{RCOLLIMATOR}s detect all particles which are outside the aperture defined by
+\keyword{XSIZE} and \keyword{YSIZE}. Lost particles are saved in an H5hut file defined by \keyword{OUTFN}. The \keyword{ELEMEDGE} defines the location of the collimator and \keyword{L} the length.
 \begin{kdescription}
 \item[OUTFN]
   The file name into which the monitor should write the collected data. The file is an H5hut file.
