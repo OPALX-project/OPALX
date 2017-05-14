@@ -28,7 +28,7 @@
 
 class Tracker;
 class PartBunch;
-class ParticleMaterInteractionHandler;
+class ParticleMatterInteractionHandler;
 class BoundaryGeometry;
 class WakeFunction;
 class Bend;
@@ -97,7 +97,7 @@ public:
     WakeFunction *getWakeFunction(const unsigned int &);
     std::shared_ptr<const ElementBase> getWakeFunctionOwner(const unsigned int &);
 
-    ParticleMaterInteractionHandler *getParticleMaterInteractionHandler(const unsigned int &);
+    ParticleMatterInteractionHandler *getParticleMatterInteractionHandler(const unsigned int &);
 
     BoundaryGeometry *getBoundaryGeometry(const unsigned int &);
 
@@ -164,9 +164,9 @@ private:
 //     return NULL;
 // }
 
-// inline ParticleMaterInteractionHandler *OpalBeamline::getParticleMaterInteractionHandler(const unsigned int &index) {
+// inline ParticleMatterInteractionHandler *OpalBeamline::getParticleMatterInteractionHandler(const unsigned int &index) {
 //     if(index < sections_m.size()) {
-//         return sections_m[index].getParticleMaterInteractionHandler();
+//         return sections_m[index].getParticleMatterInteractionHandler();
 //     }
 //     return 0;
 // }
@@ -187,18 +187,6 @@ void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunch *bunch) 
 
 template<> inline
 void OpalBeamline::visit<Source>(const Source &element, BeamlineVisitor &, PartBunch *bunch) {
-    // Inform msg("OPAL ");
-    // double startField = 0.0;
-    // double endField = 0.0;
-    // std::shared_ptr<Source> elptr(static_cast<Source*>(element.clone()->removeWrappers()));
-
-    // if(!elptr->hasAttribute("ELEMEDGE")) {
-    //     startField = elptr->getElementPosition();
-    // }
-
-    // elptr->initialise(bunch, startField, endField);
-    // elptr->setBeamline(this);
-    // elements_m.push_back(ClassicField(elptr, startField, endField));
     containsSource_m = true;
 }
 

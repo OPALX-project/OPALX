@@ -8,10 +8,10 @@ class ElementBase;
 class PartBunch;
 class Inform;
 
-class ParticleMaterInteractionHandler {
+class ParticleMatterInteractionHandler {
 public:
-    ParticleMaterInteractionHandler(std::string name, ElementBase *elref);
-    virtual ~ParticleMaterInteractionHandler() { };
+    ParticleMatterInteractionHandler(std::string name, ElementBase *elref);
+    virtual ~ParticleMatterInteractionHandler() { };
     virtual void apply(PartBunch &bunch,
                        const std::pair<Vector_t, double> &boundingSphere,
                        size_t numParticlesInSimulation = 0) = 0;
@@ -37,29 +37,29 @@ private:
 };
 
 inline
-ParticleMaterInteractionHandler::ParticleMaterInteractionHandler(std::string name, ElementBase *elref):
+ParticleMatterInteractionHandler::ParticleMatterInteractionHandler(std::string name, ElementBase *elref):
     element_ref_m(elref),
     allParticleInMat_m(false),
     name_m(name)
 {}
 
 inline
-void ParticleMaterInteractionHandler::updateElement(ElementBase *newref) {
+void ParticleMatterInteractionHandler::updateElement(ElementBase *newref) {
     element_ref_m = newref;
 }
 
 inline
-ElementBase* ParticleMaterInteractionHandler::getElement() {
+ElementBase* ParticleMatterInteractionHandler::getElement() {
     return element_ref_m;
 }
 
 inline
-void ParticleMaterInteractionHandler::setFlagAllParticlesIn(bool p) {
+void ParticleMatterInteractionHandler::setFlagAllParticlesIn(bool p) {
   allParticleInMat_m = p;
 }
 
 inline
-bool ParticleMaterInteractionHandler::getFlagAllParticlesIn() const {
+bool ParticleMatterInteractionHandler::getFlagAllParticlesIn() const {
     return allParticleInMat_m;
 }
 #endif // PARTICLEMATERINTERACTION_HH
