@@ -196,7 +196,7 @@ void doTestScatter(TestParams& parms) {
     // single core
     unsigned int lev = 0, nLocParticles = 0;
     for (unsigned int ip = 0; ip < pbase->getLocalNum(); ++ip) {
-        if ( lev != pbase->m_lev[ip] ) {
+        while ( lev != pbase->m_lev[ip] ) {
             std::cout << "#Local Particles at level " << lev << ": " << nLocParticles << std::endl;
             nLocParticles = 0;
             lev++;
@@ -204,8 +204,7 @@ void doTestScatter(TestParams& parms) {
         nLocParticles++;
     }
     
-    if ( lev == 0 )
-        std::cout << "#Local Particles at level " << lev << ": " << nLocParticles << std::endl;
+    std::cout << "#Local Particles at level " << lev << ": " << nLocParticles << std::endl;
     
     for (unsigned int lev = 0; lev < partMF.size(); ++lev) {
         //calculate the sum of all the components in multifab
