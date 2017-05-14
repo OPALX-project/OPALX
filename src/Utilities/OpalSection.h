@@ -4,11 +4,11 @@
 #include <vector>
 #include <memory>
 
-#include "Solvers/ParticleMaterInteractionHandler.hh"
+#include "Solvers/ParticleMatterInteractionHandler.hh"
 #include "AbsBeamline/Component.h"
 
 class WakeFunction;
-class ParticleMaterInteractionHandler;
+class ParticleMatterInteractionHandler;
 class BoundaryGeometry;
 
 typedef std::vector<std::shared_ptr<Component> > CompVec;
@@ -34,13 +34,13 @@ public:
     WakeFunction *getWakeFunction();
     std::shared_ptr<const ElementBase> getWakeFunctionOwner();
 
-    ParticleMaterInteractionHandler *getParticleMaterInteractionHandler();
+    ParticleMatterInteractionHandler *getParticleMatterInteractionHandler();
     BoundaryGeometry *getBoundaryGeometry();
 
     const bool &doesBend() const;
     const bool &hasWake() const;
     const bool &hasBoundaryGeometry() const;
-    const bool &hasParticleMaterInteraction() const;
+    const bool &hasParticleMatterInteraction() const;
 
     void push_back(std::shared_ptr<Component>);
     bool find(std::shared_ptr<const Component>) const;
@@ -86,7 +86,7 @@ private:
     bool is_live_m;
     WakeFunction *wakefunction_m;
     std::shared_ptr<const ElementBase> wakeFunctionOwner_m;
-    ParticleMaterInteractionHandler *parmatint_handler_m;
+    ParticleMatterInteractionHandler *parmatint_handler_m;
     BoundaryGeometry *boundarygeometry_m;
 
     Vector_t orientation_m;
@@ -166,11 +166,11 @@ inline BoundaryGeometry *OpalSection::getBoundaryGeometry() {
     return boundarygeometry_m;
 }
 
-inline const bool &OpalSection::hasParticleMaterInteraction() const {
+inline const bool &OpalSection::hasParticleMatterInteraction() const {
     return has_partmater_interaction_m;
 }
 
-inline ParticleMaterInteractionHandler *OpalSection::getParticleMaterInteractionHandler() {
+inline ParticleMatterInteractionHandler *OpalSection::getParticleMatterInteractionHandler() {
     return parmatint_handler_m;
 }
 

@@ -1,12 +1,12 @@
 // ------------------------------------------------------------------------
-// $RCSfile: ParticleMaterInteraction.cpp,v $
+// $RCSfile: ParticleMatterInteraction.cpp,v $
 // ------------------------------------------------------------------------
 // $Revision: 1.3.4.1 $
 // ------------------------------------------------------------------------
 // Copyright: see Copyright.readme
 // ------------------------------------------------------------------------
 //
-// Class: ParticleMaterInteraction
+// Class: ParticleMatterInteraction
 //   The class for the OPAL PARTICLEMATERINTERACTION command.
 //
 // $Date: 2009/07/14 22:09:00 $
@@ -14,7 +14,7 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Structure/ParticleMaterInteraction.h"
+#include "Structure/ParticleMatterInteraction.h"
 #include "Solvers/CollimatorPhysics.hh"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
@@ -28,10 +28,10 @@ extern Inform *gmsg;
 using namespace Physics;
 
 
-// Class ParticleMaterInteraction
+// Class ParticleMatterInteraction
 // ------------------------------------------------------------------------
 
-// The attributes of class ParticleMaterInteraction.
+// The attributes of class ParticleMatterInteraction.
 namespace {
     enum {
         // DESCRIPTION OF SINGLE PARTICLE:
@@ -45,7 +45,7 @@ namespace {
     };
 }
 
-ParticleMaterInteraction::ParticleMaterInteraction():
+ParticleMatterInteraction::ParticleMatterInteraction():
     Definition(SIZE, "PARTICLEMATERINTERACTION",
                "The \"SURFACE_PHYSICS\" statement defines data for the particle mater interaction handler "
                "on an element."),
@@ -67,67 +67,67 @@ ParticleMaterInteraction::ParticleMaterInteraction():
 
     itsAttr[NPART] = Attributes::makeReal("NPART", "Number of particles in bunch");
 
-    ParticleMaterInteraction *defParticleMaterInteraction = clone("UNNAMED_PARTICLEMATERINTERACTION");
-    defParticleMaterInteraction->builtin = true;
+    ParticleMatterInteraction *defParticleMatterInteraction = clone("UNNAMED_PARTICLEMATERINTERACTION");
+    defParticleMatterInteraction->builtin = true;
 
     try {
-        defParticleMaterInteraction->update();
-        OpalData::getInstance()->define(defParticleMaterInteraction);
+        defParticleMatterInteraction->update();
+        OpalData::getInstance()->define(defParticleMatterInteraction);
     } catch(...) {
-        delete defParticleMaterInteraction;
+        delete defParticleMatterInteraction;
     }
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
 
-ParticleMaterInteraction::ParticleMaterInteraction(const std::string &name, ParticleMaterInteraction *parent):
+ParticleMatterInteraction::ParticleMatterInteraction(const std::string &name, ParticleMatterInteraction *parent):
     Definition(name, parent),
     handler_m(parent->handler_m)
 {}
 
 
-ParticleMaterInteraction::~ParticleMaterInteraction() {
+ParticleMatterInteraction::~ParticleMatterInteraction() {
     if(handler_m)
         delete handler_m;
 }
 
 
-bool ParticleMaterInteraction::canReplaceBy(Object *object) {
+bool ParticleMatterInteraction::canReplaceBy(Object *object) {
     // Can replace only by another PARTICLEMATERINTERACTION.
-    return dynamic_cast<ParticleMaterInteraction *>(object) != 0;
+    return dynamic_cast<ParticleMatterInteraction *>(object) != 0;
 }
 
 
-ParticleMaterInteraction *ParticleMaterInteraction::clone(const std::string &name) {
-    return new ParticleMaterInteraction(name, this);
+ParticleMatterInteraction *ParticleMatterInteraction::clone(const std::string &name) {
+    return new ParticleMatterInteraction(name, this);
 }
 
 
-void ParticleMaterInteraction::execute() {
+void ParticleMatterInteraction::execute() {
     update();
 }
 
 
-ParticleMaterInteraction *ParticleMaterInteraction::find(const std::string &name) {
-    ParticleMaterInteraction *parmatint = dynamic_cast<ParticleMaterInteraction *>(OpalData::getInstance()->find(name));
+ParticleMatterInteraction *ParticleMatterInteraction::find(const std::string &name) {
+    ParticleMatterInteraction *parmatint = dynamic_cast<ParticleMatterInteraction *>(OpalData::getInstance()->find(name));
 
     if(parmatint == 0) {
-        throw OpalException("ParticleMaterInteraction::find()", "ParticleMaterInteraction \"" + name + "\" not found.");
+        throw OpalException("ParticleMatterInteraction::find()", "ParticleMatterInteraction \"" + name + "\" not found.");
     }
     return parmatint;
 }
 
 
-void ParticleMaterInteraction::update() {
+void ParticleMatterInteraction::update() {
     // Set default name.
     if(getOpalName().empty()) setOpalName("UNNAMED_PARTICLEMATERINTERACTION");
 }
 
 
-void ParticleMaterInteraction::initParticleMaterInteractionHandler(ElementBase &element) {
+void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase &element) {
     *gmsg << "* ************* P A R T I C L E  M A T E R  I N T E R A C T I O N ****************** " << endl;
-    *gmsg << "* ParticleMaterInteraction::initParticleMaterInteractionHandler " << endl;
+    *gmsg << "* ParticleMatterInteraction::initParticleMatterInteractionHandler " << endl;
     *gmsg << "* ********************************************************************************** " << endl;
 
     itsElement_m = &element;
@@ -147,11 +147,11 @@ void ParticleMaterInteraction::initParticleMaterInteractionHandler(ElementBase &
 
 }
 
-void ParticleMaterInteraction::updateElement(ElementBase *element) {
+void ParticleMatterInteraction::updateElement(ElementBase *element) {
     handler_m->updateElement(element);
 }
 
-void ParticleMaterInteraction::print(std::ostream &os) const {
+void ParticleMatterInteraction::print(std::ostream &os) const {
     os << "* ************* P A R T I C L E  M A T E R  I N T E R A C T I O N ****************** " << std::endl;
     os << "* PARTICLEMATERINTERACTION " << getOpalName() << '\n'
        << "* MATERIAL       " << Attributes::getString(itsAttr[MATERIAL]) << '\n';

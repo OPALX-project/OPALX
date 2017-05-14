@@ -199,7 +199,7 @@ private:
 
     std::unique_ptr<LossDataSink> lossDs_m;
 
-    ParticleMaterInteractionHandler *parmatint_m;
+    ParticleMatterInteractionHandler *parmatint_m;
 
 
 };

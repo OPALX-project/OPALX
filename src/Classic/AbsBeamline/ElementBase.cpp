@@ -29,7 +29,7 @@
 
 #include "Structure/BoundaryGeometry.h"    // OPAL file
 #include "Solvers/WakeFunction.hh"
-#include "Solvers/ParticleMaterInteractionHandler.hh"
+#include "Solvers/ParticleMatterInteractionHandler.hh"
 
 using namespace std;
 
@@ -334,7 +334,7 @@ void ElementBase::setBoundaryGeometry(BoundaryGeometry *geo) {
     bgeometry_m = geo;//->clone(getName() + std::string("_wake")); }
 }
 
-void ElementBase::setParticleMaterInteraction(ParticleMaterInteractionHandler *parmatint) {
+void ElementBase::setParticleMatterInteraction(ParticleMatterInteractionHandler *parmatint) {
     parmatint_m = parmatint;
 }
 

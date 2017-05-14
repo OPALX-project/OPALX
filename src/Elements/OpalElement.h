@@ -97,7 +97,7 @@ public:
     /// Return the element's type name.
     const std::string getWakeF() const;
 
-    const std::string getParticleMaterInteraction() const;
+    const std::string getParticleMatterInteraction() const;
 
     const std::string getWMaterial() const;
 

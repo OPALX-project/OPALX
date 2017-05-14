@@ -21,7 +21,7 @@
 #include "Elements/OpalBend.h"
 
 class OpalWake;
-class ParticleMaterInteraction;
+class ParticleMatterInteraction;
 
 // Class OpalSBend
 // ------------------------------------------------------------------------
@@ -55,7 +55,7 @@ private:
     OpalSBend(const std::string &name, OpalSBend *parent);
 
     OpalWake *owk_m;
-    ParticleMaterInteraction *parmatint_m;
+    ParticleMatterInteraction *parmatint_m;
 };
 
 #endif // OPAL_OpalSBend_HH

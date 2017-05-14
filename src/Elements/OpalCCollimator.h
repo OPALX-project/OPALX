@@ -20,7 +20,7 @@
 
 #include "Elements/OpalElement.h"
 
-class ParticleMaterInteraction;
+class ParticleMatterInteraction;
 // Class OpalCCollimator
 // ------------------------------------------------------------------------
 /// The CCOLLIMATOR element.
@@ -64,7 +64,7 @@ private:
 
     // Clone constructor.
     OpalCCollimator(const std::string &name, OpalCCollimator *parent);
-    ParticleMaterInteraction *parmatint_m;
+    ParticleMatterInteraction *parmatint_m;
 };
 
 #endif // OPAL_OpalCCollimator_HH
