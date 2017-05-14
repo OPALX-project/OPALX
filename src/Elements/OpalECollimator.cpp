@@ -88,7 +88,7 @@ void OpalECollimator::update() {
 
     if(itsAttr[PARTICLEMATERINTERACTION] && parmatint_m == NULL) {
         const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATERINTERACTION]);
-        const ParticleMatterInteraction *orig = ParticleMatterInteraction::find();
+        ParticleMatterInteraction *orig = ParticleMatterInteraction::find(matterDescriptor);
         parmatint_m = orig->clone(getOpalName() + std::string("_parmatint"));
         parmatint_m->initParticleMatterInteractionHandler(*coll);
         coll->setParticleMatterInteraction(parmatint_m->handler_m);
