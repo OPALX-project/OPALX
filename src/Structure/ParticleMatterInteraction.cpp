@@ -46,7 +46,7 @@ namespace {
 }
 
 ParticleMatterInteraction::ParticleMatterInteraction():
-    Definition(SIZE, "PARTICLEMATERINTERACTION",
+    Definition(SIZE, "PARTICLEMATTERINTERACTION",
                "The \"SURFACE_PHYSICS\" statement defines data for the particle mater interaction handler "
                "on an element."),
     handler_m(0) {
@@ -67,7 +67,7 @@ ParticleMatterInteraction::ParticleMatterInteraction():
 
     itsAttr[NPART] = Attributes::makeReal("NPART", "Number of particles in bunch");
 
-    ParticleMatterInteraction *defParticleMatterInteraction = clone("UNNAMED_PARTICLEMATERINTERACTION");
+    ParticleMatterInteraction *defParticleMatterInteraction = clone("UNNAMED_PARTICLEMATTERINTERACTION");
     defParticleMatterInteraction->builtin = true;
 
     try {
@@ -94,7 +94,7 @@ ParticleMatterInteraction::~ParticleMatterInteraction() {
 
 
 bool ParticleMatterInteraction::canReplaceBy(Object *object) {
-    // Can replace only by another PARTICLEMATERINTERACTION.
+    // Can replace only by another PARTICLEMATTERINTERACTION.
     return dynamic_cast<ParticleMatterInteraction *>(object) != 0;
 }
 
@@ -121,7 +121,7 @@ ParticleMatterInteraction *ParticleMatterInteraction::find(const std::string &na
 
 void ParticleMatterInteraction::update() {
     // Set default name.
-    if(getOpalName().empty()) setOpalName("UNNAMED_PARTICLEMATERINTERACTION");
+    if(getOpalName().empty()) setOpalName("UNNAMED_PARTICLEMATTERINTERACTION");
 }
 
 
@@ -152,8 +152,8 @@ void ParticleMatterInteraction::updateElement(ElementBase *element) {
 }
 
 void ParticleMatterInteraction::print(std::ostream &os) const {
-    os << "* ************* P A R T I C L E  M A T E R  I N T E R A C T I O N ****************** " << std::endl;
-    os << "* PARTICLEMATERINTERACTION " << getOpalName() << '\n'
+    os << "* ************* P A R T I C L E  M A T T E R  I N T E R A C T I O N ****************** " << std::endl;
+    os << "* PARTICLEMATTERINTERACTION " << getOpalName() << '\n'
        << "* MATERIAL       " << Attributes::getString(itsAttr[MATERIAL]) << '\n';
     os << "* ********************************************************************************** " << std::endl;
 }
