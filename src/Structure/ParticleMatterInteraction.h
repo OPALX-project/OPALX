@@ -1,5 +1,5 @@
-#ifndef OPAL_PARTICLEMATERINTERACTION_HH
-#define OPAL_PARTICLEMATERINTERACTION_HH
+#ifndef OPAL_PARTICLEMATTERINTERACTION_HH
+#define OPAL_PARTICLEMATTERINTERACTION_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Wake.h,v $
@@ -47,13 +47,13 @@ public:
     /// Make clone.
     virtual ParticleMatterInteraction *clone(const std::string &name);
 
-    /// Check the PARTICLEMATERINTERACTION data.
+    /// Check the PARTICLEMATTERINTERACTION data.
     virtual void execute();
 
-    /// Find named PARTICLEMATERINTERACTION.
+    /// Find named PARTICLEMATTERINTERACTION.
     static ParticleMatterInteraction *find(const std::string &name);
 
-    /// Update the PARTICLEMATERINTERACTION data.
+    /// Update the PARTICLEMATTERINTERACTION data.
     virtual void update();
 
     void print(std::ostream &os) const;
@@ -90,4 +90,4 @@ inline std::ostream &operator<<(std::ostream &os, const ParticleMatterInteractio
     return os;
 }
 
-#endif // OPAL_PARTICLEMATERINTERACTION_HH
+#endif // OPAL_PARTICLEMATTERINTERACTION_HH
