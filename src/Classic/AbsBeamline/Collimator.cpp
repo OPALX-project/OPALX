@@ -70,7 +70,10 @@ Collimator::Collimator():
     pitch_m(0.0),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatint_m(NULL)
+    parmatint_m(NULL),
+    isWarping_m(true),
+    warpCurveX_m(NULL),
+    warpCurveZ_m(NULL)
 {}
 
 
@@ -109,7 +112,10 @@ Collimator::Collimator(const Collimator &right):
     pitch_m(right.pitch_m),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatint_m(NULL)
+    parmatint_m(NULL),
+    isWarping_m(right.isWarping_m),
+    warpCurveX_m(NULL),
+    warpCurveZ_m(NULL)
 {
     setGeom();
 }
@@ -152,7 +158,8 @@ Collimator::Collimator(const std::string &name):
     lossDs_m(nullptr),
     parmatint_m(NULL),
     isWarping_m(true),
-    warpCurve_m(NULL)
+    warpCurveX_m(NULL),
+    warpCurveZ_m(NULL)
 {}
 
 
@@ -487,4 +494,36 @@ int Collimator::checkPoint(const double &x, const double &y) {
         }
     }
     return (cn & 1);  // 0 if even (out), and 1 if odd (in)
+}
+
+void Collimator::setWarpCurve(const std::vector<Vector_t> & curve) {
+    const size_t size = curve.size();
+
+    gsl_interp_accel *accel = gsl_interp_accel_alloc();
+
+    std::vector<double> xvalues(size), zvalues(size), tvalues(size);
+
+    for (size_t i = 0; i < size; ++ i) {
+        xvalues[i] = curve[i](0);
+        zvalues[i] = curve[i](1);
+        tvalues[i] = curve[i](2);
+    }
+
+    gsl_spline *xinterpolant = gsl_spline_alloc(gsl_interp_cspline, size);
+    gsl_spline *zinterpolant = gsl_spline_alloc(gsl_interp_cspline, size);
+
+    gsl_spline_init(xinterpolant, tvalues.data(), xvalues.data(), size);
+    gsl_spline_init(zinterpolant, tvalues.data(), zvalues.data(), size);
+
+    std::ofstream fh(getName() + "_spline.txt");
+    const unsigned int plotsize = 1000;
+    for (unsigned int i = 0; i < plotsize; ++ i) {
+        double t = i * 1.0 / (plotsize - 1);
+        double x = gsl_spline_eval(xinterpolant, t, accel);
+        double z = gsl_spline_eval(zinterpolant, t, accel);
+
+        fh << std::setw(16) << x
+           << std::setw(16) << z
+           << std::endl;
+    }
 }
