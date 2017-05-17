@@ -36,13 +36,13 @@ void TaperDomain::compute(Vector_t hr) {
     setHr(hr);
     nxy_m = 0;
 
-    register int x, y, z;
-    register double pos, rb2, rs2;
+    int x, y, z;
+    double pos, rb2, rs2;
 
     // clear previous coordinate maps
     IdxMap.clear();
     CoordMap.clear();
-    register int idx = 0;
+    int idx = 0;
 
     // FIXME: since we counting idx++ loop order matters!
     for(x = 0; x < nr[0]; x++) {
