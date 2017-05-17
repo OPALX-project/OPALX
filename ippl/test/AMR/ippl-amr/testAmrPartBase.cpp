@@ -246,8 +246,11 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
 
   //call assign density to scatter the paarticle attribute qm on the grid
   pbase->setAllowParticlesNearBoundary(true);
-  pbase->AssignDensitySingleLevel(pbase->qm, *(field[0].get()), 0);
-  pbase->AssignDensity(pbase->qm, false, field, 0, 1);
+//   pbase->AssignDensitySingleLevel(pbase->qm, *(field[0].get()), 0);
+//   pbase->AssignDensity(pbase->qm, false, field, 0, 1);
+  
+  pbase->AssignCellDensitySingleLevelFort(pbase->qm, *(field[0].get()), 0);
+  pbase->AssignDensityFort(pbase->qm, field, 0, 1, 1);
 
   //copy the valies from field to all the components of efield
   

@@ -471,13 +471,13 @@ void AmrOpal::ClearLevel(int lev) {
 
 
 void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
-    std::cout << "Tagging of level " << lev << std::endl;
     
     for (int i = lev; i <= finest_level; ++i) {
 #ifdef UNIQUE_PTR
         nChargePerCell_m[i]->setVal(0.0);
         #ifdef IPPL_AMR
-            bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nChargePerCell_m[i], i);
+            bunch_m->AssignCellDensitySingleLevelFort(bunch_m->qm, *nChargePerCell_m[i], i);
+//             bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nChargePerCell_m[i], i);
         #else
             bunch_m->AssignDensitySingleLevel(0, *nChargePerCell_m[i], i);
         #endif
@@ -503,6 +503,8 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
     
     for (int i = lev; i <= finest_level; ++i) {
         std::cout << "lev = " << i << " sum = " << nChargePerCell_m[i]->sum() << std::endl;
+        std::cout << "lev = " << i << " min = " << nChargePerCell_m[i]->min(0) << std::endl;
+        std::cout << "lev = " << i << " max = " << nChargePerCell_m[i]->max(0) << std::endl;
     }
 #else
     for (int i = finest_level-1; i >= lev; --i) {

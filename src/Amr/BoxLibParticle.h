@@ -67,6 +67,27 @@ public:
                 ParticleAttrib<Vektor<PT, Dim> >& pp,
                 int lbase = 0, int lfine = -1);
     
+//     // BoxLib specific functions
+//     void resizeContainerGDB(int length) {
+//         PLayout *layout_p = &this->getLayout();
+//         layout_p->resizeGDB(length);
+//     }
+    
+//     void define(const Array<Geometry>& geom,
+//                 const Array<BoxArray>& ba,
+//                 const Array<DistributionMapping>& dmap,
+//                 const Array<int> & rr)
+//     {
+//         PLayout *layout_p = &this->getLayout();
+//         layout_p->setGDB(geom, ba, dmap, rr);
+//     }
+    
+//     void updateGDB(const Array<Geometry>& geom,
+//                    const Array<BoxArray>& ba,
+//                    const Array<DistributionMapping>& dmap) {
+//         PLayout *layout_p = &this->getLayout();
+//         layout_p->updateGDB(geom, ba, dmap);
+//     }
     
 private:
     

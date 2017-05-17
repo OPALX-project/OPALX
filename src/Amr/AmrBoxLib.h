@@ -39,13 +39,11 @@ public:
     
     AmrBoxLib(const AmrDomain_t& domain,
               const AmrIntArray_t& nGridPts,
-              short maxLevel,
-              const AmrIntArray_t& refRatio);
+              short maxLevel);
     
     AmrBoxLib(const AmrDomain_t& domain,
               const AmrIntArray_t& nGridPts,
               short maxLevel,
-              const AmrIntArray_t& refRatio,
               AmrPartBunch* bunch);
     
     inline void setBunch(AmrPartBunch* bunch);
@@ -84,6 +82,7 @@ public:
     
     Vektor<int, 3> getBaseLevelGridPoints();
     
+    void updateBunch();
     
 protected:
     /*!
@@ -122,15 +121,20 @@ private:
     void tagForEfield_m(int lev, TagBoxArray& tags, Real time, int ngrow);
     
     /*!
-     * Use particle BoxArray and DistributionMapping for AmrObject
+     * Use particle BoxArray and DistributionMapping for AmrObject and
+     * reset geometry for bunch
      */
-    void initBaseLevel_m();
+    void initBaseLevel_m(const AmrIntArray_t& nGridPts);
+    
+//     void resizeBaseLevel_m(const AmrDomain_t& domain,
+//                            const AmrIntArray_t& nGridPts);
     
 private:
     /// use in tagging tagForChargeDensity_m (needed when tracking)
     AmrFieldContainer_t nChargePerCell_m;
     
     AmrPartBunch *bunch_mp;
+    AmrLayout_t  *layout_mp;
     
     /// charge density on the grid for all levels
     AmrFieldContainer_t rho_m;

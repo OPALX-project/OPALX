@@ -120,7 +120,7 @@ void initAmr(AmrOpal* &myAmrOpal) {
     nCells[1] = 64;
     nCells[2] = 64;
     
-    Geometry::setProbDomain(real_box);
+//     Geometry::setProbDomain(real_box);
     
     myAmrOpal = new AmrOpal(&real_box, maxLevel, nCells, 0 /* cartesian */);
     

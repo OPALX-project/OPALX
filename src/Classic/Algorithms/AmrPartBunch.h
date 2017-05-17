@@ -70,10 +70,53 @@ public:
             hr_m[i] = hr[i];
     }
     
+    
     //FIXME BCs
     void setBCAllPeriodic() {}
     void setBCAllOpen() {}
     void setBCForDCBeam() {}
+    
+    
+    //BEGIN REMOVE
+    void python_format(int step) {
+        std::string st = std::to_string(step);
+        Inform::WriteMode wm = Inform::OVERWRITE;
+        for (int i = 0; i < Ippl::getNodes(); ++i) {
+            if ( i == Ippl::myNode() ) {
+                wm = (i == 0) ? wm : Inform::APPEND;
+                
+                AmrLayout_t* playout = static_cast<AmrLayout_t*>(&this->getLayout());
+                
+                std::string grid_file = "pyplot_grids_" + st + ".dat";
+                Inform msg("", grid_file.c_str(), wm, i);
+                for (int l = 0; l < playout->finestLevel() + 1; ++l) {
+                    Geometry geom = playout->Geom(l);
+                    for (int g = 0; g < playout->ParticleBoxArray(l).size(); ++g) {
+                        msg << l << ' ';
+                        RealBox loc = RealBox(playout->boxArray(l)[g],geom.CellSize(),geom.ProbLo());
+                        for (int n = 0; n < BL_SPACEDIM; n++)
+                            msg << loc.lo(n) << ' ' << loc.hi(n) << ' ';
+                        msg << endl;
+                    }
+                }
+                
+                std::string particle_file = "pyplot_particles_" + st + ".dat";
+                Inform msg2all("", particle_file.c_str(), wm, i);
+                for (size_t i = 0; i < this->getLocalNum(); ++i) {
+                    msg2all << this->R[i](0) << " "
+                            << this->R[i](1) << " "
+                            << this->R[i](2) << " "
+                            << this->P[i](0) << " "
+                            << this->P[i](1) << " "
+                            << this->P[i](2)
+                            << endl;
+                }
+            }
+            Ippl::Comm->barrier();
+        }
+    }
+    
+    //END
     
     
 private:

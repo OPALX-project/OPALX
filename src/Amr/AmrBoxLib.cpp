@@ -13,6 +13,7 @@ AmrBoxLib::AmrBoxLib() : AmrObject(),
                          AmrCore(),
                          nChargePerCell_m(0),
                          bunch_mp(nullptr),
+                         layout_mp(nullptr),
                          rho_m(0),
                          phi_m(0),
                          eg_m(0)
@@ -26,6 +27,7 @@ AmrBoxLib::AmrBoxLib(TaggingCriteria tagging,
       AmrCore(),
       nChargePerCell_m(0),
       bunch_mp(nullptr),
+      layout_mp(nullptr),
       rho_m(0),
       phi_m(0),
       eg_m(0)
@@ -46,12 +48,12 @@ AmrBoxLib::AmrBoxLib(TaggingCriteria tagging,
 
 AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
                      const AmrIntArray_t& nGridPts,
-                     short maxLevel,
-                     const AmrIntArray_t& refRatio)
+                     short maxLevel)
     : AmrObject(),
       AmrCore(&domain, maxLevel, nGridPts, 0 /* cartesian */),
       nChargePerCell_m(maxLevel + 1),
       bunch_mp(nullptr),
+      layout_mp(nullptr),
       rho_m(maxLevel + 1),
       phi_m(maxLevel + 1),
       eg_m(maxLevel + 1)
@@ -61,22 +63,52 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
 AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
                      const AmrIntArray_t& nGridPts,
                      short maxLevel,
-                     const AmrIntArray_t& refRatio,
                      AmrPartBunch* bunch)
     : AmrObject(),
       AmrCore(&domain, maxLevel, nGridPts, 0 /* cartesian */),
       nChargePerCell_m(maxLevel + 1),
       bunch_mp(bunch),
+      layout_mp(static_cast<AmrLayout_t*>(&bunch->getLayout())),
       rho_m(maxLevel + 1),
       phi_m(maxLevel + 1),
       eg_m(maxLevel + 1)
 {
-    initBaseLevel_m();
+    /*
+     * The layout needs to know how many levels we can make.
+     */
+    layout_mp->resize(maxLevel);
+    
+    initBaseLevel_m(nGridPts);
+    
+//     layout_p->define(this->Geom(),
+//                      this->boxArray(),
+//                      this->DistributionMap());
+    
+//     bunch->update();
+    
+//     std::cout << "After resize" << std::endl;
+                  
+//     AmrPartBunch::pbase_t* amrpbase_p = bunch->getAmrParticleBase();
+//     amrpbase_p->resizeContainerGDB(maxLevel);
+//     amrpbase_p->setGDB(this->Geom(),
+//                        this->boxArray(),
+//                        this->DistributionMap(),
+//                        this->
+//                       );
+//     for (int i = 0; i < maxLevel + 1; ++i) {
+//         std::cout << "level " << i << ": " << this->Geom(i) << std::endl;
+//     }
+    
+    // set mesh spacing of bunch
+    updateMesh();
+    
+//     std::cout << "After updateMesh" << std::endl;
 }
 
 
 void AmrBoxLib::setBunch(AmrPartBunch* bunch) {
     bunch_mp = bunch;
+    layout_mp = static_cast<AmrLayout_t*>(&bunch->getLayout());
 }
 
 
@@ -121,35 +153,22 @@ void AmrBoxLib::regrid(int lbase, int lfine, double time) {
             {
                 DistributionMapping new_dmap(new_grids[lev], ParallelDescriptor::NProcs());
                 RemakeLevel(lev, time, new_grids[lev], new_dmap);
-                
-                /*
-                 * particles need to know the BoxArray
-                 * and DistributionMapping
-                 */
-                AmrLayout_t* layout_p = static_cast<AmrLayout_t*>(&bunch_mp->getLayout());
-                layout_p->SetParticleBoxArray(lev, new_grids[lev]);
-                layout_p->SetParticleDistributionMap(lev, new_dmap);
 	    }
 	}
 	else  // a new level
 	{
 	    DistributionMapping new_dmap(new_grids[lev], ParallelDescriptor::NProcs());
 	    MakeNewLevel(lev, time, new_grids[lev], new_dmap);
-            
-            /*
-             * particles need to know the BoxArray
-             * and DistributionMapping
-             */
-            AmrLayout_t* layout_p = static_cast<AmrLayout_t*>(&bunch_mp->getLayout());
-            layout_p->SetParticleBoxArray(lev, new_grids[lev]);
-            layout_p->SetParticleDistributionMap(lev, new_dmap);
         }
     }
     
     finest_level = new_finest;
     
-//     // update to multilevel
-//     bunch_m->update();
+    // update to multilevel --> update GDB
+    layout_mp->setFinestLevel(finest_level);
+//     std::cout << "regrid: lbase = " << lbase << " lfine = " << lfine << std::endl;
+    bunch_mp->update();
+//     std::cout << "update done" << std::endl; std::cin.get();
 }
 
 
@@ -186,51 +205,56 @@ double AmrBoxLib::getRho(int x, int y, int z) {
 
 
 void AmrBoxLib::computeSelfFields() {
-    //FIXME Lorentz transformation
-    //scatter charges onto grid
-//     bunch_mp->Q *= bunch_mp->dt;
-    AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
-    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, -1);
-//     bunch_mp->Q /= bunch_mp->dt;
     
-    int baseLevel = 0;
-    int finestLevel = (&amrpbase_p->getAmrLayout())->finestLevel();
-    
-    int nLevel = finestLevel + 1;
-    rho_m.resize(nLevel);
-    phi_m.resize(nLevel);
-    eg_m.resize(nLevel);
-    
-    double invDt = 1.0 / bunch_mp->getdT() * bunch_mp->getCouplingConstant();
-    for (int i = 0; i <= finestLevel; ++i) {
-        this->rho_m[i]->mult(invDt, 0, 1);
-    }
-    
-    //calculating mesh-scale factor
-    double gammaz = sum(bunch_mp->P)[2] / bunch_mp->getTotalNum();
-    gammaz *= gammaz;
-    gammaz = std::sqrt(gammaz + 1.0);
-    
-    // charge density is in rho_m
-    PoissonSolver *solver = bunch_mp->getFieldSolver();
-    
-    IpplTimings::startTimer(bunch_mp->compPotenTimer_m);
-    solver->solve(rho_m, phi_m, eg_m, baseLevel, finestLevel);
-    IpplTimings::stopTimer(bunch_mp->compPotenTimer_m);
-    
-    amrpbase_p->gather(bunch_mp->Ef, this->eg_m, bunch_mp->R, 0, -1);
-    
-    /** Magnetic field in x and y direction induced by the eletric field
-     *
-     *  \f[ B_x = \gamma(B_x^{'} - \frac{beta}{c}E_y^{'}) = -\gamma \frac{beta}{c}E_y^{'} = -\frac{beta}{c}E_y \f]
-     *  \f[ B_y = \gamma(B_y^{'} - \frac{beta}{c}E_x^{'}) = +\gamma \frac{beta}{c}E_x^{'} = +\frac{beta}{c}E_x \f]
-     *  \f[ B_z = B_z^{'} = 0 \f]
-     *
-     */
-    double betaC = sqrt(gammaz * gammaz - 1.0) / gammaz / Physics::c;
-
-    bunch_mp->Bf(0) = bunch_mp->Bf(0) - betaC * bunch_mp->Ef(1);
-    bunch_mp->Bf(1) = bunch_mp->Bf(1) + betaC * bunch_mp->Ef(0);
+//     //FIXME now we regrid in every selffield
+//     this->regrid(0, maxLevel(), 0.0);
+//     
+//     //FIXME Lorentz transformation
+//     //scatter charges onto grid
+// //     bunch_mp->Q *= bunch_mp->dt;
+//     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
+//     amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, -1);
+// //     bunch_mp->Q /= bunch_mp->dt;
+//     
+//     int baseLevel = 0;
+//     int finestLevel = (&amrpbase_p->getAmrLayout())->finestLevel();
+//     
+//     int nLevel = finestLevel + 1;
+//     rho_m.resize(nLevel);
+//     phi_m.resize(nLevel);
+//     eg_m.resize(nLevel);
+//     
+//     double invDt = 1.0 / bunch_mp->getdT() * bunch_mp->getCouplingConstant();
+//     for (int i = 0; i <= finestLevel; ++i) {
+//         this->rho_m[i]->mult(invDt, 0, 1);
+//     }
+//     
+//     //calculating mesh-scale factor
+//     double gammaz = sum(bunch_mp->P)[2] / bunch_mp->getTotalNum();
+//     gammaz *= gammaz;
+//     gammaz = std::sqrt(gammaz + 1.0);
+//     
+//     // charge density is in rho_m
+//     PoissonSolver *solver = bunch_mp->getFieldSolver();
+//     
+//     IpplTimings::startTimer(bunch_mp->compPotenTimer_m);
+//     solver->solve(rho_m, phi_m, eg_m, baseLevel, finestLevel);
+//     IpplTimings::stopTimer(bunch_mp->compPotenTimer_m);
+//     
+//     amrpbase_p->gather(bunch_mp->Ef, this->eg_m, bunch_mp->R, 0, -1);
+//     
+//     /** Magnetic field in x and y direction induced by the eletric field
+//      *
+//      *  \f[ B_x = \gamma(B_x^{'} - \frac{beta}{c}E_y^{'}) = -\gamma \frac{beta}{c}E_y^{'} = -\frac{beta}{c}E_y \f]
+//      *  \f[ B_y = \gamma(B_y^{'} - \frac{beta}{c}E_x^{'}) = +\gamma \frac{beta}{c}E_x^{'} = +\frac{beta}{c}E_x \f]
+//      *  \f[ B_z = B_z^{'} = 0 \f]
+//      *
+//      */
+//     double betaC = sqrt(gammaz * gammaz - 1.0) / gammaz / Physics::c;
+// 
+//     bunch_mp->Bf(0) = bunch_mp->Bf(0) - betaC * bunch_mp->Ef(1);
+//     bunch_mp->Bf(1) = bunch_mp->Bf(1) + betaC * bunch_mp->Ef(0);
+    throw OpalException("AmrBoxLib::computeSelfFields() ", "Not yet Implemented.");
 }
 
 
@@ -241,6 +265,24 @@ void AmrBoxLib::computeSelfFields(int bin) {
 
 
 void AmrBoxLib::computeSelfFields_cycl(double gamma) {
+    
+//     std::cout << "computeSelfFields_cycl" << std::endl;
+    
+    //FIXME now we regrid in every self-field
+//     std::cout << "max level: " << maxLevel() << std::endl;
+    
+    for (int i = 0; i <= finest_level && i < max_level; ++i)
+        this->regrid(i, max_level, 0.0);
+    
+//     for (int i = 0; i <= this->finestLevel(); ++i) {
+//         std::cout << "Level " << i << ": " << grids[i] << std::endl;
+//         std::cout << "Level " << i << ": " << layout_mp->ParticleBoxArray(i) << std::endl;
+//     }
+    
+//     std::cout << "regrid done" << std::endl;
+    
+//     bunch_mp->python_format(0); std::cout << "Written." << std::endl; std::cin.get();
+    
     //FIXME Lorentz transformation
     //scatter charges onto grid
 //     bunch_mp->Q *= bunch_mp->dt;
@@ -248,12 +290,12 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, -1);
 //     bunch_mp->Q /= bunch_mp->dt;
     int baseLevel = 0;
-    int finestLevel = (&amrpbase_p->getAmrLayout())->finestLevel();
+    int finestLevel = /*(&amrpbase_p->getAmrLayout())*/this->finestLevel();
     int nLevel = finestLevel + 1;
-    rho_m.resize(nLevel);
-    phi_m.resize(nLevel);
-    eg_m.resize(nLevel);
     double invDt = 1.0 / bunch_mp->getdT() * bunch_mp->getCouplingConstant();
+    
+//     std::cout << "finest_level = " << finestLevel << std::endl;
+//     std::cout << "finest_level = " << (&amrpbase_p->getAmrLayout())->finestLevel() << std::endl; std::cin.get();
     
     for (int i = 0; i <= finestLevel; ++i) {
         this->rho_m[i]->mult(invDt, 0, 1);
@@ -311,6 +353,26 @@ Vektor<int, 3> AmrBoxLib::getBaseLevelGridPoints() {
 }
 
 
+void AmrBoxLib::updateBunch()  {
+    const Array<Geometry>& geom = this->Geom();
+    const Array<DistributionMapping>& dmap = this->DistributionMap();
+    const Array<BoxArray>& ba = this->boxArray();
+    const Array<IntVect>& ref_rato = this->refRatio ();
+        
+        
+    Array<int> rr( ref_rato.size() );
+    for (unsigned int i = 0; i < rr.size(); ++i) {
+        rr[i] = ref_rato[i][0];
+    }        
+    
+    layout_mp->define(geom, ba, dmap, rr);
+        
+    bunch_mp->update();
+        
+//     this->setBunch(bunch_mp);
+}
+
+
 void AmrBoxLib::RemakeLevel (int lev, Real time,
                              const BoxArray& new_grids,
                              const DistributionMapping& new_dmap)
@@ -319,6 +381,17 @@ void AmrBoxLib::RemakeLevel (int lev, Real time,
     SetDistributionMap(lev, new_dmap);
     
     nChargePerCell_m[lev].reset(new AmrField_t(new_grids, 1, 1, new_dmap));
+    nChargePerCell_m[lev]->setVal(0.0);
+    
+    rho_m[lev].reset(new AmrField_t(new_grids, 1, 1, new_dmap));
+    rho_m[lev]->setVal(0.0);
+    
+    /*
+     * particles need to know the BoxArray
+     * and DistributionMapping
+     */
+     layout_mp->SetParticleBoxArray(lev, new_grids);
+     layout_mp->SetParticleDistributionMap(lev, new_dmap);
 }
 
 
@@ -329,12 +402,24 @@ void AmrBoxLib::MakeNewLevel (int lev, Real time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
-    nChargePerCell_m[lev].reset(new AmrField_t(new_grids, 1, 1, dmap[lev]));
+    nChargePerCell_m[lev].reset(new AmrField_t(new_grids, 1, 1, new_dmap));
+    nChargePerCell_m[lev]->setVal(0.0);
+    
+    rho_m[lev].reset(new AmrField_t(new_grids, 1, 1, new_dmap));
+    rho_m[lev]->setVal(0.0);
+    
+    /*
+     * particles need to know the BoxArray
+     * and DistributionMapping
+     */
+    layout_mp->SetParticleBoxArray(lev, new_grids);
+    layout_mp->SetParticleDistributionMap(lev, new_dmap);
 }
 
 
 void AmrBoxLib::ClearLevel(int lev) {
     nChargePerCell_m[lev].reset(nullptr);
+    rho_m[lev].reset(nullptr);
     ClearBoxArray(lev);
     ClearDistributionMap(lev);
 }
@@ -359,6 +444,11 @@ void AmrBoxLib::ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
 
 
 void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
+    std::cout << "-----------------------" << std::endl
+              << "Tagging." << std::endl;
+              
+    std::cout << "  Finest Level: " << finest_level << std::endl
+              << "  Level:        " << lev << std::endl;
     
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     for (int i = lev; i <= finest_level; ++i) {
@@ -373,6 +463,25 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int
         BoxLib::average_down(*nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
         AmrField_t::Add(*nChargePerCell_m[i], tmp, 0, 0, 1, 0);
     }
+    
+    for (int i = lev; i <= finest_level; ++i) {
+        std::cout << "level " << i << " sum = " << nChargePerCell_m[i]->sum() << " min = "
+                  << nChargePerCell_m[i]->min(0) << " max = " << nChargePerCell_m[i]->max(0) << std::endl;
+    }
+    
+    /* BoxLib stores charge per cell volume, we thus need to 
+     * divide by the charge per level by the cell volume of this level
+     */
+    double cellVolume = 1.0;
+    for (int i = 0; i < BL_SPACEDIM; ++i) {        
+        double dx = geom[lev].CellSize(i);
+        cellVolume *= dx;
+    }
+    double nCharge = nCharge_m / cellVolume;
+    
+    std::cout << "Cell volume = " << cellVolume << std::endl
+              << "tag for charge = " << nCharge_m << std::endl
+              << "nCharge / cell volume = " << nCharge << std::endl;
     
     
     const int clearval = TagBox::CLEAR;
@@ -404,13 +513,16 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int
                         BL_TO_FORTRAN_3D((*nChargePerCell_m[lev])[mfi]),
                         &tagval, &clearval, 
                         ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                        ZFILL(dx), ZFILL(prob_lo), &time, &nCharge_m);
+                        ZFILL(dx), ZFILL(prob_lo), &time, &nCharge);
             //
             // Now update the tags in the TagBox.
             //
             tagfab.tags_and_untags(itags, tilebx);
         }
     }
+    
+    std::cout << "Tagging done." << std::endl
+              << "----------------------" << std::endl;
 }
 
 
@@ -605,15 +717,59 @@ void AmrBoxLib::tagForEfield_m(int lev, TagBoxArray& tags, Real time, int ngrow)
 }
 
 
-void AmrBoxLib::initBaseLevel_m() {
-    AmrLayout_t* layout_p = static_cast<AmrLayout_t*>(&bunch_mp->getLayout());
-    const BoxArray& ba = layout_p->ParticleBoxArray(0);
-    const DistributionMapping& dm = layout_p->ParticleDistributionMap(0 /*level*/);
+void AmrBoxLib::initBaseLevel_m(const AmrIntArray_t& nGridPts) {
+    // we need to set the AmrCore variable
+    finest_level = 0;
     
-    SetBoxArray(0 /*level*/, ba);
-    SetDistributionMap(0 /*level*/, dm);
+    IntVect low(0, 0, 0); 
+    IntVect high(nGridPts[0] - 1,
+                 nGridPts[1] - 1,
+                 nGridPts[2] - 1);
     
-    rho_m[0] = std::unique_ptr<AmrField_t>(new AmrField_t(ba, 1, 1, dm));
-    rho_m[0]->setVal(0.0);
+    const Box bx(low, high);
+    BoxArray ba(bx);
+    ba.maxSize( this->maxGridSize(0) );
+//     this->SetBoxArray(0, ba);
+    
+    DistributionMapping dmap;
+    dmap.define(ba, ParallelDescriptor::NProcs());
+//     this->SetDistributionMap(0, dmap);
+    
+    this->RemakeLevel(0, 0.0, ba, dmap);
+    
+    for (int i = 0; i < maxLevel() + 1; ++i) {
+        std::cout << "level " << i << ": " << this->Geom(i) << std::endl;
+    }
+    
+    layout_mp->define(this->Geom());
+    
+//     const BoxArray& ba = layout_mp->ParticleBoxArray(0);
+//     const DistributionMapping& dm = layout_mp->ParticleDistributionMap(0 /*level*/);
+    
+//     SetBoxArray(0 /*level*/, ba);
+//     SetDistributionMap(0 /*level*/, dm);
+    
+//     rho_m[0] = std::unique_ptr<AmrField_t>(new AmrField_t(ba, 1, 1, dm));
+//     rho_m[0]->setVal(0.0);
+    
+//     nChargePerCell_m[0] = std::unique_ptr<AmrField_t>(new AmrField_t(ba, 1, 1, dm));
+//     nChargePerCell_m[0]->setVal(0.0);
 }
+
+
+// void AmrBoxLib::resizeBaseLevel_m(const AmrDomain_t& domain,
+//                                   const AmrIntArray_t& nGridPts) {
+//     
+//     Geometry::ProbDomain(domain);
+//     
+//     // This says we are using Cartesian coordinates
+//     int coord = 0;
+//     
+//         // This sets the boundary conditions to be doubly or triply periodic
+//         int is_per[BL_SPACEDIM];
+//         for (int i = 0; i < BL_SPACEDIM; i++) 
+//             is_per[i] = 0; 
+//     
+//     bunch_mp->
+// }
 

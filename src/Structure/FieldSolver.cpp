@@ -38,6 +38,7 @@
 #ifdef HAVE_AMR_SOLVER
     #include "Solvers/BoxLibSolvers/FMGPoissonSolver.h"
     #include "Amr/AmrDefs.h"
+    #include "Algorithms/AmrPartBunch.h"
 #endif
 
 using namespace Expressions;
@@ -555,13 +556,22 @@ void FieldSolver::initAmrObject_m() {
         (int)this->getMT()
     };
     
+    std::cout << "FieldSolver: "
+              << (int)this->getMX() << " "
+              << (int)this->getMY() << " "
+              << (int)this->getMT() << std::endl;
+    
     short maxLevel = this->getAmrMaxLevel();
     
-    AmrBoxLib::AmrIntArray_t refRatio = {
-        this->getAmrRefRatioX(),
-        this->getAmrRefRatioY(),
-        this->getAmrRefRatioT()
-    };
+    const int nratios_vect = maxLevel*BL_SPACEDIM;
+    
+    AmrBoxLib::AmrIntArray_t refRatio(nratios_vect);
+    
+    for (int i = 0; i < maxLevel; i += BL_SPACEDIM) {
+        refRatio[i]     = this->getAmrRefRatioX();
+        refRatio[i + 1] = this->getAmrRefRatioY();
+        refRatio[i + 2] = this->getAmrRefRatioT();
+    }
     
     int maxGridSize = (int)this->getAmrMaxGridSize();
     
@@ -590,9 +600,16 @@ void FieldSolver::initAmrObject_m() {
     itsAmrObject_mp = std::unique_ptr<AmrBoxLib>(new AmrBoxLib(domain,
                                                                nGridPts,
                                                                maxLevel,
-                                                               reinterpret_cast<AmrPartBunch*>(itsBunch_m)
+                                                               /*reinterpret_cast*/dynamic_cast<AmrPartBunch*>(itsBunch_m)
                                                               )
                                                 );
+//     dynamic_cast<AmrBoxLib*>(itsAmrObject_mp.get())->updateBunch();
+//     layout_p->define(itsAmrObject_mp->Geom(),
+//                      itsAmrObject_mp->boxArray(),
+//                      itsAmrObject_mp->DistributionMap());
+//     
+//     itsBunch_m->update();
+    
     
     AmrObject::TaggingCriteria tagging = AmrObject::TaggingCriteria::CHARGE_DENSITY;
     
