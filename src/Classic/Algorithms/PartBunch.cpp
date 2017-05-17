@@ -282,22 +282,22 @@ void PartBunch::computeSelfFields(int binNumber) {
         if ((fieldDBGStep_m + 1) % dumpFreq == 0) {
             INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
 
-            ofstream fstr2;
+            std::ofstream fstr2;
             fstr2.precision(9);
 
             std::string SfileName = OpalData::getInstance()->getInputBasename();
 
             std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::to_string(fieldDBGStep_m / dumpFreq);
-            fstr2.open(phi_fn.c_str(), ios::out);
+            fstr2.open(phi_fn.c_str(), std::ios::out);
             NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
             Vector_t origin = rho_m.get_mesh().get_origin();
             Vector_t spacing(rho_m.get_mesh().get_meshSpacing(0),
                              rho_m.get_mesh().get_meshSpacing(1),
                              rho_m.get_mesh().get_meshSpacing(2));
-            *gmsg << (rmin(0) - origin(0)) / spacing(0) << "\t"
-                  << (rmin(1)  - origin(1)) / spacing(1) << "\t"
-                  << (rmin(2)  - origin(2)) / spacing(2) << "\t"
-                  << rmin(2) << endl;
+            *gmsg << (rmin_m(0) - origin(0)) / spacing(0) << "\t"
+                  << (rmin_m(1)  - origin(1)) / spacing(1) << "\t"
+                  << (rmin_m(2)  - origin(2)) / spacing(2) << "\t"
+                  << rmin_m(2) << endl;
             for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
                 for(int y = myidx[1].first(); y <= myidx[1].last(); y++) {
                     for(int z = myidx[2].first(); z <= myidx[2].last(); z++) {
@@ -306,7 +306,7 @@ void PartBunch::computeSelfFields(int binNumber) {
                               << std::setw(5) << z + 1
                               << std::setw(17) << origin(2) + z * spacing(2)
                               << std::setw(17) << rho_m[x][y][z].get()
-                              << std::setw(17) << imagePotential[x][y][z].get() << endl;
+                              << std::setw(17) << imagePotential[x][y][z].get() << std::endl;
                     }
                 }
             }
@@ -360,7 +360,7 @@ void PartBunch::computeSelfFields(int binNumber) {
 
             std::string SfileName = OpalData::getInstance()->getInputBasename();
 
-            ofstream fstr2;
+            std::ofstream fstr2;
             fstr2.precision(9);
 
             std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::to_string(fieldDBGStep_m / dumpFreq);
@@ -368,7 +368,7 @@ void PartBunch::computeSelfFields(int binNumber) {
             Vector_t spacing(eg_m.get_mesh().get_meshSpacing(0),
                              eg_m.get_mesh().get_meshSpacing(1),
                              eg_m.get_mesh().get_meshSpacing(2));
-            fstr2.open(e_field.c_str(), ios::out);
+            fstr2.open(e_field.c_str(), std::ios::out);
             NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
             for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
                 for(int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
@@ -380,7 +380,7 @@ void PartBunch::computeSelfFields(int binNumber) {
                               << std::setw(17) << origin(2) + z * spacing(2)
                               << std::setw(17) << ef(0)
                               << std::setw(17) << ef(1)
-                              << std::setw(17) << ef(2) << endl;
+                              << std::setw(17) << ef(2) << std::endl;
                     }
                 }
             }
@@ -502,18 +502,18 @@ void PartBunch::computeSelfFields() {
 
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        ofstream fstr1;
+        std::ofstream fstr1;
         fstr1.precision(9);
 
         std::string SfileName = OpalData::getInstance()->getInputBasename();
 
         std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::to_string(fieldDBGStep_m);
-        fstr1.open(rho_fn.c_str(), ios::out);
+        fstr1.open(rho_fn.c_str(), std::ios::out);
         NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
         for(int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
             for(int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
                 for(int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
-                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << endl;
+                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
                 }
             }
         }
@@ -544,16 +544,16 @@ void PartBunch::computeSelfFields() {
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
 
-        ofstream fstr2;
+        std::ofstream fstr2;
         fstr2.precision(9);
 
         std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::to_string(fieldDBGStep_m);
-        fstr2.open(phi_fn.c_str(), ios::out);
+        fstr2.open(phi_fn.c_str(), std::ios::out);
         NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
         for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
             for(int y = myidx[1].first(); y <= myidx[1].last(); y++) {
                 for(int z = myidx[2].first(); z <= myidx[2].last(); z++) {
-                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << endl;
+                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
                 }
             }
         }
@@ -596,16 +596,16 @@ void PartBunch::computeSelfFields() {
         //MPI_Status status;
         //MPI_Info fileinfo;
         //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
-        ofstream fstr;
+        std::ofstream fstr;
         fstr.precision(9);
 
         std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::to_string(fieldDBGStep_m);
-        fstr.open(e_field.c_str(), ios::out);
+        fstr.open(e_field.c_str(), std::ios::out);
         NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
         for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
             for(int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
                 for(int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
-                    fstr << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << endl;
+                    fstr << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << std::endl;
                 }
             }
         }
@@ -683,7 +683,7 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
         // If debug flag is set, dump scalar field (charge density 'rho') into file under ./data/
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        ofstream fstr1;
+        std::ofstream fstr1;
         fstr1.precision(9);
 
         std::ostringstream istr;
@@ -692,12 +692,12 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
         std::string SfileName = OpalData::getInstance()->getInputBasename();
 
         std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::string(istr.str());
-        fstr1.open(rho_fn.c_str(), ios::out);
+        fstr1.open(rho_fn.c_str(), std::ios::out);
         NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
         for(int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
             for(int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
                 for(int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
-                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << endl;
+                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
                 }
             }
         }
@@ -727,16 +727,16 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
 
-        ofstream fstr2;
+        std::ofstream fstr2;
         fstr2.precision(9);
 
         std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::string(istr.str());
-        fstr2.open(phi_fn.c_str(), ios::out);
+        fstr2.open(phi_fn.c_str(), std::ios::out);
         NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
         for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
             for(int y = myidx[1].first(); y <= myidx[1].last(); y++) {
                 for(int z = myidx[2].first(); z <= myidx[2].last(); z++) {
-                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << endl;
+                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
                 }
             }
         }
@@ -782,16 +782,16 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
         //MPI_Status status;
         //MPI_Info fileinfo;
         //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
-        ofstream fstr;
+        std::ofstream fstr;
         fstr.precision(9);
 
         std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::string(istr.str());
-        fstr.open(e_field.c_str(), ios::out);
+        fstr.open(e_field.c_str(), std::ios::out);
         NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
         for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
             for(int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
                 for(int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
-                    fstr << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << endl;
+                    fstr << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << std::endl;
                 }
             }
         }
@@ -879,7 +879,7 @@ void PartBunch::computeSelfFields_cycl(int bin) {
         // If debug flag is set, dump scalar field (charge density 'rho') into file under ./data/
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        ofstream fstr1;
+        std::ofstream fstr1;
         fstr1.precision(9);
 
         std::ostringstream istr;
@@ -888,12 +888,12 @@ void PartBunch::computeSelfFields_cycl(int bin) {
         std::string SfileName = OpalData::getInstance()->getInputBasename();
 
         std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::string(istr.str());
-        fstr1.open(rho_fn.c_str(), ios::out);
+        fstr1.open(rho_fn.c_str(), std::ios::out);
         NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
         for(int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
             for(int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
                 for(int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
-                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << endl;
+                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
                 }
             }
         }
@@ -921,16 +921,16 @@ void PartBunch::computeSelfFields_cycl(int bin) {
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
 
-        ofstream fstr2;
+        std::ofstream fstr2;
         fstr2.precision(9);
 
         std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::string(istr.str());
-        fstr2.open(phi_fn.c_str(), ios::out);
+        fstr2.open(phi_fn.c_str(), std::ios::out);
         NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
         for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
             for(int y = myidx[1].first(); y <= myidx[1].last(); y++) {
                 for(int z = myidx[2].first(); z <= myidx[2].last(); z++) {
-                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << endl;
+                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
                 }
             }
         }
@@ -982,16 +982,16 @@ void PartBunch::computeSelfFields_cycl(int bin) {
         //MPI_Status status;
         //MPI_Info fileinfo;
         //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
-        ofstream fstr;
+        std::ofstream fstr;
         fstr.precision(9);
 
         std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::string(istr.str());
-        fstr.open(e_field.c_str(), ios::out);
+        fstr.open(e_field.c_str(), std::ios::out);
         NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
         for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
             for(int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
                 for(int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
-                    fstr << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << endl;
+                    fstr << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << std::endl;
                 }
             }
         }
