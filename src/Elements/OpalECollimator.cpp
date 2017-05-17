@@ -19,7 +19,7 @@
 #include "Elements/OpalECollimator.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/CollimatorRep.h"
-#include "Structure/ParticleMaterInteraction.h"
+#include "Structure/ParticleMatterInteraction.h"
 
 
 // Class OpalECollimator
@@ -87,9 +87,11 @@ void OpalECollimator::update() {
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
     if(itsAttr[PARTICLEMATERINTERACTION] && parmatint_m == NULL) {
-        parmatint_m = (ParticleMaterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
-        parmatint_m->initParticleMaterInteractionHandler(*coll);
-        coll->setParticleMaterInteraction(parmatint_m->handler_m);
+        const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATERINTERACTION]);
+        ParticleMatterInteraction *orig = ParticleMatterInteraction::find(matterDescriptor);
+        parmatint_m = orig->clone(getOpalName() + std::string("_parmatint"));
+        parmatint_m->initParticleMatterInteractionHandler(*coll);
+        coll->setParticleMatterInteraction(parmatint_m->handler_m);
     }
 
     // Transmit "unknown" attributes.
