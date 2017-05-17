@@ -49,6 +49,8 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t &rho,
     }
     
     // initialize potential and electric field grids on each level
+    phi.resize( rho.size() );
+    efield.resize( rho.size() );
     initGrids_m(phi, efield);
     
     this->solveWithF90_m(rho, phi, grad_phi_edge, geom,

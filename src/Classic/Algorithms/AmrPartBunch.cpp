@@ -7,10 +7,7 @@ AmrPartBunch::AmrPartBunch(const PartData *ref)
       fieldlayout_m(nullptr),
       amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase))
 {
-    std::cout << "Init bunch" << std::endl;
     amrpbase_mp->initializeAmr();
-    
-//     std::cout << "Init bunch" << std::endl;
 }
 
 
