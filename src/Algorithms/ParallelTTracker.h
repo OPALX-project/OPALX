@@ -64,7 +64,7 @@
 #include <queue>
 
 class BorisPusher;
-class ParticleMaterInteractionHandler;
+class ParticleMatterInteractionHandler;
 
 class ParallelTTracker: public Tracker {
 
@@ -244,7 +244,7 @@ private:
 
     CoordinateSystemTrafo referenceToLabCSTrafo_m;
 
-    std::set<ParticleMaterInteractionHandler*> activeParticleMaterInteractionHandlers_m;
+    std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
     bool particleMaterStatus_m;
 
     unsigned long totalParticlesInSimulation_m;
@@ -298,7 +298,7 @@ private:
     void computeWakefield(IndexMap::value_t &elements);
     void computeParticleMatterInteraction(IndexMap::value_t elements, OrbitThreader &oth);
     void computeSpaceChargeFields(unsigned long long step);
-    void prepareOpalBeamlineSections();
+    // void prepareOpalBeamlineSections();
     void dumpStats(long long step, bool psDump, bool statDump);
     void setOptionalVariables();
     bool hasEndOfLineReached();

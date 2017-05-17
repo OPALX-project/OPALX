@@ -17,7 +17,7 @@
 #include "Elements/OpalRBend3D.h"
 #include "Attributes/Attributes.h"
 #include "Structure/OpalWake.h"
-#include "Structure/ParticleMaterInteraction.h"
+#include "Structure/ParticleMatterInteraction.h"
 #include "AbsBeamline/RBend3D.h"
 #include "Utilities/OpalException.h"
 
@@ -153,9 +153,9 @@ void OpalRBend3D::update() {
     }
 
     if(itsAttr[PARTICLEMATERINTERACTION] && parmatint_m == NULL) {
-        parmatint_m = (ParticleMaterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
-        parmatint_m->initParticleMaterInteractionHandler(*bend);
-        bend->setParticleMaterInteraction(parmatint_m->handler_m);
+        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+        parmatint_m->initParticleMatterInteractionHandler(*bend);
+        bend->setParticleMatterInteraction(parmatint_m->handler_m);
     }
 
     // Transmit "unknown" attributes.

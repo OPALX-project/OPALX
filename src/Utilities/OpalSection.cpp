@@ -1,7 +1,7 @@
 #include "Utilities/OpalSection.h"
-#include "Structure/ParticleMaterInteraction.h"
+#include "Structure/ParticleMatterInteraction.h"
 #include "Solvers/WakeFunction.hh"
-#include "Solvers/ParticleMaterInteractionHandler.hh"
+#include "Solvers/ParticleMatterInteractionHandler.hh"
 #include "Structure/BoundaryGeometry.h"
 
 extern Inform *gmsg;
@@ -46,12 +46,12 @@ OpalSection::OpalSection(const CompVec &elements, const double &start, const dou
             }
             has_wake_m = true;
         }
-        if((*clit)->hasParticleMaterInteraction()) {
-            if(has_partmater_interaction_m && parmatint_handler_m != (*clit)->getParticleMaterInteraction()) {
+        if((*clit)->hasParticleMatterInteraction()) {
+            if(has_partmater_interaction_m && parmatint_handler_m != (*clit)->getParticleMatterInteraction()) {
                 *gmsg << "more than one particle mater interaction handler in one section! dismiss all." << endl;
                 parmatint_handler_m = NULL;
             } else {
-                parmatint_handler_m = (*clit)->getParticleMaterInteraction();
+                parmatint_handler_m = (*clit)->getParticleMatterInteraction();
             }
             has_partmater_interaction_m = true;
         } else
@@ -122,7 +122,7 @@ void OpalSection::print(Inform &msg) const {
         if(boundarygeometry_m)
             mymsg  << " has boundary geometry ";
 
-        if(hasParticleMaterInteraction())
+        if(hasParticleMatterInteraction())
             mymsg  << " has particle mater interaction ";
         msg << mymsg.str() << closure.substr(mymsg.str().length());
     }

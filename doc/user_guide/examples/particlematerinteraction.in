@@ -1,7 +1,7 @@
 
-KX1IPHYS: ParticleMaterInteraction, TYPE="Collimator",MATERIAL="Copper";
+KX1IPHYS: ParticleMatterInteraction, TYPE="Collimator",MATERIAL="Copper";
 
-KX2IPHYS: ParticleMaterInteraction, TYPE="Collimator",MATERIAL="Graphite";
+KX2IPHYS: ParticleMatterInteraction, TYPE="Collimator",MATERIAL="Graphite";
 
 KX0I: ECollimator, L=0.09, ELEMEDGE=0.01, APERTURE={0.003,0.003},OUTFN="KX0I.h5", 
       PARTICLEMATERINTERACTION='KX1IPHYS';

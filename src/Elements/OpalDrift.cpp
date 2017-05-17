@@ -21,7 +21,7 @@
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/DriftRep.h"
 #include "Structure/OpalWake.h"
-#include "Structure/ParticleMaterInteraction.h"
+#include "Structure/ParticleMatterInteraction.h"
 
 // Class OpalDrift
 // ------------------------------------------------------------------------
@@ -90,9 +90,9 @@ void OpalDrift::update() {
     }
 
     if(itsAttr[PARTICLEMATERINTERACTION] && parmatint_m == NULL) {
-        parmatint_m = (ParticleMaterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
-        parmatint_m->initParticleMaterInteractionHandler(*drf);
-        drf->setParticleMaterInteraction(parmatint_m->handler_m);
+        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+        parmatint_m->initParticleMatterInteractionHandler(*drf);
+        drf->setParticleMatterInteraction(parmatint_m->handler_m);
     }
     if(itsAttr[GEOMETRY] && obgeo_m == NULL) {
         obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + std::string("_geometry"));

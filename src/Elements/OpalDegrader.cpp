@@ -19,7 +19,7 @@
 #include "Elements/OpalDegrader.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/DegraderRep.h"
-#include "Structure/ParticleMaterInteraction.h"
+#include "Structure/ParticleMatterInteraction.h"
 
 
 // Class OpalDegrader
@@ -78,9 +78,9 @@ void OpalDegrader::update() {
     deg->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
     if(itsAttr[PARTICLEMATERINTERACTION] && parmatint_m == NULL) {
-        parmatint_m = (ParticleMaterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
-        parmatint_m->initParticleMaterInteractionHandler(*deg);
-        deg->setParticleMaterInteraction(parmatint_m->handler_m);
+        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+        parmatint_m->initParticleMatterInteractionHandler(*deg);
+        deg->setParticleMatterInteraction(parmatint_m->handler_m);
     }
 
     // Transmit "unknown" attributes.

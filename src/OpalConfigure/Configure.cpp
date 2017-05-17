@@ -61,7 +61,7 @@
 #include "Structure/FieldSolver.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/OpalWake.h"
-#include "Structure/ParticleMaterInteraction.h"
+#include "Structure/ParticleMatterInteraction.h"
 #include "Utilities/OpalFilter.h"
 #include "Tables/AttList.h"
 #include "Tables/Eigen.h"
@@ -199,7 +199,7 @@ namespace Configure {
         opal->create(new FieldSolver());
         opal->create(new BoundaryGeometry());
         opal->create(new OpalWake());
-        opal->create(new ParticleMaterInteraction());
+        opal->create(new ParticleMatterInteraction());
 
         opal->create(new OpalFilter());
 

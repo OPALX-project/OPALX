@@ -392,7 +392,7 @@ const std::string OpalElement::getWakeF() const {
     return attr ? Attributes::getString(*attr) : std::string();
 }
 
-const std::string OpalElement::getParticleMaterInteraction() const {
+const std::string OpalElement::getParticleMatterInteraction() const {
     const Attribute *attr = findAttribute("PARTICLEMATERINTERACTION");
     return attr ? Attributes::getString(*attr) : std::string();
 }

@@ -85,8 +85,8 @@ void BoxCornerDomain::compute(Vector_t hr){
     IntersectXDir.clear();
 
     // build a index and coordinate map
-    register int idx = 0;
-    register int x, y, z;
+    int idx = 0;
+    int x, y, z;
     for(x = 0; x < nr[0]; x++) {
         for(y = 0; y < nr[1]; y++) {
             for(z = 0; z < nr[2]; z++) {

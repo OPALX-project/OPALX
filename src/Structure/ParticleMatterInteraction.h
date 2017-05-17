@@ -1,5 +1,5 @@
-#ifndef OPAL_PARTICLEMATERINTERACTION_HH
-#define OPAL_PARTICLEMATERINTERACTION_HH
+#ifndef OPAL_PARTICLEMATTERINTERACTION_HH
+#define OPAL_PARTICLEMATTERINTERACTION_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Wake.h,v $
@@ -20,7 +20,7 @@
 
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
-#include "Solvers/ParticleMaterInteractionHandler.hh"
+#include "Solvers/ParticleMatterInteractionHandler.hh"
 class ElementBase;
 class Inform;
 
@@ -31,47 +31,47 @@ class Inform;
 //  particle charge and the reference momentum, together with some other
 //  data.
 
-class ParticleMaterInteraction: public Definition {
+class ParticleMatterInteraction: public Definition {
 
 public:
 
     /// Exemplar constructor.
-    ParticleMaterInteraction();
+    ParticleMatterInteraction();
 
-    virtual ~ParticleMaterInteraction();
+    virtual ~ParticleMatterInteraction();
 
     /// Test if replacement is allowed.
     //  Can replace only by another WAKE.
     virtual bool canReplaceBy(Object *object);
 
     /// Make clone.
-    virtual ParticleMaterInteraction *clone(const std::string &name);
+    virtual ParticleMatterInteraction *clone(const std::string &name);
 
-    /// Check the PARTICLEMATERINTERACTION data.
+    /// Check the PARTICLEMATTERINTERACTION data.
     virtual void execute();
 
-    /// Find named PARTICLEMATERINTERACTION.
-    static ParticleMaterInteraction *find(const std::string &name);
+    /// Find named PARTICLEMATTERINTERACTION.
+    static ParticleMatterInteraction *find(const std::string &name);
 
-    /// Update the PARTICLEMATERINTERACTION data.
+    /// Update the PARTICLEMATTERINTERACTION data.
     virtual void update();
 
     void print(std::ostream &os) const;
 
-    void initParticleMaterInteractionHandler(ElementBase &element);
+    void initParticleMatterInteractionHandler(ElementBase &element);
 
     void updateElement(ElementBase *element);
 
-    ParticleMaterInteractionHandler *handler_m;
+    ParticleMatterInteractionHandler *handler_m;
 
 private:
 
     // Not implemented.
-    ParticleMaterInteraction(const ParticleMaterInteraction &);
-    void operator=(const ParticleMaterInteraction &);
+    ParticleMatterInteraction(const ParticleMatterInteraction &);
+    void operator=(const ParticleMatterInteraction &);
 
     // Clone constructor.
-    ParticleMaterInteraction(const std::string &name, ParticleMaterInteraction *parent);
+    ParticleMatterInteraction(const std::string &name, ParticleMatterInteraction *parent);
 
     // The particle reference data.
     PartData reference;
@@ -85,9 +85,9 @@ private:
 
 };
 
-inline std::ostream &operator<<(std::ostream &os, const ParticleMaterInteraction &b) {
+inline std::ostream &operator<<(std::ostream &os, const ParticleMatterInteraction &b) {
     b.print(os);
     return os;
 }
 
-#endif // OPAL_PARTICLEMATERINTERACTION_HH
+#endif // OPAL_PARTICLEMATTERINTERACTION_HH

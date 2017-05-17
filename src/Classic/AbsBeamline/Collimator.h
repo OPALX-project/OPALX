@@ -24,6 +24,9 @@
 
 #include "AbsBeamline/Component.h"
 
+#include "gsl/gsl_spline.h"
+#include "gsl/gsl_interp.h"
+
 #include <vector>
 
 class BeamlineVisitor;
@@ -148,7 +151,11 @@ public:
 
     virtual bool isInColl(Vector_t R, Vector_t P, double recpgamma);
 
-    int  checkPoint(const double & x, const double & y );
+    int checkPoint(const double & x, const double & y );
+
+    bool getWarpFlag() const;
+    void setWarpFlag(bool warp = true);
+    void setWarpCurve(const std::vector<Vector_t> &curve);
 private:
 
     // Not implemented.
@@ -199,9 +206,12 @@ private:
 
     std::unique_ptr<LossDataSink> lossDs_m;
 
-    ParticleMaterInteractionHandler *parmatint_m;
+    ParticleMatterInteractionHandler *parmatint_m;
 
 
+    bool isWarping_m;
+    gsl_spline* warpCurveX_m;
+    gsl_spline* warpCurveZ_m;
 };
 
 inline
@@ -358,6 +368,16 @@ void Collimator::setCColl() {
 inline
 void Collimator::setWire() {
     isAWire_m = true;
+}
+
+inline
+bool Collimator::getWarpFlag() const {
+    return isWarping_m;
+}
+
+inline
+void Collimator::setWarpFlag(bool warp) {
+    isWarping_m = warp;
 }
 
 #endif // CLASSIC_Collimator_HH

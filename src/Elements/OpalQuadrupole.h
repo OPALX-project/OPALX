@@ -20,7 +20,7 @@
 
 #include "Elements/OpalElement.h"
 
-class ParticleMaterInteraction;
+class ParticleMatterInteraction;
 
 // Class OpalQuadrupole
 // ------------------------------------------------------------------------
@@ -66,7 +66,7 @@ private:
     // Clone constructor.
     OpalQuadrupole(const std::string &name, OpalQuadrupole *parent);
 
-    ParticleMaterInteraction *parmatint_m;
+    ParticleMatterInteraction *parmatint_m;
 };
 
 #endif // OPAL_OpalQuadrupole_HH
