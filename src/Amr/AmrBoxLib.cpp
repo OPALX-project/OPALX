@@ -16,7 +16,8 @@ AmrBoxLib::AmrBoxLib() : AmrObject(),
                          layout_mp(nullptr),
                          rho_m(0),
                          phi_m(0),
-                         eg_m(0)
+                         eg_m(0),
+                         fieldDBGStep_m(0)
 {}
 
 
@@ -30,7 +31,8 @@ AmrBoxLib::AmrBoxLib(TaggingCriteria tagging,
       layout_mp(nullptr),
       rho_m(0),
       phi_m(0),
-      eg_m(0)
+      eg_m(0),
+      fieldDBGStep_m(0)
 {}
 
 
@@ -56,7 +58,8 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
       layout_mp(nullptr),
       rho_m(maxLevel + 1),
       phi_m(maxLevel + 1),
-      eg_m(maxLevel + 1)
+      eg_m(maxLevel + 1),
+      fieldDBGStep_m(0)
 {}
 
 
@@ -71,7 +74,8 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
       layout_mp(static_cast<AmrLayout_t*>(&bunch->getLayout())),
       rho_m(maxLevel + 1),
       phi_m(maxLevel + 1),
-      eg_m(maxLevel + 1)
+      eg_m(maxLevel + 1),
+      fieldDBGStep_m(0)
 {
     /*
      * The layout needs to know how many levels we can make.
@@ -274,7 +278,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     for (int i = 0; i <= finest_level && i < max_level; ++i)
         this->regrid(i, max_level, 0.0);
     
-//     for (int i = 0; i <= this->finestLevel(); ++i) {
+//     for (int i = 0; i <= finest_level; ++i) {
 //         std::cout << "Level " << i << ": " << grids[i] << std::endl;
 //         std::cout << "Level " << i << ": " << layout_mp->ParticleBoxArray(i) << std::endl;
 //     }
@@ -284,34 +288,152 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
 //     bunch_mp->python_format(0); std::cout << "Written." << std::endl; std::cin.get();
     
     //FIXME Lorentz transformation
+    
+    
+    
     //scatter charges onto grid
 //     bunch_mp->Q *= bunch_mp->dt;
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
-    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, -1);
+    
+    /// from charge (C) to charge density (C/m^3).
+    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
 //     bunch_mp->Q /= bunch_mp->dt;
     int baseLevel = 0;
-    int finestLevel = /*(&amrpbase_p->getAmrLayout())*/this->finestLevel();
-    int nLevel = finestLevel + 1;
-    double invDt = 1.0 / bunch_mp->getdT() * bunch_mp->getCouplingConstant();
+    int nLevel = finest_level + 1;
+    double invGamma = 1.0 / gamma /* bunch_mp->getCouplingConstant()*/;
+    double scalefactor = bunch_mp->getdT();
     
-//     std::cout << "finest_level = " << finestLevel << std::endl;
+//     std::cout << "Coupling: " << bunch_mp->getCouplingConstant() << std::endl; std::cin.get();
+    
+//     std::cout << "finest_level = " << finest_level << std::endl;
 //     std::cout << "finest_level = " << (&amrpbase_p->getAmrLayout())->finestLevel() << std::endl; std::cin.get();
     
-    for (int i = 0; i <= finestLevel; ++i) {
-        this->rho_m[i]->mult(invDt, 0, 1);
+    /// Lorentz transformation
+    /// In particle rest frame, the longitudinal length (y for cyclotron) enlarged
+    for (int i = 0; i <= finest_level; ++i) {
+        this->rho_m[i]->mult(invGamma / scalefactor, 0, 1);
     }
+    
+    
+#ifdef DBG_SCALARFIELD
+    if ( Ippl::getNodes() > 1 )
+        throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ", "Dumping only in serial execution.");
+
+    INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
+    std::ofstream fstr1;
+    fstr1.precision(9);
+
+    std::string SfileName = OpalData::getInstance()->getInputBasename();
+
+    std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::to_string(fieldDBGStep_m);
+    fstr1.open(rho_fn.c_str(), std::ios::out);
+    
+    int level = 0;
+    for (MFIter mfi(*rho_m[level]); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+        const FArrayBox& fab = (*rho_m[level])[mfi];
+        
+        for (int x = bx.loVect()[0]; x <= bx.hiVect()[0]; ++x) {
+            for (int y = bx.loVect()[1]; y <= bx.hiVect()[1]; ++y) {
+                for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; ++z) {
+                    IntVect iv(x, y, z);
+                    // add one in order to have same convention as PartBunch::computeSelfField()
+                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " "
+                          << fab(iv, 0)  << std::endl;
+                }
+            }
+        }
+    }
+    fstr1.close();
+    INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+#endif
+    
+    
     // charge density is in rho_m
     PoissonSolver *solver = bunch_mp->getFieldSolver();
     IpplTimings::startTimer(bunch_mp->compPotenTimer_m);
-    solver->solve(rho_m, phi_m, eg_m, baseLevel, finestLevel);
+    solver->solve(rho_m, phi_m, eg_m, baseLevel, finest_level);
     IpplTimings::stopTimer(bunch_mp->compPotenTimer_m);
     
+    
+#ifdef DBG_SCALARFIELD
+    INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
+    std::ofstream fstr2;
+    fstr2.precision(9);
+
+    std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::to_string(fieldDBGStep_m);
+    fstr2.open(phi_fn.c_str(), std::ios::out);
+    
+    for (MFIter mfi(*phi_m[level]); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+        const FArrayBox& fab = (*phi_m[level])[mfi];
+        
+        for (int x = bx.loVect()[0]; x <= bx.hiVect()[0]; ++x) {
+            for (int y = bx.loVect()[1]; y <= bx.hiVect()[1]; ++y) {
+                for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; ++z) {
+                    IntVect iv(x, y, z);
+                    // add one in order to have same convention as PartBunch::computeSelfField()
+                    std::cout << x + 1 << " " << y + 1 << " " << z + 1 << " "
+                          << fab(iv, 0)  << std::endl;
+                }
+            }
+        }
+    }
+    fstr2.close();
+    INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+#endif
+    
+    /// Back Lorentz transformation
+//     for (int i = 0; i <= finest_level; ++i) {
+//         this->eg_m[i]->mult(gamma, 0, 3, 1); // x-direction
+//         this->eg_m[i]->mult(1.0 / gamma, 1, 3, 1); // y-direction
+//         this->eg_m[i]->mult(gamma, 2, 3, 1); // z-direction
+//     }
+    
+#ifdef DBG_SCALARFIELD
+        INFOMSG("*** START DUMPING E FIELD ***" << endl);
+        //ostringstream oss;
+        //MPI_File file;
+        //MPI_Status status;
+        //MPI_Info fileinfo;
+        //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
+        std::ofstream fstr;
+        fstr.precision(9);
+
+        std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::to_string(fieldDBGStep_m);
+        fstr.open(e_field.c_str(), std::ios::out);
+        
+        for (MFIter mfi(*eg_m[level]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.validbox();
+            const FArrayBox& fab = (*eg_m[level])[mfi];
+            
+            for (int x = bx.loVect()[0]; x <= bx.hiVect()[0]; ++x) {
+                for (int y = bx.loVect()[1]; y <= bx.hiVect()[1]; ++y) {
+                    for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; ++z) {
+                        IntVect iv(x, y, z);
+                        // add one in order to have same convention as PartBunch::computeSelfField()
+                        fstr << x + 1 << " " << y + 1 << " " << z + 1 << " "
+                             << fab(iv, 0) << " " << fab(iv, 1) << " " << fab(iv, 2) << std::endl;
+                    }
+                }
+            }
+        }
+
+        fstr.close();
+        fieldDBGStep_m++;
+
+        INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
+#endif
+    
     amrpbase_p->gather(bunch_mp->Ef, this->eg_m, bunch_mp->R, 0, -1);
+    
+    bunch_mp->Ef *= Vector_t(gamma * scalefactor, invGamma * scalefactor, gamma * scalefactor);
+    
     /// calculate coefficient
     // Relativistic E&M says gamma*v/c^2 = gamma*beta/c = sqrt(gamma*gamma-1)/c
     // but because we already transformed E_trans into the moving frame we have to
     // add 1/gamma so we are using the E_trans from the rest frame -DW
-    double betaC = sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
+    double betaC = std::sqrt(gamma * gamma - 1.0) * invGamma / Physics::c;
     
     /// calculate B field from E field
     bunch_mp->Bf(0) =  betaC * bunch_mp->Ef(2);

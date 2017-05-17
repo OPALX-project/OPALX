@@ -144,6 +144,8 @@ private:
     
     /// vector field on the grid for all levels
     AmrFieldContainer_t eg_m;
+    
+    int fieldDBGStep_m;
 };
 
 #endif
