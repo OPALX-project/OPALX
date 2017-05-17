@@ -12,8 +12,8 @@ class Inform;
 
 class ParticleMatterInteractionHandler {
 public:
-    ParticleMaterInteractionHandler(std::string name, ElementBase *elref);
-    virtual ~ParticleMaterInteractionHandler() { };
+    ParticleMatterInteractionHandler(std::string name, ElementBase *elref);
+    virtual ~ParticleMatterInteractionHandler() { };
     virtual void apply(PartBunchBase<double, 3> *bunch,
                        const std::pair<Vector_t, double> &boundingSphere,
                        size_t numParticlesInSimulation = 0) = 0;
