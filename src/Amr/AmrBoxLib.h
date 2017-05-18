@@ -82,6 +82,9 @@ public:
     
     Vektor<int, 3> getBaseLevelGridPoints();
     
+    int maxLevel();
+    int finestLevel();
+    
     void updateBunch();
     
 protected:

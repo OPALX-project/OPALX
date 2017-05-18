@@ -103,6 +103,35 @@ FieldLayout_t &AmrPartBunch::getFieldLayout() {
 }
 
 
+void AmrPartBunch::boundp() {
+    IpplTimings::startTimer(boundpTimer_m);
+    //if(!R.isDirty() && stateOfLastBoundP_ == unit_state_) return;
+    if ( !(R.isDirty() || ID.isDirty() ) && stateOfLastBoundP_ == unit_state_) return; //-DW
+
+    stateOfLastBoundP_ = unit_state_;
+    
+    update();
+    
+    if ( amrobj_mp ) {
+        int maxLevel = amrobj_mp->maxLevel();
+        int finestLevel = amrobj_mp->finestLevel();
+        
+        for (int i = 0; i <= finestLevel && i < maxLevel; ++i) {
+            amrobj_mp->regrid(i, maxLevel, 0.0 /*time*/);
+            // update to multilevel --> update GDB
+            update();
+        }
+    } else {
+        // At this point an amrobj_mp needs already be set
+        throw GeneralClassicException("AmrPartBunch::boundp() ", "AmrObject pointer is not set.");
+    }
+    
+    R.resetDirtyFlag();
+
+    IpplTimings::stopTimer(boundpTimer_m);
+}
+
+
 void AmrPartBunch::computeSelfFields() {
     IpplTimings::startTimer(selfFieldTimer_m);
     
