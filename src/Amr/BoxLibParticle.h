@@ -52,7 +52,7 @@ public:
     template <class FT, unsigned Dim, class PT>
     void scatter(ParticleAttrib<FT>& attrib, AmrFieldContainer_t& f,
                  ParticleAttrib<Vektor<PT, Dim> >& pp,
-                 int lbase = 0, int lfine = -1);
+                 int lbase, int lfine);
     
     
     template <class FT, unsigned Dim, class PT>
@@ -65,7 +65,7 @@ public:
     template <class FT, unsigned Dim, class PT>
     void gather(ParticleAttrib<FT>& attrib, AmrFieldContainer_t& f,
                 ParticleAttrib<Vektor<PT, Dim> >& pp,
-                int lbase = 0, int lfine = -1);
+                int lbase, int lfine);
     
 //     // BoxLib specific functions
 //     void resizeContainerGDB(int length) {
