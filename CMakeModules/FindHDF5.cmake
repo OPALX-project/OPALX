@@ -9,8 +9,6 @@
 # HDF5_LIBRARY     - qualified libraries to link against.
 # HDF5_FOUND       - do not attempt to use if "no" or undefined.
 
-SET(CMAKE_FIND_LIBRARY_SUFFIXES .lib .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
-
 FIND_PATH(HDF5_INCLUDE_DIR hdf5.h
     HINTS $ENV{HDF5_INCLUDE_PATH} $ENV{HDF5_INCLUDE_DIR} $ENV{HDF5_PREFIX}/include $ENV{HDF5_DIR}/include $ENV{HDF5}/include
     PATHS ENV C_INCLUDE_PATH
