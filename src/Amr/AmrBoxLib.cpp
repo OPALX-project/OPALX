@@ -168,11 +168,7 @@ void AmrBoxLib::regrid(int lbase, int lfine, double time) {
     
     finest_level = new_finest;
     
-    // update to multilevel --> update GDB
     layout_mp->setFinestLevel(finest_level);
-//     std::cout << "regrid: lbase = " << lbase << " lfine = " << lfine << std::endl;
-    bunch_mp->update();
-//     std::cout << "update done" << std::endl; std::cin.get();
 }
 
 
@@ -268,16 +264,7 @@ void AmrBoxLib::computeSelfFields(int bin) {
 }
 
 
-void AmrBoxLib::computeSelfFields_cycl(double gamma) {
-    
-//     std::cout << "computeSelfFields_cycl" << std::endl;
-    
-    //FIXME now we regrid in every self-field
-//     std::cout << "max level: " << maxLevel() << std::endl;
-    
-    for (int i = 0; i <= finest_level && i < max_level; ++i)
-        this->regrid(i, max_level, 0.0);
-    
+void AmrBoxLib::computeSelfFields_cycl(double gamma) {    
 //     for (int i = 0; i <= finest_level; ++i) {
 //         std::cout << "Level " << i << ": " << grids[i] << std::endl;
 //         std::cout << "Level " << i << ": " << layout_mp->ParticleBoxArray(i) << std::endl;
@@ -477,6 +464,16 @@ Vektor<int, 3> AmrBoxLib::getBaseLevelGridPoints() {
     return Vektor<int, 3>(high[0] - low[0] + 1,
                           high[1] - low[1] + 1,
                           high[2] - low[2] + 1);
+}
+
+
+int AmrBoxLib::maxLevel() {
+    return AmrCore::maxLevel();
+}
+
+
+int AmrBoxLib::finestLevel() {
+    return AmrCore::finestLevel();
 }
 
 

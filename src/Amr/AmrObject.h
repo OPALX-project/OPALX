@@ -120,6 +120,9 @@ public:
     
     virtual Vektor<int, 3> getBaseLevelGridPoints() = 0;
     
+    virtual int maxLevel() = 0;
+    virtual int finestLevel() = 0;
+    
 protected:
     TaggingCriteria tagging_m;
     

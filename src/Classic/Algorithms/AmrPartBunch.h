@@ -43,6 +43,8 @@ public:
     FieldLayout_t &getFieldLayout();
     
     
+    void boundp();
+    
     void computeSelfFields();
     
     void computeSelfFields(int bin);

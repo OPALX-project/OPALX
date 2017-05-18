@@ -166,7 +166,7 @@ public:
        Mesh and Field Layout related functions
      */
     
-    void boundp();
+    virtual void boundp();
     
     /** delete particles which are too far away from the center of beam*/
     void boundp_destroy();
