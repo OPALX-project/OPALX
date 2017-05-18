@@ -301,7 +301,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     int baseLevel = 0;
     int nLevel = finest_level + 1;
     double invGamma = 1.0 / gamma /* bunch_mp->getCouplingConstant()*/;
-    double scalefactor = bunch_mp->getdT();
+    double scalefactor = 1.0; //bunch_mp->getdT();
     
 //     std::cout << "Coupling: " << bunch_mp->getCouplingConstant() << std::endl; std::cin.get();
     
@@ -350,11 +350,16 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     
     
     // charge density is in rho_m
+    // calculate Possion equation (with coefficient: -1/(eps))
+    for (int i = 0; i <= finest_level; ++i) {
+        this->rho_m[i]->mult(-1.0 / Physics::epsilon_0 / scalefactor, 0, 1);
+    }
+    
+    
     PoissonSolver *solver = bunch_mp->getFieldSolver();
     IpplTimings::startTimer(bunch_mp->compPotenTimer_m);
     solver->solve(rho_m, phi_m, eg_m, baseLevel, finest_level);
     IpplTimings::stopTimer(bunch_mp->compPotenTimer_m);
-    
     
 #ifdef DBG_SCALARFIELD
     INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
@@ -373,7 +378,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
                 for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; ++z) {
                     IntVect iv(x, y, z);
                     // add one in order to have same convention as PartBunch::computeSelfField()
-                    std::cout << x + 1 << " " << y + 1 << " " << z + 1 << " "
+                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " "
                           << fab(iv, 0)  << std::endl;
                 }
             }
@@ -412,8 +417,8 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
                     for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; ++z) {
                         IntVect iv(x, y, z);
                         // add one in order to have same convention as PartBunch::computeSelfField()
-                        fstr << x + 1 << " " << y + 1 << " " << z + 1 << " "
-                             << fab(iv, 0) << " " << fab(iv, 1) << " " << fab(iv, 2) << std::endl;
+                        fstr << x + 1 << " " << y + 1 << " " << z + 1 << " ( "
+                             << fab(iv, 0) << " , " << fab(iv, 1) << " , " << fab(iv, 2) << " )" << std::endl;
                     }
                 }
             }
@@ -425,7 +430,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
         INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
 #endif
     
-    amrpbase_p->gather(bunch_mp->Ef, this->eg_m, bunch_mp->R, 0, -1);
+    amrpbase_p->gather(bunch_mp->Ef, this->eg_m, bunch_mp->R, 0, finest_level);
     
     bunch_mp->Ef *= Vector_t(gamma * scalefactor, invGamma * scalefactor, gamma * scalefactor);
     
