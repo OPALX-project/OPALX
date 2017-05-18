@@ -41,7 +41,7 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t &rho,
     
     
     for (int lev = baseLevel; lev <= finestLevel ; ++lev) {
-        grad_phi_edge[lev].resize(BL_SPACEDIM);
+        grad_phi_edge[lev].resize(BL_SPACEDIM, PArrayManage);
         for (int n = 0; n < BL_SPACEDIM; ++n) {
             BoxArray ba = rho[lev]->boxArray();
             grad_phi_edge[lev].set(n, new MultiFab(ba.surroundingNodes(n), 1, 1));
