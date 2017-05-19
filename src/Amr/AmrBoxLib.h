@@ -85,7 +85,7 @@ public:
     int maxLevel();
     int finestLevel();
     
-    void updateBunch();
+//     void updateBunch();
     
 protected:
     /*!

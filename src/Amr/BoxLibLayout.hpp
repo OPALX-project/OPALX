@@ -15,7 +15,7 @@ IntVect BoxLibLayout<T, Dim>::tile_size   { D_DECL(1024000,8,8) };
 
 template<class T, unsigned Dim>
 BoxLibLayout<T, Dim>::BoxLibLayout()
-    : ParGDB(), finestLevel_m(0), maxLevel_m(0)
+    : ParGDB(), finestLevel_m(0), maxLevel_m(0), refRatio_m(0)
 {
     /* FIXME There might be a better solution
      * 
@@ -40,7 +40,7 @@ BoxLibLayout<T, Dim>::BoxLibLayout()
 template<class T, unsigned Dim>
 BoxLibLayout<T, Dim>::BoxLibLayout(int nGridPoints, int maxGridSize,
                                    double lower, double upper)
-    : ParGDB(), finestLevel_m(0), maxLevel_m(0)
+    : ParGDB(), finestLevel_m(0), maxLevel_m(0), refRatio_m(0)
 {
     this->initDefaultBox(nGridPoints, maxGridSize, lower, upper);
 }
@@ -50,7 +50,7 @@ template<class T, unsigned Dim>
 BoxLibLayout<T, Dim>::BoxLibLayout(const Geometry &geom,
                                    const DistributionMapping &dmap,
                                    const BoxArray &ba)
-    : ParGDB(geom, dmap, ba), finestLevel_m(0), maxLevel_m(0)
+    : ParGDB(geom, dmap, ba), finestLevel_m(0), maxLevel_m(0), refRatio_m(0)
 { }
 
 
@@ -59,7 +59,7 @@ BoxLibLayout<T, Dim>::BoxLibLayout(const Array<Geometry> &geom,
                                    const Array<DistributionMapping> &dmap,
                                    const Array<BoxArray> &ba,
                                    const Array<int> &rr)
-    : ParGDB(geom, dmap, ba, rr), finestLevel_m(0), maxLevel_m(0)
+    : ParGDB(geom, dmap, ba, rr), finestLevel_m(0), maxLevel_m(0), refRatio_m(0)
 { }
 
 
@@ -598,15 +598,18 @@ int BoxLibLayout<T, Dim>::maxLevel () const {
     return maxLevel_m;
 }
 
-// template <class T, unsigned Dim>
-// IntVect BoxLibLayout<T, Dim>::refRatio (int level) const {
-//     return (amrobject_mp) ? amrobject_mp->refRatio(level) : ParGDB::refRatio(level);
-// }
-// 
-// 
-// template <class T, unsigned Dim>
-// int BoxLibLayout<T, Dim>::MaxRefRatio (int level) const {
-//     return (amrobject_mp) ? amrobject_mp->MaxRefRatio(level) : ParGDB::MaxRefRatio(level);
-// }
+template <class T, unsigned Dim>
+IntVect BoxLibLayout<T, Dim>::refRatio (int level) const {
+    return refRatio_m[level];
+}
+
+
+template <class T, unsigned Dim>
+int BoxLibLayout<T, Dim>::MaxRefRatio (int level) const {
+    int maxval = 0;
+    for (int n = 0; n<BL_SPACEDIM; n++) 
+        maxval = std::max(maxval, refRatio_m[level][n]);
+    return maxval;
+}
 
 #endif
