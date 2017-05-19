@@ -477,24 +477,24 @@ int AmrBoxLib::finestLevel() {
 }
 
 
-void AmrBoxLib::updateBunch()  {
-    const Array<Geometry>& geom = this->Geom();
-    const Array<DistributionMapping>& dmap = this->DistributionMap();
-    const Array<BoxArray>& ba = this->boxArray();
-    const Array<IntVect>& ref_rato = this->refRatio ();
-        
-        
-    Array<int> rr( ref_rato.size() );
-    for (unsigned int i = 0; i < rr.size(); ++i) {
-        rr[i] = ref_rato[i][0];
-    }        
-    
-    layout_mp->define(geom, ba, dmap, rr);
-        
-    bunch_mp->update();
-        
-//     this->setBunch(bunch_mp);
-}
+// void AmrBoxLib::updateBunch()  {
+//     const Array<Geometry>& geom = this->Geom();
+//     const Array<DistributionMapping>& dmap = this->DistributionMap();
+//     const Array<BoxArray>& ba = this->boxArray();
+//     const Array<IntVect>& ref_rato = this->refRatio ();
+//         
+//         
+//     Array<int> rr( ref_rato.size() );
+//     for (unsigned int i = 0; i < rr.size(); ++i) {
+//         rr[i] = ref_rato[i][0];
+//     }        
+//     
+//     layout_mp->define(geom, ba, dmap, rr);
+//         
+//     bunch_mp->update();
+//         
+// //     this->setBunch(bunch_mp);
+// }
 
 
 void AmrBoxLib::RemakeLevel (int lev, Real time,
@@ -866,6 +866,7 @@ void AmrBoxLib::initBaseLevel_m(const AmrIntArray_t& nGridPts) {
     }
     
     layout_mp->define(this->Geom());
+    layout_mp->define(this->ref_ratio);
     
 //     const BoxArray& ba = layout_mp->ParticleBoxArray(0);
 //     const DistributionMapping& dm = layout_mp->ParticleDistributionMap(0 /*level*/);

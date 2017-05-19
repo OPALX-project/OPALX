@@ -70,6 +70,8 @@ public:
         this->m_dmap.resize(length);
         this->m_ba.resize(length);
         this->m_nlevels = length;
+        this->refRatio_m.resize(maxLevel);
+//         this->m_rr.resize(maxLevel);
         maxLevel_m = maxLevel;
         
         for (int i = 0; i < length; ++i) {
@@ -78,25 +80,25 @@ public:
         }
     }
     
-    void define(const Array<Geometry>& geom,
-                const Array<BoxArray>& ba,
-                const Array<DistributionMapping>& dmap,
-                const Array<int> & rr)
-    {
-        maxLevel_m = ba.size() - 1;
-        this->m_nlevels = ba.size();
-        this->m_geom.resize( this->m_nlevels );
-        this->m_ba.resize( this->m_nlevels );
-        this->m_dmap.resize( this->m_nlevels );
-        this->m_rr.resize(maxLevel_m);
-        
-        for (int i = 0; i < this->m_nlevels; ++i) {
-            this->m_geom[i] = geom[i];
-            this->m_ba[i]   = ba[i];
-            this->m_dmap[i] = dmap[i];
-            this->m_rr[i]   = rr[i];
-        }
-    }
+//     void define(const Array<Geometry>& geom,
+//                 const Array<BoxArray>& ba,
+//                 const Array<DistributionMapping>& dmap,
+//                 const Array<int> & rr)
+//     {
+//         maxLevel_m = ba.size() - 1;
+//         this->m_nlevels = ba.size();
+//         this->m_geom.resize( this->m_nlevels );
+//         this->m_ba.resize( this->m_nlevels );
+//         this->m_dmap.resize( this->m_nlevels );
+//         this->m_rr.resize(maxLevel_m);
+//         
+//         for (int i = 0; i < this->m_nlevels; ++i) {
+//             this->m_geom[i] = geom[i];
+//             this->m_ba[i]   = ba[i];
+//             this->m_dmap[i] = dmap[i];
+//             this->m_rr[i]   = rr[i];
+//         }
+//     }
     
     void define(const Array<Geometry>& geom) {
 //         this->m_geom.resize( geom.size() );
@@ -104,6 +106,12 @@ public:
         std::cout << "geom.size() = " << geom.size() << std::endl;
         for (unsigned int i = 0; i < geom.size(); ++i)
             this->m_geom[i] = geom[i];
+    }
+    
+    void define(const Array<IntVect>& refRatio) {
+        for (unsigned int i = 0; i < refRatio.size(); ++i) {
+            refRatio_m[i] = refRatio[i];
+        }
     }
     
     
@@ -154,9 +162,9 @@ public:
     
     inline int maxLevel () const;
     
-//     inline IntVect refRatio (int level) const;
+    inline IntVect refRatio (int level) const;
     
-//     inline int MaxRefRatio (int level) const;
+    inline int MaxRefRatio (int level) const;
     
 private:
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
@@ -228,6 +236,8 @@ private:
 private:
     int finestLevel_m;
     int maxLevel_m;
+    // don't use m_rr from ParGDB since it is the same refinement in all directions
+    Array<IntVect> refRatio_m;    // Refinement ratios [0:finest_level-1]
 };
 
 #include "BoxLibLayout.hpp"
