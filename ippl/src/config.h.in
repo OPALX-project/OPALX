@@ -22,7 +22,7 @@
 // #define VERSION ${VERSION}
 
 /* OPAL version number */
-#define OPAL_VERSION ${OPAL_PACKAGE_VERSION}
+#define IPPL_OPAL_VERSION ${OPAL_PACKAGE_VERSION}
 
 /* Define DKS version used in this package. */
-#define DKS_VERSION ${DKS_PACKAGE_VERSION}
+#define IPPL_DKS_VERSION ${DKS_PACKAGE_VERSION}
