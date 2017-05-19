@@ -17,7 +17,7 @@ add_subdirectory (Solvers)
 add_subdirectory (Structure)
 add_subdirectory (Utilities)
 
-install (FILES Utilities/ClassicException.h Utilities/Options.h Utilities/Random.h
+install (FILES Utilities/ClassicException.h Utilities/Options.h Utilities/OptionTypes.h Utilities/Random.h
     DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Utilities"
     )
 
