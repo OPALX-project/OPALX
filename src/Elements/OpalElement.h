@@ -49,7 +49,7 @@ public:
         LENGTH,         // The element length.
         ELEMEDGE,       // The position of the element (in path length)
         WAKEF,          // The wake function to be used
-        PARTICLEMATERINTERACTION, // The particle mater interaction handler to be used
+        PARTICLEMATTERINTERACTION, // The particle mater interaction handler to be used
         ORIGIN,         // The location of the element in floor coordinates
         ORIENTATION,    // The orientation of the element (Tait Bryan angles)
         X,              // The x-coordinate of the location of the element in floor coordinates
