@@ -46,6 +46,8 @@
 #include <gsl/gsl_sf_erf.h>
 #include <gsl/gsl_qrng.h>
 
+#include <boost/format.hpp>
+
 //#define DBG_SCALARFIELD
 //#define FIELDSTDOUT
 
@@ -695,27 +697,38 @@ void PartBunch::computeSelfFields(int binNumber) {
         /// and must be converted to the right units.
         imagePotential *= getCouplingConstant();
 
+        const int dumpFreq = 100;
 #ifdef DBG_SCALARFIELD
-        int dumpFreq = 100;
-        if ((fieldDBGStep_m + 1) % dumpFreq == 0) {
-            INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
+        VField_t tmp_eg = eg_m;
 
-            ofstream fstr2;
-            fstr2.precision(9);
+        if (Ippl::getNodes() == 1 && (fieldDBGStep_m + 1) % dumpFreq == 0) {
+#else
+        VField_t tmp_eg;
+
+        if (false) {
+#endif
+            INFOMSG(level1 << "*** START DUMPING SCALAR FIELD ***" << endl);
 
             std::string SfileName = OpalData::getInstance()->getInputBasename();
+            boost::format phi_fn("data/%1%-phi_scalar-%|2$05|.dat");
+            phi_fn % SfileName % (fieldDBGStep_m / dumpFreq);
 
-            std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::to_string(fieldDBGStep_m / dumpFreq);
-            fstr2.open(phi_fn.c_str(), ios::out);
+            ofstream fstr2(phi_fn.str());
+            fstr2.precision(9);
+
             NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
             Vector_t origin = rho_m.get_mesh().get_origin();
             Vector_t spacing(rho_m.get_mesh().get_meshSpacing(0),
                              rho_m.get_mesh().get_meshSpacing(1),
                              rho_m.get_mesh().get_meshSpacing(2));
-            *gmsg << (rmin(0) - origin(0)) / spacing(0) << "\t"
-                  << (rmin(1)  - origin(1)) / spacing(1) << "\t"
-                  << (rmin(2)  - origin(2)) / spacing(2) << "\t"
-                  << rmin(2) << endl;
+            Vector_t rmin, rmax;
+            get_bounds(rmin, rmax);
+
+            INFOMSG(level1
+                    << (rmin(0) - origin(0)) / spacing(0) << "\t"
+                    << (rmin(1)  - origin(1)) / spacing(1) << "\t"
+                    << (rmin(2)  - origin(2)) / spacing(2) << "\t"
+                    << rmin(2) << endl);
             for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
                 for(int y = myidx[1].first(); y <= myidx[1].last(); y++) {
                     for(int z = myidx[2].first(); z <= myidx[2].last(); z++) {
@@ -730,11 +743,8 @@ void PartBunch::computeSelfFields(int binNumber) {
             }
             fstr2.close();
 
-            INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+            INFOMSG(level1 << "*** FINISHED DUMPING SCALAR FIELD ***" << endl);
         }
-
-        auto tmp_eg = eg_m;
-#endif
 
         /// IPPL Grad numerical computes gradient to find the
         /// electric field (in rest frame of this bin's image
@@ -773,20 +783,24 @@ void PartBunch::computeSelfFields(int binNumber) {
 #endif
 
 #ifdef DBG_SCALARFIELD
-        if ((fieldDBGStep_m + 1) % dumpFreq == 0) {
-            INFOMSG("*** START DUMPING E FIELD ***" << endl);
+        if (Ippl::getNodes() == 1 && (fieldDBGStep_m + 1) % dumpFreq == 0) {
+#else
+        if (false) {
+#endif
+            INFOMSG(level1 << "*** START DUMPING E FIELD ***" << endl);
 
             std::string SfileName = OpalData::getInstance()->getInputBasename();
+            boost::format phi_fn("data/%1%-e_field-%|2$05|.dat");
+            phi_fn % SfileName % (fieldDBGStep_m / dumpFreq);
 
-            ofstream fstr2;
+            ofstream fstr2(phi_fn.str());
             fstr2.precision(9);
 
-            std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::to_string(fieldDBGStep_m / dumpFreq);
             Vector_t origin = eg_m.get_mesh().get_origin();
             Vector_t spacing(eg_m.get_mesh().get_meshSpacing(0),
                              eg_m.get_mesh().get_meshSpacing(1),
                              eg_m.get_mesh().get_meshSpacing(2));
-            fstr2.open(e_field.c_str(), ios::out);
+
             NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
             for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
                 for(int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
@@ -808,10 +822,9 @@ void PartBunch::computeSelfFields(int binNumber) {
             //MPI_File_write_shared(file, (char*)oss.str().c_str(), oss.str().length(), MPI_CHAR, &status);
             //MPI_File_close(&file);
 
-            INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
+            INFOMSG(level1 << "*** FINISHED DUMPING E FIELD ***" << endl);
         }
         fieldDBGStep_m++;
-#endif
 
         /// Interpolate electric field at particle positions.  We reuse the
         /// cached information about where the particles are relative to the
@@ -1618,15 +1631,15 @@ void PartBunch::calcMoments() {
       Issue #72 is touching on this
 
       In OPAL Cycl the particle with ID=0
-      is a special particle, a kind of design particle. 
+      is a special particle, a kind of design particle.
 
       Later on we will maintain a seperate structure like in OPAL-t
       for now we will exclude the particle with ID==0.
 
       - find particle with ID==0
 
-      - substract the R and P of particle with ID==0 from the 
-        moment calculation. 
+      - substract the R and P of particle with ID==0 from the
+        moment calculation.
      */
 
     if (OpalData::getInstance()->isInOPALCyclMode()) {
