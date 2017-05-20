@@ -403,7 +403,7 @@ public:
     Field_t rho_m;
 
     /// vector field on the grid
-    VField_t  eg_m;
+    VField_t eg_m;
 
     /// avoid calls to Ippl::myNode()
     int myNode_m;

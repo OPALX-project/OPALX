@@ -38,7 +38,7 @@ class Bend;
 #define BEAMLINE_GEOM 0x30000000   // has geometry
 #define BEAMLINE_WAKE 0x20000000   // has wake
 #define BEAMLINE_BEND 0x10000000   // bends
-#define BEAMLINE_PARTICLEMATERINTERACTION 0x08000000 // has particle mater interaction
+#define BEAMLINE_PARTICLEMATTERINTERACTION 0x08000000 // has particle mater interaction
 
 class OpalBeamline {
 

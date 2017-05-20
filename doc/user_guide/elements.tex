@@ -77,8 +77,8 @@ The following attributes are allowed on all elements:
   Attach wakefield that was defined using the \keyword[sec:wakecmd]{WAKE} command.
 \item[ELEMEDGE]
     The edge of an element is specified in s coordinates in meters. This edge corresponds to the origin of the local coordinate system and is the physical start of the element. (Note that in general the fields will extend in front of this position.) The physical end of the element is determined by \keyword{ELEMEDGE} and its physical length. (Note again that in general the fields will extend past the physical end of the element.)
-\item[PARTICLEMATERINTERACTION]
-  \TODO{Describe PARTICLEMATERINTERACTION}
+\item[PARTICLEMATTERINTERACTION]
+  \TODO{Describe PARTICLEMATTERINTERACTION}
 \item[X]
   X-component of the position of the element in the laboratory coordinate system.
 \item[Y]
@@ -1777,9 +1777,9 @@ The vertical coordinate of the start point [\si{\milli\meter}]. Default value is
 The vertical coordinate of the end point. [\si{\milli\meter}]. Default value is \SI{-100}{\milli\meter}.
 \item[WIDTH]
 The width of the septum. [\si{\milli\meter}]
- \item[PARTICLEMATERINTERACTION]
-\keyword{PARTICLEMATERINTERACTION} is an attribute of the element. Collimator physics is a only a kind of particlematerinteraction.
- It can be applied to any element. If the type of \keyword{PARTICLEMATERINTERACTION} is \keyword{COLLIMATOR}, the material is defined here.
+ \item[PARTICLEMATTERINTERACTION]
+\keyword{PARTICLEMATTERINTERACTION} is an attribute of the element. Collimator physics is a only a kind of particlematerinteraction.
+ It can be applied to any element. If the type of \keyword{PARTICLEMATTERINTERACTION} is \keyword{COLLIMATOR}, the material is defined here.
  The material ``Cu", ``Be", ``Graphite" and ``Mo" are defined until now.
  If this is not set, the particle matter interaction module will not be activated.
  The particle hitting collimator will be recorded and directly deleted from the simulation.
@@ -1813,9 +1813,9 @@ x3=0.0;
 x4=0.0;
 cmphys:particlematerinteraction, TYPE="Collimator", MATERIAL="Cu";
 cma1: CCollimator, XSTART=x1, XEND=x2,YSTART=y1, YEND=y2,
-ZSTART=2, ZEND=100, WIDTH=10.0, PARTICLEMATERINTERACTION=cmphys ;
+ZSTART=2, ZEND=100, WIDTH=10.0, PARTICLEMATTERINTERACTION=cmphys ;
 cma2: CCollimator, XSTART=x3, XEND=x4,YSTART=y3, YEND=y4,
- ZSTART=2, ZEND=100, WIDTH=10.0, PARTICLEMATERINTERACTION=cmphys;
+ ZSTART=2, ZEND=100, WIDTH=10.0, PARTICLEMATTERINTERACTION=cmphys;
 \end{example}
 
 The particles lost on the CCOLLIMATOR are recorded in the ASCII file \filename{\textless inputfilename\textgreater.loss}
@@ -1956,9 +1956,9 @@ Rectangular degrader with an overall length \keyword{L}.
 \end{kdescription}
 \noindent Example: Graphite degrader of \SI{15}{\centi\meter} thickness.
 \begin{example}
-DEGPHYS: PARTICLEMATERINTERACTION, TYPE="DEGRADER", MATERIAL="Graphite";
+DEGPHYS: PARTICLEMATTERINTERACTION, TYPE="DEGRADER", MATERIAL="Graphite";
 
-DEG1: DEGRADER, L=0.15, ELEMEDGE=0.02, OUTFN="DEG1.h5", PARTICLEMATERINTERACTION=DEGPHYS;
+DEG1: DEGRADER, L=0.15, ELEMEDGE=0.02, OUTFN="DEG1.h5", PARTICLEMATTERINTERACTION=DEGPHYS;
 \end{example}
 
 

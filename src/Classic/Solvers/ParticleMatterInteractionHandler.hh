@@ -1,5 +1,5 @@
-#ifndef PARTICLEMATERINTERACTIONHANDLER_HH
-#define PARTICLEMATERINTERACTIONHANDLER_HH
+#ifndef PARTICLEMATTERINTERACTIONHANDLER_HH
+#define PARTICLEMATTERINTERACTIONHANDLER_HH
 
 #include <string>
 #include "Algorithms/Vektor.h"
@@ -62,4 +62,4 @@ inline
 bool ParticleMatterInteractionHandler::getFlagAllParticlesIn() const {
     return allParticleInMat_m;
 }
-#endif // PARTICLEMATERINTERACTION_HH
+#endif // PARTICLEMATTERINTERACTION_HH

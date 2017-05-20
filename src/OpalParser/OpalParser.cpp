@@ -334,7 +334,7 @@ void OpalParser::parseDefine(Statement &stat) const {
         if(classObject == 0) {
 	  if (clsName == "SURFACEPHYSICS")
               throw ParseError("OpalParser::parseDefine()",
-			       "The object \"" + clsName + "\" is changed to \"PARTICLEMATERINTERACTION\".");
+			       "The object \"" + clsName + "\" is changed to \"PARTICLEMATTERINTERACTION\".");
 	  else
 	      throw ParseError("OpalParser::parseDefine()",
 			       "The object \"" + clsName + "\" is unknown.");
