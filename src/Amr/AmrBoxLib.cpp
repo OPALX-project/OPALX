@@ -467,12 +467,12 @@ Vektor<int, 3> AmrBoxLib::getBaseLevelGridPoints() {
 }
 
 
-int AmrBoxLib::maxLevel() {
+inline int AmrBoxLib::maxLevel() {
     return AmrCore::maxLevel();
 }
 
 
-int AmrBoxLib::finestLevel() {
+inline int AmrBoxLib::finestLevel() {
     return AmrCore::finestLevel();
 }
 
@@ -526,11 +526,14 @@ void AmrBoxLib::MakeNewLevel (int lev, Real time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
+    
     nChargePerCell_m[lev].reset(new AmrField_t(new_grids, 1, 1, new_dmap));
     nChargePerCell_m[lev]->setVal(0.0);
     
+    
     rho_m[lev].reset(new AmrField_t(new_grids, 1, 1, new_dmap));
     rho_m[lev]->setVal(0.0);
+    
     
     /*
      * particles need to know the BoxArray
@@ -568,45 +571,13 @@ void AmrBoxLib::ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
 
 
 void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
-    std::cout << "-----------------------" << std::endl
-              << "Tagging." << std::endl;
-              
-    std::cout << "  Finest Level: " << finest_level << std::endl
-              << "  Level:        " << lev << std::endl;
     
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
-    for (int i = lev; i <= finest_level; ++i) {
+    for (int i = lev; i <= finest_level; ++i)
         nChargePerCell_m[i]->setVal(0.0);
-        // single level scatter
-        amrpbase_p->scatter(bunch_mp->Q, *nChargePerCell_m[i], bunch_mp->R, i);
-    }
     
-    for (int i = finest_level-1; i >= lev; --i) {
-        AmrField_t tmp(nChargePerCell_m[i]->boxArray(), 1, 0, nChargePerCell_m[i]->DistributionMap());
-        tmp.setVal(0.0);
-        BoxLib::average_down(*nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
-        AmrField_t::Add(*nChargePerCell_m[i], tmp, 0, 0, 1, 0);
-    }
-    
-    for (int i = lev; i <= finest_level; ++i) {
-        std::cout << "level " << i << " sum = " << nChargePerCell_m[i]->sum() << " min = "
-                  << nChargePerCell_m[i]->min(0) << " max = " << nChargePerCell_m[i]->max(0) << std::endl;
-    }
-    
-    /* BoxLib stores charge per cell volume, we thus need to 
-     * divide by the charge per level by the cell volume of this level
-     */
-    double cellVolume = 1.0;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {        
-        double dx = geom[lev].CellSize(i);
-        cellVolume *= dx;
-    }
-    double nCharge = nCharge_m / cellVolume;
-    
-    std::cout << "Cell volume = " << cellVolume << std::endl
-              << "tag for charge = " << nCharge_m << std::endl
-              << "nCharge / cell volume = " << nCharge << std::endl;
-    
+    // the new scatter function averages the value also down to the coarsest level
+    amrpbase_p->scatter(bunch_mp->Q, nChargePerCell_m, bunch_mp->R, lev, finest_level);
     
     const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
@@ -637,16 +608,13 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int
                         BL_TO_FORTRAN_3D((*nChargePerCell_m[lev])[mfi]),
                         &tagval, &clearval, 
                         ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                        ZFILL(dx), ZFILL(prob_lo), &time, &nCharge);
+                        ZFILL(dx), ZFILL(prob_lo), &time, &nCharge_m);
             //
             // Now update the tags in the TagBox.
             //
             tagfab.tags_and_untags(itags, tilebx);
         }
     }
-    
-    std::cout << "Tagging done." << std::endl
-              << "----------------------" << std::endl;
 }
 
 
