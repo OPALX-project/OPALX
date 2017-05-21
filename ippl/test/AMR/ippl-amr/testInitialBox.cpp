@@ -195,21 +195,8 @@ int main(int argc, char* argv[]) {
     
     myAmrOpal->setCharge( 0.125 );
     
-    for (int i = 0; i <= myAmrOpal->finestLevel() && i < myAmrOpal->maxLevel(); ++i) {
-        
-        std::cout << "Finest level: " << myAmrOpal->finestLevel() << std::endl
-                  << "Max. level:   " << myAmrOpal->maxLevel() << std::endl;
-        
-        const Array<Geometry>& geom = myAmrOpal->Geom();
-        double dx = geom[i].CellSize(0);
-        double cell_volume = dx * dx * dx;
-//         double charge = 1.0;
-        
-        std::cout << "1 / cellvolume = " << 1.0 / cell_volume << std::endl;
-//         myAmrOpal->setCharge( charge * 1.0 / (  cell_volume ) );
-        
+    for (int i = 0; i <= myAmrOpal->finestLevel() && i < myAmrOpal->maxLevel(); ++i)
         myAmrOpal->regrid(i /*lbase*/, 0.0 /*time*/);
-    }
     
     const Array<Geometry>& geom = myAmrOpal->Geom();
     for (unsigned int i = 0; i < geom.size(); ++i) {
