@@ -500,12 +500,6 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
         BoxLib::average_down(*nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
         MultiFab::Add(*nChargePerCell_m[i], tmp, 0, 0, 1, 0);
     }
-    
-    for (int i = lev; i <= finest_level; ++i) {
-        std::cout << "lev = " << i << " sum = " << nChargePerCell_m[i]->sum() << std::endl;
-        std::cout << "lev = " << i << " min = " << nChargePerCell_m[i]->min(0) << std::endl;
-        std::cout << "lev = " << i << " max = " << nChargePerCell_m[i]->max(0) << std::endl;
-    }
 #else
     for (int i = finest_level-1; i >= lev; --i) {
         MultiFab tmp(nChargePerCell_m[i].boxArray(), 1, 0, nChargePerCell_m[i].DistributionMap());
@@ -513,22 +507,7 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
         BoxLib::average_down(nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
         MultiFab::Add(nChargePerCell_m[i], tmp, 0, 0, 1, 0);
     }
-    
-    for (int i = lev; i <= finest_level; ++i) {
-        std::cout << "lev = " << i << " sum = " << nChargePerCell_m[i].sum() << std::endl;
-    }
 #endif
-    
-    /* BoxLib stores charge per cell volume, we thus need to 
-     * divide by the charge per level by the cell volume of this level
-     */
-    double cell_volume = 1.0;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {        
-        double dx = geom[lev].CellSize(i);
-        cell_volume *= dx;
-    }
-    double charge = nCharge_m / cell_volume;
-//     std::cout << "lev = " << lev << " charge = " << charge << " cell_volume = " << cell_volume << std::endl;
     
     const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
@@ -567,7 +546,7 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
 #endif
                         &tagval, &clearval, 
                         ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                        ZFILL(dx), ZFILL(prob_lo), &time, &charge);
+                        ZFILL(dx), ZFILL(prob_lo), &time, &nCharge_m);
             //
             // Now update the tags in the TagBox.
             //
