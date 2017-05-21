@@ -49,8 +49,9 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t &rho,
     }
     
     // initialize potential and electric field grids on each level
-    phi.resize( rho.size() );
-    efield.resize( rho.size() );
+    int nlevs = finestLevel - baseLevel + 1;
+    phi.resize( nlevs );
+    efield.resize( nlevs );
     initGrids_m(phi, efield);
     
     this->solveWithF90_m(rho, phi, grad_phi_edge, geom,
@@ -164,10 +165,11 @@ void FMGPoissonSolver::initGrids_m(AmrFieldContainer_t& phi,
                                    AmrFieldContainer_t& efield) {
     for (unsigned int lev = 0; lev < efield.size(); ++lev) {
         const BoxArray& ba = itsAmrObject_mp->boxArray()[lev];
+        const DistributionMapping& dmap = itsAmrObject_mp->DistributionMap(lev);
         
         //                                   #components  #ghost cells                                                                                                                                          
-        phi[lev].reset(   new AmrField_t(ba, 1,           1) );
-        efield[lev].reset(new AmrField_t(ba, 3,           1) );
+        phi[lev].reset(   new AmrField_t(ba, 1,           1,           dmap) );
+        efield[lev].reset(new AmrField_t(ba, 3,           1,           dmap) );
         
         phi[lev]->setVal(0.0);
         efield[lev]->setVal(0.0);
