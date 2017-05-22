@@ -206,6 +206,12 @@ The first five logical flags activate or deactivate execution options:
   \item[CSRDUMP]
   \index{OPTION!CSRDUMP}
   If true the electric csr field component, $E_z$, line density and the derivative of the line density is written into the \filename{data} directory.
+  The first line gives the average position of the beam bunch.
+  Subsequent lines list $z$ position of longitudinal mesh (with respect to the head of the beam bunch),
+   $E_z$, line density and the derivative of the line density. Note that currently the line density derivative 
+   needs to be scaled by the inverse of the mesh spacing to get the correct value. The CSR field
+   is dumped at each time step of the calculation. Each text file is named "Bend Name" (from input file) + "-CSRWake" + "time step number in that bend
+   (starting from 1)" + ".txt".
 
   %% \item[AUTOPHASE]
   %% \index{OPTION!AUTOPHASE}
