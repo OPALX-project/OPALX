@@ -273,7 +273,7 @@ bool Collimator::checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax) {
 
 
 // rectangle collimators in cyclotron cyclindral coordiantes
-// without particlematerinteraction, the particle hitting collimator is deleted directly
+// without particlematterinteraction, the particle hitting collimator is deleted directly
 bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const double t, const double tstep) {
 
     bool flagNeedUpdate = false;
