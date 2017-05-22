@@ -1778,7 +1778,7 @@ The vertical coordinate of the end point. [\si{\milli\meter}]. Default value is 
 \item[WIDTH]
 The width of the septum. [\si{\milli\meter}]
  \item[PARTICLEMATTERINTERACTION]
-\keyword{PARTICLEMATTERINTERACTION} is an attribute of the element. Collimator physics is a only a kind of particlematerinteraction.
+\keyword{PARTICLEMATTERINTERACTION} is an attribute of the element. Collimator physics is only a kind of particlematterinteraction.
  It can be applied to any element. If the type of \keyword{PARTICLEMATTERINTERACTION} is \keyword{COLLIMATOR}, the material is defined here.
  The material ``Cu", ``Be", ``Graphite" and ``Mo" are defined until now.
  If this is not set, the particle matter interaction module will not be activated.
@@ -1811,7 +1811,7 @@ x1=-215.0;
 x2=-220.0;
 x3=0.0;
 x4=0.0;
-cmphys:particlematerinteraction, TYPE="Collimator", MATERIAL="Cu";
+cmphys:particlematterinteraction, TYPE="Collimator", MATERIAL="Cu";
 cma1: CCollimator, XSTART=x1, XEND=x2,YSTART=y1, YEND=y2,
 ZSTART=2, ZEND=100, WIDTH=10.0, PARTICLEMATTERINTERACTION=cmphys ;
 cma2: CCollimator, XSTART=x3, XEND=x4,YSTART=y3, YEND=y4,
