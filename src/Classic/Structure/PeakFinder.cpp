@@ -8,7 +8,7 @@
 #include "Ippl.h"
 
 PeakFinder::PeakFinder(std::string elem):
-    radius_m(0), globHist_m(0), fn_m(""),
+    turnNumber_m(0), radius_m(0), globHist_m(0), fn_m(""),
     element_m(elem), nBins_m(0), binWidth_m(0)
 { }
 
@@ -22,43 +22,11 @@ void PeakFinder::addParticle(const Vector_t& R) {
     radius_m.push_back(radius);
 }
 
-void PeakFinder::createHistogram() {
-    
-    // compute global minimum and maximum radius
-    auto result = std::minmax_element(radius_m.begin(), radius_m.end());
-    
-    double locMin = *result.first;
-    double locMax = *result.second;
-    
-    double globMin = 0;
-    double globMax = 0;
-    
-    reduce(locMin, globMin, OpAddAssign());
-    
-    reduce(locMax, globMax, OpAddAssign());
-    
-    
-    /*
-     * create local histograms
-     */
-    container_t locHist(nBins_m);
-    double invBinWidth = 1.0 / binWidth_m;
-    for(container_t::iterator it = radius_m.begin(); it != radius_m.end(); ++it) {
-        int bin = (*it - globMin ) * invBinWidth;
-        ++locHist[bin];
-    }
-    
-    /*
-     * create global histograms
-     */
-    globHist_m.resize(nBins_m);
-    reduce(&(locHist[0]), &(locHist[0]) + locHist.size(),
-	   &(globHist_m[0]), OpAddAssign());
-}
-
 
 void PeakFinder::save() {
     std::string fn_m = element_m + std::string(".peaks");
+    
+    createHistogram_m();
     
     findPeaks(smoothingNumber_m,
 	      minArea_m,
@@ -83,6 +51,12 @@ void PeakFinder::save() {
     globHist_m.clear();
 }
 
+
+void PeakFinder::setTurnNumber(unsigned int turnNumber) {
+    turnNumber_m = turnNumber;
+}
+
+
 void PeakFinder::setNumBins(unsigned int nBins) {
     nBins_m = nBins;
 }
@@ -93,15 +67,26 @@ void PeakFinder::findPeaks(int smoothingNumber,
                            double minAreaAboveNoise,
                            double minSlope)
 {
-    // adapted from subroutine SEPAPR
-    // Die Routine waehlt einen Beobachtungsindex. Von diesem Aus wird fortlaufend die Peakflaeche FTP integriert und mit dem aus dem letzten Messwert
-    // und dessen Abstand vom Beobachtungspunkt gebildete Dreieck ZPT verglichen. Ist FTP > ZPT ist ein neuer Peak identifiziert. Der Beobachtungspunkt
-    // verschiebt sich zum letzten Messwertindex und ab da weiter, solange der Messwert abnimmt. Parallel wird die Gesamtmessung aufintegriert, als 
-    // zusaetzliches Kriterium zur Unterscheidung von echten Peaks und Rauscheffekten.
-    // smoothingNumber            Startindex in VAL für die Peakidentifikation
-    // minAreaFactor              Zulässiger minimaler Anteil eines Einzelpeaks am Messdatenintegral = Gewichtsfaktor für die Elimination von Rauschpeaks
-    // minFractionalAreaFactor    Gewichtsfaktor für die Gegenueberstellung FTP - ZPT
-    // smoothen the data by summing neighbouring bins
+    /* adapted from subroutine SEPAPR
+     * Die Routine waehlt einen Beobachtungsindex.
+     * Von diesem Aus wird fortlaufend die Peakflaeche
+     * FTP integriert und mit dem aus dem letzten Messwert
+     * und dessen Abstand vom Beobachtungspunkt gebildete
+     * Dreieck ZPT verglichen. Ist FTP > ZPT ist ein neuer
+     * Peak identifiziert. Der Beobachtungspunkt
+     * verschiebt sich zum letzten Messwertindex und ab da
+     * weiter, solange der Messwert abnimmt. Parallel wird
+     * die Gesamtmessung aufintegriert, als 
+     * zusaetzliches Kriterium zur Unterscheidung von echten
+     * Peaks und Rauscheffekten.
+     * 
+     * smoothingNumber          Startindex in VAL für die Peakidentifikation
+     * minAreaFactor            Zulässiger minimaler Anteil eines Einzelpeaks
+     *                          am Messdatenintegral = Gewichtsfaktor für die
+     *                          Elimination von Rauschpeaks
+     * minFractionalAreaFactor  Gewichtsfaktor für die Gegenueberstellung FTP - ZPT
+     *                          smoothen the data by summing neighbouring bins
+     */
     container_t& values = globHist_m;
   
     const int size = static_cast<int>(values.size());
@@ -260,6 +245,42 @@ void PeakFinder::analysePeak(const container_t& values,
 }
 
 
+void PeakFinder::createHistogram_m() {
+    
+    // compute global minimum and maximum radius
+    auto result = std::minmax_element(radius_m.begin(), radius_m.end());
+    
+    double locMin = *result.first;
+    double locMax = *result.second;
+    
+    double globMin = 0;
+    double globMax = 0;
+    
+    reduce(locMin, globMin, OpAddAssign());
+    
+    reduce(locMax, globMax, OpAddAssign());
+    
+    
+    /*
+     * create local histograms
+     */
+    container_t locHist(nBins_m);
+    binWidth_m = ( globMax - globMin ) / double(nBins); 
+    double invBinWidth = 1.0 / binWidth_m;
+    for(container_t::iterator it = radius_m.begin(); it != radius_m.end(); ++it) {
+        int bin = (*it - globMin ) * invBinWidth;
+        ++locHist[bin];
+    }
+    
+    /*
+     * create global histograms
+     */
+    globHist_m.resize(nBins_m);
+    reduce(&(locHist[0]), &(locHist[0]) + locHist.size(),
+           &(globHist_m[0]), OpAddAssign());
+}
+
+
 void PeakFinder::open_m() {
     if ( Ippl::myNode() == 0 ) {
         os_m.open(fn_m.c_str(), std::ios::out);
@@ -282,8 +303,6 @@ void PeakFinder::close_m() {
 
 void PeakFinder::saveASCII_m() {
     if ( Ippl::myNode() == 0 )  {
-//         std::copy(globHist_m.begin(), globHist_m.end(),
-//                   std::ostream_iterator<double>(os_m, "\n"));
         for (auto &radius : peakRadii_m) {
 	    os_m << radius << std::endl;
 	}
