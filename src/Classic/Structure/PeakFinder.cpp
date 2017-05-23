@@ -83,7 +83,7 @@ void PeakFinder::findPeaks(int smoothingNumber,
   // minAreaFactor              Zulässiger minimaler Anteil eines Einzelpeaks am Messdatenintegral = Gewichtsfaktor für die Elimination von Rauschpeaks
   // minFractionalAreaFactor    Gewichtsfaktor für die Gegenueberstellung FTP - ZPT
   // smoothen the data by summing neighbouring bins
-  std::vector<float> values = histogram->values();
+  std::vector<double> values = histogram->values();
   
   const int size = static_cast<int>(values.size());
   if (size < smoothingNumber) {
@@ -156,28 +156,28 @@ void PeakFinder::findPeaks(int smoothingNumber,
   }
   // debug
   *gmsg << "Number of peaks found: " << nrPeaks << endl;
-  peakRadii.resize(nrPeaks);
-  fourSigmaPeaks.resize(nrPeaks);
-  const std::vector<float>& positions = histogram->getPositions();
+  peakRadii_m.resize(nrPeaks);
+  fourSigmaPeaks_m.resize(nrPeaks);
+  const std::vector<double>& positions = histogram->getPositions();
   for (int i=1; i<(int)(peakSeparatingIndices.size()); i++) {
     int startIndex = peakSeparatingIndices[i-1];
     int endIndex   = peakSeparatingIndices[i];
     analysePeak(values,positions,startIndex,endIndex,
-		peakRadii[i-1],fourSigmaPeaks[i-1]);
+		peakRadii_m[i-1],fourSigmaPeaks_m[i-1]);
   }
 }
 
 
-void PeakFinder::analysePeak(const std::vector<float>& values,
-			     const std::vector<float>& positions, 
+void PeakFinder::analysePeak(const std::vector<double>& values,
+			     const std::vector<double>& positions,
 			     const int startIndex, const int endIndex,
-			     float& peak,
-			     float& fourSigma)const
+			     double& peak,
+			     double& fourSigma)const
 {
   // original subroutine ANALPR
   int range      = endIndex - startIndex;
   // find maximum
-  float maximum   = -1;
+  double maximum   = -1;
   int maximumIndex = -1;
   int relMaxIndex  = -1;
   for (int j=startIndex; j<=endIndex; j++) {
@@ -195,7 +195,7 @@ void PeakFinder::analysePeak(const std::vector<float>& values,
   int indexLeftEnd = 0; // left limit of peak
   for (int j=relMaxIndex; j>=0; j--) {
     int index = j + startIndex;
-    float value = values[index];
+    double value = values[index];
     if (value > 0.2 *maximum) {index20 = j;} // original code had i-1
     // if too far out, then break (not sure where formula comes from)
     if (j < (3*index20 - 2*relMaxIndex)) {
@@ -209,7 +209,7 @@ void PeakFinder::analysePeak(const std::vector<float>& values,
   // loop on right side of peak
   for (int j=relMaxIndex; j<=range; j++) {
     int index = j + startIndex;
-    float value = values[index];
+    double value = values[index];
     if (value > 0.2 *maximum) {index20    = j;}
     // if too far out, then break (not sure where formula comes from)
     if (j > (3*index20 - 2*relMaxIndex)) {
@@ -233,7 +233,7 @@ void PeakFinder::analysePeak(const std::vector<float>& values,
   double variance = 0.0;
   for (int j=indexLeftEnd; j<=indexRightEnd; j++) {
     int index = j + startIndex;
-    float value = values[index];
+    double value = values[index];
     double dx = positions[index] - mean;
     variance += value * dx * dx;
   }

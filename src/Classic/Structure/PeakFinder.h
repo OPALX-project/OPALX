@@ -1,10 +1,11 @@
 #ifndef PEAKFINDER_H
 #define PEAKFINDER_H
 
-#include "Utility/Ippl.h"
+#include "Utility/IpplInfo.h"
+#include "Algorithms/Vektor.h"
 
-#include <vector>
 #include <string>
+#include <vector>
 
 class PeakFinder {
     
@@ -43,20 +44,24 @@ public:
      * @param[out] peakRadius peak radius
      * @param[out] fourSigma  four sigma width
      */
-    void analysePeak(const std::vector<float>& values,
-		     const std::vector<float>& positions, 
+    void analysePeak(const std::vector<double>& values,
+		     const std::vector<double>& positions,
 		     const int startIndex, const int endIndex,
-		     float& peak,
-		     float& fourSigma)const;
+		     double& peak,
+		     double& fourSigma)const;
     
 private:
-     radius_m;
-     globHist_m;
+    std::vector<double> radius_m;
+    std::vector<double> globHist_m;
     
     std::string element_m;
     unsigned int nBins_m;
     double binWidth_m;
     
+    /// Radial position of peaks
+    std::vector<double> peakRadii_m;
+    /// Four sigma width of peaks
+    std::vector<double> fourSigmaPeaks_m;
 };
 
 #endif
