@@ -4,6 +4,7 @@
 #include "Utility/IpplInfo.h"
 #include "Algorithms/Vektor.h"
 
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -47,15 +48,34 @@ public:
     void analysePeak(const std::vector<double>& values,
 		     const std::vector<double>& positions,
 		     const int startIndex, const int endIndex,
-		     double& peak,
-		     double& fourSigma)const;
+		     float& peak,
+		     float& fourSigma)const;
+                     
+private:
+    
+    void open_m();
+    
+    void append_m();
+    
+    void close_m();
+    
+    void saveASCII_m();
+    
     
 private:
-    std::vector<double> radius_m;
-    std::vector<double> globHist_m;
+     container_t radius_m;
+     container_t globHist_m;
+     
+     // filename without extension
+    std::string fn_m;
+
+    // used to write out the data
+    std::ofstream os_m;
     
     std::string element_m;
+    
     unsigned int nBins_m;
+    
     double binWidth_m;
     
     /// Radial position of peaks
