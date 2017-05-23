@@ -2,6 +2,10 @@
 #define PEAKFINDER_H
 
 #include "Utility/IpplInfo.h"
+#include "Algorithms/Vektor.h"
+
+#include <string>
+#include <vector>
 
 class PeakFinder {
     
