@@ -72,12 +72,7 @@ void PeakFinder::save() {
     
 }
 
-
-void PeakFinder::analysePeaks(int smoothingNumber,
-                              double minAreaFactor,
-                              double minFractionalAreaFactor,
-                              double minAreaAboveNoise,
-                              double minSlope)
+void Probe::findPeaks(int smoothingNumber, double minAreaFactor, double minFractionalAreaFactor, double minAreaAboveNoise, double minSlope)
 {
   // adapted from subroutine SEPAPR
   // Die Routine waehlt einen Beobachtungsindex. Von diesem Aus wird fortlaufend die Peakflaeche FTP integriert und mit dem aus dem letzten Messwert
@@ -121,7 +116,7 @@ void PeakFinder::analysePeaks(int smoothingNumber,
   
   int nrPeaks            = 0;
   const double minArea   = minAreaFactor * totalSum; // minimum area for a peak
-  std::cout << "minArea " << minArea << std::endl;;
+  *gmsg << "minArea " << minArea << endl;
   // number of indices corresponding to 10 mm
   const int maxIndex     = static_cast<int> (10 * size / (histogram->width()));
   bool upwards           = false;
@@ -134,12 +129,12 @@ void PeakFinder::analysePeaks(int smoothingNumber,
     double zpt     = minFractionalAreaFactor * (smoothValues[i] - smoothValues[startIndex]) * (i - startIndex);
     if (ftpPeak >= zpt && ftp > minArea && ftpPeak > minAreaAboveNoise && slope > minSlope) {
       if (newPeak == false) {
-	std::cout << "Peak "     << peakSeparatingIndices.size();
-	std::cout << "Position " << histogram->getPosition(i);
-        std::cout << "Fraction " << ftpPeak << zpt;
-	std::cout << "Area "     << ftp     << minArea;
-	std::cout << "Noise "    << ftpPeak << minAreaAboveNoise;
-	std::cout << "Slope "    << slope   << minSlope;
+	*gmsg << "Peak "     << peakSeparatingIndices.size() << endl;
+	*gmsg << "Position " << histogram->getPosition(i) << endl;
+        *gmsg << "Fraction " << ftpPeak << " " << zpt << endl;
+	*gmsg << "Area "     << ftp     << " " << minArea << endl;
+	*gmsg << "Noise "    << ftpPeak << " " << minAreaAboveNoise << endl;
+	*gmsg << "Slope "    << slope   << " " << minSlope << endl;
       }
       newPeak = true;
     }
@@ -148,7 +143,7 @@ void PeakFinder::analysePeaks(int smoothingNumber,
 	upwards = true;
 	if (newPeak == true) {
 	  nrPeaks++;
-	  std::cout << "Separating position " << histogram->getPosition(i) << std::endl;
+	  *gmsg << "Separating position " << histogram->getPosition(i) << endl;
 	  peakSeparatingIndices.push_back(i-1);
 	  newPeak = false;
 	} else if (smoothValues[peakSeparatingIndices.back()] >= smoothValues[i]) {
@@ -160,30 +155,24 @@ void PeakFinder::analysePeaks(int smoothingNumber,
     }
   }
   // debug
-  std::cout << "Number of peaks found: " << nrPeaks << std::endl;;
-  // get turn number and mid peak radius for display
-//  QVector<float> peakRadii(nrPeaks), rightPeakRadii(nrPeaks), peakMean(nrPeaks), peakFourSigma(nrPeaks);
-  //QVector<QPair<float,float>> radiiEnd(nrPeaks),radii4Perc(nrPeaks),radii25Perc(nrPeaks);
+  *gmsg << "Number of peaks found: " << nrPeaks << endl;
+  peakRadii.resize(nrPeaks);
+  fourSigmaPeaks.resize(nrPeaks);
   const std::vector<float>& positions = histogram->getPositions();
   for (int i=1; i<(int)(peakSeparatingIndices.size()); i++) {
     int startIndex = peakSeparatingIndices[i-1];
     int endIndex   = peakSeparatingIndices[i];
     analysePeak(values,positions,startIndex,endIndex,
-		peakRadii[i-1],rightPeakRadii[i-1],peakMean[i-1],peakFourSigma[i-1],
-                radiiEnd[i-1],radii4Perc[i-1],radii25Perc[i-1]);
+		peakRadii[i-1],fourSigmaPeaks[i-1]);
   }
 }
 
-void PeakFinder::analysePeak(const std::vector<float>& values,
-			     const std::vector<float>& positions, 
-			     const int startIndex, const int endIndex,
-			     float& peak,
-			     float& rightPeak,
-			     float& mean,
-			     float& fourSigma,
-			     std::pair<float,float>& radiiEnd,
-			     std::pair<float,float>& radii4Perc,
-			     std::pair<float,float>& radii25Perc)const
+
+void Probe::analysePeak(const std::vector<float>& values,
+			const std::vector<float>& positions, 
+			const int startIndex, const int endIndex,
+			float& peak,
+			float& fourSigma)const
 {
   // original subroutine ANALPR
   int range      = endIndex - startIndex;
@@ -208,17 +197,13 @@ void PeakFinder::analysePeak(const std::vector<float>& values,
     int index = j + startIndex;
     float value = values[index];
     if (value > 0.2 *maximum) {index20 = j;} // original code had i-1
-    if (value > 0.25*maximum) {radii25Perc.first = positions[index];}
-    if (value > 0.04*maximum) { radii4Perc.first = positions[index];}
     // if too far out, then break (not sure where formula comes from)
     if (j < (3*index20 - 2*relMaxIndex)) {
       indexLeftEnd   = j;
-      radiiEnd.first = positions[index]; 
       break;
     }
   }
   // right limits
-  double radiusHigh=0.0, radiusLow=0.0;
   index20 = -1;
   int indexRightEnd = range; // right limit of peak
   // loop on right side of peak
@@ -226,22 +211,17 @@ void PeakFinder::analysePeak(const std::vector<float>& values,
     int index = j + startIndex;
     float value = values[index];
     if (value > 0.2 *maximum) {index20    = j;}
-    if (value > 0.85*maximum) {radiusHigh = positions[index];}
-    if (value > 0.15*maximum) {radiusLow  = positions[index];}
-    if (value > 0.25*maximum) {radii25Perc.second = positions[index];}
-    if (value > 0.04*maximum) { radii4Perc.second = positions[index];}
     // if too far out, then break (not sure where formula comes from)
     if (j > (3*index20 - 2*relMaxIndex)) {
       indexRightEnd   = j;
-      radiiEnd.second = positions[index];
       break;
     }
   }
-  // qDebug() << "width of Peak" << indexRightEnd - indexLeftEnd << "steps";
-  rightPeak = (radiusHigh + radiusLow) / 2.;
+  // *gmsg << "width of Peak " << indexRightEnd - indexLeftEnd << "steps " << endl;
     
   if (indexRightEnd - indexLeftEnd == 0) { // no peak
-    return; // return zeros for the mean and sigma
+    fourSigma = 0.0;
+    return; // return zeros for sigma
   }
   double sum=0.0, radialSum=0.0;
   for (int j=indexLeftEnd; j<=indexRightEnd; j++) {
@@ -249,7 +229,7 @@ void PeakFinder::analysePeak(const std::vector<float>& values,
     sum       += values[index];
     radialSum += values[index] * positions[index];
   }
-  mean = radialSum / sum;
+  double mean = radialSum / sum;
   double variance = 0.0;
   for (int j=indexLeftEnd; j<=indexRightEnd; j++) {
     int index = j + startIndex;
@@ -258,8 +238,4 @@ void PeakFinder::analysePeak(const std::vector<float>& values,
     variance += value * dx * dx;
   }
   fourSigma = 4 * std::sqrt(variance / sum);
-  // qDebug() << "Peak" << i << "maximum at" << peak << "and right peak" << rightPeak;
-  // qDebug() << "Mean" << mean << "four sigma" << fourSigma;
 }
-
-
