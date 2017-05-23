@@ -1,6 +1,18 @@
 #ifndef PEAKFINDER_H
 #define PEAKFINDER_H
 
+/*!
+ * @file PeakFinder.h
+ * @author Matthias Frey,
+ *         Jochem Snuverink
+ * @brief Find peaks of radial profile
+ * @details It computes a histogram based on the radial
+ * distribution of the particle bunch. After that all
+ * peaks of the histogram are searched. They radii are
+ * written in ASCII format to a file. This class is
+ * used for the cyclotron probe element.
+ */
+
 #include "Utility/IpplInfo.h"
 #include "Algorithms/Vektor.h"
 
@@ -19,13 +31,17 @@ public:
 
     PeakFinder(std::string elem);
     
+    /*!
+     * Append the particle coordinates to the container
+     * @param R is a particle position (x, y, z)
+     */
     void addParticle(const Vector_t& R);
-    
-    void createHistogram();
     
     void save();
     
     inline void setNumBins(unsigned int nBins);
+    
+    inline void setTurnNumber(unsigned int turnNumber);
     
     /** 
       * Find peaks of probe - function based on implementation in probe programs
@@ -38,6 +54,10 @@ public:
     void findPeaks(int smoothingNumber, double minArea, double minFractionalArea, double minAreaAboveNoise, double minSlope);
 
 private:
+    
+    // compute global histogram, involves some inter-node communication
+    void createHistogram_m();
+    
     /***************
      * Output file *
      ***************/
@@ -66,6 +86,8 @@ private:
 		     double& fourSigma)const;
                          
 private:
+    
+    unsigned int turnNumber_m;
     container_t radius_m;
     /// global histogram values
     container_t globHist_m;

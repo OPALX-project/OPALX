@@ -288,6 +288,8 @@ bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, 
 	  }
 	}
     }
+    
+    peakfinder_m->setTurnNumber(turnnumber);
 
     reduce(&flagprobed, &flagprobed + 1, &flagprobed, OpBitwiseOrAssign());
     return flagprobed;
