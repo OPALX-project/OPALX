@@ -2,7 +2,7 @@
 #include <iterator>
 
 PeakFinder::PeakFinder(std::string elem):
-    radius_m(0), globHist_m(0),
+    radius_m(0), globHist_m(0), fn_m("");
     element_m(elem), nBins_m(0), binWidth_m(0)
 { }
 
@@ -51,15 +51,26 @@ void PeakFinder::createHistogram() {
     globHist_m.resize(nBins_m);
     reduce(&(locHist[0]), &(locHist[0]) + locHist.size(),
                &(globHist[0]), OpAddAssign());
-    
-    
-    radius_m.clear();
 }
 
 
 void PeakFinder::save() {
+    std::string fn_m = element_m + std::string(".peaks");
     
+    INFOMSG("Save " << fn_m << endl);
     
+    if(OpalData::getInstance()->inRestartRun())
+        this->append_m();
+    else {
+        this->open_m();
+        this->saveASCII_m();
+    
+        this->close_m();
+        Ippl::Comm->barrier();
+    }
+    
+    radius_m.clear();
+    globHist_m.clear();
 }
 
 void PeakFinder::setNumBins(unsigned int nBins) {
@@ -237,3 +248,32 @@ void PeakFinder::analysePeak(const std::vector<float>& values,
   }
   fourSigma = 4 * std::sqrt(variance / sum);
 }
+
+
+void PeakFinder::open_m() {
+    if ( Ippl::myNode() == 0 ) {
+        os_m.open(fn_m.c_str(), std::ios::out);
+    }
+}
+
+
+void PeakFinder::append_m() {
+    if ( Ippl::myNode() == 0 ) {
+        os_m.open(fn_m.c_str(), std::ios::app);
+    }
+}
+
+
+void PeakFinder::close_m() {
+    if ( Ippl::myNode() == 0 )
+        os_m.close();
+}
+
+
+void PeakFinder::saveASCII_m() {
+    if ( Ipp::myNode() == 0 )  {
+//         std::copy(globHist_m.begin(), globHist_m.end(),
+//                   std::ostream_iterator<double>(os_m, "\n"));
+    }
+}
+

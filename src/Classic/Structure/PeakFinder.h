@@ -49,13 +49,32 @@ public:
 		     const int startIndex, const int endIndex,
 		     float& peak,
 		     float& fourSigma)const;
+                     
+private:
+    
+    void open_m();
+    
+    void append_m();
+    
+    void close_m();
+    
+    void saveASCII_m();
+    
     
 private:
-     radius_m;
-     globHist_m;
+     container_t radius_m;
+     container_t globHist_m;
+     
+     // filename without extension
+    std::string fn_m;
+
+    // used to write out the data
+    std::ofstream os_m;
     
     std::string element_m;
+    
     unsigned int nBins_m;
+    
     double binWidth_m;
     
 };
