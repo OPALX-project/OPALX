@@ -1,5 +1,6 @@
 set (_SRCS
     LossDataSink.cpp
+    PeakFinder.cpp
   )
 
 include_directories (
