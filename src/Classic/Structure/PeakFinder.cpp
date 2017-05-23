@@ -1,21 +1,14 @@
 #include "PeakFinder.h"
+
+#include <algorithm>
+#include <cmath>
 #include <iterator>
 
-PeakFinder::LossDataSink(std::string elem):
-    radius_m(0), globHist_m(0),
-    element_m(elem), nBins_m(0), binWidth_m(0)
-{
-    x_m.clear();
-    y_m.clear();
-    z_m.clear();
-    px_m.clear();
-    py_m.clear();
-    pz_m.clear();
-    id_m.clear();
-    turn_m.clear();
-    time_m.clear();
-}
+extern Inform *gmsg;
 
+PeakFinder::PeakFinder(std::string elem):
+    element_m(elem), nBins_m(0), binWidth_m(0) {
+}
 
 PeakFinder::PeakFinder() {
     PeakFinder(std::string("NULL"));
@@ -26,7 +19,6 @@ void PeakFinder::addParticle(const Vector_t& R) {
     double radius = std::sqrt( R(0) * R(0) + R(2) * R(2) );
     radius_m.push_back(radius);
 }
-
 
 void PeakFinder::createHistogram() {
     
@@ -49,9 +41,9 @@ void PeakFinder::createHistogram() {
      */
     
     std::vector<double> locHist(nBins_m);
-    double invBinWidth = 1.0 & binWidth_m
+    double invBinWidth = 1.0 / binWidth_m;
     for(std::vector<double>::iterator it = radius_m.begin(); it != radius_m.end(); ++it) {
-        int bin = (radius_m[i] - globMin ) * invBinWidth;
+        int bin = (*it - globMin ) * invBinWidth;
         ++locHist[bin];
     }
     
@@ -72,7 +64,7 @@ void PeakFinder::save() {
     
 }
 
-void Probe::findPeaks(int smoothingNumber, double minAreaFactor, double minFractionalAreaFactor, double minAreaAboveNoise, double minSlope)
+void PeakFinder::findPeaks(int smoothingNumber, double minAreaFactor, double minFractionalAreaFactor, double minAreaAboveNoise, double minSlope)
 {
   // adapted from subroutine SEPAPR
   // Die Routine waehlt einen Beobachtungsindex. Von diesem Aus wird fortlaufend die Peakflaeche FTP integriert und mit dem aus dem letzten Messwert
@@ -168,11 +160,11 @@ void Probe::findPeaks(int smoothingNumber, double minAreaFactor, double minFract
 }
 
 
-void Probe::analysePeak(const std::vector<float>& values,
-			const std::vector<float>& positions, 
-			const int startIndex, const int endIndex,
-			float& peak,
-			float& fourSigma)const
+void PeakFinder::analysePeak(const std::vector<float>& values,
+			     const std::vector<float>& positions, 
+			     const int startIndex, const int endIndex,
+			     float& peak,
+			     float& fourSigma)const
 {
   // original subroutine ANALPR
   int range      = endIndex - startIndex;
