@@ -4,6 +4,9 @@
 #include <cmath>
 #include <iterator>
 
+#include "AbstractObjects/OpalData.h"
+#include "Ippl.h"
+
 extern Inform *gmsg;
 
 PeakFinder::PeakFinder(std::string elem):
@@ -41,10 +44,9 @@ void PeakFinder::createHistogram() {
     /*
      * create local histograms
      */
-    
-    std::vector<double> locHist(nBins_m);
+    container_t locHist(nBins_m);
     double invBinWidth = 1.0 / binWidth_m;
-    for(std::vector<double>::iterator it = radius_m.begin(); it != radius_m.end(); ++it) {
+    for(container_t::iterator it = radius_m.begin(); it != radius_m.end(); ++it) {
         int bin = (*it - globMin ) * invBinWidth;
         ++locHist[bin];
     }
@@ -54,7 +56,7 @@ void PeakFinder::createHistogram() {
      */
     globHist_m.resize(nBins_m);
     reduce(&(locHist[0]), &(locHist[0]) + locHist.size(),
-               &(globHist[0]), OpAddAssign());
+               &(globHist_m[0]), OpAddAssign());
 }
 
 
@@ -96,15 +98,15 @@ void PeakFinder::findPeaks(int smoothingNumber,
   // minAreaFactor              Zulässiger minimaler Anteil eines Einzelpeaks am Messdatenintegral = Gewichtsfaktor für die Elimination von Rauschpeaks
   // minFractionalAreaFactor    Gewichtsfaktor für die Gegenueberstellung FTP - ZPT
   // smoothen the data by summing neighbouring bins
-  std::vector<double> values = histogram->values();
+  container_t& values = globHist_m;
   
   const int size = static_cast<int>(values.size());
   if (size < smoothingNumber) {
     // no peaks can be found
     return;
   }
-  std::vector<double> smoothValues;
-  std::vector<double> sumSmoothValues;
+  container_t smoothValues;
+  container_t sumSmoothValues;
   smoothValues.resize(size);
   sumSmoothValues.resize(size);
   double totalSum = 0.0;
@@ -131,7 +133,7 @@ void PeakFinder::findPeaks(int smoothingNumber,
   const double minArea   = minAreaFactor * totalSum; // minimum area for a peak
   *gmsg << "minArea " << minArea << endl;
   // number of indices corresponding to 10 mm
-  const int maxIndex     = static_cast<int> (10 * size / (histogram->width()));
+  const int maxIndex     = static_cast<int> (10 * size / binWidth_m);
   bool upwards           = false;
   bool newPeak           = false;
   for (int i=1; i<size; i++) {
@@ -143,7 +145,7 @@ void PeakFinder::findPeaks(int smoothingNumber,
     if (ftpPeak >= zpt && ftp > minArea && ftpPeak > minAreaAboveNoise && slope > minSlope) {
       if (newPeak == false) {
 	*gmsg << "Peak "     << peakSeparatingIndices.size() << endl;
-	*gmsg << "Position " << histogram->getPosition(i) << endl;
+// 	*gmsg << "Position " << histogram->getPosition(i) << endl;
         *gmsg << "Fraction " << ftpPeak << " " << zpt << endl;
 	*gmsg << "Area "     << ftp     << " " << minArea << endl;
 	*gmsg << "Noise "    << ftpPeak << " " << minAreaAboveNoise << endl;
@@ -156,7 +158,7 @@ void PeakFinder::findPeaks(int smoothingNumber,
 	upwards = true;
 	if (newPeak == true) {
 	  nrPeaks++;
-	  *gmsg << "Separating position " << histogram->getPosition(i) << endl;
+// 	  *gmsg << "Separating position " << histogram->getPosition(i) << endl;
 	  peakSeparatingIndices.push_back(i-1);
 	  newPeak = false;
 	} else if (smoothValues[peakSeparatingIndices.back()] >= smoothValues[i]) {
@@ -171,7 +173,7 @@ void PeakFinder::findPeaks(int smoothingNumber,
   *gmsg << "Number of peaks found: " << nrPeaks << endl;
   peakRadii_m.resize(nrPeaks);
   fourSigmaPeaks_m.resize(nrPeaks);
-  const std::vector<double>& positions = histogram->getPositions();
+  const container_t& positions = globHist_m;//histogram->getPositions();
   for (int i=1; i<(int)(peakSeparatingIndices.size()); i++) {
     int startIndex = peakSeparatingIndices[i-1];
     int endIndex   = peakSeparatingIndices[i];
@@ -181,8 +183,8 @@ void PeakFinder::findPeaks(int smoothingNumber,
 }
 
 
-void PeakFinder::analysePeak(const std::vector<double>& values,
-			     const std::vector<double>& positions,
+void PeakFinder::analysePeak(const container_t& values,
+			     const container_t& positions,
 			     const int startIndex, const int endIndex,
 			     double& peak,
 			     double& fourSigma)const
@@ -275,7 +277,7 @@ void PeakFinder::close_m() {
 
 
 void PeakFinder::saveASCII_m() {
-    if ( Ipp::myNode() == 0 )  {
+    if ( Ippl::myNode() == 0 )  {
 //         std::copy(globHist_m.begin(), globHist_m.end(),
 //                   std::ostream_iterator<double>(os_m, "\n"));
     }

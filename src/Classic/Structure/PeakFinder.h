@@ -45,11 +45,11 @@ public:
      * @param[out] peakRadius peak radius
      * @param[out] fourSigma  four sigma width
      */
-    void analysePeak(const std::vector<double>& values,
-		     const std::vector<double>& positions,
+    void analysePeak(const container_t& values,
+		     const container_t& positions,
 		     const int startIndex, const int endIndex,
-		     float& peak,
-		     float& fourSigma)const;
+		     double & peak,
+		     double& fourSigma)const;
                      
 private:
     
@@ -79,9 +79,9 @@ private:
     double binWidth_m;
     
     /// Radial position of peaks
-    std::vector<double> peakRadii_m;
+    container_t peakRadii_m;
     /// Four sigma width of peaks
-    std::vector<double> fourSigmaPeaks_m;
+    container_t fourSigmaPeaks_m;
 };
 
 #endif
