@@ -23,6 +23,8 @@
 
 #include "AbsBeamline/Component.h"
 
+#include <utility>
+
 class PartBunch;
 class LossDataSink;
 
@@ -99,6 +101,24 @@ private:
     double A_m, B_m,R_m, C_m;
     void setGeom(const double dist);
     int  checkPoint( const double & x, const double & y );
+
+    /** 
+      * Analyse peaks of profile measurement and save in profile measurement
+      *       * @param[in] finger Finger to analyse, default of -1 means default finger
+      *          */
+     void analysePeaks(int smoothingNumber, double minArea, double minFractionalArea, double minAreaAboveNoise, double minSlope);
+/// Analyse single peak
+void analysePeak(const std::vector<float>& values,
+                             const std::vector<float>& positions, 
+                             const int startIndex, const int endIndex,
+                             float& peak,
+                             float& rightPeak,
+                             float& mean,
+                             float& fourSigma,
+                             std::pair<float,float>& radiiEnd,
+                             std::pair<float,float>& radii4Perc,
+                             std::pair<float,float>& radii25Perc)const;
+
 
     std::unique_ptr<LossDataSink> lossDs_m;
 
