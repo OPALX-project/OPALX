@@ -24,6 +24,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
+#include "Structure/PeakFinder.h"
 #include "Utilities/Options.h"
 #include <iostream>
 #include <fstream>
@@ -114,13 +115,17 @@ void Probe::initialise(PartBunch *bunch, double &startField, double &endField, c
 }
 
 void Probe::initialise(PartBunch *bunch, const double &scaleFactor) {
-    if (filename_m == std::string(""))
+    if (filename_m == std::string("")) {
+        peakfinder_m = std::unique_ptr<PeakFinder>(new PeakFinder(getName()));
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-    else
+    } else {
+        peakfinder_m = std::unique_ptr<PeakFinder>(new PeakFinder(filename_m.substr(0, filename_m.rfind("."))));
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
+    }
 }
 
 void Probe::finalise() {
+    peakfinder_m->save();
     lossDs_m->save();
     *gmsg << "* Finalize probe " << getName() << endl;
 }
@@ -277,6 +282,9 @@ bool  Probe::checkProbe(PartBunch &bunch, const int turnnumber, const double t, 
 	    probepoint(2) = bunch.R[i](2);
 	    lossDs_m->addParticle(probepoint, bunch.P[i], bunch.ID[i], t+dt, turnnumber);
 	    flagprobed = true;
+            
+            peakfinder_m->addParticle(bunch.R[i]);
+            
 	  }
 	}
     }
@@ -308,189 +316,4 @@ void Probe::getDimensions(double &zBegin, double &zEnd) const {
 
 ElementBase::ElementType Probe::getType() const {
     return PROBE;
-}
-
-void Probe::analysePeaks(int smoothingNumber, double minAreaFactor, double minFractionalAreaFactor, double minAreaAboveNoise, double minSlope)
-{
-  // adapted from subroutine SEPAPR
-  // Die Routine waehlt einen Beobachtungsindex. Von diesem Aus wird fortlaufend die Peakflaeche FTP integriert und mit dem aus dem letzten Messwert
-  // und dessen Abstand vom Beobachtungspunkt gebildete Dreieck ZPT verglichen. Ist FTP > ZPT ist ein neuer Peak identifiziert. Der Beobachtungspunkt
-  // verschiebt sich zum letzten Messwertindex und ab da weiter, solange der Messwert abnimmt. Parallel wird die Gesamtmessung aufintegriert, als 
-  // zusaetzliches Kriterium zur Unterscheidung von echten Peaks und Rauscheffekten.
-  // smoothingNumber            Startindex in VAL für die Peakidentifikation
-  // minAreaFactor              Zulässiger minimaler Anteil eines Einzelpeaks am Messdatenintegral = Gewichtsfaktor für die Elimination von Rauschpeaks
-  // minFractionalAreaFactor    Gewichtsfaktor für die Gegenueberstellung FTP - ZPT
-  // smoothen the data by summing neighbouring bins
-  std::vector<float> values = histogram->values();
-  
-  const int size = static_cast<int>(values.size());
-  if (size < smoothingNumber) {
-    // no peaks can be found
-    return;
-  }
-  std::vector<double> smoothValues;
-  std::vector<double> sumSmoothValues;
-  smoothValues.resize(size);
-  sumSmoothValues.resize(size);
-  double totalSum = 0.0;
-  for (int i = smoothingNumber; i<size-smoothingNumber; i++) {
-    double sum = 0.0;
-    for (int j = -smoothingNumber; j<=smoothingNumber; j++) {
-      sum += values[i+j];
-    }
-    sum /= smoothingNumber*2+1;
-    totalSum += sum;
-    smoothValues[i] = sum;
-    sumSmoothValues[i] = totalSum;
-  }
-  // set first and last values to value of smoothingNumber
-  for (int i=0; i<smoothingNumber; i++) {
-    smoothValues[i]        = smoothValues[smoothingNumber];
-    smoothValues[size-1-i] = smoothValues[size-1-smoothingNumber];
-  }
-  
-  std::vector<int> peakSeparatingIndices; // indices at minima (one more than number of peaks(!))
-  peakSeparatingIndices.push_back(0);
-  
-  int nrPeaks            = 0;
-  const double minArea   = minAreaFactor * totalSum; // minimum area for a peak
-  std::cout << "minArea " << minArea << std::endl;;
-  // number of indices corresponding to 10 mm
-  const int maxIndex     = static_cast<int> (10 * size / (histogram->width()));
-  bool upwards           = false;
-  bool newPeak           = false;
-  for (int i=1; i<size; i++) {
-    int startIndex = std::max(i-maxIndex, peakSeparatingIndices.back());
-    double ftp     = sumSmoothValues[i] - sumSmoothValues[startIndex];
-    double ftpPeak = ftp - (i - startIndex)*smoothValues[startIndex]; // peak - noiselevel
-    double slope   = (smoothValues[i] - smoothValues[startIndex]) / (i-startIndex);
-    double zpt     = minFractionalAreaFactor * (smoothValues[i] - smoothValues[startIndex]) * (i - startIndex);
-    if (ftpPeak >= zpt && ftp > minArea && ftpPeak > minAreaAboveNoise && slope > minSlope) {
-      if (newPeak == false) {
-	std::cout << "Peak "     << peakSeparatingIndices.size();
-	std::cout << "Position " << histogram->getPosition(i);
-        std::cout << "Fraction " << ftpPeak << zpt;
-	std::cout << "Area "     << ftp     << minArea;
-	std::cout << "Noise "    << ftpPeak << minAreaAboveNoise;
-	std::cout << "Slope "    << slope   << minSlope;
-      }
-      newPeak = true;
-    }
-    if (smoothValues[i] > smoothValues [i-1] || i == size-1) {
-      if (upwards == false || i == size-1) {
-	upwards = true;
-	if (newPeak == true) {
-	  nrPeaks++;
-	  std::cout << "Separating position " << histogram->getPosition(i) << std::endl;
-	  peakSeparatingIndices.push_back(i-1);
-	  newPeak = false;
-	} else if (smoothValues[peakSeparatingIndices.back()] >= smoothValues[i]) {
-	  peakSeparatingIndices.back() = i;
-	}
-      }
-    } else {
-      upwards = false;
-    }
-  }
-  // debug
-  std::cout << "Number of peaks found: " << nrPeaks << std::endl;;
-  // get turn number and mid peak radius for display
-//  QVector<float> peakRadii(nrPeaks), rightPeakRadii(nrPeaks), peakMean(nrPeaks), peakFourSigma(nrPeaks);
-  //QVector<QPair<float,float>> radiiEnd(nrPeaks),radii4Perc(nrPeaks),radii25Perc(nrPeaks);
-  const std::vector<float>& positions = histogram->getPositions();
-  for (int i=1; i<(int)(peakSeparatingIndices.size()); i++) {
-    int startIndex = peakSeparatingIndices[i-1];
-    int endIndex   = peakSeparatingIndices[i];
-    analysePeak(values,positions,startIndex,endIndex,
-		peakRadii[i-1],rightPeakRadii[i-1],peakMean[i-1],peakFourSigma[i-1],
-                radiiEnd[i-1],radii4Perc[i-1],radii25Perc[i-1]);
-  }
-}
-
-void Probe::analysePeak(const std::vector<float>& values,
-			     const std::vector<float>& positions, 
-			     const int startIndex, const int endIndex,
-			     float& peak,
-			     float& rightPeak,
-			     float& mean,
-			     float& fourSigma,
-			     std::pair<float,float>& radiiEnd,
-			     std::pair<float,float>& radii4Perc,
-			     std::pair<float,float>& radii25Perc)const
-{
-  // original subroutine ANALPR
-  int range      = endIndex - startIndex;
-  // find maximum
-  float maximum   = -1;
-  int maximumIndex = -1;
-  int relMaxIndex  = -1;
-  for (int j=startIndex; j<=endIndex; j++) {
-    if (values[j] > maximum) {
-      maximum = values[j];
-      maximumIndex = j;
-      relMaxIndex  = j - startIndex; // count from peak separation
-    }
-  }
-  peak = positions[maximumIndex];
-  // qDebug() << "Peak " << i << " at " << positions[maximumIndex] << " mm";
-    
-  // left limits, go down from peak to separation index
-  int index20 = -1;
-  int indexLeftEnd = 0; // left limit of peak
-  for (int j=relMaxIndex; j>=0; j--) {
-    int index = j + startIndex;
-    float value = values[index];
-    if (value > 0.2 *maximum) {index20 = j;} // original code had i-1
-    if (value > 0.25*maximum) {radii25Perc.first = positions[index];}
-    if (value > 0.04*maximum) { radii4Perc.first = positions[index];}
-    // if too far out, then break (not sure where formula comes from)
-    if (j < (3*index20 - 2*relMaxIndex)) {
-      indexLeftEnd   = j;
-      radiiEnd.first = positions[index]; 
-      break;
-    }
-  }
-  // right limits
-  double radiusHigh=0.0, radiusLow=0.0;
-  index20 = -1;
-  int indexRightEnd = range; // right limit of peak
-  // loop on right side of peak
-  for (int j=relMaxIndex; j<=range; j++) {
-    int index = j + startIndex;
-    float value = values[index];
-    if (value > 0.2 *maximum) {index20    = j;}
-    if (value > 0.85*maximum) {radiusHigh = positions[index];}
-    if (value > 0.15*maximum) {radiusLow  = positions[index];}
-    if (value > 0.25*maximum) {radii25Perc.second = positions[index];}
-    if (value > 0.04*maximum) { radii4Perc.second = positions[index];}
-    // if too far out, then break (not sure where formula comes from)
-    if (j > (3*index20 - 2*relMaxIndex)) {
-      indexRightEnd   = j;
-      radiiEnd.second = positions[index];
-      break;
-    }
-  }
-  // qDebug() << "width of Peak" << indexRightEnd - indexLeftEnd << "steps";
-  rightPeak = (radiusHigh + radiusLow) / 2.;
-    
-  if (indexRightEnd - indexLeftEnd == 0) { // no peak
-    return; // return zeros for the mean and sigma
-  }
-  double sum=0.0, radialSum=0.0;
-  for (int j=indexLeftEnd; j<=indexRightEnd; j++) {
-    int index = j + startIndex;
-    sum       += values[index];
-    radialSum += values[index] * positions[index];
-  }
-  mean = radialSum / sum;
-  double variance = 0.0;
-  for (int j=indexLeftEnd; j<=indexRightEnd; j++) {
-    int index = j + startIndex;
-    float value = values[index];
-    double dx = positions[index] - mean;
-    variance += value * dx * dx;
-  }
-  fourSigma = 4 * std::sqrt(variance / sum);
-  // qDebug() << "Peak" << i << "maximum at" << peak << "and right peak" << rightPeak;
-  // qDebug() << "Mean" << mean << "four sigma" << fourSigma;
 }
