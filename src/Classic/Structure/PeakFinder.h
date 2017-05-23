@@ -1,9 +1,16 @@
 #ifndef PEAKFINDER_H
 #define PEAKFINDER_H
 
-#include "Utility/IpplInfo.h"
+#include "Utility/Ippl.h"
+
+#include <vector>
+#include <string>
+
 
 class PeakFinder {
+    
+public:
+    typedef std::vector<double> container_t;
     
 public:
     
@@ -16,6 +23,8 @@ public:
     void createHistogram();
     
     void save();
+    
+    inline void setNumBins(unsigned int nBins);
     
     /** 
       * Find peaks of probe - function based on implementation in probe programs
@@ -40,14 +49,14 @@ public:
 		     const int startIndex, const int endIndex,
 		     float& peak,
 		     float& fourSigma)const;
-            
+    
 private:
-    std::vector<double> radius_m;
-    std::vector<double> globHist_m;
+     radius_m;
+     globHist_m;
     
     std::string element_m;
-    int nBins_m;
-    int binWidth_m;
+    unsigned int nBins_m;
+    double binWidth_m;
     
 };
 
