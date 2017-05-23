@@ -64,7 +64,15 @@ void PeakFinder::save() {
     
 }
 
-void PeakFinder::findPeaks(int smoothingNumber, double minAreaFactor, double minFractionalAreaFactor, double minAreaAboveNoise, double minSlope)
+void PeakFinder::setNumBins(unsigned int nBins) {
+    nBins_m = nBins;
+}
+
+void PeakFinder::findPeaks(int smoothingNumber,
+                           double minAreaFactor,
+                           double minFractionalAreaFactor,
+                           double minAreaAboveNoise,
+                           double minSlope)
 {
   // adapted from subroutine SEPAPR
   // Die Routine waehlt einen Beobachtungsindex. Von diesem Aus wird fortlaufend die Peakflaeche FTP integriert und mit dem aus dem letzten Messwert
