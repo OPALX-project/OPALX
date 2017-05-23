@@ -11,7 +11,7 @@
 class PeakFinder {
     
 public:
-    typedef std::vector<double> container_t;
+    using container_t = std::vector<double>;
     
 public:
     
@@ -36,6 +36,20 @@ public:
       * @param[in] minSlope          Minimum slope
     */
     void findPeaks(int smoothingNumber, double minArea, double minFractionalArea, double minAreaAboveNoise, double minSlope);
+
+private:
+    /***************
+     * Output file *
+     ***************/
+    /// Open output file
+    void open_m();
+    /// Open output file in append mode
+    void append_m();
+    /// Close output file
+    void close_m();
+    /// Write to output file
+    void saveASCII_m();
+    
     /** 
      * Analyse single peak
      * @param[in]  values     probe values
@@ -50,34 +64,34 @@ public:
 		     const int startIndex, const int endIndex,
 		     double & peak,
 		     double& fourSigma)const;
-                     
+                         
 private:
-    
-    void open_m();
-    
-    void append_m();
-    
-    void close_m();
-    
-    void saveASCII_m();
-    
-    
-private:
-     container_t radius_m;
-     container_t globHist_m;
+    container_t radius_m;
+    /// global histogram values
+    container_t globHist_m;
      
-     // filename without extension
+    /// filename without extension
     std::string fn_m;
 
     // used to write out the data
     std::ofstream os_m;
     
+    /// Element/probe name, for name output file
     std::string element_m;
     
+    // Histogram details
+    /// Number of bins
     unsigned int nBins_m;
-    
+    /// Bin width
     double binWidth_m;
-    
+
+    ///@{ Peak analysis parameters (copied from RRI2 probe program for now, need to be tuned a bit)
+    const int    smoothingNumber_m   = 5;
+    const double minArea_m           = 0.025;
+    const double minFractionalArea_m = 0.6;
+    const double minAreaAboveNoise_m = 5e-5;
+    const double minSlope_m          = 1e-7;
+    ///@}
     /// Radial position of peaks
     container_t peakRadii_m;
     /// Four sigma width of peaks
