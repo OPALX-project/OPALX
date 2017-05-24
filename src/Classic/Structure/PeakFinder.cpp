@@ -18,7 +18,7 @@ PeakFinder::PeakFinder() : PeakFinder(std::string("NULL"))
 
 
 void PeakFinder::addParticle(const Vector_t& R) {
-    double radius = std::sqrt( R(0) * R(0) + R(2) * R(2) );
+    double radius = std::sqrt( dot(R, R) );
     radius_m.push_back(radius);
 }
 
@@ -51,15 +51,6 @@ void PeakFinder::save() {
     globHist_m.clear();
 }
 
-
-void PeakFinder::setTurnNumber(unsigned int turnNumber) {
-    turnNumber_m = turnNumber;
-}
-
-
-void PeakFinder::setNumBins(unsigned int nBins) {
-    nBins_m = nBins;
-}
 
 void PeakFinder::findPeaks(int smoothingNumber,
                            double minAreaFactor,
@@ -265,7 +256,7 @@ void PeakFinder::createHistogram_m() {
      * create local histograms
      */
     container_t locHist(nBins_m);
-    binWidth_m = ( globMax - globMin ) / double(nBins); 
+    binWidth_m = ( globMax - globMin ) / double(nBins_m); 
     double invBinWidth = 1.0 / binWidth_m;
     for(container_t::iterator it = radius_m.begin(); it != radius_m.end(); ++it) {
         int bin = (*it - globMin ) * invBinWidth;
