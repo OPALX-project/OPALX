@@ -247,9 +247,8 @@ void PeakFinder::createHistogram_m() {
     double globMin = 0;
     double globMax = 0;
     
-    reduce(locMin, globMin, OpAddAssign());
-    
-    reduce(locMax, globMax, OpAddAssign());
+    MPI_Allreduce(&locMin, &globMin, 1, MPI_DOUBLE, MPI_MIN, Ippl::getComm());
+    MPI_Allreduce(&locMax, &globMax, 1, MPI_DOUBLE, MPI_MAX, Ippl::getComm());
     
     
     /*
