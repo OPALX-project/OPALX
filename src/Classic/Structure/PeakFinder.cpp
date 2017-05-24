@@ -9,8 +9,10 @@
 
 PeakFinder::PeakFinder(std::string elem, int nBins):
     radius_m(0), globHist_m(0), fn_m(""),
-    element_m(elem), nBins_m(nBins), binWidth_m(0)
-{ }
+    element_m(elem), nBins_m(nBins), binWidth_m(0),
+    globMin_m(0.0),globMax_m(0.0)
+{
+}
 
 
 PeakFinder::PeakFinder() : PeakFinder(std::string("NULL"), 1000)
@@ -24,7 +26,7 @@ void PeakFinder::addParticle(const Vector_t& R) {
 
 
 void PeakFinder::save() {
-    std::string fn_m = element_m + std::string(".peaks");
+    fn_m = element_m + std::string(".peaks");
     
     createHistogram_m();
     
@@ -37,11 +39,10 @@ void PeakFinder::save() {
     INFOMSG("Save " << fn_m << endl);
     
     if(OpalData::getInstance()->inRestartRun())
-        this->append_m();
+	this->append_m();
     else {
         this->open_m();
     }
-     
     this->saveASCII_m();
     
     this->close_m();
@@ -153,7 +154,13 @@ void PeakFinder::findPeaks(int smoothingNumber,
     INFOMSG("Number of peaks found: " << nrPeaks << endl);
     peakRadii_m.resize(nrPeaks);
     fourSigmaPeaks_m.resize(nrPeaks);
-    const container_t& positions = globHist_m;//histogram->getPositions();
+    
+    container_t positions;
+    positions.reserve(nBins_m);
+    for (unsigned int i=0; i<nBins_m; i++) {
+	positions.push_back(globMin_m + (i+0.5)*binWidth_m);
+    }
+    
     for (int i=1; i<(int)(peakSeparatingIndices.size()); i++) {
 	int startIndex = peakSeparatingIndices[i-1];
 	int endIndex   = peakSeparatingIndices[i];
@@ -237,37 +244,53 @@ void PeakFinder::analysePeak(const container_t& values,
 
 
 void PeakFinder::createHistogram_m() {
+
+    double locMin=1e10, locMax=-1e10;
+    if (!radius_m.empty()) {
+	// compute global minimum and maximum radius
+	auto result = std::minmax_element(radius_m.begin(), radius_m.end());
     
-    // compute global minimum and maximum radius
-    auto result = std::minmax_element(radius_m.begin(), radius_m.end());
-    
-    double locMin = *result.first;
-    double locMax = *result.second;
-    
-    double globMin = 0;
-    double globMax = 0;
-    
-    MPI_Allreduce(&locMin, &globMin, 1, MPI_DOUBLE, MPI_MIN, Ippl::getComm());
-    MPI_Allreduce(&locMax, &globMax, 1, MPI_DOUBLE, MPI_MAX, Ippl::getComm());
-    
+	locMin = *result.first;
+	locMax = *result.second;
+    }
+    MPI_Allreduce(&locMin, &globMin_m, 1, MPI_DOUBLE, MPI_MIN, Ippl::getComm());
+    MPI_Allreduce(&locMax, &globMax_m, 1, MPI_DOUBLE, MPI_MAX, Ippl::getComm());
     
     /*
      * create local histograms
      */
+    
+    binWidth_m = 1.0; // mm
+
+    if (globMax_m < -1e9) nBins_m = 10; // no particles in probe
+    else {nBins_m = ( globMax_m - globMin_m ) / binWidth_m;}
+
+    globHist_m.resize(nBins_m);
+    
     container_t locHist(nBins_m);
-    binWidth_m = ( globMax - globMin ) / double(nBins_m); 
+
     double invBinWidth = 1.0 / binWidth_m;
     for(container_t::iterator it = radius_m.begin(); it != radius_m.end(); ++it) {
-        int bin = (*it - globMin ) * invBinWidth;
+        int bin = (*it - globMin_m ) * invBinWidth;
         ++locHist[bin];
     }
     
     /*
      * create global histograms
      */
-    globHist_m.resize(nBins_m);
-    reduce(&(locHist[0]), &(locHist[0]) + locHist.size(),
-           &(globHist_m[0]), OpAddAssign());
+    // reduce(&(locHist[0]), &(locHist[locHist.size()-1]),
+    //        &(globHist_m[0]), OpAddAssign());
+    MPI_Reduce(&locHist[0], &globHist_m[0], locHist.size(), MPI_DOUBLE, MPI_SUM, 0, Ippl::getComm());
+
+    if (Ippl::myNode() == 0) {
+        std::ofstream os(element_m + ".hist", std::ios::out);
+        for (auto value : globHist_m) {
+            os << value << std::endl;
+        }
+        os.close();
+    }
+
+    //    std::cout << "Element finished " << element_m << " on node " << Ippl::myNode() << std::endl;
 }
 
 
@@ -293,6 +316,7 @@ void PeakFinder::close_m() {
 
 void PeakFinder::saveASCII_m() {
     if ( Ippl::myNode() == 0 )  {
+	os_m << "#Peak Radii " << std::endl;
         for (auto &radius : peakRadii_m) {
 	    os_m << radius << std::endl;
 	}
