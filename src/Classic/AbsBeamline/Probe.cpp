@@ -85,11 +85,7 @@ Probe::Probe(const std::string &name):
     C_m = ystart_m*xend_m - xstart_m*yend_m;
 }
 
-
-Probe::~Probe() {
-    idrec_m.clear();
-}
-
+Probe::~Probe() {}
 
 void Probe::accept(BeamlineVisitor &visitor) const {
     visitor.visitProbe(*this);
@@ -116,18 +112,18 @@ void Probe::initialise(PartBunch *bunch, double &startField, double &endField, c
 
 void Probe::initialise(PartBunch *bunch, const double &scaleFactor) {
     if (filename_m == std::string("")) {
-        peakfinder_m = std::unique_ptr<PeakFinder>(new PeakFinder(getName(), 1000));
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
+        peakfinder_m = std::unique_ptr<PeakFinder>  (new PeakFinder(getName()));
+        lossDs_m     = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     } else {
-        peakfinder_m = std::unique_ptr<PeakFinder>(new PeakFinder(filename_m.substr(0, filename_m.rfind(".")), 1000));
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
+        peakfinder_m = std::unique_ptr<PeakFinder>  (new PeakFinder(filename_m.substr(0, filename_m.rfind("."))));
+        lossDs_m     = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
     }
 }
 
 void Probe::finalise() {
+    *gmsg << "* Finalize probe " << getName() << endl; 
     peakfinder_m->save();
     lossDs_m->save();
-    *gmsg << "* Finalize probe " << getName() << endl;
 }
 
 bool Probe::bends() const {
@@ -135,7 +131,9 @@ bool Probe::bends() const {
 }
 
 void Probe::goOffline() {
+    *gmsg << "* Probe goes offline " << getName() << endl;
     online_m = false;
+    peakfinder_m->save();
     lossDs_m->save();
 }
 
