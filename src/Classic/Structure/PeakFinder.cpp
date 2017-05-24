@@ -7,15 +7,13 @@
 #include "AbstractObjects/OpalData.h"
 #include "Ippl.h"
 
-PeakFinder::PeakFinder(std::string elem, int nBins):
-    radius_m(0), globHist_m(0), fn_m(""),
-    element_m(elem), nBins_m(nBins), binWidth_m(0),
-    globMin_m(0.0),globMax_m(0.0)
-{
-}
+PeakFinder::PeakFinder(std::string elem):
+    element_m(elem), nBins_m(10), binWidth_m(1),
+    globMin_m(0.0),globMax_m(5000.0)
+{}
 
 
-PeakFinder::PeakFinder() : PeakFinder(std::string("NULL"), 1000)
+PeakFinder::PeakFinder() : PeakFinder(std::string("NULL"))
 { }
 
 
@@ -29,7 +27,7 @@ void PeakFinder::save() {
     fn_m = element_m + std::string(".peaks");
     
     createHistogram_m();
-    
+
     findPeaks(smoothingNumber_m,
 	      minArea_m,
 	      minFractionalArea_m,
@@ -287,14 +285,14 @@ void PeakFinder::createHistogram_m() {
     MPI_Reduce(&locHist[0], &globHist_m[0], locHist.size(), MPI_DOUBLE, MPI_SUM, 0, Ippl::getComm());
 
     if (Ippl::myNode() == 0) {
-        std::ofstream os(element_m + ".hist", std::ios::out);
+        std::string histFilename = element_m + ".hist";
+        std::ofstream os(histFilename);
+        if (!os) {std::cout << "cant open histogram file" << std::endl; return;}
         for (auto value : globHist_m) {
             os << value << std::endl;
         }
         os.close();
     }
-
-    //    std::cout << "Element finished " << element_m << " on node " << Ippl::myNode() << std::endl;
 }
 
 

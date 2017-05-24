@@ -96,7 +96,6 @@ private:
     double yend_m;
     double width_m;
     Point  geom_m[5];
-    std::vector<int> idrec_m;
     int step_m;
 
     double A_m, B_m,R_m, C_m;
