@@ -120,4 +120,14 @@ private:
     container_t fourSigmaPeaks_m;
 };
 
+
+void PeakFinder::setNumBins(unsigned int nBins) {
+    nBins_m = nBins;
+}
+
+
+void PeakFinder::setTurnNumber(unsigned int turnNumber) {
+    turnNumber_m = turnNumber;
+}
+
 #endif
