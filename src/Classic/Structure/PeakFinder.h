@@ -41,8 +41,6 @@ public:
     
     inline void setNumBins(unsigned int nBins);
     
-    inline void setTurnNumber(unsigned int turnNumber);
-    
     /** 
       * Find peaks of probe - function based on implementation in probe programs
       * @param[in] smoothingNumber   Smooth nr measurements
@@ -86,8 +84,6 @@ private:
 		     double& fourSigma)const;
                          
 private:
-    
-    unsigned int turnNumber_m;
     container_t radius_m;
     /// global histogram values
     container_t globHist_m;
@@ -123,11 +119,6 @@ private:
 
 void PeakFinder::setNumBins(unsigned int nBins) {
     nBins_m = nBins;
-}
-
-
-void PeakFinder::setTurnNumber(unsigned int turnNumber) {
-    turnNumber_m = turnNumber;
 }
 
 #endif

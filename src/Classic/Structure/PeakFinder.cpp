@@ -8,7 +8,7 @@
 #include "Ippl.h"
 
 PeakFinder::PeakFinder(std::string elem):
-    turnNumber_m(0), radius_m(0), globHist_m(0), fn_m(""),
+    radius_m(0), globHist_m(0), fn_m(""),
     element_m(elem), nBins_m(0), binWidth_m(0)
 { }
 
