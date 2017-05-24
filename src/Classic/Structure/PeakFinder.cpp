@@ -7,13 +7,13 @@
 #include "AbstractObjects/OpalData.h"
 #include "Ippl.h"
 
-PeakFinder::PeakFinder(std::string elem):
+PeakFinder::PeakFinder(std::string elem, int nBins):
     radius_m(0), globHist_m(0), fn_m(""),
-    element_m(elem), nBins_m(0), binWidth_m(0)
+    element_m(elem), nBins_m(nBins), binWidth_m(0)
 { }
 
 
-PeakFinder::PeakFinder() : PeakFinder(std::string("NULL"))
+PeakFinder::PeakFinder() : PeakFinder(std::string("NULL"), 1000)
 { }
 
 
