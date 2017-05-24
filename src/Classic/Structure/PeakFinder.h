@@ -80,7 +80,7 @@ private:
     void analysePeak(const container_t& values,
 		     const container_t& positions,
 		     const int startIndex, const int endIndex,
-		     double & peak,
+		     double& peak,
 		     double& fourSigma)const;
                          
 private:
@@ -100,11 +100,13 @@ private:
     // Histogram details
     /// Number of bins
     unsigned int nBins_m;
-    /// Bin width
+    /// Bin width in mm
     double binWidth_m;
-
+    ///@{ histogram size
+    double globMin_m, globMax_m;
+    ///@}
     ///@{ Peak analysis parameters (copied from RRI2 probe program for now, need to be tuned a bit)
-    const int    smoothingNumber_m   = 5;
+    const int    smoothingNumber_m   = 0;
     const double minArea_m           = 0.025;
     const double minFractionalArea_m = 0.6;
     const double minAreaAboveNoise_m = 5e-5;
