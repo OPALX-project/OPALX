@@ -116,10 +116,10 @@ void Probe::initialise(PartBunch *bunch, double &startField, double &endField, c
 
 void Probe::initialise(PartBunch *bunch, const double &scaleFactor) {
     if (filename_m == std::string("")) {
-        peakfinder_m = std::unique_ptr<PeakFinder>(new PeakFinder(getName()));
+        peakfinder_m = std::unique_ptr<PeakFinder>(new PeakFinder(getName(), 1000));
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     } else {
-        peakfinder_m = std::unique_ptr<PeakFinder>(new PeakFinder(filename_m.substr(0, filename_m.rfind("."))));
+        peakfinder_m = std::unique_ptr<PeakFinder>(new PeakFinder(filename_m.substr(0, filename_m.rfind(".")), 1000));
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
     }
 }

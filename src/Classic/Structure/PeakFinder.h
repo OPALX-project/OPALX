@@ -29,7 +29,7 @@ public:
     
     PeakFinder();
 
-    PeakFinder(std::string elem);
+    PeakFinder(std::string elem, int nBins);
     
     /*!
      * Append the particle coordinates to the container
