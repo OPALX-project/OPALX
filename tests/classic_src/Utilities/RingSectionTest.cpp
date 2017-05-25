@@ -43,7 +43,9 @@ TEST(RingSectionTest, TestConstructDestruct) {
     EXPECT_EQ(ors.getEndNormal(), vec0);
     EXPECT_EQ(ors.getComponentPosition(), vec0);
     EXPECT_EQ(ors.getComponentOrientation(), vec0);
-    EXPECT_EQ(ors.getVirtualBoundingBox(), std::vector<Vector_t>(4, vec0));
+    for (size_t i = 0; i < 4; ++i)
+        for (size_t j = 0; j < 3; ++j)
+            EXPECT_EQ(ors.getVirtualBoundingBox().at(i)[j], 0.);
 
     RingSection ors_comp;
     MockComponent comp;
