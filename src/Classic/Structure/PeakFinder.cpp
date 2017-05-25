@@ -24,35 +24,39 @@ void PeakFinder::addParticle(const Vector_t& R) {
 
 
 void PeakFinder::save() {
-    fn_m = element_m + std::string(".peaks");
-    hist_m = element_m + std::string(".hist");
     
     createHistogram_m();
 
-    findPeaks(smoothingNumber_m,
-              minArea_m,
-              minFractionalArea_m,
-              minAreaAboveNoise_m,
-              minSlope_m);
-
-    INFOMSG("Save " << fn_m << " and " << hist_m << endl);
+    bool found = findPeaks(smoothingNumber_m,
+                           minArea_m,
+                           minFractionalArea_m,
+                           minAreaAboveNoise_m,
+                           minSlope_m);
     
-    if(OpalData::getInstance()->inRestartRun())
-        this->append_m();
-    else
-        this->open_m();
-    
-    this->saveASCII_m();
-    
-    this->close_m();
-    Ippl::Comm->barrier();
+    if ( found ) {
+        fn_m = element_m + std::string(".peaks");
+        hist_m = element_m + std::string(".hist");
+        
+        INFOMSG("Save " << fn_m << " and " << hist_m << endl);
+        
+        if(OpalData::getInstance()->inRestartRun())
+            this->append_m();
+        else
+            this->open_m();
+        
+        this->saveASCII_m();
+        
+        this->close_m();
+        Ippl::Comm->barrier();
+        
+    }
     
     radius_m.clear();
     globHist_m.clear();
 }
 
 
-void PeakFinder::findPeaks(int smoothingNumber,
+bool PeakFinder::findPeaks(int smoothingNumber,
                            double minAreaFactor,
                            double minFractionalAreaFactor,
                            double minAreaAboveNoise,
@@ -83,7 +87,7 @@ void PeakFinder::findPeaks(int smoothingNumber,
     const int size = static_cast<int>(values.size());
     if (size < smoothingNumber) {
         // no peaks can be found
-        return;
+        return false;
     }
     container_t smoothValues;
     container_t sumSmoothValues;
@@ -166,6 +170,8 @@ void PeakFinder::findPeaks(int smoothingNumber,
         analysePeak(values,positions,startIndex,endIndex,
                     peakRadii_m[i-1],fourSigmaPeaks_m[i-1]);
     }
+    
+    return !peakRadii_m.empty();
 }
 
 
