@@ -78,10 +78,10 @@ private:
      * @param[out] fourSigma  four sigma width
      */
     void analysePeak(const container_t& values,
-		     const container_t& positions,
-		     const int startIndex, const int endIndex,
-		     double& peak,
-		     double& fourSigma)const;
+                     const container_t& positions,
+                     const int startIndex, const int endIndex,
+                     double& peak,
+                     double& fourSigma)const;
                          
 private:
     container_t radius_m;
