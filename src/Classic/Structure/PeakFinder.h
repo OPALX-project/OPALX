@@ -46,8 +46,13 @@ public:
       * @param[in] minFractionalArea Minimum fractional Area
       * @param[in] minAreaAboveNoise Minimum area above noise
       * @param[in] minSlope          Minimum slope
+      * @returns true if at least one peak is found
     */
-    void findPeaks(int smoothingNumber, double minArea, double minFractionalArea, double minAreaAboveNoise, double minSlope);
+    bool findPeaks(int smoothingNumber,
+                   double minArea,
+                   double minFractionalArea,
+                   double minAreaAboveNoise,
+                   double minSlope);
 
 private:
     
