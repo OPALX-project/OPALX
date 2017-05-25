@@ -1,5 +1,5 @@
-#ifndef SURFACEPHYSICSHANDLER_HH
-#define SURFACEPHYSICSHANDLER_HH
+#ifndef PARTICLEMATTERINTERACTIONHANDLER_HH
+#define PARTICLEMATTERINTERACTIONHANDLER_HH
 
 #include <string>
 #include "Algorithms/Vektor.h"
@@ -8,10 +8,10 @@ class ElementBase;
 class PartBunch;
 class Inform;
 
-class SurfacePhysicsHandler {
+class ParticleMatterInteractionHandler {
 public:
-    SurfacePhysicsHandler(std::string name, ElementBase *elref);
-    virtual ~SurfacePhysicsHandler() { };
+    ParticleMatterInteractionHandler(std::string name, ElementBase *elref);
+    virtual ~ParticleMatterInteractionHandler() { };
     virtual void apply(PartBunch &bunch,
                        const std::pair<Vector_t, double> &boundingSphere,
                        size_t numParticlesInSimulation = 0) = 0;
@@ -37,29 +37,29 @@ private:
 };
 
 inline
-SurfacePhysicsHandler::SurfacePhysicsHandler(std::string name, ElementBase *elref):
+ParticleMatterInteractionHandler::ParticleMatterInteractionHandler(std::string name, ElementBase *elref):
     element_ref_m(elref),
     allParticleInMat_m(false),
     name_m(name)
 {}
 
 inline
-void SurfacePhysicsHandler::updateElement(ElementBase *newref) {
+void ParticleMatterInteractionHandler::updateElement(ElementBase *newref) {
     element_ref_m = newref;
 }
 
 inline
-ElementBase* SurfacePhysicsHandler::getElement() {
+ElementBase* ParticleMatterInteractionHandler::getElement() {
     return element_ref_m;
 }
 
 inline
-void SurfacePhysicsHandler::setFlagAllParticlesIn(bool p) {
+void ParticleMatterInteractionHandler::setFlagAllParticlesIn(bool p) {
   allParticleInMat_m = p;
 }
 
 inline
-bool SurfacePhysicsHandler::getFlagAllParticlesIn() const {
+bool ParticleMatterInteractionHandler::getFlagAllParticlesIn() const {
     return allParticleInMat_m;
 }
-#endif // SURFACEPHYSICS_HH
+#endif // PARTICLEMATTERINTERACTION_HH

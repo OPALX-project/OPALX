@@ -24,7 +24,7 @@
 #include "Fields/BMultipoleField.h"
 #include "Physics/Physics.h"
 #include "Utilities/Options.h"
-#include "Structure/SurfacePhysics.h"
+#include "Structure/ParticleMatterInteraction.h"
 
 #include <cmath>
 #include <iostream>
@@ -41,7 +41,7 @@
 OpalQuadrupole::OpalQuadrupole():
     OpalElement(SIZE, "QUADRUPOLE",
                 "The \"QUADRUPOLE\" element defines a Quadrupole."),
-    sphys_m(NULL) {
+    parmatint_m(NULL) {
     itsAttr[K1] = Attributes::makeReal
                   ("K1", "Normalised upright quadrupole coefficient in m^(-2)");
     itsAttr[DK1] = Attributes::makeReal
@@ -65,14 +65,14 @@ OpalQuadrupole::OpalQuadrupole():
 
 OpalQuadrupole::OpalQuadrupole(const std::string &name, OpalQuadrupole *parent):
     OpalElement(name, parent),
-    sphys_m(NULL) {
+    parmatint_m(NULL) {
     setElement((new MultipoleRep(name))->makeWrappers());
 }
 
 
 OpalQuadrupole::~OpalQuadrupole() {
-    if(sphys_m)
-        delete sphys_m;
+    if(parmatint_m)
+        delete parmatint_m;
 }
 
 
@@ -148,10 +148,10 @@ void OpalQuadrupole::update() {
     quad->setNormalComponent(2, Attributes::getReal(itsAttr[K1]), Attributes::getReal(itsAttr[DK1]));
     quad->setSkewComponent(2, Attributes::getReal(itsAttr[K1S]), Attributes::getReal(itsAttr[DK1S]));
 
-    if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
-        sphys_m->initSurfacePhysicsHandler(*quad);
-        quad->setSurfacePhysics(sphys_m->handler_m);
+    if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+        parmatint_m->initParticleMatterInteractionHandler(*quad);
+        quad->setParticleMatterInteraction(parmatint_m->handler_m);
     }
 
     // Transmit "unknown" attributes.

@@ -91,9 +91,6 @@ OPTION (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
 OPTION (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
 OPTION (BUILD_LIBOPAL "Enable building the OPAL library" OFF)
 
-OPTION (NOCPLUSPLUS11_FOREACH "Disable C++11 foreach support" OFF)
-OPTION (NOCPLUSPLUS11_NULLPTR "Disable C++11 nullptr support" OFF)
-
 OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
 
 IF (ENABLE_AMR_SOLVER)
@@ -179,20 +176,6 @@ ENDIF (DBG_STENCIL)
 IF (BUILD_LIBOPAL)
     MESSAGE (STATUS "\nBuilding OPAL library")
 ENDIF (BUILD_LIBOPAL)
-
-IF (NOCPLUSPLUS11_FOREACH)
-    MESSAGE (STATUS "\nBuilding OPAL without c++11 foreach support")
-    SET (CMAKE_CXX_FLAGS
-        "-DOPAL_NOCPLUSPLUS11_FOREACH ${CMAKE_CXX_FLAGS}"
-	)
-ENDIF (NOCPLUSPLUS11_FOREACH)
-
-IF (NOCPLUSPLUS11_NULLPTR)
-    MESSAGE (STATUS "\nBuilding OPAL without c++11 nullptr support")
-    SET (CMAKE_CXX_FLAGS
-        "-DOPAL_NOCPLUSPLUS11_NULLPTR ${CMAKE_CXX_FLAGS}"
-	)
-ENDIF (NOCPLUSPLUS11_NULLPTR)
 
 IF (NO_FIELD_ASSIGN_OPTIMIZATION)
     MESSAGE (STATUS "\nCompiler will not try to optimize field assignment")

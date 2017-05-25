@@ -25,7 +25,9 @@
 #include "Fields/Fieldmap.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
-#include "Solvers/SurfacePhysicsHandler.hh"
+#include "Solvers/ParticleMatterInteractionHandler.hh"
+#include "Utilities/Util.h"
+
 #include <memory>
 
 extern Inform *gmsg;
@@ -68,7 +70,10 @@ Collimator::Collimator():
     pitch_m(0.0),
     losses_m(0),
     lossDs_m(nullptr),
-    sphys_m(NULL)
+    parmatint_m(NULL),
+    isWarping_m(true),
+    warpCurveX_m(NULL),
+    warpCurveZ_m(NULL)
 {}
 
 
@@ -107,7 +112,10 @@ Collimator::Collimator(const Collimator &right):
     pitch_m(right.pitch_m),
     losses_m(0),
     lossDs_m(nullptr),
-    sphys_m(NULL)
+    parmatint_m(NULL),
+    isWarping_m(right.isWarping_m),
+    warpCurveX_m(NULL),
+    warpCurveZ_m(NULL)
 {
     setGeom();
 }
@@ -148,12 +156,15 @@ Collimator::Collimator(const std::string &name):
     pitch_m(0.0),
     losses_m(0),
     lossDs_m(nullptr),
-    sphys_m(NULL)
+    parmatint_m(NULL),
+    isWarping_m(true),
+    warpCurveX_m(NULL),
+    warpCurveZ_m(NULL)
 {}
 
 
 Collimator::~Collimator() {
-    if(online_m)
+    if (online_m)
         goOffline();
 }
 
@@ -170,8 +181,8 @@ inline bool Collimator::isInColl(Vector_t R, Vector_t P, double recpgamma) {
     */
     const double z = R(2) + P(2) * recpgamma;
 
-    if((z > 0.0) && (z <= getElementLength())) {
-        if(isAPepperPot_m) {
+    if ((z > 0.0) && (z <= getElementLength())) {
+        if (isAPepperPot_m) {
 
             /**
                ------------
@@ -190,24 +201,24 @@ inline bool Collimator::isInColl(Vector_t R, Vector_t P, double recpgamma) {
                particles they are not lost.
 
             */
-            const double h  =   pitch_m;
+            const double h = pitch_m;
             const double xL = - 0.5 * h * (nHolesX_m - 1);
             const double yL = - 0.5 * h * (nHolesY_m - 1);
             bool alive = false;
 
-            for(unsigned int m = 0; (m < nHolesX_m && (!alive)); m++) {
-                for(unsigned int n = 0; (n < nHolesY_m && (!alive)); n++) {
-                    double x_m = xL  + (m * h);
-                    double y_m = yL  + (n * h);
+            for (unsigned int m = 0; (m < nHolesX_m && (!alive)); m++) {
+                for (unsigned int n = 0; (n < nHolesY_m && (!alive)); n++) {
+                    double x_m = xL + (m * h);
+                    double y_m = yL + (n * h);
                     /** are we in a) ? */
                     double rr = std::pow((R(0) - x_m) / rHole_m, 2) + std::pow((R(1) - y_m) / rHole_m, 2);
                     alive = (rr < 1.0);
                 }
             }
             return !alive;
-        } else if(isASlit_m || isARColl_m) {
+        } else if (isASlit_m || isARColl_m) {
             return (std::abs(R(0)) >= getXsize() || std::abs(R(1)) >= getYsize());
-        } else if(isAWire_m) {
+        } else if (isAWire_m) {
             ERRORMSG("Not yet implemented");
         } else {
             // case of an elliptic collimator
@@ -221,10 +232,10 @@ bool Collimator::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &
     const Vector_t &R = RefPartBunch_m->R[i];
     const Vector_t &P = RefPartBunch_m->P[i];
     const double &dt = RefPartBunch_m->dt[i];
-    const double recpgamma = Physics::c * dt / sqrt(1.0  + dot(P, P));
+    const double recpgamma = Physics::c * dt / sqrt(1.0 + dot(P, P));
     bool pdead = isInColl(R, P, recpgamma);
 
-    if(pdead) {
+    if (pdead) {
         if (lossDs_m) {
             double frac = -R(2) / P(2) * recpgamma;
             lossDs_m->addParticle(R, P,
@@ -239,7 +250,7 @@ bool Collimator::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &
 
 bool Collimator::applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) {
     const double dt = RefPartBunch_m->getdT();
-    const double recpgamma = Physics::c * dt / sqrt(1.0  + dot(P, P));
+    const double recpgamma = Physics::c * dt / sqrt(1.0 + dot(P, P));
     return isInColl(R, P, recpgamma);
 }
 
@@ -249,9 +260,9 @@ bool Collimator::checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax) {
     double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
     double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
     bool isDead = false;
-    if(rmax(2) >= zstart_m && rmin(2) <= zend_m) {
-        if( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
-            if(r(2) < zend_m && r(2) > zstart_m ) {
+    if (rmax(2) >= zstart_m && rmin(2) <= zend_m) {
+        if ( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
+            if (r(2) < zend_m && r(2) > zstart_m ) {
                 int pflag = checkPoint(r(0), r(1));
                 isDead = (pflag != 0);
             }
@@ -262,7 +273,7 @@ bool Collimator::checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax) {
 
 
 // rectangle collimators in cyclotron cyclindral coordiantes
-// without surfacephysics, the particle hitting collimator is deleted directly
+// without particlematterinteraction, the particle hitting collimator is deleted directly
 bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const double t, const double tstep) {
 
     bool flagNeedUpdate = false;
@@ -276,27 +287,28 @@ bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const d
     boundingSphere.first = 0.5 * (rmax + rmin);
     boundingSphere.second = euclidian_norm(rmax - boundingSphere.first);
 
-    if(rmax(2) >= zstart_m && rmin(2) <= zend_m) {
-//        if( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
-        if( r1 > r_start - 100.0 && r1 < r_end + 100.0 ){
+    if (rmax(2) >= zstart_m && rmin(2) <= zend_m) {
+        // if ( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
+        if ( r1 > r_start - 100.0 && r1 < r_end + 100.0 ){
             size_t tempnum = bunch.getLocalNum();
             int pflag = 0;
-            for(unsigned int i = 0; i < tempnum; ++i) {
-                if(bunch.PType[i] == ParticleType::REGULAR && bunch.R[i](2) < zend_m && bunch.R[i](2) > zstart_m ) {
+            for (unsigned int i = 0; i < tempnum; ++i) {
+                if (bunch.PType[i] == ParticleType::REGULAR && bunch.R[i](2) < zend_m && bunch.R[i](2) > zstart_m ) {
                     pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
-                    if(pflag != 0) {
-                        if (!sphys_m)
-                            lossDs_m->addParticle(bunch.R[i], bunch.P[i], bunch.ID[i]);
-                        bunch.Bin[i] = -1;
-                        flagNeedUpdate = true;
+		    /// bunch.Bin[i] != -1 makes sure the partcile is not stored in more than one collimator
+                    if ((pflag != 0) && (bunch.Bin[i] != -1))  {
+		      if (!parmatint_m)
+			lossDs_m->addParticle(bunch.R[i], bunch.P[i], bunch.ID[i]);
+		      bunch.Bin[i] = -1;
+		      flagNeedUpdate = true;
                     }
                 }
             }
         }
     }
     reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
-    if (flagNeedUpdate && sphys_m) {
-        sphys_m->apply(bunch, boundingSphere);
+    if (flagNeedUpdate && parmatint_m) {
+        parmatint_m->apply(bunch, boundingSphere);
     }
     return flagNeedUpdate;
 }
@@ -305,9 +317,9 @@ void Collimator::initialise(PartBunch *bunch, double &startField, double &endFie
     RefPartBunch_m = bunch;
     endField = startField + getElementLength();
 
-    sphys_m = getSurfacePhysics();
+    parmatint_m = getParticleMatterInteraction();
 
-    // if (!sphys_m) {
+    // if (!parmatint_m) {
     if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     else
@@ -320,9 +332,9 @@ void Collimator::initialise(PartBunch *bunch, double &startField, double &endFie
 void Collimator::initialise(PartBunch *bunch) {
     RefPartBunch_m = bunch;
 
-    sphys_m = getSurfacePhysics();
+    parmatint_m = getParticleMatterInteraction();
 
-    // if (!sphys_m) {
+    // if (!parmatint_m) {
     if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     else
@@ -334,7 +346,7 @@ void Collimator::initialise(PartBunch *bunch) {
 
 void Collimator::finalise()
 {
-    if(online_m)
+    if (online_m)
         goOffline();
     *gmsg << "* Finalize probe" << endl;
 }
@@ -354,11 +366,11 @@ void Collimator::goOnline(const double &) {
 }
 
 void Collimator::print() {
-    if(RefPartBunch_m == NULL) {
-        if(!informed_m) {
+    if (RefPartBunch_m == NULL) {
+        if (!informed_m) {
             std::string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
             ERRORMSG(errormsg << endl);
-            if(Ippl::myNode() == 0) {
+            if (Ippl::myNode() == 0) {
                 ofstream omsg("errormsg.txt", ios_base::app);
                 omsg << errormsg << endl;
                 omsg.close();
@@ -369,20 +381,20 @@ void Collimator::print() {
     }
 
     *gmsg << level3;
-    if(isAPepperPot_m)
+    if (isAPepperPot_m)
         *gmsg << "* Pepperpot x= " << a_m << " y= " << b_m << " r= " << rHole_m
               << " nx= " << nHolesX_m << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
-    else if(isASlit_m)
+    else if (isASlit_m)
         *gmsg << "* Slit x= " << getXsize() << " Slit y= " << getYsize()
               << " fn= " << filename_m << endl;
-    else if(isARColl_m)
+    else if (isARColl_m)
         *gmsg << "* RCollimator a= " << getXsize() << " b= " << getYsize()
               << " fn= " << filename_m
               << " ny= " << nHolesY_m << " pitch= " << pitch_m << endl;
-    else if(isACColl_m)
+    else if (isACColl_m)
         *gmsg << "* CCollimator angle start " << xstart_m << " (Deg) angle end " << ystart_m << " (Deg) "
               << "R start " << xend_m << " (mm) R rend " << yend_m << " (mm)" << endl;
-    else if(isAWire_m)
+    else if (isAWire_m)
         *gmsg << "* Wire x= " << x0_m << " y= " << y0_m << endl;
     else
         *gmsg << "* ECollimator a= " << getXsize() << " b= " << b_m << " fn= " << filename_m
@@ -421,15 +433,15 @@ ElementBase::ElementType Collimator::getType() const {
 }
 
 string Collimator::getCollimatorShape() {
-    if(isAPepperPot_m)
+    if (isAPepperPot_m)
         return "PeperPot";
-    else if(isASlit_m)
+    else if (isASlit_m)
         return "Slit";
-    else if(isARColl_m)
+    else if (isARColl_m)
         return "RCollimator";
-    else if(isACColl_m)
+    else if (isACColl_m)
         return "CCollimator";
-    else if(isAWire_m)
+    else if (isAWire_m)
         return "Wire";
     else
         return "ECollimator";
@@ -453,7 +465,7 @@ void Collimator::setGeom() {
     geom_m[1].y = ystart_m - halfdist / coeff2;
 
     geom_m[2].x = xend_m + halfdist * coeff1;
-    geom_m[2].y = yend_m - halfdist  / coeff2;
+    geom_m[2].y = yend_m - halfdist / coeff2;
 
     geom_m[3].x = xend_m - halfdist * coeff1;
     geom_m[3].y = yend_m + halfdist / coeff2;
@@ -470,16 +482,48 @@ void Collimator::setGeom() {
 
 
 int Collimator::checkPoint(const double &x, const double &y) {
-    int    cn = 0;
+    int cn = 0;
 
-    for(int i = 0; i < 4; i++) {
-        if(((geom_m[i].y <= y) && (geom_m[i+1].y > y))
-           || ((geom_m[i].y > y) && (geom_m[i+1].y <= y))) {
+    for (int i = 0; i < 4; i++) {
+        if (((geom_m[i].y <= y) && (geom_m[i+1].y > y))
+            || ((geom_m[i].y > y) && (geom_m[i+1].y <= y))) {
 
             float vt = (float)(y - geom_m[i].y) / (geom_m[i+1].y - geom_m[i].y);
-            if(x < geom_m[i].x + vt * (geom_m[i+1].x - geom_m[i].x))
+            if (x < geom_m[i].x + vt * (geom_m[i+1].x - geom_m[i].x))
                 ++cn;
         }
     }
     return (cn & 1);  // 0 if even (out), and 1 if odd (in)
+}
+
+void Collimator::setWarpCurve(const std::vector<Vector_t> & curve) {
+    const size_t size = curve.size();
+
+    gsl_interp_accel *accel = gsl_interp_accel_alloc();
+
+    std::vector<double> xvalues(size), zvalues(size), tvalues(size);
+
+    for (size_t i = 0; i < size; ++ i) {
+        xvalues[i] = curve[i](0);
+        zvalues[i] = curve[i](1);
+        tvalues[i] = curve[i](2);
+    }
+
+    gsl_spline *xinterpolant = gsl_spline_alloc(gsl_interp_cspline, size);
+    gsl_spline *zinterpolant = gsl_spline_alloc(gsl_interp_cspline, size);
+
+    gsl_spline_init(xinterpolant, tvalues.data(), xvalues.data(), size);
+    gsl_spline_init(zinterpolant, tvalues.data(), zvalues.data(), size);
+
+    std::ofstream fh(getName() + "_spline.txt");
+    const unsigned int plotsize = 1000;
+    for (unsigned int i = 0; i < plotsize; ++ i) {
+        double t = i * 1.0 / (plotsize - 1);
+        double x = gsl_spline_eval(xinterpolant, t, accel);
+        double z = gsl_spline_eval(zinterpolant, t, accel);
+
+        fh << std::setw(16) << x
+           << std::setw(16) << z
+           << std::endl;
+    }
 }

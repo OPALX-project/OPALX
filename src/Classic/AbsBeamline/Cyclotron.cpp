@@ -536,6 +536,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
     } else {
         return true;
     }
+
     if(myBFieldType_m == BANDRF) {
       //The RF field is suppose to be sampled on a cartesian grid
         vector<Fieldmap *>::const_iterator fi  = RFfields_m.begin();
@@ -547,14 +548,20 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
         int fcount = 0;
         for(; fi != RFfields_m.end(); ++fi, ++rffi, ++rfphii, ++escali, ++superposei) {
             (*fi)->getFieldDimensions(xBegin, xEnd, yBegin, yEnd, zBegin, zEnd);
+	    
 	    bool SuperPose = *superposei;
             if (fcount > 0 && !SuperPose) {
 	      //INFOMSG ("Field maps taken : " << fcount << "Superpose false" << endl);
 	      break;
             }
-            if (R(0) >= xBegin && R(0) <= xEnd && R(1) >= yBegin && R(1) <= yEnd && R(2) >= zBegin && R(2) <= zEnd) {
+
+            // Ok, this is a total patch job, but now that the internal cyclotron units are in m, we have to
+            // change stuff here to match with the input units of mm in the fieldmaps. -DW
+	    const Vector_t temp_R = R * Vector_t(1000.0); //Keep this until we have transitioned fully to m -DW
+
+            if (temp_R(0) >= xBegin && temp_R(0) <= xEnd && temp_R(1) >= yBegin && temp_R(1) <= yEnd && temp_R(2) >= zBegin && temp_R(2) <= zEnd) {
                 Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-                if(!(*fi)->getFieldstrength(R, tmpE, tmpB)) {
+                if(!(*fi)->getFieldstrength(temp_R, tmpE, tmpB)) {
 		  ++fcount;
                   double phase = 2.0 * pi * (1E-3 * (*rffi)) * t + *rfphii;
 
@@ -587,9 +594,14 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
 	      //INFOMSG ("Field maps taken : " << fcount << "Superpose false" << endl);
 	      break;
             }
-            if (R(0) >= xBegin && R(0) <= xEnd && R(1) >= yBegin && R(1) <= yEnd && R(2) >= zBegin && R(2) <= zEnd) {
+
+            // Ok, this is a total patch job, but now that the internal cyclotron units are in m, we have to
+            // change stuff here to match with the input units of mm in the fieldmaps. -DW
+	    const Vector_t temp_R = R * Vector_t(1000.0); //Keep this until we have transitioned fully to m -DW
+
+            if (temp_R(0) >= xBegin && temp_R(0) <= xEnd && temp_R(1) >= yBegin && temp_R(1) <= yEnd && temp_R(2) >= zBegin && temp_R(2) <= zEnd) {
                 Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-                if(!(*fi)->getFieldstrength(R, tmpE, tmpB)) {
+                if(!(*fi)->getFieldstrength(temp_R, tmpE, tmpB)) {
 
 		    ++fcount;
 
@@ -646,7 +658,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
 //                  INFOMSG("Field " << fcount << " BANDRF E= " << tmpE << " R= " << R << " phase " << phase << endl);
                 }
             }
-    	}
+   	}
     }
     return false;
 }
@@ -1141,6 +1153,7 @@ void Cyclotron::getFieldFromFile_FFAG(const double &scaleFactor) {
     for(int i = 0; i < num_of_header_lines; ++i)
         file_to_read.ignore(max_num_of_char_in_a_line, '\n');
 
+/*
     while(!file_to_read.eof()) {
         double r, th, x, y, bz;
         file_to_read >> r >> th >> x >> y >> bz;
@@ -1149,6 +1162,20 @@ void Cyclotron::getFieldFromFile_FFAG(const double &scaleFactor) {
             thv.push_back(th);
             xv.push_back(x * 1000.0);
             yv.push_back(y * 1000.0);
+            bzv.push_back(bz);
+        }
+    }
+*/
+
+    // TEMP for OPAL 2.0 changing this to m -DW
+    while(!file_to_read.eof()) {
+        double r, th, x, y, bz;
+        file_to_read >> r >> th >> x >> y >> bz;
+        if((int)th != 360) {
+            rv.push_back(r);
+            thv.push_back(th);
+            xv.push_back(x);
+            yv.push_back(y);
             bzv.push_back(bz);
         }
     }
@@ -1167,9 +1194,9 @@ void Cyclotron::getFieldFromFile_FFAG(const double &scaleFactor) {
     Bfield.ntet = (int)((maxtheta - thv[0]) / BP.dtet);
     Bfield.nrad  = (int)(rmax - BP.rmin) / BP.delr + 1;
     Bfield.ntetS  = Bfield.ntet + 1;
-    *gmsg << "* Minimal radius of measured field map: " << BP.rmin << " [mm]" << endl;
-    *gmsg << "* Maximal radius of measured field map: " << rmax << " [mm]" << endl;
-    *gmsg << "* Stepsize in radial direction: " << BP.delr << " [mm]" << endl;
+    *gmsg << "* Minimal radius of measured field map: " << 1000.0 * BP.rmin << " [mm]" << endl;
+    *gmsg << "* Maximal radius of measured field map: " << 1000.0 * rmax << " [mm]" << endl;
+    *gmsg << "* Stepsize in radial direction: " << 1000.0 * BP.delr << " [mm]" << endl;
     *gmsg << "* Minimal angle of measured field map: " << BP.tetmin << " [deg.]" << endl;
     *gmsg << "* Maximal angle of measured field map: " << maxtheta << " [deg.]" << endl;
 
@@ -1235,13 +1262,16 @@ void Cyclotron::getFieldFromFile_AVFEQ(const double &scaleFactor) {
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.rmin));
     *gmsg << "* Minimal radius of measured field map: " << BP.rmin << " [mm]" << endl;
+    BP.rmin *= 0.001;  // mm --> m
 
     double rmax;
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &rmax));
     *gmsg << "* Maximal radius of measured field map: " << rmax << " [mm]" << endl;
+    rmax *= 0.001;  // mm --> m
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.delr));
     *gmsg << "* Stepsize in radial direction: " << BP.delr << " [mm]" << endl;
+    BP.delr *= 0.001;  // mm --> m
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.tetmin));
     *gmsg << "* Minimal angle of measured field map: " << BP.tetmin << " [deg.]" << endl;
@@ -1260,7 +1290,6 @@ void Cyclotron::getFieldFromFile_AVFEQ(const double &scaleFactor) {
     *gmsg << "* Total grid point along azimuth:  " << Bfield.ntetS << endl;
 
     Bfield.nrad = (int)(rmax - BP.rmin) / BP.delr;
-
 
     int ntotidx = idx(Bfield.nrad, Bfield.ntetS) + 1;
 
@@ -1315,11 +1344,13 @@ void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.rmin));
     *gmsg << "* Minimal radius of measured field map: " << BP.rmin << " [mm]" << endl;
+    BP.rmin *= 0.001;  // mm --> m
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.delr));
     //if the value is negative, the actual value is its reciprocal.
     if(BP.delr < 0.0) BP.delr = 1.0 / (-BP.delr);
     *gmsg << "* Stepsize in radial direction: " << BP.delr << " [mm]" << endl;
+    BP.delr *= 0.001;  // mm --> m
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.tetmin));
     *gmsg << "* Minimal angle of measured field map: " << BP.tetmin << " [deg]" << endl;
@@ -1413,9 +1444,11 @@ void Cyclotron::getFieldFromFile_CYCIAE(const double &scaleFactor) {
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.rmin));
     *gmsg << "* Minimal radius of measured field map: " << BP.rmin << " [mm]" << endl;
+    BP.rmin *= 0.001;  // mm --> m
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.delr));
     *gmsg << "* Stepsize in radial direction: " << BP.delr << " [mm]" << endl;
+    BP.delr *= 0.001;  // mm --> m
 
     CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.tetmin));
     *gmsg << "* Minimal angle of measured field map: " << BP.tetmin << " [deg.]" << endl;
@@ -1487,8 +1520,8 @@ void Cyclotron::getFieldFromFile_BandRF(const double &scaleFactor) {
                                           "failed to open file '" + *fm + "', please check if it exists");
         }
         f->readMap();
-	//	if (IPPL::Comm->getOutputLevel() != 0)
-	//  f->getInfo(gmsg);
+	// if (IPPL::Comm->getOutputLevel() != 0)
+	//     f->getInfo(gmsg);
         RFfields_m.push_back(f);
     }
     // read CARBON type B field

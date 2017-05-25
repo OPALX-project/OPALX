@@ -19,7 +19,7 @@
 #include "Elements/OpalWire.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/CollimatorRep.h"
-#include "Structure/SurfacePhysics.h"
+#include "Structure/ParticleMatterInteraction.h"
 
 // Class OpalWire
 // ------------------------------------------------------------------------
@@ -27,7 +27,7 @@
 OpalWire::OpalWire():
     OpalElement(SIZE, "WIRE",
                 "The \"WIRE\" element defines a wire."),
-    sphys_m(NULL) {
+    parmatint_m(NULL) {
     itsAttr[XSIZE] = Attributes::makeReal
                      ("XSIZE", "Horizontal half-aperture in m");
     itsAttr[YSIZE] = Attributes::makeReal
@@ -53,14 +53,14 @@ OpalWire::OpalWire():
 
 OpalWire::OpalWire(const std::string &name, OpalWire *parent):
     OpalElement(name, parent),
-    sphys_m(NULL) {
+    parmatint_m(NULL) {
     setElement((new CollimatorRep(name))->makeAlignWrapper());
 }
 
 
 OpalWire::~OpalWire() {
-    if(sphys_m)
-        delete sphys_m;
+    if(parmatint_m)
+        delete parmatint_m;
 }
 
 
@@ -93,10 +93,10 @@ void OpalWire::update() {
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
     coll->setWire();
 
-    if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
-        sphys_m->initSurfacePhysicsHandler(*coll);
-        coll->setSurfacePhysics(sphys_m->handler_m);
+    if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+        parmatint_m->initParticleMatterInteractionHandler(*coll);
+        coll->setParticleMatterInteraction(parmatint_m->handler_m);
     }
 
     // Transmit "unknown" attributes.

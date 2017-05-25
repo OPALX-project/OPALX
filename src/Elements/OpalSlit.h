@@ -20,7 +20,7 @@
 
 #include "Elements/OpalElement.h"
 
-class SurfacePhysics;
+class ParticleMatterInteraction;
 
 // Class OpalSlit
 // ------------------------------------------------------------------------
@@ -61,7 +61,7 @@ private:
     // Clone constructor.
     OpalSlit(const std::string &name, OpalSlit *parent);
 
-    SurfacePhysics *sphys_m;
+    ParticleMatterInteraction *parmatint_m;
 };
 
 #endif // OPAL_OpalSlit_HH

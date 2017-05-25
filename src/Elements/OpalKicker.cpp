@@ -39,7 +39,7 @@ OpalKicker::OpalKicker():
     itsAttr[VKICK] = Attributes::makeReal
                      ("VKICK", "Vertical deflection in rad");
     itsAttr[DESIGNENERGY] = Attributes::makeReal
-                            ("DESIGNENERGY", "the mean energy of the particles", -1.0);
+                            ("DESIGNENERGY", "the mean energy of the particles");
     itsAttr[K0] = Attributes::makeReal
                   ("K0", "Normal dipole field in T");
     itsAttr[K0S] = Attributes::makeReal
@@ -116,7 +116,7 @@ void OpalKicker::update() {
     corr->setKickX(hKick);
     corr->setKickY(vKick);
     if(itsAttr[DESIGNENERGY]) {
-        double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
+        double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]) * 1e6;
         corr->setDesignEnergy(kineticEnergy, false);
     }
 

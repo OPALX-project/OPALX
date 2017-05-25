@@ -101,8 +101,8 @@ bool Ring::apply(const size_t &id, const double &t, Vector_t &E,
         Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
         gmsgALL << getName() << ": particle " << id
                 << " at " << refPartBunch_m->R[id]
-                << " out of the field map boundary" << endl;
-        lossDS_m->addParticle(refPartBunch_m->R[id], refPartBunch_m->P[id], id);
+                << " m out of the field map boundary" << endl;
+        lossDS_m->addParticle(refPartBunch_m->R[id] * Vector_t(1000.0), refPartBunch_m->P[id], id);
         lossDS_m->save();
 
         refPartBunch_m->Bin[id] = -1;
@@ -116,13 +116,14 @@ bool Ring::apply(const Vector_t &R, const Vector_t &P,
     B = Vector_t(0.0, 0.0, 0.0);
     E = Vector_t(0.0, 0.0, 0.0);
 
-    std::vector<RingSection*> sections = getSectionsAt(R);
+    std::vector<RingSection*> sections = getSectionsAt(R); // I think this doesn't actually use R -DW
     bool outOfBounds = true;
     // assume field maps don't set B, E to 0...
     for (size_t i = 0; i < sections.size(); ++i) {
         Vector_t B_temp(0.0, 0.0, 0.0);
         Vector_t E_temp(0.0, 0.0, 0.0);
-        outOfBounds &= sections[i]->getFieldValue(R, refPartBunch_m->get_centroid(), t, E_temp, B_temp);
+        // Super-TEMP! cyclotron tracker now uses m internally, have to change to mm here to match old field limits -DW
+        outOfBounds &= sections[i]->getFieldValue(R * Vector_t(1000.0), refPartBunch_m->get_centroid() * Vector_t(1000.0), t, E_temp, B_temp);
         B += (scale_m * B_temp);
         E += (scale_m * E_temp);
     }

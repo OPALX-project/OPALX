@@ -481,7 +481,6 @@ Now you are ready to build \opal with AMR support.
         \hline
         DBG\_SCALARFIELD & dumps scalar potential on the grid & not set \\
         DBG\_STENCIL & dumps stencil (SAAMG solver) to a Matlab readable file & not set \\
-        DBG\_CSR & dump information regarding the 1D CSR calculation & not set \\
         \hline
       \end{tabular}
     \end{center}
@@ -514,11 +513,6 @@ load A.dat;
 A = spconvert(A);
 \end{example}
 \end{footnotesize}
-
-\paragraph{DBG\_CSR} dumps a text file of the calculated, 1D CSR field. The first line gives the average position of the beam bunch.
-Subsequent lines list $z$ position of longitudinal mesh (with respect to the head of the beam bunch), $E_z$, line density and the derivative of the line density. Note that currently the line density derivative needs to be scaled by the inverse of the mesh spacing to get the correct value. The CSR field
-is dumped at each time step of the calculation. Each text file is named "Bend Name" (from input file) + "-CSRWake" + "time step number in that bend
-(starting from 1)" + ".txt".
 
 \section{\opal~as a Library}
 An \opal~library can be build by specifying \texttt{-DBUILD\_LIBOPAL} in the cmake process. The \opal~library is currently used in the opt-pilot, a multi-objective

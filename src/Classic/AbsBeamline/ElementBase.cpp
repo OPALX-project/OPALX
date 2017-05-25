@@ -29,7 +29,7 @@
 
 #include "Structure/BoundaryGeometry.h"    // OPAL file
 #include "Solvers/WakeFunction.hh"
-#include "Solvers/SurfacePhysicsHandler.hh"
+#include "Solvers/ParticleMatterInteractionHandler.hh"
 
 using namespace std;
 
@@ -47,7 +47,7 @@ ElementBase::ElementBase():
     userAttribs(),
     wake_m(NULL),
     bgeometry_m(NULL),
-    sphys_m(NULL),
+    parmatint_m(NULL),
     elType_m(isOther),
     positionIsFixed(false),
     elementPosition_m(0.0),
@@ -67,15 +67,15 @@ ElementBase::ElementBase(const ElementBase &right):
     userAttribs(right.userAttribs),
     wake_m(right.wake_m),
     bgeometry_m(right.bgeometry_m),
-    sphys_m(right.sphys_m),
+    parmatint_m(right.parmatint_m),
     elType_m(right.elType_m),
     positionIsFixed(right.positionIsFixed),
     elementPosition_m(right.elementPosition_m),
     elemedgeSet_m(right.elemedgeSet_m)
 {
 
-    if(sphys_m) {
-        sphys_m->updateElement(this);
+    if(parmatint_m) {
+        parmatint_m->updateElement(this);
     }
     if(bgeometry_m)
         bgeometry_m->updateElement(this);
@@ -93,7 +93,7 @@ ElementBase::ElementBase(const std::string &name):
     userAttribs(),
     wake_m(NULL),
     bgeometry_m(NULL),
-    sphys_m(NULL),
+    parmatint_m(NULL),
     elType_m(isOther),
     positionIsFixed(false),
     elementPosition_m(0.0),
@@ -334,8 +334,8 @@ void ElementBase::setBoundaryGeometry(BoundaryGeometry *geo) {
     bgeometry_m = geo;//->clone(getName() + std::string("_wake")); }
 }
 
-void ElementBase::setSurfacePhysics(SurfacePhysicsHandler *sphys) {
-    sphys_m = sphys;
+void ElementBase::setParticleMatterInteraction(ParticleMatterInteractionHandler *parmatint) {
+    parmatint_m = parmatint;
 }
 
 void ElementBase::setCurrentSCoordinate(double s) {

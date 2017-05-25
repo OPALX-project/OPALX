@@ -222,9 +222,8 @@ void ParallelCyclotronTracker::bgf_main_collision_test() {
 
     Vector_t intecoords = 0.0;
 
-    // This has to match the dT in the rk4 pusher! -DW
-    //double dtime = 0.5 * itsBunch->getdT();  // Old
-    double dtime = itsBunch->getdT() * getHarmonicNumber();  // New
+    // This has to match the dT in the rk4 pusher
+    double dtime = itsBunch->getdT() * getHarmonicNumber();
 
     int triId = 0;
     for(size_t i = 0; i < itsBunch->getLocalNum(); i++) {
@@ -523,9 +522,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     } else //(type == "RING")
         fieldflag = 1;
 
-    // read field map on the  middle plane of cyclotron.
-    // currently scalefactor is set to 1.0
-    // TEMP changed 1.0 to getBScale() to test if we can scale the midplane field -DW
+    // Read in cyclotron field maps (midplane + 3D fields if desired).
     elptr->initialise(itsBunch, fieldflag, elptr->getBScale());
 
     double BcParameter[8];
@@ -3376,6 +3373,9 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
 }
 
 void ParallelCyclotronTracker::applyPluginElements(const double dt) {
+    // Plugin Elements are all defined in mm, change beam to mm before applying
+
+    itsBunch->R *= Vector_t(1000.0);
 
     for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); sindex++) {
         if(((*sindex)->first) == ElementBase::SEPTUM)    {
@@ -3401,6 +3401,9 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
             collim->checkCollimator(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
         }
     }
+
+    itsBunch->R *= Vector_t(0.001);
+
 }
 
 bool ParallelCyclotronTracker::deleteParticle(){
@@ -3922,8 +3925,14 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
                                                                  false);          // Flag localFrame
 
             // Tell user in which mode we are dumping
-            *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
-                  << " (global frame) at integration step " << step_m + 1 << endl;
+	    // New: no longer dumping for num part < 3, omit phase space dump number info
+	    if (lastDumpedStep_m == -1){
+		    *gmsg << endl << "* Integration step " << step_m + 1 
+                          << " (no phase space dump for <= 2 particles)" << endl;
+	    } else {
+                *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
+                      << " (global frame) at integration step " << step_m + 1 << endl;
+	    }
         }
 
         // ---------------- If flag DumpLocalFrame is set, dump bunch in local frame ---------------- //
@@ -3959,8 +3968,14 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
             localToGlobal(itsBunch->P, phi, psi);
 
             // Tell user in which mode we are dumping
-            *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
-                  << " (local frame) at integration step " << step_m + 1 << endl;
+	    // New: no longer dumping for num part < 3, omit phase space dump number info
+	    if (lastDumpedStep_m == -1){
+		*gmsg << endl << "* Integration step " << step_m + 1
+                      << " (no phase space dump for <= 2 particles)" << endl;
+	    } else {
+                *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
+                      << " (local frame) at integration step " << step_m + 1 << endl;
+	    }
         }
     }
     // Everything is (back to) global, now return to mm

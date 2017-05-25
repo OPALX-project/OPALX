@@ -16,7 +16,7 @@ IF (ENABLE_DOCUMENTATION)
 
     IF (EXCLUDE_DOC_FROM_ALL)
         add_latex_document(opal_user_guide.tex
-            INPUTS actions.tex autophase.tex benchmarks.tex changelog.tex control.tex conventions.tex dingbat.sty distribution.tex elements.tex errors.tex examples/diagnostic.in examples/matchedDistribution.in examples/matchedDistribution.output examples/multipacting.in examples/OBLA-Gun/OBLA-Gun.in examples/opal-cycl.in examples/opal-cycl-sc.in examples/surfacephysics.in examples/tuning.sh fieldemission.tex fieldmaps.tex fieldsolvers.tex figures/Elements/RBend.tex figures/Elements/SBend.tex figures/Multipacting/HB_Fig4.tikz figures/opalt/flowdiagram.tex footer.tex format.tex geometry.tex header.tex html.sty installation.tex introduction.tex lines.tex macros.tex match.tex multipact.tex opalcycl.tex opal-flavours.tex opal-madx.tex opalmap.tex opalt.tex packages.tex partmatter.tex pdfdraftcopy.sty physics.tex quick-installation.tex switches.tex syntax.tex tables.tex track.tex tutorial.tex uml.tex version.tex wakefields.tex
+            INPUTS actions.tex autophase.tex benchmarks.tex changelog.tex control.tex conventions.tex dingbat.sty distribution.tex elements.tex errors.tex examples/diagnostic.in examples/matchedDistribution.in examples/matchedDistribution.output examples/multipacting.in examples/OBLA-Gun/OBLA-Gun.in examples/opal-cycl.in examples/opal-cycl-sc.in examples/particlematterinteraction.in examples/tuning.sh fieldemission.tex fieldmaps.tex fieldsolvers.tex figures/Elements/RBend.tex figures/Elements/SBend.tex figures/Multipacting/HB_Fig4.tikz figures/opalt/flowdiagram.tex footer.tex format.tex geometry.tex header.tex html.sty installation.tex introduction.tex lines.tex macros.tex match.tex multipact.tex opalcycl.tex opal-flavours.tex opal-madx.tex opalmap.tex opalt.tex packages.tex partmatter.tex pdfdraftcopy.sty physics.tex quick-installation.tex switches.tex syntax.tex tables.tex track.tex tutorial.tex uml.tex version.tex wakefields.tex
             BIBFILES bibliography.bib
             CONFIGURE macros.tex
             IMAGE_DIRS figures figures/Benchmarks figures/cyclotron figures/Elements figures/Fieldmaps figures/Gun figures/Multipacting  figures/opalt figures/partmatter figures/traveling-wave-structure
@@ -27,7 +27,7 @@ IF (ENABLE_DOCUMENTATION)
             )
     ELSE()
         add_latex_document(opal_user_guide.tex
-            INPUTS actions.tex autophase.tex benchmarks.tex changelog.tex control.tex conventions.tex dingbat.sty distribution.tex elements.tex errors.tex examples/diagnostic.in examples/matchedDistribution.in examples/matchedDistribution.output examples/multipacting.in examples/OBLA-Gun/OBLA-Gun.in examples/opal-cycl.in examples/opal-cycl-sc.in examples/surfacephysics.in examples/tuning.sh fieldemission.tex fieldmaps.tex fieldsolvers.tex figures/Elements/RBend.tex figures/Elements/SBend.tex figures/Multipacting/HB_Fig4.tikz figures/opalt/flowdiagram.tex footer.tex format.tex geometry.tex header.tex html.sty installation.tex introduction.tex lines.tex macros.tex match.tex multipact.tex opalcycl.tex opal-flavours.tex opal-madx.tex opalmap.tex opalt.tex packages.tex partmatter.tex pdfdraftcopy.sty physics.tex quick-installation.tex switches.tex syntax.tex tables.tex track.tex tutorial.tex uml.tex version.tex wakefields.tex
+            INPUTS actions.tex autophase.tex benchmarks.tex changelog.tex control.tex conventions.tex dingbat.sty distribution.tex elements.tex errors.tex examples/diagnostic.in examples/matchedDistribution.in examples/matchedDistribution.output examples/multipacting.in examples/OBLA-Gun/OBLA-Gun.in examples/opal-cycl.in examples/opal-cycl-sc.in examples/particlematterinteraction.in examples/tuning.sh fieldemission.tex fieldmaps.tex fieldsolvers.tex figures/Elements/RBend.tex figures/Elements/SBend.tex figures/Multipacting/HB_Fig4.tikz figures/opalt/flowdiagram.tex footer.tex format.tex geometry.tex header.tex html.sty installation.tex introduction.tex lines.tex macros.tex match.tex multipact.tex opalcycl.tex opal-flavours.tex opal-madx.tex opalmap.tex opalt.tex packages.tex partmatter.tex pdfdraftcopy.sty physics.tex quick-installation.tex switches.tex syntax.tex tables.tex track.tex tutorial.tex uml.tex version.tex wakefields.tex
             BIBFILES bibliography.bib
             CONFIGURE macros.tex
             IMAGE_DIRS figures figures/Benchmarks figures/cyclotron figures/Elements figures/Fieldmaps figures/Gun figures/Multipacting  figures/opalt figures/partmatter figures/traveling-wave-structure
@@ -268,7 +268,7 @@ IF (ENABLE_DOCUMENTATION)
         )
 
     add_latex_document(partmatter.tex
-        INPUTS dingbat.sty examples/surfacephysics.in footer.tex header.tex html.sty macros.tex packages.tex pdfdraftcopy.sty switches.tex
+        INPUTS dingbat.sty examples/particlematterinteraction.in footer.tex header.tex html.sty macros.tex packages.tex pdfdraftcopy.sty switches.tex
         BIBFILES bibliography.bib
         CONFIGURE macros.tex
         IMAGE_DIRS figures figures/partmatter

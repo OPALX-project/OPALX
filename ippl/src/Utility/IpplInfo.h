@@ -61,6 +61,7 @@
 #include "DKSOPAL.h"
 #endif
 
+#include "config.h"
 
 // forward declarations
 class IpplStats;
