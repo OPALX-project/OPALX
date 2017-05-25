@@ -39,8 +39,6 @@ public:
     
     void save();
     
-    inline void setNumBins(unsigned int nBins);
-    
     /** 
       * Find peaks of probe - function based on implementation in probe programs
       * @param[in] smoothingNumber   Smooth nr measurements
@@ -88,11 +86,17 @@ private:
     /// global histogram values
     container_t globHist_m;
      
-    /// filename without extension
+    /// filename with extension (.peaks)
     std::string fn_m;
+    
+    /// histogram filename with extension (.hist)
+    std::string hist_m;
 
-    // used to write out the data
+    /// used to write out the data
     std::ofstream os_m;
+    
+    /// used to write out the histrogram
+    std::ofstream hos_m;
     
     /// Element/probe name, for name output file
     std::string element_m;
@@ -117,10 +121,5 @@ private:
     /// Four sigma width of peaks
     container_t fourSigmaPeaks_m;
 };
-
-
-void PeakFinder::setNumBins(unsigned int nBins) {
-    nBins_m = nBins;
-}
 
 #endif

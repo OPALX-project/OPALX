@@ -25,6 +25,7 @@ void PeakFinder::addParticle(const Vector_t& R) {
 
 void PeakFinder::save() {
     fn_m = element_m + std::string(".peaks");
+    hist_m = element_m + std::string(".hist");
     
     createHistogram_m();
 
@@ -34,13 +35,13 @@ void PeakFinder::save() {
               minAreaAboveNoise_m,
               minSlope_m);
 
-    INFOMSG("Save " << fn_m << endl);
+    INFOMSG("Save " << fn_m << " and " << hist_m << endl);
     
     if(OpalData::getInstance()->inRestartRun())
-	this->append_m();
-    else {
+        this->append_m();
+    else
         this->open_m();
-    }
+    
     this->saveASCII_m();
     
     this->close_m();
@@ -242,7 +243,13 @@ void PeakFinder::analysePeak(const container_t& values,
 
 
 void PeakFinder::createHistogram_m() {
-
+    /* A core might have no particles, thus, using initial high values
+     * in order to find real global minimum and maximum among all cores.
+     * It might happen that no particles hit the probe and subsequently the
+     * container radius_m would be empty for all MPI processes. In that case we
+     * fix the number of bins to a small value in order to avoid a drastic memory
+     * increase.
+     */
     double locMin=1e10, locMax=-1e10;
     if (!radius_m.empty()) {
         // compute global minimum and maximum radius
@@ -253,6 +260,8 @@ void PeakFinder::createHistogram_m() {
     }
     MPI_Allreduce(&locMin, &globMin_m, 1, MPI_DOUBLE, MPI_MIN, Ippl::getComm());
     MPI_Allreduce(&locMax, &globMax_m, 1, MPI_DOUBLE, MPI_MAX, Ippl::getComm());
+//     reduce(locMin, globMin_m, OpLT());
+//     reduce(locMax, globMax_m, OpGT());
     
     /*
      * create local histograms
@@ -260,9 +269,12 @@ void PeakFinder::createHistogram_m() {
     
     binWidth_m = 1.0; // mm
 
-    if (globMax_m < -1e9) nBins_m = 10; // no particles in probe
-    // calculate bins, round up so that histogram is large enough
-    else {nBins_m = static_cast<unsigned int>(std::ceil( globMax_m - globMin_m ) / binWidth_m);}
+    if (globMax_m < -1e9)
+        nBins_m = 10; // no particles in probe
+    else {
+        // calculate bins, round up so that histogram is large enough
+        nBins_m = static_cast<unsigned int>(std::ceil( globMax_m - globMin_m ) / binWidth_m);
+    }
 
     // std::cout << "number of bins:      " << nBins_m << std::endl;
     // std::cout << "number of particles: " << radius_m.size() << std::endl;
@@ -280,25 +292,15 @@ void PeakFinder::createHistogram_m() {
     /*
      * create global histograms
      */
-    // reduce(&(locHist[0]), &(locHist[locHist.size()-1]),
-    //        &(globHist_m[0]), OpAddAssign());
-    MPI_Reduce(&locHist[0], &globHist_m[0], locHist.size(), MPI_DOUBLE, MPI_SUM, 0, Ippl::getComm());
-
-    if (Ippl::myNode() == 0) {
-        std::string histFilename = element_m + ".hist";
-        std::ofstream os(histFilename);
-        if (!os) {std::cout << "cant open histogram file" << std::endl; return;}
-        for (auto value : globHist_m) {
-            os << value << std::endl;
-        }
-        os.close();
-    }
+    reduce(&(locHist[0]), &(locHist[0]) + locHist.size(),
+           &(globHist_m[0]), OpAddAssign());
 }
 
 
 void PeakFinder::open_m() {
     if ( Ippl::myNode() == 0 ) {
         os_m.open(fn_m.c_str(), std::ios::out);
+        hos_m.open(hist_m.c_str(), std::ios::out);
     }
 }
 
@@ -306,22 +308,28 @@ void PeakFinder::open_m() {
 void PeakFinder::append_m() {
     if ( Ippl::myNode() == 0 ) {
         os_m.open(fn_m.c_str(), std::ios::app);
+        hos_m.open(hist_m.c_str(), std::ios::app);
     }
 }
 
 
 void PeakFinder::close_m() {
-    if ( Ippl::myNode() == 0 )
+    if ( Ippl::myNode() == 0 ) {
         os_m.close();
+        hos_m.close();
+    }
 }
 
 
 void PeakFinder::saveASCII_m() {
     if ( Ippl::myNode() == 0 )  {
-        os_m << "#Peak Radii " << std::endl;
-        for (auto &radius : peakRadii_m) {
+        os_m << "# Peak Radii (mm)" << std::endl;
+        for (auto &radius : peakRadii_m)
             os_m << radius << std::endl;
-        }
+        
+        hos_m << "# Histogram bin counts ()" << std::endl;
+        for (auto binCount : globHist_m)
+            hos_m << binCount << std::endl;
     }
 }
 
