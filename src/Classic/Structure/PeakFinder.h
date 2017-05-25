@@ -5,6 +5,7 @@
  * @file PeakFinder.h
  * @author Matthias Frey,
  *         Jochem Snuverink
+ * @date 22. - 26. May 2017
  * @brief Find peaks of radial profile
  * @details It computes a histogram based on the radial
  * distribution of the particle bunch. After that all
