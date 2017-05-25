@@ -172,8 +172,8 @@ class NDGrid : public Mesh {
      *  @param xIndex: will be set with the resultant grid index
      *
      *  Sets xIndex to the index of the largest mesh position that is less than
-     *  x in the given dimension.
-     *
+     *  x in the given dimension. If x is less than all mesh positions, sets
+     *  xIndex to -1.
      */
     inline void coordLowerBound(const double& x, const int& dimension, int& xIndex) const;
 
@@ -187,7 +187,7 @@ class NDGrid : public Mesh {
      *  Sets xIndex to the index of the largest mesh position that is less than
      *  pos in all dimension.
      *
-     *  Note that pos and xIndex are not bound checked.
+     *  Note that dimension and xIndex are not bound checked.
      */
     inline void lowerBound(const std::vector<double>& pos, std::vector<int>& xIndex) const;
 
@@ -199,7 +199,7 @@ class NDGrid : public Mesh {
 
     /** Reset the coordinates in the dimension to a new value
      *
-     *  @param dimension: the dimension of the coordates that will be reset
+     *  @param dimension: the dimension of the coordinates that will be reset
      *  @param nCoords: the length of array x
      *  @param x: array of points. Caller owns the memory allocated to x.
      */
@@ -242,7 +242,7 @@ class NDGrid : public Mesh {
      *  Loops over all grid points and checks the step size is regular, with
      *  tolerance given by tolernance_m
      */
-    void setConstantSpacing();
+    void setConstantSpacing(double tolerance_m = 1e-9);
  
     /** Return an integer corresponding to the iterator position
      *
@@ -278,7 +278,6 @@ private:
     std::vector< std::vector<double> > coord_m;
     std::vector<VectorMap*>            maps_m;
     bool                               constantSpacing_m;
-    const double tolerance_m = 1e-9;
 
     friend Mesh::Iterator  operator++(Mesh::Iterator& lhs, int);
     friend Mesh::Iterator  operator--(Mesh::Iterator& lhs, int);
@@ -314,10 +313,16 @@ std::vector<double> NDGrid::coordVector(const int& dimension) const {
 }
 
 void NDGrid::coordLowerBound(const double& x, const int& dimension, int& xIndex) const {
-    if(constantSpacing_m) {
+    if (constantSpacing_m) {
         double x0 = coord_m[dimension][0];
         double x1 = coord_m[dimension][1];
-        xIndex = static_cast<int>(floor((x - x0)/(x1-x0))); 
+        xIndex = static_cast<int>(floor((x - x0)/(x1-x0)));
+        int coordSize = static_cast<int>(coord_m[dimension].size()); 
+        if (xIndex >= coordSize) {
+            xIndex = coordSize-1;
+        } else if (xIndex < -1) {
+            xIndex = -1;
+        }
     } else {
         const std::vector<double>& c_t(coord_m[dimension]);
         xIndex = std::lower_bound(c_t.begin(), c_t.end(), x)-c_t.begin()-1;
@@ -325,8 +330,8 @@ void NDGrid::coordLowerBound(const double& x, const int& dimension, int& xIndex)
 }
 
 void NDGrid::lowerBound(const std::vector<double>& pos, std::vector<int>& xIndex) const {
-    xIndex = std::vector<int>(pos.size());
-    for(unsigned int i=0; i<pos.size(); i++) {
+    xIndex = std::vector<int> (pos.size());
+    for(unsigned int i=0; i < pos.size(); i++) {
         coordLowerBound(pos[i], i, xIndex[i]);
     }
 }
