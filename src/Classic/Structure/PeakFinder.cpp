@@ -7,6 +7,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Ippl.h"
 
+
 PeakFinder::PeakFinder(std::string elem):
     element_m(elem), nBins_m(10), binWidth_m(1),
     globMin_m(0.0),globMax_m(5000.0)
@@ -115,7 +116,9 @@ bool PeakFinder::findPeaks(int smoothingNumber,
   
     int nrPeaks            = 0;
     const double minArea   = minAreaFactor * totalSum; // minimum area for a peak
+#ifdef PEAK_DEBUG
     INFOMSG("minArea " << minArea << endl);
+#endif
     // number of indices corresponding to 10 mm
     const int maxIndex     = static_cast<int> (10 * size / binWidth_m);
     bool upwards           = false;
@@ -127,14 +130,15 @@ bool PeakFinder::findPeaks(int smoothingNumber,
         double slope   = (smoothValues[i] - smoothValues[startIndex]) / (i-startIndex);
         double zpt     = minFractionalAreaFactor * (smoothValues[i] - smoothValues[startIndex]) * (i - startIndex);
         if (ftpPeak >= zpt && ftp > minArea && ftpPeak > minAreaAboveNoise && slope > minSlope) {
+#ifdef PEAK_DEBUG
             if (newPeak == false) {
                 INFOMSG("Peak "     << peakSeparatingIndices.size() << endl);
-                // 	INFOMSG("Position " << histogram->getPosition(i) << endl);
                 INFOMSG("Fraction " << ftpPeak << " " << zpt << endl);
                 INFOMSG("Area "     << ftp     << " " << minArea << endl);
                 INFOMSG("Noise "    << ftpPeak << " " << minAreaAboveNoise << endl);
                 INFOMSG("Slope "    << slope   << " " << minSlope << endl);
             }
+#endif
             newPeak = true;
         }
         if (smoothValues[i] > smoothValues [i-1] || i == size-1) {
@@ -142,7 +146,6 @@ bool PeakFinder::findPeaks(int smoothingNumber,
                 upwards = true;
                 if (newPeak == true) {
                     nrPeaks++;
-                    // 	  INFOMSG("Separating position " << histogram->getPosition(i) << endl);
                     peakSeparatingIndices.push_back(i-1);
                     newPeak = false;
                 } else if (smoothValues[peakSeparatingIndices.back()] >= smoothValues[i]) {
@@ -154,7 +157,9 @@ bool PeakFinder::findPeaks(int smoothingNumber,
         }
     }
     // debug
+#ifdef PEAK_DEBUG
     INFOMSG("Number of peaks found: " << nrPeaks << endl);
+#endif
     peakRadii_m.resize(nrPeaks);
     fourSigmaPeaks_m.resize(nrPeaks);
     
@@ -195,7 +200,6 @@ void PeakFinder::analysePeak(const container_t& values,
         }
     }
     peak = positions[maximumIndex];
-    // qDebug() << "Peak " << i << " at " << positions[maximumIndex] << " mm";
     
     // left limits, go down from peak to separation index
     int index20 = -1;
@@ -264,10 +268,9 @@ void PeakFinder::createHistogram_m() {
         locMin = *result.first;
         locMax = *result.second;
     }
-    MPI_Allreduce(&locMin, &globMin_m, 1, MPI_DOUBLE, MPI_MIN, Ippl::getComm());
-    MPI_Allreduce(&locMax, &globMax_m, 1, MPI_DOUBLE, MPI_MAX, Ippl::getComm());
-//     reduce(locMin, globMin_m, OpLT());
-//     reduce(locMax, globMax_m, OpGT());
+    
+    reduce(locMin, globMin_m, OpMinAssign());
+    reduce(locMax, globMax_m, OpMaxAssign());
     
     /*
      * create local histograms
