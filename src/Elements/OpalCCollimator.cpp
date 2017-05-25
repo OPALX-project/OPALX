@@ -19,7 +19,7 @@
 #include "Elements/OpalCCollimator.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/CollimatorRep.h"
-#include "Structure/SurfacePhysics.h"
+#include "Structure/ParticleMatterInteraction.h"
 #include "Physics/Physics.h"
 
 using Physics::pi;
@@ -30,7 +30,7 @@ using Physics::pi;
 OpalCCollimator::OpalCCollimator():
     OpalElement(SIZE, "CCOLLIMATOR",
                 "The \"CCOLLIMATOR\" element defines a rectangular-shape cyclotron collimator"),
-    sphys_m(NULL) {
+    parmatint_m(NULL) {
     itsAttr[XSTART] = Attributes::makeReal
                       ("XSTART", " Start of x coordinate [mm]");
     itsAttr[XEND] = Attributes::makeReal
@@ -65,14 +65,14 @@ OpalCCollimator::OpalCCollimator():
 
 OpalCCollimator::OpalCCollimator(const std::string &name, OpalCCollimator *parent):
     OpalElement(name, parent),
-    sphys_m(NULL) {
+    parmatint_m(NULL) {
     setElement((new CollimatorRep(name))->makeAlignWrapper());
 }
 
 
 OpalCCollimator::~OpalCCollimator() {
-    if(sphys_m)
-        delete sphys_m;
+    if(parmatint_m)
+        delete parmatint_m;
 }
 
 
@@ -110,10 +110,10 @@ void OpalCCollimator::update() {
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
     coll->setCColl();
 
-    if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
-        sphys_m->initSurfacePhysicsHandler(*coll);
-        coll->setSurfacePhysics(sphys_m->handler_m);
+    if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+        parmatint_m->initParticleMatterInteractionHandler(*coll);
+        coll->setParticleMatterInteraction(parmatint_m->handler_m);
     }
 
     // Transmit "unknown" attributes.

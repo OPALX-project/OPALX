@@ -20,8 +20,10 @@
 #include "Attributes/Attributes.h"
 #include "Parser/FileStream.h"
 #include "Utilities/Options.h"
+#include "Utilities/OptionTypes.h"
 #include "Utilities/ClassicRandom.h"
 #include "Utility/IpplInfo.h"
+#include "Utilities/Util.h"
 
 #include "Utilities/OpalException.h"
 
@@ -33,6 +35,8 @@
 extern Inform *gmsg;
 
 using namespace Options;
+
+std::string DumpFrameToString(DumpFrame df);
 
 // Class Option
 // ------------------------------------------------------------------------
@@ -85,7 +89,8 @@ namespace {
 
 Option::Option():
     Action(SIZE, "OPTION",
-           "The \"OPTION\" statement defines OPAL execution options.") {
+           "The \"OPTION\" statement defines OPAL execution options."),
+    psDumpLocalFrame_m(false) {
 
     itsAttr[ECHO] = Attributes::makeBool
                     ("ECHO", "If true, give echo of input", echo);
@@ -106,7 +111,7 @@ Option::Option():
                     ("SEED", "The seed for the random generator, -1 will use time(0) as seed ");
 
     itsAttr[TELL] = Attributes::makeBool
-                    ("TELL", "If true, print the current settings", false);
+                    ("TELL", "If true, print the current settings. Must be the last option in the inputfile in order to render correct results", false);
 
     itsAttr[PSDUMPFREQ] = Attributes::makeReal
                           ("PSDUMPFREQ", "The frequency to dump the phase space, i.e.dump data when step%psDumpFreq==0, its default value is 10.");
@@ -207,7 +212,8 @@ Option::Option():
 
 
 Option::Option(const std::string &name, Option *parent):
-    Action(name, parent) {
+    Action(name, parent),
+    psDumpLocalFrame_m(parent->psDumpLocalFrame_m) {
     Attributes::setBool(itsAttr[ECHO],       echo);
     Attributes::setBool(itsAttr[INFO],       info);
     Attributes::setBool(itsAttr[TRACE],      mtrace);
@@ -218,7 +224,7 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setReal(itsAttr[STATDUMPFREQ], statDumpFreq);
     Attributes::setBool(itsAttr[PSDUMPEACHTURN], psDumpEachTurn);
     Attributes::setBool(itsAttr[PSDUMPLOCALFRAME], psDumpLocalFrame_m);
-    Attributes::setString(itsAttr[PSDUMPFRAME], psDumpFrame_m);
+    Attributes::setString(itsAttr[PSDUMPFRAME], DumpFrameToString(psDumpLocalFrame));
     Attributes::setReal(itsAttr[SPTDUMPFREQ], sptDumpFreq);
     Attributes::setReal(itsAttr[SCSOLVEFREQ], scSolveFreq);
     Attributes::setReal(itsAttr[MTSSUBSTEPS], mtsSubsteps);
@@ -276,9 +282,8 @@ void Option::execute() {
     IpplInfo::Info->on(info);
     IpplInfo::Warn->on(warn);
 
-    psDumpLocalFrame_m = Attributes::getBool(itsAttr[PSDUMPLOCALFRAME]);
-    psDumpFrame_m = Attributes::getString(itsAttr[PSDUMPFRAME]);
-    handlePsDumpFrame();
+    handlePsDumpFrame(Attributes::getBool(itsAttr[PSDUMPLOCALFRAME]),
+                      Util::toUpper(Attributes::getString(itsAttr[PSDUMPFRAME])));
 
     if(itsAttr[ASCIIDUMP]) {
         asciidump = Attributes::getBool(itsAttr[ASCIIDUMP]);
@@ -384,29 +389,42 @@ void Option::execute() {
     }
 }
 
-void Option::handlePsDumpFrame() {
+void Option::handlePsDumpFrame(bool localFrame, const std::string &dumpFrame) {
+    psDumpLocalFrame_m = localFrame;
     if (psDumpLocalFrame_m) {
-        if (psDumpFrame_m == "GLOBAL") {
-            psDumpFrame_m == "BUNCH_MEAN";
+        if (dumpFrame == "GLOBAL") {
+            // psDumpFrame_m == "BUNCH_MEAN"; // What did you want to do here?
+                                              // This line always evalues to false
+                                              // and the result isn't stored.
+            // psDumpFrame_m = "BUNCH_MEAN";      // Did you mean this?
         } else {
             std::string msg = std::string("Either set 'PSDUMPLOCALFRAME' Option")+\
-                              std::string(" or 'PSDUMPFRAME' Option but not both."); 
+                              std::string(" or 'PSDUMPFRAME' Option but not both.");
             throw OpalException("Option::handlePsDumpFrame", msg);
         }
     }
-    if (psDumpFrame_m == "GLOBAL") {
-        // do nothing; leave as defaults (this gets called for every option,
-        // so we have to implicitly take default otherwise we will overwrite
-        // other settings)
-    } else if (psDumpFrame_m == "BUNCH_MEAN") {
+    if (dumpFrame == "GLOBAL") {
+        psDumpLocalFrame = GLOBAL;
+    } else if (dumpFrame == "BUNCH_MEAN") {
         psDumpLocalFrame = BUNCH_MEAN;
-    } else if (psDumpFrame_m == "REFERENCE") {
+    } else if (dumpFrame == "REFERENCE") {
         psDumpLocalFrame = REFERENCE;
     } else {
         std::string msg = std::string("Did not recognise PSDUMPFRAME '")+\
-                    psDumpFrame_m+std::string("'. It should be one of 'GLOBAL',")+\
+                    dumpFrame+std::string("'. It should be one of 'GLOBAL',")+\
                     std::string(" 'BUNCH_MEAN' or 'REFERENCE'");
         throw OpalException("Option::handlePsDumpFrame", msg);
     }
 }
 
+std::string DumpFrameToString(DumpFrame df) {
+    switch (df) {
+    case BUNCH_MEAN:
+        return std::string("BUNCH_MEAN");
+    case REFERENCE:
+        return std::string("REFERENCE");
+    case GLOBAL:
+    default:
+        return std::string("GLOBAL");
+    }
+}

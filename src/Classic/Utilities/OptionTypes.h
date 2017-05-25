@@ -1,3 +1,6 @@
+#ifndef OPTIONTYPES_H
+#define OPTIONTYPES_H
+
 namespace Options {
     enum DumpFrame {
         GLOBAL=0,
@@ -10,3 +13,5 @@ namespace Options {
         APPEND
     };
 }
+
+#endif

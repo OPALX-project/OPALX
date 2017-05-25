@@ -1,7 +1,7 @@
 set (_SRCS
   Beam.cpp
   OpalWake.cpp
-  SurfacePhysics.cpp
+  ParticleMatterInteraction.cpp
   SecondaryEmissionPhysics.cpp
   PriEmissionPhysics.cpp
   BoundaryGeometry.cpp
@@ -47,7 +47,7 @@ set (HDRS
     PriEmissionPhysics.h
     SDDSParser.h
     SecondaryEmissionPhysics.h
-    SurfacePhysics.h
+    ParticleMatterInteraction.h
     SDDSParser/array_def.hpp
     SDDSParser/array.hpp
     SDDSParser/associate_def.hpp

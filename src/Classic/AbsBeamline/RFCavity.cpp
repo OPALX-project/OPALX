@@ -30,9 +30,6 @@
 #include "gsl/gsl_spline.h"
 #include <iostream>
 #include <fstream>
-#ifdef OPAL_NOCPLUSPLUS11_NULLPTR
-#define nullptr NULL
-#endif
 
 extern Inform *gmsg;
 

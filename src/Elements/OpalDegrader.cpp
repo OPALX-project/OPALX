@@ -19,7 +19,7 @@
 #include "Elements/OpalDegrader.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/DegraderRep.h"
-#include "Structure/SurfacePhysics.h"
+#include "Structure/ParticleMatterInteraction.h"
 
 
 // Class OpalDegrader
@@ -28,7 +28,7 @@
 OpalDegrader::OpalDegrader():
     OpalElement(SIZE, "DEGRADER",
                 "The \"DEGRADER\" element defines a degrader."),
-    sphys_m(NULL) {
+    parmatint_m(NULL) {
     itsAttr[XSIZE] = Attributes::makeReal
         ("XSIZE", "not used",0.0);
     itsAttr[YSIZE] = Attributes::makeReal
@@ -46,14 +46,14 @@ OpalDegrader::OpalDegrader():
 
 OpalDegrader::OpalDegrader(const std::string &name, OpalDegrader *parent):
     OpalElement(name, parent),
-    sphys_m(NULL) {
+    parmatint_m(NULL) {
     setElement((new DegraderRep(name))->makeAlignWrapper());
 }
 
 
 OpalDegrader::~OpalDegrader() {
-    if(sphys_m)
-        delete sphys_m;
+    if(parmatint_m)
+        delete parmatint_m;
 }
 
 
@@ -77,10 +77,10 @@ void OpalDegrader::update() {
 
     deg->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
-    if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
-        sphys_m->initSurfacePhysicsHandler(*deg);
-        deg->setSurfacePhysics(sphys_m->handler_m);
+    if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+        parmatint_m->initParticleMatterInteractionHandler(*deg);
+        deg->setParticleMatterInteraction(parmatint_m->handler_m);
     }
 
     // Transmit "unknown" attributes.

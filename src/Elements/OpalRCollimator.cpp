@@ -20,7 +20,7 @@
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/CollimatorRep.h"
-#include "Structure/SurfacePhysics.h"
+#include "Structure/ParticleMatterInteraction.h"
 
 // Class OpalRCollimator
 // ------------------------------------------------------------------------
@@ -28,7 +28,7 @@
 OpalRCollimator::OpalRCollimator():
     OpalElement(SIZE, "RCOLLIMATOR",
                 "The \"RCOLLIMATOR\" element defines a rectangular collimator."),
-    sphys_m(NULL) {
+    parmatint_m(NULL) {
     itsAttr[XSIZE] = Attributes::makeReal
                      ("XSIZE", "Horizontal half-aperture in m");
     itsAttr[YSIZE] = Attributes::makeReal
@@ -48,14 +48,14 @@ OpalRCollimator::OpalRCollimator():
 
 OpalRCollimator::OpalRCollimator(const std::string &name, OpalRCollimator *parent):
     OpalElement(name, parent),
-    sphys_m(NULL) {
+    parmatint_m(NULL) {
     setElement((new CollimatorRep(name))->makeAlignWrapper());
 }
 
 
 OpalRCollimator::~OpalRCollimator() {
-    if(sphys_m)
-        delete sphys_m;
+    if(parmatint_m)
+        delete parmatint_m;
 }
 
 
@@ -86,10 +86,10 @@ void OpalRCollimator::update() {
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
     coll->setRColl();
 
-    if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
-        sphys_m->initSurfacePhysicsHandler(*coll);
-        coll->setSurfacePhysics(sphys_m->handler_m);
+    if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+        parmatint_m->initParticleMatterInteractionHandler(*coll);
+        coll->setParticleMatterInteraction(parmatint_m->handler_m);
     }
 
     // Transmit "unknown" attributes.

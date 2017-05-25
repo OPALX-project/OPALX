@@ -77,8 +77,8 @@ The following attributes are allowed on all elements:
   Attach wakefield that was defined using the \keyword[sec:wakecmd]{WAKE} command.
 \item[ELEMEDGE]
     The edge of an element is specified in s coordinates in meters. This edge corresponds to the origin of the local coordinate system and is the physical start of the element. (Note that in general the fields will extend in front of this position.) The physical end of the element is determined by \keyword{ELEMEDGE} and its physical length. (Note again that in general the fields will extend past the physical end of the element.)
-\item[SURFACEPHYSICS]
-  \TODO{Describe SURFACEPHYSICS}
+\item[PARTICLEMATTERINTERACTION]
+  \TODO{Describe PARTICLEMATTERINTERACTION}
 \item[X]
   X-component of the position of the element in the laboratory coordinate system.
 \item[Y]
@@ -1392,7 +1392,7 @@ label:RFCAVITY, APERTURE=real-vector, L=real,
   The effect of the cavity is
   $\delta E=\text{\keyword{VOLT}}\cdot\sin(2\pi(\text{\keyword{LAG}}-\text{\keyword{HARMON}}\cdot f_0 t))$.
 \item[LAG]
-  The phase lag [\si{\radian}] (default: 0).
+  The phase lag [\si{\radian}] (default: 0). In \opalt this phase is in general relative to the phase at which the reference particle gains the most energy. This phase is determined using an auto-phasing algorithm (see~\appref{autophasing}). This auto-phasing algorithm can be switched off, see \keyword{APVETO}.
 \end{kdescription}
 
 
@@ -1409,7 +1409,7 @@ Using a RF Cavity in \opalt mode, the following additional parameters are define
   the cavity card does not correspond to the frequency defined in the   FMAPFN file. The  frequency of
   the cavity card overrides the  frequency defined in the  FMAPFN file.
 \item[APVETO]
-  If \keyword{TRUE} this cavity will not be auto-phased, instead the actual phase on the element is used.
+  If \keyword{TRUE} this cavity will not be auto-phased. Instead the phase of the cavity is equal to \keyword{LAG} at the arrival time of the reference particle (arrival at the limit of its field {\textbf{not}} at \keyword{ELEMEDGE}).
   \end{kdescription}
 \noindent Example standing wave cavity which mimics a DC gun:
 \begin{example}
@@ -1619,7 +1619,7 @@ label:TRAVELINGWAVE, APERTURE=real-vector, L=real,
   The effect of the cavity is
   $\delta E=\text{\keyword{VOLT}}\cdot\sin(\text{\keyword{LAG}}- 2\pi\cdot\text{\keyword{FREQ}}\cdot t)$.
 \item[LAG]
-  The phase lag [\si{\radian}] (default: 0).
+  The phase lag [\si{\radian}] (default: 0). In \opalt this phase is in general relative to the phase at which the reference particle gains the most energy. This phase is determined using an auto-phasing algorithm (see~\appref{autophasing}). This auto-phasing algorithm can be switched off, see \keyword{APVETO}.
 \item[FMAPFN]
   Field maps in the \filename{T7} format can be specified.
 \item[FREQ]
@@ -1633,7 +1633,7 @@ Defines the mode in units of $2\pi$, for example $\frac{1}{3}$ stands for a $\fr
 \item[FAST]
 If FAST is true and the provided field map is in 1D then a 2D field map is constructed from the 1D on-axis field, see \secref{fieldmaps}. To track the particles the field values are interpolated from this map instead of using an FFT based algorithm for each particle and each step. (default: FALSE)
 \item[APVETO]
-  If \keyword{TRUE} this cavity will not be auto-phased, instead the actual phase on the element is used.
+  If \keyword{TRUE} this cavity will not be auto-phased. Instead the phase of the cavity is equal to \keyword{LAG} at the arrival time of the reference particle (arrival at the limit of its field {\textbf{not}} at \keyword{ELEMEDGE}).
 \end{kdescription}
 
 \noindent Use of a traveling wave requires the particle momentum \texttt{P}
@@ -1741,9 +1741,8 @@ The reference system for a collimator is a Cartesian coordinate system
 
 
 \subsection{\opalt mode}
- The \keyword{RCOLLIMATOR} and \keyword{CCOLLIMATOR} are not supported at the moment. A \keyword{ECOLLIMATOR} detects all particles which are outside the aperture defined by
-\keyword{XSIZE} and \keyword{YSIZE}. The lost particles are saved  into an H5hut file defined by \keyword{OUTFN}.  The \keyword{ELEMEDGE} defines the
-location of the collimator and \keyword{L} the length.
+ The \keyword{CCOLLIMATOR} isn't supported. \keyword{ECOLLIMATOR}s and \keyword{RCOLLIMATOR}s detect all particles which are outside the aperture defined by
+\keyword{XSIZE} and \keyword{YSIZE}. Lost particles are saved in an H5hut file defined by \keyword{OUTFN}. The \keyword{ELEMEDGE} defines the location of the collimator and \keyword{L} the length.
 \begin{kdescription}
 \item[OUTFN]
   The file name into which the monitor should write the collected data. The file is an H5hut file.
@@ -1778,11 +1777,11 @@ The vertical coordinate of the start point [\si{\milli\meter}]. Default value is
 The vertical coordinate of the end point. [\si{\milli\meter}]. Default value is \SI{-100}{\milli\meter}.
 \item[WIDTH]
 The width of the septum. [\si{\milli\meter}]
- \item[SURFACEPHYSICS]
-\keyword{SURFACEPHYSICS} is an attribute of the element. Collimator physics is a only a kind of surfacephysics.
- It can be applied to any element. If the type of \keyword{SURFACEPHYSICS} is \keyword{COLLIMATOR}, the material is defined here.
+ \item[PARTICLEMATTERINTERACTION]
+\keyword{PARTICLEMATTERINTERACTION} is an attribute of the element. Collimator physics is only a kind of particlematterinteraction.
+ It can be applied to any element. If the type of \keyword{PARTICLEMATTERINTERACTION} is \keyword{COLLIMATOR}, the material is defined here.
  The material ``Cu", ``Be", ``Graphite" and ``Mo" are defined until now.
- If this is not set, the surface physics module will not be activated.
+ If this is not set, the particle matter interaction module will not be activated.
  The particle hitting collimator will be recorded and directly deleted from the simulation.
 \end{kdescription}
 
@@ -1812,11 +1811,11 @@ x1=-215.0;
 x2=-220.0;
 x3=0.0;
 x4=0.0;
-cmphys:surfacephysics, TYPE="Collimator", MATERIAL="Cu";
+cmphys:particlematterinteraction, TYPE="Collimator", MATERIAL="Cu";
 cma1: CCollimator, XSTART=x1, XEND=x2,YSTART=y1, YEND=y2,
-ZSTART=2, ZEND=100, WIDTH=10.0, SURFACEPHYSICS=cmphys ;
+ZSTART=2, ZEND=100, WIDTH=10.0, PARTICLEMATTERINTERACTION=cmphys ;
 cma2: CCollimator, XSTART=x3, XEND=x4,YSTART=y3, YEND=y4,
- ZSTART=2, ZEND=100, WIDTH=10.0, SURFACEPHYSICS=cmphys;
+ ZSTART=2, ZEND=100, WIDTH=10.0, PARTICLEMATTERINTERACTION=cmphys;
 \end{example}
 
 The particles lost on the CCOLLIMATOR are recorded in the ASCII file \filename{\textless inputfilename\textgreater.loss}
@@ -1957,9 +1956,9 @@ Rectangular degrader with an overall length \keyword{L}.
 \end{kdescription}
 \noindent Example: Graphite degrader of \SI{15}{\centi\meter} thickness.
 \begin{example}
-DEGPHYS: SURFACEPHYSICS, TYPE="DEGRADER", MATERIAL="Graphite";
+DEGPHYS: PARTICLEMATTERINTERACTION, TYPE="DEGRADER", MATERIAL="Graphite";
 
-DEG1: DEGRADER, L=0.15, ELEMEDGE=0.02, OUTFN="DEG1.h5", SURFACEPHYSICS=DEGPHYS;
+DEG1: DEGRADER, L=0.15, ELEMEDGE=0.02, OUTFN="DEG1.h5", PARTICLEMATTERINTERACTION=DEGPHYS;
 \end{example}
 
 
@@ -2002,6 +2001,8 @@ They have the following attributes:
 \item[VKICK]
   The vertical kick angle in \si{\radian} for a corrector in both planes
   (default: \SI{0}{\radian}).
+\item[DESIGNENERGY]
+  Fix the magnitude of the magnetic field using the given \keyword{DESIGNENERGY} and the angle (\keyword{KICK}, \keyword{HKICK} or \keyword{VKICK}). If the designenergy isn't set then the actual energy of the reference particle at the position of the corrector is used. The \keyword{DESIGNENERGY} is expected in \si{\mega\electronvolt}.
 \end{kdescription}
 A positive kick increases $p_{x}$ or $p_{y}$
 respectively. Use \keyword{KICK} for an \keyword{HKICKER} or \keyword{VKICKER} and \keyword{HKICK} and \keyword{VKICK} for a \keyword{KICKER}. Instead of using a \keyword{KICKER} or a \keyword{VKICKER} one could use an \keyword{HKICKER} and rotate it appropriately using \keyword[sec:Element:common]{PSI}.

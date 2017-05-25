@@ -15,7 +15,7 @@ set (HDRS
     GreenWakeFunction.hh
     CollimatorPhysics.hh
     CSRWakeFunction.hh
-    SurfacePhysicsHandler.hh
+    ParticleMatterInteractionHandler.hh
     WakeFunction.hh
     CSRIGFWakeFunction.hh
 )

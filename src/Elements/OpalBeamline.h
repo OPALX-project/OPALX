@@ -28,7 +28,7 @@
 
 class Tracker;
 class PartBunch;
-class SurfacePhysicsHandler;
+class ParticleMatterInteractionHandler;
 class BoundaryGeometry;
 class WakeFunction;
 class Bend;
@@ -38,7 +38,7 @@ class Bend;
 #define BEAMLINE_GEOM 0x30000000   // has geometry
 #define BEAMLINE_WAKE 0x20000000   // has wake
 #define BEAMLINE_BEND 0x10000000   // bends
-#define BEAMLINE_SURFACEPHYSICS 0x08000000 // has surface physics
+#define BEAMLINE_PARTICLEMATTERINTERACTION 0x08000000 // has particle mater interaction
 
 class OpalBeamline {
 
@@ -97,7 +97,7 @@ public:
     WakeFunction *getWakeFunction(const unsigned int &);
     std::shared_ptr<const ElementBase> getWakeFunctionOwner(const unsigned int &);
 
-    SurfacePhysicsHandler *getSurfacePhysicsHandler(const unsigned int &);
+    ParticleMatterInteractionHandler *getParticleMatterInteractionHandler(const unsigned int &);
 
     BoundaryGeometry *getBoundaryGeometry(const unsigned int &);
 
@@ -164,9 +164,9 @@ private:
 //     return NULL;
 // }
 
-// inline SurfacePhysicsHandler *OpalBeamline::getSurfacePhysicsHandler(const unsigned int &index) {
+// inline ParticleMatterInteractionHandler *OpalBeamline::getParticleMatterInteractionHandler(const unsigned int &index) {
 //     if(index < sections_m.size()) {
-//         return sections_m[index].getSurfacePhysicsHandler();
+//         return sections_m[index].getParticleMatterInteractionHandler();
 //     }
 //     return 0;
 // }
@@ -178,9 +178,8 @@ void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunch *bunch) 
     double endField = 0.0;
     std::shared_ptr<T> elptr(dynamic_cast<T *>(element.clone()->removeWrappers()));
 
-    if (elptr->hasAttribute("ELEMEDGE")) {
+    if (elptr->isElementPositionSet())
         startField = elptr->getElementPosition();
-    }
 
     elptr->initialise(bunch, startField, endField);
     elements_m.push_back(ClassicField(elptr, startField, endField));
@@ -188,18 +187,6 @@ void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunch *bunch) 
 
 template<> inline
 void OpalBeamline::visit<Source>(const Source &element, BeamlineVisitor &, PartBunch *bunch) {
-    // Inform msg("OPAL ");
-    // double startField = 0.0;
-    // double endField = 0.0;
-    // std::shared_ptr<Source> elptr(static_cast<Source*>(element.clone()->removeWrappers()));
-
-    // if(!elptr->hasAttribute("ELEMEDGE")) {
-    //     startField = elptr->getElementPosition();
-    // }
-
-    // elptr->initialise(bunch, startField, endField);
-    // elptr->setBeamline(this);
-    // elements_m.push_back(ClassicField(elptr, startField, endField));
     containsSource_m = true;
 }
 

@@ -19,7 +19,7 @@
 #include "Elements/OpalECollimator.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/CollimatorRep.h"
-#include "Structure/SurfacePhysics.h"
+#include "Structure/ParticleMatterInteraction.h"
 
 
 // Class OpalECollimator
@@ -28,7 +28,7 @@
 OpalECollimator::OpalECollimator():
     OpalElement(SIZE, "ECOLLIMATOR",
                 "The \"ECOLLIMATOR\" element defines an elliptic collimator."),
-    sphys_m(NULL) {
+    parmatint_m(NULL) {
     itsAttr[XSIZE] = Attributes::makeReal
                      ("XSIZE", "Horizontal half-aperture in m");
     itsAttr[YSIZE] = Attributes::makeReal
@@ -49,14 +49,14 @@ OpalECollimator::OpalECollimator():
 
 OpalECollimator::OpalECollimator(const std::string &name, OpalECollimator *parent):
     OpalElement(name, parent),
-    sphys_m(NULL) {
+    parmatint_m(NULL) {
     setElement((new CollimatorRep(name))->makeAlignWrapper());
 }
 
 
 OpalECollimator::~OpalECollimator() {
-    if(sphys_m)
-        delete sphys_m;
+    if(parmatint_m)
+        delete parmatint_m;
 }
 
 
@@ -86,10 +86,12 @@ void OpalECollimator::update() {
     coll->setYsize(Attributes::getReal(itsAttr[YSIZE]));
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
-    if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
-        sphys_m->initSurfacePhysicsHandler(*coll);
-        coll->setSurfacePhysics(sphys_m->handler_m);
+    if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+        const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
+        ParticleMatterInteraction *orig = ParticleMatterInteraction::find(matterDescriptor);
+        parmatint_m = orig->clone(getOpalName() + std::string("_parmatint"));
+        parmatint_m->initParticleMatterInteractionHandler(*coll);
+        coll->setParticleMatterInteraction(parmatint_m->handler_m);
     }
 
     // Transmit "unknown" attributes.

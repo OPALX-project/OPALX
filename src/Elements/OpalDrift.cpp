@@ -21,7 +21,7 @@
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/DriftRep.h"
 #include "Structure/OpalWake.h"
-#include "Structure/SurfacePhysics.h"
+#include "Structure/ParticleMatterInteraction.h"
 
 // Class OpalDrift
 // ------------------------------------------------------------------------
@@ -30,7 +30,7 @@ OpalDrift::OpalDrift():
     OpalElement(SIZE, "DRIFT",
                 "The \"DRIFT\" element defines a drift space."),
     owk_m(NULL),
-    sphys_m(NULL),
+    parmatint_m(NULL),
     obgeo_m(NULL) {
     // CKR: the following 3 lines are redundant: OpalElement does this already!
     //      they prevent drift from working properly
@@ -52,7 +52,7 @@ OpalDrift::OpalDrift():
 OpalDrift::OpalDrift(const std::string &name, OpalDrift *parent):
     OpalElement(name, parent),
     owk_m(NULL),
-    sphys_m(NULL),
+    parmatint_m(NULL),
     obgeo_m(NULL) {
     setElement(new DriftRep(name));
 }
@@ -61,8 +61,8 @@ OpalDrift::OpalDrift(const std::string &name, OpalDrift *parent):
 OpalDrift::~OpalDrift() {
     if(owk_m)
         delete owk_m;
-    if(sphys_m)
-        delete sphys_m;
+    if(parmatint_m)
+        delete parmatint_m;
     if(obgeo_m)
 	delete obgeo_m;
 }
@@ -89,10 +89,10 @@ void OpalDrift::update() {
         drf->setWake(owk_m->wf_m);
     }
 
-    if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
-        sphys_m->initSurfacePhysicsHandler(*drf);
-        drf->setSurfacePhysics(sphys_m->handler_m);
+    if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+        parmatint_m->initParticleMatterInteractionHandler(*drf);
+        drf->setParticleMatterInteraction(parmatint_m->handler_m);
     }
     if(itsAttr[GEOMETRY] && obgeo_m == NULL) {
         obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + std::string("_geometry"));
