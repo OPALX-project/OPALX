@@ -304,9 +304,20 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
                 // end of this constructor
                 printsummary = true;
 
-            } else if ( ( strcmp(argv[i], "--version") == 0 ) ) {
+            } else if ( ( strcmp(argv[i], "--ipplversion") == 0 ) ) {
                 printVersion(false);
-                IpplInfo::exitAllNodes(0, true);
+                std::string options = compileOptions();
+                std::string header("Compile-time options: ");
+                while (options.length() > 58) {
+                    std::string line = options.substr(0, 58);
+                    size_t n = line.find_last_of(' ');
+                    INFOMSG(header << line.substr(0, n) << "\n");
+
+                    header = std::string(22, ' ');
+                    options = options.substr(n + 1);
+                }
+                INFOMSG(header << options << endl);
+                exit(0);
 
             } else if ( ( strcmp(argv[i], "--checksums") == 0 ) ||
                     ( strcmp(argv[i], "--checksum") == 0 ) ) {
@@ -315,10 +326,21 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
             } else if ( ( strcmp(argv[i], "--retransmit") == 0 ) ) {
                 Retransmit = true;
 
-            } else if ( ( strcmp(argv[i], "--versionall") == 0 ) ||
-                    ( strcmp(argv[i], "-vall") == 0 ) ) {
+            } else if ( ( strcmp(argv[i], "--ipplversionall") == 0 ) ||
+                        ( strcmp(argv[i], "-vall") == 0 ) ) {
                 printVersion(true);
-                IpplInfo::exitAllNodes(0, true);
+                std::string options = compileOptions();
+                std::string header("Compile-time options: ");
+                while (options.length() > 58) {
+                    std::string line = options.substr(0, 58);
+                    size_t n = line.find_last_of(' ');
+                    INFOMSG(header << line.substr(0, n) << "\n");
+
+                    header = std::string(22, ' ');
+                    options = options.substr(n + 1);
+                }
+                INFOMSG(header << options << endl);
+                exit(0);
 
             } else if ( ( strcmp(argv[i], "--time") == 0 ) ||
                     ( strcmp(argv[i], "-time") == 0 ) ||
@@ -475,57 +497,16 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
                     param_error(argv[i],
                             "Please specify a maximum number of FFT nodes > 0", 0);
 
-            } else if ( ( strcmp(argv[i], "--help") == 0 ) ||
+            } else if ( ( strcmp(argv[i], "--ipplhelp") == 0 ) ||
                     ( strcmp(argv[i], "-h") == 0 ) ||
                     ( strcmp(argv[i], "-?") == 0 ) ) {
                 // print out summary of command line switches and exit
-                INFOMSG("Usage: " << argv[0] << " [<option> <option> ...]\n");
-                INFOMSG("       The possible values for <option> are:\n");
-                INFOMSG("   --help          : Display this command-line summary.\n");
-                INFOMSG("   --summary       : Print IPPL lib summary at start.\n");
-                INFOMSG("   --processes <n> : Number of parallel nodes to use.\n");
-                INFOMSG("   --commlib <x>   : Selects a parallel comm. library.\n");
-                INFOMSG("                     <x> = ");
-                INFOMSG(CommCreator::getAllLibraryNames() << "\n");
-                INFOMSG("   --nocomminit    : IPPL does not do communication\n");
-                INFOMSG("                     initialization, assume already done.\n");
-                INFOMSG("   --connect <x>   : Select external connection method.\n");
-                INFOMSG("                     <x> = ");
-                INFOMSG(DataConnectCreator::getAllMethodNames() << "\n");
-                INFOMSG("   --time          : Show total time used in execution.\n");
-                INFOMSG("   --notime        : Do not show timing info (default).\n");
-                INFOMSG("   --info <n>      : Set info message level.  0 = off.\n");
-                INFOMSG("   --warn <n>      : Set warning message level.  0 = off.\n");
-                INFOMSG("   --error <n>     : Set error message level.  0 = off.\n");
-                INFOMSG("   --debug <n>     : Set debug message level.  0 = off.\n");
-/*#ifdef PROFILING_ON
-                INFOMSG("   --profile <gr>  : Enable profiling for groups (e.g., M+P+io) \n");
-                INFOMSG("             M - Message, P - Pete, V - Viz, A - Assign, I - IO\n");
-                INFOMSG("             F - Field, L - Layout, S - Sparse, D - Domainmap \n");
-                INFOMSG("             Ut - Utility, R - Region, Ff - FFT \n");
-                INFOMSG("             U - User, 1 - User1, 2 - User2, 3 - User3, 4 - User4\n");
-
-#endif*/ //PROFILING_ON
-                INFOMSG("   --defergcfill   : Turn on deferred guard cell fills.\n");
-                INFOMSG("   --nofieldcompression: Turn off compression in the Field classes.\n");
-                INFOMSG("   --offsetstorage : Turn on random LField storage offsets.\n");
-                INFOMSG("   --extracompcheck: Turn on extra compression checks in evaluator.\n");
-#ifdef IPPL_COMM_ALARMS
-                INFOMSG("   --msgtimeout <n>: Set receive timeout time, in secs.\n");
-#endif
-                INFOMSG("   --checksums     : Turn on CRC checksums for messages.\n");
-                INFOMSG("   --retransmit    : Resent messages if a CRC error occurs.\n");
-                INFOMSG("   --maxfftnodes <n> : Limit the nodes that work on FFT's.\n");
-                INFOMSG("   --chunksize <n> : Set I/O chunk size.  Can end w/K,M,G.\n");
-                INFOMSG("   --persmppario   : Enable on-SMP parallel IO option.\n");
-                INFOMSG("   --nopersmppario : Disable on-SMP parallel IO option (default).\n");
-#ifdef IPPL_DIRECTIO
-                INFOMSG("   --directio      : Use Direct-IO if possible.\n");
-#endif
-                INFOMSG("   --version       : Print a brief version summary.\n");
-                INFOMSG("   --versionall    : Print a detailed version summary.\n");
+                printHelp(argv);
+                INFOMSG("   --ipplversion       : Print a brief version summary.\n");
+                INFOMSG("   --ipplversionall    : Print a detailed version summary.\n");
+                INFOMSG("   --ipplhelp          : Display this command-line summary.\n");
                 INFOMSG(endl);
-                IpplInfo::exitAllNodes(0, true);
+                exit(0);
 
             } else {
                 // Unknown option; just ignore it.
@@ -799,18 +780,60 @@ int IpplInfo::mySMPNode() {
 // printVersion: print out a version summary.  If the argument is true,
 // print out a detailed listing, otherwise a summary.
 void IpplInfo::printVersion(bool printFull) {
-    INFOMSG("OPAL Version " << IPPL_OPAL_VERSION << endl);
 #ifdef OPAL_DKS
     INFOMSG("DKS Version " << IPPL_DKS_VERSION << endl);
 #endif
     INFOMSG("IPPL Framework version " << version() << endl);
     INFOMSG("Last build date: " << compileDate() << " by user ");
     INFOMSG(compileUser() << endl);
-    INFOMSG("Built for architecture: " << compileArch() << endl);
     INFOMSG("Built for machine: " << compileMachine() << endl);
-    INFOMSG("Compile-time options: " << compileOptions() << endl);
 }
 
+
+void IpplInfo::printHelp(char** argv) {
+    INFOMSG("Usage: " << argv[0] << " [<option> <option> ...]\n");
+    INFOMSG("       The possible values for <option> are:\n");
+    INFOMSG("   --summary           : Print IPPL lib summary at start.\n");
+    INFOMSG("   --processes <n>     : Number of parallel nodes to use.\n");
+    INFOMSG("   --commlib <x>       : Selects a parallel comm. library.\n");
+    INFOMSG("                         <x> = ");
+    INFOMSG(CommCreator::getAllLibraryNames() << "\n");
+    INFOMSG("   --nocomminit        : IPPL does not do communication\n");
+    INFOMSG("                         initialization, assume already done.\n");
+    INFOMSG("   --connect <x>       : Select external connection method.\n");
+    INFOMSG("                         <x> = ");
+    INFOMSG(DataConnectCreator::getAllMethodNames() << "\n");
+    INFOMSG("   --time              : Show total time used in execution.\n");
+    INFOMSG("   --notime            : Do not show timing info (default).\n");
+    INFOMSG("   --info <n>          : Set info message level.  0 = off.\n");
+    INFOMSG("   --warn <n>          : Set warning message level.  0 = off.\n");
+    INFOMSG("   --error <n>         : Set error message level.  0 = off.\n");
+    INFOMSG("   --debug <n>         : Set debug message level.  0 = off.\n");
+    /*#ifdef PROFILING_ON
+      INFOMSG("   --profile <gr>  : Enable profiling for groups (e.g., M+P+io) \n");
+      INFOMSG("             M - Message, P - Pete, V - Viz, A - Assign, I - IO\n");
+      INFOMSG("             F - Field, L - Layout, S - Sparse, D - Domainmap \n");
+      INFOMSG("             Ut - Utility, R - Region, Ff - FFT \n");
+      INFOMSG("             U - User, 1 - User1, 2 - User2, 3 - User3, 4 - User4\n");
+
+      #endif*/ //PROFILING_ON
+    INFOMSG("   --defergcfill       : Turn on deferred guard cell fills.\n");
+    INFOMSG("   --nofieldcompression: Turn off compression in the Field classes.\n");
+    INFOMSG("   --offsetstorage     : Turn on random LField storage offsets.\n");
+    INFOMSG("   --extracompcheck    : Turn on extra compression checks in evaluator.\n");
+#ifdef IPPL_COMM_ALARMS
+    INFOMSG("   --msgtimeout <n>    : Set receive timeout time, in secs.\n");
+#endif
+    INFOMSG("   --checksums         : Turn on CRC checksums for messages.\n");
+    INFOMSG("   --retransmit        : Resent messages if a CRC error occurs.\n");
+    INFOMSG("   --maxfftnodes <n>   : Limit the nodes that work on FFT's.\n");
+    INFOMSG("   --chunksize <n>     : Set I/O chunk size.  Can end w/K,M,G.\n");
+    INFOMSG("   --persmppario       : Enable on-SMP parallel IO option.\n");
+    INFOMSG("   --nopersmppario     : Disable on-SMP parallel IO option (default).\n");
+#ifdef IPPL_DIRECTIO
+    INFOMSG("   --directio          : Use Direct-IO if possible.\n");
+#endif
+}
 
 /////////////////////////////////////////////////////////////////////
 // here: as in stop in IpplInfo::here (in the debugger)
