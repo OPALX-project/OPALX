@@ -302,16 +302,13 @@ void PeakFinder::createHistogram_m() {
         nBins_m = static_cast<unsigned int>(std::ceil(( globMax_m - globMin_m ) / binWidth_m));
     }
     
-    globHist_m.resize(nBins_m);
+    globHist_m.resize(nBins_m + 1);
     
-    container_t locHist(nBins_m);
+    container_t locHist(nBins_m + 1);
 
     double invBinWidth = 1.0 / binWidth_m;
     for(container_t::iterator it = radius_m.begin(); it != radius_m.end(); ++it) {
         int bin = std::abs(*it - globMin_m ) * invBinWidth;
-        
-        if ( bin >= (int)locHist.size() )
-             bin = locHist.size() - 1;
         
         ++locHist[bin];
     }
