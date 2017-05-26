@@ -18,3 +18,5 @@
 
 /* Define DKS version used in this package. */
 #define DKS_VERSION ${DKS_VERSION_OPAL}
+
+#define PACKAGE_COMPILE_OPTIONS ${PACKAGE_COMPILE_OPTIONS}

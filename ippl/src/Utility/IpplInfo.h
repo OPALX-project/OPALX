@@ -253,6 +253,8 @@ public:
   // print out a detailed listing, otherwise a summary.
   static void printVersion(bool = false);
 
+  static void printHelp(char** argv);
+
   // version: return the name of this version of Ippl, as a string
   // (from IpplVersions.h)
   static const char *version();
