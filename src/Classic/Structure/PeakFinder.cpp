@@ -54,6 +54,8 @@ void PeakFinder::save() {
     
     radius_m.clear();
     globHist_m.clear();
+    peakRadii_m.clear();
+    fourSigmaPeaks_m.clear();
 }
 
 
