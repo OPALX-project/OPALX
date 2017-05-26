@@ -207,14 +207,20 @@ void Object::printHelp(std::ostream &os) const {
     if(itsAttr.size() > 0) {
         os << "Attributes:" << endl;
 
-        for(vector<Attribute>::const_iterator i = itsAttr.begin();
-            i != itsAttr.end(); i++) {
-            string type = i->getType();
-            string name = i->getName();
+        size_t maxLength = 16;
+        vector<Attribute>::const_iterator it;
+        for (it = itsAttr.begin(); it != itsAttr.end(); ++ it) {
+            string name = it->getName();
+            maxLength = std::max(maxLength, name.length() + 1);
+        }
+
+        for (it = itsAttr.begin(); it != itsAttr.end(); ++ it) {
+            string type = it->getType();
+            string name = it->getName();
             *gmsg << '\t' << type << string(16 - type.length(), ' ');
-            *gmsg << name << string(16 - name.length(), ' ');
-            *gmsg << i->getHelp();
-            if(i->isReadOnly()) os << " (read only)";
+            *gmsg << name << string(maxLength - name.length(), ' ');
+            *gmsg << it->getHelp();
+            if(it->isReadOnly()) os << " (read only)";
             *gmsg << endl;
         }
     }
