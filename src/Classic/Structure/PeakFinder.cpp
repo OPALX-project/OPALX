@@ -297,7 +297,7 @@ void PeakFinder::createHistogram_m() {
         nBins_m = 10; // no particles in probe
     else {
         // calculate bins, round up so that histogram is large enough
-        nBins_m = static_cast<unsigned int>(std::ceil( globMax_m - globMin_m ) / binWidth_m);
+        nBins_m = static_cast<unsigned int>(std::ceil(( globMax_m - globMin_m ) / binWidth_m));
     }
     
     globHist_m.resize(nBins_m);
@@ -306,7 +306,11 @@ void PeakFinder::createHistogram_m() {
 
     double invBinWidth = 1.0 / binWidth_m;
     for(container_t::iterator it = radius_m.begin(); it != radius_m.end(); ++it) {
-        int bin = (*it - globMin_m ) * invBinWidth;
+        int bin = std::abs(*it - globMin_m ) * invBinWidth;
+        
+        if ( bin >= locHist.size() )
+             bin = locHist.size() - 1;
+        
         ++locHist[bin];
     }
     
