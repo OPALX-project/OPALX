@@ -48,6 +48,7 @@
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 
+#include <sys/time.h>
 
 extern Inform *gmsg;
 
@@ -408,6 +409,29 @@ Distribution::~Distribution() {
 */
 
 /**
+ * Calculate the local number of particles evenly and adjust node 0
+ * such that n is matched exactly. 
+ * @param n total number of particles 
+ * @return n / #cores 
+ * @param
+ */
+
+size_t Distribution::getNumOfLocalParticlesToCreate(size_t n) {
+    
+    size_t locNumber = n / Ippl::getNodes();
+
+    // make sure the total number is exact                                                                               
+    size_t reminder  = n % Ippl::getNodes();
+
+    if (Ippl::myNode() == 0)
+        locNumber += reminder;   
+
+    return locNumber;
+}
+
+
+
+/**
  * At the moment only write the header into the file dist.dat
  * PartBunch will then append (very uggly)
  * @param
@@ -490,27 +514,26 @@ void Distribution::Create(size_t &numberOfParticles, double massIneV) {
             numAdditionalRNsPerParticle *= 2;
         }
 
-        int saveProcessor = -1;
+        size_t locNumber = getNumOfLocalParticlesToCreate(numberOfParticles);
 
-        for (size_t partIndex = 0; partIndex < numberOfParticles; ++ partIndex) {
+        /*
+        struct timeval tv; // Seed generation based on time and pid                                                          
+        gettimeofday(&tv,0);
+        unsigned long mySeed = tv.tv_sec + tv.tv_usec + Ippl::myNode();
 
-            // Save to each processor in turn.
-            ++ saveProcessor;
-            if (saveProcessor >= Ippl::getNodes())
-                saveProcessor = 0;
+        gsl_rng_env_setup();
+        gsl_rng  *randGenStandard = gsl_rng_alloc(gsl_rng_default);
+        gsl_rng_set(randGenStandard, mySeed);
+        */
 
-            if (Ippl::myNode() == saveProcessor) {
-                std::vector<double> rns;
-                for (unsigned int i = 0; i < numAdditionalRNsPerParticle; ++ i) {
-                    double x = gsl_rng_uniform(randGenEmit_m);
-                    rns.push_back(x);
-                }
-                additionalRNs_m.push_back(rns);
-            } else {
-                for (unsigned int i = 0; i < numAdditionalRNsPerParticle; ++ i) {
-                    gsl_rng_uniform(randGenEmit_m);
-                }
+        for (size_t partIndex = 0; partIndex < locNumber; ++ partIndex) {
+            
+            std::vector<double> rns;
+            for (unsigned int i = 0; i < numAdditionalRNsPerParticle; ++ i) {
+                double x = gsl_rng_uniform(randGenEmit_m);
+                rns.push_back(x);
             }
+            additionalRNs_m.push_back(rns);
         }
     }
 
@@ -1190,6 +1213,7 @@ void Distribution::CreateDistributionFlattop(size_t numberOfParticles, double ma
             GenerateFlattopLaserProfile(numberOfParticles);
     } else
         GenerateFlattopZ(numberOfParticles);
+    *gmsg << "CreateDistributionFlattop done" << endl;
 }
 
 void Distribution::CreateDistributionFromFile(size_t numberOfParticles, double massIneV) {
@@ -1667,7 +1691,6 @@ void Distribution::CreateOpalT(PartBunch &beam,
 void Distribution::CreateOpalT(PartBunch &beam,
                                size_t &numberOfParticles,
                                bool scan) {
-
     IpplTimings::startTimer(beam.distrCreate_m);
 
     // This is PC from BEAM
@@ -1732,6 +1755,7 @@ void Distribution::CreateOpalT(PartBunch &beam,
     // Create distributions.
     Create(particlesPerDist_m.at(0), beam.getM());
 
+
     size_t distCount = 1;
     for (addedDistIt = addedDistributions_m.begin();
          addedDistIt != addedDistributions_m.end(); addedDistIt++) {
@@ -1748,9 +1772,11 @@ void Distribution::CreateOpalT(PartBunch &beam,
 
     ShiftDistCoordinates(beam.getM());
 
+
+
     // Check number of particles in distribution.
     CheckParticleNumber(numberOfParticles);
-
+    // Create(particlesPerDist_m.at(0), beam.getM());
     /*
      * Find max. and min. particle positions in the bunch. For the
      * case of an emitted beam these will be in time (seconds). For
@@ -1774,6 +1800,7 @@ void Distribution::CreateOpalT(PartBunch &beam,
         FillEBinHistogram();
     } else
         energyBins_m = NULL;
+    IpplTimings::stopTimer(beam.distrCreate_m);  // ADA
 
     InitializeBeam(beam);
     WriteOutFileHeader();
@@ -1795,7 +1822,7 @@ void Distribution::CreateOpalT(PartBunch &beam,
     if (!emitting_m)
         InjectBeam(beam);
 
-    IpplTimings::stopTimer(beam.distrCreate_m);
+
 }
 
 void Distribution::DestroyBeam(PartBunch &beam) {
@@ -1852,7 +1879,7 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
     size_t oldNumberOfEmittedParticles = numberOfEmittedParticles;
 
     if (!tOrZDist_m.empty() && emitting_m) {
-
+        IpplTimings::startTimer(beam.distrEmission_m);
         /*
          * Loop through emission beam coordinate containers and emit particles with
          * the appropriate time coordinate. Once emitted, remove particle from the
@@ -1921,6 +1948,10 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
                 binWrite_m.push_back(currentEnergyBin_m);
             }
         }
+        
+        IpplTimings::stopTimer(beam.distrEmission_m);
+
+        IpplTimings::startTimer(beam.distrEmissionCleanup_m);
 
         // Now erase particles that were emitted.
         std::vector<size_t>::reverse_iterator ptbErasedIt;
@@ -1953,6 +1984,7 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
             pzDist_m.pop_back();
 
         }
+        IpplTimings::stopTimer(beam.distrEmissionCleanup_m);
 
         /*
          * Set energy bin to emitted if all particles in the bin have been emitted.
@@ -2028,7 +2060,7 @@ void Distribution::FillEBinHistogram() {
      * bin histogram. Because of how we defined the bin structure the maximum
      * longitudinal coordinate will not be counted. So, we just force it in there
      * by artificially incrementing the last bin.
-     */
+
     for (int processor = 0; processor < Ippl::getNodes(); processor++) {
 
         size_t numberOfParticles = 0;
@@ -2054,6 +2086,25 @@ void Distribution::FillEBinHistogram() {
 
         }
     }
+     */
+    
+
+    // create a local hist ADA
+    
+    for (size_t partIndex = 0; partIndex < tOrZDist_m.size(); partIndex++) {
+        double tOrZ = tOrZDist_m.at(partIndex);
+        
+        if (gsl_histogram_increment(energyBinHist_m, tOrZ) == GSL_EDOM) {
+            double upper = 0.0;
+            double lower = 0.0;
+            gsl_histogram_get_range(energyBinHist_m,
+                                    gsl_histogram_bins(energyBinHist_m) - 1,
+                                    &lower, &upper);
+            gsl_histogram_increment(energyBinHist_m, lower);
+        }
+    }
+    
+    // do I have to reduce ? 
 }
 
 void Distribution::FillParticleBins() {
@@ -2418,8 +2469,16 @@ void Distribution::GenerateFlattopLaserProfile(size_t numberOfParticles) {
 
 void Distribution::GenerateFlattopT(size_t numberOfParticles) {
 
+    size_t locNumber = getNumOfLocalParticlesToCreate(numberOfParticles);
+
+    struct timeval tv; // Seed generation based on time and pid                                                          
+    gettimeofday(&tv,0);
+    unsigned long mySeed = tv.tv_sec + tv.tv_usec + Ippl::myNode();
+
     gsl_rng_env_setup();
     gsl_rng  *randGenStandard = gsl_rng_alloc(gsl_rng_default);
+    gsl_rng_set(randGenStandard, mySeed);
+
     gsl_qrng *quasiRandGen2D = NULL;
 
     if(Options::rngtype != std::string("RANDOM")) {
@@ -2436,8 +2495,7 @@ void Distribution::GenerateFlattopT(size_t numberOfParticles) {
         }
     }
 
-    int saveProcessor = -1;
-    for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
+    for (size_t partIndex = 0; partIndex < locNumber; partIndex++) {
 
         double x = 0.0;
         double px = 0.0;
@@ -2463,18 +2521,10 @@ void Distribution::GenerateFlattopT(size_t numberOfParticles) {
         x *= sigmaR_m[0];
         y *= sigmaR_m[1];
 
-        // Save to each processor in turn.
-        saveProcessor++;
-        if (saveProcessor >= Ippl::getNodes())
-            saveProcessor = 0;
-
-        if (Ippl::myNode() == saveProcessor) {
-            xDist_m.push_back(x);
-            pxDist_m.push_back(px);
-            yDist_m.push_back(y);
-            pyDist_m.push_back(py);
-        }
-
+        xDist_m.push_back(x);
+        pxDist_m.push_back(px);
+        yDist_m.push_back(y);
+        pyDist_m.push_back(py);
     }
 
     gsl_rng_free(randGenStandard);
@@ -2491,10 +2541,20 @@ void Distribution::GenerateFlattopT(size_t numberOfParticles) {
 
 void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
 
+    size_t locNumber = getNumOfLocalParticlesToCreate(numberOfParticles);
+
+    struct timeval tv; // Seed generation based on time and pid                                                          
+    gettimeofday(&tv,0);
+    unsigned long mySeed = tv.tv_sec + tv.tv_usec + Ippl::myNode();
+
+
     gsl_rng_env_setup();
     gsl_rng *randGenStandard = gsl_rng_alloc(gsl_rng_default);
+    gsl_rng_set(randGenStandard, mySeed);
+
     gsl_qrng *quasiRandGen1D = NULL;
     gsl_qrng *quasiRandGen2D = NULL;
+
     if(Options::rngtype != std::string("RANDOM")) {
         INFOMSG("RNGTYPE= " << Options::rngtype << endl);
         if(Options::rngtype == std::string("HALTON")) {
@@ -2513,8 +2573,7 @@ void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
         }
     }
 
-    int saveProcessor = -1;
-    for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
+    for (size_t partIndex = 0; partIndex < locNumber; partIndex++) {
 
         double x = 0.0;
         double px = 0.0;
@@ -2549,19 +2608,12 @@ void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
 
         z = (z - 0.5) * sigmaR_m[2];
 
-        // Save to each processor in turn.
-        saveProcessor++;
-        if (saveProcessor >= Ippl::getNodes())
-            saveProcessor = 0;
-
-        if (Ippl::myNode() == saveProcessor) {
-            xDist_m.push_back(x);
-            pxDist_m.push_back(px);
-            yDist_m.push_back(y);
-            pyDist_m.push_back(py);
-            tOrZDist_m.push_back(z);
-            pzDist_m.push_back(pz);
-        }
+        xDist_m.push_back(x);
+        pxDist_m.push_back(px);
+        yDist_m.push_back(y);
+        pyDist_m.push_back(py);
+        tOrZDist_m.push_back(z);
+        pzDist_m.push_back(pz);
     }
 
     gsl_rng_free(randGenStandard);
@@ -4178,7 +4230,7 @@ void Distribution::SetDistParametersFlattop(double massIneV) {
 
 
     if (emitting_m) {
-        INFOMSG("emitting"<<endl);
+
         sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
                             std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAY])),
                             0.0);
