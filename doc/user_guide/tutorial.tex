@@ -35,16 +35,19 @@ For batch runs \opal accepts the following command line arguments:\\
 \hline
 \tabhead{Argument & Values & Function}
 \hline
+-{}-input & \textless file \textgreater & the input file. Using ``-{}-input'' is optional. Instead the input file can be provided either as first or as last argument.\\
 -{}-info & \num{0} -- \num{5} & \parbox[t]{10cm}{controls the amount of output to the command line. \num{0} means no or scarce output, \num{5} means a lot of output. Default: \num{1}.\\ Full support currently only in \opalt.} \\
--restart & \num{-1} -- \textless Integer\textgreater & restarts from given step in file with saved phase space. Per default \opal tries to restart from a file \textless file\textgreater.h5 where \textless file\textgreater is the input file without extension. \num{-1} stands for the last step in the file. If no other file is specified to restart from and if the last step of the file is chosen, then the new data is appended to the file. Otherwise the data from this particular step is copied to a new file and all new data appended to the new file.\\
--restartfn & \textless file\textgreater & a file in H5hut format from which \opal should restart.\\
+-{}-restart & \num{-1} -- \textless Integer\textgreater & restarts from given step in file with saved phase space. Per default \opal tries to restart from a file \textless file\textgreater.h5 where \textless file\textgreater is the input file without extension. \num{-1} stands for the last step in the file. If no other file is specified to restart from and if the last step of the file is chosen, then the new data is appended to the file. Otherwise the data from this particular step is copied to a new file and all new data appended to the new file.\\
+-{}-restartfn & \textless file\textgreater & a file in H5hut format from which \opal should restart.\\
+-{}-help & & Displays a summary of all command-line arguments and then quits.\\
+-{}-version & & Prints the version and then quits.\\
 \hline
 \end{tabular}
 
 \vspace{3pt}
 Example:
 \begin{example}
-opal input.in -restartfn input.h5 -restart -1 --info 3
+opal input.in --restartfn input.h5 --restart -1 --info 3
 \end{example}
 
 
@@ -173,7 +176,7 @@ To run opal on N nodes in parallel environment interactively, use this command i
 
 If restart a job from the last step of an existing \filename{.h5} file, add a new argument like this:
 \begin{example}
- # mpirun -np N opal testinj2-2.in -restart -1
+ # mpirun -np N opal testinj2-2.in --restart -1
 \end{example}
 \figref{cyclParameters,cyclphasespace} are simulation results, shown by  H5ROOT code.
 

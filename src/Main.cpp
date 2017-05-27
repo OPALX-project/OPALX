@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
 
 
     *gmsg << endl
-          << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << PACKAGE_VERSION_STR << "\n\n"
+          << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << OPAL_VERSION_STR << "\n\n"
           << "                (c) PSI, http://amas.web.psi.ch" << endl
           << endl;
 
@@ -213,21 +213,24 @@ int main(int argc, char *argv[]) {
             for(int ii = 1; ii < argc; ++ ii) {
                 std::string argStr = std::string(argv[ii]);
                 // The sequence of the two arguments is free
-                if (argStr == std::string("-input")) {
+                if (argStr == std::string("--input")) {
                     ++ ii;
                     arg = ii;
                     INFOMSG(argv[ii] << endl);
                     continue;
-                } else if (argStr == std::string("-restart")) {
+                } else if (argStr == std::string("-restart") ||
+                           argStr == std::string("--restart")) {
                     opal->setRestartRun();
                     opal->setRestartStep(atoi(argv[++ ii]));
                     opal->setRestartFileName(argv[1]);
                     continue;
-                } else if (argStr == std::string("-restartfn")) {
+                } else if (argStr == std::string("-restartfn") ||
+                           argStr == std::string("--restartfn")) {
                     opal->setRestartFileName(argv[++ ii]);
                     continue;
-                } else if (argStr == std::string("-version")) {
-                    INFOMSG("OPAL Version " << IPPL_OPAL_VERSION << ", git rev. " << Util::getGitRevision() << endl);
+                } else if (argStr == std::string("-version") ||
+                           argStr == std::string("--version")) {
+                    INFOMSG("OPAL Version " << OPAL_VERSION_STR << ", git rev. " << Util::getGitRevision() << endl);
                     IpplInfo::printVersion(true);
                     std::string options = (IpplInfo::compileOptions() +
                                            std::string(" ") +
@@ -259,13 +262,14 @@ int main(int argc, char *argv[]) {
                     }
                     INFOMSG(header << options << endl);
                     exit(0);
-                } else if (argStr == std::string("-help")) {
+                } else if (argStr == std::string("-help") ||
+                           argStr == std::string("--help")) {
                     IpplInfo::printHelp(argv);
-                    INFOMSG("   -version            : Print a brief version summary.\n");
-                    INFOMSG("   -input <fname>      : Specifies the input file <fname>.\n");
-                    INFOMSG("   -restart <n>        : Performes a restart from step <n>.\n");
-                    INFOMSG("   -restartfn <fname>  : Uses the file <fname> to restart from.\n");
-                    INFOMSG("   -help               : Display this command-line summary.\n");
+                    INFOMSG("   --version            : Print a brief version summary.\n");
+                    INFOMSG("   --input <fname>      : Specifies the input file <fname>.\n");
+                    INFOMSG("   --restart <n>        : Performes a restart from step <n>.\n");
+                    INFOMSG("   --restartfn <fname>  : Uses the file <fname> to restart from.\n");
+                    INFOMSG("   --help               : Display this command-line summary.\n");
                     INFOMSG(endl);
                     exit(0);
                 } else {
@@ -277,11 +281,11 @@ int main(int argc, char *argv[]) {
                     } else {
                         INFOMSG("Unknown argument \"" << argStr << "\"" << endl);
                         IpplInfo::printHelp(argv);
-                        INFOMSG("   -version            : Print a brief version summary.\n");
-                        INFOMSG("   -input <fname>      : Specifies the input file <fname>.\n");
-                        INFOMSG("   -restart <n>        : Performes a restart from step <n>.\n");
-                        INFOMSG("   -restartfn <fname>  : Uses the file <fname> to restart from.\n");
-                        INFOMSG("   -help               : Display this command-line summary.\n");
+                        INFOMSG("   --version            : Print a brief version summary.\n");
+                        INFOMSG("   --input <fname>      : Specifies the input file <fname>.\n");
+                        INFOMSG("   --restart <n>        : Performes a restart from step <n>.\n");
+                        INFOMSG("   --restartfn <fname>  : Uses the file <fname> to restart from.\n");
+                        INFOMSG("   --help               : Display this command-line summary.\n");
                         INFOMSG(endl);
                         exit(1);
                     }

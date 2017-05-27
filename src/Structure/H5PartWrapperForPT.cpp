@@ -202,7 +202,7 @@ void H5PartWrapperForPT::readStepData(PartBunch& bunch, h5_ssize_t firstParticle
 
 void H5PartWrapperForPT::writeHeader() {
     std::stringstream OPAL_version;
-    OPAL_version << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " # git rev. " << Util::getGitRevision();
+    OPAL_version << PACKAGE_NAME << " " << OPAL_VERSION_STR << " # git rev. " << Util::getGitRevision();
     WRITESTRINGFILEATTRIB(file_m, "OPAL_version", OPAL_version.str().c_str());
 
     WRITESTRINGFILEATTRIB(file_m, "SPOSUnit", "m");

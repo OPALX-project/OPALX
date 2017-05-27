@@ -59,7 +59,7 @@ RealConstant::RealConstant():
 
     opal->create(new RealConstant("CLIGHT", this, Physics::c));
 
-    opal->create(new RealConstant("OPALVERSION", this, PACKAGE_VERSION));
+    opal->create(new RealConstant("OPALVERSION", this, OPAL_VERSION));
     opal->create(new RealConstant("RANK", this, Ippl::myNode()));
 }
 

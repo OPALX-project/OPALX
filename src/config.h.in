@@ -11,10 +11,10 @@
 #define PACKAGE_NAME ${PACKAGE_NAME}
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION ${PACKAGE_VERSION}
+#define OPAL_VERSION ${PACKAGE_VERSION}
 
-/* Define string PACKAGE_VERSION */
-#define PACKAGE_VERSION_STR ${PACKAGE_VERSION_STR}
+/* Define string OPAL_VERSION */
+#define OPAL_VERSION_STR ${PACKAGE_VERSION_STR}
 
 /* Define DKS version used in this package. */
 #define DKS_VERSION ${DKS_VERSION_OPAL}
