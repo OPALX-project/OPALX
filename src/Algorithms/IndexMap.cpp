@@ -218,7 +218,7 @@ void IndexMap::saveSDDS(double startS) const {
              << indent << "no_row_counts=1 \n"
              << "&end\n";
 
-        sdds << PACKAGE_NAME << " " << PACKAGE_VERSION_STR << " # git rev. " << Util::getGitRevision() << std::endl;
+        sdds << PACKAGE_NAME << " " << OPAL_VERSION_STR << " # git rev. " << Util::getGitRevision() << std::endl;
     }
 
     std::vector<std::vector<int> > allItems(SIZE);

@@ -162,14 +162,7 @@ TrackRun *TrackRun::clone(const std::string &name) {
 
 
 void TrackRun::execute() {
-    std::string packageVersionStr = PACKAGE_VERSION_STR;
-    packageVersionStr.replace(packageVersionStr.find_first_of('.'), 1, "");
-    std::string::size_type posDot = packageVersionStr.find_first_of('.');
-    if (posDot != std::string::npos)
-        packageVersionStr = packageVersionStr.substr(0, posDot);
-
-    const int currentVersion = std::atoi(packageVersionStr.c_str()) * 100;
-
+    const int currentVersion = (OPAL_VERSION / 100) * 100;
     if (Options::version < currentVersion) {
         unsigned int fileVersion = Options::version / 100;
         bool newerChanges = false;

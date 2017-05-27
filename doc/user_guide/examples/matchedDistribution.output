@@ -162,7 +162,7 @@ OPAL>
 OPAL> * ---------------------------- DONE TRACKING PARTICLES -------------------------------- *
 OPAL> * Final energy of reference particle = 580 [MeV]
 OPAL> * Total phase space dump number(includes the initial distribution) = 1
-OPAL> * One can restart simulation from the last dump step (-restart 0)
+OPAL> * One can restart simulation from the last dump step (--restart 0)
 OPAL> *
 OPAL> * Finished during turn 1 (0 turns completed)
 OPAL> * Cave: Turn number is not correct for restart mode
