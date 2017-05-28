@@ -1,8 +1,10 @@
 #include "Ippl.h"
 
-#include <Particles.H>
-#include <ParmParse.H>
+#include <AMReX_Particles.H>
+#include <AMReX_ParmParse.H>
 #include <limits>
+
+using namespace amrex;
 
 // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
 template<class PLayout>
@@ -27,7 +29,8 @@ void AmrParticleBase<PLayout>::Interp(const SingleParticlePos_t &R,
   for (int i = 0; i < cnt; i++)
   {
     BL_ASSERT(idx[i] >= 0 && idx[i] < fab.nComp());
-    val[i] = ParticleBase::InterpDoit(fab,fracs,cells,idx[i]);
+    // dummy template values
+    val[i] = Particle<0, 0>::InterpDoit(fab,fracs,cells,idx[i]);
   }
 }
 
@@ -48,8 +51,9 @@ void AmrParticleBase<PLayout>::CIC_Cells_Fracs_Basic(const SingleParticlePos_t &
   
   const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
 
-  ParticleBase::CIC_Fracs(frac, fracs);
-  ParticleBase::CIC_Cells(cell, cells);
+  // dummy template values
+  Particle<0, 0>::CIC_Fracs(frac, fracs);
+  Particle<0, 0>::CIC_Cells(cell, cells);
 
 }
 
@@ -134,7 +138,7 @@ bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
     PLayout *Layout = &this->getLayout();
     const ParGDBBase* m_gdb = Layout->GetParGDB();
     
-    BL_PROFILE("ParticleBase::FineToCrse()");
+    BL_PROFILE("AmrParticleBase::FineToCrse()");
     BL_ASSERT(m_gdb != 0);
     BL_ASSERT(flev > 0);
     //
@@ -158,7 +162,7 @@ bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
     
 //     Layout->Where(this->R, ip); //FIXME Is this really needed?
     
-    const Box& ibx = BoxLib::grow(m_gdb->ParticleBoxArray(flev)[this->m_grid[ip]],-1);
+    const Box& ibx = amrex::grow(m_gdb->ParticleBoxArray(flev)[this->m_grid[ip]],-1);
     IntVect m_cell = Layout->Index(this->R[ip], flev);
     
     BL_ASSERT(ibx.ok());
@@ -251,13 +255,14 @@ void AmrParticleBase<PLayout>::FineCellsToUpdateFromCrse (
   std::vector< std::pair<int,Box> >& isects)
 {
   BL_PROFILE("ParticleContainer<NR, NI, NA>::FineCellsToUpdateFromCrse()");
-    BL_ASSERT(lev >= 0);
-    BL_ASSERT(lev < finestLevel());
     
     PLayout *Layout = &this->getLayout();
     const ParGDBBase* m_gdb = Layout->GetParGDB();
+    
+    BL_ASSERT(lev >= 0);
+    BL_ASSERT(lev < m_gdb->finestLevel());
 
-    const Box&      fbx = BoxLib::refine(Box(ccell,ccell),m_gdb->refRatio(lev));
+    const Box&      fbx = amrex::refine(Box(ccell,ccell),m_gdb->refRatio(lev));
     const BoxArray& fba = m_gdb->ParticleBoxArray(lev+1);
     const Real*     plo = m_gdb->Geom(lev).ProbLo();
     const Real*     dx  = m_gdb->Geom(lev).CellSize();
@@ -371,10 +376,10 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
 						 int               ncomp,
 						 int               lev_min)
 {
-  if (rho_index != 0) BoxLib::Abort("AssignDensityDoit only works if rho_index = 0");
+  if (rho_index != 0) amrex::Abort("AssignDensityDoit only works if rho_index = 0");
 
   BL_PROFILE("ParticleContainer<NR,NI,C>::AssignDensityDoit()");
-  BL_ASSERT(NR >= ncomp);
+  BL_ASSERT(1 >= ncomp);
 
   const int NProcs = ParallelDescriptor::NProcs();
 
@@ -456,7 +461,7 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
   const int rChunkSize = ncomp;
 
   Array<int>                    irecvdata (NumRcvs*iChunkSize);
-  Array<ParticleBase::RealType> rrecvdata (NumRcvs*rChunkSize);
+  Array<amrex::ParticleCommData::RealType> rrecvdata (NumRcvs*rChunkSize);
 
   Array<int>         index(2*RcvCnts.size());
   Array<MPI_Status>  stats(2*RcvCnts.size());
@@ -489,7 +494,7 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
   // Send the data.
   //
   Array<int>                    isenddata;
-  Array<ParticleBase::RealType> rsenddata;
+  Array<amrex::ParticleCommData::RealType> rsenddata;
 
   for (const auto& kv : SndCnts)
   {
@@ -545,7 +550,7 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
   if (NumRcvs > 0)
   {
     const int*                    idata = irecvdata.dataPtr();
-    const ParticleBase::RealType* rdata = rrecvdata.dataPtr();
+    const amrex::ParticleCommData::RealType* rdata = rrecvdata.dataPtr();
 
     for (int i = 0; i < NumRcvs; i++)
     {
@@ -553,8 +558,8 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
       const int     grd  = idata[1];
       const IntVect cell = IntVect(D_DECL(idata[2],idata[3],idata[4]));
 
-      BL_ASSERT((*mf)[lev].DistributionMap()[grd] == MyProc);
-      BL_ASSERT((*mf)[lev][grd].box().contains(cell));
+      BL_ASSERT((*mf[lev]).DistributionMap()[grd] == MyProc);
+      BL_ASSERT((*mf[lev])[grd].box().contains(cell));
 
       for (int n = 0; n < ncomp; n++) {
 	(*mf[lev])[grd](cell,n) += rdata[n];
@@ -591,7 +596,7 @@ void AmrParticleBase<PLayout>::AssignDensityFort (ParticleAttrib<AType> &pa,
     for (int lev = lev_min; lev <= finest_level; ++lev) {
         const BoxArray& ba = mf_to_be_filled[lev]->boxArray();
         const DistributionMapping& dm = mf_to_be_filled[lev]->DistributionMap();
-        tmp[lev].reset(new MultiFab(ba, 1, 0, dm));
+        tmp[lev].reset(new MultiFab(ba, dm, 1, 0));
         tmp[lev]->setVal(0.0);
     }
     
@@ -599,11 +604,11 @@ void AmrParticleBase<PLayout>::AssignDensityFort (ParticleAttrib<AType> &pa,
         AssignCellDensitySingleLevelFort(pa, *mf_to_be_filled[lev], lev, 1, 0);
 
         if (lev < finest_level) {
-            BoxLib::InterpFromCoarseLevel(*tmp[lev+1], 0.0, *mf_to_be_filled[lev],
-                                          rho_index, rho_index, ncomp, 
-                                          m_gdb->Geom(lev), m_gdb->Geom(lev+1),
-                                          cphysbc, fphysbc,
-                                          m_gdb->refRatio(lev), &mapper, bcs);
+            amrex::InterpFromCoarseLevel(*tmp[lev+1], 0.0, *mf_to_be_filled[lev],
+                                         rho_index, rho_index, ncomp, 
+                                         m_gdb->Geom(lev), m_gdb->Geom(lev+1),
+                                         cphysbc, fphysbc,
+                                         m_gdb->refRatio(lev), &mapper, bcs);
         }
 
         if (lev > lev_min) {
@@ -620,8 +625,8 @@ void AmrParticleBase<PLayout>::AssignDensityFort (ParticleAttrib<AType> &pa,
     }
     
     for (int lev = finest_level - 1; lev >= lev_min; --lev) {
-        BoxLib::average_down(*mf_to_be_filled[lev+1], 
-                             *mf_to_be_filled[lev], rho_index, ncomp, m_gdb->refRatio(lev));
+        amrex::average_down(*mf_to_be_filled[lev+1], 
+                            *mf_to_be_filled[lev], rho_index, ncomp, m_gdb->refRatio(lev));
     }
     
     IpplTimings::stopTimer(AssignDensityTimer_m);
@@ -655,9 +660,9 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
     else {
       // If mf_to_be_filled is not defined on the particle_box_array, then we need 
       // to make a temporary here and copy into mf_to_be_filled at the end.
-      mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), 
-                                ncomp, mf_to_be_filled.nGrow(),
-                                m_gdb->ParticleDistributionMap(lev));
+      mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),
+                                m_gdb->ParticleDistributionMap(lev),
+                                ncomp, mf_to_be_filled.nGrow());
     }
 
     // We must have ghost cells for each FAB so that a particle in one grid can spread 
@@ -665,7 +670,7 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
     // own grid.  The mf->sumBoundary call then adds the value from one grid's ghost cell
     // to another grid's valid region.
     if (mf_pointer->nGrow() < 1) 
-       BoxLib::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
+       amrex::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
 
     const Real      strttime    = ParallelDescriptor::second();
     const Geometry& gm          = m_gdb->Geom(lev);
@@ -674,7 +679,7 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
     const Real*     dx          = gm.CellSize();
 
     if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
-      BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
+      amrex::Error("AssignDensity: problem must be periodic in no or all directions");
     }
     
     for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
@@ -772,7 +777,7 @@ void AmrParticleBase<PLayout>::InterpolateSingleLevelFort (ParticleAttrib<AType>
                                                            MultiFab& mesh_data, int lev)
 {
     if (mesh_data.nGrow() < 1)
-        BoxLib::Error("Must have at least one ghost cell when in InterpolateSingleLevelFort");
+        amrex::Error("Must have at least one ghost cell when in InterpolateSingleLevelFort");
     
     PLayout *Layout = &this->getLayout();
     const ParGDBBase* m_gdb = Layout->GetParGDB();

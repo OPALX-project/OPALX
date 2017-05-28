@@ -12,9 +12,9 @@
 
 #include "Ippl.h"
 
-#include <Array.H>
-#include <Geometry.H>
-#include <MultiFab.H>
+#include <AMReX_Array.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
 
 #include "AmrParticleBase.h"
 #include "ParticleAmrLayout.h"
@@ -26,8 +26,8 @@ typedef ParticleAmrLayout<double,Dim> amrplayout_t;
 typedef AmrParticleBase<amrplayout_t> amrbase_t;
 typedef PartBunchAmr<amrplayout_t> amrbunch_t;
 
-typedef std::deque<Particle<1,0> > PBox;
-typedef typename std::map<int,PBox> PMap;
+// typedef std::deque<Particle<1,0> > PBox;
+// typedef typename std::map<int,PBox> PMap;
 
 typedef Array<std::unique_ptr<MultiFab> > container_t;
 
@@ -72,13 +72,16 @@ void createParticles(TestParams& parms,
     
     int i = 0;
     for (unsigned int lev = 0; lev < dmap.size(); lev++) {
-        PMap pmap = myPC.GetParticles(lev);
-        for (unsigned int grid = 0; grid < pmap.size(); ++grid) {
-            for (unsigned int p = 0; p < pmap[grid].size(); ++p) {
-                pbase->qm[i] = 10.0;//pmap[grid][p].m_data[0];
-                pbase->R[i](0) = pmap[grid][p].m_pos[0];
-                pbase->R[i](1) = pmap[grid][p].m_pos[1];
-                pbase->R[i++](2) = pmap[grid][p].m_pos[2];
+        auto pmap = myPC.GetParticles(lev);
+        
+        for (const auto& kv : pmap) {
+            const auto& aos = kv.second.GetArrayOfStructs();
+            for (const auto& p : aos) {
+                pbase->qm[i] = 10.0;
+                pbase->R[i](0) = p.m_rdata.pos[0];
+                pbase->R[i](1) = p.m_rdata.pos[1];
+                pbase->R[i++](2) = p.m_rdata.pos[2];
+                
             }
         }
     }
@@ -125,7 +128,7 @@ void doTestScatter(TestParams& parms) {
     Array<Geometry> geom(nlevs);
     geom[0].define(domain, &real_box, coord, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
-	geom[lev].define(BoxLib::refine(geom[lev-1].Domain(), rr[lev-1]),
+	geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
 			 &real_box, coord, is_per);
     }
 
@@ -156,7 +159,7 @@ void doTestScatter(TestParams& parms) {
 //     Array<std::unique_ptr<MultiFab> > acceleration(nlevs);
     for (int lev = 0; lev < nlevs; lev++) {
         dmap[lev] = DistributionMapping(ba[lev], ParallelDescriptor::NProcs());
-        partMF[lev].reset(new MultiFab(ba[lev], 1, 2, dmap[lev]));
+        partMF[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 2));
         partMF[lev]->setVal(0.0, 2);
         
 //         partMF_old[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 2));
@@ -222,7 +225,7 @@ void doTestScatter(TestParams& parms) {
 int main(int argc, char* argv[]) {
     
     Ippl ippl(argc, argv);
-    BoxLib::Initialize(argc,argv/*, false*/);
+    amrex::Initialize(argc,argv/*, false*/);
     
     ParmParse pp;
   
@@ -235,7 +238,7 @@ int main(int argc, char* argv[]) {
     pp.get("nlevs", parms.nlevs);
     pp.get("nppc", parms.nppc);
     if (parms.nppc < 1 && ParallelDescriptor::IOProcessor())
-        BoxLib::Abort("Must specify at least one particle per cell");
+        amrex::Abort("Must specify at least one particle per cell");
     
     parms.verbose = false;
     pp.query("verbose", parms.verbose);

@@ -1,12 +1,12 @@
 # -*- mode: cmake -*-
 #
-# OPAL CCSE Find Module
+# Amanzi CCSE Find Module
 #
 # Usage:
 #    Control the search through CCSE_DIR or setting environment variable
 #    CCSE_ROOT to the ccse installation prefix.
 #
-#    This module does not search default paths!
+#    This module does not search default paths! 
 #
 #    Following variables are set:
 #    CCSE_FOUND            (BOOL)       Flag indicating if CCSE was found
@@ -19,14 +19,12 @@
 #    CCSE_EXT_LIBRARY_DIRS (LIST)
 #
 # #############################################################################
+
 # Standard CMake modules see CMAKE_ROOT/Modules
 include(FindPackageHandleStandardArgs)
 
-# OPAL CMake functions see <root>/tools/cmake for source
-
 include(CCSEOptions)
 
-MESSAGE (STATUS "IN FIND CCSE_LIBRARIES")
 
 if ( CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
 
@@ -46,19 +44,19 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
     if(CCSE_LIBRARY_DIR)
         set(CCSE_LIBRARY_DIR "${CCSE_LIBRARY_DIR}" CACHE PATH "Path to search for CCSE library files")
     endif()
-
+    
     if(CCSE_PERL_DIR)
         set(CCSE_PERL_DIR "${CCSE_PERL_DIR}" CACHE PATH "Path to search for CCSE perl scripts")
     endif()
 
-
+    
     # Search for include files
     # Search order preference:
     #  (1) CCSE_INCLUDE_DIR - check existence of path AND if the include files exist
     #  (2) CCSE_DIR/include
     #  (3) Default CMake paths See cmake --html-help=out.html file for more information.
     #
-    set(ccse_inc_names "BoxLib.H")
+    set(ccse_inc_names "AMReX.H")
 
     if (CCSE_INCLUDE_DIR)
 
@@ -77,7 +75,7 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
             set(CCSE_INCLUDE_DIR "CCSE_INCLUDE_DIR-NOTFOUND")
         endif()
 
-    else()
+    else() 
 
         set(ccse_inc_suffixes "include")
         if(CCSE_DIR)
@@ -93,7 +91,7 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
             else()
                  message(SEND_ERROR "CCSE_DIR=${CCSE_DIR} does not exist")
                  set(CCSE_INCLUDE_DIR "CCSE_INCLUDE_DIR-NOTFOUND")
-            endif()
+            endif()    
 
 
         else()
@@ -112,13 +110,13 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
         set(CCSE_INCLUDE_DIRS ${CCSE_INCLUDE_DIR})
     endif()
 
-    # Search for libraries
+    # Search for libraries 
     # Search order preference:
     #  (1) CCSE_LIBRARY_DIR - check existence of path AND if the include files exist
     #  (2) CCSE_DIR/<lib,Lib>
     #  (3) Default CMake paths See cmake --html-help=out.html file for more information.
     #
-    set(ccse_lib_name box_c)
+    set(ccse_lib_name cboxlib)
     if (CCSE_LIBRARY_DIR)
 
         if (EXISTS "${CCSE_LIBRARY_DIR}")
@@ -132,7 +130,7 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
             set(CCSE_LIBRARY "CCSE_LIBRARY-NOTFOUND")
         endif()
 
-    else()
+    else() 
 
         if(CCSE_DIR)
 
@@ -148,7 +146,7 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
             else()
                  message(SEND_ERROR "CCSE libs not found in CCSE_DIR/lib${CCSE_LIBDIR_MPI_SUFFIX}${CCSE_LIBDIR_OMP_SUFFIX}, (CCSE_DIR=${CCSE_DIR})")
                  set(CCSE_LIBRARY "CCSE_LIBRARY-NOTFOUND")
-            endif()
+            endif()    
 
         else()
 
@@ -156,13 +154,13 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
                          NAMES ${ccse_lib_name})
 
             get_filename_component(CCSE_LIBRARY_DIR "${CCSE_LIBRARY}" PATH)
-
+            
         endif()
 
     endif()
 
     # Now, make sure the rest are in the same place
-    set(CCSE_LIBRARIES box_camrdata;cboxlib;cfboxlib;fboxlib;gslib)
+    set(CCSE_LIBRARIES cboxlib;fboxlib;cfboxlib;box_camrdata)
 
     foreach (L ${CCSE_LIBRARIES})
 
@@ -177,6 +175,11 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
 
     endforeach()
     set(CCSE_LIBRARY_DIRS ${CCSE_LIBRARY_DIR})
+
+    # Add this to fix circular dependency
+    if (ENABLE_MPI)
+      set(CCSE_LIBRARIES fboxlib;cboxlib;fboxlib;cfboxlib;box_camrdata)
+    endif (ENABLE_MPI)
 
     # Search for perl scripts
     # Search order preference:
@@ -199,7 +202,7 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
             set(CCSE_PERL "CCSE_PERL-NOTFOUND")
         endif()
 
-    else()
+    else() 
 
         if(CCSE_DIR)
 
@@ -214,7 +217,7 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
                     message(SEND_ERROR "CCSE Perl scripts not in CCSE_DIR/perl=${CCSE_DIR}/perl")
                 else()
                     set(CCSE_PERL_DIR ${CCSE_PERL})
-                endif()
+                endif()    
 
             else()
 
@@ -227,10 +230,7 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
     endif()
 
 
-    set(CCSE_EXT_LIBRARIES "")
-
-
-endif(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
+endif(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)    
 
 # Send useful message if everything is found
 find_package_handle_standard_args(CCSE DEFAULT_MSG
@@ -247,4 +247,3 @@ mark_as_advanced(
   CCSE_LIBRARY_DIRS
   CCSE_PERL_DIR
 )
-

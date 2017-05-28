@@ -43,7 +43,7 @@ Inform *gmsg;
 #include "OPALconfig.h"
 
 #ifdef HAVE_AMR_SOLVER
-#include <ParallelDescriptor.H>
+#include <AMReX_ParallelDescriptor.H>
 #endif
 
 #include <gsl/gsl_errno.h>
@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef HAVE_AMR_SOLVER
     // false: build no parmparse, we use the OPAL parser instead.
-    BoxLib::Initialize(argc, argv, false, Ippl::getComm());
+    amrex::Initialize(argc, argv, false, Ippl::getComm());
 #endif
 
     OPALTimer::Timer simtimer;

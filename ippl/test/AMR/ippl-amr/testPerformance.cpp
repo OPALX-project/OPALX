@@ -30,9 +30,9 @@
 #include <iomanip>
 
 
-#include <ParmParse.H>
+#include <AMReX_ParmParse.H>
 
-#include <Interpolater.H>
+#include <AMReX_Interpolater.H>
 
 
 #include "../Distribution.h"
@@ -46,6 +46,8 @@
 #include <cmath>
 
 #include "Physics/Physics.h"
+
+using namespace amrex;
 
 typedef AmrOpal::amrplayout_t amrplayout_t;
 typedef AmrOpal::amrbase_t amrbase_t;
@@ -61,35 +63,21 @@ void precondition(AmrOpal& myAmrOpal,
                   const Array<Geometry>& geom)
 {
     for (int lev = 0; lev < nLevels; ++lev) {
-        initGridData(rhs, grad_phi, myAmrOpal.boxArray()[lev], lev);
+        initGridData(rhs, grad_phi, myAmrOpal.boxArray()[lev],
+                     myAmrOpal.DistributionMap(lev), lev);
     }
-        
-#ifdef UNIQUE_PTR
+    
     for (int i = myAmrOpal.finestLevel()-1; i >= 0; --i) {
-        MultiFab tmp(phi[i]->boxArray(), 1, 0, phi[i]->DistributionMap());
+        MultiFab tmp(phi[i]->boxArray(), phi[i]->DistributionMap(), 1, 0);
         tmp.setVal(0.0);
-        BoxLib::average_down(*(phi[i+1].get()), tmp, 0, 1, myAmrOpal.refRatio(i));
+        amrex::average_down(*(phi[i+1].get()), tmp, 0, 1, myAmrOpal.refRatio(i));
         MultiFab::Add(*(phi[i].get()), tmp, 0, 0, 1, 0);
     }
     
     for (int lev = 1; lev < nLevels; ++lev) {
-        phi[lev].reset(new MultiFab(myAmrOpal.boxArray()[lev],1,1));
+        phi[lev].reset(new MultiFab(myAmrOpal.boxArray()[lev],myAmrOpal.DistributionMap(lev),1,1));
         phi[lev]->setVal(0.0);
     }
-#else
-    for (int i = myAmrOpal.finestLevel()-1; i >= 0; --i) {
-        MultiFab tmp(phi[i].boxArray(), 1, 0, phi[i].DistributionMap());
-        tmp.setVal(0.0);
-        BoxLib::average_down(phi[i+1], tmp, 0, 1, myAmrOpal.refRatio(i));
-        MultiFab::Add(phi[i], tmp, 0, 0, 1, 0);
-    }
-    
-    for (int lev = 1; lev < nLevels; ++lev) {
-        phi.clear(lev);
-        phi.set(lev, new MultiFab(myAmrOpal.boxArray()[lev],1          ,1));
-        phi[lev].setVal(0.0);
-    }
-#endif
     
     
     
@@ -107,34 +95,19 @@ void precondition(AmrOpal& myAmrOpal,
          * fmfi: MultiFab iterator for fine grids
          * cmfi: MultiFab iterator for coarse grids
          */
-#ifdef UNIQUE_PTR
         for (MFIter fmfi(*(phi[lev + 1].get()), false);
-#else
-        for (MFIter fmfi(phi[lev + 1], false);
-#endif
              fmfi.isValid(); ++fmfi) {
             
             const Box& bx = fmfi.validbox();
-            FArrayBox& fab = 
-#ifdef UNIQUE_PTR
-            (*(phi[lev + 1].get()))[fmfi];
-#else
-            phi[lev + 1][fmfi];
-#endif
+            FArrayBox& fab = (*(phi[lev + 1].get()))[fmfi];
             
             
             FArrayBox finefab(bx, 1);
             FArrayBox crsefab(mapper.CoarseBox(finefab.box(), fine_ratio), 1);
             
-#ifdef UNIQUE_PTR
             for (MFIter cmfi(*(phi[lev].get()), false);cmfi.isValid(); ++cmfi) {
                 crsefab.copy((*(phi[lev].get()))[cmfi]);
             }
-#else
-            for (MFIter cmfi(phi[lev], false);cmfi.isValid(); ++cmfi) {
-                crsefab.copy(phi[lev][cmfi]);
-            }
-#endif
             
             mapper.interp(crsefab,
                           0, // comp
@@ -175,7 +148,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         
     } else {
         for (int lev = 0; lev < nLevels; ++lev) {
-            initGridData(rhs, phi, grad_phi, myAmrOpal.boxArray()[lev], lev);
+            initGridData(rhs, phi, grad_phi, myAmrOpal.boxArray()[lev],
+                         myAmrOpal.DistributionMap(lev), lev);
         }
     }
 
@@ -190,11 +164,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // eps in C / (V * m)
     double constant = -1.0 / Physics::epsilon_0;  // in [V m / C]
     for (int i = 0; i <=finest_level; ++i) {
-#ifdef UNIQUE_PTR
         rhs[i]->mult(constant, 0, 1);       // in [V m]
-#else
-        rhs[i].mult(constant, 0, 1);
-#endif
     }
     
     // **************************************************************************                                                                                                                                
@@ -219,11 +189,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     
     // for plotting unnormalize
     for (int i = 0; i <=finest_level; ++i) {
-#ifdef UNIQUE_PTR
         rhs[i]->mult(1.0 / constant, 0, 1);       // in [V m]
-#else
-        rhs[i].mult(1.0 / constant, 0, 1);
-#endif
     }
 }
 
@@ -332,9 +298,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     msg << "Multi-level statistics" << endl;
     bunch->gatherStatistics();
     
-    container_t rhs(PArrayManage);
-    container_t phi(PArrayManage);
-    container_t grad_phi(PArrayManage);
+    container_t rhs;
+    container_t phi;
+    container_t grad_phi;
     rhs.resize(nLevels);
     phi.resize(nLevels);
     grad_phi.resize(nLevels);
@@ -423,7 +389,7 @@ int main(int argc, char *argv[]) {
     
     
         
-    BoxLib::Initialize(argc,argv, false);
+    amrex::Initialize(argc,argv, false);
     size_t nLevels = std::atoi(argv[5]) + 1; // i.e. nLevels = 0 --> only single level
     size_t maxBoxSize = std::atoi(argv[6]);
     int nSteps = std::atoi(argv[7]);

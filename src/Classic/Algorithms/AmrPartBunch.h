@@ -92,10 +92,10 @@ public:
                 std::string grid_file = "pyplot_grids_" + st + ".dat";
                 Inform msg("", grid_file.c_str(), wm, i);
                 for (int l = 0; l < playout->finestLevel() + 1; ++l) {
-                    Geometry geom = playout->Geom(l);
+                    amrex::Geometry geom = playout->Geom(l);
                     for (int g = 0; g < playout->ParticleBoxArray(l).size(); ++g) {
                         msg << l << ' ';
-                        RealBox loc = RealBox(playout->boxArray(l)[g],geom.CellSize(),geom.ProbLo());
+                        amrex::RealBox loc = amrex::RealBox(playout->boxArray(l)[g],geom.CellSize(),geom.ProbLo());
                         for (int n = 0; n < BL_SPACEDIM; n++)
                             msg << loc.lo(n) << ' ' << loc.hi(n) << ' ';
                         msg << endl;

@@ -6,11 +6,11 @@
 class AmrPartBunch;
 
 // BoxLib headers
-#include <AmrCore.H>
-#include <BoxLib.H>
+#include <AMReX_AmrMesh.H>
+#include <AMReX.H>
 
 class AmrBoxLib : public AmrObject,
-                  public AmrCore
+                  public amrex::AmrMesh
 {
     
 public:
@@ -21,6 +21,13 @@ public:
     typedef amr::AmrProcMapContainer_t  AmrProcMapContainer_t;
     typedef amr::AmrDomain_t            AmrDomain_t;
     typedef amr::AmrIntArray_t          AmrIntArray_t;
+    typedef amr::AmrReal_t              AmrReal_t;
+    typedef amr::AmrGrid_t              AmrGrid_t;
+    typedef amr::AmrProcMap_t           AmrProcMap_t;
+    typedef amr::AmrGeometry_t          AmrGeometry_t;
+    typedef amr::AmrIntVect_t           AmrIntVect_t;
+    
+    typedef amrex::TagBoxArray          TagBoxArray_t;
     
 //     typedef typename AmrPartBunch::VectorPair_t VectorPair_t;
     
@@ -95,8 +102,8 @@ protected:
      * @param new_grids are the new created grids for this level
      * @param new_dmap is the new distribution to processors
      */
-    void RemakeLevel (int lev, Real time,
-                      const BoxArray& new_grids, const DistributionMapping& new_dmap);
+    void RemakeLevel (int lev, AmrReal_t time,
+                      const AmrGrid_t& new_grids, const AmrProcMap_t& new_dmap);
     
     /*!
      * Create completeley new grids for a level (inherited from AmrCore)
@@ -105,8 +112,8 @@ protected:
      * @param new_grids are the new created grids for this level
      * @param new_dmap is the new distribution to processors
      */
-    void MakeNewLevel (int lev, Real time,
-                       const BoxArray& new_grids, const DistributionMapping& new_dmap);
+    void MakeNewLevel (int lev, AmrReal_t time,
+                       const AmrGrid_t& new_grids, const AmrProcMap_t& new_dmap);
     
     /*!
      * @param lev to free allocated memory.
@@ -116,12 +123,32 @@ protected:
     /*!
      * Is called in the AmrCore function for performing tagging. (inherited from AmrCore)
      */
-    virtual void ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) override;
+    virtual void ErrorEst(int lev, TagBoxArray_t& tags, AmrReal_t time, int ngrow) override;
+    
+    
+    /*!
+     * TODO
+     * Make a new level from scratch using provided BoxArray and
+     * DistributionMapping.
+     * Only used during initialization.
+     */
+    void MakeNewLevelFromScratch (int lev, AmrReal_t time,
+                                  const AmrGrid_t& ba,
+                                  const AmrProcMap_t& dm) { }
+
+    /*!
+     * TODO
+     * Make a new level using provided BoxArray and
+     * DistributionMapping and fill with interpolated coarse level data.
+     */
+    void MakeNewLevelFromCoarse (int lev, AmrReal_t time,
+                                 const AmrGrid_t& ba,
+                                 const AmrProcMap_t& dm) { }
     
 private:
-    void tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow);
-    void tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, int ngrow);
-    void tagForEfield_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForChargeDensity_m(int lev, TagBoxArray_t& tags, AmrReal_t time, int ngrow);
+    void tagForPotentialStrength_m(int lev, TagBoxArray_t& tags, AmrReal_t time, int ngrow);
+    void tagForEfield_m(int lev, TagBoxArray_t& tags, AmrReal_t time, int ngrow);
     
     /*!
      * Use particle BoxArray and DistributionMapping for AmrObject and

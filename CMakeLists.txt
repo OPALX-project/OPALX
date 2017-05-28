@@ -98,7 +98,7 @@ ENDIF (ENABLE_DKS)
 ### END DKS part ###
 
 # Handle options
-OPTION (ENABLE_AMR_SOLVER "Enable BoxLib based AMR solver" OFF)
+OPTION (ENABLE_AMR_SOLVER "Enable AMReX based AMR solver" OFF)
 
 OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
 
@@ -121,26 +121,26 @@ IF (ENABLE_AMR_SOLVER)
     MESSAGE (STATUS "Enable AMR_SOLVER    " ${ENABLE_AMR_SOLVER})
     ENABLE_LANGUAGE (Fortran)
 
-    SET ( CCSE_DIR $ENV{BOXLIB_PREFIX} )
-    SET ( CCSE_LIBRARY_DIR $ENV{BOXLIB_LIBRARY_DIR} )
+    SET (BL_SPACEDIM 3 CACHE INT "Dimension of AMReX build")
+    SET (ENABLE_MPI 1 CACHE INT "Enable build with MPI")
+    SET (ENABLE_OpenMP 0 CACHE INT "Enable build with OpenMP")
+    SET (BL_PRECISION "DOUBLE" CACHE INT "Precision of AMReX build")
+    SET (BL_USE_PARTICLES 1 CACHE INT "Include Particles classes in AMReX build")
+    SET (BL_DEBUG 0 CACHE INT "Include debugging information in AMReX build")
+    SET (ENABLE_PROFILING 0 CACHE INT "Include profiling information in AMReX build")
+    SET (ENABLE_BACKTRACE 0 CACHE INT "Include backtrace information in AMReX build")
+    
+    SET ( CCSE_DIR $ENV{AMREX_PREFIX} )
+    SET ( CCSE_LIBRARY_DIR $ENV{AMREX_LIBRARY_DIR} )
 
     FIND_PACKAGE (CCSE REQUIRED)
 
-    MESSAGE (STATUS "Found BoxLib include dir: ${CCSE_INCLUDE_DIR}")
-    MESSAGE (STATUS "Found BoxLib library dir: ${CCSE_LIBRARY_DIR}")
-    MESSAGE (STATUS "Found BoxLib perl dir: ${CCSE_PERL_DIR}")
+    MESSAGE (STATUS "Found AMReX include dir: ${CCSE_INCLUDE_DIR}")
+    MESSAGE (STATUS "Found AMReX library dir: ${CCSE_LIBRARY_DIR}")
+    MESSAGE (STATUS "Found AMReX perl dir: ${CCSE_PERL_DIR}")
 
-    SET (BL_SPACEDIM 3 CACHE INT "Dimension of BoxLib build")
-    SET (ENABLE_MPI 1 CACHE INT "Enable build with MPI")
-    SET (ENABLE_OpenMP 0 CACHE INT "Enable build with OpenMP")
-    SET (BL_PRECISION "DOUBLE" CACHE INT "Precision of BoxLib build")
-    SET (BL_USE_PARTICLES 1 CACHE INT "Include Particles classes in BoxLib build")
-    SET (BL_DEBUG 0 CACHE INT "Include debugging information in BoxLib build")
-    SET (ENABLE_PROFILING 0 CACHE INT "Include profiling information in BoxLib build")
-    SET (ENABLE_BACKTRACE 0 CACHE INT "Include backtrace information in BoxLib build")
-
-    # FIXME disable due to BoxLib
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-maybe-uninitialized")
+    # FIXME disable due to AMReX
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-variable -Wno-unused-variable -Wno-maybe-uninitialized")
 
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBL_PRECISION=${BL_PRECISION}")
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_MPI=${ENABLE_MPI}")
@@ -149,17 +149,6 @@ IF (ENABLE_AMR_SOLVER)
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBL_DEBUG=${BL_DEBUG}")
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_BACKTRACE=${ENABLE_BACKTRACE}")
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_PROFILING=${ENABLE_PROFILING}")
-
-    MESSAGE (STATUS "Use following BoxLib settings:")
-    MESSAGE (STATUS "  BL_SPACEDIM = ${BL_SPACEDIM}")
-    MESSAGE (STATUS "  BL_MACHINE = ${BL_MACHINE}")
-    MESSAGE (STATUS "  BL_PRECISION = ${BL_PRECISION}")
-    MESSAGE (STATUS "  ENABLE_MPI = ${ENABLE_MPI}")
-    MESSAGE (STATUS "  ENABLE_OpenMP = ${ENABLE_OpenMP}")
-    MESSAGE (STATUS "  BL_DEBUG = ${BL_DEBUG}")
-    MESSAGE (STATUS "  BL_USE_PARTICLES = ${BL_USE_PARTICLES}")
-    MESSAGE (STATUS "  ENABLE_BACKTRACE = ${ENABLE_BACKTRACE}")
-    MESSAGE (STATUS "  ENABLE_PROFILING = ${ENABLE_PROFILING}")
 ENDIF (ENABLE_AMR_SOLVER)
 
 # remove digits from hostname: edison03 -> edison

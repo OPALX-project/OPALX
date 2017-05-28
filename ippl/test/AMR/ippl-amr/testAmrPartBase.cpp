@@ -37,10 +37,10 @@ Usage:
 #include <iomanip>
 
 
-#include <Array.H>
-#include <Geometry.H>
-#include <MultiFab.H>
-#include <ParmParse.H>
+#include <AMReX_Array.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_ParmParse.H>
 
 #include <cmath>
 
@@ -75,26 +75,28 @@ void createRandomParticles(amrbunch_t *pbase, int N, int myNode, int seed = 1) {
     
 }
 
-void createRandomParticles(ParticleContainer<4,0> *pc, int N, int myNode, int seed = 1) {
+void createRandomParticles(ParticleContainer<4> *pc, int N, int myNode, int seed = 1) {
 
-  srand(seed);
-
-  for (int i = 0; i < N; ++i) {
-
-    std::vector<double> attrib;
-    double r = (double)rand() / RAND_MAX;
-    attrib.push_back(r);
-    attrib.push_back(0.0);
-    attrib.push_back(0.0);
-    attrib.push_back(0.0);
-
-    std::vector<double> xloc;
-    xloc.push_back((double)rand() / RAND_MAX);
-    xloc.push_back((double)rand() / RAND_MAX);
-    xloc.push_back((double)rand() / RAND_MAX);
-    pc->addOneParticle(myNode * N + i + 1, myNode, xloc, attrib);
-  }
-
+    srand(seed);
+    
+    ArrayOfStructs<4, 0> nparticles;
+    for (int i = 0; i < N; ++i) {
+        Particle<4, 0> p;
+        p.m_rdata.arr[BL_SPACEDIM] = (double)rand() / RAND_MAX; // charge
+        p.m_rdata.arr[BL_SPACEDIM + 1] = 0.0; // momentum
+        p.m_rdata.arr[BL_SPACEDIM + 2] = 0.0; // momentum
+        p.m_rdata.arr[BL_SPACEDIM + 3] = 0.0; // momentum
+        
+        p.m_rdata.pos[0] = (double)rand() / RAND_MAX;
+        p.m_rdata.pos[1] = (double)rand() / RAND_MAX;
+        p.m_rdata.pos[2] = (double)rand() / RAND_MAX;
+        p.m_idata.id = myNode * N + i + 1;
+        p.m_idata.cpu = myNode;
+        
+        nparticles.push_back(p);
+    }
+    
+    pc->AddParticlesAtLevel(nparticles, 0);
 }
 
 void writeAscii(amrbunch_t *pbase, int N, int myNode) {
@@ -118,31 +120,30 @@ void writeAscii(amrbunch_t *pbase, int N, int myNode) {
 }
 
 void writeAscii(ParticleContainer<4,0> *pc, int N, size_t nLevels, int myNode) {
-  std::ofstream myfile;
-  std::string fname = "BoxLib-";
-  fname += std::to_string(myNode);
-  fname += ".dat"; 
-  myfile.open(fname);
-
-  myfile << "id\tR0\tR1\tR2\tlevel\tgrid\tqm\tE0\tE1\tE2\n";
-  for (unsigned int lev = 0; lev < nLevels; lev++) {
-    const PMap4& pmap = pc->GetParticles(lev);
-
-    for (const auto& kv : pmap) {
-      const PBox4& pbox = kv.second;
-
-      for (auto it = pbox.cbegin(); it != pbox.cend(); ++it) {
-	myfile << std::setprecision(3) << it->m_id << "\t" << it->m_pos[0] 
-	       << "\t" << it->m_pos[1] << "\t" 
-	       << it->m_pos[2] << "\t" << it->m_lev << "\t" 
-	       << it->m_grid  << "\t" << it->m_data[0] << "\t" 
-	       << it->m_data[1] << "\t" << it->m_data[2] << "\t" << it->m_data[3] << "\n";
-      }
+    std::ofstream myfile;
+    std::string fname = "BoxLib-";
+    fname += std::to_string(myNode);
+    fname += ".dat"; 
+    myfile.open(fname);
+    
+    myfile << "id\tR0\tR1\tR2\tqm\tE0\tE1\tE2\n";
+    for (unsigned int lev = 0; lev < nLevels; lev++) {
+        const auto& pmap = pc->GetParticles(lev);
+    
+        for (const auto& kv : pmap) {
+            const auto& aos = kv.second.GetArrayOfStructs();
+            for (const auto& p : aos) {
+                myfile << std::setprecision(3) << p.m_idata.id << "\t" << p.m_rdata.pos[0] 
+                    << "\t" << p.m_rdata.pos[1] << "\t" 
+                    << p.m_rdata.pos[2] << "\t"
+                    << p.m_rdata.arr[3] << "\t" 
+                    << p.m_rdata.arr[4] << "\t" << p.m_rdata.arr[5] << "\t" << p.m_rdata.arr[6] << "\n";
+                
+            }
+        }
     }
-  }
-
-  myfile.close();
-
+    
+    myfile.close();
 }
 
 void readData(std::string fname, std::vector<int> &data) {
@@ -195,7 +196,7 @@ void compareDistribution(int node) {
     std::cout << "Particle distribution for Ippl and BoxLib matches" << std::endl;
 }
 
-void compareFields(container_t &field_ippl, PArray<MultiFab> &field_bl, int node) {
+void compareFields(container_t &field_ippl, Array< std::unique_ptr<MultiFab> > &field_bl, int node) {
 
   bool fields_match = true;
   double ippl_sum, bl_sum;
@@ -203,7 +204,7 @@ void compareFields(container_t &field_ippl, PArray<MultiFab> &field_bl, int node
   for (unsigned int lev = 0; lev < field_ippl.size(); ++lev) {
     //calculate the sum of all the components in multifab
     ippl_sum = field_ippl[lev]->sum();
-    bl_sum = field_bl[lev].sum();
+    bl_sum = field_bl[lev]->sum();
 
     //check if the sums are the same for Ippl and BoxLib
     //only node 0 prints the error since the sum is the same on all nodes
@@ -276,12 +277,12 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
 void doBoxLib(Array<Geometry> &geom, Array<BoxArray> &ba, 
 	      Array<DistributionMapping> &dmap, Array<int> &rr, 
 	      size_t nLevels, int myNode, 
-	      PArray<MultiFab> &field, PArray<MultiFab> &efield,
+	      Array< std::unique_ptr<MultiFab> > &field, Array< std::unique_ptr<MultiFab> > &efield,
 	      int N, int seed) 
 {
 
   //create new BoxLib particle container
-  ParticleContainer<4,0> *pc = new ParticleContainer<4,0>(geom, dmap, ba, rr);
+  ParticleContainer<4> *pc = new ParticleContainer<4>(geom, dmap, ba, rr);
   pc->SetVerbose(0);
 
   //create N random particles on each core
@@ -292,50 +293,49 @@ void doBoxLib(Array<Geometry> &geom, Array<BoxArray> &ba,
 
   //call assign density to scatter the paarticle attribute qm on the grid
   pc->SetAllowParticlesNearBoundary(true);
-  pc->AssignDensitySingleLevel(0, field[0], 0, 0);
+  pc->AssignDensitySingleLevel(0, *(field[0].get()), 0, 0);
   pc->AssignDensity(0, false, field, 0, 1, 1);
 
   
   //copy the valies from field to all the components of efield
   for (size_t lev = 0; lev < nLevels; ++lev) {
-    efield[lev].setVal(0.0);
-    MultiFab::Copy(efield[lev], field[lev], 0, 0, 1, 0);
-    MultiFab::Copy(efield[lev], field[lev], 0, 1, 1, 0);
-    MultiFab::Copy(efield[lev], field[lev], 0, 2, 1, 0);
+    efield[lev]->setVal(0.0);
+    MultiFab::Copy(*(efield[lev].get()), *(field[lev].get()), 0, 0, 1, 0);
+    MultiFab::Copy(*(efield[lev].get()), *(field[lev].get()), 0, 1, 1, 0);
+    MultiFab::Copy(*(efield[lev].get()), *(field[lev].get()), 0, 2, 1, 0);
   }
 
   
   //loop trough all the levels
   for (size_t lev = 0; lev < nLevels; ++lev) {
-    //get grids on the level
-    PMap4& pmap = pc->GetParticles(lev);
-
-    //loop trough grids on the level
-    for (auto& kv : pmap) {
-      int grid = kv.first;
-      PBox4& pbox = kv.second;
-      const int n = pbox.size();
-      const FArrayBox& gfab = efield[lev][grid];
-
-      //loop trough the particles in the grid and call GetGravity for each
-      //assign grav to particle data components 1,2,3
-      for (int i = 0; i < n; ++i) {
-	Particle<4,0> &p = pbox[i];
-	Real grav[BL_SPACEDIM];
-
-	ParticleBase::GetGravity(gfab, geom[lev], p, grav);
-
-	p.m_data[1] = grav[0];
-	p.m_data[2] = grav[1];
-	p.m_data[3] = grav[2];
-      }
-
+        //get grids on the level
+        auto pmap = pc->GetParticles(lev);
+    
+        //loop trough grids on the level
+        for (auto& kv : pmap) {
+            auto& pbox = kv.second.GetArrayOfStructs();
+            const int grid = kv.first.first;
+            const int n = pbox.size();
+            const FArrayBox& gfab = (*(efield[lev].get()))[grid];
+            
+            //loop trough the particles in the grid and call GetGravity for each
+            //assign grav to particle data components 1,2,3
+            for (int i = 0; i < n; i++) {
+                Particle<4, 0>& p = pbox[i];
+                
+                Real grav[BL_SPACEDIM];
+                
+                Particle<4, 0>::GetGravity(gfab, geom[lev], p, grav);
+    
+                p.m_rdata.arr[4] = grav[0];
+                p.m_rdata.arr[5] = grav[1];
+                p.m_rdata.arr[6] = grav[2];
+            }
+        }
     }
-  }
-  
-  //write the particles on the core to file - one file per core created
-  writeAscii(pc, N, nLevels, myNode);
-
+    
+    //write the particles on the core to file - one file per core created
+    writeAscii(pc, N, nLevels, myNode);
 }
 
 int main(int argc, char *argv[]) {
@@ -359,7 +359,7 @@ int main(int argc, char *argv[]) {
   std::cout << "Start test with " << N << " particles and run " << L << " times." << std::endl;
 
   /* Setup BoxLib */
-  BoxLib::Initialize(argc,argv, false);
+  amrex::Initialize(argc,argv, false);
 
   size_t nLevels = 2;
   size_t maxBoxSize = 8;
@@ -404,7 +404,7 @@ int main(int argc, char *argv[]) {
 
   // geometries of refined levels
   for (unsigned int lev = 1; lev < nLevels; ++lev)
-    geom[lev].define(BoxLib::refine(geom[lev - 1].Domain(), rr[lev - 1]), &domain, 0, bc);
+    geom[lev].define(amrex::refine(geom[lev - 1].Domain(), rr[lev - 1]), &domain, 0, bc);
        
   // box at level 0
   ba[0].define(bx);
@@ -449,19 +449,19 @@ int main(int argc, char *argv[]) {
   container_t field_ippl;
   field_ippl.resize(nLevels);
   for (size_t lev = 0; lev < nLevels; ++lev)
-    field_ippl[lev].reset(new MultiFab(ba[lev], 1, 1, dmap[lev]));
+    field_ippl[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 1));
 
-  PArray<MultiFab> field_bl;
+  Array< std::unique_ptr<MultiFab> > field_bl;
   field_bl.resize(nLevels);
   for (size_t lev = 0; lev < nLevels; ++lev)
-    field_bl.set(lev, new MultiFab(ba[lev], 1, 1, dmap[lev]));
+    field_bl[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 1));
 
-  PArray<MultiFab> efield;
+  Array< std::unique_ptr<MultiFab> > efield;
   efield.resize(nLevels);
   container_t efield_ippl(nLevels);
   for (size_t lev = 0; lev < nLevels; ++lev) {
-    efield.set(lev, new MultiFab(ba[lev], BL_SPACEDIM, 1, dmap[lev]));
-    efield_ippl[lev].reset(new MultiFab(ba[lev], BL_SPACEDIM, 1, dmap[lev]));
+    efield[lev].reset(new MultiFab(ba[lev], dmap[lev], BL_SPACEDIM, 1));
+    efield_ippl[lev].reset(new MultiFab(ba[lev], dmap[lev], BL_SPACEDIM, 1));
   }
 
 

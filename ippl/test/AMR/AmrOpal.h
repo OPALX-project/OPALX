@@ -1,7 +1,7 @@
 #ifndef AMROPAL_H
 #define AMROPAL_H
 
-#include <AmrCore.H>
+#include <AMReX_AmrCore.H>
 
 #ifdef IPPL_AMR
     #include "ippl-amr/AmrParticleBase.h"
@@ -11,9 +11,11 @@
     #include "boxlib-amr/AmrPartBunch.h"
 #endif
 
-#include <MultiFabUtil.H>
+#include <AMReX_MultiFabUtil.H>
 
 #include <memory>
+
+using namespace amrex;
 
 /*!
  * @file AmrOpal.h
@@ -31,11 +33,7 @@
 class AmrOpal : public AmrCore {
     
 private:
-#ifdef UNIQUE_PTR
-    typedef Array<std::unique_ptr<MultiFab> > mfs_mt; ///< instead of using PArray<MultiFab>
-#else
-    typedef PArray<MultiFab > mfs_mt;
-#endif
+    typedef Array<std::unique_ptr<MultiFab> > mfs_mt;
 
 public:
     /// Methods for tag cells for refinement
@@ -160,6 +158,15 @@ protected:
      * Is called in the AmrCore function for performing tagging.
      */
     virtual void ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) override;
+    
+    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override {
+        //TODO
+    }
+
+    //! Make a new level using provided BoxArray and DistributionMapping and fill with interpolated coarse level data.
+    virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override {
+        //TODO
+    }
     
 private:
     

@@ -27,6 +27,20 @@ void AmrParticleBase<PLayout>::update() {
     //sort the particles by grid and level
     sort();
     
+    // -------------------------------------------------
+    // single core
+    unsigned int blev = 0, nLocParticles = 0;
+    for (unsigned int ip = 0; ip < this->getLocalNum(); ++ip) {
+        while ( blev != this->Level[ip] ) {
+            std::cout << "#Local Particles at level " << blev << ": " << nLocParticles << std::endl;
+            nLocParticles = 0;
+            blev++;
+        }
+        nLocParticles++;
+    }
+    
+    std::cout << "#Local Particles at level " << blev << ": " << nLocParticles << std::endl;
+    
     INCIPPLSTAT(incParticleUpdates);
     
     IpplTimings::stopTimer(UpdateParticlesTimer_m);

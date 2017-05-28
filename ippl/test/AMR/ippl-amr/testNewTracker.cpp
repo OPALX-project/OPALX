@@ -29,7 +29,7 @@
 #include <iomanip>
 
 
-#include <ParmParse.H>
+#include <AMReX_ParmParse.H>
 
 
 #include "../Distribution.h"
@@ -89,7 +89,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     grad_phi.resize(nLevels);
     
     for (int lev = 0; lev < nLevels; ++lev) {
-        initGridData(rhs, phi, grad_phi, myAmrOpal.boxArray()[lev], lev);
+        initGridData(rhs, phi, grad_phi,
+                     myAmrOpal.boxArray()[lev], myAmrOpal.DistributionMap(lev), lev);
     }
 
     // Define the density on level 0 from all particles at all levels                                                                                                                                            
@@ -241,11 +242,11 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     msg << "Multi-level statistics" << endl;
     bunch->gatherStatistics();
     
-    container_t rhs(PArrayManage);
-    container_t phi(PArrayManage);
-    container_t grad_phi(PArrayManage);
+    container_t rhs;
+    container_t phi;
+    container_t grad_phi;
     
-    std::string plotsolve = BoxLib::Concatenate("plt", 0, 4);
+    std::string plotsolve = amrex::Concatenate("plt", 0, 4);
     
     double mass = 0.983272; // mass
     double dt = 5.0e-9;
@@ -366,7 +367,7 @@ int main(int argc, char *argv[]) {
         << "- #particles = " << nParticles << endl
         << "- grid       = " << nr << endl;
         
-    BoxLib::Initialize(argc,argv, false);
+    amrex::Initialize(argc,argv, false);
     size_t nLevels = std::atoi(argv[5]) + 1; // i.e. nLevels = 0 --> only single level
     size_t maxBoxSize = std::atoi(argv[6]);
     int nSteps = std::atoi(argv[7]);

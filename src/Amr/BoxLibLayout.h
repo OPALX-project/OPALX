@@ -6,11 +6,11 @@
 
 #include "Amr/AmrDefs.h"
 
-#include <ParGDB.H>
+#include <AMReX_ParGDB.H>
 
 template<class T, unsigned Dim>
 class BoxLibLayout : public ParticleAmrLayout<T, Dim>,
-                     public ParGDB
+                     public amrex::ParGDB
 {
     
 public:
@@ -24,8 +24,21 @@ public:
     typedef typename ParticleAmrLayout<T, Dim>::ParticlePos_t ParticlePos_t;
     typedef ParticleAttrib<Index_t> ParticleIndex_t;
     
-    static bool do_tiling;
-    static IntVect tile_size;
+    typedef amr::AmrProcMap_t           AmrProcMap_t;
+    typedef amr::AmrGrid_t              AmrGrid_t;
+    typedef amr::AmrGeometry_t          AmrGeometry_t;
+    typedef amr::AmrGeomContainer_t     AmrGeomContainer_t;
+    typedef amr::AmrGridContainer_t     AmrGridContainer_t;
+    typedef amr::AmrProcMapContainer_t  AmrProcMapContainer_t;
+    typedef amr::AmrIntVect_t           AmrIntVect_t;
+    typedef amr::AmrIntVectContainer_t  AmrIntVectContainer_t;
+    typedef amr::AmrIntArray_t          AmrIntArray_t;
+    typedef amr::AmrDomain_t            AmrDomain_t;
+    typedef amr::AmrBox_t               AmrBox_t;
+    typedef amr::AmrReal_t              AmrReal_t;
+    
+//     static bool do_tiling;
+//     static AmrIntVect_t tile_size;
 
 public:
     
@@ -36,14 +49,14 @@ public:
     
     BoxLibLayout(int nGridPoints, int maxGridSize, double lower, double upper);
     
-    BoxLibLayout(const Geometry &geom,
-                 const DistributionMapping &dmap,
-                 const BoxArray &ba);
+    BoxLibLayout(const AmrGeometry_t &geom,
+                 const AmrProcMap_t &dmap,
+                 const AmrGrid_t &ba);
     
-    BoxLibLayout(const Array<Geometry> &geom,
-                 const Array<DistributionMapping> &dmap,
-                 const Array<BoxArray> &ba,
-                 const Array<int> &rr);
+    BoxLibLayout(const AmrGeomContainer_t &geom,
+                 const AmrProcMapContainer_t &dmap,
+                 const AmrGridContainer_t &ba,
+                 const AmrIntArray_t &rr);
     
     void update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData, const ParticleAttrib<char>* canSwap = 0);
     
@@ -53,12 +66,12 @@ public:
     
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     //get the cell of the particle
-    IntVect Index (AmrParticleBase< BoxLibLayout<T,Dim> >& p,
-                   const unsigned int ip, int leve) const;
+    AmrIntVect_t Index (AmrParticleBase< BoxLibLayout<T,Dim> >& p,
+                        const unsigned int ip, int leve) const;
 
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     //get the cell of the particle
-    IntVect Index (SingleParticlePos_t &R, int lev) const;
+    AmrIntVect_t Index (SingleParticlePos_t &R, int lev) const;
     
     
     void initDefaultBox(int nGridPoints, int maxGridSize,
@@ -80,10 +93,10 @@ public:
         }
     }
     
-//     void define(const Array<Geometry>& geom,
-//                 const Array<BoxArray>& ba,
-//                 const Array<DistributionMapping>& dmap,
-//                 const Array<int> & rr)
+//     void define(const AmrGeomContainer_t& geom,
+//                 const AmrGridContainer_t& ba,
+//                 const AmrProcMapContainer_t& dmap,
+//                 const AmrIntArray_t & rr)
 //     {
 //         maxLevel_m = ba.size() - 1;
 //         this->m_nlevels = ba.size();
@@ -100,7 +113,7 @@ public:
 //         }
 //     }
     
-    void define(const Array<Geometry>& geom) {
+    void define(const AmrGeomContainer_t& geom) {
 //         this->m_geom.resize( geom.size() );
         std::cout << "this->m_geom.size() = " << this->m_geom.size() << std::endl;
         std::cout << "geom.size() = " << geom.size() << std::endl;
@@ -108,16 +121,16 @@ public:
             this->m_geom[i] = geom[i];
     }
     
-    void define(const Array<IntVect>& refRatio) {
+    void define(const AmrIntVectContainer_t& refRatio) {
         for (unsigned int i = 0; i < refRatio.size(); ++i) {
             refRatio_m[i] = refRatio[i];
         }
     }
     
     
-    void define(const Array<Geometry>& geom,
-                const Array<BoxArray>& ba,
-                const Array<DistributionMapping>& dmap)
+    void define(const AmrGeomContainer_t& geom,
+                const AmrGridContainer_t& ba,
+                const AmrProcMapContainer_t& dmap)
     {
         std::cout << "define: " << std::endl;
         std::cout << geom.size() << " " << ba.size() << " " << dmap.size() << std::endl;
@@ -162,7 +175,7 @@ public:
     
     inline int maxLevel () const;
     
-    inline IntVect refRatio (int level) const;
+    inline AmrIntVect_t refRatio (int level) const;
     
     inline int MaxRefRatio (int level) const;
     
@@ -193,12 +206,12 @@ private:
                         int lev_min, int lev_max, int nGrow,
                         bool &particleLeftDomain) const
     {
-        bool outside = D_TERM( p.R[ip](0) <  Geometry::ProbLo(0)
-                            || p.R[ip](0) >= Geometry::ProbHi(0),
-                            || p.R[ip](1) <  Geometry::ProbLo(1)
-                            || p.R[ip](1) >= Geometry::ProbHi(1),
-                            || p.R[ip](2) <  Geometry::ProbLo(2)
-                            || p.R[ip](2) >= Geometry::ProbHi(2));
+        bool outside = D_TERM( p.R[ip](0) <  AmrGeometry_t::ProbLo(0)
+                            || p.R[ip](0) >= AmrGeometry_t::ProbHi(0),
+                            || p.R[ip](1) <  AmrGeometry_t::ProbLo(1)
+                            || p.R[ip](1) >= AmrGeometry_t::ProbHi(1),
+                            || p.R[ip](2) <  AmrGeometry_t::ProbLo(2)
+                            || p.R[ip](2) >= AmrGeometry_t::ProbHi(2));
         
         if ( outside ) {
             std::cout << "outside: " << outside << std::endl; std::cin.get();
@@ -229,7 +242,7 @@ private:
     
         if (!success)
         {
-            BoxLib::Abort("ParticleContainer<NR, NI, NA>::locateParticle(): invalid particle.");
+            amrex::Abort("ParticleContainer<NR, NI, NA>::locateParticle(): invalid particle.");
         }
     }
     
@@ -237,7 +250,7 @@ private:
     int finestLevel_m;
     int maxLevel_m;
     // don't use m_rr from ParGDB since it is the same refinement in all directions
-    Array<IntVect> refRatio_m;    // Refinement ratios [0:finest_level-1]
+    AmrIntVectContainer_t refRatio_m;    // Refinement ratios [0:finest_level-1]
 };
 
 #include "BoxLibLayout.hpp"

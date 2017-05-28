@@ -1,27 +1,6 @@
 #ifndef BOXLIB_PARTICLE_HPP
 #define BOXLIB_PARTICLE_HPP
 
-// #include <map>
-// #include <deque>
-// #include <vector>
-// #include <fstream>
-// #include <iostream>
-// #include <numeric>
-// #include <algorithm>
-// #include <array>
-
-// #include <ParmParse.H>
-
-// #include <ParGDB.H>
-// #include <REAL.H>
-// #include <IntVect.H>
-// #include <Array.H>
-// #include <Utility.H>
-// #include <Geometry.H>
-// #include <VisMF.H>
-// #include <Particles.H>
-// #include <RealBox.H>
-
 template<class PLayout>
 BoxLibParticle<PLayout>::BoxLibParticle() : AmrParticleBase<PLayout>()
 {
@@ -42,7 +21,21 @@ void BoxLibParticle<PLayout>::scatter(ParticleAttrib<FT>& attrib, AmrFieldContai
                                       ParticleAttrib<Vektor<PT, Dim> >& pp,
                                       int lbase, int lfine)
 {
-    this->AssignDensityFort(attrib, f, lbase, 1, lfine);
+    const PLayout *layout_p = &this->getLayout();
+    int nGrow = layout_p->refRatio(lbase)[0];
+    
+    AmrFieldContainer_t tmp(lfine+1);
+    for (int lev = lbase; lev <= lfine; ++lev) {
+        const AmrGrid_t& ba = f[lev]->boxArray();
+        const AmrProcMap_t& dm = f[lev]->DistributionMap();
+        tmp[lev].reset(new AmrField_t(ba, dm, 1, nGrow));
+        tmp[lev]->setVal(0.0);
+    }
+    
+    this->AssignDensityFort(attrib, tmp, lbase, 1, lfine);
+    
+    for (int lev = lbase; lev <= lfine; ++lev)
+        AmrField_t::Copy(*f[lev], *tmp[lev], 0, 0, f[lev]->nComp(), f[lev]->nGrow());
 }
 
 
@@ -52,7 +45,15 @@ void BoxLibParticle<PLayout>::scatter(ParticleAttrib<FT>& attrib, AmrField_t& f,
                                       ParticleAttrib<Vektor<PT, Dim> >& pp,
                                       int level)
 {
-    this->AssignCellDensitySingleLevelFort(attrib, f, level);
+    const AmrGrid_t& ba      = f.boxArray();
+    const AmrProcMap_t& dmap = f.DistributionMap();
+    
+    AmrField_t tmp(ba, dmap, f.nComp(), 1);
+    tmp.setVal(0.0);
+    
+    this->AssignCellDensitySingleLevelFort(attrib, tmp, level);
+    
+    AmrField_t::Copy(f, tmp, 0, 0, f.nComp(), f.nGrow());
 }
 
 
@@ -81,17 +82,17 @@ void BoxLibParticle<PLayout>::AssignDensityFort(ParticleAttrib<AType> &pa,
     // not done in amrex
     int rho_index = 0;
     
-    PhysBCFunct cphysbc, fphysbc;
+    amrex::PhysBCFunct cphysbc, fphysbc;
     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
     int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-    Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
-    CellConservativeLinear mapper;
+    amrex::Array<amrex::BCRec> bcs(1, amrex::BCRec(lo_bc, hi_bc));
+    amrex::CellConservativeLinear mapper;
     
     AmrFieldContainer_t tmp(finest_level+1);
     for (int lev = lev_min; lev <= finest_level; ++lev) {
-        const BoxArray& ba = mf_to_be_filled[lev]->boxArray();
-        const DistributionMapping& dm = mf_to_be_filled[lev]->DistributionMap();
-        tmp[lev].reset(new AmrField_t(ba, 1, 0, dm));
+        const AmrGrid_t& ba = mf_to_be_filled[lev]->boxArray();
+        const AmrProcMap_t& dm = mf_to_be_filled[lev]->DistributionMap();
+        tmp[lev].reset(new AmrField_t(ba, dm, 1, 0));
         tmp[lev]->setVal(0.0);
     }
     
@@ -99,7 +100,7 @@ void BoxLibParticle<PLayout>::AssignDensityFort(ParticleAttrib<AType> &pa,
         AssignCellDensitySingleLevelFort(pa, *mf_to_be_filled[lev], lev, 1, 0);
 
         if (lev < finest_level) {
-            BoxLib::InterpFromCoarseLevel(*tmp[lev+1], 0.0, *mf_to_be_filled[lev],
+            amrex::InterpFromCoarseLevel(*tmp[lev+1], 0.0, *mf_to_be_filled[lev],
                                           rho_index, rho_index, ncomp, 
                                           layout_p->Geom(lev), layout_p->Geom(lev+1),
                                           cphysbc, fphysbc,
@@ -110,17 +111,17 @@ void BoxLibParticle<PLayout>::AssignDensityFort(ParticleAttrib<AType> &pa,
             // Note - this will double count the mass on the coarse level in 
             // regions covered by the fine level, but this will be corrected
             // below in the call to average_down.
-            sum_fine_to_coarse(*mf_to_be_filled[lev],
-                               *mf_to_be_filled[lev-1],
-                               rho_index, 1, layout_p->refRatio(lev-1),
-                               layout_p->Geom(lev-1), layout_p->Geom(lev));
+            amrex::sum_fine_to_coarse(*mf_to_be_filled[lev],
+                                      *mf_to_be_filled[lev-1],
+                                      rho_index, 1, layout_p->refRatio(lev-1),
+                                      layout_p->Geom(lev-1), layout_p->Geom(lev));
         }
         
         mf_to_be_filled[lev]->plus(*tmp[lev], rho_index, ncomp, 0);
     }
     
     for (int lev = finest_level - 1; lev >= lev_min; --lev) {
-        BoxLib::average_down(*mf_to_be_filled[lev+1], 
+        amrex::average_down(*mf_to_be_filled[lev+1], 
                              *mf_to_be_filled[lev], rho_index, ncomp, layout_p->refRatio(lev));
     }
     
@@ -156,8 +157,8 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
       // If mf_to_be_filled is not defined on the particle_box_array, then we need 
       // to make a temporary here and copy into mf_to_be_filled at the end.
       mf_pointer = new AmrField_t(layout_p->ParticleBoxArray(level), 
-                                ncomp, mf_to_be_filled.nGrow(),
-                                layout_p->ParticleDistributionMap(level));
+                                  layout_p->ParticleDistributionMap(level),
+                                  ncomp, mf_to_be_filled.nGrow());
     }
 
     // We must have ghost cells for each FAB so that a particle in one grid can spread 
@@ -165,19 +166,19 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
     // own grid.  The mf->sumBoundary call then adds the value from one grid's ghost cell
     // to another grid's valid region.
     if (mf_pointer->nGrow() < 1) 
-       BoxLib::Error("Must have at least one ghost cell when in AssignCellDensitySingleLevelFort");
+       amrex::Error("Must have at least one ghost cell when in AssignCellDensitySingleLevelFort");
 
-    const Real      strttime    = ParallelDescriptor::second();
-    const Geometry& gm          = layout_p->Geom(level);
-    const Real*     plo         = gm.ProbLo();
-    const Real*     dx_particle = layout_p->Geom(level + particle_lvl_offset).CellSize();
-    const Real*     dx          = gm.CellSize();
+    const AmrReal_t      strttime    = amrex::ParallelDescriptor::second();
+    const AmrGeometry_t& gm          = layout_p->Geom(level);
+    const AmrReal_t*     plo         = gm.ProbLo();
+    const AmrReal_t*     dx_particle = layout_p->Geom(level + particle_lvl_offset).CellSize();
+    const AmrReal_t*     dx          = gm.CellSize();
 
     if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
-      BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
+      amrex::Error("AssignDensity: problem must be periodic in no or all directions");
     }
     
-    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
+    for (amrex::MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
         (*mf_pointer)[mfi].setVal(0);
     }
     
@@ -190,7 +191,7 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
     while ((unsigned)level > this->Level[start_idx])
         start_idx++;
     
-    Real inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
+    AmrReal_t inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
     double lxyz[3] = { 0.0, 0.0, 0.0 };
     double wxyz_hi[3] = { 0.0, 0.0, 0.0 };
     double wxyz_lo[3] = { 0.0, 0.0, 0.0 };
@@ -201,8 +202,8 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
             break;
         
         const int grid = this->Grid[ip];
-        FArrayBox& fab = (*mf_pointer)[grid];
-        const Box& box = fab.box();
+        FArrayBox_t& fab = (*mf_pointer)[grid];
+        const AmrBox_t& box = fab.box();
         
         // not callable:
         // begin amrex_deposit_cic(pbx.data(), nstride, N, fab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);
@@ -217,14 +218,14 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
         int& j = ijk[1];
         int& k = ijk[2];
         
-        IntVect i1(i-1, j-1, k-1);
-        IntVect i2(i-1, j-1, k);
-        IntVect i3(i-1, j,   k-1);
-        IntVect i4(i-1, j,   k);
-        IntVect i5(i,   j-1, k-1);
-        IntVect i6(i,   j-1, k);
-        IntVect i7(i,   j,   k-1);
-        IntVect i8(i,   j,   k);
+        AmrIntVect_t i1(i-1, j-1, k-1);
+        AmrIntVect_t i2(i-1, j-1, k);
+        AmrIntVect_t i3(i-1, j,   k-1);
+        AmrIntVect_t i4(i-1, j,   k);
+        AmrIntVect_t i5(i,   j-1, k-1);
+        AmrIntVect_t i6(i,   j-1, k);
+        AmrIntVect_t i7(i,   j,   k-1);
+        AmrIntVect_t i8(i,   j,   k);
         
         fab(i1, 0) += wxyz_lo[0]*wxyz_lo[1]*wxyz_lo[2]*pa[ip];
         fab(i2, 0) += wxyz_lo[0]*wxyz_lo[1]*wxyz_hi[2]*pa[ip];
@@ -242,7 +243,7 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
     // Only multiply the first component by (1/vol) because this converts mass
     // to density. If there are additional components (like velocity), we don't
     // want to divide those by volume.
-    const Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
+    const AmrReal_t vol = D_TERM(dx[0], *dx[1], *dx[2]);
 
     mf_pointer->mult(1.0/vol, 0, 1, mf_pointer->nGrow());
 
@@ -274,13 +275,13 @@ void BoxLibParticle<PLayout>::InterpolateSingleLevelFort(ParticleAttrib<AType> &
                                                          AmrField_t& mesh_data, int lev)
 {
     if (mesh_data.nGrow() < 1)
-        BoxLib::Error("Must have at least one ghost cell when in InterpolateSingleLevelFort");
+        amrex::Error("Must have at least one ghost cell when in InterpolateSingleLevelFort");
     
     PLayout *layout_p = &this->getLayout();
     
-    const Geometry& gm          = layout_p->Geom(lev);
-    const Real*     plo         = gm.ProbLo();
-    const Real*     dx          = gm.CellSize();
+    const AmrGeometry_t& gm          = layout_p->Geom(lev);
+    const AmrReal_t*     plo         = gm.ProbLo();
+    const AmrReal_t*     dx          = gm.CellSize();
     
     //loop trough particles and distribute values on the grid
     size_t LocalNum = this->getLocalNum();
@@ -291,7 +292,7 @@ void BoxLibParticle<PLayout>::InterpolateSingleLevelFort(ParticleAttrib<AType> &
     while ((unsigned)lev > this->Level[start_idx])
         start_idx++;
     
-    Real inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
+    AmrReal_t inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
     double lxyz[3] = { 0.0, 0.0, 0.0 };
     double wxyz_hi[3] = { 0.0, 0.0, 0.0 };
     double wxyz_lo[3] = { 0.0, 0.0, 0.0 };
@@ -302,8 +303,8 @@ void BoxLibParticle<PLayout>::InterpolateSingleLevelFort(ParticleAttrib<AType> &
             break;
         
         const int grid = this->Grid[ip];
-        FArrayBox& fab = mesh_data[grid];
-        const Box& box = fab.box();
+        FArrayBox_t& fab = mesh_data[grid];
+        const AmrBox_t& box = fab.box();
         int nComp = fab.nComp();
         
         // not callable
@@ -319,14 +320,14 @@ void BoxLibParticle<PLayout>::InterpolateSingleLevelFort(ParticleAttrib<AType> &
         int& j = ijk[1];
         int& k = ijk[2];
         
-        IntVect i1(i-1, j-1, k-1);
-        IntVect i2(i-1, j-1, k);
-        IntVect i3(i-1, j,   k-1);
-        IntVect i4(i-1, j,   k);
-        IntVect i5(i,   j-1, k-1);
-        IntVect i6(i,   j-1, k);
-        IntVect i7(i,   j,   k-1);
-        IntVect i8(i,   j,   k);
+        AmrIntVect_t i1(i-1, j-1, k-1);
+        AmrIntVect_t i2(i-1, j-1, k);
+        AmrIntVect_t i3(i-1, j,   k-1);
+        AmrIntVect_t i4(i-1, j,   k);
+        AmrIntVect_t i5(i,   j-1, k-1);
+        AmrIntVect_t i6(i,   j-1, k);
+        AmrIntVect_t i7(i,   j,   k-1);
+        AmrIntVect_t i8(i,   j,   k);
         
         for (int nc = 0; nc < nComp; ++nc) {
             pa[ip](nc) = wxyz_lo[0]*wxyz_lo[1]*wxyz_lo[2]*fab(i1, nc) +
