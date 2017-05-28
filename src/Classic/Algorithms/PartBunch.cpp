@@ -145,6 +145,8 @@ PartBunch::PartBunch(const PartData *ref):
 
     distrCreate_m = IpplTimings::getTimer("Create Distr");
     distrReload_m = IpplTimings::getTimer("Load Distr");
+    distrEmission_m = IpplTimings::getTimer("Emit Distr");
+    distrEmissionCleanup_m = IpplTimings::getTimer("Cleanup emission");
 
 
     partPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
