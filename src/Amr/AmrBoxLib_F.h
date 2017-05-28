@@ -1,6 +1,6 @@
 #ifndef AMR_BOXLIB_F_H
 #define AMR_BOXLIB_F_H
-#include <BLFort.H>
+#include <AMReX_BLFort.H>
 
 /*!
  * @file AmrBoxLib_F.h
@@ -31,16 +31,16 @@ extern "C"
                      const BL_FORT_FAB_ARG_3D(state),
                      const int* tagval, const int* clearval,
                      const int* lo, const int* hi,
-                     const Real* dx, const Real* problo,
-                     const Real* time, const Real* phierr);
+                     const amrex::Real* dx, const amrex::Real* problo,
+                     const amrex::Real* time, const amrex::Real* phierr);
     
     
     void tag_potential_strength(int* tag, const int* tag_lo, const int* tag_hi,
                                 const BL_FORT_FAB_ARG_3D(state),
                                 const int* tagval, const int* clearval,
                                 const int* lo, const int* hi,
-                                const Real* dx, const Real* problo,
-                                const Real* time, const Real* phi);
+                                const amrex::Real* dx, const amrex::Real* problo,
+                                const amrex::Real* time, const amrex::Real* phi);
 }
 
 #endif

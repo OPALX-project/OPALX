@@ -10,9 +10,9 @@
 
 #include "Ippl.h"
 
-#include <Array.H>
-#include <Geometry.H>
-#include <MultiFab.H>
+#include <AMReX_Array.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
 
 #include "AmrParticleBase.h"
 #include "ParticleAmrLayout.h"
@@ -181,7 +181,7 @@ int main(int argc, char* argv[]) {
     
     Ippl ippl(argc, argv);
     
-    BoxLib::Initialize(argc,argv, false);
+    amrex::Initialize(argc,argv, false);
     
     PartBunchAmr<amrplayout_t>* bunch = nullptr;
     

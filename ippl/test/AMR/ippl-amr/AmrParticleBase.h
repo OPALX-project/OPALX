@@ -12,24 +12,26 @@
 #include <algorithm>
 #include <array>
 
-#include <ParmParse.H>
+#include <AMReX_ParmParse.H>
 
-#include <ParGDB.H>
-#include <REAL.H>
-#include <IntVect.H>
-#include <Array.H>
-#include <Utility.H>
-#include <Geometry.H>
-#include <VisMF.H>
-#include <Particles.H>
-#include <RealBox.H>
+#include <AMReX_ParGDB.H>
+#include <AMReX_REAL.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Array.H>
+#include <AMReX_Utility.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_Particles.H>
+#include <AMReX_RealBox.H>
 
 
-#include <BLFort.H>
-#include <MultiFabUtil.H>
-#include <MultiFabUtil_F.H>
-#include <Interpolater.H>
-#include <FillPatchUtil.H>
+#include <AMReX_BLFort.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_MultiFabUtil_F.H>
+#include <AMReX_Interpolater.H>
+#include <AMReX_FillPatchUtil.H>
+
+using namespace amrex;
 
 
 //AMRPArticleBase class definition. Template parameter is the specific AmrParticleLayout-derived
@@ -42,9 +44,9 @@ typedef long                    SortListIndex_t;
 typedef std::vector<SortListIndex_t> SortList_t;
 typedef std::vector<ParticleAttribBase *>      attrib_container_t;
 
-typedef std::deque<Particle<1,0> > C;
-typedef std::deque<Particle<1,0> > PBox;
-typedef Particle<1,0> ParticleType;
+typedef std::deque<amrex::ParticleCommData> C;
+typedef std::deque<amrex::ParticleCommData> PBox;
+typedef amrex::ParticleCommData ParticleType;
 typedef typename std::map<int,PBox> PMap;
 
 template<class PLayout>
@@ -66,18 +68,18 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
 
     bool allow_particles_near_boundary;
 
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     static void CIC_Cells_Fracs_Basic (const SingleParticlePos_t &R, const Real* plo, 
                                        const Real* dx, Real* fracs,  IntVect* cells);
 
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     static int CIC_Cells_Fracs (const SingleParticlePos_t &R,
                                 const Real*         plo,
                                 const Real*         dx_geom,
                                 const Real*         dx_part,
                                 Array<Real>&        fracs,
                                 Array<IntVect>&     cells);
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     bool FineToCrse (const int ip,
                      int                                flev,
                      const Array<IntVect>&              fcells,
@@ -90,7 +92,7 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
                      Array<IntVect>&                    pshifts,
                      std::vector< std::pair<int,Box> >& isects);
 
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     void FineCellsToUpdateFromCrse (const int ip,
                                     int lev,
                                     const IntVect& ccell,
@@ -100,12 +102,12 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
                                     Array<IntVect>& fcells,
                                     std::vector< std::pair<int,Box> >& isects);
 
-    //Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    //Function from AMReX adjusted to work with Ippl AmrParticleBase class
     //sends/receivs the particles that are needed by other processes to during AssignDensity
     void AssignDensityDoit(int level, Array<std::unique_ptr<MultiFab> >& mf, PMap& data,
                            int ncomp, int lev_min = 0);
 
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     // Assign values from grid back to particles
     void Interp(const SingleParticlePos_t &R, const Geometry &geom, const FArrayBox& fab, 
                 const int* idx, Real* val, int cnt);
@@ -114,7 +116,7 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
     
     
     
-    // amrex repository AMReX_MultiFabUtil.H (missing in BoxLib repository)
+    // amrex repository AMReX_MultiFabUtil.H (missing in AMReX repository)
     void sum_fine_to_coarse(/*const */MultiFab& S_fine, MultiFab& S_crse,
                             int scomp, int ncomp, const IntVect& ratio,
                             const Geometry& cgeom, const Geometry& fgeom) const
@@ -130,7 +132,7 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
         //
         BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
 
-        MultiFab crse_S_fine(crse_S_fine_BA, ncomp, nGrow, S_fine.DistributionMap());
+        MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, nGrow);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -267,7 +269,7 @@ public:
 					   int ncomp=1, int particle_lvl_offset = 0) const;
 
 
-    //Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    //Function from AMReX adjusted to work with Ippl AmrParticleBase class
     //Scatter the particle attribute pa on the grid 
     template <class AType>
         void AssignDensity(ParticleAttrib<AType> &pa,
@@ -315,8 +317,9 @@ public:
             for (int lev = lev_min; lev <= finest_level; lev++)
             { 
                 const int lev_index = lev - lev_min;
-                mf_to_be_filled[lev_index].reset(new MultiFab(m_gdb->boxArray(lev), 1, 1,
-                                                              m_gdb->DistributionMap(lev)));
+                mf_to_be_filled[lev_index].reset(new MultiFab(m_gdb->boxArray(lev),
+                                                              m_gdb->DistributionMap(lev),
+                                                              1, 1));
                 mf_to_be_filled[lev_index]->setVal(0.0);
             }
 
@@ -338,8 +341,9 @@ public:
                 for (int lev = lev_min; lev <= finest_level; lev++)
                 {
                     const int lev_index = lev - lev_min;
-                    mf_part[lev_index].reset(new MultiFab(m_gdb->ParticleBoxArray(lev), 1, 1,
-                                                          m_gdb->ParticleDistributionMap(lev)));
+                    mf_part[lev_index].reset(new MultiFab(m_gdb->ParticleBoxArray(lev),
+                                                          m_gdb->ParticleDistributionMap(lev),
+                                                          1, 1));
                     mf_part[lev_index]->setVal(0.0);
                 }
             }
@@ -424,7 +428,7 @@ public:
                 {
                     if (gm.isAnyPeriodic())
                     {
-                        const Box& dest = BoxLib::grow(grids[i],dgrow);
+                        const Box& dest = amrex::grow(grids[i],dgrow);
 
                         if ( ! dm.contains(dest))
                         {
@@ -494,7 +498,7 @@ public:
                     {
                         if (gm.isAnyPeriodic())
                         {
-                            const Box& dest = BoxLib::grow(cfba[i], mf[lev_index]->nGrow());
+                            const Box& dest = amrex::grow(cfba[i], mf[lev_index]->nGrow());
 
                             if ( ! dm.contains(dest))
                             {
@@ -532,7 +536,7 @@ public:
                 // The "+1" is so we enclose the valid region together with any
                 //  ghost cells that can be periodically shifted into valid.
                 //
-                compfvalid = BoxLib::complementIn(BoxLib::grow(dm,dgrow+1), fvalid);
+                compfvalid = amrex::complementIn(amrex::grow(dm,dgrow+1), fvalid);
 
                 compfvalid_grown = compfvalid;
                 compfvalid_grown.grow(1);
@@ -540,7 +544,7 @@ public:
             
                 if (gm.isAnyPeriodic() && ! gm.isAllPeriodic())
                 {
-                    BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
+                    amrex::Error("AssignDensity: problem must be periodic in no or all directions");
                 }
                 //
                 // If we're at a lev > 0, this is the coarsened BoxArray.
@@ -580,7 +584,7 @@ public:
                     //
                     if ( ! gm.isAllPeriodic() && ! allow_particles_near_boundary) {
                         if ( ! gm.Domain().contains(cells[0]) || ! gm.Domain().contains(cells[M-1])) {
-                            BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
+                            amrex::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
                         }
                     }
 
@@ -667,7 +671,7 @@ public:
                                     }
                                     const int grid = isects[0].first; 
                                     const int who  = mf[lev_index+1]->DistributionMap()[m_grid[ip]];
-                                    if (who == ParallelDescriptor::MyProc())
+                                    if (who == amrex::ParallelDescriptor::MyProc())
                                     {
                                         //
                                         // Sum up mass in first component.
@@ -716,7 +720,7 @@ public:
                                     }
                                     const int grid = isects[0].first;
                                     const int who  = mf[lev_index-1]->DistributionMap()[grid];
-                                    if (who == ParallelDescriptor::MyProc())
+                                    if (who == amrex::ParallelDescriptor::MyProc())
                                     {
                                         //
                                         // Sum up mass in first component.
@@ -746,14 +750,16 @@ public:
                     {
                         bool AnyCrseToFine = false;
                         if (lev < finest_level) {
-                            AnyCrseToFine = ParticleBase::CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts);
+                            // dummy template values
+                            ParticleContainer<0> p;
+                            AnyCrseToFine = p.CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts);
                         }
                         //
                         // lev_index > 0 means that we don't do F->C for lower levels
                         // This may mean that the mass fraction is off.
                         //
                         bool AnyFineToCrse = false;
-                        if (lev_index > 0 && !GridsCoverDomain)
+                        if ( lev_index > 0 && !GridsCoverDomain )
                             AnyFineToCrse = FineToCrse(ip,lev,cells,fvalid,compfvalid_grown,
                                                         ccells,cfracs,fwhich,cgrid,pshifts,isects);
 	  
@@ -799,7 +805,7 @@ public:
                                     // particle in a cell bordering a Fine->Crse boundary.
                                     //
                                     const int who = mf[lev_index-1]->DistributionMap()[cgrid[i]];
-                                    if (who == ParallelDescriptor::MyProc())
+                                    if (who == amrex::ParallelDescriptor::MyProc())
                                     {
                                         if ( ! (*mf[lev_index-1])[cgrid[i]].box().contains(ccells[i])) {
                                             continue;
@@ -939,7 +945,7 @@ public:
                                     for (int j = 0, nj=fcells.size(); j < nj; ++j)
                                     {
                                         const int who = mf[lev_index+1]->DistributionMap()[fgrid[j]];
-                                        if (who == ParallelDescriptor::MyProc())
+                                        if (who == amrex::ParallelDescriptor::MyProc())
                                         {
                                             //
                                             // Sum up mass in first component.
@@ -1006,7 +1012,7 @@ public:
             IpplTimings::stopTimer(AssignDensityTimer_m);
         }
 
-    //Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    //Function from AMReX adjusted to work with Ippl AmrParticleBase class
     //Assign density for a single level
     template <class AType> 
         void AssignDensitySingleLevel (ParticleAttrib<AType> &pa, 
@@ -1019,11 +1025,11 @@ public:
             } else if (mf_to_be_filled.boxArray().ixType().cellCentered()) {
                 AssignCellDensitySingleLevel(pa, mf_to_be_filled, lev, particle_lvl_offset);
             } else {
-                BoxLib::Abort("AssignCellDensitySingleLevel: mixed type not supported");
+                amrex::Abort("AssignCellDensitySingleLevel: mixed type not supported");
             }
         }
 
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     template <class AType>
         void AssignCellDensitySingleLevel(ParticleAttrib<AType> &pa,
                                           MultiFab& mf_to_be_filled,
@@ -1042,16 +1048,15 @@ public:
             } else {
                 // If mf_to_be_filled is not defined on the particle_box_array, then we need 
                 // to make a temporary here and copy into mf_to_be_filled at the end.
-                mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), 1,
-                                          mf_to_be_filled.nGrow(),
-                                          m_gdb->ParticleDistributionMap(lev));
+                mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), m_gdb->ParticleDistributionMap(lev), 1,
+                                          mf_to_be_filled.nGrow());
             }
   
             // We must have ghost cells for each FAB so that a particle in one grid can spread its effect to an
             //    adjacent grid by first putting the value into ghost cells of its own grid.  The mf->sumBoundary call then
             //    adds the value from one grid's ghost cell to another grid's valid region.
             if (mf_pointer->nGrow() < 1) 
-                BoxLib::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
+                amrex::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
 
             const Geometry& gm          = m_gdb->Geom(lev);
             const Real*     plo         = gm.ProbLo();
@@ -1059,7 +1064,7 @@ public:
             const Real*     dx          = gm.CellSize();
 
             if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
-                BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
+                amrex::Error("AssignDensity: problem must be periodic in no or all directions");
             }
 
             for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
@@ -1089,7 +1094,7 @@ public:
                     //
                     if ( ! gm.isAllPeriodic() && ! allow_particles_near_boundary) {
                         if ( ! gm.Domain().contains(cells[0]) || ! gm.Domain().contains(cells[M-1])) {
-                            BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
+                            amrex::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
                         }
                     }
 
@@ -1135,7 +1140,7 @@ public:
     
         }
 
-    //Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    //Function from AMReX adjusted to work with Ippl AmrParticleBase class
     template<class AType>
         void NodalDepositionSingleLevel(ParticleAttrib<AType> &pa,
                                         MultiFab& mf_to_be_filled,
@@ -1156,17 +1161,17 @@ public:
                 {
                     // If mf_to_be_filled is not defined on the particle_box_array, then we need 
                     // to make a temporary here and copy into mf_to_be_filled at the end.
-                    mf_pointer = new MultiFab(BoxLib::convert(m_gdb->ParticleBoxArray(lev),
-                                                              mf_to_be_filled.boxArray().ixType()),
-                                              1, mf_to_be_filled.nGrow(),
-                                              m_gdb->ParticleDistributionMap(lev));
+                    mf_pointer = new MultiFab(amrex::convert(m_gdb->ParticleBoxArray(lev),
+                                                             mf_to_be_filled.boxArray().ixType()),
+                                              m_gdb->ParticleDistributionMap(lev),
+                                              1, mf_to_be_filled.nGrow());
                 }
 
             const Geometry& gm          = m_gdb->Geom(lev);
             const Real*     dx          = gm.CellSize();
     
             if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) 
-                BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
+                amrex::Error("AssignDensity: problem must be periodic in no or all directions");
 
             mf_pointer->setVal(0.0);
 

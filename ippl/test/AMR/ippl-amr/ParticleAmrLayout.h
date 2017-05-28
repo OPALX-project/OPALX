@@ -11,12 +11,12 @@
 #define PARTICLE_AMR_LAYOUT_H
 
 /*
- * ParticleAmrLayout - particle layout based on BoxLib AMR framework.
+ * ParticleAmrLayout - particle layout based on AMReX AMR framework.
  *
  * This is a specialized version of ParticleLayout, which places particles
  * on processors based on their spatial location relative to multilevel grid.
- * The grids are defined by AMR framework (BoxLib) and can contain multiple levels.
- * Layout uses specialized AmrParticleBase class and BoxLibs ParGDB to determine to 
+ * The grids are defined by AMR framework (AMReX) and can contain multiple levels.
+ * Layout uses specialized AmrParticleBase class and AMReXs ParGDB to determine to 
  * which grid and level the particle belongs to.
  */
 
@@ -35,15 +35,17 @@
 #include "Message/Formatter.h"
 #include <mpi.h>
 
-#include <ParGDB.H>
-#include <REAL.H>
-#include <IntVect.H>
-#include <Array.H>
-#include <Utility.H>
-#include <Geometry.H>
-#include <VisMF.H>
-#include <Particles.H>
-#include <RealBox.H>
+#include <AMReX_ParGDB.H>
+#include <AMReX_REAL.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Array.H>
+#include <AMReX_Utility.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_Particles.H>
+#include <AMReX_RealBox.H>
+
+using namespace amrex;
 
 template <class T, unsigned Dim>
 class ParticleAmrLayout : public ParticleLayout<T, Dim>
@@ -66,26 +68,26 @@ public:
 
 private:
   
-    //ParGDBBase class from BoxLib is used to determine grid, level 
+    //ParGDBBase class from AMReX is used to determine grid, level 
     //and node where each particle belongs
     ParGDBBase* m_gdb;
     ParGDB m_gdb_object;
 
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     // Checks/sets a particles location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
     bool Where (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
                 const unsigned int ip, 
                 int lev_min = 0, int lev_max = -1, int nGrow=0) const;
 
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     // Checks/sets whether the particle has crossed a periodic boundary in such a way
     // that it is on levels lev_min and higher.
     bool EnforcePeriodicWhere (AmrParticleBase< ParticleAmrLayout<T,Dim> >& prt,
                                const unsigned int ip,
                                int lev_min = 0, int lev_max = -1) const;
 
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     // Returns true if the particle was shifted.
     bool PeriodicShift (SingleParticlePos_t R) const;
 
@@ -100,7 +102,7 @@ public:
     ParticleAmrLayout(ParGDBBase* gdb) : 
         m_gdb(gdb) {}
 
-    //constructor: takes BoxLib Geometry, DistributionMapping and BoxArray objects as arguments and
+    //constructor: takes AMReX Geometry, DistributionMapping and BoxArray objects as arguments and
     //defines a new ParGDBBase object
     ParticleAmrLayout(const Geometry &geom, 
                       const DistributionMapping &dmap, 
@@ -110,7 +112,7 @@ public:
         m_gdb = &m_gdb_object;
     }
 
-    //constructor: takes BoxLib Geometry, DistributionMapping, BoxArray and an array of refinements
+    //constructor: takes AMReX Geometry, DistributionMapping, BoxArray and an array of refinements
     //at each level and constructs a new ParGDBBase object
     ParticleAmrLayout(const Array<Geometry>            & geom, 
                       const Array<DistributionMapping> & dmap,
@@ -182,17 +184,17 @@ public:
         return m_gdb; 
     }
 
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     //get the cell of the particle
     IntVect Index (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
                    const unsigned int ip, int leve) const;
 
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     //get the cell of the particle
     IntVect Index (SingleParticlePos_t &R, int lev) const;
 
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
-    //redistribute the particles using BoxLibs ParGDB class to determine where particle should go
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    //redistribute the particles using AMReXs ParGDB class to determine where particle should go
     void Redistribute(AmrParticleBase< ParticleAmrLayout<T,Dim> >& PData,
                       int lev_min = 0, int lev_max = -1, int nGrow = 0)
     {
@@ -231,7 +233,7 @@ public:
             if ( !particleLeftDomain ) {
                 // The owner of the particle is the CPU owning the finest grid
                 // in state data that contains the particle.
-                const unsigned int who = ParticleDistributionMap(PData.m_lev[ip])[PData.m_grid[ip]];
+                const unsigned int who = m_gdb->ParticleDistributionMap(PData.m_lev[ip])[PData.m_grid[ip]];
                 
                 if (who != myN) {
                     msgsend[who] = 1;
@@ -393,7 +395,7 @@ private:
     
         if (!success)
         {
-            BoxLib::Abort("ParticleContainer<NR, NI, NA>::locateParticle(): invalid particle.");
+            amrex::Abort("ParticleContainer<NR, NI, NA>::locateParticle(): invalid particle.");
         }
     }
 

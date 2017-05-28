@@ -27,7 +27,7 @@
 #include <iomanip>
 
 
-#include <ParmParse.H>
+#include <AMReX_ParmParse.H>
 
 
 #include "../Distribution.h"
@@ -207,7 +207,7 @@ int main(int argc, char *argv[]) {
         << "- tagging        = " << tagging << endl
         << "- charge/scaling = " << factor << endl;
     
-    BoxLib::Initialize(argc,argv, false);
+    amrex::Initialize(argc,argv, false);
     size_t nLevels = std::atoi(argv[5]) + 1; // i.e. nLevels = 0 --> only single level
     size_t maxBoxSize = std::atoi(argv[6]);
     doBoxLib(nr, nParticles, nLevels, maxBoxSize, criteria, factor, msg);

@@ -3,9 +3,9 @@
 #include "Ippl.h"
 
 void 
-Solver::solve_for_accel(container_t& rhs,
-                        container_t& phi,
-                        container_t& grad_phi, 
+Solver::solve_for_accel(const container_t& rhs,
+                        const container_t& phi,
+                        const container_t& grad_phi, 
                         const Array<Geometry>& geom,
                         int base_level,
                         int finest_level,
@@ -21,19 +21,16 @@ Solver::solve_for_accel(container_t& rhs,
     Real tol     = 1.e-10;
     Real abs_tol = 1.e-14;
 
-    Array< container_pt > grad_phi_edge(rhs.size());
+    Array<container_t> grad_phi_edge(rhs.size());
     
     if ( doGradient ) {
         for (int lev = base_level; lev <= finest_level ; lev++)
         {
+            const DistributionMapping& dm = rhs[lev]->DistributionMap();
             grad_phi_edge[lev].resize(BL_SPACEDIM);
             for (int n = 0; n < BL_SPACEDIM; ++n) {
-#ifdef UNIQUE_PTR
                 BoxArray ba = rhs[lev]->boxArray();
-#else
-                BoxArray ba = rhs[lev].boxArray();
-#endif
-                grad_phi_edge[lev].set(n, new MultiFab(ba.surroundingNodes(n), 1, 1));
+                grad_phi_edge[lev][n].reset(new MultiFab(ba.surroundingNodes(n), dm, 1, 1));
             }
         }
     }
@@ -42,11 +39,7 @@ Solver::solve_for_accel(container_t& rhs,
     // Make sure the RHS sums to 0 if fully periodic
     // ***************************************************
     for (int lev = base_level; lev <= finest_level; lev++)
-#ifdef UNIQUE_PTR
         rhs[lev]->plus(+offset, 0, 1, 0);
-#else
-        rhs[lev].plus(+offset, 0, 1, 0);
-#endif
     
     
     
@@ -54,9 +47,9 @@ Solver::solve_for_accel(container_t& rhs,
     // Solve for phi and return both phi and grad_phi_edge
     // ***************************************************
     
-    solve_with_f90  (rhs,
-                     phi,
-                     grad_phi_edge,
+    solve_with_f90  (amrex::GetArrOfPtrs(rhs),
+                     amrex::GetArrOfPtrs(phi),
+                     amrex::GetArrOfArrOfPtrs(grad_phi_edge),
                      geom,
                      base_level,
                      finest_level,
@@ -72,30 +65,16 @@ Solver::solve_for_accel(container_t& rhs,
     if ( doGradient ) {
         for (int lev = base_level; lev <= finest_level; lev++)
         {
-#ifdef UNIQUE_PTR
-            BoxLib::average_face_to_cellcenter(*(grad_phi[lev].get()),
-                                               grad_phi_edge[lev],
-                                               geom[lev]);
+            amrex::average_face_to_cellcenter(*(grad_phi[lev].get()),
+                                              amrex::GetArrOfConstPtrs(grad_phi_edge[lev]),
+                                              geom[lev]);
         
             grad_phi[lev]->FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
-#else
-            BoxLib::average_face_to_cellcenter(grad_phi[lev],
-                                               grad_phi_edge[lev],
-                                               geom[lev]);
-        
-            grad_phi[lev].FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
-#endif
         }
         
-#ifdef UNIQUE_PTR
         for (int lev = base_level; lev <= finest_level; ++lev) {
             grad_phi[lev]->mult(-1.0, 0, 3);
         }
-#else
-        for (int lev = base_level; lev <= finest_level; ++lev) {
-            grad_phi[lev].mult(-1.0, 0, 3);
-        }
-#endif
     }
 
     if ( timing )
@@ -104,9 +83,9 @@ Solver::solve_for_accel(container_t& rhs,
 
 
 void 
-Solver::solve_with_f90(container_t& rhs,
-                       container_t& phi,
-                       Array< container_pt >& grad_phi_edge,
+Solver::solve_with_f90(const container_pt& rhs,
+                       const container_pt& phi,
+                       const Array<container_pt>& grad_phi_edge,
                        const Array<Geometry>& geom,
                        int base_level,
                        int finest_level,
@@ -165,18 +144,17 @@ Solver::solve_with_f90(container_t& rhs,
     }
 
     // Have to do some packing because these arrays does not always start with base_level
-#ifdef UNIQUE_PTR
     Array<Geometry> geom_p(nlevs);
     container_pt rhs_p(nlevs);
     container_pt phi_p(nlevs);
     
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         geom_p[ilev] = geom[ilev+base_level];
-        rhs_p.set(ilev, rhs[ilev+base_level].get());
-        phi_p.set(ilev, phi[ilev+base_level].get());
+        rhs_p[ilev]  = rhs[ilev+base_level];
+        phi_p[ilev]  = phi[ilev+base_level];
     }
     
-    // Refinement ratio is hardwired to 2 here.
+    //FIXME Refinement ratio is hardwired to 2 here.
     IntVect crse_ratio = (base_level == 0) ? 
 	IntVect::TheZeroVector() : IntVect::TheUnitVector() * 2;
 
@@ -187,28 +165,6 @@ Solver::solve_with_f90(container_t& rhs,
     } else {
 	fmg.set_bc(mg_bc, *phi[base_level-1], *phi[base_level]);
     }
-#else
-    PArray<Geometry> geom_p(nlevs);
-    container_t rhs_p(nlevs);
-    container_t phi_p(nlevs);
-    for (int ilev = 0; ilev < nlevs; ++ilev) {
-        geom_p.set(ilev, &geom[ilev+base_level]);
-        rhs_p.set(ilev, &rhs[ilev+base_level]);
-        phi_p.set(ilev, &phi[ilev+base_level]);
-    }
-    
-    // Refinement ratio is hardwired to 2 here.
-    IntVect crse_ratio = (base_level == 0) ? 
-	IntVect::TheZeroVector() : IntVect::TheUnitVector() * 2;
-
-    FMultiGrid fmg(geom_p, base_level, crse_ratio);
-
-    if (base_level == 0) {
-	fmg.set_bc(mg_bc, phi[base_level]);
-    } else {
-	fmg.set_bc(mg_bc, phi[base_level-1], phi[base_level]);
-    }
-#endif
     
     /* (alpha * a - beta * (del dot b grad)) phi = rhs
      * (b = 1)

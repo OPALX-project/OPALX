@@ -12,24 +12,21 @@
 #include <algorithm>
 #include <array>
 
-#include <ParmParse.H>
+#include <AMReX_ParGDB.H>
+#include <AMReX_REAL.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Array.H>
+#include <AMReX_Utility.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_Particles.H>
+#include <AMReX_RealBox.H>
 
-#include <ParGDB.H>
-#include <REAL.H>
-#include <IntVect.H>
-#include <Array.H>
-#include <Utility.H>
-#include <Geometry.H>
-#include <VisMF.H>
-#include <Particles.H>
-#include <RealBox.H>
-
-#include <BLFort.H>
-#include <MultiFabUtil.H>
-#include <MultiFabUtil_F.H>
-#include <Interpolater.H>
-#include <FillPatchUtil.H>
-
+#include <AMReX_BLFort.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_MultiFabUtil_F.H>
+#include <AMReX_Interpolater.H>
+#include <AMReX_FillPatchUtil.H>
     
 template<class PLayout>
 class BoxLibParticle : public virtual AmrParticleBase<PLayout>
@@ -40,6 +37,15 @@ public:
     typedef typename AmrParticleBase<PLayout>::SingleParticlePos_t  SingleParticlePos_t;
     typedef typename AmrParticleBase<PLayout>::AmrField_t           AmrField_t;
     typedef typename AmrParticleBase<PLayout>::AmrFieldContainer_t  AmrFieldContainer_t; // Array<std::unique_ptr<MultiFab> >
+    
+    typedef typename PLayout::AmrProcMap_t  AmrProcMap_t;
+    typedef typename PLayout::AmrGrid_t     AmrGrid_t;
+    typedef typename PLayout::AmrGeometry_t AmrGeometry_t;
+    typedef typename PLayout::AmrIntVect_t  AmrIntVect_t;
+    typedef typename PLayout::AmrBox_t      AmrBox_t;
+    typedef typename PLayout::AmrReal_t     AmrReal_t;
+    
+    typedef amrex::FArrayBox                FArrayBox_t;
     
 public:
     BoxLibParticle();
@@ -108,43 +114,6 @@ private:
     template <class AType>
     void AssignCellDensitySingleLevelFort(ParticleAttrib<AType> &pa, AmrField_t& mf, int level,
                                           int ncomp=1, int particle_lvl_offset = 0) const;
-    
-    // amrex repository AMReX_MultiFabUtil.H (missing in BoxLib repository)
-    void sum_fine_to_coarse(/*const */MultiFab& S_fine, MultiFab& S_crse,
-                            int scomp, int ncomp, const IntVect& ratio,
-                            const Geometry& cgeom, const Geometry& fgeom) const
-    {
-        BL_ASSERT(S_crse.nComp() == S_fine.nComp());
-        BL_ASSERT(ratio == ratio[0]);
-        BL_ASSERT(S_fine.nGrow() % ratio[0] == 0);
-
-        const int nGrow = S_fine.nGrow() / ratio[0];
-
-        //
-        // Coarsen() the fine stuff on processors owning the fine data.
-        //
-        BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
-
-        MultiFab crse_S_fine(crse_S_fine_BA, ncomp, nGrow, S_fine.DistributionMap());
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (MFIter mfi(crse_S_fine, true); mfi.isValid(); ++mfi)
-        {
-            //  NOTE: The tilebox is defined at the coarse level.
-            const Box& tbx = mfi.growntilebox(nGrow);
-            
-            BL_FORT_PROC_CALL(BL_AVGDOWN, bl_avgdown)
-                (tbx.loVect(), tbx.hiVect(),
-                 BL_TO_FORTRAN_N(S_fine[mfi] , scomp),
-                 BL_TO_FORTRAN_N(crse_S_fine[mfi], 0),
-                 ratio.getVect(),&ncomp);
-        }
-        
-        S_crse.copy(crse_S_fine, 0, scomp, ncomp, nGrow, 0,
-                    cgeom.periodicity(), FabArrayBase::ADD);
-    }
     
 private:
     bool allow_particles_near_boundary_m;

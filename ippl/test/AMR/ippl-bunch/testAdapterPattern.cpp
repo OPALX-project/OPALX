@@ -7,6 +7,8 @@
 
 #include <memory>
 
+using namespace amrex;
+
 
 void createRandomParticles(PartBunchBase<double, 3>* pbase, int N, int myNode, int seed = 1) {
     srand(seed);
@@ -65,7 +67,7 @@ void initBunch(std::unique_ptr<PartBunchBase<double, 3> >& bunch) {
     
     // geometries of refined levels
     for (unsigned int lev = 1; lev < nLevels; ++lev)
-        geom[lev].define(BoxLib::refine(geom[lev - 1].Domain(), rr[lev - 1]), &domain, 0, bc);
+        geom[lev].define(amrex::refine(geom[lev - 1].Domain(), rr[lev - 1]), &domain, 0, bc);
     
     // box at level 0
     ba[0].define(bx);
@@ -217,7 +219,7 @@ int main(int argc, char** argv) {
 //     std::cout << std::endl << "Init AmrPartBunch" << std::endl
 //               << "-----------------" << std::endl;
 //     
-//     BoxLib::Initialize(argc,argv, false);
+//     amrex::Initialize(argc,argv, false);
 //     
 //     bunch.reset(nullptr);
 //     initBunch(bunch);

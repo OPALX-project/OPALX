@@ -17,8 +17,8 @@
 #include <iostream>
 #include <array>
 
-#include <Array.H>
-#include <Geometry.H>
+#include <AMReX_Array.H>
+#include <AMReX_Geometry.H>
 
 #ifdef IPPL_AMR
     #include "ippl-amr/AmrParticleBase.h"
@@ -27,6 +27,10 @@
 #else
     #include "boxlib-amr/PartBunchBase.h"
 #endif
+
+using amrex::Array;
+using amrex::BoxArray;
+using amrex::Geometry;
 
 /// Create particle distributions
 class Distribution {

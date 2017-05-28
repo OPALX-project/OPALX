@@ -55,10 +55,10 @@
 #include "OPALconfig.h"
 #include "changes.h"
 
-#ifdef HAVE_AMR_SOLVER
-#define DIM 3
-#include <ParallelDescriptor.H>
-#endif
+// #ifdef HAVE_AMR_SOLVER
+// #define DIM 3
+// #include <ParallelDescriptor.H>
+// #endif
 
 #include <boost/algorithm/string.hpp>
 

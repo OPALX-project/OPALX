@@ -4,19 +4,19 @@
 #include "Solvers/AmrPoissonSolver.h"
 #include "Amr/AmrBoxLib.h"
 
-#include <MultiFabUtil.H>
-#include <BLFort.H>
-#include <MacBndry.H>
-#include <MGT_Solver.H>
-#include <mg_cpp_f.h>
-#include <stencil_types.H>
-#include <FMultiGrid.H>
-#include <PArray.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_BLFort.H>
+#include <AMReX_FMultiGrid.H>
 
 class FMGPoissonSolver : public AmrPoissonSolver< AmrBoxLib > {
     
 private:
     typedef AmrBoxLib::AmrGeomContainer_t GeomContainer_t;
+    typedef amrex::Array<AmrBoxLib::AmrField_t*> AmrFieldContainer_pt;
+    typedef AmrBoxLib::AmrGeometry_t AmrGeometry_t;
+    typedef AmrBoxLib::AmrGrid_t AmrGrid_t;
+    typedef AmrBoxLib::AmrProcMap_t           AmrProcMap_t;
+    typedef AmrBoxLib::AmrFieldContainer_t    AmrFieldContainer_t;
     
 public:
     
@@ -39,9 +39,9 @@ public:
     
     
 private:
-    void solveWithF90_m(AmrFieldContainer_t& rho,
-                        AmrFieldContainer_t& phi,
-                        Array< PArray<MultiFab> >& grad_phi_edge, 
+    void solveWithF90_m(const AmrFieldContainer_pt& rho,
+                        const AmrFieldContainer_pt& phi,
+                        const amrex::Array< AmrFieldContainer_pt >& grad_phi_edge, 
                         const GeomContainer_t& geom,
                         int baseLevel,
                         int finestLevel);
@@ -50,8 +50,11 @@ private:
      * on each level and grid.
      * @param efield to be intialized.
      */
-    void initGrids_m(AmrFieldContainer_t& phi,
-                     AmrFieldContainer_t& efield);
+    void initGrids_m(const AmrFieldContainer_t& rho,
+                     AmrFieldContainer_t& phi,
+                     AmrFieldContainer_t& efield,
+                     int baseLevel,
+                     int finestLevel);
     
 private:
     int bc_m[2*BL_SPACEDIM];        ///< Boundary conditions

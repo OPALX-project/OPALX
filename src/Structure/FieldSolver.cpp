@@ -573,18 +573,18 @@ void FieldSolver::initAmrObject_m() {
     /*
      * further attributes are given by the BoxLib's ParmParse class.
      */
-    ParmParse pAmr("amr");
+    amrex::ParmParse pAmr("amr");
     pAmr.add("max_grid_size", maxGridSize);
     
     pAmr.addarr("ref_ratio_vect", refRatio);
     
-    Array<int> error_buf(maxLevel, 0);
+    amrex::Array<int> error_buf(maxLevel, 0);
     pAmr.addarr("n_error_buf", error_buf);
     
     pAmr.add("grid_eff", 0.95);
     
-    ParmParse pGeom("geometry");
-    Array<int> isPeriodic = {
+    amrex::ParmParse pGeom("geometry");
+    amrex::Array<int> isPeriodic = {
         layout_p->Geom(0).isPeriodic(0),
         layout_p->Geom(0).isPeriodic(1),
         layout_p->Geom(0).isPeriodic(2)

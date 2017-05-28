@@ -10,7 +10,7 @@
 #include <boost/filesystem.hpp>
 
 
-#include <ParmParse.H>
+#include <AMReX_ParmParse.H>
 
 #include "../Distribution.h"
 #include "../Solver.h"
@@ -18,7 +18,7 @@
 
 #include "../helper_functions.h"
 
-#include "../boxlib-amr/writePlotFile.H"
+// #include "../boxlib-amr/writePlotFile.H"
 
 #include <cmath>
 
@@ -94,7 +94,7 @@ void writeEnergy(amrbunch_t* bunch,
                  std::string dir = "./")
 {
     for (int lev = efield.size() - 2; lev >= 0; lev--)
-        BoxLib::average_down(*(efield[lev+1].get()), *(efield[lev].get()), 0, 3, rr[lev]);
+        amrex::average_down(*(efield[lev+1].get()), *(efield[lev].get()), 0, 3, rr[lev]);
     
     // field energy (Ulmer version, i.e. cell_volume instead #points)
     double field_energy = 0.5 * cell_volume * MultiFab::Dot(*(efield[0].get()), 0, *(efield[0].get()), 0, 3, 0);
@@ -218,7 +218,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     grad_phi.resize(nLevels);
     
     for (int lev = 0; lev < nLevels; ++lev) {
-        initGridData(rhs, phi, grad_phi, myAmrOpal.boxArray()[lev], lev);
+        initGridData(rhs, phi, grad_phi,
+                     myAmrOpal.boxArray()[lev], myAmrOpal.DistributionMap(lev), lev);
     }
 
     // Define the density on level 0 from all particles at all levels                                                                                                                                            
@@ -510,15 +511,15 @@ void doPlasma(Vektor<std::size_t, 3> nr,
     
     // --------------------------------------------------------------------
     
-    container_t rhs(PArrayManage);
-    container_t phi(PArrayManage);
-    container_t grad_phi(PArrayManage);
+    container_t rhs;
+    container_t phi;
+    container_t grad_phi;
     doSolve(myAmrOpal, bunch.get(), rhs, phi, grad_phi, geoms, rr, nLevels, 0, msg, dir.string());
     
     
 //     writeScalarField(rhs, dir.string() + "/rho_0.dat");
     
-//     std::string plotsolve = BoxLib::Concatenate(dir.string() + "/plt", 0, 4);
+//     std::string plotsolve = amrex::Concatenate(dir.string() + "/plt", 0, 4);
     
 //     writePlotFile(plotsolve, rhs, phi, grad_phi, rr, geoms, 0);
     
@@ -573,7 +574,7 @@ void doPlasma(Vektor<std::size_t, 3> nr,
 int main(int argc, char *argv[]) {
     
     Ippl ippl(argc, argv);
-    BoxLib::Initialize(argc,argv, false);
+    amrex::Initialize(argc,argv, false);
     
     
 

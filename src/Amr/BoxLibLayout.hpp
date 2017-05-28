@@ -7,11 +7,11 @@
 
 #include <cmath>
 
-template <class T, unsigned Dim>
-bool BoxLibLayout<T, Dim>::do_tiling = false;
+// template <class T, unsigned Dim>
+// bool BoxLibLayout<T, Dim>::do_tiling = false;
 
-template <class T, unsigned Dim>
-IntVect BoxLibLayout<T, Dim>::tile_size   { D_DECL(1024000,8,8) };
+// template <class T, unsigned Dim>
+// typename BoxLibLayout<T, Dim>::AmrIntVect_t BoxLibLayout<T, Dim>::tile_size   { D_DECL(1024000,8,8) };
 
 template<class T, unsigned Dim>
 BoxLibLayout<T, Dim>::BoxLibLayout()
@@ -47,18 +47,18 @@ BoxLibLayout<T, Dim>::BoxLibLayout(int nGridPoints, int maxGridSize,
 
 
 template<class T, unsigned Dim>
-BoxLibLayout<T, Dim>::BoxLibLayout(const Geometry &geom,
-                                   const DistributionMapping &dmap,
-                                   const BoxArray &ba)
+BoxLibLayout<T, Dim>::BoxLibLayout(const AmrGeometry_t &geom,
+                                   const AmrProcMap_t &dmap,
+                                   const AmrGrid_t &ba)
     : ParGDB(geom, dmap, ba), finestLevel_m(0), maxLevel_m(0), refRatio_m(0)
 { }
 
 
 template<class T, unsigned Dim>
-BoxLibLayout<T, Dim>::BoxLibLayout(const Array<Geometry> &geom,
-                                   const Array<DistributionMapping> &dmap,
-                                   const Array<BoxArray> &ba,
-                                   const Array<int> &rr)
+BoxLibLayout<T, Dim>::BoxLibLayout(const AmrGeomContainer_t &geom,
+                                   const AmrProcMapContainer_t &dmap,
+                                   const AmrGridContainer_t &ba,
+                                   const AmrIntArray_t &rr)
     : ParGDB(geom, dmap, ba, rr), finestLevel_m(0), maxLevel_m(0), refRatio_m(0)
 { }
 
@@ -252,20 +252,22 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
 // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
 //get the cell where particle is located - uses AmrParticleBase object and particle id
 template <class T, unsigned Dim>
-IntVect BoxLibLayout<T, Dim>::Index (AmrParticleBase< BoxLibLayout<T,Dim> >& p,
-					  const unsigned int ip,
-					  int lev) const
+typename BoxLibLayout<T, Dim>::AmrIntVect_t
+    BoxLibLayout<T, Dim>::Index(AmrParticleBase< BoxLibLayout<T,Dim> >& p,
+                                const unsigned int ip,
+                                int lev) const
 {
     return Index(p.R[ip], lev);
 }
 
 //get the cell where particle is located - uses the particle position vector R
 template <class T, unsigned Dim>
-IntVect BoxLibLayout<T, Dim>::Index (SingleParticlePos_t &R,
-					  int lev) const
+typename BoxLibLayout<T, Dim>::AmrIntVect_t
+    BoxLibLayout<T, Dim>::Index(SingleParticlePos_t &R,
+                                int lev) const
 {
-    IntVect iv;
-    const Geometry& geom = Geom(lev);
+    AmrIntVect_t iv;
+    const AmrGeometry_t& geom = Geom(lev);
 
     D_TERM(iv[0]=floor((R[0]-geom.ProbLo(0))/geom.CellSize(0));,
            iv[1]=floor((R[1]-geom.ProbLo(1))/geom.CellSize(1));,
@@ -278,7 +280,7 @@ IntVect BoxLibLayout<T, Dim>::Index (SingleParticlePos_t &R,
 
 
 // template <class T, unsigned Dim>
-// int BoxLibLayout<T, Dim>::getTileIndex(const IntVect& iv, const Box& box, Box& tbx) {
+// int BoxLibLayout<T, Dim>::getTileIndex(const AmrIntVect_t& iv, const Box& box, Box& tbx) {
 //     if (do_tiling == false) {
 //         tbx = box;
 //         return 0;
@@ -305,9 +307,9 @@ IntVect BoxLibLayout<T, Dim>::Index (SingleParticlePos_t &R,
 //                 thi = tlo + ts_right - 1;
 //             }
 //         };
-//         const IntVect& small = box.smallEnd();
-//         const IntVect& big   = box.bigEnd();
-//         IntVect ntiles, ivIndex, tilelo, tilehi;
+//         const AmrIntVect_t& small = box.smallEnd();
+//         const AmrIntVect_t& big   = box.bigEnd();
+//         AmrIntVect_t ntiles, ivIndex, tilelo, tilehi;
 // 
 //         D_TERM(int iv0 = std::min(std::max(iv[0], small[0]), big[0]);,
 //                int iv1 = std::min(std::max(iv[1], small[1]), big[1]);,
@@ -332,7 +334,6 @@ bool BoxLibLayout<T, Dim>::Where (AmrParticleBase< BoxLibLayout<T,Dim> >& p,
                                        int lev_max,
                                        int nGrow) const
 {
-//     BL_ASSERT(gdb != 0);
 
     if (lev_max == -1)
         lev_max = finestLevel();
@@ -341,20 +342,20 @@ bool BoxLibLayout<T, Dim>::Where (AmrParticleBase< BoxLibLayout<T,Dim> >& p,
     
     BL_ASSERT(nGrow == 0 || (nGrow >= 0 && lev_min == lev_max));
 
-    std::vector< std::pair<int,Box> > isects;
+    std::vector< std::pair<int, AmrBox_t> > isects;
 
     for (unsigned int lev = (unsigned)lev_max; lev >= (unsigned)lev_min; lev--)
     {
-        const IntVect& iv = Index(p, ip, lev);
-        const BoxArray& ba = ParticleBoxArray(lev);
+        const AmrIntVect_t& iv = Index(p, ip, lev);
+        const AmrGrid_t& ba = ParticleBoxArray(lev);
         BL_ASSERT(ba.ixType().cellCentered());
 
 	if (lev == p.Level[ip]) { 
             // The fact that we are here means this particle does not belong to any finer grids.
 	    if (0 <= p.Grid[ip] && p.Grid[ip] < ba.size())
 	    {
-		const Box& bx = ba.getCellCenteredBox(p.Grid[ip]);
-                const Box& gbx = BoxLib::grow(bx,nGrow);
+		const AmrBox_t& bx = ba.getCellCenteredBox(p.Grid[ip]);
+                const AmrBox_t& gbx = amrex::grow(bx,nGrow);
                 if (gbx.contains(iv))
                 {
 //                     if (bx != pld.m_gridbox || !pld.m_tilebox.contains(iv)) {
@@ -366,7 +367,7 @@ bool BoxLibLayout<T, Dim>::Where (AmrParticleBase< BoxLibLayout<T,Dim> >& p,
             }
         }
         
-        ba.intersections(Box(iv, iv), isects, true, nGrow);
+        ba.intersections(AmrBox_t(iv, iv), isects, true, nGrow);
         
         if (!isects.empty())
         {
@@ -389,8 +390,6 @@ bool BoxLibLayout<T, Dim>::EnforcePeriodicWhere (AmrParticleBase< BoxLibLayout<T
                                                       int lev_min,
                                                       int lev_max) const
 {
-    BL_ASSERT(m_gdb != 0);
-
     if (!Geom(0).isAnyPeriodic()) return false;
 
     if (lev_max == -1)
@@ -404,14 +403,14 @@ bool BoxLibLayout<T, Dim>::EnforcePeriodicWhere (AmrParticleBase< BoxLibLayout<T
 
     if (PeriodicShift(R))
     {
-        std::vector< std::pair<int,Box> > isects;
+        std::vector< std::pair<int, AmrBox_t> > isects;
 
         for (int lev = lev_max; lev >= lev_min; lev--)
         {
-            const IntVect& iv = Index(R, lev);
-            const BoxArray& ba = ParticleBoxArray(lev);
+            const AmrIntVect_t& iv = Index(R, lev);
+            const AmrGrid_t& ba = ParticleBoxArray(lev);
             
-            ba.intersections(Box(iv,iv),isects,true,0);
+            ba.intersections(AmrBox_t(iv,iv),isects,true,0);
 
             if (!isects.empty())
             {
@@ -439,13 +438,12 @@ bool BoxLibLayout<T, Dim>::PeriodicShift (SingleParticlePos_t R) const
   //
     // This routine should only be called when Where() returns false.
     //
-    BL_ASSERT(gdb != 0);
     //
     // We'll use level 0 stuff since ProbLo/ProbHi are the same for every level.
     //
-    const Geometry& geom    = Geom(0);
-    const Box&      dmn     = geom.Domain();
-    const IntVect&  iv      = Index(R, 0);
+    const AmrGeometry_t& geom    = Geom(0);
+    const AmrBox_t&      dmn     = geom.Domain();
+    const AmrIntVect_t&  iv      = Index(R, 0);
     bool            shifted = false;  
 
     for (int i = 0; i < BL_SPACEDIM; i++)
@@ -518,16 +516,16 @@ void BoxLibLayout<T, Dim>::initDefaultBox(int nGridPoints, int maxGridSize,
                                           double lower, double upper)
 {
     // physical box (in meters)
-    RealBox real_box;
+    AmrDomain_t real_box;
     for (int d = 0; d < BL_SPACEDIM; ++d) {
         real_box.setLo(d, lower);
         real_box.setHi(d, upper);
     }
     
     // define underlying box for physical domain
-    IntVect domain_lo(0 , 0, 0); 
-    IntVect domain_hi(nGridPoints - 1, nGridPoints - 1, nGridPoints - 1); 
-    const Box domain(domain_lo, domain_hi);
+    AmrIntVect_t domain_lo(0 , 0, 0); 
+    AmrIntVect_t domain_hi(nGridPoints - 1, nGridPoints - 1, nGridPoints - 1); 
+    const AmrBox_t domain(domain_lo, domain_hi);
 
     // use Cartesian coordinates
     int coord = 0;
@@ -537,15 +535,15 @@ void BoxLibLayout<T, Dim>::initDefaultBox(int nGridPoints, int maxGridSize,
     for (int i = 0; i < BL_SPACEDIM; i++) 
         is_per[i] = 0;
     
-    Geometry geom;
+    AmrGeometry_t geom;
     geom.define(domain, &real_box, coord, is_per);
 
-    BoxArray ba;
+    AmrGrid_t ba;
     ba.define(domain);
     // break the BoxArrays at both levels into max_grid_size^3 boxes
     ba.maxSize(maxGridSize);
     
-    DistributionMapping dmap;
+    AmrProcMap_t dmap;
     dmap.define(ba, Ippl::getNodes());
     
     // set protected ParGDB member variables
@@ -599,7 +597,9 @@ int BoxLibLayout<T, Dim>::maxLevel () const {
 }
 
 template <class T, unsigned Dim>
-IntVect BoxLibLayout<T, Dim>::refRatio (int level) const {
+typename BoxLibLayout<T, Dim>::AmrIntVect_t
+    BoxLibLayout<T, Dim>::refRatio (int level) const
+{
     return refRatio_m[level];
 }
 

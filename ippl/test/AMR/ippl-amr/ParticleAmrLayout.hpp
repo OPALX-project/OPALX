@@ -5,7 +5,7 @@ bool ParticleAmrLayout<T, Dim>::do_tiling = false;
 template <class T, unsigned Dim>
 IntVect ParticleAmrLayout<T, Dim>::tile_size   { D_DECL(1024000,8,8) };
 
-// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// Function from AMReX adjusted to work with Ippl AmrParticleBase class
 //get the cell where particle is located - uses AmrParticleBase object and particle id
 template <class T, unsigned Dim>
 IntVect ParticleAmrLayout<T, Dim>::Index (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
@@ -86,7 +86,7 @@ bool ParticleAmrLayout<T, Dim>::Where (AmrParticleBase< ParticleAmrLayout<T,Dim>
                                        int lev_max,
                                        int nGrow) const
 {
-    BL_ASSERT(gdb != 0);
+    BL_ASSERT(m_gdb != 0);
 
     if (lev_max == -1)
     lev_max = finestLevel();
@@ -108,7 +108,7 @@ bool ParticleAmrLayout<T, Dim>::Where (AmrParticleBase< ParticleAmrLayout<T,Dim>
 	    if (0 <= p.m_grid[ip] && p.m_grid[ip] < ba.size())
 	    {
 		const Box& bx = ba.getCellCenteredBox(p.m_grid[ip]);
-                const Box& gbx = BoxLib::grow(bx,nGrow);
+                const Box& gbx = amrex::grow(bx,nGrow);
                 if (gbx.contains(iv))
                 {
 //                     if (bx != pld.m_gridbox || !pld.m_tilebox.contains(iv)) {
@@ -133,7 +133,7 @@ bool ParticleAmrLayout<T, Dim>::Where (AmrParticleBase< ParticleAmrLayout<T,Dim>
     return false;
 }
 
-//Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+//Function from AMReX adjusted to work with Ippl AmrParticleBase class
 //Checks/sets whether the particle has crossed a periodic boundary in such a way
 //that it is on levels lev_min and higher.
 template <class T, unsigned Dim>
@@ -183,7 +183,7 @@ bool ParticleAmrLayout<T, Dim>::EnforcePeriodicWhere (AmrParticleBase<ParticleAm
     return false;
 }
 
-// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// Function from AMReX adjusted to work with Ippl AmrParticleBase class
 // Returns true if the particle was shifted.
 template <class T, unsigned Dim>
 bool ParticleAmrLayout<T, Dim>::PeriodicShift (SingleParticlePos_t R) const
@@ -191,7 +191,7 @@ bool ParticleAmrLayout<T, Dim>::PeriodicShift (SingleParticlePos_t R) const
   //
     // This routine should only be called when Where() returns false.
     //
-    BL_ASSERT(gdb != 0);
+    BL_ASSERT(m_gdb != 0);
     //
     // We'll use level 0 stuff since ProbLo/ProbHi are the same for every level.
     //
