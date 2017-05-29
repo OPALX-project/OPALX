@@ -268,7 +268,12 @@ void AmrBoxLib::computeSelfFields(int bin) {
 }
 
 
-void AmrBoxLib::computeSelfFields_cycl(double gamma) {    
+void AmrBoxLib::computeSelfFields_cycl(double gamma) {   
+    /*
+     * The potential is not scaled according to domain modification.
+     * 
+     */
+    
 //     for (int i = 0; i <= finest_level; ++i) {
 //         std::cout << "Level " << i << ": " << grids[i] << std::endl;
 //         std::cout << "Level " << i << ": " << layout_mp->ParticleBoxArray(i) << std::endl;
@@ -282,12 +287,32 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     
     
     
-    //scatter charges onto grid
+    /*
+     * scatter charges onto grid
+     */
 //     bunch_mp->Q *= bunch_mp->dt;
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     
+    // bring on Amr domain
+    Vector_t rmin, rmax;
+    bounds(bunch_mp->R, rmin, rmax);
+    
+//     std::cout << rmin << " " << rmax << std::endl; std::cin.get();
+    
+//     bunch_mp->python_format(0); std::cout << "Written." << std::endl;
+    
+    
+    Vector_t factor = layout_mp->domainMapping(*amrpbase_p, 1.25 * rmin, 1.25 * rmax,
+                                               layout_mp->lowerBound,
+                                               layout_mp->upperBound);
+    
+//     bunch_mp->python_format(1); std::cout << "Written." << std::endl; std::cin.get();
+    
+    
     /// from charge (C) to charge density (C/m^3).
     amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
+    
+    
 //     bunch_mp->Q /= bunch_mp->dt;
     int baseLevel = 0;
     int nLevel = finest_level + 1;
@@ -423,7 +448,16 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     
     amrpbase_p->gather(bunch_mp->Ef, this->eg_m, bunch_mp->R, 0, finest_level);
     
-    bunch_mp->Ef *= Vector_t(gamma * scalefactor, invGamma * scalefactor, gamma * scalefactor);
+    // undo domain change
+    factor = layout_mp->domainMapping(*amrpbase_p, layout_mp->lowerBound,
+                                      layout_mp->upperBound, 1.25 * rmin, 1.25 * rmax);
+    
+//     std::cout << "factor = " << factor << std::endl; std::cin.get();
+    factor *= factor;
+    
+    bunch_mp->Ef *= Vector_t(gamma * scalefactor / factor[0], invGamma * scalefactor / factor[1], gamma * scalefactor / factor[2]);
+    
+//     std::cout << bunch_mp->Ef[0] << std::endl; std::cin.get();
     
     /// calculate coefficient
     // Relativistic E&M says gamma*v/c^2 = gamma*beta/c = sqrt(gamma*gamma-1)/c
@@ -580,8 +614,20 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags, AmrReal_t ti
     for (int i = lev; i <= finest_level; ++i)
         nChargePerCell_m[i]->setVal(0.0);
     
+    // bring on Amr domain
+    Vector_t rmin, rmax;
+    bounds(bunch_mp->R, rmin, rmax);
+    
+    Vector_t factor = layout_mp->domainMapping(*amrpbase_p, 1.25 * rmin, 1.25 * rmax,
+                                               layout_mp->lowerBound,
+                                               layout_mp->upperBound);
+    
     // the new scatter function averages the value also down to the coarsest level
     amrpbase_p->scatter(bunch_mp->Q, nChargePerCell_m, bunch_mp->R, lev, finest_level);
+    
+    // undo domain change
+    factor = layout_mp->domainMapping(*amrpbase_p, layout_mp->lowerBound,
+                                      layout_mp->upperBound, 1.25 * rmin, 1.25 * rmax);
     
     const int clearval = amrex::TagBox::CLEAR;
     const int   tagval = amrex::TagBox::SET;

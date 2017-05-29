@@ -37,6 +37,9 @@ public:
     typedef amr::AmrBox_t               AmrBox_t;
     typedef amr::AmrReal_t              AmrReal_t;
     
+    static const Vector_t lowerBound;
+    static const Vector_t upperBound;
+    
 //     static bool do_tiling;
 //     static AmrIntVect_t tile_size;
 
@@ -47,7 +50,7 @@ public:
      */
     BoxLibLayout();
     
-    BoxLibLayout(int nGridPoints, int maxGridSize, double lower, double upper);
+    BoxLibLayout(int nGridPoints, int maxGridSize);
     
     BoxLibLayout(const AmrGeometry_t &geom,
                  const AmrProcMap_t &dmap,
@@ -67,15 +70,14 @@ public:
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     //get the cell of the particle
     AmrIntVect_t Index (AmrParticleBase< BoxLibLayout<T,Dim> >& p,
-                        const unsigned int ip, int leve) const;
+                        const unsigned int ip, int level) const;
 
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     //get the cell of the particle
     AmrIntVect_t Index (SingleParticlePos_t &R, int lev) const;
     
     
-    void initDefaultBox(int nGridPoints, int maxGridSize,
-                        double lower, double upper);
+    void initDefaultBox(int nGridPoints, int maxGridSize);
     
     void resize(int maxLevel) {
         int length = maxLevel + 1;
@@ -179,13 +181,36 @@ public:
     
     inline int MaxRefRatio (int level) const;
     
+    
+    /*!
+     * Linear mapping to AMReX computation domain [a,b]^3. Each dimension
+     * is mapped independently. The potential and electric field need to be scaled
+     * afterwards appropriately.
+     * 
+     * [a, b] --> [c, d]
+     * 
+     * y = (c - d) / (a - b) * x + (a * d - b * c) / (a - b)
+     * 
+     * @param PData is the particle data
+     * @param lold old lower bound
+     * @param uold old upper bound
+     * @param lnew new lower bound
+     * @param unew new upper bound
+     * @returns scaling factor
+     */
+    Vector_t domainMapping(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
+                           const Vector_t& lold,
+                           const Vector_t& uold,
+                           const Vector_t& lnew,
+                           const Vector_t& unew);
+    
 private:
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     // Checks/sets a particles location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
     bool Where (AmrParticleBase< BoxLibLayout<T,Dim> >& p,
                 const unsigned int ip, 
-                int lev_min = 0, int lev_max = -1, int nGrow=0) const;
+                int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
     // Checks/sets whether the particle has crossed a periodic boundary in such a way
