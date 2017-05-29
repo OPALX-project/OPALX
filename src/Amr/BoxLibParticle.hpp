@@ -21,6 +21,11 @@ void BoxLibParticle<PLayout>::scatter(ParticleAttrib<FT>& attrib, AmrFieldContai
                                       ParticleAttrib<Vektor<PT, Dim> >& pp,
                                       int lbase, int lfine)
 {
+    if ( lbase == lfine ) {
+        this->AssignCellDensitySingleLevelFort(attrib, *(f[lbase].get()), lbase);
+        return;
+    }
+    
     const PLayout *layout_p = &this->getLayout();
     int nGrow = layout_p->refRatio(lbase)[0];
     

@@ -13,6 +13,14 @@
 // template <class T, unsigned Dim>
 // typename BoxLibLayout<T, Dim>::AmrIntVect_t BoxLibLayout<T, Dim>::tile_size   { D_DECL(1024000,8,8) };
 
+template <class T, unsigned Dim>
+const Vector_t BoxLibLayout<T, Dim>::lowerBound = - Vector_t(1.0, 1.0, 1.0); // m
+
+
+template <class T, unsigned Dim>
+const Vector_t BoxLibLayout<T, Dim>::upperBound = Vector_t(1.0, 1.0, 1.0); // m
+
+
 template<class T, unsigned Dim>
 BoxLibLayout<T, Dim>::BoxLibLayout()
     : ParGDB(), finestLevel_m(0), maxLevel_m(0), refRatio_m(0)
@@ -30,19 +38,16 @@ BoxLibLayout<T, Dim>::BoxLibLayout()
     int maxGridSize = 16;
     
     int nGridPoints = std::ceil( std::cbrt( nProcs ) ) * maxGridSize;
-    double lower = -0.02; // m
-    double upper =  0.02; // m
     
-    this->initDefaultBox(nGridPoints, maxGridSize, lower, upper);
+    this->initDefaultBox(nGridPoints, maxGridSize);
 }
 
 
 template<class T, unsigned Dim>
-BoxLibLayout<T, Dim>::BoxLibLayout(int nGridPoints, int maxGridSize,
-                                   double lower, double upper)
+BoxLibLayout<T, Dim>::BoxLibLayout(int nGridPoints, int maxGridSize)
     : ParGDB(), finestLevel_m(0), maxLevel_m(0), refRatio_m(0)
 {
-    this->initDefaultBox(nGridPoints, maxGridSize, lower, upper);
+    this->initDefaultBox(nGridPoints, maxGridSize);
 }
 
 
@@ -83,6 +88,12 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
                                   int lev_min,
                                   const ParticleAttrib<char>* canSwap)
 {
+    // we need to update on Amr domain, has to be undone at end of function
+    Vector_t rmin, rmax;
+    bounds(PData.R, rmin, rmax);
+    Vector_t factor = this->domainMapping(PData, 1.25 * rmin, 1.25 * rmax,
+                                          lowerBound, upperBound);
+    
 //     std::cout << "BoxLibLayout::update()" << std::endl;
     // Input parameters of ParticleContainer::Redistribute of BoxLib
 //     bool where_already_called = false;
@@ -246,6 +257,9 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     // update our particle number counts
     PData.setTotalNum(TotalNum);	// set the total atom count
     PData.setLocalNum(LocalNum);	// set the number of local atoms
+    
+    // undo domain transformation
+    factor = this->domainMapping(PData, lowerBound, upperBound, 1.25 * rmin, 1.25 * rmax);
 }
 
 
@@ -512,14 +526,13 @@ bool BoxLibLayout<T, Dim>::PeriodicShift (SingleParticlePos_t R) const
 
 
 template <class T, unsigned Dim>
-void BoxLibLayout<T, Dim>::initDefaultBox(int nGridPoints, int maxGridSize,
-                                          double lower, double upper)
+void BoxLibLayout<T, Dim>::initDefaultBox(int nGridPoints, int maxGridSize)
 {
     // physical box (in meters)
     AmrDomain_t real_box;
     for (int d = 0; d < BL_SPACEDIM; ++d) {
-        real_box.setLo(d, lower);
-        real_box.setHi(d, upper);
+        real_box.setLo(d, lowerBound[d]);
+        real_box.setHi(d, upperBound[d]);
     }
     
     // define underlying box for physical domain
@@ -581,10 +594,10 @@ void BoxLibLayout<T, Dim>::setMaxLevel(int maxLevel) {
 // overwritten functions
 template <class T, unsigned Dim>
 bool BoxLibLayout<T, Dim>::LevelDefined (int level) const {
-        return level <= maxLevel_m && !m_ba[level].empty() && !m_dmap[level].empty();
+    return level <= maxLevel_m && !m_ba[level].empty() && !m_dmap[level].empty();
 }
 
-    
+
 template <class T, unsigned Dim>
 int BoxLibLayout<T, Dim>::finestLevel () const {
     return finestLevel_m;
@@ -595,6 +608,7 @@ template <class T, unsigned Dim>
 int BoxLibLayout<T, Dim>::maxLevel () const {
     return maxLevel_m;
 }
+
 
 template <class T, unsigned Dim>
 typename BoxLibLayout<T, Dim>::AmrIntVect_t
@@ -610,6 +624,25 @@ int BoxLibLayout<T, Dim>::MaxRefRatio (int level) const {
     for (int n = 0; n<BL_SPACEDIM; n++) 
         maxval = std::max(maxval, refRatio_m[level][n]);
     return maxval;
+}
+
+
+template <class T, unsigned Dim>
+Vector_t BoxLibLayout<T, Dim>::domainMapping(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
+                                             const Vector_t& lold,
+                                             const Vector_t& uold,
+                                             const Vector_t& lnew,
+                                             const Vector_t& unew)
+{
+    // [lold, uold] --> [lnew, unew]
+    Vector_t invdiff = 1.0 / ( lold - uold );
+    Vector_t slope = ( lnew - unew ) * invdiff;
+    Vector_t intercept = ( lold * unew - uold * lnew ) * invdiff;
+    
+    for (unsigned int i = 0; i < PData.getLocalNum(); ++i)
+        PData.R[i] = slope * PData.R[i] - intercept;
+    
+    return ( unew - lnew ) / ( uold - lold );
 }
 
 #endif
