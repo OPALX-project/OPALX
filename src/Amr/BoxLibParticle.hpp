@@ -34,7 +34,7 @@ void BoxLibParticle<PLayout>::scatter(ParticleAttrib<FT>& attrib, AmrFieldContai
         const AmrGrid_t& ba = f[lev]->boxArray();
         const AmrProcMap_t& dm = f[lev]->DistributionMap();
         tmp[lev].reset(new AmrField_t(ba, dm, 1, nGrow));
-        tmp[lev]->setVal(0.0);
+        tmp[lev]->setVal(0.0, nGrow);
     }
     
     this->AssignDensityFort(attrib, tmp, lbase, 1, lfine);
@@ -54,7 +54,7 @@ void BoxLibParticle<PLayout>::scatter(ParticleAttrib<FT>& attrib, AmrField_t& f,
     const AmrProcMap_t& dmap = f.DistributionMap();
     
     AmrField_t tmp(ba, dmap, f.nComp(), 1);
-    tmp.setVal(0.0);
+    tmp.setVal(0.0, 1);
     
     this->AssignCellDensitySingleLevelFort(attrib, tmp, level);
     

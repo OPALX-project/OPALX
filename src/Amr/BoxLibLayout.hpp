@@ -91,7 +91,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     // we need to update on Amr domain, has to be undone at end of function
     Vector_t rmin, rmax;
     bounds(PData.R, rmin, rmax);
-    Vector_t factor = this->domainMapping(PData, 1.25 * rmin, 1.25 * rmax,
+    double factor = this->domainMapping(PData, 1.25 * rmin, 1.25 * rmax,
                                           lowerBound, upperBound);
     
 //     std::cout << "BoxLibLayout::update()" << std::endl;
@@ -628,21 +628,24 @@ int BoxLibLayout<T, Dim>::MaxRefRatio (int level) const {
 
 
 template <class T, unsigned Dim>
-Vector_t BoxLibLayout<T, Dim>::domainMapping(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
+double BoxLibLayout<T, Dim>::domainMapping(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
                                              const Vector_t& lold,
                                              const Vector_t& uold,
                                              const Vector_t& lnew,
                                              const Vector_t& unew)
 {
     // [lold, uold] --> [lnew, unew]
-    Vector_t invdiff = 1.0 / ( lold - uold );
-    Vector_t slope = ( lnew - unew ) * invdiff;
-    Vector_t intercept = ( lold * unew - uold * lnew ) * invdiff;
+    Vector_t invdiff = 1.0 / ( uold - lold );
+    Vector_t slope = ( unew - lnew ) * invdiff;
+    Vector_t intercept = ( uold * lnew - lold * unew ) * invdiff;
     
     for (unsigned int i = 0; i < PData.getLocalNum(); ++i)
-        PData.R[i] = slope * PData.R[i] - intercept;
+        PData.R[i] = slope * PData.R[i] + intercept;
     
-    return ( unew - lnew ) / ( uold - lold );
+    Vector_t dnew = unew - lnew;
+    Vector_t dold = uold - lold;
+    
+    return  std::sqrt( dot(dnew, dnew) / dot(dold, dold) ); //( unew - lnew ) / ( uold - lold );
 }
 
 #endif

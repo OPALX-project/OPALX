@@ -179,7 +179,8 @@ void FMGPoissonSolver::initGrids_m(const AmrFieldContainer_t& rho,
         phi[lev].reset(   new AmrField_t(ba, dmap, 1,           1) );
         efield[lev].reset(new AmrField_t(ba, dmap, 3,           1) );
         
-        phi[lev]->setVal(0.0);
-        efield[lev]->setVal(0.0);
+        // including nghost = 1
+        phi[lev]->setVal(0.0, 1);
+        efield[lev]->setVal(0.0, 1);
     }
 }

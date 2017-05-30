@@ -302,11 +302,11 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
 //     bunch_mp->python_format(0); std::cout << "Written." << std::endl;
     
     
-    Vector_t factor = layout_mp->domainMapping(*amrpbase_p, 1.25 * rmin, 1.25 * rmax,
+    double factor = layout_mp->domainMapping(*amrpbase_p, 1.25 * rmin, 1.25 * rmax,
                                                layout_mp->lowerBound,
                                                layout_mp->upperBound);
     
-//     bunch_mp->python_format(1); std::cout << "Written." << std::endl; std::cin.get();
+    bunch_mp->python_format(1); std::cout << "Written." << std::endl; std::cin.get();
     
     
     /// from charge (C) to charge density (C/m^3).
@@ -328,6 +328,9 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     /// In particle rest frame, the longitudinal length (y for cyclotron) enlarged
     for (int i = 0; i <= finest_level; ++i) {
         this->rho_m[i]->mult(invGamma / scalefactor, 0 /*comp*/, 1 /*ncomp*/);
+        
+        if ( this->rho_m[i]->contains_nan(false) )
+            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ", "NANs at level " + std::to_string(i) + ".");
     }
     
     
@@ -377,6 +380,20 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     solver->solve(rho_m, phi_m, eg_m, baseLevel, finest_level);
     IpplTimings::stopTimer(bunch_mp->compPotenTimer_m);
     
+    for (int i = 0; i <= finest_level; ++i) {
+        if ( this->eg_m[i]->contains_nan(false) )
+            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ", "Ef: NANs at level " + std::to_string(i) + ".");
+    }
+    
+    for (int i = 0; i <= finest_level; ++i) {
+        
+        std::cout << i << ": " << this->phi_m[i]->nGrow() << " "
+                  << this->phi_m[i]->min(0, 1) << " " << this->phi_m[i]->max(0, 1) << std::endl;
+        
+        if ( this->phi_m[i]->contains_nan(false) )
+            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ", "Pot: NANs at level " + std::to_string(i) + ".");
+    }
+    
 #ifdef DBG_SCALARFIELD
     INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
     std::ofstream fstr2;
@@ -392,7 +409,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
         for (int x = bx.loVect()[0]; x <= bx.hiVect()[0]; ++x) {
             for (int y = bx.loVect()[1]; y <= bx.hiVect()[1]; ++y) {
                 for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; ++z) {
-                    IntVect iv(x, y, z);
+                    AmrIntVect_t iv(x, y, z);
                     // add one in order to have same convention as PartBunch::computeSelfField()
                     fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " "
                           << fab(iv, 0)  << std::endl;
@@ -452,11 +469,14 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     factor = layout_mp->domainMapping(*amrpbase_p, layout_mp->lowerBound,
                                       layout_mp->upperBound, 1.25 * rmin, 1.25 * rmax);
     
-//     std::cout << "factor = " << factor << std::endl; std::cin.get();
     factor *= factor;
+//     std::cout << "factor = " << factor << std::endl; std::cin.get();
     
-    bunch_mp->Ef *= Vector_t(gamma * scalefactor / factor[0], invGamma * scalefactor / factor[1], gamma * scalefactor / factor[2]);
+    bunch_mp->Ef *= Vector_t(gamma * scalefactor / factor, invGamma * scalefactor / factor, gamma * scalefactor / factor);
     
+    Vector_t emin, emax;
+    bounds(bunch_mp->Ef, emin, emax);
+    std::cout << emin << " " << emax << std::endl; std::cin.get();
 //     std::cout << bunch_mp->Ef[0] << std::endl; std::cin.get();
     
     /// calculate coefficient
@@ -543,10 +563,10 @@ void AmrBoxLib::RemakeLevel (int lev, AmrReal_t time,
     SetDistributionMap(lev, new_dmap);
     
     nChargePerCell_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1, 1));
-    nChargePerCell_m[lev]->setVal(0.0);
+    nChargePerCell_m[lev]->setVal(0.0, 1);
     
     rho_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1, 1));
-    rho_m[lev]->setVal(0.0);
+    rho_m[lev]->setVal(0.0, 1);
     
     /*
      * particles need to know the BoxArray
@@ -566,11 +586,11 @@ void AmrBoxLib::MakeNewLevel (int lev, AmrReal_t time,
     
     
     nChargePerCell_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1, 1));
-    nChargePerCell_m[lev]->setVal(0.0);
+    nChargePerCell_m[lev]->setVal(0.0, 1);
     
     
     rho_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1, 1));
-    rho_m[lev]->setVal(0.0);
+    rho_m[lev]->setVal(0.0, 1);
     
     
     /*
@@ -612,13 +632,13 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags, AmrReal_t ti
     
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     for (int i = lev; i <= finest_level; ++i)
-        nChargePerCell_m[i]->setVal(0.0);
+        nChargePerCell_m[i]->setVal(0.0, 1);
     
     // bring on Amr domain
     Vector_t rmin, rmax;
     bounds(bunch_mp->R, rmin, rmax);
     
-    Vector_t factor = layout_mp->domainMapping(*amrpbase_p, 1.25 * rmin, 1.25 * rmax,
+    double factor = layout_mp->domainMapping(*amrpbase_p, 1.25 * rmin, 1.25 * rmax,
                                                layout_mp->lowerBound,
                                                layout_mp->upperBound);
     
@@ -682,7 +702,7 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray_t& tags, AmrReal_
     nPartPerCell[baseLevel] = std::unique_ptr<AmrField_t>(new AmrField_t(this->boxArray(lev),
                                                                          this->DistributionMap(lev),
                                                                          1, 1));
-    nPartPerCell[baseLevel]->setVal(0.0);
+    nPartPerCell[baseLevel]->setVal(0.0, 1);
     
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     // single level scatter
@@ -774,7 +794,7 @@ void AmrBoxLib::tagForEfield_m(int lev, TagBoxArray_t& tags, AmrReal_t time, int
     nPartPerCell[baseLevel] = std::unique_ptr<AmrField_t>(new AmrField_t(this->boxArray(lev),
                                                                          this->DistributionMap(lev),
                                                                          1, 1));
-    nPartPerCell[baseLevel]->setVal(0.0);
+    nPartPerCell[baseLevel]->setVal(0.0, 1);
     
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     // single level scatter
