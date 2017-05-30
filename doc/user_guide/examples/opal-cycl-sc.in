@@ -4,30 +4,31 @@ Option, ECHO=FALSE;
 Option, PSDUMPFREQ=10;
 Option, SPTDUMPFREQ=5;
 Option, REPARTFREQ=10;
+Option, VERSION=10600;
 
 // Define title
 Title,string="OPAL-CyclT-SC test";
 
 // define some physical parameters 
-Edes=0.000870;
-gamma=(Edes+PMASS)/PMASS;
-beta=sqrt(1-(1/gamma^2));
-gambet=gamma*beta;
-P0 = gamma*beta*PMASS;
-brho = (PMASS*1.0e9*gambet) / CLIGHT;
+REAL Edes=0.000870;
+REAL gamma=(Edes+PMASS)/PMASS;
+REAL beta=sqrt(1-(1/gamma^2));
+REAL gambet=gamma*beta;
+REAL P0 = gamma*beta*PMASS;
+REAL brho = (PMASS*1.0e9*gambet) / CLIGHT;
 
-phi01= 48.4812-15.0;
-phi02=phi01+200.0;
-phi03=phi01+1800.0;
-phi04=phi01+2000.0;
-phi05=(phi01+820.0)*3.0;
-phi06=(phi01+2620.0)*3.0;
+REAL phi01= 48.4812-15.0;
+REAL phi02=phi01+200.0;
+REAL phi03=phi01+1800.0;
+REAL phi04=phi01+2000.0;
+REAL phi05=(phi01+820.0)*3.0;
+REAL phi06=(phi01+2620.0)*3.0;
 
-frequency=50.6370;
-frequency3=3.0*frequency;
+REAL frequency=50.6370;
+REAL frequency3=3.0*frequency;
 
-turns = 106;
-nstep=5000;
+REAL turns = 106;
+REAL nstep=5000;
 
 // define elements and beamline
 inj2: Cyclotron, TYPE="Injector2", CYHARMON=10, PHIINIT=30.0, 

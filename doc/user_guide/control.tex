@@ -103,7 +103,7 @@ OPTION,ECHO=logical,INFO=logical,TRACE=logical,
        VERIFY=logical,WARN=logical,
        SEED=real,PSDUMPFREQ=integer,
        STATDUMPFREQ=integer, SPTDUMFREQ=integer,
-       REPARTFREQ=integer, REBINFREQ=integer, TELL=logical;
+       REPARTFREQ=integer, REBINFREQ=integer, TELL=logical, VERSION=integer;
 \end{example}
 
 \begin{description}
@@ -382,6 +382,10 @@ OPTION,SEED=987456321
          \keyword{BEAMHALOBOUNDARY}  & = \texttt{0.0}        &
          \keyword{CLOTUNEONLY}       & = \keyword{FALSE}     \\
       \hline
+         \keyword{VERSION}           & = \texttt{none}       &
+         & &
+         & \\
+      \hline
     \end{tabular}
   \end{center}
 \end{table}
@@ -583,10 +587,10 @@ any operands and prints the results on the standard error file.
 
 \noindent Example:
 \begin{example}
-A=4;
+REAL A=4;
 VALUE,VALUE=TABLE(5,#*A);
-P1=5;
-P2=7;
+REAL P1=5;
+REAL P2=7;
 VALUE,VALUE={P1,P2,P1*P2-3};
 \end{example}
 These commands give the results:
