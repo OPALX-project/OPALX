@@ -189,7 +189,7 @@ public:
      * 
      * [a, b] --> [c, d]
      * 
-     * y = (c - d) / (a - b) * x + (a * d - b * c) / (a - b)
+     * y = (d - c) / (b - a) * x + (b * c - a * d) / (b - a)
      * 
      * @param PData is the particle data
      * @param lold old lower bound
@@ -198,7 +198,7 @@ public:
      * @param unew new upper bound
      * @returns scaling factor
      */
-    Vector_t domainMapping(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
+    double domainMapping(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
                            const Vector_t& lold,
                            const Vector_t& uold,
                            const Vector_t& lnew,
