@@ -12,56 +12,6 @@ module load OPAL/1.6.0
 \end{example}
 \end{footnotesize}
 
-\section{Build unit tests} \label{chp:unittest}
-Some portions of \opal can be tested using \emph{unit tests}. Unit tests are implemented to ensure that a particular unit e.g. a function or class works as intended. \opal uses the google testing \emph{gtest} framework to support unit tests. Documentation can be found at \url{https://code.google.com/p/googletest/w/list}.
-
-The \opal unit tests are by default not built. To build the unit tests, first gtest must be installed.
-
-\begin{example}
-cd ${OPAL_ROOT}/tests/tools
-bash install_gtest.bash
-\end{example}
-
-This will check that you have the required packages to build gtest, download the gtest source code from the google website and attempt to build it.
-
-Next modify the cmake files to flag that the unit tests need to be built.
-\begin{example}
-cd ${OPAL_BUILD_ROOT}/
-cmake -DBUILD_OPAL_UNIT_TESTS=1
-make
-\end{example}
-If all goes well, the unit tests should build. To execute the tests, do
-\begin{example}
-cd ${OPAL_BUILD_ROOT}/
-./tests/opal_unit_tests
-\end{example}
-You should get output that looks like e.g.
-\begin{example}
-[==========] Running 47 tests from 8 test cases.
-[----------] Global test environment set-up.
-[----------] 6 tests from OpalRingSectionTest
-[ RUN      ] OpalRingSectionTest.TestConstructDestruct
-[       OK ] OpalRingSectionTest.TestConstructDestruct (0 ms)
-<snip>
-[ RUN      ] PolynomialTimeDependenceTest.TDMapNameLookupTest
-[       OK ] PolynomialTimeDependenceTest.TDMapNameLookupTest (0 ms)
-[----------] 3 tests from PolynomialTimeDependenceTest (0 ms total)
-
-[----------] Global test environment tear-down
-[==========] 47 tests from 8 test cases ran. (25 ms total)
-[  PASSED  ] 47 tests.
-
-  YOU HAVE 1 DISABLED TEST
-\end{example}
-If the output does not end in PASSED then something failed. Review the test output to find the test failure.
-
-\subsubsection{Adding a unit test}
-To add a unit test to the \opal framework, either edit an existing file or add a new file. In general, there should be one unit test per pair of header, source files. The directory structure reflects \opal directory structure. Source code that is in \verb|${OPAL_ROOT}/classic/5.0/src/<dir>/<Filename.h,cpp>| should have corresponding unit test files in \verb|${OPAL_ROOT}/src/unit_tests/classic_src/<dir>/<FilenameTest.cpp>|. Source code that is in \verb|${OPAL_ROOT}/src/<dir>/<Filename.h,cpp>| should have corresponding unit test files in \verb|${OPAL_ROOT}/src/unit_tests/opal_src/<dir>/<FilenameTest.cpp>|. To update the list of files used by cmake, do
-\begin{example}
-touch ${OPAL_ROOT}/CMakeLists.txt
-\end{example}
-Then run \verb|make| as usual.
-
 \section{Using pre-build Binaries}
 Pre-build binaries are available for SL Linux  and Mac OS X at the following download page: \url{https://amas.psi.ch/OPAL/wiki/Downloads}.
 
@@ -148,19 +98,6 @@ make
 \end{example}
 \end{footnotesize}
 
-Notes:
-The members should appear in the initializer list in the same order as they
-appear in the class or turn -Wno-reorder.
-C++11 language features are available in gcc 4.3 and later versions. To enable
-this support, add \texttt{-std=c++0x} to your command line if you are using gcc 4.6
-OR \texttt{-std=c++11} if you are using gcc 4.7 and later.
-\externalref{
-The following packages must be pre-installed: \texttt{mkl-10.0\_em64t, parmetis, SuperLUDist}.
-
-If using CMake you can enable the solver with\\
-\texttt{cmake -D ENABLE\_SAAMG\_SOLVER=TRUE \$OPAL\_ROOT} and make sure the \texttt{TRILINOS\_INCLUDE\_PATH} environment variable points to the directory containing the Trilinos header files.
-}
-
 \subsection{Build \opal with AMR\_SOLVER enabled}
 {\bf AMReX} \footnote{\url{https://ccse.lbl.gov/AMReX}} software framework is used in \opal\  to add the adaptive mesh
 refinement (AMR) technique. You can enable AMR solver with {\tt -DENABLE\_AMR\_SOLVER=TRUE} using cmake.
@@ -185,14 +122,6 @@ export AMREX_PERL_DIR=$AMREX_HOME/perl
 \end{example}
  \label{subsec:envvar_AMR}
 \end{footnotesize}
-
-%Notes:
-%The members should appear in the initializer list in the same order as they
-%appear in the class or turn -Wno-reorder.
-
-\externalref{
-The following packages must be pre-installed: \texttt{xxx}.
-}
 
 \subsubsection{AMReX Package}
 \label{ssubsection:AMRexBuild}
@@ -292,5 +221,55 @@ keywords, constants etc.
 The regression rest repository can be found at \url{git@gitlab.psi.ch:OPAL/regression-tests.git}. Several test can be found which are
 run on every source code change in order to check the validity of the current version of \opal. This is a good starting-point to learn how to
 model accelerators with the various flavours of \opal.
+
+\section{Build unit tests} \label{chp:unittest}
+Some portions of \opal can be tested using \emph{unit tests}. Unit tests are implemented to ensure that a particular unit e.g. a function or class works as intended. \opal uses the google testing \emph{gtest} framework to support unit tests. Documentation can be found at \url{https://code.google.com/p/googletest/w/list}.
+
+The \opal unit tests are by default not built. To build the unit tests, first gtest must be installed.
+
+\begin{example}
+cd ${OPAL_ROOT}/tests/tools
+bash install_gtest.bash
+\end{example}
+
+This will check that you have the required packages to build gtest, download the gtest source code from the google website and attempt to build it.
+
+Next modify the cmake files to flag that the unit tests need to be built.
+\begin{example}
+cd ${OPAL_BUILD_ROOT}/
+cmake -DBUILD_OPAL_UNIT_TESTS=1
+make
+\end{example}
+If all goes well, the unit tests should build. To execute the tests, do
+\begin{example}
+cd ${OPAL_BUILD_ROOT}/
+./tests/opal_unit_tests
+\end{example}
+You should get output that looks like e.g.
+\begin{example}
+[==========] Running 47 tests from 8 test cases.
+[----------] Global test environment set-up.
+[----------] 6 tests from OpalRingSectionTest
+[ RUN      ] OpalRingSectionTest.TestConstructDestruct
+[       OK ] OpalRingSectionTest.TestConstructDestruct (0 ms)
+<snip>
+[ RUN      ] PolynomialTimeDependenceTest.TDMapNameLookupTest
+[       OK ] PolynomialTimeDependenceTest.TDMapNameLookupTest (0 ms)
+[----------] 3 tests from PolynomialTimeDependenceTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 47 tests from 8 test cases ran. (25 ms total)
+[  PASSED  ] 47 tests.
+
+  YOU HAVE 1 DISABLED TEST
+\end{example}
+If the output does not end in PASSED then something failed. Review the test output to find the test failure.
+
+\subsubsection{Adding a unit test}
+To add a unit test to the \opal framework, either edit an existing file or add a new file. In general, there should be one unit test per pair of header, source files. The directory structure reflects \opal directory structure. Source code that is in \verb|${OPAL_ROOT}/classic/5.0/src/<dir>/<Filename.h,cpp>| should have corresponding unit test files in \verb|${OPAL_ROOT}/src/unit_tests/classic_src/<dir>/<FilenameTest.cpp>|. Source code that is in \verb|${OPAL_ROOT}/src/<dir>/<Filename.h,cpp>| should have corresponding unit test files in \verb|${OPAL_ROOT}/src/unit_tests/opal_src/<dir>/<FilenameTest.cpp>|. To update the list of files used by cmake, do
+\begin{example}
+touch ${OPAL_ROOT}/CMakeLists.txt
+\end{example}
+Then run \verb|make| as usual.
 
 \input{footer}
