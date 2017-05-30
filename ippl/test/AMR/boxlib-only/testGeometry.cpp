@@ -1,14 +1,35 @@
+/*!
+ * @file testGeometry.cpp
+ * @author Matthias Frey
+ * @date May 2017
+ * @details Init particles inside the domain [0, 0.5]^3 and the update
+ * the geometry to [0.15, 0.35]^3. Some particles will be lost due to
+ * the geometry change.
+ */
 #include <iostream>
 
-#include <BoxLib.H>
-#include <MultiFab.H>
-#include <MultiFabUtil.H>
-#include <Particles.H>
+#include <AMReX.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_Particles.H>
 
 #include <random>
 
+/* NStructReal = 3 (mass, position are already reserved)
+ * 
+ * p.m_rdata.arr[0] = pos x
+ * p.m_rdata.arr[1] = pos y
+ * p.m_rdata.arr[2] = pos z
+ * p.m_rdata.arr[3] = mass
+ * p.m_rdata.arr[4] = momenta x
+ * p.m_rdata.arr[5] = momenta y
+ * p.m_rdata.arr[6] = momenta z
+ */
+
+using namespace amrex;
+
 class MyParticleContainer
-    : public ParticleContainer<1+2*BL_SPACEDIM>
+    : public ParticleContainer<BL_SPACEDIM>
 {
 public:
 
@@ -16,7 +37,7 @@ public:
                         const Array<DistributionMapping> & dmap,
                         const Array<BoxArray>            & ba,
                         const Array<int>                 & rr)
-        : ParticleContainer<1+2*BL_SPACEDIM> (geom, dmap, ba, rr)
+        : ParticleContainer<BL_SPACEDIM> (geom, dmap, ba, rr), particles_rm(GetParticles())
         {
         }
 
@@ -41,10 +62,10 @@ public:
         const Real* xlo = containing_bx.lo();
         const Real* xhi = containing_bx.hi();
         
-        m_particles.resize(m_gdb->finestLevel()+1);
+        particles_rm.resize(m_gdb->finestLevel()+1);
         
-        for (int lev = 0; lev < m_particles.size(); lev++)
-            BL_ASSERT(m_particles[lev].empty());
+        for (int lev = 0; lev < particles_rm.size(); lev++)
+            BL_ASSERT(particles_rm[lev].empty());
         
         std::mt19937_64 mt(0/*seed*/ /*0*/);
         std::normal_distribution<double> dist(0.0, 0.07);
@@ -53,13 +74,13 @@ public:
         // positions no matter how many CPUs we have.  This is here
         // mainly for debugging purposes.  It's not really useful for
         // very large numbers of particles.
-        Array<ParticleBase::RealType> pos(icount*BL_SPACEDIM);
+        Array<typename ParticleType::RealType> pos(icount*BL_SPACEDIM);
         
         if (ParallelDescriptor::IOProcessor()) {
             for (long j = 0; j < icount; j++) {
                 for (int i = 0; i < BL_SPACEDIM; i++) {
                     do {
-                        x = dist(mt) + 0.5;
+                        x = dist(mt) + 0.25;
                     }
                     while (x < xlo[i] || x > xhi[i]);
                     
@@ -71,30 +92,35 @@ public:
         // Send the particle positions to other procs (this is very slow)
         ParallelDescriptor::Bcast(pos.dataPtr(), icount*BL_SPACEDIM, IOProc);
         
+        ParticleLocData pld;
+        
         int cnt = 0;
         for (long j = 0; j < icount; j++) {
             ParticleType p;
             
             for (int i = 0; i < BL_SPACEDIM; i++)
-                p.m_pos[i] = pos[j*BL_SPACEDIM + i];
+                p.m_rdata.arr[i] = pos[j*BL_SPACEDIM + i];
         
-            p.m_data[0] = mass;
+            p.m_rdata.arr[BL_SPACEDIM] = mass;
             
-            for (int i = 1; i < 1 + 2*BL_SPACEDIM; i++)
-                p.m_data[i] = 0;
+            // momenta
+//             for (int i = 1; i < 1 + BL_SPACEDIM; i++)
+                p.m_rdata.arr[4/*BL_SPACEDIM + i*/] = 0.0;
+                p.m_rdata.arr[5/*BL_SPACEDIM + i*/] = 0.0;
+                p.m_rdata.arr[6/*BL_SPACEDIM + i*/] = 0.0;
 
-            if (!ParticleBase::Where(p,m_gdb))
-                BoxLib::Abort("invalid particle");
+            if (!this->Where(p, pld))
+                amrex::Abort("invalid particle");
         
-            BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
+            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
             
-            const int who = m_gdb->ParticleDistributionMap(p.m_lev)[p.m_grid];
+            const int who = ParticleDistributionMap(pld.m_lev)[pld.m_grid];
             
             if (who == MyProc) {
-                p.m_id  = ParticleBase::NextID();
-                p.m_cpu = MyProc;
+                p.m_idata.id  = ParticleType::NextID();
+                p.m_idata.cpu = MyProc;
                 
-                m_particles[p.m_lev][p.m_grid].push_back(p);
+                particles_rm[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
                 
                 cnt++;
             }
@@ -112,14 +138,23 @@ public:
             std::cout << rb.lo(n) << " " << rb.hi(n) << std::endl;
         }
         
-        
-        for (int lev = 0; lev < m_particles.size(); lev++) {
+        for (int lev = 0; lev < particles_rm.size();  lev++) {
             std::cout << "level = " << lev << std::endl;
-            for (int grid = 0; grid < m_particles[lev].size(); ++grid)
-                for (int p = 0; p < m_particles[lev][grid].size(); ++p)
-                    std::cout << m_particles[lev][grid][p].m_pos[0] << " "
-                              << m_particles[lev][grid][p].m_pos[1] << " "
-                              << m_particles[lev][grid][p].m_pos[2] << std::endl;
+            auto& pmap = particles_rm[lev];
+            for (const auto& kv : pmap) {
+                const auto& aos = kv.second.GetArrayOfStructs();
+                
+                for (auto it = aos.cbegin(); it != aos.cend(); ++it) {
+                    if (it->m_idata.id > 0) {
+
+                        // write out the particle struct first... 
+                        std::cout << it->m_rdata.pos[0] << ' '
+                                  << it->m_rdata.pos[1] << ' '
+                                  << it->m_rdata.pos[2] << ' '
+                                  << std::endl;	     
+                    }
+                }
+            }
         }
     }
     
@@ -140,7 +175,7 @@ public:
         for (int i = 0; i < BL_SPACEDIM; i++) 
             is_per[i] = 0; 
         
-        int nlevs = m_particles.size();
+        int nlevs = GetParticles().size();
         int ngrids = 32;
         int max_grid_size = 8;
         
@@ -157,7 +192,7 @@ public:
         Array<Geometry> geom(nlevs);
         geom[0].define(domain, &real_box, coord, is_per);
         for (int lev = 1; lev < nlevs; lev++) {
-            geom[lev].define(BoxLib::refine(geom[lev-1].Domain(), rr[lev-1]),
+            geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
                             &real_box, coord, is_per);
         }
     
@@ -184,7 +219,10 @@ public:
         
         this->Define(geom, dmap, ba, rr);
     }
-        
+    
+    
+private:
+    Array<ParticleLevel>& particles_rm;
 };
 
 void testGeometry() {
@@ -221,8 +259,8 @@ void testGeometry() {
     Array<Geometry> geom(nlevs);
     geom[0].define(domain, &real_box, coord, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
-	geom[lev].define(BoxLib::refine(geom[lev-1].Domain(), rr[lev-1]),
-			 &real_box, coord, is_per);
+        geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
+                         &real_box, coord, is_per);
     }
 
     Array<BoxArray> ba(nlevs);
@@ -243,7 +281,7 @@ void testGeometry() {
     Array<DistributionMapping> dmap(nlevs);
     for (int lev = 0; lev < nlevs; lev++) {
         ba[lev].maxSize(max_grid_size);
-        dmap[lev].define(ba[lev], ParallelDescriptor::NProcs() /*nprocs*/);
+        dmap[lev].define(ba[lev]);
     }
     
     
@@ -258,11 +296,11 @@ void testGeometry() {
     
     myPC.printParticles();
     
-    myPC.Redistribute(false, true, 0, 0);
+    myPC.Redistribute();
     
-    myPC.updateGeometry(0.4, 0.6);
+    myPC.updateGeometry(0.15, 0.35);
     
-    myPC.Redistribute(false, true, 0, 0);
+    myPC.Redistribute();
     
     myPC.printParticles();
     
@@ -270,11 +308,11 @@ void testGeometry() {
 
 int main(int argc, char* argv[]) {
     
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
   
     testGeometry();
   
-    BoxLib::Finalize();
+    amrex::Finalize();
     
     return 0;
 }
