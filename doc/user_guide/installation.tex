@@ -8,248 +8,9 @@
 using the module command:
 \begin{footnotesize}
 \begin{example}
-module load opal
+module load OPAL/1.6.0
 \end{example}
 \end{footnotesize}
-Due to some incompatibilities, between the Intel compiler and the Gnu libraries, you have to use GCC 4.5 in combination with Intel 12.1. Next we describe
-the installation process for the GNU 4.6.3 compiler.
-\section{Build and install \opal on a Mac \& Linux}
-\subsection{Supporting Libraries}
-Several libraries and tools must be present before starting with the actual \opal installation process described in \seesec{instmacclop}.
-The following packages are maybe already installed. Please check the versions carefully and do not use older ones. For a Linux installation
-you can skip \texttt{macport} and \texttt{Xcode} related software.
-\begin{itemize}
-\item macport from \url{https://www.macports.org}
-\item Xcode \url{https://developer.apple.com/xcode/}
-\item automake-1.10.2
-\item autoconf-2.64
-\item libtool-2.2
-\item cmake-2.8.4
-\end {itemize}
-
-
-\subsection{Environment Variables}
-\label{ssec:envvar}
-Assuming \opal resides in \filename{\$HOME/svnwork}, the following
-environment variables must be set accordingly:
-\begin{footnotesize}
-\begin{example}
-export OPAL_ROOT=$HOME/svnwork/OPAL/
-export CLASSIC_ROOT=$OPAL_ROOT/classic/5.0/
-\end{example}
-\end{footnotesize}
-
-
-\subsubsection{Build/Install gcc (4.6.3) Mac}
-
-\begin{footnotesize}
-\begin{example}
-sudo port install gcc46
-\end{example}
-\end{footnotesize}
-
-\subsubsection{Build/Install gsl (1.14) Mac}
-\begin{footnotesize}
-\begin{example}
-sudo port install gsl
-\end{example}
-\end{footnotesize}
-
-\subsubsection{Build/Install OpenMPI (openmpi-1.4.3) Mac \& Linux}
-\begin{footnotesize}
-\begin{example}
-CC=gcc CXX=g++ F77=gfortran ./configure
-\end{example}
-\end{footnotesize}
-
-\subsubsection{Build/Install HDF5 1.8.7 Mac \& Linux}
-\begin{footnotesize}
-\begin{example}
-./configure --enable-parallel --prefix=/usr/local
-
-Libraries have been installed in:
-   /usr/local/lib
-
-If you ever happen to want to link against installed libraries
-in a given directory, LIBDIR, you must either use libtool, and
-specify the full path name of the library, or use the `-LLIBDIR'
-flag during linking and do at least one of the following:
-   - add LIBDIR to the `DYLD_LIBRARY_PATH' environment variable
-     during execution
-
-See any operating system documentation about shared libraries
-for more information, such as the ld(1) and ld.so(8) manual
-pages.
-\end{example}
-\end{footnotesize}
-
-\subsubsection{H5hut (1.99.12) Mac \& Linux}
-The tarball can be found at:
-\begin{center}
-%\url{svn+ssh://savannah02.psi.ch/repos/H5hut/src/tags/1.99.11}
-\url{amas.psi.ch/H5hut/wiki/H5hutDownload}
-\end{center}
-Now we can build and install the package:
-\begin{footnotesize}
-\begin{example}
-./autogen.sh
-./configure --enable-parallel --prefix=prefixdir
-make
-make install
-\end{example}
-\end{footnotesize}
-Add to your \filename{.bashrc}:
-\begin{footnotesize}
-\begin{example}
-export C_INCLUDE_PATH=prefixdir/include:$C_INCLUDE_PATH
-export CPLUS_INCLUDE_PATH=prefixdir/include:$CPLUS_INCLUDE_PATH
-export LIBRARY_PATH=prefixdirlib:$LIBRARY_PATH
-export LD_LIBRARY_PATH=prefixdir/lib:$LD_LIBRARY_PATH
-\end{example}
-\end{footnotesize}
-
-With gitorius:
-\begin{enumerate}
-\item Login to \texttt{gitorious.psi.ch} with your PSI username/password
-\item upload your public key(s)
-\item clone repo: \texttt{git clone git@gitorious.psi.ch:h5hut/src.git}
-\end{enumerate}
-
-\subsection{Installing \opal} \label{sec:instmacclop}
-The following svn checkout \footnote{If you can not checkout the sources
-send an email to \url{andreas.adelmann@psi.ch}.}
-\begin{footnotesize}
-\begin{example}
-cd $OPAL_ROOT
-svn+ssh://savannah02.psi.ch/repos/opal/src .
-\end{example}
-\end{footnotesize}
-\begin{center}
-\end{center}
-will get you the trunk of the repository. Now  install \opal \footnote{We encountered in some cases a problem when the build
-directory is under \texttt{\$OPAL\_ROOT}}
-\begin{footnotesize}
-\begin{example}
-mkdir build
-cd build
-CXX=mpicxx cmake -DCMAKE_BUILD_TYPE=RELEASE $OPAL_ROOT
-\end{example}
-Use \texttt{-DCMAKE\_BUILD\_TYPE=DEBUG} to enable \texttt{-g}.
-\end{footnotesize}
-
-\section{Cray XE6 Installation -- outdated} \label{sec:crayXE6}
-These notes are for installing \opal on \texttt{Hopper} at the National Energy Research
-Scientific Computing Center (NERSC). NERSC is an open science computing center sponsored by the
-U.S. Department of Energy and located at Lawrence Berkeley National Laboratory (LBL). \texttt{Hopper} is
-a Cray XE6 system and, at the time of this writing, is their premier super computer.
-
-The instructions below work, but you may want to modify them depending on where you prefer various
-codes and libraries to be located or if you are on a similar Cray system.
-
-\subsection{.bash\_profile.ext File}
-Edit the \filename{.bash\_profile.ext} file in your home directory. Add the following lines.
-\begin{example}
-if [ $NERSC_HOST == "hopper" ]
-then
-   export PATH=$PATH:$HOME/hopper/bin
-   # Module files.
-   module load cmake
-   module load gsl
-   module load hdf5-parallel
-   module load zlib
-   module swap PrgEnv-pgi PrgEnv-gnu
-fi
-
-source $HOME/.bashrc
-\end{example}
-
-\subsection{.bashrc.ext File}
-Edit the  \filename{.bashrc.ext} file in your home directory. Add the following lines.
-\begin{example}
-if [ $NERSC_HOST == "hopper" ]
-then
-   # For OPAL.
-   export HDF5_INCLUDE_PATH=$CRAY_HDF5_DIR/hdf5-parallel-gnu/include
-   export HDF5_LIBRARY_PATH=$CRAY_HDF5_DIR/hdf5-parallel-gnu/lib
-   export H5hut=$HOME/hopper/extlib/H5hut-1.99.11
-   export GSL_PREFIX=$GSL_DIR
-   export OPAL_ROOT=$HOME/svnwork/OPAL
-   export CLASSIC_ROOT=$OPAL_ROOT/classic/5.0
-fi
-\end{example}
-These environment variables need to be set so we can build \opal. When you are done,
-issue the command:
-\begin{example}
-source $HOME/.bash_profile
-\end{example}
-
-\subsection{OPAL}
-To install \opal you will need to perform the following steps:
-\begin{enumerate}
-\item Install \textsc{H5hut}.
-\item Install \opal.
-\end{enumerate}
-
-\subsubsection{Install H5hut}
-
-\begin{enumerate}
-\item \verb+mkdir -p hopper/extlib+
-\item \verb+mkdir svnwork+
-\item \verb+cd $HOME/svnwork+
-\item Get the source code:
-
-\begin{example}
-\url{svn+ssh://savannah02.psi.ch/repos/H5hut/src/tags/1.99.11 H5hut-1.99.11}
-\end{example}
-\item \verb+cd H5hut-1.99.11+
-\item \verb+./autogen.h+
-\begin{example}
-export HDF5ROOT=$CRAY_HDF5_DIR/hdf5-parallel-gnu
-\end{example}
-\item
-\begin{example}
-./configure --prefix=$HOME/hopper/extlib/H5hut-1.99.9 \
-    --enable-parallel CFLAGS=-std=c99 CC=cc
-\end{example}
-\item \verb+make+
-\item \verb+make install+
-\end{enumerate}
-
-With gitorius:
-\begin{enumerate}
-\item Login to \texttt{gitorious.psi.ch} with your PSI username/password
-\item upload your public key(s)
-\item clone repo: \texttt{git clone git@gitorious.psi.ch:h5hut/src.git}
-\end{enumerate}
-
-\subsubsection{Install OPAL}
-
-\begin{enumerate}
-\item \verb+cd+
-\item \verb+cd svnwork+
-\item Get the source code:
-\begin{example}
-svn co --username username \
- svn+ssh://savannah02.psi.ch/repos/opal/src OPAL
-\end{example}
-\item
-\begin{example}
-cd $OPAL\_ROOT
-\end{example}
-\item
-\begin{example}
-CXX=CC cmake $OPAL_ROOT
-\end{example}
-\item \verb+make\verb+
-\item
-\begin{example}
-mkdir $HOME/hopper/bin
-\end{example}
-\item
-\begin{example}
-cp src/opal $HOME/hopper/bin
-\end{example}
-\end{enumerate}
 
 \section{Build unit tests} \label{chp:unittest}
 Some portions of \opal can be tested using \emph{unit tests}. Unit tests are implemented to ensure that a particular unit e.g. a function or class works as intended. \opal uses the google testing \emph{gtest} framework to support unit tests. Documentation can be found at \url{https://code.google.com/p/googletest/w/list}.
@@ -408,7 +169,7 @@ of BoxLib.
 
 \begin{footnotesize}
 \begin{example}
-export BOXLIB_HOME=$HOME/svnwork/BoxLib
+export BOXLIB_HOME=$HOME/git/BoxLib
 export BOXLIB_INSTALL_PREFIX=$BOXLIB_HOME/Build
 export CCSE_INCLUDE_DIRS=$BOXLIB_INSTALL_PREFIX/include
 export CCSE_LIBRARY_DIR=$BOXLIB_INSTALL_PREFIX/lib
@@ -441,7 +202,7 @@ The following packages must be pre-installed: \texttt{xxx}.
 You can download BoxLib from the LBNL CCSE server by typing the following command {\rm git clone}
 \begin{footnotesize}
 \begin{example}
-cd $HOME/svnwork
+cd $HOME/git
 git clone https://ccse.lbl.gov/pub/Downloads/BoxLib.git
 \end{example}
 \end{footnotesize}
@@ -449,7 +210,7 @@ git clone https://ccse.lbl.gov/pub/Downloads/BoxLib.git
 BoxLib based code designed to run in parallel using MPI, check the following environment variable
 before start building BoxLib.
 \begin{example}
-export BOXLIB_HOME=$HOME/svnwork/BoxLib
+export BOXLIB_HOME=$HOME/git/BoxLib
 export BOXLIB_INSTALL_PREFIX=$BOXLIB_HOME/Build
 export MPIHOME=/opt/openmpi/1.4.5/gcc-mp/4.7
 \end{example}
@@ -531,10 +292,9 @@ An opal-mode for emacs is provided to get highlighted input files. To use it the
 should be added to the emacs configuration file \filename{\$HOME/.emacs}. In case your input file has the extensions \filename{.opal} or \filename{.in}  you will enjoy highlighted
 keywords, constants etc.
 
-\section{Examples}
-When checking out the \opal framework you will find the \emph{tests} directory and moreover
-a sub-directory called \emph{RegressionTests}. There several input files can be found which are
-run every day to check the validity of the current version of \opal. This is a good starting-point to learn how to
-model accelerators with the various flavors of \opal. More examples will be given in subsequent chapters, enjoy!
+\section{Regression tests}
+The regression rest repository can be found at \url{git@gitlab.psi.ch:OPAL/regression-tests.git}. Several test can be found which are
+run on every source code change in order to check the validity of the current version of \opal. This is a good starting-point to learn how to
+model accelerators with the various flavours of \opal.
 
 \input{footer}

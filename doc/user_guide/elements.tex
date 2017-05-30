@@ -1532,12 +1532,12 @@ g(t) = p_0 + p_1 t + p_2 t^2 + p_3 t^3 %% + p_4 t^4
 An example of a Variable Frequency RF cavity of cyclotron with polynomial
 time dependence of parameters is given below:
 \begin{example}
-phi=2.*PI*0.25;
+REAL phi=2.*PI*0.25;
 
-rf_p0=0.00158279;
-rf_p1=9.02542e-10;
-rf_p2=-1.96663e-16;
-rf_p3=2.45909e-23;
+REAL rf_p0=0.00158279;
+REAL rf_p1=9.02542e-10;
+REAL rf_p2=-1.96663e-16;
+REAL rf_p3=2.45909e-23;
 
 RF_FREQUENCY: POLYNOMIAL_TIME_DEPENDENCE, P0=rf_p0, P1=rf_p1, P2=rf_p2, P3=rf_p3;
 RF_AMPLITUDE: POLYNOMIAL_TIME_DEPENDENCE, P0=1.0;
@@ -1803,14 +1803,14 @@ The width of the septum. [\si{\milli\meter}]
 
 \noindent Example:
 \begin{example}
-y1=-0.0;
-y2=0.0;
-y3=200.0;
-y4=205.0;
-x1=-215.0;
-x2=-220.0;
-x3=0.0;
-x4=0.0;
+REAL y1=-0.0;
+REAL y2=0.0;
+REAL y3=200.0;
+REAL y4=205.0;
+REAL x1=-215.0;
+REAL x2=-220.0;
+REAL x3=0.0;
+REAL x4=0.0;
 cmphys:particlematterinteraction, TYPE="Collimator", MATERIAL="Cu";
 cma1: CCollimator, XSTART=x1, XEND=x2,YSTART=y1, YEND=y2,
 ZSTART=2, ZEND=100, WIDTH=10.0, PARTICLEMATTERINTERACTION=cmphys ;
