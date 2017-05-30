@@ -1,6 +1,6 @@
 /*!
  * @file testDeposition.cpp
- * @details Fully BoxLib charge deposition timing. It initializes
+ * @details Fully AMReX charge deposition timing. It initializes
  *          Gaussian distribution and refines the centere eighth.
  * @authors Andrew Myers
  * @date February 2017
@@ -9,11 +9,11 @@
 
 #include <iostream>
 
-#include <BoxLib.H>
-#include <MultiFab.H>
-#include <MultiFabUtil.H>
-#include <Particles.H>
-#include <PlotFileUtil.H>
+#include <AMReX.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_Particles.H>
+#include <AMReX_PlotFileUtil.H>
 
 #include <chrono>
 
@@ -21,8 +21,21 @@ typedef std::chrono::time_point<std::chrono::high_resolution_clock> chrono_t;
 
 #include <random>
 
+using namespace amrex;
+
+/* NStructReal = 3 (mass, position are already reserved)
+ * 
+ * p.m_rdata.arr[0] = pos x
+ * p.m_rdata.arr[1] = pos y
+ * p.m_rdata.arr[2] = pos z
+ * p.m_rdata.arr[3] = mass
+ * p.m_rdata.arr[4] = momenta x
+ * p.m_rdata.arr[5] = momenta y
+ * p.m_rdata.arr[6] = momenta z
+ */
+
 class MyParticleContainer
-    : public ParticleContainer<1+2*BL_SPACEDIM>
+    : public ParticleContainer<BL_SPACEDIM /* momenta */>
 {
  public:
 
@@ -30,7 +43,7 @@ class MyParticleContainer
                         const Array<DistributionMapping> & dmap,
                         const Array<BoxArray>            & ba,
                         const Array<int>                 & rr)
-	: ParticleContainer<1+2*BL_SPACEDIM> (geom, dmap, ba, rr)
+	: ParticleContainer<BL_SPACEDIM> (geom, dmap, ba, rr), particles_rm(GetParticles())
         {
         }
 
@@ -55,10 +68,10 @@ class MyParticleContainer
         const Real* xlo = containing_bx.lo();
         const Real* xhi = containing_bx.hi();
         
-        m_particles.resize(m_gdb->finestLevel()+1);
+        particles_rm.resize(m_gdb->finestLevel()+1);
         
-        for (int lev = 0; lev < m_particles.size(); lev++)
-            BL_ASSERT(m_particles[lev].empty());
+        for (int lev = 0; lev < particles_rm.size(); lev++)
+            BL_ASSERT(particles_rm[lev].empty());
         
         std::mt19937_64 mt(0/*seed*/ /*0*/);
         std::normal_distribution<double> dist(0.0, 0.07);
@@ -67,13 +80,13 @@ class MyParticleContainer
         // positions no matter how many CPUs we have.  This is here
         // mainly for debugging purposes.  It's not really useful for
         // very large numbers of particles.
-        Array<ParticleBase::RealType> pos(icount*BL_SPACEDIM);
+        Array<typename ParticleType::RealType> pos(icount*BL_SPACEDIM);
         
         if (ParallelDescriptor::IOProcessor()) {
             for (long j = 0; j < icount; j++) {
                 for (int i = 0; i < BL_SPACEDIM; i++) {
                     do {
-                        x = dist(mt) + 0.5;
+                        x = dist(mt) + 0.25;
                     }
                     while (x < xlo[i] || x > xhi[i]);
                     
@@ -85,30 +98,35 @@ class MyParticleContainer
         // Send the particle positions to other procs (this is very slow)
         ParallelDescriptor::Bcast(pos.dataPtr(), icount*BL_SPACEDIM, IOProc);
         
+        ParticleLocData pld;
+        
         int cnt = 0;
         for (long j = 0; j < icount; j++) {
             ParticleType p;
             
             for (int i = 0; i < BL_SPACEDIM; i++)
-                p.m_pos[i] = pos[j*BL_SPACEDIM + i];
+                p.m_rdata.arr[i] = pos[j*BL_SPACEDIM + i];
         
-            p.m_data[0] = mass;
+            p.m_rdata.arr[BL_SPACEDIM] = mass;
             
-            for (int i = 1; i < 1 + 2*BL_SPACEDIM; i++)
-                p.m_data[i] = 0;
+            // momenta
+//             for (int i = 1; i < 1 + BL_SPACEDIM; i++)
+                p.m_rdata.arr[4/*BL_SPACEDIM + i*/] = 0.0;
+                p.m_rdata.arr[5/*BL_SPACEDIM + i*/] = 0.0;
+                p.m_rdata.arr[6/*BL_SPACEDIM + i*/] = 0.0;
 
-            if (!ParticleBase::Where(p,m_gdb))
-                BoxLib::Abort("invalid particle");
+            if (!this->Where(p, pld))
+                amrex::Abort("invalid particle");
         
-            BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
+            BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
             
-            const int who = m_gdb->ParticleDistributionMap(p.m_lev)[p.m_grid];
+            const int who = ParticleDistributionMap(pld.m_lev)[pld.m_grid];
             
             if (who == MyProc) {
-                p.m_id  = ParticleBase::NextID();
-                p.m_cpu = MyProc;
+                p.m_idata.id  = ParticleType::NextID();
+                p.m_idata.cpu = MyProc;
                 
-                m_particles[p.m_lev][p.m_grid].push_back(p);
+                particles_rm[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
                 
                 cnt++;
             }
@@ -116,6 +134,9 @@ class MyParticleContainer
     
         BL_ASSERT(OK());
     }
+    
+private:
+    Array<ParticleLevel>& particles_rm;
 };
 
 struct TestParams {
@@ -160,7 +181,7 @@ void test_assign_density(TestParams& parms)
     Array<Geometry> geom(nlevs);
     geom[0].define(domain, &real_box, coord, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
-	geom[lev].define(BoxLib::refine(geom[lev-1].Domain(), rr[lev-1]),
+	geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
 			 &real_box, coord, is_per);
     }
 
@@ -184,19 +205,18 @@ void test_assign_density(TestParams& parms)
     }
 
     Array<DistributionMapping> dmap(nlevs);
-    PArray<MultiFab> density;
-    PArray<MultiFab> partMF;  
-
-    density.resize(nlevs,PArrayManage);
-    partMF.resize(nlevs,PArrayManage);
+    Array<std::unique_ptr<MultiFab> > partMF(nlevs);
+    Array<std::unique_ptr<MultiFab> > density(nlevs);
+    
     for (int lev = 0; lev < nlevs; lev++) {
-	density.set     (lev,new MultiFab(ba[lev],1          ,0));
-	partMF.set      (lev,new MultiFab(ba[lev],1          ,1));
+        dmap[lev] = DistributionMapping{ba[lev]};
+        
+        partMF[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 1));
+        density[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 0));
 
-	density[lev].setVal(0.0);
-	partMF[lev].setVal(0.0, 1);
+        partMF[lev]->setVal(0.0, 1);
+        density[lev]->setVal(0.0);
 
-        dmap[lev] = density[lev].DistributionMap();
     }
 
     MyParticleContainer myPC(geom, dmap, ba, rr);
@@ -224,7 +244,7 @@ void test_assign_density(TestParams& parms)
 
 int main(int argc, char* argv[])
 {
-  BoxLib::Initialize(argc,argv);
+  amrex::Initialize(argc,argv);
   
   ParmParse pp;
   
@@ -236,7 +256,7 @@ int main(int argc, char* argv[])
   pp.get("max_grid_size", parms.max_grid_size);
   pp.get("nppc", parms.nppc);
   if (parms.nppc < 1 && ParallelDescriptor::IOProcessor())
-    BoxLib::Abort("Must specify at least one particle per cell");
+    amrex::Abort("Must specify at least one particle per cell");
   
   parms.verbose = false;
   pp.query("verbose", parms.verbose);
@@ -253,5 +273,5 @@ int main(int argc, char* argv[])
   
   test_assign_density(parms);
   
-  BoxLib::Finalize();
+  amrex::Finalize();
 }
