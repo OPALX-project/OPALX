@@ -89,7 +89,7 @@ If Trilinos version ($>$11.0) is not available on your system, download it from 
 Trilinos. Instructions for building Trilinos is available in \\
 {\url {http://trilinos.sandia.gov/TrilinosBuildQuickRef.html}}
 
-To build {\opal} with {SAAMG\_SOLVER} or {AMR\_SOLVER}, Trilinos packages, which are needed to be enabled are:
+To build {\opal} with {SAAMG\_SOLVER}, Trilinos packages, which are needed to be enabled are:
 \begin{itemize}
   \item epetra and epetraext
   \item ml and ml\_parmetis3x
@@ -109,7 +109,7 @@ and Third-Party Library (TPL) support
 \end{itemize}
 To enable a given TPL,  the path to this package's header include and library directories should be specified
 when building Trilinos. The TPL libraries such as \filename{libparmetis.a libmetis.a libblas.a liblapacke.a liblapack.a} are needed
-to use MultiGrid (SAAMG) and Adaptive Mesh Refinement (AMR) solvers.
+to use MultiGrid (SAAMG).
 
 \subsection{Environment Variables}
 \label{ssec:envvar_MG}
