@@ -162,21 +162,8 @@ If using CMake you can enable the solver with\\
 }
 
 \subsection{Build \opal with AMR\_SOLVER enabled}
-{\bf BoxLib} \footnote{\url{https://ccse.lbl.gov/BoxLib}} software framework is used in \opal  to add the adaptive mesh refinement (AMR) technique.
-You can enable AMR solver with\\ \texttt{-DENABLE\_AMR\_SOLVER=TRUE} using cmake. Please make sure the following
-environment variables are set and CCSE\_INCLUDE\_DIRS and CCSE\_LIB\_DIR point the path to the include and library directories
-of BoxLib.
-
-\begin{footnotesize}
-\begin{example}
-export BOXLIB_HOME=$HOME/git/BoxLib
-export BOXLIB_INSTALL_PREFIX=$BOXLIB_HOME/Build
-export CCSE_INCLUDE_DIRS=$BOXLIB_INSTALL_PREFIX/include
-export CCSE_LIBRARY_DIR=$BOXLIB_INSTALL_PREFIX/lib
-\end{example}
- \label{ssec:envvar_AMR}
-\end{footnotesize}
-
+{\bf AMReX} \footnote{\url{https://ccse.lbl.gov/AMReX}} software framework is used in \opal\  to add the adaptive mesh
+refinement (AMR) technique. You can enable AMR solver with {\tt -DENABLE\_AMR\_SOLVER=TRUE} using cmake.
 
 \begin{footnotesize}
 \begin{example}
@@ -187,45 +174,54 @@ cmake -DENABLE_AMR_SOLVER=TRUE $OPAL_ROOT
 make
 \end{example}
 \end{footnotesize}
+Please make sure the following environment variables are set:
+\begin{footnotesize}
+\begin{example}
+export AMREX_HOME=/path/to/target/directory
+export AMREX_PREFIX=$AMREX_HOME
+export AMREX_INCLUDE_DIR=$AMREX_HOME/include
+export AMREX_LIBRARY_DIR=$AMREX_HOME/lib
+export AMREX_PERL_DIR=$AMREX_HOME/perl
+\end{example}
+ \label{subsec:envvar_AMR}
+\end{footnotesize}
 
-Notes:
-The members should appear in the initializer list in the same order as they
-appear in the class or turn -Wno-reorder.
+%Notes:
+%The members should appear in the initializer list in the same order as they
+%appear in the class or turn -Wno-reorder.
 
 \externalref{
 The following packages must be pre-installed: \texttt{xxx}.
 }
 
-\subsubsection{BoxLib Package}
-\label{ssubsection:BoxLibBuild}
+\subsubsection{AMReX Package}
+\label{ssubsection:AMRexBuild}
 
-You can download BoxLib from the LBNL CCSE server by typing the following command {\rm git clone}
+You can download AMReX from the GitHub server by typing the following commands
 \begin{footnotesize}
 \begin{example}
 cd $HOME/git
-git clone https://ccse.lbl.gov/pub/Downloads/BoxLib.git
+git clone https://github.com/AMReX-Codes/amrex.git
 \end{example}
 \end{footnotesize}
 
-BoxLib based code designed to run in parallel using MPI, check the following environment variable
-before start building BoxLib.
+AMReX is Fortran based with extensions to C++.\ It runs in parallel using MPI.\ Please check the following environment variable
+before start building the library.
 \begin{example}
-export BOXLIB_HOME=$HOME/git/BoxLib
-export BOXLIB_INSTALL_PREFIX=$BOXLIB_HOME/Build
-export MPIHOME=/opt/openmpi/1.4.5/gcc-mp/4.7
+export AMREX_INSTALL_PREFIX=/path/to/target/directory
 \end{example}
-
 Build and install as follows:
 \begin{footnotesize}
 \begin{example}
-cd BoxLib
-mkdir Build
-cmake -DBL_SPACEDIM=3 -DENABLE_MPI=1 -DENABLE_OpenMP=0 -DBL_USE_PARTICLES=1
-            -DCMAKE_INSTALL_PREFIX=$BOXLIB_INSTALL_PREFIX $BOXLIB_HOME
-make
-make install
-export CCSE_INCLUDE_DIRS=$BOXLIB_INSTALL_PREFIX/include
-export CCSE_LIBRARY_DIR=$BOXLIB_INSTALL_PREFIX/lib
+cd amrex
+mkdir build
+cd build
+CXX=$MPICXX CC=$MPICC cmake -DBL_SPACEDIM=3 -DENABLE_MPI=1 -DENABLE_BACKTRACE=0
+                            -DENABLE_PROFILING=0 -DBL_DEBUG=0 -DENABLE_OpenMP=0
+                            -DBL_USE_PARTICLES=1 -DBL_PRECISION=DOUBLE
+                            -DCMAKE_INSTALL_PREFIX=$AMREX_INSTALL_PREFIX ..
+make -j4
+make install    // depending on target directory root access might be required
 \end{example}
 \end{footnotesize}
 Now you are ready to build \opal with AMR support.
