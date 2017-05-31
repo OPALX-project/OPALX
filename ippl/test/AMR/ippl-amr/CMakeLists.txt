@@ -116,6 +116,37 @@ add_executable( testInitialBox
                 ${F90_source_files}
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
+                
+                
+add_executable( testDomainTransformSolve
+                testDomainTransformSolve.cpp
+                ../AmrOpal.cpp
+                AmrParticleBase.hpp
+                ../Distribution.cpp
+                ../H5Reader.cpp
+                ${F90_source_files}
+                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                ../Solver.cpp)
+
+add_executable( testGaussian
+                testGaussian.cpp
+                ../AmrOpal.cpp
+                AmrParticleBase.hpp
+                ../Distribution.cpp
+                ../H5Reader.cpp
+                ${F90_source_files}
+                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                ../Solver.cpp)
+
+add_executable( testUnifSphere
+                testUnifSphere.cpp
+                ../AmrOpal.cpp
+                AmrParticleBase.hpp
+                ../Distribution.cpp
+                ../H5Reader.cpp
+                ${F90_source_files}
+                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                ../Solver.cpp)
 
 # add_executable( testInitGuessSolver
 #                 testInitGuessSolver.cpp
@@ -128,6 +159,9 @@ add_executable( testInitialBox
 #                 ../Solver.cpp)
 
 add_executable(testScatterAMReX testScatterAMReX.cpp AmrParticleBase.hpp)
+
+add_custom_command(TARGET testScatterAMReX POST_BUILD
+                   COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/inputs $<TARGET_FILE_DIR:testScatterAMReX>)
 
 
 target_link_libraries (testAmrPartBase ${LIBS}
@@ -160,5 +194,17 @@ target_link_libraries (testInitialBox ${LIBS}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testScatterAMReX ${LIBS}
+                        -lgfortran ${CCSE_LIBRARIES}
+                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testDomainTransformSolve ${LIBS}
+                        -lgfortran ${CCSE_LIBRARIES}
+                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testGaussian ${LIBS}
+                        -lgfortran ${CCSE_LIBRARIES}
+                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testUnifSphere ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
