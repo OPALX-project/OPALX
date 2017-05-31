@@ -87,6 +87,7 @@ void createRandomParticles(ParticleContainer<4> *pc, int N, int myNode, int seed
         p.m_rdata.arr[BL_SPACEDIM + 2] = 0.0; // momentum
         p.m_rdata.arr[BL_SPACEDIM + 3] = 0.0; // momentum
         
+        // p.m_rdata.pos[i] = p.m_rdata.arr[i] for i = 0, 1, 2
         p.m_rdata.pos[0] = (double)rand() / RAND_MAX;
         p.m_rdata.pos[1] = (double)rand() / RAND_MAX;
         p.m_rdata.pos[2] = (double)rand() / RAND_MAX;
@@ -119,9 +120,9 @@ void writeAscii(amrbunch_t *pbase, int N, int myNode) {
 
 }
 
-void writeAscii(ParticleContainer<4,0> *pc, int N, size_t nLevels, int myNode) {
+void writeAscii(ParticleContainer<4> *pc, int N, size_t nLevels, int myNode) {
     std::ofstream myfile;
-    std::string fname = "BoxLib-";
+    std::string fname = "AMReX-";
     fname += std::to_string(myNode);
     fname += ".dat"; 
     myfile.open(fname);
@@ -165,9 +166,9 @@ void compareDistribution(int node) {
   //read the data files containing particle information
   std::vector<int> ippldata, bldata;
   readData("Ippl-" + std::to_string(node) + ".dat", ippldata);
-  readData("BoxLib-" + std::to_string(node) + ".dat", bldata);
+  readData("AMReX-" + std::to_string(node) + ".dat", bldata);
 
-  //check if the size of particles per node is the same for Ippl and BoxLib versions
+  //check if the size of particles per node is the same for Ippl and AMReX versions
   if ( ippldata.size() != bldata.size() ) {
     std::cout << "===ERROR=== Particle distribution on node " << node << " doesn't match!" 
 	      << std::endl; 
@@ -193,20 +194,21 @@ void compareDistribution(int node) {
   MPI_Reduce(&match, &g_match, 1, MPI_INT, MPI_SUM, 0, Ippl::getComm());
 
   if (Ippl::myNode() == 0 && g_match == 0)
-    std::cout << "Particle distribution for Ippl and BoxLib matches" << std::endl;
+    std::cout << "Particle distribution for Ippl and AMReX matches" << std::endl;
 }
 
-void compareFields(container_t &field_ippl, Array< std::unique_ptr<MultiFab> > &field_bl, int node) {
+void compareFields(container_t &field_ippl, Array< std::unique_ptr<MultiFab> > &field_bl, int node,
+                   int comp=0) {
 
   bool fields_match = true;
   double ippl_sum, bl_sum;
 
   for (unsigned int lev = 0; lev < field_ippl.size(); ++lev) {
     //calculate the sum of all the components in multifab
-    ippl_sum = field_ippl[lev]->sum();
-    bl_sum = field_bl[lev]->sum();
+    ippl_sum = field_ippl[lev]->sum(comp);
+    bl_sum = field_bl[lev]->sum(comp);
 
-    //check if the sums are the same for Ippl and BoxLib
+    //check if the sums are the same for Ippl and AMReX
     //only node 0 prints the error since the sum is the same on all nodes
     if ( abs( ippl_sum - bl_sum) > 1e-6 && node == 0) {
       std::cout << "===ERROR=== Fields don't match on level " << lev 
@@ -217,7 +219,7 @@ void compareFields(container_t &field_ippl, Array< std::unique_ptr<MultiFab> > &
   }
 
   if (fields_match && node == 0)
-    std::cout << "Fields match on all levels for BoxLib and Ippl AssignDensity" << std::endl;
+    std::cout << "Fields match on all levels for AMReX and Ippl AssignDensity" << std::endl;
   
 }
 
@@ -227,61 +229,70 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
 	    container_t &field, container_t &efield,
 	    int N, int seed) 
 {
-
-  static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("main");
-  IpplTimings::startTimer(mainTimer);
-
-  //create a new layout using ParticleAmrLayout class
-  amrplayout_t* PL = new amrplayout_t(geom, dmap, ba, rr);
-
-  //create a particle bunch
-  PartBunchAmr<amrplayout_t>* pbase = new PartBunchAmr<amrplayout_t>();
-  pbase->initialize(PL);
-  pbase->initializeAmr();
-
-  //create N random particles on each core
-  createRandomParticles(pbase, N, myNode, seed);
-
-  //update redistributes particles among the cores
-  pbase->update();
-
-  //call assign density to scatter the paarticle attribute qm on the grid
-  pbase->setAllowParticlesNearBoundary(true);
+    
+    static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("main");
+    IpplTimings::startTimer(mainTimer);
+    
+    //create a new layout using ParticleAmrLayout class
+    amrplayout_t* PL = new amrplayout_t(geom, dmap, ba, rr);
+    
+    //create a particle bunch
+    PartBunchAmr<amrplayout_t>* pbase = new PartBunchAmr<amrplayout_t>();
+    pbase->initialize(PL);
+    pbase->initializeAmr();
+    
+    //create N random particles on each core
+    createRandomParticles(pbase, N, myNode, seed);
+    
+    //update redistributes particles among the cores
+    pbase->update();
+    
+    //call assign density to scatter the paarticle attribute qm on the grid
+    pbase->setAllowParticlesNearBoundary(true);
 //   pbase->AssignDensitySingleLevel(pbase->qm, *(field[0].get()), 0);
 //   pbase->AssignDensity(pbase->qm, false, field, 0, 1);
-  
-  pbase->AssignCellDensitySingleLevelFort(pbase->qm, *(field[0].get()), 0);
-  pbase->AssignDensityFort(pbase->qm, field, 0, 1, 1);
-
-  //copy the valies from field to all the components of efield
-  
-  for (size_t lev = 0; lev < nLevels; ++lev) {
-    efield[lev]->setVal(0.0);
-    MultiFab::Copy(*(efield[lev].get()), *(field[lev].get()), 0, 0, 1, 0);
-    MultiFab::Copy(*(efield[lev].get()), *(field[lev].get()), 0, 1, 1, 0);
-    MultiFab::Copy(*(efield[lev].get()), *(field[lev].get()), 0, 2, 1, 0);
-  }
-
-  //get values from grid to particles
-  pbase->GetGravity(pbase->E, efield);
-
-  //write the particles on the core to file - one file per core created
-  writeAscii(pbase, N, myNode);
-
-  delete pbase;
-  
-  IpplTimings::stopTimer(mainTimer);
-
+    
+    pbase->AssignCellDensitySingleLevelFort(pbase->qm, *(field[0].get()), 0);
+    
+    Array<std::unique_ptr<MultiFab> > partMF(nLevels);
+    for (unsigned int lev = 0; lev < nLevels; lev++) {
+            partMF[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 2));
+            partMF[lev]->setVal(0.0, 2);
+    }
+    
+    pbase->AssignDensityFort(pbase->qm, partMF, 0, 1, 1);
+    for (unsigned int lev = 0; lev < nLevels; ++lev) {
+        MultiFab::Copy(*field[lev], *partMF[lev], 0, 0, 1, 0);
+    }
+    
+    //copy the values from field to all the components of efield
+    for (size_t lev = 0; lev < nLevels; ++lev) {
+        efield[lev]->setVal(0.0);
+        MultiFab::Copy(*(efield[lev].get()), *(field[lev].get()), 0, 0, 1, 0);
+        MultiFab::Copy(*(efield[lev].get()), *(field[lev].get()), 0, 1, 1, 0);
+        MultiFab::Copy(*(efield[lev].get()), *(field[lev].get()), 0, 2, 1, 0);
+    }
+    
+    //get values from grid to particles
+    pbase->GetGravity(pbase->E, efield);
+    
+    //write the particles on the core to file - one file per core created
+    writeAscii(pbase, N, myNode);
+    
+    delete pbase;
+    
+    IpplTimings::stopTimer(mainTimer);
 }
 
-void doBoxLib(Array<Geometry> &geom, Array<BoxArray> &ba, 
+void doAMReX(Array<Geometry> &geom, Array<BoxArray> &ba, 
 	      Array<DistributionMapping> &dmap, Array<int> &rr, 
 	      size_t nLevels, int myNode, 
-	      Array< std::unique_ptr<MultiFab> > &field, Array< std::unique_ptr<MultiFab> > &efield,
+	      Array< std::unique_ptr<MultiFab> > &field,
+              Array< std::unique_ptr<MultiFab> > &efield,
 	      int N, int seed) 
 {
 
-  //create new BoxLib particle container
+  //create new AMReX particle container
   ParticleContainer<4> *pc = new ParticleContainer<4>(geom, dmap, ba, rr);
   pc->SetVerbose(0);
 
@@ -293,9 +304,19 @@ void doBoxLib(Array<Geometry> &geom, Array<BoxArray> &ba,
 
   //call assign density to scatter the paarticle attribute qm on the grid
   pc->SetAllowParticlesNearBoundary(true);
-  pc->AssignDensitySingleLevel(0, *(field[0].get()), 0, 0);
-  pc->AssignDensity(0, false, field, 0, 1, 1);
-
+  pc->AssignCellDensitySingleLevelFort(0, *(field[0].get()), 0);
+  
+  Array<std::unique_ptr<MultiFab> > partMF(nLevels);
+  for (unsigned int lev = 0; lev < nLevels; lev++) {
+      partMF[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 2));
+      partMF[lev]->setVal(0.0, 2);
+  }
+  
+  pc->AssignDensityFort(0, partMF, 0, 1, 1);
+  
+  for (unsigned int lev = 0; lev < nLevels; ++lev) {
+      MultiFab::Copy(*field[lev], *partMF[lev], 0, 0, 1, 0);
+  }
   
   //copy the valies from field to all the components of efield
   for (size_t lev = 0; lev < nLevels; ++lev) {
@@ -358,7 +379,7 @@ int main(int argc, char *argv[]) {
 
   std::cout << "Start test with " << N << " particles and run " << L << " times." << std::endl;
 
-  /* Setup BoxLib */
+  /* Setup AMReX */
   amrex::Initialize(argc,argv, false);
 
   size_t nLevels = 2;
@@ -433,7 +454,7 @@ int main(int argc, char *argv[]) {
     dmap[1].define(ba[1], ParallelDescriptor::NProcs() /*nprocs*/);
    
 
-  /* BoxLib geometry setup done */
+  /* AMReX geometry setup done */
   
   //print out the geomety
   /*
@@ -445,7 +466,7 @@ int main(int argc, char *argv[]) {
   }
   */
 
-  //create a multifabs one is used with BoxLib tests, one for Ippl tests
+  //create a multifabs one is used with AMReX tests, one for Ippl tests
   container_t field_ippl;
   field_ippl.resize(nLevels);
   for (size_t lev = 0; lev < nLevels; ++lev)
@@ -472,17 +493,26 @@ int main(int argc, char *argv[]) {
   //AssignDensity is used to scatter this attribute on the grids field_ippl and field_bl.
   //The particles used for both tests are the same - same locations and attribute values.
   //compareDistribution checks if the particles are the same on each core after update
-  //for BoxLib and Ippl particle containers.
+  //for AMReX and Ippl particle containers.
   //Compare fields check if field_ippl and field_bl are the same after AssignDensity
   for (int i = 0; i < L; ++i) {
 
     doIppl(geom, ba, dmap, rr, nLevels, Ippl::myNode(), field_ippl, efield_ippl, N, i);
-    doBoxLib(geom, ba, dmap, rr, nLevels, Ippl::myNode(), field_bl, efield, N, i);
+    doAMReX(geom, ba, dmap, rr, nLevels, Ippl::myNode(), field_bl, efield, N, i);
 
     if (Ippl::myNode() == 0)
       std::cout << "Results for test " << i + 1 << std::endl;
     compareDistribution(Ippl::myNode());
+    
+    std::cout << "Charge on grid: ";
     compareFields(field_ippl, field_bl, Ippl::myNode());
+    
+    std::cout << "Electric field:" << std::endl;
+    compareFields(efield_ippl, efield, Ippl::myNode(), 0);
+    
+    compareFields(efield_ippl, efield, Ippl::myNode(), 1);
+    
+    compareFields(efield_ippl, efield, Ippl::myNode(), 2);
 
     if (Ippl::myNode() == 0)
       std::cout << std::endl;
