@@ -47,6 +47,7 @@
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 
+#include <sys/time.h>
 
 extern Inform *gmsg;
 
@@ -413,6 +414,29 @@ Distribution::~Distribution() {
 */
 
 /**
+ * Calculate the local number of particles evenly and adjust node 0
+ * such that n is matched exactly. 
+ * @param n total number of particles 
+ * @return n / #cores 
+ * @param
+ */
+
+size_t Distribution::getNumOfLocalParticlesToCreate(size_t n) {
+    
+    size_t locNumber = n / Ippl::getNodes();
+
+    // make sure the total number is exact                                                                               
+    size_t reminder  = n % Ippl::getNodes();
+
+    if (Ippl::myNode() == 0)
+        locNumber += reminder;   
+
+    return locNumber;
+}
+
+
+
+/**
  * At the moment only write the header into the file dist.dat
  * PartBunch will then append (very uggly)
  * @param
@@ -457,28 +481,30 @@ void Distribution::create(size_t &numberOfParticles, double massIneV) {
 
     setFieldEmissionParameters();
 
+    size_t locNumber = getNumOfLocalParticlesToCreate(numberOfParticles);
+
     switch (distrTypeT_m) {
 
     case DistrTypeT::MATCHEDGAUSS:
-        createMatchedGaussDistribution(numberOfParticles, massIneV);
+        createMatchedGaussDistribution(locNumber, massIneV);
         break;
     case DistrTypeT::FROMFILE:
-        createDistributionFromFile(numberOfParticles, massIneV);
+        createDistributionFromFile(locNumber, massIneV);
         break;
     case DistrTypeT::GAUSS:
-        createDistributionGauss(numberOfParticles, massIneV);
+        createDistributionGauss(locNumber, massIneV);
         break;
     case DistrTypeT::BINOMIAL:
-        createDistributionBinomial(numberOfParticles, massIneV);
+        createDistributionBinomial(locNumber, massIneV);
         break;
     case DistrTypeT::FLATTOP:
-        createDistributionFlattop(numberOfParticles, massIneV);
+        createDistributionFlattop(locNumber, massIneV);
         break;
     case DistrTypeT::GUNGAUSSFLATTOPTH:
-        createDistributionFlattop(numberOfParticles, massIneV);
+        createDistributionFlattop(locNumber, massIneV);
         break;
     case DistrTypeT::ASTRAFLATTOPTH:
-        createDistributionFlattop(numberOfParticles, massIneV);
+        createDistributionFlattop(locNumber, massIneV);
         break;
     default:
         INFOMSG("Distribution unknown." << endl;);
@@ -500,33 +526,20 @@ void Distribution::create(size_t &numberOfParticles, double massIneV) {
         if (Options::cZero) {
             numAdditionalRNsPerParticle *= 2;
         }
-
-        int saveProcessor = -1;
-
-        for (size_t partIndex = 0; partIndex < numberOfParticles; ++ partIndex) {
-
-            // Save to each processor in turn.
-            ++ saveProcessor;
-            if (saveProcessor >= Ippl::getNodes())
-                saveProcessor = 0;
-
-            if (Ippl::myNode() == saveProcessor) {
-                std::vector<double> rns;
-                for (unsigned int i = 0; i < numAdditionalRNsPerParticle; ++ i) {
-                    double x = gsl_rng_uniform(randGen_m);
-                    rns.push_back(x);
-                }
-                additionalRNs_m.push_back(rns);
-            } else {
-                for (unsigned int i = 0; i < numAdditionalRNsPerParticle; ++ i) {
-                    gsl_rng_uniform(randGen_m);
-                }
+        
+        for (size_t partIndex = 0; partIndex < locNumber; ++ partIndex) {
+            std::vector<double> rns;
+            for (unsigned int i = 0; i < numAdditionalRNsPerParticle; ++ i) {
+                double x = gsl_rng_uniform(randGen_m);
+                rns.push_back(x);
             }
+            additionalRNs_m.push_back(rns);
         }
     }
 
     // Scale coordinates according to distribution input.
     scaleDistCoordinates();
+        
     Options::seed = gsl_rng_uniform_int(randGen_m, gsl_rng_max(randGen_m));
 }
 
@@ -1524,9 +1537,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
 }
 
 void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV) {
-
     setDistParametersGauss(massIneV);
-
     if (emitting_m) {
         generateTransverseGauss(numberOfParticles);
         generateLongFlattopT(numberOfParticles);
@@ -1694,7 +1705,6 @@ void Distribution::createOpalE(Beam *beam,
         setDistParametersGauss(beam->getMass());
         break;
     case DistrTypeT::GUNGAUSSFLATTOPTH:
-        INFOMSG("GUNGAUSSFLATTOPTH"<<endl);
         setDistParametersFlattop(beam->getMass());
         beamEnergy = Attributes::getReal(itsAttr[AttributesT::EKIN]);
         break;
@@ -2165,10 +2175,13 @@ size_t Distribution::findEBin(double tOrZ) {
 
 void Distribution::generateAstraFlattopT(size_t numberOfParticles) {
 
-    /*
+    /* ADA
      * Legacy function to support the ASTRAFLATTOPOTH
      * distribution type.
      */
+
+
+
     checkEmissionParameters();
 
     gsl_qrng *quasiRandGen = gsl_qrng_alloc(gsl_qrng_halton, 2);
@@ -2220,7 +2233,6 @@ void Distribution::generateAstraFlattopT(size_t numberOfParticles) {
     tot -= distributionTable[binTotal] * (5. - weight);
     tot -= distributionTable[0];
 
-    int saveProcessor = -1;
     double tCoord = 0.0;
 
     int effectiveNumParticles = 0;
@@ -2254,14 +2266,9 @@ void Distribution::generateAstraFlattopT(size_t numberOfParticles) {
             tCoord = hi * (xx[1] + static_cast<int>(gsl_ran_discrete(randGen_m, table))
                            - binTotal / 2 + k * numberOfSampleBins) / (binTotal / 2);
 
-            saveProcessor++;
-            if (saveProcessor >= Ippl::getNodes())
-                saveProcessor = 0;
-
-            if (Ippl::myNode() == saveProcessor) {
-                tOrZDist_m.push_back(tCoord);
-                pzDist_m.push_back(0.0);
-            }
+            tOrZDist_m.push_back(tCoord);
+            pzDist_m.push_back(0.0);
+            
         }
         gsl_ran_discrete_free(table);
     }
@@ -2331,7 +2338,6 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
         PL[index]     =  sqrt((mBinomial_m[index] + 1.0) / 2.0) * PM[index];
     }
 
-    int saveProcessor = -1;
     Vector_t x = Vector_t(0.0);
     Vector_t p = Vector_t(0.0);
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
@@ -2428,27 +2434,18 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
             p[2] *= PM[2];
 
         }
-
-        // Save to each processor in turn.
-        saveProcessor++;
-        if (saveProcessor >= Ippl::getNodes())
-            saveProcessor = 0;
-
-        if (Ippl::myNode() == saveProcessor) {
-            xDist_m.push_back(x[0]);
-            pxDist_m.push_back(p[0]);
-            yDist_m.push_back(x[1]);
-            pyDist_m.push_back(p[1]);
-            tOrZDist_m.push_back(x[2]);
-            pzDist_m.push_back(avrgpz_m * (1 + p[2]));
-        }
-
+        
+        xDist_m.push_back(x[0]);
+        pxDist_m.push_back(p[0]);
+        yDist_m.push_back(x[1]);
+        pyDist_m.push_back(p[1]);
+        tOrZDist_m.push_back(x[2]);
+        pzDist_m.push_back(avrgpz_m * (1 + p[2]));
     }
 }
 
 void Distribution::generateFlattopLaserProfile(size_t numberOfParticles) {
 
-    int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
         double x = 0.0;
@@ -2458,17 +2455,10 @@ void Distribution::generateFlattopLaserProfile(size_t numberOfParticles) {
 
         laserProfile_m->getXY(x, y);
 
-        // Save to each processor in turn.
-        saveProcessor++;
-        if (saveProcessor >= Ippl::getNodes())
-            saveProcessor = 0;
-
-        if (Ippl::myNode() == saveProcessor) {
-            xDist_m.push_back(x * sigmaR_m[0]);
-            pxDist_m.push_back(px);
-            yDist_m.push_back(y * sigmaR_m[1]);
-            pyDist_m.push_back(py);
-        }
+        xDist_m.push_back(x * sigmaR_m[0]);
+        pxDist_m.push_back(px);
+        yDist_m.push_back(y * sigmaR_m[1]);
+        pyDist_m.push_back(py);
     }
 
     if (distrTypeT_m == DistrTypeT::ASTRAFLATTOPTH)
@@ -2479,6 +2469,7 @@ void Distribution::generateFlattopLaserProfile(size_t numberOfParticles) {
 }
 
 void Distribution::generateFlattopT(size_t numberOfParticles) {
+
 
     gsl_qrng *quasiRandGen2D = NULL;
 
@@ -2496,7 +2487,6 @@ void Distribution::generateFlattopT(size_t numberOfParticles) {
         }
     }
 
-    int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
         double x = 0.0;
@@ -2523,18 +2513,10 @@ void Distribution::generateFlattopT(size_t numberOfParticles) {
         x *= sigmaR_m[0];
         y *= sigmaR_m[1];
 
-        // Save to each processor in turn.
-        saveProcessor++;
-        if (saveProcessor >= Ippl::getNodes())
-            saveProcessor = 0;
-
-        if (Ippl::myNode() == saveProcessor) {
-            xDist_m.push_back(x);
-            pxDist_m.push_back(px);
-            yDist_m.push_back(y);
-            pyDist_m.push_back(py);
-        }
-
+        xDist_m.push_back(x);
+        pxDist_m.push_back(px);
+        yDist_m.push_back(y);
+        pyDist_m.push_back(py);
     }
 
     if (quasiRandGen2D != NULL)
@@ -2569,7 +2551,6 @@ void Distribution::generateFlattopZ(size_t numberOfParticles) {
         }
     }
 
-    int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
         double x = 0.0;
@@ -2605,25 +2586,19 @@ void Distribution::generateFlattopZ(size_t numberOfParticles) {
 
         z = (z - 0.5) * sigmaR_m[2];
 
-        // Save to each processor in turn.
-        saveProcessor++;
-        if (saveProcessor >= Ippl::getNodes())
-            saveProcessor = 0;
-
-        if (Ippl::myNode() == saveProcessor) {
-            xDist_m.push_back(x);
-            pxDist_m.push_back(px);
-            yDist_m.push_back(y);
-            pyDist_m.push_back(py);
-            tOrZDist_m.push_back(z);
-            pzDist_m.push_back(pz);
-        }
+        xDist_m.push_back(x);
+        pxDist_m.push_back(px);
+        yDist_m.push_back(y);
+        pyDist_m.push_back(py);
+        tOrZDist_m.push_back(z);
+        pzDist_m.push_back(pz);
     }
 
     if (quasiRandGen1D != NULL) {
         gsl_qrng_free(quasiRandGen1D);
         gsl_qrng_free(quasiRandGen2D);
     }
+
 }
 
 void Distribution::generateGaussZ(size_t numberOfParticles) {
@@ -2683,7 +2658,6 @@ void Distribution::generateGaussZ(size_t numberOfParticles) {
     }
 #endif
 
-    int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
         bool allow = false;
 
@@ -2741,19 +2715,12 @@ void Distribution::generateGaussZ(size_t numberOfParticles) {
         py *= sigmaP_m[1];
         pz *= sigmaP_m[2];
 
-        // Save to each processor in turn.
-        saveProcessor++;
-        if (saveProcessor >= Ippl::getNodes())
-            saveProcessor = 0;
-
-        if (Ippl::myNode() == saveProcessor) {
-            xDist_m.push_back(x);
-            pxDist_m.push_back(px);
-            yDist_m.push_back(y);
-            pyDist_m.push_back(py);
-            tOrZDist_m.push_back(z);
-            pzDist_m.push_back(avrgpz_m + pz);
-        }
+        xDist_m.push_back(x);
+        pxDist_m.push_back(px);
+        yDist_m.push_back(y);
+        pyDist_m.push_back(py);
+        tOrZDist_m.push_back(z);
+        pzDist_m.push_back(avrgpz_m + pz);
     }
 
     gsl_vector_free(rx);
@@ -2778,15 +2745,12 @@ void Distribution::generateLongFlattopT(size_t numberOfParticles) {
     size_t numFall = numberOfParticles * sigmaTFall_m * normalizedFlankArea / distArea;
     size_t numFlat = numberOfParticles - numRise - numFall;
 
-    // Generate particles in tail.
-    int saveProcessor = -1;
 
     for (size_t partIndex = 0; partIndex < numFall; partIndex++) {
-
         double t = 0.0;
         double pz = 0.0;
-
         bool allow = false;
+
         while (!allow) {
             t = gsl_ran_gaussian_tail(randGen_m, 0, sigmaTFall_m);
             if (t <= sigmaTRise_m * cutoffR_m[2]) {
@@ -2794,16 +2758,8 @@ void Distribution::generateLongFlattopT(size_t numberOfParticles) {
                 allow = true;
             }
         }
-
-        // Save to each processor in turn.
-        saveProcessor++;
-        if (saveProcessor >= Ippl::getNodes())
-            saveProcessor = 0;
-
-        if (Ippl::myNode() == saveProcessor) {
-            tOrZDist_m.push_back(t);
-            pzDist_m.push_back(pz);
-        }
+        tOrZDist_m.push_back(t);
+        pzDist_m.push_back(pz);
     }
 
     /*
@@ -2878,15 +2834,8 @@ void Distribution::generateLongFlattopT(size_t numberOfParticles) {
             }
         }
 
-        // Save to each processor in turn.
-        saveProcessor++;
-        if (saveProcessor >= Ippl::getNodes())
-            saveProcessor = 0;
-
-        if (Ippl::myNode() == saveProcessor) {
-            tOrZDist_m.push_back(t);
-            pzDist_m.push_back(pz);
-        }
+        tOrZDist_m.push_back(t);
+        pzDist_m.push_back(pz);
     }
 
     // Generate particles in rise.
@@ -2903,16 +2852,8 @@ void Distribution::generateLongFlattopT(size_t numberOfParticles) {
                 allow = true;
             }
         }
-
-        // Save to each processor in turn.
-        saveProcessor++;
-        if (saveProcessor >= Ippl::getNodes())
-            saveProcessor = 0;
-
-        if (Ippl::myNode() == saveProcessor) {
-            tOrZDist_m.push_back(t);
-            pzDist_m.push_back(pz);
-        }
+        tOrZDist_m.push_back(t);
+        pzDist_m.push_back(pz);
     }
 
     if (quasiRandGen1D != NULL) {
@@ -2949,7 +2890,6 @@ void Distribution::generateTransverseGauss(size_t numberOfParticles) {
         }
     }
 
-    int saveProcessor = -1;
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
         double x = 0.0;
@@ -2999,17 +2939,10 @@ void Distribution::generateTransverseGauss(size_t numberOfParticles) {
         px *= sigmaP_m[0];
         py *= sigmaP_m[1];
 
-        // Save to each processor in turn.
-        saveProcessor++;
-        if (saveProcessor >= Ippl::getNodes())
-            saveProcessor = 0;
-
-        if (Ippl::myNode() == saveProcessor) {
-            xDist_m.push_back(x);
-            pxDist_m.push_back(px);
-            yDist_m.push_back(y);
-            pyDist_m.push_back(py);
-        }
+        xDist_m.push_back(x);
+        pxDist_m.push_back(px);
+        yDist_m.push_back(y);
+        pyDist_m.push_back(py);
     }
 
     gsl_matrix_free(corMat);
@@ -4185,7 +4118,6 @@ void Distribution::setDistParametersFlattop(double massIneV) {
 
 
     if (emitting_m) {
-        INFOMSG("emitting"<<endl);
         sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
                             std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAY])),
                             0.0);
@@ -4251,7 +4183,6 @@ void Distribution::setDistParametersFlattop(double massIneV) {
     // Legacy for ASTRAFLATTOPTH.
     if (distrTypeT_m == DistrTypeT::ASTRAFLATTOPTH)
         tRise_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE]));
-
 }
 
 void Distribution::setDistParametersGauss(double massIneV) {
