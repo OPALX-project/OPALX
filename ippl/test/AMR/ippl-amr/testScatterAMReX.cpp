@@ -6,7 +6,10 @@
  * test example of the AMReX repository
  * amrex/Tests/Particles/AssignMultiLevelDensity
  * 
- * https://Yavin_4@bitbucket.org/berkeleylab/amrex.git
+ * A sligthly modified version (i.e. just additional printing)
+ * is in ippl/test/AMR/amrex-only/AssignMultiLevelDensity.cpp
+ * 
+ * https://github.com/AMReX-Codes/amrex.git
  */
 #include <iostream>
 

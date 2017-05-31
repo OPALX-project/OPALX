@@ -49,8 +49,8 @@ ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
 add_executable( testDeposition
                 testDeposition.cpp)
 
-# add_executable( main
-#                 main.cpp)
+add_executable( AssignMultiLevelDensity
+                AssignMultiLevelDensity.cpp)
 
 add_executable( testGeometry
                 testGeometry.cpp)
@@ -64,9 +64,9 @@ target_link_libraries (testDeposition ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
                         
-# target_link_libraries (main ${LIBS}
-#                         -lgfortran ${CCSE_LIBRARIES}
-#                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+target_link_libraries (AssignMultiLevelDensity ${LIBS}
+                        -lgfortran ${CCSE_LIBRARIES}
+                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testGeometry ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
