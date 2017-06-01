@@ -201,11 +201,11 @@ void Object::registerOwnership(const AttributeHandler::OwnerType &itsClass) cons
     }
 }
 
-void Object::printHelp(std::ostream &os) const {
+void Object::printHelp(std::ostream &/*os*/) const {
     *gmsg << endl << itsHelp << endl;
 
     if(itsAttr.size() > 0) {
-        os << "Attributes:" << endl;
+        *gmsg << "Attributes:" << endl;
 
         size_t maxLength = 16;
         vector<Attribute>::const_iterator it;
@@ -220,7 +220,7 @@ void Object::printHelp(std::ostream &os) const {
             *gmsg << '\t' << type << string(16 - type.length(), ' ');
             *gmsg << name << string(maxLength - name.length(), ' ');
             *gmsg << it->getHelp();
-            if(it->isReadOnly()) os << " (read only)";
+            if(it->isReadOnly()) *gmsg << " (read only)";
             *gmsg << endl;
         }
     }
