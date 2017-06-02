@@ -531,7 +531,7 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
     outputFile << "&parameter\n"
                << indent << "name=flavor,\n"
                << indent << "type=string,\n"
-               << indent << "description=\"OPAL flavor that wrote file\""
+               << indent << "description=\"OPAL flavor that wrote file\"\n"
                << "&end\n";
     outputFile << "&column\n"
                << indent << "name=t,\n"
