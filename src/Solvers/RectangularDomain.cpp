@@ -1,6 +1,7 @@
 #ifdef HAVE_SAAMG_SOLVER
 
 #include "Solvers/RectangularDomain.h"
+#include "Utilities/OpalException.h"
 
 RectangularDomain::RectangularDomain(Vector_t nr, Vector_t hr) {
     setNr(nr);
@@ -106,7 +107,8 @@ void RectangularDomain::getBoundaryStencil(int x, int y, int z, double &W, doubl
     //simple check if center value of stencil is positive
 #ifdef DEBUG
     if(C <= 0)
-        cout << "Stencil C is <= 0! This should not case should never occure!" << endl;
+        throw OpalException("RectangularDomain::getBoundaryStencil",
+                            "Stencil C is <= 0! This should not case should never occure!");
 #endif
 }
 
