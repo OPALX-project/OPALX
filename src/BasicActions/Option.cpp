@@ -21,7 +21,6 @@
 #include "Parser/FileStream.h"
 #include "Utilities/Options.h"
 #include "Utilities/OptionTypes.h"
-//#include "Utilities/ClassicRandom.h"
 #include "Utility/IpplInfo.h"
 
 #include "Utilities/OpalException.h"
@@ -110,7 +109,7 @@ Option::Option():
                     ("WARN", "If true, print warning messages", warn);
 
     itsAttr[SEED] = Attributes::makeReal
-                    ("SEED", "The seed for the random generator, -1 will use time(0) as seed ");
+      ("SEED", "The seed for the random generator, -1 will use time(0) as seed ");
 
     itsAttr[TELL] = Attributes::makeBool
                     ("TELL", "If true, print the current settings. Must be the last option in the inputfile in order to render correct results", false);
@@ -204,7 +203,6 @@ Option::Option():
     registerOwnership(AttributeHandler::STATEMENT);
 
     FileStream::setEcho(echo);
-    rangen.init55(seed);
 }
 
 
@@ -282,6 +280,16 @@ void Option::execute() {
     enableHDF5 = Attributes::getBool(itsAttr[ENABLEHDF5]);
     version = Attributes::getReal(itsAttr[VERSION]);
 
+    seed = Attributes::getReal(itsAttr[SEED]);
+
+    /// note: rangen is used only for the random number generator in the OPAL language
+    ///       not for the distributions
+
+    if (Options::seed == -1)
+      rangen.init55(time(0));
+    else
+      rangen.init55(seed);
+
     IpplInfo::Info->on(info);
     IpplInfo::Warn->on(warn);
 
@@ -290,14 +298,6 @@ void Option::execute() {
 
     if(itsAttr[ASCIIDUMP]) {
         asciidump = Attributes::getBool(itsAttr[ASCIIDUMP]);
-    }
-
-    if(itsAttr[SEED]) {
-        seed = int(Attributes::getReal(itsAttr[SEED]));
-	if (seed == -1)
-            rangen.init55(time(0));
-	else
-            rangen.init55(seed);
     }
 
     if(itsAttr[PSDUMPFREQ]) {
