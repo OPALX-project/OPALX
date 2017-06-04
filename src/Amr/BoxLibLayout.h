@@ -186,23 +186,11 @@ public:
      * Linear mapping to AMReX computation domain [a,b]^3. Each dimension
      * is mapped independently. The potential and electric field need to be scaled
      * afterwards appropriately.
-     * 
-     * [a, b] --> [c, d]
-     * 
-     * y = (d - c) / (b - a) * x + (b * c - a * d) / (b - a)
-     * 
      * @param PData is the particle data
-     * @param lold old lower bound
-     * @param uold old upper bound
-     * @param lnew new lower bound
-     * @param unew new upper bound
+     * @param inverse scaling
      * @returns scaling factor
      */
-    double domainMapping(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
-                           const Vector_t& lold,
-                           const Vector_t& uold,
-                           const Vector_t& lnew,
-                           const Vector_t& unew);
+    const Vector_t& domainMapping(AmrParticleBase< BoxLibLayout<T,Dim> >& PData, bool inverse = false);
     
 private:
     // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
@@ -276,6 +264,8 @@ private:
     int maxLevel_m;
     // don't use m_rr from ParGDB since it is the same refinement in all directions
     AmrIntVectContainer_t refRatio_m;    // Refinement ratios [0:finest_level-1]
+    
+    Vector_t scale_m;
 };
 
 #include "BoxLibLayout.hpp"
