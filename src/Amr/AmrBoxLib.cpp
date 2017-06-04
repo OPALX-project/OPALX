@@ -210,55 +210,177 @@ double AmrBoxLib::getRho(int x, int y, int z) {
 
 void AmrBoxLib::computeSelfFields() {
     
-//     //FIXME now we regrid in every selffield
-//     this->regrid(0, maxLevel(), 0.0);
-//     
-//     //FIXME Lorentz transformation
-//     //scatter charges onto grid
-// //     bunch_mp->Q *= bunch_mp->dt;
-//     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
-//     amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, -1);
-// //     bunch_mp->Q /= bunch_mp->dt;
-//     
-//     int baseLevel = 0;
-//     int finestLevel = (&amrpbase_p->getAmrLayout())->finestLevel();
-//     
-//     int nLevel = finestLevel + 1;
-//     rho_m.resize(nLevel);
-//     phi_m.resize(nLevel);
-//     eg_m.resize(nLevel);
-//     
-//     double invDt = 1.0 / bunch_mp->getdT() * bunch_mp->getCouplingConstant();
-//     for (int i = 0; i <= finestLevel; ++i) {
-//         this->rho_m[i]->mult(invDt, 0, 1);
-//     }
-//     
-//     //calculating mesh-scale factor
-//     double gammaz = sum(bunch_mp->P)[2] / bunch_mp->getTotalNum();
-//     gammaz *= gammaz;
-//     gammaz = std::sqrt(gammaz + 1.0);
-//     
-//     // charge density is in rho_m
-//     PoissonSolver *solver = bunch_mp->getFieldSolver();
-//     
-//     IpplTimings::startTimer(bunch_mp->compPotenTimer_m);
-//     solver->solve(rho_m, phi_m, eg_m, baseLevel, finestLevel);
-//     IpplTimings::stopTimer(bunch_mp->compPotenTimer_m);
-//     
-//     amrpbase_p->gather(bunch_mp->Ef, this->eg_m, bunch_mp->R, 0, -1);
-//     
-//     /** Magnetic field in x and y direction induced by the eletric field
-//      *
-//      *  \f[ B_x = \gamma(B_x^{'} - \frac{beta}{c}E_y^{'}) = -\gamma \frac{beta}{c}E_y^{'} = -\frac{beta}{c}E_y \f]
-//      *  \f[ B_y = \gamma(B_y^{'} - \frac{beta}{c}E_x^{'}) = +\gamma \frac{beta}{c}E_x^{'} = +\frac{beta}{c}E_x \f]
-//      *  \f[ B_z = B_z^{'} = 0 \f]
-//      *
-//      */
-//     double betaC = sqrt(gammaz * gammaz - 1.0) / gammaz / Physics::c;
-// 
-//     bunch_mp->Bf(0) = bunch_mp->Bf(0) - betaC * bunch_mp->Ef(1);
-//     bunch_mp->Bf(1) = bunch_mp->Bf(1) + betaC * bunch_mp->Ef(0);
-    throw OpalException("AmrBoxLib::computeSelfFields() ", "Not yet Implemented.");
+    AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
+    
+    // bring on Amr domain
+    Vector_t rmin, rmax;
+    bounds(bunch_mp->R, rmin, rmax);
+    
+//     std::cout << rmin << " " << rmax << std::endl; std::cin.get();
+    
+//     bunch_mp->python_format(0); std::cout << "Written." << std::endl;
+    
+    
+    Vector_t scale = layout_mp->domainMapping(*amrpbase_p);
+    
+    
+    /// from charge (C) to charge density (C/m^3).
+    bunch_mp->Q *= bunch_mp->dt;
+    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
+    bunch_mp->Q /= bunch_mp->dt;
+    
+    int baseLevel = 0;
+    int finestLevel = (&amrpbase_p->getAmrLayout())->finestLevel();
+    
+    int nLevel = finestLevel + 1;
+    rho_m.resize(nLevel);
+    phi_m.resize(nLevel);
+    eg_m.resize(nLevel);
+    
+    //calculating mesh-scale factor
+    double gammaz = sum(bunch_mp->P)[2] / bunch_mp->getTotalNum();
+    gammaz *= gammaz;
+    gammaz = std::sqrt(gammaz + 1.0);
+    double scalefactor = 1;
+//     Vector_t hr_scaled = hr_m * Vector_t(scaleFactor);
+    
+    double tmp = 1.0 / bunch_mp->getdT() / gammaz;
+    for (int i = 0; i <= finestLevel; ++i) {
+        this->rho_m[i]->mult(tmp, 0, 1);
+    }
+    
+#ifdef DBG_SCALARFIELD
+    if ( Ippl::getNodes() > 1 )
+        throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ", "Dumping only in serial execution.");
+
+    INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
+    std::ofstream fstr1;
+    fstr1.precision(9);
+
+    std::string SfileName = OpalData::getInstance()->getInputBasename();
+
+    std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::to_string(fieldDBGStep_m);
+    fstr1.open(rho_fn.c_str(), std::ios::out);
+    
+    int level = 0;
+    for (amrex::MFIter mfi(*rho_m[level]); mfi.isValid(); ++mfi) {
+        const amrex::Box& bx = mfi.validbox();
+        const amrex::FArrayBox& fab = (*rho_m[level])[mfi];
+        
+        for (int x = bx.loVect()[0]; x <= bx.hiVect()[0]; ++x) {
+            for (int y = bx.loVect()[1]; y <= bx.hiVect()[1]; ++y) {
+                for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; ++z) {
+                    AmrIntVect_t iv(x, y, z);
+                    // add one in order to have same convention as PartBunch::computeSelfField()
+                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " "
+                          << fab(iv, 0)  << std::endl;
+                }
+            }
+        }
+    }
+    fstr1.close();
+    INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+#endif
+    
+    for (int i = 0; i <= finestLevel; ++i)
+        this->rho_m[i]->mult(-1.0 / Physics::epsilon_0, 0, 1);
+    
+    // charge density is in rho_m
+    PoissonSolver *solver = bunch_mp->getFieldSolver();
+    
+    IpplTimings::startTimer(bunch_mp->compPotenTimer_m);
+    solver->solve(rho_m, phi_m, eg_m, baseLevel, finestLevel);
+    IpplTimings::stopTimer(bunch_mp->compPotenTimer_m);
+        
+#ifdef DBG_SCALARFIELD
+    INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
+    std::ofstream fstr2;
+    fstr2.precision(9);
+
+    std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::to_string(fieldDBGStep_m);
+    fstr2.open(phi_fn.c_str(), std::ios::out);
+    
+    for (amrex::MFIter mfi(*phi_m[level]); mfi.isValid(); ++mfi) {
+        const amrex::Box& bx = mfi.validbox();
+        const amrex::FArrayBox& fab = (*phi_m[level])[mfi];
+        
+        for (int x = bx.loVect()[0]; x <= bx.hiVect()[0]; ++x) {
+            for (int y = bx.loVect()[1]; y <= bx.hiVect()[1]; ++y) {
+                for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; ++z) {
+                    AmrIntVect_t iv(x, y, z);
+                    // add one in order to have same convention as PartBunch::computeSelfField()
+                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " "
+                          << fab(iv, 0) << std::endl;
+                }
+            }
+        }
+    }
+    fstr2.close();
+    INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+#endif
+    
+#ifdef DBG_SCALARFIELD
+        INFOMSG("*** START DUMPING E FIELD ***" << endl);
+        //ostringstream oss;
+        //MPI_File file;
+        //MPI_Status status;
+        //MPI_Info fileinfo;
+        //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
+        std::ofstream fstr;
+        fstr.precision(9);
+
+        std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::to_string(fieldDBGStep_m);
+        fstr.open(e_field.c_str(), std::ios::out);
+        
+        for (amrex::MFIter mfi(*eg_m[level]); mfi.isValid(); ++mfi) {
+            const amrex::Box& bx = mfi.validbox();
+            const amrex::FArrayBox& fab = (*eg_m[level])[mfi];
+            
+            for (int x = bx.loVect()[0]; x <= bx.hiVect()[0]; ++x) {
+                for (int y = bx.loVect()[1]; y <= bx.hiVect()[1]; ++y) {
+                    for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; ++z) {
+                        AmrIntVect_t iv(x, y, z);
+                        // add one in order to have same convention as PartBunch::computeSelfField()
+                        fstr << x + 1 << " " << y + 1 << " " << z + 1 << " ( "
+                             << fab(iv, 0) << " , " << fab(iv, 1) << " , " << fab(iv, 2) << " )" << std::endl;
+                    }
+                }
+            }
+        }
+
+        fstr.close();
+        fieldDBGStep_m++;
+
+        INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
+#endif
+    
+    amrpbase_p->gather(bunch_mp->Ef, this->eg_m, bunch_mp->R, 0, finest_level);
+    
+    layout_mp->domainMapping(*amrpbase_p, true);
+    
+    scale *= scale;
+    std::cout << scale << std::endl;
+    
+    bunch_mp->Ef *= Vector_t(gammaz / scalefactor * scale[0],
+                             gammaz / scalefactor * scale[1],
+                             1.0 / (gammaz * scalefactor) * scale[2] );
+    
+    Vector_t efmin, efmax;
+    bounds(bunch_mp->Ef, efmin, efmax);
+    std::cout << efmin << " " << efmax << std::endl;
+    
+    /** Magnetic field in x and y direction induced by the eletric field
+     *
+     *  \f[ B_x = \gamma(B_x^{'} - \frac{beta}{c}E_y^{'}) = -\gamma \frac{beta}{c}E_y^{'} = -\frac{beta}{c}E_y \f]
+     *  \f[ B_y = \gamma(B_y^{'} - \frac{beta}{c}E_x^{'}) = +\gamma \frac{beta}{c}E_x^{'} = +\frac{beta}{c}E_x \f]
+     *  \f[ B_z = B_z^{'} = 0 \f]
+     *
+     */
+    double betaC = sqrt(gammaz * gammaz - 1.0) / gammaz / Physics::c;
+
+    bunch_mp->Bf(0) = bunch_mp->Bf(0) - betaC * bunch_mp->Ef(1);
+    bunch_mp->Bf(1) = bunch_mp->Bf(1) + betaC * bunch_mp->Ef(0);
+//     throw OpalException("AmrBoxLib::computeSelfFields() ", "Not yet Implemented.");
 }
 
 
@@ -274,55 +396,22 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
      * 
      */
     
-//     for (int i = 0; i <= finest_level; ++i) {
-//         std::cout << "Level " << i << ": " << grids[i] << std::endl;
-//         std::cout << "Level " << i << ": " << layout_mp->ParticleBoxArray(i) << std::endl;
-//     }
-    
-//     std::cout << "regrid done" << std::endl;
-    
-//     bunch_mp->python_format(0); std::cout << "Written." << std::endl; std::cin.get();
-    
-    //FIXME Lorentz transformation
-    
-    
     
     /*
      * scatter charges onto grid
      */
-//     bunch_mp->Q *= bunch_mp->dt;
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     
-    // bring on Amr domain
-    Vector_t rmin, rmax;
-    bounds(bunch_mp->R, rmin, rmax);
-    
-//     std::cout << rmin << " " << rmax << std::endl; std::cin.get();
-    
-//     bunch_mp->python_format(0); std::cout << "Written." << std::endl;
-    
-    
-    double factor = layout_mp->domainMapping(*amrpbase_p, 1.25 * rmin, 1.25 * rmax,
-                                               layout_mp->lowerBound,
-                                               layout_mp->upperBound);
-    
-    bunch_mp->python_format(1); std::cout << "Written." << std::endl; std::cin.get();
-    
+    // map on Amr domain
+    Vector_t scale = layout_mp->domainMapping(*amrpbase_p);
     
     /// from charge (C) to charge density (C/m^3).
     amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
     
-    
-//     bunch_mp->Q /= bunch_mp->dt;
     int baseLevel = 0;
     int nLevel = finest_level + 1;
-    double invGamma = 1.0 / gamma /* bunch_mp->getCouplingConstant()*/;
-    double scalefactor = 1.0; //bunch_mp->getdT();
-    
-//     std::cout << "Coupling: " << bunch_mp->getCouplingConstant() << std::endl; std::cin.get();
-    
-//     std::cout << "finest_level = " << finest_level << std::endl;
-//     std::cout << "finest_level = " << (&amrpbase_p->getAmrLayout())->finestLevel() << std::endl; std::cin.get();
+    double invGamma = 1.0 / gamma;
+    double scalefactor = 1.0;
     
     /// Lorentz transformation
     /// In particle rest frame, the longitudinal length (y for cyclotron) enlarged
@@ -330,7 +419,8 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
         this->rho_m[i]->mult(invGamma / scalefactor, 0 /*comp*/, 1 /*ncomp*/);
         
         if ( this->rho_m[i]->contains_nan(false) )
-            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ", "NANs at level " + std::to_string(i) + ".");
+            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
+                                "NANs at level " + std::to_string(i) + ".");
     }
     
     
@@ -382,17 +472,15 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     
     for (int i = 0; i <= finest_level; ++i) {
         if ( this->eg_m[i]->contains_nan(false) )
-            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ", "Ef: NANs at level " + std::to_string(i) + ".");
+            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
+                                "Ef: NANs at level " + std::to_string(i) + ".");
     }
     
-    for (int i = 0; i <= finest_level; ++i) {
-        
-        std::cout << i << ": " << this->phi_m[i]->nGrow() << " "
-                  << this->phi_m[i]->min(0, 1) << " " << this->phi_m[i]->max(0, 1) << std::endl;
-        
-        if ( this->phi_m[i]->contains_nan(false) )
-            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ", "Pot: NANs at level " + std::to_string(i) + ".");
-    }
+//     for (int i = 0; i <= finest_level; ++i) {
+//         if ( this->phi_m[i]->contains_nan(false) )
+//             throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
+//                                 "Pot: NANs at level " + std::to_string(i) + ".");
+//     }
     
 #ifdef DBG_SCALARFIELD
     INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
@@ -430,11 +518,6 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING E FIELD ***" << endl);
-        //ostringstream oss;
-        //MPI_File file;
-        //MPI_Status status;
-        //MPI_Info fileinfo;
-        //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
         std::ofstream fstr;
         fstr.precision(9);
 
@@ -466,18 +549,14 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     amrpbase_p->gather(bunch_mp->Ef, this->eg_m, bunch_mp->R, 0, finest_level);
     
     // undo domain change
-    factor = layout_mp->domainMapping(*amrpbase_p, layout_mp->lowerBound,
-                                      layout_mp->upperBound, 1.25 * rmin, 1.25 * rmax);
+    layout_mp->domainMapping(*amrpbase_p, true);
     
-    factor *= factor;
-//     std::cout << "factor = " << factor << std::endl; std::cin.get();
+    scale *= scale;
+    bunch_mp->Ef *= Vector_t(gamma * scalefactor * scale[0],
+                             invGamma * scalefactor * scale[1],
+                             gamma * scalefactor * scale[2]);
     
-    bunch_mp->Ef *= Vector_t(gamma * scalefactor / factor, invGamma * scalefactor / factor, gamma * scalefactor / factor);
-    
-    Vector_t emin, emax;
-    bounds(bunch_mp->Ef, emin, emax);
-    std::cout << emin << " " << emax << std::endl; std::cin.get();
-//     std::cout << bunch_mp->Ef[0] << std::endl; std::cin.get();
+    std::cout << bunch_mp->Ef[0] << std::endl; std::cin.get();
     
     /// calculate coefficient
     // Relativistic E&M says gamma*v/c^2 = gamma*beta/c = sqrt(gamma*gamma-1)/c
@@ -488,8 +567,6 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     /// calculate B field from E field
     bunch_mp->Bf(0) =  betaC * bunch_mp->Ef(2);
     bunch_mp->Bf(2) = -betaC * bunch_mp->Ef(0);
-    
-//     std::cout << "self-field computed" << std::endl;
 }
 
 
@@ -638,16 +715,13 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags, AmrReal_t ti
     Vector_t rmin, rmax;
     bounds(bunch_mp->R, rmin, rmax);
     
-    double factor = layout_mp->domainMapping(*amrpbase_p, 1.25 * rmin, 1.25 * rmax,
-                                               layout_mp->lowerBound,
-                                               layout_mp->upperBound);
+    layout_mp->domainMapping(*amrpbase_p);
     
     // the new scatter function averages the value also down to the coarsest level
     amrpbase_p->scatter(bunch_mp->Q, nChargePerCell_m, bunch_mp->R, lev, finest_level);
     
     // undo domain change
-    factor = layout_mp->domainMapping(*amrpbase_p, layout_mp->lowerBound,
-                                      layout_mp->upperBound, 1.25 * rmin, 1.25 * rmax);
+    layout_mp->domainMapping(*amrpbase_p, true);
     
     const int clearval = amrex::TagBox::CLEAR;
     const int   tagval = amrex::TagBox::SET;

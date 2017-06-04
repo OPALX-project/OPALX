@@ -14,16 +14,20 @@
 // typename BoxLibLayout<T, Dim>::AmrIntVect_t BoxLibLayout<T, Dim>::tile_size   { D_DECL(1024000,8,8) };
 
 template <class T, unsigned Dim>
-const Vector_t BoxLibLayout<T, Dim>::lowerBound = - Vector_t(1.0, 1.0, 1.0); // m
+const Vector_t BoxLibLayout<T, Dim>::lowerBound = - Vector_t(1.25, 1.25, 1.25);
 
 
 template <class T, unsigned Dim>
-const Vector_t BoxLibLayout<T, Dim>::upperBound = Vector_t(1.0, 1.0, 1.0); // m
+const Vector_t BoxLibLayout<T, Dim>::upperBound = Vector_t(1.25, 1.25, 1.25);
 
 
 template<class T, unsigned Dim>
 BoxLibLayout<T, Dim>::BoxLibLayout()
-    : ParGDB(), finestLevel_m(0), maxLevel_m(0), refRatio_m(0)
+    : ParGDB(),
+      finestLevel_m(0),
+      maxLevel_m(0),
+      refRatio_m(0),
+      scale_m(1.0, 1.0, 1.0)
 {
     /* FIXME There might be a better solution
      * 
@@ -45,7 +49,11 @@ BoxLibLayout<T, Dim>::BoxLibLayout()
 
 template<class T, unsigned Dim>
 BoxLibLayout<T, Dim>::BoxLibLayout(int nGridPoints, int maxGridSize)
-    : ParGDB(), finestLevel_m(0), maxLevel_m(0), refRatio_m(0)
+    : ParGDB(),
+      finestLevel_m(0),
+      maxLevel_m(0),
+      refRatio_m(0),
+      scale_m(1.0, 1.0, 1.0)
 {
     this->initDefaultBox(nGridPoints, maxGridSize);
 }
@@ -55,7 +63,11 @@ template<class T, unsigned Dim>
 BoxLibLayout<T, Dim>::BoxLibLayout(const AmrGeometry_t &geom,
                                    const AmrProcMap_t &dmap,
                                    const AmrGrid_t &ba)
-    : ParGDB(geom, dmap, ba), finestLevel_m(0), maxLevel_m(0), refRatio_m(0)
+    : ParGDB(geom, dmap, ba),
+      finestLevel_m(0),
+      maxLevel_m(0),
+      refRatio_m(0),
+      scale_m(1.0, 1.0, 1.0)
 { }
 
 
@@ -64,7 +76,11 @@ BoxLibLayout<T, Dim>::BoxLibLayout(const AmrGeomContainer_t &geom,
                                    const AmrProcMapContainer_t &dmap,
                                    const AmrGridContainer_t &ba,
                                    const AmrIntArray_t &rr)
-    : ParGDB(geom, dmap, ba, rr), finestLevel_m(0), maxLevel_m(0), refRatio_m(0)
+    : ParGDB(geom, dmap, ba, rr),
+      finestLevel_m(0),
+      maxLevel_m(0),
+      refRatio_m(0),
+      scale_m(1.0, 1.0, 1.0)
 { }
 
 
@@ -89,10 +105,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
                                   const ParticleAttrib<char>* canSwap)
 {
     // we need to update on Amr domain, has to be undone at end of function
-    Vector_t rmin, rmax;
-    bounds(PData.R, rmin, rmax);
-    double factor = this->domainMapping(PData, 1.25 * rmin, 1.25 * rmax,
-                                          lowerBound, upperBound);
+    this->domainMapping(PData);
     
 //     std::cout << "BoxLibLayout::update()" << std::endl;
     // Input parameters of ParticleContainer::Redistribute of BoxLib
@@ -259,7 +272,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     PData.setLocalNum(LocalNum);	// set the number of local atoms
     
     // undo domain transformation
-    factor = this->domainMapping(PData, lowerBound, upperBound, 1.25 * rmin, 1.25 * rmax);
+    this->domainMapping(PData, true);
 }
 
 
@@ -543,7 +556,7 @@ void BoxLibLayout<T, Dim>::initDefaultBox(int nGridPoints, int maxGridSize)
     // use Cartesian coordinates
     int coord = 0;
 
-    // Dirichelt boundary conditions
+    // Dirichlet boundary conditions
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) 
         is_per[i] = 0;
@@ -628,24 +641,31 @@ int BoxLibLayout<T, Dim>::MaxRefRatio (int level) const {
 
 
 template <class T, unsigned Dim>
-double BoxLibLayout<T, Dim>::domainMapping(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
-                                             const Vector_t& lold,
-                                             const Vector_t& uold,
-                                             const Vector_t& lnew,
-                                             const Vector_t& unew)
+const Vector_t& BoxLibLayout<T, Dim>::domainMapping(
+    AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
+    bool inverse)
 {
-    // [lold, uold] --> [lnew, unew]
-    Vector_t invdiff = 1.0 / ( uold - lold );
-    Vector_t slope = ( unew - lnew ) * invdiff;
-    Vector_t intercept = ( uold * lnew - lold * unew ) * invdiff;
+    Vector_t rmin, rmax;
+    bounds(PData.R, rmin, rmax);
+    
+    Vector_t absmax = scale_m;
+    
+    if ( !inverse ) {
+        absmax = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
+                          std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
+                          std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
+                         );
+    }
     
     for (unsigned int i = 0; i < PData.getLocalNum(); ++i)
-        PData.R[i] = slope * PData.R[i] + intercept;
+        PData.R[i] /= absmax;
     
-    Vector_t dnew = unew - lnew;
-    Vector_t dold = uold - lold;
+    Vector_t new_rmin, new_rmax;
+    bounds(PData.R, new_rmin, new_rmax);
     
-    return  std::sqrt( dot(dnew, dnew) / dot(dold, dold) ); //( unew - lnew ) / ( uold - lold );
+    scale_m = ( new_rmax - new_rmin ) / ( rmax - rmin );
+    
+    return scale_m;
 }
 
 #endif
