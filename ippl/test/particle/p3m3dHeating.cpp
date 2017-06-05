@@ -479,10 +479,10 @@ public:
         h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
         assert (h5err != H5_ERR);
         H5f_m = H5OpenFile (fn.c_str(), H5_O_RDONLY, props);
-        assert (file_m != (h5_file_t)H5_ERR);
+        assert (H5f_m != (h5_file_t)H5_ERR);
 #else
         H5f_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, Ippl::getComm());
-        assert (file_m != (void*)H5_ERR);
+        assert (H5f_m != (void*)H5_ERR);
 #endif
     }
 
