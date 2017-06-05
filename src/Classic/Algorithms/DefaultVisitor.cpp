@@ -48,6 +48,7 @@
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/Source.h"
+#include "AbsBeamline/SpiralSector.h"
 #include "AbsBeamline/ParallelPlate.h"
 #include "AbsBeamline/CyclotronValley.h"
 #include "AbsBeamline/Stripper.h"
@@ -212,6 +213,11 @@ void DefaultVisitor::visitSolenoid(const Solenoid &sol) {
 void DefaultVisitor::visitSource(const Source &sou) {
     applyDefault(sou);
 }
+
+void DefaultVisitor::visitSpiralSector(const SpiralSector &spiral) {
+    applyDefault(spiral);
+}
+
 
 void DefaultVisitor::visitParallelPlate(const ParallelPlate &pplate) {
     applyDefault(pplate);

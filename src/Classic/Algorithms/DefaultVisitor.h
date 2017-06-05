@@ -136,6 +136,9 @@ public:
     /// Apply the algorithm to a source.
     virtual void visitSource(const Source &);
 
+    /// Apply the algorithm to a spiral sector.
+    virtual void visitSpiralSector(const SpiralSector &);
+
     /// Apply the algorithm to a ParallelPlate.
     virtual void visitParallelPlate(const ParallelPlate &);
 

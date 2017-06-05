@@ -33,6 +33,7 @@
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/Source.h"
+#include "AbsBeamline/SpiralSector.h"
 #include "AbsBeamline/ParallelPlate.h"
 #include "AbsBeamline/CyclotronValley.h"
 #include "AbsBeamline/Stripper.h"
@@ -156,6 +157,9 @@ public:
 
     /// Apply the algorithm to a solenoid.
     virtual void visitSource(const Source &);
+
+    /// Apply the algorithm to a spiral sector magnet.
+    virtual void visitSpiralSector(const SpiralSector &);
 
     /// Apply the algorithm to a ParallelPlate.
     virtual void visitParallelPlate(const ParallelPlate &);
@@ -353,6 +357,11 @@ void SpecificElementVisitor<ELEM>::visitSBend(const SBend &element) {
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSBend3D(const SBend3D &element) {
     CastsTrait<ELEM, SBend3D>::apply(allElementsOfTypeE, element);
+}
+
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitSpiralSector(const SpiralSector &element) {
+    CastsTrait<ELEM, SpiralSector>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
