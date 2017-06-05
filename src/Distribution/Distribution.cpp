@@ -196,14 +196,6 @@ namespace LegacyAttributesT
         CUTOFF,
         T,
         PT,
-        // ALPHAX,
-        // ALPHAY,
-        // BETAX,
-        // BETAY,
-        // DX,
-        // DDX,
-        // DY,
-        // DDY,
         SIZE
     };
 }
@@ -279,10 +271,6 @@ Distribution::Distribution():
     }
 
     setFieldEmissionParameters();
-
-    gsl_rng_env_setup();
-    randGen_m = gsl_rng_alloc(gsl_rng_default);
-    gsl_rng_set(randGen_m, Options::seed);
 }
 /**
  *
@@ -369,11 +357,10 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     sigmaRise_m(parent->sigmaRise_m),
     sigmaFall_m(parent->sigmaFall_m),
     cutoff_m(parent->cutoff_m),
-    bega_m(parent->bega_m)
+    bega_m(parent->bega_m),
+    mySeed_m(parent->mySeed_m)
 {
-    gsl_rng_env_setup();
-    randGen_m = gsl_rng_alloc(gsl_rng_default);
-    gsl_rng_set(randGen_m, Options::seed);
+
 }
 
 Distribution::~Distribution() {
@@ -479,9 +466,24 @@ void Distribution::update() {
 
 void Distribution::create(size_t &numberOfParticles, double massIneV) {
 
-    setFieldEmissionParameters();
+    setFieldEmissionParameters(); /// is also called in the constructor
 
     size_t locNumber = getNumOfLocalParticlesToCreate(numberOfParticles);
+
+    if (Options::seed ==-1) {
+        struct timeval tv;
+        gettimeofday(&tv,0);
+        mySeed_m = tv.tv_sec + tv.tv_usec + Ippl::myNode();
+        *gmsg << "* Distribution generation with non-portable rng" << endl;
+    }
+    else {
+        mySeed_m = Ippl::myNode();
+        *gmsg << "* Distribution generation with portable rng" << endl;
+    }
+
+    gsl_rng_env_setup();
+    randGen_m = gsl_rng_alloc(gsl_rng_default);
+    gsl_rng_set(randGen_m, mySeed_m);
 
     switch (distrTypeT_m) {
 
@@ -517,7 +519,6 @@ void Distribution::create(size_t &numberOfParticles, double massIneV) {
         if (emissionModel_m == EmissionModelT::ASTRA ||
             distrTypeT_m == DistrTypeT::ASTRAFLATTOPTH ||
             distrTypeT_m == DistrTypeT::GUNGAUSSFLATTOPTH) {
-
             numAdditionalRNsPerParticle = 2;
         } else if (emissionModel_m == EmissionModelT::NONEQUIL) {
             numAdditionalRNsPerParticle = 20;
@@ -539,8 +540,8 @@ void Distribution::create(size_t &numberOfParticles, double massIneV) {
 
     // Scale coordinates according to distribution input.
     scaleDistCoordinates();
-        
-    Options::seed = gsl_rng_uniform_int(randGen_m, gsl_rng_max(randGen_m));
+    if (Options::seed != -1)        
+        Options::seed = gsl_rng_uniform_int(randGen_m, gsl_rng_max(randGen_m));
 }
 
 void  Distribution::createPriPart(PartBunch *beam, BoundaryGeometry &bg) {
@@ -1157,6 +1158,8 @@ void Distribution::checkParticleNumber(size_t &numberOfParticles) {
               << "(" << numberOfDistParticles << ") "
               << "will take precedence." << endl
               << "---------------------------------------------------\n" << endl;
+        throw OpalException("Distribution::CheckParticleNumber",
+                            "Number of macro particles and NPART on BEAM are not equal");
     }
     numberOfParticles = numberOfDistParticles;
 }
@@ -3852,35 +3855,13 @@ void Distribution::setAttributes() {
     itsAttr[LegacyAttributesT::CUTOFF]
         = Attributes::makeReal("CUTOFF", "Longitudinal cutoff for Gaussian in units "
                                "of sigma.", 3.0);
-
-
+    // ADA
     // Mixed use attributes (used by more than one distribution type).
     itsAttr[LegacyAttributesT::T]
         = Attributes::makeReal("T", "Not supported anymore");
 
     itsAttr[LegacyAttributesT::PT]
         = Attributes::makeReal("PT", "Not supported anymore.");
-
-
-    // Attributes that are not yet implemented.
-    // itsAttr[LegacyAttributesT::ALPHAX]
-    //     = Attributes::makeReal("ALPHAX", "Courant Snyder parameter.", 0.0);
-    // itsAttr[LegacyAttributesT::ALPHAY]
-    //     = Attributes::makeReal("ALPHAY", "Courant Snyder parameter.", 0.0);
-    // itsAttr[LegacyAttributesT::BETAX]
-    //     = Attributes::makeReal("BETAX", "Courant Snyder parameter.", 1.0);
-    // itsAttr[LegacyAttributesT::BETAY]
-    //     = Attributes::makeReal("BETAY", "Courant Snyder parameter.", 1.0);
-
-    // itsAttr[LegacyAttributesT::DX]
-    //     = Attributes::makeReal("DX", "Dispersion in x (R16 in Transport notation).", 0.0);
-    // itsAttr[LegacyAttributesT::DDX]
-    //     = Attributes::makeReal("DDX", "First derivative of DX.", 0.0);
-
-    // itsAttr[LegacyAttributesT::DY]
-    //     = Attributes::makeReal("DY", "Dispersion in y (R36 in Transport notation).", 0.0);
-    // itsAttr[LegacyAttributesT::DDY]
-    //     = Attributes::makeReal("DDY", "First derivative of DY.", 0.0);
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
