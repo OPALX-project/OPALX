@@ -403,7 +403,9 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     
     // map on Amr domain
+//     bunch_mp->python_format(0);
     Vector_t scale = layout_mp->domainMapping(*amrpbase_p);
+//     bunch_mp->python_format(1); std::cout << "Written." << std::endl; std::cin.get();
     
     /// from charge (C) to charge density (C/m^3).
     amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
@@ -411,12 +413,12 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     int baseLevel = 0;
     int nLevel = finest_level + 1;
     double invGamma = 1.0 / gamma;
-    double scalefactor = 1.0;
+    double scalefactor = /*1.0 */ 1.0 / scale[0];
     
     /// Lorentz transformation
     /// In particle rest frame, the longitudinal length (y for cyclotron) enlarged
     for (int i = 0; i <= finest_level; ++i) {
-        this->rho_m[i]->mult(invGamma / scalefactor, 0 /*comp*/, 1 /*ncomp*/);
+        this->rho_m[i]->mult(invGamma /*/ scalefactor*/, 0 /*comp*/, 1 /*ncomp*/);
         
         if ( this->rho_m[i]->contains_nan(false) )
             throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
@@ -551,12 +553,14 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     // undo domain change
     layout_mp->domainMapping(*amrpbase_p, true);
     
-    scale *= scale;
-    bunch_mp->Ef *= Vector_t(gamma * scalefactor * scale[0],
-                             invGamma * scalefactor * scale[1],
-                             gamma * scalefactor * scale[2]);
+//     scale *= scale;
+//     scale = Vector_t(1.0, 1.0, 1.0) / scale;
+//     std::cout << "scale = " << scale << std::endl;
+    bunch_mp->Ef *= Vector_t(gamma /** scalefactor*/ * scale[0],
+                             invGamma /** scalefactor*/ * scale[1],
+                             gamma /** scalefactor*/ * scale[2]);
     
-    std::cout << bunch_mp->Ef[0] << std::endl; std::cin.get();
+//     std::cout << bunch_mp->Ef[0] << std::endl; std::cin.get();
     
     /// calculate coefficient
     // Relativistic E&M says gamma*v/c^2 = gamma*beta/c = sqrt(gamma*gamma-1)/c
