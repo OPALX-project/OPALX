@@ -159,6 +159,12 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // **************************************************************************                                                                                                                                
 
     Real offset = 0.;
+    
+//     for (int lev = base_level; lev <= finest_level; lev++) {
+//         phi[lev]->setBndry(0.0);
+// //         rhs[lev]->FillBoundary();
+//         phi[lev]->FillBoundary();
+//     }
 
     // solve                                                                                                                                                                                                     
     Solver sol;
@@ -187,8 +193,8 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    std::array<double, BL_SPACEDIM> lower = {{-1.0, -1.0, -1.0}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ 1.0,  1.0,  1.0}}; // m
+    std::array<double, BL_SPACEDIM> lower = {{-0.02, -0.02, -0.02}}; // m
+    std::array<double, BL_SPACEDIM> upper = {{ 0.02,  0.02,  0.02}}; // m
     
     RealBox domain;
     
@@ -215,7 +221,15 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     for (int i = 0; i < 3; ++i)
         nCells[i] = nr[i];
     
-    AmrOpal myAmrOpal(&domain, nLevels - 1, nCells, 0 /* cartesian */);
+    
+    std::vector<int> rr(nLevels);
+    Array<int> rrr(nLevels);
+    for (int i = 0; i < nLevels; ++i) {
+        rr[i] = 2;
+        rrr[i] = 2;
+    }
+    
+    AmrOpal myAmrOpal(&domain, nLevels - 1, nCells, 0 /* cartesian */, rr);
     
     // ========================================================================
     // 2. initialize all particles (just single-level)
@@ -225,12 +239,8 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     const Array<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
     const Array<Geometry>& geom = myAmrOpal.Geom();
     
-    Array<int> rr(nLevels);
-    for (int i = 0; i < nLevels; ++i)
-        rr[i] = 2;
     
-    
-    amrplayout_t* playout = new amrplayout_t(geom, dmap, ba, rr);
+    amrplayout_t* playout = new amrplayout_t(geom, dmap, ba, rrr);
     
     std::unique_ptr<amrbunch_t> bunch( new amrbunch_t() );
     bunch->initialize(playout);
@@ -254,7 +264,7 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     
     myAmrOpal.setBunch(bunch.get());
     
-//     bunch->gatherStatistics();
+    bunch->gatherStatistics();
     
     // ========================================================================
     // 3. multi-level redistribute
@@ -279,7 +289,7 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     
     msg << endl << "Transformed positions" << endl << endl;
     
-    double factor = domainMapping(*bunch, 1.05 * rmin, 1.05 * rmax, low , up);
+//     double factor = domainMapping(*bunch, 1.05 * rmin, 1.05 * rmax, low , up);
     
     bunch->update();
     
@@ -287,11 +297,11 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     bounds(bunch->R, tmp_min, tmp_max);
     msg << "rmin = " << tmp_min << endl << "rmax = " << tmp_max << endl;
     
-    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, geom, rr, nLevels, msg);
+    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, geom, rrr, nLevels, msg);
     
     msg << endl << "Back to normal positions" << endl << endl;
     
-    domainMapping(*bunch, low , up, 1.05 * rmin, 1.05 * rmax);
+//     domainMapping(*bunch, low , up, 1.05 * rmin, 1.05 * rmax);
     
     bunch->update();
     
@@ -300,13 +310,38 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     msg << "rmin = " << tmp_min << endl << "rmax = " << tmp_max << endl;
     
     
-    // scale solution
-    double factor2 = factor * factor;
     for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
-        phi[i]->mult(factor, 0, 1);
-        
-        efield[i]->mult(factor2, 0, 3, 1);
+        if ( rhs[i]->contains_nan(false) )
+            msg << "rho: Nan" << endl;
     }
+    
+    for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
+        if ( efield[i]->contains_nan(false) )
+            msg << "efield: Nan" << endl;
+    }
+    
+    for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
+        
+        msg << i << ": " << phi[i]->nGrow() << " "
+                  << phi[i]->min(0, 1) << " " << phi[i]->max(0, 1) << endl;
+        
+        if ( phi[i]->contains_nan() )
+            msg << "phi: Nan" << endl;
+    }
+    
+    
+//     // scale solution
+//     double factor2 = factor * factor;
+//     for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
+//         phi[i]->mult(factor, 0, 1);
+//         
+//         efield[i]->mult(factor2, 0, 3, 1);
+//     }
+    
+//     for (int lev = phi.size() - 2; lev >= 0; lev--) {
+//         std::cout << "average down: " << lev + 1 << " --> " << lev << std::endl;
+//         amrex::average_down(*phi[lev+1], *phi[lev], 0, 1, rr[lev]);
+//     }
     
     for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
         msg << "Max. potential level " << i << ": "<< phi[i]->max(0) << endl
