@@ -19,7 +19,7 @@
 
 #include <AMReX_ParmParse.H>
 
-#include "../Solver.h"
+#include "../MGTSolver.h"
 #include "../AmrOpal.h"
 
 #include "../helper_functions.h"
@@ -167,15 +167,12 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
 //     }
 
     // solve                                                                                                                                                                                                     
-    Solver sol;
+    MGTSolver sol;
     IpplTimings::startTimer(solvTimer);
-    sol.solve_for_accel(rhs,            // [V m]
-                        phi,            // [V m^3]
-                        efield,       // [V m^2]
-                        geom,
-                        base_level,
-                        finest_level,
-                        offset);
+    sol.solve(rhs,            // [V m]
+              phi,            // [V m^3]
+              efield,       // [V m^2]
+              geom);
     
 //     for (int i = 0; i <=finest_level; ++i) {
 //         rhs[i]->mult(1.0 / constant, 0, 1);
