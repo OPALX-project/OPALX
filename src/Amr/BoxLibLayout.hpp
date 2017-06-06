@@ -655,6 +655,10 @@ const Vector_t& BoxLibLayout<T, Dim>::domainMapping(
                           std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
                           std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
                          );
+        
+        double max = std::max( absmax[0], absmax[1] );
+        max = std::max( max, absmax[2] );
+        absmax = Vector_t(max, max, max);
     }
     
     for (unsigned int i = 0; i < PData.getLocalNum(); ++i)
@@ -663,7 +667,9 @@ const Vector_t& BoxLibLayout<T, Dim>::domainMapping(
     Vector_t new_rmin, new_rmax;
     bounds(PData.R, new_rmin, new_rmax);
     
-    scale_m = ( new_rmax - new_rmin ) / ( rmax - rmin );
+    
+    scale_m = 1.0 / absmax;
+//     scale_m = ( new_rmax - new_rmin ) / ( rmax - rmin );
     
     return scale_m;
 }
