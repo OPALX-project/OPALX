@@ -141,7 +141,8 @@ ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
 IF (ENABLE_DKS)
    set (OPAL_LIBS
        ${OPAL_LIBS}
-       ${DKS_LIBRARY_DIR}/libdks.a)
+       dks 
+       ${DKS_CUDA_LIBS})
 ENDIF (ENABLE_DKS)
 
 add_library( OPALib ${OPAL_SRCS} )
