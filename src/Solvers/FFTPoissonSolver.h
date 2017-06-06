@@ -34,7 +34,6 @@
 
 #ifdef OPAL_DKS
 #include "DKSOPAL.h"
-#include "nvToolsExt.h"
 #endif
 
 class PartBunch;
