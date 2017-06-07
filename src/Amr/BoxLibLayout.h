@@ -193,71 +193,29 @@ public:
     const double& domainMapping(AmrParticleBase< BoxLibLayout<T,Dim> >& PData, bool inverse = false);
     
 private:
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     // Checks/sets a particles location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
     bool Where (AmrParticleBase< BoxLibLayout<T,Dim> >& p,
                 const unsigned int ip, 
                 int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     // Checks/sets whether the particle has crossed a periodic boundary in such a way
     // that it is on levels lev_min and higher.
     bool EnforcePeriodicWhere (AmrParticleBase< BoxLibLayout<T,Dim> >& prt,
                                const unsigned int ip,
                                int lev_min = 0, int lev_max = -1) const;
 
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     // Returns true if the particle was shifted.
     bool PeriodicShift (SingleParticlePos_t R) const;
     
-    
-//     int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);
-    
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     void locateParticle(AmrParticleBase< BoxLibLayout<T,Dim> >& p, 
                         const unsigned int ip,
                         int lev_min, int lev_max, int nGrow,
-                        bool &particleLeftDomain) const
-    {
-        bool outside = D_TERM( p.R[ip](0) <  AmrGeometry_t::ProbLo(0)
-                            || p.R[ip](0) >= AmrGeometry_t::ProbHi(0),
-                            || p.R[ip](1) <  AmrGeometry_t::ProbLo(1)
-                            || p.R[ip](1) >= AmrGeometry_t::ProbHi(1),
-                            || p.R[ip](2) <  AmrGeometry_t::ProbLo(2)
-                            || p.R[ip](2) >= AmrGeometry_t::ProbHi(2));
-        
-        if ( outside ) {
-            std::cout << "outside: " << outside << std::endl; std::cin.get();
-        }
-        
-        bool success;
-        if (outside)
-        {
-            // Note that EnforcePeriodicWhere may shift the particle if it is successful.
-            success = EnforcePeriodicWhere(p, ip, lev_min, lev_max);
-            if (!success && lev_min == 0)
-            {
-                // The particle has left the domain; invalidate it.
-                particleLeftDomain = true;
-                p.destroy(1, ip);
-                success = true;
-            }
-        }
-        else
-        {
-            success = Where(p, ip, lev_min, lev_max);
-        }
-    
-        if (!success)
-        {
-            success = (nGrow > 0) && Where(p, ip, lev_min, lev_min, nGrow);
-        }
-    
-        if (!success)
-        {
-            amrex::Abort("ParticleContainer<NR, NI, NA>::locateParticle(): invalid particle.");
-        }
-    }
+                        bool &particleLeftDomain) const;
     
 private:
     int finestLevel_m;
