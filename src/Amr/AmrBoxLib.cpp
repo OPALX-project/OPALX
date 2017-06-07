@@ -216,12 +216,8 @@ void AmrBoxLib::computeSelfFields() {
     Vector_t rmin, rmax;
     bounds(bunch_mp->R, rmin, rmax);
     
-//     std::cout << rmin << " " << rmax << std::endl; std::cin.get();
     
-//     bunch_mp->python_format(0); std::cout << "Written." << std::endl;
-    
-    
-    Vector_t scale = layout_mp->domainMapping(*amrpbase_p);
+    double scalefactor = layout_mp->domainMapping(*amrpbase_p);
     
     
     /// from charge (C) to charge density (C/m^3).
@@ -241,10 +237,8 @@ void AmrBoxLib::computeSelfFields() {
     double gammaz = sum(bunch_mp->P)[2] / bunch_mp->getTotalNum();
     gammaz *= gammaz;
     gammaz = std::sqrt(gammaz + 1.0);
-    double scalefactor = 1;
-//     Vector_t hr_scaled = hr_m * Vector_t(scaleFactor);
     
-    double tmp = 1.0 / bunch_mp->getdT() / gammaz;
+    double tmp = 1.0 / bunch_mp->getdT() / gammaz * scalefactor;
     for (int i = 0; i <= finestLevel; ++i) {
         this->rho_m[i]->mult(tmp, 0, 1);
     }
@@ -358,16 +352,9 @@ void AmrBoxLib::computeSelfFields() {
     
     layout_mp->domainMapping(*amrpbase_p, true);
     
-    scale *= scale;
-    std::cout << scale << std::endl;
-    
-    bunch_mp->Ef *= Vector_t(gammaz / scalefactor * scale[0],
-                             gammaz / scalefactor * scale[1],
-                             1.0 / (gammaz * scalefactor) * scale[2] );
-    
-    Vector_t efmin, efmax;
-    bounds(bunch_mp->Ef, efmin, efmax);
-    std::cout << efmin << " " << efmax << std::endl;
+    bunch_mp->Ef *= Vector_t(gammaz * scalefactor,
+                             gammaz * scalefactor,
+                             1.0 / gammaz * scalefactor);
     
     /** Magnetic field in x and y direction induced by the eletric field
      *
@@ -404,7 +391,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     
     // map on Amr domain
 //     bunch_mp->python_format(0);
-    Vector_t scale = layout_mp->domainMapping(*amrpbase_p);
+    double scalefactor = layout_mp->domainMapping(*amrpbase_p);
 //     bunch_mp->python_format(1); std::cout << "Written." << std::endl; std::cin.get();
     
     /// from charge (C) to charge density (C/m^3).
@@ -413,12 +400,11 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     int baseLevel = 0;
     int nLevel = finest_level + 1;
     double invGamma = 1.0 / gamma;
-    double scalefactor = /*1.0 */ 1.0 / scale[0];
     
     /// Lorentz transformation
     /// In particle rest frame, the longitudinal length (y for cyclotron) enlarged
     for (int i = 0; i <= finest_level; ++i) {
-        this->rho_m[i]->mult(invGamma /*/ scalefactor*/, 0 /*comp*/, 1 /*ncomp*/);
+        this->rho_m[i]->mult(invGamma * scalefactor, 0 /*comp*/, 1 /*ncomp*/);
         
         if ( this->rho_m[i]->contains_nan(false) )
             throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
@@ -463,7 +449,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     // charge density is in rho_m
     // calculate Possion equation (with coefficient: -1/(eps))
     for (int i = 0; i <= finest_level; ++i) {
-        this->rho_m[i]->mult(-1.0 / Physics::epsilon_0 / scalefactor, 0, 1);
+        this->rho_m[i]->mult(-1.0 / Physics::epsilon_0, 0, 1);
     }
     
     
@@ -553,12 +539,9 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     // undo domain change
     layout_mp->domainMapping(*amrpbase_p, true);
     
-//     scale *= scale;
-//     scale = Vector_t(1.0, 1.0, 1.0) / scale;
-//     std::cout << "scale = " << scale << std::endl;
-    bunch_mp->Ef *= Vector_t(gamma /** scalefactor*/ * scale[0],
-                             invGamma /** scalefactor*/ * scale[1],
-                             gamma /** scalefactor*/ * scale[2]);
+    bunch_mp->Ef *= Vector_t(gamma * scalefactor,
+                             invGamma * scalefactor,
+                             gamma * scalefactor);
     
 //     std::cout << bunch_mp->Ef[0] << std::endl; std::cin.get();
     
