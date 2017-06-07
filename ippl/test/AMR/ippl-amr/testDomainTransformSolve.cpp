@@ -171,26 +171,27 @@ void setup(AmrOpal* &myAmrOpal, std::unique_ptr<amrbunch_t>& bunch,
 }
 
 
-Vector_t domainMapping(amrbase_t& PData, const Vector_t& scale, bool inverse = false)
+double domainMapping(amrbase_t& PData, const double& scale, bool inverse = false)
 {
     Vector_t rmin, rmax;
     bounds(PData.R, rmin, rmax);
     
-    Vector_t absmax = scale;
+    double absmax = scale;
     
     if ( !inverse ) {
-        absmax = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
-                          std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
-                          std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
-                         );
+        Vector_t tmp = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
+                                std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
+                                std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
+                               );
         
-        double max = std::max( absmax[0], absmax[1] );
-        max = std::max( max, absmax[2] );
-        absmax = Vector_t(max, max, max);
+        absmax = std::max( tmp[0], tmp[1] );
+        absmax = std::max( absmax, tmp[2] );
     }
     
+    Vector_t vscale = Vector_t(absmax, absmax, absmax);
+    
     for (unsigned int i = 0; i < PData.getLocalNum(); ++i) {
-        PData.R[i] /= absmax;
+        PData.R[i] /= vscale;
     }
     
     return 1.0 / absmax;
@@ -203,7 +204,7 @@ void doSolve(AmrOpal* myAmrOpal, amrbunch_t* bunch,
              container_t& efield,
              int nLevels,
              Inform& msg,
-             const Vector_t& scale)
+             const double& scale)
 {
     // =======================================================================                                                                                                                                   
     // 4. prepare for multi-level solve                                                                                                                                                                          
@@ -236,10 +237,8 @@ void doSolve(AmrOpal* myAmrOpal, amrbunch_t* bunch,
         amrex::MultiFab::Copy(*rhs[lev], *partMF[lev], 0, 0, 1, 0);
     }
     
-    double scalefactor = scale[0];
-    
     // eps in C / (V * m)
-    double constant = -1.0 / Physics::epsilon_0 * scalefactor;  // in [V m / C]
+    double constant = -1.0 / Physics::epsilon_0 * scale;  // in [V m / C]
     for (int i = 0; i <=finest_level; ++i) {
 #ifdef UNIQUE_PTR
         rhs[i]->mult(constant, 0, 1);       // in [V m]
@@ -278,7 +277,9 @@ void doSolve(AmrOpal* myAmrOpal, amrbunch_t* bunch,
     
     bunch->InterpolateFort(bunch->E, efield, base_level, finest_level);
     
-    bunch->E *= scale;
+    Vector_t vscale = Vector_t(scale, scale, scale);
+    
+    bunch->E *= vscale;
 }
 
 void doWithScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
@@ -302,7 +303,7 @@ void doWithScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
 //     bunch->python_format(0);
     
     // map particles
-    Vector_t scale = Vector_t(1.0, 1.0, 1.0);
+    double scale = 1.0;
     
     scale = domainMapping(*bunch, scale);
     
@@ -331,12 +332,12 @@ void doWithScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
     for (int i = 0; i <= myAmrOpal->finestLevel(); ++i) {
         msg << "Max. potential level " << i << ": "<< phi[i]->max(0) << endl
             << "Min. potential level " << i << ": " << phi[i]->min(0) << endl
-            << "Max. ex-field level " << i << ": " << efield[i]->max(0) * scale[0] << endl
-            << "Min. ex-field level " << i << ": " << efield[i]->min(0) * scale[0] << endl
-            << "Max. ex-field level " << i << ": " << efield[i]->max(1) * scale[1] << endl
-            << "Min. ex-field level " << i << ": " << efield[i]->min(1) * scale[1] << endl
-            << "Max. ex-field level " << i << ": " << efield[i]->max(2) * scale[2] << endl
-            << "Min. ex-field level " << i << ": " << efield[i]->min(2) * scale[2] << endl;
+            << "Max. ex-field level " << i << ": " << efield[i]->max(0) * scale << endl
+            << "Min. ex-field level " << i << ": " << efield[i]->min(0) * scale << endl
+            << "Max. ex-field level " << i << ": " << efield[i]->max(1) * scale << endl
+            << "Min. ex-field level " << i << ": " << efield[i]->min(1) * scale << endl
+            << "Max. ex-field level " << i << ": " << efield[i]->max(2) * scale << endl
+            << "Min. ex-field level " << i << ": " << efield[i]->min(2) * scale << endl;
     }
     
     
@@ -383,7 +384,7 @@ void doWithoutScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
 //     bunch->python_format(0);
     
     // map particles
-    Vector_t scale = Vector_t(1.0, 1.0, 1.0);
+    double scale = 1.0;
     
     for (int i = 0; i <= myAmrOpal->finestLevel() && i < myAmrOpal->maxLevel(); ++i)
         myAmrOpal->regrid(i /*lbase*/, 0.0 /*time*/);
