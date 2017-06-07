@@ -227,7 +227,7 @@ String values can occur in string arrays \seesec{anarray}.
 TITLE,"This is a title for the program run ""test""";
 CALL,FILE="save";
 
-X=1;
+REAL X=1;
 TWISS,LINE=LEP&STRING(X+1);
 \end{example}
 The second example converts the value of the expression ``X+1'' to a
@@ -527,7 +527,7 @@ However, the use of a random generator in an assignment expression is safe.
 \begin{example}
 D:DRIFT,L=0.01*RANF();    // a drift space with rand. length,
                           // may change during execution.
-P=EVAL(0.001*TGAUSS(X));  // Evaluated once and stored as a constant.
+REAL P=EVAL(0.001*TGAUSS(X));  // Evaluated once and stored as a constant.
 \end{example}
 
 \section{Operands in Expressions}
@@ -594,8 +594,8 @@ on a common variable parameter.
 Such a variable must be defined as a global
 variable \seesec{variable} defined by one of
 \begin{example}
-X=expression;
-X:=expression;
+REAL X=expression;
+REAL X:=expression;
 VECTOR X=vector-expression;
 VECTOR X:=vector-expression;
 \end{example}
@@ -609,8 +609,8 @@ the expression is retained and re-evaluated whenever one of its operands
 changes.\\
 \noindent Example:
 \begin{example}
-L=1.0;
-X:=L;
+REAL L=1.0;
+REAL X:=L;
 D1:DRIFT,L:=X;
 D2:DRIFT,L:=2.0-X;
 \end{example}

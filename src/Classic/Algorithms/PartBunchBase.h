@@ -569,7 +569,7 @@ public:
     /// avoid calls to Ippl::getNodes()
     int nodes_m;
 
-//     /// if the grid does not have to adapt
+    /// if the grid does not have to adapt
     bool fixed_grid;
 
     // The structure for particle binning

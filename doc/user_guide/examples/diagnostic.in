@@ -1,15 +1,16 @@
 Option, ECHO=FALSE;
 Option, TFS=FALSE;
 Option, PSDUMPFREQ=10;
+Option, VERSION=10600;
 
 Title,string="OPAL Diagnostics test";
 
-Edes=0.0307; //GeV
-gamma=(Edes+EMASS)/EMASS;
-beta=sqrt(1-(1/gamma^2));
-gambet=gamma*beta;
-P0 = gamma*beta*EMASS;
-brho = (EMASS*1.0e9*gambet) / CLIGHT;
+REAL Edes=0.0307; //GeV
+REAL gamma=(Edes+EMASS)/EMASS;
+REAL beta=sqrt(1-(1/gamma^2));
+REAL gambet=gamma*beta;
+REAL P0 = gamma*beta*EMASS;
+REAL brho = (EMASS*1.0e9*gambet) / CLIGHT;
 value,{gamma,brho,Edes,beta,gambet};
 
 FINLB02_MSLAC40: Solenoid, L=0.001, KS=0.05, 

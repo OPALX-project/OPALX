@@ -96,15 +96,32 @@ Any statement following the \keyword{STOP} or  \keyword{QUIT} statement is ignor
 \label{sec:option}
 \index{OPTION}
 The \keyword{OPTION} command controls global command execution and sets
-a few global quantities:
+a few global quantities. Starting with version 1.6.0 of \opal the option \texttt{VERSION} is
+mandatory in the \opal input file. Example:
 \begin{example}
 OPTION,ECHO=logical,INFO=logical,TRACE=logical,
        VERIFY=logical,WARN=logical,
        SEED=real,PSDUMPFREQ=integer,
        STATDUMPFREQ=integer, SPTDUMFREQ=integer,
-       REPARTFREQ=integer, REBINFREQ=integer, TELL=logical;
+       REPARTFREQ=integer, REBINFREQ=integer, TELL=logical, VERSION=integer;
 \end{example}
-The first five logical flags activate or deactivate execution options:
+
+\begin{kdescription}
+\item[VERSION]
+  \index{VERSION}
+
+  Used to indicate for which version of \opal the input file is
+  written. The major and minor versions of \opal and of the input file
+  have to match. The patch version of \opal must be greater or equal
+  to the patch version of the input file. If the version doesn't
+  fulfill above criteria \opal stops immediately and prints
+  instructions on how to convert the input file.  The format is
+  \texttt{Mmmpp} where \texttt{M} stands for the major, \texttt{m} for
+  the minor and \texttt{p} for the patch version. For version 1.6.0 of
+  \opal \texttt{VERSION} should read \texttt{10600}.
+\end{kdescription}
+
+The next five logical flags activate or deactivate execution options:
 \begin{kdescription}
   \item[ECHO]
   \index{OPTION!ECHO}
@@ -206,6 +223,12 @@ The first five logical flags activate or deactivate execution options:
   \item[CSRDUMP]
   \index{OPTION!CSRDUMP}
   If true the electric csr field component, $E_z$, line density and the derivative of the line density is written into the \filename{data} directory.
+  The first line gives the average position of the beam bunch.
+  Subsequent lines list $z$ position of longitudinal mesh (with respect to the head of the beam bunch),
+   $E_z$, line density and the derivative of the line density. Note that currently the line density derivative 
+   needs to be scaled by the inverse of the mesh spacing to get the correct value. The CSR field
+   is dumped at each time step of the calculation. Each text file is named "Bend Name" (from input file) + "-CSRWake" + "time step number in that bend
+   (starting from 1)" + ".txt".
 
   %% \item[AUTOPHASE]
   %% \index{OPTION!AUTOPHASE}
@@ -359,6 +382,10 @@ OPTION,SEED=987456321
          \keyword{BEAMHALOBOUNDARY}  & = \texttt{0.0}        &
          \keyword{CLOTUNEONLY}       & = \keyword{FALSE}     \\
       \hline
+         \keyword{VERSION}           & = \texttt{none}       &
+         & &
+         & \\
+      \hline
     \end{tabular}
   \end{center}
 \end{table}
@@ -420,7 +447,9 @@ X=EVAL(X+1);
 \begin{example}
 REAL VECTOR variable-name=vector-expression;
 \end{example}
-The keyword \keyword{REAL} is optional.
+In old version of \opal (before 1.6.0) the keyword \texttt{REAL} was
+optional, now it is mandatory!
+
 This statement creates a new global variable \texttt{variable-name}
 and discards any old variable with the same name.
 Its value depends on all quantities occurring
@@ -558,10 +587,10 @@ any operands and prints the results on the standard error file.
 
 \noindent Example:
 \begin{example}
-A=4;
+REAL A=4;
 VALUE,VALUE=TABLE(5,#*A);
-P1=5;
-P2=7;
+REAL P1=5;
+REAL P2=7;
 VALUE,VALUE={P1,P2,P1*P2-3};
 \end{example}
 These commands give the results:

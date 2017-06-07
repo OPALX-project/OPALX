@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: ParticleMatterInteraction
-//   The class for the OPAL PARTICLEMATERINTERACTION command.
+//   The class for the OPAL PARTICLEMATTERINTERACTION command.
 //
 // $Date: 2009/07/14 22:09:00 $
 // $Author: C. Kraus $

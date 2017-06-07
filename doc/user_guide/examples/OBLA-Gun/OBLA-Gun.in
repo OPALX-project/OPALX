@@ -2,14 +2,14 @@ Title,string="OBLA Gun";
 
 Option, ECHO=FALSE;
 Option, PSDUMPFREQ=10;
+Option, VERSION=10600;
 
-
-Edes=1.0E-9;
-gamma=(Edes+EMASS)/EMASS;
-beta=sqrt(1-(1/gamma^2));
-gambet=gamma*beta;
-P0 = gamma*beta*EMASS;
-brho = (EMASS*1.0e9*gambet) / CLIGHT;
+REAL Edes=1.0E-9;
+REAL gamma=(Edes+EMASS)/EMASS;
+REAL beta=sqrt(1-(1/gamma^2));
+REAL gambet=gamma*beta;
+REAL P0 = gamma*beta*EMASS;
+REAL brho = (EMASS*1.0e9*gambet) / CLIGHT;
 
 value,{gamma,brho,Edes,beta,gambet};
 
@@ -27,9 +27,9 @@ gun: RFCavity, L=0.011, VOLT=-102.28, FMAPFN="1T1.T7",
 
 l1:   Line = (gun,sp1,sp2,sp3); 
 
-rf=1498.956e6;  
-v0=beta*CLIGHT;
-lz  = 6.5E-12*v0;
+REAL rf=1498.956e6;  
+REAL v0=beta*CLIGHT;
+REAL lz  = 6.5E-12*v0;
 value,{v0,lz};
 
 Dist1:DISTRIBUTION, DISTRIBUTION=gungauss,
@@ -37,8 +37,6 @@ Dist1:DISTRIBUTION, DISTRIBUTION=gungauss,
       sigmay=  0.00030, sigmapy=0.0, corry=0.0,
       sigmat=  lz, sigmapt=1.0, corrt=0.0 , 
       TEMISSION=3.9e-11, NBIN=39, DEBIN=1;
-
-MINSTEPFORREBIN=1000;
 
 Fs1:FIELDSOLVER, FSTYPE=FFT, MX=32, MY=32, MT=32, 
                  PARFFTX=true, PARFFTY=true, PARFFTT=false,
@@ -53,4 +51,5 @@ track,line=l1, beam=beam1, MAXSTEPS=2000, DT=1.0e-13;
  run, method = "PARALLEL-T", beam=beam1, fieldsolver=Fs1, 
       distribution=Dist1;
 endtrack;
+
 Stop;

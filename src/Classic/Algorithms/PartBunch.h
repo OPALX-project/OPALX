@@ -107,7 +107,6 @@ public:
     VField_t  eg_m;
     
     Inform &print(Inform &os);
-    
 
 private:
     

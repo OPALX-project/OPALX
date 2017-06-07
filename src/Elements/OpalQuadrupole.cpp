@@ -148,8 +148,8 @@ void OpalQuadrupole::update() {
     quad->setNormalComponent(2, Attributes::getReal(itsAttr[K1]), Attributes::getReal(itsAttr[DK1]));
     quad->setSkewComponent(2, Attributes::getReal(itsAttr[K1S]), Attributes::getReal(itsAttr[DK1S]));
 
-    if(itsAttr[PARTICLEMATERINTERACTION] && parmatint_m == NULL) {
-        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+    if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
         parmatint_m->initParticleMatterInteractionHandler(*quad);
         quad->setParticleMatterInteraction(parmatint_m->handler_m);
     }

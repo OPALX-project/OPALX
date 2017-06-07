@@ -675,9 +675,9 @@ On the first line, the two zeros following  \texttt{1DProfile1} are the orders o
 When the hard edge map is used for a dipole, finer integration time step is needed to ensure the accurate of the calculation. \figref{plot-emit-dt} compares the normalized emittances generated using the hard edge map in \opal with varying time steps to those from the ELEGANT. \SI{0.01}{\pico\second} seems to be a optimal time step for the fringe field region. To speed up the simulations, one can use larger time steps outside the fringe field regions. In \figref{plot-emit-dt}, one can observe a discontinuity in the horizontal emittance when the hard edge map is used in the calculation. This discontinuity comes from the fact that \opal emittance is calculated at an instant time. Once the beam or part of the beam gets into the dipole, its $P_x$ gets a kick which will result in a sudden emittance change.
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.5\textwidth-0.6cm,
-%angle = -90,
-trim = 20mm 0mm 8mm 0mm, clip]{figures/Benchmarks/report-emit-dt}
+\includegraphics[width=0.5\textwidth,
+angle = -90,
+trim = 0mm 20mm 0mm 8mm, clip]{figures/Benchmarks/report-emit-dt}
 \caption{Horizontal and vertical normalized emittances for different integration time steps}
 \label{fig:plot-emit-dt}
 \end{figure}
@@ -756,17 +756,17 @@ particles is $N_{\text{p}} = 10^{5}$.
 \begin{longexample}
 OPTION, ECHO = FALSE, PSDUMPFREQ = 10,
 STATDUMPFREQ = 10, REPARTFREQ = 1000,
-PSDUMPLOCALFRAME = FALSE;
+PSDUMPLOCALFRAME = FALSE, VERSION=10600;
 
 TITLE, string="Gaussian bunch drift test";
 
-Edes    = 0.001;        // GeV
-CURRENT = 0.01;  // A
+REAL Edes    = 0.001;        // GeV
+REAL CURRENT = 0.01;  // A
 
-gamma=(Edes+PMASS)/PMASS;
-beta=sqrt(1-(1/gamma^2));
-gambet=gamma*beta;
-P0 = gamma*beta*PMASS;
+REAL gamma=(Edes+PMASS)/PMASS;
+REAL beta=sqrt(1-(1/gamma^2));
+REAL gambet=gamma*beta;
+REAL P0 = gamma*beta*PMASS;
 
 D1: DRIFT, ELEMEDGE = 0.0, L = 1.0;
 

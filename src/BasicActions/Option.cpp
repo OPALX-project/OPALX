@@ -215,7 +215,6 @@ Option::Option():
     registerOwnership(AttributeHandler::STATEMENT);
 
     FileStream::setEcho(echo);
-    rangen.init55(seed);
 }
 
 
@@ -292,6 +291,16 @@ void Option::execute() {
 #ifdef HAVE_AMR_SOLVER
     amr = Attributes::getBool(itsAttr[AMR]);
 #endif
+    seed = Attributes::getReal(itsAttr[SEED]);
+
+    /// note: rangen is used only for the random number generator in the OPAL language
+    ///       not for the distributions
+
+    if (Options::seed == -1)
+      rangen.init55(time(0));
+    else
+      rangen.init55(seed);
+    
 
     IpplInfo::Info->on(info);
     IpplInfo::Warn->on(warn);
@@ -303,6 +312,8 @@ void Option::execute() {
         asciidump = Attributes::getBool(itsAttr[ASCIIDUMP]);
     }
 
+    /// note: rangen is used only for the random number generator in the OPAL language
+    ///       not for the distributions
     if(itsAttr[SEED]) {
         seed = int(Attributes::getReal(itsAttr[SEED]));
 	if (seed == -1)

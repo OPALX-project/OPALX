@@ -221,8 +221,8 @@ void OpalRBend::update() {
     else
         bend->setK1(0.0);
 
-    if(itsAttr[PARTICLEMATERINTERACTION] && parmatint_m == NULL) {
-        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+    if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
         parmatint_m->initParticleMatterInteractionHandler(*bend);
         bend->setParticleMatterInteraction(parmatint_m->handler_m);
     }

@@ -1,9 +1,6 @@
 cmake_minimum_required (VERSION 2.8.10)
 set (DKS_VERSION_OPAL \"${DKS_VERSION}\")
 
-configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALconfig.h)
-configure_file(revision.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALrevision.h)
-
 set (CMAKE_CXX_FLAGS
     "${IPPL_CMAKE_CXX_FLAGS} -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
     )
@@ -27,6 +24,10 @@ IF(ENABLE_AMR_SOLVER)
     ENDIF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori")
 
 ENDIF(ENABLE_AMR_SOLVER)
+
+SET (PACKAGE_COMPILE_OPTIONS \"${CMAKE_CXX_FLAGS}\")
+configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALconfig.h)
+configure_file(revision.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALrevision.h)
 
 SET (OPAL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 SET (OPAL_SRCS )
@@ -141,11 +142,11 @@ ELSE()
 )
 ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
 
-
 IF (ENABLE_DKS)
    set (OPAL_LIBS
        ${OPAL_LIBS}
-       ${DKS_LIBRARY_DIR}/libdks.a)
+       dks 
+       ${DKS_CUDA_LIBS})
 ENDIF (ENABLE_DKS)
 
 add_library( OPALib ${OPAL_SRCS} )

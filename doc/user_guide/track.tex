@@ -86,8 +86,9 @@ The attributes of the command are:
 Option, PSDUMPFREQ=100;
 Option, REPARTFREQ=20;
 Option, SPTDUMPFREQ=50;
-turns=5;
-nstep=3000;
+Option, VERSION=10600;
+REAL turns=5;
+REAL nstep=3000;
 TRACK, LINE=l1, BEAM=beam1, MAXSTEPS=nstep*turns, STEPSPERTURN=nstep,
 TIMEINTEGRATOR="LF-2";
     RUN, METHOD = "CYCLOTRON-T", BEAM=beam1, FIELDSOLVER=Fs1, DISTRIBUTION=Dist1;
@@ -99,8 +100,9 @@ Option, MTSSUBSTEPS=10;
 Option, PSDUMPFREQ=10;
 Option, REPARTFREQ=2;
 Option, SPTDUMPFREQ=5;
-turns=5;
-nstep=300;
+Option, VERSION=10600;
+REAL turns=5;
+REAL nstep=300;
 TRACK, LINE=l1, BEAM=beam1, MAXSTEPS=nstep*turns, STEPSPERTURN=nstep,
 TIMEINTEGRATOR="MTS";
     RUN, METHOD = "CYCLOTRON-T", BEAM=beam1, FIELDSOLVER=Fs1, DISTRIBUTION=Dist1;
@@ -148,17 +150,16 @@ parameters are random variables. At the moment (Version 1.1.4) there seams to be
 having random variables in the Distribution command.
 \begin{example}
 Option, SCAN=TRUE;
-
 ......
 
-I=0;
+REAL I=0;
 WHILE (I < 3) {
 
-   rv1:= (RANF()*4.7);
-   rv2:=0.0;
-   rv3:=0.0;
-   rv4:=0.0;
-   rv5:=0.0;
+   REAL rv1:= (RANF()*4.7);
+   REAL rv2:=0.0;
+   REAL rv3:=0.0;
+   REAL rv4:=0.0;
+   REAL rv5:=0.0;
 
    Ppo: PepperPot, L=200.0E-6, ELEMEDGE=6.0E-3,
         R=1.0E-4, PITCH=0.5E-4, NHOLX=20, NHOLY=20,

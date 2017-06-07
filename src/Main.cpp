@@ -39,6 +39,7 @@ Inform *gmsg;
 #include "Utilities/Options.h"
 #include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Util.h"
 
 #include "OPALconfig.h"
 
@@ -51,6 +52,7 @@ Inform *gmsg;
 #include <boost/filesystem.hpp>
 
 #include <cstring>
+#include <set>
 
 //  DTA
 #define NC 5
@@ -120,7 +122,7 @@ int main(int argc, char *argv[]) {
 
 
     *gmsg << endl
-          << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << PACKAGE_VERSION_STR << "\n\n"
+          << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << OPAL_VERSION_STR << "\n\n"
           << "                (c) PSI, http://amas.web.psi.ch" << endl
           << endl;
 
@@ -169,7 +171,6 @@ int main(int argc, char *argv[]) {
 
     try {
         Configure::configure();
-        int arg = 1;
 
         // Read startup file.
         FileStream::setEcho(Options::echo);
@@ -200,49 +201,125 @@ int main(int argc, char *argv[]) {
                   << "Note: this is not mandatory for an OPAL simulation!\n" << endl;
         }
 
-        if(argc > 1) {
-            opal->storeInputFn(std::string(argv[1]));
-            opal->setRestartFileName(opal->getInputBasename() + std::string(".h5"));
-        }
-
-        if(argc > 3) {
-            if(argc > 5) {
-                // will write dumping date into a new h5 file
-                for(int ii = 2; ii < 6; ii = ii + 2)
-                    // The sequence of the two arguments is free
-                    if(std::string(argv[ii]) == std::string("-restart")) {
-                        opal->setRestartRun();
-                        opal->setRestartStep(atoi(argv[ii+1]));
-                        opal->setRestartFileName(argv[1]);
-                    } else if((std::string(argv[ii]) == std::string("-restartfn"))) {
-                        opal->setRestartFileName(argv[ii+1]);
-                    }
-            } else {
-                // will append dumping date into old h5 file
-                if(std::string(argv[2]) == std::string("-restart")) {
-                    opal->setRestartRun();
-                    opal->setRestartStep(atoi(argv[3]));
-                }
-            }
-        }
-
-        if(arg >= argc) {
+        if(argc <= 1) {
             // Run commands from standard input
             parser.run(new TerminalStream("OPAL"));
         } else {
+            int arg = -1;
+            std::string fname;
+            // if(argc > 3) {
+            //     if(argc > 5) {
+            //         // will write dumping date into a new h5 file
+            for(int ii = 1; ii < argc; ++ ii) {
+                std::string argStr = std::string(argv[ii]);
+                // The sequence of the two arguments is free
+                if (argStr == std::string("--input")) {
+                    ++ ii;
+                    arg = ii;
+                    INFOMSG(argv[ii] << endl);
+                    continue;
+                } else if (argStr == std::string("-restart") ||
+                           argStr == std::string("--restart")) {
+                    opal->setRestartRun();
+                    opal->setRestartStep(atoi(argv[++ ii]));
+                    opal->setRestartFileName(argv[1]);
+                    continue;
+                } else if (argStr == std::string("-restartfn") ||
+                           argStr == std::string("--restartfn")) {
+                    opal->setRestartFileName(argv[++ ii]);
+                    continue;
+                } else if (argStr == std::string("-version") ||
+                           argStr == std::string("--version")) {
+                    INFOMSG("OPAL Version " << OPAL_VERSION_STR << ", git rev. " << Util::getGitRevision() << endl);
+                    IpplInfo::printVersion(true);
+                    std::string options = (IpplInfo::compileOptions() +
+                                           std::string(" ") +
+                                           std::string(PACKAGE_COMPILE_OPTIONS) +
+                                           std::string(" "));
+                    std::set<std::string> uniqOptions;
+                    while (options.length() > 0) {
+                        size_t n = options.find_first_of(' ');
+                        while (n == 0) {
+                            options = options.substr(n + 1);
+                            n = options.find_first_of(' ');
+                        }
+
+                        uniqOptions.insert(options.substr(0, n));
+                        options = options.substr(n + 1);
+                    }
+                    for (auto it: uniqOptions) {
+                        options += it + " ";
+                    }
+
+                    std::string header("Compile-time options: ");
+                    while (options.length() > 58) {
+                        std::string line = options.substr(0, 58);
+                        size_t n = line.find_last_of(' ');
+                        INFOMSG(header << line.substr(0, n) << "\n");
+
+                        header = std::string(22, ' ');
+                        options = options.substr(n + 1);
+                    }
+                    INFOMSG(header << options << endl);
+                    exit(0);
+                } else if (argStr == std::string("-help") ||
+                           argStr == std::string("--help")) {
+                    IpplInfo::printHelp(argv);
+                    INFOMSG("   --version            : Print a brief version summary.\n");
+                    INFOMSG("   --input <fname>      : Specifies the input file <fname>.\n");
+                    INFOMSG("   --restart <n>        : Performes a restart from step <n>.\n");
+                    INFOMSG("   --restartfn <fname>  : Uses the file <fname> to restart from.\n");
+                    INFOMSG("   --help               : Display this command-line summary.\n");
+                    INFOMSG(endl);
+                    exit(0);
+                } else {
+                    if (arg == -1 &&
+                        (ii == 1 || ii + 1 == argc) &&
+                        argv[ii][0] != '-') {
+                        arg = ii;
+                        continue;
+                    } else {
+                        INFOMSG("Unknown argument \"" << argStr << "\"" << endl);
+                        IpplInfo::printHelp(argv);
+                        INFOMSG("   --version            : Print a brief version summary.\n");
+                        INFOMSG("   --input <fname>      : Specifies the input file <fname>.\n");
+                        INFOMSG("   --restart <n>        : Performes a restart from step <n>.\n");
+                        INFOMSG("   --restartfn <fname>  : Uses the file <fname> to restart from.\n");
+                        INFOMSG("   --help               : Display this command-line summary.\n");
+                        INFOMSG(endl);
+                        exit(1);
+                    }
+                }
+            }
+
+            if (arg == -1) {
+                INFOMSG("No input file provided!" << endl);
+                exit(1);
+            }
+
+            fname = std::string(argv[arg]);
+            if (!fs::exists(fname)) {
+                INFOMSG("Input file \"" << fname << "\" doesn't exist!" << endl);
+                exit(1);
+            }
+
+            opal->storeInputFn(fname);
+            opal->setRestartFileName(opal->getInputBasename() + std::string(".h5"));
+
+
             FileStream *is;
 
             try {
-                is = new FileStream(argv[arg]);
+                is = new FileStream(fname);
             } catch(...) {
                 is = 0;
-                *gmsg << "Input file \"" << argv[arg] << "\" not found." << endl;
+                *gmsg << "Input file \"" << fname << "\" not found." << endl;
             }
 
             if(is) {
-                *gmsg << "* Reading input stream \"" << argv[arg] << "\"." << endl;
+                *gmsg << "* Reading input stream \"" << fname << "\"." << endl;
                 parser.run(is);
-                *gmsg << "* End of input stream \"" << argv[arg] << "\"." << endl;
+                *gmsg << "* End of input stream \"" << fname << "\"." << endl;
             }
         }
 
