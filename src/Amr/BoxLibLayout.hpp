@@ -14,7 +14,7 @@
 // typename BoxLibLayout<T, Dim>::AmrIntVect_t BoxLibLayout<T, Dim>::tile_size   { D_DECL(1024000,8,8) };
 
 template <class T, unsigned Dim>
-const Vector_t BoxLibLayout<T, Dim>::lowerBound = - Vector_t(1.025, 1.25, 1.025);
+const Vector_t BoxLibLayout<T, Dim>::lowerBound = - Vector_t(1.025, 1.025, 1.025);
 
 
 template <class T, unsigned Dim>
