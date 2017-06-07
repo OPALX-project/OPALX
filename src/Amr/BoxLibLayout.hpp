@@ -14,11 +14,11 @@
 // typename BoxLibLayout<T, Dim>::AmrIntVect_t BoxLibLayout<T, Dim>::tile_size   { D_DECL(1024000,8,8) };
 
 template <class T, unsigned Dim>
-const Vector_t BoxLibLayout<T, Dim>::lowerBound = - Vector_t(1.25, 1.25, 1.25);
+const Vector_t BoxLibLayout<T, Dim>::lowerBound = - Vector_t(1.025, 1.25, 1.025);
 
 
 template <class T, unsigned Dim>
-const Vector_t BoxLibLayout<T, Dim>::upperBound = Vector_t(1.25, 1.25, 1.25);
+const Vector_t BoxLibLayout<T, Dim>::upperBound = Vector_t(1.025, 1.025, 1.025);
 
 
 template<class T, unsigned Dim>
@@ -27,7 +27,7 @@ BoxLibLayout<T, Dim>::BoxLibLayout()
       finestLevel_m(0),
       maxLevel_m(0),
       refRatio_m(0),
-      scale_m(1.0, 1.0, 1.0)
+      scale_m(1.0)
 {
     /* FIXME There might be a better solution
      * 
@@ -53,7 +53,7 @@ BoxLibLayout<T, Dim>::BoxLibLayout(int nGridPoints, int maxGridSize)
       finestLevel_m(0),
       maxLevel_m(0),
       refRatio_m(0),
-      scale_m(1.0, 1.0, 1.0)
+      scale_m(1.0)
 {
     this->initDefaultBox(nGridPoints, maxGridSize);
 }
@@ -67,7 +67,7 @@ BoxLibLayout<T, Dim>::BoxLibLayout(const AmrGeometry_t &geom,
       finestLevel_m(0),
       maxLevel_m(0),
       refRatio_m(0),
-      scale_m(1.0, 1.0, 1.0)
+      scale_m(1.0)
 { }
 
 
@@ -80,7 +80,7 @@ BoxLibLayout<T, Dim>::BoxLibLayout(const AmrGeomContainer_t &geom,
       finestLevel_m(0),
       maxLevel_m(0),
       refRatio_m(0),
-      scale_m(1.0, 1.0, 1.0)
+      scale_m(1.0)
 { }
 
 
@@ -641,35 +641,32 @@ int BoxLibLayout<T, Dim>::MaxRefRatio (int level) const {
 
 
 template <class T, unsigned Dim>
-const Vector_t& BoxLibLayout<T, Dim>::domainMapping(
+const double& BoxLibLayout<T, Dim>::domainMapping(
     AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     bool inverse)
 {
     Vector_t rmin, rmax;
     bounds(PData.R, rmin, rmax);
     
-    Vector_t absmax = scale_m;
+    double scale = scale_m;
     
     if ( !inverse ) {
-        absmax = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
-                          std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
-                          std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
-                         );
+        Vector_t tmp = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
+                                std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
+                                std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
+                               );
         
-        double max = std::max( absmax[0], absmax[1] );
-        max = std::max( max, absmax[2] );
-        absmax = Vector_t(max, max, max);
+        scale = std::max( tmp[0], tmp[1] );
+        scale = std::max( scale, tmp[2] );
     }
     
+    Vector_t vscale = Vector_t(scale, scale, scale);
+    
     for (unsigned int i = 0; i < PData.getLocalNum(); ++i)
-        PData.R[i] /= absmax;
-    
-    Vector_t new_rmin, new_rmax;
-    bounds(PData.R, new_rmin, new_rmax);
+        PData.R[i] /= vscale;
     
     
-    scale_m = 1.0 / absmax;
-//     scale_m = ( new_rmax - new_rmin ) / ( rmax - rmin );
+    scale_m = 1.0 / scale;
     
     return scale_m;
 }
