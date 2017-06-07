@@ -3,21 +3,22 @@
  * @author Matthias Frey
  * @date May 2017
  * @details Compute \f$\Delta\phi = -\rho\f$ where the charge
- * density is a Gaussian distribution. Write plot files
- * that can be visualized by yt (python visualize.py)
- * or by AmrVis of the CCSE group at LBNL.
- * The calculation is done on a computation domain [-1, 1]^3.
- * The particles are scaled into the domain and then scaled back. The
- * potential and electric field are scaled appropriately.
+ * distribution is a uniformly charged sphere.
  * 
- * Domain:  [-1.0, 1.0] x [-1.0, 1.0] x [-1.0, 1.0]\n
+ * You can perform either a simulation using scaled or no-scaled
+ * particle coordinates. One should get the same result.
+ * It additionally writes the electric field at the particle location
+ * (original locations, i.e. without scaling) to a file in order to
+ * compare the two approaches. The domain in both cases is chosen such that
+ * the distance of the boundary of the box to the particles is the same.
+ * 
  * BC:      Dirichlet boundary conditions\n
- * Charge/particle: elementary charge\n
- * Gaussian particle distribution N(0.0, 0.01)
+ * #Particles 1000
+ * Sphere radius: 0.005 [m]
  * 
  * Call:\n
  *  mpirun -np [#cores] testNewTracker [#gridpoints x] [#gridpoints y] [#gridpoints z]
- *                                     [#particles] [#levels] [max. box size] [#steps]
+ *                                     [#particles] [#levels] [max. box size] [w or w/o scaling]
  * 
  * @brief Computes \f$\Delta\phi = -\rho\f$
  */
@@ -30,6 +31,7 @@
 #include <set>
 #include <sstream>
 #include <iomanip>
+#include <fstream>
 
 
 #include <AMReX_ParmParse.H>
@@ -41,8 +43,6 @@
 
 #include "../helper_functions.h"
 
-// #include "writePlotFile.H"
-
 #include <cmath>
 
 #include "Physics/Physics.h"
@@ -52,124 +52,46 @@ typedef AmrOpal::amrbase_t amrbase_t;
 typedef AmrOpal::amrbunch_t amrbunch_t;
 
 typedef Vektor<double, BL_SPACEDIM> Vector_t;
+typedef std::array<double, BL_SPACEDIM> bc_t;
 
-double domainMapping(amrbase_t& PData,
-                     const Vector_t& lold,
-                     const Vector_t& uold,
-                     const Vector_t& lnew,
-                     const Vector_t& unew)
-{
-    // [lold, uold] --> [lnew, unew]
-    Vector_t invdiff = 1.0 / ( uold - lold );
-    Vector_t slope = ( unew - lnew ) * invdiff;
-    Vector_t intercept = ( uold * lnew - lold * unew ) * invdiff;
-    
-    for (unsigned int i = 0; i < PData.getLocalNum(); ++i)
-        PData.R[i] = slope * PData.R[i] + intercept;
-    
-    Vector_t dnew = unew - lnew;
-    Vector_t dold = uold - lold;
-    
-    return  std::sqrt( dot(dnew, dnew) / dot(dold, dold) ); //( unew - lnew ) / ( uold - lold );
-}
 
-void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
-             container_t& rhs,
-             container_t& phi,
-             container_t& efield,
-             const Array<Geometry>& geom,
-             const Array<int>& rr,
-             int nLevels,
-             Inform& msg,
-             IpplTimings::TimerRef& assignTimer)
-{
-    // =======================================================================                                                                                                                                   
-    // 4. prepare for multi-level solve                                                                                                                                                                          
-    // =======================================================================
+void initSphere(double r, amrbunch_t* bunch, int nParticles) {
+    bunch->create(nParticles / Ippl::getNodes());
     
-    rhs.resize(nLevels);
-    phi.resize(nLevels);
-    efield.resize(nLevels);
+    std::mt19937_64 eng;
     
-    for (int lev = 0; lev < nLevels; ++lev) {
-        initGridData(rhs, phi, efield,
-                     myAmrOpal.boxArray()[lev], myAmrOpal.DistributionMap(lev), lev);
-    }
-
-    // Define the density on level 0 from all particles at all levels                                                                                                                                            
-    int base_level   = 0;
-    int finest_level = myAmrOpal.finestLevel();
+    if ( Ippl::myNode() )
+        eng.seed(42 + Ippl::myNode() );
     
-   container_t partMF(nLevels);
-   for (int lev = 0; lev < nLevels; lev++) {
-        const amrex::BoxArray& ba = myAmrOpal.boxArray()[lev];
-        const amrex::DistributionMapping& dmap = myAmrOpal.DistributionMap(lev);
-        partMF[lev].reset(new amrex::MultiFab(ba, dmap, 1, 2));
-        partMF[lev]->setVal(0.0, 2);
-   }
+    std::uniform_real_distribution<> ph(-1.0, 1.0);
+    std::uniform_real_distribution<> th(0.0, 2.0 * Physics::pi);
+    std::uniform_real_distribution<> u(0.0, 1.0);
     
-    IpplTimings::startTimer(assignTimer);
-    bunch->AssignDensityFort(bunch->qm, partMF, base_level, 1, finest_level);
-    IpplTimings::stopTimer(assignTimer);
+    long double qi = 4.0 * Physics::pi * Physics::epsilon_0 * r * r / double(nParticles);
     
-    for (int lev = 0; lev < nLevels; ++lev) {
-        amrex::MultiFab::Copy(*rhs[lev], *partMF[lev], 0, 0, 1, 0);
-    }
-    
-    // eps in C / (V * m)
-    double constant = -1.0 / Physics::epsilon_0;  // in [V m / C]
-    for (int i = 0; i <=finest_level; ++i) {
-#ifdef UNIQUE_PTR
-        rhs[i]->mult(constant, 0, 1);       // in [V m]
-#else
-        rhs[i].mult(constant, 0, 1);
-#endif
-    }
-    
-    // **************************************************************************                                                                                                                                
-    // Compute the total charge of all particles in order to compute the offset                                                                                                                                  
-    //     to make the Poisson equations solvable                                                                                                                                                                
-    // **************************************************************************                                                                                                                                
-
-    Real offset = 0.;
-
-    // solve                                                                                                                                                                                                     
-    Solver sol;
-    sol.solve_for_accel(rhs,
-                        phi,
-                        efield,
-                        geom,
-                        base_level,
-                        finest_level,
-                        offset,
-                        false);
-    
-    // for plotting unnormalize
-    for (int i = 0; i <=finest_level; ++i) {
-#ifdef UNIQUE_PTR
-        rhs[i]->mult(1.0 / constant, 0, 1);       // in [V m]
-#else
-        rhs[i].mult(1.0 / constant, 0, 1);
-#endif
+    for (int i = 0; i < nParticles; ++i) {
+        // 17. Dec. 2016,
+        // http://math.stackexchange.com/questions/87230/picking-random-points-in-the-volume-of-sphere-with-uniform-probability
+        // http://stackoverflow.com/questions/5408276/sampling-uniformly-distributed-random-points-inside-a-spherical-volume
+        double phi = std::acos( ph(eng) );
+        double theta = th(eng);
+        double radius = r * std::cbrt( u(eng) );
+        
+        double x = radius * std::cos( theta ) * std::sin( phi );
+        double y = radius * std::sin( theta ) * std::sin( phi );
+        double z = radius * std::cos( phi );
+        
+        bunch->R[i] = Vector_t( x, y, z );    // m
+        bunch->qm[i] = qi;   // C
     }
 }
 
-void doAMReX(const Vektor<size_t, 3>& nr, size_t nParticles,
-              int nLevels, size_t maxBoxSize, int nSteps, Inform& msg)
+
+void setup(AmrOpal* &myAmrOpal, std::unique_ptr<amrbunch_t>& bunch,
+           const bc_t& lower, const bc_t& upper,
+           const Vektor<size_t, 3>& nr, size_t nParticles,
+           int nLevels, size_t maxBoxSize, Inform& msg)
 {
-    static IpplTimings::TimerRef regridTimer = IpplTimings::getTimer("tracking-regrid");
-    static IpplTimings::TimerRef solveTimer = IpplTimings::getTimer("tracking-solve");
-    static IpplTimings::TimerRef stepTimer = IpplTimings::getTimer("tracking-step");
-    static IpplTimings::TimerRef totalTimer = IpplTimings::getTimer("tracking-total");
-    static IpplTimings::TimerRef statisticsTimer = IpplTimings::getTimer("tracking-statistics");
-    static IpplTimings::TimerRef assignTimer = IpplTimings::getTimer("assign-charge");
-    // ========================================================================
-    // 1. initialize physical domain (just single-level)
-    // ========================================================================
-    
-    std::array<double, BL_SPACEDIM> lower = {{-1.0, -1.0, -1.0}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ 1.0,  1.0,  1.0}}; // m
-    
     RealBox domain;
     
     // in helper_functions.h
@@ -195,16 +117,16 @@ void doAMReX(const Vektor<size_t, 3>& nr, size_t nParticles,
     for (int i = 0; i < 3; ++i)
         nCells[i] = nr[i];
     
-    AmrOpal myAmrOpal(&domain, nLevels - 1, nCells, 0 /* cartesian */);
+    myAmrOpal = new AmrOpal(&domain, nLevels - 1, nCells, 0 /* cartesian */);
     
     
     // ========================================================================
     // 2. initialize all particles (just single-level)
     // ========================================================================
     
-    const Array<BoxArray>& ba = myAmrOpal.boxArray();
-    const Array<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
-    const Array<Geometry>& geom = myAmrOpal.Geom();
+    const Array<BoxArray>& ba = myAmrOpal->boxArray();
+    const Array<DistributionMapping>& dmap = myAmrOpal->DistributionMap();
+    const Array<Geometry>& geom = myAmrOpal->Geom();
     
     Array<int> rr(nLevels);
     for (int i = 0; i < nLevels; ++i)
@@ -213,24 +135,21 @@ void doAMReX(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     amrplayout_t* playout = new amrplayout_t(geom, dmap, ba, rr);
     
-    std::unique_ptr<amrbunch_t> bunch( new amrbunch_t() );
+    bunch.reset( new amrbunch_t() );
     bunch->initialize(playout);
     bunch->initializeAmr(); // add attributes: level, grid
     
     bunch->setAllowParticlesNearBoundary(true);
     
     // initialize a particle distribution
-    unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
-    Distribution dist;
-    dist.gaussian(0.0, 0.01, nloc, ParallelDescriptor::MyProc());
+    double R = 0.005; // radius of sphere [m]
+    initSphere(R, bunch.get(), nParticles);
     
-    // copy particles to the PartBunchBase object.
-    dist.injectBeam( *bunch );
-    
-    
-    
-    for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
-        bunch->qm[i] = Physics::q_e;  // in [C]
+    msg << "Bunch radius: " << R << " m" << endl
+        << "#Particles: " << nParticles << endl
+        << "Charge per particle: " << bunch->qm[0] << " C" << endl
+        << "Total charge: " << nParticles * bunch->qm[0] << " C" << endl
+        << "#Cells per dim for bunch: " << 2.0 * R / *(geom[0].CellSize()) << endl;
     
     // redistribute on single-level
     bunch->update();
@@ -243,89 +162,276 @@ void doAMReX(const Vektor<size_t, 3>& nr, size_t nParticles,
         << "Total charge: " << nParticles * bunch->qm[0] << " C" << endl;
     
     
-    myAmrOpal.setBunch(bunch.get());
+    myAmrOpal->setBunch(bunch.get());
     
-    const Array<Geometry>& geoms = myAmrOpal.Geom();
+    Vector_t rmin , rmax;
+    bounds(bunch->R, rmin, rmax);
     
-    // ========================================================================
-    // 3. multi-level redistribute
-    // ========================================================================
-    for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
-        myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
+    std::cout << rmin << " " << rmax << std::endl;
+}
+
+
+Vector_t domainMapping(amrbase_t& PData, const Vector_t& scale, bool inverse = false)
+{
+    Vector_t rmin, rmax;
+    bounds(PData.R, rmin, rmax);
     
-    msg << "Multi-level statistics" << endl;
-    bunch->gatherStatistics();
+    Vector_t absmax = scale;
+    
+    if ( !inverse ) {
+        absmax = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
+                          std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
+                          std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
+                         );
+        
+        double max = std::max( absmax[0], absmax[1] );
+        max = std::max( max, absmax[2] );
+        absmax = Vector_t(max, max, max);
+    }
+    
+    for (unsigned int i = 0; i < PData.getLocalNum(); ++i) {
+        PData.R[i] /= absmax;
+    }
+    
+    return 1.0 / absmax;
+}
+
+
+void doSolve(AmrOpal* myAmrOpal, amrbunch_t* bunch,
+             container_t& rhs,
+             container_t& phi,
+             container_t& efield,
+             int nLevels,
+             Inform& msg,
+             const Vector_t& scale)
+{
+    // =======================================================================                                                                                                                                   
+    // 4. prepare for multi-level solve                                                                                                                                                                          
+    // =======================================================================
+    
+    rhs.resize(nLevels);
+    phi.resize(nLevels);
+    efield.resize(nLevels);
+    
+    for (int lev = 0; lev < nLevels; ++lev) {
+        initGridData(rhs, phi, efield,
+                     myAmrOpal->boxArray()[lev], myAmrOpal->DistributionMap(lev), lev);
+    }
+
+    // Define the density on level 0 from all particles at all levels                                                                                                                                            
+    int base_level   = 0;
+    int finest_level = myAmrOpal->finestLevel();
+    
+   container_t partMF(nLevels);
+   for (int lev = 0; lev < nLevels; lev++) {
+        const amrex::BoxArray& ba = myAmrOpal->boxArray()[lev];
+        const amrex::DistributionMapping& dmap = myAmrOpal->DistributionMap(lev);
+        partMF[lev].reset(new amrex::MultiFab(ba, dmap, 1, 2));
+        partMF[lev]->setVal(0.0, 2);
+   }
+    
+    bunch->AssignDensityFort(bunch->qm, partMF, base_level, 1, finest_level);
+    
+    for (int lev = 0; lev < nLevels; ++lev) {
+        amrex::MultiFab::Copy(*rhs[lev], *partMF[lev], 0, 0, 1, 0);
+    }
+    
+    double scalefactor = scale[0];
+    
+    // eps in C / (V * m)
+    double constant = -1.0 / Physics::epsilon_0 * scalefactor;  // in [V m / C]
+    for (int i = 0; i <=finest_level; ++i) {
+#ifdef UNIQUE_PTR
+        rhs[i]->mult(constant, 0, 1);       // in [V m]
+#else
+        rhs[i].mult(constant, 0, 1);
+#endif
+    }
+    
+    // **************************************************************************                                                                                                                                
+    // Compute the total charge of all particles in order to compute the offset                                                                                                                                  
+    //     to make the Poisson equations solvable                                                                                                                                                                
+    // **************************************************************************                                                                                                                                
+
+    Real offset = 0.;
+    
+    // solve                                                                                                                                                                                                     
+    Solver sol;
+    sol.solve_for_accel(rhs,
+                        phi,
+                        efield,
+                        myAmrOpal->Geom(),
+                        base_level,
+                        finest_level,
+                        offset,
+                        false);
+    
+    // for plotting unnormalize
+    for (int i = 0; i <=finest_level; ++i) {
+#ifdef UNIQUE_PTR
+        rhs[i]->mult(1.0 / constant, 0, 1);       // in [V m]
+#else
+        rhs[i].mult(1.0 / constant, 0, 1);
+#endif
+    }
+    
+    
+    bunch->InterpolateFort(bunch->E, efield, base_level, finest_level);
+    
+    bunch->E *= scale;
+}
+
+void doWithScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
+                   int nLevels, size_t maxBoxSize, Inform& msg)
+{
+    bc_t lower = {{-1.025, -1.025, -1.025}}; // m
+    bc_t upper = {{ 1.025,  1.025,  1.025}}; // m
+    
+    
+    AmrOpal* myAmrOpal = 0;
+    std::unique_ptr<amrbunch_t> bunch;
+    
+    setup(myAmrOpal, bunch, lower, upper, nr,
+          nParticles, nLevels, maxBoxSize, msg);
+    
     
     container_t rhs;
     container_t phi;
     container_t efield;
     
-    std::string plotsolve = amrex::Concatenate("plt", 0, 4);
-    
-    bunch->python_format(0);
-    
+//     bunch->python_format(0);
     
     // map particles
-    Vector_t rmin, rmax;
-    bounds(bunch->R, rmin, rmax);
-    msg << "rmin = " << rmin << endl << "rmax = " << rmax << endl;
+    Vector_t scale = Vector_t(1.0, 1.0, 1.0);
     
-    Vector_t low(-1.0, -1.0, -1.0);
-    Vector_t up = - low;
+    scale = domainMapping(*bunch, scale);
     
     msg << endl << "Transformed positions" << endl << endl;
     
-    double factor = domainMapping(*bunch, 1.05 * rmin, 1.05 * rmax, low , up);
-    
     bunch->update();
     
-    Vector_t tmp_min, tmp_max;
-    bounds(bunch->R, tmp_min, tmp_max);
-    msg << "rmin = " << tmp_min << endl << "rmax = " << tmp_max << endl;
+    for (int i = 0; i <= myAmrOpal->finestLevel() && i < myAmrOpal->maxLevel(); ++i)
+        myAmrOpal->regrid(i /*lbase*/, 0.0 /*time*/);
     
-    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, geoms, rr, nLevels, msg, assignTimer);
+    msg << "Multi-level statistics" << endl;
+    bunch->gatherStatistics();
+    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, nLevels, msg, scale);
     
     msg << endl << "Back to normal positions" << endl << endl;
     
-    domainMapping(*bunch, low , up, 1.05 * rmin, 1.05 * rmax);
+    domainMapping(*bunch, scale, true);
     
     bunch->update();
     
-    bounds(bunch->R, tmp_min, tmp_max);
-    
-    msg << "rmin = " << tmp_min << endl << "rmax = " << tmp_max << endl;
-    
-    
-    for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
+    for (int i = 0; i <= myAmrOpal->finestLevel(); ++i) {
         if ( efield[i]->contains_nan(false) )
             msg << "Efield: Nan" << endl;
     }
     
-    for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
-        
-        msg << i << ": " << phi[i]->nGrow() << " "
-                  << phi[i]->min(0, 1) << " " << phi[i]->max(0, 1) << endl;
-        
-        if ( phi[i]->contains_nan(false) )
-            msg << "Pot: Nan" << endl;
+    for (int i = 0; i <= myAmrOpal->finestLevel(); ++i) {
+        msg << "Max. potential level " << i << ": "<< phi[i]->max(0) << endl
+            << "Min. potential level " << i << ": " << phi[i]->min(0) << endl
+            << "Max. ex-field level " << i << ": " << efield[i]->max(0) * scale[0] << endl
+            << "Min. ex-field level " << i << ": " << efield[i]->min(0) * scale[0] << endl
+            << "Max. ex-field level " << i << ": " << efield[i]->max(1) * scale[1] << endl
+            << "Min. ex-field level " << i << ": " << efield[i]->min(1) * scale[1] << endl
+            << "Max. ex-field level " << i << ": " << efield[i]->max(2) * scale[2] << endl
+            << "Min. ex-field level " << i << ": " << efield[i]->min(2) * scale[2] << endl;
     }
     
-    // scale solution
-    double factor2 = factor * factor;
-    for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
-        phi[i]->mult(factor, 0, 1);
+    
+    std::ofstream out;
+    for (int i = 0; i < Ippl::getNodes(); ++i) {
         
-        efield[i]->mult(factor2, 0, 3, 1);
+        if ( i == Ippl::myNode() ) {
+            
+            if ( i == 0 )
+                out.open("scaling.dat", std::ios::out);
+            else
+                out.open("scaling.dat", std::ios::app);
+            
+            for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
+                out << bunch->E[i](0) << " "
+                    << bunch->E[i](1) << " "
+                    << bunch->E[i](2) << std::endl;
+            out.close();
+        }
+        Ippl::Comm->barrier();
     }
     
-    msg << "Total field energy: " << totalFieldEnergy(efield, rr) << endl;
+    delete myAmrOpal;
+}
+
+void doWithoutScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
+                      int nLevels, size_t maxBoxSize, Inform& msg)
+{
+    double max = 1.025 * 0.004843681885;
+    bc_t lower = {{-max, -max, -max}}; // m
+    bc_t upper = {{ max,  max,  max}}; // m
     
-    for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
+    
+    AmrOpal* myAmrOpal = 0;
+    std::unique_ptr<amrbunch_t> bunch;
+    
+    setup(myAmrOpal, bunch, lower, upper, nr,
+          nParticles, nLevels, maxBoxSize, msg);
+    
+    container_t rhs;
+    container_t phi;
+    container_t efield;
+    
+//     bunch->python_format(0);
+    
+    // map particles
+    Vector_t scale = Vector_t(1.0, 1.0, 1.0);
+    
+    for (int i = 0; i <= myAmrOpal->finestLevel() && i < myAmrOpal->maxLevel(); ++i)
+        myAmrOpal->regrid(i /*lbase*/, 0.0 /*time*/);
+    
+    bunch->update();
+    
+    msg << "Multi-level statistics" << endl;
+    bunch->gatherStatistics();
+    
+    
+    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, nLevels, msg, scale);
+    
+    for (int i = 0; i <= myAmrOpal->finestLevel(); ++i) {
+        if ( efield[i]->contains_nan(false) )
+            msg << "Efield: Nan" << endl;
+    }
+    
+    for (int i = 0; i <= myAmrOpal->finestLevel(); ++i) {
         msg << "Max. potential level " << i << ": "<< phi[i]->max(0) << endl
             << "Min. potential level " << i << ": " << phi[i]->min(0) << endl
             << "Max. ex-field level " << i << ": " << efield[i]->max(0) << endl
-            << "Min. ex-field level " << i << ": " << efield[i]->min(0) << endl;
+            << "Min. ex-field level " << i << ": " << efield[i]->min(0) << endl
+            << "Max. ex-field level " << i << ": " << efield[i]->max(1) << endl
+            << "Min. ex-field level " << i << ": " << efield[i]->min(1) << endl
+            << "Max. ex-field level " << i << ": " << efield[i]->max(2) << endl
+            << "Min. ex-field level " << i << ": " << efield[i]->min(2) << endl;
     }
+    
+    std::ofstream out;
+    for (int i = 0; i < Ippl::getNodes(); ++i) {
+        
+        if ( i == Ippl::myNode() ) {
+            
+            if ( i == 0 )
+                out.open("no_scaling.dat", std::ios::out);
+            else
+                out.open("no_scaling.dat", std::ios::app);
+            
+            for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
+                out << bunch->E[i](0) << " "
+                    << bunch->E[i](1) << " "
+                    << bunch->E[i](2) << std::endl;
+            out.close();
+        }
+        Ippl::Comm->barrier();
+    }
+    
+    delete myAmrOpal;
 }
 
 
@@ -334,17 +440,13 @@ int main(int argc, char *argv[]) {
     Ippl ippl(argc, argv);
     
     Inform msg("Solver");
-    
-
-    static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("main");
-    IpplTimings::startTimer(mainTimer);
 
     std::stringstream call;
     call << "Call: mpirun -np [#procs] " << argv[0]
-         << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#particles] "
-         << "[#levels] [max. box size] [#steps]";
+         << " [#gridpoints x] [#gridpoints y] [#gridpoints z] "
+         << "[#levels] [max. box size] [w or w/o scaling]";
     
-    if ( argc < 8 ) {
+    if ( argc < 7 ) {
         msg << call.str() << endl;
         return -1;
     }
@@ -355,30 +457,23 @@ int main(int argc, char *argv[]) {
                          std::atoi(argv[3]));
     
     
-    size_t nParticles = std::atoi(argv[4]);
-    
+    size_t nParticles = 1e3;
     
     msg << "Particle test running with" << endl
         << "- #particles = " << nParticles << endl
         << "- grid       = " << nr << endl;
         
-    amrex::Initialize(argc,argv, true);
-    size_t nLevels = std::atoi(argv[5]) + 1; // i.e. nLevels = 0 --> only single level
-    size_t maxBoxSize = std::atoi(argv[6]);
-    int nSteps = std::atoi(argv[7]);
-    doAMReX(nr, nParticles, nLevels, maxBoxSize, nSteps, msg);
+    amrex::Initialize(argc,argv, false);
+    size_t nLevels = std::atoi(argv[4]) + 1; // i.e. nLevels = 0 --> only single level
+    size_t maxBoxSize = std::atoi(argv[5]);
     
-    
-    IpplTimings::stopTimer(mainTimer);
-
-    IpplTimings::print();
-    
-    std::stringstream timefile;
-    timefile << std::string(argv[0]) << "-timing-cores-"
-             << std::setfill('0') << std::setw(6) << Ippl::getNodes()
-             << "-threads-1.dat";
-    
-    IpplTimings::print(timefile.str());
+    if ( std::atoi( argv[6] ) ) {
+        msg << "With Scaling" << endl;
+        doWithScaling(nr, nParticles, nLevels, maxBoxSize, msg);
+    } else {
+        msg << "Without Scaling" << endl;
+        doWithoutScaling(nr, nParticles, nLevels, maxBoxSize, msg);
+    }
     
     return 0;
 }
