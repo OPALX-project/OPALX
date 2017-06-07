@@ -316,13 +316,13 @@ inline void initGridData(container_t& rhs,
                          int level)
 {
     //                                                               # component # ghost cells                                                                                                                                          
-    rhs[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm,      1          ,0));
-    phi[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm,      1          ,1));
+    rhs[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm,      1          , 0));
+    phi[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm,      1          , 1));
     grad_phi[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm, BL_SPACEDIM, 1));
 
     rhs[level]->setVal(0.0);
-    phi[level]->setVal(0.0);
-    grad_phi[level]->setVal(0.0);
+    phi[level]->setVal(0.0, 1);
+    grad_phi[level]->setVal(0.0, 1);
 }
 
 /*!
@@ -360,12 +360,17 @@ inline double totalCharge(const container_t& rhs,
                           bool scale = true)
 {
     
+//     Real totCharge = 0.0;
+//     for (int i = 0; i <= finest_level; ++i) {
+//         Real vol = (*(geom[i].CellSize()) * *(geom[i].CellSize()) * *(geom[i].CellSize()) );
+//         Real sum = (scale) ? rhs[i]->sum(0) * vol : rhs[i]->sum(0);
+//         totCharge += sum;
+//     }
+    
+    //AssignDensityFort averages down
     Real totCharge = 0.0;
-    for (int i = 0; i <= finest_level; ++i) {
-        Real vol = (*(geom[i].CellSize()) * *(geom[i].CellSize()) * *(geom[i].CellSize()) );
-        Real sum = (scale) ? rhs[i]->sum(0) * vol : rhs[i]->sum(0);
-        totCharge += sum;
-    }
+    Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
+    totCharge = (scale) ? rhs[0]->sum(0) * vol : rhs[0]->sum(0);
     return totCharge;
 }
 
