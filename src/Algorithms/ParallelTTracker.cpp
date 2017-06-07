@@ -745,14 +745,14 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
     IndexMap::value_t::const_iterator it = elements.begin();
     const IndexMap::value_t::const_iterator end = elements.end();
     std::set<IndexMap::value_t::value_type> elementsWithParticleMatterInteraction;
-    std::set<ParticleMatterInteractionHandler*> particleMaterInteractionHandlers;
+    std::set<ParticleMatterInteractionHandler*> particleMatterinteractionHandlers;
     std::pair<double, double> currentRange(0.0, 0.0);
 
     while (elements.size() > 0) {
         auto it = elements.begin();
         if ((*it)->hasParticleMatterInteraction()) {
             elementsWithParticleMatterInteraction.insert(*it);
-            particleMaterInteractionHandlers.insert((*it)->getParticleMatterInteraction());
+            particleMatterinteractionHandlers.insert((*it)->getParticleMatterInteraction());
 
             std::pair<double, double> range = oth.getRange(*it, pathLength_m);
             currentRange.first = std::min(currentRange.first, range.first);
@@ -773,9 +773,9 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
         }
 
         leftBehindSPHandlers.resize(std::max(oldSPHandlers.size(),
-                                             particleMaterInteractionHandlers.size()));
+                                             particleMatterinteractionHandlers.size()));
         auto last = std::set_difference(oldSPHandlers.begin(), oldSPHandlers.end(),
-                                        particleMaterInteractionHandlers.begin(), particleMaterInteractionHandlers.end(),
+                                        particleMatterinteractionHandlers.begin(), particleMatterinteractionHandlers.end(),
                                         leftBehindSPHandlers.begin());
         leftBehindSPHandlers.resize(last - leftBehindSPHandlers.begin());
 
@@ -787,7 +787,7 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
 
         newSPHandlers.resize(std::max(oldSPHandlers.size(),
                                       elementsWithParticleMatterInteraction.size()));
-        last = std::set_difference(particleMaterInteractionHandlers.begin(), particleMaterInteractionHandlers.end(),
+        last = std::set_difference(particleMatterinteractionHandlers.begin(), particleMatterinteractionHandlers.end(),
                                    oldSPHandlers.begin(), oldSPHandlers.end(),
                                    newSPHandlers.begin());
         newSPHandlers.resize(last - newSPHandlers.begin());

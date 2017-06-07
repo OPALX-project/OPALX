@@ -2077,7 +2077,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
             double FinalEnergy = (sqrt(1.0 + FinalMomentum2) - 1.0) * itsBunch->getM() * 1.0e-6;
             *gmsg << "* Final energy of reference particle = " << FinalEnergy << " [MeV]" << endl;
             *gmsg << "* Total phase space dump number(includes the initial distribution) = " << lastDumpedStep_m + 1 << endl;
-            *gmsg << "* One can restart simulation from the last dump step (-restart " << lastDumpedStep_m << ")" << endl;
+            *gmsg << "* One can restart simulation from the last dump step (--restart " << lastDumpedStep_m << ")" << endl;
         }
     }
 
@@ -2954,7 +2954,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             double FinalEnergy = (sqrt(1.0 + FinalMomentum2) - 1.0) * itsBunch->getM() * 1.0e-6;
             *gmsg << "* Final energy of reference particle = " << FinalEnergy << " [MeV]" << endl;
             *gmsg << "* Total phase space dump number including the initial distribution) = " << lastDumpedStep_m + 1 << endl;
-            *gmsg << "* One can restart simulation from the last dump step ( -restart " << lastDumpedStep_m << " )" << endl;
+            *gmsg << "* One can restart simulation from the last dump step (--restart " << lastDumpedStep_m << " )" << endl;
         }
     }
     Ippl::Comm->barrier();

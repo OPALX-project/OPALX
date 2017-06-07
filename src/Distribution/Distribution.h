@@ -99,7 +99,7 @@ public:
     virtual Distribution *clone(const std::string &name);
     virtual void execute();
     virtual void update();
-
+    size_t getNumOfLocalParticlesToCreate(size_t n);
     void createBoundaryGeometry(PartBunchBase<double, 3> *p, BoundaryGeometry &bg);
     void createOpalCycl(PartBunchBase<double, 3> *beam,
                         size_t numberOfParticles,
@@ -429,8 +429,9 @@ private:
     double M_m;                       /// mass in terms of proton mass
     std::string bfieldfn_m;           /// only temporarly
 
-
-
+    /// seed for the rng, If seed == -1 every core has 
+    /// a differnt seed, otherwiese the seed is Ippl::myNode()
+    unsigned long mySeed_m;
 
 
     // Some legacy members that need to be cleaned up.

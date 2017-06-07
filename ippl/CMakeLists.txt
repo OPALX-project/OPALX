@@ -72,10 +72,11 @@ IF (ENABLE_DKS)
    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDKS_MPI")
 
    ### OpenCL compiler flags ###
-   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lOpenCL -pthread -DDKS_OPENCL")
+   #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lOpenCL -pthread -DDKS_OPENCL")
 
    ### CUDA compiler flags ###
-   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lcudart -lcufft -lcublas -lnvToolsExt -DDKS_CUDA")
+   #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lcudart -lcufft -lcublas -DDKS_CUDA")
+   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDKS_CUDA")
 
    ### if any accelerator enabled set flag to use DKS ###
    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIPPL_DKS -DIPPL_DKS_CUDA -DOPAL_DKS")
@@ -279,11 +280,12 @@ IF (ENABLE_DKS)
     SET (IPPL_CXX_FLAGS "${IPPL_CXX_FLAGS} -DDKS_MPI")
 
     ### OpenCL compiler flags ###
-    SET (IPPL_CXX_FLAGS "${IPPL_CXX_FLAGS} -lOpenCL -lpthread -DDKS_OPENCL")
+    #SET (IPPL_CXX_FLAGS "${IPPL_CXX_FLAGS} -lOpenCL -lpthread -DDKS_OPENCL")
     ### End OpenCL ###
 
     ### CUDA compiler flags ###
-    SET (IPPL_CXX_FLAGS "${IPPL_CXX_FLAGS} -lcudart -lcufft -lcublas -lnvToolsExt -DDKS_CUDA")
+    #SET (IPPL_CXX_FLAGS "${IPPL_CXX_FLAGS} -lcudart -lcufft -lcublas -lnvToolsExt -DDKS_CUDA")
+    SET (IPPL_CXX_FLAGS "${IPPL_CXX_FLAGS} -DDKS_CUDA")
     ### End Cuda ###
 
     ### if any accelerator enabled set flag to use DKS ###
