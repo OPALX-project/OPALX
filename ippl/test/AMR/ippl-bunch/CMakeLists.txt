@@ -20,6 +20,7 @@ include_directories (
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/ippl/src
     ${CMAKE_SOURCE_DIR}/src/Classic/
+    ${CMAKE_SOURCE_DIR}/src/Utilities/
     ${IPPL_INCLUDE_DIR}
     ${H5Hut_INCLUDE_DIR}
     ${HDF5_INCLUDE_DIR}
@@ -63,7 +64,11 @@ ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
 
 # add_executable(testCRTP testCRTP.cpp)
 
-add_executable(testAdapterPattern testAdapterPattern.cpp)
+add_executable( testAdapterPattern
+                testAdapterPattern.cpp
+                ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
+               )
 
 # target_link_libraries (testCRTP ${LIBS}
 #                         -lgfortran ${CCSE_LIBRARIES}
