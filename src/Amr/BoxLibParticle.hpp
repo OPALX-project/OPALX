@@ -1,6 +1,8 @@
 #ifndef BOXLIB_PARTICLE_HPP
 #define BOXLIB_PARTICLE_HPP
 
+#include "Utilities/OpalException.h"
+
 template<class PLayout>
 BoxLibParticle<PLayout>::BoxLibParticle() : AmrParticleBase<PLayout>()
 {
@@ -148,8 +150,6 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
     const PLayout *layout_p = &this->getLayout();
     
     int rho_index = 0;
-    
-//     if (rho_index != 0) amrex::Abort("AssignCellDensitySingleLevel only works if rho_index = 0");
 
     AmrField_t* mf_pointer;
 
@@ -170,17 +170,18 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
     // its effect to an adjacent grid by first putting the value into ghost cells of its
     // own grid.  The mf->sumBoundary call then adds the value from one grid's ghost cell
     // to another grid's valid region.
-    if (mf_pointer->nGrow() < 1) 
-       amrex::Error("Must have at least one ghost cell when in AssignCellDensitySingleLevelFort");
+    if (mf_pointer->nGrow() < 1)
+        throw OpalException("BoxLibParticle::AssignCellDensitySingleLevelFort()",
+                            "Must have at least one ghost cell when in AssignCellDensitySingleLevelFort");
 
-    const AmrReal_t      strttime    = amrex::ParallelDescriptor::second();
     const AmrGeometry_t& gm          = layout_p->Geom(level);
     const AmrReal_t*     plo         = gm.ProbLo();
     const AmrReal_t*     dx_particle = layout_p->Geom(level + particle_lvl_offset).CellSize();
     const AmrReal_t*     dx          = gm.CellSize();
 
     if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
-      amrex::Error("AssignDensity: problem must be periodic in no or all directions");
+        throw OpalException("BoxLibParticle::AssignCellDensitySingleLevelFort()",
+                            "Problem must be periodic in no or all directions");
     }
     
     for (amrex::MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
@@ -280,7 +281,8 @@ void BoxLibParticle<PLayout>::InterpolateSingleLevelFort(ParticleAttrib<AType> &
                                                          AmrField_t& mesh_data, int lev)
 {
     if (mesh_data.nGrow() < 1)
-        amrex::Error("Must have at least one ghost cell when in InterpolateSingleLevelFort");
+        throw OpalException("BoxLibParticle::InterpolateSingleLevelFort()",
+                            "Must have at least one ghost cell when in InterpolateSingleLevelFort");
     
     PLayout *layout_p = &this->getLayout();
     

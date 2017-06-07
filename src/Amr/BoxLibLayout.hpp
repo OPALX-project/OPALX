@@ -4,6 +4,7 @@
 #include "BoxLibLayout.h"
 
 #include "Message/Formatter.h"
+#include "Utilities/OpalException.h"
 
 #include <cmath>
 
@@ -88,13 +89,11 @@ template<class T, unsigned Dim>
 void BoxLibLayout<T, Dim>::update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData,
                                   const ParticleAttrib<char>* canSwap)
 {
-    /* TODO exit since we need AmrParticleBase with grids and levels for particles for this layout
+    /* Exit since we need AmrParticleBase with grids and levels for particles for this layout
      * if IpplParticleBase is used something went wrong
      */
-//     throw OpalException("BoxLibLayout::update(IpplParticleBase, ParticleAttrib) ",
-//                         "Wrong update method called.");
-    std::cout << "IpplBase update." << std::endl;
-    std::exit(1);
+    throw OpalException("BoxLibLayout::update(IpplParticleBase, ParticleAttrib) ",
+                        "Wrong update method called.");
 }
 
 // // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
@@ -163,10 +162,6 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
 //         std::cout << "After: " << ip << " " << PData.Level[ip] << " "
 //                   << PData.Grid[ip]  << " "
 //                   << PData.R[ip] << std::endl; //std::cin.get();
-        
-        if ( particleLeftDomain ) {
-            std::cout << ip << " " << particleLeftDomain << std::endl; std::cin.get();
-        }
         
         if ( !particleLeftDomain ) {
             // The owner of the particle is the CPU owning the finest grid
@@ -530,12 +525,57 @@ bool BoxLibLayout<T, Dim>::PeriodicShift (SingleParticlePos_t R) const
 }
 
 
-// template<class T, unsigned Dim>
-// void BoxLibLayout::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData, const ParticleAttrib<char> canSwap = 0)
-// {
-//     
-//     
-// }
+template <class T, unsigned Dim>
+void BoxLibLayout<T, Dim>::locateParticle(
+    AmrParticleBase< BoxLibLayout<T,Dim> >& p,
+    const unsigned int ip,
+    int lev_min, int lev_max, int nGrow,
+    bool &particleLeftDomain) const
+{
+    bool outside = D_TERM( p.R[ip](0) <  AmrGeometry_t::ProbLo(0)
+                        || p.R[ip](0) >= AmrGeometry_t::ProbHi(0),
+                        || p.R[ip](1) <  AmrGeometry_t::ProbLo(1)
+                        || p.R[ip](1) >= AmrGeometry_t::ProbHi(1),
+                        || p.R[ip](2) <  AmrGeometry_t::ProbLo(2)
+                        || p.R[ip](2) >= AmrGeometry_t::ProbHi(2));
+        
+    bool success;
+    
+    if (outside)
+    {
+        // Note that EnforcePeriodicWhere may shift the particle if it is successful.
+        success = EnforcePeriodicWhere(p, ip, lev_min, lev_max);
+        if (!success && lev_min == 0)
+        {
+            // The particle has left the domain; invalidate it.
+            particleLeftDomain = true;
+            p.destroy(1, ip);
+            success = true;
+            
+            /* We shouldn't lose particles since they are mapped to be within
+             * [-1, 1]^3.
+             */
+            throw OpalException("BoxLibLayout::locateParticle()",
+                                "We're losing particles although we shouldn't");
+            
+        }
+    }
+    else
+    {
+        success = Where(p, ip, lev_min, lev_max);
+    }
+    
+    if (!success)
+    {
+        success = (nGrow > 0) && Where(p, ip, lev_min, lev_min, nGrow);
+    }
+    
+    if (!success)
+    {
+        throw OpalException("BoxLibLayout::locateParticle()",
+                            "Invalide particle.");
+    }
+}
 
 
 template <class T, unsigned Dim>
