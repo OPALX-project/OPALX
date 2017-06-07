@@ -160,7 +160,11 @@ ADD_LIBRARY ( ippl ${IPPL_SRCS} ${IPPL_SRCS_FORT} )
 
 IF (ENABLE_DKS)
     #TARGET_LINK_LIBRARIES(ippl dks)
-    TARGET_LINK_LIBRARIES(ippl ${DKS_LIBRARY_DIR}/libdks.a  -lgfortran)
+    TARGET_LINK_LIBRARIES(ippl 
+    -lgfortran
+    dks
+    ${DKS_CUDA_LIBS}
+    )
 ELSE ()
     TARGET_LINK_LIBRARIES(ippl -lgfortran)
 ENDIF (ENABLE_DKS)
