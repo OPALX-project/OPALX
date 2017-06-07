@@ -76,7 +76,7 @@ OPTION (ENABLE_DKS "Enable DKS" OFF)
 
 ### Load DKS package ###
 IF (ENABLE_DKS)
-   FIND_PACKAGE(DKS 1.1.1 REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
+   FIND_PACKAGE(DKS 1.1.2 REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
    MESSAGE (STATUS "DKS Version ${DKS_VERSION}")
    MESSAGE (STATUS "Found DKS library: ${DKS_LIBRARY}")
    MESSAGE (STATUS "Found DKS include dir: ${DKS_INCLUDE_DIR}")
@@ -84,10 +84,10 @@ IF (ENABLE_DKS)
    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDKS_MPI")
 
    ### OpenCL compiler flags ###
-   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lOpenCL -pthread -DDKS_OPENCL")
+   #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lOpenCL -pthread -DDKS_OPENCL")
 
    ### CUDA compiler flags ###
-   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lcudart -lcufft -lcublas -lnvToolsExt -DDKS_CUDA")
+   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDKS_CUDA")
    
    ### if any accelerator enabled set flag to use DKS ###
    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIPPL_DKS -DIPPL_DKS_CUDA -DOPAL_DKS")
