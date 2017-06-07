@@ -274,7 +274,8 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
     }
     
     //get values from grid to particles
-    pbase->GetGravity(pbase->E, efield);
+    pbase->InterpolateFort(pbase->E, efield, 0, 1);
+//     pbase->GetGravity(pbase->E, efield);
     
     //write the particles on the core to file - one file per core created
     writeAscii(pbase, N, myNode);
@@ -325,35 +326,36 @@ void doAMReX(Array<Geometry> &geom, Array<BoxArray> &ba,
     MultiFab::Copy(*(efield[lev].get()), *(field[lev].get()), 0, 1, 1, 0);
     MultiFab::Copy(*(efield[lev].get()), *(field[lev].get()), 0, 2, 1, 0);
   }
-
   
-  //loop trough all the levels
-  for (size_t lev = 0; lev < nLevels; ++lev) {
-        //get grids on the level
-        auto pmap = pc->GetParticles(lev);
-    
-        //loop trough grids on the level
-        for (auto& kv : pmap) {
-            auto& pbox = kv.second.GetArrayOfStructs();
-            const int grid = kv.first.first;
-            const int n = pbox.size();
-            const FArrayBox& gfab = (*(efield[lev].get()))[grid];
-            
-            //loop trough the particles in the grid and call GetGravity for each
-            //assign grav to particle data components 1,2,3
-            for (int i = 0; i < n; i++) {
-                Particle<4, 0>& p = pbox[i];
-                
-                Real grav[BL_SPACEDIM];
-                
-                Particle<4, 0>::GetGravity(gfab, geom[lev], p, grav);
-    
-                p.m_rdata.arr[4] = grav[0];
-                p.m_rdata.arr[5] = grav[1];
-                p.m_rdata.arr[6] = grav[2];
-            }
-        }
-    }
+  pc->InterpolateFort(efield, 0, 1);
+  
+//   //loop trough all the levels
+//   for (size_t lev = 0; lev < nLevels; ++lev) {
+//         //get grids on the level
+//         auto pmap = pc->GetParticles(lev);
+//     
+//         //loop trough grids on the level
+//         for (auto& kv : pmap) {
+//             auto& pbox = kv.second.GetArrayOfStructs();
+//             const int grid = kv.first.first;
+//             const int n = pbox.size();
+//             const FArrayBox& gfab = (*(efield[lev].get()))[grid];
+//             
+//             //loop trough the particles in the grid and call GetGravity for each
+//             //assign grav to particle data components 1,2,3
+//             for (int i = 0; i < n; i++) {
+//                 Particle<4, 0>& p = pbox[i];
+//                 
+//                 Real grav[BL_SPACEDIM];
+//                 
+//                 Particle<4, 0>::GetGravity(gfab, geom[lev], p, grav);
+//     
+//                 p.m_rdata.arr[4] = grav[0];
+//                 p.m_rdata.arr[5] = grav[1];
+//                 p.m_rdata.arr[6] = grav[2];
+//             }
+//         }
+//     }
     
     //write the particles on the core to file - one file per core created
     writeAscii(pc, N, nLevels, myNode);
