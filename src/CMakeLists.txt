@@ -19,9 +19,9 @@ IF(ENABLE_AMR_SOLVER)
     # We get otherwise a "undefined reference" to "getLevelBld()" and "probinit_"
     set (CBOXLIB -lcboxlib)
 
-    IF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori")
+    IF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND NOT ${HOSTNAME_BASE} MATCHES "daint")
         set (CBOXLIB "-lmpi -lmpi_mpifh ${CBOXLIB}")
-    ENDIF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori")
+    ENDIF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND NOT ${HOSTNAME_BASE} MATCHES "daint")
 
 ENDIF(ENABLE_AMR_SOLVER)
 
@@ -118,7 +118,7 @@ IF (ENABLE_DKS)
    link_directories (${DKS_LIBRARY_DIR})
 ENDIF (ENABLE_DKS)
 
-IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
+IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR ${HOSTNAME_BASE} MATCHES "daint")
  SET (OPAL_LIBS
     ${GSL_LIBRARY}
     ${H5Hut_LIBRARY}
@@ -140,7 +140,7 @@ ELSE()
     m
     z
 )
-ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
+ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR ${HOSTNAME_BASE} MATCHES "daint")
 
 IF (ENABLE_DKS)
    set (OPAL_LIBS
