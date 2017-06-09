@@ -2,6 +2,7 @@ set (_SRCS
     OffsetTest.cpp
     RingTest.cpp
     SBend3DTest.cpp
+    SpiralSectorTest.cpp
     VariableRFCavityTest.cpp
 )
 
