@@ -13,7 +13,7 @@
  * the distance of the boundary of the box to the particles is the same.
  * 
  * BC:      Dirichlet boundary conditions\n
- * #Particles 1000
+ * #Particles 1e6
  * Sphere radius: 0.005 [m]
  * 
  * Call:\n
@@ -35,6 +35,7 @@
 
 
 #include <AMReX_ParmParse.H>
+#include <AMReX_PlotFileUtil.H>
 
 
 #include "../Distribution.h"
@@ -42,6 +43,8 @@
 #include "../AmrOpal.h"
 
 #include "../helper_functions.h"
+
+#include "../writePlotFile.H"
 
 #include <cmath>
 
@@ -53,6 +56,8 @@ typedef AmrOpal::amrbunch_t amrbunch_t;
 
 typedef Vektor<double, BL_SPACEDIM> Vector_t;
 typedef std::array<double, BL_SPACEDIM> bc_t;
+
+// #include "../AmrWriter.h"
 
 
 void initSphere(double r, amrbunch_t* bunch, int nParticles) {
@@ -96,7 +101,6 @@ void setup(AmrOpal* &myAmrOpal, std::unique_ptr<amrbunch_t>& bunch,
     
     // in helper_functions.h
     init(domain, nr, lower, upper);
-    
     
     /*
      * create an Amr object
@@ -167,7 +171,7 @@ void setup(AmrOpal* &myAmrOpal, std::unique_ptr<amrbunch_t>& bunch,
     Vector_t rmin , rmax;
     bounds(bunch->R, rmin, rmax);
     
-    std::cout << rmin << " " << rmax << std::endl;
+    msg << "Bounds: rmin = " << rmin << " rmax = " << rmax << endl;
 }
 
 
@@ -274,12 +278,15 @@ void doSolve(AmrOpal* myAmrOpal, amrbunch_t* bunch,
 #endif
     }
     
+    // undo scale
+    for (int i = 0; i <= finest_level; ++i)
+        efield[i]->mult(scale, 0, 3);
     
     bunch->InterpolateFort(bunch->E, efield, base_level, finest_level);
     
-    Vector_t vscale = Vector_t(scale, scale, scale);
+//     Vector_t vscale = Vector_t(scale, scale, scale);
     
-    bunch->E *= vscale;
+//     bunch->E *= vscale;
 }
 
 void doWithScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
@@ -329,15 +336,22 @@ void doWithScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
             msg << "Efield: Nan" << endl;
     }
     
+    
+    
+//     AmrWriter writer;
+//     std::string dir = "grid-data";
+//     if ( !writer.save(dir, amrex::GetArrOfPtrs(phi), myAmrOpal->Geom(), rr, 0.0) )
+//         msg << "Couldn't write potential" << endl;
+    
     for (int i = 0; i <= myAmrOpal->finestLevel(); ++i) {
         msg << "Max. potential level " << i << ": "<< phi[i]->max(0) << endl
             << "Min. potential level " << i << ": " << phi[i]->min(0) << endl
-            << "Max. ex-field level " << i << ": " << efield[i]->max(0) * scale << endl
-            << "Min. ex-field level " << i << ": " << efield[i]->min(0) * scale << endl
-            << "Max. ex-field level " << i << ": " << efield[i]->max(1) * scale << endl
-            << "Min. ex-field level " << i << ": " << efield[i]->min(1) * scale << endl
-            << "Max. ex-field level " << i << ": " << efield[i]->max(2) * scale << endl
-            << "Min. ex-field level " << i << ": " << efield[i]->min(2) * scale << endl;
+            << "Max. ex-field level " << i << ": " << efield[i]->max(0) /* * scale */ << endl
+            << "Min. ex-field level " << i << ": " << efield[i]->min(0) /* * scale */ << endl
+            << "Max. ex-field level " << i << ": " << efield[i]->max(1) /* * scale */ << endl
+            << "Min. ex-field level " << i << ": " << efield[i]->min(1) /* * scale */ << endl
+            << "Max. ex-field level " << i << ": " << efield[i]->max(2) /* * scale */ << endl
+            << "Min. ex-field level " << i << ": " << efield[i]->min(2) /* * scale */ << endl;
     }
     
     
@@ -360,16 +374,49 @@ void doWithScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
         Ippl::Comm->barrier();
     }
     
+    Array<int> rr(nLevels);
+    for (int i = 0; i < nLevels; ++i)
+        rr[i] = 2;
+    
+    const Array<Geometry>& geom = myAmrOpal->Geom();
+    std::string plotsolve = amrex::Concatenate("plt", 0, 4);
+    writePlotFile(plotsolve, rhs, phi, efield, rr, geom, 0);
+    
+//     Array<std::string> varnames;
+//     varnames.push_back("potential");
+
+//     Array<std::string> particle_varnames;
+//     particle_varnames.push_back("mass");
+
+//     Array<int> level_steps;
+//     level_steps.push_back(0);
+//     level_steps.push_back(0);
+
+//     int output_levs = nLevels;
+
+//     Array<const MultiFab*> outputMF(output_levs);
+//     Array<IntVect> outputRR(output_levs);
+//     for (int lev = 0; lev < output_levs; ++lev) {
+//         outputMF[lev] = phi[lev].get();
+//         outputRR[lev] = IntVect(2, 2, 2);
+//     }
+    
+//     const Array<Geometry>& geom = myAmrOpal->Geom();
+//     WriteMultiLevelPlotfile("plt00000", output_levs, outputMF, 
+//                             varnames, geom, 0.0, level_steps, outputRR);
+//     myPC.Checkpoint("plt00000", "particle0", true, particle_varnames);
+    
     delete myAmrOpal;
 }
 
 void doWithoutScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
                       int nLevels, size_t maxBoxSize, Inform& msg)
 {
-    double max = 1.025 * 0.004843681885;
+//     double max = 1.025 * 0.004843681885; // 1e3 particles
+//     double max = 1.025 * 0.004996545409; // 1e6 particles
+    double max = 1.025 * 0.004998988423;   // 1e7 particles
     bc_t lower = {{-max, -max, -max}}; // m
     bc_t upper = {{ max,  max,  max}}; // m
-    
     
     AmrOpal* myAmrOpal = 0;
     std::unique_ptr<amrbunch_t> bunch;
@@ -432,6 +479,15 @@ void doWithoutScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
         Ippl::Comm->barrier();
     }
     
+    
+    Array<int> rr(nLevels);
+    for (int i = 0; i < nLevels; ++i)
+        rr[i] = 2;
+    
+    const Array<Geometry>& geom = myAmrOpal->Geom();
+    std::string plotsolve = amrex::Concatenate("plt", 0, 4);
+    writePlotFile(plotsolve, rhs, phi, efield, rr, geom, 0);
+    
     delete myAmrOpal;
 }
 
@@ -458,7 +514,7 @@ int main(int argc, char *argv[]) {
                          std::atoi(argv[3]));
     
     
-    size_t nParticles = 1e3;
+    size_t nParticles = 1e7;
     
     msg << "Particle test running with" << endl
         << "- #particles = " << nParticles << endl
