@@ -1,8 +1,8 @@
 set (_SRCS
-  Tanh.cpp 
+  EndFieldModel.cpp
   Enge.cpp
   Sin.cpp
-  EndFieldModel.cpp
+  Tanh.cpp 
   )
 
 include_directories (
@@ -12,10 +12,10 @@ include_directories (
 ADD_OPAL_SOURCES(${_SRCS})
 
 set (HDRS
-  Tanh.h
+  EndFieldModel.h
   Enge.h
   Sin.h
-  EndFieldModel.h
+  Tanh.h
 )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/AbsBeamline/EndFieldModel/")

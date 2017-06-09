@@ -44,9 +44,6 @@ class SpiralSector : public Component {
      */
     explicit SpiralSector(const std::string &name);
 
-    /** Copy constructor */
-    SpiralSector(const SpiralSector &right);
-
     /** Destructor - deletes map */
     ~SpiralSector();
 
@@ -67,6 +64,7 @@ class SpiralSector : public Component {
     /** Calculate the field at some arbitrary position
      *
      *  \param R position in the local coordinate system of the bend
+     *  \param P not used
      *  \param t time at which the field is to be calculated
      *  \param E calculated electric field - always 0 (no E-field)
      *  \param B calculated magnetic field
@@ -74,6 +72,19 @@ class SpiralSector : public Component {
      */
     bool apply(const Vector_t &R, const Vector_t &P, const double &t,
                Vector_t &E, Vector_t &B);
+
+    /** Calculate the field at some arbitrary position in cylindrical coordinates
+     *
+     *  \param R position in the local coordinate system of the bend, in
+     *           cylindrical polar coordinates defined like (r, y, phi)
+     *  \param P not used
+     *  \param t not used (field is time independent)
+     *  \param E not used (no E-field)
+     *  \param B calculated magnetic field defined like (Br, By, Bphi)
+     *  \returns true if particle is outside the field map, else false
+     */
+    bool applyCylindrical(const Vector_t &R, const Vector_t &P,
+                    const double &t, Vector_t &E, Vector_t &B);
 
      /** Initialise the SpiralSector
       *
@@ -107,6 +118,36 @@ class SpiralSector : public Component {
     /** Accept a beamline visitor */
     void accept(BeamlineVisitor& visitor) const;
 
+    /** Get tan delta - delta is the spiral angle */
+    Vector_t getTanDelta() const {return tanDelta_m;}
+
+    /** Set tan delta - delta is the spiral angle */
+    void setTanDelta(double tanDelta) {tanDelta_m = tanDelta;}
+
+    /** Get the field index k */
+    double getFieldIndex() const {return k_m;}
+
+    /** Set the field index k */
+    void setFieldIndex(double k) {k_m = k;}
+
+    /** Get the dipole constant B_0 */
+    double getDipoleConstant() const {return Bz_m;}
+
+    /** Set the dipole constant B_0 */
+    void setDipoleConstant(double Bz) {Bz_m = Bz;}
+
+    /** Get the radius constant R_0 */
+    double getR0() const {return r0_m;}
+
+    /** Set the radius constant R_0 */
+    void setR0(double r0) {r0_m = r0;}
+
+    /** Get the centre of the sector */
+    Vector_t getCentre() const {return centre_m;}
+
+    /** Set the centre of the sector */
+    void setCentre(Vector_t centre) {centre_m = centre;}
+
     /** Get the fringe field
      *
      *  Returns the fringe field model; SpiralSector retains ownership of the
@@ -121,27 +162,40 @@ class SpiralSector : public Component {
       */
     void setEndField(endfieldmodel::EndFieldModel* endField);
 
-    /** Get the centre of the sector */
-    Vector_t getCentre() const {return centre_m;}
+    /** Get the maximum pole modelled in the off-midplane expansion; 0 is dipole; 2 is quadrupole; etc */
+    size_t getMaxOrder() const {return maxOrder_m;}
 
-    /** Set the centre of the sector */
-    void setCentre(Vector_t centre) const {centre_m = centre;}
+    /** Set the maximum pole modelled in the off-midplane expansion; 0 is dipole; 2 is quadrupole; etc */
+    void setMaxOrder(size_t maxOrder) {maxOrder_m = maxOrder;}
+
+    /** Calculate the df coefficients, ready for field generation
+     *
+     *  Must be called following any update to the the field parameters, in
+     *  order for correct field to be calculated.
+     */
+    void calculateDfCoefficients();
+
+    /** Return the calculated df coefficients */
+    std::vector<std::vector<double> > getDfCoefficients() {return dfCoefficients_m;}
 
   private:
-    // get the fringe field model at azimuthal angle phi
-    double getFringe(double phi);
+    /** Copy constructor */
+    SpiralSector(const SpiralSector &right);
 
+    SpiralSector& operator=(const SpiralSector& rhs);
     PlanarArcGeometry planarArcGeometry_m;
     BMultipoleField dummy;
 
-    double theta1_m;
-    double theta2_m;
+    size_t maxOrder_m = 0;
+    double tanDelta_m = 0.;
     double k_m;
     double Bz_m;
     double r0_m;
     Vector_t centre_m;
     endfieldmodel::EndFieldModel* endField_m = NULL;
+    const double fp_tolerance = 1e-18;
+    std::vector<std::vector<double> > dfCoefficients_m;
 };
 
-
 #endif
+

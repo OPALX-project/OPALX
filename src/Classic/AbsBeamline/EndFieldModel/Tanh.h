@@ -26,6 +26,7 @@
  */
 
 #ifndef ENDFIELDMODEL_TANH_H_
+#define ENDFIELDMODEL_TANH_H_
 
 #include <iostream>
 #include <vector>
@@ -55,46 +56,52 @@ class Tanh : public EndFieldModel {
     Tanh(double x0, double lambda, int max_index);
 
     /** Default constructor (initialises x0 and lambda to 0) */
-    Tanh() : _x0(0.), _lambda(0.) {SetTanhDiffIndices(10);}
+    Tanh() : _x0(0.), _lambda(0.) {setTanhDiffIndices(10);}
+
+    /** Copy constructor */
+    Tanh(const Tanh& rhs) : _x0(rhs._x0), _lambda(rhs._lambda) {}
 
     /** Destructor (no mallocs so does nothing) */
-    ~Tanh() {}
+    ~Tanh();
 
-    /** Returns the value of DoubleTanh or its \f$n^{th}\f$ derivative. */
-    Tanh* Clone() const;
+    /** Inherited copy constructor. */
+    EndFieldModel* clone() const;
 
     /** Double Tanh is given by\n
      *  \f$d(x) = \f$
      */
-    double GetDoubleTanh(double x, int n) const;
+    double function(double x, int n) const;
 
     /** Returns the value of tanh((x+x0)/lambda) or its \f$n^{th}\f$ derivative. */
-    double GetTanh(double x, int n) const;
+    double getTanh(double x, int n) const;
 
     /** Returns the value of tanh((x-x0)/lambda) or its \f$n^{th}\f$ derivative. */
-    double GetNegTanh(double x, int n) const;
+    double getNegTanh(double x, int n) const;
 
     /** Get all the tanh differential indices \f$I_{pq}\f$.
      *
      *  Returns vector of vector of ints where p indexes the differential and
      * q indexes the tanh power - so
      */
-    static std::vector< std::vector<int> > GetTanhDiffIndices(size_t n);
+    static std::vector< std::vector<int> > getTanhDiffIndices(size_t n);
 
     /** Set the value of tanh differential indices to nth order differentials. */
-    static void SetTanhDiffIndices(size_t n);
+    static void setTanhDiffIndices(size_t n);
 
     /** Return lambda (end length) */
-    inline double GetLambda() const {return _lambda;}
+    inline double getLambda() const {return _lambda;}
 
     /** Return x0 (flat top length) */
-    inline double GetX0() const {return _x0;}
+    inline double getX0() const {return _x0;}
 
     /** Set lambda (end length) */
-    inline void   SetLambda(double lambda) {_lambda = lambda;}
+    inline void setLambda(double lambda) {_lambda = lambda;}
 
     /** Set x0 (flat top length) */
-    inline void   SetX0(double x0)     {_x0 = x0;}
+    inline void setX0(double x0)     {_x0 = x0;}
+
+    /** Bug - does nothing */
+    std::ostream& print(std::ostream& out) const {return out;}
   private:
     double _x0, _lambda;
 

@@ -1,3 +1,5 @@
+add_subdirectory(EndFieldModel)
+
 set (_SRCS
   AlignWrapper.cpp
   AttributeSet.cpp
@@ -35,6 +37,7 @@ set (_SRCS
   Septum.cpp
   Solenoid.cpp
   Source.cpp
+  SpiralSector.cpp
   Stripper.cpp
   TravelingWave.cpp
   VariableRFCavity.cpp
@@ -85,6 +88,7 @@ set (HDRS
     Solenoid.h
     Source.h
     SpecificElementVisitor.h
+    SpiralSector.h
     Stripper.h
     TravelingWave.h
     VariableRFCavity.h

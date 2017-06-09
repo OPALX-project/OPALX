@@ -26,6 +26,7 @@
  */
 
 #ifndef ENDFIELDMODEL_ENGE_H_
+#define ENDFIELDMODEL_ENGE_H_
 
 #include <iostream>
 #include <vector>

@@ -37,10 +37,17 @@ namespace endfieldmodel {
 std::vector< std::vector< std::vector<int> > > Tanh::_tdi;
 
 Tanh::Tanh(double x0, double lambda, int max_index) : _x0(x0), _lambda(lambda) {
-  SetTanhDiffIndices(max_index);
+  setTanhDiffIndices(max_index);
 }
 
-double Tanh::GetTanh(double x, int n) const {
+Tanh::~Tanh() {}
+
+EndFieldModel* Tanh::clone() const {
+    return new Tanh(*this);
+}
+
+
+double Tanh::getTanh(double x, int n) const {
   if (n == 0) return tanh((x+_x0)/_lambda);
   double t = 0;
   double lam_n = gsl_sf_pow_int(_lambda, n);
@@ -51,7 +58,7 @@ double Tanh::GetTanh(double x, int n) const {
   return t;
 }
 
-double Tanh::GetNegTanh(double x, int n) const {
+double Tanh::getNegTanh(double x, int n) const {
   if (n == 0) return tanh((x-_x0)/_lambda);
   double t = 0;
   double lam_n = gsl_sf_pow_int(_lambda, n);
@@ -62,11 +69,11 @@ double Tanh::GetNegTanh(double x, int n) const {
   return t;
 }
 
-double Tanh::GetDoubleTanh(double x, int n) const {
-  return (GetTanh(x, n)-GetNegTanh(x, n))/2.;
+double Tanh::function(double x, int n) const {
+  return (getTanh(x, n)-getNegTanh(x, n))/2.;
 }
 
-void Tanh::SetTanhDiffIndices(size_t n) {
+void Tanh::setTanhDiffIndices(size_t n) {
   if (_tdi.size() == 0) {
     _tdi.push_back(std::vector< std::vector<int> >(1, std::vector<int>(2)));
     _tdi[0][0][0] = 1;  // 1*tanh(x) - third index is redundant
@@ -92,8 +99,8 @@ void Tanh::SetTanhDiffIndices(size_t n) {
   }
 }
 
-std::vector< std::vector<int> > Tanh::GetTanhDiffIndices(size_t n) {
-  SetTanhDiffIndices(n);
+std::vector< std::vector<int> > Tanh::getTanhDiffIndices(size_t n) {
+  setTanhDiffIndices(n);
   return _tdi[n];
 }
 

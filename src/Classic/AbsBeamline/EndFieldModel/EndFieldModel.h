@@ -25,7 +25,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef ENDFIELDMODEL_H_
+#ifndef ENDFIELDMODEL_ENDFIELDMODEL_H_
+#define ENDFIELDMODEL_ENDFIELDMODEL_H_
 
 #include <iostream>
 #include <vector>
@@ -35,9 +36,9 @@ namespace endfieldmodel {
 class EndFieldModel {
  public:
   virtual ~EndFieldModel() {;}
-  virtual std::ostream& Print(std::ostream& out) const = 0;
-  virtual double Function(double x, int n) const = 0;
-  virtual EndFieldModel* Clone() const = 0;
+  virtual std::ostream& print(std::ostream& out) const = 0;
+  virtual double function(double x, int n) const = 0;
+  virtual EndFieldModel* clone() const = 0;
 };
 
 std::vector< std::vector<int> > CompactVector
