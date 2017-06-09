@@ -36,7 +36,7 @@ namespace endfieldmodel {
 
 // Use
 // d^n E/dx^n = a_n1m1 F(n1) g(m1) + a_n2m1m2 F(n2) g(m1)g(m2)+...
-// where
+// where 
 double Enge::GetEnge(double x, int n) const {
   std::vector< std::vector<int> > qt = GetQIndex(n);
   std::vector<double> g;
