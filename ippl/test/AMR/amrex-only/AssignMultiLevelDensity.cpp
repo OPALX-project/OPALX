@@ -116,7 +116,8 @@ void test_assign_density(TestParams& parms)
     int iseed = 451;
     Real mass = 10.0;
     //    myPC.InitRandom(num_particles, iseed, mass, serialize, fine_box);
-    myPC.InitRandom(num_particles, iseed, mass, serialize);
+    MyParticleContainer::ParticleInitData pdata = {mass};
+    myPC.InitRandom(num_particles, iseed,  pdata, serialize, real_box);
 
     //myPC.AssignDensity(0, true, partMF, 0, 1, 1);
     myPC.AssignDensityFort(0, partMF, 0, 1, nlevs-1);
