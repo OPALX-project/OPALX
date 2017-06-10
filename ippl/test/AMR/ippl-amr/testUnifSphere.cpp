@@ -37,24 +37,94 @@ typedef AmrOpal::amrbunch_t amrbunch_t;
 
 typedef Vektor<double, BL_SPACEDIM> Vector_t;
 
-double domainMapping(amrbase_t& PData,
-                     const Vector_t& lold,
-                     const Vector_t& uold,
-                     const Vector_t& lnew,
-                     const Vector_t& unew)
+void writeCSV(const container_t& phi,
+              const container_t& efield)
 {
-    // [lold, uold] --> [lnew, unew]
-    Vector_t invdiff = 1.0 / ( uold - lold );
-    Vector_t slope = ( unew - lnew ) * invdiff;
-    Vector_t intercept = ( uold * lnew - lold * unew ) * invdiff;
+    // Immediate debug output:
+    // Output potential and e-field along axis
+    std::string outfile = "potential.grid";
+    std::ofstream out;
+    for (MFIter mfi(*phi[0]); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+        const FArrayBox& lhs = (*phi[0])[mfi];
+        
+        for (int proc = 0; proc < amrex::ParallelDescriptor::NProcs(); ++proc) {
+            if ( proc == amrex::ParallelDescriptor::MyProc() ) {
+                
+                if ( proc == 0 ) {
+                    out.open(outfile, std::ios::out);
+                    out << "'$\\Phi$ [V]'" << std::endl;
+                } else
+                    out.open(outfile, std::ios::app);
+                
+                int j = 0.5 * (bx.hiVect()[1] - bx.loVect()[1]);
+                int k = 0.5 * (bx.hiVect()[2] - bx.loVect()[2]);
+                
+                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+                    IntVect ivec(i, j, k);
+                    // add one in order to have same convention as PartBunch::computeSelfField()
+                    out << lhs(ivec, 0)  << std::endl;
+                }
+                out.close();
+            }
+            amrex::ParallelDescriptor::Barrier();
+        }
+    }
     
-    for (unsigned int i = 0; i < PData.getLocalNum(); ++i)
-        PData.R[i] = slope * PData.R[i] + intercept;
+    outfile = "efield.grid";
+    for (MFIter mfi(*efield[0]); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+        const FArrayBox& lhs = (*efield[0])[mfi];
+        
+        for (int proc = 0; proc < amrex::ParallelDescriptor::NProcs(); ++proc) {
+            if ( proc == amrex::ParallelDescriptor::MyProc() ) {
+                
+                if ( proc == 0 ) {
+                    out.open(outfile, std::ios::out);
+                    out << "r'$E_x$ [V/m]', r'$E_x$ [V/m]', r'$E_x$ [V/m]'" << std::endl;
+                } else
+                    out.open(outfile, std::ios::app);
+                
+                int j = 0.5 * (bx.hiVect()[1] - bx.loVect()[1]);
+                int k = 0.5 * (bx.hiVect()[2] - bx.loVect()[2]);
+                
+                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+                    IntVect ivec(i, j, k);
+                    // add one in order to have same convention as PartBunch::computeSelfField()
+                    out << lhs(ivec, 0) << ", " << lhs(ivec, 1) << ", " << lhs(ivec, 2) << std::endl;
+                }
+                out.close();
+            }
+            amrex::ParallelDescriptor::Barrier();
+        }
+    }
     
-    Vector_t dnew = unew - lnew;
-    Vector_t dold = uold - lold;
+}
+
+double domainMapping(amrbase_t& PData, const double& scale, bool inverse = false)
+{
+    Vector_t rmin, rmax;
+    bounds(PData.R, rmin, rmax);
     
-    return  std::sqrt( dot(dnew, dnew) / dot(dold, dold) ); //( unew - lnew ) / ( uold - lold );
+    double absmax = scale;
+    
+    if ( !inverse ) {
+        Vector_t tmp = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
+                                std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
+                                std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
+                               );
+        
+        absmax = std::max( tmp[0], tmp[1] );
+        absmax = std::max( absmax, tmp[2] );
+    }
+    
+    Vector_t vscale = Vector_t(absmax, absmax, absmax);
+    
+    for (unsigned int i = 0; i < PData.getLocalNum(); ++i) {
+        PData.R[i] /= vscale;
+    }
+    
+    return 1.0 / absmax;
 }
 
 void initSphere(double r, amrbunch_t* bunch, int nParticles) {
@@ -99,9 +169,9 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              container_t& rhs,
              container_t& phi,
              container_t& efield,
-             const Array<Geometry>& geom,
              const Array<int>& rr, int nLevels,
-             Inform& msg)
+             Inform& msg,
+             const double& scale)
 {
     static IpplTimings::TimerRef solvTimer = IpplTimings::getTimer("solv");
     // =======================================================================                                                                                                                                   
@@ -138,6 +208,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     
 //     writeScalarField(rhs, *(geom[0].CellSize()), -0.05, "amr-rho_scalar-level-");
     
+    const Array<Geometry>& geom = myAmrOpal.Geom();
+    
     // Check charge conservation
     double totCharge = totalCharge(rhs, finest_level, geom);
     
@@ -148,7 +220,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
     
     // eps in C / (V * m)
-    double constant = -1.0 / Physics::epsilon_0;  // in [V m / C]
+    double constant = -1.0 / Physics::epsilon_0 * scale;  // in [V m / C]
     for (int i = 0; i <=finest_level; ++i) {
         rhs[i]->mult(constant, 0, 1);       // in [V m]
     }
@@ -181,26 +253,35 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
 //         rhs[i]->mult(1.0 / constant, 0, 1);
 //     }
     
+    // undo scale
+    for (int i = 0; i <= finest_level; ++i)
+        efield[i]->mult(scale, 0, 3);
+    
     IpplTimings::stopTimer(solvTimer);
 }
 
 void doAMReX(const Vektor<size_t, 3>& nr,
-              int nLevels,
-              size_t maxBoxSize,
-              Inform& msg)
+             int nLevels,
+             size_t maxBoxSize,
+             double radius,
+             double length,
+             Inform& msg)
 {
     // ========================================================================
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    std::array<double, BL_SPACEDIM> lower = {{-0.02, -0.02, -0.02}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ 0.02,  0.02,  0.02}}; // m
+    double halflength = 0.5 * length;
+    
+    std::array<double, BL_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
+    std::array<double, BL_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
     
     RealBox domain;
     
     // in helper_functions.h
     init(domain, nr, lower, upper);
     
+    msg << "Domain: " << domain << endl;
     
     /*
      * create an Amr object
@@ -249,15 +330,14 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     bunch->setAllowParticlesNearBoundary(true);
     
     // initialize a particle distribution
-    double R = 0.005; // radius of sphere [m]
     int nParticles = 1e6;
-    initSphere(R, bunch.get(), nParticles);
+    initSphere(radius, bunch.get(), nParticles);
     
-    msg << "Bunch radius: " << R << " m" << endl
+    msg << "Bunch radius: " << radius << " m" << endl
         << "#Particles: " << nParticles << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
         << "Total charge: " << nParticles * bunch->qm[0] << " C" << endl
-        << "#Cells per dim for bunch: " << 2.0 * R / *(geom[0].CellSize()) << endl;
+        << "#Cells per dim for bunch: " << 2.0 * radius / *(geom[0].CellSize()) << endl;
     
     // redistribute on single-level
     bunch->update();
@@ -269,8 +349,6 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     // ========================================================================
     // 3. multi-level redistribute
     // ========================================================================
-    for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
-        myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
     
     container_t rhs;
     container_t phi;
@@ -280,34 +358,30 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     
     
     // map particles
-    Vector_t rmin, rmax;
-    bounds(bunch->R, rmin, rmax);
-    msg << "rmin = " << rmin << endl << "rmax = " << rmax << endl;
+    double scale = 1.0;
     
-    Vector_t low(-1.0, -1.0, -1.0);
-    Vector_t up = - low;
+    scale = domainMapping(*bunch, scale);
     
     msg << endl << "Transformed positions" << endl << endl;
     
-//     double factor = domainMapping(*bunch, 1.05 * rmin, 1.05 * rmax, low , up);
+    msg << "Bunch radius: " << radius * scale << " m" << endl
+        << "#Particles: " << nParticles << endl
+        << "Charge per particle: " << bunch->qm[0] << " C" << endl
+        << "Total charge: " << nParticles * bunch->qm[0] << " C" << endl
+        << "#Cells per dim for bunch: " << 2.0 * radius * scale / *(geom[0].CellSize()) << endl;
     
     bunch->update();
     
-    Vector_t tmp_min, tmp_max;
-    bounds(bunch->R, tmp_min, tmp_max);
-    msg << "rmin = " << tmp_min << endl << "rmax = " << tmp_max << endl;
+    for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
+        myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
     
-    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, geom, rrr, nLevels, msg);
+    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, nLevels, msg, scale);
     
     msg << endl << "Back to normal positions" << endl << endl;
     
-//     domainMapping(*bunch, low , up, 1.05 * rmin, 1.05 * rmax);
+    domainMapping(*bunch, scale, true);
     
     bunch->update();
-    
-    bounds(bunch->R, tmp_min, tmp_max);
-    
-    msg << "rmin = " << tmp_min << endl << "rmax = " << tmp_max << endl;
     
     
     for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
@@ -329,20 +403,6 @@ void doAMReX(const Vektor<size_t, 3>& nr,
             msg << "phi: Nan" << endl;
     }
     
-    
-//     // scale solution
-//     double factor2 = factor * factor;
-//     for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
-//         phi[i]->mult(factor, 0, 1);
-//         
-//         efield[i]->mult(factor2, 0, 3, 1);
-//     }
-    
-//     for (int lev = phi.size() - 2; lev >= 0; lev--) {
-//         std::cout << "average down: " << lev + 1 << " --> " << lev << std::endl;
-//         amrex::average_down(*phi[lev+1], *phi[lev], 0, 1, rr[lev]);
-//     }
-    
     for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
         msg << "Max. potential level " << i << ": "<< phi[i]->max(0) << endl
             << "Min. potential level " << i << ": " << phi[i]->min(0) << endl
@@ -354,6 +414,8 @@ void doAMReX(const Vektor<size_t, 3>& nr,
 //     writeVectorField(efield, *(geom[0].CellSize()), lower[0]);
     
 //     writePlotFile(plotsolve, rhs, phi, efield, rr, geom, 0);
+
+    writeCSV(phi, efield);
 }
 
 
@@ -369,9 +431,9 @@ int main(int argc, char *argv[]) {
 
     std::stringstream call;
     call << "Call: mpirun -np [#procs] " << argv[0]
-         << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#levels] [max. box size]";
+         << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#levels] [max. box size] [radius] [side length]";
     
-    if ( argc < 6 ) {
+    if ( argc < 8 ) {
         msg << call.str() << endl;
         return -1;
     }
@@ -382,13 +444,22 @@ int main(int argc, char *argv[]) {
                          std::atoi(argv[3]));
     
     
-    msg << "Particle test running with" << endl
-        << "- grid       = " << nr << endl;
         
     amrex::Initialize(argc,argv, false);
     size_t nLevels = std::atoi(argv[4]) + 1; // i.e. nLevels = 0 --> only single level
     size_t maxBoxSize = std::atoi(argv[5]);
-    doAMReX(nr, nLevels, maxBoxSize, msg);
+    double radius = std::atof(argv[6]);
+    double length = std::atof(argv[7]);
+    
+    msg << "Particle test running with" << endl
+        << "- grid                  = " << nr << endl
+        << "- max. grid             = " << maxBoxSize << endl
+        << "- #level                = " << nLevels - 1 << endl
+        << "- sphere radius [m]     = " << radius << endl
+        << "- cube side length [m]  = " << length << endl;
+    
+        
+    doAMReX(nr, nLevels, maxBoxSize, radius, length, msg);
     
     
     IpplTimings::stopTimer(mainTimer);
