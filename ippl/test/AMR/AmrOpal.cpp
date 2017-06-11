@@ -420,8 +420,8 @@ void AmrOpal::ClearLevel(int lev) {
 }
 
 
-
-void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
+// use scale instead of time to scale charge due to mapping of particles
+void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
     
     for (int i = lev; i <= finest_level; ++i) {
         nChargePerCell_m[i]->setVal(0.0, 1);
@@ -431,6 +431,8 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
         #else
             bunch_m->AssignDensitySingleLevel(0, *nChargePerCell_m[i], i);
         #endif
+        
+        nChargePerCell_m[i]->mult(scale, 0, 1);
     }
     
     for (int i = finest_level-1; i >= lev; --i) {
@@ -439,6 +441,8 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
         amrex::average_down(*nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
         MultiFab::Add(*nChargePerCell_m[i], tmp, 0, 0, 1, 0);
     }
+    
+    std::cout << nChargePerCell_m[0]->min(0) << " " << nChargePerCell_m[0]->max(0) << std::endl;
     
     const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
@@ -469,7 +473,7 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
                         BL_TO_FORTRAN_3D((*nChargePerCell_m[lev])[mfi]),
                         &tagval, &clearval, 
                         ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                        ZFILL(dx), ZFILL(prob_lo), &time, &nCharge_m);
+                        ZFILL(dx), ZFILL(prob_lo), &scale, &nCharge_m);
             //
             // Now update the tags in the TagBox.
             //
@@ -478,7 +482,7 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int n
     }
 }
 
-void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
+void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
     /* Perform a single level solve a level lev and tag all cells for refinement
      * where the value of the potential is higher than 75 percent of the maximum potential
      * value of this level.
@@ -496,10 +500,13 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, i
     nPartPerCell[base_level]->setVal(0.0, 1);
     
     #ifdef IPPL_AMR
-        bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell[base_level], lev);
+        bunch_m->AssignCellDensitySingleLevelFort(bunch_m->qm, *nPartPerCell[base_level], lev);
+//         bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell[base_level], lev);
     #else
         bunch_m->AssignDensitySingleLevel(0, *nPartPerCell[base_level], lev);
     #endif
+    
+    nPartPerCell[base_level]->mult(scale, 0, 1);
     
     // 2. Solve Poisson's equation on level lev
     
@@ -574,7 +581,7 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, i
                         BL_TO_FORTRAN_3D((*phi[base_level])[mfi]),
                         &tagval, &clearval, 
                         ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                        ZFILL(dx), ZFILL(prob_lo), &time, &value);
+                        ZFILL(dx), ZFILL(prob_lo), &scale, &value);
             //
             // Now update the tags in the TagBox.
             //
@@ -586,7 +593,7 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, i
     nPartPerCell[0].reset(nullptr);
 }
 
-void AmrOpal::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
+void AmrOpal::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
     /* Perform a single level solve a level lev and tag all cells for refinement
      * where the value of the potential is higher than 75 percent of the maximum potential
      * value of this level.
@@ -604,10 +611,13 @@ void AmrOpal::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int 
     nPartPerCell[base_level]->setVal(0.0, 1);
     
     #ifdef IPPL_AMR
-        bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell[base_level], lev);
+        bunch_m->AssignCellDensitySingleLevelFort(bunch_m->qm, *nPartPerCell[base_level], lev);
+//         bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell[base_level], lev);
     #else
         bunch_m->AssignDensitySingleLevel(0, *nPartPerCell[base_level], lev);
     #endif
+    
+    nPartPerCell[base_level]->mult(scale, 0, 1);
     
     // 2. Solve Poisson's equation on level lev
     Real offset = 0.0;
