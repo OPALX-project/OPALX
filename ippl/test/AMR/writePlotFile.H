@@ -1,10 +1,12 @@
 #include <fstream>
 #include <iomanip>
 
-#include <Geometry.H>
-#include <VisMF.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_VisMF.H>
 
-#ifdef UNIQUE_PTR
+#define UNIQUE_PTR 1
+
+#ifndef UNIQUE_PTR
     #include <PArray.H>
 #endif
 
@@ -13,9 +15,9 @@
  * @author Matthias Frey
  * @date October, 2016, LBNL
  * @details This functions writes the density, potential
- * and the electric field components to a BoxLib plotfile
+ * and the electric field components to a AMReX plotfile
  * that can be visualized using yt.
- * @brief Write a BoxLib plotfile
+ * @brief Write a AMReX plotfile
  */
 
 /*!
@@ -55,8 +57,8 @@ writePlotFile (const std::string& dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(dir, 0755))
-            BoxLib::CreateDirectoryFailed(dir);
+        if (!amrex::UtilCreateDirectory(dir, 0755))
+            amrex::CreateDirectoryFailed(dir);
     //
     // Force other processors to wait till directory is built.
     //
@@ -83,7 +85,7 @@ writePlotFile (const std::string& dir,
         //
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
         if (!HeaderFile.good())
-            BoxLib::FileOpenFailed(HeaderFileName);
+            amrex::FileOpenFailed(HeaderFileName);
         HeaderFile << "OpalAmr-V1.0\n";
 
         HeaderFile << nData << '\n';
@@ -156,7 +158,7 @@ writePlotFile (const std::string& dir,
         //
         static const std::string BaseName = "/Cell";
     
-        std::string Level = BoxLib::Concatenate("Level_", lev, 1);
+        std::string Level = amrex::Concatenate("Level_", lev, 1);
         //
         // Now for the full pathname of that directory.
         //
@@ -168,8 +170,8 @@ writePlotFile (const std::string& dir,
         // Only the I/O processor makes the directory if it doesn't already exist.
         //
         if (ParallelDescriptor::IOProcessor())
-            if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
-                BoxLib::CreateDirectoryFailed(FullPath);
+            if (!amrex::UtilCreateDirectory(FullPath, 0755))
+                amrex::CreateDirectoryFailed(FullPath);
         //
         // Force other processors to wait till directory is built.
         //
@@ -205,9 +207,9 @@ writePlotFile (const std::string& dir,
         }
 
 #ifdef UNIQUE_PTR
-        MultiFab data(rho[lev]->boxArray(), nData, 0);
+        MultiFab data(rho[lev]->boxArray(), rho[lev]->DistributionMap(), nData, 0);
 #else
-        MultiFab data(rho[lev].boxArray(), nData, 0);
+        MultiFab data(rho[lev].boxArray(), rho[lev]->DistributionMap(), nData, 0);
 #endif
         
         // dst, src, srccomp, dstcomp, numcomp, nghost
