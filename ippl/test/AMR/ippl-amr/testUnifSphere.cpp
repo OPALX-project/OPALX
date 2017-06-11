@@ -220,8 +220,6 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         amrex::MultiFab::Copy(*rhs[lev], *partMF[lev], 0, 0, 1, 0);
     }
     
-//     writeScalarField(rhs, *(geom[0].CellSize()), -0.05, "amr-rho_scalar-level-");
-    
     const Array<Geometry>& geom = myAmrOpal.Geom();
     
     // Check charge conservation
@@ -245,12 +243,6 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // **************************************************************************                                                                                                                                
 
     Real offset = 0.;
-    
-//     for (int lev = base_level; lev <= finest_level; lev++) {
-//         phi[lev]->setBndry(0.0);
-// //         rhs[lev]->FillBoundary();
-//         phi[lev]->FillBoundary();
-//     }
 
     // solve                                                                                                                                                                                                     
     Solver sol;
@@ -397,26 +389,6 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     
     bunch->update();
     
-    
-    for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
-        if ( rhs[i]->contains_nan(false) )
-            msg << "rho: Nan" << endl;
-    }
-    
-    for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
-        if ( efield[i]->contains_nan(false) )
-            msg << "efield: Nan" << endl;
-    }
-    
-    for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
-        
-        msg << i << ": " << phi[i]->nGrow() << " "
-                  << phi[i]->min(0, 1) << " " << phi[i]->max(0, 1) << endl;
-        
-        if ( phi[i]->contains_nan() )
-            msg << "phi: Nan" << endl;
-    }
-    
     for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
         msg << "Max. potential level " << i << ": "<< phi[i]->max(0) << endl
             << "Min. potential level " << i << ": " << phi[i]->min(0) << endl
@@ -424,12 +396,6 @@ void doAMReX(const Vektor<size_t, 3>& nr,
             << "Min. ex-field level " << i << ": " << efield[i]->min(0) << endl;
     }
     
-//     writeScalarField(phi, *(geom[0].CellSize()), lower[0], "amr-phi_scalar-level-");
-//     writeVectorField(efield, *(geom[0].CellSize()), lower[0]);
-    
-//     writePlotFile(plotsolve, rhs, phi, efield, rr, geom, 0);
-
-
     double fieldenergy = totalFieldEnergy(efield, rrr);
     
     msg << "Total field energy: " << fieldenergy << endl;
