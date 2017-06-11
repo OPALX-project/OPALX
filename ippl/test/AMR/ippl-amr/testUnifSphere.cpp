@@ -38,7 +38,8 @@ typedef AmrOpal::amrbunch_t amrbunch_t;
 typedef Vektor<double, BL_SPACEDIM> Vector_t;
 
 void writeCSV(const container_t& phi,
-              const container_t& efield)
+              const container_t& efield,
+              double lower, double dx)
 {
     // Immediate debug output:
     // Output potential and e-field along axis
@@ -53,7 +54,7 @@ void writeCSV(const container_t& phi,
                 
                 if ( proc == 0 ) {
                     out.open(outfile, std::ios::out);
-                    out << "'$\\Phi$ [V]'" << std::endl;
+                    out << "$x$ [m], $\\Phi$ [V]" << std::endl;
                 } else
                     out.open(outfile, std::ios::app);
                 
@@ -63,7 +64,7 @@ void writeCSV(const container_t& phi,
                 for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
                     IntVect ivec(i, j, k);
                     // add one in order to have same convention as PartBunch::computeSelfField()
-                    out << lhs(ivec, 0)  << std::endl;
+                    out << lower + i * dx << ", " << lhs(ivec, 0)  << std::endl;
                 }
                 out.close();
             }
@@ -81,7 +82,7 @@ void writeCSV(const container_t& phi,
                 
                 if ( proc == 0 ) {
                     out.open(outfile, std::ios::out);
-                    out << "r'$E_x$ [V/m]', r'$E_x$ [V/m]', r'$E_x$ [V/m]'" << std::endl;
+                    out << "$x$ [m], $E_x$ [V/m], $E_x$ [V/m], $E_x$ [V/m]" << std::endl;
                 } else
                     out.open(outfile, std::ios::app);
                 
@@ -91,7 +92,8 @@ void writeCSV(const container_t& phi,
                 for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
                     IntVect ivec(i, j, k);
                     // add one in order to have same convention as PartBunch::computeSelfField()
-                    out << lhs(ivec, 0) << ", " << lhs(ivec, 1) << ", " << lhs(ivec, 2) << std::endl;
+                    out << lower + i * dx << ", " << lhs(ivec, 0) << ", "
+                        << lhs(ivec, 1) << ", " << lhs(ivec, 2) << std::endl;
                 }
                 out.close();
             }
@@ -415,7 +417,7 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     
 //     writePlotFile(plotsolve, rhs, phi, efield, rr, geom, 0);
 
-    writeCSV(phi, efield);
+    writeCSV(phi, efield, domain.lo(0) / scale, geom[0].CellSize(0) / scale);
 }
 
 
