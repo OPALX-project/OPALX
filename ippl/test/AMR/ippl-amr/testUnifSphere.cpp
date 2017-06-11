@@ -129,7 +129,7 @@ double domainMapping(amrbase_t& PData, const double& scale, bool inverse = false
     return 1.0 / absmax;
 }
 
-void initSphere(double r, amrbunch_t* bunch, int nParticles) {
+void initSphere(double r, std::unique_ptr<amrbunch_t>& bunch, int nParticles) {
     bunch->create(nParticles / Ippl::getNodes());
     
     std::mt19937_64 eng;
@@ -143,11 +143,14 @@ void initSphere(double r, amrbunch_t* bunch, int nParticles) {
     
     
     std::string outfile = "amr-particles-level-" + std::to_string(0);
-    std::ofstream out(outfile);
+    std::ofstream out;
+    
+    if ( Ippl::getNodes() == 1 )
+        out.open(outfile, std::ios::out);
     
     long double qi = 4.0 * Physics::pi * Physics::epsilon_0 * r * r / double(nParticles);
     
-    for (int i = 0; i < nParticles; ++i) {
+    for (uint i = 0; i < bunch->getLocalNum(); ++i) {
         // 17. Dec. 2016,
         // http://math.stackexchange.com/questions/87230/picking-random-points-in-the-volume-of-sphere-with-uniform-probability
         // http://stackoverflow.com/questions/5408276/sampling-uniformly-distributed-random-points-inside-a-spherical-volume
@@ -159,12 +162,15 @@ void initSphere(double r, amrbunch_t* bunch, int nParticles) {
         double y = radius * std::sin( theta ) * std::sin( phi );
         double z = radius * std::cos( phi );
         
-        out << x << " " << y << " " << z << std::endl;
+        if ( Ippl::getNodes() == 1 )
+            out << x << " " << y << " " << z << std::endl;
         
         bunch->R[i] = Vector_t( x, y, z );    // m
         bunch->qm[i] = qi;   // C
     }
-    out.close();
+    
+    if (Ippl::getNodes() == 1 )
+        out.close();
 }
 
 void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
@@ -333,7 +339,7 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     
     // initialize a particle distribution
     int nParticles = 1e6;
-    initSphere(radius, bunch.get(), nParticles);
+    initSphere(radius, bunch, nParticles);
     
     msg << "Bunch radius: " << radius << " m" << endl
         << "#Particles: " << nParticles << endl
@@ -341,6 +347,10 @@ void doAMReX(const Vektor<size_t, 3>& nr,
         << "Total charge: " << nParticles * bunch->qm[0] << " C" << endl
         << "#Cells per dim for bunch: " << 2.0 * radius / *(geom[0].CellSize()) << endl;
     
+    // map particles
+    double scale = 1.0;
+    
+    scale = domainMapping(*bunch, scale);
     // redistribute on single-level
     bunch->update();
     
@@ -359,10 +369,6 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     std::string plotsolve = amrex::Concatenate("plt", 0, 4);
     
     
-    // map particles
-    double scale = 1.0;
-    
-    scale = domainMapping(*bunch, scale);
     
     msg << endl << "Transformed positions" << endl << endl;
     
@@ -417,7 +423,8 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     
 //     writePlotFile(plotsolve, rhs, phi, efield, rr, geom, 0);
 
-    writeCSV(phi, efield, domain.lo(0) / scale, geom[0].CellSize(0) / scale);
+    if (Ippl::getNodes() == 1 && myAmrOpal.maxGridSize(0) == (int)nr[0] )
+        writeCSV(phi, efield, domain.lo(0) / scale, geom[0].CellSize(0) / scale);
 }
 
 
