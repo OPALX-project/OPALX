@@ -429,6 +429,11 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     
 //     writePlotFile(plotsolve, rhs, phi, efield, rr, geom, 0);
 
+
+    double fieldenergy = totalFieldEnergy(efield, rrr);
+    
+    msg << "Total field energy: " << fieldenergy << endl;
+    
     if (Ippl::getNodes() == 1 && myAmrOpal.maxGridSize(0) == (int)nr[0] )
         writeCSV(phi, efield, domain.lo(0) / scale, geom[0].CellSize(0) / scale);
 }
