@@ -307,6 +307,20 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
 }
 
 
+void AmrOpal::MakeNewLevelFromScratch(int lev, Real time, const BoxArray& ba,
+                                      const DistributionMapping& dm)
+{
+    amrex::Abort("How did we get her!");
+}
+
+
+void AmrOpal::MakeNewLevelFromCoarse(int lev, Real time, const BoxArray& ba,
+                                     const DistributionMapping& dm)
+{
+    amrex::Abort("How did we get her!");
+}
+
+
 void
 AmrOpal::regrid (int lbase, Real time)
 {

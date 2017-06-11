@@ -170,14 +170,10 @@ protected:
      */
     virtual void ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) override;
     
-    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) /*override*/ {
-        //TODO
-    }
+    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm);
 
     //! Make a new level using provided BoxArray and DistributionMapping and fill with interpolated coarse level data.
-    virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) /*override*/ {
-        //TODO
-    }
+    virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm);
     
 private:
     
