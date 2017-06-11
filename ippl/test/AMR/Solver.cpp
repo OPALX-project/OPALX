@@ -18,8 +18,8 @@ Solver::solve_for_accel(const container_t& rhs,
     if ( timing )
         edge2centerTimer = IpplTimings::getTimer("grad-edge2center");
     
-    Real tol     = 1.e-10;
-    Real abs_tol = 1.e-14;
+    Real tol     = 1.e-12;
+    Real abs_tol = 0.0;
 
     Array<container_t> grad_phi_edge(rhs.size());
     
@@ -161,9 +161,9 @@ Solver::solve_with_f90(const container_pt& rhs,
     FMultiGrid fmg(geom_p, base_level, crse_ratio);
 
     if (base_level == 0) {
-	fmg.set_bc(mg_bc, *phi[base_level]);
+	fmg.set_bc(mg_bc, *phi_p[base_level]);
     } else {
-	fmg.set_bc(mg_bc, *phi[base_level-1], *phi[base_level]);
+	fmg.set_bc(mg_bc, *phi_p[base_level-1], *phi_p[base_level]);
     }
     
     /* (alpha * a - beta * (del dot b grad)) phi = rhs
@@ -179,14 +179,18 @@ Solver::solve_with_f90(const container_pt& rhs,
 
     int always_use_bnorm = 0;
     int need_grad_phi = (doGradient) ? 1 : 0;
-    fmg.set_verbose(1);
+    fmg.set_verbose(0);
     
     if ( timing )
         IpplTimings::stopTimer(initSolverTimer);
     
     if ( timing )
         IpplTimings::startTimer(doSolveTimer);
-    fmg.solve(phi_p, rhs_p, tol, abs_tol, always_use_bnorm, need_grad_phi);
+    Real final_resnorm = fmg.solve(phi_p, rhs_p, tol, abs_tol, always_use_bnorm, need_grad_phi);
+    
+    if ( final_resnorm > tol )
+        std::cerr << "\033[1;31mError: The solver did not converge!\033[0m" << std::endl;
+    
     if ( timing )
         IpplTimings::stopTimer(doSolveTimer);
     
