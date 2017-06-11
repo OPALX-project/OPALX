@@ -40,17 +40,11 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
     
     const BoxArray& ba = MakeBaseGrids();
     
-    std::cout << "boxArray = " << ba << std::endl;
-    std::cout << "boxArray size = " << this->boxArray().size() << std::endl;
-    
     DistributionMapping dm(ba, ParallelDescriptor::NProcs());
     
     nChargePerCell_m.resize(max_level_in + 1);
     
     MakeNewLevel(0, 0.0, ba, dm);
-    
-    std::cout << "boxArray = " << ba << std::endl;
-    std::cout << "boxArray size = " << this->boxArray().size() << std::endl;
 }
 
 AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord,
@@ -64,17 +58,11 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
     
     const BoxArray& ba = MakeBaseGrids();
     
-    std::cout << "boxArray = " << ba << std::endl;
-    std::cout << "boxArray size = " << this->boxArray().size() << std::endl;
-    
     DistributionMapping dm(ba, ParallelDescriptor::NProcs());
     
     nChargePerCell_m.resize(max_level_in + 1);
     
     MakeNewLevel(0, 0.0, ba, dm);
-    
-    std::cout << "boxArray = " << ba << std::endl;
-    std::cout << "boxArray size = " << this->boxArray().size() << std::endl;
 }
 
 
