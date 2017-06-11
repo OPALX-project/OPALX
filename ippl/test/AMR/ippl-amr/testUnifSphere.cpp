@@ -130,12 +130,18 @@ double domainMapping(amrbase_t& PData, const double& scale, bool inverse = false
 }
 
 void initSphere(double r, std::unique_ptr<amrbunch_t>& bunch, int nParticles) {
-    bunch->create(nParticles / Ippl::getNodes());
     
-    std::mt19937_64 eng;
+    int nLocParticles = nParticles / Ippl::getNodes();
     
-    if ( Ippl::myNode() )
-        eng.seed(42 + Ippl::myNode() );
+    bunch->create(nLocParticles);
+    
+    std::mt19937_64 eng[3];
+    
+    
+    for (int i = 0; i < 3; ++i) {
+        eng[i].seed(42 + 3 * i);
+        eng[i].discard( nLocParticles * Ippl::myNode());
+    }
     
     std::uniform_real_distribution<> ph(-1.0, 1.0);
     std::uniform_real_distribution<> th(0.0, 2.0 * Physics::pi);
@@ -154,9 +160,9 @@ void initSphere(double r, std::unique_ptr<amrbunch_t>& bunch, int nParticles) {
         // 17. Dec. 2016,
         // http://math.stackexchange.com/questions/87230/picking-random-points-in-the-volume-of-sphere-with-uniform-probability
         // http://stackoverflow.com/questions/5408276/sampling-uniformly-distributed-random-points-inside-a-spherical-volume
-        double phi = std::acos( ph(eng) );
-        double theta = th(eng);
-        double radius = r * std::cbrt( u(eng) );
+        double phi = std::acos( ph(eng[0]) );
+        double theta = th(eng[1]);
+        double radius = r * std::cbrt( u(eng[2]) );
         
         double x = radius * std::cos( theta ) * std::sin( phi );
         double y = radius * std::sin( theta ) * std::sin( phi );
@@ -342,7 +348,7 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     initSphere(radius, bunch, nParticles);
     
     msg << "Bunch radius: " << radius << " m" << endl
-        << "#Particles: " << nParticles << endl
+        << "#Particles: " << bunch->getTotalNum() << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
         << "Total charge: " << nParticles * bunch->qm[0] << " C" << endl
         << "#Cells per dim for bunch: " << 2.0 * radius / *(geom[0].CellSize()) << endl;
