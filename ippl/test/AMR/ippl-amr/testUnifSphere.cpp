@@ -379,7 +379,7 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     bunch->update();
     
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
-        myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
+        myAmrOpal.regrid(i /*lbase*/, scale/*0.0*/ /*time*/);
     
     doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, nLevels, msg, scale);
     
