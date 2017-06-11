@@ -30,7 +30,7 @@ using namespace amrex;
  */
 
 /// Concrete AMR implementation
-class AmrOpal : public AmrCore {
+class AmrOpal : public AmrMesh {
     
 private:
     typedef Array<std::unique_ptr<MultiFab> > mfs_mt;
@@ -69,6 +69,17 @@ public:
 #else
             PartBunchBase* bunch);
 #endif
+
+    /*!
+     * Create an AMR object.
+     * @param rb is the physical domain
+     * @param max_level_in is the max. number of allowed AMR levels
+     * @param n_cell_in is the number of grid cells at the coarsest level
+     * @param coord is the coordinate system (0: cartesian)
+     * @param refratio
+     */
+    AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord,
+            const std::vector<int>& refratio);
     
     /*!
      * Create an AMR object.
@@ -159,12 +170,12 @@ protected:
      */
     virtual void ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) override;
     
-    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override {
+    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) /*override*/ {
         //TODO
     }
 
     //! Make a new level using provided BoxArray and DistributionMapping and fill with interpolated coarse level data.
-    virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) override {
+    virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) /*override*/ {
         //TODO
     }
     
