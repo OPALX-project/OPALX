@@ -283,7 +283,6 @@ Distribution::Distribution():
     }
 
     SetFieldEmissionParameters();
-
 }
 /**
  *
@@ -476,23 +475,6 @@ void Distribution::update() {
 void Distribution::Create(size_t &numberOfParticles, double massIneV) {
 
     SetFieldEmissionParameters();
-    
-    switch (distrTypeT_m) {
-    case DistrTypeT::FLATTOP:
-        if (Options::seed ==-1) {
-            struct timeval tv;
-            gettimeofday(&tv,0);
-            mySeed_m = tv.tv_sec + tv.tv_usec + Ippl::myNode();
-            *gmsg << "* FLATTOP Distribution uses non-portable rng" << endl;
-        }
-        else {
-            mySeed_m = Ippl::myNode();
-            *gmsg << "* FLATTOP Distribution uses portable rng" << endl;
-        }
-        break;
-    default:
-        break;
-    }
 
     switch (distrTypeT_m) {
 
@@ -2488,10 +2470,14 @@ void Distribution::GenerateFlattopLaserProfile(size_t numberOfParticles) {
 void Distribution::GenerateFlattopT(size_t numberOfParticles) {
 
     size_t locNumber = getNumOfLocalParticlesToCreate(numberOfParticles);
-   
+
+    struct timeval tv; // Seed generation based on time and pid                                                          
+    gettimeofday(&tv,0);
+    unsigned long mySeed = tv.tv_sec + tv.tv_usec + Ippl::myNode();
+
     gsl_rng_env_setup();
     gsl_rng  *randGenStandard = gsl_rng_alloc(gsl_rng_default);
-    gsl_rng_set(randGenStandard, mySeed_m);
+    gsl_rng_set(randGenStandard, mySeed);
 
     gsl_qrng *quasiRandGen2D = NULL;
 
@@ -2557,9 +2543,14 @@ void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
 
     size_t locNumber = getNumOfLocalParticlesToCreate(numberOfParticles);
 
+    struct timeval tv; // Seed generation based on time and pid                                                          
+    gettimeofday(&tv,0);
+    unsigned long mySeed = tv.tv_sec + tv.tv_usec + Ippl::myNode();
+
+
     gsl_rng_env_setup();
     gsl_rng *randGenStandard = gsl_rng_alloc(gsl_rng_default);
-    gsl_rng_set(randGenStandard, mySeed_m);
+    gsl_rng_set(randGenStandard, mySeed);
 
     gsl_qrng *quasiRandGen1D = NULL;
     gsl_qrng *quasiRandGen2D = NULL;
