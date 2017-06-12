@@ -59,16 +59,6 @@ public:
         const ParGDBBase* gdb = playout->GetParGDB();
         int nLevel = gdb->finestLevel() + 1;
         
-        /*
-         * storage:
-         * 
-         * n0l0, n0l1, n0l2, n0l3, ..., n1l0, n1l1, ...
-         * 
-         * ni = i-th node
-         * li = i-th level
-         * 
-         */
-        
         std::unique_ptr<size_t[]> partPerLevel( new size_t[nLevel] );
         std::unique_ptr<size_t[]> globalPartPerLevel( new size_t[nLevel] );
         
