@@ -1,6 +1,9 @@
 #ifndef _Adv_F_H_
 #define _Adv_F_H_
 #include <AMReX_BLFort.H>
+#include <AMReX_REAL.H>
+
+using amrex::Real;
 
 /*!
  * @file AmrOpal_F.h

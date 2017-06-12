@@ -3,6 +3,8 @@
 
 #include "AmrParticleBase.h"
 
+#include <list>
+
 template<class PLayout>
 class PartBunchAmr : public AmrParticleBase<PLayout>
 {
@@ -48,6 +50,47 @@ public:
             msg << "Node " << i << " has "
                 <<   globalPartPerNode[i] / this->getTotalNum() * 100.0
                 << " \% of the total particles " << endl;
+    }
+    
+    void gatherLevelStatistics() {
+        Inform msg("gatherLevelStatistics");
+        
+        PLayout* playout = &this->getLayout();
+        const ParGDBBase* gdb = playout->GetParGDB();
+        int nLevel = gdb->finestLevel() + 1;
+        
+        /*
+         * storage:
+         * 
+         * n0l0, n0l1, n0l2, n0l3, ..., n1l0, n1l1, ...
+         * 
+         * ni = i-th node
+         * li = i-th level
+         * 
+         */
+        
+        std::unique_ptr<size_t[]> partPerLevel( new size_t[nLevel] );
+        std::unique_ptr<size_t[]> globalPartPerLevel( new size_t[nLevel] );
+        
+        
+        for (int i = 0; i < nLevel; ++i)
+            partPerLevel[i] = globalPartPerLevel[i] = 0.0;
+        
+        for (size_t i = 0; i < this->getLocalNum(); ++i)
+            ++partPerLevel[this->m_lev[i]];
+        
+        reduce(partPerLevel.get(),
+            partPerLevel.get() + nLevel,
+            globalPartPerLevel.get(),
+            OpAddAssign());
+        
+        
+        for (int i = 0; i < nLevel; ++i)
+            msg << "Level " << i << " has "
+                << globalPartPerLevel[i] << " ("
+                << globalPartPerLevel[i] / this->getTotalNum() * 100.0
+                << " \%) of the total particles" << endl;
+        
     }
     
     void dumpStatistics(const std::string& filename) {

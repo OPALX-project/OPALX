@@ -423,26 +423,34 @@ void AmrOpal::ClearLevel(int lev) {
 // use scale instead of time to scale charge due to mapping of particles
 void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
     
+//     for (int i = lev; i <= finest_level; ++i) {
+//         nChargePerCell_m[i]->setVal(0.0, 1);
+//         #ifdef IPPL_AMR
+//             bunch_m->AssignCellDensitySingleLevelFort(bunch_m->qm, *nChargePerCell_m[i], i);
+// //             bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nChargePerCell_m[i], i);
+//         #else
+//             bunch_m->AssignDensitySingleLevel(0, *nChargePerCell_m[i], i);
+//         #endif
+//         
+//         nChargePerCell_m[i]->mult(scale, 0, 1);
+//     }
+//     
+//     for (int i = finest_level-1; i >= lev; --i) {
+//         MultiFab tmp(nChargePerCell_m[i]->boxArray(), nChargePerCell_m[i]->DistributionMap(), 1, 0);
+//         tmp.setVal(0.0);
+//         amrex::average_down(*nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
+//         MultiFab::Add(*nChargePerCell_m[i], tmp, 0, 0, 1, 0);
+//     }
+    
     for (int i = lev; i <= finest_level; ++i) {
         nChargePerCell_m[i]->setVal(0.0, 1);
-        #ifdef IPPL_AMR
-            bunch_m->AssignCellDensitySingleLevelFort(bunch_m->qm, *nChargePerCell_m[i], i);
-//             bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nChargePerCell_m[i], i);
-        #else
-            bunch_m->AssignDensitySingleLevel(0, *nChargePerCell_m[i], i);
-        #endif
-        
-        nChargePerCell_m[i]->mult(scale, 0, 1);
     }
     
-    for (int i = finest_level-1; i >= lev; --i) {
-        MultiFab tmp(nChargePerCell_m[i]->boxArray(), nChargePerCell_m[i]->DistributionMap(), 1, 0);
-        tmp.setVal(0.0);
-        amrex::average_down(*nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
-        MultiFab::Add(*nChargePerCell_m[i], tmp, 0, 0, 1, 0);
-    }
+    bunch_m->AssignDensityFort(bunch_m->qm, nChargePerCell_m, lev, 1, finest_level);
     
-    std::cout << nChargePerCell_m[0]->min(0) << " " << nChargePerCell_m[0]->max(0) << std::endl;
+    for (int i = lev; i <= finest_level; ++i) {
+        nChargePerCell_m[i]->mult(scale, 1);
+    }
     
     const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
