@@ -463,7 +463,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     IpplTimings::stopTimer(bunch_mp->compPotenTimer_m);
     
     // apply scale of electric-field in order to undo the transformation
-    for (int i = 0; i <= finestLevel; ++i)
+    for (int i = 0; i <= finestLevel(); ++i)
         this->eg_m[i]->mult(scalefactor, 0, 3);
     
     for (int i = 0; i <= finest_level; ++i) {
