@@ -1,6 +1,7 @@
 #ifndef AMR_DEFS_H
 #define AMR_DEFS_H
 
+#include <AMReX_ParmParse.H>
 #include <AMReX_Array.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_IntVect.H>

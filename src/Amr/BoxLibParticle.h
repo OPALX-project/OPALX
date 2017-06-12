@@ -3,30 +3,12 @@
 
 #include "AmrParticle/AmrParticleBase.h"
 
-#include <map>
-#include <deque>
-#include <vector>
-#include <fstream>
-#include <iostream>
-#include <numeric>
-#include <algorithm>
-#include <array>
-
-#include <AMReX_ParGDB.H>
 #include <AMReX_REAL.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_Array.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_VisMF.H>
-#include <AMReX_Particles.H>
 #include <AMReX_RealBox.H>
-
-#include <AMReX_BLFort.H>
-#include <AMReX_MultiFabUtil.H>
-#include <AMReX_MultiFabUtil_F.H>
-#include <AMReX_Interpolater.H>
-#include <AMReX_FillPatchUtil.H>
     
 template<class PLayout>
 class BoxLibParticle : public virtual AmrParticleBase<PLayout>

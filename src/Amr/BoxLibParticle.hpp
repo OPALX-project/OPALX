@@ -3,6 +3,12 @@
 
 #include "Utilities/OpalException.h"
 
+#include <AMReX_BLFort.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_MultiFabUtil_F.H>
+#include <AMReX_Interpolater.H>
+#include <AMReX_FillPatchUtil.H>
+
 template<class PLayout>
 BoxLibParticle<PLayout>::BoxLibParticle() : AmrParticleBase<PLayout>()
 {
