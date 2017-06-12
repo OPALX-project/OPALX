@@ -285,7 +285,11 @@ void AmrBoxLib::computeSelfFields() {
     IpplTimings::startTimer(bunch_mp->compPotenTimer_m);
     solver->solve(rho_m, phi_m, eg_m, baseLevel, finestLevel);
     IpplTimings::stopTimer(bunch_mp->compPotenTimer_m);
-        
+    
+    // apply scale of electric-field in order to undo the transformation
+    for (int i = 0; i <= finestLevel; ++i)
+        this->eg_m[i]->mult(scalefactor, 0, 3);
+    
 #ifdef DBG_SCALARFIELD
     INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
     std::ofstream fstr2;
@@ -352,9 +356,9 @@ void AmrBoxLib::computeSelfFields() {
     
     layout_mp->domainMapping(*amrpbase_p, true);
     
-    bunch_mp->Ef *= Vector_t(gammaz * scalefactor,
-                             gammaz * scalefactor,
-                             1.0 / gammaz * scalefactor);
+    bunch_mp->Ef *= Vector_t(gammaz,
+                             gammaz,
+                             1.0 / gammaz);
     
     /** Magnetic field in x and y direction induced by the eletric field
      *
@@ -458,6 +462,10 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     solver->solve(rho_m, phi_m, eg_m, baseLevel, finest_level);
     IpplTimings::stopTimer(bunch_mp->compPotenTimer_m);
     
+    // apply scale of electric-field in order to undo the transformation
+    for (int i = 0; i <= finestLevel; ++i)
+        this->eg_m[i]->mult(scalefactor, 0, 3);
+    
     for (int i = 0; i <= finest_level; ++i) {
         if ( this->eg_m[i]->contains_nan(false) )
             throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
@@ -539,9 +547,9 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     // undo domain change
     layout_mp->domainMapping(*amrpbase_p, true);
     
-    bunch_mp->Ef *= Vector_t(gamma * scalefactor,
-                             invGamma * scalefactor,
-                             gamma * scalefactor);
+    bunch_mp->Ef *= Vector_t(gamma,
+                             invGamma,
+                             gamma);
     
 //     std::cout << bunch_mp->Ef[0] << std::endl; std::cin.get();
     
