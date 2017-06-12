@@ -674,7 +674,9 @@ void AmrBoxLib::ClearLevel(int lev) {
 }
 
 
-void AmrBoxLib::ErrorEst(int lev, TagBoxArray_t& tags, AmrReal_t time, int ngrow) {
+void AmrBoxLib::ErrorEst(int lev, TagBoxArray_t& tags,
+                         AmrReal_t time, int ngrow)
+{
     switch ( tagging_m ) {
         case CHARGE_DENSITY:
             tagForChargeDensity_m(lev, tags, time, ngrow);
@@ -692,7 +694,25 @@ void AmrBoxLib::ErrorEst(int lev, TagBoxArray_t& tags, AmrReal_t time, int ngrow
 }
 
 
-void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags, AmrReal_t time, int ngrow) {
+void AmrBoxLib::MakeNewLevelFromScratch(int lev, AmrReal_t time,
+                                  const AmrGrid_t& ba,
+                                  const AmrProcMap_t& dm)
+{
+    throw OpalException("AmrBoxLib::MakeNewLevelFromScratch()", "Shouldn't be called.");
+}
+
+
+void AmrBoxLib::MakeNewLevelFromCoarse (int lev, AmrReal_t time,
+                                        const AmrGrid_t& ba,
+                                        const AmrProcMap_t& dm)
+{
+    throw OpalException("AmrBoxLib::MakeNewLevelFromCoarse()", "Shouldn't be called.");
+}
+
+
+void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags,
+                                      AmrReal_t time, int ngrow)
+{
     
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     for (int i = lev; i <= finest_level; ++i)
@@ -705,7 +725,8 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags, AmrReal_t ti
     layout_mp->domainMapping(*amrpbase_p);
     
     // the new scatter function averages the value also down to the coarsest level
-    amrpbase_p->scatter(bunch_mp->Q, nChargePerCell_m, bunch_mp->R, lev, finest_level);
+    amrpbase_p->scatter(bunch_mp->Q, nChargePerCell_m,
+                        bunch_mp->R, lev, finest_level);
     
     // undo domain change
     layout_mp->domainMapping(*amrpbase_p, true);
