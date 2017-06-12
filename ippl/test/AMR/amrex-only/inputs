@@ -23,5 +23,9 @@ nppc = 10
 # Verbosity
 verbose = true   # set to true to get more verbosity 
 
+# testDepositionFail
+nparticles = 1000000
+sphere_radius = 0.005
+
 # Number of levels
 nlevs = 2
