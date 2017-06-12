@@ -122,7 +122,8 @@ void AmrPartBunch::boundp() {
         }
     } else {
         // At this point an amrobj_mp needs already be set
-        throw GeneralClassicException("AmrPartBunch::boundp() ", "AmrObject pointer is not set.");
+        throw GeneralClassicException("AmrPartBunch::boundp() ",
+                                      "AmrObject pointer is not set.");
     }
     
     R.resetDirtyFlag();
@@ -135,7 +136,8 @@ void AmrPartBunch::computeSelfFields() {
     IpplTimings::startTimer(selfFieldTimer_m);
     
     if ( !fs_m->hasValidSolver() )
-        throw OpalException("AmrPartBunch::computeSelfFields() ", "No field solver.");
+        throw OpalException("AmrPartBunch::computeSelfFields() ",
+                            "No field solver.");
     
     amrobj_mp->computeSelfFields();
     
@@ -161,6 +163,33 @@ void AmrPartBunch::computeSelfFields_cycl(int bin) {
     IpplTimings::startTimer(selfFieldTimer_m);
     amrobj_mp->computeSelfFields_cycl(bin);
     IpplTimings::stopTimer(selfFieldTimer_m);
+}
+
+
+void AmrPartBunch::printLevelStatistics() {
+    Inform msg("LevelStatistics");
+    
+    int maxlevel = (&amrpbase_mp->getAmrLayout())->maxLevel();
+    
+    std::unique_ptr<size_t[]> partPerLevel( new size_t[maxlevel] );
+    std::unique_ptr<size_t[]> globalPartPerLevel( new size_t[maxlevel] );
+    
+    for (int i = 0; i < maxlevel; ++i)
+        partPerLevel[i] = globalPartPerLevel[i] = 0.0;
+        
+    for (size_t i = 0; i < this->getLocalNum(); ++i)
+        ++partPerLevel[amrpbase_mp->Level[i]];
+        
+    reduce(partPerLevel.get(),
+           partPerLevel.get() + maxlevel,
+           globalPartPerLevel.get(),
+           OpAddAssign());
+    
+    for (int i = 0; i < maxlevel; ++i)
+        msg << "Level " << i << " has "
+            << globalPartPerLevel[i] << " ("
+            << globalPartPerLevel[i] / this->getTotalNum() * 100.0
+            << " \%) of the total particles" << endl;
 }
 
 

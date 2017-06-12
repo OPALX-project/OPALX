@@ -72,6 +72,8 @@ public:
             hr_m[i] = hr[i];
     }
     
+    void printLevelStatistics();
+    
     
     //FIXME BCs
     void setBCAllPeriodic() {}
