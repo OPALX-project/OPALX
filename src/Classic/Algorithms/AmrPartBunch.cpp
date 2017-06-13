@@ -110,6 +110,16 @@ void AmrPartBunch::boundp() {
 
     stateOfLastBoundP_ = unit_state_;
     
+    /* we do an explicit domain mapping of the particles and then
+     * forbid it during the regrid process, this way it's only
+     * executed ones --> saves computation
+     */
+    AmrLayout_t* layout_p = &amrpbase_mp->getAmrLayout();
+    
+    layout_p->domainMapping(*amrpbase_mp);
+    
+    layout_p->setForbidTransform(true);
+    
     update();
     
     if ( amrobj_mp ) {
@@ -125,6 +135,11 @@ void AmrPartBunch::boundp() {
         throw GeneralClassicException("AmrPartBunch::boundp() ",
                                       "AmrObject pointer is not set.");
     }
+    
+    layout_p->setForbidTransform(false);
+    
+    // map particles back
+    layout_p->domainMapping(*amrpbase_mp, true);
     
     R.resetDirtyFlag();
 

@@ -39,9 +39,6 @@ public:
     
     static const Vector_t lowerBound;
     static const Vector_t upperBound;
-    
-//     static bool do_tiling;
-//     static AmrIntVect_t tile_size;
 
 public:
     
@@ -170,6 +167,10 @@ public:
     
     inline void setMaxLevel(int maxLevel);
     
+    inline void setForbidTransform(bool forbidTransform);
+    
+    inline bool isForbidTransform() const;
+    
     // overwritten functions
     inline bool LevelDefined (int level) const;
     
@@ -220,6 +221,8 @@ private:
 private:
     int finestLevel_m;
     int maxLevel_m;
+    bool forbidTransform_m;             ///< To avoid multiple transformations during regrid
+    
     // don't use m_rr from ParGDB since it is the same refinement in all directions
     AmrIntVectContainer_t refRatio_m;    // Refinement ratios [0:finest_level-1]
     
