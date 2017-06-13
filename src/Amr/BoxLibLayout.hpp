@@ -8,12 +8,6 @@
 
 #include <cmath>
 
-// template <class T, unsigned Dim>
-// bool BoxLibLayout<T, Dim>::do_tiling = false;
-
-// template <class T, unsigned Dim>
-// typename BoxLibLayout<T, Dim>::AmrIntVect_t BoxLibLayout<T, Dim>::tile_size   { D_DECL(1024000,8,8) };
-
 template <class T, unsigned Dim>
 const Vector_t BoxLibLayout<T, Dim>::lowerBound = - Vector_t(1.025, 1.025, 1.025);
 
@@ -27,6 +21,7 @@ BoxLibLayout<T, Dim>::BoxLibLayout()
     : ParGDB(),
       finestLevel_m(0),
       maxLevel_m(0),
+      forbidTransform_m(false),
       refRatio_m(0),
       scale_m(1.0)
 {
@@ -53,6 +48,7 @@ BoxLibLayout<T, Dim>::BoxLibLayout(int nGridPoints, int maxGridSize)
     : ParGDB(),
       finestLevel_m(0),
       maxLevel_m(0),
+      forbidTransform_m(false),
       refRatio_m(0),
       scale_m(1.0)
 {
@@ -67,6 +63,7 @@ BoxLibLayout<T, Dim>::BoxLibLayout(const AmrGeometry_t &geom,
     : ParGDB(geom, dmap, ba),
       finestLevel_m(0),
       maxLevel_m(0),
+      forbidTransform_m(false),
       refRatio_m(0),
       scale_m(1.0)
 { }
@@ -80,6 +77,7 @@ BoxLibLayout<T, Dim>::BoxLibLayout(const AmrGeomContainer_t &geom,
     : ParGDB(geom, dmap, ba, rr),
       finestLevel_m(0),
       maxLevel_m(0),
+      forbidTransform_m(false),
       refRatio_m(0),
       scale_m(1.0)
 { }
@@ -103,8 +101,11 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
                                   int lev_min,
                                   const ParticleAttrib<char>* canSwap)
 {
-    // we need to update on Amr domain, has to be undone at end of function
-    this->domainMapping(PData);
+    // in order to avoid transforms when already done
+    if ( !forbidTransform_m ) {
+        // we need to update on Amr domain, has to be undone at end of function
+        this->domainMapping(PData);
+    }
     
 //     std::cout << "BoxLibLayout::update()" << std::endl;
     // Input parameters of ParticleContainer::Redistribute of BoxLib
@@ -266,8 +267,10 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     PData.setTotalNum(TotalNum);	// set the total atom count
     PData.setLocalNum(LocalNum);	// set the number of local atoms
     
-    // undo domain transformation
-    this->domainMapping(PData, true);
+    if ( !forbidTransform_m ) {
+        // undo domain transformation
+        this->domainMapping(PData, true);
+    }
 }
 
 
@@ -641,6 +644,18 @@ void BoxLibLayout<T, Dim>::setFinestLevel(int finestLevel) {
 template <class T, unsigned Dim>
 void BoxLibLayout<T, Dim>::setMaxLevel(int maxLevel) {
     maxLevel_m = maxLevel;
+}
+
+
+template <class T, unsigned Dim>
+void BoxLibLayout<T, Dim>::setForbidTransform(bool forbidTransform) {
+    forbidTransform_m = forbidTransform;
+}
+
+
+template <class T, unsigned Dim>
+bool BoxLibLayout<T, Dim>::isForbidTransform() const {
+    return forbidTransform_m;
 }
 
 
