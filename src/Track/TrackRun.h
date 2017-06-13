@@ -19,17 +19,6 @@
 // ------------------------------------------------------------------------
 
 #include "AbstractObjects/Action.h"
-// #ifdef HAVE_AMR_SOLVER
-// 	#include <AmrCore.H>
-// 	#include <ParallelDescriptor.H>
-// 	#include <fstream>
-// 	#include <iomanip>
-// 	#include <iostream>
-// 	#include <sstream>
-// 	#include <algorithm>
-// 	#include <iterator>
-// 	#include <utility>
-// #endif
 
 #include <string>
 
@@ -95,9 +84,6 @@ private:
     OpalData *opal;
 
     static const std::string defaultDistribution;
-#ifdef HAVE_AMR_SOLVER
-    void setupAMRSolver();
-#endif
 };
 
 #endif // OPAL_TrackRun_HH
