@@ -36,6 +36,7 @@
 #include "Algorithms/PartBunchBase.h"
 
 #ifdef HAVE_AMR_SOLVER
+    #include "Amr/AmrBoxLib.h"
     #include "Solvers/BoxLibSolvers/FMGPoissonSolver.h"
     #include "Amr/AmrDefs.h"
     #include "Algorithms/AmrPartBunch.h"
@@ -263,31 +264,31 @@ bool FieldSolver::hasPeriodicZ() {
 }
 
 #ifdef HAVE_AMR_SOLVER
-inline bool FieldSolver::isAmrSolverType() {
+inline bool FieldSolver::isAmrSolverType() const {
     return Options::amr;
 }
 
-inline int FieldSolver::getAmrMaxLevel() {
+inline int FieldSolver::getAmrMaxLevel() const {
     return Attributes::getReal(itsAttr[AMRMAXLEVEL]);
 }
 
-inline int FieldSolver::getAmrRefRatioX() {
+inline int FieldSolver::getAmrRefRatioX() const {
     return Attributes::getReal(itsAttr[AMRREFX]);
 }
 
-inline int FieldSolver::getAmrRefRatioY() {
+inline int FieldSolver::getAmrRefRatioY() const {
     return Attributes::getReal(itsAttr[AMRREFY]);
 }
 
-inline int FieldSolver::getAmrRefRatioT() {
+inline int FieldSolver::getAmrRefRatioT() const {
     return Attributes::getReal(itsAttr[AMRREFT]);
 }
 
-inline bool FieldSolver::isAmrSubCycling() {
+inline bool FieldSolver::isAmrSubCycling() const {
     return Attributes::getBool(itsAttr[AMRSUBCYCLE]);
 }
 
-inline int FieldSolver::getAmrMaxGridSize() {
+inline int FieldSolver::getAmrMaxGridSize() const {
     return Attributes::getReal(itsAttr[AMRMAXGRID]);
 }
 #endif
@@ -307,95 +308,6 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
         
         initAmrSolver_m();
         
-	/*
-        // Add the parsed AMR attributes to BoxLib (please check BoxLib/Src/C_AMRLib/Amr.cpp)
-        ParmParse pp("amr");
-
-        pp.add("max_level", Attributes::getReal(itsAttr[AMRMAXLEVEL]));
-
-        pp.add("ref_ratio", (int)Attributes::getReal(itsAttr[AMRREFX])); //FIXME
-
-        pp.add("max_grid_size", Attributes::getReal(itsAttr[AMRMAXGRID]));
-
-        FieldLayout<3>::iterator_iv locDomBegin = FL_m->begin_iv();
-        FieldLayout<3>::iterator_iv locDomEnd = FL_m->end_iv();
-        FieldLayout<3>::iterator_dv globDomBegin = FL_m->begin_rdv();
-        FieldLayout<3>::iterator_dv globDomEnd = FL_m->end_rdv();
-
-        BoxArray lev0_grids(Ippl::getNodes());
-
-        Array<int> procMap;
-        procMap.resize(lev0_grids.size()+1); // +1 is a historical thing, do not ask
-
-        // first iterate over the local owned domain(s)
-        for(FieldLayout<3>::const_iterator_iv v_i = locDomBegin ; v_i != locDomEnd; ++v_i) {
-            std::ostringstream stream;
-            stream << *((*v_i).second);
-
-            std::pair<Box,unsigned int> res = getBlGrids(stream.str());
-            lev0_grids.set(res.second,res.first);
-            procMap[res.second] = Ippl::myNode();
-        }
-
-        // then iterate over the non-local domain(s)
-        for(FieldLayout<3>::iterator_dv v_i = globDomBegin ; v_i != globDomEnd; ++v_i) {
-            std::ostringstream stream;
-            stream << *((*v_i).second);
-
-            std::pair<Box,unsigned int> res = getBlGrids(stream.str());
-            lev0_grids.set(res.second,res.first);
-            procMap[res.second] = res.second;
-        }
-        procMap[lev0_grids.size()] = Ippl::myNode();
-
-        // This init call will cache the distribution map as determined by procMap
-        // so that all data will end up on the right processor
-        RealBox rb;
-        Array<Real> prob_lo(3);
-        Array<Real> prob_hi(3);
-
-        prob_lo[0] = -0.02; //-0.08);
-        prob_lo[1] = -0.02; //-0.08);
-        prob_lo[2] =  0.0; //-0.12);
-        prob_hi[0] =  0.02; //0.08);
-        prob_hi[1] =  0.02; //0.08);
-        prob_hi[2] =  0.04; //0.16);
-
-        rb.setLo(prob_lo);
-        rb.setHi(prob_hi);
-
-        int coord_sys = 0;
-
-        NDIndex<3> ipplDom = FL_m->getDomain();
-
-        Array<int> ncell(3);
-        ncell[0] = ipplDom[0].length();
-        ncell[1] = ipplDom[1].length();
-        ncell[2] = ipplDom[2].length();
-
-        std::vector<int   > nr(3);
-        std::vector<double> hr(3);
-        std::vector<double> prob_lo_in(3);
-        for (int i = 0; i < 3; i++) {
-            nr[i] = ncell[i];
-            hr[i] = (prob_hi[i] - prob_lo[i]) / ncell[i];
-            prob_lo_in[i] = prob_lo[i];
-        }
-
-        int maxLevel = -1;
-        amrptr_m = new Amr(&rb,maxLevel,ncell,coord_sys);
-
-        if(amrptr_m)
-            m << fsType_m << " solver: amrptr_m ready " << endl;
-
-        Real strt_time = 0.0;
-        Real stop_time = 1.0;
-
-        amrptr_m->InitializeInit(strt_time, stop_time, &lev0_grids, &procMap);
-
-        if(amrptr_m)
-            m << fsType_m << " solver: amrptr_m Init done " << endl;
-	*/
     } else if(Attributes::getString(itsAttr[FSTYPE]) == "FFT") {
 #else
     if(Attributes::getString(itsAttr[FSTYPE]) == "FFT") {
@@ -542,62 +454,22 @@ Inform &FieldSolver::printInfo(Inform &os) const {
     return os;
 }
 
-
+#ifdef HAVE_AMR_SOLVER
 void FieldSolver::initAmrObject_m() {
-    /* The bunch is initialize first with a Geometry, BoxArray and DistributionMapping on
-     * the base level (level = 0). Thus, we take the domain specified there in order to create the Amr object.
-     */
-    AmrLayout_t* layout_p = static_cast<AmrLayout_t*>(&itsBunch_m->getLayout());
-    AmrBoxLib::AmrDomain_t domain = layout_p->Geom(0).ProbDomain();
     
-    AmrBoxLib::AmrIntArray_t nGridPts = {
-        (int)this->getMX(),
-        (int)this->getMY(),
-        (int)this->getMT()
-    };
-    
-    short maxLevel = this->getAmrMaxLevel();
-    
-    const int nratios_vect = maxLevel*BL_SPACEDIM;
-    
-    AmrBoxLib::AmrIntArray_t refRatio(nratios_vect);
-    
-    for (int i = 0; i < maxLevel; ++i) {
-        refRatio[i * BL_SPACEDIM]     = this->getAmrRefRatioX();
-        refRatio[i * BL_SPACEDIM + 1] = this->getAmrRefRatioY();
-        refRatio[i * BL_SPACEDIM + 2] = this->getAmrRefRatioT();
-    }
-    
-    int maxGridSize = (int)this->getAmrMaxGridSize();
-    
-    /*
-     * further attributes are given by the BoxLib's ParmParse class.
-     */
-    amrex::ParmParse pAmr("amr");
-    pAmr.add("max_grid_size", maxGridSize);
-    
-    pAmr.addarr("ref_ratio_vect", refRatio);
-    
-    amrex::Array<int> error_buf(maxLevel, 0);
-    pAmr.addarr("n_error_buf", error_buf);
-    
-    pAmr.add("grid_eff", 0.95);
-    
-    amrex::ParmParse pGeom("geometry");
-    amrex::Array<int> isPeriodic = {
-        layout_p->Geom(0).isPeriodic(0),
-        layout_p->Geom(0).isPeriodic(1),
-        layout_p->Geom(0).isPeriodic(2)
-    };
-    pGeom.addarr("is_periodic", isPeriodic);
+    // setup initial info for creating the object
+    AmrBoxLib::AmrInitialInfo info;
+    info.gridx      = (int)this->getMX();
+    info.gridy      = (int)this->getMY();
+    info.gridz      = (int)this->getMT();
+    info.maxgrid    = this->getAmrMaxGridSize();
+    info.maxlevel   = this->getAmrMaxLevel();
+    info.refratx    = this->getAmrRefRatioX();
+    info.refraty    = this->getAmrRefRatioY();
+    info.refratz    = this->getAmrRefRatioT();
     
     
-    itsAmrObject_mp = std::unique_ptr<AmrBoxLib>(new AmrBoxLib(domain,
-                                                               nGridPts,
-                                                               maxLevel,
-                                                               dynamic_cast<AmrPartBunch*>(itsBunch_m)
-                                                              )
-                                                );
+    itsAmrObject_mp = AmrBoxLib::create(info, dynamic_cast<AmrPartBunch*>(itsBunch_m));
     
     AmrObject::TaggingCriteria tagging = AmrObject::TaggingCriteria::CHARGE_DENSITY;
     
@@ -633,3 +505,4 @@ void FieldSolver::initAmrSolver_m() {
     } else
         throw OpalException("FieldSolver::initAmrSolver_m()", "Unknown solver " + fsType + ".");
 }
+#endif

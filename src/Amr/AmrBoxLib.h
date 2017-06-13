@@ -29,6 +29,22 @@ public:
     
     typedef amrex::TagBoxArray          TagBoxArray_t;
     
+    /**
+     * This data structure is only used for creating an object
+     * via the static member fucction AmrBoxLib::create()
+     * that is called in FieldSolver::initAmrObject_m
+     */
+    struct AmrInitialInfo {
+        int gridx;          ///< Number of grid points in x-direction
+        int gridy;          ///< Number of grid points in y-direction
+        int gridz;          ///< Number of grid points in z-direction
+        int maxgrid;        ///< Maximum grid size allowed
+        int maxlevel;       ///< Maximum level for AMR
+        int refratx;        ///< Mesh refinement ratio in x-direction
+        int refraty;        ///< Mesh refinement ratio in y-direction
+        int refratz;        ///< Mesh refinement ratio in z-direction
+    };
+    
 //     typedef typename AmrPartBunch::VectorPair_t VectorPair_t;
     
 public:
@@ -52,6 +68,13 @@ public:
               const AmrIntArray_t& nGridPts,
               short maxLevel,
               AmrPartBunch* bunch);
+    
+    /**
+     * Create a new object
+     * @param fs having all data to create the object
+     * @param bunch_p pointing to
+     */
+    static std::unique_ptr<AmrBoxLib> create(const AmrInitialInfo& fs, AmrPartBunch* bunch_p);
     
     inline void setBunch(AmrPartBunch* bunch);
     

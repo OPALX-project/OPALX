@@ -1,8 +1,9 @@
 #include "AmrBoxLib.h"
 
 #include "Algorithms/AmrPartBunch.h"
-// #include "Solvers/AmrPoissonSolver.h"
+#include "Structure/FieldSolver.h"
 #include "Solvers/PoissonSolver.h"
+
 
 #include "AmrBoxLib_F.h"
 #include <AMReX_MultiFabUtil.H>
@@ -107,6 +108,66 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
     updateMesh();
     
 //     std::cout << "After updateMesh" << std::endl;
+}
+
+
+std::unique_ptr<AmrBoxLib> AmrBoxLib::create(const AmrInitialInfo& info,
+                                             AmrPartBunch* bunch_p)
+{
+    /* The bunch is initialized first with a Geometry,
+     * BoxArray and DistributionMapping on
+     * the base level (level = 0). Thus, we take the domain specified there in
+     * order to create the Amr object.
+     */
+    AmrLayout_t* layout_p = static_cast<AmrLayout_t*>(&bunch_p->getLayout());
+    AmrDomain_t domain = layout_p->Geom(0).ProbDomain();
+    
+    AmrIntArray_t nGridPts = {
+        info.gridx,
+        info.gridy,
+        info.gridz
+    };
+    
+    int maxlevel = info.maxlevel;
+    
+    const int nratios_vect = maxlevel*BL_SPACEDIM;
+    
+    AmrBoxLib::AmrIntArray_t refRatio(nratios_vect);
+    
+    for (int i = 0; i < maxlevel; ++i) {
+        refRatio[i * BL_SPACEDIM]     = info.refratx;
+        refRatio[i * BL_SPACEDIM + 1] = info.refraty;
+        refRatio[i * BL_SPACEDIM + 2] = info.refratz;
+    }
+    
+    /*
+     * further attributes are given by the BoxLib's ParmParse class.
+     */
+    amrex::ParmParse pAmr("amr");
+    pAmr.add("max_grid_size", info.maxgrid);
+    
+    pAmr.addarr("ref_ratio_vect", refRatio);
+    
+    amrex::Array<int> error_buf(maxlevel, 0);
+    pAmr.addarr("n_error_buf", error_buf);
+    
+    pAmr.add("grid_eff", 0.95);
+    
+    amrex::ParmParse pGeom("geometry");
+    amrex::Array<int> isPeriodic = {
+        layout_p->Geom(0).isPeriodic(0),
+        layout_p->Geom(0).isPeriodic(1),
+        layout_p->Geom(0).isPeriodic(2)
+    };
+    pGeom.addarr("is_periodic", isPeriodic);
+    
+    
+    return std::unique_ptr<AmrBoxLib>(new AmrBoxLib(domain,
+                                                    nGridPts,
+                                                    maxlevel,
+                                                    bunch_p
+                                                   )
+                                     );
 }
 
 
