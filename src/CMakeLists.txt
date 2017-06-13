@@ -12,9 +12,6 @@ IF(ENABLE_SAAMG_SOLVER)
 ENDIF(ENABLE_SAAMG_SOLVER)
 
 IF(ENABLE_AMR_SOLVER)
-    set (CMAKE_CXX_FLAGS
-        "-DHAVE_AMR_SOLVER ${CMAKE_CXX_FLAGS}"
-    )
     # FIXME Find a better solution!
     # We get otherwise a "undefined reference" to "getLevelBld()" and "probinit_"
     set (CBOXLIB -lcboxlib)

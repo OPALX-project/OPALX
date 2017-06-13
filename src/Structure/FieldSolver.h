@@ -24,7 +24,7 @@ class FieldSolver;
 #include "Solvers/PoissonSolver.h"
 
 #ifdef HAVE_AMR_SOLVER
-    #include "Amr/AmrBoxLib.h"
+    #include "Amr/AmrObject.h"
     #include "Solvers/AmrPoissonSolver.h"
     #include <memory>
 #endif
@@ -99,19 +99,19 @@ public:
     bool hasPeriodicZ();
 
 #ifdef HAVE_AMR_SOLVER
-    bool isAmrSolverType();
+    bool isAmrSolverType() const;
 
-    int getAmrMaxLevel();
+    int getAmrMaxLevel() const;
 
-    int getAmrRefRatioX();
+    int getAmrRefRatioX() const;
 
-    int getAmrRefRatioY();
+    int getAmrRefRatioY() const;
 
-    int getAmrRefRatioT();
+    int getAmrRefRatioT() const;
 
-    bool isAmrSubCycling();
+    bool isAmrSubCycling() const;
 
-    int getAmrMaxGridSize();
+    int getAmrMaxGridSize() const;
     
     AmrObject *getAmrObject() {
         return itsAmrObject_mp.get();
