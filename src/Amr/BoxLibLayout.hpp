@@ -94,7 +94,7 @@ void BoxLibLayout<T, Dim>::update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData
                         "Wrong update method called.");
 }
 
-// // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// // Function from AMReX adjusted to work with Ippl AmrParticleBase class
 // // redistribute the particles using BoxLibs ParGDB class to determine where particle should go
 template<class T, unsigned Dim>
 void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
@@ -150,7 +150,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
         bool particleLeftDomain = false;
         
 //         /*
-//          * BoxLib sets m_grid = -1 and m_lev = -1
+//          * AMReX sets m_grid = -1 and m_lev = -1
 //          */
 //         PData.Level[ip] = -1;
 //         PData.Grid[ip] = -1;
@@ -274,7 +274,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
 }
 
 
-// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// Function from AMReX adjusted to work with Ippl AmrParticleBase class
 //get the cell where particle is located - uses AmrParticleBase object and particle id
 template <class T, unsigned Dim>
 typename BoxLibLayout<T, Dim>::AmrIntVect_t
@@ -406,7 +406,7 @@ bool BoxLibLayout<T, Dim>::Where (AmrParticleBase< BoxLibLayout<T,Dim> >& p,
 }
 
 
-//Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+//Function from AMReX adjusted to work with Ippl AmrParticleBase class
 //Checks/sets whether the particle has crossed a periodic boundary in such a way
 //that it is on levels lev_min and higher.
 template <class T, unsigned Dim>
@@ -455,7 +455,7 @@ bool BoxLibLayout<T, Dim>::EnforcePeriodicWhere (AmrParticleBase< BoxLibLayout<T
 }
 
 
-// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// Function from AMReX adjusted to work with Ippl AmrParticleBase class
 // Returns true if the particle was shifted.
 template <class T, unsigned Dim>
 bool BoxLibLayout<T, Dim>::PeriodicShift (SingleParticlePos_t R) const
