@@ -5,10 +5,16 @@
 
 class AmrPartBunch;
 
-// BoxLib headers
+// AMReX headers
 #include <AMReX_AmrMesh.H>
 #include <AMReX.H>
 
+/*!
+ * Concrete AMR object. It is based on the
+ * <a href="https://ccse.lbl.gov/AMReX/">AMReX</a> library
+ * developed at LBNL. This library is the successor of
+ * <a href="https://ccse.lbl.gov/BoxLib/">BoxLib</a>.
+ */
 class AmrBoxLib : public AmrObject,
                   public amrex::AmrMesh
 {
@@ -29,7 +35,7 @@ public:
     
     typedef amrex::TagBoxArray          TagBoxArray_t;
     
-    /**
+    /*!
      * This data structure is only used for creating an object
      * via the static member fucction AmrBoxLib::create()
      * that is called in FieldSolver::initAmrObject_m
@@ -45,50 +51,72 @@ public:
         int refratz;        ///< Mesh refinement ratio in z-direction
     };
     
-//     typedef typename AmrPartBunch::VectorPair_t VectorPair_t;
-    
 public:
     
-//     AmrBoxLib(const DomainBoundary_t& realbox,
-//               const NDIndex<3>& nGridPts,
-//               short maxLevel,
-//               const RefineRatios_t& refRatio);
-    
+    /*!
+     * Using this constructors leads to an invalid AmrBoxLib object.
+     */
     AmrBoxLib();
     
+    /*!
+     * @param tagging different mesh refinement strategies
+     * @param scaling is used in potential and electric field tagging where
+     * all cells are marked for refinement if they have a value greater equal than
+     * either
+     * \f[
+     *      \alpha\cdot\max_{i,j,k} |\phi_{i,j,k}|
+     * \f]
+     * in case of potential tagging or
+     * \f[
+     *      \alpha\cdot\max_{i,j,k} |\vec{E}_{i,j,k}|
+     * \f]
+     * in case of electric field tagging.\ The scalar \f$\alpha\f$ represents the
+     * scaling value.\ In case of electric field tagging, each component is treated
+     * independently.
+     * @param nCharge is the amount of charge that a cell has to have in order to be
+     * refined.\ The cell is marked for refinement if the value is greater equatl
+     * to nCharge [C / m].
+     */
     AmrBoxLib(TaggingCriteria tagging,
               double scaling,
               double nCharge);
     
+    /*!
+     * @param domain is the physical domain of the problem. In case of
+     * AMReX the domain is specified by src/Amr/BoxLibLayout.h. The particles
+     * are mapped to the domain \f$[-1, 1]^3\f$, thus the domain is a tiny bit
+     * greater than that.
+     * @param nGridPts per dimension (nx, ny, nz / nt)
+     * @param maxLevel of mesh refinement
+     */
     AmrBoxLib(const AmrDomain_t& domain,
               const AmrIntArray_t& nGridPts,
               short maxLevel);
     
+    /*!
+     * See other constructors documentation for further info.
+     * @param domain is the physical domain of the problem
+     * @param nGridPts per dimension (nx, ny, nz / nt)
+     * @param maxLevel of mesh refinement
+     * @param bunch is used when we tag for charges per cell
+     */
     AmrBoxLib(const AmrDomain_t& domain,
               const AmrIntArray_t& nGridPts,
               short maxLevel,
-              AmrPartBunch* bunch);
-    
-    /**
-     * Create a new object
-     * @param fs having all data to create the object
-     * @param bunch_p pointing to
-     */
-    static std::unique_ptr<AmrBoxLib> create(const AmrInitialInfo& fs, AmrPartBunch* bunch_p);
-    
-    inline void setBunch(AmrPartBunch* bunch);
-    
-//     /*!
-//      * Set all parameters for the AMR object, like #grid points per dimension etc.
-//      * (inherited from AmrObject)
-//      */
-//     void initialize(const DomainBoundary_t& lower,
-//                     const DomainBoundary_t& upper,
-//                     const NDIndex<3>& nGridPts,
-//                     short maxLevel,
-//                     const RefineRatios_t& refRatio);
+              AmrPartBunch* bunch_p);
     
     /*!
+     * Create a new object
+     * @param info are the initial informations to construct an AmrBoxLib object.
+     * It is set in src/Solvers/FieldSolver.cpp
+     * @param bunch_p pointing to. Is used for getting the geometry (i.e. physical
+     * domain of the problem).
+     */
+    static std::unique_ptr<AmrBoxLib> create(const AmrInitialInfo& info,
+                                             AmrPartBunch* bunch_p);
+    
+    /*!
+     * Inherited from AmrObject
      * @param lbase start of regridding.
      * @param lfine end of regridding.
      * @param time of simulation (step).
@@ -115,9 +143,11 @@ public:
     int maxLevel();
     int finestLevel();
     
-//     void updateBunch();
-    
 protected:
+    /*
+     * AmrMesh functions
+     */
+    
     /*!
      * Update the grids and the distributionmapping for a specific level
      * (inherited from AmrMesh)
@@ -140,6 +170,7 @@ protected:
                        const AmrGrid_t& new_grids, const AmrProcMap_t& new_dmap);
     
     /*!
+     * Clean up a level.
      * @param lev to free allocated memory.
      */
     void ClearLevel(int lev);
@@ -155,6 +186,13 @@ protected:
      * Make a new level from scratch using provided BoxArray and
      * DistributionMapping.
      * Only used during initialization.
+     * 
+     * Remark: Not used in OPAL
+     * 
+     * @param lev to create
+     * @param time of simulation
+     * @param ba the boxes
+     * @param dm the grid distribution among cores
      */
     void MakeNewLevelFromScratch (int lev, AmrReal_t time,
                                   const AmrGrid_t& ba,
@@ -163,35 +201,76 @@ protected:
     /*!
      * Make a new level using provided BoxArray and
      * DistributionMapping and fill with interpolated coarse level data.
+     * 
+     * Remark: Not used in OPAL
+     * 
+     * @param lev to create
+     * @param time of simulation
+     * @param ba the boxes
+     * @param dm the grid distribution among cores
      */
     void MakeNewLevelFromCoarse (int lev, AmrReal_t time,
                                  const AmrGrid_t& ba,
                                  const AmrProcMap_t& dm);
     
 private:
+    /*!
+     * Mark a cell for refinement if the value is greater equal
+     * than some amount of charge (AmrObject::nCharge_m).
+     * 
+     * @param lev to check for refinement
+     * @param tags is a special box array that marks cells for refinement
+     * @param time of simulation (not used)
+     * @param ngrow is the number of ghost cells (not used)
+     */
     void tagForChargeDensity_m(int lev, TagBoxArray_t& tags,
                                AmrReal_t time, int ngrow);
     
+    /*!
+     * Mark a cell for refinement if the potential value is greater
+     * equal than the maximum value of the potential on the grid
+     * scaled by some factor [0, 1] (AmrObject::scaling_m)
+     * It solves the Poisson equation on that level.
+     * 
+     * @param lev to check for refinement
+     * @param tags is a special box array that marks cells for refinement
+     * @param time of simulation (not used)
+     * @param ngrow is the number of ghost cells (not used)
+     */
     void tagForPotentialStrength_m(int lev, TagBoxArray_t& tags,
                                    AmrReal_t time, int ngrow);
     
+    /*!
+     * Mark a cell for refinement if one of the electric field components
+     * is greater equal the maximum electric field value per direction scaled
+     * by some factor [0, 1] (AmrObject::scaling_m). It solves the Poisson
+     * equation on that level.
+     * 
+     * @param lev to check for refinement
+     * @param tags is a special box array that marks cells for refinement
+     * @param time of simulation (not used)
+     * @param ngrow is the number of ghost cells (not used)
+     */
     void tagForEfield_m(int lev, TagBoxArray_t& tags,
                         AmrReal_t time, int ngrow);
     
     /*!
      * Use particle BoxArray and DistributionMapping for AmrObject and
      * reset geometry for bunch
+     * 
+     * @param nGridPts per dimension (nx, ny, nz / nt)
      */
     void initBaseLevel_m(const AmrIntArray_t& nGridPts);
     
-//     void resizeBaseLevel_m(const AmrDomain_t& domain,
-//                            const AmrIntArray_t& nGridPts);
     
 private:
     /// use in tagging tagForChargeDensity_m (needed when tracking)
     AmrFieldContainer_t nChargePerCell_m;
     
+    /// bunch used for tagging strategies
     AmrPartBunch *bunch_mp;
+    
+    // the layout of the bunch
     AmrLayout_t  *layout_mp;
     
     /// charge density on the grid for all levels
@@ -203,6 +282,10 @@ private:
     /// vector field on the grid for all levels
     AmrFieldContainer_t eg_m;
     
+    /*!
+     * used for writing charge density, potential, electric field to a
+     * file (compile with CMAKE option -DDBG_SCALARFIELD=1)
+     */
     int fieldDBGStep_m;
 };
 

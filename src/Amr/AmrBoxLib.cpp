@@ -67,12 +67,12 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
 AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
                      const AmrIntArray_t& nGridPts,
                      short maxLevel,
-                     AmrPartBunch* bunch)
+                     AmrPartBunch* bunch_p)
     : AmrObject(),
       amrex::AmrMesh(&domain, maxLevel, nGridPts, 0 /* cartesian */),
       nChargePerCell_m(maxLevel + 1),
-      bunch_mp(bunch),
-      layout_mp(static_cast<AmrLayout_t*>(&bunch->getLayout())),
+      bunch_mp(bunch_p),
+      layout_mp(static_cast<AmrLayout_t*>(&bunch_p->getLayout())),
       rho_m(maxLevel + 1),
       phi_m(maxLevel + 1),
       eg_m(maxLevel + 1),
@@ -89,11 +89,11 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
 //                      this->boxArray(),
 //                      this->DistributionMap());
     
-//     bunch->update();
+//     bunch_p->update();
     
 //     std::cout << "After resize" << std::endl;
                   
-//     AmrPartBunch::pbase_t* amrpbase_p = bunch->getAmrParticleBase();
+//     AmrPartBunch::pbase_t* amrpbase_p = bunch_p->getAmrParticleBase();
 //     amrpbase_p->resizeContainerGDB(maxLevel);
 //     amrpbase_p->setGDB(this->Geom(),
 //                        this->boxArray(),
@@ -171,35 +171,6 @@ std::unique_ptr<AmrBoxLib> AmrBoxLib::create(const AmrInitialInfo& info,
 }
 
 
-void AmrBoxLib::setBunch(AmrPartBunch* bunch) {
-    bunch_mp = bunch;
-    layout_mp = static_cast<AmrLayout_t*>(&bunch->getLayout());
-}
-
-
-// void AmrBoxLib::initialize(const DomainBoundary_t& lower,
-//                            const DomainBoundary_t& upper,
-//                            const NDIndex<3>& nGridPts,
-//                            short maxLevel,
-//                            const RefineRatios_t& refRatio)
-// {
-//     // setup the physical domain
-//     RealBox domain;
-//     for (int i = 0; i < 3; ++i) {
-//         domain.setLo(i, lower[i]); // m
-//         domain.setHi(i, upper[i]); // m
-//     }
-//     
-//     Array<int> nCells(3);
-//     for (int i = 0; i < 3; ++i)
-//         nCells = nGridPts[i];
-//     
-//     amrex::AmrMesh::Initialize();
-//     Geometry::Setup(&domain, 0 /* cartesian coordinates */);
-//     amrex::AmrMesh::InitAmrCore(maxLevel, nCells);
-// }
-
-
 void AmrBoxLib::regrid(int lbase, int lfine, double time) {
     int new_finest = 0;
     AmrGridContainer_t new_grids(finest_level+2);
@@ -216,12 +187,12 @@ void AmrBoxLib::regrid(int lbase, int lfine, double time) {
             {
                 AmrProcMap_t new_dmap(new_grids[lev]);
                 RemakeLevel(lev, time, new_grids[lev], new_dmap);
-	    }
-	}
-	else  // a new level
-	{
-	    AmrProcMap_t new_dmap(new_grids[lev]);
-	    MakeNewLevel(lev, time, new_grids[lev], new_dmap);
+            }
+        }
+        else  // a new level
+        {
+            AmrProcMap_t new_dmap(new_grids[lev]);
+            MakeNewLevel(lev, time, new_grids[lev], new_dmap);
         }
     }
     
@@ -668,26 +639,6 @@ inline int AmrBoxLib::finestLevel() {
 }
 
 
-// void AmrBoxLib::updateBunch()  {
-//     const Array<Geometry>& geom = this->Geom();
-//     const Array<AmrProcMap_t>& dmap = this->DistributionMap();
-//     const Array<BoxArray>& ba = this->boxArray();
-//     const Array<IntVect>& ref_rato = this->refRatio ();
-//         
-//         
-//     Array<int> rr( ref_rato.size() );
-//     for (unsigned int i = 0; i < rr.size(); ++i) {
-//         rr[i] = ref_rato[i][0];
-//     }        
-//     
-//     layout_mp->define(geom, ba, dmap, rr);
-//         
-//     bunch_mp->update();
-//         
-// //     this->setBunch(bunch_mp);
-// }
-
-
 void AmrBoxLib::RemakeLevel (int lev, AmrReal_t time,
                              const AmrGrid_t& new_grids,
                              const AmrProcMap_t& new_dmap)
@@ -1090,21 +1041,3 @@ void AmrBoxLib::initBaseLevel_m(const AmrIntArray_t& nGridPts) {
 //     nChargePerCell_m[0] = std::unique_ptr<AmrField_t>(new AmrField_t(ba, 1, 1, dm));
 //     nChargePerCell_m[0]->setVal(0.0);
 }
-
-
-// void AmrBoxLib::resizeBaseLevel_m(const AmrDomain_t& domain,
-//                                   const AmrIntArray_t& nGridPts) {
-//     
-//     Geometry::ProbDomain(domain);
-//     
-//     // This says we are using Cartesian coordinates
-//     int coord = 0;
-//     
-//         // This sets the boundary conditions to be doubly or triply periodic
-//         int is_per[BL_SPACEDIM];
-//         for (int i = 0; i < BL_SPACEDIM; i++) 
-//             is_per[i] = 0; 
-//     
-//     bunch_mp->
-// }
-

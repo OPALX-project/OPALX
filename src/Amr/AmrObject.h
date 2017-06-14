@@ -9,17 +9,18 @@
 
 // class AmrPartBunch;
 
-#include <array>
-
+/**
+ * The AMR interface to OPAL. A new AMR library needs
+ * to inherit from this class in order to work properly
+ * with OPAL. Among other things it specifies the refinement
+ * strategies.
+ */
 class AmrObject {
     
 public:
     // FIXME Why not using typedef of PartBunchBase
     typedef std::pair<Vector_t, Vector_t> VectorPair_t;
 //     using VectorPair_t = typename AmrPartBunch::VectorPair_t;
-    
-//     typedef std::array<short, 3> RefineRatios_t;
-//     typedef std::array<double, 3> DomainBoundary_t;
     
     /// Methods for tagging cells for refinement
     enum TaggingCriteria {
@@ -42,44 +43,21 @@ public:
                                 nCharge_m(nCharge)
     {}
     
-//     /*!
-//      * @param realbox is the physical box extent
-//      * @param nGridPts in each dimension of base level.
-//      * @param maxLevel of AMR
-//      * @param refRatio in x, y, z between levels
-//      */
-//     AmrObject(const DomainBoundary_t& realbox,
-//               const NDIndex<3>& nGridPts,
-//               short maxLevel,
-//               const RefineRatios_t& refRatio)
-//         : tagging_m(CHARGE_DENSITY),
-//           scaling_m(0.75),
-//           nCharge_m(1.0e-15)
-//     {}
-    
     virtual ~AmrObject() {}
     
-//     /*!
-//      * This function should be called in case
-//      * the AmrObject is constructed using either
-//      * one of the following constructors:
-//      * - AmrObject()
-//      * - AmrObject(TaggingCriteria, scaling, nCharge)
-//      * @param lower physical domain boundary
-//      * @param upper physical domain boundary
-//      * @param nGridPts in each dimension of base level
-//      * @param maxLevel of AMR
-//      * @param refRatio in x, y, z between levels
-//      */
-//     virtual void initialize(const DomainBoundary_t& lower,
-//                             const DomainBoundary_t& upper,
-//                             const NDIndex<3>& nGridPts,
-//                             short maxLevel,
-//                             const RefineRatios_t& refRatio)
-//     {}
-    
+    /*!
+     * Update of mesh according to chosen refinement strategy.
+     * @param lbase base level to regrid
+     * @param lfine finest level to regrid
+     * @param time of regrid
+     */
     virtual void regrid(int lbase, int lfine, double time) = 0;
     
+    /*!
+     * Choose a new tagging strategy.
+     * Is used in src/Structure/FieldSolver.cpp
+     * @param tagging strategy
+     */
     void setTagging(TaggingCriteria tagging) {
         tagging_m = tagging;
     }
@@ -124,7 +102,7 @@ public:
     virtual int finestLevel() = 0;
     
 protected:
-    TaggingCriteria tagging_m;
+    TaggingCriteria tagging_m;  ///< Tagging strategy
     
     double scaling_m;           ///< Scaling factor for tagging [0, 1]
                                 // (POTENTIAL, EFIELD)
