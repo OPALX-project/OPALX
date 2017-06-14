@@ -8,6 +8,24 @@
 
 #include <AMReX_ParGDB.H>
 
+/*!
+ * In contrast to AMReX, OPAL is optimized for
+ * distribution particles to cores. In AMReX the ParGDB object
+ * is responsible for the particle to core distribution. This
+ * layout is derived from this object and does all important
+ * bunch updates. It is the interface for AMReX and Ippl.
+ * 
+ * In AMReX the geometry, i.e. physical domain, is fixed
+ * during the whole computation. Particles leaving the domain
+ * would be deleted. In order to prevent this we map the particles
+ * onto the domain \f$[-1, 1]^3\f$. Furthermore, it makes sure
+ * that we have enougth grid points to represent the bunch
+ * when its charges are scattered on the grid for the self-field
+ * computation.
+ * 
+ * The self-field computation and the particle-to-core update
+ * are performed in the particle mapped domain.
+ */
 template<class T, unsigned Dim>
 class BoxLibLayout : public ParticleAmrLayout<T, Dim>,
                      public amrex::ParGDB
@@ -37,7 +55,15 @@ public:
     typedef amr::AmrBox_t               AmrBox_t;
     typedef amr::AmrReal_t              AmrReal_t;
     
+    /*!
+     * Lower physical domain boundary (each dimension). It has to be
+     * smaller than -1 since all particles are within \f$[-1, 1]^3\f$.
+     */
     static const Vector_t lowerBound;
+    
+    /*! Upper physical domain boundary (each dimension). It has to be
+     * greater than 1 since all particles are within \f$[-1, 1]^3\f$.
+     */
     static const Vector_t upperBound;
 
 public:
@@ -47,35 +73,105 @@ public:
      */
     BoxLibLayout();
     
+    /*!
+     * @param nGridPoints per dimension (nx, ny, nz / nt)
+     * @param maxGridSize for all levels.
+     */
     BoxLibLayout(int nGridPoints, int maxGridSize);
     
+    /*!
+     * Single-level constructor.
+     * 
+     * @param geom specifies the box domain
+     * @param dmap is the distribution map for grids
+     * @param ba is the array of boxes for a level
+     */
     BoxLibLayout(const AmrGeometry_t &geom,
                  const AmrProcMap_t &dmap,
                  const AmrGrid_t &ba);
     
+    /*!
+     * Multi-level constructor.
+     * 
+     * @param geom is basically the physical domain storing
+     * the mesh spacing per level
+     * @param dmap are all distribution maps of grids to core
+     * @param ba are all boxes of all levels
+     * @param rr is the refinement ratio among the levels
+     * (always the ratio from l to l+1)
+     */
     BoxLibLayout(const AmrGeomContainer_t &geom,
                  const AmrProcMapContainer_t &dmap,
                  const AmrGridContainer_t &ba,
                  const AmrIntArray_t &rr);
     
+    /*
+     * Functions of IpplParticleBase
+     */
+    
+    /*!
+     * This method shouldn't be called. Otherwise
+     * it throws an exception.
+     */
     void update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData, const ParticleAttrib<char>* canSwap = 0);
     
+    /*!
+     * The proper update method for AMR.
+     * 
+     * @param PData is basically the bunch
+     * @param lev_min to update
+     * @param canSwap
+     */
     void update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData, int lev_min = 0,
                 const ParticleAttrib<char>* canSwap = 0);
     
     
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
-    //get the cell of the particle
+    /*
+     * Functions from AMReX that are adjusted to work with Ippl AmrParticleBase class
+     */
+    
+    /*!
+     * Get the cell of a particle
+     * 
+     * @param p is the particle data
+     * @param ip is the local index of the particle in the container
+     * @param level of the particle
+     */
     AmrIntVect_t Index (AmrParticleBase< BoxLibLayout<T,Dim> >& p,
                         const unsigned int ip, int level) const;
-
-    // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
-    //get the cell of the particle
+    
+    /*!
+     * Get the cell of a particle
+     * 
+     * @param R is the position of a particle
+     * @param lev is the level
+     */
     AmrIntVect_t Index (SingleParticlePos_t &R, int lev) const;
     
     
+    /*
+     * Additional methods
+     */
+    
+    /*!
+     * Set up the box for the whole computation.
+     * 
+     * @param nGridPoints per dimension (nx, ny, nz / nt)
+     * @param maxGridSize for all levels
+     */
     void initDefaultBox(int nGridPoints, int maxGridSize);
     
+    /*!
+     * The particles live initially on the coarsest level.
+     * Furthermore, the order the OPAL input file is parsed
+     * does not allow us to know the maximum level of the
+     * computation. This is known after that the FieldSolver
+     * is initialized. Therefore, we need to update the
+     * size of the ParGDB containers.
+     * 
+     * @param maxLevel is set when the FieldSolver is
+     * initialized
+     */
     void resize(int maxLevel) {
         int length = maxLevel + 1;
         this->m_geom.resize(length);
@@ -112,6 +208,12 @@ public:
 //         }
 //     }
     
+    /*!
+     * Set the geometry of the problem. It is called in
+     * AmrBoxLib::initBaseLevel_m().
+     * 
+     * @param geom geometry of all levels
+     */
     void define(const AmrGeomContainer_t& geom) {
 //         this->m_geom.resize( geom.size() );
         std::cout << "this->m_geom.size() = " << this->m_geom.size() << std::endl;
@@ -120,13 +222,20 @@ public:
             this->m_geom[i] = geom[i];
     }
     
+    
+    /*!
+     * Set the refinement ratios. It is called in
+     * AmrBoxLib::initBaseLevel_m().
+     * 
+     * @param refRatio among levels
+     */
     void define(const AmrIntVectContainer_t& refRatio) {
         for (unsigned int i = 0; i < refRatio.size(); ++i) {
             refRatio_m[i] = refRatio[i];
         }
     }
     
-    
+    // FIXME: Remove me. I'm nowhere called
     void define(const AmrGeomContainer_t& geom,
                 const AmrGridContainer_t& ba,
                 const AmrProcMapContainer_t& dmap)
@@ -163,25 +272,66 @@ public:
     }
                    
     
+    /*!
+     * @param finestLevel of current simulation state
+     */
     inline void setFinestLevel(int finestLevel);
     
+    /*!
+     * @param maxLevel allowed during simulation run
+     */
     inline void setMaxLevel(int maxLevel);
     
+    /*!
+     * This method is used in the AmrPartBunch::boundp() function
+     * in order to avoid multpile particle mappings during the
+     * mesh regridding process.
+     * 
+     * @param forbidTransform true if we don't want to map particles onto
+     * \f$[-1, 1]^3\f$
+     */
     inline void setForbidTransform(bool forbidTransform);
     
+    /*!
+     * @returns true if we are not mapping the particles onto
+     * \f$[-1, 1]^3\f$ during an update call.
+     */
     inline bool isForbidTransform() const;
     
-    // overwritten functions
+    /*
+     * ParGDB overwritten functions
+     */
+    
+    /*!
+     * Check if an AMR level is well defined
+     * 
+     * @param level to check
+     */
     inline bool LevelDefined (int level) const;
     
+    /*!
+     * @returns the current finest level
+     */
     inline int finestLevel () const;
     
+    /*!
+     * @returns the maximum level of simulation
+     */
     inline int maxLevel () const;
     
+    /*!
+     * @param level
+     * @returns the refinement ratio of this level to the next
+     * higher one
+     */
     inline AmrIntVect_t refRatio (int level) const;
     
+    /*!
+     * @param level
+     * @returns the maximum refinement ratio among all directions
+     * for the given level.
+     */
     inline int MaxRefRatio (int level) const;
-    
     
     /*!
      * Linear mapping to AMReX computation domain [-1, 1]^3. All dimensions
@@ -194,40 +344,78 @@ public:
     const double& domainMapping(AmrParticleBase< BoxLibLayout<T,Dim> >& PData, bool inverse = false);
     
 private:
-    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
-    // Checks/sets a particles location on levels lev_min and higher.
-    // Returns false if the particle does not exist on that level.
+    /*
+     * Functions from AMReX that are adjusted to work with Ippl AmrParticleBase class
+     */
+    
+    /*!
+     * Function from AMReX adjusted to work with Ippl AmrParticleBase class
+     * Checks/sets a particles location on levels lev_min and higher.
+     * 
+     * @param p is the bunch information
+     * @param ip is the local (i.e. to a core) particle index
+     * @param lev_min to check
+     * @param lev_max to check
+     * @param nGrow is the number of ghost cells
+     * @returns false if the particle does not exist on that level.
+     */
     bool Where (AmrParticleBase< BoxLibLayout<T,Dim> >& p,
                 const unsigned int ip, 
                 int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
-    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
-    // Checks/sets whether the particle has crossed a periodic boundary in such a way
-    // that it is on levels lev_min and higher.
+    /*!
+     * Function from AMReX adjusted to work with Ippl AmrParticleBase class
+     * Checks/sets whether the particle has crossed a periodic boundary in such a way
+     * that it is on levels lev_min and higher.
+     * 
+     * @param prt is the bunch information
+     * @param ip is the local (i.e. to a core) particle index
+     * @param lev_min to check
+     * @param lev_max to check
+     * @returns true if mapped to the other side.
+     */
     bool EnforcePeriodicWhere (AmrParticleBase< BoxLibLayout<T,Dim> >& prt,
                                const unsigned int ip,
                                int lev_min = 0, int lev_max = -1) const;
 
-    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
-    // Returns true if the particle was shifted.
+    /*!
+     * Function from AMReX adjusted to work with Ippl AmrParticleBase class
+     * 
+     * Move the particle to the opposite side of the domain
+     * 
+     * @param R is the particle position
+     * @returns true if the particle was shifted.
+     */
     bool PeriodicShift (SingleParticlePos_t R) const;
     
-    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    /*!
+     * Function from AMReX adjusted to work with Ippl AmrParticleBase class
+     * 
+     * @param p is basically the bunch
+     * @param ip is the local particle index
+     * @param lev_min to check
+     * @param lev_max to check
+     * @param nGrow is the number of ghost cells
+     * @param particleLeftDomain will be set if a particle left the physical
+     * domain (This should never happen. An exception is thrown if it occurs)
+     */
     void locateParticle(AmrParticleBase< BoxLibLayout<T,Dim> >& p, 
                         const unsigned int ip,
                         int lev_min, int lev_max, int nGrow,
                         bool &particleLeftDomain) const;
     
 private:
-    int finestLevel_m;
-    int maxLevel_m;
+    int finestLevel_m;                  ///< Current finest level of simluation
+    int maxLevel_m;                     ///< Maximum level allowd
     bool forbidTransform_m;             ///< To avoid multiple transformations during regrid
     
     // don't use m_rr from ParGDB since it is the same refinement in all directions
-    AmrIntVectContainer_t refRatio_m;    // Refinement ratios [0:finest_level-1]
+    AmrIntVectContainer_t refRatio_m;   /// Refinement ratios [0:finest_level-1]
     
-    // Scaling factor for particle coordinate transform
-    // (used for Poisson solve and particle-to-core distribution)
+    /*!
+     * Scaling factor for particle coordinate transform
+     * (used for Poisson solve and particle-to-core distribution)
+     */
     double scale_m;
 };
 
