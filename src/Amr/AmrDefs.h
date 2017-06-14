@@ -9,6 +9,7 @@
 #include <AMReX_REAL.H>
 #include <memory>
 
+/// Some AMR types used a lot
 namespace amr {
     typedef amrex::MultiFab                                 AmrField_t;
     typedef amrex::DistributionMapping                      AmrProcMap_t;

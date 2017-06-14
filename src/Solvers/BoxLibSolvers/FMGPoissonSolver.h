@@ -21,7 +21,9 @@ private:
 public:
     
     /**
-     * This solver only works with AmrBoxLib.
+     * This solver only works with AmrBoxLib. In order the solver to work
+     * the cells need to be of cubic shape. Otherwise the solver stops with
+     * the error message that it did not converge (AMReX internal).
      * 
      * @param itsAmrObject_p has information about refinemen ratios, etc.
      */
