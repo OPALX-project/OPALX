@@ -20,8 +20,23 @@ private:
     
 public:
     
+    /**
+     * This solver only works with AmrBoxLib.
+     * 
+     * @param itsAmrObject_p has information about refinemen ratios, etc.
+     */
     FMGPoissonSolver(AmrBoxLib* itsAmrObject_p);
     
+    /**
+     * Multigrid solve based on AMReX FMultiGrid solver. The relative tolerance is
+     * set to 1e-14 and the absolute tolerance to 0.0.
+     * 
+     * @param rho right-hand side charge density on grid [C / m]
+     * @param phi electrostatic potential (unknown) [V]
+     * @param efield electric field [V / m]
+     * @param baseLevel for solve
+     * @param finestLevel for solve
+     */
     void solve(AmrFieldContainer_t &rho,
                AmrFieldContainer_t& phi,
                AmrFieldContainer_t &efield,
@@ -35,20 +50,43 @@ public:
     double getZRangeMin(unsigned short level = 0);
     double getZRangeMax(unsigned short level = 0);
     
+    
+    /**
+     * Print information abour tolerances.
+     * @param os output stream where to write to
+     */
     Inform &print(Inform &os) const;
     
     
 private:
-    void solveWithF90_m(const AmrFieldContainer_pt& rho,
-                        const AmrFieldContainer_pt& phi,
-                        const amrex::Array< AmrFieldContainer_pt >& grad_phi_edge, 
-                        const GeomContainer_t& geom,
-                        int baseLevel,
-                        int finestLevel);
+    /**
+     * Does the actual solve. It calls the FMultiGrid solver of AMReX.
+     * It uses an approximation order of 3 at Dirichlet boundaries.
+     * 
+     * @param rho charge density on grids [C / m]
+     * @param phi electrostatic potential on grid [V]
+     * @param grad_phi_edge gradient of the potential (values at faces)
+     * @param geom geometry of the problem, i.e. physical domain boundaries
+     * @param baseLevel for solve
+     * @param finestLevel for solve
+     * @returns the residuum norm
+     */
+    double solveWithF90_m(const AmrFieldContainer_pt& rho,
+                          const AmrFieldContainer_pt& phi,
+                          const amrex::Array< AmrFieldContainer_pt >& grad_phi_edge, 
+                          const GeomContainer_t& geom,
+                          int baseLevel,
+                          int finestLevel);
     
     /*! Initialize the potential and electric field to zero
      * on each level and grid.
-     * @param efield to be intialized.
+     * 
+     * @param rho charge density [C/m] that is used for DistributionMap and BoxArray
+     * at different levels
+     * @param phi to be initialized according to DistributionMap and BoxArray of rho
+     * @param efield to be intialized according to DistributionMap and BoxArray of rho
+     * @param baseLevel to initialize
+     * @param finestLevel to initialize
      */
     void initGrids_m(const AmrFieldContainer_t& rho,
                      AmrFieldContainer_t& phi,
@@ -58,10 +96,10 @@ private:
     
 private:
     int bc_m[2*BL_SPACEDIM];        ///< Boundary conditions
-    double tol_m;
-    double abstol_m;
-//     AmrFieldContainer_t phi_m;
+    double reltol_m;                ///< Relative tolearance for solver
+    double abstol_m;                ///< Absolute tolerance for solver
 };
+
 
 inline Inform &operator<<(Inform &os, const FMGPoissonSolver &fs) {
     return fs.print(os);
