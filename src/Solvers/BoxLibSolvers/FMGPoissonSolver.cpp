@@ -4,8 +4,8 @@
 
 FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* itsAmrObject_p)
     : AmrPoissonSolver<AmrBoxLib>(itsAmrObject_p),
-      reltol_m(1.e-14),
-      abstol_m(0.0)
+      reltol_m(1.0e-12),
+      abstol_m(1.0e-10)
 {
     // Dirichlet boundary conditions are default
     for (int d = 0; d < BL_SPACEDIM; ++d) {
@@ -61,10 +61,13 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
                                             baseLevel,
                                             finestLevel);
     
-    if ( residNorm > reltol_m )
+    if ( residNorm > abstol_m ) {
+        std::stringstream ss;
+        ss << "Residual norm: " << std::setprecision(16) << residNorm
+           << " > " << abstol_m << " (abstol)";
         throw OpalException("FMGPoissonSolver::solve()",
-                            "Multigrid solver did not converge. Residual norm: "
-                            + std::to_string(residNorm));
+                            "Multigrid solver did not converge. " + ss.str());
+    }
     
     
     for (int lev = baseLevel; lev <= finestLevel; ++lev) {
