@@ -1,10 +1,11 @@
 #include "FMGPoissonSolver.h"
 
+#include "Utilities/OpalException.h"
+
 FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* itsAmrObject_p)
     : AmrPoissonSolver<AmrBoxLib>(itsAmrObject_p),
-      tol_m(1.e-10),
-      abstol_m(1.e-14)//,
-//       phi_m(PArrayManage)
+      reltol_m(1.e-14),
+      abstol_m(0.0)
 {
     // Dirichlet boundary conditions are default
     for (int d = 0; d < BL_SPACEDIM; ++d) {
@@ -53,13 +54,17 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
     efield.resize( rho.size() );
     initGrids_m(rho, phi, efield, baseLevel, finestLevel);
     
-    this->solveWithF90_m(amrex::GetArrOfPtrs(rho),
-                         amrex::GetArrOfPtrs(phi),
-                         amrex::GetArrOfArrOfPtrs(grad_phi_edge),
-                         geom,
-                         baseLevel,
-                         finestLevel);
+    double residNorm = this->solveWithF90_m(amrex::GetArrOfPtrs(rho),
+                                            amrex::GetArrOfPtrs(phi),
+                                            amrex::GetArrOfArrOfPtrs(grad_phi_edge),
+                                            geom,
+                                            baseLevel,
+                                            finestLevel);
     
+    if ( residNorm > reltol_m )
+        throw OpalException("FMGPoissonSolver::solve()",
+                            "Multigrid solver did not converge. Residual norm: "
+                            + std::to_string(residNorm));
     
     
     for (int lev = baseLevel; lev <= finestLevel; ++lev) {
@@ -105,19 +110,19 @@ double FMGPoissonSolver::getZRangeMax(unsigned short level) {
 
 Inform &FMGPoissonSolver::print(Inform &os) const {
     os << "* ************* F M G P o i s s o n S o l v e r ************************************ " << endl
-       << "* tolerance " << tol_m << '\n'
+       << "* relative tolerance " << reltol_m << '\n'
        << "* absolute tolerance " << abstol_m << '\n' << endl
        << "* ******************************************************************** " << endl;
     return os;
 }
 
 
-void FMGPoissonSolver::solveWithF90_m(const AmrFieldContainer_pt& rho,
-                                      const AmrFieldContainer_pt& phi,
-                                      const amrex::Array< AmrFieldContainer_pt > & grad_phi_edge,
-                                      const GeomContainer_t& geom,
-                                      int baseLevel,
-                                      int finestLevel)
+double FMGPoissonSolver::solveWithF90_m(const AmrFieldContainer_pt& rho,
+                                        const AmrFieldContainer_pt& phi,
+                                        const amrex::Array< AmrFieldContainer_pt > & grad_phi_edge,
+                                        const GeomContainer_t& geom,
+                                        int baseLevel,
+                                        int finestLevel)
 {
     int nlevs = finestLevel - baseLevel + 1;
     
@@ -151,17 +156,21 @@ void FMGPoissonSolver::solveWithF90_m(const AmrFieldContainer_pt& rho,
      * --> (del dot grad) phi = rho
      */
     fmg.set_const_gravity_coeffs();
+    
+    // order of approximation at Dirichlet boundaries
     fmg.set_maxorder(3);
 
     int always_use_bnorm = 0;
     int need_grad_phi = 1;
     
-    fmg.solve(phi_p, rho_p, tol_m, abstol_m, always_use_bnorm, need_grad_phi);
+    double residNorm = fmg.solve(phi_p, rho_p, reltol_m, abstol_m, always_use_bnorm, need_grad_phi);
     
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         int amr_level = ilev + baseLevel;
         fmg.get_fluxes(grad_phi_edge[amr_level], ilev);
     }
+    
+    return residNorm;
 }
 
 void FMGPoissonSolver::initGrids_m(const AmrFieldContainer_t& rho,
@@ -172,12 +181,13 @@ void FMGPoissonSolver::initGrids_m(const AmrFieldContainer_t& rho,
 {
     int nlevs = finestLevel - baseLevel + 1;
     for (int lev = 0; lev < nlevs; ++lev) {
-        const AmrGrid_t& ba = rho[lev]->boxArray();
-        const AmrProcMap_t& dmap = rho[lev]->DistributionMap();
+        int ilev = lev + baseLevel;
+        const AmrGrid_t& ba = rho[ilev]->boxArray();
+        const AmrProcMap_t& dmap = rho[ilev]->DistributionMap();
         
         //                                         #components  #ghost cells                                                                                                                                          
-        phi[lev].reset(   new AmrField_t(ba, dmap, 1,           1) );
-        efield[lev].reset(new AmrField_t(ba, dmap, 3,           1) );
+        phi[ilev].reset(   new AmrField_t(ba, dmap, 1,           1) );
+        efield[ilev].reset(new AmrField_t(ba, dmap, 3,           1) );
         
         // including nghost = 1
         phi[lev]->setVal(0.0, 1);
