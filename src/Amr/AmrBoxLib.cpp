@@ -511,7 +511,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     AmrYtWriter ytWriter;
     
     AmrIntArray_t rr(nLevel);
-    for (int i = 0; i < nLevel; ++i)
+    for (int i = 0; i < nLevel - 1; ++i)
         rr[i] = this->MaxRefRatio(i);
     
     double time = bunch_mp->getT() * 1.0e9; // s --> ns
