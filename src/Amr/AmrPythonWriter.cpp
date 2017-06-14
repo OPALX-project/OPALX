@@ -1,14 +1,18 @@
 #include "AmrPythonWriter.h"
 
 #include "Utilities/OpalException.h"
+#include "AbstractObjects/OpalData.h"
 
 #include <iomanip>
 #include <sstream>
 
 
-AmrPythonWriter::AmrPythonWriter() : dir_m("data/amr/")
+AmrPythonWriter::AmrPythonWriter()
 {
     namespace fs = boost::filesystem;
+    
+    fs::path dir = OpalData::getInstance()->getInputBasename();
+    dir_m = dir.parent_path() / "data" / "amr";
     
     if ( Ippl::myNode() == 0 && !fs::exists(dir_m) )
         fs::create_directory( dir_m );
@@ -30,14 +34,19 @@ void AmrPythonWriter::writeGrids(const std::string& dir,
 }
 
 void AmrPythonWriter::writeBunch(const AmrPartBunch* bunch_p) {
+    namespace fs = boost::filesystem;
+    
     std::stringstream sstep;
     
     long long step = bunch_p->getLocalTrackStep();
     
     sstep << std::setfill('0') << std::setw(6) << std::to_string(step);
     
-    std::string fGrid     = dir_m.string() + "/grids_" + sstep.str() + ".dat";
-    std::string fParticle = dir_m.string() + "/bunch_" + sstep.str() + ".dat";
+    fs::path gDir = dir_m / ("grids_" + sstep.str() + ".dat");
+    fs::path pDir = dir_m / ("bunch_" + sstep.str() + ".dat");
+    
+    std::string fGrid     = gDir.string();
+    std::string fParticle = pDir.string();
     
     AmrLayout_t* playout = (AmrLayout_t*)(&bunch_p->getLayout());
     
