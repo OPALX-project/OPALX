@@ -4,6 +4,11 @@
 #include "Structure/FieldSolver.h"
 #include "Solvers/PoissonSolver.h"
 
+#ifdef AMR_YT_DUMP
+    #include "Amr/AmrYtWriter.h"
+    #include "Amr/AmrPythonWriter.h"
+#endif
+
 
 #include "AmrBoxLib_F.h"
 #include <AMReX_MultiFabUtil.H>
@@ -17,8 +22,10 @@ AmrBoxLib::AmrBoxLib() : AmrObject(),
                          layout_mp(nullptr),
                          rho_m(0),
                          phi_m(0),
-                         eg_m(0),
-                         fieldDBGStep_m(0)
+                         eg_m(0)
+#ifdef DBG_SCALARFIELD
+                         , fieldDBGStep_m(0)
+#endif
 {}
 
 
@@ -32,20 +39,11 @@ AmrBoxLib::AmrBoxLib(TaggingCriteria tagging,
       layout_mp(nullptr),
       rho_m(0),
       phi_m(0),
-      eg_m(0),
-      fieldDBGStep_m(0)
+      eg_m(0)
+#ifdef DBG_SCALARFIELD
+      , fieldDBGStep_m(0)
+#endif
 {}
-
-
-// AmrBoxLib::AmrBoxLib(const DomainBoundary_t& realbox,
-//               const NDIndex<3>& nGridPts,
-//               short maxLevel,
-//               const RefineRatios_t& refRatio)
-//     : AmrObject(realbox, nGridPts, maxLevel, refRatio)
-// {
-//     
-//     
-// }
 
 
 
@@ -59,8 +57,10 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
       layout_mp(nullptr),
       rho_m(maxLevel + 1),
       phi_m(maxLevel + 1),
-      eg_m(maxLevel + 1),
-      fieldDBGStep_m(0)
+      eg_m(maxLevel + 1)
+#ifdef DBG_SCALARFIELD
+      , fieldDBGStep_m(0)
+#endif
 {}
 
 
@@ -75,8 +75,10 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
       layout_mp(static_cast<AmrLayout_t*>(&bunch_p->getLayout())),
       rho_m(maxLevel + 1),
       phi_m(maxLevel + 1),
-      eg_m(maxLevel + 1),
-      fieldDBGStep_m(0)
+      eg_m(maxLevel + 1)
+#ifdef DBG_SCALARFIELD
+      , fieldDBGStep_m(0)
+#endif
 {
     /*
      * The layout needs to know how many levels we can make.
@@ -132,7 +134,7 @@ std::unique_ptr<AmrBoxLib> AmrBoxLib::create(const AmrInitialInfo& info,
     
     const int nratios_vect = maxlevel*BL_SPACEDIM;
     
-    AmrBoxLib::AmrIntArray_t refRatio(nratios_vect);
+    AmrIntArray_t refRatio(nratios_vect);
     
     for (int i = 0; i < maxlevel; ++i) {
         refRatio[i * BL_SPACEDIM]     = info.refratx;
@@ -504,6 +506,24 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
                                 "Ef: NANs at level " + std::to_string(i) + ".");
     }
     
+#if AMR_YT_DUMP
+    std::string ytdirectory = amrex::Concatenate("yt-data/plt", 0, 6);
+    AmrYtWriter ytWriter;
+    
+    AmrIntArray_t rr(nLevel);
+    for (int i = 0; i < nLevel; ++i)
+        rr[i] = this->MaxRefRatio(i);
+    
+    double time = bunch_mp->getT() * 1.0e9; // s --> ns
+    
+    ytWriter.writeGrids(ytdirectory, rho_m, phi_m, eg_m, rr, this->Geom(), time);
+#endif
+
+#ifdef AMR_PYTHON_DUMP
+    AmrPythonWriter pyWriter;
+    pyWriter.writeBunch(bunch_mp);
+#endif
+    
 //     for (int i = 0; i <= finest_level; ++i) {
 //         if ( this->phi_m[i]->contains_nan(false) )
 //             throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
@@ -536,13 +556,6 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     fstr2.close();
     INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
 #endif
-    
-    /// Back Lorentz transformation
-//     for (int i = 0; i <= finest_level; ++i) {
-//         this->eg_m[i]->mult(gamma, 0, 3, 1); // x-direction
-//         this->eg_m[i]->mult(1.0 / gamma, 1, 3, 1); // y-direction
-//         this->eg_m[i]->mult(gamma, 2, 3, 1); // z-direction
-//     }
     
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING E FIELD ***" << endl);
@@ -579,11 +592,10 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     // undo domain change
     layout_mp->domainMapping(*amrpbase_p, true);
     
+    /// Back Lorentz transformation
     bunch_mp->Ef *= Vector_t(gamma,
                              invGamma,
                              gamma);
-    
-//     std::cout << bunch_mp->Ef[0] << std::endl; std::cin.get();
     
     /// calculate coefficient
     // Relativistic E&M says gamma*v/c^2 = gamma*beta/c = sqrt(gamma*gamma-1)/c
