@@ -1,6 +1,7 @@
 set (_SRCS
     AmrBoxLib.cpp
     AmrPythonWriter.cpp
+    AmrSliceWriter.cpp
     AmrYtWriter.cpp
     Tagging_nd.f90
 )
@@ -17,6 +18,7 @@ set (HDRS
     AmrBoxLib.h
     AmrBoxLib_F.h
     AmrPythonWriter.h
+    AmrSliceWriter.h
     AmrYtWriter.h
     BoxLibLayout.h
     BoxLibLayout.hpp

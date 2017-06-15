@@ -6,10 +6,16 @@
 
 #ifdef AMR_YT_DUMP
     #include "Amr/AmrYtWriter.h"
+#endif
+
+#ifdef AMR_PYTHON_DUMP
     #include "Amr/AmrPythonWriter.h"
 #endif
 
-
+#ifdef DBG_SCALARFIELD
+    #include "Amr/AmrSliceWriter.h"
+#endif
+    
 #include "AmrBoxLib_F.h"
 #include <AMReX_MultiFabUtil.H>
 
@@ -23,9 +29,6 @@ AmrBoxLib::AmrBoxLib() : AmrObject(),
                          rho_m(0),
                          phi_m(0),
                          eg_m(0)
-#ifdef DBG_SCALARFIELD
-                         , fieldDBGStep_m(0)
-#endif
 {}
 
 
@@ -40,9 +43,6 @@ AmrBoxLib::AmrBoxLib(TaggingCriteria tagging,
       rho_m(0),
       phi_m(0),
       eg_m(0)
-#ifdef DBG_SCALARFIELD
-      , fieldDBGStep_m(0)
-#endif
 {}
 
 
@@ -58,9 +58,6 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
       rho_m(maxLevel + 1),
       phi_m(maxLevel + 1),
       eg_m(maxLevel + 1)
-#ifdef DBG_SCALARFIELD
-      , fieldDBGStep_m(0)
-#endif
 {}
 
 
@@ -76,9 +73,6 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
       rho_m(maxLevel + 1),
       phi_m(maxLevel + 1),
       eg_m(maxLevel + 1)
-#ifdef DBG_SCALARFIELD
-      , fieldDBGStep_m(0)
-#endif
 {
     /*
      * The layout needs to know how many levels we can make.
@@ -277,38 +271,6 @@ void AmrBoxLib::computeSelfFields() {
         this->rho_m[i]->mult(tmp, 0, 1);
     }
     
-#ifdef DBG_SCALARFIELD
-    if ( Ippl::getNodes() > 1 )
-        throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ", "Dumping only in serial execution.");
-
-    INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-    std::ofstream fstr1;
-    fstr1.precision(9);
-
-    std::string SfileName = OpalData::getInstance()->getInputBasename();
-
-    std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::to_string(fieldDBGStep_m);
-    fstr1.open(rho_fn.c_str(), std::ios::out);
-    
-    int level = 0;
-    for (amrex::MFIter mfi(*rho_m[level]); mfi.isValid(); ++mfi) {
-        const amrex::Box& bx = mfi.validbox();
-        const amrex::FArrayBox& fab = (*rho_m[level])[mfi];
-        
-        for (int x = bx.loVect()[0]; x <= bx.hiVect()[0]; ++x) {
-            for (int y = bx.loVect()[1]; y <= bx.hiVect()[1]; ++y) {
-                for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; ++z) {
-                    AmrIntVect_t iv(x, y, z);
-                    // add one in order to have same convention as PartBunch::computeSelfField()
-                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " "
-                          << fab(iv, 0)  << std::endl;
-                }
-            }
-        }
-    }
-    fstr1.close();
-    INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
-#endif
     
     for (int i = 0; i <= finestLevel; ++i)
         this->rho_m[i]->mult(-1.0 / Physics::epsilon_0, 0, 1);
@@ -323,68 +285,6 @@ void AmrBoxLib::computeSelfFields() {
     // apply scale of electric-field in order to undo the transformation
     for (int i = 0; i <= finestLevel; ++i)
         this->eg_m[i]->mult(scalefactor, 0, 3);
-    
-#ifdef DBG_SCALARFIELD
-    INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-    std::ofstream fstr2;
-    fstr2.precision(9);
-
-    std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::to_string(fieldDBGStep_m);
-    fstr2.open(phi_fn.c_str(), std::ios::out);
-    
-    for (amrex::MFIter mfi(*phi_m[level]); mfi.isValid(); ++mfi) {
-        const amrex::Box& bx = mfi.validbox();
-        const amrex::FArrayBox& fab = (*phi_m[level])[mfi];
-        
-        for (int x = bx.loVect()[0]; x <= bx.hiVect()[0]; ++x) {
-            for (int y = bx.loVect()[1]; y <= bx.hiVect()[1]; ++y) {
-                for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; ++z) {
-                    AmrIntVect_t iv(x, y, z);
-                    // add one in order to have same convention as PartBunch::computeSelfField()
-                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " "
-                          << fab(iv, 0) << std::endl;
-                }
-            }
-        }
-    }
-    fstr2.close();
-    INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
-#endif
-    
-#ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING E FIELD ***" << endl);
-        //ostringstream oss;
-        //MPI_File file;
-        //MPI_Status status;
-        //MPI_Info fileinfo;
-        //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
-        std::ofstream fstr;
-        fstr.precision(9);
-
-        std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::to_string(fieldDBGStep_m);
-        fstr.open(e_field.c_str(), std::ios::out);
-        
-        for (amrex::MFIter mfi(*eg_m[level]); mfi.isValid(); ++mfi) {
-            const amrex::Box& bx = mfi.validbox();
-            const amrex::FArrayBox& fab = (*eg_m[level])[mfi];
-            
-            for (int x = bx.loVect()[0]; x <= bx.hiVect()[0]; ++x) {
-                for (int y = bx.loVect()[1]; y <= bx.hiVect()[1]; ++y) {
-                    for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; ++z) {
-                        AmrIntVect_t iv(x, y, z);
-                        // add one in order to have same convention as PartBunch::computeSelfField()
-                        fstr << x + 1 << " " << y + 1 << " " << z + 1 << " ( "
-                             << fab(iv, 0) << " , " << fab(iv, 1) << " , " << fab(iv, 2) << " )" << std::endl;
-                    }
-                }
-            }
-        }
-
-        fstr.close();
-        fieldDBGStep_m++;
-
-        INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
-#endif
     
     amrpbase_p->gather(bunch_mp->Ef, this->eg_m, bunch_mp->R, 0, finest_level);
     
@@ -405,7 +305,55 @@ void AmrBoxLib::computeSelfFields() {
 
     bunch_mp->Bf(0) = bunch_mp->Bf(0) - betaC * bunch_mp->Ef(1);
     bunch_mp->Bf(1) = bunch_mp->Bf(1) + betaC * bunch_mp->Ef(0);
-//     throw OpalException("AmrBoxLib::computeSelfFields() ", "Not yet Implemented.");
+    
+    /*
+     * dumping only
+     */
+
+#ifdef AMR_YT_DUMP
+    INFOMSG("*** START DUMPING FIELDS IN YT FORMAT ***" << endl);
+    AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
+    
+    AmrIntArray_t rr(nLevel);
+    for (int i = 0; i < nLevel - 1; ++i)
+        rr[i] = this->MaxRefRatio(i);
+    
+    double time = bunch_mp->getT(); // ps
+    
+    // we need to undo coefficient when writing charge density
+    for (int i = 0; i <= finest_level; ++i)
+        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
+    
+    ytWriter.writeFields(rho_m, phi_m, eg_m, rr, this->Geom(), time);
+    INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
+#endif
+
+#ifdef AMR_PYTHON_DUMP
+    INFOMSG("*** START DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
+    AmrPythonWriter pyWriter;
+    pyWriter.writeBunch(bunch_mp);
+    INFOMSG("*** FINISHED DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
+#endif
+    
+#ifdef DBG_SCALARFIELD
+    if ( Ippl::getNodes() > 1 )
+        throw OpalException("AmrBoxLib::computeSelfFields() ",
+                            "Dumping only in serial execution.");
+    
+    int step = bunch_mp->getLocalTrackStep();
+    AmrSliceWriter sliceWriter;
+    
+#ifdef AMR_YT_DUMP
+    // make sure we undo only once if AMR_YT_DUMP is also enabled
+#else
+    // we need to undo coefficient when writing charge density
+    for (int i = 0; i <= finest_level; ++i)
+        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
+#endif
+    
+    sliceWriter.writeFields(rho_m, phi_m, eg_m,
+                            AmrIntArray_t(), this->Geom(), step);
+#endif
 }
 
 
@@ -450,40 +398,6 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     }
     
     
-#ifdef DBG_SCALARFIELD
-    if ( Ippl::getNodes() > 1 )
-        throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ", "Dumping only in serial execution.");
-
-    INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-    std::ofstream fstr1;
-    fstr1.precision(9);
-
-    std::string SfileName = OpalData::getInstance()->getInputBasename();
-
-    std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::to_string(fieldDBGStep_m);
-    fstr1.open(rho_fn.c_str(), std::ios::out);
-    
-    int level = 0;
-    for (amrex::MFIter mfi(*rho_m[level]); mfi.isValid(); ++mfi) {
-        const amrex::Box& bx = mfi.validbox();
-        const amrex::FArrayBox& fab = (*rho_m[level])[mfi];
-        
-        for (int x = bx.loVect()[0]; x <= bx.hiVect()[0]; ++x) {
-            for (int y = bx.loVect()[1]; y <= bx.hiVect()[1]; ++y) {
-                for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; ++z) {
-                    AmrIntVect_t iv(x, y, z);
-                    // add one in order to have same convention as PartBunch::computeSelfField()
-                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " "
-                          << fab(iv, 0)  << std::endl;
-                }
-            }
-        }
-    }
-    fstr1.close();
-    INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
-#endif
-    
-    
     // charge density is in rho_m
     // calculate Possion equation (with coefficient: -1/(eps))
     for (int i = 0; i <= finest_level; ++i) {
@@ -506,89 +420,6 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
                                 "Ef: NANs at level " + std::to_string(i) + ".");
     }
     
-#if AMR_YT_DUMP
-    INFOMSG("*** START DUMPING FIELDS IN YT FORMAT ***" << endl);
-    AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
-    
-    AmrIntArray_t rr(nLevel);
-    for (int i = 0; i < nLevel - 1; ++i)
-        rr[i] = this->MaxRefRatio(i);
-    
-    double time = bunch_mp->getT(); // ps
-    
-    ytWriter.writeFields(rho_m, phi_m, eg_m, rr, this->Geom(), time);
-    INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
-#endif
-
-#ifdef AMR_PYTHON_DUMP
-    INFOMSG("*** START DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
-    AmrPythonWriter pyWriter;
-    pyWriter.writeBunch(bunch_mp);
-    INFOMSG("*** FINISHED DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
-#endif
-    
-//     for (int i = 0; i <= finest_level; ++i) {
-//         if ( this->phi_m[i]->contains_nan(false) )
-//             throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
-//                                 "Pot: NANs at level " + std::to_string(i) + ".");
-//     }
-    
-#ifdef DBG_SCALARFIELD
-    INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-    std::ofstream fstr2;
-    fstr2.precision(9);
-
-    std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::to_string(fieldDBGStep_m);
-    fstr2.open(phi_fn.c_str(), std::ios::out);
-    
-    for (amrex::MFIter mfi(*phi_m[level]); mfi.isValid(); ++mfi) {
-        const amrex::Box& bx = mfi.validbox();
-        const amrex::FArrayBox& fab = (*phi_m[level])[mfi];
-        
-        for (int x = bx.loVect()[0]; x <= bx.hiVect()[0]; ++x) {
-            for (int y = bx.loVect()[1]; y <= bx.hiVect()[1]; ++y) {
-                for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; ++z) {
-                    AmrIntVect_t iv(x, y, z);
-                    // add one in order to have same convention as PartBunch::computeSelfField()
-                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " "
-                          << fab(iv, 0)  << std::endl;
-                }
-            }
-        }
-    }
-    fstr2.close();
-    INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
-#endif
-    
-#ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING E FIELD ***" << endl);
-        std::ofstream fstr;
-        fstr.precision(9);
-
-        std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::to_string(fieldDBGStep_m);
-        fstr.open(e_field.c_str(), std::ios::out);
-        
-        for (amrex::MFIter mfi(*eg_m[level]); mfi.isValid(); ++mfi) {
-            const amrex::Box& bx = mfi.validbox();
-            const amrex::FArrayBox& fab = (*eg_m[level])[mfi];
-            
-            for (int x = bx.loVect()[0]; x <= bx.hiVect()[0]; ++x) {
-                for (int y = bx.loVect()[1]; y <= bx.hiVect()[1]; ++y) {
-                    for (int z = bx.loVect()[2]; z <= bx.hiVect()[2]; ++z) {
-                        AmrIntVect_t iv(x, y, z);
-                        // add one in order to have same convention as PartBunch::computeSelfField()
-                        fstr << x + 1 << " " << y + 1 << " " << z + 1 << " ( "
-                             << fab(iv, 0) << " , " << fab(iv, 1) << " , " << fab(iv, 2) << " )" << std::endl;
-                    }
-                }
-            }
-        }
-
-        fstr.close();
-        fieldDBGStep_m++;
-
-        INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
-#endif
     
     amrpbase_p->gather(bunch_mp->Ef, this->eg_m, bunch_mp->R, 0, finest_level);
     
@@ -609,6 +440,55 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     /// calculate B field from E field
     bunch_mp->Bf(0) =  betaC * bunch_mp->Ef(2);
     bunch_mp->Bf(2) = -betaC * bunch_mp->Ef(0);
+    
+    /*
+     * dumping only
+     */
+    
+#ifdef AMR_YT_DUMP
+    INFOMSG("*** START DUMPING FIELDS IN YT FORMAT ***" << endl);
+    AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
+    
+    AmrIntArray_t rr(nLevel);
+    for (int i = 0; i < nLevel - 1; ++i)
+        rr[i] = this->MaxRefRatio(i);
+    
+    double time = bunch_mp->getT(); // ps
+    
+    // we need to undo coefficient when writing charge density
+    for (int i = 0; i <= finest_level; ++i)
+        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
+    
+    ytWriter.writeFields(rho_m, phi_m, eg_m, rr, this->Geom(), time);
+    INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
+#endif
+
+#ifdef AMR_PYTHON_DUMP
+    INFOMSG("*** START DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
+    AmrPythonWriter pyWriter;
+    pyWriter.writeBunch(bunch_mp);
+    INFOMSG("*** FINISHED DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
+#endif
+    
+#ifdef DBG_SCALARFIELD
+    if ( Ippl::getNodes() > 1 )
+        throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
+                            "Dumping only in serial execution.");
+    
+    int step = bunch_mp->getLocalTrackStep();
+    AmrSliceWriter sliceWriter;
+    
+#ifdef AMR_YT_DUMP
+    // make sure we undo only once if AMR_YT_DUMP is also enabled
+#else
+    // we need to undo coefficient when writing charge density
+    for (int i = 0; i <= finest_level; ++i)
+        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
+#endif
+    
+    sliceWriter.writeFields(rho_m, phi_m, eg_m,
+                            AmrIntArray_t(), this->Geom(), step);
+#endif
 }
 
 
