@@ -19,18 +19,21 @@ public:
      * @param refRatio are the refinement ratios among the levels
      * @param geom are the geometries of all levels
      * @param time specifies the step.
+     * @param scale used for mapping
      */
     virtual void writeFields(const amr::AmrFieldContainer_t& rho,
                              const amr::AmrFieldContainer_t& phi,
                              const amr::AmrFieldContainer_t& efield,
                              const amr::AmrIntArray_t& refRatio,
                              const amr::AmrGeomContainer_t& geom,
-                             const double& time) = 0;
+                             const double& time,
+                             const double& scale = 1.0) = 0;
     
     /*!
      * @param bunch_p
      */
-    virtual void writeBunch(const AmrPartBunch* bunch_p) = 0;
+    virtual void writeBunch(const AmrPartBunch* bunch_p,
+                            const double& scale = 1.0) = 0;
     
     virtual ~AbstractAmrWriter() { }
     

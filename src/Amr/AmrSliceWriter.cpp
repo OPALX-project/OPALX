@@ -30,7 +30,8 @@ void AmrSliceWriter::writeFields(const amr::AmrFieldContainer_t& rho,
                                  const amr::AmrFieldContainer_t& efield,
                                  const amr::AmrIntArray_t& refRatio,
                                  const amr::AmrGeomContainer_t& geom,
-                                 const double& time)
+                                 const double& time,
+                                 const double& scale)
 {
     namespace fs = boost::filesystem;
     
@@ -130,7 +131,9 @@ void AmrSliceWriter::writeFields(const amr::AmrFieldContainer_t& rho,
     INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
 }
 
-void AmrSliceWriter::writeBunch(const AmrPartBunch* bunch_p) {
+void AmrSliceWriter::writeBunch(const AmrPartBunch* bunch_p,
+                                const double& scale)
+{
     throw OpalException("AmrSliceWriter::writeBunch()",
                         "Writing a slice of a bunch is not supported.");
 }

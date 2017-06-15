@@ -318,20 +318,20 @@ void AmrBoxLib::computeSelfFields() {
     for (int i = 0; i < nLevel - 1; ++i)
         rr[i] = this->MaxRefRatio(i);
     
-    double time = bunch_mp->getT(); // ps
+    double time = bunch_mp->getT(); // in seconds
     
     // we need to undo coefficient when writing charge density
     for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
+        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
     
-    ytWriter.writeFields(rho_m, phi_m, eg_m, rr, this->Geom(), time);
+    ytWriter.writeFields(rho_m, phi_m, eg_m, rr, this->Geom(), time, scalefactor);
     INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
 #endif
 
 #ifdef AMR_PYTHON_DUMP
     INFOMSG("*** START DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
     AmrPythonWriter pyWriter;
-    pyWriter.writeBunch(bunch_mp);
+    pyWriter.writeBunch(bunch_mp, scalefactor);
     INFOMSG("*** FINISHED DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
 #endif
     
@@ -348,7 +348,7 @@ void AmrBoxLib::computeSelfFields() {
 #else
     // we need to undo coefficient when writing charge density
     for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
+        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
 #endif
     
     sliceWriter.writeFields(rho_m, phi_m, eg_m,
@@ -457,16 +457,16 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     
     // we need to undo coefficient when writing charge density
     for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
+        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
     
-    ytWriter.writeFields(rho_m, phi_m, eg_m, rr, this->Geom(), time);
+    ytWriter.writeFields(rho_m, phi_m, eg_m, rr, this->Geom(), time, scalefactor);
     INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
 #endif
 
 #ifdef AMR_PYTHON_DUMP
     INFOMSG("*** START DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
     AmrPythonWriter pyWriter;
-    pyWriter.writeBunch(bunch_mp);
+    pyWriter.writeBunch(bunch_mp, scalefactor);
     INFOMSG("*** FINISHED DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
 #endif
     
@@ -483,7 +483,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
 #else
     // we need to undo coefficient when writing charge density
     for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
+        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
 #endif
     
     sliceWriter.writeFields(rho_m, phi_m, eg_m,

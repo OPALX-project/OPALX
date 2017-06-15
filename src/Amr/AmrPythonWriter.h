@@ -22,7 +22,8 @@ public:
                      const amr::AmrFieldContainer_t& efield,
                      const amr::AmrIntArray_t& refRatio,
                      const amr::AmrGeomContainer_t& geom,
-                     const double& time);
+                     const double& time,
+                     const double& scale);
     
     /*!
      * Write the particle coordinates and momenta to a file
@@ -34,7 +35,8 @@ public:
      * 
      * @param bunch_p
      */
-    void writeBunch(const AmrPartBunch* bunch_p);
+    void writeBunch(const AmrPartBunch* bunch_p,
+                    const double& scale);
     
 private:
     boost::filesystem::path dir_m;  ///< directory where to write files

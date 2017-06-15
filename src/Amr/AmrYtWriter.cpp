@@ -35,8 +35,12 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
                               const amr::AmrFieldContainer_t& efield,
                               const amr::AmrIntArray_t& refRatio,
                               const amr::AmrGeomContainer_t& geom,
-                              const double& time)
+                              const double& time,
+                              const double& scale)
 {
+    /* We need to scale the geometry and cell sizes according to the
+     * particle mapping
+     */
     std::string dir = amrex::Concatenate((dir_m / "plt").string(), step_m, 10);
     
     int nLevels = rho.size();
@@ -95,10 +99,10 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         
         // physical domain
         for (int i = 0; i < BL_SPACEDIM; i++)
-            HeaderFile << geom[0].ProbLo(i) << ' ';
+            HeaderFile << geom[0].ProbLo(i) / scale << ' ';
         HeaderFile << '\n';
         for (int i = 0; i < BL_SPACEDIM; i++)
-            HeaderFile << geom[0].ProbHi(i) << ' ';
+            HeaderFile << geom[0].ProbHi(i) / scale << ' ';
         HeaderFile << std::endl;
         
         // reference ratio
@@ -117,7 +121,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         // cell sizes for all level
         for (int i = 0; i < nLevels; ++i) {
             for (int k = 0; k < BL_SPACEDIM; k++)
-                HeaderFile << geom[i].CellSize()[k] << ' ';
+                HeaderFile << geom[i].CellSize()[k] / scale << ' ';
             HeaderFile << '\n';
         }
         
@@ -158,9 +162,26 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
     
             for (int i = 0; i < rho[lev]->boxArray().size(); ++i)
             {
+                amrex::Real dx[3] = {
+                    geom[lev].CellSize(0),
+                    geom[lev].CellSize(1),
+                    geom[lev].CellSize(2)
+                };
+                dx[0] /= scale;
+                dx[1] /= scale;
+                dx[2] /= scale;
+                amrex::Real lo[3] = {
+                    geom[lev].ProbLo(0),
+                    geom[lev].ProbLo(1),
+                    geom[lev].ProbLo(2)
+                };
+                lo[0] /= scale;
+                lo[1] /= scale;
+                lo[2] /= scale;
                 amr::AmrDomain_t loc = amr::AmrDomain_t(rho[lev]->boxArray()[i],
-                                                        geom[lev].CellSize(),
-                                                        geom[lev].ProbLo());
+                                                        &dx[0], &lo[0]);
+//                                                         geom[lev].CellSize(),
+//                                                         geom[lev].ProbLo());
                 for (int n = 0; n < BL_SPACEDIM; n++)
                     HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
             }
@@ -199,7 +220,10 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
 }
 
 
-void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p) {
+void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
+                             const double& scale)
+{
+    
     throw OpalException("AmrYtWriter::writeBunch",
                         "Not yet implemented.");
 }

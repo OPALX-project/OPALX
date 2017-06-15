@@ -32,13 +32,19 @@ void AmrPythonWriter::writeFields(const amr::AmrFieldContainer_t& rho,
                                   const amr::AmrFieldContainer_t& efield,
                                   const amr::AmrIntArray_t& refRatio,
                                   const amr::AmrGeomContainer_t& geom,
-                                  const double& time)
+                                  const double& time,
+                                  const double& scale)
 {
     throw OpalException("AmrPythonWriter::writeFields",
                         "Not yet implemented.");
 }
 
-void AmrPythonWriter::writeBunch(const AmrPartBunch* bunch_p) {
+void AmrPythonWriter::writeBunch(const AmrPartBunch* bunch_p,
+                                 const double& scale)
+{
+    /* We need to scale the geometry and cell sizes according to the
+     * particle mapping
+     */
     namespace fs = boost::filesystem;
     
     std::stringstream sstep;
@@ -64,11 +70,28 @@ void AmrPythonWriter::writeBunch(const AmrPartBunch* bunch_p) {
             Inform msg_grid("", fGrid.c_str(), wm, i);
             for (int lev = 0; lev < playout->finestLevel() + 1; ++lev) {
                 const amr::AmrGeometry_t& geom = playout->Geom(lev);
+                amrex::Real dx[3] = {
+                    geom.CellSize(0),
+                    geom.CellSize(1),
+                    geom.CellSize(2)
+                };
+                dx[0] /= scale;
+                dx[1] /= scale;
+                dx[2] /= scale;
+                amrex::Real lo[3] = {
+                    geom.ProbLo(0),
+                    geom.ProbLo(1),
+                    geom.ProbLo(2)
+                };
+                lo[0] /= scale;
+                lo[1] /= scale;
+                lo[2] /= scale;
                 for (int grid = 0; grid < playout->ParticleBoxArray(lev).size(); ++grid) {
                     msg_grid << lev << ' ';
                     amr::AmrDomain_t loc = amr::AmrDomain_t(playout->boxArray(lev)[grid],
-                                                            geom.CellSize(),
-                                                            geom.ProbLo());
+                                                            &dx[0], &lo[0]);
+//                                                             geom.CellSize(),
+//                                                             geom.ProbLo());
                     for (int n = 0; n < BL_SPACEDIM; n++)
                         msg_grid << loc.lo(n) << ' ' << loc.hi(n) << ' ';
                     msg_grid << endl;
