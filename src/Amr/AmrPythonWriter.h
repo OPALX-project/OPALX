@@ -8,7 +8,7 @@
 /*!
  * This concrete class writes AMR grids
  * and particles that can be visualized by
- * amrPlots/part_boxes.py that is part of
+ * amrPlots/bunch_and_grids.py that is part of
  * the pyOPALTools repository.
  */
 class AmrPythonWriter : public AbstractAmrWriter {
