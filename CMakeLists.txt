@@ -104,7 +104,7 @@ OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
 
 OPTION (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
 OPTION (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
-OPTION (AMR_YT_DUMP "Dump AMR grid data to yt readable format" OFF)
+OPTION (AMR_YT_DUMP "Dump AMR field data to yt readable format" OFF)
 OPTION (AMR_PYTHON_DUMP "Dump AMR grids and particles" OFF)
 OPTION (BUILD_LIBOPAL "Enable building the OPAL library" OFF)
 
@@ -197,7 +197,7 @@ IF (DBG_STENCIL)
 ENDIF (DBG_STENCIL)
 
 IF (AMR_YT_DUMP AND ENABLE_AMR_SOLVER)
-    MESSAGE (STATUS "\nWrite AMR grid data is enabled ")
+    MESSAGE (STATUS "\nWrite AMR field data in yt format is enabled ")
     SET (CMAKE_CXX_FLAGS "-DAMR_YT_DUMP ${CMAKE_CXX_FLAGS}")
 ENDIF (AMR_YT_DUMP AND ENABLE_AMR_SOLVER)
 
