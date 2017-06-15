@@ -513,7 +513,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     for (int i = 0; i < nLevel - 1; ++i)
         rr[i] = this->MaxRefRatio(i);
     
-    double time = bunch_mp->getT(); // s
+    double time = bunch_mp->getT(); // ps
     
     ytWriter.writeGrids(rho_m, phi_m, eg_m, rr, this->Geom(), time);
 #endif
