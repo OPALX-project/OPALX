@@ -280,15 +280,7 @@ private:
     AmrFieldContainer_t phi_m;
     
     /// vector field on the grid for all levels
-    AmrFieldContainer_t eg_m;
-    
-#ifdef DBG_SCALARFIELD
-    /*!
-     * used for writing charge density, potential, electric field to a
-     * file (compile with CMAKE option -DDBG_SCALARFIELD=1)
-     */
-    int fieldDBGStep_m;
-#endif    
+    AmrFieldContainer_t eg_m;    
 };
 
 #endif
