@@ -3,6 +3,8 @@
 
 #include "Amr/AbstractAmrWriter.h"
 
+#include <boost/filesystem.hpp>
+
 /*!
  * This concrete class writes output files
  * that are readable by
@@ -17,8 +19,9 @@ class AmrYtWriter : public AbstractAmrWriter {
     
 public:
     
-    void writeGrids(const std::string& dir,
-                    const amr::AmrFieldContainer_t& rho,
+    AmrYtWriter(int step);
+    
+    void writeGrids(const amr::AmrFieldContainer_t& rho,
                     const amr::AmrFieldContainer_t& phi,
                     const amr::AmrFieldContainer_t& efield,
                     const amr::AmrIntArray_t& refRatio,
@@ -27,6 +30,10 @@ public:
     
     
     void writeBunch(const AmrPartBunch* bunch_p);
+    
+private:
+    boost::filesystem::path dir_m;  ///< directory where to write files
+    int step_m;                     ///< that we write
 };
 
 #endif

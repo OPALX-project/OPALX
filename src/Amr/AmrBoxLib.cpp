@@ -507,16 +507,15 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     }
     
 #if AMR_YT_DUMP
-    std::string ytdirectory = amrex::Concatenate("yt-data/plt", 0, 6);
-    AmrYtWriter ytWriter;
+    AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
     
     AmrIntArray_t rr(nLevel);
     for (int i = 0; i < nLevel - 1; ++i)
         rr[i] = this->MaxRefRatio(i);
     
-    double time = bunch_mp->getT() * 1.0e9; // s --> ns
+    double time = bunch_mp->getT(); // s
     
-    ytWriter.writeGrids(ytdirectory, rho_m, phi_m, eg_m, rr, this->Geom(), time);
+    ytWriter.writeGrids(rho_m, phi_m, eg_m, rr, this->Geom(), time);
 #endif
 
 #ifdef AMR_PYTHON_DUMP

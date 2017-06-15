@@ -12,17 +12,22 @@ AmrPythonWriter::AmrPythonWriter()
     namespace fs = boost::filesystem;
     
     fs::path dir = OpalData::getInstance()->getInputBasename();
-    dir_m = dir.parent_path() / "data" / "amr";
+    dir_m = dir.parent_path() / "data" / "amr" / "python";
     
-    if ( Ippl::myNode() == 0 && !fs::exists(dir_m) )
-        fs::create_directory( dir_m );
+    if ( Ippl::myNode() == 0 && !fs::exists(dir_m) ) {
+        try {
+            fs::create_directories( dir_m );
+        } catch(const fs::filesystem_error& ex) {
+            throw OpalException("AmrPythonWriter::AmrPythonWriter()",
+                                ex.what());
+        }
+    }
     
     Ippl::Comm->barrier();
 }
 
 
-void AmrPythonWriter::writeGrids(const std::string& dir,
-                                 const amr::AmrFieldContainer_t& rho,
+void AmrPythonWriter::writeGrids(const amr::AmrFieldContainer_t& rho,
                                  const amr::AmrFieldContainer_t& phi,
                                  const amr::AmrFieldContainer_t& efield,
                                  const amr::AmrIntArray_t& refRatio,
@@ -40,7 +45,7 @@ void AmrPythonWriter::writeBunch(const AmrPartBunch* bunch_p) {
     
     long long step = bunch_p->getLocalTrackStep();
     
-    sstep << std::setfill('0') << std::setw(6) << std::to_string(step);
+    sstep << std::setfill('0') << std::setw(10) << std::to_string(step);
     
     fs::path gDir = dir_m / ("grids_" + sstep.str() + ".dat");
     fs::path pDir = dir_m / ("bunch_" + sstep.str() + ".dat");
