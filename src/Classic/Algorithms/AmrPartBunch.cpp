@@ -142,6 +142,8 @@ void AmrPartBunch::boundp() {
     layout_p->domainMapping(*amrpbase_mp, true);
     
     R.resetDirtyFlag();
+    
+    printLevelStatistics();
 
     IpplTimings::stopTimer(boundpTimer_m);
 }
@@ -184,23 +186,23 @@ void AmrPartBunch::computeSelfFields_cycl(int bin) {
 void AmrPartBunch::printLevelStatistics() {
     Inform msg("LevelStatistics");
     
-    int maxlevel = (&amrpbase_mp->getAmrLayout())->maxLevel();
+    int nLevel = (&amrpbase_mp->getAmrLayout())->maxLevel() + 1;
     
-    std::unique_ptr<size_t[]> partPerLevel( new size_t[maxlevel] );
-    std::unique_ptr<size_t[]> globalPartPerLevel( new size_t[maxlevel] );
+    std::unique_ptr<size_t[]> partPerLevel( new size_t[nLevel] );
+    std::unique_ptr<size_t[]> globalPartPerLevel( new size_t[nLevel] );
     
-    for (int i = 0; i < maxlevel; ++i)
+    for (int i = 0; i < nLevel; ++i)
         partPerLevel[i] = globalPartPerLevel[i] = 0.0;
         
     for (size_t i = 0; i < this->getLocalNum(); ++i)
         ++partPerLevel[amrpbase_mp->Level[i]];
         
     reduce(partPerLevel.get(),
-           partPerLevel.get() + maxlevel,
+           partPerLevel.get() + nLevel,
            globalPartPerLevel.get(),
            OpAddAssign());
     
-    for (int i = 0; i < maxlevel; ++i)
+    for (int i = 0; i < nLevel; ++i)
         msg << "Level " << i << " has "
             << globalPartPerLevel[i] << " ("
             << globalPartPerLevel[i] / this->getTotalNum() * 100.0
