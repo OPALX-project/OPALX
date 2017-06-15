@@ -38,8 +38,6 @@ void AmrSliceWriter::writeFields(const amr::AmrFieldContainer_t& rho,
     std::ofstream fstr;
     fstr.precision(9);
     
-    std::cout << filename_m << std::endl;
-
     /*
      * dump the charge density field
      */
