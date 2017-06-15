@@ -507,6 +507,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     }
     
 #if AMR_YT_DUMP
+    INFOMSG("*** START DUMPING FIELDS IN YT FORMAT ***" << endl);
     AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
     
     AmrIntArray_t rr(nLevel);
@@ -515,12 +516,15 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     
     double time = bunch_mp->getT(); // ps
     
-    ytWriter.writeGrids(rho_m, phi_m, eg_m, rr, this->Geom(), time);
+    ytWriter.writeFields(rho_m, phi_m, eg_m, rr, this->Geom(), time);
+    INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
 #endif
 
 #ifdef AMR_PYTHON_DUMP
+    INFOMSG("*** START DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
     AmrPythonWriter pyWriter;
     pyWriter.writeBunch(bunch_mp);
+    INFOMSG("*** FINISHED DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
 #endif
     
 //     for (int i = 0; i <= finest_level; ++i) {

@@ -21,12 +21,19 @@ public:
     
     AmrYtWriter(int step);
     
-    void writeGrids(const amr::AmrFieldContainer_t& rho,
-                    const amr::AmrFieldContainer_t& phi,
-                    const amr::AmrFieldContainer_t& efield,
-                    const amr::AmrIntArray_t& refRatio,
-                    const amr::AmrGeomContainer_t& geom,
-                    const double& time);
+    /*!
+     * Write yt files to the simulation subdirectory
+     * data/amr/yt.
+     * The data can be visualized using the python script
+     * pyOPALTools/amrPlots/visualize.py. Use the help
+     * to find out how to call the script.
+     */
+    void writeFields(const amr::AmrFieldContainer_t& rho,
+                     const amr::AmrFieldContainer_t& phi,
+                     const amr::AmrFieldContainer_t& efield,
+                     const amr::AmrIntArray_t& refRatio,
+                     const amr::AmrGeomContainer_t& geom,
+                     const double& time);
     
     
     void writeBunch(const AmrPartBunch* bunch_p);
