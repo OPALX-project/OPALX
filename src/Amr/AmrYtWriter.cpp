@@ -6,17 +6,39 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_VisMF.H>
 
+#include "AbstractObjects/OpalData.h"
 #include "Utilities/OpalException.h"
 
 
-void AmrYtWriter::writeGrids(const std::string& dir,
-                             const amr::AmrFieldContainer_t& rho,
+AmrYtWriter::AmrYtWriter(int step) : step_m(step)
+{
+    namespace fs = boost::filesystem;
+    
+    fs::path dir = OpalData::getInstance()->getInputBasename();
+    dir_m = dir.parent_path() / "data" / "amr" / "yt";
+    
+    if ( Ippl::myNode() == 0 && !fs::exists(dir_m) ) {
+        try {
+            fs::create_directories( dir_m );
+        } catch(const fs::filesystem_error& ex) {
+            throw OpalException("AmrPythonWriter::AmrPythonWriter()",
+                                ex.what());
+        }
+    }
+    
+    Ippl::Comm->barrier();
+}
+
+
+void AmrYtWriter::writeGrids(const amr::AmrFieldContainer_t& rho,
                              const amr::AmrFieldContainer_t& phi,
                              const amr::AmrFieldContainer_t& efield,
                              const amr::AmrIntArray_t& refRatio,
                              const amr::AmrGeomContainer_t& geom,
                              const double& time)
 {
+    std::string dir = amrex::Concatenate((dir_m / "plt").string(), step_m, 10);
+    
     int nLevels = rho.size();
     //
     // Only let 64 CPUs be writing at any one time.

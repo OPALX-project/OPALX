@@ -13,7 +13,6 @@ class AbstractAmrWriter {
     
 public:
     /*!
-     * @param dir where to store
      * @param rho is the charge density on all levels
      * @param phi is the electrostatic potential on all levels
      * @param efield are the electric field components on all levels
@@ -21,8 +20,7 @@ public:
      * @param geom are the geometries of all levels
      * @param time specifies the step.
      */
-    virtual void writeGrids(const std::string& dir,
-                            const amr::AmrFieldContainer_t& rho,
+    virtual void writeGrids(const amr::AmrFieldContainer_t& rho,
                             const amr::AmrFieldContainer_t& phi,
                             const amr::AmrFieldContainer_t& efield,
                             const amr::AmrIntArray_t& refRatio,
