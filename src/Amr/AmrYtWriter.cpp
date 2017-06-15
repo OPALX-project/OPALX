@@ -169,9 +169,15 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
             PathNameInHeader += BaseName;
             HeaderFile << PathNameInHeader << '\n';
         }
-
+        
+        //
+        // We combine all of the multifabs 
+        //
         amr::AmrField_t data(rho[lev]->boxArray(), rho[lev]->DistributionMap(), nData, 0);
         
+        //
+        // Cull data -- use no ghost cells.
+        //
         // dst, src, srccomp, dstcomp, numcomp, nghost
         /*
         * srccomp: the component to copy
