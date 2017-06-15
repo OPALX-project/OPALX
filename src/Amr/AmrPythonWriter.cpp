@@ -27,14 +27,14 @@ AmrPythonWriter::AmrPythonWriter()
 }
 
 
-void AmrPythonWriter::writeGrids(const amr::AmrFieldContainer_t& rho,
-                                 const amr::AmrFieldContainer_t& phi,
-                                 const amr::AmrFieldContainer_t& efield,
-                                 const amr::AmrIntArray_t& refRatio,
-                                 const amr::AmrGeomContainer_t& geom,
-                                 const double& time)
+void AmrPythonWriter::writeFields(const amr::AmrFieldContainer_t& rho,
+                                  const amr::AmrFieldContainer_t& phi,
+                                  const amr::AmrFieldContainer_t& efield,
+                                  const amr::AmrIntArray_t& refRatio,
+                                  const amr::AmrGeomContainer_t& geom,
+                                  const double& time)
 {
-    throw OpalException("AmrPythonWriter::writeGrids",
+    throw OpalException("AmrPythonWriter::writeFields",
                         "Not yet implemented.");
 }
 

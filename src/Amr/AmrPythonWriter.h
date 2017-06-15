@@ -17,13 +17,23 @@ public:
     
     AmrPythonWriter();
     
-    void writeGrids(const amr::AmrFieldContainer_t& rho,
-                    const amr::AmrFieldContainer_t& phi,
-                    const amr::AmrFieldContainer_t& efield,
-                    const amr::AmrIntArray_t& refRatio,
-                    const amr::AmrGeomContainer_t& geom,
-                    const double& time);
+    void writeFields(const amr::AmrFieldContainer_t& rho,
+                     const amr::AmrFieldContainer_t& phi,
+                     const amr::AmrFieldContainer_t& efield,
+                     const amr::AmrIntArray_t& refRatio,
+                     const amr::AmrGeomContainer_t& geom,
+                     const double& time);
     
+    /*!
+     * Write the particle coordinates and momenta to a file
+     * bunch_**********.dat where * represents a digit for
+     * specifying the step number. The grids of all levels
+     * are stored in the appropriate file grids_**********.dat.
+     * All files are stored in the simulation subdirectory
+     * data/amr/python
+     * 
+     * @param bunch_p
+     */
     void writeBunch(const AmrPartBunch* bunch_p);
     
 private:

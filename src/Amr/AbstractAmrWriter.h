@@ -20,12 +20,12 @@ public:
      * @param geom are the geometries of all levels
      * @param time specifies the step.
      */
-    virtual void writeGrids(const amr::AmrFieldContainer_t& rho,
-                            const amr::AmrFieldContainer_t& phi,
-                            const amr::AmrFieldContainer_t& efield,
-                            const amr::AmrIntArray_t& refRatio,
-                            const amr::AmrGeomContainer_t& geom,
-                            const double& time) = 0;
+    virtual void writeFields(const amr::AmrFieldContainer_t& rho,
+                             const amr::AmrFieldContainer_t& phi,
+                             const amr::AmrFieldContainer_t& efield,
+                             const amr::AmrIntArray_t& refRatio,
+                             const amr::AmrGeomContainer_t& geom,
+                             const double& time) = 0;
     
     /*!
      * @param bunch_p
