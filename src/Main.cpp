@@ -56,6 +56,60 @@ Inform *gmsg;
 #include <set>
 #include <algorithm>
 
+/*
+  
+  Includes related the to optimizer
+  
+ */
+
+#include "boost/smart_ptr.hpp"
+
+#include "Pilot/Pilot.h"
+#include "Util/CmdArguments.h"
+#include "Util/OptPilotException.h"
+
+#include "Optimizer/EA/FixedPisaNsga2.h"
+#include "Optimizer/EA/BlendCrossover.h"
+#include "Optimizer/EA/IndependentBitMutation.h"
+
+#include "Util/OpalInputFileParser.h"
+#include "Simulation/OpalSimulation.h"
+
+#include "Comm/CommSplitter.h"
+#include "Comm/Topology/NoCommTopology.h"
+#include "Comm/Splitter/ManyMasterSplit.h"
+#include "Comm/MasterGraph/SocialNetworkGraph.h"
+
+#include "Expression/Parser/function.hpp"
+#include "Expression/FromFile.h"
+#include "Expression/SumErrSq.h"
+#include "Expression/SDDSVariable.h"
+#include "Expression/RadialPeak.h"
+#include "Expression/SumErrSqRadialPeak.h"
+#include "Expression/ProbeVariable.h"
+
+struct sameSDDSVariable {
+    sameSDDSVariable(const std::string & base_filename) {
+        size_t pos = base_filename.find_last_of("/");
+        std::string tmplfile = base_filename;
+        if(pos != std::string::npos)
+            tmplfile = base_filename.substr(pos+1);
+        pos = tmplfile.find(".");
+        // std::string simName =
+        stat_filename_ = tmplfile.substr(0,pos) + ".stat";
+    }
+
+    Expressions::Result_t operator()(client::function::arguments_t args) {
+        args.push_back(stat_filename_);
+        return var_(args);
+    }
+
+private:
+    client::function::argument_t stat_filename_;
+    SDDSVariable var_;
+};
+
+
 //  DTA
 #define NC 5
 
@@ -151,6 +205,55 @@ int mainOPALOptimiser(int argc, char *argv[]) {
   gmsg = new  Inform("OPAL");
 
   *gmsg << "We would start the optimiser here .... " << endl;
+
+    MPI_Init(&argc, &argv);
+
+    // Setup/Configuration
+    //////////////////////////////////////////////////////////////////////////
+    typedef OpalInputFileParser Input_t;
+    typedef OpalSimulation Sim_t;
+
+    typedef FixedPisaNsga2< BlendCrossover, IndependentBitMutation > Opt_t;
+
+    //    typedef PisaVariator< BlendCrossover, IndependentBitMutation > Opt_t;
+
+    typedef CommSplitter< ManyMasterSplit< NoCommTopology > > Comm_t;
+    typedef SocialNetworkGraph< NoCommTopology > SolPropagationGraph_t;
+
+    typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t>
+        pilot_t;
+
+    // prepare function dictionary and add all available functions in
+    // expressions
+    functionDictionary_t funcs;
+    client::function::type ff;
+    ff = FromFile();
+    funcs.insert(std::pair<std::string, client::function::type>
+            ("fromFile", ff));
+    ff = SumErrSq();
+    funcs.insert(std::pair<std::string, client::function::type>
+            ("sumErrSq", ff));
+    ff = SDDSVariable();
+    funcs.insert(std::pair<std::string, client::function::type>
+            ("sddsVariableAt", ff));
+
+    ff = RadialPeak();
+    funcs.insert(std::pair<std::string, client::function::type>
+            ("radialPeak", ff));
+    ff = SumErrSqRadialPeak();
+    funcs.insert(std::pair<std::string, client::function::type>
+            ("sumErrSqRadialPeak", ff));
+
+    ff = ProbeVariable();
+    funcs.insert(std::pair<std::string, client::function::type>
+            ("probVariableWithID", ff));
+
+    //////////////////////////////////////////////////////////////////////////
+
+
+
+
+
 
   return 0;
 }
