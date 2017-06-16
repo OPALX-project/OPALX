@@ -50,9 +50,11 @@ Inform *gmsg;
 #include <gsl/gsl_errno.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include <cstring>
 #include <set>
+#include <algorithm>
 
 //  DTA
 #define NC 5
@@ -71,21 +73,90 @@ void errorHandlerGSL(const char *reason,
                      const char *file,
                      int line,
                      int gsl_errno);
-// /DTA
 
-// Global data.
-// ------------------------------------------------------------------------
 
-//: The global OPAL data structure.
-//  Contains mainly the directory of known objects,
-//  but also the directories used to maintain tables and expressions
-//  up-to-date, as well as the run title.
-//OpalData OPAL;
+bool haveOpimiseRun(int argc, char *argv[]) {
+  
+  namespace fs = boost::filesystem;
 
-//: A global Inform object
+  int arg = -1;
+  std::string fname;
 
-//: The OPAL main program.
-int main(int argc, char *argv[]) {
+  for(int ii = 1; ii < argc; ++ ii) {
+    std::string argStr = std::string(argv[ii]);
+    if (argStr == std::string("--input")) {
+      ++ ii;
+      arg = ii;
+      INFOMSG(argv[ii] << endl);
+      continue;
+    } else if (argStr == std::string("-restart") ||
+	       argStr == std::string("--restart")) {
+      return false;
+    } else if (argStr == std::string("-restartfn") ||
+	       argStr == std::string("--restartfn")) {
+      return false;
+    } else if (argStr == std::string("-version") ||
+	       argStr == std::string("--version")) {
+      return false;
+    } else if (argStr == std::string("-help") ||
+	       argStr == std::string("--help")) {
+      return false;
+    } else {
+      if (arg == -1 &&
+	  (ii == 1 || ii + 1 == argc) &&
+	  argv[ii][0] != '-') {
+	arg = ii;
+	continue;
+      } else {
+	continue;
+      }
+    }
+  }
+
+  if (arg == -1) {
+    INFOMSG("No input file provided!" << endl);
+    exit(1);
+  }
+
+  fname = std::string(argv[arg]);
+  if (!fs::exists(fname)) {
+    INFOMSG("Input file \"" << fname << "\" doesn't exist!" << endl);
+    exit(1);
+  }
+
+  std::ifstream inFile;
+  inFile.open(fname);
+
+  std::stringstream strStream;
+  strStream << inFile.rdbuf();
+  std::string str = strStream.str();
+
+  std::transform(str.begin(), str.end(),str.begin(), ::toupper);
+
+  const std::string s1("OPTIMIZE");
+  const std::string s2("OBJECTIVE");
+  const std::string s3("DVAR");
+  
+  bool res = (boost::algorithm::contains(str, s1) && 
+	      boost::algorithm::contains(str, s2) &&
+	      boost::algorithm::contains(str, s3));
+
+  inFile.close();
+
+  return res;
+}
+
+int mainOPALOptimiser(int argc, char *argv[]) {
+
+  gmsg = new  Inform("OPAL");
+
+  *gmsg << "We would start the optimiser here .... " << endl;
+
+  return 0;
+}
+
+
+int mainOPAL(int argc, char *argv[]) {
     ippl = new Ippl(argc, argv);
     gmsg = new  Inform("OPAL");
 
@@ -396,3 +467,21 @@ void errorHandlerGSL(const char *reason,
                      int) {
     throw OpalException(file, reason);
 }
+
+
+
+// The OPAL main program.
+
+int main(int argc, char *argv[]) {
+
+  int res; 
+
+  if ((argc <= 1) || !haveOpimiseRun(argc, argv))
+    res = mainOPAL(argc, argv);
+  else
+    res = mainOPALOptimiser(argc, argv);
+  return res;
+
+}
+
+
