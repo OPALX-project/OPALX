@@ -1,0 +1,3 @@
+* 2006-03-28:
+  - CHANGE_LOG.txt created.
+  - Updated ExampleShapes.cpp, FrameworkFunctions.h, and FrameworkFunctions.cpp to reflect the introduction of the distance scaling constant D by the IEEE TEC review paper. WFG1--WFG9, and I1--I5 have D values of 1.0, leaving their behaviour unchanged. Large D values are recommended to emphasise the difference in results.
