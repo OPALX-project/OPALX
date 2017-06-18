@@ -32,7 +32,7 @@
 
 
 // access to OPAL lib
-#include "opal.h"
+#include "src/opal.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 
@@ -140,7 +140,13 @@ void OpalSimulation::setupSimulation() {
         for(int i=0; i<count; i++) {
             std::string source = fieldmapPath + "/" + files[i]->d_name;
             std::string target = simulationDirName_ + '/' + files[i]->d_name;
-            symlink(source.c_str(), target.c_str());
+            int err = symlink(source.c_str(), target.c_str());
+            if (err != 0) {
+                // FIXME properly handle error
+                std::cout << "Cannot symlink fieldmap "
+                        << source.c_str() << " to "
+                        << target.c_str() << std::endl;
+            }
         }
     }
 
@@ -186,7 +192,14 @@ void OpalSimulation::run() {
 
     pwd_ = getenv("PWD");
     pwd_ += "/";
-    chdir(simulationDirName_.c_str());
+    int err = chdir(simulationDirName_.c_str());
+    if (err != 0) {
+        std::cout << "Cannot chdir to "
+                  << simulationDirName_.c_str() << std::endl;
+        std::cout << "Continuing, disregarding this simulation.."
+                  << std::endl;
+        return;
+    }
 
     // setup OPAL command line options
     std::ostringstream inputFileName;
@@ -200,7 +213,7 @@ void OpalSimulation::run() {
     char info0[] = "0";
     char warn[] = "--warn";
     char warn0[] = "0";
-    char *arg[] = { exe_name, inputfile, nocomm, info, info0, warn, warn0};
+    char *arg[] = { exe_name, inputfile, nocomm, info, info0, warn, warn0 };
 
     int seed = Options::seed;
     try {
@@ -252,7 +265,11 @@ void OpalSimulation::run() {
     Options::seed = seed;
 
     delete[] inputfile;
-    chdir(pwd_.c_str());
+    err = chdir(pwd_.c_str());
+    if (err != 0) {
+        std::cout << "Cannot chdir to "
+                  << simulationDirName_.c_str() << std::endl;
+    }
 }
 
 
@@ -261,7 +278,15 @@ void OpalSimulation::collectResults() {
     // clear old solutions
     requestedVars_.clear();
 
-    chdir(simulationDirName_.c_str());
+    int err = chdir(simulationDirName_.c_str());
+    if (err != 0) {
+        std::cout << "Cannot chdir to "
+                  << simulationDirName_.c_str() << std::endl;
+        std::cout << "Continuing, with cleanup.."
+                  << std::endl;
+        cleanUp();
+        return;
+    }
 
     std::string fn = simulationName_ + ".stat";
     struct stat fileInfo;
@@ -412,7 +437,11 @@ void OpalSimulation::collectResults() {
 
     }
 
-    chdir(pwd_.c_str());
+    err = chdir(pwd_.c_str());
+    if (err != 0) {
+        std::cout << "Cannot chdir to "
+                  << simulationDirName_.c_str() << std::endl;
+    }
 
     cleanUp();
 }
