@@ -57,11 +57,8 @@ Inform *gmsg;
 #include <algorithm>
 
 /*
-  
   Includes related the to optimizer
-  
  */
-
 #include "boost/smart_ptr.hpp"
 
 #include "Pilot/Pilot.h"
@@ -130,7 +127,7 @@ void errorHandlerGSL(const char *reason,
 
 
 bool haveOpimiseRun(int argc, char *argv[]) {
-  
+
   namespace fs = boost::filesystem;
 
   int arg = -1;
@@ -190,8 +187,8 @@ bool haveOpimiseRun(int argc, char *argv[]) {
   const std::string s1("OPTIMIZE");
   const std::string s2("OBJECTIVE");
   const std::string s3("DVAR");
-  
-  bool res = (boost::algorithm::contains(str, s1) && 
+
+  bool res = (boost::algorithm::contains(str, s1) &&
 	      boost::algorithm::contains(str, s2) &&
 	      boost::algorithm::contains(str, s3));
 
@@ -202,9 +199,8 @@ bool haveOpimiseRun(int argc, char *argv[]) {
 
 int mainOPALOptimiser(int argc, char *argv[]) {
 
-  gmsg = new  Inform("OPAL");
-
-  *gmsg << "We would start the optimiser here .... " << endl;
+    gmsg = new  Inform("OPAL");
+    *gmsg << "We would start the optimiser here .... " << endl;
 
     MPI_Init(&argc, &argv);
 
@@ -214,8 +210,6 @@ int mainOPALOptimiser(int argc, char *argv[]) {
     typedef OpalSimulation Sim_t;
 
     typedef FixedPisaNsga2< BlendCrossover, IndependentBitMutation > Opt_t;
-
-    //    typedef PisaVariator< BlendCrossover, IndependentBitMutation > Opt_t;
 
     typedef CommSplitter< ManyMasterSplit< NoCommTopology > > Comm_t;
     typedef SocialNetworkGraph< NoCommTopology > SolPropagationGraph_t;
@@ -250,12 +244,26 @@ int mainOPALOptimiser(int argc, char *argv[]) {
 
     //////////////////////////////////////////////////////////////////////////
 
+    try {
+        CmdArguments_t args(new CmdArguments(argc, argv));
 
+        std::string fname = args->getArg<std::string>("inputfile", true);
+        ff = sameSDDSVariable(fname);
+        funcs.insert(std::pair<std::string, client::function::type>
+                     ("sameSDDSVariableAt", ff));
 
+        boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
+        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs));
 
+    } catch (OptPilotException &e) {
+        std::cout << "Exception caught: " << e.what() << std::endl;
+        MPI_Abort(MPI_COMM_WORLD, -100);
+    }
 
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Finalize();
 
-  return 0;
+    return 0;
 }
 
 
@@ -577,7 +585,7 @@ void errorHandlerGSL(const char *reason,
 
 int main(int argc, char *argv[]) {
 
-  int res; 
+  int res;
 
   if ((argc <= 1) || !haveOpimiseRun(argc, argv))
     res = mainOPAL(argc, argv);
