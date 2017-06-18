@@ -3,7 +3,7 @@
 set_source_files_properties(${CMAKE_SOURCE_DIR}/Expression/Parser/expression.cpp PROPERTIES COMPILE_FLAGS "-Wno-error=parentheses" )
 
 set (PILOT_OPAL_SRCS
-    ${CMAKE_SOURCE_DIR}/Simulation/OpalSimulation.cpp PARENT_SCOPE
+    ${CMAKE_SOURCE_DIR}/Simulation/OpalSimulation.cpp
 )
 
 set (PILOT_FEVAL_SRCS

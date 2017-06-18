@@ -7,7 +7,6 @@ SET (_UTIL_SRCS
     SDDSReader.cpp
     ProbeReader.cpp
     CommentAnnotatedInputFileParser.cpp
-    PARENT_SCOPE
 )
 
 add_sources(${_UTIL_SRCS})
