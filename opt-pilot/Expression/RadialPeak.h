@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "boost/type_traits/remove_cv.hpp"
 #include "boost/variant/get.hpp"
 #include "boost/variant/variant.hpp"
 #include "boost/smart_ptr.hpp"
@@ -13,19 +14,19 @@
 
 /**
  * A simple expression to get the n-th peak of a radial probe
- * 
+ *
  */
 struct RadialPeak {
-    
+
     static const std::string name;
-    
+
     Expressions::Result_t operator()(client::function::arguments_t args) {
 
         peak_filename_ = boost::get<std::string>(args[0]);
         turn_number_   = boost::get<double>(args[1]);
-        
+
         bool is_valid = true;
-        
+
         boost::scoped_ptr<PeakReader> sim_peaks(new PeakReader(peak_filename_));
         try {
             sim_peaks->parseFile();
@@ -33,7 +34,7 @@ struct RadialPeak {
             std::cout << "Caught exception: " << ex.what() << std::endl;
             is_valid = false;
         }
-        
+
         double sim_radius = 0.0;
         try {
             sim_peaks->getPeak(turn_number_, sim_radius);
@@ -43,15 +44,15 @@ struct RadialPeak {
                       << std::endl;
             is_valid = false;
         }
-        
+
         return boost::make_tuple(sim_radius, is_valid);
     }
-    
+
 private:
-    
+
     std::string peak_filename_;
     int turn_number_;
-    
+
     // define a mapping to arguments in argument vector
     boost::tuple<std::string, int> argument_types;
     enum {
