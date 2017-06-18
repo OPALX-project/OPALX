@@ -129,9 +129,9 @@ macro (add_sources)
     file (RELATIVE_PATH _relPath "${_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
     foreach (_src ${ARGN})
         if (_relPath)
-            list (APPEND OPTP_SRCS "${CMAKE_SOURCE_DIR}/${_relPath}/${_src}")
+            list (APPEND OPTP_SRCS "${CMAKE_SOURCE_DIR}/opt-pilot/${_relPath}/${_src}")
         else()
-            list (APPEND OPTP_SRCS "${CMAKE_SOURCE_DIR}/${_src}")
+            list (APPEND OPTP_SRCS "${CMAKE_SOURCE_DIR}/opt-pilot/${_src}")
         endif()
     endforeach()
     if (_relPath)
@@ -145,30 +145,45 @@ set (OPTP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" PARENT_SCOPE)
 SET (OPTP_USED_FROM_OPAL "TRUE")
 
 add_subdirectory (Expression)
+add_subdirectory (Simulation)
 add_subdirectory (Util)
 add_subdirectory (extlib)
 
-set (PILOT_LIBS
-     pthread
-     m
-     boost_chrono
-     boost_regex
-     boost_system
-     boost_serialization
-#    nlopt
-     Problems
+
+#-----------------------------------------------------------------------------
+# Build liboptp for linking to OPAL
+#
+set (CMAKE_CXX_FLAGS
+    "${IPPL_CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS}"
+    )
+include_directories ( ${CMAKE_CURRENT_SOURCE_DIR} )
+add_library ( optp ${OPTP_SRCS} ${PILOT_OPAL_SRCS} )
+set (OPTP_LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}" PARENT_SCOPE)
+set (OPTP_LIBRARY "optp" PARENT_SCOPE)
+set (OPTP_LIBS
+    pthread
+    m
+    boost_chrono
+    boost_regex
+    boost_system
+    boost_serialization
+    wfgHypervolume
+    PARENT_SCOPE
 )
+
 
 IF (NOT OPTP_USED_FROM_OPAL)
 #-----------------------------------------------------------------------------
 # Executables
 add_subdirectory (Drivers)
 
+ENDIF (NOT OPTP_USED_FROM_OPAL)
+
 #-----------------------------------------------------------------------------
 # Testing
 enable_testing()
 add_subdirectory(Tests)
-ENDIF (NOT OPTP_USED_FROM_OPAL)
+
 #-----------------------------------------------------------------------------
 # Doxygen
 find_package(Doxygen)
