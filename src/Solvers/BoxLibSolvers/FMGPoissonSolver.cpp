@@ -4,7 +4,7 @@
 
 FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* itsAmrObject_p)
     : AmrPoissonSolver<AmrBoxLib>(itsAmrObject_p),
-      reltol_m(1.0e-12),
+      reltol_m(1.0e-14),
       abstol_m(1.0e-10)
 {
     // Dirichlet boundary conditions are default
