@@ -11,6 +11,7 @@
 
 #include "boost/smart_ptr.hpp"
 #include "boost/tuple/tuple.hpp"
+#include "boost/type_traits/remove_cv.hpp"
 #include "boost/variant/get.hpp"
 #include "boost/variant/variant.hpp"
 
