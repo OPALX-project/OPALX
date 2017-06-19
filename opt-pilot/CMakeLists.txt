@@ -181,8 +181,11 @@ ENDIF (NOT OPTP_USED_FROM_OPAL)
 
 #-----------------------------------------------------------------------------
 # Testing
+
+IF (BUILD_OPAL_UNIT_TESTS)
 enable_testing()
 add_subdirectory(Tests)
+ENDIF (BUILD_OPAL_UNIT_TESTS)
 
 #-----------------------------------------------------------------------------
 # Doxygen
