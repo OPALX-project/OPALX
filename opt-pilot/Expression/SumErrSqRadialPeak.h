@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "boost/type_traits/remove_cv.hpp"
 #include "boost/variant/get.hpp"
 #include "boost/variant/variant.hpp"
 #include "boost/smart_ptr.hpp"
@@ -31,19 +32,19 @@ struct SumErrSqRadialPeak {
         sim_filename_  = boost::get<std::string>(args[1]);
         begin_         = boost::get<double>(args[2]);
         end_           = boost::get<double>(args[3]);
-        
+
         bool is_valid = true;
-        
+
         boost::scoped_ptr<PeakReader> meas_peaks(new PeakReader(meas_filename_));
         boost::scoped_ptr<PeakReader> sim_peaks(new PeakReader(sim_filename_));
         try {
             sim_peaks->parseFile();
             meas_peaks->parseFile();
-            
+
             if ( end_ < begin_ || end_ < 0 || begin_ < 0 )
                 throw OptPilotException("SumErrSqRadialPeak::operator()",
                                         "Error check turn number range");
-            
+
         } catch (OptPilotException &ex) {
             std::cout << "Caught exception: " << ex.what() << std::endl;
             is_valid = false;
@@ -51,7 +52,7 @@ struct SumErrSqRadialPeak {
 
         double sum = 0;
         int nPeaks = end_ - begin_ + 1;
-        
+
         for (int turn = begin_; turn < end_ + 1; ++turn) {
             double sim_value = 0.0, meas_value = 0.0;
             try {
