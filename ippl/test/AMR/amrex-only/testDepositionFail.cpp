@@ -23,7 +23,7 @@
 using namespace amrex;
 
 
-/* NStructReal = 3 (mass, position are already reserved)
+/* NStructReal = 4 (mass, position are already reserved)
  * 
  * p.m_rdata.arr[0] = pos x
  * p.m_rdata.arr[1] = pos y
@@ -35,14 +35,14 @@ using namespace amrex;
  */
 
 class MyParticleContainer
-    : public ParticleContainer<BL_SPACEDIM /* momenta */>
+    : public ParticleContainer<BL_SPACEDIM + 1 /* momenta */>
 {
  public:
 
     MyParticleContainer(const Geometry            & geom, 
                         const DistributionMapping & dmap,
                         const BoxArray            & ba)
-        : ParticleContainer<BL_SPACEDIM> (geom, dmap, ba), particles_rm(GetParticles())
+        : ParticleContainer<BL_SPACEDIM + 1> (geom, dmap, ba), particles_rm(GetParticles())
         {}
 
     // init particles within sphere of radius r
@@ -65,6 +65,8 @@ class MyParticleContainer
         int nLocParticles = nParticles / NProcs;
         
         std::mt19937_64 eng[3];
+        
+        std::cout << nParticles << " " << nLocParticles << std::endl;
     
         for (int i = 0; i < 3; ++i) {
             eng[i].seed(42 + 3 * i);
@@ -107,14 +109,10 @@ class MyParticleContainer
         
             BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= m_gdb->finestLevel());
             
-            const int who = ParticleDistributionMap(pld.m_lev)[pld.m_grid];
-            
-            if (who == MyProc) {
-                p.m_idata.id  = ParticleType::NextID();
-                p.m_idata.cpu = MyProc;
+            p.m_idata.id  = ParticleType::NextID();
+            p.m_idata.cpu = MyProc;
                 
-                particles_rm[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-            }
+            particles_rm[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
         }
     
         BL_ASSERT(OK());
@@ -360,7 +358,9 @@ void doTest(TestParams& parms)
     
     myPC.Redistribute();
     
-    for (int i = 0; i <= myAmr.finestLevel() && i < myAmr.maxLevel(); ++i)
+    std::cout << "Total num: " << myPC.TotalNumberOfParticles() << std::endl;
+    
+    for (int i = 0; i < nlevs - 1; /*myAmr.finestLevel() && i < myAmr.maxLevel();*/ ++i)
         myAmr.regrid(i, 0.0);
     
     
