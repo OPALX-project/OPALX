@@ -99,7 +99,7 @@ void BoxLibParticle<PLayout>::AssignDensityFort(ParticleAttrib<AType> &pa,
     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
     int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
     amrex::Array<amrex::BCRec> bcs(1, amrex::BCRec(lo_bc, hi_bc));
-    amrex::CellConservativeLinear mapper;
+    amrex::PCInterp mapper;
     
     AmrFieldContainer_t tmp(finest_level+1);
     for (int lev = lev_min; lev <= finest_level; ++lev) {
