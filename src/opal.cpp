@@ -1,7 +1,7 @@
 #include "opal.h"
 
-Ippl *ippl;
-Inform *gmsg;
+extern Ippl *ippl;
+extern Inform *gmsg;
 
 
 #include "AbstractObjects/OpalData.h"

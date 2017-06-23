@@ -199,10 +199,10 @@ bool haveOpimiseRun(int argc, char *argv[]) {
 
 int mainOPALOptimiser(int argc, char *argv[]) {
 
+    ippl = new Ippl(argc, argv);
     gmsg = new  Inform("OPAL");
-    *gmsg << "We would start the optimiser here .... " << endl;
 
-    MPI_Init(&argc, &argv);
+    *gmsg << "We would start the optimiser here .... " << endl;
 
     // Setup/Configuration
     //////////////////////////////////////////////////////////////////////////
@@ -259,10 +259,16 @@ int mainOPALOptimiser(int argc, char *argv[]) {
         std::cout << "Exception caught: " << e.what() << std::endl;
         MPI_Abort(MPI_COMM_WORLD, -100);
     }
-
-    MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Finalize();
-
+    
+    Ippl::Comm->barrier();
+    Fieldmap::clearDictionary();
+    OpalData::deleteInstance();
+    delete gmsg;
+    delete ippl;
+    delete Ippl::Info;
+    delete Ippl::Warn;
+    delete Ippl::Error;
+    delete Ippl::Debug;
     return 0;
 }
 
