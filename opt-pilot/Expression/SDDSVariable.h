@@ -65,4 +65,25 @@ private:
 
 };
 
+struct sameSDDSVariable {
+    sameSDDSVariable(const std::string & base_filename) {
+        size_t pos = base_filename.find_last_of("/");
+        std::string tmplfile = base_filename;
+        if(pos != std::string::npos)
+            tmplfile = base_filename.substr(pos+1);
+        pos = tmplfile.find(".");
+        // std::string simName =
+        stat_filename_ = tmplfile.substr(0,pos) + ".stat";
+    }
+
+    Expressions::Result_t operator()(client::function::arguments_t args) {
+        args.push_back(stat_filename_);
+        return var_(args);
+    }
+
+private:
+    client::function::argument_t stat_filename_;
+    SDDSVariable var_;
+};
+
 #endif
