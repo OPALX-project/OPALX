@@ -15,10 +15,6 @@
 //
 // ------------------------------------------------------------------------
 
-//~ #ifdef DEBUG_ALLOCATOR
-//~ #include "Allocator.h"
-//~ #endif
-
 #include "opal.h"
 
 Ippl *ippl;
@@ -84,28 +80,6 @@ Inform *gmsg;
 #include "Expression/RadialPeak.h"
 #include "Expression/SumErrSqRadialPeak.h"
 #include "Expression/ProbeVariable.h"
-
-struct sameSDDSVariable {
-    sameSDDSVariable(const std::string & base_filename) {
-        size_t pos = base_filename.find_last_of("/");
-        std::string tmplfile = base_filename;
-        if(pos != std::string::npos)
-            tmplfile = base_filename.substr(pos+1);
-        pos = tmplfile.find(".");
-        // std::string simName =
-        stat_filename_ = tmplfile.substr(0,pos) + ".stat";
-    }
-
-    Expressions::Result_t operator()(client::function::arguments_t args) {
-        args.push_back(stat_filename_);
-        return var_(args);
-    }
-
-private:
-    client::function::argument_t stat_filename_;
-    SDDSVariable var_;
-};
-
 
 //  DTA
 #define NC 5
@@ -200,9 +174,7 @@ bool haveOpimiseRun(int argc, char *argv[]) {
 int mainOPALOptimiser(int argc, char *argv[]) {
 
     ippl = new Ippl(argc, argv);
-    gmsg = new  Inform("OPAL");
-
-    *gmsg << "We would start the optimiser here .... " << endl;
+    gmsg = new  Inform("OPAL-opt");
 
     // Setup/Configuration
     //////////////////////////////////////////////////////////////////////////
@@ -312,6 +284,7 @@ int mainOPAL(int argc, char *argv[]) {
     *gmsg << endl
           << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << OPAL_VERSION_STR << "\n\n"
           << "                (c) PSI, http://amas.web.psi.ch" << endl
+          << "The optimiser (former opt-Pilot) is integrated " << endl
           << endl;
 
 #ifdef OPAL_DKS
