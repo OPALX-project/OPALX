@@ -32,7 +32,8 @@
 
 
 // access to OPAL lib
-#include "/gpfs/home/adelmann/opal/master-src/src/opal.h"
+//#include "/gpfs/home/adelmann/opal/master-src/src/opal.h"
+#include "opal.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 
