@@ -139,6 +139,8 @@ void OpalSimulation::setupSimulation() {
         struct dirent **files;
         int count = scandir(fieldmapPath.c_str(), &files, 0, alphasort);
         for(int i=0; i<count; i++) {
+            if (files[i]->d_name == std::string(".") ||
+                files[i]->d_name == std::string("..")) continue;
             std::string source = fieldmapPath + "/" + files[i]->d_name;
             std::string target = simulationDirName_ + '/' + files[i]->d_name;
             int err = symlink(source.c_str(), target.c_str());
