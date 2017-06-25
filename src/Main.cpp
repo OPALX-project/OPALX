@@ -104,6 +104,8 @@ bool haveOpimiseRun(int argc, char *argv[]) {
 
   namespace fs = boost::filesystem;
 
+  bool foundOptArg = false;
+
   int arg = -1;
   std::string fname;
 
@@ -126,7 +128,9 @@ bool haveOpimiseRun(int argc, char *argv[]) {
     } else if (argStr == std::string("-help") ||
 	       argStr == std::string("--help")) {
       return false;
-    } else {
+    } else if (argStr == std::string("--initialPopulation"))
+      foundOptArg = true;
+    else {
       if (arg == -1 &&
 	  (ii == 1 || ii + 1 == argc) &&
 	  argv[ii][0] != '-') {
@@ -168,7 +172,7 @@ bool haveOpimiseRun(int argc, char *argv[]) {
 
   inFile.close();
 
-  return res;
+  return res && foundOptArg;
 }
 
 int mainOPALOptimiser(int argc, char *argv[]) {
