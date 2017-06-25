@@ -159,6 +159,11 @@ ENDIF (ENABLE_AMR_SOLVER)
 # remove digits from hostname: edison03 -> edison
 STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
 
+# FIXME: This shouldn't be done like this
+if (${HOSTNAME_BASE} MATCHES "daint")
+   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable")
+endif(${HOSTNAME_BASE} MATCHES "daint")
+
 # In case of Edison and Cori the find_package(Trilinos) gives the wrong
 # Trilinos_TPL_LIBRARIES, instead of cray-tpsl/16.07.1 it uses
 # cray-tpsl/16.06.1 libraries -> Linker error.
