@@ -173,8 +173,7 @@ bool haveOpimiseRun(int argc, char *argv[]) {
 
 int mainOPALOptimiser(int argc, char *argv[]) {
 
-    ippl = new Ippl(argc, argv);
-    gmsg = new  Inform("OPAL-opt");
+    MPI_Init(&argc, &argv);
 
     // Setup/Configuration
     //////////////////////////////////////////////////////////////////////////
@@ -186,8 +185,7 @@ int mainOPALOptimiser(int argc, char *argv[]) {
     typedef CommSplitter< ManyMasterSplit< NoCommTopology > > Comm_t;
     typedef SocialNetworkGraph< NoCommTopology > SolPropagationGraph_t;
 
-    typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t>
-        pilot_t;
+    typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
 
     // prepare function dictionary and add all available functions in
     // expressions
