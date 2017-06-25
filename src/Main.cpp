@@ -104,7 +104,7 @@ bool haveOpimiseRun(int argc, char *argv[]) {
 
   namespace fs = boost::filesystem;
 
-  bool foundOptArg = false;
+  bool foundOptArg = true;
 
   int arg = -1;
   std::string fname;
@@ -128,8 +128,7 @@ bool haveOpimiseRun(int argc, char *argv[]) {
     } else if (argStr == std::string("-help") ||
 	       argStr == std::string("--help")) {
       return false;
-    } else if (argStr == std::string("--initialPopulation"))
-      foundOptArg = true;
+    } 
     else {
       if (arg == -1 &&
 	  (ii == 1 || ii + 1 == argc) &&
