@@ -136,21 +136,26 @@ void OpalSimulation::setupSimulation() {
                 "Environment variable FIELDMAPS not defined!");
         }
         std::string fieldmapPath = getenv("FIELDMAPS");
+	
         struct dirent **files;
         int count = scandir(fieldmapPath.c_str(), &files, 0, alphasort);
+
         for(int i=0; i<count; i++) {
             if (files[i]->d_name == std::string(".") ||
                 files[i]->d_name == std::string("..")) continue;
             std::string source = fieldmapPath + "/" + files[i]->d_name;
             std::string target = simulationDirName_ + '/' + files[i]->d_name;
-            int err = symlink(source.c_str(), target.c_str());
-            if (err != 0) {
-                // FIXME properly handle error
-                std::cout << "Cannot symlink fieldmap "
-                        << source.c_str() << " to "
-                        << target.c_str() << std::endl;
-            }
-        }
+	    int err = symlink(source.c_str(), target.c_str());
+	    if (err != 0) {
+	      // FIXME properly handle error
+	      std::cout << "Cannot symlink fieldmap "
+			<< source.c_str() << " to "
+			<< target.c_str() << " error no " << err << std::endl;
+	      std::cout << "fieldmapPath " << fieldmapPath << " i= " << i << std::endl;
+	      std::cout << "target       " << simulationDirName_ + '/' + files[i]->d_name << std::endl;
+
+	    }
+	}
     }
 
     MPI_Barrier(comm_);
@@ -185,7 +190,7 @@ void OpalSimulation::restoreOut() {
 
 
 void OpalSimulation::run() {
-
+  
     // make sure input file is not already existing
     MPI_Barrier(comm_);
     if( hasResultsAvailable() ) return;
@@ -196,6 +201,7 @@ void OpalSimulation::run() {
     pwd_ = getenv("PWD");
     pwd_ += "/";
     int err = chdir(simulationDirName_.c_str());
+
     if (err != 0) {
         std::cout << "Cannot chdir to "
                   << simulationDirName_.c_str() << std::endl;
@@ -219,6 +225,7 @@ void OpalSimulation::run() {
     char *arg[] = { exe_name, inputfile, nocomm, info, info0, warn, warn0 };
 
     int seed = Options::seed;
+
     try {
 
         //FIXME: this seems to crash OPAL in some cases
