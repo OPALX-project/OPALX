@@ -24,18 +24,111 @@
 
 #include "../helper_functions.h"
 
-// #include "writePlotFile.H"
+#include "../writePlotFile.H"
 
 #include <cmath>
 
 #include "Physics/Physics.h"
 #include <random>
 
+#include <getopt.h>
+
 typedef AmrOpal::amrplayout_t amrplayout_t;
 typedef AmrOpal::amrbase_t amrbase_t;
 typedef AmrOpal::amrbunch_t amrbunch_t;
 
 typedef Vektor<double, BL_SPACEDIM> Vector_t;
+
+struct param_t {
+    Vektor<size_t, 3> nr;
+    size_t nLevels;
+    size_t maxBoxSize;
+    double radius;
+    double length;
+    size_t nParticles;
+    bool isWriteYt;
+};
+
+
+bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
+    /* Parsing Command Line Arguments
+     * 
+     * 26. June 2017
+     * https://www.gnu.org/software/libc/manual/html_node/Getopt-Long-Option-Example.html#Getopt-Long-Option-Example
+     */
+    
+    int c = 0;
+    
+    int cnt = 0;
+    
+    while ( true ) {
+        static struct option long_options[] = {
+            { "gridx",      required_argument, 0, 'x' },
+            { "gridy",      required_argument, 0, 'y' },
+            { "gridz",      required_argument, 0, 'z' },
+            { "level",      required_argument, 0, 'l' },
+            { "maxgrid",    required_argument, 0, 'm' },
+            { "radius",     required_argument, 0, 'r' },
+            { "boxlength",  required_argument, 0, 'b' },
+            { "nparticles", required_argument, 0, 'n' },
+            { "writeYt",    no_argument,       0, 'w' },
+            { "help",       no_argument,       0, 'h' },
+            { 0,            0,                 0,  0  }
+        };
+        
+        int option_index = 0;
+        
+        c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:w", long_options, &option_index);
+        
+        if ( c == -1 )
+            break;
+        
+        switch ( c ) {
+            case 'x':
+                params.nr[0] = std::atoi(optarg); ++cnt; break;
+            case 'y':
+                params.nr[1] = std::atoi(optarg); ++cnt; break;
+            case 'z':
+                params.nr[2] = std::atoi(optarg); ++cnt; break;
+            case 'l':
+                params.nLevels = std::atoi(optarg) + 1; ++cnt; break;
+            case 'm':
+                params.maxBoxSize = std::atoi(optarg); ++cnt; break;
+            case 'r':
+                params.radius = std::atof(optarg); ++cnt; break;
+            case 'b':
+                params.length = std::atof(optarg); ++cnt; break;
+            case 'n':
+                params.nParticles = std::atoi(optarg); ++cnt; break;
+            case 'w':
+                params.isWriteYt = true;
+                break;
+            case 'h':
+                msg << "Usage: " << argv[0]
+                    << endl
+                    << "--gridx [#gridpoints in x]" << endl
+                    << "--gridy [#gridpoints in y]" << endl
+                    << "--gridz [#gridpoints in z]" << endl
+                    << "--level [#levels]" << endl
+                    << "--maxgrid [max. grid]" << endl
+                    << "--radius [sphere radius]" << endl
+                    << "--boxlength [cube side length]" << endl
+                    << "--nparticles [#particles]" << endl
+                    << "--writeYt"
+                    << endl;
+                break;
+            case '?':
+                break;
+            
+            default:
+                break;
+            
+        }
+    }
+    
+    return ( cnt == 8 );
+}
+
 
 void writeCSV(const container_t& phi,
               const container_t& efield,
@@ -102,6 +195,25 @@ void writeCSV(const container_t& phi,
     }
     
 }
+
+
+void writeYt(container_t& rho,
+             const container_t& phi,
+             const container_t& efield,
+             const Array<Geometry>& geom,
+             const Array<int>& rr,
+             const double& scalefactor)
+{
+    std::string dir = "yt-testUnifSphere";
+    
+    double time = 0.0;
+    
+    for (unsigned int i = 0; i < rho.size(); ++i)
+        rho[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
+    
+    writePlotFile(dir, rho, phi, efield, rr, geom, time, scalefactor);
+}
+
 
 double domainMapping(amrbase_t& PData, const double& scale, bool inverse = false)
 {
@@ -266,19 +378,13 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     IpplTimings::stopTimer(solvTimer);
 }
 
-void doAMReX(const Vektor<size_t, 3>& nr,
-             int nLevels,
-             size_t maxBoxSize,
-             double radius,
-             double length,
-             unsigned int nParticles,
-             Inform& msg)
+void doAMReX(const param_t& params, Inform& msg)
 {
     // ========================================================================
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    double halflength = 0.5 * length;
+    double halflength = 0.5 * params.length;
     
     std::array<double, BL_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
     std::array<double, BL_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
@@ -286,7 +392,7 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     RealBox domain;
     
     // in helper_functions.h
-    init(domain, nr, lower, upper);
+    init(domain, params.nr, lower, upper);
     
     msg << "Domain: " << domain << endl;
     
@@ -294,9 +400,9 @@ void doAMReX(const Vektor<size_t, 3>& nr,
      * create an Amr object
      */
     ParmParse pp("amr");
-    pp.add("max_grid_size", int(maxBoxSize));
+    pp.add("max_grid_size", int(params.maxBoxSize));
     
-    Array<int> error_buf(nLevels, 0);
+    Array<int> error_buf(params.nLevels, 0);
     
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
@@ -307,17 +413,17 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     
     Array<int> nCells(3);
     for (int i = 0; i < 3; ++i)
-        nCells[i] = nr[i];
+        nCells[i] = params.nr[i];
     
     
-    std::vector<int> rr(nLevels);
-    Array<int> rrr(nLevels);
-    for (int i = 0; i < nLevels; ++i) {
+    std::vector<int> rr(params.nLevels);
+    Array<int> rrr(params.nLevels);
+    for (unsigned int i = 0; i < params.nLevels; ++i) {
         rr[i] = 2;
         rrr[i] = 2;
     }
     
-    AmrOpal myAmrOpal(&domain, nLevels - 1, nCells, 0 /* cartesian */, rr);
+    AmrOpal myAmrOpal(&domain, params.nLevels - 1, nCells, 0 /* cartesian */, rr);
     
     // ========================================================================
     // 2. initialize all particles (just single-level)
@@ -337,13 +443,13 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     bunch->setAllowParticlesNearBoundary(true);
     
     // initialize a particle distribution
-    initSphere(radius, bunch, nParticles);
+    initSphere(params.radius, bunch, params.nParticles);
     
-    msg << "Bunch radius: " << radius << " m" << endl
+    msg << "Bunch radius: " << params.radius << " m" << endl
         << "#Particles: " << bunch->getTotalNum() << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
-        << "Total charge: " << nParticles * bunch->qm[0] << " C" << endl
-        << "#Cells per dim for bunch: " << 2.0 * radius / *(geom[0].CellSize()) << endl;
+        << "Total charge: " << params.nParticles * bunch->qm[0] << " C" << endl
+        << "#Cells per dim for bunch: " << 2.0 * params.radius / *(geom[0].CellSize()) << endl;
     
     // map particles
     double scale = 1.0;
@@ -370,18 +476,18 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     
     msg << endl << "Transformed positions" << endl << endl;
     
-    msg << "Bunch radius: " << radius * scale << " m" << endl
-        << "#Particles: " << nParticles << endl
+    msg << "Bunch radius: " << params.radius * scale << " m" << endl
+        << "#Particles: " << params.nParticles << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
-        << "Total charge: " << nParticles * bunch->qm[0] << " C" << endl
-        << "#Cells per dim for bunch: " << 2.0 * radius * scale / *(geom[0].CellSize()) << endl;
+        << "Total charge: " << params.nParticles * bunch->qm[0] << " C" << endl
+        << "#Cells per dim for bunch: " << 2.0 * params.radius * scale / *(geom[0].CellSize()) << endl;
     
     bunch->update();
     
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, scale/*0.0*/ /*time*/);
     
-    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, nLevels, msg, scale);
+    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, params.nLevels, msg, scale);
     
     msg << endl << "Back to normal positions" << endl << endl;
     
@@ -400,8 +506,11 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     
     msg << "Total field energy: " << fieldenergy << endl;
     
-    if (Ippl::getNodes() == 1 && myAmrOpal.maxGridSize(0) == (int)nr[0] )
+    if (Ippl::getNodes() == 1 && myAmrOpal.maxGridSize(0) == (int)params.nr[0] )
         writeCSV(phi, efield, domain.lo(0) / scale, geom[0].CellSize(0) / scale);
+    
+    if ( params.isWriteYt )
+        writeYt(rhs, phi, efield, geom, rrr, scale);
 }
 
 
@@ -414,41 +523,31 @@ int main(int argc, char *argv[]) {
 
     static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("main");
     IpplTimings::startTimer(mainTimer);
-
-    std::stringstream call;
-    call << "Call: mpirun -np [#procs] " << argv[0]
-         << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#levels]"
-         << " [max. box size] [radius] [side length] [#particles]";
     
-    if ( argc < 9 ) {
-        msg << call.str() << endl;
-        return -1;
-    }
+    param_t params;
+    params.isWriteYt = false;
     
-    // number of grid points in each direction
-    Vektor<size_t, 3> nr(std::atoi(argv[1]),
-                         std::atoi(argv[2]),
-                         std::atoi(argv[3]));
-    
-    
-        
     amrex::Initialize(argc,argv, false);
-    size_t nLevels = std::atoi(argv[4]) + 1; // i.e. nLevels = 0 --> only single level
-    size_t maxBoxSize = std::atoi(argv[5]);
-    double radius = std::atof(argv[6]);
-    double length = std::atof(argv[7]);
-    unsigned int nParticles = std::atoi(argv[8]);
     
-    msg << "Particle test running with" << endl
-        << "- grid                  = " << nr << endl
-        << "- max. grid             = " << maxBoxSize << endl
-        << "- #level                = " << nLevels - 1 << endl
-        << "- sphere radius [m]     = " << radius << endl
-        << "- cube side length [m]  = " << length << endl
-        << "- #particles            = " << nParticles << endl;
+    try {
+        if ( !parseProgOptions(argc, argv, params, msg) )
+            throw std::runtime_error("Check the program options.");
     
+    
+        msg << "Particle test running with" << endl
+            << "- grid                  = " << params.nr << endl
+            << "- max. grid             = " << params.maxBoxSize << endl
+            << "- #level                = " << params.nLevels - 1 << endl
+            << "- sphere radius [m]     = " << params.radius << endl
+            << "- cube side length [m]  = " << params.length << endl
+            << "- #particles            = " << params.nParticles << endl;
         
-    doAMReX(nr, nLevels, maxBoxSize, radius, length, nParticles, msg);
+            
+        doAMReX(params, msg);
+        
+    } catch(const std::exception& ex) {
+        std::cerr << ex.what() << std::endl;
+    }
     
     
     IpplTimings::stopTimer(mainTimer);
