@@ -15,6 +15,20 @@ set (CMAKE_CXX_FLAGS
 set (CMAKE_CXX_FLAGS
     "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO -DIPPL_AMR ${CMAKE_CXX_FLAGS}"
 )
+
+set (BOOSTROOT $ENV{BOOST_DIR})
+set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_MULTITHREADED OFF)
+set(Boost_USE_STATIC_RUNTIME OFF)
+find_package (Boost 1.54.0 REQUIRED COMPONENTS filesystem system iostreams
+regex)
+
+if (Boost_INCLUDE_DIRS)
+    message (STATUS "Found boost include dir: ${Boost_INCLUDE_DIR}")
+    message (STATUS "Found boost library dir: ${Boost_LIBRARY_DIR}")
+    message (STATUS "Found boost libraries: ${Boost_LIBRARIES}")
+    include_directories (${Boost_INCLUDE_DIRS})
+endif ()
     
 include_directories (
     ${CMAKE_SOURCE_DIR}/src
@@ -25,6 +39,7 @@ include_directories (
     ${HDF5_INCLUDE_DIR}
     ${CCSE_INCLUDE_DIR}
     ${HYPRE_INCLUDE_DIR}
+    ${BOOST_INCLUDE_DIR}
 )
     
 link_directories (
@@ -33,17 +48,20 @@ link_directories (
     ${IPPL_LIBRARY_DIR}
     ${CCSE_LIBRARY_DIR}
     ${HYPRE_LIBRARY_DIR}
+    ${BOOST_LIBRARY_DIR}
 )
     
 # remove digits from hostname: edison03 -> edison
 STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
     
-IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
+IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
+    ${HOSTNAME_BASE} MATCHES "daint")
     SET (LIBS
         ${H5Hut_LIBRARY}
         ${HDF5_LIBRARY}
         ${IPPL_LIBRARY}
         ippl
+	${Boost_LIBRARIES}
         m
         z
     )
@@ -53,13 +71,15 @@ ELSE()
         ${HDF5_LIBRARY}
         ${IPPL_LIBRARY}
         ippl
+	${Boost_LIBRARIES}
         mpi
         mpi_cxx
         mpi_mpifh
         m
         z
     )
-ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
+ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
+    ${HOSTNAME_BASE} MATCHES "daint")
 
 
 set(F90_source_files ../Tagging_nd.f90)
