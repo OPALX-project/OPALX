@@ -4,12 +4,6 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_VisMF.H>
 
-#define UNIQUE_PTR 1
-
-#ifndef UNIQUE_PTR
-    #include <PArray.H>
-#endif
-
 /*!
  * @file writePlotFile.H
  * @author Matthias Frey
@@ -30,23 +24,14 @@
  * @param time specifies the step.
  */
 inline void
-#ifdef UNIQUE_PTR
 writePlotFile (const std::string& dir,
                const std::vector<std::unique_ptr<MultiFab> >& rho,
                const std::vector<std::unique_ptr<MultiFab> >& phi,
                const std::vector<std::unique_ptr<MultiFab> >& efield,
                const Array<int>& refRatio,
                const Array<Geometry>& geom,
-	       const Real&        time)
-#else
-writePlotFile (const std::string& dir,
-               const PArray<MultiFab>& rho,
-               const PArray<MultiFab>& phi,
-               const PArray<MultiFab>& efield,
-               const Array<int>& refRatio,
-               const Array<Geometry>& geom,
-	       const Real&        time)
-#endif
+	       const Real&        time,
+               double scale = 1.0)
 {
     int nLevels = rho.size();
     //
@@ -72,11 +57,7 @@ writePlotFile (const std::string& dir,
 
     HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-#ifdef UNIQUE_PTR
     int nData = rho[0]->nComp() + phi[0]->nComp() + efield[0]->nComp();
-#else
-    int nData = rho[0].nComp() + phi[0].nComp() + efield[0].nComp();
-#endif
     
     if (ParallelDescriptor::IOProcessor())
     {
@@ -91,21 +72,11 @@ writePlotFile (const std::string& dir,
         HeaderFile << nData << '\n';
 
 	// variable names
-#ifdef UNIQUE_PTR
-        for (int ivar = 1; ivar <= rho[0]->nComp(); ivar++) {
-#else
-        for (int ivar = 1; ivar <= rho[0].nComp(); ivar++) {
-#endif
+        for (int ivar = 1; ivar <= rho[0]->nComp(); ivar++)
           HeaderFile << "rho\n";
-        }
         
-#ifdef UNIQUE_PTR
-        for (int ivar = 1; ivar <= phi[0]->nComp(); ivar++) {
-#else
-        for (int ivar = 1; ivar <= phi[0].nComp(); ivar++) {
-#endif
+        for (int ivar = 1; ivar <= phi[0]->nComp(); ivar++)
           HeaderFile << "potential\n";
-        }
         
 //         for (int ivar = 1; ivar <= efield.nComp(); ivar++) {
           HeaderFile << "Ex\nEy\nEz\n";
@@ -121,10 +92,10 @@ writePlotFile (const std::string& dir,
         
         // physical domain
         for (int i = 0; i < BL_SPACEDIM; i++)
-            HeaderFile << geom[0].ProbLo(i) << ' ';
+            HeaderFile << geom[0].ProbLo(i) / scale << ' ';
         HeaderFile << '\n';
         for (int i = 0; i < BL_SPACEDIM; i++)
-            HeaderFile << geom[0].ProbHi(i) << ' ';
+            HeaderFile << geom[0].ProbHi(i) / scale << ' ';
         HeaderFile << std::endl;
         
         // reference ratio
@@ -143,7 +114,7 @@ writePlotFile (const std::string& dir,
         // cell sizes for all level
         for (int i = 0; i < nLevels; ++i) {
             for (int k = 0; k < BL_SPACEDIM; k++)
-                HeaderFile << geom[i].CellSize()[k] << ' ';
+                HeaderFile << geom[i].CellSize()[k] / scale << ' ';
             HeaderFile << '\n';
         }
         
@@ -179,24 +150,32 @@ writePlotFile (const std::string& dir,
         
         if (ParallelDescriptor::IOProcessor())
         {
-#ifdef UNIQUE_PTR
             HeaderFile << lev << ' ' << rho[lev]->boxArray().size() << ' ' << 0 << '\n';
-#else
-            HeaderFile << lev << ' ' << rho[lev].boxArray().size() << ' ' << 0 << '\n';
-#endif
             HeaderFile << 0 << '\n';    // # time steps at this level
     
-#ifdef UNIQUE_PTR
             for (int i = 0; i < rho[lev]->boxArray().size(); ++i)
-#else
-            for (int i = 0; i < rho[lev].boxArray().size(); ++i)
-#endif
             {
-#ifdef UNIQUE_PTR
-                RealBox loc = RealBox(rho[lev]->boxArray()[i],geom[lev].CellSize(),geom[lev].ProbLo());
-#else
-                RealBox loc = RealBox(rho[lev].boxArray()[i],geom[lev].CellSize(),geom[lev].ProbLo());
-#endif
+                amrex::Real dx[3] = {
+                    geom[lev].CellSize(0),
+                    geom[lev].CellSize(1),
+                    geom[lev].CellSize(2)
+                };
+                dx[0] /= scale;
+                dx[1] /= scale;
+                dx[2] /= scale;
+                amrex::Real lo[3] = {
+                    geom[lev].ProbLo(0),
+                    geom[lev].ProbLo(1),
+                    geom[lev].ProbLo(2)
+                };
+                lo[0] /= scale;
+                lo[1] /= scale;
+                lo[2] /= scale;
+                
+                
+                RealBox loc = RealBox(rho[lev]->boxArray()[i],
+                                      &dx[0], &lo[0]);
+                
                 for (int n = 0; n < BL_SPACEDIM; n++)
                     HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
             }
@@ -206,11 +185,7 @@ writePlotFile (const std::string& dir,
             HeaderFile << PathNameInHeader << '\n';
         }
 
-#ifdef UNIQUE_PTR
         MultiFab data(rho[lev]->boxArray(), rho[lev]->DistributionMap(), nData, 0);
-#else
-        MultiFab data(rho[lev].boxArray(), rho[lev]->DistributionMap(), nData, 0);
-#endif
         
         // dst, src, srccomp, dstcomp, numcomp, nghost
         /*
@@ -218,15 +193,9 @@ writePlotFile (const std::string& dir,
         * dstcmop: the component where to copy
         * numcomp: how many components to copy
         */
-#ifdef UNIQUE_PTR
         MultiFab::Copy(data, *rho[lev],    0, 0, 1, 0);
         MultiFab::Copy(data, *phi[lev],    0, 1, 1, 0);
         MultiFab::Copy(data, *efield[lev], 0, 2, 3, 0); // (Ex, Ey, Ez)
-#else
-        MultiFab::Copy(data, rho[lev],    0, 0, 1, 0);
-        MultiFab::Copy(data, phi[lev],    0, 1, 1, 0);
-        MultiFab::Copy(data, efield[lev], 0, 2, 3, 0); // (Ex, Ey, Ez)
-#endif
 //         MultiFab::Copy(data, efield[lev], 0, 2, 1, 0);   // Ex
 //         MultiFab::Copy(data, efield[lev], 1, 3, 1, 0);   // Ey
 //         MultiFab::Copy(data, efield[lev], 2, 4, 1, 0);   // Ez
