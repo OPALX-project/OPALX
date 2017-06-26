@@ -187,7 +187,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              Inform& msg,
              const double& scale)
 {
-    static IpplTimings::TimerRef solvTimer = IpplTimings::getTimer("solv");
+    static IpplTimings::TimerRef solvTimer = IpplTimings::getTimer("solve");
     // =======================================================================                                                                                                                                   
     // 4. prepare for multi-level solve                                                                                                                                                                          
     // =======================================================================
@@ -271,6 +271,7 @@ void doAMReX(const Vektor<size_t, 3>& nr,
              size_t maxBoxSize,
              double radius,
              double length,
+             unsigned int nParticles,
              Inform& msg)
 {
     // ========================================================================
@@ -336,7 +337,6 @@ void doAMReX(const Vektor<size_t, 3>& nr,
     bunch->setAllowParticlesNearBoundary(true);
     
     // initialize a particle distribution
-    int nParticles = 1e6;
     initSphere(radius, bunch, nParticles);
     
     msg << "Bunch radius: " << radius << " m" << endl
@@ -417,9 +417,10 @@ int main(int argc, char *argv[]) {
 
     std::stringstream call;
     call << "Call: mpirun -np [#procs] " << argv[0]
-         << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#levels] [max. box size] [radius] [side length]";
+         << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#levels]"
+         << " [max. box size] [radius] [side length] [#particles]";
     
-    if ( argc < 8 ) {
+    if ( argc < 9 ) {
         msg << call.str() << endl;
         return -1;
     }
@@ -436,16 +437,18 @@ int main(int argc, char *argv[]) {
     size_t maxBoxSize = std::atoi(argv[5]);
     double radius = std::atof(argv[6]);
     double length = std::atof(argv[7]);
+    unsigned int nParticles = std::atoi(argv[8]);
     
     msg << "Particle test running with" << endl
         << "- grid                  = " << nr << endl
         << "- max. grid             = " << maxBoxSize << endl
         << "- #level                = " << nLevels - 1 << endl
         << "- sphere radius [m]     = " << radius << endl
-        << "- cube side length [m]  = " << length << endl;
+        << "- cube side length [m]  = " << length << endl
+        << "- #particles            = " << nParticles << endl;
     
         
-    doAMReX(nr, nLevels, maxBoxSize, radius, length, msg);
+    doAMReX(nr, nLevels, maxBoxSize, radius, length, nParticles, msg);
     
     
     IpplTimings::stopTimer(mainTimer);
