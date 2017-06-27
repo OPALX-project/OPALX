@@ -18,8 +18,8 @@ Solver::solve_for_accel(const container_t& rhs,
     if ( timing )
         edge2centerTimer = IpplTimings::getTimer("grad-edge2center");
     
-    Real tol     = 1.e-12;
-    Real abs_tol = 0.0;
+    Real reltol = 1.0e-14;
+    Real abstol = 1.0e-12;
 
     Array<container_t> grad_phi_edge(rhs.size());
     
@@ -53,8 +53,8 @@ Solver::solve_for_accel(const container_t& rhs,
                      geom,
                      base_level,
                      finest_level,
-                     tol,
-                     abs_tol,
+                     reltol,
+                     abstol,
                      timing,
                      doGradient);
 
@@ -89,8 +89,8 @@ Solver::solve_with_f90(const container_pt& rhs,
                        const Array<Geometry>& geom,
                        int base_level,
                        int finest_level,
-                       Real tol,
-                       Real abs_tol,
+                       Real reltol,
+                       Real abstol,
                        bool timing,
                        bool doGradient)
 {
@@ -179,17 +179,22 @@ Solver::solve_with_f90(const container_pt& rhs,
 
     int always_use_bnorm = 0;
     int need_grad_phi = (doGradient) ? 1 : 0;
-    fmg.set_verbose(0);
+    fmg.set_verbose(5);
     
     if ( timing )
         IpplTimings::stopTimer(initSolverTimer);
     
     if ( timing )
         IpplTimings::startTimer(doSolveTimer);
-    Real final_resnorm = fmg.solve(phi_p, rhs_p, tol, abs_tol, always_use_bnorm, need_grad_phi);
+    Real final_resnorm = fmg.solve(phi_p, rhs_p, reltol, abstol, always_use_bnorm, need_grad_phi);
     
-    if ( final_resnorm > tol )
-        std::cerr << "\033[1;31mError: The solver did not converge!\033[0m" << std::endl;
+    if ( final_resnorm > abstol ) {
+        std::stringstream ss;
+        ss << "Residual norm: " << std::setprecision(16) << final_resnorm
+           << " > " << abstol << " (absolute tolerance)";
+        throw std::runtime_error("\033[1;31mError: The solver did not converge: " +
+                                 ss.str() + "\033[0m");
+    }
     
     if ( timing )
         IpplTimings::stopTimer(doSolveTimer);
