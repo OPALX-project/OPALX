@@ -49,6 +49,9 @@ struct param_t {
     double pCharge;
     bool isFixedCharge;
     bool isWriteYt;
+    bool isWriteCSV;
+    bool isWriteParticles;
+    bool isHelp;
 };
 
 
@@ -59,24 +62,34 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
      * https://www.gnu.org/software/libc/manual/html_node/Getopt-Long-Option-Example.html#Getopt-Long-Option-Example
      */
     
+    params.isWriteYt = false;
+    params.isFixedCharge = false;
+    params.isWriteCSV = false;
+    params.isWriteParticles = false;
+    params.isHelp = false;
+    
     int c = 0;
     
     int cnt = 0;
     
+    int required = 8;
+    
     while ( true ) {
         static struct option long_options[] = {
-            { "gridx",      required_argument, 0, 'x' },
-            { "gridy",      required_argument, 0, 'y' },
-            { "gridz",      required_argument, 0, 'z' },
-            { "level",      required_argument, 0, 'l' },
-            { "maxgrid",    required_argument, 0, 'm' },
-            { "radius",     required_argument, 0, 'r' },
-            { "boxlength",  required_argument, 0, 'b' },
-            { "nparticles", required_argument, 0, 'n' },
-            { "writeYt",    no_argument,       0, 'w' },
-            { "help",       no_argument,       0, 'h' },
-	    { "pcharge",    required_argument, 0, 'c' },
-            { 0,            0,                 0,  0  }
+            { "gridx",          required_argument, 0, 'x' },
+            { "gridy",          required_argument, 0, 'y' },
+            { "gridz",          required_argument, 0, 'z' },
+            { "level",          required_argument, 0, 'l' },
+            { "maxgrid",        required_argument, 0, 'm' },
+            { "radius",         required_argument, 0, 'r' },
+            { "boxlength",      required_argument, 0, 'b' },
+            { "nparticles",     required_argument, 0, 'n' },
+            { "writeYt",        no_argument,       0, 'w' },
+            { "help",           no_argument,       0, 'h' },
+	    { "pcharge",        required_argument, 0, 'c' },
+            { "writeCSV",       no_argument,       0, 'v' },
+            { "writeParticles", no_argument,       0, 'p' },
+            { 0,                0,                 0,  0  }
         };
         
         int option_index = 0;
@@ -103,12 +116,18 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.length = std::atof(optarg); ++cnt; break;
             case 'n':
                 params.nParticles = std::atoi(optarg); ++cnt; break;
-	    case 'c':
-	        params.pCharge = std::atof(optarg);
+            case 'c':
+                params.pCharge = std::atof(optarg);
                 params.isFixedCharge = true;
-		break;
+                break;
             case 'w':
                 params.isWriteYt = true;
+                break;
+            case 'v':
+                params.isWriteCSV = true;
+                break;
+            case 'p':
+                params.isWriteParticles = true;
                 break;
             case 'h':
                 msg << "Usage: " << argv[0]
@@ -121,9 +140,11 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--radius [sphere radius]" << endl
                     << "--boxlength [cube side length]" << endl
                     << "--nparticles [#particles]" << endl
-		    << "--pcharge [charge per particle] (optional)" << endl
-                    << "--writeYt (optional)"
-                    << endl;
+                    << "--pcharge [charge per particle] (optional)" << endl
+                    << "--writeYt (optional)" << endl
+                    << "--writeCSV (optional)" << endl
+                    << "--writeParticles (optional)" << endl;
+                params.isHelp = true;
                 break;
             case '?':
                 break;
@@ -134,7 +155,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         }
     }
     
-    return ( cnt == 8 );
+    return ( cnt == required );
 }
 
 
@@ -249,7 +270,13 @@ double domainMapping(amrbase_t& PData, const double& scale, bool inverse = false
     return 1.0 / absmax;
 }
 
-void initSphere(double r, std::unique_ptr<amrbunch_t>& bunch, int nParticles, double charge, bool isFixedCharge) {
+void initSphere(double r,
+                std::unique_ptr<amrbunch_t>& bunch,
+                int nParticles,
+                double charge,
+                bool isFixedCharge,
+                bool isWriteParticles)
+{
     
     int nLocParticles = nParticles / Ippl::getNodes();
     
@@ -271,15 +298,15 @@ void initSphere(double r, std::unique_ptr<amrbunch_t>& bunch, int nParticles, do
     std::string outfile = "amr-particles-level-" + std::to_string(0);
     std::ofstream out;
     
-    if ( Ippl::getNodes() == 1 )
+    if ( isWriteParticles && Ippl::getNodes() == 1 )
         out.open(outfile, std::ios::out);
 
     long double qi = 0.0;
 
     if ( isFixedCharge )
-      qi = charge;
+        qi = charge;
     else
-      qi = 4.0 * Physics::pi * Physics::epsilon_0 * r * r / double(nParticles);
+        qi = 4.0 * Physics::pi * Physics::epsilon_0 * r * r / double(nParticles);
     
     for (uint i = 0; i < bunch->getLocalNum(); ++i) {
         // 17. Dec. 2016,
@@ -293,14 +320,14 @@ void initSphere(double r, std::unique_ptr<amrbunch_t>& bunch, int nParticles, do
         double y = radius * std::sin( theta ) * std::sin( phi );
         double z = radius * std::cos( phi );
         
-        if ( Ippl::getNodes() == 1 )
+        if ( isWriteParticles && Ippl::getNodes() == 1 )
             out << x << " " << y << " " << z << std::endl;
         
         bunch->R[i] = Vector_t( x, y, z );    // m
         bunch->qm[i] = qi;   // C
     }
     
-    if (Ippl::getNodes() == 1 )
+    if ( isWriteParticles && Ippl::getNodes() == 1 )
         out.close();
 }
 
@@ -346,6 +373,11 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     }
     
     const Array<Geometry>& geom = myAmrOpal.Geom();
+    
+    for (uint i = 0; i < rhs.size(); ++i)
+        if ( rhs[i]->contains_nan() || rhs[i]->contains_inf() )
+            throw std::runtime_error("\033[1;31mError: NANs or INFs on charge grid.\033[0m");
+    
     
     // Check charge conservation
     double totCharge = totalCharge(rhs, finest_level, geom);
@@ -456,7 +488,12 @@ void doAMReX(const param_t& params, Inform& msg)
     bunch->setAllowParticlesNearBoundary(true);
     
     // initialize a particle distribution
-    initSphere(params.radius, bunch, params.nParticles, params.pCharge, params.isFixedCharge);
+    initSphere(params.radius,
+               bunch,
+               params.nParticles,
+               params.pCharge,
+               params.isFixedCharge,
+               params.isWriteParticles);
     
     msg << "Bunch radius: " << params.radius << " m" << endl
         << "#Particles: " << bunch->getTotalNum() << endl
@@ -519,7 +556,7 @@ void doAMReX(const param_t& params, Inform& msg)
     
     msg << "Total field energy: " << fieldenergy << endl;
     
-    if (Ippl::getNodes() == 1 && myAmrOpal.maxGridSize(0) == (int)params.nr[0] )
+    if (params.isWriteCSV && Ippl::getNodes() == 1 && myAmrOpal.maxGridSize(0) == (int)params.nr[0] )
         writeCSV(phi, efield, domain.lo(0) / scale, geom[0].CellSize(0) / scale);
     
     if ( params.isWriteYt )
@@ -538,13 +575,14 @@ int main(int argc, char *argv[]) {
     IpplTimings::startTimer(mainTimer);
     
     param_t params;
-    params.isWriteYt = false;
     
     amrex::Initialize(argc,argv, false);
     
     try {
-        if ( !parseProgOptions(argc, argv, params, msg) )
-            throw std::runtime_error("Check the program options.");
+        if ( !parseProgOptions(argc, argv, params, msg) && !params.isHelp )
+            throw std::runtime_error("\033[1;31mError: Check the program options.\033[0m");
+        else if ( params.isHelp )
+            return 0;
     
     
         msg << "Particle test running with" << endl
@@ -555,8 +593,8 @@ int main(int argc, char *argv[]) {
             << "- cube side length [m]  = " << params.length << endl
             << "- #particles            = " << params.nParticles << endl;
 
-	if ( params.isFixedCharge )
-	    msg << "- charge per particle   = " << params.pCharge << endl;
+        if ( params.isFixedCharge )
+            msg << "- charge per particle   = " << params.pCharge << endl;
             
         doAMReX(params, msg);
         
