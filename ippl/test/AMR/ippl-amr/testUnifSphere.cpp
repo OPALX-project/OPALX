@@ -46,6 +46,8 @@ struct param_t {
     double radius;
     double length;
     size_t nParticles;
+    double pCharge;
+    bool isFixedCharge;
     bool isWriteYt;
 };
 
@@ -73,6 +75,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "nparticles", required_argument, 0, 'n' },
             { "writeYt",    no_argument,       0, 'w' },
             { "help",       no_argument,       0, 'h' },
+	    { "pcharge",    required_argument, 0, 'c' },
             { 0,            0,                 0,  0  }
         };
         
@@ -100,6 +103,10 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.length = std::atof(optarg); ++cnt; break;
             case 'n':
                 params.nParticles = std::atoi(optarg); ++cnt; break;
+	    case 'c':
+	        params.pCharge = std::atof(optarg);
+                params.isFixedCharge = true;
+		break;
             case 'w':
                 params.isWriteYt = true;
                 break;
@@ -114,7 +121,8 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--radius [sphere radius]" << endl
                     << "--boxlength [cube side length]" << endl
                     << "--nparticles [#particles]" << endl
-                    << "--writeYt"
+		    << "--pcharge [charge per particle] (optional)" << endl
+                    << "--writeYt (optional)"
                     << endl;
                 break;
             case '?':
@@ -241,7 +249,7 @@ double domainMapping(amrbase_t& PData, const double& scale, bool inverse = false
     return 1.0 / absmax;
 }
 
-void initSphere(double r, std::unique_ptr<amrbunch_t>& bunch, int nParticles) {
+void initSphere(double r, std::unique_ptr<amrbunch_t>& bunch, int nParticles, double charge, bool isFixedCharge) {
     
     int nLocParticles = nParticles / Ippl::getNodes();
     
@@ -265,8 +273,13 @@ void initSphere(double r, std::unique_ptr<amrbunch_t>& bunch, int nParticles) {
     
     if ( Ippl::getNodes() == 1 )
         out.open(outfile, std::ios::out);
-    
-    long double qi = 4.0 * Physics::pi * Physics::epsilon_0 * r * r / double(nParticles);
+
+    long double qi = 0.0;
+
+    if ( isFixedCharge )
+      qi = charge;
+    else
+      qi = 4.0 * Physics::pi * Physics::epsilon_0 * r * r / double(nParticles);
     
     for (uint i = 0; i < bunch->getLocalNum(); ++i) {
         // 17. Dec. 2016,
@@ -443,7 +456,7 @@ void doAMReX(const param_t& params, Inform& msg)
     bunch->setAllowParticlesNearBoundary(true);
     
     // initialize a particle distribution
-    initSphere(params.radius, bunch, params.nParticles);
+    initSphere(params.radius, bunch, params.nParticles, params.pCharge, params.isFixedCharge);
     
     msg << "Bunch radius: " << params.radius << " m" << endl
         << "#Particles: " << bunch->getTotalNum() << endl
@@ -541,7 +554,9 @@ int main(int argc, char *argv[]) {
             << "- sphere radius [m]     = " << params.radius << endl
             << "- cube side length [m]  = " << params.length << endl
             << "- #particles            = " << params.nParticles << endl;
-        
+
+	if ( params.isFixedCharge )
+	    msg << "- charge per particle   = " << params.pCharge << endl;
             
         doAMReX(params, msg);
         
