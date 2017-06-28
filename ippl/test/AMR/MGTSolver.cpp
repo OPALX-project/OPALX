@@ -232,3 +232,41 @@ void MGTSolver::solve(const container_t& rho,
 //         average_fine_ec_onto_crse_ec(lev-1,is_new);
     
 }
+
+
+// void
+// MGTSolver::set_dirichlet_bcs (int       level,
+//                               MultiFab* phi)
+// {
+//     const Real* dx        = parent->Geom(level).CellSize();
+//     const int*  domain_lo = parent->Geom(level).Domain().loVect();
+//     const int*  domain_hi = parent->Geom(level).Domain().hiVect();
+// 
+//     // Set phi to zero on all the ghost cells outside the domain.
+//     // If homogeneous bc's then we stop here;
+//     for (MFIter mfi(*phi); mfi.isValid(); ++mfi)
+//     {
+//         const Box& box = mfi.validbox();
+//         const int* lo  = box.loVect();
+//         const int* hi  = box.hiVect();
+// 
+//         BL_FORT_PROC_CALL(FORT_SET_HOMOG_BCS, fort_set_homog_bcs)
+//             (lo, hi, domain_lo, domain_hi, BL_TO_FORTRAN((*phi)[mfi]), dx);
+//     }
+// }
+// 
+// 
+// subroutine fort_set_homog_bcs(lo,hi,domlo,domhi, &
+//                                    phi,phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3,dx);
+//  
+//      use amrex_fort_module, only : rt => amrex_real
+//      implicit none
+// 
+//      integer         ,intent(in   ) :: lo(3),hi(3),domlo(3),domhi(3)
+//      integer         ,intent(in   ) :: phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3
+//      real(rt),intent(  out) :: phi(phi_l1:phi_h1,phi_l2:phi_h2,phi_l3:phi_h3)
+//      real(rt),intent(in   ) :: dx(3)
+// 
+//      phi = 0.d0
+//  
+// end subroutine fort_set_homog_bcs

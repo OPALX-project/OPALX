@@ -6,6 +6,7 @@
 
 using namespace amrex;
 
+/// Based on https://github.com/AMReX-Codes/Nyx.git Gravity.cpp
 class MGTSolver {
     
 public:
@@ -15,6 +16,9 @@ public:
                container_t& phi,
                container_t& efield,
                const amrex::Array<amrex::Geometry>& geom);
+    
+    
+//     void set_dirichlet_bcs (int level, MultiFab* phi);
     
 };
 
