@@ -18,8 +18,10 @@ Solver::solve_for_accel(const container_t& rhs,
     if ( timing )
         edge2centerTimer = IpplTimings::getTimer("grad-edge2center");
     
-    Real reltol = 1.0e-14;
-    Real abstol = 1.0e-12;
+//     Real reltol = 1.0e-14;
+//     Real abstol = 1.0e-12;
+    Real reltol = 1.0e-12;
+    Real abstol = 0.0;
 
     Array<container_t> grad_phi_edge(rhs.size());
     
@@ -188,10 +190,10 @@ Solver::solve_with_f90(const container_pt& rhs,
         IpplTimings::startTimer(doSolveTimer);
     Real final_resnorm = fmg.solve(phi_p, rhs_p, reltol, abstol, always_use_bnorm, need_grad_phi);
     
-    if ( final_resnorm > abstol ) {
+    if ( final_resnorm > reltol ) {
         std::stringstream ss;
         ss << "Residual norm: " << std::setprecision(16) << final_resnorm
-           << " > " << abstol << " (absolute tolerance)";
+           << " > " << reltol << " (relative tolerance)";
         throw std::runtime_error("\033[1;31mError: The solver did not converge: " +
                                  ss.str() + "\033[0m");
     }
