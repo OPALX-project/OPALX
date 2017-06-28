@@ -166,16 +166,6 @@ add_executable( testUnifSphere
                 ../H5Reader.cpp
                 ${F90_source_files}
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                ../Solver.cpp)
-
-add_executable( testUnifSphereMG
-                testUnifSphereMG.cpp
-                ../AmrOpal.cpp
-                AmrParticleBase.hpp
-                ../Distribution.cpp
-                ../H5Reader.cpp
-                ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../MGTSolver.cpp
                 ../Solver.cpp)
 
@@ -237,9 +227,5 @@ target_link_libraries (testGaussian ${LIBS}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testUnifSphere ${LIBS}
-                        -lgfortran ${CCSE_LIBRARIES}
-                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-
-target_link_libraries (testUnifSphereMG ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
