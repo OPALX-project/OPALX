@@ -11,10 +11,10 @@ void MGTSolver::solve(const container_t& rho,
                       container_t& efield,
                       const amrex::Array<amrex::Geometry>& geom)
 {
-    Real reltol = 1.0e-14;
-    Real abstol = 1.0e-12;
-//     double abstol = 0.0;
-//     double reltol = 1.0e-12;
+//     Real reltol = 1.0e-14;
+//     Real abstol = 1.0e-12;
+    double abstol = 0.0;
+    double reltol = 1.0e-12;
     
     int baseLevel = 0;
     int finestLevel = rho.size() - 1;
@@ -159,10 +159,10 @@ void MGTSolver::solve(const container_t& rho,
     mgt_solver.solve(phi_p, rho_p,
                      bndry, reltol, abstol, always_use_bnorm, final_resnorm, need_grad_phi);
     
-    if ( final_resnorm > abstol ) {
+    if ( final_resnorm > reltol ) {
         std::stringstream ss;
         ss << "Residual norm: " << std::setprecision(16) << final_resnorm
-           << " > " << abstol << " (absolute tolerance)";
+           << " > " << reltol << " (relative tolerance)";
         throw std::runtime_error("\033[1;31mError: The solver did not converge: " +
                                  ss.str() + "\033[0m");
     }
