@@ -4,13 +4,17 @@
 #include <AMReX_stencil_types.H>
 #include <AMReX_MultiFabUtil.H>
 
+#include <iomanip>
+
 void MGTSolver::solve(const container_t& rho,
                       container_t& phi,
                       container_t& efield,
                       const amrex::Array<amrex::Geometry>& geom)
 {
-    double abs_tol = 0.0;
-    double tol = 1.0e-12;
+    Real reltol = 1.0e-14;
+    Real abstol = 1.0e-12;
+//     double abstol = 0.0;
+//     double reltol = 1.0e-12;
     
     int baseLevel = 0;
     int finestLevel = rho.size() - 1;
@@ -142,9 +146,10 @@ void MGTSolver::solve(const container_t& rho,
     
     mgt_solver.set_const_gravity_coeffs(xa, xb);
     
-    Real final_resnorm;
+    Real final_resnorm = 1;
     int always_use_bnorm = 0;
     int need_grad_phi = 1;
+    mgt_solver.set_maxorder(3);
 //     amrex::Array<amrex::MultiFab*> phi_p = { &phi };
 //     amrex::Array<amrex::MultiFab*> rho_p = { &rho };
     
@@ -152,7 +157,15 @@ void MGTSolver::solve(const container_t& rho,
     // Call the solver
     //
     mgt_solver.solve(phi_p, rho_p,
-                     bndry, tol, abs_tol, always_use_bnorm, final_resnorm, need_grad_phi);
+                     bndry, reltol, abstol, always_use_bnorm, final_resnorm, need_grad_phi);
+    
+    if ( final_resnorm > abstol ) {
+        std::stringstream ss;
+        ss << "Residual norm: " << std::setprecision(16) << final_resnorm
+           << " > " << abstol << " (absolute tolerance)";
+        throw std::runtime_error("\033[1;31mError: The solver did not converge: " +
+                                 ss.str() + "\033[0m");
+    }
 
     
         for (int lev = 0; lev < num_levels; lev++)
@@ -172,7 +185,7 @@ void MGTSolver::solve(const container_t& rho,
     }
 
     // Average grad_phi from fine to coarse level
-    for (int lev = finestLevel; lev > baseLevel; lev--) {
+    for (int lev = finestLevel - 1; lev > baseLevel; lev--) {
         
         //
         // Coarsen() the fine stuff on processors owning the fine data.
