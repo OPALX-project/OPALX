@@ -20,6 +20,7 @@
 #include <AMReX_ParmParse.H>
 
 #include "../Solver.h"
+#include "../MGTSolver.h"
 #include "../AmrOpal.h"
 
 #include "../helper_functions.h"
@@ -52,6 +53,7 @@ struct param_t {
     bool isWriteCSV;
     bool isWriteParticles;
     bool isHelp;
+    bool useMgtSolver;
 };
 
 
@@ -67,6 +69,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     params.isWriteCSV = false;
     params.isWriteParticles = false;
     params.isHelp = false;
+    params.useMgtSolver = false;
     
     int c = 0;
     
@@ -89,6 +92,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 	    { "pcharge",        required_argument, 0, 'c' },
             { "writeCSV",       no_argument,       0, 'v' },
             { "writeParticles", no_argument,       0, 'p' },
+            { "use-mgt-solver", no_argument,       0, 's' },
             { 0,                0,                 0,  0  }
         };
         
@@ -129,6 +133,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             case 'p':
                 params.isWriteParticles = true;
                 break;
+            case 's':
+                params.useMgtSolver = true;
+                break;
             case 'h':
                 msg << "Usage: " << argv[0]
                     << endl
@@ -143,7 +150,8 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--pcharge [charge per particle] (optional)" << endl
                     << "--writeYt (optional)" << endl
                     << "--writeCSV (optional)" << endl
-                    << "--writeParticles (optional)" << endl;
+                    << "--writeParticles (optional)" << endl
+                    << "--use-mgt-solver (optional)" << endl;
                 params.isHelp = true;
                 break;
             case '?':
@@ -335,31 +343,31 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              container_t& rhs,
              container_t& phi,
              container_t& efield,
-             const Array<int>& rr, int nLevels,
+             const Array<int>& rr,
              Inform& msg,
-             const double& scale)
+             const double& scale, const param_t& params)
 {
     static IpplTimings::TimerRef solvTimer = IpplTimings::getTimer("solve");
     // =======================================================================                                                                                                                                   
     // 4. prepare for multi-level solve                                                                                                                                                                          
     // =======================================================================
 
-    rhs.resize(nLevels);
-    phi.resize(nLevels);
-    efield.resize(nLevels);
+    rhs.resize(params.nLevels);
+    phi.resize(params.nLevels);
+    efield.resize(params.nLevels);
     
 
     // Define the density on level 0 from all particles at all levels                                                                                                                                            
     int base_level   = 0;
     int finest_level = myAmrOpal.finestLevel();
     
-    for (int lev = 0; lev < nLevels; ++lev) {
+    for (uint lev = 0; lev < params.nLevels; ++lev) {
         initGridData(rhs, phi, efield,
                      myAmrOpal.boxArray()[lev], myAmrOpal.DistributionMap(lev), lev);
     }
     
-   container_t partMF(nLevels);
-   for (int lev = 0; lev < nLevels; lev++) {
+   container_t partMF(params.nLevels);
+   for (uint lev = 0; lev < params.nLevels; lev++) {
         const amrex::BoxArray& ba = myAmrOpal.boxArray()[lev];
         const amrex::DistributionMapping& dmap = myAmrOpal.DistributionMap(lev);
         partMF[lev].reset(new amrex::MultiFab(ba, dmap, 1, 2));
@@ -368,7 +376,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     
     bunch->AssignDensityFort(bunch->qm, partMF, base_level, 1, finest_level);
     
-    for (int lev = 0; lev < nLevels; ++lev) {
+    for (uint lev = 0; lev < params.nLevels; ++lev) {
         amrex::MultiFab::Copy(*rhs[lev], *partMF[lev], 0, 0, 1, 0);
     }
     
@@ -401,20 +409,25 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
 
     Real offset = 0.;
 
-    // solve                                                                                                                                                                                                     
-    Solver sol;
-    IpplTimings::startTimer(solvTimer);
-    sol.solve_for_accel(rhs,            // [V m]
-                        phi,            // [V m^3]
-                        efield,       // [V m^2]
-                        geom,
-                        base_level,
-                        finest_level,
-                        offset);
-    
-//     for (int i = 0; i <=finest_level; ++i) {
-//         rhs[i]->mult(1.0 / constant, 0, 1);
-//     }
+    // solve
+    if ( params.useMgtSolver ) {
+        MGTSolver sol;
+        IpplTimings::startTimer(solvTimer);
+        sol.solve(rhs,            // [V m]
+                  phi,            // [V m^3]
+                  efield,       // [V m^2]
+                  geom);
+    } else {
+        Solver sol;
+        IpplTimings::startTimer(solvTimer);
+        sol.solve_for_accel(rhs,            // [V m]
+                            phi,            // [V m^3]
+                            efield,       // [V m^2]
+                            geom,
+                            base_level,
+                            finest_level,
+                            offset);
+    }
     
     // undo scale
     for (int i = 0; i <= finest_level; ++i)
@@ -520,10 +533,6 @@ void doAMReX(const param_t& params, Inform& msg)
     container_t phi;
     container_t efield;
     
-    std::string plotsolve = amrex::Concatenate("plt", 0, 4);
-    
-    
-    
     msg << endl << "Transformed positions" << endl << endl;
     
     msg << "Bunch radius: " << params.radius * scale << " m" << endl
@@ -537,7 +546,7 @@ void doAMReX(const param_t& params, Inform& msg)
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, scale/*0.0*/ /*time*/);
     
-    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, params.nLevels, msg, scale);
+    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, msg, scale, params);
     
     msg << endl << "Back to normal positions" << endl << endl;
     
@@ -595,6 +604,9 @@ int main(int argc, char *argv[]) {
 
         if ( params.isFixedCharge )
             msg << "- charge per particle   = " << params.pCharge << endl;
+        
+        if ( params.useMgtSolver )
+            msg << "- MGT solver is used" << endl;
             
         doAMReX(params, msg);
         
