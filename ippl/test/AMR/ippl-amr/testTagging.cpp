@@ -3,16 +3,15 @@
  * @author Matthias Frey
  * @date February 2017
  * 
- * Domain:  [-0.5, 0.5] x [-0.5, 0.5] x [-0.5, 0.5]\n
+ * Domain:  [-1, 1] x [-1, 1] x [-1, 1]\n
  * BC:      Dirichlet boundary conditions\n
  * Charge/particle: 1e-10\n
- * Gaussian particle distribution N(0.0, 0.07)
+ * Gaussian particle distribution N(0.0, 0.25)
  * 
  * @details Test the different tagging schemes.
  * 
  * Call:\n
- *  mpirun -np [#cores] testTagging [#gridpoints x] [#gridpoints y] [#gridpoints z]
- *                                     [#particles] [#levels] [max. box size] [tagging]
+ *  ./testTagging --help
  * 
  * @brief Perturbes particles randomly in space for several time steps.
  */
@@ -42,45 +41,154 @@
 
 #include "Physics/Physics.h"
 
+#include <getopt.h>
+
 typedef AmrOpal::amrplayout_t amrplayout_t;
 typedef AmrOpal::amrbase_t amrbase_t;
 typedef AmrOpal::amrbunch_t amrbunch_t;
 
 typedef Vektor<double, BL_SPACEDIM> Vector_t;
 
-void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
-              int nLevels, size_t maxBoxSize, AmrOpal::TaggingCriteria criteria, double factor, Inform& msg)
+struct param_t {
+    Vektor<size_t, 3> nr;
+    size_t nLevels;
+    size_t maxBoxSize;
+    size_t nParticles;
+    AmrOpal::TaggingCriteria criteria;
+    double tagfactor;
+    bool isHelp;
+    bool sigma;
+    double length;
+};
+
+bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
+    /* Parsing Command Line Arguments
+     * 
+     * 26. June 2017
+     * https://www.gnu.org/software/libc/manual/html_node/Getopt-Long-Option-Example.html#Getopt-Long-Option-Example
+     */
+    
+    params.isHelp = false;
+    params.criteria = AmrOpal::kChargeDensity;
+    params.tagfactor = 1.0e-14;
+    params.sigma = 0.25;
+    
+    int c = 0;
+    
+    int cnt = 0;
+    
+    int required = 8;
+    
+    while ( true ) {
+        static struct option long_options[] = {
+            { "gridx",          required_argument, 0, 'x' },
+            { "gridy",          required_argument, 0, 'y' },
+            { "gridz",          required_argument, 0, 'z' },
+            { "level",          required_argument, 0, 'l' },
+            { "maxgrid",        required_argument, 0, 'm' },
+            { "boxlength",      required_argument, 0, 'b' },
+            { "nparticles",     required_argument, 0, 'n' },
+            { "help",           no_argument,       0, 'h' },
+            { "tagging",        required_argument, 0, 't' },
+            { "tagging-factor", required_argument, 0, 'f' },
+            { "sigma",          required_argument, 0, 's' },
+            { 0,                0,                 0,  0  }
+        };
+        
+        int option_index = 0;
+        
+        c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:ht:f:s:", long_options, &option_index);
+        
+        if ( c == -1 )
+            break;
+        
+        switch ( c ) {
+            case 'x':
+                params.nr[0] = std::atoi(optarg); ++cnt; break;
+            case 'y':
+                params.nr[1] = std::atoi(optarg); ++cnt; break;
+            case 'z':
+                params.nr[2] = std::atoi(optarg); ++cnt; break;
+            case 'l':
+                params.nLevels = std::atoi(optarg) + 1; ++cnt; break;
+            case 'm':
+                params.maxBoxSize = std::atoi(optarg); ++cnt; break;
+            case 'b':
+                params.length = std::atof(optarg); ++cnt; break;
+            case 'n':
+                params.nParticles = std::atoi(optarg); ++cnt; break;
+            case 't':
+                if ( std::strcmp("efield", optarg) == 0 )
+                    params.criteria = AmrOpal::kEfieldStrength;
+                else if ( std::strcmp("potential", optarg) == 0 )
+                    params.criteria = AmrOpal::kPotentialStrength;
+                break;
+            case 'f':
+                params.tagfactor = std::atof(optarg);
+                break;
+            case 's':
+                params.sigma = std::atof(optarg); ++cnt; break;
+            case 'h':
+                msg << "Usage: " << argv[0]
+                    << endl
+                    << "--gridx [#gridpoints in x]" << endl
+                    << "--gridy [#gridpoints in y]" << endl
+                    << "--gridz [#gridpoints in z]" << endl
+                    << "--level [#levels]" << endl
+                    << "--maxgrid [max. grid]" << endl
+                    << "--nparticles [#particles]" << endl
+                    << "--boxlength [cube side length]" << endl
+                    << "--sigma [Gaussian sigma]" << endl
+                    << "--tagging charge (default) / efield / potential (optional)" << endl
+                    << "--tagfactor [charge value / 0 ... 1] (optiona)" << endl;
+                params.isHelp = true;
+                break;
+            case '?':
+                break;
+            
+            default:
+                break;
+            
+        }
+    }
+    
+    return ( cnt == required );
+}
+
+void doAMReX(const param_t& params, Inform& msg)
 {
     static IpplTimings::TimerRef regridTimer = IpplTimings::getTimer("regrid");
     // ========================================================================
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    std::array<double, BL_SPACEDIM> lower = {{-0.5, -0.5, -0.5}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ 0.5,  0.5,  0.5}}; // m
+    double halflength = 0.5 * params.length;
+    
+    std::array<double, BL_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
+    std::array<double, BL_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
     
     RealBox domain;
     
     // in helper_functions.h
-    init(domain, nr, lower, upper);
+    init(domain, params.nr, lower, upper);
     
     
     /*
      * create an Amr object
      */
     ParmParse pp("amr");
-    pp.add("max_grid_size", int(maxBoxSize));
+    pp.add("max_grid_size", int(params.maxBoxSize));
     
-    Array<int> error_buf(nLevels, 0);
+    Array<int> error_buf(params.nLevels, 0);
     
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
     
     Array<int> nCells(3);
     for (int i = 0; i < 3; ++i)
-        nCells[i] = nr[i];
+        nCells[i] = params.nr[i];
     
-    AmrOpal myAmrOpal(&domain, nLevels - 1, nCells, 0 /* cartesian */);
+    AmrOpal myAmrOpal(&domain, params.nLevels - 1, nCells, 0 /* cartesian */);
     
     
     // ========================================================================
@@ -91,8 +199,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     const Array<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
     const Array<Geometry>& geom = myAmrOpal.Geom();
     
-    Array<int> rr(nLevels);
-    for (int i = 0; i < nLevels; ++i)
+    Array<int> rr(params.nLevels);
+    for (uint i = 0; i < params.nLevels; ++i)
         rr[i] = 2;
     
     
@@ -105,9 +213,9 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     bunch->setAllowParticlesNearBoundary(true);
     
     // initialize a particle distribution
-    unsigned long int nloc = nParticles / ParallelDescriptor::NProcs();
+    unsigned long int nloc = params.nParticles / ParallelDescriptor::NProcs();
     Distribution dist;
-    dist.gaussian(0.0, 0.07, nloc, ParallelDescriptor::MyProc());
+    dist.gaussian(0.0, params.sigma, nloc, ParallelDescriptor::MyProc());
     
     // copy particles to the PartBunchBase object.
     dist.injectBeam( *(bunch.get()) );
@@ -116,15 +224,19 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
         bunch->qm[i] = 1.0e-10;  // in [C]
     }
     
+    double scale = 1.0;
+    
+    scale = domainMapping(*bunch, scale);
     // redistribute on single-level
     bunch->update();
     
     msg << "Single-level statistics" << endl;
     bunch->gatherStatistics();
     
-    msg << "#Particles: " << nParticles << endl
+    msg << "#Particles: " << params.nParticles << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
-        << "Total charge: " << nParticles * bunch->qm[0] << " C" << endl;
+        << "Total charge: " << params.nParticles * bunch->qm[0] << " C" << endl;
+    
     
     
     myAmrOpal.setBunch(bunch.get());
@@ -132,34 +244,26 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     const Array<Geometry>& geoms = myAmrOpal.Geom();
     
     // tagging using potential strength
-    myAmrOpal.setTagging(criteria);
+    myAmrOpal.setTagging(params.criteria);
     
-    if ( criteria == AmrOpal::kChargeDensity )
-        myAmrOpal.setCharge(factor);
+    if ( params.criteria == AmrOpal::kChargeDensity )
+        myAmrOpal.setCharge(params.tagfactor);
     else
-        myAmrOpal.setScalingFactor(factor);
+        myAmrOpal.setScalingFactor(params.tagfactor);
     
     IpplTimings::startTimer(regridTimer);
     
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
-        myAmrOpal.regrid(i /*lbase*/, 0.0 /*time*/);
+        myAmrOpal.regrid(i /*lbase*/, scale /* 0.0 time*/);
     
     IpplTimings::stopTimer(regridTimer);
     
-//     // single core
-//     unsigned int lev = 0, nLocParticles = 0;
-//     for (unsigned int ip = 0; ip < bunch->getLocalNum(); ++ip) {
-//         while ( lev != bunch->m_lev[ip] ) {
-//             std::cout << "#Local Particles at level " << lev << ": " << nLocParticles << std::endl;
-//             nLocParticles = 0;
-//             lev++;
-//         }
-//         nLocParticles++;
-//     }
-//     
-//     std::cout << "#Local Particles at level " << lev << ": " << nLocParticles << std::endl;
-    
     bunch->python_format(0);
+    
+    
+    domainMapping(*bunch, scale, true);
+    
+    bunch->update();
 }
 
 
@@ -168,49 +272,42 @@ int main(int argc, char *argv[]) {
     Ippl ippl(argc, argv);
     
     Inform msg("Solver");
-    
 
     static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("main");
     IpplTimings::startTimer(mainTimer);
 
-    std::stringstream call;
-    call << "Call: mpirun -np [#procs] " << argv[0]
-         << " [#gridpoints x] [#gridpoints y] [#gridpoints z] [#particles] "
-         << "[#levels] [max. box size] [tagging (i.e. charge, efield, potential)] [factor (charge or 0..1]";
-    
-    if ( argc < 9 ) {
-        msg << call.str() << endl;
-        return -1;
-    }
-    
-    // number of grid points in each direction
-    Vektor<size_t, 3> nr(std::atoi(argv[1]),
-                         std::atoi(argv[2]),
-                         std::atoi(argv[3]));
-    
-    
-    size_t nParticles = std::atoi(argv[4]);
-    std::string tagging = argv[7];
-    double factor = std::atof(argv[8]);
-    
-    AmrOpal::TaggingCriteria criteria = AmrOpal::kChargeDensity;
-    if ( !tagging.compare("efield") )
-        criteria = AmrOpal::kEfieldStrength;
-    else if ( !tagging.compare("potential") )
-        criteria = AmrOpal::kPotentialStrength;
-    else
-        tagging = "charge"; // take default method: kChargeDensity
-    
-    msg << "Particle test running with" << endl
-        << "- #particles     = " << nParticles << endl
-        << "- grid           = " << nr << endl
-        << "- tagging        = " << tagging << endl
-        << "- charge/scaling = " << factor << endl;
+    param_t params;
     
     amrex::Initialize(argc,argv, false);
-    size_t nLevels = std::atoi(argv[5]) + 1; // i.e. nLevels = 0 --> only single level
-    size_t maxBoxSize = std::atoi(argv[6]);
-    doBoxLib(nr, nParticles, nLevels, maxBoxSize, criteria, factor, msg);
+    
+    try {
+        if ( !parseProgOptions(argc, argv, params, msg) && !params.isHelp )
+            throw std::runtime_error("\033[1;31mError: Check the program options.\033[0m");
+        else if ( params.isHelp )
+            return 0;
+        
+        
+        std::string tagging = "charge";
+        if ( params.criteria == AmrOpal::kEfieldStrength )
+            tagging = "efield";
+        else if ( params.criteria == AmrOpal::kPotentialStrength )
+            tagging = "potential";
+    
+        msg << "Particle test running with" << endl
+            << "- grid                  = " << params.nr << endl
+            << "- max. grid             = " << params.maxBoxSize << endl
+            << "- #level                = " << params.nLevels - 1 << endl
+            << "- cube side length [m]  = " << params.length << endl
+            << "- #particles            = " << params.nParticles << endl
+            << "- sigma  [Gaussian]     = " << params.sigma << endl
+            << "- tagging               = " << tagging << endl
+            << "- tagging factor        = " << params.tagfactor << endl;
+
+        doAMReX(params, msg);
+        
+    } catch(const std::exception& ex) {
+        msg << ex.what() << endl;
+    }
     
     
     IpplTimings::stopTimer(mainTimer);

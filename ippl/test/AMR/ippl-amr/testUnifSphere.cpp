@@ -38,8 +38,6 @@ typedef AmrOpal::amrplayout_t amrplayout_t;
 typedef AmrOpal::amrbase_t amrbase_t;
 typedef AmrOpal::amrbunch_t amrbunch_t;
 
-typedef Vektor<double, BL_SPACEDIM> Vector_t;
-
 struct param_t {
     Vektor<size_t, 3> nr;
     size_t nLevels;
@@ -266,33 +264,6 @@ void writeYt(container_t& rho,
         rho[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
     
     writePlotFile(dir, rho, phi, efield, rr, geom, time, scalefactor);
-}
-
-
-double domainMapping(amrbase_t& PData, const double& scale, bool inverse = false)
-{
-    Vector_t rmin, rmax;
-    bounds(PData.R, rmin, rmax);
-    
-    double absmax = scale;
-    
-    if ( !inverse ) {
-        Vector_t tmp = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
-                                std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
-                                std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
-                               );
-        
-        absmax = std::max( tmp[0], tmp[1] );
-        absmax = std::max( absmax, tmp[2] );
-    }
-    
-    Vector_t vscale = Vector_t(absmax, absmax, absmax);
-    
-    for (unsigned int i = 0; i < PData.getLocalNum(); ++i) {
-        PData.R[i] /= vscale;
-    }
-    
-    return 1.0 / absmax;
 }
 
 void initSphere(double r,
