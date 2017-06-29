@@ -32,6 +32,36 @@ using amrex::Real;
 
 typedef Array<std::unique_ptr<MultiFab> > container_t;
 
+typedef Vektor<double, BL_SPACEDIM> Vector_t;
+
+
+template< typename amrbase_t >
+double domainMapping(amrbase_t& PData, const double& scale, bool inverse = false)
+{
+    Vector_t rmin, rmax;
+    bounds(PData.R, rmin, rmax);
+    
+    double absmax = scale;
+    
+    if ( !inverse ) {
+        Vector_t tmp = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
+                                std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
+                                std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
+                               );
+        
+        absmax = std::max( tmp[0], tmp[1] );
+        absmax = std::max( absmax, tmp[2] );
+    }
+    
+    Vector_t vscale = Vector_t(absmax, absmax, absmax);
+    
+    for (unsigned int i = 0; i < PData.getLocalNum(); ++i) {
+        PData.R[i] /= vscale;
+    }
+    
+    return 1.0 / absmax;
+}
+
 /*!
  * @param scalfield to write
  * @param filename to be written to

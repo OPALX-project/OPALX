@@ -497,24 +497,31 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real scale/*
      */
     
     // 1. Assign charge onto grid of level lev
-    int base_level   = 0;
-    int finest_level = 0;
+    int lbase   = 0;
+    int lfinest = finest_level;
     
-    mfs_mt nPartPerCell(1);
-    nPartPerCell[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(lev),
-                                                             this->DistributionMap(lev),
-                                                             1, 1)
+    int nlevels = lfinest - lbase + 1;
+    
+    mfs_mt nPartPerCell(nlevels);
+    
+    for ( int i = 0; i < nlevels; ++ i) {
+        nPartPerCell[i] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(i),
+                                                             this->DistributionMap(i),
+                                                             1, 2)
                                                  );
-    nPartPerCell[base_level]->setVal(0.0, 1);
+        nPartPerCell[i]->setVal(0.0, 2);
+    }
     
     #ifdef IPPL_AMR
-        bunch_m->AssignCellDensitySingleLevelFort(bunch_m->qm, *nPartPerCell[base_level], lev);
-//         bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell[base_level], lev);
+        bunch_m->AssignDensityFort(bunch_m->qm, nPartPerCell, lbase, 1, lfinest);
+//         bunch_m->AssignCellDensitySingleLevelFort(bunch_m->qm, *nPartPerCell[lbase], lev);
+//         bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell[lbase], lev);
     #else
-        bunch_m->AssignDensitySingleLevel(0, *nPartPerCell[base_level], lev);
+        bunch_m->AssignDensitySingleLevel(0, *nPartPerCell[lbase], lev);
     #endif
     
-    nPartPerCell[base_level]->mult(scale, 0, 1);
+    for ( int i = 0; i < nlevels; ++ i)
+        nPartPerCell[i]->mult(scale, 0, 1);
     
     // 2. Solve Poisson's equation on level lev
     
@@ -531,23 +538,25 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real scale/*
         offset /= geom[0].ProbSize();
     }
     
-    Solver::container_t phi(1);
-    Solver::container_t grad_phi(1);
-    //                                                                # component # ghost cells                                                                                                                                          
-    phi[base_level] = std::unique_ptr<MultiFab>(
-        new MultiFab(this->boxArray(lev), this->DistributionMap(lev), 1          , 1));
-    grad_phi[base_level] = std::unique_ptr<MultiFab>(
-        new MultiFab(this->boxArray(lev), this->DistributionMap(lev), BL_SPACEDIM, 1));
-    phi[base_level]->setVal(0.0, 1);
-    grad_phi[base_level]->setVal(0.0, 1);
+    Solver::container_t phi(nlevels);
+    Solver::container_t grad_phi(nlevels);
+    for ( int i = 0; i < nlevels; ++i ) {
+        //                                                                # component # ghost cells                                                                                                                                          
+        phi[i] = std::unique_ptr<MultiFab>(
+            new MultiFab(this->boxArray(i), this->DistributionMap(i), 1          , 1));
+        grad_phi[i] = std::unique_ptr<MultiFab>(
+            new MultiFab(this->boxArray(i), this->DistributionMap(i), BL_SPACEDIM, 1));
+        phi[i]->setVal(0.0, 1);
+        grad_phi[i]->setVal(0.0, 1);
+    }
     
     Solver sol;
     sol.solve_for_accel(nPartPerCell,
                         phi,
                         grad_phi,
                         geom,
-                        base_level,
-                        finest_level,
+                        lbase,
+                        lfinest,
                         offset,
                         false,
                         false); // we need no gradient
@@ -561,17 +570,16 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real scale/*
     
     Real minp = 0.0;
     Real maxp = 0.0;
-    maxp = scaling_m * phi[base_level]->max(0);
-    minp = scaling_m * phi[base_level]->min(0);
+    maxp = scaling_m * phi[lev]->max(0);
+    minp = scaling_m * phi[lev]->min(0);
     Real value = std::max( std::abs(minp), std::abs(maxp) );
-    
     
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
         Array<int>  itags;
-        for (MFIter mfi(*phi[base_level],false/*true*/); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(*phi[lev],false/*true*/); mfi.isValid(); ++mfi) {
             const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
             TagBox&     tagfab  = tags[mfi];
@@ -586,7 +594,7 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real scale/*
             const int*  thi     = tilebx.hiVect();
 
             tag_potential_strength(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-                        BL_TO_FORTRAN_3D((*phi[base_level])[mfi]),
+                        BL_TO_FORTRAN_3D((*phi[lev])[mfi]),
                         &tagval, &clearval, 
                         ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
                         ZFILL(dx), ZFILL(prob_lo), &scale, &value);
@@ -598,7 +606,8 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real scale/*
     }
     
     // releases memory itself
-    nPartPerCell[0].reset(nullptr);
+    for (int i = 0; i < nlevels; ++i)
+        nPartPerCell[i].reset(nullptr);
 }
 
 void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
@@ -608,24 +617,31 @@ void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*tim
      */
     
     // 1. Assign charge onto grid of level lev
-    int base_level   = 0;
-    int finest_level = 0;
+    int lbase   = 0;
+    int lfinest = finest_level;
     
-    mfs_mt nPartPerCell(1);
-    nPartPerCell[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(lev),
-                                                             this->DistributionMap(lev),
-                                                             1, 1)
+    int nlevels = lfinest - lbase + 1;
+    
+    mfs_mt nPartPerCell(nlevels);
+    
+    for ( int i = 0; i < nlevels; ++ i) {
+        nPartPerCell[i] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(i),
+                                                             this->DistributionMap(i),
+                                                             1, 2)
                                                  );
-    nPartPerCell[base_level]->setVal(0.0, 1);
+        nPartPerCell[i]->setVal(0.0, 2);
+    }
     
     #ifdef IPPL_AMR
-        bunch_m->AssignCellDensitySingleLevelFort(bunch_m->qm, *nPartPerCell[base_level], lev);
-//         bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell[base_level], lev);
+        bunch_m->AssignDensityFort(bunch_m->qm, nPartPerCell, lbase, 1, lfinest);
+//         bunch_m->AssignCellDensitySingleLevelFort(bunch_m->qm, *nPartPerCell[lbase], lev);
+//         bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nPartPerCell[lbase], lev);
     #else
-        bunch_m->AssignDensitySingleLevel(0, *nPartPerCell[base_level], lev);
+        bunch_m->AssignDensitySingleLevel(0, *nPartPerCell[lbase], lev);
     #endif
     
-    nPartPerCell[base_level]->mult(scale, 0, 1);
+    for ( int i = 0; i < nlevels; ++ i)
+        nPartPerCell[i]->mult(scale, 0, 1);
     
     // 2. Solve Poisson's equation on level lev
     Real offset = 0.0;
@@ -641,23 +657,25 @@ void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*tim
         offset /= geom[0].ProbSize();
     }
     
-    Solver::container_t phi(1);
-    Solver::container_t grad_phi(1);
-    //                                                                # component # ghost cells                                                                                                                                          
-    phi[base_level] = std::unique_ptr<MultiFab>(
-        new MultiFab(this->boxArray(lev), this->DistributionMap(lev), 1          , 1));
-    grad_phi[base_level] = std::unique_ptr<MultiFab>(
-        new MultiFab(this->boxArray(lev), this->DistributionMap(lev), BL_SPACEDIM, 1));
-    phi[base_level]->setVal(0.0, 1);
-    grad_phi[base_level]->setVal(0.0, 1);
+    Solver::container_t phi(nlevels);
+    Solver::container_t grad_phi(nlevels);
+    for ( int i = 0; i < nlevels; ++i ) {
+        //                                                                # component # ghost cells                                                                                                                                          
+        phi[i] = std::unique_ptr<MultiFab>(
+            new MultiFab(this->boxArray(i), this->DistributionMap(i), 1          , 1));
+        grad_phi[i] = std::unique_ptr<MultiFab>(
+            new MultiFab(this->boxArray(i), this->DistributionMap(i), BL_SPACEDIM, 1));
+        phi[i]->setVal(0.0, 1);
+        grad_phi[i]->setVal(0.0, 1);
+    }
     
     Solver sol;
     sol.solve_for_accel(nPartPerCell,
                         phi,
                         grad_phi,
                         geom,
-                        base_level,
-                        finest_level,
+                        lbase,
+                        lfinest,
                         offset,
                         false);
     
@@ -668,8 +686,8 @@ void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*tim
     Real min[3] = {0.0, 0.0, 0.0};
     Real max[3] = {0.0, 0.0, 0.0};
     for (int i = 0; i < 3; ++i) {
-        max[i] = scaling_m * grad_phi[base_level]->max(i);
-        min[i] = scaling_m * grad_phi[base_level]->min(i);
+        max[i] = scaling_m * grad_phi[lev]->max(i);
+        min[i] = scaling_m * grad_phi[lev]->min(i);
     }
     Real efield[3] = {0.0, 0.0, 0.0};
     for (int i = 0; i < 3; ++i)
@@ -681,11 +699,11 @@ void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*tim
 #endif
     {
         Array<int>  itags;
-        for (MFIter mfi(*grad_phi[base_level],false/*true*/); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(*grad_phi[lev],false/*true*/); mfi.isValid(); ++mfi) {
             const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
             TagBox&     tagfab  = tags[mfi];
-            FArrayBox&  fab     = (*grad_phi[base_level])[mfi];
+            FArrayBox&  fab     = (*grad_phi[lev])[mfi];
             // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
             // So we are going to get a temporary integer array.
 //             tagfab.get_itags(itags, tilebx);
@@ -721,7 +739,8 @@ void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*tim
     
     
     // releases memory itself
-    nPartPerCell[0].reset(nullptr);
+    for (int i = 0; i < nlevels; ++i)
+        nPartPerCell[i].reset(nullptr);
 }
 
 
