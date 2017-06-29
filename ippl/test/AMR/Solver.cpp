@@ -181,7 +181,7 @@ Solver::solve_with_f90(const container_pt& rhs,
 
     int always_use_bnorm = 0;
     int need_grad_phi = (doGradient) ? 1 : 0;
-    fmg.set_verbose(5);
+    fmg.set_verbose(0);
     
     if ( timing )
         IpplTimings::stopTimer(initSolverTimer);
