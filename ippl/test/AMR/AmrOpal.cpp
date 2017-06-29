@@ -295,7 +295,7 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
             tagForPotentialStrength_m(lev, tags, time, ngrow);
             break;
         case kEfieldStrength:
-            tagForEfieldGradient_m(lev, tags, time, ngrow);
+            tagForEfieldStrength_m(lev, tags, time, ngrow);
             break;
         case kCenteredRegion:
             tagForCenteredRegion_m(lev, tags, time, ngrow);
@@ -601,7 +601,7 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real scale/*
     nPartPerCell[0].reset(nullptr);
 }
 
-void AmrOpal::tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
+void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
     /* Perform a single level solve a level lev and tag all cells for refinement
      * where the value of the potential is higher than 75 percent of the maximum potential
      * value of this level.

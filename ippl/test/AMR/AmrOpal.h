@@ -149,7 +149,7 @@ public:
     
     /*!
      * Scaling factor for tagging.
-     * It is used in tagForPotentialStrength_m and tagForEfieldGradient_m
+     * It is used in tagForPotentialStrength_m and tagForEfieldStrength_m
      * @param scaling factor in [0, 1]
      */
     void setScalingFactor(double scaling) {
@@ -179,7 +179,7 @@ private:
     
     void tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow);
     void tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, int ngrow);
-    void tagForEfieldGradient_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real time, int ngrow);
     void tagForCenteredRegion_m(int lev, TagBoxArray& tags, Real time, int ngrow);
     
     
@@ -193,7 +193,7 @@ private:
     mfs_mt nChargePerCell_m;    ///< use in tagging tagForChargeDensity_m (needed when tracking)
     
     double scaling_m;           ///< Scaling factor for tagging [0, 1]
-                                // (tagForPotentialStrength_m, tagForEfieldGradient_m)
+                                // (tagForPotentialStrength_m, tagForEfieldStrength_m)
     Real   nCharge_m;           ///< Tagging value for tagForChargeDensity_m
     
 };
