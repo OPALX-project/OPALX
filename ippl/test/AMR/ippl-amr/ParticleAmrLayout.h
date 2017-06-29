@@ -355,6 +355,14 @@ public:
         //if IpplParticleBase is used something went wrong
     }
     
+    void locateParticle(AmrParticleBase< ParticleAmrLayout<T,Dim> >& PData) {
+        size_t LocalNum = PData.getLocalNum();
+        
+        //check to which level and grid the particle belongs to
+        for (unsigned int ip=0; ip < LocalNum; ++ip)
+            Where(PData, ip);
+    }
+    
 private:
     int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);
     
