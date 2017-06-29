@@ -205,7 +205,7 @@ void AmrPartBunch::printLevelStatistics() {
     for (int i = 0; i < nLevel; ++i)
         msg << "Level " << i << " has "
             << globalPartPerLevel[i] << " ("
-            << globalPartPerLevel[i] / this->getTotalNum() * 100.0
+            << globalPartPerLevel[i] / double(this->getTotalNum()) * 100.0
             << " \%) of the total particles" << endl;
 }
 
