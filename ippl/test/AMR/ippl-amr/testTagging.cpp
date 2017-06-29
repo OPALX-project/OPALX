@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
     
     AmrOpal::TaggingCriteria criteria = AmrOpal::kChargeDensity;
     if ( !tagging.compare("efield") )
-        criteria = AmrOpal::kEfieldGradient;
+        criteria = AmrOpal::kEfieldStrength;
     else if ( !tagging.compare("potential") )
         criteria = AmrOpal::kPotentialStrength;
     else
