@@ -4,6 +4,7 @@
 #include "AmrParticleBase.h"
 
 #include <list>
+#include <sstream>
 
 template<class PLayout>
 class PartBunchAmr : public AmrParticleBase<PLayout>
@@ -109,7 +110,8 @@ public:
     }
     
     void python_format(int step) {
-        std::string st = std::to_string(step);
+        std::stringstream st;
+        st << std::setfill('0') << std::setw(10) << std::to_string(step);
         Inform::WriteMode wm = Inform::OVERWRITE;
         for (int i = 0; i < Ippl::getNodes(); ++i) {
             if ( i == Ippl::myNode() ) {
@@ -118,7 +120,7 @@ public:
                 PLayout* playout = &this->getLayout();
                 const ParGDBBase* gdb = playout->GetParGDB();
                 
-                std::string grid_file = "pyplot_grids_" + st + ".dat";
+                std::string grid_file = "grids_" + st.str() + ".dat";
                 Inform msg("", grid_file.c_str(), wm, i);
                 for (int l = 0; l < gdb->finestLevel() + 1; ++l) {
                     Geometry geom = gdb->Geom(l);
@@ -131,7 +133,7 @@ public:
                     }
                 }
                 
-                std::string particle_file = "pyplot_particles_" + st + ".dat";
+                std::string particle_file = "bunch_" + st.str() + ".dat";
                 Inform msg2all("", particle_file.c_str(), wm, i);
                 for (size_t i = 0; i < this->getLocalNum(); ++i) {
                     msg2all << this->R[i](0) << " "

@@ -54,6 +54,8 @@ struct param_t {
     bool isWriteParticles;
     bool isHelp;
     bool useMgtSolver;
+    AmrOpal::TaggingCriteria criteria;
+    double tagfactor;
 };
 
 
@@ -70,6 +72,8 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     params.isWriteParticles = false;
     params.isHelp = false;
     params.useMgtSolver = false;
+    params.criteria = AmrOpal::kChargeDensity;
+    params.tagfactor = 1.0e-14; 
     
     int c = 0;
     
@@ -93,12 +97,14 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "writeCSV",       no_argument,       0, 'v' },
             { "writeParticles", no_argument,       0, 'p' },
             { "use-mgt-solver", no_argument,       0, 's' },
+            { "tagging",        required_argument, 0, 't' },
+            { "tagging-factor", required_argument, 0, 'f' },
             { 0,                0,                 0,  0  }
         };
         
         int option_index = 0;
         
-        c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:w", long_options, &option_index);
+        c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:whcvpst:f:", long_options, &option_index);
         
         if ( c == -1 )
             break;
@@ -136,6 +142,15 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             case 's':
                 params.useMgtSolver = true;
                 break;
+            case 't':
+                if ( std::strcmp("efield", optarg) == 0 )
+                    params.criteria = AmrOpal::kEfieldStrength;
+                else if ( std::strcmp("potential", optarg) == 0 )
+                    params.criteria = AmrOpal::kPotentialStrength;
+                break;
+            case 'f':
+                params.tagfactor = std::atof(optarg);
+                break;
             case 'h':
                 msg << "Usage: " << argv[0]
                     << endl
@@ -151,7 +166,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--writeYt (optional)" << endl
                     << "--writeCSV (optional)" << endl
                     << "--writeParticles (optional)" << endl
-                    << "--use-mgt-solver (optional)" << endl;
+                    << "--use-mgt-solver (optional)" << endl
+                    << "--tagging charge (default) / efield / potential (optional)" << endl
+                    << "--tagfactor [charge value / 0 ... 1] (optiona)" << endl;
                 params.isHelp = true;
                 break;
             case '?':
@@ -483,6 +500,13 @@ void doAMReX(const param_t& params, Inform& msg)
     
     AmrOpal myAmrOpal(&domain, params.nLevels - 1, nCells, 0 /* cartesian */, rr);
     
+    myAmrOpal.setTagging(params.criteria);
+    
+    if ( params.criteria == AmrOpal::kChargeDensity )
+        myAmrOpal.setCharge(params.tagfactor);
+    else
+        myAmrOpal.setScalingFactor(params.tagfactor);
+    
     // ========================================================================
     // 2. initialize all particles (just single-level)
     // ========================================================================
@@ -592,7 +616,13 @@ int main(int argc, char *argv[]) {
             throw std::runtime_error("\033[1;31mError: Check the program options.\033[0m");
         else if ( params.isHelp )
             return 0;
-    
+        
+        
+        std::string tagging = "charge";
+        if ( params.criteria == AmrOpal::kEfieldStrength )
+            tagging = "efield";
+        else if ( params.criteria == AmrOpal::kPotentialStrength )
+            tagging = "potential";
     
         msg << "Particle test running with" << endl
             << "- grid                  = " << params.nr << endl
@@ -600,7 +630,9 @@ int main(int argc, char *argv[]) {
             << "- #level                = " << params.nLevels - 1 << endl
             << "- sphere radius [m]     = " << params.radius << endl
             << "- cube side length [m]  = " << params.length << endl
-            << "- #particles            = " << params.nParticles << endl;
+            << "- #particles            = " << params.nParticles << endl
+            << "- tagging               = " << tagging << endl
+            << "- tagging factor        = " << params.tagfactor << endl;
 
         if ( params.isFixedCharge )
             msg << "- charge per particle   = " << params.pCharge << endl;
@@ -611,7 +643,7 @@ int main(int argc, char *argv[]) {
         doAMReX(params, msg);
         
     } catch(const std::exception& ex) {
-        std::cerr << ex.what() << std::endl;
+        msg << ex.what() << endl;
     }
     
     
