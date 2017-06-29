@@ -503,6 +503,8 @@ void doAMReX(const param_t& params, Inform& msg)
                params.isFixedCharge,
                params.isWriteParticles);
     
+    bunch->update();
+    
     msg << "Bunch radius: " << params.radius << " m" << endl
         << "#Particles: " << bunch->getTotalNum() << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
@@ -517,6 +519,8 @@ void doAMReX(const param_t& params, Inform& msg)
     bunch->update();
     
     myAmrOpal.setBunch(bunch.get());
+    
+    msg << "//\n//  Process Statistic BEFORE regrid\n//" << endl;
     
     bunch->gatherStatistics();
     
@@ -540,6 +544,12 @@ void doAMReX(const param_t& params, Inform& msg)
     
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, scale/*0.0*/ /*time*/);
+    
+    bunch->gatherLevelStatistics();
+    
+    msg << "//\n//  Process Statistic AFTER regrid\n//" << endl;
+    
+    bunch->gatherStatistics();
     
     doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, msg, scale, params);
     

@@ -214,6 +214,19 @@ public:
     
         IpplTimings::stopTimer(UpdateParticlesTimer_m);
     }
+    
+    
+    // update the level and grid attribute of each particle
+    // without redistributing among cores
+    void locateParticle() {
+        // make sure we've been initialized
+        PLayout *Layout = &this->getLayout();
+
+        PAssert(Layout != 0);
+        
+        Layout->locateParticle(*this);
+        sort();
+    }
 
     //sort particles based on the grid and level that they belong to
     void sort() {
