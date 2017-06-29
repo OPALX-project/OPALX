@@ -294,7 +294,7 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
         case kPotentialStrength:
             tagForPotentialStrength_m(lev, tags, time, ngrow);
             break;
-        case kEfieldGradient:
+        case kEfieldStrength:
             tagForEfieldGradient_m(lev, tags, time, ngrow);
             break;
         case kCenteredRegion:

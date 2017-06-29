@@ -40,7 +40,7 @@ public:
     enum TaggingCriteria {
         kChargeDensity = 0, // default
         kPotentialStrength,
-        kEfieldGradient,
+        kEfieldStrength,
         kCenteredRegion     // only for boxlib-only/testDeposition comparison
     };
         
