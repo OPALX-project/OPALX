@@ -59,7 +59,7 @@ public:
      * @param level
      * @returns the local starting index
      */
-    T begin(T level) {
+    T begin(T level) const {
         auto end = count_m.begin();
         
         // make sure to stay within container
@@ -78,7 +78,7 @@ public:
      * @param level
      * @returns the index of the local end of that level
      */
-    T end(T level) { return begin(level + 1); }
+    T end(T level) const { return begin(level + 1); }
     
     
     /*!
