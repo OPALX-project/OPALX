@@ -540,8 +540,6 @@ void doAMReX(const param_t& params, Inform& msg)
         << "Total charge: " << params.nParticles * bunch->qm[0] << " C" << endl
         << "#Cells per dim for bunch: " << 2.0 * params.radius * scale / *(geom[0].CellSize()) << endl;
     
-    bunch->update();
-    
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, scale/*0.0*/ /*time*/);
     
@@ -556,8 +554,6 @@ void doAMReX(const param_t& params, Inform& msg)
     msg << endl << "Back to normal positions" << endl << endl;
     
     domainMapping(*bunch, scale, true);
-    
-    bunch->update();
     
     for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
         msg << "Max. potential level " << i << ": "<< phi[i]->max(0) << endl

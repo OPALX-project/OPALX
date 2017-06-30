@@ -31,6 +31,8 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
+#include "LevelNumCounter.h"
+
 using namespace amrex;
 
 
@@ -51,7 +53,7 @@ typedef typename std::map<int,PBox> PMap;
 
 template<class PLayout>
 class AmrParticleBase : public IpplParticleBase<PLayout> {
-
+    
  public:
     typedef typename PLayout::ParticlePos_t   ParticlePos_t;
     typedef typename PLayout::ParticleIndex_t ParticleIndex_t;
@@ -59,6 +61,8 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
 
     ParticleIndex_t m_lev;
     ParticleIndex_t m_grid;
+    
+    LevelNumCounter<size_t, size_t> LocalLevelNum;
 
  private:
 
@@ -156,7 +160,7 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
 public: 
 
     //constructor: initializes timers and default variables
-    AmrParticleBase() : allow_particles_near_boundary(false) { 
+    AmrParticleBase() : allow_particles_near_boundary(false), LocalLevelNum() { 
         AssignDensityTimer_m = IpplTimings::getTimer("AMR AssignDensity");
         SortParticlesTimer_m = IpplTimings::getTimer("AMR sort particles");
         UpdateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
@@ -174,10 +178,10 @@ public:
     void setAllowParticlesNearBoundary(bool value) {
         allow_particles_near_boundary = value;
     }
-
+    
     // Update the particle object after a timestep.  This routine will change
     // our local, total, create particle counts properly.
-    void update() {
+    void update(int lbase = 0, int lfine = -1) {
     
         IpplTimings::startTimer(UpdateParticlesTimer_m);
 
@@ -187,7 +191,7 @@ public:
         PAssert(Layout != 0);
     
         // ask the layout manager to update our atoms, etc.
-        Layout->update(*this);
+        Layout->update(*this, 0, lbase, lfine);
         //sort the particles by grid and level
         sort();
         INCIPPLSTAT(incParticleUpdates);
@@ -213,19 +217,6 @@ public:
         INCIPPLSTAT(incParticleUpdates);
     
         IpplTimings::stopTimer(UpdateParticlesTimer_m);
-    }
-    
-    
-    // update the level and grid attribute of each particle
-    // without redistributing among cores
-    void locateParticle() {
-        // make sure we've been initialized
-        PLayout *Layout = &this->getLayout();
-
-        PAssert(Layout != 0);
-        
-        Layout->locateParticle(*this);
-        sort();
     }
 
     //sort particles based on the grid and level that they belong to
