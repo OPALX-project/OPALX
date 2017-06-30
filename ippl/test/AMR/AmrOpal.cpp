@@ -384,8 +384,7 @@ AmrOpal::regrid (int lbase, Real time)
     
     // update to multilevel
 #ifdef IPPL_AMR
-//     bunch_m->locateParticle();
-    bunch_m->update();
+    bunch_m->update(lbase, finest_level);
 #else
     bunch_m->myUpdate();
 #endif
