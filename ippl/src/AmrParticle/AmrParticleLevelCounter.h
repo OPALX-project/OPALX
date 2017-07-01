@@ -1,18 +1,25 @@
-#ifndef LEVEL_NUM_COUNTER_H
-#define LEVEL_NUM_COUNTER_H
+#ifndef AMR_PARTICLE_LEVEL_COUNTER_H
+#define AMR_PARTICLE_LEVEL_COUNTER_H
 
 #include <map>
 #include <numeric>
 #include <functional>
 #include <iterator>
 
-
+/*!
+ * Helper class in order to keep track of particles
+ * per level. It allows to iterate faster through
+ * particles at a certain level.
+ * The class is built on the STL map container where
+ * the key represents the level and the value is the
+ * the number of particles at that level.
+ */
 template <
     class Key,
     class T,
     class Compare = std::less<Key>,
     class Allocator = std::allocator<std::pair<const Key, T> >
-> class LevelNumCounter
+> class AmrParticleLevelCounter
 {
     
 public:
@@ -23,7 +30,7 @@ public:
 
 public:
     
-    LevelNumCounter() : count_m() { }
+    AmrParticleLevelCounter() : count_m() { }
     
     /*!
      * Add more "particles" to that level
@@ -96,11 +103,11 @@ public:
     }
     
     /*!
-     * @returns the total count of particles over
-     * all levels
-     */ 
+     * 
+     * 
+     */
     T getLocalNumAllLevel() {
-        return begin(count_m.size());
+        return begin( count_m.size() );
     }
     
 private:
@@ -120,6 +127,10 @@ private:
         
         
 private:
+    /*!
+     * Key represents level
+     * T   represents number of particles
+     */
     std::map<Key, T> count_m;
 };
 

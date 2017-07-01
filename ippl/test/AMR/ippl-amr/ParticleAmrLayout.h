@@ -253,10 +253,19 @@ public:
         typedef typename AmrParticleBase< ParticleAmrLayout<T,Dim> >::LevelNumCounter_t LevelNumCounter_t;
         LevelNumCounter_t& LocalLevelNum = PData.getLocalLevelNum();
         
+        size_t LocalNumAll = LocalLevelNum.getLocalNumAllLevel();
         
-        //FIXME Find a better place for initialisation. What happens if more particles are created?
-        if ( LocalLevelNum.empty() )
-            LocalLevelNum[0] = LocalNum;
+        if ( LocalNumAll != LocalNum ) {
+            /* Either first initialization of bunch
+             * or new particles are generated. In the latter
+             * case they are initialized at the coaresest level
+             * therefore we just need to update the level count.
+             * In the first case it's the same.
+             * 
+             * 
+             */
+            LocalLevelNum[0] = LocalNum - LocalNumAll;
+        }
         
         std::multimap<unsigned, unsigned> p2n; //node ID, particle 
 

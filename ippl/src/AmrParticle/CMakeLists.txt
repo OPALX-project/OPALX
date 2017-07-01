@@ -5,6 +5,7 @@ SET (_HDRS
     ParticleAmrLayout.h
     AmrParticleBase.h
     AmrParticleBase.hpp
+    AmrParticleLevelCounter.h
     )
 
 INCLUDE_DIRECTORIES (
