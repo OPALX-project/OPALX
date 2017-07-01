@@ -95,6 +95,14 @@ public:
         }
     }
     
+    /*!
+     * @returns the total count of particles over
+     * all levels
+     */ 
+    T getLocalNumAllLevel() {
+        return begin(count_m.size());
+    }
+    
 private:
     /*!
      * Find the level the particle belongs to

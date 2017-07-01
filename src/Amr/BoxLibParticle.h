@@ -23,11 +23,12 @@ template<class PLayout>
 class BoxLibParticle : public virtual AmrParticleBase<PLayout>
 {
 public:
-    typedef typename AmrParticleBase<PLayout>::ParticlePos_t        ParticlePos_t;
-    typedef typename AmrParticleBase<PLayout>::ParticleIndex_t      ParticleIndex_t;
-    typedef typename AmrParticleBase<PLayout>::SingleParticlePos_t  SingleParticlePos_t;
-    typedef typename AmrParticleBase<PLayout>::AmrField_t           AmrField_t;
-    typedef typename AmrParticleBase<PLayout>::AmrFieldContainer_t  AmrFieldContainer_t; // Array<std::unique_ptr<MultiFab> >
+    typedef typename AmrParticleBase<PLayout>::ParticlePos_t            ParticlePos_t;
+    typedef typename AmrParticleBase<PLayout>::ParticleIndex_t          ParticleIndex_t;
+    typedef typename AmrParticleBase<PLayout>::SingleParticlePos_t      SingleParticlePos_t;
+    typedef typename AmrParticleBase<PLayout>::AmrField_t               AmrField_t;
+    typedef typename AmrParticleBase<PLayout>::AmrFieldContainer_t      AmrFieldContainer_t; // Array<std::unique_ptr<MultiFab> >
+    typedef typename AmrParticleBase<PLayout>::ParticleLevelCounter_t   ParticleLevelCounter_t;
     
     typedef typename PLayout::AmrProcMap_t  AmrProcMap_t;
     typedef typename PLayout::AmrGrid_t     AmrGrid_t;

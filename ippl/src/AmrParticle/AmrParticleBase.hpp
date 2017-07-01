@@ -12,7 +12,30 @@ AmrParticleBase<PLayout>::AmrParticleBase() {
 
 
 template<class PLayout>
+const typename AmrParticleBase<PLayout>::ParticleLevelCounter_t&
+    AmrParticleBase<PLayout>::getLocalNumPerLevel() const
+{
+        return LocalNumPerLevel_m;
+}
+
+
+template<class PLayout>
+void AmrParticleBase<PLayout>::setLocalNumPerLevel(
+    const ParticleLevelCounter_t& LocalNumPerLevel)
+{
+    LocalNumPerLevel_m = LocalNumPerLevel;
+}
+
+
+template<class PLayout>
 void AmrParticleBase<PLayout>::update() {
+    // update all level
+    this->update(0, -1);
+}
+
+
+template<class PLayout>
+void AmrParticleBase<PLayout>::update(int lev_min, int lev_max) {
     
     IpplTimings::startTimer(UpdateParticlesTimer_m);
 
@@ -22,7 +45,7 @@ void AmrParticleBase<PLayout>::update() {
     PAssert(Layout != 0);
     
     // ask the layout manager to update our atoms, etc.
-    Layout->update(*this);
+    Layout->update(*this, lev_min, lev_max);
     
     //sort the particles by grid and level
     sort();
@@ -31,7 +54,6 @@ void AmrParticleBase<PLayout>::update() {
     
     IpplTimings::stopTimer(UpdateParticlesTimer_m);
 }
-
 
 template<class PLayout>
 void AmrParticleBase<PLayout>::update(const ParticleAttrib<char>& canSwap) {

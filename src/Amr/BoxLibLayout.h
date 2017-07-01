@@ -113,16 +113,20 @@ public:
      * This method shouldn't be called. Otherwise
      * it throws an exception.
      */
-    void update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData, const ParticleAttrib<char>* canSwap = 0);
+    void update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData,
+                const ParticleAttrib<char>* canSwap = 0);
     
     /*!
      * The proper update method for AMR.
      * 
      * @param PData is basically the bunch
-     * @param lev_min to update
+     * @param lev_min base level to update
+     * @param lev_max finest level to update
+     * (if -1 update all levels starting from lev_min)
      * @param canSwap
      */
-    void update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData, int lev_min = 0,
+    void update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
+                int lev_min = 0, int lev_max = -1,
                 const ParticleAttrib<char>* canSwap = 0);
     
     
