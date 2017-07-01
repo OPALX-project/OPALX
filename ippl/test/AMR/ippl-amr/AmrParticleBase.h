@@ -58,11 +58,10 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
     typedef typename PLayout::ParticlePos_t   ParticlePos_t;
     typedef typename PLayout::ParticleIndex_t ParticleIndex_t;
     typedef typename PLayout::SingleParticlePos_t SingleParticlePos_t;
+    typedef LevelNumCounter<size_t, size_t>   LevelNumCounter_t;
 
     ParticleIndex_t m_lev;
     ParticleIndex_t m_grid;
-    
-    LevelNumCounter<size_t, size_t> LocalLevelNum;
 
  private:
 
@@ -71,6 +70,8 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
     IpplTimings::TimerRef UpdateParticlesTimer_m;
 
     bool allow_particles_near_boundary;
+    
+    LevelNumCounter_t LocalLevelNum_m;
 
     // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     static void CIC_Cells_Fracs_Basic (const SingleParticlePos_t &R, const Real* plo, 
@@ -160,7 +161,7 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
 public: 
 
     //constructor: initializes timers and default variables
-    AmrParticleBase() : allow_particles_near_boundary(false), LocalLevelNum() { 
+    AmrParticleBase() : allow_particles_near_boundary(false), LocalLevelNum_m() { 
         AssignDensityTimer_m = IpplTimings::getTimer("AMR AssignDensity");
         SortParticlesTimer_m = IpplTimings::getTimer("AMR sort particles");
         UpdateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
@@ -177,6 +178,18 @@ public:
 
     void setAllowParticlesNearBoundary(bool value) {
         allow_particles_near_boundary = value;
+    }
+    
+    void setLocalLevelNum(const LevelNumCounter_t& LocalLevelNum) {
+        LocalLevelNum_m = LocalLevelNum_m;
+    }
+    
+    LevelNumCounter_t& getLocalLevelNum() {
+        return LocalLevelNum_m;
+    }
+    
+    const LevelNumCounter_t& getLocalLevelNum() const {
+        return LocalLevelNum_m;
     }
     
     // Update the particle object after a timestep.  This routine will change

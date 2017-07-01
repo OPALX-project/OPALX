@@ -250,14 +250,14 @@ public:
         //loop trough the particles and assigne the grid and level where each particle belongs
         size_t LocalNum = PData.getLocalNum();
         
-        // first call --> we need to create particles at level 0
-        if ( PData.LocalLevelNum.empty() )
-            PData.LocalLevelNum[0] = LocalNum;
+        typedef typename AmrParticleBase< ParticleAmrLayout<T,Dim> >::LevelNumCounter_t LevelNumCounter_t;
+        LevelNumCounter_t& LocalLevelNum = PData.getLocalLevelNum();
         
-//         std::map<size_t, size_t> toRemoveAtLevel;
         
-//         std::vector<size_t>& LocalLevelNum = PData.LocalLevelNum();
-
+        //FIXME Find a better place for initialisation. What happens if more particles are created?
+        if ( LocalLevelNum.empty() )
+            LocalLevelNum[0] = LocalNum;
+        
         std::multimap<unsigned, unsigned> p2n; //node ID, particle 
 
         int *msgsend = new int[N];
@@ -268,25 +268,16 @@ public:
         unsigned sent = 0;
         unsigned particlesLeft = LocalNum;
         
-//         int start_idx = 0;
-//         while ((unsigned)lev_min > PData.m_lev[start_idx])
-//             start_idx++;
+        int lBegin = LocalLevelNum.begin(lev_min);
+        int lEnd   = LocalLevelNum.end(lev_max);
         
-        int begin = PData.LocalLevelNum.begin(lev_min);
-        int end   = PData.LocalLevelNum.end(lev_max);
-        
-//         std::cout << begin << " " << end << std::endl;
-  
         //loop trough particles and assign grid and level to each particle
         //if particle doesn't belong to this process save the index of the particle to be sent
-        for (int ip=begin/*start_idx*/; ip < end/*LocalNum*/; ++ip) {
-            
-//             if (PData.m_lev[ip] > (unsigned)lev_max)
-//                 break;
+        for (int ip=lBegin; ip < lEnd; ++ip) {
             
             bool particleLeftDomain = false;
             
-            size_t old_level = PData.m_lev[ip];
+            size_t lold = PData.m_lev[ip];
             
             //check to which level and grid the particle belongs to
             locateParticle(PData, ip, lev_min, lev_max, nGrow, particleLeftDomain);
@@ -302,12 +293,11 @@ public:
                     sent++;
                     particlesLeft--;
                     
-                    --PData.LocalLevelNum[old_level];
-//                     ++toRemoveAtLevel[old_level];
+                    --LocalLevelNum[lold];
                 } else {
                     // if we own it it may have moved to another level
-                    --PData.LocalLevelNum[old_level];
-                    ++PData.LocalLevelNum[PData.m_lev[ip]];
+                    --LocalLevelNum[lold];
+                    ++LocalLevelNum[PData.m_lev[ip]];
                 }
             }
         }
@@ -354,19 +344,10 @@ public:
         LocalNum -= PData.getDestroyNum();  // update local num
         PData.performDestroy();
         
-//         for ( uint proc = 0; proc < N; ++proc) {
-//             
-//             if ( proc == myN ) {
-             for (int lev = lev_min; lev < lev_max; ++lev) {
-                 if ( PData.LocalLevelNum[lev] < 0 )
-                     std::cerr << "ERROR" << std::endl;
-//                  std::cout << "rank = " << myN << " level = " << lev << " num = " << toRemoveAtLevel[lev] << std::endl;
-//                  PData.LocalLevelNum[lev] -= toRemoveAtLevel[lev];
-             }
-//             }
-//             
-//             Ippl::Comm->barrier();
-//         }
+        for (int lev = lev_min; lev < lev_max; ++lev) {
+            if ( LocalLevelNum[lev] < 0 )
+                amrex::Abort("ParticleAmrLayout::Redistribute(): Negative particle level count.");
+        }
         
         //receive new particles
         for (int k = 0; k<msgrecv[myN]; ++k)
@@ -379,22 +360,23 @@ public:
             Message *msg = recvbuf.get();
             while (msg != 0)
                 {
-                    int beginidx = LocalNum;
+                    /* pBeginIdx is the start index of the new particle data
+                     * pEndIdx is the end index of the new particle data
+                     */
+                    size_t pBeginIdx = LocalNum;
                     
                     LocalNum += PData.getSingleMessage(*msg);
                     
-                    size_t endidx = LocalNum;
+                    size_t pEndIdx = LocalNum;
                     
-                    for (size_t i = beginidx; i < endidx; ++i)
-                        ++PData.LocalLevelNum[ PData.m_lev[i] ];
+                    for (size_t i = pBeginIdx; i < pEndIdx; ++i)
+                        ++LocalLevelNum[ PData.m_lev[i] ];
                     
                     delete msg;
                     msg = recvbuf.get();
                 }  
         }
         
-//         std::cout << myN << " " << beginidx << " " << endidx << std::endl;
-
         //wait for communication to finish and clean up buffers
         MPI_Waitall(requests.size(), &(requests[0]), MPI_STATUSES_IGNORE);
         for (unsigned int j = 0; j<buffers.size(); ++j)
