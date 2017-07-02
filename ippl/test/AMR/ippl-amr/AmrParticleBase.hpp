@@ -695,8 +695,8 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
     double wxyz_lo[3] = { 0.0, 0.0, 0.0 };
     int ijk[3] = {0, 0, 0};
     
-    size_t lBegin = LocalLevelNum_m.begin(lev);
-    size_t lEnd   = LocalLevelNum_m.end(lev);
+    size_t lBegin = LocalNumPerLevel_m.begin(lev);
+    size_t lEnd   = LocalNumPerLevel_m.end(lev);
     
     for (size_t ip = lBegin; ip < lEnd; ++ip) {
         
@@ -790,8 +790,8 @@ void AmrParticleBase<PLayout>::InterpolateSingleLevelFort (ParticleAttrib<AType>
     double wxyz_lo[3] = { 0.0, 0.0, 0.0 };
     int ijk[3] = {0, 0, 0};
     
-    size_t lBegin = this->LocalLevelNum_m.begin(lev);
-    size_t lEnd   = this->LocalLevelNum_m.end(lev);
+    size_t lBegin = this->LocalNumPerLevel_m.begin(lev);
+    size_t lEnd   = this->LocalNumPerLevel_m.end(lev);
     
     for (size_t ip = lBegin; ip < lEnd; ++ip) {
         

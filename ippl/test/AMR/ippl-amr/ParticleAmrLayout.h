@@ -66,45 +66,6 @@ public:
     static bool do_tiling;
     static IntVect tile_size;
     
-//     struct level_iterator_t {
-//         private:
-//             void resize(ParGDBBase* gdb) {
-//                 std::fill(lastidx.begin(), lastidx.end(), 0);
-//                 
-//                 int theEffectiveFinestLevel = gdb->finestLevel();
-//                 while (!gdb->LevelDefined(theEffectiveFinestLevel))
-//                     theEffectiveFinestLevel--;
-//                 
-//                 lastidx.resize(theEffectiveFinestLevel + 1);
-//             }
-//         
-//             std::vector<unsigned int> lastidx;
-//         
-//         public:
-//             template < class AType >
-//             void update(ParticleAttrib<AType> &level, ParGDBBase* gdb, int localNum) {
-//                 resize(gdb);
-//                 
-//                 for (int i = 0; i < localNum; ++i)
-//                     ++lastidx[ level[i] ];
-//                 
-//                 // add additional fake level for last
-//                 lastidx.push_back( lastidx.back() + 1 );
-//             }
-//             
-//             unsigned int begin(unsigned int level) {
-//                 return ( level == 0 ) ? 0 : lastidx[level];
-//             }
-//             
-//             unsigned int end(unsigned int level) {
-//                 return lastidx[level + 1];
-//             }
-//     } LevelIter;
-//     
-//     // update level count
-//                     size_t s = msg->size();
-//                     std::cout << " size = " << s << std::endl;
-
 private:
   
     //ParGDBBase class from AMReX is used to determine grid, level 
@@ -251,21 +212,7 @@ public:
         size_t LocalNum = PData.getLocalNum();
         
         typedef typename AmrParticleBase< ParticleAmrLayout<T,Dim> >::LevelNumCounter_t LevelNumCounter_t;
-        LevelNumCounter_t& LocalLevelNum = PData.getLocalLevelNum();
-        
-        size_t LocalNumAll = LocalLevelNum.getLocalNumAllLevel();
-        
-        if ( LocalNumAll != LocalNum ) {
-            /* Either first initialization of bunch
-             * or new particles are generated. In the latter
-             * case they are initialized at the coaresest level
-             * therefore we just need to update the level count.
-             * In the first case it's the same.
-             * 
-             * 
-             */
-            LocalLevelNum[0] = LocalNum - LocalNumAll;
-        }
+        LevelNumCounter_t& LocalNumPerLevel = PData.getLocalNumPerLevel();
         
         std::multimap<unsigned, unsigned> p2n; //node ID, particle 
 
@@ -277,8 +224,8 @@ public:
         unsigned sent = 0;
         unsigned particlesLeft = LocalNum;
         
-        int lBegin = LocalLevelNum.begin(lev_min);
-        int lEnd   = LocalLevelNum.end(lev_max);
+        int lBegin = LocalNumPerLevel.begin(lev_min);
+        int lEnd   = LocalNumPerLevel.end(lev_max);
         
         //loop trough particles and assign grid and level to each particle
         //if particle doesn't belong to this process save the index of the particle to be sent
@@ -302,12 +249,16 @@ public:
                     sent++;
                     particlesLeft--;
                     
-                    --LocalLevelNum[lold];
+                    --LocalNumPerLevel[lold];
                 } else {
                     // if we own it it may have moved to another level
-                    --LocalLevelNum[lold];
-                    ++LocalLevelNum[PData.m_lev[ip]];
+                    --LocalNumPerLevel[lold];
+                    ++LocalNumPerLevel[PData.m_lev[ip]];
                 }
+            } else {
+                // a particle left the domain
+                std::cerr << "\033[01;31mParticle left domain.\033[0m" << std::endl;
+                --LocalNumPerLevel[ lold ];
             }
         }
 
@@ -354,7 +305,7 @@ public:
         PData.performDestroy();
         
         for (int lev = lev_min; lev < lev_max; ++lev) {
-            if ( LocalLevelNum[lev] < 0 )
+            if ( LocalNumPerLevel[lev] < 0 )
                 amrex::Abort("ParticleAmrLayout::Redistribute(): Negative particle level count.");
         }
         
@@ -379,7 +330,7 @@ public:
                     size_t pEndIdx = LocalNum;
                     
                     for (size_t i = pBeginIdx; i < pEndIdx; ++i)
-                        ++LocalLevelNum[ PData.m_lev[i] ];
+                        ++LocalNumPerLevel[ PData.m_lev[i] ];
                     
                     delete msg;
                     msg = recvbuf.get();
