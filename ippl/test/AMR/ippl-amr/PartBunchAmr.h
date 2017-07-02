@@ -69,7 +69,7 @@ public:
             partPerLevel[i] = globalPartPerLevel[i] = 0.0;
         
         
-        LevelNumCounter_t& localLevelNum = this->getLocalLevelNum();
+        LevelNumCounter_t& localLevelNum = this->getLocalNumPerLevel();
         
         for (size_t i = 0; i < localLevelNum.size(); ++i)
             partPerLevel[i] = localLevelNum[i];
