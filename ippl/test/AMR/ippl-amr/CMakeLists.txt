@@ -169,6 +169,13 @@ add_executable( testUnifSphere
                 ../MGTSolver.cpp
                 ../Solver.cpp)
 
+add_executable( testLayout
+                testLayout.cpp
+                ../AmrOpal.cpp
+                AmrParticleBase.hpp
+                ${F90_source_files}
+                ../Solver.cpp)
+
 # add_executable( testInitGuessSolver
 #                 testInitGuessSolver.cpp
 #                 ../AmrOpal.cpp
@@ -227,5 +234,9 @@ target_link_libraries (testGaussian ${LIBS}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testUnifSphere ${LIBS}
+                        -lgfortran ${CCSE_LIBRARIES}
+                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testLayout ${LIBS}
                         -lgfortran ${CCSE_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})

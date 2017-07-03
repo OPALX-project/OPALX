@@ -98,7 +98,7 @@ void BoxLibLayout<T, Dim>::update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData
 // // redistribute the particles using BoxLibs ParGDB class to determine where particle should go
 template<class T, unsigned Dim>
 void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
-                                  int lev_min,
+                                  int lev_min, int lev_max,
                                   const ParticleAttrib<char>* canSwap)
 {
     // in order to avoid transforms when already done
@@ -107,33 +107,28 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
         this->domainMapping(PData);
     }
     
-//     std::cout << "BoxLibLayout::update()" << std::endl;
-    // Input parameters of ParticleContainer::Redistribute of BoxLib
-//     bool where_already_called = false;
-//     bool full_where = false;
     int nGrow = 0;
-    //
-    
-//     for (int i = 0; i <= this->finestLevel(); ++i)
-//         std::cout << i << " " << this->ParticleBoxArray(i) << std::endl;
-    
 
     unsigned N = Ippl::getNodes();
     unsigned myN = Ippl::myNode();
     
     int theEffectiveFinestLevel = this->finestLevel();
     while (!this->LevelDefined(theEffectiveFinestLevel)) {
-        std::cout << "Level " << theEffectiveFinestLevel << " is not defined." << std::endl; std::cin.get(); 
         theEffectiveFinestLevel--;
     }
     
-    int lev_max = theEffectiveFinestLevel;
-    
-//     std::cout << theEffectiveFinestLevel << " " << this->finestLevel() << std::endl;
+    if (lev_max == -1)
+        lev_max = theEffectiveFinestLevel;
     
     //loop trough the particles and assigne the grid and level where each particle belongs
     size_t LocalNum = PData.getLocalNum();
-
+    
+    auto& LocalNumPerLevel = PData.getLocalNumPerLevel();
+    
+    if ( LocalNum != LocalNumPerLevel.getLocalNumAllLevel() )
+        throw OpalException("BoxLibLayout::update()",
+                            "Local #particles disagrees with sum over levels");
+    
     std::multimap<unsigned, unsigned> p2n; //node ID, particle 
 
     int *msgsend = new int[N];
@@ -142,12 +137,16 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     std::fill(msgrecv, msgrecv+N, 0);
 
     unsigned sent = 0;
-    unsigned particlesLeft = LocalNum;
+    size_t lBegin = LocalNumPerLevel.begin(lev_min);
+    size_t lEnd   = LocalNumPerLevel.end(lev_max);
   
     //loop trough particles and assign grid and level to each particle
     //if particle doesn't belong to this process save the index of the particle to be sent
-    for (unsigned int ip=0; ip < LocalNum; ++ip) {
+    for (unsigned int ip = lBegin; ip < lEnd; ++ip) {
         bool particleLeftDomain = false;
+        
+        // old level
+        const size_t& lold = PData.Level[ip];
         
 //         /*
 //          * AMReX sets m_grid = -1 and m_lev = -1
@@ -155,30 +154,37 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
 //         PData.Level[ip] = -1;
 //         PData.Grid[ip] = -1;
         
-//         std::cout << "Before: " << ip << " " << PData.Level[ip] << " " << PData.Grid[ip] << std::endl;
-        
         //check to which level and grid the particle belongs to
         locateParticle(PData, ip, lev_min, lev_max, nGrow, particleLeftDomain);
-        
-//         std::cout << "After: " << ip << " " << PData.Level[ip] << " "
-//                   << PData.Grid[ip]  << " "
-//                   << PData.R[ip] << std::endl; //std::cin.get();
         
         if ( !particleLeftDomain ) {
             // The owner of the particle is the CPU owning the finest grid
             // in state data that contains the particle.
-            const unsigned int who = ParticleDistributionMap(PData.Level[ip])[PData.Grid[ip]];
+            const size_t& lnew = PData.Level[ip];
+            
+            const unsigned int who = ParticleDistributionMap(lnew)[PData.Grid[ip]];
+            
+            --LocalNumPerLevel[lold];
             
             if (who != myN) {
+                // we lost the particle to another process
                 msgsend[who] = 1;
                 p2n.insert(std::pair<unsigned, unsigned>(who, ip));
                 sent++;
-                particlesLeft--;
+            } else {
+                /* if we still own the particle it may have moved to
+                 * another level
+                 */
+                ++LocalNumPerLevel[lnew];
             }
+        } else {
+            /* a particle left the domain
+             * This should NEVER happen! An exception is thrown in
+             * BoxLibLayout::locateParticle().
+             */
+            --LocalNumPerLevel[lold];
         }
     }
-    
-//     std::cin.get();
 
     //reduce message count so every node knows how many messages to receive
     MPI_Allreduce(msgsend, msgrecv, N, MPI_INT, MPI_SUM, Ippl::getComm());
@@ -216,17 +222,23 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
         buffers.push_back(msgbuf);
       
     }
-
-    //destroy the particles that are sent to other domains
     
-//     std::cout << "Sent: " << sent << std::endl;
+    //destroy the particles that are sent to other domains
     if ( LocalNum < PData.getDestroyNum() )
-        std::cout << "Can't destroy more particles" << std::endl;
+        throw OpalException("BoxLibLayout::update()",
+                            "Rank " + std::to_string(myN) +
+                            " can't destroy more particles than possessed.");
     else {
         LocalNum -= PData.getDestroyNum();  // update local num
         PData.performDestroy();
     }
-
+    
+    for (int lev = lev_min; lev <= lev_max; ++lev) {
+        if ( LocalNumPerLevel[lev] < 0 )
+            throw OpalException("BoxLibLayout::update()",
+                                "Negative particle level count.");
+    }
+    
     //receive new particles
     for (int k = 0; k<msgrecv[myN]; ++k)
     {
@@ -238,12 +250,23 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
         Message *msg = recvbuf.get();
         while (msg != 0)
             {
+                /* pBeginIdx is the start index of the new particle data
+                 * pEndIdx is the last index of the new particle data
+                 */
+                size_t pBeginIdx = LocalNum;
+                
                 LocalNum += PData.getSingleMessage(*msg);
+                
+                size_t pEndIdx = LocalNum;
+                
+                for (size_t idx = pBeginIdx; idx < pEndIdx; ++idx)
+                    ++LocalNumPerLevel[ PData.Level[idx] ];
+                
                 delete msg;
                 msg = recvbuf.get();
             }  
     }
-
+    
     //wait for communication to finish and clean up buffers
     MPI_Waitall(requests.size(), &(requests[0]), MPI_STATUSES_IGNORE);
     for (unsigned int j = 0; j<buffers.size(); ++j)
@@ -264,8 +287,8 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     MPI_Allreduce(&LocalNum, &TotalNum, 1, MPI_INT, MPI_SUM, Ippl::getComm());
 
     // update our particle number counts
-    PData.setTotalNum(TotalNum);	// set the total atom count
-    PData.setLocalNum(LocalNum);	// set the number of local atoms
+    PData.setTotalNum(TotalNum);    // set the total atom count
+    PData.setLocalNum(LocalNum);    // set the number of local atoms
     
     if ( !forbidTransform_m ) {
         // undo domain transformation
