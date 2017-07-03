@@ -749,4 +749,10 @@ const double& BoxLibLayout<T, Dim>::domainMapping(
     return scale_m;
 }
 
+
+template <class T, unsigned Dim>
+const double& BoxLibLayout<T, Dim>::getScalingFactor() const {
+    return scale_m;
+}
+
 #endif

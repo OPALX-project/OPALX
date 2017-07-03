@@ -21,9 +21,10 @@
 
 #include <AMReX_ParmParse.H> // used in initialize function
 
+extern Inform* gmsg;
+
 AmrBoxLib::AmrBoxLib() : AmrObject(),
                          amrex::AmrMesh(),
-                         nChargePerCell_m(0),
                          bunch_mp(nullptr),
                          layout_mp(nullptr),
                          rho_m(0),
@@ -37,7 +38,6 @@ AmrBoxLib::AmrBoxLib(TaggingCriteria tagging,
                      double nCharge)
     : AmrObject(tagging, scaling, nCharge),
       amrex::AmrMesh(),
-      nChargePerCell_m(0),
       bunch_mp(nullptr),
       layout_mp(nullptr),
       rho_m(0),
@@ -52,7 +52,6 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
                      short maxLevel)
     : AmrObject(),
       amrex::AmrMesh(&domain, maxLevel, nGridPts, 0 /* cartesian */),
-      nChargePerCell_m(maxLevel + 1),
       bunch_mp(nullptr),
       layout_mp(nullptr),
       rho_m(maxLevel + 1),
@@ -67,7 +66,6 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
                      AmrPartBunch* bunch_p)
     : AmrObject(),
       amrex::AmrMesh(&domain, maxLevel, nGridPts, 0 /* cartesian */),
-      nChargePerCell_m(maxLevel + 1),
       bunch_mp(bunch_p),
       layout_mp(static_cast<AmrLayout_t*>(&bunch_p->getLayout())),
       rho_m(maxLevel + 1),
@@ -247,19 +245,18 @@ void AmrBoxLib::computeSelfFields() {
     
     double scalefactor = layout_mp->domainMapping(*amrpbase_p);
     
-    
-    /// from charge (C) to charge density (C/m^3).
-    bunch_mp->Q *= bunch_mp->dt;
-    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
-    bunch_mp->Q /= bunch_mp->dt;
-    
     int baseLevel = 0;
-    int finestLevel = (&amrpbase_p->getAmrLayout())->finestLevel();
+    const int& finestLevel = finest_level; //(&amrpbase_p->getAmrLayout())->finestLevel();
     
     int nLevel = finestLevel + 1;
     rho_m.resize(nLevel);
     phi_m.resize(nLevel);
     eg_m.resize(nLevel);
+    
+    /// from charge (C) to charge density (C/m^3).
+    bunch_mp->Q *= bunch_mp->dt;
+    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
+    bunch_mp->Q /= bunch_mp->dt;
     
     //calculating mesh-scale factor
     double gammaz = sum(bunch_mp->P)[2] / bunch_mp->getTotalNum();
@@ -541,9 +538,6 @@ void AmrBoxLib::RemakeLevel (int lev, AmrReal_t time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
-    nChargePerCell_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1, 1));
-    nChargePerCell_m[lev]->setVal(0.0, 1);
-    
     rho_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1, 1));
     rho_m[lev]->setVal(0.0, 1);
     
@@ -563,14 +557,8 @@ void AmrBoxLib::MakeNewLevel (int lev, AmrReal_t time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
-    
-    nChargePerCell_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1, 1));
-    nChargePerCell_m[lev]->setVal(0.0, 1);
-    
-    
     rho_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1, 1));
     rho_m[lev]->setVal(0.0, 1);
-    
     
     /*
      * particles need to know the BoxArray
@@ -582,8 +570,9 @@ void AmrBoxLib::MakeNewLevel (int lev, AmrReal_t time,
 
 
 void AmrBoxLib::ClearLevel(int lev) {
-    nChargePerCell_m[lev].reset(nullptr);
     rho_m[lev].reset(nullptr);
+    phi_m[lev].reset(nullptr);
+    eg_m[lev].reset(nullptr);
     ClearBoxArray(lev);
     ClearDistributionMap(lev);
 }
@@ -628,23 +617,18 @@ void AmrBoxLib::MakeNewLevelFromCoarse (int lev, AmrReal_t time,
 void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags,
                                       AmrReal_t time, int ngrow)
 {
-    
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     for (int i = lev; i <= finest_level; ++i)
-        nChargePerCell_m[i]->setVal(0.0, 1);
-    
-    // bring on Amr domain
-    Vector_t rmin, rmax;
-    bounds(bunch_mp->R, rmin, rmax);
-    
-    layout_mp->domainMapping(*amrpbase_p);
+        rho_m[i]->setVal(0.0, 1);
     
     // the new scatter function averages the value also down to the coarsest level
-    amrpbase_p->scatter(bunch_mp->Q, nChargePerCell_m,
+    amrpbase_p->scatter(bunch_mp->Q, rho_m,
                         bunch_mp->R, lev, finest_level);
     
-    // undo domain change
-    layout_mp->domainMapping(*amrpbase_p, true);
+    const double& scalefactor = (&amrpbase_p->getAmrLayout())->getScalingFactor();
+    
+    for (int i = lev; i <= finest_level; ++i)
+        rho_m[i]->mult(scalefactor, 0, 1);
     
     const int clearval = amrex::TagBox::CLEAR;
     const int   tagval = amrex::TagBox::SET;
@@ -657,7 +641,7 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags,
 #endif
     {
         AmrIntArray_t  itags;
-        for (amrex::MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+        for (amrex::MFIter mfi(*rho_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
             const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
             amrex::TagBox&     tagfab  = tags[mfi];
@@ -672,7 +656,7 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags,
             const int*  thi     = tilebx.hiVect();
 
             state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-                        BL_TO_FORTRAN_3D((*nChargePerCell_m[lev])[mfi]),
+                        BL_TO_FORTRAN_3D((*rho_m[lev])[mfi]),
                         &tagval, &clearval, 
                         ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
                         ZFILL(dx), ZFILL(prob_lo), &time, &nCharge_m);
@@ -690,40 +674,14 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray_t& tags, AmrReal_
      * where the value of the potential is higher than 75 percent of the maximum potential
      * value of this level.
      */
-    
-    // 1. Assign charge onto grid of level lev
-    int baseLevel   = 0;
-    int finestLevel = 0;
-    
-    AmrFieldContainer_t nPartPerCell(1);
-    nPartPerCell[baseLevel] = std::unique_ptr<AmrField_t>(new AmrField_t(this->boxArray(lev),
-                                                                         this->DistributionMap(lev),
-                                                                         1, 1));
-    nPartPerCell[baseLevel]->setVal(0.0, 1);
-    
-    AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
-    // single level scatter
-    amrpbase_p->scatter(bunch_mp->Q, *nPartPerCell[baseLevel], bunch_mp->R, lev);
-    
-    if ( geom[0].isAllPeriodic() ) {
-        AmrReal_t offset = 0.0;
-        for (std::size_t i = 0; i < bunch_mp->getLocalNum(); ++i)
-            offset += bunch_mp->Q[i];
-        offset /= geom[0].ProbSize();
-        for (int lev = baseLevel; lev <= finestLevel; lev++)
-            nPartPerCell[lev]->plus(+offset, 0, 1, 0);
+    if ( time == 0 ) {
+        *gmsg << "We need to perform charge tagging in the first time step" << endl;
+        this->tagForChargeDensity_m(lev, tags, time, ngrow);
+        
+        return;
     }
     
-    // 2. Solve Poisson's equation on level lev
-    AmrFieldContainer_t phi(1);
-    AmrFieldContainer_t efield(1);
-    
-//     AmrPoissonSolver<AmrBoxLib> *solver = bunch_mp->template getFieldSolver<AmrBoxLib>();
-    PoissonSolver *solver = bunch_mp->getFieldSolver();
-    
-    solver->solve(nPartPerCell, phi, efield, baseLevel, finestLevel);
-    
-    // 3. Tag cells for refinement
+    // tag cells for refinement
     const int clearval = amrex::TagBox::CLEAR;
     const int   tagval = amrex::TagBox::SET;
 
@@ -732,8 +690,8 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray_t& tags, AmrReal_
     
     AmrReal_t minp = 0.0;
     AmrReal_t maxp = 0.0;
-    maxp = scaling_m * phi[baseLevel]->max(0);
-    minp = scaling_m * phi[baseLevel]->min(0);
+    maxp = scaling_m * phi_m[lev]->max(0);
+    minp = scaling_m * phi_m[lev]->min(0);
     AmrReal_t threshold = std::max( std::abs(minp), std::abs(maxp) );
     
     
@@ -742,7 +700,7 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray_t& tags, AmrReal_
 #endif
     {
         AmrIntArray_t  itags;
-        for (amrex::MFIter mfi(*phi[baseLevel],false); mfi.isValid(); ++mfi) {
+        for (amrex::MFIter mfi(*phi_m[lev],false); mfi.isValid(); ++mfi) {
             const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
             amrex::TagBox&     tagfab  = tags[mfi];
@@ -757,7 +715,7 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray_t& tags, AmrReal_
             const int*  thi     = tilebx.hiVect();
 
             tag_potential_strength(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-                        BL_TO_FORTRAN_3D((*phi[baseLevel])[mfi]),
+                        BL_TO_FORTRAN_3D((*phi_m[lev])[mfi]),
                         &tagval, &clearval, 
                         ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
                         ZFILL(dx), ZFILL(prob_lo), &time, &threshold);
@@ -767,10 +725,6 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray_t& tags, AmrReal_
             tagfab.tags_and_untags(itags, tilebx);
         }
     }
-    
-    phi[0].reset(nullptr);
-    efield[0].reset(nullptr);
-    nPartPerCell[0].reset(nullptr);
 }
 
 
@@ -779,84 +733,38 @@ void AmrBoxLib::tagForEfield_m(int lev, TagBoxArray_t& tags, AmrReal_t time, int
      * where the value of the efield is higher than 75 percent of the maximum efield
      * value of this level.
      */
-    
-    if ( bunch_mp->Q[0] == 0 )
+    if ( time == 0 ) {
+        *gmsg << "We need to perform charge tagging in the first time step" << endl;
+        this->tagForChargeDensity_m(lev, tags, time, ngrow);
+        
         return;
-    
-    // 1. Assign charge onto grid of level lev
-    int baseLevel   = 0;
-    int finestLevel = 0;
-    
-    AmrFieldContainer_t nPartPerCell(1);
-    nPartPerCell[baseLevel] = std::unique_ptr<AmrField_t>(new AmrField_t(this->boxArray(lev),
-                                                                         this->DistributionMap(lev),
-                                                                         1, 1));
-    nPartPerCell[baseLevel]->setVal(0.0, 1);
-    
-    AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
-    // single level scatter
-    amrpbase_p->scatter(bunch_mp->Q, *nPartPerCell[baseLevel], bunch_mp->R, lev);
-    
-    std::cout << "lev = " << lev << " " << bunch_mp->Q[0] << std::endl;
-    
-    if ( geom[0].isAllPeriodic() ) {
-        std::cout << "All periodic" << std::endl;
-        AmrReal_t offset = 0.0;
-        for (std::size_t i = 0; i < bunch_mp->getLocalNum(); ++i)
-            offset += bunch_mp->Q[i];
-        offset /= geom[0].ProbSize();
-        for (int ilev = baseLevel; ilev <= finestLevel; ilev++)
-            nPartPerCell[ilev]->plus(+offset, 0, 1, 0);
     }
     
-    // charge density is in rho_m
-    // calculate Possion equation (with coefficient: -1/(eps))
-    for (int i = baseLevel; i <= finestLevel; ++i) {
-        nPartPerCell[i]->mult(-1.0 / Physics::epsilon_0, 0, 1);
-    }
-    
-    std::cout << "sum: " << nPartPerCell[baseLevel]->sum()
-              << " min: " << nPartPerCell[baseLevel]->min(0)
-              << " max: " << nPartPerCell[baseLevel]->max(0) << std::endl;
-    
-    // 2. Solve Poisson's equation on level lev
-    AmrFieldContainer_t phi;
-    AmrFieldContainer_t efield;
-    
-//     AmrPoissonSolver<AmrBoxLib> *solver = bunch_mp->template getFieldSolver<AmrBoxLib>();
-    PoissonSolver *solver = bunch_mp->getFieldSolver();
-    
-    solver->solve(nPartPerCell, phi, efield, baseLevel, finestLevel);
-    
-    std::cout << "potential: " << phi[0]->sum() << " " << phi[0]->min(0) << " " << phi[0]->max(0) << std::endl;
-    
-    // 3. Tag cells for refinement
+    // tag cells for refinement
     const int clearval = amrex::TagBox::CLEAR;
     const int   tagval = amrex::TagBox::SET;
     
     AmrReal_t min[3] = {0.0, 0.0, 0.0};
     AmrReal_t max[3] = {0.0, 0.0, 0.0};
     for (int i = 0; i < 3; ++i) {
-        max[i] = scaling_m * efield[baseLevel]->max(i);
-        min[i] = scaling_m * efield[baseLevel]->min(i);
-        std::cout << max[i] << " " << min[i] << " " << efield[baseLevel]->max(i) << " " << efield[baseLevel]->min(i) << std::endl;
+        max[i] = scaling_m * eg_m[lev]->max(i);
+        min[i] = scaling_m * eg_m[lev]->min(i);
     }
     AmrReal_t threshold[3] = {0.0, 0.0, 0.0};
     for (int i = 0; i < 3; ++i)
         threshold[i] = std::max( std::abs(min[i]), std::abs(max[i]) );
-     std::cin.get();
     
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
         AmrIntArray_t  itags;
-        // mfi(efield[baseLevel], true)
-        for (amrex::MFIter mfi(*efield[baseLevel],false); mfi.isValid(); ++mfi) {
+        // mfi(eg_m[baseLevel], true)
+        for (amrex::MFIter mfi(*eg_m[lev],false); mfi.isValid(); ++mfi) {
             const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
             amrex::TagBox&     tagfab  = tags[mfi];
-            amrex::FArrayBox&  fab     = (*efield[baseLevel])[mfi];
+            amrex::FArrayBox&  fab     = (*eg_m[lev])[mfi];
             // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
             // So we are going to get a temporary integer array.
 //             tagfab.get_itags(itags, tilebx);
@@ -889,11 +797,6 @@ void AmrBoxLib::tagForEfield_m(int lev, TagBoxArray_t& tags, AmrReal_t time, int
 //             tagfab.tags_and_untags(itags, tilebx);
         }
     }
-    
-    phi[baseLevel].reset(nullptr);
-    efield[baseLevel].reset(nullptr);
-    nPartPerCell[baseLevel].reset(nullptr);
-    
 }
 
 
@@ -933,6 +836,4 @@ void AmrBoxLib::initBaseLevel_m(const AmrIntArray_t& nGridPts) {
 //     rho_m[0] = std::unique_ptr<AmrField_t>(new AmrField_t(ba, 1, 1, dm));
 //     rho_m[0]->setVal(0.0);
     
-//     nChargePerCell_m[0] = std::unique_ptr<AmrField_t>(new AmrField_t(ba, 1, 1, dm));
-//     nChargePerCell_m[0]->setVal(0.0);
 }

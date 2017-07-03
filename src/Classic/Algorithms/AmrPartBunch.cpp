@@ -127,7 +127,7 @@ void AmrPartBunch::boundp() {
         int maxLevel = amrobj_mp->maxLevel();
         
         for (int i = 0; i <= amrobj_mp->finestLevel() && i < maxLevel; ++i) {
-            amrobj_mp->regrid(i, maxLevel, 0.0 /*time*/);
+            amrobj_mp->regrid(i, maxLevel, t_m * 1.0e9 /*time [ns] */);
             /* update to multilevel --> update GDB
              * Only update current and new finest level
              */
