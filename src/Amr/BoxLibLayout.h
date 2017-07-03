@@ -347,6 +347,12 @@ public:
      */
     const double& domainMapping(AmrParticleBase< BoxLibLayout<T,Dim> >& PData, bool inverse = false);
     
+    /*!
+     * This function is used during the cell tagging routines.
+     * @returns the scaling factor of the particle domain mapping.
+     */
+    const double& getScalingFactor() const;
+    
 private:
     /*
      * Functions from AMReX that are adjusted to work with Ippl AmrParticleBase class
