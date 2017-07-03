@@ -214,6 +214,12 @@ protected:
                                  const AmrProcMap_t& dm);
     
 private:
+    
+    /* ATTENTION
+     * The tagging routines assume the particles to be in the
+     * AMR domain, i.e. [-1, 1]^3
+     */
+    
     /*!
      * Mark a cell for refinement if the value is greater equal
      * than some amount of charge (AmrObject::nCharge_m).
