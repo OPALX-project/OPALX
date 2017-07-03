@@ -196,9 +196,12 @@ void AmrPartBunch::printLevelStatistics() {
     
     for (int i = 0; i < nLevel; ++i)
         partPerLevel[i] = globalPartPerLevel[i] = 0.0;
+    
+    // do not modify LocalNumPerLevel in here!!!
+    auto& LocalNumPerLevel = amrpbase_mp->getLocalNumPerLevel();
         
-    for (size_t i = 0; i < this->getLocalNum(); ++i)
-        ++partPerLevel[amrpbase_mp->Level[i]];
+    for (size_t i = 0; i < LocalNumPerLevel.size(); ++i)
+        partPerLevel[i] = LocalNumPerLevel[i];
         
     reduce(partPerLevel.get(),
            partPerLevel.get() + nLevel,

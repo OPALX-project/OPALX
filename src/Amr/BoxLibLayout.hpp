@@ -122,8 +122,13 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     
     //loop trough the particles and assigne the grid and level where each particle belongs
     size_t LocalNum = PData.getLocalNum();
-    auto LocalNumPerLevel = PData.getLocalNumPerLevel();
-
+    
+    auto& LocalNumPerLevel = PData.getLocalNumPerLevel();
+    
+    if ( LocalNum != LocalNumPerLevel.getLocalNumAllLevel() )
+        throw OpalException("BoxLibLayout::update()",
+                            "Local #particles disagrees with sum over levels");
+    
     std::multimap<unsigned, unsigned> p2n; //node ID, particle 
 
     int *msgsend = new int[N];
@@ -217,7 +222,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
         buffers.push_back(msgbuf);
       
     }
-
+    
     //destroy the particles that are sent to other domains
     if ( LocalNum < PData.getDestroyNum() )
         throw OpalException("BoxLibLayout::update()",
@@ -234,8 +239,6 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
                                 "Negative particle level count.");
     }
     
-    
-
     //receive new particles
     for (int k = 0; k<msgrecv[myN]; ++k)
     {
@@ -263,7 +266,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
                 msg = recvbuf.get();
             }  
     }
-
+    
     //wait for communication to finish and clean up buffers
     MPI_Waitall(requests.size(), &(requests[0]), MPI_STATUSES_IGNORE);
     for (unsigned int j = 0; j<buffers.size(); ++j)
@@ -284,8 +287,8 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     MPI_Allreduce(&LocalNum, &TotalNum, 1, MPI_INT, MPI_SUM, Ippl::getComm());
 
     // update our particle number counts
-    PData.setTotalNum(TotalNum);	// set the total atom count
-    PData.setLocalNum(LocalNum);	// set the number of local atoms
+    PData.setTotalNum(TotalNum);    // set the total atom count
+    PData.setLocalNum(LocalNum);    // set the number of local atoms
     
     if ( !forbidTransform_m ) {
         // undo domain transformation
