@@ -5,7 +5,17 @@
 #include <algorithm>
 
 template<class PLayout>
-AmrParticleBase<PLayout>::AmrParticleBase() {
+AmrParticleBase<PLayout>::AmrParticleBase() : LocalNumPerLevel_m() {
+    UpdateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
+    SortParticlesTimer_m = IpplTimings::getTimer("AMR sort particles");
+}
+
+
+template<class PLayout>
+AmrParticleBase<PLayout>::AmrParticleBase(PLayout* layout)
+    : IpplParticleBase<PLayout>(layout),
+      LocalNumPerLevel_m()
+{
     UpdateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
     SortParticlesTimer_m = IpplTimings::getTimer("AMR sort particles");
 }
@@ -14,6 +24,14 @@ AmrParticleBase<PLayout>::AmrParticleBase() {
 template<class PLayout>
 const typename AmrParticleBase<PLayout>::ParticleLevelCounter_t&
     AmrParticleBase<PLayout>::getLocalNumPerLevel() const
+{
+    return LocalNumPerLevel_m;
+}
+
+
+template<class PLayout>
+typename AmrParticleBase<PLayout>::ParticleLevelCounter_t&
+    AmrParticleBase<PLayout>::getLocalNumPerLevel()
 {
     return LocalNumPerLevel_m;
 }
@@ -32,11 +50,13 @@ void AmrParticleBase<PLayout>::destroy(size_t M, size_t I, bool doNow) {
     /* if the particles are deleted directly
      * we need to update the particle level count
      */
-    if ( doNow ) {
-        for (size_t ip = I; ip < M + I; ++ip)
-            --LocalNumPerLevel_m[ Level[ip] ];
+    if (M > 0) {
+        if ( doNow ) {
+            for (size_t ip = I; ip < M + I; ++ip)
+                --LocalNumPerLevel_m[ Level[ip] ];
+        }
+        IpplParticleBase<PLayout>::destroy(M, I, doNow);
     }
-    IpplParticleBase<PLayout>::destroy(M, I, doNow);
 }
 
 

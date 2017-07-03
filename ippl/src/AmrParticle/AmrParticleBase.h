@@ -51,7 +51,7 @@ public:
     
     AmrParticleBase();
     
-    AmrParticleBase(PLayout* layout) : IpplParticleBase<PLayout>(layout) { }
+    AmrParticleBase(PLayout* layout);
     
     ~AmrParticleBase() {}
     
@@ -62,6 +62,8 @@ public:
     }
     
     const ParticleLevelCounter_t& getLocalNumPerLevel() const;
+    
+    ParticleLevelCounter_t& getLocalNumPerLevel();
     
     void setLocalNumPerLevel(const ParticleLevelCounter_t& LocalNumPerLevel);
     
