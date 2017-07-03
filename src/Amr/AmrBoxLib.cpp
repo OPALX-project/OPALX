@@ -25,7 +25,6 @@ extern Inform* gmsg;
 
 AmrBoxLib::AmrBoxLib() : AmrObject(),
                          amrex::AmrMesh(),
-                         nChargePerCell_m(0),
                          bunch_mp(nullptr),
                          layout_mp(nullptr),
                          rho_m(0),
@@ -39,7 +38,6 @@ AmrBoxLib::AmrBoxLib(TaggingCriteria tagging,
                      double nCharge)
     : AmrObject(tagging, scaling, nCharge),
       amrex::AmrMesh(),
-      nChargePerCell_m(0),
       bunch_mp(nullptr),
       layout_mp(nullptr),
       rho_m(0),
@@ -54,7 +52,6 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
                      short maxLevel)
     : AmrObject(),
       amrex::AmrMesh(&domain, maxLevel, nGridPts, 0 /* cartesian */),
-      nChargePerCell_m(maxLevel + 1),
       bunch_mp(nullptr),
       layout_mp(nullptr),
       rho_m(maxLevel + 1),
@@ -69,7 +66,6 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
                      AmrPartBunch* bunch_p)
     : AmrObject(),
       amrex::AmrMesh(&domain, maxLevel, nGridPts, 0 /* cartesian */),
-      nChargePerCell_m(maxLevel + 1),
       bunch_mp(bunch_p),
       layout_mp(static_cast<AmrLayout_t*>(&bunch_p->getLayout())),
       rho_m(maxLevel + 1),
@@ -542,9 +538,6 @@ void AmrBoxLib::RemakeLevel (int lev, AmrReal_t time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
-    nChargePerCell_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1, 1));
-    nChargePerCell_m[lev]->setVal(0.0, 1);
-    
     rho_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1, 1));
     rho_m[lev]->setVal(0.0, 1);
     
@@ -564,14 +557,8 @@ void AmrBoxLib::MakeNewLevel (int lev, AmrReal_t time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
-    
-    nChargePerCell_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1, 1));
-    nChargePerCell_m[lev]->setVal(0.0, 1);
-    
-    
     rho_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1, 1));
     rho_m[lev]->setVal(0.0, 1);
-    
     
     /*
      * particles need to know the BoxArray
@@ -583,8 +570,9 @@ void AmrBoxLib::MakeNewLevel (int lev, AmrReal_t time,
 
 
 void AmrBoxLib::ClearLevel(int lev) {
-    nChargePerCell_m[lev].reset(nullptr);
     rho_m[lev].reset(nullptr);
+    phi_m[lev].reset(nullptr);
+    eg_m[lev].reset(nullptr);
     ClearBoxArray(lev);
     ClearDistributionMap(lev);
 }
@@ -629,14 +617,18 @@ void AmrBoxLib::MakeNewLevelFromCoarse (int lev, AmrReal_t time,
 void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags,
                                       AmrReal_t time, int ngrow)
 {
-    
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     for (int i = lev; i <= finest_level; ++i)
-        nChargePerCell_m[i]->setVal(0.0, 1);
+        rho_m[i]->setVal(0.0, 1);
     
     // the new scatter function averages the value also down to the coarsest level
-    amrpbase_p->scatter(bunch_mp->Q, nChargePerCell_m,
+    amrpbase_p->scatter(bunch_mp->Q, rho_m,
                         bunch_mp->R, lev, finest_level);
+    
+    const double& scalefactor = (&amrpbase_p->getAmrLayout())->getScalingFactor();
+    
+    for (int i = lev; i <= finest_level; ++i)
+        rho_m[i]->mult(scalefactor, 0, 1);
     
     const int clearval = amrex::TagBox::CLEAR;
     const int   tagval = amrex::TagBox::SET;
@@ -649,7 +641,7 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags,
 #endif
     {
         AmrIntArray_t  itags;
-        for (amrex::MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+        for (amrex::MFIter mfi(*rho_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
             const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
             amrex::TagBox&     tagfab  = tags[mfi];
@@ -664,7 +656,7 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags,
             const int*  thi     = tilebx.hiVect();
 
             state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-                        BL_TO_FORTRAN_3D((*nChargePerCell_m[lev])[mfi]),
+                        BL_TO_FORTRAN_3D((*rho_m[lev])[mfi]),
                         &tagval, &clearval, 
                         ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
                         ZFILL(dx), ZFILL(prob_lo), &time, &nCharge_m);
@@ -844,6 +836,4 @@ void AmrBoxLib::initBaseLevel_m(const AmrIntArray_t& nGridPts) {
 //     rho_m[0] = std::unique_ptr<AmrField_t>(new AmrField_t(ba, 1, 1, dm));
 //     rho_m[0]->setVal(0.0);
     
-//     nChargePerCell_m[0] = std::unique_ptr<AmrField_t>(new AmrField_t(ba, 1, 1, dm));
-//     nChargePerCell_m[0]->setVal(0.0);
 }
