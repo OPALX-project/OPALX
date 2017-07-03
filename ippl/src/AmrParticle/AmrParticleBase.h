@@ -65,6 +65,22 @@ public:
     
     void setLocalNumPerLevel(const ParticleLevelCounter_t& LocalNumPerLevel);
     
+    /* Functions of IpplParticleBase<PLayout> adpated to
+     * work with AmrParticleLevelCounter:
+     * - createWithID()
+     * - create()
+     * - destroy()
+     * - performDestroy()
+     */
+    
+    void createWithID(unsigned id);
+
+    void create(size_t M);
+
+    void destroy(size_t M, size_t I, bool doNow = false);
+    
+    void performDestroy(bool updateLocalNum = false);
+    
     // Update the particle object after a timestep.  This routine will change
     // our local, total, create particle counts properly.
     void update();

@@ -354,6 +354,12 @@ protected:
         return make_DataSourceObject(nm, dc, tm, *this);
     }
 
+    // list of destroy events for the next update.  The data
+    // is not actually destroyed until the update phase.
+    // Each destroy is stored as a pair of unsigned ints, the particle
+    // index I to start at and the number of particles M to destroy.
+    std::vector< std::pair<size_t,size_t> > DestroyList;
+    
 private:
     // our layout object, which we delete in our destructor
     PLayout *Layout;
@@ -371,13 +377,7 @@ private:
 
     // unique particle ID number generation value
     unsigned NextID;
-
-    // list of destroy events for the next update.  The data
-    // is not actually destroyed until the update phase.
-    // Each destroy is stored as a pair of unsigned ints, the particle
-    // index I to start at and the number of particles M to destroy.
-    std::vector< std::pair<size_t,size_t> > DestroyList;
-
+    
     //
     // private methods
     //

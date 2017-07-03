@@ -123,22 +123,6 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     //loop trough the particles and assigne the grid and level where each particle belongs
     size_t LocalNum = PData.getLocalNum();
     auto LocalNumPerLevel = PData.getLocalNumPerLevel();
-    
-    size_t LocalNumAllLevel = LocalNumPerLevel.getLocalNumAllLevel();
-    if ( LocalNumAllLevel != LocalNum ) {
-        /* Cases:
-         *  1. empty bunch --> bunch filled
-         *  2. already bunch, but new particles created
-         * 
-         * In both cases the particles are created at
-         * the coarsest level, therefore we only need
-         * to fix the number of particles at the coarsest
-         * level.
-         * Since there might be particles at higher levels
-         * we need to subtract them.
-         */
-        LocalNumPerLevel[0] = LocalNum - LocalNumAllLevel;
-    }
 
     std::multimap<unsigned, unsigned> p2n; //node ID, particle 
 
@@ -175,6 +159,8 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
             
             const unsigned int who = ParticleDistributionMap(lnew)[PData.Grid[ip]];
             
+            --LocalNumPerLevel[lold];
+            
             if (who != myN) {
                 // we lost the particle to another process
                 msgsend[who] = 1;
@@ -184,9 +170,14 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
                 /* if we still own the particle it may have moved to
                  * another level
                  */
-                --LocalNumPerLevel[lold];
                 ++LocalNumPerLevel[lnew];
             }
+        } else {
+            /* a particle left the domain
+             * This should NEVER happen! An exception is thrown in
+             * BoxLibLayout::locateParticle().
+             */
+            --LocalNumPerLevel[lold];
         }
     }
 

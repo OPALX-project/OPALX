@@ -15,7 +15,7 @@ template<class PLayout>
 const typename AmrParticleBase<PLayout>::ParticleLevelCounter_t&
     AmrParticleBase<PLayout>::getLocalNumPerLevel() const
 {
-        return LocalNumPerLevel_m;
+    return LocalNumPerLevel_m;
 }
 
 
@@ -24,6 +24,61 @@ void AmrParticleBase<PLayout>::setLocalNumPerLevel(
     const ParticleLevelCounter_t& LocalNumPerLevel)
 {
     LocalNumPerLevel_m = LocalNumPerLevel;
+}
+
+
+template<class PLayout>
+void AmrParticleBase<PLayout>::destroy(size_t M, size_t I, bool doNow) {
+    /* if the particles are deleted directly
+     * we need to update the particle level count
+     */
+    if ( doNow ) {
+        for (size_t ip = I; ip < M + I; ++ip)
+            --LocalNumPerLevel_m[ Level[ip] ];
+    }
+    IpplParticleBase<PLayout>::destroy(M, I, doNow);
+}
+
+
+template<class PLayout>
+void AmrParticleBase<PLayout>::performDestroy(bool updateLocalNum) {
+    // nothing to do if destroy list is empty
+    if ( this->DestroyList.empty() )
+        return;
+    
+    if ( updateLocalNum ) {
+        typedef std::vector< std::pair<size_t,size_t> > dlist_t;
+        dlist_t::const_iterator curr = this->DestroyList.begin();
+        const dlist_t::const_iterator last = this->DestroyList.end();
+        
+        while ( curr != last ) {
+            for (size_t ip = curr->first;
+                 ip < curr->first + curr->second;
+                 ++ip)
+            {
+                --LocalNumPerLevel_m[ Level[ip] ];
+            }
+            ++curr;
+        }
+    }
+    IpplParticleBase<PLayout>::performDestroy(updateLocalNum);
+}
+
+
+template<class PLayout>
+void AmrParticleBase<PLayout>::create(size_t M) {
+    // particles are created at the coarsest level
+    LocalNumPerLevel_m[0] += M;
+    
+    IpplParticleBase<PLayout>::create(M);
+}
+
+
+template<class PLayout>
+void AmrParticleBase<PLayout>::createWithID(unsigned id) {
+    ++LocalNumPerLevel_m[0];
+    
+    IpplParticleBase<PLayout>::createWithID(id);
 }
 
 

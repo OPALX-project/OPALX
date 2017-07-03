@@ -103,8 +103,8 @@ public:
     }
     
     /*!
-     * 
-     * 
+     * @returns the total particle count
+     * (should be the same as AmrParticleBase::LocalNum)
      */
     T getLocalNumAllLevel() {
         return begin( count_m.size() );
