@@ -17,6 +17,7 @@ public:
     typename PLayout::ParticlePos_t P;
     ParticleAttrib<double> mass;
     ParticleAttrib<Vektor<double,2> > Rphase; //velocity of the particles
+    typedef typename AmrParticleBase<PLayout>::LevelNumCounter_t LevelNumCounter_t;
     
     PartBunchAmr() {
         this->addAttribute(qm);
@@ -67,8 +68,11 @@ public:
         for (int i = 0; i < nLevel; ++i)
             partPerLevel[i] = globalPartPerLevel[i] = 0.0;
         
-        for (size_t i = 0; i < this->getLocalNum(); ++i)
-            ++partPerLevel[this->m_lev[i]];
+        
+        LevelNumCounter_t& localLevelNum = this->getLocalNumPerLevel();
+        
+        for (size_t i = 0; i < localLevelNum.size(); ++i)
+            partPerLevel[i] = localLevelNum[i];
         
         reduce(partPerLevel.get(),
             partPerLevel.get() + nLevel,

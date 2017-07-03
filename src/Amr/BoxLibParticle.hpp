@@ -195,23 +195,17 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
     }
     
     //loop trough particles and distribute values on the grid
-    size_t LocalNum = this->getLocalNum();
-    
-    //while lev_min > this->Level[start_idx] we need to skip these particles since there level is
-    //higher than the specified lev_min
-    int start_idx = 0;
-    while ((unsigned)level > this->Level[start_idx])
-        start_idx++;
+    const ParticleLevelCounter_t& LocalNumPerLevel = this->getLocalNumPerLevel();
+    size_t lBegin = LocalNumPerLevel.begin(level);
+    size_t lEnd   = LocalNumPerLevel.end(level);
     
     AmrReal_t inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
     double lxyz[3] = { 0.0, 0.0, 0.0 };
     double wxyz_hi[3] = { 0.0, 0.0, 0.0 };
     double wxyz_lo[3] = { 0.0, 0.0, 0.0 };
     int ijk[3] = {0, 0, 0};
-    for (size_t ip = start_idx; ip < LocalNum; ++ip) {
-        //if particle doesn't belong on this level exit loop
-        if (this->Level[ip] != (unsigned)level)
-            break;
+    
+    for (size_t ip = lBegin; ip < lEnd; ++ip) {
         
         const int grid = this->Grid[ip];
         FArrayBox_t& fab = (*mf_pointer)[grid];
@@ -297,24 +291,18 @@ void BoxLibParticle<PLayout>::InterpolateSingleLevelFort(ParticleAttrib<AType> &
     const AmrReal_t*     dx          = gm.CellSize();
     
     //loop trough particles and distribute values on the grid
-    size_t LocalNum = this->getLocalNum();
+    const ParticleLevelCounter_t& LocalNumPerLevel = this->getLocalNumPerLevel();
+    size_t lBegin = LocalNumPerLevel.begin(lev);
+    size_t lEnd   = LocalNumPerLevel.end(lev);    
     
-    //while lev_min > this->Level[start_idx] we need to skip these particles since there level is
-    //higher than the specified lev_min
-    int start_idx = 0;
-    while ((unsigned)lev > this->Level[start_idx])
-        start_idx++;
     
     AmrReal_t inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
     double lxyz[3] = { 0.0, 0.0, 0.0 };
     double wxyz_hi[3] = { 0.0, 0.0, 0.0 };
     double wxyz_lo[3] = { 0.0, 0.0, 0.0 };
     int ijk[3] = {0, 0, 0};
-    for (size_t ip = start_idx; ip < LocalNum; ++ip) {
-        //if particle doesn't belong on this level exit loop
-        if (this->Level[ip] != (unsigned)lev)
-            break;
-        
+    for (size_t ip = lBegin; ip < lEnd; ++ip) {
+
         const int grid = this->Grid[ip];
         FArrayBox_t& fab = mesh_data[grid];
         const AmrBox_t& box = fab.box();

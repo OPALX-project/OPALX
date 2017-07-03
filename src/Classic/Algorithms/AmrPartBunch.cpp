@@ -120,6 +120,7 @@ void AmrPartBunch::boundp() {
     
     layout_p->setForbidTransform(true);
     
+    // update all level
     update();
     
     if ( amrobj_mp ) {
@@ -127,8 +128,10 @@ void AmrPartBunch::boundp() {
         
         for (int i = 0; i <= amrobj_mp->finestLevel() && i < maxLevel; ++i) {
             amrobj_mp->regrid(i, maxLevel, 0.0 /*time*/);
-            // update to multilevel --> update GDB
-            update();
+            /* update to multilevel --> update GDB
+             * Only update current and new finest level
+             */
+            amrpbase_mp->update(i, amrobj_mp->finestLevel());
         }
     } else {
         // At this point an amrobj_mp needs already be set
@@ -193,9 +196,12 @@ void AmrPartBunch::printLevelStatistics() {
     
     for (int i = 0; i < nLevel; ++i)
         partPerLevel[i] = globalPartPerLevel[i] = 0.0;
+    
+    // do not modify LocalNumPerLevel in here!!!
+    auto& LocalNumPerLevel = amrpbase_mp->getLocalNumPerLevel();
         
-    for (size_t i = 0; i < this->getLocalNum(); ++i)
-        ++partPerLevel[amrpbase_mp->Level[i]];
+    for (size_t i = 0; i < LocalNumPerLevel.size(); ++i)
+        partPerLevel[i] = LocalNumPerLevel[i];
         
     reduce(partPerLevel.get(),
            partPerLevel.get() + nLevel,

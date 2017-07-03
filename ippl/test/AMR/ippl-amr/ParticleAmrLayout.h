@@ -65,7 +65,7 @@ public:
     
     static bool do_tiling;
     static IntVect tile_size;
-
+    
 private:
   
     //ParGDBBase class from AMReX is used to determine grid, level 
@@ -198,7 +198,6 @@ public:
     void Redistribute(AmrParticleBase< ParticleAmrLayout<T,Dim> >& PData,
                       int lev_min = 0, int lev_max = -1, int nGrow = 0)
     {
-
         unsigned N = Ippl::getNodes();
         unsigned myN = Ippl::myNode();
 
@@ -211,7 +210,10 @@ public:
 
         //loop trough the particles and assigne the grid and level where each particle belongs
         size_t LocalNum = PData.getLocalNum();
-
+        
+        typedef typename AmrParticleBase< ParticleAmrLayout<T,Dim> >::LevelNumCounter_t LevelNumCounter_t;
+        LevelNumCounter_t& LocalNumPerLevel = PData.getLocalNumPerLevel();
+        
         std::multimap<unsigned, unsigned> p2n; //node ID, particle 
 
         int *msgsend = new int[N];
@@ -221,11 +223,17 @@ public:
 
         unsigned sent = 0;
         unsigned particlesLeft = LocalNum;
-  
+        
+        int lBegin = LocalNumPerLevel.begin(lev_min);
+        int lEnd   = LocalNumPerLevel.end(lev_max);
+        
         //loop trough particles and assign grid and level to each particle
         //if particle doesn't belong to this process save the index of the particle to be sent
-        for (unsigned int ip=0; ip < LocalNum; ++ip) {
+        for (int ip=lBegin; ip < lEnd; ++ip) {
+            
             bool particleLeftDomain = false;
+            
+            size_t lold = PData.m_lev[ip];
             
             //check to which level and grid the particle belongs to
             locateParticle(PData, ip, lev_min, lev_max, nGrow, particleLeftDomain);
@@ -240,7 +248,17 @@ public:
                     p2n.insert(std::pair<unsigned, unsigned>(who, ip));
                     sent++;
                     particlesLeft--;
+                    
+                    --LocalNumPerLevel[lold];
+                } else {
+                    // if we own it it may have moved to another level
+                    --LocalNumPerLevel[lold];
+                    ++LocalNumPerLevel[PData.m_lev[ip]];
                 }
+            } else {
+                // a particle left the domain
+                std::cerr << "\033[01;31mParticle left domain.\033[0m" << std::endl;
+                --LocalNumPerLevel[ lold ];
             }
         }
 
@@ -285,7 +303,12 @@ public:
         //destroy the particles that are sent to other domains
         LocalNum -= PData.getDestroyNum();  // update local num
         PData.performDestroy();
-
+        
+        for (int lev = lev_min; lev < lev_max; ++lev) {
+            if ( LocalNumPerLevel[lev] < 0 )
+                amrex::Abort("ParticleAmrLayout::Redistribute(): Negative particle level count.");
+        }
+        
         //receive new particles
         for (int k = 0; k<msgrecv[myN]; ++k)
         {
@@ -297,12 +320,23 @@ public:
             Message *msg = recvbuf.get();
             while (msg != 0)
                 {
+                    /* pBeginIdx is the start index of the new particle data
+                     * pEndIdx is the end index of the new particle data
+                     */
+                    size_t pBeginIdx = LocalNum;
+                    
                     LocalNum += PData.getSingleMessage(*msg);
+                    
+                    size_t pEndIdx = LocalNum;
+                    
+                    for (size_t i = pBeginIdx; i < pEndIdx; ++i)
+                        ++LocalNumPerLevel[ PData.m_lev[i] ];
+                    
                     delete msg;
                     msg = recvbuf.get();
                 }  
         }
-
+        
         //wait for communication to finish and clean up buffers
         MPI_Waitall(requests.size(), &(requests[0]), MPI_STATUSES_IGNORE);
         for (unsigned int j = 0; j<buffers.size(); ++j)
@@ -331,8 +365,9 @@ public:
     //update the location and indices of all atoms in the given AmrParticleBase object.
     //uses the Redistribute function to swap particles among processes if needed
     //handles create and destroy requests. When complete all nodes have correct layout information
-    void update(AmrParticleBase< ParticleAmrLayout<T,Dim> >& PData, 
-                const ParticleAttrib<char>* canSwap=0)
+    void update(AmrParticleBase< ParticleAmrLayout<T,Dim> >& PData,
+                const ParticleAttrib<char>* canSwap=0,
+                int lbase = 0, int lfine = -1)
     {
         unsigned N = Ippl::getNodes();
         unsigned myN = Ippl::myNode();
@@ -342,7 +377,7 @@ public:
         size_t TotalNum;
         int node;
 
-        Redistribute(PData);
+        Redistribute(PData, lbase, lfine);
 
     }
 
@@ -355,13 +390,6 @@ public:
         //if IpplParticleBase is used something went wrong
     }
     
-    void locateParticle(AmrParticleBase< ParticleAmrLayout<T,Dim> >& PData) {
-        size_t LocalNum = PData.getLocalNum();
-        
-        //check to which level and grid the particle belongs to
-        for (unsigned int ip=0; ip < LocalNum; ++ip)
-            Where(PData, ip);
-    }
     
 private:
     int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);

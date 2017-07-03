@@ -31,6 +31,8 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
+#include "LevelNumCounter.h"
+
 using namespace amrex;
 
 
@@ -51,11 +53,12 @@ typedef typename std::map<int,PBox> PMap;
 
 template<class PLayout>
 class AmrParticleBase : public IpplParticleBase<PLayout> {
-
+    
  public:
     typedef typename PLayout::ParticlePos_t   ParticlePos_t;
     typedef typename PLayout::ParticleIndex_t ParticleIndex_t;
     typedef typename PLayout::SingleParticlePos_t SingleParticlePos_t;
+    typedef LevelNumCounter<size_t, size_t>   LevelNumCounter_t;
 
     ParticleIndex_t m_lev;
     ParticleIndex_t m_grid;
@@ -67,6 +70,8 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
     IpplTimings::TimerRef UpdateParticlesTimer_m;
 
     bool allow_particles_near_boundary;
+    
+    LevelNumCounter_t LocalNumPerLevel_m;
 
     // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     static void CIC_Cells_Fracs_Basic (const SingleParticlePos_t &R, const Real* plo, 
@@ -156,7 +161,7 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
 public: 
 
     //constructor: initializes timers and default variables
-    AmrParticleBase() : allow_particles_near_boundary(false) { 
+    AmrParticleBase() : allow_particles_near_boundary(false), LocalNumPerLevel_m() { 
         AssignDensityTimer_m = IpplTimings::getTimer("AMR AssignDensity");
         SortParticlesTimer_m = IpplTimings::getTimer("AMR sort particles");
         UpdateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
@@ -174,10 +179,74 @@ public:
     void setAllowParticlesNearBoundary(bool value) {
         allow_particles_near_boundary = value;
     }
+    
+    void setLocalNumPerLevel(const LevelNumCounter_t& LocalNumPerLevel) {
+        LocalNumPerLevel_m = LocalNumPerLevel_m;
+    }
+    
+    LevelNumCounter_t& getLocalNumPerLevel() {
+        return LocalNumPerLevel_m;
+    }
+    
+    const LevelNumCounter_t& getLocalNumPerLevel() const {
+        return LocalNumPerLevel_m;
+    }
+    
+    void destroy(size_t M, size_t I, bool doNow = false) {
+        /* if the particles are deleted directly
+         * we need to update the particle level count
+         */
+        if ( doNow ) {
+            for (size_t ip = I; ip < M + I; ++ip)
+                --LocalNumPerLevel_m[ m_lev[ip] ];
+        }
+        IpplParticleBase<PLayout>::destroy(M, I, doNow);
+    }
 
+    void performDestroy(bool updateLocalNum = false) {
+        // nothing to do if destroy list is empty
+        if ( this->DestroyList.empty() )
+            return;
+        
+        if ( updateLocalNum ) {
+            typedef std::vector< std::pair<size_t,size_t> > dlist_t;
+            dlist_t::const_iterator curr = this->DestroyList.begin();
+            const dlist_t::const_iterator last = this->DestroyList.end();
+            
+            while ( curr != last ) {
+                
+                for (size_t ip = curr->first;
+                     ip < curr->first + curr->second;
+                     ++ip)
+                {
+                    --LocalNumPerLevel_m[ m_lev[ip] ];
+                }
+            
+                ++curr;
+            }
+        }
+        
+        IpplParticleBase<PLayout>::performDestroy(updateLocalNum);
+    }
+    
+    void create(size_t M) {
+        // particles are created at the coarsest level
+        LocalNumPerLevel_m[0] += M;
+        
+        IpplParticleBase<PLayout>::create(M);
+    }
+    
+    void createWithID(unsigned id) {
+        ++LocalNumPerLevel_m[0];
+        
+        IpplParticleBase<PLayout>::createWithID(id);
+    }
+    
+    
+    
     // Update the particle object after a timestep.  This routine will change
     // our local, total, create particle counts properly.
-    void update() {
+    void update(int lbase = 0, int lfine = -1) {
     
         IpplTimings::startTimer(UpdateParticlesTimer_m);
 
@@ -187,7 +256,7 @@ public:
         PAssert(Layout != 0);
     
         // ask the layout manager to update our atoms, etc.
-        Layout->update(*this);
+        Layout->update(*this, 0, lbase, lfine);
         //sort the particles by grid and level
         sort();
         INCIPPLSTAT(incParticleUpdates);
@@ -213,19 +282,6 @@ public:
         INCIPPLSTAT(incParticleUpdates);
     
         IpplTimings::stopTimer(UpdateParticlesTimer_m);
-    }
-    
-    
-    // update the level and grid attribute of each particle
-    // without redistributing among cores
-    void locateParticle() {
-        // make sure we've been initialized
-        PLayout *Layout = &this->getLayout();
-
-        PAssert(Layout != 0);
-        
-        Layout->locateParticle(*this);
-        sort();
     }
 
     //sort particles based on the grid and level that they belong to

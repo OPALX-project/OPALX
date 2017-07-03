@@ -5,6 +5,8 @@
 
 #include "Particle/IpplParticleBase.h"
 
+#include "AmrParticleLevelCounter.h"
+
 /* The derived classes need to extend the base class by subsequent methods.
  * 
  * scatter the data from the given attribute onto the given Field, using
@@ -43,11 +45,13 @@ public:
     ParticleIndex_t Level; // m_lev
     ParticleIndex_t Grid;  // m_grid
     
+    typedef AmrParticleLevelCounter<size_t, size_t> ParticleLevelCounter_t;
+    
 public:
     
     AmrParticleBase();
     
-    AmrParticleBase(PLayout* layout) : IpplParticleBase<PLayout>(layout) { }
+    AmrParticleBase(PLayout* layout);
     
     ~AmrParticleBase() {}
     
@@ -57,10 +61,39 @@ public:
         this->addAttribute(Grid);
     }
     
+    const ParticleLevelCounter_t& getLocalNumPerLevel() const;
+    
+    ParticleLevelCounter_t& getLocalNumPerLevel();
+    
+    void setLocalNumPerLevel(const ParticleLevelCounter_t& LocalNumPerLevel);
+    
+    /* Functions of IpplParticleBase<PLayout> adpated to
+     * work with AmrParticleLevelCounter:
+     * - createWithID()
+     * - create()
+     * - destroy()
+     * - performDestroy()
+     */
+    
+    void createWithID(unsigned id);
+
+    void create(size_t M);
+
+    void destroy(size_t M, size_t I, bool doNow = false);
+    
+    void performDestroy(bool updateLocalNum = false);
+    
     // Update the particle object after a timestep.  This routine will change
     // our local, total, create particle counts properly.
     void update();
     
+    /*!
+     * There's is NO check performed if lev_min <= lev_max and
+     * lev_min >= 0.
+     * @param lev_min is the start level to update
+     * @param lev_max is the last level to update
+     */
+    void update(int lev_min, int lev_max);
     
     // Update the particle object after a timestep.  This routine will change
     // our local, total, create particle counts properly.
@@ -78,6 +111,9 @@ public:
 protected:
     IpplTimings::TimerRef UpdateParticlesTimer_m;
     IpplTimings::TimerRef SortParticlesTimer_m;
+    
+private:
+    ParticleLevelCounter_t LocalNumPerLevel_m;
 };
 
 #include "AmrParticleBase.hpp"
