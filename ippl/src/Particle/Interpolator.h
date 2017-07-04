@@ -168,9 +168,9 @@ protected:
       }
     }
 
-    throw ("Interploator:getFieldIter: attempt to access non-local index");
+    //    throw ("Interploator:getFieldIter: attempt to access non-local index");
 
-    /* 
+     
     // if we're here, we did not find it ... it must not be local
     ERRORMSG("Interpolator::getFieldIter: attempt to access non-local index");
     ERRORMSG(pt << " on node " << Ippl::myNode() << endl);
@@ -186,7 +186,7 @@ protected:
     ERRORMSG("Calling abort ..." << endl);
     Ippl::abort();
     return (*(*(f.begin_if())).second).begin();
-    */
+    
   }
 
 public:
