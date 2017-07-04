@@ -97,8 +97,6 @@ public:
     virtual void execute();
     virtual void update();
 
-    size_t getNumOfLocalParticlesToCreate(size_t n);
-
     void CreateBoundaryGeometry(PartBunch &p, BoundaryGeometry &bg);
     void CreateOpalCycl(PartBunch &beam,
                         size_t numberOfParticles,
