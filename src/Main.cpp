@@ -103,12 +103,19 @@ void errorHandlerGSL(const char *reason,
 bool haveOpimiseRun(int argc, char *argv[]) {
 
   namespace fs = boost::filesystem;
+  bool haveRightOption = false;
+  std::string so("--initialPopulation");
 
   int arg = -1;
   std::string fname;
 
   for(int ii = 1; ii < argc; ++ ii) {
     std::string argStr = std::string(argv[ii]);
+
+    if (argStr.find(so) != std::string::npos) {
+      haveRightOption=true;
+    }
+
     if (argStr == std::string("--input")) {
       ++ ii;
       arg = ii;
@@ -168,7 +175,7 @@ bool haveOpimiseRun(int argc, char *argv[]) {
 
   inFile.close();
 
-  return res;
+  return res && haveRightOption;
 }
 
 int mainOPALOptimiser(int argc, char *argv[]) {
@@ -479,8 +486,7 @@ int mainOPAL(int argc, char *argv[]) {
                 *gmsg << "* Reading input stream \"" << fname << "\"." << endl;
                 parser.run(is);
                 *gmsg << "* End of input stream \"" << fname << "\"." << endl;
-            }
-        }
+            }        }
 
 
         IpplTimings::stopTimer(mainTimer);
