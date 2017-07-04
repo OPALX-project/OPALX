@@ -103,8 +103,9 @@ void errorHandlerGSL(const char *reason,
 bool haveOpimiseRun(int argc, char *argv[]) {
 
   namespace fs = boost::filesystem;
-  bool haveRightOption = false;
+
   std::string so("--initialPopulation");
+  bool foundOptArg = false;
 
   int arg = -1;
   std::string fname;
@@ -113,7 +114,7 @@ bool haveOpimiseRun(int argc, char *argv[]) {
     std::string argStr = std::string(argv[ii]);
 
     if (argStr.find(so) != std::string::npos) {
-      haveRightOption=true;
+      foundOptArg = true;
     }
 
     if (argStr == std::string("--input")) {
@@ -133,7 +134,8 @@ bool haveOpimiseRun(int argc, char *argv[]) {
     } else if (argStr == std::string("-help") ||
 	       argStr == std::string("--help")) {
       return false;
-    } else {
+    } 
+    else {
       if (arg == -1 &&
 	  (ii == 1 || ii + 1 == argc) &&
 	  argv[ii][0] != '-') {
@@ -175,7 +177,7 @@ bool haveOpimiseRun(int argc, char *argv[]) {
 
   inFile.close();
 
-  return res && haveRightOption;
+  return res && foundOptArg;
 }
 
 int mainOPALOptimiser(int argc, char *argv[]) {
