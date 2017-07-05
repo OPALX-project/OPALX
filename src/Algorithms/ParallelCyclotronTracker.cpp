@@ -2681,8 +2681,8 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         if(numBunch_m > 1) {
             if((BunchCount_m == 1) && (multiBunchMode_m == 2) && (!flagTransition)) {
                 if(step_m == stepsNextCheck) {
-                    // under 3 conditions, following code will be execute
-                    // to check the distance between two neighborring bunches
+                    // under 3 conditions, following code will be executed
+                    // to check the distance between two neighboring bunches
                     // 1.multi-bunch mode, AUTO sub-mode
                     // 2.After each revolution
                     // 3.only one bunch exists
@@ -2711,7 +2711,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                 }
             } else if(SteptoLastInj == itsBunch->getStepsPerTurn() - 1) {
                 if(BunchCount_m < numBunch_m) {
-                    // under 4 conditions, following code will be execute
+                    // under 4 conditions, following code will be executed
                     // to read new bunch from hdf5 format file for FORCE or AUTO mode
                     // 1.multi-bunch mode
                     // 2.after each revolution
@@ -2811,7 +2811,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                                     << " " << variable_m[2]
                                     << " " << variable_m[5] << std::endl;
             }
-            // FixMe: should be defined elesewhere !
+            // FixMe: should be defined elsewhere !
             // define 3 special azimuthal angles where dump particle's six parameters  at each turn into 3 ASCII files.
             const double azimuth_angle0 = 0.0;
             const double azimuth_angle1 = 22.5 / 180.0 * pi;
