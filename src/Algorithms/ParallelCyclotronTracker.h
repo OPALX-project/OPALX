@@ -470,6 +470,13 @@ private:
     // If Ring is defined take the harmonic number from Ring; else use
     // cyclotron
     double getHarmonicNumber() const;
+    
+    
+    void seo_m();
+    
+    void single_mode_m();
+    
+    void bunch_mode_m();
 
 };
 
