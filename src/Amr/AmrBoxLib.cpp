@@ -124,37 +124,10 @@ std::unique_ptr<AmrBoxLib> AmrBoxLib::create(const AmrInitialInfo& info,
     
     int maxlevel = info.maxlevel;
     
-    const int nratios_vect = maxlevel*BL_SPACEDIM;
-    
-    AmrIntArray_t refRatio(nratios_vect);
-    
-    for (int i = 0; i < maxlevel; ++i) {
-        refRatio[i * BL_SPACEDIM]     = info.refratx;
-        refRatio[i * BL_SPACEDIM + 1] = info.refraty;
-        refRatio[i * BL_SPACEDIM + 2] = info.refratz;
-    }
-    
     /*
      * further attributes are given by the BoxLib's ParmParse class.
      */
-    amrex::ParmParse pAmr("amr");
-    pAmr.add("max_grid_size", info.maxgrid);
-    
-    pAmr.addarr("ref_ratio_vect", refRatio);
-    
-    amrex::Array<int> error_buf(maxlevel, 0);
-    pAmr.addarr("n_error_buf", error_buf);
-    
-    pAmr.add("grid_eff", 0.95);
-    
-    amrex::ParmParse pGeom("geometry");
-    amrex::Array<int> isPeriodic = {
-        layout_p->Geom(0).isPeriodic(0),
-        layout_p->Geom(0).isPeriodic(1),
-        layout_p->Geom(0).isPeriodic(2)
-    };
-    pGeom.addarr("is_periodic", isPeriodic);
-    
+    initParmParse_m(info, layout_p);
     
     return std::unique_ptr<AmrBoxLib>(new AmrBoxLib(domain,
                                                     nGridPts,
@@ -836,4 +809,301 @@ void AmrBoxLib::initBaseLevel_m(const AmrIntArray_t& nGridPts) {
 //     rho_m[0] = std::unique_ptr<AmrField_t>(new AmrField_t(ba, 1, 1, dm));
 //     rho_m[0]->setVal(0.0);
     
+}
+
+
+void AmrBoxLib::initParmParse_m(const AmrInitialInfo& info, AmrLayout_t* layout_p) {
+    
+    /*
+     * All parameters that we set with the OPAL input file
+     */
+    amrex::ParmParse pAmr("amr");
+    pAmr.add("max_grid_size", info.maxgrid);
+    
+    const int nratios_vect = info.maxlevel*BL_SPACEDIM;
+    
+    AmrIntArray_t refRatio(nratios_vect);
+    
+    for (int i = 0; i < info.maxlevel; ++i) {
+        refRatio[i * BL_SPACEDIM]     = info.refratx;
+        refRatio[i * BL_SPACEDIM + 1] = info.refraty;
+        refRatio[i * BL_SPACEDIM + 2] = info.refratz;
+    }
+    
+    pAmr.addarr("ref_ratio_vect", refRatio);
+    
+    amrex::ParmParse pGeom("geometry");
+    amrex::Array<int> isPeriodic = {
+        layout_p->Geom(0).isPeriodic(0),
+        layout_p->Geom(0).isPeriodic(1),
+        layout_p->Geom(0).isPeriodic(2)
+    };
+    pGeom.addarr("is_periodic", isPeriodic);
+    
+    
+    /*
+     * "All" other parameters, we moslty take the
+     * defaults of the code
+     * 
+     * ATTENTION Be careful with default values since they might
+     *           be changed by the AMReX developers!
+     * 
+     * Parmparse parameters not to be set because
+     * alreday given due to constructor
+     * ----------------------------------
+     * 
+     *  AMReX_AmrMesh:
+     *      - amr.max_level
+     * 
+     *  AMReX_Geometry:
+     *      - geometry.coord_sys
+     *      - geometry.prob_lo
+     *      - geometry.prob_hi
+     *      - geometry.is_periodic
+     *      - geometry.spherical_origin_fix [default: 0]
+     *        (not set because we're using Cartesian coordinates)
+     * 
+     * 
+     * ParmParse left out
+     * ------------------
+     *  AMReX_FabArrayBase:
+     *      - fabarray.mfiter_tile_size [default: IntVect(1024000,8,8)]
+     *      - fabarray.mfghostiter_tile_size [default: IntVect(1024000, 8, 8)]
+     *      - fabarray.comm_tile_size [default: IntVect(1024000, 8, 8)]
+     *      - fabarray.maxcomp [default: 25]
+     *      - fabarray.do_async_sends [default: true]
+     * 
+     *  AMReX_MemPool:
+     *      - fab.init_snan [default: 0, if not BL_TESTING or DEBUG enabled]
+     * 
+     *  AMReX_MemProfiler:
+     *      - amrex.memory.log [default: "memlog"]
+     * 
+     *  AMReX_VisMF:
+     *      - vismf.v [verbose, default: 0]
+     *      - vismf.headerversion [default: VisMF::Header::Version_v1 = 1]
+     *      - vismf.groupsets [default: false]
+     *      - vismf.setbuf [default: true]
+     *      - vismf.usesingleread [default: false]
+     *      - vismf.usesinglewrite [default: false]
+     *      - vismf.checkfilepositions [default: false]
+     *      - vismf.usepersistentifstreams [default: true]
+     *      - vismf.usesynchronousreads [default: false]
+     *      - vismf.usedynamicsetselection [default: true]
+     *      - vismf.iobuffersize [default: VisMF::IO_Buffer_Size = 262144 * 8]
+     * 
+     *  AMReX_ParallelDescriptor:
+     *      Needs change of ParallelDescriptor::SetNProcsSidecars in the function
+     *      ParallelDescriptor::StartParallel()
+     *      - amrex.ncolors [default: m_nCommColors = 1]
+     *      - team.size     [default: disabled, enable by BL_USE_UPCXX or BL_USE_MPI3]
+     *      - team.reduce   [default: disabled, enable by BL_USE_UPCXX or BL_USE_MPI3]
+     *      - mpi.onesided  [default: disabled, enable by BL_USE_UPCXX or BL_USE_MPI3]
+     * 
+     *  AMReX:
+     *      Debugging purposes
+     *      - amrex.v [verbose, default: 0]
+     *      - amrex.verbose [default: 0]
+     *      - amrex.fpe_trap_invalid [invalid, default: 0]
+     *      - amrex.fpe_trap_zero [divbyzero, default: 0]
+     *      - amrex.fpe_trap_overflow [overflow, 0]
+     * 
+     *  AMReX_FArrayBox:
+     *      For output only
+     *      - fab.format [default: FABio::FAB_NATIVE]
+     *      For reading in an old FAB
+     *      - fab.ordering
+     *      - fab.initval [default: quiet_NaN() or max()]
+     *      - fab.do_initval [default: false, if not DEBUG or BL_TESTING enabled]
+     *      - fab.init_snan [default: false, if not DEBUG or BL_TESTING enabled]
+     * 
+     *  AMReX_MCMultiGrid:
+     *      We do NOT use this solver
+     *      - mg.maxiter [default: 40]
+     *      - mg.numiter [default: -1]
+     *      - mg.nu_0 [default: 1]
+     *      - mg.nu_1 [default: 2]
+     *      - mg.nu_2 [default: 2]
+     *      - mg.nu_f [default: 8]
+     *      - mg.v [verbose, default: 0]
+     *      - mg.usecg [default: 1]
+     *      - mg.rtol_b [default: 0.01]
+     *      - mg.bot_atol [default: -1.0]
+     *      - mg.nu_b [default: 0]
+     *      - mg.numLevelsMAX [default: 1024]
+     * 
+     *  AMReX_MCLinOp:
+     *      We do NOT use this solver
+     *      - MCLp.harmavg [default: 0]
+     *      - MCLp.v [verbose, default: 0]
+     *      - MCLp.maxorder [default: 2]
+     * 
+     *  AMReX_MCCGSolver:
+     *      We do NOT use this solver
+     *      - cg.maxiter [default: 40]
+     *      - cg.v [verbose, default: 0]
+     *      - cg.isExpert [default: 0]
+     *      - MCCGSolver::def_unstable_criterion [default: 10]
+     * 
+     *  AMReX_LinOp:
+     *      We do NOT use this class
+     *      - Lp.harmavg [default: 0]
+     *      - Lp.v [verbose, default: 0]
+     *      - Lp.maxorder [default: 2]
+     *      - LinOp::LinOp_grow [default: 1]
+     * 
+     *  AMReX_MultiGrid (single level solver):
+     *      We do NOT use this solver, see BoxLibSolvers/FMGPoissonSolver for
+     *      explanation of parameters
+     *      - mg.v [verbose, default: 0]
+     *      - mg.nu_0 [default: 1]
+     *      - mg.nu_1 [default: 2]
+     *      - mg.nu_2 [default: 2]
+     *      - mg.nu_f [default: 8]
+     *      - mg.nu_b [default: 0]
+     *      - mg.usecg [default: 1]
+     *      - mg.rtol_b [default: 0.0001 or 0.01 (if CG_USE_OLD_CONVERGENCE_CRITERIA enabled)]
+     *      - mg.verbose [default: 0]
+     *      - mg.maxiter [default: 40]
+     *      - mg.bot_atol [default: -1.0]
+     *      - mg.maxiter_b [default: 120]
+     *      - mg.numLevelsMAX [default: 1024]
+     *      - mg.smooth_on_cg_unstable [default: 1]
+     *      - mg.use_Anorm_for_convergence [default: 1]
+     * 
+     *  AMReX_CGSolver (single level solver):
+     *      We do NOT use this solver
+     *      - cg.v [verbose, default: 0]
+     *      - cg.SSS [default: SSS_MAX = 4]
+     *      - cg.maxiter [default: 80]
+     *      - cg.verbose [default: 0]
+     *      - cg.variable_SSS [default: true]
+     *      - cg.use_jbb_precond [default: 0]
+     *      - cg.use_jacobi_precond [default: 0]
+     *      - cg.unstable_criterion [default: 10]
+     *      - CGSolver::def_cg_solver [default: BiCGStab]
+     *      - cg.cg_solver [default: CGSolver::def_cg_solver]
+     * 
+     *  AMReX_Amr:
+     *      We do NOT use this class
+     *      - amr.regrid_on_restart [default: 0]
+     *      - amr.use_efficient_regrid [default: 0]
+     *      - amr.plotfile_on_restart [default: 0]
+     *      - amr.checkpoint_on_restart [default: 0]
+     *      - amr.compute_new_dt_on_regrid [default: 0]
+     *      - amr.mffile_nstreams [default: 1]
+     *      - amr.probinit_natonce [default: 32]
+     *      - amr.file_name_digits [default: 5]
+     *      - amr.initial_grid_file
+     *      - amr.regrid_file
+     *      - amr.message_int [default: 10]
+     *      - amr.run_log [default: not parsed]
+     *      - amr.run_log_terse [default: not parsed]
+     *      - amr.grid_log [default: not parsed]
+     *      - amr.data_log [default: not parsed]
+     *      - amr.probin_file [default: not parsed]
+     *      - amr.restart
+     *      - amr.restart_from_plotfile
+     *      - amr.regrid_int [default: 1 at all levels]
+     *      - amr.rebalance_grids [default: 0]
+     *      - amr.nosub [default: not parsed]
+     *      - amr.subcycling_mode [default: "Auto"]
+     *      - amr.subcycling_iterations [default: 0]
+     *      - amr.checkpoint_files_output
+     *      - amr.plot_files_output
+     *      - amr.plot_nfiles
+     *      - amr.checkpoint_nfiles
+     *      - amr.check_file [default: "chk"]
+     *      - amr.check_int [default: -1]
+     *      - amr.check_per [default: -1.0] 
+     *      - amr.plot_file [default: "plt"]
+     *      - amr.plot_int [default: -1]
+     *      - amr.plot_per [default: -1.0]
+     *      - amr.small_plot_file [default: "smallplt"]
+     *      - amr.small_plot_int [default: -1]
+     *      - amr.small_plot_per [default: -1.0]
+     *      - amr.write_plotfile_with_checkpoint [default: 1]
+     *      - amr.stream_max_tries [default: 4]
+     *      - amr.abort_on_stream_retry_failure [default: false]
+     *      - amr.precreateDirectories
+     *      - amr.prereadFAHeaders
+     *      - amr.plot_headerversion
+     *      - amr.checkpoint_headerversion
+     * 
+     *  AMReX_SlabStat:
+     *      We do NOT use this class
+     *      - slabstat.boxes
+     * 
+     *  AMReX_AmrLevel:
+     *      We do NOT use this class
+     *      - amr.plot_vars [default: not parsed]
+     *      - amr.derive_plot_vars [default: not parsed]
+     *      - amr.small_plot_vars [default: not parsed]
+     * 
+     * AMReX_StationData:
+     *      We do NOT use this class
+     *      - StationData.vars [default: not parsed]
+     *      - StationData.coord [default: not parsed]
+     */
+    
+    // verbosity
+    pAmr.add("v", 0);
+    
+    // # cells required for proper nesting.
+    pAmr.add("n_proper", 1);
+    
+    // Grid efficiency. (default: 0.7)
+    pAmr.add("grid_eff", 0.95);
+    
+    int nlev = info.maxlevel + 1;
+    
+    // Buffer cells around each tagged cell.
+    amrex::Array<int> error_buf(nlev, 0);
+    pAmr.addarr("n_error_buf", error_buf);  
+    
+    // Blocking factor in grid generation (by level).
+    amrex::Array<int> blockingFactor(nlev, 8);
+    
+    // chop up grids to have more grids than the number of procs
+    pAmr.add("refine_grid_layout", true);
+    
+    
+    /*
+     * ParmParse for DistributionMapping
+     * 
+     * round-robin: FAB i is owned by CPU i%N where N is total number of CPUs
+     * knapsack:    FABs are partitioned across CPUs such that the total volume
+     *              of the Boxes in the underlying BoxArray are as equal across
+     *              CPUs as is possible.
+     * SFC:         Is based on a space filling curve (default)
+     */
+    amrex::ParmParse pDmap("DistributionMapping");
+    
+    // verbosity
+    pDmap.add("v", 0);
+    
+    // max_efficiency   = 0.9
+    pDmap.add("efficiency", 0.9);
+    
+    // SFC = space filling curve
+    pDmap.add("sfc_threshold", 0);
+    
+    /* if > 0:
+     *  nworkers = node_size
+     *  nteams   = nprocs / node_size
+     *  
+     *  if nwokers * nteams != nprocs:
+     *      nteams   = nprocs
+     *      nworkers = 1
+     */
+    pDmap.add("node_size", 0);
+    
+    /* Possibilities:
+     *  - ROUNDROBIN
+     *  - KNAPSACK
+     *  - SFC
+     *  - PFC
+     *  - RRSFC
+     */
+    pDmap.add("strategy", "SFC");
 }
