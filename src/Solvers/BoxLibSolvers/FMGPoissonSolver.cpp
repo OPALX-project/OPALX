@@ -2,6 +2,8 @@
 
 #include "Utilities/OpalException.h"
 
+#include <AMReX_ParmParse.H>
+
 FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* itsAmrObject_p)
     : AmrPoissonSolver<AmrBoxLib>(itsAmrObject_p),
       reltol_m(1.0e-9),
@@ -12,6 +14,8 @@ FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* itsAmrObject_p)
         bc_m[2 * d]     = MGT_BC_DIR;
         bc_m[2 * d + 1] = MGT_BC_DIR;
     }
+    
+    this->initParameters_m();
 }
 
 void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
@@ -131,6 +135,106 @@ Inform &FMGPoissonSolver::print(Inform &os) const {
        << "* absolute tolerance " << abstol_m << '\n' << endl
        << "* ******************************************************************** " << endl;
     return os;
+}
+
+
+void FMGPoissonSolver::initParameters_m() {
+    /* The information about the parameters is copied from the
+     * BoxLib documentation chapter 5 on linear solvers and from
+     * the code itself.
+     * 
+     * Some paramters that have to be given to the solver using
+     * AMReX_ParmParse.
+     * "doc" tells how the variable is called in
+     *  - amrex/Src/LinearSolvers/F_MG/cc_mg_cpp.f90
+     *  - amrex/Src/LinearSolvers/F_MG/mg_tower.f90 (conains defaults)
+     *  - amrex/Src/LinearSolvers/C_to_F_MG/AMReX_MGT_Solver.cpp
+     * 
+     */
+    
+    amrex::ParmParse pp_mg("mg");
+    
+    // maximum number of multigrid cycles (doc: max_iter)
+    pp_mg.add("maxiter", 200);
+    
+    // maximum number of iterations for the bottom solver (doc: bottom_max_iter)
+    pp_mg.add("maxiter_b", 200);
+    
+    // number of smoothings at each level on the way DOWN the V-cycle (doc: nu1)
+    pp_mg.add("nu_1", 2);
+    
+    // number of smoothings at each level on the way UP the V-cycle (doc: nu2)
+    pp_mg.add("nu_2", 2);
+    
+    // number of smoothing before and after the bottom solver (doc: nub)
+    pp_mg.add("nu_b", 0);
+    
+    // number of smoothing ... ?
+    pp_mg.add("nu_f", 8);
+    
+    // verbosity of the multigrid solver. Higher numbers give more verbosity (doc: verbose)
+    pp_mg.add("v"   , 0);
+    
+    
+    // see amrex/Src/LinearSolvers/C_to_F_MG/AMReX_MGT_Solver.cpp
+    pp_mg.add("usecg", 1);
+    
+    // bottom_solver_eps, see amrex/Src/LinearSolvers/C_to_F_MG/AMReX_MGT_Solver.cpp
+    pp_mg.add("rtol_b", 0.0001);
+    
+    // see amrex/Src/LinearSolvers/C_to_F_MG/AMReX_MGT_Solver.cpp
+    pp_mg.add("cg_solver", 1);
+    
+    // maximum number of levels (max_nlevel) 
+    pp_mg.add("numLevelsMAX", 1024);
+    
+    /* MG_SMOOTHER_GS_RB  = 1   (red-black Gauss-Seidel)
+     * MG_SMOOTHER_JACOBI = 2   (Jacobi)
+     * MG_SMOOTHER_MINION_CROSS = 5
+     * MG_SMOOTHER_MINION_FULL = 6
+     * MG_SMOOTHER_EFF_RB = 7
+     */
+    pp_mg.add("smoother", 1);
+    
+    /* The type of multigrid to do
+     * 
+     * MG_FCycle = 1    (F, full multigrid)
+     * MG_WCycle = 2    (W-cycles)
+     * MG_VCycle = 3    (V-cycles)
+     * MG_FVCycle = 4   (F + V cycles)
+     */
+    pp_mg.add("cycle_type", 1);
+    
+    /* the type of bottom solver to use
+     * 
+     * BiCG:    biconjugate gradient stabilized (bottom_solver = 1)
+     * CG:      conjugate gradient method (bottom_solver = 2)
+     * CABiCG:  (bottom_solver = 3)
+     * special: bottom_solver = 4
+     * 
+     * The special bottom solver extends the range of the multigrid coarsening
+     * by aggregating coarse grids on the original mesh together and further coarsening.
+     * 
+     * if use_cg == 1 && cg_solver == 0 --> CG
+     * if use_cg == 1 && cg_solver == 1 --> BiCG
+     * if use_cg == 1 && cg_solver == 2 --> CABiCG
+     * if use_cg == 0                   --> CABiCG
+     */
+    pp_mg.add("bottom_solver", 1);    
+    
+    // verbosity of the bottom solver. Higher numbers give more verbosity (doc: cg_verbose)
+    amrex::ParmParse pp_cg("cg");
+    pp_cg.add("v", 0);
+    
+    
+    /* Additional parameters that can't be set by ParmParse:
+     * 
+     *      - max_bottom_nlevel = 3 (additional coarsening if you use bottom_solver == 4)
+     *      - min_width = 2 (minimum size of grid at coarsest multigrid level)
+     *      - max_L0_growth = -1
+     */
+    amrex::MGT_Solver::def_min_width = 2;
+    amrex::MGT_Solver::def_max_L0_growth = -1.0;
 }
 
 

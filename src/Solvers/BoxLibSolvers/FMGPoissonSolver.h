@@ -61,6 +61,14 @@ public:
     
     
 private:
+    
+    /**
+     * Initialize additional parameters for the multigrid solver
+     * that are given by ParmParse.
+     * The function is called in the constructory only.
+     */
+    void initParameters_m();
+    
     /**
      * Does the actual solve. It calls the FMultiGrid solver of AMReX.
      * It uses an approximation order of 3 at Dirichlet boundaries.
