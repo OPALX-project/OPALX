@@ -31,7 +31,7 @@ public:
     
     /**
      * Multigrid solve based on AMReX FMultiGrid solver. The relative tolerance is
-     * set to 1.0e-14 and the absolute tolerance to 1.0e-10.
+     * set to 1.0e-9 and the absolute tolerance to 0.0.
      * 
      * @param rho right-hand side charge density on grid [C / m]
      * @param phi electrostatic potential (unknown) [V]
