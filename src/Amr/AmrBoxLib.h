@@ -268,6 +268,17 @@ private:
      */
     void initBaseLevel_m(const AmrIntArray_t& nGridPts);
     
+    /*!
+     * AMReX uses the ParmParse object to initialize
+     * parameters like the maximum level etc.
+     * This function initializes "all" of them.
+     * 
+     * @param info all parameters that we set over the
+     *             OPAL input file
+     * @param layout_p of bunch
+     */
+    static void initParmParse_m(const AmrInitialInfo& info, AmrLayout_t* layout_p);
+    
     
 private:
     /// bunch used for tagging strategies
