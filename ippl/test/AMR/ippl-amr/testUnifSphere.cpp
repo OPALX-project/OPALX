@@ -336,6 +336,84 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              const double& scale, const param_t& params)
 {
     static IpplTimings::TimerRef solvTimer = IpplTimings::getTimer("solve");
+    
+    int maxiter = 100;
+    int maxiter_b = 100;
+    int verbose = 0;
+    bool usecg = true;
+    double bottom_solver_eps = 1.0e-4;
+    int max_nlevel = 1024;
+    
+    /* MG_SMOOTHER_GS_RB  = 1
+     * MG_SMOOTHER_JACOBI = 2
+     * MG_SMOOTHER_MINION_CROSS = 5
+     * MG_SMOOTHER_MINION_FULL = 6
+     * MG_SMOOTHER_EFF_RB = 7
+     */
+    int smoother = 1;
+    
+    // #smoothings at each level on the way DOWN the V-cycle
+    int nu_1 = 2;
+    
+    // #smoothings at each level on the way UP the V-cycle
+    int nu_2 = 2;
+    
+    // #smoothings before and after the bottom solver
+    int nu_b = 0;
+    
+    // #smoothings
+    int nu_f = 8;
+
+    /* MG_FCycle = 1  (full multigrid)
+     * MG_WCycle = 2
+     * MG_VCycle = 3
+     * MG_FVCycle = 4
+     */
+    int cycle = 1;
+    
+    bool cg_solver = true;
+    
+    /* if cg_solver == true:
+     * - BiCG --> 1
+     * - CG --> 2
+     * - CABiCG --> 3
+     * 
+     * else if cg_solver == false
+     * - CABiCG is taken
+     */
+    int bottom_solver = 1;
+    
+    ParmParse pp("mg");
+
+    pp.add("maxiter", maxiter);
+    pp.add("maxiter_b", maxiter_b);
+    pp.add("nu_1", nu_1);
+    pp.add("nu_2", nu_2);
+    pp.add("nu_b", nu_b);
+    pp.add("nu_f", nu_f);
+    pp.add("v"   , verbose);
+    pp.add("usecg", usecg);
+    pp.add("cg_solver", cg_solver);
+
+    pp.add("rtol_b", bottom_solver_eps);
+    pp.add("numLevelsMAX", max_nlevel);
+    pp.add("smoother", smoother);
+    pp.add("cycle_type", cycle); // 1 -> F, 2 -> W, 3 -> V, 4 -> F+V
+    //
+    // The C++ code usually sets CG solver type using cg.cg_solver.
+    // We'll allow people to also use mg.cg_solver but pick up the former as well.
+    //
+    if (!pp.query("cg_solver", cg_solver))
+    {
+        ParmParse pp("cg");
+
+        pp.add("cg_solver", cg_solver);
+    }
+
+    pp.add("bottom_solver", bottom_solver);
+    
+    
+    
     // =======================================================================                                                                                                                                   
     // 4. prepare for multi-level solve                                                                                                                                                                          
     // =======================================================================
@@ -386,8 +464,17 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     
     // eps in C / (V * m)
     double constant = -1.0 / Physics::epsilon_0 * scale;  // in [V m / C]
-    for (int i = 0; i <=finest_level; ++i) {
+    for (int i = 0; i <= finest_level; ++i) {
         rhs[i]->mult(constant, 0, 1);       // in [V m]
+    }
+    
+    
+    // normalize each level
+//     double l0norm[finest_level + 1];
+    double l0norm = rhs[finest_level]->norm0(0);
+    for (int i = 0; i <= finest_level; ++i) {
+//         l0norm[i] = rhs[i]->norm0(0);
+        rhs[i]->mult(1.0 / l0norm/*[i]*/, 0, 1);
     }
     
     // **************************************************************************                                                                                                                                
@@ -417,9 +504,14 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
                             offset);
     }
     
+    // undo normalization
+    for (int i = 0; i <= finest_level; ++i) {
+        phi[i]->mult(l0norm/*[i]*/, 0, 1);
+    }
+    
     // undo scale
     for (int i = 0; i <= finest_level; ++i)
-        efield[i]->mult(scale, 0, 3);
+        efield[i]->mult(scale * l0norm/*[i]*/, 0, 3);
     
     IpplTimings::stopTimer(solvTimer);
 }
