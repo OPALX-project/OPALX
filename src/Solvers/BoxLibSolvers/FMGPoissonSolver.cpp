@@ -4,8 +4,8 @@
 
 FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* itsAmrObject_p)
     : AmrPoissonSolver<AmrBoxLib>(itsAmrObject_p),
-      reltol_m(1.0e-14),
-      abstol_m(1.0e-10)
+      reltol_m(1.0e-9),
+      abstol_m(0.0)
 {
     // Dirichlet boundary conditions are default
     for (int d = 0; d < BL_SPACEDIM; ++d) {
@@ -54,6 +54,13 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
     efield.resize( rho.size() );
     initGrids_m(rho, phi, efield, baseLevel, finestLevel);
     
+    
+    // normalize right-hand-side for better convergence
+    double l0norm = rho[finestLevel]->norm0(0);
+    for (int i = 0; i <= finestLevel; ++i)
+        rho[i]->mult(1.0 / l0norm, 0, 1);
+    
+    
     double residNorm = this->solveWithF90_m(amrex::GetArrOfPtrs(rho),
                                             amrex::GetArrOfPtrs(phi),
                                             amrex::GetArrOfArrOfPtrs(grad_phi_edge),
@@ -61,14 +68,20 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
                                             baseLevel,
                                             finestLevel);
     
-    if ( residNorm > abstol_m ) {
+    if ( residNorm > reltol_m ) {
         std::stringstream ss;
         ss << "Residual norm: " << std::setprecision(16) << residNorm
-           << " > " << abstol_m << " (abstol)";
+           << " > " << reltol_m << " (relative tolerance)";
         throw OpalException("FMGPoissonSolver::solve()",
                             "Multigrid solver did not converge. " + ss.str());
     }
     
+    
+    // undo normalization
+    for (int i = 0; i <= finestLevel; ++i) {
+        rho[i]->mult(l0norm, 0, 1);
+        phi[i]->mult(l0norm, 0, 1);
+    }
     
     for (int lev = baseLevel; lev <= finestLevel; ++lev) {
         amrex::average_face_to_cellcenter(*(efield[lev].get()),
@@ -76,7 +89,8 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
                                           geom[lev]);
         
         efield[lev]->FillBoundary(0, BL_SPACEDIM,geom[lev].periodicity());
-        efield[lev]->mult(-1.0, 0, 3);
+        // we need also minus sign due to \vec{E} = - \nabla\phi
+        efield[lev]->mult(-l0norm, 0, 3);
     }
 }
 
