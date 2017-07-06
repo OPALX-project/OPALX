@@ -1384,9 +1384,6 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
                     stepsNextCheck += stepsPerTurn;
 
-                    // update  after injection
-                    itsBunch->boundp();
-
                     Ippl::Comm->barrier();
 
                     *gmsg << "* MBM: Bunch " << BunchCount_m
@@ -2550,11 +2547,8 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
             ptype_mb[ii] = itsBunch->PType[localNum];
         }
 
-    } else {
+    } else
         readOneBunch(BinID);
-
-        itsBunch->boundp();
-    }
 
     return true;
 }
@@ -2637,7 +2631,6 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
         Vector_t const meanR = calcMeanR();
         globalToLocal(itsBunch->R, phi, meanR);
-        itsBunch->boundp();
         double const meanGamma = sqrt(1.0 + pow(meanP(0), 2.0) + pow(meanP(1), 2.0));
         itsBunch->Bf = Vector_t(0.0);
         itsBunch->Ef = Vector_t(0.0);
@@ -2747,9 +2740,6 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                     itsBunch->setNumBunch(BunchCount_m);
                     stepsNextCheck += itsBunch->getStepsPerTurn();
 
-                    // update  after injection
-                    itsBunch->boundp();
-
                     Ippl::Comm->barrier();
                     *gmsg << BunchCount_m << "'th bunch injected, total particle number = " << itsBunch->getTotalNum() << endl;
                 }
@@ -2775,7 +2765,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                 double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
                 Vector_t const meanR = calcMeanR();
                 globalToLocal(itsBunch->R, phi, meanR);
-                itsBunch->boundp();
+                itsBunch->updateNumTotal();
                 repartition();
                 localToGlobal(itsBunch->R, phi, meanR);
             }
@@ -3393,7 +3383,7 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
             bool flag_stripper = (static_cast<Stripper *>(((*sindex)->second).second))
                 -> checkStripper(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
             if(flag_stripper) {
-                itsBunch->boundp();
+                itsBunch->updateNumTotal();
                 *gmsg << "* Total number of particles after stripping = " << itsBunch->getTotalNum() << endl;
             }
         }
