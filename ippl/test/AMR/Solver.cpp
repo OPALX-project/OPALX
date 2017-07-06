@@ -20,7 +20,9 @@ Solver::solve_for_accel(const container_t& rhs,
     
 //     Real reltol = 1.0e-14;
 //     Real abstol = 1.0e-12;
-    Real reltol = 1.0e-12;
+    
+//     Real reltol = 1.0e-12;
+    Real reltol = 1.0e-9;
     Real abstol = 0.0;
 
     Array<container_t> grad_phi_edge(rhs.size());
@@ -181,7 +183,7 @@ Solver::solve_with_f90(const container_pt& rhs,
 
     int always_use_bnorm = 0;
     int need_grad_phi = (doGradient) ? 1 : 0;
-    fmg.set_verbose(0);
+    fmg.set_verbose(5);
     
     if ( timing )
         IpplTimings::stopTimer(initSolverTimer);
