@@ -1242,14 +1242,8 @@ void DataSink::writeLBalHeader(PartBunchBase<double, 3> *beam,
                << indent << "units=ns,\n"
                << indent << "description=\"1 Time\"\n"
                << "&end\n";
-    outputFile << "&column\n"
-               << indent << "name=numParticles,\n"
-               << indent << "type=long,\n"
-               << indent << "units=1,\n"
-               << indent << "description=\"2 Number of Macro Particles\"\n"
-               << "&end\n";
 
-    unsigned int columnStart = 3;
+    unsigned int columnStart = 2;
     
     
     for (int p = 0; p < Ippl::getNodes(); ++p) {
@@ -1298,8 +1292,7 @@ void DataSink::writeLBalData(PartBunchBase<double, 3> *beam,
                              std::ofstream &os_lBalData,
                              unsigned int pwi)
 {
-    os_lBalData << beam->getT() * 1e9 << setw(pwi) << "\t"      // 1
-                << beam->getTotalNum() << setw(pwi) << "\t";    // 2
+    os_lBalData << beam->getT() * 1e9 << setw(pwi) << "\t";     // 1
     
     int nProcs = Ippl::getNodes();
     for (int p = 0; p < nProcs; p++) {
