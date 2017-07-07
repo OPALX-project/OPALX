@@ -1384,9 +1384,6 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
                     stepsNextCheck += stepsPerTurn;
 
-                    // update  after injection
-                    itsBunch->boundp();
-
                     Ippl::Comm->barrier();
 
                     *gmsg << "* MBM: Bunch " << BunchCount_m
@@ -2550,11 +2547,8 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
             ptype_mb[ii] = itsBunch->PType[localNum];
         }
 
-    } else {
+    } else
         readOneBunch(BinID);
-
-        itsBunch->boundp();
-    }
 
     return true;
 }
@@ -2573,6 +2567,9 @@ double ParallelCyclotronTracker::getHarmonicNumber() const {
 void ParallelCyclotronTracker::Tracker_MTS() {
     IpplTimings::startTimer(IpplTimings::getTimer("MTS"));
     IpplTimings::startTimer(IpplTimings::getTimer("MTS-Various"));
+    
+    
+    const bool& doDumpAfterEachTurn = Options::psDumpEachTurn;
 
     const double harm = getHarmonicNumber();
     const double dt = itsBunch->getdT() * harm;
@@ -2634,7 +2631,6 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
         Vector_t const meanR = calcMeanR();
         globalToLocal(itsBunch->R, phi, meanR);
-        itsBunch->boundp();
         double const meanGamma = sqrt(1.0 + pow(meanP(0), 2.0) + pow(meanP(1), 2.0));
         itsBunch->Bf = Vector_t(0.0);
         itsBunch->Ef = Vector_t(0.0);
@@ -2688,8 +2684,8 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         if(numBunch_m > 1) {
             if((BunchCount_m == 1) && (multiBunchMode_m == 2) && (!flagTransition)) {
                 if(step_m == stepsNextCheck) {
-                    // under 3 conditions, following code will be execute
-                    // to check the distance between two neighborring bunches
+                    // under 3 conditions, following code will be executed
+                    // to check the distance between two neighboring bunches
                     // 1.multi-bunch mode, AUTO sub-mode
                     // 2.After each revolution
                     // 3.only one bunch exists
@@ -2718,7 +2714,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                 }
             } else if(SteptoLastInj == itsBunch->getStepsPerTurn() - 1) {
                 if(BunchCount_m < numBunch_m) {
-                    // under 4 conditions, following code will be execute
+                    // under 4 conditions, following code will be executed
                     // to read new bunch from hdf5 format file for FORCE or AUTO mode
                     // 1.multi-bunch mode
                     // 2.after each revolution
@@ -2743,9 +2739,6 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                     SteptoLastInj = 0;
                     itsBunch->setNumBunch(BunchCount_m);
                     stepsNextCheck += itsBunch->getStepsPerTurn();
-
-                    // update  after injection
-                    itsBunch->boundp();
 
                     Ippl::Comm->barrier();
                     *gmsg << BunchCount_m << "'th bunch injected, total particle number = " << itsBunch->getTotalNum() << endl;
@@ -2772,7 +2765,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                 double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
                 Vector_t const meanR = calcMeanR();
                 globalToLocal(itsBunch->R, phi, meanR);
-                itsBunch->boundp();
+                itsBunch->updateNumTotal();
                 repartition();
                 localToGlobal(itsBunch->R, phi, meanR);
             }
@@ -2821,7 +2814,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                                     << " " << variable_m[2]
                                     << " " << variable_m[5] << std::endl;
             }
-            // FixMe: should be defined elesewhere !
+            // FixMe: should be defined elsewhere !
             // define 3 special azimuthal angles where dump particle's six parameters  at each turn into 3 ASCII files.
             const double azimuth_angle0 = 0.0;
             const double azimuth_angle1 = 22.5 / 180.0 * pi;
@@ -2889,7 +2882,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         IpplTimings::startTimer(IpplTimings::getTimer("MTS-Dump"));
 
         if((((step_m + 1) % Options::psDumpFreq == 0) && initialTotalNum_m != 2) ||
-           (Options::psDumpEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
+           (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
 
             IpplTimings::startTimer(DumpTimer_m);
 
@@ -2909,9 +2902,9 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             IpplTimings::stopTimer(DumpTimer_m);
         }
 
-        if((((step_m + 1) % Options::psDumpFreq == 0) && initialTotalNum_m != 2) ||
-           (Options::psDumpEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
-
+        if((((step_m + 1) % Options::statDumpFreq == 0) && initialTotalNum_m != 2)
+               || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
+            
             IpplTimings::startTimer(DumpTimer_m);
 
             itsBunch->setSteptoLastInj(SteptoLastInj);
@@ -3390,7 +3383,7 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
             bool flag_stripper = (static_cast<Stripper *>(((*sindex)->second).second))
                 -> checkStripper(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
             if(flag_stripper) {
-                itsBunch->boundp();
+                itsBunch->updateNumTotal();
                 *gmsg << "* Total number of particles after stripping = " << itsBunch->getTotalNum() << endl;
             }
         }
