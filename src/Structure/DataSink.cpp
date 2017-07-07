@@ -1254,7 +1254,7 @@ void DataSink::writeLBalHeader(PartBunchBase<double, 3> *beam,
     
     for (int p = 0; p < Ippl::getNodes(); ++p) {
         outputFile << "&column\n"
-                   << indent << "name=processor,\n"
+                   << indent << "name=processor-" << p << ",\n"
                    << indent << "type=long,\n"
                    << indent << "units=1,\n"
                    << indent << "description=\"" << columnStart
@@ -1270,7 +1270,7 @@ void DataSink::writeLBalHeader(PartBunchBase<double, 3> *beam,
 
         for (int lev = 0; lev < nLevel; ++lev) {
             outputFile << "&column\n"
-                   << indent << "name=level,\n"
+                   << indent << "name=level-" << lev << ",\n"
                    << indent << "type=long,\n"
                    << indent << "units=1,\n"
                    << indent << "description=\"" << columnStart
