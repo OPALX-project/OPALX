@@ -146,8 +146,6 @@ void AmrPartBunch::boundp() {
     
     R.resetDirtyFlag();
     
-    printLevelStatistics();
-
     IpplTimings::stopTimer(boundpTimer_m);
 }
 
@@ -186,16 +184,14 @@ void AmrPartBunch::computeSelfFields_cycl(int bin) {
 }
 
 
-void AmrPartBunch::printLevelStatistics() {
-    Inform msg("LevelStatistics");
-    
+void AmrPartBunch::gatherLevelStatistics() {
     int nLevel = (&amrpbase_mp->getAmrLayout())->maxLevel() + 1;
     
     std::unique_ptr<size_t[]> partPerLevel( new size_t[nLevel] );
-    std::unique_ptr<size_t[]> globalPartPerLevel( new size_t[nLevel] );
+    globalPartPerLevel_m.reset( new size_t[nLevel] );
     
     for (int i = 0; i < nLevel; ++i)
-        partPerLevel[i] = globalPartPerLevel[i] = 0.0;
+        partPerLevel[i] = globalPartPerLevel_m[i] = 0.0;
     
     // do not modify LocalNumPerLevel in here!!!
     auto& LocalNumPerLevel = amrpbase_mp->getLocalNumPerLevel();
@@ -205,14 +201,13 @@ void AmrPartBunch::printLevelStatistics() {
         
     reduce(partPerLevel.get(),
            partPerLevel.get() + nLevel,
-           globalPartPerLevel.get(),
+           globalPartPerLevel_m.get(),
            OpAddAssign());
-    
-    for (int i = 0; i < nLevel; ++i)
-        msg << "Level " << i << " has "
-            << globalPartPerLevel[i] << " ("
-            << globalPartPerLevel[i] / double(this->getTotalNum()) * 100.0
-            << " \%) of the total particles" << endl;
+}
+
+
+const size_t& AmrPartBunch::getLevelStatistics(int l) const {
+    return globalPartPerLevel_m[l];
 }
 
 

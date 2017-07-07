@@ -72,7 +72,9 @@ public:
             hr_m[i] = hr[i];
     }
     
-    void printLevelStatistics();
+    void gatherLevelStatistics();
+    
+    const size_t& getLevelStatistics(int l) const;
     
     
     //FIXME BCs
@@ -100,6 +102,8 @@ private:
      * Thus, don't use it.
      */
     FieldLayout_t* fieldlayout_m;
+    
+    std::unique_ptr<size_t[]> globalPartPerLevel_m;
 };
 
 #endif

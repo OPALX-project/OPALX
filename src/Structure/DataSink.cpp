@@ -15,6 +15,10 @@
 #include "Structure/H5PartWrapperForPS.h"
 #include "Utilities/Timer.h"
 
+#ifdef HAVE_AMR_SOLVER
+    #include "Algorithms/AmrPartBunch.h"
+#endif
+
 #include "H5hut.h"
 
 #include <boost/filesystem.hpp>
@@ -244,15 +248,15 @@ void DataSink::dumpStashedPhaseSpaceEnvelope() {
 }
 
 void DataSink::writeStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], double E) {
-    doWriteStatData(beam, FDext, E, std::vector<std::pair<std::string, unsigned int> >());
+    doWriteStatData(beam, FDext, E, losses_t());
 }
 
-void DataSink::writeStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], const std::vector<std::pair<std::string, unsigned int> >& losses) {
+void DataSink::writeStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], const losses_t& losses) {
     doWriteStatData(beam, FDext, beam->get_meanKineticEnergy(), losses);
 }
 
 
-void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], double Ekin, const std::vector<std::pair<std::string, unsigned int> > &losses) {
+void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], double Ekin, const losses_t &losses) {
 
     /// Start timer.
     IpplTimings::startTimer(StatMarkerTimer_m);
@@ -263,6 +267,12 @@ void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
     /// Calculate beam statistics and gather load balance statistics.
     beam->calcBeamParameters();
     beam->gatherLoadBalanceStatistics();
+    
+#ifdef HAVE_AMR_SOLVER
+    if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
+        amrbeam->gatherLevelStatistics();
+    }
+#endif
 
     size_t npOutside = 0;
     if (Options::beamHaloBoundary>0)
@@ -291,7 +301,7 @@ void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
             os_lBalData.open(lBalFileName_m.c_str(), ios::out);
             os_lBalData.precision(15);
             os_lBalData.setf(ios::scientific, ios::floatfield);
-            os_lBalData << "# " << Ippl::getNodes() << endl;
+            writeLBalHeader(beam, os_lBalData);
 
             firstWriteToStat_m = false;
         } else {
@@ -380,9 +390,7 @@ void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
         }
         os_statData   << endl;
 
-        for(int p = 0; p < Ippl::getNodes(); p++)
-            os_lBalData << beam->getLoadBalance(p)  << setw(pwi) << "\t";
-        os_lBalData << endl;
+        writeLBalData(beam, os_lBalData, pwi);
 
         os_statData.close();
         os_lBalData.close();
@@ -419,8 +427,8 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
 
             os_lBalData.open(lBalFileName_m.c_str(), ios::out);
             os_lBalData.precision(15);
-            os_lBalData.setf(ios::scientific, ios::floatfield);
-            os_lBalData << "# " << Ippl::getNodes() << endl;
+            os_lBalData.setf(ios::scientific, ios::floatfield);            
+            writeLBalHeader(&beam, os_lBalData);
 
             firstWriteToStat_m = false;
         } else {
@@ -487,12 +495,9 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
                     << beam.get_dEdt() << setw(pwi) << "\t"                                   // 35 dE energy spread
 
                     << endl;
-
-
-        for(int p = 0; p < Ippl::getNodes(); p++)
-            os_lBalData << beam.getLoadBalance(p)  << setw(pwi) << "\t";
-        os_lBalData << endl;
-
+        
+        writeLBalData(&beam, os_lBalData, pwi);            
+        
         os_statData.close();
         os_lBalData.close();
     }
@@ -503,10 +508,10 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
 
 void DataSink::writeSDDSHeader(ofstream &outputFile) {
     writeSDDSHeader(outputFile,
-                    std::vector<std::pair<std::string, unsigned int> >());
+                    losses_t());
 }
 void DataSink::writeSDDSHeader(ofstream &outputFile,
-                               const std::vector<std::pair<std::string, unsigned int> > &losses) {
+                               const losses_t &losses) {
     OPALTimer::Timer simtimer;
 
     string dateStr(simtimer.date());
@@ -1198,6 +1203,126 @@ void DataSink::rewindLines(const std::string &fileName, size_t numberOfLines) co
         allLines.pop();
     }
     fs.close();
+}
+
+void DataSink::writeLBalHeader(PartBunchBase<double, 3> *beam,
+                               std::ofstream &outputFile)
+{
+    OPALTimer::Timer simtimer;
+
+    string dateStr(simtimer.date());
+    string timeStr(simtimer.time());
+    string indent("        ");
+
+    outputFile << "SDDS1" << endl;
+    outputFile << "&description\n"
+               << indent << "text=\"Processor statistics '"
+               << OpalData::getInstance()->getInputFn() << "' "
+               << dateStr << "" << timeStr << "\",\n"
+               << indent << "contents=\"stat parameters\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=processors,\n"
+               << indent << "type=long,\n"
+               << indent << "description=\"Number of Cores used\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=revision,\n"
+               << indent << "type=string,\n"
+               << indent << "description=\"git revision of opal\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=flavor,\n"
+               << indent << "type=string,\n"
+               << indent << "description=\"OPAL flavor that wrote file\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=t,\n"
+               << indent << "type=double,\n"
+               << indent << "units=ns,\n"
+               << indent << "description=\"1 Time\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=numParticles,\n"
+               << indent << "type=long,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"2 Number of Macro Particles\"\n"
+               << "&end\n";
+
+    unsigned int columnStart = 3;
+    
+    
+    for (int p = 0; p < Ippl::getNodes(); ++p) {
+        outputFile << "&column\n"
+                   << indent << "name=processor,\n"
+                   << indent << "type=long,\n"
+                   << indent << "units=1,\n"
+                   << indent << "description=\"" << columnStart
+                   << " Number of particles of processor " << p << "\"\n"
+                   << "&end\n";
+        ++columnStart;
+    }
+
+#ifdef HAVE_AMR_SOLVER
+    if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
+        
+        int nLevel = (&(amrbeam->getAmrParticleBase())->getAmrLayout())->maxLevel() + 1;
+
+        for (int lev = 0; lev < nLevel; ++lev) {
+            outputFile << "&column\n"
+                   << indent << "name=level,\n"
+                   << indent << "type=long,\n"
+                   << indent << "units=1,\n"
+                   << indent << "description=\"" << columnStart
+                   << " Number of particles at level " << lev << "\"\n"
+                   << "&end\n";
+            ++columnStart;
+        }
+    }
+#endif
+
+    outputFile << "&data\n"
+               << indent << "mode=ascii,\n"
+               << indent << "no_row_counts=1\n"
+               << "&end\n";
+
+    outputFile << Ippl::getNodes() << endl;
+    outputFile << PACKAGE_NAME << " " << OPAL_VERSION_STR << " # git rev. " << Util::getGitRevision() << endl;
+    outputFile << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
+                   (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << endl;
+    
+    
+}
+
+void DataSink::writeLBalData(PartBunchBase<double, 3> *beam,
+                             std::ofstream &os_lBalData,
+                             unsigned int pwi)
+{
+    os_lBalData << beam->getT() * 1e9 << setw(pwi) << "\t"      // 1
+                << beam->getTotalNum() << setw(pwi) << "\t";    // 2
+    
+    int nProcs = Ippl::getNodes();
+    for (int p = 0; p < nProcs; p++) {
+        os_lBalData << beam->getLoadBalance(p)  << setw(pwi);
+        
+        if ( p < nProcs - 1 )
+            os_lBalData << "\t";
+        
+    }
+        
+#ifdef HAVE_AMR_SOLVER
+    if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
+        os_lBalData << "\t";
+        int nLevel = (&(amrbeam->getAmrParticleBase())->getAmrLayout())->maxLevel() + 1;
+        for (int lev = 0; lev < nLevel; ++lev) {
+            os_lBalData << amrbeam->getLevelStatistics(lev) << setw(pwi);
+            
+            if ( lev < nLevel - 1 )
+                os_lBalData << "\t";
+        }
+    }
+#endif
+    os_lBalData << endl;
 }
 
 /***************************************************************************

@@ -40,6 +40,9 @@ class H5PartWrapper;
 
 class DataSink {
 public:
+    
+    typedef std::vector<std::pair<std::string, unsigned int> > losses_t;
+    
     /** \brief Default constructor.
      *
      * The default constructor is called at the start of a new calculation (as
@@ -90,13 +93,13 @@ public:
      *  - FDext[5] = E at tail particle location (in x, y, and z).
      */
     void doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
-                         double E, const std::vector<std::pair<std::string, unsigned int> > &losses);
+                         double E, const losses_t &losses);
 
     /** \brief for OPAL-t
 
      */
     void writeStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
-                       const std::vector<std::pair<std::string, unsigned int> > &losses = std::vector<std::pair<std::string, unsigned int> >());
+                       const losses_t &losses = losses_t());
 
     // /** \brief for OPAL-cycl
 
@@ -113,7 +116,7 @@ public:
      */
     void writeSDDSHeader(std::ofstream &outputFile);
 
-    void writeSDDSHeader(std::ofstream &outputFile, const std::vector<std::pair<std::string, unsigned int> > &losses);
+    void writeSDDSHeader(std::ofstream &outputFile, const losses_t &losses);
 
     /** \brief Dumps Phase Space to H5 file.
      *
@@ -196,7 +199,18 @@ public:
 
     void writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long int &step, BoundaryGeometry &bg, std::string fn);
 
-
+    /** \brief Write SDDS header.
+     *
+     * Writes the appropriate SDDS format header information to processor statistics file so the SDDS tools can be used
+     * for plotting data.
+     * \param outputFile Name of file to write to.
+     *
+     */
+    void writeLBalHeader(PartBunchBase<double, 3> *beam, std::ofstream &outputFile);
+    
+    void writeLBalData(PartBunchBase<double, 3> *beam,
+                       std::ofstream &outputFile,
+                       unsigned int pwi);
 
 
 private:
