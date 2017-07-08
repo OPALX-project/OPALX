@@ -15,10 +15,6 @@
 //
 // ------------------------------------------------------------------------
 
-//~ #ifdef DEBUG_ALLOCATOR
-//~ #include "Allocator.h"
-//~ #endif
-
 #include "opal.h"
 
 Ippl *ippl;
@@ -50,9 +46,40 @@ Inform *gmsg;
 #include <gsl/gsl_errno.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include <cstring>
 #include <set>
+#include <algorithm>
+
+/*
+  Includes related the to optimizer
+ */
+#include "boost/smart_ptr.hpp"
+
+#include "Pilot/Pilot.h"
+#include "Util/CmdArguments.h"
+#include "Util/OptPilotException.h"
+
+#include "Optimizer/EA/FixedPisaNsga2.h"
+#include "Optimizer/EA/BlendCrossover.h"
+#include "Optimizer/EA/IndependentBitMutation.h"
+
+#include "Util/OpalInputFileParser.h"
+#include "Simulation/OpalSimulation.h"
+
+#include "Comm/CommSplitter.h"
+#include "Comm/Topology/NoCommTopology.h"
+#include "Comm/Splitter/ManyMasterSplit.h"
+#include "Comm/MasterGraph/SocialNetworkGraph.h"
+
+#include "Expression/Parser/function.hpp"
+#include "Expression/FromFile.h"
+#include "Expression/SumErrSq.h"
+#include "Expression/SDDSVariable.h"
+#include "Expression/RadialPeak.h"
+#include "Expression/SumErrSqRadialPeak.h"
+#include "Expression/ProbeVariable.h"
 
 //  DTA
 #define NC 5
@@ -71,21 +98,161 @@ void errorHandlerGSL(const char *reason,
                      const char *file,
                      int line,
                      int gsl_errno);
-// /DTA
 
-// Global data.
-// ------------------------------------------------------------------------
 
-//: The global OPAL data structure.
-//  Contains mainly the directory of known objects,
-//  but also the directories used to maintain tables and expressions
-//  up-to-date, as well as the run title.
-//OpalData OPAL;
+bool haveOpimiseRun(int argc, char *argv[]) {
 
-//: A global Inform object
+  namespace fs = boost::filesystem;
 
-//: The OPAL main program.
-int main(int argc, char *argv[]) {
+  std::string so("--initialPopulation");
+  bool foundOptArg = false;
+
+  int arg = -1;
+  std::string fname;
+
+  for(int ii = 1; ii < argc; ++ ii) {
+    std::string argStr = std::string(argv[ii]);
+
+    if (argStr.find(so) != std::string::npos) {
+      foundOptArg = true;
+    }
+
+    if (argStr == std::string("--input")) {
+      ++ ii;
+      arg = ii;
+      INFOMSG(argv[ii] << endl);
+      continue;
+    } else if (argStr == std::string("-restart") ||
+	       argStr == std::string("--restart")) {
+      return false;
+    } else if (argStr == std::string("-restartfn") ||
+	       argStr == std::string("--restartfn")) {
+      return false;
+    } else if (argStr == std::string("-version") ||
+	       argStr == std::string("--version")) {
+      return false;
+    } else if (argStr == std::string("-help") ||
+	       argStr == std::string("--help")) {
+      return false;
+    } 
+    else {
+      if (arg == -1 &&
+	  (ii == 1 || ii + 1 == argc) &&
+	  argv[ii][0] != '-') {
+	arg = ii;
+	continue;
+      } else {
+	continue;
+      }
+    }
+  }
+
+  if (arg == -1) {
+    INFOMSG("No input file provided!" << endl);
+    exit(1);
+  }
+
+  fname = std::string(argv[arg]);
+  if (!fs::exists(fname)) {
+    INFOMSG("Input file \"" << fname << "\" doesn't exist!" << endl);
+    exit(1);
+  }
+
+  std::ifstream inFile;
+  inFile.open(fname);
+
+  std::stringstream strStream;
+  strStream << inFile.rdbuf();
+  std::string str = strStream.str();
+
+  std::transform(str.begin(), str.end(),str.begin(), ::toupper);
+
+  const std::string s1("OPTIMIZE");
+  const std::string s2("OBJECTIVE");
+  const std::string s3("DVAR");
+
+  bool res = (boost::algorithm::contains(str, s1) &&
+	      boost::algorithm::contains(str, s2) &&
+	      boost::algorithm::contains(str, s3));
+
+  inFile.close();
+
+  return res && foundOptArg;
+}
+
+int mainOPALOptimiser(int argc, char *argv[]) {
+
+    MPI_Init(&argc, &argv);
+
+    // Setup/Configuration
+    //////////////////////////////////////////////////////////////////////////
+    typedef OpalInputFileParser Input_t;
+    typedef OpalSimulation Sim_t;
+
+    typedef FixedPisaNsga2< BlendCrossover, IndependentBitMutation > Opt_t;
+
+    typedef CommSplitter< ManyMasterSplit< NoCommTopology > > Comm_t;
+    typedef SocialNetworkGraph< NoCommTopology > SolPropagationGraph_t;
+
+    typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+
+    // prepare function dictionary and add all available functions in
+    // expressions
+    functionDictionary_t funcs;
+    client::function::type ff;
+    ff = FromFile();
+    funcs.insert(std::pair<std::string, client::function::type>
+            ("fromFile", ff));
+    ff = SumErrSq();
+    funcs.insert(std::pair<std::string, client::function::type>
+            ("sumErrSq", ff));
+    ff = SDDSVariable();
+    funcs.insert(std::pair<std::string, client::function::type>
+            ("sddsVariableAt", ff));
+
+    ff = RadialPeak();
+    funcs.insert(std::pair<std::string, client::function::type>
+            ("radialPeak", ff));
+    ff = SumErrSqRadialPeak();
+    funcs.insert(std::pair<std::string, client::function::type>
+            ("sumErrSqRadialPeak", ff));
+
+    ff = ProbeVariable();
+    funcs.insert(std::pair<std::string, client::function::type>
+            ("probVariableWithID", ff));
+
+    //////////////////////////////////////////////////////////////////////////
+
+    try {
+        CmdArguments_t args(new CmdArguments(argc, argv));
+
+        std::string fname = args->getArg<std::string>("inputfile", true);
+        ff = sameSDDSVariable(fname);
+        funcs.insert(std::pair<std::string, client::function::type>
+                     ("sameSDDSVariableAt", ff));
+
+        boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
+        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs));
+
+    } catch (OptPilotException &e) {
+        std::cout << "Exception caught: " << e.what() << std::endl;
+        MPI_Abort(MPI_COMM_WORLD, -100);
+    }
+    
+    Ippl::Comm->barrier();
+    Fieldmap::clearDictionary();
+    OpalData::deleteInstance();
+    delete gmsg;
+    delete ippl;
+    delete Ippl::Info;
+    delete Ippl::Warn;
+    delete Ippl::Error;
+    delete Ippl::Debug;
+    return 0;
+}
+
+
+int mainOPAL(int argc, char *argv[]) {
     ippl = new Ippl(argc, argv);
     gmsg = new  Inform("OPAL");
 
@@ -124,6 +291,7 @@ int main(int argc, char *argv[]) {
     *gmsg << endl
           << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << OPAL_VERSION_STR << "\n\n"
           << "                (c) PSI, http://amas.web.psi.ch" << endl
+          << "The optimiser (former opt-Pilot) is integrated " << endl
           << endl;
 
 #ifdef OPAL_DKS
@@ -320,8 +488,7 @@ int main(int argc, char *argv[]) {
                 *gmsg << "* Reading input stream \"" << fname << "\"." << endl;
                 parser.run(is);
                 *gmsg << "* End of input stream \"" << fname << "\"." << endl;
-            }
-        }
+            }        }
 
 
         IpplTimings::stopTimer(mainTimer);
@@ -396,3 +563,21 @@ void errorHandlerGSL(const char *reason,
                      int) {
     throw OpalException(file, reason);
 }
+
+
+
+// The OPAL main program.
+
+int main(int argc, char *argv[]) {
+
+  int res;
+
+  if ((argc <= 1) || !haveOpimiseRun(argc, argv))
+    res = mainOPAL(argc, argv);
+  else
+    res = mainOPALOptimiser(argc, argv);
+  return res;
+
+}
+
+
