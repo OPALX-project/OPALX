@@ -51,7 +51,7 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.3")
         message (FATAL_ERROR "To build OPAL you need GCC version 4.7.3 or greater")
     elseif (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER "4.7.2")
-       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-reorder -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11")
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-error -Wno-reorder -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11")
     endif ()
 else ()
     message (STATUS "Unknown C++ compiler. Please use the GNU or Intel compiler, IF you are having problems.")
@@ -107,6 +107,8 @@ OPTION (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
 OPTION (BUILD_LIBOPAL "Enable building the OPAL library" OFF)
 
 OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
+
+OPTION (BUILD_OPAL_UNIT_TESTS "Unit tests" OFF)
 
 IF (BUILD_OPAL_UNIT_TESTS)
     FIND_PACKAGE (GTest REQUIRED)
@@ -229,7 +231,11 @@ ELSE()
 ENDIF()
 
 SET (IPPL_USED_FROM_OPAL "TRUE")
+SET (OPTP_USED_FROM_OPAL "TRUE")
+
 ADD_SUBDIRECTORY (ippl)
+ADD_SUBDIRECTORY (opt-pilot)
+
 ADD_SUBDIRECTORY (src)
 ADD_SUBDIRECTORY (tools)
 ADD_SUBDIRECTORY (doc/user_guide)
