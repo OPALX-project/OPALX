@@ -100,10 +100,12 @@ include_directories ( BEFORE
     ${IPPL_SOURCE_DIRS}
     ${CCSE_INCLUDE_DIRS}
     ${GTEST_INCLUDE_DIR}
+    ${OPTP_INCLUDE_DIR}
 )
 
 link_directories (
     ${IPPL_LIBRARY_DIR}
+    ${OPTP_LIBRARY_DIR}
     ${Trilinos_LIBRARY_DIRS}
     ${Trilinos_TPL_LIBRARY_DIRS}
     ${CCSE_LIBRARY_DIR}
@@ -120,6 +122,8 @@ IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARY}
     ${IPPL_LIBRARY}
+    ${OPTP_LIBRARY}
+    ${OPTP_LIBS}
     ${Boost_LIBRARIES}
     m
     z
@@ -130,6 +134,8 @@ ELSE()
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARY}
     ${IPPL_LIBRARY}
+    ${OPTP_LIBRARY}
+    ${OPTP_LIBS}
     ${Boost_LIBRARIES}
     mpi
     mpi_cxx
@@ -149,8 +155,8 @@ add_library( OPALib ${OPAL_SRCS} )
 set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
 target_link_libraries( OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${CCSE_LIBRARIES} ${OTHER_CMAKE_EXE_LINKER_FLAGS} )
 
-add_executable( opal Main.cpp)
-target_link_libraries( opal OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} -lgfortran ${CCSE_LIBRARIES} ${CBOXLIB} ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+add_executable( opal Main.cpp )
+target_link_libraries( opal ${OPAL_LIBS} OPALib ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} -lgfortran ${CCSE_LIBRARIES} ${CBOXLIB} ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")

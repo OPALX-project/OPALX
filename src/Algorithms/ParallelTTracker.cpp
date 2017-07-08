@@ -370,6 +370,7 @@ void ParallelTTracker::execute() {
                 evenlyDistributeParticles();
                 deletedParticles_m = false;
             }
+
             itsBunch_m->toLabTrafo_m = referenceToLabCSTrafo_m;
             itsBunch_m->RefPartR_m = referenceToLabCSTrafo_m.transformTo(RefPartR_m);
             itsBunch_m->RefPartP_m = referenceToLabCSTrafo_m.rotateTo(RefPartP_m);

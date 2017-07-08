@@ -1,7 +1,7 @@
 #include "opal.h"
 
-Ippl *ippl;
-Inform *gmsg;
+extern Ippl *ippl;
+extern Inform *gmsg;
 
 
 #include "AbstractObjects/OpalData.h"
@@ -19,12 +19,7 @@ int run_opal(char *arg[], std::string inputfile, int restartStep, MPI_Comm comm)
     MPI_Barrier(comm);
 
     int narg = 5, remove = 1;
-
-    if(!ippl)
-        ippl = new Ippl(narg, arg, remove, comm);
-    //Ippl *aippl = new Ippl(narg, arg, remove, comm);
-    //ippl = aippl;
-
+    ippl = new Ippl(narg, arg, remove, comm);
     gmsg = new Inform("OPAL ");
 
     OpalData *opal = OpalData::getInstance();
@@ -39,14 +34,14 @@ int run_opal(char *arg[], std::string inputfile, int restartStep, MPI_Comm comm)
     try {
         is = new FileStream(inputfile);
     } catch(...) {
-        is = 0;
-        throw new OpalException("run_opal", "Could not open inputfile: " + inputfile);
+      is = 0;
+	throw new OpalException("run_opal", "Could not open inputfile: " + inputfile);
     }
 
     // run simulation
     OpalParser *parser = new OpalParser();
     if(is) parser->run(is);
-
+    
     Ippl::Comm->barrier();
 
     // cleanup

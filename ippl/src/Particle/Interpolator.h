@@ -18,6 +18,7 @@
 #include "Index/NDIndex.h"
 #include "AppTypes/Vektor.h"
 #include "Utility/IpplInfo.h"
+#include "Utility/IpplException.h"
 
 #include <iostream>
 
@@ -148,12 +149,13 @@ protected:
   template <class T, unsigned Dim>
   static CompressedBrickIterator<T,Dim>
   getFieldIter(const BareField<T,Dim>& f, const NDIndex<Dim>& pt) {
+   
     typename BareField<T,Dim>::const_iterator_if lf_i, lf_end = f.end_if();
     for (lf_i = f.begin_if(); lf_i != lf_end; ++lf_i) {
       LField<T,Dim>& lf(*(*lf_i).second);
       if ( lf.getOwned().contains(pt) ) {
-        // found it ... get iterator for requested element
-        return lf.begin(pt);
+	// found it ... get iterator for requested element
+	return lf.begin(pt);
       }
     }
     
@@ -161,11 +163,14 @@ protected:
     for (lf_i = f.begin_if(); lf_i != lf_end; ++lf_i) {
       LField<T,Dim>& lf(*(*lf_i).second);
       if ( lf.getAllocated().contains(pt) ) {
-        // found it ... get iterator for requested element
-        return lf.begin(pt);
+	// found it ... get iterator for requested element
+	return lf.begin(pt);
       }
     }
-    
+
+    //    throw ("Interploator:getFieldIter: attempt to access non-local index");
+
+     
     // if we're here, we did not find it ... it must not be local
     ERRORMSG("Interpolator::getFieldIter: attempt to access non-local index");
     ERRORMSG(pt << " on node " << Ippl::myNode() << endl);
@@ -181,6 +186,7 @@ protected:
     ERRORMSG("Calling abort ..." << endl);
     Ippl::abort();
     return (*(*(f.begin_if())).second).begin();
+    
   }
 
 public:

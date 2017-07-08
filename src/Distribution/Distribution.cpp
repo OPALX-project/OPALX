@@ -182,6 +182,7 @@ namespace AttributesT
         RGUESS,
         ID1,                       // special particle that the user can set
         ID2,                       // special particle that the user can set
+        SCALABLE,
         SIZE
     };
 }
@@ -282,7 +283,6 @@ Distribution::Distribution():
 
     gsl_rng_env_setup();
     randGen_m = gsl_rng_alloc(gsl_rng_default);
-    gsl_rng_set(randGen_m, Options::seed);
 }
 /**
  *
@@ -373,7 +373,6 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
 {
     gsl_rng_env_setup();
     randGen_m = gsl_rng_alloc(gsl_rng_default);
-    gsl_rng_set(randGen_m, Options::seed);
 }
 
 Distribution::~Distribution() {
@@ -415,21 +414,21 @@ Distribution::~Distribution() {
 
 /**
  * Calculate the local number of particles evenly and adjust node 0
- * such that n is matched exactly. 
- * @param n total number of particles 
- * @return n / #cores 
+ * such that n is matched exactly.
+ * @param n total number of particles
+ * @return n / #cores
  * @param
  */
 
 size_t Distribution::getNumOfLocalParticlesToCreate(size_t n) {
-    
+
     size_t locNumber = n / Ippl::getNodes();
 
-    // make sure the total number is exact                                                                               
-    size_t reminder  = n % Ippl::getNodes();
-
-    if (Ippl::myNode() == 0)
-        locNumber += reminder;   
+    // make sure the total number is exact
+    size_t remainder  = n % Ippl::getNodes();
+    size_t myNode = Ippl::myNode();
+    if (myNode < remainder)
+        ++ locNumber;
 
     return locNumber;
 }
@@ -477,34 +476,53 @@ void Distribution::execute() {
 void Distribution::update() {
 }
 
-void Distribution::create(size_t &numberOfParticles, double massIneV) {
+void Distribution::create(size_t &totalNumberOfParticles, double massIneV) {
+
+    size_t mySeed = Options::seed;
+
+    if (Options::seed == -1) {
+        struct timeval tv;
+        gettimeofday(&tv,0);
+        mySeed = tv.tv_sec + tv.tv_usec;
+    }
+
+    size_t numberOfParticles = totalNumberOfParticles;
+    if (Attributes::getBool(itsAttr[AttributesT::SCALABLE])) {
+        numberOfParticles = getNumOfLocalParticlesToCreate(totalNumberOfParticles);
+        *gmsg << level2 << "* Generation of distribution with seed = " << mySeed << " + core_id\n"
+              << "* is scalable with number of particles and cores." << endl;
+        mySeed += Ippl::myNode();
+    } else {
+        *gmsg << level2 << "* Generation of distribution with seed = " << mySeed << "\n"
+              << "* isn't scalable with number of particles and cores." << endl;
+    }
+
+    gsl_rng_set(randGen_m, mySeed);
 
     setFieldEmissionParameters();
-
-    size_t locNumber = getNumOfLocalParticlesToCreate(numberOfParticles);
 
     switch (distrTypeT_m) {
 
     case DistrTypeT::MATCHEDGAUSS:
-        createMatchedGaussDistribution(locNumber, massIneV);
+        createMatchedGaussDistribution(numberOfParticles, massIneV);
         break;
     case DistrTypeT::FROMFILE:
-        createDistributionFromFile(locNumber, massIneV);
+        createDistributionFromFile(totalNumberOfParticles, massIneV);
         break;
     case DistrTypeT::GAUSS:
-        createDistributionGauss(locNumber, massIneV);
+        createDistributionGauss(numberOfParticles, massIneV);
         break;
     case DistrTypeT::BINOMIAL:
-        createDistributionBinomial(locNumber, massIneV);
+        createDistributionBinomial(numberOfParticles, massIneV);
         break;
     case DistrTypeT::FLATTOP:
-        createDistributionFlattop(locNumber, massIneV);
+        createDistributionFlattop(numberOfParticles, massIneV);
         break;
     case DistrTypeT::GUNGAUSSFLATTOPTH:
-        createDistributionFlattop(locNumber, massIneV);
+        createDistributionFlattop(numberOfParticles, massIneV);
         break;
     case DistrTypeT::ASTRAFLATTOPTH:
-        createDistributionFlattop(locNumber, massIneV);
+        createDistributionFlattop(numberOfParticles, massIneV);
         break;
     default:
         INFOMSG("Distribution unknown." << endl;);
@@ -520,27 +538,45 @@ void Distribution::create(size_t &numberOfParticles, double massIneV) {
 
             numAdditionalRNsPerParticle = 2;
         } else if (emissionModel_m == EmissionModelT::NONEQUIL) {
-            numAdditionalRNsPerParticle = 20;
+            if (Options::cZero) {
+                numAdditionalRNsPerParticle = 40;
+            } else {
+                numAdditionalRNsPerParticle = 20;
+            }
         }
 
-        if (Options::cZero) {
-            numAdditionalRNsPerParticle *= 2;
-        }
-        
-        for (size_t partIndex = 0; partIndex < locNumber; ++ partIndex) {
-            std::vector<double> rns;
-            for (unsigned int i = 0; i < numAdditionalRNsPerParticle; ++ i) {
-                double x = gsl_rng_uniform(randGen_m);
-                rns.push_back(x);
+        int saveProcessor = -1;
+        const int myNode = Ippl::myNode();
+        const int numNodes = Ippl::getNodes();
+        const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
+
+        for (size_t partIndex = 0; partIndex < numberOfParticles; ++ partIndex) {
+
+            // Save to each processor in turn.
+            ++ saveProcessor;
+            if (saveProcessor >= numNodes)
+                saveProcessor = 0;
+
+            if (scalable || myNode == saveProcessor) {
+                std::vector<double> rns;
+                for (unsigned int i = 0; i < numAdditionalRNsPerParticle; ++ i) {
+                    double x = gsl_rng_uniform(randGen_m);
+                    rns.push_back(x);
+                }
+                additionalRNs_m.push_back(rns);
+            } else {
+                for (unsigned int i = 0; i < numAdditionalRNsPerParticle; ++ i) {
+                    gsl_rng_uniform(randGen_m);
+                }
             }
-            additionalRNs_m.push_back(rns);
         }
     }
 
     // Scale coordinates according to distribution input.
     scaleDistCoordinates();
-        
-    Options::seed = gsl_rng_uniform_int(randGen_m, gsl_rng_max(randGen_m));
+
+    if (Options::seed != -1)
+        Options::seed = gsl_rng_uniform_int(randGen_m, gsl_rng_max(randGen_m));
 }
 
 void  Distribution::createPriPart(PartBunch *beam, BoundaryGeometry &bg) {
@@ -1310,6 +1346,8 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
             }
         }
 
+        // split distribution of particles onto cores such that each time
+        // <distributionFrequency> number of particles are sent
         if (numPartsToSend % distributeFrequency == distributeFrequency - 1) {
             MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
             numPartsToSend = 0;
@@ -1340,6 +1378,7 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
         }
     }
 
+    // send remaining particles (less than <distributionFrequency>)
     MPI_Bcast(&data[0], numPartsToSend * singleDataSize, MPI_CHAR, 0, Ippl::getComm());
 
     if (Ippl::myNode() > 0) {
@@ -1426,22 +1465,22 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
             int Nint = 1000;
             bool writeMap = true;
 
-            SigmaGenerator<double,unsigned int> *siggen = new SigmaGenerator<double,unsigned int>(I_m,
-                                                                                                  Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
-                                                                                                  Attributes::getReal(itsAttr[AttributesT::EY])*1E6,
-                                                                                                  Attributes::getReal(itsAttr[AttributesT::ET])*1E6,
-                                                                                                  wo,
-                                                                                                  E_m*1E-6,
-                                                                                                  CyclotronElement->getCyclHarm(),
-                                                                                                  massIneV*1E-6,
-                                                                                                  lE,
-                                                                                                  hE,
-                                                                                                  (int)Attributes::getReal(itsAttr[AttributesT::MAGSYM]),
-                                                                                                  Nint,
-                                                                                                  Attributes::getString(itsAttr[AttributesT::FMAPFN]),
-                                                                                                  Attributes::getReal(itsAttr[AttributesT::ORDERMAPS]),
-                                                                                                  writeMap);
-
+            typedef SigmaGenerator<double, unsigned int> sGenerator_t;
+            sGenerator_t *siggen = new sGenerator_t(I_m,
+                                                    Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
+                                                    Attributes::getReal(itsAttr[AttributesT::EY])*1E6,
+                                                    Attributes::getReal(itsAttr[AttributesT::ET])*1E6,
+                                                    wo,
+                                                    E_m*1E-6,
+                                                    CyclotronElement->getCyclHarm(),
+                                                    massIneV*1E-6,
+                                                    lE,
+                                                    hE,
+                                                    (int)Attributes::getReal(itsAttr[AttributesT::MAGSYM]),
+                                                    Nint,
+                                                    Attributes::getString(itsAttr[AttributesT::FMAPFN]),
+                                                    Attributes::getReal(itsAttr[AttributesT::ORDERMAPS]),
+                                                    writeMap);
 
             if(siggen->match(Attributes::getReal(itsAttr[AttributesT::RESIDUUM]),
                              Attributes::getReal(itsAttr[AttributesT::MAXSTEPSSI]),
@@ -1537,7 +1576,9 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
 }
 
 void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV) {
+
     setDistParametersGauss(massIneV);
+
     if (emitting_m) {
         generateTransverseGauss(numberOfParticles);
         generateLongFlattopT(numberOfParticles);
@@ -1872,11 +1913,26 @@ void Distribution::createOpalT(PartBunch &beam,
     if (emitting_m && Options::cZero) {
         std::vector<std::vector<double> > mirrored;
         const auto end = additionalRNs_m.end();
-        for (auto it = additionalRNs_m.begin(); it != end; ++ it) {
-            std::vector<double> tmp((*it).begin() + 2, (*it).end());
-            mirrored.push_back(tmp);
-            (*it).erase((*it).begin() + 2, (*it).end());
+
+        if (emissionModel_m == EmissionModelT::ASTRA ||
+            distrTypeT_m == DistrTypeT::ASTRAFLATTOPTH ||
+            distrTypeT_m == DistrTypeT::GUNGAUSSFLATTOPTH) {
+
+            for (auto it = additionalRNs_m.begin(); it != end; ++ it) {
+                std::vector<double> tmp;
+                tmp.push_back((*it).front());
+                tmp.push_back((*it).back() + 0.5);
+                mirrored.push_back(tmp);
+            }
+        } else {
+            size_t numAdditionals = additionalRNs_m.front().size() / 2;
+            for (auto it = additionalRNs_m.begin(); it != end; ++ it) {
+                std::vector<double> tmp((*it).begin() + numAdditionals, (*it).end());
+                mirrored.push_back(tmp);
+                (*it).erase((*it).begin() + numAdditionals, (*it).end());
+            }
         }
+
         additionalRNs_m.insert(additionalRNs_m.end(), mirrored.begin(), mirrored.end());
     }
     /*
@@ -2175,13 +2231,10 @@ size_t Distribution::findEBin(double tOrZ) {
 
 void Distribution::generateAstraFlattopT(size_t numberOfParticles) {
 
-    /* ADA
+    /*
      * Legacy function to support the ASTRAFLATTOPOTH
      * distribution type.
      */
-
-
-
     checkEmissionParameters();
 
     gsl_qrng *quasiRandGen = gsl_qrng_alloc(gsl_qrng_halton, 2);
@@ -2233,6 +2286,10 @@ void Distribution::generateAstraFlattopT(size_t numberOfParticles) {
     tot -= distributionTable[binTotal] * (5. - weight);
     tot -= distributionTable[0];
 
+    int saveProcessor = -1;
+    const int myNode = Ippl::myNode();
+    const int numNodes = Ippl::getNodes();
+    const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
     double tCoord = 0.0;
 
     int effectiveNumParticles = 0;
@@ -2266,9 +2323,14 @@ void Distribution::generateAstraFlattopT(size_t numberOfParticles) {
             tCoord = hi * (xx[1] + static_cast<int>(gsl_ran_discrete(randGen_m, table))
                            - binTotal / 2 + k * numberOfSampleBins) / (binTotal / 2);
 
-            tOrZDist_m.push_back(tCoord);
-            pzDist_m.push_back(0.0);
-            
+            saveProcessor++;
+            if (saveProcessor >= numNodes)
+                saveProcessor = 0;
+
+            if (scalable || myNode == saveProcessor) {
+                tOrZDist_m.push_back(tCoord);
+                pzDist_m.push_back(0.0);
+            }
         }
         gsl_ran_discrete_free(table);
     }
@@ -2337,6 +2399,11 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
         L[index]      =  sqrt((mBinomial_m[index] + 1.0) / 2.0) * M[index];
         PL[index]     =  sqrt((mBinomial_m[index] + 1.0) / 2.0) * PM[index];
     }
+
+    int saveProcessor = -1;
+    const int myNode = Ippl::myNode();
+    const int numNodes = Ippl::getNodes();
+    const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
 
     Vector_t x = Vector_t(0.0);
     Vector_t p = Vector_t(0.0);
@@ -2434,17 +2501,30 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
             p[2] *= PM[2];
 
         }
-        
-        xDist_m.push_back(x[0]);
-        pxDist_m.push_back(p[0]);
-        yDist_m.push_back(x[1]);
-        pyDist_m.push_back(p[1]);
-        tOrZDist_m.push_back(x[2]);
-        pzDist_m.push_back(avrgpz_m * (1 + p[2]));
+
+        // Save to each processor in turn.
+        saveProcessor++;
+        if (saveProcessor >= numNodes)
+            saveProcessor = 0;
+
+        if (scalable || myNode == saveProcessor) {
+            xDist_m.push_back(x[0]);
+            pxDist_m.push_back(p[0]);
+            yDist_m.push_back(x[1]);
+            pyDist_m.push_back(p[1]);
+            tOrZDist_m.push_back(x[2]);
+            pzDist_m.push_back(avrgpz_m * (1 + p[2]));
+        }
+
     }
 }
 
 void Distribution::generateFlattopLaserProfile(size_t numberOfParticles) {
+
+    int saveProcessor = -1;
+    const int myNode = Ippl::myNode();
+    const int numNodes = Ippl::getNodes();
+    const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
 
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
@@ -2455,10 +2535,17 @@ void Distribution::generateFlattopLaserProfile(size_t numberOfParticles) {
 
         laserProfile_m->getXY(x, y);
 
-        xDist_m.push_back(x * sigmaR_m[0]);
-        pxDist_m.push_back(px);
-        yDist_m.push_back(y * sigmaR_m[1]);
-        pyDist_m.push_back(py);
+        // Save to each processor in turn.
+        saveProcessor++;
+        if (saveProcessor >= numNodes)
+            saveProcessor = 0;
+
+        if (scalable || myNode == saveProcessor) {
+            xDist_m.push_back(x * sigmaR_m[0]);
+            pxDist_m.push_back(px);
+            yDist_m.push_back(y * sigmaR_m[1]);
+            pyDist_m.push_back(py);
+        }
     }
 
     if (distrTypeT_m == DistrTypeT::ASTRAFLATTOPTH)
@@ -2469,7 +2556,6 @@ void Distribution::generateFlattopLaserProfile(size_t numberOfParticles) {
 }
 
 void Distribution::generateFlattopT(size_t numberOfParticles) {
-
 
     gsl_qrng *quasiRandGen2D = NULL;
 
@@ -2487,6 +2573,10 @@ void Distribution::generateFlattopT(size_t numberOfParticles) {
         }
     }
 
+    int saveProcessor = -1;
+    const int myNode = Ippl::myNode();
+    const int numNodes = Ippl::getNodes();
+    const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
         double x = 0.0;
@@ -2513,10 +2603,18 @@ void Distribution::generateFlattopT(size_t numberOfParticles) {
         x *= sigmaR_m[0];
         y *= sigmaR_m[1];
 
-        xDist_m.push_back(x);
-        pxDist_m.push_back(px);
-        yDist_m.push_back(y);
-        pyDist_m.push_back(py);
+        // Save to each processor in turn.
+        saveProcessor++;
+        if (saveProcessor >= numNodes)
+            saveProcessor = 0;
+
+        if (scalable || myNode == saveProcessor) {
+            xDist_m.push_back(x);
+            pxDist_m.push_back(px);
+            yDist_m.push_back(y);
+            pyDist_m.push_back(py);
+        }
+
     }
 
     if (quasiRandGen2D != NULL)
@@ -2550,6 +2648,11 @@ void Distribution::generateFlattopZ(size_t numberOfParticles) {
             quasiRandGen2D = gsl_qrng_alloc(gsl_qrng_halton, 2);
         }
     }
+
+    int saveProcessor = -1;
+    const int myNode = Ippl::myNode();
+    const int numNodes = Ippl::getNodes();
+    const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
 
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
@@ -2586,19 +2689,25 @@ void Distribution::generateFlattopZ(size_t numberOfParticles) {
 
         z = (z - 0.5) * sigmaR_m[2];
 
-        xDist_m.push_back(x);
-        pxDist_m.push_back(px);
-        yDist_m.push_back(y);
-        pyDist_m.push_back(py);
-        tOrZDist_m.push_back(z);
-        pzDist_m.push_back(pz);
+        // Save to each processor in turn.
+        saveProcessor++;
+        if (saveProcessor >= numNodes)
+            saveProcessor = 0;
+
+        if (scalable || myNode == saveProcessor) {
+            xDist_m.push_back(x);
+            pxDist_m.push_back(px);
+            yDist_m.push_back(y);
+            pyDist_m.push_back(py);
+            tOrZDist_m.push_back(z);
+            pzDist_m.push_back(pz);
+        }
     }
 
     if (quasiRandGen1D != NULL) {
         gsl_qrng_free(quasiRandGen1D);
         gsl_qrng_free(quasiRandGen2D);
     }
-
 }
 
 void Distribution::generateGaussZ(size_t numberOfParticles) {
@@ -2658,6 +2767,11 @@ void Distribution::generateGaussZ(size_t numberOfParticles) {
     }
 #endif
 
+    int saveProcessor = -1;
+    const int myNode = Ippl::myNode();
+    const int numNodes = Ippl::getNodes();
+    const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
+
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
         bool allow = false;
 
@@ -2715,12 +2829,19 @@ void Distribution::generateGaussZ(size_t numberOfParticles) {
         py *= sigmaP_m[1];
         pz *= sigmaP_m[2];
 
-        xDist_m.push_back(x);
-        pxDist_m.push_back(px);
-        yDist_m.push_back(y);
-        pyDist_m.push_back(py);
-        tOrZDist_m.push_back(z);
-        pzDist_m.push_back(avrgpz_m + pz);
+        // Save to each processor in turn.
+        saveProcessor++;
+        if (saveProcessor >= numNodes)
+            saveProcessor = 0;
+
+        if (scalable || myNode == saveProcessor) {
+            xDist_m.push_back(x);
+            pxDist_m.push_back(px);
+            yDist_m.push_back(y);
+            pyDist_m.push_back(py);
+            tOrZDist_m.push_back(z);
+            pzDist_m.push_back(avrgpz_m + pz);
+        }
     }
 
     gsl_vector_free(rx);
@@ -2745,12 +2866,18 @@ void Distribution::generateLongFlattopT(size_t numberOfParticles) {
     size_t numFall = numberOfParticles * sigmaTFall_m * normalizedFlankArea / distArea;
     size_t numFlat = numberOfParticles - numRise - numFall;
 
+    // Generate particles in tail.
+    int saveProcessor = -1;
+    const int myNode = Ippl::myNode();
+    const int numNodes = Ippl::getNodes();
+    const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
 
     for (size_t partIndex = 0; partIndex < numFall; partIndex++) {
+
         double t = 0.0;
         double pz = 0.0;
-        bool allow = false;
 
+        bool allow = false;
         while (!allow) {
             t = gsl_ran_gaussian_tail(randGen_m, 0, sigmaTFall_m);
             if (t <= sigmaTRise_m * cutoffR_m[2]) {
@@ -2758,8 +2885,16 @@ void Distribution::generateLongFlattopT(size_t numberOfParticles) {
                 allow = true;
             }
         }
-        tOrZDist_m.push_back(t);
-        pzDist_m.push_back(pz);
+
+        // Save to each processor in turn.
+        saveProcessor++;
+        if (saveProcessor >= numNodes)
+            saveProcessor = 0;
+
+        if (scalable || myNode == saveProcessor) {
+            tOrZDist_m.push_back(t);
+            pzDist_m.push_back(pz);
+        }
     }
 
     /*
@@ -2834,8 +2969,15 @@ void Distribution::generateLongFlattopT(size_t numberOfParticles) {
             }
         }
 
-        tOrZDist_m.push_back(t);
-        pzDist_m.push_back(pz);
+        // Save to each processor in turn.
+        saveProcessor++;
+        if (saveProcessor >= numNodes)
+            saveProcessor = 0;
+
+        if (scalable || myNode == saveProcessor) {
+            tOrZDist_m.push_back(t);
+            pzDist_m.push_back(pz);
+        }
     }
 
     // Generate particles in rise.
@@ -2852,8 +2994,16 @@ void Distribution::generateLongFlattopT(size_t numberOfParticles) {
                 allow = true;
             }
         }
-        tOrZDist_m.push_back(t);
-        pzDist_m.push_back(pz);
+
+        // Save to each processor in turn.
+        saveProcessor++;
+        if (saveProcessor >= numNodes)
+            saveProcessor = 0;
+
+        if (scalable || myNode == saveProcessor) {
+            tOrZDist_m.push_back(t);
+            pzDist_m.push_back(pz);
+        }
     }
 
     if (quasiRandGen1D != NULL) {
@@ -2889,6 +3039,11 @@ void Distribution::generateTransverseGauss(size_t numberOfParticles) {
             gsl_matrix_set (corMat, i, j, 0.0);
         }
     }
+
+    int saveProcessor = -1;
+    const int myNode = Ippl::myNode();
+    const int numNodes = Ippl::getNodes();
+    const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
 
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
@@ -2939,10 +3094,17 @@ void Distribution::generateTransverseGauss(size_t numberOfParticles) {
         px *= sigmaP_m[0];
         py *= sigmaP_m[1];
 
-        xDist_m.push_back(x);
-        pxDist_m.push_back(px);
-        yDist_m.push_back(y);
-        pyDist_m.push_back(py);
+        // Save to each processor in turn.
+        saveProcessor++;
+        if (saveProcessor >= numNodes)
+            saveProcessor = 0;
+
+        if (scalable || myNode == saveProcessor) {
+            xDist_m.push_back(x);
+            pxDist_m.push_back(px);
+            yDist_m.push_back(y);
+            pyDist_m.push_back(py);
+        }
     }
 
     gsl_matrix_free(corMat);
@@ -3830,6 +3992,11 @@ void Distribution::setAttributes() {
     itsAttr[AttributesT::ID2]
         = Attributes::makeRealArray("ID2", "User defined particle with ID=2");
 
+
+    itsAttr[AttributesT::SCALABLE]
+        = Attributes::makeBool("SCALABLE", "If true then distribution is scalable with "
+                               "respect of number of particles and number of cores", false);
+
     /*
      * Legacy attributes (or ones that need to be implemented.)
      */
@@ -4118,6 +4285,7 @@ void Distribution::setDistParametersFlattop(double massIneV) {
 
 
     if (emitting_m) {
+        INFOMSG("emitting"<<endl);
         sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
                             std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAY])),
                             0.0);
@@ -4183,6 +4351,7 @@ void Distribution::setDistParametersFlattop(double massIneV) {
     // Legacy for ASTRAFLATTOPTH.
     if (distrTypeT_m == DistrTypeT::ASTRAFLATTOPTH)
         tRise_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE]));
+
 }
 
 void Distribution::setDistParametersGauss(double massIneV) {

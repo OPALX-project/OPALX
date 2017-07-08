@@ -49,7 +49,7 @@ The distribution command is used to introduce particles into an \opal simulation
 commands \seechp{format}, the distribution command is of the form:
 
 \begin{example}
-Name:DISTRIBUTION, DISTRIBUTION = TYPE,
+Name:DISTRIBUTION, TYPE = DISTRIBUTION_TYPE,
                    ATTRIBUTE #1 =,
                    ATTRIBUTE #2 =,
                    .
@@ -141,8 +141,10 @@ distribution type. These are defined in \secref{universaldistattributes,injected
       \hline
       \tabhead{Attribute Name & Default Value & Units & Description }
       \hline
-      \tabline{WRITETOFILE}{\index{WRITETOFILE} \keyword{FALSE} & None & Echo initial distribution to text file \filename{data/distribution.data}.}
+      \tabline{WRITETOFILE}{\index{WRITETOFILE} \keyword{FALSE} & None & Echo initial distribution to text file \filename{data/\textless basename \textgreater\_ DIST.dat}.}
       %\hline
+      \tabline{SCALABLE}{\index{SCALABLE} \keyword{FALSE} & None & Makes the generation scalable with respect of number of particles. The result depends on the number of cores used.}
+      %
       \tabline[sec:distlist]{WEIGHT}{\num{1.0} & None & Weight of distribution when used in a distribution list \seesec{distlist}.}
       %\hline
       \tabline[sec:FSENBINS]{NBIN}{\num{0} & None & The distribution (beam) will be broken up into \keyword{NBIN} energy bins.
@@ -259,13 +261,13 @@ we list the single attribute specific to this type of distribution type.
 An example of an \emph{injected} \keyword{FROMFILE} distribution definition is:
 
 \begin{example}
-Name:DISTRIBUTION, DISTRIBUTION = FROMFILE,
+Name:DISTRIBUTION, TYPE = FROMFILE,
                    FNAME = ``text file name'';
 \end{example}
 an example of an \emph{emitted} \keyword{FROMFILE} distribution definition is:
 
 \begin{example}
-Name:DISTRIBUTION, DISTRIBUTION = FROMFILE,
+Name:DISTRIBUTION, TYPE = FROMFILE,
                    FNAME = ``text file name'',
                    EMITTED = TRUE,
                    EMISSIONMODEL = None;
@@ -401,7 +403,7 @@ In \tabref{distattrgauss} we list the basic attributes available for a \keyword{
 can use these to create a very simple \keyword{GAUSS} distribution:
 
 \begin{example}
-Name:DISTRIBUTION, DISTRIBUTION = GAUSS,
+Name:DISTRIBUTION, TYPE = GAUSS,
                    SIGMAX = 0.001,
                    SIGMAY = 0.003,
                    SIGMAZ = 0.002,
@@ -576,7 +578,7 @@ As an example of defining a correlated beam, let the initial correlation coeffic
 then the corresponding distribution command will read:
 
 \begin{example}
-Dist:DISTRIBUTION, DISTRIBUTION = GAUSS,
+Dist:DISTRIBUTION, TYPE = GAUSS,
                    SIGMAX = 4.796e-03,
                    SIGMAPX = 231.0585,
                    CORRX = 0.756,
@@ -689,7 +691,7 @@ Below we show an example of a \keyword{FLATTOP} distribution command with an ell
 in time, \SI{10}{\pico\second} long with a \SI{0.5}{\pico\second} rise and fall time as defined in \figref{flattop}.
 
 \begin{example}
-Dist:DISTRIBUTION, DISTRIBUTION = FLATTOP,
+Dist:DISTRIBUTION, TYPE = FLATTOP,
                    SIGMAX = 0.001,
                    SIGMAY = 0.002,
                    TRISE = 0.5e-12,
@@ -798,7 +800,7 @@ as the particles would not move off the cathode, causing all of the emitted char
 time step before the beam space charge is calculated.
 
 \begin{example}
-Dist:DISTRIBUTION, DISTRIBUTION = FLATTOP,
+Dist:DISTRIBUTION, TYPE = FLATTOP,
                    SIGMAX = 0.001,
                    SIGMAY = 0.002,
                    TRISE = 0.5e-12,
@@ -812,7 +814,7 @@ Dist:DISTRIBUTION, DISTRIBUTION = FLATTOP,
                    EMITTED = TRUE;
 \end{example}
 
-One thing to note, it may be that if you are emitting your own distribution using the \keyword{DISTRIBUTION = FROMFILE}
+One thing to note, it may be that if you are emitting your own distribution using the \keyword{TYPE = FROMFILE}
 option, you may want to set \keyword{EKIN = 0} if you have already added some amount of momentum, $p_{z}$, to the
 particles.
 
@@ -867,7 +869,7 @@ An example of using the \keyword{NONEQUIL} emission model is given below. This m
 cathodes and cathodes such as $CsTe$.
 
 \begin{example}
-Dist:DISTRIBUTION, DISTRIBUTION = GAUSS,
+Dist:DISTRIBUTION, TYPE = GAUSS,
                    SIGMAX = 0.001,
                    SIGMAY = 0.002,
                    TRISE = 1.0e-12,
