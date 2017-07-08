@@ -62,7 +62,7 @@ rf5: RFCavity, VOLT=0.06380, FMAPFN="../../Cav3.dat",
 l1:   Line = (inj2,rf0,rf1,rf2,rf3,rf4,rf5);
 
 // define particles distribution, generate Gaussion type
-Dist1:DISTRIBUTION, DISTRIBUTION=gauss,
+Dist1:DISTRIBUTION, TYPE=gauss,
       sigmax=  2.0e-03, sigmapx=1.0e-7, corrx=0.0,
       sigmay=  2.0e-03, sigmapy=1.0e-7, corry=0.0,
       sigmat=  2.0e-03, sigmapt=1.8e-4, corrt=0.0;

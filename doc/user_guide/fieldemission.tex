@@ -61,7 +61,7 @@ To perform field emission related simulation, a triangulated surface geometry de
 function $\varphi$, local field enhancement factor $\beta$ and other parameters
 present in \eqnref{units,imagecharge} in the \keyword{SURFACEEMISSION} type of distribution definition in input file. See the following example input file and \tabref{fieldfmissioncmd} for a summary of the field emission related command in the \keyword{SURFACEEMISSION} type of distribution definition.
 \begin{example}
-DistSurf: DISTRIBUTION, DISTRIBUTION = "SURFACEEMISSION",
+DistSurf: DISTRIBUTION, TYPE = "SURFACEEMISSION",
           NPDARKCUR = 0, INWARDMARGIN=0.0,
           FNBETA = 30, FNMAXEMI = 2,
           FNFIELDTHR = -0.1;

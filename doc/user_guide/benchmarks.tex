@@ -444,7 +444,7 @@ For the input beam, a \texttt{GAUSS} distribution type has been chosen.  For tra
 At the end of this calculation, the input beam in \opal is:
 
 \begin{example}
-D1: DISTRIBUTION, DISTRIBUTION=GAUSS,
+D1: DISTRIBUTION, TYPE=GAUSS,
 SIGMAX = 0.7642e-03,  SIGMAPX= 0.0234e-03,  CORRX= 0.0,
 SIGMAY = 0.7642e-03,  SIGMAPY= 0.0234e-03,  CORRY= 0.0,
 SIGMAZ = 0.0488e-03,  SIGMAPZ= 0.0392e-03,  CORRZ= 0.0, R61= 0.0,
@@ -774,7 +774,7 @@ L1: LINE = (D1);
 
 Fs1: FIELDSOLVER, FSTYPE = FFT, MX = 16, MY = 16, MT = 16, BBOXINCR=0.1;
 
-Dist1: DISTRIBUTION, DISTRIBUTION = GAUSS,
+Dist1: DISTRIBUTION, TYPE = GAUSS,
        OFFSETX = 0.0, OFFSETY = 0.0, OFFSETZ = 15.0e-3,
        SIGMAX = 5.0e-3, SIGMAY = 5.0e-3, SIGMAZ = 5.0e-3,
        OFFSETPX = 0.0, OFFSETPY = 0.0, OFFSETPZ = 0.0,
