@@ -25,28 +25,33 @@ link_directories (
     ${PYTHON_LIBRARIES}
 )
 
+set (OPT_PILOT_SOURCE_DIR ${CMAKE_SOURCE_DIR})
+IF (OPTP_USED_FROM_OPAL)
+    set (OPT_PILOT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/opt-pilot)
+ENDIF()
+
 set (ExpressionTest_SRC
-    ${CMAKE_SOURCE_DIR}/Util/SDDSReader.cpp
-    ${CMAKE_SOURCE_DIR}/Expression/Parser/expression.cpp
-    ${CMAKE_SOURCE_DIR}/Expression/Parser/evaluator.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSReader.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/expression.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/evaluator.cpp
 )
 
 set (SumErrSqExpressionTest_SRC
-    ${CMAKE_SOURCE_DIR}/Expression/SumErrSq.cpp
-    ${CMAKE_SOURCE_DIR}/Util/SDDSReader.cpp
-    ${CMAKE_SOURCE_DIR}/Expression/Parser/expression.cpp
-    ${CMAKE_SOURCE_DIR}/Expression/Parser/evaluator.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/SumErrSq.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSReader.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/expression.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/evaluator.cpp
 )
 
 set (FromFileExpressionTest_SRC
-    ${CMAKE_SOURCE_DIR}/Expression/FromFile.cpp
-    ${CMAKE_SOURCE_DIR}/Expression/Parser/expression.cpp
-    ${CMAKE_SOURCE_DIR}/Expression/Parser/evaluator.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/FromFile.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/expression.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/evaluator.cpp
 )
 
 set (PythonExprTest_SRC
-    ${CMAKE_SOURCE_DIR}/Expression/Parser/expression.cpp
-    ${CMAKE_SOURCE_DIR}/Expression/Parser/evaluator.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/expression.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/evaluator.cpp
 )
 
 
@@ -54,11 +59,11 @@ set (HashNameGeneratorTest_SRC
 )
 
 set (CmdArgumentsTest_SRC
-    ${CMAKE_SOURCE_DIR}/Util/CmdArguments.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/CmdArguments.cpp
 )
 
 set (MPIHelperTest_SRC
-    ${CMAKE_SOURCE_DIR}/Util/MPIHelper.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/MPIHelper.cpp
 )
 
 set (ManagedIDsTest_SRC
@@ -71,16 +76,16 @@ set (PopulationTest_SRC
 )
 
 set (SDDSParserTest_SRC
-    ${CMAKE_SOURCE_DIR}/Util/SDDSReader.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSReader.cpp
 )
 
 set (OpalInputFileParserTest_SRC
-    ${CMAKE_SOURCE_DIR}/Expression/SumErrSq.cpp
-    ${CMAKE_SOURCE_DIR}/Expression/FromFile.cpp
-    ${CMAKE_SOURCE_DIR}/Util/SDDSReader.cpp
-    ${CMAKE_SOURCE_DIR}/Util/CommentAnnotatedInputFileParser.cpp
-    ${CMAKE_SOURCE_DIR}/Expression/Parser/expression.cpp
-    ${CMAKE_SOURCE_DIR}/Expression/Parser/evaluator.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/SumErrSq.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/FromFile.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSReader.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/CommentAnnotatedInputFileParser.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/expression.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/evaluator.cpp
 )
 
 set (PILOT_TESTS
@@ -123,7 +128,7 @@ ENDFOREACH(test ${PILOT_TESTS})
 #HACK: link resources dir to test dir
 if (NOT EXISTS ${PROJECT_BINARY_DIR}/Tests/resources)
     EXECUTE_PROCESS(
-        COMMAND ln -s ${CMAKE_SOURCE_DIR}/Tests/resources ${PROJECT_BINARY_DIR}/Tests/
+        COMMAND ln -s ${OPT_PILOT_SOURCE_DIR}/Tests/resources ${PROJECT_BINARY_DIR}/Tests/
         OUTPUT_VARIABLE LN_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
         )
 endif()
