@@ -414,10 +414,6 @@ public:
 
     std::unique_ptr<LossDataSink> lossDs_m;
 
-    // save particles in case of one core
-    std::unique_ptr<Inform> pmsg_m;
-    std::unique_ptr<std::ofstream> f_stream;
-
     /// timer for IC, can not be in Distribution.h
     IpplTimings::TimerRef distrReload_m;
     IpplTimings::TimerRef distrCreate_m;
@@ -444,7 +440,7 @@ protected:
 private:
 
     const PartData *reference;
-    void calcMoments();    // Calculates bunch moments using only emitted particles.
+    size_t calcMoments();    // Calculates bunch moments using only emitted particles.
     void calcMomentsInitial(); // Calcualtes bunch moments by summing over bins (not accurate when any particles have been emitted).
 
     double calculateAngle(double x, double y);
