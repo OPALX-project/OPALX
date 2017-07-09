@@ -82,7 +82,7 @@ set(Boost_USE_STATIC_LIBS ON)
 set(BOOST_NO_SYSTEM_PATHS TRUE)
 set(BOOST_INCLUDEDIR $ENV{BOOST_HOME})
 set(BOOST_LIBRARYDIR $ENV{BOOST_HOME}}/lib)
-find_package (Boost 1.55.0 REQUIRED chrono filesystem regex serialization system iostreams)
+find_package (Boost 1.54.0 REQUIRED chrono filesystem regex serialization system iostreams)
 if (Boost_INCLUDE_DIRS)
     message (STATUS "Boost include dirs: ${Boost_INCLUDE_DIRS}")
     include_directories (${Boost_INCLUDE_DIRS})
@@ -197,9 +197,18 @@ find_package(Doxygen)
 if (DOXYGEN_FOUND)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile
         ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+IF (NOT OPTP_USED_FROM_OPAL)
     add_custom_target(doc
         ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Generating API documentation with Doxygen" VERBATIM
         )
+ELSE ()
+    add_custom_target(optpilot-doc
+        ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Generating API documentation with Doxygen" VERBATIM
+        )
+ENDIF()
+
 endif(DOXYGEN_FOUND)
