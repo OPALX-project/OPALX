@@ -47,6 +47,15 @@
 
 (add-to-list 'auto-mode-alist '("\\.opal\\'" . opal-mode))
 
+; optimiser keywords
+(defconst opal-font-lock-keywords-optimise
+  (list
+  '("\\<\\(DVAR\\|DVARS\\|OBJECTIVE\\|OBJECTIVES\\|CONSTRAINTS\\|OPTIMIZE\\)\\>"
+  . font-lock-builtin-face)
+  )
+  "Highlighting expressions for OPAL mode (matchingmet).")
+
+
 ;(regexp-opt '("CONSTRAINT" "ENDMATCH" "LINE" "MATCH" "RUN" "START" "TWISS" "VARY") t)
 
 (defconst opal-font-lock-keywords-simul
@@ -200,6 +209,7 @@
 
 (defconst opal-font-lock-keywords-3
   (append
+     opal-font-lock-keywords-optimise
      opal-font-lock-special_operators
      opal-font-lock-special_constants
      opal-font-lock-keywords-programflow
