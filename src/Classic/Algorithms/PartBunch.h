@@ -445,7 +445,7 @@ protected:
 private:
 
     const PartData *reference;
-    void calcMoments();    // Calculates bunch moments using only emitted particles.
+    size_t calcMoments();    // Calculates bunch moments using only emitted particles.
     void calcMomentsInitial(); // Calcualtes bunch moments by summing over bins (not accurate when any particles have been emitted).
 
     double calculateAngle(double x, double y);
