@@ -79,29 +79,8 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
     
     initBaseLevel_m(nGridPts);
     
-//     layout_p->define(this->Geom(),
-//                      this->boxArray(),
-//                      this->DistributionMap());
-    
-//     bunch_p->update();
-    
-//     std::cout << "After resize" << std::endl;
-                  
-//     AmrPartBunch::pbase_t* amrpbase_p = bunch_p->getAmrParticleBase();
-//     amrpbase_p->resizeContainerGDB(maxLevel);
-//     amrpbase_p->setGDB(this->Geom(),
-//                        this->boxArray(),
-//                        this->DistributionMap(),
-//                        this->
-//                       );
-//     for (int i = 0; i < maxLevel + 1; ++i) {
-//         std::cout << "level " << i << ": " << this->Geom(i) << std::endl;
-//     }
-    
     // set mesh spacing of bunch
     updateMesh();
-    
-//     std::cout << "After updateMesh" << std::endl;
 }
 
 
@@ -346,9 +325,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     
     // map on Amr domain
-//     bunch_mp->python_format(0);
     double scalefactor = layout_mp->domainMapping(*amrpbase_p);
-//     bunch_mp->python_format(1); std::cout << "Written." << std::endl; std::cin.get();
     
     /// from charge (C) to charge density (C/m^3).
     amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
@@ -511,8 +488,15 @@ void AmrBoxLib::RemakeLevel (int lev, AmrReal_t time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
-    rho_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1, 1));
+    //                                                   #comp  #ghosts cells
+    rho_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1,     1));
+    phi_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1,     1));
+    eg_m[lev].reset(new AmrField_t(new_grids, new_dmap,  3,     1));
+    
+    // including nghost = 1
     rho_m[lev]->setVal(0.0, 1);
+    phi_m[lev]->setVal(0.0, 1);
+    eg_m[lev]->setVal(0.0, 1);
     
     /*
      * particles need to know the BoxArray
@@ -530,8 +514,17 @@ void AmrBoxLib::MakeNewLevel (int lev, AmrReal_t time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
-    rho_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1, 1));
+    //                                                   #comp  #ghosts cells
+    rho_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1,     1));
+    phi_m[lev].reset(new AmrField_t(new_grids, new_dmap, 1,     1));
+    eg_m[lev].reset(new AmrField_t(new_grids, new_dmap,  3,     1));
+    
+    // including nghost = 1
     rho_m[lev]->setVal(0.0, 1);
+    phi_m[lev]->setVal(0.0, 1);
+    eg_m[lev]->setVal(0.0, 1);
+    
+    
     
     /*
      * particles need to know the BoxArray
@@ -785,30 +778,14 @@ void AmrBoxLib::initBaseLevel_m(const AmrIntArray_t& nGridPts) {
     const amrex::Box bx(low, high);
     AmrGrid_t ba(bx);
     ba.maxSize( this->maxGridSize(0) );
-//     this->SetBoxArray(0, ba);
     
     AmrProcMap_t dmap;
     dmap.define(ba, amrex::ParallelDescriptor::NProcs());
-//     this->SetDistributionMap(0, dmap);
     
     this->RemakeLevel(0, 0.0, ba, dmap);
     
-    for (int i = 0; i < maxLevel() + 1; ++i) {
-        std::cout << "level " << i << ": " << this->Geom(i) << std::endl;
-    }
-    
     layout_mp->define(this->Geom());
-    layout_mp->define(this->ref_ratio);
-    
-//     const BoxArray& ba = layout_mp->ParticleBoxArray(0);
-//     const AmrProcMap_t& dm = layout_mp->ParticleDistributionMap(0 /*level*/);
-    
-//     SetBoxArray(0 /*level*/, ba);
-//     SetDistributionMap(0 /*level*/, dm);
-    
-//     rho_m[0] = std::unique_ptr<AmrField_t>(new AmrField_t(ba, 1, 1, dm));
-//     rho_m[0]->setVal(0.0);
-    
+    layout_mp->define(this->ref_ratio);    
 }
 
 
