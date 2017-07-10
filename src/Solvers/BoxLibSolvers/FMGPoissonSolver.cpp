@@ -53,16 +53,15 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
         }
     }
     
-    // initialize potential and electric field grids on each level
-    phi.resize( rho.size() );
-    efield.resize( rho.size() );
-    initGrids_m(rho, phi, efield, baseLevel, finestLevel);
-    
-    
     // normalize right-hand-side for better convergence
     double l0norm = rho[finestLevel]->norm0(0);
-    for (int i = 0; i <= finestLevel; ++i)
+    for (int i = 0; i <= finestLevel; ++i) {
         rho[i]->mult(1.0 / l0norm, 0, 1);
+        
+        // reset
+        phi[i]->setVal(0.0, 1);
+        efield[i]->setVal(0.0, 1);
+    }
     
     
     double residNorm = this->solveWithF90_m(amrex::GetArrOfPtrs(rho),
@@ -292,26 +291,4 @@ double FMGPoissonSolver::solveWithF90_m(const AmrFieldContainer_pt& rho,
     }
     
     return residNorm;
-}
-
-void FMGPoissonSolver::initGrids_m(const AmrFieldContainer_t& rho,
-                                   AmrFieldContainer_t& phi,
-                                   AmrFieldContainer_t& efield,
-                                   int baseLevel,
-                                   int finestLevel)
-{
-    int nlevs = finestLevel - baseLevel + 1;
-    for (int lev = 0; lev < nlevs; ++lev) {
-        int ilev = lev + baseLevel;
-        const AmrGrid_t& ba = rho[ilev]->boxArray();
-        const AmrProcMap_t& dmap = rho[ilev]->DistributionMap();
-        
-        //                                         #components  #ghost cells                                                                                                                                          
-        phi[ilev].reset(   new AmrField_t(ba, dmap, 1,           1) );
-        efield[ilev].reset(new AmrField_t(ba, dmap, 3,           1) );
-        
-        // including nghost = 1
-        phi[lev]->setVal(0.0, 1);
-        efield[lev]->setVal(0.0, 1);
-    }
 }
