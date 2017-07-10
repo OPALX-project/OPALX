@@ -185,33 +185,9 @@ public:
         this->refRatio_m.resize(maxLevel);
 //         this->m_rr.resize(maxLevel);
         maxLevel_m = maxLevel;
-        
-        for (int i = 0; i < length; ++i) {
-            std::cout << "resize BA: " << this->m_ba[i] << std::endl;
-            
-        }
     }
     
-//     void define(const AmrGeomContainer_t& geom,
-//                 const AmrGridContainer_t& ba,
-//                 const AmrProcMapContainer_t& dmap,
-//                 const AmrIntArray_t & rr)
-//     {
-//         maxLevel_m = ba.size() - 1;
-//         this->m_nlevels = ba.size();
-//         this->m_geom.resize( this->m_nlevels );
-//         this->m_ba.resize( this->m_nlevels );
-//         this->m_dmap.resize( this->m_nlevels );
-//         this->m_rr.resize(maxLevel_m);
-//         
-//         for (int i = 0; i < this->m_nlevels; ++i) {
-//             this->m_geom[i] = geom[i];
-//             this->m_ba[i]   = ba[i];
-//             this->m_dmap[i] = dmap[i];
-//             this->m_rr[i]   = rr[i];
-//         }
-//     }
-    
+
     /*!
      * Set the geometry of the problem. It is called in
      * AmrBoxLib::initBaseLevel_m().
@@ -219,9 +195,6 @@ public:
      * @param geom geometry of all levels
      */
     void define(const AmrGeomContainer_t& geom) {
-//         this->m_geom.resize( geom.size() );
-        std::cout << "this->m_geom.size() = " << this->m_geom.size() << std::endl;
-        std::cout << "geom.size() = " << geom.size() << std::endl;
         for (unsigned int i = 0; i < geom.size(); ++i)
             this->m_geom[i] = geom[i];
     }
@@ -239,42 +212,6 @@ public:
         }
     }
     
-    // FIXME: Remove me. I'm nowhere called
-    void define(const AmrGeomContainer_t& geom,
-                const AmrGridContainer_t& ba,
-                const AmrProcMapContainer_t& dmap)
-    {
-        std::cout << "define: " << std::endl;
-        std::cout << geom.size() << " " << ba.size() << " " << dmap.size() << std::endl;
-        
-        for (int i = 0; i < this->m_nlevels; ++i) {
-            std::cout << "AMR BA: " << ba[i] << " " << ba[i].ok() << std::endl;
-        }
-        
-        std::cout << this->m_geom.size() << " " << this->m_ba.size() << " " << this->m_dmap.size() << std::endl;
-        
-        maxLevel_m = ba.size() - 1;
-        this->m_nlevels = ba.size();
-        this->m_geom.resize( this->m_nlevels );
-        this->m_ba.resize( this->m_nlevels );
-        this->m_dmap.resize( this->m_nlevels );
-        
-        for (int i = 0; i < this->m_nlevels; ++i) {
-            this->m_geom[i] = geom[i];
-            this->m_ba[i]   = ba[i];
-            this->m_dmap[i] = dmap[i];
-            
-            std::cout << "BA: " << this->m_ba[i] << std::endl;
-            
-        }
-        
-        std::cout << this->m_geom.size() << " " << this->m_ba.size() << " " << this->m_dmap.size() << std::endl;
-        
-        std::cout << "maxLevel_m = " << maxLevel_m << std::endl;
-        std::cout << "this->m_nlevels = " << this->m_nlevels << std::endl;
-        std::cout << "BoxLibLayout::define" << std::endl;
-    }
-                   
     
     /*!
      * @param finestLevel of current simulation state

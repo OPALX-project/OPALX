@@ -649,12 +649,6 @@ void BoxLibLayout<T, Dim>::initDefaultBox(int nGridPoints, int maxGridSize)
     this->m_ba[0] = ba;
     
     this->m_nlevels = ba.size();
-    
-//     std::cout << "----------------------------" << std::endl
-//               << "BoxLibLayout::initDefaultBox" << std::endl
-//               << this->m_geom[0] << std::endl
-//               << this->m_ba[0] << std::endl
-//               << "----------------------------" << std::endl;
 }
 
 
