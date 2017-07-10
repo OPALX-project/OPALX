@@ -43,14 +43,9 @@ const AmrPartBunch::pbase_t *AmrPartBunch::getAmrParticleBase() const {
     return amrpbase_mp;
 }
 
-// AmrPartBunch::pbase_t* AmrPartBunch::clone() {
-//     return new pbase_t(new BoxLibLayout<double, 3>());
-// }
-
 
 void AmrPartBunch::initialize(FieldLayout_t *fLayout) {
     Layout_t* layout = static_cast<Layout_t*>(&getLayout());
-//     layout->getLayout().changeDomain(*fLayout);
 }
 
 
@@ -70,30 +65,6 @@ double AmrPartBunch::getRho(int x, int y, int z) {
      */
     return amrobj_mp->getRho(x, y, z);
 }
-
-// const Mesh_t &AmrPartBunch::getMesh() const {
-//     //TODO Implement
-//     throw OpalException("&AmrPartBunch::getMesh() ", "Not yet Implemented.");
-// }
-
-
-// Mesh_t &AmrPartBunch::getMesh() {
-//     //TODO Implement
-//     throw OpalException("AmrPartBunch::getMesh() ", "Not yet Implemented.");
-// }
-
-
-// void AmrPartBunch::setMesh(Mesh_t* mesh) {
-//     Layout_t* layout = static_cast<Layout_t*>(&getLayout());
-//     layout->getLayout().setMesh(mesh);
-// }
-// 
-// 
-// void AmrPartBunch::setFieldLayout(FieldLayout_t* fLayout) {
-//     Layout_t* layout = static_cast<Layout_t*>(&getLayout());
-//     layout->getLayout().setFieldLayout(fLayout);
-//     layout->getLayout().changeDomain(*fLayout);
-// }
 
 
 FieldLayout_t &AmrPartBunch::getFieldLayout() {

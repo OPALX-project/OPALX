@@ -88,22 +88,6 @@ private:
                           int baseLevel,
                           int finestLevel);
     
-    /*! Initialize the potential and electric field to zero
-     * on each level and grid.
-     * 
-     * @param rho charge density [C/m] that is used for DistributionMap and BoxArray
-     * at different levels
-     * @param phi to be initialized according to DistributionMap and BoxArray of rho
-     * @param efield to be intialized according to DistributionMap and BoxArray of rho
-     * @param baseLevel to initialize
-     * @param finestLevel to initialize
-     */
-    void initGrids_m(const AmrFieldContainer_t& rho,
-                     AmrFieldContainer_t& phi,
-                     AmrFieldContainer_t& efield,
-                     int baseLevel,
-                     int finestLevel);
-    
 private:
     int bc_m[2*BL_SPACEDIM];        ///< Boundary conditions
     double reltol_m;                ///< Relative tolearance for solver

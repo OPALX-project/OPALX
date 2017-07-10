@@ -294,7 +294,7 @@ private:
     AmrFieldContainer_t phi_m;
     
     /// vector field on the grid for all levels
-    AmrFieldContainer_t eg_m;    
+    AmrFieldContainer_t efield_m;    
 };
 
 #endif
