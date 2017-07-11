@@ -3765,7 +3765,7 @@ void ParallelCyclotronTracker::gapCrossKick_m(size_t i, double t,
             
         if ( tag_crossing ) {
                         
-            double oldMomentum2  = dot(pold_m, pold_m);
+            double oldMomentum2  = dot(Pold, Pold);
             double oldBetgam = sqrt(oldMomentum2);
             double oldGamma = sqrt(1.0 + oldMomentum2);
             double oldBeta = oldBetgam / oldGamma;

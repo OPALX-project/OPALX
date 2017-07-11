@@ -25,10 +25,8 @@ bool RK4<FieldFunction, Arguments ...>::advance(PartBunch* bunch,
     // Evaluate f1 = f(x,t).
 
     bool outOfBound = derivate_m(bunch, x, t, deriv1 , i, args ...);
-    if (outOfBound) {
-        this->copyFrom(bunch->R[i], bunch->P[i], &x[0]);
+    if (outOfBound)
         return false;
-    }
 
     // Evaluate f2 = f( x+dt*f1/2, t+dt/2 ).
     const double half_dt = 0.5 * dt;
@@ -38,20 +36,16 @@ bool RK4<FieldFunction, Arguments ...>::advance(PartBunch* bunch,
         xtemp[j] = x[j] + half_dt * deriv1[j];
 
     outOfBound = derivate_m(bunch, xtemp, t_half, deriv2 , i, args ...);
-    if (outOfBound) {
-        this->copyFrom(bunch->R[i], bunch->P[i], &x[0]);
+    if (outOfBound)
         return false;
-    }
 
     // Evaluate f3 = f( x+dt*f2/2, t+dt/2 ).
     for(int j = 0; j < 6; ++j)
         xtemp[j] = x[j] + half_dt * deriv2[j];
 
     outOfBound = derivate_m(bunch, xtemp, t_half, deriv3 , i, args ...);
-    if (outOfBound) {
-        this->copyFrom(bunch->R[i], bunch->P[i], &x[0]);
+    if (outOfBound)
         return false;
-    }
 
     // Evaluate f4 = f( x+dt*f3, t+dt ).
     double t_full = t + dt;
@@ -59,10 +53,8 @@ bool RK4<FieldFunction, Arguments ...>::advance(PartBunch* bunch,
         xtemp[j] = x[j] + dt * deriv3[j];
 
     outOfBound = derivate_m(bunch, xtemp, t_full, deriv4 , i, args ...);
-    if (outOfBound) {
-        this->copyFrom(bunch->R[i], bunch->P[i], &x[0]);
+    if (outOfBound)
         return false;
-    }
 
     // Return x(t+dt) computed from fourth-order R-K.
     for(int j = 0; j < 6; ++j)
