@@ -100,7 +100,7 @@ a few global quantities. Starting with version 1.6.0 of \opal the option \texttt
 mandatory in the \opal input file. Example:
 \begin{example}
 OPTION,ECHO=logical,INFO=logical,TRACE=logical,
-       VERIFY=logical,WARN=logical,
+       WARN=logical,
        SEED=real,PSDUMPFREQ=integer,
        STATDUMPFREQ=integer, SPTDUMFREQ=integer,
        REPARTFREQ=integer, REBINFREQ=integer, TELL=logical, VERSION=integer;
@@ -138,11 +138,6 @@ The next five logical flags activate or deactivate execution options:
   %%   for each executable command.
   %%   This information includes the command name
   %%   and elapsed CPU time before and after the command.
-  \item[VERIFY]
-  \index{OPTION!VERIFY}
-  If this option is on, \opal gives a message for each undefined variable
-  or element in a beam line.
-
   \item[WARN]
   \index{OPTION!WARN}
   If this option is turned off, \opal suppresses all warning messages.
@@ -225,7 +220,7 @@ The next five logical flags activate or deactivate execution options:
   If true the electric csr field component, $E_z$, line density and the derivative of the line density is written into the \filename{data} directory.
   The first line gives the average position of the beam bunch.
   Subsequent lines list $z$ position of longitudinal mesh (with respect to the head of the beam bunch),
-   $E_z$, line density and the derivative of the line density. Note that currently the line density derivative 
+   $E_z$, line density and the derivative of the line density. Note that currently the line density derivative
    needs to be scaled by the inverse of the mesh spacing to get the correct value. The CSR field
    is dumped at each time step of the calculation. Each text file is named "Bend Name" (from input file) + "-CSRWake" + "time step number in that bend
    (starting from 1)" + ".txt".
@@ -339,12 +334,12 @@ OPTION,SEED=987456321
          \keyword{TRACE}             & = \keyword{FALSE}     \\
       \hline
          \keyword{WARN}              & = \keyword{TRUE}      &
-         \keyword{VERIFY}            & = \keyword{FALSE}     &
+         \keyword{SEED}              & = \texttt{123456789}  &
          \keyword{TELL}              & = \keyword{FALSE}     \\
       \hline
-         \keyword{SEED}              & = \texttt{123456789}  &
-         \keyword{VERIFY}            & = \keyword{FALSE}     &
-         \keyword{SPTDUMPFREQ}       & = \texttt{1}          \\
+         \keyword{SPTDUMPFREQ}       & = \texttt{1}          &
+         & &
+         & \\
       \hline
          \keyword{PSDUMPFREQ}        & = \texttt{10}         &
          \keyword{STATDUMPFREQ}      & = \texttt{10}         &
