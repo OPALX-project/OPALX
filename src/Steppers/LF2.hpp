@@ -11,7 +11,7 @@ bool LF2<FieldFunction, Arguments ...>::advance(PartBunch* bunch,
     push_m(bunch->R[i], bunch->P[i], 0.5 * dt * 1.0e-9);  // ns --> s
     
     //BEGIN REMOVE
-    bunch->setT(bunch->getT() + dt);
+    bunch->setT(bunch->getT() + dt * 1.0e-9);
 
     // Path length update
     double dotP = dot(bunch->P[0], bunch->P[0]);
