@@ -95,8 +95,6 @@ using Physics::pi;
 using Physics::q_e;
 
 const double c_mmtns = Physics::c * 1.0e-6; // m/s --> mm/ns
-const double c_mtns = Physics::c * 1.0e-9;  // m/s --> m/ns
-const double mass_coeff = 1.0e18 * q_e / Physics::c / Physics::c; // from GeV/c^2 to basic unit: GV*C*s^2/m^2
 
 Vector_t const ParallelCyclotronTracker::xaxis = Vector_t(1.0, 0.0, 0.0);
 Vector_t const ParallelCyclotronTracker::yaxis = Vector_t(0.0, 1.0, 0.0);
@@ -125,7 +123,10 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(0),
     initialTotalNum_m(0),
-    opalRing_m(NULL) {
+    opalRing_m(NULL),
+    itsStepper_mp(nullptr),
+    mode_m(MODE::UNDEFINED),
+    stepper_m(stepper::INTEGRATOR::UNDEFINED) {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
 }
 
@@ -150,12 +151,12 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     Tracker(beamline, reference, revBeam, revTrack),
     maxSteps_m(maxSTEPS),
     lastDumpedStep_m(0),
-    timeIntegrator_m(timeIntegrator),
     eta_m(0.01),
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(bunch.getLocalNum()),
     initialTotalNum_m(bunch.getTotalNum()),
-    opalRing_m(NULL) {
+    opalRing_m(NULL),
+    itsStepper_mp(nullptr) {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
     itsBunch = &bunch;
     itsDataSink = &ds;
@@ -167,6 +168,25 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     TransformTimer_m   = IpplTimings::getTimer("Frametransform");
     DumpTimer_m        = IpplTimings::getTimer("Dump");
     BinRepartTimer_m   = IpplTimings::getTimer("Binaryrepart");
+    
+    // FIXME Change track command
+    if ( initialTotalNum_m == 1 ) {
+        mode_m = MODE::SINGLE;
+    } else if ( initialTotalNum_m == 2 ) {
+        mode_m = MODE::SEO;
+    } else if ( initialTotalNum_m > 2 ) {
+        mode_m = MODE::BUNCH;
+    } else
+        mode_m = MODE::UNDEFINED;
+    
+    if ( timeIntegrator == 0 ) {
+        stepper_m = stepper::INTEGRATOR::RK4;
+    } else if ( timeIntegrator == 1) {
+        stepper_m = stepper::INTEGRATOR::LF2;
+    } else if ( timeIntegrator == 2) {
+        stepper_m = stepper::INTEGRATOR::MTS;
+    } else
+        stepper_m = stepper::INTEGRATOR::UNDEFINED;
 }
 
 /**
@@ -1125,20 +1145,40 @@ void ParallelCyclotronTracker::execute() {
     extB_m = Vector_t(0.0, 0.0, 0.0);
     DumpFields::writeFields((((*FieldDimensions.begin())->second).second));
     DumpEMFields::writeFields((((*FieldDimensions.begin())->second).second));
-
-    if(timeIntegrator_m == 0) {
-        *gmsg << "* 4th order Runge-Kutta integrator" << endl;
-        Tracker_Generic();
-    } else if(timeIntegrator_m == 1) {
-        *gmsg << "* 2nd order Leap-Frog integrator" << endl;
-        Tracker_Generic();
-    } else if(timeIntegrator_m == 2) {
-        *gmsg << "* Multiple time stepping (MTS) integrator" << endl;
-        Tracker_MTS();
-    } else {
-        throw OpalException("ParallelTTracker::execute",
-                            "Invalid name of TIMEINTEGRATOR in Track command");
+                               
+    function_t func = std::bind(&ParallelCyclotronTracker::getFieldsAtPoint,
+                                this,
+                                std::placeholders::_1,
+                                std::placeholders::_2,
+                                std::placeholders::_3,
+                                std::placeholders::_4);
+    
+    switch ( stepper_m )
+    {
+        case stepper::INTEGRATOR::RK4:
+            *gmsg << "* 4th order Runge-Kutta integrator" << endl;
+            itsStepper_mp.reset(new RK4<function_t>(func));
+            break;
+        case stepper::INTEGRATOR::LF2:
+            *gmsg << "* 2nd order Leap-Frog integrator" << endl;
+            itsStepper_mp.reset(new LF2<function_t>(func));
+            break;
+        case stepper::INTEGRATOR::MTS:
+            *gmsg << "* Multiple time stepping (MTS) integrator" << endl;
+//             itsStepper_mp.reset(new MTS(func));
+            break;
+        case stepper::INTEGRATOR::UNDEFINED:
+            itsStepper_mp.reset(nullptr);
+            // continue here and throw exception
+        default:
+            throw OpalException("ParallelTTracker::execute",
+                                "Invalid name of TIMEINTEGRATOR in Track command");
     }
+    
+
+    Tracker_Generic();
+    
+    
     *gmsg << "* ----------------------------------------------- *" << endl;
     *gmsg << "* Finalizing i.e. write data and close files :" << endl;
     for(beamline_list::iterator sindex = FieldDimensions.begin(); sindex != FieldDimensions.end(); sindex++) {
@@ -1160,45 +1200,27 @@ void ParallelCyclotronTracker::Tracker_Generic() {
     // Total number of particles determines single particle mode (SPM, 1 particle) or
     // Static Equilibrium Orbit Mode (SEO, 2 particles)
 
-    //if (timeIntegrator_m == 1) BorisPusher pusher; // Create a BorisPusher only for LF-2 method
-    BorisPusher pusher; // TEMP: OPAL will not compile without a pusher. -DW
-
     // Read in some control parameters
-    const int SinglePartDumpFreq = Options::sptDumpFreq;
-    const int resetBinFreq = Options::rebinFreq;
-
-    int scSolveFreq;
-
-    if (spiral_flag)
-	scSolveFreq = 1;
-    else
-        scSolveFreq = Options::scSolveFreq;
-
-    const int boundpDestroyFreq = Options::boundpDestroyFreq;
-    const bool doDumpAfterEachTurn = Options::psDumpEachTurn;
-
-    // Read in some more parameters
-    const int stepsPerTurn = itsBunch->getStepsPerTurn();
-    const double harm = getHarmonicNumber();
-    const double dt = itsBunch->getdT() * 1.0e9 * harm; // time step size (s --> ns)
-    double t  = itsBunch->getT() * 1.0e9;               // current time   (s --> ns)
-
+    setup_m.scSolveFreq         = (spiral_flag) ? 1 : Options::scSolveFreq;
+    setup_m.stepsPerTurn        = itsBunch->getStepsPerTurn();
+    
     // Define 3 special azimuthal angles where dump particle's six parameters
     // at each turn into 3 ASCII files. only important in single particle tracking
-    const double azimuth_angle0 = 0.0;
-    const double azimuth_angle1 = 22.5 * Physics::deg2rad;
-    const double azimuth_angle2 = 45.0 * Physics::deg2rad;
+    setup_m.azimuth_angle0 = 0.0;
+    setup_m.azimuth_angle1 = 22.5 * Physics::deg2rad;
+    setup_m.azimuth_angle2 = 45.0 * Physics::deg2rad;
+    
+    
+    double harm                 = getHarmonicNumber();
+    const double dt             = itsBunch->getdT() * 1.0e9 * harm; // time step size (s --> ns)
+    double t                    = itsBunch->getT() * 1.0e9;               // current time   (s --> ns)
 
-    const double initialReferenceTheta = referenceTheta * Physics::deg2rad;
-    double oldReferenceTheta = initialReferenceTheta; // init here, reset each step
-    const double deltaTheta = pi / (stepsPerTurn);    // half of the average angle per step
 
-    // Set some flags
-    bool flagNoDeletion = false;
-    bool flagTransition = false; // Flag for transition from single-bunch to multi-bunches mode
-    bool outOfBound = false;     // Flag whether a particle is out of field
+    double initialReferenceTheta  = referenceTheta * Physics::deg2rad;
+    double oldReferenceTheta      = initialReferenceTheta; // init here, reset each step
+    setup_m.deltaTheta            = pi / (setup_m.stepsPerTurn);    // half of the average angle per step
 
-    int stepsNextCheck = step_m + stepsPerTurn; // Steps to next check for transition
+    setup_m.stepsNextCheck = step_m + setup_m.stepsPerTurn; // Steps to next check for transition
     //int stepToLastInj = itsBunch->getSteptoLastInj(); // TODO: Do we need this? -DW
 
     // Record how many bunches have already been injected. ONLY FOR MBM
@@ -1227,11 +1249,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
         itsBunch->setT(0.0);
         t = 0.0;
     }
-
-    // For single particle mode open output files
-    if(initialTotalNum_m == 1)
-        openFiles(OpalData::getInstance()->getInputBasename());
-
+    
     initDistInGlobalFrame();
 
     // If initialTotalNum_m = 2, trigger SEO mode and prepare for transverse tuning calculation
@@ -1247,39 +1265,55 @@ void ParallelCyclotronTracker::Tracker_Generic() {
     if(numBunch_m > 1) {
 
         *gmsg << "* MBM: Time interval between neighbour bunches is set to "
-              << stepsPerTurn * dt << "[ns]" << endl;
+              << setup_m.stepsPerTurn * dt << "[ns]" << endl;
         *gmsg << "* MBM: The particles energy bin reset frequency is set to "
-              << resetBinFreq << endl;
+              << Options::rebinFreq << endl;
     }
 
-    *gmsg << "* Single particle trajectory dump frequency is set to " << SinglePartDumpFreq << endl;
-    *gmsg << "* The frequency to solve space charge fields is set to " << scSolveFreq << endl;
+    *gmsg << "* Single particle trajectory dump frequency is set to " << Options::sptDumpFreq << endl;
+    *gmsg << "* The frequency to solve space charge fields is set to " << setup_m.scSolveFreq << endl;
     *gmsg << "* The repartition frequency is set to " << Options::repartFreq << endl;
+    
+    
+    switch ( mode_m )
+    {
+        case MODE::SEO:
+            *gmsg << endl;
+            *gmsg << "* ------------------------- STATIC EQUILIBRIUM ORBIT MODE ----------------------------- *" << endl
+                  << "* Instruction: When the total particle number is equal to 2, SEO mode is triggered      *" << endl
+                  << "* automatically. This mode does NOT include any RF cavities. The initial distribution   *" << endl
+                  << "* file must be specified. In the file the first line is for reference particle and the  *" << endl
+                  << "* second line is for off-center particle. The tune is calculated by FFT routines based  *" << endl
+                  << "* on these two particles.                                                               *" << endl
+                  << "* ---------------- NOTE: SEO MODE ONLY WORKS SERIALLY ON SINGLE NODE ------------------ *" << endl;
 
-    if(initialTotalNum_m == 1) {
-        *gmsg << endl;
-        *gmsg << "* ------------------------------ SINGLE PARTICLE MODE---------------------------------- *" << endl
-              << "* Instruction: When the total particle number is equal to 1, single particle mode is    *" << endl
-              << "* triggered automatically. The initial distribution file must be specified which should *" << endl
-              << "* contain only one line for the single particle                                         *" << endl
-              << "* ---------NOTE: SINGLE PARTICLE MODE ONLY WORKS SERIALLY ON A SINGLE NODE ------------ *" << endl;
+            if(Ippl::getNodes() != 1)
+                throw OpalException("Error in ParallelCyclotronTracker::execute",
+                                    "SEO MODE ONLY WORKS SERIALLY ON SINGLE NODE!");
+            break;
+        case MODE::SINGLE:
+            *gmsg << endl;
+            *gmsg << "* ------------------------------ SINGLE PARTICLE MODE --------------------------------- *" << endl
+                  << "* Instruction: When the total particle number is equal to 1, single particle mode is    *" << endl
+                  << "* triggered automatically. The initial distribution file must be specified which should *" << endl
+                  << "* contain only one line for the single particle                                         *" << endl
+                  << "* ---------NOTE: SINGLE PARTICLE MODE ONLY WORKS SERIALLY ON A SINGLE NODE ------------ *" << endl;
 
-        if(Ippl::getNodes() != 1)
-            throw OpalException("Error in ParallelCyclotronTracker::execute", "SINGLE PARTICLE MODE ONLY WORKS SERIALLY ON A SINGLE NODE!");
-
-    } else if(initialTotalNum_m == 2) {
-        *gmsg << endl;
-        *gmsg << "* ------------------------- STATIC EQUILIBRIUM ORBIT MODE ----------------------------- *" << endl
-              << "* Instruction: When the total particle number is equal to 2, SEO mode is triggered      *" << endl
-              << "* automatically. This mode does NOT include any RF cavities. The initial distribution   *" << endl
-              << "* file must be specified. In the file the first line is for reference particle and the  *" << endl
-              << "* second line is for off-center particle. The tune is calculated by FFT routines based  *" << endl
-              << "* on these two particles.                                                               *" << endl
-              << "* ---------------- NOTE: SEO MODE ONLY WORKS SERIALLY ON SINGLE NODE ------------------ *" << endl;
-
-        if(Ippl::getNodes() != 1)
-            throw OpalException("Error in ParallelCyclotronTracker::execute", "SEO MODE ONLY WORKS SERIALLY ON SINGLE NODE!");
+            if(Ippl::getNodes() != 1)
+                throw OpalException("Error in ParallelCyclotronTracker::execute",
+                                    "SINGLE PARTICLE MODE ONLY WORKS SERIALLY ON A SINGLE NODE!");
+            
+            // For single particle mode open output files
+            openFiles(OpalData::getInstance()->getInputBasename());
+            break;
+        case MODE::BUNCH:
+            break;
+        case MODE::UNDEFINED:
+        default:
+            throw OpalException("ParallelCyclotronTracker::Tracker_Generic()",
+                                "No such tracking mode.");
     }
+    
 
     // Apply the plugin elements: probe, collimator, stripper, septum once before first step
     applyPluginElements(dt);
@@ -1293,734 +1327,32 @@ void ParallelCyclotronTracker::Tracker_Generic() {
     for(; (step_m < maxSteps_m) && (itsBunch->getTotalNum()>0); step_m++) {
 
         bool dumpEachTurn = false;
-
-        // Start Tracking for number of particles > 2 (i.e. not single and not SEO mode)
-        if(initialTotalNum_m > 2) {
-
-            // single particle dumping
-            if(step_m % SinglePartDumpFreq == 0)
-                singleParticleDump();
-
-            // Find out if we need to do bunch injection
-            if (numBunch_m > 1) {
-
-                if ((BunchCount_m == 1) && (multiBunchMode_m == 2) && (!flagTransition)) {
-
-                    if (step_m == stepsNextCheck) {
-                        // If all of the following conditions are met, this code will be executed
-                        // to check the distance between two neighboring bunches:
-                        // 1. Only one bunch exists (BunchCount_m == 1)
-                        // 2. We are in multi-bunch mode, AUTO sub-mode (multiBunchMode_m == 2)
-                        // 3. It has been a full revolution since the last check (stepsNextCheck)
-
-                        *gmsg << "* MBM: Checking for automatically injecting new bunch ..." << endl;
-
-                        //itsBunch->R *= Vector_t(0.001); // mm --> m
-                        itsBunch->calcBeamParameters();
-                        //itsBunch->R *= Vector_t(1000.0); // m --> mm
-
-                        Vector_t Rmean = itsBunch->get_centroid() * 1000.0; // m --> mm
-
-                        RThisTurn_m = sqrt(pow(Rmean[0], 2.0) + pow(Rmean[1], 2.0));
-
-                        Vector_t Rrms = itsBunch->get_rrms() * 1000.0; // m --> mm
-
-                        double XYrms =  sqrt(pow(Rrms[0], 2.0) + pow(Rrms[1], 2.0));
-
-                        // If the distance between two neighboring bunches is less than 5 times of its 2D rms size
-                        // start multi-bunch simulation, fill current phase space to initialR and initialP arrays
-                        if ((RThisTurn_m - RLastTurn_m) < CoeffDBunches_m * XYrms) {
-                            // since next turn, start multi-bunches
-                            saveOneBunch();
-                            flagTransition = true;
-                            *gmsg << "* MBM: Saving beam distribution at turn " << turnnumber_m << endl;
-                            *gmsg << "* MBM: After one revolution, Multi-Bunch Mode will be invoked" << endl;
-                        }
-
-                        stepsNextCheck += stepsPerTurn;
-
-                        *gmsg << "* MBM: RLastTurn = " << RLastTurn_m << " [mm]" << endl;
-                        *gmsg << "* MBM: RThisTurn = " << RThisTurn_m << " [mm]" << endl;
-                        *gmsg << "* MBM: XYrms = " << XYrms    << " [mm]" << endl;
-
-                        RLastTurn_m = RThisTurn_m;
-                    }
-
-                }
-                else if ((BunchCount_m < numBunch_m) && (step_m == stepsNextCheck)) {
-
-                    // If all of the following conditions are met, this code will be executed
-                    // to read new bunch from hdf5 format file:
-                    // 1. We are in multi-bunch mode (numBunch_m > 1)
-                    // 2. It has been a full revolution since the last check
-                    // 3. Number of existing bunches is less than the desired number of bunches
-                    // 4. FORCE mode, or AUTO mode with flagTransition = true
-                    // Note: restart from 1 < BunchCount < numBunch_m must be avoided.
-                    *gmsg << "* MBM: Step " << step_m << ", injecting a new bunch... ... ..." << endl;
-
-                    BunchCount_m++;
-
-                    // read initial distribution from h5 file
-                    if (multiBunchMode_m == 1) {
-
-			if (BunchCount_m == 2)
-			    saveOneBunch();
-
-                        readOneBunch(BunchCount_m - 1);
-
-                        if (timeIntegrator_m == 0) itsBunch->resetPartBinID2(eta_m);
-
-                    } else if (multiBunchMode_m == 2) {
-
-                        if(OpalData::getInstance()->inRestartRun())
-                            readOneBunchFromFile(BunchCount_m - 1);
-                        else
-                            readOneBunch(BunchCount_m - 1);
-
-                        if (timeIntegrator_m == 0) itsBunch->resetPartBinID2(eta_m);
-                    }
-
-                    itsBunch->setNumBunch(BunchCount_m);
-
-                    stepsNextCheck += stepsPerTurn;
-
-                    Ippl::Comm->barrier();
-
-                    *gmsg << "* MBM: Bunch " << BunchCount_m
-                          << " injected, total particle number = "
-                          << itsBunch->getTotalNum() << endl;
-
-                } else if (BunchCount_m == numBunch_m) {
-                    // After this, numBunch_m is wrong but not needed anymore...
-                    numBunch_m--;
-                }
+        
+        switch (mode_m)
+        {
+            case MODE::SEO:
+            { // initialTotalNum_m == 2
+                seoMode_m(t, dt, dumpEachTurn, Ttime, Tdeltr, Tdeltz, TturnNumber);
+                break;
             }
-
-            Vector_t const meanR = calcMeanR(); // (m)
-            oldReferenceTheta = calculateAngle2(meanR(0), meanR(1));
-
-            // Calculate SC field before each time step and keep constant during integration.
-            // Space Charge effects are included only when total macropaticles number is NOT LESS THAN 1000.
-            if (itsBunch->hasFieldSolver()) {
-
-                if (step_m % scSolveFreq == 0) {
-
-                    IpplTimings::startTimer(TransformTimer_m);
-
-                    // Firstly reset E and B to zero before fill new space charge field data for each track step
-                    itsBunch->Bf = Vector_t(0.0);
-                    itsBunch->Ef = Vector_t(0.0);
-
-                    PreviousMeanP = calcMeanP();
-
-                    // --- Multibunche mode --- //
-                    if ((itsBunch->weHaveBins()) && BunchCount_m > 1) {
-
-                        // Since calcMeanP takes into account all particles of all bins (TODO: Check this! -DW)
-                        // Using the quaternion method with PreviousMeanP and yaxis should give the correct result
-
-			Quaternion_t quaternionToYAxis;
-
-                        getQuaternionTwoVectors(PreviousMeanP, yaxis, quaternionToYAxis);
-
-                        globalToLocal(itsBunch->R, quaternionToYAxis, meanR);
-
-                        //itsBunch->R *= Vector_t(0.001); // mm --> m
-
-                        if((step_m + 1) % boundpDestroyFreq == 0)
-                            itsBunch->boundp_destroy();
-                        else
-                            itsBunch->boundp();
-
-                        IpplTimings::stopTimer(TransformTimer_m);
-
-                        // Calcualte gamma for each energy bin
-                        itsBunch->calcGammas_cycl();
-
-                        repartition();
-
-                        // Calculate space charge field for each energy bin
-                        for(int b = 0; b < itsBunch->getLastemittedBin(); b++) {
-
-                            itsBunch->setBinCharge(b, itsBunch->getChargePerParticle());
-                            //itsBunch->setGlobalMeanR(0.001 * meanR);
-                            itsBunch->setGlobalMeanR(meanR);
-   		            itsBunch->setGlobalToLocalQuaternion(quaternionToYAxis);
-                            itsBunch->computeSelfFields_cycl(b);
-                        }
-
-                        itsBunch->Q = itsBunch->getChargePerParticle();
-
-                        IpplTimings::startTimer(TransformTimer_m);
-
-                        // Scale coordinates back
-                        //itsBunch->R *= Vector_t(1000.0); // m --> mm
-
-                        // Transform coordinates back to global
-                        localToGlobal(itsBunch->R, quaternionToYAxis, meanR);
-
-                        // Transform self field back to global frame (rotate only)
-                        localToGlobal(itsBunch->Ef, quaternionToYAxis);
-                        localToGlobal(itsBunch->Bf, quaternionToYAxis);
-
-                    } else {
-                        // --- Single bunch mode --- //
-
-			// If we are doing a spiral inflector simulation and are using the SAAMG solver
-                        // we don't rotate or translate the bunch and gamma is 1.0 (non-relativistic).
-			if (spiral_flag and itsBunch->getFieldSolverType() == "SAAMG") {
-
-			    //itsBunch->R *= Vector_t(0.001); // mm --> m
-
-                            IpplTimings::stopTimer(TransformTimer_m);
-
-                            itsBunch->setGlobalMeanR(Vector_t(0.0, 0.0, 0.0));
-                            itsBunch->setGlobalToLocalQuaternion(Quaternion_t(1.0, 0.0, 0.0, 0.0));
-
-                            itsBunch->computeSelfFields_cycl(1.0);
-
-                            IpplTimings::startTimer(TransformTimer_m);
-
-                            //itsBunch->R *= Vector_t(1000.0); // m --> mm
-
-			} else {
-                            double temp_meangamma = sqrt(1.0 + dot(PreviousMeanP, PreviousMeanP));
-
-                            Quaternion_t quaternionToYAxis;
-
-                            getQuaternionTwoVectors(PreviousMeanP, yaxis, quaternionToYAxis);
-
-                            globalToLocal(itsBunch->R, quaternionToYAxis, meanR);
-
-                            //itsBunch->R *= Vector_t(0.001); // mm --> m
-
-                            if((step_m + 1) % boundpDestroyFreq == 0)
-                                itsBunch->boundp_destroy();
-                            else
-                                itsBunch->boundp();
-
-                            IpplTimings::stopTimer(TransformTimer_m);
-
-                            repartition();
-
-                            //itsBunch->setGlobalMeanR(0.001 * meanR);
-                            itsBunch->setGlobalMeanR(meanR);
-                            itsBunch->setGlobalToLocalQuaternion(quaternionToYAxis);
-
-                            itsBunch->computeSelfFields_cycl(temp_meangamma);
-
-                            IpplTimings::startTimer(TransformTimer_m);
-
-                            //scale coordinates back
-                            //itsBunch->R *= Vector_t(1000.0); // m --> mm
-
-                            // Transform coordinates back to global
-                            localToGlobal(itsBunch->R, quaternionToYAxis, meanR);
-
-                            // Transform self field back to global frame (rotate only)
-                            localToGlobal(itsBunch->Ef, quaternionToYAxis);
-                            localToGlobal(itsBunch->Bf, quaternionToYAxis);
-			}
-                    }
-
-                    IpplTimings::stopTimer(TransformTimer_m);
-
-                } else {
-		    // If we are not solving for the space charge fields at this time step
-                    // we will apply the fields from the previous step and have to rotate them
-                    // accordingly. For this we find the quaternion between the previous mean momentum (PreviousMeanP)
-                    // and the current mean momentum (meanP) and rotate the fields with this quaternion.
-
-                    Vector_t const meanP = calcMeanP();
-
-                    Quaternion_t quaternionToNewMeanP;
-
-                    getQuaternionTwoVectors(PreviousMeanP, meanP, quaternionToNewMeanP);
-
-                    // Reset PreviousMeanP. Cave: This HAS to be after the quaternion is calculated!
-                    PreviousMeanP = calcMeanP();
-
-                    // Rotate the fields
-                    globalToLocal(itsBunch->Ef, quaternionToNewMeanP);
-                    globalToLocal(itsBunch->Bf, quaternionToNewMeanP);
-                }
+            case MODE::SINGLE:
+            { // initialTotalNum_m == 1
+                singleMode_m(t, dt, dumpEachTurn, oldReferenceTheta);
+                break;
             }
-
-            // *** This was moved here b/c collision should be tested before the **********************
-            // *** actual timestep (bgf_main_collision_test() predicts the next step automatically) -DW
-            // Apply the plugin elements: probe, collimator, stripper, septum
-            applyPluginElements(dt);
-
-	    // check if we loose particles at the boundary
-	    bgf_main_collision_test();
-            // ****************************************************************************************
-
-            // ------------------------ Track all particles for one step --------------------------- //
-            // --- Cave: For now, the LF-2 method push es all particles at one in push() so it   --- //
-            // --- has to be done before entering the loop over all particles and again after    --- //
-            // ------------------------------------------------------------------------------------- //
-
-            if (timeIntegrator_m == 1) { // LF-2 method
-
-                // Push all particles for first LF2 half step
-                //itsBunch->R *= Vector_t(0.001);  // mm --> m
-                push(0.5 * dt * 1.0e-9);         // ns --> s
-                //itsBunch->R *= Vector_t(1000.0); // m  --> mm
-
+            case MODE::BUNCH:
+            { // initialTotalNum_m > 2
+                // Start Tracking for number of particles > 2 (i.e. not single and not SEO mode)
+                bunchMode_m(t, dt, dumpEachTurn);
+                break;
             }
-
-            IpplTimings::startTimer(IntegrationTimer_m);
-            for(size_t i = 0; i < (itsBunch->getLocalNum()); i++) {
-
-                flagNoDeletion = true;
-
-                if (timeIntegrator_m == 1) { // LF-2 method
-
-                    Vector_t externalE = Vector_t(0.0, 0.0, 0.0);
-                    Vector_t externalB = Vector_t(0.0, 0.0, 0.0);
-
-                    outOfBound = getFieldsAtPoint(t, i, externalE, externalB);
-                    if (outOfBound) flagNoDeletion = false;
-
-                    // Do LF2 momentum kick
-                    pusher.kick(itsBunch->R[i],
-                                itsBunch->P[i],
-                                externalE,
-                                externalB,
-                                dt * 1.0e-9,
-                                itsBunch->M[i] * 1.0e9,
-                                itsBunch->Q[i] / q_e);
-
-                }
-
-                else if (timeIntegrator_m == 0) { // RK-4 method
-
-                    for(int j = 0; j < 3; j++) {
-
-                        variable_m[j] = itsBunch->R[i](j);    // [x,y,z] (mm)
-                        variable_m[j+3] = itsBunch->P[i](j);  // [px,py,pz] (beta*gamma)
-                        rold_m[j] = variable_m[j];            // used for gap crossing checking
-                        pold_m[j] = variable_m[j+3];          // used for gap crossing
-                    }
-
-                    // Integrate for one RK4 step in the lab Cartesian frame (absolute value).
-                    flagNoDeletion = rk4(variable_m, t, dt, i);
-
-                    for(int j = 0; j < 3; j++) {
-
-                        itsBunch->R[i](j) = variable_m[j];    // [x,y,z] (mm)
-                        itsBunch->P[i](j) = variable_m[j+3];  // [px,py,pz] (beta*gamma)
-                    }
-
-                    // --- Cave: LF-2 checks for cavities during the "push" command --- //
-                    // --- Maybe some future TODO to consolidate this? -DW          --- //
-
-                    // If gap crossing happens, do momenta kicking
-                    for(beamline_list::iterator sindex = ++(FieldDimensions.begin());
-                        sindex != FieldDimensions.end(); sindex++) {
-
-                        bool tag_crossing = false;
-                        double DistOld = 0.0; //mm
-                        RFCavity * rfcav;
-
-                        if(((*sindex)->first) == ElementBase::RFCAVITY) {
-
-                            // here check gap cross in the list, if do , set tag_crossing to TRUE
-                            for(int j = 0; j < 3; j++)
-                                rnew_m[j] = variable_m[j];
-
-                            rfcav = static_cast<RFCavity *>(((*sindex)->second).second);
-                            tag_crossing = checkGapCross(rold_m, rnew_m, rfcav, DistOld);
-                        }
-
-                        if(tag_crossing) {
-
-                            double oldMomentum2  = dot(pold_m, pold_m);
-                            double oldBetgam = sqrt(oldMomentum2);
-                            double oldGamma = sqrt(1.0 + oldMomentum2);
-                            double oldBeta = oldBetgam / oldGamma;
-                            double dt1 = DistOld / (Physics::c * oldBeta * 1.0e-6); // ns
-                            double dt2 = dt - dt1;
-
-                            // retrack particle from the old postion to cavity gap point
-                            // restore the old coordinates and momenta
-                            for(int j = 0; j < 3; j++) {
-                                variable_m[j] = rold_m[j];
-                                variable_m[j+3] = pold_m[j];
-                            }
-
-                            if(dt / dt1 < 1.0e9) rk4(variable_m, t, dt1, i);
-
-                            for(int j = 0; j < 3; j++) {
-                                itsBunch->R[i](j) = variable_m[j] ;    // [x,y,z]    (mm)
-                                itsBunch->P[i](j) = variable_m[j+3] ;  // [px,py,pz] (beta*gamma)
-                            }
-
-                            //momentum kick
-                            RFkick(rfcav, t, dt1, i);
-
-                            // retrack particle  from cavity gap point for the left time to finish the entire timestep
-                            for(int j = 0; j < 3; j++) {
-                                variable_m[j] = itsBunch->R[i](j);    // [x,y,z]    (mm)
-                                variable_m[j+3] = itsBunch->P[i](j);  // [px,py,pz] (beta*gamma)
-                            }
-
-                            if(dt / dt2 < 1.0e9) rk4(variable_m, t, dt2, i);
-
-                            for(int j = 0; j < 3; j++) {
-                                itsBunch->R[i](j) = variable_m[j] ;    // [x,y,z]    (mm)
-                                itsBunch->P[i](j) = variable_m[j+3] ;  // [px,py,pz] (beta*gamma)
-                            }
-                        } // end if: gap-crossing monentum kicking at certain cavity
-                    } // end for: finish checking for all cavities
-                } // end if: which mode are we in LF2 or RK4
-            } // end for: finish one step tracking for all particles for initialTotalNum_m != 2 mode
-            IpplTimings::stopTimer(IntegrationTimer_m);
-
-            if (timeIntegrator_m == 1) { // LF-2 method
-
-                // Push all particles for second LF2 half step
-                //itsBunch->R *= Vector_t(0.001);  // mm --> m
-                push(0.5 * dt * 1.0e-9);         // ns --> s
-                //itsBunch->R *= Vector_t(1000.0); // m  --> mm
-
-            }
-
-            // Destroy particles if they are marked as Bin = -1 in the plugin elements
-            // or out of global aperture
-            bool flagNeedUpdate = deleteParticle();
-
-            // If particles were deleted, recalculate bingamma and reset BinID for remaining particles
-            if(itsBunch->weHaveBins() && flagNeedUpdate)
-                itsBunch->resetPartBinID2(eta_m);
-
-	    // Recalculate bingamma and reset the BinID for each particles according to its current gamma
-	    if((itsBunch->weHaveBins()) && BunchCount_m > 1 && step_m % resetBinFreq == 0)
-	        itsBunch->resetPartBinID2(eta_m);
-
-            // Some status output for user after each turn
-            if((step_m > 10) && ((step_m + 1) % stepsPerTurn) == 0) {
-                turnnumber_m++;
-                dumpEachTurn = true;
-
-                *gmsg << endl;
-                *gmsg << "*** Finished turn " << turnnumber_m - 1
-                      << ", Total number of live particles: "
-                      << itsBunch->getTotalNum() << endl;
-            }
-
-            Ippl::Comm->barrier();
-
-        } // end if: more than 2 particles -> bunch or multi-bunch tracking
-
-        else if (initialTotalNum_m == 2) {
-
-            // 2 particles: Trigger SEO mode
-            // (Switch off cavity and calculate betatron osciliation tuning)
-            double r_tuning[2], z_tuning[2] ;
-
-            if (timeIntegrator_m == 1) { // LF-2 method
-
-                // Push for first LF2 half step
-                //itsBunch->R *= Vector_t(0.001);  // mm --> m
-                push(0.5 * dt * 1.0e-9);         // ns --> s
-                //itsBunch->R *= Vector_t(1000.0); // m  --> mm
-
-            }
-
-            IpplTimings::startTimer(IntegrationTimer_m);
-            for(size_t i = 0; i < (itsBunch->getLocalNum()); i++) {
-
-                for(int j = 0; j < 3; j++) variable_m[j]   = itsBunch->R[i](j); //[x,y,z]    (mm)
-                for(int j = 0; j < 3; j++) variable_m[j+3] = itsBunch->P[i](j); //[px,py,pz] (beta*gamma)
-
-                if((step_m % SinglePartDumpFreq == 0)) {
-
-                    outfTrackOrbit_m << "ID" << (itsBunch->ID[i]);
-                    outfTrackOrbit_m << " " << variable_m[0]
-                                     << " " << variable_m[3]
-                                     << " " << variable_m[1]
-                                     << " " << variable_m[4]
-                                     << " " << variable_m[2]
-                                     << " " << variable_m[5] << std::endl;
-                }
-
-                double OldTheta = calculateAngle(variable_m[0], variable_m[1]);
-                r_tuning[i] = variable_m[0] * cos(OldTheta) + variable_m[1] * sin(OldTheta);
-                z_tuning[i] = variable_m[2];
-
-                //IpplTimings::startTimer(IntegrationTimer_m);
-
-                if (timeIntegrator_m == 1) { // LF-2 method
-
-                    Vector_t externalE = Vector_t(0.0, 0.0, 0.0);
-                    Vector_t externalB = Vector_t(0.0, 0.0, 0.0);
-
-                    getFieldsAtPoint(t, i, externalE, externalB);
-
-                    // Do LF2 momentum kick
-                    pusher.kick(itsBunch->R[i],
-                                itsBunch->P[i],
-                                externalE,
-                                externalB,
-                                dt * 1.0e-9,
-                                itsBunch->M[i] * 1.0e9,
-                                itsBunch->Q[i] / q_e);
-
-                }
-
-                else if (timeIntegrator_m == 0) { // RK-4 method
-
-                    // Integrate for one step in the lab Cartesian frame (absolute value).
-                    rk4(variable_m, t, dt, i);
-
-                    for(int j = 0; j < 3; j++) itsBunch->R[i](j) = variable_m[j] ;   //[x,y,z]    (mm)
-                    for(int j = 0; j < 3; j++) itsBunch->P[i](j) = variable_m[j+3] ; //[px,py,pz] (beta*gamma)
-                }
-
-                //IpplTimings::stopTimer(IntegrationTimer_m);
-
-		if( (i == 0) && (step_m > 10) && ((step_m%stepsPerTurn) == 0)) turnnumber_m++;
-            } // end for: finish one step tracking for all particles for initialTotalNum_m == 2 mode
-            IpplTimings::stopTimer(IntegrationTimer_m);
-
-            if (timeIntegrator_m == 1) { // LF-2 method
-
-                // Push for first LF2 half step
-                //itsBunch->R *= Vector_t(0.001);  // mm --> m
-                push(0.5 * dt * 1.0e-9);         // ns --> s
-                //itsBunch->R *= Vector_t(1000.0); // m  --> mm
-
-            }
-
-            // store dx and dz for future tune calculation if higher precision needed, reduce freqSample.
-            if(step_m % SinglePartDumpFreq == 0) {
-
-                Ttime.push_back(t * 1.0e-9);
-                Tdeltz.push_back(z_tuning[1]);
-                Tdeltr.push_back(r_tuning[1] - r_tuning[0]);
-                TturnNumber.push_back(turnnumber_m);
-            }
-        } // end if: SEO mode for 2 particles
-
-        else if(initialTotalNum_m == 1) {
-
-            // 1 particle: Trigger single particle mode
-
-            //IpplTimings::startTimer(IntegrationTimer_m);
-
-            flagNoDeletion = true;
-
-            // ********************************************************************************** //
-            // * This was moved here b/c collision should be tested before the actual           * //
-            // * timestep (bgf_main_collision_test() predicts the next step automatically)      * //
-
-            // apply the plugin elements: probe, collimator, stripper, septum
-            applyPluginElements(dt);
-
-	    // check if we loose particles at the boundary
-	    bgf_main_collision_test();
-            // ********************************************************************************** //
-
-            // Track for one step
-            if (timeIntegrator_m == 1) { // LF-2 method
-
-                // Push for first LF2 half step
-                //itsBunch->R *= Vector_t(0.001);  // mm --> m
-                push(0.5 * dt * 1.0e-9);         // ns --> s
-                //itsBunch->R *= Vector_t(1000.0); // m  --> mm
-
-            }
-
-            IpplTimings::startTimer(IntegrationTimer_m);
-
-            for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
-
-                if((step_m % SinglePartDumpFreq == 0)) {
-
-                    outfTrackOrbit_m << "ID" <<itsBunch->ID[i];
-                    outfTrackOrbit_m << " " << itsBunch->R[i](0) << " " << itsBunch->P[i](0) << " " << itsBunch->R[i](1)
-                                     << " " << itsBunch->P[i](1) << " " << itsBunch->R[i](2) << " " << itsBunch->P[i](2) << std::endl;
-                }
-
-                for(int j = 0; j < 3; j++) {
-
-                    variable_m[j] = itsBunch->R[i](j);    // [x,y,z] (mm)
-                    variable_m[j+3] = itsBunch->P[i](j);  // [px,py,pz] (beta*gamma)
-                    rold_m[j] = variable_m[j];            // used for gap crossing checking
-                    pold_m[j] = variable_m[j+3];          // used for gap crossing checking
-                }
-
-                double temp_meanTheta = calculateAngle2(variable_m[0], variable_m[1]); // [-pi, pi]
-
-                if ((step_m > 10) && ((step_m + 1) % stepsPerTurn) == 0) {
-
-                    ++turnnumber_m;
-
-                    dumpEachTurn = true;
-
-                    *gmsg << "* SPT: Finished turn " << turnnumber_m - 1 << endl;
-
-                    outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
-                    outfThetaEachTurn_m << " " << sqrt(variable_m[0] * variable_m[0] + variable_m[1] * variable_m[1])
-                                        << " " << variable_m[3] * cos(temp_meanTheta) + variable_m[4] * sin(temp_meanTheta)
-                                        << " " << temp_meanTheta / Physics::deg2rad
-                                        << " " << -variable_m[3] * sin(temp_meanTheta) + variable_m[4] * cos(temp_meanTheta)
-                                        << " " << variable_m[2]
-                                        << " " << variable_m[5] << std::endl;
-                }
-
-                if ((oldReferenceTheta < azimuth_angle0 - deltaTheta) && (temp_meanTheta >= azimuth_angle0 - deltaTheta)) {
-                    outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
-                    outfTheta0_m << " " << sqrt(variable_m[0] * variable_m[0] + variable_m[1] * variable_m[1])
-                                 << " " << variable_m[3] * cos(temp_meanTheta) + variable_m[4] * sin(temp_meanTheta)
-                                 << " " << temp_meanTheta / Physics::deg2rad
-                                 << " " << -variable_m[3] * sin(temp_meanTheta) + variable_m[4] * cos(temp_meanTheta)
-                                 << " " << variable_m[2]
-                                 << " " << variable_m[5] << std::endl;
-                }
-
-                if ((oldReferenceTheta < azimuth_angle1 - deltaTheta) && (temp_meanTheta >= azimuth_angle1 - deltaTheta)) {
-                    outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
-                    outfTheta1_m << " " << sqrt(variable_m[0] * variable_m[0] + variable_m[1] * variable_m[1])
-                                 << " " << variable_m[3] * cos(temp_meanTheta) + variable_m[4] * sin(temp_meanTheta)
-                                 << " " << temp_meanTheta / Physics::deg2rad
-                                 << " " << -variable_m[3] * sin(temp_meanTheta) + variable_m[4] * cos(temp_meanTheta)
-                                 << " " << variable_m[2]
-                                 << " " << variable_m[5] << std::endl;
-                }
-
-                if ((oldReferenceTheta < azimuth_angle2 - deltaTheta) && (temp_meanTheta >= azimuth_angle2 - deltaTheta)) {
-                    outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
-                    outfTheta2_m << " " << sqrt(variable_m[0] * variable_m[0] + variable_m[1] * variable_m[1])
-                                 << " " << variable_m[3] * cos(temp_meanTheta) + variable_m[4] * sin(temp_meanTheta)
-                                 << " " << temp_meanTheta / Physics::deg2rad
-                                 << " " << -variable_m[3] * sin(temp_meanTheta) + variable_m[4] * cos(temp_meanTheta)
-                                 << " " << variable_m[2]
-                                 << " " << variable_m[5] << std::endl;
-                }
-
-                oldReferenceTheta = temp_meanTheta;
-
-                if (timeIntegrator_m == 1) { // LF-2 method
-
-                    Vector_t externalE = Vector_t(0.0, 0.0, 0.0);
-                    Vector_t externalB = Vector_t(0.0, 0.0, 0.0);
-
-                    outOfBound = getFieldsAtPoint(t, i, externalE, externalB);
-                    if (outOfBound) flagNoDeletion = false;
-
-                    // Do LF2 momentum kick
-
-                    pusher.kick(itsBunch->R[i], itsBunch->P[i], externalE, externalB, dt * 1.0e-9, itsBunch->M[i] * 1.0e9, itsBunch->Q[i] / q_e);
-
-                    if(!flagNoDeletion) {
-
-                        *gmsg << "* SPT: The particle was lost at step " << step_m << "!" << endl;
-                        throw OpalException("ParallelCyclotronTracker", "The particle is out of the region of interest.");
-                    }
-                }
-
-                else if (timeIntegrator_m == 0) { // RK-4 method
-
-                    // integrate for one step in the lab Cartesian frame (absolute value).
-                    flagNoDeletion = rk4(variable_m, t, dt, i);
-
-                    if(!flagNoDeletion) {
-
-                        *gmsg << "* SPT: The particle was lost at step " << step_m << "!" << endl;
-                        throw OpalException("ParallelCyclotronTracker", "The particle is out of the region of interest.");
-                    }
-
-                    for(int j = 0; j < 3; j++) itsBunch->R[i](j) = variable_m[j] ; //[x,y,z]  units: [mm]
-                    for(int j = 0; j < 3; j++) itsBunch->P[i](j) = variable_m[j+3] ; //[px,py,pz]  units: [] beta*gama
-
-                    // --- Cave: LF-2 checks for cavities during the "push" command --- //
-                    // --- Maybe some future TODO to consolidate this? -DW          --- //
-
-                    // If gap crossing happens, do momenta kicking
-                    for (beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); sindex++) {
-
-                        bool tag_crossing = false;
-                        double DistOld = 0.0; //mm
-                        RFCavity * rfcav;
-
-                        if (((*sindex)->first) == ElementBase::RFCAVITY) {
-
-                            // here check gap cross in the list, if do , set tag_crossing to TRUE
-                            for(int j = 0; j < 3; j++)
-                                rnew_m[j] = variable_m[j];
-
-                            rfcav = static_cast<RFCavity *>(((*sindex)->second).second);
-                            tag_crossing = checkGapCross(rold_m, rnew_m, rfcav, DistOld);
-                        }
-
-                        if (tag_crossing) {
-
-                            double oldMomentum2  = dot(pold_m, pold_m);
-                            double oldBetgam = sqrt(oldMomentum2);
-                            double oldGamma = sqrt(1.0 + oldMomentum2);
-                            double oldBeta = oldBetgam / oldGamma;
-                            double dt1 = DistOld / (Physics::c * oldBeta * 1.0e-6); // ns
-                            double dt2 = dt - dt1;
-
-                            // retrack particle from the old postion to cavity gap point
-                            // restore the old coordinates and momenta
-                            for(int j = 0; j < 3; j++) {
-
-                                variable_m[j]   = rold_m[j]; // [x,y,z]    (mm)
-                                variable_m[j+3] = pold_m[j]; // [px,py,pz] (beta*gamma)
-                            }
-
-                            if(dt / dt1 < 1.0e9) rk4(variable_m, t, dt1, i);
-
-                            for(int j = 0; j < 3; j++) {
-
-                                itsBunch->R[i](j) = variable_m[j] ;   // [x,y,z]    (mm)
-                                itsBunch->P[i](j) = variable_m[j+3] ; // [px,py,pz] (beta*gamma)
-                            }
-
-                            // Momentum kick
-                            RFkick(rfcav, t, dt1, i);
-
-                            // Retrack particle from cavity gap point for the left time to finish the entire timestep
-                            for (int j = 0; j < 3; j++) {
-
-                                variable_m[j]   = itsBunch->R[i](j); // [x,y,z]    (mm)
-                                variable_m[j+3] = itsBunch->P[i](j); // [px,py,pz] (beta*gamma)
-                            }
-
-                            if (dt / dt2 < 1.0e9) rk4(variable_m, t, dt2, i);
-
-                            for (int j = 0; j < 3; j++) {
-
-                                itsBunch->R[i](j) = variable_m[j] ;   // [x,y,z]    (mm)
-                                itsBunch->P[i](j) = variable_m[j+3] ; // [px,py,pz] (beta*gamma)
-                            }
-                        } // end if: gap-crossing monentum kicking at certain cavity
-                    } // end for: finish checking for all cavities
-                } // end if: LF2 or RK4 method
-            } // end for: track one particle one step
-            IpplTimings::stopTimer(IntegrationTimer_m);
-
-            if (timeIntegrator_m == 1) { // LF-2 method
-
-                // Push for second LF2 half step
-                //itsBunch->R *= Vector_t(0.001);  // mm --> m
-                push(0.5 * dt * 1.0e-9);         // ns --> s
-                //itsBunch->R *= Vector_t(1000.0); // m  --> mm
-
-            }
-
-            // Destroy particles if they are marked as Bin = -1 in the plugin elements
-            // or out of the global aperture
-            deleteParticle();
-
-            //IpplTimings::stopTimer(IntegrationTimer_m);
-
-        } // end if: finish one step tracking either for
-          // initialTotalNum_m > 2 || initialTotalNum_m == 2 || initialTotalNum_m == 1 mode
-
+            case MODE::UNDEFINED:
+            default:
+                throw OpalException("ParallelCyclotronTracker::Tracker_Generic()",
+                                    "No such tracking mode.");
+        }
+
+        
         // Update bunch and some parameters and output some info
 
         // Reference parameters
@@ -2037,23 +1369,25 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
         // Here is global frame, don't do itsBunch->boundp();
 
-	if (itsBunch->getTotalNum()>0) { // Only dump last step if we have particles left.
+	if (itsBunch->getTotalNum()>0) {
+            // Only dump last step if we have particles left.
             // Check separately for phase space (ps) and statistics (stat) data dump frequency
-            if((((step_m + 1) % Options::psDumpFreq == 0) && initialTotalNum_m != 2)
-               || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
-
+            if ( mode_m != MODE::SEO && ( ((step_m + 1) % Options::psDumpFreq == 0) ||
+                                          (Options::psDumpEachTurn && dumpEachTurn)))
+            {
                 // Write phase space data to h5 file
                 bunchDumpPhaseSpaceData();
             }
 
-            if((((step_m + 1) % Options::statDumpFreq == 0) && initialTotalNum_m != 2)
-               || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
-
+            if ( mode_m != MODE::SEO && ( ((step_m + 1) % Options::statDumpFreq == 0) ||
+                                          (Options::psDumpEachTurn && dumpEachTurn)))
+            {
                 // Write statistics data to stat file
                 bunchDumpStatData();
             }
         }
-        if(!(step_m + 1 % 1000))
+        
+        if (!(step_m + 1 % 1000))
             *gmsg << "Step " << step_m + 1 << endl;
 
     } // end for: the integration is DONE after maxSteps_m steps or if all particles are lost!
@@ -2073,32 +1407,49 @@ void ParallelCyclotronTracker::Tracker_Generic() {
     }
 
     Ippl::Comm->barrier();
-
-    // Calculate tunes after tracking.
-    if(initialTotalNum_m == 2) {
-	*gmsg << endl;
-        *gmsg << "* **************** The result for tune calulation (NO space charge) ******************* *" << endl
-              << "* Number of tracked turns: " << TturnNumber.back() << endl;
-        double nur, nuz;
-        getTunes(Ttime, Tdeltr, Tdeltz, TturnNumber.back(), nur, nuz);
-
-    } else {
-        // not for multibunch
-	if(!(itsBunch->weHaveBins())) {
-            *gmsg << "*" << endl;
-	    *gmsg << "* Finished during turn " << turnnumber_m << " (" << turnnumber_m - 1 << " turns completed)" << endl;
-            *gmsg << "* Cave: Turn number is not correct for restart mode"<< endl;
-	}
+    
+    switch ( mode_m )
+    {
+        case MODE::SEO:
+        {
+            // Calculate tunes after tracking.
+            *gmsg << endl;
+            *gmsg << "* **************** The result for tune calulation (NO space charge) ******************* *" << endl
+                  << "* Number of tracked turns: " << TturnNumber.back() << endl;
+            double nur, nuz;
+            getTunes(Ttime, Tdeltr, Tdeltz, TturnNumber.back(), nur, nuz);
+            break;
+        }
+        case MODE::SINGLE:
+        {
+            closeFiles();
+            // no break, continue here!
+        }
+        case MODE::BUNCH:
+        {
+            // we do nothing
+            // no break, continue here!
+        }
+        case MODE::UNDEFINED:
+        default:
+        {
+            // not for multibunch
+            if (!(itsBunch->weHaveBins())) {
+                *gmsg << "*" << endl;
+                *gmsg << "* Finished during turn " << turnnumber_m << " (" << turnnumber_m - 1 << " turns completed)" << endl;
+                *gmsg << "* Cave: Turn number is not correct for restart mode"<< endl;
+            }
+        }
     }
+    
     Ippl::Comm->barrier();
 
-    if(myNode_m == 0) outfTrackOrbit_m.close();
-
-    if(initialTotalNum_m == 1) closeFiles();
+    if (myNode_m == 0)
+        outfTrackOrbit_m.close();
 
     *gmsg << endl << "* *********************** Bunch information in global frame: ***********************";
 
-    if (itsBunch->getTotalNum()>0){
+    if (itsBunch->getTotalNum() > 0){
         // Print out the Bunch information at end of the run. Because the bunch information
         // displays in units of m we have to change back and forth one more time.
         // Furthermore it is my opinion that the same units should be used throughout OPAL. -DW
@@ -2112,7 +1463,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
     } else {
 
-	*gmsg << endl << "* No Particles left in bunch!" << endl;
+        *gmsg << endl << "* No Particles left in bunch!" << endl;
         *gmsg << "* **********************************************************************************" << endl;
 
     }
@@ -2121,7 +1472,8 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 bool ParallelCyclotronTracker::getFieldsAtPoint(const double &t, const size_t &Pindex, Vector_t &Efield, Vector_t &Bfield) {
 
     beamline_list::iterator sindex = FieldDimensions.begin();
-
+    
+    // Flag whether a particle is out of field
     bool outOfBound = (((*sindex)->second).second)->apply(Pindex, t, Efield, Bfield);
 
     Bfield *= 0.10;  // kGauss --> T
@@ -2142,123 +1494,6 @@ bool ParallelCyclotronTracker::getFieldsAtPoint(const double &t, const size_t &P
     return outOfBound;
 }
 
-/**
- *
- *
- * @param y
- * @param t
- * @param yp
- * @param Pindex
- *
- * @return
- */
-bool ParallelCyclotronTracker::derivate(double *y, const double &t, double *yp, const size_t &Pindex) {
-
-    // New for OPAL 2.0: Changing variables to m, T, s
-    // Currently: m, ns, kG
-
-    Vector_t externalE, externalB, tempR;
-
-    externalB = Vector_t(0.0, 0.0, 0.0);
-    externalE = Vector_t(0.0, 0.0, 0.0);
-
-    for(int i = 0; i < 3; i++)
-        tempR(i) = y[i];
-
-    itsBunch->R[Pindex] = tempR;
-
-    bool outOfBound = getFieldsAtPoint(t, Pindex, externalE, externalB);
-
-    double qtom = itsBunch->Q[Pindex] / (itsBunch->M[Pindex] * mass_coeff);   // m^2/s^2/GV
-
-    double tempgamma = sqrt(1 + (y[3] * y[3] + y[4] * y[4] + y[5] * y[5]));
-
-    yp[0] = c_mtns / tempgamma * y[3]; // [m/ns]
-    yp[1] = c_mtns / tempgamma * y[4]; // [m/ns]
-    yp[2] = c_mtns / tempgamma * y[5]; // [m/ns]
-
-/*
-    yp[0] = c_mmtns / tempgamma * y[3]; // [mm/ns]
-    yp[1] = c_mmtns / tempgamma * y[4]; // [mm/ns]
-    yp[2] = c_mmtns / tempgamma * y[5]; // [mm/ns]
-*/
-
-    yp[3] = (externalE(0) / Physics::c  + (externalB(2) * y[4] - externalB(1) * y[5]) / tempgamma) * qtom; // [1/ns]
-    yp[4] = (externalE(1) / Physics::c  - (externalB(2) * y[3] - externalB(0) * y[5]) / tempgamma) * qtom; // [1/ns];
-    yp[5] = (externalE(2) / Physics::c  + (externalB(1) * y[3] - externalB(0) * y[4]) / tempgamma) * qtom; // [1/ns];
-
-    return outOfBound;
-}
-
-
-/**
- *
- *
- * @param x
- * @param t
- * @param tau
- * @param Pindex
- *
- * @return
- */
-bool ParallelCyclotronTracker::rk4(double x[], const double &t, const double &tau, const size_t &Pindex) {
-    // Forth order Runge-Kutta integrator
-    // arguments:
-    //   x          Current value of dependent variable
-    //   t          Independent variable (usually time)
-    //   tau        Step size (usually time step)
-    //   Pindex     index of particel, not used yet
-
-    double  deriv1[PSdim];
-    double  deriv2[PSdim];
-    double  deriv3[PSdim];
-    double  deriv4[PSdim];
-    double  xtemp[PSdim];
-
-    // Evaluate f1 = f(x,t).
-
-    bool outOfBound = derivate(x, t, deriv1 , Pindex);
-    if (outOfBound) {
-        return false;
-    }
-
-    // Evaluate f2 = f( x+tau*f1/2, t+tau/2 ).
-    const double half_tau = 0.5 * tau;
-    const double t_half = t + half_tau;
-
-    for(int i = 0; i < PSdim; i++)
-        xtemp[i] = x[i] + half_tau * deriv1[i];
-
-    outOfBound = derivate(xtemp, t_half, deriv2 , Pindex);
-    if (outOfBound) {
-        return false;
-    }
-
-    // Evaluate f3 = f( x+tau*f2/2, t+tau/2 ).
-    for(int i = 0; i < PSdim; i++)
-        xtemp[i] = x[i] + half_tau * deriv2[i];
-
-    outOfBound = derivate(xtemp, t_half, deriv3 , Pindex);
-    if (outOfBound) {
-        return false;
-    }
-
-    // Evaluate f4 = f( x+tau*f3, t+tau ).
-    double t_full = t + tau;
-    for(int i = 0; i < PSdim; i++)
-        xtemp[i] = x[i] + tau * deriv3[i];
-
-    outOfBound = derivate(xtemp, t_full, deriv4 , Pindex);
-    if (outOfBound) {
-        return false;
-    }
-
-    // Return x(t+tau) computed from fourth-order R-K.
-    for(int i = 0; i < PSdim; i++)
-        x[i] += tau / 6.*(deriv1[i] + deriv4[i] + 2.*(deriv2[i] + deriv3[i]));
-
-    return true;
-}
 
 /**
  *
@@ -2271,7 +1506,9 @@ bool ParallelCyclotronTracker::rk4(double x[], const double &t, const double &ta
  * @return
  */
 
-bool ParallelCyclotronTracker::checkGapCross(Vector_t Rold, Vector_t Rnew, RFCavity * rfcavity, double &Dold) {
+bool ParallelCyclotronTracker::checkGapCross(Vector_t Rold, Vector_t Rnew,
+                                             RFCavity * rfcavity, double &Dold)
+{
     bool flag = false;
     double sinx = rfcavity->getSinAzimuth();
     double cosx = rfcavity->getCosAzimuth();
@@ -3297,6 +2534,9 @@ void ParallelCyclotronTracker::push(double h) {
 }
 
 void ParallelCyclotronTracker::kick(double h) {
+    
+    //FIXME This is exactly BorisPusher::kick
+    
     IpplTimings::startTimer(IntegrationTimer_m);
     double const q = itsBunch->Q[0] / q_e; // For now all particles have the same charge
     double const M = itsBunch->M[0] * 1.0e9; // For now all particles have the same rest energy
@@ -4022,5 +3262,532 @@ void ParallelCyclotronTracker::evaluateSpaceChargeField() {
         localToGlobal(itsBunch->Ef, phi);
         localToGlobal(itsBunch->Bf, phi);
         localToGlobal(itsBunch->R, phi, meanR);
+    }
+}
+
+void ParallelCyclotronTracker::seoMode_m(double& t, const double dt, bool& dumpEachTurn,
+                                         std::vector<double>& Ttime, std::vector<double>& Tdeltr,
+                                         std::vector<double>& Tdeltz, std::vector<int>& TturnNumber)
+{
+    
+    // 2 particles: Trigger SEO mode
+    // (Switch off cavity and calculate betatron osciliation tuning)
+    double r_tuning[2], z_tuning[2] ;
+
+    IpplTimings::startTimer(IntegrationTimer_m);
+    for(size_t i = 0; i < (itsBunch->getLocalNum()); i++) {
+
+        if((step_m % Options::sptDumpFreq == 0)) {
+
+            outfTrackOrbit_m << "ID" << (itsBunch->ID[i]);
+            outfTrackOrbit_m << " " << itsBunch->R[i](0)
+                             << " " << itsBunch->P[i](0)
+                             << " " << itsBunch->R[i](1)
+                             << " " << itsBunch->P[i](1)
+                             << " " << itsBunch->R[i](2)
+                             << " " << itsBunch->P[i](2)
+                             << std::endl;
+        }
+
+        double OldTheta = calculateAngle(itsBunch->R[i](0), itsBunch->R[i](1));
+        r_tuning[i] = itsBunch->R[i](0) * cos(OldTheta) +
+                      itsBunch->R[i](1) * sin(OldTheta);
+        
+        z_tuning[i] = itsBunch->R[i](2);
+        
+        
+        // Integrate for one step in the lab Cartesian frame (absolute value).
+        itsStepper_mp->advance(itsBunch, i, t, dt);
+
+        if( (i == 0) && (step_m > 10) && ((step_m%setup_m.stepsPerTurn) == 0))
+            turnnumber_m++;
+    
+    } // end for: finish one step tracking for all particles for initialTotalNum_m == 2 mode
+    IpplTimings::stopTimer(IntegrationTimer_m);
+
+    // store dx and dz for future tune calculation if higher precision needed, reduce freqSample.
+    if(step_m % Options::sptDumpFreq == 0) {
+
+        Ttime.push_back(t * 1.0e-9);
+        Tdeltz.push_back(z_tuning[1]);
+        Tdeltr.push_back(r_tuning[1] - r_tuning[0]);
+        TturnNumber.push_back(turnnumber_m);
+    }
+}
+
+
+void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
+                                            bool& dumpEachTurn, double& oldReferenceTheta) {
+    // 1 particle: Trigger single particle mode
+    bool flagNoDeletion = true;
+
+    // ********************************************************************************** //
+    // * This was moved here b/c collision should be tested before the actual           * //
+    // * timestep (bgf_main_collision_test() predicts the next step automatically)      * //
+
+    // apply the plugin elements: probe, collimator, stripper, septum
+    applyPluginElements(dt);
+            
+    // check if we loose particles at the boundary
+    bgf_main_collision_test();
+    // ********************************************************************************** //
+
+    IpplTimings::startTimer(IntegrationTimer_m);
+
+    for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
+
+        if ( step_m % Options::sptDumpFreq == 0 ) {
+
+            outfTrackOrbit_m << "ID" <<itsBunch->ID[i];
+            outfTrackOrbit_m << " " << itsBunch->R[i](0)
+                             << " " << itsBunch->P[i](0)
+                             << " " << itsBunch->R[i](1)
+                             << " " << itsBunch->P[i](1)
+                             << " " << itsBunch->R[i](2)
+                             << " " << itsBunch->P[i](2)
+                             << std::endl;
+        }
+
+        double temp_meanTheta = calculateAngle2(itsBunch->R[i](0),
+                                                itsBunch->R[i](1)); // [-pi, pi]
+
+        if ((step_m > 10) && ((step_m + 1) % setup_m.stepsPerTurn) == 0) {
+
+            ++turnnumber_m;
+
+            dumpEachTurn = true;
+
+            *gmsg << "* SPT: Finished turn " << turnnumber_m - 1 << endl;
+
+            outfThetaEachTurn_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
+            outfThetaEachTurn_m << " " << sqrt(variable_m[0] * variable_m[0] + variable_m[1] * variable_m[1])
+                                << " " << variable_m[3] * cos(temp_meanTheta) + variable_m[4] * sin(temp_meanTheta)
+                                << " " << temp_meanTheta / Physics::deg2rad
+                                << " " << -variable_m[3] * sin(temp_meanTheta) + variable_m[4] * cos(temp_meanTheta)
+                                << " " << variable_m[2]
+                                << " " << variable_m[5] << std::endl;
+        }
+
+        if ((oldReferenceTheta < setup_m.azimuth_angle0 - setup_m.deltaTheta) &&
+            (  temp_meanTheta >= setup_m.azimuth_angle0 - setup_m.deltaTheta)) {
+            outfTheta0_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
+            outfTheta0_m << " " << sqrt(variable_m[0] * variable_m[0] + variable_m[1] * variable_m[1])
+                         << " " << variable_m[3] * cos(temp_meanTheta) + variable_m[4] * sin(temp_meanTheta)
+                         << " " << temp_meanTheta / Physics::deg2rad
+                         << " " << -variable_m[3] * sin(temp_meanTheta) + variable_m[4] * cos(temp_meanTheta)
+                         << " " << variable_m[2]
+                         << " " << variable_m[5] << std::endl;
+        }
+
+        if ((oldReferenceTheta < setup_m.azimuth_angle1 - setup_m.deltaTheta) &&
+            (  temp_meanTheta >= setup_m.azimuth_angle1 - setup_m.deltaTheta))
+        {
+            outfTheta1_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
+            outfTheta1_m << " " << sqrt(variable_m[0] * variable_m[0] + variable_m[1] * variable_m[1])
+                         << " " << variable_m[3] * cos(temp_meanTheta) + variable_m[4] * sin(temp_meanTheta)
+                         << " " << temp_meanTheta / Physics::deg2rad
+                         << " " << -variable_m[3] * sin(temp_meanTheta) + variable_m[4] * cos(temp_meanTheta)
+                         << " " << variable_m[2]
+                         << " " << variable_m[5] << std::endl;
+        }
+
+        if ((oldReferenceTheta < setup_m.azimuth_angle2 - setup_m.deltaTheta) &&
+            (  temp_meanTheta >= setup_m.azimuth_angle2 - setup_m.deltaTheta)) {
+            outfTheta2_m << "#Turn number = " << turnnumber_m << ", Time = " << t << " [ns]" << std::endl;
+            outfTheta2_m << " " << sqrt(variable_m[0] * variable_m[0] + variable_m[1] * variable_m[1])
+                         << " " << variable_m[3] * cos(temp_meanTheta) + variable_m[4] * sin(temp_meanTheta)
+                         << " " << temp_meanTheta / Physics::deg2rad
+                         << " " << -variable_m[3] * sin(temp_meanTheta) + variable_m[4] * cos(temp_meanTheta)
+                         << " " << variable_m[2]
+                         << " " << variable_m[5] << std::endl;
+        }
+
+        oldReferenceTheta = temp_meanTheta;
+                
+        // used for gap crossing checking
+        Vector_t Rold = itsBunch->R[i]; // [x,y,z]    (mm)
+        Vector_t Pold = itsBunch->P[i]; // [px,py,pz] (beta*gamma)
+                
+        // integrate for one step in the lab Cartesian frame (absolute value).
+        flagNoDeletion = itsStepper_mp->advance(itsBunch, i, t, dt * 1.0e-9); // ns --> s
+                
+        if ( !flagNoDeletion ) {
+            *gmsg << "* SPT: The particle was lost at step "
+                  << step_m << "!" << endl;
+            throw OpalException("ParallelCyclotronTracker",
+                                "The particle is out of the region of interest.");
+        }
+                
+        // If gap crossing happens, do momenta kicking
+        gapCrossKick_m(i, t, dt, Rold, Pold);
+        
+    } // end for: track one particle one step
+    IpplTimings::stopTimer(IntegrationTimer_m);
+
+    // Destroy particles if they are marked as Bin = -1 in the plugin elements
+    // or out of the global aperture
+    deleteParticle();
+}
+
+
+void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dumpEachTurn) {
+    
+     // Flag for transition from single-bunch to multi-bunches mode
+    bool flagTransition = false;
+    
+    // single particle dumping
+    if(step_m % Options::sptDumpFreq == 0)
+        singleParticleDump();
+
+    // Find out if we need to do bunch injection
+    if (numBunch_m > 1) {
+
+        if ((BunchCount_m == 1) && (multiBunchMode_m == 2) && (!flagTransition)) {
+
+            if (step_m == setup_m.stepsNextCheck) {
+                // If all of the following conditions are met, this code will be executed
+                // to check the distance between two neighboring bunches:
+                // 1. Only one bunch exists (BunchCount_m == 1)
+                // 2. We are in multi-bunch mode, AUTO sub-mode (multiBunchMode_m == 2)
+                // 3. It has been a full revolution since the last check (stepsNextCheck)
+
+                *gmsg << "* MBM: Checking for automatically injecting new bunch ..." << endl;
+
+                //itsBunch->R *= Vector_t(0.001); // mm --> m
+                itsBunch->calcBeamParameters();
+                //itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+                Vector_t Rmean = itsBunch->get_centroid() * 1000.0; // m --> mm
+
+                RThisTurn_m = sqrt(pow(Rmean[0], 2.0) + pow(Rmean[1], 2.0));
+
+                Vector_t Rrms = itsBunch->get_rrms() * 1000.0; // m --> mm
+
+                double XYrms =  sqrt(pow(Rrms[0], 2.0) + pow(Rrms[1], 2.0));
+
+                // If the distance between two neighboring bunches is less than 5 times of its 2D rms size
+                // start multi-bunch simulation, fill current phase space to initialR and initialP arrays
+                if ((RThisTurn_m - RLastTurn_m) < CoeffDBunches_m * XYrms) {
+                    // since next turn, start multi-bunches
+                    saveOneBunch();
+                    flagTransition = true;
+                    *gmsg << "* MBM: Saving beam distribution at turn " << turnnumber_m << endl;
+                    *gmsg << "* MBM: After one revolution, Multi-Bunch Mode will be invoked" << endl;
+                }
+
+                setup_m.stepsNextCheck += setup_m.stepsPerTurn;
+
+                *gmsg << "* MBM: RLastTurn = " << RLastTurn_m << " [mm]" << endl;
+                *gmsg << "* MBM: RThisTurn = " << RThisTurn_m << " [mm]" << endl;
+                *gmsg << "* MBM: XYrms = " << XYrms    << " [mm]" << endl;
+
+                RLastTurn_m = RThisTurn_m;
+            }
+        }
+        
+        else if ((BunchCount_m < numBunch_m) && (step_m == setup_m.stepsNextCheck)) {
+
+            // If all of the following conditions are met, this code will be executed
+            // to read new bunch from hdf5 format file:
+            // 1. We are in multi-bunch mode (numBunch_m > 1)
+            // 2. It has been a full revolution since the last check
+            // 3. Number of existing bunches is less than the desired number of bunches
+            // 4. FORCE mode, or AUTO mode with flagTransition = true
+            // Note: restart from 1 < BunchCount < numBunch_m must be avoided.
+            *gmsg << "* MBM: Step " << step_m << ", injecting a new bunch... ... ..." << endl;
+
+            BunchCount_m++;
+
+            // read initial distribution from h5 file
+            if (multiBunchMode_m == 1) {
+
+                if (BunchCount_m == 2)
+                    saveOneBunch();
+
+                readOneBunch(BunchCount_m - 1);
+                
+//                 if (timeIntegrator_m == 0) //FIXME Matthias
+                    itsBunch->resetPartBinID2(eta_m);
+                
+            } else if (multiBunchMode_m == 2) {
+
+                if(OpalData::getInstance()->inRestartRun())
+                    readOneBunchFromFile(BunchCount_m - 1);
+                else
+                    readOneBunch(BunchCount_m - 1);
+                
+//                 if (timeIntegrator_m == 0)
+                    itsBunch->resetPartBinID2(eta_m);
+            }
+
+            itsBunch->setNumBunch(BunchCount_m);
+
+            setup_m.stepsNextCheck += setup_m.stepsPerTurn;
+
+            Ippl::Comm->barrier();
+
+            *gmsg << "* MBM: Bunch " << BunchCount_m
+                  << " injected, total particle number = "
+                  << itsBunch->getTotalNum() << endl;
+
+        } else if (BunchCount_m == numBunch_m) {
+            // After this, numBunch_m is wrong but not needed anymore...
+            numBunch_m--;
+        }
+    }
+
+    Vector_t const meanR = calcMeanR(); // (m)
+//     oldReferenceTheta = calculateAngle2(meanR(0), meanR(1));
+
+    // Calculate SC field before each time step and keep constant during integration.
+    // Space Charge effects are included only when total macropaticles number is NOT LESS THAN 1000.
+    if (itsBunch->hasFieldSolver()) {
+        
+        if (step_m % setup_m.scSolveFreq == 0) {
+
+            IpplTimings::startTimer(TransformTimer_m);
+
+            // Firstly reset E and B to zero before fill new space charge field data for each track step
+            itsBunch->Bf = Vector_t(0.0);
+            itsBunch->Ef = Vector_t(0.0);
+
+            PreviousMeanP = calcMeanP();
+
+            // --- Multibunche mode --- //
+            if ((itsBunch->weHaveBins()) && BunchCount_m > 1) {
+
+                // Since calcMeanP takes into account all particles of all bins (TODO: Check this! -DW)
+                // Using the quaternion method with PreviousMeanP and yaxis should give the correct result
+
+                Quaternion_t quaternionToYAxis;
+
+                getQuaternionTwoVectors(PreviousMeanP, yaxis, quaternionToYAxis);
+
+                globalToLocal(itsBunch->R, quaternionToYAxis, meanR);
+
+                //itsBunch->R *= Vector_t(0.001); // mm --> m
+
+                if((step_m + 1) % Options::boundpDestroyFreq == 0)
+                    itsBunch->boundp_destroy();
+                else
+                    itsBunch->boundp();
+
+                IpplTimings::stopTimer(TransformTimer_m);
+
+                // Calcualte gamma for each energy bin
+                itsBunch->calcGammas_cycl();
+
+                repartition();
+
+                // Calculate space charge field for each energy bin
+                for(int b = 0; b < itsBunch->getLastemittedBin(); b++) {
+
+                    itsBunch->setBinCharge(b, itsBunch->getChargePerParticle());
+                    //itsBunch->setGlobalMeanR(0.001 * meanR);
+                    itsBunch->setGlobalMeanR(meanR);
+                    itsBunch->setGlobalToLocalQuaternion(quaternionToYAxis);
+                    itsBunch->computeSelfFields_cycl(b);
+                }
+
+                itsBunch->Q = itsBunch->getChargePerParticle();
+
+                IpplTimings::startTimer(TransformTimer_m);
+
+                // Scale coordinates back
+                //itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+                // Transform coordinates back to global
+                localToGlobal(itsBunch->R, quaternionToYAxis, meanR);
+
+                // Transform self field back to global frame (rotate only)
+                    localToGlobal(itsBunch->Ef, quaternionToYAxis);
+                localToGlobal(itsBunch->Bf, quaternionToYAxis);
+
+            } else {
+                // --- Single bunch mode --- //
+
+                // If we are doing a spiral inflector simulation and are using the SAAMG solver
+                // we don't rotate or translate the bunch and gamma is 1.0 (non-relativistic).
+                if (spiral_flag and itsBunch->getFieldSolverType() == "SAAMG") {
+
+                    //itsBunch->R *= Vector_t(0.001); // mm --> m
+
+                    IpplTimings::stopTimer(TransformTimer_m);
+
+                    itsBunch->setGlobalMeanR(Vector_t(0.0, 0.0, 0.0));
+                    itsBunch->setGlobalToLocalQuaternion(Quaternion_t(1.0, 0.0, 0.0, 0.0));
+
+                    itsBunch->computeSelfFields_cycl(1.0);
+
+                    IpplTimings::startTimer(TransformTimer_m);
+
+                    //itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+                } else {
+                    double temp_meangamma = sqrt(1.0 + dot(PreviousMeanP, PreviousMeanP));
+
+                    Quaternion_t quaternionToYAxis;
+
+                    getQuaternionTwoVectors(PreviousMeanP, yaxis, quaternionToYAxis);
+
+                    globalToLocal(itsBunch->R, quaternionToYAxis, meanR);
+
+                    //itsBunch->R *= Vector_t(0.001); // mm --> m
+
+                    if((step_m + 1) % Options::boundpDestroyFreq == 0)
+                        itsBunch->boundp_destroy();
+                    else
+                        itsBunch->boundp();
+
+                    IpplTimings::stopTimer(TransformTimer_m);
+
+                    repartition();
+
+                    //itsBunch->setGlobalMeanR(0.001 * meanR);
+                    itsBunch->setGlobalMeanR(meanR);
+                    itsBunch->setGlobalToLocalQuaternion(quaternionToYAxis);
+
+                    itsBunch->computeSelfFields_cycl(temp_meangamma);
+
+                    IpplTimings::startTimer(TransformTimer_m);
+
+                    //scale coordinates back
+                    //itsBunch->R *= Vector_t(1000.0); // m --> mm
+
+                    // Transform coordinates back to global
+                    localToGlobal(itsBunch->R, quaternionToYAxis, meanR);
+
+                    // Transform self field back to global frame (rotate only)
+                    localToGlobal(itsBunch->Ef, quaternionToYAxis);
+                    localToGlobal(itsBunch->Bf, quaternionToYAxis);
+                }
+            }
+
+            IpplTimings::stopTimer(TransformTimer_m);
+
+        } else {
+            // If we are not solving for the space charge fields at this time step
+            // we will apply the fields from the previous step and have to rotate them
+            // accordingly. For this we find the quaternion between the previous mean momentum (PreviousMeanP)
+            // and the current mean momentum (meanP) and rotate the fields with this quaternion.
+
+            Vector_t const meanP = calcMeanP();
+
+            Quaternion_t quaternionToNewMeanP;
+
+            getQuaternionTwoVectors(PreviousMeanP, meanP, quaternionToNewMeanP);
+
+            // Reset PreviousMeanP. Cave: This HAS to be after the quaternion is calculated!
+            PreviousMeanP = calcMeanP();
+
+            // Rotate the fields
+            globalToLocal(itsBunch->Ef, quaternionToNewMeanP);
+            globalToLocal(itsBunch->Bf, quaternionToNewMeanP);
+        }
+    }
+
+    // *** This was moved here b/c collision should be tested before the **********************
+    // *** actual timestep (bgf_main_collision_test() predicts the next step automatically) -DW
+    // Apply the plugin elements: probe, collimator, stripper, septum
+    applyPluginElements(dt);
+
+    // check if we loose particles at the boundary
+    bgf_main_collision_test();
+            
+    // ****************************************************************************************
+    // ------------------------ Track all particles for one step --------------------------- //
+    // --- Cave: For now, the LF-2 method push es all particles at one in push() so it   --- //
+    // --- has to be done before entering the loop over all particles and again after    --- //
+    // ------------------------------------------------------------------------------------- //
+
+    IpplTimings::startTimer(IntegrationTimer_m);
+    
+    for(size_t i = 0; i < itsBunch->getLocalNum(); i++) {
+        
+        // used for gap crossing checking
+        Vector_t Rold = itsBunch->R[i]; // [x,y,z]    (mm)
+        Vector_t Pold = itsBunch->P[i]; // [px,py,pz] (beta*gamma)
+        
+        // Integrate for one RK4 step in the lab Cartesian frame (absolute value).
+        itsStepper_mp->advance(itsBunch, i, t, dt);
+        
+        // If gap crossing happens, do momenta kicking
+        gapCrossKick_m(i, t, dt, Rold, Pold);
+    }
+    
+    IpplTimings::stopTimer(IntegrationTimer_m);
+
+    // Destroy particles if they are marked as Bin = -1 in the plugin elements
+    // or out of global aperture
+    bool flagNeedUpdate = deleteParticle();
+
+    // If particles were deleted, recalculate bingamma and reset BinID for remaining particles
+    if(itsBunch->weHaveBins() && flagNeedUpdate)
+        itsBunch->resetPartBinID2(eta_m);
+
+    // Recalculate bingamma and reset the BinID for each particles according to its current gamma
+    if (itsBunch->weHaveBins() && BunchCount_m > 1 && step_m % Options::rebinFreq == 0)
+    {
+        itsBunch->resetPartBinID2(eta_m);
+    }
+    
+    // Some status output for user after each turn
+    if ( (step_m > 10) && ((step_m + 1) % setup_m.stepsPerTurn) == 0) {
+        turnnumber_m++;
+        dumpEachTurn = true;
+
+        *gmsg << endl;
+        *gmsg << "*** Finished turn " << turnnumber_m - 1
+              << ", Total number of live particles: "
+              << itsBunch->getTotalNum() << endl;
+    }
+    
+    Ippl::Comm->barrier();
+}
+
+void ParallelCyclotronTracker::gapCrossKick_m(size_t i, double t,
+                                              double dt,
+                                              const Vector_t& Rold,
+                                              const Vector_t& Pold)
+{
+    for (beamline_list::iterator sindex = ++(FieldDimensions.begin());
+        sindex != FieldDimensions.end(); sindex++)
+    {
+        bool tag_crossing = false;
+        double DistOld = 0.0; //mm
+        RFCavity * rfcav;
+                    
+        if (((*sindex)->first) == ElementBase::RFCAVITY) {
+            // here check gap cross in the list, if do , set tag_crossing to TRUE
+            rfcav = static_cast<RFCavity *>(((*sindex)->second).second);
+            tag_crossing = checkGapCross(Rold, itsBunch->R[i], rfcav, DistOld);
+        }
+            
+        if ( tag_crossing ) {
+                        
+            double oldMomentum2  = dot(pold_m, pold_m);
+            double oldBetgam = sqrt(oldMomentum2);
+            double oldGamma = sqrt(1.0 + oldMomentum2);
+            double oldBeta = oldBetgam / oldGamma;
+            double dt1 = DistOld / (Physics::c * oldBeta * 1.0e-6); // ns
+            double dt2 = dt - dt1;
+                        
+            // retrack particle from the old postion to cavity gap point
+            // restore the old coordinates and momenta
+            itsBunch->R[i] = Rold;
+            itsBunch->P[i] = Pold;
+                        
+            if (dt / dt1 < 1.0e9)
+                itsStepper_mp->advance(itsBunch, i, t, dt1);
+                        
+            // Momentum kick
+            RFkick(rfcav, t, dt1, i);
+                        
+            /* Retrack particle from cavity gap point for
+             * the left time to finish the entire timestep
+             */
+            if (dt / dt2 < 1.0e9)
+                itsStepper_mp->advance(itsBunch, i, t, dt2);
+        }
     }
 }

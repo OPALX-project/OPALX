@@ -48,7 +48,6 @@ set (HDRS
     PartBunch.h
     PartData.h
     Particle.h
-    PartPusher.h
     PBunchDefs.h
     PolynomialTimeDependence.h
     Quaternion.h
