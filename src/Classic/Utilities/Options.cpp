@@ -22,7 +22,6 @@ namespace Options {
 
     // The global program options.
     bool mtrace = false;
-    bool verify = false;
     bool warn = true;
     bool psDumpEachTurn = false;
     DumpFrame psDumpLocalFrame = GLOBAL;
