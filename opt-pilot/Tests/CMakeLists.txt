@@ -25,10 +25,7 @@ link_directories (
     ${PYTHON_LIBRARIES}
 )
 
-set (OPT_PILOT_SOURCE_DIR ${CMAKE_SOURCE_DIR})
-IF (OPTP_USED_FROM_OPAL)
-    set (OPT_PILOT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/opt-pilot)
-ENDIF()
+set (OPT_PILOT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/opt-pilot)
 
 set (ExpressionTest_SRC
     ${OPT_PILOT_SOURCE_DIR}/Util/SDDSReader.cpp
