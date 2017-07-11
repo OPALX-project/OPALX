@@ -271,8 +271,6 @@ private:
       Local Variables both used by the integration methods
     */
 
-    Vector_t rold_m, pold_m, rnew_m, ptmp_m;
-
     long long step_m;
     long long restartStep0_m;
 
