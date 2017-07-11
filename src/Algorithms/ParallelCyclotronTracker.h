@@ -23,6 +23,8 @@
 #include "AbsBeamline/ElementBase.h"
 #include <vector>
 
+#include "Steppers/Steppers.h"
+
 class BMultipoleField;
 class PartBunch;
 class PlanarArcGeometry;
@@ -45,6 +47,13 @@ struct CavityCrossData {
 class ParallelCyclotronTracker: public Tracker {
 
 public:
+    
+    enum MODE {
+        UNDEFINED = -1,
+        SINGLE = 0,
+        SEO = 1,
+        BUNCH = 2
+    };
 
     typedef std::pair<double[8], Component *>      element_pair;
     typedef std::pair<ElementBase::ElementType, element_pair>        type_pair;
@@ -250,13 +259,6 @@ private:
     int lastDumpedStep_m;
 
     double PathLength_m;
-
-    // the name of time integrator
-    // The ID of time integrator
-    // 0 --- RK-4(default)
-    // 1 --- LF-2
-    // 2 --- MTS
-    int  timeIntegrator_m;
 
     void Tracker_LF();
     void Tracker_RK4();
@@ -466,17 +468,43 @@ private:
 
     // we store a pointer explicitly to the Ring
     Ring* opalRing_m;
+    
 
     // If Ring is defined take the harmonic number from Ring; else use
     // cyclotron
     double getHarmonicNumber() const;
     
+    typedef std::function<bool(const double&,
+                               const size_t&,
+                               Vector_t&,
+                               Vector_t&)> function_t;
     
-    void seo_m();
+    std::unique_ptr< Stepper<function_t> > itsStepper_mp;
     
-    void single_mode_m();
+    struct settings {
+        int scSolveFreq;
+        int stepsPerTurn;
+        double azimuth_angle0;
+        double azimuth_angle1;
+        double azimuth_angle2;
+        double deltaTheta;
+        int stepsNextCheck;
+    } setup_m;
     
-    void bunch_mode_m();
+    MODE mode_m;
+    
+    stepper::INTEGRATOR stepper_m;
+    
+    void seoMode_m(double& t, const double dt, bool& dumpEachTurn,
+                   std::vector<double>& Ttime, std::vector<double>& Tdeltr,
+                   std::vector<double>& Tdeltz, std::vector<int>& TturnNumber);
+    
+    void singleMode_m(double& t, const double dt, bool& dumpEachTurn, double& oldReferenceTheta);
+    
+    void bunchMode_m(double& t, const double dt, bool& dumpEachTurn);
+    
+    void gapCrossKick_m(size_t i, double t, double dt,
+                        const Vector_t& Rold, const Vector_t& Pold);
 
 };
 
