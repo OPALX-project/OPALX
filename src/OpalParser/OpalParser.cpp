@@ -618,6 +618,7 @@ void OpalParser::run() const {
             boost::replace_all(what, "\n", "\n    ");
 
             INFOMSG("     " << *stat <<"    " << what << '\n' << endl);
+            exit(1);
         } catch(ClassicException &ex) {
             INFOMSG("\n*** User error detected by function \""
                      << ex.where() << "\"\n");
@@ -626,6 +627,7 @@ void OpalParser::run() const {
             boost::replace_all(what, "\n", "\n    ");
 
             INFOMSG("     " << *stat <<"    " << what << '\n' << endl);
+            exit(1);
         } catch(bad_alloc &) {
             INFOMSG("\n*** Error:\n");
             stat->printWhere(*IpplInfo::Error, false);
