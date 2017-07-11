@@ -70,10 +70,6 @@ namespace Options {
     //  If true, print CPU time before and after each command.
     extern bool mtrace;
 
-    /// Verify flag.
-    //  If true, print warning about undefined variables.
-    extern bool verify;
-
     /// Warn flag.
     //  If true, print warning messages.
     extern bool warn;
