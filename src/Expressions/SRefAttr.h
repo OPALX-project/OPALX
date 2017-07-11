@@ -221,15 +221,8 @@ namespace Expressions {
             itsObject = OpalData::getInstance()->find(obj_name);
             if(itsObject == 0) {
                 if(att_name.empty()  &&  itsIndex <= 0) {
-                    Object *variable = OpalData::getInstance()->find("REAL_VARIABLE");
-                    itsObject = variable->clone(obj_name);
-                    OpalData::getInstance()->define(itsObject);
-
-                    if(Options::verify) {
-                        std::cerr << "\nThe <variable> \"" << obj_name
-                                  << "\" is unknown, created with zero value.\n"
-                                  << std::endl;
-                    }
+                    throw OpalException("SRefAttr::fill()",
+                                        "\nThe <variable> \"" + obj_name + "\" is unknown.\n");
                 } else {
                     throw OpalException("SRefAttr::fill()",
                                         "Object \"" + obj_name + "\" is unknown.");
