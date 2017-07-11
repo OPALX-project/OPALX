@@ -1363,7 +1363,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
         PathLength_m += c_mmtns * dt / 1000.0 * tempBeta; // unit: m
 
         t += dt;
-        itsBunch->setT((t) * 1.0e-9);
+        itsBunch->setT(t * 1.0e-9);
         itsBunch->setLPath(PathLength_m);
         itsBunch->setLocalTrackStep((step_m + 1)); // TEMP moved this here from inside if statement below -DW
 
