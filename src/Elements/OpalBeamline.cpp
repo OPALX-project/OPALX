@@ -326,20 +326,19 @@ void OpalBeamline::switchElements(const double &min, const double &max, const do
             }
 
         } else {
-	  if(!(*flit).isOn() && max > (*flit).getStart() && min < (*flit).getEnd()) {
+            if(!(*flit).isOn() && max > (*flit).getStart() && min < (*flit).getEnd()) {
                 (*flit).setOn(kineticEnergy);
             }
 
-	  //check if multiple degraders follow one another with no other elements in between
-	  //if element is off and it is a degrader
-	  if (!(*flit).isOn() && flit->getElement()->getType() == ElementBase::DEGRADER) {
-	    //check if previous element: is on, is a degrader, ends where new element starts
-	    if ( (*fprev).isOn() && fprev->getElement()->getType() == ElementBase::DEGRADER 
-		 && ((*fprev).getEnd() + 0.01 > (*flit).getStart()) )
-	      {
-		(*flit).setOn(kineticEnergy);
-	      }
-	  }
+            //check if multiple degraders follow one another with no other elements in between
+            //if element is off and it is a degrader
+            if (!(*flit).isOn() && flit->getElement()->getType() == ElementBase::DEGRADER) {
+                //check if previous element: is on, is a degrader, ends where new element starts
+                if ( flit != elements_m.begin() && (*fprev).isOn() && fprev->getElement()->getType() == ElementBase::DEGRADER
+                     && ((*fprev).getEnd() + 0.01 > (*flit).getStart()) ) {
+                    (*flit).setOn(kineticEnergy);
+                }
+            }
         }
         /////////////////////////
         // does not work like that
