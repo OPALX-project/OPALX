@@ -1,3 +1,5 @@
+#include "BorisPusher.h"
+
 template <typename FieldFunction, typename ... Arguments>
 bool LF2<FieldFunction, Arguments ...>::advance(PartBunch* bunch,
                                                 const size_t& i,
@@ -66,21 +68,12 @@ bool LF2<FieldFunction, Arguments ...>::kick_m(PartBunch* bunch, const size_t& i
     
     double const q = bunch->Q[0] / Physics::q_e; // For now all particles have the same charge
     double const M = bunch->M[0] * 1.0e9; // For now all particles have the same rest energy
-    double const h12Halfqc_M = 0.5 * h * q * Physics::c / M;
-    double const h12Halfqcc_M = h12Halfqc_M * Physics::c;
     
-    // Half step E
-    bunch->P[i] += h12Halfqc_M * externalE;
-
-    // Full step B
-    double const gamma = sqrt(1.0 + dot(bunch->P[i], bunch->P[i]));
-    Vector_t const r = h12Halfqcc_M * externalB / gamma;
-    Vector_t const w = bunch->P[i] + cross(bunch->P[i], r);
-    Vector_t const s = 2.0 / (1.0 + dot(r, r)) * r;
-    bunch->P[i] += cross(w, s);
-
-    // Half step E
-    bunch->P[i] += h12Halfqc_M * externalE;
+    BorisPusher pusher;
+    
+    pusher.kick(bunch->R[i], bunch->P[i],
+                externalE, externalB,
+                h, M, q);
     
     return true;
 }

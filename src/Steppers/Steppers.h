@@ -3,8 +3,6 @@
 
 #include "RK4.h"
 #include "LF2.h"
-#include "MTS.h"
-
 
 namespace stepper {
     

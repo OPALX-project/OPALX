@@ -22,6 +22,7 @@
 #include "Structure/DataSink.h"
 #include "AbsBeamline/ElementBase.h"
 #include <vector>
+#include <tuple>
 
 #include "Steppers/Steppers.h"
 
@@ -55,6 +56,8 @@ public:
         BUNCH = 2
     };
 
+    typedef std::vector<double> dvector_t;
+    typedef std::vector<int> ivector_t;
     typedef std::pair<double[8], Component *>      element_pair;
     typedef std::pair<ElementBase::ElementType, element_pair>        type_pair;
     typedef std::list<type_pair *>                 beamline_list;
@@ -260,11 +263,9 @@ private:
 
     double PathLength_m;
 
-    void Tracker_LF();
-    void Tracker_RK4();
-    void Tracker_MTS();
+    void MtsTracker();
 
-    void Tracker_Generic();
+    void GenericTracker();
     bool getFieldsAtPoint(const double &t, const size_t &Pindex, Vector_t &Efield, Vector_t &Bfield);
 
     /*
@@ -355,7 +356,7 @@ private:
     bool checkGapCross(Vector_t Rold, Vector_t Rnew, RFCavity * rfcavity, double &DistOld);
     bool RFkick(RFCavity * rfcavity, const double t, const double dt, const int Pindex);
 
-    bool getTunes(std::vector<double> &t,  std::vector<double> &r,  std::vector<double> &z, int lastTurn, double &nur, double &nuz);
+    bool getTunes(dvector_t &t,  dvector_t &r,  dvector_t &z, int lastTurn, double &nur, double &nuz);
 
     IpplTimings::TimerRef IntegrationTimer_m;
     IpplTimings::TimerRef DumpTimer_m ;
@@ -493,9 +494,18 @@ private:
     
     stepper::INTEGRATOR stepper_m;
     
+    void update_m(double& t, const double& dt, const bool& dumpEachTurn);
+    
+    std::tuple<double, double, double> initializeTracking_m();
+    
+    void finalizeTracking_m(dvector_t& Ttime,
+                            dvector_t& Tdeltr,
+                            dvector_t& Tdeltz,
+                            ivector_t& TturnNumber);
+    
     void seoMode_m(double& t, const double dt, bool& dumpEachTurn,
-                   std::vector<double>& Ttime, std::vector<double>& Tdeltr,
-                   std::vector<double>& Tdeltz, std::vector<int>& TturnNumber);
+                   dvector_t& Ttime, dvector_t& Tdeltr,
+                   dvector_t& Tdeltz, ivector_t& TturnNumber);
     
     void singleMode_m(double& t, const double dt, bool& dumpEachTurn, double& oldReferenceTheta);
     
@@ -518,6 +528,11 @@ private:
                                     bool& dumpEachTurn);
     
     void computeSpaceChargeFields_m();
+    
+    bool computeExternalFields_m(const size_t& i,
+                                 const double& t,
+                                 Vector_t& Efield,
+                                 Vector_t& Bfield);
     
     void injectBunch_m(bool& flagTransition);
 
