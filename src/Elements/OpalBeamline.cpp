@@ -170,7 +170,7 @@ unsigned long OpalBeamline::getFieldAt(const unsigned int &index, const Vector_t
       always 16384
 
       static unsigned int rtv = 0x00;
-     */
+    */
 
     if(sindex >= (long) sections_m.size()) return BEAMLINE_EOL;
     if(sindex < 0) return 0x00;
@@ -209,11 +209,11 @@ unsigned long OpalBeamline::getFieldAt(const unsigned int &index, const Vector_t
         // B = dot(orientation, B);
 
         const  double sina = sin(ori(0)),
-                      cosa = cos(ori(0)),
-                      sinb = sin(ori(1)),
-                      cosb = cos(ori(1)),
-                      sinc = sin(ori(2)),
-                      cosc = cos(ori(2));
+            cosa = cos(ori(0)),
+            sinb = sin(ori(1)),
+            cosb = cos(ori(1)),
+            sinc = sin(ori(2)),
+            cosc = cos(ori(2));
 
         Vector_t temp = E;
 
@@ -272,11 +272,11 @@ unsigned long OpalBeamline::getFieldAt(const Vector_t &pos, const Vector_t &cent
                     // 3) Rotate about the z axis by angle negative ori(3).
 
                     const  double sina = sin(ori(0)),
-                                  cosa = cos(ori(0)),
-                                  sinb = sin(ori(1)),
-                                  cosb = cos(ori(1)),
-                                  sinc = sin(ori(2)),
-                                  cosc = cos(ori(2));
+                        cosa = cos(ori(0)),
+                        sinb = sin(ori(1)),
+                        cosb = cos(ori(1)),
+                        sinc = sin(ori(2)),
+                        cosc = cos(ori(2));
 
                     Vector_t temp = E;
 
@@ -396,7 +396,7 @@ void OpalBeamline::prepareSections() {
 
     /* there might be elements with length zero or extremely short ones.
        we delete them such that they don't appear in the simulation
-     */
+    */
     elements_m.sort(ClassicField::SortAsc);
     for(flit = elements_m.begin();  flit != elements_m.end(); ++ flit) {
         while(flit != elements_m.end() && (*flit).getLength() < tolerance) {
