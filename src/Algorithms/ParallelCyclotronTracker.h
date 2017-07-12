@@ -503,6 +503,23 @@ private:
     
     void gapCrossKick_m(size_t i, double t, double dt,
                         const Vector_t& Rold, const Vector_t& Pold);
+    
+    
+    inline void dumpAzimuthAngles_m(const double& t,
+                                    const Vector_t& R,
+                                    const Vector_t& P,
+                                    const double& oldReferenceTheta,
+                                    const double& temp_meanTheta);
+    
+    inline void dumpThetaEachTurn_m(const double& t,
+                                    const Vector_t& R,
+                                    const Vector_t& P,
+                                    const double& temp_meanTheta,
+                                    bool& dumpEachTurn);
+    
+    void computeSpaceChargeFields_m();
+    
+    void injectBunch_m(bool& flagTransition);
 
 };
 
