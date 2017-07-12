@@ -56,14 +56,14 @@ Additionally, depending in which of the two spaces the algorithm uses to
 %      \input{../figures/tex/design_objective_space}
     \end{tikzpicture}
   \end{center}
-  \caption{The (often non-linear) mapping $f : \mathbb{R}^n \rightarrow
-    \mathbb{R}^M$ from design to objective space. The dashed lines represent
+  \caption{The (often non-linear) mapping $f : \R^n \rightarrow
+    \R^M$ from design to objective space. The dashed lines represent
     the constraints in design space.
     %and the set of solutions (Pareto front) in objective space.
     }
   \label{fig:des_to_obj}
 \end{figure}
-\nomenclature{$\mathbb{R}$}{reel numbers}
+%\nomenclature{$\R$}{real numbers}
 
 A special subset of multi-objective optimization problems where all objectives
   and constraints are linear, called \textit{Multi-objective linear programs},
@@ -88,17 +88,17 @@ A solution is said to dominate another solution if it is no worse than the
 A more formal description of the dominance relation is given in
   Definition~\ref{def:dom}~\cite{deb:09}.
 
-\begin{mydef} \label{def:dom}
-A point $\mathbf{x}_1$ is dominating $\mathbf{x}_2$, if both properties
-\begin{itemize}
-  \item $f_m(\mathbf{x}_1) \geq f_m(\mathbf{x}_2) \text{,} \;\; \forall m \in
-    \{ 1, \dots, M \}$
-  \item $f_m(\mathbf{x}_1) > f_m(\mathbf{x}_2) \text{,} \;\; \exists m \in
-    \{1, \dots, M\}$
-\end{itemize}
-hold. We denote this as $\mathbf{x}_1 \preceq \mathbf{x}_2$.
-\end{mydef}
-\nomenclature{$\preceq$}{dominance relation operator}
+%\begin{mydef} \label{def:dom}
+%A point $\mathbf{x}_1$ is dominating $\mathbf{x}_2$, if both properties
+%\begin{itemize}
+%  \item $f_m(\mathbf{x}_1) \geq f_m(\mathbf{x}_2) \text{,} \;\; \forall m \in
+%    \{ 1, \dots, M \}$
+%  \item $f_m(\mathbf{x}_1) > f_m(\mathbf{x}_2) \text{,} \;\; \exists m \in
+%    \{1, \dots, M\}$
+%\end{itemize}
+%hold. We denote this as $\mathbf{x}_1 \preceq \mathbf{x}_2$.
+%\end{mydef}
+%\nomenclature{$\preceq$}{dominance relation operator}
 
 The properties of the dominance relation include transitivity
 %
