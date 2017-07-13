@@ -1,0 +1,2 @@
+seed 11
+tournament 2

@@ -580,11 +580,11 @@ void PartBunch::computeSelfFields(int binNumber) {
                                              true);
             }
             interpolationCacheSet_m = true;
-
             this->Q.scatter(this->rho_m, this->R, IntrplCIC_t(), interpolationCache_m);
         } else {
             this->Q.scatter(this->rho_m, IntrplCIC_t(), interpolationCache_m);
         }
+
         this->Q /= this->dt;
         this->rho_m /= getdT();
 
@@ -1456,6 +1456,7 @@ void PartBunch::computeSelfFields_cycl(int bin) {
     *gmsg << "min of bunch is (" << rmin_m(0) << ", " << rmin_m(1) << ", " << rmin_m(2) << ") [m] " << endl;
     */
 
+
     IpplTimings::stopTimer(selfFieldTimer_m);
 }
 
@@ -1552,17 +1553,18 @@ void PartBunch::boundp() {
 
             if (getIfBeamEmitting() && dist_m != NULL) {
                 // keep particles per cell ratio high, don't spread a hand full particles across the whole grid
-                double percent = std::max((1.0 + (3 - nr_m[2]) * dh_m) / (nr_m[2] - 1), dist_m->getPercentageEmitted());
-                double length   = std::abs(rmax_m[2] - rmin_m[2]);
+                double percent = std::max(1.0 / (nr_m[2] - 1), dist_m->getPercentageEmitted());
+                double length  = std::abs(rmax_m[2] - rmin_m[2]) / (1.0 + 2 * dh_m);
                 if (percent < 1.0 && percent > 0.0) {
-                    length /= (1.0 + 2 * dh_m);
                     rmax_m[2] -= dh_m * length;
-                    rmin_m[2] = rmax_m[2] * (1.0 - 1.0 / percent);
+                    rmin_m[2] = rmax_m[2] - length / percent;
 
-                    length = std::abs(rmax_m[2] - rmin_m[2]);
+                    length /= percent;
+
                     rmax_m[2] += dh_m * length;
                     rmin_m[2] -= dh_m * length;
-                    hr_m[2] = length * (1.0 + 2 * dh_m) / (nr_m[2] - 1);
+
+                    hr_m[2] = (rmax_m[2] - rmin_m[2]) / (nr_m[2] - 1);
                 }
             }
 
@@ -1584,8 +1586,6 @@ void PartBunch::boundp() {
                             GuardCellSizes<Dim>(1),
                             vbc_m);
 	} else {
-            *gmsg << __DBGMSG__ << std::scientific << volume << "\t" << dh_m << endl;
-
             throw GeneralClassicException("boundp() ", "h<0, can not build a mesh");
         }
     }
@@ -1610,7 +1610,7 @@ void PartBunch::gatherLoadBalanceStatistics() {
 	    minLocNum_m = globalPartPerNode_m[i];
 }
 
-void PartBunch::calcMoments() {
+size_t PartBunch::calcMoments() {
 
     double part[2 * Dim];
 
@@ -1627,21 +1627,7 @@ void PartBunch::calcMoments() {
         }
     }
 
-    /*
-      Issue #72 is touching on this
-
-      In OPAL Cycl the particle with ID=0
-      is a special particle, a kind of design particle.
-
-      Later on we will maintain a seperate structure like in OPAL-t
-      for now we will exclude the particle with ID==0.
-
-      - find particle with ID==0
-
-      - substract the R and P of particle with ID==0 from the
-        moment calculation.
-     */
-
+    long int totalNum = this->getTotalNum();
     if (OpalData::getInstance()->isInOPALCyclMode()) {
         for(unsigned long k = 0; k < localNum; ++ k) {
             if (ID[k] == 0) {
@@ -1658,9 +1644,11 @@ void PartBunch::calcMoments() {
                         loc_moment[i][j] -= part[i] * part[j];
                     }
                 }
+                -- totalNum;
                 break;
             }
         }
+        reduce(totalNum, totalNum, OpMinAssign());
     }
 
     for(unsigned long k = 0; k < localNum; ++ k) {
@@ -1697,6 +1685,8 @@ void PartBunch::calcMoments() {
             moments_m(j, i) = moments_m(i, j);
         }
     }
+
+    return totalNum;
 }
 
 void PartBunch::calcMomentsInitial() {
@@ -1750,12 +1740,12 @@ void PartBunch::calcBeamParameters() {
     IpplTimings::startTimer(statParamTimer_m);
 
     const size_t locNp = getLocalNum();
-    const double N =  static_cast<double>(getTotalNum());
+    const size_t totalNum = getTotalNum();
     const double zero = 0.0;
 
     get_bounds(rmin_m, rmax_m);
 
-    if(N == 0) {
+    if(totalNum == 0) {
         for(unsigned int i = 0 ; i < Dim; i++) {
             rmean_m(i) = 0.0;
             pmean_m(i) = 0.0;
@@ -1770,7 +1760,8 @@ void PartBunch::calcBeamParameters() {
         return;
     }
 
-    calcMoments();
+    const size_t intN = calcMoments();
+    const double N = static_cast<double>(intN);
 
     for(unsigned int i = 0 ; i < Dim; i++) {
         rmean_m(i) = centroid_m[2 * i] / N;
