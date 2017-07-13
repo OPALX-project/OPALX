@@ -1226,17 +1226,10 @@ void ParallelCyclotronTracker::MtsTracker() {
     
     *gmsg << "* ---------------------------- Start tracking ----------------------------" << endl;
     
-    IpplTimings::stopTimer(IpplTimings::getTimer("MTS-Various"));
-    IpplTimings::startTimer(IpplTimings::getTimer("MTS-SpaceCharge"));
-    
     if ( itsBunch->hasFieldSolver() )
         computeSpaceChargeFields_m();
     
-    IpplTimings::stopTimer(IpplTimings::getTimer("MTS-SpaceCharge"));
-    
-    
     for(; (step_m < maxSteps_m) && (itsBunch->getTotalNum()>0); step_m++) {
-        IpplTimings::startTimer(IpplTimings::getTimer("MTS-Dump"));
         
         bool dumpEachTurn = false;
         
@@ -1247,34 +1240,22 @@ void ParallelCyclotronTracker::MtsTracker() {
         }
         
         Ippl::Comm->barrier();
-        IpplTimings::stopTimer(IpplTimings::getTimer("MTS-Dump"));
-        
         
         // First half kick from space charge force
-        IpplTimings::startTimer(IpplTimings::getTimer("MTS-Kick"));
         if(itsBunch->hasFieldSolver()) {
             kick(0.5 * dt);
         }
         
-        IpplTimings::stopTimer(IpplTimings::getTimer("MTS-Kick"));
-
         // Substeps for external field integration
         for(int n = 0; n < numSubsteps; ++n)
             borisExternalFields(dt_inner);
 
-        IpplTimings::startTimer(IpplTimings::getTimer("MTS-Various"));
-        
-        
         
         // bunch injection
         // TODO: Where is correct location for this piece of code? Beginning/end of step? Before field solve?
         if(numBunch_m > 1)
             injectBunch_m(flagTransition);
             
-        IpplTimings::stopTimer(IpplTimings::getTimer("MTS-Various"));
-
-        IpplTimings::startTimer(IpplTimings::getTimer("MTS-SpaceCharge"));
-
         if ( itsBunch->hasFieldSolver() ) {
             computeSpaceChargeFields_m();
         } else {
@@ -1291,24 +1272,17 @@ void ParallelCyclotronTracker::MtsTracker() {
                 localToGlobal(itsBunch->R, phi, meanR);
             }
         }
-        IpplTimings::stopTimer(IpplTimings::getTimer("MTS-SpaceCharge"));
 
         // Second half kick from space charge force
-        IpplTimings::startTimer(IpplTimings::getTimer("MTS-Kick"));
-        
         if(itsBunch->hasFieldSolver())
             kick(0.5 * dt);
         
-        IpplTimings::stopTimer(IpplTimings::getTimer("MTS-Kick"));
-
         // recalculate bingamma and reset the BinID for each particles according to its current gamma
-        IpplTimings::startTimer(IpplTimings::getTimer("MTS-Various"));
         if((itsBunch->weHaveBins()) && BunchCount_m > 1) {
             if(step_m % Options::rebinFreq == 0) {
                 itsBunch->resetPartBinID2(eta_m);
             }
         }
-        IpplTimings::stopTimer(IpplTimings::getTimer("MTS-Various"));
 
         // dump some data after one push in single particle tracking
         if ( mode_m == MODE::SINGLE ) {
@@ -2151,12 +2125,9 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
     // h in [ns]
 
     // push particles for first half step
-    IpplTimings::startTimer(IpplTimings::getTimer("MTS-PushAndRFKick"));
     push(0.5 * h);
-    IpplTimings::stopTimer(IpplTimings::getTimer("MTS-PushAndRFKick"));
 
     // Evaluate external fields
-    IpplTimings::startTimer(IpplTimings::getTimer("MTS-EvalExternal"));
     IpplTimings::startTimer(IntegrationTimer_m);
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
         
@@ -2167,19 +2138,13 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
                                 itsBunch->Ef[i], itsBunch->Bf[i]);        
     }
     IpplTimings::stopTimer(IntegrationTimer_m);
-    IpplTimings::stopTimer(IpplTimings::getTimer("MTS-EvalExternal"));
 
     // Kick particles for full step
-    IpplTimings::startTimer(IpplTimings::getTimer("MTS-Kick"));
     kick(h);
-    IpplTimings::stopTimer(IpplTimings::getTimer("MTS-Kick"));
 
     // push particles for second half step
-    IpplTimings::startTimer(IpplTimings::getTimer("MTS-PushAndRFKick"));
     push(0.5 * h);
-    IpplTimings::stopTimer(IpplTimings::getTimer("MTS-PushAndRFKick"));
 
-    IpplTimings::startTimer(IpplTimings::getTimer("MTS-PluginElements"));
     // apply the plugin elements: probe, collimator, stripper, septum
     //itsBunch->R *= Vector_t(1000.0); // applyPluginElements expects [R] = mm
     applyPluginElements(h);
@@ -2188,7 +2153,6 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
 
     //itsBunch->R *= Vector_t(0.001);
     if(itsBunch->weHaveBins() && flagNeedUpdate) itsBunch->resetPartBinID2(eta_m);
-    IpplTimings::stopTimer(IpplTimings::getTimer("MTS-PluginElements"));
 }
 
 
