@@ -496,6 +496,9 @@ private:
     
     void update_m(double& t, const double& dt, const bool& dumpEachTurn);
     
+    /*!
+     * @returns the time t [ns], time step dt [ns] and the azimuth angle [rad]
+     */
     std::tuple<double, double, double> initializeTracking_m();
     
     void finalizeTracking_m(dvector_t& Ttime,
