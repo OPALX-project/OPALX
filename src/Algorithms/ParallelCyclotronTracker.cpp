@@ -3115,7 +3115,7 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
     Vector_t Pold = itsBunch->P[i]; // [px,py,pz] (beta*gamma)
                 
     // integrate for one step in the lab Cartesian frame (absolute value).
-    flagNoDeletion = itsStepper_mp->advance(itsBunch, i, t, dt * 1.0e-9); // ns --> s
+    flagNoDeletion = itsStepper_mp->advance(itsBunch, i, t, dt);
                 
     if ( !flagNoDeletion ) {
         *gmsg << "* SPT: The particle was lost at step "
