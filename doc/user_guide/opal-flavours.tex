@@ -523,7 +523,7 @@ According to the number of particles defined (by the argument \texttt{NPART} in 
   The 6D parameters of a single particle in the initial local frame must be read from a file. To do this, in the \opal input file,
   the command line \texttt{DISTRIBUTION} \seechp{distribution} should be defined like this:
 \begin{verbatim}
-  Dist1: DISTRIBUTION, DISTRIBUTION=fromfile,
+  Dist1: DISTRIBUTION, TYPE=fromfile,
          FNAME="PartDatabase.dat";
 \end{verbatim}
  where the file $PartDatabase.dat$ should have two lines:
