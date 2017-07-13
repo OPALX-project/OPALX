@@ -19,7 +19,6 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Bend.h"
-#include "Algorithms/PartPusher.h"
 #include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Utilities/Options.h"
