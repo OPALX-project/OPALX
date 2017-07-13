@@ -22,6 +22,9 @@
 #include "Structure/DataSink.h"
 #include "AbsBeamline/ElementBase.h"
 #include <vector>
+#include <tuple>
+
+#include "Steppers/Steppers.h"
 
 class BMultipoleField;
 class PartBunch;
@@ -45,7 +48,16 @@ struct CavityCrossData {
 class ParallelCyclotronTracker: public Tracker {
 
 public:
+    
+    enum MODE {
+        UNDEFINED = -1,
+        SINGLE = 0,
+        SEO = 1,
+        BUNCH = 2
+    };
 
+    typedef std::vector<double> dvector_t;
+    typedef std::vector<int> ivector_t;
     typedef std::pair<double[8], Component *>      element_pair;
     typedef std::pair<ElementBase::ElementType, element_pair>        type_pair;
     typedef std::list<type_pair *>                 beamline_list;
@@ -251,25 +263,14 @@ private:
 
     double PathLength_m;
 
-    // the name of time integrator
-    // The ID of time integrator
-    // 0 --- RK-4(default)
-    // 1 --- LF-2
-    // 2 --- MTS
-    int  timeIntegrator_m;
+    void MtsTracker();
 
-    void Tracker_LF();
-    void Tracker_RK4();
-    void Tracker_MTS();
-
-    void Tracker_Generic();
+    void GenericTracker();
     bool getFieldsAtPoint(const double &t, const size_t &Pindex, Vector_t &Efield, Vector_t &Bfield);
 
     /*
       Local Variables both used by the integration methods
     */
-
-    Vector_t rold_m, pold_m, rnew_m, ptmp_m;
 
     long long step_m;
     long long restartStep0_m;
@@ -355,7 +356,7 @@ private:
     bool checkGapCross(Vector_t Rold, Vector_t Rnew, RFCavity * rfcavity, double &DistOld);
     bool RFkick(RFCavity * rfcavity, const double t, const double dt, const int Pindex);
 
-    bool getTunes(std::vector<double> &t,  std::vector<double> &r,  std::vector<double> &z, int lastTurn, double &nur, double &nuz);
+    bool getTunes(dvector_t &t,  dvector_t &r,  dvector_t &z, int lastTurn, double &nur, double &nuz);
 
     IpplTimings::TimerRef IntegrationTimer_m;
     IpplTimings::TimerRef DumpTimer_m ;
@@ -466,10 +467,77 @@ private:
 
     // we store a pointer explicitly to the Ring
     Ring* opalRing_m;
+    
 
     // If Ring is defined take the harmonic number from Ring; else use
     // cyclotron
     double getHarmonicNumber() const;
+    
+    typedef std::function<bool(const double&,
+                               const size_t&,
+                               Vector_t&,
+                               Vector_t&)> function_t;
+    
+    std::unique_ptr< Stepper<function_t> > itsStepper_mp;
+    
+    struct settings {
+        int scSolveFreq;
+        int stepsPerTurn;
+        double azimuth_angle0;
+        double azimuth_angle1;
+        double azimuth_angle2;
+        double deltaTheta;
+        int stepsNextCheck;
+    } setup_m;
+    
+    MODE mode_m;
+    
+    stepper::INTEGRATOR stepper_m;
+    
+    void update_m(double& t, const double& dt, const bool& dumpEachTurn);
+    
+    /*!
+     * @returns the time t [ns], time step dt [ns] and the azimuth angle [rad]
+     */
+    std::tuple<double, double, double> initializeTracking_m();
+    
+    void finalizeTracking_m(dvector_t& Ttime,
+                            dvector_t& Tdeltr,
+                            dvector_t& Tdeltz,
+                            ivector_t& TturnNumber);
+    
+    void seoMode_m(double& t, const double dt, bool& dumpEachTurn,
+                   dvector_t& Ttime, dvector_t& Tdeltr,
+                   dvector_t& Tdeltz, ivector_t& TturnNumber);
+    
+    void singleMode_m(double& t, const double dt, bool& dumpEachTurn, double& oldReferenceTheta);
+    
+    void bunchMode_m(double& t, const double dt, bool& dumpEachTurn);
+    
+    void gapCrossKick_m(size_t i, double t, double dt,
+                        const Vector_t& Rold, const Vector_t& Pold);
+    
+    
+    inline void dumpAzimuthAngles_m(const double& t,
+                                    const Vector_t& R,
+                                    const Vector_t& P,
+                                    const double& oldReferenceTheta,
+                                    const double& temp_meanTheta);
+    
+    inline void dumpThetaEachTurn_m(const double& t,
+                                    const Vector_t& R,
+                                    const Vector_t& P,
+                                    const double& temp_meanTheta,
+                                    bool& dumpEachTurn);
+    
+    void computeSpaceChargeFields_m();
+    
+    bool computeExternalFields_m(const size_t& i,
+                                 const double& t,
+                                 Vector_t& Efield,
+                                 Vector_t& Bfield);
+    
+    void injectBunch_m(bool& flagTransition);
 
 };
 

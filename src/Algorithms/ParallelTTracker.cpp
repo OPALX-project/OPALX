@@ -28,7 +28,6 @@
 #include <limits>
 #include <cmath>
 
-#include "Algorithms/PartPusher.h"
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/CavityAutophaser.h"
 #include "Beamlines/Beamline.h"
