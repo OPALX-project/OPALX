@@ -21,7 +21,7 @@ MAXPARTSNUM=1000000;
 // a very small number to prevent field
 // emission.
 
-DistSurf: DISTRIBUTION, DISTRIBUTION = "SURFACEEMISSION",
+DistSurf: DISTRIBUTION, TYPE = "SURFACEEMISSION",
                         NPDARKCUR =0,INWARDMARGIN = 0.0,
                         FNBETA = 0.1, FNMAXEMI = 2,
                         SECONDARYFLAG = 1,
@@ -31,7 +31,7 @@ DistSurf: DISTRIBUTION, DISTRIBUTION = "SURFACEEMISSION",
 // INWARDMARGIN: seed electron positions along the
 // inward normal w.r.t the boundary surface.
 DistSurf1: DISTRIBUTION,
-           DISTRIBUTION = "SURFACERANDCREATE",
+           TYPE = "SURFACERANDCREATE",
            INWARDMARGIN = 0.0, NPDARKCUR =10000,
            EINITHR = 0.2;
 

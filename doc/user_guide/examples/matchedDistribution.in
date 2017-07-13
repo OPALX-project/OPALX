@@ -61,7 +61,7 @@ GAPWIDTH = 220.0, PHI0=phi05;
 l1:   LINE = (ring,rf0,rf1,rf2,rf3,rf4);
 
 
-Dist1:DISTRIBUTION, DISTRIBUTION=GAUSSMATCHED, LINE=l1,
+Dist1:DISTRIBUTION, TYPE=GAUSSMATCHED, LINE=l1,
                     FMAPFN="ring590_bfld.dat", MAGSYM= 8,
                     EX = 1.0e-06, EY = 1.0e-06, ET = 1.0e-06;
 
