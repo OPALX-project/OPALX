@@ -1198,6 +1198,15 @@ void ParallelCyclotronTracker::execute() {
 
 
 void ParallelCyclotronTracker::MtsTracker() {
+    /* 
+     * variable             unit        meaning
+     * ------------------------------------------------
+     * t                    [ns]        time
+     * dt                   [ns]        time step
+     * oldReferenceTheta    [rad]       azimuth angle
+     * itsBunch->R          [m]         particle position
+     * 
+     */
     
     double t = 0, dt = 0, oldReferenceTheta = 0;
     std::tie(t, dt, oldReferenceTheta) = initializeTracking_m();
@@ -1208,7 +1217,7 @@ void ParallelCyclotronTracker::MtsTracker() {
     
     double const dt_inner = dt / double(numSubsteps);
     
-    *gmsg << "MTS: The inner time step is therefore " << dt_inner << endl;
+    *gmsg << "MTS: The inner time step is therefore " << dt_inner << " [ns]" << endl;
     
 //     int SteptoLastInj = itsBunch->getSteptoLastInj();
     
@@ -1364,6 +1373,15 @@ void ParallelCyclotronTracker::MtsTracker() {
  *
  */
 void ParallelCyclotronTracker::GenericTracker() {
+    /* 
+     * variable             unit        meaning
+     * ------------------------------------------------
+     * t                    [ns]        time
+     * dt                   [ns]        time step
+     * oldReferenceTheta    [rad]       azimuth angle
+     * itsBunch->R          [m]         particle position
+     * 
+     */
     // Generic Tracker that has three modes defined by timeIntegrator_m:
     // 0 --- RK-4 (default)
     // 1 --- LF-2
@@ -2053,7 +2071,14 @@ inline void ParallelCyclotronTracker::getQuaternionTwoVectors(Vector_t u, Vector
 
 
 void ParallelCyclotronTracker::push(double h) {
+    /* h   [ns]
+     * dt1 [ns]
+     * dt2 [ns]
+     */
     IpplTimings::startTimer(IntegrationTimer_m);
+    
+    // h [ns] --> h [s]
+    h *= 1.0e-9;
 
     std::list<CavityCrossData> cavCrossDatas;
     for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); ++sindex) {
@@ -2086,7 +2111,7 @@ void ParallelCyclotronTracker::push(double h) {
 
                 // Momentum kick
                 //itsBunch->R[i] *= 1000.0; // RFkick uses [itsBunch->R] == mm
-                RFkick(ccd->cavity, itsBunch->getT() * 1.0e9, dt1 * 1.0e9, i);
+                RFkick(ccd->cavity, itsBunch->getT() * 1.0e9, dt1, i);
                 //itsBunch->R[i] *= 0.001;
 
                 itsBunch->R[i] += dt2 * itsBunch->P[i] * c_gamma;
@@ -2107,31 +2132,23 @@ void ParallelCyclotronTracker::push(double h) {
 
 void ParallelCyclotronTracker::kick(double h) {
     IpplTimings::startTimer(IntegrationTimer_m);
+    
+    BorisPusher pusher;
     double const q = itsBunch->Q[0] / q_e; // For now all particles have the same charge
     double const M = itsBunch->M[0] * 1.0e9; // For now all particles have the same rest energy
-    double const h12Halfqc_M = 0.5 * h * q * Physics::c / M;
-    double const h12Halfqcc_M = h12Halfqc_M * Physics::c;
+    
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
-
-        // Half step E
-        itsBunch->P[i] += h12Halfqc_M * itsBunch->Ef[i];
-
-        // Full step B
-        double const gamma = sqrt(1.0 + dot(itsBunch->P[i], itsBunch->P[i]));
-        Vector_t const r = h12Halfqcc_M * itsBunch->Bf[i] / gamma;
-        Vector_t const w = itsBunch->P[i] + cross(itsBunch->P[i], r);
-        Vector_t const s = 2.0 / (1.0 + dot(r, r)) * r;
-        itsBunch->P[i] += cross(w, s);
-
-        // Half step E
-        itsBunch->P[i] += h12Halfqc_M * itsBunch->Ef[i];
-
+        
+        pusher.kick(itsBunch->R[i], itsBunch->P[i],
+                    itsBunch->Ef[i], itsBunch->Bf[i],
+                    h * 1.0e-9, M, q);
     }
     IpplTimings::stopTimer(IntegrationTimer_m);
 }
 
 
 void ParallelCyclotronTracker::borisExternalFields(double h) {
+    // h in [ns]
 
     // push particles for first half step
     IpplTimings::startTimer(IpplTimings::getTimer("MTS-PushAndRFKick"));
@@ -2142,13 +2159,12 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
     IpplTimings::startTimer(IpplTimings::getTimer("MTS-EvalExternal"));
     IpplTimings::startTimer(IntegrationTimer_m);
     for(unsigned int i = 0; i < itsBunch->getLocalNum(); ++i) {
+        
         itsBunch->Ef[i] = Vector_t(0.0, 0.0, 0.0);
         itsBunch->Bf[i] = Vector_t(0.0, 0.0, 0.0);
-        beamline_list::iterator sindex = FieldDimensions.begin();
-        //itsBunch->R[i] *= 1000.0;
-        (((*sindex)->second).second)->apply(i, itsBunch->getT() * 1e9, itsBunch->Ef[i], itsBunch->Bf[i]);
-        //itsBunch->R[i] *= 0.001; // mm -> m
-        itsBunch->Bf[i] *= 0.1;  // kgauss -> T
+        
+        computeExternalFields_m(i, itsBunch->getT() * 1e9 /*ns*/,
+                                itsBunch->Ef[i], itsBunch->Bf[i]);        
     }
     IpplTimings::stopTimer(IntegrationTimer_m);
     IpplTimings::stopTimer(IpplTimings::getTimer("MTS-EvalExternal"));
@@ -2166,7 +2182,7 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
     IpplTimings::startTimer(IpplTimings::getTimer("MTS-PluginElements"));
     // apply the plugin elements: probe, collimator, stripper, septum
     //itsBunch->R *= Vector_t(1000.0); // applyPluginElements expects [R] = mm
-    applyPluginElements(h * 1e9); // expects [dt] = ns
+    applyPluginElements(h);
     // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
     bool const flagNeedUpdate = deleteParticle();
 
@@ -2187,12 +2203,15 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
         }
 
         if(((*sindex)->first) == ElementBase::PROBE)    {
-            (static_cast<Probe *>(((*sindex)->second).second))->checkProbe(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
+            (static_cast<Probe *>(((*sindex)->second).second))->checkProbe(*itsBunch,
+                                                                           turnnumber_m,
+                                                                           itsBunch->getT() * 1e9  /*[ns]*/,
+                                                                           dt);
         }
 
         if(((*sindex)->first) == ElementBase::STRIPPER)    {
             bool flag_stripper = (static_cast<Stripper *>(((*sindex)->second).second))
-                -> checkStripper(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
+                -> checkStripper(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9 /*[ns]*/, dt);
             if(flag_stripper) {
                 itsBunch->updateNumTotal();
                 *gmsg << "* Total number of particles after stripping = " << itsBunch->getTotalNum() << endl;
@@ -2202,7 +2221,7 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
         if(((*sindex)->first) == ElementBase::COLLIMATOR) {
             Collimator * collim;
             collim = static_cast<Collimator *>(((*sindex)->second).second);
-            collim->checkCollimator(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9, dt);
+            collim->checkCollimator(*itsBunch, turnnumber_m, itsBunch->getT() * 1e9 /*[ns]*/, dt);
         }
     }
 
