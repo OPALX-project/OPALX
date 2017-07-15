@@ -310,11 +310,15 @@ double Cyclotron::getSLPtc() const {
 
 
 void Cyclotron::setMinR(double r) {
-    minr_m = r;
+    // DW: This is to let the user keep using mm in the input file for now
+    // while switching internally to m
+    minr_m = 0.001 * r;
 }
 
 void Cyclotron::setMaxR(double r) {
-    maxr_m = r;
+    // DW: This is to let the user keep using mm in the input file for now
+    // while switching internally to m
+    maxr_m = 0.001 * r;
 }
 double Cyclotron::getMinR() const {
     return minr_m;
@@ -325,13 +329,17 @@ double Cyclotron::getMaxR() const {
 }
 
 void  Cyclotron::setMinZ(double z) {
-    minz_m = z;
+    // DW: This is to let the user keep using mm in the input file for now
+    // while switching internally to m
+    minz_m = 0.001 * z;
 }
 double Cyclotron::getMinZ() const {
     return minz_m;
 }
 void Cyclotron::setMaxZ(double z) {
-    maxz_m = z;
+    // DW: This is to let the user keep using mm in the input file for now
+    // while switching internally to m
+    maxz_m = 0.001 * z;
 }
 double Cyclotron::getMaxZ() const {
     return maxz_m;

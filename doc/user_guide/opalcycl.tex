@@ -30,7 +30,7 @@ According to the number of particles defined by the argument \keyword{npart} in 
   The 6D parameters of a single particle in the initial local frame must be read from a file. To do this, in the \opal input file,
   the command line \keyword{DISTRIBUTION} \seechp{distribution} should be defined like this:
 \begin{example}
-  Dist1: DISTRIBUTION, DISTRIBUTION=fromfile, FNAME="PartDatabase.dat";
+  Dist1: DISTRIBUTION, TYPE=fromfile, FNAME="PartDatabase.dat";
 \end{example}
  where the file \filename{PartDatabase.dat} should have two lines:
 \begin{example}
@@ -525,7 +525,7 @@ l1 = ...
 /*
  * try finding a matched distribution
  */
-Dist1:DISTRIBUTION, DISTRIBUTION=GAUSSMATCHED, LINE=l1, FMAPFN=...,
+Dist1:DISTRIBUTION, TYPE=GAUSSMATCHED, LINE=l1, FMAPFN=...,
                     MAGSYM=..., EX = ..., EY = ..., ET = ...;
 \end{verbatim}
 \subsection{Example}

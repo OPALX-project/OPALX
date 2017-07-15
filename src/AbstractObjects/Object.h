@@ -120,7 +120,7 @@ public:
     virtual void printValue(std::ostream &) const;
 
     /// Print help.
-    //  Print help information for [b]this[/b] on the given output stream.
+    //  Print help information for [b]this[/b] on the default output stream (argument not used).
     virtual void printHelp(std::ostream &) const;
 
     /// Replace references.
