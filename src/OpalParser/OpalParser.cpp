@@ -586,7 +586,7 @@ Statement *OpalParser::readStatement(TokenStream *is) const {
         boost::replace_all(what, "\n", "\n    ");
 
         ERRORMSG("     " << *stat <<"    a" << what << '\n' << endl);
-	
+
         stat = readStatement(is);
 	exit(1);
     }
@@ -620,6 +620,7 @@ void OpalParser::run() const {
             boost::replace_all(what, "\n", "\n    ");
 
             ERRORMSG("     " << *stat <<"    " << what << '\n' << endl);
+            exit(1);
         } catch(ClassicException &ex) {
             ERRORMSG("\n*** User error detected by function \""
                      << ex.where() << "\"" << endl);
@@ -628,6 +629,7 @@ void OpalParser::run() const {
             boost::replace_all(what, "\n", "\n    ");
 
             ERRORMSG("     " << *stat <<"    " << what << '\n' << endl);
+            exit(1);
         } catch(bad_alloc &) {
             ERRORMSG("\n*** Error:" << endl);
             stat->printWhere(*IpplInfo::Error, false);

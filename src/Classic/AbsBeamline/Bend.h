@@ -22,7 +22,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/BendBase.h"
-#include "Algorithms/PartPusher.h"
+#include "Steppers/BorisPusher.h"
 #include "Utilities/GeneralClassicException.h"
 
 #include "gsl/gsl_spline.h"

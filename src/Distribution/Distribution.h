@@ -429,9 +429,8 @@ private:
     double M_m;                       /// mass in terms of proton mass
     std::string bfieldfn_m;           /// only temporarly
 
-    /// seed for the rng, If seed == -1 every core has 
-    /// a differnt seed, otherwiese the seed is Ippl::myNode()
-    unsigned long mySeed_m;
+
+
 
 
     // Some legacy members that need to be cleaned up.
