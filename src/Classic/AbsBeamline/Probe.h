@@ -22,10 +22,13 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Component.h"
+#include <utility>
 
 template <class T, unsigned Dim>
 class PartBunchBase;
+
 class LossDataSink;
+class PeakFinder;
 
 // Class Probe
 // ------------------------------------------------------------------------
@@ -88,12 +91,13 @@ private:
     double yend_m;
     double width_m;
     Point  geom_m[5];
-    std::vector<int> idrec_m;
     int step_m;
 
     double A_m, B_m,R_m, C_m;
     void setGeom(const double dist);
     int  checkPoint( const double & x, const double & y );
+                             
+    std::unique_ptr<PeakFinder> peakfinder_m;
 
     std::unique_ptr<LossDataSink> lossDs_m;
 

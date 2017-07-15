@@ -55,7 +55,7 @@ rf5: RFCavity, VOLT=0.06380, FMAPFN="../av3.dat",
 l1:   Line = (inj2,rf0,rf1,rf2,rf3,rf4,rf5);
 
 // define particles distribution, read from file
-Dist1:DISTRIBUTION, DISTRIBUTION=fromfile, 
+Dist1:DISTRIBUTION, TYPE=fromfile, 
       FNAME="PartDatabase.dat"; 
 
 // usset define fieldsolver, useless for single particle track mode 

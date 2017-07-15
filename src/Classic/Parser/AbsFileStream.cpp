@@ -22,7 +22,8 @@
 #include "Parser/Token.h"
 #include "Utilities/FormatError.h"
 #include <cctype>
-
+#include <iostream>
+#include <algorithm>
 
 // Class AbsFileStream
 // ------------------------------------------------------------------------
@@ -36,6 +37,21 @@ AbsFileStream::AbsFileStream(const std::string &name):
 
 AbsFileStream::~AbsFileStream()
 {}
+
+
+bool AbsFileStream::optimCmdPresent(std::string str) {
+  
+  /// if optimiser commands are present, skip line
+  
+  std::string s = str;
+  std::transform(s.begin(), s.end(),s.begin(), ::toupper);
+  return (s.find("DVAR")!=std::string::npos)  || 
+         (s.find("DVARS")!=std::string::npos) ||
+         (s.find("OBJECTIVE")!=std::string::npos) ||
+         (s.find("OBJECTIVES")!=std::string::npos) ||
+         (s.find("CONSTRAINTS")!=std::string::npos) ||
+         (s.find("OPTIMIZE")!=std::string::npos);
+}
 
 
 Token AbsFileStream::readToken() {
@@ -65,6 +81,16 @@ Token AbsFileStream::readToken() {
     // First character.
     char ch = line[curr_char];
 
+    // ADA 
+    bool skipLine = optimCmdPresent(line); 
+    if (skipLine) {
+      if(fillLine()) {
+	return readToken();
+      } else {
+	return Token(stream_name, curr_line, Token::IS_EOF, "EOF");
+      }
+    }
+    
     if(ch == '/') {
         // Skip comments.
         char ch1 = line[curr_char+1];

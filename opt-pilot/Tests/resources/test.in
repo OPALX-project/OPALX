@@ -1,0 +1,86 @@
+OPTION, ECHO=FALSE;
+OPTION, TFS=FALSE;
+OPTION, INFO=FALSE;
+OPTION, PSDUMPFREQ=10000000;
+OPTION, STATDUMPFREQ=10000000;
+
+TITLE, STRING="SwissFEL Injector, Gun Optimization (May 2011)";
+
+REPARTFREQ       = 500;
+MINSTEPFORREBIN  = 1000;
+
+QB               = 1.66101e-10;
+BFREQ            = 2997.912*1e6;
+BCURRENT         = QB*BFREQ;
+
+USE_ET = 1;
+
+IF (USE_ET > 0) {
+ OPTION, AUTOPHASE=0;
+ FINSS_RGUN_dphi   = 2.28136; //2.3603907853129149; // /180.0*PI; //2.22808
+}
+else {
+ OPTION, AUTOPHASE=0;
+ FINSS_RGUN_dphi   = 2.3603907853129149/180.0*PI;
+}
+
+//obj1: OBJECTIVE,  EXPR="KS*KS";
+//o2:   OBJECTIVE,  EXPR="sumErrSq("resources/measurement_test.dat", "rms_x", "statfile")";
+//ob3:  OBJECTIVE,  EXPR="fromFile("resources/from_file.dat", "var")";
+//d1:   DVAR,       VARIABLE="KS", LOWERBOUND="0.0", UPPERBOUND="0.5";
+//c1:   CONSTRAINT, EXPR="KS < 1.0";
+
+//objs: OBJECTIVES = (obj1, o2, ob3);
+//dvars: DVARS = (d1);
+//constrs: CONSTRAINTS = (c1);
+
+//opt: OPTIMIZE, OBJECTIVES=objs, DVARS=dvars, CONSTRAINTS=constrs;
+
+// -----------------------------------------------------------------------------------------
+//             RF-COMPONENTS
+// -----------------------------------------------------------------------------------------
+
+FINSS_RGUN:   RFCAVITY, L = 0.25, VOLT = 112.5662, FMAPFN = "FINSS-RGUN.dat",
+              ELEMEDGE = 0.0, TYPE = "STANDING", FREQ = 2997.912, LAG = FINSS_RGUN_dphi;
+
+FIND1_MSOL10: SOLENOID, L = 0.26, KS = 0.0022, FMAPFN = "NEW_SINGLE_SOL_NOFRINGE_OPAL.dat",
+              ELEMEDGE = 0.3;
+
+// --------------------------------------------------------------------------------------------------------------
+
+InjectorPhase3: Line = (FINSS_RGUN, FIND1_MSOL10);
+
+Dist1: DISTRIBUTION, DISTRIBUTION = "GUNGAUSSFLATTOPTH",
+	    SIGMAX = 2*0.000275, SIGMAPX = 0.0, CORRX = 0.0,
+	    SIGMAY = 2*0.000275, SIGMAPY = 0.0, CORRY = 0.0,
+	    SIGMAT = 0.0, PT = 0.0, SIGMAPT = 0.0, CORRT = 0.0,
+	    TRISE = 4.5e-12, TFALL = 4.5e-12, TPULSEFWHM = 6.4e-12,
+	    EKIN = 0.63, NBIN = 20, DEBIN = 80;
+
+Fs1: FIELDSOLVER, FSTYPE=FFT, MX=16, MY=16, MT=16,
+      PARFFTX=true, PARFFTY=true, PARFFTT=true,
+      BCFFTX=open, BCFFTY=open, BCFFTT=open,
+      BBOXINCR=1, GREENSF=INTEGRATED;
+
+
+if (USE_ET > 0) {
+
+ beam1: BEAM, PARTICLE=ELECTRON, pc=P0, NSLICE=100, BFREQ=BFREQ, BCURRENT=BCURRENT, CHARGE=-1;
+ SELECT, LINE = InjectorPhase3;
+
+ TRACK, LINE=InjectorPhase3, BEAM=beam1, MAXSTEPS=1000000, DT=1e-13, ZSTOP=0.8;
+  RUN, METHOD = "PARALLEL-SLICE", BEAM = beam1, FIELDSOLVER = Fs1, DISTRIBUTION = Dist1;
+ ENDTRACK;
+
+}
+else {
+
+ beam1: BEAM, PARTICLE=ELECTRON, pc=P0, NPART=5000, BFREQ=BFREQ, BCURRENT=BCURRENT, CHARGE=-1;
+ SELECT, LINE = InjectorPhase3;
+
+ TRACK, LINE=InjectorPhase3, BEAM=beam1, MAXSTEPS=1000000, DT=1e-13, ZSTOP=0.8;
+  RUN, METHOD = "PARALLEL-T", BEAM = beam1, FIELDSOLVER = Fs1, DISTRIBUTION = Dist1;
+ ENDTRACK;
+
+}
+QUIT;

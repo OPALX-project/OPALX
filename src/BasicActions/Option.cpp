@@ -47,7 +47,6 @@ namespace {
         ECHO,
         INFO,
         TRACE,
-        VERIFY,
         WARN,
         SEED,
         TELL,
@@ -103,9 +102,6 @@ Option::Option():
 
     itsAttr[TRACE] = Attributes::makeBool
                      ("TRACE", "If true, print execution trace", mtrace);
-
-    itsAttr[VERIFY] = Attributes::makeBool
-                      ("VERIFY", "If true, print warnings about assumptions", verify);
 
     itsAttr[WARN] = Attributes::makeBool
                     ("WARN", "If true, print warning messages", warn);
@@ -224,7 +220,6 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setBool(itsAttr[ECHO],       echo);
     Attributes::setBool(itsAttr[INFO],       info);
     Attributes::setBool(itsAttr[TRACE],      mtrace);
-    Attributes::setBool(itsAttr[VERIFY],     verify);
     Attributes::setBool(itsAttr[WARN],       warn);
     Attributes::setReal(itsAttr[SEED],       seed);
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
@@ -278,7 +273,6 @@ void Option::execute() {
     echo      = Attributes::getBool(itsAttr[ECHO]);
     info      = Attributes::getBool(itsAttr[INFO]);
     mtrace     = Attributes::getBool(itsAttr[TRACE]);
-    verify    = Attributes::getBool(itsAttr[VERIFY]);
     warn      = Attributes::getBool(itsAttr[WARN]);
     psDumpEachTurn =   Attributes::getBool(itsAttr[PSDUMPEACHTURN]);
     scan = Attributes::getBool(itsAttr[SCAN]);

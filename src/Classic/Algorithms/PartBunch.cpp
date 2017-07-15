@@ -162,11 +162,11 @@ void PartBunch::computeSelfFields(int binNumber) {
                                              true);
             }
             interpolationCacheSet_m = true;
-
             this->Q.scatter(this->rho_m, this->R, IntrplCIC_t(), interpolationCache_m);
         } else {
             this->Q.scatter(this->rho_m, IntrplCIC_t(), interpolationCache_m);
         }
+
         this->Q /= this->dt;
         this->rho_m /= getdT();
 
@@ -1039,6 +1039,7 @@ void PartBunch::computeSelfFields_cycl(int bin) {
     *gmsg << "max of bunch is (" << rmax_m(0) << ", " << rmax_m(1) << ", " << rmax_m(2) << ") [m] " << endl;
     *gmsg << "min of bunch is (" << rmin_m(0) << ", " << rmin_m(1) << ", " << rmin_m(2) << ") [m] " << endl;
     */
+
 
     IpplTimings::stopTimer(selfFieldTimer_m);
 }
