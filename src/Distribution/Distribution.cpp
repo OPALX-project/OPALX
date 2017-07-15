@@ -4653,50 +4653,60 @@ double Distribution::getEmissionTimeShift() const {
 }
 
 void Distribution::shiftDistCoordinates(double massIneV) {
-    double deltaX = Attributes::getReal(itsAttr[AttributesT::OFFSETX]);
-    double deltaY = Attributes::getReal(itsAttr[AttributesT::OFFSETY]);
 
-    /*
-     * OFFSETZ overrides T if it is nonzero. We initially use T
-     * for legacy compatiblity. OFFSETT always overrides T, even
-     * when zero, for an emitted beam.
-     */
-    if (itsAttr[LegacyAttributesT::T]) {
-        throw OpalException("Distribution::shiftDistCoordinates",
-                            "Attribute T isn't supported anymore; use OFFSETZ instead");
-    }
+    size_t startIdx = 0;
+    for (unsigned int i = 0; i <= addedDistributions_m.size(); ++ i) {
+        Distribution *currDist = this;
+        if (i > 0)
+            currDist = addedDistributions_m[i - 1];
+        double deltaX = Attributes::getReal(currDist->itsAttr[AttributesT::OFFSETX]);
+        double deltaY = Attributes::getReal(currDist->itsAttr[AttributesT::OFFSETY]);
 
-    double deltaTOrZ = 0.0;
-    if (!emitting_m)
-        if (Attributes::getReal(itsAttr[AttributesT::OFFSETZ]) != 0.0)
-            deltaTOrZ = Attributes::getReal(itsAttr[AttributesT::OFFSETZ]);
+        /*
+         * OFFSETZ overrides T if it is nonzero. We initially use T
+         * for legacy compatiblity. OFFSETT always overrides T, even
+         * when zero, for an emitted beam.
+         */
+        if (currDist->itsAttr[LegacyAttributesT::T]) {
+            throw OpalException("Distribution::shiftDistCoordinates",
+                                "Attribute T isn't supported anymore; use OFFSETZ instead");
+        }
+
+        double deltaTOrZ = 0.0;
+        if (!emitting_m)
+            if (Attributes::getReal(currDist->itsAttr[AttributesT::OFFSETZ]) != 0.0)
+                deltaTOrZ = Attributes::getReal(currDist->itsAttr[AttributesT::OFFSETZ]);
 
 
-    double deltaPx = Attributes::getReal(itsAttr[AttributesT::OFFSETPX]);
-    double deltaPy = Attributes::getReal(itsAttr[AttributesT::OFFSETPY]);
-    double deltaPz = Attributes::getReal(itsAttr[AttributesT::OFFSETPZ]);
+        double deltaPx = Attributes::getReal(currDist->itsAttr[AttributesT::OFFSETPX]);
+        double deltaPy = Attributes::getReal(currDist->itsAttr[AttributesT::OFFSETPY]);
+        double deltaPz = Attributes::getReal(currDist->itsAttr[AttributesT::OFFSETPZ]);
 
-    if (Attributes::getReal(itsAttr[LegacyAttributesT::PT])!=0.0)
-        WARNMSG("PT & PZ are obsolet and will be ignored. The moments of the beam is defined with PC" << endl);
+        if (Attributes::getReal(currDist->itsAttr[LegacyAttributesT::PT])!=0.0)
+            WARNMSG("PT & PZ are obsolet and will be ignored. The moments of the beam is defined with PC" << endl);
 
-    // Check input momentum units.
-    switch (inputMoUnits_m) {
-    case InputMomentumUnitsT::EV:
-        deltaPx = converteVToBetaGamma(deltaPx, massIneV);
-        deltaPy = converteVToBetaGamma(deltaPy, massIneV);
-        deltaPz = converteVToBetaGamma(deltaPz, massIneV);
-        break;
-    default:
-        break;
-    }
+        // Check input momentum units.
+        switch (inputMoUnits_m) {
+        case InputMomentumUnitsT::EV:
+            deltaPx = converteVToBetaGamma(deltaPx, massIneV);
+            deltaPy = converteVToBetaGamma(deltaPy, massIneV);
+            deltaPz = converteVToBetaGamma(deltaPz, massIneV);
+            break;
+        default:
+            break;
+        }
 
-    for (size_t particleIndex = 0; particleIndex < tOrZDist_m.size(); particleIndex++) {
-        xDist_m.at(particleIndex) += deltaX;
-        pxDist_m.at(particleIndex) += deltaPx;
-        yDist_m.at(particleIndex) += deltaY;
-        pyDist_m.at(particleIndex) += deltaPy;
-        tOrZDist_m.at(particleIndex) += deltaTOrZ;
-        pzDist_m.at(particleIndex) += deltaPz;
+        size_t endIdx = startIdx + particlesPerDist_m[i];
+        for (size_t particleIndex = startIdx; particleIndex < endIdx; ++ particleIndex) {
+            xDist_m.at(particleIndex) += deltaX;
+            pxDist_m.at(particleIndex) += deltaPx;
+            yDist_m.at(particleIndex) += deltaY;
+            pyDist_m.at(particleIndex) += deltaPy;
+            tOrZDist_m.at(particleIndex) += deltaTOrZ;
+            pzDist_m.at(particleIndex) += deltaPz;
+        }
+
+        startIdx = endIdx;
     }
 }
 
