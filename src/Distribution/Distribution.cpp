@@ -3570,18 +3570,32 @@ void Distribution::ReflectDistribution(size_t &numberOfParticles) {
 
 void Distribution::ScaleDistCoordinates() {
 
-    for (size_t particleIndex = 0; particleIndex < tOrZDist_m.size(); particleIndex++) {
-        xDist_m.at(particleIndex) *= Attributes::getReal(itsAttr[AttributesT::XMULT]);
-        pxDist_m.at(particleIndex) *= Attributes::getReal(itsAttr[AttributesT::PXMULT]);
-        yDist_m.at(particleIndex) *= Attributes::getReal(itsAttr[AttributesT::YMULT]);
-        pyDist_m.at(particleIndex) *= Attributes::getReal(itsAttr[AttributesT::PYMULT]);
+    size_t startIdx = 0;
+    for (unsigned int i = 0; i <= addedDistributions_m.size(); ++ i) {
+        Distribution *currDist = this;
+        if (i > 0)
+            currDist = addedDistributions_m[i - 1];
 
-        if (emitting_m)
-            tOrZDist_m.at(particleIndex) *= Attributes::getReal(itsAttr[AttributesT::TMULT]);
-        else
-            tOrZDist_m.at(particleIndex) *= Attributes::getReal(itsAttr[AttributesT::ZMULT]);
+        const double xmult = Attributes::getReal(currDist->itsAttr[AttributesT::XMULT]);
+        const double pxmult = Attributes::getReal(currDist->itsAttr[AttributesT::PXMULT]);
+        const double ymult = Attributes::getReal(currDist->itsAttr[AttributesT::YMULT]);
+        const double pymult = Attributes::getReal(currDist->itsAttr[AttributesT::PYMULT]);
+        const double longmult = (emitting_m ?
+                                 Attributes::getReal(currDist->itsAttr[AttributesT::TMULT]):
+                                 Attributes::getReal(currDist->itsAttr[AttributesT::ZMULT]));
+        const double pzmult = Attributes::getReal(currDist->itsAttr[AttributesT::PZMULT]);
 
-        pzDist_m.at(particleIndex) *= Attributes::getReal(itsAttr[AttributesT::PZMULT]);
+        size_t endIdx = startIdx + particlesPerDist_m[i];
+        for (size_t particleIndex = startIdx; particleIndex < endIdx; ++ particleIndex) {
+            xDist_m.at(particleIndex) *= xmult;
+            pxDist_m.at(particleIndex) *= pxmult;
+            yDist_m.at(particleIndex) *= ymult;
+            pyDist_m.at(particleIndex) *= pymult;
+            tOrZDist_m.at(particleIndex) *= longmult;
+            pzDist_m.at(particleIndex) *= pzmult;
+        }
+
+        startIdx = endIdx;
     }
 }
 
