@@ -22,7 +22,8 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
                              AmrFieldContainer_t& phi,
                              AmrFieldContainer_t& efield,
                              unsigned short baseLevel,
-                             unsigned short finestLevel)
+                             unsigned short finestLevel,
+                             bool prevAsGuess)
 {
     const GeomContainer_t& geom = itsAmrObject_mp->Geom();
     
@@ -59,7 +60,9 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
         rho[i]->mult(1.0 / l0norm, 0, 1);
         
         // reset
-        phi[i]->setVal(0.0, 1);
+//         if ( !prevAsGuess )
+            phi[i]->setVal(0.0, 1);
+        
         efield[i]->setVal(0.0, 1);
     }
     

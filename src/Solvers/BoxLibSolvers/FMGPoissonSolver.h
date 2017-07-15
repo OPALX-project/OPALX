@@ -38,12 +38,14 @@ public:
      * @param efield electric field [V / m]
      * @param baseLevel for solve
      * @param finestLevel for solve
+     * @param prevAsGuess use of previous solution as initial guess
      */
     void solve(AmrFieldContainer_t &rho,
                AmrFieldContainer_t& phi,
                AmrFieldContainer_t &efield,
                unsigned short baseLevel,
-               unsigned short finestLevel);
+               unsigned short finestLevel,
+               bool prevAsGuess = true);
     
     double getXRangeMin(unsigned short level = 0);
     double getXRangeMax(unsigned short level = 0);

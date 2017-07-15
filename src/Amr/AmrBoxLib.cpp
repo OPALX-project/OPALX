@@ -641,7 +641,8 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray_t& tags, AmrReal_
      * value of this level.
      */
     if ( !phi_m[lev]->ok() || (time == 0 && !(phi_m[lev]->norm0(0) > 0)) ) {
-        *gmsg << "We need to perform charge tagging in the first time step" << endl;
+        *gmsg << "Level " << lev << ": We need to perform "
+              << "charge tagging in the first time step" << endl;
         this->tagForChargeDensity_m(lev, tags, time, ngrow);
         
         return;
@@ -697,7 +698,8 @@ void AmrBoxLib::tagForEfield_m(int lev, TagBoxArray_t& tags, AmrReal_t time, int
      */
     
     if ( !efield_m[lev]->ok() || (time == 0 && !(efield_m[lev]->norm0(0) > 0)) ) {
-        *gmsg << "We need to perform charge tagging in the first time step" << endl;
+        *gmsg << "Level " << lev << ": We need to perform "
+              << "charge tagging in the first time step" << endl;
         this->tagForChargeDensity_m(lev, tags, time, ngrow);
         
         return;
