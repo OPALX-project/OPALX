@@ -1692,6 +1692,9 @@ void Distribution::createOpalCycl(PartBunchBase<double, 3> *beam,
     // Create distribution.
     create(numberOfPartToCreate, beam->getM());
 
+    // this variable is needed to be compatible with OPAL-T
+    particlesPerDist_m.push_back(tOrZDist_m.size());
+
     // Now reflect particles if Options::cZero is true.
     if (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE))
         reflectDistribution(numberOfPartToCreate);
@@ -3666,33 +3669,24 @@ void Distribution::reflectDistribution(size_t &numberOfParticles) {
 }
 
 void Distribution::scaleDistCoordinates() {
+    // at this point the distributions of an array of distributions are still separated
 
-    size_t startIdx = 0;
-    for (unsigned int i = 0; i <= addedDistributions_m.size(); ++ i) {
-        Distribution *currDist = this;
-        if (i > 0)
-            currDist = addedDistributions_m[i - 1];
+    const double xmult = Attributes::getReal(itsAttr[AttributesT::XMULT]);
+    const double pxmult = Attributes::getReal(itsAttr[AttributesT::PXMULT]);
+    const double ymult = Attributes::getReal(itsAttr[AttributesT::YMULT]);
+    const double pymult = Attributes::getReal(itsAttr[AttributesT::PYMULT]);
+    const double longmult = (emitting_m ?
+                             Attributes::getReal(itsAttr[AttributesT::TMULT]):
+                             Attributes::getReal(itsAttr[AttributesT::ZMULT]));
+    const double pzmult = Attributes::getReal(itsAttr[AttributesT::PZMULT]);
 
-        const double xmult = Attributes::getReal(currDist->itsAttr[AttributesT::XMULT]);
-        const double pxmult = Attributes::getReal(currDist->itsAttr[AttributesT::PXMULT]);
-        const double ymult = Attributes::getReal(currDist->itsAttr[AttributesT::YMULT]);
-        const double pymult = Attributes::getReal(currDist->itsAttr[AttributesT::PYMULT]);
-        const double longmult = (emitting_m ?
-                                 Attributes::getReal(currDist->itsAttr[AttributesT::TMULT]):
-                                 Attributes::getReal(currDist->itsAttr[AttributesT::ZMULT]));
-        const double pzmult = Attributes::getReal(currDist->itsAttr[AttributesT::PZMULT]);
-
-        size_t endIdx = startIdx + particlesPerDist_m[i];
-        for (size_t particleIndex = startIdx; particleIndex < endIdx; ++ particleIndex) {
-            xDist_m.at(particleIndex) *= xmult;
-            pxDist_m.at(particleIndex) *= pxmult;
-            yDist_m.at(particleIndex) *= ymult;
-            pyDist_m.at(particleIndex) *= pymult;
-            tOrZDist_m.at(particleIndex) *= longmult;
-            pzDist_m.at(particleIndex) *= pzmult;
-        }
-
-        startIdx = endIdx;
+    for (size_t particleIndex = 0; particleIndex < tOrZDist_m.size(); ++ particleIndex) {
+        xDist_m.at(particleIndex) *= xmult;
+        pxDist_m.at(particleIndex) *= pxmult;
+        yDist_m.at(particleIndex) *= ymult;
+        pyDist_m.at(particleIndex) *= pymult;
+        tOrZDist_m.at(particleIndex) *= longmult;
+        pzDist_m.at(particleIndex) *= pzmult;
     }
 }
 
