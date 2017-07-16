@@ -219,7 +219,7 @@ private:
     void ApplyEmissModelAstra(double &px, double &py, double &pz, const std::vector<double> &additionalRNs);
     void ApplyEmissModelNone(double &pz);
     void ApplyEmissModelNonEquil(double eZ, double &px, double &py, double &pz);
-    void Create(size_t &numberOfParticles, double massIneV);
+    void Create(size_t numberOfParticles, double massIneV);
     void CalcPartPerDist(size_t numberOfParticles);
     void CheckEmissionParameters();
     void CheckIfEmitted();
@@ -228,6 +228,7 @@ private:
     double ConvertBetaGammaToeV(double valueInbega, double mass);
     double ConverteVToBetaGamma(double valueIneV, double massIneV);
     double ConvertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV);
+    size_t getNumberOfParticlesInFile(std::ifstream &inputFile);
     void CreateDistributionBinomial(size_t numberOfParticles, double massIneV);
     void CreateDistributionFlattop(size_t numberOfParticles, double massIneV);
     void CreateDistributionFromFile(size_t numberOfParticles, double massIneV);
