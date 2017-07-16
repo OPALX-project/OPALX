@@ -90,6 +90,13 @@ private:
                           int baseLevel,
                           int finestLevel);
     
+    /**
+     * In case of reusing the previous solution the grids might have
+     * changed, thus, we interpolate from the coarse grids to the fine
+     * grids
+     */
+    void interpolate_m(AmrFieldContainer_t& phi, const GeomContainer_t& geom, double l0norm);
+    
 private:
     int bc_m[2*BL_SPACEDIM];        ///< Boundary conditions
     double reltol_m;                ///< Relative tolearance for solver

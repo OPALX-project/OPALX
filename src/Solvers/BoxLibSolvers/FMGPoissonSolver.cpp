@@ -3,6 +3,7 @@
 #include "Utilities/OpalException.h"
 
 #include <AMReX_ParmParse.H>
+#include <AMReX_Interpolater.H>
 
 FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* itsAmrObject_p)
     : AmrPoissonSolver<AmrBoxLib>(itsAmrObject_p),
@@ -60,7 +61,9 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
         rho[i]->mult(1.0 / l0norm, 0, 1);
         
         // reset
-//         if ( !prevAsGuess )
+        if ( prevAsGuess )
+            this->interpolate_m(phi, geom, 1.0 / l0norm);
+        else
             phi[i]->setVal(0.0, 1);
         
         efield[i]->setVal(0.0, 1);
@@ -294,4 +297,55 @@ double FMGPoissonSolver::solveWithF90_m(const AmrFieldContainer_pt& rho,
     }
     
     return residNorm;
+}
+
+
+void FMGPoissonSolver::interpolate_m(AmrFieldContainer_t& phi,
+                                     const GeomContainer_t& geom,
+                                     double l0norm)
+{
+    amrex::PhysBCFunct cphysbc, fphysbc;
+    int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
+    int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+    amrex::Array<amrex::BCRec> bcs(1, amrex::BCRec(lo_bc, hi_bc));
+    amrex::PCInterp mapper;
+    
+    AmrFieldContainer_t tmp(phi.size());
+    for (unsigned int lev = 0; lev < phi.size(); ++lev) {
+        const AmrGrid_t& ba = phi[lev]->boxArray();
+        const AmrProcMap_t& dm = phi[lev]->DistributionMap();
+        tmp[lev].reset(new AmrField_t(ba, dm, 1, 0));
+        tmp[lev]->setVal(0.0);
+    }
+    
+    for (unsigned int lev = 1; lev < phi.size() - 1; ++lev) {
+        amrex::InterpFromCoarseLevel(*tmp[lev+1], 0.0, *phi[lev],
+                                     0, 0, 1, geom[lev], geom[lev+1],
+                                     cphysbc, fphysbc,
+                                     itsAmrObject_mp->refRatio(lev),
+                                     &mapper, bcs);
+        
+        if (lev > 1) {
+            // Note - this will double count the mass on the coarse level in 
+            // regions covered by the fine level, but this will be corrected
+            // below in the call to average_down.
+            amrex::sum_fine_to_coarse(*phi[lev],
+                                      *phi[lev-1],
+                                      0, 1,
+                                      itsAmrObject_mp->refRatio(lev-1),
+                                      geom[lev-1], geom[lev]);
+        }
+
+        phi[lev]->plus(*tmp[lev], 0, 1, 0);
+  }
+  
+  for (int lev = phi.size() - 2; lev >= 1; --lev) {
+      amrex::average_down(*phi[lev+1], 
+                          *phi[lev], 0, 1,
+                          itsAmrObject_mp->refRatio(lev));
+  }
+  
+  for (unsigned int lev = 0; lev < phi.size(); ++lev)
+      phi[lev]->mult(l0norm, 0, 1);
+    
 }
