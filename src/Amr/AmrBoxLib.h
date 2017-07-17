@@ -51,6 +51,17 @@ public:
         int refratz;        ///< Mesh refinement ratio in z-direction
     };
     
+    
+    /*!
+     * Used for the redistribution of grids
+     */
+    enum Strategy {
+        RANK_ZERO = 0,      // all grids to processor zero
+        PFC       = 1,
+        RANDOM    = 2,
+        KNAPSACK  = 3
+    };
+    
 public:
     
     /*!
@@ -142,6 +153,9 @@ public:
     
     int maxLevel();
     int finestLevel();
+    
+    
+    void redistributeGrids(int how);
     
 protected:
     /*

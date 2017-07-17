@@ -49,6 +49,12 @@ void AmrPartBunch::initialize(FieldLayout_t *fLayout) {
 }
 
 
+void AmrPartBunch::do_binaryRepart() {
+    amrobj_mp->redistributeGrids(3 /*KnapSack*/);
+    update();
+}
+
+
 AmrPartBunch::VectorPair_t AmrPartBunch::getEExtrema() {
     return amrobj_mp->getEExtrema();
 }

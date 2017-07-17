@@ -29,6 +29,9 @@ public:
     
     void initialize(FieldLayout_t *fLayout);
     
+    // does actually another repartition
+    void do_binaryRepart();
+    
     VectorPair_t getEExtrema();
     
     double getRho(int x, int y, int z);
