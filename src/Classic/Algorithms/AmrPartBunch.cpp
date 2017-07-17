@@ -50,7 +50,7 @@ void AmrPartBunch::initialize(FieldLayout_t *fLayout) {
 
 
 void AmrPartBunch::do_binaryRepart() {
-    amrobj_mp->redistributeGrids(3 /*KnapSack*/);
+    amrobj_mp->redistributeGrids(-1 /*KnapSack*/);
     update();
 }
 
@@ -101,14 +101,17 @@ void AmrPartBunch::boundp() {
     update();
     
     if ( amrobj_mp ) {
-        int maxLevel = amrobj_mp->maxLevel();
         
-        for (int i = 0; i <= amrobj_mp->finestLevel() && i < maxLevel; ++i) {
-            amrobj_mp->regrid(i, maxLevel, t_m * 1.0e9 /*time [ns] */);
-            /* update to multilevel --> update GDB
-             * Only update current and new finest level
-             */
-            amrpbase_mp->update(i, amrobj_mp->finestLevel());
+        if ( localTrackStep_m % amrobj_mp->getRegridFrequency() == 0 ) {
+            int maxLevel = amrobj_mp->maxLevel();
+            
+            for (int i = 0; i <= amrobj_mp->finestLevel() && i < maxLevel; ++i) {
+                amrobj_mp->regrid(i, maxLevel, t_m * 1.0e9 /*time [ns] */);
+                /* update to multilevel --> update GDB
+                * Only update current and new finest level
+                */
+                amrpbase_mp->update(i, amrobj_mp->finestLevel());
+            }
         }
     } else {
         // At this point an amrobj_mp needs already be set
