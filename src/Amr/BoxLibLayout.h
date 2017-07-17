@@ -343,13 +343,10 @@ private:
      * @param lev_min to check
      * @param lev_max to check
      * @param nGrow is the number of ghost cells
-     * @param particleLeftDomain will be set if a particle left the physical
-     * domain (This should never happen. An exception is thrown if it occurs)
      */
     void locateParticle(AmrParticleBase< BoxLibLayout<T,Dim> >& p, 
                         const unsigned int ip,
-                        int lev_min, int lev_max, int nGrow,
-                        bool &particleLeftDomain) const;
+                        int lev_min, int lev_max, int nGrow) const;
     
 private:
     int finestLevel_m;                  ///< Current finest level of simluation
