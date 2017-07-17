@@ -33,14 +33,16 @@ public:
     
     AmrObject() : tagging_m(CHARGE_DENSITY),
                   scaling_m(0.75),
-                  nCharge_m(1.0e-15)
+                  nCharge_m(1.0e-15),
+                  regridFreq_m(1)
     {}
     
     AmrObject(TaggingCriteria tagging,
               double scaling,
               double nCharge) : tagging_m(tagging),
                                 scaling_m(scaling),
-                                nCharge_m(nCharge)
+                                nCharge_m(nCharge),
+                                regridFreq_m(1)
     {}
     
     virtual ~AmrObject() {}
@@ -79,6 +81,22 @@ public:
         nCharge_m = charge;
     }
     
+    /*!
+     * After how many steps a regrid
+     * should be performed
+     * @param regridFreq is set in FieldSolver.cpp
+     */
+    void setRegridFrequency(size_t regridFreq) {
+        regridFreq_m = regridFreq;
+    }
+    
+    /*!
+     * @returns the frequency, used in AmrPartBunch::boundp()
+     */
+    const size_t& getRegridFrequency() {
+        return regridFreq_m;
+    }
+    
     /* Methods that are needed by the
      * bunch
      */
@@ -113,6 +131,8 @@ protected:
     double scaling_m;           ///< Scaling factor for tagging [0, 1]
                                 // (POTENTIAL, EFIELD)
     double nCharge_m;           ///< Tagging value for CHARGE_DENSITY
+    
+    size_t regridFreq_m;        ///< After how many time steps to regrid
     
 };
 
