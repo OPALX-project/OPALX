@@ -76,15 +76,16 @@ namespace {
 	ALPHA,      // Green’s function splitting parameter
 	EPSILON,    // regularization for PP interaction
 #ifdef HAVE_AMR_SOLVER
-        AMRMAXLEVEL, // AMR, maximum refinement level
-        AMRREFX,     // AMR, refinement ratio in x
-        AMRREFY,     // AMR, refinement ratio in y
-        AMRREFT,     // AMR, refinement ration in z
-        AMRSUBCYCLE, // AMR, subcycling in time for refined levels (default: false)
-        AMRMAXGRID,  // AMR, maximum grid size (default: 16)
+        AMRMAXLEVEL,    // AMR, maximum refinement level
+        AMRREFX,        // AMR, refinement ratio in x
+        AMRREFY,        // AMR, refinement ratio in y
+        AMRREFT,        // AMR, refinement ration in z
+        AMRSUBCYCLE,    // AMR, subcycling in time for refined levels (default: false)
+        AMRMAXGRID,     // AMR, maximum grid size (default: 16)
         AMRTAGGING,
         CHARGEPERCELL,
         SCALING,
+        AMRREGRIDFREQ,  /// AMR, after how many time steps to regrid
 #endif
         // FOR XXX BASED SOLVER
         SIZE
@@ -144,6 +145,8 @@ FieldSolver::FieldSolver():
     itsAttr[SCALING] = Attributes::makeReal("SCALING",
                                             "Scaling value for maximum value tagging (only POTENTIAL / CHARGE)",
                                             0.75);
+    itsAttr[AMRREGRIDFREQ] = Attributes::makeReal("AMRREGRIDFREQ",
+                                                  "After how many time steps to regrid", 1);
 #endif
 
     mesh_m = 0;
@@ -427,7 +430,8 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << "* AMRMAXGRID    " << Attributes::getReal(itsAttr[AMRMAXGRID]) << '\n'
            << "* AMRTAGGING    " << Attributes::getString(itsAttr[AMRTAGGING]) <<'\n'
            << "* CHARGEPERCELL " << Attributes::getReal(itsAttr[CHARGEPERCELL]) << '\n'
-           << "* SCALING       " << Attributes::getReal(itsAttr[SCALING]) << endl;
+           << "* SCALING       " << Attributes::getReal(itsAttr[SCALING]) << '\n'
+           << "* AMRREGRIDFREQ " << Attributes::getReal(itsAttr[AMRREGRIDFREQ]) << endl;
     }
 #endif
 
@@ -486,6 +490,7 @@ void FieldSolver::initAmrObject_m() {
     itsAmrObject_mp->setTagging(tagging);
     itsAmrObject_mp->setScalingFactor( Attributes::getReal(itsAttr[SCALING]) );
     itsAmrObject_mp->setCharge( Attributes::getReal(itsAttr[CHARGEPERCELL]) );
+    itsAmrObject_mp->setRegridFrequency( Attributes::getReal(itsAttr[AMRREGRIDFREQ]) );
 }
 
 
