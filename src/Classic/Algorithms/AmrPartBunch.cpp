@@ -97,21 +97,25 @@ void AmrPartBunch::boundp() {
     
     layout_p->setForbidTransform(true);
     
-    // update all level
-    update();
-    
     if ( amrobj_mp ) {
         
         if ( localTrackStep_m % amrobj_mp->getRegridFrequency() == 0 ) {
+            
+            // update only base level
+            amrpbase_mp->update(0, 0);
+            
             int maxLevel = amrobj_mp->maxLevel();
             
             for (int i = 0; i <= amrobj_mp->finestLevel() && i < maxLevel; ++i) {
                 amrobj_mp->regrid(i, maxLevel, t_m * 1.0e9 /*time [ns] */);
                 /* update to multilevel --> update GDB
-                * Only update current and new finest level
+                * Only update current and next level
                 */
-                amrpbase_mp->update(i, amrobj_mp->finestLevel());
+                amrpbase_mp->update(i, i + 1); //amrobj_mp->finestLevel());
             }
+        } else {
+            // multi-level udpate
+            this->update();
         }
     } else {
         // At this point an amrobj_mp needs already be set
