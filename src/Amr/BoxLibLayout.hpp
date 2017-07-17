@@ -144,9 +144,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
   
     //loop trough particles and assign grid and level to each particle
     //if particle doesn't belong to this process save the index of the particle to be sent
-    for (unsigned int ip = lBegin; ip < lEnd; ++ip) {
-        bool particleLeftDomain = false;
-        
+    for (unsigned int ip = lBegin; ip < lEnd; ++ip) {        
         // old level
         const size_t& lold = PData.Level[ip];
         
@@ -157,34 +155,26 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
 //         PData.Grid[ip] = -1;
         
         //check to which level and grid the particle belongs to
-        locateParticle(PData, ip, lev_min, lev_max, nGrow, particleLeftDomain);
+        locateParticle(PData, ip, lev_min, lev_max, nGrow);
         
-        if ( !particleLeftDomain ) {
-            // The owner of the particle is the CPU owning the finest grid
-            // in state data that contains the particle.
-            const size_t& lnew = PData.Level[ip];
+        // The owner of the particle is the CPU owning the finest grid
+        // in state data that contains the particle.
+        const size_t& lnew = PData.Level[ip];
             
-            const unsigned int who = ParticleDistributionMap(lnew)[PData.Grid[ip]];
+        const unsigned int who = ParticleDistributionMap(lnew)[PData.Grid[ip]];
             
-            --LocalNumPerLevel[lold];
+        --LocalNumPerLevel[lold];
             
-            if (who != myN) {
-                // we lost the particle to another process
-                msgsend[who] = 1;
-                p2n.insert(std::pair<unsigned, unsigned>(who, ip));
-                sent++;
-            } else {
-                /* if we still own the particle it may have moved to
-                 * another level
-                 */
-                ++LocalNumPerLevel[lnew];
-            }
+        if (who != myN) {
+            // we lost the particle to another process
+            msgsend[who] = 1;
+            p2n.insert(std::pair<unsigned, unsigned>(who, ip));
+            sent++;
         } else {
-            /* a particle left the domain
-             * This should NEVER happen! An exception is thrown in
-             * BoxLibLayout::locateParticle().
+            /* if we still own the particle it may have moved to
+             * another level
              */
-            --LocalNumPerLevel[lold];
+            ++LocalNumPerLevel[lnew];
         }
     }
 
@@ -557,8 +547,7 @@ template <class T, unsigned Dim>
 void BoxLibLayout<T, Dim>::locateParticle(
     AmrParticleBase< BoxLibLayout<T,Dim> >& p,
     const unsigned int ip,
-    int lev_min, int lev_max, int nGrow,
-    bool &particleLeftDomain) const
+    int lev_min, int lev_max, int nGrow) const
 {
     bool outside = D_TERM( p.R[ip](0) <  AmrGeometry_t::ProbLo(0)
                         || p.R[ip](0) >= AmrGeometry_t::ProbHi(0),
@@ -576,7 +565,6 @@ void BoxLibLayout<T, Dim>::locateParticle(
         if (!success && lev_min == 0)
         {
             // The particle has left the domain; invalidate it.
-            particleLeftDomain = true;
             p.destroy(1, ip);
             success = true;
             
