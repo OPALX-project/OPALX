@@ -101,6 +101,12 @@ public:
     virtual int maxLevel() = 0;
     virtual int finestLevel() = 0;
     
+    /*!
+     * Rebalance the grids among the
+     * cores
+     */
+    virtual void redistributeGrids(int how) { }
+    
 protected:
     TaggingCriteria tagging_m;  ///< Tagging strategy
     
