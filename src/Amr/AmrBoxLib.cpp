@@ -46,7 +46,6 @@ AmrBoxLib::AmrBoxLib(TaggingCriteria tagging,
 {}
 
 
-
 AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
                      const AmrIntArray_t& nGridPts,
                      short maxLevel)
@@ -478,6 +477,68 @@ inline int AmrBoxLib::maxLevel() {
 
 inline int AmrBoxLib::finestLevel() {
     return amrex::AmrMesh::finestLevel();
+}
+
+
+void AmrBoxLib::redistributeGrids(int how) {
+    // copied + modified version of AMReX_Amr.cpp
+    AmrProcMap_t::InitProximityMap();
+//     AmrProcMap_t::Initialize();
+
+    AmrGridContainer_t allBoxes(finest_level + 1);
+    for(unsigned int ilev = 0; ilev < allBoxes.size(); ++ilev) {
+        allBoxes[ilev] = boxArray(ilev);
+    }
+    amrex::Array<AmrIntArray_t> mLDM;
+        
+    switch ( how ) {
+        case RANK_ZERO:
+            mLDM = AmrProcMap_t::MultiLevelMapRandom(this->ref_ratio,
+                                                     allBoxes,
+                                                     maxGridSize(0),
+                                                     0/*maxRank*/,
+                                                     0/*minRank*/);
+            break;
+        case PFC:
+            mLDM = AmrProcMap_t::MultiLevelMapPFC(this->ref_ratio,
+                                                  allBoxes,
+                                                  maxGridSize(0));
+            break;
+        case RANDOM:
+            mLDM = AmrProcMap_t::MultiLevelMapRandom(this->ref_ratio,
+                                                     allBoxes,
+                                                     maxGridSize(0));
+            break;
+        case KNAPSACK:
+            mLDM = AmrProcMap_t::MultiLevelMapKnapSack(this->ref_ratio,
+                                                       allBoxes,
+                                                       maxGridSize(0));
+            break;
+        default:
+            *gmsg << "We didn't redistribute the grids." << endl;
+            return;
+    }
+        
+    for(unsigned int iMap = 0; iMap < mLDM.size(); ++iMap) {
+        AmrField_t::MoveAllFabs(mLDM[iMap]);
+    }
+    
+    /*
+     * particles need to know the BoxArray
+     * and DistributionMapping
+     */
+    const AmrProcMapContainer_t& dmap = this->DistributionMap();
+    const AmrGridContainer_t& grids   = this->boxArray();
+    for(unsigned int ilev = 0; ilev < allBoxes.size(); ++ilev) {
+        layout_mp->SetParticleBoxArray(ilev, grids[ilev]);
+        layout_mp->SetParticleDistributionMap(ilev, dmap[ilev]);
+    }
+    
+    for(unsigned int iMap = 0; iMap < mLDM.size(); ++iMap) {
+        rho_m[iMap]->MoveFabs(mLDM[iMap]);
+        phi_m[iMap]->MoveFabs(mLDM[iMap]);
+        efield_m[iMap]->MoveFabs(mLDM[iMap]);
+    }
 }
 
 
