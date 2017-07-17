@@ -119,6 +119,8 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     
     if (lev_max == -1)
         lev_max = theEffectiveFinestLevel;
+    else if ( lev_max > theEffectiveFinestLevel )
+        lev_max = theEffectiveFinestLevel;
     
     //loop trough the particles and assigne the grid and level where each particle belongs
     size_t LocalNum = PData.getLocalNum();
