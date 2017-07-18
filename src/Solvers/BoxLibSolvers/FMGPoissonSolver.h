@@ -95,7 +95,8 @@ private:
      * changed, thus, we interpolate from the coarse grids to the fine
      * grids
      */
-    void interpolate_m(AmrFieldContainer_t& phi, const GeomContainer_t& geom, double l0norm);
+    void interpolate_m(AmrFieldContainer_t& phi, const GeomContainer_t& geom,
+                       double l0norm, int finestLevel);
     
 private:
     int bc_m[2*BL_SPACEDIM];        ///< Boundary conditions
