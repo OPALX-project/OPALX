@@ -140,7 +140,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--boxlength [cube side length]" << endl
                     << "--sigma [Gaussian sigma]" << endl
                     << "--tagging charge (default) / efield / potential (optional)" << endl
-                    << "--tagfactor [charge value / 0 ... 1] (optiona)" << endl;
+                    << "--tagging-factor [charge value / 0 ... 1] (optional)" << endl;
                 params.isHelp = true;
                 break;
             case '?':
