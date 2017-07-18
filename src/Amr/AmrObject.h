@@ -114,10 +114,10 @@ public:
     
     virtual void updateMesh() = 0;
     
-    virtual Vektor<int, 3> getBaseLevelGridPoints() = 0;
+    virtual Vektor<int, 3> getBaseLevelGridPoints() const = 0;
     
-    virtual int maxLevel() = 0;
-    virtual int finestLevel() = 0;
+    virtual const int& maxLevel() const = 0;
+    virtual const int& finestLevel() const = 0;
     
     /*!
      * Rebalance the grids among the

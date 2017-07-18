@@ -99,20 +99,34 @@ void AmrPartBunch::boundp() {
     
     if ( amrobj_mp ) {
         
-        if ( localTrackStep_m % amrobj_mp->getRegridFrequency() == 0 ) {
+        const int& maxLevel = amrobj_mp->maxLevel();
+        
+        if ( localTrackStep_m % amrobj_mp->getRegridFrequency() == 0 && maxLevel > 0) {
             
             // update only base level
             amrpbase_mp->update(0, 0);
             
-            int maxLevel = amrobj_mp->maxLevel();
+            int lev_top = std::min(amrobj_mp->finestLevel(), maxLevel - 1);
             
-            for (int i = 0; i <= amrobj_mp->finestLevel() && i < maxLevel; ++i) {
-                amrobj_mp->regrid(i, maxLevel, t_m * 1.0e9 /*time [ns] */);
+            *gmsg << "* Start regriding:" << endl
+                  << "*     Old finest level: "
+                  << amrobj_mp->finestLevel() << endl;
+            
+            for (int i = 0; i <= lev_top; ++i) {
+                amrobj_mp->regrid(i, lev_top, t_m * 1.0e9 /*time [ns] */);
                 /* update to multilevel --> update GDB
-                * Only update current and next level
-                */
-                amrpbase_mp->update(i, i + 1); //amrobj_mp->finestLevel());
+                 * Only update current and next level
+                 *
+                 * we need to update till finest level
+                 * due to scatter operation in regrid
+                 */
+                amrpbase_mp->update(i, amrobj_mp->finestLevel());
             }
+            
+            *gmsg << "*     New finest level: "
+                  << amrobj_mp->finestLevel() << endl
+                  << "* Finished regriding" << endl;
+            
         } else {
             // multi-level udpate
             this->update();

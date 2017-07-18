@@ -457,7 +457,7 @@ void AmrBoxLib::updateMesh() {
     bunch_mp->setBaseLevelMeshSpacing(hr);
 }
 
-Vektor<int, 3> AmrBoxLib::getBaseLevelGridPoints() {
+Vektor<int, 3> AmrBoxLib::getBaseLevelGridPoints() const {
     const AmrGeomContainer_t& geom = this->Geom();
     const amrex::Box& bx = geom[0].Domain();
     
@@ -470,13 +470,13 @@ Vektor<int, 3> AmrBoxLib::getBaseLevelGridPoints() {
 }
 
 
-inline int AmrBoxLib::maxLevel() {
-    return amrex::AmrMesh::maxLevel();
+inline const int& AmrBoxLib::maxLevel() const {
+    return this->max_level;
 }
 
 
-inline int AmrBoxLib::finestLevel() {
-    return amrex::AmrMesh::finestLevel();
+inline const int& AmrBoxLib::finestLevel() const {
+    return this->finest_level;
 }
 
 
@@ -702,7 +702,7 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray_t& tags, AmrReal_
      * value of this level.
      */
     if ( !phi_m[lev]->ok() || (time == 0 && !(phi_m[lev]->norm0(0) > 0)) ) {
-        *gmsg << "Level " << lev << ": We need to perform "
+        *gmsg << "* Level " << lev << ": We need to perform "
               << "charge tagging in the first time step" << endl;
         this->tagForChargeDensity_m(lev, tags, time, ngrow);
         
@@ -759,7 +759,7 @@ void AmrBoxLib::tagForEfield_m(int lev, TagBoxArray_t& tags, AmrReal_t time, int
      */
     
     if ( !efield_m[lev]->ok() || (time == 0 && !(efield_m[lev]->norm0(0) > 0)) ) {
-        *gmsg << "Level " << lev << ": We need to perform "
+        *gmsg << "* Level " << lev << ": We need to perform "
               << "charge tagging in the first time step" << endl;
         this->tagForChargeDensity_m(lev, tags, time, ngrow);
         
@@ -856,7 +856,7 @@ void AmrBoxLib::initParmParse_m(const AmrInitialInfo& info, AmrLayout_t* layout_
     amrex::ParmParse pAmr("amr");
     pAmr.add("max_grid_size", info.maxgrid);
     
-    const int nratios_vect = info.maxlevel*BL_SPACEDIM;
+    const int nratios_vect = info.maxlevel * BL_SPACEDIM;
     
     AmrIntArray_t refRatio(nratios_vect);
     
