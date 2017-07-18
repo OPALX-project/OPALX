@@ -103,8 +103,8 @@ void AmrPartBunch::boundp() {
         
         if ( localTrackStep_m % amrobj_mp->getRegridFrequency() == 0 && maxLevel > 0) {
             
-            // update only base level
-            amrpbase_mp->update(0, 0);
+            // FIXME Updating only the base level [i.e. update(0, 0)] gives error sometimes
+            amrpbase_mp->update();
             
             int lev_top = std::min(amrobj_mp->finestLevel(), maxLevel - 1);
             
@@ -114,6 +114,7 @@ void AmrPartBunch::boundp() {
             
             for (int i = 0; i <= lev_top; ++i) {
                 amrobj_mp->regrid(i, lev_top, t_m * 1.0e9 /*time [ns] */);
+                
                 /* update to multilevel --> update GDB
                  * Only update current and next level
                  *
