@@ -234,6 +234,7 @@ private:
     double convertBetaGammaToeV(double valueInbega, double mass);
     double converteVToBetaGamma(double valueIneV, double massIneV);
     double convertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV);
+    size_t getNumberOfParticlesInFile(std::ifstream &inputFile);
     void createDistributionBinomial(size_t numberOfParticles, double massIneV);
     void createDistributionFlattop(size_t numberOfParticles, double massIneV);
     void createDistributionFromFile(size_t numberOfParticles, double massIneV);
