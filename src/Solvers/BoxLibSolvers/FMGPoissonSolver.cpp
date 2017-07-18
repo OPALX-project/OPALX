@@ -177,7 +177,7 @@ void FMGPoissonSolver::initParameters_m() {
     pp_mg.add("nu_f", 8);
     
     // verbosity of the multigrid solver. Higher numbers give more verbosity (doc: verbose)
-    pp_mg.add("v"   , 1);
+    pp_mg.add("v"   , 0);
     
     
     // see amrex/Src/LinearSolvers/C_to_F_MG/AMReX_MGT_Solver.cpp
