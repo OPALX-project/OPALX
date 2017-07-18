@@ -49,6 +49,8 @@
 
 #include <sys/time.h>
 
+#include <boost/regex.hpp>
+
 extern Inform *gmsg;
 
 #define SMALLESTCUTOFF 1e-12
@@ -476,7 +478,18 @@ void Distribution::execute() {
 void Distribution::update() {
 }
 
-void Distribution::create(size_t &totalNumberOfParticles, double massIneV) {
+void Distribution::create(size_t &numberOfParticles, double massIneV) {
+
+    /*
+     * If Options::cZero is true than we reflect generated distribution
+     * to ensure that the transverse averages are 0.0.
+     *
+     * For now we just cut the number of generated particles in half.
+     */
+    size_t numberOfLocalParticles = numberOfParticles;
+    if (Options::cZero && distrTypeT_m != DistrTypeT::FROMFILE) {
+        numberOfLocalParticles = (numberOfParticles + 1) / 2;
+    }
 
     size_t mySeed = Options::seed;
 
@@ -486,9 +499,8 @@ void Distribution::create(size_t &totalNumberOfParticles, double massIneV) {
         mySeed = tv.tv_sec + tv.tv_usec;
     }
 
-    size_t numberOfParticles = totalNumberOfParticles;
     if (Attributes::getBool(itsAttr[AttributesT::SCALABLE])) {
-        numberOfParticles = getNumOfLocalParticlesToCreate(totalNumberOfParticles);
+        numberOfLocalParticles = getNumOfLocalParticlesToCreate(numberOfLocalParticles);
         *gmsg << level2 << "* Generation of distribution with seed = " << mySeed << " + core_id\n"
               << "* is scalable with number of particles and cores." << endl;
         mySeed += Ippl::myNode();
@@ -504,25 +516,25 @@ void Distribution::create(size_t &totalNumberOfParticles, double massIneV) {
     switch (distrTypeT_m) {
 
     case DistrTypeT::MATCHEDGAUSS:
-        createMatchedGaussDistribution(numberOfParticles, massIneV);
+        createMatchedGaussDistribution(numberOfLocalParticles, massIneV);
         break;
     case DistrTypeT::FROMFILE:
-        createDistributionFromFile(totalNumberOfParticles, massIneV);
+        createDistributionFromFile(numberOfParticles, massIneV);
         break;
     case DistrTypeT::GAUSS:
-        createDistributionGauss(numberOfParticles, massIneV);
+        createDistributionGauss(numberOfLocalParticles, massIneV);
         break;
     case DistrTypeT::BINOMIAL:
-        createDistributionBinomial(numberOfParticles, massIneV);
+        createDistributionBinomial(numberOfLocalParticles, massIneV);
         break;
     case DistrTypeT::FLATTOP:
-        createDistributionFlattop(numberOfParticles, massIneV);
+        createDistributionFlattop(numberOfLocalParticles, massIneV);
         break;
     case DistrTypeT::GUNGAUSSFLATTOPTH:
-        createDistributionFlattop(numberOfParticles, massIneV);
+        createDistributionFlattop(numberOfLocalParticles, massIneV);
         break;
     case DistrTypeT::ASTRAFLATTOPTH:
-        createDistributionFlattop(numberOfParticles, massIneV);
+        createDistributionFlattop(numberOfLocalParticles, massIneV);
         break;
     default:
         INFOMSG("Distribution unknown." << endl;);
@@ -550,7 +562,7 @@ void Distribution::create(size_t &totalNumberOfParticles, double massIneV) {
         const int numNodes = Ippl::getNodes();
         const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
 
-        for (size_t partIndex = 0; partIndex < numberOfParticles; ++ partIndex) {
+        for (size_t partIndex = 0; partIndex < numberOfLocalParticles; ++ partIndex) {
 
             // Save to each processor in turn.
             ++ saveProcessor;
@@ -575,8 +587,13 @@ void Distribution::create(size_t &totalNumberOfParticles, double massIneV) {
     // Scale coordinates according to distribution input.
     scaleDistCoordinates();
 
+    // Now reflect particles if Options::cZero is true
+    reflectDistribution(numberOfLocalParticles);
+
     if (Options::seed != -1)
         Options::seed = gsl_rng_uniform_int(randGen_m, gsl_rng_max(randGen_m));
+
+    particlesPerDist_m[0] = tOrZDist_m.size();
 }
 
 void  Distribution::createPriPart(PartBunch *beam, BoundaryGeometry &bg) {
@@ -967,9 +984,12 @@ void Distribution::addDistributions() {
      * Move particle coordinates from added distributions to main distribution.
      */
 
+    size_t idx = 1;
     std::vector<Distribution *>::iterator addedDistIt;
     for (addedDistIt = addedDistributions_m.begin();
-         addedDistIt != addedDistributions_m.end(); addedDistIt++) {
+         addedDistIt != addedDistributions_m.end(); ++ addedDistIt, ++ idx) {
+
+        particlesPerDist_m[idx] = (*addedDistIt)->tOrZDist_m.size();
 
         std::vector<double>::iterator distIt;
         for (distIt = (*addedDistIt)->getXDist().begin();
@@ -1109,27 +1129,71 @@ void Distribution::calcPartPerDist(size_t numberOfParticles) {
 
     typedef std::vector<Distribution *>::iterator iterator;
 
-    if (numberOfDistributions_m == 1)
+    if (numberOfDistributions_m == 1) {
         particlesPerDist_m.push_back(numberOfParticles);
-    else {
-        double totalWeight = getWeight();
-        for (iterator it = addedDistributions_m.begin(); it != addedDistributions_m.end(); it++) {
-            totalWeight += (*it)->getWeight();
-        }
+        return;
+    }
 
-        particlesPerDist_m.push_back(0);
-        size_t numberOfCommittedPart = 0;
-        for (iterator it = addedDistributions_m.begin(); it != addedDistributions_m.end(); it++) {
-            size_t particlesCurrentDist = numberOfParticles * (*it)->getWeight() / totalWeight;
+    std::map<unsigned int, size_t> nPartFromFiles;
+    double totalWeight = 0.0;
+    for (unsigned int i = 0; i <= addedDistributions_m.size(); ++ i) {
+        Distribution *currDist = this;
+        if (i > 0)
+            currDist = addedDistributions_m[i - 1];
+
+        if (currDist->distrTypeT_m == DistrTypeT::FROMFILE) {
+            std::ifstream inputFile;
+            if (Ippl::myNode() == 0) {
+                std::string fileName = Attributes::getString(currDist->itsAttr[AttributesT::FNAME]);
+                inputFile.open(fileName.c_str());
+            }
+            size_t nPart = getNumberOfParticlesInFile(inputFile);
+            nPartFromFiles.insert(std::make_pair(i, nPart));
+            if (nPart > numberOfParticles) {
+                throw OpalException("Distribution::calcPartPerDist",
+                                    "Number of particles is to small");
+            }
+
+            numberOfParticles -= nPart;
+        } else {
+            totalWeight += currDist->getWeight();
+        }
+    }
+
+    size_t numberOfCommittedPart = 0;
+    for (unsigned int i = 0; i <= addedDistributions_m.size(); ++ i) {
+        Distribution *currDist = this;
+        if (i > 0)
+            currDist = addedDistributions_m[i - 1];
+
+        if (currDist->distrTypeT_m == DistrTypeT::FROMFILE) {
+            particlesPerDist_m.push_back(nPartFromFiles[i]);
+        } else {
+            size_t particlesCurrentDist = numberOfParticles * currDist->getWeight() / totalWeight;
             particlesPerDist_m.push_back(particlesCurrentDist);
             numberOfCommittedPart += particlesCurrentDist;
         }
-
-        // Remaining particles go into main distribution.
-        particlesPerDist_m.at(0) = numberOfParticles - numberOfCommittedPart;
-
     }
 
+    // Remaining particles go into first distribution that isn't FROMFILE
+    if (numberOfParticles != numberOfCommittedPart) {
+        size_t diffNumber = numberOfParticles - numberOfCommittedPart;
+        for (unsigned int i = 0; i <= addedDistributions_m.size(); ++ i) {
+            Distribution *currDist = this;
+            if (i > 0)
+                currDist = addedDistributions_m[i - 1];
+
+            if (currDist->distrTypeT_m != DistrTypeT::FROMFILE) {
+                particlesPerDist_m.at(i) += diffNumber;
+                diffNumber = 0;
+                break;
+            }
+        }
+        if (diffNumber != 0) {
+            throw OpalException("Distribution::calcPartPerDist",
+                                "Particles can't be distributed to distributions in array");
+        }
+    }
 }
 
 void Distribution::checkEmissionParameters() {
@@ -1249,6 +1313,36 @@ void Distribution::createDistributionFlattop(size_t numberOfParticles, double ma
         generateFlattopZ(numberOfParticles);
 }
 
+size_t Distribution::getNumberOfParticlesInFile(std::ifstream &inputFile) {
+
+    size_t numberOfParticlesRead = 0;
+    if (Ippl::myNode() == 0) {
+        const boost::regex commentExpr("[[:space:]]*#.*");
+        const std::string repl("");
+        std::string line;
+        std::stringstream linestream;
+        long tempInt = 0;
+
+        do {
+            std::getline(inputFile, line);
+            line = boost::regex_replace(line, commentExpr, repl);
+        } while (line.length() == 0 && !inputFile.fail());
+
+        linestream.str(line);
+        linestream >> tempInt;
+        if (tempInt <= 0) {
+            throw OpalException("Distribution::getNumberOfParticlesInFile",
+                                "The file '" +
+                                Attributes::getString(itsAttr[AttributesT::FNAME]) +
+                                "' does not seem to be an ASCII file containing a distribution.");
+        }
+        numberOfParticlesRead = static_cast<size_t>(tempInt);
+    }
+    reduce(numberOfParticlesRead, numberOfParticlesRead, OpAddAssign());
+
+    return numberOfParticlesRead;
+}
+
 void Distribution::createDistributionFromFile(size_t numberOfParticles, double massIneV) {
 
     *gmsg << level3 << "\n"
@@ -1260,7 +1354,6 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
 
     // Data input file is only read by node 0.
     std::ifstream inputFile;
-    size_t numberOfParticlesRead = 0;
     if (Ippl::myNode() == 0) {
         std::string fileName = Attributes::getString(itsAttr[AttributesT::FNAME]);
         inputFile.open(fileName.c_str());
@@ -1269,18 +1362,9 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
                                 "Open file operation failed, please check if \""
                                 + fileName
                                 + "\" really exists.");
-        else {
-            int tempInt = 0;
-            inputFile >> tempInt;
-            if (tempInt <= 0) {
-                throw OpalException("Distribution::createDistributionFromFile",
-                                    "The file '" + fileName + "' does not seem to be an ASCII file containing a distribution.");
-            }
-            numberOfParticlesRead = static_cast<size_t>(tempInt);
-        }
     }
-    reduce(numberOfParticlesRead, numberOfParticlesRead, OpAddAssign());
 
+    size_t numberOfParticlesRead = getNumberOfParticlesInFile(inputFile);
     /*
      * We read in the particle information using node zero, but save the particle
      * data to each processor in turn.
@@ -1674,30 +1758,23 @@ void Distribution::createOpalCycl(PartBunch &beam,
      */
     chooseInputMomentumUnits(InputMomentumUnitsT::EV);
 
+    /*
+     * Determine the number of particles for each distribution. For OPAL-cycl
+     * there are currently no arrays of distributions supported
+     */
+    calcPartPerDist(numberOfParticles);
+
     // Set distribution type.
     setDistType();
 
     // Emitting particles in not supported in OpalCyclT.
     emitting_m = false;
 
-    /*
-     * If Options::cZero is true than we reflect generated distribution
-     * to ensure that the transverse averages are 0.0.
-     *
-     * For now we just cut the number of generated particles in half.
-     */
-    if (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE))
-        numberOfPartToCreate /= 2;
-
     // Create distribution.
     create(numberOfPartToCreate, beam.getM());
 
     // this variable is needed to be compatible with OPAL-T
     particlesPerDist_m.push_back(tOrZDist_m.size());
-
-    // Now reflect particles if Options::cZero is true.
-    if (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE))
-        reflectDistribution(numberOfPartToCreate);
 
     shiftDistCoordinates(beam.getM());
 
@@ -1825,15 +1902,6 @@ void Distribution::createOpalT(PartBunch &beam,
         (*addedDistIt)->setDistType();
 
     /*
-     * If Options::cZero is true than we reflect generated distribution
-     * to ensure that the transverse averages are 0.0.
-     *
-     * For now we just cut the number of generated particles in half.
-     */
-    if (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE))
-        numberOfParticles /= 2;
-
-    /*
      * Determine the number of particles for each distribution. Note
      * that if a distribution is generated from an input file, then
      * the number of particles in that file will override what is
@@ -1869,10 +1937,6 @@ void Distribution::createOpalT(PartBunch &beam,
     // Move added distribution particles to main distribution.
     addDistributions();
 
-    // Now reflect particles if Options::cZero is true
-    if (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE))
-        reflectDistribution(numberOfParticles);
-
     // Check number of particles in distribution.
     checkParticleNumber(numberOfParticles);
 
@@ -1898,6 +1962,7 @@ void Distribution::createOpalT(PartBunch &beam,
      * For an injected beam we just ensure that there are no
      * particles at z < 0.
      */
+
     if (emitting_m) {
         setEmissionTime(maxTOrZ, minTOrZ);
     }
@@ -1938,6 +2003,7 @@ void Distribution::createOpalT(PartBunch &beam,
 
         additionalRNs_m.insert(additionalRNs_m.end(), mirrored.begin(), mirrored.end());
     }
+
     /*
      * If this is an injected beam, we create particles right away.
      * Emitted beams get created during the course of the simulation.
@@ -3655,6 +3721,9 @@ bool Distribution::Rebin() {
 
 void Distribution::reflectDistribution(size_t &numberOfParticles) {
 
+    if (!Options::cZero || (distrTypeT_m == DistrTypeT::FROMFILE))
+        return;
+
     size_t currentNumPart = tOrZDist_m.size();
     for (size_t partIndex = 0; partIndex < currentNumPart; partIndex++) {
         xDist_m.push_back(-xDist_m.at(partIndex));
@@ -3666,6 +3735,17 @@ void Distribution::reflectDistribution(size_t &numberOfParticles) {
     }
     numberOfParticles = tOrZDist_m.size();
     reduce(numberOfParticles, numberOfParticles, OpAddAssign());
+
+    // if numberOfParticles is odd then delete last particle
+    if (Ippl::myNode() == 0 &&
+        (numberOfParticles + 1) / 2 != numberOfParticles / 2) {
+        xDist_m.pop_back();
+        pxDist_m.pop_back();
+        yDist_m.pop_back();
+        pyDist_m.pop_back();
+        tOrZDist_m.pop_back();
+        pzDist_m.pop_back();
+    }
 }
 
 void Distribution::scaleDistCoordinates() {
