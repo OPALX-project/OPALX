@@ -45,7 +45,7 @@ public:
         int gridy;          ///< Number of grid points in y-direction
         int gridz;          ///< Number of grid points in z-direction
         int maxgrid;        ///< Maximum grid size allowed
-        int maxlevel;       ///< Maximum level for AMR
+        int maxlevel;       ///< Maximum level for AMR (0: single-level)
         int refratx;        ///< Mesh refinement ratio in x-direction
         int refraty;        ///< Mesh refinement ratio in y-direction
         int refratz;        ///< Mesh refinement ratio in z-direction
@@ -149,10 +149,10 @@ public:
     
     void updateMesh();
     
-    Vektor<int, 3> getBaseLevelGridPoints();
+    Vektor<int, 3> getBaseLevelGridPoints() const;
     
-    int maxLevel();
-    int finestLevel();
+    const int& maxLevel() const;
+    const int& finestLevel() const;
     
     
     void redistributeGrids(int how);
