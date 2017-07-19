@@ -68,46 +68,6 @@ public:
     
 public:
     
-//     /*!
-//      * Using this constructors leads to an invalid AmrBoxLib object.
-//      */
-//     AmrBoxLib();
-//     
-//     /*!
-//      * @param tagging different mesh refinement strategies
-//      * @param scaling is used in potential and electric field tagging where
-//      * all cells are marked for refinement if they have a value greater equal than
-//      * either
-//      * \f[
-//      *      \alpha\cdot\max_{i,j,k} |\phi_{i,j,k}|
-//      * \f]
-//      * in case of potential tagging or
-//      * \f[
-//      *      \alpha\cdot\max_{i,j,k} |\vec{E}_{i,j,k}|
-//      * \f]
-//      * in case of electric field tagging.\ The scalar \f$\alpha\f$ represents the
-//      * scaling value.\ In case of electric field tagging, each component is treated
-//      * independently.
-//      * @param nCharge is the amount of charge that a cell has to have in order to be
-//      * refined.\ The cell is marked for refinement if the value is greater equatl
-//      * to nCharge [C / m].
-//      */
-//     AmrBoxLib(TaggingCriteria tagging,
-//               double scaling,
-//               double nCharge);
-//     
-//     /*!
-//      * @param domain is the physical domain of the problem. In case of
-//      * AMReX the domain is specified by src/Amr/BoxLibLayout.h. The particles
-//      * are mapped to the domain \f$[-1, 1]^3\f$, thus the domain is a tiny bit
-//      * greater than that.
-//      * @param nGridPts per dimension (nx, ny, nz / nt)
-//      * @param maxLevel of mesh refinement
-//      */
-//     AmrBoxLib(const AmrDomain_t& domain,
-//               const AmrIntArray_t& nGridPts,
-//               short maxLevel);
-    
     /*!
      * See other constructors documentation for further info.
      * @param domain is the physical domain of the problem
