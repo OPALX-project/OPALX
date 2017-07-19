@@ -556,6 +556,7 @@ void FixedPisaNsga2<CO, MO>::runStateMachine() {
     case Stop: {
         // variator_m->population()->keepSurvivors(archive_);
         dumpPopulationToFile();
+        dumpPopulationToJSON();
 
         variator_m->population()->clean_population();
         curState_m = VariatorStopped;
