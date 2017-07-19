@@ -45,7 +45,7 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
     
     initBaseLevel_m(nGridPts);
     
-    initFineLevel_m();
+//     initFineLevel_m();
     
     // set mesh spacing of bunch
     updateMesh();
