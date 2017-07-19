@@ -26,23 +26,30 @@ public:
     enum TaggingCriteria {
         CHARGE_DENSITY = 0, // default
         POTENTIAL,
-        EFIELD
+        EFIELD,
+        MOMENTA,
+        MAX_NUM_PARTICLES,      ///< max. #particles per cell
+        MIN_NUM_PARTICLES       ///< min. #particles per cell
     };
     
 public:
     
     AmrObject() : tagging_m(CHARGE_DENSITY),
                   scaling_m(0.75),
-                  nCharge_m(1.0e-15),
+                  chargedensity_m(1.0e-15),
+                  maxNumPart_m(1),
+                  minNumPart_m(1),
                   regridFreq_m(1)
     {}
     
     AmrObject(TaggingCriteria tagging,
               double scaling,
-              double nCharge) : tagging_m(tagging),
-                                scaling_m(scaling),
-                                nCharge_m(nCharge),
-                                regridFreq_m(1)
+              double chargedensity_m) : tagging_m(tagging),
+                                        scaling_m(scaling),
+                                        chargedensity_m(chargedensity_m),
+                                        maxNumPart_m(1),
+                                        minNumPart_m(1),
+                                        regridFreq_m(1)
     {}
     
     virtual ~AmrObject() {}
@@ -74,11 +81,29 @@ public:
     }
     
     /*!
-     * Charge for tagging with CHARGE_DENSITY
-     * @param charge >= 0.0 (e.g. 1e-14)
+     * Charge density for tagging with CHARGE_DENSITY
+     * @param chargedensity >= 0.0 (e.g. 1e-14)
      */
-    void setCharge(double charge) {
-        nCharge_m = charge;
+    void setChargeDensity(double chargedensity) {
+        chargedensity_m = chargedensity;
+    }
+    
+    /*!
+     * Maximum number of particles per cell for tagging
+     * @param maxNumPart is upper bound for a cell to be marked
+     * for refinement
+     */
+    void setMaxNumParticles(size_t maxNumPart) {
+        maxNumPart_m = maxNumPart;
+    }
+    
+    /*!
+     * Minimum number of particles per cell for tagging
+     * @param minNumPart is lower bound for a cell to be marked
+     * for refinement
+     */
+    void setMinNumParticles(size_t minNumPart) {
+        minNumPart_m = minNumPart;
     }
     
     /*!
@@ -130,7 +155,11 @@ protected:
     
     double scaling_m;           ///< Scaling factor for tagging [0, 1]
                                 // (POTENTIAL, EFIELD)
-    double nCharge_m;           ///< Tagging value for CHARGE_DENSITY
+    double chargedensity_m;     ///< Tagging value for CHARGE_DENSITY
+    
+    size_t maxNumPart_m;        ///< Tagging value for MAX_NUM_PARTICLES
+    
+    size_t minNumPart_m;        ///< Tagging value for MIN_NUM_PARTICLES
     
     size_t regridFreq_m;        ///< After how many time steps to regrid
     
