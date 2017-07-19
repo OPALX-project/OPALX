@@ -76,16 +76,18 @@ namespace {
 	ALPHA,      // Green’s function splitting parameter
 	EPSILON,    // regularization for PP interaction
 #ifdef HAVE_AMR_SOLVER
-        AMRMAXLEVEL,    // AMR, maximum refinement level
-        AMRREFX,        // AMR, refinement ratio in x
-        AMRREFY,        // AMR, refinement ratio in y
-        AMRREFT,        // AMR, refinement ration in z
-        AMRSUBCYCLE,    // AMR, subcycling in time for refined levels (default: false)
-        AMRMAXGRID,     // AMR, maximum grid size (default: 16)
-        AMRTAGGING,
-        CHARGEPERCELL,
-        SCALING,
-        AMRREGRIDFREQ,  /// AMR, after how many time steps to regrid
+        AMR_MAXLEVEL,       // AMR, maximum refinement level
+        AMR_REFX,           // AMR, refinement ratio in x
+        AMR_REFY,           // AMR, refinement ratio in y
+        AMR_REFT,           // AMR, refinement ration in z
+        AMR_SUBCYCLE,       // AMR, subcycling in time for refined levels (default: false)
+        AMR_MAXGRID,        // AMR, maximum grid size (default: 16)
+        AMR_TAGGING,
+        AMR_DENSITY,
+        AMR_MAX_NUM_PART,
+        AMR_MIN_NUM_PART,
+        AMR_SCALING,
+        AMR_REGRID_FREQ,    // AMR, after how many time steps to regrid
 #endif
         // FOR XXX BASED SOLVER
         SIZE
@@ -130,23 +132,30 @@ FieldSolver::FieldSolver():
 
     // AMR
 #ifdef HAVE_AMR_SOLVER
-    itsAttr[AMRMAXLEVEL] = Attributes::makeReal("AMRMAXLEVEL", "Maximum number of levels in AMR", 0);
-    itsAttr[AMRREFX] = Attributes::makeReal("AMRREFX", "Refinement ration in x-direction in AMR", 2);
-    itsAttr[AMRREFY] = Attributes::makeReal("AMRREFY", "Refinement ration in y-direction in AMR", 2);
-    itsAttr[AMRREFT] = Attributes::makeReal("AMRREFT", "Refinement ration in z-direction in AMR", 2);
-    itsAttr[AMRSUBCYCLE] = Attributes::makeBool("AMRSUBCYCLE",
-                                                "Subcycling in time for refined levels in AMR", false);
-    itsAttr[AMRMAXGRID] = Attributes::makeReal("AMRMAXGRID", "Maximum grid size in AMR", 16);
+    itsAttr[AMR_MAXLEVEL] = Attributes::makeReal("AMR_MAXLEVEL", "Maximum number of levels in AMR", 0);
+    itsAttr[AMR_REFX] = Attributes::makeReal("AMR_REFX", "Refinement ration in x-direction in AMR", 2);
+    itsAttr[AMR_REFY] = Attributes::makeReal("AMR_REFY", "Refinement ration in y-direction in AMR", 2);
+    itsAttr[AMR_REFT] = Attributes::makeReal("AMR_REFT", "Refinement ration in z-direction in AMR", 2);
+    itsAttr[AMR_SUBCYCLE] = Attributes::makeBool("AMR_SUBCYCLE",
+                                                 "Subcycling in time for refined levels in AMR", false);
+    itsAttr[AMR_MAXGRID] = Attributes::makeReal("AMR_MAXGRID", "Maximum grid size in AMR", 16);
     
-    itsAttr[AMRTAGGING] = Attributes::makeString("AMRTAGGING",
-                                                 "Refinement criteria [CHARGE | POTENTIAL | EFIELD]", "CHARGE");
-    itsAttr[CHARGEPERCELL] = Attributes::makeReal("CHARGEPERCELL",
-                                                  "Tagging value for CHARGE refinement", 1.0e-14);
-    itsAttr[SCALING] = Attributes::makeReal("SCALING",
-                                            "Scaling value for maximum value tagging (only POTENTIAL / CHARGE)",
-                                            0.75);
-    itsAttr[AMRREGRIDFREQ] = Attributes::makeReal("AMRREGRIDFREQ",
-                                                  "After how many time steps to regrid", 1);
+    itsAttr[AMR_TAGGING] = Attributes::makeString("AMR_TAGGING",
+                                                  "Refinement criteria [CHARGE_DENSITY | POTENTIAL | EFIELD]",
+                                                  "CHARGE_DENSITY");
+    itsAttr[AMR_DENSITY] = Attributes::makeReal("AMR_DENSITY",
+                                               "Tagging value for charge density refinement [C / cell volume]",
+                                               1.0e-14);
+    itsAttr[AMR_MAX_NUM_PART] = Attributes::makeReal("AMR_MAX_NUM_PART",
+                                                     "Tagging value for max. #particles", 1);
+    itsAttr[AMR_MIN_NUM_PART] = Attributes::makeReal("AMR_MIN_NUM_PART",
+                                                     "Tagging value for min. #particles", 1);
+    itsAttr[AMR_SCALING] = Attributes::makeReal("AMR_SCALING",
+                                                "Scaling value for maximum value tagging "
+                                                "(only POTENTIAL / CHARGE_DENSITY / "
+                                                "MOMENTA", 0.75);
+    itsAttr[AMR_REGRID_FREQ] = Attributes::makeReal("AMR_REGRID_FREQ",
+                                                    "After how many time steps to regrid", 1);
 #endif
 
     mesh_m = 0;
@@ -272,27 +281,27 @@ inline bool FieldSolver::isAmrSolverType() const {
 }
 
 inline int FieldSolver::getAmrMaxLevel() const {
-    return Attributes::getReal(itsAttr[AMRMAXLEVEL]);
+    return Attributes::getReal(itsAttr[AMR_MAXLEVEL]);
 }
 
 inline int FieldSolver::getAmrRefRatioX() const {
-    return Attributes::getReal(itsAttr[AMRREFX]);
+    return Attributes::getReal(itsAttr[AMR_REFX]);
 }
 
 inline int FieldSolver::getAmrRefRatioY() const {
-    return Attributes::getReal(itsAttr[AMRREFY]);
+    return Attributes::getReal(itsAttr[AMR_REFY]);
 }
 
 inline int FieldSolver::getAmrRefRatioT() const {
-    return Attributes::getReal(itsAttr[AMRREFT]);
+    return Attributes::getReal(itsAttr[AMR_REFT]);
 }
 
 inline bool FieldSolver::isAmrSubCycling() const {
-    return Attributes::getBool(itsAttr[AMRSUBCYCLE]);
+    return Attributes::getBool(itsAttr[AMR_SUBCYCLE]);
 }
 
 inline int FieldSolver::getAmrMaxGridSize() const {
-    return Attributes::getReal(itsAttr[AMRMAXGRID]);
+    return Attributes::getReal(itsAttr[AMR_MAXGRID]);
 }
 #endif
 
@@ -422,16 +431,19 @@ Inform &FieldSolver::printInfo(Inform &os) const {
     }
 #ifdef HAVE_AMR_SOLVER
     else if (fsType == "AMR" || Options::amr) {
-        os << "* AMRMAXLEVEL   " << Attributes::getReal(itsAttr[AMRMAXLEVEL]) << '\n'
-           << "* AMRREFX       " << Attributes::getReal(itsAttr[AMRREFX]) << '\n'
-           << "* AMRREFY       " << Attributes::getReal(itsAttr[AMRREFY]) << '\n'
-           << "* AMRREFT       " << Attributes::getReal(itsAttr[AMRREFT]) << '\n'
-           << "* AMRSUBCYCLE   " << Attributes::getBool(itsAttr[AMRSUBCYCLE]) << '\n'
-           << "* AMRMAXGRID    " << Attributes::getReal(itsAttr[AMRMAXGRID]) << '\n'
-           << "* AMRTAGGING    " << Attributes::getString(itsAttr[AMRTAGGING]) <<'\n'
-           << "* CHARGEPERCELL " << Attributes::getReal(itsAttr[CHARGEPERCELL]) << '\n'
-           << "* SCALING       " << Attributes::getReal(itsAttr[SCALING]) << '\n'
-           << "* AMRREGRIDFREQ " << Attributes::getReal(itsAttr[AMRREGRIDFREQ]) << endl;
+        os << "* AMR_MAXLEVEL     " << Attributes::getReal(itsAttr[AMR_MAXLEVEL]) << '\n'
+           << "* AMR_REFX         " << Attributes::getReal(itsAttr[AMR_REFX]) << '\n'
+           << "* AMR_REFY         " << Attributes::getReal(itsAttr[AMR_REFY]) << '\n'
+           << "* AMR_REFT         " << Attributes::getReal(itsAttr[AMR_REFT]) << '\n'
+           << "* AMR_SUBCYCLE     " << Attributes::getBool(itsAttr[AMR_SUBCYCLE]) << '\n'
+           << "* AMR_MAXGRID      " << Attributes::getReal(itsAttr[AMR_MAXGRID]) << '\n'
+           << "* AMR_TAGGING      " << Attributes::getString(itsAttr[AMR_TAGGING]) <<'\n'
+           << "* AMR_DENSITY      " << Attributes::getReal(itsAttr[AMR_DENSITY]) << '\n'
+           << "* AMR_MAX_NUM_PART " << Attributes::getReal(itsAttr[AMR_MAX_NUM_PART]) << '\n'
+           << "* AMR_MIN_NUM_PART " << Attributes::getReal(itsAttr[AMR_MIN_NUM_PART]) << '\n'
+           << "* AMR_DENSITY      " << Attributes::getReal(itsAttr[AMR_DENSITY]) << '\n'
+           << "* AMR_SCALING      " << Attributes::getReal(itsAttr[AMR_SCALING]) << '\n'
+           << "* AMR_REGRID_FREQ  " << Attributes::getReal(itsAttr[AMR_REGRID_FREQ]) << endl;
     }
 #endif
 
@@ -477,20 +489,39 @@ void FieldSolver::initAmrObject_m() {
     
     AmrObject::TaggingCriteria tagging = AmrObject::TaggingCriteria::CHARGE_DENSITY;
     
-    std::string tag = Attributes::getString(itsAttr[AMRTAGGING]);
+    std::string tag = Attributes::getString(itsAttr[AMR_TAGGING]);
     
     if ( tag == "POTENTIAL" )
         tagging = AmrObject::TaggingCriteria::POTENTIAL;
     else if (tag == "EFIELD" )
         tagging = AmrObject::TaggingCriteria::EFIELD;
-    else if ( tag != "CHARGE" )
+    else if ( tag == "MOMENTA" )
+        tagging = AmrObject::TaggingCriteria::MOMENTA;
+    else if ( tag == "MAX_NUM_PARTICLES" )
+        tagging = AmrObject::TaggingCriteria::MAX_NUM_PARTICLES;
+    else if ( tag == "MIN_NUM_PARTICLES" )
+        tagging = AmrObject::TaggingCriteria::MIN_NUM_PARTICLES;
+    else if ( tag != "CHARGE_DENSITY" )
         throw OpalException("FieldSolver::initAmrObject_m()",
-                            "Not supported refinement criteria [CHARGE | POTENTIAL | EFIELD].");
+                            "Not supported refinement criteria "
+                            "[CHARGE_DENSITY | POTENTIAL | EFIELD | "
+                            "MOMENTA | MAX_NUM_PARTICLES | MIN_NUM_PARTICLES].");
     
     itsAmrObject_mp->setTagging(tagging);
-    itsAmrObject_mp->setScalingFactor( Attributes::getReal(itsAttr[SCALING]) );
-    itsAmrObject_mp->setCharge( Attributes::getReal(itsAttr[CHARGEPERCELL]) );
-    itsAmrObject_mp->setRegridFrequency( Attributes::getReal(itsAttr[AMRREGRIDFREQ]) );
+    
+    itsAmrObject_mp->setScalingFactor( Attributes::getReal(itsAttr[AMR_SCALING]) );
+    
+    itsAmrObject_mp->setChargeDensity( Attributes::getReal(itsAttr[AMR_DENSITY]) );
+    
+    itsAmrObject_mp->setMaxNumParticles(
+        Attributes::getReal(itsAttr[AMR_MAX_NUM_PART])
+    );
+    
+    itsAmrObject_mp->setMinNumParticles(
+        Attributes::getReal(itsAttr[AMR_MIN_NUM_PART])
+    );
+    
+    itsAmrObject_mp->setRegridFrequency( Attributes::getReal(itsAttr[AMR_REGRID_FREQ]) );
 }
 
 
