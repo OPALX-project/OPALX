@@ -9,11 +9,11 @@
 #include <cmath>
 
 template <class T, unsigned Dim>
-const Vector_t BoxLibLayout<T, Dim>::lowerBound = - Vector_t(1.025, 1.025, 1.025);
+const Vector_t BoxLibLayout<T, Dim>::lowerBound = - Vector_t(1.04, 1.04, 1.04);
 
 
 template <class T, unsigned Dim>
-const Vector_t BoxLibLayout<T, Dim>::upperBound = Vector_t(1.025, 1.025, 1.025);
+const Vector_t BoxLibLayout<T, Dim>::upperBound = Vector_t(1.04, 1.04, 1.04);
 
 
 template<class T, unsigned Dim>
