@@ -25,41 +25,6 @@
 
 extern Inform* gmsg;
 
-// AmrBoxLib::AmrBoxLib() : AmrObject(),
-//                          amrex::AmrMesh(),
-//                          bunch_mp(nullptr),
-//                          layout_mp(nullptr),
-//                          rho_m(0),
-//                          phi_m(0),
-//                          efield_m(0)
-// {}
-// 
-// 
-// AmrBoxLib::AmrBoxLib(TaggingCriteria tagging,
-//                      double scaling,
-//                      double nCharge)
-//     : AmrObject(tagging, scaling, nCharge),
-//       amrex::AmrMesh(),
-//       bunch_mp(nullptr),
-//       layout_mp(nullptr),
-//       rho_m(0),
-//       phi_m(0),
-//       efield_m(0)
-// {}
-// 
-// 
-// AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
-//                      const AmrIntArray_t& nGridPts,
-//                      short maxLevel)
-//     : AmrObject(),
-//       amrex::AmrMesh(&domain, maxLevel, nGridPts, 0 /* cartesian */),
-//       bunch_mp(nullptr),
-//       layout_mp(nullptr),
-//       rho_m(maxLevel + 1),
-//       phi_m(maxLevel + 1),
-//       efield_m(maxLevel + 1)
-// {}
-
 
 AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
                      const AmrIntArray_t& nGridPts,
