@@ -34,6 +34,7 @@ class AmrOpal : public AmrMesh {
     
 private:
     typedef Array<std::unique_ptr<MultiFab> > mfs_mt;
+    typedef Vektor<double, BL_SPACEDIM> Vector_t;
 
 public:
     /// Methods for tag cells for refinement
@@ -41,6 +42,9 @@ public:
         kChargeDensity = 0, // default
         kPotentialStrength,
         kEfieldStrength,
+        kMomentum,
+        kMaxNumParticles,
+        kMinNumParticles,
         kCenteredRegion     // only for boxlib-only/testDeposition comparison
     };
         
@@ -164,6 +168,14 @@ public:
         nCharge_m = charge;
     }
     
+    void setMinNumParticles(size_t minNumPart) {
+        minNumPart_m = minNumPart;
+    }
+    
+    void setMaxNumParticles(size_t maxNumPart) {
+        maxNumPart_m = maxNumPart;
+    }
+    
 protected:
     /*!
      * Is called in the AmrCore function for performing tagging.
@@ -176,11 +188,18 @@ protected:
     virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm);
     
 private:
+    // used in tagging
+    void scatter_m(int lev);
     
     void tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow);
     void tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, int ngrow);
     void tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForMomentum_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForMaxNumParticles_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForMinNumParticles_m(int lev, TagBoxArray& tags, Real time, int ngrow);
     void tagForCenteredRegion_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    
+    
     
     
     
@@ -196,6 +215,8 @@ private:
                                 // (tagForPotentialStrength_m, tagForEfieldStrength_m)
     Real   nCharge_m;           ///< Tagging value for tagForChargeDensity_m
     
+    size_t minNumPart_m;
+    size_t maxNumPart_m;
 };
 
 #endif
