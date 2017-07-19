@@ -5,6 +5,8 @@
 
 #include "Solver.h"
 
+#include <map>
+
 
 // AmrOpal::AmrOpal() { }
 AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord,
@@ -21,7 +23,9 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
 #endif
       tagging_m(kChargeDensity),
       scaling_m(0.75),
-      nCharge_m(1.0e-15)
+      nCharge_m(1.0e-15),
+      minNumPart_m(1),
+      maxNumPart_m(1)
 {
     initBaseLevel();
     
@@ -34,7 +38,9 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
     : AmrMesh(rb, max_level_in, n_cell_in, coord),
       tagging_m(kChargeDensity),
       scaling_m(0.75),
-      nCharge_m(1.0e-15)
+      nCharge_m(1.0e-15),
+      minNumPart_m(1),
+      maxNumPart_m(1)
 {
     finest_level = 0;
     
@@ -52,7 +58,9 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
     : AmrMesh(rb, max_level_in, n_cell_in, coord, refratio),
       tagging_m(kChargeDensity),
       scaling_m(0.75),
-      nCharge_m(1.0e-15)
+      nCharge_m(1.0e-15),
+      minNumPart_m(1),
+      maxNumPart_m(1)
 {
     finest_level = 0;
     
@@ -297,6 +305,15 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
         case kEfieldStrength:
             tagForEfieldStrength_m(lev, tags, time, ngrow);
             break;
+        case kMomentum:
+            tagForMomentum_m(lev, tags, time, ngrow);
+            break;
+        case kMaxNumParticles:
+            tagForMaxNumParticles_m(lev, tags, time, ngrow);
+            break;
+        case kMinNumParticles:
+            tagForMinNumParticles_m(lev, tags, time, ngrow);
+            break;
         case kCenteredRegion:
             tagForCenteredRegion_m(lev, tags, time, ngrow);
             break;
@@ -420,33 +437,31 @@ void AmrOpal::ClearLevel(int lev) {
 }
 
 
-// use scale instead of time to scale charge due to mapping of particles
-void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
-    
-//     for (int i = lev; i <= finest_level; ++i) {
-//         nChargePerCell_m[i]->setVal(0.0, 1);
-//         #ifdef IPPL_AMR
-//             bunch_m->AssignCellDensitySingleLevelFort(bunch_m->qm, *nChargePerCell_m[i], i);
-// //             bunch_m->AssignDensitySingleLevel(bunch_m->qm, *nChargePerCell_m[i], i);
-//         #else
-//             bunch_m->AssignDensitySingleLevel(0, *nChargePerCell_m[i], i);
-//         #endif
-//         
-//         nChargePerCell_m[i]->mult(scale, 0, 1);
-//     }
-//     
-//     for (int i = finest_level-1; i >= lev; --i) {
-//         MultiFab tmp(nChargePerCell_m[i]->boxArray(), nChargePerCell_m[i]->DistributionMap(), 1, 0);
-//         tmp.setVal(0.0);
-//         amrex::average_down(*nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
-//         MultiFab::Add(*nChargePerCell_m[i], tmp, 0, 0, 1, 0);
-//     }
-    
+void AmrOpal::scatter_m(int lev) {
     for (int i = lev; i <= finest_level; ++i) {
         nChargePerCell_m[i]->setVal(0.0, 1);
     }
     
-    bunch_m->AssignDensityFort(bunch_m->qm, nChargePerCell_m, lev, 1, finest_level);
+    mfs_mt partMF(finest_level + 1);
+    for (int i = lev; i <= finest_level; i++) {
+        const amrex::BoxArray& ba = boxArray()[i];
+        const amrex::DistributionMapping& dmap = DistributionMap(i);
+        partMF[i].reset(new amrex::MultiFab(ba, dmap, 1, 2));
+        partMF[i]->setVal(0.0, 2);
+   }
+    
+    bunch_m->AssignDensityFort(bunch_m->qm, partMF, lev, 1, finest_level);
+    
+    for (int i = lev; i <= finest_level; ++i) {
+        amrex::MultiFab::Copy(*nChargePerCell_m[i], *partMF[i], 0, 0, 1, 0);
+    }
+}
+
+
+// use scale instead of time to scale charge due to mapping of particles
+void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
+    
+    scatter_m(lev);
     
     for (int i = lev; i <= finest_level; ++i) {
         nChargePerCell_m[i]->mult(scale, 1);
@@ -698,7 +713,7 @@ void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*tim
 #pragma omp parallel
 #endif
     {
-        Array<int>  itags;
+//         Array<int>  itags;
         for (MFIter mfi(*grad_phi[lev],false/*true*/); mfi.isValid(); ++mfi) {
             const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
@@ -709,7 +724,7 @@ void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*tim
 //             tagfab.get_itags(itags, tilebx);
             
             // data pointer and index space
-            int*        tptr    = itags.dataPtr();
+//             int*        tptr    = itags.dataPtr();
             const int*  tlo     = tilebx.loVect();
             const int*  thi     = tilebx.hiVect();
 
@@ -741,6 +756,184 @@ void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*tim
     // releases memory itself
     for (int i = 0; i < nlevels; ++i)
         nPartPerCell[i].reset(nullptr);
+}
+
+
+void AmrOpal::tagForMomentum_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
+#ifdef IPPL_AMR
+    amrplayout_t* PLayout = &bunch_m->getLayout();
+    const BoxArray& ba = PLayout->ParticleBoxArray(lev);
+    const DistributionMapping& dm = PLayout->ParticleDistributionMap(lev);
+    
+    
+    const auto& LocalNumPerLevel = bunch_m->getLocalNumPerLevel();
+    
+    size_t lBegin = LocalNumPerLevel.begin(lev);
+    size_t lEnd   = LocalNumPerLevel.end(lev);
+    
+    Vector_t pmax = Vector_t(0.0, 0.0, 0.0);
+    for (size_t i = lBegin; i < lEnd; ++i) {
+        const Vector_t& tmp = bunch_m->P[i];
+        pmax = ( dot(tmp, tmp) > dot(pmax, pmax) ) ? tmp : pmax;
+    }
+    
+    double momentum2 = scaling_m * dot(pmax, pmax);
+    
+    std::map<IntVect, bool> cells;
+    for (size_t i = lBegin; i < lEnd; ++i) {
+        if ( dot(bunch_m->P[i], bunch_m->P[i]) >= momentum2 ) {
+            IntVect iv = PLayout->Index(bunch_m->R[i], lev);
+            cells[iv] = true;
+        }
+    }
+        
+    const int clearval = TagBox::CLEAR;
+    const int   tagval = TagBox::SET;
+    
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+//         Array<int>  itags;
+        for (MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+            const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
+            
+            TagBox&     tagfab  = tags[mfi];
+            
+            // data pointer and index space
+            const int*  tlo     = tilebx.loVect();
+            const int*  thi     = tilebx.hiVect();
+
+            for (int i = tlo[0]; i <= thi[0]; ++i) {
+                for (int j = tlo[1]; j <= thi[1]; ++j) {
+                    for (int k = tlo[2]; k <= thi[2]; ++k) {
+                        IntVect iv(i, j, k);
+                        if ( cells.find(iv) != cells.end() )
+                            tagfab(iv) = tagval;
+                        else
+                            tagfab(iv) = clearval;
+                    }
+                }
+            }
+            //
+            // Now update the tags in the TagBox.
+            //
+//             tagfab.tags_and_untags(itags, tilebx);
+        }
+    }
+#endif
+}
+
+
+void AmrOpal::tagForMaxNumParticles_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
+#ifdef IPPL_AMR
+    amrplayout_t* PLayout = &bunch_m->getLayout();
+    const BoxArray& ba = PLayout->ParticleBoxArray(lev);
+    const DistributionMapping& dm = PLayout->ParticleDistributionMap(lev);
+    
+    
+    const auto& LocalNumPerLevel = bunch_m->getLocalNumPerLevel();
+    
+    size_t lBegin = LocalNumPerLevel.begin(lev);
+    size_t lEnd   = LocalNumPerLevel.end(lev);
+    
+    // count particles per cell
+    std::map<IntVect, size_t> cells;
+    for (size_t i = lBegin; i < lEnd; ++i) {
+        IntVect iv = PLayout->Index(bunch_m->R[i], lev);
+        ++cells[iv];
+    }
+        
+    const int clearval = TagBox::CLEAR;
+    const int   tagval = TagBox::SET;
+    
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+//         Array<int>  itags;
+        for (MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+            const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
+            
+            TagBox&     tagfab  = tags[mfi];
+//             tagfab.get_itags(itags, tilebx);
+
+            // data pointer and index space
+            const int*  tlo     = tilebx.loVect();
+            const int*  thi     = tilebx.hiVect();
+
+            for (int i = tlo[0]; i <= thi[0]; ++i) {
+                for (int j = tlo[1]; j <= thi[1]; ++j) {
+                    for (int k = tlo[2]; k <= thi[2]; ++k) {
+                        IntVect iv(i, j, k);
+                        if ( cells.find(iv) != cells.end() && cells[iv] <= maxNumPart_m )
+                            tagfab(iv) = tagval;
+                        else
+                            tagfab(iv) = clearval;
+                    }
+                }
+            }
+            //
+            // Now update the tags in the TagBox.
+            //
+//             tagfab.tags_and_untags(itags, tilebx);
+        }
+    }
+#endif
+}
+
+
+void AmrOpal::tagForMinNumParticles_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
+#ifdef IPPL_AMR
+    amrplayout_t* PLayout = &bunch_m->getLayout();
+    const BoxArray& ba = PLayout->ParticleBoxArray(lev);
+    const DistributionMapping& dm = PLayout->ParticleDistributionMap(lev);
+    
+    // count particles per cell
+    std::map<IntVect, size_t> cells;
+    for (size_t i = 0; i < bunch_m->getLocalNum(); ++i) {
+        IntVect iv = PLayout->Index(bunch_m->R[i], lev);
+        ++cells[iv];
+    }
+        
+    const int clearval = TagBox::CLEAR;
+    const int   tagval = TagBox::SET;
+    
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+//         Array<int>  itags;
+        for (MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+            const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
+            
+            TagBox&     tagfab  = tags[mfi];
+            
+            // data pointer and index space
+            const int*  tlo     = tilebx.loVect();
+            const int*  thi     = tilebx.hiVect();
+
+            for (int i = tlo[0]; i <= thi[0]; ++i) {
+                for (int j = tlo[1]; j <= thi[1]; ++j) {
+                    for (int k = tlo[2]; k <= thi[2]; ++k) {
+                        IntVect iv(i, j, k);
+                        if ( cells.find(iv) != cells.end() && cells[iv] >= minNumPart_m )
+                            tagfab(iv) = tagval;
+                        else
+                            tagfab(iv) = clearval;
+                    }
+                }
+            }
+            //
+            // Now update the tags in the TagBox.
+            //
+//             tagfab.tags_and_untags(itags, tilebx);
+        }
+    }
+#endif
 }
 
 

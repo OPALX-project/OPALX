@@ -57,7 +57,7 @@ struct param_t {
     AmrOpal::TaggingCriteria criteria;
     double tagfactor;
     bool isHelp;
-    bool sigma;
+    double sigma;
     double length;
 };
 
@@ -122,6 +122,12 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     params.criteria = AmrOpal::kEfieldStrength;
                 else if ( std::strcmp("potential", optarg) == 0 )
                     params.criteria = AmrOpal::kPotentialStrength;
+                else if ( std::strcmp("min-npart", optarg) == 0 )
+                    params.criteria = AmrOpal::kMinNumParticles;
+                else if ( std::strcmp("max-npart", optarg) == 0 )
+                    params.criteria = AmrOpal::kMaxNumParticles;
+                else if ( std::strcmp("momentum", optarg) == 0 )
+                    params.criteria = AmrOpal::kMomentum;
                 break;
             case 'f':
                 params.tagfactor = std::atof(optarg);
@@ -139,7 +145,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--nparticles [#particles]" << endl
                     << "--boxlength [cube side length]" << endl
                     << "--sigma [Gaussian sigma]" << endl
-                    << "--tagging charge (default) / efield / potential (optional)" << endl
+                    << "--tagging charge (default) / efield / potential / min-npart (optional)" << endl
                     << "--tagging-factor [charge value / 0 ... 1] (optional)" << endl;
                 params.isHelp = true;
                 break;
@@ -151,7 +157,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             
         }
     }
-    
+
     return ( cnt == required );
 }
 
@@ -222,6 +228,12 @@ void doAMReX(const param_t& params, Inform& msg)
     
     for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
         bunch->qm[i] = 1.0e-10;  // in [C]
+        
+        // increase momentum with distance from center
+        Vector_t r2 = bunch->R[i] * bunch->R[i];
+        bunch->P[i] = Vector_t(std::sqrt(r2(0)),
+                               std::sqrt(r2(1)),
+                               std::sqrt(r2(2)));
     }
     
     double scale = 1.0;
@@ -246,12 +258,26 @@ void doAMReX(const param_t& params, Inform& msg)
     // tagging using potential strength
     myAmrOpal.setTagging(params.criteria);
     
-    if ( params.criteria == AmrOpal::kChargeDensity )
-        myAmrOpal.setCharge(params.tagfactor);
-    else
-        myAmrOpal.setScalingFactor(params.tagfactor);
+    switch ( params.criteria )
+    {
+        case AmrOpal::kChargeDensity:
+            myAmrOpal.setCharge(params.tagfactor); break;
+        case AmrOpal::kMinNumParticles:
+            myAmrOpal.setMinNumParticles(params.tagfactor); break;
+        case AmrOpal::kMaxNumParticles:
+            myAmrOpal.setMaxNumParticles(params.tagfactor); break;
+        case AmrOpal::kEfieldStrength:
+            ;
+        case AmrOpal::kPotentialStrength:
+            ;
+        case AmrOpal::kMomentum:
+            myAmrOpal.setScalingFactor(params.tagfactor); break;
+        default:
+            break;
+    }
     
     IpplTimings::startTimer(regridTimer);
+    
     
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, scale /* 0.0 time*/);
@@ -292,6 +318,12 @@ int main(int argc, char *argv[]) {
             tagging = "efield";
         else if ( params.criteria == AmrOpal::kPotentialStrength )
             tagging = "potential";
+        else if ( params.criteria == AmrOpal::kMinNumParticles )
+            tagging = "min-npart";
+        else if ( params.criteria == AmrOpal::kMaxNumParticles )
+            tagging = "max-npart";
+        else if ( params.criteria == AmrOpal::kMomentum )
+            tagging = "momentum";
     
         msg << "Particle test running with" << endl
             << "- grid                  = " << params.nr << endl
