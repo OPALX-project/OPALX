@@ -88,6 +88,7 @@ std::unique_ptr<AmrBoxLib> AmrBoxLib::create(const AmrInitialInfo& info,
 void AmrBoxLib::regrid(int lbase, int lfine, double time) {
     int new_finest = 0;
     AmrGridContainer_t new_grids(finest_level+2);
+    AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     
     MakeNewGrids(lbase, time, new_finest, new_grids);
 
@@ -108,6 +109,9 @@ void AmrBoxLib::regrid(int lbase, int lfine, double time) {
             AmrProcMap_t new_dmap(new_grids[lev]);
             MakeNewLevel(lev, time, new_grids[lev], new_dmap);
         }
+        
+        layout_mp->setFinestLevel(new_finest);
+        amrpbase_p->update(lev, new_finest);
     }
     
     for (int lev = new_finest+1; lev <= finest_level; ++lev) {
@@ -117,8 +121,6 @@ void AmrBoxLib::regrid(int lbase, int lfine, double time) {
     }
     
     finest_level = new_finest;
-    
-    layout_mp->setFinestLevel(finest_level);
 }
 
 
