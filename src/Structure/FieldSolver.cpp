@@ -87,7 +87,6 @@ namespace {
         AMR_MAX_NUM_PART,
         AMR_MIN_NUM_PART,
         AMR_SCALING,
-        AMR_REGRID_FREQ,    // AMR, after how many time steps to regrid
 #endif
         // FOR XXX BASED SOLVER
         SIZE
@@ -154,8 +153,6 @@ FieldSolver::FieldSolver():
                                                 "Scaling value for maximum value tagging "
                                                 "(only POTENTIAL / CHARGE_DENSITY / "
                                                 "MOMENTA", 0.75);
-    itsAttr[AMR_REGRID_FREQ] = Attributes::makeReal("AMR_REGRID_FREQ",
-                                                    "After how many time steps to regrid", 1);
 #endif
 
     mesh_m = 0;
@@ -442,8 +439,7 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << "* AMR_MAX_NUM_PART " << Attributes::getReal(itsAttr[AMR_MAX_NUM_PART]) << '\n'
            << "* AMR_MIN_NUM_PART " << Attributes::getReal(itsAttr[AMR_MIN_NUM_PART]) << '\n'
            << "* AMR_DENSITY      " << Attributes::getReal(itsAttr[AMR_DENSITY]) << '\n'
-           << "* AMR_SCALING      " << Attributes::getReal(itsAttr[AMR_SCALING]) << '\n'
-           << "* AMR_REGRID_FREQ  " << Attributes::getReal(itsAttr[AMR_REGRID_FREQ]) << endl;
+           << "* AMR_SCALING      " << Attributes::getReal(itsAttr[AMR_SCALING]) << endl;
     }
 #endif
 
@@ -520,8 +516,6 @@ void FieldSolver::initAmrObject_m() {
     itsAmrObject_mp->setMinNumParticles(
         Attributes::getReal(itsAttr[AMR_MIN_NUM_PART])
     );
-    
-    itsAmrObject_mp->setRegridFrequency( Attributes::getReal(itsAttr[AMR_REGRID_FREQ]) );
 }
 
 

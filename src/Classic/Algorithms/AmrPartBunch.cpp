@@ -50,8 +50,60 @@ void AmrPartBunch::initialize(FieldLayout_t *fLayout) {
 
 
 void AmrPartBunch::do_binaryRepart() {
-    amrobj_mp->redistributeGrids(-1 /*KnapSack*/);
-    update();
+    
+    if ( amrobj_mp ) {
+        /* we do an explicit domain mapping of the particles and then
+         * forbid it during the regrid process, this way it's only
+         * executed ones --> saves computation
+         */
+        AmrLayout_t* layout_p = &amrpbase_mp->getAmrLayout();
+        
+        bool isForbidTransform = layout_p->isForbidTransform();
+        
+        if ( !isForbidTransform ) {
+            layout_p->domainMapping(*amrpbase_mp);
+            layout_p->setForbidTransform(true);
+        }
+        
+        const int& maxLevel = amrobj_mp->maxLevel();
+        
+        if ( maxLevel > 0) {
+            
+            // FIXME Updating only the base level [i.e. update(0, 0)] gives error sometimes
+            amrpbase_mp->update();
+            
+            int lev_top = std::min(amrobj_mp->finestLevel(), maxLevel - 1);
+            
+            *gmsg << "* Start regriding:" << endl
+                  << "*     Old finest level: "
+                  << amrobj_mp->finestLevel() << endl;
+            
+//             for (int i = 0; i <= lev_top; ++i) {
+                amrobj_mp->regrid(0, lev_top, t_m * 1.0e9 /*time [ns] */);
+                
+                /* update to multilevel --> update GDB
+                 * Only update current and next level
+                 *
+                 * we need to update till finest level
+                 * due to scatter operation in regrid
+                 */
+                amrpbase_mp->update(0, amrobj_mp->finestLevel());
+//             }
+            
+            *gmsg << "*     New finest level: "
+                  << amrobj_mp->finestLevel() << endl
+                  << "* Finished regriding" << endl;
+        }
+    
+    
+        if ( !isForbidTransform ) {
+            layout_p->setForbidTransform(false);
+            // map particles back
+            layout_p->domainMapping(*amrpbase_mp, true);
+        }
+    }
+//     amrobj_mp->redistributeGrids(-1 /*KnapSack*/);
+//     update();
 }
 
 
@@ -87,61 +139,33 @@ void AmrPartBunch::boundp() {
 
     stateOfLastBoundP_ = unit_state_;
     
-    /* we do an explicit domain mapping of the particles and then
-     * forbid it during the regrid process, this way it's only
-     * executed ones --> saves computation
-     */
-    AmrLayout_t* layout_p = &amrpbase_mp->getAmrLayout();
-    
-    layout_p->domainMapping(*amrpbase_mp);
-    
-    layout_p->setForbidTransform(true);
-    
     if ( amrobj_mp ) {
+        /* we do an explicit domain mapping of the particles and then
+         * forbid it during the regrid process, this way it's only
+         * executed ones --> saves computation
+         */
+        AmrLayout_t* layout_p = &amrpbase_mp->getAmrLayout();
         
-        const int& maxLevel = amrobj_mp->maxLevel();
-        
-        if ( localTrackStep_m % amrobj_mp->getRegridFrequency() == 0 && maxLevel > 0) {
+        bool isForbidTransform = layout_p->isForbidTransform();
             
-            // FIXME Updating only the base level [i.e. update(0, 0)] gives error sometimes
-            amrpbase_mp->update();
-            
-            int lev_top = std::min(amrobj_mp->finestLevel(), maxLevel - 1);
-            
-            *gmsg << "* Start regriding:" << endl
-                  << "*     Old finest level: "
-                  << amrobj_mp->finestLevel() << endl;
-            
-            for (int i = 0; i <= lev_top; ++i) {
-                amrobj_mp->regrid(i, lev_top, t_m * 1.0e9 /*time [ns] */);
-                
-                /* update to multilevel --> update GDB
-                 * Only update current and next level
-                 *
-                 * we need to update till finest level
-                 * due to scatter operation in regrid
-                 */
-                amrpbase_mp->update(i, amrobj_mp->finestLevel());
-            }
-            
-            *gmsg << "*     New finest level: "
-                  << amrobj_mp->finestLevel() << endl
-                  << "* Finished regriding" << endl;
-            
-        } else {
-            // multi-level udpate
-            this->update();
+        if ( !isForbidTransform ) {
+            layout_p->domainMapping(*amrpbase_mp);
+            layout_p->setForbidTransform(true);
         }
+        
+        this->update();
+        
+        if ( !isForbidTransform ) {
+            layout_p->setForbidTransform(false);
+            // map particles back
+            layout_p->domainMapping(*amrpbase_mp, true);
+        }
+        
     } else {
         // At this point an amrobj_mp needs already be set
         throw GeneralClassicException("AmrPartBunch::boundp() ",
                                       "AmrObject pointer is not set.");
     }
-    
-    layout_p->setForbidTransform(false);
-    
-    // map particles back
-    layout_p->domainMapping(*amrpbase_mp, true);
     
     R.resetDirtyFlag();
     
