@@ -69,8 +69,11 @@ void AmrPartBunch::do_binaryRepart() {
         
         if ( maxLevel > 0) {
             
-            // FIXME Updating only the base level [i.e. update(0, 0)] gives error sometimes
-            amrpbase_mp->update();
+            /* Update first in order to make
+             * sure that the particles belong to the right
+             * level and grid
+             */
+            this->update();
             
             int lev_top = std::min(amrobj_mp->finestLevel(), maxLevel - 1);
             
@@ -78,17 +81,11 @@ void AmrPartBunch::do_binaryRepart() {
                   << "*     Old finest level: "
                   << amrobj_mp->finestLevel() << endl;
             
-//             for (int i = 0; i <= lev_top; ++i) {
-                amrobj_mp->regrid(0, lev_top, t_m * 1.0e9 /*time [ns] */);
-                
-                /* update to multilevel --> update GDB
-                 * Only update current and next level
-                 *
-                 * we need to update till finest level
-                 * due to scatter operation in regrid
-                 */
-                amrpbase_mp->update(0, amrobj_mp->finestLevel());
-//             }
+            /* ATTENTION: The bunch has to be updated during
+             * the regrid process!
+             * We regrid from base level 0 up to the finest level.
+             */
+            amrobj_mp->regrid(0, lev_top, t_m * 1.0e9 /*time [ns] */);
             
             *gmsg << "*     New finest level: "
                   << amrobj_mp->finestLevel() << endl
