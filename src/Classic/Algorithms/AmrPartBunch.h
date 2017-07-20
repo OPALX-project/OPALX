@@ -25,23 +25,16 @@ public:
     
     const pbase_t *getAmrParticleBase() const;
     
-//     pbase_t* clone();
-    
     void initialize(FieldLayout_t *fLayout);
     
     // does actually another repartition
     void do_binaryRepart();
     
+    Vector_t get_hr() const;
+    
     VectorPair_t getEExtrema();
     
     double getRho(int x, int y, int z);
-    
-//     const Mesh_t &getMesh() const;
-    
-//     void setMesh(Mesh_t *mesh);
-//     Mesh_t &getMesh();
-    
-//     void setFieldLayout(FieldLayout_t* fLayout);
     
     FieldLayout_t &getFieldLayout();
     
