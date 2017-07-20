@@ -5,7 +5,10 @@
 #include <algorithm>
 
 template<class PLayout>
-AmrParticleBase<PLayout>::AmrParticleBase() : LocalNumPerLevel_m() {
+AmrParticleBase<PLayout>::AmrParticleBase() : forbidTransform_m(false),
+                                              scale_m(1.0),
+                                              LocalNumPerLevel_m()
+{
     UpdateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
     SortParticlesTimer_m = IpplTimings::getTimer("AMR sort particles");
 }
@@ -14,6 +17,8 @@ AmrParticleBase<PLayout>::AmrParticleBase() : LocalNumPerLevel_m() {
 template<class PLayout>
 AmrParticleBase<PLayout>::AmrParticleBase(PLayout* layout)
     : IpplParticleBase<PLayout>(layout),
+      forbidTransform_m(false),
+      scale_m(1.0),
       LocalNumPerLevel_m()
 {
     UpdateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
@@ -186,6 +191,53 @@ void AmrParticleBase<PLayout>::sort(SortList_t &sortlist) {
         attrib_container_t::iterator aend = this->end();
         for ( ; abeg != aend; ++abeg )
             (*abeg)->sort(sortlist);
+}
+
+
+template<class PLayout>
+void AmrParticleBase<PLayout>::setForbidTransform(bool forbidTransform) {
+    forbidTransform_m = forbidTransform;
+}
+
+
+template<class PLayout>
+bool AmrParticleBase<PLayout>::isForbidTransform() const {
+    return forbidTransform_m;
+}
+
+
+template<class PLayout>
+const double& AmrParticleBase<PLayout>::domainMapping(bool inverse) {
+    Vector_t rmin, rmax;
+    bounds(this->R, rmin, rmax);
+    
+    double scale = scale_m;
+    
+    if ( !inverse ) {
+        Vector_t tmp = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
+                                std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
+                                std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
+                               );
+        
+        scale = std::max( tmp[0], tmp[1] );
+        scale = std::max( scale, tmp[2] );
+    }
+    
+    Vector_t vscale = Vector_t(scale, scale, scale);
+    
+    for (unsigned int i = 0; i < this->getLocalNum(); ++i)
+        this->R[i] /= vscale;
+    
+    
+    scale_m = 1.0 / scale;
+    
+    return scale_m;
+}
+
+
+template<class PLayout>
+const double& AmrParticleBase<PLayout>::getScalingFactor() const {
+    return scale_m;
 }
 
 #endif

@@ -108,9 +108,49 @@ public:
     PLayout& getAmrLayout() { return this->getLayout(); }
     const PLayout& getAmrLayout() const { return this->getLayout(); }
     
+    /*!
+     * This method is used in the AmrPartBunch::boundp() function
+     * in order to avoid multpile particle mappings during the
+     * mesh regridding process.
+     * 
+     * @param forbidTransform true if we don't want to map particles onto
+     * \f$[-1, 1]^3\f$
+     */
+    inline void setForbidTransform(bool forbidTransform);
+    
+    /*!
+     * @returns true if we are not mapping the particles onto
+     * \f$[-1, 1]^3\f$ during an update call.
+     */
+    inline bool isForbidTransform() const;
+    
+    /*!
+     * Linear mapping to AMReX computation domain [-1, 1]^3. All dimensions
+     * are mapped by the same scaling factor.
+     * The potential and electric field need to be scaled afterwards appropriately.
+     * @param PData is the particle data
+     * @param inverse is true if we want to do the inverse operation
+     * @returns scaling factor
+     */
+    const double& domainMapping(bool inverse = false);
+    
+    /*!
+     * This function is used during the cell tagging routines.
+     * @returns the scaling factor of the particle domain mapping.
+     */
+    inline const double& getScalingFactor() const;
+    
 protected:
     IpplTimings::TimerRef UpdateParticlesTimer_m;
     IpplTimings::TimerRef SortParticlesTimer_m;
+    
+    bool forbidTransform_m;             ///< To avoid multiple transformations during regrid
+    
+    /*!
+     * Scaling factor for particle coordinate transform
+     * (used for Poisson solve and particle-to-core distribution)
+     */
+    double scale_m;
     
 private:
     ParticleLevelCounter_t LocalNumPerLevel_m;

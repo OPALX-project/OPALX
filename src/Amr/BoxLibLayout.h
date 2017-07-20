@@ -184,7 +184,7 @@ public:
         this->m_nlevels = length;
         this->refRatio_m.resize(maxLevel);
 //         this->m_rr.resize(maxLevel);
-        maxLevel_m = maxLevel;
+        this->maxLevel_m = maxLevel;
     }
     
 
@@ -211,33 +211,6 @@ public:
             refRatio_m[i] = refRatio[i];
         }
     }
-    
-    
-    /*!
-     * @param finestLevel of current simulation state
-     */
-    inline void setFinestLevel(int finestLevel);
-    
-    /*!
-     * @param maxLevel allowed during simulation run
-     */
-    inline void setMaxLevel(int maxLevel);
-    
-    /*!
-     * This method is used in the AmrPartBunch::boundp() function
-     * in order to avoid multpile particle mappings during the
-     * mesh regridding process.
-     * 
-     * @param forbidTransform true if we don't want to map particles onto
-     * \f$[-1, 1]^3\f$
-     */
-    inline void setForbidTransform(bool forbidTransform);
-    
-    /*!
-     * @returns true if we are not mapping the particles onto
-     * \f$[-1, 1]^3\f$ during an update call.
-     */
-    inline bool isForbidTransform() const;
     
     /*
      * ParGDB overwritten functions
@@ -273,22 +246,6 @@ public:
      * for the given level.
      */
     inline int MaxRefRatio (int level) const;
-    
-    /*!
-     * Linear mapping to AMReX computation domain [-1, 1]^3. All dimensions
-     * are mapped by the same scaling factor.
-     * The potential and electric field need to be scaled afterwards appropriately.
-     * @param PData is the particle data
-     * @param inverse is true if we want to do the inverse operation
-     * @returns scaling factor
-     */
-    const double& domainMapping(AmrParticleBase< BoxLibLayout<T,Dim> >& PData, bool inverse = false);
-    
-    /*!
-     * This function is used during the cell tagging routines.
-     * @returns the scaling factor of the particle domain mapping.
-     */
-    const double& getScalingFactor() const;
     
 private:
     /*
@@ -349,18 +306,9 @@ private:
                         int lev_min, int lev_max, int nGrow) const;
     
 private:
-    int finestLevel_m;                  ///< Current finest level of simluation
-    int maxLevel_m;                     ///< Maximum level allowd
-    bool forbidTransform_m;             ///< To avoid multiple transformations during regrid
     
     // don't use m_rr from ParGDB since it is the same refinement in all directions
     AmrIntVectContainer_t refRatio_m;   /// Refinement ratios [0:finest_level-1]
-    
-    /*!
-     * Scaling factor for particle coordinate transform
-     * (used for Poisson solve and particle-to-core distribution)
-     */
-    double scale_m;
 };
 
 #include "BoxLibLayout.hpp"

@@ -1260,7 +1260,7 @@ void DataSink::writeLBalHeader(PartBunchBase<double, 3> *beam,
 #ifdef HAVE_AMR_SOLVER
     if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
         
-        int nLevel = (&(amrbeam->getAmrParticleBase())->getAmrLayout())->maxLevel() + 1;
+        int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
 
         for (int lev = 0; lev < nLevel; ++lev) {
             outputFile << "&column\n"
@@ -1306,7 +1306,7 @@ void DataSink::writeLBalData(PartBunchBase<double, 3> *beam,
 #ifdef HAVE_AMR_SOLVER
     if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
         os_lBalData << "\t";
-        int nLevel = (&(amrbeam->getAmrParticleBase())->getAmrLayout())->maxLevel() + 1;
+        int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
         for (int lev = 0; lev < nLevel; ++lev) {
             os_lBalData << amrbeam->getLevelStatistics(lev) << setw(pwi);
             

@@ -61,7 +61,14 @@ public:
         this->amrobj_mp = fs->getAmrObject();
     }
     
-    // AmrPartBunch only
+    /*
+     * AmrPartBunch only
+     */
+    
+    const AmrObject* getAmrObject() const {
+        return this->amrobj_mp;
+    }
+    
     PoissonSolver *getFieldSolver() {
         return fs_m->solver_m;
     }
