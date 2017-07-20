@@ -254,7 +254,7 @@ public:
     Vector_t get_pmean_Distribution() const;
     Vector_t get_emit() const;
     Vector_t get_norm_emit() const;
-    Vector_t get_hr() const;
+    virtual Vector_t get_hr() const;
 
     double get_Dx() const;
     double get_Dy() const;

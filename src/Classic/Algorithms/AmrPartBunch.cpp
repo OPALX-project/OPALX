@@ -102,6 +102,12 @@ void AmrPartBunch::do_binaryRepart() {
 }
 
 
+Vector_t AmrPartBunch::get_hr() const {
+    const double& scalefactor = amrpbase_mp->getScalingFactor();
+    return hr_m * scalefactor;
+}
+
+
 AmrPartBunch::VectorPair_t AmrPartBunch::getEExtrema() {
     return amrobj_mp->getEExtrema();
 }
