@@ -38,8 +38,7 @@ public:
                   scaling_m(0.75),
                   chargedensity_m(1.0e-15),
                   maxNumPart_m(1),
-                  minNumPart_m(1),
-                  regridFreq_m(1)
+                  minNumPart_m(1)
     {}
     
     AmrObject(TaggingCriteria tagging,
@@ -48,8 +47,7 @@ public:
                                         scaling_m(scaling),
                                         chargedensity_m(chargedensity_m),
                                         maxNumPart_m(1),
-                                        minNumPart_m(1),
-                                        regridFreq_m(1)
+                                        minNumPart_m(1)
     {}
     
     virtual ~AmrObject() {}
@@ -105,23 +103,7 @@ public:
     void setMinNumParticles(size_t minNumPart) {
         minNumPart_m = minNumPart;
     }
-    
-    /*!
-     * After how many steps a regrid
-     * should be performed
-     * @param regridFreq is set in FieldSolver.cpp
-     */
-    void setRegridFrequency(size_t regridFreq) {
-        regridFreq_m = regridFreq;
-    }
-    
-    /*!
-     * @returns the frequency, used in AmrPartBunch::boundp()
-     */
-    const size_t& getRegridFrequency() {
-        return regridFreq_m;
-    }
-    
+        
     /* Methods that are needed by the
      * bunch
      */
@@ -160,9 +142,6 @@ protected:
     size_t maxNumPart_m;        ///< Tagging value for MAX_NUM_PARTICLES
     
     size_t minNumPart_m;        ///< Tagging value for MIN_NUM_PARTICLES
-    
-    size_t regridFreq_m;        ///< After how many time steps to regrid
-    
 };
 
 #endif
