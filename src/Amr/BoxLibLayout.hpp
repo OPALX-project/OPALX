@@ -18,12 +18,9 @@ const Vector_t BoxLibLayout<T, Dim>::upperBound = Vector_t(1.04, 1.04, 1.04);
 
 template<class T, unsigned Dim>
 BoxLibLayout<T, Dim>::BoxLibLayout()
-    : ParGDB(),
-      finestLevel_m(0),
-      maxLevel_m(0),
-      forbidTransform_m(false),
-      refRatio_m(0),
-      scale_m(1.0)
+    : ParticleAmrLayout<T, Dim>(),
+      ParGDB(),
+      refRatio_m(0)
 {
     /* FIXME There might be a better solution
      * 
@@ -45,12 +42,9 @@ BoxLibLayout<T, Dim>::BoxLibLayout()
 
 template<class T, unsigned Dim>
 BoxLibLayout<T, Dim>::BoxLibLayout(int nGridPoints, int maxGridSize)
-    : ParGDB(),
-      finestLevel_m(0),
-      maxLevel_m(0),
-      forbidTransform_m(false),
-      refRatio_m(0),
-      scale_m(1.0)
+    : ParticleAmrLayout<T, Dim>(),
+      ParGDB(),
+      refRatio_m(0)
 {
     this->initDefaultBox(nGridPoints, maxGridSize);
 }
@@ -60,12 +54,9 @@ template<class T, unsigned Dim>
 BoxLibLayout<T, Dim>::BoxLibLayout(const AmrGeometry_t &geom,
                                    const AmrProcMap_t &dmap,
                                    const AmrGrid_t &ba)
-    : ParGDB(geom, dmap, ba),
-      finestLevel_m(0),
-      maxLevel_m(0),
-      forbidTransform_m(false),
-      refRatio_m(0),
-      scale_m(1.0)
+    : ParticleAmrLayout<T, Dim>(),
+      ParGDB(geom, dmap, ba),
+      refRatio_m(0)
 { }
 
 
@@ -74,12 +65,9 @@ BoxLibLayout<T, Dim>::BoxLibLayout(const AmrGeomContainer_t &geom,
                                    const AmrProcMapContainer_t &dmap,
                                    const AmrGridContainer_t &ba,
                                    const AmrIntArray_t &rr)
-    : ParGDB(geom, dmap, ba, rr),
-      finestLevel_m(0),
-      maxLevel_m(0),
-      forbidTransform_m(false),
-      refRatio_m(0),
-      scale_m(1.0)
+    : ParticleAmrLayout<T, Dim>(),
+      ParGDB(geom, dmap, ba, rr),
+      refRatio_m(0)
 { }
 
 
@@ -102,9 +90,9 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
                                   const ParticleAttrib<char>* canSwap)
 {
     // in order to avoid transforms when already done
-    if ( !forbidTransform_m ) {
+    if ( !PData.isForbidTransform() ) {
         // we need to update on Amr domain, has to be undone at end of function
-        this->domainMapping(PData);
+        PData.domainMapping();
     }
     
     int nGrow = 0;
@@ -282,9 +270,9 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     PData.setTotalNum(TotalNum);    // set the total atom count
     PData.setLocalNum(LocalNum);    // set the number of local atoms
     
-    if ( !forbidTransform_m ) {
+    if ( !PData.isForbidTransform() ) {
         // undo domain transformation
-        this->domainMapping(PData, true);
+        PData.domainMapping(true);
     }
 }
 
@@ -588,8 +576,9 @@ void BoxLibLayout<T, Dim>::locateParticle(
     
     if (!success)
     {
-        throw OpalException("BoxLibLayout::locateParticle()",
-                            "Invalide particle.");
+        std::stringstream ss;
+        ss << "Invalid particle at position " << p.R[ip] << ".";
+        throw OpalException("BoxLibLayout::locateParticle()", ss.str());
     }
 }
 
@@ -642,46 +631,22 @@ void BoxLibLayout<T, Dim>::initDefaultBox(int nGridPoints, int maxGridSize)
 }
 
 
-template <class T, unsigned Dim>
-void BoxLibLayout<T, Dim>::setFinestLevel(int finestLevel) {
-    finestLevel_m = finestLevel;
-}
-
-
-template <class T, unsigned Dim>
-void BoxLibLayout<T, Dim>::setMaxLevel(int maxLevel) {
-    maxLevel_m = maxLevel;
-}
-
-
-template <class T, unsigned Dim>
-void BoxLibLayout<T, Dim>::setForbidTransform(bool forbidTransform) {
-    forbidTransform_m = forbidTransform;
-}
-
-
-template <class T, unsigned Dim>
-bool BoxLibLayout<T, Dim>::isForbidTransform() const {
-    return forbidTransform_m;
-}
-
-
 // overwritten functions
 template <class T, unsigned Dim>
 bool BoxLibLayout<T, Dim>::LevelDefined (int level) const {
-    return level <= maxLevel_m && !m_ba[level].empty() && !m_dmap[level].empty();
+    return level <= this->maxLevel_m && !m_ba[level].empty() && !m_dmap[level].empty();
 }
 
 
 template <class T, unsigned Dim>
 int BoxLibLayout<T, Dim>::finestLevel () const {
-    return finestLevel_m;
+    return this->finestLevel_m;
 }
 
 
 template <class T, unsigned Dim>
 int BoxLibLayout<T, Dim>::maxLevel () const {
-    return maxLevel_m;
+    return this->maxLevel_m;
 }
 
 
@@ -699,44 +664,6 @@ int BoxLibLayout<T, Dim>::MaxRefRatio (int level) const {
     for (int n = 0; n<BL_SPACEDIM; n++) 
         maxval = std::max(maxval, refRatio_m[level][n]);
     return maxval;
-}
-
-
-template <class T, unsigned Dim>
-const double& BoxLibLayout<T, Dim>::domainMapping(
-    AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
-    bool inverse)
-{
-    Vector_t rmin, rmax;
-    bounds(PData.R, rmin, rmax);
-    
-    double scale = scale_m;
-    
-    if ( !inverse ) {
-        Vector_t tmp = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
-                                std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
-                                std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
-                               );
-        
-        scale = std::max( tmp[0], tmp[1] );
-        scale = std::max( scale, tmp[2] );
-    }
-    
-    Vector_t vscale = Vector_t(scale, scale, scale);
-    
-    for (unsigned int i = 0; i < PData.getLocalNum(); ++i)
-        PData.R[i] /= vscale;
-    
-    
-    scale_m = 1.0 / scale;
-    
-    return scale_m;
-}
-
-
-template <class T, unsigned Dim>
-const double& BoxLibLayout<T, Dim>::getScalingFactor() const {
-    return scale_m;
 }
 
 #endif

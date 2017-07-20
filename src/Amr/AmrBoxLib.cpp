@@ -111,7 +111,8 @@ void AmrBoxLib::regrid(int lbase, int lfine, double time) {
         }
         
         layout_mp->setFinestLevel(new_finest);
-        amrpbase_p->update(lev, new_finest);
+        // We need to update from lbase and not from lev
+        amrpbase_p->update(lbase, new_finest);
     }
     
     for (int lev = new_finest+1; lev <= finest_level; ++lev) {
@@ -165,7 +166,7 @@ void AmrBoxLib::computeSelfFields() {
     bounds(bunch_mp->R, rmin, rmax);
     
     
-    double scalefactor = layout_mp->domainMapping(*amrpbase_p);
+    double scalefactor = amrpbase_p->domainMapping();
     
     int baseLevel = 0;
     const int& finestLevel = finest_level; //(&amrpbase_p->getAmrLayout())->finestLevel();
@@ -207,7 +208,7 @@ void AmrBoxLib::computeSelfFields() {
     
     amrpbase_p->gather(bunch_mp->Ef, this->efield_m, bunch_mp->R, 0, finest_level);
     
-    layout_mp->domainMapping(*amrpbase_p, true);
+    amrpbase_p->domainMapping(true);
     
     bunch_mp->Ef *= Vector_t(gammaz,
                              gammaz,
@@ -295,7 +296,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     
     // map on Amr domain
-    double scalefactor = layout_mp->domainMapping(*amrpbase_p);
+    double scalefactor = amrpbase_p->domainMapping();
     
     /// from charge (C) to charge density (C/m^3).
     amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
@@ -341,7 +342,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     amrpbase_p->gather(bunch_mp->Ef, this->efield_m, bunch_mp->R, 0, finest_level);
     
     // undo domain change
-    layout_mp->domainMapping(*amrpbase_p, true);
+    amrpbase_p->domainMapping(true);
     
     /// Back Lorentz transformation
     bunch_mp->Ef *= Vector_t(gamma,
@@ -631,7 +632,7 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags,
     amrpbase_p->scatter(bunch_mp->Q, rho_m,
                         bunch_mp->R, lev, finest_level);
     
-    const double& scalefactor = (&amrpbase_p->getAmrLayout())->getScalingFactor();
+    const double& scalefactor = amrpbase_p->getScalingFactor();
     
     for (int i = lev; i <= finest_level; ++i)
         rho_m[i]->mult(scalefactor, 0, 1);

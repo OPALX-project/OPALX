@@ -17,6 +17,46 @@ public:
     // type of attributes this layout should use for position and ID
     typedef ParticleAttrib<SingleParticlePos_t> ParticlePos_t;
     typedef ParticleAttrib<Index_t>             ParticleIndex_t;
+    
+public:
+    
+    ParticleAmrLayout();
+    
+    /*!
+     * @param finestLevel of current simulation state
+     */
+    void setFinestLevel(int finestLevel);
+    
+    /*!
+     * @param maxLevel allowed during simulation run
+     */
+    void setMaxLevel(int maxLevel);
+    
+protected:
+    int finestLevel_m;                  ///< Current finest level of simluation
+    int maxLevel_m;                     ///< Maximum level allowed
 };
+
+
+// ============================================================================
+
+
+template <class T, unsigned Dim>
+ParticleAmrLayout<T, Dim>::ParticleAmrLayout()
+    : finestLevel_m(0),
+      maxLevel_m(0)
+{ }
+
+
+template <class T, unsigned Dim>
+void ParticleAmrLayout<T, Dim>::setFinestLevel(int finestLevel) {
+    finestLevel_m = finestLevel;
+}
+
+
+template <class T, unsigned Dim>
+void ParticleAmrLayout<T, Dim>::setMaxLevel(int maxLevel) {
+    maxLevel_m = maxLevel;
+}
 
 #endif

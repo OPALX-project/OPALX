@@ -56,13 +56,11 @@ void AmrPartBunch::do_binaryRepart() {
          * forbid it during the regrid process, this way it's only
          * executed ones --> saves computation
          */
-        AmrLayout_t* layout_p = &amrpbase_mp->getAmrLayout();
-        
-        bool isForbidTransform = layout_p->isForbidTransform();
+        bool isForbidTransform = amrpbase_mp->isForbidTransform();
         
         if ( !isForbidTransform ) {
-            layout_p->domainMapping(*amrpbase_mp);
-            layout_p->setForbidTransform(true);
+            amrpbase_mp->domainMapping();
+            amrpbase_mp->setForbidTransform(true);
         }
         
         const int& maxLevel = amrobj_mp->maxLevel();
@@ -94,9 +92,9 @@ void AmrPartBunch::do_binaryRepart() {
     
     
         if ( !isForbidTransform ) {
-            layout_p->setForbidTransform(false);
+            amrpbase_mp->setForbidTransform(false);
             // map particles back
-            layout_p->domainMapping(*amrpbase_mp, true);
+            amrpbase_mp->domainMapping(true);
         }
     }
 //     amrobj_mp->redistributeGrids(-1 /*KnapSack*/);
@@ -141,21 +139,19 @@ void AmrPartBunch::boundp() {
          * forbid it during the regrid process, this way it's only
          * executed ones --> saves computation
          */
-        AmrLayout_t* layout_p = &amrpbase_mp->getAmrLayout();
-        
-        bool isForbidTransform = layout_p->isForbidTransform();
+        bool isForbidTransform = amrpbase_mp->isForbidTransform();
             
         if ( !isForbidTransform ) {
-            layout_p->domainMapping(*amrpbase_mp);
-            layout_p->setForbidTransform(true);
+            amrpbase_mp->domainMapping();
+            amrpbase_mp->setForbidTransform(true);
         }
         
         this->update();
         
         if ( !isForbidTransform ) {
-            layout_p->setForbidTransform(false);
+            amrpbase_mp->setForbidTransform(false);
             // map particles back
-            layout_p->domainMapping(*amrpbase_mp, true);
+            amrpbase_mp->domainMapping(true);
         }
         
     } else {
