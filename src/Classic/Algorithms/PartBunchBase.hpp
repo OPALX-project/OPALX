@@ -2252,7 +2252,7 @@ Inform &PartBunchBase<T, Dim>::print(Inform &os) {
         os << "* mean momenta    = " << std::setw(12) << std::setprecision(5) << pmean_m << " [beta gamma]\n";
         os << "* rms emittance   = " << std::setw(12) << std::setprecision(5) << eps_m << " (not normalized)\n";
         os << "* rms correlation = " << std::setw(12) << std::setprecision(5) << rprms_m << "\n";
-        os << "* hr              = " << Util::getLengthString(hr_m, 5) << "\n";
+        os << "* hr              = " << Util::getLengthString(get_hr(), 5) << "\n";
         os << "* dh              = " << std::setw(13) << std::setprecision(5) << dh_m * 100 << " [%]\n";
         os << "* t               = " << std::setw(17) << Util::getTimeString(getT()) << "         "
            << "dT    = "             << std::setw(17) << Util::getTimeString(getdT()) << "\n";
