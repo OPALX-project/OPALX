@@ -41,12 +41,11 @@ namespace OpalTestUtilities {
 
     class SilenceTest {
     public:
-        SilenceTest(bool willSilence);
+        SilenceTest();
         ~SilenceTest();
 
         void setFailed();
     private:
-        SilenceTest(); // disable default ctor
         SilenceTest(const SilenceTest& test); // disable default copy ctor
 
         std::ostringstream _debugOutput;

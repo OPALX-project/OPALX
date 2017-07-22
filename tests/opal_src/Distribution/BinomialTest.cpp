@@ -9,7 +9,7 @@
 #include "gsl/gsl_statistics_double.h"
 
 TEST(BinomialTest, FullSigmaTest1) {
-    OpalTestUtilities::SilenceTest silencer(true);
+    OpalTestUtilities::SilenceTest silencer;
 
     const double expectedR11 = 1.978;
     const double expectedR22 = 0.7998;
@@ -94,7 +94,7 @@ TEST(BinomialTest, FullSigmaTest1) {
 }
 
 TEST(BinomialTest, FullSigmaTest2) {
-    OpalTestUtilities::SilenceTest silencer(true);
+    OpalTestUtilities::SilenceTest silencer;
 
     const double expectedR11 = 1.978;
     const double expectedR22 = 0.7998;

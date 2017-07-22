@@ -3,7 +3,11 @@
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Algorithms/PolynomialTimeDependence.h"
 
+#include "opal_test_utilities/SilenceTest.h"
+
 TEST(PolynomialTimeDependenceTest, PolynomialTimeDependenceTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // Check empty polynomial coefficients always returns 0.
     std::vector<double> test;
     PolynomialTimeDependence time_dependence_1(test);
@@ -27,6 +31,8 @@ TEST(PolynomialTimeDependenceTest, PolynomialTimeDependenceTest) {
 }
 
 TEST(PolynomialTimeDependenceTest, TDMapTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // throw on empty value
     EXPECT_THROW(AbstractTimeDependence::getTimeDependence("name"),
                  GeneralClassicException);
@@ -49,6 +55,8 @@ TEST(PolynomialTimeDependenceTest, TDMapTest) {
 }
 
 TEST(PolynomialTimeDependenceTest, TDMapNameLookupTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     EXPECT_THROW(AbstractTimeDependence::getName(NULL),
                  GeneralClassicException);
     PolynomialTimeDependence time_dep(std::vector<double>(1, 1));
