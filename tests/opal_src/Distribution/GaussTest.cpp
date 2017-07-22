@@ -9,7 +9,7 @@
 #include "gsl/gsl_statistics_double.h"
 
 TEST(GaussTest, FullSigmaTest1) {
-    OpalTestUtilities::SilenceTest silencer(false);
+    OpalTestUtilities::SilenceTest silencer(true);
 
     const double expectedR11 = 1.978;
     const double expectedR22 = 0.7998;
@@ -41,8 +41,15 @@ TEST(GaussTest, FullSigmaTest1) {
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPY], expectedR44);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAZ], expectedR55 * 1e-3);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPZ], expectedR66);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFX], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFY], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFLONG], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFPX], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFPY], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFPZ], 5.0);
     Attributes::setRealArray(dist.itsAttr[Attrib::Distribution::R], expectedR);
     Attributes::setBool(dist.itsAttr[Attrib::Distribution::EMITTED], false);
+    Attributes::setBool(dist.itsAttr[Attrib::Distribution::WRITETOFILE], true);
 
     dist.setDistType();
     dist.checkIfEmitted();
@@ -58,6 +65,8 @@ TEST(GaussTest, FullSigmaTest1) {
 
     double R21 = (gsl_stats_covariance(&(dist.xDist_m[0]), 1, &(dist.pxDist_m[0]), 1, dist.xDist_m.size()) * 1e3 /
                   (expectedR11 * expectedR22));
+    double R43 = (gsl_stats_covariance(&(dist.yDist_m[0]), 1, &(dist.pyDist_m[0]), 1, dist.yDist_m.size()) * 1e3 /
+                  (expectedR33 * expectedR44));
     double R51 = (gsl_stats_covariance(&(dist.xDist_m[0]), 1, &(dist.tOrZDist_m[0]), 1, dist.xDist_m.size()) * 1e6 /
                   (expectedR11 * expectedR55));
     double R52 = (gsl_stats_covariance(&(dist.pxDist_m[0]), 1, &(dist.tOrZDist_m[0]), 1, dist.pxDist_m.size()) * 1e3 /
@@ -67,22 +76,23 @@ TEST(GaussTest, FullSigmaTest1) {
     double R62 = (gsl_stats_covariance(&(dist.pxDist_m[0]), 1, &(dist.pzDist_m[0]), 1, dist.pxDist_m.size()) /
                   (expectedR22 * expectedR66));
 
-    EXPECT_NEAR(expectedR11, R11, 0.05 * std::abs(expectedR11));
-    EXPECT_NEAR(expectedR22, R22, 0.05 * std::abs(expectedR22));
-    EXPECT_NEAR(expectedR33, R33, 0.05 * std::abs(expectedR33));
-    EXPECT_NEAR(expectedR44, R44, 0.05 * std::abs(expectedR44));
-    EXPECT_NEAR(expectedR55, R55, 0.05 * std::abs(expectedR55));
-    EXPECT_NEAR(expectedR66, R66, 0.05 * std::abs(expectedR66));
+    EXPECT_NEAR(R11 / expectedR11, 1.0, 0.002);
+    EXPECT_NEAR(R22 / expectedR22, 1.0, 0.002);
+    EXPECT_NEAR(R33 / expectedR33, 1.0, 0.002);
+    EXPECT_NEAR(R44 / expectedR44, 1.0, 0.002);
+    EXPECT_NEAR(R55 / expectedR55, 1.0, 0.002);
+    EXPECT_NEAR(R66 / expectedR66, 1.0, 0.002);
 
-    EXPECT_NEAR(expectedR21, R21, 0.1 * std::abs(expectedR21));
-    EXPECT_NEAR(expectedR51, R51, 0.1 * std::abs(expectedR51));
-    EXPECT_NEAR(expectedR52, R52, 0.1 * std::abs(expectedR52));
-    EXPECT_NEAR(expectedR61, R61, 0.1 * std::abs(expectedR61));
-    EXPECT_NEAR(expectedR62, R62, 0.1 * std::abs(expectedR62));
+    EXPECT_NEAR(R21 / expectedR21, 1.0, 0.02);
+    EXPECT_NEAR(R43 / expectedR43, 1.0, 0.02);
+    EXPECT_NEAR(R51 / expectedR51, 1.0, 0.05);
+    EXPECT_NEAR(R52 / expectedR52, 1.0, 0.02);
+    EXPECT_NEAR(R61 / expectedR61, 1.0, 0.02);
+    EXPECT_NEAR(R62 / expectedR62, 1.0, 0.02);
 }
 
 TEST(GaussTest, FullSigmaTest2) {
-    OpalTestUtilities::SilenceTest silencer(false);
+    OpalTestUtilities::SilenceTest silencer(true);
 
     const double expectedR11 = 1.978;
     const double expectedR22 = 0.7998;
@@ -115,7 +125,14 @@ TEST(GaussTest, FullSigmaTest2) {
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::R61], expectedR61);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::R52], expectedR52);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::R62], expectedR62);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFX], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFY], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFLONG], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFPX], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFPY], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFPZ], 5.0);
     Attributes::setBool(dist.itsAttr[Attrib::Distribution::EMITTED], false);
+    Attributes::setBool(dist.itsAttr[Attrib::Distribution::WRITETOFILE], true);
 
     dist.setDistType();
     dist.checkIfEmitted();
@@ -132,6 +149,8 @@ TEST(GaussTest, FullSigmaTest2) {
 
     double R21 = (gsl_stats_covariance(&(dist.xDist_m[0]), 1, &(dist.pxDist_m[0]), 1, dist.xDist_m.size()) * 1e3 /
                   (expectedR11 * expectedR22));
+    double R43 = (gsl_stats_covariance(&(dist.yDist_m[0]), 1, &(dist.pyDist_m[0]), 1, dist.yDist_m.size()) * 1e3 /
+                  (expectedR33 * expectedR44));
     double R51 = (gsl_stats_covariance(&(dist.xDist_m[0]), 1, &(dist.tOrZDist_m[0]), 1, dist.xDist_m.size()) * 1e6 /
                   (expectedR11 * expectedR55));
     double R52 = (gsl_stats_covariance(&(dist.pxDist_m[0]), 1, &(dist.tOrZDist_m[0]), 1, dist.pxDist_m.size()) * 1e3 /
@@ -141,16 +160,17 @@ TEST(GaussTest, FullSigmaTest2) {
     double R62 = (gsl_stats_covariance(&(dist.pxDist_m[0]), 1, &(dist.pzDist_m[0]), 1, dist.pxDist_m.size()) /
                   (expectedR22 * expectedR66));
 
-    EXPECT_NEAR(expectedR11, R11, 0.05 * std::abs(expectedR11));
-    EXPECT_NEAR(expectedR22, R22, 0.05 * std::abs(expectedR22));
-    EXPECT_NEAR(expectedR33, R33, 0.05 * std::abs(expectedR33));
-    EXPECT_NEAR(expectedR44, R44, 0.05 * std::abs(expectedR44));
-    EXPECT_NEAR(expectedR55, R55, 0.05 * std::abs(expectedR55));
-    EXPECT_NEAR(expectedR66, R66, 0.05 * std::abs(expectedR66));
+    EXPECT_NEAR(R11 / expectedR11, 1.0, 0.002);
+    EXPECT_NEAR(R22 / expectedR22, 1.0, 0.002);
+    EXPECT_NEAR(R33 / expectedR33, 1.0, 0.002);
+    EXPECT_NEAR(R44 / expectedR44, 1.0, 0.002);
+    EXPECT_NEAR(R55 / expectedR55, 1.0, 0.002);
+    EXPECT_NEAR(R66 / expectedR66, 1.0, 0.002);
 
-    EXPECT_NEAR(expectedR21, R21, 0.1 * std::abs(expectedR21));
-    EXPECT_NEAR(expectedR51, R51, 0.1 * std::abs(expectedR51));
-    EXPECT_NEAR(expectedR52, R52, 0.1 * std::abs(expectedR52));
-    EXPECT_NEAR(expectedR61, R61, 0.1 * std::abs(expectedR61));
-    EXPECT_NEAR(expectedR62, R62, 0.1 * std::abs(expectedR62));
+    EXPECT_NEAR(R21 / expectedR21, 1.0, 0.02);
+    EXPECT_NEAR(R43 / expectedR43, 1.0, 0.02);
+    EXPECT_NEAR(R51 / expectedR51, 1.0, 0.05);
+    EXPECT_NEAR(R52 / expectedR52, 1.0, 0.02);
+    EXPECT_NEAR(R61 / expectedR61, 1.0, 0.02);
+    EXPECT_NEAR(R62 / expectedR62, 1.0, 0.02);
 }

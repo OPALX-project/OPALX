@@ -24,7 +24,6 @@
 #include <numeric>
 
 #include "AbstractObjects/Expressions.h"
-#include "Attributes/Attributes.h"
 #include "Utilities/Options.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBunch.h"
@@ -237,7 +236,7 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
 
 Distribution::~Distribution() {
 
-    if((Ippl::getNodes() == 1) && (os_m.is_open()))
+    if ((Ippl::getNodes() == 1) && (os_m.is_open()))
         os_m.close();
 
     if (energyBins_m != NULL) {
@@ -255,7 +254,7 @@ Distribution::~Distribution() {
         randGen_m = NULL;
     }
 
-    if(laserProfile_m) {
+    if (laserProfile_m) {
         delete laserProfile_m;
         laserProfile_m = NULL;
     }
@@ -263,8 +262,8 @@ Distribution::~Distribution() {
 }
 /*
   void Distribution::printSigma(SigmaGenerator<double,unsigned int>::matrix_type& M, Inform& out) {
-  for(int i=0; i<M.size1(); ++i) {
-  for(int j=0; j<M.size2(); ++j) {
+  for (int i=0; i<M.size1(); ++i) {
+  for (int j=0; j<M.size2(); ++j) {
   *gmsg  << M(i,j) << " ";
   }
   *gmsg << endl;
@@ -304,14 +303,14 @@ size_t Distribution::getNumOfLocalParticlesToCreate(size_t n) {
  */
 void Distribution::writeToFile() {
     /*
-      if(Ippl::getNodes() == 1) {
-      if(os_m.is_open()) {
+      if (Ippl::getNodes() == 1) {
+      if (os_m.is_open()) {
       ;
       } else {
       *gmsg << " Write distribution to file data/dist.dat" << endl;
       std::string file("data/dist.dat");
       os_m.open(file.c_str());
-      if(os_m.bad()) {
+      if (os_m.bad()) {
       *gmsg << "Unable to open output file " <<  file << endl;
       }
       os_m << "# x y ti px py pz "  << std::endl;
@@ -460,7 +459,7 @@ void Distribution::create(size_t &numberOfParticles, double massIneV) {
 
 void  Distribution::createPriPart(PartBunch *beam, BoundaryGeometry &bg) {
 
-    if(Options::ppdebug) {  // This is Parallel Plate Benchmark.
+    if (Options::ppdebug) {  // This is Parallel Plate Benchmark.
         int pc = 0;
         size_t lowMark = beam->getLocalNum();
         double vw = this->getVw();
@@ -471,20 +470,20 @@ void  Distribution::createPriPart(PartBunch *beam, BoundaryGeometry &bg) {
         size_t count = 0;
         size_t N_mean = static_cast<size_t>(floor(bg.getN() / Ippl::getNodes()));
         size_t N_extra = static_cast<size_t>(bg.getN() - N_mean * Ippl::getNodes());
-        if(Ippl::myNode() == 0)
+        if (Ippl::myNode() == 0)
             N_mean += N_extra;
-        if(bg.getN() != 0) {
-            for(size_t i = 0; i < bg.getN(); i++) {
-                if(pc == Ippl::myNode()) {
-                    if(count < N_mean) {
+        if (bg.getN() != 0) {
+            for (size_t i = 0; i < bg.getN(); i++) {
+                if (pc == Ippl::myNode()) {
+                    if (count < N_mean) {
                         /*==============Parallel Plate Benchmark=====================================*/
                         double test_s = 1;
                         double f_x = 0;
                         double test_x = 0;
                         while(test_s > f_x) {
-                            test_s = IpplRandom();
+                            test_s = gsl_rng_uniform(randGen_m);
                             test_s *= f_max;
-                            test_x = IpplRandom();
+                            test_x = gsl_rng_uniform(randGen_m);
                             test_x *= 10 * test_a; //range for normalized emission speed(0,10*test_a);
                             f_x = test_x / test_asq * exp(-test_x * test_x / 2 / test_asq);
                         }
@@ -494,7 +493,7 @@ void  Distribution::createPriPart(PartBunch *beam, BoundaryGeometry &bg) {
                         double betagamma = betaemit / sqrt(1 - betaemit * betaemit);
                         /*============================================================================ */
                         beam->create(1);
-                        if(pc != 0) {
+                        if (pc != 0) {
                             beam->R[lowMark + count] = bg.getCooridinate(Ippl::myNode() * N_mean + count + N_extra);
                             beam->P[lowMark + count] = betagamma * bg.getMomenta(Ippl::myNode() * N_mean + count);
                         } else {
@@ -512,7 +511,7 @@ void  Distribution::createPriPart(PartBunch *beam, BoundaryGeometry &bg) {
                     }
                 }
                 pc++;
-                if(pc == Ippl::getNodes())
+                if (pc == Ippl::getNodes())
                     pc = 0;
             }
             bg.clearCooridinateArray();
@@ -529,15 +528,15 @@ void  Distribution::createPriPart(PartBunch *beam, BoundaryGeometry &bg) {
         size_t N_mean = static_cast<size_t>(floor(bg.getN() / Ippl::getNodes()));
         size_t N_extra = static_cast<size_t>(bg.getN() - N_mean * Ippl::getNodes());
 
-        if(Ippl::myNode() == 0)
+        if (Ippl::myNode() == 0)
             N_mean += N_extra;
-        if(bg.getN() != 0) {
-            for(size_t i = 0; i < bg.getN(); i++) {
+        if (bg.getN() != 0) {
+            for (size_t i = 0; i < bg.getN(); i++) {
 
-                if(pc == Ippl::myNode()) {
-                    if(count < N_mean) {
+                if (pc == Ippl::myNode()) {
+                    if (count < N_mean) {
                         beam->create(1);
-                        if(pc != 0)
+                        if (pc != 0)
                             beam->R[lowMark + count] = bg.getCooridinate(Ippl::myNode() * N_mean + count + N_extra); // node 0 will emit the particle with coordinate ID from 0 to N_mean+N_extra, so other nodes should shift to node_number*N_mean+N_extra
                         else
                             beam->R[lowMark + count] = bg.getCooridinate(count); // for node0 the particle number N_mean =  N_mean + N_extra
@@ -555,7 +554,7 @@ void  Distribution::createPriPart(PartBunch *beam, BoundaryGeometry &bg) {
 
                 }
                 pc++;
-                if(pc == Ippl::getNodes())
+                if (pc == Ippl::getNodes())
                     pc = 0;
 
             }
@@ -645,9 +644,9 @@ void Distribution::doRestartOpalCycl(PartBunch &beam,
 
     INFOMSG("* Gamma = " << gamma << ", Beta = " << beta << endl);
 
-    if(dataSource->predecessorIsSameFlavour()) {
+    if (dataSource->predecessorIsSameFlavour()) {
         INFOMSG("Restart from hdf5 file generated by OPAL-cycl" << endl);
-        if(specifiedNumBunch > 1) {
+        if (specifiedNumBunch > 1) {
             // the allowed maximal bin number is set to 1000
             energyBins_m = new PartBinsCyc(1000, beam.getNumBunch());
             beam.setPBins(energyBins_m);
@@ -659,8 +658,8 @@ void Distribution::doRestartOpalCycl(PartBunch &beam,
         Vector_t meanR(0.0, 0.0, 0.0);
         Vector_t meanP(0.0, 0.0, 0.0);
         unsigned long int newLocalN = beam.getLocalNum();
-        for(unsigned int i = 0; i < newLocalN; ++i) {
-            for(int d = 0; d < 3; ++d) {
+        for (unsigned int i = 0; i < newLocalN; ++i) {
+            for (int d = 0; d < 3; ++d) {
                 meanR(d) += beam.R[i](d);
                 meanP(d) += beam.P[i](d);
             }
@@ -671,7 +670,7 @@ void Distribution::doRestartOpalCycl(PartBunch &beam,
         meanP /= Vector_t(globalN);
         INFOMSG("Rmean = " << meanR << "[m], Pmean=" << meanP << endl);
 
-        for(unsigned int i = 0; i < newLocalN; ++i) {
+        for (unsigned int i = 0; i < newLocalN; ++i) {
             beam.R[i] -= meanR;
             beam.P[i] -= meanP;
         }
@@ -702,7 +701,7 @@ void Distribution::doRestartOpalE(EnvelopeBunch &beam, size_t Np, int restartSte
 Distribution *Distribution::find(const std::string &name) {
     Distribution *dist = dynamic_cast<Distribution *>(OpalData::getInstance()->find(name));
 
-    if(dist == 0) {
+    if (dist == 0) {
         throw OpalException("Distribution::find()", "Distribution \"" + name + "\" not found.");
     }
 
@@ -710,7 +709,7 @@ Distribution *Distribution::find(const std::string &name) {
 }
 
 double Distribution::getTEmission() {
-    if(tEmission_m > 0.0) {
+    if (tEmission_m > 0.0) {
         return tEmission_m;
     }
 
@@ -733,7 +732,7 @@ double Distribution::getTEmission() {
         double t = a - sqr2 * sig * inv_erf08;
         double tmps = sig;
         double tmpt = t;
-        for(int i = 0; i < 10; ++ i) {
+        for (int i = 0; i < 10; ++ i) {
             sig = (t + tRise_m - a) / (sqr2 * inv_erf08);
             t = a - 0.5 * sqr2 * (sig + tmps) * inv_erf08;
             sig = (0.5 * (t + tmpt) + tRise_m - a) / (sqr2 * inv_erf08);
@@ -752,38 +751,6 @@ double Distribution::getTEmission() {
     }
     return tEmission_m;
 }
-
-double Distribution::getEkin() const {return Attributes::getReal(itsAttr[Attrib::Distribution::EKIN]);}
-double Distribution::getLaserEnergy() const {return Attributes::getReal(itsAttr[Attrib::Distribution::ELASER]);}
-double Distribution::getWorkFunctionRf() const {return Attributes::getReal(itsAttr[Attrib::Distribution::W]);}
-
-size_t Distribution::getNumberOfDarkCurrentParticles() { return (size_t) Attributes::getReal(itsAttr[Attrib::Distribution::NPDARKCUR]);}
-double Distribution::getDarkCurrentParticlesInwardMargin() { return Attributes::getReal(itsAttr[Attrib::Distribution::INWARDMARGIN]);}
-double Distribution::getEInitThreshold() { return Attributes::getReal(itsAttr[Attrib::Distribution::EINITHR]);}
-double Distribution::getWorkFunction() { return Attributes::getReal(itsAttr[Attrib::Distribution::FNPHIW]); }
-double Distribution::getFieldEnhancement() { return Attributes::getReal(itsAttr[Attrib::Distribution::FNBETA]); }
-size_t Distribution::getMaxFNemissionPartPerTri() { return (size_t) Attributes::getReal(itsAttr[Attrib::Distribution::FNMAXEMI]);}
-double Distribution::getFieldFNThreshold() { return Attributes::getReal(itsAttr[Attrib::Distribution::FNFIELDTHR]);}
-double Distribution::getFNParameterA() { return Attributes::getReal(itsAttr[Attrib::Distribution::FNA]);}
-double Distribution::getFNParameterB() { return Attributes::getReal(itsAttr[Attrib::Distribution::FNB]);}
-double Distribution::getFNParameterY() { return Attributes::getReal(itsAttr[Attrib::Distribution::FNY]);}
-double Distribution::getFNParameterVYZero() { return Attributes::getReal(itsAttr[Attrib::Distribution::FNVYZERO]);}
-double Distribution::getFNParameterVYSecond() { return Attributes::getReal(itsAttr[Attrib::Distribution::FNVYSECOND]);}
-int    Distribution::getSecondaryEmissionFlag() { return Attributes::getReal(itsAttr[Attrib::Distribution::SECONDARYFLAG]);}
-bool   Distribution::getEmissionMode() { return Attributes::getBool(itsAttr[Attrib::Distribution::NEMISSIONMODE]);}
-
-std::string Distribution::getTypeofDistribution() { return (std::string) Attributes::getString(itsAttr[Attrib::Distribution::TYPE]);}
-
-double Distribution::getvSeyZero() {return Attributes::getReal(itsAttr[Attrib::Distribution::VSEYZERO]);}// return sey_0 in Vaughan's model
-double Distribution::getvEZero() {return Attributes::getReal(itsAttr[Attrib::Distribution::VEZERO]);}// return the energy related to sey_0 in Vaughan's model
-double Distribution::getvSeyMax() {return Attributes::getReal(itsAttr[Attrib::Distribution::VSEYMAX]);}// return sey max in Vaughan's model
-double Distribution::getvEmax() {return Attributes::getReal(itsAttr[Attrib::Distribution::VEMAX]);}// return Emax in Vaughan's model
-double Distribution::getvKenergy() {return Attributes::getReal(itsAttr[Attrib::Distribution::VKENERGY]);}// return fitting parameter denotes the roughness of surface for impact energy in Vaughan's model
-double Distribution::getvKtheta() {return Attributes::getReal(itsAttr[Attrib::Distribution::VKTHETA]);}// return fitting parameter denotes the roughness of surface for impact angle in Vaughan's model
-double Distribution::getvVThermal() {return Attributes::getReal(itsAttr[Attrib::Distribution::VVTHERMAL]);}// thermal velocity of Maxwellian distribution of secondaries in Vaughan's model
-double Distribution::getVw() {return Attributes::getReal(itsAttr[Attrib::Distribution::VW]);}// velocity scalar for parallel plate benchmark;
-
-int Distribution::getSurfMaterial() {return (int)Attributes::getReal(itsAttr[Attrib::Distribution::SURFMATERIAL]);}// Surface material number for Furman-Pivi's Model;
 
 Inform &Distribution::printInfo(Inform &os) const {
 
@@ -1428,7 +1395,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                                                     Attributes::getReal(itsAttr[Attrib::Distribution::ORDERMAPS]),
                                                     writeMap);
 
-            if(siggen->match(Attributes::getReal(itsAttr[Attrib::Distribution::RESIDUUM]),
+            if (siggen->match(Attributes::getReal(itsAttr[Attrib::Distribution::RESIDUUM]),
                              Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSSI]),
                              Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSCO]),
                              CyclotronElement->getPHIinit(),
@@ -1445,9 +1412,9 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                       << Emit[2] << ") pi mm mrad for E= " << E_m*1E-6 << " (MeV)" << endl;
                 *gmsg << "* Sigma-Matrix " << endl;
 
-                for(unsigned int i = 0; i < siggen->getSigma().size1(); ++ i) {
+                for (unsigned int i = 0; i < siggen->getSigma().size1(); ++ i) {
                     *gmsg << std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,0);
-                    for(unsigned int j = 1; j < siggen->getSigma().size2(); ++ j) {
+                    for (unsigned int j = 1; j < siggen->getSigma().size2(); ++ j) {
                         *gmsg << " & " <<  std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,j);
                     }
                     *gmsg << " \\\\" << endl;
@@ -1463,7 +1430,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
 
                 */
 
-                if(Options::cloTuneOnly)
+                if (Options::cloTuneOnly)
                     throw OpalException("Do only CLO and tune calculation","... ");
 
 
@@ -1538,17 +1505,17 @@ void  Distribution::createBoundaryGeometry(PartBunch &beam, BoundaryGeometry &bg
     int pc = 0;
     size_t N_mean = static_cast<size_t>(floor(bg.getN() / Ippl::getNodes()));
     size_t N_extra = static_cast<size_t>(bg.getN() - N_mean * Ippl::getNodes());
-    if(Ippl::myNode() == 0)
+    if (Ippl::myNode() == 0)
         N_mean += N_extra;
     size_t count = 0;
     size_t lowMark = beam.getLocalNum();
-    if(bg.getN() != 0) {
+    if (bg.getN() != 0) {
 
-        for(size_t i = 0; i < bg.getN(); i++) {
-            if(pc == Ippl::myNode()) {
-                if(count < N_mean) {
+        for (size_t i = 0; i < bg.getN(); i++) {
+            if (pc == Ippl::myNode()) {
+                if (count < N_mean) {
                     beam.create(1);
-                    if(pc != 0)
+                    if (pc != 0)
                         beam.R[lowMark + count] = bg.getCooridinate(Ippl::myNode() * N_mean + count + N_extra);
                     else
                         beam.R[lowMark + count] = bg.getCooridinate(count);
@@ -1564,7 +1531,7 @@ void  Distribution::createBoundaryGeometry(PartBunch &beam, BoundaryGeometry &bg
                 }
             }
             pc++;
-            if(pc == Ippl::getNodes())
+            if (pc == Ippl::getNodes())
                 pc = 0;
         }
     }
@@ -2187,7 +2154,7 @@ void Distribution::generateAstraFlattopT(size_t numberOfParticles) {
     double tmps = sig;
     double tmpt = t;
 
-    for(int i = 0; i < 10; ++ i) {
+    for (int i = 0; i < 10; ++ i) {
         sig = (t + tRise_m - a) / (sqr2 * inv_erf08);
         t = a - 0.5 * sqr2 * (sig + tmps) * inv_erf08;
         sig = (0.5 * (t + tmpt) + tRise_m - a) / (sqr2 * inv_erf08);
@@ -2210,7 +2177,7 @@ void Distribution::generateAstraFlattopT(size_t numberOfParticles) {
     double weight = 2.0;
 
     // sample the function that describes the histogram of the requested distribution
-    for(int i = 0; i < binTotal + 1; ++ i, x += dx, weight = 6. - weight) {
+    for (int i = 0; i < binTotal + 1; ++ i, x += dx, weight = 6. - weight) {
         distributionTable[i] = gsl_sf_erf((x + a) / (sqrt(2) * sig)) - gsl_sf_erf((x - a) / (sqrt(2) * sig));
         tot += distributionTable[i] * weight;
     }
@@ -2226,11 +2193,11 @@ void Distribution::generateAstraFlattopT(size_t numberOfParticles) {
     int effectiveNumParticles = 0;
     int largestBin = 0;
     std::vector<int> numParticlesInBin(numberOfEnergyBins,0);
-    for(int k = 0; k < numberOfEnergyBins; ++ k) {
+    for (int k = 0; k < numberOfEnergyBins; ++ k) {
         double loc_fraction = -distributionTable[numberOfSampleBins * k] / tot;
 
         weight = 2.0;
-        for(int i = numberOfSampleBins * k; i < numberOfSampleBins * (k + 1) + 1;
+        for (int i = numberOfSampleBins * k; i < numberOfSampleBins * (k + 1) + 1;
             ++ i, weight = 6. - weight) {
             loc_fraction += distributionTable[i] * weight / tot;
         }
@@ -2243,12 +2210,12 @@ void Distribution::generateAstraFlattopT(size_t numberOfParticles) {
 
     numParticlesInBin[largestBin] += (numberOfParticles - effectiveNumParticles);
 
-    for(int k = 0; k < numberOfEnergyBins; ++ k) {
+    for (int k = 0; k < numberOfEnergyBins; ++ k) {
         gsl_ran_discrete_t *table
             = gsl_ran_discrete_preproc(numberOfSampleBins,
                                        &(distributionTable[numberOfSampleBins * k]));
 
-        for(int i = 0; i < numParticlesInBin[k]; i++) {
+        for (int i = 0; i < numParticlesInBin[k]; i++) {
             double xx[2];
             gsl_qrng_get(quasiRandGen, xx);
             tCoord = hi * (xx[1] + static_cast<int>(gsl_ran_discrete(randGen_m, table))
@@ -2299,9 +2266,7 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
             * cos(asin(correlationMatrix_m(2 * index + 1, 2 * index)));
     }
 
-    Vector_t beta;
-    Vector_t gamma;
-    Vector_t alpha;
+    Vector_t alpha, beta, gamma;
     for (unsigned int index = 0; index < 3; index++) {
         beta(index) = pow(sigmaR_m[index], 2.0) / emittance(index);
         gamma(index) = pow(sigmaP_m[index], 2.0) / emittance(index);
@@ -2309,26 +2274,31 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
                         * sqrt(beta(index) * gamma(index));
     }
 
-    Vector_t M = Vector_t(0.0);
-    Vector_t PM = Vector_t(0.0);
-    Vector_t COSCHI = Vector_t(0.0);
-    Vector_t SINCHI = Vector_t(0.0);
-    Vector_t CHI = Vector_t(0.0);
-    Vector_t AMI = Vector_t(0.0);
-    Vector_t L = Vector_t(0.0);
-    Vector_t PL = Vector_t(0.0);
-
-    for(unsigned int index = 0; index < 3; index++) {
-        gamma(index) *= cutoffR_m[index];
-        beta(index)  *= cutoffP_m[index];
-        M[index]      =  sqrt(emittance(index) * beta(index));
-        PM[index]     =  sqrt(emittance(index) * gamma(index));
+    Vector_t M, PM, L, PL, X, PX;
+    Vector_t CHI, COSCHI, SINCHI(0.0);
+    Vector_t AMI;
+    Vektor<BinomialBehaviorSplitter*, 3> splitter;
+    for (unsigned int index = 0; index < 3; index++) {
+        // gamma(index) *= cutoffR_m[index];
+        // beta(index)  *= cutoffP_m[index];
         COSCHI[index] =  sqrt(1.0 / (1.0 + pow(alpha(index), 2.0)));
         SINCHI[index] = -alpha(index) * COSCHI[index];
         CHI[index]    =  atan2(SINCHI[index], COSCHI[index]);
         AMI[index]    =  1.0 / mBinomial_m[index];
+        M[index]      =  sqrt(emittance(index) * beta(index));
+        PM[index]     =  sqrt(emittance(index) * gamma(index));
         L[index]      =  sqrt((mBinomial_m[index] + 1.0) / 2.0) * M[index];
         PL[index]     =  sqrt((mBinomial_m[index] + 1.0) / 2.0) * PM[index];
+
+        if (mBinomial_m[index] < 10000) {
+            X[index] =  L[index];
+            PX[index] = PL[index];
+            splitter[index] = new MDependentBehavior(mBinomial_m[index]);
+        } else {
+            X[index] =  M[index];
+            PX[index] = PM[index];
+            splitter[index] = new GaussianLikeBehavior();
+        }
     }
 
     int saveProcessor = -1;
@@ -2336,102 +2306,49 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
     const int numNodes = Ippl::getNodes();
     const bool scalable = Attributes::getBool(itsAttr[Attrib::Distribution::SCALABLE]);
 
+    double temp = 1.0 - std::pow(correlationMatrix_m(1, 0), 2.0);
+    const double tempa = copysign(sqrt(std::abs(temp)), temp);
+    const double l32 = (correlationMatrix_m(4, 1) -
+                        correlationMatrix_m(1, 0) * correlationMatrix_m(4, 0)) / tempa;
+    temp = 1 - std::pow(correlationMatrix_m(4, 0), 2.0) - l32 * l32;
+    const double l33 = copysign(sqrt(std::abs(temp)), temp);
+
+    const double l42 = (correlationMatrix_m(5, 1) -
+                        correlationMatrix_m(1, 0) * correlationMatrix_m(5, 0)) / tempa;
+    const double l43 = (correlationMatrix_m(5, 4) -
+                        correlationMatrix_m(4, 0) * correlationMatrix_m(5, 0) - l42 * l32) / l33;
+    temp = 1 - std::pow(correlationMatrix_m(5, 0), 2.0) - l42 * l42 - l43 * l43;
+    const double l44 = copysign(sqrt(std::abs(temp)), temp);
+
     Vector_t x = Vector_t(0.0);
     Vector_t p = Vector_t(0.0);
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
         double A = 0.0;
         double AL = 0.0;
-        double U = 0.0;
-        double V = 0.0;
+        double Ux = 0.0, U = 0.0;
+        double Vx = 0.0, V = 0.0;
 
-        double S1 = IpplRandom();
-        double S2 = IpplRandom();
+        A = splitter[0]->get(gsl_rng_uniform(randGen_m));
+        AL = Physics::two_pi * gsl_rng_uniform(randGen_m);
+        Ux = A * cos(AL);
+        Vx = A * sin(AL);
+        x[0] = X[0] * Ux;
+        p[0] = PX[0] * (Ux * SINCHI[0] + Vx * COSCHI[0]);
 
-        if (mBinomial_m[0] <= 10000) {
+        A = splitter[1]->get(gsl_rng_uniform(randGen_m));
+        AL = Physics::two_pi * gsl_rng_uniform(randGen_m);
+        U = A * cos(AL);
+        V = A * sin(AL);
+        x[1] = X[1] * U;
+        p[1] = PX[1] * (U * SINCHI[1] + V * COSCHI[1]);
 
-            A = sqrt(1.0 - pow(S1, AMI[0]));
-            AL = Physics::two_pi * S2;
-            U = A * cos(AL);
-            V = A * sin(AL);
-            double Ucp = U;
-            double Vcp = V;
-            x[0] = L[0] * U;
-            p[0] = PL[0] * (U * SINCHI[0] + V * COSCHI[0]);
-
-            S1 = IpplRandom();
-            S2 = IpplRandom();
-            A = sqrt(1.0 - pow(S1, AMI[1]));
-            AL = Physics::two_pi * S2;
-            U = A * cos(AL);
-            V = A * sin(AL);
-            x[1] = L[1] * U;
-            p[1] = PL[1] * (U * SINCHI[1] + V * COSCHI[1]);
-
-            S1 = IpplRandom();
-            S2 = IpplRandom();
-            A = sqrt(1.0 - pow(S1, AMI[2]));
-            AL = Physics::two_pi * S2;
-            U = A * cos(AL);
-            V = A * sin(AL);
-
-            double tempa = 1.0 - std::pow(correlationMatrix_m(1, 0), 2.0);
-            const double l32 = (correlationMatrix_m(4, 1) - correlationMatrix_m(1, 0) * correlationMatrix_m(4, 0)) / sqrt(std::abs(tempa)) * tempa / std::abs(tempa);
-            double tempb = 1 - std::pow(correlationMatrix_m(4, 0), 2.0) - l32 * l32;
-            const double l33 = sqrt(std::abs(tempb)) * tempb / std::abs(tempb);
-            x[2] = Ucp * correlationMatrix_m(4, 0) + Vcp * l32 + U * l33;
-            const double l42 = (correlationMatrix_m(5, 1) - correlationMatrix_m(1, 0) * correlationMatrix_m(5, 0)) / sqrt(std::abs(tempa)) * tempa / std::abs(tempa);
-            const double l43 = (correlationMatrix_m(5, 4) - correlationMatrix_m(4, 0) * correlationMatrix_m(5, 0) - l42 * l32) / l33;
-            double tempc = 1 - std::pow(correlationMatrix_m(5, 0), 2.0) - l42 * l42 - l43 * l43;
-            const double l44 = sqrt(std::abs(tempc)) * tempc / std::abs(tempc);
-
-            p[2] = Ucp * correlationMatrix_m(5, 0) + Vcp * l42 + U * l43 + V * l44;
-            x[2]  *= L[2];
-            p[2] *= PL[2];
-
-        } else {
-
-            A = sqrt(2.0) / 2.0 * sqrt(-log(S1));
-            AL = Physics::two_pi * S2;
-            U = A * cos(AL);
-            V = A * sin(AL);
-            double Ucp = U;
-            double Vcp = V;
-            x[0] = M[0] * U;
-            p[0] = PM[0] * (U * SINCHI[0] + V * COSCHI[0]);
-
-
-            S1 = IpplRandom();
-            S2 = IpplRandom();
-            A = sqrt(2.0) / 2.0 * sqrt(-log(S1));
-            AL = Physics::two_pi * S2;
-            U = A * cos(AL);
-            V = A * sin(AL);
-            x[1] = M[1] * U;
-            p[1] = PM[1] * (U * SINCHI[1] + V * COSCHI[1]);
-
-            S1 = IpplRandom();
-            S2 = IpplRandom();
-            A = sqrt(2.0) / 2.0 * sqrt(-log(S1));
-            AL = Physics::two_pi * S2;
-            U = A * cos(AL);
-            V = A * sin(AL);
-
-            double tempa = 1.0 - std::pow(correlationMatrix_m(1, 0), 2.0);
-            const double l32 = std::copysign(1.0, tempa) * (correlationMatrix_m(4, 1) - correlationMatrix_m(1, 0) * correlationMatrix_m(4, 0)) / sqrt(std::abs(tempa));
-            double tempb = 1 - std::pow(correlationMatrix_m(4, 0), 2.0) - l32 * l32;
-            const double l33 = std::copysign(1.0, tempb) * sqrt(std::abs(tempb));
-            x[2] = Ucp * correlationMatrix_m(4, 0) + Vcp * l32 + U * l33;
-            const double l42 = std::copysign(1.0, tempa) * (correlationMatrix_m(5, 1) - correlationMatrix_m(1, 0) * correlationMatrix_m(5, 0)) / sqrt(std::abs(tempa));
-            const double l43 = (correlationMatrix_m(5, 4) - correlationMatrix_m(4, 0) * correlationMatrix_m(5, 0) - l42 * l32) / l33;
-            double tempc = 1 - std::pow(correlationMatrix_m(5, 0), 2.0) - l42 * l42 - l43 * l43;
-            const double l44 = std::copysign(1.0, tempc) * sqrt(std::abs(tempc));
-
-            p[2] = Ucp * correlationMatrix_m(5, 0) + Vcp * l42 + U * l43 + V * l44;
-            x[2]  *= M[2];
-            p[2] *= PM[2];
-
-        }
+        A = splitter[2]->get(gsl_rng_uniform(randGen_m));
+        AL = Physics::two_pi * gsl_rng_uniform(randGen_m);
+        U = A * cos(AL);
+        V = A * sin(AL);
+        x[2] = X[2] * (Ux * correlationMatrix_m(4, 0) + Vx * l32 + U * l33);
+        p[2] = PX[2] * (Ux * correlationMatrix_m(5, 0) + Vx * l42 + U * l43 + V * l44);
 
         // Save to each processor in turn.
         saveProcessor++;
@@ -2444,9 +2361,12 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
             yDist_m.push_back(x[1]);
             pyDist_m.push_back(p[1]);
             tOrZDist_m.push_back(x[2]);
-            pzDist_m.push_back(avrgpz_m * (1 + p[2]));
+            pzDist_m.push_back(avrgpz_m + p[2]);
         }
+    }
 
+    for (unsigned int index = 0; index < 3; index++) {
+        delete splitter[index];
     }
 }
 
@@ -2490,13 +2410,13 @@ void Distribution::generateFlattopT(size_t numberOfParticles) {
 
     gsl_qrng *quasiRandGen2D = NULL;
 
-    if(Options::rngtype != std::string("RANDOM")) {
+    if (Options::rngtype != std::string("RANDOM")) {
         INFOMSG("RNGTYPE= " << Options::rngtype << endl);
-        if(Options::rngtype == std::string("HALTON")) {
+        if (Options::rngtype == std::string("HALTON")) {
             quasiRandGen2D = gsl_qrng_alloc(gsl_qrng_halton, 2);
-        } else if(Options::rngtype == std::string("SOBOL")) {
+        } else if (Options::rngtype == std::string("SOBOL")) {
             quasiRandGen2D = gsl_qrng_alloc(gsl_qrng_sobol, 2);
-        } else if(Options::rngtype == std::string("NIEDERREITER")) {
+        } else if (Options::rngtype == std::string("NIEDERREITER")) {
             quasiRandGen2D = gsl_qrng_alloc(gsl_qrng_niederreiter_2, 2);
         } else {
             INFOMSG("RNGTYPE= " << Options::rngtype << " not known, using HALTON" << endl);
@@ -2562,15 +2482,15 @@ void Distribution::generateFlattopZ(size_t numberOfParticles) {
 
     gsl_qrng *quasiRandGen1D = NULL;
     gsl_qrng *quasiRandGen2D = NULL;
-    if(Options::rngtype != std::string("RANDOM")) {
+    if (Options::rngtype != std::string("RANDOM")) {
         INFOMSG("RNGTYPE= " << Options::rngtype << endl);
-        if(Options::rngtype == std::string("HALTON")) {
+        if (Options::rngtype == std::string("HALTON")) {
             quasiRandGen1D = gsl_qrng_alloc(gsl_qrng_halton, 1);
             quasiRandGen2D = gsl_qrng_alloc(gsl_qrng_halton, 2);
-        } else if(Options::rngtype == std::string("SOBOL")) {
+        } else if (Options::rngtype == std::string("SOBOL")) {
             quasiRandGen1D = gsl_qrng_alloc(gsl_qrng_sobol, 1);
             quasiRandGen2D = gsl_qrng_alloc(gsl_qrng_sobol, 2);
-        } else if(Options::rngtype == std::string("NIEDERREITER")) {
+        } else if (Options::rngtype == std::string("NIEDERREITER")) {
             quasiRandGen1D = gsl_qrng_alloc(gsl_qrng_niederreiter_2, 1);
             quasiRandGen2D = gsl_qrng_alloc(gsl_qrng_niederreiter_2, 2);
         } else {
@@ -2844,15 +2764,15 @@ void Distribution::generateLongFlattopT(size_t numberOfParticles) {
 
     gsl_qrng *quasiRandGen1D = NULL;
     gsl_qrng *quasiRandGen2D = NULL;
-    if(Options::rngtype != std::string("RANDOM")) {
+    if (Options::rngtype != std::string("RANDOM")) {
         INFOMSG("RNGTYPE= " << Options::rngtype << endl);
-        if(Options::rngtype == std::string("HALTON")) {
+        if (Options::rngtype == std::string("HALTON")) {
             quasiRandGen1D = gsl_qrng_alloc(gsl_qrng_halton, 1);
             quasiRandGen2D = gsl_qrng_alloc(gsl_qrng_halton, 2);
-        } else if(Options::rngtype == std::string("SOBOL")) {
+        } else if (Options::rngtype == std::string("SOBOL")) {
             quasiRandGen1D = gsl_qrng_alloc(gsl_qrng_sobol, 1);
             quasiRandGen2D = gsl_qrng_alloc(gsl_qrng_sobol, 2);
-        } else if(Options::rngtype == std::string("NIEDERREITER")) {
+        } else if (Options::rngtype == std::string("NIEDERREITER")) {
             quasiRandGen1D = gsl_qrng_alloc(gsl_qrng_niederreiter_2, 1);
             quasiRandGen2D = gsl_qrng_alloc(gsl_qrng_niederreiter_2, 2);
         } else {
@@ -3351,27 +3271,27 @@ void Distribution::printDistFromFile(Inform &os) const {
 
 void Distribution::printDistMatchedGauss(Inform &os) const {
     os << "* Distribution type: MATCHEDGAUSS" << endl;
-    os << "* SIGMAX   = " << sigmaR_m[0] << " [m]" << endl;
-    os << "* SIGMAY   = " << sigmaR_m[1] << " [m]" << endl;
-    os << "* SIGMAZ   = " << sigmaR_m[2] << " [m]" << endl;
-    os << "* SIGMAPX  = " << sigmaP_m[0] << " [Beta Gamma]" << endl;
-    os << "* SIGMAPY  = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
-    os << "* SIGMAPZ  = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
-    os << "* AVRGPZ   = " << avrgpz_m <<    " [Beta Gamma]" << endl;
+    os << "* SIGMAX     = " << sigmaR_m[0] << " [m]" << endl;
+    os << "* SIGMAY     = " << sigmaR_m[1] << " [m]" << endl;
+    os << "* SIGMAZ     = " << sigmaR_m[2] << " [m]" << endl;
+    os << "* SIGMAPX    = " << sigmaP_m[0] << " [Beta Gamma]" << endl;
+    os << "* SIGMAPY    = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
+    os << "* SIGMAPZ    = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
+    os << "* AVRGPZ     = " << avrgpz_m <<    " [Beta Gamma]" << endl;
 
-    os << "* CORRX    = " << correlationMatrix_m(1, 0) << endl;
-    os << "* CORRY    = " << correlationMatrix_m(3, 2) << endl;
-    os << "* CORRZ    = " << correlationMatrix_m(5, 4) << endl;
-    os << "* R61      = " << correlationMatrix_m(5, 0) << endl;
-    os << "* R62      = " << correlationMatrix_m(5, 1) << endl;
-    os << "* R51      = " << correlationMatrix_m(4, 0) << endl;
-    os << "* R52      = " << correlationMatrix_m(4, 1) << endl;
-    os << "* CUTOFFX  = " << cutoffR_m[0] << " [units of SIGMAX]" << endl;
-    os << "* CUTOFFY  = " << cutoffR_m[1] << " [units of SIGMAY]" << endl;
-    os << "* CUTOFFZ  = " << cutoffR_m[2] << " [units of SIGMAZ]" << endl;
-    os << "* CUTOFFPX = " << cutoffP_m[0] << " [units of SIGMAPX]" << endl;
-    os << "* CUTOFFPY = " << cutoffP_m[1] << " [units of SIGMAPY]" << endl;
-    os << "* CUTOFFPZ = " << cutoffP_m[2] << " [units of SIGMAPY]" << endl;
+    os << "* CORRX      = " << correlationMatrix_m(1, 0) << endl;
+    os << "* CORRY      = " << correlationMatrix_m(3, 2) << endl;
+    os << "* CORRZ      = " << correlationMatrix_m(5, 4) << endl;
+    os << "* R61        = " << correlationMatrix_m(5, 0) << endl;
+    os << "* R62        = " << correlationMatrix_m(5, 1) << endl;
+    os << "* R51        = " << correlationMatrix_m(4, 0) << endl;
+    os << "* R52        = " << correlationMatrix_m(4, 1) << endl;
+    os << "* CUTOFFX    = " << cutoffR_m[0] << " [units of SIGMAX]" << endl;
+    os << "* CUTOFFY    = " << cutoffR_m[1] << " [units of SIGMAY]" << endl;
+    os << "* CUTOFFLONG = " << cutoffR_m[2] << " [units of SIGMAZ]" << endl;
+    os << "* CUTOFFPX   = " << cutoffP_m[0] << " [units of SIGMAPX]" << endl;
+    os << "* CUTOFFPY   = " << cutoffP_m[1] << " [units of SIGMAPY]" << endl;
+    os << "* CUTOFFPZ   = " << cutoffP_m[2] << " [units of SIGMAPY]" << endl;
 }
 
 void Distribution::printDistGauss(Inform &os) const {
@@ -3409,27 +3329,27 @@ void Distribution::printDistGauss(Inform &os) const {
         os << "* CUTOFFPY                      = " << cutoffP_m[1]
            << " [units of SIGMAPY]" << endl;
     } else {
-        os << "* SIGMAX   = " << sigmaR_m[0] << " [m]" << endl;
-        os << "* SIGMAY   = " << sigmaR_m[1] << " [m]" << endl;
-        os << "* SIGMAZ   = " << sigmaR_m[2] << " [m]" << endl;
-        os << "* SIGMAPX  = " << sigmaP_m[0] << " [Beta Gamma]" << endl;
-        os << "* SIGMAPY  = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
-        os << "* SIGMAPZ  = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
-        os << "* AVRGPZ   = " << avrgpz_m <<    " [Beta Gamma]" << endl;
+        os << "* SIGMAX     = " << sigmaR_m[0] << " [m]" << endl;
+        os << "* SIGMAY     = " << sigmaR_m[1] << " [m]" << endl;
+        os << "* SIGMAZ     = " << sigmaR_m[2] << " [m]" << endl;
+        os << "* SIGMAPX    = " << sigmaP_m[0] << " [Beta Gamma]" << endl;
+        os << "* SIGMAPY    = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
+        os << "* SIGMAPZ    = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
+        os << "* AVRGPZ     = " << avrgpz_m <<    " [Beta Gamma]" << endl;
 
-        os << "* CORRX    = " << correlationMatrix_m(1, 0) << endl;
-        os << "* CORRY    = " << correlationMatrix_m(3, 2) << endl;
-        os << "* CORRZ    = " << correlationMatrix_m(5, 4) << endl;
-        os << "* R61      = " << correlationMatrix_m(5, 0) << endl;
-        os << "* R62      = " << correlationMatrix_m(5, 1) << endl;
-        os << "* R51      = " << correlationMatrix_m(4, 0) << endl;
-        os << "* R52      = " << correlationMatrix_m(4, 1) << endl;
-        os << "* CUTOFFX  = " << cutoffR_m[0] << " [units of SIGMAX]" << endl;
-        os << "* CUTOFFY  = " << cutoffR_m[1] << " [units of SIGMAY]" << endl;
-        os << "* CUTOFFZ  = " << cutoffR_m[2] << " [units of SIGMAZ]" << endl;
-        os << "* CUTOFFPX = " << cutoffP_m[0] << " [units of SIGMAPX]" << endl;
-        os << "* CUTOFFPY = " << cutoffP_m[1] << " [units of SIGMAPY]" << endl;
-        os << "* CUTOFFPZ = " << cutoffP_m[2] << " [units of SIGMAPY]" << endl;
+        os << "* CORRX      = " << correlationMatrix_m(1, 0) << endl;
+        os << "* CORRY      = " << correlationMatrix_m(3, 2) << endl;
+        os << "* CORRZ      = " << correlationMatrix_m(5, 4) << endl;
+        os << "* R61        = " << correlationMatrix_m(5, 0) << endl;
+        os << "* R62        = " << correlationMatrix_m(5, 1) << endl;
+        os << "* R51        = " << correlationMatrix_m(4, 0) << endl;
+        os << "* R52        = " << correlationMatrix_m(4, 1) << endl;
+        os << "* CUTOFFX    = " << cutoffR_m[0] << " [units of SIGMAX]" << endl;
+        os << "* CUTOFFY    = " << cutoffR_m[1] << " [units of SIGMAY]" << endl;
+        os << "* CUTOFFLONG = " << cutoffR_m[2] << " [units of SIGMAZ]" << endl;
+        os << "* CUTOFFPX   = " << cutoffP_m[0] << " [units of SIGMAPX]" << endl;
+        os << "* CUTOFFPY   = " << cutoffP_m[1] << " [units of SIGMAPY]" << endl;
+        os << "* CUTOFFPZ   = " << cutoffP_m[2] << " [units of SIGMAPY]" << endl;
     }
 }
 
@@ -3645,7 +3565,7 @@ void Distribution::setAttributes() {
                                  "ASTRAFLATTOPTH, "
                                  "GAUSS, "
                                  "GAUSSMATCHED");
-    itsAttr[Attrib::Distribution::DISTRIBUTION]
+    itsAttr[Attrib::Legacy::Distribution::DISTRIBUTION]
         = Attributes::makeString("DISTRIBUTION","This attribute isn't supported any more. Use TYPE instead");
     itsAttr[Attrib::Distribution::LINE]
         = Attributes::makeString("LINE", "Beamline that contains a cyclotron or ring ", "");
@@ -4027,7 +3947,7 @@ void Distribution::setDistToEmitted(bool emitted) {
 }
 
 void Distribution::setDistType() {
-    if (itsAttr[Attrib::Distribution::DISTRIBUTION]) {
+    if (itsAttr[Attrib::Legacy::Distribution::DISTRIBUTION]) {
         throw OpalException("Distribution::setDistType()",
                             "The attribute DISTRIBUTION isn't supported any more, use TYPE instead");
     }
@@ -4035,21 +3955,21 @@ void Distribution::setDistType() {
     distT_m = Util::toUpper(Attributes::getString(itsAttr[Attrib::Distribution::TYPE]));
     if (distT_m == "FROMFILE")
         distrTypeT_m = DistrTypeT::FROMFILE;
-    else if(distT_m == "GAUSS")
+    else if (distT_m == "GAUSS")
         distrTypeT_m = DistrTypeT::GAUSS;
-    else if(distT_m == "BINOMIAL")
+    else if (distT_m == "BINOMIAL")
         distrTypeT_m = DistrTypeT::BINOMIAL;
-    else if(distT_m == "FLATTOP")
+    else if (distT_m == "FLATTOP")
         distrTypeT_m = DistrTypeT::FLATTOP;
-    else if(distT_m == "GUNGAUSSFLATTOPTH")
+    else if (distT_m == "GUNGAUSSFLATTOPTH")
         distrTypeT_m = DistrTypeT::GUNGAUSSFLATTOPTH;
-    else if(distT_m == "ASTRAFLATTOPTH")
+    else if (distT_m == "ASTRAFLATTOPTH")
         distrTypeT_m = DistrTypeT::ASTRAFLATTOPTH;
-    else if(distT_m == "SURFACEEMISSION")
+    else if (distT_m == "SURFACEEMISSION")
         distrTypeT_m = DistrTypeT::SURFACEEMISSION;
-    else if(distT_m == "SURFACERANDCREATE")
+    else if (distT_m == "SURFACERANDCREATE")
         distrTypeT_m = DistrTypeT::SURFACERANDCREATE;
-    else if(distT_m == "GAUSSMATCHED")
+    else if (distT_m == "GAUSSMATCHED")
         distrTypeT_m = DistrTypeT::MATCHEDGAUSS;
     else {
         throw OpalException("Distribution::setDistType()",
@@ -4131,6 +4051,14 @@ void Distribution::setDistParametersBinomial(double massIneV) {
      * Set Distribution parameters. Do all the necessary checks depending
      * on the input attributes.
      */
+    std::vector<double> cr = Attributes::getRealArray(itsAttr[Attrib::Distribution::R]);
+
+    if (cr.size()>0) {
+        throw OpalException("Distribution::setDistParametersBinomial",
+                            "Attribute R is not supported for binomial distribution\n"
+                            "use CORR[X|Y|Z] and R51, R52, R61, R62 instead");
+    }
+
     correlationMatrix_m(1, 0) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRX]);
     correlationMatrix_m(3, 2) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRY]);
     correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRT]);
@@ -4157,7 +4085,7 @@ void Distribution::setDistParametersBinomial(double massIneV) {
                         std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPZ])));
 
     // SIGMAPZ overrides SIGMAPT.
-    if (itsAttr[Attrib::Legacy::Distribution::SIGMAPT]) {
+    if (!itsAttr[Attrib::Legacy::Distribution::SIGMAPT].defaultUsed()) {
         WARNMSG("The attribute SIGMAPT may be removed in a future version\n"
                 << "use  SIGMAPZ instead" << endl;)
         sigmaP_m[2] = std::abs(Attributes::getReal(itsAttr[Attrib::Legacy::Distribution::SIGMAPT]));
@@ -4346,8 +4274,8 @@ void Distribution::setDistParametersGauss(double massIneV) {
 
         std::vector<double> cr = Attributes::getRealArray(itsAttr[Attrib::Distribution::R]);
 
-        if(cr.size()>0) {
-            if(cr.size() == 15) {
+        if (cr.size()>0) {
+            if (cr.size() == 15) {
                 *gmsg << "* Use r to specify correlations" << endl;
                 unsigned int k = 0;
                 for (unsigned int i = 0; i < 5; ++ i) {
@@ -4530,7 +4458,7 @@ void Distribution::setupParticleBins(double massIneV, PartBunch &beam) {
         double dEBins = Attributes::getReal(itsAttr[Attrib::Legacy::Distribution::DEBIN]);
         energyBins_m->setRebinEnergy(dEBins);
 
-        if (itsAttr[Attrib::Legacy::Distribution::PT])
+        if (!itsAttr[Attrib::Legacy::Distribution::PT].defaultUsed())
             throw OpalException("Distribution::setupParticleBins",
                                 "PT is obsolet. The moments of the beam is defined with OFFSETPZ");
 
@@ -4848,13 +4776,13 @@ void Distribution::writeOutFileInjection() {
 
     if (Attributes::getBool(itsAttr[Attrib::Distribution::WRITETOFILE])) {
 
+        std::string fname = "data/" + OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat";
         // Nodes take turn writing particles to file.
         for (int nodeIndex = 0; nodeIndex < Ippl::getNodes(); nodeIndex++) {
 
             // Write to file if its our turn.
             size_t numberOfParticles = 0;
             if (Ippl::myNode() == nodeIndex) {
-                std::string fname = "data/" + OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat";
                 std::ofstream outputFile(fname, std::fstream::app);
                 if (outputFile.bad()) {
                     *gmsg << "Node " << Ippl::myNode() << " unable to write"
@@ -4897,6 +4825,15 @@ void Distribution::writeOutFileInjection() {
         }
     }
 }
+
+double Distribution::MDependentBehavior::get(double rand) {
+    return 2.0 * sqrt(1.0 - pow(rand, ami_m));
+}
+
+double Distribution::GaussianLikeBehavior::get(double rand) {
+    return sqrt(-2.0 * log(rand));
+}
+
 // vi: set et ts=4 sw=4 sts=4:
 // Local Variables:
 // mode:c++
