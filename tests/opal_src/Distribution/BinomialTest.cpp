@@ -15,7 +15,7 @@ TEST(BinomialTest, FullSigmaTest1) {
     const double expectedR22 = 0.7998;
     const double expectedR33 = 2.498;
     const double expectedR44 = 0.6212;
-    const double expectedR55 =  1.537;
+    const double expectedR55 = 1.537;
     const double expectedR66 = 0.9457;
 
     const double expectedR21 = -0.40993;
@@ -35,16 +35,22 @@ TEST(BinomialTest, FullSigmaTest1) {
     Distribution dist;
 
     Attributes::setString(dist.itsAttr[Attrib::Distribution::TYPE], "BINOMIAL");
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::MX], 999999999.9);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::MY], 999999999.9);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::MZ], 999999999.9);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAX], expectedR11 * 1e-3);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPX], expectedR22);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAY], expectedR33 * 1e-3);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPY], expectedR44);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAZ], expectedR55 * 1e-3);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPZ], expectedR66);
-    Attributes::setReal(dist.itsAttr[Attrib::Distribution::MX], 999999999.9);
-    Attributes::setReal(dist.itsAttr[Attrib::Distribution::MY], 999999999.9);
-    Attributes::setReal(dist.itsAttr[Attrib::Distribution::MZ], 999999999.9);
-    Attributes::setRealArray(dist.itsAttr[Attrib::Distribution::R], expectedR);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CORRX], expectedR21);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CORRY], expectedR43);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CORRZ], expectedR65);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::R51], expectedR51);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::R61], expectedR61);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::R52], expectedR52);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::R62], expectedR62);
     Attributes::setBool(dist.itsAttr[Attrib::Distribution::EMITTED], false);
 
     dist.setDistType();
@@ -61,6 +67,8 @@ TEST(BinomialTest, FullSigmaTest1) {
 
     double R21 = (gsl_stats_covariance(&(dist.xDist_m[0]), 1, &(dist.pxDist_m[0]), 1, dist.xDist_m.size()) * 1e3 /
                   (expectedR11 * expectedR22));
+    double R43 = (gsl_stats_covariance(&(dist.yDist_m[0]), 1, &(dist.pyDist_m[0]), 1, dist.yDist_m.size()) * 1e3 /
+                  (expectedR33 * expectedR44));
     double R51 = (gsl_stats_covariance(&(dist.xDist_m[0]), 1, &(dist.tOrZDist_m[0]), 1, dist.xDist_m.size()) * 1e6 /
                   (expectedR11 * expectedR55));
     double R52 = (gsl_stats_covariance(&(dist.pxDist_m[0]), 1, &(dist.tOrZDist_m[0]), 1, dist.pxDist_m.size()) * 1e3 /
@@ -70,18 +78,19 @@ TEST(BinomialTest, FullSigmaTest1) {
     double R62 = (gsl_stats_covariance(&(dist.pxDist_m[0]), 1, &(dist.pzDist_m[0]), 1, dist.pxDist_m.size()) /
                   (expectedR22 * expectedR66));
 
-    EXPECT_NEAR(expectedR11, R11, 0.05 * std::abs(expectedR11));
-    EXPECT_NEAR(expectedR22, R22, 0.05 * std::abs(expectedR22));
-    EXPECT_NEAR(expectedR33, R33, 0.05 * std::abs(expectedR33));
-    EXPECT_NEAR(expectedR44, R44, 0.05 * std::abs(expectedR44));
-    EXPECT_NEAR(expectedR55, R55, 0.05 * std::abs(expectedR55));
-    EXPECT_NEAR(expectedR66, R66, 0.05 * std::abs(expectedR66));
+    EXPECT_NEAR(R11 / expectedR11, 1.0, 0.002);
+    EXPECT_NEAR(R22 / expectedR22, 1.0, 0.002);
+    EXPECT_NEAR(R33 / expectedR33, 1.0, 0.002);
+    EXPECT_NEAR(R44 / expectedR44, 1.0, 0.002);
+    EXPECT_NEAR(R55 / expectedR55, 1.0, 0.002);
+    EXPECT_NEAR(R66 / expectedR66, 1.0, 0.002);
 
-    EXPECT_NEAR(expectedR21, R21, 0.1 * std::abs(expectedR21));
-    EXPECT_NEAR(expectedR51, R51, 0.1 * std::abs(expectedR51));
-    EXPECT_NEAR(expectedR52, R52, 0.1 * std::abs(expectedR52));
-    EXPECT_NEAR(expectedR61, R61, 0.1 * std::abs(expectedR61));
-    EXPECT_NEAR(expectedR62, R62, 0.1 * std::abs(expectedR62));
+    EXPECT_NEAR(R21 / expectedR21, 1.0, 0.01);
+    EXPECT_NEAR(R43 / expectedR43, 1.0, 0.01);
+    EXPECT_NEAR(R51 / expectedR51, 1.0, 0.01);
+    EXPECT_NEAR(R52 / expectedR52, 1.0, 0.01);
+    EXPECT_NEAR(R61 / expectedR61, 1.0, 0.01);
+    EXPECT_NEAR(R62 / expectedR62, 1.0, 0.01);
 }
 
 TEST(BinomialTest, FullSigmaTest2) {
@@ -104,7 +113,10 @@ TEST(BinomialTest, FullSigmaTest2) {
 
     Distribution dist;
 
-    Attributes::setString(dist.itsAttr[Attrib::Distribution::TYPE], "GAUSS");
+    Attributes::setString(dist.itsAttr[Attrib::Distribution::TYPE], "BINOMIAL");
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::MX], 1.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::MY], 1.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::MZ], 1.0);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAX], expectedR11 * 1e-3);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPX], expectedR22);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAY], expectedR33 * 1e-3);
@@ -119,6 +131,7 @@ TEST(BinomialTest, FullSigmaTest2) {
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::R52], expectedR52);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::R62], expectedR62);
     Attributes::setBool(dist.itsAttr[Attrib::Distribution::EMITTED], false);
+    Attributes::setBool(dist.itsAttr[Attrib::Distribution::WRITETOFILE], true);
 
     dist.setDistType();
     dist.checkIfEmitted();
@@ -135,6 +148,8 @@ TEST(BinomialTest, FullSigmaTest2) {
 
     double R21 = (gsl_stats_covariance(&(dist.xDist_m[0]), 1, &(dist.pxDist_m[0]), 1, dist.xDist_m.size()) * 1e3 /
                   (expectedR11 * expectedR22));
+    double R43 = (gsl_stats_covariance(&(dist.yDist_m[0]), 1, &(dist.pyDist_m[0]), 1, dist.yDist_m.size()) * 1e3 /
+                  (expectedR33 * expectedR44));
     double R51 = (gsl_stats_covariance(&(dist.xDist_m[0]), 1, &(dist.tOrZDist_m[0]), 1, dist.xDist_m.size()) * 1e6 /
                   (expectedR11 * expectedR55));
     double R52 = (gsl_stats_covariance(&(dist.pxDist_m[0]), 1, &(dist.tOrZDist_m[0]), 1, dist.pxDist_m.size()) * 1e3 /
@@ -144,16 +159,17 @@ TEST(BinomialTest, FullSigmaTest2) {
     double R62 = (gsl_stats_covariance(&(dist.pxDist_m[0]), 1, &(dist.pzDist_m[0]), 1, dist.pxDist_m.size()) /
                   (expectedR22 * expectedR66));
 
-    EXPECT_NEAR(expectedR11, R11, 0.05 * std::abs(expectedR11));
-    EXPECT_NEAR(expectedR22, R22, 0.05 * std::abs(expectedR22));
-    EXPECT_NEAR(expectedR33, R33, 0.05 * std::abs(expectedR33));
-    EXPECT_NEAR(expectedR44, R44, 0.05 * std::abs(expectedR44));
-    EXPECT_NEAR(expectedR55, R55, 0.05 * std::abs(expectedR55));
-    EXPECT_NEAR(expectedR66, R66, 0.05 * std::abs(expectedR66));
+    EXPECT_NEAR(R11 / expectedR11, 1.0, 0.002);
+    EXPECT_NEAR(R22 / expectedR22, 1.0, 0.002);
+    EXPECT_NEAR(R33 / expectedR33, 1.0, 0.002);
+    EXPECT_NEAR(R44 / expectedR44, 1.0, 0.002);
+    EXPECT_NEAR(R55 / expectedR55, 1.0, 0.002);
+    EXPECT_NEAR(R66 / expectedR66, 1.0, 0.002);
 
-    EXPECT_NEAR(expectedR21, R21, 0.1 * std::abs(expectedR21));
-    EXPECT_NEAR(expectedR51, R51, 0.1 * std::abs(expectedR51));
-    EXPECT_NEAR(expectedR52, R52, 0.1 * std::abs(expectedR52));
-    EXPECT_NEAR(expectedR61, R61, 0.1 * std::abs(expectedR61));
-    EXPECT_NEAR(expectedR62, R62, 0.1 * std::abs(expectedR62));
+    EXPECT_NEAR(R21 / expectedR21, 1.0, 0.01);
+    EXPECT_NEAR(R43 / expectedR43, 1.0, 0.01);
+    EXPECT_NEAR(R51 / expectedR51, 1.0, 0.01);
+    EXPECT_NEAR(R52 / expectedR52, 1.0, 0.01);
+    EXPECT_NEAR(R61 / expectedR61, 1.0, 0.01);
+    EXPECT_NEAR(R62 / expectedR62, 1.0, 0.01);
 }
