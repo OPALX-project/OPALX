@@ -100,7 +100,7 @@ include_directories ( BEFORE
     ${Trilinos_TPL_INCLUDE_DIRS}
     ${IPPL_SOURCE_DIRS}
     ${CCSE_INCLUDE_DIRS}
-    ${GTEST_INCLUDE_DIR}
+    ${GTEST_INCLUDE_DIRS}
     ${OPTP_INCLUDE_DIR}
 )
 
@@ -148,7 +148,7 @@ ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
 IF (ENABLE_DKS)
    set (OPAL_LIBS
        ${OPAL_LIBS}
-       dks 
+       dks
        ${DKS_CUDA_LIBS})
 ENDIF (ENABLE_DKS)
 
