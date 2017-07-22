@@ -8,8 +8,8 @@
 
 #include "gsl/gsl_statistics_double.h"
 
-TEST(GaussTest, FullSigmaTest1) {
-    OpalTestUtilities::SilenceTest silencer(false);
+TEST(BinomialTest, FullSigmaTest1) {
+    OpalTestUtilities::SilenceTest silencer(true);
 
     const double expectedR11 = 1.978;
     const double expectedR22 = 0.7998;
@@ -34,13 +34,16 @@ TEST(GaussTest, FullSigmaTest1) {
 
     Distribution dist;
 
-    Attributes::setString(dist.itsAttr[Attrib::Distribution::TYPE], "GAUSS");
+    Attributes::setString(dist.itsAttr[Attrib::Distribution::TYPE], "BINOMIAL");
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAX], expectedR11 * 1e-3);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPX], expectedR22);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAY], expectedR33 * 1e-3);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPY], expectedR44);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAZ], expectedR55 * 1e-3);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPZ], expectedR66);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::MX], 999999999.9);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::MY], 999999999.9);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::MZ], 999999999.9);
     Attributes::setRealArray(dist.itsAttr[Attrib::Distribution::R], expectedR);
     Attributes::setBool(dist.itsAttr[Attrib::Distribution::EMITTED], false);
 
@@ -81,8 +84,8 @@ TEST(GaussTest, FullSigmaTest1) {
     EXPECT_NEAR(expectedR62, R62, 0.1 * std::abs(expectedR62));
 }
 
-TEST(GaussTest, FullSigmaTest2) {
-    OpalTestUtilities::SilenceTest silencer(false);
+TEST(BinomialTest, FullSigmaTest2) {
+    OpalTestUtilities::SilenceTest silencer(true);
 
     const double expectedR11 = 1.978;
     const double expectedR22 = 0.7998;

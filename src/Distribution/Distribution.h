@@ -79,6 +79,154 @@ namespace InputMomentumUnitsT
                               };
 }
 
+namespace Attrib
+{
+    namespace Distribution
+    {
+        enum AttributesT {
+            TYPE,
+            DISTRIBUTION,
+            FNAME,
+            WRITETOFILE,
+            WEIGHT,
+            INPUTMOUNITS,
+            EMITTED,
+            EMISSIONSTEPS,
+            EMISSIONMODEL,
+            EKIN,
+            ELASER,
+            W,
+            FE,
+            CATHTEMP,
+            NBIN,
+            XMULT,
+            YMULT,
+            ZMULT,
+            TMULT,
+            PXMULT,
+            PYMULT,
+            PZMULT,
+            OFFSETX,
+            OFFSETY,
+            OFFSETZ,
+            OFFSETT,
+            OFFSETPX,
+            OFFSETPY,
+            OFFSETPZ,
+            SIGMAX,
+            SIGMAY,
+            SIGMAR,
+            SIGMAZ,
+            SIGMAT,
+            TPULSEFWHM,
+            TRISE,
+            TFALL,
+            SIGMAPX,
+            SIGMAPY,
+            SIGMAPZ,
+            MX,
+            MY,
+            MZ,
+            MT,
+            CUTOFFX,
+            CUTOFFY,
+            CUTOFFR,
+            CUTOFFLONG,
+            CUTOFFPX,
+            CUTOFFPY,
+            CUTOFFPZ,
+            FTOSCAMPLITUDE,
+            FTOSCPERIODS,
+            R,                          // the correlation matrix (a la transport)
+            CORRX,
+            CORRY,
+            CORRZ,
+            CORRT,
+            R51,
+            R52,
+            R61,
+            R62,
+            LASERPROFFN,
+            IMAGENAME,
+            INTENSITYCUT,
+            FLIPX,
+            FLIPY,
+            ROTATE90,
+            ROTATE180,
+            ROTATE270,
+            NPDARKCUR,
+            INWARDMARGIN,
+            EINITHR,
+            FNA,
+            FNB,
+            FNY,
+            FNVYZERO,
+            FNVYSECOND,
+            FNPHIW,
+            FNBETA,
+            FNFIELDTHR,
+            FNMAXEMI,
+            SECONDARYFLAG,
+            NEMISSIONMODE,
+            VSEYZERO,                   // sey_0 in Vaughn's model.
+            VEZERO,                     // Energy related to sey_0 in Vaughan's model.
+            VSEYMAX,                    // sey max in Vaughan's model.
+            VEMAX,                      // Emax in Vaughan's model.
+            VKENERGY,                   // Fitting parameter denotes the roughness of
+            // surface for impact energy in Vaughn's model.
+            VKTHETA,                    // Fitting parameter denotes the roughness of
+            // surface for impact angle in Vaughn's model.
+            VVTHERMAL,                  // Thermal velocity of Maxwellian distribution
+            // of secondaries in Vaughan's model.
+            VW,
+            SURFMATERIAL,               // Add material type, currently 0 for copper
+            // and 1 for stainless steel.
+            EX,                         // below is for the matched distribution
+            EY,
+            ET,
+            MAGSYM,                     // number of sector magnets
+            LINE,
+            FMAPFN,
+            FMTYPE,                     // field map type used in matched gauss distribution
+            RESIDUUM,
+            MAXSTEPSCO,
+            MAXSTEPSSI,
+            ORDERMAPS,
+            E2,
+            RGUESS,
+            ID1,                       // special particle that the user can set
+            ID2,                       // special particle that the user can set
+            SCALABLE,
+            SIZE
+        };
+    }
+
+    namespace Legacy
+    {
+        namespace Distribution
+        {
+            enum LegacyAttributesT {
+                // DESCRIPTION OF THE DISTRIBUTION:
+                DEBIN = Attrib::Distribution::SIZE,
+                SBIN,
+                SIGMAPT,
+                CUTOFF,
+                T,
+                PT,
+                // ALPHAX,
+                // ALPHAY,
+                // BETAX,
+                // BETAY,
+                // DX,
+                // DDX,
+                // DY,
+                // DDY,
+                SIZE
+            };
+        }
+    }
+}
+
 /*
  * Class Distribution
  *
@@ -209,6 +357,8 @@ private:
 #ifdef WITH_UNIT_TESTS
     FRIEND_TEST(GaussTest, FullSigmaTest1);
     FRIEND_TEST(GaussTest, FullSigmaTest2);
+    FRIEND_TEST(BinomialTest, FullSigmaTest1);
+    FRIEND_TEST(BinomialTest, FullSigmaTest2);
 #endif
 
     Distribution(const std::string &name, Distribution *parent);
@@ -217,9 +367,7 @@ private:
     Distribution(const Distribution &);
     void operator=(const Distribution &);
 
-
     //    void printSigma(SigmaGenerator<double,unsigned int>::matrix_type& M, Inform& out);
-
     void addDistributions();
     void applyEmissionModel(double lowEnergyLimit, double &px, double &py, double &pz, std::vector<double> &additionalRNs);
     void applyEmissModelAstra(double &px, double &py, double &pz, std::vector<double> &additionalRNs);
