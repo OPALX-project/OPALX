@@ -28,6 +28,7 @@
 
 #include "Algorithms/Vektor.h"
 #include "Beamlines/Beamline.h"
+#include "Attributes/Attributes.h"
 
 #include "Ippl.h"
 
@@ -85,7 +86,6 @@ namespace Attrib
     {
         enum AttributesT {
             TYPE,
-            DISTRIBUTION,
             FNAME,
             WRITETOFILE,
             WEIGHT,
@@ -207,7 +207,8 @@ namespace Attrib
         {
             enum LegacyAttributesT {
                 // DESCRIPTION OF THE DISTRIBUTION:
-                DEBIN = Attrib::Distribution::SIZE,
+                DISTRIBUTION = Attrib::Distribution::SIZE,
+                DEBIN,
                 SBIN,
                 SIGMAPT,
                 CUTOFF,
@@ -383,6 +384,34 @@ private:
     double converteVToBetaGamma(double valueIneV, double massIneV);
     double convertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV);
     size_t getNumberOfParticlesInFile(std::ifstream &inputFile);
+
+    class BinomialBehaviorSplitter {
+    public:
+        virtual ~BinomialBehaviorSplitter()
+        { }
+
+        virtual double get(double rand) = 0;
+    };
+
+    class MDependentBehavior: public BinomialBehaviorSplitter {
+    public:
+        MDependentBehavior(const MDependentBehavior &rhs):
+            ami_m(rhs.ami_m)
+        {}
+
+        MDependentBehavior(double a)
+        { ami_m = 1.0 / a; }
+
+        virtual double get(double rand);
+    private:
+        double ami_m;
+    };
+
+    class GaussianLikeBehavior: public BinomialBehaviorSplitter {
+    public:
+        virtual double get(double rand);
+    };
+
     void createDistributionBinomial(size_t numberOfParticles, double massIneV);
     void createDistributionFlattop(size_t numberOfParticles, double massIneV);
     void createDistributionFromFile(size_t numberOfParticles, double massIneV);
@@ -619,8 +648,155 @@ DistrTypeT::DistrTypeT Distribution::getType() const {
     return distrTypeT_m;
 }
 
-inline double Distribution::getPercentageEmitted() const {
+inline
+double Distribution::getPercentageEmitted() const {
     return (double)totalNumberEmittedParticles_m / (double)totalNumberParticles_m;
+}
+
+inline
+double Distribution::getEkin() const {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::EKIN]);
+}
+
+inline
+double Distribution::getLaserEnergy() const {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::ELASER]);
+}
+
+inline
+double Distribution::getWorkFunctionRf() const {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::W]);
+}
+
+inline
+size_t Distribution::getNumberOfDarkCurrentParticles() {
+    return (size_t) Attributes::getReal(itsAttr[Attrib::Distribution::NPDARKCUR]);
+}
+
+inline
+double Distribution::getDarkCurrentParticlesInwardMargin() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::INWARDMARGIN]);
+}
+
+inline
+double Distribution::getEInitThreshold() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::EINITHR]);
+}
+
+inline
+double Distribution::getWorkFunction() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::FNPHIW]);
+}
+
+inline
+double Distribution::getFieldEnhancement() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::FNBETA]);
+}
+
+inline
+size_t Distribution::getMaxFNemissionPartPerTri() {
+    return (size_t) Attributes::getReal(itsAttr[Attrib::Distribution::FNMAXEMI]);
+}
+
+inline
+double Distribution::getFieldFNThreshold() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::FNFIELDTHR]);
+}
+
+inline
+double Distribution::getFNParameterA() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::FNA]);
+}
+
+inline
+double Distribution::getFNParameterB() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::FNB]);
+}
+
+inline
+double Distribution::getFNParameterY() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::FNY]);
+}
+
+inline
+double Distribution::getFNParameterVYZero() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::FNVYZERO]);
+}
+
+inline
+double Distribution::getFNParameterVYSecond() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::FNVYSECOND]);
+}
+
+inline
+int Distribution::getSecondaryEmissionFlag() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::SECONDARYFLAG]);
+}
+
+inline
+bool Distribution::getEmissionMode() {
+    return Attributes::getBool(itsAttr[Attrib::Distribution::NEMISSIONMODE]);
+}
+
+inline
+std::string Distribution::getTypeofDistribution() {
+    return (std::string) Attributes::getString(itsAttr[Attrib::Distribution::TYPE]);
+}
+
+inline
+double Distribution::getvSeyZero() {
+    // return sey_0 in Vaughan's model
+    return Attributes::getReal(itsAttr[Attrib::Distribution::VSEYZERO]);
+}
+
+inline
+double Distribution::getvEZero() {
+    // return the energy related to sey_0 in Vaughan's model
+    return Attributes::getReal(itsAttr[Attrib::Distribution::VEZERO]);
+}
+
+inline
+double Distribution::getvSeyMax() {
+    // return sey max in Vaughan's model
+    return Attributes::getReal(itsAttr[Attrib::Distribution::VSEYMAX]);
+}
+
+inline
+double Distribution::getvEmax() {
+    // return Emax in Vaughan's model
+    return Attributes::getReal(itsAttr[Attrib::Distribution::VEMAX]);
+}
+
+inline
+double Distribution::getvKenergy() {
+    // return fitting parameter denotes the roughness of surface for
+    // impact energy in Vaughan's model
+    return Attributes::getReal(itsAttr[Attrib::Distribution::VKENERGY]);
+}
+
+inline
+double Distribution::getvKtheta() {
+    // return fitting parameter denotes the roughness of surface for
+    // impact angle in Vaughan's model
+    return Attributes::getReal(itsAttr[Attrib::Distribution::VKTHETA]);
+}
+
+inline
+double Distribution::getvVThermal() {
+    // thermal velocity of Maxwellian distribution of secondaries in Vaughan's model
+    return Attributes::getReal(itsAttr[Attrib::Distribution::VVTHERMAL]);
+}
+
+inline
+double Distribution::getVw() {
+    // velocity scalar for parallel plate benchmark;
+    return Attributes::getReal(itsAttr[Attrib::Distribution::VW]);
+}
+
+inline
+int Distribution::getSurfMaterial() {
+    // Surface material number for Furman-Pivi's Model;
+    return (int)Attributes::getReal(itsAttr[Attrib::Distribution::SURFMATERIAL]);
 }
 
 #endif // OPAL_Distribution_HH
