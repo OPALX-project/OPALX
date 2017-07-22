@@ -1,27 +1,27 @@
-/* 
+/*
  *  Copyright (c) 2015, Chris Rogers
  *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without 
- *  modification, are permitted provided that the following conditions are met: 
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
  *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer. 
- *  2. Redistributions in binary form must reproduce the above copyright notice, 
- *     this list of conditions and the following disclaimer in the documentation 
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
  *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to 
- *     endorse or promote products derived from this software without specific 
+ *  3. Neither the name of STFC nor the names of its contributors may be used to
+ *     endorse or promote products derived from this software without specific
  *     prior written permission.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -40,6 +40,8 @@
 #include "Fields/Interpolation/PolynomialPatch.h"
 #include "Fields/Interpolation/PolynomialCoefficient.h"
 #include "Fields/Interpolation/PPSolveFactory.h"
+
+#include "opal_test_utilities/SilenceTest.h"
 
 using namespace interpolation;
 
@@ -78,6 +80,8 @@ void test_points(int dim, int lower, int upper, std::vector< std::vector<int> > 
 }
 
 TEST(PPSolveFactoryTest, TestNearbyPointsSquares) {
+    OpalTestUtilities::SilenceTest silencer;
+
     for (int upper = 0; upper < 5; ++upper) {
         for (int lower = 0; lower < upper; ++lower) {
             for (int dim = 1; dim < 5; ++dim) {
@@ -160,7 +164,7 @@ TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic) {
                                                << "col " << i << " row " << j;
         }
 
-    // now check that the values in each polynomial are correct    
+    // now check that the values in each polynomial are correct
     ThreeDGrid testGrid(1./4., 2./4., 3./4., -1., -2., -3., np*4-1, np*4-1, np*4-1);
     for (Mesh::Iterator it = testGrid.begin(); it < testGrid.end(); ++it) {
         std::vector<double> refValue(2);
@@ -199,7 +203,7 @@ TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadraticSmoothed) {
                                                << "col " << i << " row " << j;
         }
 
-    // now check that the values in each polynomial are correct    
+    // now check that the values in each polynomial are correct
     ThreeDGrid testGrid(1./4., 2./4., 3./4., -1., -2., -3., np*4-1, np*4-1, np*4-1);
     for (Mesh::Iterator it = testGrid.begin(); it < testGrid.end(); ++it) {
         std::vector<double> refValue(2);
@@ -308,6 +312,8 @@ void plot(int n_points, std::vector<double> start, std::vector<double> end, Poly
 
 
 TEST(PPSolveFactoryTest, TestThreeDSolveSinCos) {
+    OpalTestUtilities::SilenceTest silencer;
+
     int np = 11;
     ThreeDGrid grid(1., 1., 1., 1., 2., 3., np, np, np);
     // test grid starts a few points in to avoid boundary effects
@@ -360,7 +366,7 @@ TEST(PPSolveFactoryTest, TestThreeDSolveSinCos) {
             prevTestValue = testValue;
         }
     }
-    
+
     for (size_t i = 0; i < sumError.size(); ++i) {
         std::cout << i << ": ";
         for (size_t j = 0; j < sumError[i].size(); ++j) {
@@ -375,5 +381,3 @@ TEST(PPSolveFactoryTest, TestThreeDSolveSinCos) {
         std::cout << std::endl;
     }
 }
-
-

@@ -3,9 +3,9 @@
 std::streambuf *OpalTestUtilities::SilenceTest::_defaultCout = NULL;
 std::streambuf *OpalTestUtilities::SilenceTest::_defaultCerr = NULL;
 
-OpalTestUtilities::SilenceTest::SilenceTest(bool willSilence):
+OpalTestUtilities::SilenceTest::SilenceTest():
     _failed(false) {
-    if (willSilence && _defaultCout == NULL ) {
+    if (_defaultCout == NULL ) {
         _defaultCout = std::cout.rdbuf();
         _defaultCerr = std::cerr.rdbuf();
 
