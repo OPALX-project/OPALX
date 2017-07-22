@@ -15,17 +15,17 @@ ENDIF (NOT OPTP_USED_FROM_OPAL)
 
 #-----------------------------------------------------------------------------
 # config.h
-IF(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+IF(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
     set (GIT_REVISION 0)
     EXECUTE_PROCESS(
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMAND git describe
             OUTPUT_VARIABLE GIT_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
         )
-        set (GIT_REVISION \"${GIT_OUT}\")
-ELSE(EXISTS "${CMAKE_SOURCE_DIR}/.git")
-    set (GIT_REVISION 0)
-ENDIF(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+    set (GIT_REVISION "#define GIT_VERSION=\"${GIT_OUT}\"")
+ELSE(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
+    set (GIT_REVISION "")
+ENDIF(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
 
 set (BUILD_DATE 0)
 EXECUTE_PROCESS(
@@ -33,10 +33,10 @@ EXECUTE_PROCESS(
     COMMAND date
         OUTPUT_VARIABLE DATE_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-    set (BUILD_DATE \"${DATE_OUT}\")
+set (BUILD_DATE \"${DATE_OUT}\")
 
 
-configure_file(config.h.in ${CMAKE_SOURCE_DIR}/config.h)
+configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 
 #-----------------------------------------------------------------------------
 # dependent packages
