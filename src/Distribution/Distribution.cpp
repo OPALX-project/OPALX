@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 #include <numeric>
+#include <limits>
 
 #include "AbstractObjects/Expressions.h"
 #include "Utilities/Options.h"
@@ -1106,17 +1107,19 @@ void Distribution::chooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUn
 }
 
 double Distribution::convertBetaGammaToeV(double valueInBetaGamma, double massIneV) {
-    if (valueInBetaGamma < 0)
-        return -1.0 * (sqrt(pow(valueInBetaGamma, 2.0) + 1.0) - 1.0) * massIneV;
-    else
-        return (sqrt(pow(valueInBetaGamma, 2.0) + 1.0) - 1.0) * massIneV;
+    double value = std::copysign(sqrt(pow(valueInBetaGamma, 2.0) + 1.0) - 1.0, valueInBetaGamma);
+    if (std::abs(value) < std::numeric_limits<double>::epsilon())
+        value = std::copysign(1.0 + 0.5 * pow(valueInBetaGamma, 2.0), valueInBetaGamma);
+
+    return value * massIneV;
 }
 
 double Distribution::converteVToBetaGamma(double valueIneV, double massIneV) {
-    if (valueIneV < 0)
-        return -1.0 * sqrt( pow( -1.0 * valueIneV / massIneV + 1.0, 2.0) - 1.0);
-    else
-        return sqrt( pow( valueIneV / massIneV + 1.0, 2.0) - 1.0);
+    double value = std::copysign(sqrt(pow(std::abs(valueIneV) / massIneV + 1.0, 2.0) - 1.0), valueIneV);
+    if (std::abs(value) < std::numeric_limits<double>::epsilon())
+        value = std::copysign(sqrt(2 * std::abs(valueIneV) / massIneV), valueIneV);
+
+    return value;
 }
 
 double Distribution::convertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV) {
@@ -2261,15 +2264,18 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
 
     // Calculate emittance and Twiss parameters.
     Vector_t emittance;
+    Vector_t alpha, beta, gamma;
     for (unsigned int index = 0; index < 3; index++) {
         emittance(index) = sigmaR_m[index] * sigmaP_m[index]
             * cos(asin(correlationMatrix_m(2 * index + 1, 2 * index)));
-    }
 
-    Vector_t alpha, beta, gamma;
-    for (unsigned int index = 0; index < 3; index++) {
-        beta(index) = pow(sigmaR_m[index], 2.0) / emittance(index);
-        gamma(index) = pow(sigmaP_m[index], 2.0) / emittance(index);
+        if (std::abs(emittance(index)) > std::numeric_limits<double>::epsilon()) {
+            beta(index) = pow(sigmaR_m[index], 2.0) / emittance(index);
+            gamma(index) = pow(sigmaP_m[index], 2.0) / emittance(index);
+        } else {
+            beta(index) = sqrt(std::numeric_limits<double>::max());
+            gamma(index) = sqrt(std::numeric_limits<double>::max());
+        }
         alpha(index) = -correlationMatrix_m(2 * index + 1, 2 * index)
                         * sqrt(beta(index) * gamma(index));
     }
@@ -3687,16 +3693,16 @@ void Distribution::setAttributes() {
 
     itsAttr[Attrib::Distribution::MX]
         = Attributes::makeReal("MX", "Defines the binomial distribution in x, "
-                               "0.0 ... infinity.", 0.0);
+                               "0.0 ... infinity.", 10001.0);
     itsAttr[Attrib::Distribution::MY]
         = Attributes::makeReal("MY", "Defines the binomial distribution in y, "
-                               "0.0 ... infinity.", 0.0);
+                               "0.0 ... infinity.", 10001.0);
     itsAttr[Attrib::Distribution::MZ]
         = Attributes::makeReal("MZ", "Defines the binomial distribution in z, "
-                               "0.0 ... infinity.", 0.0);
+                               "0.0 ... infinity.", 10001.0);
     itsAttr[Attrib::Distribution::MT]
         = Attributes::makeReal("MT", "Defines the binomial distribution in t, "
-                               "0.0 ... infinity.", 1.0);
+                               "0.0 ... infinity.", 10001.0);
 
     itsAttr[Attrib::Distribution::CUTOFFX] = Attributes::makeReal("CUTOFFX", "Distribution cutoff x "
                                                          "direction in units of sigma.", 3.0);
@@ -4068,9 +4074,15 @@ void Distribution::setDistParametersBinomial(double massIneV) {
     correlationMatrix_m(5, 1) = Attributes::getReal(itsAttr[Attrib::Distribution::R62]);
 
     //CORRZ overrides CORRT. We initially use CORRT for legacy compatibility.
-    if (Attributes::getReal(itsAttr[Attrib::Distribution::CORRZ]) != 0.0)
+    if (!itsAttr[Attrib::Distribution::CORRZ].defaultUsed())
         correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRZ]);
 
+    if (std::abs(correlationMatrix_m(1, 0)) < std::numeric_limits<double>::epsilon() ||
+        std::abs(correlationMatrix_m(3, 2)) < std::numeric_limits<double>::epsilon() ||
+        std::abs(correlationMatrix_m(5, 4)) < std::numeric_limits<double>::epsilon()) {
+        throw OpalException("setDistParametersBinomial",
+                            "The binomial distribution relies on CORR[X|Y|Z] being different from 0.0");
+    }
 
     sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAX])),
                         std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAY])),
@@ -4091,16 +4103,10 @@ void Distribution::setDistParametersBinomial(double massIneV) {
         sigmaP_m[2] = std::abs(Attributes::getReal(itsAttr[Attrib::Legacy::Distribution::SIGMAPT]));
     }
     // Check what input units we are using for momentum.
-    switch (inputMoUnits_m) {
-
-    case InputMomentumUnitsT::EV:
+    if (inputMoUnits_m == InputMomentumUnitsT::EV) {
         sigmaP_m[0] = converteVToBetaGamma(sigmaP_m[0], massIneV);
         sigmaP_m[1] = converteVToBetaGamma(sigmaP_m[1], massIneV);
         sigmaP_m[2] = converteVToBetaGamma(sigmaP_m[2], massIneV);
-        break;
-
-    default:
-        break;
     }
 
     mBinomial_m = Vector_t(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::MX])),
@@ -4137,16 +4143,10 @@ void Distribution::setDistParametersFlattop(double massIneV) {
                         std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPZ])));
 
     // Check what input units we are using for momentum.
-    switch (inputMoUnits_m) {
-
-    case InputMomentumUnitsT::EV:
+    if (inputMoUnits_m == InputMomentumUnitsT::EV) {
         sigmaP_m[0] = converteVToBetaGamma(sigmaP_m[0], massIneV);
         sigmaP_m[1] = converteVToBetaGamma(sigmaP_m[1], massIneV);
         sigmaP_m[2] = converteVToBetaGamma(sigmaP_m[2], massIneV);
-        break;
-
-    default:
-        break;
     }
 
     cutoffR_m = Vector_t(Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFX]),
@@ -4260,16 +4260,10 @@ void Distribution::setDistParametersGauss(double massIneV) {
             sigmaP_m[2] = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPZ]));
 
         // Check what input units we are using for momentum.
-        switch (inputMoUnits_m) {
-
-        case InputMomentumUnitsT::EV:
+        if (inputMoUnits_m == InputMomentumUnitsT::EV) {
             sigmaP_m[0] = converteVToBetaGamma(sigmaP_m[0], massIneV);
             sigmaP_m[1] = converteVToBetaGamma(sigmaP_m[1], massIneV);
             sigmaP_m[2] = converteVToBetaGamma(sigmaP_m[2], massIneV);
-            break;
-
-        default:
-            break;
         }
 
         std::vector<double> cr = Attributes::getRealArray(itsAttr[Attrib::Distribution::R]);
@@ -4564,14 +4558,10 @@ void Distribution::shiftDistCoordinates(double massIneV) {
             WARNMSG("PT & PZ are obsolet and will be ignored. The moments of the beam is defined with PC" << endl);
 
         // Check input momentum units.
-        switch (inputMoUnits_m) {
-        case InputMomentumUnitsT::EV:
+        if (inputMoUnits_m == InputMomentumUnitsT::EV) {
             deltaPx = converteVToBetaGamma(deltaPx, massIneV);
             deltaPy = converteVToBetaGamma(deltaPy, massIneV);
             deltaPz = converteVToBetaGamma(deltaPz, massIneV);
-            break;
-        default:
-            break;
         }
 
         size_t endIdx = startIdx + particlesPerDist_m[i];
