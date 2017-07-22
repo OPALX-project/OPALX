@@ -69,150 +69,8 @@ namespace {
 // Class Distribution
 // ------------------------------------------------------------------------
 
-namespace AttributesT
-{
-    enum AttributesT {
-        TYPE,
-        DISTRIBUTION,
-        FNAME,
-        WRITETOFILE,
-        WEIGHT,
-        INPUTMOUNITS,
-        EMITTED,
-        EMISSIONSTEPS,
-        EMISSIONMODEL,
-        EKIN,
-        ELASER,
-        W,
-        FE,
-        CATHTEMP,
-        NBIN,
-        XMULT,
-        YMULT,
-        ZMULT,
-        TMULT,
-        PXMULT,
-        PYMULT,
-        PZMULT,
-        OFFSETX,
-        OFFSETY,
-        OFFSETZ,
-        OFFSETT,
-        OFFSETPX,
-        OFFSETPY,
-        OFFSETPZ,
-        SIGMAX,
-        SIGMAY,
-        SIGMAR,
-        SIGMAZ,
-        SIGMAT,
-        TPULSEFWHM,
-        TRISE,
-        TFALL,
-        SIGMAPX,
-        SIGMAPY,
-        SIGMAPZ,
-        MX,
-        MY,
-        MZ,
-        MT,
-        CUTOFFX,
-        CUTOFFY,
-        CUTOFFR,
-        CUTOFFLONG,
-        CUTOFFPX,
-        CUTOFFPY,
-        CUTOFFPZ,
-        FTOSCAMPLITUDE,
-        FTOSCPERIODS,
-        R,                          // the correlation matrix (a la transport)
-        CORRX,
-        CORRY,
-        CORRZ,
-        CORRT,
-        R51,
-        R52,
-        R61,
-        R62,
-        LASERPROFFN,
-        IMAGENAME,
-        INTENSITYCUT,
-        FLIPX,
-        FLIPY,
-        ROTATE90,
-        ROTATE180,
-        ROTATE270,
-        NPDARKCUR,
-        INWARDMARGIN,
-        EINITHR,
-        FNA,
-        FNB,
-        FNY,
-        FNVYZERO,
-        FNVYSECOND,
-        FNPHIW,
-        FNBETA,
-        FNFIELDTHR,
-        FNMAXEMI,
-        SECONDARYFLAG,
-        NEMISSIONMODE,
-        VSEYZERO,                   // sey_0 in Vaughn's model.
-        VEZERO,                     // Energy related to sey_0 in Vaughan's model.
-        VSEYMAX,                    // sey max in Vaughan's model.
-        VEMAX,                      // Emax in Vaughan's model.
-        VKENERGY,                   // Fitting parameter denotes the roughness of
-        // surface for impact energy in Vaughn's model.
-        VKTHETA,                    // Fitting parameter denotes the roughness of
-        // surface for impact angle in Vaughn's model.
-        VVTHERMAL,                  // Thermal velocity of Maxwellian distribution
-        // of secondaries in Vaughan's model.
-        VW,
-        SURFMATERIAL,               // Add material type, currently 0 for copper
-        // and 1 for stainless steel.
-        EX,                         // below is for the matched distribution
-        EY,
-        ET,
-        MAGSYM,                     // number of sector magnets
-        LINE,
-        FMAPFN,
-        FMTYPE,                     // field map type used in matched gauss distribution
-        RESIDUUM,
-        MAXSTEPSCO,
-        MAXSTEPSSI,
-        ORDERMAPS,
-        E2,
-        RGUESS,
-        ID1,                       // special particle that the user can set
-        ID2,                       // special particle that the user can set
-        SCALABLE,
-        SIZE
-    };
-}
-
-namespace LegacyAttributesT
-{
-    enum LegacyAttributesT {
-        // DESCRIPTION OF THE DISTRIBUTION:
-        DEBIN = AttributesT::SIZE,
-        SBIN,
-        SIGMAPT,
-        CUTOFF,
-        T,
-        PT,
-        // ALPHAX,
-        // ALPHAY,
-        // BETAX,
-        // BETAY,
-        // DX,
-        // DDX,
-        // DY,
-        // DDY,
-        SIZE
-    };
-}
-
 Distribution::Distribution():
-    Definition( LegacyAttributesT::SIZE, "DISTRIBUTION",
+    Definition( Attrib::Legacy::Distribution::SIZE, "DISTRIBUTION",
                 "The DISTRIBUTION statement defines data for the 6D particle distribution."),
     distrTypeT_m(DistrTypeT::NODIST),
     numberOfDistributions_m(1),
@@ -281,7 +139,7 @@ Distribution::Distribution():
         delete defaultDistribution;
     }
 
-    setFieldEmissionParameters();
+    // setFieldEmissionParameters();
 
     gsl_rng_env_setup();
     randGen_m = gsl_rng_alloc(gsl_rng_default);
@@ -499,7 +357,7 @@ void Distribution::create(size_t &numberOfParticles, double massIneV) {
         mySeed = tv.tv_sec + tv.tv_usec;
     }
 
-    if (Attributes::getBool(itsAttr[AttributesT::SCALABLE])) {
+    if (Attributes::getBool(itsAttr[Attrib::Distribution::SCALABLE])) {
         numberOfLocalParticles = getNumOfLocalParticlesToCreate(numberOfLocalParticles);
         *gmsg << level2 << "* Generation of distribution with seed = " << mySeed << " + core_id\n"
               << "* is scalable with number of particles and cores." << endl;
@@ -560,7 +418,7 @@ void Distribution::create(size_t &numberOfParticles, double massIneV) {
         int saveProcessor = -1;
         const int myNode = Ippl::myNode();
         const int numNodes = Ippl::getNodes();
-        const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
+        const bool scalable = Attributes::getBool(itsAttr[Attrib::Distribution::SCALABLE]);
 
         for (size_t partIndex = 0; partIndex < numberOfLocalParticles; ++ partIndex) {
 
@@ -593,7 +451,11 @@ void Distribution::create(size_t &numberOfParticles, double massIneV) {
     if (Options::seed != -1)
         Options::seed = gsl_rng_uniform_int(randGen_m, gsl_rng_max(randGen_m));
 
-    particlesPerDist_m[0] = tOrZDist_m.size();
+    if (particlesPerDist_m.size() == 0) {
+        particlesPerDist_m.push_back(tOrZDist_m.size());
+    } else {
+        particlesPerDist_m[0] = tOrZDist_m.size();
+    }
 }
 
 void  Distribution::createPriPart(PartBunch *beam, BoundaryGeometry &bg) {
@@ -854,10 +716,10 @@ double Distribution::getTEmission() {
 
     setDistType();
 
-    tPulseLengthFWHM_m = Attributes::getReal(itsAttr[AttributesT::TPULSEFWHM]);
-    cutoff_m = Attributes::getReal(itsAttr[LegacyAttributesT::CUTOFF]);
-    tRise_m = Attributes::getReal(itsAttr[AttributesT::TRISE]);
-    tFall_m = Attributes::getReal(itsAttr[AttributesT::TFALL]);
+    tPulseLengthFWHM_m = Attributes::getReal(itsAttr[Attrib::Distribution::TPULSEFWHM]);
+    cutoff_m = Attributes::getReal(itsAttr[Attrib::Legacy::Distribution::CUTOFF]);
+    tRise_m = Attributes::getReal(itsAttr[Attrib::Distribution::TRISE]);
+    tFall_m = Attributes::getReal(itsAttr[Attrib::Distribution::TFALL]);
     double tratio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
     sigmaRise_m = tRise_m / tratio;
     sigmaFall_m = tFall_m / tratio;
@@ -891,37 +753,37 @@ double Distribution::getTEmission() {
     return tEmission_m;
 }
 
-double Distribution::getEkin() const {return Attributes::getReal(itsAttr[AttributesT::EKIN]);}
-double Distribution::getLaserEnergy() const {return Attributes::getReal(itsAttr[AttributesT::ELASER]);}
-double Distribution::getWorkFunctionRf() const {return Attributes::getReal(itsAttr[AttributesT::W]);}
+double Distribution::getEkin() const {return Attributes::getReal(itsAttr[Attrib::Distribution::EKIN]);}
+double Distribution::getLaserEnergy() const {return Attributes::getReal(itsAttr[Attrib::Distribution::ELASER]);}
+double Distribution::getWorkFunctionRf() const {return Attributes::getReal(itsAttr[Attrib::Distribution::W]);}
 
-size_t Distribution::getNumberOfDarkCurrentParticles() { return (size_t) Attributes::getReal(itsAttr[AttributesT::NPDARKCUR]);}
-double Distribution::getDarkCurrentParticlesInwardMargin() { return Attributes::getReal(itsAttr[AttributesT::INWARDMARGIN]);}
-double Distribution::getEInitThreshold() { return Attributes::getReal(itsAttr[AttributesT::EINITHR]);}
-double Distribution::getWorkFunction() { return Attributes::getReal(itsAttr[AttributesT::FNPHIW]); }
-double Distribution::getFieldEnhancement() { return Attributes::getReal(itsAttr[AttributesT::FNBETA]); }
-size_t Distribution::getMaxFNemissionPartPerTri() { return (size_t) Attributes::getReal(itsAttr[AttributesT::FNMAXEMI]);}
-double Distribution::getFieldFNThreshold() { return Attributes::getReal(itsAttr[AttributesT::FNFIELDTHR]);}
-double Distribution::getFNParameterA() { return Attributes::getReal(itsAttr[AttributesT::FNA]);}
-double Distribution::getFNParameterB() { return Attributes::getReal(itsAttr[AttributesT::FNB]);}
-double Distribution::getFNParameterY() { return Attributes::getReal(itsAttr[AttributesT::FNY]);}
-double Distribution::getFNParameterVYZero() { return Attributes::getReal(itsAttr[AttributesT::FNVYZERO]);}
-double Distribution::getFNParameterVYSecond() { return Attributes::getReal(itsAttr[AttributesT::FNVYSECOND]);}
-int    Distribution::getSecondaryEmissionFlag() { return Attributes::getReal(itsAttr[AttributesT::SECONDARYFLAG]);}
-bool   Distribution::getEmissionMode() { return Attributes::getBool(itsAttr[AttributesT::NEMISSIONMODE]);}
+size_t Distribution::getNumberOfDarkCurrentParticles() { return (size_t) Attributes::getReal(itsAttr[Attrib::Distribution::NPDARKCUR]);}
+double Distribution::getDarkCurrentParticlesInwardMargin() { return Attributes::getReal(itsAttr[Attrib::Distribution::INWARDMARGIN]);}
+double Distribution::getEInitThreshold() { return Attributes::getReal(itsAttr[Attrib::Distribution::EINITHR]);}
+double Distribution::getWorkFunction() { return Attributes::getReal(itsAttr[Attrib::Distribution::FNPHIW]); }
+double Distribution::getFieldEnhancement() { return Attributes::getReal(itsAttr[Attrib::Distribution::FNBETA]); }
+size_t Distribution::getMaxFNemissionPartPerTri() { return (size_t) Attributes::getReal(itsAttr[Attrib::Distribution::FNMAXEMI]);}
+double Distribution::getFieldFNThreshold() { return Attributes::getReal(itsAttr[Attrib::Distribution::FNFIELDTHR]);}
+double Distribution::getFNParameterA() { return Attributes::getReal(itsAttr[Attrib::Distribution::FNA]);}
+double Distribution::getFNParameterB() { return Attributes::getReal(itsAttr[Attrib::Distribution::FNB]);}
+double Distribution::getFNParameterY() { return Attributes::getReal(itsAttr[Attrib::Distribution::FNY]);}
+double Distribution::getFNParameterVYZero() { return Attributes::getReal(itsAttr[Attrib::Distribution::FNVYZERO]);}
+double Distribution::getFNParameterVYSecond() { return Attributes::getReal(itsAttr[Attrib::Distribution::FNVYSECOND]);}
+int    Distribution::getSecondaryEmissionFlag() { return Attributes::getReal(itsAttr[Attrib::Distribution::SECONDARYFLAG]);}
+bool   Distribution::getEmissionMode() { return Attributes::getBool(itsAttr[Attrib::Distribution::NEMISSIONMODE]);}
 
-std::string Distribution::getTypeofDistribution() { return (std::string) Attributes::getString(itsAttr[AttributesT::TYPE]);}
+std::string Distribution::getTypeofDistribution() { return (std::string) Attributes::getString(itsAttr[Attrib::Distribution::TYPE]);}
 
-double Distribution::getvSeyZero() {return Attributes::getReal(itsAttr[AttributesT::VSEYZERO]);}// return sey_0 in Vaughan's model
-double Distribution::getvEZero() {return Attributes::getReal(itsAttr[AttributesT::VEZERO]);}// return the energy related to sey_0 in Vaughan's model
-double Distribution::getvSeyMax() {return Attributes::getReal(itsAttr[AttributesT::VSEYMAX]);}// return sey max in Vaughan's model
-double Distribution::getvEmax() {return Attributes::getReal(itsAttr[AttributesT::VEMAX]);}// return Emax in Vaughan's model
-double Distribution::getvKenergy() {return Attributes::getReal(itsAttr[AttributesT::VKENERGY]);}// return fitting parameter denotes the roughness of surface for impact energy in Vaughan's model
-double Distribution::getvKtheta() {return Attributes::getReal(itsAttr[AttributesT::VKTHETA]);}// return fitting parameter denotes the roughness of surface for impact angle in Vaughan's model
-double Distribution::getvVThermal() {return Attributes::getReal(itsAttr[AttributesT::VVTHERMAL]);}// thermal velocity of Maxwellian distribution of secondaries in Vaughan's model
-double Distribution::getVw() {return Attributes::getReal(itsAttr[AttributesT::VW]);}// velocity scalar for parallel plate benchmark;
+double Distribution::getvSeyZero() {return Attributes::getReal(itsAttr[Attrib::Distribution::VSEYZERO]);}// return sey_0 in Vaughan's model
+double Distribution::getvEZero() {return Attributes::getReal(itsAttr[Attrib::Distribution::VEZERO]);}// return the energy related to sey_0 in Vaughan's model
+double Distribution::getvSeyMax() {return Attributes::getReal(itsAttr[Attrib::Distribution::VSEYMAX]);}// return sey max in Vaughan's model
+double Distribution::getvEmax() {return Attributes::getReal(itsAttr[Attrib::Distribution::VEMAX]);}// return Emax in Vaughan's model
+double Distribution::getvKenergy() {return Attributes::getReal(itsAttr[Attrib::Distribution::VKENERGY]);}// return fitting parameter denotes the roughness of surface for impact energy in Vaughan's model
+double Distribution::getvKtheta() {return Attributes::getReal(itsAttr[Attrib::Distribution::VKTHETA]);}// return fitting parameter denotes the roughness of surface for impact angle in Vaughan's model
+double Distribution::getvVThermal() {return Attributes::getReal(itsAttr[Attrib::Distribution::VVTHERMAL]);}// thermal velocity of Maxwellian distribution of secondaries in Vaughan's model
+double Distribution::getVw() {return Attributes::getReal(itsAttr[Attrib::Distribution::VW]);}// velocity scalar for parallel plate benchmark;
 
-int Distribution::getSurfMaterial() {return (int)Attributes::getReal(itsAttr[AttributesT::SURFMATERIAL]);}// Surface material number for Furman-Pivi's Model;
+int Distribution::getSurfMaterial() {return (int)Attributes::getReal(itsAttr[Attrib::Distribution::SURFMATERIAL]);}// Surface material number for Furman-Pivi's Model;
 
 Inform &Distribution::printInfo(Inform &os) const {
 
@@ -1144,7 +1006,7 @@ void Distribution::calcPartPerDist(size_t numberOfParticles) {
         if (currDist->distrTypeT_m == DistrTypeT::FROMFILE) {
             std::ifstream inputFile;
             if (Ippl::myNode() == 0) {
-                std::string fileName = Attributes::getString(currDist->itsAttr[AttributesT::FNAME]);
+                std::string fileName = Attributes::getString(currDist->itsAttr[Attrib::Distribution::FNAME]);
                 inputFile.open(fileName.c_str());
             }
             size_t nPart = getNumberOfParticlesInFile(inputFile);
@@ -1200,11 +1062,11 @@ void Distribution::checkEmissionParameters() {
 
     // There must be at least on energy bin for an emitted beam.
     numberOfEnergyBins_m
-        = std::abs(static_cast<int> (Attributes::getReal(itsAttr[AttributesT::NBIN])));
+        = std::abs(static_cast<int> (Attributes::getReal(itsAttr[Attrib::Distribution::NBIN])));
     if (numberOfEnergyBins_m == 0)
         numberOfEnergyBins_m = 1;
 
-    int emissionSteps = std::abs(static_cast<int> (Attributes::getReal(itsAttr[AttributesT::EMISSIONSTEPS])));
+    int emissionSteps = std::abs(static_cast<int> (Attributes::getReal(itsAttr[Attrib::Distribution::EMISSIONSTEPS])));
 
     // There must be at least one emission step.
     if (emissionSteps == 0)
@@ -1223,7 +1085,7 @@ void Distribution::checkEmissionParameters() {
 
 void Distribution::checkIfEmitted() {
 
-    emitting_m = Attributes::getBool(itsAttr[AttributesT::EMITTED]);
+    emitting_m = Attributes::getBool(itsAttr[Attrib::Distribution::EMITTED]);
 
     switch (distrTypeT_m) {
 
@@ -1266,7 +1128,7 @@ void Distribution::chooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUn
     /*
      * Toggle what units to use for inputing momentum.
      */
-    std::string inputUnits = Util::toUpper(Attributes::getString(itsAttr[AttributesT::INPUTMOUNITS]));
+    std::string inputUnits = Util::toUpper(Attributes::getString(itsAttr[Attrib::Distribution::INPUTMOUNITS]));
     if (inputUnits == "NONE")
         inputMoUnits_m = InputMomentumUnitsT::NONE;
     else if (inputUnits == "EV")
@@ -1333,7 +1195,7 @@ size_t Distribution::getNumberOfParticlesInFile(std::ifstream &inputFile) {
         if (tempInt <= 0) {
             throw OpalException("Distribution::getNumberOfParticlesInFile",
                                 "The file '" +
-                                Attributes::getString(itsAttr[AttributesT::FNAME]) +
+                                Attributes::getString(itsAttr[Attrib::Distribution::FNAME]) +
                                 "' does not seem to be an ASCII file containing a distribution.");
         }
         numberOfParticlesRead = static_cast<size_t>(tempInt);
@@ -1348,14 +1210,14 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
     *gmsg << level3 << "\n"
           << "------------------------------------------------------------------------------------\n";
     *gmsg << "READ INITIAL DISTRIBUTION FROM FILE \""
-          << Attributes::getString(itsAttr[AttributesT::FNAME])
+          << Attributes::getString(itsAttr[Attrib::Distribution::FNAME])
           << "\"\n";
     *gmsg << "------------------------------------------------------------------------------------\n" << endl;
 
     // Data input file is only read by node 0.
     std::ifstream inputFile;
     if (Ippl::myNode() == 0) {
-        std::string fileName = Attributes::getString(itsAttr[AttributesT::FNAME]);
+        std::string fileName = Attributes::getString(itsAttr[Attrib::Distribution::FNAME]);
         inputFile.open(fileName.c_str());
         if (inputFile.fail())
             throw OpalException("Distribution::create()",
@@ -1502,7 +1364,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
       - eliminate physics and error
     */
 
-    std::string LineName = Attributes::getString(itsAttr[AttributesT::LINE]);
+    std::string LineName = Attributes::getString(itsAttr[Attrib::Distribution::LINE]);
     if (LineName != "") {
         const BeamSequence* LineSequence = BeamSequence::find(LineName);
         if (LineSequence != NULL) {
@@ -1523,11 +1385,11 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
             *gmsg << "* ----------------------------------------------------" << endl;
             *gmsg << "* About to find closed orbit and matched distribution " << endl;
             *gmsg << "* I= " << I_m*1E3 << " (mA)  E= " << E_m*1E-6 << " (MeV)" << endl;
-            *gmsg << "* EX= "  << Attributes::getReal(itsAttr[AttributesT::EX])
-                  << "* EY= " << Attributes::getReal(itsAttr[AttributesT::EY])
-                  << "* ET= " << Attributes::getReal(itsAttr[AttributesT::ET])
-                  << "* FMAPFN " << Attributes::getString(itsAttr[AttributesT::FMAPFN]) << endl //CyclotronElement->getFieldMapFN() << endl
-                  << "* FMSYM= " << (int)Attributes::getReal(itsAttr[AttributesT::MAGSYM])
+            *gmsg << "* EX= "  << Attributes::getReal(itsAttr[Attrib::Distribution::EX])
+                  << "* EY= " << Attributes::getReal(itsAttr[Attrib::Distribution::EY])
+                  << "* ET= " << Attributes::getReal(itsAttr[Attrib::Distribution::ET])
+                  << "* FMAPFN " << Attributes::getString(itsAttr[Attrib::Distribution::FMAPFN]) << endl //CyclotronElement->getFieldMapFN() << endl
+                  << "* FMSYM= " << (int)Attributes::getReal(itsAttr[Attrib::Distribution::MAGSYM])
                   << "* HN= "   << CyclotronElement->getCyclHarm()
                   << "* PHIINIT= " << CyclotronElement->getPHIinit() << endl;
             *gmsg << "* ----------------------------------------------------" << endl;
@@ -1551,33 +1413,33 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
 
             typedef SigmaGenerator<double, unsigned int> sGenerator_t;
             sGenerator_t *siggen = new sGenerator_t(I_m,
-                                                    Attributes::getReal(itsAttr[AttributesT::EX])*1E6,
-                                                    Attributes::getReal(itsAttr[AttributesT::EY])*1E6,
-                                                    Attributes::getReal(itsAttr[AttributesT::ET])*1E6,
+                                                    Attributes::getReal(itsAttr[Attrib::Distribution::EX])*1E6,
+                                                    Attributes::getReal(itsAttr[Attrib::Distribution::EY])*1E6,
+                                                    Attributes::getReal(itsAttr[Attrib::Distribution::ET])*1E6,
                                                     wo,
                                                     E_m*1E-6,
                                                     CyclotronElement->getCyclHarm(),
                                                     massIneV*1E-6,
                                                     lE,
                                                     hE,
-                                                    (int)Attributes::getReal(itsAttr[AttributesT::MAGSYM]),
+                                                    (int)Attributes::getReal(itsAttr[Attrib::Distribution::MAGSYM]),
                                                     Nint,
-                                                    Attributes::getString(itsAttr[AttributesT::FMAPFN]),
-                                                    Attributes::getReal(itsAttr[AttributesT::ORDERMAPS]),
+                                                    Attributes::getString(itsAttr[Attrib::Distribution::FMAPFN]),
+                                                    Attributes::getReal(itsAttr[Attrib::Distribution::ORDERMAPS]),
                                                     writeMap);
 
-            if(siggen->match(Attributes::getReal(itsAttr[AttributesT::RESIDUUM]),
-                             Attributes::getReal(itsAttr[AttributesT::MAXSTEPSSI]),
-                             Attributes::getReal(itsAttr[AttributesT::MAXSTEPSCO]),
+            if(siggen->match(Attributes::getReal(itsAttr[Attrib::Distribution::RESIDUUM]),
+                             Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSSI]),
+                             Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSCO]),
                              CyclotronElement->getPHIinit(),
-                             Attributes::getReal(itsAttr[AttributesT::RGUESS]),
-                             Attributes::getString(itsAttr[AttributesT::FMTYPE]),
+                             Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS]),
+                             Attributes::getString(itsAttr[Attrib::Distribution::FMTYPE]),
                              false))  {
 
                 std::array<double,3> Emit = siggen->getEmittances();
 
-                if (Attributes::getReal(itsAttr[AttributesT::RGUESS]) > 0)
-                    *gmsg << "* RGUESS " << Attributes::getReal(itsAttr[AttributesT::RGUESS])/1000.0 << " (m) " << endl;
+                if (Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS]) > 0)
+                    *gmsg << "* RGUESS " << Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS])/1000.0 << " (m) " << endl;
 
                 *gmsg << "* Converged (Ex, Ey, Ez) = (" << Emit[0] << ", " << Emit[1] << ", "
                       << Emit[2] << ") pi mm mrad for E= " << E_m*1E-6 << " (MeV)" << endl;
@@ -1803,7 +1665,7 @@ void Distribution::createOpalE(Beam *beam,
     IpplTimings::startTimer(envelopeBunch->distrCreate_m);
 
     double beamEnergy = beam->getMass() * (beam->getGamma() - 1.0) * 1.0e9;
-    numberOfEnergyBins_m = static_cast<int>(fabs(Attributes::getReal(itsAttr[AttributesT::NBIN])));
+    numberOfEnergyBins_m = static_cast<int>(fabs(Attributes::getReal(itsAttr[Attrib::Distribution::NBIN])));
 
     /*
      * Set what units to use for input momentum units. Default is
@@ -1820,14 +1682,14 @@ void Distribution::createOpalE(Beam *beam,
 
     case DistrTypeT::FLATTOP:
         setDistParametersFlattop(beam->getMass());
-        beamEnergy = Attributes::getReal(itsAttr[AttributesT::EKIN]);
+        beamEnergy = Attributes::getReal(itsAttr[Attrib::Distribution::EKIN]);
         break;
     case DistrTypeT::GAUSS:
         setDistParametersGauss(beam->getMass());
         break;
     case DistrTypeT::GUNGAUSSFLATTOPTH:
         setDistParametersFlattop(beam->getMass());
-        beamEnergy = Attributes::getReal(itsAttr[AttributesT::EKIN]);
+        beamEnergy = Attributes::getReal(itsAttr[Attrib::Distribution::EKIN]);
         break;
     default:
         *gmsg << "Only FLATTOP, GAUSS and GUNGAUSSFLATTOPTH distribution types supported " << endl
@@ -2309,9 +2171,9 @@ void Distribution::generateAstraFlattopT(size_t numberOfParticles) {
     gsl_qrng *quasiRandGen = gsl_qrng_alloc(gsl_qrng_halton, 2);
 
     int numberOfSampleBins
-        = std::abs(static_cast<int> (Attributes::getReal(itsAttr[LegacyAttributesT::SBIN])));
+        = std::abs(static_cast<int> (Attributes::getReal(itsAttr[Attrib::Legacy::Distribution::SBIN])));
     int numberOfEnergyBins
-        = std::abs(static_cast<int> (Attributes::getReal(itsAttr[AttributesT::NBIN])));
+        = std::abs(static_cast<int> (Attributes::getReal(itsAttr[Attrib::Distribution::NBIN])));
 
     int binTotal = numberOfSampleBins * numberOfEnergyBins;
 
@@ -2358,7 +2220,7 @@ void Distribution::generateAstraFlattopT(size_t numberOfParticles) {
     int saveProcessor = -1;
     const int myNode = Ippl::myNode();
     const int numNodes = Ippl::getNodes();
-    const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
+    const bool scalable = Attributes::getBool(itsAttr[Attrib::Distribution::SCALABLE]);
     double tCoord = 0.0;
 
     int effectiveNumParticles = 0;
@@ -2472,7 +2334,7 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
     int saveProcessor = -1;
     const int myNode = Ippl::myNode();
     const int numNodes = Ippl::getNodes();
-    const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
+    const bool scalable = Attributes::getBool(itsAttr[Attrib::Distribution::SCALABLE]);
 
     Vector_t x = Vector_t(0.0);
     Vector_t p = Vector_t(0.0);
@@ -2593,7 +2455,7 @@ void Distribution::generateFlattopLaserProfile(size_t numberOfParticles) {
     int saveProcessor = -1;
     const int myNode = Ippl::myNode();
     const int numNodes = Ippl::getNodes();
-    const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
+    const bool scalable = Attributes::getBool(itsAttr[Attrib::Distribution::SCALABLE]);
 
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
@@ -2645,7 +2507,7 @@ void Distribution::generateFlattopT(size_t numberOfParticles) {
     int saveProcessor = -1;
     const int myNode = Ippl::myNode();
     const int numNodes = Ippl::getNodes();
-    const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
+    const bool scalable = Attributes::getBool(itsAttr[Attrib::Distribution::SCALABLE]);
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
         double x = 0.0;
@@ -2721,7 +2583,7 @@ void Distribution::generateFlattopZ(size_t numberOfParticles) {
     int saveProcessor = -1;
     const int myNode = Ippl::myNode();
     const int numNodes = Ippl::getNodes();
-    const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
+    const bool scalable = Attributes::getBool(itsAttr[Attrib::Distribution::SCALABLE]);
 
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
@@ -2839,7 +2701,7 @@ void Distribution::generateGaussZ(size_t numberOfParticles) {
     int saveProcessor = -1;
     const int myNode = Ippl::myNode();
     const int numNodes = Ippl::getNodes();
-    const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
+    const bool scalable = Attributes::getBool(itsAttr[Attrib::Distribution::SCALABLE]);
 
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
         bool allow = false;
@@ -2939,7 +2801,7 @@ void Distribution::generateLongFlattopT(size_t numberOfParticles) {
     int saveProcessor = -1;
     const int myNode = Ippl::myNode();
     const int numNodes = Ippl::getNodes();
-    const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
+    const bool scalable = Attributes::getBool(itsAttr[Attrib::Distribution::SCALABLE]);
 
     for (size_t partIndex = 0; partIndex < numFall; partIndex++) {
 
@@ -2970,12 +2832,12 @@ void Distribution::generateLongFlattopT(size_t numberOfParticles) {
      * Generate particles in flat top. The flat top can also have sinusoidal
      * modulations.
      */
-    double modulationAmp = Attributes::getReal(itsAttr[AttributesT::FTOSCAMPLITUDE])
+    double modulationAmp = Attributes::getReal(itsAttr[Attrib::Distribution::FTOSCAMPLITUDE])
         / 100.0;
     if (modulationAmp > 1.0)
         modulationAmp = 1.0;
     double numModulationPeriods
-        = std::abs(Attributes::getReal(itsAttr[AttributesT::FTOSCPERIODS]));
+        = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::FTOSCPERIODS]));
     double modulationPeriod = 0.0;
     if (numModulationPeriods != 0.0)
         modulationPeriod = flattopTime / numModulationPeriods;
@@ -3112,7 +2974,7 @@ void Distribution::generateTransverseGauss(size_t numberOfParticles) {
     int saveProcessor = -1;
     const int myNode = Ippl::myNode();
     const int numNodes = Ippl::getNodes();
-    const bool scalable = Attributes::getBool(itsAttr[AttributesT::SCALABLE]);
+    const bool scalable = Attributes::getBool(itsAttr[Attrib::Distribution::SCALABLE]);
 
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
@@ -3197,8 +3059,8 @@ void Distribution::injectBeam(PartBunch &beam) {
 
     writeOutFileInjection();
 
-    std::vector<double> id1 = Attributes::getRealArray(itsAttr[AttributesT::ID1]);
-    std::vector<double> id2 = Attributes::getRealArray(itsAttr[AttributesT::ID2]);
+    std::vector<double> id1 = Attributes::getRealArray(itsAttr[Attrib::Distribution::ID1]);
+    std::vector<double> id2 = Attributes::getRealArray(itsAttr[Attrib::Distribution::ID2]);
 
     bool hasID1 = (id1.size() != 0);
     bool hasID2 = (id2.size() != 0);
@@ -3314,7 +3176,7 @@ double Distribution::getEnergyBinDeltaT() {
 }
 
 double Distribution::getWeight() {
-    return std::abs(Attributes::getReal(itsAttr[AttributesT::WEIGHT]));
+    return std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::WEIGHT]));
 }
 
 std::vector<double>& Distribution::getXDist() {
@@ -3467,10 +3329,10 @@ void Distribution::printDistFlattop(Inform &os) const {
             os << "* Longitudinal cutoff           = " << cutoffR_m[2]
                << " [units of Sigma Time]" << endl;
             os << "* Flat top modulation amplitude = "
-               << Attributes::getReal(itsAttr[AttributesT::FTOSCAMPLITUDE])
+               << Attributes::getReal(itsAttr[Attrib::Distribution::FTOSCAMPLITUDE])
                << " [Percent of distribution amplitude]" << endl;
             os << "* Flat top modulation periods   = "
-               << std::abs(Attributes::getReal(itsAttr[AttributesT::FTOSCPERIODS]))
+               << std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::FTOSCPERIODS]))
                << endl;
         }
 
@@ -3483,7 +3345,7 @@ void Distribution::printDistFromFile(Inform &os) const {
     os << "* Distribution type: FROMFILE" << endl;
     os << "* " << endl;
     os << "* Input file:        "
-       << Attributes::getString(itsAttr[AttributesT::FNAME]) << endl;
+       << Attributes::getString(itsAttr[Attrib::Distribution::FNAME]) << endl;
 }
 
 
@@ -3525,10 +3387,10 @@ void Distribution::printDistGauss(Inform &os) const {
         os << "* Longitudinal cutoff           = " << cutoffR_m[2]
            << " [units of Sigma Time]" << endl;
         os << "* Flat top modulation amplitude = "
-           << Attributes::getReal(itsAttr[AttributesT::FTOSCAMPLITUDE])
+           << Attributes::getReal(itsAttr[Attrib::Distribution::FTOSCAMPLITUDE])
            << " [Percent of distribution amplitude]" << endl;
         os << "* Flat top modulation periods   = "
-           << std::abs(Attributes::getReal(itsAttr[AttributesT::FTOSCPERIODS]))
+           << std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::FTOSCPERIODS]))
            << endl;
         os << "* SIGMAX                        = " << sigmaR_m[0] << " [m]" << endl;
         os << "* SIGMAY                        = " << sigmaR_m[1] << " [m]" << endl;
@@ -3576,60 +3438,60 @@ void Distribution::printDistSurfEmission(Inform &os) const {
     os << "* Distribution type: SURFACEEMISION" << endl;
     os << "* " << endl;
     os << "* * Number of electrons for surface emission  "
-       << Attributes::getReal(itsAttr[AttributesT::NPDARKCUR]) << endl;
+       << Attributes::getReal(itsAttr[Attrib::Distribution::NPDARKCUR]) << endl;
     os << "* * Initialized electrons inward margin for surface emission  "
-       << Attributes::getReal(itsAttr[AttributesT::INWARDMARGIN]) << endl;
+       << Attributes::getReal(itsAttr[Attrib::Distribution::INWARDMARGIN]) << endl;
     os << "* * E field threshold (MV), only in position r with E(r)>EINITHR that "
        << "particles will be initialized   "
-       << Attributes::getReal(itsAttr[AttributesT::EINITHR]) << endl;
+       << Attributes::getReal(itsAttr[Attrib::Distribution::EINITHR]) << endl;
     os << "* * Field enhancement for surface emission  "
-       << Attributes::getReal(itsAttr[AttributesT::FNBETA]) << endl;
+       << Attributes::getReal(itsAttr[Attrib::Distribution::FNBETA]) << endl;
     os << "* * Maximum number of electrons emitted from a single triangle for "
        << "Fowler-Nordheim emission  "
-       << Attributes::getReal(itsAttr[AttributesT::FNMAXEMI]) << endl;
+       << Attributes::getReal(itsAttr[Attrib::Distribution::FNMAXEMI]) << endl;
     os << "* * Field Threshold for Fowler-Nordheim emission (MV/m)  "
-       <<  Attributes::getReal(itsAttr[AttributesT::FNFIELDTHR]) << endl;
+       <<  Attributes::getReal(itsAttr[Attrib::Distribution::FNFIELDTHR]) << endl;
     os << "* * Empirical constant A for Fowler-Nordheim emission model  "
-       <<  Attributes::getReal(itsAttr[AttributesT::FNA]) << endl;
+       <<  Attributes::getReal(itsAttr[Attrib::Distribution::FNA]) << endl;
     os << "* * Empirical constant B for Fowler-Nordheim emission model  "
-       <<  Attributes::getReal(itsAttr[AttributesT::FNB]) << endl;
+       <<  Attributes::getReal(itsAttr[Attrib::Distribution::FNB]) << endl;
     os << "* * Constant for image charge effect parameter y(E) in Fowler-Nordheim "
        << "emission model  "
-       <<  Attributes::getReal(itsAttr[AttributesT::FNY]) << endl;
+       <<  Attributes::getReal(itsAttr[Attrib::Distribution::FNY]) << endl;
     os << "* * Zero order constant for image charge effect parameter v(y) in "
        << "Fowler-Nordheim emission model  "
-       <<  Attributes::getReal(itsAttr[AttributesT::FNVYZERO]) << endl;
+       <<  Attributes::getReal(itsAttr[Attrib::Distribution::FNVYZERO]) << endl;
     os << "* * Second order constant for image charge effect parameter v(y) in "
        << "Fowler-Nordheim emission model  "
-       <<  Attributes::getReal(itsAttr[AttributesT::FNVYSECOND]) << endl;
+       <<  Attributes::getReal(itsAttr[Attrib::Distribution::FNVYSECOND]) << endl;
     os << "* * Select secondary model type(0:no secondary emission; 1:Furman-Pivi; "
        << "2 or larger: Vaughan's model  "
-       <<  Attributes::getReal(itsAttr[AttributesT::SECONDARYFLAG]) << endl;
+       <<  Attributes::getReal(itsAttr[Attrib::Distribution::SECONDARYFLAG]) << endl;
     os << "* * Secondary emission mode type(true: emit n true secondaries; false: "
        << "emit one particle with n times charge  "
-       << Attributes::getBool(itsAttr[AttributesT::NEMISSIONMODE]) << endl;
+       << Attributes::getBool(itsAttr[Attrib::Distribution::NEMISSIONMODE]) << endl;
     os << "* * Sey_0 in Vaughan's model "
-       <<  Attributes::getReal(itsAttr[AttributesT::VSEYZERO]) << endl;
+       <<  Attributes::getReal(itsAttr[Attrib::Distribution::VSEYZERO]) << endl;
     os << "* * Energy related to sey_0 in Vaughan's model in eV  "
-       <<  Attributes::getReal(itsAttr[AttributesT::VEZERO]) << endl;
+       <<  Attributes::getReal(itsAttr[Attrib::Distribution::VEZERO]) << endl;
     os << "* * Sey max in Vaughan's model  "
-       <<  Attributes::getReal(itsAttr[AttributesT::VSEYMAX]) << endl;
+       <<  Attributes::getReal(itsAttr[Attrib::Distribution::VSEYMAX]) << endl;
     os << "* * Emax in Vaughan's model in eV  "
-       <<  Attributes::getReal(itsAttr[AttributesT::VEMAX]) << endl;
+       <<  Attributes::getReal(itsAttr[Attrib::Distribution::VEMAX]) << endl;
     os << "* * Fitting parameter denotes the roughness of surface for impact "
        << "energy in Vaughan's model  "
-       <<  Attributes::getReal(itsAttr[AttributesT::VKENERGY]) << endl;
+       <<  Attributes::getReal(itsAttr[Attrib::Distribution::VKENERGY]) << endl;
     os << "* * Fitting parameter denotes the roughness of surface for impact angle "
        << "in Vaughan's model  "
-       <<  Attributes::getReal(itsAttr[AttributesT::VKTHETA]) << endl;
+       <<  Attributes::getReal(itsAttr[Attrib::Distribution::VKTHETA]) << endl;
     os << "* * Thermal velocity of Maxwellian distribution of secondaries in "
        << "Vaughan's model  "
-       <<  Attributes::getReal(itsAttr[AttributesT::VVTHERMAL]) << endl;
+       <<  Attributes::getReal(itsAttr[Attrib::Distribution::VVTHERMAL]) << endl;
     os << "* * VW denote the velocity scalar for Parallel plate benchmark  "
-       <<  Attributes::getReal(itsAttr[AttributesT::VW]) << endl;
+       <<  Attributes::getReal(itsAttr[Attrib::Distribution::VW]) << endl;
     os << "* * Material type number of the cavity surface for Furman-Pivi's model, "
        << "0 for copper, 1 for stainless steel  "
-       <<  Attributes::getReal(itsAttr[AttributesT::SURFMATERIAL]) << endl;
+       <<  Attributes::getReal(itsAttr[Attrib::Distribution::SURFMATERIAL]) << endl;
 }
 
 void Distribution::printDistSurfAndCreate(Inform &os) const {
@@ -3637,12 +3499,12 @@ void Distribution::printDistSurfAndCreate(Inform &os) const {
     os << "* Distribution type: SURFACERANDCREATE" << endl;
     os << "* " << endl;
     os << "* * Number of electrons initialized on the surface as primaries  "
-       << Attributes::getReal(itsAttr[AttributesT::NPDARKCUR]) << endl;
+       << Attributes::getReal(itsAttr[Attrib::Distribution::NPDARKCUR]) << endl;
     os << "* * Initialized electrons inward margin for surface emission  "
-       << Attributes::getReal(itsAttr[AttributesT::INWARDMARGIN]) << endl;
+       << Attributes::getReal(itsAttr[Attrib::Distribution::INWARDMARGIN]) << endl;
     os << "* * E field threshold (MV), only in position r with E(r)>EINITHR that "
        << "particles will be initialized   "
-       << Attributes::getReal(itsAttr[AttributesT::EINITHR]) << endl;
+       << Attributes::getReal(itsAttr[Attrib::Distribution::EINITHR]) << endl;
 }
 
 void Distribution::printEmissionModel(Inform &os) const {
@@ -3671,14 +3533,14 @@ void Distribution::printEmissionModel(Inform &os) const {
 void Distribution::printEmissionModelAstra(Inform &os) const {
     os << "*  THERMAL EMITTANCE in ASTRA MODE" << endl;
     os << "*  Kinetic energy (thermal emittance) = "
-       << std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]))
+       << std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::EKIN]))
        << " [eV]  " << endl;
 }
 
 void Distribution::printEmissionModelNone(Inform &os) const {
     os << "*  THERMAL EMITTANCE in NONE MODE" << endl;
     os << "*  Kinetic energy added to longitudinal momentum = "
-       << std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]))
+       << std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::EKIN]))
        << " [eV]  " << endl;
 }
 
@@ -3751,14 +3613,14 @@ void Distribution::reflectDistribution(size_t &numberOfParticles) {
 void Distribution::scaleDistCoordinates() {
     // at this point the distributions of an array of distributions are still separated
 
-    const double xmult = Attributes::getReal(itsAttr[AttributesT::XMULT]);
-    const double pxmult = Attributes::getReal(itsAttr[AttributesT::PXMULT]);
-    const double ymult = Attributes::getReal(itsAttr[AttributesT::YMULT]);
-    const double pymult = Attributes::getReal(itsAttr[AttributesT::PYMULT]);
+    const double xmult = Attributes::getReal(itsAttr[Attrib::Distribution::XMULT]);
+    const double pxmult = Attributes::getReal(itsAttr[Attrib::Distribution::PXMULT]);
+    const double ymult = Attributes::getReal(itsAttr[Attrib::Distribution::YMULT]);
+    const double pymult = Attributes::getReal(itsAttr[Attrib::Distribution::PYMULT]);
     const double longmult = (emitting_m ?
-                             Attributes::getReal(itsAttr[AttributesT::TMULT]):
-                             Attributes::getReal(itsAttr[AttributesT::ZMULT]));
-    const double pzmult = Attributes::getReal(itsAttr[AttributesT::PZMULT]);
+                             Attributes::getReal(itsAttr[Attrib::Distribution::TMULT]):
+                             Attributes::getReal(itsAttr[Attrib::Distribution::ZMULT]));
+    const double pzmult = Attributes::getReal(itsAttr[Attrib::Distribution::PZMULT]);
 
     for (size_t particleIndex = 0; particleIndex < tOrZDist_m.size(); ++ particleIndex) {
         xDist_m.at(particleIndex) *= xmult;
@@ -3771,7 +3633,7 @@ void Distribution::scaleDistCoordinates() {
 }
 
 void Distribution::setAttributes() {
-    itsAttr[AttributesT::TYPE]
+    itsAttr[Attrib::Distribution::TYPE]
         = Attributes::makeString("TYPE","Distribution type: "
                                  "FROMFILE, "
                                  "GAUSS, "
@@ -3783,161 +3645,161 @@ void Distribution::setAttributes() {
                                  "ASTRAFLATTOPTH, "
                                  "GAUSS, "
                                  "GAUSSMATCHED");
-    itsAttr[AttributesT::DISTRIBUTION]
+    itsAttr[Attrib::Distribution::DISTRIBUTION]
         = Attributes::makeString("DISTRIBUTION","This attribute isn't supported any more. Use TYPE instead");
-    itsAttr[AttributesT::LINE]
+    itsAttr[Attrib::Distribution::LINE]
         = Attributes::makeString("LINE", "Beamline that contains a cyclotron or ring ", "");
-    itsAttr[AttributesT::FMAPFN]
+    itsAttr[Attrib::Distribution::FMAPFN]
         = Attributes::makeString("FMAPFN", "File for reading fieldmap used to create matched distibution ", "");
-    itsAttr[AttributesT::FMTYPE]
+    itsAttr[Attrib::Distribution::FMTYPE]
         = Attributes::makeString("FMTYPE", "File format for reading fieldmap used to create matched distribution ", "");
-    itsAttr[AttributesT::EX]
+    itsAttr[Attrib::Distribution::EX]
         = Attributes::makeReal("EX", "Projected normalized emittance EX (m-rad), used to create matched distibution ", 1E-6);
-    itsAttr[AttributesT::EY]
+    itsAttr[Attrib::Distribution::EY]
         = Attributes::makeReal("EY", "Projected normalized emittance EY (m-rad) used to create matched distibution ", 1E-6);
-    itsAttr[AttributesT::ET]
+    itsAttr[Attrib::Distribution::ET]
         = Attributes::makeReal("ET", "Projected normalized emittance EY (m-rad) used to create matched distibution ", 1E-6);
-    itsAttr[AttributesT::E2]
+    itsAttr[Attrib::Distribution::E2]
         = Attributes::makeReal("E2", "If E2<Eb, we compute the tunes from the beams energy Eb to E2 with dE=0.25 MeV ", 0.0);
-    itsAttr[AttributesT::RESIDUUM]
+    itsAttr[Attrib::Distribution::RESIDUUM]
         = Attributes::makeReal("RESIDUUM", "Residuum for the closed orbit finder and sigma matrix generator ", 1e-8);
-    itsAttr[AttributesT::MAXSTEPSCO]
+    itsAttr[Attrib::Distribution::MAXSTEPSCO]
         = Attributes::makeReal("MAXSTEPSCO", "Maximum steps used to find closed orbit ", 100);
-    itsAttr[AttributesT::MAXSTEPSSI]
+    itsAttr[Attrib::Distribution::MAXSTEPSSI]
         = Attributes::makeReal("MAXSTEPSSI", "Maximum steps used to find matched distribution ",2000);
-    itsAttr[AttributesT::ORDERMAPS]
+    itsAttr[Attrib::Distribution::ORDERMAPS]
         = Attributes::makeReal("ORDERMAPS", "Order used in the field expansion ", 7);
-    itsAttr[AttributesT::MAGSYM]
+    itsAttr[Attrib::Distribution::MAGSYM]
         = Attributes::makeReal("MAGSYM", "Number of sector magnets ", 0);
 
-    itsAttr[AttributesT::RGUESS]
+    itsAttr[Attrib::Distribution::RGUESS]
         = Attributes::makeReal("RGUESS", "Guess value of radius (m) for closed orbit finder ", -1);
 
 
-    itsAttr[AttributesT::FNAME]
+    itsAttr[Attrib::Distribution::FNAME]
         = Attributes::makeString("FNAME", "File for reading in 6D particle "
                                  "coordinates.", "");
 
 
-    itsAttr[AttributesT::WRITETOFILE]
+    itsAttr[Attrib::Distribution::WRITETOFILE]
         = Attributes::makeBool("WRITETOFILE", "Write initial distribution to file.",
                                false);
 
-    itsAttr[AttributesT::WEIGHT]
+    itsAttr[Attrib::Distribution::WEIGHT]
         = Attributes::makeReal("WEIGHT", "Weight of distribution when used in a "
                                "distribution list.", 1.0);
 
-    itsAttr[AttributesT::INPUTMOUNITS]
+    itsAttr[Attrib::Distribution::INPUTMOUNITS]
         = Attributes::makeString("INPUTMOUNITS", "Tell OPAL what input units are for momentum."
                                  " Currently \"NONE\" or \"EV\".", "");
 
     // Attributes for beam emission.
-    itsAttr[AttributesT::EMITTED]
+    itsAttr[Attrib::Distribution::EMITTED]
         = Attributes::makeBool("EMITTED", "Emitted beam, from cathode, as opposed to "
                                "an injected beam.", false);
-    itsAttr[AttributesT::EMISSIONSTEPS]
+    itsAttr[Attrib::Distribution::EMISSIONSTEPS]
         = Attributes::makeReal("EMISSIONSTEPS", "Number of time steps to use during emission.",
                                1);
-    itsAttr[AttributesT::EMISSIONMODEL]
+    itsAttr[Attrib::Distribution::EMISSIONMODEL]
         = Attributes::makeString("EMISSIONMODEL", "Model used to emit electrons from a "
                                  "photocathode.", "None");
-    itsAttr[AttributesT::EKIN]
+    itsAttr[Attrib::Distribution::EKIN]
         = Attributes::makeReal("EKIN", "Kinetic energy used in ASTRA thermal emittance "
                                "model (eV). (Thermal energy added in with random "
                                "number generator.)", 1.0);
-    itsAttr[AttributesT::ELASER]
+    itsAttr[Attrib::Distribution::ELASER]
         = Attributes::makeReal("ELASER", "Laser energy (eV) for photocathode "
                                "emission. (Default 255 nm light.)", 4.86);
-    itsAttr[AttributesT::W]
+    itsAttr[Attrib::Distribution::W]
         = Attributes::makeReal("W", "Workfunction of photocathode material (eV)."
                                " (Default atomically clean copper.)", 4.31);
-    itsAttr[AttributesT::FE]
+    itsAttr[Attrib::Distribution::FE]
         = Attributes::makeReal("FE", "Fermi energy of photocathode material (eV)."
                                " (Default atomically clean copper.)", 7.0);
-    itsAttr[AttributesT::CATHTEMP]
+    itsAttr[Attrib::Distribution::CATHTEMP]
         = Attributes::makeReal("CATHTEMP", "Temperature of photocathode (K)."
                                " (Default 300 K.)", 300.0);
-    itsAttr[AttributesT::NBIN]
+    itsAttr[Attrib::Distribution::NBIN]
         = Attributes::makeReal("NBIN", "Number of energy bins to use when doing a space "
                                "charge solve.", 0.0);
 
     // Parameters for shifting or scaling initial distribution.
-    itsAttr[AttributesT::XMULT] = Attributes::makeReal("XMULT", "Multiplier for x dimension.", 1.0);
-    itsAttr[AttributesT::YMULT] = Attributes::makeReal("YMULT", "Multiplier for y dimension.", 1.0);
-    itsAttr[AttributesT::ZMULT] = Attributes::makeReal("TMULT", "Multiplier for z dimension.", 1.0);
-    itsAttr[AttributesT::TMULT] = Attributes::makeReal("TMULT", "Multiplier for t dimension.", 1.0);
+    itsAttr[Attrib::Distribution::XMULT] = Attributes::makeReal("XMULT", "Multiplier for x dimension.", 1.0);
+    itsAttr[Attrib::Distribution::YMULT] = Attributes::makeReal("YMULT", "Multiplier for y dimension.", 1.0);
+    itsAttr[Attrib::Distribution::ZMULT] = Attributes::makeReal("TMULT", "Multiplier for z dimension.", 1.0);
+    itsAttr[Attrib::Distribution::TMULT] = Attributes::makeReal("TMULT", "Multiplier for t dimension.", 1.0);
 
-    itsAttr[AttributesT::PXMULT] = Attributes::makeReal("PXMULT", "Multiplier for px dimension.", 1.0);
-    itsAttr[AttributesT::PYMULT] = Attributes::makeReal("PYMULT", "Multiplier for py dimension.", 1.0);
-    itsAttr[AttributesT::PZMULT] = Attributes::makeReal("PZMULT", "Multiplier for pz dimension.", 1.0);
+    itsAttr[Attrib::Distribution::PXMULT] = Attributes::makeReal("PXMULT", "Multiplier for px dimension.", 1.0);
+    itsAttr[Attrib::Distribution::PYMULT] = Attributes::makeReal("PYMULT", "Multiplier for py dimension.", 1.0);
+    itsAttr[Attrib::Distribution::PZMULT] = Attributes::makeReal("PZMULT", "Multiplier for pz dimension.", 1.0);
 
-    itsAttr[AttributesT::OFFSETX]
+    itsAttr[Attrib::Distribution::OFFSETX]
         = Attributes::makeReal("OFFSETX", "Average x offset of distribution.", 0.0);
-    itsAttr[AttributesT::OFFSETY]
+    itsAttr[Attrib::Distribution::OFFSETY]
         = Attributes::makeReal("OFFSETY", "Average y offset of distribution.", 0.0);
-    itsAttr[AttributesT::OFFSETZ]
+    itsAttr[Attrib::Distribution::OFFSETZ]
         = Attributes::makeReal("OFFSETZ", "Average z offset of distribution.", 0.0);
-    itsAttr[AttributesT::OFFSETT]
+    itsAttr[Attrib::Distribution::OFFSETT]
         = Attributes::makeReal("OFFSETT", "Average t offset of distribution.", 0.0);
 
-    itsAttr[AttributesT::OFFSETPX]
+    itsAttr[Attrib::Distribution::OFFSETPX]
         = Attributes::makeReal("OFFSETPX", "Average px offset of distribution.", 0.0);
-    itsAttr[AttributesT::OFFSETPY]
+    itsAttr[Attrib::Distribution::OFFSETPY]
         = Attributes::makeReal("OFFSETPY", "Average py offset of distribution.", 0.0);
-    itsAttr[AttributesT::OFFSETPZ]
+    itsAttr[Attrib::Distribution::OFFSETPZ]
         = Attributes::makeReal("OFFSETPZ", "Average pz offset of distribution.", 0.0);
 
     // Parameters for defining an initial distribution.
-    itsAttr[AttributesT::SIGMAX] = Attributes::makeReal("SIGMAX", "SIGMAx (m)", 0.0);
-    itsAttr[AttributesT::SIGMAY] = Attributes::makeReal("SIGMAY", "SIGMAy (m)", 0.0);
-    itsAttr[AttributesT::SIGMAR] = Attributes::makeReal("SIGMAR", "SIGMAr (m)", 0.0);
-    itsAttr[AttributesT::SIGMAZ] = Attributes::makeReal("SIGMAZ", "SIGMAz (m)", 0.0);
-    itsAttr[AttributesT::SIGMAT] = Attributes::makeReal("SIGMAT", "SIGMAt (m)", 0.0);
-    itsAttr[AttributesT::TPULSEFWHM]
+    itsAttr[Attrib::Distribution::SIGMAX] = Attributes::makeReal("SIGMAX", "SIGMAx (m)", 0.0);
+    itsAttr[Attrib::Distribution::SIGMAY] = Attributes::makeReal("SIGMAY", "SIGMAy (m)", 0.0);
+    itsAttr[Attrib::Distribution::SIGMAR] = Attributes::makeReal("SIGMAR", "SIGMAr (m)", 0.0);
+    itsAttr[Attrib::Distribution::SIGMAZ] = Attributes::makeReal("SIGMAZ", "SIGMAz (m)", 0.0);
+    itsAttr[Attrib::Distribution::SIGMAT] = Attributes::makeReal("SIGMAT", "SIGMAt (m)", 0.0);
+    itsAttr[Attrib::Distribution::TPULSEFWHM]
         = Attributes::makeReal("TPULSEFWHM", "Pulse FWHM for emitted distribution.", 0.0);
-    itsAttr[AttributesT::TRISE]
+    itsAttr[Attrib::Distribution::TRISE]
         = Attributes::makeReal("TRISE", "Rise time for emitted distribution.", 0.0);
-    itsAttr[AttributesT::TFALL]
+    itsAttr[Attrib::Distribution::TFALL]
         = Attributes::makeReal("TFALL", "Fall time for emitted distribution.", 0.0);
-    itsAttr[AttributesT::SIGMAPX] = Attributes::makeReal("SIGMAPX", "SIGMApx", 0.0);
-    itsAttr[AttributesT::SIGMAPY] = Attributes::makeReal("SIGMAPY", "SIGMApy", 0.0);
-    itsAttr[AttributesT::SIGMAPZ] = Attributes::makeReal("SIGMAPZ", "SIGMApz", 0.0);
+    itsAttr[Attrib::Distribution::SIGMAPX] = Attributes::makeReal("SIGMAPX", "SIGMApx", 0.0);
+    itsAttr[Attrib::Distribution::SIGMAPY] = Attributes::makeReal("SIGMAPY", "SIGMApy", 0.0);
+    itsAttr[Attrib::Distribution::SIGMAPZ] = Attributes::makeReal("SIGMAPZ", "SIGMApz", 0.0);
 
-    itsAttr[AttributesT::MX]
+    itsAttr[Attrib::Distribution::MX]
         = Attributes::makeReal("MX", "Defines the binomial distribution in x, "
                                "0.0 ... infinity.", 0.0);
-    itsAttr[AttributesT::MY]
+    itsAttr[Attrib::Distribution::MY]
         = Attributes::makeReal("MY", "Defines the binomial distribution in y, "
                                "0.0 ... infinity.", 0.0);
-    itsAttr[AttributesT::MZ]
+    itsAttr[Attrib::Distribution::MZ]
         = Attributes::makeReal("MZ", "Defines the binomial distribution in z, "
                                "0.0 ... infinity.", 0.0);
-    itsAttr[AttributesT::MT]
+    itsAttr[Attrib::Distribution::MT]
         = Attributes::makeReal("MT", "Defines the binomial distribution in t, "
                                "0.0 ... infinity.", 1.0);
 
-    itsAttr[AttributesT::CUTOFFX] = Attributes::makeReal("CUTOFFX", "Distribution cutoff x "
+    itsAttr[Attrib::Distribution::CUTOFFX] = Attributes::makeReal("CUTOFFX", "Distribution cutoff x "
                                                          "direction in units of sigma.", 3.0);
-    itsAttr[AttributesT::CUTOFFY] = Attributes::makeReal("CUTOFFY", "Distribution cutoff r "
+    itsAttr[Attrib::Distribution::CUTOFFY] = Attributes::makeReal("CUTOFFY", "Distribution cutoff r "
                                                          "direction in units of sigma.", 3.0);
-    itsAttr[AttributesT::CUTOFFR] = Attributes::makeReal("CUTOFFR", "Distribution cutoff radial "
+    itsAttr[Attrib::Distribution::CUTOFFR] = Attributes::makeReal("CUTOFFR", "Distribution cutoff radial "
                                                          "direction in units of sigma.", 3.0);
-    itsAttr[AttributesT::CUTOFFLONG]
+    itsAttr[Attrib::Distribution::CUTOFFLONG]
         = Attributes::makeReal("CUTOFFLONG", "Distribution cutoff z or t direction in "
                                "units of sigma.", 3.0);
-    itsAttr[AttributesT::CUTOFFPX] = Attributes::makeReal("CUTOFFPX", "Distribution cutoff px "
+    itsAttr[Attrib::Distribution::CUTOFFPX] = Attributes::makeReal("CUTOFFPX", "Distribution cutoff px "
                                                           "dimension in units of sigma.", 3.0);
-    itsAttr[AttributesT::CUTOFFPY] = Attributes::makeReal("CUTOFFPY", "Distribution cutoff py "
+    itsAttr[Attrib::Distribution::CUTOFFPY] = Attributes::makeReal("CUTOFFPY", "Distribution cutoff py "
                                                           "dimension in units of sigma.", 3.0);
-    itsAttr[AttributesT::CUTOFFPZ] = Attributes::makeReal("CUTOFFPZ", "Distribution cutoff pz "
+    itsAttr[Attrib::Distribution::CUTOFFPZ] = Attributes::makeReal("CUTOFFPZ", "Distribution cutoff pz "
                                                           "dimension in units of sigma.", 3.0);
 
-    itsAttr[AttributesT::FTOSCAMPLITUDE]
+    itsAttr[Attrib::Distribution::FTOSCAMPLITUDE]
         = Attributes::makeReal("FTOSCAMPLITUDE", "Amplitude of oscillations superimposed "
                                "on flat top portion of emitted GAUSS "
                                "distribtuion (in percent of flat top "
                                "amplitude)",0.0);
-    itsAttr[AttributesT::FTOSCPERIODS]
+    itsAttr[Attrib::Distribution::FTOSCPERIODS]
         = Attributes::makeReal("FTOSCPERIODS", "Number of oscillations superimposed on "
                                "flat top portion of emitted GAUSS "
                                "distribution", 0.0);
@@ -3946,127 +3808,127 @@ void Distribution::setAttributes() {
      * TODO: Find out what these correlations really mean and write
      * good descriptions for them.
      */
-    itsAttr[AttributesT::CORRX]
+    itsAttr[Attrib::Distribution::CORRX]
         = Attributes::makeReal("CORRX", "x/px correlation, (R12 in transport "
                                "notation).", 0.0);
-    itsAttr[AttributesT::CORRY]
+    itsAttr[Attrib::Distribution::CORRY]
         = Attributes::makeReal("CORRY", "y/py correlation, (R34 in transport "
                                "notation).", 0.0);
-    itsAttr[AttributesT::CORRZ]
+    itsAttr[Attrib::Distribution::CORRZ]
         = Attributes::makeReal("CORRZ", "z/pz correlation, (R56 in transport "
                                "notation).", 0.0);
-    itsAttr[AttributesT::CORRT]
+    itsAttr[Attrib::Distribution::CORRT]
         = Attributes::makeReal("CORRT", "t/pt correlation, (R56 in transport "
                                "notation).", 0.0);
 
-    itsAttr[AttributesT::R51]
+    itsAttr[Attrib::Distribution::R51]
         = Attributes::makeReal("R51", "x/z correlation, (R51 in transport "
                                "notation).", 0.0);
-    itsAttr[AttributesT::R52]
+    itsAttr[Attrib::Distribution::R52]
         = Attributes::makeReal("R52", "xp/z correlation, (R52 in transport "
                                "notation).", 0.0);
 
-    itsAttr[AttributesT::R61]
+    itsAttr[Attrib::Distribution::R61]
         = Attributes::makeReal("R61", "x/pz correlation, (R61 in transport "
                                "notation).", 0.0);
-    itsAttr[AttributesT::R62]
+    itsAttr[Attrib::Distribution::R62]
         = Attributes::makeReal("R62", "xp/pz correlation, (R62 in transport "
                                "notation).", 0.0);
 
-    itsAttr[AttributesT::R]
+    itsAttr[Attrib::Distribution::R]
         = Attributes::makeRealArray("R", "r correlation");
 
     // Parameters for using laser profile to generate a distribution.
-    itsAttr[AttributesT::LASERPROFFN]
+    itsAttr[Attrib::Distribution::LASERPROFFN]
         = Attributes::makeString("LASERPROFFN", "File containing a measured laser image "
                                  "profile (x,y).", "");
-    itsAttr[AttributesT::IMAGENAME]
+    itsAttr[Attrib::Distribution::IMAGENAME]
         = Attributes::makeString("IMAGENAME", "Name of the laser image.", "");
-    itsAttr[AttributesT::INTENSITYCUT]
+    itsAttr[Attrib::Distribution::INTENSITYCUT]
         = Attributes::makeReal("INTENSITYCUT", "For background subtraction of laser "
                                "image profile, in % of max intensity.",
                                0.0);
-    itsAttr[AttributesT::FLIPX]
+    itsAttr[Attrib::Distribution::FLIPX]
         = Attributes::makeBool("FLIPX", "Flip laser profile horizontally", false);
-    itsAttr[AttributesT::FLIPY]
+    itsAttr[Attrib::Distribution::FLIPY]
         = Attributes::makeBool("FLIPY", "Flip laser profile vertically", false);
-    itsAttr[AttributesT::ROTATE90]
+    itsAttr[Attrib::Distribution::ROTATE90]
         = Attributes::makeBool("ROTATE90", "Rotate laser profile 90 degrees counter clockwise", false);
-    itsAttr[AttributesT::ROTATE180]
+    itsAttr[Attrib::Distribution::ROTATE180]
         = Attributes::makeBool("ROTATE180", "Rotate laser profile 180 degrees counter clockwise", false);
-    itsAttr[AttributesT::ROTATE270]
+    itsAttr[Attrib::Distribution::ROTATE270]
         = Attributes::makeBool("ROTATE270", "Rotate laser profile 270 degrees counter clockwise", false);
 
     // Dark current and field emission model parameters.
-    itsAttr[AttributesT::NPDARKCUR]
+    itsAttr[Attrib::Distribution::NPDARKCUR]
         = Attributes::makeReal("NPDARKCUR", "Number of dark current particles.", 1000.0);
-    itsAttr[AttributesT::INWARDMARGIN]
+    itsAttr[Attrib::Distribution::INWARDMARGIN]
         = Attributes::makeReal("INWARDMARGIN", "Inward margin of initialized dark "
                                "current particle positions.", 0.001);
-    itsAttr[AttributesT::EINITHR]
+    itsAttr[Attrib::Distribution::EINITHR]
         = Attributes::makeReal("EINITHR", "E field threshold (MV/m), only in position r "
                                "with E(r)>EINITHR that particles will be "
                                "initialized.", 0.0);
-    itsAttr[AttributesT::FNA]
+    itsAttr[Attrib::Distribution::FNA]
         = Attributes::makeReal("FNA", "Empirical constant A for Fowler-Nordheim "
                                "emission model.", 1.54e-6);
-    itsAttr[AttributesT::FNB]
+    itsAttr[Attrib::Distribution::FNB]
         = Attributes::makeReal("FNB", "Empirical constant B for Fowler-Nordheim "
                                "emission model.", 6.83e9);
-    itsAttr[AttributesT::FNY]
+    itsAttr[Attrib::Distribution::FNY]
         = Attributes::makeReal("FNY", "Constant for image charge effect parameter y(E) "
                                "in Fowler-Nordheim emission model.", 3.795e-5);
-    itsAttr[AttributesT::FNVYZERO]
+    itsAttr[Attrib::Distribution::FNVYZERO]
         = Attributes::makeReal("FNVYZERO", "Zero order constant for v(y) function in "
                                "Fowler-Nordheim emission model.", 0.9632);
-    itsAttr[AttributesT::FNVYSECOND]
+    itsAttr[Attrib::Distribution::FNVYSECOND]
         = Attributes::makeReal("FNVYSECOND", "Second order constant for v(y) function "
                                "in Fowler-Nordheim emission model.", 1.065);
-    itsAttr[AttributesT::FNPHIW]
+    itsAttr[Attrib::Distribution::FNPHIW]
         = Attributes::makeReal("FNPHIW", "Work function of gun surface material (eV).",
                                4.65);
-    itsAttr[AttributesT::FNBETA]
+    itsAttr[Attrib::Distribution::FNBETA]
         = Attributes::makeReal("FNBETA", "Field enhancement factor for Fowler-Nordheim "
                                "emission.", 50.0);
-    itsAttr[AttributesT::FNFIELDTHR]
+    itsAttr[Attrib::Distribution::FNFIELDTHR]
         = Attributes::makeReal("FNFIELDTHR", "Field threshold for Fowler-Nordheim "
                                "emission (MV/m).", 30.0);
-    itsAttr[AttributesT::FNMAXEMI]
+    itsAttr[Attrib::Distribution::FNMAXEMI]
         = Attributes::makeReal("FNMAXEMI", "Maximum number of electrons emitted from a "
                                "single triangle for Fowler-Nordheim "
                                "emission.", 20.0);
-    itsAttr[AttributesT::SECONDARYFLAG]
+    itsAttr[Attrib::Distribution::SECONDARYFLAG]
         = Attributes::makeReal("SECONDARYFLAG", "Select the secondary model type 0:no "
                                "secondary emission; 1:Furman-Pivi; "
                                "2 or larger: Vaughan's model.", 0.0);
-    itsAttr[AttributesT::NEMISSIONMODE]
+    itsAttr[Attrib::Distribution::NEMISSIONMODE]
         = Attributes::makeBool("NEMISSIONMODE", "Secondary emission mode type true: "
                                "emit n true secondaries; false: emit "
                                "one particle with n times charge.", true);
-    itsAttr[AttributesT::VSEYZERO]
+    itsAttr[Attrib::Distribution::VSEYZERO]
         = Attributes::makeReal("VSEYZERO", "Sey_0 in Vaughan's model.", 0.5);
-    itsAttr[AttributesT::VEZERO]
+    itsAttr[Attrib::Distribution::VEZERO]
         = Attributes::makeReal("VEZERO", "Energy related to sey_0 in Vaughan's model "
                                "in eV.", 12.5);
-    itsAttr[AttributesT::VSEYMAX]
+    itsAttr[Attrib::Distribution::VSEYMAX]
         = Attributes::makeReal("VSEYMAX", "Sey max in Vaughan's model.", 2.22);
-    itsAttr[AttributesT::VEMAX]
+    itsAttr[Attrib::Distribution::VEMAX]
         = Attributes::makeReal("VEMAX", "Emax in Vaughan's model in eV.", 165.0);
-    itsAttr[AttributesT::VKENERGY]
+    itsAttr[Attrib::Distribution::VKENERGY]
         = Attributes::makeReal("VKENERGY", "Fitting parameter denotes the roughness of "
                                "surface for impact energy in Vaughan's "
                                "model.", 1.0);
-    itsAttr[AttributesT::VKTHETA]
+    itsAttr[Attrib::Distribution::VKTHETA]
         = Attributes::makeReal("VKTHETA", "Fitting parameter denotes the roughness of "
                                "surface for impact angle in Vaughan's "
                                "model.", 1.0);
-    itsAttr[AttributesT::VVTHERMAL]
+    itsAttr[Attrib::Distribution::VVTHERMAL]
         = Attributes::makeReal("VVTHERMAL", "Thermal velocity of Maxwellian distribution "
                                "of secondaries in Vaughan's model.", 7.268929821 * 1e5);
-    itsAttr[AttributesT::VW]
+    itsAttr[Attrib::Distribution::VW]
         = Attributes::makeReal("VW", "VW denote the velocity scalar for parallel plate "
                                "benchmark.", 1.0);
-    itsAttr[AttributesT::SURFMATERIAL]
+    itsAttr[Attrib::Distribution::SURFMATERIAL]
         = Attributes::makeReal("SURFMATERIAL", "Material type number of the cavity "
                                "surface for Furman-Pivi's model, 0 "
                                "for copper, 1 for stainless steel.", 0.0);
@@ -4075,13 +3937,13 @@ void Distribution::setAttributes() {
      *   Feature request Issue #14
      */
 
-    itsAttr[AttributesT::ID1]
+    itsAttr[Attrib::Distribution::ID1]
         = Attributes::makeRealArray("ID1", "User defined particle with ID=1");
-    itsAttr[AttributesT::ID2]
+    itsAttr[Attrib::Distribution::ID2]
         = Attributes::makeRealArray("ID2", "User defined particle with ID=2");
 
 
-    itsAttr[AttributesT::SCALABLE]
+    itsAttr[Attrib::Distribution::SCALABLE]
         = Attributes::makeBool("SCALABLE", "If true then distribution is scalable with "
                                "respect of number of particles and number of cores", false);
 
@@ -4090,51 +3952,51 @@ void Distribution::setAttributes() {
      */
 
     // Parameters for emitting a distribution.
-    itsAttr[LegacyAttributesT::DEBIN]
+    itsAttr[Attrib::Legacy::Distribution::DEBIN]
         = Attributes::makeReal("DEBIN", "Energy band for a bin in keV that defines "
                                "when to combine bins. That is, when the energy "
                                "spread of all bins is below this number "
                                "combine bins into a single bin.", 1000000.0);
-    itsAttr[LegacyAttributesT::SBIN]
+    itsAttr[Attrib::Legacy::Distribution::SBIN]
         = Attributes::makeReal("SBIN", "Number of sample bins to use per energy bin "
                                "when emitting a distribution.", 100.0);
     /*
      * Specific to type GAUSS and GUNGAUSSFLATTOPTH and ASTRAFLATTOPTH. These
      * last two distribution will eventually just become a subset of GAUSS.
      */
-    itsAttr[LegacyAttributesT::SIGMAPT] = Attributes::makeReal("SIGMAPT", "SIGMApt", 0.0);
+    itsAttr[Attrib::Legacy::Distribution::SIGMAPT] = Attributes::makeReal("SIGMAPT", "SIGMApt", 0.0);
 
-    itsAttr[LegacyAttributesT::CUTOFF]
+    itsAttr[Attrib::Legacy::Distribution::CUTOFF]
         = Attributes::makeReal("CUTOFF", "Longitudinal cutoff for Gaussian in units "
                                "of sigma.", 3.0);
 
 
     // Mixed use attributes (used by more than one distribution type).
-    itsAttr[LegacyAttributesT::T]
+    itsAttr[Attrib::Legacy::Distribution::T]
         = Attributes::makeReal("T", "Not supported anymore");
 
-    itsAttr[LegacyAttributesT::PT]
+    itsAttr[Attrib::Legacy::Distribution::PT]
         = Attributes::makeReal("PT", "Not supported anymore.");
 
 
     // Attributes that are not yet implemented.
-    // itsAttr[LegacyAttributesT::ALPHAX]
+    // itsAttr[Attrib::Legacy::Distribution::ALPHAX]
     //     = Attributes::makeReal("ALPHAX", "Courant Snyder parameter.", 0.0);
-    // itsAttr[LegacyAttributesT::ALPHAY]
+    // itsAttr[Attrib::Legacy::Distribution::ALPHAY]
     //     = Attributes::makeReal("ALPHAY", "Courant Snyder parameter.", 0.0);
-    // itsAttr[LegacyAttributesT::BETAX]
+    // itsAttr[Attrib::Legacy::Distribution::BETAX]
     //     = Attributes::makeReal("BETAX", "Courant Snyder parameter.", 1.0);
-    // itsAttr[LegacyAttributesT::BETAY]
+    // itsAttr[Attrib::Legacy::Distribution::BETAY]
     //     = Attributes::makeReal("BETAY", "Courant Snyder parameter.", 1.0);
 
-    // itsAttr[LegacyAttributesT::DX]
+    // itsAttr[Attrib::Legacy::Distribution::DX]
     //     = Attributes::makeReal("DX", "Dispersion in x (R16 in Transport notation).", 0.0);
-    // itsAttr[LegacyAttributesT::DDX]
+    // itsAttr[Attrib::Legacy::Distribution::DDX]
     //     = Attributes::makeReal("DDX", "First derivative of DX.", 0.0);
 
-    // itsAttr[LegacyAttributesT::DY]
+    // itsAttr[Attrib::Legacy::Distribution::DY]
     //     = Attributes::makeReal("DY", "Dispersion in y (R36 in Transport notation).", 0.0);
-    // itsAttr[LegacyAttributesT::DDY]
+    // itsAttr[Attrib::Legacy::Distribution::DDY]
     //     = Attributes::makeReal("DDY", "First derivative of DY.", 0.0);
 
     registerOwnership(AttributeHandler::STATEMENT);
@@ -4142,21 +4004,21 @@ void Distribution::setAttributes() {
 
 void Distribution::setFieldEmissionParameters() {
 
-    darkCurrentParts_m = static_cast<size_t> (Attributes::getReal(itsAttr[AttributesT::NPDARKCUR]));
-    darkInwardMargin_m = Attributes::getReal(itsAttr[AttributesT::INWARDMARGIN]);
-    eInitThreshold_m = Attributes::getReal(itsAttr[AttributesT::EINITHR]);
-    workFunction_m = Attributes::getReal(itsAttr[AttributesT::FNPHIW]);
-    fieldEnhancement_m = Attributes::getReal(itsAttr[AttributesT::FNBETA]);
-    maxFN_m = static_cast<size_t> (Attributes::getReal(itsAttr[AttributesT::FNMAXEMI]));
-    fieldThrFN_m = Attributes::getReal(itsAttr[AttributesT::FNFIELDTHR]);
-    paraFNA_m = Attributes::getReal(itsAttr[AttributesT::FNA]);
-    paraFNB_m = Attributes::getReal(itsAttr[AttributesT::FNB]);
-    paraFNY_m = Attributes::getReal(itsAttr[AttributesT::FNY]);
-    paraFNVYZe_m = Attributes::getReal(itsAttr[AttributesT::FNVYZERO]);
-    paraFNVYSe_m = Attributes::getReal(itsAttr[AttributesT::FNVYSECOND]);
-    secondaryFlag_m = Attributes::getReal(itsAttr[AttributesT::SECONDARYFLAG]);
-    ppVw_m = Attributes::getReal(itsAttr[AttributesT::VW]);
-    vVThermal_m = Attributes::getReal(itsAttr[AttributesT::VVTHERMAL]);
+    darkCurrentParts_m = static_cast<size_t> (Attributes::getReal(itsAttr[Attrib::Distribution::NPDARKCUR]));
+    darkInwardMargin_m = Attributes::getReal(itsAttr[Attrib::Distribution::INWARDMARGIN]);
+    eInitThreshold_m = Attributes::getReal(itsAttr[Attrib::Distribution::EINITHR]);
+    workFunction_m = Attributes::getReal(itsAttr[Attrib::Distribution::FNPHIW]);
+    fieldEnhancement_m = Attributes::getReal(itsAttr[Attrib::Distribution::FNBETA]);
+    maxFN_m = static_cast<size_t> (Attributes::getReal(itsAttr[Attrib::Distribution::FNMAXEMI]));
+    fieldThrFN_m = Attributes::getReal(itsAttr[Attrib::Distribution::FNFIELDTHR]);
+    paraFNA_m = Attributes::getReal(itsAttr[Attrib::Distribution::FNA]);
+    paraFNB_m = Attributes::getReal(itsAttr[Attrib::Distribution::FNB]);
+    paraFNY_m = Attributes::getReal(itsAttr[Attrib::Distribution::FNY]);
+    paraFNVYZe_m = Attributes::getReal(itsAttr[Attrib::Distribution::FNVYZERO]);
+    paraFNVYSe_m = Attributes::getReal(itsAttr[Attrib::Distribution::FNVYSECOND]);
+    secondaryFlag_m = Attributes::getReal(itsAttr[Attrib::Distribution::SECONDARYFLAG]);
+    ppVw_m = Attributes::getReal(itsAttr[Attrib::Distribution::VW]);
+    vVThermal_m = Attributes::getReal(itsAttr[Attrib::Distribution::VVTHERMAL]);
 
 }
 
@@ -4165,12 +4027,12 @@ void Distribution::setDistToEmitted(bool emitted) {
 }
 
 void Distribution::setDistType() {
-    if (itsAttr[AttributesT::DISTRIBUTION]) {
+    if (itsAttr[Attrib::Distribution::DISTRIBUTION]) {
         throw OpalException("Distribution::setDistType()",
                             "The attribute DISTRIBUTION isn't supported any more, use TYPE instead");
     }
 
-    distT_m = Util::toUpper(Attributes::getString(itsAttr[AttributesT::TYPE]));
+    distT_m = Util::toUpper(Attributes::getString(itsAttr[Attrib::Distribution::TYPE]));
     if (distT_m == "FROMFILE")
         distrTypeT_m = DistrTypeT::FROMFILE;
     else if(distT_m == "GAUSS")
@@ -4269,36 +4131,36 @@ void Distribution::setDistParametersBinomial(double massIneV) {
      * Set Distribution parameters. Do all the necessary checks depending
      * on the input attributes.
      */
-    correlationMatrix_m(1, 0) = Attributes::getReal(itsAttr[AttributesT::CORRX]);
-    correlationMatrix_m(3, 2) = Attributes::getReal(itsAttr[AttributesT::CORRY]);
-    correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[AttributesT::CORRT]);
-    correlationMatrix_m(4, 0) = Attributes::getReal(itsAttr[AttributesT::R51]);
-    correlationMatrix_m(4, 1) = Attributes::getReal(itsAttr[AttributesT::R52]);
-    correlationMatrix_m(5, 0) = Attributes::getReal(itsAttr[AttributesT::R61]);
-    correlationMatrix_m(5, 1) = Attributes::getReal(itsAttr[AttributesT::R62]);
+    correlationMatrix_m(1, 0) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRX]);
+    correlationMatrix_m(3, 2) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRY]);
+    correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRT]);
+    correlationMatrix_m(4, 0) = Attributes::getReal(itsAttr[Attrib::Distribution::R51]);
+    correlationMatrix_m(4, 1) = Attributes::getReal(itsAttr[Attrib::Distribution::R52]);
+    correlationMatrix_m(5, 0) = Attributes::getReal(itsAttr[Attrib::Distribution::R61]);
+    correlationMatrix_m(5, 1) = Attributes::getReal(itsAttr[Attrib::Distribution::R62]);
 
     //CORRZ overrides CORRT. We initially use CORRT for legacy compatibility.
-    if (Attributes::getReal(itsAttr[AttributesT::CORRZ]) != 0.0)
-        correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[AttributesT::CORRZ]);
+    if (Attributes::getReal(itsAttr[Attrib::Distribution::CORRZ]) != 0.0)
+        correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRZ]);
 
 
-    sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
-                        std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAY])),
-                        std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT])));
+    sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAX])),
+                        std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAY])),
+                        std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAT])));
 
     // SIGMAZ overrides SIGMAT. We initially use SIGMAT for legacy compatibility.
-    if (Attributes::getReal(itsAttr[AttributesT::SIGMAZ]) != 0.0)
-        sigmaR_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAZ]));
+    if (Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAZ]) != 0.0)
+        sigmaR_m[2] = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAZ]));
 
-    sigmaP_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPX])),
-                        std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPY])),
-                        std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPZ])));
+    sigmaP_m = Vector_t(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPX])),
+                        std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPY])),
+                        std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPZ])));
 
     // SIGMAPZ overrides SIGMAPT.
-    if (itsAttr[LegacyAttributesT::SIGMAPT]) {
+    if (itsAttr[Attrib::Legacy::Distribution::SIGMAPT]) {
         WARNMSG("The attribute SIGMAPT may be removed in a future version\n"
                 << "use  SIGMAPZ instead" << endl;)
-        sigmaP_m[2] = std::abs(Attributes::getReal(itsAttr[LegacyAttributesT::SIGMAPT]));
+        sigmaP_m[2] = std::abs(Attributes::getReal(itsAttr[Attrib::Legacy::Distribution::SIGMAPT]));
     }
     // Check what input units we are using for momentum.
     switch (inputMoUnits_m) {
@@ -4313,26 +4175,26 @@ void Distribution::setDistParametersBinomial(double massIneV) {
         break;
     }
 
-    mBinomial_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::MX])),
-                           std::abs(Attributes::getReal(itsAttr[AttributesT::MY])),
-                           std::abs(Attributes::getReal(itsAttr[AttributesT::MT])));
+    mBinomial_m = Vector_t(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::MX])),
+                           std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::MY])),
+                           std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::MT])));
 
-    cutoffR_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFX]),
-                         Attributes::getReal(itsAttr[AttributesT::CUTOFFY]),
-                         Attributes::getReal(itsAttr[AttributesT::CUTOFFLONG]));
+    cutoffR_m = Vector_t(Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFX]),
+                         Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFY]),
+                         Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFLONG]));
 
-    cutoffP_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFPX]),
-                         Attributes::getReal(itsAttr[AttributesT::CUTOFFPY]),
-                         Attributes::getReal(itsAttr[AttributesT::CUTOFFPZ]));
+    cutoffP_m = Vector_t(Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFPX]),
+                         Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFPY]),
+                         Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFPZ]));
 
     if (mBinomial_m[2] == 0.0
-        || Attributes::getReal(itsAttr[AttributesT::MZ]) != 0.0)
-        mBinomial_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::MZ]));
+        || Attributes::getReal(itsAttr[Attrib::Distribution::MZ]) != 0.0)
+        mBinomial_m[2] = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::MZ]));
 
     if (emitting_m) {
-        sigmaR_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT]));
-        mBinomial_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::MT]));
-        correlationMatrix_m(5, 4) = std::abs(Attributes::getReal(itsAttr[AttributesT::CORRT]));
+        sigmaR_m[2] = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAT]));
+        mBinomial_m[2] = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::MT]));
+        correlationMatrix_m(5, 4) = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::CORRT]));
     }
 }
 
@@ -4342,9 +4204,9 @@ void Distribution::setDistParametersFlattop(double massIneV) {
      * Set distribution parameters. Do all the necessary checks depending
      * on the input attributes.
      */
-    sigmaP_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPX])),
-                        std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPY])),
-                        std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPZ])));
+    sigmaP_m = Vector_t(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPX])),
+                        std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPY])),
+                        std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPZ])));
 
     // Check what input units we are using for momentum.
     switch (inputMoUnits_m) {
@@ -4359,45 +4221,45 @@ void Distribution::setDistParametersFlattop(double massIneV) {
         break;
     }
 
-    cutoffR_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFX]),
-                         Attributes::getReal(itsAttr[AttributesT::CUTOFFY]),
-                         Attributes::getReal(itsAttr[AttributesT::CUTOFFLONG]));
+    cutoffR_m = Vector_t(Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFX]),
+                         Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFY]),
+                         Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFLONG]));
 
-    correlationMatrix_m(1, 0) = Attributes::getReal(itsAttr[AttributesT::CORRX]);
-    correlationMatrix_m(3, 2) = Attributes::getReal(itsAttr[AttributesT::CORRY]);
-    correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[AttributesT::CORRT]);
+    correlationMatrix_m(1, 0) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRX]);
+    correlationMatrix_m(3, 2) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRY]);
+    correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRT]);
 
     // CORRZ overrides CORRT.
-    if (Attributes::getReal(itsAttr[AttributesT::CORRZ]) != 0.0)
-        correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[AttributesT::CORRZ]);
+    if (Attributes::getReal(itsAttr[Attrib::Distribution::CORRZ]) != 0.0)
+        correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRZ]);
 
 
     if (emitting_m) {
         INFOMSG("emitting"<<endl);
-        sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
-                            std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAY])),
+        sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAX])),
+                            std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAY])),
                             0.0);
 
-        sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT]));
-        sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT]));
+        sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAT]));
+        sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAT]));
 
-        tPulseLengthFWHM_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TPULSEFWHM]));
+        tPulseLengthFWHM_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TPULSEFWHM]));
 
         /*
          * If TRISE and TFALL are defined > 0.0 then these attributes
          * override SIGMAT.
          */
-        if (std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE])) > 0.0
-            || std::abs(Attributes::getReal(itsAttr[AttributesT::TFALL])) > 0.0) {
+        if (std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TRISE])) > 0.0
+            || std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TFALL])) > 0.0) {
 
             double timeRatio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
 
-            if (std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE])) > 0.0)
-                sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE]))
+            if (std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TRISE])) > 0.0)
+                sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TRISE]))
                     / timeRatio;
 
-            if (std::abs(Attributes::getReal(itsAttr[AttributesT::TFALL])) > 0.0)
-                sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TFALL]))
+            if (std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TFALL])) > 0.0)
+                sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TFALL]))
                     / timeRatio;
 
         }
@@ -4407,28 +4269,28 @@ void Distribution::setDistParametersFlattop(double massIneV) {
 
     } else {
 
-        sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
-                            std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAY])),
-                            std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAZ])));
+        sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAX])),
+                            std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAY])),
+                            std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAZ])));
 
     }
 
-    if (std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR])) > 0.0) {
-        sigmaR_m[0] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR]));
-        sigmaR_m[1] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR]));
+    if (std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAR])) > 0.0) {
+        sigmaR_m[0] = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAR]));
+        sigmaR_m[1] = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAR]));
     }
 
     // Set laser profile/
-    laserProfileFileName_m = Attributes::getString(itsAttr[AttributesT::LASERPROFFN]);
+    laserProfileFileName_m = Attributes::getString(itsAttr[Attrib::Distribution::LASERPROFFN]);
     if (!(laserProfileFileName_m == std::string(""))) {
-        laserImageName_m = Attributes::getString(itsAttr[AttributesT::IMAGENAME]);
-        laserIntensityCut_m = std::abs(Attributes::getReal(itsAttr[AttributesT::INTENSITYCUT]));
+        laserImageName_m = Attributes::getString(itsAttr[Attrib::Distribution::IMAGENAME]);
+        laserIntensityCut_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::INTENSITYCUT]));
         short flags = 0;
-        if (Attributes::getBool(itsAttr[AttributesT::FLIPX])) flags |= LaserProfile::FLIPX;
-        if (Attributes::getBool(itsAttr[AttributesT::FLIPY])) flags |= LaserProfile::FLIPY;
-        if (Attributes::getBool(itsAttr[AttributesT::ROTATE90])) flags |= LaserProfile::ROTATE90;
-        if (Attributes::getBool(itsAttr[AttributesT::ROTATE180])) flags |= LaserProfile::ROTATE180;
-        if (Attributes::getBool(itsAttr[AttributesT::ROTATE270])) flags |= LaserProfile::ROTATE270;
+        if (Attributes::getBool(itsAttr[Attrib::Distribution::FLIPX])) flags |= LaserProfile::FLIPX;
+        if (Attributes::getBool(itsAttr[Attrib::Distribution::FLIPY])) flags |= LaserProfile::FLIPY;
+        if (Attributes::getBool(itsAttr[Attrib::Distribution::ROTATE90])) flags |= LaserProfile::ROTATE90;
+        if (Attributes::getBool(itsAttr[Attrib::Distribution::ROTATE180])) flags |= LaserProfile::ROTATE180;
+        if (Attributes::getBool(itsAttr[Attrib::Distribution::ROTATE270])) flags |= LaserProfile::ROTATE270;
 
         laserProfile_m = new LaserProfile(laserProfileFileName_m,
                                           laserImageName_m,
@@ -4438,7 +4300,7 @@ void Distribution::setDistParametersFlattop(double massIneV) {
 
     // Legacy for ASTRAFLATTOPTH.
     if (distrTypeT_m == DistrTypeT::ASTRAFLATTOPTH)
-        tRise_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE]));
+        tRise_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TRISE]));
 
 }
 
@@ -4451,23 +4313,23 @@ void Distribution::setDistParametersGauss(double massIneV) {
      */
 
 
-    cutoffP_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFPX]),
-                         Attributes::getReal(itsAttr[AttributesT::CUTOFFPY]),
-                         Attributes::getReal(itsAttr[AttributesT::CUTOFFPZ]));
+    cutoffP_m = Vector_t(Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFPX]),
+                         Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFPY]),
+                         Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFPZ]));
 
 
-    cutoffR_m = Vector_t(Attributes::getReal(itsAttr[AttributesT::CUTOFFX]),
-                         Attributes::getReal(itsAttr[AttributesT::CUTOFFY]),
-                         Attributes::getReal(itsAttr[AttributesT::CUTOFFLONG]));
+    cutoffR_m = Vector_t(Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFX]),
+                         Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFY]),
+                         Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFLONG]));
 
     if  (distrTypeT_m != DistrTypeT::MATCHEDGAUSS) {
-        sigmaP_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPX])),
-                            std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPY])),
-                            std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPZ])));
+        sigmaP_m = Vector_t(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPX])),
+                            std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPY])),
+                            std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPZ])));
 
         // SIGMAPZ overrides SIGMAPT. We initially use SIGMAPT for legacy compatibility.
-        if (Attributes::getReal(itsAttr[AttributesT::SIGMAPZ]) != 0.0)
-            sigmaP_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAPZ]));
+        if (Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPZ]) != 0.0)
+            sigmaP_m[2] = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPZ]));
 
         // Check what input units we are using for momentum.
         switch (inputMoUnits_m) {
@@ -4482,7 +4344,7 @@ void Distribution::setDistParametersGauss(double massIneV) {
             break;
         }
 
-        std::vector<double> cr = Attributes::getRealArray(itsAttr[AttributesT::R]);
+        std::vector<double> cr = Attributes::getRealArray(itsAttr[Attrib::Distribution::R]);
 
         if(cr.size()>0) {
             if(cr.size() == 15) {
@@ -4501,46 +4363,46 @@ void Distribution::setDistParametersGauss(double massIneV) {
             }
         }
         else {
-            correlationMatrix_m(1, 0) = Attributes::getReal(itsAttr[AttributesT::CORRX]);
-            correlationMatrix_m(3, 2) = Attributes::getReal(itsAttr[AttributesT::CORRY]);
-            correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[AttributesT::CORRT]);
-            correlationMatrix_m(4, 0) = Attributes::getReal(itsAttr[AttributesT::R51]);
-            correlationMatrix_m(4, 1) = Attributes::getReal(itsAttr[AttributesT::R52]);
-            correlationMatrix_m(5, 0) = Attributes::getReal(itsAttr[AttributesT::R61]);
-            correlationMatrix_m(5, 1) = Attributes::getReal(itsAttr[AttributesT::R62]);
+            correlationMatrix_m(1, 0) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRX]);
+            correlationMatrix_m(3, 2) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRY]);
+            correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRT]);
+            correlationMatrix_m(4, 0) = Attributes::getReal(itsAttr[Attrib::Distribution::R51]);
+            correlationMatrix_m(4, 1) = Attributes::getReal(itsAttr[Attrib::Distribution::R52]);
+            correlationMatrix_m(5, 0) = Attributes::getReal(itsAttr[Attrib::Distribution::R61]);
+            correlationMatrix_m(5, 1) = Attributes::getReal(itsAttr[Attrib::Distribution::R62]);
 
             // CORRZ overrides CORRT.
-            if (Attributes::getReal(itsAttr[AttributesT::CORRZ]) != 0.0)
-                correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[AttributesT::CORRZ]);
+            if (Attributes::getReal(itsAttr[Attrib::Distribution::CORRZ]) != 0.0)
+                correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRZ]);
         }
     }
 
     if (emitting_m) {
 
-        sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
-                            std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAY])),
+        sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAX])),
+                            std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAY])),
                             0.0);
 
-        sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT]));
-        sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT]));
+        sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAT]));
+        sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAT]));
 
-        tPulseLengthFWHM_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TPULSEFWHM]));
+        tPulseLengthFWHM_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TPULSEFWHM]));
 
         /*
          * If TRISE and TFALL are defined then these attributes
          * override SIGMAT.
          */
-        if (std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE])) > 0.0
-            || std::abs(Attributes::getReal(itsAttr[AttributesT::TFALL])) > 0.0) {
+        if (std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TRISE])) > 0.0
+            || std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TFALL])) > 0.0) {
 
             double timeRatio = sqrt(2.0 * log(10.0)) - sqrt(2.0 * log(10.0 / 9.0));
 
-            if (std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE])) > 0.0)
-                sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TRISE]))
+            if (std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TRISE])) > 0.0)
+                sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TRISE]))
                     / timeRatio;
 
-            if (std::abs(Attributes::getReal(itsAttr[AttributesT::TFALL])) > 0.0)
-                sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[AttributesT::TFALL]))
+            if (std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TFALL])) > 0.0)
+                sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TFALL]))
                     / timeRatio;
 
         }
@@ -4550,28 +4412,28 @@ void Distribution::setDistParametersGauss(double massIneV) {
 
     } else {
         if  (distrTypeT_m != DistrTypeT::MATCHEDGAUSS) {
-            sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAX])),
-                                std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAY])),
-                                std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAT])));
+            sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAX])),
+                                std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAY])),
+                                std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAT])));
 
             // SIGMAZ overrides SIGMAT. We initially use SIGMAT for legacy compatibility.
-            if (Attributes::getReal(itsAttr[AttributesT::SIGMAZ]) != 0.0)
-                sigmaR_m[2] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAZ]));
+            if (Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAZ]) != 0.0)
+                sigmaR_m[2] = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAZ]));
 
         }
     }
 
-    if (std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR])) > 0.0) {
-        sigmaR_m[0] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR]));
-        sigmaR_m[1] = std::abs(Attributes::getReal(itsAttr[AttributesT::SIGMAR]));
-        cutoffR_m[0] = Attributes::getReal(itsAttr[AttributesT::CUTOFFR]);
-        cutoffR_m[1] = Attributes::getReal(itsAttr[AttributesT::CUTOFFR]);
+    if (std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAR])) > 0.0) {
+        sigmaR_m[0] = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAR]));
+        sigmaR_m[1] = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAR]));
+        cutoffR_m[0] = Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFR]);
+        cutoffR_m[1] = Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFR]);
     }
 }
 
 void Distribution::setupEmissionModel(PartBunch &beam) {
 
-    std::string model = Util::toUpper(Attributes::getString(itsAttr[AttributesT::EMISSIONMODEL]));
+    std::string model = Util::toUpper(Attributes::getString(itsAttr[Attrib::Distribution::EMISSIONMODEL]));
     if (model == "ASTRA")
         emissionModel_m = EmissionModelT::ASTRA;
     else if (model == "NONEQUIL")
@@ -4606,14 +4468,14 @@ void Distribution::setupEmissionModel(PartBunch &beam) {
 
 void Distribution::setupEmissionModelAstra(PartBunch &beam) {
 
-    double wThermal = std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]));
+    double wThermal = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::EKIN]));
     pTotThermal_m = converteVToBetaGamma(wThermal, beam.getM());
     pmean_m = Vector_t(0.0, 0.0, 0.5 * pTotThermal_m);
 }
 
 void Distribution::setupEmissionModelNone(PartBunch &beam) {
 
-    double wThermal = std::abs(Attributes::getReal(itsAttr[AttributesT::EKIN]));
+    double wThermal = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::EKIN]));
     pTotThermal_m = converteVToBetaGamma(wThermal, beam.getM());
     double avgPz = std::accumulate(pzDist_m.begin(), pzDist_m.end(), 0.0);
     size_t numParticles = pzDist_m.size();
@@ -4626,10 +4488,10 @@ void Distribution::setupEmissionModelNone(PartBunch &beam) {
 
 void Distribution::setupEmissionModelNonEquil() {
 
-    cathodeWorkFunc_m = std::abs(Attributes::getReal(itsAttr[AttributesT::W]));
-    laserEnergy_m = std::abs(Attributes::getReal(itsAttr[AttributesT::ELASER]));
-    cathodeFermiEnergy_m = std::abs(Attributes::getReal(itsAttr[AttributesT::FE]));
-    cathodeTemp_m = Physics::kB * std::abs(Attributes::getReal(itsAttr[AttributesT::CATHTEMP]));
+    cathodeWorkFunc_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::W]));
+    laserEnergy_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::ELASER]));
+    cathodeFermiEnergy_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::FE]));
+    cathodeTemp_m = Physics::kB * std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::CATHTEMP]));
 
     /*
      * Upper limit on energy distribution theoretically goes to infinity.
@@ -4656,19 +4518,19 @@ void Distribution::setupEnergyBins(double maxTOrZ, double minTOrZ) {
 void Distribution::setupParticleBins(double massIneV, PartBunch &beam) {
 
     numberOfEnergyBins_m
-        = static_cast<int>(std::abs(Attributes::getReal(itsAttr[AttributesT::NBIN])));
+        = static_cast<int>(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::NBIN])));
 
     if (numberOfEnergyBins_m > 0) {
         if (energyBins_m)
             delete energyBins_m;
 
-        int sampleBins = static_cast<int>(std::abs(Attributes::getReal(itsAttr[LegacyAttributesT::SBIN])));
+        int sampleBins = static_cast<int>(std::abs(Attributes::getReal(itsAttr[Attrib::Legacy::Distribution::SBIN])));
         energyBins_m = new PartBins(numberOfEnergyBins_m, sampleBins);
 
-        double dEBins = Attributes::getReal(itsAttr[LegacyAttributesT::DEBIN]);
+        double dEBins = Attributes::getReal(itsAttr[Attrib::Legacy::Distribution::DEBIN]);
         energyBins_m->setRebinEnergy(dEBins);
 
-        if (itsAttr[LegacyAttributesT::PT])
+        if (itsAttr[Attrib::Legacy::Distribution::PT])
             throw OpalException("Distribution::setupParticleBins",
                                 "PT is obsolet. The moments of the beam is defined with OFFSETPZ");
 
@@ -4735,7 +4597,7 @@ void Distribution::shiftBeam(double &maxTOrZ, double &minTOrZ) {
 
 double Distribution::getEmissionTimeShift() const {
     if (emitting_m)
-        return Attributes::getReal(itsAttr[AttributesT::OFFSETT]);
+        return Attributes::getReal(itsAttr[Attrib::Distribution::OFFSETT]);
 
     return 0.0;
 }
@@ -4747,30 +4609,30 @@ void Distribution::shiftDistCoordinates(double massIneV) {
         Distribution *currDist = this;
         if (i > 0)
             currDist = addedDistributions_m[i - 1];
-        double deltaX = Attributes::getReal(currDist->itsAttr[AttributesT::OFFSETX]);
-        double deltaY = Attributes::getReal(currDist->itsAttr[AttributesT::OFFSETY]);
+        double deltaX = Attributes::getReal(currDist->itsAttr[Attrib::Distribution::OFFSETX]);
+        double deltaY = Attributes::getReal(currDist->itsAttr[Attrib::Distribution::OFFSETY]);
 
         /*
          * OFFSETZ overrides T if it is nonzero. We initially use T
          * for legacy compatiblity. OFFSETT always overrides T, even
          * when zero, for an emitted beam.
          */
-        if (currDist->itsAttr[LegacyAttributesT::T]) {
+        if (currDist->itsAttr[Attrib::Legacy::Distribution::T]) {
             throw OpalException("Distribution::shiftDistCoordinates",
                                 "Attribute T isn't supported anymore; use OFFSETZ instead");
         }
 
         double deltaTOrZ = 0.0;
         if (!emitting_m)
-            if (Attributes::getReal(currDist->itsAttr[AttributesT::OFFSETZ]) != 0.0)
-                deltaTOrZ = Attributes::getReal(currDist->itsAttr[AttributesT::OFFSETZ]);
+            if (Attributes::getReal(currDist->itsAttr[Attrib::Distribution::OFFSETZ]) != 0.0)
+                deltaTOrZ = Attributes::getReal(currDist->itsAttr[Attrib::Distribution::OFFSETZ]);
 
 
-        double deltaPx = Attributes::getReal(currDist->itsAttr[AttributesT::OFFSETPX]);
-        double deltaPy = Attributes::getReal(currDist->itsAttr[AttributesT::OFFSETPY]);
-        double deltaPz = Attributes::getReal(currDist->itsAttr[AttributesT::OFFSETPZ]);
+        double deltaPx = Attributes::getReal(currDist->itsAttr[Attrib::Distribution::OFFSETPX]);
+        double deltaPy = Attributes::getReal(currDist->itsAttr[Attrib::Distribution::OFFSETPY]);
+        double deltaPz = Attributes::getReal(currDist->itsAttr[Attrib::Distribution::OFFSETPZ]);
 
-        if (Attributes::getReal(currDist->itsAttr[LegacyAttributesT::PT])!=0.0)
+        if (Attributes::getReal(currDist->itsAttr[Attrib::Legacy::Distribution::PT])!=0.0)
             WARNMSG("PT & PZ are obsolet and will be ignored. The moments of the beam is defined with PC" << endl);
 
         // Check input momentum units.
@@ -4800,7 +4662,7 @@ void Distribution::shiftDistCoordinates(double massIneV) {
 
 void Distribution::writeOutFileHeader() {
 
-    if (Attributes::getBool(itsAttr[AttributesT::WRITETOFILE])) {
+    if (Attributes::getBool(itsAttr[Attrib::Distribution::WRITETOFILE])) {
 
         unsigned int totalNum = tOrZDist_m.size();
         reduce(totalNum, totalNum, OpAddAssign());
@@ -4859,7 +4721,7 @@ void Distribution::writeOutFileHeader() {
 
 void Distribution::writeOutFileEmission() {
 
-    if (!Attributes::getBool(itsAttr[AttributesT::WRITETOFILE])) {
+    if (!Attributes::getBool(itsAttr[Attrib::Distribution::WRITETOFILE])) {
         xWrite_m.clear();
         pxWrite_m.clear();
         yWrite_m.clear();
@@ -4984,7 +4846,7 @@ void Distribution::writeOutFileEmission() {
 
 void Distribution::writeOutFileInjection() {
 
-    if (Attributes::getBool(itsAttr[AttributesT::WRITETOFILE])) {
+    if (Attributes::getBool(itsAttr[Attrib::Distribution::WRITETOFILE])) {
 
         // Nodes take turn writing particles to file.
         for (int nodeIndex = 0; nodeIndex < Ippl::getNodes(); nodeIndex++) {
