@@ -5,6 +5,8 @@
 #include "Algorithms/StatisticalErrors.h"
 #include "Structure/OpalInputInterpreter.h"
 
+#include "opal_test_utilities/SilenceTest.h"
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -13,6 +15,8 @@
 
 
 TEST(StatisticalErrorTests, CPPCommentTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     std::istringstream in(inputCPPCommentTest);
     OpalInputInterpreter interpreter;
 
@@ -29,6 +33,8 @@ TEST(StatisticalErrorTests, CPPCommentTest) {
 
 
 TEST(StatisticalErrorTests, CCommentTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     std::istringstream in(inputCCommentTest);
     OpalInputInterpreter interpreter;
 
@@ -44,6 +50,8 @@ TEST(StatisticalErrorTests, CCommentTest) {
 }
 
 TEST(StatisticalErrorTests, TGaussTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     std::istringstream in(inputTGaussTest);
     OpalInputInterpreter interpreter;
 
@@ -72,6 +80,8 @@ TEST(StatisticalErrorTests, TGaussTest) {
 }
 
 TEST(StatisticalErrorTests, GaussTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     std::istringstream in(inputGaussTest);
     OpalInputInterpreter interpreter;
 
@@ -114,6 +124,8 @@ TEST(StatisticalErrorTests, GaussTest) {
 }
 
 TEST(StatisticalErrorTests, CallTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     std::istringstream in(inputCallTest);
     OpalInputInterpreter interpreter;
 
@@ -139,6 +151,8 @@ TEST(StatisticalErrorTests, CallTest) {
 }
 
 TEST(StatisticalErrorTests, FileTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     std::ofstream ofh("FileTest.in");
     ofh << inputGaussTest;
     ofh.close();
@@ -154,6 +168,8 @@ TEST(StatisticalErrorTests, FileTest) {
 }
 
 TEST(StatisticalErrorTests, SubFileTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     std::ofstream ofh("FileTest.in");
     ofh << inputSubFileTest1;
     ofh.close();
@@ -179,6 +195,8 @@ TEST(StatisticalErrorTests, SubFileTest) {
 }
 
 TEST(StatisticalErrorTests, ASTTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     std::ofstream ofh("FileTest.in");
     ofh << inputSubFileTest1;
     ofh.close();
@@ -196,6 +214,8 @@ TEST(StatisticalErrorTests, ASTTest) {
 }
 
 TEST(StatisticalErrorTests, ReplaceTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     std::ofstream ofh("FileTest.in");
     ofh << inputSubFileTest1;
     ofh.close();
