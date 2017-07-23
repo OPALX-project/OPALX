@@ -38,7 +38,8 @@ public:
                   scaling_m(0.75),
                   chargedensity_m(1.0e-15),
                   maxNumPart_m(1),
-                  minNumPart_m(1)
+                  minNumPart_m(1),
+                  refined_m(false)
     {}
     
     AmrObject(TaggingCriteria tagging,
@@ -47,10 +48,16 @@ public:
                                         scaling_m(scaling),
                                         chargedensity_m(chargedensity_m),
                                         maxNumPart_m(1),
-                                        minNumPart_m(1)
+                                        minNumPart_m(1),
+                                        refined_m(false)
     {}
     
     virtual ~AmrObject() {}
+    
+    /*!
+     * Setup all fine levels after object creation.
+     */
+    virtual void initFineLevels() = 0; 
     
     /*!
      * Update of mesh according to chosen refinement strategy.
@@ -132,6 +139,15 @@ public:
      */
     virtual void redistributeGrids(int how) { }
     
+    /*!
+     * Used in AmrPartBunch to check if we need to refine
+     * first.
+     * @returns true fine grids are initialized
+     */
+    const bool& isRefined() const {
+        return refined_m;
+    }
+    
 protected:
     TaggingCriteria tagging_m;  ///< Tagging strategy
     
@@ -142,6 +158,8 @@ protected:
     size_t maxNumPart_m;        ///< Tagging value for MAX_NUM_PARTICLES
     
     size_t minNumPart_m;        ///< Tagging value for MIN_NUM_PARTICLES
+    
+    bool refined_m;             ///< Only set to true in AmrObject::initFineLevels()
 };
 
 #endif
