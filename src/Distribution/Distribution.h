@@ -229,6 +229,34 @@ private:
     double ConverteVToBetaGamma(double valueIneV, double massIneV);
     double ConvertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV);
     size_t getNumberOfParticlesInFile(std::ifstream &inputFile);
+
+    class BinomialBehaviorSplitter {
+    public:
+        virtual ~BinomialBehaviorSplitter()
+        { }
+
+        virtual double get(double rand) = 0;
+    };
+
+    class MDependentBehavior: public BinomialBehaviorSplitter {
+    public:
+        MDependentBehavior(const MDependentBehavior &rhs):
+            ami_m(rhs.ami_m)
+        {}
+
+        MDependentBehavior(double a)
+        { ami_m = 1.0 / a; }
+
+        virtual double get(double rand);
+    private:
+        double ami_m;
+    };
+
+    class GaussianLikeBehavior: public BinomialBehaviorSplitter {
+    public:
+        virtual double get(double rand);
+    };
+
     void CreateDistributionBinomial(size_t numberOfParticles, double massIneV);
     void CreateDistributionFlattop(size_t numberOfParticles, double massIneV);
     void CreateDistributionFromFile(size_t numberOfParticles, double massIneV);

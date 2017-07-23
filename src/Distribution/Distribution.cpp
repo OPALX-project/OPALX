@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 #include <numeric>
+#include <limits>
 
 #include "AbstractObjects/Expressions.h"
 #include "Attributes/Attributes.h"
@@ -451,6 +452,13 @@ void Distribution::update() {
 
 void Distribution::Create(size_t numberOfParticles, double massIneV) {
 
+    /*
+     * If Options::cZero is true than we reflect generated distribution
+     * to ensure that the average of the transverse positions are 0.0.
+     *
+     * For now we just cut the number of generated particles in half.
+     */
+    size_t numberOfLocalParticles = numberOfParticles;
     if (Options::cZero && distrTypeT_m != DistrTypeT::FROMFILE) {
         numberOfParticles /= 2;
     }
@@ -460,25 +468,25 @@ void Distribution::Create(size_t numberOfParticles, double massIneV) {
     switch (distrTypeT_m) {
 
     case DistrTypeT::MATCHEDGAUSS:
-        CreateMatchedGaussDistribution(numberOfParticles, massIneV);
+        CreateMatchedGaussDistribution(numberOfLocalParticles, massIneV);
         break;
     case DistrTypeT::FROMFILE:
         CreateDistributionFromFile(numberOfParticles, massIneV);
         break;
     case DistrTypeT::GAUSS:
-        CreateDistributionGauss(numberOfParticles, massIneV);
+        CreateDistributionGauss(numberOfLocalParticles, massIneV);
         break;
     case DistrTypeT::BINOMIAL:
-        CreateDistributionBinomial(numberOfParticles, massIneV);
+        CreateDistributionBinomial(numberOfLocalParticles, massIneV);
         break;
     case DistrTypeT::FLATTOP:
-        CreateDistributionFlattop(numberOfParticles, massIneV);
+        CreateDistributionFlattop(numberOfLocalParticles, massIneV);
         break;
     case DistrTypeT::GUNGAUSSFLATTOPTH:
-        CreateDistributionFlattop(numberOfParticles, massIneV);
+        CreateDistributionFlattop(numberOfLocalParticles, massIneV);
         break;
     case DistrTypeT::ASTRAFLATTOPTH:
-        CreateDistributionFlattop(numberOfParticles, massIneV);
+        CreateDistributionFlattop(numberOfLocalParticles, massIneV);
         break;
     default:
         INFOMSG("Distribution unknown." << endl;);
@@ -497,7 +505,7 @@ void Distribution::Create(size_t numberOfParticles, double massIneV) {
 
         int saveProcessor = -1;
 
-        for (size_t partIndex = 0; partIndex < numberOfParticles; ++ partIndex) {
+        for (size_t partIndex = 0; partIndex < numberOfLocalParticles; ++ partIndex) {
 
             // Save to each processor in turn.
             ++ saveProcessor;
@@ -521,6 +529,11 @@ void Distribution::Create(size_t numberOfParticles, double massIneV) {
 
     // AAA Scale and shift coordinates according to distribution input.
     ScaleDistCoordinates();
+
+    // Now reflect particles if Options::cZero is true
+    ReflectDistribution(numberOfLocalParticles);
+
+    particlesPerDist_m[0] = tOrZDist_m.size();
 }
 
 void  Distribution::CreatePriPart(PartBunch *beam, BoundaryGeometry &bg) {
@@ -920,9 +933,12 @@ void Distribution::AddDistributions() {
      * Move particle coordinates from added distributions to main distribution.
      */
 
+    size_t idx = 1;
     std::vector<Distribution *>::iterator addedDistIt;
     for (addedDistIt = addedDistributions_m.begin();
-         addedDistIt != addedDistributions_m.end(); addedDistIt++) {
+         addedDistIt != addedDistributions_m.end(); addedDistIt++, ++ idx) {
+
+        particlesPerDist_m[idx] = (*addedDistIt)->tOrZDist_m.size();
 
         std::vector<double>::iterator distIt;
         for (distIt = (*addedDistIt)->GetXDist().begin();
@@ -1203,17 +1219,19 @@ void Distribution::ChooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUn
 }
 
 double Distribution::ConvertBetaGammaToeV(double valueInBetaGamma, double massIneV) {
-    if (valueInBetaGamma < 0)
-        return -1.0 * (sqrt(pow(valueInBetaGamma, 2.0) + 1.0) - 1.0) * massIneV;
-    else
-        return (sqrt(pow(valueInBetaGamma, 2.0) + 1.0) - 1.0) * massIneV;
+    double value = std::copysign(sqrt(pow(valueInBetaGamma, 2.0) + 1.0) - 1.0, valueInBetaGamma);
+    if (std::abs(value) < std::numeric_limits<double>::epsilon())
+        value = std::copysign(1.0 + 0.5 * pow(valueInBetaGamma, 2.0), valueInBetaGamma);
+
+    return value * massIneV;
 }
 
 double Distribution::ConverteVToBetaGamma(double valueIneV, double massIneV) {
-    if (valueIneV < 0)
-        return -1.0 * sqrt( pow( -1.0 * valueIneV / massIneV + 1.0, 2.0) - 1.0);
-    else
-        return sqrt( pow( valueIneV / massIneV + 1.0, 2.0) - 1.0);
+    double value = std::copysign(sqrt(pow(std::abs(valueIneV) / massIneV + 1.0, 2.0) - 1.0), valueIneV);
+    if (std::abs(value) < std::numeric_limits<double>::epsilon())
+        value = std::copysign(sqrt(2 * std::abs(valueIneV) / massIneV), valueIneV);
+
+    return value;
 }
 
 double Distribution::ConvertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV) {
@@ -1288,13 +1306,7 @@ void Distribution::CreateDistributionFromFile(size_t numberOfParticles, double m
                                 "Open file operation failed, please check if \""
                                 + fileName
                                 + "\" really exists.");
-        // else {
-        //     int tempInt = 0;
-        //     inputFile >> tempInt;
-        //     numberOfParticlesRead = static_cast<size_t>(tempInt);
-        // }
     }
-    // reduce(numberOfParticlesRead, numberOfParticlesRead, OpAddAssign());
     size_t numberOfParticlesRead = getNumberOfParticlesInFile(inputFile);
 
     /*
@@ -1629,28 +1641,23 @@ void Distribution::CreateOpalCycl(PartBunch &beam,
      */
     ChooseInputMomentumUnits(InputMomentumUnitsT::EV);
 
+    /*
+     * Determine the number of particles for each distribution. For OPAL-cycl
+     * there are currently no arrays of distributions supported
+     */
+    CalcPartPerDist(numberOfParticles);
+
     // Set distribution type.
     SetDistType();
 
     // Emitting particles in not supported in OpalCyclT.
     emitting_m = false;
 
-    /*
-     * If Options::cZero is true than we reflect generated distribution
-     * to ensure that the transverse averages are 0.0.
-     *
-     * For now we just cut the number of generated particles in half.
-     */
-
     // Create distribution.
     Create(numberOfPartToCreate, beam.getM());
 
     // this variable is needed to be compatible with OPAL-T
     particlesPerDist_m.push_back(tOrZDist_m.size());
-
-    // Now reflect particles if Options::cZero is true.
-    if (Options::cZero)
-        ReflectDistribution(numberOfPartToCreate);
 
     ShiftDistCoordinates(beam.getM());
 
@@ -1813,9 +1820,6 @@ void Distribution::CreateOpalT(PartBunch &beam,
 
     // Move added distribution particles to main distribution.
     AddDistributions();
-
-    // Now reflect particles if Options::cZero is true
-    ReflectDistribution(numberOfParticles);
 
     ShiftDistCoordinates(beam.getM());
 
@@ -2301,157 +2305,114 @@ void Distribution::GenerateBinomial(size_t numberOfParticles) {
 
     // Calculate emittance and Twiss parameters.
     Vector_t emittance;
+    Vector_t alpha, beta, gamma;
     for (unsigned int index = 0; index < 3; index++) {
         emittance(index) = sigmaR_m[index] * sigmaP_m[index]
             * cos(asin(correlationMatrix_m(2 * index + 1, 2 * index)));
-    }
 
-    Vector_t beta;
-    Vector_t gamma;
-    Vector_t alpha;
-    for (unsigned int index = 0; index < 3; index++) {
-        beta(index) = pow(sigmaR_m[index], 2.0) / emittance(index);
-        gamma(index) = pow(sigmaP_m[index], 2.0) / emittance(index);
+        if (std::abs(emittance(index)) > std::numeric_limits<double>::epsilon()) {
+            beta(index) = pow(sigmaR_m[index], 2.0) / emittance(index);
+            gamma(index) = pow(sigmaP_m[index], 2.0) / emittance(index);
+        } else {
+            beta(index) = sqrt(std::numeric_limits<double>::max());
+            gamma(index) = sqrt(std::numeric_limits<double>::max());
+        }
         alpha(index) = -correlationMatrix_m(2 * index + 1, 2 * index)
                         * sqrt(beta(index) * gamma(index));
     }
 
-    Vector_t M = Vector_t(0.0);
-    Vector_t PM = Vector_t(0.0);
-    Vector_t COSCHI = Vector_t(0.0);
-    Vector_t SINCHI = Vector_t(0.0);
-    Vector_t CHI = Vector_t(0.0);
-    Vector_t AMI = Vector_t(0.0);
-    Vector_t L = Vector_t(0.0);
-    Vector_t PL = Vector_t(0.0);
-
-    for(unsigned int index = 0; index < 3; index++) {
-        gamma(index) *= cutoffR_m[index];
-        beta(index)  *= cutoffP_m[index];
-        M[index]      =  sqrt(emittance(index) * beta(index));
-        PM[index]     =  sqrt(emittance(index) * gamma(index));
+    Vector_t M, PM, L, PL, X, PX;
+    Vector_t CHI, COSCHI, SINCHI(0.0);
+    Vector_t AMI;
+    Vektor<BinomialBehaviorSplitter*, 3> splitter;
+    for (unsigned int index = 0; index < 3; index++) {
+        // gamma(index) *= cutoffR_m[index];
+        // beta(index)  *= cutoffP_m[index];
         COSCHI[index] =  sqrt(1.0 / (1.0 + pow(alpha(index), 2.0)));
         SINCHI[index] = -alpha(index) * COSCHI[index];
         CHI[index]    =  atan2(SINCHI[index], COSCHI[index]);
         AMI[index]    =  1.0 / mBinomial_m[index];
+        M[index]      =  sqrt(emittance(index) * beta(index));
+        PM[index]     =  sqrt(emittance(index) * gamma(index));
         L[index]      =  sqrt((mBinomial_m[index] + 1.0) / 2.0) * M[index];
         PL[index]     =  sqrt((mBinomial_m[index] + 1.0) / 2.0) * PM[index];
+
+        if (mBinomial_m[index] < 10000) {
+            X[index] =  L[index];
+            PX[index] = PL[index];
+            splitter[index] = new MDependentBehavior(mBinomial_m[index]);
+        } else {
+            X[index] =  M[index];
+            PX[index] = PM[index];
+            splitter[index] = new GaussianLikeBehavior();
+        }
     }
 
     int saveProcessor = -1;
+    const int myNode = Ippl::myNode();
+    const int numNodes = Ippl::getNodes();
+
+    double temp = 1.0 - std::pow(correlationMatrix_m(1, 0), 2.0);
+    const double tempa = copysign(sqrt(std::abs(temp)), temp);
+    const double l32 = (correlationMatrix_m(4, 1) -
+                        correlationMatrix_m(1, 0) * correlationMatrix_m(4, 0)) / tempa;
+    temp = 1 - std::pow(correlationMatrix_m(4, 0), 2.0) - l32 * l32;
+    const double l33 = copysign(sqrt(std::abs(temp)), temp);
+
+    const double l42 = (correlationMatrix_m(5, 1) -
+                        correlationMatrix_m(1, 0) * correlationMatrix_m(5, 0)) / tempa;
+    const double l43 = (correlationMatrix_m(5, 4) -
+                        correlationMatrix_m(4, 0) * correlationMatrix_m(5, 0) - l42 * l32) / l33;
+    temp = 1 - std::pow(correlationMatrix_m(5, 0), 2.0) - l42 * l42 - l43 * l43;
+    const double l44 = copysign(sqrt(std::abs(temp)), temp);
+
     Vector_t x = Vector_t(0.0);
     Vector_t p = Vector_t(0.0);
     for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
-        double S1 = 0.0;
-        double S2 = 0.0;
         double A = 0.0;
         double AL = 0.0;
-        double U = 0.0;
-        double V = 0.0;
+        double Ux = 0.0, U = 0.0;
+        double Vx = 0.0, V = 0.0;
 
-        S1 = IpplRandom();
-        S2 = IpplRandom();
+        A = splitter[0]->get(IpplRandom());
+        AL = Physics::two_pi * IpplRandom();
+        Ux = A * cos(AL);
+        Vx = A * sin(AL);
+        x[0] = X[0] * Ux;
+        p[0] = PX[0] * (Ux * SINCHI[0] + Vx * COSCHI[0]);
 
-        if (mBinomial_m[0] <= 10000) {
+        A = splitter[1]->get(IpplRandom());
+        AL = Physics::two_pi * IpplRandom();
+        U = A * cos(AL);
+        V = A * sin(AL);
+        x[1] = X[1] * U;
+        p[1] = PX[1] * (U * SINCHI[1] + V * COSCHI[1]);
 
-            A = sqrt(1.0 - pow(S1, AMI[0]));
-            AL = Physics::two_pi * S2;
-            U = A * cos(AL);
-            V = A * sin(AL);
-            double Ucp = U;
-            double Vcp = V;
-            x[0] = L[0] * U;
-            p[0] = PL[0] * (U * SINCHI[0] + V * COSCHI[0]);
-
-            S1 = IpplRandom();
-            S2 = IpplRandom();
-            A = sqrt(1.0 - pow(S1, AMI[1]));
-            AL = Physics::two_pi * S2;
-            U = A * cos(AL);
-            V = A * sin(AL);
-            x[1] = L[1] * U;
-            p[1] = PL[1] * (U * SINCHI[1] + V * COSCHI[1]);
-
-            S1 = IpplRandom();
-            S2 = IpplRandom();
-            A = sqrt(1.0 - pow(S1, AMI[2]));
-            AL = Physics::two_pi * S2;
-            U = A * cos(AL);
-            V = A * sin(AL);
-
-            double tempa = 1.0 - std::pow(correlationMatrix_m(1, 0), 2.0);
-            const double l32 = (correlationMatrix_m(4, 1) - correlationMatrix_m(1, 0) * correlationMatrix_m(4, 0)) / sqrt(std::abs(tempa)) * tempa / std::abs(tempa);
-            double tempb = 1 - std::pow(correlationMatrix_m(4, 0), 2.0) - l32 * l32;
-            const double l33 = sqrt(std::abs(tempb)) * tempb / std::abs(tempb);
-            x[2] = Ucp * correlationMatrix_m(4, 0) + Vcp * l32 + U * l33;
-            const double l42 = (correlationMatrix_m(5, 1) - correlationMatrix_m(1, 0) * correlationMatrix_m(5, 0)) / sqrt(std::abs(tempa)) * tempa / std::abs(tempa);
-            const double l43 = (correlationMatrix_m(5, 4) - correlationMatrix_m(4, 0) * correlationMatrix_m(5, 0) - l42 * l32) / l33;
-            double tempc = 1 - std::pow(correlationMatrix_m(5, 0), 2.0) - l42 * l42 - l43 * l43;
-            const double l44 = sqrt(std::abs(tempc)) * tempc / std::abs(tempc);
-
-            p[2] = Ucp * correlationMatrix_m(5, 0) + Vcp * l42 + U * l43 + V * l44;
-            x[2]  *= L[2];
-            p[2] *= PL[2];
-
-        } else {
-
-            A = sqrt(2.0) / 2.0 * sqrt(-log(S1));
-            AL = Physics::two_pi * S2;
-            U = A * cos(AL);
-            V = A * sin(AL);
-            double Ucp = U;
-            double Vcp = V;
-            x[0] = M[0] * U;
-            p[0] = PM[0] * (U * SINCHI[0] + V * COSCHI[0]);
-
-
-            S1 = IpplRandom();
-            S2 = IpplRandom();
-            A = sqrt(2.0) / 2.0 * sqrt(-log(S1));
-            AL = Physics::two_pi * S2;
-            U = A * cos(AL);
-            V = A * sin(AL);
-            x[1] = M[1] * U;
-            p[1] = PM[1] * (U * SINCHI[1] + V * COSCHI[1]);
-
-            S1 = IpplRandom();
-            S2 = IpplRandom();
-            A = sqrt(2.0) / 2.0 * sqrt(-log(S1));
-            AL = Physics::two_pi * S2;
-            U = A * cos(AL);
-            V = A * sin(AL);
-
-            double tempa = 1.0 - std::pow(correlationMatrix_m(1, 0), 2.0);
-            const double l32 = std::copysign(1.0, tempa) * (correlationMatrix_m(4, 1) - correlationMatrix_m(1, 0) * correlationMatrix_m(4, 0)) / sqrt(std::abs(tempa));
-            double tempb = 1 - std::pow(correlationMatrix_m(4, 0), 2.0) - l32 * l32;
-            const double l33 = std::copysign(1.0, tempb) * sqrt(std::abs(tempb));
-            x[2] = Ucp * correlationMatrix_m(4, 0) + Vcp * l32 + U * l33;
-            const double l42 = std::copysign(1.0, tempa) * (correlationMatrix_m(5, 1) - correlationMatrix_m(1, 0) * correlationMatrix_m(5, 0)) / sqrt(std::abs(tempa));
-            const double l43 = (correlationMatrix_m(5, 4) - correlationMatrix_m(4, 0) * correlationMatrix_m(5, 0) - l42 * l32) / l33;
-            double tempc = 1 - std::pow(correlationMatrix_m(5, 0), 2.0) - l42 * l42 - l43 * l43;
-            const double l44 = std::copysign(1.0, tempc) * sqrt(std::abs(tempc));
-
-            p[2] = Ucp * correlationMatrix_m(5, 0) + Vcp * l42 + U * l43 + V * l44;
-            x[2]  *= M[2];
-            p[2] *= PM[2];
-
-        }
+        A = splitter[2]->get(IpplRandom());
+        AL = Physics::two_pi * IpplRandom();
+        U = A * cos(AL);
+        V = A * sin(AL);
+        x[2] = X[2] * (Ux * correlationMatrix_m(4, 0) + Vx * l32 + U * l33);
+        p[2] = PX[2] * (Ux * correlationMatrix_m(5, 0) + Vx * l42 + U * l43 + V * l44);
 
         // Save to each processor in turn.
         saveProcessor++;
-        if (saveProcessor >= Ippl::getNodes())
+        if (saveProcessor >= numNodes)
             saveProcessor = 0;
 
-        if (Ippl::myNode() == saveProcessor) {
+        if (myNode == saveProcessor) {
             xDist_m.push_back(x[0]);
             pxDist_m.push_back(p[0]);
             yDist_m.push_back(x[1]);
             pyDist_m.push_back(p[1]);
             tOrZDist_m.push_back(x[2]);
-            pzDist_m.push_back(avrgpz_m * (1 + p[2]));
+            pzDist_m.push_back(avrgpz_m + p[2]);
         }
+    }
 
+    for (unsigned int index = 0; index < 3; index++) {
+        delete splitter[index];
     }
 }
 
@@ -3626,7 +3587,7 @@ bool Distribution::Rebin() {
 
 void Distribution::ReflectDistribution(size_t &numberOfParticles) {
 
-    if (!Options::cZero) return;
+    if (!Options::cZero || distrTypeT_m == DistrTypeT::FROMFILE) return;
 
     // at this point the distributions of an array of distributions are combined
     size_t startIdx = 0;
@@ -3656,6 +3617,17 @@ void Distribution::ReflectDistribution(size_t &numberOfParticles) {
 
     numberOfParticles = tOrZDist_m.size();
     reduce(numberOfParticles, numberOfParticles, OpAddAssign());
+
+    // if numberOfParticles is odd then delete last particle
+    if (Ippl::myNode() == 0 &&
+        (numberOfParticles + 1) / 2 != numberOfParticles / 2) {
+        xDist_m.pop_back();
+        pxDist_m.pop_back();
+        yDist_m.pop_back();
+        pyDist_m.pop_back();
+        tOrZDist_m.pop_back();
+        pzDist_m.pop_back();
+    }
 }
 
 void Distribution::ScaleDistCoordinates() {
@@ -3810,13 +3782,13 @@ void Distribution::SetAttributes() {
 
     itsAttr[AttributesT::MX]
         = Attributes::makeReal("MX", "Defines the binomial distribution in x, "
-                               "0.0 ... infinity.", 0.0);
+                               "0.0 ... infinity.", 10001.0);
     itsAttr[AttributesT::MY]
         = Attributes::makeReal("MY", "Defines the binomial distribution in y, "
-                               "0.0 ... infinity.", 0.0);
+                               "0.0 ... infinity.", 10001.0);
     itsAttr[AttributesT::MZ]
         = Attributes::makeReal("MZ", "Defines the binomial distribution in z, "
-                               "0.0 ... infinity.", 0.0);
+                               "0.0 ... infinity.", 10001.0);
     itsAttr[AttributesT::MT]
         = Attributes::makeReal("MT", "Defines the binomial distribution in t, "
                                "0.0 ... infinity.", 1.0);
@@ -4898,6 +4870,15 @@ void Distribution::WriteOutFileInjection() {
         }
     }
 }
+
+double Distribution::MDependentBehavior::get(double rand) {
+    return 2.0 * sqrt(1.0 - pow(rand, ami_m));
+}
+
+double Distribution::GaussianLikeBehavior::get(double rand) {
+    return sqrt(-2.0 * log(rand));
+}
+
 // vi: set et ts=4 sw=4 sts=4:
 // Local Variables:
 // mode:c++
