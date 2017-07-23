@@ -52,49 +52,54 @@ void AmrPartBunch::initialize(FieldLayout_t *fLayout) {
 void AmrPartBunch::do_binaryRepart() {
     
     if ( amrobj_mp ) {
-        /* we do an explicit domain mapping of the particles and then
-         * forbid it during the regrid process, this way it's only
-         * executed ones --> saves computation
-         */
-        bool isForbidTransform = amrpbase_mp->isForbidTransform();
-        
-        if ( !isForbidTransform ) {
-            amrpbase_mp->domainMapping();
-            amrpbase_mp->setForbidTransform(true);
-        }
         
         const int& maxLevel = amrobj_mp->maxLevel();
         
-        if ( maxLevel > 0) {
+        if ( !amrobj_mp->isRefined() ) {
+            /* In the first call to this function we
+             * intialize all fine levels
+             */
+            amrobj_mp->initFineLevels();
+            
+        } else if ( maxLevel > 0)  {
+            /* we do an explicit domain mapping of the particles and then
+             * forbid it during the regrid process, this way it's only
+             * executed ones --> saves computation
+             */
+            bool isForbidTransform = amrpbase_mp->isForbidTransform();
+            
+            if ( !isForbidTransform ) {
+                amrpbase_mp->domainMapping();
+                amrpbase_mp->setForbidTransform(true);
+            }
             
             /* Update first in order to make
              * sure that the particles belong to the right
              * level and grid
              */
             this->update();
-            
+                
             int lev_top = std::min(amrobj_mp->finestLevel(), maxLevel - 1);
-            
+                
             *gmsg << "* Start regriding:" << endl
                   << "*     Old finest level: "
                   << amrobj_mp->finestLevel() << endl;
-            
+                
             /* ATTENTION: The bunch has to be updated during
              * the regrid process!
              * We regrid from base level 0 up to the finest level.
              */
             amrobj_mp->regrid(0, lev_top, t_m * 1.0e9 /*time [ns] */);
-            
+                
             *gmsg << "*     New finest level: "
                   << amrobj_mp->finestLevel() << endl
                   << "* Finished regriding" << endl;
-        }
-    
-    
-        if ( !isForbidTransform ) {
-            amrpbase_mp->setForbidTransform(false);
-            // map particles back
-            amrpbase_mp->domainMapping(true);
+            
+            if ( !isForbidTransform ) {
+                amrpbase_mp->setForbidTransform(false);
+                // map particles back
+                amrpbase_mp->domainMapping(true);
+            }
         }
     }
 //     amrobj_mp->redistributeGrids(-1 /*KnapSack*/);

@@ -45,8 +45,6 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
     
     initBaseLevel_m(nGridPts);
     
-//     initFineLevel_m();
-    
     // set mesh spacing of bunch
     updateMesh();
 }
@@ -84,6 +82,59 @@ std::unique_ptr<AmrBoxLib> AmrBoxLib::create(const AmrInitialInfo& info,
                                      );
 }
 
+void AmrBoxLib::initFineLevels() {
+    if ( !refined_m ) {
+        *gmsg << "* Initialization of all levels" << endl;
+        
+        AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
+        
+        /* we do an explicit domain mapping of the particles and then
+         * forbid it during the regrid process, this way it's only
+         * executed ones --> saves computation
+         */
+        bool isForbidTransform = amrpbase_p->isForbidTransform();
+        
+        if ( !isForbidTransform ) {
+            amrpbase_p->domainMapping();
+            amrpbase_p->setForbidTransform(true);
+        }
+        
+        if ( max_level > 0) {
+            
+            amrpbase_p->update(0, 0);
+            
+            int lev_top = std::min(finest_level, max_level - 1);
+            
+            *gmsg << "* Start regriding:" << endl
+                  << "*     Old finest level: "
+                  << finest_level << endl;
+            
+            /* ATTENTION: The bunch has to be updated during
+             * the regrid process!
+             * We regrid from base level 0 up to the finest level.
+             */
+            for (int i = 0; i <= lev_top; ++i) {
+                this->regrid(i, lev_top, bunch_mp->getT() * 1.0e9 /*time [ns] */);
+                lev_top = std::min(finest_level, max_level - 1);
+            }
+            
+            *gmsg << "*     New finest level: "
+                  << finest_level << endl
+                  << "* Finished regriding" << endl;
+        }
+    
+    
+        if ( !isForbidTransform ) {
+            amrpbase_p->setForbidTransform(false);
+            // map particles back
+            amrpbase_p->domainMapping(true);
+        }
+        
+        *gmsg << "* Initialization done." << endl;
+        
+        refined_m = true;
+    }
+}
 
 void AmrBoxLib::regrid(int lbase, int lfine, double time) {
     int new_finest = 0;
@@ -972,18 +1023,6 @@ void AmrBoxLib::initBaseLevel_m(const AmrIntArray_t& nGridPts) {
     
     layout_mp->define(this->geom);
     layout_mp->define(this->ref_ratio);    
-}
-
-
-void AmrBoxLib::initFineLevel_m() {
-    bunch_mp->update();
-    int lev_top = std::min(finest_level, max_level - 1);
-    
-    for (int i = 0; i <= lev_top; ++i) {
-        std::cout << "finest_level = " << finest_level
-                  << " max_level = " << max_level << std::endl;
-        this->regrid(i, finest_level, bunch_mp->getT() * 1.0e9 /*time [ns] */);
-    }
 }
 
 

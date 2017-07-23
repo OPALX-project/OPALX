@@ -91,6 +91,11 @@ public:
                                              AmrPartBunch* bunch_p);
     
     /*!
+     * Initial gridding. Sets up all levels.
+     */
+    void initFineLevels();
+    
+    /*!
      * Inherited from AmrObject
      * @param lbase start of regridding.
      * @param lfine end of regridding.
@@ -281,11 +286,6 @@ private:
      * @param nGridPts per dimension (nx, ny, nz / nt)
      */
     void initBaseLevel_m(const AmrIntArray_t& nGridPts);
-    
-    /*!
-     * Initial regrid. Sets up all levels.
-     */
-    void initFineLevel_m();
     
     /*!
      * AMReX uses the ParmParse object to initialize
