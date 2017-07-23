@@ -1735,8 +1735,6 @@ void PartBunch::calcBeamParameters() {
 
     Vector_t eps2, fac, rsqsum, psqsum, rpsum;
 
-    const double m0 = getM() * 1.E-6;
-
     IpplTimings::startTimer(statParamTimer_m);
 
     const size_t locNp = getLocalNum();
@@ -1801,8 +1799,17 @@ void PartBunch::calcBeamParameters() {
 
     calcEMean();
 
-    // calculate energy spread
-    dE_m = prms_m(2) * sqrt(eKin_m * (eKin_m + 2.*m0) / (1. + eKin_m * (eKin_m + 2.*m0) / (m0 * m0)));
+    // The computation of the energy spread is an estimation
+    // based on the standard deviation of the longitudinal
+    // momentum:
+    // Var[f(P)] ~= (df/dP)(E[P])^2 Var[P]
+    const double m0 = getM() * 1.E-6;
+    double tmp = 1.0 / std::pow(eKin_m / m0 + 1., 2.0);
+    if (OpalData::getInstance()->isInOPALCyclMode()) {
+        dE_m = prms_m(1) * m0 * sqrt(1.0 - tmp);
+    } else {
+        dE_m = prms_m(2) * m0 * sqrt(1.0 - tmp);
+    }
 
     eps_m = eps_norm_m / Vector_t(gamma * sqrt(1.0 - 1.0 / (gamma * gamma)));
     IpplTimings::stopTimer(statParamTimer_m);
@@ -1942,6 +1949,17 @@ void PartBunch::updateNumTotal() {
 Inform &PartBunch::print(Inform &os) {
     if(getTotalNum() != 0) {  // to suppress Nan's
         Inform::FmtFlags_t ff = os.flags();
+
+        double lengthUnitConverter = 1;
+        double pathLength = get_sPos();
+        if (OpalData::getInstance()->isInOPALCyclMode()) {
+            lengthUnitConverter = 0.001;
+            pathLength = getLPath();
+        }
+
+        rmax_m *= lengthUnitConverter;
+        rmin_m *= lengthUnitConverter;
+
         os << std::scientific;
         os << level1 << "\n";
         os << "* ************** B U N C H ********************************************************* \n";
@@ -1962,9 +1980,12 @@ Inform &PartBunch::print(Inform &os) {
         os << "* dh              = " << std::setw(13) << std::setprecision(5) << dh_m * 100 << " [%]\n";
         os << "* t               = " << std::setw(17) << Util::getTimeString(getT()) << "         "
            << "dT    = "             << std::setw(17) << Util::getTimeString(getdT()) << "\n";
-        os << "* spos            = " << std::setw(17) << Util::getLengthString(get_sPos()) << "\n";
+        os << "* spos            = " << std::setw(17) << Util::getLengthString(pathLength) << "\n";
         os << "* ********************************************************************************** " << endl;
         os.flags(ff);
+
+        rmax_m /= lengthUnitConverter;
+        rmin_m /= lengthUnitConverter;
     }
     return os;
 }
@@ -1991,24 +2012,18 @@ void PartBunch::calcEMean() {
     const double totalNp = static_cast<double>(getTotalNum());
     const double locNp = static_cast<double>(getLocalNum());
 
-    //Vector_t meanP_temp = Vector_t(0.0);
-
     eKin_m = 0.0;
 
-    for(unsigned int k = 0; k < locNp; k++)
-        //meanP_temp += P[k];
+    for(unsigned int k = 0; k < locNp; k++) {
         eKin_m += sqrt(dot(P[k], P[k]) + 1.0);
+    }
 
     eKin_m -= locNp;
     eKin_m *= getM() * 1.0e-6;
 
-    //reduce(meanP_temp, meanP_temp, OpAddAssign());
     reduce(eKin_m, eKin_m, OpAddAssign());
 
-    //meanP_temp /= totalNp;
     eKin_m /= totalNp;
-
-    //eKin_m = (sqrt(dot(meanP_temp, meanP_temp) + 1.0) - 1.0) * getM() * 1.0e-6;
 }
 
 
