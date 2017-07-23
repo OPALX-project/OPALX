@@ -4077,13 +4077,6 @@ void Distribution::setDistParametersBinomial(double massIneV) {
     if (!itsAttr[Attrib::Distribution::CORRZ].defaultUsed())
         correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRZ]);
 
-    if (std::abs(correlationMatrix_m(1, 0)) < std::numeric_limits<double>::epsilon() ||
-        std::abs(correlationMatrix_m(3, 2)) < std::numeric_limits<double>::epsilon() ||
-        std::abs(correlationMatrix_m(5, 4)) < std::numeric_limits<double>::epsilon()) {
-        throw OpalException("setDistParametersBinomial",
-                            "The binomial distribution relies on CORR[X|Y|Z] being different from 0.0");
-    }
-
     sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAX])),
                         std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAY])),
                         std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAT])));
