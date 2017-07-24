@@ -48,17 +48,9 @@ public:
     
 public:
     
-//     PartBunchBase();
-    
     PartBunchBase(AbstractParticle<T, Dim>* pb);
     
     virtual ~PartBunchBase() { }
-    
-//     AbstractParticle<T, Dim>* getParticleBase();
-    
-//     const AbstractParticle<T, Dim>* getParticleBase() const;
-    
-//     virtual AbstractParticle<T, Dim>* clone() = 0;
     
     /*
      * Bunch common member functions
@@ -262,7 +254,7 @@ public:
     double get_DDx() const;
     double get_DDy() const;
     
-    void set_meshEnlargement(double dh);
+    virtual void set_meshEnlargement(double dh);
 
     void gatherLoadBalanceStatistics();
     size_t getLoadBalance(int p) const;

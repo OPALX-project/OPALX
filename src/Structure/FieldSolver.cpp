@@ -469,6 +469,8 @@ Inform &FieldSolver::printInfo(Inform &os) const {
 #ifdef HAVE_AMR_SOLVER
 void FieldSolver::initAmrObject_m() {
     
+    itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
+    
     // setup initial info for creating the object
     AmrBoxLib::AmrInitialInfo info;
     info.gridx      = (int)this->getMX();

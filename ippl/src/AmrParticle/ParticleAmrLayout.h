@@ -32,6 +32,13 @@ public:
      */
     void setMaxLevel(int maxLevel);
     
+    /*!
+     * Set the computational domain of the base level. E.g. the computational
+     * domain is [-1, 1]^3. With dh = 4, we get a new domain of [-1.04, 1.04]^3.
+     * @param dh is the mesh enlargement in [%]
+     */
+    virtual void setBoundingBox(double dh) = 0;
+    
 protected:
     int finestLevel_m;                  ///< Current finest level of simluation
     int maxLevel_m;                     ///< Maximum level allowed
