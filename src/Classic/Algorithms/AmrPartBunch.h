@@ -32,6 +32,8 @@ public:
     
     Vector_t get_hr() const;
     
+    void set_meshEnlargement(double dh);
+    
     VectorPair_t getEExtrema();
     
     double getRho(int x, int y, int z);

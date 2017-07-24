@@ -30,7 +30,7 @@ AmrPartBunch::AmrPartBunch(const AmrPartBunch &rhs)
 }
 
 AmrPartBunch::~AmrPartBunch() {
-
+    delete amrpbase_mp;
 }
 
 
@@ -110,6 +110,19 @@ void AmrPartBunch::do_binaryRepart() {
 Vector_t AmrPartBunch::get_hr() const {
     const double& scalefactor = amrpbase_mp->getScalingFactor();
     return hr_m * scalefactor;
+}
+
+
+void AmrPartBunch::set_meshEnlargement(double dh) {
+    // set dh_m = dh
+    PartBunchBase<double, 3>::set_meshEnlargement(dh);
+    
+    // update base geometry with new mesh enlargement
+    AmrLayout_t* layout_p = &amrpbase_mp->getAmrLayout();
+    layout_p->setBoundingBox(dh);
+    
+    // if amrobj_mp != nullptr --> we need to regrid
+    this->do_binaryRepart();
 }
 
 

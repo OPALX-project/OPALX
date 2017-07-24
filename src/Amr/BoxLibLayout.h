@@ -58,11 +58,15 @@ public:
     /*!
      * Lower physical domain boundary (each dimension). It has to be
      * smaller than -1 since all particles are within \f$[-1, 1]^3\f$.
+     * The real computational domain is multiplied with the mesh
+     * enlargement factor (in [%]) in BoxLibLayout::initBaseBox_m().
      */
     static const Vector_t lowerBound;
     
     /*! Upper physical domain boundary (each dimension). It has to be
      * greater than 1 since all particles are within \f$[-1, 1]^3\f$.
+     * The real computational domain is multiplied with the mesh
+     * enlargement factor (in [%]) in BoxLibLayout::initBaseBox_m().
      */
     static const Vector_t upperBound;
 
@@ -104,6 +108,22 @@ public:
                  const AmrProcMapContainer_t &dmap,
                  const AmrGridContainer_t &ba,
                  const AmrIntArray_t &rr);
+    
+    
+    /*
+     * Overloaded functions of ParticleAmrLayout
+     */
+    
+    /*!
+     * This method is used when creating the AMR object. OPAL
+     * takes the input argument BBOXINCR that is specified in
+     * the field solver command. Up to this point the
+     * AMR object is not yet initialized. After that this
+     * method shouldn't be called anymore.
+     * @param dh is the mesh enlargement factor
+     */
+    void setBoundingBox(double dh);
+    
     
     /*
      * Functions of IpplParticleBase
@@ -156,14 +176,6 @@ public:
     /*
      * Additional methods
      */
-    
-    /*!
-     * Set up the box for the whole computation.
-     * 
-     * @param nGridPoints per dimension (nx, ny, nz / nt)
-     * @param maxGridSize for all levels
-     */
-    void initDefaultBox(int nGridPoints, int maxGridSize);
     
     /*!
      * The particles live initially on the coarsest level.
@@ -248,6 +260,18 @@ public:
     inline int MaxRefRatio (int level) const;
     
 private:
+    
+    /*!
+     * Set up the box for the whole computation.
+     * The AMR object owning the bunch is not yet initialized.
+     * 
+     * @param nGridPoints per dimension (nx, ny, nz / nt)
+     * @param maxGridSize for all levels
+     * @param dh is the mesh enlargement factor
+     */
+    void initBaseBox_m(int nGridPoints, int maxGridSize, double dh = 0.04);
+    
+    
     /*
      * Functions from AMReX that are adjusted to work with Ippl AmrParticleBase class
      */
