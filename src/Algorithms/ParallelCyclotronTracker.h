@@ -209,8 +209,6 @@ private:
     int LastVisited;
     Beamline *itsBeamline;
 
-    PartBunchBase<double, 3> *itsBunch;
-
     DataSink *itsDataSink;
 
     BoundaryGeometry *bgf_m;
