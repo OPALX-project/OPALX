@@ -35,7 +35,7 @@
 #include "AbstractObjects/Element.h"
 #include "Algorithms/PartBunchBase.h"
 
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     #include "Amr/AmrBoxLib.h"
     #include "Solvers/BoxLibSolvers/FMGPoissonSolver.h"
     #include "Amr/AmrDefs.h"
@@ -75,7 +75,7 @@ namespace {
         RC,         // cutoff radius for PP interactions
 	ALPHA,      // Green’s function splitting parameter
 	EPSILON,    // regularization for PP interaction
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
         AMR_MAXLEVEL,       // AMR, maximum refinement level
         AMR_REFX,           // AMR, refinement ratio in x
         AMR_REFY,           // AMR, refinement ratio in y
@@ -130,7 +130,7 @@ FieldSolver::FieldSolver():
     itsAttr[PRECMODE]  = Attributes::makeString("PRECMODE", "Preconditioner Mode [STD | HIERARCHY | REUSE]", "HIERARCHY");
 
     // AMR
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     itsAttr[AMR_MAXLEVEL] = Attributes::makeReal("AMR_MAXLEVEL", "Maximum number of levels in AMR", 0);
     itsAttr[AMR_REFX] = Attributes::makeReal("AMR_REFX", "Refinement ration in x-direction in AMR", 2);
     itsAttr[AMR_REFY] = Attributes::makeReal("AMR_REFY", "Refinement ration in y-direction in AMR", 2);
@@ -272,7 +272,7 @@ bool FieldSolver::hasPeriodicZ() {
     return Util::toUpper(Attributes::getString(itsAttr[BCFFTT])) == std::string("PERIODIC");
 }
 
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
 inline bool FieldSolver::isAmrSolverType() const {
     return Options::amr;
 }
@@ -308,7 +308,7 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
     std::string bcy = Attributes::getString(itsAttr[BCFFTY]);
     std::string bcz = Attributes::getString(itsAttr[BCFFTT]);
     
-    #ifdef HAVE_AMR_SOLVER
+    #ifdef ENABLE_AMR
     if ( isAmrSolverType() ) {
         Inform m("FieldSolver::initAmrSolver");
         fsType_m = "AMR";
@@ -426,7 +426,7 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << "* MAXITERS     " << Attributes::getReal(itsAttr[MAXITERS]) << '\n'
            << "* PRECMODE     " << Attributes::getString(itsAttr[PRECMODE])   << endl;
     }
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     else if (fsType == "AMR" || Options::amr) {
         os << "* AMR_MAXLEVEL     " << Attributes::getReal(itsAttr[AMR_MAXLEVEL]) << '\n'
            << "* AMR_REFX         " << Attributes::getReal(itsAttr[AMR_REFX]) << '\n'
@@ -466,7 +466,7 @@ Inform &FieldSolver::printInfo(Inform &os) const {
     return os;
 }
 
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
 void FieldSolver::initAmrObject_m() {
     
     itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);

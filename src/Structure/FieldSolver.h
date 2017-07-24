@@ -23,7 +23,7 @@ class FieldSolver;
 #include "Algorithms/PartData.h"
 #include "Solvers/PoissonSolver.h"
 
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     #include "Amr/AmrObject.h"
     #include "Solvers/AmrPoissonSolver.h"
     #include <memory>
@@ -98,7 +98,7 @@ public:
 
     bool hasPeriodicZ();
 
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     bool isAmrSolverType() const;
 
     int getAmrMaxLevel() const;
@@ -126,7 +126,7 @@ public:
     PoissonSolver *solver_m;
 
 private:
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     void initAmrObject_m();
     
     void initAmrSolver_m();

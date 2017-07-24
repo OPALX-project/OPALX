@@ -5,7 +5,7 @@
 //////////////////////////////////////////////////////////////
 #include "Algorithms/PBunchDefs.h"
 
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     #include "Utilities/OpalException.h"
 #endif
 //////////////////////////////////////////////////////////////
@@ -32,7 +32,7 @@ public:
      * @param baseLevel of adaptive mesh refinement solvers (AMR). Used in case of sub-cycling in time.
      * @param finestLevel of AMR.
      */
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     virtual void solve(AmrFieldContainer_t &rho,
                        AmrFieldContainer_t &phi,
                        AmrFieldContainer_t &efield,
