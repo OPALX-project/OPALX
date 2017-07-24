@@ -594,84 +594,84 @@ Statement *OpalParser::readStatement(TokenStream *is) const {
 
 void OpalParser::run() const {
     stopFlag = false;
-
+    Inform errorMsg("Error");
     while(Statement *stat = readStatement(&*inputStack.back())) {
         try {
             // The dispatch via Statement::execute() allows a special
             // treatment of structured statements.
             stat->execute(*this);
         } catch(ParseError &ex) {
-            ERRORMSG("\n*** Parse error detected by function \""
-                     << ex.where() << "\"\n");
-            stat->printWhere(*IpplInfo::Error, true);
+            errorMsg << "\n*** Parse error detected by function \""
+                     << ex.where() << "\"\n";
+            stat->printWhere(errorMsg, true);
             std::string what = ex.what();
             size_t pos = what.find_first_of('\n');
             do {
-                ERRORMSG("    " << what.substr(0, pos) << endl);
+                errorMsg << "    " << what.substr(0, pos) << endl;
                 what = what.substr(pos + 1, std::string::npos);
                 pos = what.find_first_of('\n');
             } while (pos != std::string::npos);
 
 	    exit(1);
         } catch(OpalException &ex) {
-            ERRORMSG("\n*** User error detected by function \""
-                     << ex.where() << "\"\n parser");
-            stat->printWhere(*IpplInfo::Error, true);
+            errorMsg << "\n*** User error detected by function \""
+                     << ex.where() << "\"\n parser";
+            stat->printWhere(errorMsg, true);
             std::string what = ex.what();
             size_t pos = what.find_first_of('\n');
             do {
-                ERRORMSG("    " << what.substr(0, pos) << endl);
+                errorMsg << "    " << what.substr(0, pos) << endl;
                 what = what.substr(pos + 1, std::string::npos);
                 pos = what.find_first_of('\n');
             } while (pos != std::string::npos);
 
             exit(1);
         } catch(ClassicException &ex) {
-            ERRORMSG("\n*** User error detected by function \""
-                     << ex.where() << "\"\n");
-            stat->printWhere(*IpplInfo::Error, true);
+            errorMsg << "\n*** User error detected by function \""
+                     << ex.where() << "\"\n";
+            stat->printWhere(errorMsg, true);
             std::string what = ex.what();
             size_t pos = what.find_first_of('\n');
             do {
-                ERRORMSG("    " << what.substr(0, pos) << endl);
+                errorMsg << "    " << what.substr(0, pos) << endl;
                 what = what.substr(pos + 1, std::string::npos);
                 pos = what.find_first_of('\n');
             } while (pos != std::string::npos);
 
             exit(1);
         } catch(std::bad_alloc &) {
-            ERRORMSG("\n*** Error:\n");
-            stat->printWhere(*IpplInfo::Error, false);
-            ERRORMSG("    " << *stat << "    Sorry, virtual memory exhausted.\n" << endl);
+            errorMsg << "\n*** Error:\n";
+            stat->printWhere(errorMsg, false);
+            errorMsg << "    " << *stat << "    Sorry, virtual memory exhausted.\n" << endl;
         } catch(assertion &ex) {
-            ERRORMSG("\n*** Runtime-error ******************\n");
+            errorMsg << "\n*** Runtime-error ******************\n";
             std::string what = ex.what();
             size_t pos = what.find_first_of('\n');
             do {
-                ERRORMSG("    " << what.substr(0, pos) << endl);
+                errorMsg << "    " << what.substr(0, pos) << endl;
                 what = what.substr(pos + 1, std::string::npos);
                 pos = what.find_first_of('\n');
             } while (pos != std::string::npos);
 
-            ERRORMSG("\n************************************\n" << endl);
+            errorMsg << "\n************************************\n" << endl;
             throw std::runtime_error("in Parser");
         } catch(std::exception &ex) {
-            ERRORMSG("\n*** Error:\n");
-            stat->printWhere(*IpplInfo::Error, false);
-            ERRORMSG("    Internal OPAL error: ");
+            errorMsg << "\n*** Error:\n";
+            stat->printWhere(errorMsg, false);
+            errorMsg << "    Internal OPAL error: ";
             std::string what = ex.what();
             size_t pos = what.find_first_of('\n');
             do {
-                ERRORMSG("    " << what.substr(0, pos) << endl);
+                errorMsg << "    " << what.substr(0, pos) << endl;
                 what = what.substr(pos + 1, std::string::npos);
                 pos = what.find_first_of('\n');
             } while (pos != std::string::npos);
 
         } catch(...) {
-            ERRORMSG("\n*** Error:\n");
-            stat->printWhere(*IpplInfo::Error, false);
+            errorMsg << "\n*** Error:\n";
+            stat->printWhere(errorMsg, false);
 
-            ERRORMSG("    " << *stat << "    Unexpected exception caught.\n" << endl);
+            errorMsg << "    " << *stat << "    Unexpected exception caught.\n" << endl;
 	    throw std::runtime_error("in Parser");
         }
 
