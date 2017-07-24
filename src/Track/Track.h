@@ -37,13 +37,6 @@ class EnvelopeBunch;
 
 class Track {
     
-// public:
-//     enum BunchType {
-//         NATIVE,
-//         AMR,
-//         ENVELOPE
-//     }
-
 public:
 
     Track(BeamSequence *, const PartData &, const std::vector<double> & dt,
@@ -101,8 +94,6 @@ public:
     // 3 --- AMTS
     int timeIntegrator;
     
-//     BunchType bunchType;
-
 private:
 
     // Not implemented.
