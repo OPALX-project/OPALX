@@ -173,17 +173,18 @@ void TrackRun::execute() {
             }
         }
         if (newerChanges) {
-            ERRORMSG("\n******************** V E R S I O N   M I S M A T C H ***********************\n" << endl);
+            Inform errorMsg("Error");
+            errorMsg << "\n******************** V E R S I O N   M I S M A T C H ***********************\n" << endl;
             for (auto it = Versions::changes.begin(); it != Versions::changes.end(); ++ it) {
                 if (it->first > fileVersion) {
-                    ERRORMSG(it->second << endl);
+                    errorMsg << it->second << endl;
                 }
             }
-            ERRORMSG("\nMake sure you do understand these changes and adjust your input file \n"
+            errorMsg << "\nMake sure you do understand these changes and adjust your input file \n"
                      << "accordingly. Then add\n"
                      << "OPTION, VERSION = " << currentVersion << ";\n"
-                     << "to your input file. " << endl);
-            ERRORMSG("\n****************************************************************************\n" << endl);
+                     << "to your input file. " << endl;
+            errorMsg << "\n****************************************************************************\n" << endl;
             throw OpalException("TrackRun::execute", "Version mismatch");
         }
     }
