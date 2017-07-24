@@ -154,7 +154,7 @@ namespace Options {
 
     extern int version;
     
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     extern bool amr;
 #endif
 }

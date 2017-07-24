@@ -15,7 +15,7 @@
 #include "Structure/H5PartWrapperForPS.h"
 #include "Utilities/Timer.h"
 
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     #include "Algorithms/AmrPartBunch.h"
 #endif
 
@@ -268,7 +268,7 @@ void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
     beam->calcBeamParameters();
     beam->gatherLoadBalanceStatistics();
     
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
         amrbeam->gatherLevelStatistics();
     }
@@ -1257,7 +1257,7 @@ void DataSink::writeLBalHeader(PartBunchBase<double, 3> *beam,
         ++columnStart;
     }
 
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
         
         int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
@@ -1303,7 +1303,7 @@ void DataSink::writeLBalData(PartBunchBase<double, 3> *beam,
         
     }
         
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
         os_lBalData << "\t";
         int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;

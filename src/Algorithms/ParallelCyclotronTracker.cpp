@@ -87,7 +87,7 @@
 
 //FIXME Remove headers and dynamic_cast in readOneBunchFromFile
 #include "Algorithms/PartBunch.h"
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     #include "Algorithms/AmrPartBunch.h"
 #endif
 
@@ -1690,7 +1690,7 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
 
         //FIXME
         std::unique_ptr<PartBunchBase<double, 3> > tmpBunch = 0;
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
         if ( dynamic_cast<AmrPartBunch*>(itsBunch) != 0 )
             tmpBunch.reset(new AmrPartBunch(&itsReference));
         else

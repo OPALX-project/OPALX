@@ -19,7 +19,7 @@
 #include "Track/Track.h"
 // #include "Algorithms/PartBunchBase.h"
 #include "Algorithms/PartBunch.h" //FIXME
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     #include "Algorithms/AmrPartBunch.h"
 #endif
 #include "Algorithms/bet/EnvelopeBunch.h"
@@ -61,7 +61,7 @@ Track::Track(BeamSequence *u, const PartData &ref, const std::vector<double> & d
             OpalData::getInstance()->setSLPartBunch(new EnvelopeBunch(&ref));
 
         if(!OpalData::getInstance()->hasBunchAllocated()) {           // we need this for Autophasing
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
             if ( Options::amr )
                 OpalData::getInstance()->setPartBunch(new AmrPartBunch(&ref));
             else
@@ -73,7 +73,7 @@ Track::Track(BeamSequence *u, const PartData &ref, const std::vector<double> & d
         slbunch = OpalData::getInstance()->getSLPartBunch();
     } else {
         if(!OpalData::getInstance()->hasBunchAllocated()) {
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
             if ( Options::amr )
                 OpalData::getInstance()->setPartBunch(new AmrPartBunch(&ref));
             else

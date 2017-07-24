@@ -27,7 +27,7 @@
 
 //FIXME Remove headers and dynamic_cast in readOneBunchFromFile
 #include "Algorithms/PartBunch.h"
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     #include "Algorithms/AmrPartBunch.h"
 #endif
 
@@ -46,7 +46,7 @@ Tracker::Tracker(const Beamline &beamline, const PartData &reference,
     AbstractTracker(beamline, reference, backBeam, backTrack),
     itsBeamline_m(beamline)
 {
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     if ( Options::amr )
         itsBunch = new AmrPartBunch(&reference);
     else
