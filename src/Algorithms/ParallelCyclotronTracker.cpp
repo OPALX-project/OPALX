@@ -154,7 +154,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    const PartData &reference,
                                                    bool revBeam, bool revTrack,
                                                    int maxSTEPS, int timeIntegrator):
-    Tracker(beamline, reference, revBeam, revTrack),
+    Tracker(beamline, bunch, reference, revBeam, revTrack),
     maxSteps_m(maxSTEPS),
     lastDumpedStep_m(0),
     eta_m(0.01),
