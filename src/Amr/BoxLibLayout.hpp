@@ -9,11 +9,11 @@
 #include <cmath>
 
 template <class T, unsigned Dim>
-const Vector_t BoxLibLayout<T, Dim>::lowerBound = - Vector_t(1.04, 1.04, 1.04);
+const Vector_t BoxLibLayout<T, Dim>::lowerBound = - Vector_t(1.0, 1.0, 1.0);
 
 
 template <class T, unsigned Dim>
-const Vector_t BoxLibLayout<T, Dim>::upperBound = Vector_t(1.04, 1.04, 1.04);
+const Vector_t BoxLibLayout<T, Dim>::upperBound = Vector_t(1.0, 1.0, 1.0);
 
 
 template<class T, unsigned Dim>
@@ -36,7 +36,7 @@ BoxLibLayout<T, Dim>::BoxLibLayout()
     
     int nGridPoints = std::ceil( std::cbrt( nProcs ) ) * maxGridSize;
     
-    this->initDefaultBox(nGridPoints, maxGridSize);
+    this->initBaseBox_m(nGridPoints, maxGridSize);
 }
 
 
@@ -46,7 +46,7 @@ BoxLibLayout<T, Dim>::BoxLibLayout(int nGridPoints, int maxGridSize)
       ParGDB(),
       refRatio_m(0)
 {
-    this->initDefaultBox(nGridPoints, maxGridSize);
+    this->initBaseBox_m(nGridPoints, maxGridSize);
 }
 
 
@@ -72,6 +72,17 @@ BoxLibLayout<T, Dim>::BoxLibLayout(const AmrGeomContainer_t &geom,
 
 
 template<class T, unsigned Dim>
+void BoxLibLayout<T, Dim>::setBoundingBox(double dh) {
+    
+    // cubic box
+    int nGridPoints = this->m_geom[0].Domain().length(0);
+    int maxGridSize = this->m_ba[0][0].length(0);
+    
+    this->initBaseBox_m(nGridPoints, maxGridSize, dh);
+}
+
+
+template<class T, unsigned Dim>
 void BoxLibLayout<T, Dim>::update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData,
                                   const ParticleAttrib<char>* canSwap)
 {
@@ -81,6 +92,7 @@ void BoxLibLayout<T, Dim>::update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData
     throw OpalException("BoxLibLayout::update(IpplParticleBase, ParticleAttrib) ",
                         "Wrong update method called.");
 }
+
 
 // // Function from AMReX adjusted to work with Ippl AmrParticleBase class
 // // redistribute the particles using BoxLibs ParGDB class to determine where particle should go
@@ -356,11 +368,11 @@ typename BoxLibLayout<T, Dim>::AmrIntVect_t
 
 //sets the grid and level where particle belongs - returns false if particle is outside the domain
 template <class T, unsigned Dim>
-bool BoxLibLayout<T, Dim>::Where (AmrParticleBase< BoxLibLayout<T,Dim> >& p,
-				       const unsigned int ip,
-				       int lev_min,
-                                       int lev_max,
-                                       int nGrow) const
+bool BoxLibLayout<T, Dim>::Where(AmrParticleBase< BoxLibLayout<T,Dim> >& p,
+                                 const unsigned int ip,
+                                 int lev_min,
+                                 int lev_max,
+                                 int nGrow) const
 {
 
     if (lev_max == -1)
@@ -372,17 +384,17 @@ bool BoxLibLayout<T, Dim>::Where (AmrParticleBase< BoxLibLayout<T,Dim> >& p,
 
     std::vector< std::pair<int, AmrBox_t> > isects;
 
-    for (unsigned int lev = (unsigned)lev_max; lev >= (unsigned)lev_min; lev--)
+    for (int lev = lev_max; lev >= lev_min; lev--)
     {
         const AmrIntVect_t& iv = Index(p, ip, lev);
         const AmrGrid_t& ba = ParticleBoxArray(lev);
         BL_ASSERT(ba.ixType().cellCentered());
 
-	if (lev == p.Level[ip]) { 
+        if (lev == (int)p.Level[ip]) { 
             // The fact that we are here means this particle does not belong to any finer grids.
-	    if (0 <= p.Grid[ip] && p.Grid[ip] < ba.size())
-	    {
-		const AmrBox_t& bx = ba.getCellCenteredBox(p.Grid[ip]);
+            if (0 <= p.Grid[ip] && p.Grid[ip] < ba.size())
+            {
+                const AmrBox_t& bx = ba.getCellCenteredBox(p.Grid[ip]);
                 const AmrBox_t& gbx = amrex::grow(bx,nGrow);
                 if (gbx.contains(iv))
                 {
@@ -583,15 +595,55 @@ void BoxLibLayout<T, Dim>::locateParticle(
 }
 
 
+// overwritten functions
 template <class T, unsigned Dim>
-void BoxLibLayout<T, Dim>::initDefaultBox(int nGridPoints, int maxGridSize)
+bool BoxLibLayout<T, Dim>::LevelDefined (int level) const {
+    return level <= this->maxLevel_m && !m_ba[level].empty() && !m_dmap[level].empty();
+}
+
+
+template <class T, unsigned Dim>
+int BoxLibLayout<T, Dim>::finestLevel () const {
+    return this->finestLevel_m;
+}
+
+
+template <class T, unsigned Dim>
+int BoxLibLayout<T, Dim>::maxLevel () const {
+    return this->maxLevel_m;
+}
+
+
+template <class T, unsigned Dim>
+typename BoxLibLayout<T, Dim>::AmrIntVect_t
+    BoxLibLayout<T, Dim>::refRatio (int level) const
+{
+    return refRatio_m[level];
+}
+
+
+template <class T, unsigned Dim>
+int BoxLibLayout<T, Dim>::MaxRefRatio (int level) const {
+    int maxval = 0;
+    for (int n = 0; n<BL_SPACEDIM; n++) 
+        maxval = std::max(maxval, refRatio_m[level][n]);
+    return maxval;
+}
+
+
+template <class T, unsigned Dim>
+void BoxLibLayout<T, Dim>::initBaseBox_m(int nGridPoints,
+                                         int maxGridSize,
+                                         double dh)
 {
     // physical box (in meters)
     AmrDomain_t real_box;
     for (int d = 0; d < BL_SPACEDIM; ++d) {
-        real_box.setLo(d, lowerBound[d]);
-        real_box.setHi(d, upperBound[d]);
+        real_box.setLo(d, lowerBound[d] - dh);
+        real_box.setHi(d, upperBound[d] + dh);
     }
+    
+    AmrGeometry_t::ProbDomain(real_box);
     
     // define underlying box for physical domain
     AmrIntVect_t domain_lo(0 , 0, 0); 
@@ -628,42 +680,6 @@ void BoxLibLayout<T, Dim>::initDefaultBox(int nGridPoints, int maxGridSize)
     this->m_ba[0] = ba;
     
     this->m_nlevels = ba.size();
-}
-
-
-// overwritten functions
-template <class T, unsigned Dim>
-bool BoxLibLayout<T, Dim>::LevelDefined (int level) const {
-    return level <= this->maxLevel_m && !m_ba[level].empty() && !m_dmap[level].empty();
-}
-
-
-template <class T, unsigned Dim>
-int BoxLibLayout<T, Dim>::finestLevel () const {
-    return this->finestLevel_m;
-}
-
-
-template <class T, unsigned Dim>
-int BoxLibLayout<T, Dim>::maxLevel () const {
-    return this->maxLevel_m;
-}
-
-
-template <class T, unsigned Dim>
-typename BoxLibLayout<T, Dim>::AmrIntVect_t
-    BoxLibLayout<T, Dim>::refRatio (int level) const
-{
-    return refRatio_m[level];
-}
-
-
-template <class T, unsigned Dim>
-int BoxLibLayout<T, Dim>::MaxRefRatio (int level) const {
-    int maxval = 0;
-    for (int n = 0; n<BL_SPACEDIM; n++) 
-        maxval = std::max(maxval, refRatio_m[level][n]);
-    return maxval;
 }
 
 #endif
