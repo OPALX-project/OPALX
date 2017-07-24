@@ -15,7 +15,7 @@
 #include "Field/Field.h"
 #include "FFT/FFT.h"
 
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     #include "Amr/AmrDefs.h"
     #include "Amr/BoxLibParticle.h"
     #include "Amr/BoxLibLayout.h"
@@ -55,7 +55,7 @@ typedef FFT<RCTransform, 3, double>              FFT_t;
 typedef FFT<SineTransform, 3, double>            SINE_t;
 typedef FFT<CCTransform, 3, double>              FFTC_t;
 
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     typedef amr::AmrField_t                      AmrField_t;
     typedef amr::AmrFieldContainer_t             AmrFieldContainer_t;
     typedef BoxLibLayout<double, 3>              AmrLayout_t;
