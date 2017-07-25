@@ -62,10 +62,6 @@ Cyclotron::Cyclotron(const Cyclotron &right):
     type_m(right.type_m),
     harm_m(right.harm_m),
     bscale_m(right.bscale_m),
-    tcr1_m(right.tcr1_m),
-    tcr2_m(right.tcr2_m),
-    mbtc_m(right.mbtc_m),
-    slptc_m(right.slptc_m),
     tcr1V_m(right.tcr1V_m),
     tcr2V_m(right.tcr2V_m),
     mbtcV_m(right.mbtcV_m),
@@ -92,39 +88,60 @@ Cyclotron::~Cyclotron() {
 }
 
 
-void Cyclotron::applyTrimCoil(double r, double z, double slope, double tcr1, double tcr2, double magnitude, double *br, double *bz) {
+void Cyclotron::applyTrimCoil(double r, double z, double *br, double *bz) {
   /// updated bz and br with trim coil contributions
-  if(tcr1 != 0.0 && tcr2 != 0.0) {
-    const double Amax1 = 1;
-    const double Amax2 = 3;
-    const double Amin = -2;
-    const double x01 = 4;
-    const double x02 = 8;
-    const double h1 = 0.03;
-    const double h2 = 0.2;
-    double part1;
-    double part2;
 
-    if (r < ((tcr2+tcr1)/2)) {
-      part1 = pow(10.0, (r / slope - tcr1 / slope - x01) * h1);
-      part2 = pow(10.0, (x02 - r / slope + tcr1 / slope) * h2);
-    }
-    else {
-      part1 = pow(10.0, (tcr2 / slope - r / slope - x01) * h1);
-      part2 = pow(10.0, (x02 - tcr2 / slope + r / slope) * h2);
-    }
-    double part3 = -(Amax1 - Amin) * h1 * log(10) / slope / (1 + part1) / (1 + part1) * part1;
-    double part4 = (Amax2 - Amin) * h2 * log(10) / slope / (1 + part2) / (1 + part2) * part2;
-    double dr = magnitude / 2.78 * (part3 + part4);
-    double btr = magnitude / 2.78 * (Amin + (Amax1 - Amin) / (1 + part1) + (Amax2 - Amin) / (1 + part2) - 1.0);
+    for (unsigned int idx = 0; idx < slptcV_m.size(); ++ idx) {
+        const double &tcr1 = tcr1V_m[idx];
+        const double &tcr2 = tcr2V_m[idx];
 
-    if(r < tcr2)       {
-      *bz -= btr;
-      *br -= dr * z;
+        if (r > tcr2) return; // values in tcrv are descending, all subsequent values are smaller
+        if (r < tcr1) continue; // ??
+
+        const double &slope = slptcV_m[idx];
+        const double &magnitude = mbtcV_m[idx];
+
+        const double Amax1 = 1;
+        const double Amax2 = 3;
+        const double Amin = -2;
+        const double x01 = 4;
+        const double x02 = 8;
+        const double h1 = 0.03;
+        const double h2 = 0.2;
+        const double justAnotherFudgeFactor = 1 / 2.78;
+        double part1;
+        double part2;
+
+        if (2 * r < (tcr2 + tcr1)) {
+            part1 = pow(10.0,  ((r - tcr1) / slope - x01) * h1);
+            part2 = pow(10.0, -((r - tcr1) / slope - x02) * h2);
+        } else {
+            part1 = pow(10.0,  ((tcr2 - r) / slope - x01) * h1);
+            part2 = pow(10.0, -((tcr2 - r) / slope - x02) * h2);
+        }
+
+        double part3 = -(Amax1 - Amin) * h1 * log(10) * part1 / (slope * std::pow(1 + part1, 2));
+        double part4 =  (Amax2 - Amin) * h2 * log(10) * part2 / (slope * std::pow(1 + part2, 2));
+
+        double dr = magnitude * justAnotherFudgeFactor * (part3 + part4);
+        double btr = (magnitude * justAnotherFudgeFactor *
+                      (Amin - 1 + (Amax1 - Amin) / (1 + part1) + (Amax2 - Amin) / (1 + part2)));
+
+
+        if (std::isnan(dr) || std::isinf(dr) ||
+            std::isnan(btr) || std::isinf(btr)) {
+            ERRORMSG("r = " << r << " m, tcr1 = " << tcr1 << " m, tcr2 = " << tcr2 << " m\n");
+            ERRORMSG("slope = " << slope << ", magnitude = " << magnitude << " kG\n");
+            ERRORMSG("part1 = " << part1 << ", part2 = " << part2 << "\n");
+            ERRORMSG("part3 = " << part3 << ", part4 = " << part4 << endl);
+            throw GeneralClassicException("Cyclotron::applyTrimCoil",
+                                          "dr or btr yield results that are either nan or inf");
+        }
+
+        *bz -= btr;
+        *br -= dr * z;
     }
-  }
 }
-
 
 void Cyclotron::accept(BeamlineVisitor &visitor) const {
     visitor.visitCyclotron(*this);
@@ -277,38 +294,6 @@ double Cyclotron::getRmax() const {
 // arguments E is set to zero.
 
 
-void Cyclotron::setTCr1(double tcr1) {
-    tcr1_m = tcr1;
-}
-
-double Cyclotron::getTCr1() const {
-    return tcr1_m;
-}
-
-void Cyclotron::setTCr2(double tcr2) {
-    tcr2_m = tcr2;
-}
-
-double Cyclotron::getTCr2() const {
-    return tcr2_m;
-}
-void Cyclotron::setMBtc(double mbtc) {
-    mbtc_m = mbtc;
-}
-
-double Cyclotron::getMBtc() const {
-    return mbtc_m;
-}
-
-void Cyclotron::setSLPtc(double slptc) {
-    slptc_m = slptc;
-}
-
-double Cyclotron::getSLPtc() const {
-    return slptc_m;
-}
-
-
 void Cyclotron::setMinR(double r) {
     // DW: This is to let the user keep using mm in the input file for now
     // while switching internally to m
@@ -345,19 +330,19 @@ double Cyclotron::getMaxZ() const {
     return maxz_m;
 }
 
-void Cyclotron::setTCr1V(vector<double> tcr1) {
+void Cyclotron::setTCr1V(const vector<double> & tcr1) {
     tcr1V_m = tcr1;
 }
 
-void Cyclotron::setTCr2V(vector<double> tcr2) {
+void Cyclotron::setTCr2V(const vector<double> & tcr2) {
     tcr2V_m = tcr2;
 }
 
-void Cyclotron::setMBtcV(vector<double> mbtc) {
+void Cyclotron::setMBtcV(const vector<double> & mbtc) {
     mbtcV_m = mbtc;
 }
 
-void Cyclotron::setSLPtcV(vector<double> slptc) {
+void Cyclotron::setSLPtcV(const vector<double> & slptc) {
     slptcV_m = slptc;
 }
 
@@ -381,7 +366,7 @@ bool Cyclotron::apply(const size_t &id, const double &t, Vector_t &E, Vector_t &
       Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
       gmsgALL << getName() << ": particle "<< id <<" out of the global aperture of cyclotron!"<< endl;
       gmsgALL << getName() << ": Coords: "<< RefPartBunch_m->R[id] << endl;
-      
+
   } else{
 
       flagNeedUpdate = apply(RefPartBunch_m->R[id], RefPartBunch_m->P[id], t, E, B);
@@ -525,16 +510,9 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
         // bt = -( btf - btcub );
         bt = - btf;
 
+        applyTrimCoil(rad, R[2], &br, &bz);
 
         /* Br Btheta -> Bx By */
-
-	if (slptcV_m.size() != 0) {
-	  for (unsigned int i=0; i<slptcV_m.size(); i++)
-	    applyTrimCoil(rad, R[2], slptcV_m[i], tcr1V_m[i], tcr2V_m[i], mbtcV_m[i], &br, &bz);
-	}
-	else
-	  applyTrimCoil(rad, R[2], slptc_m, tcr1_m, tcr2_m, mbtc_m, &br, &bz);
-
         B[0] = br * cos(tet_rad) - bt * sin(tet_rad);
         B[1] = br * sin(tet_rad) + bt * cos(tet_rad);
         B[2] = bz;
@@ -556,7 +534,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
         int fcount = 0;
         for(; fi != RFfields_m.end(); ++fi, ++rffi, ++rfphii, ++escali, ++superposei) {
             (*fi)->getFieldDimensions(xBegin, xEnd, yBegin, yEnd, zBegin, zEnd);
-	    
+
 	    bool SuperPose = *superposei;
             if (fcount > 0 && !SuperPose) {
 	      //INFOMSG ("Field maps taken : " << fcount << "Superpose false" << endl);
@@ -1404,7 +1382,7 @@ void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
         for(int i = 0; i < Bfield.nrad; i++) {
             for(int k = 0; k < Bfield.ntet; k++) {
                 fp1 << BP.rmin + (i * BP.delr) << " \t " << k * (BP.tetmin + BP.dtet) << " \t " << Bfield.bfld[idx(i, k)] << endl;
-              
+
                 Vector_t tmpR = Vector_t (BP.rmin + (i * BP.delr), 0.0, k * (BP.tetmin + BP.dtet));
                 Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
                 tmpR /= 1000.0; // -> mm to m
@@ -1425,9 +1403,9 @@ void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
         fp1.close();
         fp2.close();
     }
-    
+
     fclose(f);
-    
+
     *gmsg << "* Field Maps read successfully!" << endl << endl;
 }
 
