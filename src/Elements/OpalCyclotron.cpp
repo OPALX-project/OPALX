@@ -22,6 +22,7 @@
 #include "BeamlineCore/CyclotronRep.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Physics/Physics.h"
+#include "Utilities/OpalException.h"
 
 // Class OpalCyclotron
 // ------------------------------------------------------------------------
@@ -81,29 +82,17 @@ OpalCyclotron::OpalCyclotron():
     itsAttr[TYPE]     = Attributes::makeString
                         ("TYPE", "Used to identify special cyclotron types");
 
-    itsAttr[TCR1]     = Attributes::makeReal
-                        ("TCR1", "trim coil r1 [mm]");
-
     itsAttr[TCR1V]     = Attributes::makeRealArray
-                        ("TCR1V", "array of trim coil r1 [mm]");
-
-    itsAttr[TCR2]     = Attributes::makeReal
-                        ("TCR2", "trim coil r2 [mm]");
+                        ("TCR1", "array of trim coil r1 [mm]");
 
     itsAttr[TCR2V]     = Attributes::makeRealArray
-                        ("TCR2V", "array of trim coil r2 [mm]");
-
-    itsAttr[MBTC]     = Attributes::makeReal
-                        ("MBTC", "max bfield of trim coil [kG]");
+                        ("TCR2", "array of trim coil r2 [mm]");
 
     itsAttr[MBTCV]     = Attributes::makeRealArray
-                        ("MBTCV", "array of max bfield values of trim coils [kG]");
-
-    itsAttr[SLPTC]    = Attributes::makeReal
-                        ("SLPTC", "slope of the rising edge");
+                        ("MBTC", "array of max bfield values of trim coils [kG]");
 
     itsAttr[SLPTCV]    = Attributes::makeRealArray
-                        ("SLPTCV", "array of slopes of the rising edge");
+                        ("SLPTC", "array of slopes of the rising edge");
 
     itsAttr[MINZ]     = Attributes::makeReal
                         ("MINZ","Minimal vertical extent of the machine [mm]",-10000.0);
@@ -146,10 +135,6 @@ OpalCyclotron::OpalCyclotron():
     registerRealAttribute("RFFREQ");
     registerRealAttribute("BSCALE");
     registerRealAttribute("ESCALE");
-    registerRealAttribute("TCR1");
-    registerRealAttribute("TCR2");
-    registerRealAttribute("MBTC");
-    registerRealAttribute("SLPTC");
     registerRealAttribute("RFPHI");
     registerRealAttribute("MINZ");
     registerRealAttribute("MAXZ");
@@ -203,11 +188,6 @@ void OpalCyclotron::update() {
     double pzinit = Attributes::getReal(itsAttr[PZINIT]);
     double bscale = Attributes::getReal(itsAttr[BSCALE]);
 
-    double tcr1 = Attributes::getReal(itsAttr[TCR1]);
-    double tcr2 = Attributes::getReal(itsAttr[TCR2]);
-    double mbtc = Attributes::getReal(itsAttr[MBTC]);
-    double slptc = Attributes::getReal(itsAttr[SLPTC]);
-
     double minz = Attributes::getReal(itsAttr[MINZ]);
     double maxz = Attributes::getReal(itsAttr[MAXZ]);
     double minr = Attributes::getReal(itsAttr[MINR]);
@@ -232,11 +212,6 @@ void OpalCyclotron::update() {
     cycl->setType(type);
     cycl->setCyclHarm(harmnum);
 
-    cycl->setTCr1(tcr1);
-    cycl->setTCr2(tcr2);
-    cycl->setMBtc(mbtc);
-    cycl->setSLPtc(slptc);
-
     cycl->setMinR(minr);
     cycl->setMaxR(maxr);
     cycl->setMinZ(minz);
@@ -260,15 +235,67 @@ void OpalCyclotron::update() {
     std::vector<double> mbtcv  = Attributes::getRealArray(itsAttr[MBTCV]);
     std::vector<double> slptcv = Attributes::getRealArray(itsAttr[SLPTCV]);
 
-    unsigned int vsize = tcr1v.size();
+    const unsigned int vsize = tcr1v.size();
 
-    if ((tcr1v.size() == vsize) && (tcr2v.size() == vsize) &&
-	(mbtcv.size() == vsize) && (slptcv.size() == vsize) && (vsize!=0)) {
-      cycl->setTCr1V(tcr1v);
-      cycl->setTCr2V(tcr2v);
-      cycl->setMBtcV(mbtcv);
-      cycl->setSLPtcV(slptcv);
+    if (tcr2v.size() != vsize ||
+	mbtcv.size() != vsize ||
+        slptcv.size() != vsize) {
+        throw OpalException("OpalCyclotron::update()",
+                            "The arrays TCR1, TCR2, MBTC and SLPTC have to\n"
+                            "have the same length.");
     }
+
+    const double mm2m = 0.001;
+    unsigned int effectiveSize = vsize;
+    for (unsigned int i = 0; i < effectiveSize; ++ i) {
+        if (std::abs(slptcv[i]) < 1e-20) {
+            throw OpalException("OpalCyclotron::update()",
+                                "The slopes of the rising edge have to be different from zero");
+        }
+
+        if (tcr1v[i] == 0 ||
+            tcr2v[i] == 0 ||
+            mbtcv[i] == 0) {
+            std::swap(tcr1v[i], tcr1v[effectiveSize - 1]);
+            std::swap(tcr2v[i], tcr2v[effectiveSize - 1]);
+            std::swap(mbtcv[i], mbtcv[effectiveSize - 1]);
+            std::swap(slptcv[i], slptcv[effectiveSize - 1]);
+            -- effectiveSize;
+            -- i;
+        } else {
+            tcr1v[i] *= mm2m;
+            tcr2v[i] *= mm2m;
+        }
+    }
+
+    tcr1v.resize(effectiveSize);
+    tcr2v.resize(effectiveSize);
+    mbtcv.resize(effectiveSize);
+    slptcv.resize(effectiveSize);
+
+    // sort the arrays simultaneous such that the values
+    // in tcr2v are descending
+    std::vector<unsigned int> p(effectiveSize);
+    std::iota(p.begin(), p.end(), 0);
+    std::sort(p.begin(), p.end(),
+              [&](std::size_t i, std::size_t j){ return tcr2v[i] > tcr2v[j]; });
+
+    std::vector<double> temp(tcr2v.size());
+    std::transform(p.begin(), p.end(), temp.begin(),
+                   [&](std::size_t i){ return tcr1v[i]; });
+    cycl->setTCr1V(temp);
+
+    std::transform(p.begin(), p.end(), temp.begin(),
+                   [&](std::size_t i){ return tcr2v[i]; });
+    cycl->setTCr2V(temp);
+
+    std::transform(p.begin(), p.end(), temp.begin(),
+                   [&](std::size_t i){ return mbtcv[i]; });
+    cycl->setMBtcV(temp);
+
+    std::transform(p.begin(), p.end(), temp.begin(),
+                   [&](std::size_t i){ return slptcv[i]; });
+    cycl->setSLPtcV(temp);
 
     cycl->setRfPhi(phi_str);
     cycl->setEScale(scale_str);
