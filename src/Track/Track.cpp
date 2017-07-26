@@ -45,6 +45,8 @@ Track::Track(BeamSequence *u, const PartData &ref, const std::vector<double> & d
              double zStart, const std::vector<double> & zStop, int timeintegrator,
              int nslices, double t0, double dtScInit, double deltaTau):
     reference(ref),
+    slbunch(nullptr),
+    bunch(nullptr),
     use(u),
     parser(),
     dT(dt),
