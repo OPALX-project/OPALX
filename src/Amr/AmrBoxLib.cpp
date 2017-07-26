@@ -98,7 +98,7 @@ void AmrBoxLib::initFineLevels() {
             amrpbase_p->domainMapping();
             amrpbase_p->setForbidTransform(true);
         }
-        
+
         if ( max_level > 0) {
             
             amrpbase_p->update(0, 0);
@@ -501,62 +501,63 @@ inline const int& AmrBoxLib::finestLevel() const {
 
 
 void AmrBoxLib::redistributeGrids(int how) {
-    // copied + modified version of AMReX_Amr.cpp
-    AmrProcMap_t::InitProximityMap();
-//     AmrProcMap_t::Initialize();
-
-    AmrGridContainer_t allBoxes(finest_level + 1);
-    for(unsigned int ilev = 0; ilev < allBoxes.size(); ++ilev) {
-        allBoxes[ilev] = boxArray(ilev);
-    }
-    amrex::Array<AmrIntArray_t> mLDM;
-        
-    switch ( how ) {
-        case RANK_ZERO:
-            mLDM = AmrProcMap_t::MultiLevelMapRandom(this->ref_ratio,
-                                                     allBoxes,
-                                                     maxGridSize(0),
-                                                     0/*maxRank*/,
-                                                     0/*minRank*/);
-            break;
-        case PFC:
-            mLDM = AmrProcMap_t::MultiLevelMapPFC(this->ref_ratio,
-                                                  allBoxes,
-                                                  maxGridSize(0));
-            break;
-        case RANDOM:
-            mLDM = AmrProcMap_t::MultiLevelMapRandom(this->ref_ratio,
-                                                     allBoxes,
-                                                     maxGridSize(0));
-            break;
-        case KNAPSACK:
-            mLDM = AmrProcMap_t::MultiLevelMapKnapSack(this->ref_ratio,
-                                                       allBoxes,
-                                                       maxGridSize(0));
-            break;
-        default:
-            *gmsg << "We didn't redistribute the grids." << endl;
-            return;
-    }
-        
-    for(unsigned int iMap = 0; iMap < mLDM.size(); ++iMap) {
-        AmrField_t::MoveAllFabs(mLDM[iMap]);
-    }
-    
-    /*
-     * particles need to know the BoxArray
-     * and DistributionMapping
-     */
-    for(unsigned int ilev = 0; ilev < allBoxes.size(); ++ilev) {
-        layout_mp->SetParticleBoxArray(ilev, this->grids[ilev]);
-        layout_mp->SetParticleDistributionMap(ilev, this->dmap[ilev]);
-    }
-    
-    for(unsigned int iMap = 0; iMap < mLDM.size(); ++iMap) {
-        rho_m[iMap]->MoveFabs(mLDM[iMap]);
-        phi_m[iMap]->MoveFabs(mLDM[iMap]);
-        efield_m[iMap]->MoveFabs(mLDM[iMap]);
-    }
+//
+//    // copied + modified version of AMReX_Amr.cpp
+//    AmrProcMap_t::InitProximityMap();
+////     AmrProcMap_t::Initialize();
+//
+//    AmrGridContainer_t allBoxes(finest_level + 1);
+//    for(unsigned int ilev = 0; ilev < allBoxes.size(); ++ilev) {
+//        allBoxes[ilev] = boxArray(ilev);
+//    }
+//    amrex::Array<AmrIntArray_t> mLDM;
+//        
+//    switch ( how ) {
+//        case RANK_ZERO:
+//            mLDM = AmrProcMap_t::MultiLevelMapRandom(this->ref_ratio,
+//                                                     allBoxes,
+//                                                     maxGridSize(0),
+//                                                     0/*maxRank*/,
+//                                                     0/*minRank*/);
+//            break;
+//        case PFC:
+//            mLDM = AmrProcMap_t::MultiLevelMapPFC(this->ref_ratio,
+//                                                  allBoxes,
+//                                                  maxGridSize(0));
+//            break;
+//        case RANDOM:
+//            mLDM = AmrProcMap_t::MultiLevelMapRandom(this->ref_ratio,
+//                                                     allBoxes,
+//                                                     maxGridSize(0));
+//            break;
+//        case KNAPSACK:
+//            mLDM = AmrProcMap_t::MultiLevelMapKnapSack(this->ref_ratio,
+//                                                       allBoxes,
+//                                                       maxGridSize(0));
+//            break;
+//        default:
+//            *gmsg << "We didn't redistribute the grids." << endl;
+//            return;
+//    }
+//        
+//    for(unsigned int iMap = 0; iMap < mLDM.size(); ++iMap) {
+//        AmrField_t::MoveAllFabs(mLDM[iMap]);
+//    }
+//    
+//    /*
+//     * particles need to know the BoxArray
+//     * and DistributionMapping
+//     */
+//    for(unsigned int ilev = 0; ilev < allBoxes.size(); ++ilev) {
+//        layout_mp->SetParticleBoxArray(ilev, this->grids[ilev]);
+//        layout_mp->SetParticleDistributionMap(ilev, this->dmap[ilev]);
+//    }
+//    
+//    for(unsigned int iMap = 0; iMap < mLDM.size(); ++iMap) {
+//        rho_m[iMap]->MoveFabs(mLDM[iMap]);
+//        phi_m[iMap]->MoveFabs(mLDM[iMap]);
+//        efield_m[iMap]->MoveFabs(mLDM[iMap]);
+//    }
 }
 
 
@@ -568,12 +569,12 @@ void AmrBoxLib::RemakeLevel (int lev, AmrReal_t time,
     SetDistributionMap(lev, new_dmap);
     
     //                                                      #comp  #ghosts cells
-    rho_m[lev].reset(new AmrField_t(new_grids, new_dmap,    1,     1));
+    rho_m[lev].reset(new AmrField_t(new_grids, new_dmap,    1,     0));
     phi_m[lev].reset(new AmrField_t(new_grids, new_dmap,    1,     1));
     efield_m[lev].reset(new AmrField_t(new_grids, new_dmap, 3,     1));
     
     // including nghost = 1
-    rho_m[lev]->setVal(0.0, 1);
+    rho_m[lev]->setVal(0.0, 0);
     phi_m[lev]->setVal(0.0, 1);
     efield_m[lev]->setVal(0.0, 1);
     
@@ -594,12 +595,12 @@ void AmrBoxLib::MakeNewLevel (int lev, AmrReal_t time,
     SetDistributionMap(lev, new_dmap);
     
     //                                                      #comp  #ghosts cells
-    rho_m[lev].reset(new AmrField_t(new_grids, new_dmap,    1,     1));
+    rho_m[lev].reset(new AmrField_t(new_grids, new_dmap,    1,     0));
     phi_m[lev].reset(new AmrField_t(new_grids, new_dmap,    1,     1));
     efield_m[lev].reset(new AmrField_t(new_grids, new_dmap, 3,     1));
     
     // including nghost = 1
-    rho_m[lev]->setVal(0.0, 1);
+    rho_m[lev]->setVal(0.0, 0);
     phi_m[lev]->setVal(0.0, 1);
     efield_m[lev]->setVal(0.0, 1);
     
@@ -677,7 +678,7 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags,
 {
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     for (int i = lev; i <= finest_level; ++i)
-        rho_m[i]->setVal(0.0, 1);
+        rho_m[i]->setVal(0.0, 0);
     
     // the new scatter function averages the value also down to the coarsest level
     amrpbase_p->scatter(bunch_mp->Q, rho_m,
