@@ -132,7 +132,11 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     opalRing_m(NULL),
     itsStepper_mp(nullptr),
     mode_m(MODE::UNDEFINED),
-    stepper_m(stepper::INTEGRATOR::UNDEFINED) {
+    stepper_m(stepper::INTEGRATOR::UNDEFINED),
+    itsDataSink(nullptr),
+    bgf_m(nullptr),
+    initialR_m(nullptr),
+    initialP_m(nullptr) {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
 }
 
@@ -162,9 +166,11 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     initialLocalNum_m(bunch->getLocalNum()),
     initialTotalNum_m(bunch->getTotalNum()),
     opalRing_m(NULL),
-    itsStepper_mp(nullptr) {
+    itsStepper_mp(nullptr),
+    bgf_m(nullptr),
+    initialR_m(nullptr),
+    initialP_m(nullptr) {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
-    itsBunch = bunch;
     itsDataSink = &ds;
     //  scaleFactor_m = itsBunch->getdT() * c;
     scaleFactor_m = 1;
