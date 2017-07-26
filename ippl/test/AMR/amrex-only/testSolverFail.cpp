@@ -191,8 +191,8 @@ public:
 	Array<std::unique_ptr<MultiFab> > nChargePerCell_m(max_level + 1);
 
         for (int i = 0; i <= finest_level; ++i) {
-	    nChargePerCell_m[i].reset(new MultiFab(grids[i], dmap[i], 1, 1));
-            nChargePerCell_m[i]->setVal(0.0, 1);
+	    nChargePerCell_m[i].reset(new MultiFab(grids[i], dmap[i], 1, 2));
+            nChargePerCell_m[i]->setVal(0.0, 2);
         }
 
         bunch_mp->AssignDensityFort(0, nChargePerCell_m, 0, 1, finest_level);
