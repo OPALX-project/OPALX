@@ -61,6 +61,12 @@ if ( ${BL_SPACEDIM} EQUAL 3 )
                     ../Tagging_nd.f90
                     ../AmrOpal_F.h)
     
+    add_executable( testSolverFail
+                    testSolverFail.cpp
+                    ../Tagging_nd.f90
+                    ../AmrOpal_F.h
+                    Solver.cpp)
+    
     # 4. March 2017,
     # http://stackoverflow.com/questions/13429656/cmake-how-to-copy-contents-of-a-directory-into-build-directory-after-make
     add_custom_command(TARGET testDeposition testDepositionFail POST_BUILD
@@ -79,6 +85,10 @@ if ( ${BL_SPACEDIM} EQUAL 3 )
                            -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testDepositionFail ${LIBS}
+                           -lgfortran ${CCSE_LIBRARIES}
+                           -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    
+    target_link_libraries (testSolverFail ${LIBS}
                            -lgfortran ${CCSE_LIBRARIES}
                            -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 endif()
