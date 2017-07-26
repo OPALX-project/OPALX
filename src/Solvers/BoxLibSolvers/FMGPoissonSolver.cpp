@@ -27,8 +27,7 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
                              bool prevAsGuess)
 {
     const GeomContainer_t& geom = itsAmrObject_mp->Geom();
-    
-    
+
     if (AmrGeometry_t::isAllPeriodic()) {
         for (int d = 0; d < BL_SPACEDIM; ++d) {
             bc_m[2 * d]     = MGT_BC_PER;
@@ -47,14 +46,15 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
     
     for (int lev = baseLevel; lev <= finestLevel ; ++lev) {
         const AmrProcMap_t& dmap = rho[lev]->DistributionMap();
-        grad_phi_edge[lev].resize(BL_SPACEDIM);
-        AmrGrid_t ba = rho[lev]->boxArray();
+	grad_phi_edge[lev].resize(BL_SPACEDIM);
         
         for (int n = 0; n < BL_SPACEDIM; ++n) {
+	    AmrGrid_t ba = rho[lev]->boxArray();
             grad_phi_edge[lev][n].reset(new AmrField_t(ba.surroundingNodes(n), dmap, 1, 1));
+	    grad_phi_edge[lev][n]->setVal(0.0, 1);
         }
     }
-    
+
     // normalize right-hand-side for better convergence
     double l0norm = rho[finestLevel]->norm0(0);
     for (int i = 0; i <= finestLevel; ++i) {
@@ -75,7 +75,7 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
                                             geom,
                                             baseLevel,
                                             finestLevel);
-    
+
     if ( residNorm > reltol_m ) {
         std::stringstream ss;
         ss << "Residual norm: " << std::setprecision(16) << residNorm
@@ -83,7 +83,6 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
         throw OpalException("FMGPoissonSolver::solve()",
                             "Multigrid solver did not converge. " + ss.str());
     }
-    
     
     // undo normalization
     for (int i = 0; i <= finestLevel; ++i) {
@@ -266,11 +265,11 @@ double FMGPoissonSolver::solveWithF90_m(const AmrFieldContainer_pt& rho,
         amrex::IntVect::TheZeroVector() : itsAmrObject_mp->refRatio(0);
 
     amrex::FMultiGrid fmg(geom_p, baseLevel, crse_ratio);
-
+    
     if (baseLevel == 0)
-        fmg.set_bc(bc_m, *phi[baseLevel]);
+        fmg.set_bc(bc_m, *phi_p[baseLevel]);
     else
-        fmg.set_bc(bc_m, *phi[baseLevel-1], *phi[baseLevel]);
+        fmg.set_bc(bc_m, *phi_p[baseLevel-1], *phi_p[baseLevel]);
     
     /* (alpha * a - beta * (del dot b grad)) phi = rho
      * (b = 1)
@@ -287,7 +286,7 @@ double FMGPoissonSolver::solveWithF90_m(const AmrFieldContainer_pt& rho,
 
     int always_use_bnorm = 0;
     int need_grad_phi = 1;
-    
+
     double residNorm = fmg.solve(phi_p, rho_p, reltol_m, abstol_m, always_use_bnorm, need_grad_phi);
     
     for (int ilev = 0; ilev < nlevs; ++ilev) {
@@ -311,7 +310,7 @@ void FMGPoissonSolver::interpolate_m(AmrFieldContainer_t& phi,
     amrex::PCInterp mapper;
     
     std::unique_ptr<AmrField_t> tmp;
-    
+
     for (int lev = 1; lev <= finestLevel; ++lev) {
         const AmrGrid_t& ba = phi[lev]->boxArray();
         const AmrProcMap_t& dm = phi[lev]->DistributionMap();
