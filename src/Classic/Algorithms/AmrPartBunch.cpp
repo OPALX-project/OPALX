@@ -5,6 +5,7 @@
 AmrPartBunch::AmrPartBunch(const PartData *ref)
     : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(new AmrLayout_t()), ref),
       fieldlayout_m(nullptr),
+      amrobj_mp(nullptr),
       amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase))
 {
     amrpbase_mp->initializeAmr();
@@ -15,6 +16,7 @@ AmrPartBunch::AmrPartBunch(const std::vector<OpalParticle> &rhs,
                            const PartData *ref)
     : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(new AmrLayout_t()), rhs, ref),
       fieldlayout_m(nullptr),
+      amrobj_mp(nullptr),
       amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase))
 {
     amrpbase_mp->initializeAmr();
@@ -24,6 +26,7 @@ AmrPartBunch::AmrPartBunch(const std::vector<OpalParticle> &rhs,
 AmrPartBunch::AmrPartBunch(const AmrPartBunch &rhs)
     : PartBunchBase<double, 3>(rhs),
       fieldlayout_m(nullptr),
+      amrobj_mp(nullptr),
       amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase))
 {
     amrpbase_mp->initializeAmr();
@@ -89,8 +92,9 @@ void AmrPartBunch::do_binaryRepart() {
              * the regrid process!
              * We regrid from base level 0 up to the finest level.
              */
-            amrobj_mp->regrid(0, lev_top, t_m * 1.0e9 /*time [ns] */);
-                
+	    for (int i = 0; i <= lev_top; ++i)
+		amrobj_mp->regrid(i, lev_top, t_m * 1.0e9 /*time [ns] */);
+            
             *gmsg << "*     New finest level: "
                   << amrobj_mp->finestLevel() << endl
                   << "* Finished regriding" << endl;
