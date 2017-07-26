@@ -30,7 +30,7 @@ void BoxLibParticle<PLayout>::scatter(ParticleAttrib<FT>& attrib, AmrFieldContai
                                       int lbase, int lfine)
 {
     if ( lbase == lfine ) {
-        this->AssignCellDensitySingleLevelFort(attrib, *(f[lbase].get()), lbase);
+        this->scatter(attrib, *(f[lbase].get()), pp, lbase);
         return;
     }
     
@@ -63,7 +63,7 @@ void BoxLibParticle<PLayout>::scatter(ParticleAttrib<FT>& attrib, AmrField_t& f,
 {
     const AmrGrid_t& ba      = f.boxArray();
     const AmrProcMap_t& dmap = f.DistributionMap();
-    
+
     AmrField_t tmp(ba, dmap, f.nComp(), 1);
     tmp.setVal(0.0, 1);
     
