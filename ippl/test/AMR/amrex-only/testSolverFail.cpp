@@ -135,7 +135,7 @@ public:
         : AmrMesh(rb, max_level_in, n_cell_in, coord),
           bunch_mp(bunch),
           nCharge_m(1.0e-9)
-    {
+	{
         // setup base level
         this->finest_level = 0;
         
@@ -143,17 +143,8 @@ public:
         
         const BoxArray& ba = gdb->ParticleBoxArray(0);
         const DistributionMapping& dm = gdb->ParticleDistributionMap(0);
-    
-        this->SetBoxArray(0, ba);
-        this->SetDistributionMap(0, dm);
-        
-        nChargePerCell_m.resize(max_level_in + 1);
-        nChargePerCell_m[0] = std::unique_ptr<MultiFab>(
-            new MultiFab(this->boxArray(0),
-                         this->DistributionMap(0),
-                         1, 1)
-                                                       );
-        nChargePerCell_m[0]->setVal(0.0, 1);
+
+	this->MakeNewLevel(0, 0.0, ba, dm);
     }
     
     
@@ -196,11 +187,15 @@ public:
     }
     
     void ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
-        for (int i = lev; i <= finest_level; ++i) {
+
+	Array<std::unique_ptr<MultiFab> > nChargePerCell_m(max_level + 1);
+
+        for (int i = 0; i <= finest_level; ++i) {
+	    nChargePerCell_m[i].reset(new MultiFab(grids[i], dmap[i], 1, 1));
             nChargePerCell_m[i]->setVal(0.0, 1);
         }
-        
-        bunch_mp->AssignDensityFort(0, nChargePerCell_m, lev, 1, finest_level);
+
+        bunch_mp->AssignDensityFort(0, nChargePerCell_m, 0, 1, finest_level);
         
         const int clearval = TagBox::CLEAR;
         const int   tagval = TagBox::SET;
@@ -248,8 +243,6 @@ public:
         
         bunch_mp->SetParticleBoxArray(lev, new_grids);
         bunch_mp->SetParticleDistributionMap(lev, new_dmap);
-        
-        nChargePerCell_m[lev].reset(new MultiFab(new_grids, new_dmap, 1, 1));
     }
 
     void MakeNewLevel (int lev, Real time,
@@ -260,22 +253,15 @@ public:
         
         bunch_mp->SetParticleBoxArray(lev, new_grids);
         bunch_mp->SetParticleDistributionMap(lev, new_dmap);
-        
-        nChargePerCell_m[lev] = std::unique_ptr<MultiFab>(new MultiFab(new_grids, new_dmap, 1, 1));
     }
     
     void ClearLevel(int lev) {
-        
-        nChargePerCell_m[lev].reset(nullptr);
-        
         ClearBoxArray(lev);
         ClearDistributionMap(lev);
     }
     
 private:
     MyParticleContainer* bunch_mp;
-    
-    Array<std::unique_ptr<MultiFab> > nChargePerCell_m;
     
     double nCharge_m;
 };
@@ -493,9 +479,8 @@ void doTest(TestParams& parms)
     
     std::cout << "Total num: " << myPC.TotalNumberOfParticles() << std::endl;
     
-    for (int i = 0; i < nlevs - 1; /*myAmr.finestLevel() && i < myAmr.maxLevel();*/ ++i)
+    for (int i = 0; i <= myAmr.finestLevel() && i < myAmr.maxLevel(); ++i)
         myAmr.regrid(i, 0.0);
-    
     
     solve(myAmr, myPC);
 }
