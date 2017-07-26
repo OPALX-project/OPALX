@@ -16,6 +16,8 @@
 //
 // ------------------------------------------------------------------------
 
+#include <numeric>
+
 #include "Elements/OpalCyclotron.h"
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
