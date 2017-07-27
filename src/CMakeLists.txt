@@ -11,7 +11,7 @@ IF(ENABLE_SAAMG_SOLVER)
     )
 ENDIF(ENABLE_SAAMG_SOLVER)
 
-IF(ENABLE_AMR_SOLVER)
+IF(ENABLE_AMR)
     # FIXME Find a better solution!
     # We get otherwise a "undefined reference" to "getLevelBld()" and "probinit_"
     set (CBOXLIB -lcboxlib)
@@ -19,7 +19,7 @@ IF(ENABLE_AMR_SOLVER)
     IF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND NOT ${HOSTNAME_BASE} MATCHES "daint")
         set (CBOXLIB "-lmpi -lmpi_mpifh ${CBOXLIB}")
     ENDIF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND NOT ${HOSTNAME_BASE} MATCHES "daint")
-ENDIF(ENABLE_AMR_SOLVER)
+ENDIF(ENABLE_AMR)
 
 SET (PACKAGE_COMPILE_OPTIONS \"${CMAKE_CXX_FLAGS}\")
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALconfig.h)
@@ -82,9 +82,9 @@ add_subdirectory (Track)
 add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
 
-IF(ENABLE_AMR_SOLVER)
+IF(ENABLE_AMR)
     add_subdirectory (Amr)
-ENDIF(ENABLE_AMR_SOLVER)
+ENDIF(ENABLE_AMR)
 
 ADD_OPAL_SOURCES(opal.cpp)
 ADD_OPAL_SOURCES(changes.cpp)
