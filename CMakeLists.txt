@@ -141,7 +141,6 @@ IF (ENABLE_AMR_SOLVER)
 
     MESSAGE (STATUS "Found AMReX include dir: ${CCSE_INCLUDE_DIR}")
     MESSAGE (STATUS "Found AMReX library dir: ${CCSE_LIBRARY_DIR}")
-    MESSAGE (STATUS "Found AMReX perl dir: ${CCSE_PERL_DIR}")
 
     # FIXME disable due to AMReX
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-variable -Wno-unused-variable -Wno-maybe-uninitialized")

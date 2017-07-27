@@ -61,7 +61,8 @@ void createParticles(TestParams& parms,
     int iseed = 451;
     Real mass = 10.0;
     //    myPC.InitRandom(num_particles, iseed, mass, serialize, fine_box);
-    myPC.InitRandom(num_particles, iseed, mass, serialize);
+    MyParticleContainer::ParticleInitData pdata = {mass};
+    myPC.InitRandom(num_particles, iseed,  pdata, serialize, geom[0].ProbDomain());
 //     std::string distr = "amrex_particle_distribution.ascii";
 //     myPC.InitFromAsciiFile(distr, 0, 0);
     
