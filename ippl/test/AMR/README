@@ -23,7 +23,7 @@ h) export environment variables:
 
 2. Installation of OPAL
 -----------------------
-a) cmake -DENABLE_IPPLTESTS=1 -DENABLE_AMR_SOLVER=1 /path/to/root/CMakeList.txt/file
+a) cmake -DENABLE_IPPLTESTS=1 -DENABLE_AMR=1 /path/to/root/CMakeList.txt/file
 b) make
 
 

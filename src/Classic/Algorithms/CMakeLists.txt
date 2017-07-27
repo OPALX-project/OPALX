@@ -24,9 +24,9 @@ set (_SRCS
   Quaternion.cpp
   )
 
-if ( ENABLE_AMR_SOLVER )
+if ( ENABLE_AMR )
     list(APPEND _SRCS AmrPartBunch.cpp)
-endif ( ENABLE_AMR_SOLVER )
+endif ( ENABLE_AMR )
 
 include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -65,8 +65,8 @@ set (HDRS
     Vektor.h
 )
 
-if ( ENABLE_AMR_SOLVER )
+if ( ENABLE_AMR )
     list(APPEND HDRS AmrPartBunch.h)
-endif ( ENABLE_AMR_SOLVER )
+endif ( ENABLE_AMR )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Algorithms")

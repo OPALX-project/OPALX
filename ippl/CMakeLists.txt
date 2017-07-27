@@ -84,7 +84,7 @@ ENDIF (ENABLE_DKS)
 ### END DKS part ###
 
 # Handle options
-OPTION (ENABLE_AMR_SOLVER "Enable BoxLib based AMR solver" OFF)
+OPTION (ENABLE_AMR "Enable BoxLib based AMR solver" OFF)
 
 OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
 
@@ -94,7 +94,7 @@ OPTION (BUILD_LIBOPAL "Enable building the OPAL library" OFF)
 
 OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
 
-IF (ENABLE_AMR_SOLVER)
+IF (ENABLE_AMR)
     # set specific parameters for BoxLib used in OPAL
     ENABLE_LANGUAGE (Fortran)
 
@@ -139,7 +139,7 @@ IF (ENABLE_AMR_SOLVER)
     MESSAGE (STATUS "  BL_USE_PARTICLES = ${BL_USE_PARTICLES} (INT: 0, 1)")
     MESSAGE (STATUS "  ENABLE_BACKTRACE = ${ENABLE_BACKTRACE} (INT: 0, 1)")
     MESSAGE (STATUS "  ENABLE_PROFILING = ${ENABLE_PROFILING} (INT: 0, 1)")
-ENDIF (ENABLE_AMR_SOLVER)
+ENDIF (ENABLE_AMR)
 
 if (ENABLE_SAAMG_SOLVER)
     find_package (Trilinos REQUIRED HINTS $ENV{TRILINOS_PREFIX} $ENV{TRILINOS_DIR} $ENV{TRILINOS})
