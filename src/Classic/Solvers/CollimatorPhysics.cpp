@@ -904,10 +904,10 @@ void CollimatorPhysics::print(Inform &msg){
     */
 
     msg << std::scientific;
-    msg << "--- CollimatorPhysics - Type is " << collshape_m << " Name " << FN_m
-        << " Material " << material_m << " Particles in material " << locPartsInMat_m << endl;
-    msg << "Coll/Deg statistics: "
-        << " bunch to material " << bunchToMatStat_m << " redifused " << redifusedStat_m
+    msg << "Name " << FN_m
+        << " material " << material_m << " particles in material " << locPartsInMat_m << endl;
+    msg << collshape_m
+        << " stats: bunch to material " << bunchToMatStat_m << " redifused " << redifusedStat_m
         << " stopped " << stoppedPartStat_m << endl;
 
     msg.flags(ff);

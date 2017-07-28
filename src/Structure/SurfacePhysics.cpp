@@ -148,6 +148,17 @@ void SurfacePhysics::initSurfacePhysicsHandler(ElementBase &element) {
         INFOMSG("no surface physics handler attached, TYPE == " << Attributes::getString(itsAttr[TYPE]) << endl);
     }
 
+    if (Ippl::getNodes()>1) {
+      *gmsg << "\033[01;35m";
+      *gmsg << "* ************* A D V I S O R Y  *************************************************** " << endl;
+      *gmsg << "* It is known that surface physics in combination with a parallel run can have       " << endl;
+      *gmsg << "* side-effects such as segmentation faults or the simulation just stops. In such a   " << endl;
+      *gmsg << "* case, either play with the number of simulation particles or use 1 core only.      " << endl;
+      *gmsg << "* We are working on the issue, progress on that matter can be obtained at            " << endl;
+      *gmsg << "* https://gitlab.psi.ch/OPAL/src/issues/137.                                         " << endl;
+      *gmsg << "* ********************************************************************************** " << endl;
+      *gmsg << "\u001b[0m" << endl;
+    }
 }
 
 void SurfacePhysics::updateElement(ElementBase *element) {
