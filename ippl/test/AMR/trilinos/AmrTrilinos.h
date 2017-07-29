@@ -71,6 +71,8 @@ private:
                                  const Array<Geometry>& geom,
                                  int lev);
     
+    void buildMap_m(const AmrField_t& phi);
+    
 private:
     
     Epetra_MpiComm epetra_comm_m;

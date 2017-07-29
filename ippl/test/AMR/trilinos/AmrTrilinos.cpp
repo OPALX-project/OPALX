@@ -10,7 +10,7 @@
 #include <BelosBlockCGSolMgr.hpp>
 
 
-// #include <AMReX_MultiFabUtil.H>
+#include <AMReX_MultiFabUtil.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
@@ -46,30 +46,22 @@ void AmrTrilinos::solve(const container_t& rho,
         
         interpFromCoarseLevel_m(phi, geom, lev);
         
+        for (int j = 0; j < 3; ++j)
+            nPoints_m[j] = geom[lev].Domain().length(j);
         
+        buildMap_m(rho[lev]);
         
-        
-        for (MFIter mfi(*phi[lev], false); mfi.isValid(); ++mfi) {
-            const Box&          bx  = mfi.validbox();
-            const FArrayBox&    fab = (*phi[lev])[mfi];
-                
-            const int* lo = bx.loVect();
-            const int* hi = bx.hiVect();
-            
-            std::cout << bx << std::endl;
-        }
-        
+        fillMatrix_m(geom[lev]);
+        solve_m(phi[lev]);
     }
-        
-        
-//             for (int i = lo[0]; i <= hi[0]; ++i) {
-//                 for (int j = lo[1]; j <= hi[1]; ++j) {
-//                     for (int k = lo[2]; k <= hi[2]; ++k) {
-//                         IntVect iv(i-1, j, k);
-//                         std::cout << fab(iv) << std::endl;
-//                     }
-//                 }
-//             }
+    
+    IntVect rr(2, 2, 2);
+    
+    for (int lev = lfine - 1; lev >= lbase; --lev) {
+        amrex::average_down(*phi[lev+1], 
+                             *phi[lev], 0, 1, rr);
+    }
+    
 //         }
 //     }
 
@@ -91,6 +83,54 @@ void AmrTrilinos::solve(const container_t& rho,
 //         fillMatrix_m(geom[i]);
 //         solve_m(phi[i]);
 //     }
+}
+
+
+void AmrTrilinos::buildMap_m(const AmrField_t& phi)
+{
+    build_m(phi);
+    
+    /*
+    int localNumElements = 0;
+    std::vector<double> values;
+    std::vector<int> globalindices;
+    
+    indexMap_m.clear();
+    
+    IntVect rr(2, 2, 2);
+    
+    for (MFIter mfi(*phi, false); mfi.isValid(); ++mfi) {
+        const Box&          bx  = mfi.validbox();
+        const FArrayBox&    fab = (*phi)[mfi];
+                
+        const int* lo = bx.loVect();
+        const int* hi = bx.hiVect();
+        
+        for (int i = lo[0]; i <= hi[0]; ++i) {
+            for (int j = lo[1]; j <= hi[1]; ++j) {
+                for (int k = lo[2]; k <= hi[2]; ++k) {
+                    
+                    IntVect iv(i, j, k);
+                    
+                    int globalidx = serialize_m(iv);
+                    globalindices.push_back(globalidx);
+                    
+                    indexMap_m[globalidx] = iv;
+                    
+                    values.push_back(fab(iv));
+                    
+                    ++localNumElements;
+                    
+//                     std::cout << fab(iv) << std::endl;
+                }
+            }
+        }
+    }
+    
+    const BoxArray& grids = phi->boxArray();
+    int N = grids.numPts();
+    
+    std::cout << "N = " << N << std::endl;*/
 }
 
 
@@ -131,7 +171,7 @@ void AmrTrilinos::solve_m(AmrField_t& phi) {
     
 //     params->set( "Block Size", 4 );
     params->set( "Maximum Iterations", 10000 );
-    params->set("Convergence Tolerance", 1.0e-8);
+    params->set("Convergence Tolerance", 1.0e-2);
     
     Belos::BlockCGSolMgr<double, Epetra_MultiVector, Epetra_Operator> solver(problem, params);
     
@@ -207,7 +247,7 @@ void AmrTrilinos::build_m(const AmrField_t& rho)
     
     if ( Ippl::myNode() == 0 )
         std::cout << "N = " << N << std::endl;
-        
+    
     map_mp = Teuchos::rcp( new Epetra_Map(N, localNumElements,
                                          &globalindices[0], baseIndex, epetra_comm_m) );
     
@@ -317,9 +357,9 @@ void AmrTrilinos::fillMatrix_m(const Geometry& geom) {
             throw std::runtime_error("Error in filling the matrix!");
     }
     
-    A_mp->FillComplete();
+    A_mp->FillComplete(true);
     
-    A_mp->OptimizeStorage();
+//     A_mp->OptimizeStorage();
     
     /*
      * some printing
@@ -374,6 +414,7 @@ inline IntVect AmrTrilinos::deserialize_m(int idx) const {
 
 
 inline bool AmrTrilinos::isInside_m(const IntVect& iv) const {
+    
     return ( iv[0] > -1 && iv[0] < nPoints_m[0] &&
              iv[1] > -1 && iv[1] < nPoints_m[1] &&
              iv[2] > -1 && iv[2] < nPoints_m[2]);
