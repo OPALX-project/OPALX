@@ -4,6 +4,7 @@
 #include "Solvers/WakeFunction.hh"
 #include "Solvers/SurfacePhysicsHandler.hh"
 #include "Structure/BoundaryGeometry.h"
+#include "Utility/Inform.h"
 
 extern Inform *gmsg;
 
@@ -115,7 +116,7 @@ void OpalSection::print(Inform &msg) const {
               << end_m << " m -- (glued to next) ";
         if(boundarygeometry_m)
             mymsg << " has boundary geometry start at " << boundarygeometry_m->getS() ;
-        msg << mymsg.str() << closure.substr(mymsg.str().length());
+        msg << level1 << mymsg.str() << closure.substr(mymsg.str().length());
     } else {
         mymsg << "--- "
               << start_m << " m -- "
@@ -125,10 +126,10 @@ void OpalSection::print(Inform &msg) const {
 
         if(hasSurfacePhysics())
             mymsg  << " has surface physics ";
-        msg << mymsg.str() << closure.substr(mymsg.str().length());
+        msg << level1 << mymsg.str() << closure.substr(mymsg.str().length());
     }
     for(CompVec::const_iterator clit = elements_m.begin(); clit != elements_m.end(); ++ clit) {
-        msg << (*clit)->getName() << '\n';
+        msg << level1 << (*clit)->getName() << '\n';
     }
 }
 

@@ -54,7 +54,6 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
         return;
     }
     OPALTimer::Timer clock;
-    *gmsg << level1 << "\n\nstart autophasing at " << clock.time() << "\n" << endl;
 
     Vector_t rmin, rmax;
     Vector_t &refR = itsBunch_m.R[0];
@@ -72,7 +71,6 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
 
     itsBunch_m.LastSection[0] -= 1;
     itsOpalBeamline_m.getSectionIndexAt(refR, itsBunch_m.LastSection[0]);
-    itsOpalBeamline_m.print(*gmsg);
 
     itsOpalBeamline_m.switchAllElements();
 
@@ -87,6 +85,9 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
         cavity = next;
     }
 
+    if (cavity == NULL) return;
+
+    *gmsg << level1 << "\n\nstart autophasing at " << clock.time() << "\n" << endl;
     while (maxStepsAutoPhasing.size() > 0) {
         maxStepsAutoPhasing.front() = maxStepsAutoPhasing.front() * dtfraction + step;
         newDt = dtAutoPhasing.front() / dtfraction;
