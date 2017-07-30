@@ -22,7 +22,7 @@
 #include "AbstractObjects/Invalidator.h"
 #include "AbstractObjects/OpalData.h"
 #include "Expressions/SValue.h"
-#include "Utilities/OpalException.h"
+#include "Utilities/ParseError.h"
 #include "Utilities/Options.h"
 #include <iosfwd>
 #if defined(__GNUC__) && __GNUC__ < 3
@@ -126,7 +126,7 @@ namespace Expressions {
             if(SValue<T> *value = dynamic_cast<SValue<T>*>(base)) {
                 return value->evaluate();
             } else {
-                throw OpalException("SRefExpr::evaluate()", "Reference \"" +
+                throw ParseError("SRefExpr::evaluate()", "Reference \"" +
                                     getImage() + "\" is not a variable.");
             }
         }
@@ -174,10 +174,10 @@ namespace Expressions {
             itsObject = OpalData::getInstance()->find(obj_name);
             if(itsObject == 0) {
                 if(att_name.empty()) {
-                    throw OpalException("SRefExpr::fill()",
+                    throw ParseError("SRefExpr::fill()",
                                         "\nThe <variable> \"" + obj_name + "\" is unknown.\n");
                 } else {
-                    throw OpalException("SRefExpr::fill()",
+                    throw ParseError("SRefExpr::fill()",
                                         "Object \"" + obj_name + "\" is unknown.");
                 }
             }
@@ -189,13 +189,13 @@ namespace Expressions {
             if(att_name.empty()) {
                 itsAttr = itsObject->findAttribute("VALUE");
                 if(itsAttr == 0) {
-                    throw OpalException("SRefExpr::fill()", "Object \"" + obj_name +
+                    throw ParseError("SRefExpr::fill()", "Object \"" + obj_name +
                                         "\" is not a variable, constant or vector.");
                 }
             } else {
                 itsAttr = itsObject->findAttribute(att_name);
                 if(itsAttr == 0) {
-                    throw OpalException("SRefExpr::fill()", "Attribute \"" + obj_name +
+                    throw ParseError("SRefExpr::fill()", "Attribute \"" + obj_name +
                                         "->" + att_name + "\" is unknown.");
                 }
             }

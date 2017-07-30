@@ -16,6 +16,7 @@
 #include "Expressions/SRefExpr.h"
 #include "Elements/OpalBeamline.h"
 #include "Utilities/Options.h"
+#include "Utilities/OpalException.h"
 #include <gsl/gsl_sys.h>
 
 extern Inform* gmsg;
@@ -1597,7 +1598,7 @@ Change orientation if diff is:
             const Vector_t& B = bg->getPoint (triangle_id, 2);
             const Vector_t& C = bg->getPoint (triangle_id, 3);
             const Vector_t  triNormal = normalVector (A, B, C);
-            
+
             // choose a point P close to the center of the triangle
             //const Vector_t P = (A+B+C)/3 + triNormal * 0.1;
             double minvoxelmesh = bg->voxelMesh_m.sizeOfVoxel[0];
@@ -1734,7 +1735,7 @@ Change orientation if diff is:
 #else
     h5_file_t *f = H5OpenFile (h5FileName_m.c_str(), H5_O_RDONLY, Ippl::getComm());
 #endif
-    
+
     h5t_mesh_t* m = NULL;
     H5FedOpenTriangleMesh (f, "0", &m);
     H5FedSetLevel (m, 0);

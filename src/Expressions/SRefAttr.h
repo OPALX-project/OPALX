@@ -23,7 +23,7 @@
 #include "AbstractObjects/Object.h"
 #include "Expressions/ADeferred.h"
 #include "Expressions/SValue.h"
-#include "Utilities/OpalException.h"
+#include "Utilities/ParseError.h"
 //#include "Utilities/Options.h"
 #include "Utilities/Options.h"
 #include <vector>
@@ -148,21 +148,21 @@ namespace Expressions {
                 if(ADeferred<T> *value = dynamic_cast<ADeferred<T>*>(base)) {
                     std::vector<T> array = value->evaluate();
                     if(itsIndex > int(array.size())) {
-                        throw OpalException("SRefAttr::evaluate()", "Reference \"" +
-                                            getImage() + "\" has index out of range.");
+                        throw ParseError("SRefAttr::evaluate()", "Reference \"" +
+                                         getImage() + "\" has index out of range.");
                     } else {
                         return array[itsIndex - 1];
                     }
                 } else {
-                    throw OpalException("SRefAttr::evaluate()", "Reference \"" +
-                                        getImage() + "\" is not an array.");
+                    throw ParseError("SRefAttr::evaluate()", "Reference \"" +
+                                     getImage() + "\" is not an array.");
                 }
             } else {
                 if(SValue<T> *value = dynamic_cast<SValue<T> *>(base)) {
                     return value->evaluate();
                 } else {
-                    throw OpalException("SRefAttr::evaluate()", getImage() +
-                                        "\" is of the wrong type.");
+                    throw ParseError("SRefAttr::evaluate()", getImage() +
+                                     "\" is of the wrong type.");
                 }
             }
         }
@@ -173,8 +173,8 @@ namespace Expressions {
 
     template <class T>
     double SRefAttr<T>::getReal() {
-        throw OpalException("SValue<T>::getReal()",
-                            "Attribute is not of real type.");
+        throw ParseError("SValue<T>::getReal()",
+                         "Attribute is not of real type.");
     }
 
 
@@ -208,8 +208,8 @@ namespace Expressions {
             if(dynamic_cast<SValue<T> *>(base)) {
                 return itsAttr->set(new SValue<T>(value));
             } else {
-                throw OpalException("Real::get()", "Attribute \"" +
-                                    itsAttr->getName() + "\" is of the wrong type.");
+                throw ParseError("Real::get()", "Attribute \"" +
+                                 itsAttr->getName() + "\" is of the wrong type.");
             }
         }
     }
@@ -221,11 +221,11 @@ namespace Expressions {
             itsObject = OpalData::getInstance()->find(obj_name);
             if(itsObject == 0) {
                 if(att_name.empty()  &&  itsIndex <= 0) {
-                    throw OpalException("SRefAttr::fill()",
-                                        "\nThe <variable> \"" + obj_name + "\" is unknown.\n");
+                    throw ParseError("SRefAttr::fill()",
+                                     "\nThe <variable> \"" + obj_name + "\" is unknown.\n");
                 } else {
-                    throw OpalException("SRefAttr::fill()",
-                                        "Object \"" + obj_name + "\" is unknown.");
+                    throw ParseError("SRefAttr::fill()",
+                                     "Object \"" + obj_name + "\" is unknown.");
                 }
             }
 
@@ -236,14 +236,14 @@ namespace Expressions {
             if(att_name.empty()) {
                 itsAttr = itsObject->findAttribute("VALUE");
                 if(itsAttr == 0) {
-                    throw OpalException("SRefAttr::fill()", "Object \"" + obj_name +
-                                        "\" is not a variable, constant or vector.");
+                    throw ParseError("SRefAttr::fill()", "Object \"" + obj_name +
+                                     "\" is not a variable, constant or vector.");
                 }
             } else {
                 itsAttr = itsObject->findAttribute(att_name);
                 if(itsAttr == 0) {
-                    throw OpalException("SRefAttr::fill()", "Attribute \"" + obj_name +
-                                        "->" + att_name + "\" is unknown.");
+                    throw ParseError("SRefAttr::fill()", "Attribute \"" + obj_name +
+                                     "->" + att_name + "\" is unknown.");
                 }
             }
         }
