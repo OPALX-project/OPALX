@@ -594,7 +594,7 @@ Statement *OpalParser::readStatement(TokenStream *is) const {
 
 void OpalParser::run() const {
     stopFlag = false;
-    Inform errorMsg("Error");
+    Inform errorMsg("Error", std::cerr);
     while(Statement *stat = readStatement(&*inputStack.back())) {
         try {
             // The dispatch via Statement::execute() allows a special
