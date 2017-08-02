@@ -34,14 +34,15 @@ public:
                container_t& phi,
                const Array<Geometry>& geom,
                int lbase,
-               int lfine);
+               int lfine,
+               double scale);
     
     
 private:
     
     void solveZeroLevel_m(AmrField_t& phi,
                           const AmrField_t& rho,
-                          const Geometry& geom);
+                          const Geometry& geom, double scale);
     
     // single level solve
     void solve_m(AmrField_t& phi);
@@ -49,15 +50,27 @@ private:
 //     void solveGrid_m(
     
     // create map + right-hand side
-    void build_m(const AmrField_t& rho);
+    void build_m(const AmrField_t& rho, const AmrField_t& phi, const Geometry& geom, int lev);
     
-    void fillMatrix_m(const Geometry& geom);
+    void fillMatrix_m(const Geometry& geom, const AmrField_t& phi, int lev);
     
     int serialize_m(const IntVect& iv) const;
     
     IntVect deserialize_m(int idx) const;
     
-    bool isInside_m(const IntVect& iv) const;
+    bool isInside_m(const IntVect& iv, int lev) const;
+    
+    bool isBoundary_m(const IntVect& iv) const;
+    
+    BoxArray findBoundaryBoxes_m(const BoxArray& ba, AmrField_t& phi);
+    
+    void applyBoundary_m(const AmrField_t& phi);
+    
+    
+    
+//     void setBoundaryValue_m(const IntVect& iv, double& value);
+    
+    IntVect getDimensions_m(const BoxArray& ba);
     
     
     void copyBack_m(AmrField_t& phi,
@@ -67,13 +80,14 @@ private:
 //     void grid_m(AmrField_t& rhs, const container_t& rho,
 //                 const Geometry& geom, int lev);
     
-    void interpFromCoarseLevel_m(const container_t& phi,
+    void interpFromCoarseLevel_m(container_t& phi,
                                  const Array<Geometry>& geom,
                                  int lev);
-    
-    void buildMap_m(const AmrField_t& phi);
-    
 private:
+    
+    BoxArray boundary_m;
+    
+    std::set<IntVect> bc_m;
     
     Epetra_MpiComm epetra_comm_m;
     
@@ -82,7 +96,7 @@ private:
     int nLevel_m;
     
     // info for a level
-    int nPoints_m[3];
+    IntVect nPoints_m;
     
     // (x, y, z) --> idx
     std::map<int, IntVect> indexMap_m;
@@ -90,6 +104,7 @@ private:
     
     Teuchos::RCP<Epetra_CrsMatrix> A_mp;
     Teuchos::RCP<Epetra_Vector> rho_mp;
+    Teuchos::RCP<Epetra_Vector> x_mp;
     
 };
 
