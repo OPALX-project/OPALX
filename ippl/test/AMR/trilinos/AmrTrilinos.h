@@ -32,6 +32,7 @@ public:
     
     void solve(const container_t& rho,
                container_t& phi,
+               container_t& efield,
                const Array<Geometry>& geom,
                int lbase,
                int lfine,
@@ -45,7 +46,7 @@ private:
                           const Geometry& geom, double scale);
     
     // single level solve
-    void solve_m(AmrField_t& phi);
+    void solve_m(AmrField_t& phi, const Geometry& geom);
     
 //     void solveGrid_m(
     
@@ -65,7 +66,8 @@ private:
     void findBoundaryBoxes_m(const BoxArray& ba);
     
     void copyBack_m(AmrField_t& phi,
-                    const Teuchos::RCP<Epetra_MultiVector>& sol);
+                    const Teuchos::RCP<Epetra_MultiVector>& sol,
+                    const Geometry& geom);
     
     
 //     void grid_m(AmrField_t& rhs, const container_t& rho,
@@ -75,7 +77,10 @@ private:
                                  const Array<Geometry>& geom,
                                  int lev);
     
-    void getGradient(const container_t& phi);
+    // efield = -grad phi
+    void getGradient(const container_t& phi,
+                     container_t& efield,
+                     const Array<Geometry> geom);
     
     
 private:
