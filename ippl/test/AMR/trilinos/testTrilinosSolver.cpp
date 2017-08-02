@@ -387,7 +387,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
 //               efield,       // [V m^2]
               geom,
               base_level,
-              finest_level);
+              finest_level,
+              l0norm / scale);
     
     // undo normalization
     for (int i = 0; i <= finest_level; ++i) {
