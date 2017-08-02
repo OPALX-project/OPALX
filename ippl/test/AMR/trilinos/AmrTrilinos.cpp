@@ -32,14 +32,13 @@ AmrTrilinos::AmrTrilinos()
 
 void AmrTrilinos::solve(const container_t& rho,
                         container_t& phi,
+                        container_t& efield,
                         const Array<Geometry>& geom,
                         int lbase,
                         int lfine,
                         double scale)
 {
     nLevel_m = lfine - lbase + 1;
-    
-    for (int ntimes = 0; ntimes < 1; ++ntimes) {
     
     // solve coarsest level
     if ( lbase == 0 ) {
@@ -56,9 +55,6 @@ void AmrTrilinos::solve(const container_t& rho,
         
         interpFromCoarseLevel_m(phi, geom, lev-1);
         
-        std::cout << "after: " << phi[lev]->min(0) << " "
-                  << phi[lev]->max(0) << " " << phi[lev]->sum(0) << std::endl;
-        
         findBoundaryBoxes_m(phi[lev]->boxArray());
         
         for (int j = 0; j < 3; ++j)
@@ -67,17 +63,19 @@ void AmrTrilinos::solve(const container_t& rho,
         build_m(rho[lev], phi[lev], geom[lev], lev);
         
         fillMatrix_m(geom[lev], phi[lev], lev);
-        solve_m(phi[lev]);
+        solve_m(phi[lev], geom[lev]);
     }
     
-//     IntVect rr(2, 2, 2);
-//     
-//     for (int lev = lfine - 1; lev >= lbase; --lev) {
-//         amrex::average_down(*phi[lev+1], 
-//                              *phi[lev], 0, 1, rr);
-//     }
+    IntVect rr(2, 2, 2);
     
+    for (int lev = lfine - 1; lev >= lbase; --lev) {
+        amrex::average_down(*phi[lev+1], 
+                             *phi[lev], 0, 1, rr);
     }
+    
+    
+    
+    getGradient(phi, efield, geom);
 }
 
 
@@ -90,12 +88,12 @@ void AmrTrilinos::solveZeroLevel_m(AmrField_t& phi,
         
     build_m(rho, phi, geom, 0);
     fillMatrix_m(geom, phi, 0);
-    solve_m(phi);
+    solve_m(phi, geom);
 }
 
 
 
-void AmrTrilinos::solve_m(AmrField_t& phi) {
+void AmrTrilinos::solve_m(AmrField_t& phi, const Geometry& geom) {
     /*
      * unknowns
      */
@@ -125,7 +123,7 @@ void AmrTrilinos::solve_m(AmrField_t& phi) {
     if ( ret == Belos::Converged ) {
         Teuchos::RCP<Epetra_MultiVector> sol = problem->getLHS();
         
-        copyBack_m(phi, sol);
+        copyBack_m(phi, sol, geom);
         
         // print stuff
         if ( epetra_comm_m.MyPID() == 0 ) {
@@ -449,7 +447,8 @@ void AmrTrilinos::findBoundaryBoxes_m(const BoxArray& ba)
 
 
 void AmrTrilinos::copyBack_m(AmrField_t& phi,
-                             const Teuchos::RCP<Epetra_MultiVector>& sol)
+                             const Teuchos::RCP<Epetra_MultiVector>& sol,
+                             const Geometry& geom)
 {
     int localidx = 0;
     for (MFIter mfi(*phi, false); mfi.isValid(); ++mfi) {
@@ -470,6 +469,9 @@ void AmrTrilinos::copyBack_m(AmrField_t& phi,
             }
         }
     }
+    
+    phi->FillBoundary(geom.periodicity());
+    
 }
 
 class NoOpPhysBC
@@ -512,8 +514,47 @@ void AmrTrilinos::interpFromCoarseLevel_m(container_t& phi,
 }
 
 
-void AmrTrilinos::getGradient(const container_t& phi) {
-    
-    
-    
+void AmrTrilinos::getGradient(const container_t& phi,
+                              container_t& efield,
+                              const Array<Geometry> geom)
+{
+    for (uint lev = 0; lev < phi.size(); ++lev) {
+        const double* dx = geom[lev].CellSize();
+            
+        for (MFIter mfi(*phi[lev], false); mfi.isValid(); ++mfi) {
+            const Box&          bx   = mfi.validbox();
+            FArrayBox&          pfab = (*phi[lev])[mfi];
+            FArrayBox&          efab = (*efield[lev])[mfi];
+            
+            const int* lo = bx.loVect();
+            const int* hi = bx.hiVect();
+            
+            
+            for (int i = lo[0]; i <= hi[0]; ++i) {
+                for (int j = lo[1]; j <= hi[1]; ++j) {
+                    for (int k = lo[2]; k <= hi[2]; ++k) {
+                        
+                        IntVect iv(i, j, k);
+                        
+                        
+                        // x direction
+                        IntVect left(i-1, j, k);
+                        IntVect right(i+1, j, k);
+                        efab(iv, 0) = 0.5 * (pfab(left) - pfab(right)) / dx[0];
+                        
+                        // y direction
+                        IntVect up(i, j+1, k);
+                        IntVect down(i, j-1, k);
+                        efab(iv, 1) = 0.5 * (pfab(down) - pfab(up)) / dx[1];
+                        
+                        // z direction
+                        IntVect back(i, j, k+1);
+                        IntVect front(i, j, k-1);
+                        efab(iv, 2) = 0.5 * (pfab(front) - pfab(back)) / dx[2];
+                    }
+                }
+            }
+        }        
+        efield[lev]->FillBoundary(0, 3, geom[lev].periodicity());
+    }
 }
