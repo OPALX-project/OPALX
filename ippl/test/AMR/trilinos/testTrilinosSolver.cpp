@@ -384,7 +384,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     
     sol.solve(rhs,            // [V m]
               phi,            // [V m^3]
-//               efield,       // [V m^2]
+              efield,       // [V m^2]
               geom,
               base_level,
               finest_level,
