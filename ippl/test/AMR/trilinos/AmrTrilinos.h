@@ -58,20 +58,11 @@ private:
     
     IntVect deserialize_m(int idx) const;
     
-    bool isInside_m(const IntVect& iv, int lev) const;
+    bool isInside_m(const IntVect& iv) const;
     
     bool isBoundary_m(const IntVect& iv) const;
     
-    BoxArray findBoundaryBoxes_m(const BoxArray& ba, AmrField_t& phi);
-    
-    void applyBoundary_m(const AmrField_t& phi);
-    
-    
-    
-//     void setBoundaryValue_m(const IntVect& iv, double& value);
-    
-    IntVect getDimensions_m(const BoxArray& ba);
-    
+    void findBoundaryBoxes_m(const BoxArray& ba);
     
     void copyBack_m(AmrField_t& phi,
                     const Teuchos::RCP<Epetra_MultiVector>& sol);
@@ -83,9 +74,11 @@ private:
     void interpFromCoarseLevel_m(container_t& phi,
                                  const Array<Geometry>& geom,
                                  int lev);
-private:
     
-    BoxArray boundary_m;
+    void getGradient(const container_t& phi);
+    
+    
+private:
     
     std::set<IntVect> bc_m;
     
