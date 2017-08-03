@@ -14,13 +14,23 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
-// #include <AMReX_FluxRegister.H>
+#include <AMReX_BCUtil.H>
 
 
 // #include "EpetraExt_RowMatrixOut.h"
 // #include "EpetraExt_MultiVectorOut.h"
 // #include "EpetraExt_VectorOut.h"
 
+
+class NoOpPhysBC
+    : public amrex::PhysBCFunctBase
+{
+public:
+    NoOpPhysBC () {}
+    virtual ~NoOpPhysBC () {}
+    virtual void FillBoundary (amrex::MultiFab& mf, int, int, amrex::Real time) override { }
+    using amrex::PhysBCFunctBase::FillBoundary;
+};
 
 AmrTrilinos::AmrTrilinos()
     : epetra_comm_m(Ippl::getComm()),
@@ -47,6 +57,27 @@ void AmrTrilinos::solve(const container_t& rho,
         phi[0]->setVal(0.0, 1);
         
         solveZeroLevel_m(phi[0], rho[0], geom[0], scale);
+        
+//         Array<BCRec> bc( phi[0]->nComp());
+//         for (int n = 0; n < phi[0]->nComp(); ++n) {
+//             for (int idim = 0; idim < 3; ++idim) {
+// //                 if (Geometry::isPeriodic(idim)) {
+//                     bc[n].setLo(idim, BCType::int_dir); // interior
+//                     bc[n].setHi(idim, BCType::int_dir);
+// //                 }
+// //                 else {
+// //                     bc[n].setLo(idim, BCType::foextrap); //first-order extrapolation
+// //                     bc[n].setHi(idim, BCType::foextrap);
+// //                 }
+//             }
+//         }
+// 
+//         amrex::FillDomainBoundary(*phi[0], geom[0], bc);
+        
+        if ( phi[0]->contains_nan() )
+            throw std::runtime_error("Nan");
+        
+        
     }
     
     for (int i = 1; i < nLevel_m; ++i) {
@@ -55,6 +86,10 @@ void AmrTrilinos::solve(const container_t& rho,
         phi[lev]->setVal(0.0, 1);
         
         interpFromCoarseLevel_m(phi, geom, lev-1);
+
+        
+        if ( phi[lev]->contains_nan() )
+            throw std::runtime_error("Nan");
         
         findBoundaryBoxes_m(phi[lev]->boxArray());
         
@@ -65,20 +100,42 @@ void AmrTrilinos::solve(const container_t& rho,
         
         fillMatrix_m(geom[lev], phi[lev], lev);
         solve_m(phi[lev], geom[lev]);
+        
+//         Array<BCRec> bc( phi[lev]->nComp());
+//         for (int n = 0; n < phi[lev]->nComp(); ++n) {
+//             for (int idim = 0; idim < 3; ++idim) {
+// //                 if (Geometry::isPeriodic(idim)) {
+//                     bc[n].setLo(idim, BCType::int_dir); // interior
+//                     bc[n].setHi(idim, BCType::int_dir);
+// //                 }
+// //                 else {
+// //                     bc[n].setLo(idim, BCType::foextrap); //first-order extrapolation
+// //                     bc[n].setHi(idim, BCType::foextrap);
+// //                 }
+//             }
+//         }
+//         
+//         amrex::FillDomainBoundary(*phi[lev], geom[lev], bc);
+        
     }
     
     IntVect rr(2, 2, 2);
     
+    for (int lev = lfine - 1; lev >= lbase; --lev) {
+        amrex::average_down(*phi[lev+1], 
+                             *phi[lev], geom[lev+1], geom[lev], 0, 1, rr);
+    }
+    
     getGradient(phi, efield, geom);
+    
     
     
     for (int lev = lfine - 1; lev >= lbase; --lev) {
         amrex::average_down(*efield[lev+1],
                             *efield[lev],
+                            geom[lev+1],
+                            geom[lev],
                             0, 3, rr);
-        
-        amrex::average_down(*phi[lev+1], 
-                             *phi[lev], 0, 1, rr);
     }
     
     
@@ -102,7 +159,7 @@ void AmrTrilinos::solveZeroLevel_m(AmrField_t& phi,
 {
     for (int j = 0; j < 3; ++j)
         nPoints_m[j] = geom.Domain().length(j);
-        
+    
     build_m(rho, phi, geom, 0);
     fillMatrix_m(geom, phi, 0);
     solve_m(phi, geom);
@@ -491,31 +548,23 @@ void AmrTrilinos::copyBack_m(AmrField_t& phi,
     
 }
 
-class NoOpPhysBC
-    : public amrex::PhysBCFunctBase
-{
-public:
-    NoOpPhysBC () {}
-    virtual ~NoOpPhysBC () {}
-    virtual void FillBoundary (amrex::MultiFab& mf, int, int, amrex::Real time) override { }
-    using amrex::PhysBCFunctBase::FillBoundary;
-};
-
 
 void AmrTrilinos::interpFromCoarseLevel_m(container_t& phi,
                                           const Array<Geometry>& geom,
                                           int lev)
 {
     NoOpPhysBC cphysbc, fphysbc;
-// //     PhysBCFunct cphysbc, fphysbc;
+//     PhysBCFunct cphysbc, fphysbc;
     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
     int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
     Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
-    PCInterp mapper;
+    CellConservativeProtected mapper;
     
     IntVect rr(2, 2, 2);
     
     phi[lev+1]->setVal(0.0, 1);
+    
+    phi[lev+1]->FillBoundary(geom[lev+1].periodicity());
     
     amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0,
                                  *phi[lev],
@@ -524,10 +573,7 @@ void AmrTrilinos::interpFromCoarseLevel_m(container_t& phi,
                                  cphysbc, fphysbc,
                                  rr, &mapper, bcs);
     
-    for (uint lev = 0; lev < phi.size(); ++lev) {
-        const Geometry& gm = geom[lev];
-        phi[lev]->FillBoundary(gm.periodicity());
-    }
+    phi[lev+1]->FillBoundary(geom[lev+1].periodicity());
 }
 
 
@@ -537,7 +583,7 @@ void AmrTrilinos::getGradient(const container_t& phi,
 {
     for (uint lev = 0; lev < phi.size(); ++lev) {
         const double* dx = geom[lev].CellSize();
-            
+        
         for (MFIter mfi(*phi[lev], false); mfi.isValid(); ++mfi) {
             const Box&          bx   = mfi.validbox();
             FArrayBox&          pfab = (*phi[lev])[mfi];
@@ -552,7 +598,6 @@ void AmrTrilinos::getGradient(const container_t& phi,
                     for (int k = lo[2]; k <= hi[2]; ++k) {
                         
                         IntVect iv(i, j, k);
-                        
                         
                         // x direction
                         IntVect left(i-1, j, k);
@@ -572,6 +617,6 @@ void AmrTrilinos::getGradient(const container_t& phi,
                 }
             }
         }        
-        efield[lev]->FillBoundary(0, 3, geom[lev].periodicity());
+//         efield[lev]->FillBoundary(0, 3, geom[lev].periodicity());
     }
 }
