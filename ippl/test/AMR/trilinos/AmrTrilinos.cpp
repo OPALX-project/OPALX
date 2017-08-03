@@ -14,7 +14,8 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
-#include <AMReX_MacBndry.H>
+// #include <AMReX_FluxRegister.H>
+
 
 // #include "EpetraExt_RowMatrixOut.h"
 // #include "EpetraExt_MultiVectorOut.h"
@@ -68,14 +69,30 @@ void AmrTrilinos::solve(const container_t& rho,
     
     IntVect rr(2, 2, 2);
     
+    getGradient(phi, efield, geom);
+    
+    
     for (int lev = lfine - 1; lev >= lbase; --lev) {
+        amrex::average_down(*efield[lev+1],
+                            *efield[lev],
+                            0, 3, rr);
+        
         amrex::average_down(*phi[lev+1], 
                              *phi[lev], 0, 1, rr);
     }
     
     
     
-    getGradient(phi, efield, geom);
+//     std::unique_ptr<FluxRegister> flux_reg;
+//     for (int lev = lfine - 1; lev >= lbase; --lev) {
+//         flux_reg.reset(new FluxRegister(efield[lev+1]->boxArray(),
+//                                         efield[lev+1]->DistributionMap(),
+//                                         rr,
+//                                         lev+1, 3));
+//         
+//         // update lev based on coarse-fine flux mismatch
+//         flux_reg->Reflux(*efield[lev], 1.0, 0, 0, efield[lev]->nComp(), geom[lev]);
+//     }
 }
 
 
@@ -113,7 +130,7 @@ void AmrTrilinos::solve_m(AmrField_t& phi, const Geometry& geom) {
     
 //     params->set( "Block Size", 4 );
     params->set( "Maximum Iterations", 10000 );
-    params->set("Convergence Tolerance", 1.0e-2);
+    params->set("Convergence Tolerance", 1.0e-12);
     
     Belos::BlockCGSolMgr<double, Epetra_MultiVector, Epetra_Operator> solver(problem, params);
     
