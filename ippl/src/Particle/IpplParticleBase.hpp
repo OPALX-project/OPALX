@@ -563,16 +563,16 @@ void IpplParticleBase<PLayout>::performDestroy() {
   if (DestroyList.empty()) return;
 
   // before processing the list, we should make sure it is sorted
-  bool isSorted = true;
   typedef std::vector< std::pair<size_t,size_t> > dlist_t;
   dlist_t::const_iterator curr = DestroyList.begin(),
                           last = DestroyList.end();
   dlist_t::const_iterator next = curr + 1;
-  while (next != last && isSorted) {
-    if (*next++ < *curr++) isSorted = false;
+  while (next != last) {
+    if (*next++ < *curr++) {
+      std::sort(DestroyList.begin(),DestroyList.end());
+      break;
+    }
   }
-  if (!isSorted)
-    std::sort(DestroyList.begin(),DestroyList.end());
 
   // find out if we are using optimized destroy method
   bool optDestroy = getUpdateFlag(PLayout::OPTDESTROY);
