@@ -99,6 +99,7 @@ void ParticleAttrib<T>::destroy(size_t M, size_t I, bool optDestroy) {
   
 
   if (M == 0) return;
+  PAssert(I + M < LocalSize);
   if (optDestroy) {
     // get iterators for where the data to be deleted begins, and where
     // the data we copy from the end begins
@@ -108,7 +109,7 @@ void ParticleAttrib<T>::destroy(size_t M, size_t I, bool optDestroy) {
 
     // make sure we do not copy too much
     //if ((I + M) > (ParticleList.size() - M))
-    if ((I + M) > (LocalSize - M))
+    if ((I + 2*M) > LocalSize)
       getloc = putloc + M;
 
     // copy over the data
@@ -144,79 +145,69 @@ void ParticleAttrib<T>::destroy(const std::vector< std::pair<size_t,size_t> >& d
 
   if (dlist.empty()) return;
   typedef std::vector< std::pair<size_t,size_t> > dlist_t;
+
+  // save end of list, we need it later to adjust the size of the particle list
+  typename ParticleList_t::iterator old_endloc = ParticleList.begin()+LocalSize;
+  size_t numParts = 0;
+
   if (optDestroy) {
-    // process list in reverse order, since we are backfilling
-    dlist_t::const_reverse_iterator rbeg, rend = dlist.rend();
-    // find point to copy data from
-    typename ParticleList_t::iterator putloc, saveloc;
-    typename ParticleList_t::iterator getloc = ParticleList.begin()+LocalSize;
-    typename ParticleList_t::iterator endloc = ParticleList.begin()+LocalSize;
-    // loop over destroy list and copy data from end of particle list
-    size_t I, M, numParts=0;
-    for (rbeg = dlist.rbegin(); rbeg != rend; ++rbeg) {
-      I = (*rbeg).first;   // index number to begin destroy
-      M = (*rbeg).second;  // number of particles to destroy
-      numParts += M;       // running total of number of particles destroyed
+
+    // Loop over destroy list and copy data from end of particle list.
+    // Process list in reverse order, since we are backfilling
+    dlist_t::const_reverse_iterator next = dlist.rbegin();
+    dlist_t::const_reverse_iterator end = dlist.rend();
+    for (; next != end; ++next) {
+      size_t I = (*next).first;   // index number to begin destroy
+      size_t M = (*next).second;  // number of particles to destroy
+      numParts += M;              // total of number of particles destroyed
+      
       // set iterators for data copy
-      putloc = ParticleList.begin() + I;
-      // make sure we do not copy too much
-      if ((I + M) > ((getloc - ParticleList.begin()) - M)) {
-        // we cannot fill all M slots
-        saveloc = getloc;  // save endpoint of valid particle data
-        getloc = putloc + M;  // move to just past end of section to delete
-        // copy over the data
-        while (getloc != saveloc) {
-          *putloc++ = *getloc++;
-        }
-        // reset getloc for next copy
-        getloc = putloc;  // set to end of last copy
-      }
-      else {
-        // fill all M slots using data from end of particle list
-        getloc = getloc - M;
-        saveloc = getloc;  // save new endpoint of valid particle data
-        // copy over the data
-        for (size_t m=0; m<M; ++m)
-          *putloc++ = *getloc++;
-        // reset getloc for next copy
-        getloc = saveloc;  // set to new endpoint of valid particle data
+      typename ParticleList_t::iterator putloc = ParticleList.begin() + I;
+      typename ParticleList_t::iterator getloc = ParticleList.begin() + LocalSize - M;
+      typename ParticleList_t::iterator endloc = ParticleList.begin() + LocalSize;
+
+      // check if we have less then M particles at the end of the list
+      if ((I + 2*M) > LocalSize) {
+        getloc = putloc + M;
+      }	
+      // copy over the data
+      while (getloc != endloc) {
+        *putloc++ = *getloc++;
       }
       LocalSize-=M;
     }
-    // delete storage at end of particle list
-    ParticleList.erase( endloc - numParts, endloc );
   }
   else {
     // just process destroy list using leading/trailing iterators
-    dlist_t::const_iterator dnext = dlist.begin(), dend = dlist.end();
-    size_t putIndex, getIndex, endIndex = LocalSize;
-    putIndex = (*dnext).first;  // first index to delete
-    getIndex = putIndex + (*dnext).second;  // move past end of destroy event
-    ++dnext;  // move to next destroy event
-    // make sure getIndex is not pointing to a deleted particle
-    while (dnext != dend && getIndex == (*dnext).first) {
-      getIndex += (*dnext).second;  // move past end of destroy event
-      ++dnext;                      // move to next destroy event
-    }
-    while (dnext != dend) {
-      // copy into deleted slot
-      ParticleList[putIndex++] = ParticleList[getIndex++];
-      // make sure getIndex points to next non-deleted particle
-      while (dnext != dend && getIndex == (*dnext).first) {
-        getIndex += (*dnext).second;  // move past end of destroy event
-        ++dnext;                      // move to next destroy event
+    dlist_t::const_iterator next = dlist.begin();
+    dlist_t::const_iterator end = dlist.end();
+    size_t I = (*next).first;          // first index to delete
+    size_t M = (*next).second;
+    numParts += M;
+    size_t getIndex = I + M;           // move past end of destroy event
+    ++next;                            // move to next destroy event
+    while (next != end) {
+      // make sure getIndex is not pointing to a deleted particle
+      while (next != end && getIndex == (*next).first) {
+        M = (*next).second;
+        getIndex += M;                 // move past end of destroy event
+	numParts += M;
+        ++next;                        // move to next destroy event
       }
+      // copy into deleted slot
+      ParticleList[I++] = ParticleList[getIndex++];
     }
     // one more loop to do any remaining data copying beyond last destroy
-    while (getIndex < endIndex) {
+    while (getIndex < LocalSize) {
       // copy into deleted slot
-      ParticleList[putIndex++] = ParticleList[getIndex++];
+      ParticleList[I++] = ParticleList[getIndex++];
     }
-    // now erase any data below last copy
-    typename ParticleList_t::iterator loc = ParticleList.begin() + putIndex;
-    ParticleList.erase(loc, ParticleList.begin()+LocalSize);
-    LocalSize -= ParticleList.begin()+LocalSize - loc;
+    // adjust local size
+    LocalSize -= numParts;
   }
+
+  // delete storage at end of particle list
+  ParticleList.erase (old_endloc - numParts, old_endloc);
 
   attributeIsDirty_ = true;
   return;
