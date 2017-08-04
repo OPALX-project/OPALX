@@ -85,7 +85,10 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
         cavity = next;
     }
 
-    if (cavity == NULL) return;
+    if (cavity == NULL) {
+        sendCavityPhases();
+        return;
+    }
 
     *gmsg << level1 << "\n\nstart autophasing at " << clock.time() << "\n" << endl;
     while (maxStepsAutoPhasing.size() > 0) {
