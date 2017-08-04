@@ -101,14 +101,6 @@ int TaperDomain::getNumXY(int z) {
 
 }
 
-// ignore z since its the same for every z
-std::vector<double> TaperDomain::getYDirIntersect(int x, int z) {
-    std::vector<double> ret;
-    for(std::multimap<int, double>::iterator it = IntersectYDir.find(x); it != IntersectYDir.end(); it++)
-        ret.push_back(it->second);
-    return ret;
-}
-
 void TaperDomain::getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
 
     // determine which interpolation method we use for points near the boundary
