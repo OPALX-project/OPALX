@@ -32,7 +32,6 @@
 
 
 // access to OPAL lib
-//#include "/gpfs/home/adelmann/opal/master-src/src/opal.h"
 #include "opal.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
@@ -58,18 +57,17 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
     // prepare design variables given by the optimizer for generating the
     // input file
     std::vector<std::string> dict;
-    Param_t::iterator it;
-    for(it = params.begin(); it != params.end(); it++) {
+    for(auto parameter : params) {
         std::ostringstream tmp;
         tmp.precision(15);
-        tmp << it->first << "=" << it->second;
+        tmp << parameter.first << "=" << parameter.second;
         dict.push_back(tmp.str());
 
         std::ostringstream value;
         value.precision(15);
-        value << it->second;
+        value << parameter.second;
         userVariables_.insert(
-            std::pair<std::string, std::string>(it->first, value.str()));
+            std::pair<std::string, std::string>(parameter.first, value.str()));
     }
 
 
@@ -306,10 +304,9 @@ void OpalSimulation::collectResults() {
         invalidBunch();
     } else {
 
-        Expressions::Named_t::iterator it;
-        for(it = objectives_.begin(); it != objectives_.end(); it++) {
+        for(auto namedObjective : objectives_) {
 
-            Expressions::Expr_t *objective = it->second;
+            Expressions::Expr_t *objective = namedObjective.second;
 
             // find out which variables we need in order to evaluate the
             // objective
@@ -362,14 +359,14 @@ void OpalSimulation::collectResults() {
 
             reqVarInfo_t tmps = {EVALUATE, values, is_valid};
             requestedVars_.insert(
-                std::pair<std::string, reqVarInfo_t>(it->first, tmps));
+                std::pair<std::string, reqVarInfo_t>(namedObjective.first, tmps));
 
         }
 
         // .. and constraints
-        for(it = constraints_.begin(); it != constraints_.end(); it++) {
+        for(auto namedConstraint : constraints_) {
 
-            Expressions::Expr_t *constraint = it->second;
+            Expressions::Expr_t *constraint = namedConstraint.second;
 
             // find out which variables we need in order to evaluate the
             // objective
@@ -441,7 +438,7 @@ void OpalSimulation::collectResults() {
 
             reqVarInfo_t tmps = {EVALUATE, values, is_valid};
             requestedVars_.insert(
-                    std::pair<std::string, reqVarInfo_t>(it->first, tmps));
+                    std::pair<std::string, reqVarInfo_t>(namedConstraint.first, tmps));
 
         }
 
@@ -459,13 +456,12 @@ void OpalSimulation::collectResults() {
 
 void OpalSimulation::invalidBunch() {
 
-    Expressions::Named_t::iterator it;
-    for(it = objectives_.begin(); it != objectives_.end(); it++) {
+    for(auto namedObjective : objectives_) {
         std::vector<double> tmp_values;
         tmp_values.push_back(0.0);
         reqVarInfo_t tmps = {EVALUATE, tmp_values, false};
         requestedVars_.insert(
-                std::pair<std::string, reqVarInfo_t>(it->first, tmps));
+                std::pair<std::string, reqVarInfo_t>(namedObjective.first, tmps));
     }
 }
 

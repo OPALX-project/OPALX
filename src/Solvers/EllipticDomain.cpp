@@ -361,13 +361,13 @@ void EllipticDomain::linearInterpolation(int x, int y, int z, double &W, double 
     double dx = 0.0;
     std::multimap<int, double>::iterator it = IntersectXDir.find(y);
     if(cx < 0)
-        it++;
+        ++it;
     dx = it->second;
 
     double dy = 0.0;
     it = IntersectYDir.find(x);
     if(cy < 0)
-        it++;
+        ++it;
     dy = it->second;
 
 
@@ -453,13 +453,13 @@ void EllipticDomain::quadraticInterpolation(int x, int y, int z, double &W, doub
     double dx = 0.0;
     std::multimap<int, double>::iterator it = IntersectXDir.find(y);
     if(cx < 0)
-        it++;
+        ++it;
     dx = it->second;
 
     double dy = 0.0;
     it = IntersectYDir.find(x);
     if(cy < 0)
-        it++;
+        ++it;
     dy = it->second;
 
     double dw = hr[0];
