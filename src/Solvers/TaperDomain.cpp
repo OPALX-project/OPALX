@@ -132,7 +132,7 @@ void TaperDomain::getBoundaryStencil(int x, int y, int z, double &W, double &E, 
 }
 
 // here we do not need to calculate intersection so we make use of the
-// isInside function to determin if a given point is inside the domain
+// isInside function to determine if a given point is inside the domain
 void TaperDomain::constantInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
 
     //scaleFactor = hr[0]*hr[1]*hr[2];
@@ -211,13 +211,13 @@ void TaperDomain::linearInterpolation(int x, int y, int z, double &W, double &E,
     double dx = 0.0;
     std::multimap<int, double>::iterator it = IntersectXDir.find(y);
     if(cx < 0)
-        it++;
+        ++it;
     dx = it->second;
 
     double dy = 0.0;
     it = IntersectYDir.find(x);
     if(cy < 0)
-        it++;
+        ++it;
     dy = it->second;
 
 
@@ -308,13 +308,13 @@ void TaperDomain::quadraticInterpolation(int x, int y, int z, double &W, double 
     double dx = 0.0;
     std::multimap<int, double>::iterator it = IntersectXDir.find(y);
     if(cx < 0)
-        it++;
+        ++it;
     dx = it->second;
 
     double dy = 0.0;
     it = IntersectYDir.find(x);
     if(cy < 0)
-        it++;
+        ++it;
     dy = it->second;
 
     double dw = hr[0];

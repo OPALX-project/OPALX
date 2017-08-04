@@ -78,9 +78,8 @@ Object *SequenceTemplate::makeInstance
                     i < formals.size(); i++) {
                     if(word == formals[i]) {
                         std::vector<Token> act = actuals[i];
-                        for(std::vector<Token>::iterator t = act.begin();
-                            t != act.end(); t++) {
-                            expansion->append(*t);
+                        for(Token t : act) {
+                            expansion->append(t);
                         }
                         found = true;
                         break;

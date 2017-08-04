@@ -213,8 +213,8 @@ bool Edit::cycle(const PlaceRep &init) {
         }
 
         pos.leave(*start);
-        start++;
-        start++;
+        ++start;
+        ++start;
     }
 
     return false;

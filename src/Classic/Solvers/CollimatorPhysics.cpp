@@ -970,7 +970,7 @@ void CollimatorPhysics::deleteParticleFromLocalVector() {
     // find start of particles to delete
     std::vector<PART>::iterator inv = locParts_m.begin();
 
-    for (; inv != locParts_m.end(); inv++) {
+    for (; inv != locParts_m.end(); ++inv) {
         if ((*inv).label == -1)
             break;
     }
