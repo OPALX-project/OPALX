@@ -70,7 +70,7 @@ SurfacePhysics::SurfacePhysics():
 
     itsAttr[ENABLERUTHERFORD] = Attributes::makeBool("ENABLERUTHERFORD", "Enable large angle scattering",true);
 
-    itsAttr[LOWENERGYTHR] = Attributes::makeReal("LOWENERGYTHR", "Lower Energy threshold Bethe-Block, manual Ch. 18 ",1E-4);
+    itsAttr[LOWENERGYTHR] = Attributes::makeReal("LOWENERGYTHR", "Lower Energy threshold Bethe-Block, manual Ch. 18 ",1E-1);
 
     SurfacePhysics *defSurfacePhysics = clone("UNNAMED_SURFACEPHYSICS");
     defSurfacePhysics->builtin = true;
@@ -138,7 +138,8 @@ void SurfacePhysics::initSurfacePhysicsHandler(ElementBase &element) {
     itsElement_m = &element;
     material_m = Attributes::getString(itsAttr[MATERIAL]);
     enableRutherfordScattering_m = Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
-    lowEnergyThr_m = Attributes::getReal(itsAttr[LOWENERGYTHR]);
+    const double MeV2GeV = 1e-3;
+    lowEnergyThr_m = MeV2GeV * Attributes::getReal(itsAttr[LOWENERGYTHR]);
 
     if(Attributes::getString(itsAttr[TYPE]) == "CCOLLIMATOR" || Attributes::getString(itsAttr[TYPE]) == "COLLIMATOR" || Attributes::getString(itsAttr[TYPE]) == "DEGRADER") {
       handler_m = new CollimatorPhysics(getOpalName(), itsElement_m, material_m, enableRutherfordScattering_m, lowEnergyThr_m);
@@ -172,7 +173,7 @@ void SurfacePhysics::print(std::ostream &os) const {
        << "* RADIUS          \t " << Attributes::getReal(itsAttr[RADIUS]) << '\n'
        << "* SIGMA           \t " << Attributes::getReal(itsAttr[SIGMA]) << '\n'
        << "* TAU             \t " << Attributes::getReal(itsAttr[TAU]) << '\n'
-       << "* LOWENERGYTHR    \t " << Attributes::getReal(itsAttr[LOWENERGYTHR]) << " (GeV) \n";
+       << "* LOWENERGYTHR    \t " << Attributes::getReal(itsAttr[LOWENERGYTHR]) << " (MeV) \n";
 
     if (Attributes::getBool(itsAttr[ENABLERUTHERFORD]))
       os << "* RUTHERFORD SCAT \t ENABLED" << '\n';
