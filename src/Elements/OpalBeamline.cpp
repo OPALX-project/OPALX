@@ -8,7 +8,8 @@ extern Inform *gmsg;
 OpalBeamline::OpalBeamline():
     sections_m(),
     elements_m(),
-    prepared_m(false) {
+    prepared_m(false),
+    online_secs_m(NULL) {
     online_sections_m = new int[5 * Ippl::getNodes()];
     // This is needed to communicate across the nodes which sections are online. We should allocate memory to store
     // (# of nodes) * (max # of sections which are online) integers.
@@ -22,8 +23,7 @@ OpalBeamline::~OpalBeamline() {
     elements_m.clear();
     sections_m.clear();
     delete[] online_sections_m;
-    if(online_secs_m)
-        delete[] online_secs_m;
+    delete[] online_secs_m;
 }
 
 CompVec OpalBeamline::dummy_list_m = CompVec();
@@ -53,6 +53,8 @@ CompVec &OpalBeamline::getPredecessors(std::shared_ptr<const Component> element)
 CompVec &OpalBeamline::getSuccessors(std::shared_ptr<const Component> element) {
     size_t index;
     bool found = false;
+
+    if (sections_m.size() == 0) return dummy_list_m;
 
     if (element == NULL)
         return sections_m[0].getElements();
@@ -253,7 +255,7 @@ unsigned long OpalBeamline::getFieldAt(const Vector_t &pos, const Vector_t &cent
                     rtv |= BEAMLINE_OOB;
                 }
             }
-            if(! rtv & BEAMLINE_OOB) {
+            if(! (rtv & BEAMLINE_OOB)) {
 
                 const Vector_t &ori = section.getOrientation();
                 if(fabs(ori(0)) > 1.e-10 || fabs(ori(1)) > 1.e-10 || fabs(ori(2)) > 1.e-10) {
@@ -369,6 +371,11 @@ void OpalBeamline::prepareSections() {
     list<double>::iterator pos_it, next_it, last_it;
     const double tolerance = 1.e-4;
 
+    if (elements_m.size() == 0) {
+        prepared_m = true;
+        return;
+    }
+
     /* there might be elements with length zero or extremely short ones.
        we delete them such that they don't appear in the simulation
      */
@@ -386,11 +393,6 @@ void OpalBeamline::prepareSections() {
         }
     }
     start_end.sort();
-
-    if(start_end.size() == 0) {
-        throw OpalException("OpalBeamline::prepareSections",
-                            "no valid elements found");
-    }
 
     next_it = start_end.begin();
     ++next_it;

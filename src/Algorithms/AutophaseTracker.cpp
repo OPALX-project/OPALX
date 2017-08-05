@@ -49,6 +49,12 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
                                const std::queue<double> &maxZ,
                                const std::queue<unsigned long long> &maxTrackSteps) {
 
+    std::shared_ptr<Component> cavity = NULL;
+    if (getNextCavity(cavity) == NULL) {
+        *gmsg << "*** No cavity found ***" << endl;
+        return;
+    }
+
     if (Ippl::myNode() != 0) {
         receiveCavityPhases();
         return;
@@ -76,7 +82,6 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
 
     itsOpalBeamline_m.switchAllElements();
 
-    std::shared_ptr<Component> cavity = NULL;
     while (true) {
         std::shared_ptr<Component> next = getNextCavity(cavity);
         if (next == NULL) break;
