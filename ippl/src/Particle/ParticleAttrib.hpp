@@ -159,6 +159,7 @@ void ParticleAttrib<T>::destroy(const std::vector< std::pair<size_t,size_t> >& d
     for (; next != end; ++next) {
       size_t I = (*next).first;   // index number to begin destroy
       size_t M = (*next).second;  // number of particles to destroy
+      PAssert(I + M <= LocalSize);
       numParts += M;              // total of number of particles destroyed
 
       // set iterators for data copy
@@ -183,7 +184,7 @@ void ParticleAttrib<T>::destroy(const std::vector< std::pair<size_t,size_t> >& d
     dlist_t::const_iterator end = dlist.end();
     size_t I = (*next).first;          // first index to delete
     size_t M = (*next).second;
-    numParts += M;
+    numParts = M;
     size_t getIndex = I + M;           // move past end of destroy event
     ++next;                            // move to next destroy event
     while (next != end) {
