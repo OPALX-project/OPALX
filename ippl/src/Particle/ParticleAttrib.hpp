@@ -72,7 +72,7 @@ ParticleAttrib<T>::operator()(unsigned i, unsigned j, unsigned k) {
 // New items are appended to the end of the array.
 template<class T>
 void ParticleAttrib<T>::create(size_t M) {
-  
+
   // make sure we have storage for M more items
   // and push back M items, using default value
   if (M > 0)
@@ -96,10 +96,10 @@ void ParticleAttrib<T>::create(size_t M) {
 
 template<class T>
 void ParticleAttrib<T>::destroy(size_t M, size_t I, bool optDestroy) {
-  
+
 
   if (M == 0) return;
-  PAssert(I + M < LocalSize);
+  PAssert(I + M <= LocalSize);
   if (optDestroy) {
     // get iterators for where the data to be deleted begins, and where
     // the data we copy from the end begins
@@ -141,7 +141,7 @@ template <class T>
 void ParticleAttrib<T>::destroy(const std::vector< std::pair<size_t,size_t> >& dlist,
                                 bool optDestroy)
 {
-  
+
 
   if (dlist.empty()) return;
   typedef std::vector< std::pair<size_t,size_t> > dlist_t;
@@ -160,7 +160,7 @@ void ParticleAttrib<T>::destroy(const std::vector< std::pair<size_t,size_t> >& d
       size_t I = (*next).first;   // index number to begin destroy
       size_t M = (*next).second;  // number of particles to destroy
       numParts += M;              // total of number of particles destroyed
-      
+
       // set iterators for data copy
       typename ParticleList_t::iterator putloc = ParticleList.begin() + I;
       typename ParticleList_t::iterator getloc = ParticleList.begin() + LocalSize - M;
@@ -169,7 +169,7 @@ void ParticleAttrib<T>::destroy(const std::vector< std::pair<size_t,size_t> >& d
       // check if we have less then M particles at the end of the list
       if ((I + 2*M) > LocalSize) {
         getloc = putloc + M;
-      }	
+      }
       // copy over the data
       while (getloc != endloc) {
         *putloc++ = *getloc++;
@@ -317,7 +317,7 @@ ParticleAttrib<T>::getMessage(Message& msg, size_t M)
 
 template<class T>
 void ParticleAttrib<T>::ghostCreate(size_t M) {
-  
+
   // make sure we have storage for M more items
   // and push back M items, using default value
   if (M > 0)
@@ -330,7 +330,7 @@ void ParticleAttrib<T>::ghostCreate(size_t M) {
 
 template<class T>
 size_t ParticleAttrib<T>::ghostDestroy(size_t M, size_t I) {
-  
+
 
   if (M > 0)
   {
@@ -484,15 +484,15 @@ void ParticleAttrib<T>::sort(SortList_t &slist)
 {
     // Make sure the sort-list has the proper length.
     PAssert(slist.size() >= size());
-    
+
     // Inform dbgmsg("PA<T>::sort");
     // dbgmsg << "Sorting " << size() << " items." << endl;
-    
+
     // Go through the sort-list instructions, and move items around.
     int i = 0, j = 0, k = -1, mysize = size();
     while ( i < mysize ) {
         PAssert(slist[i] < mysize);
-        
+
         // skip this swap if the swap-list value is negative.  This
         // happens when we've already put the item in the proper place.
         if ( i == k || slist[i] < 0 ) {
@@ -501,23 +501,23 @@ void ParticleAttrib<T>::sort(SortList_t &slist)
             // dbgmsg << slist[i] << endl;
             continue;
         }
-        
+
         j = ( k > 0 ) ? k : slist[i];
         k = slist[j];
-        
+
         // We should not have a negative slist value for the destination
         PAssert(k >= 0);
-        
+
         // OK, swap the items
         std::iter_swap(ParticleList.begin() + i, ParticleList.begin() + j);
         // dbgmsg << "Swapping item " << i << " to position " << slist[i] << endl;
-        
-        
+
+
         // then indicate that we've put this
         // item in the proper location.
         slist[j] -= mysize;
     }
-    
+
 
     // Restore the sort-list
     for (i=0; i < mysize; ++i) {
