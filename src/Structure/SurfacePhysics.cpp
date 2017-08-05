@@ -70,7 +70,7 @@ SurfacePhysics::SurfacePhysics():
 
     itsAttr[ENABLERUTHERFORD] = Attributes::makeBool("ENABLERUTHERFORD", "Enable large angle scattering",true);
 
-    itsAttr[LOWENERGYTHR] = Attributes::makeReal("LOWENERGYTHR", "Lower Energy threshold Bethe-Block, manual Ch. 18 ",1E-1);
+    itsAttr[LOWENERGYTHR] = Attributes::makeReal("LOWENERGYTHR", "Lower Energy threshold Bethe-Block in MeV, manual Ch. 18 ",1E-1);
 
     SurfacePhysics *defSurfacePhysics = clone("UNNAMED_SURFACEPHYSICS");
     defSurfacePhysics->builtin = true;
