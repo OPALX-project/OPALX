@@ -49,10 +49,16 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
                                const std::queue<double> &maxZ,
                                const std::queue<unsigned long long> &maxTrackSteps) {
 
+    if (getNextCavity(NULL) == NULL) {
+        *gmsg << "*** No cavities found ***" << endl;
+        return;
+    }
+
     if (Ippl::myNode() != 0) {
         receiveCavityPhases();
         return;
     }
+
     OPALTimer::Timer clock;
 
     Vector_t rmin, rmax;
@@ -83,11 +89,6 @@ void AutophaseTracker::execute(const std::queue<double> &dtAllTracks,
         if (refR(2) < endNext) break;
 
         cavity = next;
-    }
-
-    if (cavity == NULL) {
-        sendCavityPhases();
-        return;
     }
 
     *gmsg << level1 << "\n\nstart autophasing at " << clock.time() << "\n" << endl;
