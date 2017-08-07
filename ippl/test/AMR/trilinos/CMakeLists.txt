@@ -96,6 +96,16 @@ add_executable( testTrilinosSolver
                 ../Solver.cpp
                 ${F90_source_files}
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                EllipticDomain.cpp
+                AmrTrilinos.cpp)
+
+add_executable( testTrilinosGeometry
+                testTrilinosGeometry.cpp
+                ../AmrOpal.cpp
+                ../Solver.cpp
+                ${F90_source_files}
+                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                EllipticDomain.cpp
                 AmrTrilinos.cpp)
 
 target_link_libraries (testCopy ${LIBS}
@@ -103,5 +113,9 @@ target_link_libraries (testCopy ${LIBS}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testTrilinosSolver ${LIBS}
+                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES}
+                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testTrilinosGeometry ${LIBS}
                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
