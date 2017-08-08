@@ -615,7 +615,7 @@ void OpalParser::run() const {
 	    exit(1);
         } catch(OpalException &ex) {
             errorMsg << "\n*** User error detected by function \""
-                     << ex.where() << "\"\n parser";
+                     << ex.where() << "\"\n";
             stat->printWhere(errorMsg, true);
             std::string what = ex.what();
             size_t pos = what.find_first_of('\n');

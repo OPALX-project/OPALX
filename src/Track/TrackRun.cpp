@@ -840,8 +840,9 @@ void TrackRun::setupFieldsolver() {
 
         if (numParticles < numGridPoints)
             throw OpalException("TrackRun::setupFieldsolver()",
-                                "Panik: The number of simulation particles (" + std::to_string(numParticles) + ") " +
-                                "is smaller than the number of gridpoints (" + std::to_string(numGridPoints) + ")");
+                                "The number of simulation particles (" + std::to_string(numParticles) + ") \n" +
+                                "is smaller than the number of gridpoints (" + std::to_string(numGridPoints) + ").\n" +
+                                "Please increase the number of particles or reduce the size of the mesh.\n");
     }
 
     fs->initCartesianFields();
