@@ -5,9 +5,10 @@ link_directories (
     ${OPTP_LIBRARY_DIR}
     ${Boost_LIBRARY_DIRS}
     )
+
 add_executable( pisa-standalone.exe
     pisa-standalone.cpp
-    ${_SRCS} ${PILOT_FEVAL_SRCS}
+    ${PILOT_FEVAL_SRCS}
     )
 target_link_libraries ( pisa-standalone.exe
     ${OPTP_LIBS}

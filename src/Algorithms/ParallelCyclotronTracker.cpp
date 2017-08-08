@@ -88,9 +88,6 @@
 class Beamline;
 class PartData;
 
-using Physics::m_p; // GeV
-using Physics::PMASS;
-using Physics::PCHARGE;
 using Physics::pi;
 using Physics::q_e;
 
@@ -194,16 +191,14 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
  *
  */
 ParallelCyclotronTracker::~ParallelCyclotronTracker() {
-    for(std::list<Component *>::iterator compindex = myElements.begin(); compindex != myElements.end(); compindex++) {
-        delete(*compindex);
+    for(Component* component : myElements) {
+        delete(component);
     }
-    for(beamline_list::iterator fdindex = FieldDimensions.begin(); fdindex != FieldDimensions.end(); fdindex++) {
-        delete(*fdindex);
+    for(auto fd : FieldDimensions) {
+        delete(fd);
     }
     delete itsBeamline;
-    if (opalRing_m != NULL) {
-        // delete opalRing_m;
-    }
+    // delete opalRing_m;
 }
 
 /**
@@ -212,8 +207,8 @@ ParallelCyclotronTracker::~ParallelCyclotronTracker() {
  * @param none
  */
 void ParallelCyclotronTracker::initializeBoundaryGeometry() {
-    for(std::list<Component *>::iterator compindex = myElements.begin(); compindex != myElements.end(); compindex++) {
-        bgf_m = dynamic_cast<ElementBase *>(*compindex)->getBoundaryGeometry();
+    for(Component * component : myElements) {
+        bgf_m = dynamic_cast<ElementBase *>(component)->getBoundaryGeometry();
         if(!bgf_m)
             continue;
         else
@@ -1136,8 +1131,8 @@ void ParallelCyclotronTracker::execute() {
     *gmsg << "* -------------------------------------" << endl;
     *gmsg << "* The selected Beam line elements are :" << endl;
 
-    for(beamline_list::iterator sindex = FieldDimensions.begin(); sindex != FieldDimensions.end(); sindex++)
-        *gmsg << "* -> " <<  ElementBase::getTypeString((*sindex)->first) << endl;
+    for(auto fd : FieldDimensions)
+        *gmsg << "* -> " <<  ElementBase::getTypeString(fd->first) << endl;
 
     *gmsg << "* -------------------------------------" << endl;
 
@@ -1190,8 +1185,8 @@ void ParallelCyclotronTracker::execute() {
     
     *gmsg << "* ----------------------------------------------- *" << endl;
     *gmsg << "* Finalizing i.e. write data and close files :" << endl;
-    for(beamline_list::iterator sindex = FieldDimensions.begin(); sindex != FieldDimensions.end(); sindex++) {
-        (((*sindex)->second).second)->finalise();
+    for(auto fd : FieldDimensions) {
+        ((fd->second).second)->finalise();
     }
     *gmsg << "* ----------------------------------------------- *" << endl;
 }
@@ -2161,7 +2156,7 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
 
     itsBunch->R *= Vector_t(1000.0);
 
-    for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); sindex++) {
+    for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); ++sindex) {
         if(((*sindex)->first) == ElementBase::SEPTUM)    {
             (static_cast<Septum *>(((*sindex)->second).second))->checkSeptum(*itsBunch);
         }
@@ -2401,7 +2396,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
     checkNumPart(std::string("* Before repartition: "));
     repartition();
-    checkNumPart(std::string("* After repartition: "));
+    checkNumPart(std::string("* After repartition:  "));
 
     itsBunch->calcBeamParameters();
 
@@ -2512,16 +2507,15 @@ void ParallelCyclotronTracker::singleParticleDump() {
             }
 
             dvector_t::iterator itParameter = tmpr.begin();
-            ivector_t::iterator itId = tmpi.begin();
 
-            for(itId = tmpi.begin(); itId != tmpi.end(); itId++) {
+            for(auto id : tmpi) {
 
-                outfTrackOrbit_m << "ID" << *itId;
+                outfTrackOrbit_m << "ID" << id;
 
                 for(int ii = 0; ii < 6; ii++) {
 
                     outfTrackOrbit_m << " " << *itParameter;
-                    itParameter++;
+                    ++itParameter;
                 }
 
                 outfTrackOrbit_m << std::endl;
@@ -3244,7 +3238,7 @@ void ParallelCyclotronTracker::gapCrossKick_m(size_t i, double t,
                                               const Vector_t& Pold)
 {
     for (beamline_list::iterator sindex = ++(FieldDimensions.begin());
-        sindex != FieldDimensions.end(); sindex++)
+        sindex != FieldDimensions.end(); ++sindex)
     {
         bool tag_crossing = false;
         double DistOld = 0.0; //mm
