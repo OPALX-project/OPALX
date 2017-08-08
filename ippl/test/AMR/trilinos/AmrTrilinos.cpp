@@ -50,6 +50,8 @@ void AmrTrilinos::solve(const container_t& rho,
 {
     nLevel_m = lfine - lbase + 1;
     
+    
+    
     /*
      * find boundary cells --> mask
      */
@@ -65,17 +67,86 @@ void AmrTrilinos::solve(const container_t& rho,
         
         efield[lev]->setVal(0.0, 1);
         phi[lev]->setVal(0.0, 1);
+        phi[lev]->setBndry(0.0);
+        
+        phi[lev]->FillBoundary(/*gm[lev].periodicity()*/);
         
         this->buildLevelMask_m(grids[lev], dmap[lev], gm[lev], lev);
     }
     
+    IntVect rr(2, 2, 2);
+    
+//     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+//     int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+//     Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
+    bndry_m.reset(new MacBndry(grids[0], dmap[0], 1 /*ncomp*/, gm[0]));
+//     bndry_m->setBndryConds(bcs[0], rr, 1);
+//     phi[0]->setBndry(0.0);
+//     this->setBoundaryValue_m(phi[0]);
+    for (int i = 0; i < nLevel_m; ++i) {
+        fillDomainBoundary_m(*phi[i], geom[i]);
+        phi[i]->FillBoundary();
+    }
+    
+    
+//         for (MFIter umfi(*(phi[0])); umfi.isValid(); ++umfi)
+//         {
+//             FArrayBox& dest = (*(phi[0]))[umfi];
+//             dest.copy(fs[umfi],fs[umfi].box());
+//         }
+//     }
+    
+    // initializes all ghosts to zero
+    initGhosts_m();
+    
+//     boundaryprint_m();
+    this->setBoundaryValue_m(phi[0]);
+    
+    for (OrientationIter oitr; oitr; ++oitr)
+    {
+        const Orientation face  = oitr();
+        const FabSet& fs = bndry_m->bndryValues(oitr());
+//         fs.plusTo(*phi[0], 1, 0, 0, 1, geom[0].periodicity());
+        for (MFIter umfi(*(phi[0])); umfi.isValid(); ++umfi)
+        {
+            FArrayBox& dest = (*(phi[0]))[umfi];
+            dest.copy(fs[umfi],fs[umfi].box());
+        }
+    }
     
     for (int i = 0; i < nLevel_m; ++i) {
         int lev = i + lbase;
         
         
         if ( lev > 0 ) {
+            // crse-fine interface
             interpFromCoarseLevel_m(phi, geom, lev-1);
+            phi[lev]->FillBoundary();
+            
+            bndry_m.reset(new MacBndry(grids[lev], dmap[lev], 1 /*ncomp*/, gm[lev]));
+            initGhosts_m();
+//             bndry_m->setBndryConds(bcs[0], rr, 1);
+            this->setBoundaryValue_m(phi[lev], phi[lev-1], rr);
+            
+//             std::cout << "BOUNDARY" << std::endl;
+//             boundaryprint_m();
+            
+            
+            for (OrientationIter oitr; oitr; ++oitr)
+            {
+                const Orientation face  = oitr();
+                const FabSet& fs = bndry_m->bndryValues(oitr());
+//                 fs.plusTo(*phi[lev], 1, 0, 0, 1, geom[lev].periodicity());
+                for (MFIter umfi(*(phi[lev])); umfi.isValid(); ++umfi)
+                {
+                    FArrayBox& dest = (*(phi[lev]))[umfi];
+                    dest.copy(fs[umfi],fs[umfi].box());
+                }
+            }
+            
+//             std::cout << "PHI" << std::endl;
+//             print_m(phi[lev]);
+            
         }
         
         if ( phi[lev]->contains_nan() )
@@ -85,13 +156,13 @@ void AmrTrilinos::solve(const container_t& rho,
     }
     
     
-    // average down and compute electric field
-    IntVect rr(2, 2, 2);
+//     phi[0]->setVal(0.0, 1);
+//     phi[0]->FillBoundary();
     
     for (int i = 0; i < nLevel_m; ++i)
         getGradient(phi[i], efield[i], geom[i],  i);
     
-    
+    // average down and compute electric field
     for (int lev = lfine - 1; lev >= lbase; --lev) {
         amrex::average_down(*phi[lev+1], 
                              *phi[lev], geom[lev+1], geom[lev], 0, 1, rr);
@@ -101,6 +172,8 @@ void AmrTrilinos::solve(const container_t& rho,
                             geom[lev],
                             0, 3, rr);
     }
+    
+    
 }
 
 
@@ -181,6 +254,8 @@ void AmrTrilinos::build_m(const AmrField_t& rho, const AmrField_t& phi, const Ge
     
     const double* dx = geom.CellSize();
     
+    
+    
     for (MFIter mfi(*rho, false); mfi.isValid(); ++mfi) {
         const Box&          bx  = mfi.validbox();
         const FArrayBox&    fab = (*rho)[mfi];
@@ -205,32 +280,32 @@ void AmrTrilinos::build_m(const AmrField_t& rho, const AmrField_t& phi, const Ge
                      * level. --> add sum to right-hand side (Dirichlet)
                      */
                     IntVect xl(iv[0] - 1, iv[1], iv[2]);
-                    if ( mfab(xl) == 1/*isBoundary_m(xl)*/ ) {
+                    if ( mfab(xl) > 0/*isBoundary_m(xl)*/ ) {
                         val += pot(xl) / ( dx[0] * dx[0] );
                     }
                         
                     IntVect xr(iv[0] + 1, iv[1], iv[2]);
-                    if ( mfab(xr) == 1/*isBoundary_m(xr)*/ ) {
+                    if ( mfab(xr) > 0/*isBoundary_m(xr)*/ ) {
                         val += pot(xr) / ( dx[0] * dx[0] );
                     }
                     
                     IntVect yl(iv[0], iv[1] - 1, iv[2]);
-                    if ( mfab(yl) == 1/*isBoundary_m(yl)*/ ) {
+                    if ( mfab(yl) > 0/*isBoundary_m(yl)*/ ) {
                         val += pot(yl) / ( dx[1] * dx[1] );
                     }
                     
                     IntVect yr(iv[0], iv[1] + 1, iv[2]);
-                    if ( mfab(yr) == 1/*isBoundary_m(yr)*/ ) {
+                    if ( mfab(yr) > 0/*isBoundary_m(yr)*/ ) {
                         val += pot(yr) / ( dx[1] * dx[1] );
                     }
                     
                     IntVect zl(iv[0], iv[1], iv[2] - 1);
-                    if ( mfab(zl) == 1/*isBoundary_m(zl)*/ ) {
+                    if ( mfab(zl) > 0/*isBoundary_m(zl)*/ ) {
                         val += pot(zl) / ( dx[2] * dx[2] );
                     }
                     
                     IntVect zr(iv[0], iv[1], iv[2] + 1);
-                    if ( mfab(zr) == 1/*isBoundary_m(zr)*/ ) {
+                    if ( mfab(zr) > 0/*isBoundary_m(zr)*/ ) {
                         val += pot(zr) / ( dx[2] * dx[2] );
                     }
                     int globalidx = serialize_m(iv/*shift*/);
@@ -376,6 +451,7 @@ void AmrTrilinos::fillMatrix_m(const Geometry& geom, const AmrField_t& phi, int 
             ++numEntries;
         }
         
+        
         int error = A_mp->InsertGlobalValues(globalRow, numEntries, &values[0], &indices[0]);
         
         if ( error != 0 )
@@ -502,7 +578,7 @@ void AmrTrilinos::copyBack_m(AmrField_t& phi,
         }
     }
     
-//     phi->FillBoundary(geom.periodicity());
+    phi->FillBoundary();
     
 }
 
@@ -516,11 +592,11 @@ void AmrTrilinos::interpFromCoarseLevel_m(container_t& phi,
     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
     int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
     Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
-    /*PCInterp*//*CellConservativeProtected*/NodeBilinear mapper;
+    PCInterp/*CellConservativeLinear*/ mapper;
     
     IntVect rr(2, 2, 2);
     
-    phi[lev+1]->setVal(0.0, 1);
+//     phi[lev+1]->setVal(0.0, 1);
     
 //     phi[lev+1]->FillBoundary(geom[lev+1].periodicity());
     
@@ -550,7 +626,7 @@ void AmrTrilinos::getGradient(AmrField_t& phi,
         const Box&          bx   = mfi.validbox();
         const FArrayBox&    pfab = (*phi)[mfi];
         FArrayBox&          efab = (*efield)[mfi];
-        const BaseFab<int>& mfab = (*masks_m[lev])[mfi];
+//         const BaseFab<int>& mfab = (*masks_m[lev])[mfi];
         
         const int* lo = bx.loVect();
         const int* hi = bx.hiVect();
@@ -687,7 +763,7 @@ void AmrTrilinos::buildGeometry_m(const AmrField_t& rho, const AmrField_t& phi,
         const Box&          bx  = mfi.validbox();
         const FArrayBox&    fab = (*rho)[mfi];
         const FArrayBox&    pot = (*phi)[mfi];
-        const BaseFab<int>& mfab = (*masks_m[lev])[mfi];
+//         const BaseFab<int>& mfab = (*masks_m[lev])[mfi];
             
         const int* lo = bx.loVect();
         const int* hi = bx.hiVect();
@@ -702,39 +778,39 @@ void AmrTrilinos::buildGeometry_m(const AmrField_t& rho, const AmrField_t& phi,
                     
                     double val = 0.0;
                     
-                    /* The boundary values (ghost cells) of level > 0 need
-                     * to be the refined values of the next coarser
-                     * level. --> add sum to right-hand side (Dirichlet)
-                     */
-                    IntVect xl(iv[0] - 1, iv[1], iv[2]);
-                    if ( mfab(xl) == 1/*isBoundary_m(xl)*/ ) {
-                        val += pot(xl) / ( dx[0] * dx[0] );
-                    }
-                        
-                    IntVect xr(iv[0] + 1, iv[1], iv[2]);
-                    if ( mfab(xr) == 1/*isBoundary_m(xr)*/ ) {
-                        val += pot(xr) / ( dx[0] * dx[0] );
-                    }
-                    
-                    IntVect yl(iv[0], iv[1] - 1, iv[2]);
-                    if ( mfab(yl) == 1/*isBoundary_m(yl)*/ ) {
-                        val += pot(yl) / ( dx[1] * dx[1] );
-                    }
-                    
-                    IntVect yr(iv[0], iv[1] + 1, iv[2]);
-                    if ( mfab(yr) == 1/*isBoundary_m(yr)*/ ) {
-                        val += pot(yr) / ( dx[1] * dx[1] );
-                    }
-                    
-                    IntVect zl(iv[0], iv[1], iv[2] - 1);
-                    if ( mfab(zl) == 1/*isBoundary_m(zl)*/ ) {
-                        val += pot(zl) / ( dx[2] * dx[2] );
-                    }
-                    
-                    IntVect zr(iv[0], iv[1], iv[2] + 1);
-                    if ( mfab(zr) == 1/*isBoundary_m(zr)*/ ) {
-                        val += pot(zr) / ( dx[2] * dx[2] );
-                    }
+//                     /* The boundary values (ghost cells) of level > 0 need
+//                      * to be the refined values of the next coarser
+//                      * level. --> add sum to right-hand side (Dirichlet)
+//                      */
+//                     IntVect xl(iv[0] - 1, iv[1], iv[2]);
+//                     if ( mfab(xl) == 1/*isBoundary_m(xl)*/ ) {
+//                         val += pot(xl) / ( dx[0] * dx[0] );
+//                     }
+//                         
+//                     IntVect xr(iv[0] + 1, iv[1], iv[2]);
+//                     if ( mfab(xr) == 1/*isBoundary_m(xr)*/ ) {
+//                         val += pot(xr) / ( dx[0] * dx[0] );
+//                     }
+//                     
+//                     IntVect yl(iv[0], iv[1] - 1, iv[2]);
+//                     if ( mfab(yl) == 1/*isBoundary_m(yl)*/ ) {
+//                         val += pot(yl) / ( dx[1] * dx[1] );
+//                     }
+//                     
+//                     IntVect yr(iv[0], iv[1] + 1, iv[2]);
+//                     if ( mfab(yr) == 1/*isBoundary_m(yr)*/ ) {
+//                         val += pot(yr) / ( dx[1] * dx[1] );
+//                     }
+//                     
+//                     IntVect zl(iv[0], iv[1], iv[2] - 1);
+//                     if ( mfab(zl) == 1/*isBoundary_m(zl)*/ ) {
+//                         val += pot(zl) / ( dx[2] * dx[2] );
+//                     }
+//                     
+//                     IntVect zr(iv[0], iv[1], iv[2] + 1);
+//                     if ( mfab(zr) == 1/*isBoundary_m(zr)*/ ) {
+//                         val += pot(zr) / ( dx[2] * dx[2] );
+//                     }
                     int globalidx = serialize_m(iv/*shift*/);
                     globalindices.push_back(globalidx);
                     

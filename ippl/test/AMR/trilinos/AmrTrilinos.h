@@ -20,6 +20,10 @@
 
 #include "EllipticDomain.h"
 
+
+#include <AMReX_BCUtil.H>
+#include <AMReX_MacBndry.H>
+
 using namespace amrex;
 
 class AmrTrilinos {
@@ -125,12 +129,133 @@ private:
     
     void fillMatrixGeometry_m(const Geometry& geom, const AmrField_t& phi, int lev, EllipticDomain& bp);
     
+    void setBoundaryValue_m(AmrField_t& phi, const AmrField_t& crse_phi = nullptr,
+                            IntVect crse_ratio = IntVect::TheZeroVector())
+    {
+        // The values of phys_bc & ref_ratio do not matter
+        // because we are not going to use those parts of MacBndry.
+        IntVect ref_ratio = IntVect::TheZeroVector();
+        Array<int> lo_bc(BL_SPACEDIM, 0);
+        Array<int> hi_bc(BL_SPACEDIM, 0);
+        BCRec phys_bc(lo_bc.dataPtr(), hi_bc.dataPtr());
+    
+//         if (crse_phi == 0 && phi == 0) 
+//         {
+//             bndry_m.setHomogValues(phys_bc, ref_ratio);
+//         }
+        if (crse_phi == 0 && phi != 0)
+        {
+            bndry_m->setBndryValues(*phi, 0, 0, phi->nComp(), phys_bc); 
+        }
+        else if (crse_phi != 0 && phi != 0) 
+        {
+            BL_ASSERT(crse_ratio != IntVect::TheZeroVector());
+    
+            const int ncomp      = phi->nComp();
+            const int in_rad     = 0;
+            const int out_rad    = 1;
+            const int extent_rad = 2;
+    
+            BoxArray crse_boxes(phi->boxArray());
+            crse_boxes.coarsen(crse_ratio);
+    
+            BndryRegister crse_br(crse_boxes, phi->DistributionMap(),
+                                in_rad, out_rad, extent_rad, ncomp);
+            crse_br.copyFrom(*crse_phi, crse_phi->nGrow(), 0, 0, ncomp);
+            
+            bndry_m->setBndryValues(crse_br, 0, *phi, 0, 0, ncomp, crse_ratio, phys_bc);
+            
+//             print_m(phi);
+            
+        }
+        else
+        {
+            amrex::Abort("FMultiGrid::Boundary::build_bndry: How did we get here?");
+        }
+    }
+    
+    void print_m(const AmrField_t& phi) {
+        for (MFIter mfi(*phi, false); mfi.isValid(); ++mfi) {
+            const Box&          bx  = mfi.validbox();
+            const FArrayBox&    fab = (*phi)[mfi];
+            
+            const int* lo = bx.loVect();
+            const int* hi = bx.hiVect();
+        
+            for (int i = lo[0]-1; i <= hi[0]+1; ++i) {
+                for (int j = lo[1]-1; j <= hi[1]+1; ++j) {
+                    for (int k = lo[2]-1; k <= hi[2]+1; ++k) {
+                        IntVect iv(i, j, k);
+                        std::cout << iv << " " << fab(iv) << std::endl; std::cin.get();
+                    }
+                }
+            }
+        }
+    }
+    
+    void boundaryprint_m() {
+        for (OrientationIter oitr; oitr; ++oitr) {
+            const FabSet& fs = bndry_m->bndryValues(oitr());
+            
+            for (FabSetIter fsi(fs); fsi.isValid(); ++fsi) {
+                const Box&          bx  = fsi.validbox();
+                const FArrayBox&    fab = fs[fsi];
+                const int* lo = bx.loVect();
+                const int* hi = bx.hiVect();
+            
+                for (int ii = lo[0]; ii <= hi[0]; ++ii) {
+                    for (int j = lo[1]; j <= hi[1]; ++j) {
+                        for (int k = lo[2]; k <= hi[2]; ++k) {
+                            IntVect iv(ii, j, k);
+                            std::cout << iv << " " << fab(iv) << std::endl; std::cin.get();
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    void initGhosts_m() {
+        for (OrientationIter fi; fi; ++fi)
+        {
+            const Orientation face  = fi();
+            FabSet& fs = (*bndry_m.get())[face];
+            
+            for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
+            {
+                fs[fsi].setVal(0);
+            }
+        }
+        
+    }
+    
+    void fillDomainBoundary_m(MultiFab& phi, const Geometry& geom) {
+        
+        Array<BCRec> bc(phi.nComp());
+        for (int n = 0; n < phi.nComp(); ++n) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if ( Geometry::isPeriodic(idim) ) {
+                    bc[n].setLo(idim, BCType::int_dir); // interior
+                    bc[n].setHi(idim, BCType::int_dir);
+                } else {
+                    bc[n].setLo(idim, BCType::foextrap); // first oder extrapolation from last cell in interior
+                    bc[n].setHi(idim, BCType::foextrap);
+                }
+            }
+        }
+        
+        // fill physical boundary + ghosts at physical boundary
+        amrex::FillDomainBoundary(phi, geom, bc);
+    }
+    
     
 private:
     
+    std::unique_ptr<MacBndry> bndry_m;
+    
     Array<std::unique_ptr<FabArray<BaseFab<int> > > > masks_m;
     
-    std::set<IntVect> bc_m;
+//     std::set<IntVect> bc_m;
     
     Epetra_MpiComm epetra_comm_m;
     
