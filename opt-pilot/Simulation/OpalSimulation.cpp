@@ -27,10 +27,6 @@
     //#include "boost/filesystem/fstream.hpp"
 #endif
 
-#include "boost/foreach.hpp"
-#define foreach BOOST_FOREACH
-
-
 // access to OPAL lib
 #include "opal.h"
 #include "Utilities/OpalException.h"
@@ -311,42 +307,8 @@ void OpalSimulation::collectResults() {
             // find out which variables we need in order to evaluate the
             // objective
             variableDictionary_t variable_dictionary;
-            std::set<std::string> req_vars = objective->getReqVars();
-
-            if(req_vars.size() != 0) {
-
-                boost::scoped_ptr<SDDSReader> sddsr(new SDDSReader(fn));
-
-                try {
-                    sddsr->parseFile();
-                } catch(OptPilotException &e) {
-                    std::cout << "Exception while parsing SDDS file: "
-                        << e.what() << std::endl;
-
-                    //XXX: in this case we mark the bunch as invalid since
-                    //     broken stat files can crash opt (why do they
-                    //     exist?)
-                    invalidBunch();
-                    break;
-                }
-
-                // get all the required variable values from the stat file
-                foreach(std::string req_var, req_vars) {
-                    if(variable_dictionary.count(req_var) == 0) {
-
-                        try {
-                            double value = 0.0;
-                            sddsr->getValue(-1 /*atTime*/, req_var, value);
-                            variable_dictionary.insert(
-                                std::pair<std::string, double>(req_var, value));
-                        } catch(OptPilotException &e) {
-                            std::cout << "Exception while getting value "
-                                      << "from SDDS file: " << e.what()
-                                      << std::endl;
-                        }
-                    }
-                }
-            }
+            bool check = getVariableDictionary(variable_dictionary,fn,objective);
+            if (check == false) break;
 
             // and evaluate the expression using the built dictionary of
             // variable values
@@ -371,42 +333,8 @@ void OpalSimulation::collectResults() {
             // find out which variables we need in order to evaluate the
             // objective
             variableDictionary_t variable_dictionary;
-            std::set<std::string> req_vars = constraint->getReqVars();
-
-            if(req_vars.size() != 0) {
-
-                boost::scoped_ptr<SDDSReader> sddsr(new SDDSReader(fn));
-
-                try {
-                    sddsr->parseFile();
-                } catch(OptPilotException &e) {
-                    std::cout << "Exception while parsing SDDS file: "
-                        << e.what() << std::endl;
-
-                    //XXX: in this case we mark the bunch as invalid since
-                    //     broken stat files can crash opt (why do they
-                    //     exist?)
-                    invalidBunch();
-                    break;
-                }
-
-                // get all the required variable values from the stat file
-                foreach(std::string req_var, req_vars) {
-                    if(variable_dictionary.count(req_var) == 0) {
-
-                        try {
-                            double value = 0.0;
-                            sddsr->getValue(-1 /*atTime*/, req_var, value);
-                            variable_dictionary.insert(
-                                std::pair<std::string, double>(req_var, value));
-                        } catch(OptPilotException &e) {
-                            std::cout << "Exception while getting value "
-                                      << "from SDDS file: " << e.what()
-                                      << std::endl;
-                        }
-                    }
-                }
-            }
+            bool check = getVariableDictionary(variable_dictionary,fn,constraint);
+            if (check == false) break;
 
             Expressions::Result_t result =
                 constraint->evaluate(variable_dictionary);
@@ -453,6 +381,44 @@ void OpalSimulation::collectResults() {
     cleanUp();
 }
 
+bool OpalSimulation::getVariableDictionary(variableDictionary_t& dictionary,
+                                           const std::string& filename,
+                                           const Expressions::Expr_t* const expression) {
+
+    std::set<std::string> req_vars = expression->getReqVars();
+    if(req_vars.empty()) return true;
+
+    boost::scoped_ptr<SDDSReader> sddsr(new SDDSReader(filename));
+    try {
+        sddsr->parseFile();
+    } catch(OptPilotException &e) {
+        std::cout << "Exception while parsing SDDS file: "
+                  << e.what() << std::endl;
+        
+        //XXX: in this case we mark the bunch as invalid since
+        //     broken stat files can crash opt (why do they
+        //     exist?)
+        invalidBunch();
+        return false;
+    }
+
+    // get all the required variable values from the stat file
+    for(std::string req_var : req_vars) {
+        if(dictionary.count(req_var) != 0) continue;
+        
+        try {
+            double value = 0.0;
+            sddsr->getValue(-1 /*atTime*/, req_var, value);
+            dictionary.insert(std::pair<std::string, double>(req_var, value));
+        } catch(OptPilotException &e) {
+            std::cout << "Exception while getting value "
+                      << "from SDDS file: " << e.what()
+                      << std::endl;
+            return false;
+        }
+    }
+    return true;
+}
 
 void OpalSimulation::invalidBunch() {
 
