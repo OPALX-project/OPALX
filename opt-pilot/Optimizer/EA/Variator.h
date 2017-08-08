@@ -24,18 +24,32 @@ class Variator : public CrossoverOperator<ind_t>,
 
 public:
 
-    Variator(size_t sizeInitial, size_t nrSelectedParents,
-             size_t nrChilderToProduce, size_t dim,
-             Optimizer::bounds_t dVarBounds, CmdArguments_t args) {
+    Variator(size_t sizeInitial,
+             std::vector<std::string> dNames,
+             Optimizer::bounds_t dVarBounds, Expressions::Named_t constraints,
+             CmdArguments_t args)
+        : sizeInitial_m(sizeInitial)
+        , dNames_m(dNames)
+        , dVarBounds_m(dVarBounds)
+    {
+        // add constraints, if only design variables are needed for evaluation
+        for(auto constraint : constraints) {
+            bool allDesignVariables = true;
+            std::set<std::string> req_vars = constraint.second->getReqVars();
+            for (std::string req_var : req_vars) {
+                // check if it is a design variable
+                if (std::find(dNames_m.begin(),dNames_m.end(),req_var) == dNames_m.end()) {
+                    allDesignVariables = false;
+                    break;
+                }
+            }
+            if (allDesignVariables == true)
+                constraints_m.insert(constraint);
+        }
 
         //FIXME: pass population as arg to variator
         //boost::shared_ptr< Population<ind_t> >
         population_m.reset(new Population<ind_t>());
-        dVarBounds_m = dVarBounds;
-
-        sizeInitial_m = sizeInitial;
-        nrSelectedParents_m = nrSelectedParents;
-        nrChilderToProduce_m = nrChilderToProduce;
 
         mutationProbability_m =
             args->getArg<double>("mutation-probability", 0.5);
@@ -87,9 +101,8 @@ public:
     void variate(std::vector<unsigned int> parents) {
 
         // copying all individuals from parents
-        std::vector<unsigned int>::iterator itr;
-        for(itr = parents.begin(); itr != parents.end(); itr++) {
-            new_individual( population_m->get_individual(*itr) );
+        for(unsigned int parent : parents) {
+            new_individual( population_m->get_individual(parent) );
         }
 
         // only variate new offspring, individuals in staging area have been
@@ -130,7 +143,7 @@ protected:
 
     /// create a new individual
     void new_individual() {
-        boost::shared_ptr<ind_t> ind(new ind_t(dVarBounds_m));
+        boost::shared_ptr<ind_t> ind(new ind_t(dVarBounds_m, dNames_m, constraints_m));
         individualsToEvaluate_m.push( population_m->add_individual(ind) );
     }
 
@@ -148,12 +161,6 @@ private:
     boost::shared_ptr< Population<ind_t> > population_m;
     /// number of individuals in initial population
     size_t sizeInitial_m;
-    ///
-    size_t nrSelectedParents_m;
-    ///
-    size_t nrChilderToProduce_m;
-    /// number of genes
-    size_t dim_m;
 
     /// user specified command line arguments
     CmdArguments_t args_;
@@ -161,8 +168,12 @@ private:
     /// keep a queue of individuals that have to be evaluated
     std::queue<unsigned int> individualsToEvaluate_m;
 
+    /// names of the design variables
+    std::vector<std::string> dNames_m;
     /// bounds on design variables
     Optimizer::bounds_t dVarBounds_m;
+    /// constraints
+    Expressions::Named_t constraints_m;
 
     /// probability of applying the mutation operator
     double mutationProbability_m;

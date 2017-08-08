@@ -28,11 +28,6 @@ int RectangularDomain::getNumXY(int z) {
     return nxy_m;
 }
 
-// ignore z since its the same for every z
-std::vector<double> RectangularDomain::getYDirIntersect(int x, int z) {
-    return std::vector<double>(2);
-}
-
 void RectangularDomain::getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
 
     //scaleFactor = 1.0;

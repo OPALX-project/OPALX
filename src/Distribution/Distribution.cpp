@@ -297,7 +297,7 @@ size_t Distribution::getNumOfLocalParticlesToCreate(size_t n) {
 
 /**
  * At the moment only write the header into the file dist.dat
- * PartBunch will then append (very uggly)
+ * PartBunch will then append (very ugly)
  * @param
  * @param
  * @param
@@ -821,46 +821,33 @@ void Distribution::addDistributions() {
 
         particlesPerDist_m[idx] = (*addedDistIt)->tOrZDist_m.size();
 
-        std::vector<double>::iterator distIt;
-        for (distIt = (*addedDistIt)->getXDist().begin();
-             distIt != (*addedDistIt)->getXDist().end();
-             distIt++) {
-            xDist_m.push_back(*distIt);
+        for (double dist : (*addedDistIt)->getXDist()) {
+            xDist_m.push_back(dist);
         }
         (*addedDistIt)->eraseXDist();
 
-        for (distIt = (*addedDistIt)->getBGxDist().begin();
-             distIt != (*addedDistIt)->getBGxDist().end();
-             distIt++) {
-            pxDist_m.push_back(*distIt);
+        for (double dist : (*addedDistIt)->getBGxDist()) {
+            pxDist_m.push_back(dist);
         }
         (*addedDistIt)->eraseBGxDist();
 
-        for (distIt = (*addedDistIt)->getYDist().begin();
-             distIt != (*addedDistIt)->getYDist().end();
-             distIt++) {
-            yDist_m.push_back(*distIt);
+        for (double dist : (*addedDistIt)->getYDist()) {
+            yDist_m.push_back(dist);
         }
         (*addedDistIt)->eraseYDist();
 
-        for (distIt = (*addedDistIt)->getBGyDist().begin();
-             distIt != (*addedDistIt)->getBGyDist().end();
-             distIt++) {
-            pyDist_m.push_back(*distIt);
+        for (double dist : (*addedDistIt)->getBGyDist()) {
+            pyDist_m.push_back(dist);
         }
         (*addedDistIt)->eraseBGyDist();
 
-        for (distIt = (*addedDistIt)->getTOrZDist().begin();
-             distIt != (*addedDistIt)->getTOrZDist().end();
-             distIt++) {
-            tOrZDist_m.push_back(*distIt);
+        for (double dist : (*addedDistIt)->getTOrZDist()) {
+            tOrZDist_m.push_back(dist);
         }
         (*addedDistIt)->eraseTOrZDist();
 
-        for (distIt = (*addedDistIt)->getBGzDist().begin();
-             distIt != (*addedDistIt)->getBGzDist().end();
-             distIt++) {
-            pzDist_m.push_back(*distIt);
+        for (double dist : (*addedDistIt)->getBGzDist()) {
+            pzDist_m.push_back(dist);
         }
         (*addedDistIt)->eraseBGzDist();
     }
@@ -956,8 +943,6 @@ void Distribution::applyEmissModelNonEquil(double lowEnergyLimit,
 }
 
 void Distribution::calcPartPerDist(size_t numberOfParticles) {
-
-    typedef std::vector<Distribution *>::iterator iterator;
 
     if (numberOfDistributions_m == 1) {
         particlesPerDist_m.push_back(numberOfParticles);
@@ -1728,10 +1713,8 @@ void Distribution::createOpalT(PartBunch &beam,
 
     // Set distribution type(s).
     setDistType();
-    std::vector<Distribution *>::iterator addedDistIt;
-    for (addedDistIt = addedDistributions_m.begin();
-         addedDistIt != addedDistributions_m.end(); addedDistIt++)
-        (*addedDistIt)->setDistType();
+    for (Distribution* addedDist : addedDistributions_m)
+        addedDist->setDistType();
 
     /*
      * Determine the number of particles for each distribution. Note
@@ -1748,21 +1731,18 @@ void Distribution::createOpalT(PartBunch &beam,
      * Force added distributions to the same emission condition as the main
      * distribution.
      */
-    for (addedDistIt = addedDistributions_m.begin();
-         addedDistIt != addedDistributions_m.end(); addedDistIt++)
-        (*addedDistIt)->setDistToEmitted(emitting_m);
+    for (Distribution* addedDist : addedDistributions_m)
+        addedDist->setDistToEmitted(emitting_m);
 
-    if (emitting_m) {
+    if (emitting_m)
         setupEmissionModel(beam);
-    }
 
     // Create distributions.
     create(particlesPerDist_m.at(0), beam.getM());
 
     size_t distCount = 1;
-    for (addedDistIt = addedDistributions_m.begin();
-         addedDistIt != addedDistributions_m.end(); addedDistIt++) {
-        (*addedDistIt)->create(particlesPerDist_m.at(distCount), beam.getM());
+    for (Distribution* addedDist : addedDistributions_m) {
+        addedDist->create(particlesPerDist_m.at(distCount), beam.getM());
         distCount++;
     }
 
@@ -1978,7 +1958,7 @@ size_t Distribution::emitParticles(PartBunch &beam, double eZ) {
         std::vector<size_t>::reverse_iterator ptbErasedIt;
         for (ptbErasedIt = particlesToBeErased.rbegin();
              ptbErasedIt < particlesToBeErased.rend();
-             ptbErasedIt++) {
+             ++ptbErasedIt) {
 
             /*
              * We don't use the vector class function erase because it
@@ -3061,7 +3041,7 @@ double Distribution::getMaxTOrZ() {
 
     std::vector<double>::iterator longIt = tOrZDist_m.begin();
     double maxTOrZ = *longIt;
-    for (++longIt; longIt != tOrZDist_m.end(); longIt++) {
+    for (++longIt; longIt != tOrZDist_m.end(); ++longIt) {
         if (maxTOrZ < *longIt)
             maxTOrZ = *longIt;
     }
@@ -3075,7 +3055,7 @@ double Distribution::getMinTOrZ() {
 
     std::vector<double>::iterator longIt = tOrZDist_m.begin();
     double minTOrZ = *longIt;
-    for (++longIt; longIt != tOrZDist_m.end(); longIt++) {
+    for (++longIt; longIt != tOrZDist_m.end(); ++longIt) {
         if (minTOrZ > *longIt)
             minTOrZ = *longIt;
     }
@@ -3979,7 +3959,7 @@ void Distribution::setDistType() {
         distrTypeT_m = DistrTypeT::MATCHEDGAUSS;
     else {
         throw OpalException("Distribution::setDistType()",
-                            "The distribution \"" + distT_m + "\" isnt'know.\n" +
+                            "The distribution \"" + distT_m + "\" isn't known.\n" +
                             "Known distributions are:\n"
                             "FROMFILE\n"
                             "GAUSS\n"
@@ -4461,36 +4441,35 @@ void Distribution::setupParticleBins(double massIneV, PartBunch &beam) {
 
 void Distribution::shiftBeam(double &maxTOrZ, double &minTOrZ) {
 
-    std::vector<double>::iterator tOrZIt;
     if (emitting_m) {
 
         if (addedDistributions_m.size() == 0) {
 
             if (distrTypeT_m == DistrTypeT::ASTRAFLATTOPTH) {
-                for (tOrZIt = tOrZDist_m.begin(); tOrZIt != tOrZDist_m.end(); tOrZIt++)
-                    *tOrZIt -= tEmission_m / 2.0;
+                for (double& tOrZ : tOrZDist_m)
+                    tOrZ -= tEmission_m / 2.0;
 
                 minTOrZ -= tEmission_m / 2.0;
                 maxTOrZ -= tEmission_m / 2.0;
             } else if (distrTypeT_m == DistrTypeT::GAUSS
                        || distrTypeT_m == DistrTypeT::FLATTOP
                        || distrTypeT_m == DistrTypeT::GUNGAUSSFLATTOPTH) {
-                for (tOrZIt = tOrZDist_m.begin(); tOrZIt != tOrZDist_m.end(); tOrZIt++)
-                    *tOrZIt -= tEmission_m;
+                for (double& tOrZ : tOrZDist_m)
+                    tOrZ -= tEmission_m;
 
                 minTOrZ -= tEmission_m;
                 maxTOrZ -= tEmission_m;
             } else {
-                for (tOrZIt = tOrZDist_m.begin(); tOrZIt != tOrZDist_m.end(); tOrZIt++)
-                    *tOrZIt -= maxTOrZ;
+                for (double& tOrZ : tOrZDist_m)
+                    tOrZ -= maxTOrZ;
 
                 minTOrZ -= maxTOrZ;
                 maxTOrZ -= maxTOrZ;
             }
 
         } else {
-            for (tOrZIt = tOrZDist_m.begin(); tOrZIt != tOrZDist_m.end(); tOrZIt++)
-                *tOrZIt -= maxTOrZ;
+            for (double& tOrZ : tOrZDist_m)
+                tOrZ -= maxTOrZ;
 
             minTOrZ -= maxTOrZ;
             maxTOrZ -= maxTOrZ;
@@ -4498,16 +4477,15 @@ void Distribution::shiftBeam(double &maxTOrZ, double &minTOrZ) {
 
     } else {
         double avgZ[] = {0.0, 1.0 * tOrZDist_m.size()};
-        for (tOrZIt = tOrZDist_m.begin(); tOrZIt != tOrZDist_m.end(); tOrZIt++)
-            avgZ[0] += *tOrZIt;
+        for (double tOrZ : tOrZDist_m)
+            avgZ[0] += tOrZ;
 
         reduce(avgZ, avgZ + 2, avgZ, OpAddAssign());
         avgZ[0] /= avgZ[1];
 
-        for (tOrZIt = tOrZDist_m.begin(); tOrZIt != tOrZDist_m.end(); tOrZIt++)
-            *tOrZIt -= avgZ[0];
+        for (double& tOrZ : tOrZDist_m)
+            tOrZ -= avgZ[0];
     }
-
 }
 
 double Distribution::getEmissionTimeShift() const {

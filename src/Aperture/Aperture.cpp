@@ -761,7 +761,7 @@ vector<Aperture::coord> Aperture::getShape(vector<double> vec) {
         }
     } else if((r > -10.5) && (r < -9.5)) {
         vector<double>::iterator iter = vec.begin();
-        iter++;
+        ++iter;
         while(iter != vec.end()) {
             pt.x = *iter;
             pt.y = *(iter + 1);

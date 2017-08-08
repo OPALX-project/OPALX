@@ -1,16 +1,11 @@
 OPTION (OPTP_USED_FROM_OPAL "No OPT-PILOT standalone build" ON)
 
 IF (NOT OPTP_USED_FROM_OPAL)
-
-cmake_minimum_required (VERSION 2.8.2)
-
-set (CMAKE_DISABLE_IN_SOURCE_BUILD ON)
-
-project (opt-pilot)
-
-set (PACKAGE \"OPT-PILOT\")
-set (PACKAGE_VERSION \"0.1.4\")
-
+    cmake_minimum_required (VERSION 2.8.2)
+    set (CMAKE_DISABLE_IN_SOURCE_BUILD ON)
+    project (opt-pilot)
+    set (PACKAGE \"OPT-PILOT\")
+    set (PACKAGE_VERSION \"0.1.4\")
 ENDIF (NOT OPTP_USED_FROM_OPAL)
 
 #-----------------------------------------------------------------------------

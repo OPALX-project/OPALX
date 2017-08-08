@@ -2422,10 +2422,9 @@ void BoundaryGeometry::createParticlesOnSurface (
         }
         Message* mess = new Message ();
         putMessage (*mess, partsr_m.size ());
-        for (std::vector<Vector_t>::iterator myIt = partsr_m.begin (); myIt != partsr_m.end (); myIt++) {
-            putMessage (*mess, *myIt);
+        for (Vector_t part : partsr_m)
+            putMessage (*mess, part);
 
-        }
         Ippl::Comm->broadcast_all (mess, tag);
     } else {
         // receive particle position message
@@ -2535,7 +2534,7 @@ void BoundaryGeometry::createPriPart (
             for (std::vector<Vector_t>::iterator myIt = partsr_m.begin (),
                      myItp = partsp_m.begin ();
                  myIt != partsr_m.end ();
-                 myIt++, myItp++) {
+                 ++myIt, ++myItp) {
                 putMessage (*mess, *myIt);
                 putMessage (*mess, *myItp);
             }
@@ -2579,12 +2578,9 @@ void BoundaryGeometry::createPriPart (
             }
             Message* mess = new Message ();
             putMessage (*mess, partsr_m.size ());
-            for (std::vector<Vector_t>::iterator myIt = partsr_m.begin ();
-                 myIt != partsr_m.end ();
-                 myIt++) {
-                putMessage (*mess, *myIt);
+            for (Vector_t part : partsr_m)
+                putMessage (*mess, part);
 
-            }
             Ippl::Comm->broadcast_all (mess, tag);
         } else {
             // receive particle position message
