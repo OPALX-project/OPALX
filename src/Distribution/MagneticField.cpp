@@ -11,7 +11,7 @@ MagneticField::MagneticField(const std::string fmapfn,
 }
 
 void MagneticField::read(const std::string& type,
-                            const double& scaleFactor) {
+                         const double& scaleFactor) {
     
     if ( type == "CARBONCYCL" )
         this->getFieldFromFile_Carbon(scaleFactor);
@@ -41,18 +41,18 @@ void MagneticField::read(const std::string& type,
 
 
 void MagneticField::interpolate(double& bint,
-                                   double& brint,
-                                   double& btint,
-                                   const double& rad,
-                                   const double& theta
-                                  )
+                                double& brint,
+                                double& btint,
+                                const double& rad,
+                                const double& theta
+                                )
 {
     // x horizontal
     // y longitudinal
     // z is vertical
     const double xir = (rad - BP.rmin) / (BP.delr);
 
-    // ir : the mumber of path whoes radius is less then the 4 points of cell which surrond particle.
+    // ir : the number of path whose radius is less than the 4 points of cell which surround the particle.
     const int    ir = (int)xir;
 
     // wr1 : the relative distance to the inner path radius
@@ -77,7 +77,7 @@ void MagneticField::interpolate(double& bint,
     const double wt1 = xit - (double)it;
     const double wt2 = 1.0 - wt1;
 
-    // it : the number of point on the inner path whoes angle is less then the particle' corresponding angle.
+    // it : the number of point on the inner path whose angle is less than the particle' corresponding angle.
     // include zero degree point
     it = it + 1;
 
