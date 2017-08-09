@@ -1369,6 +1369,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
     }
 
     int Nint = 1000;
+    double scaleFactor = 1.0;
     bool writeMap = true;
 
     typedef SigmaGenerator<double, unsigned int> sGenerator_t;
@@ -1386,6 +1387,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                                             Nint,
                                             Attributes::getString(itsAttr[Attrib::Distribution::FMAPFN]),
                                             Attributes::getReal(itsAttr[Attrib::Distribution::ORDERMAPS]),
+                                            scaleFactor,
                                             writeMap);
 
     if (siggen->match(Attributes::getReal(itsAttr[Attrib::Distribution::RESIDUUM]),
