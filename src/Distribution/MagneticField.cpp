@@ -50,7 +50,7 @@ void MagneticField::interpolate(double& bint,
     // x horizontal
     // y longitudinal
     // z is vertical
-    const double xir = (rad * 1000 - BP.rmin) / (BP.delr);
+    const double xir = (rad - BP.rmin) / (BP.delr);
 
     // ir : the mumber of path whoes radius is less then the 4 points of cell which surrond particle.
     const int    ir = (int)xir;
@@ -117,7 +117,7 @@ void MagneticField::interpolate(double& bint,
         brint = (Bfield.dbr[r1t1] * wr2 * wt2 +
                 Bfield.dbr[r2t1] * wr1 * wt2 +
                 Bfield.dbr[r1t2] * wr2 * wt1 +
-                Bfield.dbr[r2t2] * wr1 * wt1) * 1000.0;
+                Bfield.dbr[r2t2] * wr1 * wt1);
         
         // dB_{z}/dtheta
         btint = Bfield.dbt[r1t1] * wr2 * wt2 +
