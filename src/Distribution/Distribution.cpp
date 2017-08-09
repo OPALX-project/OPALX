@@ -53,7 +53,7 @@
 
 extern Inform *gmsg;
 
-#define SMALLESTCUTOFF 1e-12
+constexpr double SMALLESTCUTOFF = 1e-12;
 
 namespace {
     SymTenzor<double, 6> getUnit6x6() {
@@ -966,7 +966,7 @@ void Distribution::calcPartPerDist(size_t numberOfParticles) {
             nPartFromFiles.insert(std::make_pair(i, nPart));
             if (nPart > numberOfParticles) {
                 throw OpalException("Distribution::calcPartPerDist",
-                                    "Number of particles is to small");
+                                    "Number of particles is too small");
             }
 
             numberOfParticles -= nPart;
@@ -1320,160 +1320,159 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
     */
 
     std::string LineName = Attributes::getString(itsAttr[Attrib::Distribution::LINE]);
-    if (LineName != "") {
-        const BeamSequence* LineSequence = BeamSequence::find(LineName);
-        if (LineSequence != NULL) {
-            SpecificElementVisitor<Cyclotron> CyclotronVisitor(*LineSequence->fetchLine());
-            CyclotronVisitor.execute();
-            size_t NumberOfCyclotrons = CyclotronVisitor.size();
+    if (LineName == "") return;
 
-            if (NumberOfCyclotrons > 1) {
-                throw OpalException("Distribution::createMatchedGaussDistribution",
-                                    "I am confused, found more than one Cyclotron element in line");
-            }
-            if (NumberOfCyclotrons == 0) {
-                throw OpalException("Distribution::createMatchedGaussDistribution",
-                                    "didn't find any Cyclotron element in line");
-            }
-            const Cyclotron* CyclotronElement = CyclotronVisitor.front();
+    const BeamSequence* LineSequence = BeamSequence::find(LineName);
+    
+    if (LineSequence == NULL) 
+        throw OpalException("Distribution::CreateMatchedGaussDistribution",
+                            "didn't find any Cyclotron element in line");
 
-            *gmsg << "* ----------------------------------------------------" << endl;
-            *gmsg << "* About to find closed orbit and matched distribution " << endl;
-            *gmsg << "* I= " << I_m*1E3 << " (mA)  E= " << E_m*1E-6 << " (MeV)" << endl;
-            *gmsg << "* EX= "  << Attributes::getReal(itsAttr[Attrib::Distribution::EX])
-                  << "* EY= " << Attributes::getReal(itsAttr[Attrib::Distribution::EY])
-                  << "* ET= " << Attributes::getReal(itsAttr[Attrib::Distribution::ET])
-                  << "* FMAPFN " << Attributes::getString(itsAttr[Attrib::Distribution::FMAPFN]) << endl //CyclotronElement->getFieldMapFN() << endl
-                  << "* FMSYM= " << (int)Attributes::getReal(itsAttr[Attrib::Distribution::MAGSYM])
-                  << "* HN= "   << CyclotronElement->getCyclHarm()
-                  << "* PHIINIT= " << CyclotronElement->getPHIinit() << endl;
-            *gmsg << "* ----------------------------------------------------" << endl;
+    SpecificElementVisitor<Cyclotron> CyclotronVisitor(*LineSequence->fetchLine());
+    CyclotronVisitor.execute();
+    size_t NumberOfCyclotrons = CyclotronVisitor.size();
 
-            const double wo = CyclotronElement->getRfFrequ()*1E6/CyclotronElement->getCyclHarm()*2.0*Physics::pi;
-
-            const double fmLowE  = CyclotronElement->getFMLowE();
-            const double fmHighE = CyclotronElement->getFMHighE();
-
-            double lE,hE;
-            lE = fmLowE;
-            hE = fmHighE;
-
-            if ((lE<0) || (hE<0)) {
-                lE = E_m*1E-6;
-                hE = E_m*1E-6;
-            }
-
-            int Nint = 1000;
-            bool writeMap = true;
-
-            typedef SigmaGenerator<double, unsigned int> sGenerator_t;
-            sGenerator_t *siggen = new sGenerator_t(I_m,
-                                                    Attributes::getReal(itsAttr[Attrib::Distribution::EX])*1E6,
-                                                    Attributes::getReal(itsAttr[Attrib::Distribution::EY])*1E6,
-                                                    Attributes::getReal(itsAttr[Attrib::Distribution::ET])*1E6,
-                                                    wo,
-                                                    E_m*1E-6,
-                                                    CyclotronElement->getCyclHarm(),
-                                                    massIneV*1E-6,
-                                                    lE,
-                                                    hE,
-                                                    (int)Attributes::getReal(itsAttr[Attrib::Distribution::MAGSYM]),
-                                                    Nint,
-                                                    Attributes::getString(itsAttr[Attrib::Distribution::FMAPFN]),
-                                                    Attributes::getReal(itsAttr[Attrib::Distribution::ORDERMAPS]),
-                                                    writeMap);
-
-            if (siggen->match(Attributes::getReal(itsAttr[Attrib::Distribution::RESIDUUM]),
-                             Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSSI]),
-                             Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSCO]),
-                             CyclotronElement->getPHIinit(),
-                             Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS]),
-                             Attributes::getString(itsAttr[Attrib::Distribution::FMTYPE]),
-                             false))  {
-
-                std::array<double,3> Emit = siggen->getEmittances();
-
-                if (Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS]) > 0)
-                    *gmsg << "* RGUESS " << Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS])/1000.0 << " (m) " << endl;
-
-                *gmsg << "* Converged (Ex, Ey, Ez) = (" << Emit[0] << ", " << Emit[1] << ", "
-                      << Emit[2] << ") pi mm mrad for E= " << E_m*1E-6 << " (MeV)" << endl;
-                *gmsg << "* Sigma-Matrix " << endl;
-
-                for (unsigned int i = 0; i < siggen->getSigma().size1(); ++ i) {
-                    *gmsg << std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,0);
-                    for (unsigned int j = 1; j < siggen->getSigma().size2(); ++ j) {
-                        *gmsg << " & " <<  std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,j);
-                    }
-                    *gmsg << " \\\\" << endl;
-                }
-
-                /*
-
-                  Now setup the distribution generator
-                  Units of the Sigma Matrix:
-
-                  spatial: mm
-                  moment:  rad
-
-                */
-
-                if (Options::cloTuneOnly)
-                    throw OpalException("Do only CLO and tune calculation","... ");
-
-
-                auto sigma = siggen->getSigma();
-                // change units from mm to m
-                for (unsigned int i = 0; i < 3; ++ i) {
-                    for (unsigned int j = 0; j < 6; ++ j) {
-                        sigma(2 * i, j) *= 1e-3;
-                        sigma(j, 2 * i) *= 1e-3;
-                    }
-                }
-
-                for (unsigned int i = 0; i < 3; ++ i) {
-                    if ( sigma(2 * i, 2 * i) < 0 || sigma(2 * i + 1, 2 * i + 1) < 0 )
-                        throw OpalException("Distribution::CreateMatchedGaussDistribution()",
-                                            "Negative value on the diagonal of the sigma matrix.");
-
-                    sigmaR_m[i] = std::sqrt(sigma(2 * i, 2 * i));
-                    sigmaP_m[i] = std::sqrt(sigma(2 * i + 1, 2 * i + 1));
-                }
-
-                if (inputMoUnits_m == InputMomentumUnitsT::EV) {
-                    for (unsigned int i = 0; i < 3; ++ i) {
-                        sigmaP_m[i] = converteVToBetaGamma(sigmaP_m[i], massIneV);
-                    }
-                }
-
-                correlationMatrix_m(1, 0) = sigma(0, 1) / (sqrt(sigma(0, 0) * sigma(1, 1)));
-                correlationMatrix_m(3, 2) = sigma(2, 3) / (sqrt(sigma(2, 2) * sigma(3, 3)));
-                correlationMatrix_m(5, 4) = sigma(4, 5) / (sqrt(sigma(4, 4) * sigma(5, 5)));
-                correlationMatrix_m(4, 0) = sigma(0, 4) / (sqrt(sigma(0, 0) * sigma(4, 4)));
-                correlationMatrix_m(4, 1) = sigma(1, 4) / (sqrt(sigma(1, 1) * sigma(4, 4)));
-                correlationMatrix_m(5, 0) = sigma(0, 5) / (sqrt(sigma(0, 0) * sigma(5, 5)));
-                correlationMatrix_m(5, 1) = sigma(1, 5) / (sqrt(sigma(1, 1) * sigma(5, 5)));
-
-                createDistributionGauss(numberOfParticles, massIneV);
-            }
-            else {
-                *gmsg << "* Not converged for " << E_m*1E-6 << " MeV" << endl;
-
-                if (siggen)
-                    delete siggen;
-
-                throw OpalException("Distribution::CreateMatchedGaussDistribution",
-                                    "didn't find any matched distribution.");
-            }
-
-            if (siggen)
-                delete siggen;
-
-        }
-        else
-            throw OpalException("Distribution::CreateMatchedGaussDistribution",
-                                "didn't find any Cyclotron element in line");
+    if (NumberOfCyclotrons > 1) {
+        throw OpalException("Distribution::createMatchedGaussDistribution",
+                            "I am confused, found more than one Cyclotron element in line");
     }
+    if (NumberOfCyclotrons == 0) {
+        throw OpalException("Distribution::createMatchedGaussDistribution",
+                            "didn't find any Cyclotron element in line");
+    }
+    const Cyclotron* CyclotronElement = CyclotronVisitor.front();
+
+    *gmsg << "* ----------------------------------------------------" << endl;
+    *gmsg << "* About to find closed orbit and matched distribution " << endl;
+    *gmsg << "* I= " << I_m*1E3 << " (mA)  E= " << E_m*1E-6 << " (MeV)" << endl;
+    *gmsg << "* EX= " << Attributes::getReal(itsAttr[Attrib::Distribution::EX])
+          << "  EY= " << Attributes::getReal(itsAttr[Attrib::Distribution::EY])
+          << "  ET= " << Attributes::getReal(itsAttr[Attrib::Distribution::ET]) << endl
+          << "* FMAPFN= " << Attributes::getString(itsAttr[Attrib::Distribution::FMAPFN]) << endl //CyclotronElement->getFieldMapFN() << endl
+          << "* FMSYM= " << (int)Attributes::getReal(itsAttr[Attrib::Distribution::MAGSYM])
+          << "  HN= "      << CyclotronElement->getCyclHarm()
+          << "  PHIINIT= " << CyclotronElement->getPHIinit()  << endl;
+    *gmsg << "* ----------------------------------------------------" << endl;
+
+    const double wo = CyclotronElement->getRfFrequ()*1E6/CyclotronElement->getCyclHarm()*2.0*Physics::pi;
+
+    const double fmLowE  = CyclotronElement->getFMLowE();
+    const double fmHighE = CyclotronElement->getFMHighE();
+
+    double lE,hE;
+    lE = fmLowE;
+    hE = fmHighE;
+
+    if ((lE<0) || (hE<0)) {
+        lE = E_m*1E-6;
+        hE = E_m*1E-6;
+    }
+
+    int Nint = 1000;
+    bool writeMap = true;
+
+    typedef SigmaGenerator<double, unsigned int> sGenerator_t;
+    sGenerator_t *siggen = new sGenerator_t(I_m,
+                                            Attributes::getReal(itsAttr[Attrib::Distribution::EX])*1E6,
+                                            Attributes::getReal(itsAttr[Attrib::Distribution::EY])*1E6,
+                                            Attributes::getReal(itsAttr[Attrib::Distribution::ET])*1E6,
+                                            wo,
+                                            E_m*1E-6,
+                                            CyclotronElement->getCyclHarm(),
+                                            massIneV*1E-6,
+                                            lE,
+                                            hE,
+                                            (int)Attributes::getReal(itsAttr[Attrib::Distribution::MAGSYM]),
+                                            Nint,
+                                            Attributes::getString(itsAttr[Attrib::Distribution::FMAPFN]),
+                                            Attributes::getReal(itsAttr[Attrib::Distribution::ORDERMAPS]),
+                                            writeMap);
+
+    if (siggen->match(Attributes::getReal(itsAttr[Attrib::Distribution::RESIDUUM]),
+                      Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSSI]),
+                      Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSCO]),
+                      CyclotronElement->getPHIinit(),
+                      Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS]),
+                      Attributes::getString(itsAttr[Attrib::Distribution::FMTYPE]),
+                      false))  {
+
+        std::array<double,3> Emit = siggen->getEmittances();
+
+        if (Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS]) > 0)
+            *gmsg << "* RGUESS " << Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS])/1000.0 << " (m) " << endl;
+
+        *gmsg << "* Converged (Ex, Ey, Ez) = (" << Emit[0] << ", " << Emit[1] << ", "
+              << Emit[2] << ") pi mm mrad for E= " << E_m*1E-6 << " (MeV)" << endl;
+        *gmsg << "* Sigma-Matrix " << endl;
+
+        for (unsigned int i = 0; i < siggen->getSigma().size1(); ++ i) {
+            *gmsg << std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,0);
+            for (unsigned int j = 1; j < siggen->getSigma().size2(); ++ j) {
+                *gmsg << " & " <<  std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,j);
+            }
+            *gmsg << " \\\\" << endl;
+        }
+
+        /*
+
+          Now setup the distribution generator
+          Units of the Sigma Matrix:
+
+          spatial: mm
+          moment:  rad
+
+        */
+
+        if (Options::cloTuneOnly)
+            throw OpalException("Do only CLO and tune calculation","... ");
+
+
+        auto sigma = siggen->getSigma();
+        // change units from mm to m
+        for (unsigned int i = 0; i < 3; ++ i) {
+            for (unsigned int j = 0; j < 6; ++ j) {
+                sigma(2 * i, j) *= 1e-3;
+                sigma(j, 2 * i) *= 1e-3;
+            }
+        }
+
+        for (unsigned int i = 0; i < 3; ++ i) {
+            if ( sigma(2 * i, 2 * i) < 0 || sigma(2 * i + 1, 2 * i + 1) < 0 )
+                throw OpalException("Distribution::CreateMatchedGaussDistribution()",
+                                    "Negative value on the diagonal of the sigma matrix.");
+
+            sigmaR_m[i] = std::sqrt(sigma(2 * i, 2 * i));
+            sigmaP_m[i] = std::sqrt(sigma(2 * i + 1, 2 * i + 1));
+        }
+
+        if (inputMoUnits_m == InputMomentumUnitsT::EV) {
+            for (unsigned int i = 0; i < 3; ++ i) {
+                sigmaP_m[i] = converteVToBetaGamma(sigmaP_m[i], massIneV);
+            }
+        }
+
+        correlationMatrix_m(1, 0) = sigma(0, 1) / (sqrt(sigma(0, 0) * sigma(1, 1)));
+        correlationMatrix_m(3, 2) = sigma(2, 3) / (sqrt(sigma(2, 2) * sigma(3, 3)));
+        correlationMatrix_m(5, 4) = sigma(4, 5) / (sqrt(sigma(4, 4) * sigma(5, 5)));
+        correlationMatrix_m(4, 0) = sigma(0, 4) / (sqrt(sigma(0, 0) * sigma(4, 4)));
+        correlationMatrix_m(4, 1) = sigma(1, 4) / (sqrt(sigma(1, 1) * sigma(4, 4)));
+        correlationMatrix_m(5, 0) = sigma(0, 5) / (sqrt(sigma(0, 0) * sigma(5, 5)));
+        correlationMatrix_m(5, 1) = sigma(1, 5) / (sqrt(sigma(1, 1) * sigma(5, 5)));
+
+        createDistributionGauss(numberOfParticles, massIneV);
+    }
+    else {
+        *gmsg << "* Not converged for " << E_m*1E-6 << " MeV" << endl;
+
+        if (siggen)
+            delete siggen;
+
+        throw OpalException("Distribution::CreateMatchedGaussDistribution",
+                            "didn't find any matched distribution.");
+    }
+
+    if (siggen)
+        delete siggen;
 }
 
 void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV) {
@@ -3556,15 +3555,15 @@ void Distribution::setAttributes() {
     itsAttr[Attrib::Distribution::LINE]
         = Attributes::makeString("LINE", "Beamline that contains a cyclotron or ring ", "");
     itsAttr[Attrib::Distribution::FMAPFN]
-        = Attributes::makeString("FMAPFN", "File for reading fieldmap used to create matched distibution ", "");
+        = Attributes::makeString("FMAPFN", "File for reading fieldmap used to create matched distribution ", "");
     itsAttr[Attrib::Distribution::FMTYPE]
         = Attributes::makeString("FMTYPE", "File format for reading fieldmap used to create matched distribution ", "");
     itsAttr[Attrib::Distribution::EX]
-        = Attributes::makeReal("EX", "Projected normalized emittance EX (m-rad), used to create matched distibution ", 1E-6);
+        = Attributes::makeReal("EX", "Projected normalized emittance EX (m-rad), used to create matched distribution ", 1E-6);
     itsAttr[Attrib::Distribution::EY]
-        = Attributes::makeReal("EY", "Projected normalized emittance EY (m-rad) used to create matched distibution ", 1E-6);
+        = Attributes::makeReal("EY", "Projected normalized emittance EY (m-rad) used to create matched distribution ", 1E-6);
     itsAttr[Attrib::Distribution::ET]
-        = Attributes::makeReal("ET", "Projected normalized emittance EY (m-rad) used to create matched distibution ", 1E-6);
+        = Attributes::makeReal("ET", "Projected normalized emittance ET (m-rad) used to create matched distribution ", 1E-6);
     itsAttr[Attrib::Distribution::E2]
         = Attributes::makeReal("E2", "If E2<Eb, we compute the tunes from the beams energy Eb to E2 with dE=0.25 MeV ", 0.0);
     itsAttr[Attrib::Distribution::RESIDUUM]
