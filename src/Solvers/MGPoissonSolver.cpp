@@ -111,8 +111,18 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch &beam,
             throw OpalException("MGPoissonSolver::MGPoissonSolver",
                                 "Geometry not known");
         }
-    } else
+    } else {
+        NDIndex<3> localId = layout_m->getLocalNDIndex();
+        if (localId[0].length() != domain_m[0].length() ||
+            localId[1].length() != domain_m[1].length()) {
+            throw OpalException("ArbitraryDomain::compute",
+                                "The class ArbitraryDomain only works with parallelization\n"
+                                "in z-direction.\n"
+                                "Please set PARFFTX=FALSE, PARFFTY=FALSE, PARFFTT=TRUE in \n"
+                                "the definition of the field solver in the input file.\n");
+        }
 	bp = new ArbitraryDomain(currentGeometry, orig_nr_m, hr_m, interpl);
+    }
 
     Map = 0;
     A = Teuchos::null;
