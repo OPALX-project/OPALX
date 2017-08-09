@@ -1807,6 +1807,7 @@ Change orientation if diff is:
     *gmsg << "* Triangle barycent built done." << endl;
 
     *gmsg << *this << endl;
+    Ippl::Comm->barrier();
     IpplTimings::stopTimer (Tinitialize_m);
 }
 
