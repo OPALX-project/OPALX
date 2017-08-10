@@ -34,8 +34,14 @@ enum FORMAT {
     ASCII = SDDS_ASCII
 };
 
-data_t readStepData(h5_file_t *file);
-attributes_t readStepAttributes(h5_file_t *file);
+#if defined (USE_H5HUT2)
+typedef h5_file_t file_t;
+#else
+typedef h5_file_t* file_t;
+#endif
+
+data_t readStepData(file_t file);
+attributes_t readStepAttributes(file_t file);
 void readH5HutFile(const std::string &fname, size_t step, data_t &data, attributes_t &attr);
 void convertToElegantUnits(data_t &data);
 void writeSDDSFile(const std::string &fname, const data_t &data, const attributes_t &attr, FORMAT form);
@@ -104,7 +110,15 @@ void reportOnError(h5_int64_t rc, const char* file, int line) {
 }
 
 void readH5HutFile(const std::string &fname, size_t step, data_t &data, attributes_t &attr) {
-    h5_file_t *file = H5OpenFile(fname.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, MPI_COMM_WORLD);
+#if defined (USE_H5HUT2)
+    h5_prop_t props = H5CreateFileProp ();
+    MPI_Comm comm = MPI_COMM_WORLD;
+    H5SetPropFileMPIOCollective (props, &comm);
+
+    file_t file = H5OpenFile(fname.c_str(), H5_O_RDONLY, props);
+#else
+    file_t file = H5OpenFile(fname.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, MPI_COMM_WORLD);
+#endif
     h5_ssize_t numStepsInSource = H5GetNumSteps(file);
     h5_ssize_t readStep = (step > (size_t)(numStepsInSource - 1)? numStepsInSource - 1: step);
 
@@ -115,7 +129,7 @@ void readH5HutFile(const std::string &fname, size_t step, data_t &data, attribut
     REPORTONERROR(H5CloseFile(file));
 }
 
-data_t readStepData(h5_file_t *file) {
+data_t readStepData(file_t file) {
     data_t data;
 
     h5_ssize_t numParticles = H5PartGetNumParticles(file);
@@ -162,7 +176,7 @@ data_t readStepData(h5_file_t *file) {
 
     return data;
 }
-Attribute readAttribute(h5_file_t *file,
+Attribute readAttribute(file_t file,
                         const std::string &name,
                         const std::string &H5name,
                         unsigned int numComponents) {
@@ -181,7 +195,7 @@ Attribute readAttribute(h5_file_t *file,
     return attr;
 }
 
-attributes_t readStepAttributes(h5_file_t *file) {
+attributes_t readStepAttributes(file_t file) {
     attributes_t attr;
 
     attr.insert(readAttribute(file, "energy", "ENERGY", 1));
@@ -306,7 +320,15 @@ void writeSDDSFile(const std::string &fname, const data_t &data, const attribute
 }
 
 void printInfo(const std::string &input) {
-    h5_file_t *file = H5OpenFile(input.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, MPI_COMM_WORLD);
+#if defined (USE_H5HUT2)
+    h5_prop_t props = H5CreateFileProp ();
+    MPI_Comm comm = MPI_COMM_WORLD;
+    H5SetPropFileMPIOCollective (props, &comm);
+
+    file_t file = H5OpenFile(input.c_str(), H5_O_RDONLY, props);
+#else
+    file_t file = H5OpenFile(input.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, MPI_COMM_WORLD);
+#endif
     h5_ssize_t numStepsInSource = H5GetNumSteps(file);
 
     std::cout << std::left << std::setw(15) << "Step number" << std::setw(15) << "Position [m]" << std::endl;
