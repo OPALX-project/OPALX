@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <fstream>
 #include <cstring>
+#include <cstdio>
 
 struct Attribute {
     std::string name;
@@ -246,6 +247,8 @@ void writeSDDSFile(const std::string &fname, const data_t &data, const attribute
     strcpy(buffer0, fname.c_str());
     strcpy(buffer1, "extracted OPAL data");
     if (SDDS_InitializeOutput(&SDDS_dataset, form, 1, buffer1, NULL, buffer0 ) != 1) {
+        SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+        fflush(stdout);
         std::cerr << "Error: couldn't open file '" << fname << "'\n" << std::endl;
         std::exit(1);
     }
@@ -254,6 +257,8 @@ void writeSDDSFile(const std::string &fname, const data_t &data, const attribute
         strcpy(buffer0, at.name.c_str());
         strcpy(buffer1, at.unit.c_str());
         if (SDDS_DefineSimpleParameter(&SDDS_dataset, buffer0, buffer1, SDDS_DOUBLE) != 1) {
+            SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+            fflush(stdout);
             std::cerr << "Error: couldn't append parameter '" << at.name << "'\n" << std::endl;
             std::exit(1);
         }
@@ -270,18 +275,24 @@ void writeSDDSFile(const std::string &fname, const data_t &data, const attribute
                               NULL,
                               NULL,
                               SDDS_DOUBLE,
-                              0) != 1) {
+                              0) == -1) {
+            SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+            fflush(stdout);
             std::cerr << "Error: couldn't append column '" << names.first << "'\n" << std::endl;
             std::exit(1);
         }
     }
 
     if (SDDS_WriteLayout(&SDDS_dataset) != 1) {
+        SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+        fflush(stdout);
         std::cerr << "Error: couldn't write layout\n" << std::endl;
         std::exit(1);
     }
 
     if (SDDS_StartPage(&SDDS_dataset, rows) != 1) {
+        SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+        fflush(stdout);
         std::cerr << "Error: couldn't start page\n" << std::endl;
         std::exit(1);
     }
@@ -289,6 +300,8 @@ void writeSDDSFile(const std::string &fname, const data_t &data, const attribute
     for (auto at: attr) {
         if (SDDS_SetParameters(&SDDS_dataset, SDDS_SET_BY_NAME | SDDS_PASS_BY_VALUE,
                                at.name.c_str(), at.value[0], NULL) != 1) {
+            SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+            fflush(stdout);
             std::cerr << "Error: couldn't write parameter '" << at.name << "'\n" << std::endl;
             std::exit(1);
         }
@@ -303,17 +316,23 @@ void writeSDDSFile(const std::string &fname, const data_t &data, const attribute
                               "yp", data.at(nameConversion.at("yp"))[i],
                               "p", data.at(nameConversion.at("p"))[i],
                               NULL) != 1) {
+            SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+            fflush(stdout);
             std::cerr << "Error: couldn't add row\n" << std::endl;
             std::exit(1);
         }
     }
 
     if (SDDS_WritePage(&SDDS_dataset) != 1) {
+        SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+        fflush(stdout);
         std::cerr << "Error: couldn't write page\n" << std::endl;
         std::exit(1);
     }
 
     if (SDDS_Terminate(&SDDS_dataset) != 1) {
+        SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+        fflush(stdout);
         std::cerr << "Error: couldn't terminate properly\n" << std::endl;
         std::exit(1);
     }
