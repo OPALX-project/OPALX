@@ -46,6 +46,7 @@
 #include <gsl/gsl_sf_erf.h>
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
+#include <gsl/gsl_qrng.h>
 
 #include <sys/time.h>
 
@@ -122,11 +123,7 @@ Distribution::Distribution():
     ppVw_m(0.0),
     vVThermal_m(0.0),
     I_m(0.0),
-    E_m(0.0),
-    M_m(0.0),
-    referencePz_m(0.0),
-    referenceZ_m(0.0),
-    bega_m(0.0)
+    E_m(0.0)
 {
     setAttributes();
 
@@ -223,13 +220,11 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     vVThermal_m(parent->vVThermal_m),
     I_m(parent->I_m),
     E_m(parent->E_m),
-    M_m(parent->M_m),
     tRise_m(parent->tRise_m),
     tFall_m(parent->tFall_m),
     sigmaRise_m(parent->sigmaRise_m),
     sigmaFall_m(parent->sigmaFall_m),
-    cutoff_m(parent->cutoff_m),
-    bega_m(parent->bega_m)
+    cutoff_m(parent->cutoff_m)
 {
     gsl_rng_env_setup();
     randGen_m = gsl_rng_alloc(gsl_rng_default);
@@ -237,30 +232,12 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
 
 Distribution::~Distribution() {
 
-    if ((Ippl::getNodes() == 1) && (os_m.is_open()))
-        os_m.close();
-
-    if (energyBins_m != NULL) {
-        delete energyBins_m;
-        energyBins_m = NULL;
-    }
-
-    if (energyBinHist_m != NULL) {
-        gsl_histogram_free(energyBinHist_m);
-        energyBinHist_m = NULL;
-    }
-
-    if (randGen_m != NULL) {
-        gsl_rng_free(randGen_m);
-        randGen_m = NULL;
-    }
-
-    if (laserProfile_m) {
-        delete laserProfile_m;
-        laserProfile_m = NULL;
-    }
-
+    delete energyBins_m;
+    gsl_histogram_free(energyBinHist_m);
+    gsl_rng_free(randGen_m);
+    delete laserProfile_m;
 }
+
 /*
   void Distribution::printSigma(SigmaGenerator<double,unsigned int>::matrix_type& M, Inform& out) {
   for (int i=0; i<M.size1(); ++i) {
@@ -291,34 +268,6 @@ size_t Distribution::getNumOfLocalParticlesToCreate(size_t n) {
         ++ locNumber;
 
     return locNumber;
-}
-
-
-
-/**
- * At the moment only write the header into the file dist.dat
- * PartBunch will then append (very ugly)
- * @param
- * @param
- * @param
- */
-void Distribution::writeToFile() {
-    /*
-      if (Ippl::getNodes() == 1) {
-      if (os_m.is_open()) {
-      ;
-      } else {
-      *gmsg << " Write distribution to file data/dist.dat" << endl;
-      std::string file("data/dist.dat");
-      os_m.open(file.c_str());
-      if (os_m.bad()) {
-      *gmsg << "Unable to open output file " <<  file << endl;
-      }
-      os_m << "# x y ti px py pz "  << std::endl;
-      os_m.close();
-      }
-      }
-    */
 }
 
 /// Distribution can only be replaced by another distribution.
@@ -1091,24 +1040,12 @@ void Distribution::chooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUn
 
 }
 
-double Distribution::convertBetaGammaToeV(double valueInBetaGamma, double massIneV) {
-    double value = std::copysign(sqrt(pow(valueInBetaGamma, 2.0) + 1.0) - 1.0, valueInBetaGamma);
-    if (std::abs(value) < std::numeric_limits<double>::epsilon())
-        value = std::copysign(1.0 + 0.5 * pow(valueInBetaGamma, 2.0), valueInBetaGamma);
-
-    return value * massIneV;
-}
-
 double Distribution::converteVToBetaGamma(double valueIneV, double massIneV) {
     double value = std::copysign(sqrt(pow(std::abs(valueIneV) / massIneV + 1.0, 2.0) - 1.0), valueIneV);
     if (std::abs(value) < std::numeric_limits<double>::epsilon())
         value = std::copysign(sqrt(2 * std::abs(valueIneV) / massIneV), valueIneV);
 
     return value;
-}
-
-double Distribution::convertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV) {
-    return sqrt(pow(valueInMeVPerC * 1.0e6 * Physics::c / massIneV + 1.0, 2.0) - 1.0);
 }
 
 void Distribution::createDistributionBinomial(size_t numberOfParticles, double massIneV) {
@@ -1466,15 +1403,13 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
     else {
         *gmsg << "* Not converged for " << E_m*1E-6 << " MeV" << endl;
 
-        if (siggen)
-            delete siggen;
+        delete siggen;
 
         throw OpalException("Distribution::CreateMatchedGaussDistribution",
                             "didn't find any matched distribution.");
     }
 
-    if (siggen)
-        delete siggen;
+    delete siggen;
 }
 
 void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV) {
@@ -1540,7 +1475,6 @@ void Distribution::createOpalCycl(PartBunch &beam,
 
     E_m = (beam.getInitialGamma()-1.0)*beam.getM();
     I_m = current;
-    bega_m = beam.getInitialGamma()*beam.getInitialBeta();
 
     /*
      * When scan mode is true, we need to destroy particles except
@@ -4417,8 +4351,7 @@ void Distribution::setupParticleBins(double massIneV, PartBunch &beam) {
         = static_cast<int>(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::NBIN])));
 
     if (numberOfEnergyBins_m > 0) {
-        if (energyBins_m)
-            delete energyBins_m;
+        delete energyBins_m;
 
         int sampleBins = static_cast<int>(std::abs(Attributes::getReal(itsAttr[Attrib::Legacy::Distribution::SBIN])));
         energyBins_m = new PartBins(numberOfEnergyBins_m, sampleBins);

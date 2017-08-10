@@ -19,9 +19,7 @@
 // ------------------------------------------------------------------------
 #include <iosfwd>
 #include <fstream>
-#include <forward_list>
 #include <string>
-#include <map>
 
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
@@ -36,7 +34,6 @@
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_histogram.h>
-#include <gsl/gsl_qrng.h>
 
 #ifdef WITH_UNIT_TESTS
 #include <gtest/gtest_prod.h>
@@ -338,17 +335,6 @@ public:
     void shiftBeam(double &maxTOrZ, double &minTOrZ);
     double getEmissionTimeShift() const;
 
-    // in case if OPAL-cycl in restart mode
-    double GetBeGa() {return bega_m;}
-    double GetPr() {return referencePr_m;}
-    double GetPt() {return referencePt_m;}
-    double GetPz() {return referencePz_m;}
-    double GetR() {return referenceR_m;}
-    double GetTheta() {return referenceTheta_m;}
-    double GetZ() {return referenceZ_m;}
-
-    double GetPhi() {return phi_m;}
-    double GetPsi() {return psi_m;}
     bool GetPreviousH5Local() {return previousH5Local_m;}
 
     void setNumberOfDistributions(unsigned int n) { numberOfDistributions_m = n; }
@@ -365,8 +351,8 @@ private:
     Distribution(const std::string &name, Distribution *parent);
 
     // Not implemented.
-    Distribution(const Distribution &);
-    void operator=(const Distribution &);
+    Distribution(const Distribution &) = delete;
+    void operator=(const Distribution &) = delete;
 
     //    void printSigma(SigmaGenerator<double,unsigned int>::matrix_type& M, Inform& out);
     void addDistributions();
@@ -380,9 +366,7 @@ private:
     void checkIfEmitted();
     void checkParticleNumber(size_t &numberOfParticles);
     void chooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUnitsT inputMoUnits);
-    double convertBetaGammaToeV(double valueInbega, double mass);
     double converteVToBetaGamma(double valueIneV, double massIneV);
-    double convertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV);
     size_t getNumberOfParticlesInFile(std::ifstream &inputFile);
 
     class BinomialBehaviorSplitter {
@@ -462,12 +446,9 @@ private:
     void writeOutFileHeader();
     void writeOutFileEmission();
     void writeOutFileInjection();
-    void writeToFile();
 
     std::string distT_m;                 /// Distribution type. Declared as string
     DistrTypeT::DistrTypeT distrTypeT_m; /// and list type for switch statements.
-    std::ofstream os_m;                  /// Output file to write distribution.
-    void writeToFileCycl(PartBunch &beam, size_t Np);
 
     unsigned int numberOfDistributions_m;
 
@@ -596,21 +577,8 @@ private:
 
 
     // AAA This is for the matched distribution
-    double ex_m;
-    double ey_m;
-    double et_m;
-
     double I_m;
     double E_m;
-    double bg_m;                      /// beta gamma
-    double M_m;                       /// mass in terms of proton mass
-    std::string bfieldfn_m;           /// only temporarly
-
-
-
-
-
-    // Some legacy members that need to be cleaned up.
 
     /// time binned distribution with thermal energy
     double tRise_m;
@@ -619,18 +587,7 @@ private:
     double sigmaFall_m;
     double cutoff_m;
 
-    // Cyclotron stuff
-    double referencePr_m;
-    double referencePt_m;
-    double referencePz_m;
-    double referenceR_m;
-    double referenceTheta_m;
-    double referenceZ_m;
-    double bega_m;
-
     // Cyclotron for restart in local mode
-    double phi_m;
-    double psi_m;
     bool previousH5Local_m;
 };
 
