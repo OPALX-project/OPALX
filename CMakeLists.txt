@@ -124,35 +124,21 @@ ENDIF (USE_H5HUT2)
 IF (ENABLE_AMR)
     MESSAGE (STATUS "Enable AMR_SOLVER    " ${ENABLE_AMR})
     ENABLE_LANGUAGE (Fortran)
-
-    SET (BL_SPACEDIM 3 CACHE INT "Dimension of AMReX build")
-    SET (ENABLE_MPI 1 CACHE INT "Enable build with MPI")
-    SET (ENABLE_OpenMP 0 CACHE INT "Enable build with OpenMP")
-    SET (BL_PRECISION "DOUBLE" CACHE INT "Precision of AMReX build")
-    SET (BL_USE_PARTICLES 1 CACHE INT "Include Particles classes in AMReX build")
-    SET (BL_DEBUG 0 CACHE INT "Include debugging information in AMReX build")
-    SET (ENABLE_PROFILING 0 CACHE INT "Include profiling information in AMReX build")
-    SET (ENABLE_BACKTRACE 0 CACHE INT "Include backtrace information in AMReX build")
     
-    SET ( CCSE_DIR $ENV{AMREX_PREFIX} )
-    SET ( CCSE_LIBRARY_DIR $ENV{AMREX_LIBRARY_DIR} )
+    find_package (AMReX CONFIG REQUIRED HINTS $ENV{AMREX_HOME}/cmake $ENV{AMREX_DIR}/cmake $ENV{AMREX_PREFIX}/cmake)
 
-    FIND_PACKAGE (CCSE REQUIRED)
-
-    MESSAGE (STATUS "Found AMReX include dir: ${CCSE_INCLUDE_DIR}")
-    MESSAGE (STATUS "Found AMReX library dir: ${CCSE_LIBRARY_DIR}")
-
-    # FIXME disable due to AMReX
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-variable -Wno-unused-variable -Wno-maybe-uninitialized")
-
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBL_PRECISION=${BL_PRECISION}")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_MPI=${ENABLE_MPI}")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_OpenMP=${ENABLE_OpenMP}")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_PARTICLES=${BL_USE_PARTICLES}")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBL_DEBUG=${BL_DEBUG}")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_BACKTRACE=${ENABLE_BACKTRACE}")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_PROFILING=${ENABLE_PROFILING}")
-    SET (CMAKE_CXX_FLAGS "-DENABLE_AMR ${CMAKE_CXX_FLAGS}")
+    MESSAGE (STATUS "Found AMReX include dir: ${AMREX_INCLUDE_DIR}")
+    MESSAGE (STATUS "Found AMReX library dir: ${AMREX_LIBRARY_DIR}")
+    MESSAGE (STATUS "Found AMReX libraries: ${AMREX_LIBRARIES}")
+    MESSAGE (STATUS "AMReX built with: ${AMREX_DEFINES}")
+    
+    # We need to replace the quotes of the AMREX_GIT_VERSION flag in AMREX_DEFINES
+    # otherwise IpplVersions.h complains
+    STRING(REPLACE "\"" "'" AMREX_DEFINES ${AMREX_DEFINES})
+    
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_AMR ${AMREX_DEFINES}")
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-unused-but-set-variable -Wno-maybe-uninitialized")
+    
 ENDIF (ENABLE_AMR)
 
 # remove digits from hostname: edison03 -> edison
