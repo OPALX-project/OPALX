@@ -9,22 +9,22 @@ message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
 #     message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
     
 set (CMAKE_CXX_FLAGS
-    "-O3 ${CMAKE_CXX_FLAGS} -DBL_USE_FORTRAN_MPI"
+    "-O3 ${CMAKE_CXX_FLAGS}"
     )
     
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11"
+    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 ${AMREX_DEFINES}"
 )
 
 include_directories (
-    ${CCSE_INCLUDE_DIR}
+    ${AMREX_INCLUDE_DIR}
 )
     
 link_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
     ${IPPL_LIBRARY_DIR}
-    ${CCSE_LIBRARY_DIR}
+    ${AMREX_LIBRARY_DIR}
     ${HYPRE_LIBRARY_DIR}
 )
     
@@ -73,22 +73,22 @@ if ( ${BL_SPACEDIM} EQUAL 3 )
                        COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/inputs $<TARGET_FILE_DIR:testDeposition>)
 
     target_link_libraries (testDeposition ${LIBS}
-                           -lgfortran ${CCSE_LIBRARIES}
+                           -lgfortran ${AMREX_LIBRARIES}
                            -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
                         
     target_link_libraries (AssignMultiLevelDensity ${LIBS}
-                           -lgfortran ${CCSE_LIBRARIES}
+                           -lgfortran ${AMREX_LIBRARIES}
                            -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
     target_link_libraries (testGeometry ${LIBS}
-                           -lgfortran ${CCSE_LIBRARIES}
+                           -lgfortran ${AMREX_LIBRARIES}
                            -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testDepositionFail ${LIBS}
-                           -lgfortran ${CCSE_LIBRARIES}
+                           -lgfortran ${AMREX_LIBRARIES}
                            -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testSolverFail ${LIBS}
-                           -lgfortran ${CCSE_LIBRARIES}
+                           -lgfortran ${AMREX_LIBRARIES}
                            -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 endif()
