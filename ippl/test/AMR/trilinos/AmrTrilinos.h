@@ -24,6 +24,8 @@
 #include <AMReX_BCUtil.H>
 #include <AMReX_MacBndry.H>
 
+#include <AMReX_FluxRegister.H>
+
 using namespace amrex;
 
 class AmrTrilinos {
@@ -95,6 +97,9 @@ private:
                      AmrField_t& efield,
                      const Geometry& geom, int lev);
     
+    void getGradient_1(AmrField_t& phi, AmrField_t& efield,
+                       const Geometry& geom, int lev);
+    
     
     void buildLevelMask_m(const BoxArray& grids,
                           const DistributionMapping& dmap,
@@ -120,14 +125,14 @@ private:
     }
     
     
-    void buildGeometry_m(const AmrField_t& rho, const AmrField_t& phi,
-                         const Geometry& geom, int lev, EllipticDomain& bp);
+//     void buildGeometry_m(const AmrField_t& rho, const AmrField_t& phi,
+//                          const Geometry& geom, int lev, EllipticDomain& bp);
     
-    void solveLevelGeometry_m(AmrField_t& phi,
-                              const AmrField_t& rho,
-                              const Geometry& geom, int lev, EllipticDomain& bp);
+//     void solveLevelGeometry_m(AmrField_t& phi,
+//                               const AmrField_t& rho,
+//                               const Geometry& geom, int lev, EllipticDomain& bp);
     
-    void fillMatrixGeometry_m(const Geometry& geom, const AmrField_t& phi, int lev, EllipticDomain& bp);
+//     void fillMatrixGeometry_m(const Geometry& geom, const AmrField_t& phi, int lev, EllipticDomain& bp);
     
     void setBoundaryValue_m(AmrField_t& phi, const AmrField_t& crse_phi = nullptr,
                             IntVect crse_ratio = IntVect::TheZeroVector())
@@ -163,7 +168,7 @@ private:
                                 in_rad, out_rad, extent_rad, ncomp);
             crse_br.copyFrom(*crse_phi, crse_phi->nGrow(), 0, 0, ncomp);
             
-            bndry_m->setBndryValues(crse_br, 0, *phi, 0, 0, ncomp, crse_ratio, phys_bc);
+            bndry_m->setBndryValues(crse_br, 0, *phi, 0, 0, ncomp, crse_ratio, phys_bc, 3);
             
 //             print_m(phi);
             
@@ -186,7 +191,7 @@ private:
                 for (int j = lo[1]-1; j <= hi[1]+1; ++j) {
                     for (int k = lo[2]-1; k <= hi[2]+1; ++k) {
                         IntVect iv(i, j, k);
-                        std::cout << iv << " " << fab(iv) << std::endl; std::cin.get();
+                        std::cout << iv << " " << fab(iv) << std::endl;// std::cin.get();
                     }
                 }
             }
@@ -248,12 +253,86 @@ private:
         amrex::FillDomainBoundary(phi, geom, bc);
     }
     
+    void computeFlux_m(const AmrField_t& phi, const Geometry& geom, int lev) {
+        
+        fluxes_m.resize(lev + 1);
+        
+        fluxes_m[lev].resize(BL_SPACEDIM);
+        
+        for (int n = 0; n < BL_SPACEDIM; ++n) {
+            BoxArray ba = phi->boxArray();
+            const DistributionMapping& dmap = phi->DistributionMap();
+            fluxes_m[lev][n].reset(new MultiFab(ba.surroundingNodes(n), dmap, 1, 1));
+            fluxes_m[lev][n]->setVal(0.0, 1);
+        }
+        
+        const double* dx = geom.CellSize();
+        
+        for (MFIter mfi(*masks_m[lev], false); mfi.isValid(); ++mfi) {
+            const Box&          bx   = mfi.validbox();
+            const FArrayBox&    pfab = (*phi)[mfi];
+            FArrayBox&          xface = (*fluxes_m[lev][0])[mfi];
+            FArrayBox&          yface = (*fluxes_m[lev][1])[mfi];
+            FArrayBox&          zface = (*fluxes_m[lev][2])[mfi];
+            
+            const int* lo = bx.loVect();
+            const int* hi = bx.hiVect();
+            
+            for (int i = lo[0]; i <= hi[0]+1; ++i) {
+                for (int j = lo[1]; j <= hi[1]+1; ++j) {
+                    for (int k = lo[2]; k <= hi[2]+1; ++k) {
+                        
+                        IntVect iv(i, j, k);
+                        
+                        
+                        // x direction
+                        IntVect left(i-1, j, k);
+                        xface(iv) = (pfab(left) - pfab(iv)) / dx[0];
+                        
+                        // y direction
+                        IntVect down(i, j-1, k);
+                        yface(iv) = (pfab(down) - pfab(iv)) / dx[1];
+                        
+                        // z direction
+                        IntVect front(i, j, k-1);
+                        zface(iv) = (pfab(front) - pfab(iv)) / dx[2];
+                    }
+                }
+            }
+        }
+    }
+    
+    void correctFlux_m(container_t& phi, const Array<Geometry>& geom, int lev) {
+        
+        const BoxArray& grids = phi[lev+1]->boxArray();
+        const DistributionMapping& dmap = phi[lev+1]->DistributionMap();
+        IntVect crse_ratio(2, 2, 2);
+        std::unique_ptr<FluxRegister> fine = std::unique_ptr<FluxRegister>(new FluxRegister(grids,
+                                                                                            dmap,
+                                                                                            crse_ratio,
+                                                                                            lev+1,
+                                                                                            1));
+        computeFlux_m(phi[lev+1], geom[lev+1], lev+1);
+        
+        
+        for (int i = 0; i < BL_SPACEDIM ; i++) {
+            Array<MultiFab*> p = amrex::GetArrOfPtrs(fluxes_m[lev+1]);
+            fine->FineAdd((*p[i]), i, 0, 0, 1, 1.);
+        }
+        
+        
+        fine->Reflux(*phi[lev], 1.0, 0, 0, 1, geom[lev]);
+        
+    }
+    
     
 private:
     
     std::unique_ptr<MacBndry> bndry_m;
     
     Array<std::unique_ptr<FabArray<BaseFab<int> > > > masks_m;
+    
+    Array<container_t> fluxes_m;
     
 //     std::set<IntVect> bc_m;
     
