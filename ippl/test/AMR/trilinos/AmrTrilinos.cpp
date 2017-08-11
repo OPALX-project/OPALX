@@ -16,7 +16,6 @@
 
 #include <AMReX_BCUtil.H>
 
-
 // #include "EpetraExt_RowMatrixOut.h"
 // #include "EpetraExt_MultiVectorOut.h"
 // #include "EpetraExt_VectorOut.h"
@@ -76,31 +75,13 @@ void AmrTrilinos::solve(const container_t& rho,
     
     IntVect rr(2, 2, 2);
     
-//     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-//     int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-//     Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
     bndry_m.reset(new MacBndry(grids[0], dmap[0], 1 /*ncomp*/, gm[0]));
-//     bndry_m->setBndryConds(bcs[0], rr, 1);
-//     phi[0]->setBndry(0.0);
-//     this->setBoundaryValue_m(phi[0]);
-    for (int i = 0; i < nLevel_m; ++i) {
-        fillDomainBoundary_m(*phi[i], geom[i]);
-        phi[i]->FillBoundary();
-    }
-    
-    
-//         for (MFIter umfi(*(phi[0])); umfi.isValid(); ++umfi)
-//         {
-//             FArrayBox& dest = (*(phi[0]))[umfi];
-//             dest.copy(fs[umfi],fs[umfi].box());
-//         }
-//     }
     
     // initializes all ghosts to zero
     initGhosts_m();
     
-//     boundaryprint_m();
     this->setBoundaryValue_m(phi[0]);
+    
     
     for (OrientationIter oitr; oitr; ++oitr)
     {
@@ -115,22 +96,25 @@ void AmrTrilinos::solve(const container_t& rho,
     }
     
     for (int i = 0; i < nLevel_m; ++i) {
+        fillDomainBoundary_m(*phi[i], geom[i]);
+        phi[i]->FillBoundary();
+    }
+    
+    for (int i = 0; i < nLevel_m; ++i) {
         int lev = i + lbase;
         
         
         if ( lev > 0 ) {
             // crse-fine interface
             interpFromCoarseLevel_m(phi, geom, lev-1);
+            phi[lev]->setBndry(0.0);
             phi[lev]->FillBoundary();
+            
+            
             
             bndry_m.reset(new MacBndry(grids[lev], dmap[lev], 1 /*ncomp*/, gm[lev]));
             initGhosts_m();
-//             bndry_m->setBndryConds(bcs[0], rr, 1);
             this->setBoundaryValue_m(phi[lev], phi[lev-1], rr);
-            
-//             std::cout << "BOUNDARY" << std::endl;
-//             boundaryprint_m();
-            
             
             for (OrientationIter oitr; oitr; ++oitr)
             {
@@ -143,10 +127,6 @@ void AmrTrilinos::solve(const container_t& rho,
                     dest.copy(fs[umfi],fs[umfi].box());
                 }
             }
-            
-//             std::cout << "PHI" << std::endl;
-//             print_m(phi[lev]);
-            
         }
         
         if ( phi[lev]->contains_nan() )
@@ -155,17 +135,19 @@ void AmrTrilinos::solve(const container_t& rho,
         solveLevel_m(phi[lev], rho[lev], geom[lev], lev);
     }
     
-    
-//     phi[0]->setVal(0.0, 1);
-//     phi[0]->FillBoundary();
-    
-    for (int i = 0; i < nLevel_m; ++i)
-        getGradient(phi[i], efield[i], geom[i],  i);
-    
-    // average down and compute electric field
     for (int lev = lfine - 1; lev >= lbase; --lev) {
         amrex::average_down(*phi[lev+1], 
                              *phi[lev], geom[lev+1], geom[lev], 0, 1, rr);
+        
+    }
+    
+    for (int i = 0; i < nLevel_m; ++i)
+        getGradient_1(phi[i], efield[i], geom[i],  i);
+    
+    // average down and compute electric field
+    for (int lev = lfine - 1; lev >= lbase; --lev) {
+//         amrex::average_down(*phi[lev+1], 
+//                              *phi[lev], geom[lev+1], geom[lev], 0, 1, rr);
         amrex::average_down(*efield[lev+1],
                             *efield[lev],
                             geom[lev+1],
@@ -211,7 +193,9 @@ void AmrTrilinos::linSysSolve_m(AmrField_t& phi, const Geometry& geom) {
     
 //     params->set( "Block Size", 4 );
     params->set( "Maximum Iterations", 10000 );
-    params->set("Convergence Tolerance", 1.0e-3);
+    params->set("Convergence Tolerance", 1.0e-8);
+    params->set("Block Size", 32);
+    
     
     Belos::BlockCGSolMgr<double, Epetra_MultiVector, Epetra_Operator> solver(problem, params);
     
@@ -240,11 +224,13 @@ void AmrTrilinos::linSysSolve_m(AmrField_t& phi, const Geometry& geom) {
 
 void AmrTrilinos::build_m(const AmrField_t& rho, const AmrField_t& phi, const Geometry& geom, int lev)
 {
+#ifdef DEBUG
     if ( Ippl::myNode() == 0 ) {
         std::cout << "nx = " << nPoints_m[0] << std::endl
                   << "ny = " << nPoints_m[1] << std::endl
                   << "nz = " << nPoints_m[2] << std::endl;
     }
+#endif
     
     indexMap_m.clear();
 
@@ -280,32 +266,32 @@ void AmrTrilinos::build_m(const AmrField_t& rho, const AmrField_t& phi, const Ge
                      * level. --> add sum to right-hand side (Dirichlet)
                      */
                     IntVect xl(iv[0] - 1, iv[1], iv[2]);
-                    if ( mfab(xl) > 0/*isBoundary_m(xl)*/ ) {
+                    if ( mfab(xl) == 1/*isBoundary_m(xl)*/ ) {
                         val += pot(xl) / ( dx[0] * dx[0] );
                     }
                         
                     IntVect xr(iv[0] + 1, iv[1], iv[2]);
-                    if ( mfab(xr) > 0/*isBoundary_m(xr)*/ ) {
+                    if ( mfab(xr) == 1/*isBoundary_m(xr)*/ ) {
                         val += pot(xr) / ( dx[0] * dx[0] );
                     }
                     
                     IntVect yl(iv[0], iv[1] - 1, iv[2]);
-                    if ( mfab(yl) > 0/*isBoundary_m(yl)*/ ) {
+                    if ( mfab(yl) == 1/*isBoundary_m(yl)*/ ) {
                         val += pot(yl) / ( dx[1] * dx[1] );
                     }
                     
                     IntVect yr(iv[0], iv[1] + 1, iv[2]);
-                    if ( mfab(yr) > 0/*isBoundary_m(yr)*/ ) {
+                    if ( mfab(yr) == 1/*isBoundary_m(yr)*/ ) {
                         val += pot(yr) / ( dx[1] * dx[1] );
                     }
                     
                     IntVect zl(iv[0], iv[1], iv[2] - 1);
-                    if ( mfab(zl) > 0/*isBoundary_m(zl)*/ ) {
+                    if ( mfab(zl) == 1/*isBoundary_m(zl)*/ ) {
                         val += pot(zl) / ( dx[2] * dx[2] );
                     }
                     
                     IntVect zr(iv[0], iv[1], iv[2] + 1);
-                    if ( mfab(zr) > 0/*isBoundary_m(zr)*/ ) {
+                    if ( mfab(zr) == 1/*isBoundary_m(zr)*/ ) {
                         val += pot(zr) / ( dx[2] * dx[2] );
                     }
                     int globalidx = serialize_m(iv/*shift*/);
@@ -333,10 +319,10 @@ void AmrTrilinos::build_m(const AmrField_t& rho, const AmrField_t& phi, const Ge
     const BoxArray& grids = rho->boxArray();
     int N = grids.numPts();
     
+#ifdef DEBUG
     if ( Ippl::myNode() == 0 )
         std::cout << "N = " << N << std::endl;
-    
-    std::cout << localNumElements << " " << globalindices.size() << std::endl;
+#endif
     
     map_mp = Teuchos::rcp( new Epetra_Map(N, localNumElements,
                                          &globalindices[0], baseIndex, epetra_comm_m) );
@@ -370,8 +356,8 @@ void AmrTrilinos::fillMatrix_m(const Geometry& geom, const AmrField_t& phi, int 
     // 3D --> 7 elements per row
     A_mp = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy, *map_mp, 7) );
     
-    int indices[7];
-    double values[7];
+    int indices[7] = {0, 0, 0, 0, 0, 0, 0};
+    double values[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     
     const double* dx = geom.CellSize();
     
@@ -466,6 +452,7 @@ void AmrTrilinos::fillMatrix_m(const Geometry& geom, const AmrField_t& phi, int 
     
 //     EpetraExt::RowMatrixToMatlabFile("matrix.txt", *A_mp);
     
+#ifdef DEBUG
     if ( Ippl::myNode() == 0 ) {
         std::cout << "Global info" << std::endl
                   << "Number of rows:      " << A_mp->NumGlobalRows() << std::endl
@@ -494,6 +481,7 @@ void AmrTrilinos::fillMatrix_m(const Geometry& geom, const AmrField_t& phi, int 
         }
         Ippl::Comm->barrier();
     }
+#endif
 }
 
 
@@ -596,18 +584,12 @@ void AmrTrilinos::interpFromCoarseLevel_m(container_t& phi,
     
     IntVect rr(2, 2, 2);
     
-//     phi[lev+1]->setVal(0.0, 1);
-    
-//     phi[lev+1]->FillBoundary(geom[lev+1].periodicity());
-    
     amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0,
                                  *phi[lev],
                                  0, 0, 1,
                                  geom[lev], geom[lev+1],
                                  cphysbc, fphysbc,
                                  rr, &mapper, bcs);
-    
-//     phi[lev+1]->FillBoundary(geom[lev+1].periodicity());
 }
 
 
@@ -617,16 +599,10 @@ void AmrTrilinos::getGradient(AmrField_t& phi,
 {
     const double* dx = geom.CellSize();
     
-    
-    fill_boundary(*phi.get(), 0, 1, geom, false);
-    
-//     phi->FillBoundary(geom.periodicity());
-    
     for (MFIter mfi(*masks_m[lev], false); mfi.isValid(); ++mfi) {
         const Box&          bx   = mfi.validbox();
         const FArrayBox&    pfab = (*phi)[mfi];
         FArrayBox&          efab = (*efield)[mfi];
-//         const BaseFab<int>& mfab = (*masks_m[lev])[mfi];
         
         const int* lo = bx.loVect();
         const int* hi = bx.hiVect();
@@ -657,341 +633,399 @@ void AmrTrilinos::getGradient(AmrField_t& phi,
             }
         }
     }
-//         efield[lev]->FillBoundary(0, 3, geom[lev].periodicity());
 }
 
 
-void AmrTrilinos::solveWithGeometry(const container_t& rho,
-                                    container_t& phi,
-                                    container_t& efield,
-                                    const Array<Geometry>& geom,
-                                    int lbase,
-                                    int lfine)
+
+void AmrTrilinos::getGradient_1(AmrField_t& phi,
+                               AmrField_t& efield,
+                               const Geometry& geom, int lev)
 {
+    container_t grad_phi_edge(3);
     
-    double semimajor = 0.5;
-    double semiminor = 0.5;
-    Vector_t nr = Vector_t(geom[0].Domain().length(0),
-                           geom[0].Domain().length(1),
-                           geom[0].Domain().length(2));
-    
-    Vector_t hr = Vector_t(geom[0].CellSize(0),
-                           geom[0].CellSize(1),
-                           geom[0].CellSize(2));
-    
-//     std::cout << " nr = " << nr << " hr = " << hr << std::endl;
-    
-    std::string interpl = "CONSTANT";
-    EllipticDomain bp = EllipticDomain(semimajor, semiminor, nr, hr, interpl);
-    
-    bp.compute(hr);
-    
-    nLevel_m = lfine - lbase + 1;
-    
-    /*
-     * find boundary cells --> mask
-     */
-    Array<BoxArray> grids(nLevel_m);
-    Array<DistributionMapping> dmap(nLevel_m);
-    Array<Geometry> gm(nLevel_m);
-    masks_m.resize(nLevel_m);
-    
-    for (int lev = 0; lev < nLevel_m; ++lev) {
-        grids[lev]   = rho[lev/* + lbase*/]->boxArray();
-        dmap[lev]    = rho[lev/* + lbase*/]->DistributionMap();
-        gm[lev]      = geom[lev/* + lbase*/];
-        
-        efield[lev]->setVal(0.0, 1);
-        phi[lev]->setVal(0.0, 1);
-        
-        this->buildLevelMask_m(grids[lev], dmap[lev], gm[lev], lev);
+    for (int n = 0; n < BL_SPACEDIM; ++n) {
+        BoxArray ba = phi->boxArray();
+        const DistributionMapping& dmap = phi->DistributionMap();
+        grad_phi_edge[n].reset(new MultiFab(ba.surroundingNodes(n), dmap, 1, 1));
+        grad_phi_edge[n]->setVal(0.0, 1);
     }
-    
-    
-    for (int i = 0; i < nLevel_m; ++i) {
-        int lev = i + lbase;
-        
-        
-        if ( lev > 0 ) {
-            interpFromCoarseLevel_m(phi, geom, lev-1);
-        }
-        
-        if ( phi[lev]->contains_nan() )
-            throw std::runtime_error("Nan");
-        
-        solveLevelGeometry_m(phi[lev], rho[lev], geom[lev], lev, bp);
-    }
-    
-    
-    // average down and compute electric field
-    IntVect rr(2, 2, 2);
-    
-    for (int i = 0; i < nLevel_m; ++i)
-        getGradient(phi[i], efield[i], geom[i],  i);
-    
-    
-    for (int lev = lfine - 1; lev >= lbase; --lev) {
-        amrex::average_down(*phi[lev+1], 
-                             *phi[lev], geom[lev+1], geom[lev], 0, 1, rr);
-        amrex::average_down(*efield[lev+1],
-                            *efield[lev],
-                            geom[lev+1],
-                            geom[lev],
-                            0, 3, rr);
-    }
-}
-
-
-void AmrTrilinos::buildGeometry_m(const AmrField_t& rho, const AmrField_t& phi,
-                          const Geometry& geom, int lev, EllipticDomain& bp)
-{
-    if ( Ippl::myNode() == 0 ) {
-        std::cout << "nx = " << nPoints_m[0] << std::endl
-                  << "ny = " << nPoints_m[1] << std::endl
-                  << "nz = " << nPoints_m[2] << std::endl;
-    }
-    
-    indexMap_m.clear();
-
-    int localNumElements = 0;
-    std::vector<double> values, xvalues;
-    std::vector<int> globalindices;
     
     const double* dx = geom.CellSize();
     
-    for (MFIter mfi(*rho, false); mfi.isValid(); ++mfi) {
-        const Box&          bx  = mfi.validbox();
-        const FArrayBox&    fab = (*rho)[mfi];
-        const FArrayBox&    pot = (*phi)[mfi];
-//         const BaseFab<int>& mfab = (*masks_m[lev])[mfi];
-            
+    phi->FillBoundary();
+    
+    for (MFIter mfi(*masks_m[lev], false); mfi.isValid(); ++mfi) {
+        const Box&          bx   = mfi.validbox();
+        const FArrayBox&    pfab = (*phi)[mfi];
+        FArrayBox&          xface = (*grad_phi_edge[0])[mfi];
+        FArrayBox&          yface = (*grad_phi_edge[1])[mfi];
+        FArrayBox&          zface = (*grad_phi_edge[2])[mfi];
+        
         const int* lo = bx.loVect();
         const int* hi = bx.hiVect();
+            
         
-        for (int i = lo[0]; i <= hi[0]; ++i) {
-            for (int j = lo[1]; j <= hi[1]; ++j) {
-                for (int k = lo[2]; k <= hi[2]; ++k) {
-                    
-                    
+        for (int i = lo[0]; i <= hi[0]+1; ++i) {
+            for (int j = lo[1]; j <= hi[1]+1; ++j) {
+                for (int k = lo[2]; k <= hi[2]+1; ++k) {
                     
                     IntVect iv(i, j, k);
                     
-                    double val = 0.0;
                     
-//                     /* The boundary values (ghost cells) of level > 0 need
-//                      * to be the refined values of the next coarser
-//                      * level. --> add sum to right-hand side (Dirichlet)
-//                      */
-//                     IntVect xl(iv[0] - 1, iv[1], iv[2]);
-//                     if ( mfab(xl) == 1/*isBoundary_m(xl)*/ ) {
-//                         val += pot(xl) / ( dx[0] * dx[0] );
-//                     }
-//                         
-//                     IntVect xr(iv[0] + 1, iv[1], iv[2]);
-//                     if ( mfab(xr) == 1/*isBoundary_m(xr)*/ ) {
-//                         val += pot(xr) / ( dx[0] * dx[0] );
-//                     }
-//                     
-//                     IntVect yl(iv[0], iv[1] - 1, iv[2]);
-//                     if ( mfab(yl) == 1/*isBoundary_m(yl)*/ ) {
-//                         val += pot(yl) / ( dx[1] * dx[1] );
-//                     }
-//                     
-//                     IntVect yr(iv[0], iv[1] + 1, iv[2]);
-//                     if ( mfab(yr) == 1/*isBoundary_m(yr)*/ ) {
-//                         val += pot(yr) / ( dx[1] * dx[1] );
-//                     }
-//                     
-//                     IntVect zl(iv[0], iv[1], iv[2] - 1);
-//                     if ( mfab(zl) == 1/*isBoundary_m(zl)*/ ) {
-//                         val += pot(zl) / ( dx[2] * dx[2] );
-//                     }
-//                     
-//                     IntVect zr(iv[0], iv[1], iv[2] + 1);
-//                     if ( mfab(zr) == 1/*isBoundary_m(zr)*/ ) {
-//                         val += pot(zr) / ( dx[2] * dx[2] );
-//                     }
-                    int globalidx = serialize_m(iv/*shift*/);
-                    globalindices.push_back(globalidx);
+                    // x direction
+                    IntVect left(i-1, j, k);
+                    xface(iv) = (pfab(left) - pfab(iv)) / dx[0];
                     
+                    // y direction
+                    IntVect down(i, j-1, k);
+                    yface(iv) = (pfab(down) - pfab(iv)) / dx[1];
                     
-                    // Invect (i, j, k) index --> 1D index
-                    indexMap_m[globalidx] = iv;
-                    
-                    if (bp.isInside(iv[0], iv[1], iv[2]))
-                        values.push_back(fab(iv) + val);
-                    else
-                        values.push_back(0.0);
-                    
-                    xvalues.push_back(pot(iv));
-                    
-                    ++localNumElements;
+                    // z direction
+                    IntVect front(i, j, k-1);
+                    zface(iv) = (pfab(front) - pfab(iv)) / dx[2];
                 }
             }
         }
     }
     
-    // compute map based on localelements
-    // create map that specifies which processor gets which data
-    const int baseIndex = 0;    // where to start indexing
+    
+    amrex::average_face_to_cellcenter(*(efield.get()),
+                                      amrex::GetArrOfConstPtrs(grad_phi_edge),
+                                      geom);
         
-    // numGlobalElements == N
-    const BoxArray& grids = rho->boxArray();
-    int N = grids.numPts();
-    
-    if ( Ippl::myNode() == 0 )
-        std::cout << "N = " << N << std::endl;
-    
-    std::cout << localNumElements << " " << globalindices.size() << std::endl;
-    
-    map_mp = Teuchos::rcp( new Epetra_Map(N, localNumElements,
-                                         &globalindices[0], baseIndex, epetra_comm_m) );
-    
-    // each processor fill in its part of the right-hand side
-    rho_mp = Teuchos::rcp( new Epetra_Vector(*map_mp, false) );
-    
-    // fill vector
-    int success = rho_mp->ReplaceGlobalValues(localNumElements,
-                                              &values[0],
-                                              &globalindices[0]);
-    
-    if ( success == 1 )
-        throw std::runtime_error("Error in filling the vector!");
-    
-    
-    // each processor fill in its part of the right-hand side
-    x_mp = Teuchos::rcp( new Epetra_Vector(*map_mp, false) ); // no initialization to zero
-    success = x_mp->ReplaceGlobalValues(localNumElements,
-                                              &xvalues[0],
-                                              &globalindices[0]);
-    
-    if ( success == 1 )
-        throw std::runtime_error("Error in filling the vector!");
-    
-//     std::cout << "Vector done." << std::endl;
+    efield->FillBoundary(0, BL_SPACEDIM, geom.periodicity());
 }
 
 
-void AmrTrilinos::solveLevelGeometry_m(AmrField_t& phi,
-                                       const AmrField_t& rho,
-                                       const Geometry& geom, int lev,
-                                       EllipticDomain& bp)
-{
-    for (int j = 0; j < 3; ++j)
-        nPoints_m[j] = geom.Domain().length(j);
-    
-    buildGeometry_m(rho, phi, geom, lev, bp);
-    fillMatrixGeometry_m(geom, phi, lev, bp);
-    std::cout << "Start solving." << std::endl;
-    linSysSolve_m(phi, geom);
-}
-
-
-void AmrTrilinos::fillMatrixGeometry_m(const Geometry& geom, const AmrField_t& phi, int lev,
-                                       EllipticDomain& bp)
-{
-    // 3D --> 7 elements per row
-    A_mp = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy, *map_mp, 7) );
-    
-    int indices[7];
-    double values[7];
-    
-    const double* dx = geom.CellSize();
-    
-    int * myGlobalElements = map_mp->MyGlobalElements();
-    for ( int i = 0; i < map_mp->NumMyElements(); ++i) {
-        /*
-         * GlobalRow	- (In) Row number (in global coordinates) to put elements.
-         * NumEntries	- (In) Number of entries.
-         * Values	- (In) Values to enter.
-         * Indices	- (In) Global column indices corresponding to values.
-         */
-        int globalRow = myGlobalElements[i];
-        int numEntries = 0;
-        
-        IntVect iv = indexMap_m[globalRow]/*deserialize_m(globalRow)*/;
-        
-        
-        double WV, EV, SV, NV, FV, BV, CV, scaleFactor=1.0;
-        int W, E, S, N, F, B;
-        
-        bp.getBoundaryStencil(iv[0], iv[1], iv[2]/*myGlobalElements[i]*/, WV, EV, SV, NV, FV, BV, CV, scaleFactor);
-        
-        rho_mp->Values()[i] *= scaleFactor;
-
-        bp.getNeighbours(iv[0], iv[1], iv[2]/*myGlobalElements[i]*/, W, E, S, N, F, B);
-        
-        if(E != -1) {
-            indices[numEntries] = E;
-            values[numEntries++] = EV;
-        }
-        if(W != -1) {
-            indices[numEntries] = W;
-            values[numEntries++] = WV;
-        }
-        if(S != -1) {
-            indices[numEntries] = S;
-            values[numEntries++] = SV;
-        }
-        if(N != -1) {
-            indices[numEntries] = N;
-            values[numEntries++] = NV;
-        }
-        if(F != -1) {
-            indices[numEntries] = F;
-            values[numEntries++] = FV;
-        }
-        if(B != -1) {
-            indices[numEntries] = B;
-            values[numEntries++] = BV;
-        }
-        
-        indices[numEntries] = globalRow;
-        values[numEntries++] = CV;
-        
-        int error = A_mp->InsertGlobalValues(globalRow, numEntries, &values[0], &indices[0]);
-        
-//         std::cout << globalRow << " " << E << " " << W << " " << S << " " << N << " " << F << " " << B << std::endl;
-//         std::cin.get();
-        
-        if ( error != 0 )
-            throw std::runtime_error("Error in filling the matrix!");
-    }
-    
-    A_mp->FillComplete(true);
-    
-    /*
-     * some printing
-     */
-    
-//     EpetraExt::RowMatrixToMatlabFile("matrix.txt", *A_mp);
-    
-    if ( Ippl::myNode() == 0 ) {
-        std::cout << "Global info" << std::endl
-                  << "Number of rows:      " << A_mp->NumGlobalRows() << std::endl
-                  << "Number of cols:      " << A_mp->NumGlobalCols() << std::endl
-                  << "Number of diagonals: " << A_mp->NumGlobalDiagonals() << std::endl
-                  << "Number of non-zeros: " << A_mp->NumGlobalNonzeros() << std::endl
-                  << std::endl;
-    }
-    
-    Ippl::Comm->barrier();
-    
-    for (int i = 0; i < Ippl::getNodes(); ++i) {
-        
-        if ( i == Ippl::myNode() ) {
-            std::cout << "Rank:                "
-                      << i << std::endl
-                      << "Number of rows:      "
-                      << A_mp->NumMyRows() << std::endl
-                      << "Number of cols:      "
-                      << A_mp->NumMyCols() << std::endl
-                      << "Number of diagonals: "
-                      << A_mp->NumMyDiagonals() << std::endl
-                      << "Number of non-zeros: "
-                      << A_mp->NumMyNonzeros() << std::endl
-                      << std::endl;
-        }
-        Ippl::Comm->barrier();
-    }
-}
+// void AmrTrilinos::solveWithGeometry(const container_t& rho,
+//                                     container_t& phi,
+//                                     container_t& efield,
+//                                     const Array<Geometry>& geom,
+//                                     int lbase,
+//                                     int lfine)
+// {
+//     
+//     double semimajor = 0.5;
+//     double semiminor = 0.5;
+//     Vector_t nr = Vector_t(geom[0].Domain().length(0),
+//                            geom[0].Domain().length(1),
+//                            geom[0].Domain().length(2));
+//     
+//     Vector_t hr = Vector_t(geom[0].CellSize(0),
+//                            geom[0].CellSize(1),
+//                            geom[0].CellSize(2));
+//     
+// //     std::cout << " nr = " << nr << " hr = " << hr << std::endl;
+//     
+//     std::string interpl = "CONSTANT";
+//     EllipticDomain bp = EllipticDomain(semimajor, semiminor, nr, hr, interpl);
+//     
+//     bp.compute(hr);
+//     
+//     nLevel_m = lfine - lbase + 1;
+//     
+//     /*
+//      * find boundary cells --> mask
+//      */
+//     Array<BoxArray> grids(nLevel_m);
+//     Array<DistributionMapping> dmap(nLevel_m);
+//     Array<Geometry> gm(nLevel_m);
+//     masks_m.resize(nLevel_m);
+//     
+//     for (int lev = 0; lev < nLevel_m; ++lev) {
+//         grids[lev]   = rho[lev/* + lbase*/]->boxArray();
+//         dmap[lev]    = rho[lev/* + lbase*/]->DistributionMap();
+//         gm[lev]      = geom[lev/* + lbase*/];
+//         
+//         efield[lev]->setVal(0.0, 1);
+//         phi[lev]->setVal(0.0, 1);
+//         
+//         this->buildLevelMask_m(grids[lev], dmap[lev], gm[lev], lev);
+//     }
+//     
+//     
+//     for (int i = 0; i < nLevel_m; ++i) {
+//         int lev = i + lbase;
+//         
+//         
+//         if ( lev > 0 ) {
+//             interpFromCoarseLevel_m(phi, geom, lev-1);
+//         }
+//         
+//         if ( phi[lev]->contains_nan() )
+//             throw std::runtime_error("Nan");
+//         
+//         solveLevelGeometry_m(phi[lev], rho[lev], geom[lev], lev, bp);
+//     }
+//     
+//     
+//     // average down and compute electric field
+//     IntVect rr(2, 2, 2);
+//     
+//     
+//     for (int i = 0; i < nLevel_m; ++i)
+//         getGradient(phi[i], efield[i], geom[i],  i);
+//     
+//     
+//     for (int lev = lfine - 1; lev >= lbase; --lev) {
+//         amrex::average_down(*phi[lev+1], 
+//                              *phi[lev], geom[lev+1], geom[lev], 0, 1, rr);
+//         amrex::average_down(*efield[lev+1],
+//                             *efield[lev],
+//                             geom[lev+1],
+//                             geom[lev],
+//                             0, 3, rr);
+//     }
+// }
+// 
+// 
+// void AmrTrilinos::buildGeometry_m(const AmrField_t& rho, const AmrField_t& phi,
+//                           const Geometry& geom, int lev, EllipticDomain& bp)
+// {
+//     if ( Ippl::myNode() == 0 ) {
+//         std::cout << "nx = " << nPoints_m[0] << std::endl
+//                   << "ny = " << nPoints_m[1] << std::endl
+//                   << "nz = " << nPoints_m[2] << std::endl;
+//     }
+//     
+//     indexMap_m.clear();
+// 
+//     int localNumElements = 0;
+//     std::vector<double> values, xvalues;
+//     std::vector<int> globalindices;
+//     
+//     const double* dx = geom.CellSize();
+//     
+//     for (MFIter mfi(*rho, false); mfi.isValid(); ++mfi) {
+//         const Box&          bx  = mfi.validbox();
+//         const FArrayBox&    fab = (*rho)[mfi];
+//         const FArrayBox&    pot = (*phi)[mfi];
+// //         const BaseFab<int>& mfab = (*masks_m[lev])[mfi];
+//             
+//         const int* lo = bx.loVect();
+//         const int* hi = bx.hiVect();
+//         
+//         for (int i = lo[0]; i <= hi[0]; ++i) {
+//             for (int j = lo[1]; j <= hi[1]; ++j) {
+//                 for (int k = lo[2]; k <= hi[2]; ++k) {
+//                     
+//                     
+//                     
+//                     IntVect iv(i, j, k);
+//                     
+//                     double val = 0.0;
+//                     
+// //                     /* The boundary values (ghost cells) of level > 0 need
+// //                      * to be the refined values of the next coarser
+// //                      * level. --> add sum to right-hand side (Dirichlet)
+// //                      */
+// //                     IntVect xl(iv[0] - 1, iv[1], iv[2]);
+// //                     if ( mfab(xl) == 1/*isBoundary_m(xl)*/ ) {
+// //                         val += pot(xl) / ( dx[0] * dx[0] );
+// //                     }
+// //                         
+// //                     IntVect xr(iv[0] + 1, iv[1], iv[2]);
+// //                     if ( mfab(xr) == 1/*isBoundary_m(xr)*/ ) {
+// //                         val += pot(xr) / ( dx[0] * dx[0] );
+// //                     }
+// //                     
+// //                     IntVect yl(iv[0], iv[1] - 1, iv[2]);
+// //                     if ( mfab(yl) == 1/*isBoundary_m(yl)*/ ) {
+// //                         val += pot(yl) / ( dx[1] * dx[1] );
+// //                     }
+// //                     
+// //                     IntVect yr(iv[0], iv[1] + 1, iv[2]);
+// //                     if ( mfab(yr) == 1/*isBoundary_m(yr)*/ ) {
+// //                         val += pot(yr) / ( dx[1] * dx[1] );
+// //                     }
+// //                     
+// //                     IntVect zl(iv[0], iv[1], iv[2] - 1);
+// //                     if ( mfab(zl) == 1/*isBoundary_m(zl)*/ ) {
+// //                         val += pot(zl) / ( dx[2] * dx[2] );
+// //                     }
+// //                     
+// //                     IntVect zr(iv[0], iv[1], iv[2] + 1);
+// //                     if ( mfab(zr) == 1/*isBoundary_m(zr)*/ ) {
+// //                         val += pot(zr) / ( dx[2] * dx[2] );
+// //                     }
+//                     int globalidx = serialize_m(iv/*shift*/);
+//                     globalindices.push_back(globalidx);
+//                     
+//                     
+//                     // Invect (i, j, k) index --> 1D index
+//                     indexMap_m[globalidx] = iv;
+//                     
+//                     if (bp.isInside(iv[0], iv[1], iv[2]))
+//                         values.push_back(fab(iv) + val);
+//                     else
+//                         values.push_back(0.0);
+//                     
+//                     xvalues.push_back(pot(iv));
+//                     
+//                     ++localNumElements;
+//                 }
+//             }
+//         }
+//     }
+//     
+//     // compute map based on localelements
+//     // create map that specifies which processor gets which data
+//     const int baseIndex = 0;    // where to start indexing
+//         
+//     // numGlobalElements == N
+//     const BoxArray& grids = rho->boxArray();
+//     int N = grids.numPts();
+//     
+//     if ( Ippl::myNode() == 0 )
+//         std::cout << "N = " << N << std::endl;
+//     
+//     std::cout << localNumElements << " " << globalindices.size() << std::endl;
+//     
+//     map_mp = Teuchos::rcp( new Epetra_Map(N, localNumElements,
+//                                          &globalindices[0], baseIndex, epetra_comm_m) );
+//     
+//     // each processor fill in its part of the right-hand side
+//     rho_mp = Teuchos::rcp( new Epetra_Vector(*map_mp, false) );
+//     
+//     // fill vector
+//     int success = rho_mp->ReplaceGlobalValues(localNumElements,
+//                                               &values[0],
+//                                               &globalindices[0]);
+//     
+//     if ( success == 1 )
+//         throw std::runtime_error("Error in filling the vector!");
+//     
+//     
+//     // each processor fill in its part of the right-hand side
+//     x_mp = Teuchos::rcp( new Epetra_Vector(*map_mp, false) ); // no initialization to zero
+//     success = x_mp->ReplaceGlobalValues(localNumElements,
+//                                               &xvalues[0],
+//                                               &globalindices[0]);
+//     
+//     if ( success == 1 )
+//         throw std::runtime_error("Error in filling the vector!");
+//     
+// //     std::cout << "Vector done." << std::endl;
+// }
+// 
+// 
+// void AmrTrilinos::solveLevelGeometry_m(AmrField_t& phi,
+//                                        const AmrField_t& rho,
+//                                        const Geometry& geom, int lev,
+//                                        EllipticDomain& bp)
+// {
+//     for (int j = 0; j < 3; ++j)
+//         nPoints_m[j] = geom.Domain().length(j);
+//     
+//     buildGeometry_m(rho, phi, geom, lev, bp);
+//     fillMatrixGeometry_m(geom, phi, lev, bp);
+//     std::cout << "Start solving." << std::endl;
+//     linSysSolve_m(phi, geom);
+// }
+// 
+// 
+// void AmrTrilinos::fillMatrixGeometry_m(const Geometry& geom, const AmrField_t& phi, int lev,
+//                                        EllipticDomain& bp)
+// {
+//     // 3D --> 7 elements per row
+//     A_mp = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy, *map_mp, 7) );
+//     
+//     int indices[7];
+//     double values[7];
+//     
+//     const double* dx = geom.CellSize();
+//     
+//     int * myGlobalElements = map_mp->MyGlobalElements();
+//     for ( int i = 0; i < map_mp->NumMyElements(); ++i) {
+//         /*
+//          * GlobalRow	- (In) Row number (in global coordinates) to put elements.
+//          * NumEntries	- (In) Number of entries.
+//          * Values	- (In) Values to enter.
+//          * Indices	- (In) Global column indices corresponding to values.
+//          */
+//         int globalRow = myGlobalElements[i];
+//         int numEntries = 0;
+//         
+//         IntVect iv = indexMap_m[globalRow]/*deserialize_m(globalRow)*/;
+//         
+//         
+//         double WV, EV, SV, NV, FV, BV, CV, scaleFactor=1.0;
+//         int W, E, S, N, F, B;
+//         
+//         bp.getBoundaryStencil(iv[0], iv[1], iv[2]/*myGlobalElements[i]*/, WV, EV, SV, NV, FV, BV, CV, scaleFactor);
+//         
+//         rho_mp->Values()[i] *= scaleFactor;
+// 
+//         bp.getNeighbours(iv[0], iv[1], iv[2]/*myGlobalElements[i]*/, W, E, S, N, F, B);
+//         
+//         if(E != -1) {
+//             indices[numEntries] = E;
+//             values[numEntries++] = EV;
+//         }
+//         if(W != -1) {
+//             indices[numEntries] = W;
+//             values[numEntries++] = WV;
+//         }
+//         if(S != -1) {
+//             indices[numEntries] = S;
+//             values[numEntries++] = SV;
+//         }
+//         if(N != -1) {
+//             indices[numEntries] = N;
+//             values[numEntries++] = NV;
+//         }
+//         if(F != -1) {
+//             indices[numEntries] = F;
+//             values[numEntries++] = FV;
+//         }
+//         if(B != -1) {
+//             indices[numEntries] = B;
+//             values[numEntries++] = BV;
+//         }
+//         
+//         indices[numEntries] = globalRow;
+//         values[numEntries++] = CV;
+//         
+//         int error = A_mp->InsertGlobalValues(globalRow, numEntries, &values[0], &indices[0]);
+//         
+//         if ( error != 0 )
+//             throw std::runtime_error("Error in filling the matrix!");
+//     }
+//     
+//     A_mp->FillComplete(true);
+//     
+//     /*
+//      * some printing
+//      */
+//     
+// //     EpetraExt::RowMatrixToMatlabFile("matrix.txt", *A_mp);
+//     
+//     if ( Ippl::myNode() == 0 ) {
+//         std::cout << "Global info" << std::endl
+//                   << "Number of rows:      " << A_mp->NumGlobalRows() << std::endl
+//                   << "Number of cols:      " << A_mp->NumGlobalCols() << std::endl
+//                   << "Number of diagonals: " << A_mp->NumGlobalDiagonals() << std::endl
+//                   << "Number of non-zeros: " << A_mp->NumGlobalNonzeros() << std::endl
+//                   << std::endl;
+//     }
+//     
+//     Ippl::Comm->barrier();
+//     
+//     for (int i = 0; i < Ippl::getNodes(); ++i) {
+//         
+//         if ( i == Ippl::myNode() ) {
+//             std::cout << "Rank:                "
+//                       << i << std::endl
+//                       << "Number of rows:      "
+//                       << A_mp->NumMyRows() << std::endl
+//                       << "Number of cols:      "
+//                       << A_mp->NumMyCols() << std::endl
+//                       << "Number of diagonals: "
+//                       << A_mp->NumMyDiagonals() << std::endl
+//                       << "Number of non-zeros: "
+//                       << A_mp->NumMyNonzeros() << std::endl
+//                       << std::endl;
+//         }
+//         Ippl::Comm->barrier();
+//     }
+// }
