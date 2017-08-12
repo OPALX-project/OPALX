@@ -78,7 +78,7 @@ The following attributes are allowed on all elements:
 \item[ELEMEDGE]
     The edge of an element is specified in s coordinates in meters. This edge corresponds to the origin of the local coordinate system and is the physical start of the element. (Note that in general the fields will extend in front of this position.) The physical end of the element is determined by \keyword{ELEMEDGE} and its physical length. (Note again that in general the fields will extend past the physical end of the element.)
 \item[PARTICLEMATTERINTERACTION]
-  \TODO{Describe PARTICLEMATTERINTERACTION}
+  Attach a handler for particle matter interaction, see \ref{chp:partmatt}.
 \item[X]
   X-component of the position of the element in the laboratory coordinate system.
 \item[Y]
@@ -1949,16 +1949,17 @@ No matter what the value of STOP is, the particles hitting on the STRIPPER are r
 \index{DEGRADER}
 Rectangular degrader with an overall length \keyword{L}.
 \begin{kdescription}
-\item[OUTFN]
-  \TODO{Describe attributes OUTFN}
 \item[XSIZE]
+\index[XSIZE]
+Major axis of the transverse elliptical shape, default value is 1e6.
 \item[YSIZE]
+Minor axis of the transverse elliptical shape, default value is 1e6.
 \end{kdescription}
 \noindent Example: Graphite degrader of \SI{15}{\centi\meter} thickness.
 \begin{example}
 DEGPHYS: PARTICLEMATTERINTERACTION, TYPE="DEGRADER", MATERIAL="Graphite";
 
-DEG1: DEGRADER, L=0.15, ELEMEDGE=0.02, OUTFN="DEG1.h5", PARTICLEMATTERINTERACTION=DEGPHYS;
+DEG1: DEGRADER, L=0.15, ELEMEDGE=0.02, PARTICLEMATTERINTERACTION=DEGPHYS;
 \end{example}
 
 
