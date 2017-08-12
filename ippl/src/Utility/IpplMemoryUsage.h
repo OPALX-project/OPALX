@@ -13,138 +13,109 @@
 
 /*************************************************************************
  * IpplMemoryUsage - a simple singleton class which lets the user watch the
- *   memory consumption of a program and print statistics at the end of the program.
+ * memory consumption of a program.
+ * 
+ * ATTENTION: We use following memory convention
+ * 
+ *            8 bit = 1 byte = 1e-3 kB = 1e-6 MB
+ *                           = 1e-3 / 1.024 KiB (KibiByte)
+ *                           = 1e-3 / 1.024 / 1.024 MiB (MebiByte)
+ * 
+ *           instead of the usually taken but wrong relation 1024 kB = 1 MB.
  *
  * General usage
- *  1) create a (named) memory observer object and record the current memory status
- *     IpplMemoryUsage::MemoryRef val = IpplMemoryUsage::getMemObserver("name");
- *     This will either create a new one, or return a ref to an existing one
- *
- *  2) sample the memory consumtion:
- *     IpplMemoryUsage::sample(val,"name");
- *
- *  3) print out the results:
- *     IpplMemoryUsage::print();
- *
+ *  1) create the instance using IpplMemoryUsage::getInstance(unit, reset).
+ *     The reset boolean indicates wether the memory at creation should be
+ *     subtracted from the measurements later on.
+ *     The class is based on t getrusage() that returns the memory
+ *     consumption in kB (KiloByte). You can specify the return value of
+ *     IpplMemoryUsage by the first argument.
+ *     Although one can use those input parameters they are only applied
+ *     at the first call. Additional calls with different input do NOT
+ *     modify the instance.
+ *  2) At any point in the program you can call IpplMemoryUsage::sample()
+ *     to collect the data.
  *************************************************************************/
 
 // include files
-#include "Utility/my_auto_ptr.h"
 #include "Ippl.h"
-#include <vector>
-#include <map>
+#include <memory>
 
-// a simple class used to store memory values
-class IpplMemoryInfo
-{
+#include <sys/resource.h>
+#include <sys/time.h> // not required but increases portability
+
+
+class IpplMemoryUsage {
+
 public:
-    // typedef for reference to memory information
-    typedef int MemRef;
-
-    // constructor
-    IpplMemoryInfo() : name(""), indx(-1) {
-   
-    }
-
-    // destructor
-    ~IpplMemoryInfo() { }
-
-    void doSample(); 
-
-    // the name of this memory observer
-    std::string name;
-
-    // memory per core in GB
-    double memPerCore;
-
-    // dummy vars for leading entries in stat that we don't care about
-    //
-    std::string pid, comm, state, ppid, pgrp, session, tty_nr;
-    std::string tpgid, flags, minflt, cminflt, majflt, cmajflt;
-    std::string utime, stime, cutime, cstime, priority, nice;
-    std::string O, itrealvalue, starttime;
     
-    // the two fields we want
-    unsigned long vsize;
-    long rss;
-
-    long page_size_kb;
-
-    double vm_usage;
-    double resident_set;
-
-    double maxM;
-    double minM;
-
-    // an index value for this memory observer
-    MemRef indx;
-};
-
-
-class IpplMemoryUsage
-{
-public:
-    // typedef for reference to memory information
-    typedef int MemRef;
+    typedef IpplMemoryUsage*                    IpplMemory_p;
+    typedef std::unique_ptr<IpplMemoryUsage>    IpplMemory_t;
     
-    // a typedef for the memory information object
-    typedef IpplMemoryInfo MemoryInfo;
-
+    enum Unit {
+        BIT,    ///< Bit
+        B,      ///< Byte
+        KB,     ///< KiloByte
+        KiB,    ///< KibiByte
+        MB,     ///< MegaByte
+        MiB,    ///< MebiByte
+        GB,     ///< GigaByte
+        GiB     ///< GebiByte
+    };
+    
 public:
-    // Default constructor
+    /*!
+     * Create / Get pointer to instance
+     * @param unit of memory
+     * @param reset the memory to zero. (see constructor documentation)
+     */
+    static IpplMemory_p getInstance(Unit unit=Unit::GB, bool reset = true);
+    
+    /*!
+     * Get the memory of a specific core
+     * @param core we want memory of.
+     * @returns the max. resident set size
+     */
+    double getMemoryUsage(int core) const;
+    
+    /*!
+     * Collect the memory data of all cores.
+     */
+    void sample();
+    
+    /*!
+     * @returns the unit string.
+     */
+    const std::string& getUnit() const;
+    
+private:
+    /*!
+     * Does nothing.
+     */
     IpplMemoryUsage();
     
-    // Destructor - clear out the existing memory info
-    ~IpplMemoryUsage();
- 
-
-    // create a initial memory footprint, or get one that already exists
-    static MemRef getMemObserver(const char *, double memPerCore);
-
-    // sample the current memory consumption
-    static void sample(MemRef, const char *);
-
-    // return a MemoryInfo struct by asking for the name
-    static MemoryInfo *infoMemory(const char *nm) {
-	return MemoryMap[std::string(nm)];
-    }
-
-    //
-    // I/O methods
-    //
-
-    // print the results to standard out
-    static void print();
-
-    // print the results to a file
-    static void print(std::string fn);
-
-
+    /*!
+     * Create an instance.
+     * @param unit we want to have
+     * @param reset the memory to zero. The value at construction time
+     * is subtracted at every sampling.
+     */
+    IpplMemoryUsage(Unit unit = Unit::GB, bool reset = true);
+    
+    /*!
+     * Obtain the memory consumption. It throws an exception if
+     * an error ocurred.
+     */
+    void sample_m();
+    
 private:
-
-    static void doPrint(Inform &msg);
-
-    // type of storage for list of MemoryInfo
-    typedef std::vector<my_auto_ptr<MemoryInfo> > MemoryList_t;
-    typedef std::map<std::string, MemoryInfo *> MemoryMap_t;
-
-    // a list of memory info structs
-    static MemoryList_t MemoryList;
-
-    // a map of memory infos, keyed by string
-    static MemoryMap_t MemoryMap;
+    static IpplMemory_t instance_mp;                ///< *this
+    std::unique_ptr<double[]> globalMemPerCore_m;   ///< memory of all cores
+    std::string unit_m;                             ///< what's the unit of the memory
+    double initial_memory_m;                        ///< memory usage at construction time [GB] or [GiB]
+    double max_rss_m;                               ///< max. resident set size [GB] or [GiB]
+    double conversion_factor_m;                     ///< to various units. getrusage() returns in kB
+    double who_m;                                   ///< RUSAGE_SELF, RUSAGE_CHILDREN (, RUSAGE_THREAD)
 };
 
 #endif
-
-/***************************************************************************
- * $RCSfile: IpplMemoryUsage.h,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- ***************************************************************************/
-
-/***************************************************************************
- * $RCSfile: addheaderfooter,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:17 $
- * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $ 
- ***************************************************************************/
-
