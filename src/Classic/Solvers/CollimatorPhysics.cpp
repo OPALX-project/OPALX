@@ -847,6 +847,7 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch,
         coll = static_cast<Collimator *>(element_ref_m);
 
     size_t ne = 0;
+    std::set<size_t> partsToDel;
     const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore();
     for (size_t i = 0; i < nL; ++ i) {
         if ((bunch.Bin[i] == -1 || bunch.Bin[i] == 1) &&
@@ -869,8 +870,12 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch,
             ne++;
             bunchToMatStat_m++;
 
-            bunch.destroy(1, i);
+            partsToDel.insert(i);
         }
+    }
+
+    for (auto it = partsToDel.begin(); it != partsToDel.end(); ++ it) {
+        bunch.destroy(1, *it);
     }
 
     if (ne > 0) {
