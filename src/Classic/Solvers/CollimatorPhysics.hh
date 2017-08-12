@@ -43,10 +43,10 @@ typedef struct __align__(16) {
 } PART;
 
 typedef struct {
-  int label;
-  unsigned localID;
-  Vector_t Rincol;
-  Vector_t Pincol;
+    int label;
+    unsigned localID;
+    Vector_t Rincol;
+    Vector_t Pincol;
 } PART_DKS;
 
 #else
@@ -68,7 +68,7 @@ typedef struct {
 
 class CollimatorPhysics: public SurfacePhysicsHandler {
 public:
-    CollimatorPhysics(const std::string &name, ElementBase *element, std::string &mat, 
+    CollimatorPhysics(const std::string &name, ElementBase *element, std::string &mat,
 		      bool enableRutherfordScattering, double lowEnergyThr);
     ~CollimatorPhysics();
 
@@ -82,10 +82,10 @@ public:
 
     inline double getTime() {return T_m;}
     std::string getName() { return FN_m;}
-    size_t getParticlesInMat() { return locPartsInMat_m;}
+    size_t getParticlesInMat() { return globalPartsInMat_m;}
     unsigned getRedifused() { return redifusedStat_m;}
 
-    inline void doPhysics(PartBunch &bunch, Degrader *deg, Collimator *col);
+    void doPhysics(PartBunch &bunch, Degrader *deg, Collimator *col);
 
 
 private:
@@ -111,33 +111,39 @@ private:
     void applyDKS();
     void applyHost(PartBunch &bunch, Degrader *deg, Collimator *coll);
     void deleteParticleFromLocalVectorDKS();
-  
+
 #endif
 
 
     void deleteParticleFromLocalVector();
 
-    bool checkHit(Vector_t R, Vector_t P, double dt, Degrader *deg, Collimator *coll); 
+    bool checkHit(Vector_t R, Vector_t P, double dt, Degrader *deg, Collimator *coll);
 
     inline void calcStat(double Eng) {
-      Eavg_m += Eng;
-      if (Emin_m > Eng)
-	Emin_m = Eng;
-      if (Emax_m < Eng)
-	Emax_m = Eng;
+        Eavg_m += Eng;
+        if (Emin_m > Eng)
+            Emin_m = Eng;
+        if (Emax_m < Eng)
+            Emax_m = Eng;
     }
 
-    bool allParticlesIn_m;
-  
     double  T_m;                     // own time, maybe larger than in the bunch object
-                                    
+
     double dT_m;                     // dt from bunch
 
     gsl_rng *rGen_m;
 
+    enum SHAPE {
+    CYCLCOLLIMATOR,
+        COLLIMATOR,
+        DEGRADER,
+        NOSHAPE
+    };
+
     std::string material_m;
     std::string FN_m;
-    std::string collshape_m;
+    std::string collShapeStr_m;
+    SHAPE collShape_m;
     double Z_m;
     double A_m;
     double A2_c;
@@ -155,7 +161,8 @@ private:
     unsigned bunchToMatStat_m;
     unsigned stoppedPartStat_m;
     unsigned redifusedStat_m;
-    size_t locPartsInMat_m;
+    size_t localPartsInMat_m;
+    size_t globalPartsInMat_m;
 
     // some statistics
 
@@ -170,7 +177,7 @@ private:
 #ifdef OPAL_DKS
     DKSOPAL dksbase;
     int curandInitSet;
-  
+
     int ierr;
     int maxparticles;
     int numparticles;
@@ -183,9 +190,9 @@ private:
     static const int numpar = 13;
 #endif
 
-  IpplTimings::TimerRef DegraderApplyTimer_m;
-  IpplTimings::TimerRef DegraderLoopTimer_m;
-  IpplTimings::TimerRef DegraderInitTimer_m;
+    IpplTimings::TimerRef DegraderApplyTimer_m;
+    IpplTimings::TimerRef DegraderLoopTimer_m;
+    IpplTimings::TimerRef DegraderInitTimer_m;
 
 
 };

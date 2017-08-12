@@ -21,6 +21,7 @@
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 #include "AbsBeamline/ElementBase.h"
+#include "Utilities/Util.h"
 
 extern Inform *gmsg;
 
@@ -68,9 +69,9 @@ SurfacePhysics::SurfacePhysics():
 
     itsAttr[NPART] = Attributes::makeReal("NPART", "Number of particles in bunch");
 
-    itsAttr[ENABLERUTHERFORD] = Attributes::makeBool("ENABLERUTHERFORD", "Enable large angle scattering",true);
+    itsAttr[ENABLERUTHERFORD] = Attributes::makeBool("ENABLERUTHERFORD", "Enable large angle scattering", true);
 
-    itsAttr[LOWENERGYTHR] = Attributes::makeReal("LOWENERGYTHR", "Lower Energy threshold Bethe-Block in MeV, manual Ch. 18 ",1E-1);
+    itsAttr[LOWENERGYTHR] = Attributes::makeReal("LOWENERGYTHR", "Lower Energy threshold Bethe-Block in MeV, manual Ch. 18 ", 1E-1);
 
     SurfacePhysics *defSurfacePhysics = clone("UNNAMED_SURFACEPHYSICS");
     defSurfacePhysics->builtin = true;
@@ -141,24 +142,28 @@ void SurfacePhysics::initSurfacePhysicsHandler(ElementBase &element) {
     const double MeV2GeV = 1e-3;
     lowEnergyThr_m = MeV2GeV * Attributes::getReal(itsAttr[LOWENERGYTHR]);
 
-    if(Attributes::getString(itsAttr[TYPE]) == "CCOLLIMATOR" || Attributes::getString(itsAttr[TYPE]) == "COLLIMATOR" || Attributes::getString(itsAttr[TYPE]) == "DEGRADER") {
-      handler_m = new CollimatorPhysics(getOpalName(), itsElement_m, material_m, enableRutherfordScattering_m, lowEnergyThr_m);
+    if (Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "CCOLLIMATOR" ||
+        Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "COLLIMATOR" ||
+        Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "DEGRADER") {
+        handler_m = new CollimatorPhysics(getOpalName(), itsElement_m, material_m, enableRutherfordScattering_m, lowEnergyThr_m);
         *gmsg << *this << endl;
     } else {
         handler_m = 0;
         INFOMSG("no surface physics handler attached, TYPE == " << Attributes::getString(itsAttr[TYPE]) << endl);
     }
 
-    if (Ippl::getNodes()>1) {
-      *gmsg << "\033[01;35m";
-      *gmsg << "* ************* A D V I S O R Y  *************************************************** " << endl;
-      *gmsg << "* It is known that surface physics in combination with a parallel run can have       " << endl;
-      *gmsg << "* side-effects such as segmentation faults or the simulation just stops. In such a   " << endl;
-      *gmsg << "* case, either play with the number of simulation particles or use 1 core only.      " << endl;
-      *gmsg << "* We are working on the issue, progress on that matter can be obtained at            " << endl;
-      *gmsg << "* https://gitlab.psi.ch/OPAL/src/issues/137.                                         " << endl;
-      *gmsg << "* ********************************************************************************** " << endl;
-      *gmsg << "\u001b[0m" << endl;
+    static bool printed = false;
+    if (Ippl::getNodes() > 1 && !printed) {
+        printed = true;
+        *gmsg << "\033[01;35m\n"
+              << "* ************* A D V I S O R Y  *************************************************** \n"
+              << "* It is known that surface physics in combination with a parallel run can have       \n"
+              << "* side-effects such as segmentation faults or the simulation just stops. In such a   \n"
+              << "* case, either play with the number of simulation particles or use 1 core only.      \n"
+              << "* We are working on the issue, progress on that matter can be obtained at            \n"
+              << "* https://gitlab.psi.ch/OPAL/src/issues/137.                                         \n"
+              << "* **********************************************************************************"
+              << "\u001b[0m" << endl;
     }
 }
 

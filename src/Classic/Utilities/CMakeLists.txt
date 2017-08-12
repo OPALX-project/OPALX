@@ -23,6 +23,7 @@ set (_SRCS
   SingularMatrixError.cpp
   SizeError.cpp
   SwitcherError.cpp
+  Util.cpp
   )
 
 include_directories (
