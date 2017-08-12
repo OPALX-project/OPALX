@@ -1,6 +1,7 @@
 #include "Fields/FM1DProfile1.h"
 #include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
+#include "Utilities/GeneralClassicException.h"
 
 #include <fstream>
 #include <ios>
@@ -189,6 +190,17 @@ void FM1DProfile1::readMap() {
 
     }
 
+    if (computeEntranceFringe(entranceParameter1_m) < computeEntranceFringe(entranceParameter3_m))
+        throw GeneralClassicException("FM1DProfile1::readMap",
+                                      "The entry fringe field should be defined such that\n"
+                                      "the field is bigger at z = 'Entrance Parameter 1' than at\n"
+                                      "z = 'Entrance Parameter 3'");
+
+    if (computeExitFringe(exitParameter1_m) < computeExitFringe(exitParameter3_m))
+        throw GeneralClassicException("FM1DProfile1::readMap",
+                                      "The exit fringe field should be defined such that\n"
+                                      "the field is bigger at z = 'Exit Parameter 1' than at\n"
+                                      "z = 'Exit Parameter 3'");
 }
 
 void FM1DProfile1::freeMap() {
@@ -273,4 +285,24 @@ void FM1DProfile1::setFieldGap(double gap) {
 
     gapHeight_m = gap;
 
+}
+
+double FM1DProfile1::computeEntranceFringe(double z) const {
+    return computeFringe(engeCoeffsEntry_m, z / gapHeight_m);
+}
+
+double FM1DProfile1::computeExitFringe(double z) const {
+    return computeFringe(engeCoeffsExit_m, z / gapHeight_m);
+}
+
+double FM1DProfile1::computeFringe(const std::vector<double> &coefs, double z) const {
+
+    const size_t N = coefs.size();
+    double expSum = coefs.at(0);
+
+    for (size_t i = 1; i < N; ++ i) {
+        expSum += std::pow(z, i) * coefs.at(i);
+    }
+
+    return 1.0 / (1.0 + exp(expSum));
 }
