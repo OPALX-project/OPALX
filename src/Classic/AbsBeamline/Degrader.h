@@ -26,6 +26,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include <vector>
+#include <tuple>
 
 class LossDataSink;
 
@@ -37,19 +38,6 @@ class LossDataSink;
 class Degrader: public Component {
 
 public:
-
-    /// Plane selection.
-    enum Plane {
-        /// Monitor is off (inactive).
-        OFF,
-        /// Monitor acts on x-plane.
-        X,
-        /// Monitor acts on y-plane.
-        Y,
-        /// Monitor acts on both planes.
-        XY
-    };
-
     /// Constructor with given name.
     explicit Degrader(const std::string &name);
 
@@ -82,46 +70,51 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
-    std::string  getDegraderShape(); // AAA
+    virtual bool isInMaterial(const Vector_t & R);
 
-    void setOutputFN(std::string fn);
-    std::string getOutputFN();
-
-    void setZSize( double z) ;
-
-    void setZStart(double zstart) ;
-    void setZEnd(double zend) ;
-
-    double getZStart() ;
-    double getZEnd() ;
-    double getZSize();
-
-    virtual bool isInMaterial(double z);
-
+    void defineEllipticShape(double M, double m);
 private:
 
     // Not implemented.
     void operator=(const Degrader &);
 
-    std::string filename_m;               /**< The name of the outputfile*/
+    virtual bool isInMaterialLong(const Vector_t &R);
+    virtual bool isInMaterialTrans(const Vector_t &R);
 
     double position_m;
-    double deg_width_m;
-
-    std::vector<double> PosX_m;
-    std::vector<double> PosY_m;
-    std::vector<double> PosZ_m;
-    std::vector<double> MomentumX_m;
-    std::vector<double> MomentumY_m;
-    std::vector<double> MomentumZ_m;
-    std::vector<double> time_m;
-    std::vector<int> id_m;
-    bool informed_m;
-
-    double zstart_m;
-    double zend_m;
-
-    std::unique_ptr<LossDataSink> lossDs_m;
+    double semiMinorAxis_m;
+    double semiMajorAxis_m;
 };
+
+inline
+bool Degrader::isInMaterial(const Vector_t & R)
+{
+ /**
+     check if the particle is in the degarder material
+
+  */
+    return isInMaterialLong(R) && isInMaterialTrans(R);
+}
+
+inline
+bool Degrader::isInMaterialLong(const Vector_t & R)
+{
+    return (R(2) > position_m &&
+            R(2) <= position_m + getElementLength());
+}
+
+inline
+bool Degrader::isInMaterialTrans(const Vector_t & R)
+{
+    double r = std::pow(R(0) / semiMajorAxis_m, 2) + std::pow(R(1) / semiMinorAxis_m, 2);
+    return r < 1.0;
+}
+
+inline
+void Degrader::defineEllipticShape(double M, double m)
+{
+    semiMinorAxis_m = m;
+    semiMajorAxis_m = M;
+}
 
 #endif // CLASSIC_Degrader_HH
