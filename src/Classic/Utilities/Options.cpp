@@ -97,4 +97,6 @@ namespace Options {
 #ifdef ENABLE_AMR
     bool amr = false;
 #endif
+    
+    bool memoryDump = false;
 }

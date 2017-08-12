@@ -157,6 +157,8 @@ namespace Options {
 #ifdef ENABLE_AMR
     extern bool amr;
 #endif
+    
+    extern bool memoryDump;
 }
 
 #endif // OPAL_Options_HH

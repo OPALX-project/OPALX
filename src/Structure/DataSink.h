@@ -211,6 +211,20 @@ public:
     void writeLBalData(PartBunchBase<double, 3> *beam,
                        std::ofstream &outputFile,
                        unsigned int pwi);
+    
+    
+    /** \brief Write SDDS header.
+     *
+     * Writes the appropriate SDDS format header information to processor memory so the SDDS tools can be used
+     * for plotting data.
+     * \param outputFile Name of file to write to.
+     *
+     */
+    void writeMemoryHeader(std::ofstream &outputFile);
+    
+    void writeMemoryData(PartBunchBase<double, 3> *beam,
+                         std::ofstream &outputFile,
+                         unsigned int pwi);
 
 
 private:
@@ -242,6 +256,9 @@ private:
 
     /// Name of output file for processor load balancing information.
     std::string lBalFileName_m;
+    
+    /// Name of output file for processor memory information
+    std::string memFileName_m;
 
     /// Name of output file for surface loss data.
     std::string surfaceLossFileName_m;

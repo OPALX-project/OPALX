@@ -27,6 +27,8 @@
 
 #include "Utilities/OpalException.h"
 
+#include "Utility/IpplMemoryUsage.h"
+
 #include <ctime>
 #include <iostream>
 #include <limits>
@@ -84,6 +86,7 @@ namespace {
 #ifdef ENABLE_AMR
         AMR,
 #endif
+        MEMORYDUMP,
         SIZE
     };
 }
@@ -207,6 +210,8 @@ Option::Option():
     itsAttr[AMR] = Attributes::makeBool
         ("AMR", "Use adaptive mesh refinement.", amr);
 #endif
+    itsAttr[MEMORYDUMP] = Attributes::makeBool
+        ("MEMORYDUMP", "If true, write memory to SDDS file", memoryDump);
     
     registerOwnership(AttributeHandler::STATEMENT);
 
@@ -256,6 +261,7 @@ Option::Option(const std::string &name, Option *parent):
 #ifdef ENABLE_AMR
     Attributes::setBool(itsAttr[AMR], amr);
 #endif
+    Attributes::setBool(itsAttr[MEMORYDUMP], memoryDump);
 }
 
 
@@ -285,6 +291,13 @@ void Option::execute() {
 #ifdef ENABLE_AMR
     amr = Attributes::getBool(itsAttr[AMR]);
 #endif
+    memoryDump = Attributes::getBool(itsAttr[MEMORYDUMP]);
+    
+    if ( memoryDump ) {
+        IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance(
+                IpplMemoryUsage::Unit::GB, false);
+    }
+    
     seed = Attributes::getReal(itsAttr[SEED]);
 
     /// note: rangen is used only for the random number generator in the OPAL language
