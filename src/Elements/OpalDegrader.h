@@ -34,7 +34,6 @@ public:
     enum {
         XSIZE = COMMON,  // not used
         YSIZE,           // not used
-        OUTFN,
         DX,             // Misalignment: translation in x direction
         DY,             // Misalignment: translation in y direction
         SIZE

@@ -30,17 +30,19 @@ OpalDegrader::OpalDegrader():
                 "The \"DEGRADER\" element defines a degrader."),
     sphys_m(NULL) {
     itsAttr[XSIZE] = Attributes::makeReal
-        ("XSIZE", "not used",0.0);
+        ("XSIZE", "major axis of the transverse shape", 1e6);
     itsAttr[YSIZE] = Attributes::makeReal
-        ("YSIZE", "not used",0.0);
-    itsAttr[OUTFN] = Attributes::makeString
-        ("OUTFN", "Degrader output filename");
+        ("YSIZE", "minor axis of the transverse shape", 1e6);
+    // itsAttr[OUTFN] = Attributes::makeString
+    //     ("OUTFN", "Degrader output filename");
     itsAttr[DX] = Attributes::makeReal
         ("DX", "not used",0.0);
     itsAttr[DY] = Attributes::makeReal
         ("DY", "not used",0.0);
 
-    registerStringAttribute("OUTFN");
+    // registerStringAttribute("OUTFN");
+    registerRealAttribute("XSIZE");
+    registerRealAttribute("YSIZE");
     registerRealAttribute("DX");
     registerRealAttribute("DY");
 
@@ -86,25 +88,16 @@ void OpalDegrader::update() {
         dynamic_cast<DegraderRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     deg->setElementLength(length);
-    deg->setZSize(length);
 
-    deg->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
+    // deg->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
     deg->setMisalignment(0.0, 0.0, 0.0);
 
-    /*
-    std::vector<double> apert = getApert();
-    double apert_major = -1., apert_minor = -1.;
-    if(apert.size() > 0) {
-        apert_major = apert[0];
-        if(apert.size() > 1) {
-            apert_minor = apert[1];
-        } else {
-            apert_minor = apert[0];
-        }
-    }
-    */
+    deg->defineEllipticShape(0.5 * Attributes::getReal(itsAttr[XSIZE]),
+                             0.5 * Attributes::getReal(itsAttr[YSIZE]));
+
     if(itsAttr[SURFACEPHYSICS] && sphys_m == NULL) {
-        sphys_m = (SurfacePhysics::find(Attributes::getString(itsAttr[SURFACEPHYSICS])))->clone(getOpalName() + std::string("_sphys"));
+        std::string parentName = Attributes::getString(itsAttr[SURFACEPHYSICS]);
+        sphys_m = SurfacePhysics::find(parentName)->clone(getOpalName() + std::string("_sphys"));
         sphys_m->initSurfacePhysicsHandler(*deg);
         deg->setSurfacePhysics(sphys_m->handler_m);
     }
