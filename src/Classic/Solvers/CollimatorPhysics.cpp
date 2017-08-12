@@ -1036,6 +1036,7 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch)
 
     const size_t nL = bunch.getLocalNum();
     size_t ne = 0;
+    std::set<size_t> partsToDel;
     const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore();
 
     for(unsigned int i = 0; i < nL; ++ i) {
@@ -1070,10 +1071,13 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch)
                 ++ numlocalparts;
 
                 //mark particle to be deleted from bunch as soon as it enters the material
-                bunch.destroy(1, i);
+                partsToDel.insert(i);
             }
     }
 
+    for (auto it = partsToDel.begin(); it != partsToDel.end(); ++ it) {
+        bunch.destroy(1, *it);
+    }
 }
 
 void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch, Degrader *deg,
