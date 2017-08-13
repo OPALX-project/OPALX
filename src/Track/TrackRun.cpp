@@ -194,12 +194,12 @@ void TrackRun::execute() {
     if(method == "THIN") {
         //std::cerr << "  method == \"THIN\"" << std::endl;
         itsTracker = new ThinTracker(*Track::block->use->fetchLine(),
-                                     *Track::block->bunch, Track::block->reference,
+                                     Track::block->bunch, Track::block->reference,
                                      false, false);
     } else if(method == "THICK") {
         //std::cerr << "  method == \"THICK\"" << std::endl;
         itsTracker = new ThickTracker(*Track::block->use->fetchLine(),
-                                      *Track::block->bunch, Track::block->reference,
+                                      Track::block->bunch, Track::block->reference,
                                       false, false);
     // } else if(method == "PARALLEL-SLICE" || method == "OPAL-E") {
     //     setupSliceTracker();
@@ -532,7 +532,7 @@ void TrackRun::setupTTracker(){
 #else
 
     itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
-                                      dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
+                                      dynamic_cast<PartBunch *>(Track::block->bunch), *ds,
                                       Track::block->reference, false, false, Track::block->localTimeSteps,
                                       Track::block->zstart, Track::block->zstop, Track::block->dT);
 #endif
@@ -685,7 +685,7 @@ void TrackRun::setupCyclotronTracker(){
     *gmsg << "* ********************************************************************************** " << endl;
 
     itsTracker = new ParallelCyclotronTracker(*Track::block->use->fetchLine(),
-                                              dynamic_cast<PartBunch &>(*Track::block->bunch), *ds, Track::block->reference,
+                                              dynamic_cast<PartBunch *>(Track::block->bunch), *ds, Track::block->reference,
                                               false, false, Track::block->localTimeSteps.front(), Track::block->timeIntegrator);
 
     itsTracker->setNumBunch(specifiedNumBunch);

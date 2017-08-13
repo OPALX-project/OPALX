@@ -100,7 +100,7 @@ public:
     //  The particle bunch is taken from [b]bunch[/b].
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
-    Tracker(const Beamline &, const PartBunch &bunch,
+    Tracker(const Beamline &, PartBunch *bunch,
             const PartData &, bool backBeam, bool backTrack);
 
     virtual ~Tracker();
@@ -195,7 +195,7 @@ protected:
     FTps<double, 6> buildSBendVectorPotential(const BMultipoleField &, double h);
 
     /// The bunch of particles to be tracked.
-    PartBunch itsBunch;
+    PartBunch* itsBunch_m;
     //  typedef PartBunch::iterator iterator;
 
 private:
