@@ -96,9 +96,9 @@ private:
 
     void applyDKS(PartBunch &bunch, size_t numParticlesInSimulation);
 
-    void rotate(Vector_t &P, Vector_t &R,
-                double xplane, double Norm_P,
-                double thetacou, double deltas, unsigned char coord);
+    void computeScatteringEffect(Vector_t &P, Vector_t &R,
+                                 double xplane, double Norm_P,
+                                 double thetacou, double deltas, unsigned char coord);
 
     void copyFromBunch(PartBunch &bunch);
     void addBackToBunch(PartBunch &bunch, unsigned i);
