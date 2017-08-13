@@ -29,39 +29,50 @@
 
 #include <sstream>
 #include <iostream>
+#include "gtest/gtest.h"
 
 namespace OpalTestUtilities {
-/** Shutup test output
- *
- *  If more than one is called, will shutup output on any alloc if it is loud
- *  and will make loud on any dealloc if it is quiet.
- */
-class SilenceTest {
-  public:
-    SilenceTest(bool willSilence) {
-        if (willSilence && _defaultCout == NULL ) {
-            _defaultCout = std::cout.rdbuf(_debugOutput.rdbuf());
-            _defaultCerr = std::cerr.rdbuf(_debugOutput.rdbuf());
+    /** Shutup test output
+     *
+     *  If more than one is called, will shutup output on any alloc if it is loud
+     *  and will make loud on any dealloc if it is quiet.
+     */
+    class FailureTester;
+
+    class SilenceTest {
+    public:
+        SilenceTest();
+        ~SilenceTest();
+
+        void setFailed();
+    private:
+        SilenceTest(const SilenceTest& test); // disable default copy ctor
+
+        std::ostringstream _debugOutput;
+        static std::streambuf *_defaultCout;
+        static std::streambuf *_defaultCerr;
+        bool _failed;
+        FailureTester *_failureTest;
+    };
+
+    class FailureTester: public ::testing::EmptyTestEventListener {
+    public:
+        FailureTester(SilenceTest *st):
+            EmptyTestEventListener(),
+            _test(st) { }
+
+        ~FailureTester() { }
+
+    private:
+        FailureTester();
+
+        virtual void OnTestPartResult(const ::testing::TestPartResult &test_part_result) {
+            if (test_part_result.failed())
+                _test->setFailed();
         }
-    }
 
-    ~SilenceTest() { // return buffer to normal on delete
-        if (_defaultCout != NULL) {
-            std::cout.rdbuf(_defaultCout);
-            std::cerr.rdbuf(_defaultCerr);
-            _defaultCout = NULL;
-            _defaultCerr = NULL;
-        }
-    }
-
-  private:
-    SilenceTest(); // disable default ctor
-    SilenceTest(const SilenceTest& test); // disable default copy ctor
-
-    std::ostringstream _debugOutput;
-    static std::streambuf *_defaultCout;
-    static std::streambuf *_defaultCerr;
-};
+        SilenceTest *_test;
+    };
 }
 
 #endif //OPALTESTUTILITIES_SILENCETEST_H_

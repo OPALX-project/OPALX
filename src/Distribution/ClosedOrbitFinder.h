@@ -29,12 +29,7 @@
 
 // #include "physics.h"
 
-// #include "MagneticField.h" // ONLY FOR STAND-ALONE PROGRAM
-
 #include "MagneticField.h"
-
-
-#include <fstream>
 
 // include headers for integration
 #include <boost/numeric/odeint/integrate/integrate_n_steps.hpp>
@@ -72,11 +67,11 @@ class ClosedOrbitFinder
          * @param domain is a boolean (default: true). If "true" the closed orbit is computed over a single sector,
          * otherwise over 2*pi.
          */
-        ClosedOrbitFinder(value_type, value_type, value_type, size_type,
-                          value_type, size_type, value_type, value_type,
-                          size_type, const std::string&, value_type,
+        ClosedOrbitFinder(value_type E, value_type E0, value_type wo, size_type N,
+                          value_type accuracy, size_type maxit, value_type Emin, value_type Emax,
+                          size_type nSector, const std::string& fmapfn, value_type guess,
                           const std::string& type, value_type scaleFactor = 1.0,
-                          bool = true);
+                          bool domain = true);
 
         /// Returns the inverse bending radius (size of container N+1)
         container_type& getInverseBendingRadius();
@@ -505,8 +500,9 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         ptheta = std::sqrt(p2 - pr2);
         invptheta = 1.0 / ptheta;
 
-        // intepolate values of magnetic field
+        // interpolate values of magnetic field
         bField_m.interpolate(bint, brint, btint, y[0], theta * 180.0 / Physics::pi);
+
         bint *= invbcon;
         brint *= invbcon;
 
@@ -581,8 +577,8 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     // store initial values for updating values for higher energies
     container_type previous_init = {0.0, 0.0};
 
-       do {
-
+    do {
+        
         // (re-)set inital values for r and pr
         r_m[0] = init[0];
         pr_m[0] = init[1];
@@ -647,7 +643,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         invgamma4 = 1.0 / (gamma2 * gamma2);
 
 
-	   } while (E != E_m);
+    } while (E != E_m);
 
     /* store last entry, since it is needed in computeVerticalOscillations(), because we have to do the same
      * number of integrations steps there.

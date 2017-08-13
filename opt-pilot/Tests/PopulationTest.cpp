@@ -36,10 +36,14 @@ namespace {
         boost::shared_ptr<Individual> createIndividual(size_t num_genes) {
 
             Individual::bounds_t bounds;
-            for(size_t i=0; i < num_genes; i++)
+            Individual::names_t names;
+            Individual::constraints_t constraints;
+            for(size_t i=0; i < num_genes; i++) {
                 bounds.push_back(std::pair<double, double>(0.0, 10.0));
+                names.push_back("dvar"+std::to_string(i));
+            }
 
-            boost::shared_ptr<Individual> ind(new Individual(bounds));
+            boost::shared_ptr<Individual> ind(new Individual(bounds,names,constraints));
             return ind;
         }
 

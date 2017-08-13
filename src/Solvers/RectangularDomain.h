@@ -50,9 +50,6 @@ public:
 
     int getStartIdx() {return 0;}
 
-    //TODO: do we need to export this function??
-    std::vector<double> getYDirIntersect(int x, int z);
-
 private:
 
     /// longer side a of the rectangles

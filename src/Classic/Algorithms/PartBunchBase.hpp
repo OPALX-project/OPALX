@@ -473,7 +473,6 @@ bool PartBunchBase<T, Dim>::weHaveEnergyBins() {
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::switchToUnitlessPositions(bool use_dt_per_particle) {
 
     if(unit_state_ == unitless)
@@ -499,7 +498,6 @@ void PartBunchBase<T, Dim>::switchToUnitlessPositions(bool use_dt_per_particle) 
 
 //FIXME: unify methods, use convention that all particles have own dt
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::switchOffUnitlessPositions(bool use_dt_per_particle) {
 
     if(unit_state_ == units)
@@ -553,7 +551,6 @@ void PartBunchBase<T, Dim>::resetIfScan()
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::do_binaryRepart() {
     // do nothing here
 }
@@ -578,21 +575,18 @@ void PartBunchBase<T, Dim>::setDistribution(Distribution *d,
 
 
 template <class T, unsigned Dim>
-// inline
 bool PartBunchBase<T, Dim>::isGridFixed() {
     return fixed_grid;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setTEmission(double t) {
     tEmission_m = t;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getTEmission() {
     return tEmission_m;
 }
@@ -647,7 +641,6 @@ void PartBunchBase<T, Dim>::updateNumTotal() {
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::rebin() {
     this->Bin = 0;
     pbin_m->resetBins();
@@ -657,7 +650,6 @@ void PartBunchBase<T, Dim>::rebin() {
 
 
 template <class T, unsigned Dim>
-// inline
 int PartBunchBase<T, Dim>::getNumBins() {
     if(pbin_m != NULL)
         return pbin_m->getNBins();
@@ -667,7 +659,6 @@ int PartBunchBase<T, Dim>::getNumBins() {
 
 
 template <class T, unsigned Dim>
-// inline
 int PartBunchBase<T, Dim>::getLastemittedBin() {
     if(pbin_m != NULL)
         return pbin_m->getLastemittedBin();
@@ -745,21 +736,18 @@ void PartBunchBase<T, Dim>::calcGammas_cycl() {
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getBinGamma(int bin) {
     return bingamma_m[bin];
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setBinCharge(int bin, double q) {
     this->Q = where(eq(this->Bin, bin), q, 0.0);
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setBinCharge(int bin) {
     this->Q = where(eq(this->Bin, bin), this->Q, 0.0);
 }
@@ -851,19 +839,19 @@ void PartBunchBase<T, Dim>::boundp() {
         const int dimIdx = 3;
 
         /**
-           In case of dcBeam_m && hr_m < 0
-           this is the first call to boundp and we
-           have to set hr completely i.e. x,y and z.
-           */
+            In case of dcBeam_m && hr_m < 0
+            this is the first call to boundp and we
+            have to set hr completely i.e. x,y and z.
+         */
 
         const bool fullUpdate = (dcBeam_m && (hr_m[2] < 0.0)) || !dcBeam_m;
-        
+
         this->updateDomainLength(nr_m);
-        
+
         get_bounds(rmin_m, rmax_m);
         Vector_t len = rmax_m - rmin_m;
-        
-        double volume = 1.0;
+
+            double volume = 1.0;
         if (fullUpdate) {
             // double volume = 1.0;
             for(int i = 0; i < dimIdx; i++) {
@@ -901,13 +889,11 @@ void PartBunchBase<T, Dim>::boundp() {
             }
             //INFOMSG("It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
         }
-        
+
         if(hr_m[0] * hr_m[1] * hr_m[2] > 0) {
             Vector_t origin = rmin_m - Vector_t(hr_m[0] / 2.0, hr_m[1] / 2.0, hr_m[2] / 2.0);
             this->updateFields(hr_m, origin);
         } else {
-            *gmsg << __DBGMSG__ << std::scientific << volume << "\t" << dh_m << endl;
-            
             throw GeneralClassicException("boundp() ", "h<0, can not build a mesh");
         }
     }
@@ -1166,14 +1152,12 @@ double PartBunchBase<T, Dim>::getPz(int i) {
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getPx0(int i) {
     return 0.0;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getPy0(int i) {
     return 0;
 }
@@ -1215,7 +1199,6 @@ double PartBunchBase<T, Dim>::getY0(int i) {
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setZ(int i, double zcoo)
 {
     // nothing done here
@@ -1223,7 +1206,6 @@ void PartBunchBase<T, Dim>::setZ(int i, double zcoo)
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::get_bounds(Vector_t &rmin, Vector_t &rmax) {
     bounds(this->R, rmin, rmax);
 }
@@ -1246,7 +1228,6 @@ void PartBunchBase<T, Dim>::getLocalBounds(Vector_t &rmin, Vector_t &rmax) {
 
 
 template <class T, unsigned Dim>
-// inline
 std::pair<Vector_t, double> PartBunchBase<T, Dim>::getBoundingSphere() {
     Vector_t rmin, rmax;
     get_bounds(rmin, rmax);
@@ -1260,7 +1241,6 @@ std::pair<Vector_t, double> PartBunchBase<T, Dim>::getBoundingSphere() {
 
 
 template <class T, unsigned Dim>
-// inline
 std::pair<Vector_t, double> PartBunchBase<T, Dim>::getLocalBoundingSphere() {
     Vector_t rmin, rmax;
     getLocalBounds(rmin, rmax);
@@ -1274,7 +1254,6 @@ std::pair<Vector_t, double> PartBunchBase<T, Dim>::getLocalBoundingSphere() {
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::push_back(OpalParticle p) {
     Inform msg("PartBunch ");
 
@@ -1295,7 +1274,6 @@ void PartBunchBase<T, Dim>::push_back(OpalParticle p) {
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::set_part(FVector<double, 6> z, int ii) {
     R[ii](0) = z[0];
     P[ii](0) = z[1];
@@ -1307,7 +1285,6 @@ void PartBunchBase<T, Dim>::set_part(FVector<double, 6> z, int ii) {
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::set_part(OpalParticle p, int ii) {
     R[ii](0) = p[0];
     P[ii](0) = p[1];
@@ -1319,7 +1296,6 @@ void PartBunchBase<T, Dim>::set_part(OpalParticle p, int ii) {
 
 
 template <class T, unsigned Dim>
-// inline
 OpalParticle PartBunchBase<T, Dim>::get_part(int ii) {
     OpalParticle part;
     part[0] = R[ii](0);
@@ -1362,35 +1338,31 @@ void PartBunchBase<T, Dim>::maximumAmplitudes(const FMatrix<double, 6, 6> &D,
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setdT(double dt) {
     dt_m = dt;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getdT() const {
     return dt_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setT(double t) {
     t_m = t;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getT() const {
     return t_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
+
 double PartBunchBase<T, Dim>::get_sPos() {
     if(sum(PType != ParticleType::REGULAR)) {
         const size_t n = getLocalNum();
@@ -1416,77 +1388,66 @@ double PartBunchBase<T, Dim>::get_sPos() {
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::set_sPos(double s) {
     spos_m = s;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::get_gamma() const {
     return eKin_m / (getM()*1e-6) + 1.0;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::get_meanKineticEnergy() const {
     return eKin_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 Vector_t PartBunchBase<T, Dim>::get_origin() const {
     return rmin_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 Vector_t PartBunchBase<T, Dim>::get_maxExtent() const {
     return rmax_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 Vector_t PartBunchBase<T, Dim>::get_centroid() const {
     return rmean_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 Vector_t PartBunchBase<T, Dim>::get_rrms() const {
     return rrms_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 Vector_t PartBunchBase<T, Dim>::get_rprms() const {
     return rprms_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 Vector_t PartBunchBase<T, Dim>::get_rmean() const {
     return rmean_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 Vector_t PartBunchBase<T, Dim>::get_prms() const {
     return prms_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 Vector_t PartBunchBase<T, Dim>::get_pmean() const {
     return pmean_m;
 }
@@ -1503,56 +1464,48 @@ Vector_t PartBunchBase<T, Dim>::get_pmean_Distribution() const {
 
 
 template <class T, unsigned Dim>
-// inline
 Vector_t PartBunchBase<T, Dim>::get_emit() const {
     return eps_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 Vector_t PartBunchBase<T, Dim>::get_norm_emit() const {
     return eps_norm_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 Vector_t PartBunchBase<T, Dim>::get_hr() const {
     return hr_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::get_Dx() const {
     return Dx_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::get_Dy() const {
     return Dy_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::get_DDx() const {
     return DDx_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::get_DDy() const {
     return DDy_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::set_meshEnlargement(double dh) {
     dh_m = dh;
 }
@@ -1576,14 +1529,12 @@ void PartBunchBase<T, Dim>::gatherLoadBalanceStatistics() {
 
 
 template <class T, unsigned Dim>
-// inline
 size_t PartBunchBase<T, Dim>::getLoadBalance(int p) const {
     return globalPartPerNode_m[p];
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::get_PBounds(Vector_t &min, Vector_t &max) const {
     bounds(this->P, min, max);
 }
@@ -1594,8 +1545,6 @@ void PartBunchBase<T, Dim>::calcBeamParameters() {
     using Physics::c;
 
     Vector_t eps2, fac, rsqsum, psqsum, rpsum;
-
-    const double m0 = getM() * 1.E-6;
 
     IpplTimings::startTimer(statParamTimer_m);
 
@@ -1655,16 +1604,27 @@ void PartBunchBase<T, Dim>::calcBeamParameters() {
     double gamma = 0.0;
     for(size_t i = 0; i < locNp; i++)
         gamma += sqrt(1.0 + dot(P[i], P[i]));
+
     reduce(gamma, gamma, OpAddAssign());
     gamma /= N;
 
     calcEMean();
 
-    // calculate energy spread
-    dE_m = prms_m(2) * sqrt(eKin_m * (eKin_m + 2.*m0) / (1. + eKin_m * (eKin_m + 2.*m0) / (m0 * m0)));
+    // The computation of the energy spread is an estimation
+    // based on the standard deviation of the longitudinal
+    // momentum:
+    // Var[f(P)] ~= (df/dP)(E[P])^2 Var[P]
+    const double m0 = getM() * 1.E-6;
+    double tmp = 1.0 / std::pow(eKin_m / m0 + 1., 2.0);
+    if (OpalData::getInstance()->isInOPALCyclMode()) {
+        dE_m = prms_m(1) * m0 * sqrt(1.0 - tmp);
+    } else {
+        dE_m = prms_m(2) * m0 * sqrt(1.0 - tmp);
+    }
 
     eps_m = eps_norm_m / Vector_t(gamma * sqrt(1.0 - 1.0 / (gamma * gamma)));
     IpplTimings::stopTimer(statParamTimer_m);
+    
 }
 
 
@@ -1718,21 +1678,18 @@ void PartBunchBase<T, Dim>::calcBeamParametersInitial() {
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getCouplingConstant() const {
     return couplingConstant_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setCouplingConstant(double c) {
     couplingConstant_m = c;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setCharge(double q) {
     qi_m = q;
     if(getTotalNum() != 0)
@@ -1743,14 +1700,12 @@ void PartBunchBase<T, Dim>::setCharge(double q) {
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setChargeZeroPart(double q) {
     qi_m = q;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setMass(double mass) {
     M = mass;
 }
@@ -1784,14 +1739,12 @@ double PartBunchBase<T, Dim>::getLaserEnergy() const {
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getCharge() const {
     return sum(Q);
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getChargePerParticle() const {
     return qi_m;
 }
@@ -1834,98 +1787,84 @@ std::string PartBunchBase<T, Dim>::getFieldSolverType() const {
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setLPath(double s) {
     lPath_m = s;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getLPath() const {
     return lPath_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setStepsPerTurn(int n) {
     stepsPerTurn_m = n;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 int PartBunchBase<T, Dim>::getStepsPerTurn() const {
     return stepsPerTurn_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setGlobalTrackStep(long long n) {
     globalTrackStep_m = n;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 long long PartBunchBase<T, Dim>::getGlobalTrackStep() const {
     return globalTrackStep_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setLocalTrackStep(long long n) {
     localTrackStep_m = n;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::incTrackSteps() {
     globalTrackStep_m++; localTrackStep_m++;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 long long PartBunchBase<T, Dim>::getLocalTrackStep() const {
     return localTrackStep_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setNumBunch(int n) {
     numBunch_m = n;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 int PartBunchBase<T, Dim>::getNumBunch() const {
     return numBunch_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setGlobalMeanR(Vector_t globalMeanR) {
     globalMeanR_m = globalMeanR;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 Vector_t PartBunchBase<T, Dim>::getGlobalMeanR() {
     return globalMeanR_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setGlobalToLocalQuaternion(Quaternion_t globalToLocalQuaternion) {
 
     globalToLocalQuaternion_m = globalToLocalQuaternion;
@@ -1933,21 +1872,18 @@ void PartBunchBase<T, Dim>::setGlobalToLocalQuaternion(Quaternion_t globalToLoca
 
 
 template <class T, unsigned Dim>
-// inline
 Quaternion_t PartBunchBase<T, Dim>::getGlobalToLocalQuaternion() {
     return globalToLocalQuaternion_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::setSteptoLastInj(int n) {
     SteptoLastInj_m = n;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 int PartBunchBase<T, Dim>::getSteptoLastInj() {
     return SteptoLastInj_m;
 }
@@ -2048,84 +1984,72 @@ bool PartBunchBase<T, Dim>::resetPartBinID2(const double eta) {
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getQ() const {
     return reference->getQ();
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getM() const {
     return reference->getM();
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getP() const {
     return reference->getP();
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getE() const {
     return reference->getE();
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::resetQ(double q)  {
     const_cast<PartData *>(reference)->setQ(q);
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::resetM(double m)  {
     const_cast<PartData *>(reference)->setM(m);
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getdE() {
     return dE_m;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getInitialBeta() const {
     return reference->getBeta();
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getInitialGamma() const {
     return reference->getGamma();
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getGamma(int i) {
     return 0;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 double PartBunchBase<T, Dim>::getBeta(int i) {
     return 0;
 }
 
 
 template <class T, unsigned Dim>
-// inline
 void PartBunchBase<T, Dim>::actT()
 {
     // do nothing here
@@ -2133,7 +2057,6 @@ void PartBunchBase<T, Dim>::actT()
 
 
 template <class T, unsigned Dim>
-// inline
 const PartData *PartBunchBase<T, Dim>::getReference() const {
     return reference;
 }
@@ -2146,37 +2069,37 @@ double PartBunchBase<T, Dim>::getEmissionDeltaT() {
 
 
 template <class T, unsigned Dim>
-/*inline */Quaternion_t PartBunchBase<T, Dim>::getQKs3D() {
+Quaternion_t PartBunchBase<T, Dim>::getQKs3D() {
     return QKs3D_m;
 }
 
 
 template <class T, unsigned Dim>
-/*inline*/ void PartBunchBase<T, Dim>::setQKs3D(Quaternion_t q) {
+void PartBunchBase<T, Dim>::setQKs3D(Quaternion_t q) {
     QKs3D_m=q;
 }
 
 
 template <class T, unsigned Dim>
-/*inline*/ Vector_t PartBunchBase<T, Dim>::getKs3DRefr() {
+Vector_t PartBunchBase<T, Dim>::getKs3DRefr() {
     return Ks3DRefr_m;
 }
 
 
 template <class T, unsigned Dim>
-/*inline*/ void PartBunchBase<T, Dim>::setKs3DRefr(Vector_t r) {
+void PartBunchBase<T, Dim>::setKs3DRefr(Vector_t r) {
     Ks3DRefr_m=r;
 }
 
 
 template <class T, unsigned Dim>
-/*inline*/ Vector_t PartBunchBase<T, Dim>::getKs3DRefp() {
+Vector_t PartBunchBase<T, Dim>::getKs3DRefp() {
     return Ks3DRefp_m;
 }
 
 
 template <class T, unsigned Dim>
-/*inline*/ void PartBunchBase<T, Dim>::setKs3DRefp(Vector_t p) {
+void PartBunchBase<T, Dim>::setKs3DRefp(Vector_t p) {
     Ks3DRefp_m=p;
 }
 
@@ -2193,24 +2116,18 @@ void PartBunchBase<T, Dim>::calcEMean() {
     const double totalNp = static_cast<double>(getTotalNum());
     const double locNp = static_cast<double>(getLocalNum());
 
-    //Vector_t meanP_temp = Vector_t(0.0);
-
     eKin_m = 0.0;
 
-    for(unsigned int k = 0; k < locNp; k++)
-        //meanP_temp += P[k];
+    for(unsigned int k = 0; k < locNp; k++) {
         eKin_m += sqrt(dot(P[k], P[k]) + 1.0);
+    }
 
     eKin_m -= locNp;
     eKin_m *= getM() * 1.0e-6;
 
-    //reduce(meanP_temp, meanP_temp, OpAddAssign());
     reduce(eKin_m, eKin_m, OpAddAssign());
 
-    //meanP_temp /= totalNp;
     eKin_m /= totalNp;
-
-    //eKin_m = (sqrt(dot(meanP_temp, meanP_temp) + 1.0) - 1.0) * getM() * 1.0e-6;
 }
 
 
@@ -2236,11 +2153,22 @@ template <class T, unsigned Dim>
 Inform &PartBunchBase<T, Dim>::print(Inform &os) {
     if(getTotalNum() != 0) {  // to suppress Nan's
         Inform::FmtFlags_t ff = os.flags();
+
+        double lengthUnitConverter = 1;
+        double pathLength = get_sPos();
+        if (OpalData::getInstance()->isInOPALCyclMode()) {
+            lengthUnitConverter = 0.001;
+            pathLength = getLPath();
+        }
+
+        rmax_m *= lengthUnitConverter;
+        rmin_m *= lengthUnitConverter;
+
         os << std::scientific;
         os << level1 << "\n";
         os << "* ************** B U N C H ********************************************************* \n";
         os << "* NP              = " << getTotalNum() << "\n";
-        os << "* Qtot            = " << std::setw(17) << Util::getChargeString(std::abs(sum(Q))) << "         "
+        os << "* Qtot            = " << std::setw(17) << Util::getChargeString(abs(sum(Q))) << "         "
            << "Qi    = "             << std::setw(17) << Util::getChargeString(std::abs(qi_m)) << "\n";
         os << "* Ekin            = " << std::setw(17) << Util::getEnergyString(eKin_m) << "         "
            << "dEkin = "             << std::setw(17) << Util::getEnergyString(dE_m) << "\n";
@@ -2256,9 +2184,12 @@ Inform &PartBunchBase<T, Dim>::print(Inform &os) {
         os << "* dh              = " << std::setw(13) << std::setprecision(5) << dh_m * 100 << " [%]\n";
         os << "* t               = " << std::setw(17) << Util::getTimeString(getT()) << "         "
            << "dT    = "             << std::setw(17) << Util::getTimeString(getdT()) << "\n";
-        os << "* spos            = " << std::setw(17) << Util::getLengthString(get_sPos()) << "\n";
+        os << "* spos            = " << std::setw(17) << Util::getLengthString(pathLength) << "\n";
         os << "* ********************************************************************************** " << endl;
         os.flags(ff);
+
+        rmax_m /= lengthUnitConverter;
+        rmin_m /= lengthUnitConverter;
     }
     return os;
 }
@@ -2266,6 +2197,7 @@ Inform &PartBunchBase<T, Dim>::print(Inform &os) {
 
 template <class T, unsigned Dim>
 size_t PartBunchBase<T, Dim>::calcMoments() {
+    
     double part[2 * Dim];
 
     double loc_centroid[2 * Dim];
@@ -2346,7 +2278,7 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::calcMomentsInitial() {
-
+    
     double part[2 * Dim];
 
     for(unsigned int i = 0; i < 2 * Dim; ++i) {
@@ -2421,7 +2353,6 @@ double PartBunchBase<T, Dim>::calculateAngle2(double x, double y) {
 
 
 template <class T, unsigned Dim>
-// inline
 Inform &operator<<(Inform &os, PartBunchBase<T, Dim> &p) {
     return p.print(os);
 }
