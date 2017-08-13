@@ -95,6 +95,8 @@ private:
     void EnergyLoss(double &Eng, bool &pdead, double &deltat);
     bool EnergyLoss(double &Eng, double &deltat);
 
+    void applyDKS(PartBunch &bunch, size_t numParticlesInSimulation);
+
     void Rot(double &px, double &pz, double &x, double &z, double xplane, double Norm_P,
 	     double thetacou, double deltas, int coord);
 
@@ -171,23 +173,23 @@ private:
     double Emin_m;
 
     std::vector<PART> locParts_m;
+    size_t nextLocalID_m;
 
     std::unique_ptr<LossDataSink> lossDs_m;
 
 #ifdef OPAL_DKS
-    DKSOPAL dksbase;
-    int curandInitSet;
+    DKSOPAL dksbase_m;
+    int curandInitSet_m;
 
-    int ierr;
-    int maxparticles;
-    int numparticles;
-    int numlocalparts;
-    void *par_ptr;
-    void *mem_ptr;
+    int ierr_m;
+    int maxparticles_m;
+    int numparticles_m;
+    void *par_mp;
+    void *mem_mp;
 
     std::vector<PART_DKS> dksParts_m;
 
-    static const int numpar = 13;
+    static const int numpar_ms = 13;
 #endif
 
     IpplTimings::TimerRef DegraderApplyTimer_m;
