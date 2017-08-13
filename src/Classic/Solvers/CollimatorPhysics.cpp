@@ -34,8 +34,16 @@ using Physics::r_e;
 using Physics::z_p;
 using Physics::Avo;
 
-CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *element,
-				     std::string &material, bool enableRutherfordScattering,
+#ifdef OPAL_DKS
+const int CollimatorPhysics::numpar = 13;
+#endif
+
+Vector_t ArbitraryRotation(Vector_t &W, Vector_t &Rorg, double Theta);
+
+CollimatorPhysics::CollimatorPhysics(const std::string &name,
+                                     ElementBase *element,
+				     std::string &material,
+                                     bool enableRutherfordScattering,
 				     double lowEnergyThr):
     SurfacePhysicsHandler(name, element),
     T_m(0.0),
@@ -54,7 +62,6 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *eleme
     rho_m(0.0),
     X0_m(0.0),
     I_m(0.0),
-    n_m(0.0),
     enableRutherfordScattering_m(enableRutherfordScattering),
     lowEnergyThr_m(lowEnergyThr),
     bunchToMatStat_m(0),
@@ -66,11 +73,21 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *eleme
     Emax_m(0.0),
     Emin_m(0.0),
     nextLocalID_m(0)
+#ifdef OPAL_DKS
+    , curandInitSet(0)
+    , ierr(0)
+    , maxparticles(0)
+    , numparticles(0)
+    , par_ptr(NULL)
+    , mem_ptr(NULL)
+#endif
 {
 
     gsl_rng_env_setup();
     rGen_m = gsl_rng_alloc(gsl_rng_default);
     gsl_rng_set(rGen_m, Options::seed);
+
+    Material();
 
     if(dynamic_cast<Collimator *>(element_ref_m)) {
         Collimator *coll = dynamic_cast<Collimator *>(element_ref_m);
@@ -93,10 +110,6 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *eleme
         collShapeStr_m = "DEGRADER";
         collShape_m = DEGRADER;
     }
-    // statistics counters
-    bunchToMatStat_m = 0;
-    stoppedPartStat_m = 0;
-    redifusedStat_m   = 0;
 
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(FN_m, !Options::asciidump));
 
@@ -107,13 +120,12 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *eleme
         dksbase_m.initDevice();
         curandInitSet_m = -1;
     }
+
+    DegraderInitTimer_m = IpplTimings::getTimer("DegraderInit");
 #endif
 
     DegraderApplyTimer_m = IpplTimings::getTimer("DegraderApply");
     DegraderLoopTimer_m = IpplTimings::getTimer("DegraderLoop");
-    DegraderInitTimer_m = IpplTimings::getTimer("DegraderInit");
-
-    Material();
 }
 
 CollimatorPhysics::~CollimatorPhysics() {
@@ -128,105 +140,6 @@ CollimatorPhysics::~CollimatorPhysics() {
 #endif
 
 }
-
-void CollimatorPhysics::doPhysics(PartBunch &bunch, Degrader *deg, Collimator *col) {
-    /***
-        Do physics if
-        -- particle in material
-        -- particle not dead (locParts_m[i].label != -1.0)
-
-        Absorbed particle i: locParts_m[i].label = -1.0;
-
-        Particle goes back to beam if
-        -- not absorbed and out of material
-    */
-    const double m2mm = 1000.0;
-    const double mass = bunch.getM() * 1e-9;
-    for(size_t i = 0; i < locParts_m.size(); ++ i) {
-        Vector_t &R = locParts_m[i].Rincol;
-        Vector_t &P = locParts_m[i].Pincol;
-        double Eng = (sqrt(1.0  + dot(P, P)) - 1) * m_p;
-
-        if (locParts_m[i].label != -1) {
-            if (checkHit(R, P, dT_m, deg, col)) {
-	        bool pdead = EnergyLoss(Eng, dT_m);
-                if(!pdead) {
-                    double ptot = sqrt((mass + Eng) * (mass + Eng) - mass * mass) / mass;
-                    P = P * ptot / sqrt(dot(P, P));
-                    /*
-                      Now scatter and transport particle in material.
-                      The checkInColl call just above will detect if the
-                      particle is rediffused from the material into vacuum.
-                    */
-                    CoulombScat(R, P, dT_m);
-                } else {
-                    // The particle is stopped in the material, set lable_m to -1
-                    locParts_m[i].label = -1.0;
-                    ++ stoppedPartStat_m;
-                    lossDs_m->addParticle(R, P, -locParts_m[i].IDincol);
-                }
-            } else {
-                /* The particle exits the material but is still in the loop of the substep,
-                   Finish the timestep by letting the particle drift and after the last
-                   substep call addBackToBunch
-                */
-                double gamma = (Eng + m_p) / m_p;
-                double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
-                if(collShape_m == CYCLCOLLIMATOR) {
-                    R = R + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) * m2mm;
-                } else {
-                    locParts_m[i].Rincol = locParts_m[i].Rincol + dT_m * Physics::c * P / sqrt(1.0 + dot(P, P)) ;
-                    addBackToBunch(bunch, i);
-
-                    ++ redifusedStat_m;
-                }
-            }
-        }
-    }
-}
-
-bool CollimatorPhysics::EnergyLoss(double &Eng, double &deltat) {
-    /// Eng GeV
-
-    double dEdx = 0.0;
-    const double gamma = (Eng + m_p) / m_p;
-    const double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
-    const double gamma2 = gamma * gamma;
-    const double beta2 = beta * beta;
-
-    const double deltas = deltat * beta * Physics::c;
-    const double deltasrho = deltas * 100 * rho_m;
-    const double K = 4.0 * pi * Avo * r_e * r_e * m_e * 1E7;
-    const double sigma_E = sqrt(K * m_e * rho_m * (Z_m/A_m) *  deltas * 1E5);
-
-    if ((Eng > 0.00001) && (Eng < 0.0006)) {
-        const double Ts = (Eng * 1E6)/1.0073; // 1.0073 is the proton mass divided by the atomic mass number. T is in KeV
-        const double epsilon_low = A2_c * pow(Ts, 0.45);
-        const double epsilon_high = (A3_c/Ts) * log(1 + (A4_c/Ts) + (A5_c * Ts));
-        const double epsilon = (epsilon_low * epsilon_high)/(epsilon_low + epsilon_high);
-        dEdx = - epsilon /(1E21 * (A_m/Avo)); // Stopping_power is in MeV INFOMSG("stopping power: " << dEdx << " MeV" << endl);
-        const double delta_Eave = deltasrho * dEdx;
-        const double delta_E = delta_Eave + gsl_ran_gaussian(rGen_m, sigma_E);
-        Eng = Eng + delta_E / 1E3;
-    }
-
-    if (Eng >= 0.0006) {
-        const double Tmax = 2.0 * m_e * 1e9 * beta2 * gamma2 /
-            (1.0 + 2.0 * gamma * m_e / m_p + (m_e / m_p) * (m_e / m_p));
-        dEdx = -K * z_p * z_p * Z_m / (A_m * beta2)  *
-            (1.0 / 2.0 * std::log(2 * m_e * 1e9 * beta2 * gamma2 * Tmax / I_m / I_m) - beta2);
-
-        // INFOMSG("stopping power_BB: " << dEdx << " MeV" << endl);
-        const double delta_Eave = deltasrho * dEdx;
-        double tmp = gsl_ran_gaussian(rGen_m, sigma_E);
-        const double delta_E = delta_Eave + tmp;
-        Eng = Eng + delta_E / 1E3;
-    }
-    //    INFOMSG("final energy: " << Eng/1000 << " MeV" <<endl);
-    return ((Eng < lowEnergyThr_m) || (dEdx > 0));
-}
-
-
 
 bool CollimatorPhysics::checkHit(Vector_t R, Vector_t P, double dt, Degrader *deg, Collimator *coll) {
     if(collShape_m == CYCLCOLLIMATOR) {
@@ -326,13 +239,224 @@ void CollimatorPhysics::apply(PartBunch &bunch, size_t numParticlesInSimulation)
     IpplTimings::stopTimer(DegraderApplyTimer_m);
 }
 
-const std::string CollimatorPhysics::getType() const {
-    return "CollimatorPhysics";
+void CollimatorPhysics::doPhysics(PartBunch &bunch, Degrader *deg, Collimator *col) {
+    /***
+        Do physics if
+        -- particle in material
+        -- particle not dead (locParts_m[i].label != -1.0)
+
+        Absorbed particle i: locParts_m[i].label = -1.0;
+
+        Particle goes back to beam if
+        -- not absorbed and out of material
+    */
+    static const double m2mm = 1000.0;
+    const double mass = bunch.getM() * 1e-9;
+    for(size_t i = 0; i < locParts_m.size(); ++ i) {
+        Vector_t &R = locParts_m[i].Rincol;
+        Vector_t &P = locParts_m[i].Pincol;
+        double Eng = (sqrt(1.0  + dot(P, P)) - 1) * mass;
+
+        if (locParts_m[i].label != -1) {
+            if (checkHit(R, P, dT_m, deg, col)) {
+                bool pdead = computeEnergyLoss(Eng, dT_m);
+                if(!pdead) {
+                    double ptot = sqrt((mass + Eng) * (mass + Eng) - mass * mass) / mass;
+                    P = P * ptot / sqrt(dot(P, P));
+                    /*
+                      Now scatter and transport particle in material.
+                      The checkInColl call just above will detect if the
+                      particle is rediffused from the material into vacuum.
+                    */
+                    applyCoulombScat(R, P, dT_m);
+                } else {
+                    // The particle is stopped in the material, set lable_m to -1
+                    locParts_m[i].label = -1.0;
+                    ++ stoppedPartStat_m;
+                    lossDs_m->addParticle(R, P, -locParts_m[i].IDincol);
+                }
+            } else {
+                /* The particle exits the material but is still in the loop of the substep,
+                   Finish the timestep by letting the particle drift and after the last
+                   substep call addBackToBunch
+                */
+                if(collShape_m == CYCLCOLLIMATOR) {
+                    double gamma = (Eng + mass) / mass;
+                    double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
+                    R = R + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) * m2mm;
+                } else {
+                    R = R + dT_m * Physics::c * P / sqrt(1.0 + dot(P, P)) ;
+                }
+
+                addBackToBunch(bunch, i);
+
+                ++ redifusedStat_m;
+            }
+        }
+    }
+}
+
+/// Energy Loss:  using the Bethe-Bloch equation.
+/// Energy straggling: For relatively thick absorbers such that the number of collisions is large,
+/// the energy loss distribution is shown to be Gaussian in form.
+// -------------------------------------------------------------------------
+bool CollimatorPhysics::computeEnergyLoss(double &Eng /* in GeV */, double &deltat) {
+
+    double dEdx = 0.0;
+    const double gamma = (Eng + m_p) / m_p;
+    const double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
+    const double gamma2 = gamma * gamma;
+    const double beta2 = beta * beta;
+
+    const double deltas = deltat * beta * Physics::c;
+    const double deltasrho = deltas * 100 * rho_m;
+    static const double K = 4.0 * pi * Avo * r_e * r_e * m_e * 1e7;
+    const double sigma_E = sqrt(K * m_e * rho_m * (Z_m / A_m) *  deltas * 1e5);
+
+    if ((Eng > 0.00001) && (Eng < 0.0006)) {
+        const double Ts = (Eng * 1e6) / 1.0073;  //  1.0073 is the mass of the proton in dalton. T is in keV
+        const double epsilon_low = A2_c * pow(Ts, 0.45);
+        const double epsilon_high = (A3_c / Ts) * log(1 + (A4_c / Ts) + (A5_c * Ts));
+        const double epsilon = (epsilon_low * epsilon_high) / (epsilon_low + epsilon_high);
+        dEdx = -epsilon  / (1e21 * A_m / Avo);
+
+        const double delta_E = deltasrho * dEdx + gsl_ran_gaussian(rGen_m, sigma_E);
+        Eng = Eng + delta_E / 1e3;
+    }
+
+    if (Eng >= 0.0006) {
+        const double Tmax = (2.0 * m_e * 1e9 * beta2 * gamma2  /
+                             (1.0 + 2.0 * gamma * m_e / m_p + (m_e / m_p) * (m_e / m_p)));
+        dEdx = (-K * z_p * z_p * Z_m / (A_m * beta2)  *
+                (0.5 * std::log(2 * m_e * 1e9 * beta2 * gamma2 * Tmax / I_m / I_m) - beta2));
+
+        const double delta_E = deltasrho * dEdx + gsl_ran_gaussian(rGen_m, sigma_E);;
+        Eng = Eng + delta_E / 1e3;
+    }
+    return ((Eng < lowEnergyThr_m) || (dEdx > 0));
+}
+
+/// Coulomb Scattering: Including Multiple Coulomb Scattering and large angle Rutherford Scattering.
+/// Using the distribution given in Classical Electrodynamics, by J. D. Jackson.
+/// For details: see J. Beringer et al. (Particle Data Group),
+///                  Phys. Rev. D 86, 010001 (2012),
+///                  "Passage of particles through matter"
+//--------------------------------------------------------------------------
+void  CollimatorPhysics::applyCoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
+    static const double mm2m = 1e-3, m2mm = 1000.0;
+    const double Eng = sqrt(dot(P, P) + 1.0) * m_p - m_p;
+    const double gamma = (Eng + m_p) / m_p;
+    const double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
+    const double betaGamma = sqrt(dot(P, P));
+    const double deltas = deltat * beta * Physics::c;
+    const double mass = m_p * 1e9; // in eV
+    // (30.15) in [Beringer]
+    const double theta0 = 13.6e6 / (beta * betaGamma * mass) * z_p * sqrt(deltas / X0_m) * (1.0 + 0.038 * log(deltas / X0_m));
+
+    // x-direction: See Physical Review, "Multiple Scattering"
+    double z1 = gsl_ran_gaussian(rGen_m,1.0);
+    double z2 = gsl_ran_gaussian(rGen_m,1.0);
+    double thetacou = z2 * theta0;
+
+    // Rutherford-scattering in x-direction
+    if(collShape_m == CYCLCOLLIMATOR)
+        R = R * mm2m;
+
+    while (std::abs(thetacou) > 3.5 * theta0) {
+        z1 = gsl_ran_gaussian(rGen_m,1.0);
+        z2 = gsl_ran_gaussian(rGen_m,1.0);
+        thetacou = z2 * theta0;
+    }
+
+    // double xplane = 0.5 * deltas * theta0 * (z1 / sqrt(3.0) + z2);
+    // double phi = Physics::pi * gsl_rng_uniform(rGen_m);
+    // Vector_t X(0.0);
+    // Quaternion M(cos(phi), sin(phi) * Vector_t(0, 0, 1));
+    // Vector_t origP = P;
+    // P = M.rotate(P);
+    // rotate(P, X, xplane, betaGamma, thetacou, deltas, 0);
+    // P = M.conjugate().rotate(P);
+    // R += M.conjugate().rotate(X);
+
+    double xplane = 0.5 * deltas * theta0 * (z1 / sqrt(3.0) + z2);
+    rotate(P, R, xplane, betaGamma, thetacou, deltas, 0);
+
+    // y-direction: See Physical Review, "Multiple Scattering"
+    z1 = gsl_ran_gaussian(rGen_m,1.0);
+    z2 = gsl_ran_gaussian(rGen_m,1.0);
+    thetacou = z2 * theta0;
+
+    while(std::abs(thetacou) > 3.5 * theta0) {
+        z1 = gsl_ran_gaussian(rGen_m,1.0);
+        z2 = gsl_ran_gaussian(rGen_m,1.0);
+        thetacou = z2 * theta0;
+    }
+
+    double yplane = 0.5 * deltas * theta0 * (z1 / sqrt(3.0) + z2);
+    rotate(P, R, yplane, betaGamma, thetacou, deltas, 1);
+
+    // Rutherford-scattering in x-direction
+    if(collShape_m == CYCLCOLLIMATOR)
+        R = R * m2mm;
+
+    // Rutherford-scattering
+    double P2 = gsl_rng_uniform(rGen_m);
+    if ((P2 < 0.0047) && enableRutherfordScattering_m) {
+        double P3 = gsl_rng_uniform(rGen_m);
+        //double thetaru = 2.5 * sqrt(1 / P3) * sqrt(2.0) * theta0;
+        double thetaru = 2.5 * sqrt(1 / P3) * 2.0 * theta0;
+        double phiru = 2.0 * pi * gsl_rng_uniform(rGen_m);
+        double th0 = atan2(sqrt(P(0)*P(0) + P(1)*P(1)), std::abs(P(2)));
+        Vector_t W,X;
+        X(0) = cos(phiru) * sin(thetaru);
+        X(1) = sin(phiru) * sin(thetaru);
+        X(2) = cos(thetaru);
+        X *= sqrt(dot(P,P));
+        W(0) = -P(1);
+        W(1) = P(0);
+        W(2) = 0.0;
+        P = ArbitraryRotation(W, X, th0);
+    }
+}
+
+// Implement the rotation in 2 dimensions here
+void  CollimatorPhysics::rotate(Vector_t &P,
+                                Vector_t &R,
+                                double plane,
+                                double betaGamma,
+                                double theta,
+                                double deltas,
+                                unsigned char coord) {
+    coord = coord % 3;
+    double &px = P(coord);
+    double &pz = P(2);
+    double &x = R(coord);
+    double &z = R(2);
+    // Calculate the angle between the px and pz momenta to change from beam coordinate to lab coordinate
+    const double Psi = atan2(px, pz);
+    const double pxz = sqrt(px*px + pz*pz);
+    const double cosPsi = cos(Psi);
+    const double sinPsi = sin(Psi);
+    const double cosTheta = cos(theta);
+    const double sinTheta = sin(theta);
+
+    // Apply the rotation about the random angle thetacou & change from beam
+    // coordinate system to the lab coordinate system using Psixz (2 dimensions)
+    x += deltas * px / betaGamma + plane * cosPsi;
+    z -= plane * sinPsi;
+
+    if (coord == 1) {
+        z += deltas * pz / betaGamma;
+    }
+
+    px = pxz * (cosPsi * sinTheta + sinPsi * cosTheta);
+    pz = pxz * (-sinPsi * sinTheta + cosPsi * cosTheta);
 }
 
 /// The material of the collimator
 //  ------------------------------------------------------------------------
 void  CollimatorPhysics::Material() {
+    // mean exitation energy (I_m) from Leo
 
     if(material_m == "Berilium") {
         Z_m = 4.0;
@@ -340,13 +464,12 @@ void  CollimatorPhysics::Material() {
         rho_m = 1.848;
 
         X0_m = 65.19 / rho_m / 100;
-        I_m = 10 * Z_m;
-        n_m = rho_m / A_m * Avo;
+        I_m = 12 * Z_m + 7.0;
 
         A2_c = 2.590;
-        A3_c = 9.660E2;
-        A4_c = 1.538E2;
-        A5_c = 3.475E-2;
+        A3_c = 9.660e2;
+        A4_c = 1.538e2;
+        A5_c = 3.475e-2;
 
     }
 
@@ -356,13 +479,12 @@ void  CollimatorPhysics::Material() {
         rho_m = 2.210;
 
         X0_m = 42.70 / rho_m / 100;
-        I_m = 10 * Z_m;
-        n_m = rho_m / A_m * Avo;
+        I_m = 12 * Z_m + 7.0;
 
         A2_c = 2.601;
-        A3_c = 1.701E3;
-        A4_c = 1.279E3;
-        A5_c = 1.638E-2;
+        A3_c = 1.701e3;
+        A4_c = 1.279e3;
+        A5_c = 1.638e-2;
 
     }
 
@@ -372,13 +494,12 @@ void  CollimatorPhysics::Material() {
         rho_m = 1.88;
 
         X0_m = 42.70 / rho_m / 100;
-        I_m = 10 * Z_m;
-        n_m = rho_m / A_m * Avo;
+        I_m = 12 * Z_m + 7.0;
 
         A2_c = 2.601;
-        A3_c = 1.701E3;
-        A4_c = 1.279E3;
-        A5_c = 1.638E-2;
+        A3_c = 1.701e3;
+        A4_c = 1.279e3;
+        A5_c = 1.638e-2;
 
     }
 
@@ -388,13 +509,12 @@ void  CollimatorPhysics::Material() {
         rho_m = 10.22;
 
         X0_m = 9.8 / rho_m / 100;
-        I_m = 10 * Z_m;
-        n_m = rho_m / A_m * Avo;
+        I_m = 9.76 * Z_m + (Z_m * 58.8 * std::pow(Z_m, -1.19));
 
         A2_c = 7.248;
-        A3_c = 9.545E3;
-        A4_c = 4.802E2;
-        A5_c = 5.376E-3;
+        A3_c = 9.545e3;
+        A4_c = 4.802e2;
+        A5_c = 5.376e-3;
     }
 
     /*
@@ -409,24 +529,21 @@ void  CollimatorPhysics::Material() {
         rho_m = 1.4;
 
         X0_m = 39.95 / rho_m / 100;
-        I_m = 10 * Z_m;
-        n_m = rho_m / A_m * Avo;
+        I_m = 12 * Z_m + 7.0;
+
 	A2_c = 3.350;
 	A3_c = 1683;
         A4_c = 1900;
         A5_c = 2.513e-02;
     }
 
-
-    //new materials
     else if (material_m == "Aluminum") {
         Z_m = 13;
         A_m = 26.98;
         rho_m = 2.7;
 
         X0_m = 24.01 / rho_m / 100;
-        I_m = 10 * Z_m;
-        n_m = rho_m / A_m * Avo;
+        I_m = 9.76 * Z_m + (Z_m * 58.8 * std::pow(Z_m, -1.19));
 
         A2_c = 4.739;
         A3_c = 2.766e3;
@@ -440,8 +557,7 @@ void  CollimatorPhysics::Material() {
         rho_m = 8.96;
 
         X0_m = 12.86 / rho_m / 100;
-        I_m = 10 * Z_m;
-        n_m = rho_m / A_m * Avo;
+        I_m = 9.76 * Z_m + (Z_m * 58.8 * std::pow(Z_m, -1.19));
 
         A2_c = 4.194;
         A3_c = 4.649e3;
@@ -455,8 +571,7 @@ void  CollimatorPhysics::Material() {
         rho_m = 4.54;
 
         X0_m = 16.16 / rho_m / 100;
-        I_m = 10 * Z_m;
-        n_m = rho_m / A_m * Avo;
+        I_m = 9.76 * Z_m + (Z_m * 58.8 * std::pow(Z_m, -1.19));
 
         A2_c = 5.489;
         A3_c = 5.260e3;
@@ -470,8 +585,7 @@ void  CollimatorPhysics::Material() {
         rho_m = 3.97;
 
         X0_m = 27.94 / rho_m / 100;
-        I_m = 10 * Z_m;
-        n_m = rho_m / A_m * Avo;
+        I_m = 9.76 * Z_m + (Z_m * 58.8 * std::pow(Z_m, -1.19));
 
         A2_c = 7.227;
         A3_c = 1.121e4;
@@ -485,8 +599,7 @@ void  CollimatorPhysics::Material() {
         rho_m = 0.0012;
 
         X0_m = 37.99 / rho_m / 100;
-        I_m = 10 * Z_m;
-        n_m = rho_m / A_m * Avo;
+        I_m = 12 * Z_m + 7.0;
 
         A2_c = 3.350;
         A3_c = 1.683e3;
@@ -500,8 +613,7 @@ void  CollimatorPhysics::Material() {
         rho_m = 1.4;
 
         X0_m = 39.95 / rho_m / 100;
-        I_m = 10 * Z_m;
-        n_m = rho_m / A_m * Avo;
+        I_m = 12 * Z_m + 7.0;
 
         A2_c = 2.601;
         A3_c = 1.701e3;
@@ -515,8 +627,7 @@ void  CollimatorPhysics::Material() {
         rho_m = 19.3;
 
         X0_m = 6.46 / rho_m / 100;
-        I_m = 10 * Z_m;
-        n_m = rho_m / A_m * Avo;
+        I_m = 9.76 * Z_m + (Z_m * 58.8 * std::pow(Z_m, -1.19));
 
         A2_c = 5.458;
         A3_c = 7.852e3;
@@ -530,8 +641,7 @@ void  CollimatorPhysics::Material() {
         rho_m = 1;
 
         X0_m = 36.08 / rho_m / 100;
-        I_m = 10 * Z_m;
-        n_m = rho_m / A_m * Avo;
+        I_m = 12 * Z_m + 7.0;
 
         A2_c = 2.199;
         A3_c = 2.393e3;
@@ -540,163 +650,8 @@ void  CollimatorPhysics::Material() {
     }
 
     else {
-        throw GeneralClassicException("CollimatorPhysics::Material","Material not found ...");
-    }
-    // mean exitation energy from Leo
-    if (Z_m < 13.0)
-        I_m = 12 * Z_m + 7.0;
-    else
-        I_m = 9.76 * Z_m + (Z_m * 58.8 * std::pow(Z_m, -1.19));
-}
-
-/// Energy Loss:  using the Bethe-Bloch equation.
-/// Energy straggling: For relatively thick absorbers such that the number of collisions is large,
-/// the energy loss distribution is shown to be Gaussian in form.
-// -------------------------------------------------------------------------
-
-void  CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, double &deltat) {
-    /// Eng GeV
-
-    double dEdx = 0.0;
-    const double gamma = (Eng + m_p) / m_p;
-    const double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
-    const double gamma2 = gamma * gamma;
-    const double beta2 = beta * beta;
-
-    const double deltas = deltat * beta * Physics::c;
-    const double deltasrho = deltas * 100 * rho_m;
-    const double K = 4.0 * pi * Avo * r_e * r_e * m_e * 1E7;
-    const double sigma_E = sqrt(K * m_e * rho_m * (Z_m/A_m)* deltas * 1E5);
-
-    if ((Eng > 0.00001) && (Eng < 0.0006)) {
-        const double Ts = (Eng*1E6)/1.0073; // 1.0073 is the proton mass divided by the atomic mass number. T is in KeV
-        const double epsilon_low = A2_c*pow(Ts,0.45);
-        const double epsilon_high = (A3_c/Ts)*log(1+(A4_c/Ts)+(A5_c*Ts));
-        const double epsilon = (epsilon_low*epsilon_high)/(epsilon_low + epsilon_high);
-        dEdx = - epsilon /(1E21*(A_m/Avo)); // Stopping_power is in MeV INFOMSG("stopping power: " << dEdx << " MeV" << endl);
-        const double delta_Eave = deltasrho * dEdx;
-        const double delta_E = delta_Eave + gsl_ran_gaussian(rGen_m,sigma_E);
-        Eng = Eng + delta_E / 1E3;
-    }
-
-    if (Eng >= 0.0006) {
-        const double Tmax = 2.0 * m_e * 1e9 * beta2 * gamma2 /
-            (1.0 + 2.0 * gamma * m_e / m_p + (m_e / m_p) * (m_e / m_p));
-        dEdx = -K * z_p * z_p * Z_m / (A_m * beta2) *
-            (1.0 / 2.0 * std::log(2 * m_e * 1e9 * beta2 * gamma2 * Tmax / I_m / I_m) - beta2);
-
-        // INFOMSG("stopping power_BB: " << dEdx << " MeV" << endl);
-        const double delta_Eave = deltasrho * dEdx;
-	double tmp = gsl_ran_gaussian(rGen_m,sigma_E);
-        const double delta_E = delta_Eave + tmp;
-        Eng = Eng+delta_E / 1E3;
-    }
-
-    //INFOMSG("final energy: " << Eng/1000 << " MeV" <<endl);
-    pdead = ((Eng<lowEnergyThr_m) || (dEdx>0));
-}
-
-// Implement the rotation in 2 dimensions here
-// For details: see J. Beringer et al. (Particle Data Group), Phys. Rev. D 86, 010001 (2012), "Passage of particles through matter"
-void  CollimatorPhysics::Rot(double &px, double &pz, double &x, double &z, double xplane, double normP, double thetacou, double deltas, int coord) {
-
-    double Psixz;
-    double pxz;
-    // Calculate the angle between the px and pz momenta to change from beam coordinate to lab coordinate
-    Psixz = atan2(px,pz);
-
-    // Apply the rotation about the random angle thetacou & change from beam
-    // coordinate system to the lab coordinate system using Psixz (2 dimensions)
-    pxz = sqrt(px*px + pz*pz);
-    if(coord==1) {
-    	x = x + deltas * px/normP + xplane*cos(Psixz);
-    	z = z - xplane * sin(Psixz);
-    }
-    if(coord==2) {
-	x = x + deltas * px/normP + xplane*cos(Psixz);
-	z = z - xplane * sin(Psixz) + deltas * pz / normP;
-    }
-
-    px = pxz*cos(Psixz)*sin(thetacou) + pxz*sin(Psixz)*cos(thetacou);
-    pz = -pxz*sin(Psixz)*sin(thetacou) + pxz*cos(Psixz)*cos(thetacou);
-
-}
-
-Vector_t ArbitraryRotation(Vector_t &W, Vector_t &Rorg, double Theta) {
-    double C=cos(Theta);
-    double S=sin(Theta);
-    W = W / sqrt(dot(W,W));
-    return Rorg * C + cross(W,Rorg) * S + W * dot(W,Rorg) * (1.0-C);
-}
-
-/// Coulomb Scattering: Including Multiple Coulomb Scattering and large angle Rutherford Scattering.
-/// Using the distribution given in Classical Electrodynamics, by J. D. Jackson.
-//--------------------------------------------------------------------------
-void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
-    const double mm2m = 1e-3, m2mm = 1000.0;
-    double Eng = sqrt(dot(P, P) + 1.0) * m_p - m_p;
-    double gamma = (Eng + m_p) / m_p;
-    double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
-    double normP = sqrt(dot(P, P));
-    double deltas = deltat * beta * Physics::c;
-    double theta0 = 13.6e6 / (beta * sqrt(dot(P, P)) * m_p * 1e9) * z_p * sqrt(deltas / X0_m) * (1.0 + 0.038 * log(deltas / X0_m));
-
-    // x-direction: See Physical Review, "Multiple Scattering"
-    double z1 = gsl_ran_gaussian(rGen_m,1.0);
-    double z2 = gsl_ran_gaussian(rGen_m,1.0);
-    double thetacou = z2 * theta0;
-
-    while(std::abs(thetacou) > 3.5 * theta0) {
-        z1 = gsl_ran_gaussian(rGen_m,1.0);
-        z2 = gsl_ran_gaussian(rGen_m,1.0);
-        thetacou = z2 * theta0;
-    }
-
-    double xplane = z1 * deltas * theta0 / sqrt(12.0) + z2 * deltas * theta0 / 2.0;
-    int coord = 1; // Apply change in coordinates for multiple scattering but not for Rutherford scattering (take the deltas step only once each turn)
-    Rot(P(0),P(2),R(0),R(2), xplane, normP, thetacou, deltas, coord);
-
-
-    // Rutherford-scattering in x-direction
-    if(collShape_m == CYCLCOLLIMATOR)
-        R = R * mm2m;
-
-    // y-direction: See Physical Review, "Multiple Scattering"
-    z1 = gsl_ran_gaussian(rGen_m,1.0);
-    z2 = gsl_ran_gaussian(rGen_m,1.0);
-    thetacou = z2 * theta0;
-
-    while(std::abs(thetacou) > 3.5 * theta0) {
-        z1 = gsl_ran_gaussian(rGen_m,1.0);
-        z2 = gsl_ran_gaussian(rGen_m,1.0);
-        thetacou = z2 * theta0;
-    }
-
-    double yplane = z1 * deltas * theta0 / sqrt(12.0) + z2 * deltas * theta0 / 2.0;
-    coord = 2; // Apply change in coordinates for multiple scattering but not for Rutherford scattering (take the deltas step only once each turn)
-    Rot(P(1), P(2), R(1), R(2), yplane, normP, thetacou, deltas, coord);
-
-    // Rutherford-scattering in x-direction
-    if(collShape_m == CYCLCOLLIMATOR)
-        R = R * m2mm;
-
-    // Rutherford-scattering
-    double P2 = gsl_rng_uniform(rGen_m);
-    if ((P2 < 0.0047) && enableRutherfordScattering_m) {
-        double P3 = gsl_rng_uniform(rGen_m);
-        //double thetaru = 2.5 * sqrt(1 / P3) * sqrt(2.0) * theta0;
-        double thetaru = 2.5 * sqrt(1 / P3) * 2.0 * theta0;
-        double phiru = 2.0 * pi * gsl_rng_uniform(rGen_m);
-	double th0 = atan2(sqrt(P(0)*P(0) + P(1)*P(1)), std::abs(P(2)));
-	Vector_t W,X;
-	X(0) = cos(phiru) * sin(thetaru);
-	X(1) = sin(phiru) * sin(thetaru);
-	X(2) = cos(thetaru);
-	X *= sqrt(dot(P,P));
-	W(0) = -P(1);
-	W(1) = P(0);
-	W(2) = 0.0;
-	P = ArbitraryRotation(W, X, th0);
+        throw GeneralClassicException("CollimatorPhysics::Material",
+                                      "Material '" + material_m + "' not found.");
     }
 }
 
@@ -1109,16 +1064,15 @@ void CollimatorPhysics::clearCollimatorDKS() {
 void CollimatorPhysics::applyHost(PartBunch &bunch, Degrader *deg, Collimator *coll) {
 
     //loop trough particles in dksParts_m
-    const double m2mm = 1000.0;
+    static const double m2mm = 1000.0;
     for (unsigned int i = 0; i < dksParts_m.size(); ++ i) {
         if(dksParts_m[i].label != -1) {
-            bool pdead = false;
             Vector_t &R = dksParts_m[i].Rincol;
             Vector_t &P = dksParts_m[i].Pincol;
             double Eng = (sqrt(1.0  + dot(P, P)) - 1) * m_p;
 
             if(checkHit(R, P, dT_m, deg, coll)) {
-                EnergyLoss(Eng, pdead, dT_m);
+                bool pdead = computeEnergyLoss(Eng, dT_m);
 
                 if(!pdead) {
 
@@ -1130,7 +1084,7 @@ void CollimatorPhysics::applyHost(PartBunch &bunch, Degrader *deg, Collimator *c
                       particle is rediffused from the material into vacuum.
                     */
 
-                    CoulombScat(R, P, dT_m);
+                    applyCoulombScat(R, P, dT_m);
 
                     dksParts_m[i].Rincol = R;
                     dksParts_m[i].Pincol = P;
@@ -1148,15 +1102,16 @@ void CollimatorPhysics::applyHost(PartBunch &bunch, Degrader *deg, Collimator *c
                    Finish the timestep by letting the particle drift and after the last
                    substep call addBackToBunch
                 */
-                double gamma = (Eng + m_p) / m_p;
-                double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
                 if(collShape_m == CYCLCOLLIMATOR) {
+                    double gamma = (Eng + m_p) / m_p;
+                    double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
                     R = R + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) * m2mm;
                 } else {
-                    dksParts_m[i].Rincol = dksParts_m[i].Rincol + dT_m * Physics::c * P / sqrt(1.0+dot(P, P)) ;
-                    addBackToBunchDKS(bunch, i);
-                    ++ redifusedStat_m;
+                    R = R + dT_m * Physics::c * P / sqrt(1.0 + dot(P, P)) ;
                 }
+
+                addBackToBunchDKS(bunch, i);
+                ++ redifusedStat_m;
             }
         }
     }
@@ -1186,3 +1141,10 @@ void CollimatorPhysics::deleteParticleFromLocalVectorDKS() {
 }
 
 #endif
+
+Vector_t ArbitraryRotation(Vector_t &W, Vector_t &Rorg, double Theta) {
+    double C=cos(Theta);
+    double S=sin(Theta);
+    W = W / sqrt(dot(W,W));
+    return Rorg * C + cross(W,Rorg) * S + W * dot(W,Rorg) * (1.0-C);
+}

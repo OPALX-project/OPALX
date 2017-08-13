@@ -91,14 +91,14 @@ public:
 private:
 
     void Material();
-    void CoulombScat(Vector_t &R, Vector_t &P, double &deltat);
-    void EnergyLoss(double &Eng, bool &pdead, double &deltat);
-    bool EnergyLoss(double &Eng, double &deltat);
+    void applyCoulombScat(Vector_t &R, Vector_t &P, double &deltat);
+    bool computeEnergyLoss(double &Eng, double &deltat);
 
     void applyDKS(PartBunch &bunch, size_t numParticlesInSimulation);
 
-    void Rot(double &px, double &pz, double &x, double &z, double xplane, double Norm_P,
-	     double thetacou, double deltas, int coord);
+    void rotate(Vector_t &P, Vector_t &R,
+                double xplane, double Norm_P,
+                double thetacou, double deltas, unsigned char coord);
 
     void copyFromBunch(PartBunch &bunch);
     void addBackToBunch(PartBunch &bunch, unsigned i);
@@ -146,16 +146,16 @@ private:
     std::string FN_m;
     std::string collShapeStr_m;
     SHAPE collShape_m;
-    double Z_m;
-    double A_m;
-    double A2_c;
-    double A3_c;
-    double A4_c;
-    double A5_c;
-    double rho_m;
-    double X0_m;
-    double I_m;
-    double n_m;
+    double Z_m; // target atomic number
+    double A_m; // target atomic weight
+    double A2_c; // ??
+    double A3_c; // ??
+    double A4_c; // ??
+    double A5_c; // ??
+    double rho_m; // target mass density
+    double X0_m; // radiation length
+    double I_m; // ?target mean excitation?
+    // double n_m;
 
     bool enableRutherfordScattering_m;
     double lowEnergyThr_m;
@@ -198,5 +198,10 @@ private:
 
 
 };
+
+inline
+const std::string CollimatorPhysics::getType() const {
+    return "CollimatorPhysics";
+}
 
 #endif //COLLIMATORPHYSICS_HH
