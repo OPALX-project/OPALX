@@ -336,6 +336,12 @@ bool CollimatorPhysics::computeEnergyLoss(double &Eng /* in GeV */, double &delt
     return ((Eng < lowEnergyThr_m) || (dEdx > 0));
 }
 
+// splitting the scattering into x and y plane as it is done now seems odd. Trying to
+// rotate the momentum about e_z by a random angle, then scatter and finally rotate back
+// but somehow this doesn't seem to work well yet; uncomment TRYNEWWAY to try this out.
+//
+// #define TRYNEWWAY
+//
 /// Coulomb Scattering: Including Multiple Coulomb Scattering and large angle Rutherford Scattering.
 /// Using the distribution given in Classical Electrodynamics, by J. D. Jackson.
 /// For details: see J. Beringer et al. (Particle Data Group),
@@ -353,14 +359,14 @@ void  CollimatorPhysics::applyCoulombScat(Vector_t &R, Vector_t &P, double &delt
     // (30.15) in [Beringer]
     const double theta0 = 13.6e6 / (beta * betaGamma * mass) * z_p * sqrt(deltas / X0_m) * (1.0 + 0.038 * log(deltas / X0_m));
 
+    // Rutherford-scattering in x-direction
+    if(collShape_m == CYCLCOLLIMATOR)
+        R = R * mm2m;
+
     // x-direction: See Physical Review, "Multiple Scattering"
     double z1 = gsl_ran_gaussian(rGen_m,1.0);
     double z2 = gsl_ran_gaussian(rGen_m,1.0);
     double thetacou = z2 * theta0;
-
-    // Rutherford-scattering in x-direction
-    if(collShape_m == CYCLCOLLIMATOR)
-        R = R * mm2m;
 
     while (std::abs(thetacou) > 3.5 * theta0) {
         z1 = gsl_ran_gaussian(rGen_m,1.0);
@@ -368,18 +374,30 @@ void  CollimatorPhysics::applyCoulombScat(Vector_t &R, Vector_t &P, double &delt
         thetacou = z2 * theta0;
     }
 
-    // double xplane = 0.5 * deltas * theta0 * (z1 / sqrt(3.0) + z2);
-    // double phi = Physics::pi * gsl_rng_uniform(rGen_m);
-    // Vector_t X(0.0);
-    // Quaternion M(cos(phi), sin(phi) * Vector_t(0, 0, 1));
-    // Vector_t origP = P;
-    // P = M.rotate(P);
-    // rotate(P, X, xplane, betaGamma, thetacou, deltas, 0);
-    // P = M.conjugate().rotate(P);
-    // R += M.conjugate().rotate(X);
-
+#ifdef TRYNEWWAY
     double xplane = 0.5 * deltas * theta0 * (z1 / sqrt(3.0) + z2);
-    rotate(P, R, xplane, betaGamma, thetacou, deltas, 0);
+    double phi = Physics::pi * gsl_rng_uniform(rGen_m);
+    Vector_t X(0.0);
+    Quaternion M(cos(phi), sin(phi) * Vector_t(0, 0, 1)); // rotation about (0, 0, 1) by 2 * phi
+    Vector_t origP = P;
+    P = M.rotate(P);
+    computeScatteringEffect(P, X, xplane, betaGamma, thetacou, deltas, 0);
+    P = M.conjugate().rotate(P);
+    R += M.conjugate().rotate(X);
+
+    // z1 = gsl_ran_gaussian(rGen_m,1.0);
+    // z2 = gsl_ran_gaussian(rGen_m,1.0);
+    // thetacou = z2 * theta0;
+
+    // while(std::abs(thetacou) > 3.5 * theta0) {
+    //     z1 = gsl_ran_gaussian(rGen_m,1.0);
+    //     z2 = gsl_ran_gaussian(rGen_m,1.0);
+    //     thetacou = z2 * theta0;
+    // }
+
+#else
+    double xplane = 0.5 * deltas * theta0 * (z1 / sqrt(3.0) + z2);
+    computeScatteringEffect(P, R, xplane, betaGamma, thetacou, deltas, 0);
 
     // y-direction: See Physical Review, "Multiple Scattering"
     z1 = gsl_ran_gaussian(rGen_m,1.0);
@@ -393,7 +411,8 @@ void  CollimatorPhysics::applyCoulombScat(Vector_t &R, Vector_t &P, double &delt
     }
 
     double yplane = 0.5 * deltas * theta0 * (z1 / sqrt(3.0) + z2);
-    rotate(P, R, yplane, betaGamma, thetacou, deltas, 1);
+    computeScatteringEffect(P, R, yplane, betaGamma, thetacou, deltas, 1);
+#endif
 
     // Rutherford-scattering in x-direction
     if(collShape_m == CYCLCOLLIMATOR)
@@ -420,13 +439,30 @@ void  CollimatorPhysics::applyCoulombScat(Vector_t &R, Vector_t &P, double &delt
 }
 
 // Implement the rotation in 2 dimensions here
-void  CollimatorPhysics::rotate(Vector_t &P,
-                                Vector_t &R,
-                                double plane,
-                                double betaGamma,
-                                double theta,
-                                double deltas,
-                                unsigned char coord) {
+void  CollimatorPhysics::computeScatteringEffect(Vector_t &P,
+                                                 Vector_t &R,
+                                                 double plane,
+                                                 double betaGamma,
+                                                 double theta,
+                                                 double deltas,
+                                                 unsigned char coord) {
+#ifdef TRYNEWWAY
+    // Calculate the angle between the px and pz momenta to change from beam coordinate to lab coordinate
+    const double Psi = atan2(P(0), P(2));
+    const double pxz = sqrt(P(0)*P(0) + P(2)*P(2));
+    const double cosPsi = cos(Psi);
+    const double sinPsi = sin(Psi);
+    const double cosTheta = cos(theta);
+    const double sinTheta = sin(theta);
+
+    // Apply the rotation about the random angle thetacou & change from beam
+    // coordinate system to the lab coordinate system using Psixz (2 dimensions)
+    R(0) += deltas * P(0) / betaGamma + plane * cosPsi;
+    R(2) += deltas * P(2) / betaGamma - plane * sinPsi;
+
+    P(0) = pxz * (cosPsi * sinTheta + sinPsi * cosTheta);
+    P(2) = pxz * (-sinPsi * sinTheta + cosPsi * cosTheta);
+#else
     coord = coord % 3;
     double &px = P(coord);
     double &pz = P(2);
@@ -451,6 +487,7 @@ void  CollimatorPhysics::rotate(Vector_t &P,
 
     px = pxz * (cosPsi * sinTheta + sinPsi * cosTheta);
     pz = pxz * (-sinPsi * sinTheta + cosPsi * cosTheta);
+#endif
 }
 
 /// The material of the collimator
