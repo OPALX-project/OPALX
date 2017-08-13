@@ -1,249 +1,176 @@
 #include "gtest/gtest.h"
 
-#include "opal.h"
-
-Ippl *ippl;
-Inform *gmsg;
-
-#include "AbstractObjects/OpalData.h"
-#include "OpalConfigure/Configure.h"
-#include "Utilities/OpalException.h"
 #include "Distribution/Distribution.h"
-#include "OpalParser/OpalParser.h"
-
-#include "Parser/FileStream.h"
+#include "Attributes/Attributes.h"
 #include "Physics/Physics.h"
 
 #include "opal_test_utilities/SilenceTest.h"
 
 #include "gsl/gsl_statistics_double.h"
 
-#include <cstdio>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <cstring>
-#include <sstream>
-
 TEST(GaussTest, FullSigmaTest1) {
-    OpalTestUtilities::SilenceTest silencer(false);
-    char inputFileName[] = "GaussDistributionTest.in";
-    std::string input = "OPTION, ECHO=FALSE;\n"
-        "OPTION, CZERO=FALSE;\n"
-        "TITLE, STRING=\"gauss distribution unit test\";\n"
-        "DIST1: DISTRIBUTION, TYPE = \"GAUSS\", \n"
-        "SIGMAX = 1.978e-3, SIGMAY = 2.498e-3, SIGMAZ = 1.537e-3, \n"
-        "SIGMAPX = 0.7998, SIGMAPY = 0.6212, SIGMAPZ = 0.9457, \n"
-        "R = {-0.40993, 0, 0, 0.14935, 0.72795,   0, 0, 0.59095, -0.3550,   0.77208, 0, 0,   0, 0,  0.12051}, \n"
-        "EKIN = 0.63, \n"
-        "EMITTED = FALSE;\n";
+    OpalTestUtilities::SilenceTest silencer;
 
-    int narg = 7;
-    char exe_name[] = "opal_unit_tests";
-    char commlib[] = "--nocomminit";
-    char info[] = "--info";
-    char info0[] = "0";
-    char warn[] = "--warn";
-    char warn0[] = "0";
+    const double expectedR11 = 1.978;
+    const double expectedR22 = 0.7998;
+    const double expectedR33 = 2.498;
+    const double expectedR44 = 0.6212;
+    const double expectedR55 =  1.537;
+    const double expectedR66 = 0.9457;
 
-    char **arg = new char*[7];
-    arg[0] = exe_name;
-    arg[1] = inputFileName;
-    arg[2] = commlib;
-    arg[3] = info;
-    arg[4] = info0;
-    arg[5] = warn;
-    arg[6] = warn0;
+    const double expectedR21 = -0.40993;
+    const double expectedR43 = 0.77208;
+    const double expectedR65 = 0.12051;
+    const double expectedR51 = 0.14935;
+    const double expectedR52 = 0.59095;
+    const double expectedR61 = 0.72795;
+    const double expectedR62 = -0.3550;
 
-    if (!ippl)
-        ippl = new Ippl(narg, arg, Ippl::KEEP, MPI_COMM_WORLD);
-    gmsg = new Inform("OPAL ");
+    std::vector<double> expectedR({expectedR21, 0, 0,           expectedR51, expectedR61, \
+                /*                           */ 0, 0,           expectedR52, expectedR62, \
+                /*                              */ expectedR43, 0,           0, \
+                /*                                            */0,           0,                                         \
+                /*                                                         */expectedR65});
 
-    std::ofstream inputFile(inputFileName);
-    inputFile << input << std::endl;
-    inputFile.close();
+    Distribution dist;
 
-    OpalData *OPAL = OpalData::getInstance();
-    Configure::configure();
-    OPAL->storeInputFn(inputFileName);
+    Attributes::setString(dist.itsAttr[Attrib::Distribution::TYPE], "GAUSS");
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAX], expectedR11 * 1e-3);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPX], expectedR22);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAY], expectedR33 * 1e-3);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPY], expectedR44);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAZ], expectedR55 * 1e-3);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPZ], expectedR66);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFX], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFY], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFLONG], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFPX], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFPY], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFPZ], 5.0);
+    Attributes::setRealArray(dist.itsAttr[Attrib::Distribution::R], expectedR);
+    Attributes::setBool(dist.itsAttr[Attrib::Distribution::EMITTED], false);
+    Attributes::setBool(dist.itsAttr[Attrib::Distribution::WRITETOFILE], true);
 
-    FileStream *is = 0;
-    try {
-        is = new FileStream(inputFileName);
-    } catch(...) {
-        is = 0;
-        throw new OpalException("FullSigmaTest", "Could not read string");
-    }
+    dist.setDistType();
+    dist.checkIfEmitted();
+    size_t numParticles = 1000000;
+    dist.create(numParticles, Physics::m_p);
 
-    OpalParser *parser = new OpalParser();
-    if (is) {
-        try {
-            parser->run(is);
-        } catch (...) {
-            throw new OpalException("FullSigmaTest", "Could not parse input");
-        }
-    }
+    double R11 = sqrt(gsl_stats_variance(&(dist.xDist_m[0]), 1, dist.xDist_m.size())) * 1e3;
+    double R22 = sqrt(gsl_stats_variance(&(dist.pxDist_m[0]), 1, dist.pxDist_m.size()));
+    double R33 = sqrt(gsl_stats_variance(&(dist.yDist_m[0]), 1, dist.yDist_m.size())) * 1e3;
+    double R44 = sqrt(gsl_stats_variance(&(dist.pyDist_m[0]), 1, dist.pyDist_m.size()));
+    double R55 = sqrt(gsl_stats_variance(&(dist.tOrZDist_m[0]), 1, dist.tOrZDist_m.size())) * 1e3;
+    double R66 = sqrt(gsl_stats_variance(&(dist.pzDist_m[0]), 1, dist.pzDist_m.size()));
 
-    Object *distObj;
-    try {
-        distObj = OPAL->find("DIST1");
-    } catch(...) {
-        distObj = 0;
-        throw new OpalException("FullSigmaTest", "Could not find distribution");
-    }
+    double R21 = (gsl_stats_covariance(&(dist.xDist_m[0]), 1, &(dist.pxDist_m[0]), 1, dist.xDist_m.size()) * 1e3 /
+                  (expectedR11 * expectedR22));
+    double R43 = (gsl_stats_covariance(&(dist.yDist_m[0]), 1, &(dist.pyDist_m[0]), 1, dist.yDist_m.size()) * 1e3 /
+                  (expectedR33 * expectedR44));
+    double R51 = (gsl_stats_covariance(&(dist.xDist_m[0]), 1, &(dist.tOrZDist_m[0]), 1, dist.xDist_m.size()) * 1e6 /
+                  (expectedR11 * expectedR55));
+    double R52 = (gsl_stats_covariance(&(dist.pxDist_m[0]), 1, &(dist.tOrZDist_m[0]), 1, dist.pxDist_m.size()) * 1e3 /
+                  (expectedR22 * expectedR55));
+    double R61 = (gsl_stats_covariance(&(dist.xDist_m[0]), 1, &(dist.pzDist_m[0]), 1, dist.xDist_m.size()) * 1e3 /
+                  (expectedR11 * expectedR66));
+    double R62 = (gsl_stats_covariance(&(dist.pxDist_m[0]), 1, &(dist.pzDist_m[0]), 1, dist.pxDist_m.size()) /
+                  (expectedR22 * expectedR66));
 
-    if (distObj) {
-        Distribution *dist = dynamic_cast<Distribution*>(distObj);
-        dist->setDistType();
-        dist->checkIfEmitted();
-        size_t numParticles = 1000000;
-        dist->create(numParticles, Physics::m_p);
+    EXPECT_NEAR(R11 / expectedR11, 1.0, 0.002);
+    EXPECT_NEAR(R22 / expectedR22, 1.0, 0.002);
+    EXPECT_NEAR(R33 / expectedR33, 1.0, 0.002);
+    EXPECT_NEAR(R44 / expectedR44, 1.0, 0.002);
+    EXPECT_NEAR(R55 / expectedR55, 1.0, 0.002);
+    EXPECT_NEAR(R66 / expectedR66, 1.0, 0.002);
 
-        double R11 = gsl_stats_variance(&(dist->xDist_m[0]), 1, dist->xDist_m.size()) * 1e6;
-        double R21 = gsl_stats_covariance(&(dist->xDist_m[0]), 1, &(dist->pxDist_m[0]), 1, dist->xDist_m.size()) * 1e3;
-        double R22 = gsl_stats_variance(&(dist->pxDist_m[0]), 1, dist->pxDist_m.size());
-
-        double R51 = gsl_stats_covariance(&(dist->xDist_m[0]), 1, &(dist->tOrZDist_m[0]), 1, dist->xDist_m.size()) * 1e6;
-        double R52 = gsl_stats_covariance(&(dist->pxDist_m[0]), 1, &(dist->tOrZDist_m[0]), 1, dist->pxDist_m.size()) * 1e3;
-        double R61 = gsl_stats_covariance(&(dist->xDist_m[0]), 1, &(dist->pzDist_m[0]), 1, dist->xDist_m.size()) * 1e3;
-        double R62 = gsl_stats_covariance(&(dist->pxDist_m[0]), 1, &(dist->pzDist_m[0]), 1, dist->pxDist_m.size());
-
-        const double expectedR11 = 3.914;
-        const double expectedR21 = -0.6486;
-        const double expectedR22 = 0.6396;
-        const double expectedR51 = 0.4542;
-        const double expectedR52 = 0.7265;
-        const double expectedR61 = 1.362;
-        const double expectedR62 = -0.2685;
-
-        EXPECT_LT(std::abs(expectedR11 - R11),  0.05 * expectedR11);
-        EXPECT_LT(std::abs(expectedR21 - R21), -0.05 * expectedR21);
-        EXPECT_LT(std::abs(expectedR22 - R22),  0.05 * expectedR22);
-        EXPECT_LT(std::abs(expectedR51 - R51),  0.05 * expectedR51);
-        EXPECT_LT(std::abs(expectedR52 - R52),  0.05 * expectedR52);
-        EXPECT_LT(std::abs(expectedR61 - R61),  0.05 * expectedR61);
-        EXPECT_LT(std::abs(expectedR62 - R62), -0.05 * expectedR62);
-    }
-
-
-    OpalData::deleteInstance();
-    delete parser;
-    delete gmsg;
-    //    delete ippl;
-    delete[] arg;
-
-    std::remove(inputFileName);
+    EXPECT_NEAR(R21 / expectedR21, 1.0, 0.02);
+    EXPECT_NEAR(R43 / expectedR43, 1.0, 0.02);
+    EXPECT_NEAR(R51 / expectedR51, 1.0, 0.05);
+    EXPECT_NEAR(R52 / expectedR52, 1.0, 0.02);
+    EXPECT_NEAR(R61 / expectedR61, 1.0, 0.02);
+    EXPECT_NEAR(R62 / expectedR62, 1.0, 0.02);
 }
 
 TEST(GaussTest, FullSigmaTest2) {
-    OpalTestUtilities::SilenceTest silencer(true);
-    char inputFileName[] = "GaussDistributionTest.in";
-    std::string input = "OPTION, ECHO=FALSE;\n"
-        "OPTION, CZERO=FALSE;\n"
-        "TITLE, STRING=\"gauss distribution unit test\";\n"
-        "DIST1: DISTRIBUTION, TYPE = \"GAUSS\", \n"
-        "SIGMAX = 1.978e-3, SIGMAY = 2.498e-3, SIGMAZ = 1.537e-3, \n"
-        "SIGMAPX = 0.7998, SIGMAPY = 0.6212, SIGMAPZ = 0.9457, \n"
-        "CORRX= -0.40993, CORRY=0.77208, CORRZ=0.12051, \n"
-        "R51=0.14935, R52=0.59095, R61=0.72795, R62=-0.3550, \n"
-        "EKIN = 0.63, \n"
-        "EMITTED = FALSE;\n";
+    OpalTestUtilities::SilenceTest silencer;
 
-    int narg = 7;
-    char exe_name[] = "opal_unit_tests";
-    char commlib[] = "--nocomminit";
-    char info[] = "--info";
-    char info0[] = "0";
-    char warn[] = "--warn";
-    char warn0[] = "0";
+    const double expectedR11 = 1.978;
+    const double expectedR22 = 0.7998;
+    const double expectedR33 = 2.498;
+    const double expectedR44 = 0.6212;
+    const double expectedR55 =  1.537;
+    const double expectedR66 = 0.9457;
 
-    char **arg = new char*[7];
-    arg[0] = exe_name;
-    arg[1] = inputFileName;
-    arg[2] = commlib;
-    arg[3] = info;
-    arg[4] = info0;
-    arg[5] = warn;
-    arg[6] = warn0;
+    const double expectedR21 = -0.40993;
+    const double expectedR43 = 0.77208;
+    const double expectedR65 = 0.12051;
+    const double expectedR51 = 0.14935;
+    const double expectedR52 = 0.59095;
+    const double expectedR61 = 0.72795;
+    const double expectedR62 = -0.3550;
 
-    if (!ippl)
-        ippl = new Ippl(narg, arg, Ippl::KEEP, MPI_COMM_WORLD);
-    gmsg = new Inform("OPAL ");
+    Distribution dist;
 
-    std::ofstream inputFile(inputFileName);
-    inputFile << input << std::endl;
-    inputFile.close();
+    Attributes::setString(dist.itsAttr[Attrib::Distribution::TYPE], "GAUSS");
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAX], expectedR11 * 1e-3);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPX], expectedR22);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAY], expectedR33 * 1e-3);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPY], expectedR44);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAZ], expectedR55 * 1e-3);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPZ], expectedR66);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CORRX], expectedR21);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CORRY], expectedR43);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CORRZ], expectedR65);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::R51], expectedR51);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::R61], expectedR61);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::R52], expectedR52);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::R62], expectedR62);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFX], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFY], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFLONG], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFPX], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFPY], 5.0);
+    Attributes::setReal(dist.itsAttr[Attrib::Distribution::CUTOFFPZ], 5.0);
+    Attributes::setBool(dist.itsAttr[Attrib::Distribution::EMITTED], false);
+    Attributes::setBool(dist.itsAttr[Attrib::Distribution::WRITETOFILE], true);
 
-    OpalData *OPAL = OpalData::getInstance();
-    Configure::configure();
-    OPAL->storeInputFn(inputFileName);
+    dist.setDistType();
+    dist.checkIfEmitted();
 
-    FileStream *is = 0;
-    try {
-        is = new FileStream(inputFileName);
-    } catch(...) {
-        is = 0;
-        throw new OpalException("FullSigmaTest", "Could not read string");
-    }
+    size_t numParticles = 1000000;
+    dist.create(numParticles, Physics::m_p);
 
-    OpalParser *parser = new OpalParser();
-    if (is) {
-        try {
-            parser->run(is);
-        } catch (...) {
-            throw new OpalException("FullSigmaTest", "Could not parse input");
-        }
-    }
+    double R11 = sqrt(gsl_stats_variance(&(dist.xDist_m[0]), 1, dist.xDist_m.size())) * 1e3;
+    double R22 = sqrt(gsl_stats_variance(&(dist.pxDist_m[0]), 1, dist.pxDist_m.size()));
+    double R33 = sqrt(gsl_stats_variance(&(dist.yDist_m[0]), 1, dist.yDist_m.size())) * 1e3;
+    double R44 = sqrt(gsl_stats_variance(&(dist.pyDist_m[0]), 1, dist.pyDist_m.size()));
+    double R55 = sqrt(gsl_stats_variance(&(dist.tOrZDist_m[0]), 1, dist.tOrZDist_m.size())) * 1e3;
+    double R66 = sqrt(gsl_stats_variance(&(dist.pzDist_m[0]), 1, dist.pzDist_m.size()));
 
-    Object *distObj;
-    try {
-        distObj = OPAL->find("DIST1");
-    } catch(...) {
-        distObj = 0;
-        throw new OpalException("FullSigmaTest", "Could not find distribution");
-    }
+    double R21 = (gsl_stats_covariance(&(dist.xDist_m[0]), 1, &(dist.pxDist_m[0]), 1, dist.xDist_m.size()) * 1e3 /
+                  (expectedR11 * expectedR22));
+    double R43 = (gsl_stats_covariance(&(dist.yDist_m[0]), 1, &(dist.pyDist_m[0]), 1, dist.yDist_m.size()) * 1e3 /
+                  (expectedR33 * expectedR44));
+    double R51 = (gsl_stats_covariance(&(dist.xDist_m[0]), 1, &(dist.tOrZDist_m[0]), 1, dist.xDist_m.size()) * 1e6 /
+                  (expectedR11 * expectedR55));
+    double R52 = (gsl_stats_covariance(&(dist.pxDist_m[0]), 1, &(dist.tOrZDist_m[0]), 1, dist.pxDist_m.size()) * 1e3 /
+                  (expectedR22 * expectedR55));
+    double R61 = (gsl_stats_covariance(&(dist.xDist_m[0]), 1, &(dist.pzDist_m[0]), 1, dist.xDist_m.size()) * 1e3 /
+                  (expectedR11 * expectedR66));
+    double R62 = (gsl_stats_covariance(&(dist.pxDist_m[0]), 1, &(dist.pzDist_m[0]), 1, dist.pxDist_m.size()) /
+                  (expectedR22 * expectedR66));
 
-    if (distObj) {
-        Distribution *dist = dynamic_cast<Distribution*>(distObj);
+    EXPECT_NEAR(R11 / expectedR11, 1.0, 0.002);
+    EXPECT_NEAR(R22 / expectedR22, 1.0, 0.002);
+    EXPECT_NEAR(R33 / expectedR33, 1.0, 0.002);
+    EXPECT_NEAR(R44 / expectedR44, 1.0, 0.002);
+    EXPECT_NEAR(R55 / expectedR55, 1.0, 0.002);
+    EXPECT_NEAR(R66 / expectedR66, 1.0, 0.002);
 
-        dist->setDistType();
-        dist->checkIfEmitted();
-
-        size_t numParticles = 1000000;
-        dist->create(numParticles, Physics::m_p);
-
-
-        double R11 = gsl_stats_variance(&(dist->xDist_m[0]), 1, dist->xDist_m.size()) * 1e6;
-        double R21 = gsl_stats_covariance(&(dist->xDist_m[0]), 1, &(dist->pxDist_m[0]), 1, dist->xDist_m.size()) * 1e3;
-        double R22 = gsl_stats_variance(&(dist->pxDist_m[0]), 1, dist->pxDist_m.size());
-
-        double R51 = gsl_stats_covariance(&(dist->xDist_m[0]), 1, &(dist->tOrZDist_m[0]), 1, dist->xDist_m.size()) * 1e6;
-        double R52 = gsl_stats_covariance(&(dist->pxDist_m[0]), 1, &(dist->tOrZDist_m[0]), 1, dist->pxDist_m.size()) * 1e3;
-        double R61 = gsl_stats_covariance(&(dist->xDist_m[0]), 1, &(dist->pzDist_m[0]), 1, dist->xDist_m.size()) * 1e3;
-        double R62 = gsl_stats_covariance(&(dist->pxDist_m[0]), 1, &(dist->pzDist_m[0]), 1, dist->pxDist_m.size());
-
-        const double expectedR11 = 3.914;
-        const double expectedR21 = -0.6486;
-        const double expectedR22 = 0.6396;
-        const double expectedR51 = 0.4542;
-        const double expectedR52 = 0.7265;
-        const double expectedR61 = 1.362;
-        const double expectedR62 = -0.2685;
-
-        EXPECT_LT(std::abs(expectedR11 - R11),  0.05 * expectedR11);
-        EXPECT_LT(std::abs(expectedR21 - R21), -0.05 * expectedR21);
-        EXPECT_LT(std::abs(expectedR22 - R22),  0.05 * expectedR22);
-        EXPECT_LT(std::abs(expectedR51 - R51),  0.05 * expectedR51);
-        EXPECT_LT(std::abs(expectedR52 - R52),  0.05 * expectedR52);
-        EXPECT_LT(std::abs(expectedR61 - R61),  0.05 * expectedR61);
-        EXPECT_LT(std::abs(expectedR62 - R62), -0.05 * expectedR62);
-    }
-
-    OpalData::deleteInstance();
-    delete parser;
-    delete gmsg;
-    //    delete ippl;
-    delete[] arg;
-
-    std::remove(inputFileName);
+    EXPECT_NEAR(R21 / expectedR21, 1.0, 0.02);
+    EXPECT_NEAR(R43 / expectedR43, 1.0, 0.02);
+    EXPECT_NEAR(R51 / expectedR51, 1.0, 0.05);
+    EXPECT_NEAR(R52 / expectedR52, 1.0, 0.02);
+    EXPECT_NEAR(R61 / expectedR61, 1.0, 0.02);
+    EXPECT_NEAR(R62 / expectedR62, 1.0, 0.02);
 }

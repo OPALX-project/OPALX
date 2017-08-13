@@ -168,17 +168,18 @@ void TrackRun::execute() {
             }
         }
         if (newerChanges) {
-            ERRORMSG("\n******************** V E R S I O N   M I S M A T C H ***********************\n" << endl);
+            Inform errorMsg("Error");
+            errorMsg << "\n******************** V E R S I O N   M I S M A T C H ***********************\n" << endl;
             for (auto it = Versions::changes.begin(); it != Versions::changes.end(); ++ it) {
                 if (it->first > fileVersion) {
-                    ERRORMSG(it->second << endl);
+                    errorMsg << it->second << endl;
                 }
             }
-            ERRORMSG("\nMake sure you do understand these changes and adjust your input file \n"
+            errorMsg << "\nMake sure you do understand these changes and adjust your input file \n"
                      << "accordingly. Then add\n"
                      << "OPTION, VERSION = " << currentVersion << ";\n"
-                     << "to your input file. " << endl);
-            ERRORMSG("\n****************************************************************************\n" << endl);
+                     << "to your input file. " << endl;
+            errorMsg << "\n****************************************************************************\n" << endl;
             throw OpalException("TrackRun::execute", "Version mismatch");
         }
     }
@@ -831,8 +832,9 @@ void TrackRun::setupFieldsolver() {
 
         if (numParticles < numGridPoints)
             throw OpalException("TrackRun::setupFieldsolver()",
-                                "Panik: The number of simulation particles (" + std::to_string(numParticles) + ") " +
-                                "is smaller than the number of gridpoints (" + std::to_string(numGridPoints) + ")");
+                                "The number of simulation particles (" + std::to_string(numParticles) + ") \n" +
+                                "is smaller than the number of gridpoints (" + std::to_string(numGridPoints) + ").\n" +
+                                "Please increase the number of particles or reduce the size of the mesh.\n");
     }
 
     fs->initCartesianFields();
