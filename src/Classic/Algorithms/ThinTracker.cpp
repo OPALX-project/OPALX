@@ -68,7 +68,7 @@ ThinTracker::ThinTracker(const Beamline &beamline, const PartData &reference,
 
 
 ThinTracker::ThinTracker(const Beamline &beamline,
-                         const PartBunch &bunch,
+                         PartBunch *bunch,
                          const PartData &reference,
                          bool revBeam, bool revTrack):
     Tracker(beamline, bunch, reference, revBeam, revTrack)
@@ -114,8 +114,8 @@ void ThinTracker::visitBeamBeam(const BeamBeam &bb) {
         if(sx2 == sy2) {
             // Limit for sigma(x)^2 = sigma(y)^2.
 
-            for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-                Particle part = itsBunch.get_part(i);
+            for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+                Particle part = itsBunch_m->get_part(i);
 
                 double xs = part.x() - dx;
                 double ys = part.y() - dy;
@@ -132,15 +132,15 @@ void ThinTracker::visitBeamBeam(const BeamBeam &bb) {
                 part.px() += xs * phi;
                 part.py() += ys * phi;
 
-                itsBunch.set_part(part, i);
+                itsBunch_m->set_part(part, i);
             }
         } else {
             // Case sigma(x)^2 != sigma(y)^2.
             const double r = sqrt(2.0 * std::abs(sx2 - sy2));
             double rk = flip_s * flip_B * fk * sqrt(pi) / r;
 
-            for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-                Particle part = itsBunch.get_part(i);
+            for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+                Particle part = itsBunch_m->get_part(i);
 
                 double xs = part.x() - dx;
                 double ys = part.y() - dy;
@@ -156,7 +156,7 @@ void ThinTracker::visitBeamBeam(const BeamBeam &bb) {
                 part.px() += rk * ((xs > 0.0) ? std::imag(W) : - std::imag(W));
                 part.py() += rk * ((ys > 0.0) ? std::real(W) : - std::real(W));
 
-                itsBunch.set_part(part, i);
+                itsBunch_m->set_part(part, i);
             }
         }
     }
@@ -191,11 +191,11 @@ void ThinTracker::visitCorrector(const Corrector &corr) {
                     itsReference.getQ() * c) / itsReference.getP();
     const BDipoleField &field = corr.getField();
 
-    for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-        Particle part = itsBunch.get_part(i);
+    for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+        Particle part = itsBunch_m->get_part(i);
         part.px() -= field.getBy() * scale;
         part.py() += field.getBx() * scale;
-        itsBunch.set_part(part, i);
+        itsBunch_m->set_part(part, i);
     }
 
     // Drift through second half of length.
@@ -274,8 +274,8 @@ void ThinTracker::visitRBend(const RBend &bend) {
     double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();
     if(length) scale *= length;
 
-    for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-        Particle part = itsBunch.get_part(i);
+    for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+        Particle part = itsBunch_m->get_part(i);
         int order = field.order();
 
         if(order > 0) {
@@ -295,7 +295,7 @@ void ThinTracker::visitRBend(const RBend &bend) {
             part.py() += ky * scale;
             part.t()  -= angle * x;
         }
-        itsBunch.set_part(part, i);
+        itsBunch_m->set_part(part, i);
     }
 
     // Drift to out-plane.
@@ -313,13 +313,13 @@ void ThinTracker::visitRFCavity(const RFCavity &as) {
     double peak = flip_s * as.getAmplitude() / itsReference.getP();
     double kin = itsReference.getM() / itsReference.getP();
 
-    for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-        Particle part = itsBunch.get_part(i);
+    for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+        Particle part = itsBunch_m->get_part(i);
         double pt    = (part.pt() + 1.0);
         double speed = (c * pt) / sqrt(pt * pt + kin * kin);
         double phase = as.getPhase() + (freq * part.t()) / speed;
         part.pt() += peak * sin(phase) / pt;
-        itsBunch.set_part(part, i);
+        itsBunch_m->set_part(part, i);
     }
 
     if(length) applyDrift(length / 2.0);
@@ -347,8 +347,8 @@ void ThinTracker::visitSBend(const SBend &bend) {
     double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();
     if(length) scale *= length;
 
-    for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-        Particle part = itsBunch.get_part(i);
+    for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+        Particle part = itsBunch_m->get_part(i);
         int order = field.order();
 
         if(order > 0) {
@@ -368,7 +368,7 @@ void ThinTracker::visitSBend(const SBend &bend) {
             part.py() += ky * scale;
             part.t()  -= angle * x;
         }
-        itsBunch.set_part(part, i);
+        itsBunch_m->set_part(part, i);
     }
 
     // Drift to out-plane.
@@ -386,12 +386,12 @@ void ThinTracker::visitSeparator(const Separator &sep) {
         double Ex = scale * sep.getEx();
         double Ey = scale * sep.getEy();
 
-        for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-            Particle part = itsBunch.get_part(i);
+        for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+            Particle part = itsBunch_m->get_part(i);
             double pt = 1.0 + part.pt();
             part.px() += Ex / pt;
             part.py() += Ey / pt;
-            itsBunch.set_part(part, i);
+            itsBunch_m->set_part(part, i);
         }
 
         applyDrift(length / 2.0);
@@ -416,8 +416,8 @@ void ThinTracker::visitSolenoid(const Solenoid &solenoid) {
             double kin = itsReference.getM() / itsReference.getP();
             double ref = kin * kin;
 
-            for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-                Particle part = itsBunch.get_part(i);
+            for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+                Particle part = itsBunch_m->get_part(i);
 
                 double pt = part.pt() + 1.0;
                 double px = part.px() + ks * part.y();
@@ -438,7 +438,7 @@ void ThinTracker::visitSolenoid(const Solenoid &solenoid) {
                 part.px() = C * pxt - (S * k) * xt;
                 part.py() = C * pyt - (S * k) * yt;
                 part.t() += length * (pt * ref - (px * px + py * py + 3.0 * pt * pt * ref) / 2.0);
-                itsBunch.set_part(part, i);
+                itsBunch_m->set_part(part, i);
             }
         } else {
             applyDrift(length);
@@ -451,8 +451,8 @@ void ThinTracker::applyDrift(double length) {
     double   kin  = itsReference.getM() / itsReference.getP();
     double   ref  = kin * kin;
 
-    for(unsigned int i = 0; i < itsBunch.getLocalNum(); i++) {
-        Particle part = itsBunch.get_part(i);
+    for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+        Particle part = itsBunch_m->get_part(i);
 
         double px = part.px();
         double py = part.py();
@@ -461,6 +461,6 @@ void ThinTracker::applyDrift(double length) {
         part.x() += px * lByPz;
         part.y() += py * lByPz;
         part.t() += length * (pt * ref - (px * px + py * py + 3.0 * pt * pt * ref) / 2.0);
-        itsBunch.set_part(part, i);
+        itsBunch_m->set_part(part, i);
     }
 }

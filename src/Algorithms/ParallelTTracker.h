@@ -87,7 +87,7 @@ public:
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
     explicit ParallelTTracker(const Beamline &bl,
-                              PartBunch &bunch,
+                              PartBunch *bunch,
                               DataSink &ds,
                               const PartData &data,
                               bool revBeam,
@@ -190,7 +190,6 @@ private:
 
     /******************** STATE VARIABLES ***********************************/
 
-    PartBunch *itsBunch_m;
     DataSink *itsDataSink_m;
 
     OpalBeamline itsOpalBeamline_m;
