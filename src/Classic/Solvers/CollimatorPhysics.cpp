@@ -140,6 +140,7 @@ void CollimatorPhysics::doPhysics(PartBunch &bunch, Degrader *deg, Collimator *c
         Particle goes back to beam if
         -- not absorbed and out of material
     */
+    const double m2mm = 1000.0;
     const double mass = bunch.getM() * 1e-9;
     for(size_t i = 0; i < locParts_m.size(); ++ i) {
         Vector_t &R = locParts_m[i].Rincol;
@@ -172,7 +173,7 @@ void CollimatorPhysics::doPhysics(PartBunch &bunch, Degrader *deg, Collimator *c
                 double gamma = (Eng + m_p) / m_p;
                 double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
                 if(collShape_m == CYCLCOLLIMATOR) {
-                    R = R + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) * 1000;
+                    R = R + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) * m2mm;
                 } else {
                     locParts_m[i].Rincol = locParts_m[i].Rincol + dT_m * Physics::c * P / sqrt(1.0 + dot(P, P)) ;
                     addBackToBunch(bunch, i);
@@ -632,6 +633,7 @@ Vector_t ArbitraryRotation(Vector_t &W, Vector_t &Rorg, double Theta) {
 /// Using the distribution given in Classical Electrodynamics, by J. D. Jackson.
 //--------------------------------------------------------------------------
 void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
+    const double mm2m = 1e-3, m2mm = 1000.0;
     double Eng = sqrt(dot(P, P) + 1.0) * m_p - m_p;
     double gamma = (Eng + m_p) / m_p;
     double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
@@ -657,7 +659,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
 
     // Rutherford-scattering in x-direction
     if(collShape_m == CYCLCOLLIMATOR)
-        R = R * 1000.0;
+        R = R * mm2m;
 
     // y-direction: See Physical Review, "Multiple Scattering"
     z1 = gsl_ran_gaussian(rGen_m,1.0);
@@ -676,7 +678,7 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, double &deltat) {
 
     // Rutherford-scattering in x-direction
     if(collShape_m == CYCLCOLLIMATOR)
-        R = R * 1000.0;
+        R = R * m2mm;
 
     // Rutherford-scattering
     double P2 = gsl_rng_uniform(rGen_m);
@@ -1107,6 +1109,7 @@ void CollimatorPhysics::clearCollimatorDKS() {
 void CollimatorPhysics::applyHost(PartBunch &bunch, Degrader *deg, Collimator *coll) {
 
     //loop trough particles in dksParts_m
+    const double m2mm = 1000.0;
     for (unsigned int i = 0; i < dksParts_m.size(); ++ i) {
         if(dksParts_m[i].label != -1) {
             bool pdead = false;
@@ -1148,7 +1151,7 @@ void CollimatorPhysics::applyHost(PartBunch &bunch, Degrader *deg, Collimator *c
                 double gamma = (Eng + m_p) / m_p;
                 double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
                 if(collShape_m == CYCLCOLLIMATOR) {
-                    R = R + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) * 1000;
+                    R = R + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) * m2mm;
                 } else {
                     dksParts_m[i].Rincol = dksParts_m[i].Rincol + dT_m * Physics::c * P / sqrt(1.0+dot(P, P)) ;
                     addBackToBunchDKS(bunch, i);
