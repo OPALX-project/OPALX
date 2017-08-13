@@ -15,6 +15,7 @@ set (_SRCS
   PartData.cpp
   Particle.cpp
   PolynomialTimeDependence.cpp
+  Quaternion.cpp
   Surveyor.cpp
   ThinMapper.cpp
   ThinTracker.cpp
