@@ -51,23 +51,10 @@ public:
                             Expressions::Named_t &constraints,
                             DVarContainer_t &dvars) = 0;
 
-    /// Getter for objectives
-    OptInfo_t getObjectives()  { return objectives_;  }
-    /// Getter for constraints
-    OptInfo_t getConstraints() { return constraints_; }
-    /// Getter for design variables
-    OptInfo_t getDesignVars()  { return designVars_;  }
-
 protected:
     /// filename of the input file
     std::string filename_;
     functionDictionary_t known_expr_funcs_;
-    /// container for objectives
-    OptInfo_t objectives_;
-    /// container for constraints
-    OptInfo_t constraints_;
-    /// container for design variables
-    OptInfo_t designVars_;
 };
 
 #endif

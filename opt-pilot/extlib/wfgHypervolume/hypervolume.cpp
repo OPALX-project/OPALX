@@ -48,14 +48,14 @@
 
 #if MAXIMISING
 #define BEATS(x,y)   (x >  y)
-#define BEATSEQ(x,y) (x >= y)
+//#define BEATSEQ(x,y) (x >= y)
 #else
 #define BEATS(x,y)   (x <  y)
-#define BEATSEQ(x,y) (x <= y)
+//#define BEATSEQ(x,y) (x <= y)
 #endif
 
 #define WORSE(x,y)   (BEATS(y,x) ? (x) : (y))
-#define BETTER(x,y)  (BEATS(y,x) ? (y) : (x))
+//#define BETTER(x,y)  (BEATS(y,x) ? (y) : (x))
 
 
 int n;     // the number of objectives

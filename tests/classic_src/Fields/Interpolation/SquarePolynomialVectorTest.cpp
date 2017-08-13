@@ -1,27 +1,27 @@
-/* 
+/*
  *  Copyright (c) 2015, Chris Rogers
  *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without 
- *  modification, are permitted provided that the following conditions are met: 
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
  *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer. 
- *  2. Redistributions in binary form must reproduce the above copyright notice, 
- *     this list of conditions and the following disclaimer in the documentation 
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
  *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to 
- *     endorse or promote products derived from this software without specific 
+ *  3. Neither the name of STFC nor the names of its contributors may be used to
+ *     endorse or promote products derived from this software without specific
  *     prior written permission.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -30,9 +30,13 @@
 #include "Fields/Interpolation/SquarePolynomialVector.h"
 #include "Fields/Interpolation/PolynomialCoefficient.h"
 
+#include "opal_test_utilities/SilenceTest.h"
+
 using namespace interpolation;
 
 TEST(SquarePolynomialVectorTest, TestConstructorDestructor) {
+    OpalTestUtilities::SilenceTest silencer;
+
     SquarePolynomialVector test1;
     EXPECT_EQ(test1.PointDimension(), 0);
     EXPECT_EQ(test1.ValueDimension(), 0);
@@ -42,7 +46,7 @@ TEST(SquarePolynomialVectorTest, TestConstructorDestructor) {
     std::vector<double> data(18);
     for (size_t i = 0; i < data.size(); ++i)
         data[i] = i;
-    MMatrix<double> refCoeffs(2, 9, &data[0]); // 2x9 -> c, x, y, xy, xx, xxy, xxyy, xyy, yy, 
+    MMatrix<double> refCoeffs(2, 9, &data[0]); // 2x9 -> c, x, y, xy, xx, xxy, xxyy, xyy, yy,
     SquarePolynomialVector test2(2, refCoeffs);
     MMatrix<double> testCoeffs = test2.GetCoefficientsAsMatrix();
     ASSERT_EQ(testCoeffs.num_row(), 2);
@@ -55,8 +59,10 @@ TEST(SquarePolynomialVectorTest, TestConstructorDestructor) {
 }
 
 TEST(SquarePolynomialVectorTest, TestMakePolyVector) {
+    OpalTestUtilities::SilenceTest silencer;
+
     std::vector<double> data(18, 0.);
-    MMatrix<double> refCoeffs(2, 9, &data[0]); 
+    MMatrix<double> refCoeffs(2, 9, &data[0]);
     SquarePolynomialVector ref(2, refCoeffs);
     MVector<double> point(2, 0.);
     MVector<double> polyVector(9, -99);
@@ -74,10 +80,12 @@ TEST(SquarePolynomialVectorTest, TestMakePolyVector) {
 }
 
 TEST(SquarePolynomialVectorTest, TestF) {
+    OpalTestUtilities::SilenceTest silencer;
+
     std::vector<double> data(18);
     for (size_t i = 0; i < data.size(); ++i)
         data[i] = i;
-    MMatrix<double> refCoeffs(2, 9, &data[0]); 
+    MMatrix<double> refCoeffs(2, 9, &data[0]);
     SquarePolynomialVector ref(2, refCoeffs);
     std::vector<double> point1(2, 0.);
     std::vector<double> value(2);
@@ -101,6 +109,3 @@ TEST(SquarePolynomialVectorTest, TestF) {
     EXPECT_EQ(value[0], refValue(1)); // sum (0, ..., 8)
     EXPECT_EQ(value[1], refValue(2)); // sum (9, ..., 17)
 }
-
-
-
