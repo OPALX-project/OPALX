@@ -296,6 +296,7 @@ void Option::execute() {
     if ( memoryDump ) {
         IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance(
                 IpplMemoryUsage::Unit::GB, false);
+        memory->sample();
     }
     
     seed = Attributes::getReal(itsAttr[SEED]);
