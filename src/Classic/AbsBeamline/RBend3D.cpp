@@ -14,7 +14,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/RBend3D.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Steppers/BorisPusher.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
@@ -122,7 +122,7 @@ bool RBend3D::applyToReferenceParticle(const Vector_t &R, const Vector_t &P, con
     return false;
 }
 
-void RBend3D::initialise(PartBunch *bunch, double &startField, double &endField) {
+void RBend3D::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     Inform msg("RBend3D ", *gmsg);
 
     RefPartBunch_m = bunch;

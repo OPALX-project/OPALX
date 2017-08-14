@@ -92,7 +92,7 @@ class SBend3D : public Component {
       *  \param startField not used
       *  \param endField not used
       */
-    void initialise(PartBunch *bunch, double &startField, double &endField);
+    void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
 
      /** Finalise the SBend3D - sets bunch to NULL */
     void finalise();

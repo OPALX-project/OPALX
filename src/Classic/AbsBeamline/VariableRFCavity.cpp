@@ -28,7 +28,7 @@
 #include "AbsBeamline/VariableRFCavity.h"
 
 #include "Physics/Physics.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Utilities/GeneralClassicException.h"
 
@@ -187,7 +187,7 @@ bool VariableRFCavity::applyToReferenceParticle(const Vector_t &R, const Vector_
     return true;
 }
 
-void VariableRFCavity::initialise(PartBunch *bunch, double &startField, double &endField) {
+void VariableRFCavity::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
 }
 

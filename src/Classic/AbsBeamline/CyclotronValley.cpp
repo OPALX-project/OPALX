@@ -20,7 +20,7 @@
 
 #include "AbsBeamline/CyclotronValley.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
 
@@ -124,7 +124,7 @@ bool CyclotronValley::applyToReferenceParticle(const Vector_t &tmpR, const Vecto
     return true;
 }
 
-void CyclotronValley::initialise(PartBunch *bunch, double &startField, double &endField) {// called by ParallelTTracker::visitCyclotronValley --> OpalBeamline::visit
+void CyclotronValley::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {// called by ParallelTTracker::visitCyclotronValley --> OpalBeamline::visit
     Inform msg("CyclotronValley ");
     RefPartBunch_m = bunch;
 

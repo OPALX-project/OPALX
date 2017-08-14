@@ -48,7 +48,7 @@ void BeamBeam::accept(BeamlineVisitor &visitor) const {
     visitor.visitBeamBeam(*this);
 }
 
-void BeamBeam::initialise(PartBunch *bunch, double &startField, double &endField) {
+void BeamBeam::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
 }
 

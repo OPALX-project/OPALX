@@ -94,7 +94,7 @@
  */
 
 // include files
-#include "Particle/ParticleAttrib.h"
+#include "Particle/AbstractParticle.h"
 #include "AppTypes/Vektor.h"
 #include "DataSource/DataSource.h"
 #include "DataSource/MakeDataSource.h"
@@ -103,6 +103,7 @@
 #include <algorithm>  // Include algorithms
 #include <utility>
 #include <iostream>
+
 
 // forward declarations
 class Inform;
@@ -117,7 +118,8 @@ template <class T, unsigned D> class ParticleBConds;
 // ParticleLayout-derived class which determines how the particles are
 // distributed among processors.
 template<class PLayout>
-class IpplParticleBase : public DataSource {
+class IpplParticleBase : public DataSource,
+                         public AbstractParticle<typename PLayout::Position_t, PLayout::Dimension> {
 
 public:
     // useful enums
@@ -255,8 +257,8 @@ public:
 
     // Update the particle object after a timestep.  This routine will change
     // our local, total, create particle counts properly.
-    void update();
-    void update(const ParticleAttrib<char>& canSwap);
+    virtual void update();
+    virtual void update(const ParticleAttrib<char>& canSwap);
 
     // create 1 new particle with a given ID
     void createWithID(unsigned id);
@@ -352,6 +354,12 @@ protected:
         return make_DataSourceObject(nm, dc, tm, *this);
     }
 
+    // list of destroy events for the next update.  The data
+    // is not actually destroyed until the update phase.
+    // Each destroy is stored as a pair of unsigned ints, the particle
+    // index I to start at and the number of particles M to destroy.
+    std::vector< std::pair<size_t,size_t> > DestroyList;
+    
 private:
     // our layout object, which we delete in our destructor
     PLayout *Layout;
@@ -369,13 +377,7 @@ private:
 
     // unique particle ID number generation value
     unsigned NextID;
-
-    // list of destroy events for the next update.  The data
-    // is not actually destroyed until the update phase.
-    // Each destroy is stored as a pair of unsigned ints, the particle
-    // index I to start at and the number of particles M to destroy.
-    std::vector< std::pair<size_t,size_t> > DestroyList;
-
+    
     //
     // private methods
     //

@@ -207,9 +207,9 @@ public:
 
     virtual bool apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
 
-    virtual void initialise(PartBunch *bunch, const int &fieldflag, const double &scaleFactor);
+    virtual void initialise(PartBunchBase<double, 3> *bunch, const int &fieldflag, const double &scaleFactor);
 
     virtual void finalise();
 

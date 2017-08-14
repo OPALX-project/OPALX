@@ -48,7 +48,7 @@ void Patch::accept(BeamlineVisitor &visitor) const {
     visitor.visitPatch(*this);
 }
 
-void Patch::initialise(PartBunch *bunch, double &startField, double &endField) {
+void Patch::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
 }
 

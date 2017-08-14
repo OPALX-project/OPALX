@@ -314,6 +314,15 @@ The next five logical flags activate or deactivate execution options:
   \item[CLOTUNEONLY]
   \index{OPTION!CLOTUNEONLY}
   \TODO{Describe option CLOTUNEONLY}
+  
+  \item[AMR]
+  \index{AMR}
+  Enable adaptive mesh refinement.\ Default: FALSE
+
+  \item[MEMORYDUMP]
+  \index{MEMORYDUMP}
+  If true, it writes the memory consumption of every core to a SDDS file (*.mem).\ The write frequency corresponds to
+  STATDUMPFREQ.\ Default: FALSE
 \end{kdescription}
 
 
@@ -378,8 +387,8 @@ OPTION,SEED=987456321
          \keyword{CLOTUNEONLY}       & = \keyword{FALSE}     \\
       \hline
          \keyword{VERSION}           & = \texttt{none}       &
-         & &
-         & \\
+         \keyword{AMR}               & = \texttt{FALSE}      &
+         \keyword{MEMORYDUMP}        & = \texttt{FALSE}      \\
       \hline
     \end{tabular}
   \end{center}

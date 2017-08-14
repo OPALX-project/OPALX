@@ -10,7 +10,8 @@ class ElementBase;
 
 #include <vector>
 
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 
 class PriEmissionPhysics {
 
@@ -20,7 +21,7 @@ public:
     ~PriEmissionPhysics();
 
     static
-    void Fieldemission(PartBunch *itsBunch,
+    void Fieldemission(PartBunchBase<double, 3> *itsBunch,
                        const double &fa,
                        const double &Enormal,
                        const double &parameterFNB,

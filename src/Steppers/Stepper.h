@@ -1,7 +1,7 @@
 #ifndef STEPPER_H
 #define STEPPER_H
 
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Algorithms/Vektor.h"
 
 #include <functional>
@@ -22,7 +22,7 @@ public:
     
     Stepper(const FieldFunction& fieldfunc) : fieldfunc_m(fieldfunc) { }
     
-    virtual bool advance(PartBunch* bunch,
+    virtual bool advance(PartBunchBase<double, 3>* bunch,
                          const size_t& i,
                          const double& t,
                          const double dt,

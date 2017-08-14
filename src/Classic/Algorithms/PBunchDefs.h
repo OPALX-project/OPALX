@@ -15,6 +15,12 @@
 #include "Field/Field.h"
 #include "FFT/FFT.h"
 
+#ifdef ENABLE_AMR
+    #include "Amr/AmrDefs.h"
+    #include "Amr/BoxLibParticle.h"
+    #include "Amr/BoxLibLayout.h"
+#endif
+
 typedef IntCIC  IntrplCIC_t;
 typedef IntNGP  IntrplNGP_t;
 typedef IntSUDS IntrplSUDS_t;
@@ -48,6 +54,14 @@ typedef Field<dcomplex, 3, Mesh_t, Center_t>     CxField_t;
 typedef FFT<RCTransform, 3, double>              FFT_t;
 typedef FFT<SineTransform, 3, double>            SINE_t;
 typedef FFT<CCTransform, 3, double>              FFTC_t;
+
+#ifdef ENABLE_AMR
+    typedef amr::AmrField_t                      AmrField_t;
+    typedef amr::AmrFieldContainer_t             AmrFieldContainer_t;
+    typedef BoxLibLayout<double, 3>              AmrLayout_t;
+    typedef BoxLibParticle<AmrLayout_t>          AmrParticle_t;
+#endif
+
 
 namespace ParticleType {
     enum { REGULAR,

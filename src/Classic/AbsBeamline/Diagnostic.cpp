@@ -48,7 +48,7 @@ void Diagnostic::accept(BeamlineVisitor &visitor) const {
     visitor.visitDiagnostic(*this);
 }
 
-void Diagnostic::initialise(PartBunch *bunch, double &startField, double &endField) {
+void Diagnostic::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
 }
 
