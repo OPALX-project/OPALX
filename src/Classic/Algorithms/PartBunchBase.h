@@ -586,9 +586,10 @@ public:
     /// timer for selfField calculation (also used in concrete AmrObject classes)
     IpplTimings::TimerRef compPotenTimer_m;
     
-protected:
     /// timer for selfField calculation
     IpplTimings::TimerRef selfFieldTimer_m;
+    
+protected:
     IpplTimings::TimerRef boundpTimer_m;
     IpplTimings::TimerRef statParamTimer_m;
 
