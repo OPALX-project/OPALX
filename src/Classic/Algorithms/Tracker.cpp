@@ -44,14 +44,15 @@ typedef FTps<double, 6> Series;
 Tracker::Tracker(const Beamline &beamline, const PartData &reference,
                  bool backBeam, bool backTrack):
     AbstractTracker(beamline, reference, backBeam, backTrack),
-    itsBeamline_m(beamline)
+    itsBeamline_m(beamline),
+    itsBunch_m(nullptr)
 {
-#ifdef ENABLE_AMR
-    if ( Options::amr )
-        itsBunch = new AmrPartBunch(&reference);
-    else
-#endif
-        itsBunch = new PartBunch(&reference);
+// #ifdef ENABLE_AMR
+//     if ( Options::amr )
+//         itsBunch = new AmrPartBunch(&reference);
+//     else
+// #endif
+//         itsBunch = new PartBunch(&reference);
 }
 
 
@@ -61,7 +62,7 @@ Tracker::Tracker(const Beamline &beamline,
                  bool backBeam, bool backTrack):
     AbstractTracker(beamline, reference, backBeam, backTrack),
     itsBeamline_m(beamline),
-    itsBunch(bunch)
+    itsBunch_m(bunch)
 {}
 
 
@@ -70,22 +71,22 @@ Tracker::~Tracker()
 
 
 const PartBunchBase<double, 3> *Tracker::getBunch() const {
-    return itsBunch;
+    return itsBunch_m;
 }
 
 
 void Tracker::addToBunch(const OpalParticle &part) {
-    itsBunch->push_back(part);
+    itsBunch_m->push_back(part);
 }
 
 
 //~ void Tracker::setBunch(const PartBunch &bunch) {
-    //~ itsBunch = bunch;
+    //~ itsBunch_m = &bunch;
 //~ }
 
 
 void Tracker::visitComponent(const Component &comp) {
-    comp.trackBunch(itsBunch, itsReference, back_beam, back_track);
+    comp.trackBunch(itsBunch_m, itsReference, back_beam, back_track);
 }
 
 
@@ -119,12 +120,12 @@ void Tracker::visitAlignWrapper(const AlignWrapper &wrap) {
 
 
 void Tracker::visitTrackIntegrator(const TrackIntegrator &i) {
-    i.trackBunch(itsBunch, itsReference, back_beam, back_track);
+    i.trackBunch(itsBunch_m, itsReference, back_beam, back_track);
 }
 
 
 void Tracker::visitMapIntegrator(const MapIntegrator &i) {
-    i.trackBunch(itsBunch, itsReference, back_beam, back_track);
+    i.trackBunch(itsBunch_m, itsReference, back_beam, back_track);
 }
 
 
@@ -132,8 +133,8 @@ void Tracker::applyDrift(double length) {
     double kin = itsReference.getM() / itsReference.getP();
     double refTime = length / itsReference.getBeta();
 
-    for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
-        OpalParticle part = itsBunch->get_part(i);
+    for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+        OpalParticle part = itsBunch_m->get_part(i);
         if(part.x() != DBL_MAX) {
             double px = part.px();
             double py = part.py();
@@ -143,7 +144,7 @@ void Tracker::applyDrift(double length) {
             part.y() += py * lByPz;
             part.t() += pt * (refTime / sqrt(pt * pt + kin * kin) - lByPz);
         }
-        itsBunch->set_part(part, i);
+        itsBunch_m->set_part(part, i);
     }
 }
 
@@ -153,8 +154,8 @@ void Tracker::applyThinMultipole
     int order = field.order();
 
     if(order > 0) {
-        for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
-            OpalParticle part = itsBunch->get_part(i);
+        for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+            OpalParticle part = itsBunch_m->get_part(i);
             if(part.x() != DBL_MAX) {
                 double x = part.x();
                 double y = part.y();
@@ -171,7 +172,7 @@ void Tracker::applyThinMultipole
                 part.px() -= kx * scale;
                 part.py() += ky * scale;
             }
-            itsBunch->set_part(part, i);
+            itsBunch_m->set_part(part, i);
         }
     }
 }
@@ -185,14 +186,14 @@ void Tracker::applyThinSBend
 
     // These substitutions work because As depends on x and y only,
     // and not on px or py.
-    for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
-        OpalParticle part = itsBunch->get_part(i);
+    for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+        OpalParticle part = itsBunch_m->get_part(i);
         FVector<double, 2> z;
         z[0] = part.x();
         z[1] = part.y();
         part.px() -= Fx.evaluate(z);
         part.py() -= Fy.evaluate(z);
-        itsBunch->set_part(part, i);
+        itsBunch_m->set_part(part, i);
     }
 }
 
@@ -202,8 +203,8 @@ void Tracker::applyTransform(const Euclid3D &euclid, double refLength) {
         double kin = itsReference.getM() / itsReference.getP();
         double refTime = refLength / itsReference.getBeta();
 
-        for(unsigned int i = 0; i < itsBunch->getLocalNum(); i++) {
-            OpalParticle part = itsBunch->get_part(i);
+        for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+            OpalParticle part = itsBunch_m->get_part(i);
             double px = part.px();
             double py = part.py();
             double pt = part.pt() + 1.0;
@@ -227,7 +228,7 @@ void Tracker::applyTransform(const Euclid3D &euclid, double refLength) {
             part.x() = x2 - sByPz * part.px();
             part.y() = y2 - sByPz * part.py();
             part.t() += pt * (refTime / E + sByPz);
-            itsBunch->set_part(part, i);
+            itsBunch_m->set_part(part, i);
         }
     }
 }

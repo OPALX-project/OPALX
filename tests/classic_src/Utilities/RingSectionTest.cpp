@@ -32,7 +32,11 @@
 #include "Physics/Physics.h"
 #include "Utilities/RingSection.h"
 
+#include "opal_test_utilities/SilenceTest.h"
+
 TEST(RingSectionTest, TestConstructDestruct) {
+    OpalTestUtilities::SilenceTest silencer;
+
     RingSection ors;
     MockComponent* compNull = NULL;
     Vector_t vec0(0, 0, 0);
@@ -52,6 +56,8 @@ TEST(RingSectionTest, TestConstructDestruct) {
 }
 
 TEST(RingSectionTest, TestIsOnOrPastStartPlane) {
+    OpalTestUtilities::SilenceTest silencer;
+
     RingSection ors;
     ors.setStartPosition(Vector_t(0., 1., 0.));
     ors.setStartNormal(Vector_t(1., 0., 0.));
@@ -91,6 +97,8 @@ TEST(RingSectionTest, TestIsOnOrPastStartPlane) {
 }
 
 TEST(RingSectionTest, TestIsPastEndPlane) {
+    OpalTestUtilities::SilenceTest silencer;
+
     RingSection ors;
     ors.setEndPosition(Vector_t(0., 1., 0.));
     ors.setEndNormal(Vector_t(1., 0., 0.));
@@ -129,6 +137,8 @@ TEST(RingSectionTest, TestIsPastEndPlane) {
 }
 
 TEST(RingSectionTest, TestGetFieldValue) {
+    OpalTestUtilities::SilenceTest silencer;
+
     RingSection ors;
     MockComponent comp;
     ors.setComponent(&comp);
@@ -167,6 +177,8 @@ bool sort_comparator(Vector_t v1, Vector_t v2) {
 }
 
 TEST(RingSectionTest, TestGetVirtualBoundingBox) {
+    OpalTestUtilities::SilenceTest silencer;
+
     RingSection ors;
     ors.setStartPosition(Vector_t(3, -1, 99));
     ors.setStartNormal(Vector_t(-4, -1, -1000));
@@ -201,6 +213,8 @@ RingSection buildORS(double r, double phi1, double phi2) {
 }
 
 TEST(RingSectionTest, TestDoesOverlap) {
+    OpalTestUtilities::SilenceTest silencer;
+
     double f1 = 1.0*Physics::pi/6.;
     double f2 = 0.5*Physics::pi/6.;
     double f3 = -0.5*Physics::pi/6.;
@@ -216,4 +230,3 @@ TEST(RingSectionTest, TestDoesOverlap) {
     EXPECT_FALSE(ors3.doesOverlap(f1, f1));
     EXPECT_FALSE(ors3.doesOverlap(f4, f4));
 }
-

@@ -2,7 +2,8 @@
 #define TAPER_DOMAIN_H
 #ifdef HAVE_SAAMG_SOLVER
 
-#include <vector>
+#include <map>
+#include <string>
 #include "IrregularDomain.h"
 
 /* Tomas's request for a Taper simulation to compare space charge effects
@@ -26,8 +27,6 @@ public:
 
     /// calculates intersection with the elliptic beam pipe
     void compute(Vector_t hr);
-    //TODO: do we need to export this function??
-    std::vector<double> getYDirIntersect(int x, int z);
     /// returns number of nodes in xy plane (here independent of z coordinate)
     int getNumXY(int z);
     /// returns discretization at (x,y,z)
