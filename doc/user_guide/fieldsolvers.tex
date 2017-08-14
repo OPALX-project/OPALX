@@ -328,7 +328,7 @@ See \tabref{fieldsolvercmd} for a summary of the Fieldsolver command.
       \tabhead{Command & Purpose}
       \hline
       \tabline{FIELDSOLVER}{Specify a fieldsolver}
-      \tabline[sec:FSFSTYPE]{FSTYPE}{Specify the type of field solver: \keyword{FFT}, \keyword{FFTPERIODIC}, \keyword{MG}, \keyword{AMR} and \keyword{NONE}
+      \tabline[sec:FSFSTYPE]{FSTYPE}{Specify the type of field solver: \keyword{FFT}, \keyword{FFTPERIODIC}, \keyword{MG}, \keyword{FMG} (AMR only) and \keyword{NONE}
                                      \index{FFT}\index{FFTPERIODIC}\index{MG}\index{AMR}\index{NONE}}
       \tabline[sec:FSDomDEC]{PARFFTX}{If \keyword{TRUE}, the dimension $x$ is distributed among the processors}
       \tabline[sec:FSDomDEC]{PARFFTY}{If \keyword{TRUE}, the dimension $y$ is distributed among the processors}
@@ -347,6 +347,10 @@ See \tabref{fieldsolvercmd} for a summary of the Fieldsolver command.
       \tabline[sec:TOL]{TOL}{Tolerance for iterative solver}
       \tabline[sec:MAXITERS]{MAXITERS}{Maximum number of iterations of iterative solver}
       \tabline[sec:PRECMODE]{PRECMODE}{Behavior of the preconditioner}
+      \tabline[sec:AMR]{AMR\_MAXLEVEL}{Maximum adaptive mesh refinement level (single level if \keyword{AMR\_MAXLEVEL} is zero)}
+      \tabline[sec:AMR]{AMR\_MAXGRID}{Maximum grid size.\ It has to be smaller than \keyword{MX}, \keyword{MY}, \keyword{MZ} when 
+      running in parallel}
+      \tabline[sec:AMR]{AMR\_TAGGING}{Mesh-refinement strategy}
       \hline
     \end{tabular}
   \end{center}
@@ -442,5 +446,47 @@ in which $\differential E$ is again small and hence the electrostatic approximat
 \seesec{cyclotron} the number of energy bins must be at minimum the number of neighboring bunches (\keyword{NNEIGHBB}) i.e.  $\text{\keyword{ENBINS}} \le \text{\keyword{NNEIGHBB}}$.
 
 The variable \keyword{MINSTEPFORREBIN} defines the number of integration step that have to pass until all energy bins are merged into one.
+
+
+\section{Define AMR Solver}
+\label{sec:AMR}
+\index{AMR}
+The option \keyword{AMR=TRUE} enables further commands to be used in the Fieldsolver command.\ In order to run a proper AMR
+simulation one requires following ingredients:
+\begin{itemize}
+    \item Upper bound of refinement, specified by \keyword{AMR\_MAXLEVEL}
+    \item Maximum allowable grid size, specified by \keyword{AMR\_MAXGRID}.\ This size holds for all levels in all directions.
+    \item Mesh refinement strategy, specified by \keyword{AMR\_TAGGING}.\ Depending on the tagging scheme, further keywords can be
+    used.\ A summary is given in \tabref{tagging_strategies}.
+\end{itemize}
+    
+    
+\begin{table}[ht] \footnotesize
+  \begin{center}
+    \caption{Mesh-refinement strategies}
+    \label{tab:tagging_strategies}
+    \begin{tabular}{|l|p{0.6\textwidth}|}
+      \hline
+      \tabhead{Value & Behavior}
+      \hline
+       \keyword{POTENTIAL} & Mark each cell if $\phi^{level}_{cell}\ge\alpha\max\phi^{level}$, where $\alpha\in[0, 1]$ is the
+       scaling factor \keyword{AMR\_SCALING} \\
+       \keyword{EFIELD} & Mark each cell if the electric field component of any direction satisfies
+       $E^{level}_{d, cell}\ge\alpha\max E_{d}^{level}$, where $d=x, y, z$ and $\alpha\in[0, 1]$ is the scaling factor
+       \keyword{AMR\_SCALING} \\
+       \keyword{MOMENTA} & It performs a loop over all particles of a level and computes the dot product of the momenta.\ Every
+       cell that contains a particle with $||\vec{p}|| \ge \alpha \max_{level} ||\vec{p}||$ is refined.\ The scalar $\alpha\in[0, 1]$
+       is a user-defined value \keyword{AMR\_SCALING}. \\
+       \keyword{CHARGE\_DENSITY} &  If the charge density of a cell is greater or equal to the value specified with
+       \keyword{AMD\_DENSITY} the cell is tagged for refinement\\
+       \keyword{MIN\_NUM\_PARTICLES} & Cells with equal or more particles are refined.\ The bound is specified with
+       \keyword{AMR\_MIN\_NUM\_PART} \\
+       \keyword{MAX\_NUM\_PARTICLES} & Cells with equal or less particles are refined.\ The bound is specified with
+       \keyword{AMR\_MAX\_NUM\_PART}\\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
 \index{Field Solver|)}
 \input{footer}

@@ -57,6 +57,7 @@ public:
      * @param z - coordinate
      * @param pz - coordinate
      * @param q is the particle charge
+     * @param mass of a particle
      * @param firstParticle to read (core specific)
      * @param lastParticle to read (core specific)
      */
@@ -67,6 +68,7 @@ public:
               Distribution::container_t& z,
               Distribution::container_t& pz,
               Distribution::container_t& q,
+              Distribution::container_t& mass,
               size_t firstParticle,
               size_t lastParticle);
     

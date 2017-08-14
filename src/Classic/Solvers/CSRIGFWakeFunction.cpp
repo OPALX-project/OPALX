@@ -1,5 +1,5 @@
 #include "Solvers/CSRIGFWakeFunction.hh"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Filters/Filter.h"
 #include "Physics/Physics.h"
 #include "AbsBeamline/RBend.h"
@@ -21,7 +21,7 @@ CSRIGFWakeFunction::CSRIGFWakeFunction(const std::string &name, ElementBase *ele
     totalBendAngle_m(0.0)
 { }
 
-void CSRIGFWakeFunction::apply(PartBunch &bunch) {
+void CSRIGFWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
     Inform msg("CSRWake ");
 
     std::pair<double, double> meshInfo;
@@ -42,8 +42,8 @@ void CSRIGFWakeFunction::apply(PartBunch &bunch) {
     }
 
     Vector_t smin, smax;
-    bunch.get_bounds(smin, smax);
-    double minPathLength = smin(2) + bunch.get_sPos() - FieldBegin_m;
+    bunch->get_bounds(smin, smax);
+    double minPathLength = smin(2) + bunch->get_sPos() - FieldBegin_m;
     for(unsigned int i = 1; i < numOfSlices; i++) {
         double pathLengthOfSlice = minPathLength + i * meshSpacing;
         double angleOfSlice = pathLengthOfSlice/bendRadius_m;
@@ -57,13 +57,13 @@ void CSRIGFWakeFunction::apply(PartBunch &bunch) {
     }
 
     // calculate the wake field seen by the particles
-    for(unsigned int i = 0; i < bunch.getLocalNum(); ++i) {
-        const Vector_t &R = bunch.R[i];
+    for(unsigned int i = 0; i < bunch->getLocalNum(); ++i) {
+        const Vector_t &R = bunch->R[i];
         unsigned int indexz = (unsigned int)floor((R(2) - meshOrigin) / meshSpacing);
         double leverz = (R(2) - meshOrigin) / meshSpacing - indexz;
         PAssert(indexz < numOfSlices - 1);
 
-        bunch.Ef[i](2) += (1. - leverz) * Ez_m[indexz] + leverz * Ez_m[indexz + 1];
+        bunch->Ef[i](2) += (1. - leverz) * Ez_m[indexz] + leverz * Ez_m[indexz + 1];
     }
 
     if(Options::csrDump) {
@@ -77,7 +77,7 @@ void CSRIGFWakeFunction::apply(PartBunch &bunch) {
         if(print_criterion) {
             static unsigned int file_number = 0;
             if(counter == 0) file_number = 0;
-	    double spos = bunch.get_sPos();
+	    double spos = bunch->get_sPos();
 	    if (Ippl::myNode() == 0) {
                 std::stringstream filename_str;
                 filename_str << "data/" << bendName_m << "-CSRWake" << file_number << ".txt";
@@ -125,8 +125,8 @@ void CSRIGFWakeFunction::initialize(const ElementBase *ref) {
     *gmsg << level1 << __DBGMSG__ << "\t" << getName() << "\t" << bendName_m << endl;
 }
 
-void CSRIGFWakeFunction::calculateLineDensity(PartBunch &bunch, std::pair<double, double> &meshInfo) {
-    bunch.calcLineDensity(nBins_m, lineDensity_m, meshInfo);
+void CSRIGFWakeFunction::calculateLineDensity(PartBunchBase<double, 3> *bunch, std::pair<double, double> &meshInfo) {
+    bunch->calcLineDensity(nBins_m, lineDensity_m, meshInfo);
 
     // the following is only needed for after dipole
     std::vector<Filter *>::const_iterator fit;
@@ -137,10 +137,10 @@ void CSRIGFWakeFunction::calculateLineDensity(PartBunch &bunch, std::pair<double
     filters_m.back()->calc_derivative(dlineDensitydz_m, meshInfo.second);
 }
 
-void CSRIGFWakeFunction::calculateGreenFunction(PartBunch &bunch, double meshSpacing)
+void CSRIGFWakeFunction::calculateGreenFunction(PartBunchBase<double, 3> *bunch, double meshSpacing)
 {
     unsigned int numOfSlices = lineDensity_m.size();
-    double gamma = bunch.get_meanKineticEnergy()/(bunch.getM()*1e-6)+1.0;
+    double gamma = bunch->get_meanKineticEnergy()/(bunch->getM()*1e-6)+1.0;
     double xmu_const = 3.0 * gamma * gamma * gamma / (2.0 * bendRadius_m);
     double chi_const = 9.0 / 16.0 * (6.0 - log(27.0 / 4.0));
 

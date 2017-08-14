@@ -41,7 +41,7 @@ public:
     /// Apply visitor to RFQuadrupole.
     virtual void accept(BeamlineVisitor &) const;
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
 
     virtual void finalise();
 

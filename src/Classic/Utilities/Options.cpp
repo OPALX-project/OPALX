@@ -93,4 +93,10 @@ namespace Options {
 
     // opal version of input file
     int version = 10000;
+    
+#ifdef ENABLE_AMR
+    bool amr = false;
+#endif
+    
+    bool memoryDump = false;
 }

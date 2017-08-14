@@ -23,7 +23,9 @@
 #include "Algorithms/Tracker.h"
 
 class BMultipoleField;
-class PartBunch;
+
+template <class T, unsigned Dim>
+class PartBunchBase;
 class PlanarArcGeometry;
 
 
@@ -61,7 +63,7 @@ public:
     //  The particle bunch tracked is taken from [b]bunch[/b].
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
-    ThinTracker(const Beamline &bl, PartBunch *bunch,
+    ThinTracker(const Beamline &bl, PartBunchBase<double, 3> *bunch,
                 const PartData &data, bool revBeam, bool revTrack);
 
     virtual ~ThinTracker();

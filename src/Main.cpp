@@ -39,8 +39,8 @@ Inform *gmsg;
 
 #include "OPALconfig.h"
 
-#ifdef HAVE_AMR_SOLVER
-#include <ParallelDescriptor.H>
+#ifdef ENABLE_AMR
+#include <AMReX_ParallelDescriptor.H>
 #endif
 
 #include <gsl/gsl_errno.h>
@@ -258,9 +258,9 @@ int mainOPAL(int argc, char *argv[]) {
 
     namespace fs = boost::filesystem;
 
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     // false: build no parmparse, we use the OPAL parser instead.
-    BoxLib::Initialize(argc, argv, false, Ippl::getComm());
+    amrex::Initialize(argc, argv, false, Ippl::getComm());
 #endif
 
     OPALTimer::Timer simtimer;

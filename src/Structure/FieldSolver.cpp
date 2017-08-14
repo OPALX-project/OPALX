@@ -33,10 +33,13 @@
 #include "Utilities/Util.h"
 #include "BoundaryGeometry.h"
 #include "AbstractObjects/Element.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 
-#ifdef HAVE_AMR_SOLVER
-    #include <ParmParse.H>
+#ifdef ENABLE_AMR
+    #include "Amr/AmrBoxLib.h"
+    #include "Solvers/BoxLibSolvers/FMGPoissonSolver.h"
+    #include "Amr/AmrDefs.h"
+    #include "Algorithms/AmrPartBunch.h"
 #endif
 
 using namespace Expressions;
@@ -72,13 +75,18 @@ namespace {
         RC,         // cutoff radius for PP interactions
 	ALPHA,      // Green’s function splitting parameter
 	EPSILON,    // regularization for PP interaction
-#ifdef HAVE_AMR_SOLVER
-        AMRMAXLEVEL, // AMR, maximum refinement level
-        AMRREFX,     // AMR, refinement ratio in x
-        AMRREFY,     // AMR, refinement ratio in y
-        AMRREFT,     // AMR, refinement ration in z
-        AMRSUBCYCLE, // AMR, subcycling in time for refined levels (default: false)
-        AMRMAXGRID,  // AMR, maximum grid size (default: 16)
+#ifdef ENABLE_AMR
+        AMR_MAXLEVEL,       // AMR, maximum refinement level
+        AMR_REFX,           // AMR, refinement ratio in x
+        AMR_REFY,           // AMR, refinement ratio in y
+        AMR_REFT,           // AMR, refinement ration in z
+        AMR_SUBCYCLE,       // AMR, subcycling in time for refined levels (default: false)
+        AMR_MAXGRID,        // AMR, maximum grid size (default: 16)
+        AMR_TAGGING,
+        AMR_DENSITY,
+        AMR_MAX_NUM_PART,
+        AMR_MIN_NUM_PART,
+        AMR_SCALING,
 #endif
         // FOR XXX BASED SOLVER
         SIZE
@@ -122,15 +130,29 @@ FieldSolver::FieldSolver():
     itsAttr[PRECMODE]  = Attributes::makeString("PRECMODE", "Preconditioner Mode [STD | HIERARCHY | REUSE]", "HIERARCHY");
 
     // AMR
-#ifdef HAVE_AMR_SOLVER
-    itsAttr[AMRMAXLEVEL] = Attributes::makeReal("AMRMAXLEVEL", "Maximum number of levels in AMR", 0);
-    itsAttr[AMRREFX] = Attributes::makeReal("AMRREFX", "Refinement ration in x-direction in AMR", 2);
-    itsAttr[AMRREFY] = Attributes::makeReal("AMRREFY", "Refinement ration in y-direction in AMR", 2);
-    itsAttr[AMRREFT] = Attributes::makeReal("AMRREFT", "Refinement ration in z-direction in AMR", 2);
-    itsAttr[AMRSUBCYCLE] = Attributes::makeBool("AMRSUBCYCLE",
-                                                "Subcycling in time for refined levels in AMR", false);
-    itsAttr[AMRMAXGRID] = Attributes::makeReal("AMRMAXGRID", "Maximum grid size in AMR", 16);
-
+#ifdef ENABLE_AMR
+    itsAttr[AMR_MAXLEVEL] = Attributes::makeReal("AMR_MAXLEVEL", "Maximum number of levels in AMR", 0);
+    itsAttr[AMR_REFX] = Attributes::makeReal("AMR_REFX", "Refinement ration in x-direction in AMR", 2);
+    itsAttr[AMR_REFY] = Attributes::makeReal("AMR_REFY", "Refinement ration in y-direction in AMR", 2);
+    itsAttr[AMR_REFT] = Attributes::makeReal("AMR_REFT", "Refinement ration in z-direction in AMR", 2);
+    itsAttr[AMR_SUBCYCLE] = Attributes::makeBool("AMR_SUBCYCLE",
+                                                 "Subcycling in time for refined levels in AMR", false);
+    itsAttr[AMR_MAXGRID] = Attributes::makeReal("AMR_MAXGRID", "Maximum grid size in AMR", 16);
+    
+    itsAttr[AMR_TAGGING] = Attributes::makeString("AMR_TAGGING",
+                                                  "Refinement criteria [CHARGE_DENSITY | POTENTIAL | EFIELD]",
+                                                  "CHARGE_DENSITY");
+    itsAttr[AMR_DENSITY] = Attributes::makeReal("AMR_DENSITY",
+                                               "Tagging value for charge density refinement [C / cell volume]",
+                                               1.0e-14);
+    itsAttr[AMR_MAX_NUM_PART] = Attributes::makeReal("AMR_MAX_NUM_PART",
+                                                     "Tagging value for max. #particles", 1);
+    itsAttr[AMR_MIN_NUM_PART] = Attributes::makeReal("AMR_MIN_NUM_PART",
+                                                     "Tagging value for min. #particles", 1);
+    itsAttr[AMR_SCALING] = Attributes::makeReal("AMR_SCALING",
+                                                "Scaling value for maximum value tagging "
+                                                "(only POTENTIAL / CHARGE_DENSITY / "
+                                                "MOMENTA", 0.75);
 #endif
 
     mesh_m = 0;
@@ -250,43 +272,55 @@ bool FieldSolver::hasPeriodicZ() {
     return Util::toUpper(Attributes::getString(itsAttr[BCFFTT])) == std::string("PERIODIC");
 }
 
-#ifdef HAVE_AMR_SOLVER
-bool FieldSolver::isAMRSolver() {
-    return Util::toUpper(Attributes::getString(itsAttr[FSTYPE])) == std::string("AMR");
+#ifdef ENABLE_AMR
+inline bool FieldSolver::isAmrSolverType() const {
+    return Options::amr;
 }
 
-int FieldSolver::amrMaxLevel() {
-    return Attributes::getReal(itsAttr[AMRMAXLEVEL]);
+inline int FieldSolver::getAmrMaxLevel() const {
+    return Attributes::getReal(itsAttr[AMR_MAXLEVEL]);
 }
 
-int FieldSolver::amrRefRatioX() {
-    return Attributes::getReal(itsAttr[AMRREFX]);
+inline int FieldSolver::getAmrRefRatioX() const {
+    return Attributes::getReal(itsAttr[AMR_REFX]);
 }
 
-int FieldSolver::amrRefRatioY() {
-    return Attributes::getReal(itsAttr[AMRREFY]);
+inline int FieldSolver::getAmrRefRatioY() const {
+    return Attributes::getReal(itsAttr[AMR_REFY]);
 }
 
-int FieldSolver::amrRefRatioT() {
-    return Attributes::getReal(itsAttr[AMRREFT]);
+inline int FieldSolver::getAmrRefRatioT() const {
+    return Attributes::getReal(itsAttr[AMR_REFT]);
 }
 
-bool FieldSolver::amrSubCycling() {
-    return Attributes::getBool(itsAttr[AMRSUBCYCLE]);
+inline bool FieldSolver::isAmrSubCycling() const {
+    return Attributes::getBool(itsAttr[AMR_SUBCYCLE]);
 }
 
-int FieldSolver::amrMaxGridSize() {
-    return Attributes::getReal(itsAttr[AMRMAXGRID]);
+inline int FieldSolver::getAmrMaxGridSize() const {
+    return Attributes::getReal(itsAttr[AMR_MAXGRID]);
 }
 #endif
 
-void FieldSolver::initSolver(PartBunch &b) {
-    itsBunch_m = &b;
+void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
+    itsBunch_m = b;
     std::string bcx = Attributes::getString(itsAttr[BCFFTX]);
     std::string bcy = Attributes::getString(itsAttr[BCFFTY]);
     std::string bcz = Attributes::getString(itsAttr[BCFFTT]);
-
+    
+    #ifdef ENABLE_AMR
+    if ( isAmrSolverType() ) {
+        Inform m("FieldSolver::initAmrSolver");
+        fsType_m = "AMR";
+        
+        initAmrObject_m();
+        
+        initAmrSolver_m();
+        
+    } else if(Attributes::getString(itsAttr[FSTYPE]) == "FFT") {
+#else
     if(Attributes::getString(itsAttr[FSTYPE]) == "FFT") {
+#endif
         bool sinTrafo = ((bcx == std::string("DIRICHLET")) && (bcy == std::string("DIRICHLET")) && (bcz == std::string("DIRICHLET")));
         if(sinTrafo) {
             std::cout << "FFTBOX ACTIVE" << std::endl;
@@ -354,104 +388,7 @@ void FieldSolver::initSolver(PartBunch &b) {
         solver_m = new FFTPoissonSolver(mesh_m, FL_m, Util::toUpper(Attributes::getString(itsAttr[GREENSF])),bcz);
         fsType_m = "FFT";
 #endif
-    }
-#ifdef HAVE_AMR_SOLVER
-    else if (Attributes::getString(itsAttr[FSTYPE]) == "AMR") {
-        Inform m("FieldSolver::initSolver-amr ");
-        fsType_m = "AMR";
-
-	/*
-        // Add the parsed AMR attributes to BoxLib (please check BoxLib/Src/C_AMRLib/Amr.cpp)
-        ParmParse pp("amr");
-
-        pp.add("max_level", Attributes::getReal(itsAttr[AMRMAXLEVEL]));
-
-        pp.add("ref_ratio", (int)Attributes::getReal(itsAttr[AMRREFX])); //FIXME
-
-        pp.add("max_grid_size", Attributes::getReal(itsAttr[AMRMAXGRID]));
-
-        FieldLayout<3>::iterator_iv locDomBegin = FL_m->begin_iv();
-        FieldLayout<3>::iterator_iv locDomEnd = FL_m->end_iv();
-        FieldLayout<3>::iterator_dv globDomBegin = FL_m->begin_rdv();
-        FieldLayout<3>::iterator_dv globDomEnd = FL_m->end_rdv();
-
-        BoxArray lev0_grids(Ippl::getNodes());
-
-        Array<int> procMap;
-        procMap.resize(lev0_grids.size()+1); // +1 is a historical thing, do not ask
-
-        // first iterate over the local owned domain(s)
-        for(FieldLayout<3>::const_iterator_iv v_i = locDomBegin ; v_i != locDomEnd; ++v_i) {
-            std::ostringstream stream;
-            stream << *((*v_i).second);
-
-            std::pair<Box,unsigned int> res = getBlGrids(stream.str());
-            lev0_grids.set(res.second,res.first);
-            procMap[res.second] = Ippl::myNode();
-        }
-
-        // then iterate over the non-local domain(s)
-        for(FieldLayout<3>::iterator_dv v_i = globDomBegin ; v_i != globDomEnd; ++v_i) {
-            std::ostringstream stream;
-            stream << *((*v_i).second);
-
-            std::pair<Box,unsigned int> res = getBlGrids(stream.str());
-            lev0_grids.set(res.second,res.first);
-            procMap[res.second] = res.second;
-        }
-        procMap[lev0_grids.size()] = Ippl::myNode();
-
-        // This init call will cache the distribution map as determined by procMap
-        // so that all data will end up on the right processor
-        RealBox rb;
-        Array<Real> prob_lo(3);
-        Array<Real> prob_hi(3);
-
-        prob_lo[0] = -0.02; //-0.08);
-        prob_lo[1] = -0.02; //-0.08);
-        prob_lo[2] =  0.0; //-0.12);
-        prob_hi[0] =  0.02; //0.08);
-        prob_hi[1] =  0.02; //0.08);
-        prob_hi[2] =  0.04; //0.16);
-
-        rb.setLo(prob_lo);
-        rb.setHi(prob_hi);
-
-        int coord_sys = 0;
-
-        NDIndex<3> ipplDom = FL_m->getDomain();
-
-        Array<int> ncell(3);
-        ncell[0] = ipplDom[0].length();
-        ncell[1] = ipplDom[1].length();
-        ncell[2] = ipplDom[2].length();
-
-        std::vector<int   > nr(3);
-        std::vector<double> hr(3);
-        std::vector<double> prob_lo_in(3);
-        for (int i = 0; i < 3; i++) {
-            nr[i] = ncell[i];
-            hr[i] = (prob_hi[i] - prob_lo[i]) / ncell[i];
-            prob_lo_in[i] = prob_lo[i];
-        }
-
-        int maxLevel = -1;
-        amrptr_m = new Amr(&rb,maxLevel,ncell,coord_sys);
-
-        if(amrptr_m)
-            m << fsType_m << " solver: amrptr_m ready " << endl;
-
-        Real strt_time = 0.0;
-        Real stop_time = 1.0;
-
-        amrptr_m->InitializeInit(strt_time, stop_time, &lev0_grids, &procMap);
-
-        if(amrptr_m)
-            m << fsType_m << " solver: amrptr_m Init done " << endl;
-	*/
-    }
-#endif
-    else {
+    } else {
         solver_m = 0;
         INFOMSG("no solver attached" << endl);
     }
@@ -489,14 +426,20 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << "* MAXITERS     " << Attributes::getReal(itsAttr[MAXITERS]) << '\n'
            << "* PRECMODE     " << Attributes::getString(itsAttr[PRECMODE])   << endl;
     }
-#ifdef HAVE_AMR_SOLVER
-    else if (fsType == "AMR") {
-        os << "* AMRMAXLEVEL  " << Attributes::getReal(itsAttr[AMRMAXLEVEL]) << '\n'
-           << "* AMRREFX      " << Attributes::getReal(itsAttr[AMRREFX]) << '\n'
-           << "* AMRREFY      " << Attributes::getReal(itsAttr[AMRREFY]) << '\n'
-           << "* AMRREFT      " << Attributes::getReal(itsAttr[AMRREFT]) << '\n'
-           << "* AMRSUBCYCLE  " << Attributes::getBool(itsAttr[AMRSUBCYCLE]) << '\n'
-           << "* AMRMAXGRID   " << Attributes::getReal(itsAttr[AMRMAXGRID]) << endl;
+#ifdef ENABLE_AMR
+    else if (fsType == "AMR" || Options::amr) {
+        os << "* AMR_MAXLEVEL     " << Attributes::getReal(itsAttr[AMR_MAXLEVEL]) << '\n'
+           << "* AMR_REFX         " << Attributes::getReal(itsAttr[AMR_REFX]) << '\n'
+           << "* AMR_REFY         " << Attributes::getReal(itsAttr[AMR_REFY]) << '\n'
+           << "* AMR_REFT         " << Attributes::getReal(itsAttr[AMR_REFT]) << '\n'
+           << "* AMR_SUBCYCLE     " << Attributes::getBool(itsAttr[AMR_SUBCYCLE]) << '\n'
+           << "* AMR_MAXGRID      " << Attributes::getReal(itsAttr[AMR_MAXGRID]) << '\n'
+           << "* AMR_TAGGING      " << Attributes::getString(itsAttr[AMR_TAGGING]) <<'\n'
+           << "* AMR_DENSITY      " << Attributes::getReal(itsAttr[AMR_DENSITY]) << '\n'
+           << "* AMR_MAX_NUM_PART " << Attributes::getReal(itsAttr[AMR_MAX_NUM_PART]) << '\n'
+           << "* AMR_MIN_NUM_PART " << Attributes::getReal(itsAttr[AMR_MIN_NUM_PART]) << '\n'
+           << "* AMR_DENSITY      " << Attributes::getReal(itsAttr[AMR_DENSITY]) << '\n'
+           << "* AMR_SCALING      " << Attributes::getReal(itsAttr[AMR_SCALING]) << endl;
     }
 #endif
 
@@ -522,3 +465,76 @@ Inform &FieldSolver::printInfo(Inform &os) const {
     os << "* ********************************************************************************** " << endl;
     return os;
 }
+
+#ifdef ENABLE_AMR
+void FieldSolver::initAmrObject_m() {
+    
+    itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
+    
+    // setup initial info for creating the object
+    AmrBoxLib::AmrInitialInfo info;
+    info.gridx      = (int)this->getMX();
+    info.gridy      = (int)this->getMY();
+    info.gridz      = (int)this->getMT();
+    info.maxgrid    = this->getAmrMaxGridSize();
+    info.maxlevel   = this->getAmrMaxLevel();
+    info.refratx    = this->getAmrRefRatioX();
+    info.refraty    = this->getAmrRefRatioY();
+    info.refratz    = this->getAmrRefRatioT();
+    
+    
+    itsAmrObject_mp = AmrBoxLib::create(info, dynamic_cast<AmrPartBunch*>(itsBunch_m));
+    
+    AmrObject::TaggingCriteria tagging = AmrObject::TaggingCriteria::CHARGE_DENSITY;
+    
+    std::string tag = Attributes::getString(itsAttr[AMR_TAGGING]);
+    
+    if ( tag == "POTENTIAL" )
+        tagging = AmrObject::TaggingCriteria::POTENTIAL;
+    else if (tag == "EFIELD" )
+        tagging = AmrObject::TaggingCriteria::EFIELD;
+    else if ( tag == "MOMENTA" )
+        tagging = AmrObject::TaggingCriteria::MOMENTA;
+    else if ( tag == "MAX_NUM_PARTICLES" )
+        tagging = AmrObject::TaggingCriteria::MAX_NUM_PARTICLES;
+    else if ( tag == "MIN_NUM_PARTICLES" )
+        tagging = AmrObject::TaggingCriteria::MIN_NUM_PARTICLES;
+    else if ( tag != "CHARGE_DENSITY" )
+        throw OpalException("FieldSolver::initAmrObject_m()",
+                            "Not supported refinement criteria "
+                            "[CHARGE_DENSITY | POTENTIAL | EFIELD | "
+                            "MOMENTA | MAX_NUM_PARTICLES | MIN_NUM_PARTICLES].");
+    
+    itsAmrObject_mp->setTagging(tagging);
+    
+    itsAmrObject_mp->setScalingFactor( Attributes::getReal(itsAttr[AMR_SCALING]) );
+    
+    itsAmrObject_mp->setChargeDensity( Attributes::getReal(itsAttr[AMR_DENSITY]) );
+    
+    itsAmrObject_mp->setMaxNumParticles(
+        Attributes::getReal(itsAttr[AMR_MAX_NUM_PART])
+    );
+    
+    itsAmrObject_mp->setMinNumParticles(
+        Attributes::getReal(itsAttr[AMR_MIN_NUM_PART])
+    );
+}
+
+
+void FieldSolver::initAmrSolver_m() {
+    std::string fsType = Attributes::getString(itsAttr[FSTYPE]);
+    if (fsType == "FMG") {
+        
+        if ( dynamic_cast<AmrBoxLib*>( itsAmrObject_mp.get() ) == 0 )
+            throw OpalException("FieldSolver::initAmrSolver_m()", "FMultiGrid solver requires BoxLib.");
+        
+        solver_m = new FMGPoissonSolver(static_cast<AmrBoxLib*>(itsAmrObject_mp.get()));
+        
+    } else if (fsType == "HYPRE") {
+        throw OpalException("FieldSolver::initAmrSolver_m()", "HYPRE solver not yet implemented.");
+    } else if (fsType == "HPGMG") {
+        throw OpalException("FieldSolver::initAmrSolver_m()", "HPGMG solver not yet implemented.");
+    } else
+        throw OpalException("FieldSolver::initAmrSolver_m()", "Unknown solver " + fsType + ".");
+}
+#endif

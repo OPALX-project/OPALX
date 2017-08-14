@@ -4,8 +4,13 @@
 
 //////////////////////////////////////////////////////////////
 #include "Algorithms/PBunchDefs.h"
+
+#ifdef ENABLE_AMR
+    #include "Utilities/OpalException.h"
+#endif
 //////////////////////////////////////////////////////////////
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 //use Barton and Nackman Trick to avoid virtual functions
 //template <class T_Leaftype>
 class PoissonSolver {
@@ -21,15 +26,33 @@ public:
     // given a charge-density field rho and a set of mesh spacings hr,
     // compute the scalar potential in open space
     virtual void computePotential(Field_t &rho, Vector_t hr) = 0;
+    
+    /*!
+     * @param rho specifies the charge-density field
+     * @param baseLevel of adaptive mesh refinement solvers (AMR). Used in case of sub-cycling in time.
+     * @param finestLevel of AMR.
+     */
+#ifdef ENABLE_AMR
+    virtual void solve(AmrFieldContainer_t &rho,
+                       AmrFieldContainer_t &phi,
+                       AmrFieldContainer_t &efield,
+                       unsigned short baseLevel,
+                       unsigned short finestLevel,
+                       bool prevAsGuess = true)
+    {
+        throw OpalException("PoissonSolver::solve()", "Not supported for non-AMR code.");
+    };
+#endif
+                                  
     virtual void computePotential(Field_t &rho, Vector_t hr, double zshift) = 0;
 
-    virtual double getXRangeMin() = 0;
-    virtual double getXRangeMax() = 0;
-    virtual double getYRangeMin() = 0;
-    virtual double getYRangeMax() = 0;
-    virtual double getZRangeMin() = 0;
-    virtual double getZRangeMax() = 0;
-    virtual void test(PartBunch &bunch) = 0 ;
+    virtual double getXRangeMin(unsigned short level = 0) = 0;
+    virtual double getXRangeMax(unsigned short level = 0) = 0;
+    virtual double getYRangeMin(unsigned short level = 0) = 0;
+    virtual double getYRangeMax(unsigned short level = 0) = 0;
+    virtual double getZRangeMin(unsigned short level = 0) = 0;
+    virtual double getZRangeMax(unsigned short level = 0) = 0;
+    virtual void test(PartBunchBase<double, 3> *bunch) = 0 ;
     virtual ~PoissonSolver(){};
 
 };

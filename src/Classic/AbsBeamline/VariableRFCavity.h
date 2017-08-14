@@ -62,7 +62,7 @@ class VariableRFCavity: public Component {
     virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
     virtual bool apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
     virtual bool applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
     virtual void finalise();
     virtual bool bends() const {return false;}
     virtual void getDimensions(double &zBegin, double &zEnd) const {}

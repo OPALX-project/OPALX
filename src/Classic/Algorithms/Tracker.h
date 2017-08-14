@@ -21,7 +21,7 @@
 // ------------------------------------------------------------------------
 
 #include "Algorithms/AbstractTracker.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Algorithms/PartData.h"
 #include "FixedAlgebra/FTps.h"
 
@@ -29,7 +29,7 @@
 
 class BMultipoleField;
 class Euclid3D;
-class Particle;
+class OpalParticle;
 
 
 // Class Tracker
@@ -100,16 +100,16 @@ public:
     //  The particle bunch is taken from [b]bunch[/b].
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
-    Tracker(const Beamline &, PartBunch *bunch,
+    Tracker(const Beamline &, PartBunchBase<double, 3> *bunch,
             const PartData &, bool backBeam, bool backTrack);
 
     virtual ~Tracker();
 
     /// Return the current bunch.
-    const PartBunch &getBunch() const;
+    const PartBunchBase<double, 3> *getBunch() const;
 
     /// Add particle to bunch.
-    void addToBunch(const Particle &);
+    void addToBunch(const OpalParticle &);
 
     /// Store the bunch.
     //~ void setBunch(const PartBunch &);
@@ -195,7 +195,7 @@ protected:
     FTps<double, 6> buildSBendVectorPotential(const BMultipoleField &, double h);
 
     /// The bunch of particles to be tracked.
-    PartBunch* itsBunch_m;
+    PartBunchBase<double, 3>* itsBunch_m;
     //  typedef PartBunch::iterator iterator;
 
 private:
