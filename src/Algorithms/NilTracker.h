@@ -45,9 +45,9 @@ class NilTracker: public Tracker {
 public:
     /// Constructor.
     explicit NilTracker(const Beamline &beamline,
-                               const PartData &reference,
-                               bool revBeam,
-                               bool revTrack);
+                        const PartData &reference,
+                        bool revBeam,
+                        bool revTrack);
 
     virtual ~NilTracker();
 
