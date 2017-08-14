@@ -35,7 +35,7 @@ using Physics::z_p;
 using Physics::Avo;
 
 #ifdef OPAL_DKS
-const int CollimatorPhysics::numpar = 13;
+const int CollimatorPhysics::numpar_ms = 13;
 #endif
 
 Vector_t ArbitraryRotation(Vector_t &W, Vector_t &Rorg, double Theta);
@@ -74,12 +74,12 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name,
     Emin_m(0.0),
     nextLocalID_m(0)
 #ifdef OPAL_DKS
-    , curandInitSet(0)
-    , ierr(0)
-    , maxparticles(0)
-    , numparticles(0)
-    , par_ptr(NULL)
-    , mem_ptr(NULL)
+    , curandInitSet_m(0)
+    , ierr_m(0)
+    , maxparticles_m(0)
+    , numparticles_m(0)
+    , par_mp(NULL)
+    , mem_mp(NULL)
 #endif
 {
 
@@ -1060,7 +1060,7 @@ void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch, Degrader *deg,
 	int size = numParticlesInSimulation;
 
         //allocate memory for parameters
-        par_mp = dksbase_m.allocateMemory<double>(numpar, ierr_m);
+        par_mp = dksbase_m.allocateMemory<double>(numpar_ms, ierr_m);
 
         //allocate memory for particles
         mem_mp = dksbase_m.allocateMemory<PART_DKS>((int)size, ierr_m);
