@@ -9,7 +9,6 @@
 #include "BoxCornerDomain.h"
 //#include "RectangularDomain.h"
 
-#include "Algorithms/PartBunch.h"
 #include "Track/Track.h"
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
@@ -52,7 +51,7 @@ using Teuchos::RCP;
 using Teuchos::rcp;
 using Physics::c;
 
-MGPoissonSolver::MGPoissonSolver ( PartBunch &beam,
+MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
                                    Mesh_t *mesh,
                                    FieldLayout_t *fl,
                                    std::vector<BoundaryGeometry *> geometries,
@@ -61,7 +60,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch &beam,
                                    double tol,
                                    int maxiters,
                                    std::string precmode):
-    itsBunch_m(&beam),
+    itsBunch_m(beam),
     mesh_m(mesh),
     layout_m(fl),
     geometries_m(geometries),
