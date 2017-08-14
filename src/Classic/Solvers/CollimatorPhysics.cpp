@@ -872,7 +872,7 @@ void CollimatorPhysics::applyDKS(PartBunch &bunch, size_t numParticlesInSimulati
 
     if(collShape_m != DEGRADER) return;
 
-    Degrader deg = dynamic_cast<Degrader *>(element_ref_m);
+    Degrader *deg = dynamic_cast<Degrader *>(element_ref_m);
 
     //if firs call to apply setup needed accelerator resources
     setupCollimatorDKS(bunch, deg, numParticlesInSimulation);
