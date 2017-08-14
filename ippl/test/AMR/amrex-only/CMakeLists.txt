@@ -74,21 +74,21 @@ if ( ${BL_SPACEDIM} EQUAL 3 )
 
     target_link_libraries (testDeposition ${LIBS}
                            -lgfortran ${AMREX_LIBRARIES}
-                           -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
                         
     target_link_libraries (AssignMultiLevelDensity ${LIBS}
                            -lgfortran ${AMREX_LIBRARIES}
-                           -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
     target_link_libraries (testGeometry ${LIBS}
                            -lgfortran ${AMREX_LIBRARIES}
-                           -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testDepositionFail ${LIBS}
                            -lgfortran ${AMREX_LIBRARIES}
-                           -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testSolverFail ${LIBS}
                            -lgfortran ${AMREX_LIBRARIES}
-                           -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 endif()
