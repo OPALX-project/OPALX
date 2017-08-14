@@ -195,7 +195,7 @@ protected:
     FTps<double, 6> buildSBendVectorPotential(const BMultipoleField &, double h);
 
     /// The bunch of particles to be tracked.
-    PartBunchBase<double, 3>* itsBunch;
+    PartBunchBase<double, 3>* itsBunch_m;
     //  typedef PartBunch::iterator iterator;
 
 private:

@@ -34,6 +34,8 @@
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Algorithms/PolynomialTimeDependence.h"
 
+#include "opal_test_utilities/SilenceTest.h"
+
 void testNull(VariableRFCavity& cav1) {
     std::shared_ptr<AbstractTimeDependence> null_poly(NULL);
     EXPECT_DOUBLE_EQ(cav1.getLength(), 0.);
@@ -43,6 +45,8 @@ void testNull(VariableRFCavity& cav1) {
 }
 
 TEST(VariableRFCavityTest, TestConstructorEtc) {
+    OpalTestUtilities::SilenceTest silencer;
+
     VariableRFCavity cav1;
     EXPECT_EQ(cav1.getName(), "");
     testNull(cav1);
@@ -71,6 +75,8 @@ void testGetSet(VariableRFCavity& cav1,
 }
 
 TEST(VariableRFCavityTest, TestGetSet) {
+    OpalTestUtilities::SilenceTest silencer;
+
     VariableRFCavity cav1;
     testGetSet(cav1,
                &VariableRFCavity::getAmplitudeModel,
@@ -87,6 +93,8 @@ TEST(VariableRFCavityTest, TestGetSet) {
 }
 
 TEST(VariableRFCavityTest, TestAssignmentNull) {
+    OpalTestUtilities::SilenceTest silencer;
+
     VariableRFCavity cav1;
     VariableRFCavity cav2;
     cav2.getLength();  // stop compiler "optimising" to copy constructor
@@ -97,6 +105,8 @@ TEST(VariableRFCavityTest, TestAssignmentNull) {
 }
 
 TEST(VariableRFCavityTest, TestAssignmentValue) {
+    OpalTestUtilities::SilenceTest silencer;
+
     std::shared_ptr<AbstractTimeDependence> poly1(new PolynomialTimeDependence(std::vector<double>(1, 1.)));
     std::shared_ptr<AbstractTimeDependence> poly2(new PolynomialTimeDependence(std::vector<double>(1, 2.)));
     std::shared_ptr<AbstractTimeDependence> poly3(new PolynomialTimeDependence(std::vector<double>(1, 3.)));
@@ -116,6 +126,8 @@ TEST(VariableRFCavityTest, TestAssignmentValue) {
 }
 
 TEST(VariableRFCavityTest, TestClone) {
+    OpalTestUtilities::SilenceTest silencer;
+
     VariableRFCavity cav1;
     cav1.setLength(99.);
     VariableRFCavity* cav2 = dynamic_cast<VariableRFCavity*>(cav1.clone());
@@ -124,10 +136,14 @@ TEST(VariableRFCavityTest, TestClone) {
 }
 
 TEST(VariableRFCavityTest, TestInitialiseFinalise) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // nothing to do here
 }
 
 TEST(VariableRFCavityTest, TestGetGeometry) {
+    OpalTestUtilities::SilenceTest silencer;
+
     VariableRFCavity cav1;
     const VariableRFCavity& cav2(cav1);
     EXPECT_EQ(&cav1.getGeometry(), &cav2.getGeometry());
@@ -136,11 +152,15 @@ TEST(VariableRFCavityTest, TestGetGeometry) {
 }
 
 TEST(VariableRFCavityTest, TestBends) {
+    OpalTestUtilities::SilenceTest silencer;
+
     VariableRFCavity cav1;
     EXPECT_FALSE(cav1.bends());
 }
 
 TEST(VariableRFCavityTest, TestApplyField) {
+    OpalTestUtilities::SilenceTest silencer;
+
     VariableRFCavity cav1;
     std::vector<double>  vec1;
     vec1.push_back(1.);
@@ -177,6 +197,8 @@ TEST(VariableRFCavityTest, TestApplyField) {
 }
 
 TEST(VariableRFCavityTest, TestApplyBoundingBox) {
+    OpalTestUtilities::SilenceTest silencer;
+
     VariableRFCavity cav1;
     std::shared_ptr<AbstractTimeDependence> poly1(new PolynomialTimeDependence(std::vector<double>(1, 1.)));
     std::shared_ptr<AbstractTimeDependence> poly2(new PolynomialTimeDependence(std::vector<double>(2, 2.)));

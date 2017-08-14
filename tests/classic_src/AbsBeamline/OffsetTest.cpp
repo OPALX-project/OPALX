@@ -1,27 +1,27 @@
-/* 
+/*
  *  Copyright (c) 2014, Chris Rogers
  *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without 
- *  modification, are permitted provided that the following conditions are met: 
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
  *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer. 
- *  2. Redistributions in binary form must reproduce the above copyright notice, 
- *     this list of conditions and the following disclaimer in the documentation 
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
  *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to 
- *     endorse or promote products derived from this software without specific 
+ *  3. Neither the name of STFC nor the names of its contributors may be used to
+ *     endorse or promote products derived from this software without specific
  *     prior written permission.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -34,9 +34,13 @@
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "AbsBeamline/Offset.h"
 
+#include "opal_test_utilities/SilenceTest.h"
+
 class SRotatedGeometry;
 
 TEST(OffsetTest, TestConstructDestruct) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // Test default constructors (copy constructor/operator below)
     Offset off1("Name");
     try {
@@ -52,6 +56,8 @@ TEST(OffsetTest, TestConstructDestruct) {
 }
 
 TEST(OffsetTest, TestGetSet) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // Check for typos in accessors/mutators
     Vector_t ref(1., 2., 3.);
     Vector_t test;
@@ -101,6 +107,8 @@ void buildTestOffset(Vector_t endPos, Vector_t endDir,
 }
 
 TEST(OffsetTest, TestUpdateIdentityTransforms) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // Check we don't throw up on an identity transform about origin
     // results are undefined, returns identity
     buildTestOffset(Vector_t(0., 0., 0.), Vector_t(1., 0., 0.),
@@ -112,6 +120,8 @@ TEST(OffsetTest, TestUpdateIdentityTransforms) {
 }
 
 TEST(OffsetTest, TestUpdateRotationsNotXY) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // Check we throw for a translation/rotation out of the midplane
     EXPECT_THROW(buildTestOffset(Vector_t(1., 3., 1.), Vector_t(+1., 0., 0.),
                              0., 0., 0., "not x-y rotation"),
@@ -122,6 +132,8 @@ TEST(OffsetTest, TestUpdateRotationsNotXY) {
 }
 
 TEST(OffsetTest, TestUpdateRotations) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // Check we get length right
     buildTestOffset(Vector_t(1., 2., 0.), Vector_t(+1., 0., 0.),
                 atan2(2., 1.), 0., sqrt(5.), "length");
@@ -154,6 +166,8 @@ TEST(OffsetTest, TestUpdateRotations) {
 }
 
 TEST(OffsetTest, TestCopy) {
+    OpalTestUtilities::SilenceTest silencer;
+
     Offset off1("Name");
     off1.setEndPosition(Vector_t(1., 3., 0.));
     off1.setEndDirection(Vector_t(1., 4., 0.));
@@ -172,6 +186,8 @@ TEST(OffsetTest, TestCopy) {
 }
 
 TEST(OffsetTest, TestRotateGetTheta) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // rotate and getTheta methods are (more or less) inverse
     // we check a few examples by hand
     Vector_t vecIn(1., 2., 0.);
@@ -211,6 +227,8 @@ TEST(OffsetTest, TestRotateGetTheta) {
 }
 
 TEST(OffsetTest, TestBends) {
+    OpalTestUtilities::SilenceTest silencer;
+
     double theta1 = Offset::float_tolerance*10.; // precision not great
     double theta2 = Offset::float_tolerance/1000.;
     Offset off = Offset::localCylindricalOffset("lco", theta1, 0., 3.);
@@ -224,6 +242,8 @@ TEST(OffsetTest, TestBends) {
 }
 
 TEST(OffsetTest, TestLocalCylindricalOffset) {
+    OpalTestUtilities::SilenceTest silencer;
+
     double theta = Physics::pi/3.;
     Offset off1 = Offset::localCylindricalOffset("lco", theta, 0., 3.);
     EXPECT_EQ(off1.getName(), "lco");
@@ -253,6 +273,8 @@ TEST(OffsetTest, TestLocalCylindricalOffset) {
 }
 
 TEST(OffsetTest, TestGlobalCylindricalOffset) {
+    OpalTestUtilities::SilenceTest silencer;
+
     double radius = 7.;
     double phi = Physics::pi/3.;
     double theta = Physics::pi/4.;
@@ -269,8 +291,10 @@ TEST(OffsetTest, TestGlobalCylindricalOffset) {
 }
 
 TEST(OffsetTest, TestLocalCartesianOffset) {
+    OpalTestUtilities::SilenceTest silencer;
+
     double theta = Physics::pi/6.;
-    Offset off1 = Offset::localCartesianOffset("lco", 
+    Offset off1 = Offset::localCartesianOffset("lco",
                           3.*Vector_t(cos(theta), sin(theta), 0.),
                           10.*Vector_t(cos(theta/3.), sin(theta/3.), 0.));
     EXPECT_EQ(off1.getName(), "lco");
@@ -285,6 +309,8 @@ TEST(OffsetTest, TestLocalCartesianOffset) {
 }
 
 TEST(OffsetTest, TestGlobalCartesianOffset) {
+    OpalTestUtilities::SilenceTest silencer;
+
     double theta = Physics::pi/3.;
     Offset off1 = Offset::globalCartesianOffset("gco",
                           3.*Vector_t(cos(theta), sin(theta), 0.),
@@ -299,4 +325,3 @@ TEST(OffsetTest, TestGlobalCartesianOffset) {
                          10.*Vector_t(cos(theta/3.), sin(theta/3.), 0.)(i));
     testOffset(off1, 0., 0., 0., "");
 }
-

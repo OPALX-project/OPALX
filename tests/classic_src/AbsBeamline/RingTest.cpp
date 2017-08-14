@@ -34,6 +34,8 @@
 #include "AbsBeamline/Ring.h"
 #include "Utilities/OpalException.h"
 
+#include "opal_test_utilities/SilenceTest.h"
+
 #include <iostream>
 #include <sstream>
 
@@ -108,6 +110,8 @@ TEST(RingTest, TestConstructDestruct) {
 }
 
 TEST(RingTest, TestAppend1) {
+    OpalTestUtilities::SilenceTest silencer;
+
     try {
         double radius = 5.;
         Ring ring("my_ring");
@@ -141,6 +145,8 @@ TEST(RingTest, TestAppend1) {
 }
 
 TEST(RingTest, TestAppend2) {
+    OpalTestUtilities::SilenceTest silencer;
+
     try {
         double radius = 5.;
         Ring ring("my_ring");
@@ -174,6 +180,8 @@ TEST(RingTest, TestAppend2) {
 }
 
 TEST(RingTest, TestAppend3) {
+    OpalTestUtilities::SilenceTest silencer;
+
     try {
         double radius = 5.;
         Ring ring("my_ring");
@@ -194,6 +202,8 @@ TEST(RingTest, TestAppend3) {
 }
 
 TEST(RingTest, TestLatticeRInitPhiInit) {
+    OpalTestUtilities::SilenceTest silencer;
+
     for (double phi = -2.*Physics::pi;
          phi < 2.*Physics::pi;
          phi += Physics::pi/6.) {
@@ -226,6 +236,8 @@ TEST(RingTest, TestLatticeRInitPhiInit) {
 
 // Check that we get the bounding box and rotation correct
 TEST(RingTest, TestApply) {
+    OpalTestUtilities::SilenceTest silencer;
+
     Ring ring("my_ring");
     try {
         double radius = 2.*(2.*sin(Physics::pi/6.)+1.*sin(Physics::pi/3.)+1.0);
@@ -275,6 +287,8 @@ TEST(RingTest, TestApply) {
 
 // Check that we get the bounding box correct - for exact sector geometry
 TEST(RingTest, TestApply2) {
+    OpalTestUtilities::SilenceTest silencer;
+
     Ring ring("my_ring");
     try {
         double radius = 1.5;
@@ -399,6 +413,8 @@ void testField(double s, double r, double y, double phi,
 }
 
 TEST(RingTest, TestApply3) {
+    OpalTestUtilities::SilenceTest silencer;
+
     testField(0.1, 0., 0.2, 0., 3., 1., 2., 1e-6);
     testField(0.1, 0., 0.2, Physics::pi, -3., -1., 2., 1e-6);
     testField(0.1, 0., 0.2, Physics::pi/2., 1., -3., 2., 1e-6);

@@ -642,6 +642,7 @@ void OpalElement::update() {
                                            rotation.conjugate());
         base->setCSTrafoGlobal2Local(global2local);
         base->fixPosition();
+        base->setRotationAboutZ(Attributes::getReal(itsAttr[PSI]));
     }
 
     Vector_t misalignmentShift(Attributes::getReal(itsAttr[DX]),

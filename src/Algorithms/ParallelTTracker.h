@@ -190,7 +190,6 @@ private:
 
     /******************** STATE VARIABLES ***********************************/
 
-    PartBunchBase<double, 3> *itsBunch_m;
     DataSink *itsDataSink_m;
 
     OpalBeamline itsOpalBeamline_m;

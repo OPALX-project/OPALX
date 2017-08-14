@@ -9,11 +9,11 @@ message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
 #     message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
     
 set (CMAKE_CXX_FLAGS
-    "-O3 ${CMAKE_CXX_FLAGS} -DBL_USE_FORTRAN_MPI"
+    "-O3 ${CMAKE_CXX_FLAGS}"
     )
     
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO -DIPPL_AMR ${CMAKE_CXX_FLAGS}"
+    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO -DIPPL_AMR ${AMREX_DEFINES} ${CMAKE_CXX_FLAGS}"
 )
     
 include_directories (
@@ -24,7 +24,7 @@ include_directories (
     ${IPPL_INCLUDE_DIR}
     ${H5Hut_INCLUDE_DIR}
     ${HDF5_INCLUDE_DIR}
-    ${CCSE_INCLUDE_DIR}
+    ${AMREX_INCLUDE_DIR}
     ${HYPRE_INCLUDE_DIR}
 )
     
@@ -32,7 +32,7 @@ link_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
     ${IPPL_LIBRARY_DIR}
-    ${CCSE_LIBRARY_DIR}
+    ${AMREX_LIBRARY_DIR}
     ${HYPRE_LIBRARY_DIR}
 )
     
@@ -71,9 +71,9 @@ add_executable( testAdapterPattern
                )
 
 # target_link_libraries (testCRTP ${LIBS}
-#                         -lgfortran ${CCSE_LIBRARIES}
-#                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+#                         -lgfortran ${AMREX_LIBRARIES}
+#                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testAdapterPattern ${LIBS}
-                        -lgfortran ${CCSE_LIBRARIES}
-                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                       -lgfortran ${AMREX_LIBRARIES}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
