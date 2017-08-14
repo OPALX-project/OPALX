@@ -210,121 +210,125 @@ double AmrBoxLib::getRho(int x, int y, int z) {
 
 void AmrBoxLib::computeSelfFields() {
     
-    AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
+    if ( bunch_mp->hasFieldSolver() ) {
+        
+        IpplTimings::startTimer(bunch_mp->selfFieldTimer_m);
+        
+        AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
+        
+        // map on Amr domain
+        double scalefactor = amrpbase_p->domainMapping();
+        
+        /// from charge (C) to charge density (C/m^3).
+        bunch_mp->Q *= bunch_mp->dt;
+        amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
+        bunch_mp->Q /= bunch_mp->dt;
+        
+        //calculating mesh-scale factor
+        double gammaz = sum(bunch_mp->P)[2] / bunch_mp->getTotalNum();
+        gammaz *= gammaz;
+        gammaz = std::sqrt(gammaz + 1.0);
+        
+        // calculate Possion equation (with coefficient: -1/(eps))
+        double tmp = -1.0 / bunch_mp->getdT() / gammaz * scalefactor / Physics::epsilon_0;
+        for (int i = 0; i <= finest_level; ++i) {
+            this->rho_m[i]->mult(tmp, 0, 1);
+            
+            if ( this->rho_m[i]->contains_nan(false) )
+                throw OpalException("AmrBoxLib::computeSelfFields() ",
+                                    "NANs at level " + std::to_string(i) + ".");
+        }
+        
+        // charge density is in rho_m
+        PoissonSolver *solver = bunch_mp->getFieldSolver();
+        
+        IpplTimings::startTimer(bunch_mp->compPotenTimer_m);
+        solver->solve(rho_m, phi_m, efield_m, 0, finest_level);
+        IpplTimings::stopTimer(bunch_mp->compPotenTimer_m);
+        
+        // apply scale of electric-field in order to undo the transformation
+        for (int i = 0; i <= finest_level; ++i)
+            this->efield_m[i]->mult(scalefactor, 0, 3);
+        
+        
+        for (int i = 0; i <= finest_level; ++i) {
+            if ( this->efield_m[i]->contains_nan(false) )
+                throw OpalException("AmrBoxLib::computeSelfFields() ",
+                                    "Ef: NANs at level " + std::to_string(i) + ".");
+        }
+        
+        amrpbase_p->gather(bunch_mp->Ef, this->efield_m, bunch_mp->R, 0, finest_level);
     
-    // bring on Amr domain
-    Vector_t rmin, rmax;
-    bounds(bunch_mp->R, rmin, rmax);
+        // undo domain change
+        amrpbase_p->domainMapping(true);
+        
+        bunch_mp->Ef *= Vector_t(gammaz,
+                                 gammaz,
+                                 1.0 / gammaz);
+        
+        /** Magnetic field in x and y direction induced by the eletric field
+         *
+         *  \f[ B_x = \gamma(B_x^{'} - \frac{beta}{c}E_y^{'}) = -\gamma \frac{beta}{c}E_y^{'} = -\frac{beta}{c}E_y \f]
+         *  \f[ B_y = \gamma(B_y^{'} - \frac{beta}{c}E_x^{'}) = +\gamma \frac{beta}{c}E_x^{'} = +\frac{beta}{c}E_x \f]
+         *  \f[ B_z = B_z^{'} = 0 \f]
+         *
+         */
+        double betaC = sqrt(gammaz * gammaz - 1.0) / gammaz / Physics::c;
     
+        bunch_mp->Bf(0) = bunch_mp->Bf(0) - betaC * bunch_mp->Ef(1);
+        bunch_mp->Bf(1) = bunch_mp->Bf(1) + betaC * bunch_mp->Ef(0);
     
-    double scalefactor = amrpbase_p->domainMapping();
+        IpplTimings::stopTimer(bunch_mp->selfFieldTimer_m);
     
-    int baseLevel = 0;
-    const int& finestLevel = finest_level; //(&amrpbase_p->getAmrLayout())->finestLevel();
-    
-    int nLevel = finestLevel + 1;
-    rho_m.resize(nLevel);
-    phi_m.resize(nLevel);
-    efield_m.resize(nLevel);
-    
-    /// from charge (C) to charge density (C/m^3).
-    bunch_mp->Q *= bunch_mp->dt;
-    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
-    bunch_mp->Q /= bunch_mp->dt;
-    
-    //calculating mesh-scale factor
-    double gammaz = sum(bunch_mp->P)[2] / bunch_mp->getTotalNum();
-    gammaz *= gammaz;
-    gammaz = std::sqrt(gammaz + 1.0);
-    
-    double tmp = 1.0 / bunch_mp->getdT() / gammaz * scalefactor;
-    for (int i = 0; i <= finestLevel; ++i) {
-        this->rho_m[i]->mult(tmp, 0, 1);
-    }
-    
-    
-    for (int i = 0; i <= finestLevel; ++i)
-        this->rho_m[i]->mult(-1.0 / Physics::epsilon_0, 0, 1);
-    
-    // charge density is in rho_m
-    PoissonSolver *solver = bunch_mp->getFieldSolver();
-    
-    IpplTimings::startTimer(bunch_mp->compPotenTimer_m);
-    solver->solve(rho_m, phi_m, efield_m, baseLevel, finestLevel);
-    IpplTimings::stopTimer(bunch_mp->compPotenTimer_m);
-    
-    // apply scale of electric-field in order to undo the transformation
-    for (int i = 0; i <= finestLevel; ++i)
-        this->efield_m[i]->mult(scalefactor, 0, 3);
-    
-    amrpbase_p->gather(bunch_mp->Ef, this->efield_m, bunch_mp->R, 0, finest_level);
-    
-    amrpbase_p->domainMapping(true);
-    
-    bunch_mp->Ef *= Vector_t(gammaz,
-                             gammaz,
-                             1.0 / gammaz);
-    
-    /** Magnetic field in x and y direction induced by the eletric field
-     *
-     *  \f[ B_x = \gamma(B_x^{'} - \frac{beta}{c}E_y^{'}) = -\gamma \frac{beta}{c}E_y^{'} = -\frac{beta}{c}E_y \f]
-     *  \f[ B_y = \gamma(B_y^{'} - \frac{beta}{c}E_x^{'}) = +\gamma \frac{beta}{c}E_x^{'} = +\frac{beta}{c}E_x \f]
-     *  \f[ B_z = B_z^{'} = 0 \f]
-     *
-     */
-    double betaC = sqrt(gammaz * gammaz - 1.0) / gammaz / Physics::c;
-
-    bunch_mp->Bf(0) = bunch_mp->Bf(0) - betaC * bunch_mp->Ef(1);
-    bunch_mp->Bf(1) = bunch_mp->Bf(1) + betaC * bunch_mp->Ef(0);
-    
-    /*
-     * dumping only
-     */
+        /*
+         * dumping only
+         */
 
 #ifdef AMR_YT_DUMP
-    INFOMSG("*** START DUMPING FIELDS IN YT FORMAT ***" << endl);
-    AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
-    
-    AmrIntArray_t rr(nLevel);
-    for (int i = 0; i < nLevel - 1; ++i)
-        rr[i] = this->MaxRefRatio(i);
-    
-    double time = bunch_mp->getT(); // in seconds
-    
-    // we need to undo coefficient when writing charge density
-    for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
-    
-    ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
-    INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
+        INFOMSG("*** START DUMPING FIELDS IN YT FORMAT ***" << endl);
+        AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
+        
+        AmrIntArray_t rr(nLevel);
+        for (int i = 0; i < nLevel - 1; ++i)
+            rr[i] = this->MaxRefRatio(i);
+        
+        double time = bunch_mp->getT(); // in seconds
+        
+        // we need to undo coefficient when writing charge density
+        for (int i = 0; i <= finest_level; ++i)
+            this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
+        
+        ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
+        INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
 #endif
 
 #ifdef AMR_PYTHON_DUMP
-    INFOMSG("*** START DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
-    AmrPythonWriter pyWriter;
-    pyWriter.writeBunch(bunch_mp, scalefactor);
-    INFOMSG("*** FINISHED DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
+        INFOMSG("*** START DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
+        AmrPythonWriter pyWriter;
+        pyWriter.writeBunch(bunch_mp, scalefactor);
+        INFOMSG("*** FINISHED DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
 #endif
     
 #ifdef DBG_SCALARFIELD
-    if ( Ippl::getNodes() > 1 )
-        throw OpalException("AmrBoxLib::computeSelfFields() ",
-                            "Dumping only in serial execution.");
+        if ( Ippl::getNodes() > 1 )
+            throw OpalException("AmrBoxLib::computeSelfFields() ",
+                                "Dumping only in serial execution.");
     
-    int step = bunch_mp->getLocalTrackStep();
-    AmrSliceWriter sliceWriter;
+        int step = bunch_mp->getLocalTrackStep();
+        AmrSliceWriter sliceWriter;
     
 #ifdef AMR_YT_DUMP
-    // make sure we undo only once if AMR_YT_DUMP is also enabled
+        // make sure we undo only once if AMR_YT_DUMP is also enabled
 #else
-    // we need to undo coefficient when writing charge density
-    for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
+        // we need to undo coefficient when writing charge density
+        for (int i = 0; i <= finest_level; ++i)
+            this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
 #endif
     
-    sliceWriter.writeFields(rho_m, phi_m, efield_m,
-                            AmrIntArray_t(), this->geom, step);
+        sliceWriter.writeFields(rho_m, phi_m, efield_m,
+                                AmrIntArray_t(), this->geom, step);
 #endif
+    }
 }
 
 
@@ -462,8 +466,122 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
 
 
 void AmrBoxLib::computeSelfFields_cycl(int bin) {
-    //TODO
-    throw OpalException("AmrBoxLib::computeSelfFields_cycl(int bin) ", "Not yet Implemented.");
+
+    if ( bunch_mp->hasFieldSolver() ) {
+        IpplTimings::startTimer(bunch_mp->selfFieldTimer_m);
+        
+        /// get gamma of this bin
+        double gamma = bunch_mp->getBinGamma(bin);
+        
+        /*
+         * scatter charges onto grid
+         */
+        AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
+    
+        // map on Amr domain
+        double scalefactor = amrpbase_p->domainMapping();
+        
+        /// scatter particles charge onto grid.
+        /// from charge (C) to charge density (C/m^3).
+        amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
+        
+        /// Lorentz transformation
+        // In particle rest frame, the longitudinal length (y for cyclotron) enlarged
+        // calculate Possion equation (with coefficient: -1/(eps))
+        for (int i = 0; i <= finest_level; ++i) {
+            this->rho_m[i]->mult(-scalefactor / (gamma * Physics::epsilon_0), 0 /*comp*/, 1 /*ncomp*/);
+            
+            if ( this->rho_m[i]->contains_nan(false) )
+                throw OpalException("AmrBoxLib::computeSelfFields_cycl(int bin) ",
+                                    "NANs at level " + std::to_string(i) + ".");
+        }
+        
+        PoissonSolver *solver = bunch_mp->getFieldSolver();
+        
+        IpplTimings::startTimer(bunch_mp->compPotenTimer_m);
+        
+        solver->solve(rho_m, phi_m, efield_m, 0, finest_level);
+        
+        IpplTimings::stopTimer(bunch_mp->compPotenTimer_m);
+        
+        
+        // apply scale of electric-field in order to undo the transformation
+        for (int i = 0; i <= finestLevel(); ++i)
+            this->efield_m[i]->mult(scalefactor, 0, 3);
+    
+        for (int i = 0; i <= finest_level; ++i) {
+            if ( this->efield_m[i]->contains_nan(false) )
+                throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
+                                    "Ef: NANs at level " + std::to_string(i) + ".");
+        }
+        
+        amrpbase_p->gather(bunch_mp->Eftmp, this->efield_m, bunch_mp->R, 0, finest_level);
+        
+        // undo domain change
+        amrpbase_p->domainMapping(true);
+        
+        /// Back Lorentz transformation
+        bunch_mp->Eftmp *= Vector_t(gamma, 1.0 / gamma, gamma);
+
+        /// Calculate coefficient
+        double betaC = sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
+
+        /// Calculate B_bin field from E_bin field accumulate B and E field
+        bunch_mp->Bf(0) += betaC * bunch_mp->Eftmp(2);
+        bunch_mp->Bf(2) -= betaC * bunch_mp->Eftmp(0);
+
+        bunch_mp->Ef += bunch_mp->Eftmp;
+
+        IpplTimings::stopTimer(bunch_mp->selfFieldTimer_m);
+        
+        /*
+         * dumping only
+         */
+#ifdef AMR_YT_DUMP
+        INFOMSG("*** START DUMPING FIELDS IN YT FORMAT ***" << endl);
+        AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
+        
+        AmrIntArray_t rr(nLevel);
+        for (int i = 0; i < nLevel - 1; ++i)
+            rr[i] = this->MaxRefRatio(i);
+        
+        double time = bunch_mp->getT(); // ps
+        
+        // we need to undo coefficient when writing charge density
+        for (int i = 0; i <= finest_level; ++i)
+            this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
+        
+        ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
+        INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
+#endif
+
+#ifdef AMR_PYTHON_DUMP
+        INFOMSG("*** START DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
+        AmrPythonWriter pyWriter;
+        pyWriter.writeBunch(bunch_mp, scalefactor);
+        INFOMSG("*** FINISHED DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
+#endif
+    
+#ifdef DBG_SCALARFIELD
+        if ( Ippl::getNodes() > 1 )
+            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
+                                "Dumping only in serial execution.");
+        
+        int step = bunch_mp->getLocalTrackStep();
+        AmrSliceWriter sliceWriter;
+    
+#ifdef AMR_YT_DUMP
+        // make sure we undo only once if AMR_YT_DUMP is also enabled
+#else
+        // we need to undo coefficient when writing charge density
+        for (int i = 0; i <= finest_level; ++i)
+            this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
+#endif
+    
+        sliceWriter.writeFields(rho_m, phi_m, efield_m,
+                                AmrIntArray_t(), this->geom, step);
+#endif
+    }
 }
 
 
