@@ -1079,7 +1079,7 @@ void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch, Degrader *deg,
         double zBegin, zEnd;
         deg->getDimensions(zBegin, zEnd);
 
-        double params[numpar_ms] = {zBegin, deg->getZSize(), rho_m, Z_m,
+        double params[numpar_ms] = {zBegin, deg->getElementLength(), rho_m, Z_m,
                                     A_m, A2_c, A3_c, A4_c, A5_c, X0_m, I_m, dT_m, lowEnergyThr_m};
         dksbase_m.writeDataAsync<double>(par_mp, params, numpar_ms);
 

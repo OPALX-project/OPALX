@@ -189,7 +189,7 @@ private:
 
     std::vector<PART_DKS> dksParts_m;
 
-    static const int numpar_ms = 13;
+    static const int numpar_ms;
 #endif
 
     IpplTimings::TimerRef DegraderApplyTimer_m;
