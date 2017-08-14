@@ -431,11 +431,11 @@ private:
     // Push particles for time h.
     // Apply effects of RF Gap Crossings.
     // Update time and path length.
-    // Unit assumptions: [itsBunch->R] = m, [itsBunch->P] = 1, [h] = s, [c] = m/s, [itsBunch->getT()] = s
+    // Unit assumptions: [itsBunch_m->R] = m, [itsBunch_m->P] = 1, [h] = s, [c] = m/s, [itsBunch_m->getT()] = s
     void push(double h);
 
     // Kick particles for time h
-    // The fields itsBunch->Bf, itsBunch->Ef are used to calculate the forces
+    // The fields itsBunch_m->Bf, itsBunch_m->Ef are used to calculate the forces
     void kick(double h);
 
     // Apply the trilogy half push - kick - half push,
