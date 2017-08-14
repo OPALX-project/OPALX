@@ -7,10 +7,9 @@
 #include <sys/stat.h>
 #include "Physics/Physics.h"
 #include "Algorithms/PBunchDefs.h"
+#include "Algorithms/PartBunchBase.h"
 
 extern Inform *gmsg;
-
-class PartBunch;
 
 namespace myeps {
     const double EPS = std::numeric_limits<double>::epsilon();
@@ -44,7 +43,7 @@ public:
               const Vector_t &TriNorm,
               const Vector_t &inteCoords,
               const Vector_t &localX,
-              PartBunch *itsBunch,
+              PartBunchBase<double, 3> *itsBunch,
               double &seyNum, const
               double &ppVw,
               const double &vVThermal,
@@ -58,7 +57,7 @@ public:
               const Vector_t &TriNorm,
               const Vector_t &inteCoords,
               const Vector_t &localX,
-              PartBunch *itsBunch,
+              PartBunchBase<double, 3> *itsBunch,
               double &seyNum,
               const double &ppVw,
               const double &vSeyZero,

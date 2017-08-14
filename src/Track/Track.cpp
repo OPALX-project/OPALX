@@ -17,7 +17,11 @@
 // ------------------------------------------------------------------------
 
 #include "Track/Track.h"
-#include "Algorithms/PartBunch.h"
+// #include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h" //FIXME
+#ifdef ENABLE_AMR
+    #include "Algorithms/AmrPartBunch.h"
+#endif
 #include "Algorithms/bet/EnvelopeBunch.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Options.h"
@@ -41,6 +45,8 @@ Track::Track(BeamSequence *u, const PartData &ref, const std::vector<double> & d
              double zStart, const std::vector<double> & zStop, int timeintegrator,
              int nslices, double t0, double dtScInit, double deltaTau):
     reference(ref),
+    slbunch(nullptr),
+    bunch(nullptr),
     use(u),
     parser(),
     dT(dt),
@@ -56,14 +62,26 @@ Track::Track(BeamSequence *u, const PartData &ref, const std::vector<double> & d
         if(!OpalData::getInstance()->hasSLBunchAllocated())
             OpalData::getInstance()->setSLPartBunch(new EnvelopeBunch(&ref));
 
-        if(!OpalData::getInstance()->hasBunchAllocated())             // we need this for Autophasing
-            OpalData::getInstance()->setPartBunch(new PartBunch(&ref));
+        if(!OpalData::getInstance()->hasBunchAllocated()) {           // we need this for Autophasing
+#ifdef ENABLE_AMR
+            if ( Options::amr )
+                OpalData::getInstance()->setPartBunch(new AmrPartBunch(&ref));
+            else
+#endif
+                OpalData::getInstance()->setPartBunch(new PartBunch(&ref));
+        }
 
         bunch = OpalData::getInstance()->getPartBunch();
         slbunch = OpalData::getInstance()->getSLPartBunch();
     } else {
-        if(!OpalData::getInstance()->hasBunchAllocated())
-            OpalData::getInstance()->setPartBunch(new PartBunch(&ref));
+        if(!OpalData::getInstance()->hasBunchAllocated()) {
+#ifdef ENABLE_AMR
+            if ( Options::amr )
+                OpalData::getInstance()->setPartBunch(new AmrPartBunch(&ref));
+            else
+#endif
+                OpalData::getInstance()->setPartBunch(new PartBunch(&ref));
+        }
 
         bunch = OpalData::getInstance()->getPartBunch();
     }

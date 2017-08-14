@@ -85,6 +85,12 @@
 #include <hdf5.h>
 #include "H5hut.h"
 
+//FIXME Remove headers and dynamic_cast in readOneBunchFromFile
+#include "Algorithms/PartBunch.h"
+#ifdef ENABLE_AMR
+    #include "Algorithms/AmrPartBunch.h"
+#endif
+
 class Beamline;
 class PartData;
 
@@ -123,7 +129,11 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     opalRing_m(NULL),
     itsStepper_mp(nullptr),
     mode_m(MODE::UNDEFINED),
-    stepper_m(stepper::INTEGRATOR::UNDEFINED) {
+    stepper_m(stepper::INTEGRATOR::UNDEFINED),
+    itsDataSink(nullptr),
+    bgf_m(nullptr),
+    initialR_m(nullptr),
+    initialP_m(nullptr) {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
 }
 
@@ -140,7 +150,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
  * @param timeIntegrator
  */
 ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
-                                                   PartBunch *bunch,
+                                                   PartBunchBase<double, 3> *bunch,
                                                    DataSink &ds,
                                                    const PartData &reference,
                                                    bool revBeam, bool revTrack,
@@ -153,7 +163,10 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     initialLocalNum_m(bunch->getLocalNum()),
     initialTotalNum_m(bunch->getTotalNum()),
     opalRing_m(NULL),
-    itsStepper_mp(nullptr) {
+    itsStepper_mp(nullptr),
+    bgf_m(nullptr),
+    initialR_m(nullptr),
+    initialP_m(nullptr) {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
     itsDataSink = &ds;
     //  scaleFactor_m = itsBunch_m->getdT() * c;
@@ -1629,7 +1642,7 @@ void ParallelCyclotronTracker::saveOneBunch() {
 
     H5PartWrapperForPC h5wrapper(fileName);
     h5wrapper.writeHeader();
-    h5wrapper.writeStep(*itsBunch_m, additionalAttributes);
+    h5wrapper.writeStep(itsBunch_m, additionalAttributes);
     h5wrapper.close();
 
 }
@@ -1676,7 +1689,14 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
         *gmsg << "----------------Read beam from hdf5 file----------------" << endl;
         size_t localNum = itsBunch_m->getLocalNum();
 
-        PartBunch tmpBunch(&itsReference);
+        //FIXME
+        std::unique_ptr<PartBunchBase<double, 3> > tmpBunch = 0;
+#ifdef ENABLE_AMR
+        if ( dynamic_cast<AmrPartBunch*>(itsBunch_m) != 0 )
+            tmpBunch.reset(new AmrPartBunch(&itsReference));
+        else
+#endif
+            tmpBunch.reset(new PartBunch(&itsReference));
 
         std::string fn_appendix = "-onebunch";
         std::string fileName = OpalData::getInstance()->getInputBasename() + fn_appendix + ".h5";
@@ -1693,15 +1713,15 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
         numParticles = lastParticle - firstParticle + 1;
         PAssert(numParticles >= 0);
 
-        dataSource.readStep(tmpBunch, firstParticle, lastParticle);
+        dataSource.readStep(tmpBunch.get(), firstParticle, lastParticle);
         dataSource.close();
 
-        tmpBunch.boundp();
+        tmpBunch->boundp();
 
         // itsDataSink->readOneBunch(*itsBunch_m, fn_appendix, BinID);
         restartflag = false;
 
-        npart_mb = tmpBunch.getLocalNum();
+        npart_mb = tmpBunch->getLocalNum();
 
         itsBunch_m->create(npart_mb);
         r_mb.create(npart_mb);
@@ -1711,10 +1731,10 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
         ptype_mb.create(npart_mb);
 
         for(size_t ii = 0; ii < npart_mb; ++ ii, ++ localNum) {
-            itsBunch_m->R[localNum] = tmpBunch.R[ii];
-            itsBunch_m->P[localNum] = tmpBunch.P[ii];
-            itsBunch_m->M[localNum] = tmpBunch.M[ii];
-            itsBunch_m->Q[localNum] = tmpBunch.Q[ii];
+            itsBunch_m->R[localNum] = tmpBunch->R[ii];
+            itsBunch_m->P[localNum] = tmpBunch->P[ii];
+            itsBunch_m->M[localNum] = tmpBunch->M[ii];
+            itsBunch_m->Q[localNum] = tmpBunch->Q[ii];
             itsBunch_m->PType[localNum] = ParticleType::REGULAR;
             itsBunch_m->Bin[localNum] = BinID;
 
@@ -2157,11 +2177,11 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
 
     for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); ++sindex) {
         if(((*sindex)->first) == ElementBase::SEPTUM)    {
-            (static_cast<Septum *>(((*sindex)->second).second))->checkSeptum(*itsBunch_m);
+            (static_cast<Septum *>(((*sindex)->second).second))->checkSeptum(itsBunch_m);
         }
 
         if(((*sindex)->first) == ElementBase::PROBE)    {
-            (static_cast<Probe *>(((*sindex)->second).second))->checkProbe(*itsBunch_m,
+            (static_cast<Probe *>(((*sindex)->second).second))->checkProbe(itsBunch_m,
                                                                            turnnumber_m,
                                                                            itsBunch_m->getT() * 1e9  /*[ns]*/,
                                                                            dt);
@@ -2169,7 +2189,7 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
 
         if(((*sindex)->first) == ElementBase::STRIPPER)    {
             bool flag_stripper = (static_cast<Stripper *>(((*sindex)->second).second))
-                -> checkStripper(*itsBunch_m, turnnumber_m, itsBunch_m->getT() * 1e9 /*[ns]*/, dt);
+                -> checkStripper(itsBunch_m, turnnumber_m, itsBunch_m->getT() * 1e9 /*[ns]*/, dt);
             if(flag_stripper) {
                 itsBunch_m->updateNumTotal();
                 *gmsg << "* Total number of particles after stripping = " << itsBunch_m->getTotalNum() << endl;
@@ -2179,7 +2199,7 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
         if(((*sindex)->first) == ElementBase::COLLIMATOR) {
             Collimator * collim;
             collim = static_cast<Collimator *>(((*sindex)->second).second);
-            collim->checkCollimator(*itsBunch_m, turnnumber_m, itsBunch_m->getT() * 1e9 /*[ns]*/, dt);
+            collim->checkCollimator(itsBunch_m, turnnumber_m, itsBunch_m->getT() * 1e9 /*[ns]*/, dt);
         }
     }
 
@@ -2609,7 +2629,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     FDext_m[1] = extE_m;        // kV/mm? -DW
 
     // Save the stat file
-    itsDataSink->writeStatData(*itsBunch_m, FDext_m, E);
+    itsDataSink->writeStatData(itsBunch_m, FDext_m, E);
 
     //itsBunch_m->R *= Vector_t(1000.0); // m -> mm
 
@@ -2690,7 +2710,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
             FDext_m[0] = extB_m * 0.1; // kgauss --> T
             FDext_m[1] = extE_m;
 
-            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch_m, // Global and in m
+            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(itsBunch_m, // Global and in m
                                                                  FDext_m, E,
                                                                  referencePr,
                                                                  referencePt,
@@ -2729,7 +2749,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
             FDext_m[0] = extB_m * 0.1; // kgauss --> T
             FDext_m[1] = extE_m;
 
-            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch_m, // Local and in m
+            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(itsBunch_m, // Local and in m
                                                                  FDext_m, E,
                                                                  referencePr,
                                                                  referencePt,

@@ -25,6 +25,12 @@
 #include "Algorithms/MapIntegrator.h"
 #include "Fields/BMultipoleField.h"
 
+//FIXME Remove headers and dynamic_cast in readOneBunchFromFile
+#include "Algorithms/PartBunch.h"
+#ifdef ENABLE_AMR
+    #include "Algorithms/AmrPartBunch.h"
+#endif
+
 #include <cfloat>
 #include <cmath>
 
@@ -40,11 +46,18 @@ Tracker::Tracker(const Beamline &beamline, const PartData &reference,
     AbstractTracker(beamline, reference, backBeam, backTrack),
     itsBeamline_m(beamline),
     itsBunch_m(nullptr)
-{}
+{
+// #ifdef ENABLE_AMR
+//     if ( Options::amr )
+//         itsBunch = new AmrPartBunch(&reference);
+//     else
+// #endif
+//         itsBunch = new PartBunch(&reference);
+}
 
 
 Tracker::Tracker(const Beamline &beamline,
-                 PartBunch *bunch,
+                 PartBunchBase<double, 3> *bunch,
                  const PartData &reference,
                  bool backBeam, bool backTrack):
     AbstractTracker(beamline, reference, backBeam, backTrack),
@@ -57,12 +70,12 @@ Tracker::~Tracker()
 {}
 
 
-const PartBunch &Tracker::getBunch() const {
-    return *itsBunch_m;
+const PartBunchBase<double, 3> *Tracker::getBunch() const {
+    return itsBunch_m;
 }
 
 
-void Tracker::addToBunch(const Particle &part) {
+void Tracker::addToBunch(const OpalParticle &part) {
     itsBunch_m->push_back(part);
 }
 
@@ -73,7 +86,7 @@ void Tracker::addToBunch(const Particle &part) {
 
 
 void Tracker::visitComponent(const Component &comp) {
-    comp.trackBunch(*itsBunch_m, itsReference, back_beam, back_track);
+    comp.trackBunch(itsBunch_m, itsReference, back_beam, back_track);
 }
 
 
@@ -107,12 +120,12 @@ void Tracker::visitAlignWrapper(const AlignWrapper &wrap) {
 
 
 void Tracker::visitTrackIntegrator(const TrackIntegrator &i) {
-    i.trackBunch(*itsBunch_m, itsReference, back_beam, back_track);
+    i.trackBunch(itsBunch_m, itsReference, back_beam, back_track);
 }
 
 
 void Tracker::visitMapIntegrator(const MapIntegrator &i) {
-    i.trackBunch(*itsBunch_m, itsReference, back_beam, back_track);
+    i.trackBunch(itsBunch_m, itsReference, back_beam, back_track);
 }
 
 
@@ -121,7 +134,7 @@ void Tracker::applyDrift(double length) {
     double refTime = length / itsReference.getBeta();
 
     for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
-        Particle part = itsBunch_m->get_part(i);
+        OpalParticle part = itsBunch_m->get_part(i);
         if(part.x() != DBL_MAX) {
             double px = part.px();
             double py = part.py();
@@ -142,7 +155,7 @@ void Tracker::applyThinMultipole
 
     if(order > 0) {
         for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
-            Particle part = itsBunch_m->get_part(i);
+            OpalParticle part = itsBunch_m->get_part(i);
             if(part.x() != DBL_MAX) {
                 double x = part.x();
                 double y = part.y();
@@ -174,7 +187,7 @@ void Tracker::applyThinSBend
     // These substitutions work because As depends on x and y only,
     // and not on px or py.
     for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
-        Particle part = itsBunch_m->get_part(i);
+        OpalParticle part = itsBunch_m->get_part(i);
         FVector<double, 2> z;
         z[0] = part.x();
         z[1] = part.y();
@@ -191,7 +204,7 @@ void Tracker::applyTransform(const Euclid3D &euclid, double refLength) {
         double refTime = refLength / itsReference.getBeta();
 
         for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
-            Particle part = itsBunch_m->get_part(i);
+            OpalParticle part = itsBunch_m->get_part(i);
             double px = part.px();
             double py = part.py();
             double pt = part.pt() + 1.0;
