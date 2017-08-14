@@ -116,7 +116,7 @@ public:
     Cyclotron();
     Cyclotron(const Cyclotron &);
 
-    void applyTrimCoil(double r, double z, double slptc, double tcr1, double tcr2, double mbtc, double *br, double *bz);
+    void applyTrimCoil(double r, double z, double *br, double *bz);
 
     virtual ~Cyclotron();
 
@@ -177,22 +177,10 @@ public:
 
     void   setEScale(std::vector<double> bs);
 
-    void   setTCr1(double tcr1);
-    virtual  double getTCr1() const;
-
-    void   setTCr2(double tcr2);
-    virtual  double getTCr2() const;
-
-    void   setMBtc(double mbtc);
-    virtual  double getMBtc() const;
-
-    void   setSLPtc(double slptc);
-    virtual  double getSLPtc() const;
-
-    void setTCr1V(std::vector<double>  tcr1);
-    void setTCr2V(std::vector<double>  tcr2);
-    void setMBtcV(std::vector<double>  mbtc);
-    void setSLPtcV(std::vector<double>  slptc);
+    void setTCr1V(const std::vector<double> &tcr1);
+    void setTCr2V(const std::vector<double> &tcr2);
+    void setMBtcV(const std::vector<double> &mbtc);
+    void setSLPtcV(const std::vector<double> &slptc);
 
     void setSuperpose(std::vector<bool> flag);
     //    virtual bool getSuperpose() const;
@@ -273,11 +261,6 @@ private:
     double harm_m;
 
     double bscale_m; // a scale factor for the B-field
-
-    double tcr1_m;
-    double tcr2_m;
-    double mbtc_m;
-    double slptc_m;
 
     std::vector<double> tcr1V_m;
     std::vector<double> tcr2V_m;

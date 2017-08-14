@@ -3,6 +3,8 @@
 #include "gtest/gtest.h"
 #include "Elements/OpalPolynomialTimeDependence.h"
 
+#include "opal_test_utilities/SilenceTest.h"
+
 class BeamlineVisitor;
 // some comment
 class TestElement : public ElementBase {
@@ -28,12 +30,16 @@ class TestElement : public ElementBase {
 };
 
 TEST(OpalPolynomialTimeDependenceTest, ConstructorTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     OpalPolynomialTimeDependence dep;
     OpalPolynomialTimeDependence* dep_clone = dep.clone("new name");
     EXPECT_EQ(dep_clone->getOpalName(), "new name");
 }
 
 TEST(OpalPolynomialTimeDependenceTest, PrintTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     OpalPolynomialTimeDependence dep;
     std::stringstream _string;
     dep.print(_string);
@@ -41,6 +47,8 @@ TEST(OpalPolynomialTimeDependenceTest, PrintTest) {
 }
 
 TEST(OpalPolynomialTimeDependenceTest, UpdateTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // std::cerr << "HELLO" << std::endl;
     TestElement element;
     // std::cerr << "WORLD" << std::endl;
