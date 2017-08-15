@@ -306,7 +306,7 @@ public:
     // Actually perform the delete atoms action for all the attributes; the
     // calls to destroy() only stored a list of what to do.  This actually
     // does it.  This should in most cases only be called by the layout manager.
-    void performDestroy();
+    void performDestroy(bool updateLocalNum = false);
 
     // Apply the given sortlist to all the attributes.
     void sort(SortList_t &);

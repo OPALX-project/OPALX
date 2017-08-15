@@ -731,7 +731,7 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
 
     const size_t nL = bunch.getLocalNum();
     size_t ne = 0;
-    std::list<size_t> partsToDel;
+    std::set<size_t> partsToDel;
     const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore();
     for(unsigned int i = 0; i < nL; ++ i) {
         if ((bunch.Bin[i] == -1 ||
@@ -758,12 +758,16 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch)
             ++ nextLocalID_m;
 
             //mark particle to be deleted from bunch as soon as it enters the material
-            partsToDel.push_front(i);
+            partsToDel.insert(i);
         }
     }
 
-    for (auto it = partsToDel.begin(); it != partsToDel.end(); ++ it) {
-        bunch.destroy(1, *it);
+    if (ne > 0) {
+        for (auto it = partsToDel.rbegin(); it != partsToDel.rend(); ++ it) {
+            bunch.destroy(1, *it);
+        }
+
+        bunch.performDestroy(true);
     }
 }
 
@@ -798,7 +802,7 @@ void CollimatorPhysics::print(Inform &msg){
         << " material " << material_m << " particles in material " << globalPartsInMat_m << endl;
     msg << collShapeStr_m
         << " stats: bunch to material " << bunchToMatStat_m << " redifused " << redifusedStat_m
-        << " stopped " << stoppedPartStat_m << endl;
+        << " stopped " << stoppedPartStat_m << "\n" << endl;
 
     msg.flags(ff);
 }
@@ -1003,7 +1007,7 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch)
 
     const size_t nL = bunch.getLocalNum();
     size_t ne = 0;
-    std::list<size_t> partsToDel;
+    std::set<size_t> partsToDel;
     const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore();
 
     for(unsigned int i = 0; i < nL; ++ i) {
@@ -1038,12 +1042,16 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch)
                 ++ nextLocalID_m;
 
                 //mark particle to be deleted from bunch as soon as it enters the material
-                partsToDel.push_front(i); // delete first those in the back of the container
+                partsToDel.insert(i); // delete first those in the back of the container
             }
     }
 
-    for (auto it = partsToDel.begin(); it != partsToDel.end(); ++ it) {
-        bunch.destroy(1, *it);
+    if (ne > 0) {
+        for (auto it = partsToDel.rbegin(); it != partsToDel.rend(); ++ it) {
+            bunch.destroy(1, *it);
+        }
+
+        bunch.performDestroy(true);
     }
 }
 
