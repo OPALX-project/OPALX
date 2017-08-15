@@ -13,7 +13,7 @@ set (CMAKE_CXX_FLAGS
     )
     
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO -DIPPL_AMR ${CMAKE_CXX_FLAGS}"
+    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO -DIPPL_AMR ${AMREX_DEFINES} ${CMAKE_CXX_FLAGS}"
 )
 
 set (BOOSTROOT $ENV{BOOST_DIR})
@@ -37,7 +37,7 @@ include_directories (
     ${IPPL_INCLUDE_DIR}
     ${H5Hut_INCLUDE_DIR}
     ${HDF5_INCLUDE_DIR}
-    ${CCSE_INCLUDE_DIR}
+    ${AMREX_INCLUDE_DIR}
     ${HYPRE_INCLUDE_DIR}
     ${BOOST_INCLUDE_DIR}
     ${Trilinos_INCLUDE_DIRS}
@@ -48,7 +48,7 @@ link_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
     ${IPPL_LIBRARY_DIR}
-    ${CCSE_LIBRARY_DIR}
+    ${AMREX_LIBRARY_DIR}
     ${HYPRE_LIBRARY_DIR}
     ${BOOST_LIBRARY_DIR}
     ${Trilinos_LIBRARY_DIRS}
@@ -109,13 +109,13 @@ add_executable( testTrilinosGeometry
                 AmrTrilinos.cpp)
 
 target_link_libraries (testCopy ${LIBS}
-                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES}
-                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testTrilinosSolver ${LIBS}
-                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES}
-                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testTrilinosGeometry ${LIBS}
-                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES}
-                        -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
