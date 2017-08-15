@@ -37,6 +37,8 @@ class Epetra_MpiComm;
 // #include "BelosLinearProblem.hpp"
 // #include "BelosRCGSolMgr.hpp"
 
+#include "Algorithms/PartBunch.h"
+
 #include "BelosTypes.hpp"
 
 namespace Belos {
@@ -94,13 +96,12 @@ enum {
  * \warning This solver is in an EXPERIMENTAL STAGE. For reliable simulations use the FFTPoissonSolver
  *
  */
-class PartBunch;
 class BoundaryGeometry;
 
 class MGPoissonSolver : public PoissonSolver {
 
 public:
-    MGPoissonSolver(PartBunch &beam,Mesh_t *mesh, FieldLayout_t *fl, std::vector<BoundaryGeometry *> geometries, std::string itsolver, std::string interpl, double tol, int maxiters, std::string precmode);
+    MGPoissonSolver(PartBunch *beam,Mesh_t *mesh, FieldLayout_t *fl, std::vector<BoundaryGeometry *> geometries, std::string itsolver, std::string interpl, double tol, int maxiters, std::string precmode);
     MGPoissonSolver(PartBunch &bunch);
     ~MGPoissonSolver();
 
