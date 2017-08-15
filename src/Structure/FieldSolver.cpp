@@ -375,11 +375,12 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
             } else
             tmp += geoms[i];
         }
-        solver_m = new MGPoissonSolver(b, mesh_m, FL_m, geometries, Attributes::getString(itsAttr[ITSOLVER]),
-                                        Attributes::getString(itsAttr[INTERPL]),
-                                        Attributes::getReal(itsAttr[TOL]),
-                                        Attributes::getReal(itsAttr[MAXITERS]),
-                                        Attributes::getString(itsAttr[PRECMODE]));
+        solver_m = new MGPoissonSolver(dynamic_cast<PartBunch*>(itsBunch_m), mesh_m, FL_m,
+                                       geometries, Attributes::getString(itsAttr[ITSOLVER]),
+                                       Attributes::getString(itsAttr[INTERPL]),
+                                       Attributes::getReal(itsAttr[TOL]),
+                                       Attributes::getReal(itsAttr[MAXITERS]),
+                                       Attributes::getString(itsAttr[PRECMODE]));
         itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
         fsType_m = "SAAMG";
 #else
