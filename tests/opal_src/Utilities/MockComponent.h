@@ -31,6 +31,8 @@
 #include "BeamlineGeometry/Euclid3DGeometry.h"
 #include "AbsBeamline/Component.h"
 
+#include "Algorithms/PartBunchBase.h"
+
 /** Mockups for an Opal Component (e.g. field object). The idea is to test
  *  field lookup routines and placement routines and the like by generating a
  *  "fake" component.
@@ -69,7 +71,7 @@ public:
         E(2) = -r(2);
         return false; // NOT isOutOfBounds
     }
-    void initialise(PartBunch*, double&, double&) {}
+    void initialise(PartBunchBase<double, 3>*, double&, double&) {}
     void finalise() {}
     bool bends() const {return true;}
     void getDimensions(double&, double&) const {}
@@ -114,7 +116,7 @@ public:
         E(2) = 0.;
         return false; // NOT isOutOfBounds
     }
-    void initialise(PartBunch*, double&, double&) {}
+    void initialise(PartBunchBase<double, 3>*, double&, double&) {}
     void finalise() {}
     bool bends() const {return true;}
     void getDimensions(double&, double&) const {}
