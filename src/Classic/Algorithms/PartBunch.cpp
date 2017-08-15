@@ -1810,6 +1810,7 @@ void PartBunch::boundp() {
                             vbc_m);
 	}
     }
+
     update();
     R.resetDirtyFlag();
 
@@ -2397,6 +2398,10 @@ size_t PartBunch::boundp_destroyT() {
         }
         lowParticleCount_m = ((nL - ne) <= minNumOfParticlesPerCore);
         reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
+    }
+
+    if (ne > 0) {
+        performDestroy(true);
     }
 
     update();
