@@ -73,6 +73,10 @@ void AmrTrilinos::solve(const container_t& rho,
         this->buildLevelMask_m(grids[lev], dmap[lev], gm[lev], lev);
     }
     
+    
+//     IntVect ratio(D_DECL(2, 2, 2));
+//     fixRHSForSolve(rho, masks_m, geom, ratio);
+    
     IntVect rr(2, 2, 2);
     
     bndry_m.reset(new MacBndry(grids[0], dmap[0], 1 /*ncomp*/, gm[0]));
@@ -96,7 +100,7 @@ void AmrTrilinos::solve(const container_t& rho,
     }
     
     for (int i = 0; i < nLevel_m; ++i) {
-        fillDomainBoundary_m(*phi[i], geom[i]);
+//         fillDomainBoundary_m(*phi[i], geom[i]);
         phi[i]->FillBoundary();
     }
     
@@ -107,7 +111,7 @@ void AmrTrilinos::solve(const container_t& rho,
         if ( lev > 0 ) {
             // crse-fine interface
             interpFromCoarseLevel_m(phi, geom, lev-1);
-            phi[lev]->setBndry(0.0);
+//             phi[lev]->setBndry(0.0);
             phi[lev]->FillBoundary();
             
             
@@ -127,35 +131,40 @@ void AmrTrilinos::solve(const container_t& rho,
                     dest.copy(fs[umfi],fs[umfi].box());
                 }
             }
+            
+//             print_m(phi[lev]);
         }
         
         if ( phi[lev]->contains_nan() )
             throw std::runtime_error("Nan");
         
         solveLevel_m(phi[lev], rho[lev], geom[lev], lev);
-    }
-    
-    for (int lev = lfine - 1; lev >= lbase; --lev) {
-        amrex::average_down(*phi[lev+1], 
-                             *phi[lev], geom[lev+1], geom[lev], 0, 1, rr);
         
+        getGradient_1(phi[lev], efield[lev], geom[lev],  lev);
     }
     
-    for (int i = 0; i < nLevel_m; ++i)
-        getGradient_1(phi[i], efield[i], geom[i],  i);
+    
+//     for (int i = 0; i < nLevel_m; ++i) {
+//         getGradient(phi[i], efield[i], geom[i],  i);
+//     }
     
     // average down and compute electric field
-    for (int lev = lfine - 1; lev >= lbase; --lev) {
+//     for (int lev = lfine - 1; lev >= lbase; --lev) {
+// //         amrex::average_down(*phi[lev+1], 
+// //                              *phi[lev], geom[lev+1], geom[lev], 0, 1, rr);
+//         amrex::average_down(*efield[lev+1],
+//                             *efield[lev],
+//                             geom[lev+1],
+//                             geom[lev],
+//                             0, 3, rr);
+//     }
+    
+    
+//     for (int lev = lfine - 1; lev >= lbase; --lev) {
 //         amrex::average_down(*phi[lev+1], 
 //                              *phi[lev], geom[lev+1], geom[lev], 0, 1, rr);
-        amrex::average_down(*efield[lev+1],
-                            *efield[lev],
-                            geom[lev+1],
-                            geom[lev],
-                            0, 3, rr);
-    }
-    
-    
+//         
+//     }
 }
 
 
@@ -265,33 +274,33 @@ void AmrTrilinos::build_m(const AmrField_t& rho, const AmrField_t& phi, const Ge
                      * to be the refined values of the next coarser
                      * level. --> add sum to right-hand side (Dirichlet)
                      */
-                    IntVect xl(iv[0] - 1, iv[1], iv[2]);
-                    if ( mfab(xl) == 1/*isBoundary_m(xl)*/ ) {
+                    IntVect xl(i-1, j, k);
+                    if ( mfab(xl) > 0/*isBoundary_m(xl)*/ ) {
                         val += pot(xl) / ( dx[0] * dx[0] );
                     }
                         
-                    IntVect xr(iv[0] + 1, iv[1], iv[2]);
-                    if ( mfab(xr) == 1/*isBoundary_m(xr)*/ ) {
+                    IntVect xr(i+1, j, k);
+                    if ( mfab(xr) > 0/*isBoundary_m(xr)*/ ) {
                         val += pot(xr) / ( dx[0] * dx[0] );
                     }
                     
-                    IntVect yl(iv[0], iv[1] - 1, iv[2]);
-                    if ( mfab(yl) == 1/*isBoundary_m(yl)*/ ) {
+                    IntVect yl(i, j-1, k);
+                    if ( mfab(yl) > 0/*isBoundary_m(yl)*/ ) {
                         val += pot(yl) / ( dx[1] * dx[1] );
                     }
                     
-                    IntVect yr(iv[0], iv[1] + 1, iv[2]);
-                    if ( mfab(yr) == 1/*isBoundary_m(yr)*/ ) {
+                    IntVect yr(i, j+1, k);
+                    if ( mfab(yr) > 0/*isBoundary_m(yr)*/ ) {
                         val += pot(yr) / ( dx[1] * dx[1] );
                     }
                     
-                    IntVect zl(iv[0], iv[1], iv[2] - 1);
-                    if ( mfab(zl) == 1/*isBoundary_m(zl)*/ ) {
+                    IntVect zl(i, j, k-1);
+                    if ( mfab(zl) > 0/*isBoundary_m(zl)*/ ) {
                         val += pot(zl) / ( dx[2] * dx[2] );
                     }
                     
-                    IntVect zr(iv[0], iv[1], iv[2] + 1);
-                    if ( mfab(zr) == 1/*isBoundary_m(zr)*/ ) {
+                    IntVect zr(i, j, k+1);
+                    if ( mfab(zr) > 0/*isBoundary_m(zr)*/ ) {
                         val += pot(zr) / ( dx[2] * dx[2] );
                     }
                     int globalidx = serialize_m(iv/*shift*/);
@@ -361,87 +370,105 @@ void AmrTrilinos::fillMatrix_m(const Geometry& geom, const AmrField_t& phi, int 
     
     const double* dx = geom.CellSize();
     
-    int * myGlobalElements = map_mp->MyGlobalElements();
-    for ( int i = 0; i < map_mp->NumMyElements(); ++i) {
-        /*
-         * GlobalRow	- (In) Row number (in global coordinates) to put elements.
-         * NumEntries	- (In) Number of entries.
-         * Values	- (In) Values to enter.
-         * Indices	- (In) Global column indices corresponding to values.
-         */
-        int globalRow = myGlobalElements[i];
-        int numEntries = 0;
+    for (MFIter mfi(*masks_m[lev], false); mfi.isValid(); ++mfi) {
+        const Box&          bx  = mfi.validbox();
+        const BaseFab<int>& mfab = (*masks_m[lev])[mfi];
+            
+        const int* lo = bx.loVect();
+        const int* hi = bx.hiVect();
         
-        IntVect iv = indexMap_m[globalRow]/*deserialize_m(globalRow)*/;
         
-        // check left neighbor in x-direction
-        IntVect xl(iv[0] - 1, iv[1], iv[2]);
-        if ( isInside_m(xl) ) {
-            int gidx = serialize_m(xl/*shift*/);
-            indices[numEntries] = gidx;
-            values[numEntries]  = -1.0 / ( dx[0] * dx[0] );
-            ++numEntries;
-        } 
-        
-        // check right neighbor in x-direction
-        IntVect xr(iv[0] + 1, iv[1], iv[2]);
-        if ( isInside_m(xr) ) {
-            int gidx = serialize_m(xr/*shift*/);
-            indices[numEntries] = gidx;
-            values[numEntries]  = -1.0 / ( dx[0] * dx[0] );
-            ++numEntries;
+        for (int i = lo[0]; i <= hi[0]; ++i) {
+            for (int j = lo[1]; j <= hi[1]; ++j) {
+                for (int k = lo[2]; k <= hi[2]; ++k) {
+                    
+                    
+                    double subx = 0.0;
+                    double suby = 0.0;
+                    double subz = 0.0;
+                    
+                    int numEntries = 0;
+                    IntVect iv(i, j, k);
+                    int globalRow = serialize_m(iv);
+                    
+                    // check left neighbor in x-direction
+                    IntVect xl(i-1, j, k);
+                    if ( mfab(xl) < 1 ) {
+                        int gidx = serialize_m(xl/*shift*/);
+                        indices[numEntries] = gidx;
+                        values[numEntries]  = -1.0 / ( dx[0] * dx[0] );
+                        ++numEntries;
+                    } else if ( mfab(xl) == 2 )
+                        subx = 1.0;
+                    
+                    
+                    // check right neighbor in x-direction
+                    IntVect xr(i+1, j, k);
+                    if ( mfab(xr) < 1 ) {
+                        int gidx = serialize_m(xr/*shift*/);
+                        indices[numEntries] = gidx;
+                        values[numEntries]  = -1.0 / ( dx[0] * dx[0] );
+                        ++numEntries;
+                    } else if ( mfab(xr) == 2 )
+                        subx += 1.0;
+                    
+                    // check lower neighbor in y-direction
+                    IntVect yl(i, j-1, k);
+                    if ( mfab(yl) < 1 ) {
+                        int gidx = serialize_m(yl/*shift*/);
+                        indices[numEntries] = gidx;
+                        values[numEntries]  = -1.0 / ( dx[1] * dx[1] );
+                        ++numEntries;
+                    } else if ( mfab(yl) == 2 )
+                        suby += 1.0;
+                    
+                    // check upper neighbor in y-direction
+                    IntVect yr(i, j+1, k);
+                    if ( mfab(yr) < 1 ) {
+                        int gidx = serialize_m(yr/*shift*/);
+                        indices[numEntries] = gidx;
+                        values[numEntries]  = -1.0 / ( dx[1] * dx[1] );
+                        ++numEntries;
+                    } else if ( mfab(yr) == 2 )
+                        suby += 1.0;
+                    
+                    // check front neighbor in z-direction
+                    IntVect zl(i, j, k-1);
+                    if ( mfab(zl) < 1 ) {
+                        int gidx = serialize_m(zl/*shift*/);
+                        indices[numEntries] = gidx;
+                        values[numEntries]  = -1.0 / ( dx[2] * dx[2] );
+                        ++numEntries;
+                    } else if ( mfab(zl) == 2 )
+                        subz += 1.0;
+                    
+                    // check back neighbor in z-direction
+                    IntVect zr(i, j, k+1);
+                    if ( mfab(zr) < 1 ) {
+                        int gidx = serialize_m(zr/*shift*/);
+                        indices[numEntries] = gidx;
+                        values[numEntries]  = -1.0 / ( dx[2] * dx[2] );
+                        ++numEntries;
+                    } else if ( mfab(zr) == 2 )
+                        subz += 1.0;
+                    
+                    // check center
+                    if ( mfab(iv) == 0 ) {
+                        indices[numEntries] = globalRow;
+                        values[numEntries]  = (2.0 + subx) / ( dx[0] * dx[0] ) +
+                                        (2.0 + suby) / ( dx[1] * dx[1] ) +
+                                        (2.0 + subz) / ( dx[2] * dx[2] );
+                        ++numEntries;
+                    }
+                    
+                    
+                    int error = A_mp->InsertGlobalValues(globalRow, numEntries, &values[0], &indices[0]);
+                    
+                    if ( error != 0 )
+                        throw std::runtime_error("Error in filling the matrix!");
+                }
+            }
         }
-
-        // check lower neighbor in y-direction
-        IntVect yl(iv[0], iv[1] - 1, iv[2]);
-        if ( isInside_m(yl) ) {
-            int gidx = serialize_m(yl/*shift*/);
-            indices[numEntries] = gidx;
-            values[numEntries]  = -1.0 / ( dx[1] * dx[1] );
-            ++numEntries;
-        }
-
-        // check upper neighbor in y-direction
-        IntVect yr(iv[0], iv[1] + 1, iv[2]);
-        if ( isInside_m(yr) ) {
-            int gidx = serialize_m(yr/*shift*/);
-            indices[numEntries] = gidx;
-            values[numEntries]  = -1.0 / ( dx[1] * dx[1] );
-            ++numEntries;
-        }
-        
-        // check front neighbor in z-direction
-        IntVect zl(iv[0], iv[1], iv[2] - 1);
-        if ( isInside_m(zl) ) {
-            int gidx = serialize_m(zl/*shift*/);
-            indices[numEntries] = gidx;
-            values[numEntries]  = -1.0 / ( dx[2] * dx[2] );
-            ++numEntries;
-        }
-
-        // check back neighbor in z-direction
-        IntVect zr(iv[0], iv[1], iv[2] + 1);
-        if ( isInside_m(zr) ) {
-            int gidx = serialize_m(zr/*shift*/);
-            indices[numEntries] = gidx;
-            values[numEntries]  = -1.0 / ( dx[2] * dx[2] );
-            ++numEntries;
-        }
-        
-        // check center
-        if ( isInside_m(iv) ) {
-            indices[numEntries] = globalRow;
-            values[numEntries]  = 2.0 / ( dx[0] * dx[0] ) +
-                               2.0 / ( dx[1] * dx[1] ) +
-                               2.0 / ( dx[2] * dx[2] );
-            ++numEntries;
-        }
-        
-        
-        int error = A_mp->InsertGlobalValues(globalRow, numEntries, &values[0], &indices[0]);
-        
-        if ( error != 0 )
-            throw std::runtime_error("Error in filling the matrix!");
     }
     
     A_mp->FillComplete(true);
@@ -483,6 +510,139 @@ void AmrTrilinos::fillMatrix_m(const Geometry& geom, const AmrField_t& phi, int 
     }
 #endif
 }
+
+
+// void AmrTrilinos::fillMatrix_m(const Geometry& geom, const AmrField_t& phi, int lev) {
+//     // 3D --> 7 elements per row
+//     A_mp = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy, *map_mp, 7) );
+//     
+//     int indices[7] = {0, 0, 0, 0, 0, 0, 0};
+//     double values[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+//     
+//     const double* dx = geom.CellSize();
+//     
+//     int * myGlobalElements = map_mp->MyGlobalElements();
+//     for ( int i = 0; i < map_mp->NumMyElements(); ++i) {
+//         /*
+//          * GlobalRow	- (In) Row number (in global coordinates) to put elements.
+//          * NumEntries	- (In) Number of entries.
+//          * Values	- (In) Values to enter.
+//          * Indices	- (In) Global column indices corresponding to values.
+//          */
+//         int globalRow = myGlobalElements[i];
+//         int numEntries = 0;
+//         
+//         IntVect iv = indexMap_m[globalRow]/*deserialize_m(globalRow)*/;
+//         
+//         // check left neighbor in x-direction
+//         IntVect xl(iv[0] - 1, iv[1], iv[2]);
+//         if ( isInside_m(xl) ) {
+//             int gidx = serialize_m(xl/*shift*/);
+//             indices[numEntries] = gidx;
+//             values[numEntries]  = -1.0 / ( dx[0] * dx[0] );
+//             ++numEntries;
+//         } 
+//         
+//         // check right neighbor in x-direction
+//         IntVect xr(iv[0] + 1, iv[1], iv[2]);
+//         if ( isInside_m(xr) ) {
+//             int gidx = serialize_m(xr/*shift*/);
+//             indices[numEntries] = gidx;
+//             values[numEntries]  = -1.0 / ( dx[0] * dx[0] );
+//             ++numEntries;
+//         }
+// 
+//         // check lower neighbor in y-direction
+//         IntVect yl(iv[0], iv[1] - 1, iv[2]);
+//         if ( isInside_m(yl) ) {
+//             int gidx = serialize_m(yl/*shift*/);
+//             indices[numEntries] = gidx;
+//             values[numEntries]  = -1.0 / ( dx[1] * dx[1] );
+//             ++numEntries;
+//         }
+// 
+//         // check upper neighbor in y-direction
+//         IntVect yr(iv[0], iv[1] + 1, iv[2]);
+//         if ( isInside_m(yr) ) {
+//             int gidx = serialize_m(yr/*shift*/);
+//             indices[numEntries] = gidx;
+//             values[numEntries]  = -1.0 / ( dx[1] * dx[1] );
+//             ++numEntries;
+//         }
+//         
+//         // check front neighbor in z-direction
+//         IntVect zl(iv[0], iv[1], iv[2] - 1);
+//         if ( isInside_m(zl) ) {
+//             int gidx = serialize_m(zl/*shift*/);
+//             indices[numEntries] = gidx;
+//             values[numEntries]  = -1.0 / ( dx[2] * dx[2] );
+//             ++numEntries;
+//         }
+// 
+//         // check back neighbor in z-direction
+//         IntVect zr(iv[0], iv[1], iv[2] + 1);
+//         if ( isInside_m(zr) ) {
+//             int gidx = serialize_m(zr/*shift*/);
+//             indices[numEntries] = gidx;
+//             values[numEntries]  = -1.0 / ( dx[2] * dx[2] );
+//             ++numEntries;
+//         }
+//         
+//         // check center
+//         if ( isInside_m(iv) ) {
+//             indices[numEntries] = globalRow;
+//             values[numEntries]  = 2.0 / ( dx[0] * dx[0] ) +
+//                                2.0 / ( dx[1] * dx[1] ) +
+//                                2.0 / ( dx[2] * dx[2] );
+//             ++numEntries;
+//         }
+//         
+//         
+//         int error = A_mp->InsertGlobalValues(globalRow, numEntries, &values[0], &indices[0]);
+//         
+//         if ( error != 0 )
+//             throw std::runtime_error("Error in filling the matrix!");
+//     }
+//     
+//     A_mp->FillComplete(true);
+//     
+//     /*
+//      * some printing
+//      */
+//     
+// //     EpetraExt::RowMatrixToMatlabFile("matrix.txt", *A_mp);
+//     
+// #ifdef DEBUG
+//     if ( Ippl::myNode() == 0 ) {
+//         std::cout << "Global info" << std::endl
+//                   << "Number of rows:      " << A_mp->NumGlobalRows() << std::endl
+//                   << "Number of cols:      " << A_mp->NumGlobalCols() << std::endl
+//                   << "Number of diagonals: " << A_mp->NumGlobalDiagonals() << std::endl
+//                   << "Number of non-zeros: " << A_mp->NumGlobalNonzeros() << std::endl
+//                   << std::endl;
+//     }
+//     
+//     Ippl::Comm->barrier();
+//     
+//     for (int i = 0; i < Ippl::getNodes(); ++i) {
+//         
+//         if ( i == Ippl::myNode() ) {
+//             std::cout << "Rank:                "
+//                       << i << std::endl
+//                       << "Number of rows:      "
+//                       << A_mp->NumMyRows() << std::endl
+//                       << "Number of cols:      "
+//                       << A_mp->NumMyCols() << std::endl
+//                       << "Number of diagonals: "
+//                       << A_mp->NumMyDiagonals() << std::endl
+//                       << "Number of non-zeros: "
+//                       << A_mp->NumMyNonzeros() << std::endl
+//                       << std::endl;
+//         }
+//         Ippl::Comm->barrier();
+//     }
+// #endif
+// }
 
 
 
@@ -565,9 +725,7 @@ void AmrTrilinos::copyBack_m(AmrField_t& phi,
             }
         }
     }
-    
     phi->FillBoundary();
-    
 }
 
 
@@ -580,7 +738,7 @@ void AmrTrilinos::interpFromCoarseLevel_m(container_t& phi,
     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
     int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
     Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
-    PCInterp/*CellConservativeLinear*/ mapper;
+    /*PCInterp*/CellConservativeProtected mapper;
     
     IntVect rr(2, 2, 2);
     
@@ -603,6 +761,7 @@ void AmrTrilinos::getGradient(AmrField_t& phi,
         const Box&          bx   = mfi.validbox();
         const FArrayBox&    pfab = (*phi)[mfi];
         FArrayBox&          efab = (*efield)[mfi];
+        const BaseFab<int>& mfab = (*masks_m[lev])[mfi];
         
         const int* lo = bx.loVect();
         const int* hi = bx.hiVect();
@@ -660,6 +819,7 @@ void AmrTrilinos::getGradient_1(AmrField_t& phi,
         FArrayBox&          xface = (*grad_phi_edge[0])[mfi];
         FArrayBox&          yface = (*grad_phi_edge[1])[mfi];
         FArrayBox&          zface = (*grad_phi_edge[2])[mfi];
+        const BaseFab<int>& mfab = (*masks_m[lev])[mfi];
         
         const int* lo = bx.loVect();
         const int* hi = bx.hiVect();
@@ -672,17 +832,35 @@ void AmrTrilinos::getGradient_1(AmrField_t& phi,
                     IntVect iv(i, j, k);
                     
                     
+                    
                     // x direction
                     IntVect left(i-1, j, k);
-                    xface(iv) = (pfab(left) - pfab(iv)) / dx[0];
+                    if ( mfab(left) == 2)
+                        xface(iv) = -2.0 * pfab(iv) / dx[0];
+                    else if ( mfab(iv) == 2 )
+                        xface(iv) = 2.0 * pfab(left) / dx[0];
+                    else
+                        xface(iv) = (pfab(left) - pfab(iv)) / dx[0];
                     
                     // y direction
                     IntVect down(i, j-1, k);
-                    yface(iv) = (pfab(down) - pfab(iv)) / dx[1];
+                    
+                    if ( mfab(down) == 2)
+                        yface(iv) = -2.0 * pfab(iv) / dx[1];
+                    else if ( mfab(iv) == 2 )
+                        yface(iv) = 2.0 * pfab(down) / dx[1];
+                    else
+                        yface(iv) = (pfab(down) - pfab(iv)) / dx[1];
                     
                     // z direction
                     IntVect front(i, j, k-1);
-                    zface(iv) = (pfab(front) - pfab(iv)) / dx[2];
+                    
+                    if ( mfab(front) == 2)
+                        zface(iv) = -2.0 * pfab(iv) / dx[2];
+                    else if ( mfab(iv) == 2 )
+                        zface(iv) = 2.0 * pfab(front) / dx[2];
+                    else
+                        zface(iv) = (pfab(front) - pfab(iv)) / dx[2];
                 }
             }
         }
