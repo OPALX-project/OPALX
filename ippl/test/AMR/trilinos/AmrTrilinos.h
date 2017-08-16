@@ -20,6 +20,8 @@
 
 #include "EllipticDomain.h"
 
+#include "electrostatic_pic_F.H"
+
 
 #include <AMReX_BCUtil.H>
 #include <AMReX_MacBndry.H>
@@ -134,7 +136,7 @@ private:
     
 //     void fillMatrixGeometry_m(const Geometry& geom, const AmrField_t& phi, int lev, EllipticDomain& bp);
     
-    void setBoundaryValue_m(AmrField_t& phi, const AmrField_t& crse_phi = nullptr,
+    void setBoundaryValue_m(AmrField_t& phi, const AmrField_t& crse_phi = 0,
                             IntVect crse_ratio = IntVect::TheZeroVector())
     {
         // The values of phys_bc & ref_ratio do not matter
@@ -199,6 +201,8 @@ private:
     }
     
     void boundaryprint_m() {
+        
+        bc_m.clear();
         for (OrientationIter oitr; oitr; ++oitr) {
             const FabSet& fs = bndry_m->bndryValues(oitr());
             
@@ -212,7 +216,8 @@ private:
                     for (int j = lo[1]; j <= hi[1]; ++j) {
                         for (int k = lo[2]; k <= hi[2]; ++k) {
                             IntVect iv(ii, j, k);
-                            std::cout << iv << " " << fab(iv) << std::endl; std::cin.get();
+                            bc_m.insert(iv);
+//                             std::cout << iv << " " << fab(iv) << std::endl; std::cin.get();
                         }
                     }
                 }
@@ -326,7 +331,40 @@ private:
     }
     
     
+    void fixRHSForSolve(Array<std::unique_ptr<MultiFab> >& rhs,
+                        const Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
+                        const Array<Geometry>& geom, const IntVect& ratio)
+    {
+        int num_levels = rhs.size();
+        for (int lev = 0; lev < num_levels; ++lev) {
+            MultiFab& fine_rhs = *rhs[lev];
+            const FabArray<BaseFab<int> >& mask = *masks[lev];        
+            const BoxArray& fine_ba = fine_rhs.boxArray();
+            const DistributionMapping& fine_dm = fine_rhs.DistributionMap();
+            MultiFab fine_bndry_data(fine_ba, fine_dm, 1, 1);
+            zeroOutBoundary(fine_rhs, fine_bndry_data, mask);
+        }
+    }
+    
+    void zeroOutBoundary(MultiFab& input_data,
+                     MultiFab& bndry_data,
+                     const FabArray<BaseFab<int> >& mask)
+    {
+        bndry_data.setVal(0.0, 1);
+        for (MFIter mfi(input_data); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.validbox();
+            zero_out_bndry(bx.loVect(), bx.hiVect(),
+                        input_data[mfi].dataPtr(),
+                        bndry_data[mfi].dataPtr(),
+                        mask[mfi].dataPtr());
+        }
+        bndry_data.FillBoundary();
+    }
+    
+    
 private:
+    
+    AmrField_t fab_set_m;
     
     std::unique_ptr<MacBndry> bndry_m;
     
@@ -334,7 +372,7 @@ private:
     
     Array<container_t> fluxes_m;
     
-//     std::set<IntVect> bc_m;
+    std::set<IntVect> bc_m;
     
     Epetra_MpiComm epetra_comm_m;
     
