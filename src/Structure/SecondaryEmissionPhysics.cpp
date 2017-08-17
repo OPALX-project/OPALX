@@ -294,7 +294,7 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
     if (!nEmissionMode) {// emit only 1 particle with larger charge instead of emit seNum secondaries.
 	//if (seNum>0) {// we dont delete particles even when seNum==0.
 	double gamma_const = Eemit[0] / Physics::m_e/1.0e9 + 1.0;
-	double beta_const = sqrt(1.0 - 1.0 / pow(gamma_const, 2.0));
+	double beta_const = sqrt(1.0 - 1.0 / pow(gamma_const, 2));
 	double P_emitted = gamma_const * beta_const;
 
 	Vector_t P_local;
@@ -335,7 +335,7 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
 	for(size_t i = 0; i < (size_t) seNum; i++) {
 
 	    double gamma_const = Eemit[i] / Physics::m_e/1.0e9 + 1.0;
-	    double beta_const = sqrt(1.0 - 1.0 / pow(gamma_const, 2.0));
+	    double beta_const = sqrt(1.0 - 1.0 / pow(gamma_const, 2));
 	    double P_emitted = gamma_const * beta_const;
 
 	    Vector_t P_local;
@@ -554,7 +554,7 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,  const double &cosT
     size_t lowMark = itsBunch->getLocalNum();
     if (!nEmissionMode) {
 	double gamma_const = Eemit[0] / Physics::m_e/1.0e9 + 1.0;
-	double beta_const = sqrt(1.0 - 1.0 / pow(gamma_const, 2.0));
+	double beta_const = sqrt(1.0 - 1.0 / pow(gamma_const, 2));
 	double P_emitted = gamma_const * beta_const;
 
 
@@ -589,7 +589,7 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,  const double &cosT
 	for(size_t i = 0; i < (size_t) seNum; i++) {
 
 	    double gamma_const = Eemit[i] / Physics::m_e/1.0e9 + 1.0;
-	    double beta_const = sqrt(1.0 - 1.0 / pow(gamma_const, 2.0));
+	    double beta_const = sqrt(1.0 - 1.0 / pow(gamma_const, 2));
 	    double P_emitted = gamma_const * beta_const;
 
 
@@ -655,13 +655,13 @@ void SecondaryEmissionPhysics::calcEmiNum(const double incEnergy,
         if (v<=3.6) {
 
             if (v<1.0) {
-                vSEY = delta_max*pow(v*exp(1.0-v),0.56);
+                vSEY = delta_max*pow(v*exp(1.0-v), 0.56);
             }else {
-                vSEY = delta_max*pow(v*exp(1.0-v),0.25);
+                vSEY = delta_max*pow(v*exp(1.0-v), 0.25);
             }
 
         }else {
-            vSEY = delta_max*1.125/pow(v,0.35);
+            vSEY = delta_max*1.125/pow(v, 0.35);
         }
 
     }

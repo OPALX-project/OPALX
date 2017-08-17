@@ -304,8 +304,8 @@ bool CollimatorPhysics::computeEnergyLoss(double &Eng /* in GeV */, double &delt
 
     double dEdx = 0.0;
     const double gamma = (Eng + m_p) / m_p;
-    const double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
     const double gamma2 = gamma * gamma;
+    const double beta = sqrt(1.0 - 1.0 / gamma2);
     const double beta2 = beta * beta;
 
     const double deltas = deltat * beta * Physics::c;

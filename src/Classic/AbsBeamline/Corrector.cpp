@@ -97,7 +97,7 @@ void Corrector::goOnline(const double &kineticEnergy) {
     const double minLength = Physics::c * RefPartBunch_m->getdT();
     if (pathLength < minLength) throw GeneralClassicException("Corrector::goOnline", "length of corrector, L= " + std::to_string(pathLength) + ", shorter than distance covered during one time step, dS= " + std::to_string(minLength));
 
-    const double momentum = sqrt(std::pow(kineticEnergy * 1e6, 2.0) + 2.0 * kineticEnergy * 1e6 * RefPartBunch_m->getM());
+    const double momentum = sqrt(std::pow(kineticEnergy * 1e6, 2) + 2.0 * kineticEnergy * 1e6 * RefPartBunch_m->getM());
     const double magnitude = momentum / (Physics::c * pathLength);
     kickField_m = magnitude * RefPartBunch_m->getQ() * Vector_t(kickY_m, -kickX_m, 0.0);
 

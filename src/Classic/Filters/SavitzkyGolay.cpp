@@ -44,9 +44,9 @@ void savgol(vector<double> &c, const int &np, const int &nl, const int &nr, cons
     for(ipj = 0; ipj <= (m << 1); ++ipj) {
         sum = (ipj ? 0.0 : 1.0);
         for(k = 1; k <= nr; ++k)
-            sum += (int)pow((double)k, (double)ipj);
+            sum += (int)pow((double)k, ipj);
         for(k = 1; k <= nl; ++k)
-            sum += (int)pow((double) - k, (double)ipj);
+            sum += (int)pow((double) - k, ipj);
         mm = (ipj < 2 * m - ipj ? ipj : 2 * m - ipj);
         for(imj = -mm; imj <= mm; imj += 2)
             a[(ipj + imj) / 2 * (m + 1) + (ipj - imj) / 2] = sum;
