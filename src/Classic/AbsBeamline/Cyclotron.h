@@ -90,7 +90,7 @@ struct BfieldData {
 };
 
 struct BPositions {
-    // this 4 parameters are need to be read from field file.
+    // these 4 parameters are need to be read from field file.
     double  rmin, delr;
     double  tetmin, dtet;
 
@@ -116,7 +116,7 @@ public:
     Cyclotron();
     Cyclotron(const Cyclotron &);
 
-    void applyTrimCoil(double r, double z, double *br, double *bz);
+    void applyTrimCoil(const double r, const double z, double *br, double *bz);
 
     virtual ~Cyclotron();
 
@@ -262,10 +262,12 @@ private:
 
     double bscale_m; // a scale factor for the B-field
 
+    ///@{ Trim coil variable
     std::vector<double> tcr1V_m;
     std::vector<double> tcr2V_m;
     std::vector<double> mbtcV_m;
     std::vector<double> slptcV_m;
+    ///@}
 
     double minr_m;
     double maxr_m;
@@ -277,7 +279,7 @@ private:
     double fmHighE_m;
 
     // Not implemented.
-    void operator=(const Cyclotron &);
+    void operator=(const Cyclotron &) = delete;
 
 
     BFieldType myBFieldType_m;
@@ -296,7 +298,7 @@ private:
     int waiting_for_gap = 1;
 
 protected:
-    // object of Matrics including magnetic field map and its derivates
+    // object of Matrices including magnetic field map and its derivates
     BfieldData Bfield;
 
     // object of parameters about the map grid
