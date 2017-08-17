@@ -92,7 +92,7 @@ Cyclotron::~Cyclotron() {
 }
 
 
-void Cyclotron::applyTrimCoil(double r, double z, double slope, double tcr1, double tcr2, double magnitude, double *br, double *bz) { 
+void Cyclotron::applyTrimCoil(double r, double z, double slope, double tcr1, double tcr2, double magnitude, double *br, double *bz) {
   /// updated bz and br with trim coil contributions
   if(tcr1 != 0.0 && tcr2 != 0.0) {
     const double Amax1 = 1;
@@ -117,7 +117,7 @@ void Cyclotron::applyTrimCoil(double r, double z, double slope, double tcr1, dou
     double part4 = (Amax2 - Amin) * h2 * log(10) / slope / (1 + part2) / (1 + part2) * part2;
     double dr = magnitude / 2.78 * (part3 + part4);
     double btr = magnitude / 2.78 * (Amin + (Amax1 - Amin) / (1 + part1) + (Amax2 - Amin) / (1 + part2) - 1.0);
-    
+
     if(r < tcr2)       {
       *bz -= btr;
       *br -= dr * z;
@@ -493,7 +493,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double 
         // bzcub = (Bfield.f2[r1t1] * wr2 * wt2 +
         //          Bfield.f2[r2t1] * wr1 * wt2 +
         //          Bfield.f2[r1t2] * wr2 * wt1 +
-        //          Bfield.f2[r2t2] * wr1 * wt1) * pow(R[2], 2.0);
+        //          Bfield.f2[r2t2] * wr1 * wt1) * pow(R[2], 2);
 
         // bz = -( bzf - bzcub );
         bz = - bzf ;
@@ -509,7 +509,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double 
         // brcub = (Bfield.f3[r1t1] * wr2 * wt2 +
         //          Bfield.f3[r2t1] * wr1 * wt2 +
         //          Bfield.f3[r1t2] * wr2 * wt1 +
-        //          Bfield.f3[r2t2] * wr1 * wt1) * pow(R[2], 3.0);
+        //          Bfield.f3[r2t2] * wr1 * wt1) * pow(R[2], 3);
 
         // br = -( brf - brcub );
         br = - brf;
@@ -525,15 +525,15 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double 
         // btcub = (Bfield.g3[r1t1] * wr2 * wt2 +
         //          Bfield.g3[r2t1] * wr1 * wt2 +
         //          Bfield.g3[r1t2] * wr2 * wt1 +
-        //          Bfield.g3[r2t2] * wr1 * wt1) / rad * pow(R[2], 3.0);
+        //          Bfield.g3[r2t2] * wr1 * wt1) / rad * pow(R[2], 3);
 
         // bt = -( btf - btcub );
         bt = - btf;
 
 
-        /* Br Btheta -> Bx By */	
+        /* Br Btheta -> Bx By */
 
-	if (slptcV_m.size() != 0) {	 
+	if (slptcV_m.size() != 0) {
 	  for (unsigned int i=0; i<slptcV_m.size(); i++)
 	    applyTrimCoil(rad, R[2], slptcV_m[i], tcr1V_m[i], tcr2V_m[i], mbtcV_m[i], &br, &bz);
 	}
@@ -570,15 +570,15 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double 
                 if(!(*fi)->getFieldstrength(R, tmpE, tmpB)) {
 		  ++fcount;
                   double phase = 2.0 * pi * (1E-3 * (*rffi)) * t + *rfphii;
-		  
+
 		  double ebscale = *escali;
                   E += ebscale * cos(phase) * tmpE;
                   B -= ebscale * sin(phase) * tmpB;
-                  
+
 //                INFOMSG("Field " << fcount << " BANDRF E= " << tmpE << " R= " << R << " phase " << phase << endl);
                 }
             }
-    	} 
+    	}
     } else if(myBFieldType_m == SYNCHRO) {
         //The RF field is suppose to be sampled on a cartesian grid
         vector<Fieldmap *>::const_iterator fi  = RFfields_m.begin();
@@ -626,29 +626,29 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &centroid, const double 
 		    }
 
                     double phase = 2.0 * pi * 1.0E-3 * frequency * t + (*rfphii);  // f in [MHz], t in [ns]
-		  
+
                     E += ebscale * cos(phase) * tmpE;
                     B -= ebscale * sin(phase) * tmpB;
-                  
+
 		    // Some phase output -DW
-		    
-		    if (tet >= 90.0 && waiting_for_gap == 1) { 
+
+		    if (tet >= 90.0 && waiting_for_gap == 1) {
 
                         double phase_print = 180.0 * phase / pi;
 			phase_print = fmod(phase_print, 360) - 360.0;
-			  
+
 			*gmsg << endl << "Gap 1 phase = " << phase_print << " Deg" << endl;
 			*gmsg << "Gap 1 E-Field = (" << E[0] << "/" << E[1] << "/" << E[2] << ")" << endl;
 			*gmsg << "Gap 1 B-Field = (" << B[0] << "/" << B[1] << "/" << B[2] << ")" << endl;
 			*gmsg << "RF Frequency = " << frequency << " MHz" << endl;
-			  
+
 			waiting_for_gap = 2;
-		    } 
-		    else if (tet >= 270.0 && waiting_for_gap == 2) { 
+		    }
+		    else if (tet >= 270.0 && waiting_for_gap == 2) {
 
 		        double phase_print = 180.0 * phase / pi;
 			phase_print = fmod(phase_print, 360) - 360.0;
-			  
+
 			*gmsg << endl << "Gap 2 phase = " << phase_print << " Deg" << endl;
 			*gmsg << "Gap 2 E-Field = (" << E[0] << "/" << E[1] << "/" << E[2] << ")" << endl;
 			*gmsg << "Gap 2 B-Field = (" << B[0] << "/" << B[1] << "/" << B[2] << ")" << endl;
@@ -909,7 +909,7 @@ void Cyclotron::getdiffs() {
         Bfield.g3[iend]     = Bfield.g3[istart];
 
     }
-    
+
     /* debug
 
     for(int i = 0; i< Bfield.nrad; i++){
@@ -1352,7 +1352,7 @@ void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
 
     //Bfield.ntot = idx(Bfield.nrad - 1, Bfield.ntet) + 1;
     Bfield.ntot = Bfield.nrad * Bfield.ntetS;
-    
+
     *gmsg << "* Adding a guard cell along azimuth" << endl;
     *gmsg << "* Total stored grid point number ((ntet+1) * nrad) : " << Bfield.ntot << endl;
     Bfield.bfld.resize(Bfield.ntot);
@@ -1376,7 +1376,7 @@ void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
         for(int i = 0; i < Bfield.nrad; i++) {
             for(int k = 0; k < Bfield.ntet; k++) {
                 fp1 << BP.rmin + (i * BP.delr) << " \t " << k * (BP.tetmin + BP.dtet) << " \t " << Bfield.bfld[idx(i, k)] << endl;
-              
+
                 Vector_t tmpR = Vector_t (BP.rmin + (i * BP.delr), 0.0, k * (BP.tetmin + BP.dtet));
                 Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
                 tmpR /= 1000.0; // -> mm to m
@@ -1397,9 +1397,9 @@ void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
         fp1.close();
         fp2.close();
     }
-    
+
     fclose(f);
-    
+
     *gmsg << "* Field Maps read successfully!" << endl << endl;
 }
 
@@ -1519,7 +1519,7 @@ void Cyclotron::getFieldFromFile_Synchrocyclotron(const double &scaleFactor) {
     int fcount = 0;
     FILE *rffcf = NULL;
     FILE *rfvcf = NULL;
-    
+
     *gmsg << endl;
     *gmsg << "* ------------------------------------------------------------" << endl;
     *gmsg << "*      READ IN 3D RF Fields and Frequency Coefficients        " << endl;
@@ -1534,7 +1534,7 @@ void Cyclotron::getFieldFromFile_Synchrocyclotron(const double &scaleFactor) {
         f->readMap();
 	// if (IPPL::Comm->getOutputLevel() != 0) f->getInfo(gmsg);
         RFfields_m.push_back(f);
-	
+
         // Read RF Frequency Coefficients from file
 	*gmsg << "RF Frequency Coefficient Filename: " << (*rffcfni) << endl;
 

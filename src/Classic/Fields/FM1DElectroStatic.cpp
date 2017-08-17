@@ -144,7 +144,7 @@ void FM1DElectroStatic::computeFieldOffAxis(const Vector_t &R,
         Vector_t &B,
         std::vector<double> fieldComponents) const {
 
-    double radiusSq = pow(R(0), 2.0) + pow(R(1), 2.0);
+    double radiusSq = pow(R(0), 2) + pow(R(1), 2);
     double transverseEFactor = -fieldComponents.at(1) / 2.0
                                + radiusSq * fieldComponents.at(3) / 16.0;
 
@@ -176,7 +176,7 @@ void FM1DElectroStatic::computeFieldOnAxis(double z,
         fieldComponents.at(1) += kn * (-fourierCoefs_m.at(coefIndex) * sinkzn
                                        - fourierCoefs_m.at(coefIndex + 1) * coskzn);
 
-        double derivCoeff = pow(kn, 2.0);
+        double derivCoeff = pow(kn, 2);
         fieldComponents.at(2) += derivCoeff * (-fourierCoefs_m.at(coefIndex) * coskzn
                                                + fourierCoefs_m.at(coefIndex + 1) * sinkzn);
         derivCoeff *= kn;

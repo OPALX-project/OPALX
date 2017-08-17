@@ -2118,7 +2118,7 @@ void PartBunch::calcBeamParameters() {
     /*
       double rmax = sqrt(dot(rmax_m,rmax_m));
       fplasma_m = sqrt(2.0*get_perverance())*get_beta()*c/rmax;
-      budkerp_m = (get_perverance()/2.0)*pow(get_gamma(),3.0)*pow(get_beta(),2.0);
+      budkerp_m = (get_perverance()/2.0)*pow(get_gamma(),3)*pow(get_beta(),2);
     */
 
     // Find unnormalized emittance.
@@ -2135,7 +2135,7 @@ void PartBunch::calcBeamParameters() {
     // based on the standard deviation of the longitudinal
     // momentum:
     // Var[f(P)] ~= (df/dP)(E[P])^2 Var[P]
-    double tmp = 1.0 / std::pow(eKin_m / m0 + 1., 2.0);
+    double tmp = 1.0 / std::pow(eKin_m / m0 + 1., 2);
     double prmsLong = prms_m(2);
     if (OpalData::getInstance()->isInOPALCyclMode()) {
         prmsLong = prms_m(1);

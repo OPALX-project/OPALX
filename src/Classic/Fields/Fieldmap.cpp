@@ -340,7 +340,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
 	h5_file_t *file = H5OpenFile (Filename.c_str(), H5_O_RDONLY, Ippl::getComm());
 	assert (file != (void*)H5_ERR);
 #endif
-	
+
 	h5err = H5SetStep(file, 0);
         assert (h5err != H5_ERR);
 
@@ -458,8 +458,8 @@ void Fieldmap::checkMap(unsigned int accuracy,
         double difference = std::abs(ez - onAxisFieldCheck);
         maxDiff = difference > maxDiff? difference: maxDiff;
         ezMax = std::abs(ez) > ezMax? std::abs(ez): ezMax;
-        error += std::pow(difference, 2.0);
-        ezSquare += std::pow(ez, 2.0);
+        error += std::pow(difference, 2);
+        ezSquare += std::pow(ez, 2);
         out << std::setw(16) << std::setprecision(8) << *it
             << std::setw(16) << std::setprecision(8) << ez
             << std::setw(16) << std::setprecision(8) << onAxisFieldCheck

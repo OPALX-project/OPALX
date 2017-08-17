@@ -721,7 +721,7 @@ void Distribution::DoRestartOpalCycl(PartBunch &beam,
     INFOMSG(beam.getNumBunch() << " Bunches(bins) exist in this file" << endl);
 
     double gamma = 1 + meanE / beam.getM() * 1.0e6;
-    double beta = sqrt(1.0 - (1.0 / std::pow(gamma, 2.0)));
+    double beta = sqrt(1.0 - (1.0 / std::pow(gamma, 2)));
 
     INFOMSG("* Gamma = " << gamma << ", Beta = " << beta << endl);
 
@@ -1059,11 +1059,11 @@ void Distribution::ApplyEmissModelNonEquil(double eZ,
 
     // Compute emission momenta.
     double betaGammaExternal
-        = sqrt(pow(energyExternal / (Physics::m_e * 1.0e9) + 1.0, 2.0) - 1.0);
+        = sqrt(pow(energyExternal / (Physics::m_e * 1.0e9) + 1.0, 2) - 1.0);
 
     bgx = betaGammaExternal * sinThetaOut * cos(phi);
     bgy = betaGammaExternal * sinThetaOut * sin(phi);
-    bgz = betaGammaExternal * sqrt(1.0 - pow(sinThetaOut, 2.0));
+    bgz = betaGammaExternal * sqrt(1.0 - pow(sinThetaOut, 2));
 
 }
 
@@ -1219,15 +1219,15 @@ void Distribution::ChooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUn
 }
 
 double Distribution::ConvertBetaGammaToeV(double valueInBetaGamma, double massIneV) {
-    double value = std::copysign(sqrt(pow(valueInBetaGamma, 2.0) + 1.0) - 1.0, valueInBetaGamma);
+    double value = std::copysign(sqrt(pow(valueInBetaGamma, 2) + 1.0) - 1.0, valueInBetaGamma);
     if (std::abs(value) < std::numeric_limits<double>::epsilon())
-        value = std::copysign(1.0 + 0.5 * pow(valueInBetaGamma, 2.0), valueInBetaGamma);
+        value = std::copysign(1.0 + 0.5 * pow(valueInBetaGamma, 2), valueInBetaGamma);
 
     return value * massIneV;
 }
 
 double Distribution::ConverteVToBetaGamma(double valueIneV, double massIneV) {
-    double value = std::copysign(sqrt(pow(std::abs(valueIneV) / massIneV + 1.0, 2.0) - 1.0), valueIneV);
+    double value = std::copysign(sqrt(pow(std::abs(valueIneV) / massIneV + 1.0, 2) - 1.0), valueIneV);
     if (std::abs(value) < std::numeric_limits<double>::epsilon())
         value = std::copysign(sqrt(2 * std::abs(valueIneV) / massIneV), valueIneV);
 
@@ -1235,7 +1235,7 @@ double Distribution::ConverteVToBetaGamma(double valueIneV, double massIneV) {
 }
 
 double Distribution::ConvertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV) {
-    return sqrt(pow(valueInMeVPerC * 1.0e6 * Physics::c / massIneV + 1.0, 2.0) - 1.0);
+    return sqrt(pow(valueInMeVPerC * 1.0e6 * Physics::c / massIneV + 1.0, 2) - 1.0);
 }
 
 void Distribution::CreateDistributionBinomial(size_t numberOfParticles, double massIneV) {
@@ -1964,9 +1964,9 @@ size_t Distribution::EmitParticles(PartBunch &beam, double eZ) {
 
                 double particleGamma
                     = std::sqrt(1.0
-                                + std::pow(px, 2.0)
-                                + std::pow(py, 2.0)
-                                + std::pow(pz, 2.0));
+                                + std::pow(px, 2)
+                                + std::pow(py, 2)
+                                + std::pow(pz, 2));
 
                 beam.R[numberOfEmittedParticles]
                     = Vector_t(oneOverCDt * (xDist_m.at(particleIndex)
@@ -2311,8 +2311,8 @@ void Distribution::GenerateBinomial(size_t numberOfParticles) {
             * cos(asin(correlationMatrix_m(2 * index + 1, 2 * index)));
 
         if (std::abs(emittance(index)) > std::numeric_limits<double>::epsilon()) {
-            beta(index) = pow(sigmaR_m[index], 2.0) / emittance(index);
-            gamma(index) = pow(sigmaP_m[index], 2.0) / emittance(index);
+            beta(index) = pow(sigmaR_m[index], 2) / emittance(index);
+            gamma(index) = pow(sigmaP_m[index], 2) / emittance(index);
         } else {
             beta(index) = sqrt(std::numeric_limits<double>::max());
             gamma(index) = sqrt(std::numeric_limits<double>::max());
@@ -2328,7 +2328,7 @@ void Distribution::GenerateBinomial(size_t numberOfParticles) {
     for (unsigned int index = 0; index < 3; index++) {
         // gamma(index) *= cutoffR_m[index];
         // beta(index)  *= cutoffP_m[index];
-        COSCHI[index] =  sqrt(1.0 / (1.0 + pow(alpha(index), 2.0)));
+        COSCHI[index] =  sqrt(1.0 / (1.0 + pow(alpha(index), 2)));
         SINCHI[index] = -alpha(index) * COSCHI[index];
         CHI[index]    =  atan2(SINCHI[index], COSCHI[index]);
         AMI[index]    =  1.0 / mBinomial_m[index];
@@ -2352,18 +2352,18 @@ void Distribution::GenerateBinomial(size_t numberOfParticles) {
     const int myNode = Ippl::myNode();
     const int numNodes = Ippl::getNodes();
 
-    double temp = 1.0 - std::pow(correlationMatrix_m(1, 0), 2.0);
+    double temp = 1.0 - std::pow(correlationMatrix_m(1, 0), 2);
     const double tempa = copysign(sqrt(std::abs(temp)), temp);
     const double l32 = (correlationMatrix_m(4, 1) -
                         correlationMatrix_m(1, 0) * correlationMatrix_m(4, 0)) / tempa;
-    temp = 1 - std::pow(correlationMatrix_m(4, 0), 2.0) - l32 * l32;
+    temp = 1 - std::pow(correlationMatrix_m(4, 0), 2) - l32 * l32;
     const double l33 = copysign(sqrt(std::abs(temp)), temp);
 
     const double l42 = (correlationMatrix_m(5, 1) -
                         correlationMatrix_m(1, 0) * correlationMatrix_m(5, 0)) / tempa;
     const double l43 = (correlationMatrix_m(5, 4) -
                         correlationMatrix_m(4, 0) * correlationMatrix_m(5, 0) - l42 * l32) / l33;
-    temp = 1 - std::pow(correlationMatrix_m(5, 0), 2.0) - l42 * l42 - l43 * l43;
+    temp = 1 - std::pow(correlationMatrix_m(5, 0), 2) - l42 * l42 - l43 * l43;
     const double l44 = copysign(sqrt(std::abs(temp)), temp);
 
     Vector_t x = Vector_t(0.0);
@@ -2489,7 +2489,7 @@ void Distribution::GenerateFlattopT(size_t numberOfParticles) {
                 y = -1.0 + 2.0 * gsl_rng_uniform(randGenStandard);
             }
 
-            allow = (pow(x, 2.0) + pow(y, 2.0) <= 1.0);
+            allow = (pow(x, 2) + pow(y, 2) <= 1.0);
 
         }
         x *= sigmaR_m[0];
@@ -2568,7 +2568,7 @@ void Distribution::GenerateFlattopZ(size_t numberOfParticles) {
                 y = -1.0 + 2.0 * gsl_rng_uniform(randGenStandard);
             }
 
-            allow = (pow(x, 2.0) + pow(y, 2.0) <= 1.0);
+            allow = (pow(x, 2) + pow(y, 2) <= 1.0);
 
         }
         x *= sigmaR_m[0];
@@ -2700,7 +2700,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
             else if (cutoffR_m[1] < SMALLESTCUTOFF)
                 xAndYOk = (std::abs(x) <= cutoffR_m[0]);
             else
-                xAndYOk = (pow(x / cutoffR_m[0], 2.0) + pow(y / cutoffR_m[1], 2.0) <= 1.0);
+                xAndYOk = (pow(x / cutoffR_m[0], 2) + pow(y / cutoffR_m[1], 2) <= 1.0);
 
             bool pxAndPyOk = false;
             if (cutoffP_m[0] < SMALLESTCUTOFF && cutoffP_m[1] < SMALLESTCUTOFF)
@@ -2710,7 +2710,7 @@ void Distribution::GenerateGaussZ(size_t numberOfParticles) {
             else if (cutoffP_m[1] < SMALLESTCUTOFF)
                 pxAndPyOk = (std::abs(px) <= cutoffP_m[0]);
             else
-                pxAndPyOk = (pow(px / cutoffP_m[0], 2.0) + pow(py / cutoffP_m[1], 2.0) <= 1.0);
+                pxAndPyOk = (pow(px / cutoffP_m[0], 2) + pow(py / cutoffP_m[1], 2) <= 1.0);
 
             allow = (xAndYOk && pxAndPyOk && std::abs(z) < cutoffR_m[2] && std::abs(pz) < cutoffP_m[2]);
         }
@@ -2969,7 +2969,7 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
             else if (cutoffR_m[1] < SMALLESTCUTOFF)
                 xAndYOk = (std::abs(x) <= cutoffR_m[0]);
             else
-                xAndYOk = (pow(x / cutoffR_m[0], 2.0) + pow(y / cutoffR_m[1], 2.0) <= 1.0);
+                xAndYOk = (pow(x / cutoffR_m[0], 2) + pow(y / cutoffR_m[1], 2) <= 1.0);
 
             bool pxAndPyOk = false;
             if (cutoffP_m[0] < SMALLESTCUTOFF && cutoffP_m[1] < SMALLESTCUTOFF)
@@ -2979,7 +2979,7 @@ void Distribution::GenerateTransverseGauss(size_t numberOfParticles) {
             else if (cutoffP_m[1] < SMALLESTCUTOFF)
                 pxAndPyOk = (std::abs(px) <= cutoffP_m[0]);
             else
-                pxAndPyOk = (pow(px / cutoffP_m[0], 2.0) + pow(py / cutoffP_m[1], 2.0) <= 1.0);
+                pxAndPyOk = (pow(px / cutoffP_m[0], 2) + pow(py / cutoffP_m[1], 2) <= 1.0);
 
             allow = (xAndYOk && pxAndPyOk);
 
@@ -4550,7 +4550,7 @@ void Distribution::SetupParticleBins(double massIneV, PartBunch &beam) {
         // we get gamma from PC of the beam
         double gamma = 0.0;
         const double pz    = beam.getP()/beam.getM();
-        gamma = sqrt(pow(pz, 2.0) + 1.0);
+        gamma = sqrt(pow(pz, 2) + 1.0);
         energyBins_m->setGamma(gamma);
 
     } else {
