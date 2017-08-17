@@ -219,8 +219,8 @@ ParallelTTracker::~ParallelTTracker() {
 
 void ParallelTTracker::writeTrackOrbitFile(double spos) {
 
-    /// note this is needs to be changed adapting 
-    /// the OPAL-cyc idea 
+    /// note this is needs to be changed adapting
+    /// the OPAL-cyc idea
 
     int locIdofPart1 = -1;
     int locIdofPart2 = -1;
@@ -229,14 +229,14 @@ void ParallelTTracker::writeTrackOrbitFile(double spos) {
 
     /// find the particles
     for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
-        if(itsBunch->ID[ii] == 1) 
+        if(itsBunch->ID[ii] == 1)
             locIdofPart1 = ii;
-        if(itsBunch->ID[ii] == 2) 
-            locIdofPart2 = ii;        
+        if(itsBunch->ID[ii] == 2)
+            locIdofPart2 = ii;
     }
 
     if(Ippl::myNode() == 0) {
-        /// write my one particle first 
+        /// write my one particle first
         if (locIdofPart1 >= 0)
             outfTrackOrbit_m << "ID" << itsBunch->ID[locIdofPart1] << "\t "
                              << spos << "\t "
@@ -251,19 +251,19 @@ void ParallelTTracker::writeTrackOrbitFile(double spos) {
         if (locIdofPart2 >= 0)
             outfTrackOrbit_m << "ID" << itsBunch->ID[locIdofPart2] << "\t "
                              << spos << "\t "
-                             << itsBunch->R[locIdofPart2](0) << "\t "                            
+                             << itsBunch->R[locIdofPart2](0) << "\t "
                              << itsBunch->R[locIdofPart2](1) << "\t "
                              << itsBunch->R[locIdofPart2](2) << "\t "
                              << itsBunch->P[locIdofPart2](0) << "\t "
                              << itsBunch->P[locIdofPart2](1) << "\t "
                              << itsBunch->P[locIdofPart2](2) << "\t "
                              << std::endl;
-        
+
         outfTrackOrbit_m.flush();
-        
+
 
         int notReceived = Ippl::getNodes() - 1;
-        int dataBlocks = 0;    
+        int dataBlocks = 0;
         Vector_t x,p;
         int id;
         while(notReceived > 0) {
@@ -278,7 +278,7 @@ void ParallelTTracker::writeTrackOrbitFile(double spos) {
                 rmsg->get(&id);
                 rmsg->get(x);
                 rmsg->get(p);
-                
+
                 outfTrackOrbit_m << "ID" << id << " \t "
                                  << spos << " \t "
                                  << x(0) << " \t "
@@ -289,7 +289,7 @@ void ParallelTTracker::writeTrackOrbitFile(double spos) {
                                  << p(2) << " \t "
                                  << std::endl;
                 outfTrackOrbit_m.flush();
-            }            
+            }
         }
     }
     else {
@@ -325,7 +325,7 @@ void ParallelTTracker::initTrackOrbitFile() {
         std::string f = std::string("data/") + OpalData::getInstance()->getInputBasename() + std::string("-trackOrbit.dat");
         outfTrackOrbit_m.setf(std::ios::scientific, std::ios::floatfield);
         outfTrackOrbit_m.precision(8);
-        
+
         if(OpalData::getInstance()->inRestartRun()) {
 
             outfTrackOrbit_m.open(f.c_str(), std::ios::app);
@@ -395,9 +395,9 @@ void ParallelTTracker::handleAutoPhasing() {
 }
 
 void ParallelTTracker::execute() {
- 
+
     initTrackOrbitFile() ;
- 
+
     if(timeIntegrator_m == 3) {
         executeAMTSTracker();
     } else {
@@ -421,7 +421,8 @@ void ParallelTTracker::executeDefaultTracker() {
 
     prepareSections();
 
-    if (OpalData::getInstance()->hasBunchAllocated()) {
+    if (OpalData::getInstance()->hasBunchAllocated() &&
+        (itsBunch->getGlobalTrackStep() - 1) % Options::statDumpFreq != 0) {
         // delete last entry of sdds file and load balance file
         // if we are in a follow-up track
         itsDataSink_m->rewindLinesSDDS(1);
@@ -493,7 +494,7 @@ void ParallelTTracker::executeDefaultTracker() {
         for (long i = 0; i < nsec; i++) {
             orientation[i] = itsOpalBeamline_m.getOrientation(i);
         }
-        
+
         //write orientations to device
         dksbase.writeData<Vector_t>(orient_ptr, orientation, nsec);
 
@@ -505,12 +506,12 @@ void ParallelTTracker::executeDefaultTracker() {
 
         //page lock itsBunch->X, itsBunch->R, itsBunch-P
         registerHostMemory();
-        
+
         //write R, P and X data to device
         dksbase.writeDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], itsBunch->getLocalNum());
         dksbase.writeDataAsync<Vector_t>(p_ptr, &itsBunch->P[0], itsBunch->getLocalNum());
         dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum());
-        
+
         //create two new streams
         dksbase.createStream(stream1);
         dksbase.createStream(stream2);
@@ -525,7 +526,7 @@ void ParallelTTracker::executeDefaultTracker() {
         for(; step < localTrackSteps_m.front(); ++step) {
             bends_m = 0;
             numberOfFieldEmittedParticles_m = 0;
-            
+
             itsOpalBeamline_m.resetStatus();
 
             // we dump later, after one step.
@@ -566,6 +567,7 @@ void ParallelTTracker::executeDefaultTracker() {
 
             bool const psDump = itsBunch->getGlobalTrackStep() % Options::psDumpFreq == 0;
             bool const statDump = itsBunch->getGlobalTrackStep() % Options::statDumpFreq == 0;
+
             dumpStats(step, psDump, statDump);
 
             if(hasEndOfLineReached()) break;
@@ -590,6 +592,7 @@ void ParallelTTracker::executeDefaultTracker() {
     msg << level2 << "Dump phase space of last step" << endl;
     OPALTimer::Timer myt3;
     itsOpalBeamline_m.switchElementsOff();
+
     *gmsg << "done executing ParallelTTracker at " << myt3.time() << endl;
 
 #ifdef OPAL_DKS
@@ -1426,36 +1429,36 @@ void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
         for (long i = 0; i < nsec; i++) {
             orientation[i] = itsOpalBeamline_m.getOrientation(i);
         }
-    
+
         //write orientations to device
         dksbase.writeData<Vector_t>(orient_ptr, orientation, nsec);
 
         //free local orientation memory
         delete[] orientation;
-        
+
         //write R to device
-        dksbase.writeDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], 
+        dksbase.writeDataAsync<Vector_t>(r_ptr, &itsBunch->R[0],
                                          itsBunch->getLocalNum(), stream1);
         //write P to device
-        dksbase.writeDataAsync<Vector_t>(p_ptr, &itsBunch->P[0], 
+        dksbase.writeDataAsync<Vector_t>(p_ptr, &itsBunch->P[0],
                                          itsBunch->getLocalNum(), stream1);
         //write X to device
-        dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], 
+        dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0],
                                          itsBunch->getLocalNum(), stream2);
 
         //write dt to device
-        dksbase.writeDataAsync<double>(dt_ptr, &itsBunch->dt[0], 
+        dksbase.writeDataAsync<double>(dt_ptr, &itsBunch->dt[0],
                                        itsBunch->getLocalNum(), stream1);
 
         //calc push
         dksbase.callParallelTTrackerPush (r_ptr, p_ptr, itsBunch->getLocalNum(), dt_ptr,
                                           itsBunch->getdT(), Physics::c, true, stream1);
         //read R from device
-        dksbase.readDataAsync<Vector_t> (r_ptr, &itsBunch->R[0], 
+        dksbase.readDataAsync<Vector_t> (r_ptr, &itsBunch->R[0],
                                          itsBunch->getLocalNum(), stream1);
 
         //write LastSection to device
-        dksbase.writeDataAsync<long> (lastSec_ptr, &itsBunch->LastSection[0], 
+        dksbase.writeDataAsync<long> (lastSec_ptr, &itsBunch->LastSection[0],
                                       itsBunch->getLocalNum(), stream2);
 
         //sync the device to guarantee that p_ptr has been transfered
@@ -1465,7 +1468,7 @@ void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
         dksbase.callParallelTTrackerPushTransform(x_ptr, p_ptr, lastSec_ptr, orient_ptr,
                                                   itsBunch->getLocalNum(),
                                                   itsOpalBeamline_m.sections_m.size(),
-                                                  dt_ptr, itsBunch->getdT(), Physics::c, 
+                                                  dt_ptr, itsBunch->getdT(), Physics::c,
                                                   false, stream2);
         //read R from device
         dksbase.readDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
@@ -1599,7 +1602,7 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
     IpplTimings::startTimer(timeIntegrationTimer2Push_m);
     if (IpplInfo::DKSEnabled) {
 #ifdef OPAL_DKS
-    
+
         //if bunch is largen than before reallocate memory
         if (itsBunch->getLocalNum() > numDeviceElements) {
             freeDeviceMemory();
@@ -1622,17 +1625,17 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
         delete[] orientation;
 
         //write R to device
-        dksbase.writeDataAsync<Vector_t>(r_ptr, &itsBunch->R[0], 
+        dksbase.writeDataAsync<Vector_t>(r_ptr, &itsBunch->R[0],
                                          itsBunch->getLocalNum(), stream1);
         //write P to device
-        dksbase.writeDataAsync<Vector_t>(p_ptr, &itsBunch->P[0], 
+        dksbase.writeDataAsync<Vector_t>(p_ptr, &itsBunch->P[0],
                                          itsBunch->getLocalNum(), stream1);
         //write X to device
-        dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], 
+        dksbase.writeDataAsync<Vector_t>(x_ptr, &itsBunch->X[0],
                                          itsBunch->getLocalNum(), stream2);
 
         //wrote dt to device
-        dksbase.writeDataAsync<double>(dt_ptr, &itsBunch->dt[0], 
+        dksbase.writeDataAsync<double>(dt_ptr, &itsBunch->dt[0],
                                        itsBunch->getLocalNum(), stream1);
         //calc push
         dksbase.callParallelTTrackerPush(r_ptr, p_ptr, itsBunch->getLocalNum(), dt_ptr,
@@ -1651,7 +1654,7 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
         dksbase.callParallelTTrackerPushTransform(x_ptr, p_ptr, lastSec_ptr, orient_ptr,
                                                   itsBunch->getLocalNum(),
                                                   itsOpalBeamline_m.sections_m.size(),
-                                                  dt_ptr, itsBunch->getdT(), Physics::c, 
+                                                  dt_ptr, itsBunch->getdT(), Physics::c,
                                                   false, stream2);
         //read R from device
         dksbase.readDataAsync<Vector_t>(x_ptr, &itsBunch->X[0], itsBunch->getLocalNum(), stream2);
@@ -1708,8 +1711,8 @@ void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
     double recpgamma = 1.0 / sqrt(1.0 + dot(RefPartP_suv_m, RefPartP_suv_m));
     RefPartR_zxy_m += RefPartP_zxy_m * recpgamma / 2. * scaleFactor_m;
     kickParticles(pusher, 0);
-    handleBends(); 
-    
+    handleBends();
+
     const Vector_t outr = bgf_m->getmaxcoords() + bgf_m->gethr();
     double dtime = 0.5 * itsBunch->getdT();
 
@@ -1720,7 +1723,7 @@ void ParallelTTracker::timeIntegration2_bgf(BorisPusher & pusher) {
 
         /*
           test all particles except those already have collided the boundary in the first half step.
-          particles which already have collided the boundary in the first half step will stay at 
+          particles which already have collided the boundary in the first half step will stay at
           the positions that they collide on the boundaries.
          */
         if(itsBunch->TriID[i] == 0) {
@@ -1910,18 +1913,18 @@ void ParallelTTracker::computeExternalFields() {
 
     }
 
-    //if any new surfacephysics sections enabled, check if there are other surface physics 
+    //if any new surfacephysics sections enabled, check if there are other surface physics
     //elements fallowing directy after it, then handle these elements as well, to process particles
-    //moving from one degrader to another   
+    //moving from one degrader to another
     std::set<long> attachedSphysSections;
     for (long it: sphysSections) {
-       
+
         //get the section it + 1 if it has surface physics
         long newit = it + 1;
         while ( itsOpalBeamline_m.getSection(newit).hasSurfacePhysics() ) {
 
             //check if two sections following one another dont share the same surface physics handler
-            if (itsOpalBeamline_m.getSection(newit).getSurfacePhysicsHandler() != 
+            if (itsOpalBeamline_m.getSection(newit).getSurfacePhysicsHandler() !=
                 itsOpalBeamline_m.getSection(newit - 1).getSurfacePhysicsHandler())
             {
                 attachedSphysSections.insert(newit);
@@ -1979,7 +1982,7 @@ void ParallelTTracker::computeExternalFields() {
     if(hasSurfacePhysics > 0) {    // in a section we have an element with surface physics
 
         // this is a workaround fighting the zero partilce problem on a core
-        // noy yet understood 
+        // noy yet understood
         // with setMimumNumberOfParticlesPerCore(2) degrader simulations for the PSI gantry are running
         itsBunch->setMimumNumberOfParticlesPerCore(0);
 
@@ -1987,7 +1990,7 @@ void ParallelTTracker::computeExternalFields() {
         std::vector<long> leftBehindSections, newSections;
         for (auto it: sphys_m) {
             old_sphysSections.insert(it.first);
-        }       
+        }
 
         std::vector<long> sectionsWithSurfacePhysics(Ippl::getNodes() * hasSurfacePhysics, -1);
         unsigned int insPosition = Ippl::myNode() * hasSurfacePhysics;
@@ -2038,8 +2041,8 @@ void ParallelTTracker::computeExternalFields() {
             msg << level2 << "============== START SURFACE PHYSICS CALCULATION =============" << endl;
             surfaceStatus_m = true;
         }
-      
-    } 
+
+    }
 
     if (surfaceStatus_m) {
         do {
@@ -2054,8 +2057,8 @@ void ParallelTTracker::computeExternalFields() {
                     degradersWithParticlesCount++;
                 }
             }
-        
-            //if max particles per node is 2, and only one degrader has particles set 
+
+            //if max particles per node is 2, and only one degrader has particles set
             //AllParticlesIn for this degrader to true
             int maxPerNode = itsBunch->getLocalNum();
             reduce(maxPerNode, maxPerNode, OpMaxAssign());
@@ -2079,18 +2082,18 @@ void ParallelTTracker::computeExternalFields() {
 
             //perform boundp only if there are particles in the bunch, or there are particles
             //comming out of the degrader
-            if ((unsigned)maxPerNode > itsBunch->getMinimumNumberOfParticlesPerCore() || 
+            if ((unsigned)maxPerNode > itsBunch->getMinimumNumberOfParticlesPerCore() ||
                 redifusedParticles > 0)
             {
-                itsBunch->boundp();    
+                itsBunch->boundp();
             }
-             
+
             //if bunch has no particles update time to time in degrader
             if (itsBunch->getTotalNum() == 0)
                 itsBunch->setT(itsBunch->getT() + itsBunch->getdT());
 
         } while (itsBunch->getTotalNum() == 0);
-        
+
 
         if (sphys_m.size() == 0) {
             msg << level2 << "============== END SURFACE PHYSICS CALCULATION =============" << endl;
@@ -2099,7 +2102,7 @@ void ParallelTTracker::computeExternalFields() {
         }
     }
 
-    size_t ne = 0;    
+    size_t ne = 0;
     bool globPartOutOfBounds = (min(itsBunch->Bin) < 0) && (itsBunch->getTotalNum() > itsBunch->getMinimumNumberOfParticlesPerCore());
     if(globPartOutOfBounds) {
         ne = itsBunch->boundp_destroyT();
@@ -2110,7 +2113,7 @@ void ParallelTTracker::computeExternalFields() {
         itsBunch->update();
         numParticlesInSimulation_m = itsBunch->getTotalNum();
     }
-    
+
     //remove surface physics elements from start of the list till hit one which is still active
     if (surfaceStatus_m) {
         for (auto it: sphys_m) {
@@ -2120,9 +2123,9 @@ void ParallelTTracker::computeExternalFields() {
                 //check if degrader is empty and bunch has moved past it (needed to free GPU memory)
                 if ( !it.second->stillAlive(*itsBunch) )
                     msg << "Surface physiscs at element " << it.second->getName() << " has become inactive" << endl;
-               
+
                 it.second = NULL;
-                sphys_m.erase(it.first);                
+                sphys_m.erase(it.first);
             }
         }
     }
@@ -2131,7 +2134,7 @@ void ParallelTTracker::computeExternalFields() {
         msg << level1 << "* Deleted " << ne << " particles, "
           << "remaining " << itsBunch->getTotalNum() << " particles" << endl;
         totalParticlesInSimulation_m -= ne;
-    }  
+    }
 
 }
 
@@ -2247,7 +2250,7 @@ void ParallelTTracker::dumpStats(long long step, bool psDump, bool statDump) {
             << "t= "   << scientific << setprecision(3) << setw(10) << itsBunch->getT() << " [s] "
             << "E="    << fixed      << setprecision(3) << setw(9) << meanEnergy << meanEnergyUnit
             << endl;
-    } else if(std::isnan(sposRef) || std::isinf(sposRef)) {      
+    } else if(std::isnan(sposRef) || std::isinf(sposRef)) {
         throw OpalException("ParallelTTracker::dumpStats()",
                             "there seems to be something wrong with the position of the bunch!");
     } else {
@@ -2793,38 +2796,6 @@ void ParallelTTracker::writePhaseSpace(const long long step, const double &sposR
     pos[1] = Vector_t(0.0, 0.0, sposRef);
     pos[2] = Vector_t(rmin(0), rmin(1), rmin(2));
 
-#ifdef DBG_SYM
-
-    const double h = 0.001;
-
-    Vector_t gridN = Vector_t(h, h, sposRef);
-    Vector_t gridS = Vector_t(h, -h, sposRef);
-    Vector_t gridW = Vector_t(-h, h, sposRef);
-    Vector_t gridO = Vector_t(-h, -h, sposRef);
-
-    externalB = Vector_t(0.0);
-    externalE = Vector_t(0.0);
-    itsOpalBeamline_m.getFieldAt(gridN, itsBunch->get_rmean(), itsBunch->getT() - 0.5 * itsBunch->getdT(), externalE, externalB);
-    of_m << sposRef << "\t " << externalE(0) * 1e-6 << "\t " << externalE(1) * 1e-6 << "\t " << externalE(2) * 1e-6
-         << "\t " << externalB(0) << "\t " << externalB(1) << "\t " << externalB(2) << "\t ";
-    externalB = Vector_t(0.0);
-    externalE = Vector_t(0.0);
-    itsOpalBeamline_m.getFieldAt(gridS, itsBunch->get_rmean(), itsBunch->getT() - 0.5 * itsBunch->getdT(), externalE, externalB);
-    of_m << externalE(0) * 1e-6 << "\t " << externalE(1) * 1e-6 << "\t " << externalE(2) * 1e-6
-         << "\t " << externalB(0) << "\t " << externalB(1) << "\t " << externalB(2) << "\t ";
-
-    externalB = Vector_t(0.0);
-    externalE = Vector_t(0.0);
-    itsOpalBeamline_m.getFieldAt(gridW, itsBunch->get_rmean(), itsBunch->getT() - 0.5 * itsBunch->getdT(), externalE, externalB);
-    of_m << externalE(0) * 1e-6 << "\t " << externalE(1) * 1e-6 << "\t " << externalE(2) * 1e-6
-         << "\t " << externalB(0) << "\t " << externalB(1) << "\t " << externalB(2) << "\t ";
-    externalB = Vector_t(0.0);
-    externalE = Vector_t(0.0);
-    itsOpalBeamline_m.getFieldAt(gridO, itsBunch->get_rmean(), itsBunch->getT() - 0.5 * itsBunch->getdT(), externalE, externalB);
-    of_m << externalE(0) * 1e-6 << "\t " << externalE(1) * 1e-6 << "\t " << externalE(2) * 1e-6
-         << "\t " << externalB(0) << "\t " << externalB(1) << "\t " << externalB(2) << endl;
-#endif
-
     if (psDump || statDump) {
         for(int k = 0; k < 3; ++k) {
             externalB = Vector_t(0.0);
@@ -2835,11 +2806,15 @@ void ParallelTTracker::writePhaseSpace(const long long step, const double &sposR
         }
     }
 
-    if(psDump && (itsBunch->getTotalNum() > 0)) {
-        // Write fields to .h5 file.
-        itsDataSink_m->writePhaseSpace(*itsBunch, FDext, rmax(2), sposRef, rmin(2));
-        msg << level3 << "* Wrote beam phase space." << endl;
-        msg << *itsBunch << endl;
+    if (itsBunch->getTotalNum() > 0) {
+        if(psDump) {
+            // Write fields to .h5 file.
+            itsDataSink_m->writePhaseSpace(*itsBunch, FDext, rmax(2), sposRef, rmin(2));
+            msg << level3 << "* Wrote beam phase space." << endl;
+            msg << *itsBunch << endl;
+        } else {
+            itsBunch->calcBeamParameters();
+        }
     }
 
     if(statDump) {
@@ -2870,7 +2845,7 @@ void ParallelTTracker::writePhaseSpace(const long long step, const double &sposR
         // Write statistical data.
         msg << level3 << "* Wrote beam statistics." << endl;
         itsDataSink_m->writeStatData(*itsBunch, FDext, rmax(2), sposRef, rmin(2), collimatorLosses);
-        
+
         writeTrackOrbitFile(sposRef);
     }
 }
@@ -2891,7 +2866,7 @@ void ParallelTTracker::registerHostMemory() {
 }
 
 void ParallelTTracker::unregisterHostMemory() {
-    
+
     if (Ippl::getNodes() == 1) {
         dksbase.unregisterHostMemory(&itsBunch->R[0]);
         dksbase.unregisterHostMemory(&itsBunch->P[0]);
@@ -2899,7 +2874,7 @@ void ParallelTTracker::unregisterHostMemory() {
         dksbase.unregisterHostMemory(&itsBunch->dt[0]);
         dksbase.unregisterHostMemory(&itsBunch->LastSection[0]);
     }
-    
+
 }
 
 void ParallelTTracker::allocateDeviceMemory() {
@@ -2930,7 +2905,7 @@ void ParallelTTracker::freeDeviceMemory() {
 
 // vi: set et ts=4 sw=4 sts=4:
 // Local Variables:
-// mode:c
+// mode:c++
 // c-basic-offset: 4
 // indent-tabs-mode:nil
 // End:
