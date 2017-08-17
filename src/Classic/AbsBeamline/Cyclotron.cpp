@@ -88,47 +88,55 @@ Cyclotron::~Cyclotron() {
 }
 
 
-void Cyclotron::applyTrimCoil(double r, double z, double *br, double *bz) {
-  /// updated bz and br with trim coil contributions
+void Cyclotron::applyTrimCoil(const double r, const double z, double *br, double *bz) {
+    /// update bz and br with trim coil contributions
+    // for some discussion on the formulas see https://gitlab.psi.ch/OPAL/src/issues/110
+
+    // unitless constants
+    const double Amax1 = 1;
+    const double Amax2 = 3;
+    const double Amin  = -2;
+    const double x01   = 4;
+    const double x02   = 8;
+    const double h1    = 0.03;
+    const double h2    = 0.2;
+    const double justAnotherFudgeFactor = 1 / 2.78;
+    // helper variables
+    const double log10  = std::log(10);
+    const double const3 = -(Amax1 - Amin) * h1 * log10;
+    const double const4 =  (Amax2 - Amin) * h2 * log10;
 
     for (unsigned int idx = 0; idx < slptcV_m.size(); ++ idx) {
         const double &tcr1 = tcr1V_m[idx];
         const double &tcr2 = tcr2V_m[idx];
-
-        if (r > tcr2) return; // values in tcrv are descending, all subsequent values are smaller
-        if (r < tcr1) continue; // ??
-
         const double &slope = slptcV_m[idx];
         const double &magnitude = mbtcV_m[idx];
 
-        const double Amax1 = 1;
-        const double Amax2 = 3;
-        const double Amin = -2;
-        const double x01 = 4;
-        const double x02 = 8;
-        const double h1 = 0.03;
-        const double h2 = 0.2;
-        const double justAnotherFudgeFactor = 1 / 2.78;
         double part1;
         double part2;
 
         if (2 * r < (tcr2 + tcr1)) {
-            part1 = pow(10.0,  ((r - tcr1) / slope - x01) * h1);
-            part2 = pow(10.0, -((r - tcr1) / slope - x02) * h2);
+            part1 = std::pow(10.0,  ((r - tcr1) * slope - x01) * h1);
+            part2 = std::pow(10.0, -((r - tcr1) * slope - x02) * h2);
         } else {
-            part1 = pow(10.0,  ((tcr2 - r) / slope - x01) * h1);
-            part2 = pow(10.0, -((tcr2 - r) / slope - x02) * h2);
+            part1 = std::pow(10.0,  ((tcr2 - r) * slope - x01) * h1);
+            part2 = std::pow(10.0, -((tcr2 - r) * slope - x02) * h2);
         }
 
-        double part3 = -(Amax1 - Amin) * h1 * log(10) * part1 / (slope * std::pow(1 + part1, 2));
-        double part4 =  (Amax2 - Amin) * h2 * log(10) * part2 / (slope * std::pow(1 + part2, 2));
+        const double part1plusinv = 1 / (1 + part1);
+        const double part2plusinv = 1 / (1 + part2);
 
-        double dr = magnitude * justAnotherFudgeFactor * (part3 + part4);
-        double btr = (magnitude * justAnotherFudgeFactor *
-                      (Amin - 1 + (Amax1 - Amin) / (1 + part1) + (Amax2 - Amin) / (1 + part2)));
+        double part3 = const3 * slope * part1 * part1plusinv * part1plusinv;
+        double part4 = const4 * slope * part2 * part2plusinv * part2plusinv;
 
+        const double constmag = magnitude * justAnotherFudgeFactor;
 
-        if (std::isnan(dr) || std::isinf(dr) ||
+        double dr  = constmag * (part3 + part4);
+        double btr = constmag * (Amin - 1 +
+                                 (Amax1 - Amin) * part1plusinv +
+                                 (Amax2 - Amin) * part2plusinv);
+
+        if (std::isnan(dr)  || std::isinf(dr) ||
             std::isnan(btr) || std::isinf(btr)) {
             ERRORMSG("r = " << r << " m, tcr1 = " << tcr1 << " m, tcr2 = " << tcr2 << " m\n");
             ERRORMSG("slope = " << slope << ", magnitude = " << magnitude << " kG\n");
@@ -289,10 +297,6 @@ double Cyclotron::getRmax() const {
     return BP.rmin + (Bfield.nrad - 1) * BP.delr;
 }
 
-// This function aims at obtaining magentic field at any given location R by interpolation.
-// arguments t is useless here.
-// arguments E is set to zero.
-
 
 void Cyclotron::setMinR(double r) {
     // DW: This is to let the user keep using mm in the input file for now
@@ -390,7 +394,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
     const double rad = sqrt(R[0] * R[0] + R[1] * R[1]);
     const double xir = (rad - BP.rmin) / BP.delr;
 
-    // ir : the mumber of path whoes radius is less then the 4 points of cell which surrond particle.
+    // ir : the number of path whose radius is less than the 4 points of cell which surround the particle.
     const int ir = (int)xir;
 
     // wr1 : the relative distance to the inner path radius
@@ -430,7 +434,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
     const double wt1 = xit - (double)it;
     const double wt2 = 1.0 - wt1;
 
-    // it : the number of point on the inner path whoes angle is less then the particle' corresponding angle.
+    // it : the number of point on the inner path whose angle is less than the particle' corresponding angle.
     // include zero degree point
     it = it + 1;
 
@@ -524,7 +528,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
     }
 
     if(myBFieldType_m == BANDRF) {
-      //The RF field is suppose to be sampled on a cartesian grid
+      //The RF field is supposed to be sampled on a cartesian grid
         vector<Fieldmap *>::const_iterator fi  = RFfields_m.begin();
         vector<double>::const_iterator rffi    = rffrequ_m.begin();
         vector<double>::const_iterator rfphii  = rfphi_m.begin();
@@ -560,7 +564,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
             }
 	}
     } else if(myBFieldType_m == SYNCHRO) {
-        //The RF field is suppose to be sampled on a cartesian grid
+        //The RF field is supposed to be sampled on a cartesian grid
         vector<Fieldmap *>::const_iterator fi  = RFfields_m.begin();
         vector<double>::const_iterator rffi    = rffrequ_m.begin();
         vector< vector<double> >::const_iterator rffci = rffc_m.begin();
@@ -1172,7 +1176,7 @@ void Cyclotron::getFieldFromFile_FFAG(const double &scaleFactor) {
     double rmax = rv.back();
 
     // find out dR
-    for(vit = rv.begin(); *vit <= BP.rmin; vit++) {}
+    for(vit = rv.begin(); *vit <= BP.rmin; ++vit) {}
     BP.delr = *vit - BP.rmin;
 
     BP.tetmin = thv[0];
