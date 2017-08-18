@@ -124,6 +124,9 @@ public:
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend3D(const SBend3D &);
 
+    /// Apply the algorithm to a scaling FFAG magnet.
+    virtual void visitScalingFFAGMagnet(const ScalingFFAGMagnet &);
+
     /// Apply the algorithm to a separator.
     virtual void visitSeparator(const Separator &);
 
@@ -135,9 +138,6 @@ public:
 
     /// Apply the algorithm to a source.
     virtual void visitSource(const Source &);
-
-    /// Apply the algorithm to a spiral sector.
-    virtual void visitSpiralSector(const SpiralSector &);
 
     /// Apply the algorithm to a ParallelPlate.
     virtual void visitParallelPlate(const ParallelPlate &);

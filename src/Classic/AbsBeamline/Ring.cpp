@@ -127,7 +127,6 @@ bool Ring::apply(const Vector_t &R, const Vector_t &P,
         B += (scale_m * B_temp);
         E += (scale_m * E_temp);
     }
-    // std::cerr << "Ring::apply " << sections.size() << " Pos: " << R << " B: " << B << std::endl;
     return outOfBounds;
 }
 

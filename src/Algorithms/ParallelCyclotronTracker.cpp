@@ -45,6 +45,7 @@
 #include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/SBend3D.h"
+#include "AbsBeamline/ScalingFFAGMagnet.h"
 #include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
@@ -749,6 +750,15 @@ void ParallelCyclotronTracker::visitSBend3D(const SBend3D &bend) {
     else
         throw OpalException("ParallelCyclotronTracker::visitSBend3D",
                             "Need to define a RINGDEFINITION to use SBend3D element");
+}
+
+void ParallelCyclotronTracker::visitScalingFFAGMagnet(const ScalingFFAGMagnet &bend) {
+    *gmsg << "Adding ScalingFFAGMagnet" << endl;
+    if (opalRing_m != NULL)
+        opalRing_m->appendElement(bend);
+    else
+        throw OpalException("ParallelCyclotronTracker::visitScalingFFAGMagnet",
+                            "Need to define a RINGDEFINITION to use ScalingFFAGMagnet element");
 }
 
 void ParallelCyclotronTracker::visitVariableRFCavity(const VariableRFCavity &cav) {
@@ -2219,7 +2229,6 @@ bool ParallelCyclotronTracker::rk4(double x[], const double &t, const double &ta
     double  xtemp[PSdim];
 
     // Evaluate f1 = f(x,t).
-
     bool outOfBound = derivate(x, t, deriv1 , Pindex);
     if (outOfBound) {
         return false;

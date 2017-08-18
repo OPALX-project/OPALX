@@ -1,8 +1,9 @@
 set (_SRCS
     OffsetTest.cpp
+    PoleFinderTest.cpp
     RingTest.cpp
     SBend3DTest.cpp
-    SpiralSectorTest.cpp
+    ScalingFFAGMagnetTest.cpp
     VariableRFCavityTest.cpp
 )
 
