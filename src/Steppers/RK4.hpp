@@ -1,5 +1,5 @@
 template <typename FieldFunction, typename ... Arguments>
-bool RK4<FieldFunction, Arguments ...>::advance(PartBunch* bunch,
+bool RK4<FieldFunction, Arguments ...>::advance(PartBunchBase<double, 3>* bunch,
                                                 const size_t& i,
                                                 const double& t,
                                                 const double dt,
@@ -67,7 +67,7 @@ bool RK4<FieldFunction, Arguments ...>::advance(PartBunch* bunch,
 
 
 template <typename FieldFunction, typename ... Arguments>
-bool RK4<FieldFunction, Arguments ...>::derivate_m(PartBunch* bunch,
+bool RK4<FieldFunction, Arguments ...>::derivate_m(PartBunchBase<double, 3>* bunch,
                                                    double* y,
                                                    const double& t,
                                                    double* yp,

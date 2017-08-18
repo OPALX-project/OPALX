@@ -1,7 +1,7 @@
 #include "BorisPusher.h"
 
 template <typename FieldFunction, typename ... Arguments>
-bool LF2<FieldFunction, Arguments ...>::advance(PartBunch* bunch,
+bool LF2<FieldFunction, Arguments ...>::advance(PartBunchBase<double, 3>* bunch,
                                                 const size_t& i,
                                                 const double& t,
                                                 const double dt,
@@ -53,7 +53,7 @@ void LF2<FieldFunction, Arguments ...>::push_m(Vector_t& R, const Vector_t& P,
 
 
 template <typename FieldFunction, typename ... Arguments>
-bool LF2<FieldFunction, Arguments ...>::kick_m(PartBunch* bunch, const size_t& i,
+bool LF2<FieldFunction, Arguments ...>::kick_m(PartBunchBase<double, 3>* bunch, const size_t& i,
                                                const double& t, const double& h,
                                                Arguments& ... args) const
 {

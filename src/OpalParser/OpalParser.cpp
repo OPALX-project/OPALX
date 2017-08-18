@@ -594,7 +594,7 @@ Statement *OpalParser::readStatement(TokenStream *is) const {
 
 void OpalParser::run() const {
     stopFlag = false;
-    Inform errorMsg("Error");
+    Inform errorMsg("Error", std::cerr);
     while(Statement *stat = readStatement(&*inputStack.back())) {
         try {
             // The dispatch via Statement::execute() allows a special
@@ -615,7 +615,7 @@ void OpalParser::run() const {
 	    exit(1);
         } catch(OpalException &ex) {
             errorMsg << "\n*** User error detected by function \""
-                     << ex.where() << "\"\n parser";
+                     << ex.where() << "\"\n";
             stat->printWhere(errorMsg, true);
             std::string what = ex.what();
             size_t pos = what.find_first_of('\n');

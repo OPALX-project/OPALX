@@ -19,7 +19,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/SBend.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Utilities/Options.h"
 #include "Fields/Fieldmap.h"

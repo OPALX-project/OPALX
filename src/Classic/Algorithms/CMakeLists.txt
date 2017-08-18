@@ -14,7 +14,7 @@ set (_SRCS
   PartBins.cpp
   PartBinsCyc.cpp
   PartData.cpp
-  Particle.cpp
+  OpalParticle.cpp
   PolynomialTimeDependence.cpp
   Surveyor.cpp
   ThinMapper.cpp
@@ -23,6 +23,10 @@ set (_SRCS
   Tracker.cpp
   Quaternion.cpp
   )
+
+if ( ENABLE_AMR )
+    list(APPEND _SRCS AmrPartBunch.cpp)
+endif ( ENABLE_AMR )
 
 include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -46,8 +50,9 @@ set (HDRS
     PartBinsCyc.h
     PartBins.h
     PartBunch.h
+    PartBunchBase.h
     PartData.h
-    Particle.h
+    OpalParticle.h
     PBunchDefs.h
     PolynomialTimeDependence.h
     Quaternion.h
@@ -59,5 +64,9 @@ set (HDRS
     TrackIntegrator.h
     Vektor.h
 )
+
+if ( ENABLE_AMR )
+    list(APPEND HDRS AmrPartBunch.h)
+endif ( ENABLE_AMR )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Algorithms")

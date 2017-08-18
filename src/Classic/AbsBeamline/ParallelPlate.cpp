@@ -21,7 +21,7 @@
 
 #include "AbsBeamline/ParallelPlate.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Physics/Physics.h"
 
 #include <iostream>
@@ -139,7 +139,7 @@ bool ParallelPlate::applyToReferenceParticle(const Vector_t &R, const Vector_t &
     return true;
 }
 
-void ParallelPlate::initialise(PartBunch *bunch, double &startField, double &endField) {
+void ParallelPlate::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
 
     length_m = getElementLength();
     RefPartBunch_m = bunch;
@@ -150,7 +150,7 @@ void ParallelPlate::initialise(PartBunch *bunch, double &startField, double &end
 }
 
 // In current version ,not implemented yet.
-void ParallelPlate::initialise(PartBunch *bunch) {
+void ParallelPlate::initialise(PartBunchBase<double, 3> *bunch) {
     using Physics::pi;
 
     Inform msg("ParallelPlate initialization for cyclotron tracker ");

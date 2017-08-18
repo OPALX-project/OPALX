@@ -50,7 +50,7 @@ public:
     /// Get vertical component Ey of field in V/m.
     virtual double getEy() const = 0;
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
 
     virtual void finalise();
 

@@ -10,8 +10,8 @@ REPARTFREQ       = 500;
 MINSTEPFORREBIN  = 1000;
 
 QB               = 1.66101e-10;
-BFREQ            = 2997.912*1e6;
-BCURRENT         = QB*BFREQ;
+BFREQ            = 2997.912;
+BCURRENT         = QB*BFREQ*1e6;
 
 USE_ET = 1;
 

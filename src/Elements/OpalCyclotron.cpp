@@ -94,7 +94,7 @@ OpalCyclotron::OpalCyclotron():
                         ("MBTC", "array of max bfield values of trim coils [kG]");
 
     itsAttr[SLPTCV]    = Attributes::makeRealArray
-                        ("SLPTC", "array of slopes of the rising edge");
+                        ("SLPTC", "array of slopes of the rising edge [1/mm]");
 
     itsAttr[MINZ]     = Attributes::makeReal
                         ("MINZ","Minimal vertical extent of the machine [mm]",-10000.0);
@@ -112,7 +112,7 @@ OpalCyclotron::OpalCyclotron():
                         ("GEOMETRY", "Boundary Geometry for the Cyclotron");
 
     itsAttr[FMLOWE]     = Attributes::makeReal
-                        ("FMLOWE","Minimal Energy [MeV]  the fieldmap can accept. Used in GAUSSMATCHED", -1.0);
+                        ("FMLOWE", "Minimal Energy [MeV] the fieldmap can accept. Used in GAUSSMATCHED", -1.0);
 
     itsAttr[FMHIGHE]     = Attributes::makeReal
                         ("FMHIGHE","Maximal Energy [MeV] the fieldmap can accept. Used in GAUSSMATCHED", -1.0);
@@ -173,7 +173,6 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
 
 void OpalCyclotron::update() {
-    using Physics::two_pi;
     CyclotronRep *cycl =
         dynamic_cast<CyclotronRep *>(getElement()->removeWrappers());
 
@@ -181,21 +180,21 @@ void OpalCyclotron::update() {
 
     std::string type = Attributes::getString(itsAttr[TYPE]);
 
-    double harmnum = Attributes::getReal(itsAttr[CYHARMON]);
+    double harmnum  = Attributes::getReal(itsAttr[CYHARMON]);
     double symmetry = Attributes::getReal(itsAttr[SYMMETRY]);
-    double rinit = Attributes::getReal(itsAttr[RINIT]);
-    double prinit = Attributes::getReal(itsAttr[PRINIT]);
-    double phiinit = Attributes::getReal(itsAttr[PHIINIT]);
-    double zinit = Attributes::getReal(itsAttr[ZINIT]);
-    double pzinit = Attributes::getReal(itsAttr[PZINIT]);
-    double bscale = Attributes::getReal(itsAttr[BSCALE]);
+    double rinit    = Attributes::getReal(itsAttr[RINIT]);
+    double prinit   = Attributes::getReal(itsAttr[PRINIT]);
+    double phiinit  = Attributes::getReal(itsAttr[PHIINIT]);
+    double zinit    = Attributes::getReal(itsAttr[ZINIT]);
+    double pzinit   = Attributes::getReal(itsAttr[PZINIT]);
+    double bscale   = Attributes::getReal(itsAttr[BSCALE]);
 
     double minz = Attributes::getReal(itsAttr[MINZ]);
     double maxz = Attributes::getReal(itsAttr[MAXZ]);
     double minr = Attributes::getReal(itsAttr[MINR]);
     double maxr = Attributes::getReal(itsAttr[MAXR]);
 
-    double fmLowE = Attributes::getReal(itsAttr[FMLOWE]);
+    double fmLowE  = Attributes::getReal(itsAttr[FMLOWE]);
     double fmHighE = Attributes::getReal(itsAttr[FMHIGHE]);
 
     bool spiral_flag = Attributes::getBool(itsAttr[SPIRAL]);
@@ -224,13 +223,13 @@ void OpalCyclotron::update() {
 
     cycl->setSpiralFlag(spiral_flag);
 
-    std::vector<std::string> fm_str = Attributes::getStringArray(itsAttr[RFMAPFN]);
+    std::vector<std::string> fm_str     = Attributes::getStringArray(itsAttr[RFMAPFN]);
     std::vector<std::string> rffcfn_str = Attributes::getStringArray(itsAttr[RFFCFN]);
     std::vector<std::string> rfvcfn_str = Attributes::getStringArray(itsAttr[RFVCFN]);
-    std::vector<double> scale_str = Attributes::getRealArray(itsAttr[ESCALE]);
-    std::vector<double> phi_str = Attributes::getRealArray(itsAttr[RFPHI]);
-    std::vector<double> rff_str = Attributes::getRealArray(itsAttr[RFFREQ]);
-    std::vector<bool> superpose_str = Attributes::getBoolArray(itsAttr[SUPERPOSE]);
+    std::vector<double> scale_str       = Attributes::getRealArray(itsAttr[ESCALE]);
+    std::vector<double> phi_str         = Attributes::getRealArray(itsAttr[RFPHI]);
+    std::vector<double> rff_str         = Attributes::getRealArray(itsAttr[RFFREQ]);
+    std::vector<bool> superpose_str     = Attributes::getBoolArray(itsAttr[SUPERPOSE]);
 
     std::vector<double> tcr1v  = Attributes::getRealArray(itsAttr[TCR1V]);
     std::vector<double> tcr2v  = Attributes::getRealArray(itsAttr[TCR2V]);
@@ -254,7 +253,7 @@ void OpalCyclotron::update() {
             throw OpalException("OpalCyclotron::update()",
                                 "The slopes of the rising edge have to be different from zero");
         }
-
+        // remove switched off trim coils
         if (tcr1v[i] == 0 ||
             tcr2v[i] == 0 ||
             mbtcv[i] == 0) {
@@ -265,8 +264,10 @@ void OpalCyclotron::update() {
             -- effectiveSize;
             -- i;
         } else {
-            tcr1v[i] *= mm2m;
-            tcr2v[i] *= mm2m;
+            // convert to meters for internal use
+            tcr1v[i]  *= mm2m;
+            tcr2v[i]  *= mm2m;
+            slptcv[i] /= mm2m;
         }
     }
 
@@ -317,5 +318,3 @@ void OpalCyclotron::update() {
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(cycl);
 }
-
-//  LocalWords:  rfphi

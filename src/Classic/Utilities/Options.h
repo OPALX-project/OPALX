@@ -153,6 +153,12 @@ namespace Options {
     extern bool cloTuneOnly;
 
     extern int version;
+    
+#ifdef ENABLE_AMR
+    extern bool amr;
+#endif
+    
+    extern bool memoryDump;
 }
 
 #endif // OPAL_Options_HH

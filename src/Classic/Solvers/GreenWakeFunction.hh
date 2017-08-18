@@ -39,7 +39,7 @@ public:
 
     std::pair<int, int> distrIndices(int vectLen);
 
-    void apply(PartBunch &bunch);
+    void apply(PartBunchBase<double, 3> *bunch);
     void setWakeFromFile(int NBin, double spacing);
     virtual const std::string getType() const;
 
@@ -164,7 +164,7 @@ private:
 
     std::vector<Filter *> filters_m;
 
-    void testApply(PartBunch &bunch);
+    void testApply(PartBunchBase<double, 3> *bunch);
     void compEnergy(const double K, const double charge, const double *lambda, double *OutEnergy);
     void compEnergy(const double K, const double charge, std::vector<double> lambda, double *OutEnergy);
     void CalcWakeFFT(double spacing);
