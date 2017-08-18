@@ -1,5 +1,5 @@
 #include "Structure/PriEmissionPhysics.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Physics/Physics.h"
 
 #include <vector>
@@ -25,10 +25,20 @@ PriEmissionPhysics::~PriEmissionPhysics() {
  */
 
 
-void PriEmissionPhysics::Fieldemission(PartBunch *itsBunch, const double &fa, const double &Enormal, const double &parameterFNB,
-                                       const double &workFunction, const double &parameterFNVYZe, const double &parameterFNVYSe,
-                                       const double &parameterFNY, const double &fieldEnhancement, const double &maxFNemission,
-                                       const double &TriArea, const std::vector<Vector_t> &vertex, const Vector_t TriNormal, size_t &Nstp)  {
+void PriEmissionPhysics::Fieldemission(PartBunchBase<double, 3> *itsBunch,
+                                       const double &fa,
+                                       const double &Enormal,
+                                       const double &parameterFNB,
+                                       const double &workFunction,
+                                       const double &parameterFNVYZe,
+                                       const double &parameterFNVYSe,
+                                       const double &parameterFNY,
+                                       const double &fieldEnhancement,
+                                       const double &maxFNemission,
+                                       const double &TriArea,
+                                       const std::vector<Vector_t> &vertex,
+                                       const Vector_t TriNormal, size_t &Nstp)
+{
 
     int node_num = Ippl::getNodes();
 

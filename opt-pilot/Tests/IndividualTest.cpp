@@ -4,6 +4,8 @@
 
 #include "boost/smart_ptr.hpp"
 
+#include <string>
+
 namespace {
 
     // The fixture for testing class Foo.
@@ -33,20 +35,26 @@ namespace {
             // before the destructor).
         }
 
-        boost::shared_ptr<Individual> createIndividual(size_t num_genes) {
+        boost::shared_ptr<Individual> createIndividual(size_t num_genes, std::string constraint="") {
 
             Individual::bounds_t bounds;
-            for(size_t i=0; i < num_genes; i++)
+            Individual::names_t names;
+            Individual::constraints_t constraints;
+            for(size_t i=0; i < num_genes; i++) {
                 bounds.push_back(
                     std::pair<double, double>(lower_bound_, upper_bound_));
+                names.push_back("dvar"+std::to_string(i));
+            }
+            if (constraint.empty() == false) 
+                constraints.insert(std::pair<std::string,Expressions::Expr_t*>
+                                   ("constraint0",new Expressions::Expr_t(constraint)));
 
-            boost::shared_ptr<Individual> ind(new Individual(bounds));
+            boost::shared_ptr<Individual> ind(new Individual(bounds,names,constraints));
             return ind;
         }
 
         double lower_bound_;
         double upper_bound_;
-
     };
 
     TEST_F(IndividualTest, IndividualRespectsBounds) {
@@ -85,6 +93,20 @@ namespace {
         EXPECT_NE(gene, new_gene) << "new gene should be different";
     }
 
+    TEST_F(IndividualTest, IndividualConstraint) {
+
+        size_t num_genes = 2;
+        double half = (lower_bound_ + upper_bound_) / 2.;
+        std::string constraint  = "(dvar0 + dvar1)/2. <=" + std::to_string(half);  
+
+        // create several individuals to test
+        for (int i=0; i<10; i++) {
+            boost::shared_ptr<Individual> ind = createIndividual(num_genes,constraint);
+            double gene0 = ind->genes[0];
+            double gene1 = ind->genes[1];
+            EXPECT_LE((gene0+gene1)/2, half) << "constraint should be respected";
+        }
+    }
 }
 
 int main(int argc, char **argv) {

@@ -155,7 +155,7 @@ class Offset : public Component {
      */
     bool bends() const;
 
-    void initialise(PartBunch *bunch, double &startField,
+    void initialise(PartBunchBase<double, 3> *bunch, double &startField,
                             double &endField);
     void finalise();
     void getDimensions(double &zBegin, double &zEnd) const {}

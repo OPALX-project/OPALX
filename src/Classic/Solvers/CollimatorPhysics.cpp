@@ -8,7 +8,7 @@
 //-------------------------------------------------------------------------
 #include "Solvers/CollimatorPhysics.hh"
 #include "Physics/Physics.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
@@ -154,7 +154,7 @@ CollimatorPhysics::~CollimatorPhysics() {
 
 }
 
-void CollimatorPhysics::doPhysics(PartBunch &bunch) {
+void CollimatorPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
     /***
         Do physics if
         -- particle in material
@@ -278,7 +278,7 @@ bool CollimatorPhysics::checkHit(const Vector_t &R, const Vector_t &P, double dt
     return hit;
 }
 
-void CollimatorPhysics::apply(PartBunch &bunch,
+void CollimatorPhysics::apply(PartBunchBase<double, 3> *bunch,
                               const std::pair<Vector_t, double> &boundingSphere,
                               size_t numParticlesInSimulation) {
     IpplTimings::startTimer(DegraderApplyTimer_m);
@@ -308,8 +308,8 @@ void CollimatorPhysics::apply(PartBunch &bunch,
 
     bool onlyOneLoopOverParticles = ! (allParticleInMat_m);
 
-    dT_m = bunch.getdT();
-    T_m  = bunch.getT();
+    dT_m = bunch->getdT();
+    T_m  = bunch->getT();
 
     /*
       Because this is not propper set in the Component class when calling in the Constructor
@@ -390,12 +390,12 @@ void CollimatorPhysics::apply(PartBunch &bunch,
             locPartsInMat_m = numparticles;
             reduce(locPartsInMat_m, locPartsInMat_m, OpAddAssign());
 
-            int maxPerNode = bunch.getLocalNum();
+            int maxPerNode = bunch->getLocalNum();
             reduce(maxPerNode, maxPerNode, OpMaxAssign());
 
             //more than one loop only if all the particles are in this degrader
             if (allParticleInMat_m) {
-                onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMinimumNumberOfParticlesPerCore() || locPartsInMat_m <= 0);
+                onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch->getMinimumNumberOfParticlesPerCore() || locPartsInMat_m <= 0);
             } else {
                 onlyOneLoopOverParticles = true;
             }
@@ -426,10 +426,10 @@ void CollimatorPhysics::apply(PartBunch &bunch,
             reduce(locPartsInMat_m, locPartsInMat_m, OpAddAssign());
 
 
-            int maxPerNode = bunch.getLocalNum();
+            int maxPerNode = bunch->getLocalNum();
             reduce(maxPerNode, maxPerNode, OpMaxAssign());
             if (allParticleInMat_m) {
-                onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMinimumNumberOfParticlesPerCore() || locPartsInMat_m <= 0);
+                onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch->getMinimumNumberOfParticlesPerCore() || locPartsInMat_m <= 0);
             } else {
                 onlyOneLoopOverParticles = true;
             }
@@ -459,10 +459,10 @@ void CollimatorPhysics::apply(PartBunch &bunch,
         locPartsInMat_m = locParts_m.size();
         reduce(locPartsInMat_m, locPartsInMat_m, OpAddAssign());
 
-        int maxPerNode = bunch.getLocalNum();
+        int maxPerNode = bunch->getLocalNum();
         reduce(maxPerNode, maxPerNode, OpMaxAssign());
         if (allParticleInMat_m) {
-            onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch.getMinimumNumberOfParticlesPerCore() || locPartsInMat_m <= 0);
+            onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch->getMinimumNumberOfParticlesPerCore() || locPartsInMat_m <= 0);
         } else {
             onlyOneLoopOverParticles = true;
         }
@@ -796,23 +796,23 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, const double &del
     }
 }
 
-void CollimatorPhysics::addBackToBunch(PartBunch &bunch, unsigned i) {
+void CollimatorPhysics::addBackToBunch(PartBunchBase<double, 3> *bunch, unsigned i) {
 
-    bunch.createWithID(locParts_m[i].IDincol);
+    bunch->createWithID(locParts_m[i].IDincol);
 
     /*
       Binincol is still <0, but now the particle is rediffused
       from the material and hence this is not a "lost" particle anymore
     */
 
-    const unsigned int last = bunch.getLocalNum() - 1;
-    bunch.Bin[last] = 1;
-    bunch.R[last]   = locParts_m[i].Rincol;
-    bunch.P[last]   = locParts_m[i].Pincol;
-    bunch.Q[last]   = locParts_m[i].Qincol;
-    bunch.Bf[last]  = locParts_m[i].Bfincol;
-    bunch.Ef[last]  = locParts_m[i].Efincol;
-    bunch.dt[last]  = locParts_m[i].DTincol;
+    const unsigned int last = bunch->getLocalNum() - 1;
+    bunch->Bin[last] = 1;
+    bunch->R[last]   = locParts_m[i].Rincol;
+    bunch->P[last]   = locParts_m[i].Pincol;
+    bunch->Q[last]   = locParts_m[i].Qincol;
+    bunch->Bf[last]  = locParts_m[i].Bfincol;
+    bunch->Ef[last]  = locParts_m[i].Efincol;
+    bunch->dt[last]  = locParts_m[i].DTincol;
 
     /*
       This particle is back to the bunch, by set
@@ -824,10 +824,10 @@ void CollimatorPhysics::addBackToBunch(PartBunch &bunch, unsigned i) {
     ++ rediffusedStat_m;
 }
 
-void CollimatorPhysics::copyFromBunch(PartBunch &bunch,
+void CollimatorPhysics::copyFromBunch(PartBunchBase<double, 3> *bunch,
                                       const std::pair<Vector_t, double> &boundingSphere)
 {
-    const size_t nL = bunch.getLocalNum();
+    const size_t nL = bunch->getLocalNum();
     if (nL == 0) return;
 
     IpplTimings::startTimer(DegraderDestroyTimer_m);
@@ -847,34 +847,39 @@ void CollimatorPhysics::copyFromBunch(PartBunch &bunch,
         coll = static_cast<Collimator *>(element_ref_m);
 
     size_t ne = 0;
-    const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore();
+    std::set<size_t> partsToDel;
+    const unsigned int minNumOfParticlesPerCore = bunch->getMinimumNumberOfParticlesPerCore();
     for (size_t i = 0; i < nL; ++ i) {
-        if ((bunch.Bin[i] == -1 || bunch.Bin[i] == 1) &&
+        if ((bunch->Bin[i] == -1 || bunch->Bin[i] == 1) &&
             ((nL - ne) > minNumOfParticlesPerCore) &&
-            checkHit(bunch.R[i], bunch.P[i], dT_m, deg, coll))
+            checkHit(bunch->R[i], bunch->P[i], dT_m, deg, coll))
         {
             PART x;
             x.localID      = i;
-            x.DTincol      = bunch.dt[i];
-            x.IDincol      = bunch.ID[i];
-            x.Binincol     = bunch.Bin[i];
-            x.Rincol       = bunch.R[i];
-            x.Pincol       = bunch.P[i];
-            x.Qincol       = bunch.Q[i];
-            x.Bfincol      = bunch.Bf[i];
-            x.Efincol      = bunch.Ef[i];
+            x.DTincol      = bunch->dt[i];
+            x.IDincol      = bunch->ID[i];
+            x.Binincol     = bunch->Bin[i];
+            x.Rincol       = bunch->R[i];
+            x.Pincol       = bunch->P[i];
+            x.Qincol       = bunch->Q[i];
+            x.Bfincol      = bunch->Bf[i];
+            x.Efincol      = bunch->Ef[i];
             x.label        = 0;            // allive in matter
 
             locParts_m.push_back(x);
             ne++;
             bunchToMatStat_m++;
 
-            bunch.destroy(1, i);
+            partsToDel.insert(i);
         }
     }
 
+    for (auto it = partsToDel.begin(); it != partsToDel.end(); ++ it) {
+        bunch->destroy(1, *it);
+    }
+
     if (ne > 0) {
-        bunch.performDestroy(true);
+        bunch->performDestroy(true);
     }
     IpplTimings::stopTimer(DegraderDestroyTimer_m);
 }
@@ -926,7 +931,7 @@ bool CollimatorPhysics::stillActive() {
     return locPartsInMat_m != 0;
 }
 
-bool CollimatorPhysics::stillAlive(PartBunch &bunch) {
+bool CollimatorPhysics::stillAlive(PartBunchBase<double, 3> *bunch) {
 
     bool degraderAlive = true;
 
@@ -939,7 +944,7 @@ bool CollimatorPhysics::stillAlive(PartBunch &bunch) {
         deg->getDimensions(zBegin, zEnd);
 
         //get the average Z position of the bunch
-        Vector_t bunchOrigin = bunch.get_origin();
+        Vector_t bunchOrigin = bunch->get_origin();
 
         //if bunch has moved past degrader free GPU memory
         if (bunchOrigin[2] > zBegin) {
@@ -970,7 +975,7 @@ void CollimatorPhysics::deleteParticleFromLocalVector() {
     // find start of particles to delete
     std::vector<PART>::iterator inv = locParts_m.begin();
 
-    for (; inv != locParts_m.end(); inv++) {
+    for (; inv != locParts_m.end(); ++inv) {
         if ((*inv).label == -1)
             break;
     }
@@ -991,26 +996,26 @@ bool myCompFDKS(PART_DKS x, PART_DKS y) {
     return x.label > y.label;
 }
 
-void CollimatorPhysics::addBackToBunchDKS(PartBunch &bunch, unsigned i) {
+void CollimatorPhysics::addBackToBunchDKS(PartBunchBase<double, 3> *bunch, unsigned i) {
 
     int id = dksParts_m[i].localID;
 
-    bunch.createWithID(locParts_m[id].IDincol);
+    bunch->createWithID(locParts_m[id].IDincol);
 
     /*
       Binincol is still <0, but now the particle is rediffused
       from the material and hence this is not a "lost" particle anymore
     */
-    unsigned int last = bunch.getLocalNum() - 1;
-    bunch.Bin[last] = 1;
+    unsigned int last = bunch->getLocalNum() - 1;
+    bunch->Bin[last] = 1;
 
-    bunch.R[last]   = dksParts_m[i].Rincol;
-    bunch.P[last]   = dksParts_m[i].Pincol;
+    bunch->R[last]   = dksParts_m[i].Rincol;
+    bunch->P[last]   = dksParts_m[i].Pincol;
 
-    bunch.Q[last]   = locParts_m[id].Qincol;
-    bunch.Bf[last]  = locParts_m[id].Bfincol;
-    bunch.Ef[last]  = locParts_m[id].Efincol;
-    bunch.dt[last]  = locParts_m[id].DTincol;
+    bunch->Q[last]   = locParts_m[id].Qincol;
+    bunch->Bf[last]  = locParts_m[id].Bfincol;
+    bunch->Ef[last]  = locParts_m[id].Efincol;
+    bunch->dt[last]  = locParts_m[id].DTincol;
 
     dksParts_m[i].label = -1.0;
 
@@ -1018,10 +1023,10 @@ void CollimatorPhysics::addBackToBunchDKS(PartBunch &bunch, unsigned i) {
 
 }
 
-void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch,
+void CollimatorPhysics::copyFromBunchDKS(PartBunchBase<double, 3> *bunch,
 					 const std::pair<Vector_t, double> &boundingSphere)
 {
-    const size_t nL = bunch.getLocalNum();
+    const size_t nL = bunch->getLocalNum();
     if (nL == 0) return;
 
     IpplTimings::startTimer(DegraderDestroyTimer_m);
@@ -1041,24 +1046,24 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch,
         coll = static_cast<Collimator *>(element_ref_m);
 
     size_t ne = 0;
-    const unsigned int minNumOfParticlesPerCore = bunch.getMinimumNumberOfParticlesPerCore();
+    const unsigned int minNumOfParticlesPerCore = bunch->getMinimumNumberOfParticlesPerCore();
 
     for (unsigned int i = 0; i < nL; ++i) {
-        if ((bunch.Bin[i] == -1 || bunch.Bin[i] == 1) &&
+        if ((bunch->Bin[i] == -1 || bunch->Bin[i] == 1) &&
             ((nL - ne) > minNumOfParticlesPerCore) &&
-            checkHit(bunch.R[i], bunch.P[i], dT_m, deg, coll))
+            checkHit(bunch->R[i], bunch->P[i], dT_m, deg, coll))
         {
 
             PART x;
             x.localID      = numlocalparts; //unique id for each particle
-            x.DTincol      = bunch.dt[i];
-            x.IDincol      = bunch.ID[i];
-            x.Binincol     = bunch.Bin[i];
-            x.Rincol       = bunch.R[i];
-            x.Pincol       = bunch.P[i];
-            x.Qincol       = bunch.Q[i];
-            x.Bfincol      = bunch.Bf[i];
-            x.Efincol      = bunch.Ef[i];
+            x.DTincol      = bunch->dt[i];
+            x.IDincol      = bunch->ID[i];
+            x.Binincol     = bunch->Bin[i];
+            x.Rincol       = bunch->R[i];
+            x.Pincol       = bunch->P[i];
+            x.Qincol       = bunch->Q[i];
+            x.Bfincol      = bunch->Bf[i];
+            x.Efincol      = bunch->Ef[i];
             x.label        = 0;            // allive in matter
 
             PART_DKS x_gpu;
@@ -1075,17 +1080,17 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunch &bunch,
             numlocalparts++;
 
             //mark particle to be deleted from bunch as soon as it enters the material
-            bunch.destroy(1, i);
+            bunch->destroy(1, i);
         }
     }
     if (ne > 0) {
-      bunch.performDestroy(true);
+      bunch->performDestroy(true);
     }
     IpplTimings::stopTimer(DegraderDestroyTimer_m);
 
 }
 
-void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch,
+void CollimatorPhysics::setupCollimatorDKS(PartBunchBase<double, 3> *bunch,
         size_t numParticlesInSimulation)
 {
 
@@ -1093,8 +1098,8 @@ void CollimatorPhysics::setupCollimatorDKS(PartBunch &bunch,
 
         IpplTimings::startTimer(DegraderInitTimer_m);
 
-        //int size = bunch.getLocalNum() + 0.5 * bunch.getLocalNum();
-        //int size = bunch.getTotalNum() + 0.5 * bunch.getTotalNum();
+        //int size = bunch->getLocalNum() + 0.5 * bunch->getLocalNum();
+        //int size = bunch->getTotalNum() + 0.5 * bunch->getTotalNum();
         int size = numParticlesInSimulation;
 
         //allocate memory for parameters

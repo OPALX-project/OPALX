@@ -37,6 +37,8 @@
 #include "Structure/BoundaryGeometry.h"
 #include "AbsBeamline/SBend3D.h"
 
+#include "opal_test_utilities/SilenceTest.h"
+
 #include "Utilities/LogicalError.h"
 
 class LoadFieldMap {
@@ -140,6 +142,8 @@ class LoadFieldMap {
 };
 
 TEST(SBend3DTest, SBend3DGeometryTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     LoadFieldMap fieldLoader("field1", 1, 1, -1);
     SBend3D* field = fieldLoader.sbend3d_m;
     if (field == NULL)
@@ -205,6 +209,8 @@ void testField(double r, double y, double phi,
 }
 
 TEST(SBend3DTest, SBend3DFieldTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // 211.000000000       0.00000000000       0.00000000000       0.00000000000              0.00000000000
     testField(0., 0., Physics::pi/8., 0., 5346.80707376*1e-4, 0., 1e-6);
     // 211.000000000      0.250000000000       0.00000000000       71.6525328925       5351.82535885     -0.156196844700E-02
@@ -213,22 +219,26 @@ TEST(SBend3DTest, SBend3DFieldTest) {
 }
 
 TEST(SBend3DTest, SBend3DBadFileTest) {
-        LoadFieldMap fieldLoader3("field5", 1, 1, -1); // should work okay
-        EXPECT_THROW(
-            LoadFieldMap fieldLoader3("field6", 1, 1, 3), // missing header line
-            LogicalError
-        );
-        EXPECT_THROW(
-            LoadFieldMap fieldLoader3("field7", 1, 1, 8), // missing first body
-            LogicalError
-        );
-        EXPECT_THROW(
-            LoadFieldMap fieldLoader3("field8", 1, 1, 34), // missing last body
-            LogicalError
-        );
+    OpalTestUtilities::SilenceTest silencer;
+
+    LoadFieldMap fieldLoader3("field5", 1, 1, -1); // should work okay
+    EXPECT_THROW(
+                 LoadFieldMap fieldLoader3("field6", 1, 1, 3), // missing header line
+                 LogicalError
+                 );
+    EXPECT_THROW(
+                 LoadFieldMap fieldLoader3("field7", 1, 1, 8), // missing first body
+                 LogicalError
+                 );
+    EXPECT_THROW(
+                 LoadFieldMap fieldLoader3("field8", 1, 1, 34), // missing last body
+                 LogicalError
+                 );
 }
 
 TEST(SBend3DTest, SBend3DPolyPatchTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // make the poly order > 1; this puts SBend3D in PolynomialPatch mode;
     // check the field map loads correctly including e.g. dipole symmetry
     try {

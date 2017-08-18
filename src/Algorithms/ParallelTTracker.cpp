@@ -28,7 +28,6 @@
 #include <limits>
 #include <cmath>
 
-#include "Algorithms/PartPusher.h"
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/CavityAutophaser.h"
 #include "Beamlines/Beamline.h"
@@ -59,7 +58,6 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
                                    bool revBeam,
                                    bool revTrack):
     Tracker(beamline, reference, revBeam, revTrack),
-    itsBunch_m(NULL),
     itsDataSink_m(NULL),
     itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getCoordTransformationTo()),
     RefPartR_m(0.0),
@@ -99,7 +97,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
 }
 
 ParallelTTracker::ParallelTTracker(const Beamline &beamline,
-                                   PartBunch &bunch,
+                                   PartBunchBase<double, 3> *bunch,
                                    DataSink &ds,
                                    const PartData &reference,
                                    bool revBeam,
@@ -108,8 +106,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
                                    double zstart,
                                    const std::vector<double> &zstop,
                                    const std::vector<double> &dt):
-    Tracker(beamline, reference, revBeam, revTrack),
-    itsBunch_m(&bunch),
+    Tracker(beamline, bunch, reference, revBeam, revTrack),
     itsDataSink_m(&ds),
     itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getCoordTransformationTo()),
     RefPartR_m(0.0),
@@ -724,7 +721,7 @@ void ParallelTTracker::computeWakefield(IndexMap::value_t &elements) {
                 itsBunch_m->Ef[i] = referenceToBeamCSTrafo.rotateTo(itsBunch_m->Ef[i]);
             }
 
-            wfInstance->apply(*itsBunch_m);
+            wfInstance->apply(itsBunch_m);
 
             for (unsigned int i = 0; i < localNum; ++ i) {
                 itsBunch_m->R[i] = beamToReferenceCSTrafo.transformTo(itsBunch_m->R[i]);
@@ -844,7 +841,7 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
                 }
                 boundingSphere.first = refToLocalCSTrafo.transformTo(boundingSphere.first);
 
-                it->apply(*itsBunch_m, boundingSphere, totalParticlesInSimulation_m);
+                it->apply(itsBunch_m, boundingSphere, totalParticlesInSimulation_m);
                 it->print(msg);
 
                 boundingSphere.first = localToRefCSTrafo.transformTo(boundingSphere.first);
@@ -1064,7 +1061,7 @@ void ParallelTTracker::writePhaseSpace(const long long step, bool psDump, bool s
             }
 	}
         // Write statistical data.
-        itsDataSink_m->writeStatData(*itsBunch_m, FDext, collimatorLosses);
+        itsDataSink_m->writeStatData(itsBunch_m, FDext, collimatorLosses);
 
         msg << level3 << "* Wrote beam statistics." << endl;
     }
@@ -1101,7 +1098,7 @@ void ParallelTTracker::writePhaseSpace(const long long step, bool psDump, bool s
         if (!statDump && !driftToCorrectPosition) itsBunch_m->calcBeamParameters();
 
         msg << *itsBunch_m << endl;
-        itsDataSink_m->writePhaseSpace(*itsBunch_m, FDext);
+        itsDataSink_m->writePhaseSpace(itsBunch_m, FDext);
 
         if (driftToCorrectPosition) {
             if (localNum > 0) {

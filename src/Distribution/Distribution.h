@@ -19,15 +19,14 @@
 // ------------------------------------------------------------------------
 #include <iosfwd>
 #include <fstream>
-#include <forward_list>
 #include <string>
-#include <map>
 
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
 
 #include "Algorithms/Vektor.h"
 #include "Beamlines/Beamline.h"
+#include "Attributes/Attributes.h"
 
 #include "Ippl.h"
 
@@ -35,14 +34,16 @@
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_histogram.h>
-#include <gsl/gsl_qrng.h>
 
 #ifdef WITH_UNIT_TESTS
 #include <gtest/gtest_prod.h>
 #endif
 
 class Beam;
-class PartBunch;
+
+template <class T, unsigned Dim>
+class PartBunchBase;
+
 class PartBins;
 class EnvelopeBunch;
 class BoundaryGeometry;
@@ -79,6 +80,154 @@ namespace InputMomentumUnitsT
                               };
 }
 
+namespace Attrib
+{
+    namespace Distribution
+    {
+        enum AttributesT {
+            TYPE,
+            FNAME,
+            WRITETOFILE,
+            WEIGHT,
+            INPUTMOUNITS,
+            EMITTED,
+            EMISSIONSTEPS,
+            EMISSIONMODEL,
+            EKIN,
+            ELASER,
+            W,
+            FE,
+            CATHTEMP,
+            NBIN,
+            XMULT,
+            YMULT,
+            ZMULT,
+            TMULT,
+            PXMULT,
+            PYMULT,
+            PZMULT,
+            OFFSETX,
+            OFFSETY,
+            OFFSETZ,
+            OFFSETT,
+            OFFSETPX,
+            OFFSETPY,
+            OFFSETPZ,
+            SIGMAX,
+            SIGMAY,
+            SIGMAR,
+            SIGMAZ,
+            SIGMAT,
+            TPULSEFWHM,
+            TRISE,
+            TFALL,
+            SIGMAPX,
+            SIGMAPY,
+            SIGMAPZ,
+            MX,
+            MY,
+            MZ,
+            MT,
+            CUTOFFX,
+            CUTOFFY,
+            CUTOFFR,
+            CUTOFFLONG,
+            CUTOFFPX,
+            CUTOFFPY,
+            CUTOFFPZ,
+            FTOSCAMPLITUDE,
+            FTOSCPERIODS,
+            R,                          // the correlation matrix (a la transport)
+            CORRX,
+            CORRY,
+            CORRZ,
+            CORRT,
+            R51,
+            R52,
+            R61,
+            R62,
+            LASERPROFFN,
+            IMAGENAME,
+            INTENSITYCUT,
+            FLIPX,
+            FLIPY,
+            ROTATE90,
+            ROTATE180,
+            ROTATE270,
+            NPDARKCUR,
+            INWARDMARGIN,
+            EINITHR,
+            FNA,
+            FNB,
+            FNY,
+            FNVYZERO,
+            FNVYSECOND,
+            FNPHIW,
+            FNBETA,
+            FNFIELDTHR,
+            FNMAXEMI,
+            SECONDARYFLAG,
+            NEMISSIONMODE,
+            VSEYZERO,                   // sey_0 in Vaughn's model.
+            VEZERO,                     // Energy related to sey_0 in Vaughan's model.
+            VSEYMAX,                    // sey max in Vaughan's model.
+            VEMAX,                      // Emax in Vaughan's model.
+            VKENERGY,                   // Fitting parameter denotes the roughness of
+            // surface for impact energy in Vaughn's model.
+            VKTHETA,                    // Fitting parameter denotes the roughness of
+            // surface for impact angle in Vaughn's model.
+            VVTHERMAL,                  // Thermal velocity of Maxwellian distribution
+            // of secondaries in Vaughan's model.
+            VW,
+            SURFMATERIAL,               // Add material type, currently 0 for copper
+            // and 1 for stainless steel.
+            EX,                         // below is for the matched distribution
+            EY,
+            ET,
+            MAGSYM,                     // number of sector magnets
+            LINE,
+            FMAPFN,
+            FMTYPE,                     // field map type used in matched gauss distribution
+            RESIDUUM,
+            MAXSTEPSCO,
+            MAXSTEPSSI,
+            ORDERMAPS,
+            E2,
+            RGUESS,
+            ID1,                       // special particle that the user can set
+            ID2,                       // special particle that the user can set
+            SCALABLE,
+            SIZE
+        };
+    }
+
+    namespace Legacy
+    {
+        namespace Distribution
+        {
+            enum LegacyAttributesT {
+                // DESCRIPTION OF THE DISTRIBUTION:
+                DISTRIBUTION = Attrib::Distribution::SIZE,
+                DEBIN,
+                SBIN,
+                SIGMAPT,
+                CUTOFF,
+                T,
+                PT,
+                // ALPHAX,
+                // ALPHAY,
+                // BETAX,
+                // BETAY,
+                // DX,
+                // DDX,
+                // DY,
+                // DDY,
+                SIZE
+            };
+        }
+    }
+}
+
 /*
  * Class Distribution
  *
@@ -96,11 +245,9 @@ public:
     virtual Distribution *clone(const std::string &name);
     virtual void execute();
     virtual void update();
-
     size_t getNumOfLocalParticlesToCreate(size_t n);
-
-    void createBoundaryGeometry(PartBunch &p, BoundaryGeometry &bg);
-    void createOpalCycl(PartBunch &beam,
+    void createBoundaryGeometry(PartBunchBase<double, 3> *p, BoundaryGeometry &bg);
+    void createOpalCycl(PartBunchBase<double, 3> *beam,
                         size_t numberOfParticles,
 			double current, const Beamline &bl,
                         bool scan);
@@ -109,17 +256,17 @@ public:
                      EnvelopeBunch *envelopeBunch,
                      double distCenter,
                      double Bz0);
-    void createOpalT(PartBunch &beam,
+    void createOpalT(PartBunchBase<double, 3> *beam,
                      std::vector<Distribution *> addedDistributions,
                      size_t &numberOfParticles,
                      bool scan);
-    void createOpalT(PartBunch &beam, size_t &numberOfParticles, bool scan);
-    void createPriPart(PartBunch *beam, BoundaryGeometry &bg);
-    void doRestartOpalT(PartBunch &p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
-    void doRestartOpalCycl(PartBunch &p, size_t Np, int restartStep,
+    void createOpalT(PartBunchBase<double, 3> *beam, size_t &numberOfParticles, bool scan);
+    void createPriPart(PartBunchBase<double, 3> *beam, BoundaryGeometry &bg);
+    void doRestartOpalT(PartBunchBase<double, 3> *p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
+    void doRestartOpalCycl(PartBunchBase<double, 3> *p, size_t Np, int restartStep,
                         const int specifiedNumBunch, H5PartWrapper *h5wrapper);
-    void doRestartOpalE(EnvelopeBunch &p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
-    size_t emitParticles(PartBunch &beam, double eZ);
+    void doRestartOpalE(EnvelopeBunch *p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
+    size_t emitParticles(PartBunchBase<double, 3> *beam, double eZ);
     double getPercentageEmitted() const;
     static Distribution *find(const std::string &name);
 
@@ -189,17 +336,6 @@ public:
     void shiftBeam(double &maxTOrZ, double &minTOrZ);
     double getEmissionTimeShift() const;
 
-    // in case if OPAL-cycl in restart mode
-    double GetBeGa() {return bega_m;}
-    double GetPr() {return referencePr_m;}
-    double GetPt() {return referencePt_m;}
-    double GetPz() {return referencePz_m;}
-    double GetR() {return referenceR_m;}
-    double GetTheta() {return referenceTheta_m;}
-    double GetZ() {return referenceZ_m;}
-
-    double GetPhi() {return phi_m;}
-    double GetPsi() {return psi_m;}
     bool GetPreviousH5Local() {return previousH5Local_m;}
 
     void setNumberOfDistributions(unsigned int n) { numberOfDistributions_m = n; }
@@ -209,17 +345,17 @@ private:
 #ifdef WITH_UNIT_TESTS
     FRIEND_TEST(GaussTest, FullSigmaTest1);
     FRIEND_TEST(GaussTest, FullSigmaTest2);
+    FRIEND_TEST(BinomialTest, FullSigmaTest1);
+    FRIEND_TEST(BinomialTest, FullSigmaTest2);
 #endif
 
     Distribution(const std::string &name, Distribution *parent);
 
     // Not implemented.
-    Distribution(const Distribution &);
-    void operator=(const Distribution &);
-
+    Distribution(const Distribution &) = delete;
+    void operator=(const Distribution &) = delete;
 
     //    void printSigma(SigmaGenerator<double,unsigned int>::matrix_type& M, Inform& out);
-
     void addDistributions();
     void applyEmissionModel(double lowEnergyLimit, double &px, double &py, double &pz, std::vector<double> &additionalRNs);
     void applyEmissModelAstra(double &px, double &py, double &pz, std::vector<double> &additionalRNs);
@@ -231,15 +367,42 @@ private:
     void checkIfEmitted();
     void checkParticleNumber(size_t &numberOfParticles);
     void chooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUnitsT inputMoUnits);
-    double convertBetaGammaToeV(double valueInbega, double mass);
     double converteVToBetaGamma(double valueIneV, double massIneV);
-    double convertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV);
+    size_t getNumberOfParticlesInFile(std::ifstream &inputFile);
+
+    class BinomialBehaviorSplitter {
+    public:
+        virtual ~BinomialBehaviorSplitter()
+        { }
+
+        virtual double get(double rand) = 0;
+    };
+
+    class MDependentBehavior: public BinomialBehaviorSplitter {
+    public:
+        MDependentBehavior(const MDependentBehavior &rhs):
+            ami_m(rhs.ami_m)
+        {}
+
+        MDependentBehavior(double a)
+        { ami_m = 1.0 / a; }
+
+        virtual double get(double rand);
+    private:
+        double ami_m;
+    };
+
+    class GaussianLikeBehavior: public BinomialBehaviorSplitter {
+    public:
+        virtual double get(double rand);
+    };
+
     void createDistributionBinomial(size_t numberOfParticles, double massIneV);
     void createDistributionFlattop(size_t numberOfParticles, double massIneV);
     void createDistributionFromFile(size_t numberOfParticles, double massIneV);
     void createDistributionGauss(size_t numberOfParticles, double massIneV);
     void createMatchedGaussDistribution(size_t numberOfParticles, double massIneV);
-    void destroyBeam(PartBunch &beam);
+    void destroyBeam(PartBunchBase<double, 3> *beam);
     void fillEBinHistogram();
     void fillParticleBins();
     size_t findEBin(double tOrZ);
@@ -251,8 +414,8 @@ private:
     void generateGaussZ(size_t numberOfParticles);
     void generateLongFlattopT(size_t numberOfParticles);
     void generateTransverseGauss(size_t numberOfParticles);
-    void initializeBeam(PartBunch &beam);
-    void injectBeam(PartBunch &beam);
+    void initializeBeam(PartBunchBase<double, 3> *beam);
+    void injectBeam(PartBunchBase<double, 3> *beam);
     void printDist(Inform &os, size_t numberOfParticles) const;
     void printDistBinomial(Inform &os) const;
     void printDistFlattop(Inform &os) const;
@@ -274,22 +437,19 @@ private:
     void setDistParametersGauss(double massIneV);
     void setEmissionTime(double &maxT, double &minT);
     void setFieldEmissionParameters();
-    void setupEmissionModel(PartBunch &beam);
-    void setupEmissionModelAstra(PartBunch &beam);
-    void setupEmissionModelNone(PartBunch &beam);
+    void setupEmissionModel(PartBunchBase<double, 3> *beam);
+    void setupEmissionModelAstra(PartBunchBase<double, 3> *beam);
+    void setupEmissionModelNone(PartBunchBase<double, 3> *beam);
     void setupEmissionModelNonEquil();
     void setupEnergyBins(double maxTOrZ, double minTOrZ);
-    void setupParticleBins(double massIneV, PartBunch &beam);
+    void setupParticleBins(double massIneV, PartBunchBase<double, 3> *beam);
     void shiftDistCoordinates(double massIneV);
     void writeOutFileHeader();
     void writeOutFileEmission();
     void writeOutFileInjection();
-    void writeToFile();
 
     std::string distT_m;                 /// Distribution type. Declared as string
     DistrTypeT::DistrTypeT distrTypeT_m; /// and list type for switch statements.
-    std::ofstream os_m;                  /// Output file to write distribution.
-    void writeToFileCycl(PartBunch &beam, size_t Np);
 
     unsigned int numberOfDistributions_m;
 
@@ -418,21 +578,8 @@ private:
 
 
     // AAA This is for the matched distribution
-    double ex_m;
-    double ey_m;
-    double et_m;
-
     double I_m;
     double E_m;
-    double bg_m;                      /// beta gamma
-    double M_m;                       /// mass in terms of proton mass
-    std::string bfieldfn_m;           /// only temporarly
-
-
-
-
-
-    // Some legacy members that need to be cleaned up.
 
     /// time binned distribution with thermal energy
     double tRise_m;
@@ -441,18 +588,7 @@ private:
     double sigmaFall_m;
     double cutoff_m;
 
-    // Cyclotron stuff
-    double referencePr_m;
-    double referencePt_m;
-    double referencePz_m;
-    double referenceR_m;
-    double referenceTheta_m;
-    double referenceZ_m;
-    double bega_m;
-
     // Cyclotron for restart in local mode
-    double phi_m;
-    double psi_m;
     bool previousH5Local_m;
 };
 
@@ -470,8 +606,155 @@ DistrTypeT::DistrTypeT Distribution::getType() const {
     return distrTypeT_m;
 }
 
-inline double Distribution::getPercentageEmitted() const {
+inline
+double Distribution::getPercentageEmitted() const {
     return (double)totalNumberEmittedParticles_m / (double)totalNumberParticles_m;
+}
+
+inline
+double Distribution::getEkin() const {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::EKIN]);
+}
+
+inline
+double Distribution::getLaserEnergy() const {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::ELASER]);
+}
+
+inline
+double Distribution::getWorkFunctionRf() const {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::W]);
+}
+
+inline
+size_t Distribution::getNumberOfDarkCurrentParticles() {
+    return (size_t) Attributes::getReal(itsAttr[Attrib::Distribution::NPDARKCUR]);
+}
+
+inline
+double Distribution::getDarkCurrentParticlesInwardMargin() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::INWARDMARGIN]);
+}
+
+inline
+double Distribution::getEInitThreshold() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::EINITHR]);
+}
+
+inline
+double Distribution::getWorkFunction() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::FNPHIW]);
+}
+
+inline
+double Distribution::getFieldEnhancement() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::FNBETA]);
+}
+
+inline
+size_t Distribution::getMaxFNemissionPartPerTri() {
+    return (size_t) Attributes::getReal(itsAttr[Attrib::Distribution::FNMAXEMI]);
+}
+
+inline
+double Distribution::getFieldFNThreshold() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::FNFIELDTHR]);
+}
+
+inline
+double Distribution::getFNParameterA() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::FNA]);
+}
+
+inline
+double Distribution::getFNParameterB() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::FNB]);
+}
+
+inline
+double Distribution::getFNParameterY() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::FNY]);
+}
+
+inline
+double Distribution::getFNParameterVYZero() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::FNVYZERO]);
+}
+
+inline
+double Distribution::getFNParameterVYSecond() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::FNVYSECOND]);
+}
+
+inline
+int Distribution::getSecondaryEmissionFlag() {
+    return Attributes::getReal(itsAttr[Attrib::Distribution::SECONDARYFLAG]);
+}
+
+inline
+bool Distribution::getEmissionMode() {
+    return Attributes::getBool(itsAttr[Attrib::Distribution::NEMISSIONMODE]);
+}
+
+inline
+std::string Distribution::getTypeofDistribution() {
+    return (std::string) Attributes::getString(itsAttr[Attrib::Distribution::TYPE]);
+}
+
+inline
+double Distribution::getvSeyZero() {
+    // return sey_0 in Vaughan's model
+    return Attributes::getReal(itsAttr[Attrib::Distribution::VSEYZERO]);
+}
+
+inline
+double Distribution::getvEZero() {
+    // return the energy related to sey_0 in Vaughan's model
+    return Attributes::getReal(itsAttr[Attrib::Distribution::VEZERO]);
+}
+
+inline
+double Distribution::getvSeyMax() {
+    // return sey max in Vaughan's model
+    return Attributes::getReal(itsAttr[Attrib::Distribution::VSEYMAX]);
+}
+
+inline
+double Distribution::getvEmax() {
+    // return Emax in Vaughan's model
+    return Attributes::getReal(itsAttr[Attrib::Distribution::VEMAX]);
+}
+
+inline
+double Distribution::getvKenergy() {
+    // return fitting parameter denotes the roughness of surface for
+    // impact energy in Vaughan's model
+    return Attributes::getReal(itsAttr[Attrib::Distribution::VKENERGY]);
+}
+
+inline
+double Distribution::getvKtheta() {
+    // return fitting parameter denotes the roughness of surface for
+    // impact angle in Vaughan's model
+    return Attributes::getReal(itsAttr[Attrib::Distribution::VKTHETA]);
+}
+
+inline
+double Distribution::getvVThermal() {
+    // thermal velocity of Maxwellian distribution of secondaries in Vaughan's model
+    return Attributes::getReal(itsAttr[Attrib::Distribution::VVTHERMAL]);
+}
+
+inline
+double Distribution::getVw() {
+    // velocity scalar for parallel plate benchmark;
+    return Attributes::getReal(itsAttr[Attrib::Distribution::VW]);
+}
+
+inline
+int Distribution::getSurfMaterial() {
+    // Surface material number for Furman-Pivi's Model;
+    return (int)Attributes::getReal(itsAttr[Attrib::Distribution::SURFMATERIAL]);
 }
 
 #endif // OPAL_Distribution_HH

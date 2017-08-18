@@ -1,5 +1,5 @@
 #include "Solvers/GreenWakeFunction.hh"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Utilities/GeneralClassicException.h"
 #ifdef ENABLE_WAKE_TESTS
 #include "Solvers/TestLambda.h" // used for tests
@@ -107,23 +107,23 @@ pair<int, int> GreenWakeFunction::distrIndices(int vectLen) {
     return dist;
 }
 
-void GreenWakeFunction::apply(PartBunch &bunch) {
+void GreenWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
 #ifdef ENABLE_WAKE_TESTS
     // overwrite the line density
     testApply(bunch);
 #else
 
     Vector_t rmin, rmax;
-    double charge = bunch.getChargePerParticle();
-    // CKR: was bunch.Q[1] changed it;
+    double charge = bunch->getChargePerParticle();
+    // CKR: was bunch->Q[1] changed it;
     //FIXME: why 1? bunch,getTotalCharge()
-    // or bunch.getChargePerParticle()?
+    // or bunch->getChargePerParticle()?
     double K = 0; // constant to normalize the lineDensity_m to 1
     double spacing, mindist;
     std::vector<double> OutEnergy(NBin_m);
 
-    bunch.calcBeamParameters();
-    bunch.get_bounds(rmin, rmax);
+    bunch->calcBeamParameters();
+    bunch->get_bounds(rmin, rmax);
     //FIXME IFF: do we have unitless r's here? is that what we want?
 
     mindist = rmin(2);
@@ -154,7 +154,7 @@ void GreenWakeFunction::apply(PartBunch &bunch) {
 
     // Calculate the line density of the particle bunch
     std::pair<double, double> meshInfo;
-    bunch.calcLineDensity(nBins_m, lineDensity_m, meshInfo);
+    bunch->calcLineDensity(nBins_m, lineDensity_m, meshInfo);
 
 #ifdef ENABLE_WAKE_DEBUG
     *gmsg << "* ************* W A K E ************************************************************ " << endl;
@@ -179,35 +179,35 @@ void GreenWakeFunction::apply(PartBunch &bunch) {
     //FIXME: can we specify LONG AND TRANS?
     switch(direction_m) {
         case LONGITUDINAL:
-            for(unsigned int i = 0; i < bunch.getLocalNum(); i++) {
+            for(unsigned int i = 0; i < bunch->getLocalNum(); i++) {
 
                 //FIXME: Stimmt das????????? (von den einheiten)
                 // calculate bin containing particle
-                int idx = (int)(floor((bunch.R[i](2) - mindist) / spacing));
+                int idx = (int)(floor((bunch->R[i](2) - mindist) / spacing));
                 //IFF: should be ok
                 if(idx == NBin_m) idx--;
                 assert(idx >= 0 && idx < NBin_m);
                 double dE = OutEnergy[idx];
-                bunch.Ef[i](2) += dE;
+                bunch->Ef[i](2) += dE;
 
             }
             break;
 
         case TRANSVERSAL:
-            for(unsigned int i = 0; i < bunch.getLocalNum(); i++) {
+            for(unsigned int i = 0; i < bunch->getLocalNum(); i++) {
 
                 // calculate bin containing particle
-                int idx = (int)(floor((bunch.R[i](2) - mindist) / spacing));
+                int idx = (int)(floor((bunch->R[i](2) - mindist) / spacing));
                 //IFF: should be ok
                 if(idx == NBin_m) idx--;
                 assert(idx >= 0 && idx < NBin_m);
                 double dE = OutEnergy[idx];
 
                 // ACHTUNG spacing auch in transversal richtung
-                double dist = sqrt(bunch.R[i](0) * bunch.R[i](0) + bunch.R[i](1) * bunch.R[i](1));
+                double dist = sqrt(bunch->R[i](0) * bunch->R[i](0) + bunch->R[i](1) * bunch->R[i](1));
                 assert(dist > 0);
-                bunch.Ef[i](0) += dE * bunch.R[i](0) / dist;
-                bunch.Ef[i](1) += dE * bunch.R[i](1) / dist;
+                bunch->Ef[i](0) += dE * bunch->R[i](0) / dist;
+                bunch->Ef[i](1) += dE * bunch->R[i](1) / dist;
 
             }
             break;
@@ -241,7 +241,7 @@ void GreenWakeFunction::apply(PartBunch &bunch) {
 /**
  * @brief   Just a test function
  */
-void GreenWakeFunction::testApply(PartBunch &bunch) {
+void GreenWakeFunction::testApply(PartBunchBase<double, 3> *bunch) {
 #ifdef ENABLE_WAKE_TESTS
     double spacing;
     // determine K and charge

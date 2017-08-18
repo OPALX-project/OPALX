@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <fstream>
 #include <cstring>
+#include <cstdio>
 
 struct Attribute {
     std::string name;
@@ -34,8 +35,14 @@ enum FORMAT {
     ASCII = SDDS_ASCII
 };
 
-data_t readStepData(h5_file_t *file);
-attributes_t readStepAttributes(h5_file_t *file);
+#if defined (USE_H5HUT2)
+typedef h5_file_t file_t;
+#else
+typedef h5_file_t* file_t;
+#endif
+
+data_t readStepData(file_t file);
+attributes_t readStepAttributes(file_t file);
 void readH5HutFile(const std::string &fname, size_t step, data_t &data, attributes_t &attr);
 void convertToElegantUnits(data_t &data);
 void writeSDDSFile(const std::string &fname, const data_t &data, const attributes_t &attr, FORMAT form);
@@ -104,7 +111,15 @@ void reportOnError(h5_int64_t rc, const char* file, int line) {
 }
 
 void readH5HutFile(const std::string &fname, size_t step, data_t &data, attributes_t &attr) {
-    h5_file_t *file = H5OpenFile(fname.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, MPI_COMM_WORLD);
+#if defined (USE_H5HUT2)
+    h5_prop_t props = H5CreateFileProp ();
+    MPI_Comm comm = MPI_COMM_WORLD;
+    H5SetPropFileMPIOCollective (props, &comm);
+
+    file_t file = H5OpenFile(fname.c_str(), H5_O_RDONLY, props);
+#else
+    file_t file = H5OpenFile(fname.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, MPI_COMM_WORLD);
+#endif
     h5_ssize_t numStepsInSource = H5GetNumSteps(file);
     h5_ssize_t readStep = (step > (size_t)(numStepsInSource - 1)? numStepsInSource - 1: step);
 
@@ -115,7 +130,7 @@ void readH5HutFile(const std::string &fname, size_t step, data_t &data, attribut
     REPORTONERROR(H5CloseFile(file));
 }
 
-data_t readStepData(h5_file_t *file) {
+data_t readStepData(file_t file) {
     data_t data;
 
     h5_ssize_t numParticles = H5PartGetNumParticles(file);
@@ -162,7 +177,7 @@ data_t readStepData(h5_file_t *file) {
 
     return data;
 }
-Attribute readAttribute(h5_file_t *file,
+Attribute readAttribute(file_t file,
                         const std::string &name,
                         const std::string &H5name,
                         unsigned int numComponents) {
@@ -181,7 +196,7 @@ Attribute readAttribute(h5_file_t *file,
     return attr;
 }
 
-attributes_t readStepAttributes(h5_file_t *file) {
+attributes_t readStepAttributes(file_t file) {
     attributes_t attr;
 
     attr.insert(readAttribute(file, "energy", "ENERGY", 1));
@@ -232,6 +247,8 @@ void writeSDDSFile(const std::string &fname, const data_t &data, const attribute
     strcpy(buffer0, fname.c_str());
     strcpy(buffer1, "extracted OPAL data");
     if (SDDS_InitializeOutput(&SDDS_dataset, form, 1, buffer1, NULL, buffer0 ) != 1) {
+        SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+        fflush(stdout);
         std::cerr << "Error: couldn't open file '" << fname << "'\n" << std::endl;
         std::exit(1);
     }
@@ -240,6 +257,8 @@ void writeSDDSFile(const std::string &fname, const data_t &data, const attribute
         strcpy(buffer0, at.name.c_str());
         strcpy(buffer1, at.unit.c_str());
         if (SDDS_DefineSimpleParameter(&SDDS_dataset, buffer0, buffer1, SDDS_DOUBLE) != 1) {
+            SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+            fflush(stdout);
             std::cerr << "Error: couldn't append parameter '" << at.name << "'\n" << std::endl;
             std::exit(1);
         }
@@ -256,18 +275,24 @@ void writeSDDSFile(const std::string &fname, const data_t &data, const attribute
                               NULL,
                               NULL,
                               SDDS_DOUBLE,
-                              0) != 1) {
+                              0) == -1) {
+            SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+            fflush(stdout);
             std::cerr << "Error: couldn't append column '" << names.first << "'\n" << std::endl;
             std::exit(1);
         }
     }
 
     if (SDDS_WriteLayout(&SDDS_dataset) != 1) {
+        SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+        fflush(stdout);
         std::cerr << "Error: couldn't write layout\n" << std::endl;
         std::exit(1);
     }
 
     if (SDDS_StartPage(&SDDS_dataset, rows) != 1) {
+        SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+        fflush(stdout);
         std::cerr << "Error: couldn't start page\n" << std::endl;
         std::exit(1);
     }
@@ -275,6 +300,8 @@ void writeSDDSFile(const std::string &fname, const data_t &data, const attribute
     for (auto at: attr) {
         if (SDDS_SetParameters(&SDDS_dataset, SDDS_SET_BY_NAME | SDDS_PASS_BY_VALUE,
                                at.name.c_str(), at.value[0], NULL) != 1) {
+            SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+            fflush(stdout);
             std::cerr << "Error: couldn't write parameter '" << at.name << "'\n" << std::endl;
             std::exit(1);
         }
@@ -289,24 +316,38 @@ void writeSDDSFile(const std::string &fname, const data_t &data, const attribute
                               "yp", data.at(nameConversion.at("yp"))[i],
                               "p", data.at(nameConversion.at("p"))[i],
                               NULL) != 1) {
+            SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+            fflush(stdout);
             std::cerr << "Error: couldn't add row\n" << std::endl;
             std::exit(1);
         }
     }
 
     if (SDDS_WritePage(&SDDS_dataset) != 1) {
+        SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+        fflush(stdout);
         std::cerr << "Error: couldn't write page\n" << std::endl;
         std::exit(1);
     }
 
     if (SDDS_Terminate(&SDDS_dataset) != 1) {
+        SDDS_PrintErrors(stdout, SDDS_VERBOSE_PrintErrors);
+        fflush(stdout);
         std::cerr << "Error: couldn't terminate properly\n" << std::endl;
         std::exit(1);
     }
 }
 
 void printInfo(const std::string &input) {
-    h5_file_t *file = H5OpenFile(input.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, MPI_COMM_WORLD);
+#if defined (USE_H5HUT2)
+    h5_prop_t props = H5CreateFileProp ();
+    MPI_Comm comm = MPI_COMM_WORLD;
+    H5SetPropFileMPIOCollective (props, &comm);
+
+    file_t file = H5OpenFile(input.c_str(), H5_O_RDONLY, props);
+#else
+    file_t file = H5OpenFile(input.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, MPI_COMM_WORLD);
+#endif
     h5_ssize_t numStepsInSource = H5GetNumSteps(file);
 
     std::cout << std::left << std::setw(15) << "Step number" << std::setw(15) << "Position [m]" << std::endl;

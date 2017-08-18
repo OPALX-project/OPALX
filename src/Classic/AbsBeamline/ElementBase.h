@@ -630,9 +630,9 @@ bool ElementBase::isInsideTransverse(const Vector_t &r, double f) const
     case ELLIPTICAL:
         return (std::pow(r[0] / aperture_m.second[0], 2) + std::pow(r[1] / aperture_m.second[1], 2) < 1.0);
     case CONIC_RECTANGULAR:
-        return (std::abs(r[0]) < (1.0 - f) * aperture_m.second[0] && std::abs(r[1]) < (1.0 - f) * aperture_m.second[1]);
+        return (std::abs(r[0]) < f * aperture_m.second[0] && std::abs(r[1]) < f * aperture_m.second[1]);
     case CONIC_ELLIPTICAL:
-        return (std::pow(r[0] / ((1.0 - f) * aperture_m.second[0]), 2) + std::pow(r[1] / ((1.0 - f) * aperture_m.second[1]), 2) < 1.0);
+        return (std::pow(r[0] / (f * aperture_m.second[0]), 2) + std::pow(r[1] / (f * aperture_m.second[1]), 2) < 1.0);
     default:
         return false;
     }

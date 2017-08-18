@@ -58,6 +58,9 @@ private:
     virtual void freeMap();
     virtual void readMap();
 
+    double computeEntranceFringe(double z) const;
+    double computeExitFringe(double z) const;
+    double computeFringe(const std::vector<double> &coefs, double z) const;
     /*
      * Entrance and exit position parameters. These are read in from the input
      * input file. Ultimately they are used to determine the origin of the

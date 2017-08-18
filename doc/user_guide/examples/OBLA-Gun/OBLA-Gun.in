@@ -27,7 +27,7 @@ gun: RFCavity, L=0.011, VOLT=-102.28, FMAPFN="1T1.T7",
 
 l1:   Line = (gun,sp1,sp2,sp3);
 
-REAL rf=1498.956e6;
+REAL rf=1498.956;
 REAL v0=beta*CLIGHT;
 REAL lz  = 6.5E-12*v0;
 value,{v0,lz};
