@@ -30,22 +30,22 @@
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 #include "AbsBeamline/Component.h"
 
-#ifndef ABSBEAMLINE_SPIRALSECTOR_H
-#define ABSBEAMLINE_SPIRALSECTOR_H
+#ifndef ABSBEAMLINE_ScalingFFAGMagnet_H
+#define ABSBEAMLINE_ScalingFFAGMagnet_H
 
 /** Sector bending magnet with an FFAG-style field index and spiral end shape
  */
 
-class SpiralSector : public Component {
+class ScalingFFAGMagnet : public Component {
   public:
-    /** Construct a new SpiralSector
+    /** Construct a new ScalingFFAGMagnet
      *
-     *  \param name User-defined name of the SpiralSector
+     *  \param name User-defined name of the ScalingFFAGMagnet
      */
-    explicit SpiralSector(const std::string &name);
+    explicit ScalingFFAGMagnet(const std::string &name);
 
     /** Destructor - deletes map */
-    ~SpiralSector();
+    ~ScalingFFAGMagnet();
 
     /** Inheritable copy constructor */
     ElementBase* clone() const;
@@ -65,28 +65,33 @@ class SpiralSector : public Component {
      *
      *  \param R position in the local coordinate system of the bend
      *  \param P not used
-     *  \param t time at which the field is to be calculated
-     *  \param E calculated electric field - always 0 (no E-field)
+     *  \param t not used
+     *  \param E not used
      *  \param B calculated magnetic field
      *  \returns true if particle is outside the field map, else false
      */
     bool apply(const Vector_t &R, const Vector_t &P, const double &t,
                Vector_t &E, Vector_t &B);
 
+    /** Calculate the field at some arbitrary position in cartesian coordinates
+     *
+     *  \param R position in the local coordinate system of the bend, in
+     *           cartesian coordinates defined like (x, y, z)
+     *  \param B calculated magnetic field defined like (Bx, By, Bz)
+     *  \returns true if particle is outside the field map, else false
+     */
+    bool getFieldValue(const Vector_t &R, Vector_t &B) const;
+
     /** Calculate the field at some arbitrary position in cylindrical coordinates
      *
      *  \param R position in the local coordinate system of the bend, in
      *           cylindrical polar coordinates defined like (r, y, phi)
-     *  \param P not used
-     *  \param t not used (field is time independent)
-     *  \param E not used (no E-field)
      *  \param B calculated magnetic field defined like (Br, By, Bphi)
      *  \returns true if particle is outside the field map, else false
      */
-    bool applyCylindrical(const Vector_t &R, const Vector_t &P,
-                    const double &t, Vector_t &E, Vector_t &B);
+    bool getFieldValueCylindrical(const Vector_t &R, Vector_t &B) const;
 
-     /** Initialise the SpiralSector
+     /** Initialise the ScalingFFAGMagnet
       *
       *  \param bunch the global bunch object
       *  \param startField not used
@@ -94,10 +99,17 @@ class SpiralSector : public Component {
       */
     void initialise(PartBunch *bunch, double &startField, double &endField);
 
-     /** Finalise the SpiralSector - sets bunch to NULL */
+     /** Initialise the ScalingFFAGMagnet
+      *
+      *  Sets up the field expansion and the geometry; call after changing any
+      *  field parameters
+      */
+    void initialise();
+
+     /** Finalise the ScalingFFAGMagnet - sets bunch to NULL */
     void finalise();
 
-    /** Return true - SpiralSector always bends the reference particle */
+    /** Return true - ScalingFFAGMagnet always bends the reference particle */
     inline bool bends() const;
 
     /** Not implemented */
@@ -150,24 +162,70 @@ class SpiralSector : public Component {
 
     /** Get the fringe field
      *
-     *  Returns the fringe field model; SpiralSector retains ownership of the
+     *  Returns the fringe field model; ScalingFFAGMagnet retains ownership of the
      *  returned memory.
      */
     endfieldmodel::EndFieldModel* getEndField() const {return endField_m;}
 
     /** Set the fringe field
       * 
-      * - endField: the new fringe field; SpiralSector takes ownership of the
+      * - endField: the new fringe field; ScalingFFAGMagnet takes ownership of the
       *   memory associated with endField.
       */
     void setEndField(endfieldmodel::EndFieldModel* endField);
 
-    /** Get the maximum pole modelled in the off-midplane expansion; 0 is dipole; 2 is quadrupole; etc */
+    /** Get the maximum power of y modelled in the off-midplane expansion; 
+     */
     size_t getMaxOrder() const {return maxOrder_m;}
 
-    /** Set the maximum pole modelled in the off-midplane expansion; 0 is dipole; 2 is quadrupole; etc */
+    /** Set the maximum power of y modelled in the off-midplane expansion;
+     */
     void setMaxOrder(size_t maxOrder) {maxOrder_m = maxOrder;}
 
+    /** Get the offset of the magnet centre from the start 
+     */
+    double getPhiStart() const {return phiStart_m;}
+
+    /** Set the offset of the magnet centre from the start 
+     */
+    void setPhiStart(double phiStart) {phiStart_m = phiStart;}
+
+    /** Get the offset of the magnet end from the start 
+     */
+    double getPhiEnd() const {return phiEnd_m;}
+
+    /** Set the offset of the magnet end from the start 
+     */
+    void setPhiEnd(double phiEnd) {phiEnd_m = phiEnd;}
+
+    /** Get the maximum radius
+     */
+    double getRMin() const {return rMin_m;}
+
+    /** Set the maximum radius 
+     */
+    void setRMin(double rMin) {rMin_m = rMin;}
+
+    /** Get the maximum radius
+     */
+    double getRMax() const {return rMax_m;}
+
+    /** Set the maximum radius 
+     */
+    void setRMax(double rMax) {rMax_m = rMax;}
+
+    /** Get the maximum azimuthal displacement from \psi=0
+     */
+    double getAzimuthalExtent() const {return azimuthalExtent_m;}
+
+    /** Set the maximum azimuthal displacement from \psi=0
+     */
+    void setAzimuthalExtent(double azimuthalExtent) {azimuthalExtent_m = azimuthalExtent;}
+
+    /** Return the calculated df coefficients */
+    std::vector<std::vector<double> > getDfCoefficients() {return dfCoefficients_m;}
+
+  private:
     /** Calculate the df coefficients, ready for field generation
      *
      *  Must be called following any update to the the field parameters, in
@@ -175,14 +233,10 @@ class SpiralSector : public Component {
      */
     void calculateDfCoefficients();
 
-    /** Return the calculated df coefficients */
-    std::vector<std::vector<double> > getDfCoefficients() {return dfCoefficients_m;}
-
-  private:
     /** Copy constructor */
-    SpiralSector(const SpiralSector &right);
+    ScalingFFAGMagnet(const ScalingFFAGMagnet &right);
 
-    SpiralSector& operator=(const SpiralSector& rhs);
+    ScalingFFAGMagnet& operator=(const ScalingFFAGMagnet& rhs);
     PlanarArcGeometry planarArcGeometry_m;
     BMultipoleField dummy;
 
@@ -191,6 +245,11 @@ class SpiralSector : public Component {
     double k_m;
     double Bz_m;
     double r0_m;
+    double rMin_m; // minimum radius
+    double rMax_m; // maximum radius
+    double phiStart_m; // offsets this element
+    double phiEnd_m; // used for placement of next element
+    double azimuthalExtent_m; // maximum distance used for field calculation
     Vector_t centre_m;
     endfieldmodel::EndFieldModel* endField_m = NULL;
     const double fp_tolerance = 1e-18;

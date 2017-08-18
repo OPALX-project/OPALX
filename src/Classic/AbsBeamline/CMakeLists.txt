@@ -33,11 +33,11 @@ set (_SRCS
   Ring.cpp
   SBend.cpp
   SBend3D.cpp
+  ScalingFFAGMagnet.cpp
   Separator.cpp
   Septum.cpp
   Solenoid.cpp
   Source.cpp
-  SpiralSector.cpp
   Stripper.cpp
   TravelingWave.cpp
   VariableRFCavity.cpp
@@ -82,13 +82,13 @@ set (HDRS
     Ring.h
     SBend3D.h
     SBend.h
+    ScalingFFAGMagnet.h
     SectorFieldMapComponent.h
     Separator.h
     Septum.h
     Solenoid.h
     Source.h
     SpecificElementVisitor.h
-    SpiralSector.h
     Stripper.h
     TravelingWave.h
     VariableRFCavity.h
