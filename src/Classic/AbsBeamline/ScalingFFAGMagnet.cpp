@@ -33,7 +33,7 @@
 
 ScalingFFAGMagnet::ScalingFFAGMagnet(const std::string &name)
         : Component(name),
-         planarArcGeometry_m(1., 1.), dummy() {
+         planarArcGeometry_m(1., 1.), dummy(), endField_m(NULL) {
     setElType(isDrift);
 }
 
@@ -44,8 +44,12 @@ ScalingFFAGMagnet::ScalingFFAGMagnet(const ScalingFFAGMagnet &right)
           k_m(right.k_m), r0_m(right.r0_m), Bz_m(right.Bz_m),
           rMin_m(right.rMin_m), rMax_m(right.rMax_m), phiStart_m(right.phiStart_m),
           phiEnd_m(right.phiEnd_m), azimuthalExtent_m(right.azimuthalExtent_m),
-          centre_m(right.centre_m), endField_m(right.endField_m->clone()),
+          centre_m(right.centre_m),
           dfCoefficients_m(right.dfCoefficients_m) {
+    if (endField_m != NULL) {
+        delete endField_m;
+    }
+    endField_m = right.endField_m->clone();
     RefPartBunch_m = right.RefPartBunch_m;
     setElType(isDrift);
     Bz_m = right.Bz_m;
@@ -53,6 +57,9 @@ ScalingFFAGMagnet::ScalingFFAGMagnet(const ScalingFFAGMagnet &right)
 }
 
 ScalingFFAGMagnet::~ScalingFFAGMagnet() {
+    if (endField_m != NULL) {
+        delete endField_m;
+    }
 }
 
 ElementBase* ScalingFFAGMagnet::clone() const {
@@ -127,15 +134,20 @@ bool ScalingFFAGMagnet::getFieldValueCylindrical(const Vector_t &pos, Vector_t &
     double r = pos[0];
     double z = pos[1];
     double phi = pos[2];
+    //std::cerr << "getFieldValueCylindrical r " << r;
     if (r < rMin_m || r > rMax_m) {
         return true;
     }
 
     double normRadius = r/r0_m;
     double g = tanDelta_m*log(normRadius);
-    double phiSpiral = phi - g + tanDelta_m - phiStart_m;
+    double phiSpiral = phi - g - phiStart_m;
     double h = pow(normRadius, k_m)*Bz_m;
+    //std::cerr << " phi_s " << phiSpiral;
     if (phiSpiral < -azimuthalExtent_m || phiSpiral > azimuthalExtent_m) {
+        return true;
+    }
+    if (z < -verticalExtent_m || z > verticalExtent_m) {
         return true;
     }
     std::vector<double> fringeDerivatives(maxOrder_m, 0.);
@@ -147,6 +159,7 @@ bool ScalingFFAGMagnet::getFieldValueCylindrical(const Vector_t &pos, Vector_t &
         Vector_t deltaB;
         for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {
             f2n += dfCoefficients_m[n][i]*fringeDerivatives[i];
+            //std::cerr << dfCoefficients_m[n][i] << " " << fringeDerivatives[i] << "; ";
         }
         double f2nplus1 = 0;
         for (size_t i = 0; i < dfCoefficients_m[n+1].size() && n+1 < dfCoefficients_m.size(); ++i) {
@@ -155,8 +168,10 @@ bool ScalingFFAGMagnet::getFieldValueCylindrical(const Vector_t &pos, Vector_t &
         deltaB[1] = f2n*h*pow(z/r, n); // Bz = sum(f_2n * h * (z/r)^2n
         deltaB[2] = f2nplus1*h*pow(z/r, n+1); // Bphi = sum(f_2n+1 * h * (z/r)^2n+1
         deltaB[0] = (f2n*(k_m-n)/(n+1) - tanDelta_m*f2nplus1)*h*pow(z/r, n+1);
+       // std::cerr << "(" << n << "): " << f2n << " " << f2nplus1 << "; ";
         B += deltaB;
     }
+    //std::cerr << " tanh(phi_s) " << endField_m->function(phiSpiral, 0) << " k_m " << k_m << " z " << z << " B " << B << std::endl;
     return false;
 }
 
@@ -196,7 +211,6 @@ void ScalingFFAGMagnet::setEndField(endfieldmodel::EndFieldModel* endField) {
     if (endField_m != NULL) {
         delete endField_m;
     }
-
     endField_m = endField;
 }
 
