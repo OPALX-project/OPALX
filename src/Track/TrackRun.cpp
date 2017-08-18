@@ -342,7 +342,7 @@ void TrackRun::setupSliceTracker() {
 
     Track::block->slbunch->setdT(Track::block->dT.front());
     // set the total charge
-    charge = beam->getCharge() * beam->getCurrent() / beam->getFrequency();
+    charge = beam->getCharge() * beam->getCurrent() / (beam->getFrequency()*1.0E6);
     Track::block->slbunch->setCharge(charge);
     // set coupling constant
     double coefE = 1.0 / (4 * pi * epsilon_0);
@@ -897,7 +897,7 @@ double TrackRun::setDistributionParallelT(Beam *beam) {
     }
 
     // Return charge per macroparticle.
-    return beam->getCharge() * beam->getCurrent() / beam->getFrequency() / numberOfParticles;
+    return beam->getCharge() * beam->getCurrent() / (beam->getFrequency()*1.0E6) / numberOfParticles;
 
 }
 
