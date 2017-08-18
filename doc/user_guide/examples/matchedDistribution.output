@@ -80,7 +80,7 @@ OPAL> * ************* B E A M **************************************************
 OPAL> * BEAM        BEAM1
 OPAL> * PARTICLE    PROTON
 OPAL> * CURRENT     0.0022 A
-OPAL> * FREQUENCY   50.65 Hz
+OPAL> * FREQUENCY   50.65 MHz
 OPAL> * CHARGE      +e * 1
 OPAL> * REST MASS   0.9383 GeV
 OPAL> * MOMENTUM    1.194
