@@ -1,24 +1,25 @@
-
-# this prevents compile errors (due to warnings) since Boost Spirits grammar
-# definitions are interpreted as parentheses errors (overloaded operators).
-set_source_files_properties(${CMAKE_SOURCE_DIR}/Expression/Parser/expression.cpp PROPERTIES COMPILE_FLAGS "-Wno-error=parentheses" )
-
 include_directories (
     ${CMAKE_SOURCE_DIR}
     )
-link_directories (
+link_directories ( 
+    ${OPTP_LIBRARY_DIR}
     ${Boost_LIBRARY_DIRS}
     )
+
 add_executable( pisa-standalone.exe
     pisa-standalone.cpp
-    ${_SRCS} ${PILOT_FEVAL_SRCS}
+    ${PILOT_FEVAL_SRCS}
     )
 target_link_libraries ( pisa-standalone.exe
-    ${PILOT_LIBS}
+    ${OPTP_LIBS}
+    ${OPTP_LIBRARY}
     ${BOOST_FILESYSTEM}
     ${MPI_CXX_LIBRARIES}
     -lgfortran
     )
+
+message(STATUS "OPTP_LIBRARY ${OPTP_LIBRARY}")
+message(STATUS "OPTP_LIBRARY_DIR ${OPTP_LIBRARY_DIR}")
 
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries( pisa-standalone.exe
@@ -26,7 +27,7 @@ if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 endif ()
 
 set_target_properties( pisa-standalone.exe PROPERTIES
-    COMPILE_FLAGS "-Wall -std=c++0x"
+    COMPILE_FLAGS "-Wall -std=c++11"
     )
 
 install (TARGETS pisa-standalone.exe

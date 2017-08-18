@@ -35,25 +35,6 @@ enum BFieldType {PSIBF,CARBONBF,ANSYSBF,AVFEQBF,FFAGBF,BANDRF,SYNCHRO};
 struct BfieldData {
     std::string filename;
     // known from file: field and three theta derivatives
-    //~ double *bfld;   //Bz
-    //~ double *dbt;    //dBz/dtheta
-    //~ double *dbtt;   //d2Bz/dtheta2
-    //~ double *dbttt;  //d3Bz/dtheta3
-//~
-    //~ // to be calculated in getdiffs: all other derivatives:
-    //~ double *dbr;    // dBz/dr
-    //~ double *dbrr;   // ...
-    //~ double *dbrrr;
-//~
-    //~ double *dbrt;
-    //~ double *dbrrt;
-    //~ double *dbrtt;
-//~
-    //~ // used to get (Br,Btheta,Bz) at any off-plane point
-    //~ double *f2;  // for Bz
-    //~ double *f3;  // for Br
-    //~ double *g3;  // for Btheta
-//~
     std::vector<double> bfld;   //Bz
     std::vector<double> dbt;    //dBz/dtheta
     std::vector<double> dbtt;   //d2Bz/dtheta2
@@ -90,7 +71,7 @@ struct BfieldData {
 };
 
 struct BPositions {
-    // this 4 parameters are need to be read from field file.
+    // these 4 parameters are need to be read from field file.
     double  rmin, delr;
     double  tetmin, dtet;
 
@@ -116,7 +97,7 @@ public:
     Cyclotron();
     Cyclotron(const Cyclotron &);
 
-    void applyTrimCoil(double r, double z, double slptc, double tcr1, double tcr2, double mbtc, double *br, double *bz);
+    void applyTrimCoil(const double r, const double z, double *br, double *bz);
 
     virtual ~Cyclotron();
 
@@ -177,22 +158,10 @@ public:
 
     void   setEScale(std::vector<double> bs);
 
-    void   setTCr1(double tcr1);
-    virtual  double getTCr1() const;
-
-    void   setTCr2(double tcr2);
-    virtual  double getTCr2() const;
-
-    void   setMBtc(double mbtc);
-    virtual  double getMBtc() const;
-
-    void   setSLPtc(double slptc);
-    virtual  double getSLPtc() const;
-
-    void setTCr1V(std::vector<double>  tcr1);
-    void setTCr2V(std::vector<double>  tcr2);
-    void setMBtcV(std::vector<double>  mbtc);
-    void setSLPtcV(std::vector<double>  slptc);
+    void setTCr1V(const std::vector<double> &tcr1);
+    void setTCr2V(const std::vector<double> &tcr2);
+    void setMBtcV(const std::vector<double> &mbtc);
+    void setSLPtcV(const std::vector<double> &slptc);
 
     void setSuperpose(std::vector<bool> flag);
     //    virtual bool getSuperpose() const;
@@ -219,9 +188,9 @@ public:
 
     virtual bool apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
 
-    virtual void initialise(PartBunch *bunch, const int &fieldflag, const double &scaleFactor);
+    virtual void initialise(PartBunchBase<double, 3> *bunch, const int &fieldflag, const double &scaleFactor);
 
     virtual void finalise();
 
@@ -274,15 +243,12 @@ private:
 
     double bscale_m; // a scale factor for the B-field
 
-    double tcr1_m;
-    double tcr2_m;
-    double mbtc_m;
-    double slptc_m;
-
+    ///@{ Trim coil variable
     std::vector<double> tcr1V_m;
     std::vector<double> tcr2V_m;
     std::vector<double> mbtcV_m;
     std::vector<double> slptcV_m;
+    ///@}
 
     double minr_m;
     double maxr_m;
@@ -294,7 +260,7 @@ private:
     double fmHighE_m;
 
     // Not implemented.
-    void operator=(const Cyclotron &);
+    void operator=(const Cyclotron &) = delete;
 
 
     BFieldType myBFieldType_m;
@@ -313,7 +279,7 @@ private:
     int waiting_for_gap = 1;
 
 protected:
-    // object of Matrics including magnetic field map and its derivates
+    // object of Matrices including magnetic field map and its derivates
     BfieldData Bfield;
 
     // object of parameters about the map grid

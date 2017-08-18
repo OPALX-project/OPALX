@@ -85,8 +85,12 @@ FixedPisaNsga2<CO, MO>::FixedPisaNsga2(
     file_param_descr_ += " DVAR: ";
 
     DVarContainer_t::iterator itr;
+    std::vector<std::string> dNames;
+    
     for(itr = dvars_m.begin(); itr != dvars_m.end(); itr++) {
-        file_param_descr_ += '%' + boost::get<VAR_NAME>(itr->second) + ',';
+        std::string dName = boost::get<VAR_NAME>(itr->second);
+        file_param_descr_ += '%' + dName + ',';
+        dNames.push_back(dName);
         dVarBounds_m.push_back(
                 std::pair<double, double>
                     (boost::get<LOWER_BOUND>(itr->second),
@@ -97,7 +101,7 @@ FixedPisaNsga2<CO, MO>::FixedPisaNsga2(
 
 
     // setup variator
-    variator_m.reset(new Variator_t(alpha_m, mu_m, lambda_m, dim, dVarBounds_m,
+    variator_m.reset(new Variator_t(alpha_m, dNames, dVarBounds_m, constraints_m,
                                     args));
 
 
@@ -209,8 +213,8 @@ bool FixedPisaNsga2<CO, MO>::onMessage(MPI_Status status, size_t length) {
                 continue;
 
             boost::shared_ptr<individual> new_ind(new individual);
-            new_ind->genes = std::vector<double>(ind.genes);
-            new_ind->objectives = std::vector<double>(ind.objectives);
+            new_ind->genes = ind.genes;
+            new_ind->objectives = ind.objectives;
 
             //XXX:   can we pass more than lambda_m files to selector?
             unsigned int id =
@@ -556,6 +560,7 @@ void FixedPisaNsga2<CO, MO>::runStateMachine() {
     case Stop: {
         // variator_m->population()->keepSurvivors(archive_);
         dumpPopulationToFile();
+        dumpPopulationToJSON();
 
         variator_m->population()->clean_population();
         curState_m = VariatorStopped;
@@ -570,28 +575,29 @@ void FixedPisaNsga2<CO, MO>::runStateMachine() {
     }
 
     // State 7 of the FSM: stopping state for the selector.
-    case SelectorStopped: {
-        curState_m = Stop;
-        break;
-    }
+    // case SelectorStopped: {
+    //     curState_m = Stop;
+    //     break;
+    // }
 
     // State 8 of the FSM: reset the variator, restart in state 0.
-    case Reset: {
-        act_gen = 1;
-        variator_m->population()->keepSurvivors(archive_);
-        dumpPopulationToFile();
+    // case Reset: {
+    //     act_gen = 1;
+    //     variator_m->population()->keepSurvivors(archive_);
+    //     dumpPopulationToFile();
+    //     dumpPopulationToJSON();
 
-        variator_m->population()->clean_population();
-        curState_m = ReadyForReset;
-        break;
-    }
+    //     variator_m->population()->clean_population();
+    //     curState_m = ReadyForReset;
+    //     break;
+    // }
 
     // State 11 of the FSM: selector has just reset and is ready to
     // start again in state 1.
-    case Restart: {
-        curState_m = Initialize;
-        break;
-    }
+    // case Restart: {
+    //     curState_m = Initialize;
+    //     break;
+    // }
 
 
 //-----------------------|    selector STM   |-----------------------------//
@@ -628,18 +634,19 @@ void FixedPisaNsga2<CO, MO>::runStateMachine() {
         break;
     }
 
-    // variator ready for reset
-    case ReadyForReset: {
-        curState_m = ReadyForResetS;
-        break;
-    }
+    // // variator ready for reset
+    // case ReadyForReset: {
+    //     curState_m = ReadyForResetS;
+    //     break;
+    // }
 
-    // reset
-    case ReadyForResetS: {
-        curState_m = Restart;
-        break;
-    }
+    // // reset
+    // case ReadyForResetS: {
+    //     curState_m = Restart;
+    //     break;
+    // }
 
+    case VariatorTerminate:
     default:
         break;
 
@@ -1047,16 +1054,16 @@ std::string FixedPisaNsga2<CO, MO>::getStateString(PisaState_t state) const {
         return "VariatorStopped";
     case VariatorTerminate:
         return "VariatorTerminate";
-    case SelectorStopped:
-        return "SelectorStopped";
-    case Reset:
-        return "Reset";
-    case ReadyForReset:
-        return "ReadyForReset";
-    case ReadyForResetS:
-        return "ReadyForResetS";
-    case Restart:
-        return "Restart";
+    // case SelectorStopped:
+    //     return "SelectorStopped";
+    // case Reset:
+    //     return "Reset";
+    // case ReadyForReset:
+    //     return "ReadyForReset";
+    // case ReadyForResetS:
+    //     return "ReadyForResetS";
+    // case Restart:
+    //     return "Restart";
     default:
         return "";
     }

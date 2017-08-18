@@ -19,7 +19,7 @@
 #include "Track/TrackStart.h"
 #include "Attributes/Attributes.h"
 #include "Track/Track.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 
 
 // Class TrackStart
@@ -81,5 +81,5 @@ void TrackStart::execute() {
     double px = Attributes::getReal(itsAttr[PX]);
     double py = Attributes::getReal(itsAttr[PY]);
     double pt = Attributes::getReal(itsAttr[PT]);
-    Track::block->bunch->push_back(Particle(x, px, y, py, t, pt));
+    Track::block->bunch->push_back(OpalParticle(x, px, y, py, t, pt));
 }

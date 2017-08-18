@@ -28,7 +28,7 @@
 #include "AbsBeamline/VariableRFCavity.h"
 
 #include "Physics/Physics.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Utilities/GeneralClassicException.h"
 
@@ -160,7 +160,7 @@ bool VariableRFCavity::apply(const Vector_t &R, const Vector_t &P,
         }
 
         double E0 = _amplitude_td->getValue(t);
-        double f = _frequency_td->getValue(t);
+        double f = _frequency_td->getValue(t) * 1.0E-3; // neet GHz on the element we have MHz
         double phi = _phase_td->getValue(t);
         E = Vector_t(0., 0., E0*sin(Physics::two_pi * f * t + phi));
         return false;
@@ -187,7 +187,7 @@ bool VariableRFCavity::applyToReferenceParticle(const Vector_t &R, const Vector_
     return true;
 }
 
-void VariableRFCavity::initialise(PartBunch *bunch, double &startField, double &endField) {
+void VariableRFCavity::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
 }
 

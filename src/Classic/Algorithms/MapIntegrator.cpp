@@ -22,8 +22,8 @@
 
 #include "Algorithms/MapIntegrator.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.h"
-#include "Algorithms/Particle.h"
+#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/OpalParticle.h"
 #include "FixedAlgebra/FVps.h"
 #include "FixedAlgebra/LinearMap.h"
 
@@ -50,7 +50,7 @@ void MapIntegrator::accept(BeamlineVisitor &visitor) const {
 }
 
 
-void MapIntegrator::trackParticle(Particle &part, const PartData &ref,
+void MapIntegrator::trackParticle(OpalParticle &part, const PartData &ref,
                                   bool backBeam, bool backTrack) const {
     // Default behaviour: track particle using own map.
     FVps<double, 6> ownMap;
@@ -72,7 +72,7 @@ void MapIntegrator::trackParticle(Particle &part, const PartData &ref,
 }
 
 
-void MapIntegrator::trackBunch(PartBunch &bunch, const PartData &ref,
+void MapIntegrator::trackBunch(PartBunchBase<double, 3> *bunch, const PartData &ref,
                                bool backBeam, bool backTrack) const {
     // Default behaviour: track particle bunch using own map.
     FVps<double, 6> ownMap;
@@ -81,8 +81,8 @@ void MapIntegrator::trackBunch(PartBunch &bunch, const PartData &ref,
 
     //  PartBunch::iterator last = bunch.end();
     //  for (PartBunch::iterator part = bunch.begin(); part != last; ++part) {
-    for(unsigned int i = 0; i < bunch.getLocalNum(); i++) {
-        const Particle part = bunch.get_part(i);
+    for(unsigned int i = 0; i < bunch->getLocalNum(); i++) {
+        const OpalParticle part = bunch->get_part(i);
         z[0] = part[0];
         z[1] = part[1];
         z[2] = part[2];
@@ -90,7 +90,7 @@ void MapIntegrator::trackBunch(PartBunch &bunch, const PartData &ref,
         z[4] = part[4];
         z[5] = part[5];
         z = ownMap.constantTerm(z);
-        bunch.set_part(z, i);
+        bunch->set_part(z, i);
     }
 }
 

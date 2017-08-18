@@ -13,7 +13,13 @@ if(NOT PYTHONLIBS_FOUND OR NOT GTEST_FOUND)
     return()
 endif()
 
+IF (OPTP_USED_FROM_OPAL)
+    STRING (REGEX REPLACE "/[^/]+$" "/" GTEST_LIBRARY_DIRS ${GTEST_LIBRARY})
+    SET (RELATIVE_TO_OPAL "opt-pilot/")
+ENDIF()
+
 include_directories (
+    ${GTEST_INCLUDE_DIRS}
     $ENV{GTEST_PREFIX}/include
     ${Boost_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}
@@ -22,13 +28,11 @@ include_directories (
 
 link_directories (
     $ENV{GTEST_PREFIX}/lib
+    ${GTEST_LIBRARY_DIRS}
     ${PYTHON_LIBRARIES}
 )
 
-set (OPT_PILOT_SOURCE_DIR ${CMAKE_SOURCE_DIR})
-IF (OPTP_USED_FROM_OPAL)
-    set (OPT_PILOT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/opt-pilot)
-ENDIF()
+set (OPT_PILOT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/opt-pilot)
 
 set (ExpressionTest_SRC
     ${OPT_PILOT_SOURCE_DIR}/Util/SDDSReader.cpp
@@ -70,9 +74,13 @@ set (ManagedIDsTest_SRC
 )
 
 set (IndividualTest_SRC
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/expression.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/evaluator.cpp
 )
 
 set (PopulationTest_SRC
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/expression.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/evaluator.cpp
 )
 
 set (SDDSParserTest_SRC
@@ -98,7 +106,7 @@ set (PILOT_TESTS
     ExpressionTest
     SumErrSqExpressionTest
     FromFileExpressionTest
-    PythonExprTest
+#    PythonExprTest
     CmdArgumentsTest
     HashNameGeneratorTest
 )
@@ -126,9 +134,9 @@ FOREACH(test ${PILOT_TESTS})
 ENDFOREACH(test ${PILOT_TESTS})
 
 #HACK: link resources dir to test dir
-if (NOT EXISTS ${PROJECT_BINARY_DIR}/Tests/resources)
+if (NOT EXISTS ${PROJECT_BINARY_DIR}/${RELATIVE_TO_OPAL}Tests/resources)
     EXECUTE_PROCESS(
-        COMMAND ln -s ${OPT_PILOT_SOURCE_DIR}/Tests/resources ${PROJECT_BINARY_DIR}/Tests/
+        COMMAND ln -s ${OPT_PILOT_SOURCE_DIR}/Tests/resources ${PROJECT_BINARY_DIR}/${RELATIVE_TO_OPAL}Tests/
         OUTPUT_VARIABLE LN_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
         )
 endif()

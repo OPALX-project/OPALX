@@ -38,7 +38,9 @@
 #include "Utilities/GeneralClassicException.h"
 
 class LossDataSink;
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
+class FieldMap;
 
 /** \class[Ring]
  *
@@ -119,7 +121,7 @@ class Ring : public Component {
      *  @param endField - not used
      *  @param scaleFactor - not used
      */
-    virtual void initialise(PartBunch *bunch, double &startField,
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField,
                             double &endField);
 
     /** Initialise the Ring - set the bunch and allocate a new LossDataSink
@@ -127,11 +129,11 @@ class Ring : public Component {
      *  @param bunch the particle bunch. Ring borrows this pointer (caller
      *         owns memory)
      */
-    virtual void initialise(PartBunch *bunch);
+    virtual void initialise(PartBunchBase<double, 3> *bunch);
 
     /** Clean up the Ring
      *
-     *  Ring relinquishes RefPartBunch pointer and deletes LossDataSink
+     *  Ring relinquishes RefPartBunchBase<double, 3> pointer and deletes LossDataSink
      */
     virtual void finalise();
 
@@ -196,22 +198,22 @@ class Ring : public Component {
      *
      *  Ring still owns the memory to which lossDataSink points.
      */
-    PartBunch* getLossDataSink() const;
+    PartBunchBase<double, 3>* getLossDataSink() const;
 
-    /** Set RefPartBunch to bunch.
+    /** Set RefPartBunchBase<double, 3> to bunch.
      *
      *  @param sink The Bunch. Ring borrows memory allocated to bunch.
      *
      *  Note for compliance with style guide and compatibility with parent two
-     *  pointer to RefPartBunch are stored; this keeps them aligned
+     *  pointer to RefPartBunchBase<double, 3> are stored; this keeps them aligned
      */
-    void setRefPartBunch(PartBunch* bunch);
+    void setRefPartBunch(PartBunchBase<double, 3>* bunch);
 
-    /** Get pointer to RefPartBunch from the bunch.
+    /** Get pointer to RefPartBunchBase<double, 3> from the bunch.
      *
      *  Ring does not own this memory (so neither does caller).
      */
-    PartBunch* getRefPartBunch() const;
+    PartBunchBase<double, 3>* getRefPartBunch() const;
 
     /** Set the harmonic number for RF (number of bunches in the ring) */
     void setHarmonicNumber(double cyclHarm) {cyclHarm_m = cyclHarm;}
@@ -344,7 +346,7 @@ class Ring : public Component {
     // rename to keep in line with style guide
     //
     // Ring borrows this memory
-    PartBunch *refPartBunch_m;
+    PartBunchBase<double, 3> *refPartBunch_m;
 
     // store for particles out of the aperture
     //

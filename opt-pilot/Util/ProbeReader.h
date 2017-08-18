@@ -13,7 +13,7 @@
 class ProbeReader {
     
 public:
-    ProbeReader(std::string filename);
+    explicit ProbeReader(std::string filename);
     
     ~ProbeReader();
 

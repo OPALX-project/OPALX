@@ -3,8 +3,6 @@
 #include "boost/algorithm/string.hpp"
 #include "boost/variant.hpp"
 #include "boost/smart_ptr.hpp"
-#include "boost/foreach.hpp"
-#define foreach BOOST_FOREACH
 
 FunctionEvaluator::FunctionEvaluator(Expressions::Named_t objectives,
                  Expressions::Named_t constraints, Param_t params,
@@ -25,12 +23,11 @@ FunctionEvaluator::~FunctionEvaluator() {
 void FunctionEvaluator::collectResults() {
 
     requestedVars_.clear();
-    Expressions::Named_t::iterator it;
 
     // evaluate all objectives
-    for(it = objectives_.begin(); it != objectives_.end(); it++) {
+    for(auto namedObjective : objectives_) {
 
-        Expressions::Expr_t *objective = it->second;
+        Expressions::Expr_t *objective = namedObjective.second;
         Expressions::Result_t result = objective->evaluate(params_);
 
         std::vector<double> values;
@@ -39,14 +36,14 @@ void FunctionEvaluator::collectResults() {
 
         reqVarInfo_t tmps = {EVALUATE, values, is_valid};
         requestedVars_.insert(
-                std::pair<std::string, reqVarInfo_t>(it->first, tmps));
+                std::pair<std::string, reqVarInfo_t>(namedObjective.first, tmps));
 
     }
 
     // .. and constraints
-    for(it = constraints_.begin(); it != constraints_.end(); it++) {
+    for(auto namedConstraint : constraints_) {
 
-        Expressions::Expr_t *constraint = it->second;
+        Expressions::Expr_t *constraint = namedConstraint.second;
         Expressions::Result_t result = constraint->evaluate(params_);
 
         std::vector<double> values;
@@ -76,8 +73,7 @@ void FunctionEvaluator::collectResults() {
 
         reqVarInfo_t tmps = {EVALUATE, values, is_valid};
         requestedVars_.insert(
-                std::pair<std::string, reqVarInfo_t>(it->first, tmps));
+                std::pair<std::string, reqVarInfo_t>(namedConstraint.first, tmps));
 
     }
 }
-

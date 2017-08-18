@@ -233,11 +233,10 @@ void Sequence::print(std::ostream &os) const {
     if(isShared()) os << "SHARED ";
     os << getOpalName() << ":SEQUENCE";
 
-    for(std::vector<Attribute>::const_iterator i = itsAttr.begin();
-        i != itsAttr.end(); i++) {
-        if(*i) {
-            os << ',' << i->getName()
-               << (i->isExpression() ? ":=" : "=") << *i;
+    for(const Attribute& i : itsAttr) {
+        if(i) {
+            os << ',' << i.getName()
+               << (i.isExpression() ? ":=" : "=") << i;
         }
     }
 

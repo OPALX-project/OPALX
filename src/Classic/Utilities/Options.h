@@ -70,10 +70,6 @@ namespace Options {
     //  If true, print CPU time before and after each command.
     extern bool mtrace;
 
-    /// Verify flag.
-    //  If true, print warning about undefined variables.
-    extern bool verify;
-
     /// Warn flag.
     //  If true, print warning messages.
     extern bool warn;
@@ -157,6 +153,12 @@ namespace Options {
     extern bool cloTuneOnly;
 
     extern int version;
+    
+#ifdef ENABLE_AMR
+    extern bool amr;
+#endif
+    
+    extern bool memoryDump;
 }
 
 #endif // OPAL_Options_HH

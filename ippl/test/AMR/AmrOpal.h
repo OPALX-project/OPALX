@@ -1,12 +1,21 @@
 #ifndef AMROPAL_H
 #define AMROPAL_H
 
-#include <AmrCore.H>
-#include "AmrPartBunch.h"
+#include <AMReX_AmrCore.H>
 
-#include <MultiFabUtil.H>
+#ifdef IPPL_AMR
+    #include "ippl-amr/AmrParticleBase.h"
+    #include "ippl-amr/ParticleAmrLayout.h"
+    #include "ippl-amr/PartBunchAmr.h"
+#else
+    #include "boxlib-amr/AmrPartBunch.h"
+#endif
+
+#include <AMReX_MultiFabUtil.H>
 
 #include <memory>
+
+using namespace amrex;
 
 /*!
  * @file AmrOpal.h
@@ -21,12 +30,30 @@
  */
 
 /// Concrete AMR implementation
-class AmrOpal : public AmrCore {
+class AmrOpal : public AmrMesh {
     
 private:
-//     typedef Array<std::unique_ptr<MultiFab> > mfs_mt; ///< instead of using PArray<MultiFab>
-    typedef PArray<MultiFab > mfs_mt;
+    typedef Array<std::unique_ptr<MultiFab> > mfs_mt;
+    typedef Vektor<double, BL_SPACEDIM> Vector_t;
+
+public:
+    /// Methods for tag cells for refinement
+    enum TaggingCriteria {
+        kChargeDensity = 0, // default
+        kPotentialStrength,
+        kEfieldStrength,
+        kMomentum,
+        kMaxNumParticles,
+        kMinNumParticles,
+        kCenteredRegion     // only for boxlib-only/testDeposition comparison
+    };
+        
     
+#ifdef IPPL_AMR
+    typedef ParticleAmrLayout<double, BL_SPACEDIM> amrplayout_t;
+    typedef AmrParticleBase<amrplayout_t> amrbase_t;
+    typedef PartBunchAmr<amrplayout_t> amrbunch_t;
+#endif
     
     
 //     typedef PArray<MultiFab> mp_mt;
@@ -40,7 +67,23 @@ public:
      * @param coord is the coordinate system (0: cartesian)
      * @param bunch is the particle bunch
      */
-    AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord, PartBunchBase* bunch);
+    AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord,
+#ifdef IPPL_AMR
+            PartBunchAmr<amrplayout_t>* bunch);
+#else
+            PartBunchBase* bunch);
+#endif
+
+    /*!
+     * Create an AMR object.
+     * @param rb is the physical domain
+     * @param max_level_in is the max. number of allowed AMR levels
+     * @param n_cell_in is the number of grid cells at the coarsest level
+     * @param coord is the coordinate system (0: cartesian)
+     * @param refratio
+     */
+    AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord,
+            const std::vector<int>& refratio);
     
     /*!
      * Create an AMR object.
@@ -84,25 +127,14 @@ public:
     
     void ClearLevel(int lev);
     
-    void setBunch(AmrPartBunch* bunch) {
-        bunch_m = bunch;
-    }
-    
-    /*!
-     * Print the number of particles per cell (minimum and maximum)
-     */
-    void info() {
-        for (int i = 0; i < finest_level; ++i)
-            std::cout << "density level " << i << ": "
-#ifdef UNIQUE_PTR
-                      << nPartPerCell_m[i]->min(0) << " "
-                      << nPartPerCell_m[i]->max(0) << std::endl;
+    void setBunch(
+#ifdef IPPL_AMR
+        PartBunchAmr<amrplayout_t>* bunch)
 #else
-                      
-                      << nPartPerCell_m[i].min(0) << " "
-                      << nPartPerCell_m[i].max(0) << std::endl;
+        AmrPartBunch* bunch)
 #endif
-                      
+    {
+        bunch_m = bunch;
     }
     
     /*!
@@ -115,50 +147,76 @@ public:
      */
     void writePlotFile(std::string filename, int step);
     
-    mfs_mt* getPartPerCell() {
-        return &nPartPerCell_m;
+    void setTagging(TaggingCriteria tagging) {
+        tagging_m = tagging;
     }
     
-    void assignDensity() {
-        
-        for (int i = 0; i < finest_level; ++i)
-#ifdef UNIQUE_PTR
-            chargeOnGrid_m[i]->setVal(0.0);
-#else
-            chargeOnGrid_m[i].setVal(0.0);
-#endif
-        
-        bunch_m->AssignDensity(0, false, chargeOnGrid_m, 0, 1, finest_level);
-        
-//         double assign_sum = 0.0;
-//         double charge_sum = 0.0;
-//         std::cout << "---------------------------------------------" << std::endl;
-//         std::cout << "          CHARGE CONSERVATION TEST           " << std::endl;
-//         for (int i = 0; i <= finest_level; ++i) {
-//             Real charge = bunch_m->sumParticleMass(0 /*attribute*/, i /*level*/);
-//             Real invVol = (*(Geom(i).CellSize()) * *(Geom(i).CellSize()) * *(Geom(i).CellSize()) );
-//             std::cout << "dx * dy * dz = " << invVol << std::endl;
-//             assign_sum += chargeOnGrid_m[i]->sum() * invVol;
-//             std::cout << "Level " << i << " MultiFab sum * dx * dy * dz: " << chargeOnGrid_m[i]->sum() * invVol
-//                       << " Charge sum: " << charge
-//                       << " Spacing: " << *(Geom(i).CellSize()) << std::endl;
-//             charge_sum += charge;
-//         }
-//         std::cout << "Total charge: " << assign_sum << " " << charge_sum << std::endl;
-//         std::cout << "---------------------------------------------" << std::endl;
+    /*!
+     * Scaling factor for tagging.
+     * It is used in tagForPotentialStrength_m and tagForEfieldStrength_m
+     * @param scaling factor in [0, 1]
+     */
+    void setScalingFactor(double scaling) {
+        scaling_m = scaling;
     }
-
+    
+    /*!
+     * Charge for tagging in tagForChargeDensity_m
+     * @param charge >= 0.0 (e.g. 1e-14)
+     */
+    void setCharge(double charge) {
+        nCharge_m = charge;
+    }
+    
+    void setMinNumParticles(size_t minNumPart) {
+        minNumPart_m = minNumPart;
+    }
+    
+    void setMaxNumParticles(size_t maxNumPart) {
+        maxNumPart_m = maxNumPart;
+    }
+    
 protected:
     /*!
      * Is called in the AmrCore function for performing tagging.
      */
-    virtual void ErrorEst(int lev, TagBoxArray& tags, Real time, int /*ngrow*/) override;
+    virtual void ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) override;
+    
+    virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm);
+
+    //! Make a new level using provided BoxArray and DistributionMapping and fill with interpolated coarse level data.
+    virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm);
     
 private:
-    AmrPartBunch* bunch_m;      ///< Particle bunch
-    mfs_mt/*mp_mt*/ nPartPerCell_m;      ///< used in tagging.
-    mfs_mt chargeOnGrid_m;
+    // used in tagging
+    void scatter_m(int lev);
     
+    void tagForChargeDensity_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForMomentum_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForMaxNumParticles_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForMinNumParticles_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    void tagForCenteredRegion_m(int lev, TagBoxArray& tags, Real time, int ngrow);
+    
+    
+    
+    
+    
+#ifdef IPPL_AMR
+    PartBunchAmr<amrplayout_t>* bunch_m;
+#else
+    AmrPartBunch* bunch_m;      ///< Particle bunch
+#endif
+    TaggingCriteria tagging_m;
+    mfs_mt nChargePerCell_m;    ///< use in tagging tagForChargeDensity_m (needed when tracking)
+    
+    double scaling_m;           ///< Scaling factor for tagging [0, 1]
+                                // (tagForPotentialStrength_m, tagForEfieldStrength_m)
+    Real   nCharge_m;           ///< Tagging value for tagForChargeDensity_m
+    
+    size_t minNumPart_m;
+    size_t maxNumPart_m;
 };
 
 #endif

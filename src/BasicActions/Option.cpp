@@ -27,6 +27,8 @@
 
 #include "Utilities/OpalException.h"
 
+#include "Utility/IpplMemoryUsage.h"
+
 #include <ctime>
 #include <iostream>
 #include <limits>
@@ -47,7 +49,6 @@ namespace {
         ECHO,
         INFO,
         TRACE,
-        VERIFY,
         WARN,
         SEED,
         TELL,
@@ -82,6 +83,10 @@ namespace {
         IDEALIZED,
         LOGBENDTRAJECTORY,
         VERSION,
+#ifdef ENABLE_AMR
+        AMR,
+#endif
+        MEMORYDUMP,
         SIZE
     };
 }
@@ -100,9 +105,6 @@ Option::Option():
 
     itsAttr[TRACE] = Attributes::makeBool
                      ("TRACE", "If true, print execution trace", mtrace);
-
-    itsAttr[VERIFY] = Attributes::makeBool
-                      ("VERIFY", "If true, print warnings about assumptions", verify);
 
     itsAttr[WARN] = Attributes::makeBool
                     ("WARN", "If true, print warning messages", warn);
@@ -203,7 +205,14 @@ Option::Option():
 
     itsAttr[VERSION] = Attributes::makeReal
         ("VERSION", "Version of OPAL for which input file was written", 10000);
-
+    
+#ifdef ENABLE_AMR
+    itsAttr[AMR] = Attributes::makeBool
+        ("AMR", "Use adaptive mesh refinement.", amr);
+#endif
+    itsAttr[MEMORYDUMP] = Attributes::makeBool
+        ("MEMORYDUMP", "If true, write memory to SDDS file", memoryDump);
+    
     registerOwnership(AttributeHandler::STATEMENT);
 
     FileStream::setEcho(echo);
@@ -216,7 +225,6 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setBool(itsAttr[ECHO],       echo);
     Attributes::setBool(itsAttr[INFO],       info);
     Attributes::setBool(itsAttr[TRACE],      mtrace);
-    Attributes::setBool(itsAttr[VERIFY],     verify);
     Attributes::setBool(itsAttr[WARN],       warn);
     Attributes::setReal(itsAttr[SEED],       seed);
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
@@ -250,6 +258,10 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setBool(itsAttr[IDEALIZED], idealized);
     Attributes::setBool(itsAttr[LOGBENDTRAJECTORY], writeBendTrajectories);
     Attributes::setReal(itsAttr[VERSION], version);
+#ifdef ENABLE_AMR
+    Attributes::setBool(itsAttr[AMR], amr);
+#endif
+    Attributes::setBool(itsAttr[MEMORYDUMP], memoryDump);
 }
 
 
@@ -267,7 +279,6 @@ void Option::execute() {
     echo      = Attributes::getBool(itsAttr[ECHO]);
     info      = Attributes::getBool(itsAttr[INFO]);
     mtrace     = Attributes::getBool(itsAttr[TRACE]);
-    verify    = Attributes::getBool(itsAttr[VERIFY]);
     warn      = Attributes::getBool(itsAttr[WARN]);
     psDumpEachTurn =   Attributes::getBool(itsAttr[PSDUMPEACHTURN]);
     scan = Attributes::getBool(itsAttr[SCAN]);
@@ -277,6 +288,17 @@ void Option::execute() {
     ppdebug = Attributes::getBool(itsAttr[PPDEBUG]);
     enableHDF5 = Attributes::getBool(itsAttr[ENABLEHDF5]);
     version = Attributes::getReal(itsAttr[VERSION]);
+#ifdef ENABLE_AMR
+    amr = Attributes::getBool(itsAttr[AMR]);
+#endif
+    memoryDump = Attributes::getBool(itsAttr[MEMORYDUMP]);
+    
+    if ( memoryDump ) {
+        IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance(
+                IpplMemoryUsage::Unit::GB, false);
+        memory->sample();
+    }
+    
     seed = Attributes::getReal(itsAttr[SEED]);
 
     /// note: rangen is used only for the random number generator in the OPAL language
@@ -286,6 +308,7 @@ void Option::execute() {
       rangen.init55(time(0));
     else
       rangen.init55(seed);
+    
 
     IpplInfo::Info->on(info);
     IpplInfo::Warn->on(warn);
@@ -390,7 +413,7 @@ void Option::execute() {
     } else {
         cloTuneOnly = false;
     }
-
+    
     // Set message flags.
     FileStream::setEcho(echo);
 

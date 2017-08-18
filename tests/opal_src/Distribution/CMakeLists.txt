@@ -1,4 +1,5 @@
 set (_SRCS
+    BinomialTest.cpp
     GaussTest.cpp
 )
 

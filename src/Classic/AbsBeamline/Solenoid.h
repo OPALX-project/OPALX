@@ -23,7 +23,8 @@
 
 #include "AbsBeamline/Component.h"
 
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 class Fieldmap;
 
 // Class Solenoid
@@ -62,7 +63,7 @@ public:
 
     virtual bool applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
 
     virtual void finalise();
 

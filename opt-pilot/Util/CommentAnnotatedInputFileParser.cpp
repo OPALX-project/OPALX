@@ -5,13 +5,14 @@
 #include <boost/algorithm/string.hpp>
 #include "boost/tuple/tuple.hpp"
 #include "boost/foreach.hpp"
-#define foreach BOOST_FOREACH
 
 #include "Expression/SumErrSq.h"
 #include "Expression/FromFile.h"
 
 #include "CommentAnnotatedInputFileParser.h"
 #include "Util/OptPilotException.h"
+
+#define foreach BOOST_FOREACH
 
 typedef std::pair<std::string, DVar_t>  namedDVar_t;
 

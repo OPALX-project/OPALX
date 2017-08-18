@@ -20,7 +20,7 @@
 
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
@@ -97,7 +97,7 @@ bool Corrector::apply(const Vector_t &R,
     return false;
 }
 
-void Corrector::initialise(PartBunch *bunch, double &startField, double &endField) {
+void Corrector::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     endField = startField + getElementLength();
     RefPartBunch_m = bunch;
 }
