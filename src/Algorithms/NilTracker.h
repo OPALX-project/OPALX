@@ -14,7 +14,8 @@
 #include "Algorithms/Tracker.h"
 
 class BMultipoleField;
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 class AlignWrapper;
 class BeamBeam;
 class Collimator;
@@ -44,9 +45,9 @@ class NilTracker: public Tracker {
 public:
     /// Constructor.
     explicit NilTracker(const Beamline &beamline,
-                               const PartData &reference,
-                               bool revBeam,
-                               bool revTrack);
+                        const PartData &reference,
+                        bool revBeam,
+                        bool revTrack);
 
     virtual ~NilTracker();
 

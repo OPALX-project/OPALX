@@ -10,19 +10,95 @@
 #ifndef HELPER_FUNCTIONS_H
 #define HELPER_FUNCTIONS_H
 
-#include <Array.H>
-#include <Geometry.H>
-#include <MultiFab.H>
-#include <MultiFabUtil.H>
+#include <AMReX_Array.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_ParallelDescriptor.H>
 
 #include <fstream>
 
-#ifdef UNIQUE_PTR
+using amrex::Array;
+using amrex::MultiFab;
+using amrex::DistributionMapping;
+using amrex::BoxArray;
+using amrex::Geometry;
+using amrex::MFIter;
+using amrex::Box;
+using amrex::FArrayBox;
+using amrex::IntVect;
+using amrex::RealBox;
+using amrex::Real;
+
 typedef Array<std::unique_ptr<MultiFab> > container_t;
-#else
-#include <PArray.H>
-typedef PArray<MultiFab> container_t;
-#endif
+
+typedef Vektor<double, BL_SPACEDIM> Vector_t;
+
+
+template< typename amrbase_t >
+double domainMapping(amrbase_t& PData, const double& scale, bool inverse = false)
+{
+    Vector_t rmin, rmax;
+    bounds(PData.R, rmin, rmax);
+    
+    double absmax = scale;
+    
+    if ( !inverse ) {
+        Vector_t tmp = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
+                                std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
+                                std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
+                               );
+        
+        absmax = std::max( tmp[0], tmp[1] );
+        absmax = std::max( absmax, tmp[2] );
+    }
+    
+    Vector_t vscale = Vector_t(absmax, absmax, absmax);
+    
+    for (unsigned int i = 0; i < PData.getLocalNum(); ++i) {
+        PData.R[i] /= vscale;
+    }
+    
+    return 1.0 / absmax;
+}
+
+/*!
+ * @param scalfield to write
+ * @param filename to be written to
+ * @param step of the file
+ */
+inline void writeScalarField(const container_t& scalfield, std::string filename, int step)
+{
+    for (MFIter mfi(*scalfield[0 /*level*/]); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+        const FArrayBox& lhs = (*scalfield[0])[mfi];
+        
+        for (int proc = 0; proc < amrex::ParallelDescriptor::NProcs(); ++proc) {
+            if ( proc == amrex::ParallelDescriptor::MyProc() ) {
+                std::string outfile = filename + "_step_" + std::to_string(step) + ".grid";
+                std::ofstream out;
+                
+                if ( proc == 0 )
+                    out.open(outfile);
+                else
+                    out.open(outfile, std::ios_base::app);
+                
+                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+                    for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+                        for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
+                            IntVect ivec(i, j, k);
+                            // add one in order to have same convention as PartBunch::computeSelfField()
+                            out << i + 1 << " " << j + 1 << " " << k + 1 << " "
+                                << lhs(ivec, 0)  << std::endl;
+                        }
+                    }
+                }
+                out.close();
+            }
+            amrex::ParallelDescriptor::Barrier();
+        }
+    }
+}
 
 /*!
  * Write the grid data along the horizontal direction
@@ -37,19 +113,12 @@ inline void writeScalarField(const container_t& scalfield,
                              double dlow,
                              std::string filename)
 {
-#ifdef UNIQUE_PTR
     for (MFIter mfi(*scalfield[0 /*level*/]); mfi.isValid(); ++mfi) {
-#else
-    for (MFIter mfi(scalfield[0 /*level*/]); mfi.isValid(); ++mfi) {
-#endif
         const Box& bx = mfi.validbox();
-#ifdef UNIQUE_PTR
         const FArrayBox& lhs = (*scalfield[0])[mfi];
-#else
-        const FArrayBox& lhs = (scalfield[0])[mfi];
-#endif
-        for (int proc = 0; proc < ParallelDescriptor::NProcs(); ++proc) {
-            if ( proc == ParallelDescriptor::MyProc() ) {
+        
+        for (int proc = 0; proc < amrex::ParallelDescriptor::NProcs(); ++proc) {
+            if ( proc == amrex::ParallelDescriptor::MyProc() ) {
                 std::string outfile = filename + std::to_string(0);
                 std::ofstream out;
                 
@@ -73,7 +142,7 @@ inline void writeScalarField(const container_t& scalfield,
                 }
                 out.close();
             }
-            ParallelDescriptor::Barrier();
+            amrex::ParallelDescriptor::Barrier();
         }
     }
 }
@@ -89,21 +158,13 @@ inline void writeVectorField(const container_t& vecfield,
                              double dx,
                              double dlow)
 {
-#ifdef UNIQUE_PTR
     for (MFIter mfi(*vecfield[0 /*level*/]); mfi.isValid(); ++mfi) {
-#else
-    for (MFIter mfi(vecfield[0 /*level*/]); mfi.isValid(); ++mfi) {
-#endif
         const Box& bx = mfi.validbox();
-#ifdef UNIQUE_PTR
         const FArrayBox& lhs = (*vecfield[0])[mfi];
-#else
-        const FArrayBox& lhs = (vecfield[0])[mfi];
-#endif
         /* Write the potential of all levels to file in the format: x, y, z, ex, ey, ez
          */
-        for (int proc = 0; proc < ParallelDescriptor::NProcs(); ++proc) {
-            if ( proc == ParallelDescriptor::MyProc() ) {
+        for (int proc = 0; proc < amrex::ParallelDescriptor::NProcs(); ++proc) {
+            if ( proc == amrex::ParallelDescriptor::MyProc() ) {
                 std::string outfile = "amr-efield_scalar-level-" + std::to_string(0);
                 std::ofstream out;
                 
@@ -127,7 +188,7 @@ inline void writeVectorField(const container_t& vecfield,
                 }
                 out.close();
             }
-            ParallelDescriptor::Barrier();
+            amrex::ParallelDescriptor::Barrier();
         }
     }
 }
@@ -141,7 +202,7 @@ inline void writeVectorField(const container_t& vecfield,
 inline double totalFieldEnergy(container_t& efield, const Array<int>& rr) {
     
     for (int lev = efield.size() - 2; lev >= 0; lev--)
-        BoxLib::average_down(efield[lev+1], efield[lev], 0, 3, rr[lev]);
+        amrex::average_down(*(efield[lev+1].get()), *(efield[lev].get()), 0, 3, rr[lev]);
     
     double fieldEnergy = 0.0;
 //     long volume = 0;
@@ -149,16 +210,10 @@ inline double totalFieldEnergy(container_t& efield, const Array<int>& rr) {
         long nPoints = 0;
 
         int l = 0;
-#ifdef UNIQUE_PTR
         fieldEnergy += MultiFab::Dot(*efield[l], 0, *efield[l], 0, 3, 0);
         for (unsigned int b = 0; b < efield[l]->boxArray().size(); ++b) {
 //             volume += efield[l]->box(b).volume(); // cell-centered --> volume() == numPts
             nPoints += efield[l]->box(b).numPts();
-#else
-        fieldEnergy += MultiFab::Dot(efield[l], 0, efield[l], 0, 3, 0);
-        for (unsigned int b = 0; b < efield[l].boxArray().size(); ++b) {
-            nPoints += efield[l].box(b).numPts();
-#endif
         }
         fieldEnergy /= double(nPoints);
 //     }
@@ -226,7 +281,7 @@ inline void init(RealBox& domain,
      * distribution mapping
      */
     dmap.resize(nLevels);
-    dmap[0].define(ba[0], ParallelDescriptor::NProcs() /*nprocs*/);
+    dmap[0].define(ba[0], amrex::ParallelDescriptor::NProcs() /*nprocs*/);
     
     // refinement ratio
     rr.resize(nLevels - 1);
@@ -235,7 +290,7 @@ inline void init(RealBox& domain,
     
     // geometries of refined levels
     for (int lev = 1; lev < nLevels; ++lev) {
-        geom[lev].define(BoxLib::refine(geom[lev - 1].Domain(),
+        geom[lev].define(amrex::refine(geom[lev - 1].Domain(),
                                         rr[lev - 1]),
                          &domain, 0, bc);
     }
@@ -260,9 +315,9 @@ inline void init(RealBox& domain,
     /*
      * set up the geometry
      */
-    IntVect low(0, 0, 0);
-    IntVect high(nr[0] - 1, nr[1] - 1, nr[2] - 1);    
-    Box bx(low, high);
+//     IntVect low(0, 0, 0);
+//     IntVect high(nr[0] - 1, nr[1] - 1, nr[2] - 1);    
+//     Box bx(low, high);
     
     // box
     for (int i = 0; i < BL_SPACEDIM; ++i) {
@@ -270,8 +325,8 @@ inline void init(RealBox& domain,
         domain.setHi(i, upper[i]); // m
     }
     
-    // Dirichlet boundary conditions in all directions
-    int bc[BL_SPACEDIM] = {0, 0, 0};
+//     // Dirichlet boundary conditions in all directions
+//     int bc[BL_SPACEDIM] = {0, 0, 0};
 }
 
 /*!
@@ -287,26 +342,39 @@ inline void initGridData(container_t& rhs,
                          container_t& phi,
                          container_t& grad_phi,
                          const BoxArray& ba,
+                         const DistributionMapping& dm,
                          int level)
 {
-#ifdef UNIQUE_PTR
-    //                                                  # component # ghost cells                                                                                                                                          
-    rhs[level] = std::unique_ptr<MultiFab>(new MultiFab(ba,1          ,0));
-    phi[level] = std::unique_ptr<MultiFab>(new MultiFab(ba,1          ,1));
-    grad_phi[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, BL_SPACEDIM, 1));
+    //                                                               # component # ghost cells                                                                                                                                          
+    rhs[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm,      1          , 0));
+    phi[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm,      1          , 1));
+    grad_phi[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm, BL_SPACEDIM, 1));
 
     rhs[level]->setVal(0.0);
-    phi[level]->setVal(0.0);
+    phi[level]->setVal(0.0, 1);
+    grad_phi[level]->setVal(0.0, 1);
+}
+
+/*!
+ * Allocate memory for the solver and initialize
+ * the grid data to zero.
+ * @param rhs is the right-hand side of the equation
+ * @param is the electric field
+ * @param ba is the box array per level
+ * @param level for which we initialize the data
+ */
+inline void initGridData(container_t& rhs,
+                         container_t& grad_phi,
+                         const BoxArray& ba,
+                         const DistributionMapping& dm,
+                         int level)
+{
+    //                                                               # component # ghost cells                                                                                                                                          
+    rhs[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm,      1          , 0));
+    grad_phi[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm, BL_SPACEDIM, 1));
+
+    rhs[level]->setVal(0.0);
     grad_phi[level]->setVal(0.0);
-#else
-    //                       # component # ghost cells                                                                                                                                          
-    rhs.set(level, new MultiFab(ba,1          ,0));
-    phi.set(level, new MultiFab(ba,1          ,1));
-    grad_phi.set(level, new MultiFab(ba, BL_SPACEDIM, 1));
-    rhs[level].setVal(0.0);
-    phi[level].setVal(0.0);
-    grad_phi[level].setVal(0.0);
-#endif
 }
 
 /*!
@@ -322,16 +390,17 @@ inline double totalCharge(const container_t& rhs,
                           bool scale = true)
 {
     
+//     Real totCharge = 0.0;
+//     for (int i = 0; i <= finest_level; ++i) {
+//         Real vol = (*(geom[i].CellSize()) * *(geom[i].CellSize()) * *(geom[i].CellSize()) );
+//         Real sum = (scale) ? rhs[i]->sum(0) * vol : rhs[i]->sum(0);
+//         totCharge += sum;
+//     }
+    
+    //AssignDensityFort averages down
     Real totCharge = 0.0;
-    for (int i = 0; i <= finest_level; ++i) {
-        Real vol = (*(geom[i].CellSize()) * *(geom[i].CellSize()) * *(geom[i].CellSize()) );
-#ifdef UNIQUE_PTR
-        Real sum = (scale) ? rhs[i]->sum(0) * vol : rhs[i]->sum(0);
-#else
-        Real sum = (scale) ? rhs[i].sum(0) * vol : rhs[i].sum(0);
-#endif
-        totCharge += sum;
-    }
+    Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
+    totCharge = (scale) ? rhs[0]->sum(0) * vol : rhs[0]->sum(0);
     return totCharge;
 }
 

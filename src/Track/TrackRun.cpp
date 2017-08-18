@@ -55,11 +55,6 @@
 #include "OPALconfig.h"
 #include "changes.h"
 
-#ifdef HAVE_AMR_SOLVER
-#define DIM 3
-#include <ParallelDescriptor.H>
-#endif
-
 #include <boost/algorithm/string.hpp>
 
 #include <fstream>
@@ -194,12 +189,12 @@ void TrackRun::execute() {
     if(method == "THIN") {
         //std::cerr << "  method == \"THIN\"" << std::endl;
         itsTracker = new ThinTracker(*Track::block->use->fetchLine(),
-                                     *Track::block->bunch, Track::block->reference,
+                                     Track::block->bunch, Track::block->reference,
                                      false, false);
     } else if(method == "THICK") {
         //std::cerr << "  method == \"THICK\"" << std::endl;
         itsTracker = new ThickTracker(*Track::block->use->fetchLine(),
-                                      *Track::block->bunch, Track::block->reference,
+                                      Track::block->bunch, Track::block->reference,
                                       false, false);
     // } else if(method == "PARALLEL-SLICE" || method == "OPAL-E") {
     //     setupSliceTracker();
@@ -464,10 +459,6 @@ void TrackRun::setupTTracker(){
         Track::block->bunch->calcBeamParametersInitial();// we have not initialized any particle yet.
     }
 
-#ifdef HAVE_AMR_SOLVER
-    setupAMRSolver();
-#endif
-
     if(!opal->inRestartRun()) {
         if(!opal->hasDataSinkAllocated() && !Options::scan) {
             opal->setDataSink(new DataSink(phaseSpaceSink_m));
@@ -532,7 +523,7 @@ void TrackRun::setupTTracker(){
 #else
 
     itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
-                                      dynamic_cast<PartBunch &>(*Track::block->bunch), *ds,
+                                      Track::block->bunch, *ds,
                                       Track::block->reference, false, false, Track::block->localTimeSteps,
                                       Track::block->zstart, Track::block->zstop, Track::block->dT);
 #endif
@@ -589,7 +580,7 @@ void TrackRun::setupCyclotronTracker(){
     if(beam->getNumberOfParticles() < 3 || beam->getCurrent() == 0.0) {
         macrocharge = beam->getCharge() * q_e;
         macromass = beam->getMass();
-        dist->createOpalCycl(*Track::block->bunch,
+        dist->createOpalCycl(Track::block->bunch,
                              beam->getNumberOfParticles(),
                              beam->getCurrent(),*Track::block->use->fetchLine(),
                              Options::scan);
@@ -607,14 +598,14 @@ void TrackRun::setupCyclotronTracker(){
             if(!opal->inRestartRun()) {
                 macrocharge /= beam->getNumberOfParticles();
                 macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
-                dist->createOpalCycl(*Track::block->bunch,
+                dist->createOpalCycl(Track::block->bunch,
                                      beam->getNumberOfParticles(),
                                      beam->getCurrent(),
                                      *Track::block->use->fetchLine(),
                                      Options::scan);
 
             } else {
-                dist->doRestartOpalCycl(*Track::block->bunch,
+                dist->doRestartOpalCycl(Track::block->bunch,
                                         beam->getNumberOfParticles(),
                                         opal->getRestartStep(),
                                         specifiedNumBunch,
@@ -625,7 +616,7 @@ void TrackRun::setupCyclotronTracker(){
         } else if(opal->hasBunchAllocated() && Options::scan) {
             macrocharge /= beam->getNumberOfParticles();
             macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
-            dist->createOpalCycl(*Track::block->bunch,
+            dist->createOpalCycl(Track::block->bunch,
                                  beam->getNumberOfParticles(),
                                  beam->getCurrent(),
                                  *Track::block->use->fetchLine(),
@@ -685,8 +676,9 @@ void TrackRun::setupCyclotronTracker(){
     *gmsg << "* ********************************************************************************** " << endl;
 
     itsTracker = new ParallelCyclotronTracker(*Track::block->use->fetchLine(),
-                                              dynamic_cast<PartBunch &>(*Track::block->bunch), *ds, Track::block->reference,
-                                              false, false, Track::block->localTimeSteps.front(), Track::block->timeIntegrator);
+                                              Track::block->bunch, *ds, Track::block->reference,
+                                              false, false, Track::block->localTimeSteps.front(),
+                                              Track::block->timeIntegrator);
 
     itsTracker->setNumBunch(specifiedNumBunch);
 
@@ -840,8 +832,9 @@ void TrackRun::setupFieldsolver() {
 
         if (numParticles < numGridPoints)
             throw OpalException("TrackRun::setupFieldsolver()",
-                                "Panik: The number of simulation particles (" + std::to_string(numParticles) + ") " +
-                                "is smaller than the number of gridpoints (" + std::to_string(numGridPoints) + ")");
+                                "The number of simulation particles (" + std::to_string(numParticles) + ") \n" +
+                                "is smaller than the number of gridpoints (" + std::to_string(numGridPoints) + ").\n" +
+                                "Please increase the number of particles or reduce the size of the mesh.\n");
     }
 
     fs->initCartesianFields();
@@ -922,7 +915,7 @@ double TrackRun::setDistributionParallelT(Beam *beam) {
             /*
              * Read in beam from restart file.
              */
-            dist->doRestartOpalT(*Track::block->bunch, numberOfParticles, opal->getRestartStep(), phaseSpaceSink_m);
+            dist->doRestartOpalT(Track::block->bunch, numberOfParticles, opal->getRestartStep(), phaseSpaceSink_m);
         }
     } else if (opal->hasBunchAllocated() && Options::scan) {
         /*
@@ -939,74 +932,6 @@ double TrackRun::setDistributionParallelT(Beam *beam) {
     }
 
     // Return charge per macroparticle.
-    return beam->getCharge() * beam->getCurrent() / beam->getFrequency() / numberOfParticles;
+    return beam->getCharge() * beam->getCurrent() / (beam->getFrequency()*1.0E-6) / numberOfParticles;
 
 }
-
-#ifdef HAVE_AMR_SOLVER
-void TrackRun::setupAMRSolver() {
-    /*
-    if ( fs->isAMRSolver() ) {
-        *gmsg << *Track::block->bunch  << endl;
-        *gmsg << *fs   << endl;
-
-        std::vector<double> x(3);
-        std::vector<double> attr(11);
-
-        for (size_t i=0; i<Track::block->bunch->getLocalNum(); i++) {
-            // X, Y, Z are stored separately from the other attributes
-            for (unsigned int k=0; k<3; k++)
-                x[k] = Track::block->bunch->R[i](k);
-
-            //  This allocates 11 spots -- 1 for Q, 3 for v, 3 for E, 3 for B, 1 for ID.
-            //  IMPORTANT: THIS ORDERING IS ASSUMED WHEN WE FILL E AT THE PARTICLE LOCATION
-            //             IN THE MOVEKICK CALL -- if Evec no longer starts at component 4
-            //             then you must change "start_comp_for_e" in Accel_advance.cpp
-	    //
-            // Q      : 0
-            //  Vvec   : 1, 2, 3 the velocity
-            //  Evec   : 4, 5, 6 the electric field at the particle location
-            //  Bvec   : 7, 8, 9 the electric field at the particle location
-            //  id+1   : 10 (we add 1 to make the particle ID > 0)
-
-            // This is the charge
-            attr[0] = Track::block->bunch->Q[i];
-
-            // These are the velocity components
-            double gamma=sqrt(1+ dot(Track::block->bunch->P[i],Track::block->bunch->P[i]));
-            for (unsigned int k=0; k<DIM; k++)
-                attr[k+1] = Track::block->bunch->P[i](k) * Physics::c /gamma;
-
-            // These are E and B
-            for (unsigned int k=4; k<10; k++)
-                attr[k]= 0.0;
-
-            //
-            // The Particle stuff in AMR requires ids > 0
-            //   (because we flip the sign to make them invalid)
-            // So we just make id->id+1 here.
-            int particle_id = Track::block->bunch->ID[i] + 1;
-            attr[3*DIM + 1] = particle_id;
-
-//             fs->getAmrPtr()->addOneParticle(particle_id, Ippl::myNode(), x, attr);
-        }
-
-        // It is essential that we call this routine since the particles
-        //    may not currently be defined on the same processor as the grid
-        //    that will hold them in the AMR world.
-        fs->getAmrPtr()->RedistributeParticles();
-
-        // This part of the call must come after we add the particles
-        // since this one calls post_init which does the field solve.
-        double start_time = 0.0;
-        double stop_time = 1.0;
-
-        fs->getAmrPtr()->FinalizeInit(start_time, stop_time);
-        fs->getAmrPtr()->writePlotFile();
-
-        *gmsg << "A M R Initialization DONE" << endl;
-    }
-    */
-}
-
-#endif

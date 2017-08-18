@@ -19,7 +19,7 @@
 // ------------------------------------------------------------------------
 #include "AbsBeamline/Monitor.h"
 #include "Physics/Physics.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
 #include "Structure/LossDataSink.h"
@@ -136,7 +136,7 @@ bool Monitor::applyToReferenceParticle(const Vector_t &R,
     return false;
 }
 
-void Monitor::initialise(PartBunch *bunch, double &startField, double &endField) {
+void Monitor::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
     endField = startField + halfLength_s;
     startField -= halfLength_s;

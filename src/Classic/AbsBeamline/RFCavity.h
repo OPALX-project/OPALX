@@ -125,9 +125,9 @@ public:
                                           Vector_t &E,
                                           Vector_t &B);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
 
-    virtual void initialise(PartBunch *bunch,
+    virtual void initialise(PartBunchBase<double, 3> *bunch,
                             std::shared_ptr<AbstractTimeDependence> freq_atd,
                             std::shared_ptr<AbstractTimeDependence> ampl_atd,
                             std::shared_ptr<AbstractTimeDependence> phase_atd);

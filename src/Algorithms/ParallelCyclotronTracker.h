@@ -27,7 +27,8 @@
 #include "Steppers/Steppers.h"
 
 class BMultipoleField;
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 class PlanarArcGeometry;
 class Ring;
 class SBend3D;
@@ -76,7 +77,7 @@ public:
     //  The particle bunch tracked is taken from [b]bunch[/b].
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
-    explicit ParallelCyclotronTracker(const Beamline &bl, PartBunch &bunch, DataSink &ds,
+    explicit ParallelCyclotronTracker(const Beamline &bl, PartBunchBase<double, 3> *bunch, DataSink &ds,
                                       const PartData &data, bool revBeam, bool revTrack, int maxSTEPS, int timeIntegrator);
 
     virtual ~ParallelCyclotronTracker();
@@ -207,8 +208,6 @@ private:
     std::list<Component *> myElements;
     int LastVisited;
     Beamline *itsBeamline;
-
-    PartBunch *itsBunch;
 
     DataSink *itsDataSink;
 
@@ -432,11 +431,11 @@ private:
     // Push particles for time h.
     // Apply effects of RF Gap Crossings.
     // Update time and path length.
-    // Unit assumptions: [itsBunch->R] = m, [itsBunch->P] = 1, [h] = s, [c] = m/s, [itsBunch->getT()] = s
+    // Unit assumptions: [itsBunch_m->R] = m, [itsBunch_m->P] = 1, [h] = s, [c] = m/s, [itsBunch_m->getT()] = s
     void push(double h);
 
     // Kick particles for time h
-    // The fields itsBunch->Bf, itsBunch->Ef are used to calculate the forces
+    // The fields itsBunch_m->Bf, itsBunch_m->Ef are used to calculate the forces
     void kick(double h);
 
     // Apply the trilogy half push - kick - half push,

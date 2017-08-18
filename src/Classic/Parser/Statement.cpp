@@ -193,7 +193,7 @@ unsigned int Statement::position() const {
     std::ostringstream os;
     bool white = false;
 
-    for(TokenList::const_iterator c = tokens.begin(); c != curr; c++) {
+    for(TokenList::const_iterator c = tokens.begin(); c != curr; ++c) {
         if(white && !c->isDel()) os << ' ';
         white = !c->isDel();
         os << *c;
@@ -206,7 +206,7 @@ unsigned int Statement::position() const {
 void Statement::print(std::ostream &msg) const {
     bool white = false;
 
-    for(TokenList::const_iterator c = tokens.begin(); c != tokens.end(); c++) {
+    for(TokenList::const_iterator c = tokens.begin(); c != tokens.end(); ++c) {
         if(white && !c->isDel()) msg << ' ';
         white = !c->isDel();
         msg << *c;

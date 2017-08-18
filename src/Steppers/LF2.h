@@ -12,7 +12,7 @@ public:
     
     LF2(const FieldFunction& fieldfunc) : Stepper<FieldFunction, Arguments ...>(fieldfunc) { }
     
-    bool advance(PartBunch* bunch,
+    bool advance(PartBunchBase<double, 3>* bunch,
                  const size_t& i,
                  const double& t,
                  const double dt,
@@ -22,7 +22,7 @@ private:
     
     void push_m(Vector_t& R, const Vector_t& P, const double& h) const;
     
-    bool kick_m(PartBunch* bunch, const size_t& i,
+    bool kick_m(PartBunchBase<double, 3>* bunch, const size_t& i,
                 const double& t, const double& h,
                 Arguments& ... args) const;
 };

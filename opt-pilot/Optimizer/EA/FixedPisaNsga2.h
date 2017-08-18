@@ -111,11 +111,11 @@ private:
         , Stop               = 4
         , VariatorStopped    = 5
         , VariatorTerminate  = 6
-        , SelectorStopped    = 7
-        , Reset              = 8
-        , ReadyForReset      = 9
-        , ReadyForResetS     = 10
-        , Restart            = 11
+        /* , SelectorStopped    = 7 */
+        /* , Reset              = 8 */
+        /* , ReadyForReset      = 9 */
+        /* , ReadyForResetS     = 10 */
+        /* , Restart            = 11 */
     };
 
     std::string getStateString(PisaState_t) const;

@@ -32,13 +32,17 @@
 #include "Utilities/Util.h"
 #include "H5hut.h"
 
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 class EnvelopeBunch;
 class BoundaryGeometry;
 class H5PartWrapper;
 
 class DataSink {
 public:
+    
+    typedef std::vector<std::pair<std::string, unsigned int> > losses_t;
+    
     /** \brief Default constructor.
      *
      * The default constructor is called at the start of a new calculation (as
@@ -88,17 +92,19 @@ public:
      *  - FDext[4] = B at tail particle location (in x, y, and z).
      *  - FDext[5] = E at tail particle location (in x, y, and z).
      */
-    void doWriteStatData(PartBunch &beam, Vector_t FDext[], double E, const std::vector<std::pair<std::string, unsigned int> > &losses);
+    void doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
+                         double E, const losses_t &losses);
 
     /** \brief for OPAL-t
 
      */
-    void writeStatData(PartBunch &beam, Vector_t FDext[], const std::vector<std::pair<std::string, unsigned int> > &losses = std::vector<std::pair<std::string, unsigned int> >());
+    void writeStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
+                       const losses_t &losses = losses_t());
 
     // /** \brief for OPAL-cycl
 
     //  */
-    void writeStatData(PartBunch &beam, Vector_t FDext[], double E);
+    void writeStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], double E);
 
 
     /** \brief Write SDDS header.
@@ -110,7 +116,7 @@ public:
      */
     void writeSDDSHeader(std::ofstream &outputFile);
 
-    void writeSDDSHeader(std::ofstream &outputFile, const std::vector<std::pair<std::string, unsigned int> > &losses);
+    void writeSDDSHeader(std::ofstream &outputFile, const losses_t &losses);
 
     /** \brief Dumps Phase Space to H5 file.
      *
@@ -124,7 +130,7 @@ public:
      *  - FDext[4] = B at tail particle location (in x, y, and z).
      *  - FDext[5] = E at tail particle location (in x, y, and z).
      */
-    void writePhaseSpace(PartBunch &beam, Vector_t FDext[]);
+    void writePhaseSpace(PartBunchBase<double, 3> *beam, Vector_t FDext[]);
 
     /** \brief Dumps phase space to H5 file in OPAL cyclotron calculation.
      *
@@ -140,7 +146,7 @@ public:
      *  \param E average energy (MeB)
      *  \return Returns the number of the time step just written.
      */
-    int writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double E,
+    int writePhaseSpace_cycl(PartBunchBase<double, 3> *beam, Vector_t FDext[], double E,
 			     double refPr, double refPt, double refPz,
                              double refR, double refTheta, double refZ,
                              double azimuth, double elevation, bool local);
@@ -171,7 +177,7 @@ public:
      * @param beam
      */
 
-    void writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, std::string fn);
+    void writePartlossZASCII(PartBunchBase<double, 3> *beam, BoundaryGeometry &bg, std::string fn);
 
     /**
      * Write geometry points and surface triangles to vtk file
@@ -188,12 +194,37 @@ public:
      * @param fn specifies the name of vtk file contains the geometry
      *
      */
-    void writeImpactStatistics(PartBunch &beam, long long int &step, size_t &impact, double &sey_num,
+    void writeImpactStatistics(PartBunchBase<double, 3> *beam, long long int &step, size_t &impact, double &sey_num,
                                size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn);
 
-    void writeSurfaceInteraction(PartBunch &beam, long long int &step, BoundaryGeometry &bg, std::string fn);
+    void writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long int &step, BoundaryGeometry &bg, std::string fn);
 
-
+    /** \brief Write SDDS header.
+     *
+     * Writes the appropriate SDDS format header information to processor statistics file so the SDDS tools can be used
+     * for plotting data.
+     * \param outputFile Name of file to write to.
+     *
+     */
+    void writeLBalHeader(PartBunchBase<double, 3> *beam, std::ofstream &outputFile);
+    
+    void writeLBalData(PartBunchBase<double, 3> *beam,
+                       std::ofstream &outputFile,
+                       unsigned int pwi);
+    
+    
+    /** \brief Write SDDS header.
+     *
+     * Writes the appropriate SDDS format header information to processor memory so the SDDS tools can be used
+     * for plotting data.
+     * \param outputFile Name of file to write to.
+     *
+     */
+    void writeMemoryHeader(std::ofstream &outputFile);
+    
+    void writeMemoryData(PartBunchBase<double, 3> *beam,
+                         std::ofstream &outputFile,
+                         unsigned int pwi);
 
 
 private:
@@ -225,6 +256,9 @@ private:
 
     /// Name of output file for processor load balancing information.
     std::string lBalFileName_m;
+    
+    /// Name of output file for processor memory information
+    std::string memFileName_m;
 
     /// Name of output file for surface loss data.
     std::string surfaceLossFileName_m;

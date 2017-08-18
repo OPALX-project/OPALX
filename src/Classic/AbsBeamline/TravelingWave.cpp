@@ -20,7 +20,7 @@
 
 #include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Fields/Fieldmap.h"
 
 #include "gsl/gsl_interp.h"
@@ -347,7 +347,7 @@ bool TravelingWave::applyToReferenceParticle(const Vector_t &R, const Vector_t &
     return false;
 }
 
-void TravelingWave::initialise(PartBunch *bunch, double &startField, double &endField) {
+void TravelingWave::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     using Physics::pi;
     using Physics::two_pi;
 

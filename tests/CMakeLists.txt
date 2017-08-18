@@ -37,7 +37,7 @@ LINK_DIRECTORIES( ${GTEST_LIB_DIR}
     ${OPAL_SOURCE_DIR}/src
     ${Trilinos_LIBRARY_DIRS}
     ${Trilinos_TPL_LIBRARY_DIRS}
-    ${CCSE_LIBRARY_DIR}
+    ${AMREX_LIBRARY_DIR}
     ${Boost_LIBRARIES}
 )
 
@@ -52,7 +52,7 @@ INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIRS}
     ${Trilinos_INCLUDE_DIRS}
     ${Trilinos_TPL_INCLUDE_DIRS}
     ${IPPL_SOURCE_DIRS}
-    ${CCSE_INCLUDE_DIRS}
+    ${AMREX_INCLUDE_DIRS}
     ${GTEST_INCLUDE_DIRS}
 )
 
@@ -62,4 +62,4 @@ INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIRS}
 # Build the test exe. We don't do an install on the unit test exe as it is
 # assumed that this is internal to opal
 ADD_EXECUTABLE(${TEST_EXE} ${TEST_SRCS}) # the opal and classic sources are not needed again if we link agains libOPAL and libCLASSIC!
-TARGET_LINK_LIBRARIES(${TEST_EXE} OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${CCSE_LIBRARIES} -lgfortran ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${GTEST_BOTH_LIBRARIES} -lpthread)
+TARGET_LINK_LIBRARIES(${TEST_EXE} OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES} -lgfortran ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${GTEST_BOTH_LIBRARIES} -lpthread)

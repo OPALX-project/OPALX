@@ -11,7 +11,7 @@ beta   = sqrt(1-(1/gamma^2));
 gambet = gamma*beta;
 P0     = gamma*beta*PMASS;
 brho   = (PMASS*1.0e9*gambet) / CLIGHT;
-rf     = 50.6328e6;  //need to be confirmed
+rf     = 50.6328;  //need to be confirmed
 
 VALUE,{gamma,brho,Edes,beta,gambet};
 

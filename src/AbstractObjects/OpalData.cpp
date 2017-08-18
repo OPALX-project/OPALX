@@ -41,7 +41,7 @@
 #include "OpalParser/OpalParser.h"
 #include "Parser/FileStream.h"
 #include "Parser/StringStream.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Algorithms/bet/EnvelopeBunch.h"
 // /DTA
 
@@ -112,7 +112,7 @@ struct OpalDataImpl {
 
 
     // The particle bunch to be tracked.
-    PartBunch *bunch_m;
+    PartBunchBase<double, 3> *bunch_m;
 
     DataSink *dataSink_m;
 
@@ -144,7 +144,7 @@ struct OpalDataImpl {
     bool isInOPALCyclMode_m;
     bool isInOPALTMode_m;
     bool isInOPALEnvMode_m;
-
+    
     bool isInPrepState_m;
 };
 
@@ -391,11 +391,11 @@ void OpalData::bunchIsAllocated() {
     p->hasBunchAllocated_m = true;
 }
 
-void OpalData::setPartBunch(PartBunch *b) {
+void OpalData::setPartBunch(PartBunchBase<double, 3> *b) {
     p->bunch_m = b;
 }
 
-PartBunch *OpalData::getPartBunch() {
+PartBunchBase<double, 3> *OpalData::getPartBunch() {
     return p->bunch_m;
 }
 
