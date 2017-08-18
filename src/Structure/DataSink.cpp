@@ -15,6 +15,10 @@
 #include "Structure/H5PartWrapperForPS.h"
 #include "Utilities/Timer.h"
 
+#ifdef ENABLE_AMR
+    #include "Algorithms/AmrPartBunch.h"
+#endif
+
 #include "H5hut.h"
 
 #include <boost/filesystem.hpp>
@@ -64,6 +68,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
 
     statFileName_m = fn + string(".stat");
     lBalFileName_m = fn + string(".lbal");
+    memFileName_m  = fn + string(".mem");
 
     unsigned int linesToRewind = 0;
     if (fs::exists(statFileName_m)) {
@@ -80,6 +85,15 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
         rewindLinesLBal(linesToRewind);
     } else {
         INFOMSG("Creating new file for load balance data: " << lBalFileName_m << endl);
+    }
+    
+    if (fs::exists(memFileName_m)) {
+        INFOMSG("Appending memory consumption to existing data file: " << memFileName_m << endl);
+        if (Ippl::myNode() == 0) {
+            rewindLines(memFileName_m, linesToRewind);
+        }
+    } else {
+        INFOMSG("Creating new file for memory consumption data: " << memFileName_m << endl);
     }
 }
 
@@ -102,6 +116,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper):
     surfaceLossFileName_m = fn + string(".SurfaceLoss.h5");
     statFileName_m = fn + string(".stat");
     lBalFileName_m = fn + string(".lbal");
+    memFileName_m  = fn + string(".mem");
 
     doHDF5_m = Options::enableHDF5;
 
@@ -118,7 +133,7 @@ void DataSink::storeCavityInformation() {
     h5wrapper_m->storeCavityInformation();
 }
 
-void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[]) {
+void DataSink::writePhaseSpace(PartBunchBase<double, 3> *beam, Vector_t FDext[]) {
 
     if (!doHDF5_m) return;
 
@@ -139,13 +154,13 @@ void DataSink::writePhaseSpace(PartBunch &beam, Vector_t FDext[]) {
 
 
 
-int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double meanEnergy,
+int DataSink::writePhaseSpace_cycl(PartBunchBase<double, 3> *beam, Vector_t FDext[], double meanEnergy,
                                    double refPr, double refPt, double refPz,
                                    double refR, double refTheta, double refZ,
                                    double azimuth, double elevation, bool local) {
 
     if (!doHDF5_m) return -1;
-    if (beam.getLocalNum() < 3) return -1; // in single particle mode and tune calculation (2 particles) we do not need h5 data
+    if (beam->getLocalNum() < 3) return -1; // in single particle mode and tune calculation (2 particles) we do not need h5 data
 
     IpplTimings::startTimer(H5PartTimer_m);
     std::map<std::string, double> additionalAttributes = {
@@ -211,7 +226,7 @@ void DataSink::writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
         std::make_pair("E-tail_z", FDext[5](1)),
         std::make_pair("E-tail_y", FDext[5](2))};
 
-    h5wrapper_m->writeStep(beam, additionalAttributes);
+    h5wrapper_m->writeStep(&beam, additionalAttributes);
     IpplTimings::stopTimer(H5PartTimer_m);
 }
 
@@ -243,16 +258,16 @@ void DataSink::dumpStashedPhaseSpaceEnvelope() {
     IpplTimings::stopTimer(H5PartTimer_m);
 }
 
-void DataSink::writeStatData(PartBunch &beam, Vector_t FDext[], double E) {
-    doWriteStatData(beam, FDext, E, std::vector<std::pair<std::string, unsigned int> >());
+void DataSink::writeStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], double E) {
+    doWriteStatData(beam, FDext, E, losses_t());
 }
 
-void DataSink::writeStatData(PartBunch &beam, Vector_t FDext[], const std::vector<std::pair<std::string, unsigned int> >& losses) {
-    doWriteStatData(beam, FDext, beam.get_meanKineticEnergy(), losses);
+void DataSink::writeStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], const losses_t& losses) {
+    doWriteStatData(beam, FDext, beam->get_meanKineticEnergy(), losses);
 }
 
 
-void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double Ekin, const std::vector<std::pair<std::string, unsigned int> > &losses) {
+void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], double Ekin, const losses_t &losses) {
 
     /// Start timer.
     IpplTimings::startTimer(StatMarkerTimer_m);
@@ -261,25 +276,37 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double Ekin, c
     unsigned int pwi = 10;
 
     /// Calculate beam statistics and gather load balance statistics.
-    beam.calcBeamParameters();
-    beam.gatherLoadBalanceStatistics();
+    beam->calcBeamParameters();
+    beam->gatherLoadBalanceStatistics();
+    
+#ifdef ENABLE_AMR
+    if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
+        amrbeam->gatherLevelStatistics();
+    }
+#endif
 
     size_t npOutside = 0;
     if (Options::beamHaloBoundary>0)
-        npOutside = beam.calcNumPartsOutside(Options::beamHaloBoundary*beam.get_rrms());
-    // *gmsg << "npOutside 1 = " << npOutside << " beamHaloBoundary= " << Options::beamHaloBoundary << " rrms= " << beam.get_rrms() << endl;
+        npOutside = beam->calcNumPartsOutside(Options::beamHaloBoundary*beam->get_rrms());
+    // *gmsg << "npOutside 1 = " << npOutside << " beamHaloBoundary= " << Options::beamHaloBoundary << " rrms= " << beam->get_rrms() << endl;
 
     double  pathLength = 0.0;
     if (OpalData::getInstance()->isInOPALCyclMode())
-        pathLength = beam.getLPath();
+        pathLength = beam->getLPath();
     else
-        pathLength = beam.get_sPos();
+        pathLength = beam->get_sPos();
 
     /// Write data to files. If this is the first write to the beam statistics file, write SDDS
     /// header information.
     ofstream os_statData;
     ofstream os_lBalData;
-    double Q = beam.getCharge();
+    ofstream os_memData;
+    double Q = beam->getCharge();
+    
+    if ( Options::memoryDump ) {
+        IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+        memory->sample();
+    }
 
     if(Ippl::myNode() == 0) {
         if(firstWriteToStat_m) {
@@ -291,7 +318,14 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double Ekin, c
             os_lBalData.open(lBalFileName_m.c_str(), ios::out);
             os_lBalData.precision(15);
             os_lBalData.setf(ios::scientific, ios::floatfield);
-            os_lBalData << "# " << Ippl::getNodes() << endl;
+            writeLBalHeader(beam, os_lBalData);
+            
+            if ( Options::memoryDump ) {
+                os_memData.open(memFileName_m.c_str(), ios::out);
+                os_memData.precision(15);
+                os_memData.setf(ios::scientific, ios::floatfield);
+                writeMemoryHeader(os_memData);
+            }
 
             firstWriteToStat_m = false;
         } else {
@@ -302,54 +336,60 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double Ekin, c
             os_lBalData.open(lBalFileName_m.c_str(), ios::app);
             os_lBalData.precision(15);
             os_lBalData.setf(ios::scientific, ios::floatfield);
+            
+            if ( Options::memoryDump ) {
+                os_memData.open(memFileName_m.c_str(), ios::app);
+                os_memData.precision(15);
+                os_memData.setf(ios::scientific, ios::floatfield);
+            }
         }
 
-        os_statData << beam.getT() * 1e9 << setw(pwi) << "\t"                                 // 1
+        os_statData << beam->getT() * 1e9 << setw(pwi) << "\t"                                 // 1
                     << pathLength << setw(pwi) << "\t"                                        // 2
 
-                    << beam.getTotalNum() << setw(pwi) << "\t"                                // 3
+                    << beam->getTotalNum() << setw(pwi) << "\t"                                // 3
                     << Q << setw(pwi) << "\t"                                                 // 4
 
                     << Ekin << setw(pwi) << "\t"                                              // 5
 
-                    << beam.get_rrms()(0) << setw(pwi) << "\t"                                // 6
-                    << beam.get_rrms()(1) << setw(pwi) << "\t"                                // 7
-                    << beam.get_rrms()(2) << setw(pwi) << "\t"                                // 8
+                    << beam->get_rrms()(0) << setw(pwi) << "\t"                                // 6
+                    << beam->get_rrms()(1) << setw(pwi) << "\t"                                // 7
+                    << beam->get_rrms()(2) << setw(pwi) << "\t"                                // 8
 
-                    << beam.get_prms()(0) << setw(pwi) << "\t"                                // 9
-                    << beam.get_prms()(1) << setw(pwi) << "\t"                                // 10
-                    << beam.get_prms()(2) << setw(pwi) << "\t"                                // 11
+                    << beam->get_prms()(0) << setw(pwi) << "\t"                                // 9
+                    << beam->get_prms()(1) << setw(pwi) << "\t"                                // 10
+                    << beam->get_prms()(2) << setw(pwi) << "\t"                                // 11
 
-                    << beam.get_norm_emit()(0) << setw(pwi) << "\t"                           // 12
-                    << beam.get_norm_emit()(1) << setw(pwi) << "\t"                           // 13
-                    << beam.get_norm_emit()(2) << setw(pwi) << "\t"                           // 14
+                    << beam->get_norm_emit()(0) << setw(pwi) << "\t"                           // 12
+                    << beam->get_norm_emit()(1) << setw(pwi) << "\t"                           // 13
+                    << beam->get_norm_emit()(2) << setw(pwi) << "\t"                           // 14
 
-                    << beam.get_rmean()(0)  << setw(pwi) << "\t"                              // 15
-                    << beam.get_rmean()(1)  << setw(pwi) << "\t"                              // 16
-                    << beam.get_rmean()(2)  << setw(pwi) << "\t"                              // 17
+                    << beam->get_rmean()(0)  << setw(pwi) << "\t"                              // 15
+                    << beam->get_rmean()(1)  << setw(pwi) << "\t"                              // 16
+                    << beam->get_rmean()(2)  << setw(pwi) << "\t"                              // 17
 
-                    << beam.RefPartR_m(0) << setw(pwi) << "\t"                                // 18
-                    << beam.RefPartR_m(1) << setw(pwi) << "\t"                                // 19
-                    << beam.RefPartR_m(2) << setw(pwi) << "\t"                                // 20
+                    << beam->RefPartR_m(0) << setw(pwi) << "\t"                                // 18
+                    << beam->RefPartR_m(1) << setw(pwi) << "\t"                                // 19
+                    << beam->RefPartR_m(2) << setw(pwi) << "\t"                                // 20
 
-                    << beam.RefPartP_m(0) << setw(pwi) << "\t"                                // 21
-                    << beam.RefPartP_m(1) << setw(pwi) << "\t"                                // 22
-                    << beam.RefPartP_m(2) << setw(pwi) << "\t"                                // 23
+                    << beam->RefPartP_m(0) << setw(pwi) << "\t"                                // 21
+                    << beam->RefPartP_m(1) << setw(pwi) << "\t"                                // 22
+                    << beam->RefPartP_m(2) << setw(pwi) << "\t"                                // 23
 
-                    << beam.get_maxExtent()(0) << setw(pwi) << "\t"                           // 24
-                    << beam.get_maxExtent()(1) << setw(pwi) << "\t"                           // 25
-                    << beam.get_maxExtent()(2) << setw(pwi) << "\t"                           // 26
+                    << beam->get_maxExtent()(0) << setw(pwi) << "\t"                           // 24
+                    << beam->get_maxExtent()(1) << setw(pwi) << "\t"                           // 25
+                    << beam->get_maxExtent()(2) << setw(pwi) << "\t"                           // 26
 
             // Write out Courant Snyder parameters.
-                    << beam.get_rprms()(0) << setw(pwi) << "\t"                               // 27
-                    << beam.get_rprms()(1) << setw(pwi) << "\t"                               // 28
-                    << beam.get_rprms()(2) << setw(pwi) << "\t"                               // 29
+                    << beam->get_rprms()(0) << setw(pwi) << "\t"                               // 27
+                    << beam->get_rprms()(1) << setw(pwi) << "\t"                               // 28
+                    << beam->get_rprms()(2) << setw(pwi) << "\t"                               // 29
 
             // Write out dispersion.
-                    << beam.get_Dx() << setw(pwi) << "\t"                                      // 30
-                    << beam.get_DDx() << setw(pwi) << "\t"                                     // 31
-                    << beam.get_Dy() << setw(pwi) << "\t"                                      // 32
-                    << beam.get_DDy() << setw(pwi) << "\t"                                     // 33
+                    << beam->get_Dx() << setw(pwi) << "\t"                                      // 30
+                    << beam->get_DDx() << setw(pwi) << "\t"                                     // 31
+                    << beam->get_Dy() << setw(pwi) << "\t"                                      // 32
+                    << beam->get_DDy() << setw(pwi) << "\t"                                     // 33
 
 
             // Write head/reference particle/tail field information.
@@ -361,17 +401,17 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double Ekin, c
                     << FDext[1](1) << setw(pwi) << "\t"                                         // 38 E-ref y
                     << FDext[1](2) << setw(pwi) << "\t"                                         // 39 E-ref z
 
-                    << beam.getdE() << setw(pwi) << "\t"                                        // 40 dE energy spread
-                    << beam.getdT() * 1e9 << setw(pwi) << "\t"                                        // 41 dt time step size
+                    << beam->getdE() << setw(pwi) << "\t"                                        // 40 dE energy spread
+                    << beam->getdT() * 1e9 << setw(pwi) << "\t"                                        // 41 dt time step size
                     << npOutside << setw(pwi) << "\t";                                          // 42 number of particles outside n*sigma
 
-        if(Ippl::getNodes() == 1 && beam.getLocalNum() > 0) {
-            os_statData << beam.R[0](0) << setw(pwi) << "\t";                                   // 43 R0_x
-            os_statData << beam.R[0](1) << setw(pwi) << "\t";                                   // 44 R0_y
-            os_statData << beam.R[0](2) << setw(pwi) << "\t";                                   // 45 R0_z
-            os_statData << beam.P[0](0) << setw(pwi) << "\t";                                   // 46 P0_x
-            os_statData << beam.P[0](1) << setw(pwi) << "\t";                                   // 47 P0_y
-            os_statData << beam.P[0](2) << setw(pwi) << "\t";                                   // 48 P0_z
+        if(Ippl::getNodes() == 1 && beam->getLocalNum() > 0) {
+            os_statData << beam->R[0](0) << setw(pwi) << "\t";                                   // 43 R0_x
+            os_statData << beam->R[0](1) << setw(pwi) << "\t";                                   // 44 R0_y
+            os_statData << beam->R[0](2) << setw(pwi) << "\t";                                   // 45 R0_z
+            os_statData << beam->P[0](0) << setw(pwi) << "\t";                                   // 46 P0_x
+            os_statData << beam->P[0](1) << setw(pwi) << "\t";                                   // 47 P0_y
+            os_statData << beam->P[0](2) << setw(pwi) << "\t";                                   // 48 P0_z
         }
 
 
@@ -380,9 +420,12 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double Ekin, c
         }
         os_statData   << endl;
 
-        for(int p = 0; p < Ippl::getNodes(); p++)
-            os_lBalData << beam.getLoadBalance(p)  << setw(pwi) << "\t";
-        os_lBalData << endl;
+        writeLBalData(beam, os_lBalData, pwi);
+        
+        if ( Options::memoryDump ) {
+            writeMemoryData(beam, os_memData, pwi);
+            os_memData.close();
+        }
 
         os_statData.close();
         os_lBalData.close();
@@ -408,7 +451,13 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
     /// header information.
     ofstream os_statData;
     ofstream os_lBalData;
+    ofstream os_memData;
     double en = beam.get_meanKineticEnergy() * 1e-6;
+    
+    if ( Options::memoryDump ) {
+        IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+        memory->sample();
+    }
 
     if(Ippl::myNode() == 0) {
         if(firstWriteToStat_m) {
@@ -419,8 +468,15 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
 
             os_lBalData.open(lBalFileName_m.c_str(), ios::out);
             os_lBalData.precision(15);
-            os_lBalData.setf(ios::scientific, ios::floatfield);
-            os_lBalData << "# " << Ippl::getNodes() << endl;
+            os_lBalData.setf(ios::scientific, ios::floatfield);            
+            writeLBalHeader(&beam, os_lBalData);
+            
+            if ( Options::memoryDump ) {
+                os_memData.open(memFileName_m.c_str(), ios::out);
+                os_memData.precision(15);
+                os_memData.setf(ios::scientific, ios::floatfield);
+                writeMemoryHeader(os_memData);
+            }
 
             firstWriteToStat_m = false;
         } else {
@@ -431,6 +487,12 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
             os_lBalData.open(lBalFileName_m.c_str(), ios::app);
             os_lBalData.precision(15);
             os_lBalData.setf(ios::scientific, ios::floatfield);
+            
+            if ( Options::memoryDump ) {
+                os_memData.open(memFileName_m.c_str(), ios::app);
+                os_memData.precision(15);
+                os_memData.setf(ios::scientific, ios::floatfield);
+            }
         }
 
 
@@ -487,12 +549,14 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
                     << beam.get_dEdt() << setw(pwi) << "\t"                                   // 35 dE energy spread
 
                     << endl;
-
-
-        for(int p = 0; p < Ippl::getNodes(); p++)
-            os_lBalData << beam.getLoadBalance(p)  << setw(pwi) << "\t";
-        os_lBalData << endl;
-
+        
+        writeLBalData(&beam, os_lBalData, pwi);
+        
+        if ( Options::memoryDump ) {
+            writeMemoryData(&beam, os_memData, pwi);
+            os_memData.close();
+        }
+        
         os_statData.close();
         os_lBalData.close();
     }
@@ -503,10 +567,10 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
 
 void DataSink::writeSDDSHeader(ofstream &outputFile) {
     writeSDDSHeader(outputFile,
-                    std::vector<std::pair<std::string, unsigned int> >());
+                    losses_t());
 }
 void DataSink::writeSDDSHeader(ofstream &outputFile,
-                               const std::vector<std::pair<std::string, unsigned int> > &losses) {
+                               const losses_t &losses) {
     OPALTimer::Timer simtimer;
 
     string dateStr(simtimer.date());
@@ -531,7 +595,7 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
     outputFile << "&parameter\n"
                << indent << "name=flavor,\n"
                << indent << "type=string,\n"
-               << indent << "description=\"OPAL flavor that wrote file\""
+               << indent << "description=\"OPAL flavor that wrote file\"\n"
                << "&end\n";
     outputFile << "&column\n"
                << indent << "name=t,\n"
@@ -847,7 +911,7 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
 }
 
 
-void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string fn) {
+void DataSink::writePartlossZASCII(PartBunchBase<double, 3> *beam, BoundaryGeometry &bg, string fn) {
 
     size_t temp = lossWrCounter_m ;
 
@@ -866,7 +930,7 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
     Vector_t Geo_nr = bg.getnr();
     Vector_t Geo_hr = bg.gethr();
     Vector_t Geo_mincoords = bg.getmincoords();
-    double t = beam.getT();
+    double t = beam->getT();
     double t_step = t * 1.0e9;
     double* prPartLossZ = new double[bg.getnr() (2)];
     double* sePartLossZ = new double[bg.getnr() (2)];
@@ -927,7 +991,7 @@ void DataSink::writePartlossZASCII(PartBunch &beam, BoundaryGeometry &bg, string
     delete[] fePartLossZ;
 }
 
-void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, BoundaryGeometry &bg, string fn) {
+void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long &step, BoundaryGeometry &bg, string fn) {
 
     if (!doHDF5_m) return;
 
@@ -975,7 +1039,7 @@ void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, Boundar
     rc = H5PartSetNumParticles(H5fileS_m, N_mean);
     if(rc != H5_SUCCESS)
         ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    double    qi = beam.getChargePerParticle();
+    double    qi = beam->getChargePerParticle();
     rc = H5WriteStepAttribFloat64(H5fileS_m, "qi", &qi, 1);
 
     std::unique_ptr<double[]> tmploss(new double[nTot]);
@@ -1110,18 +1174,18 @@ void DataSink::writeSurfaceInteraction(PartBunch &beam, long long &step, Boundar
 
 }
 
-void DataSink::writeImpactStatistics(PartBunch &beam, long long &step, size_t &impact, double &sey_num,
+void DataSink::writeImpactStatistics(PartBunchBase<double, 3> *beam, long long &step, size_t &impact, double &sey_num,
                                      size_t numberOfFieldEmittedParticles, bool nEmissionMode, string fn) {
 
     double charge = 0.0;
     size_t Npart = 0;
     double Npart_d = 0.0;
     if(!nEmissionMode) {
-        charge = -1.0 * beam.getCharge();
+        charge = -1.0 * beam->getCharge();
         //reduce(charge, charge, OpAddAssign());
-        Npart_d = -1.0 * charge / beam.getChargePerParticle();
+        Npart_d = -1.0 * charge / beam->getChargePerParticle();
     } else {
-        Npart = beam.getTotalNum();
+        Npart = beam->getTotalNum();
     }
     if(Ippl::myNode() == 0) {
         string ffn = fn + string(".dat");
@@ -1132,7 +1196,7 @@ void DataSink::writeImpactStatistics(PartBunch &beam, long long &step, size_t &i
 
         fid.precision(6);
         fid << setiosflags(ios::scientific);
-        double t = beam.getT() * 1.0e9;
+        double t = beam->getT() * 1.0e9;
         if(!nEmissionMode) {
 
             if(step == 0) {
@@ -1199,6 +1263,215 @@ void DataSink::rewindLines(const std::string &fileName, size_t numberOfLines) co
     }
     fs.close();
 }
+
+void DataSink::writeLBalHeader(PartBunchBase<double, 3> *beam,
+                               std::ofstream &outputFile)
+{
+    OPALTimer::Timer simtimer;
+
+    string dateStr(simtimer.date());
+    string timeStr(simtimer.time());
+    string indent("        ");
+
+    outputFile << "SDDS1" << endl;
+    outputFile << "&description\n"
+               << indent << "text=\"Processor statistics '"
+               << OpalData::getInstance()->getInputFn() << "' "
+               << dateStr << "" << timeStr << "\",\n"
+               << indent << "contents=\"stat parameters\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=processors,\n"
+               << indent << "type=long,\n"
+               << indent << "description=\"Number of Cores used\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=revision,\n"
+               << indent << "type=string,\n"
+               << indent << "description=\"git revision of opal\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=flavor,\n"
+               << indent << "type=string,\n"
+               << indent << "description=\"OPAL flavor that wrote file\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=t,\n"
+               << indent << "type=double,\n"
+               << indent << "units=ns,\n"
+               << indent << "description=\"1 Time\"\n"
+               << "&end\n";
+
+    unsigned int columnStart = 2;
+    
+    
+    for (int p = 0; p < Ippl::getNodes(); ++p) {
+        outputFile << "&column\n"
+                   << indent << "name=processor-" << p << ",\n"
+                   << indent << "type=long,\n"
+                   << indent << "units=1,\n"
+                   << indent << "description=\"" << columnStart
+                   << " Number of particles of processor " << p << "\"\n"
+                   << "&end\n";
+        ++columnStart;
+    }
+
+#ifdef ENABLE_AMR
+    if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
+        
+        int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
+
+        for (int lev = 0; lev < nLevel; ++lev) {
+            outputFile << "&column\n"
+                   << indent << "name=level-" << lev << ",\n"
+                   << indent << "type=long,\n"
+                   << indent << "units=1,\n"
+                   << indent << "description=\"" << columnStart
+                   << " Number of particles at level " << lev << "\"\n"
+                   << "&end\n";
+            ++columnStart;
+        }
+    }
+#endif
+
+    outputFile << "&data\n"
+               << indent << "mode=ascii,\n"
+               << indent << "no_row_counts=1\n"
+               << "&end\n";
+
+    outputFile << Ippl::getNodes() << endl;
+    outputFile << PACKAGE_NAME << " " << OPAL_VERSION_STR << " # git rev. " << Util::getGitRevision() << endl;
+    outputFile << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
+                   (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << endl;
+    
+    
+}
+
+void DataSink::writeLBalData(PartBunchBase<double, 3> *beam,
+                             std::ofstream &os_lBalData,
+                             unsigned int pwi)
+{
+    os_lBalData << beam->getT() * 1e9 << setw(pwi) << "\t";     // 1
+    
+    int nProcs = Ippl::getNodes();
+    for (int p = 0; p < nProcs; p++) {
+        os_lBalData << beam->getLoadBalance(p)  << setw(pwi);
+        
+        if ( p < nProcs - 1 )
+            os_lBalData << "\t";
+        
+    }
+        
+#ifdef ENABLE_AMR
+    if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
+        os_lBalData << "\t";
+        int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
+        for (int lev = 0; lev < nLevel; ++lev) {
+            os_lBalData << amrbeam->getLevelStatistics(lev) << setw(pwi);
+            
+            if ( lev < nLevel - 1 )
+                os_lBalData << "\t";
+        }
+    }
+#endif
+    os_lBalData << endl;
+}
+
+void DataSink::writeMemoryHeader(std::ofstream &outputFile)
+{
+    OPALTimer::Timer simtimer;
+
+    string dateStr(simtimer.date());
+    string timeStr(simtimer.time());
+    string indent("        ");
+    
+    IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+        
+    outputFile << "SDDS1" << std::endl;
+    outputFile << "&description\n"
+               << indent << "text=\"Memory statistics '"
+               << OpalData::getInstance()->getInputFn() << "' "
+               << dateStr << "" << timeStr << "\",\n"
+               << indent << "contents=\"stat parameters\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=processors,\n"
+               << indent << "type=long,\n"
+               << indent << "description=\"Number of Cores used\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=revision,\n"
+               << indent << "type=string,\n"
+               << indent << "description=\"git revision of opal\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=flavor,\n"
+               << indent << "type=string,\n"
+               << indent << "description=\"OPAL flavor that wrote file\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=t,\n"
+               << indent << "type=double,\n"
+               << indent << "units=ns,\n"
+               << indent << "description=\"1 Time\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=memory,\n"
+               << indent << "type=double,\n"
+               << indent << "units=" + memory->getUnit() + ",\n"
+               << indent << "description=\"2 Total Memory\"\n"
+               << "&end\n";
+    
+    unsigned int columnStart = 3;
+    
+    for (int p = 0; p < Ippl::getNodes(); ++p) {
+        outputFile << "&column\n"
+                   << indent << "name=processor-" << p << ",\n"
+                   << indent << "type=double,\n"
+                   << indent << "units=" + memory->getUnit() + ",\n"
+                   << indent << "description=\"" << columnStart
+                   << " Memory per processor " << p << "\"\n"
+                   << "&end\n";
+        ++columnStart;
+    }
+    
+    outputFile << "&data\n"
+               << indent << "mode=ascii,\n"
+               << indent << "no_row_counts=1\n"
+               << "&end\n";
+
+    outputFile << Ippl::getNodes() << endl;
+    outputFile << PACKAGE_NAME << " " << OPAL_VERSION_STR << " # git rev. " << Util::getGitRevision() << endl;
+    outputFile << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
+                   (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << endl;
+}
+
+void DataSink::writeMemoryData(PartBunchBase<double, 3> *beam,
+                               std::ofstream &os_memData,
+                               unsigned int pwi)
+{
+    os_memData << beam->getT() * 1e9 << setw(pwi) << "\t";     // 1
+    
+    IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+    
+    int nProcs = Ippl::getNodes();
+    double total = 0.0;
+    for (int p = 0; p < nProcs; ++p) {
+        total += memory->getMemoryUsage(p);
+    }
+    
+    os_memData << total << setw(pwi) << "\t";
+    
+    for (int p = 0; p < nProcs; p++) {
+        os_memData << memory->getMemoryUsage(p)  << setw(pwi);
+        
+        if ( p < nProcs - 1 )
+            os_memData << "\t";
+        
+    }
+    os_memData << endl;
+}
+
 
 /***************************************************************************
  * $RCSfile: DataSink.cpp,v $   $Author: adelmann $

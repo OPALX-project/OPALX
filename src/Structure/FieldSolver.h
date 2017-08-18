@@ -23,7 +23,14 @@ class FieldSolver;
 #include "Algorithms/PartData.h"
 #include "Solvers/PoissonSolver.h"
 
-class PartBunch;
+#ifdef ENABLE_AMR
+    #include "Amr/AmrObject.h"
+    #include "Solvers/AmrPoissonSolver.h"
+    #include <memory>
+#endif
+
+template <class T, unsigned Dim>
+class PartBunchBase;
 
 
 // Class FieldSolver
@@ -76,39 +83,56 @@ public:
 
     void initCartesianFields();
 
-    void initSolver(PartBunch &b);
+    void initSolver(PartBunchBase<double, 3> *b);
 
     bool hasValidSolver();
 
     std::string getFieldSolverType() {return fsType_m; }
 
     inline Layout_t &getParticleLayout() { return *PL_m; }
-
+    
+    FieldLayout_t *getFieldLayout() { return FL_m; }
+    
     Inform &printInfo(Inform &os) const;
     unsigned int getInteractionRadius() {return (unsigned int) rpp_m; }
 
     bool hasPeriodicZ();
 
-#ifdef HAVE_AMR_SOLVER
-    bool isAMRSolver();
+#ifdef ENABLE_AMR
+    bool isAmrSolverType() const;
 
-    int amrMaxLevel();
+    int getAmrMaxLevel() const;
 
-    int amrRefRatioX();
+    int getAmrRefRatioX() const;
 
-    int amrRefRatioY();
+    int getAmrRefRatioY() const;
 
-    int amrRefRatioT();
+    int getAmrRefRatioT() const;
 
-    bool amrSubCycling();
+    bool isAmrSubCycling() const;
 
-    int amrMaxGridSize();
+    int getAmrMaxGridSize() const;
+    
+    AmrObject *getAmrObject() {
+        return itsAmrObject_mp.get();
+    }
+    
+    const AmrObject *getAmrObject() const {
+        return itsAmrObject_mp.get();
+    }
 #endif
 
     /// the actual solver, should be a base object
     PoissonSolver *solver_m;
 
 private:
+#ifdef ENABLE_AMR
+    void initAmrObject_m();
+    
+    void initAmrSolver_m();
+    
+    std::unique_ptr<AmrObject> itsAmrObject_mp;
+#endif
 
     // Not implemented.
     FieldSolver(const FieldSolver &);
@@ -127,7 +151,7 @@ private:
     Layout_t *PL_m;
 
     /// all the particles are here ...
-    PartBunch *itsBunch_m;
+    PartBunchBase<double, 3> *itsBunch_m;
 
     std::string fsType_m;
 

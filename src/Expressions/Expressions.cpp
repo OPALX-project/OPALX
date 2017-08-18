@@ -17,7 +17,7 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/PlaceRep.h"

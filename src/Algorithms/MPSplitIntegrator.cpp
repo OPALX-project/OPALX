@@ -21,7 +21,7 @@
 #include "Algorithms/MPSplitIntegrator.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/Multipole.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Algorithms/PartData.h"
 #include "Fields/BMultipoleField.h"
 #include "FixedAlgebra/FTps.h"
@@ -107,7 +107,7 @@ void MPSplitIntegrator::trackMap(FVps<double, 6> &map,
 }
 
 
-void MPSplitIntegrator::trackParticle(Particle &part, const PartData &ref,
+void MPSplitIntegrator::trackParticle(OpalParticle &part, const PartData &ref,
                                       bool revBeam, bool revTrack) const {
     double length = itsMultipole->getElementLength();
     if(revTrack) length = - length;
@@ -137,7 +137,7 @@ void MPSplitIntegrator::trackParticle(Particle &part, const PartData &ref,
 }
 
 
-void MPSplitIntegrator::trackBunch(PartBunch &bunch,
+void MPSplitIntegrator::trackBunch(PartBunchBase<double, 3> *bunch,
                                    const PartData &ref,
                                    bool revBeam, bool revTrack) const {
     double length = itsMultipole->getElementLength();
@@ -150,8 +150,8 @@ void MPSplitIntegrator::trackBunch(PartBunch &bunch,
         std::vector<double> slices;
         getSlices(slices);
         scale *= length / double(itsSlices);
-        for(unsigned int i = 0; i < bunch.getLocalNum(); i++) {
-            Particle part = bunch.get_part(i);
+        for(unsigned int i = 0; i < bunch->getLocalNum(); i++) {
+            OpalParticle part = bunch->get_part(i);
 
             // Drift to first slice position.
             applyDrift(part, length * slices[0], ref);
@@ -163,14 +163,14 @@ void MPSplitIntegrator::trackBunch(PartBunch &bunch,
                 // Drift to next slice position or to end.
                 applyDrift(part, length * (slices[s+1] - slices[s]), ref);
             }
-            bunch.set_part(part, i);
+            bunch->set_part(part, i);
         }
     } else {
         // Length == 0, slicing not possible.
-        for(unsigned int i = 0; i < bunch.getLocalNum(); i++) {
-            Particle part = bunch.get_part(i);
+        for(unsigned int i = 0; i < bunch->getLocalNum(); i++) {
+            OpalParticle part = bunch->get_part(i);
             applyMultipole(part, field, scale);
-            bunch.set_part(part, i);
+            bunch->set_part(part, i);
         }
     }
 }
@@ -190,7 +190,7 @@ void MPSplitIntegrator::applyDrift(FVps<double, 6> &map, double length,
 }
 
 
-void MPSplitIntegrator::applyDrift(Particle &part, double length,
+void MPSplitIntegrator::applyDrift(OpalParticle &part, double length,
                                    const PartData &reference) const {
     double kin = reference.getM() / reference.getP();
     double ref  = kin * kin;
@@ -228,7 +228,7 @@ void MPSplitIntegrator::applyMultipole(FVps<double, 6> &map,
 }
 
 
-void MPSplitIntegrator::applyMultipole(Particle &part,
+void MPSplitIntegrator::applyMultipole(OpalParticle &part,
                                        const BMultipoleField &field,
                                        double scale) const {
     int order = field.order();

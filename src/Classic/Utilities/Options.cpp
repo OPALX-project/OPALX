@@ -27,7 +27,6 @@ namespace Options {
 
     // The global program options.
     bool mtrace = false;
-    bool verify = false;
     bool warn = true;
     bool psDumpEachTurn = false;
     DumpFrame psDumpLocalFrame = GLOBAL;
@@ -94,4 +93,10 @@ namespace Options {
 
     // opal version of input file
     int version = 10000;
+    
+#ifdef ENABLE_AMR
+    bool amr = false;
+#endif
+    
+    bool memoryDump = false;
 }

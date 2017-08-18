@@ -39,8 +39,8 @@ Inform *gmsg;
 
 #include "OPALconfig.h"
 
-#ifdef HAVE_AMR_SOLVER
-#include <ParallelDescriptor.H>
+#ifdef ENABLE_AMR
+#include <AMReX_ParallelDescriptor.H>
 #endif
 
 #include <gsl/gsl_errno.h>
@@ -54,7 +54,7 @@ Inform *gmsg;
 
 /*
   Includes related the to optimizer
- */
+*/
 #include "boost/smart_ptr.hpp"
 
 #include "Pilot/Pilot.h"
@@ -102,82 +102,82 @@ void errorHandlerGSL(const char *reason,
 
 bool haveOpimiseRun(int argc, char *argv[]) {
 
-  namespace fs = boost::filesystem;
+    namespace fs = boost::filesystem;
 
-  std::string so("--initialPopulation");
-  bool foundOptArg = false;
+    std::string so("--initialPopulation");
+    bool foundOptArg = false;
 
-  int arg = -1;
-  std::string fname;
+    int arg = -1;
+    std::string fname;
 
-  for(int ii = 1; ii < argc; ++ ii) {
-    std::string argStr = std::string(argv[ii]);
+    for(int ii = 1; ii < argc; ++ ii) {
+        std::string argStr = std::string(argv[ii]);
 
-    if (argStr.find(so) != std::string::npos) {
-      foundOptArg = true;
+        if (argStr.find(so) != std::string::npos) {
+            foundOptArg = true;
+        }
+
+        if (argStr == std::string("--input")) {
+            ++ ii;
+            arg = ii;
+            INFOMSG(argv[ii] << endl);
+            continue;
+        } else if (argStr == std::string("-restart") ||
+                   argStr == std::string("--restart")) {
+            return false;
+        } else if (argStr == std::string("-restartfn") ||
+                   argStr == std::string("--restartfn")) {
+            return false;
+        } else if (argStr == std::string("-version") ||
+                   argStr == std::string("--version")) {
+            return false;
+        } else if (argStr == std::string("-help") ||
+                   argStr == std::string("--help")) {
+            return false;
+        }
+        else {
+            if (arg == -1 &&
+                (ii == 1 || ii + 1 == argc) &&
+                argv[ii][0] != '-') {
+                arg = ii;
+                continue;
+            } else {
+                continue;
+            }
+        }
     }
 
-    if (argStr == std::string("--input")) {
-      ++ ii;
-      arg = ii;
-      INFOMSG(argv[ii] << endl);
-      continue;
-    } else if (argStr == std::string("-restart") ||
-	       argStr == std::string("--restart")) {
-      return false;
-    } else if (argStr == std::string("-restartfn") ||
-	       argStr == std::string("--restartfn")) {
-      return false;
-    } else if (argStr == std::string("-version") ||
-	       argStr == std::string("--version")) {
-      return false;
-    } else if (argStr == std::string("-help") ||
-	       argStr == std::string("--help")) {
-      return false;
-    } 
-    else {
-      if (arg == -1 &&
-	  (ii == 1 || ii + 1 == argc) &&
-	  argv[ii][0] != '-') {
-	arg = ii;
-	continue;
-      } else {
-	continue;
-      }
+    if (arg == -1) {
+        INFOMSG("No input file provided!" << endl);
+        exit(1);
     }
-  }
 
-  if (arg == -1) {
-    INFOMSG("No input file provided!" << endl);
-    exit(1);
-  }
+    fname = std::string(argv[arg]);
+    if (!fs::exists(fname)) {
+        INFOMSG("Input file \"" << fname << "\" doesn't exist!" << endl);
+        exit(1);
+    }
 
-  fname = std::string(argv[arg]);
-  if (!fs::exists(fname)) {
-    INFOMSG("Input file \"" << fname << "\" doesn't exist!" << endl);
-    exit(1);
-  }
+    std::ifstream inFile;
+    inFile.open(fname);
 
-  std::ifstream inFile;
-  inFile.open(fname);
+    std::stringstream strStream;
+    strStream << inFile.rdbuf();
+    std::string str = strStream.str();
 
-  std::stringstream strStream;
-  strStream << inFile.rdbuf();
-  std::string str = strStream.str();
+    std::transform(str.begin(), str.end(),str.begin(), ::toupper);
 
-  std::transform(str.begin(), str.end(),str.begin(), ::toupper);
+    const std::string s1("OPTIMIZE");
+    const std::string s2("OBJECTIVE");
+    const std::string s3("DVAR");
 
-  const std::string s1("OPTIMIZE");
-  const std::string s2("OBJECTIVE");
-  const std::string s3("DVAR");
+    bool res = (boost::algorithm::contains(str, s1) &&
+                boost::algorithm::contains(str, s2) &&
+                boost::algorithm::contains(str, s3));
 
-  bool res = (boost::algorithm::contains(str, s1) &&
-	      boost::algorithm::contains(str, s2) &&
-	      boost::algorithm::contains(str, s3));
+    inFile.close();
 
-  inFile.close();
-
-  return res && foundOptArg;
+    return res && foundOptArg;
 }
 
 int mainOPALOptimiser(int argc, char *argv[]) {
@@ -202,24 +202,24 @@ int mainOPALOptimiser(int argc, char *argv[]) {
     client::function::type ff;
     ff = FromFile();
     funcs.insert(std::pair<std::string, client::function::type>
-            ("fromFile", ff));
+                 ("fromFile", ff));
     ff = SumErrSq();
     funcs.insert(std::pair<std::string, client::function::type>
-            ("sumErrSq", ff));
+                 ("sumErrSq", ff));
     ff = SDDSVariable();
     funcs.insert(std::pair<std::string, client::function::type>
-            ("sddsVariableAt", ff));
+                 ("sddsVariableAt", ff));
 
     ff = RadialPeak();
     funcs.insert(std::pair<std::string, client::function::type>
-            ("radialPeak", ff));
+                 ("radialPeak", ff));
     ff = SumErrSqRadialPeak();
     funcs.insert(std::pair<std::string, client::function::type>
-            ("sumErrSqRadialPeak", ff));
+                 ("sumErrSqRadialPeak", ff));
 
     ff = ProbeVariable();
     funcs.insert(std::pair<std::string, client::function::type>
-            ("probVariableWithID", ff));
+                 ("probVariableWithID", ff));
 
     //////////////////////////////////////////////////////////////////////////
 
@@ -238,7 +238,7 @@ int mainOPALOptimiser(int argc, char *argv[]) {
         std::cout << "Exception caught: " << e.what() << std::endl;
         MPI_Abort(MPI_COMM_WORLD, -100);
     }
-    
+
     Ippl::Comm->barrier();
     Fieldmap::clearDictionary();
     OpalData::deleteInstance();
@@ -258,9 +258,9 @@ int mainOPAL(int argc, char *argv[]) {
 
     namespace fs = boost::filesystem;
 
-#ifdef HAVE_AMR_SOLVER
+#ifdef ENABLE_AMR
     // false: build no parmparse, we use the OPAL parser instead.
-    BoxLib::Initialize(argc, argv, false, Ippl::getComm());
+    amrex::Initialize(argc, argv, false, Ippl::getComm());
 #endif
 
     OPALTimer::Timer simtimer;
@@ -539,21 +539,21 @@ int mainOPAL(int argc, char *argv[]) {
         return 0;
 
     } catch(ClassicException &ex) {
-      *gmsg << endl << "*** User error detected by function \"" << ex.where() << "\":\n"
-            << ex.what() << endl;
-      abort();
+        *gmsg << endl << "*** User error detected by function \"" << ex.where() << "\":\n"
+              << ex.what() << endl;
+        abort();
 
     } catch(std::bad_alloc &) {
-      *gmsg << "Sorry, virtual memory exhausted." << endl;
-      abort();
+        *gmsg << "Sorry, virtual memory exhausted." << endl;
+        abort();
 
     } catch(std::exception const& e) {
-      *gmsg << "Exception: " << e.what() << "\n";
-       abort();
+        *gmsg << "Exception: " << e.what() << "\n";
+        abort();
 
     } catch(...) {
-      *gmsg << "Unexpected exception." << endl;
-      abort();
+        *gmsg << "Unexpected exception." << endl;
+        abort();
     }
 }
 
@@ -570,14 +570,12 @@ void errorHandlerGSL(const char *reason,
 
 int main(int argc, char *argv[]) {
 
-  int res;
+    int res;
 
-  if ((argc <= 1) || !haveOpimiseRun(argc, argv))
-    res = mainOPAL(argc, argv);
-  else
-    res = mainOPALOptimiser(argc, argv);
-  return res;
+    if ((argc <= 1) || !haveOpimiseRun(argc, argv))
+        res = mainOPAL(argc, argv);
+    else
+        res = mainOPALOptimiser(argc, argv);
+    return res;
 
 }
-
-

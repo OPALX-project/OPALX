@@ -17,7 +17,7 @@
 // ------------------------------------------------------------------------
 
 #include "Track/TrackSave.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Attributes/Attributes.h"
 #include "Track/Track.h"
 #include "Utilities/OpalException.h"
@@ -67,10 +67,10 @@ void TrackSave::execute() {
     os << "\nSaved particle positions:\n";
     std::streamsize old_prec = os.precision(8);
     os.setf(std::ios::fixed, std::ios::floatfield);
-    PartBunch *bunch = Track::block->bunch;
+    PartBunchBase<double, 3> *bunch = Track::block->bunch;
 
     for(unsigned int i = 0; i < bunch->getLocalNum(); i++) {
-        Particle part = bunch->get_part(i);
+        OpalParticle part = bunch->get_part(i);
         os << part.x() << ' ' << part.px() << ' '
            << part.y() << ' ' << part.py() << ' '
            << part.t() << ' ' << part.pt() << '\n';

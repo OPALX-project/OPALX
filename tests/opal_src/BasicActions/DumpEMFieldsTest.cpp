@@ -36,6 +36,8 @@
 #include "Utilities/OpalException.h"
 #include "BasicActions/DumpEMFields.h"
 
+#include "opal_test_utilities/SilenceTest.h"
+
 namespace DumpEMFieldsTest {
 
 void setOneAttribute(DumpEMFields* dump, std::string name, double value) {
@@ -64,6 +66,8 @@ void setAttributes(DumpEMFields* dump,
 }
 
 TEST(DumpEMFieldsTest, ConstructorDestructor) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // neither in the set and grid is null
     DumpEMFields* dump1 = new DumpEMFields();
     delete dump1;
@@ -84,6 +88,8 @@ void execute_throws(DumpEMFields* dump, std::string reason) {
 }
 
 TEST(DumpEMFieldsTest, executeTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // dump the fields
     DumpEMFields dump1;
     execute_throws(&dump1, "should throw due to nsteps < 1");
@@ -114,6 +120,8 @@ void clear_files() {
 }
 
 TEST(DumpEMFieldsTest, writeFieldsTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     clear_files();
     DumpEMFields dump1;
     setAttributes(&dump1, 1., 1., 1.,   1., 1., 1.,   1., 1., 1.,   1., 1., 1.,  "test1");
@@ -177,4 +185,3 @@ TEST(DumpEMFieldsTest, writeFieldsTest) {
 }
 
 }
-

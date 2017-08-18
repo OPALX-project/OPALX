@@ -24,7 +24,10 @@
 
 class BeamSequence;
 class TrackParser;
-class PartBunch;
+
+template <class T, unsigned Dim>
+class PartBunchBase;
+
 class EnvelopeBunch;
 
 // Class Track
@@ -33,7 +36,7 @@ class EnvelopeBunch;
 //  Acts as a communication area between the various tracking commands.
 
 class Track {
-
+    
 public:
 
     Track(BeamSequence *, const PartData &, const std::vector<double> & dt,
@@ -43,7 +46,7 @@ public:
     ~Track();
 
     /// The particle bunch to be tracked.
-    PartBunch *bunch;
+    PartBunchBase<double, 3> *bunch;
 
     EnvelopeBunch *slbunch;
 
@@ -90,7 +93,7 @@ public:
     // 2 --- MTS
     // 3 --- AMTS
     int timeIntegrator;
-
+    
 private:
 
     // Not implemented.

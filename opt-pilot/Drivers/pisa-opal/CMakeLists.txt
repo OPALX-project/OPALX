@@ -1,7 +1,3 @@
-# this prevents compile errors (due to warnings) since Boost Spirits grammar
-# definitions are interpreted as parentheses errors (overloaded operators).
-set_source_files_properties(${CMAKE_SOURCE_DIR}/Expression/Parser/expression.cpp PROPERTIES COMPILE_FLAGS "-Wno-error=parentheses" )
-
 if (Boost_FILESYSTEM_FOUND)
     set (BOOST_FILESYSTEM
         boost_filesystem
@@ -11,40 +7,17 @@ else (Boost_FILESYSTEM_FOUND)
 	)
 endif (Boost_FILESYSTEM_FOUND)
 
-if (NOT ${GSL_FOUND})
-    message (FATAL "GSL not found")
-endif ()
-
-if (NOT ${HDF5_FOUND})
-    message (FATAL "HDF5 not found")
-endif ()
-
-if (NOT ${H5HUT_FOUND})
-    message (FATAL "H5hut not found")
-endif ()
-
-if (NOT ${IPPL_FOUND})
-    message (FATAL "IPPL not found")
-endif ()
-
-if (NOT ${OPAL_FOUND})
-    message (FATAL "OPAL not found")
-endif ()
+# OPAL
+message(STATUS "OPAL_LIBS ${OPAL_LIBS}")
 
 set (OPAL_LIBS
-    ${OPAL_LIBRARY}
+    ${OPAL_LIBS}
+    ${OPTP_LIBRARY}
     ${IPPL_LIBRARY}
     ${GSL_LIBRARY}
     ${H5HUT_LIBRARY}
     ${HDF5_LIBRARY}
     )
-
-IF (ENABLE_DKS)
-   set (OPAL_LIBS
-       ${OPAL_LIBS}
-       ${DKS_LIBRARY_DIR}/libdks.a
-       )
-ENDIF (ENABLE_DKS)
 
 include_directories (
     ${CMAKE_SOURCE_DIR}
@@ -52,11 +25,10 @@ include_directories (
     ${HDF5_INCLUDE_DIR}
     ${GSL_INCLUDE_DIR}
     ${IPPL_INCLUDE_DIR}
-    ${OPAL_INCLUDE_DIR}
     )
 link_directories (
+    ${OPTP_LIBRARY_DIR}
     ${IPPL_LIBRARY_DIR}
-    ${OPAL_LIB_DIR}
     ${Boost_LIBRARY_DIRS}
     )
 add_executable( pisa-opal.exe
@@ -65,10 +37,11 @@ add_executable( pisa-opal.exe
 
 target_link_libraries( pisa-opal.exe
     ${OPAL_LIBS}
+    OPALib
     ${MPI_CXX_LIBRARIES}
     ${Trilinos_LIBRARIES}
     -lgfortran
-    ${PILOT_LIBS}
+    ${OPTP_LIBS}
     ${Boost_LIBRARIES}
     z
     pthread

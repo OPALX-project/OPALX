@@ -58,13 +58,14 @@ enum EnvelopeBunchShape {
  * implementation
  */
 class EnvelopeBunch : public PartBunch {
-
+    
 public:
     /// Default constructor
     EnvelopeBunch(const PartData *ref);
 
     /// Conversion
-    EnvelopeBunch(const std::vector<Particle> &, const PartData *ref);
+    EnvelopeBunch(const std::vector<OpalParticle> &,
+                  const PartData *ref);
 
     /// Copy constructor
     EnvelopeBunch(const EnvelopeBunch &);

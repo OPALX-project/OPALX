@@ -20,6 +20,7 @@
 
 #include "Elements/OpalElement.h"
 
+class BoundaryGeometry;
 
 // Class OpalCyclotron
 // ------------------------------------------------------------------------
@@ -30,7 +31,7 @@ class OpalCyclotron: public OpalElement {
 public:
 
     /// The attributes of class OpalCyclotron.
-    /// Need to remove common, old TYPE = COMMON, prevents the identification of the fieldmap type in the Cyclotron 
+    /// Need to remove common, old TYPE = COMMON, prevents the identification of the fieldmap type in the Cyclotron
     /// element issue #84
     enum {
         TYPE,
@@ -49,14 +50,10 @@ public:
 	RFVCFN,    // The filename(s) of coefficients for RF voltage function v(t)
         BSCALE,    // A scalar to scale the B-field
         ESCALE,    // A scalar to scale the RF field
-        TCR1,      // trim coil r1 (mm)
-        TCR2,      // trim coil r2 (mm)
-        MBTC,      // max bfield of trim coil (kG)
-        SLPTC,     // slope of the rising edge
-        TCR1V,      // trim coil r1 (mm)
-        TCR2V,      // trim coil r2 (mm)
-        MBTCV,      // max bfield of trim coil (kG)
-        SLPTCV,     // slope of the rising edge
+        TCR1V,     // trim coil r1 [mm]
+        TCR2V,     // trim coil r2 [mm]
+        MBTCV,     // max bfield of trim coil [kG]
+        SLPTCV,    // slope of the rising edge [1/mm]
 	RFPHI,     // the initial phase of RF field
 	SUPERPOSE, // whether the electric field map are superposed or not
 	MINZ,      // minimal vertical extend of the machine

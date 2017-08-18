@@ -20,8 +20,8 @@
 
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.h"
-#include "Algorithms/PartPusher.h"
+#include "Algorithms/PartBunchBase.h"
+#include "Steppers/BorisPusher.h"
 #include "Fields/Fieldmap.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
@@ -270,7 +270,7 @@ bool RFCavity::applyToReferenceParticle(const Vector_t &R,
     return false;
 }
 
-void RFCavity::initialise(PartBunch *bunch, double &startField, double &endField) {
+void RFCavity::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     using Physics::two_pi;
 
     if (bunch == NULL) {
@@ -312,7 +312,7 @@ void RFCavity::initialise(PartBunch *bunch, double &startField, double &endField
 }
 
 // In current version ,this function reads in the cavity voltage profile data from file.
-void RFCavity::initialise(PartBunch *bunch,
+void RFCavity::initialise(PartBunchBase<double, 3> *bunch,
                           std::shared_ptr<AbstractTimeDependence> freq_atd,
                           std::shared_ptr<AbstractTimeDependence> ampl_atd,
                           std::shared_ptr<AbstractTimeDependence> phase_atd) {
