@@ -98,12 +98,14 @@ ENDIF (ENABLE_DKS)
 ### END DKS part ###
 
 # Handle options
-OPTION (ENABLE_AMR_SOLVER "Enable BoxLib based AMR solver" OFF)
+OPTION (ENABLE_AMR "Enable AMReX based AMR solver" OFF)
 
 OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
 
 OPTION (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
 OPTION (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
+OPTION (AMR_YT_DUMP "Dump AMR field data to yt readable format" OFF)
+OPTION (AMR_PYTHON_DUMP "Dump AMR grids and particles" OFF)
 OPTION (BUILD_LIBOPAL "Enable building the OPAL library" OFF)
 
 OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
@@ -119,49 +121,25 @@ IF (USE_H5HUT2)
 	SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_H5HUT2")
 ENDIF (USE_H5HUT2)
 
-IF (ENABLE_AMR_SOLVER)
+IF (ENABLE_AMR)
+    MESSAGE (STATUS "Enable AMR_SOLVER    " ${ENABLE_AMR})
     ENABLE_LANGUAGE (Fortran)
+    
+    find_package (AMReX CONFIG REQUIRED HINTS $ENV{AMREX_HOME}/cmake $ENV{AMREX_DIR}/cmake $ENV{AMREX_PREFIX}/cmake)
 
-    SET ( CCSE_DIR $ENV{BOXLIB_PREFIX} )
-    SET ( CCSE_LIBRARY_DIR $ENV{BOXLIB_LIBRARY_DIR} )
-
-    FIND_PACKAGE (CCSE REQUIRED)
-
-    MESSAGE (STATUS "Found BoxLib include dir: ${CCSE_INCLUDE_DIR}")
-    MESSAGE (STATUS "Found BoxLib library dir: ${CCSE_LIBRARY_DIR}")
-    MESSAGE (STATUS "Found BoxLib perl dir: ${CCSE_PERL_DIR}")
-
-    SET (BL_SPACEDIM 3 CACHE INT "Dimension of BoxLib build")
-    SET (ENABLE_MPI 1 CACHE INT "Enable build with MPI")
-    SET (ENABLE_OpenMP 0 CACHE INT "Enable build with OpenMP")
-    SET (BL_PRECISION "DOUBLE" CACHE INT "Precision of BoxLib build")
-    SET (BL_USE_PARTICLES 1 CACHE INT "Include Particles classes in BoxLib build")
-    SET (BL_DEBUG 0 CACHE INT "Include debugging information in BoxLib build")
-    SET (ENABLE_PROFILING 0 CACHE INT "Include profiling information in BoxLib build")
-    SET (ENABLE_BACKTRACE 0 CACHE INT "Include backtrace information in BoxLib build")
-
-    # FIXME disable due to BoxLib
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-maybe-uninitialized")
-
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBL_PRECISION=${BL_PRECISION}")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_MPI=${ENABLE_MPI}")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_OpenMP=${ENABLE_OpenMP}")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_PARTICLES=${BL_USE_PARTICLES}")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBL_DEBUG=${BL_DEBUG}")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_BACKTRACE=${ENABLE_BACKTRACE}")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_PROFILING=${ENABLE_PROFILING}")
-
-    MESSAGE (STATUS "Use following BoxLib settings:")
-    MESSAGE (STATUS "  BL_SPACEDIM = ${BL_SPACEDIM}")
-    MESSAGE (STATUS "  BL_MACHINE = ${BL_MACHINE}")
-    MESSAGE (STATUS "  BL_PRECISION = ${BL_PRECISION}")
-    MESSAGE (STATUS "  ENABLE_MPI = ${ENABLE_MPI}")
-    MESSAGE (STATUS "  ENABLE_OpenMP = ${ENABLE_OpenMP}")
-    MESSAGE (STATUS "  BL_DEBUG = ${BL_DEBUG}")
-    MESSAGE (STATUS "  BL_USE_PARTICLES = ${BL_USE_PARTICLES}")
-    MESSAGE (STATUS "  ENABLE_BACKTRACE = ${ENABLE_BACKTRACE}")
-    MESSAGE (STATUS "  ENABLE_PROFILING = ${ENABLE_PROFILING}")
-ENDIF (ENABLE_AMR_SOLVER)
+    MESSAGE (STATUS "Found AMReX include dir: ${AMREX_INCLUDE_DIR}")
+    MESSAGE (STATUS "Found AMReX library dir: ${AMREX_LIBRARY_DIR}")
+    MESSAGE (STATUS "Found AMReX libraries: ${AMREX_LIBRARIES}")
+    MESSAGE (STATUS "AMReX built with: ${AMREX_DEFINES}")
+    
+    # We need to replace the quotes of the AMREX_GIT_VERSION flag in AMREX_DEFINES
+    # otherwise IpplVersions.h complains
+    STRING(REPLACE "\"" "'" AMREX_DEFINES ${AMREX_DEFINES})
+    
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_AMR ${AMREX_DEFINES}")
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-unused-but-set-variable -Wno-maybe-uninitialized")
+    
+ENDIF (ENABLE_AMR)
 
 # remove digits from hostname: edison03 -> edison
 STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
@@ -170,9 +148,8 @@ STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
 # Trilinos_TPL_LIBRARIES, instead of cray-tpsl/16.07.1 it uses
 # cray-tpsl/16.06.1 libraries -> Linker error.
 # We can avoid this issue by not going into the if-statement
-if (NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_SOLVER) )
+if (NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND ENABLE_SAAMG_SOLVER )
     MESSAGE (STATUS "Enable SAAMG_SOLVER  " ${ENABLE_SAAMG_SOLVER})
-    MESSAGE (STATUS "Enable AMR_SOLVER    " ${ENABLE_AMR_SOLVER})
     find_package (Trilinos REQUIRED HINTS $ENV{TRILINOS_PREFIX} $ENV{TRILINOS_DIR} $ENV{TRILINOS})
 
     message (STATUS "Found Trilinos: ${Trilinos_DIR}")
@@ -195,6 +172,7 @@ if (NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori
     endif ()
 endif ()
 
+
 IF (DBG_SCALARFIELD)
     MESSAGE (STATUS "\nWrite scalar rho_m field is enabled ")
     SET (CMAKE_CXX_FLAGS "-DDBG_SCALARFIELD ${CMAKE_CXX_FLAGS}")
@@ -204,6 +182,16 @@ IF (DBG_STENCIL)
     MESSAGE (STATUS "\nWrite stencil is enabled ")
     SET (CMAKE_CXX_FLAGS "-DDBG_STENCIL ${CMAKE_CXX_FLAGS}")
 ENDIF (DBG_STENCIL)
+
+IF (AMR_YT_DUMP AND ENABLE_AMR)
+    MESSAGE (STATUS "\nWrite AMR field data in yt format is enabled ")
+    SET (CMAKE_CXX_FLAGS "-DAMR_YT_DUMP ${CMAKE_CXX_FLAGS}")
+ENDIF (AMR_YT_DUMP AND ENABLE_AMR)
+
+IF (AMR_PYTHON_DUMP AND ENABLE_AMR)
+    MESSAGE (STATUS "\nWrite AMR grids and particles is enabled ")
+    SET (CMAKE_CXX_FLAGS "-DAMR_PYTHON_DUMP ${CMAKE_CXX_FLAGS}")
+ENDIF (AMR_PYTHON_DUMP AND ENABLE_AMR)
 
 IF (BUILD_LIBOPAL)
     MESSAGE (STATUS "\nBuilding OPAL library")

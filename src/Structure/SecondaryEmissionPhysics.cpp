@@ -3,7 +3,6 @@
 #include <cmath>
 #include <algorithm>
 #include <sys/stat.h>
-#include "Algorithms/PartBunch.h"
 #include "Utilities/Options.h"
 #include "Utility/IpplTimings.h"
 
@@ -31,7 +30,7 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
                                     const Vector_t &TriNorm,
                                     const Vector_t &inteCoords,
                                     const Vector_t &localX,
-                                    PartBunch *itsBunch,
+                                    PartBunchBase<double, 3> *itsBunch,
                                     double &seyNum,
                                     const double &ppVw,
                                     const double &vVThermal,
@@ -375,7 +374,24 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
 
 
 //Vaughan's secondary emission model.
-void SecondaryEmissionPhysics::nSec(const double &incEnergy,  const double &cosTheta, int &seNum, int &seType, const double &incQ, const Vector_t &TriNorm, const Vector_t &inteCoords, const Vector_t &localX, PartBunch *itsBunch, double &seyNum, const double &ppVw,const double &vSeyZero, const double &vEzero, const double &vSeyMax, const double &vEmax, const double &vKenergy, const double &vKtheta, const double &vVThermal, const bool nEmissionMode) {
+void SecondaryEmissionPhysics::nSec(const double &incEnergy,
+                                    const double &cosTheta,
+                                    int &seNum, int &seType,
+                                    const double &incQ,
+                                    const Vector_t &TriNorm,
+                                    const Vector_t &inteCoords,
+                                    const Vector_t &localX,
+                                    PartBunchBase<double, 3> *itsBunch,
+                                    double &seyNum, const double &ppVw,
+                                    const double &vSeyZero,
+                                    const double &vEzero,
+                                    const double &vSeyMax,
+                                    const double &vEmax,
+                                    const double &vKenergy,
+                                    const double &vKtheta,
+                                    const double &vVThermal,
+                                    const bool nEmissionMode)
+{
 
 
     IpplTimings::startTimer(TPnSec_m);

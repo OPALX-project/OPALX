@@ -74,9 +74,13 @@ set (ManagedIDsTest_SRC
 )
 
 set (IndividualTest_SRC
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/expression.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/evaluator.cpp
 )
 
 set (PopulationTest_SRC
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/expression.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/evaluator.cpp
 )
 
 set (SDDSParserTest_SRC

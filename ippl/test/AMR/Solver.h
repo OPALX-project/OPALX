@@ -3,24 +3,21 @@
 
 #include <iostream>
 
-#include <BoxLib.H>
-#include <MultiFab.H>
-#include <MultiFabUtil.H>
-#include <BLFort.H>
-#include <MacBndry.H>
-#include <MGT_Solver.H>
+#include <AMReX.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_BLFort.H>
+#include <AMReX_MacBndry.H>
+#include <AMReX_MGT_Solver.H>
 #include <mg_cpp_f.h>
-#include <stencil_types.H>
-#include <VisMF.H>
-#include <FMultiGrid.H>
+#include <AMReX_stencil_types.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_FMultiGrid.H>
 
+using namespace amrex;
 
 #include <memory>
 #include <vector>
-
-#ifdef UNIQUE_PTR
-    #include <PArray.H>
-#endif
 
 // #define USEHYPRE
 
@@ -45,12 +42,8 @@
 class Solver {
 
 public:
-#ifdef UNIQUE_PTR
     typedef Array<std::unique_ptr<MultiFab> > container_t;
-#else
-    typedef PArray<MultiFab> container_t;
-#endif
-    typedef Array<MultiFab*> container_pt;      // instead of PArray<MultiFab>
+    typedef Array<MultiFab*> container_pt;
 
     /*!
      * Prepares the solver and calls the solve_with_f90 function.
@@ -61,16 +54,18 @@ public:
      * @param base_level from which the solve starts
      * @param finest_level up to which solver goes
      * @param offset is zero in case of Dirichlet boundary conditions.
+     * @param timing of solver parts
+     * @param doGradient compute the gradient (true) or not (false)
      */
-    void solve_for_accel(container_t& rhs,
-                         container_t& phi,
-                         container_t& grad_phi,
+    void solve_for_accel(const container_t& rhs,
+                         const container_t& phi,
+                         const container_t& grad_phi,
                          const Array<Geometry>& geom,
                          int base_level,
                          int finest_level,
-                         Real offset);
-
-
+                         Real offset,
+                         bool timing=true,
+                         bool doGradient=true);
     /*!
      * Actual solve.
      * @param rhs is the density at each level (cell-centered)
@@ -81,11 +76,14 @@ public:
      * @param finest_level up to which solver goes
      * @param tol is \f$ 10^{-10}\f$ (specified in solve_for_accel)
      * @param abs_tol is \f$ 10^{-14}\f$ (specified in solve_for_accel)
+     * @param timing of solver parts
+     * @param doGradient  compute the gradient (true) or not (false)
      */
-    void solve_with_f90(container_t& rhs,
-                        container_t& phi, Array< container_t >& grad_phi_edge,
-                        const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol);
-
+    void solve_with_f90(const container_pt& rhs,
+                        const container_pt& phi, const Array<container_pt>& grad_phi_edge, 
+                        const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol,
+                        bool timing, bool doGradient);
+    
 #ifdef USEHYPRE
     void solve_with_hypre(MultiFab& soln, MultiFab& rhs, const BoxArray& bs,
                           const Geometry& geom);

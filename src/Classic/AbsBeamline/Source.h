@@ -5,7 +5,8 @@
 #include "Distribution/Distribution.h"
 class OpalBeamline;
 
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 
 class Source: public Component {
 
@@ -27,7 +28,7 @@ public:
 
     virtual bool apply(const double &t);
 
-    virtual void initialise(PartBunch *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
 
     virtual void finalise();
 

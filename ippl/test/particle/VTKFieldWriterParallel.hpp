@@ -1,6 +1,8 @@
 #ifndef VTK_FIELD_WRITER_
 #define VTK_FIELD_WRITER_
 
+#include <H5hut.h>
+
 template<typename FieldType, typename ParticleType>
 void dumpVTKVector( FieldType & f, const ParticleType & p,int iteration = 0, std::string label="EField") {
 	if(Ippl::myNode()==0) {
@@ -51,7 +53,7 @@ void dumpVTKVector( FieldType & f, const ParticleType & p,int iteration = 0, std
 }
 
 template<typename FieldType, typename ParticleType>
-void dumpVTKScalar( FieldType & f, const ParticleType & p,int iteration = 0, std::string label="RhoFiled") {
+void dumpVTKScalar( FieldType & f, const ParticleType & p,int iteration = 0, std::string label="RhoField") {
 	NDIndex<3> lDom = f.getLayout().getLocalNDIndex();
 	int nx =lDom[0].length() ; int ny = lDom[1].length(); int nz=lDom[2].length() ;
 	double dx=p->hr_m[0]; double dy=p->hr_m[1]; double dz=p->hr_m[2];
@@ -100,7 +102,7 @@ void dumpVTKScalar( FieldType & f, const ParticleType & p,int iteration = 0, std
 	csvout.setf(std::ios::scientific, std::ios::floatfield);
 
 	std::stringstream fname;
-	fname << "data/RhoSum";
+	fname << "data/" << label << "Sum";
 	fname << ".csv";
 
 	// open a new data file for this iteration

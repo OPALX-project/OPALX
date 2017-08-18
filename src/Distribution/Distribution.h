@@ -19,9 +19,7 @@
 // ------------------------------------------------------------------------
 #include <iosfwd>
 #include <fstream>
-#include <forward_list>
 #include <string>
-#include <map>
 
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
@@ -36,14 +34,16 @@
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_histogram.h>
-#include <gsl/gsl_qrng.h>
 
 #ifdef WITH_UNIT_TESTS
 #include <gtest/gtest_prod.h>
 #endif
 
 class Beam;
-class PartBunch;
+
+template <class T, unsigned Dim>
+class PartBunchBase;
+
 class PartBins;
 class EnvelopeBunch;
 class BoundaryGeometry;
@@ -245,11 +245,9 @@ public:
     virtual Distribution *clone(const std::string &name);
     virtual void execute();
     virtual void update();
-
     size_t getNumOfLocalParticlesToCreate(size_t n);
-
-    void createBoundaryGeometry(PartBunch &p, BoundaryGeometry &bg);
-    void createOpalCycl(PartBunch &beam,
+    void createBoundaryGeometry(PartBunchBase<double, 3> *p, BoundaryGeometry &bg);
+    void createOpalCycl(PartBunchBase<double, 3> *beam,
                         size_t numberOfParticles,
 			double current, const Beamline &bl,
                         bool scan);
@@ -258,17 +256,17 @@ public:
                      EnvelopeBunch *envelopeBunch,
                      double distCenter,
                      double Bz0);
-    void createOpalT(PartBunch &beam,
+    void createOpalT(PartBunchBase<double, 3> *beam,
                      std::vector<Distribution *> addedDistributions,
                      size_t &numberOfParticles,
                      bool scan);
-    void createOpalT(PartBunch &beam, size_t &numberOfParticles, bool scan);
-    void createPriPart(PartBunch *beam, BoundaryGeometry &bg);
-    void doRestartOpalT(PartBunch &p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
-    void doRestartOpalCycl(PartBunch &p, size_t Np, int restartStep,
+    void createOpalT(PartBunchBase<double, 3> *beam, size_t &numberOfParticles, bool scan);
+    void createPriPart(PartBunchBase<double, 3> *beam, BoundaryGeometry &bg);
+    void doRestartOpalT(PartBunchBase<double, 3> *p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
+    void doRestartOpalCycl(PartBunchBase<double, 3> *p, size_t Np, int restartStep,
                         const int specifiedNumBunch, H5PartWrapper *h5wrapper);
-    void doRestartOpalE(EnvelopeBunch &p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
-    size_t emitParticles(PartBunch &beam, double eZ);
+    void doRestartOpalE(EnvelopeBunch *p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
+    size_t emitParticles(PartBunchBase<double, 3> *beam, double eZ);
     double getPercentageEmitted() const;
     static Distribution *find(const std::string &name);
 
@@ -338,17 +336,6 @@ public:
     void shiftBeam(double &maxTOrZ, double &minTOrZ);
     double getEmissionTimeShift() const;
 
-    // in case if OPAL-cycl in restart mode
-    double GetBeGa() {return bega_m;}
-    double GetPr() {return referencePr_m;}
-    double GetPt() {return referencePt_m;}
-    double GetPz() {return referencePz_m;}
-    double GetR() {return referenceR_m;}
-    double GetTheta() {return referenceTheta_m;}
-    double GetZ() {return referenceZ_m;}
-
-    double GetPhi() {return phi_m;}
-    double GetPsi() {return psi_m;}
     bool GetPreviousH5Local() {return previousH5Local_m;}
 
     void setNumberOfDistributions(unsigned int n) { numberOfDistributions_m = n; }
@@ -365,8 +352,8 @@ private:
     Distribution(const std::string &name, Distribution *parent);
 
     // Not implemented.
-    Distribution(const Distribution &);
-    void operator=(const Distribution &);
+    Distribution(const Distribution &) = delete;
+    void operator=(const Distribution &) = delete;
 
     //    void printSigma(SigmaGenerator<double,unsigned int>::matrix_type& M, Inform& out);
     void addDistributions();
@@ -380,9 +367,7 @@ private:
     void checkIfEmitted();
     void checkParticleNumber(size_t &numberOfParticles);
     void chooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUnitsT inputMoUnits);
-    double convertBetaGammaToeV(double valueInbega, double mass);
     double converteVToBetaGamma(double valueIneV, double massIneV);
-    double convertMeVPerCToBetaGamma(double valueInMeVPerC, double massIneV);
     size_t getNumberOfParticlesInFile(std::ifstream &inputFile);
 
     class BinomialBehaviorSplitter {
@@ -417,7 +402,7 @@ private:
     void createDistributionFromFile(size_t numberOfParticles, double massIneV);
     void createDistributionGauss(size_t numberOfParticles, double massIneV);
     void createMatchedGaussDistribution(size_t numberOfParticles, double massIneV);
-    void destroyBeam(PartBunch &beam);
+    void destroyBeam(PartBunchBase<double, 3> *beam);
     void fillEBinHistogram();
     void fillParticleBins();
     size_t findEBin(double tOrZ);
@@ -429,8 +414,8 @@ private:
     void generateGaussZ(size_t numberOfParticles);
     void generateLongFlattopT(size_t numberOfParticles);
     void generateTransverseGauss(size_t numberOfParticles);
-    void initializeBeam(PartBunch &beam);
-    void injectBeam(PartBunch &beam);
+    void initializeBeam(PartBunchBase<double, 3> *beam);
+    void injectBeam(PartBunchBase<double, 3> *beam);
     void printDist(Inform &os, size_t numberOfParticles) const;
     void printDistBinomial(Inform &os) const;
     void printDistFlattop(Inform &os) const;
@@ -452,22 +437,19 @@ private:
     void setDistParametersGauss(double massIneV);
     void setEmissionTime(double &maxT, double &minT);
     void setFieldEmissionParameters();
-    void setupEmissionModel(PartBunch &beam);
-    void setupEmissionModelAstra(PartBunch &beam);
-    void setupEmissionModelNone(PartBunch &beam);
+    void setupEmissionModel(PartBunchBase<double, 3> *beam);
+    void setupEmissionModelAstra(PartBunchBase<double, 3> *beam);
+    void setupEmissionModelNone(PartBunchBase<double, 3> *beam);
     void setupEmissionModelNonEquil();
     void setupEnergyBins(double maxTOrZ, double minTOrZ);
-    void setupParticleBins(double massIneV, PartBunch &beam);
+    void setupParticleBins(double massIneV, PartBunchBase<double, 3> *beam);
     void shiftDistCoordinates(double massIneV);
     void writeOutFileHeader();
     void writeOutFileEmission();
     void writeOutFileInjection();
-    void writeToFile();
 
     std::string distT_m;                 /// Distribution type. Declared as string
     DistrTypeT::DistrTypeT distrTypeT_m; /// and list type for switch statements.
-    std::ofstream os_m;                  /// Output file to write distribution.
-    void writeToFileCycl(PartBunch &beam, size_t Np);
 
     unsigned int numberOfDistributions_m;
 
@@ -596,21 +578,8 @@ private:
 
 
     // AAA This is for the matched distribution
-    double ex_m;
-    double ey_m;
-    double et_m;
-
     double I_m;
     double E_m;
-    double bg_m;                      /// beta gamma
-    double M_m;                       /// mass in terms of proton mass
-    std::string bfieldfn_m;           /// only temporarly
-
-
-
-
-
-    // Some legacy members that need to be cleaned up.
 
     /// time binned distribution with thermal energy
     double tRise_m;
@@ -619,18 +588,7 @@ private:
     double sigmaFall_m;
     double cutoff_m;
 
-    // Cyclotron stuff
-    double referencePr_m;
-    double referencePt_m;
-    double referencePz_m;
-    double referenceR_m;
-    double referenceTheta_m;
-    double referenceZ_m;
-    double bega_m;
-
     // Cyclotron for restart in local mode
-    double phi_m;
-    double psi_m;
     bool previousH5Local_m;
 };
 

@@ -24,9 +24,10 @@
 class BeamlineVisitor;
 class BMultipoleField;
 class Multipole;
-class PartBunch;
+template <class T, unsigned Dim>
+class PartBunchBase;
 class PartData;
-class Particle;
+class OpalParticle;
 
 template <class T, int N> class FVps;
 
@@ -106,13 +107,13 @@ public:
     /// Track particle through MPSplitIntegrator.
     // The particle tracked is [b]part[/b], the other values are the same
     // as in the calling mapper.
-    virtual void trackParticle(Particle &part, const PartData &data,
+    virtual void trackParticle(OpalParticle &part, const PartData &data,
                                bool revBeam, bool revTrack) const;
 
     /// Track particle bunch through MPSplitIntegrator.
     // The bunch tracked is [b]buch[/b], the other values are the same
     // as in the calling mapper.
-    virtual void trackBunch(PartBunch &bunch, const PartData &data,
+    virtual void trackBunch(PartBunchBase<double, 3> *bunch, const PartData &data,
                             bool revBeam, bool revTrack) const;
 
     /// Return slice positions.
@@ -132,8 +133,8 @@ private:
                         const BMultipoleField &field, double factor) const;
 
     // Track a particle through a particular element.
-    void applyDrift(Particle &, double, const PartData &) const;
-    void applyMultipole(Particle &,
+    void applyDrift(OpalParticle &, double, const PartData &) const;
+    void applyMultipole(OpalParticle &,
                         const BMultipoleField &field, double factor) const;
 
     // The embedded multipole.

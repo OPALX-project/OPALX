@@ -37,6 +37,8 @@ class Epetra_MpiComm;
 // #include "BelosLinearProblem.hpp"
 // #include "BelosRCGSolMgr.hpp"
 
+#include "Algorithms/PartBunch.h"
+
 #include "BelosTypes.hpp"
 
 namespace Belos {
@@ -94,13 +96,12 @@ enum {
  * \warning This solver is in an EXPERIMENTAL STAGE. For reliable simulations use the FFTPoissonSolver
  *
  */
-class PartBunch;
 class BoundaryGeometry;
 
 class MGPoissonSolver : public PoissonSolver {
 
 public:
-    MGPoissonSolver(PartBunch &beam,Mesh_t *mesh, FieldLayout_t *fl, std::vector<BoundaryGeometry *> geometries, std::string itsolver, std::string interpl, double tol, int maxiters, std::string precmode);
+    MGPoissonSolver(PartBunch *beam,Mesh_t *mesh, FieldLayout_t *fl, std::vector<BoundaryGeometry *> geometries, std::string itsolver, std::string interpl, double tol, int maxiters, std::string precmode);
     MGPoissonSolver(PartBunch &bunch);
     ~MGPoissonSolver();
 
@@ -117,13 +118,13 @@ public:
     /// force Solver to recompute Epetra_Map
     void recomputeMap() { hasParallelDecompositionChanged_m = true; }
 
-    double getXRangeMin() { return bp->getXRangeMin(); }
-    double getXRangeMax() { return bp->getXRangeMax(); }
-    double getYRangeMin() { return bp->getYRangeMin(); }
-    double getYRangeMax() { return bp->getYRangeMax(); }
-    double getZRangeMin() { return bp->getZRangeMin(); }
-    double getZRangeMax() { return bp->getZRangeMax(); }
-    void test(PartBunch &bunch) { }
+    double getXRangeMin(unsigned short level) { return bp->getXRangeMin(); }
+    double getXRangeMax(unsigned short level) { return bp->getXRangeMax(); }
+    double getYRangeMin(unsigned short level) { return bp->getYRangeMin(); }
+    double getYRangeMax(unsigned short level) { return bp->getYRangeMax(); }
+    double getZRangeMin(unsigned short level) { return bp->getZRangeMin(); }
+    double getZRangeMax(unsigned short level) { return bp->getZRangeMax(); }
+    void test(PartBunchBase<double, 3> *bunch) { }
     /// useful load balance information
     void printLoadBalanceStats();
 

@@ -120,8 +120,8 @@ class SigmaGenerator
          * @param type specifies the magnetic field format (e.g. CARBONCYCL)
          * @param harmonic is a boolean. If "true" the harmonics are used instead of the closed orbit finder.
          */
-        bool match(value_type, size_type, size_type, value_type,
-                   value_type, const std::string&, bool);
+        bool match(value_type accuracy, size_type maxit, size_type maxitOrbit, value_type angle,
+                   value_type guess, const std::string& type, bool harmonic);
 
         /// Block diagonalizes the symplex part of the one turn transfer matrix
         /** It computes the transformation matrix <b>R</b> and its inverse <b>invR</b>.
@@ -133,7 +133,7 @@ class SigmaGenerator
          * @param R is the 4x4 dimensional transformation matrix (gets computed)
          * @param invR is the 4x4 dimensional inverse transformation (gets computed)
          */
-        vector_type decouple(const matrix_type&, sparse_matrix_type&, sparse_matrix_type&);
+        vector_type decouple(const matrix_type& Mturn, sparse_matrix_type& R, sparse_matrix_type& invR);
 
         /// Checks if the sigma-matrix is an eigenellipse and returns the L2 error.
         /*!
@@ -141,7 +141,7 @@ class SigmaGenerator
          * @param Mturn is the one turn transfer matrix
          * @param sigma is the sigma matrix to be tested
          */
-        value_type isEigenEllipse(const matrix_type&, const matrix_type&);
+        value_type isEigenEllipse(const matrix_type& Mturn, const matrix_type& sigma);
 
         /// Returns the converged stationary distribution
         matrix_type& getSigma();

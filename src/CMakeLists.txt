@@ -11,19 +11,11 @@ IF(ENABLE_SAAMG_SOLVER)
     )
 ENDIF(ENABLE_SAAMG_SOLVER)
 
-IF(ENABLE_AMR_SOLVER)
-    set (CMAKE_CXX_FLAGS
-        "-DHAVE_AMR_SOLVER ${CMAKE_CXX_FLAGS}"
-    )
-    # FIXME Find a better solution!
-    # We get otherwise a "undefined reference" to "getLevelBld()" and "probinit_"
-    set (CBOXLIB -lcboxlib)
-
-    IF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori")
-        set (CBOXLIB "-lmpi -lmpi_mpifh ${CBOXLIB}")
-    ENDIF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori")
-
-ENDIF(ENABLE_AMR_SOLVER)
+IF(ENABLE_AMR)
+    IF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND NOT ${HOSTNAME_BASE} MATCHES "daint")
+        set (F_MPI "-lmpi" "-lmpi_mpifh")
+    ENDIF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND NOT ${HOSTNAME_BASE} MATCHES "daint")
+ENDIF(ENABLE_AMR)
 
 SET (PACKAGE_COMPILE_OPTIONS \"${CMAKE_CXX_FLAGS}\")
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALconfig.h)
@@ -86,6 +78,10 @@ add_subdirectory (Track)
 add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
 
+IF(ENABLE_AMR)
+    add_subdirectory (Amr)
+ENDIF(ENABLE_AMR)
+
 ADD_OPAL_SOURCES(opal.cpp)
 ADD_OPAL_SOURCES(changes.cpp)
 
@@ -99,7 +95,7 @@ include_directories ( BEFORE
     ${Trilinos_INCLUDE_DIRS}
     ${Trilinos_TPL_INCLUDE_DIRS}
     ${IPPL_SOURCE_DIRS}
-    ${CCSE_INCLUDE_DIRS}
+    ${AMREX_INCLUDE_DIR}
     ${GTEST_INCLUDE_DIRS}
     ${OPTP_INCLUDE_DIR}
 )
@@ -109,7 +105,7 @@ link_directories (
     ${OPTP_LIBRARY_DIR}
     ${Trilinos_LIBRARY_DIRS}
     ${Trilinos_TPL_LIBRARY_DIRS}
-    ${CCSE_LIBRARY_DIR}
+    ${AMREX_LIBRARY_DIR}
 )
 
 IF (ENABLE_DKS)
@@ -117,7 +113,7 @@ IF (ENABLE_DKS)
    link_directories (${DKS_LIBRARY_DIR})
 ENDIF (ENABLE_DKS)
 
-IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
+IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR ${HOSTNAME_BASE} MATCHES "daint")
  SET (OPAL_LIBS
     ${GSL_LIBRARY}
     ${H5Hut_LIBRARY}
@@ -143,7 +139,7 @@ ELSE()
     m
     z
 )
-ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
+ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR ${HOSTNAME_BASE} MATCHES "daint")
 
 IF (ENABLE_DKS)
    set (OPAL_LIBS
@@ -154,10 +150,10 @@ ENDIF (ENABLE_DKS)
 
 add_library( OPALib ${OPAL_SRCS} )
 set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
-target_link_libraries( OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${CCSE_LIBRARIES} ${OTHER_CMAKE_EXE_LINKER_FLAGS} )
+target_link_libraries( OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${AMREX_LIBRARIES} ${OTHER_CMAKE_EXE_LINKER_FLAGS} )
 
 add_executable( opal Main.cpp )
-target_link_libraries( opal ${OPAL_LIBS} OPALib ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} -lgfortran ${CCSE_LIBRARIES} ${CBOXLIB} ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+target_link_libraries( opal ${OPAL_LIBS} OPALib ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} -lgfortran ${AMREX_LIBRARIES} ${F_MPI} ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
