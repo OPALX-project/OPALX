@@ -131,7 +131,7 @@ class ScalingFFAGMagnet : public Component {
     void accept(BeamlineVisitor& visitor) const;
 
     /** Get tan delta - delta is the spiral angle */
-    Vector_t getTanDelta() const {return tanDelta_m;}
+    double getTanDelta() const {return tanDelta_m;}
 
     /** Set tan delta - delta is the spiral angle */
     void setTanDelta(double tanDelta) {tanDelta_m = tanDelta;}
@@ -222,6 +222,14 @@ class ScalingFFAGMagnet : public Component {
      */
     void setAzimuthalExtent(double azimuthalExtent) {azimuthalExtent_m = azimuthalExtent;}
 
+    /** Get the maximum vertical displacement from the midplane
+     */
+    double getVerticalExtent() const {return verticalExtent_m;}
+
+    /** Set the maximum vertical displacement from the midplane
+     */
+    void setVerticalExtent(double verticalExtent) {verticalExtent_m = verticalExtent;}
+
     /** Return the calculated df coefficients */
     std::vector<std::vector<double> > getDfCoefficients() {return dfCoefficients_m;}
 
@@ -242,14 +250,15 @@ class ScalingFFAGMagnet : public Component {
 
     size_t maxOrder_m = 0;
     double tanDelta_m = 0.;
-    double k_m;
-    double Bz_m;
-    double r0_m;
-    double rMin_m; // minimum radius
-    double rMax_m; // maximum radius
-    double phiStart_m; // offsets this element
-    double phiEnd_m; // used for placement of next element
-    double azimuthalExtent_m; // maximum distance used for field calculation
+    double k_m = 0.;
+    double Bz_m = 0.;
+    double r0_m = 0.;
+    double rMin_m = 0.; // minimum radius
+    double rMax_m = 0.; // maximum radius
+    double phiStart_m = 0.; // offsets this element
+    double phiEnd_m = 0.; // used for placement of next element
+    double azimuthalExtent_m = 0.; // maximum distance used for field calculation
+    double verticalExtent_m = 0.; // maximum allowed distance from the midplane
     Vector_t centre_m;
     endfieldmodel::EndFieldModel* endField_m = NULL;
     const double fp_tolerance = 1e-18;

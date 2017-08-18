@@ -27,6 +27,7 @@
 
 #include <cmath>
 #include <fstream>
+#include <sstream>
 
 #include "gtest/gtest.h"
 
@@ -51,8 +52,10 @@ public:
         sector_m->setDipoleConstant(1.);
         sector_m->setFieldIndex(15);
         sector_m->setMaxOrder(10);
-        sector_m->setPhiEnd(M_PI/12.); // 15 degrees
+        sector_m->setPhiStart(psi0_m);
+        sector_m->setPhiEnd(psi0_m*4.);
         sector_m->setAzimuthalExtent(M_PI);
+        sector_m->setVerticalExtent(1.); // 1 m
         sector_m->initialise();
     }
  
@@ -68,7 +71,7 @@ public:
     std::ofstream fout_m;
     double r0_m = 24; // m
     double magnetLength_m = 0.63; // m
-    double psi0_m = magnetLength_m/r0_m/2.; // radians
+    double psi0_m = magnetLength_m*2*M_PI/r0_m; // radians
 
     double getDBDu(int i, int j, Vector_t pos, double delta, bool isCartesian) {
         Vector_t mom(0., 0., 0.);
@@ -157,12 +160,12 @@ public:
         }
     }
 
-    void printLine(Vector_t posCyl, double aux, std::ofstream& fout) {
+    bool printLine(Vector_t posCyl, double aux, std::ofstream& fout, double maxwell_tolerance) {
         double r = posCyl[0];
         double y = posCyl[1];
         double phi = posCyl[2];
-        double x = r*cos(phi);
-        double z = r*sin(phi);
+        double x = r*sin(phi);
+        double z = r*cos(phi);
         Vector_t posCart(x, y, z);
         Vector_t mom(0., 0., 0.);
         Vector_t E(0., 0., 0.);
@@ -171,7 +174,7 @@ public:
         double t = 0;
         
         sector_m->getFieldValueCylindrical(posCyl, B);
-        sector_m->apply(posCart, mom, t, E, BCart);
+        bool outsideFieldMap = sector_m->apply(posCart, mom, t, E, BCart);
         double delta = y/1000.;
         if (delta > 1e-3 or delta < 1e-9) {
             delta = 1e-3;
@@ -180,7 +183,8 @@ public:
         Vector_t curlBCyl = getCurlBCyl(posCyl, Vector_t(delta, delta, delta/r0_m)); //curlBCyl[0] should be cancelled by 2nd term
         double divBCart = getDivBCart(posCart, Vector_t(delta, delta, delta));
         Vector_t curlBCart = getCurlBCart(posCart, Vector_t(delta, delta, delta)); //curlBCyl[0] should be cancelled by 2nd term
-        fout << "order " << sector_m->getMaxOrder()
+        std::stringstream ssout;
+        ssout << "order " << sector_m->getMaxOrder()
              << " (x,y,z)  " << x << "    " << y << "    " << z
              << " (r,phi) " << r << "    " << phi
              << " B(r,z,phi) " << B[0] << "    " << B[1] << "    " << B[2]
@@ -189,42 +193,127 @@ public:
              << " B(x,y,z) " << BCart[0] << "    " << BCart[1] << "    " << BCart[2]
              << " DivB_Cart: " << divBCart
              << " CurlB_Cart: " << curlBCart
-             << " Aux: " << aux
-             << std::endl;
+             << " Aux: " << aux;
+        fout << ssout.str() << std::endl;
+        bool passtest = !outsideFieldMap;
+        passtest &= divBCart < maxwell_tolerance;
+        // for (size_t i = 0; i < 3; ++i) {
+        //     passtest &= curlBCart[i] < maxwell_tolerance;
+        // }
+        if (!passtest) {
+            std::cout << ssout.str() << std::endl;
+        }
+        return passtest;
     }
 
 private:
 
 };
 
+TEST_F(ScalingFFAGMagnetTest, ConstructorTest) {
+    ScalingFFAGMagnet* test = new ScalingFFAGMagnet("test");
+    std::vector<int> data(15);
+    size_t i = 0;
+    test->setTanDelta(++i);
+    test->setFieldIndex(++i);
+    test->setDipoleConstant(++i);
+    test->setR0(++i);
+    double x = ++i;
+    test->setCentre(Vector_t(x, x, x));
+    x = ++i;
+    endfieldmodel::Tanh* tanh = new endfieldmodel::Tanh(x, x, i);
+    test->setEndField(tanh);
+    test->setMaxOrder(++i);
+    test->setPhiStart(++i);
+    test->setPhiEnd(++i);
+    test->setRMin(++i);
+    test->setRMax(++i);
+    test->setAzimuthalExtent(++i);
+
+    std::vector<ScalingFFAGMagnet*> magnets(2);
+    magnets[0] = test;
+    magnets[1] = dynamic_cast<ScalingFFAGMagnet*>(test->clone());
+    for (size_t j = 0; j < magnets.size(); ++j) {
+        i = 0;
+        test = magnets[j];
+        EXPECT_NEAR(test->getTanDelta(), ++i, 1e-9);
+        EXPECT_EQ(test->getFieldIndex(), ++i);
+        EXPECT_NEAR(test->getDipoleConstant(), ++i, 1e-9);
+        EXPECT_NEAR(test->getR0(), ++i, 1e-9);
+        EXPECT_NEAR(test->getCentre()[0], ++i, 1e-9);
+        EXPECT_NEAR(test->getCentre()[1], i, 1e-9);
+        EXPECT_NEAR(test->getCentre()[2], i, 1e-9);
+        ++i;
+        EXPECT_NEAR(test->getEndField()->function(x, 0),
+                    tanh->function(x, 0), 1e-9);
+        EXPECT_EQ(test->getMaxOrder(), ++i);
+        EXPECT_NEAR(test->getPhiStart(), ++i, 1e-9);
+        EXPECT_NEAR(test->getPhiEnd(), ++i, 1e-9);
+        EXPECT_NEAR(test->getRMin(), ++i, 1e-9);
+        EXPECT_NEAR(test->getRMax(), ++i, 1e-9);
+        EXPECT_NEAR(test->getAzimuthalExtent(), ++i, 1e-9);
+    }
+
+    endfieldmodel::Tanh* tanh2 = new endfieldmodel::Tanh(-10., -10., 10);
+    magnets[0]->setEndField(tanh2);
+    EXPECT_NEAR(magnets[0]->getEndField()->function(10., 0),
+                tanh2->function(10., 0), 1e-9);
+    delete magnets[0];
+    delete magnets[1];
+}
+
+TEST_F(ScalingFFAGMagnetTest, PlacementTest) {
+    double phiTest[] = {0., psi0_m, psi0_m*2.};
+    double byTest[] = {0.5, 1., 0.5};
+    for (size_t i = 0; i < 3; ++i) {
+        Vector_t mom, E, B;
+        double t = 0;
+        Vector_t posCart(r0_m*sin(phiTest[i]), 0., r0_m*cos(phiTest[i]));
+        sector_m->apply(posCart, mom, t, E, B);
+        EXPECT_NEAR(B[1], byTest[i], 1e-3);
+    }
+}
+
 TEST_F(ScalingFFAGMagnetTest, BTwoDTest) {
     std::ofstream fout("/tmp/b_twod.out");
-    for (double y = 0.; y < 0.021; y += 0.01) {
-        for (double r = r0_m; r < r0_m+1; r += 0.005) {
-            for (double psi = -5.*psi0_m; psi < 5.00001*psi0_m; psi += psi0_m/20.) {
-                printLine(Vector_t(r, y, psi), 0., fout);
+    bool passtest = true;
+    for (double y = 0.; y < 0.025; y += 0.015) {
+        for (double r = r0_m; r < r0_m+1; r += 0.01) {
+            for (double psi = -2.*psi0_m; psi < 4.00001*psi0_m; psi += psi0_m/10.) {
+                passtest &= printLine(Vector_t(r, y, psi), 0., fout, 1e-1);
             }
         }
     }
+    EXPECT_TRUE(passtest);
 }
 
 TEST_F(ScalingFFAGMagnetTest, ConvergenceYTest) {
     std::ofstream fout("/tmp/convergence_y.out");
+    bool passtest = true;
     for (double y = 0.00001; y < 0.02; y *= 2.) {
-        printLine(Vector_t(r0_m, y, psi0_m), 0., fout);
+        passtest &= printLine(Vector_t(r0_m, y, 2.*psi0_m), 0., fout, 1e-3);
     }
     for (double y = 0.051; y < 0.1; y += 0.002) {
-        printLine(Vector_t(r0_m, y, psi0_m), 0., fout);
+        passtest &= printLine(Vector_t(r0_m, y, 2.*psi0_m), 0., fout, 1e-3);
     }
+    EXPECT_TRUE(passtest);
 }
 
 TEST_F(ScalingFFAGMagnetTest, ConvergenceOrderTest) {
-    std::ofstream fout("/tmp/convergence_order.out");
     for (double y = 0.05; y > 0.0002; y /= 10.) {
-        for (int order = 1; order < 21; ++order) {
-            sector_m->setMaxOrder(order);
+        std::vector<double> divBVec(3);
+        double delta = y/100.;
+        for (size_t i = 0; i < divBVec.size(); ++i) {
+            sector_m->setMaxOrder((i+1)*2);
             sector_m->initialise();
-            printLine(Vector_t(r0_m, y, psi0_m), 0., fout);
+            Vector_t pos(r0_m, y, psi0_m*2);
+            double divB = getDivBCylindrical(pos, Vector_t(delta, delta, delta/r0_m));
+            divB = fabs(divB);
+            divBVec[i] = divB;
+            if (i > 0) {
+                EXPECT_LT(divBVec[i], divBVec[i-1]) << " with i "
+                                                    << i << std::endl;
+            }
         }
     }
     sector_m->setMaxOrder(10);
@@ -232,45 +321,75 @@ TEST_F(ScalingFFAGMagnetTest, ConvergenceOrderTest) {
 
 TEST_F(ScalingFFAGMagnetTest, ConvergenceEndLengthTest) {
     std::ofstream fout("/tmp/convergence_endlength.out");
-
+    bool passtest = true;
     for (double endLength = 1.; endLength < 10.1; endLength += 1.) {
         endfieldmodel::Tanh* tanh = new endfieldmodel::Tanh(psi0_m, psi0_m/endLength, 20);
         sector_m->setEndField(tanh);
         sector_m->initialise();
-        printLine(Vector_t(r0_m, 0.05, psi0_m), psi0_m/endLength*r0_m, fout);
+        passtest &= printLine(Vector_t(r0_m, 0.05, 2.*psi0_m), psi0_m/endLength*r0_m, fout, 1e-3);
+    }
+    EXPECT_TRUE(passtest);
+}
+
+TEST_F(ScalingFFAGMagnetTest, VerticalBoundingBoxTest) {
+    sector_m->setVerticalExtent(0.1);
+    Vector_t mom, E, B;
+    double t = 0;
+    Vector_t pos(r0_m*sin(psi0_m), 0.09, r0_m*cos(psi0_m));
+
+    EXPECT_FALSE(sector_m->apply(pos, mom, t, E, B));
+    pos[1] = 0.11;
+    EXPECT_TRUE(sector_m->apply(pos, mom, t, E, B));
+    pos[1] = -0.11;
+    EXPECT_TRUE(sector_m->apply(pos, mom, t, E, B));
+    pos[1] = -0.09;
+    EXPECT_FALSE(sector_m->apply(pos, mom, t, E, B));
+}
+
+TEST_F(ScalingFFAGMagnetTest, RadialBoundingBoxTest) {
+    sector_m->setRMin(r0_m-0.1);
+    Vector_t mom, E, B;
+    double t = 0;
+    double r1 = r0_m-0.09;
+    Vector_t pos1(r1*sin(psi0_m), 0.0, r1*cos(psi0_m));
+    double r2 = r0_m-0.11;
+    Vector_t pos2(r2*sin(psi0_m), 0.0, r2*cos(psi0_m));
+    EXPECT_FALSE(sector_m->apply(pos1, mom, t, E, B));
+    EXPECT_TRUE(sector_m->apply(pos2, mom, t, E, B));
+
+    sector_m->setRMax(r0_m+0.1);
+    double r3 = r0_m+0.09;
+    Vector_t pos3(r3*sin(psi0_m), 0.0, r3*cos(psi0_m));
+    double r4 = r0_m+0.11;
+    Vector_t pos4(r4*sin(psi0_m), 0.0, r4*cos(psi0_m));
+    EXPECT_FALSE(sector_m->apply(pos3, mom, t, E, B));
+    EXPECT_TRUE(sector_m->apply(pos4, mom, t, E, B));
+}
+
+TEST_F(ScalingFFAGMagnetTest, AzimuthalBoundingBoxTest) {
+    sector_m->setAzimuthalExtent(psi0_m*5.);
+    sector_m->setPhiStart(psi0_m*3.);
+    Vector_t mom, E, B;
+    double t = 0;
+    double phi[] = {-2.1*psi0_m, -1.9*psi0_m, 7.9*psi0_m, 8.1*psi0_m};
+    bool bb[] = {true, false, false, true};
+    for(size_t i = 0; i < 4; ++i) {
+        Vector_t pos(r0_m*sin(phi[i]), 0.0, r0_m*cos(phi[i]));
+        EXPECT_EQ(sector_m->apply(pos, mom, t, E, B), bb[i]) << i << " " << pos;
     }
 }
 
+
 TEST_F(ScalingFFAGMagnetTest, GeometryTest) {
-    // Sucked geometry information from
-    //     Classic/AbsBeamline/Ring.cpp::appendElement
-    // Transform in OPAL-T coords
-    Offset refOffset = Offset::localCylindricalOffset("test", M_PI/24., M_PI/24., 24.*M_PI/12.);
-    Euclid3D refDelta = refOffset.getGeometry().getTotalTransform();   
-    Vector3D refV = refDelta.getVector();
-    Vector3D refR = refDelta.getRotation().getAxis();
-    Euclid3D refEuclid(refV(2), refV(0), -refV(1), refR(2), refR(0), -refR(1));
-    refDelta = refEuclid;
-    Vector_t refDeltaPos(refDelta.getVector()(0), refDelta.getVector()(1), 0);
-    double refEndRot = refDelta.getRotation().getAxis()(2);
-    Vector_t refDeltaNorm(cos(refEndRot), sin(refEndRot), 0.);
-
     Euclid3D delta = sector_m->getGeometry().getTotalTransform();
-    Vector3D v = delta.getVector();
-    Vector3D r = delta.getRotation().getAxis();
+    Vector3D vec = delta.getVector();
+    Vector3D rot = delta.getRotation().getAxis();
+    EXPECT_EQ(vec(0), r0_m*(cos(psi0_m*4.)-1));
+    EXPECT_EQ(vec(1), 0.);
+    EXPECT_EQ(vec(2), r0_m*sin(psi0_m*4.));
 
-    // Transform to cycl coordinates
-    Euclid3D euclid(v(2), v(0), -v(1), r(2), r(0), -r(1));
-    delta = euclid;
-    // Calculate change in position
-    Vector_t deltaPos(delta.getVector()(0), delta.getVector()(1), 0);
-    double endRot = delta.getRotation().getAxis()(2);
-    Vector_t deltaNorm(cos(endRot), sin(endRot), 0.);
-
-    std::cerr << 24.*(1-cos(M_PI/12.)) << " " << 24.*sin(M_PI/12.) << " ** " << cos(M_PI/12.) << " " << sin(M_PI/12.) << " ** " << M_PI/12. << std::endl;
-    std::cerr << deltaPos << " ** " << deltaNorm << " ** " << endRot << std::endl;
-    std::cerr << refDeltaPos << " ** " << refDeltaNorm << " ** " << refEndRot << std::endl;
-    EXPECT_TRUE(false) << "I need to check that the beam and fields are aligned";
-    EXPECT_TRUE(false) << "Units should be degrees not rads";
+    EXPECT_EQ(rot(0), 0.);
+    EXPECT_EQ(rot(1), -psi0_m*4);
+    EXPECT_EQ(rot(2), 0.);
 }
 
