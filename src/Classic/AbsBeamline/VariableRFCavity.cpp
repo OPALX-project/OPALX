@@ -175,7 +175,7 @@ bool VariableRFCavity::apply(const Vector_t &R, const Vector_t &centroid,
         fabs(R[0]) > halfWidth_m || fabs(R[1]) > halfHeight_m)
         return true;
     double E0 = _amplitude_td->getValue(t);
-    double f = _frequency_td->getValue(t);
+    double f = _frequency_td->getValue(t) * 1E-3;   // Need GHz, in the command we have MHz
     double phi = _phase_td->getValue(t);
     E = Vector_t(0., 0., E0*sin(Physics::two_pi*f*t+phi));
     // std::cerr << "                        t: " << t << " f: " << f << " phi: " << phi << " E0: " << E0 << " E[2]: " << E[2] << std::endl;
