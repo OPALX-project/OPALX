@@ -2,7 +2,7 @@
 
 #include <AMReX_ParmParse.H>
 
-#include "AmrTrilinos.h"
+#include "AmrMultiGrid.h"
 
 #include "../AmrOpal.h"
 
@@ -378,7 +378,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     Real offset = 0.;
 
     // solve
-    AmrTrilinos sol;
+    AmrMultiGrid sol;
     
     IpplTimings::startTimer(solvTimer);
     
@@ -387,8 +387,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
               efield,       // [V m^2]
               geom,
               base_level,
-              finest_level,
-              l0norm / scale);
+              finest_level);
     
     // undo normalization
     for (int i = 0; i <= finest_level; ++i) {
