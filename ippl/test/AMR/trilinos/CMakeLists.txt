@@ -86,7 +86,7 @@ ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
     ${HOSTNAME_BASE} MATCHES "daint")
 
 
-set(F90_source_files ../Tagging_nd.f90)
+set(F90_source_files ../Tagging_nd.f90 electrostatic_pic_3d.f90)
 
 add_executable( testCopy testCopy.cpp)
 
@@ -97,16 +97,19 @@ add_executable( testTrilinosSolver
                 ${F90_source_files}
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 EllipticDomain.cpp
+                AmrMultiGrid.cpp
                 AmrTrilinos.cpp)
 
-add_executable( testTrilinosGeometry
-                testTrilinosGeometry.cpp
-                ../AmrOpal.cpp
-                ../Solver.cpp
-                ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                EllipticDomain.cpp
-                AmrTrilinos.cpp)
+add_executable( testComplement testComplement.cpp)
+
+# add_executable( testTrilinosGeometry
+#                 testTrilinosGeometry.cpp
+#                 ../AmrOpal.cpp
+#                 ../Solver.cpp
+#                 ${F90_source_files}
+#                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+#                 EllipticDomain.cpp
+#                 AmrTrilinos.cpp)
 
 target_link_libraries (testCopy ${LIBS}
                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
@@ -116,6 +119,10 @@ target_link_libraries (testTrilinosSolver ${LIBS}
                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
-target_link_libraries (testTrilinosGeometry ${LIBS}
+target_link_libraries (testComplement ${LIBS}
                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+# target_link_libraries (testTrilinosGeometry ${LIBS}
+#                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+#                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
