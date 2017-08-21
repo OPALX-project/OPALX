@@ -1,0 +1,82 @@
+#ifndef TRILINOS_SOLVER_H
+#define TRILINOS_SOLVER_H
+
+#include "LinearSolver.h"
+
+#include <Epetra_MpiComm.h>
+#include <Epetra_Map.h>
+#include <Epetra_Vector.h>
+#include <Epetra_CrsMatrix.h>
+
+#include <Epetra_LinearProblem.h>
+
+#include <BelosLinearProblem.hpp>
+#include <BelosEpetraAdapter.hpp>
+
+#include <BelosBlockCGSolMgr.hpp>
+
+#include <Teuchos_RCP.hpp>
+#include <Teuchos_ArrayRCP.hpp>
+
+class TrilinosSolver : public LinearSolver<Teuchos::RCP<Epetra_CrsMatrix>,
+                                           Teuchos::RCP<Epetra_Vector> >
+{
+public:
+    typedef Epetra_CrsMatrix matrix_t;
+    typedef Epetra_Vector vector_t;
+    
+//     typedef Teuchos::RCP<Epetra_CrsMatrix> matrix_t;
+//     typedef Teuchos::RCP<Epetra_Vector>    vector_t;
+    
+public:
+    void solve(const Teuchos::RCP<matrix_t>& A,
+               Teuchos::RCP<vector_t>& x,
+               const Teuchos::RCP<vector_t>& b)
+    {
+        /*
+         * solve linear system Ax = b
+         */
+        Teuchos::RCP<Belos::LinearProblem<double, Epetra_MultiVector, Epetra_Operator> > problem =
+        Teuchos::rcp( new Belos::LinearProblem<double, Epetra_MultiVector, Epetra_Operator>(A, x, b) );
+        
+        if ( !problem->setProblem() )
+            throw std::runtime_error("Belos::LinearProblem failed to set up correctly!");
+        
+        Teuchos::RCP<Teuchos::ParameterList> params = Teuchos::rcp( new Teuchos::ParameterList );
+        
+    //     params->set( "Block Size", 4 );
+        params->set( "Maximum Iterations", 10000 );
+        params->set("Convergence Tolerance", 1.0e-8);
+        params->set("Block Size", 32);
+        
+        
+        Belos::BlockCGSolMgr<double, Epetra_MultiVector, Epetra_Operator> solver(problem, params);
+        
+        Belos::ReturnType ret = solver.solve();
+        
+        // get the solution from the problem
+        if ( ret == Belos::Converged ) {
+            x = Teuchos::rcp( new vector_t(Epetra_DataAccess::Copy, *problem->getLHS(), 0) );
+            
+            // print stuff
+//             if ( epetra_comm_m.MyPID() == 0 ) {
+//                 std::cout << "Achieved tolerance: " << solver.achievedTol() << std::endl
+//                         << "Number of iterations: " << solver.getNumIters() << std::endl;
+//             }
+            
+        } else {
+//             if ( epetra_comm_m.MyPID() == 0 ) {
+                std::cout << "Not converged. Achieved tolerance after " << solver.getNumIters() << " iterations is "
+                        << solver.achievedTol() << "." << std::endl;
+//             }
+        }
+    }
+    
+    
+    void residual(vector_t& r) {
+        
+    }
+    
+};
+
+#endif
