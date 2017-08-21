@@ -29,6 +29,7 @@
 #include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/SBend3D.h"
+#include "AbsBeamline/ScalingFFAGMagnet.h"
 #include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
@@ -156,6 +157,9 @@ public:
 
     /// Apply the algorithm to a solenoid.
     virtual void visitSource(const Source &);
+
+    /// Apply the algorithm to a spiral sector magnet.
+    virtual void visitScalingFFAGMagnet(const ScalingFFAGMagnet &);
 
     /// Apply the algorithm to a ParallelPlate.
     virtual void visitParallelPlate(const ParallelPlate &);
@@ -353,6 +357,11 @@ void SpecificElementVisitor<ELEM>::visitSBend(const SBend &element) {
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSBend3D(const SBend3D &element) {
     CastsTrait<ELEM, SBend3D>::apply(allElementsOfTypeE, element);
+}
+
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitScalingFFAGMagnet(const ScalingFFAGMagnet &element) {
+    CastsTrait<ELEM, ScalingFFAGMagnet>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>

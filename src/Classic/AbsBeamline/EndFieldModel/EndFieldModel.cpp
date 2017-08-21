@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015, Chris Rogers
+ *  Copyright (c) 2017, Chris Rogers
  *  All rights reserved.
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
@@ -25,41 +25,36 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "gtest/gtest.h"
+#include <algorithm>
 
-#include "Fields/Interpolation/PolynomialPatch.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 
-#include "opal_test_utilities/SilenceTest.h"
+namespace endfieldmodel {
 
-using namespace interpolation;
-
-TEST(PolynomialPatchTest, TestPolynomialPatch) {
-    OpalTestUtilities::SilenceTest silencer;
-
-    ThreeDGrid grid(1, 2, 3, -1, -2, -3, 4, 3, 2);
-   // we make a reference poly vector
-    std::vector<double> data(54);
-    for (size_t i = 0; i < data.size(); ++i)
-        data[i] = i/10.;
-    MMatrix<double> refCoeffs(2, 27, &data[0]);
-    SquarePolynomialVector ref(3, refCoeffs);
-   // copy it into the grid
-    std::vector<SquarePolynomialVector*> poly;
-    for (int i = 0; i < grid.end().toInteger(); ++i)
-        poly.push_back(new SquarePolynomialVector(ref));
-    PolynomialPatch patch(grid.clone(), grid.clone(), poly);
-    ThreeDGrid testGrid(1/4., 2/4., 3/4., -1, -2, -3, 4*4, 3*4, 2*4);
-    for (Mesh::Iterator it = testGrid.begin(); it < testGrid.begin()+1; ++it) {
-        std::vector<double> testValue(2);
-        patch.function(&it.getPosition()[0], &testValue[0]);
-        Mesh::Iterator nearest = grid.getNearest(&it.getPosition()[0]);
-        std::vector<double> localPosition(3);
-        for (size_t i = 0; i < 3; ++i) {
-            localPosition[i] = nearest.getPosition()[i] - it.getPosition()[i];
-        }
-        std::vector<double> refValue(2);
-        ref.F(&localPosition[0], &refValue[0]);
-        for (size_t i = 0; i < 2; ++i)
-            EXPECT_NEAR(testValue[i], refValue[i], 1e-6);
-    }
+bool GreaterThan(std::vector<int> v1, std::vector<int> v2) {
+  size_t n1(v1.size()), n2(v2.size());
+  for (size_t i = 0; i < n1 && i < n2; ++i) {
+    if (v1[n1-1-i] > v2[n2-1-i]) return true;
+    if (v1[n1-1-i] < v2[n2-1-i]) return false;
+  }
+  return false;
 }
+
+std::vector< std::vector<int> > CompactVector(
+                              std::vector< std::vector<int> > vec) {
+  // first sort the list
+  std::sort(vec.begin(), vec.end(), GreaterThan);
+  // now look for n = n+1
+  for (size_t j = 0; j < vec.size()-1; ++j) {
+    while (j < vec.size()-1 && IterableEquality(
+                              vec[j].begin()+1, vec[j].end(),
+                              vec[j+1].begin()+1, vec[j+1].end()) ) {
+      vec[j][0] += vec[j+1][0];
+      vec.erase(vec.begin()+j+1);
+    }
+  }
+  return vec;
+}
+
+}
+
