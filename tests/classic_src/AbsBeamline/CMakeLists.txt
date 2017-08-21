@@ -2,6 +2,7 @@ set (_SRCS
     OffsetTest.cpp
     RingTest.cpp
     SBend3DTest.cpp
+    ScalingFFAGMagnetTest.cpp
     VariableRFCavityTest.cpp
 )
 
