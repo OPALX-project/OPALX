@@ -29,6 +29,14 @@ public:
 //     typedef Teuchos::RCP<Epetra_Vector>    vector_t;
     
 public:
+    
+    TrilinosSolver() : problem(Teuchos::null), params(Teuchos::null) { }
+    
+    ~TrilinosSolver() {
+        problem = Teuchos::null;
+        params = Teuchos::null;
+    };
+    
     void solve(const Teuchos::RCP<matrix_t>& A,
                Teuchos::RCP<vector_t>& x,
                const Teuchos::RCP<vector_t>& b)
@@ -36,19 +44,18 @@ public:
         /*
          * solve linear system Ax = b
          */
-        Teuchos::RCP<Belos::LinearProblem<double, Epetra_MultiVector, Epetra_Operator> > problem =
-        Teuchos::rcp( new Belos::LinearProblem<double, Epetra_MultiVector, Epetra_Operator>(A, x, b) );
+        problem = Teuchos::rcp( new Belos::LinearProblem<double, Epetra_MultiVector, Epetra_Operator>(A, x, b) );
+        
         
         if ( !problem->setProblem() )
             throw std::runtime_error("Belos::LinearProblem failed to set up correctly!");
         
-        Teuchos::RCP<Teuchos::ParameterList> params = Teuchos::rcp( new Teuchos::ParameterList );
+        params = Teuchos::rcp( new Teuchos::ParameterList );
         
     //     params->set( "Block Size", 4 );
-        params->set( "Maximum Iterations", 10000 );
-        params->set("Convergence Tolerance", 1.0e-8);
+        params->set( "Maximum Iterations", 10 );
+        params->set("Convergence Tolerance", 1.0e-4);
         params->set("Block Size", 32);
-        
         
         Belos::BlockCGSolMgr<double, Epetra_MultiVector, Epetra_Operator> solver(problem, params);
         
@@ -56,6 +63,7 @@ public:
         
         // get the solution from the problem
         if ( ret == Belos::Converged ) {
+            x = Teuchos::null;
             x = Teuchos::rcp( new vector_t(Epetra_DataAccess::Copy, *problem->getLHS(), 0) );
             
             // print stuff
@@ -73,10 +81,13 @@ public:
     }
     
     
-    void residual(vector_t& r) {
-        
+    void residual(Teuchos::RCP<vector_t>& r, const Teuchos::RCP<vector_t>& x, const Teuchos::RCP<vector_t>& b) {
+        problem->computeCurrResVec(r.get(), x.get(), b.get());
     }
     
+private:
+    Teuchos::RCP<Belos::LinearProblem<double, Epetra_MultiVector, Epetra_Operator> > problem;
+    Teuchos::RCP<Teuchos::ParameterList> params;
 };
 
 #endif

@@ -80,7 +80,8 @@ private:
     
     std::vector<std::unique_ptr<AmrMultiGridLevel_t > > mglevel_m;
     
-    std::unique_ptr<LinearSolver<Teuchos::RCP<matrix_t>, Teuchos::RCP<vector_t> > > solver_mp;
+//     std::unique_ptr<LinearSolver<Teuchos::RCP<matrix_t>, Teuchos::RCP<vector_t> > > solver_mp;
+    TrilinosSolver solver_m;
     
     AmrIntVect_t rr_m;
     

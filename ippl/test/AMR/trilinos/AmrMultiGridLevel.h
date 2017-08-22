@@ -39,10 +39,12 @@ public:
     
 public:
     
-    AmrMultiGridLevel(const AmrField_u& rho,
-                      const AmrField_u& phi,
-                      const AmrGeometry_t& geom,
+    AmrMultiGridLevel(const AmrField_u& _rho,
+                      const AmrField_u& _phi,
+                      const AmrGeometry_t& _geom,
                       Epetra_MpiComm& comm);
+    
+    ~AmrMultiGridLevel();
     
     
     Teuchos::RCP<matrix_t> A_p;
@@ -53,19 +55,21 @@ public:
     
     AmrField_u error;
     AmrField_u phi_saved;
-    AmrField_s phi;
-    AmrField_s rho;
+    AmrField_t* phi;
+    AmrField_t* rho;
     AmrField_u residual;
     
     const amrex::BoxArray& grids;
     const amrex::DistributionMapping& dmap;
     const AmrGeometry_t& geom;
     
+    void buildRHS(/*const AmrField_u rho*/);
+    
+    void copyBack(AmrField_t& mf, const Teuchos::RCP<vector_t>& mv);
 
 private:
     int serialize_m(const AmrIntVect_t& iv) const;
     
-    void update_m(AmrField_t& mf, const vector_t& mv);
     
     
     void buildLevelMask_m();
