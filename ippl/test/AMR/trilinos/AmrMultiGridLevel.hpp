@@ -1,25 +1,86 @@
 template <class MatrixType, class VectorType>
 AmrMultiGridLevel<MatrixType,
-                  VectorType>::AmrMultiGridLevel(const AmrField_u& rho,
-                                                 const AmrField_u& phi,
+                  VectorType>::AmrMultiGridLevel(const AmrField_u& _rho,
+                                                 const AmrField_u& _phi,
                                                  const AmrGeometry_t& _geom,
                                                  Epetra_MpiComm& comm)
-    : grids(rho->boxArray()),
-      dmap(rho->DistributionMap()),
+    : grids(_rho->boxArray()),
+      dmap(_rho->DistributionMap()),
       geom(_geom),
       A_p(Teuchos::null),
       rho_p(Teuchos::null),
+      phi_p(Teuchos::null),
       r_p(Teuchos::null),
       err_p(Teuchos::null),
-      error(new AmrField_t(rho->boxArray(), rho->DistributionMap(), 1, 1))
+      error(new AmrField_t(_rho->boxArray(), _rho->DistributionMap(), 1, 1)),
+      rho(_rho.get()),
+      phi(_phi.get()),
+      residual(new AmrField_t(_rho->boxArray(), _rho->DistributionMap(), 1, 0))
 {
     for (int j = 0; j < 3; ++j)
         nr_m[j] = _geom.Domain().length(j);
     
     this->buildLevelMask_m();
     
-    this->buildMap(phi, comm);
+    this->buildMap(_phi, comm);
     this->buildMatrix_m();
+}
+
+
+template <class MatrixType, class VectorType>
+AmrMultiGridLevel<MatrixType, VectorType>::~AmrMultiGridLevel()
+{
+    A_p = Teuchos::null;
+    rho_p = Teuchos::null;
+    phi_p = Teuchos::null;
+    r_p = Teuchos::null;
+    err_p = Teuchos::null;
+    map_mp = Teuchos::null;
+}
+
+
+template <class MatrixType, class VectorType>
+void AmrMultiGridLevel<MatrixType, VectorType>::buildRHS(/*const AmrField_u rho*/) {
+    int localNumElements = 0;
+    std::vector<double> values;
+    std::vector<int> globalindices;
+    
+    const double* dx = geom.CellSize();
+    
+    for (amrex::MFIter mfi(*rho, false); mfi.isValid(); ++mfi) {
+        const amrex::Box&          bx  = mfi.validbox();
+        const amrex::FArrayBox&    fab = (*rho)[mfi];
+        const amrex::BaseFab<int>& mfab = (*masks_m)[mfi];
+            
+        const int* lo = bx.loVect();
+        const int* hi = bx.hiVect();
+        
+        for (int i = lo[0]; i <= hi[0]; ++i) {
+            for (int j = lo[1]; j <= hi[1]; ++j) {
+                for (int k = lo[2]; k <= hi[2]; ++k) {
+                    
+                    AmrIntVect_t iv(i, j, k);
+                    
+                    int globalidx = serialize_m(iv);
+                    
+                    globalindices.push_back(globalidx);
+                    
+                    values.push_back(fab(iv));
+                    
+                    ++localNumElements;
+                }
+            }
+        }
+    }
+    
+    rho_p = Teuchos::rcp( new vector_t(*map_mp, false) );
+    
+    int success = rho_p->ReplaceGlobalValues(localNumElements,
+                                             &values[0],
+                                             &globalindices[0]);
+    
+    if ( success == 1 )
+        throw std::runtime_error("Error in filling the vector!");
 }
 
 
@@ -30,8 +91,8 @@ int AmrMultiGridLevel<MatrixType, VectorType>::serialize_m(const AmrIntVect_t& i
 
 
 template <class MatrixType, class VectorType>
-void AmrMultiGridLevel<MatrixType, VectorType>::update_m(AmrField_t& mf,
-                                 const vector_t& mv)
+void AmrMultiGridLevel<MatrixType, VectorType>::copyBack(AmrField_t& mf,
+                                                         const Teuchos::RCP<vector_t>& mv)
 {
     int localidx = 0;
     for (amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi) {
@@ -45,7 +106,7 @@ void AmrMultiGridLevel<MatrixType, VectorType>::update_m(AmrField_t& mf,
             for (int j = lo[1]; j <= hi[1]; ++j) {
                 for (int k = lo[2]; k <= hi[2]; ++k) {
                     AmrIntVect_t iv(i, j, k);
-                    fab(iv) = mv[localidx++];
+                    fab(iv) = (*mv)[localidx++];
                 }
             }
         }
@@ -130,6 +191,11 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap(const AmrField_u& phi,
     
     if ( success == 1 )
         throw std::runtime_error("Error in filling the vector!");
+    
+    
+    r_p = Teuchos::rcp( new vector_t(*map_mp, false) );
+    r_p->PutScalar(0.0);
+    err_p = Teuchos::rcp( new vector_t(*map_mp, false) );
 }
 
 
