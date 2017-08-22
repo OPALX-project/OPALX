@@ -4,7 +4,8 @@
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_Array.H>
 
-AmrMultiGrid::AmrMultiGrid() : epetra_comm_m(Ippl::getComm())
+AmrMultiGrid::AmrMultiGrid() : epetra_comm_m(Ippl::getComm())//,
+//                                solver_mp(new TrilinosSolver())
 { }
 
 void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
@@ -25,8 +26,8 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
                                                      geom[ilev], epetra_comm_m));
     }
     
-    double err = 1.0;
-    double eps = 1.0e-4;
+    double err = 1.0e7;
+    double eps = 1.0e-8;
     
     rr_m = AmrIntVect_t(2, 2, 2);
     
@@ -43,6 +44,8 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         
         err = error_m();
         
+        std::cout << err << " " << eps * rhonorm << std::endl;
+        
     } while ( err > eps * rhonorm);
 }
 
@@ -51,12 +54,20 @@ void AmrMultiGrid::relax_m(int lev) {
     
     if ( lev == lfine_m ) {
         
+        mglevel_m[lev]->buildRHS();
+        
         // A * phi = rho --> phi = A^(-1) rho
-        solver_mp->solve(mglevel_m[lev]->A_p,
+        solver_m.solve(mglevel_m[lev]->A_p,
                          mglevel_m[lev]->phi_p,
                          mglevel_m[lev]->rho_p);
         
-        solver_mp->residual(mglevel_m[lev]->r_p);
+        mglevel_m[lev]->copyBack(*mglevel_m[lev]->phi, mglevel_m[lev]->phi_p);
+        
+        solver_m.residual(mglevel_m[lev]->r_p,
+                          mglevel_m[lev]->phi_p,
+                          mglevel_m[lev]->rho_p);
+        
+        mglevel_m[lev]->copyBack(*mglevel_m[lev]->residual, mglevel_m[lev]->r_p);
         
         
     } else if ( lev > lbase_m ) {
@@ -69,7 +80,7 @@ void AmrMultiGrid::relax_m(int lev) {
         
         this->saxpy_m(*mglevel_m[lev]->phi, *mglevel_m[lev]->error);
         
-        solver_mp->solve(mglevel_m[lev]->A_p,
+        solver_m.solve(mglevel_m[lev]->A_p,
                          mglevel_m[lev]->phi_p,
                          mglevel_m[lev]->rho_p);
         
@@ -91,7 +102,7 @@ void AmrMultiGrid::relax_m(int lev) {
         this->saxpy_m(*mglevel_m[lev]->error, tmp);
         
         // residual correction
-        solver_mp->solve(mglevel_m[lev]->A_p,
+        solver_m.solve(mglevel_m[lev]->A_p,
                          mglevel_m[lev]->err_p,
                          mglevel_m[lev]->r_p);
         
@@ -110,7 +121,7 @@ void AmrMultiGrid::relax_m(int lev) {
         
         
     } else {
-        solver_mp->solve(mglevel_m[lev]->A_p,
+        solver_m.solve(mglevel_m[lev]->A_p,
                          mglevel_m[lev]->err_p,
                          mglevel_m[lev]->r_p);
     }

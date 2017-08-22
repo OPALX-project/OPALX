@@ -9,7 +9,7 @@ public:
                        VectorType& x,
                        const VectorType& b) = 0;
     
-    virtual void residual(VectorType& r) = 0;
+    virtual void residual(VectorType& r, const VectorType& x, const VectorType& b) = 0;
     
 };
 
