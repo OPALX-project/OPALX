@@ -48,21 +48,42 @@ public:
                amrex::Array<AmrField_u>& phi,
                amrex::Array<AmrField_u>& efield,
                const amrex::Array<AmrGeometry_t>& geom,
-               int lbase, int lfine);
+               int lbase, int lfine, bool previous = false);
     
     
 private:
     
     void relax_m(int lev);
     
-    void restrict_m(AmrField_t& crse, const AmrField_t& fine,
-                    const AmrGeometry_t& cgeom,
-                    const AmrGeometry_t& fgeom, const AmrIntVect_t& rr);
+    void restrict_m(int level);
     
-    void prolongate_m(AmrField_t& fine, const AmrField_t& crse,
+    void interpolate_m(AmrField_t& fine, /*const */AmrField_t& crse,
                       const AmrGeometry_t& fgeom,
                       const AmrGeometry_t& cgeom, const AmrIntVect_t& rr);
     
+    void prolongate_m(int level);
+    
+    
+    
+    /*!
+     * z = a * x + b * y
+     */
+    void assign_m(AmrField_t& z, const AmrField_t& x,
+                  const AmrField_t& y, double a = 1.0, double b = 1.0);
+    
+    double error_m();
+    
+    void applyLapNoFine_m(AmrField_u& residual,
+                          const AmrField_u& rhs,
+                          AmrField_u& flhs,
+                          const AmrField_u& clhs);
+    
+    /////////
+    
+    // lhs = rhs (only first component is copied)
+    void copy_m(AmrField_t& lhs, const AmrField_t& rhs);
+    void zero_m(AmrField_t& mf);
+    void smooth_m(AmrField_t& mf, int level);
     /*!
      * y = a * x + y
      * @param y
@@ -71,11 +92,34 @@ private:
      */
     void saxpy_m(AmrField_t& y, const AmrField_t& x, double a = 1.0);
     
-    double error_m();
+//     void average_m();
+//     void interpolate_m();
+//     void add_m();
+    
+    /*
+     * r = b - A*x
+     */
+    void residual_m(AmrField_t& r, const AmrField_t& x, const AmrField_t& b, const double* dx);
+    
+    double laplacian_m(const amrex::FArrayBox& fab, const int& i, const int& j, const int& k, const double* idx2);
+    
+    double l2norm_m(const AmrField_t& x);
+    
+    void initGuess_m();
+    
+    
+    void gradient_m(int level, AmrField_t& efield);
+    
+    
+    void setBoundaryValue_m(AmrField_t* phi, const AmrGeometry_t& geom,
+                            const AmrField_t* crse_phi = 0,
+                            AmrIntVect_t crse_ratio = AmrIntVect_t::TheZeroVector());
     
     
 private:
     Epetra_MpiComm epetra_comm_m;
+    
+    int nIter_m;
     
     
     std::vector<std::unique_ptr<AmrMultiGridLevel_t > > mglevel_m;
