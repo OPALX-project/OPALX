@@ -53,8 +53,8 @@ public:
         params = Teuchos::rcp( new Teuchos::ParameterList );
         
     //     params->set( "Block Size", 4 );
-        params->set( "Maximum Iterations", 10 );
-        params->set("Convergence Tolerance", 1.0e-4);
+        params->set("Maximum Iterations", 1000);
+        params->set("Convergence Tolerance", 1.0e-9);
         params->set("Block Size", 32);
         
         Belos::BlockCGSolMgr<double, Epetra_MultiVector, Epetra_Operator> solver(problem, params);
@@ -68,8 +68,8 @@ public:
             
             // print stuff
 //             if ( epetra_comm_m.MyPID() == 0 ) {
-//                 std::cout << "Achieved tolerance: " << solver.achievedTol() << std::endl
-//                         << "Number of iterations: " << solver.getNumIters() << std::endl;
+                std::cout << "Achieved tolerance: " << solver.achievedTol() << std::endl
+                        << "Number of iterations: " << solver.getNumIters() << std::endl;
 //             }
             
         } else {

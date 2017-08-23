@@ -21,6 +21,7 @@ public:
     typedef amrex::IntVect AmrIntVect_t;
     typedef MatrixType matrix_t;
     typedef VectorType vector_t;
+    typedef amrex::FabArray<amrex::BaseFab<int> > mask_t;
     
     typedef Vektor<double, 3> Vector_t;
     
@@ -52,20 +53,25 @@ public:
     Teuchos::RCP<vector_t> phi_p;
     Teuchos::RCP<vector_t> r_p;
     Teuchos::RCP<vector_t> err_p;
+    Teuchos::RCP<vector_t> delta_err_p;
+    std::unique_ptr<mask_t> masks_m;
     
     AmrField_u error;
     AmrField_u phi_saved;
     AmrField_t* phi;
     AmrField_t* rho;
     AmrField_u residual;
+    AmrField_u delta_err;
     
     const amrex::BoxArray& grids;
     const amrex::DistributionMapping& dmap;
     const AmrGeometry_t& geom;
     
-    void buildRHS(/*const AmrField_u rho*/);
+    void copyTo(Teuchos::RCP<vector_t>& mv, const AmrField_t& mf);
     
     void copyBack(AmrField_t& mf, const Teuchos::RCP<vector_t>& mv);
+    
+    void save();
 
 private:
     int serialize_m(const AmrIntVect_t& iv) const;
@@ -80,7 +86,6 @@ private:
     
 private:
     Vector_t nr_m;
-    std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > masks_m;
     
     Teuchos::RCP<Epetra_Map> map_mp;
 };
