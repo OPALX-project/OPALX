@@ -15,7 +15,9 @@ AmrMultiGridLevel<MatrixType,
       error(new AmrField_t(_rho->boxArray(), _rho->DistributionMap(), 1, 1)),
       rho(_rho.get()),
       phi(_phi.get()),
-      residual(new AmrField_t(_rho->boxArray(), _rho->DistributionMap(), 1, 0))
+      residual(new AmrField_t(_rho->boxArray(), _rho->DistributionMap(), 1, 1)),
+      phi_saved(new AmrField_t(_rho->boxArray(), _rho->DistributionMap(), 1, 1)),
+      delta_err(new AmrField_t(_rho->boxArray(), _rho->DistributionMap(), 1, 1))
 {
     for (int j = 0; j < 3; ++j)
         nr_m[j] = _geom.Domain().length(j);
@@ -40,16 +42,16 @@ AmrMultiGridLevel<MatrixType, VectorType>::~AmrMultiGridLevel()
 
 
 template <class MatrixType, class VectorType>
-void AmrMultiGridLevel<MatrixType, VectorType>::buildRHS(/*const AmrField_u rho*/) {
+void AmrMultiGridLevel<MatrixType, VectorType>::copyTo(Teuchos::RCP<vector_t>& mv, const AmrField_t& mf) {
     int localNumElements = 0;
     std::vector<double> values;
     std::vector<int> globalindices;
     
     const double* dx = geom.CellSize();
     
-    for (amrex::MFIter mfi(*rho, false); mfi.isValid(); ++mfi) {
+    for (amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi) {
         const amrex::Box&          bx  = mfi.validbox();
-        const amrex::FArrayBox&    fab = (*rho)[mfi];
+        const amrex::FArrayBox&    fab = mf[mfi];
         const amrex::BaseFab<int>& mfab = (*masks_m)[mfi];
             
         const int* lo = bx.loVect();
@@ -73,9 +75,10 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildRHS(/*const AmrField_u rho*
         }
     }
     
-    rho_p = Teuchos::rcp( new vector_t(*map_mp, false) );
+    if ( mv.is_null() )
+        mv = Teuchos::rcp( new vector_t(*map_mp, false) );
     
-    int success = rho_p->ReplaceGlobalValues(localNumElements,
+    int success = mv->ReplaceGlobalValues(localNumElements,
                                              &values[0],
                                              &globalindices[0]);
     
@@ -111,6 +114,12 @@ void AmrMultiGridLevel<MatrixType, VectorType>::copyBack(AmrField_t& mf,
             }
         }
     }
+}
+
+
+template <class MatrixType, class VectorType>
+void AmrMultiGridLevel<MatrixType, VectorType>::save() {
+    AmrField_t::Copy(*phi_saved, *phi, 0, 0, 1, 1);
 }
 
 
@@ -194,8 +203,9 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap(const AmrField_u& phi,
     
     
     r_p = Teuchos::rcp( new vector_t(*map_mp, false) );
-    r_p->PutScalar(0.0);
+//     r_p->PutScalar(0.0);
     err_p = Teuchos::rcp( new vector_t(*map_mp, false) );
+    delta_err_p = Teuchos::rcp( new vector_t(*map_mp, false) );
 }
 
 
