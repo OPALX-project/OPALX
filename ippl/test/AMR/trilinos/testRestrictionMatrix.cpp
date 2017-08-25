@@ -47,6 +47,13 @@ int serialize(const IntVect& iv, int* nr) {
 #endif
 }
 
+
+void buildVector(Teuchos::RCP<Epetra_Vector>& x, const Teuchos::RCP<Epetra_Map>& map, double value) {
+    x = Teuchos::rcp( new Epetra_Vector(*map, false));
+    x->PutScalar(value);
+}
+
+
 void buildMap(Teuchos::RCP<Epetra_Map>& map, const BoxArray& grids, const DistributionMapping& dmap,
               const Geometry& geom, Epetra_MpiComm& comm, int level)
 {
@@ -395,6 +402,20 @@ void test(TestParams& parms)
     
     buildRestrictionMatrix(R, maps, ba, dmap, geom, rv, epetra_comm, 1);
     
+    
+    // fine
+    Teuchos::RCP<Epetra_Vector> x = Teuchos::null;
+    buildVector(x, maps[1], 2.0);
+    
+    // coarse
+    Teuchos::RCP<Epetra_Vector> y = Teuchos::null;
+    buildVector(y, maps[0], 0.0);
+    
+    
+    // y = R * x
+    R->Multiply(false, *x, *y);
+    
+    std::cout << *y << std::endl;
 }
 
 int main(int argc, char* argv[])
