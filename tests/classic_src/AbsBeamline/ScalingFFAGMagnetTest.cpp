@@ -265,14 +265,21 @@ TEST_F(ScalingFFAGMagnetTest, ConstructorTest) {
 }
 
 TEST_F(ScalingFFAGMagnetTest, PlacementTest) {
-    double phiTest[] = {0., psi0_m, psi0_m*2.};
-    double byTest[] = {0.5, 1., 0.5};
-    for (size_t i = 0; i < 3; ++i) {
-        Vector_t mom, E, B;
-        double t = 0;
-        Vector_t posCart(r0_m*sin(phiTest[i]), 0., r0_m*cos(phiTest[i]));
-        sector_m->apply(posCart, mom, t, E, B);
-        EXPECT_NEAR(B[1], byTest[i], 1e-3);
+    // test that when we are X0 from the centre, we get By = 0.5*B0
+    double centre_length = dynamic_cast<endfieldmodel::Tanh*>(sector_m->getEndField())->getX0();
+    for (double phi_start = 0.; phi_start < psi0_m*3.1; phi_start += psi0_m/2.) {
+        sector_m->setPhiStart(phi_start+centre_length);
+        for (double i = 0.; i < 1.01; i += 0.5) {
+            double phi = i*centre_length*2+phi_start;
+            Vector_t mom, E, B;
+            double t = 0;
+            Vector_t posCart(-r0_m*sin(phi), 0., r0_m*cos(phi));
+            sector_m->apply(posCart, mom, t, E, B);
+            double byTest = 1-fabs(i-0.5); // 0.5, 1.0, 0.5
+            EXPECT_NEAR(B[1], byTest, 1e-3)
+                                             << " for phi_start " << phi_start
+                                             << " and phi test " << phi;
+        }
     }
 }
 
@@ -376,7 +383,7 @@ TEST_F(ScalingFFAGMagnetTest, AzimuthalBoundingBoxTest) {
     double phi[] = {-2.1*psi0_m, -1.9*psi0_m, 7.9*psi0_m, 8.1*psi0_m};
     bool bb[] = {true, false, false, true};
     for(size_t i = 0; i < 4; ++i) {
-        Vector_t pos(r0_m*sin(phi[i]), 0.0, r0_m*cos(phi[i]));
+        Vector_t pos(-r0_m*sin(phi[i]), 0.0, r0_m*cos(phi[i]));
         EXPECT_EQ(sector_m->apply(pos, mom, t, E, B), bb[i]) << i << " " << pos;
     }
 }
