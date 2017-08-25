@@ -229,6 +229,7 @@ TEST_F(ScalingFFAGMagnetTest, ConstructorTest) {
     test->setRMin(++i);
     test->setRMax(++i);
     test->setAzimuthalExtent(++i);
+    test->setVerticalExtent(++i);
 
     std::vector<ScalingFFAGMagnet*> magnets(2);
     magnets[0] = test;
@@ -252,6 +253,7 @@ TEST_F(ScalingFFAGMagnetTest, ConstructorTest) {
         EXPECT_NEAR(test->getRMin(), ++i, 1e-9);
         EXPECT_NEAR(test->getRMax(), ++i, 1e-9);
         EXPECT_NEAR(test->getAzimuthalExtent(), ++i, 1e-9);
+        EXPECT_NEAR(test->getVerticalExtent(), ++i, 1e-9);
     }
 
     endfieldmodel::Tanh* tanh2 = new endfieldmodel::Tanh(-10., -10., 10);
@@ -378,7 +380,6 @@ TEST_F(ScalingFFAGMagnetTest, AzimuthalBoundingBoxTest) {
         EXPECT_EQ(sector_m->apply(pos, mom, t, E, B), bb[i]) << i << " " << pos;
     }
 }
-
 
 TEST_F(ScalingFFAGMagnetTest, GeometryTest) {
     Euclid3D delta = sector_m->getGeometry().getTotalTransform();

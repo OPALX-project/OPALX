@@ -48,6 +48,8 @@ OpalScalingFFAGMagnet::OpalScalingFFAGMagnet() :
       "The maximum power in y that will be considered in the field expansion.");
     itsAttr[END_LENGTH] = Attributes::makeReal("END_LENGTH",
                                           "The end length of the spiral FFAG [m].");
+    itsAttr[HEIGHT] = Attributes::makeReal("HEIGHT",
+                                       "Full height of the magnet. Particles moving more than height/2. off the midplane (either above or below) are out of the aperture [m].");
     itsAttr[CENTRE_LENGTH] = Attributes::makeReal("CENTRE_LENGTH",
                                        "The centre length of the spiral FFAG [m].");
     itsAttr[RADIAL_NEG_EXTENT] = Attributes::makeReal("RADIAL_NEG_EXTENT",
@@ -69,6 +71,7 @@ OpalScalingFFAGMagnet::OpalScalingFFAGMagnet() :
     registerRealAttribute("CENTRE_LENGTH");
     registerRealAttribute("RADIAL_NEG_EXTENT");
     registerRealAttribute("RADIAL_POS_EXTENT");
+    registerRealAttribute("HEIGHT");
     registerRealAttribute("MAGNET_START");
     registerRealAttribute("MAGNET_END");
     registerRealAttribute("AZIMUTHAL_EXTENT");
@@ -137,6 +140,11 @@ void OpalScalingFFAGMagnet::update() {
     magnet->setRMax(rmax*metres);
     Vector_t centre(-r0*metres, 0, 0);
     magnet->setCentre(centre);
+
+    // we store maximum vertical displacement (which is half the height)
+    double height = Attributes::getReal(itsAttr[HEIGHT])*metres;
+    magnet->setVerticalExtent(height/2.);
+    std::cerr << "OpalScalingFFAGMagnet::update height " << height << std::endl;
 
     // get default length of the magnet element in radians
     double defaultLength = (endField->getLambda()*4.+endField->getX0());

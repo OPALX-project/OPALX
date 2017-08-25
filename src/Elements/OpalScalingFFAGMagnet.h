@@ -47,6 +47,7 @@ class OpalScalingFFAGMagnet : public OpalElement {
         CENTRE_LENGTH,
         RADIAL_NEG_EXTENT,
         RADIAL_POS_EXTENT,
+        HEIGHT,
         MAGNET_START,
         MAGNET_END,
         AZIMUTHAL_EXTENT,
