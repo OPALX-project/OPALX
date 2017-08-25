@@ -563,7 +563,7 @@ void  CollimatorPhysics::Material() {
     else if(material_m == "Mylar") {
         Z_m = 6.702;
         A_m = 12.88;
-        rho_m = 1.4;
+        rho_m = 1.37;
 
         X0_m = 39.95 / rho_m / 100;
         I_m = 12 * Z_m + 7.0;
@@ -645,11 +645,11 @@ void  CollimatorPhysics::Material() {
     }
 
     else if (material_m == "Kapton") {
-        Z_m = 6;
-        A_m = 12;
-        rho_m = 1.4;
+        Z_m = 6.493;
+        A_m = 12.655;
+        rho_m = 1.42;
 
-        X0_m = 39.95 / rho_m / 100;
+        X0_m = 28.5758 / rho_m / 100;
         I_m = 12 * Z_m + 7.0;
 
         A2_c = 2.601;
