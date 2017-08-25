@@ -484,6 +484,228 @@ The trajectory of the reference particle is stored in this ASCII file. The conte
 In the present version only one particle species can be defined \seechp{beam}, however
 due to the underlying general structure, the implementation of a true multi species version of \opal should be simple to accomplish.
 
+\section{Multipoles in different Coordinate systems}
+
+In the following sections there are three models presented for the fringe field of a multipole. The first one deals with a straight multipole, while the second one treats a curved multipole, both starting with a power expansion for the magnetic field. The last model tries to be different by starting with a more compact functional form of the field which is then adapted to straight and curved geometries. 
+
+\subsection{Fringe field models}
+\textit{(for a straight multipole)}
+
+Most accelerator modeling codes use the hard-edge model for magnets - constant Hamiltonian. Real magnets always have a smooth transition at the edges - fringe fields. To obtain a multipole description of a field we can apply the theory of analytic functions. 
+	\begin{align}
+		\nabla \cdot \mathbf{B} & = 0 \Rightarrow \exists \quad \mathbf{A} \quad \text{with} \quad \mathbf{B} = \nabla \times \mathbf{A} \\
+		\nabla \times \mathbf{B} & = 0 \Rightarrow \exists \quad V \quad \text{with} \quad \mathbf{B} = - \nabla V
+	\end{align}
+Assuming that $A$ has only a non-zero component $A_s$ we get
+	\begin{align}
+		B_x & = - \frac{\partial V}{\partial x} = \frac{\partial A_s}{\partial y} \\
+		B_y & = - \frac{\partial V}{\partial y} = - \frac{\partial A_s}{\partial x}	
+	\end{align}
+These equations are just the Cauchy-Riemann conditions for an analytic function $\tilde{A} (z) = A_s (x, y) + i V(x,y)$. So the complex potential is an analytic function and can be expanded as a power series
+	\begin{equation}
+		\tilde{A} (z) = \sum_{n=0}^{\infty} \kappa_n z^n, \quad \kappa_n = \lambda_n + i \mu_n
+	\end{equation}
+with $\lambda_n, \mu_n$ being real constants. It is practical to express the field in cylindrical coordinates $(r, \varphi, s)$ 
+	\begin{align}
+		x & = r \cos \varphi \quad y = r \sin \varphi	\\
+		z^n & = r^n ( \cos n \varphi + i \sin n \varphi )
+	\end{align}
+From the real and imaginary parts of equation () we obtain 
+	\begin{align}
+		V(r, \varphi) & = \sum_{n=0}^{\infty} r^n ( \mu_n \cos n \varphi + \lambda_n \sin n \varphi ) \\
+		A_s (r, \varphi) & = \sum_{n=0}^{\infty} r^n ( \lambda_n \cos n \varphi - \mu_n \sin n \varphi )
+	\end{align}
+Taking the gradient of $-V(r, \varphi)$ we obtain the multipole expansion of the azimuthal and radial field components, respectively
+	\begin{align}
+		B_{\varphi} & = - \frac{1}{r} \frac{\partial V}{\partial \varphi} = - \sum_{n=0}^{\infty} n r^{n-1} ( \lambda_n \cos n \varphi - \mu_n \sin n \varphi ) \\
+		B_r & = - \frac{\partial V}{\partial r} = - \sum_{n=0}^{\infty} n r^{n-1} ( \mu_n \cos n \varphi + \lambda_n \sin n \varphi )
+	\end{align}
+Furthermore, we introduce the normal multipole coefficient $b_n$ and skew coefficient $a_n$ defined with the reference radius $r_0$ and the magnitude of the field at this radius $B_0$ (these coefficients can be a function of s in a more general case as it is presented further on). 
+	\begin{equation}
+			b_n = - \frac{n \lambda_n}{B_0} r_0^{n-1} \qquad a_n = \frac{n \mu_n}{B_0} r_0^{n-1}
+	\end{equation}
+	\begin{align}
+		B_{\varphi}(r, \varphi) & = B_0 \sum_{n=1}^{\infty} ( b_n \cos n \varphi+ a_n \sin n \varphi ) \left( \frac{r}{r_0} \right) ^{n-1} \\
+		B_r (r, \varphi) & = B_0 \sum_{n=1}^{\infty} ( -a_n \cos n \varphi+ b_n \sin n \varphi ) \left( \frac{r}{r_0} \right) ^{n-1}
+	\end{align}	
+To obtain a model for the fringe field of a straight multipole, a proposed starting solution for a non-skew magnetic field is 
+	\begin{align}
+		V & = \sum_{n=1}^{\infty} V_n (r,z) \sin n \varphi \\
+		V_n & = \sum_{k=0}^{\infty} C_{n,k}(z) r^{n+2k}
+	\end{align}
+It is straightforward to derive a relation between coefficients	
+	\begin{equation}
+		\nabla ^2 V = 0 \Rightarrow \frac{1}{r} \frac{\partial}{\partial r} \left( r \frac{\partial V_n}{\partial r} \right) + \frac{\partial^2 V_n}{\partial z^2} = \frac{n^2 V_n}{r^2} = 0
+	\end{equation}
+	\begin{equation}
+		V_n  = \sum_{k=0}^{\infty} C_{n,k}(z) r^{n+2k}
+	\end{equation}
+	\begin{equation}
+		\Rightarrow  \sum_{k=0}^{\infty} \left[ r^{n+2(k-1)} \left[ (n+2k)^2 - n^2 \right] C_{n,k}(z) + r^{n+2k} \frac{\partial^2 C_{n,k}(z)}{\partial z^2} \right] = 0
+	\end{equation}
+By identifying the term in front of the same powers of $r$ we obtain the recurrence relation
+	\begin{equation}
+		C_{n,k}(z) = - \frac{1}{4k(n+k)}   \frac{d^2 C_{n,k-1}} {dz^2}, k = 1,2, \dots
+	\end{equation}	 	
+The solution of the recursion relation becomes 
+	\begin{equation}
+		C_{n,k} (z) = (-1)^k \frac{n!}{2^{2k} k! (n+k)!} \frac{d^{2k} C_{n,0}(z)}{dz^{2k}}
+	\end{equation}			
+Therefore
+	\begin{equation}
+		V_n = - \left( \sum_{k=0}^{\infty} (-1)^{k+1} \frac{n!}{2^{2k} k! (n+k)!} C_{n, 0}^{(2k)}(z) r^{2k} \right) r^n
+	\end{equation}			
+The transverse components of the field are
+	\begin{align}
+		B_r & = \sum_{n=1}^{\infty} g_{rn} r^{n-1} \sin n \varphi \\
+		B_{\varphi} & = \sum_{n=1}^{\infty} g_{\varphi n} r^{n-1} \cos n \varphi
+	\end{align}	
+where the following gradients determine the entire potential and can be deduced from the function $C_{n,0}(z)$ once the harmonic $n$ is fixed.
+	\begin{align}
+		g_{rn} (r,z) & = \sum_{k=0}^{\infty} (-1)^{k+1} \frac{n! (n+2k)}{2^{2k} k! (n+k)!} C_{n,0}^{(2k)}(z)r^{2k} \\	
+		g_{ \varphi n} (r,z) & = \sum_{k=0}^{\infty} (-1)^{k+1} \frac{n!n}{2^{2k} k! (n+k)!} C_{n,0}^{(2k)}(z)r^{2k}
+	\end{align}
+The z-directed component of the filed can be expressed in a similar form
+	\begin{align}
+		B_z & = - \frac{\partial V}{\partial z} =  \sum_{n=1}^{\infty} g_{zn} r^n \sin n \varphi \\
+		g_{zn} & = \sum_{k=0}^{\infty} (-1)^{k+1} \frac{n!}{2^{2k} k! (n+k)!} C_{n,0}^{2k+1} r^{2k}
+	\end{align}
+The gradient functions $g_{rn}, g_{\varphi n}, g_{zn}$ are obtained from
+	\begin{align}
+		B_{r,n} & = - \frac{\partial V_n}{\partial r} \sin n \varphi = g_{rn} r^{n-1} \sin n \varphi \\
+		B_{\varphi,n} & = - \frac{n}{r} V_n \cos n \varphi = g_{\varphi n} r^{n-1} \cos n \varphi \\
+		B_{z,n} & = - \frac{\partial V_n}{\partial z} \sin n \varphi = g_{zn} r^{n} \sin n \varphi
+	\end{align}
+One preferred model to approximate the gradient profile on the central axis is the k-parameter Enge function
+	\begin{align}
+		C_{n,0}(z) & = \frac{G_0}{1+exp[P(d(z))]}, \quad G_0 = \frac{B_0}{r_0^{n-1}} \\
+		P(d) & = C_0 + C_1 \left( \frac{d}{\lambda} \right) + C_2 \left( \frac{d}{\lambda} \right)^2 + \dots + C_{k-1} \left( \frac{d}{\lambda} \right)^{k-1} 
+	\end{align}
+where $d(z)$ is the distance to the field boundary and $\lambda$ characterizes the fringe field length. 
+
+\subsection{Fringe field of a curved multipole}
+	\textit{(fixed radius)}
+
+We consider the Frenet-Serret coordinate system $ ( \hat{\mathbf{x}}, \hat{\mathbf{s}}, \hat{\mathbf{z}} )$ with the radius of curvature $ \rho $ constant and the scale factor $ h_s = 1 + x/ \rho$. A conversion to these coordinates implies that 
+   \begin{align}
+		\nabla \cdot \mathbf{B} & = \frac{1}{h_s} \left[ \frac{\partial (h_s B_x )}{\partial x} + \frac{\partial B_s}{\partial s} + \frac{\partial (h_s B_z )}{\partial z} \right] \\
+		\nabla \times \mathbf{B} & = \frac{1}{h_s} \left[ \frac{\partial B_z}{\partial s} -  \frac{\partial (h_s B_s )}{\partial z} \right] \hat{\mathbf{x}} + \left[ \frac{\partial B_x}{\partial z} - \frac{\partial B_z}{\partial x} \right] \hat{\mathbf{s}} + \frac{1}{h_s} \left[ \frac{\partial (h_s B_s)}{\partial x} - \frac{\partial B_x}{\partial s} \right] \hat{\mathbf{z}} \nonumber
+	\end{align}	
+To simplify the problem, consider multipoles with mid-plane symmetry, i.e.
+   \begin{equation}
+		b_z (z) = B_z (-z) \qquad B_x (z) = - B_x (-z) \qquad B_s (z) = - B_s (-z)
+	\end{equation}	
+The most general form of the expansion is 
+    \begin{align}
+		 B_z & = \sum_{i,k=0}^{\infty} b_{i,k} x^i z^{2k} \label{eq:01} \\
+		 B_x & = z \sum_{i,k=0}^{\infty} a_{i,k} x^i z^{2k} \label{eq:02}\\
+		 B_s & = z \sum_{i,k=0}^{\infty} c_{i,k} x^i z^{2k} \label{eq:03}
+	\end{align}	
+Maxwell's equations $ \nabla \cdot \mathbf{B} = 0 $ and $ \nabla \times \mathbf{B} = 0 $ in the above coordinates yield 
+	  \begin{equation}
+		 \frac{\partial}{\partial x} \left( (1+x/ \rho) B_x \right) + \frac{\partial B_s}{\partial s} + (1+x/ \rho) \frac{\partial B_z}{\partial z} = 0 \label{eq:21} 
+		\end{equation}
+		\begin{align}
+			\frac{\partial B_z}{\partial s} & = (1+x/ \rho) \frac{\partial B_s}{\partial z} \label{eq:22}  \\
+			\frac{\partial B_x}{\partial z} & = \frac{\partial B_z}{\partial s} \label{eq:23}  \\
+			 \frac{\partial B_x}{\partial s} & = \frac{\partial}{\partial x} \left( (1+x/ \rho) B_s \right) \label{eq:24}
+		\end{align} 
+The substitution of (\ref{eq:01}), (\ref{eq:02}) and (\ref{eq:03}) into  Maxwell's equations allows for the derivation of recursion relations. (\ref{eq:23}) gives
+    \begin{equation}
+		\sum_{i,k=0}^{\infty} a_{i,k} (2k+1) x^i z^{2k} = \sum_{i,k=0}^{\infty} b_{i,k} i x^{i-1} z^{2k}
+	\end{equation}	
+Equating the powers in $x^i z^{2k}$ 
+	\begin{equation} 
+		a_{i,k} = \frac{i+1}{2k+1} b_{i+1,k} \label{eq:11}
+	\end{equation}
+A similar result is obtained from (\ref{eq:24})
+  	\begin{align}
+		\sum_{i,k=0}^{\infty} \partial_s b_{i,k} x^i z^{2k} & = \left( 1+ \frac{x}{\rho} \right) \sum_{i,k=0}^{\infty} c_{i,k} (2k+1) x^i z^{2k} \\
+		\Rightarrow c_{i,k}  & + \frac{1}{\rho} c_{i-1,k} = \frac{1}{2k+1} \partial_s b_{i,k} \label{eq:12} 
+	\end{align}
+The last equation from $\nabla \times \mathbf{B} = 0$ should be consistent with the two recursion relations obtained. (\ref{eq:22}) implies
+    \begin{equation}
+		\sum_{i,k=0}^{\infty} \left[ \frac{i+1}{\rho} c_{i,k} x^i + c_{i,k} i x^{i-1} \right] z^{k+1} = \sum_{i,k=0}^{\infty} \partial_s a_{i,k} x^i z^{2k} 
+	\end{equation}
+	\begin{equation}
+		\Rightarrow \frac{\partial_s a_{i,k}}{i+1} = \frac{1}{\rho} c_{i,k} + c_{i+1,k}
+	\end{equation}	
+This results follows directly from (\ref{eq:11}) and (\ref{eq:12}); therefore the relations are consistent. Furthermore, the last required relations is obtained from the divergence of \textbf{B}
+	\begin{equation}
+		\sum_{i,k=0}^{\infty} \left[ \frac{a_{i,k} x^i z^{2k+1}}{\rho}  + i a_{i,k} x^{i-1} z^{2k+1} + \frac{i a_{i,k} x^i z^{2k+1}}{\rho}  + \partial_s c_{i,k} x^i z^{2k+1} + 2kb_{i,k}x^i z^{2k-1} \right] = 0 \nonumber
+	\end{equation}
+	\begin{equation}
+		\Rightarrow \partial_s c_{i,k} + \frac{2(k+1)}{\rho} b_{i-1,k+1} + 2(k+1) b_{i,k+1} + \frac{1}{\rho} a_{i,k} + (i+1) a_{i+1,k} + \frac{1}{\rho} a_{i,k} = 0 \nonumber
+	\end{equation}
+Using the relation (\ref{eq:11}) to replace the $a$ coefficients with $b$'s we arrive at
+	\begin{equation}
+		\partial_s c_{i,k} + \frac{(i+1)^2}{\rho (2k+1)} b_{i+1,k} + \frac{(i+1)(i+2)}{2k+1} b_{i+2,k} + \frac{2(k+1)}{\rho} b_{i-1,k+1} + 2(k+1) b_{i,k+1} = 0
+	\end{equation}
+All the coefficients above can be determined recursively provided the field $B_z$ can be measured at the mid-plane in the form
+	\begin{equation}
+		B_z(z=0) = B_{0,0} + B_{1,0}x + B_{2,0} x^2 + B_{3,0} x^3 + \dots
+	\end{equation}
+where $B_{i,0}$ are functions of $s$ and they can model the fringe field for each multipole term $x^n$. As an example, for a dipole magnet, the $B_{1,0}$ function can be model as an Enge function or $tanh$. 
+
+\subsection{Fringe field of a curved multipole}
+	\textit{(variable radius of curvature)}
+	
+The difference between this case and the above is that $\rho$ is now a function of $s$, $\rho(s)$. We can obtain the same result starting with the same functional forms for the field (\ref{eq:01}), (\ref{eq:02}), (\ref{eq:03}). The result of the previous section also holds in this case since no derivative $\frac{\partial}{\partial s}$ is applied to the scale factor $h_s$. 
+If the radius of curvature is set to be proportional to the dipole filed observed by some reference particle that stays in the centre of the dipole 
+	\begin{equation}
+		\rho (s) \propto B(z=0, x=0, s) = B_x (z=0,x=0) = b_{0,0}(s)
+	\end{equation}
+	
+\subsection{Fringe field of a multipole}
+	\textit{This is a different, more compact treatment}
+The derivation is more clear if we gather the variables together in functions. We assume again mid-plane symmetry and that the z-component of the field in the mid-plane has the form
+	\begin{equation}
+		B_z (x, z=0, s) = T(x) S(s)
+	\end{equation}
+where $T(s)$ is the transverse field profile and $S(s)$ is the fringe field. One of the requirements of the symmetry is that $B_z(z) = B_z(-z)$ which using a scalar potential $\psi$ requires $\frac{\partial \psi}{\partial z}$ to be an even function in z. Therefore, $\psi$ is an odd function in z and can be written as
+	\begin{equation}
+		\psi = z f_0(x,s) + \frac{z^3}{3!} f_1(x,s) + \frac{z^5}{5!} f_3(x,s) + \dots 
+	\end{equation}
+The given transverse profile requires that $f_0(x,s) = T(x)S(s)$, while $\nabla^2 \psi = 0$ follows from Maxwell's equations as usual, more explicitly 
+	\begin{equation}
+		\frac{\partial}{\partial x} \left( h_s \frac{\partial \psi}{\partial x} \right) + \frac{\partial}{\partial s} \left( \frac{1}{h_s} \frac{\partial \psi}{\partial s} \right) + \frac{\partial}{\partial z} \left( h_s \frac{\partial \psi}{\partial z} \right) = 0
+	\end{equation}
+For a straight multipole $h_s = 1$. Laplace's equation becomes
+	\begin{equation}
+		\sum_{n=0} \frac{z^{2n+1}}{(2n+1)!} \left[ \partial_x^2 f_n(x,s) + \partial_s^2 f_n(x,s) \right] + \sum_{n=1} f_n(x,s) \frac{z^{n-1}}{(n-1)!} = 0
+	\end{equation}
+By equating powers of $z$ we obtain the recursion relation
+	\begin{equation}
+		f_{n+1}(x,s) = - \left( \partial_x^2 + \partial_s^2 \right) f_n(x,s)
+	\end{equation}
+The general expression for any $f_n(x,s)$ is then obtained from the mid-plane field by
+	\begin{align}
+		f_n(x,s) & = (-1)^n \left( \partial_x^2 + \partial_s^2 \right)^n f_0(x,s) \\
+		f_n(x,s) & = (-1)^n \sum_{i=0}^n \binom{n}{i}T^{(2i)}(x) S^{(2n-2i)}(s)
+	\end{align}
+For a curved multipole of constant radius $h_s = 1 + \frac{x}{\rho} \quad \text{with} \quad \rho = const.$ The corresponding Laplace's equation is 
+	\begin{equation}
+		\left( \frac{1}{\rho h_s} \partial_x + \partial_x^2 + \partial_z^2 + \frac{\partial_s^2}{h_s^2} \right) \psi = 0
+	\end{equation}
+Again we substitute with the functional form of the potential to get the recursion
+	\begin{align}
+		f_{n+1}(x,s) & = - \left[ \frac{1}{\rho + x} \partial_x + \partial_x^2 + \frac{\partial_s^2}{(1+x/ \rho)^2} \right] f_n(x,s) \\
+		f_{n+1}(x,s) & = (-1)^n \left[ \frac{1}{\rho + x} \partial_x + \partial_x^2 + \frac{\partial_s^2}{(1+x/ \rho)^2} \right]^n f_0(x,s)
+	\end{align}
+Finally consider what changes for $\rho = \rho (s)$. Laplace's equation is
+	\begin{equation}
+		\left[ \frac{1}{\rho h_s} \partial_x + \partial_x^2 + \partial_z^2 + \frac{\partial_s^2}{h_s^2} + \frac{x}{\rho^2 h_s^3} (\partial_s \rho) \partial_s \right] \psi = 0
+	\end{equation}	 	
+The last step is again the substitution to get
+	\begin{align}
+		f_{n+1}(x,s) & = - \left[ \frac{\partial_x}{\rho h_s} + \partial_x^2 + \partial_z^2 + \frac{1}{h_s^2}\partial_s^2 + \frac{x}{\rho^2 h_s^3} (\partial_s \rho) \partial_s \right] f_n(x,s) \\
+		f_{n}(x,s) & = (-1)^n \left[ \frac{\partial_x}{\rho h_s} + \partial_x^2 + \partial_z^2 + \frac{\partial_s^2}{h_s^2} + \frac{x}{\rho^2 h_s^3} (\partial_s \rho) \partial_s \right]^n f_0(x,s) \label{eq:40}
+	\end{align}
+If the radius of curvature is proportional to the dipole field in the centre of the multipole (the dipole component of the transverse field is a constant $T_{dipole}(x) = B_0$ and
+	\begin{equation}
+		\rho(s) = B_0 \times S(s)
+	\end{equation}
+This expression can be replaced in (\ref{eq:40}) to obtain a more explicit equation. 
 
 
 \input{footer}
