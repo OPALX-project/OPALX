@@ -104,6 +104,10 @@ add_executable( testComplement testComplement.cpp)
 
 add_executable( testRestrictionMatrix testRestrictionMatrix.cpp)
 
+add_executable( testInterpolationMatrix testInterpolationMatrix.cpp)
+
+add_executable( testBoundaryVector testBoundaryVector.cpp)
+
 # add_executable( testTrilinosGeometry
 #                 testTrilinosGeometry.cpp
 #                 ../AmrOpal.cpp
@@ -126,6 +130,14 @@ target_link_libraries (testComplement ${LIBS}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testRestrictionMatrix ${LIBS}
+                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testInterpolationMatrix ${LIBS}
+                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testBoundaryVector ${LIBS}
                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
