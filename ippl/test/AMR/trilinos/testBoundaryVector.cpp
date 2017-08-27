@@ -46,6 +46,67 @@ int serialize(const IntVect& iv, int* nr) {
 #endif
 }
 
+class PhysBoundary {
+public:
+    
+    bool isBoundary(const IntVect& iv, int* nr) const {
+#if BL_SPACEDIM == 3
+        return ( iv[0] < 0 || iv[0] >= nr[0] ||
+                 iv[1] < 0 || iv[1] >= nr[1] ||
+                 iv[2] < 0 || iv[2] >= nr[2] );
+#else
+        return ( iv[0] < 0 || iv[0] >= nr[0] ||
+                 iv[1] < 0 || iv[1] >= nr[1] );
+#endif
+    }
+    
+    virtual void apply(std::vector<int>& indices,
+                         std::vector<double>& values,
+                         int& numEntries, const double& value,
+                         const IntVect& iv, int* nr) = 0;
+};
+
+class DirichletBoundary : public PhysBoundary {
+    /* Dirichlet boundary is on faces of physical domain the boundary
+     * value would be at different locations depending on the level.
+     */
+public:
+    void apply(std::vector<int>& indices,
+                 std::vector<double>& values,
+                 int& numEntries, const double& value,
+                 const IntVect& iv, int* nr)
+    {
+        
+        // find interior neighbour cell
+        IntVect niv;
+        for (int i = 0; i < BL_SPACEDIM; ++i) {
+            if ( iv[i] > -1 && iv[i] < nr[i] )
+                niv[i] = iv[i];
+            else
+                niv[i] = (iv[i] == -1) ? iv[i] + 1 : iv[i] - 1;
+        }
+        
+        std::cout << iv << " " << niv << " " << value << std::endl;
+        
+        indices[numEntries] = serialize(niv, &nr[0]);
+        values[numEntries] = -value;
+        ++numEntries;
+    }
+};
+
+
+class OpenBoundary : public PhysBoundary {
+    
+public:
+    void apply(std::vector<int>& indices,
+                 std::vector<double>& values,
+                 int& numEntries, const double& value,
+                 const IntVect& iv, int* nr)
+    {
+        //TODO
+    }
+};
+
 class TrilinearInterpolater {
     
 public:
@@ -62,7 +123,7 @@ public:
                  std::vector<double>& values,
                  int& numEntries,
                  int* nr,
-                 const IntVect& rr)
+                 const IntVect& rr, PhysBoundary* bc)
     {
         /* lower left coarse cell (i, j, k)
          * floor( i - 0.5 ) / rr[0]
@@ -96,52 +157,102 @@ public:
         double zdiff = 1.0 - dz;
 #endif
         // (i, j, k)
-        indices[numEntries] = serialize(civ, &nr[0]);
-        values[numEntries]  = AMREX_D_TERM(xdiff, * ydiff, * zdiff);
-        ++numEntries;
+        int crse_gidx = serialize(civ, &nr[0]);
+        double value = AMREX_D_TERM(xdiff, * ydiff, * zdiff);
+        
+        if ( bc->isBoundary(civ, &nr[0]) ) {
+            std::cout << "Physical Boundary" << std::endl;
+            bc->apply(indices, values, numEntries, value, civ, &nr[0]);
+        } else {
+            indices[numEntries] = crse_gidx;
+            values[numEntries]  = value;
+            ++numEntries;
+        }
         
         // (i+1, j, k)
-        IntVect tmp(D_DECL(civ[0]+1, civ[1], civ[2])); 
-        indices[numEntries] = serialize(tmp, &nr[0]);
-        values[numEntries]  = AMREX_D_TERM(dx, * ydiff, * zdiff);
-        ++numEntries;
+        IntVect tmp(D_DECL(civ[0]+1, civ[1], civ[2]));
+        value = AMREX_D_TERM(dx, * ydiff, * zdiff);
+        if ( bc->isBoundary(tmp, &nr[0]) ) {
+            std::cout << "Physical Boundary" << std::endl;
+            bc->apply(indices, values, numEntries, value, tmp, &nr[0]);
+        } else {
+            indices[numEntries] = serialize(tmp, &nr[0]);
+            values[numEntries]  = value;
+            ++numEntries;
+        }
         
         // (i, j+1, k)
         tmp = IntVect(D_DECL(civ[0], civ[1]+1, civ[2]));
-        indices[numEntries] = serialize(tmp, &nr[0]);
-        values[numEntries]  = AMREX_D_TERM(xdiff, * dy, * zdiff);
-        ++numEntries;
+        value = AMREX_D_TERM(xdiff, * dy, * zdiff);
+        if ( bc->isBoundary(tmp, &nr[0]) ) {
+            std::cout << "Physical Boundary" << std::endl;
+            bc->apply(indices, values, numEntries, value, tmp, &nr[0]);
+        } else {
+            indices[numEntries] = serialize(tmp, &nr[0]);
+            values[numEntries]  = value;
+            ++numEntries;
+        }
         
         // (i+1, j+1, k)
         tmp = IntVect(D_DECL(civ[0]+1, civ[1]+1, civ[2]));
-        indices[numEntries] = serialize(tmp, &nr[0]);
-        values[numEntries]  = AMREX_D_TERM(dx, * dy, * zdiff);
-        ++numEntries;
+        value = AMREX_D_TERM(dx, * dy, * zdiff);
+        if ( bc->isBoundary(tmp, &nr[0]) ) {
+            std::cout << "Physical Boundary" << std::endl;
+            bc->apply(indices, values, numEntries, value, tmp, &nr[0]);
+        } else {
+            indices[numEntries] = serialize(tmp, &nr[0]);
+            values[numEntries]  = value;
+            ++numEntries;
+        }
         
 #if BL_SPACEDIM == 3
         // (i, j, k+1)
         tmp = IntVect(D_DECL(civ[0], civ[1], civ[2]+1));
-        indices[numEntries] = serialize(tmp, &nr[0]);
-        values[numEntries]  = AMREX_D_TERM(xdiff, * ydiff, * dz);
-        ++numEntries;
+        value = AMREX_D_TERM(xdiff, * ydiff, * dz);
+        if ( bc->isBoundary(tmp, &nr[0]) ) {
+            std::cout << "Physical Boundary" << std::endl;
+            bc->apply(indices, values, numEntries, value, tmp, &nr[0]);
+        } else {
+            indices[numEntries] = serialize(tmp, &nr[0]);
+            values[numEntries]  = value;
+            ++numEntries;
+        }
         
         // (i+1, j, k+1)
         tmp = IntVect(D_DECL(civ[0]+1, civ[1], civ[2]+1));
-        indices[numEntries] = serialize(tmp, &nr[0]);
-        values[numEntries]  = AMREX_D_TERM(dx, * ydiff, * dz);
-        ++numEntries;
+        value = AMREX_D_TERM(dx, * ydiff, * dz);
+        if ( bc->isBoundary(tmp, &nr[0]) ) {
+            std::cout << "Physical Boundary" << std::endl;
+            bc->apply(indices, values, numEntries, value, tmp, &nr[0]);
+        } else {
+            indices[numEntries] = serialize(tmp, &nr[0]);
+            values[numEntries]  = value;
+            ++numEntries;
+        }
         
         // (i, j+1, k+1)
         tmp = IntVect(D_DECL(civ[0], civ[1]+1, civ[2]+1));
-        indices[numEntries] = serialize(tmp, &nr[0]);
-        values[numEntries]  = AMREX_D_TERM(xdiff, * dy, * dz);
-        ++numEntries;
+        value = AMREX_D_TERM(xdiff, * dy, * dz);
+        if ( bc->isBoundary(tmp, &nr[0]) ) {
+            std::cout << "Physical Boundary" << std::endl;
+            bc->apply(indices, values, numEntries, value, tmp, &nr[0]);
+        } else {
+            indices[numEntries] = serialize(tmp, &nr[0]);
+            values[numEntries]  = value;
+            ++numEntries;
+        }
         
         // (i+1, j+1, k+1)
         tmp = IntVect(D_DECL(civ[0]+1, civ[1]+1, civ[2]+1));
-        indices[numEntries] = serialize(tmp, &nr[0]);
-        values[numEntries]  = AMREX_D_TERM(dx, * dy, * dz);
-        ++numEntries;
+        value = AMREX_D_TERM(dx, * dy, * dz);
+        if ( bc->isBoundary(tmp, &nr[0]) ) {
+            std::cout << "Physical Boundary" << std::endl;
+            bc->apply(indices, values, numEntries, value, tmp, &nr[0]);
+        } else {
+            indices[numEntries] = serialize(tmp, &nr[0]);
+            values[numEntries]  = value;
+            ++numEntries;
+        }
 #endif
     }
     
@@ -246,6 +357,8 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
     
     TrilinearInterpolater interp;
     
+    DirichletBoundary bc;
+    
     int nNeighbours = interp.getNumberOfPoints();
     
     const Epetra_Map& RowMap = *maps[level];
@@ -286,7 +399,7 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
                     
                     int numEntries = 0;
                     
-                    interp.stencil(iv, indices, values, numEntries, &cnr[0], rr);
+                    interp.stencil(iv, indices, values, numEntries, &cnr[0], rr, &bc);
                     
                     for (int n = 0; n < nNeighbours; ++n)
                         std::cout << indices[n] << " ";
@@ -327,7 +440,7 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
                     
                     int numEntries = 0;
                     
-                    interp.stencil(iv, indices, values, numEntries, &cnr[0], rr);
+                    interp.stencil(iv, indices, values, numEntries, &cnr[0], rr, &bc);
                     
                     for (int n = 0; n < numEntries; ++n)
                         std::cout << indices[n] << " ";
@@ -382,7 +495,7 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
                     
                     int numEntries = 0;
                     
-                    interp.stencil(iv, indices, values, numEntries, &cnr[0], rr);
+                    interp.stencil(iv, indices, values, numEntries, &cnr[0], rr, &bc);
                     
                     for (int n = 0; n < numEntries; ++n)
                         std::cout << indices[n] << " ";
@@ -434,7 +547,7 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
                     
                     int numEntries = 0;
                     
-                    interp.stencil(iv, indices, values, numEntries, &cnr[0], rr);
+                    interp.stencil(iv, indices, values, numEntries, &cnr[0], rr, &bc);
                     
                     int error = I->InsertGlobalValues(fine_globidx, numEntries, &values[0], &indices[0]);
                         
@@ -468,7 +581,7 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
                     
                     int numEntries = 0;
                     
-                    interp.stencil(iv, indices, values, numEntries, &cnr[0], rr);
+                    interp.stencil(iv, indices, values, numEntries, &cnr[0], rr, &bc);
                     
                     int error = I->InsertGlobalValues(fine_globidx, numEntries, &values[0], &indices[0]);
                         
@@ -499,7 +612,7 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
                     
                     int numEntries = 0;
                     
-                    interp.stencil(iv, indices, values, numEntries, &cnr[0], rr);
+                    interp.stencil(iv, indices, values, numEntries, &cnr[0], rr, &bc);
                     
                     int error = I->InsertGlobalValues(fine_globidx, numEntries, &values[0], &indices[0]);
                         
@@ -585,7 +698,7 @@ void test(TestParams& parms)
         BoxList bl;
         Box b1(IntVect(0, 4), IntVect(3, 7));
         
-//         bl.push_back(b1);
+        bl.push_back(b1);
         bl.push_back(refined_patch);
         
         ba[1].define(bl);//define(refined_patch);
@@ -649,11 +762,11 @@ void test(TestParams& parms)
     
     buildTrilinearInterpMatrix(I, maps, ba, dmap, geom, rv, 1);
     
-    // coarse
+    // coarse cell vector (no ghosts)
     Teuchos::RCP<Epetra_Vector> x = Teuchos::null;
     buildVector(x, maps[0], 1.0);
     
-    // fine
+    // fine cell vector (no ghosts)
     Teuchos::RCP<Epetra_Vector> y = Teuchos::null;
     buildVector(y, maps[1], 0.0);
     
