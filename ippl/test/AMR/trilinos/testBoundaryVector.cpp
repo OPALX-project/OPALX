@@ -352,10 +352,23 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
         
         // lower boundary
         int jj = lo[1] - 1; // ghost
-        for (int i = lo[0]+1 /* corner cells accounted in "left boundary" */;
-             i < hi[0] /* corner cells accounted in "right boundary" */; ++i) {
+        
+        /*
+         * check if corner cell or covered cell by neighbour box
+         * 
+         * lo: corner cells accounted in "left boundary"
+         * hi: corner cells accounted in "right boundary"
+         * 
+         * if lo[1] on low side is crse/fine interface --> corner
+         * if lo[1] on high side is crs/fine interface --> corner
+         */
+        int start = ( mfab(IntVect(D_DECL(lo[0]-1, lo[1], lo[2]-1))) == 1 ) ? 1 : 0;
+        int end = ( mfab(IntVect(D_DECL(hi[0]+1, lo[1], hi[2]+1))) == 1 ) ? 1 : 0;
+        
+        for (int i = lo[0]+start;
+             i <= hi[0]-end /*  */; ++i) {
 #if BL_SPACEDIM == 3
-            for (int k = lo[2]+1; k < hi[2]; ++k) {
+            for (int k = lo[2]+start; k <= hi[2]-end; ++k) {
 #endif
                 IntVect iv(D_DECL(i, jj, k));
                 
@@ -392,9 +405,22 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
         
         // upper boundary
         jj = hi[1] + 1; // ghost
-        for (int i = lo[0]+1; i < hi[0]; ++i) {
+        
+        /*
+         * check if corner cell or covered cell by neighbour box
+         * 
+         * lo: corner cells accounted in "left boundary"
+         * hi: corner cells accounted in "right boundary"
+         * 
+         * if hi[1] on low side is crse/fine interface --> corner
+         * if hi[1] on high side is crs/fine interface --> corner
+         */
+        start = ( mfab(IntVect(D_DECL(lo[0]-1, hi[1], lo[2]-1))) == 1 ) ? 1 : 0;
+        end = ( mfab(IntVect(D_DECL(hi[0]+1, hi[1], hi[2]+1))) == 1 ) ? 1 : 0;
+        
+        for (int i = lo[0]+start; i <= hi[0]-end; ++i) {
 #if BL_SPACEDIM == 3
-            for (int k = lo[2]+1; k < hi[2]; ++k) {
+            for (int k = lo[2]+start; k <= hi[2]-end; ++k) {
 #endif
                 IntVect iv(D_DECL(i, jj, k));
                 
@@ -493,6 +519,8 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
     if ( I->FillComplete(ColMap, RowMap, true) != 0 )
         throw std::runtime_error("Error in completing the boundary interpolation matrix for level " +
                                  std::to_string(level) + "!");
+    
+    EpetraExt::RowMatrixToMatlabFile("interpolation_bc_matrix.txt", *I);
 }
 
 
@@ -622,8 +650,16 @@ void test(TestParams& parms)
     buildTrilinearInterpMatrix(I, maps, ba, dmap, geom, rv, 1);
     
     // coarse
-//     Teuchos::RCP<Epetra_Vector> y = Teuchos::null;
-//     buildVector(y, maps[0], 0.0);
+    Teuchos::RCP<Epetra_Vector> x = Teuchos::null;
+    buildVector(x, maps[0], 1.0);
+    
+    // fine
+    Teuchos::RCP<Epetra_Vector> y = Teuchos::null;
+    buildVector(y, maps[1], 0.0);
+    
+    I->Multiply(false, *x, *y);
+    
+    std::cout << *y << std::endl;
 }
 
 int main(int argc, char* argv[])
