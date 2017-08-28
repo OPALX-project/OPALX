@@ -1,6 +1,8 @@
 #ifndef AMR_MULTI_GRID_LEVEL
 #define AMR_MULTI_GRID_LEVEL
 
+#include <vector>
+
 #include <AMReX_IntVect.H>
 
 #include "Ippl.h"
@@ -9,6 +11,9 @@
 #include <Teuchos_ArrayRCP.hpp>
 
 #include <Epetra_MpiComm.h>
+
+#include "AmrDirichletBoundary.h"
+#include "AmrTrilinearInterpolater.h"
 
 template <class MatrixType, class VectorType>
 class AmrMultiGridLevel {
@@ -22,6 +27,9 @@ public:
     typedef MatrixType matrix_t;
     typedef VectorType vector_t;
     typedef amrex::FabArray<amrex::BaseFab<int> > mask_t;
+    
+    typedef std::vector<int>        indices_t;
+    typedef std::vector<double>     coefficients_t;
     
     typedef Vektor<double, 3> Vector_t;
     
@@ -39,55 +47,58 @@ public:
     };
     
 public:
-    
-    AmrMultiGridLevel(const AmrField_u& _rho,
-                      const AmrField_u& _phi,
+    AmrMultiGridLevel(const amrex::BoxArray& _grids,
+                      const amrex::DistributionMapping& _dmap,
                       const AmrGeometry_t& _geom,
+                      const AmrIntVect_t& rr,
+                      AmrBoundary<AmrMultiGridLevel<MatrixType, VectorType> >* bc,
                       Epetra_MpiComm& comm);
     
     ~AmrMultiGridLevel();
     
+    int serialize(const AmrIntVect_t& iv) const;
     
-    Teuchos::RCP<matrix_t> A_p;
-    Teuchos::RCP<vector_t> rho_p;
-    Teuchos::RCP<vector_t> phi_p;
-    Teuchos::RCP<vector_t> r_p;
-    Teuchos::RCP<vector_t> err_p;
-    Teuchos::RCP<vector_t> delta_err_p;
-    std::unique_ptr<mask_t> masks_m;
+    bool isBoundary(const AmrIntVect_t& iv) const;
     
-    AmrField_u error;
-    AmrField_u phi_saved;
-    AmrField_t* phi;
-    AmrField_t* rho;
-    AmrField_u residual;
-    AmrField_u delta_err;
+    void applyBoundary(const AmrIntVect_t& iv,
+                       indices_t& indices,
+                       coefficients_t& values,
+                       int& numEntries,
+                       const double& value);
+    
+    const AmrIntVect_t& refinement() const;
+    
+private:
+    void buildLevelMask_m();
+    
+    void buildMap_m(const Epetra_MpiComm& comm);
+    
+public:
+    Teuchos::RCP<Epetra_Map> map_p;     ///< core map
+    
+    Teuchos::RCP<matrix_t> A_p;         ///< Poisson matrix
+    Teuchos::RCP<matrix_t> R_p;         ///< restriction matrix
+    Teuchos::RCP<matrix_t> I_p;         ///< interpolation matrix
+    Teuchos::RCP<matrix_t> B_p;         ///< physical boundary vector
+    
+    Teuchos::RCP<vector_t> rho_p;       ///< charge density
+    Teuchos::RCP<vector_t> phi_p;       ///< potential vector
+    Teuchos::RCP<vector_t> residual_p;
+    Teuchos::RCP<vector_t> error_p;
+    
+    std::unique_ptr<mask_t> mask;       ///< interior, phys boundary, interface, covered
     
     const amrex::BoxArray& grids;
     const amrex::DistributionMapping& dmap;
     const AmrGeometry_t& geom;
     
-    void copyTo(Teuchos::RCP<vector_t>& mv, const AmrField_t& mf);
-    
-    void copyBack(AmrField_t& mf, const Teuchos::RCP<vector_t>& mv);
-    
-    void save();
-
 private:
-    int serialize_m(const AmrIntVect_t& iv) const;
+    int nr_m[BL_SPACEDIM];
     
+    AmrIntVect_t rr_m;
     
+    std::unique_ptr<AmrBoundary<AmrMultiGridLevel<MatrixType, VectorType> > > bc_mp;
     
-    void buildLevelMask_m();
-    
-    void buildMap(const AmrField_u& phi, Epetra_MpiComm& comm);
-    
-    void buildMatrix_m();
-    
-private:
-    Vector_t nr_m;
-    
-    Teuchos::RCP<Epetra_Map> map_mp;
 };
 
 
