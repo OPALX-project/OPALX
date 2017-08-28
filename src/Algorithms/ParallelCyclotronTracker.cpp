@@ -4490,7 +4490,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             IpplTimings::stopTimer(DumpTimer_m);
         }
 
-        if((((step_m + 1) % Options::psDumpFreq == 0) && initialTotalNum_m != 2) ||
+        if((((step_m + 1) % Options::statDumpFreq == 0) && initialTotalNum_m != 2) ||
            (Options::psDumpEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
 
             IpplTimings::startTimer(DumpTimer_m);
