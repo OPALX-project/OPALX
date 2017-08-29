@@ -121,9 +121,17 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Epetra_MpiComm&
         }
     }
     
-    // compute map based on localelements
-    // create map that specifies which processor gets which data
-    const int baseIndex = 0;    // where to start indexing
+    /*
+     * create map that specifies which processor gets which data
+     */
+    
+    // get smallest global index of this level
+    amrex::Box bx = grids.minimalBox();
+    const int* lo = bx.loVect();
+    AmrIntVect_t lowcorner(D_DECL(lo[0], lo[1], lo[2]));
+    
+    // where to start indexing
+    const int baseIndex = serialize(lowcorner);
     
     // numGlobalElements == N
     int N = grids.numPts();
