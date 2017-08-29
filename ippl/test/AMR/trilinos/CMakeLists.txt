@@ -103,13 +103,18 @@ target_link_libraries (testTrilinosSolver ${LIBS}
                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
+add_executable( testBoundaryVector testBoundaryVector.cpp)
+
+target_link_libraries (testBoundaryVector ${LIBS}
+                       -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
 IF ( ${BL_SPACEDIM} EQUAL 2 )
 
     add_executable( testRestrictionMatrix testRestrictionMatrix.cpp)
     
     add_executable( testInterpolationMatrix testInterpolationMatrix.cpp)
     
-    add_executable( testBoundaryVector testBoundaryVector.cpp)
 ENDIF ( ${BL_SPACEDIM} EQUAL 2 )
 
 # add_executable( testTrilinosGeometry
@@ -145,9 +150,6 @@ IF ( ${BL_SPACEDIM} EQUAL 2 )
                            -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
-    target_link_libraries (testBoundaryVector ${LIBS}
-                           -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
-                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 ENDIF ( ${BL_SPACEDIM} EQUAL 2 )
 # target_link_libraries (testTrilinosGeometry ${LIBS}
 #                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
