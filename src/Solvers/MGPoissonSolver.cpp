@@ -60,13 +60,13 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
                                    double tol,
                                    int maxiters,
                                    std::string precmode):
-    itsBunch_m(beam),
-    mesh_m(mesh),
-    layout_m(fl),
     geometries_m(geometries),
     tol_m(tol),
     maxiters_m(maxiters),
-    Comm(Ippl::getComm()) {
+    Comm(Ippl::getComm()),
+    itsBunch_m(beam),
+    mesh_m(mesh),
+    layout_m(fl) {
 
     domain_m = layout_m->getDomain();
 
@@ -154,13 +154,6 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
     FunctionTimer6_m = IpplTimings::getTimer("Setup");
     FunctionTimer7_m = IpplTimings::getTimer("CG");
     FunctionTimer8_m = IpplTimings::getTimer("LHS to IPPL");
-}
-
-
-MGPoissonSolver::MGPoissonSolver(PartBunch &beam):
-    layout_m(&beam.getFieldLayout()), mesh_m(&beam.getMesh()), itsBunch_m(&beam), LHS(0), Comm(Ippl::getComm()) {
-
-    throw OpalException("MGPoissonSolver", "Copy Constructor not implemented yet");
 }
 
 MGPoissonSolver::~MGPoissonSolver() {
