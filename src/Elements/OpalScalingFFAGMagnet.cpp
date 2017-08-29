@@ -144,7 +144,7 @@ void OpalScalingFFAGMagnet::update() {
     // we store maximum vertical displacement (which is half the height)
     double height = Attributes::getReal(itsAttr[HEIGHT])*metres;
     magnet->setVerticalExtent(height/2.);
-    std::cerr << "OpalScalingFFAGMagnet::update height " << height << std::endl;
+    INFOMSG("OpalScalingFFAGMagnet::update height " << height << endl);
 
     // get default length of the magnet element in radians
     double defaultLength = (endField->getLambda()*4.+endField->getX0());
