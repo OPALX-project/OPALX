@@ -892,7 +892,6 @@ void AmrMultiGrid::buildInterpolationMatrix_m(int level) {
 
 void AmrMultiGrid::buildBoundaryMatrix_m(int level) {
     
-    
     /*
      * helper function to fill matrix
      */
@@ -902,28 +901,49 @@ void AmrMultiGrid::buildBoundaryMatrix_m(int level) {
                             indices_t& indices,
                             coefficients_t& values)
     {
-        if ( mfab(iv) == 1 /*higher level*/ ||
-             (level == 0 && mfab(in) == 2) /*base level only*/ )
+        if ( level > 0 && mfab(iv) >= 1 /*higher level*/ )
         {
             int globidx = mglevel_m[level]->serialize(in);
             
             int numEntries = 0;
                     
-            interp_mp->stencil(iv, indices, values, numEntries, mglevel_m[level].get());
+            interp_mp->stencil(iv, indices, values, numEntries, mglevel_m[level-1].get());
                     
             int error = mglevel_m[level]->B_p->InsertGlobalValues(globidx,
                                                                   numEntries,
                                                                   &values[0],
                                                                   &indices[0]);
             
+            
             if ( error != 0 ) {
-                throw std::runtime_error("Error in filling the boundary interpolation matrix for level " +
+                throw std::runtime_error("Error in filling the boundary matrix for level " +
                                          std::to_string(level) + "!");
             }
             
-        } else if ( mfab(iv) == 2 ) {
-            // physical boundary
-            throw std::runtime_error("Ghost cells cannot be at physical boundary!");
+//         } else if ( level > 0 && mfab(iv) == 2 ) {
+//             // physical boundary
+//             std::cout << iv << " " << in << std::endl;
+//             
+//             throw std::runtime_error("Level " + std::to_string(level) +
+//                                      ": Ghost cell cannot be at physical boundary!");
+        } else if ( level == 0 && mfab(iv) == 2 ) {
+            int globidx = mglevel_m[level]->serialize(in);
+            
+            int numEntries = 0;
+            
+            mglevel_m[level]->applyBoundary(iv, indices, values, numEntries, 1.0 /*matrix coefficient*/);
+            
+            int error = mglevel_m[level]->B_p->InsertGlobalValues(globidx,
+                                                                  numEntries,
+                                                                  &values[0],
+                                                                  &indices[0]);
+            
+            
+            if ( error != 0 ) {
+                throw std::runtime_error("Error in filling the boundary matrix for level " +
+                                         std::to_string(level) + "!");
+            }
+            
         }
     };
     
@@ -940,7 +960,8 @@ void AmrMultiGrid::buildBoundaryMatrix_m(int level) {
     /* In order to avoid that corner cells are inserted twice to Trilinos, leading to
      * an insertion error, left and right faces account for the corner cells.
      * The lower and upper faces only iterate through "interior" boundary cells.
-     * The front and back faces take the corner cells as well.
+     * The front and back faces need to be adapted as well, i.e. start at the first inner layer
+     * all border cells are already treated.
      */
     
     for (amrex::MFIter mfi(*mglevel_m[level]->mask, false); mfi.isValid(); ++mfi) {
@@ -1004,13 +1025,12 @@ void AmrMultiGrid::buildBoundaryMatrix_m(int level) {
          * if lo[1] on low side is crse/fine interface --> corner
          * if lo[1] on high side is crs/fine interface --> corner
          */
-        int start = ( mfab(AmrIntVect_t(D_DECL(lo[0]-1, lo[1], lo[2]-1))) == 1 ) ? 1 : 0;
-        int end = ( mfab(AmrIntVect_t(D_DECL(hi[0]+1, lo[1], hi[2]+1))) == 1 ) ? 1 : 0;
+        int start = ( mfab(AmrIntVect_t(D_DECL(lo[0]-1, lo[1], lo[2]))) >= 1 ) ? 1 : 0;
+        int end = ( mfab(AmrIntVect_t(D_DECL(hi[0]+1, lo[1], hi[2]))) >= 1 ) ? 1 : 0;
         
-        for (int i = lo[0]+start;
-             i <= hi[0]-end /*  */; ++i) {
+        for (int i = lo[0]+start; i <= hi[0]-end; ++i) {
 #if BL_SPACEDIM == 3
-            for (int k = lo[2]+start; k <= hi[2]-end; ++k) {
+            for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                 AmrIntVect_t iv(D_DECL(i, jj, k));
                 
@@ -1037,12 +1057,12 @@ void AmrMultiGrid::buildBoundaryMatrix_m(int level) {
          * if hi[1] on low side is crse/fine interface --> corner
          * if hi[1] on high side is crs/fine interface --> corner
          */
-        start = ( mfab(AmrIntVect_t(D_DECL(lo[0]-1, hi[1], lo[2]-1))) == 1 ) ? 1 : 0;
-        end = ( mfab(AmrIntVect_t(D_DECL(hi[0]+1, hi[1], hi[2]+1))) == 1 ) ? 1 : 0;
+        start = ( mfab(AmrIntVect_t(D_DECL(lo[0]-1, hi[1], lo[2]))) >= 1 ) ? 1 : 0;
+        end = ( mfab(AmrIntVect_t(D_DECL(hi[0]+1, hi[1], hi[2]))) >= 1 ) ? 1 : 0;
         
         for (int i = lo[0]+start; i <= hi[0]-end; ++i) {
 #if BL_SPACEDIM == 3
-            for (int k = lo[2]+start; k <= hi[2]-end; ++k) {
+            for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                 AmrIntVect_t iv(D_DECL(i, jj, k));
                 
@@ -1060,11 +1080,11 @@ void AmrMultiGrid::buildBoundaryMatrix_m(int level) {
         /*
          * FRONT BOUNDARY
          */
-        int k = lo[2] - 1; // ghost
-        for (int i = lo[0]; i <= hi[0]; ++i) {
-            for (int j = lo[1]; j <= hi[1]; ++j) {
+        int kk = lo[2] - 1; // ghost
+        for (int i = lo[0]+1; i < hi[0]; ++i) {
+            for (int j = lo[1]+1; j < hi[1]; ++j) {
  
-                AmrIntVect_t iv(D_DECL(i, j, k));
+                AmrIntVect_t iv(D_DECL(i, j, kk));
                     
                 // interior IntVect
                 AmrIntVect_t in(D_DECL(i, j, lo[2]));
@@ -1076,11 +1096,11 @@ void AmrMultiGrid::buildBoundaryMatrix_m(int level) {
         /*
          * BACK BOUNDARY
          */
-        k = hi[2] + 1; // ghost
-        for (int i = lo[0]; i <= hi[0]; ++i) {
-            for (int j = lo[1]; j <= hi[1]; ++j) {
+        kk = hi[2] + 1; // ghost
+        for (int i = lo[0]+1; i < hi[0]; ++i) {
+            for (int j = lo[1]+1; j < hi[1]; ++j) {
                 
-                AmrIntVect_t iv(D_DECL(i, j, k));
+                AmrIntVect_t iv(D_DECL(i, j, kk));
                 
                 // interior IntVect
                 AmrIntVect_t in(D_DECL(i, j, hi[2]));
