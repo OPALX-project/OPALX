@@ -44,8 +44,8 @@ ScalingFFAGMagnet::ScalingFFAGMagnet(const ScalingFFAGMagnet &right)
           k_m(right.k_m), r0_m(right.r0_m), Bz_m(right.Bz_m),
           rMin_m(right.rMin_m), rMax_m(right.rMax_m), phiStart_m(right.phiStart_m),
           phiEnd_m(right.phiEnd_m), azimuthalExtent_m(right.azimuthalExtent_m),
-          centre_m(right.centre_m),
-          dfCoefficients_m(right.dfCoefficients_m) {
+          centre_m(right.centre_m),dfCoefficients_m(right.dfCoefficients_m),
+          verticalExtent_m(right.verticalExtent_m) {
     if (endField_m != NULL) {
         delete endField_m;
     }
