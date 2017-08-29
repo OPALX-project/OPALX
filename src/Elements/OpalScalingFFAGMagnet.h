@@ -47,8 +47,9 @@ class OpalScalingFFAGMagnet : public OpalElement {
         CENTRE_LENGTH,
         RADIAL_NEG_EXTENT,
         RADIAL_POS_EXTENT,
-        PHI_START,
-        PHI_END,
+        HEIGHT,
+        MAGNET_START,
+        MAGNET_END,
         AZIMUTHAL_EXTENT,
         SIZE // size of the enum
     };
