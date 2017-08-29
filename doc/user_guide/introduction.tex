@@ -114,82 +114,6 @@ They may be sent to \htmladdnormallink{\texttt{andreas.adelmann@psi.ch}}{mailto:
 \end{figure}
 %===========================================================
 
-\section{Field Maps from the FEMAXX 3D Eigenmode Solver}
-\ifthenelse{\boolean{ShowDebug}}{
-\TODO{AA will rewrite}
-
-}{}
-Electromagnetic field maps for beam dynamics calculations originate from a number of different
-electromagnetic solvers, e.g. Superfish and similar codes.
-
-Here, we describe the current status of work in progress which will, eventually,
-allow the usage of field maps that have been computed with the FEMAXX $3$-dimensional
-electromagnetic eigenmodal solver \cite{bib:arbenzetal2001,bib:arbenzetal2006}.
-
-The FEMAXX code computes electromagnetic eigenmodes of resonant cavities of
-arbitrary $3$-dimensional shape and boundary conditions.
-
-Unlike Superfish and similar $2$-dimensional codes, FEMAXX is not restricted in the
-kind of geometry it can model. It is therefore possible to consider arbitrary
-shapes and their inclusion in beam dynamics and particle tracking calculations.
-
-Given a mesh of a $3$-dimensional geometry FEMAXX computes eigenmodal field
-decompositions.
-
-The user then specifies sampling locations for the electromagnetic eigenfields.
-
-At present, sampling locations are specified in terms of a cylinder shape,
-i.e. the user indicates the cylinder axis, the radial cylinder vector and
-the number of sampling locations in axial, radial and azimuthal directions.
-
-Once the eigenmodal solution has been computed the fields are sampled at
-these locations and stored in the T7 file format, for subsequent use in \opal.
-
-Considerable effort has been spent for the validation and benchmarking of
-beam dynamics calculations based on T7 field maps computed with FEMAXX.
-
-A pillbox cavity, i.e. a cylinder shape with a radius $r = \SI{4.7}{\centi\meter}$ and
-height $h = \SI{3}{\centi\meter}$, has been chosen for benchmarking purposes,
-due to the availability of an analytical solution.
-
-The analytical resonance frequency of the dominant mode is \SI{2.441}{\giga\hertz}.
-
-
-%======================FIGURE===============================
-\begin{figure}[!htb]
-\centering
-\includegraphics[width=0.6\textwidth]{./figures/adaptivePillboxMesh.pdf}
-\caption[Tetrahedral mesh of a pillbox shaped cavity]{We show the discretization of a pillbox shaped cavity geometry into a tetrahedral mesh. The mesh has been adaptively refined so that the region around the cylinder axis is decomposed into smaller tetrahedra than those which are further away from the axis.}
-\label{fig:pillbox_adaptively_refined_mesh}
-\end{figure}
-%===========================================================
-
-We have compared two cases with \opal: (1) The analytical solution has been
-sampled within a cylinder volume, stored into a T7 file and used in an \opal
-run; (2) the same pillbox shaped geometry has been discretization into tetrahedra
-and the eigenmodal fields were calculated with FEMAXX.
-%%
-These two cases were then compared, resulting in the following conclusions:
-%%
-(1) Using a relatively coarse mesh with some $110'000$ tetrahedra, the difference
-between the analytical and the numerical solution was usually smaller than
-$1$ percent.
-%%
-(2) Using an adaptively refined mesh, the difference between analytical and
-numerical solutions decreased below $1$ per mill. The mesh is shown
-in \figref{pillbox_adaptively_refined_mesh}.
-%%
-(3) It is therefore imperative to use a tetrahedral mesh which has been
-refined around the beam axis. It is definitely more efficient to use local
-refinement, based on physical argument, than simply refine the complete
-mesh in a uniform manner.
-%%
-
-
-We are now working towards benchmarking more complicated shapes in order to
-assess requirements w.r.t to meshes and modeling geometry so that we
-achieve the same or better accuracy as has been obtained from field
-maps that were computed with Superfish like solvers based on azimuthal symmetry.
 
 
 \section{Output}
@@ -222,10 +146,9 @@ See \appref{changelog} for a detailed list of changes in \opal.
 \section{Acknowledgments}
 The contributions of various individuals and groups are acknowledged in the relevant chapters, however a few individuals have or had considerable influence on the
 development of \opal, namely Chris Iselin, John Jowett, Julian Cummings, Ji Qiang, Robert Ryne and Stefan Adam. For the \partroot~ visualization tool credits go to Thomas Schietinger.
-The effort to couple FEMAXX to \opal was led by Benedikt Oswald.
 
 The following
-individuals are acknowledged for past contributions: Tulin Kaman, Yuanjie Bi, Colwyn Gulliford, Hao Zha, Christopher Mayes and Tulin Kaman.
+individuals are acknowledged for past contributions: Yuanjie Bi, Jianjun Yang, Colwyn Gulliford, Hao Zha, Christopher Mayes and Tulin Kaman.
 
 %- - - - - - - - - - - - - - - SECTION- - - - - - - - - - - - - - - - - - -
 \section{Citation}
@@ -235,7 +158,7 @@ Please cite \opal in the following way:
 title = {The OPAL (Object Oriented Parallel Accelerator Library) Framework},
 author = {Andreas Adelmann, Christian Baumgarten, Matthias Frey, Achim Gsell, Valeria Rizzoglio, 
 Jochem Snuverink (PSI) and Christof Metzger-Kraus and Yves Ineichen and 
-Steve Russell (LANL) and Chuan Wang and Jianjun Yang (CIAE) and 
+Steve Russell (LANL) and Chuan Wang (CIAE) and 
 Suzanne Sheehy and Chris Rogers (RAL) and
 Daniel Winklehner (MIT)},
 institution = {Paul Scherrer Institut},
