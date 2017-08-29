@@ -356,7 +356,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
     
     // eps in C / (V * m)
-    double constant = -1.0 / Physics::epsilon_0 * scale;  // in [V m / C]
+    double constant = 1.0 / Physics::epsilon_0 * scale;  // in [V m / C]
     for (int i = 0; i <= finest_level; ++i) {
         rhs[i]->mult(constant, 0, 1);       // in [V m]
     }
