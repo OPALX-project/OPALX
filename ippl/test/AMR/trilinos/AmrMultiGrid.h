@@ -63,7 +63,17 @@ public:
     
 private:
     
-//     void relax_m(int lev);
+    void residual_m(Teuchos::RCP<vector_t>& r,
+                    const Teuchos::RCP<vector_t>& b,
+                    const Teuchos::RCP<matrix_t>& A,
+                    const Teuchos::RCP<vector_t>& x,
+                    bool temporary=false);
+    
+    void relax_m(int level);
+    
+    
+    double l2error_m();
+    
 //     
 //     void restrict_m(int level);
 //     
