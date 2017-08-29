@@ -886,7 +886,71 @@ void AmrMultiGrid::buildRestrictionMatrix_m(int level) {
 
 
 void AmrMultiGrid::buildInterpolationMatrix_m(int level) {
+    /*
+     * This does not include ghost cells of *this* level
+     * --> no boundaries
+     */
     
+    if ( level == lbase_m )
+        return;
+    
+    int nNeighbours = interp_mp->getNumberOfPoints();
+    
+    indices_t indices(nNeighbours);
+    coefficients_t values(nNeighbours);
+    
+    const Epetra_Map& RowMap = *mglevel_m[level]->map_p;
+    const Epetra_Map& ColMap = *mglevel_m[level-1]->map_p;
+    
+    mglevel_m[level]->I_p = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy,
+                                                               RowMap, nNeighbours) );
+    
+    for (amrex::MFIter mfi(mglevel_m[level]->grids,
+                           mglevel_m[level]->dmap, false);
+         mfi.isValid(); ++mfi)
+    {
+        const amrex::Box& bx  = mfi.validbox();
+        
+        const int* lo = bx.loVect();
+        const int* hi = bx.hiVect();
+        
+        for (int i = lo[0]; i <= hi[0]; ++i) {
+            for (int j = lo[1]; j <= hi[1]; ++j) {
+#if BL_SPACEDIM == 3
+                for (int k = lo[2]; k <= hi[2]; ++k) {
+#endif
+                    AmrIntVect_t iv(D_DECL(i, j, k));
+                    
+                    int globidx = mglevel_m[level]->serialize(iv);
+                    
+                    int numEntries = 0;
+                    
+                    /*
+                     * we need boundary + indices from coarser level
+                     */
+                    interp_mp->stencil(iv, indices, values, numEntries, mglevel_m[level-1].get());
+                    
+                    int error = mglevel_m[level]->I_p->InsertGlobalValues(globidx,
+                                                                          numEntries,
+                                                                          &values[0],
+                                                                          &indices[0]);
+                    
+                    if ( error != 0 ) {
+                        throw std::runtime_error("Error in filling the interpolation matrix for level " +
+                                                 std::to_string(level) + "!");
+                    }
+#if BL_SPACEDIM == 3
+                }
+#endif
+            }
+        }
+    }
+    
+    int error = mglevel_m[level]->I_p->FillComplete(ColMap, RowMap, true);
+    
+    if ( error != 0 )
+        throw std::runtime_error("Error in completing the interpolation matrix for level " +
+                                 std::to_string(level) + "!");
 }
 
 
@@ -906,7 +970,10 @@ void AmrMultiGrid::buildBoundaryMatrix_m(int level) {
             int globidx = mglevel_m[level]->serialize(in);
             
             int numEntries = 0;
-                    
+            
+            /*
+             * we need boundary + indices from coarser level
+             */
             interp_mp->stencil(iv, indices, values, numEntries, mglevel_m[level-1].get());
                     
             int error = mglevel_m[level]->B_p->InsertGlobalValues(globidx,
@@ -965,7 +1032,7 @@ void AmrMultiGrid::buildBoundaryMatrix_m(int level) {
      */
     
     for (amrex::MFIter mfi(*mglevel_m[level]->mask, false); mfi.isValid(); ++mfi) {
-        const amrex::Box&    bx  = mfi.validbox();  
+        const amrex::Box&    bx  = mfi.validbox();
         const amrex::BaseFab<int>& mfab = (*mglevel_m[level]->mask)[mfi];
         
         const int* lo = bx.loVect();
@@ -1120,7 +1187,7 @@ void AmrMultiGrid::buildBoundaryMatrix_m(int level) {
         error = mglevel_m[level]->B_p->FillComplete(true);
     
     if ( error != 0 )
-        throw std::runtime_error("Error in completing the boundary interpolation matrix for level " +
+        throw std::runtime_error("Error in completing the boundary matrix for level " +
                                  std::to_string(level) + "!");
 }
 
