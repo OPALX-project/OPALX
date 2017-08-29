@@ -135,4 +135,32 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(const AmrIntVect_t& iv
         ++numEntries;
     }
 #endif
+
+    /*
+     * In some cases indices occur several times, e.g. for corner points
+     * at the physical boundary --> sum them up
+     */
+    typename AmrMultiGridLevel::indices_t uindices;
+    typename AmrMultiGridLevel::coefficients_t uvalues;
+    
+    int n = indices.size();
+    
+    std::unique_copy(indices.begin(), indices.end(), std::back_inserter(uindices));
+    
+    uvalues.resize(uindices.size());
+    
+    for (std::size_t i = 0; i < uvalues.size(); ++i) {
+        for (std::size_t j = 0; j < values.size(); ++j) {
+            if ( uindices[i] == indices[j] )
+                uvalues[i] += values[j];
+        }
+    }
+    
+    numEntries = (int)uindices.size();
+    
+    std::swap(values, uvalues);
+    std::swap(indices, uindices);
+    
+    values.resize(n);
+    indices.resize(n);
 }
