@@ -122,19 +122,19 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    const PartData &reference,
                                                    bool revBeam, bool revTrack):
     Tracker(beamline, reference, revBeam, revTrack),
+    itsDataSink(nullptr),
+    bgf_m(nullptr),
     lastDumpedStep_m(0),
     eta_m(0.01),
+    initialR_m(nullptr),
+    initialP_m(nullptr),
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(0),
     initialTotalNum_m(0),
-    opalRing_m(NULL),
+    opalRing_m(nullptr),
     itsStepper_mp(nullptr),
     mode_m(MODE::UNDEFINED),
-    stepper_m(stepper::INTEGRATOR::UNDEFINED),
-    itsDataSink(nullptr),
-    bgf_m(nullptr),
-    initialR_m(nullptr),
-    initialP_m(nullptr) {
+    stepper_m(stepper::INTEGRATOR::UNDEFINED) {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
 }
 
@@ -157,17 +157,17 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    bool revBeam, bool revTrack,
                                                    int maxSTEPS, int timeIntegrator):
     Tracker(beamline, bunch, reference, revBeam, revTrack),
+    bgf_m(nullptr),
     maxSteps_m(maxSTEPS),
     lastDumpedStep_m(0),
     eta_m(0.01),
+    initialR_m(nullptr),
+    initialP_m(nullptr),
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(bunch->getLocalNum()),
     initialTotalNum_m(bunch->getTotalNum()),
-    opalRing_m(NULL),
-    itsStepper_mp(nullptr),
-    bgf_m(nullptr),
-    initialR_m(nullptr),
-    initialP_m(nullptr) {
+    opalRing_m(nullptr),
+    itsStepper_mp(nullptr) {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
     itsDataSink = &ds;
     //  scaleFactor_m = itsBunch_m->getdT() * c;
