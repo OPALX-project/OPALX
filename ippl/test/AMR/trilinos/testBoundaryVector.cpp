@@ -321,8 +321,14 @@ void buildMap(Teuchos::RCP<Epetra_Map>& map, const BoxArray& grids, const Distri
     }
     
     // compute map based on localelements
+    
     // create map that specifies which processor gets which data
-    const int baseIndex = 0;    // where to start indexing
+    
+    amrex::Box bx = grids.minimalBox();
+    const int* lo = bx.loVect();
+    // where to start indexing
+    const int baseIndex = serialize(IntVect(lo[0], lo[1], lo[2]), &nr[0]);
+    std::cout << "Base index: = " << baseIndex << std::endl;
     
     std::cout << N << " " << localNumElements << std::endl;
     
@@ -372,7 +378,8 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
     /* In order to avoid that corner cells are inserted twice to Trilinos, leading to
      * an insertion error, left and right faces account for the corner cells.
      * The lower and upper faces only iterate through "interior" boundary cells.
-     * The front and back faces take the corner cells as well.
+     * The front and back faces need to be adapted as well, i.e. only take the first inner layer
+     * all border cells are already treated.
      */
     
     for (amrex::MFIter mfi(*mask, false); mfi.isValid(); ++mfi) {
@@ -476,13 +483,13 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
          * if lo[1] on low side is crse/fine interface --> corner
          * if lo[1] on high side is crs/fine interface --> corner
          */
-        int start = ( mfab(IntVect(D_DECL(lo[0]-1, lo[1], lo[2]-1))) == 1 ) ? 1 : 0;
-        int end = ( mfab(IntVect(D_DECL(hi[0]+1, lo[1], hi[2]+1))) == 1 ) ? 1 : 0;
+        int start = ( mfab(IntVect(D_DECL(lo[0]-1, lo[1], lo[2]))) == 1 ) ? 1 : 0;
+        int end = ( mfab(IntVect(D_DECL(hi[0]+1, lo[1], hi[2]))) == 1 ) ? 1 : 0;
         
         for (int i = lo[0]+start;
              i <= hi[0]-end /*  */; ++i) {
 #if BL_SPACEDIM == 3
-            for (int k = lo[2]+start; k <= hi[2]-end; ++k) {
+            for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                 IntVect iv(D_DECL(i, jj, k));
                 
@@ -529,12 +536,12 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
          * if hi[1] on low side is crse/fine interface --> corner
          * if hi[1] on high side is crs/fine interface --> corner
          */
-        start = ( mfab(IntVect(D_DECL(lo[0]-1, hi[1], lo[2]-1))) == 1 ) ? 1 : 0;
-        end = ( mfab(IntVect(D_DECL(hi[0]+1, hi[1], hi[2]+1))) == 1 ) ? 1 : 0;
+        start = ( mfab(IntVect(D_DECL(lo[0]-1, hi[1], lo[2]))) == 1 ) ? 1 : 0;
+        end = ( mfab(IntVect(D_DECL(hi[0]+1, hi[1], hi[2]))) == 1 ) ? 1 : 0;
         
         for (int i = lo[0]+start; i <= hi[0]-end; ++i) {
 #if BL_SPACEDIM == 3
-            for (int k = lo[2]+start; k <= hi[2]-end; ++k) {
+            for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                 IntVect iv(D_DECL(i, jj, k));
                 
@@ -567,9 +574,12 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
         
 #if BL_SPACEDIM == 3
         // front boundary
+//         start = ( mfab(IntVect(D_DECL(lo[0]-1, hi[1], lo[2]))) == 1 ) ? 1 : 0;
+//         end = ( mfab(IntVect(D_DECL(hi[0]+1, hi[1], hi[2]))) == 1 ) ? 1 : 0;
+        
         int k = lo[2] - 1; // ghost
-        for (int i = lo[0]; i <= hi[0]; ++i) {
-            for (int j = lo[1]; j <= hi[1]; ++j) {
+        for (int i = lo[0]+1; i <= hi[0]-1; ++i) {
+            for (int j = lo[1]+1; j <= hi[1]-1; ++j) {
                 IntVect iv(D_DECL(i, j, k));
                 
                 if ( mfab(iv) == 1 ) {
@@ -599,8 +609,8 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
         
         // back boundary
         k = hi[2] + 1; // ghost
-        for (int i = lo[0]; i <= hi[0]; ++i) {
-            for (int j = lo[1]; j <= hi[1]; ++j) {
+        for (int i = lo[0]+1; i <= hi[0]-1; ++i) {
+            for (int j = lo[1]+1; j <= hi[1]-1; ++j) {
                 IntVect iv(D_DECL(i, j, k));
                 
                 if ( mfab(iv) == 1 ) {
@@ -697,7 +707,7 @@ void test(TestParams& parms)
         
         
         BoxList bl;
-        Box b1(IntVect(0, 4), IntVect(3, 7));
+        Box b1(IntVect(D_DECL(0, 4, 4)), IntVect(D_DECL(3, 7, 7)));
         
         bl.push_back(b1);
         bl.push_back(refined_patch);
