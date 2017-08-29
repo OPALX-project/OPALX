@@ -3,6 +3,9 @@
 
 #include "AmrInterpolater.h"
 
+#include <algorithm>
+#include <iterator>
+
 template <class AmrMultiGridLevel>
 class AmrTrilinearInterpolater : public AmrInterpolater<AmrMultiGridLevel>
 {
