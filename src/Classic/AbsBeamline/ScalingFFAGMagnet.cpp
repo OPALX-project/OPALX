@@ -33,7 +33,7 @@
 
 ScalingFFAGMagnet::ScalingFFAGMagnet(const std::string &name)
         : Component(name),
-         planarArcGeometry_m(1., 1.), dummy(), endField_m(NULL) {
+         planarArcGeometry_m(1., 1.), dummy() {
     setElType(isDrift);
 }
 
@@ -41,14 +41,12 @@ ScalingFFAGMagnet::ScalingFFAGMagnet(const ScalingFFAGMagnet &right)
         : Component(right),
           planarArcGeometry_m(right.planarArcGeometry_m),
           dummy(), maxOrder_m(right.maxOrder_m), tanDelta_m(right.tanDelta_m),
-          k_m(right.k_m), r0_m(right.r0_m), Bz_m(right.Bz_m),
+          k_m(right.k_m), Bz_m(right.Bz_m), r0_m(right.r0_m),
           rMin_m(right.rMin_m), rMax_m(right.rMax_m), phiStart_m(right.phiStart_m),
           phiEnd_m(right.phiEnd_m), azimuthalExtent_m(right.azimuthalExtent_m),
-          centre_m(right.centre_m),dfCoefficients_m(right.dfCoefficients_m),
-          verticalExtent_m(right.verticalExtent_m) {
-    if (endField_m != NULL) {
-        delete endField_m;
-    }
+          verticalExtent_m(right.verticalExtent_m), centre_m(right.centre_m),
+          dfCoefficients_m(right.dfCoefficients_m) {
+    delete endField_m;
     endField_m = right.endField_m->clone();
     RefPartBunch_m = right.RefPartBunch_m;
     setElType(isDrift);
@@ -57,9 +55,7 @@ ScalingFFAGMagnet::ScalingFFAGMagnet(const ScalingFFAGMagnet &right)
 }
 
 ScalingFFAGMagnet::~ScalingFFAGMagnet() {
-    if (endField_m != NULL) {
-        delete endField_m;
-    }
+    delete endField_m;
 }
 
 ElementBase* ScalingFFAGMagnet::clone() const {
@@ -208,9 +204,7 @@ void ScalingFFAGMagnet::calculateDfCoefficients() {
 }
 
 void ScalingFFAGMagnet::setEndField(endfieldmodel::EndFieldModel* endField) {
-    if (endField_m != NULL) {
-        delete endField_m;
-    }
+    delete endField_m;
     endField_m = endField;
 }
 
