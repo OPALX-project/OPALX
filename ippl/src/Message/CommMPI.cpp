@@ -320,9 +320,9 @@ bool CommMPI::mysend(Message *msg, int node, int tag, int etag)
     void *outbuffer = pack_message(msg, tag, size, node);
 
     // send the message (non-blocking)
-    Inform dbgmsg("CommMPI", INFORM_ALL_NODES);
-    //dbgmsg << "Sending MPI message of size " << size << " to node " << node;
-    //dbgmsg << " with tag " << tag << "." << endl;
+    // Inform dbgmsg("CommMPI", INFORM_ALL_NODES);
+    // dbgmsg << "Sending MPI message of size " << size << " to node " << node;
+    // dbgmsg << " with tag " << tag << "." << endl;
 
     //messaging "profiler"
     IpplMessageCounter::getInstance().registerMessage(size);
@@ -344,8 +344,8 @@ bool CommMPI::mysend(Message *msg, int node, int tag, int etag)
                 src_node = rec_status.MPI_SOURCE;
                 rec_tag = rec_status.MPI_TAG;
                 MPI_Get_count(&rec_status, MPI_BYTE, &rec_size);
-                //dbgmsg<<"Receiving MPI message of size " << rec_size << " from node ";
-                //dbgmsg << src_node << "." << endl;
+                // dbgmsg<<"Receiving MPI message of size " << rec_size << " from node ";
+                // dbgmsg << src_node << "." << endl;
                 if ( (rec_size >= 0) && (rec_tag >= 0) && (src_node >= 0) )
                 {
                     // message is a valid one, so malloc the output buffer
@@ -458,9 +458,9 @@ Message *CommMPI::myreceive(int& node, int& tag, int etag)
             void *outbuff = makebuffer(size);
 
             // blocking receive
-            //Inform dbgmsg("CommMPI", INFORM_ALL_NODES);
-            //dbgmsg << "Receiving MPI message of size " << size << " from node ";
-            //dbgmsg << checknode << "." << endl;
+            // Inform dbgmsg("CommMPI", INFORM_ALL_NODES);
+            // dbgmsg << "Receiving MPI message of size " << size << " from node ";
+            // dbgmsg << checknode << "." << endl;
             MPI_Recv(outbuff, size, MPI_BYTE, checknode, checktag,
                      communicator, &stat);
 
@@ -501,8 +501,6 @@ Message *CommMPI::myreceive(int& node, int& tag, int etag)
 // Uses MPI barrier for all procs
 void CommMPI::mybarrier(void)
 {
-
-
     MPI_Barrier(communicator);
 }
 
@@ -545,8 +543,6 @@ bool CommMPI::resend(void *buf, int buffsize, int node, int etag)
 // clean up after a Message has been used (called by Message).
 void CommMPI::cleanupMessage(void *d)
 {
-
-
     // need to free the allocated storage
     freebuffer(d);
 }
