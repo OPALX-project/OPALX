@@ -56,7 +56,6 @@ namespace {
         PSDUMPFREQ,
         STATDUMPFREQ,
         PSDUMPEACHTURN,
-        PSDUMPLOCALFRAME,
         PSDUMPFRAME,
         SPTDUMPFREQ,
         REPARTFREQ,
@@ -89,8 +88,8 @@ namespace {
 
 Option::Option():
     Action(SIZE, "OPTION",
-           "The \"OPTION\" statement defines OPAL execution options."),
-    psDumpLocalFrame_m(false) {
+           "The \"OPTION\" statement defines OPAL execution options.")
+    {
 
     itsAttr[ECHO] = Attributes::makeBool
                     ("ECHO", "If true, give echo of input", echo);
@@ -126,9 +125,6 @@ Option::Option():
 
     itsAttr[REMOTEPARTDEL] = Attributes::makeReal
       ("REMOTEPARTDEL", "Artifically delete the remote particle if its distance to the beam mass is larger than REMOTEPARTDEL times of the beam rms size, its default values is 0 (no delete) ",0.0);
-
-    itsAttr[PSDUMPLOCALFRAME] = Attributes::makeBool
-                                ("PSDUMPLOCALFRAME", "Deprecated; please use PSDUMPFRAME.");
 
     itsAttr[PSDUMPFRAME] = Attributes::makeString
                                 ("PSDUMPFRAME", "Controls the frame of phase space dump in stat file and h5 file. If 'GLOBAL' OPAL will dump in the lab (global) Cartesian frame; if 'BUNCH_MEAN' OPAL will dump in the local Cartesian frame of the beam mean; if 'REFERENCE'  OPAL will dump in the local Cartesian frame of the reference particle 0. Only aviable for OPAL-cycl, its default value is 'GLOBAL'");
@@ -203,8 +199,7 @@ Option::Option():
 
 
 Option::Option(const std::string &name, Option *parent):
-    Action(name, parent),
-    psDumpLocalFrame_m(parent->psDumpLocalFrame_m) {
+    Action(name, parent) {
     Attributes::setBool(itsAttr[ECHO],       echo);
     Attributes::setBool(itsAttr[INFO],       info);
     Attributes::setBool(itsAttr[TRACE],      mtrace);
@@ -213,8 +208,7 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
     Attributes::setReal(itsAttr[STATDUMPFREQ], statDumpFreq);
     Attributes::setBool(itsAttr[PSDUMPEACHTURN], psDumpEachTurn);
-    Attributes::setBool(itsAttr[PSDUMPLOCALFRAME], psDumpLocalFrame_m);
-    Attributes::setString(itsAttr[PSDUMPFRAME], DumpFrameToString(psDumpLocalFrame));
+    Attributes::setString(itsAttr[PSDUMPFRAME], DumpFrameToString(psDumpFrame));
     Attributes::setReal(itsAttr[SPTDUMPFREQ], sptDumpFreq);
     Attributes::setReal(itsAttr[SCSOLVEFREQ], scSolveFreq);
     Attributes::setReal(itsAttr[MTSSUBSTEPS], mtsSubsteps);
@@ -286,10 +280,7 @@ void Option::execute() {
 
     IpplInfo::Info->on(info);
     IpplInfo::Warn->on(warn);
-
-    handlePsDumpFrame(Attributes::getBool(itsAttr[PSDUMPLOCALFRAME]),
-                      toUpper(Attributes::getString(itsAttr[PSDUMPFRAME])));
-
+    
     if(itsAttr[ASCIIDUMP]) {
         asciidump = Attributes::getBool(itsAttr[ASCIIDUMP]);
     }
@@ -376,32 +367,22 @@ void Option::execute() {
 
     // Set message flags.
     FileStream::setEcho(echo);
+    
+    
+    handlePsDumpFrame(toUpper(Attributes::getString(itsAttr[PSDUMPFRAME])));
 
     if(Attributes::getBool(itsAttr[TELL])) {
         *gmsg << "\nCurrent settings of options:\n" << *this << endl;
     }
 }
 
-void Option::handlePsDumpFrame(bool localFrame, const std::string &dumpFrame) {
-    psDumpLocalFrame_m = localFrame;
-    if (psDumpLocalFrame_m) {
-        if (dumpFrame == "GLOBAL") {
-            // psDumpFrame_m == "BUNCH_MEAN"; // What did you want to do here?
-                                              // This line always evalues to false
-                                              // and the result isn't stored.
-            // psDumpFrame_m = "BUNCH_MEAN";      // Did you mean this?
-        } else {
-            std::string msg = std::string("Either set 'PSDUMPLOCALFRAME' Option")+\
-                              std::string(" or 'PSDUMPFRAME' Option but not both.");
-            throw OpalException("Option::handlePsDumpFrame", msg);
-        }
-    }
+void Option::handlePsDumpFrame(const std::string &dumpFrame) {
     if (dumpFrame == "GLOBAL") {
-        psDumpLocalFrame = GLOBAL;
+        psDumpFrame = GLOBAL;
     } else if (dumpFrame == "BUNCH_MEAN") {
-        psDumpLocalFrame = BUNCH_MEAN;
+        psDumpFrame = BUNCH_MEAN;
     } else if (dumpFrame == "REFERENCE") {
-        psDumpLocalFrame = REFERENCE;
+        psDumpFrame = REFERENCE;
     } else {
         std::string msg = std::string("Did not recognise PSDUMPFRAME '")+\
                     dumpFrame+std::string("'. It should be one of 'GLOBAL',")+\
