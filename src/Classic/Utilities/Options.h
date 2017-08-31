@@ -107,7 +107,7 @@ namespace Options {
     //  - GLOBAL, in Cartesian frame of the global particle
     //  - BUNCH_MEAN, in Cartesian frame of the bunch mean
     //  - REFERENCE, in Cartesian frame of the reference (0) particle
-    extern DumpFrame psDumpLocalFrame;
+    extern DumpFrame psDumpFrame;
 
     /// The frequency to solve space charge fields.
     extern int scSolveFreq;
