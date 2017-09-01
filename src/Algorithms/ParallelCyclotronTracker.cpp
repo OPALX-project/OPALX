@@ -2600,9 +2600,9 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
       this flag would be set if the bunch is dirty and
       reset by calcBeamParameters
     */
-    itsBunch->R *= Vector_t(0.001); // mm --> m
-    itsBunch->calcBeamParameters();
-    itsBunch->R *= Vector_t(1000.0); // mm --> m
+    itsBunch_m->R *= Vector_t(0.001); // mm --> m
+    itsBunch_m->calcBeamParameters();
+    itsBunch_m->R *= Vector_t(1000.0); // m --> mm
 
     // --------------------------------- Get some Values ---------------------------------------- //
     double const E = itsBunch_m->get_meanKineticEnergy();
