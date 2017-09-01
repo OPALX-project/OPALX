@@ -3598,15 +3598,16 @@ void ParallelCyclotronTracker::Tracker_Generic() {
             if((((step_m + 1) % Options::psDumpFreq == 0) && initialTotalNum_m != 2)
                 || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
 
-                // Write phase space data to h5 file
+                // Write phase space data to h5 file ADA
+            	*gmsg << "bunchDumpPhaseSpaceData " << step_m << endl;
                 bunchDumpPhaseSpaceData();
            }
 
             if((((step_m + 1) % Options::statDumpFreq == 0) && initialTotalNum_m != 2)
                 || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
-
-                // Write statistics data to stat file
-                bunchDumpStatData();
+	      
+	      // Write statistics data to stat file
+	      bunchDumpStatData();
             }
         }
         if(!(step_m + 1 % 1000))
@@ -5357,7 +5358,9 @@ void ParallelCyclotronTracker::singleParticleDump() {
 
 void ParallelCyclotronTracker::bunchDumpStatData(){
     IpplTimings::startTimer(DumpTimer_m);
-
+    itsBunch->R *= Vector_t(0.001); // mm --> m
+    itsBunch->calcBeamParameters();
+    itsBunch->R *= Vector_t(1000.0); // mm --> m
     // --------------------------------- Get some Values ---------------------------------------- //
     double const E = itsBunch->get_meanEnergy();
     double const temp_t = itsBunch->getT() * 1e9; // s -> ns
@@ -5483,8 +5486,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     if (Options::psDumpFreq < std::numeric_limits<int>::max() ){
         if (Options::psDumpFrame == Options::GLOBAL) {
             FDext_m[0] = extB_m * 0.1; // kgauss --> T
-            FDext_m[1] = extE_m;
-
+            FDext_m[1] = extE_m;	
             lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, // Global and in m
                                                              FDext_m, E,
                                                              referencePr,
@@ -5498,7 +5500,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
                                                              psi / PIOVER180, // P_mean elevation
 							                      // at ref. R/Th/Z
                                                              false);          // Flag localFrame
-
+	    
             // Tell user in which mode we are dumping
             *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
                   << " (global frame) at integration step " << step_m + 1 << endl;
