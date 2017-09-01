@@ -51,7 +51,7 @@ class LoadFieldMap {
     // skip_line - skip a line in the input file, index from 0; ignored if -ve
     LoadFieldMap(std::string name, int polynomial_order, int smoothing_order,
                  int skip_line)
-        : fname_m(name), sbend3d_m(NULL) {
+        : sbend3d_m(NULL), fname_m(name) {
         writeFieldMap(skip_line);
         getFieldMap(polynomial_order, smoothing_order);
     }
