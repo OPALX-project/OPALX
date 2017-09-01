@@ -44,21 +44,21 @@ std::string(" field file, for checking that fields are generated correctly.")+
 std::string(" The fields are written out on a grid in Cartesian space and time.");
 
 DumpEMFields::DumpEMFields() :
-                    Action(13, "DUMPEMFIELDS", dumpemfields_docstring.c_str()),
+                    Action(20, "DUMPEMFIELDS", dumpemfields_docstring.c_str()),
                     grid_m(NULL), filename_m("") {
     // would be nice if "steps" could be integer
     itsAttr[0] = Attributes::makeReal
-                 ("X_START", "Start point in the grid in x [mm]");
+                 ("X_START", "(Cartesian) Start point in the grid in x [mm]");
     itsAttr[1] = Attributes::makeReal
-                 ("DX", "Grid step size in x [mm]");
+                 ("DX", "(Cartesian) Grid step size in x [mm]");
     itsAttr[2] = Attributes::makeReal
-                 ("X_STEPS", "Number of steps in x");
+                 ("X_STEPS", "(Cartesian) Number of steps in x");
     itsAttr[3] = Attributes::makeReal
-                 ("Y_START", "Start point in the grid in y [mm]");
+                 ("Y_START", "(Cartesian) Start point in the grid in y [mm]");
     itsAttr[4] = Attributes::makeReal
-                 ("DY", "Grid step size in y [mm]");
+                 ("DY", "(Cartesian) Grid step size in y [mm]");
     itsAttr[5] = Attributes::makeReal
-                 ("Y_STEPS", "Number of steps in y");
+                 ("Y_STEPS", "(Cartesian) Number of steps in y");
     itsAttr[6] = Attributes::makeReal
                  ("Z_START", "Start point in the grid in z [mm]");
     itsAttr[7] = Attributes::makeReal
@@ -73,6 +73,20 @@ DumpEMFields::DumpEMFields() :
                  ("T_STEPS", "Number of steps in time");
     itsAttr[12] = Attributes::makeString
                  ("FILE_NAME", "Name of the file to which field data is dumped");
+    itsAttr[13] = Attributes::makeString("COORDINATE_SYSTEM",
+                "Choose to use 'Cartesian' or 'Cylindrical' coordinates");
+    itsAttr[14] = Attributes::makeReal
+                 ("R_START", "(Cylindrical) Start point in the grid in radius [mm]");
+    itsAttr[15] = Attributes::makeReal
+                 ("DR", "(Cylindrical) Grid step size in radius [mm]");
+    itsAttr[16] = Attributes::makeReal
+                 ("R_STEPS", "(Cylindrical) Number of steps in radius");
+    itsAttr[17] = Attributes::makeReal
+                 ("PHI_START", "(Cylindrical) Start point in the grid in phi [degree]");
+    itsAttr[18] = Attributes::makeReal
+                 ("DPHI", "(Cylindrical) Grid step size in phi [degree]");
+    itsAttr[19] = Attributes::makeReal
+                 ("PHI_STEPS", "(Cylindrical) Number of steps in phi");
 }
 
 DumpEMFields::~DumpEMFields() {
@@ -86,10 +100,31 @@ DumpEMFields* DumpEMFields::clone(const std::string &name) {
         dumper->grid_m = grid_m->clone();
     }
     dumper->filename_m = filename_m;
+    dumper->coordinates_m = coordinates_m;
     if (dumpsSet_m.find(this) != dumpsSet_m.end()) {
         dumpsSet_m.insert(dumper);
     }
     return dumper;
+}
+
+void DumpEMFields::parseCoordinateSystem() {
+    if (!itsAttr[13]) {
+        coordinates_m = CARTESIAN;
+        return;
+    }
+    std::string coordStr = Attributes::getString(itsAttr[13]);
+    for (size_t i = 0; i < coordStr.size(); ++i) {
+        coordStr[i] = tolower(coordStr[i]);
+    }
+    if (coordStr == "cylindrical") {
+        coordinates_m = CYLINDRICAL;
+    } else if (coordStr == "cartesian") {
+        coordinates_m = CARTESIAN;
+    } else {
+        throw OpalException("DumpEMFields::parseCoordinateSystem",
+          std::string("Failed to parse '")+Attributes::getString(itsAttr[13])+
+          std::string("'. OPAL expected either 'cylindrical' or 'cartesian'."));
+    }
 }
 
 void DumpEMFields::execute() {
@@ -105,30 +140,43 @@ void DumpEMFields::buildGrid() {
     std::vector<double> spacing(4); 
     std::vector<double> origin(4); 
     std::vector<int> gridSize(4); 
-    origin[0] = Attributes::getReal(itsAttr[0]);
-    spacing[0] = Attributes::getReal(itsAttr[1]);
-    double nx = Attributes::getReal(itsAttr[2]);
+    parseCoordinateSystem();
 
-    origin[1] = Attributes::getReal(itsAttr[3]);
-    spacing[1] = Attributes::getReal(itsAttr[4]);
-    double ny = Attributes::getReal(itsAttr[5]);
+    if (coordinates_m == CYLINDRICAL) {
+        origin[0] = Attributes::getReal(itsAttr[14]);
+        spacing[0] = Attributes::getReal(itsAttr[15]);
+        double nr = Attributes::getReal(itsAttr[16]);
+        checkInt(nr, "R_STEPS");
+        gridSize[0] = nr;
 
+        origin[1] = Attributes::getReal(itsAttr[17])/DEGREE;
+        spacing[1] = Attributes::getReal(itsAttr[18])/DEGREE;
+        double nphi = Attributes::getReal(itsAttr[19]);
+        checkInt(nphi, "PHI_STEPS");
+        gridSize[1] = nphi;
+    } else {
+        origin[0] = Attributes::getReal(itsAttr[0]);
+        spacing[0] = Attributes::getReal(itsAttr[1]);
+        double nx = Attributes::getReal(itsAttr[2]);
+        checkInt(nx, "X_STEPS");
+        gridSize[0] = nx;
+
+        origin[1] = Attributes::getReal(itsAttr[3]);
+        spacing[1] = Attributes::getReal(itsAttr[4]);
+        double ny = Attributes::getReal(itsAttr[5]);
+        checkInt(ny, "Y_STEPS");
+        gridSize[1] = ny;
+    }
     origin[2] = Attributes::getReal(itsAttr[6]);
     spacing[2] = Attributes::getReal(itsAttr[7]);
     double nz = Attributes::getReal(itsAttr[8]);
+    checkInt(nz, "Z_STEPS");
+    gridSize[2] = nz;
 
     origin[3] = Attributes::getReal(itsAttr[9]);
     spacing[3] = Attributes::getReal(itsAttr[10]);
     double nt = Attributes::getReal(itsAttr[11]);
-
-    checkInt(nx, "X_STEPS");
-    checkInt(ny, "Y_STEPS");
-    checkInt(nz, "Z_STEPS");
     checkInt(nt, "T_STEPS");
-
-    gridSize[0] = nx;
-    gridSize[1] = ny;
-    gridSize[2] = nz;
     gridSize[3] = nt;
 
     if (grid_m != NULL) {
@@ -159,6 +207,68 @@ void DumpEMFields::checkInt(double real, std::string name, double tolerance) {
     }
 }
 
+void DumpEMFields::writeHeader(std::ofstream& fout) const {
+    fout << grid_m->end().toInteger() << "\n";
+    if (coordinates_m == CYLINDRICAL) {
+        fout << 1 << " r [mm]\n";
+        fout << 2 << " phi [degree]\n";
+    } else {
+        fout << 1 << " x [mm]\n";
+        fout << 2 << " y [mm]\n";
+    }
+    fout << 3 << " z [mm]\n";
+    fout << 4 << " t [ns]\n";
+    if (coordinates_m == CYLINDRICAL) {
+        fout << 5 << " Br [kGauss]\n";
+        fout << 6 << " Bphi [kGauss]\n";
+    } else {
+        fout << 5 << " Bx [kGauss]\n";
+        fout << 6 << " By [kGauss]\n";
+    }
+    fout << 7 << " Bz [kGauss]\n";
+    if (coordinates_m == CYLINDRICAL) {
+        fout << 5 << " Er [?]\n";
+        fout << 6 << " Ephi [?]\n";
+    } else {
+        fout << 5 << " Ex [?]\n";
+        fout << 6 << " Ey [?]\n";
+    }
+    fout << 10 << " Ez [?]\n";
+    fout << 0 << std::endl;
+}
+
+void DumpEMFields::writeFieldLine(Component* field,
+                                  const Vector_t& pointIn,
+                                  const double& time,
+                                  std::ofstream& fout) const {
+    Vector_t centroid(0., 0., 0.);
+    Vector_t E(0., 0., 0.);
+    Vector_t B(0., 0., 0.);
+    Vector_t point = pointIn;
+    if (coordinates_m == CYLINDRICAL) {
+        // pointIn is r, phi, z 
+        point[0] = cos(pointIn[1])*pointIn[0]; 
+        point[1] = sin(pointIn[1])*pointIn[0];
+    }
+
+    field->apply(point, centroid, time, E, B);
+    Vector_t Bout = B;
+    Vector_t Eout = E;
+    if (coordinates_m == CYLINDRICAL) {
+        // pointIn is r, phi, z 
+        Bout[0] = B[0]*cos(pointIn[1])+B[1]*sin(pointIn[1]); 
+        Bout[1] = -B[0]*sin(pointIn[1])+B[1]*cos(pointIn[1]); 
+        Eout[0] = E[0]*cos(pointIn[1])+E[1]*sin(pointIn[1]); 
+        Eout[1] = -E[0]*sin(pointIn[1])+E[1]*cos(pointIn[1]);
+        fout << pointIn[0] << " " << pointIn[1]*DEGREE << " " << pointIn[2] << " " << time << " ";
+    } else {
+        fout << pointIn[0] << " " << pointIn[1] << " " << pointIn[2] << " " << time << " ";
+    }
+
+    fout << Bout[0] << " " << Bout[1] << " " << Bout[2] << " ";
+    fout << Eout[0] << " " << Eout[1] << " " << Eout[2] << "\n";
+}
+
 void DumpEMFields::writeFieldThis(Component* field) {
     if (grid_m == NULL) {
         throw OpalException("DumpEMFields::writeFieldThis",
@@ -171,7 +281,6 @@ void DumpEMFields::writeFieldThis(Component* field) {
     }
     std::vector<double> point_std(4);
     Vector_t point(0., 0., 0.);
-    Vector_t centroid(0., 0., 0.);
     std::ofstream fout;
     try {
         fout.open(filename_m.c_str(), std::ofstream::out);
@@ -184,33 +293,16 @@ void DumpEMFields::writeFieldThis(Component* field) {
                             "Failed to open DumpEMFields file "+filename_m);
     }
     // set precision
-    fout << grid_m->end().toInteger() << "\n";
-    fout << 1 << " x [mm]\n";
-    fout << 2 << " y [mm]\n";
-    fout << 3 << " z [mm]\n";
-    fout << 4 << " t [ns]\n";
-    fout << 5 << " Bx [kGauss]\n";
-    fout << 6 << " By [kGauss]\n";
-    fout << 7 << " Bz [kGauss]\n";
-    fout << 8 << " Ex [?]\n";
-    fout << 9 << " Ey [?]\n";
-    fout << 10 << " Ez [?]\n";
-    fout << 0 << std::endl;
+    writeHeader(fout);
     for (interpolation::Mesh::Iterator it = grid_m->begin();
          it < grid_m->end();
          ++it) {
-        Vector_t E(0., 0., 0.);
-        Vector_t B(0., 0., 0.);
         it.getPosition(&point_std[0]);
         for (size_t i = 0; i < 3; ++i) {
             point[i] = point_std[i];
         }
         double time = point_std[3];
-
-        field->apply(point, centroid, time, E, B);
-        fout << point[0] << " " << point[1] << " " << point[2] << " " << time << " ";
-        fout << B[0] << " " << B[1] << " " << B[2] << " ";
-        fout << E[0] << " " << E[1] << " " << E[2] << "\n";
+        writeFieldLine(field, point, time, fout);
     }
     if (!fout.good()) {
         throw OpalException("DumpEMFields::writeFieldThis",
