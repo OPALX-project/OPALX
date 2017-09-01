@@ -42,8 +42,7 @@ public:
     virtual void execute();
 
 private:
-    void handlePsDumpFrame(bool localFrame, const std::string &dumpFrame);
-    bool psDumpLocalFrame_m;
+    void handlePsDumpFrame(const std::string &dumpFrame);
 
     // Not implemented.
     Option(const Option &);
