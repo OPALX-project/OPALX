@@ -3599,7 +3599,6 @@ void ParallelCyclotronTracker::Tracker_Generic() {
                 || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
 
                 // Write phase space data to h5 file ADA
-            	*gmsg << "bunchDumpPhaseSpaceData " << step_m << endl;
                 bunchDumpPhaseSpaceData();
            }
 
