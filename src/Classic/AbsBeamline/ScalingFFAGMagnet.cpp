@@ -116,14 +116,14 @@ void ScalingFFAGMagnet::accept(BeamlineVisitor& visitor) const {
 bool ScalingFFAGMagnet::getFieldValue(const Vector_t &R, Vector_t &B) const {
     Vector_t pos = R - centre_m;
     double r = sqrt(pos[0]*pos[0]+pos[2]*pos[2]);
-    double phi = -atan2(pos[0], pos[2]);
+    double phi = -atan2(pos[0], pos[2]); // angle between y-axis and position vector in anticlockwise direction
     Vector_t posCyl(r, pos[1], phi);
-    Vector_t bCyl(0., 0., 0.);
+    Vector_t bCyl(0., 0., 0.); //br bz bphi
     bool outOfBounds = getFieldValueCylindrical(posCyl, bCyl);
     // this is cartesian coordinates
     B[1] += bCyl[1];
-    B[0] += bCyl[0]*cos(phi) + bCyl[2]*sin(phi);
-    B[2] += bCyl[2]*cos(phi) + bCyl[0]*sin(phi);
+    B[0] += -bCyl[2]*cos(phi) -bCyl[0]*sin(phi);
+    B[2] += +bCyl[0]*cos(phi) -bCyl[2]*sin(phi);
     return outOfBounds;
 
 }
@@ -164,8 +164,8 @@ bool ScalingFFAGMagnet::getFieldValueCylindrical(const Vector_t &pos, Vector_t &
             for (size_t i = 0; i < dfCoefficients_m[n+1].size() && n+1 < dfCoefficients_m.size(); ++i) {
                 f2nplus1 += dfCoefficients_m[n+1][i]*fringeDerivatives[i];
             }
+            deltaB[0] = (f2n*(k_m-n)/(n+1) - tanDelta_m*f2nplus1)*h*pow(z/r, n+1); // Br
             deltaB[2] = f2nplus1*h*pow(z/r, n+1); // Bphi = sum(f_2n+1 * h * (z/r)^2n+1
-            deltaB[0] = (f2n*(k_m-n)/(n+1) - tanDelta_m*f2nplus1)*h*pow(z/r, n+1);
         }
         B += deltaB;
     }
