@@ -30,6 +30,7 @@
 #include <sstream>
 
 #include "gtest/gtest.h"
+#include "opal_test_utilities/SilenceTest.h"
 
 #include "Classic/AbsBeamline/EndFieldModel/Tanh.h"
 #include "Classic/AbsBeamline/ScalingFFAGMagnet.h"
@@ -151,12 +152,12 @@ public:
 
     void printCoefficients() {
         std::vector<std::vector<double> > coeff = sector_m->getDfCoefficients();
-        std::cerr << "Coefficients" << std::endl;
+        std::cout << "Coefficients" << std::endl;
         for (size_t n = 0; n < coeff.size(); ++n) {
             for (size_t i = 0; i < coeff[n].size(); ++i) {
-                std::cerr << coeff[n][i] << " ";
+                std::cout << coeff[n][i] << " ";
             }
-            std::cerr << std::endl;
+            std::cout << std::endl;
         }
     }
 
@@ -283,12 +284,74 @@ TEST_F(ScalingFFAGMagnetTest, PlacementTest) {
     }
 }
 
+TEST_F(ScalingFFAGMagnetTest, DFCoefficientsTest) {
+    sector_m->setTanDelta(0.0);
+    sector_m->setMaxOrder(5);
+    sector_m->setFieldIndex(5);
+    sector_m->initialise();
+    // hard coded - calculated by hand
+    double ref[5][5] = {
+      {1.,    -999.,  -999.,  -999., -999.}, // n = 0
+      {0.,       1.,  -999.,  -999., -999.}, // n = 1
+      {-25./2.,   0., -1./2.,  -999., -999.}, // n = 2
+      {0.,   -25./6.,     0., -1./6., -999.}, // n = 3
+      {+25./2.*3./4., 0., +1./2.*3./4.+25./6./4., 0., +1./6./4.}, // n = 4
+    };
+    std::vector< std::vector<double> > coeffs = sector_m->getDfCoefficients();
+    ASSERT_GE(coeffs.size(), 5);
+    for (size_t n = 0; n < 5; ++n) {
+        ASSERT_EQ(coeffs[n].size(), n+1);
+        for (size_t i = 0; i < coeffs[n].size(); ++i) {
+            EXPECT_NEAR(coeffs[n][i], ref[n][i], 1e-9) << " n: " << n << " i: " << i;
+        }
+    }
+}
+
+TEST_F(ScalingFFAGMagnetTest, DFCoefficientsTanDeltaTest) {
+    sector_m->setTanDelta(2.0);
+    sector_m->setMaxOrder(4); // BUG - max order is 1 to high
+    sector_m->setFieldIndex(5);
+    sector_m->initialise();
+    // hard coded - calculated by hand
+    double ref[5][5] = {
+      {1.,    -999.,  -999.,  -999., -999.}, // n = 0
+      {0.,       1.,  -999.,  -999., -999.}, // n = 1
+      {-25./2.,   10.*2./2., -5./2.,  -999., -999.}, // n = 2
+      {0.,   -25./6.,  +10./3., -5./6., -999.}, // n = 3
+      // i gave up at 4 - head exploding
+      {+25./2.*3./4., -25./6./4.*2.*3.*2.-10.*3/4., -999., -999., -999.}, // n = 4
+    };
+    std::vector< std::vector<double> > coeffs = sector_m->getDfCoefficients();
+    ASSERT_GE(coeffs.size(), 4);
+    for (size_t n = 0; n < 4; ++n) {
+        ASSERT_EQ(coeffs[n].size(), n+1);
+        for (size_t i = 0; i < coeffs[n].size(); ++i) {
+            EXPECT_NEAR(coeffs[n][i], ref[n][i], 1e-9) << " n: " << n << " i: " << i;
+        }
+    }
+}
+
+TEST_F(ScalingFFAGMagnetTest, TanhTest) {
+    OpalTestUtilities::SilenceTest silence;
+    double numericalDerivative = sector_m->getEndField()->function(-psi0_m, 0);
+    for (size_t order = 0; order < 5; ++order) {
+        double analyticalDerivative = sector_m->getEndField()->function(-psi0_m, order);
+        if (fabs(numericalDerivative)+fabs(analyticalDerivative) > 1e-3) {
+            EXPECT_NEAR(analyticalDerivative, numericalDerivative, fabs(analyticalDerivative)*1e-3);
+        }
+        std::cout << order << " " << analyticalDerivative << " " << numericalDerivative << std::endl;
+        numericalDerivative = sector_m->getEndField()->function(-psi0_m*0.9999, order)-
+                              sector_m->getEndField()->function(-psi0_m*1.0001, order);
+        numericalDerivative /= -psi0_m*0.9999 + psi0_m*1.0001;
+    }
+}
+
 TEST_F(ScalingFFAGMagnetTest, BTwoDTest) {
     std::ofstream fout("/tmp/b_twod.out");
     bool passtest = true;
     for (double y = 0.; y < 0.025; y += 0.015) {
-        for (double r = r0_m; r < r0_m+1; r += 0.01) {
-            for (double psi = -2.*psi0_m; psi < 4.00001*psi0_m; psi += psi0_m/10.) {
+        for (double r = r0_m; r < r0_m+1; r += 0.02) {
+            for (double psi = -2.*psi0_m; psi < 4.00001*psi0_m; psi += psi0_m/5.) {
                 passtest &= printLine(Vector_t(r, y, psi), 0., fout, 1e-1);
             }
         }
@@ -309,21 +372,35 @@ TEST_F(ScalingFFAGMagnetTest, ConvergenceYTest) {
 }
 
 TEST_F(ScalingFFAGMagnetTest, ConvergenceOrderTest) {
-    for (double y = 0.05; y > 0.0002; y /= 10.) {
-        std::vector<double> divBVec(3);
+    OpalTestUtilities::SilenceTest silence;
+    for (double y = 0.5; y > 0.2; y /= 10.) { // 50 cm off midplane
+        std::cout << "order y divB |curlB| curlB" << std::endl;
+        std::vector<double> divBVec(13);
+        std::vector<double> curlBVec(13);
         double delta = y/100.;
         for (size_t i = 0; i < divBVec.size(); ++i) {
-            sector_m->setMaxOrder((i+1)*2);
+            sector_m->setMaxOrder(i);
             sector_m->initialise();
             Vector_t pos(r0_m, y, psi0_m*2);
             double divB = getDivBCylindrical(pos, Vector_t(delta, delta, delta/r0_m));
+            Vector_t curlB = getCurlBCyl(pos, Vector_t(delta, delta, delta/r0_m));
+            double curlBMag =
+                sqrt(curlB[0]*curlB[0] + curlB[1]*curlB[1] + curlB[2]*curlB[2]);
             divB = fabs(divB);
             divBVec[i] = divB;
-            if (i > 0) {
-                EXPECT_LT(divBVec[i], divBVec[i-1]) << " with i "
+            curlBVec[i] = curlBMag;
+            std::cout << i << "     " << y << "    " << divB << "           "
+                      << curlBMag << " " << curlB << std::endl;
+            if (i > 1 && i % 2 == 1) {
+                EXPECT_LT(divBVec[i], divBVec[i-2]) << " with i "
+                                                    << i << std::endl;
+            }
+            if (i > 1 && i % 2 == 0) {
+                EXPECT_LT(curlBVec[i], curlBVec[i-2]) << " with i "
                                                     << i << std::endl;
             }
         }
+        std::cout << std::endl;
     }
     sector_m->setMaxOrder(10);
 }
