@@ -139,7 +139,7 @@ public:
         return curlElements;
     }
 
-    double getDivBCylindrical(Vector_t posCyl, Vector_t delta) {
+    double getDivBCyl(Vector_t posCyl, Vector_t delta) {
         Vector_t B(0., 0., 0.);
         Vector_t div_elements(0., 0., 0.);
         sector_m->getFieldValueCylindrical(posCyl, B);
@@ -180,7 +180,7 @@ public:
         if (delta > 1e-3 or delta < 1e-9) {
             delta = 1e-3;
         }
-        double divBCyl =  getDivBCylindrical(posCyl, Vector_t(delta, delta, delta/r0_m));
+        double divBCyl =  getDivBCyl(posCyl, Vector_t(delta, delta, delta/r0_m));
         Vector_t curlBCyl = getCurlBCyl(posCyl, Vector_t(delta, delta, delta/r0_m)); //curlBCyl[0] should be cancelled by 2nd term
         double divBCart = getDivBCart(posCart, Vector_t(delta, delta, delta));
         Vector_t curlBCart = getCurlBCart(posCart, Vector_t(delta, delta, delta)); //curlBCyl[0] should be cancelled by 2nd term
@@ -382,7 +382,7 @@ TEST_F(ScalingFFAGMagnetTest, ConvergenceOrderTest) {
             sector_m->setMaxOrder(i);
             sector_m->initialise();
             Vector_t pos(r0_m, y, psi0_m*2);
-            double divB = getDivBCylindrical(pos, Vector_t(delta, delta, delta/r0_m));
+            double divB = getDivBCyl(pos, Vector_t(delta, delta, delta/r0_m));
             Vector_t curlB = getCurlBCyl(pos, Vector_t(delta, delta, delta/r0_m));
             double curlBMag =
                 sqrt(curlB[0]*curlB[0] + curlB[1]*curlB[1] + curlB[2]*curlB[2]);
@@ -404,6 +404,64 @@ TEST_F(ScalingFFAGMagnetTest, ConvergenceOrderTest) {
     }
     sector_m->setMaxOrder(10);
 }
+
+TEST_F(ScalingFFAGMagnetTest, ConvergenceOrderHackedTest) {
+    OpalTestUtilities::SilenceTest silence;
+    double y = 0.05;
+    bool cylindrical = false;
+    int maxOrder = 10;
+    // nb: if tan delta is 0., convergence reached at i = 7
+    for (double td = 0.2; td < 1.1; td += 0.2) { // 50 cm off midplane
+        std::cout << "order y     B     divB     |curlB|     curlB" << std::endl;
+        
+        std::vector<double> divBVec(maxOrder);
+        std::vector<double> curlBVec(maxOrder);
+        double delta = y/100.;
+        for (size_t i = 0; i < divBVec.size(); ++i) {
+            sector_m->setTanDelta(td);
+            sector_m->setR0(3.0);
+            sector_m->setFieldIndex(4);
+            sector_m->setMaxOrder(i);
+            sector_m->initialise();
+            Vector_t B, pos, curlB;
+            double divB;
+            if (cylindrical) {
+                pos = Vector_t(3.0, y, psi0_m*2);
+                sector_m->getFieldValueCylindrical(pos, B);
+                divB = getDivBCyl(pos, Vector_t(delta, delta, delta/3.));
+                curlB = getCurlBCyl(pos, Vector_t(delta, delta, delta/3.));
+            } else {
+                pos = Vector_t(0.0, y, 3.0);
+                sector_m->apply(pos, pos, divBVec[0], B, B);
+                divB = getDivBCart(pos, Vector_t(delta, delta, delta));
+                curlB = getCurlBCart(pos, Vector_t(delta, delta, delta));
+                for (size_t i = 0; i < 3; ++i) {
+                    std::cout << getDBDu(i, i, pos, delta, true) << " ";
+                }
+                std::cout << std::endl;
+            }
+            double curlBMag =
+                sqrt(curlB[0]*curlB[0] + curlB[1]*curlB[1] + curlB[2]*curlB[2]);
+            divB = fabs(divB);
+            divBVec[i] = divB;
+            curlBVec[i] = curlBMag;
+            std::cout << i << "     " << y << "    " << B << "     " << divB << "           "
+                      << curlBMag << "          " << curlB << std::endl;
+
+            if (i > 1 && i % 2 == 1) {
+                EXPECT_LT(divBVec[i], divBVec[i-2]) << " with i "
+                                                    << i << std::endl;
+            }
+            if (i > 1 && i % 2 == 0) {
+                EXPECT_LT(curlBVec[i], curlBVec[i-2]) << " with i "
+                                                    << i << std::endl;
+            }
+        }
+        std::cout << std::endl;
+    }
+    sector_m->setMaxOrder(10);
+}
+
 
 TEST_F(ScalingFFAGMagnetTest, ConvergenceEndLengthTest) {
     std::ofstream fout("/tmp/convergence_endlength.out");
