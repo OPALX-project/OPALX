@@ -33,7 +33,7 @@
 
 ScalingFFAGMagnet::ScalingFFAGMagnet(const std::string &name)
         : Component(name),
-         planarArcGeometry_m(1., 1.), dummy() {
+         planarArcGeometry_m(1., 1.), dummy(), endField_m(NULL) {
     setElType(isDrift);
 }
 
@@ -46,7 +46,9 @@ ScalingFFAGMagnet::ScalingFFAGMagnet(const ScalingFFAGMagnet &right)
           phiEnd_m(right.phiEnd_m), azimuthalExtent_m(right.azimuthalExtent_m),
           verticalExtent_m(right.verticalExtent_m), centre_m(right.centre_m),
           dfCoefficients_m(right.dfCoefficients_m) {
-    delete endField_m;
+    if (endField_m != NULL) {
+        delete endField_m;
+    }
     endField_m = right.endField_m->clone();
     RefPartBunch_m = right.RefPartBunch_m;
     setElType(isDrift);
@@ -55,7 +57,9 @@ ScalingFFAGMagnet::ScalingFFAGMagnet(const ScalingFFAGMagnet &right)
 }
 
 ScalingFFAGMagnet::~ScalingFFAGMagnet() {
-    delete endField_m;
+    if (endField_m != NULL) {
+        delete endField_m;
+    }
 }
 
 ElementBase* ScalingFFAGMagnet::clone() const {
@@ -144,7 +148,7 @@ bool ScalingFFAGMagnet::getFieldValueCylindrical(const Vector_t &pos, Vector_t &
     if (z < -verticalExtent_m || z > verticalExtent_m) {
         return true;
     }
-    std::vector<double> fringeDerivatives(maxOrder_m, 0.);
+    std::vector<double> fringeDerivatives(maxOrder_m+1, 0.);
     for (size_t i = 0; i < fringeDerivatives.size(); ++i) {
         fringeDerivatives[i] = endField_m->function(phiSpiral, i); // d^i_phi f
     }
@@ -154,13 +158,15 @@ bool ScalingFFAGMagnet::getFieldValueCylindrical(const Vector_t &pos, Vector_t &
         for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {
             f2n += dfCoefficients_m[n][i]*fringeDerivatives[i];
         }
-        double f2nplus1 = 0;
-        for (size_t i = 0; i < dfCoefficients_m[n+1].size() && n+1 < dfCoefficients_m.size(); ++i) {
-            f2nplus1 += dfCoefficients_m[n+1][i]*fringeDerivatives[i];
-        }
         deltaB[1] = f2n*h*pow(z/r, n); // Bz = sum(f_2n * h * (z/r)^2n
-        deltaB[2] = f2nplus1*h*pow(z/r, n+1); // Bphi = sum(f_2n+1 * h * (z/r)^2n+1
-        deltaB[0] = (f2n*(k_m-n)/(n+1) - tanDelta_m*f2nplus1)*h*pow(z/r, n+1);
+        if (maxOrder_m >= n+1) {
+            double f2nplus1 = 0;
+            for (size_t i = 0; i < dfCoefficients_m[n+1].size() && n+1 < dfCoefficients_m.size(); ++i) {
+                f2nplus1 += dfCoefficients_m[n+1][i]*fringeDerivatives[i];
+            }
+            deltaB[2] = f2nplus1*h*pow(z/r, n+1); // Bphi = sum(f_2n+1 * h * (z/r)^2n+1
+            deltaB[0] = (f2n*(k_m-n)/(n+1) - tanDelta_m*f2nplus1)*h*pow(z/r, n+1);
+        }
         B += deltaB;
     }
     return false;
@@ -173,17 +179,14 @@ bool ScalingFFAGMagnet::apply(const Vector_t &R, const Vector_t &P,
 }
 
 void ScalingFFAGMagnet::calculateDfCoefficients() {
-    dfCoefficients_m = std::vector<std::vector<double> >(maxOrder_m);
-    if (maxOrder_m == 0) {
-        return;
-    }
+    dfCoefficients_m = std::vector<std::vector<double> >(maxOrder_m+1);
     dfCoefficients_m[0] = std::vector<double>(1, 1.); // f_0 = 1.*0th derivative
-    for (size_t n = 0; n+1 < maxOrder_m; n += 2) { // n indexes the power in z
+    for (size_t n = 0; n < maxOrder_m; n += 2) { // n indexes the power in z
         dfCoefficients_m[n+1] = std::vector<double>(dfCoefficients_m[n].size()+1, 0);
         for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) { // i indexes the derivative
             dfCoefficients_m[n+1][i+1] = dfCoefficients_m[n][i]/(n+1);
         }
-        if (n+2 == maxOrder_m) {
+        if (n+1 == maxOrder_m) {
             break;
         }
         dfCoefficients_m[n+2] = std::vector<double>(dfCoefficients_m[n].size()+2, 0);
@@ -199,7 +202,9 @@ void ScalingFFAGMagnet::calculateDfCoefficients() {
 }
 
 void ScalingFFAGMagnet::setEndField(endfieldmodel::EndFieldModel* endField) {
-    delete endField_m;
+    if (endField_m != NULL) {
+        delete endField_m;
+    }
     endField_m = endField;
 }
 
