@@ -2593,6 +2593,17 @@ void ParallelCyclotronTracker::singleParticleDump() {
 void ParallelCyclotronTracker::bunchDumpStatData(){
     IpplTimings::startTimer(DumpTimer_m);
 
+    /*
+      in case before a bunchDumpPhasespaceData has
+      happen, the calcBeamParameters() is not needed.
+      maybe we have to introduce a dirty-stat-data flag.
+      this flag would be set if the bunch is dirty and
+      reset by calcBeamParameters
+    */
+    itsBunch_m->R *= Vector_t(0.001); // mm --> m
+    itsBunch_m->calcBeamParameters();
+    itsBunch_m->R *= Vector_t(1000.0); // m --> mm
+
     // --------------------------------- Get some Values ---------------------------------------- //
     double const E = itsBunch_m->get_meanKineticEnergy();
     double const temp_t = itsBunch_m->getT() * 1e9; // s -> ns
