@@ -521,11 +521,11 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
     double rmin = elptr->getMinR();
     double rmax = elptr->getMaxR();
-    *gmsg << "* Radial aperture = " << rmin << " ... " << rmax<<" [mm] "<< endl;
+    *gmsg << "* Radial aperture = " << rmin << " ... " << rmax<<" [m] "<< endl;
 
     double zmin = elptr->getMinZ();
     double zmax = elptr->getMaxZ();
-    *gmsg << "* Vertical aperture = " << zmin << " ... " << zmax<<" [mm]"<< endl;
+    *gmsg << "* Vertical aperture = " << zmin << " ... " << zmax<<" [m]"<< endl;
 
     double h = elptr->getCyclHarm();
     *gmsg << "* Number of trimcoils = " << elptr->getNumberOfTrimcoils() << endl;
