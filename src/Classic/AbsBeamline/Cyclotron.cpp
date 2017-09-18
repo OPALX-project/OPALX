@@ -84,51 +84,58 @@ Cyclotron::Cyclotron(const std::string &name):
 
 
 Cyclotron::~Cyclotron() {
-    //~ if(BP.rarr) delete[] BP.rarr;
 }
 
 
-void Cyclotron::applyTrimCoil(double r, double z, double *br, double *bz) {
-  /// updated bz and br with trim coil contributions
+void Cyclotron::applyTrimCoil(const double r, const double z, double *br, double *bz) {
+    /// update bz and br with trim coil contributions
+    // for some discussion on the formulas see https://gitlab.psi.ch/OPAL/src/issues/110
+
+    // unitless constants
+    const double Amax1 = 1;
+    const double Amax2 = 3;
+    const double Amin  = -2;
+    const double x01   = 4;
+    const double x02   = 8;
+    const double h1    = 0.03;
+    const double h2    = 0.2;
+    const double justAnotherFudgeFactor = 1 / 2.78;
+    // helper variables
+    const double log10  = std::log(10);
+    const double const3 = -(Amax1 - Amin) * h1 * log10;
+    const double const4 =  (Amax2 - Amin) * h2 * log10;
 
     for (unsigned int idx = 0; idx < slptcV_m.size(); ++ idx) {
         const double &tcr1 = tcr1V_m[idx];
         const double &tcr2 = tcr2V_m[idx];
-
-        if (r > tcr2) return; // values in tcrv are descending, all subsequent values are smaller
-        if (r < tcr1) continue; // ??
-
         const double &slope = slptcV_m[idx];
         const double &magnitude = mbtcV_m[idx];
 
-        const double Amax1 = 1;
-        const double Amax2 = 3;
-        const double Amin = -2;
-        const double x01 = 4;
-        const double x02 = 8;
-        const double h1 = 0.03;
-        const double h2 = 0.2;
-        const double justAnotherFudgeFactor = 1 / 2.78;
         double part1;
         double part2;
 
         if (2 * r < (tcr2 + tcr1)) {
-            part1 = pow(10.0,  ((r - tcr1) / slope - x01) * h1);
-            part2 = pow(10.0, -((r - tcr1) / slope - x02) * h2);
+            part1 = std::pow(10.0,  ((r - tcr1) * slope - x01) * h1);
+            part2 = std::pow(10.0, -((r - tcr1) * slope - x02) * h2);
         } else {
-            part1 = pow(10.0,  ((tcr2 - r) / slope - x01) * h1);
-            part2 = pow(10.0, -((tcr2 - r) / slope - x02) * h2);
+            part1 = std::pow(10.0,  ((tcr2 - r) * slope - x01) * h1);
+            part2 = std::pow(10.0, -((tcr2 - r) * slope - x02) * h2);
         }
 
-        double part3 = -(Amax1 - Amin) * h1 * log(10) * part1 / (slope * std::pow(1 + part1, 2));
-        double part4 =  (Amax2 - Amin) * h2 * log(10) * part2 / (slope * std::pow(1 + part2, 2));
+        const double part1plusinv = 1 / (1 + part1);
+        const double part2plusinv = 1 / (1 + part2);
 
-        double dr = magnitude * justAnotherFudgeFactor * (part3 + part4);
-        double btr = (magnitude * justAnotherFudgeFactor *
-                      (Amin - 1 + (Amax1 - Amin) / (1 + part1) + (Amax2 - Amin) / (1 + part2)));
+        double part3 = const3 * slope * part1 * part1plusinv * part1plusinv;
+        double part4 = const4 * slope * part2 * part2plusinv * part2plusinv;
 
+        const double constmag = magnitude * justAnotherFudgeFactor;
 
-        if (std::isnan(dr) || std::isinf(dr) ||
+        double dr  = constmag * (part3 + part4);
+        double btr = constmag * (Amin - 1 +
+                                 (Amax1 - Amin) * part1plusinv +
+                                 (Amax2 - Amin) * part2plusinv);
+
+        if (std::isnan(dr)  || std::isinf(dr) ||
             std::isnan(btr) || std::isinf(btr)) {
             ERRORMSG("r = " << r << " m, tcr1 = " << tcr1 << " m, tcr2 = " << tcr2 << " m\n");
             ERRORMSG("slope = " << slope << ", magnitude = " << magnitude << " kG\n");
@@ -289,10 +296,6 @@ double Cyclotron::getRmax() const {
     return BP.rmin + (Bfield.nrad - 1) * BP.delr;
 }
 
-// This function aims at obtaining magentic field at any given location R by interpolation.
-// arguments t is useless here.
-// arguments E is set to zero.
-
 
 void Cyclotron::setMinR(double r) {
     // DW: This is to let the user keep using mm in the input file for now
@@ -390,7 +393,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
     const double rad = sqrt(R[0] * R[0] + R[1] * R[1]);
     const double xir = (rad - BP.rmin) / BP.delr;
 
-    // ir : the mumber of path whoes radius is less then the 4 points of cell which surrond particle.
+    // ir : the number of path whose radius is less than the 4 points of cell which surround the particle.
     const int ir = (int)xir;
 
     // wr1 : the relative distance to the inner path radius
@@ -430,7 +433,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
     const double wt1 = xit - (double)it;
     const double wt2 = 1.0 - wt1;
 
-    // it : the number of point on the inner path whoes angle is less then the particle' corresponding angle.
+    // it : the number of point on the inner path whose angle is less than the particle' corresponding angle.
     // include zero degree point
     it = it + 1;
 
@@ -523,57 +526,27 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
         return true;
     }
 
-    if(myBFieldType_m == BANDRF) {
-      //The RF field is suppose to be sampled on a cartesian grid
+    if(myBFieldType_m == SYNCHRO || myBFieldType_m == BANDRF) {
+        //The RF field is supposed to be sampled on a cartesian grid
         vector<Fieldmap *>::const_iterator fi  = RFfields_m.begin();
         vector<double>::const_iterator rffi    = rffrequ_m.begin();
         vector<double>::const_iterator rfphii  = rfphi_m.begin();
         vector<double>::const_iterator escali  = escale_m.begin();
 	vector<bool>::const_iterator superposei = superpose_m.begin();
+        vector< vector<double> >::const_iterator rffci;
+        vector< vector<double> >::const_iterator rfvci;
+        if(myBFieldType_m == SYNCHRO) {
+            rffci = rffc_m.begin();
+            rfvci = rfvc_m.begin();
+        }
         double xBegin(0), xEnd(0), yBegin(0), yEnd(0), zBegin(0), zEnd(0);
         int fcount = 0;
+
         for(; fi != RFfields_m.end(); ++fi, ++rffi, ++rfphii, ++escali, ++superposei) {
-            (*fi)->getFieldDimensions(xBegin, xEnd, yBegin, yEnd, zBegin, zEnd);
-
-	    bool SuperPose = *superposei;
-            if (fcount > 0 && !SuperPose) {
-	      //INFOMSG ("Field maps taken : " << fcount << "Superpose false" << endl);
-	      break;
+            if(myBFieldType_m == SYNCHRO) {
+                ++rffci, ++rfvci;
             }
 
-            // Ok, this is a total patch job, but now that the internal cyclotron units are in m, we have to
-            // change stuff here to match with the input units of mm in the fieldmaps. -DW
-	    const Vector_t temp_R = R * Vector_t(1000.0); //Keep this until we have transitioned fully to m -DW
-
-            if (temp_R(0) >= xBegin && temp_R(0) <= xEnd && temp_R(1) >= yBegin && temp_R(1) <= yEnd && temp_R(2) >= zBegin && temp_R(2) <= zEnd) {
-                Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-                if(!(*fi)->getFieldstrength(temp_R, tmpE, tmpB)) {
-		  ++fcount;
-                  double phase = 2.0 * pi * (1E-3 * (*rffi)) * t + *rfphii;
-
-		  double ebscale = *escali;
-                  E += ebscale * cos(phase) * tmpE;
-                  B -= ebscale * sin(phase) * tmpB;
-
-//                INFOMSG("Field " << fcount << " BANDRF E= " << tmpE << " R= " << R << " phase " << phase << endl);
-                }
-            }
-	}
-    } else if(myBFieldType_m == SYNCHRO) {
-        //The RF field is suppose to be sampled on a cartesian grid
-        vector<Fieldmap *>::const_iterator fi  = RFfields_m.begin();
-        vector<double>::const_iterator rffi    = rffrequ_m.begin();
-        vector< vector<double> >::const_iterator rffci = rffc_m.begin();
-        vector< vector<double> >::const_iterator rfvci = rfvc_m.begin();
-        vector<double>::const_iterator rfphii  = rfphi_m.begin();
-        vector<double>::const_iterator escali  = escale_m.begin();
-	vector<bool>::const_iterator superposei = superpose_m.begin();
-        double xBegin(0), xEnd(0), yBegin(0), yEnd(0), zBegin(0), zEnd(0);
-        int fcount = 0;
-	int ecount = 0;
-	double frequency, ebscale;
-
-        for(; fi != RFfields_m.end(); ++fi, ++rffi, ++rfphii, ++escali, ++superposei, ++rffci, ++rfvci) {
             (*fi)->getFieldDimensions(xBegin, xEnd, yBegin, yEnd, zBegin, zEnd);
 	    bool SuperPose = *superposei;
             if (fcount > 0 && !SuperPose) {
@@ -585,66 +558,68 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
             // change stuff here to match with the input units of mm in the fieldmaps. -DW
 	    const Vector_t temp_R = R * Vector_t(1000.0); //Keep this until we have transitioned fully to m -DW
 
-            if (temp_R(0) >= xBegin && temp_R(0) <= xEnd && temp_R(1) >= yBegin && temp_R(1) <= yEnd && temp_R(2) >= zBegin && temp_R(2) <= zEnd) {
-                Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-                if(!(*fi)->getFieldstrength(temp_R, tmpE, tmpB)) {
+            if ((temp_R(0) >= xBegin && temp_R(0) <= xEnd && temp_R(1) >= yBegin && temp_R(1) <= yEnd && temp_R(2) >= zBegin && temp_R(2) <= zEnd) == false)
+                continue;
 
-		    ++fcount;
+            Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+            if((*fi)->getFieldstrength(temp_R, tmpE, tmpB) == true) // out of bounds
+                continue;
 
-		    frequency = (*rffi);   // frequency in MHz
-		    ebscale = (*escali);   // E and B field scaling
+            ++fcount;
 
-		    ecount = 0;
-                    for(vector<double>::const_iterator fcoefi = (*rffci).begin(); fcoefi != (*rffci).end(); ++fcoefi) {
+            double frequency = (*rffi);   // frequency in MHz
+            double ebscale = (*escali);   // E and B field scaling
 
-			++ecount;
-			frequency = frequency + (*fcoefi) * pow((t * 1e-9), ecount); // Add frequency ramp (in MHz/s^n)
+            if(myBFieldType_m == SYNCHRO) {
+                double powert = 1;
+                for(const double fcoef : (*rffci)) {
+                    powert *= (t * 1e-9);
+                    frequency += fcoef * powert; // Add frequency ramp (in MHz/s^n)
+                }
 
-		    }
-
-		    ecount = 0;
-                    for(vector<double>::const_iterator vcoefi = (*rfvci).begin(); vcoefi != (*rfvci).end(); ++vcoefi) {
-
-			++ecount;
-			ebscale = ebscale + (*vcoefi) * pow((t * 1e-9), ecount); // Add frequency ramp (in MHz/s^n)
-
-		    }
-
-                    double phase = 2.0 * pi * 1.0E-3 * frequency * t + (*rfphii);  // f in [MHz], t in [ns]
-
-                    E += ebscale * cos(phase) * tmpE;
-                    B -= ebscale * sin(phase) * tmpB;
-
-		    // Some phase output -DW
-
-		    if (tet >= 90.0 && waiting_for_gap == 1) {
-
-                        double phase_print = 180.0 * phase / pi;
-			phase_print = fmod(phase_print, 360) - 360.0;
-
-			*gmsg << endl << "Gap 1 phase = " << phase_print << " Deg" << endl;
-			*gmsg << "Gap 1 E-Field = (" << E[0] << "/" << E[1] << "/" << E[2] << ")" << endl;
-			*gmsg << "Gap 1 B-Field = (" << B[0] << "/" << B[1] << "/" << B[2] << ")" << endl;
-			*gmsg << "RF Frequency = " << frequency << " MHz" << endl;
-
-			waiting_for_gap = 2;
-		    }
-		    else if (tet >= 270.0 && waiting_for_gap == 2) {
-
-		        double phase_print = 180.0 * phase / pi;
-			phase_print = fmod(phase_print, 360) - 360.0;
-
-			*gmsg << endl << "Gap 2 phase = " << phase_print << " Deg" << endl;
-			*gmsg << "Gap 2 E-Field = (" << E[0] << "/" << E[1] << "/" << E[2] << ")" << endl;
-			*gmsg << "Gap 2 B-Field = (" << B[0] << "/" << B[1] << "/" << B[2] << ")" << endl;
-			*gmsg << "RF Frequency = " << frequency << " MHz" << endl;
-			waiting_for_gap = 0;
-                    }
-
-//                  INFOMSG("Field " << fcount << " BANDRF E= " << tmpE << " R= " << R << " phase " << phase << endl);
+                powert = 1;
+                for(const double vcoef : (*rfvci)) {
+                    powert *= (t * 1e-9);
+                    ebscale += vcoef * powert; // Add frequency ramp (in MHz/s^n)
                 }
             }
-   	}
+
+            double phase = 2.0 * pi * 1.0E-3 * frequency * t + (*rfphii);  // f in [MHz], t in [ns]
+
+            E += ebscale * cos(phase) * tmpE;
+            B -= ebscale * sin(phase) * tmpB;
+
+            // INFOMSG("Field " << fcount << " BANDRF E= " << tmpE << " R= " << R << " phase " << phase << endl);
+
+            if(myBFieldType_m != SYNCHRO)
+                continue;
+
+            // Some phase output -DW
+
+            if (tet >= 90.0 && waiting_for_gap == 1) {
+
+                double phase_print = 180.0 * phase / pi;
+                phase_print = fmod(phase_print, 360) - 360.0;
+
+                *gmsg << endl << "Gap 1 phase = " << phase_print << " Deg" << endl;
+                *gmsg << "Gap 1 E-Field = (" << E[0] << "/" << E[1] << "/" << E[2] << ")" << endl;
+                *gmsg << "Gap 1 B-Field = (" << B[0] << "/" << B[1] << "/" << B[2] << ")" << endl;
+                *gmsg << "RF Frequency = " << frequency << " MHz" << endl;
+
+                waiting_for_gap = 2;
+            }
+            else if (tet >= 270.0 && waiting_for_gap == 2) {
+
+                double phase_print = 180.0 * phase / pi;
+                phase_print = fmod(phase_print, 360) - 360.0;
+
+                *gmsg << endl << "Gap 2 phase = " << phase_print << " Deg" << endl;
+                *gmsg << "Gap 2 E-Field = (" << E[0] << "/" << E[1] << "/" << E[2] << ")" << endl;
+                *gmsg << "Gap 2 B-Field = (" << B[0] << "/" << B[1] << "/" << B[2] << ")" << endl;
+                *gmsg << "RF Frequency = " << frequency << " MHz" << endl;
+                waiting_for_gap = 0;
+            }
+        }
     }
     return false;
 }
@@ -778,26 +753,6 @@ double Cyclotron::gutdf5d(double *f, double dx, const int kor, const int krl, co
 // evaulate other derivative of magnetic field.
 void Cyclotron::getdiffs() {
 
-    //~ if(Bfield.dbr) delete[] Bfield.dbr;
-    //~ Bfield.dbr   = new double[Bfield.ntot];
-    //~ if(Bfield.dbrr) delete[] Bfield.dbrr;
-    //~ Bfield.dbrr  = new double[Bfield.ntot];
-    //~ if(Bfield.dbrrr) delete[] Bfield.dbrrr;
-    //~ Bfield.dbrrr = new double[Bfield.ntot];
-//~
-    //~ if(Bfield.dbrt) delete[] Bfield.dbrt;
-    //~ Bfield.dbrt  = new double[Bfield.ntot];
-    //~ if(Bfield.dbrrt) delete[] Bfield.dbrrt;
-    //~ Bfield.dbrrt = new double[Bfield.ntot];
-    //~ if(Bfield.dbrtt) delete[] Bfield.dbrtt;
-    //~ Bfield.dbrtt = new double[Bfield.ntot];
-//~
-    //~ if(Bfield.f2) delete[] Bfield.f2;
-    //~ Bfield.f2    = new double[Bfield.ntot];
-    //~ if(Bfield.f3) delete[] Bfield.f3;
-    //~ Bfield.f3    = new double[Bfield.ntot];
-    //~ if(Bfield.g3) delete[] Bfield.g3;
-    //~ Bfield.g3    = new double[Bfield.ntot];
     Bfield.dbr.resize(Bfield.ntot);
     Bfield.dbrr.resize(Bfield.ntot);
     Bfield.dbrrr.resize(Bfield.ntot);
@@ -1172,7 +1127,7 @@ void Cyclotron::getFieldFromFile_FFAG(const double &scaleFactor) {
     double rmax = rv.back();
 
     // find out dR
-    for(vit = rv.begin(); *vit <= BP.rmin; vit++) {}
+    for(vit = rv.begin(); *vit <= BP.rmin; ++vit) {}
     BP.delr = *vit - BP.rmin;
 
     BP.tetmin = thv[0];
@@ -1497,9 +1452,8 @@ void Cyclotron::getFieldFromFile_BandRF(const double &scaleFactor) {
     vector<double>::const_iterator rffi    = rffrequ_m.begin();
     vector<double>::const_iterator rfphii  = rfphi_m.begin();
     vector<double>::const_iterator escali  = escale_m.begin();
-    int fcount = 0;
 
-    for(; fm != RFfilename_m.end(); ++fm, ++rffi, ++rfphii, ++escali, ++fcount) {
+    for(; fm != RFfilename_m.end(); ++fm, ++rffi, ++rfphii, ++escali) {
         Fieldmap *f = Fieldmap::getFieldmap(*fm, false);
         if(f == NULL) {
             throw GeneralClassicException("Cyclotron::getFieldFromFile_BandRF",
