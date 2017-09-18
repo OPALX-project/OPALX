@@ -1,0 +1,71 @@
+
+        \tikzset{
+          >=stealth',
+          pil/.style={
+            ->,
+            thick,
+            shorten <=2pt,
+            shorten >=2pt,}
+        }
+
+        \begin{scope}[xshift=-5.8cm]
+            \draw[very thin,color=gray, opacity=0.3]
+              (-0.1,-0.1) grid (4.1,4.1);
+            \draw[->, opacity=0.6] (-0.1,0) -- (4.3,0) node[below]
+              {$x_1$};
+            \draw[->, opacity=0.6] (0,-0.1) -- (0,4.3) node[above]
+              {$x_2$};
+
+            \begin{scope}
+                \draw[dashed, very thick, fill=blue, fill opacity=0.2, draw=orange]
+                  (0,2) -- (1,0) -- (1.25,1.75) --
+                  (1.7,1.25) -- (1.5,0.5) -- (4,3) --
+                  (2.8,4.25) -- (0,2);
+            \end{scope}
+            \draw (2.0, -0.4) node {design space};
+      \end{scope}
+
+      \begin{scope}
+            \draw[very thin,color=gray, opacity=0.3]
+              (-0.1,-0.1) grid (4.1,4.1);
+            \draw[->, opacity=0.6] (-0.1,0) -- (4.3,0) node[below]
+              {$f_1(x_1,x_2)$};
+            \draw[->, opacity=0.6] (0,-0.1) -- (0,4.3) node[above]
+              {$f_2(x_1,x_2)$};
+
+            \draw[fill, color=blue, draw opacity=0, fill opacity=0.2]
+              (0.3,4) .. controls (0.3,3)
+              and (-1,1.75) .. (4.0,0.5)
+              -- (4,4) -- (0.3,4);
+            \draw[dashed, very thick, color=orange]
+              (0.3,4) .. controls (0.3,3)
+              and (-1,1.75) .. (4.0,0.5);
+
+            \path[dashed, very thick, <-, opacity=0.3]
+              (0.1,-0.0) edge (4.0,-0.0)
+              node[below] {{\footnotesize\textit{min}}};
+            \path[dashed, very thick, <-, opacity=0.3]
+              (-0.0,0.1) edge (-0.0,4.0)
+              node[left] {{\footnotesize\textit{min}}};
+            \draw (2.0, -0.4) node {objective space};
+      \end{scope}
+
+      \path[pil, dashed, very thick, opacity=0.8]
+      (-3.0,4.5) edge [bend left] (2.5,4.5);
+      \path (-0.2,5.6) node {$f : \mathbb{R}^n \rightarrow \mathbb{R}^M$};
+
+      \filldraw[] (-5,1.4) circle (2pt) node[above] {$s_1$};
+      \filldraw[] (3.5,1)  circle (2pt) node[above] {$f(s_1)$};
+      %\path[pil, dashed, very thick, red, opacity=0.7]
+        %(-4.93,1.45) edge [bend left] (3.8,1.03);
+
+      \filldraw[] (-3,3.5)  circle (2pt) node[above] {$s_2$};
+      \filldraw[] (3.5,3.2) circle (2pt) node[above] {$f(s_2)$};
+      %\path[pil, dashed, very thick, red, opacity=0.7]
+        %(-2.93,3.55) edge [bend left] (3.73,3.23);
+
+      \filldraw[] (-3,3.2)   circle (2pt) node[below] {$s_3^*$};
+      \filldraw[] (0.15,3.0) circle (2pt) node[right] {$f(s_3^*)$};
+      %\path[pil, dashed, very thick, blue, opacity=0.7]
+        %(-2.93,3.25) edge [bend left] (0.08,3.03);
+

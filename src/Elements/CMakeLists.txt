@@ -34,6 +34,7 @@ set (_SRCS
   OpalRingDefinition.cpp
   OpalSBend.cpp
   OpalSBend3D.cpp
+  OpalScalingFFAGMagnet.cpp
   OpalSeparator.cpp
   OpalSeptum.cpp
   OpalSextupole.cpp

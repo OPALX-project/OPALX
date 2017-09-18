@@ -44,6 +44,7 @@
 #include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/SBend3D.h"
+#include "AbsBeamline/ScalingFFAGMagnet.h"
 #include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
@@ -195,6 +196,11 @@ void DefaultVisitor::visitSBend3D(const SBend3D &bend) {
 }
 
 
+void DefaultVisitor::visitScalingFFAGMagnet(const ScalingFFAGMagnet &spiral) {
+    applyDefault(spiral);
+}
+
+
 void DefaultVisitor::visitSeparator(const Separator &sep) {
     applyDefault(sep);
 }
@@ -212,6 +218,7 @@ void DefaultVisitor::visitSolenoid(const Solenoid &sol) {
 void DefaultVisitor::visitSource(const Source &sou) {
     applyDefault(sou);
 }
+
 
 void DefaultVisitor::visitParallelPlate(const ParallelPlate &pplate) {
     applyDefault(pplate);

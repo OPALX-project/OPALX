@@ -184,7 +184,7 @@ FS_SC: Fieldsolver, FSTYPE = FFT,
 // Electron Beam Definition
 
 BEAM1:  BEAM, PARTICLE = ELECTRON, pc = P0, NPART = n_particles,
-        BFREQ = rf_freq,BCURRENT = beam_bunch_charge * rf_freq, CHARGE = -1;
+        BFREQ = rf_freq/1.E6,BCURRENT = beam_bunch_charge * rf_freq, CHARGE = -1;
 
 //----------------------------------------------------------------------------
 // Simulate the beamline using TRACK and RUN.

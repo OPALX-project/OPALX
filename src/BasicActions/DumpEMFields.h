@@ -60,6 +60,8 @@ class Component;
  */
 class DumpEMFields : public Action {
   public:
+    enum CoordinateSystem {CYLINDRICAL, CARTESIAN};
+
     /** Constructor */
     DumpEMFields();
 
@@ -101,14 +103,22 @@ class DumpEMFields : public Action {
   private:
     virtual void writeFieldThis(Component* field);
     virtual void buildGrid();
+    void parseCoordinateSystem();
     static void checkInt(double value, std::string name, double tolerance = 1e-9);
+    void writeHeader(std::ofstream& fout) const;
+    void writeFieldLine(Component* field,
+                        const Vector_t& point,
+                        const double& time,
+                        std::ofstream& fout) const;
 
     interpolation::NDGrid* grid_m;
     std::string filename_m;
+    CoordinateSystem coordinates_m = CARTESIAN;
 
     static std::unordered_set<DumpEMFields*> dumpsSet_m;
     static std::string dumpemfields_docstring;
 
+    constexpr static double DEGREE = 180./M_PI;
     DumpEMFields(const DumpEMFields& dump);  // disabled
     DumpEMFields& operator=(const DumpEMFields& dump);  // disabled
 };

@@ -932,6 +932,6 @@ double TrackRun::setDistributionParallelT(Beam *beam) {
     }
 
     // Return charge per macroparticle.
-    return beam->getCharge() * beam->getCurrent() / beam->getFrequency() / numberOfParticles;
+    return beam->getCharge() * beam->getCurrent() / (beam->getFrequency()*1.0e6) / numberOfParticles;
 
 }

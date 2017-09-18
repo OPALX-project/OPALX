@@ -102,7 +102,6 @@ class MGPoissonSolver : public PoissonSolver {
 
 public:
     MGPoissonSolver(PartBunch *beam,Mesh_t *mesh, FieldLayout_t *fl, std::vector<BoundaryGeometry *> geometries, std::string itsolver, std::string interpl, double tol, int maxiters, std::string precmode);
-    MGPoissonSolver(PartBunch &bunch);
     ~MGPoissonSolver();
 
     /// given a charge-density field rho and a set of mesh spacings hr, compute
