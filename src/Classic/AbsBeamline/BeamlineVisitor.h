@@ -56,6 +56,7 @@ class TravelingWave;
 class RFQuadrupole;
 class SBend;
 class SBend3D;
+class ScalingFFAGMagnet;
 class Cyclotron;
 class Separator;
 class Septum;
@@ -182,6 +183,9 @@ public:
 
     /// Apply the algorithm to a solenoid.
     virtual void visitSolenoid(const Solenoid &) = 0;
+
+    /// Apply the algorithm to a solenoid.
+    virtual void visitScalingFFAGMagnet(const ScalingFFAGMagnet &) = 0;
 
     /// Apply the algorithm to a source.
     virtual void visitSource(const Source &) = 0;

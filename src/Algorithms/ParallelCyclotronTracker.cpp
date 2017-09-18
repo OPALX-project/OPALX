@@ -45,6 +45,7 @@
 #include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/SBend3D.h"
+#include "AbsBeamline/ScalingFFAGMagnet.h"
 #include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
@@ -121,19 +122,19 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    const PartData &reference,
                                                    bool revBeam, bool revTrack):
     Tracker(beamline, reference, revBeam, revTrack),
+    itsDataSink(nullptr),
+    bgf_m(nullptr),
     lastDumpedStep_m(0),
     eta_m(0.01),
+    initialR_m(nullptr),
+    initialP_m(nullptr),
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(0),
     initialTotalNum_m(0),
-    opalRing_m(NULL),
+    opalRing_m(nullptr),
     itsStepper_mp(nullptr),
     mode_m(MODE::UNDEFINED),
-    stepper_m(stepper::INTEGRATOR::UNDEFINED),
-    itsDataSink(nullptr),
-    bgf_m(nullptr),
-    initialR_m(nullptr),
-    initialP_m(nullptr) {
+    stepper_m(stepper::INTEGRATOR::UNDEFINED) {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
 }
 
@@ -156,17 +157,17 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    bool revBeam, bool revTrack,
                                                    int maxSTEPS, int timeIntegrator):
     Tracker(beamline, bunch, reference, revBeam, revTrack),
+    bgf_m(nullptr),
     maxSteps_m(maxSTEPS),
     lastDumpedStep_m(0),
     eta_m(0.01),
+    initialR_m(nullptr),
+    initialP_m(nullptr),
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(bunch->getLocalNum()),
     initialTotalNum_m(bunch->getTotalNum()),
-    opalRing_m(NULL),
-    itsStepper_mp(nullptr),
-    bgf_m(nullptr),
-    initialR_m(nullptr),
-    initialP_m(nullptr) {
+    opalRing_m(nullptr),
+    itsStepper_mp(nullptr) {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
     itsDataSink = &ds;
     //  scaleFactor_m = itsBunch_m->getdT() * c;
@@ -463,7 +464,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
         // If the user wants to save the restarted run in local frame,
         // make sure the previous h5 file was local too
-      if (Options::psDumpLocalFrame != Options::GLOBAL) {
+      if (Options::psDumpFrame != Options::GLOBAL) {
         if (!previousH5Local) {
                 throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
                                     "You are trying a local restart from a global h5 file!");
@@ -520,11 +521,11 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
     double rmin = elptr->getMinR();
     double rmax = elptr->getMaxR();
-    *gmsg << "* Radial aperture = " << rmin << " ... " << rmax<<" [mm] "<< endl;
+    *gmsg << "* Radial aperture = " << rmin << " ... " << rmax<<" [m] "<< endl;
 
     double zmin = elptr->getMinZ();
     double zmax = elptr->getMaxZ();
-    *gmsg << "* Vertical aperture = " << zmin << " ... " << zmax<<" [mm]"<< endl;
+    *gmsg << "* Vertical aperture = " << zmin << " ... " << zmax<<" [m]"<< endl;
 
     double h = elptr->getCyclHarm();
     *gmsg << "* Number of trimcoils = " << elptr->getNumberOfTrimcoils() << endl;
@@ -784,6 +785,16 @@ void ParallelCyclotronTracker::visitSBend3D(const SBend3D &bend) {
     else
         throw OpalException("ParallelCyclotronTracker::visitSBend3D",
                             "Need to define a RINGDEFINITION to use SBend3D element");
+}
+
+void ParallelCyclotronTracker::visitScalingFFAGMagnet(const ScalingFFAGMagnet &bend) {
+    *gmsg << "Adding ScalingFFAGMagnet" << endl;
+    if (opalRing_m != NULL) {
+        opalRing_m->appendElement(bend);
+    } else {
+        throw OpalException("ParallelCyclotronTracker::visitScalingFFAGMagnet",
+                            "Need to define a RINGDEFINITION to use ScalingFFAGMagnet element");
+    }
 }
 
 void ParallelCyclotronTracker::visitVariableRFCavity(const VariableRFCavity &cav) {
@@ -2345,7 +2356,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         // Do a local frame restart (we have already checked that the old h5 file was saved in local
         // frame as well).
         // Cave: Multi-bunch must not be done in the local frame! (TODO: Is this still true? -DW)
-        if((Options::psDumpLocalFrame != Options::GLOBAL)) {
+        if((Options::psDumpFrame != Options::GLOBAL)) {
 
             *gmsg << "* Restart in the local frame" << endl;
 
@@ -2582,12 +2593,23 @@ void ParallelCyclotronTracker::singleParticleDump() {
 void ParallelCyclotronTracker::bunchDumpStatData(){
     IpplTimings::startTimer(DumpTimer_m);
 
+    /*
+      in case before a bunchDumpPhasespaceData has
+      happen, the calcBeamParameters() is not needed.
+      maybe we have to introduce a dirty-stat-data flag.
+      this flag would be set if the bunch is dirty and
+      reset by calcBeamParameters
+    */
+    itsBunch_m->R *= Vector_t(0.001); // mm --> m
+    itsBunch_m->calcBeamParameters();
+    itsBunch_m->R *= Vector_t(1000.0); // m --> mm
+
     // --------------------------------- Get some Values ---------------------------------------- //
     double const E = itsBunch_m->get_meanKineticEnergy();
     double const temp_t = itsBunch_m->getT() * 1e9; // s -> ns
     Vector_t meanR;
     Vector_t meanP;
-    if (Options::psDumpLocalFrame == Options::BUNCH_MEAN) {
+    if (Options::psDumpFrame == Options::BUNCH_MEAN) {
         meanR = calcMeanR();
         meanP = calcMeanP();
     } else {
@@ -2606,7 +2628,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
 
     // If we are saving in local frame, bunch and fields at the bunch center have to be rotated
     // TODO: Make decision if we maybe want to always save statistics data in local frame? -DW
-    if(Options::psDumpLocalFrame != Options::GLOBAL) {
+    if(Options::psDumpFrame != Options::GLOBAL) {
         // -------------------- ----------- Do Transformations ---------------------------------- //
         // Bunch (local) azimuth at meanR w.r.t. y-axis
         phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
@@ -2634,7 +2656,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     //itsBunch_m->R *= Vector_t(1000.0); // m -> mm
 
     // If we are in local mode, transform back after saving
-    if(Options::psDumpLocalFrame != Options::GLOBAL) {
+    if(Options::psDumpFrame != Options::GLOBAL) {
         localToGlobal(itsBunch_m->R, phi, psi);
         localToGlobal(itsBunch_m->P, phi, psi);
     }
@@ -2657,7 +2679,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 
     Vector_t meanR;
     Vector_t meanP;
-    if (Options::psDumpLocalFrame == Options::BUNCH_MEAN) {
+    if (Options::psDumpFrame == Options::BUNCH_MEAN) {
         meanR = calcMeanR();
         meanP = calcMeanP();
     } else {
@@ -2705,7 +2727,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 
     // -------------- If flag DumpLocalFrame is not set, dump bunch in global frame ------------- //
     if (Options::psDumpFreq < std::numeric_limits<int>::max() ){
-        if (Options::psDumpLocalFrame == Options::GLOBAL) {
+        if (Options::psDumpFrame == Options::GLOBAL) {
 
             FDext_m[0] = extB_m * 0.1; // kgauss --> T
             FDext_m[1] = extE_m;

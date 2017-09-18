@@ -77,8 +77,7 @@ extern Inform *gmsg;
 
 template <class T, unsigned Dim>
 PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
-    : pbase(pb),
-      R(*(pb->R_p)),
+    : R(*(pb->R_p)),
       ID(*(pb->ID_p)),
       myNode_m(Ippl::myNode()),
       nodes_m(Ippl::getNodes()),
@@ -87,6 +86,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
       lossDs_m(nullptr),
       pmsg_m(nullptr),
       f_stream(nullptr),
+      lowParticleCount_m(false),
 //       reference(ref), //FIXME
       unit_state_(units),
       stateOfLastBoundP_(unitless),
@@ -95,7 +95,9 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
       t_m(0.0),
       eKin_m(0.0),
       dE_m(0.0),
-      spos_m(0.0),
+      spos_m(0.0), 
+      globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
+      globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
       rmax_m(0.0),
       rmin_m(0.0),
       rrms_m(0.0),
@@ -128,12 +130,10 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
       SteptoLastInj_m(0),
       partPerNode_m(nullptr),
       globalPartPerNode_m(nullptr),
+      minLocNum_m(0),
       dist_m(nullptr),
-      globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
-      globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
-      lowParticleCount_m(false),
       dcBeam_m(false),
-      minLocNum_m(0)
+      pbase(pb)
 {
     setup(pb);
     
@@ -166,8 +166,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
 
 template <class T, unsigned Dim>
 PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartData *ref)
-    : pbase(pb),
-      R(*(pb->R_p)),
+    : R(*(pb->R_p)),
       ID(*(pb->ID_p)),
       myNode_m(Ippl::myNode()),
       nodes_m(Ippl::getNodes()),
@@ -176,6 +175,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
       lossDs_m(nullptr),
       pmsg_m(nullptr),
       f_stream(nullptr),
+      lowParticleCount_m(false),
       reference(ref),
       unit_state_(units),
       stateOfLastBoundP_(unitless),
@@ -185,6 +185,8 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
       eKin_m(0.0),
       dE_m(0.0),
       spos_m(0.0),
+      globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
+      globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
       rmax_m(0.0),
       rmin_m(0.0),
       rrms_m(0.0),
@@ -217,12 +219,10 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
       SteptoLastInj_m(0),
       partPerNode_m(nullptr),
       globalPartPerNode_m(nullptr),
+      minLocNum_m(0),
       dist_m(nullptr),
-      globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
-      globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
-      lowParticleCount_m(false),
       dcBeam_m(false),
-      minLocNum_m(0)
+      pbase(pb)
 {
     setup(pb);
     
@@ -257,7 +257,6 @@ template <class T, unsigned Dim>
 PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb,
                                      const std::vector<OpalParticle>& rhs,
                                      const PartData *ref):
-    pbase(pb),
     R(*(pb->R_p)),
     ID(*(pb->ID_p)),
     myNode_m(Ippl::myNode()),
@@ -267,6 +266,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb,
     lossDs_m(nullptr),
     pmsg_m(nullptr),
     f_stream(nullptr),
+    lowParticleCount_m(false),
     reference(ref),
     unit_state_(units),
     stateOfLastBoundP_(unitless),
@@ -276,6 +276,8 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb,
     eKin_m(0.0),
     dE_m(0.0),
     spos_m(0.0),
+    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
+    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
     rmax_m(0.0),
     rmin_m(0.0),
     rrms_m(0.0),
@@ -308,12 +310,10 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb,
     SteptoLastInj_m(0),
     partPerNode_m(nullptr),
     globalPartPerNode_m(nullptr),
+    minLocNum_m(0),
     dist_m(nullptr),
-    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
-    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
     dcBeam_m(false),
-    lowParticleCount_m(false),
-    minLocNum_m(0)
+    pbase(pb)
 {
     
 }
@@ -321,7 +321,6 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb,
 
 template <class T, unsigned Dim>
 PartBunchBase<T, Dim>::PartBunchBase(const PartBunchBase<T, Dim>& rhs):
-    pbase(rhs.pbase),
     R(rhs.R),
     ID(rhs.ID),
     myNode_m(Ippl::myNode()),
@@ -331,6 +330,7 @@ PartBunchBase<T, Dim>::PartBunchBase(const PartBunchBase<T, Dim>& rhs):
     lossDs_m(nullptr),
     pmsg_m(nullptr),
     f_stream(nullptr),
+    lowParticleCount_m(rhs.lowParticleCount_m),
     reference(rhs.reference),
     unit_state_(rhs.unit_state_),
     stateOfLastBoundP_(rhs.stateOfLastBoundP_),
@@ -340,6 +340,8 @@ PartBunchBase<T, Dim>::PartBunchBase(const PartBunchBase<T, Dim>& rhs):
     eKin_m(rhs.eKin_m),
     dE_m(rhs.dE_m),
     spos_m(0.0),
+    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
+    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
     rmax_m(rhs.rmax_m),
     rmin_m(rhs.rmin_m),
     rrms_m(rhs.rrms_m),
@@ -372,14 +374,11 @@ PartBunchBase<T, Dim>::PartBunchBase(const PartBunchBase<T, Dim>& rhs):
     SteptoLastInj_m(rhs.SteptoLastInj_m),
     partPerNode_m(nullptr),
     globalPartPerNode_m(nullptr),
+    minLocNum_m(rhs.minLocNum_m),
     dist_m(nullptr),
-    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
-    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
-    lowParticleCount_m(rhs.lowParticleCount_m),
     dcBeam_m(rhs.dcBeam_m),
-    minLocNum_m(rhs.minLocNum_m)
+    pbase(rhs.pbase)
 {
-    
 }
 
 

@@ -1,3 +1,5 @@
+add_subdirectory(EndFieldModel)
+
 set (_SRCS
   AlignWrapper.cpp
   AttributeSet.cpp
@@ -31,6 +33,7 @@ set (_SRCS
   Ring.cpp
   SBend.cpp
   SBend3D.cpp
+  ScalingFFAGMagnet.cpp
   Separator.cpp
   Septum.cpp
   Solenoid.cpp
@@ -79,6 +82,7 @@ set (HDRS
     Ring.h
     SBend3D.h
     SBend.h
+    ScalingFFAGMagnet.h
     SectorFieldMapComponent.h
     Separator.h
     Septum.h
