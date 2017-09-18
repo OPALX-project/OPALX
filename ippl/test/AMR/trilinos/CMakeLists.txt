@@ -115,6 +115,13 @@ IF ( ${BL_SPACEDIM} EQUAL 2 )
     
     add_executable( testInterpolationMatrix testInterpolationMatrix.cpp)
     
+    add_executable( testTwoLevel
+                testTwoLevel.cpp
+                ../Solver.cpp
+                ${F90_source_files}
+                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                AmrMultiGrid.cpp)
+    
 ENDIF ( ${BL_SPACEDIM} EQUAL 2 )
 
 # add_executable( testTrilinosGeometry
@@ -148,6 +155,10 @@ IF ( ${BL_SPACEDIM} EQUAL 2 )
 
     target_link_libraries (testInterpolationMatrix ${LIBS}
                            -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                           
+    target_link_libraries (testTwoLevel ${LIBS}
+                          -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 ENDIF ( ${BL_SPACEDIM} EQUAL 2 )
