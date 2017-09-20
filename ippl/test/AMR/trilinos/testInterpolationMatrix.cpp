@@ -659,7 +659,7 @@ void test(const param_t& params)
     // This sets the boundary conditions to be doubly or triply periodic
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) 
-        is_per[i] = 1; 
+        is_per[i] = 0; 
 
     // This defines a Geometry object which is useful for writing the plotfiles  
     Array<Geometry> geom(nlevs);
