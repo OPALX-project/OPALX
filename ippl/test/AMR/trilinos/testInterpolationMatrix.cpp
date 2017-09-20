@@ -229,10 +229,45 @@ void applyBoundary(const IntVect& iv,
             niv[i] = (iv[i] == -1) ? iv[i] + 1 : iv[i] - 1;
     }
     
-    indices[numEntries] = serialize(niv, &nr[0]);
-    values[numEntries] = -value;
+    indices.push_back( serialize(niv, &nr[0]) );
+    values.push_back( -value );
     ++numEntries;
 }
+
+// // Open Boundary
+// void applyBoundary(const IntVect& iv,
+//                    std::vector<int>& indices,
+//                    std::vector<double>& values,
+//                    int& numEntries,
+//                    const double& value,
+//                    int* nr)
+// {
+//     // find interior neighbour cell
+//     IntVect niv;
+//     for (int i = 0; i < BL_SPACEDIM; ++i) {
+//         if ( iv[i] > -1 && iv[i] < nr[i] )
+//             niv[i] = iv[i];
+//         else
+//             niv[i] = (iv[i] == -1) ? iv[i] + 1 : iv[i] - 1;
+//     }
+//     
+//     // find next interior neighbour cell
+//     IntVect n2iv = niv;
+//     for (int i = 0; i < BL_SPACEDIM; ++i) {
+//         if ( iv[i] == -1 || iv[i] == nr[i] )
+//             n2iv[i] = ( niv[i] + 1 < nr[i] ) ? niv[i] + 1 : niv[i] - 1;
+//     }
+//     
+//     std::cout << iv << " " << niv << " " << n2iv << std::endl;
+//     
+//     indices.push_back( serialize(niv, &nr[0]) );
+//     values.push_back( 2.0 * value );
+//     ++numEntries;
+//     
+//     indices.push_back( serialize(n2iv, &nr[0]) );
+//     values.push_back( - value );
+//     ++numEntries;
+// }
 
 
 void stencil(const IntVect& iv,
@@ -280,8 +315,8 @@ void stencil(const IntVect& iv,
     if ( isBoundary(civ, &nr[0]) ) {
         applyBoundary(civ, indices, values, numEntries, value, &nr[0]);
     } else {
-        indices[numEntries] = crse_gidx;
-        values[numEntries]  = value;
+        indices.push_back( crse_gidx );
+        values.push_back( value );
         ++numEntries;
     }
     
@@ -291,8 +326,8 @@ void stencil(const IntVect& iv,
     if ( isBoundary(tmp, &nr[0]) ) {
         applyBoundary(tmp, indices, values, numEntries, value, &nr[0]);
     } else {
-        indices[numEntries] = serialize(tmp, &nr[0]);
-        values[numEntries]  = value;
+        indices.push_back( serialize(tmp, &nr[0]) );
+        values.push_back( value );
         ++numEntries;
     }
     
@@ -302,8 +337,8 @@ void stencil(const IntVect& iv,
     if ( isBoundary(tmp, &nr[0]) ) {
         applyBoundary(tmp, indices, values, numEntries, value, &nr[0]);
     } else {
-        indices[numEntries] = serialize(tmp, &nr[0]);
-        values[numEntries]  = value;
+        indices.push_back( serialize(tmp, &nr[0]) );
+        values.push_back( value );
         ++numEntries;
     }
     
@@ -313,8 +348,8 @@ void stencil(const IntVect& iv,
     if ( isBoundary(tmp, &nr[0]) ) {
         applyBoundary(tmp, indices, values, numEntries, value, &nr[0]);
     } else {
-        indices[numEntries] = serialize(tmp, &nr[0]);
-        values[numEntries]  = value;
+        indices.push_back( serialize(tmp, &nr[0]) );
+        values.push_back( value );
         ++numEntries;
     }
         
@@ -325,8 +360,8 @@ void stencil(const IntVect& iv,
     if ( isBoundary(tmp, &nr[0]) ) {
         applyBoundary(tmp, indices, values, numEntries, value, &nr[0]);
     } else {
-        indices[numEntries] = serialize(tmp, &nr[0]);
-        values[numEntries]  = value;
+        indices.push_back( serialize(tmp, &nr[0]) );
+        values.push_back( value );
         ++numEntries;
     }
     
@@ -336,8 +371,8 @@ void stencil(const IntVect& iv,
     if ( isBoundary(tmp, &nr[0]) ) {
         applyBoundary(tmp, indices, values, numEntries, value, &nr[0]);
     } else {
-        indices[numEntries] = serialize(tmp, &nr[0]);
-        values[numEntries]  = value;
+        indices.push_back( serialize(tmp, &nr[0]) );
+        values.push_back( value );
         ++numEntries;
     }
     
@@ -347,8 +382,8 @@ void stencil(const IntVect& iv,
     if ( isBoundary(tmp, &nr[0]) ) {
         applyBoundary(tmp, indices, values, numEntries, value, &nr[0]);
     } else {
-        indices[numEntries] = serialize(tmp, &nr[0]);
-        values[numEntries]  = value;
+        indices.push_back( serialize(tmp, &nr[0]) );
+        values.push_back( value );
         ++numEntries;
     }
     
@@ -358,8 +393,8 @@ void stencil(const IntVect& iv,
     if ( isBoundary(tmp, &nr[0]) ) {
         applyBoundary(tmp, indices, values, numEntries, value, &nr[0]);
     } else {
-        indices[numEntries] = serialize(tmp, &nr[0]);
-        values[numEntries]  = value;
+        indices.push_back( serialize(tmp, &nr[0]) );
+        values.push_back( value );
         ++numEntries;
     }
 #endif
@@ -378,8 +413,43 @@ void stencil(const IntVect& iv,
     std::vector<int> uindices;
     std::vector<double> uvalues;
     
-    int n = indices.size();
+    for (uint i = 0; i < indices.size(); ++i)
+        std::cout << indices[i] << " ";
+    std::cout << std::endl;
     
+    for (uint i = 0; i < values.size(); ++i)
+        std::cout << values[i] << " ";
+    std::cout << std::endl;
+    
+    // 20. Sept. 2017,
+    // https://stackoverflow.com/questions/34878329/how-to-sort-two-vectors-simultaneously-in-c-without-using-boost-or-creating-te
+    std::vector< std::pair<int, double> > pair;
+    for (uint i = 0; i < indices.size(); ++i)
+        pair.push_back( { indices[i], values[i] } );
+    
+    std::sort(pair.begin(), pair.end(),
+              [](const std::pair<int, double>& a,
+                  const std::pair<int, double>& b) {
+                  return a.first < b.first;
+              });
+    
+    for (uint i = 0; i < indices.size(); ++i) {
+        indices[i] = pair[i].first;
+        values[i]  = pair[i].second;
+    }
+    
+    for (uint i = 0; i < indices.size(); ++i)
+        std::cout << indices[i] << " ";
+    std::cout << std::endl;
+    
+    for (uint i = 0; i < values.size(); ++i)
+        std::cout << values[i] << " ";
+    std::cout << std::endl;
+    
+//     int n = indices.size();
+    
+    
+    // requirement: duplicates are consecutive
     std::unique_copy(indices.begin(), indices.end(), std::back_inserter(uindices));
     
     uvalues.resize(uindices.size());
@@ -393,11 +463,19 @@ void stencil(const IntVect& iv,
     
     numEntries = (int)uindices.size();
     
+    for (uint i = 0; i < indices.size(); ++i)
+        std::cout << indices[i] << " ";
+    std::cout << std::endl;
+    
+    for (int i = 0; i < numEntries; ++i)
+        std::cout << uindices[i] << " ";
+    std::cout << std::endl;
+    
     std::swap(values, uvalues);
     std::swap(indices, uindices);
     
-    values.resize(n);
-    indices.resize(n);
+//     values.resize(n);
+//     indices.resize(n);
     
 }
 
@@ -421,14 +499,14 @@ void buildInterpolationMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
     
     int nNeighbours = (2 << (BL_SPACEDIM -1 ));
     
-    std::vector<int> indices(nNeighbours);
-    std::vector<double> values(nNeighbours);
+    std::vector<int> indices; //(nNeighbours);
+    std::vector<double> values; //(nNeighbours);
     
     const Epetra_Map& RowMap = *maps[level+1];
     const Epetra_Map& ColMap = *maps[level];
     
     I = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy,
-                                           RowMap, nNeighbours) );
+                                           RowMap, nNeighbours, false) );
     
     for (amrex::MFIter mfi(grids[level+1], dmap[level+1], false);
          mfi.isValid(); ++mfi)
@@ -448,11 +526,15 @@ void buildInterpolationMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
                     int globidx = serialize(iv, &fnr[0]);
                     
                     int numEntries = 0;
+                    indices.clear();
+                    values.clear();
                     
                     /*
                      * we need boundary + indices from coarser level
                      */
                     stencil(iv, indices, values, numEntries, &cnr[0]);
+                    
+                    std::cout << iv << " " << numEntries << std::endl; std::cin.get();
                     
                     int error = I->InsertGlobalValues(globidx,
                                                       numEntries,
@@ -741,7 +823,11 @@ int main(int argc, char* argv[])
             return 0;
         
         msg << "Particle test running with" << endl
-            << "- grid      = " << params.nr << endl
+            << "- grid      = " << params.nr[0] << " " << params.nr[1]
+#if BL_SPACEDIM == 3
+            << " " << params.nr[2]
+#endif
+            << endl
             << "- #level    = " << params.nLevels << endl
             << "- max. grid = " << params.maxBoxSize << endl;
         
@@ -750,8 +836,6 @@ int main(int argc, char* argv[])
     } catch(const std::exception& ex) {
         msg << ex.what() << endl;
     }
-  
-  test(params);
-  
-  amrex::Finalize();
+    
+    amrex::Finalize();
 }
