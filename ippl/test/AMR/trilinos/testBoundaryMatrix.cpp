@@ -1,5 +1,5 @@
 /*!
- * @file testInterpolationMatrix.cpp
+ * @file testBoundaryMatrix.cpp
  * @author Matthias Frey
  * 
  */
@@ -267,6 +267,48 @@ void applyBoundary(const IntVect& iv,
     ++numEntries;
 }
 
+void unique(std::vector<int>& indices,
+            std::vector<double>& values, int& numEntries)
+{
+    std::vector<int> uindices;
+    std::vector<double> uvalues;
+    
+    // we need to sort for std::unique_copy
+    // 20. Sept. 2017,
+    // https://stackoverflow.com/questions/34878329/how-to-sort-two-vectors-simultaneously-in-c-without-using-boost-or-creating-te
+    std::vector< std::pair<int, double> > pair;
+    for (uint i = 0; i < indices.size(); ++i)
+        pair.push_back( { indices[i], values[i] } );
+    
+    std::sort(pair.begin(), pair.end(),
+              [](const std::pair<int, double>& a,
+                  const std::pair<int, double>& b) {
+                  return a.first < b.first;
+              });
+    
+    for (uint i = 0; i < indices.size(); ++i) {
+        indices[i] = pair[i].first;
+        values[i]  = pair[i].second;
+    }
+    
+    // requirement: duplicates are consecutive
+    std::unique_copy(indices.begin(), indices.end(), std::back_inserter(uindices));
+    
+    uvalues.resize(uindices.size());
+    
+    for (std::size_t i = 0; i < uvalues.size(); ++i) {
+        for (std::size_t j = 0; j < values.size(); ++j) {
+            if ( uindices[i] == indices[j] )
+                uvalues[i] += values[j];
+        }
+    }
+    
+    numEntries = (int)uindices.size();
+    
+    std::swap(values, uvalues);
+    std::swap(indices, uindices);
+}
+
 
 void stencil(const IntVect& iv,
              std::vector<int>& indices,
@@ -408,118 +450,219 @@ void stencil(const IntVect& iv,
      * In some cases indices occur several times, e.g. for corner points
      * at the physical boundary --> sum them up
      */
-    std::vector<int> uindices;
-    std::vector<double> uvalues;
-    
-    // we need to sort for std::unique_copy
-    // 20. Sept. 2017,
-    // https://stackoverflow.com/questions/34878329/how-to-sort-two-vectors-simultaneously-in-c-without-using-boost-or-creating-te
-    std::vector< std::pair<int, double> > pair;
-    for (uint i = 0; i < indices.size(); ++i)
-        pair.push_back( { indices[i], values[i] } );
-    
-    std::sort(pair.begin(), pair.end(),
-              [](const std::pair<int, double>& a,
-                  const std::pair<int, double>& b) {
-                  return a.first < b.first;
-              });
-    
-    for (uint i = 0; i < indices.size(); ++i) {
-        indices[i] = pair[i].first;
-        values[i]  = pair[i].second;
-    }
-    
-    // requirement: duplicates are consecutive
-    std::unique_copy(indices.begin(), indices.end(), std::back_inserter(uindices));
-    
-    uvalues.resize(uindices.size());
-    
-    for (std::size_t i = 0; i < uvalues.size(); ++i) {
-        for (std::size_t j = 0; j < values.size(); ++j) {
-            if ( uindices[i] == indices[j] )
-                uvalues[i] += values[j];
-        }
-    }
-    
-    numEntries = (int)uindices.size();
-    
-    std::swap(values, uvalues);
-    std::swap(indices, uindices);
+    unique(indices, values, numEntries);
 }
 
-
-void buildInterpolationMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
-                              const std::vector<Teuchos::RCP<Epetra_Map> >& maps,
-                              const Array<BoxArray>& grids, const Array<DistributionMapping>& dmap,
-                              const Array<Geometry>& geom,
-                              const IntVect& rr, Epetra_MpiComm& comm, int level) {
+void checkBoundary(Teuchos::RCP<Epetra_CrsMatrix>& B,
+                   const Array<Geometry>& geom,
+                   int level,
+                   const amrex::BaseFab<int>& mfab,
+                   const IntVect& lo,
+                   const IntVect& hi)
+{
+    int nr[BL_SPACEDIM];
+    for (int j = 0; j < BL_SPACEDIM; ++j)
+        nr[j] = geom[level].Domain().length(j);
     
-    if ( level == (int)dmap.size() - 1 )
-        return;
-    
-    int cnr[BL_SPACEDIM];
-    int fnr[BL_SPACEDIM];
-    for (int j = 0; j < BL_SPACEDIM; ++j) {
-        cnr[j] = geom[level].Domain().length(j);
-        fnr[j] = geom[level+1].Domain().length(j);
-    }
-    
-    
-    int nNeighbours = (2 << (BL_SPACEDIM -1 ));
+    const double* dx = geom[level].CellSize();
     
     std::vector<int> indices; //(nNeighbours);
     std::vector<double> values; //(nNeighbours);
     
-    const Epetra_Map& RowMap = *maps[level+1];
-    const Epetra_Map& ColMap = *maps[level];
+    // helper function for boundary
+    auto check = [&](const amrex::BaseFab<int>& mfab,
+                     const IntVect& iv,
+                     int& numEntries,
+                     std::vector<int>& indices,
+                     std::vector<double>& values,
+                     int dir)
+    {
+        switch ( mfab(iv) )
+        {
+            case -1:
+                // covered (nothing to do here)
+                break;
+            case 0:
+                // interior (nothing to do here)
+                break;
+            case 1:
+            {
+                // internal boundary
+
+                //TODO
+                // we need boundary + indices from coarser level
+                
+                break;
+            }
+            case 2:
+            {
+                // physical boundary
+                
+                // we do not need info from coarser level
+                
+                double value = 1.0 / ( dx[dir] * dx[dir] );     //FIXME Check sign (depends on definition of Laplacian)
+                
+                applyBoundary(iv, indices, values, numEntries, value, &nr[0]);
+                
+                break;
+            }
+            default:
+                throw std::runtime_error("Error in mask value");
+                break;
+        }
+    };
     
-    I = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy,
+    for (int i = lo[0]; i <= hi[0]; ++i) {
+        for (int j = lo[1]; j <= hi[1]; ++j) {
+#if BL_SPACEDIM == 3
+            for (int k = lo[2]; k <= hi[2]; ++k) {
+#endif
+                // last interior cell
+                IntVect iv(D_DECL(i, j, k));
+                
+                int numEntries = 0;
+                indices.clear();
+                values.clear();
+                
+                // we need the gloval index of the interior cell (the center of the Laplacian stencil (i, j, k)
+                int globidx = serialize(iv, &nr[0]);
+                
+                /*
+                 * check all directions (Laplacian stencil --> cross)
+                 */
+                for (int d = 0; d < BL_SPACEDIM; ++d) {
+                    for (int shift = -1; shift <= 1; shift += 2) {
+                        IntVect biv = iv;                        
+                        biv[d] += shift;
+                        check(mfab, biv,
+                              numEntries, indices,
+                              values, d);
+                    }
+                }
+                
+//                 for (uint ii = 0; ii < indices.size(); ++ii)
+//                     std::cout << indices[ii] << " ";
+//                 std::cout << std::endl;
+//                 
+//                 for (uint ii = 0; ii < values.size(); ++ii)
+//                     std::cout << values[ii] << " ";
+//                 std::cout << std::endl;
+                
+                unique(indices, values, numEntries);
+                
+//                 for (uint ii = 0; ii < indices.size(); ++ii)
+//                     std::cout << indices[ii] << " ";
+//                 std::cout << std::endl;
+//                 
+//                 for (uint ii = 0; ii < values.size(); ++ii)
+//                     std::cout << values[ii] << " ";
+//                 std::cout << std::endl;
+                
+                int error = B->InsertGlobalValues(globidx,
+                                                  numEntries,
+                                                  &values[0],
+                                                  &indices[0]);
+                
+                if ( error != 0 ) {
+                    // if e.g. nNeighbours < numEntries --> error
+                    throw std::runtime_error("Error in filling the boundary matrix (physical bc) for level " +
+                                             std::to_string(level) + "!");
+                }
+                
+                
+#if BL_SPACEDIM == 3
+            }
+#endif
+        }
+    }
+}
+
+
+void buildBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& B,
+                              const std::vector<Teuchos::RCP<Epetra_Map> >& maps,
+                              const Array<BoxArray>& grids, const Array<DistributionMapping>& dmap,
+                              const Array<Geometry>& geom,
+                              const IntVect& rr, Epetra_MpiComm& comm, int level)
+{
+    /* We need to apply the cellsize as well.
+     * 
+     */
+    
+    int nNeighbours = (2 << (BL_SPACEDIM -1 ));
+    
+    const Epetra_Map& RowMap = *maps[level];
+    
+    B = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy,
                                            RowMap, nNeighbours, false) );
     
-    for (amrex::MFIter mfi(grids[level+1], dmap[level+1], false);
-         mfi.isValid(); ++mfi)
-    {
-        const amrex::Box& bx  = mfi.validbox();
+    std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > mask(
+        new amrex::FabArray<amrex::BaseFab<int> >(grids[level], dmap[level], 1, 1)
+    );
+    
+    mask->BuildMask(geom[level].Domain(), geom[level].periodicity(), -1, 1, 2, 0);
+    
+    
+    for (amrex::MFIter mfi(*mask, false); mfi.isValid(); ++mfi) {
+        const amrex::Box&    bx  = mfi.validbox();
+        const amrex::BaseFab<int>& mfab = (*mask)[mfi];
         
         const int* lo = bx.loVect();
         const int* hi = bx.hiVect();
         
-        for (int i = lo[0]; i <= hi[0]; ++i) {
-            for (int j = lo[1]; j <= hi[1]; ++j) {
+        /*
+         * left boundary
+         */
+        IntVect lower(D_DECL(lo[0], lo[1], lo[2]));
+        IntVect upper(D_DECL(lo[0], hi[1], hi[2]));
+        
+        checkBoundary(B, geom, level, mfab, lower, upper);
+        
+        /*
+         * right boundary
+         */
+        lower = IntVect(D_DECL(hi[0], lo[1], lo[2]));
+        upper = IntVect(D_DECL(hi[0], hi[1], hi[2]));
+        
+        checkBoundary(B, geom, level, mfab, lower, upper);
+        
+        
+        /*
+         * lower boundary (without left and right last cell!)
+         */
+        lower = IntVect(D_DECL(lo[0]+1, lo[1], lo[2]));
+        upper = IntVect(D_DECL(hi[0]-1, lo[1], hi[2]));
+        
+        checkBoundary(B, geom, level, mfab, lower, upper);
+        
+        /*
+         * upper boundary (without left and right last cell!)
+         */
+        lower = IntVect(D_DECL(lo[0]+1, hi[1], lo[2]));
+        upper = IntVect(D_DECL(hi[0]-1, hi[1], hi[2]));
+        
+        checkBoundary(B, geom, level, mfab, lower, upper);
+        
 #if BL_SPACEDIM == 3
-                for (int k = lo[2]; k <= hi[2]; ++k) {
+        /*
+         * front boundary (without left, right, upper and lower last cell!)
+         */
+        lower = IntVect(D_DECL(lo[0]+1, lo[1]+1, lo[2]));
+        upper = IntVect(D_DECL(hi[0]-1, hi[1]-1, lo[2]));
+        
+        checkBoundary(B, geom, level, mfab, lower, upper);
+        
+        /*
+         * back boundary (without left, right, upper and lower last cell!)
+         */
+        lower = IntVect(D_DECL(lo[0]+1, lo[1]+1, hi[2]));
+        upper = IntVect(D_DECL(hi[0]-1, hi[1]-1, hi[2]));
+        
+        checkBoundary(B, geom, level, mfab, lower, upper);
 #endif
-                    IntVect iv(D_DECL(i, j, k));
-                    
-                    int globidx = serialize(iv, &fnr[0]);
-                    
-                    int numEntries = 0;
-                    indices.clear();
-                    values.clear();
-                    
-                    /*
-                     * we need boundary + indices from coarser level
-                     */
-                    stencil(iv, indices, values, numEntries, &cnr[0]);
-                    
-                    int error = I->InsertGlobalValues(globidx,
-                                                      numEntries,
-                                                      &values[0],
-                                                      &indices[0]);
-                    
-                    if ( error != 0 ) {
-                        // if e.g. nNeighbours < numEntries --> error
-                        throw std::runtime_error("Error in filling the interpolation matrix for level " +
-                                                 std::to_string(level) + "!");
-                    }
-#if BL_SPACEDIM == 3
-                }
-#endif
-            }
-        }
+        
     }
     
-    int error = I->FillComplete(ColMap, RowMap, true);
+    int error = B->FillComplete(/*ColMap, RowMap, */true);
     
     if ( error != 0 )
         throw std::runtime_error("Error in completing the interpolation matrix for level " +
@@ -527,10 +670,10 @@ void buildInterpolationMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
     
     std::cout << "Done." << std::endl;
     
-    std::cout << *I << std::endl;
+    std::cout << *B << std::endl;
     
     
-    EpetraExt::RowMatrixToMatlabFile("interpolation_matrix.txt", *I);
+    EpetraExt::RowMatrixToMatlabFile("boundary_matrix.txt", *B);
 }
 
 
@@ -718,11 +861,15 @@ void test(const param_t& params)
     
     
     
-    Teuchos::RCP<Epetra_CrsMatrix> I = Teuchos::null;
+    Teuchos::RCP<Epetra_CrsMatrix> B = Teuchos::null;
     
     IntVect rv(D_DECL(2, 2, 2));
     
-    buildInterpolationMatrix(I, maps, ba, dmap, geom, rv, epetra_comm, 0);
+    buildBoundaryMatrix(B, maps, ba, dmap, geom, rv, epetra_comm, 0);
+    
+    std::cout << "LEVEL 1" << std::endl; std::cin.get();
+    
+    buildBoundaryMatrix(B, maps, ba, dmap, geom, rv, epetra_comm, 1);
     
     container_t rhs(nlevs);
     container_t phi(nlevs);
@@ -755,13 +902,13 @@ void test(const param_t& params)
     
     amrex2trilinos(*rhs[1], y, maps[1], geom, 1);
     
-    // y = I * x
-    I->Multiply(false, *x, *y);
-    
-    trilinos2amrex(*rhs[1], y);
-    
-    if ( params.isWriteYt )
-        writeYt(rhs, phi, efield, geom, rr, 1.0);
+//     // y = B * x
+//     B->Multiply(false, *x, *y);
+//     
+//     trilinos2amrex(*rhs[1], y);
+//     
+//     if ( params.isWriteYt )
+//         writeYt(rhs, phi, efield, geom, rr, 1.0);
 }
 
 
