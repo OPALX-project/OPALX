@@ -212,29 +212,7 @@ bool isBoundary(const IntVect& iv, const int* nr) {
 #endif
 }
 
-// Dirichlet ( zero at face )
-void applyBoundary(const IntVect& iv,
-                   std::vector<int>& indices,
-                   std::vector<double>& values,
-                   int& numEntries,
-                   const double& value,
-                   int* nr)
-{
-    // find interior neighbour cell
-    IntVect niv;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-        if ( iv[i] > -1 && iv[i] < nr[i] )
-            niv[i] = iv[i];
-        else
-            niv[i] = (iv[i] == -1) ? iv[i] + 1 : iv[i] - 1;
-    }
-    
-    indices.push_back( serialize(niv, &nr[0]) );
-    values.push_back( -value );
-    ++numEntries;
-}
-
-// // Open Boundary
+// // Dirichlet ( zero at face )
 // void applyBoundary(const IntVect& iv,
 //                    std::vector<int>& indices,
 //                    std::vector<double>& values,
@@ -251,23 +229,43 @@ void applyBoundary(const IntVect& iv,
 //             niv[i] = (iv[i] == -1) ? iv[i] + 1 : iv[i] - 1;
 //     }
 //     
-//     // find next interior neighbour cell
-//     IntVect n2iv = niv;
-//     for (int i = 0; i < BL_SPACEDIM; ++i) {
-//         if ( iv[i] == -1 || iv[i] == nr[i] )
-//             n2iv[i] = ( niv[i] + 1 < nr[i] ) ? niv[i] + 1 : niv[i] - 1;
-//     }
-//     
-//     std::cout << iv << " " << niv << " " << n2iv << std::endl;
-//     
 //     indices.push_back( serialize(niv, &nr[0]) );
-//     values.push_back( 2.0 * value );
-//     ++numEntries;
-//     
-//     indices.push_back( serialize(n2iv, &nr[0]) );
-//     values.push_back( - value );
+//     values.push_back( -value );
 //     ++numEntries;
 // }
+
+// Open Boundary
+void applyBoundary(const IntVect& iv,
+                   std::vector<int>& indices,
+                   std::vector<double>& values,
+                   int& numEntries,
+                   const double& value,
+                   int* nr)
+{
+    // find interior neighbour cell
+    IntVect niv;
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+        if ( iv[i] > -1 && iv[i] < nr[i] )
+            niv[i] = iv[i];
+        else
+            niv[i] = (iv[i] == -1) ? iv[i] + 1 : iv[i] - 1;
+    }
+    
+    // find next interior neighbour cell
+    IntVect n2iv = niv;
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+        if ( iv[i] == -1 || iv[i] == nr[i] )
+            n2iv[i] = ( niv[i] + 1 < nr[i] ) ? niv[i] + 1 : niv[i] - 1;
+    }
+    
+    indices.push_back( serialize(niv, &nr[0]) );
+    values.push_back( 2.0 * value );
+    ++numEntries;
+    
+    indices.push_back( serialize(n2iv, &nr[0]) );
+    values.push_back( - value );
+    ++numEntries;
+}
 
 
 void stencil(const IntVect& iv,
@@ -413,14 +411,7 @@ void stencil(const IntVect& iv,
     std::vector<int> uindices;
     std::vector<double> uvalues;
     
-    for (uint i = 0; i < indices.size(); ++i)
-        std::cout << indices[i] << " ";
-    std::cout << std::endl;
-    
-    for (uint i = 0; i < values.size(); ++i)
-        std::cout << values[i] << " ";
-    std::cout << std::endl;
-    
+    // we need to sort for std::unique_copy
     // 20. Sept. 2017,
     // https://stackoverflow.com/questions/34878329/how-to-sort-two-vectors-simultaneously-in-c-without-using-boost-or-creating-te
     std::vector< std::pair<int, double> > pair;
@@ -438,17 +429,6 @@ void stencil(const IntVect& iv,
         values[i]  = pair[i].second;
     }
     
-    for (uint i = 0; i < indices.size(); ++i)
-        std::cout << indices[i] << " ";
-    std::cout << std::endl;
-    
-    for (uint i = 0; i < values.size(); ++i)
-        std::cout << values[i] << " ";
-    std::cout << std::endl;
-    
-//     int n = indices.size();
-    
-    
     // requirement: duplicates are consecutive
     std::unique_copy(indices.begin(), indices.end(), std::back_inserter(uindices));
     
@@ -463,20 +443,8 @@ void stencil(const IntVect& iv,
     
     numEntries = (int)uindices.size();
     
-    for (uint i = 0; i < indices.size(); ++i)
-        std::cout << indices[i] << " ";
-    std::cout << std::endl;
-    
-    for (int i = 0; i < numEntries; ++i)
-        std::cout << uindices[i] << " ";
-    std::cout << std::endl;
-    
     std::swap(values, uvalues);
     std::swap(indices, uindices);
-    
-//     values.resize(n);
-//     indices.resize(n);
-    
 }
 
 
@@ -534,14 +502,13 @@ void buildInterpolationMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
                      */
                     stencil(iv, indices, values, numEntries, &cnr[0]);
                     
-                    std::cout << iv << " " << numEntries << std::endl; std::cin.get();
-                    
                     int error = I->InsertGlobalValues(globidx,
                                                       numEntries,
                                                       &values[0],
                                                       &indices[0]);
                     
                     if ( error != 0 ) {
+                        // if e.g. nNeighbours < numEntries --> error
                         throw std::runtime_error("Error in filling the interpolation matrix for level " +
                                                  std::to_string(level) + "!");
                     }
@@ -585,7 +552,6 @@ void trilinos2amrex(MultiFab& mf,
 #endif
                     IntVect iv(D_DECL(i, j, k));
                     fab(iv) = (*mv)[localidx++];
-                    std::cout << localidx << " " << iv << " " << fab(iv) << std::endl;
                 }
 #if BL_SPACEDIM == 3
             }
@@ -677,13 +643,6 @@ void test(const param_t& params)
         real_box.setHi(n, 1.0);
     }
 
-    RealBox fine_box;
-    for (int n = 0; n < BL_SPACEDIM; n++)
-    {
-       fine_box.setLo(n,0.25);
-       fine_box.setHi(n,0.75);
-    }
-    
     IntVect domain_lo(D_DECL(0 , 0, 0)); 
     
     IntVect domain_hi(D_DECL(params.nr[0] - 1, params.nr[1] - 1, params.nr[2]-1)); 
