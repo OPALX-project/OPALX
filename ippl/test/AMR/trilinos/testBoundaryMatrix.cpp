@@ -453,7 +453,8 @@ void stencil(const IntVect& iv,
     unique(indices, values, numEntries);
 }
 
-void checkBoundary(Teuchos::RCP<Epetra_CrsMatrix>& B,
+void checkBoundary(Teuchos::RCP<Epetra_CrsMatrix>& Bphys,
+                   Teuchos::RCP<Epetra_CrsMatrix>& Bintr,
                    const Array<Geometry>& geom,
                    int level,
                    const amrex::BaseFab<int>& mfab,
@@ -464,10 +465,20 @@ void checkBoundary(Teuchos::RCP<Epetra_CrsMatrix>& B,
     for (int j = 0; j < BL_SPACEDIM; ++j)
         nr[j] = geom[level].Domain().length(j);
     
+    int cnr[BL_SPACEDIM];
+    if ( level > 0 ) {
+        for (int j = 0; j < BL_SPACEDIM; ++j)
+            cnr[j] = geom[level-1].Domain().length(j);
+    }
+        
+    
     const double* dx = geom[level].CellSize();
     
     std::vector<int> indices; //(nNeighbours);
     std::vector<double> values; //(nNeighbours);
+    
+    std::vector<int> intr_indices;
+    std::vector<double> intr_values;
     
     // helper function for boundary
     auto check = [&](const amrex::BaseFab<int>& mfab,
@@ -475,6 +486,9 @@ void checkBoundary(Teuchos::RCP<Epetra_CrsMatrix>& B,
                      int& numEntries,
                      std::vector<int>& indices,
                      std::vector<double>& values,
+                     int& intr_numEntries,
+                     std::vector<int>& intr_indices,
+                     std::vector<double>& intr_values,
                      int dir)
     {
         switch ( mfab(iv) )
@@ -487,10 +501,13 @@ void checkBoundary(Teuchos::RCP<Epetra_CrsMatrix>& B,
                 break;
             case 1:
             {
-                // internal boundary
-
+                // internal boundary (only level > 0 have this kind of boundary)
+                
                 //TODO
                 // we need boundary + indices from coarser level
+                stencil(iv, intr_indices, intr_values, intr_numEntries, &cnr[0]);
+                
+                std::cout << "intr_numEntries = " << intr_numEntries << std::endl;
                 
                 break;
             }
@@ -521,10 +538,14 @@ void checkBoundary(Teuchos::RCP<Epetra_CrsMatrix>& B,
                 IntVect iv(D_DECL(i, j, k));
                 
                 int numEntries = 0;
+                int intr_numEntries = 0;
                 indices.clear();
                 values.clear();
                 
-                // we need the gloval index of the interior cell (the center of the Laplacian stencil (i, j, k)
+                intr_indices.clear();
+                intr_values.clear();
+                
+                // we need the global index of the interior cell (the center of the Laplacian stencil (i, j, k)
                 int globidx = serialize(iv, &nr[0]);
                 
                 /*
@@ -535,38 +556,57 @@ void checkBoundary(Teuchos::RCP<Epetra_CrsMatrix>& B,
                         IntVect biv = iv;                        
                         biv[d] += shift;
                         check(mfab, biv,
-                              numEntries, indices,
-                              values, d);
+                              numEntries,
+                              indices,
+                              values,
+                              intr_numEntries,
+                              intr_indices,
+                              intr_values, d);
                     }
                 }
                 
-//                 for (uint ii = 0; ii < indices.size(); ++ii)
-//                     std::cout << indices[ii] << " ";
-//                 std::cout << std::endl;
-//                 
-//                 for (uint ii = 0; ii < values.size(); ++ii)
-//                     std::cout << values[ii] << " ";
-//                 std::cout << std::endl;
+                std::cout << iv << " " << globidx << std::endl;
+                
+                for (uint ii = 0; ii < indices.size(); ++ii)
+                    std::cout << indices[ii] << " ";
+                std::cout << std::endl;
+                
+                for (uint ii = 0; ii < values.size(); ++ii)
+                    std::cout << values[ii] << " ";
+                std::cout << std::endl;
                 
                 unique(indices, values, numEntries);
                 
-//                 for (uint ii = 0; ii < indices.size(); ++ii)
-//                     std::cout << indices[ii] << " ";
-//                 std::cout << std::endl;
-//                 
-//                 for (uint ii = 0; ii < values.size(); ++ii)
-//                     std::cout << values[ii] << " ";
-//                 std::cout << std::endl;
+                for (uint ii = 0; ii < indices.size(); ++ii)
+                    std::cout << indices[ii] << " ";
+                std::cout << std::endl;
                 
-                int error = B->InsertGlobalValues(globidx,
-                                                  numEntries,
-                                                  &values[0],
-                                                  &indices[0]);
+                for (uint ii = 0; ii < values.size(); ++ii)
+                    std::cout << values[ii] << " ";
+                std::cout << std::endl;
+                
+                int error = Bphys->InsertGlobalValues(globidx,
+                                                      numEntries,
+                                                      &values[0],
+                                                      &indices[0]);
                 
                 if ( error != 0 ) {
                     // if e.g. nNeighbours < numEntries --> error
-                    throw std::runtime_error("Error in filling the boundary matrix (physical bc) for level " +
+                    throw std::runtime_error("Error in filling the boundary matrix for level " +
                                              std::to_string(level) + "!");
+                }
+                
+                if ( intr_numEntries > 0 ) {
+                    error = Bintr->InsertGlobalValues(globidx,
+                                                      intr_numEntries,
+                                                      &intr_values[0],
+                                                      &intr_indices[0]);
+                
+                    if ( error != 0 ) {
+                        // if e.g. nNeighbours < numEntries --> error
+                        throw std::runtime_error("Error in filling the boundary matrix for level " +
+                                                 std::to_string(level) + "!");
+                    }
                 }
                 
                 
@@ -578,22 +618,32 @@ void checkBoundary(Teuchos::RCP<Epetra_CrsMatrix>& B,
 }
 
 
-void buildBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& B,
-                              const std::vector<Teuchos::RCP<Epetra_Map> >& maps,
-                              const Array<BoxArray>& grids, const Array<DistributionMapping>& dmap,
-                              const Array<Geometry>& geom,
-                              const IntVect& rr, Epetra_MpiComm& comm, int level)
+void buildBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bphys,
+                         Teuchos::RCP<Epetra_CrsMatrix>& Bintr,
+                         const std::vector<Teuchos::RCP<Epetra_Map> >& maps,
+                         const Array<BoxArray>& grids, const Array<DistributionMapping>& dmap,
+                         const Array<Geometry>& geom,
+                         const IntVect& rr, Epetra_MpiComm& comm, int level)
 {
     /* We need to apply the cellsize as well.
      * 
      */
     
-    int nNeighbours = (2 << (BL_SPACEDIM -1 ));
+    int nNeighbours = (2 << (BL_SPACEDIM -1 )) + 10;
     
     const Epetra_Map& RowMap = *maps[level];
+    Teuchos::RCP<Epetra_Map> ColMap = Teuchos::null;
     
-    B = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy,
-                                           RowMap, nNeighbours, false) );
+    Bphys = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy,
+                                               RowMap, nNeighbours, false) );
+    
+    if ( level > 0 ) {
+        
+        ColMap = maps[level-1];
+        
+        Bintr = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy,
+                                                   RowMap, *ColMap, nNeighbours, false) );
+    }
     
     std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > mask(
         new amrex::FabArray<amrex::BaseFab<int> >(grids[level], dmap[level], 1, 1)
@@ -615,7 +665,7 @@ void buildBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& B,
         IntVect lower(D_DECL(lo[0], lo[1], lo[2]));
         IntVect upper(D_DECL(lo[0], hi[1], hi[2]));
         
-        checkBoundary(B, geom, level, mfab, lower, upper);
+        checkBoundary(Bphys, Bintr, geom, level, mfab, lower, upper);
         
         /*
          * right boundary
@@ -623,7 +673,7 @@ void buildBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& B,
         lower = IntVect(D_DECL(hi[0], lo[1], lo[2]));
         upper = IntVect(D_DECL(hi[0], hi[1], hi[2]));
         
-        checkBoundary(B, geom, level, mfab, lower, upper);
+        checkBoundary(Bphys, Bintr, geom, level, mfab, lower, upper);
         
         
         /*
@@ -632,7 +682,7 @@ void buildBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& B,
         lower = IntVect(D_DECL(lo[0]+1, lo[1], lo[2]));
         upper = IntVect(D_DECL(hi[0]-1, lo[1], hi[2]));
         
-        checkBoundary(B, geom, level, mfab, lower, upper);
+        checkBoundary(Bphys, Bintr, geom, level, mfab, lower, upper);
         
         /*
          * upper boundary (without left and right last cell!)
@@ -640,7 +690,7 @@ void buildBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& B,
         lower = IntVect(D_DECL(lo[0]+1, hi[1], lo[2]));
         upper = IntVect(D_DECL(hi[0]-1, hi[1], hi[2]));
         
-        checkBoundary(B, geom, level, mfab, lower, upper);
+        checkBoundary(Bphys, Bintr, geom, level, mfab, lower, upper);
         
 #if BL_SPACEDIM == 3
         /*
@@ -649,7 +699,7 @@ void buildBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& B,
         lower = IntVect(D_DECL(lo[0]+1, lo[1]+1, lo[2]));
         upper = IntVect(D_DECL(hi[0]-1, hi[1]-1, lo[2]));
         
-        checkBoundary(B, geom, level, mfab, lower, upper);
+        checkBoundary(Bphys, Bintr, geom, level, mfab, lower, upper);
         
         /*
          * back boundary (without left, right, upper and lower last cell!)
@@ -657,12 +707,12 @@ void buildBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& B,
         lower = IntVect(D_DECL(lo[0]+1, lo[1]+1, hi[2]));
         upper = IntVect(D_DECL(hi[0]-1, hi[1]-1, hi[2]));
         
-        checkBoundary(B, geom, level, mfab, lower, upper);
+        checkBoundary(Bphys, Bintr, geom, level, mfab, lower, upper);
 #endif
         
     }
     
-    int error = B->FillComplete(/*ColMap, RowMap, */true);
+    int error = Bphys->FillComplete(/*ColMap, RowMap, */true);
     
     if ( error != 0 )
         throw std::runtime_error("Error in completing the interpolation matrix for level " +
@@ -670,10 +720,22 @@ void buildBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& B,
     
     std::cout << "Done." << std::endl;
     
-    std::cout << *B << std::endl;
+    std::cout << *Bphys << std::endl;
     
+    if ( level > 0 ) {
+        
+        error = Bintr->FillComplete(*ColMap, RowMap, true);
+        
+        if ( error != 0 )
+            throw std::runtime_error("Error in completing the interpolation matrix for level " +
+                                     std::to_string(level) + "!");
+        
+        std::cout << "Done." << std::endl;
+        
+        std::cout << *Bintr << std::endl;
+    }
     
-    EpetraExt::RowMatrixToMatlabFile("boundary_matrix.txt", *B);
+    EpetraExt::RowMatrixToMatlabFile("boundary_matrix.txt", *Bphys);
 }
 
 
@@ -861,15 +923,16 @@ void test(const param_t& params)
     
     
     
-    Teuchos::RCP<Epetra_CrsMatrix> B = Teuchos::null;
+    Teuchos::RCP<Epetra_CrsMatrix> Bphys = Teuchos::null;
+    Teuchos::RCP<Epetra_CrsMatrix> Bintr = Teuchos::null;
     
     IntVect rv(D_DECL(2, 2, 2));
     
-    buildBoundaryMatrix(B, maps, ba, dmap, geom, rv, epetra_comm, 0);
+    buildBoundaryMatrix(Bphys, Bintr, maps, ba, dmap, geom, rv, epetra_comm, 0);
     
     std::cout << "LEVEL 1" << std::endl; std::cin.get();
     
-    buildBoundaryMatrix(B, maps, ba, dmap, geom, rv, epetra_comm, 1);
+    buildBoundaryMatrix(Bphys, Bintr, maps, ba, dmap, geom, rv, epetra_comm, 1);
     
     container_t rhs(nlevs);
     container_t phi(nlevs);
