@@ -119,6 +119,8 @@ IF ( ${BL_SPACEDIM} EQUAL 2 )
     
     add_executable( testSmootherMatrix testSmootherMatrix.cpp)
     
+    add_executable( testPoissonMatrix testPoissonMatrix.cpp)
+    
     add_executable( testTwoLevel
                 testTwoLevel.cpp
                 ../Solver.cpp
@@ -166,6 +168,10 @@ IF ( ${BL_SPACEDIM} EQUAL 2 )
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testSmootherMatrix ${LIBS}
+                           -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    
+    target_link_libraries (testPoissonMatrix ${LIBS}
                            -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
                            
