@@ -705,7 +705,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
 #endif
     
     Bfine = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy,
-                                               RowMap, ColMap, nNeighbours, false) );
+                                               RowMap, /*ColMap, */nNeighbours, false) );
     
     std::vector<int> indices; //(nEntries);
     std::vector<double> values; //(nEntries);
@@ -732,7 +732,9 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
      * Put them into a map (to avoid duplicates, e.g. due to corners).
      * Finally, iterate through the list of cells
      */
-    std::map<int, IntVect> cells;
+    
+    // std::list<std::pair<int, int> > contains the shift and direction to come to the covered cell
+    std::map<IntVect, std::list<std::pair<int, int> > > cells;
     
     for (amrex::MFIter mfi(grids[level], dmap[level], false); mfi.isValid(); ++mfi) {
         const amrex::Box&          bx  = mfi.validbox();
@@ -746,27 +748,28 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
 #if BL_SPACEDIM == 3
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
-                    // coarse cell
                     IntVect iv(D_DECL(i, j, k));
                     
-                    if ( crse_fine_ba.contains(iv) ) {
+                    if ( !crse_fine_ba.contains(iv) && mfab(iv) != 2 /*not physical bc*/ ) {
                         /*
-                         * iv is a coarse cell that got refined
+                         * iv is a coarse cell that got not refined
                          * 
                          * --> check all neighbours to see if at crse-fine
                          * interface
                          */
                         for (int d = 0; d < BL_SPACEDIM; ++d) {
                             for (int shift = -1; shift <= 1; shift += 2) {
-                                
                                 // neighbour
-                                IntVect niv = iv;
-                                niv[d] += shift;
+                                IntVect covered = iv;
+                                covered[d] += shift;
                                 
-                                if ( !crse_fine_ba.contains(niv) && mfab(niv) != 2 /*not physical bc*/ ) {
+                                if ( crse_fine_ba.contains(covered) &&
+                                     !isBoundary(covered, &cnr[0]) /*not physical bc*/ )
+                                {
+                                    // neighbour is covered by fine cells
+                                    
                                     // insert if not yet exists
-                                    int globidx = serialize(niv, &cnr[0]);
-                                    cells[globidx] = niv;
+                                    cells[iv].push_back(std::make_pair(shift, d));
                                 }
                             }
                         }
@@ -832,77 +835,84 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
         }
     };
     
-    for (std::map<int, IntVect>::iterator it = cells.begin(); it != cells.end(); ++it) {
+    for (std::map<IntVect, std::list<std::pair<int, int> > >::iterator it = cells.begin(); it != cells.end(); ++it) {
         
-        IntVect iv = it->second;
-        int globidx = it->first;
+        // not covered coarse cell at crse-fine interface
+        IntVect iv = it->first;
+        int globidx = serialize(iv, &cnr[0]);
         
-        /*
-         * iv is a coarse cell that got refined
-         * 
-         * --> check all neighbours to see if at crse-fine
-         * interface
-         */
         int numEntries = 0;
         indices.clear();
         values.clear();
         
-        for (int d = 0; d < BL_SPACEDIM; ++d) {
+        while ( !it->second.empty() ) {
+            /*
+             * "shift" is the amount of is a coarse cell that got refined
+             * "d" is the direction to shift
+             * 
+             * --> check all covered neighbour cells
+             */
+            int shift = it->second.front().first;
+            int d     = it->second.front().second;
+            it->second.pop_front();
+            
+            
             /* we need to iterate over correct fine cells. It depends
              * on the orientation of the interface
              */
             int begin[BL_SPACEDIM] = { D_DECL( int(d == 0), int(d == 1), int(d == 2) ) };
             int end[BL_SPACEDIM]   = { D_DECL( int(d != 0), int(d != 1), int(d != 2) ) };
             
-            for (int shift = -1; shift <= 1; shift += 2) {
-                
-                // neighbour
-                IntVect covered = iv;
-                covered[d] += shift;
-                
-                if ( crse_fine_ba.contains(covered) && !isBoundary(covered, &cnr[0]) /*not physical bc*/ ) {
-                    /*
-                     * neighbour cell got refined but is not on physical boundary
-                     * --> we are at a crse-fine interface
-                     * 
-                     * we need now to find out which fine cells
-                     * are required to satisfy the flux matching
-                     * condition
-                     */
+            
+            // neighbour
+            IntVect covered = iv;
+            covered[d] += shift;
                     
-                    switch ( shift ) {
-                        case -1:
-                        {
-                            // --> interface is on the lower face
-                            int ii = iv[0] * rr[0];
-                            int jj = iv[1] * rr[1];
+            /*
+             * neighbour cell got refined but is not on physical boundary
+             * --> we are at a crse-fine interface
+             * 
+             * we need now to find out which fine cells
+             * are required to satisfy the flux matching
+             * condition
+             */
+            
+            switch ( shift ) {
+                case -1:
+                {
+                    // --> interface is on the lower face
+                    int ii = iv[0] * rr[0];
+                    int jj = iv[1] * rr[1];
 #if BL_SPACEDIM == 3
-                            int kk = iv[2] * rr[2];
+                    int kk = iv[2] * rr[2];
 #endif
-                            // iterate over all fine cells at the interface
-                            // start with lower cells --> cover coarse neighbour
-                            // cell
-                            fill(indices, values, numEntries, D_DECL(ii, jj, kk), &begin[0], &end[0], d, iv, shift, 1.0);
-                            break;
-                        }
-                        case 1:
-                        default:
-                        {
-                            // --> interface is on the upper face
-                            int ii = covered[0] * rr[0];
-                            int jj = covered[1] * rr[1];
+                    // iterate over all fine cells at the interface
+                    // start with lower cells --> cover coarse neighbour
+                    // cell
+                    fill(indices, values, numEntries, D_DECL(ii, jj, kk), &begin[0], &end[0], d, iv, shift, 1.0);
+                    break;
+                }
+                case 1:
+                default:
+                {
+                    // --> interface is on the upper face
+                    int ii = covered[0] * rr[0];
+                    int jj = covered[1] * rr[1];
 #if BL_SPACEDIM == 3
-                            int kk = covered[2] * rr[2];
+                    int kk = covered[2] * rr[2];
 #endif
-                            fill(indices, values, numEntries, D_DECL(ii, jj, kk), &begin[0], &end[0], d, iv, shift, -1.0);
-                            break;
-                        }
-                    }
+                    fill(indices, values, numEntries, D_DECL(ii, jj, kk), &begin[0], &end[0], d, iv, shift, -1.0);
+                    break;
                 }
             }
         }
         
         unique(indices, values, numEntries);
+        
+        std::cout << globidx << std::endl;
+        for (uint ii = 0; ii < indices.size(); ++ii)
+            std::cout << indices[ii] << " ";
+        std::cout << std::endl;
         
         int error = Bfine->InsertGlobalValues(globidx,
                                               numEntries,
@@ -1118,16 +1128,12 @@ void test(const param_t& params)
     
     IntVect rv(D_DECL(2, 2, 2));
     
-//     buildBoundaryMatrix(Bcrse, Bfine, maps, ba, dmap, geom, rv, epetra_comm, 0);
-    
-    buildCrseBoundaryMatrix(Bcrse, maps, ba, dmap, geom, rv, epetra_comm, 0);
+//     buildCrseBoundaryMatrix(Bcrse, maps, ba, dmap, geom, rv, epetra_comm, 0);
     buildFineBoundaryMatrix(Bfine, maps, ba, dmap, geom, rv, epetra_comm, 0);
     
-    std::cout << "LEVEL 1" << std::endl; std::cin.get();
+//     std::cout << "LEVEL 1" << std::endl; std::cin.get();
     
-//     buildBoundaryMatrix(Bcrse, Bfine, maps, ba, dmap, geom, rv, epetra_comm, 1);
-    
-    buildCrseBoundaryMatrix(Bcrse, maps, ba, dmap, geom, rv, epetra_comm, 1);
+//     buildCrseBoundaryMatrix(Bcrse, maps, ba, dmap, geom, rv, epetra_comm, 1);
     buildFineBoundaryMatrix(Bfine, maps, ba, dmap, geom, rv, epetra_comm, 1);
     
     container_t rhs(nlevs);
