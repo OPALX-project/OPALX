@@ -599,7 +599,7 @@ void buildCrseBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bcrse,
     int nNeighbours = (2 << (BL_SPACEDIM -1 )) /*FIXME interpolation stencil indices*/ + 10;
     
     Bcrse = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy,
-                                               RowMap, ColMap, nNeighbours, false) );
+                                               RowMap, nNeighbours, false) );
     
     std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > mask(
         new amrex::FabArray<amrex::BaseFab<int> >(grids[level], dmap[level], 1, 1)
@@ -1133,8 +1133,8 @@ void test(const param_t& params)
     
 //     std::cout << "LEVEL 1" << std::endl; std::cin.get();
     
-//     buildCrseBoundaryMatrix(Bcrse, maps, ba, dmap, geom, rv, epetra_comm, 1);
-    buildFineBoundaryMatrix(Bfine, maps, ba, dmap, geom, rv, epetra_comm, 1);
+    buildCrseBoundaryMatrix(Bcrse, maps, ba, dmap, geom, rv, epetra_comm, 1);
+//     buildFineBoundaryMatrix(Bfine, maps, ba, dmap, geom, rv, epetra_comm, 1);
     
     container_t rhs(nlevs);
     container_t phi(nlevs);
@@ -1167,8 +1167,13 @@ void test(const param_t& params)
     
     amrex2trilinos(*rhs[1], y, maps[1], geom, 1);
     
-//     // y = B * x
-//     B->Multiply(false, *x, *y);
+    // y = B * x
+    // fine to coarse
+    Bfine->Multiply(false, *y, *x);
+    
+    // coarse to fine
+    Bcrse->Multiply(false, *x, *y);
+    
 //     
 //     trilinos2amrex(*rhs[1], y);
 //     
