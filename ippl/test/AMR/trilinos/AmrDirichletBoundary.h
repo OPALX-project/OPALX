@@ -14,7 +14,6 @@ public:
     void apply(const AmrIntVect_t& iv,
                typename AmrMultiGridLevel::indices_t& indices,
                typename AmrMultiGridLevel::coefficients_t& values,
-               int& numEntries,
                const double& value,
                AmrMultiGridLevel* mglevel,
                const int* nr);
@@ -25,7 +24,6 @@ template <class AmrMultiGridLevel>
 void AmrDirichletBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
                                                     typename AmrMultiGridLevel::indices_t& indices,
                                                     typename AmrMultiGridLevel::coefficients_t& values,
-                                                    int& numEntries,
                                                     const double& value,
                                                     AmrMultiGridLevel* mglevel,
                                                     const int* nr)
@@ -39,9 +37,8 @@ void AmrDirichletBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
             niv[i] = (iv[i] == -1) ? iv[i] + 1 : iv[i] - 1;
     }
     
-    indices[numEntries] = mglevel->serialize(niv);
-    values[numEntries] = -value;
-    ++numEntries;
+    indices.push_back( mglevel->serialize(niv) );
+    values.push_back( -value );
 }
 
 #endif

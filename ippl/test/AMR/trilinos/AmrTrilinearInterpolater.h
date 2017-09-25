@@ -19,7 +19,6 @@ public:
     void stencil(const AmrIntVect_t& iv,
                  typename AmrMultiGridLevel::indices_t& indices,
                  typename AmrMultiGridLevel::coefficients_t& values,
-                 int& numEntries,
                  AmrMultiGridLevel* mglevel);
     
 private:
