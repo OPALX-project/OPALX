@@ -114,6 +114,7 @@ private:
      * \f]
      * @param level for which to build the interpolation matrix. The finest level
      * does not build such a matrix.
+     * FIXME The number of entries due to the interpolation stencil has to be fixed.
      */
     void buildInterpolationMatrix_m(int level);
     
