@@ -74,9 +74,11 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         
         this->buildCrseBoundaryMatrix_m(lev);
         
-        std::cout << "Boundary-Matrix built." << std::endl;
+        std::cout << "Crse-Boundary-Matrix built." << std::endl;
         
         this->buildFineBoundaryMatrix_m(lev);
+        
+        std::cout << "Fine-Boundary-Matrix built." << std::endl;
         
         this->buildSmootherMatrix_m(lev);
         
@@ -109,54 +111,54 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     double residualsum = 0.0;
     double rhosum = 0.0;
     
-    for (int lev = 0; lev < nLevel; ++lev) {
-        this->residual_m(mglevel_m[lev]->residual_p,
-                         mglevel_m[lev]->rho_p,
-                         mglevel_m[lev]->A_p,
-                         mglevel_m[lev]->phi_p);
-        
-        double tmp = 0;
-        mglevel_m[lev]->residual_p->Norm2(&tmp);
-        residualsum += tmp;
-        
-        tmp = 0;
-        mglevel_m[lev]->rho_p->Norm2(&tmp);
-        rhosum += tmp;
-    }
-    
-    
-    while ( residualsum > eps * rhosum ) {
-        
-        std::cout << residualsum << " " << eps * rhosum << std::endl; //std::cin.get();
-        
-        relax_m(lfine);
-        
-//         // update residual
-//         for (int lev = 0; lev < nLevel; ++lev) {
-//             
-//             this->residual_m(mglevel_m[lev]->residual_p,
-//                              mglevel_m[lev]->rho_p,
-//                              mglevel_m[lev]->A_p,
-//                              mglevel_m[lev]->rho_p);
-//         }
-        
-        residualsum = l2error_m();
-    }
-//     
-//     for (int lev = nLevel-1; lev > -1; --lev) {
-//         int ilev = lbase + lev;
-//         mglevel_m[lev]->phi->FillBoundary(mglevel_m[lev]->geom.periodicity());
-//         this->gradient_m(lev, *efield[ilev]);
+//     for (int lev = 0; lev < nLevel; ++lev) {
+//         this->residual_m(mglevel_m[lev]->residual_p,
+//                          mglevel_m[lev]->rho_p,
+//                          mglevel_m[lev]->A_p,
+//                          mglevel_m[lev]->phi_p);
+//         
+//         double tmp = 0;
+//         mglevel_m[lev]->residual_p->Norm2(&tmp);
+//         residualsum += tmp;
+//         
+//         tmp = 0;
+//         mglevel_m[lev]->rho_p->Norm2(&tmp);
+//         rhosum += tmp;
 //     }
 //     
-    std::cout << residualsum << " " << eps * rhosum << std::endl;
-    
-    // copy solution back
-    for (int lev = 0; lev < nLevel; ++lev) {
-        int ilev = lbase + lev;
-        
-        this->trilinos2amrex_m(*phi[ilev], mglevel_m[lev]->phi_p);
-    }
+//     
+//     while ( residualsum > eps * rhosum ) {
+//         
+//         std::cout << residualsum << " " << eps * rhosum << std::endl; //std::cin.get();
+//         
+//         relax_m(lfine);
+//         
+// //         // update residual
+// //         for (int lev = 0; lev < nLevel; ++lev) {
+// //             
+// //             this->residual_m(mglevel_m[lev]->residual_p,
+// //                              mglevel_m[lev]->rho_p,
+// //                              mglevel_m[lev]->A_p,
+// //                              mglevel_m[lev]->rho_p);
+// //         }
+//         
+//         residualsum = l2error_m();
+//     }
+// //     
+// //     for (int lev = nLevel-1; lev > -1; --lev) {
+// //         int ilev = lbase + lev;
+// //         mglevel_m[lev]->phi->FillBoundary(mglevel_m[lev]->geom.periodicity());
+// //         this->gradient_m(lev, *efield[ilev]);
+// //     }
+// //     
+//     std::cout << residualsum << " " << eps * rhosum << std::endl;
+//     
+//     // copy solution back
+//     for (int lev = 0; lev < nLevel; ++lev) {
+//         int ilev = lbase + lev;
+//         
+//         this->trilinos2amrex_m(*phi[ilev], mglevel_m[lev]->phi_p);
+//     }
 }
 
 
@@ -805,6 +807,10 @@ void AmrMultiGrid::buildRestrictionMatrix_m(int level) {
 
 
 void AmrMultiGrid::buildInterpolationMatrix_m(int level) {
+    /* crse (this): level
+     * fine: level + 1
+     */
+    
     /*
      * This does not include ghost cells of *this* level
      * --> no boundaries
@@ -815,16 +821,16 @@ void AmrMultiGrid::buildInterpolationMatrix_m(int level) {
     if ( level == lfine_m )
         return;
     
-    int nNeighbours = interp_mp->getNumberOfPoints();
+    int nNeighbours = interp_mp->getNumberOfPoints() + 10 /*FIXME*/;
     
-    indices_t indices(nNeighbours);
-    coefficients_t values(nNeighbours);
+    indices_t indices;
+    coefficients_t values;
     
     const Epetra_Map& RowMap = *mglevel_m[level+1]->map_p;
     const Epetra_Map& ColMap = *mglevel_m[level]->map_p;
     
     mglevel_m[level]->I_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy,
-                                                       RowMap, nNeighbours) );
+                                                       RowMap, nNeighbours, false) );
     
     for (amrex::MFIter mfi(mglevel_m[level+1]->grids,
                            mglevel_m[level+1]->dmap, false);
@@ -844,10 +850,15 @@ void AmrMultiGrid::buildInterpolationMatrix_m(int level) {
                     
                     int globalidx = mglevel_m[level+1]->serialize(iv);
                     
+                    indices.clear();
+                    values.clear();
+                    
                     /*
                      * we need boundary + indices from coarser level
                      */
                     interp_mp->stencil(iv, indices, values, mglevel_m[level].get());
+                    
+                    this->unique_m(indices, values);
                     
                     int error = mglevel_m[level]->I_p->InsertGlobalValues(globalidx,
                                                                           indices.size(),
@@ -874,6 +885,11 @@ void AmrMultiGrid::buildInterpolationMatrix_m(int level) {
 
 
 void AmrMultiGrid::buildCrseBoundaryMatrix_m(int level) {
+    
+    /*
+     * fine (this): level
+     * coarse:      level - 1
+     */
     
     // the base level has only phsysical boundaries
     if ( level == lbase_m )
@@ -1438,7 +1454,7 @@ void AmrMultiGrid::checkCrseBoundary_m(Teuchos::RCP<matrix_t>& B,
                 
                 std::size_t numEntries = indices.size();
                 // we need boundary + indices from coarser level
-                interp_mp->stencil(iv, indices, values, mglevel_m[level].get());
+                interp_mp->stencil(iv, indices, values, mglevel_m[level-1].get());
                 
                 // we need normlization by mesh size squared
                 for (std::size_t n = numEntries; n < indices.size(); ++n)
