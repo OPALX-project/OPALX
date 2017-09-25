@@ -8,9 +8,9 @@
 #include "boost/serialization/vector.hpp"
 #include "boost/tuple/tuple.hpp"
 
-//#include "boost/variant.hpp"
-//#include "boost/fusion/adapted/struct/adapt_struct.hpp"
-//#include "boost/fusion/include/adapt_struct.hpp"
+#include "boost/variant.hpp"
+#include "boost/fusion/adapted/struct/adapt_struct.hpp"
+#include "boost/fusion/include/adapt_struct.hpp"
 
 #include "Expression/Expression.h"
 
