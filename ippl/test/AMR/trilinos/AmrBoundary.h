@@ -36,7 +36,6 @@ public:
     virtual void apply(const AmrIntVect_t& iv,
                        typename AmrMultiGridLevel::indices_t& indices,
                        typename AmrMultiGridLevel::coefficients_t& values,
-                       int& numEntries,
                        const double& value,
                        AmrMultiGridLevel* mglevel,
                        const int* nr) = 0;

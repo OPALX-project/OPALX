@@ -63,7 +63,6 @@ public:
     void applyBoundary(const AmrIntVect_t& iv,
                        indices_t& indices,
                        coefficients_t& values,
-                       int& numEntries,
                        const double& value);
     
     const AmrIntVect_t& refinement() const;
@@ -79,7 +78,11 @@ public:
     Teuchos::RCP<matrix_t> A_p;         ///< Poisson matrix
     Teuchos::RCP<matrix_t> R_p;         ///< restriction matrix
     Teuchos::RCP<matrix_t> I_p;         ///< interpolation matrix
-    Teuchos::RCP<matrix_t> B_p;         ///< physical boundary vector
+    Teuchos::RCP<matrix_t> Bcrse_p;
+    Teuchos::RCP<matrix_t> Bfine_p;     ///< physical boundary vector
+    Teuchos::RCP<matrix_t> As_p;        ///< special Poisson matrix
+    
+    Teuchos::RCP<matrix_t> S_p;         ///< for Gauss-Seidel (smoothing)
     
     Teuchos::RCP<vector_t> rho_p;       ///< charge density
     Teuchos::RCP<vector_t> phi_p;       ///< potential vector
