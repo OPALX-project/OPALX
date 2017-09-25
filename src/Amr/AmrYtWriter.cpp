@@ -106,7 +106,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         HeaderFile << std::endl;
         
         // reference ratio
-        for (std::size_t i = 0; i < refRatio.size(); ++i)
+        for (int i = 0; i < refRatio.size(); ++i)
             HeaderFile << refRatio[i] << ' ';
         HeaderFile << std::endl;
         
