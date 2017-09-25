@@ -57,7 +57,7 @@ writePlotFile (const std::string& dir,
     //
     amrex::ParallelDescriptor::Barrier();
 
-    std::string HeaderFileName = dir + "/OpalAmrHeader";
+    std::string HeaderFileName = dir + "/Header";
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
@@ -75,7 +75,8 @@ writePlotFile (const std::string& dir,
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
         if (!HeaderFile.good())
             amrex::FileOpenFailed(HeaderFileName);
-        HeaderFile << "OpalAmr-V1.0\n";
+//         HeaderFile << "OpalAmr-V1.0\n";
+        HeaderFile << "HyperClaw-V1.1\n";
 
         HeaderFile << nData << '\n';
 
@@ -84,7 +85,7 @@ writePlotFile (const std::string& dir,
           HeaderFile << "rho\n";
         
         for (int ivar = 1; ivar <= phi[0]->nComp(); ivar++)
-          HeaderFile << "potential\n";
+          HeaderFile << "phi\n";
         
 //         for (int ivar = 1; ivar <= efield.nComp(); ivar++) {
 #if BL_SPACEDIM == 3
