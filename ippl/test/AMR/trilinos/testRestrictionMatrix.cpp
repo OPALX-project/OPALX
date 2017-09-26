@@ -15,6 +15,8 @@
 
 #include <vector>
 
+#include "../writePlotFile.H"
+
 
 #include <Epetra_MpiComm.h>
 #include <Epetra_Map.h>
@@ -27,6 +29,8 @@
 #include "EpetraExt_RowMatrixOut.h"
 
 using namespace amrex;
+
+typedef Array<std::unique_ptr<MultiFab> > container_t;
 
 struct TestParams {
   int nx;
@@ -277,6 +281,61 @@ void buildRestrictionMatrix(Teuchos::RCP<Epetra_CrsMatrix>& R,
     EpetraExt::RowMatrixToMatlabFile("restriction_matrix.txt", *R);
 }
 
+void myUpdate(Teuchos::RCP<Epetra_Vector>& y,
+          Teuchos::RCP<Epetra_Vector>& x)
+{
+    int localnum = y->MyLength();
+    for (int i = 0; i < localnum; ++i) {
+        if ( (*x)[i] != 0 )
+            (*y)[i] = (*x)[i];
+    }
+    
+}
+
+
+void writeYt(container_t& rho,
+             const container_t& phi,
+             const container_t& efield,
+             const Array<Geometry>& geom,
+             const Array<int>& rr,
+             const double& scalefactor)
+{
+    std::string dir = "yt-testRestrictionMatrix";
+    
+    double time = 0.0;
+    
+    for (unsigned int i = 0; i < rho.size(); ++i)
+        rho[i]->mult(/*Physics::epsilon_0 / */scalefactor, 0, 1);
+    
+    writePlotFile(dir, rho, phi, efield, rr, geom, time, scalefactor);
+}
+
+void trilinos2amrex(MultiFab& mf,
+                    const Teuchos::RCP<Epetra_Vector>& mv)
+{
+    int localidx = 0;
+    for (amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi) {
+        const amrex::Box&          bx  = mfi.validbox();
+        amrex::FArrayBox&          fab = mf[mfi];
+        
+        const int* lo = bx.loVect();
+        const int* hi = bx.hiVect();
+        
+        for (int i = lo[0]; i <= hi[0]; ++i) {
+            for (int j = lo[1]; j <= hi[1]; ++j) {
+#if BL_SPACEDIM == 3
+                for (int k = lo[2]; k <= hi[2]; ++k) {
+#endif
+                    IntVect iv(D_DECL(i, j, k));
+                    fab(iv) = (*mv)[localidx++];
+                }
+#if BL_SPACEDIM == 3
+            }
+#endif
+        }
+    }
+}
+
 
 void test(TestParams& parms)
 {
@@ -328,48 +387,22 @@ void test(TestParams& parms)
     
     // Now we make the refined level be the center eighth of the domain
     if (nlevs > 1) {
-        int n_fine = parms.nx*rr[0];
-        IntVect refined_lo(D_DECL(n_fine/4,n_fine/4,n_fine/4)); 
-        IntVect refined_hi(D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
-
-        // Build a box for the level 1 domain
-        Box refined_patch(refined_lo, refined_hi);
-        
-        
         BoxList bl;
-        Box b1(IntVect(0, 4), IntVect(3, 7));
+        Box b1(IntVect(D_DECL(0, 4, 4)), IntVect(D_DECL(3, 7, 7)));
         
         bl.push_back(b1);
-        bl.push_back(refined_patch);
+        
+        Box b2(IntVect(D_DECL(4, 4, 4)), IntVect(D_DECL(11, 11, 11)));
+        
+        bl.push_back(b2);
+        
+        Box b3(IntVect(D_DECL(14, 6, 6)), IntVect(D_DECL(15, 9, 9)));
+        
+        bl.push_back(b3);
+        
         
         ba[1].define(bl);//define(refined_patch);
     }
-    
-//     if ( parms.nlevs >= 1 ) {
-//         BoxList bl;
-//         
-//         IntVect blo(8, 4, 4);
-//         IntVect bhi(14, 16, 20);
-//         
-//         Box b1(blo, bhi);
-//         
-//         bl.push_back(b1);
-//         
-//         blo = IntVect(15, 8, 4);
-//         bhi = IntVect(22, 20, 20);
-//         
-//         b1 = Box(blo, bhi);
-//         
-//         bl.push_back(b1);
-//         
-//         ba[1] = BoxArray(bl);
-//     }
-//     
-//     if ( parms.nlevs == 2 ) {
-//         IntVect blo(20, 20, 9);
-//         IntVect bhi(40, 24, 39);
-//         ba[2] = BoxArray(Box(blo, bhi));
-//     }
     
     // break the BoxArrays at both levels into max_grid_size^3 boxes
     for (int lev = 0; lev < nlevs; lev++) {
@@ -409,13 +442,43 @@ void test(TestParams& parms)
     
     // coarse
     Teuchos::RCP<Epetra_Vector> y = Teuchos::null;
-    buildVector(y, maps[0], 0.0);
+    buildVector(y, maps[0], 1.0);
     
+    Teuchos::RCP<Epetra_Vector> z = Teuchos::null;
+    buildVector(z, maps[0], 0.0);
     
-    // y = R * x
-    R->Multiply(false, *x, *y);
+    // 7 = R * x
+    R->Multiply(false, *x, *z);
+    
+    // y += z
+    myUpdate(y, z);
     
     std::cout << *y << std::endl;
+    
+    
+    container_t rhs(1);
+    container_t phi(1);
+    container_t efield(1);
+    
+    if ( parms.verbose ) {
+        for (int lev = 0; lev < 1; ++lev) {
+            //                                                                       # component # ghost cells                                                                                                                                          
+            rhs[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev],    1          , 0));
+            rhs[lev]->setVal(0.0);
+            
+            // not used (only for plotting)
+            phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev],    1          , 1));
+            efield[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev], BL_SPACEDIM, 1));
+                
+            phi[lev]->setVal(0.0, 1);
+            efield[lev]->setVal(0.0, 1);
+        }
+    }
+    
+    trilinos2amrex(*rhs[0], y);
+    
+    if ( parms.verbose )
+        writeYt(rhs, phi, efield, geom, rr, 1.0);
 }
 
 int main(int argc, char* argv[])
