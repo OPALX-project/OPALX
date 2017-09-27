@@ -184,9 +184,10 @@ OpalDataImpl::~OpalDataImpl() {
 
     delete bunch_m;
     delete slbunch_m;
-    delete bg_m;
+    if (bg_m != NULL) {
+        delete bg_m;
+    }
     delete dataSink_m;
-
 
     mainDirectory.erase();
     tableDirectory.clear();
@@ -477,6 +478,9 @@ double OpalData::getGlobalPhaseShift() {
 }
 
 void   OpalData::setGlobalGeometry(BoundaryGeometry *bg) {
+    if (p->bg_m != NULL) {
+        delete p->bg_m;
+    }
     p->bg_m = bg;
 }
 

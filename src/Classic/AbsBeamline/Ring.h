@@ -291,6 +291,18 @@ class Ring : public Component {
     /** Get flag for closure checking */
     double getIsClosed() const {return isClosed_m;}
 
+    /** Set the ring aperture limits
+     *  - minR; the minimum radius allowed during tracking. Throws if minR < 0
+     *  - maxR; the maximum radius allowed during tracking. Throws if maxR < 0
+     *  Sets willDoRingAperture_m to true. */
+    void setRingAperture(double minR, double maxR);
+
+    /** Get the ring minimum */
+    double getRingMinR() const {return ::sqrt(minR2_m);}
+
+    /** Get the ring maximum */
+    double getRingMaxR() const {return ::sqrt(maxR2_m);}
+
     /** Lock the ring
      *
      *  Lock the ring; apply closure checks and symmetry properties as required.
@@ -362,6 +374,12 @@ class Ring : public Component {
     double latticeRInit_m;
     double latticePhiInit_m;
     double latticeThetaInit_m;
+
+    // aperture cut on the ring (before any field maps tracking)
+    // note we store r^2
+    bool willDoAperture_m = false;
+    double minR2_m;
+    double maxR2_m;
 
     // Ring is locked - new elements cannot be added
     bool isLocked_m;
