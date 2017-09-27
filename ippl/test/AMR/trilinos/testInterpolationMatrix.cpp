@@ -11,11 +11,7 @@
 
 #include <getopt.h>
 
-#include "tools.h"
-
-#include "EpetraExt_RowMatrixOut.h"
-
-using namespace amrex;
+#include "build.h"
 
 struct param_t {
     int nr[BL_SPACEDIM];
@@ -107,92 +103,6 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     }
     
     return ( cnt == required );
-}
-
-
-void buildInterpolationMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
-                              const std::vector<Teuchos::RCP<Epetra_Map> >& maps,
-                              const Array<BoxArray>& grids, const Array<DistributionMapping>& dmap,
-                              const Array<Geometry>& geom,
-                              const IntVect& rr, Epetra_MpiComm& comm, int level) {
-    
-    if ( level == (int)dmap.size() - 1 )
-        return;
-    
-    int cnr[BL_SPACEDIM];
-    int fnr[BL_SPACEDIM];
-    for (int j = 0; j < BL_SPACEDIM; ++j) {
-        cnr[j] = geom[level].Domain().length(j);
-        fnr[j] = geom[level+1].Domain().length(j);
-    }
-    
-    
-    int nNeighbours = (2 << (BL_SPACEDIM -1 ));
-    
-    std::vector<int> indices; //(nNeighbours);
-    std::vector<double> values; //(nNeighbours);
-    
-    const Epetra_Map& RowMap = *maps[level+1];
-    const Epetra_Map& ColMap = *maps[level];
-    
-    I = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy,
-                                           RowMap, nNeighbours, false) );
-    
-    for (amrex::MFIter mfi(grids[level+1], dmap[level+1], false);
-         mfi.isValid(); ++mfi)
-    {
-        const amrex::Box& bx  = mfi.validbox();
-        
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
-        
-        for (int i = lo[0]; i <= hi[0]; ++i) {
-            for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
-                for (int k = lo[2]; k <= hi[2]; ++k) {
-#endif
-                    IntVect iv(D_DECL(i, j, k));
-                    
-                    int globidx = serialize(iv, &fnr[0]);
-                    
-                    int numEntries = 0;
-                    indices.clear();
-                    values.clear();
-                    
-                    /*
-                     * we need boundary + indices from coarser level
-                     */
-                    stencil(iv, indices, values, numEntries, &cnr[0]);
-                    
-                    int error = I->InsertGlobalValues(globidx,
-                                                      numEntries,
-                                                      &values[0],
-                                                      &indices[0]);
-                    
-                    if ( error != 0 ) {
-                        // if e.g. nNeighbours < numEntries --> error
-                        throw std::runtime_error("Error in filling the interpolation matrix for level " +
-                                                 std::to_string(level) + "!");
-                    }
-#if BL_SPACEDIM == 3
-                }
-#endif
-            }
-        }
-    }
-    
-    int error = I->FillComplete(ColMap, RowMap, true);
-    
-    if ( error != 0 )
-        throw std::runtime_error("Error in completing the interpolation matrix for level " +
-                                 std::to_string(level) + "!");
-    
-    std::cout << "Done." << std::endl;
-    
-    std::cout << *I << std::endl;
-    
-    
-    EpetraExt::RowMatrixToMatlabFile("interpolation_matrix.txt", *I);
 }
 
 

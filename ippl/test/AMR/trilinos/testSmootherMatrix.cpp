@@ -11,9 +11,7 @@
 
 #include <getopt.h>
 
-#include "tools.h"
-
-#include "EpetraExt_RowMatrixOut.h"
+#include "build.h"
 
 struct param_t {
     int nr[BL_SPACEDIM];
@@ -105,118 +103,6 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     }
     
     return ( cnt == required );
-}
-
-
-void buildSmootherMatrix(Teuchos::RCP<Epetra_CrsMatrix>& S,
-                         const Teuchos::RCP<Epetra_Map>& map,
-                         const BoxArray& grids, const DistributionMapping& dmap,
-                         const Geometry& geom,
-                         Epetra_MpiComm& comm, int level)
-{    
-    if ( level == 0 )
-        return;
-    
-    double value = 0.0;
-    
-    const Epetra_Map& RowMap = *map;
-    
-    S = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy,
-                                           RowMap, 1, false) );
-    
-    const double* dx = geom.CellSize();
-    
-    double h2 = std::max(dx[0], dx[1]);
-#if BL_SPACEDIM == 3
-    h2 = std::max(h2, dx[2]);
-#endif
-    h2 *= h2;
-    
-    std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > mask(
-        new amrex::FabArray<amrex::BaseFab<int> >(grids, dmap, 1, 1)
-    );
-    
-    mask->BuildMask(geom.Domain(), geom.periodicity(), -1, 1, 2, 0);
-    
-    int nr[BL_SPACEDIM];
-    for (int j = 0; j < BL_SPACEDIM; ++j)
-        nr[j] = geom.Domain().length(j);
-    
-    for (amrex::MFIter mfi(*mask, false); mfi.isValid(); ++mfi) {
-        const amrex::Box& bx  = mfi.validbox();
-        const amrex::BaseFab<int>& mfab = (*mask)[mfi];
-        
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
-        
-        for (int i = lo[0]; i <= hi[0]; ++i) {
-            for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
-                for (int k = lo[2]; k <= hi[2]; ++k) {
-#endif
-                    IntVect iv(D_DECL(i, j, k));
-                    
-                    int globidx = serialize(iv, &nr[0]);
-                    
-                    /*
-                     * check all directions (Laplacian stencil --> cross)
-                     */
-                    bool interior = true;
-                    for (int d = 0; d < BL_SPACEDIM; ++d) {
-                        for (int shift = -1; shift <= 1; shift += 2) {
-                            IntVect biv = iv;                        
-                            biv[d] += shift;
-                            
-                            switch ( mfab(biv) )
-                            {
-                                case -1:
-                                    // covered --> interior cell
-                                case 0:
-                                    // interior cells
-                                    interior *= true;
-                                    break;
-                                case 1:
-                                    // boundary cells
-                                case 2:
-                                    // boundary cells
-                                    interior *= false;
-                                    break;
-                                default:
-                                    break;
-                            }
-                        }
-                    }
-                    
-                    value = h2 * ( (interior) ? 0.25 : 0.1875 );
-                    int error = S->InsertGlobalValues(globidx,
-                                                      1,
-                                                      &value,
-                                                      &globidx);
-                    
-                    if ( error != 0 ) {
-                        // if e.g. nNeighbours < numEntries --> error
-                        throw std::runtime_error("Error in filling the smoother matrix for level " +
-                                                 std::to_string(level) + "!");
-                    }
-#if BL_SPACEDIM == 3
-                }
-#endif
-            }
-        }
-    }
-    
-    int error = S->FillComplete(true);
-    
-    if ( error != 0 )
-        throw std::runtime_error("Error in completing the smoother matrix for level " +
-                                 std::to_string(level) + "!");
-    
-    std::cout << "Done." << std::endl;
-    
-    std::cout << *S << std::endl;
-    
-    
-    EpetraExt::RowMatrixToMatlabFile("smoother_matrix.txt", *S);
 }
 
 
