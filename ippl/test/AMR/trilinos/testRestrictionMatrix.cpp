@@ -7,30 +7,11 @@
 
 #include "Ippl.h"
 
-#include <AMReX.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_MultiFabUtil.H>
-#include <AMReX_Particles.H>
-#include <AMReX_PlotFileUtil.H>
-
 #include <vector>
 
-#include "../writePlotFile.H"
-
-
-#include <Epetra_MpiComm.h>
-#include <Epetra_Map.h>
-#include <Epetra_Vector.h>
-#include <Epetra_CrsMatrix.h>
-
-#include <Teuchos_RCP.hpp>
-// #include <Teuchos_ArrayRCP.hpp>
+#include "tools.h"
 
 #include "EpetraExt_RowMatrixOut.h"
-
-using namespace amrex;
-
-typedef Array<std::unique_ptr<MultiFab> > container_t;
 
 struct TestParams {
   int nx;
@@ -42,114 +23,9 @@ struct TestParams {
 };
 
 
-
-int serialize(const IntVect& iv, int* nr) {
-#if BL_SPACEDIM == 3
-    return iv[0] + (iv[1] + nr[1] * iv[2]) * nr[0];
-#else
-    return iv[0] + iv[1] * nr[0];
-#endif
-}
-
-
 void buildVector(Teuchos::RCP<Epetra_Vector>& x, const Teuchos::RCP<Epetra_Map>& map, double value) {
     x = Teuchos::rcp( new Epetra_Vector(*map, false));
     x->PutScalar(value);
-}
-
-
-void buildMap(Teuchos::RCP<Epetra_Map>& map, const BoxArray& grids, const DistributionMapping& dmap,
-              const Geometry& geom, Epetra_MpiComm& comm, int level)
-{
-    int nr[3];
-    for (int j = 0; j < BL_SPACEDIM; ++j)
-        nr[j] = geom.Domain().length(j);
-    
-    
-//     BoxArray ggrids = grids;
-//     ggrids.grow(1);
-//     ggrids.removeOverlap();
-//     DistributionMapping ddmap{ggrids};
-//     
-//     std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > mask;
-//     mask.reset(new amrex::FabArray<amrex::BaseFab<int> >(ggrids, ddmap, 1, 1));
-//     mask->BuildMask(geom.Domain(), geom.periodicity(),
-//                     -1/*Mask::COVERED*/, 1/*Mask::BNDRY*/,
-//                        2/*Mask::PHYSBNDRY*/, 0/*Mask::INTERIOR*/);
-// //     
-//     BoxList bl = amrex::GetBndryCells(grids, 1);
-//     BoxArray boundary(bl);
-    
-//     int nBndry  = 0;
-    
-//     if ( level > 0 )
-//         nBndry = boundary.numPts();
-    
-//     std::cout << "nBndry = " << nBndry << std::endl;
-    
-    // numGlobalElements == N
-    int N = grids.numPts(); //+ nBndry;
-    
-    int localNumElements = 0;
-    std::vector<double> values;
-    std::vector<int> globalindices;
-    
-//     int counter = 0;
-    
-    for (amrex::MFIter mfi(grids, dmap, false); mfi.isValid(); ++mfi) {
-        const amrex::Box&    bx  = mfi.validbox();  
-//         const BaseFab<int>& mfab = (*mask)[mfi];
-        
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
-        
-        for (int i = lo[0]; i <= hi[0]; ++i) {
-            for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
-                for (int k = lo[2]; k <= hi[2]; ++k) {
-#endif
-//                     std::cout << ++counter << std::endl;
-                    IntVect iv(D_DECL(i, j, k));
-                    
-                    
-//                     if ( mfab(iv) > -1 ) {
-//                     iv.diagShift(1);
-                    int globalidx = serialize(iv, &nr[0]);
-                    
-                    globalindices.push_back(globalidx);
-                    
-                    if ( globalidx < 0 )
-                        std::cout << iv << " " << nr[0] << " " << nr[1] << " " << globalidx << std::endl;
-                    
-                    ++localNumElements;
-//                     }
-#if BL_SPACEDIM == 3
-                }
-#endif
-            }
-        }
-    }
-    
-    // compute map based on localelements
-    // create map that specifies which processor gets which data
-    const int baseIndex = 0;    // where to start indexing
-    
-    std::cout << N << " " << localNumElements << std::endl;
-    
-    map = Teuchos::rcp( new Epetra_Map(N, localNumElements,
-                                         &globalindices[0], baseIndex, comm) );
-    
-    std::cout << "Done." << std::endl;
-    
-    
-//     std::vector<int> gl(N);
-//     
-//     map->MyGlobalElements(&gl[0]);
-//     
-//     std::cout << "____________________________" << std::endl;
-//     for (uint i = 0; i < gl.size(); ++i)
-//         std::cout << gl[i] << std::endl;
-//     std::cin.get();
 }
 
 
@@ -281,6 +157,7 @@ void buildRestrictionMatrix(Teuchos::RCP<Epetra_CrsMatrix>& R,
     EpetraExt::RowMatrixToMatlabFile("restriction_matrix.txt", *R);
 }
 
+
 void myUpdate(Teuchos::RCP<Epetra_Vector>& y,
           Teuchos::RCP<Epetra_Vector>& x)
 {
@@ -290,50 +167,6 @@ void myUpdate(Teuchos::RCP<Epetra_Vector>& y,
             (*y)[i] = (*x)[i];
     }
     
-}
-
-
-void writeYt(container_t& rho,
-             const container_t& phi,
-             const container_t& efield,
-             const Array<Geometry>& geom,
-             const Array<int>& rr,
-             const double& scalefactor)
-{
-    std::string dir = "yt-testRestrictionMatrix";
-    
-    double time = 0.0;
-    
-    for (unsigned int i = 0; i < rho.size(); ++i)
-        rho[i]->mult(/*Physics::epsilon_0 / */scalefactor, 0, 1);
-    
-    writePlotFile(dir, rho, phi, efield, rr, geom, time, scalefactor);
-}
-
-void trilinos2amrex(MultiFab& mf,
-                    const Teuchos::RCP<Epetra_Vector>& mv)
-{
-    int localidx = 0;
-    for (amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi) {
-        const amrex::Box&          bx  = mfi.validbox();
-        amrex::FArrayBox&          fab = mf[mfi];
-        
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
-        
-        for (int i = lo[0]; i <= hi[0]; ++i) {
-            for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
-                for (int k = lo[2]; k <= hi[2]; ++k) {
-#endif
-                    IntVect iv(D_DECL(i, j, k));
-                    fab(iv) = (*mv)[localidx++];
-                }
-#if BL_SPACEDIM == 3
-            }
-#endif
-        }
-    }
 }
 
 
@@ -478,7 +311,7 @@ void test(TestParams& parms)
     trilinos2amrex(*rhs[0], y);
     
     if ( parms.verbose )
-        writeYt(rhs, phi, efield, geom, rr, 1.0);
+        writeYt(rhs, phi, efield, geom, rr, 1.0, "testRestrictionMatrix");
 }
 
 int main(int argc, char* argv[])

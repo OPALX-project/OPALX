@@ -7,31 +7,13 @@
 
 #include "Ippl.h"
 
-#include <AMReX.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_MultiFabUtil.H>
-#include <AMReX_Particles.H>
-#include <AMReX_PlotFileUtil.H>
-
 #include <vector>
 
 #include <getopt.h>
 
-#include "../writePlotFile.H"
-
-#include <Epetra_MpiComm.h>
-#include <Epetra_Map.h>
-#include <Epetra_Vector.h>
-#include <Epetra_CrsMatrix.h>
-
-#include <Teuchos_RCP.hpp>
-// #include <Teuchos_ArrayRCP.hpp>
+#include "tools.h"
 
 #include "EpetraExt_RowMatrixOut.h"
-
-using namespace amrex;
-
-typedef Array<std::unique_ptr<MultiFab> > container_t;
 
 struct param_t {
     int nr[BL_SPACEDIM];
@@ -123,93 +105,6 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     }
     
     return ( cnt == required );
-}
-
-void writeYt(container_t& rho,
-             const container_t& phi,
-             const container_t& efield,
-             const Array<Geometry>& geom,
-             const Array<int>& rr,
-             const double& scalefactor)
-{
-    std::string dir = "yt-testInterpolationMatrix";
-    
-    double time = 0.0;
-    
-    for (unsigned int i = 0; i < rho.size(); ++i)
-        rho[i]->mult(/*Physics::epsilon_0 / */scalefactor, 0, 1);
-    
-    writePlotFile(dir, rho, phi, efield, rr, geom, time, scalefactor);
-}
-
-
-
-int serialize(const IntVect& iv, int* nr) {
-#if BL_SPACEDIM == 3
-    return iv[0] + (iv[1] + nr[1] * iv[2]) * nr[0];
-#else
-    return iv[0] + iv[1] * nr[0];
-#endif
-}
-
-void buildMap(Teuchos::RCP<Epetra_Map>& map, const BoxArray& grids, const DistributionMapping& dmap,
-              const Geometry& geom, Epetra_MpiComm& comm, int level)
-{
-    int nr[3];
-    for (int j = 0; j < BL_SPACEDIM; ++j)
-        nr[j] = geom.Domain().length(j);
-    
-    int N = grids.numPts();
-    
-    int localNumElements = 0;
-    std::vector<double> values;
-    std::vector<int> globalindices;
-    
-    for (amrex::MFIter mfi(grids, dmap, false); mfi.isValid(); ++mfi) {
-        const amrex::Box&    bx  = mfi.validbox();  
-        
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
-        
-        for (int i = lo[0]; i <= hi[0]; ++i) {
-            for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
-                for (int k = lo[2]; k <= hi[2]; ++k) {
-#endif
-                    IntVect iv(D_DECL(i, j, k));
-                    int globalidx = serialize(iv, &nr[0]);
-                    
-                    globalindices.push_back(globalidx);
-                    
-                    ++localNumElements;
-#if BL_SPACEDIM == 3
-                }
-#endif
-            }
-        }
-    }
-    
-    // compute map based on localelements
-    // create map that specifies which processor gets which data
-    const int baseIndex = 0;    // where to start indexing
-    
-    std::cout << N << " " << localNumElements << std::endl;
-    
-    map = Teuchos::rcp( new Epetra_Map(N, localNumElements,
-                                         &globalindices[0], baseIndex, comm) );
-    
-    std::cout << "Done." << std::endl;
-}
-
-bool isBoundary(const IntVect& iv, const int* nr) {
-#if BL_SPACEDIM == 3
-    return ( iv[0] < 0 || iv[0] >= nr[0] ||
-             iv[1] < 0 || iv[1] >= nr[1] ||
-             iv[2] < 0 || iv[2] >= nr[2] );
-#else
-    return ( iv[0] < 0 || iv[0] >= nr[0] ||
-             iv[1] < 0 || iv[1] >= nr[1] );
-#endif
 }
 
 
@@ -324,80 +219,6 @@ void buildSmootherMatrix(Teuchos::RCP<Epetra_CrsMatrix>& S,
     EpetraExt::RowMatrixToMatlabFile("smoother_matrix.txt", *S);
 }
 
-
-void trilinos2amrex(MultiFab& mf,
-                    const Teuchos::RCP<Epetra_Vector>& mv)
-{
-    int localidx = 0;
-    for (amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi) {
-        const amrex::Box&          bx  = mfi.validbox();
-        amrex::FArrayBox&          fab = mf[mfi];
-        
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
-        
-        for (int i = lo[0]; i <= hi[0]; ++i) {
-            for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
-                for (int k = lo[2]; k <= hi[2]; ++k) {
-#endif
-                    IntVect iv(D_DECL(i, j, k));
-                    fab(iv) = (*mv)[localidx++];
-                }
-#if BL_SPACEDIM == 3
-            }
-#endif
-        }
-    }
-}
-
-void amrex2trilinos(const MultiFab& mf,
-                    Teuchos::RCP<Epetra_Vector>& mv,
-                    Teuchos::RCP<Epetra_Map>& map,
-                    const Array<Geometry>& geom, int level)
-{
-    
-    int nr[BL_SPACEDIM];
-
-    for (int j = 0; j < BL_SPACEDIM; ++j)
-        nr[j] = geom[level].Domain().length(j);
-    
-    std::vector<double> values;
-    std::vector<int> indices;
-    
-    for (amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi) {
-        const amrex::Box&          bx  = mfi.validbox();
-        const amrex::FArrayBox&    fab = mf[mfi];
-        
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
-        
-        for (int i = lo[0]; i <= hi[0]; ++i) {
-            for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
-                for (int k = lo[2]; k <= hi[2]; ++k) {
-#endif
-                    IntVect iv(D_DECL(i, j, k));
-                    
-                    int globalidx = serialize(iv, &nr[0]);
-                    
-                    indices.push_back(globalidx);
-                    
-                    values.push_back(fab(iv));
-#if BL_SPACEDIM == 3
-                }
-#endif
-            }
-        }
-    }
-    
-    int error = mv->ReplaceGlobalValues(map->NumMyElements(),
-                                        &values[0],
-                                        &indices[0]);
-    
-    if ( error != 0 )
-        throw std::runtime_error("Error in filling the vector!");
-}
 
 void fill(MultiFab& mf) {
     for (amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi) {
@@ -550,7 +371,7 @@ void test(const param_t& params)
 //     trilinos2amrex(*rhs[1], y);
 //     
 //     if ( params.isWriteYt )
-//         writeYt(rhs, phi, efield, geom, rr, 1.0);
+//         writeYt(rhs, phi, efield, geom, rr, 1.0, "testSmootherMatrix");
 }
 
 
@@ -558,7 +379,7 @@ int main(int argc, char* argv[])
 {
     Ippl ippl(argc, argv);
     
-    Inform msg("Smoother");
+    Inform msg(argv[0]);
     
     param_t params;
     
