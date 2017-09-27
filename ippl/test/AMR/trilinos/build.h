@@ -581,7 +581,7 @@ void buildSpecialPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
                                         case 0:
                                         {
                                             indices.push_back( serialize(biv, &nr[0]) );
-                                            values.push_back( -1.0 / ( dx[d] * dx[d] ) );
+                                            values.push_back( 1.0 / ( dx[d] * dx[d] ) );
                                             break;
                                         }
                                         case 1:
@@ -595,7 +595,7 @@ void buildSpecialPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
                                         case 2:
                                         {
                                             // physical boundary cell
-                                            double value = -1.0 / ( dx[d] * dx[d] );
+                                            double value = 1.0 / ( dx[d] * dx[d] );
                                             applyBoundary(biv,
                                                           indices,
                                                           values,
@@ -626,10 +626,10 @@ void buildSpecialPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
                         // check center
                         if ( mfab(iv) == 0 ) {
                             indices.push_back( globidx );
-                            values.push_back( 2.0 / ( dx[0] * dx[0] ) +
-                                              2.0 / ( dx[1] * dx[1] )
+                            values.push_back( -2.0 / ( dx[0] * dx[0] ) +
+                                              -2.0 / ( dx[1] * dx[1] )
 #if BL_SPACEDIM == 3
-                                              + 2.0 / ( dx[2] * dx[2] )
+                                              -2.0 / ( dx[2] * dx[2] )
 #endif
                             );
                             ++numEntries;
@@ -676,7 +676,7 @@ void buildSpecialPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
         throw std::runtime_error("Error in completing Poisson matrix for level "
                                  + std::to_string(level) + "!");
 
-//     std::cout << *A << std::endl;
+    std::cout << *A << std::endl;
     
     
     EpetraExt::RowMatrixToMatlabFile("poisson_matrix.txt", *A);
