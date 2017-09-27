@@ -396,7 +396,7 @@ void StatisticalErrors::shutReplicasDown(int tag,
     std::vector<char> sendBuffer(sizeof(int) + LENGTH_DIRECTORY_NAME);
     int runStatus = DONE;
 
-    memcpy(&sendBuffer[0], reinterpret_cast<const char*>(&runStatus), sizeof(int));
+    std::memcpy(&sendBuffer[0], reinterpret_cast<const char*>(&runStatus), sizeof(int));
     for (unsigned int i = 0; i < localMasters_m.size(); ++ i) {
         MPI_Recv(&runStatus, 1, MPI_INT, MPI_ANY_SOURCE, tag, Ippl::getComm(), &mpiStatus);
         MPI_Isend(&sendBuffer[0],
@@ -460,7 +460,7 @@ std::string StatisticalErrors::assignReplicaNewJob(const OpalInputInterpreter &i
 
     ofh.close();
 
-    memcpy(&sendBuffer[0], reinterpret_cast<const char*>(&runStatus), sizeof(int));
+    std::memcpy(&sendBuffer[0], reinterpret_cast<const char*>(&runStatus), sizeof(int));
     strcpy(&sendBuffer[sizeof(int)], nextDir.c_str());
 
     MPI_Isend(&sendBuffer[0],
@@ -1045,7 +1045,7 @@ StatisticalErrors::DataSource StatisticalErrors::getProcessedDataFromReplica(int
              Ippl::getComm(),
              &mpiStatus);
     objectiveData.source = mpiStatus.MPI_SOURCE;
-    memcpy(reinterpret_cast<char*>(&objectiveData.ID), messageBuffer + sizeof(int), sizeof(int));
+    std::memcpy(reinterpret_cast<char*>(&objectiveData.ID), messageBuffer + sizeof(int), sizeof(int));
 
     if (objectiveData.ID >= 0) {
         unsigned int k = 2 * sizeof(int);
@@ -1059,7 +1059,7 @@ StatisticalErrors::DataSource StatisticalErrors::getProcessedDataFromReplica(int
 
         objectiveData.data.resize(2 * length);
         for (unsigned int j = 0; j < 2 * length; ++ j, k += sizeof(double)) {
-            memcpy(reinterpret_cast<char*>(&objectiveData.data[j]), messageBuffer + k, sizeof(double));
+            std::memcpy(reinterpret_cast<char*>(&objectiveData.data[j]), messageBuffer + k, sizeof(double));
         }
     }
     return objectiveData;
@@ -1071,8 +1071,8 @@ void StatisticalErrors::sendProcessedDataToPrimary(int tag,
                                                    char *messageBuffer) {
     MPI_Request mpiRequest;
     int runStatus = DONE;
-    memcpy(messageBuffer, reinterpret_cast<char*>(&runStatus), sizeof(int));
-    memcpy(messageBuffer + sizeof(int), reinterpret_cast<char*>(&objectiveID), sizeof(int));
+    std::memcpy(messageBuffer, reinterpret_cast<char*>(&runStatus), sizeof(int));
+    std::memcpy(messageBuffer + sizeof(int), reinterpret_cast<char*>(&objectiveID), sizeof(int));
 
     MPI_Isend(messageBuffer,
               2 * sizeof(int),
@@ -1099,10 +1099,10 @@ void StatisticalErrors::copyDataToBuffer(char *messageBuffer,
 
     unsigned int length = statistics.size();
     for (unsigned int i = 0; i < length; ++ i, mptr += sizeof(double)) {
-        memcpy(mptr, reinterpret_cast<const char*>(&statistics[i].first), sizeof(double));
+        std::memcpy(mptr, reinterpret_cast<const char*>(&statistics[i].first), sizeof(double));
     }
     for (unsigned int i = 0; i < length; ++ i, mptr += sizeof(double)) {
-        memcpy(mptr, reinterpret_cast<const char*>(&statistics[i].second), sizeof(double));
+        std::memcpy(mptr, reinterpret_cast<const char*>(&statistics[i].second), sizeof(double));
     }
 
 }
@@ -1114,8 +1114,8 @@ void StatisticalErrors::sendObjectiveForProcessing(int tag,
     MPI_Request mpiRequest;
     int runStatus = (i < objectives_m.size()) ? NORMAL: DONE;
 
-    memcpy(messageBuffer, reinterpret_cast<char*>(&runStatus), sizeof(int));
-    memcpy(messageBuffer + sizeof(int), reinterpret_cast<char*>(&i), sizeof(int));
+    std::memcpy(messageBuffer, reinterpret_cast<char*>(&runStatus), sizeof(int));
+    std::memcpy(messageBuffer + sizeof(int), reinterpret_cast<char*>(&i), sizeof(int));
 
     MPI_Isend(messageBuffer,
               2 * sizeof(int),
@@ -1140,8 +1140,8 @@ std::pair<int, int> StatisticalErrors::getNextObjectiveToProcess(int tag, char *
              &mpiStatus);
 
 
-    memcpy(reinterpret_cast<char*>(&nextJob.first), messageBuffer, sizeof(int));
-    memcpy(reinterpret_cast<char*>(&nextJob.second), messageBuffer + sizeof(int), sizeof(int));
+    std::memcpy(reinterpret_cast<char*>(&nextJob.first), messageBuffer, sizeof(int));
+    std::memcpy(reinterpret_cast<char*>(&nextJob.second), messageBuffer + sizeof(int), sizeof(int));
 
     return nextJob;
 }
