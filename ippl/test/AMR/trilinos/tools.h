@@ -27,29 +27,7 @@ int serialize(const IntVect& iv, int* nr) {
 #endif
 }
 
-// // Dirichlet ( zero at face )
-// void applyBoundary(const IntVect& iv,
-//                    std::vector<int>& indices,
-//                    std::vector<double>& values,
-//                    int& numEntries,
-//                    const double& value,
-//                    int* nr)
-// {
-//     // find interior neighbour cell
-//     IntVect niv;
-//     for (int i = 0; i < BL_SPACEDIM; ++i) {
-//         if ( iv[i] > -1 && iv[i] < nr[i] )
-//             niv[i] = iv[i];
-//         else
-//             niv[i] = (iv[i] == -1) ? iv[i] + 1 : iv[i] - 1;
-//     }
-//     
-//     indices.push_back( serialize(niv, &nr[0]) );
-//     values.push_back( -value );
-//     ++numEntries;
-// }
-
-// Open Boundary
+// Dirichlet ( zero at face )
 void applyBoundary(const IntVect& iv,
                    std::vector<int>& indices,
                    std::vector<double>& values,
@@ -57,55 +35,52 @@ void applyBoundary(const IntVect& iv,
                    const double& value,
                    int* nr)
 {
-    /* there should be only one boundary at a time, i.e.
-     * either x-, y- or z-direction
-     */
-    
-    /* depending on boundary we need forward
-     * or backward difference for the gradient
-     */
-    
-    // find interior neighbour cells
-    IntVect niv = iv;
-    IntVect n2iv = iv; // next interior cell
-
-    for (int d = 0; d < BL_SPACEDIM; ++d) {
-        
-        if ( niv[d] == -1 ) {
-            // lower boundary --> forward difference
-            niv[d] = 0;
-            n2iv[d] = 1;
-            
-        } else if ( niv[d] == nr[d] ) {
-            // upper boundary --> backward difference
-            niv[d] = nr[d] - 1;
-            n2iv[d] = nr[d] - 2;
-        }
+    // find interior neighbour cell
+    IntVect niv;
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+        if ( iv[i] > -1 && iv[i] < nr[i] )
+            niv[i] = iv[i];
+        else
+            niv[i] = (iv[i] == -1) ? iv[i] + 1 : iv[i] - 1;
     }
     
     indices.push_back( serialize(niv, &nr[0]) );
-    values.push_back( 2.0 * value );
-    ++numEntries;
-    
-    indices.push_back( serialize(n2iv, &nr[0]) );
     values.push_back( -value );
     ++numEntries;
-    
-    
-//     // find interior neighbour cell
-//     IntVect niv;
-//     for (int i = 0; i < BL_SPACEDIM; ++i) {
-//         if ( iv[i] > -1 && iv[i] < nr[i] )
-//             niv[i] = iv[i];
-//         else
-//             niv[i] = (iv[i] == -1) ? iv[i] + 1 : iv[i] - 1;
-//     }
+}
+
+// // Open Boundary
+// void applyBoundary(const IntVect& iv,
+//                    std::vector<int>& indices,
+//                    std::vector<double>& values,
+//                    int& numEntries,
+//                    const double& value,
+//                    int* nr)
+// {
+//     /* there should be only one boundary at a time, i.e.
+//      * either x-, y- or z-direction
+//      */
 //     
-//     // find next interior neighbour cell
-//     IntVect n2iv = niv;
-//     for (int i = 0; i < BL_SPACEDIM; ++i) {
-//         if ( iv[i] == -1 || iv[i] == nr[i] )
-//             n2iv[i] = ( niv[i] + 1 < nr[i] ) ? niv[i] + 1 : niv[i] - 1;
+//     /* depending on boundary we need forward
+//      * or backward difference for the gradient
+//      */
+//     
+//     // find interior neighbour cells
+//     IntVect niv = iv;
+//     IntVect n2iv = iv; // next interior cell
+// 
+//     for (int d = 0; d < BL_SPACEDIM; ++d) {
+//         
+//         if ( niv[d] == -1 ) {
+//             // lower boundary --> forward difference
+//             niv[d] = 0;
+//             n2iv[d] = 1;
+//             
+//         } else if ( niv[d] == nr[d] ) {
+//             // upper boundary --> backward difference
+//             niv[d] = nr[d] - 1;
+//             n2iv[d] = nr[d] - 2;
+//         }
 //     }
 //     
 //     indices.push_back( serialize(niv, &nr[0]) );
@@ -113,9 +88,34 @@ void applyBoundary(const IntVect& iv,
 //     ++numEntries;
 //     
 //     indices.push_back( serialize(n2iv, &nr[0]) );
-//     values.push_back( - value );
+//     values.push_back( -value );
 //     ++numEntries;
-}
+//     
+//     
+// //     // find interior neighbour cell
+// //     IntVect niv;
+// //     for (int i = 0; i < BL_SPACEDIM; ++i) {
+// //         if ( iv[i] > -1 && iv[i] < nr[i] )
+// //             niv[i] = iv[i];
+// //         else
+// //             niv[i] = (iv[i] == -1) ? iv[i] + 1 : iv[i] - 1;
+// //     }
+// //     
+// //     // find next interior neighbour cell
+// //     IntVect n2iv = niv;
+// //     for (int i = 0; i < BL_SPACEDIM; ++i) {
+// //         if ( iv[i] == -1 || iv[i] == nr[i] )
+// //             n2iv[i] = ( niv[i] + 1 < nr[i] ) ? niv[i] + 1 : niv[i] - 1;
+// //     }
+// //     
+// //     indices.push_back( serialize(niv, &nr[0]) );
+// //     values.push_back( 2.0 * value );
+// //     ++numEntries;
+// //     
+// //     indices.push_back( serialize(n2iv, &nr[0]) );
+// //     values.push_back( - value );
+// //     ++numEntries;
+// }
 
 void writeYt(container_t& rho,
              const container_t& phi,
