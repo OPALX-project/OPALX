@@ -13,6 +13,8 @@
 
 #include "AmrTrilinearInterpolater.h"
 
+#include "AmrOpenBoundary.h"
+
 
 #include "TrilinosSolver.h"
 
@@ -67,7 +69,7 @@ private:
                             const Teuchos::RCP<vector_t>& rhs,
                             const Teuchos::RCP<vector_t>& crs_rhs,
                             const Teuchos::RCP<vector_t>& b,
-                            int level, bool plus = false);
+                            int level);
                            
     
     
@@ -177,6 +179,12 @@ private:
                              const amrex::BaseFab<int>& mfab,
                              const AmrIntVect_t& lo,
                              const AmrIntVect_t& hi);
+    
+    void gsrb_level_m(Teuchos::RCP<vector_t>& e,
+                      Teuchos::RCP<vector_t>& r,
+                      int level);
+    
+    void restrict_m(int level);
     
 private:
     Epetra_MpiComm epetra_comm_m;
