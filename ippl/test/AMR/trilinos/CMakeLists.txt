@@ -108,6 +108,8 @@ IF ( ${BL_SPACEDIM} EQUAL 2 )
     
     add_executable( testNoFine testNoFine.cpp)
     
+    add_executable( testWithFine testWithFine.cpp)
+    
     add_executable( testSpecialPoissonMatrix testSpecialPoissonMatrix.cpp)
     
     add_executable( testTwoLevel
@@ -180,6 +182,10 @@ IF ( ${BL_SPACEDIM} EQUAL 2 )
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testNoFine ${LIBS}
+                           -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    
+    target_link_libraries (testWithFine ${LIBS}
                            -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
