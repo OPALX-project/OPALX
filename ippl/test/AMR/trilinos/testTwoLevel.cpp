@@ -192,7 +192,7 @@ void writeYt(container_t& rho,
              const Array<int>& rr,
              const double& scalefactor)
 {
-    std::string dir = "yt-testUnifSphere";
+    std::string dir = "yt-testTwoLevel";
     
     double time = 0.0;
     
@@ -229,7 +229,7 @@ void doSolve(const Array<BoxArray>& ba,
         phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev],    1          , 1));
         efield[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev], BL_SPACEDIM, 1));
         
-        rhs[lev]->setVal(1.0 + lev);
+        rhs[lev]->setVal(-1.0 - lev);
         phi[lev]->setVal(0.0, 1);
         efield[lev]->setVal(0.0, 1);
     }
