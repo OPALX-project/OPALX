@@ -59,9 +59,9 @@ private:
     
     void residual_m(Teuchos::RCP<vector_t>& r,
                     const Teuchos::RCP<vector_t>& b,
-                    const Teuchos::RCP<matrix_t>& A,
+//                     const Teuchos::RCP<matrix_t>& A,
                     const Teuchos::RCP<vector_t>& x,
-                    bool temporary=false);
+                    int level);
     
     void relax_m(int level);
     
