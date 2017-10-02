@@ -292,7 +292,9 @@ void doAMReX(const param_t& params, Inform& msg)
     Array<DistributionMapping> dmap(nlevs);
     
     // Now we make the refined level be the center eighth of the domain
-    if (nlevs > 1) {
+    if ( nlevs > 1 &&
+         IntVect(D_DECL(params.nr[0], params.nr[1], params.nr[2])) == IntVect(D_DECL(8, 8, 8)) )
+    {
 //         int n_fine = params.nr[0]*rr[0];
 //         IntVect refined_lo(D_DECL(n_fine/4,n_fine/4,n_fine/4)); 
 //         IntVect refined_hi(D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
@@ -302,20 +304,36 @@ void doAMReX(const param_t& params, Inform& msg)
         
         
         BoxList bl;
-        Box b1(IntVect(D_DECL(0, 4, 4)), IntVect(D_DECL(3, 7, 7)));
+//         Box b1(IntVect(D_DECL(0, 4, 4)), IntVect(D_DECL(3, 7, 7)));
         
-        bl.push_back(b1);
+//         bl.push_back(b1);
         
         Box b2(IntVect(D_DECL(4, 4, 4)), IntVect(D_DECL(11, 11, 11)));
         
         bl.push_back(b2);
         
-        Box b3(IntVect(D_DECL(14, 6, 6)), IntVect(D_DECL(15, 9, 9)));
+//         Box b3(IntVect(D_DECL(14, 6, 6)), IntVect(D_DECL(15, 9, 9)));
         
-        bl.push_back(b3);
+//         bl.push_back(b3);
         
         
         ba[1].define(bl);//define(refined_patch);
+    } else if ( nlevs > 1 &&
+                IntVect(D_DECL(params.nr[0], params.nr[1], params.nr[2])) == IntVect(D_DECL(32, 32, 32)) )
+    {
+        BoxList bl;
+//         Box b1(IntVect(D_DECL(0, 4, 4)), IntVect(D_DECL(3, 7, 7)));
+        
+//         bl.push_back(b1);
+        
+        Box b2(IntVect(D_DECL(16, 16, 16)), IntVect(D_DECL(47, 47, 47)));
+        
+        bl.push_back(b2);
+        
+//         Box b3(IntVect(D_DECL(14, 6, 6)), IntVect(D_DECL(15, 9, 9)));
+        
+//         bl.push_back(b3);
+        ba[1].define(bl);
     }
     
     // break the BoxArrays at both levels into max_grid_size^3 boxes
