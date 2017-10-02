@@ -21,7 +21,8 @@ AmrMultiGridLevel<MatrixType,
       rho_p(Teuchos::null),
       phi_p(Teuchos::null),
       residual_p(Teuchos::null),
-      error_p(Teuchos::null)
+      error_p(Teuchos::null),
+      UnCovered_p(Teuchos::null)
 {
     bc_mp.reset(bc);
     
@@ -50,6 +51,7 @@ AmrMultiGridLevel<MatrixType, VectorType>::~AmrMultiGridLevel()
     Bfine_p = Teuchos::null;
     As_p = Teuchos::null;
     S_p = Teuchos::null;
+    UnCovered_p = Teuchos::null;
     
     rho_p = Teuchos::null;
     phi_p = Teuchos::null;

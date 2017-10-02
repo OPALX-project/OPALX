@@ -89,6 +89,8 @@ public:
     Teuchos::RCP<vector_t> residual_p;
     Teuchos::RCP<vector_t> error_p;
     
+    Teuchos::RCP<matrix_t> UnCovered_p;
+    
     std::unique_ptr<mask_t> mask;       ///< interior, phys boundary, interface, covered
     
     const amrex::BoxArray& grids;
