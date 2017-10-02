@@ -287,7 +287,7 @@ void AmrMultiGrid::relax_m(int level) {
         mglevel_m[level-1]->error_p->PutScalar(0.0);
         
         // smoothing
-        for (int iii = 0; iii < 1; ++iii)
+        for (int iii = 0; iii < 4; ++iii)
             this->gsrb_level_m(mglevel_m[level]->error_p,
                                mglevel_m[level]->residual_p, level);
         
@@ -340,7 +340,7 @@ void AmrMultiGrid::relax_m(int level) {
         derror->PutScalar(0.0);
         
         // smoothing
-        for (int iii = 0; iii < 1; ++iii)
+        for (int iii = 0; iii < 4; ++iii)
             this->gsrb_level_m(derror, mglevel_m[level]->residual_p, level);
         
         // e^(l) += de^(l)
@@ -417,7 +417,7 @@ void AmrMultiGrid::residual_no_fine_m(Teuchos::RCP<vector_t>& result,
     
     tmp.Update(1.0, crse2fine, 1.0);
     
-    result->PutScalar(0.0);
+//     result->PutScalar(0.0);
     
     result->Update(1.0, *b, -1.0, tmp, 0.0);
 }
@@ -617,8 +617,8 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                 for (int kref = kk - begin[2]; kref <= kk + end[2]; ++kref) {
 #endif
                     /* Since all fine cells on the not-refined cell are
-                     * outside of the "domain" --> we need to interpolate
-                     * using open boundary condition.
+                     * outside of the "domain" --> we need to interpolate from
+                     * the coarse level.
                      */
                     sign *= ( d == 2 ) ? -1.0 : 1.0;
                     
@@ -626,9 +626,16 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                     
                     double value = double(shift) * sign / ( avg * cdx[d] * fdx[d] );
                     
+//                     std::cout << d << " riv = " << riv
+//                               << " iv = " << iv << " "
+//                               << sign << " " << shift;
+                    
                     if ( riv[d] / rr[d] == iv[d] ) {
                         /* interpolate
                          */
+                        
+                        
+//                         std::cout << " interpolate";
                         
                         std::size_t nn = indices.size();
                         
@@ -644,6 +651,9 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                          * done in buildFineBoundaryMatrix_m
                          */
                     }
+                    
+//                     std::cout << std::endl; std::cin.get();
+                    
 #if BL_SPACEDIM == 3
                 }
 #endif
@@ -695,6 +705,9 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                         indices.clear();
                         values.clear();
                         int globalidx = mglevel_m[level]->serialize(iv);
+                        
+                        
+                        std::cout << "Stencil for " << iv << std::endl;
                         
                         /*
                          * check neighbours in all directions (Laplacian stencil --> cross)
@@ -1268,6 +1281,11 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(int level)
                     
                     double value = double(shift) * sign / ( avg * cdx[d] * fdx[d] );
                     
+                    
+//                     std::cout << d << " riv = " << riv
+//                               << " iv = " << iv << " "
+//                               << sign << " " << shift;
+                    
                     if ( riv[d] / rr[d] == iv[d] ) {
                         /* interpolate
                          */
@@ -1285,9 +1303,15 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(int level)
                         indices.push_back( mglevel_m[level+1]->serialize(riv) );
                         values.push_back( - value );*/
                     } else {
+                        
+//                         std::cout << " not interp " << value;
+                        
                         indices.push_back( mglevel_m[level+1]->serialize(riv) );
                         values.push_back( value );
                     }
+                    
+//                     std::cout << std::endl; std::cin.get();
+                    
 #if BL_SPACEDIM == 3
                 }
 #endif
@@ -1321,6 +1345,7 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(int level)
             int begin[BL_SPACEDIM] = { D_DECL( int(d == 0), int(d == 1), int(d == 2) ) };
             int end[BL_SPACEDIM]   = { D_DECL( int(d != 0), int(d != 1), int(d != 2) ) };
             
+            std::cout << "Stencil for " << iv << std::endl;
             
             // neighbour
             AmrIntVect_t covered = iv;
