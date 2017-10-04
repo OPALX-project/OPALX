@@ -12,8 +12,7 @@
 
 #include <Epetra_MpiComm.h>
 
-#include "AmrDirichletBoundary.h"
-#include "AmrTrilinearInterpolater.h"
+#include "AmrMultiGridCore.h"
 
 template <class MatrixType, class VectorType>
 class AmrMultiGridLevel {

@@ -8,17 +8,9 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_PhysBCFunct.H>
 
+#include "AmrMultiGridCore.h"
 
 #include "AmrMultiGridLevel.h"
-
-#include "AmrTrilinearInterpolater.h"
-#include "AmrLagrangeInterpolater.h"
-
-#include "AmrOpenBoundary.h"
-
-
-#include "TrilinosSolver.h"
-
 
 class AmrMultiGrid {
     
