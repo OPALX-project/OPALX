@@ -22,12 +22,12 @@ public:
     void coarse(const AmrIntVect_t& iv,
                 typename AmrMultiGridLevel::indices_t& indices,
                 typename AmrMultiGridLevel::coefficients_t& values,
-                int direction, int shift, AmrMultiGridLevel* mglevel);
+                int dir, int shift, AmrMultiGridLevel* mglevel);
     
     void fine(const AmrIntVect_t& iv,
               typename AmrMultiGridLevel::indices_t& indices,
               typename AmrMultiGridLevel::coefficients_t& values,
-              int direction, int shift, AmrMultiGridLevel* mglevel);
+              int dir, int shift, AmrMultiGridLevel* mglevel);
 };
 
 
