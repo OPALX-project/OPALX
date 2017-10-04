@@ -21,6 +21,16 @@ public:
                  typename AmrMultiGridLevel::coefficients_t& values,
                  AmrMultiGridLevel* mglevel);
     
+    void coarse(const AmrIntVect_t& iv,
+                typename AmrMultiGridLevel::indices_t& indices,
+                typename AmrMultiGridLevel::coefficients_t& values,
+                int direction, int shift, AmrMultiGridLevel* mglevel);
+    
+    void fine(const AmrIntVect_t& iv,
+              typename AmrMultiGridLevel::indices_t& indices,
+              typename AmrMultiGridLevel::coefficients_t& values,
+              int direction, int shift, AmrMultiGridLevel* mglevel);
+    
 private:
     const int nPoints_m;    ///< Number of points used for interpolation
 };
