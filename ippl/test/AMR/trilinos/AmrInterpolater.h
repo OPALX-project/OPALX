@@ -1,15 +1,23 @@
 #ifndef AMR_INTERPOLATER_H
 #define AMR_INTERPOLATER_H
 
+///< Abstract base class for all coarse to fine cell interpolaters
 template <class AmrMultiGridLevel>
 class AmrInterpolater {
     
 public:
     
     /*!
+     * @param nPoints is the number of interpolation points used
+     */
+    AmrInterpolater(int nPoints) : nPoints_m(nPoints) { }
+    
+    /*!
      * Number of cell points used for interpolation.
      */
-    virtual const int& getNumberOfPoints() const = 0;
+    const int& getNumberOfPoints() const {
+        return nPoints_m;
+    }
     
     /*!
      * Get the stencil to interpolate a value from coarse to fine level
@@ -60,6 +68,9 @@ public:
                       typename AmrMultiGridLevel::indices_t& indices,
                       typename AmrMultiGridLevel::coefficients_t& values,
                       int direction, int shift, AmrMultiGridLevel* mglevel) = 0;
+    
+private:
+    const int nPoints_m;    ///< Number of points used for interpolation
 };
 
 #endif
