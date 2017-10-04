@@ -1,5 +1,6 @@
 template <class AmrMultiGridLevel>
-AmrTrilinearInterpolater<AmrMultiGridLevel>::AmrTrilinearInterpolater() : nPoints_m(2 << (BL_SPACEDIM - 1) )
+AmrTrilinearInterpolater<AmrMultiGridLevel>::AmrTrilinearInterpolater()
+    : nPoints_m(2 << (BL_SPACEDIM - 1) )
 { }
 
 
@@ -10,10 +11,11 @@ const int& AmrTrilinearInterpolater<AmrMultiGridLevel>::getNumberOfPoints() cons
 
 
 template <class AmrMultiGridLevel>
-void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(const AmrIntVect_t& iv,
-                                                          typename AmrMultiGridLevel::indices_t& indices,
-                                                          typename AmrMultiGridLevel::coefficients_t& values,
-                                                          AmrMultiGridLevel* mglevel)
+void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
+    const AmrIntVect_t& iv,
+    typename AmrMultiGridLevel::indices_t& indices,
+    typename AmrMultiGridLevel::coefficients_t& values,
+    AmrMultiGridLevel* mglevel)
 {
     /* lower left coarse cell (i, j, k)
      * floor( i - 0.5 ) / rr[0]
@@ -126,4 +128,30 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(const AmrIntVect_t& iv
         values.push_back( value );
     }
 #endif
+}
+
+
+template <class AmrMultiGridLevel>
+void AmrTrilinearInterpolater<AmrMultiGridLevel>::coarse(
+    const AmrIntVect_t& iv,
+    typename AmrMultiGridLevel::indices_t& indices,
+    typename AmrMultiGridLevel::coefficients_t& values,
+    int direction, int shift, AmrMultiGridLevel* mglevel)
+{
+    // do nothing
+}
+
+
+template <class AmrMultiGridLevel>
+void AmrTrilinearInterpolater<AmrMultiGridLevel>::fine(
+    const AmrIntVect_t& iv,
+    typename AmrMultiGridLevel::indices_t& indices,
+    typename AmrMultiGridLevel::coefficients_t& values,
+    int direction, int shift, AmrMultiGridLevel* mglevel)
+{
+    /*
+     * The AmrTrilinearInterpolater interpolates directly to the
+     * fine ghost cell.
+     */
+    this->stencil(iv, indices, values, mglevel);
 }
