@@ -130,7 +130,8 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::coarse(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
-    int dir, int shift, AmrMultiGridLevel* mglevel)
+    int dir, int shift, const amrex::BoxArray& ba,
+    AmrMultiGridLevel* mglevel)
 {
     // do nothing
 }
@@ -141,7 +142,8 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::fine(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
-    int dir, int shift, AmrMultiGridLevel* mglevel)
+    int dir, int shift, const amrex::BoxArray& ba,
+    AmrMultiGridLevel* mglevel)
 {
     /*
      * The AmrTrilinearInterpolater interpolates directly to the

@@ -1,6 +1,8 @@
 #ifndef AMR_INTERPOLATER_H
 #define AMR_INTERPOLATER_H
 
+#include <AMReX_BoxArray.H>
+
 ///< Abstract base class for all coarse to fine cell interpolaters
 template <class AmrMultiGridLevel>
 class AmrInterpolater {
@@ -42,13 +44,15 @@ public:
      * @param shift is either -1 or 1. If the refined coarse cell is on the left / lower / front
      * side, shift is equal to -1, otherwise the interface is on the right / upper / back side
      * and the value is 1.
+     * @param ba contains all coarse cells that got refined
      * @param mglevel used to get the global indices and refinement ratio among levels,
      * and boundary values at physical domain, e.g. Dirichlet, open BC
      */
     virtual void coarse(const AmrIntVect_t& iv,
                         typename AmrMultiGridLevel::indices_t& indices,
                         typename AmrMultiGridLevel::coefficients_t& values,
-                        int dir, int shift, AmrMultiGridLevel* mglevel) = 0;
+                        int dir, int shift, const amrex::BoxArray& ba,
+                        AmrMultiGridLevel* mglevel) = 0;
     
     /*!
      * Coarse-Fine-Interface
@@ -61,13 +65,15 @@ public:
      * @param shift is either -1 or 1. If the refined coarse cell is on the left / lower / front
      * side, shift is equal to -1, otherwise the interface is on the right / upper / back side
      * and the value is 1.
+     * @param ba contains all coarse cells that got refined
      * @param mglevel used to get the global indices and refinement ratio among levels,
      * and boundary avlues at physical domain, e.g. Dirichlet, open BC
      */
     virtual void fine(const AmrIntVect_t& iv,
                       typename AmrMultiGridLevel::indices_t& indices,
                       typename AmrMultiGridLevel::coefficients_t& values,
-                      int dir, int shift, AmrMultiGridLevel* mglevel) = 0;
+                      int dir, int shift, const amrex::BoxArray& ba,
+                      AmrMultiGridLevel* mglevel) = 0;
     
 protected:
     const int nPoints_m;    ///< Number of points used for interpolation
