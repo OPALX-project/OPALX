@@ -20,16 +20,17 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::coarse(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
-    int dir, int shift, AmrMultiGridLevel* mglevel)
+    int dir, int shift, const amrex::BoxArray& ba,
+    AmrMultiGridLevel* mglevel)
 {
     // polynomial degree = #points - 1
     switch ( this->nPoints_m - 1 ) {
         
         case Order::LINEAR:
-            this->crseLinear_m(iv, indices, values, dir, shift, mglevel);
+            this->crseLinear_m(iv, indices, values, dir, shift, ba, mglevel);
             break;
         case Order::QUADRATIC:
-            this->crseQuadratic_m(iv, indices, values, dir, shift, mglevel);
+            this->crseQuadratic_m(iv, indices, values, dir, shift, ba, mglevel);
             break;
         default:
             std::runtime_error("Not implemented interpolation");
@@ -42,16 +43,17 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fine(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
-    int dir, int shift, AmrMultiGridLevel* mglevel)
+    int dir, int shift, const amrex::BoxArray& ba,
+    AmrMultiGridLevel* mglevel)
 {
     // polynomial degree = #points - 1
     switch ( this->nPoints_m - 1 ) {
         
         case Order::LINEAR:
-            this->fineLinear_m(iv, indices, values, dir, shift, mglevel);
+            this->fineLinear_m(iv, indices, values, dir, shift, ba, mglevel);
             break;
         case Order::QUADRATIC:
-            this->fineQuadratic_m(iv, indices, values, dir, shift, mglevel);
+            this->fineQuadratic_m(iv, indices, values, dir, shift, ba, mglevel);
             break;
         default:
             std::runtime_error("Not implemented interpolation");
@@ -64,7 +66,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fineLinear_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
-    int dir, int shift, AmrMultiGridLevel* mglevel)
+    int dir, int shift, const amrex::BoxArray& ba,
+    AmrMultiGridLevel* mglevel)
 {
     // not implemented
     std::runtime_error("Not implemented interpolation");
@@ -76,16 +79,18 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fineQuadratic_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
-    int dir, int shift, AmrMultiGridLevel* mglevel)
+    int dir, int shift, const amrex::BoxArray& ba,
+    AmrMultiGridLevel* mglevel)
 {
+    AmrIntVect_t tmp = iv;
     // first fine cell on refined coarse cell (closer to interface)
-    iv[dir] += shift;
-    indices.push_back( mglevel->serialize(iv) );
+    tmp[dir] += shift;
+    indices.push_back( mglevel->serialize(tmp) );
     values.push_back( 2.0 / 3.0 );
                         
     // second fine cell on refined coarse cell (further away from interface)
-    iv[dir] += shift;
-    indices.push_back( mglevel->serialize(iv) );
+    tmp[dir] += shift;
+    indices.push_back( mglevel->serialize(tmp) );
     values.push_back( -0.2 );
 }
 
@@ -95,7 +100,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
-    int dir, int shift, AmrMultiGridLevel* mglevel)
+    int dir, int shift, const amrex::BoxArray& ba,
+    AmrMultiGridLevel* mglevel)
 {
     //TODO Extend to 3D
     
@@ -112,7 +118,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
-    int dir, int shift, AmrMultiGridLevel* mglevel)
+    int dir, int shift, const amrex::BoxArray& ba,
+    AmrMultiGridLevel* mglevel)
 {
     //TODO Extend to 3D
     
@@ -148,16 +155,16 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
      */
     
     // check r / u / b --> 1: valid; 0: not valid
-    bool rub = !crse_fine_ba.contains(niv);
+    bool rub = !ba.contains(niv);
     
     // check l / f --> 1: valid; 0: not valid
-    bool lf = !crse_fine_ba.contains(miv);
+    bool lf = !ba.contains(miv);
     
     // check 2nd r / u / b
-    bool rub2 = !crse_fine_ba.contains(n2iv);
+    bool rub2 = !ba.contains(n2iv);
     
     // check 2nd l / f
-    bool lf2 = !crse_fine_ba.contains(m2iv);
+    bool lf2 = !ba.contains(m2iv);
     
     if ( rub && lf )
     {
@@ -239,7 +246,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         // last trial: linear Lagrange interpolation
         
         if ( rub || lf ) {
-            this->crseLinear_m(iv, indices, values, dir, shift, mglevel);
+            this->crseLinear_m(iv, indices, values, dir, shift, ba, mglevel);
         } else
             std::runtime_error("Lagrange Error: No valid scenario found!");
     }
