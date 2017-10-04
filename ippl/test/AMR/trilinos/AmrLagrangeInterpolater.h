@@ -23,12 +23,12 @@ public:
     void coarse(const AmrIntVect_t& iv,
                 typename AmrMultiGridLevel::indices_t& indices,
                 typename AmrMultiGridLevel::coefficients_t& values,
-                int direction, int shift, AmrMultiGridLevel* mglevel);
+                int dir, int shift, AmrMultiGridLevel* mglevel);
     
     void fine(const AmrIntVect_t& iv,
               typename AmrMultiGridLevel::indices_t& indices,
               typename AmrMultiGridLevel::coefficients_t& values,
-              int direction, int shift, AmrMultiGridLevel* mglevel);
+              int dir, int shift, AmrMultiGridLevel* mglevel);
     
 private:
     
@@ -39,7 +39,7 @@ private:
      * refined)
      * @param indices global matrix indices of fine level cells
      * @param values matrix entries of fine level cells (coefficients)
-     * @param direction of interface (0 "horizontal", 1 "vertical", 2 "longitudinal")
+     * @param dir direction of interface (0 "horizontal", 1 "vertical", 2 "longitudinal")
      * @param shift is either -1 or 1. If the refined coarse cell is on the left / lower / front
      * side, shift is equal to -1, otherwise the interface is on the right / upper / back side
      * and the value is 1.
@@ -49,7 +49,7 @@ private:
     void fineLinear_m(const AmrIntVect_t& iv,
                   typename AmrMultiGridLevel::indices_t& indices,
                   typename AmrMultiGridLevel::coefficients_t& values,
-                  int direction, int shift, AmrMultiGridLevel* mglevel);
+                  int dir, int shift, AmrMultiGridLevel* mglevel);
     
     /*!
      * Second order interpolation on fine cell interface side
@@ -58,7 +58,7 @@ private:
      * refined)
      * @param indices global matrix indices of fine level cells
      * @param values matrix entries of fine level cells (coefficients)
-     * @param direction of interface (0 "horizontal", 1 "vertical", 2 "longitudinal")
+     * @param dir direction of interface (0 "horizontal", 1 "vertical", 2 "longitudinal")
      * @param shift is either -1 or 1. If the refined coarse cell is on the left / lower / front
      * side, shift is equal to -1, otherwise the interface is on the right / upper / back side
      * and the value is 1.
@@ -68,14 +68,14 @@ private:
     void fineQuadratic_m(const AmrIntVect_t& iv,
                      typename AmrMultiGridLevel::indices_t& indices,
                      typename AmrMultiGridLevel::coefficients_t& values,
-                     int direction, int shift, AmrMultiGridLevel* mglevel);
+                     int dir, int shift, AmrMultiGridLevel* mglevel);
     
     /*
      * First oder interpolation on coarse cell interface side
      * @param iv is the coarse cell at the interface (center cell of Laplacian)
      * @param indices global matrix indices of coarse level cells
      * @param values matrix entries of coarse level cells (coefficients)
-     * @param direction of interface (0 "horizontal", 1 "vertical", 2 "longitudinal")
+     * @param dir direction of interface (0 "horizontal", 1 "vertical", 2 "longitudinal")
      * @param shift is either -1 or 1. If the refined coarse cell is on the left / lower / front
      * side, shift is equal to -1, otherwise the interface is on the right / upper / back side
      * and the value is 1.
@@ -85,7 +85,7 @@ private:
     void crseLinear_m(const AmrIntVect_t& iv,
                       typename AmrMultiGridLevel::indices_t& indices,
                       typename AmrMultiGridLevel::coefficients_t& values,
-                      int direction, int shift, AmrMultiGridLevel* mglevel);
+                      int dir, int shift, AmrMultiGridLevel* mglevel);
     
     /*!
      * Second order interpolation on coarse cell interface side
@@ -93,7 +93,7 @@ private:
      * @param iv is the coarse cell at the interface (center cell of Laplacian)
      * @param indices global matrix indices of coarse level cells
      * @param values matrix entries of coarse level cells (coefficients)
-     * @param direction of interface (0 "horizontal", 1 "vertical", 2 "longitudinal")
+     * @param dir direction of interface (0 "horizontal", 1 "vertical", 2 "longitudinal")
      * @param shift is either -1 or 1. If the refined coarse cell is on the left / lower / front
      * side, shift is equal to -1, otherwise the interface is on the right / upper / back side
      * and the value is 1.
@@ -103,7 +103,7 @@ private:
     void crseQuadratic_m(const AmrIntVect_t& iv,
                          typename AmrMultiGridLevel::indices_t& indices,
                          typename AmrMultiGridLevel::coefficients_t& values,
-                         int direction, int shift, AmrMultiGridLevel* mglevel);
+                         int dir, int shift, AmrMultiGridLevel* mglevel);
 };
 
 #include "AmrLagrangeInterpolater.hpp"
