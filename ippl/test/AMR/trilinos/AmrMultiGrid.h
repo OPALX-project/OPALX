@@ -12,6 +12,7 @@
 #include "AmrMultiGridLevel.h"
 
 #include "AmrTrilinearInterpolater.h"
+#include "AmrLagrangeInterpolater.h"
 
 #include "AmrOpenBoundary.h"
 
@@ -40,13 +41,15 @@ public:
                      > map_t;
     
     enum Interpolater {
-        TRILINEAR = 0 //,
+        TRILINEAR = 0,
+        LAGRANGE,
 //         TRICUBIC  = 1,
     };
     
 public:
     
-    AmrMultiGrid(Interpolater interp = Interpolater::TRILINEAR);
+    AmrMultiGrid(Interpolater interp = Interpolater::TRILINEAR,
+                 Interpolater interface = Interpolater::LAGRANGE);
     
     void solve(const amrex::Array<AmrField_u>& rho,
                amrex::Array<AmrField_u>& phi,
@@ -190,6 +193,8 @@ private:
     Epetra_MpiComm epetra_comm_m;
     
     std::unique_ptr<AmrInterpolater<AmrMultiGridLevel_t> > interp_mp;
+    
+    std::unique_ptr<AmrInterpolater<AmrMultiGridLevel_t> > interface_mp;
     
     int nIter_m;
     
