@@ -38,7 +38,7 @@ public:
      * @param iv is the coarse cell at the interface (center cell of Laplacian)
      * @param indices global matrix indices of coarse level cells
      * @param values matrix entries of coarse level cells (coefficients)
-     * @param direction of interface (0 "horizontal", 1 "vertical", 2 "longitudinal")
+     * @param dir direction of interface (0 "horizontal", 1 "vertical", 2 "longitudinal")
      * @param shift is either -1 or 1. If the refined coarse cell is on the left / lower / front
      * side, shift is equal to -1, otherwise the interface is on the right / upper / back side
      * and the value is 1.
@@ -48,7 +48,7 @@ public:
     virtual void coarse(const AmrIntVect_t& iv,
                         typename AmrMultiGridLevel::indices_t& indices,
                         typename AmrMultiGridLevel::coefficients_t& values,
-                        int direction, int shift, AmrMultiGridLevel* mglevel) = 0;
+                        int dir, int shift, AmrMultiGridLevel* mglevel) = 0;
     
     /*!
      * Coarse-Fine-Interface
@@ -57,7 +57,7 @@ public:
      * refined)
      * @param indices global matrix indices of fine level cells
      * @param values matrix entries of fine level cells (coefficients)
-     * @param direction of interface (0 "horizontal", 1 "vertical", 2 "longitudinal")
+     * @param dir direction of interface (0 "horizontal", 1 "vertical", 2 "longitudinal")
      * @param shift is either -1 or 1. If the refined coarse cell is on the left / lower / front
      * side, shift is equal to -1, otherwise the interface is on the right / upper / back side
      * and the value is 1.
@@ -67,9 +67,9 @@ public:
     virtual void fine(const AmrIntVect_t& iv,
                       typename AmrMultiGridLevel::indices_t& indices,
                       typename AmrMultiGridLevel::coefficients_t& values,
-                      int direction, int shift, AmrMultiGridLevel* mglevel) = 0;
+                      int dir, int shift, AmrMultiGridLevel* mglevel) = 0;
     
-private:
+protected:
     const int nPoints_m;    ///< Number of points used for interpolation
 };
 

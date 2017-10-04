@@ -1,6 +1,6 @@
 template <class AmrMultiGridLevel>
 AmrLagrangeInterpolater<AmrMultiGridLevel>::AmrLagrangeInterpolater(Order order)
-    : AmrInterpolater( int(order) + 1 )
+    : AmrInterpolater<AmrMultiGridLevel>( int(order) + 1 )
 { }
 
 
@@ -20,16 +20,16 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::coarse(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
-    int direction, int shift, AmrMultiGridLevel* mglevel)
+    int dir, int shift, AmrMultiGridLevel* mglevel)
 {
     // polynomial degree = #points - 1
-    switch ( nPoints_m - 1 ) {
+    switch ( this->nPoints_m - 1 ) {
         
         case Order::LINEAR:
-            this->crseLinear_m(iv, indices, values, direction, shift, mglevel);
+            this->crseLinear_m(iv, indices, values, dir, shift, mglevel);
             break;
         case Order::QUADRATIC:
-            this->crseQuadratic_m(iv, indices, values, direction, shift, mglevel);
+            this->crseQuadratic_m(iv, indices, values, dir, shift, mglevel);
             break;
         default:
             std::runtime_error("Not implemented interpolation");
@@ -42,16 +42,16 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fine(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
-    int direction, int shift, AmrMultiGridLevel* mglevel)
+    int dir, int shift, AmrMultiGridLevel* mglevel)
 {
     // polynomial degree = #points - 1
-    switch ( nPoints_m - 1 ) {
+    switch ( this->nPoints_m - 1 ) {
         
         case Order::LINEAR:
-            this->fineLinear_m(iv, indices, values, direction, shift, mglevel);
+            this->fineLinear_m(iv, indices, values, dir, shift, mglevel);
             break;
         case Order::QUADRATIC:
-            this->fineQuadratic_m(iv, indices, values, direction, shift, mglevel);
+            this->fineQuadratic_m(iv, indices, values, dir, shift, mglevel);
             break;
         default:
             std::runtime_error("Not implemented interpolation");
@@ -64,7 +64,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fineLinear_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
-    int direction, int shift, AmrMultiGridLevel* mglevel)
+    int dir, int shift, AmrMultiGridLevel* mglevel)
 {
     // not implemented
     std::runtime_error("Not implemented interpolation");
@@ -76,15 +76,15 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fineQuadratic_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
-    int direction, int shift, AmrMultiGridLevel* mglevel)
+    int dir, int shift, AmrMultiGridLevel* mglevel)
 {
     // first fine cell on refined coarse cell (closer to interface)
-    iv[d] += shift;
+    iv[dir] += shift;
     indices.push_back( mglevel->serialize(iv) );
     values.push_back( 2.0 / 3.0 );
                         
     // second fine cell on refined coarse cell (further away from interface)
-    iv[d] += shift;
+    iv[dir] += shift;
     indices.push_back( mglevel->serialize(iv) );
     values.push_back( -0.2 );
 }
@@ -95,7 +95,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
-    int direction, int shift, AmrMultiGridLevel* mglevel)
+    int dir, int shift, AmrMultiGridLevel* mglevel)
 {
     //TODO Extend to 3D
     
@@ -112,25 +112,25 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
-    int direction, int shift, AmrMultiGridLevel* mglevel)
+    int dir, int shift, AmrMultiGridLevel* mglevel)
 {
     //TODO Extend to 3D
     
     // right / upper / back
-    IntVect niv = iv;
-    niv[(d+1)%BL_SPACEDIM ] += 1;
+    AmrIntVect_t niv = iv;
+    niv[(dir+1)%BL_SPACEDIM ] += 1;
     
     // left / lower / front
-    IntVect miv = iv;
-    miv[(d+1)%BL_SPACEDIM ] -= 1;
+    AmrIntVect_t miv = iv;
+    miv[(dir+1)%BL_SPACEDIM ] -= 1;
     
     // 2nd right / upper / back
-    IntVect n2iv = niv;
-    n2iv[(d+1)%BL_SPACEDIM ] += 1;
+    AmrIntVect_t n2iv = niv;
+    n2iv[(dir+1)%BL_SPACEDIM ] += 1;
     
     // 2nd left / lower / front
-    IntVect m2iv = miv;
-    m2iv[(d+1)%BL_SPACEDIM ] -= 1;
+    AmrIntVect_t m2iv = miv;
+    m2iv[(dir+1)%BL_SPACEDIM ] -= 1;
         
     /* 3 cases:
      * --------
@@ -239,7 +239,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         // last trial: linear Lagrange interpolation
         
         if ( rub || lf ) {
-            this->crseLinear_m(iv, indices, values, direction, shift, mglevel);
+            this->crseLinear_m(iv, indices, values, dir, shift, mglevel);
         } else
             std::runtime_error("Lagrange Error: No valid scenario found!");
     }
