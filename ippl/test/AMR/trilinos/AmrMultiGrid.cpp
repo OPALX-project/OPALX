@@ -6,13 +6,31 @@
 
 #include <AMReX_MacBndry.H>
 
-AmrMultiGrid::AmrMultiGrid(Interpolater interp) : epetra_comm_m(Ippl::getComm())
+AmrMultiGrid::AmrMultiGrid(Interpolater interp,
+                           Interpolater interface)
+    : epetra_comm_m(Ippl::getComm())
 {
     switch ( interp ) {
         case Interpolater::TRILINEAR:
             interp_mp.reset( new AmrTrilinearInterpolater<AmrMultiGridLevel_t>() );
-        default:
             break;
+        case Interpolater::LAGRANGE:
+            std::runtime_error("Not yet implemented.");
+        default:
+            std::runtime_error("No such interpolater available.");
+    }
+    
+    // interpolater for crse-fine-interface
+    switch ( interface ) {
+        case Interpolater::TRILINEAR:
+            interface_mp.reset( new AmrTrilinearInterpolater<AmrMultiGridLevel_t>() );
+            break;
+        case Interpolater::LAGRANGE:
+            interface_mp.reset( new AmrLagrangeInterpolater<AmrMultiGridLevel_t>(
+                AmrLagrangeInterpolater<AmrMultiGridLevel_t>::Order::QUADRATIC) );
+            break;
+        default:
+            std::runtime_error("No such interpolater for the coarse-fine interface available.");
     }
 }
 
