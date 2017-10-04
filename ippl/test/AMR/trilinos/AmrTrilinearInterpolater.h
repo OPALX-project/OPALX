@@ -14,8 +14,6 @@ public:
     
     AmrTrilinearInterpolater();
     
-    const int& getNumberOfPoints() const;
-    
     void stencil(const AmrIntVect_t& iv,
                  typename AmrMultiGridLevel::indices_t& indices,
                  typename AmrMultiGridLevel::coefficients_t& values,
@@ -30,9 +28,6 @@ public:
               typename AmrMultiGridLevel::indices_t& indices,
               typename AmrMultiGridLevel::coefficients_t& values,
               int direction, int shift, AmrMultiGridLevel* mglevel);
-    
-private:
-    const int nPoints_m;    ///< Number of points used for interpolation
 };
 
 

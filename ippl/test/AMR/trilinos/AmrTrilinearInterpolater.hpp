@@ -1,13 +1,7 @@
 template <class AmrMultiGridLevel>
 AmrTrilinearInterpolater<AmrMultiGridLevel>::AmrTrilinearInterpolater()
-    : nPoints_m(2 << (BL_SPACEDIM - 1) )
+    : AmrInterpolater<AmrMultiGridLevel>(2 << (BL_SPACEDIM - 1))
 { }
-
-
-template <class AmrMultiGridLevel>
-const int& AmrTrilinearInterpolater<AmrMultiGridLevel>::getNumberOfPoints() const {
-    return nPoints_m;
-}
 
 
 template <class AmrMultiGridLevel>
