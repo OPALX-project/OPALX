@@ -162,7 +162,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bf2c_c,
     Bf2c_c = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy,
                                                 RowMap, /*ColMap, */nNeighbours, false) );
     
-    int nFine = 4;
+    int nFine = 4 /* for one interface */ * 2 /*if 2 interfaces, 3 interface shouldn't appear */;
 #if BL_SPACEDIM == 3
     nFine = 8;
 #endif
@@ -602,7 +602,24 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bf2c_c,
         int numEntries = indices.size();
         unique(indices, values, numEntries);
         
+        int error = Bf2c_f->InsertGlobalValues(globidx,
+                                               indices.size(),
+                                               &values[0],
+                                               &indices[0]);
+        
+        if ( error != 0 ) {
+            // if e.g. nNeighbours < numEntries --> error
+            throw std::runtime_error("Error in filling the boundary matrix for level " +
+                                     std::to_string(level) + "!");
+        }
+        
     }
+    
+    error = Bf2c_f->FillComplete(ColMap, RowMap, true);
+    
+    if ( error != 0 )
+        throw std::runtime_error("Error in completing the fine boundary matrix for level " +
+                                 std::to_string(level) + "!");
             
             
     std::cout << "Done." << std::endl;
