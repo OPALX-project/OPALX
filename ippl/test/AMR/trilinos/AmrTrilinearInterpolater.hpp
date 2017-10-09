@@ -131,6 +131,7 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::coarse(
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
     int dir, int shift, const amrex::BoxArray& ba,
+    bool top,
     AmrMultiGridLevel* mglevel)
 {
     // do nothing
