@@ -795,18 +795,29 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                                             break;
                                     }
                                 } else {
+                                    // flux matching, coarse part
                                     
                                     double avg = 2; //FIXME
                                     double value = -1.0 / ( avg * cdx[d] * fdx[d] );
                                     
+                                    // top
                                     std::size_t nn = indices.size();
-                        
                                     interface_mp->coarse(iv, indices, values, d, shift, crse_fine_ba,
-                                                         mglevel_m[level].get());
+                                                         true, mglevel_m[level].get());
                                     
                                     for (std::size_t iter = nn; iter < indices.size(); ++iter) {
                                         values[iter] *= value;
                                     }
+                                    
+                                    // bottom
+                                    nn = indices.size();
+                                    interface_mp->coarse(iv, indices, values, d, shift, crse_fine_ba,
+                                                         false, mglevel_m[level].get());
+                                    
+                                    for (std::size_t iter = nn; iter < indices.size(); ++iter) {
+                                        values[iter] *= value;
+                                    }
+                                    
                                 }
                             }
                         }
@@ -1655,6 +1666,9 @@ void AmrMultiGrid::checkCrseBoundary_m(Teuchos::RCP<matrix_t>& B,
                      coefficients_t& values,
                      int dir, int shift)
     {
+//         std::cout << iv << " " << iv[dir] << std::endl;
+        bool top = (iv[(dir+1)%BL_SPACEDIM] % 2 == 1);  //FIXME Extend 3D
+        
         switch ( mfab(iv) )
         {
             case AmrMultiGridLevel_t::Mask::COVERED:
@@ -1669,10 +1683,12 @@ void AmrMultiGrid::checkCrseBoundary_m(Teuchos::RCP<matrix_t>& B,
                 AmrIntVect_t civ = iv;
                 civ.coarsen(AmrIntVect_t(D_DECL(2, 2, 2))); /*FIXME*/
                 
+//                 std::cout << civ << " " << iv << " " << top << std::endl; std::cin.get();
+                
                 std::size_t numEntries = indices.size();
                 // we need boundary + indices from coarser level
                 interface_mp->coarse(civ, indices, values, dir, shift, ba,
-                                     mglevel_m[level-1].get());
+                                     top, mglevel_m[level-1].get());
                 
                 // we need normlization by mesh size squared
                 for (std::size_t n = numEntries; n < indices.size(); ++n)
@@ -1751,19 +1767,8 @@ void AmrMultiGrid::gsrb_level_m(Teuchos::RCP<vector_t>& e,
     Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
     tmp->PutScalar(0.0);
     
-    
-//     vector_t crse2fine(mglevel_m[level]->A_p->OperatorDomainMap());
-//     crse2fine.PutScalar(0.0);
-    
-//     // get boundary from coarse mesh, is set to zero
-//     Teuchos::RCP<vector_t> crse = Teuchos::rcp( new vector_t(*mglevel_m[level-1]->map_p, false) );
-//     crse->PutScalar(0.0);
-//     mglevel_m[level]->Bcrse_p->Apply(*crse, crse2fine);
-    
     // tmp = A * x
     mglevel_m[level]->A_p->Apply(/**mglevel_m[level]->error_p*/*e, *tmp);
-    
-//     tmp->Update(1.0, crse2fine, 1.0);
     
     // tmp = tmp - r
     tmp->Update(-1.0, *r, 1.0);
@@ -1823,20 +1828,14 @@ void AmrMultiGrid::restrict_m(int level) {
     
     tmp2.Update(1.0, fine2crse, 1.0, crse2fine, 1.0);
     
-//     vector_t tmp4(mglevel_m[level]->As_p->OperatorDomainMap());
-//     mglevel_m[level]->UnCovered_p->Apply(tmp2, tmp4);
-    
-    
     Teuchos::RCP<vector_t> tmp3 = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
     
     mglevel_m[level]->UnCovered_p->Apply(*mglevel_m[level]->rho_p, *tmp3);
     
-//     std::cout << *mglevel_m[level]->residual_p << std::endl;
+    std::cout << *mglevel_m[level]->residual_p << std::endl;
     
     // ONLY subtract coarse rho
     mglevel_m[level]->residual_p->Update(1.0, *tmp3, -1.0, tmp2, 1.0);
     
-//     std::cout << *mglevel_m[level]->residual_p << std::endl; std::cin.get();
-    
-//     std::cout << *mglevel_m[level]->residual_p << std::endl; std::cin.get();
+    std::cout << *mglevel_m[level]->residual_p << std::endl; std::cin.get();
 }
