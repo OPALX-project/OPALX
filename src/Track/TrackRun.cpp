@@ -561,21 +561,20 @@ void TrackRun::setupCyclotronTracker(){
     double macrocharge = 0.0;
 
     const int specifiedNumBunch = int(std::abs(Round(Attributes::getReal(itsAttr[TURNS]))));
-    if (Options::enableHDF5) {
-        if(opal->inRestartRun()) {
-            phaseSpaceSink_m = new H5PartWrapperForPC(opal->getInputBasename() + std::string(".h5"),
-                                                      opal->getRestartStep(),
-                                                      OpalData::getInstance()->getRestartFileName(),
-                                                      H5_O_WRONLY);
-        } else if (opal->hasBunchAllocated() && !Options::scan) {
-            phaseSpaceSink_m = new H5PartWrapperForPC(opal->getInputBasename() + std::string(".h5"),
-                                                      -1,
-                                                      opal->getInputBasename() + std::string(".h5"),
-                                                      H5_O_WRONLY);
-        } else {
-            phaseSpaceSink_m = new H5PartWrapperForPC(opal->getInputBasename() + std::string(".h5"),
-                                                      H5_O_WRONLY);
-        }
+
+    if(opal->inRestartRun()) {
+        phaseSpaceSink_m = new H5PartWrapperForPC(opal->getInputBasename() + std::string(".h5"),
+                                                  opal->getRestartStep(),
+                                                  OpalData::getInstance()->getRestartFileName(),
+                                                  H5_O_WRONLY);
+    } else if (opal->hasBunchAllocated() && !Options::scan) {
+        phaseSpaceSink_m = new H5PartWrapperForPC(opal->getInputBasename() + std::string(".h5"),
+                                                  -1,
+                                                  opal->getInputBasename() + std::string(".h5"),
+                                                  H5_O_WRONLY);
+    } else {
+        phaseSpaceSink_m = new H5PartWrapperForPC(opal->getInputBasename() + std::string(".h5"),
+                                                  H5_O_WRONLY);
     }
 
     if(beam->getNumberOfParticles() < 3 || beam->getCurrent() == 0.0) {
