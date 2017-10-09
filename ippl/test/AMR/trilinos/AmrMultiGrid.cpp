@@ -102,6 +102,8 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         
         this->buildPotentialVector_m(*phi[ilev], lev);
         
+        this->buildGradientMatrix_m(lev);
+        
         mglevel_m[lev]->error_p->PutScalar(0.0);
     }
     
@@ -164,9 +166,10 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
             
             old_norm_p[lev] = tmp;
         } //std::cin.get();
+        
+        ++nIter_m;
     }
-        
-        
+    
 //         std::cin.get();
 // //     
 // //     for (int lev = nLevel-1; lev > -1; --lev) {
@@ -184,6 +187,22 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         
         this->trilinos2amrex_m(*phi[ilev], mglevel_m[lev]->phi_p);
     }
+    
+    
+    // evaluate the electric field
+    Teuchos::RCP<vector_t> efield_p = Teuchos::null;
+    for (int lev = 0; lev < nLevel; ++lev) {
+        int ilev = lbase + lev;
+        
+        efield_p = Teuchos::rcp( new vector_t(*mglevel_m[lev]->map_p, false) );
+        
+        for (int d = 0; d < BL_SPACEDIM; ++d) {
+            mglevel_m[lev]->G_p[d]->Multiply(false, *mglevel_m[lev]->phi_p, *efield_p);
+            this->trilinos2amrex_m(*efield[ilev], efield_p);
+        }
+    }
+    
+    std::cout << "#iterations: " << nIter_m << std::endl;
 }
 
 
@@ -461,11 +480,11 @@ void AmrMultiGrid::residual_no_fine_m(Teuchos::RCP<vector_t>& result,
         mglevel_m[level]->Bcrse_p->Apply(*crs_rhs, crse2fine);
     }
     
-    //----------------
-    double bla = 0.0;
-    crse2fine.Norm2(&bla);
-    std::cout << "Norm2(crse2fine) = " << bla << std::endl;
-    //----------------
+//     //----------------
+//     double bla = 0.0;
+//     crse2fine.Norm2(&bla);
+//     std::cout << "Norm2(crse2fine) = " << bla << std::endl;
+//     //----------------
     
     
     // tmp = A * x
@@ -480,17 +499,17 @@ void AmrMultiGrid::residual_no_fine_m(Teuchos::RCP<vector_t>& result,
         tmp.Update(1.0, t2mp, 1.0);
     }
     
-    //----------------
-    tmp.Norm2(&bla);
-    std::cout << "Norm2(tmp) = " << bla << std::endl;
-    //----------------
+//     //----------------
+//     tmp.Norm2(&bla);
+//     std::cout << "Norm2(tmp) = " << bla << std::endl;
+//     //----------------
     
     tmp.Update(1.0, crse2fine, 1.0);
     
-    //----------------
-    tmp.Norm2(&bla);
-    std::cout << "Norm2(tmp) = " << bla << std::endl; std::cin.get();
-    //----------------
+//     //----------------
+//     tmp.Norm2(&bla);
+//     std::cout << "Norm2(tmp) = " << bla << std::endl; std::cin.get();
+//     //----------------
     
     result->Update(1.0, *b, -1.0, tmp, 0.0);
 }
@@ -1532,6 +1551,130 @@ void AmrMultiGrid::buildSmootherMatrix_m(int level) {
 }
 
 
+void AmrMultiGrid::buildGradientMatrix_m(int level) {
+    
+    const Epetra_Map& RowMap = *mglevel_m[level]->map_p;
+    
+    int nEntries = 2;
+    
+    for (int d = 0; d < BL_SPACEDIM; ++d) {
+        mglevel_m[level]->G_p[d] = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy,
+                                                              RowMap, nEntries) );
+    }
+    
+    const double* dx = mglevel_m[level]->geom.CellSize();
+    
+    indices_t indices;
+    coefficients_t values;
+    
+    auto check = [&](const AmrIntVect_t& iv,
+                     const amrex::BaseFab<int>& mfab,
+                     int dir,
+                     double shift)
+    {
+        switch ( mfab(iv) )
+        {
+            case AmrMultiGridLevel_t::Mask::COVERED:
+                // covered --> interior cell
+            case AmrMultiGridLevel_t::Mask::INTERIOR:
+                // interior cells
+                
+                indices.push_back( mglevel_m[level]->serialize(iv) );
+                values.push_back(  shift * 0.5 / dx[dir] );
+                
+                break;
+            case AmrMultiGridLevel_t::Mask::BNDRY:
+            {
+                // interior boundary cells --> only level > 0
+                
+                double value = shift * 0.5 / dx[dir];
+                
+                // use 1st order Lagrange --> only cells of this level required
+                AmrIntVect_t tmp = iv;
+                // first fine cell on refined coarse cell (closer to interface)
+                tmp[dir] += shift;
+                indices.push_back( mglevel_m[level]->serialize(tmp) );
+                values.push_back( 2.0 * value );
+                
+                // second fine cell on refined coarse cell (further away from interface)
+                tmp[dir] += shift;
+                indices.push_back( mglevel_m[level]->serialize(tmp) );
+                values.push_back( -1.0 * value );
+                
+                break;
+            }
+            case AmrMultiGridLevel_t::Mask::PHYSBNDRY:
+            {
+                // physical boundary cells
+                
+                double value = shift * 0.5 / dx[dir];
+                
+                mglevel_m[level]->applyBoundary(iv,
+                                                indices,
+                                                values,
+                                                value);
+                break;
+            }
+            default:
+                break;
+        }
+    };
+    
+    for (amrex::MFIter mfi(*mglevel_m[level]->mask, false); mfi.isValid(); ++mfi) {
+        const amrex::Box& bx  = mfi.validbox();
+        const amrex::BaseFab<int>& mfab = (*mglevel_m[level]->mask)[mfi];
+        
+        const int* lo = bx.loVect();
+        const int* hi = bx.hiVect();
+        
+        for (int i = lo[0]; i <= hi[0]; ++i) {
+            for (int j = lo[1]; j <= hi[1]; ++j) {
+#if BL_SPACEDIM == 3
+                for (int k = lo[2]; k <= hi[2]; ++k) {
+#endif
+                    AmrIntVect_t iv(D_DECL(i, j, k));
+                    
+                    int globalidx = mglevel_m[level]->serialize(iv);
+                    
+                    for (int d = 0; d < BL_SPACEDIM; ++d) {
+                        
+                        indices.clear();
+                        values.clear();
+                        
+                        for (int shift = -1; shift <= 1; shift += 2) {
+                            AmrIntVect_t niv = iv;                        
+                            niv[d] += shift;
+                            check(niv, mfab, d, shift);
+                        }
+                        
+                        int error = mglevel_m[level]->G_p[d]->InsertGlobalValues(globalidx,
+                                                                                 indices.size(),
+                                                                                 &values[0],
+                                                                                 &indices[0]);
+                        
+                        if ( error != 0 ) {
+                            throw std::runtime_error("Error in filling the gradient matrix for level " +
+                                                     std::to_string(level) + "!");
+                        }
+                    }
+#if BL_SPACEDIM == 3
+                }
+#endif
+            }
+        }
+    }
+    
+    
+    int error = 0;
+    for (int d = 0; d < BL_SPACEDIM; ++d)
+        error += mglevel_m[level]->G_p[d]->FillComplete(true);
+    
+    if ( error != 0 )
+        throw std::runtime_error("Error in completing the gradient matrix for level " +
+                                 std::to_string(level) + "!");
+}
+
+
 void AmrMultiGrid::amrex2trilinos_m(const AmrField_t& mf,
                                     Teuchos::RCP<vector_t>& mv, int level)
 {
@@ -1577,7 +1720,7 @@ void AmrMultiGrid::amrex2trilinos_m(const AmrField_t& mf,
 
 
 void AmrMultiGrid::trilinos2amrex_m(AmrField_t& mf,
-                                    const Teuchos::RCP<vector_t>& mv)
+                                    const Teuchos::RCP<vector_t>& mv) // FIXME component for electric field fab(iv, 0 / 1 / 2)
 {
     int localidx = 0;
     for (amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi) {
@@ -1832,10 +1975,10 @@ void AmrMultiGrid::restrict_m(int level) {
     
     mglevel_m[level]->UnCovered_p->Apply(*mglevel_m[level]->rho_p, *tmp3);
     
-    std::cout << *mglevel_m[level]->residual_p << std::endl;
+//     std::cout << *mglevel_m[level]->residual_p << std::endl;
     
     // ONLY subtract coarse rho
     mglevel_m[level]->residual_p->Update(1.0, *tmp3, -1.0, tmp2, 1.0);
     
-    std::cout << *mglevel_m[level]->residual_p << std::endl; std::cin.get();
+//     std::cout << *mglevel_m[level]->residual_p << std::endl; std::cin.get();
 }
