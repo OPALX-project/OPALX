@@ -70,8 +70,19 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fineLinear_m(
     int dir, int shift, const amrex::BoxArray& ba,
     AmrMultiGridLevel* mglevel)
 {
-    // not implemented
-    std::runtime_error("Not implemented interpolation");
+    /*
+     * computes the ghost cell directly
+     */
+    AmrIntVect_t tmp = iv;
+    // first fine cell on refined coarse cell (closer to interface)
+    tmp[dir] += shift;
+    indices.push_back( mglevel->serialize(tmp) );
+    values.push_back( 2.0 );
+    
+    // second fine cell on refined coarse cell (further away from interface)
+    tmp[dir] += shift;
+    indices.push_back( mglevel->serialize(tmp) );
+    values.push_back( -1.0 );
 }
 
 
