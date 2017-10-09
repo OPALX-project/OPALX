@@ -234,6 +234,12 @@ void doSolve(const Array<BoxArray>& ba,
         efield[lev]->setVal(0.0, 1);
     }
     
+    // normalize each level
+    double l0norm = rhs[finest_level]->norm0(0);
+    for (int i = 0; i <= finest_level; ++i) {
+        rhs[i]->mult(1.0 / l0norm, 0, 1);
+    }
+    
     // solve
     AmrMultiGrid sol;
     
@@ -247,6 +253,13 @@ void doSolve(const Array<BoxArray>& ba,
               finest_level);
     
     IpplTimings::stopTimer(solvTimer);
+    
+    
+    // undo normalization
+    for (int i = 0; i <= finest_level; ++i) {
+        rhs[i]->mult(l0norm, 0, 1);
+        phi[i]->mult(l0norm, 0, 1);
+    }
 }
 
 
@@ -304,17 +317,17 @@ void doAMReX(const param_t& params, Inform& msg)
         
         
         BoxList bl;
-//         Box b1(IntVect(D_DECL(0, 4, 4)), IntVect(D_DECL(3, 7, 7)));
+        Box b1(IntVect(D_DECL(0, 4, 4)), IntVect(D_DECL(3, 7, 7)));
         
-//         bl.push_back(b1);
+        bl.push_back(b1);
         
         Box b2(IntVect(D_DECL(4, 4, 4)), IntVect(D_DECL(11, 11, 11)));
         
         bl.push_back(b2);
         
-//         Box b3(IntVect(D_DECL(14, 6, 6)), IntVect(D_DECL(15, 9, 9)));
+        Box b3(IntVect(D_DECL(14, 6, 6)), IntVect(D_DECL(15, 9, 9)));
         
-//         bl.push_back(b3);
+        bl.push_back(b3);
         
         
         ba[1].define(bl);//define(refined_patch);
