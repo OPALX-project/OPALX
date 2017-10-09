@@ -108,10 +108,7 @@ set (OPTP_LIBRARY "optp" CACHE INTERNAL "" FORCE)
 set (OPTP_LIBS
     pthread
     m
-    boost_chrono
-    boost_regex
-    boost_system
-    boost_serialization
+    ${Boost_LIBRARIES}
     wfgHypervolume
     CACHE INTERNAL "" FORCE
 )
