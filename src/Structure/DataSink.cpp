@@ -51,10 +51,6 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
     h5wrapper_m(h5wrapper)
 {
     namespace fs = boost::filesystem;
-    if (!h5wrapper_m) {
-        doHDF5_m = false;
-        return;
-    }
 
     doHDF5_m = Options::enableHDF5;
     if (!doHDF5_m) {
@@ -108,12 +104,6 @@ DataSink::DataSink(H5PartWrapper *h5wrapper):
 {
     /// Constructor steps:
     /// Get timers from IPPL.
-    if (!h5wrapper_m) {
-        doHDF5_m = false;
-        return;
-    }
-
-
     H5PartTimer_m = IpplTimings::getTimer("Write H5-File");
     StatMarkerTimer_m = IpplTimings::getTimer("Write Stat");
 
