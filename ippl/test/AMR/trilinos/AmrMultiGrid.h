@@ -144,6 +144,12 @@ private:
      */
     void buildSmootherMatrix_m(int level);
     
+    
+    /*!
+     * Gradient matrix is used to compute the electric field
+     */
+    void buildGradientMatrix_m(int level);
+    
     /*!
      * Data transfer from AMReX to Trilinos.
      * @param mf is the multifab of a level
