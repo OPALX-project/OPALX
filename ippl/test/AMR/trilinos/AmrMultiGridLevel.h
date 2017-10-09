@@ -81,6 +81,7 @@ public:
     Teuchos::RCP<matrix_t> Bcrse_p;
     Teuchos::RCP<matrix_t> Bfine_p;     ///< physical boundary vector
     Teuchos::RCP<matrix_t> As_p;        ///< special Poisson matrix
+    Teuchos::RCP<matrix_t> G_p[BL_SPACEDIM];      ///< gradient matrices in x, y, and z to compute electric field
     
     Teuchos::RCP<matrix_t> S_p;         ///< for Gauss-Seidel (smoothing)
     
@@ -88,7 +89,6 @@ public:
     Teuchos::RCP<vector_t> phi_p;       ///< potential vector
     Teuchos::RCP<vector_t> residual_p;
     Teuchos::RCP<vector_t> error_p;
-    
     Teuchos::RCP<matrix_t> UnCovered_p;
     
     std::unique_ptr<mask_t> mask;       ///< interior, phys boundary, interface, covered

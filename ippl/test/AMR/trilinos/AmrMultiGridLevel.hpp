@@ -27,8 +27,11 @@ AmrMultiGridLevel<MatrixType,
 {
     bc_mp.reset(bc);
     
-    for (int j = 0; j < BL_SPACEDIM; ++j)
+    for (int j = 0; j < BL_SPACEDIM; ++j) {
+        G_p[j] = Teuchos::null;
+        
         nr_m[j] = _geom.Domain().length(j);
+    }
     
     this->buildLevelMask_m();
     
@@ -52,6 +55,10 @@ AmrMultiGridLevel<MatrixType, VectorType>::~AmrMultiGridLevel()
     Bcrse_p = Teuchos::null;
     Bfine_p = Teuchos::null;
     As_p = Teuchos::null;
+    
+    for (int j = 0; j < BL_SPACEDIM; ++j)
+        G_p[j] = Teuchos::null;
+    
     S_p = Teuchos::null;
     UnCovered_p = Teuchos::null;
     
