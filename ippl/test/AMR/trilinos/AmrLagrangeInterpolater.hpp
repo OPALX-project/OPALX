@@ -1,6 +1,19 @@
 template <class AmrMultiGridLevel>
 AmrLagrangeInterpolater<AmrMultiGridLevel>::AmrLagrangeInterpolater(Order order)
     : AmrInterpolater<AmrMultiGridLevel>( int(order) + 1 )
+#if BL_SPACEDIM == 3
+    , pattern_m{
+        bits_t(473536),
+        bits_t(14798),
+        bits_t(15153152),
+        bits_t(918428),
+        bits_t(7399),
+        bits_t(7576576),
+        bits_t(30306304),
+        bits_t(947072),
+        bits_t(23676)
+    }
+#endif
 { }
 
 
@@ -21,17 +34,17 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::coarse(
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
     int dir, int shift, const amrex::BoxArray& ba,
-    bool top,
+    const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
 {
     // polynomial degree = #points - 1
     switch ( this->nPoints_m - 1 ) {
         
         case Order::LINEAR:
-            this->crseLinear_m(iv, indices, values, dir, shift, ba, top, mglevel);
+            this->crseLinear_m(iv, indices, values, dir, shift, ba, riv, mglevel);
             break;
         case Order::QUADRATIC:
-            this->crseQuadratic_m(iv, indices, values, dir, shift, ba, top, mglevel);
+            this->crseQuadratic_m(iv, indices, values, dir, shift, ba, riv, mglevel);
             break;
         default:
             std::runtime_error("Not implemented interpolation");
@@ -113,7 +126,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
     int dir, int shift, const amrex::BoxArray& ba,
-    bool top,
+    const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
 {
     //TODO Extend to 3D
@@ -131,10 +144,13 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::indices_t& indices,
     typename AmrMultiGridLevel::coefficients_t& values,
-    int dir, int shift, const amrex::BoxArray& ba, bool top,
+    int dir, int shift, const amrex::BoxArray& ba,
+    const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
 {
-    //TODO Extend to 3D
+#if BL_SPACEDIM == 2
+    
+    bool top = (iv[(dir+1)%BL_SPACEDIM] % 2 == 1);
     
     // right / upper / back
     AmrIntVect_t niv = iv;
@@ -267,8 +283,129 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         // last trial: linear Lagrange interpolation
         
         if ( rub || lf ) {
-            this->crseLinear_m(iv, indices, values, dir, shift, ba, top, mglevel);
+            this->crseLinear_m(iv, indices, values, dir, shift, ba, riv, mglevel);
         } else
             std::runtime_error("Lagrange Error: No valid scenario found!");
     }
+    
+#elif BL_SPACEDIM == 3
+    
+    /*
+     * check in 5x5 area (using iv as center) if 9 cells are not covered
+     */
+    int d1 = (dir+1)%BL_SPACEDIM;
+    int d2 = (dir+2)%BL_SPACEDIM;
+    
+    bits_t area;
+    int bit = 0;
+    
+    AmrIntVect_t tmp = iv;
+    for (int i = -2; i < 3; ++i) {
+        tmp[d1] += i;
+        for (int j = -2; j < 3; ++j) {
+            
+            tmp[d2] += j;
+            
+            area[bit] = !ba.contains(tmp);
+            ++bit;
+            
+            // undo
+            tmp[d2] -= j;
+        }
+        // undo
+        tmp[d1] -= i;
+    }
+    
+    bool found = false;
+    std::vector<bits_t>::const_iterator pit = std::begin(pattern_m);
+    
+    while ( !found && pit != std::end(pattern_m) ) {
+        if ( pit->to_ulong() == (area & *pit).to_ulong() )
+            break;
+        ++pit;
+    }
+    
+    switch ( pit->to_ulong() ) {
+        case 473536:
+        {
+            // cross pattern
+            
+            break;
+        }
+        case 14798:
+        {
+            // T pattern
+            break;
+        }
+        case 15153152:
+        {
+            // T on head pattern
+            break;
+        }
+        case 918428:
+        {
+            // upper right corner pattern
+            break;
+        }
+        case 7399:
+        {
+            // upper left corner pattern
+            break;
+        }
+        case 7576576:
+        {
+            // mirrored L pattern
+            break;
+        }
+        case 30306304:
+        {
+            // L pattern
+            break;
+        }
+        case 947072:
+        {
+            // left hammer pattern
+            break;
+        }
+        case 236768:
+        {
+            // right hammer pattern
+            break;
+        }
+        default:
+            // unknown pattern
+            break;
+    }
+    
+    
+    
+    
+    /*          x   y   z
+     * ------------------
+     * dir:     0   1   2
+     * top1:    1   2   0
+     * top2:    2   0   1
+     */
+    bool top1 = (riv[d1] % 2 == 1);
+    bool top2 = (riv[d2] % 2 == 1);
+    
+    
+    /* There are 9 coefficients from Lagrange interpolation.
+     * Those are given by the product of one of
+     * L0, L1, L2 and one of K0, K1, K2.
+     * 
+     * g(x, y) = f(x0, y0) * L0(x) * K0(y) +
+     *           f(x0, y1) * L0(x) * K1(y) +
+     *           f(x0, y2) * L0(x) * K2(y) +
+     *           f(x1, y0) * L1(x) * K0(y) +
+     *           f(x1, y1) * L1(x) * K1(y) +
+     *           f(x1, y2) * L1(x) * K2(y) +
+     *           f(x2, y0) * L2(x) * K0(y) +
+     *           f(x2, y1) * L2(x) * K1(y) +
+     *           f(x2, y2) * L2(x) * K2(y) +
+     */
+    
+#else
+    #error Lagrange interpolation: Only 2D and 3D are supported!
+#endif
 }

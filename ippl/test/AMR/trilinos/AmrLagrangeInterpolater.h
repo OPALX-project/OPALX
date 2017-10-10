@@ -3,6 +3,12 @@
 
 #include "AmrInterpolater.h"
 
+#if BL_SPACEDIM == 3
+    #include <bitset>
+    #include <iterator>
+    #include <vector>
+#endif
+
 template <class AmrMultiGridLevel>
 class AmrLagrangeInterpolater : public AmrInterpolater<AmrMultiGridLevel>
 {
@@ -12,6 +18,12 @@ public:
         LINEAR = 1,
         QUADRATIC
     };
+    
+#if BL_SPACEDIM == 3
+    typedef std::bitset<25> bits_t; ///< for checking the neighbour cells
+#endif
+    
+public:
     
     AmrLagrangeInterpolater(Order order);
     
@@ -24,7 +36,7 @@ public:
                 typename AmrMultiGridLevel::indices_t& indices,
                 typename AmrMultiGridLevel::coefficients_t& values,
                 int dir, int shift, const amrex::BoxArray& ba,
-                bool top,
+                const AmrIntVect_t& riv,
                 AmrMultiGridLevel* mglevel);
     
     void fine(const AmrIntVect_t& iv,
@@ -87,7 +99,7 @@ private:
      * side, shift is equal to -1, otherwise the interface is on the right / upper / back side
      * and the value is 1.
      * @param ba contains all coarse cells that got refined
-     * @param top (true) or bottom (false) to interpolate
+     * @param riv is the fine cell at the interface
      * @param mglevel used to get the global indices and refinement ratio among levels,
      * and boundary values at physical domain, e.g. Dirichlet, open BC
      */
@@ -95,7 +107,7 @@ private:
                       typename AmrMultiGridLevel::indices_t& indices,
                       typename AmrMultiGridLevel::coefficients_t& values,
                       int dir, int shift, const amrex::BoxArray& ba,
-                      bool top,
+                      const AmrIntVect_t& riv,
                       AmrMultiGridLevel* mglevel);
     
     /*!
@@ -109,7 +121,7 @@ private:
      * side, shift is equal to -1, otherwise the interface is on the right / upper / back side
      * and the value is 1.
      * @param ba contains all coarse cells that got refined
-     * @param top (true) or bottom (false) to interpolate
+     * @param riv is the fine cell at the interface
      * @param mglevel used to get the global indices and refinement ratio among levels,
      * and boundary values at physical domain, e.g. Dirichlet, open BC
      */
@@ -117,8 +129,13 @@ private:
                          typename AmrMultiGridLevel::indices_t& indices,
                          typename AmrMultiGridLevel::coefficients_t& values,
                          int dir, int shift, const amrex::BoxArray& ba,
-                         bool top,
+                         const AmrIntVect_t& riv,
                          AmrMultiGridLevel* mglevel);
+    
+#if BL_SPACEDIM == 3
+private:
+    const std::vector<bits_t> pattern_m;
+#endif
 };
 
 #include "AmrLagrangeInterpolater.hpp"
