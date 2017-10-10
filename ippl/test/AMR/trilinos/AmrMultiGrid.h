@@ -153,17 +153,19 @@ private:
     /*!
      * Data transfer from AMReX to Trilinos.
      * @param mf is the multifab of a level
+     * @param comp component to copy
      * @param mv is the vector to be filled
      * @param level where to perform
      */
-    void amrex2trilinos_m(const AmrField_t& mf, Teuchos::RCP<vector_t>& mv, int level);
+    void amrex2trilinos_m(const AmrField_t& mf, int comp, Teuchos::RCP<vector_t>& mv, int level);
     
     /*!
      * Data transfer from Trilinos to AMReX.
      * @param mf is the multifab to be filled
+     * @param comp component to copy
      * @param mv is the corresponding Trilinos vector
      */
-    void trilinos2amrex_m(AmrField_t& mf, const Teuchos::RCP<vector_t>& mv);
+    void trilinos2amrex_m(AmrField_t& mf, int comp, const Teuchos::RCP<vector_t>& mv);
     
     /*!
      * Some indices might occur several times due to boundary conditions, etc.

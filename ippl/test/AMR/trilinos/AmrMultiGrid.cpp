@@ -185,7 +185,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     for (int lev = 0; lev < nLevel; ++lev) {
         int ilev = lbase + lev;
         
-        this->trilinos2amrex_m(*phi[ilev], mglevel_m[lev]->phi_p);
+        this->trilinos2amrex_m(*phi[ilev], 0, mglevel_m[lev]->phi_p);
     }
     
     
@@ -198,7 +198,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         
         for (int d = 0; d < BL_SPACEDIM; ++d) {
             mglevel_m[lev]->G_p[d]->Multiply(false, *mglevel_m[lev]->phi_p, *efield_p);
-            this->trilinos2amrex_m(*efield[ilev], efield_p);
+            this->trilinos2amrex_m(*efield[ilev], d, efield_p);
         }
     }
     
@@ -1452,12 +1452,12 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(int level)
 
 
 inline void AmrMultiGrid::buildDensityVector_m(const AmrField_t& rho, int level) {
-    this->amrex2trilinos_m(rho, mglevel_m[level]->rho_p, level);
+    this->amrex2trilinos_m(rho, 0, mglevel_m[level]->rho_p, level);
 }
 
 
 inline void AmrMultiGrid::buildPotentialVector_m(const AmrField_t& phi, int level) {
-    this->amrex2trilinos_m(phi, mglevel_m[level]->phi_p, level);
+    this->amrex2trilinos_m(phi, 0, mglevel_m[level]->phi_p, level);
 }
 
 
@@ -1555,7 +1555,7 @@ void AmrMultiGrid::buildGradientMatrix_m(int level) {
     
     const Epetra_Map& RowMap = *mglevel_m[level]->map_p;
     
-    int nEntries = 2;
+    int nEntries = 5;
     
     for (int d = 0; d < BL_SPACEDIM; ++d) {
         mglevel_m[level]->G_p[d] = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy,
@@ -1592,12 +1592,12 @@ void AmrMultiGrid::buildGradientMatrix_m(int level) {
                 // use 1st order Lagrange --> only cells of this level required
                 AmrIntVect_t tmp = iv;
                 // first fine cell on refined coarse cell (closer to interface)
-                tmp[dir] += shift;
+                tmp[dir] -= shift;
                 indices.push_back( mglevel_m[level]->serialize(tmp) );
                 values.push_back( 2.0 * value );
                 
                 // second fine cell on refined coarse cell (further away from interface)
-                tmp[dir] += shift;
+                tmp[dir] -= shift;
                 indices.push_back( mglevel_m[level]->serialize(tmp) );
                 values.push_back( -1.0 * value );
                 
@@ -1675,7 +1675,7 @@ void AmrMultiGrid::buildGradientMatrix_m(int level) {
 }
 
 
-void AmrMultiGrid::amrex2trilinos_m(const AmrField_t& mf,
+void AmrMultiGrid::amrex2trilinos_m(const AmrField_t& mf, int comp,
                                     Teuchos::RCP<vector_t>& mv, int level)
 {
     coefficients_t values;
@@ -1699,7 +1699,7 @@ void AmrMultiGrid::amrex2trilinos_m(const AmrField_t& mf,
                     
                     indices.push_back(globalidx);
                     
-                    values.push_back(fab(iv));
+                    values.push_back(fab(iv, comp));
 #if BL_SPACEDIM == 3
                 }
 #endif
@@ -1719,8 +1719,8 @@ void AmrMultiGrid::amrex2trilinos_m(const AmrField_t& mf,
 }
 
 
-void AmrMultiGrid::trilinos2amrex_m(AmrField_t& mf,
-                                    const Teuchos::RCP<vector_t>& mv) // FIXME component for electric field fab(iv, 0 / 1 / 2)
+void AmrMultiGrid::trilinos2amrex_m(AmrField_t& mf, int comp,
+                                    const Teuchos::RCP<vector_t>& mv)
 {
     int localidx = 0;
     for (amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi) {
@@ -1736,7 +1736,7 @@ void AmrMultiGrid::trilinos2amrex_m(AmrField_t& mf,
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     AmrIntVect_t iv(D_DECL(i, j, k));
-                    fab(iv) = (*mv)[localidx++];
+                    fab(iv, comp) = (*mv)[localidx++];
                 }
 #if BL_SPACEDIM == 3
             }
