@@ -114,14 +114,14 @@ IF ( ${BL_SPACEDIM} EQUAL 2 )
     
     add_executable( testLagrange testLagrange.cpp)
     
-    add_executable( testAmrMultigrid
+ENDIF ( ${BL_SPACEDIM} EQUAL 2 )
+
+add_executable( testAmrMultigrid
                 testAmrMultigrid.cpp
                 ../Solver.cpp
                 ${F90_source_files}
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 AmrMultiGrid.cpp)
-    
-ENDIF ( ${BL_SPACEDIM} EQUAL 2 )
 
 # add_executable( testTrilinosGeometry
 #                 testTrilinosGeometry.cpp
@@ -198,12 +198,12 @@ IF ( ${BL_SPACEDIM} EQUAL 2 )
     target_link_libraries (testLagrange ${LIBS}
                            -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-                           
-    target_link_libraries (testAmrMultigrid ${LIBS}
-                          -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
-                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 ENDIF ( ${BL_SPACEDIM} EQUAL 2 )
 # target_link_libraries (testTrilinosGeometry ${LIBS}
 #                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
 #                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testAmrMultigrid ${LIBS}
+                          -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
