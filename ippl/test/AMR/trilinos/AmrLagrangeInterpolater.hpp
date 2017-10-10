@@ -11,7 +11,7 @@ AmrLagrangeInterpolater<AmrMultiGridLevel>::AmrLagrangeInterpolater(Order order)
         bits_t(7576576),
         bits_t(30306304),
         bits_t(947072),
-        bits_t(23676)
+        bits_t(236768)
     }
 #endif
 { }
@@ -326,48 +326,48 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     }
     
     switch ( pit->to_ulong() ) {
-        case 473536:
+        case this->pattern_m[0]:
         {
             // cross pattern
             
             break;
         }
-        case 14798:
+        case this->pattern_m[1]:
         {
             // T pattern
             break;
         }
-        case 15153152:
+        case this->pattern_m[2]:
         {
             // T on head pattern
             break;
         }
-        case 918428:
+        case this->pattern_m[3]:
         {
             // upper right corner pattern
             break;
         }
-        case 7399:
+        case this->pattern_m[4]:
         {
             // upper left corner pattern
             break;
         }
-        case 7576576:
+        case this->pattern_m[5]:
         {
             // mirrored L pattern
             break;
         }
-        case 30306304:
+        case this->pattern_m[6]:
         {
             // L pattern
             break;
         }
-        case 947072:
+        case this->pattern_m[7]:
         {
             // left hammer pattern
             break;
         }
-        case 236768:
+        case this->pattern_m[8]:
         {
             // right hammer pattern
             break;
