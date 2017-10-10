@@ -190,6 +190,8 @@ private:
     
     void restrict_m(int level);
     
+    void averageDown_m(int level);
+    
 private:
     Epetra_MpiComm epetra_comm_m;
     
