@@ -777,14 +777,14 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                                              */
                                             std::size_t nn = indices.size();
                                             
-                                            std::cout << iv << " " << biv << " ";
+//                                             std::cout << iv << " " << biv << " ";
                                             
                                             interface_mp->fine(biv, indices, values, d, -shift, crse_fine_ba,
                                                                mglevel_m[level].get());
                                             
                                             double value = 1.0 / ( dx[d] * dx[d] );
                                             for (std::size_t iter = nn; iter < indices.size(); ++iter) {
-                                                std::cout << indices[iter] << " ";
+//                                                 std::cout << indices[iter] << " ";
                                                 values[iter] *= value;
                                             }
                                             
@@ -792,7 +792,7 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                                             indices.push_back( globalidx );
                                             values.push_back( -1.0 / ( dx[d] * dx[d] ) );
                                             
-                                            std::cout << std::endl; std::cin.get();
+//                                             std::cout << std::endl; std::cin.get();
                                             
                                             break;
                                         }
