@@ -154,10 +154,16 @@ IF ( ${BL_SPACEDIM} EQUAL 3 )
                 EllipticDomain.cpp
                 AmrMultiGrid.cpp
                 AmrTrilinos.cpp)
+    
 
 target_link_libraries (testTrilinosSolver ${LIBS}
                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    
+    add_executable( testBitPattern testBitPattern.cpp)
+    
+    
+    target_link_libraries (testBitPattern ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
 ENDIF ( ${BL_SPACEDIM} EQUAL 3 )
                         
