@@ -114,8 +114,8 @@ IF ( ${BL_SPACEDIM} EQUAL 2 )
     
     add_executable( testLagrange testLagrange.cpp)
     
-    add_executable( testTwoLevel
-                testTwoLevel.cpp
+    add_executable( testAmrMultigrid
+                testAmrMultigrid.cpp
                 ../Solver.cpp
                 ${F90_source_files}
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
@@ -199,7 +199,7 @@ IF ( ${BL_SPACEDIM} EQUAL 2 )
                            -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
                            
-    target_link_libraries (testTwoLevel ${LIBS}
+    target_link_libraries (testAmrMultigrid ${LIBS}
                           -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
