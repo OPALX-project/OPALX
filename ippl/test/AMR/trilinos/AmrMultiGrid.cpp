@@ -142,7 +142,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     while ( residualsum > eps * rhosum) {
         
         std::cout << "                               "
-                  << residualsum << " " << eps * rhosum << std::endl; //std::cin.get();
+                  << residualsum << " " << eps * rhosum << std::endl; std::cin.get();
         
         relax_m(lfine);
         
@@ -823,8 +823,9 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                                     
                                     // top
                                     std::size_t nn = indices.size();
-                                    interface_mp->coarse(iv, indices, values, d, shift, crse_fine_ba,
-                                                         true, mglevel_m[level].get());
+                                    //FIXME ENABLE AGAIN --> just for compiling 3D
+//                                     interface_mp->coarse(iv, indices, values, d, shift, crse_fine_ba,
+//                                                          true, mglevel_m[level].get());
                                     
                                     for (std::size_t iter = nn; iter < indices.size(); ++iter) {
                                         values[iter] *= value;
@@ -832,8 +833,9 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                                     
                                     // bottom
                                     nn = indices.size();
-                                    interface_mp->coarse(iv, indices, values, d, shift, crse_fine_ba,
-                                                         false, mglevel_m[level].get());
+                                    //FIXME ENABLE AGAIN --> just for compiling 3D
+//                                     interface_mp->coarse(iv, indices, values, d, shift, crse_fine_ba,
+//                                                          false, mglevel_m[level].get());
                                     
                                     for (std::size_t iter = nn; iter < indices.size(); ++iter) {
                                         values[iter] *= value;
@@ -1811,9 +1813,6 @@ void AmrMultiGrid::checkCrseBoundary_m(Teuchos::RCP<matrix_t>& B,
                      coefficients_t& values,
                      int dir, int shift)
     {
-//         std::cout << iv << " " << iv[dir] << std::endl;
-        bool top = (iv[(dir+1)%BL_SPACEDIM] % 2 == 1);  //FIXME Extend 3D
-        
         switch ( mfab(iv) )
         {
             case AmrMultiGridLevel_t::Mask::COVERED:
@@ -1828,12 +1827,10 @@ void AmrMultiGrid::checkCrseBoundary_m(Teuchos::RCP<matrix_t>& B,
                 AmrIntVect_t civ = iv;
                 civ.coarsen(AmrIntVect_t(D_DECL(2, 2, 2))); /*FIXME*/
                 
-//                 std::cout << civ << " " << iv << " " << top << std::endl; std::cin.get();
-                
                 std::size_t numEntries = indices.size();
                 // we need boundary + indices from coarser level
                 interface_mp->coarse(civ, indices, values, dir, shift, ba,
-                                     top, mglevel_m[level-1].get());
+                                     iv, mglevel_m[level-1].get());
                 
                 // we need normlization by mesh size squared
                 for (std::size_t n = numEntries; n < indices.size(); ++n)

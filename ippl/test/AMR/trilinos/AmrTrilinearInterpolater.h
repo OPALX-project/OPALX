@@ -23,7 +23,7 @@ public:
                 typename AmrMultiGridLevel::indices_t& indices,
                 typename AmrMultiGridLevel::coefficients_t& values,
                 int dir, int shift, const amrex::BoxArray& ba,
-                bool top,
+                const AmrIntVect_t& riv,
                 AmrMultiGridLevel* mglevel);
     
     void fine(const AmrIntVect_t& iv,
