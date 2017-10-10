@@ -192,7 +192,7 @@ void writeYt(container_t& rho,
              const Array<int>& rr,
              const double& scalefactor)
 {
-    std::string dir = "yt-testTwoLevel";
+    std::string dir = "yt-testAmrMultigrid";
     
     double time = 0.0;
     
@@ -349,6 +349,19 @@ void doAMReX(const param_t& params, Inform& msg)
         ba[1].define(bl);
     }
     
+    
+    if ( nlevs > 2 &&
+         IntVect(D_DECL(params.nr[0], params.nr[1], params.nr[2])) == IntVect(D_DECL(32, 32, 32)) )
+    {
+        BoxList bl;
+        
+        Box b(IntVect(D_DECL(48, 48, 48)), IntVect(D_DECL(79, 79, 79)));
+        
+        bl.push_back(b);
+        
+        ba[2].define(bl);
+    }
+    
     // break the BoxArrays at both levels into max_grid_size^3 boxes
     for (int lev = 0; lev < nlevs; lev++) {
         ba[lev].maxSize(params.maxBoxSize);
@@ -388,7 +401,7 @@ int main(int argc, char *argv[]) {
     
     Ippl ippl(argc, argv);
     
-    Inform msg("Solver");
+    Inform msg(argv[0]);
     
 
     static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("main");
