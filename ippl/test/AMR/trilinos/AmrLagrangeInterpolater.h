@@ -135,16 +135,16 @@ private:
     
 #if BL_SPACEDIM == 3
 private:
-    static constexpr pattern_t pattern_m {
-        473536,
-        14798,
-        15153152,
-        918428,
-        7399,
-        7576576,
-        30306304,
-        947072,
-        236768
+    static constexpr pattern_t pattern_ms {
+        473536,                             ///< cross pattern
+        14798,                              ///< T pattern
+        15153152,                           ///< T on head pattern
+        918428,                             ///< upper right corner pattern
+        7399,                               ///< upper left corner pattern
+        7576576,                            ///< mirrored L pattern
+        30306304,                           ///< L pattern
+        947072,                             ///< left hammer pattern
+        236768                              ///< right hammer pattern
     };
 #endif
 };
