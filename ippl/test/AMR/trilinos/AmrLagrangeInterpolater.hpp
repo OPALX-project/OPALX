@@ -1,6 +1,11 @@
 template <class AmrMultiGridLevel>
-constexpr typename AmrLagrangeInterpolater<AmrMultiGridLevel>::pattern_t
-    AmrLagrangeInterpolater<AmrMultiGridLevel>::pattern_ms;
+constexpr typename AmrLagrangeInterpolater<AmrMultiGridLevel>::qpattern_t
+    AmrLagrangeInterpolater<AmrMultiGridLevel>::qpattern_ms;
+
+
+template <class AmrMultiGridLevel>
+constexpr typename AmrLagrangeInterpolater<AmrMultiGridLevel>::lpattern_t
+    AmrLagrangeInterpolater<AmrMultiGridLevel>::lpattern_ms;
 
 
 template <class AmrMultiGridLevel>
@@ -122,11 +127,51 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     AmrMultiGridLevel* mglevel)
 {
     //TODO Extend to 3D
+#if BL_SPACEDIM == 2
+    bool top = (riv[(dir+1)%BL_SPACEDIM] % 2 == 1);
     
-    // y_t + y_b
-    indices.push_back( mglevel->serialize(iv) );
-    values.push_back( /*shift **/ 2.0 );
+    // right / upper / back
+    AmrIntVect_t niv = iv;
+    niv[(dir+1)%BL_SPACEDIM ] += 1;
     
+    // left / lower / front
+    AmrIntVect_t miv = iv;
+    miv[(dir+1)%BL_SPACEDIM ] -= 1;
+    
+    
+    if ( !ba.contains(niv) ) {
+        // check r / u / b --> 1: valid; 0: not valid
+        
+        indices.push_back( mglevel->serialize(iv) );
+        //                        y_t    y_b
+        values.push_back( (top) ? 0.75 : 1.25 );
+        
+        indices.push_back( mglevel->serialize(niv) );
+        //                        y_t    y_b
+        values.push_back( (top) ? 0.25 : -0.25 );
+        
+        
+    } else if ( !ba.contains(miv) ) {
+        // check l / f --> 1: valid; 0: not valid
+        
+        indices.push_back( mglevel->serialize(iv) );
+        //                        y_t    y_b
+        values.push_back( (top) ? 0.75 : 1.25 );
+        
+        indices.push_back( mglevel->serialize(miv) );
+        //                        y_t    y_b
+        values.push_back( (top) ? 0.25 : -0.25 );
+        
+    } else
+        throw std::runtime_error("Lagrange Error: No valid scenario found!");
+    
+#elif BL_SPACEDIM == 3
+    
+    
+    
+#else
+    #error Lagrange interpolation: Only 2D and 3D are supported!
+#endif
     // the neighbour cancels out
 }
 
@@ -272,12 +317,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         }
         
     } else {
-        // last trial: linear Lagrange interpolation
-        
-        if ( rub || lf ) {
-            this->crseLinear_m(iv, indices, values, dir, shift, ba, riv, mglevel);
-        } else
-            std::runtime_error("Lagrange Error: No valid scenario found!");
+        // last trial: linear Lagrange interpolation --> it throws an error if not possible
+        this->crseLinear_m(iv, indices, values, dir, shift, ba, riv, mglevel);
     }
     
 #elif BL_SPACEDIM == 3
@@ -332,9 +373,9 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     }
     
     bool found = false;
-    pattern_t::const_iterator pit = std::begin(this->pattern_ms);
+    qpattern_t::const_iterator pit = std::begin(this->qpattern_ms);
     
-    while ( !found && pit != std::end(this->pattern_ms) ) {
+    while ( !found && pit != std::end(this->qpattern_ms) ) {
         if ( *pit == (area & bits_t(*pit)).to_ulong() )
             break;
         ++pit;
@@ -356,7 +397,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     int end[2]   = { 0, 0 };
     
     switch ( *pit ) {
-        case this->pattern_ms[0]:
+        case this->qpattern_ms[0]:
         {
             // cross pattern
             L[0] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{-1}
@@ -373,7 +414,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             
             break;
         }
-        case this->pattern_ms[1]:
+        case this->qpattern_ms[1]:
         {
             // T pattern
             L[0] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{-2}
@@ -389,7 +430,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             end[1]   = 1;
             break;
         }
-        case this->pattern_ms[2]:
+        case this->qpattern_ms[2]:
         {
             // T on head pattern
             L[0] = (top1) ? 21.0 / 32.0 : 45.0 / 32.0;  // L_{0}
@@ -405,7 +446,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             end[1]   =  1;
             break;
         }
-        case this->pattern_ms[3]:
+        case this->qpattern_ms[3]:
         {
             // upper right corner pattern
             L[0] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{-2}
@@ -421,7 +462,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             end[1]   = 2;
             break;
         }
-        case this->pattern_ms[4]:
+        case this->qpattern_ms[4]:
         {
             // upper left corner pattern
             L[0] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{-2}
@@ -437,7 +478,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             end[1]   =  0;
             break;
         }
-        case this->pattern_ms[5]:
+        case this->qpattern_ms[5]:
         {
             // mirrored L pattern
             L[0] = (top1) ? 21.0 / 32.0 : 45.0 / 32.0;  // L_{0}
@@ -453,7 +494,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             end[1]   = 2;
             break;
         }
-        case this->pattern_ms[6]:
+        case this->qpattern_ms[6]:
         {
             // L pattern
             L[0] = (top1) ? 21.0 / 32.0 : 45.0 / 32.0;  // L_{0}
@@ -469,7 +510,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             end[1]   = 2;
             break;
         }
-        case this->pattern_ms[7]:
+        case this->qpattern_ms[7]:
         {
             // left hammer pattern
             L[0] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{-1}
@@ -485,7 +526,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             end[1]   = 2;
             break;
         }
-        case this->pattern_ms[8]:
+        case this->qpattern_ms[8]:
         {
             // right hammer pattern
             L[0] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{-1}
