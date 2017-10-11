@@ -823,9 +823,16 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                                     
                                     // top
                                     std::size_t nn = indices.size();
-                                    //FIXME ENABLE AGAIN --> just for compiling 3D
-//                                     interface_mp->coarse(iv, indices, values, d, shift, crse_fine_ba,
-//                                                          true, mglevel_m[level].get());
+                                    
+                                    // in order to get a top iv --> needs to be odd value in "d"
+                                    AmrIntVect_t tfake(D_DECL(0, 0, 0));
+                                    
+                                    tfake[(d+1)%BL_SPACEDIM] = 1;
+#if BL_SPACEDIM == 3
+                                    tfake[(d+2)%BL_SPACEDIM] = 1;
+#endif
+                                    interface_mp->coarse(iv, indices, values, d, shift, crse_fine_ba,
+                                                         tfake, mglevel_m[level].get());
                                     
                                     for (std::size_t iter = nn; iter < indices.size(); ++iter) {
                                         values[iter] *= value;
@@ -833,9 +840,12 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                                     
                                     // bottom
                                     nn = indices.size();
-                                    //FIXME ENABLE AGAIN --> just for compiling 3D
-//                                     interface_mp->coarse(iv, indices, values, d, shift, crse_fine_ba,
-//                                                          false, mglevel_m[level].get());
+                                    
+                                    // in order to get a bottom iv --> needs to be even value in "d"
+                                    AmrIntVect_t bfake(D_DECL(0, 0, 0));
+                                    
+                                    interface_mp->coarse(iv, indices, values, d, shift, crse_fine_ba,
+                                                         bfake, mglevel_m[level].get());
                                     
                                     for (std::size_t iter = nn; iter < indices.size(); ++iter) {
                                         values[iter] *= value;
