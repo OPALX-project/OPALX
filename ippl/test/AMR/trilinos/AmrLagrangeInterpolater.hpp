@@ -667,7 +667,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         {
             // left hammer pattern
             L[0] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{-1}
-            L[1] = 15.0 / 16.0;                        // L_{0}
+            L[1] = 15.0 / 16.0;                         // L_{0}
             L[2] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{1}
             begin[0] = -1;
             end[0] = 1;
@@ -683,7 +683,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         {
             // right hammer pattern
             L[0] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{-1}
-            L[1] = 15.0 / 16.0;                        // L_{0}
+            L[1] = 15.0 / 16.0;                         // L_{0}
             L[2] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{1}
             begin[0] = -1;
             end[0] = 1;
