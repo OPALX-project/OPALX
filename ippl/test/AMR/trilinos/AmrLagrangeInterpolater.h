@@ -21,7 +21,8 @@ public:
     
 #if BL_SPACEDIM == 3
     typedef std::bitset<25> bits_t; ///< for checking the neighbour cells
-    typedef std::array<unsigned int long, 9> pattern_t;
+    typedef std::array<unsigned int long, 9> qpattern_t;    ///< quadratic pattern
+    typedef std::array<unsigned int long, 4> lpattern_t     ///< linear pattern
 #endif
     
 public:
@@ -135,7 +136,7 @@ private:
     
 #if BL_SPACEDIM == 3
 private:
-    static constexpr pattern_t pattern_ms {
+    static constexpr qpattern_t qpattern_ms {
         473536,                             ///< cross pattern
         14798,                              ///< T pattern
         15153152,                           ///< T on head pattern
@@ -145,6 +146,13 @@ private:
         30306304,                           ///< L pattern
         947072,                             ///< left hammer pattern
         236768                              ///< right hammer pattern
+    };
+    
+    static constexpr lpattern_t lpattern_ms {
+        54,                                 ///< corner top left pattern
+        27,                                 ///< corner top right pattern
+        432,                                ///< corner bottom left pattern
+        216                                 ///< corner bottom right pattern
     };
 #endif
 };
