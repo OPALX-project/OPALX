@@ -1,4 +1,9 @@
 template <class AmrMultiGridLevel>
+constexpr typename AmrLagrangeInterpolater<AmrMultiGridLevel>::pattern_t
+    AmrLagrangeInterpolater<AmrMultiGridLevel>::pattern_ms;
+
+
+template <class AmrMultiGridLevel>
 AmrLagrangeInterpolater<AmrMultiGridLevel>::AmrLagrangeInterpolater(Order order)
     : AmrInterpolater<AmrMultiGridLevel>( int(order) + 1 )
 { }
@@ -137,7 +142,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
 {
 #if BL_SPACEDIM == 2
     
-    bool top = (iv[(dir+1)%BL_SPACEDIM] % 2 == 1);
+    bool top = (riv[(dir+1)%BL_SPACEDIM] % 2 == 1);
     
     // right / upper / back
     AmrIntVect_t niv = iv;
@@ -277,6 +282,29 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     
 #elif BL_SPACEDIM == 3
     
+    /*          x   y   z
+     * ------------------
+     * dir:     0   1   2
+     * top1:    1   2   0   (i, L)
+     * top2:    2   0   1   (j, K)
+     */
+    
+    /* There are 9 coefficients from Lagrange interpolation.
+     * Those are given by the product of one of
+     * L0, L1, L2 and one of K0, K1, K2.
+     * 
+     * g(x, y) = f(x0, y0) * L0(x) * K0(y) +
+     *           f(x0, y1) * L0(x) * K1(y) +
+     *           f(x0, y2) * L0(x) * K2(y) +
+     *           f(x1, y0) * L1(x) * K0(y) +
+     *           f(x1, y1) * L1(x) * K1(y) +
+     *           f(x1, y2) * L1(x) * K2(y) +
+     *           f(x2, y0) * L2(x) * K0(y) +
+     *           f(x2, y1) * L2(x) * K1(y) +
+     *           f(x2, y2) * L2(x) * K2(y) +
+     */
+    
+    
     /*
      * check in 5x5 area (using iv as center) if 9 cells are not covered
      */
@@ -304,93 +332,201 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     }
     
     bool found = false;
-    pattern_t::const_iterator pit = std::begin(pattern_m);
+    pattern_t::const_iterator pit = std::begin(this->pattern_ms);
     
-    while ( !found && pit != std::end(pattern_m) ) {
+    while ( !found && pit != std::end(this->pattern_ms) ) {
         if ( *pit == (area & bits_t(*pit)).to_ulong() )
             break;
         ++pit;
     }
     
+    // factor for fine
+    double fac = 8.0 / 15.0;
+    
+    // if pattern is known
+    bool known = true;
+    
+    double L[3] = {0.0, 0.0, 0.0};
+    bool top1 = (riv[d1] % 2 == 1);
+    
+    double K[3] = {0.0, 0.0, 0.0};
+    bool top2 = (riv[d2] % 2 == 1);
+    
+    int begin[2] = { 0, 0 };
+    int end[2]   = { 0, 0 };
+    
     switch ( *pit ) {
-        case this->pattern_m[0]:
+        case this->pattern_ms[0]:
         {
             // cross pattern
+            L[0] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{-1}
+            L[1] = 15.0 / 16.0;                        // L_{0}
+            L[2] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{1}
+            begin[0] = -1;
+            end[0] = 1;
+            
+            K[0] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{-1}
+            K[1] = 15.0 / 16.0;                        // K_{0}
+            K[2] = (top2) ? 5.0 / 32.0 : -3.0 / 32.0;   // K_{1}
+            begin[1] = -1;
+            end[1]   = 1;
             
             break;
         }
-        case this->pattern_m[1]:
+        case this->pattern_ms[1]:
         {
             // T pattern
+            L[0] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{-2}
+            L[1] = (top1) ? -9.0 / 16.0 : 7.0 / 16.0;   // L_{-1}
+            L[2] = (top1) ? 45.0 / 32.0 : 21.0 / 32.0;  // L_{0}
+            begin[0] = -2;
+            end[0] = 0;
+            
+            K[0] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{-1}
+            K[1] = 15.0 / 16.0;                         // K_{0}
+            K[2] = (top2) ? 5.0 / 32.0 : -3.0 / 32.0;   // K_{1}
+            begin[1] = -1;
+            end[1]   = 1;
             break;
         }
-        case this->pattern_m[2]:
+        case this->pattern_ms[2]:
         {
             // T on head pattern
+            L[0] = (top1) ? 21.0 / 32.0 : 45.0 / 32.0;  // L_{0}
+            L[1] = (top1) ? 7.0 / 16.0 : -9.0 / 16.0;   // L_{1}
+            L[2] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{2}
+            begin[0] = 0;
+            end[0]   = 2;
+            
+            K[0] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{-1}
+            K[1] = 15.0 / 16.0;                         // K_{0}
+            K[2] = (top2) ? 5.0 / 32.0 : -3.0 / 32.0;   // K_{1}
+            begin[1] = -1;
+            end[1]   =  1;
             break;
         }
-        case this->pattern_m[3]:
+        case this->pattern_ms[3]:
         {
             // upper right corner pattern
+            L[0] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{-2}
+            L[1] = (top1) ? -9.0 / 16.0 : 7.0 / 16.0;   // L_{-1}
+            L[2] = (top1) ? 45.0 / 32.0 : 21.0 / 32.0;  // L_{0}
+            begin[0] = -2;
+            end[0]   =  0;
+            
+            K[0] = (top2) ? 21.0 / 32.0 : 45.0 / 32.0;  // K_{0}
+            K[1] = (top2) ? 7.0 / 16.0 : -9.0 / 16.0;   // K_{1}
+            K[2] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{2}
+            begin[1] = 0;
+            end[1]   = 2;
             break;
         }
-        case this->pattern_m[4]:
+        case this->pattern_ms[4]:
         {
             // upper left corner pattern
+            L[0] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{-2}
+            L[1] = (top1) ? -9.0 / 16.0 : 7.0 / 16.0;   // L_{-1}
+            L[2] = (top1) ? 45.0 / 32.0 : 21.0 / 32.0;  // L_{0}
+            begin[0] = -2;
+            end[0]   =  0;
+            
+            K[0] = (top2) ? 5.0 / 32.0 : -3.0 / 32.0;   // K_{-2}
+            K[1] = (top2) ? -9.0 / 16.0 : 7.0 / 16.0;   // K_{-1}
+            K[2] = (top2) ? 45.0 / 32.0 : 21.0 / 32.0;  // K_{0}
+            begin[1] = -2;
+            end[1]   =  0;
             break;
         }
-        case this->pattern_m[5]:
+        case this->pattern_ms[5]:
         {
             // mirrored L pattern
+            L[0] = (top1) ? 21.0 / 32.0 : 45.0 / 32.0;  // L_{0}
+            L[1] = (top1) ? 7.0 / 16.0 : -9.0 / 16.0;   // L_{1}
+            L[2] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{2}
+            begin[0] = 0;
+            end[0]   = 2;
+            
+            K[0] = (top2) ? 21.0 / 32.0 : 45.0 / 32.0;  // K_{0}
+            K[1] = (top2) ? 7.0 / 16.0 : -9.0 / 16.0;   // K_{1}
+            K[2] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{2}
+            begin[1] = 0;
+            end[1]   = 2;
             break;
         }
-        case this->pattern_m[6]:
+        case this->pattern_ms[6]:
         {
             // L pattern
+            L[0] = (top1) ? 21.0 / 32.0 : 45.0 / 32.0;  // L_{0}
+            L[1] = (top1) ? 7.0 / 16.0 : -9.0 / 16.0;   // L_{1}
+            L[2] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{2}
+            begin[0] = 0;
+            end[0]   = 2;
+            
+            K[0] = (top2) ? 21.0 / 32.0 : 45.0 / 32.0;  // K_{0}
+            K[1] = (top2) ? 7.0 / 16.0 : -9.0 / 16.0;   // K_{1}
+            K[2] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{2}
+            begin[1] = 0;
+            end[1]   = 2;
             break;
         }
-        case this->pattern_m[7]:
+        case this->pattern_ms[7]:
         {
             // left hammer pattern
+            L[0] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{-1}
+            L[1] = 15.0 / 16.0;                        // L_{0}
+            L[2] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{1}
+            begin[0] = -1;
+            end[0] = 1;
+            
+            K[0] = (top2) ? 21.0 / 32.0 : 45.0 / 32.0;  // K_{0}
+            K[1] = (top2) ? 7.0 / 16.0 : -9.0 / 16.0;   // K_{1}
+            K[2] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{2}
+            begin[1] = 0;
+            end[1]   = 2;
             break;
         }
-        case this->pattern_m[8]:
+        case this->pattern_ms[8]:
         {
             // right hammer pattern
+            L[0] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{-1}
+            L[1] = 15.0 / 16.0;                        // L_{0}
+            L[2] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{1}
+            begin[0] = -1;
+            end[0] = 1;
+            
+            K[0] = (top2) ? 21.0 / 32.0 : 45.0 / 32.0;  // K_{0}
+            K[1] = (top2) ? 7.0 / 16.0 : -9.0 / 16.0;   // K_{1}
+            K[2] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{2}
+            begin[1] = 0;
+            end[1]   = 2;
             break;
         }
         default:
-            // unknown pattern
+            // unknown pattern --> do linear
+            known = false;
             break;
     }
     
-    
-    
-    
-    /*          x   y   z
-     * ------------------
-     * dir:     0   1   2
-     * top1:    1   2   0
-     * top2:    2   0   1
-     */
-    bool top1 = (riv[d1] % 2 == 1);
-    bool top2 = (riv[d2] % 2 == 1);
-    
-    
-    /* There are 9 coefficients from Lagrange interpolation.
-     * Those are given by the product of one of
-     * L0, L1, L2 and one of K0, K1, K2.
-     * 
-     * g(x, y) = f(x0, y0) * L0(x) * K0(y) +
-     *           f(x0, y1) * L0(x) * K1(y) +
-     *           f(x0, y2) * L0(x) * K2(y) +
-     *           f(x1, y0) * L1(x) * K0(y) +
-     *           f(x1, y1) * L1(x) * K1(y) +
-     *           f(x1, y2) * L1(x) * K2(y) +
-     *           f(x2, y0) * L2(x) * K0(y) +
-     *           f(x2, y1) * L2(x) * K1(y) +
-     *           f(x2, y2) * L2(x) * K2(y) +
-     */
+    if ( known ) {
+        /*
+         * if pattern is known --> add stencil
+         */
+        AmrIntVect_t tmp = iv;
+        for (int i = begin[0]; i <= end[0]; ++i) {
+            tmp[d1] += i;
+            for (int j = begin[1]; j <= end[1]; ++j) {
+                tmp[d2] += j;
+                    
+                indices.push_back( mglevel->serialize(tmp) );
+                values.push_back( fac * L[i-begin[0]] * K[j-begin[1]] );
+                    
+                // undo
+                tmp[d2] -= j;
+            }
+            // undo
+            tmp[d1] -= i;
+        }
+    }
     
 #else
     #error Lagrange interpolation: Only 2D and 3D are supported!
