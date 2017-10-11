@@ -138,17 +138,19 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     AmrIntVect_t miv = iv;
     miv[(dir+1)%BL_SPACEDIM ] -= 1;
     
+    // factor for fine
+    double fac = 8.0 / 15.0;
     
     if ( !ba.contains(niv) ) {
         // check r / u / b --> 1: valid; 0: not valid
         
         indices.push_back( mglevel->serialize(iv) );
         //                        y_t    y_b
-        values.push_back( (top) ? 0.75 : 1.25 );
+        values.push_back( fac * (top) ? 0.75 : 1.25 );
         
         indices.push_back( mglevel->serialize(niv) );
         //                        y_t    y_b
-        values.push_back( (top) ? 0.25 : -0.25 );
+        values.push_back( fac * (top) ? 0.25 : -0.25 );
         
         
     } else if ( !ba.contains(miv) ) {
@@ -156,11 +158,11 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
         
         indices.push_back( mglevel->serialize(iv) );
         //                        y_t    y_b
-        values.push_back( (top) ? 0.75 : 1.25 );
+        values.push_back( fac * (top) ? 0.75 : 1.25 );
         
         indices.push_back( mglevel->serialize(miv) );
         //                        y_t    y_b
-        values.push_back( (top) ? 0.25 : -0.25 );
+        values.push_back( fac * (top) ? 0.25 : -0.25 );
         
     } else
         throw std::runtime_error("Lagrange Error: No valid scenario found!");
@@ -295,6 +297,24 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
             throw std::runtime_error("Lagrange Error: No valid scenario found!");
     }
     
+    /*
+     * if pattern is known --> add stencil
+     */
+    AmrIntVect_t niv = iv;
+    for (int i = begin[0]; i <= end[0]; ++i) {
+        niv[d1] += i;
+        for (int j = begin[1]; j <= end[1]; ++j) {
+            niv[d2] += j;
+                    
+            indices.push_back( mglevel->serialize(niv) );
+            values.push_back( fac * L[i-begin[0]] * K[j-begin[1]] );
+                    
+            // undo
+            niv[d2] -= j;
+        }
+        // undo
+        niv[d1] -= i;
+    }
 #else
     #error Lagrange interpolation: Only 2D and 3D are supported!
 #endif
