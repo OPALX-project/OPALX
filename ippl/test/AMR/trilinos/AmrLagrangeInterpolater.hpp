@@ -305,10 +305,15 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
         niv[d1] += i;
         for (int j = begin[1]; j <= end[1]; ++j) {
             niv[d2] += j;
-                    
-            indices.push_back( mglevel->serialize(niv) );
-            values.push_back( fac * L[i-begin[0]] * K[j-begin[1]] );
-                    
+            
+            double value = fac * L[i-begin[0]] * K[j-begin[1]];
+            if ( mglevel->isBoundary(niv) ) {
+                mglevel->applyBoundary(niv, indices, values, value);
+            } else {
+                indices.push_back( mglevel->serialize(niv) );
+                values.push_back( value );
+            }
+            
             // undo
             niv[d2] -= j;
         }
@@ -710,9 +715,14 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             tmp[d1] += i;
             for (int j = begin[1]; j <= end[1]; ++j) {
                 tmp[d2] += j;
-                    
-                indices.push_back( mglevel->serialize(tmp) );
-                values.push_back( fac * L[i-begin[0]] * K[j-begin[1]] );
+                
+                double value = fac * L[i-begin[0]] * K[j-begin[1]];
+                if ( mglevel->isBoundary(tmp) ) {
+                    mglevel->applyBoundary(tmp, indices, values, value);
+                } else {
+                    indices.push_back( mglevel->serialize(tmp) );
+                    values.push_back( value );
+                }
                     
                 // undo
                 tmp[d2] -= j;
