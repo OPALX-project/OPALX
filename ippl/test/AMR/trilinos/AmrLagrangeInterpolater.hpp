@@ -167,7 +167,133 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     
 #elif BL_SPACEDIM == 3
     
+    /*          x   y   z
+     * ------------------
+     * dir:     0   1   2
+     * top1:    1   2   0   (i, L)
+     * top2:    2   0   1   (j, K)
+     */
     
+    /* There are 4 coefficients from Lagrange interpolation.
+     * Those are given by the product of one of
+     * L0, L1 and one of K0, K1.
+     * 
+     * g(x, y) = f(x0, y0) * L0(x) * K0(y) +
+     *           f(x0, y1) * L0(x) * K1(y) +
+     *           f(x1, y0) * L1(x) * K0(y) +
+     *           f(x1, y1) * L1(x) * K1(y) +
+     */
+    
+    /*
+     * check in 3x3 area (using iv as center) if 4 cells are not covered
+     */
+    int d1 = (dir+1)%BL_SPACEDIM;
+    int d2 = (dir+2)%BL_SPACEDIM;
+    
+    lbits_t area;
+    int bit = 0;
+    
+    AmrIntVect_t tmp = iv;
+    for (int i = -1; i < 2; ++i) {
+        tmp[d1] += i;
+        for (int j = -1; j < 2; ++j) {
+            
+            tmp[d2] += j;
+            
+            area[bit] = !ba.contains(tmp);
+            ++bit;
+            
+            // undo
+            tmp[d2] -= j;
+        }
+        // undo
+        tmp[d1] -= i;
+    }
+    
+    bool found = false;
+    qpattern_t::const_iterator pit = std::begin(this->lpattern_ms);
+    
+    while ( !found && pit != std::end(this->lpattern_ms) ) {
+        if ( *pit == (area & lbits_t(*pit)).to_ulong() )
+            break;
+        ++pit;
+    }
+    
+    // factor for fine
+    double fac = 8.0 / 15.0;
+    
+    // if pattern is known
+    bool known = true;
+    
+    double L[2] = {0.0, 0.0};
+    bool top1 = (riv[d1] % 2 == 1);
+    
+    double K[2] = {0.0, 0.0};
+    bool top2 = (riv[d2] % 2 == 1);
+    
+    int begin[2] = { 0, 0 };
+    int end[2]   = { 0, 0 };
+    
+    switch ( *pit ) {
+        case this->lpattern_ms[0]:
+        {
+            // corner top left pattern
+            L[0] = (top1) ? 0.25 : -0.25;   // L_{-1}
+            L[1] = (top1) ? 0.75 : 1.25;    // L_{0}
+            begin[0] = -1;
+            end[0]   =  0;
+            
+            K[0] = (top2) ? 0.75 : 1.25;    // K_{0}
+            K[1] = (top2) ? 0.25 : -0.25;   // K_{1}
+            begin[1] = 0;
+            end[1]   = 1;
+            break;
+        }
+        case this->lpattern_ms[1]:
+        {
+            // corner top right pattern
+            L[0] = (top1) ? 0.25 : -0.25;   // L_{-1}
+            L[1] = (top1) ? 0.75 : 1.25;    // L_{0}
+            begin[0] = -1;
+            end[0]   =  0;
+            
+            K[0] = (top2) ? 0.25 : -0.25;   // K_{-1}
+            K[1] = (top2) ? 0.75 : 1.25;    // K_{0}
+            begin[1] = -1;
+            end[1]   =  0;
+            break;
+        }
+        case this->lpattern_ms[2]:
+        {
+            // corner bottom left pattern
+            L[0] = (top1) ? 0.75 : 1.25;    // L_{0}
+            L[1] = (top1) ? 0.25 : -0.25;   // L_{1}
+            begin[0] = 0;
+            end[0]   = 1;
+            
+            K[0] = (top2) ? 0.75 : 1.25;    // K_{0}
+            K[1] = (top2) ? 0.25 : -0.25;   // K_{1}
+            begin[1] = 0;
+            end[1]   = 1;
+            break;
+        }
+        case this->lpattern_ms[3]:
+        {
+            // corner bottom right pattern
+            L[0] = (top1) ? 0.75 : 1.25;    // L_{0}
+            L[1] = (top1) ? 0.25 : -0.25;   // L_{1}
+            begin[0] = 0;
+            end[0]   = 1;
+            
+            K[0] = (top2) ? 0.25 : -0.25;   // K_{-1}
+            K[1] = (top2) ? 0.75 : 1.25;    // K_{0}
+            begin[1] = -1;
+            end[1]   =  0;
+            break;
+        }
+        default:
+            throw std::runtime_error("Lagrange Error: No valid scenario found!");
+    }
     
 #else
     #error Lagrange interpolation: Only 2D and 3D are supported!
@@ -317,7 +443,9 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         }
         
     } else {
-        // last trial: linear Lagrange interpolation --> it throws an error if not possible
+        /* last trial: linear Lagrange interpolation
+         * --> it throws an error if not possible
+         */
         this->crseLinear_m(iv, indices, values, dir, shift, ba, riv, mglevel);
     }
     
@@ -352,7 +480,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     int d1 = (dir+1)%BL_SPACEDIM;
     int d2 = (dir+2)%BL_SPACEDIM;
     
-    bits_t area;
+    qbits_t area;
     int bit = 0;
     
     AmrIntVect_t tmp = iv;
@@ -376,7 +504,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     qpattern_t::const_iterator pit = std::begin(this->qpattern_ms);
     
     while ( !found && pit != std::end(this->qpattern_ms) ) {
-        if ( *pit == (area & bits_t(*pit)).to_ulong() )
+        if ( *pit == (area & qbits_t(*pit)).to_ulong() )
             break;
         ++pit;
     }
@@ -401,16 +529,16 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         {
             // cross pattern
             L[0] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{-1}
-            L[1] = 15.0 / 16.0;                        // L_{0}
+            L[1] = 15.0 / 16.0;                         // L_{0}
             L[2] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{1}
             begin[0] = -1;
-            end[0] = 1;
+            end[0]   =  1;
             
             K[0] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{-1}
-            K[1] = 15.0 / 16.0;                        // K_{0}
+            K[1] = 15.0 / 16.0;                         // K_{0}
             K[2] = (top2) ? 5.0 / 32.0 : -3.0 / 32.0;   // K_{1}
             begin[1] = -1;
-            end[1]   = 1;
+            end[1]   =  1;
             
             break;
         }
@@ -421,13 +549,13 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             L[1] = (top1) ? -9.0 / 16.0 : 7.0 / 16.0;   // L_{-1}
             L[2] = (top1) ? 45.0 / 32.0 : 21.0 / 32.0;  // L_{0}
             begin[0] = -2;
-            end[0] = 0;
+            end[0]   =  0;
             
             K[0] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{-1}
             K[1] = 15.0 / 16.0;                         // K_{0}
             K[2] = (top2) ? 5.0 / 32.0 : -3.0 / 32.0;   // K_{1}
             begin[1] = -1;
-            end[1]   = 1;
+            end[1]   =  1;
             break;
         }
         case this->qpattern_ms[2]:
@@ -543,9 +671,14 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             break;
         }
         default:
-            // unknown pattern --> do linear
+        {
+            /* unknown pattern --> last trial: linear Lagrange interpolation
+             * --> it throws an error if not possible
+             */
             known = false;
+            this->crseLinear_m(iv, indices, values, dir, shift, ba, riv, mglevel);
             break;
+        }
     }
     
     if ( known ) {

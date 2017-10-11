@@ -20,9 +20,10 @@ public:
     };
     
 #if BL_SPACEDIM == 3
-    typedef std::bitset<25> bits_t; ///< for checking the neighbour cells
+    typedef std::bitset<25> qbits_t; ///< for checking the neighbour cells (quadratic)
+    typedef std::bitset<9> lbits_t; ///< for checking the neighbour cells (linear)
     typedef std::array<unsigned int long, 9> qpattern_t;    ///< quadratic pattern
-    typedef std::array<unsigned int long, 4> lpattern_t     ///< linear pattern
+    typedef std::array<unsigned int long, 4> lpattern_t;    ///< linear pattern
 #endif
     
 public:
