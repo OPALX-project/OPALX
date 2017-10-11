@@ -1,19 +1,6 @@
 template <class AmrMultiGridLevel>
 AmrLagrangeInterpolater<AmrMultiGridLevel>::AmrLagrangeInterpolater(Order order)
     : AmrInterpolater<AmrMultiGridLevel>( int(order) + 1 )
-#if BL_SPACEDIM == 3
-    , pattern_m{
-        bits_t(473536),
-        bits_t(14798),
-        bits_t(15153152),
-        bits_t(918428),
-        bits_t(7399),
-        bits_t(7576576),
-        bits_t(30306304),
-        bits_t(947072),
-        bits_t(236768)
-    }
-#endif
 { }
 
 
@@ -317,15 +304,15 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     }
     
     bool found = false;
-    std::vector<bits_t>::const_iterator pit = std::begin(pattern_m);
+    pattern_t::const_iterator pit = std::begin(pattern_m);
     
     while ( !found && pit != std::end(pattern_m) ) {
-        if ( pit->to_ulong() == (area & *pit).to_ulong() )
+        if ( *pit == (area & bits_t(*pit)).to_ulong() )
             break;
         ++pit;
     }
     
-    switch ( pit->to_ulong() ) {
+    switch ( *pit ) {
         case this->pattern_m[0]:
         {
             // cross pattern

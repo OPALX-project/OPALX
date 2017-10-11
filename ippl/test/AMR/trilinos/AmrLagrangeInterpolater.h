@@ -6,7 +6,7 @@
 #if BL_SPACEDIM == 3
     #include <bitset>
     #include <iterator>
-    #include <vector>
+    #include <array>
 #endif
 
 template <class AmrMultiGridLevel>
@@ -21,6 +21,7 @@ public:
     
 #if BL_SPACEDIM == 3
     typedef std::bitset<25> bits_t; ///< for checking the neighbour cells
+    typedef std::array<unsigned int long, 9> pattern_t;
 #endif
     
 public:
@@ -134,7 +135,17 @@ private:
     
 #if BL_SPACEDIM == 3
 private:
-    const std::vector<bits_t> pattern_m;
+    static constexpr pattern_t pattern_m {
+        473536,
+        14798,
+        15153152,
+        918428,
+        7399,
+        7576576,
+        30306304,
+        947072,
+        236768
+    };
 #endif
 };
 
