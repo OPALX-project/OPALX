@@ -104,7 +104,7 @@ Vector_t const ParallelCyclotronTracker::xaxis = Vector_t(1.0, 0.0, 0.0);
 Vector_t const ParallelCyclotronTracker::yaxis = Vector_t(0.0, 1.0, 0.0);
 Vector_t const ParallelCyclotronTracker::zaxis = Vector_t(0.0, 0.0, 1.0);
 
-#define PSdim 6
+//#define PSdim 6
 
 extern Inform *gmsg;
 
@@ -507,7 +507,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     *gmsg << endl;
 
     double sym = elptr->getSymmetry();
-    *gmsg << "* " << sym << "-fold field symmerty " << endl;
+    *gmsg << "* " << sym << "-fold field symmetry " << endl;
 
     // ckr: this just returned the default value as defined in Component.h
     // double rff = elptr->getRfFrequ();
@@ -2725,7 +2725,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 
     //itsBunch_m->R *= Vector_t(0.001); // mm --> m
 
-    // -------------- If flag DumpLocalFrame is not set, dump bunch in global frame ------------- //
+    // -------------- If flag psDumpFrame is global, dump bunch in global frame ------------- //
     if (Options::psDumpFreq < std::numeric_limits<int>::max() ){
         if (Options::psDumpFrame == Options::GLOBAL) {
 
@@ -2757,7 +2757,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 	    }
         }
 
-        // ---------------- If flag DumpLocalFrame is set, dump bunch in local frame ---------------- //
+        // ---------------- If flag psDumpFrame is local, dump bunch in local frame ---------------- //
         else {
 
             // The bunch is transformed into a local coordinate system with meanP in direction of y-axis
