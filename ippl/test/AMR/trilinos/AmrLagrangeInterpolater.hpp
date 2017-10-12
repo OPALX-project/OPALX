@@ -564,7 +564,6 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             K[2] = (top2) ? 5.0 / 32.0 : -3.0 / 32.0;   // K_{1}
             begin[1] = -1;
             end[1]   =  1;
-            
             break;
         }
         case this->qpattern_ms[1]:
