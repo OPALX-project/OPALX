@@ -141,7 +141,7 @@ private:
         473536,                             ///< cross pattern
         14798,                              ///< T pattern
         15153152,                           ///< T on head pattern
-        918428,                             ///< upper right corner pattern
+        29596,                              ///< upper right corner pattern
         7399,                               ///< upper left corner pattern
         7576576,                            ///< mirrored L pattern
         30306304,                           ///< L pattern
