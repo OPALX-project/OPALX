@@ -89,7 +89,10 @@ Cyclotron::~Cyclotron() {
 
 void Cyclotron::applyTrimCoil(const double r, const double z, double *br, double *bz) {
     /// update bz and br with trim coil contributions
-    // for some discussion on the formulas see https://gitlab.psi.ch/OPAL/src/issues/110
+    // for some discussion on the formulas see
+    // http://doi.org/10.1103/PhysRevSTAB.14.054402
+    // https://gitlab.psi.ch/OPAL/src/issues/157
+    // https://gitlab.psi.ch/OPAL/src/issues/110
 
     // unitless constants
     const double Amax1 = 1;
@@ -750,7 +753,7 @@ double Cyclotron::gutdf5d(double *f, double dx, const int kor, const int krl, co
 }
 
 
-// evaulate other derivative of magnetic field.
+// evaluate other derivative of magnetic field.
 void Cyclotron::getdiffs() {
 
     Bfield.dbr.resize(Bfield.ntot);

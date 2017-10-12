@@ -32,8 +32,6 @@
 
 extern Inform *gmsg;
 
-using namespace std;
-
 // Class Collimator
 // ------------------------------------------------------------------------
 
@@ -371,8 +369,8 @@ void Collimator::print() {
             std::string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
             ERRORMSG(errormsg << endl);
             if (Ippl::myNode() == 0) {
-                ofstream omsg("errormsg.txt", ios_base::app);
-                omsg << errormsg << endl;
+                std::ofstream omsg("errormsg.txt", std::ios_base::app);
+                omsg << errormsg << std::endl;
                 omsg.close();
             }
             informed_m = true;
@@ -416,7 +414,7 @@ void Collimator::setOutputFN(std::string fn) {
     filename_m = fn;
 }
 
-string Collimator::getOutputFN() {
+std::string Collimator::getOutputFN() {
     if (filename_m == std::string(""))
         return getName();
     else
@@ -432,7 +430,7 @@ ElementBase::ElementType Collimator::getType() const {
     return COLLIMATOR;
 }
 
-string Collimator::getCollimatorShape() {
+std::string Collimator::getCollimatorShape() {
     if (isAPepperPot_m)
         return "PeperPot";
     else if (isASlit_m)

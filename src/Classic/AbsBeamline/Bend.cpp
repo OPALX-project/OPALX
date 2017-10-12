@@ -740,14 +740,14 @@ void Bend::findBendEffectiveLength(double startField, double endField) {
                         bendAngle1 = newBendAngle;
                         delta1 = delta;
                     } else {
-                        bendAngle2 = newBendAngle;
+                        // bendAngle2 = newBendAngle;
                         delta2 = delta;
                     }
 
                 } else {
 
                     if(newBendAngle - angle_m < 0.0) {
-                        bendAngle2 = newBendAngle;
+                        // bendAngle2 = newBendAngle;
                         delta2 = delta;
                     } else {
                         bendAngle1 = newBendAngle;
@@ -822,14 +822,14 @@ void Bend::findBendStrength(double mass,
                     bendAngle1 = newBendAngle;
                     amplitude1 = fieldAmplitude_m;
                 } else {
-                    bendAngle2 = newBendAngle;
+                    // bendAngle2 = newBendAngle;
                     amplitude2 = fieldAmplitude_m;
                 }
 
             } else {
 
                 if(newBendAngle - angle_m < 0.0) {
-                    bendAngle2 = newBendAngle;
+                    // bendAngle2 = newBendAngle;
                     amplitude2 = fieldAmplitude_m;
                 } else {
                     bendAngle1 = newBendAngle;

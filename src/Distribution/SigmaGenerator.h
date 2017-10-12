@@ -488,7 +488,7 @@ template<typename Value_type, typename Size_type>
         for (size_type i = 0; i < nStepsPerSector_m; ++i) {
             if (!harmonic) {
                 Mcycs[i] = mapgen.generateMap(H_m(h[i],h[i]*h[i]+fidx[i],-fidx[i]),ds[i],truncOrder_m);
-                Mscs[i] = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),sigmas_m[i](2,2),sigmas_m[i](4,4)),ds[i],truncOrder_m);
+                Mscs[i]  = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),sigmas_m[i](2,2),sigmas_m[i](4,4)),ds[i],truncOrder_m);
             } else {
                 Mscs[i] = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),sigmas_m[i](2,2),sigmas_m[i](4,4)),const_ds,truncOrder_m);
             }
