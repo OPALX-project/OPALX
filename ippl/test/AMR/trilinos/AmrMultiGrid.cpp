@@ -340,7 +340,11 @@ void AmrMultiGrid::relax_m(int level) {
         mglevel_m[level-1]->error_p->PutScalar(0.0);
         
         // smoothing
+#if BL_SPACEDIM == 2
         for (int iii = 0; iii < 4; ++iii)
+#elif BL_SPACEDIM == 3
+        for (int iii = 0; iii < 8; ++iii)
+#endif
             this->gsrb_level_m(mglevel_m[level]->error_p,
                                mglevel_m[level]->residual_p, level);
         
@@ -411,7 +415,12 @@ void AmrMultiGrid::relax_m(int level) {
         derror->PutScalar(0.0);
         
         // smoothing
+                // smoothing
+#if BL_SPACEDIM == 2
         for (int iii = 0; iii < 4; ++iii)
+#elif BL_SPACEDIM == 3
+        for (int iii = 0; iii < 8; ++iii)
+#endif
             this->gsrb_level_m(derror, mglevel_m[level]->residual_p, level);
         
         // e^(l) += de^(l)
@@ -817,27 +826,34 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                                     }
                                 } else {
                                     // flux matching, coarse part
-                                    
+#if BL_SPACEDIM == 2
                                     double avg = 2; //FIXME
+#elif BL_SPACEDIM == 3
+                                    double avg = 4;
+#endif
                                     double value = -1.0 / ( avg * cdx[d] * fdx[d] );
                                     
                                     // top
-                                    std::size_t nn = indices.size();
-                                    
-                                    // in order to get a top iv --> needs to be odd value in "d"
-                                    AmrIntVect_t tfake(D_DECL(0, 0, 0));
-                                    
-                                    tfake[(d+1)%BL_SPACEDIM] = 1;
+                                    for (int d1 = 0; d1 < 2; ++d1) {
 #if BL_SPACEDIM == 3
-                                    tfake[(d+2)%BL_SPACEDIM] = 1;
+                                        for (int d2 = 0; d2 < 2; ++d2) {
 #endif
-                                    interface_mp->coarse(iv, indices, values, d, shift, crse_fine_ba,
-                                                         tfake, mglevel_m[level].get());
+                                            std::size_t nn = indices.size();
+                                            
+                                            // in order to get a top iv --> needs to be odd value in "d"
+                                            AmrIntVect_t fake(D_DECL(0, 0, 0));
                                     
-                                    for (std::size_t iter = nn; iter < indices.size(); ++iter) {
-                                        values[iter] *= value;
-                                    }
+                                            fake[(d+1)%BL_SPACEDIM] = d1;
+#if BL_SPACEDIM == 3
+                                            fake[(d+2)%BL_SPACEDIM] = d2;
+#endif
+                                            interface_mp->coarse(iv, indices, values, d, shift, crse_fine_ba,
+                                                                 fake, mglevel_m[level].get());
                                     
+                                            for (std::size_t iter = nn; iter < indices.size(); ++iter) {
+                                                values[iter] *= value;
+                                            }
+                                    /*
                                     // bottom
                                     nn = indices.size();
                                     
@@ -850,7 +866,11 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                                     for (std::size_t iter = nn; iter < indices.size(); ++iter) {
                                         values[iter] *= value;
                                     }
-                                    
+                                    */
+#if BL_SPACEDIM == 3
+                                        }
+#endif
+                                    }
                                 }
                             }
                         }
@@ -1110,7 +1130,7 @@ void AmrMultiGrid::buildCrseBoundaryMatrix_m(int level) {
     const Epetra_Map& RowMap = *mglevel_m[level]->map_p;
     const Epetra_Map& ColMap = *mglevel_m[level-1]->map_p;
     
-    int nNeighbours = (2 << (BL_SPACEDIM -1 )) /*FIXME interpolation stencil indices*/ + 10;
+    int nNeighbours = (2 << (BL_SPACEDIM -1 )) /*FIXME interpolation stencil indices*/ + 12;
     
     mglevel_m[level]->Bcrse_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy,
                                                            RowMap, nNeighbours, false) );
@@ -1491,7 +1511,7 @@ void AmrMultiGrid::buildSmootherMatrix_m(int level) {
 #if BL_SPACEDIM == 3
     h2 = std::max(h2, dx[2]);
 #endif
-    h2 *= h2;
+    h2 *= h2 * h2;
     
     for (amrex::MFIter mfi(*mglevel_m[level]->mask, false); mfi.isValid(); ++mfi) {
         const amrex::Box& bx  = mfi.validbox();
