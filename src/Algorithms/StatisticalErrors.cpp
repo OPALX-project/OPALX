@@ -872,7 +872,7 @@ std::vector<double> StatisticalErrors::interpolateSDDSData(const std::vector<dou
     std::vector<double> interpolated(newSize);
 
     for (unsigned int i = 0; i < newSize; ++ i) {
-        while (oldPositions[j] <= newPositions[i] && j < oldSize) {
+        while (j < oldSize && oldPositions[j] <= newPositions[i]) {
             ++ j;
         }
         if (j == 0 || j == oldSize) {

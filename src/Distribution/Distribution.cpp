@@ -4361,7 +4361,7 @@ void Distribution::setupParticleBins(double massIneV, PartBunchBase<double, 3> *
 
         if (!itsAttr[Attrib::Legacy::Distribution::PT].defaultUsed())
             throw OpalException("Distribution::setupParticleBins",
-                                "PT is obsolet. The moments of the beam is defined with OFFSETPZ");
+                                "PT is obsolete. The moments of the beam is defined with OFFSETPZ");
 
         // we get gamma from PC of the beam
         const double pz    = beam->getP()/beam->getM();
@@ -4460,7 +4460,7 @@ void Distribution::shiftDistCoordinates(double massIneV) {
         double deltaPz = Attributes::getReal(currDist->itsAttr[Attrib::Distribution::OFFSETPZ]);
 
         if (Attributes::getReal(currDist->itsAttr[Attrib::Legacy::Distribution::PT])!=0.0)
-            WARNMSG("PT & PZ are obsolet and will be ignored. The moments of the beam is defined with PC" << endl);
+            WARNMSG("PT & PZ are obsolete and will be ignored. The moments of the beam is defined with PC" << endl);
 
         // Check input momentum units.
         if (inputMoUnits_m == InputMomentumUnitsT::EV) {
@@ -4485,61 +4485,62 @@ void Distribution::shiftDistCoordinates(double massIneV) {
 
 void Distribution::writeOutFileHeader() {
 
-    if (Attributes::getBool(itsAttr[Attrib::Distribution::WRITETOFILE])) {
+    if (Attributes::getBool(itsAttr[Attrib::Distribution::WRITETOFILE]) == false)
+        return;
 
-        unsigned int totalNum = tOrZDist_m.size();
-        reduce(totalNum, totalNum, OpAddAssign());
-        if (Ippl::myNode() == 0) {
-            std::string fname = "data/" + OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat";
-            *gmsg << "* **********************************************************************************" << endl;
-            *gmsg << "* Write initial distribution to file \"" << fname << "\"" << endl;
-            *gmsg << "* **********************************************************************************" << endl;
-            std::ofstream outputFile(fname);
-            if (outputFile.bad()) {
-                *gmsg << "Unable to open output file \"" << fname << "\"" << endl;
-            } else {
-                outputFile.setf(std::ios::left);
-                outputFile << "# ";
-                if (emitting_m) {
-                    outputFile.width(17);
-                    outputFile << "x [m]";
-                    outputFile.width(17);
-                    outputFile << "px [betax gamma]";
-                    outputFile.width(17);
-                    outputFile << "y [m]";
-                    outputFile.width(17);
-                    outputFile << "py [betay gamma]";
-                    outputFile.width(17);
-                    outputFile << "t [s]";
-                    outputFile.width(17);
-                    outputFile << "pz [betaz gamma]" ;
-                    outputFile.width(17);
-                    outputFile << "Bin Number" << std::endl;
-                } else {
-                    outputFile.width(17);
-                    outputFile << "x [m]";
-                    outputFile.width(17);
-                    outputFile << "px [betax gamma]";
-                    outputFile.width(17);
-                    outputFile << "y [m]";
-                    outputFile.width(17);
-                    outputFile << "py [betay gamma]";
-                    outputFile.width(17);
-                    outputFile << "z [m]";
-                    outputFile.width(17);
-                    outputFile << "pz [betaz gamma]";
-                    if (numberOfEnergyBins_m > 0) {
-                        outputFile.width(17);
-                        outputFile << "Bin Number";
-                    }
-                    outputFile << std::endl;
+    unsigned int totalNum = tOrZDist_m.size();
+    reduce(totalNum, totalNum, OpAddAssign());
+    if (Ippl::myNode() != 0) 
+        return;
 
-                    outputFile << "# " << totalNum << std::endl;
-                }
+    std::string fname = "data/" + OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat";
+    *gmsg << "* **********************************************************************************" << endl;
+    *gmsg << "* Write initial distribution to file \"" << fname << "\"" << endl;
+    *gmsg << "* **********************************************************************************" << endl;
+    std::ofstream outputFile(fname);
+    if (outputFile.bad()) {
+        *gmsg << "Unable to open output file \"" << fname << "\"" << endl;
+    } else {
+        outputFile.setf(std::ios::left);
+        outputFile << "# ";
+        if (emitting_m) {
+            outputFile.width(17);
+            outputFile << "x [m]";
+            outputFile.width(17);
+            outputFile << "px [betax gamma]";
+            outputFile.width(17);
+            outputFile << "y [m]";
+            outputFile.width(17);
+            outputFile << "py [betay gamma]";
+            outputFile.width(17);
+            outputFile << "t [s]";
+            outputFile.width(17);
+            outputFile << "pz [betaz gamma]" ;
+            outputFile.width(17);
+            outputFile << "Bin Number" << std::endl;
+        } else {
+            outputFile.width(17);
+            outputFile << "x [m]";
+            outputFile.width(17);
+            outputFile << "px [betax gamma]";
+            outputFile.width(17);
+            outputFile << "y [m]";
+            outputFile.width(17);
+            outputFile << "py [betay gamma]";
+            outputFile.width(17);
+            outputFile << "z [m]";
+            outputFile.width(17);
+            outputFile << "pz [betaz gamma]";
+            if (numberOfEnergyBins_m > 0) {
+                outputFile.width(17);
+                outputFile << "Bin Number";
             }
-            outputFile.close();
+            outputFile << std::endl;
+
+            outputFile << "# " << totalNum << std::endl;
         }
     }
+    outputFile.close();
 }
 
 void Distribution::writeOutFileEmission() {
@@ -4669,55 +4670,55 @@ void Distribution::writeOutFileEmission() {
 
 void Distribution::writeOutFileInjection() {
 
-    if (Attributes::getBool(itsAttr[Attrib::Distribution::WRITETOFILE])) {
+    if (Attributes::getBool(itsAttr[Attrib::Distribution::WRITETOFILE]) == false)
+        return;
 
-        std::string fname = "data/" + OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat";
-        // Nodes take turn writing particles to file.
-        for (int nodeIndex = 0; nodeIndex < Ippl::getNodes(); nodeIndex++) {
+    std::string fname = "data/" + OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat";
+    // Nodes take turn writing particles to file.
+    for (int nodeIndex = 0; nodeIndex < Ippl::getNodes(); nodeIndex++) {
 
-            // Write to file if its our turn.
-            size_t numberOfParticles = 0;
-            if (Ippl::myNode() == nodeIndex) {
-                std::ofstream outputFile(fname, std::fstream::app);
-                if (outputFile.bad()) {
-                    *gmsg << "Node " << Ippl::myNode() << " unable to write"
-                          << "to file \"" << fname << "\"" << endl;
-                } else {
+        // Write to file if its our turn.
+        size_t numberOfParticles = 0;
+        if (Ippl::myNode() == nodeIndex) {
+            std::ofstream outputFile(fname, std::fstream::app);
+            if (outputFile.bad()) {
+                *gmsg << "Node " << Ippl::myNode() << " unable to write"
+                      << "to file \"" << fname << "\"" << endl;
+            } else {
 
-                    outputFile.precision(9);
-                    outputFile.setf(std::ios::scientific);
-                    outputFile.setf(std::ios::right);
+                outputFile.precision(9);
+                outputFile.setf(std::ios::scientific);
+                outputFile.setf(std::ios::right);
 
-                    numberOfParticles = tOrZDist_m.size();
-                    for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
+                numberOfParticles = tOrZDist_m.size();
+                for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
+                    outputFile.width(17);
+                    outputFile << xDist_m.at(partIndex);
+                    outputFile.width(17);
+                    outputFile << pxDist_m.at(partIndex);
+                    outputFile.width(17);
+                    outputFile << yDist_m.at(partIndex);
+                    outputFile.width(17);
+                    outputFile << pyDist_m.at(partIndex);
+                    outputFile.width(17);
+                    outputFile << tOrZDist_m.at(partIndex);
+                    outputFile.width(17);
+                    outputFile << pzDist_m.at(partIndex);
+                    if (numberOfEnergyBins_m > 0) {
+                        size_t binNumber = findEBin(tOrZDist_m.at(partIndex));
                         outputFile.width(17);
-                        outputFile << xDist_m.at(partIndex);
-                        outputFile.width(17);
-                        outputFile << pxDist_m.at(partIndex);
-                        outputFile.width(17);
-                        outputFile << yDist_m.at(partIndex);
-                        outputFile.width(17);
-                        outputFile << pyDist_m.at(partIndex);
-                        outputFile.width(17);
-                        outputFile << tOrZDist_m.at(partIndex);
-                        outputFile.width(17);
-                        outputFile << pzDist_m.at(partIndex);
-                        if (numberOfEnergyBins_m > 0) {
-                            size_t binNumber = findEBin(tOrZDist_m.at(partIndex));
-                            outputFile.width(17);
-                            outputFile << binNumber;
-                        }
-                        outputFile << std::endl;
-
+                        outputFile << binNumber;
                     }
-                }
-                outputFile.close();
-            }
+                    outputFile << std::endl;
 
-            // Wait for writing node before moving on.
-            reduce(numberOfParticles, numberOfParticles, OpAddAssign());
+                }
+            }
+            outputFile.close();
         }
+
+        // Wait for writing node before moving on.
+        reduce(numberOfParticles, numberOfParticles, OpAddAssign());
     }
 }
 
