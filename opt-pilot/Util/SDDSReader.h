@@ -52,7 +52,7 @@ public:
             nval = stringToNum<T>(val);
         } else {
             throw OptPilotException("SDDSReader::getValue",
-                                    "unkown column name!");
+                                    "unknown column name: '" + param_name + "'!");
         }
     }
 
@@ -111,7 +111,7 @@ public:
 
         } else {
             throw OptPilotException("SDDSReader::getInterpolatedValue",
-                                    "unkown column name!");
+                                    "unknown column name: '" + param_name + "'!");
         }
 
         // simple linear interpolation
