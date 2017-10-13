@@ -123,7 +123,6 @@ void OpalRingDefinition::update() {
     ring->setIsClosed(!(Attributes::getString(itsAttr[IS_CLOSED])=="FALSE"));
     double minR = -1;
     double maxR = -1;
-    std::cerr << "Ring definition" << std::endl;
     if (itsAttr[MIN_R]) {
         minR = Attributes::getReal(itsAttr[MIN_R]);
         if (!itsAttr[MAX_R]) {
@@ -135,7 +134,6 @@ void OpalRingDefinition::update() {
         if (!itsAttr[MIN_R]) {
             throw (""); // EXCEPTION
         }
-        std::cerr << "Ring definition SetRingAperture " << minR << " " << maxR << std::endl;
         ring->setRingAperture(minR, maxR);
     }
 
