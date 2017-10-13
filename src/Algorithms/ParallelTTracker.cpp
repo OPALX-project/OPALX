@@ -740,8 +740,6 @@ void ParallelTTracker::computeWakefield(IndexMap::value_t &elements) {
 
 void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elements, OrbitThreader &oth) {
     Inform msg("ParallelTTracker ", *gmsg);
-    IndexMap::value_t::const_iterator it = elements.begin();
-    const IndexMap::value_t::const_iterator end = elements.end();
     std::set<IndexMap::value_t::value_type> elementsWithParticleMatterInteraction;
     std::set<ParticleMatterInteractionHandler*> particleMatterinteractionHandlers;
     std::pair<double, double> currentRange(0.0, 0.0);
