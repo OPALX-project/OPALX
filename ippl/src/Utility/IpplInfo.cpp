@@ -181,8 +181,8 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
     // You can only specify argc, argv once; if it is done again, print a warning
     // and continue as if we had not given argc, argv.
     if ( CommInitialized ) {
-        WARNMSG("Attempt to create IpplInfo with argc, argv again." << endl);
-        WARNMSG("Using previous argc,argv settings." << endl);
+      // ADA WARNMSG("Attempt to create IpplInfo with argc, argv again." << endl);
+      //WARNMSG("Using previous argc,argv settings." << endl);
     } else {
         // dbgmsg << "Starting initialization: argc = " << argc << ", " << endl;
         // for (unsigned int dbgi=0; dbgi < argc; ++dbgi)
