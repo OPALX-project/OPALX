@@ -167,9 +167,9 @@ std::pair<double, double> CavityAutophaser::optimizeCavityPhase(double initialPh
     if(j == 0) {
         phi = initialPhase;
         E = Emax;
-        j = -1;
+        // j = -1;
         do {
-            j ++;
+            // j ++;
             Emax = E;
             initialPhase = phi;
             phi += dphi;
