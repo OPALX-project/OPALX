@@ -142,7 +142,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     while ( residualsum > eps * rhosum) {
         
         std::cout << "                               "
-                  << residualsum << " " << eps * rhosum << std::endl; std::cin.get();
+                  << residualsum << " " << eps * rhosum << std::endl; //std::cin.get();
         
         relax_m(lfine);
         
@@ -181,12 +181,6 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     std::cout << "                               "
               << residualsum << " " << eps * rhosum << std::endl;
     
-    // copy solution back
-    for (int lev = 0; lev < nLevel; ++lev) {
-        int ilev = lbase + lev;
-        
-        this->trilinos2amrex_m(*phi[ilev], 0, mglevel_m[lev]->phi_p);
-    }
     
     
     // evaluate the electric field
@@ -202,6 +196,14 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
             mglevel_m[lev]->G_p[d]->Multiply(false, *mglevel_m[lev]->phi_p, *efield_p);
             this->trilinos2amrex_m(*efield[ilev], d, efield_p);
         }
+    }
+    
+    
+    // copy solution back
+    for (int lev = 0; lev < nLevel; ++lev) {
+        int ilev = lbase + lev;
+        
+        this->trilinos2amrex_m(*phi[ilev], 0, mglevel_m[lev]->phi_p);
     }
     
     std::cout << "#iterations: " << nIter_m << std::endl;
@@ -303,7 +305,7 @@ void AmrMultiGrid::residual_m(Teuchos::RCP<vector_t>& r,
 
 void AmrMultiGrid::relax_m(int level) {
     
-    std::cout << "RELAX LEVEL " << level << std::endl; //std::cin.get();
+//     std::cout << "RELAX LEVEL " << level << std::endl; //std::cin.get();
     
     if ( level == lfine_m ) {
         
@@ -343,7 +345,7 @@ void AmrMultiGrid::relax_m(int level) {
 #if BL_SPACEDIM == 2
         for (int iii = 0; iii < 4; ++iii)
 #elif BL_SPACEDIM == 3
-        for (int iii = 0; iii < 8; ++iii)
+        for (int iii = 0; iii < 384; ++iii)
 #endif
             this->gsrb_level_m(mglevel_m[level]->error_p,
                                mglevel_m[level]->residual_p, level);
@@ -419,7 +421,7 @@ void AmrMultiGrid::relax_m(int level) {
 #if BL_SPACEDIM == 2
         for (int iii = 0; iii < 4; ++iii)
 #elif BL_SPACEDIM == 3
-        for (int iii = 0; iii < 8; ++iii)
+        for (int iii = 0; iii < 384; ++iii)
 #endif
             this->gsrb_level_m(derror, mglevel_m[level]->residual_p, level);
         
@@ -915,7 +917,7 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
         throw std::runtime_error("Error in completing uncovered matrix for level "
                                  + std::to_string(level) + "!");
         
-    std::cout << "Done special" << std::endl;
+//     std::cout << "Done special" << std::endl;
 }
 
 
