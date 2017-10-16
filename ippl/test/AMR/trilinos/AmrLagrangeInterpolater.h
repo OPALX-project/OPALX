@@ -140,20 +140,20 @@ private:
     static constexpr qpattern_t qpattern_ms {
         473536,                             ///< cross pattern
         14798,                              ///< T pattern
+        236768,                             ///< right hammer pattern
         15153152,                           ///< T on head pattern
+        947072,                             ///< left hammer pattern
         29596,                              ///< upper right corner pattern
         7399,                               ///< upper left corner pattern
         7576576,                            ///< mirrored L pattern
-        30306304,                           ///< L pattern
-        947072,                             ///< left hammer pattern
-        236768                              ///< right hammer pattern
+        30306304                            ///< L pattern
     };
     
     static constexpr lpattern_t lpattern_ms {
-        54,                                 ///< corner top left pattern
         27,                                 ///< corner top right pattern
+        216,                                ///< corner bottom right pattern
         432,                                ///< corner bottom left pattern
-        216                                 ///< corner bottom right pattern
+        54                                  ///< corner top left pattern
     };
 #endif
 };
