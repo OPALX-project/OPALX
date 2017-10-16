@@ -239,25 +239,25 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     switch ( *pit ) {
         case this->lpattern_ms[0]:
         {
-            // corner top left pattern
-            L[0] = (top1) ? 0.25 : -0.25;   // L_{-1}
-            L[1] = (top1) ? 0.75 : 1.25;    // L_{0}
-            begin[0] = -1;
-            end[0]   =  0;
-            
-            K[0] = (top2) ? 0.75 : 1.25;    // K_{0}
-            K[1] = (top2) ? 0.25 : -0.25;   // K_{1}
-            begin[1] = 0;
-            end[1]   = 1;
-            break;
-        }
-        case this->lpattern_ms[1]:
-        {
             // corner top right pattern
             L[0] = (top1) ? 0.25 : -0.25;   // L_{-1}
             L[1] = (top1) ? 0.75 : 1.25;    // L_{0}
             begin[0] = -1;
             end[0]   =  0;
+            
+            K[0] = (top2) ? 0.25 : -0.25;   // K_{-1}
+            K[1] = (top2) ? 0.75 : 1.25;    // K_{0}
+            begin[1] = -1;
+            end[1]   =  0;
+            break;
+        }
+        case this->lpattern_ms[1]:
+        {
+            // corner bottom right pattern
+            L[0] = (top1) ? 0.75 : 1.25;    // L_{0}
+            L[1] = (top1) ? 0.25 : -0.25;   // L_{1}
+            begin[0] = 0;
+            end[0]   = 1;
             
             K[0] = (top2) ? 0.25 : -0.25;   // K_{-1}
             K[1] = (top2) ? 0.75 : 1.25;    // K_{0}
@@ -281,16 +281,16 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
         }
         case this->lpattern_ms[3]:
         {
-            // corner bottom right pattern
-            L[0] = (top1) ? 0.75 : 1.25;    // L_{0}
-            L[1] = (top1) ? 0.25 : -0.25;   // L_{1}
-            begin[0] = 0;
-            end[0]   = 1;
+            // corner top left pattern
+            L[0] = (top1) ? 0.25 : -0.25;   // L_{-1}
+            L[1] = (top1) ? 0.75 : 1.25;    // L_{0}
+            begin[0] = -1;
+            end[0]   =  0;
             
-            K[0] = (top2) ? 0.25 : -0.25;   // K_{-1}
-            K[1] = (top2) ? 0.75 : 1.25;    // K_{0}
-            begin[1] = -1;
-            end[1]   =  0;
+            K[0] = (top2) ? 0.75 : 1.25;    // K_{0}
+            K[1] = (top2) ? 0.25 : -0.25;   // K_{1}
+            begin[1] = 0;
+            end[1]   = 1;
             break;
         }
         default:
@@ -584,6 +584,22 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         }
         case this->qpattern_ms[2]:
         {
+            // right hammer pattern
+            L[0] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{-1}
+            L[1] = 15.0 / 16.0;                         // L_{0}
+            L[2] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{1}
+            begin[0] = -1;
+            end[0] = 1;
+            
+            K[0] = (top2) ? 21.0 / 32.0 : 45.0 / 32.0;  // K_{0}
+            K[1] = (top2) ? 7.0 / 16.0 : -9.0 / 16.0;   // K_{1}
+            K[2] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{2}
+            begin[1] = 0;
+            end[1]   = 2;
+            break;
+        }
+        case this->qpattern_ms[3]:
+        {
             // T on head pattern
             L[0] = (top1) ? 21.0 / 32.0 : 45.0 / 32.0;  // L_{0}
             L[1] = (top1) ? 7.0 / 16.0 : -9.0 / 16.0;   // L_{1}
@@ -598,71 +614,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             end[1]   =  1;
             break;
         }
-        case this->qpattern_ms[3]:
-        {
-            // upper right corner pattern
-            L[0] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{-2}
-            L[1] = (top1) ? -9.0 / 16.0 : 7.0 / 16.0;   // L_{-1}
-            L[2] = (top1) ? 45.0 / 32.0 : 21.0 / 32.0;  // L_{0}
-            begin[0] = -2;
-            end[0]   =  0;
-            
-            K[0] = (top2) ? 21.0 / 32.0 : 45.0 / 32.0;  // K_{0}
-            K[1] = (top2) ? 7.0 / 16.0 : -9.0 / 16.0;   // K_{1}
-            K[2] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{2}
-            begin[1] = 0;
-            end[1]   = 2;
-            break;
-        }
         case this->qpattern_ms[4]:
-        {
-            // upper left corner pattern
-            L[0] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{-2}
-            L[1] = (top1) ? -9.0 / 16.0 : 7.0 / 16.0;   // L_{-1}
-            L[2] = (top1) ? 45.0 / 32.0 : 21.0 / 32.0;  // L_{0}
-            begin[0] = -2;
-            end[0]   =  0;
-            
-            K[0] = (top2) ? 5.0 / 32.0 : -3.0 / 32.0;   // K_{-2}
-            K[1] = (top2) ? -9.0 / 16.0 : 7.0 / 16.0;   // K_{-1}
-            K[2] = (top2) ? 45.0 / 32.0 : 21.0 / 32.0;  // K_{0}
-            begin[1] = -2;
-            end[1]   =  0;
-            break;
-        }
-        case this->qpattern_ms[5]:
-        {
-            // mirrored L pattern
-            L[0] = (top1) ? 21.0 / 32.0 : 45.0 / 32.0;  // L_{0}
-            L[1] = (top1) ? 7.0 / 16.0 : -9.0 / 16.0;   // L_{1}
-            L[2] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{2}
-            begin[0] = 0;
-            end[0]   = 2;
-            
-            K[0] = (top2) ? 21.0 / 32.0 : 45.0 / 32.0;  // K_{0}
-            K[1] = (top2) ? 7.0 / 16.0 : -9.0 / 16.0;   // K_{1}
-            K[2] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{2}
-            begin[1] = 0;
-            end[1]   = 2;
-            break;
-        }
-        case this->qpattern_ms[6]:
-        {
-            // L pattern
-            L[0] = (top1) ? 21.0 / 32.0 : 45.0 / 32.0;  // L_{0}
-            L[1] = (top1) ? 7.0 / 16.0 : -9.0 / 16.0;   // L_{1}
-            L[2] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{2}
-            begin[0] = 0;
-            end[0]   = 2;
-            
-            K[0] = (top2) ? 21.0 / 32.0 : 45.0 / 32.0;  // K_{0}
-            K[1] = (top2) ? 7.0 / 16.0 : -9.0 / 16.0;   // K_{1}
-            K[2] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{2}
-            begin[1] = 0;
-            end[1]   = 2;
-            break;
-        }
-        case this->qpattern_ms[7]:
         {
             // left hammer pattern
             L[0] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{-1}
@@ -678,14 +630,62 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             end[1]   = 2;
             break;
         }
+        case this->qpattern_ms[5]:
+        {
+            // upper right corner pattern
+            L[0] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{-2}
+            L[1] = (top1) ? -9.0 / 16.0 : 7.0 / 16.0;   // L_{-1}
+            L[2] = (top1) ? 45.0 / 32.0 : 21.0 / 32.0;  // L_{0}
+            begin[0] = -2;
+            end[0]   =  0;
+            
+            K[0] = (top2) ? 21.0 / 32.0 : 45.0 / 32.0;  // K_{0}
+            K[1] = (top2) ? 7.0 / 16.0 : -9.0 / 16.0;   // K_{1}
+            K[2] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{2}
+            begin[1] = 0;
+            end[1]   = 2;
+            break;
+        }
+        case this->qpattern_ms[6]:
+        {
+            // upper left corner pattern
+            L[0] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{-2}
+            L[1] = (top1) ? -9.0 / 16.0 : 7.0 / 16.0;   // L_{-1}
+            L[2] = (top1) ? 45.0 / 32.0 : 21.0 / 32.0;  // L_{0}
+            begin[0] = -2;
+            end[0]   =  0;
+            
+            K[0] = (top2) ? 5.0 / 32.0 : -3.0 / 32.0;   // K_{-2}
+            K[1] = (top2) ? -9.0 / 16.0 : 7.0 / 16.0;   // K_{-1}
+            K[2] = (top2) ? 45.0 / 32.0 : 21.0 / 32.0;  // K_{0}
+            begin[1] = -2;
+            end[1]   =  0;
+            break;
+        }
+        case this->qpattern_ms[7]:
+        {
+            // mirrored L pattern
+            L[0] = (top1) ? 21.0 / 32.0 : 45.0 / 32.0;  // L_{0}
+            L[1] = (top1) ? 7.0 / 16.0 : -9.0 / 16.0;   // L_{1}
+            L[2] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{2}
+            begin[0] = 0;
+            end[0]   = 2;
+            
+            K[0] = (top2) ? 21.0 / 32.0 : 45.0 / 32.0;  // K_{0}
+            K[1] = (top2) ? 7.0 / 16.0 : -9.0 / 16.0;   // K_{1}
+            K[2] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{2}
+            begin[1] = 0;
+            end[1]   = 2;
+            break;
+        }
         case this->qpattern_ms[8]:
         {
-            // right hammer pattern
-            L[0] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{-1}
-            L[1] = 15.0 / 16.0;                         // L_{0}
-            L[2] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{1}
-            begin[0] = -1;
-            end[0] = 1;
+            // L pattern
+            L[0] = (top1) ? 21.0 / 32.0 : 45.0 / 32.0;  // L_{0}
+            L[1] = (top1) ? 7.0 / 16.0 : -9.0 / 16.0;   // L_{1}
+            L[2] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{2}
+            begin[0] = 0;
+            end[0]   = 2;
             
             K[0] = (top2) ? 21.0 / 32.0 : 45.0 / 32.0;  // K_{0}
             K[1] = (top2) ? 7.0 / 16.0 : -9.0 / 16.0;   // K_{1}
