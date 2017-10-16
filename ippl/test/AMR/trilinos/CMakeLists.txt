@@ -118,6 +118,12 @@ ENDIF ( ${BL_SPACEDIM} EQUAL 2 )
 
 add_executable( testAmrMultigrid
                 testAmrMultigrid.cpp
+                ${F90_source_files}
+                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                AmrMultiGrid.cpp)
+
+add_executable( testSolverComparison
+                testSolverComparison.cpp
                 ../Solver.cpp
                 ${F90_source_files}
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
@@ -211,5 +217,9 @@ ENDIF ( ${BL_SPACEDIM} EQUAL 2 )
 #                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testAmrMultigrid ${LIBS}
+                          -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testSolverComparison ${LIBS}
                           -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
