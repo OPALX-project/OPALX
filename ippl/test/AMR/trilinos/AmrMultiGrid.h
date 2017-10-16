@@ -49,6 +49,10 @@ public:
                const amrex::Array<AmrGeometry_t>& geom,
                int lbase, int lfine, bool previous = false);
     
+    void setNumberOfSmoothing(std::size_t nsmooth) {
+        nsmooth_m = nsmooth;
+    }
+    
     
 private:
     
@@ -200,6 +204,7 @@ private:
     std::unique_ptr<AmrInterpolater<AmrMultiGridLevel_t> > interface_mp;
     
     int nIter_m;
+    std::size_t nsmooth_m;
     
     
     std::vector<std::unique_ptr<AmrMultiGridLevel_t > > mglevel_m;
