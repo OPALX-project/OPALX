@@ -26,6 +26,7 @@ struct param_t {
     bool isWriteCSV;
     bool isHelp;
     size_t nLevels;
+    size_t smoothing;
 };
 
 bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
@@ -43,7 +44,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     
     int cnt = 0;
     
-    int required = 2 +  BL_SPACEDIM;
+    int required = 3 +  BL_SPACEDIM;
     
     while ( true ) {
         static struct option long_options[] = {
@@ -52,6 +53,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 #if BL_SPACEDIM == 3
             { "gridz",          required_argument, 0, 'z' },
 #endif
+            { "smoothing",      required_argument, 0, 's' },
             { "level",          required_argument, 0, 'l' },
             { "maxgrid",        required_argument, 0, 'm' },
             { "writeYt",        no_argument,       0, 'w' },
@@ -64,9 +66,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         
         c = getopt_long(argc, argv,
 #if BL_SPACEDIM == 3
-                        "x:y:z:l:m:whv",
+                        "x:y:z:s:l:m:whv",
 #else
-                        "x:y:l:m:whv",
+                        "x:y:s:l:m:whv",
 #endif
                         long_options, &option_index);
         
@@ -82,6 +84,8 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             case 'z':
                 params.nr[2] = std::atoi(optarg); ++cnt; break;
 #endif
+            case 's':
+                params.smoothing = std::atoi(optarg); ++cnt; break;
             case 'l':
                 params.nLevels = std::atoi(optarg); ++cnt; break;
             case 'm':
@@ -100,6 +104,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 #if BL_SPACEDIM == 3
                     << "--gridz [#gridpoints in z]" << endl
 #endif
+                    << "--smoothing [#steps]" << endl
                     << "--level [#level (<= 1)]" << endl
                     << "--maxgrid [max. grid]" << endl
                     << "--writeYt (optional)" << endl
@@ -229,7 +234,7 @@ void doSolve(const Array<BoxArray>& ba,
         phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev],    1          , 1));
         efield[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev], BL_SPACEDIM, 1));
         
-        rhs[lev]->setVal(-1.0 - lev);
+        rhs[lev]->setVal(-1.0 /*- lev*/);
         phi[lev]->setVal(0.0, 1);
         efield[lev]->setVal(0.0, 1);
     }
@@ -242,6 +247,8 @@ void doSolve(const Array<BoxArray>& ba,
     
     // solve
     AmrMultiGrid sol;
+    
+    sol.setNumberOfSmoothing(params.smoothing);
     
     IpplTimings::startTimer(solvTimer);
     
@@ -317,17 +324,17 @@ void doAMReX(const param_t& params, Inform& msg)
         
         
         BoxList bl;
-        Box b1(IntVect(D_DECL(0, 4, 4)), IntVect(D_DECL(3, 7, 7)));
+//         Box b1(IntVect(D_DECL(0, 4, 4)), IntVect(D_DECL(3, 7, 7)));
         
-        bl.push_back(b1);
+//         bl.push_back(b1);
         
         Box b2(IntVect(D_DECL(4, 4, 4)), IntVect(D_DECL(11, 11, 11)));
         
         bl.push_back(b2);
         
-        Box b3(IntVect(D_DECL(14, 6, 6)), IntVect(D_DECL(15, 9, 9)));
+//         Box b3(IntVect(D_DECL(14, 6, 6)), IntVect(D_DECL(15, 9, 9)));
         
-        bl.push_back(b3);
+//         bl.push_back(b3);
         
         
         ba[1].define(bl);//define(refined_patch);
@@ -419,6 +426,7 @@ int main(int argc, char *argv[]) {
         
         msg << "Particle test running with" << endl
             << "- grid      = " << params.nr << endl
+            << "- smoothing = " << params.smoothing << endl
             << "- #level    = " << params.nLevels << endl
             << "- max. grid = " << params.maxBoxSize << endl;
         

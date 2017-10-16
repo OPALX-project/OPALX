@@ -8,7 +8,8 @@
 
 AmrMultiGrid::AmrMultiGrid(Interpolater interp,
                            Interpolater interface)
-    : epetra_comm_m(Ippl::getComm())
+    : epetra_comm_m(Ippl::getComm()),
+      nsmooth_m(12)
 {
     switch ( interp ) {
         case Interpolater::TRILINEAR:
@@ -342,11 +343,7 @@ void AmrMultiGrid::relax_m(int level) {
         mglevel_m[level-1]->error_p->PutScalar(0.0);
         
         // smoothing
-#if BL_SPACEDIM == 2
-        for (int iii = 0; iii < 4; ++iii)
-#elif BL_SPACEDIM == 3
-        for (int iii = 0; iii < 384; ++iii)
-#endif
+        for (std::size_t iii = 0; iii < nsmooth_m; ++iii)
             this->gsrb_level_m(mglevel_m[level]->error_p,
                                mglevel_m[level]->residual_p, level);
         
@@ -417,12 +414,7 @@ void AmrMultiGrid::relax_m(int level) {
         derror->PutScalar(0.0);
         
         // smoothing
-                // smoothing
-#if BL_SPACEDIM == 2
-        for (int iii = 0; iii < 4; ++iii)
-#elif BL_SPACEDIM == 3
-        for (int iii = 0; iii < 384; ++iii)
-#endif
+        for (std::size_t iii = 0; iii < nsmooth_m; ++iii)
             this->gsrb_level_m(derror, mglevel_m[level]->residual_p, level);
         
         // e^(l) += de^(l)
