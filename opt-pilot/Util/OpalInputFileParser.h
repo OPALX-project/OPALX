@@ -13,8 +13,7 @@
  *  \brief Implements a parser for OPAL input files
  *
  *  This class extracts the optimization problem (objectives, constraints,
- *  design variables) from an Opal input file. All statements are prefixed
- *  with "//", e.g.,
+ *  design variables) from an Opal input file. E.g.,
  *
  *  \verbatim
   d1: DVAR, ELEMENT="", VARIABLE="SIGX";
