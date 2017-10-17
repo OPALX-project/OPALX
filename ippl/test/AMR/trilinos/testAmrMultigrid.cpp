@@ -261,6 +261,7 @@ void doSolve(const Array<BoxArray>& ba,
     
     IpplTimings::stopTimer(solvTimer);
     
+    msg << "#iterations: " << sol.getNumIters() << endl;
     
     // undo normalization
     for (int i = 0; i <= finest_level; ++i) {

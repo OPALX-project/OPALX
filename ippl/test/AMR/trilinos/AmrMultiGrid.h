@@ -61,6 +61,11 @@ public:
     }
     
     
+    std::size_t getNumIters() {
+        return nIter_m;
+    }
+    
+    
 private:
     
     void residual_m(Teuchos::RCP<vector_t>& r,
@@ -87,7 +92,6 @@ private:
      * It takes care of physical boundaries (i.e. mesh boundary).
      * Internal boundaries (i.e. boundaries due to crse-fine interfaces) are treated by the
      * boundary matrix.
-     * FIXME The number of entries due to the boundary conditions has to be fixed.
      * @param level for which we build the Poisson matrix
      */
     void buildPoissonMatrix_m(int level);
@@ -98,7 +102,6 @@ private:
      * It takes care of physical boundaries (i.e. mesh boundary).
      * Internal boundaries (i.e. boundaries due to crse-fine interfaces) are treated by the
      * boundary matrix.
-     * FIXME The number of entries due to the boundary conditions has to be fixed.
      * @param level for which we build the special Poisson matrix
      */
     void buildSpecialPoissonMatrix_m(int level);
@@ -122,7 +125,6 @@ private:
      * \f]
      * @param level for which to build the interpolation matrix. The finest level
      * does not build such a matrix.
-     * FIXME The number of entries due to the interpolation stencil has to be fixed.
      */
     void buildInterpolationMatrix_m(int level);
     
@@ -133,7 +135,6 @@ private:
      *      x^{(l+1)} = B_{crse}\cdot x^{(l)}
      * \f]
      * Dirichlet boundary condition
-     * FIXME The number of entries due to the interpolation stencil has to be fixed.
      * @param level the base level is omitted
      */
     void buildCrseBoundaryMatrix_m(int level);
@@ -210,16 +211,13 @@ private:
     
     std::unique_ptr<AmrInterpolater<AmrMultiGridLevel_t> > interface_mp;
     
-    int nIter_m;
+    std::size_t nIter_m;
     std::size_t nsmooth_m;
     
     
     std::vector<std::unique_ptr<AmrMultiGridLevel_t > > mglevel_m;
     
     std::shared_ptr<LinearSolver<Teuchos::RCP<matrix_t>, Teuchos::RCP<vector_t> > > solver_mp;
-//     TrilinosSolver solver_m;
-    
-    AmrIntVect_t rr_m;      //TODO move to level
     
     int lbase_m;
     int lfine_m;
