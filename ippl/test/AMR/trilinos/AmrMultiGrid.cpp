@@ -6,6 +6,13 @@
 
 #include <AMReX_MacBndry.H>
 
+
+#define WRITE 0
+
+#if WRITE
+    #include <fstream>
+#endif
+
 AmrMultiGrid::AmrMultiGrid(Interpolater interp,
                            Interpolater interface,
                            LinSolver solver)
@@ -144,6 +151,10 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         rhosum += tmp;
     }
     
+#if WRITE
+    std::ofstream out("residual.dat");
+#endif
+    
     
     while ( residualsum > eps * rhosum) {
         
@@ -159,8 +170,19 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         
         residualsum = l2error_m();
         
+#if WRITE
+        if ( Ippl::myNode() == 0 ) {
+            out << residualsum << std::endl;
+            std::cerr << residualsum << std::endl;
+        }
+#endif
+        
         ++nIter_m;
     }
+    
+#if WRITE
+    out.close();
+#endif
     
     // evaluate the electric field
     Teuchos::RCP<vector_t> efield_p = Teuchos::null;
