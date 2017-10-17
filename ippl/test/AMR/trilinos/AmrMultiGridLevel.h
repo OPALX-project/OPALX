@@ -62,6 +62,8 @@ public:
                        coefficients_t& values,
                        const double& value);
     
+    int getBCStencilNum();
+    
     const AmrIntVect_t& refinement() const;
     
 private:

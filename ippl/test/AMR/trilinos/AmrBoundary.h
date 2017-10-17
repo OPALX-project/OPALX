@@ -9,6 +9,10 @@ template <class AmrMultiGridLevel>
 class AmrBoundary {
     
 public:
+    
+    AmrBoundary(int nPoints) : nPoints_m(nPoints) { };
+    
+    
     /*!
      * Check if we are on the physical boundary
      * @param iv cell to check
@@ -39,6 +43,14 @@ public:
                        const double& value,
                        AmrMultiGridLevel* mglevel,
                        const int* nr) = 0;
+    
+    
+    const int& getNumberOfPoints() const {
+        return nPoints_m;
+    }
+    
+private:
+    const int nPoints_m;    ///< Number of points used for boundary
 };
 
 #endif
