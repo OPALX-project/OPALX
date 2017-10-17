@@ -5,7 +5,7 @@ AmrMultiGridLevel<MatrixType,
                                                  const AmrGeometry_t& _geom,
                                                  const AmrIntVect_t& rr,
                                                  AmrBoundary<AmrMultiGridLevel<MatrixType, VectorType> >* bc,
-                                                 Epetra_MpiComm& comm)
+                                                 const Teuchos::RCP<comm_t>& comm)
     : grids(_grids),
       dmap(_dmap),
       geom(_geom),
@@ -111,7 +111,7 @@ const AmrIntVect_t& AmrMultiGridLevel<MatrixType, VectorType>::refinement() cons
 
 
 template <class MatrixType, class VectorType>
-void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Epetra_MpiComm& comm) {
+void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Teuchos::RCP<comm_t>& comm) {
     
     int localNumElements = 0;
     coefficients_t values;
@@ -157,5 +157,5 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Epetra_MpiComm&
     int N = grids.numPts();
     
     map_p = Teuchos::rcp( new Epetra_Map(N, localNumElements,
-                                         &globalindices[0], baseIndex, comm) );
+                                         &globalindices[0], baseIndex, *comm) );
 }
