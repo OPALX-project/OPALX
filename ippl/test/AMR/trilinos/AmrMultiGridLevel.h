@@ -7,11 +7,6 @@
 
 #include "Ippl.h"
 
-#include <Teuchos_RCP.hpp>
-#include <Teuchos_ArrayRCP.hpp>
-
-#include <Epetra_MpiComm.h>
-
 #include "AmrMultiGridCore.h"
 
 template <class MatrixType, class VectorType>

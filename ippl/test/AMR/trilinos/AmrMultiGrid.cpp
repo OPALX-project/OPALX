@@ -7,7 +7,8 @@
 #include <AMReX_MacBndry.H>
 
 AmrMultiGrid::AmrMultiGrid(Interpolater interp,
-                           Interpolater interface)
+                           Interpolater interface,
+                           LinSolver solver)
     : epetra_comm_m(Ippl::getComm()),
       nsmooth_m(12)
 {
@@ -32,6 +33,16 @@ AmrMultiGrid::AmrMultiGrid(Interpolater interp,
             break;
         default:
             std::runtime_error("No such interpolater for the coarse-fine interface available.");
+    }
+    
+    
+    // base level solver
+    switch ( solver ) {
+        case LinSolver::BLOCK_CG:
+            solver_mp.reset( new BlockCGSolMgr() );
+            break;
+        default:
+            std::runtime_error("No such solver available.");
     }
 }
 
@@ -441,9 +452,9 @@ void AmrMultiGrid::relax_m(int level) {
         mglevel_m[level]->A_p->Scale(-1.0);
         mglevel_m[level]->residual_p->Scale(-1.0);
         
-        solver_m.solve(mglevel_m[level]->A_p,
-                       mglevel_m[level]->error_p,
-                       mglevel_m[level]->residual_p);
+        solver_mp->solve(mglevel_m[level]->A_p,
+                         mglevel_m[level]->error_p,
+                         mglevel_m[level]->residual_p);
         
         mglevel_m[level]->A_p->Scale(-1.0);
         mglevel_m[level]->residual_p->Scale(-1.0);
@@ -1501,11 +1512,7 @@ void AmrMultiGrid::buildSmootherMatrix_m(int level) {
     
     const double* dx = mglevel_m[level]->geom.CellSize();
     
-    double h2 = std::max(dx[0], dx[1]);
-#if BL_SPACEDIM == 3
-    h2 = std::max(h2, dx[2]);
-#endif
-    h2 *= h2 * h2;
+    double h = AMREX_D_TERM(dx[0], * dx[1], * dx[2]);
     
     for (amrex::MFIter mfi(*mglevel_m[level]->mask, false); mfi.isValid(); ++mfi) {
         const amrex::Box& bx  = mfi.validbox();
@@ -1552,7 +1559,7 @@ void AmrMultiGrid::buildSmootherMatrix_m(int level) {
                         }
                     }
                     
-                    double value = h2 * ( (interior) ? 0.25 : 0.1875 );
+                    double value = h * ( (interior) ? 0.25 : 0.1875 );
                     
                     int error = mglevel_m[level]->S_p->InsertGlobalValues(globalidx,
                                                                           1,

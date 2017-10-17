@@ -10,6 +10,21 @@
 #include "AmrLagrangeInterpolater.h"
 
 // linear solvers
-#include "TrilinosSolver.h"
+#include "LinearSolver.h"
+#include "BlockCGSolMgr.h"
+
+// Trilinos headers
+#include <Epetra_MpiComm.h>
+#include <Epetra_Map.h>
+#include <Epetra_Vector.h>
+#include <Epetra_CrsMatrix.h>
+
+#include <Teuchos_RCP.hpp>
+#include <Teuchos_ArrayRCP.hpp>
+
+namespace amr {
+    typedef Epetra_CrsMatrix matrix_t;
+    typedef Epetra_Vector vector_t;
+}
 
 #endif

@@ -156,8 +156,6 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Epetra_MpiComm&
     // numGlobalElements == N
     int N = grids.numPts();
     
-    std::cout << "N = " << N << " baseIndex = " << baseIndex << " localNumElements = " << localNumElements << std::endl;
-    
     map_p = Teuchos::rcp( new Epetra_Map(N, localNumElements,
                                          &globalindices[0], baseIndex, comm) );
 }
