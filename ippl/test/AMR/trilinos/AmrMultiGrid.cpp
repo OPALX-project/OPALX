@@ -428,7 +428,7 @@ void AmrMultiGrid::buildPoissonMatrix_m(int level) {
     
     amrex::BoxArray empty;
     
-    const Epetra_Map& RowMap = *mglevel_m[level]->map_p;
+    const dmap_t& RowMap = *mglevel_m[level]->map_p;
     
     mglevel_m[level]->A_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy, RowMap, nEntries) );
     
@@ -590,7 +590,7 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
      */
     int nEntries = (BL_SPACEDIM << 1) + 1 /* plus boundaries */ + 10 /*FIXME*/;
     
-    const Epetra_Map& RowMap = *mglevel_m[level]->map_p;
+    const dmap_t& RowMap = *mglevel_m[level]->map_p;
     
     mglevel_m[level]->As_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy, RowMap, nEntries) );
     
@@ -818,8 +818,8 @@ void AmrMultiGrid::buildRestrictionMatrix_m(int level) {
     crse_fine_ba = amrex::intersect(mglevel_m[level]->grids, crse_fine_ba);
     crse_fine_ba.coarsen(rr);
     
-    const Epetra_Map& RowMap = *mglevel_m[level-1]->map_p;
-    const Epetra_Map& ColMap = *mglevel_m[level]->map_p;
+    const dmap_t& RowMap = *mglevel_m[level-1]->map_p;
+    const dmap_t& ColMap = *mglevel_m[level]->map_p;
     
 #if BL_SPACEDIM == 3
     int nNeighbours = rr[0] * rr[1] * rr[2];
@@ -921,8 +921,8 @@ void AmrMultiGrid::buildInterpolationMatrix_m(int level) {
     indices_t indices;
     coefficients_t values;
     
-    const Epetra_Map& RowMap = *mglevel_m[level+1]->map_p;
-    const Epetra_Map& ColMap = *mglevel_m[level]->map_p;
+    const dmap_t& RowMap = *mglevel_m[level+1]->map_p;
+    const dmap_t& ColMap = *mglevel_m[level]->map_p;
     
     mglevel_m[level]->I_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy,
                                                        RowMap, nNeighbours, false) );
@@ -999,8 +999,8 @@ void AmrMultiGrid::buildCrseBoundaryMatrix_m(int level) {
     crse_fine_ba = amrex::intersect(mglevel_m[level]->grids, crse_fine_ba);
     crse_fine_ba.coarsen(rr);
     
-    const Epetra_Map& RowMap = *mglevel_m[level]->map_p;
-    const Epetra_Map& ColMap = *mglevel_m[level-1]->map_p;
+    const dmap_t& RowMap = *mglevel_m[level]->map_p;
+    const dmap_t& ColMap = *mglevel_m[level-1]->map_p;
     
     int nNeighbours = (2 << (BL_SPACEDIM -1 )) /*FIXME interpolation stencil indices*/ + 12;
     
@@ -1093,8 +1093,8 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(int level)
     crse_fine_ba = amrex::intersect(mglevel_m[level+1]->grids, crse_fine_ba);
     crse_fine_ba.coarsen(rr);
     
-    const Epetra_Map& RowMap = *mglevel_m[level]->map_p;
-    const Epetra_Map& ColMap = *mglevel_m[level+1]->map_p;
+    const dmap_t& RowMap = *mglevel_m[level]->map_p;
+    const dmap_t& ColMap = *mglevel_m[level+1]->map_p;
     
     int nNeighbours = 4 /*#interfaces*/ * 2; //* rr[0] * rr[1] /*of refined cell*/;
 #if BL_SPACEDIM == 3
@@ -1372,7 +1372,7 @@ void AmrMultiGrid::buildSmootherMatrix_m(int level) {
     if ( level == lbase_m )
         return;
     
-    const Epetra_Map& RowMap = *mglevel_m[level]->map_p;
+    const dmap_t& RowMap = *mglevel_m[level]->map_p;
     
     mglevel_m[level]->S_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy,
                                                        RowMap, 1) );
@@ -1455,7 +1455,7 @@ void AmrMultiGrid::buildSmootherMatrix_m(int level) {
 
 void AmrMultiGrid::buildGradientMatrix_m(int level) {
     
-    const Epetra_Map& RowMap = *mglevel_m[level]->map_p;
+    const dmap_t& RowMap = *mglevel_m[level]->map_p;
     
     int nEntries = 5;
     

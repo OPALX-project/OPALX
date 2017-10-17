@@ -23,6 +23,7 @@ public:
     typedef amrex::FabArray<amrex::BaseFab<int> > mask_t;
     
     typedef amr::comm_t comm_t;
+    typedef amr::dmap_t dmap_t;
     
     typedef std::vector<int>        indices_t;
     typedef std::vector<double>     coefficients_t;
@@ -69,7 +70,7 @@ private:
     void buildMap_m(const Teuchos::RCP<comm_t>& comm);
     
 public:
-    Teuchos::RCP<Epetra_Map> map_p;     ///< core map
+    Teuchos::RCP<dmap_t> map_p;         ///< core map
     
     Teuchos::RCP<matrix_t> A_p;         ///< Poisson matrix
     Teuchos::RCP<matrix_t> B_p;         ///< Poisson matrix boundary from coarse
