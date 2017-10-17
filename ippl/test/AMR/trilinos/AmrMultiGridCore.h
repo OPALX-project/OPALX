@@ -23,8 +23,8 @@
 #include <Teuchos_ArrayRCP.hpp>
 
 namespace amr {
-    typedef Epetra_CrsMatrix matrix_t;
-    typedef Epetra_Vector vector_t;
+    typedef Epetra_CrsMatrix    matrix_t;
+    typedef Epetra_Vector       vector_t;
 }
 
 #endif
