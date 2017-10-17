@@ -3,10 +3,7 @@
 
 #include "LinearSolver.h"
 
-#include <Epetra_MpiComm.h>
-#include <Epetra_Map.h>
-#include <Epetra_Vector.h>
-#include <Epetra_CrsMatrix.h>
+#include "AmrMultiGridCore.h"
 
 #include <Epetra_LinearProblem.h>
 
@@ -15,24 +12,18 @@
 
 #include <BelosBlockCGSolMgr.hpp>
 
-#include <Teuchos_RCP.hpp>
-#include <Teuchos_ArrayRCP.hpp>
-
-class TrilinosSolver : public LinearSolver<Teuchos::RCP<Epetra_CrsMatrix>,
-                                           Teuchos::RCP<Epetra_Vector> >
+class BlockCGSolMgr : public LinearSolver<Teuchos::RCP<amr::matrix_t>,
+                                           Teuchos::RCP<amr::vector_t> >
 {
 public:
-    typedef Epetra_CrsMatrix matrix_t;
-    typedef Epetra_Vector vector_t;
-    
-//     typedef Teuchos::RCP<Epetra_CrsMatrix> matrix_t;
-//     typedef Teuchos::RCP<Epetra_Vector>    vector_t;
+    typedef amr::matrix_t matrix_t;
+    typedef amr::vector_t vector_t;
     
 public:
     
-    TrilinosSolver() : problem(Teuchos::null), params(Teuchos::null) { }
+    BlockCGSolMgr() : problem(Teuchos::null), params(Teuchos::null) { }
     
-    ~TrilinosSolver() {
+    ~BlockCGSolMgr() {
         problem = Teuchos::null;
         params = Teuchos::null;
     };
