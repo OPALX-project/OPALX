@@ -16,6 +16,11 @@ set (CMAKE_CXX_FLAGS
     "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO -DIPPL_AMR ${AMREX_DEFINES} ${CMAKE_CXX_FLAGS}"
 )
 
+
+if ( ENABLE_SAAMG_SOLVER )
+    set (CMAKE_CXX_FLAGS "-DAMR_MULTIGRID ${CMAKE_CXX_FLAGS}")
+endif ()
+
 set (BOOSTROOT $ENV{BOOST_DIR})
 set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED OFF)
@@ -40,6 +45,8 @@ include_directories (
     ${AMREX_INCLUDE_DIR}
     ${HYPRE_INCLUDE_DIR}
     ${BOOST_INCLUDE_DIR}
+    ${Trilinos_INCLUDE_DIRS}
+    ${Trilinos_TPL_INCLUDE_DIRS}
 )
     
 link_directories (
@@ -49,6 +56,8 @@ link_directories (
     ${AMREX_LIBRARY_DIR}
     ${HYPRE_LIBRARY_DIR}
     ${BOOST_LIBRARY_DIR}
+    ${Trilinos_LIBRARY_DIRS}
+    ${Trilinos_TPL_LIBRARY_DIRS}
 )
     
 # remove digits from hostname: edison03 -> edison
@@ -158,16 +167,30 @@ add_executable( testGaussian
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
 
-add_executable( testUnifSphere
-                testUnifSphere.cpp
-                ../AmrOpal.cpp
-                AmrParticleBase.hpp
-                ../Distribution.cpp
-                ../H5Reader.cpp
-                ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                ../MGTSolver.cpp
-                ../Solver.cpp)
+if ( ENABLE_SAAMG_SOLVER )
+    add_executable( testUnifSphere
+                    testUnifSphere.cpp
+                    ../AmrOpal.cpp
+                    AmrParticleBase.hpp
+                    ../Distribution.cpp
+                    ../H5Reader.cpp
+                    ${F90_source_files}
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ../MGTSolver.cpp
+                    ../Solver.cpp
+                    ../trilinos/AmrMultiGrid.cpp)
+else ()
+    add_executable( testUnifSphere
+                    testUnifSphere.cpp
+                    ../AmrOpal.cpp
+                    AmrParticleBase.hpp
+                    ../Distribution.cpp
+                    ../H5Reader.cpp
+                    ${F90_source_files}
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ../MGTSolver.cpp
+                    ../Solver.cpp)
+endif ()
 
 add_executable( testLayout
                 testLayout.cpp
@@ -234,7 +257,7 @@ target_link_libraries (testGaussian ${LIBS}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testUnifSphere ${LIBS}
-                        -lgfortran ${AMREX_LIBRARIES}
+                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testLayout ${LIBS}
