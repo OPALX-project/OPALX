@@ -15,8 +15,8 @@
 class AmrMultiGrid {
     
 public:
-    typedef TrilinosSolver::matrix_t matrix_t;
-    typedef TrilinosSolver::vector_t vector_t;
+    typedef amr::matrix_t matrix_t;
+    typedef amr::vector_t vector_t;
     
     typedef AmrMultiGridLevel<matrix_t, vector_t> AmrMultiGridLevel_t;
     
@@ -38,10 +38,15 @@ public:
 //         TRICUBIC  = 1,
     };
     
+    enum LinSolver {
+        BLOCK_CG = 0
+    };
+    
 public:
     
     AmrMultiGrid(Interpolater interp = Interpolater::TRILINEAR,
-                 Interpolater interface = Interpolater::LAGRANGE);
+                 Interpolater interface = Interpolater::LAGRANGE,
+                 LinSolver solver = LinSolver::BLOCK_CG);
     
     void solve(const amrex::Array<AmrField_u>& rho,
                amrex::Array<AmrField_u>& phi,
@@ -209,8 +214,8 @@ private:
     
     std::vector<std::unique_ptr<AmrMultiGridLevel_t > > mglevel_m;
     
-//     std::unique_ptr<LinearSolver<Teuchos::RCP<matrix_t>, Teuchos::RCP<vector_t> > > solver_mp;
-    TrilinosSolver solver_m;
+    std::unique_ptr<LinearSolver<Teuchos::RCP<matrix_t>, Teuchos::RCP<vector_t> > > solver_mp;
+//     TrilinosSolver solver_m;
     
     AmrIntVect_t rr_m;      //TODO move to level
     
