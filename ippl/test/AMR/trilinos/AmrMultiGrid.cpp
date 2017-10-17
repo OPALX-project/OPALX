@@ -131,18 +131,9 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     double residualsum = 0.0;
     double rhosum = 0.0;
     
-    
-    std::vector<double> old_norm_p;
-    for (int lev = 0; lev < nLevel; ++lev) {
-        double tmp = 0;
-        mglevel_m[lev]->phi_p->Norm2(&tmp);
-        old_norm_p.push_back(tmp);
-    }
-    
     for (int lev = 0; lev < nLevel; ++lev) {
         this->residual_m(mglevel_m[lev]->residual_p,
                          mglevel_m[lev]->rho_p,
-//                          mglevel_m[lev]->A_p,
                          mglevel_m[lev]->phi_p, lev);
         
         double tmp = 0;
@@ -167,21 +158,10 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
             
             this->residual_m(mglevel_m[lev]->residual_p,
                              mglevel_m[lev]->rho_p,
-//                              mglevel_m[lev]->A_p,
                              mglevel_m[lev]->phi_p, lev);
         }
         
         residualsum = l2error_m();
-        
-        
-        for (int lev = 0; lev < nLevel; ++lev) {
-            double tmp = 0;
-            mglevel_m[lev]->phi_p->Norm2(&tmp);
-            
-//             std::cout << "level " << lev << ": " << old_norm_p[lev] << " " << tmp << std::endl; std::cin.get();
-            
-            old_norm_p[lev] = tmp;
-        } //std::cin.get();
         
         ++nIter_m;
     }
@@ -658,22 +638,16 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                                              */
                                             std::size_t nn = indices.size();
                                             
-//                                             std::cout << iv << " " << biv << " ";
-                                            
                                             interface_mp->fine(biv, indices, values, d, -shift, crse_fine_ba,
                                                                mglevel_m[level].get());
                                             
                                             double value = 1.0 / ( dx[d] * dx[d] );
-                                            for (std::size_t iter = nn; iter < indices.size(); ++iter) {
-//                                                 std::cout << indices[iter] << " ";
+                                            for (std::size_t iter = nn; iter < indices.size(); ++iter)
                                                 values[iter] *= value;
-                                            }
                                             
                                             // add center once
                                             indices.push_back( globalidx );
                                             values.push_back( -1.0 / ( dx[d] * dx[d] ) );
-                                            
-//                                             std::cout << std::endl; std::cin.get();
                                             
                                             break;
                                         }
@@ -705,7 +679,7 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
 #endif
                                     double value = -1.0 / ( avg * cdx[d] * fdx[d] );
                                     
-                                    // top
+                                    // top and bottom for all directions
                                     for (int d1 = 0; d1 < 2; ++d1) {
 #if BL_SPACEDIM == 3
                                         for (int d2 = 0; d2 < 2; ++d2) {
@@ -725,20 +699,6 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                                             for (std::size_t iter = nn; iter < indices.size(); ++iter) {
                                                 values[iter] *= value;
                                             }
-                                    /*
-                                    // bottom
-                                    nn = indices.size();
-                                    
-                                    // in order to get a bottom iv --> needs to be even value in "d"
-                                    AmrIntVect_t bfake(D_DECL(0, 0, 0));
-                                    
-                                    interface_mp->coarse(iv, indices, values, d, shift, crse_fine_ba,
-                                                         bfake, mglevel_m[level].get());
-                                    
-                                    for (std::size_t iter = nn; iter < indices.size(); ++iter) {
-                                        values[iter] *= value;
-                                    }
-                                    */
 #if BL_SPACEDIM == 3
                                         }
 #endif
@@ -786,8 +746,6 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
     if ( error != 0 )
         throw std::runtime_error("Error in completing uncovered matrix for level "
                                  + std::to_string(level) + "!");
-        
-//     std::cout << "Done special" << std::endl;
 }
 
 
@@ -1219,13 +1177,6 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(int level)
                     
                     AmrIntVect_t riv(D_DECL(iref, jref, kref));
                     
-//                     double value = double(shift) * sign / ( avg * cdx[d] * fdx[d] );
-                    
-                    
-//                     std::cout << d << " riv = " << riv
-//                               << " iv = " << iv << " "
-//                               << sign << " " << shift << " ";
-                    
                     if ( riv[d] / rr[d] == iv[d] ) {
                         /* interpolate
                          */
@@ -1233,27 +1184,18 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(int level)
                         
                         std::size_t nn = indices.size();
                         
-//                         std::cout << riv << " " << shift << std::endl; std::cin.get();
-                        
                         interface_mp->fine(riv, indices, values, d, shift, crse_fine_ba,
                                            mglevel_m[level+1].get());
                         
-                        for (std::size_t iter = nn; iter < indices.size(); ++iter) {
+                        for (std::size_t iter = nn; iter < indices.size(); ++iter)
                             values[iter] *= value;
-                        }
                         
                     } else {
-                        
-//                         std::cout << sign * shift << " not interp ";
-                        
                         double value = 1.0 / ( avg * cdx[d] * fdx[d] );
                         
                         indices.push_back( mglevel_m[level+1]->serialize(riv) );
                         values.push_back( value );
                     }
-                    
-//                     std::cout << std::endl; std::cin.get();
-                    
 #if BL_SPACEDIM == 3
                 }
 #endif
@@ -1331,11 +1273,6 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(int level)
         }
         
         this->unique_m(indices, values);
-        
-//         std::cout << globalidx << " " << nNeighbours << " ";
-//         for (uint ii = 0; ii < indices.size(); ++ii)
-//             std::cout << indices[ii] << " ";
-//         std::cout << std::endl; std::cin.get();
         
         int error = mglevel_m[level]->Bfine_p->InsertGlobalValues(globalidx,
                                                                   indices.size(),
@@ -1826,35 +1763,22 @@ void AmrMultiGrid::restrict_m(int level) {
     Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(*mglevel_m[level+1]->map_p, false) );
     tmp->PutScalar(0.0);
     
-//     std::cout << *mglevel_m[level+1]->residual_p << std::endl;
-    
     this->residual_no_fine_m(tmp,
                              mglevel_m[level+1]->error_p,
                              mglevel_m[level]->error_p,
                              mglevel_m[level+1]->residual_p, level+1);
     
-//     std::cout << *tmp << std::endl; std::cin.get();
-    
     // average down: residual^(l-1) = R^(l) * tmp
-//     mglevel_m[level]->residual_p->PutScalar(0.0);
-    
-//     std::cout << *mglevel_m[level]->residual_p << std::endl;
-    
     mglevel_m[level+1]->R_p->Apply(*tmp, *mglevel_m[level]->residual_p);
-    
-//     std::cout << *mglevel_m[level]->residual_p << std::endl; //std::cin.get();
     
     // special matrix, i.e. matrix without covered cells
     // r^(l-1) = rho^(l-1) - A * phi^(l-1)
-    
     
     vector_t fine2crse(mglevel_m[level]->A_p->OperatorDomainMap());
     fine2crse.PutScalar(0.0);
     
     // get boundary for 
-//     if ( mglevel_m[level]->Bfine_p != Teuchos::null ) {
-        mglevel_m[level]->Bfine_p->Apply(*mglevel_m[level+1]->phi_p, fine2crse);
-//     }
+    mglevel_m[level]->Bfine_p->Apply(*mglevel_m[level+1]->phi_p, fine2crse);
     
     vector_t tmp2(mglevel_m[level]->As_p->OperatorDomainMap());
     mglevel_m[level]->As_p->Apply(*mglevel_m[level]->phi_p, tmp2);
@@ -1872,12 +1796,8 @@ void AmrMultiGrid::restrict_m(int level) {
     
     mglevel_m[level]->UnCovered_p->Apply(*mglevel_m[level]->rho_p, *tmp3);
     
-//     std::cout << *mglevel_m[level]->residual_p << std::endl;
-    
     // ONLY subtract coarse rho
     mglevel_m[level]->residual_p->Update(1.0, *tmp3, -1.0, tmp2, 1.0);
-    
-//     std::cout << *mglevel_m[level]->residual_p << std::endl; std::cin.get();
 }
 
 
