@@ -32,6 +32,11 @@
 #include "Physics/Physics.h"
 #include <random>
 
+#if AMR_MULTIGRID
+    #include "../trilinos/AmrMultiGrid.h"
+#endif
+
+
 #include <getopt.h>
 
 typedef AmrOpal::amrplayout_t amrplayout_t;
@@ -52,6 +57,10 @@ struct param_t {
     bool isWriteParticles;
     bool isHelp;
     bool useMgtSolver;
+#if AMR_MULTIGRID
+    bool useTrilinos;
+    size_t smoothing;
+#endif
     AmrOpal::TaggingCriteria criteria;
     double tagfactor;
 };
@@ -72,6 +81,12 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     params.useMgtSolver = false;
     params.criteria = AmrOpal::kChargeDensity;
     params.tagfactor = 1.0e-14; 
+    
+#if AMR_MULTIGRID
+    params.useTrilinos = false;
+    params.smoothing = 12;
+#endif
+    
     
     int c = 0;
     
@@ -95,6 +110,10 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "writeCSV",       no_argument,       0, 'v' },
             { "writeParticles", no_argument,       0, 'p' },
             { "use-mgt-solver", no_argument,       0, 's' },
+#if AMR_MULTIGRID
+            { "use-trilinos",   no_argument,       0, 'a' },
+            { "smoothing",      required_argument, 0, 'g' },
+#endif
             { "tagging",        required_argument, 0, 't' },
             { "tagging-factor", required_argument, 0, 'f' },
             { 0,                0,                 0,  0  }
@@ -102,12 +121,22 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         
         int option_index = 0;
         
+#if AMR_MULTIGRID
+        c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:whcvpst:f:a:g:", long_options, &option_index);
+#else
         c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:whcvpst:f:", long_options, &option_index);
+#endif
         
         if ( c == -1 )
             break;
         
         switch ( c ) {
+#if AMR_MULTIGRID
+            case 'a':
+                params.useTrilinos = true; break;
+            case 'g':
+                params.smoothing = std::atoi(optarg); break;
+#endif
             case 'x':
                 params.nr[0] = std::atoi(optarg); ++cnt; break;
             case 'y':
@@ -165,6 +194,10 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--writeCSV (optional)" << endl
                     << "--writeParticles (optional)" << endl
                     << "--use-mgt-solver (optional)" << endl
+#if AMR_MULTIGRID
+                    << "--use-trilinos (optional)" << endl
+                    << "--smoothing (optional, trilinos only, default: 12)" << endl
+#endif
                     << "--tagging charge (default) / efield / potential (optional)" << endl
                     << "--tagfactor [charge value / 0 ... 1] (optiona)" << endl;
                 params.isHelp = true;
@@ -177,6 +210,13 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             
         }
     }
+    
+#if AMR_MULTIGRID
+    if ( params.useMgtSolver && params.useTrilinos ) {
+        params.useMgtSolver = false;
+        msg << "Favouring Trilinos over MGT." << endl;
+    }
+#endif
     
     return ( cnt == required );
 }
@@ -485,7 +525,29 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     Real offset = 0.;
 
     // solve
+#if AMR_MULTIGRID
+    if ( params.useTrilinos ) {
+        AmrMultiGrid sol;
+        
+        sol.setNumberOfSmoothing(params.smoothing);
+    
+        IpplTimings::startTimer(solvTimer);
+        
+        sol.solve(rhs,            // [V m]
+                  phi,            // [V m^3]
+                  efield,       // [V m^2]
+                  geom,
+                  base_level,
+                  finest_level);
+    
+        IpplTimings::stopTimer(solvTimer);
+        
+        msg << "#iterations: " << sol.getNumIters() << endl;
+        
+    } else if ( params.useMgtSolver ) {
+#else
     if ( params.useMgtSolver ) {
+#endif
         MGTSolver sol;
         IpplTimings::startTimer(solvTimer);
         sol.solve(rhs,            // [V m]
@@ -708,6 +770,10 @@ int main(int argc, char *argv[]) {
         
         if ( params.useMgtSolver )
             msg << "- MGT solver is used" << endl;
+        
+        if ( params.useTrilinos )
+            msg << "- Trilinos solver is used with " << params.smoothing
+                << " relaxation steps." << endl;
             
         doAMReX(params, msg);
         
