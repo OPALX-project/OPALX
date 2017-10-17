@@ -11,6 +11,9 @@ template <class AmrMultiGridLevel>
 class AmrDirichletBoundary : public AmrBoundary<AmrMultiGridLevel> {
     
 public:
+    
+    AmrDirichletBoundary() : AmrBoundary<AmrMultiGridLevel>(1) { }
+    
     void apply(const AmrIntVect_t& iv,
                typename AmrMultiGridLevel::indices_t& indices,
                typename AmrMultiGridLevel::coefficients_t& values,

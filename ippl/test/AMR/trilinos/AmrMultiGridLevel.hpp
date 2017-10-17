@@ -96,6 +96,12 @@ void AmrMultiGridLevel<MatrixType, VectorType>::applyBoundary(const AmrIntVect_t
 
 
 template <class MatrixType, class VectorType>
+int AmrMultiGridLevel<MatrixType, VectorType>::getBCStencilNum() {
+    return bc_mp->getNumberOfPoints();
+}
+
+
+template <class MatrixType, class VectorType>
 void AmrMultiGridLevel<MatrixType, VectorType>::buildLevelMask_m() {
     mask.reset(new amrex::FabArray<amrex::BaseFab<int> >(grids, dmap, 1, 1));
     mask->BuildMask(geom.Domain(), geom.periodicity(),

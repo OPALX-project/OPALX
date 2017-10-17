@@ -61,7 +61,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     lfine_m = lfine;
     int nLevel = lfine - lbase + 1;
     
-    rr_m = AmrIntVect_t(D_DECL(2, 2, 2));
+    AmrIntVect_t rr = AmrIntVect_t(D_DECL(2, 2, 2));
     
     // initialize all levels
     mglevel_m.resize(nLevel);
@@ -69,11 +69,10 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         int ilev = lbase + lev;
         
         if ( lev == 0 ) {
-            //FIXME also Open boundary
             mglevel_m[lev].reset(new AmrMultiGridLevel_t(rho[ilev]->boxArray(),
                                                          rho[ilev]->DistributionMap(),
                                                          geom[ilev],
-                                                         rr_m,
+                                                         rr,
                                                          new AmrDirichletBoundary<AmrMultiGridLevel_t>(), 
                                                          comm_mp));
         } else {
@@ -81,7 +80,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
             mglevel_m[lev].reset(new AmrMultiGridLevel_t(rho[ilev]->boxArray(),
                                                          rho[ilev]->DistributionMap(),
                                                          geom[ilev],
-                                                         rr_m,
+                                                         rr,
                                                          new AmrDirichletBoundary<AmrMultiGridLevel_t>(), 
                                                          comm_mp));
         }
@@ -148,9 +147,6 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     
     while ( residualsum > eps * rhosum) {
         
-        std::cout << "                               "
-                  << residualsum << " " << eps * rhosum << std::endl; //std::cin.get();
-        
         relax_m(lfine);
         
         // update residual
@@ -165,11 +161,6 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         
         ++nIter_m;
     }
-    
-    std::cout << "                               "
-              << residualsum << " " << eps * rhosum << std::endl;
-    
-    
     
     // evaluate the electric field
     Teuchos::RCP<vector_t> efield_p = Teuchos::null;
@@ -193,8 +184,6 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         
         this->trilinos2amrex_m(*phi[ilev], 0, mglevel_m[lev]->phi_p);
     }
-    
-    std::cout << "#iterations: " << nIter_m << std::endl;
 }
 
 
@@ -404,7 +393,12 @@ void AmrMultiGrid::buildPoissonMatrix_m(int level) {
      * 2D --> 5 elements per row
      * 3D --> 7 elements per row
      */
-    int nEntries = (BL_SPACEDIM << 1) + 1 /* plus boundaries */ + 10 /*FIXME*/;
+    int nPhysBoundary = 2 * BL_SPACEDIM * mglevel_m[level]->getBCStencilNum();
+    
+    int nEntries = (BL_SPACEDIM << 1) + 1 /* plus boundaries */ + nPhysBoundary;
+    
+    // number of internal stencil points
+    int nIntBoundary = BL_SPACEDIM * interface_mp->getNumberOfPoints();
     
     amrex::BoxArray empty;
     
@@ -412,7 +406,7 @@ void AmrMultiGrid::buildPoissonMatrix_m(int level) {
     
     mglevel_m[level]->A_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy, RowMap, nEntries) );
     
-    mglevel_m[level]->B_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy, RowMap, 10 /*FIXME*/) );
+    mglevel_m[level]->B_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy, RowMap, nIntBoundary) );
     
     indices_t indices, bindices;
     coefficients_t values, bvalues;
@@ -510,14 +504,10 @@ void AmrMultiGrid::buildPoissonMatrix_m(int level) {
                                                                           &values[0],
                                                                           &indices[0]);
                     
-                    if ( error != 0 )
-                        throw std::runtime_error("Error in filling the Poisson matrix for level "
-                                                 + std::to_string(level) + "!");
-                    
-                    error = mglevel_m[level]->B_p->InsertGlobalValues(globalidx,
-                                                                      bindices.size(),
-                                                                      &bvalues[0],
-                                                                      &bindices[0]);
+                    error += mglevel_m[level]->B_p->InsertGlobalValues(globalidx,
+                                                                       bindices.size(),
+                                                                       &bvalues[0],
+                                                                       &bindices[0]);
                     
                     if ( error != 0 )
                         throw std::runtime_error("Error in filling the Poisson matrix for level "
@@ -532,11 +522,7 @@ void AmrMultiGrid::buildPoissonMatrix_m(int level) {
     
     int error = mglevel_m[level]->A_p->FillComplete(true);
     
-    if ( error != 0 )
-        throw std::runtime_error("Error in completing Poisson matrix for level "
-                                 + std::to_string(level) + "!");
-    
-    error = mglevel_m[level]->B_p->FillComplete(true);
+    error += mglevel_m[level]->B_p->FillComplete(true);
     
     if ( error != 0 )
         throw std::runtime_error("Error in completing Poisson matrix for level "
@@ -568,7 +554,13 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
      * 2D --> 5 elements per row
      * 3D --> 7 elements per row
      */
-    int nEntries = (BL_SPACEDIM << 1) + 1 /* plus boundaries */ + 10 /*FIXME*/;
+    int nPhysBoundary = 2 * BL_SPACEDIM * mglevel_m[level]->getBCStencilNum();
+    
+    // number of internal stencil points
+    int nIntBoundary = BL_SPACEDIM * interface_mp->getNumberOfPoints();
+    
+    int nEntries = (BL_SPACEDIM << 1) + 1 /* plus boundaries */ +
+                   nPhysBoundary + nIntBoundary;
     
     const dmap_t& RowMap = *mglevel_m[level]->map_p;
     
@@ -672,8 +664,14 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                                     }
                                 } else {
                                     // flux matching, coarse part
+                                    
+                                    /* 2D --> 2 fine cells to compute flux per coarse-fine-interace --> avg = 2
+                                     * 3D --> 4 fin cells to compute flux per coarse-fine-interace --> avg = 4
+                                     * 
+                                     * @precondition: refinement of 2
+                                     */
 #if BL_SPACEDIM == 2
-                                    double avg = 2; //FIXME
+                                    double avg = 2;
 #elif BL_SPACEDIM == 3
                                     double avg = 4;
 #endif
@@ -874,7 +872,7 @@ void AmrMultiGrid::buildInterpolationMatrix_m(int level) {
     if ( level == lfine_m )
         return;
     
-    int nNeighbours = interp_mp->getNumberOfPoints() + 10 /*FIXME*/;
+    int nNeighbours = (mglevel_m[level]->getBCStencilNum() + 1) * interp_mp->getNumberOfPoints();
     
     indices_t indices;
     coefficients_t values;
@@ -960,7 +958,8 @@ void AmrMultiGrid::buildCrseBoundaryMatrix_m(int level) {
     const dmap_t& RowMap = *mglevel_m[level]->map_p;
     const dmap_t& ColMap = *mglevel_m[level-1]->map_p;
     
-    int nNeighbours = (2 << (BL_SPACEDIM -1 )) /*FIXME interpolation stencil indices*/ + 12;
+    int nNeighbours = 2 * BL_SPACEDIM * mglevel_m[level]->getBCStencilNum() *
+                      2 * BL_SPACEDIM * interface_mp->getNumberOfPoints();
     
     mglevel_m[level]->Bcrse_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy,
                                                            RowMap, nNeighbours, false) );
@@ -1054,10 +1053,10 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(int level)
     const dmap_t& RowMap = *mglevel_m[level]->map_p;
     const dmap_t& ColMap = *mglevel_m[level+1]->map_p;
     
-    int nNeighbours = 4 /*#interfaces*/ * 2; //* rr[0] * rr[1] /*of refined cell*/;
+    // 2 interfaces per direction --> 2 * rr
+    int nNeighbours = 4 * rr[0] * rr[1];
 #if BL_SPACEDIM == 3
-    //FIXME
-    nNeighbours = 6 /*#interfaces*/ * rr[0] * rr[1] * rr[2] /*of refined cell*/;
+    nNeighbours = 6 * rr[0] * rr[1] * rr[2];
 #endif
     
     mglevel_m[level]->Bfine_p = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy,
@@ -1660,7 +1659,7 @@ void AmrMultiGrid::checkCrseBoundary_m(Teuchos::RCP<matrix_t>& B,
             {
                 // internal boundary (only level > 0 have this kind of boundary)
                 AmrIntVect_t civ = iv;
-                civ.coarsen(AmrIntVect_t(D_DECL(2, 2, 2))); /*FIXME*/
+                civ.coarsen(mglevel_m[level]->refinement());
                 
                 std::size_t numEntries = indices.size();
                 // we need boundary + indices from coarser level
