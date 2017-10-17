@@ -22,6 +22,8 @@ public:
     typedef VectorType vector_t;
     typedef amrex::FabArray<amrex::BaseFab<int> > mask_t;
     
+    typedef amr::comm_t comm_t;
+    
     typedef std::vector<int>        indices_t;
     typedef std::vector<double>     coefficients_t;
     
@@ -46,7 +48,7 @@ public:
                       const AmrGeometry_t& _geom,
                       const AmrIntVect_t& rr,
                       AmrBoundary<AmrMultiGridLevel<MatrixType, VectorType> >* bc,
-                      Epetra_MpiComm& comm);
+                      const Teuchos::RCP<comm_t>& comm);
     
     ~AmrMultiGridLevel();
     
@@ -64,7 +66,7 @@ public:
 private:
     void buildLevelMask_m();
     
-    void buildMap_m(const Epetra_MpiComm& comm);
+    void buildMap_m(const Teuchos::RCP<comm_t>& comm);
     
 public:
     Teuchos::RCP<Epetra_Map> map_p;     ///< core map

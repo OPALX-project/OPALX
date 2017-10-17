@@ -21,10 +21,13 @@
 
 #include <Teuchos_RCP.hpp>
 #include <Teuchos_ArrayRCP.hpp>
+// #include <Teuchos_DefaultMpiComm.hpp> // wrapper for our communicator
 
 namespace amr {
     typedef Epetra_CrsMatrix    matrix_t;
     typedef Epetra_Vector       vector_t;
+    typedef Epetra_Map          dmap_t;
+    typedef Epetra_MpiComm      comm_t;
 }
 
 #endif

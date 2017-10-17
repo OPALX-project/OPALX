@@ -17,6 +17,8 @@ class AmrMultiGrid {
 public:
     typedef amr::matrix_t matrix_t;
     typedef amr::vector_t vector_t;
+    typedef amr::dmap_t   dmap_t;
+    typedef amr::comm_t   comm_t;
     
     typedef AmrMultiGridLevel<matrix_t, vector_t> AmrMultiGridLevel_t;
     
@@ -202,7 +204,7 @@ private:
     void averageDown_m(int level);
     
 private:
-    Epetra_MpiComm epetra_comm_m;
+    Teuchos::RCP<comm_t> comm_mp;
     
     std::unique_ptr<AmrInterpolater<AmrMultiGridLevel_t> > interp_mp;
     
