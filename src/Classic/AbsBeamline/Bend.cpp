@@ -1073,6 +1073,7 @@ bool Bend::FindIdealBendParameters(double chordLength) {
             bendAngle = 2.0 * Physics::pi - bendAngle;
 
         angle_m = bendAngle;
+
         return false;
 
     } else {
@@ -1538,6 +1539,9 @@ bool Bend::SetupBendGeometry(Inform &msg, double &startField, double &endField) 
     }
 
     reinitialize_m = FindIdealBendParameters(chordLength);
+    if (getType() == RBEND) {
+        SetEntranceAngle(getEntranceAngle());
+    }
     FindReferenceExitOrigin(xExit_m, zExit_m);
 
     /*
