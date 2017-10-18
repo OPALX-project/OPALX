@@ -158,6 +158,8 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     
     while ( residualsum > eps * rhosum) {
         
+        std::cout << residualsum << " " << eps * rhosum << std::endl;
+        
         relax_m(lfine);
         
         // update residual
@@ -1339,7 +1341,12 @@ void AmrMultiGrid::buildSmootherMatrix_m(int level) {
     
     const double* dx = mglevel_m[level]->geom.CellSize();
     
-    double h = AMREX_D_TERM(dx[0], * dx[1], * dx[2]);
+    double h = std::max(dx[0], dx[1]);
+#if BL_SPACEDIM == 3
+    h = std::max(h, dx[2]);
+#endif
+    h = h * h;
+    
     
     for (amrex::MFIter mfi(*mglevel_m[level]->mask, false); mfi.isValid(); ++mfi) {
         const amrex::Box& bx  = mfi.validbox();
@@ -1386,8 +1393,11 @@ void AmrMultiGrid::buildSmootherMatrix_m(int level) {
                         }
                     }
                     
+#if BL_SPACEDIM == 2
                     double value = h * ( (interior) ? 0.25 : 0.1875 );
-                    
+#elif BL_SPACEDIM == 3
+                    double value = h * ( (interior) ? 1.0 / 6.0 : 0.125 );
+#endif
                     int error = mglevel_m[level]->S_p->InsertGlobalValues(globalidx,
                                                                           1,
                                                                           &value,
