@@ -20,6 +20,7 @@ set (_SRCS
   Marker.cpp
   Monitor.cpp
   Multipole.cpp
+  MultipoleT.cpp
   Offset.cpp
   ParallelPlate.cpp
   Patch.cpp
@@ -43,6 +44,8 @@ set (_SRCS
 include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
   )
+
+add_subdirectory(EndFieldModel)
 
 ADD_OPAL_SOURCES(${_SRCS})
 
@@ -68,6 +71,7 @@ set (HDRS
     Marker.h
     Monitor.h
     Multipole.h
+    MultipoleT.h
     Offset.h
     ParallelPlate.h
     Patch.h
