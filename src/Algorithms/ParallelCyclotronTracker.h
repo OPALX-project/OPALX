@@ -121,6 +121,9 @@ public:
     /// Apply the algorithm to a Multipole.
     virtual void visitMultipole(const Multipole &);
 
+    /// Apply the algorithm to a MultipoleT
+    virtual void visitMultipoleT (const MultipoleT &);
+    
     /// Apply the algorithm to a Offset.
     virtual void visitOffset(const Offset &);
 

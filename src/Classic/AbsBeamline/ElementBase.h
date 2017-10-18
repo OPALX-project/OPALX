@@ -167,6 +167,7 @@ public:
                     , MONITOR
                     , MPSPLITINTEGRATOR
                     , MULTIPOLE
+                    , MULTIPOLET
                     , MULTIPOLEWRAPPER
                     , OFFSET
                     , PARALLELPLATE
