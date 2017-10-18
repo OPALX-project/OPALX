@@ -102,6 +102,7 @@
 #include "Elements/OpalMarker.h"
 #include "Elements/OpalMonitor.h"
 #include "Elements/OpalMultipole.h"
+#include "Elements/OpalMultipoleT.h"
 #include "Elements/OpalOctupole.h"
 #include "Elements/OpalOffset/OpalLocalCartesianOffset.h"
 #include "Elements/OpalOffset/OpalLocalCylindricalOffset.h"
@@ -151,6 +152,7 @@ namespace Configure {
         OpalData *opal = OpalData::getInstance();
         opal->create(new Call());
         opal->create(new Dump());
+	opal->create(new DumpFields());
         opal->create(new Echo());
         opal->create(new Dynamic());
         opal->create(new Eigen());
@@ -229,6 +231,7 @@ namespace Configure {
         opal->create(new OpalMarker());
         opal->create(new OpalMonitor());
         opal->create(new OpalMultipole());
+	opal->create(new OpalMultipoleT());
         opal->create(new OpalOctupole());
         opal->create(new OpalOffset::OpalLocalCartesianOffset());
 //        opal->create(new OpalOffset::OpalLocalCylindricalOffset());
