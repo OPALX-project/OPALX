@@ -154,7 +154,7 @@ int LOMB_class::period(std::vector<LOMB_TYPE> *indata, std::vector<LOMB_TYPE> *o
         }
 
         pt.y = 0.5 * (sumcy * sumcy / sumc + sumsy * sumsy / sums) / var;
-        if(amp) pt.y = sqrt(pow((sumcy / sumc), 2.) + pow((sumsy / sums), 2.));
+        if(amp) pt.y = sqrt(pow((sumcy / sumc), 2) + pow((sumsy / sums), 2));
 
         if(pt.y >= pymax) {
             pymax = pt.y;
@@ -342,8 +342,8 @@ int LOMB_class::moment(std::vector<LOMB_TYPE> *indata, double *ave, double *adev
     *sdev = sqrt(*var);
 
     if(*var != 0.) {
-        *skew = *skew / ((double)nn * pow(*sdev, 3.));
-        *curt = *curt / ((double)nn * pow(*var, 2.)) - 3.;
+        *skew = *skew / ((double)nn * pow(*sdev, 3));
+        *curt = *curt / ((double)nn * pow(*var, 2)) - 3.;
     } else {
         std::cerr << "No skew or kurtosis when zero variance in moment\n";
     }

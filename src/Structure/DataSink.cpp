@@ -279,7 +279,7 @@ void DataSink::doWriteStatData(PartBunch &beam, Vector_t FDext[], double sposHea
     unsigned int pwi = 10;
 
     /// Calculate beam statistics and gather load balance statistics.
-//    beam.calcBeamParameters_cycl();
+    //    beam.calcBeamParameters(); //_cycl();
     beam.gatherLoadBalanceStatistics();
 
     size_t npOutside = 0;
@@ -781,7 +781,7 @@ void DataSink::writeSDDSHeader(ofstream &outputFile,
     outputFile << "&data mode=ascii, no_row_counts=1 &end" << endl;
 
     outputFile << Ippl::getNodes() << endl;
-    outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION << " # git rev. " << GIT_VERSION << endl;
+    outputFile << PACKAGE_NAME << " " << PACKAGE_VERSION << " git rev. #" << GIT_VERSION << endl;
 }
 
 
