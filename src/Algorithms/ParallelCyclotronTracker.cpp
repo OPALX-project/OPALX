@@ -39,6 +39,7 @@
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
@@ -61,6 +62,7 @@
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "BeamlineGeometry/RBendGeometry.h"
+#include "BeamlineGeometry/StraightGeometry.h"
 #include "Beamlines/Beamline.h"
 
 #include "Fields/BMultipoleField.h"
@@ -97,6 +99,7 @@ class PartData;
 
 using Physics::pi;
 using Physics::q_e;
+
 
 const double c_mmtns = Physics::c * 1.0e-6; // m/s --> mm/ns
 
@@ -723,6 +726,22 @@ void ParallelCyclotronTracker::visitMonitor(const Monitor &corr) {
 void ParallelCyclotronTracker::visitMultipole(const Multipole &mult) {
     *gmsg << "In Multipole; L= " << mult.getElementLength() << " however the element is missing " << endl;
     myElements.push_back(dynamic_cast<Multipole *>(mult.clone()));
+}
+
+/**
+ *
+ *
+ * @param multT
+ */
+void ParallelCyclotronTracker::visitMultipoleT(const MultipoleT &multT) {
+    *gmsg << "Adding MultipoleT" << endl;
+    if (opalRing_m != NULL) {
+        opalRing_m->appendElement(multT);
+    } else {
+        throw OpalException("ParallelCyclotronTracker::visitMultipoleT",
+                            "Need to define a RINGDEFINITION to use MultipoleT element");
+    }
+    myElements.push_back(dynamic_cast<MultipoleT *>(multT.clone()));
 }
 
 /**

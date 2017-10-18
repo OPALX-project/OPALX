@@ -28,6 +28,8 @@
 #include "gsl/gsl_spline.h"
 #include "gsl/gsl_interp.h"
 
+#include <gtest/gtest_prod.h>
+
 #include <vector>
 
 class Fieldmap;
@@ -135,6 +137,8 @@ protected:
 
 private:
 
+    FRIEND_TEST(Maxwell, Zeros);
+    
     // Not implemented.
     void operator=(const Bend &);
 
