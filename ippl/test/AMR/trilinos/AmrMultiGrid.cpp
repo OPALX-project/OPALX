@@ -706,7 +706,9 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
 #endif
                                             std::size_t nn = indices.size();
                                             
-                                            // in order to get a top iv --> needs to be odd value in "d"
+                                            /* in order to get a top iv --> needs to be odd value in "d"
+                                             * in order to get a bottom iv --> needs to be even value in "d"
+                                             */
                                             AmrIntVect_t fake(D_DECL(0, 0, 0));
                                     
                                             fake[(d+1)%BL_SPACEDIM] = d1;
