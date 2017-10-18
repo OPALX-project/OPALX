@@ -24,7 +24,7 @@ namespace Options {
     bool mtrace = false;
     bool warn = true;
     bool psDumpEachTurn = false;
-    DumpFrame psDumpLocalFrame = GLOBAL;
+    DumpFrame psDumpFrame = GLOBAL;
     bool scan = false;
     bool rhoDump = false;
     bool ebDump = false;

@@ -140,7 +140,7 @@ void H5PartWrapperForPC::readStepHeader(PartBunch& bunch) {
     }
 
     double mass = bunch.getM() * 1e-6;
-    meanMomentum_m = sqrt(std::pow(meanE_m,2.0) + 2 * meanE_m * mass) / mass;
+    meanMomentum_m = sqrt(std::pow(meanE_m, 2) + 2 * meanE_m * mass) / mass;
 }
 
 void H5PartWrapperForPC::readStepData(PartBunch& bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
@@ -310,8 +310,8 @@ void H5PartWrapperForPC::writeStepHeader(PartBunch& bunch, const std::map<std::s
 
     double mass = 1.0e-9 * bunch.getM();
     double charge = bunch.getCharge();
-
-    h5_int64_t localFrame = Options::psDumpLocalFrame;
+    
+    h5_int64_t localFrame = ( Options::psDumpFrame != Options::GLOBAL );
 
     double sposHead = 0.0;
     double sposRef = 0.0;
@@ -499,7 +499,7 @@ void H5PartWrapperForPC::writeStepData(PartBunch& bunch) {
         for(size_t i = 0; i < numLocalParticles; ++ i)
             f64buffer[i] =  bunch.Bf[i](0);
         WRITEDATA(Float64, file_m, "Bx", f64buffer);
-	
+
         for(size_t i = 0; i < numLocalParticles; ++ i)
             f64buffer[i] =  bunch.Bf[i](1);
         WRITEDATA(Float64, file_m, "By", f64buffer);

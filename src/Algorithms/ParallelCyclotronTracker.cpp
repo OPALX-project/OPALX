@@ -359,21 +359,21 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     Cyclotron *elptr = dynamic_cast<Cyclotron *>(cycl.clone());
     myElements.push_back(elptr);
 
-    // Is this a Spiral Inflector Simulation? If yes, we'll give the user some 
+    // Is this a Spiral Inflector Simulation? If yes, we'll give the user some
     // useful information
     spiral_flag = elptr->getSpiralFlag();
 
     if(spiral_flag) {
 
         *gmsg << endl << "* This is a Spiral Inflector Simulation! This means the following:" << endl;
-        *gmsg         << "* 1.) It is up to the user to provide appropriate geometry, electric and magnetic fields!" << endl;        
+        *gmsg         << "* 1.) It is up to the user to provide appropriate geometry, electric and magnetic fields!" << endl;
         *gmsg         << "*     (Use BANDRF type cyclotron and use RFMAPFN to load both magnetic" << endl;
         *gmsg         << "*     and electric fields, setting SUPERPOSE to an array of TRUE values.)" << endl;
-        *gmsg         << "* 2.) It is strongly recommended to use the SAAMG fieldsolver," << endl; 
+        *gmsg         << "* 2.) It is strongly recommended to use the SAAMG fieldsolver," << endl;
         *gmsg         << "*     FFT does not give the correct results (boundaty conditions are missing)." << endl;
         *gmsg         << "* 3.) The whole geometry will be meshed and used for the fieldsolve." << endl;
-        *gmsg         << "*     There will be no transformations of the bunch into a local frame und consequently," << endl; 
-        *gmsg         << "*     the problem will be treated non-relativistically!" << endl; 
+        *gmsg         << "*     There will be no transformations of the bunch into a local frame und consequently," << endl;
+        *gmsg         << "*     the problem will be treated non-relativistically!" << endl;
         *gmsg         << "*     (This is not an issue for spiral inflectors as they are typically < 100 keV/amu.)" << endl;
         *gmsg << endl << "* Note: For now, multi-bunch mode (MBM) needs to be de-activated for spiral inflector" << endl;
         *gmsg         << "* and space charge needs to be solved every time-step. numBunch_m and scSolveFreq are reset." << endl;
@@ -428,7 +428,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
         // If the user wants to save the restarted run in local frame,
         // make sure the previous h5 file was local too
-        if (Options::psDumpLocalFrame != Options::GLOBAL) {
+        if (Options::psDumpFrame != Options::GLOBAL) {
             if (!previousH5Local) {
               throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
                                     "You are trying a local restart from a global h5 file!");
@@ -834,7 +834,7 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
     unityVec.push_back(0.);
     unityVec.push_back(0.);
     unityVec.push_back(0.);
-    
+
     if (elptr->getFrequencyModelName() != "") {
       freq_atd = AbstractTimeDependence::getTimeDependence(elptr->getFrequencyModelName());
       *gmsg << "* Variable frequency RF Model name " << elptr->getFrequencyModelName() << endl;
@@ -859,7 +859,7 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
     // read cavity voltage profile data from file.
     elptr->initialise(itsBunch, 1.0, freq_atd, ampl_atd, phase_atd);
 
-//    elptr->initialise(itsBunch, 1.0); 
+//    elptr->initialise(itsBunch, 1.0);
 
     double BcParameter[8];
     for(int i = 0; i < 8; i++)
@@ -1323,11 +1323,11 @@ void ParallelCyclotronTracker::Tracker_LF() {
 
                     Vector_t Rmean = itsBunch->get_centroid() * 1000.0; // m --> mm
 
-                    RThisTurn_m = sqrt(pow(Rmean[0], 2.0) + pow(Rmean[1], 2.0));
+                    RThisTurn_m = sqrt(pow(Rmean[0], 2) + pow(Rmean[1], 2));
 
                     Vector_t Rrms = itsBunch->get_rrms() * 1000.0; // m --> mm
 
-                    double XYrms =  sqrt(pow(Rrms[0], 2.0) + pow(Rrms[1], 2.0));
+                    double XYrms =  sqrt(pow(Rrms[0], 2) + pow(Rrms[1], 2));
 
 
                     // if the distance between two neighbour bunch is less than CoeffDBunches_m times of its 2D rms size
@@ -1470,7 +1470,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
                     IpplTimings::stopTimer(TransformTimer_m);
                     repartition();
                     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%//
-                    double const meanGamma = sqrt(1.0 + pow(meanP(0), 2.0) + pow(meanP(1), 2.0));
+                    double const meanGamma = sqrt(1.0 + pow(meanP(0), 2) + pow(meanP(1), 2));
                     itsBunch->computeSelfFields_cycl(meanGamma);
                     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%//
 
@@ -1496,7 +1496,7 @@ void ParallelCyclotronTracker::Tracker_LF() {
             // if field solver is not available , only update bunch, to transfer particles between nodes if needed,
             // reset parameters such as LocalNum, initialTotalNum_m.
             // INFOMSG("No space charge Effects are included!"<<endl;);
-	  if((step_m % Options::repartFreq * 100) == 0) { 
+	  if((step_m % Options::repartFreq * 100) == 0) {
                 Vector_t const meanR = calcMeanR();
                 Vector_t const meanP = calcMeanP();
                 double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
@@ -1663,9 +1663,9 @@ void ParallelCyclotronTracker::Tracker_LF() {
     for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
         if(itsBunch->ID[ii] == 0) {
 
-            double FinalMomentum2  = pow(itsBunch->P[ii](0), 2.0) +
-                                     pow(itsBunch->P[ii](1), 2.0) +
-                                     pow(itsBunch->P[ii](2), 2.0);
+            double FinalMomentum2  = pow(itsBunch->P[ii](0), 2) +
+                                     pow(itsBunch->P[ii](1), 2) +
+                                     pow(itsBunch->P[ii](2), 2);
             double FinalEnergy = (sqrt(1.0 + FinalMomentum2) - 1.0) * itsBunch->getM() * 1.0e-6;
             *gmsg << "* Final energy of reference particle = " << FinalEnergy << " MeV" << endl;
             *gmsg << "* Total phase space dump number including the initial distribution) = " << lastDumpedStep_m + 1 << endl;
@@ -1930,11 +1930,11 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
                         Vector_t Rmean = itsBunch->get_centroid() * 1000.0; // m --> mm
 
-                        RThisTurn_m = sqrt(pow(Rmean[0], 2.0) + pow(Rmean[1], 2.0));
+                        RThisTurn_m = sqrt(pow(Rmean[0], 2) + pow(Rmean[1], 2));
 
                         Vector_t Rrms = itsBunch->get_rrms() * 1000.0; // m --> mm
 
-                        double XYrms =  sqrt(pow(Rrms[0], 2.0) + pow(Rrms[1], 2.0));
+                        double XYrms =  sqrt(pow(Rrms[0], 2) + pow(Rrms[1], 2));
 
                         // if the distance between two neighbour bunch is less than 5 times of its 2D rms size
                         // start multi-bunch simulation, fill current phase space to initialR and initialP arrays
@@ -2148,7 +2148,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
                         // double cosTemp_meanPhi = cos(meanPhi);
                         // double sinTemp_meanPhi = sin(meanPhi);
 
-                        // double meanPLongitudinal2 = pow(meanP(0), 2.0) + pow(meanP(1), 2.0);
+                        // double meanPLongitudinal2 = pow(meanP(0), 2) + pow(meanP(1), 2);
                         // double temp_meangamma = sqrt(1.0 + meanPLongitudinal2);
 
                         // // remove mean coordinates
@@ -2600,7 +2600,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
         // update bunch and some parameters and output some info. after one time step.
         // reference parameters
-        // pow(itsBunch->P[0](0),2.0) + pow(itsBunch->P[0](1),2.0) + pow(itsBunch->P[0](2),2.0);
+        // pow(itsBunch->P[0](0),2) + pow(itsBunch->P[0](1),2) + pow(itsBunch->P[0](2),2);
         double tempP2 = dot(itsBunch->P[0], itsBunch->P[0]);
         double tempGamma = sqrt(1.0 + tempP2);
         double tempBeta = sqrt(tempP2) / tempGamma;
@@ -2638,7 +2638,7 @@ void ParallelCyclotronTracker::Tracker_RK4() {
 
     for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
         if(itsBunch->ID[ii] == 0) {
-            double FinalMomentum2 = pow(itsBunch->P[ii](0), 2.0) + pow(itsBunch->P[ii](1), 2.0) + pow(itsBunch->P[ii](2), 2.0);
+            double FinalMomentum2 = pow(itsBunch->P[ii](0), 2) + pow(itsBunch->P[ii](1), 2) + pow(itsBunch->P[ii](2), 2);
             double FinalEnergy = (sqrt(1.0 + FinalMomentum2) - 1.0) * itsBunch->getM() * 1.0e-6;
             *gmsg << "* Final energy of reference particle = " << FinalEnergy << " [MeV]" << endl;
             *gmsg << "* Total phase space dump number(includes the initial distribution) = " << lastDumpedStep_m + 1 << endl;
@@ -2700,7 +2700,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
     int scSolveFreq;
 
     if (spiral_flag)
-	scSolveFreq = 1;	    
+	scSolveFreq = 1;
     else
         scSolveFreq = Options::scSolveFreq;
 
@@ -2864,11 +2864,11 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
                         Vector_t Rmean = itsBunch->get_centroid() * 1000.0; // m --> mm
 
-                        RThisTurn_m = sqrt(pow(Rmean[0], 2.0) + pow(Rmean[1], 2.0));
+                        RThisTurn_m = sqrt(pow(Rmean[0], 2) + pow(Rmean[1], 2));
 
                         Vector_t Rrms = itsBunch->get_rrms() * 1000.0; // m --> mm
 
-                        double XYrms =  sqrt(pow(Rrms[0], 2.0) + pow(Rrms[1], 2.0));
+                        double XYrms =  sqrt(pow(Rrms[0], 2) + pow(Rrms[1], 2));
 
                         // If the distance between two neighboring bunches is less than 5 times of its 2D rms size
                         // start multi-bunch simulation, fill current phase space to initialR and initialP arrays
@@ -2907,10 +2907,10 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
                     // read initial distribution from h5 file
                     if (multiBunchMode_m == 1) {
-			
+
 			if (BunchCount_m == 2)
 			    saveOneBunch();
-			
+
                         readOneBunch(BunchCount_m - 1);
 
                         if (timeIntegrator_m == 0) itsBunch->resetPartBinID2(eta_m);
@@ -2949,7 +2949,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
             // Calculate SC field before each time step and keep constant during integration.
             // Space Charge effects are included only when total macropaticles number is NOT LESS THAN 1000.
-            if (itsBunch->hasFieldSolver()) {	      
+            if (itsBunch->hasFieldSolver()) {
 
                 if (step_m % scSolveFreq == 0) {
 
@@ -3015,8 +3015,8 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
                     } else {
                         // --- Single bunch mode --- //
-			
-			// If we are doing a spiral inflector simulation and are using the SAAMG solver 
+
+			// If we are doing a spiral inflector simulation and are using the SAAMG solver
                         // we don't rotate or translate the bunch and gamma is 1.0 (non-relativistic).
 			if (spiral_flag and itsBunch->getFieldSolverType() == "SAAMG") {
 
@@ -3027,11 +3027,11 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 				itsBunch->setGlobalMeanR(Vector_t(0.0, 0.0, 0.0));
 				itsBunch->setGlobalToLocalQuaternion(Quaternion_t(1.0, 0.0, 0.0, 0.0));
 
-				itsBunch->computeSelfFields_cycl(1.0);	
+				itsBunch->computeSelfFields_cycl(1.0);
 
 				IpplTimings::startTimer(TransformTimer_m);
 
-				itsBunch->R *= Vector_t(1000.0); // m --> mm			
+				itsBunch->R *= Vector_t(1000.0); // m --> mm
 
 			} else {
 				double temp_meangamma = sqrt(1.0 + dot(PreviousMeanP, PreviousMeanP));
@@ -3598,15 +3598,15 @@ void ParallelCyclotronTracker::Tracker_Generic() {
             if((((step_m + 1) % Options::psDumpFreq == 0) && initialTotalNum_m != 2)
                 || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
 
-                // Write phase space data to h5 file
+                // Write phase space data to h5 file ADA
                 bunchDumpPhaseSpaceData();
            }
 
             if((((step_m + 1) % Options::statDumpFreq == 0) && initialTotalNum_m != 2)
                 || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
-
-                // Write statistics data to stat file
-                bunchDumpStatData();
+	      
+	      // Write statistics data to stat file
+	      bunchDumpStatData();
             }
         }
         if(!(step_m + 1 % 1000))
@@ -3626,7 +3626,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
     // Calculate tunes after tracking.
     for(size_t ii = 0; ii < (itsBunch->getLocalNum()); ii++) {
         if(itsBunch->ID[ii] == 0) {
-            double FinalMomentum2 = pow(itsBunch->P[ii](0), 2.0) + pow(itsBunch->P[ii](1), 2.0) + pow(itsBunch->P[ii](2), 2.0);
+            double FinalMomentum2 = pow(itsBunch->P[ii](0), 2) + pow(itsBunch->P[ii](1), 2) + pow(itsBunch->P[ii](2), 2);
             double FinalEnergy = (sqrt(1.0 + FinalMomentum2) - 1.0) * itsBunch->getM() * 1.0e-6;
             *gmsg << "* Final energy of reference particle = " << FinalEnergy << " [MeV]" << endl;
             *gmsg << "* Total phase space dump number(includes the initial distribution) = " << lastDumpedStep_m + 1 << endl;
@@ -3872,8 +3872,8 @@ bool ParallelCyclotronTracker::checkGapCross(Vector_t Rold, Vector_t Rnew, RFCav
 }
 
 bool ParallelCyclotronTracker::RFkick(RFCavity * rfcavity, const double t, const double dt, const int Pindex){
-  double radius = sqrt(pow(itsBunch->R[Pindex](0), 2.0) + pow(itsBunch->R[Pindex](1), 2.0)
-                  - pow(rfcavity->getPerpenDistance() , 2.0));
+  double radius = sqrt(pow(itsBunch->R[Pindex](0), 2) + pow(itsBunch->R[Pindex](1), 2)
+                  - pow(rfcavity->getPerpenDistance() , 2));
   double rmin = rfcavity->getRmin();
   double rmax = rfcavity->getRmax();
   double nomalRadius = (radius - rmin) / (rmax - rmin);
@@ -4216,7 +4216,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         Vector_t const meanR = calcMeanR();
         globalToLocal(itsBunch->R, phi, meanR);
         itsBunch->boundp();
-        double const meanGamma = sqrt(1.0 + pow(meanP(0), 2.0) + pow(meanP(1), 2.0));
+        double const meanGamma = sqrt(1.0 + pow(meanP(0), 2) + pow(meanP(1), 2));
         itsBunch->Bf = Vector_t(0.0);
         itsBunch->Ef = Vector_t(0.0);
         itsBunch->computeSelfFields_cycl(meanGamma);
@@ -4277,9 +4277,9 @@ void ParallelCyclotronTracker::Tracker_MTS() {
                     *gmsg << "checking for automatically injecting new bunch ..." << endl;
                     itsBunch->calcBeamParameters();
                     Vector_t Rmean = itsBunch->get_centroid();
-                    RThisTurn_m = sqrt(pow(Rmean[0], 2.0) + pow(Rmean[1], 2.0));
+                    RThisTurn_m = sqrt(pow(Rmean[0], 2) + pow(Rmean[1], 2));
                     Vector_t Rrms = itsBunch->get_rrms();
-                    double XYrms = sqrt(pow(Rrms[0], 2.0) + pow(Rrms[1], 2.0));
+                    double XYrms = sqrt(pow(Rrms[0], 2) + pow(Rrms[1], 2));
 
                     // if the distance between two neighbour bunch is less than CoeffDBunches_m times of its 2D rms size
                     // start multi-bunch simulation, fill current phase space to initialR and initialP arrays
@@ -4349,7 +4349,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             // if field solver is not available , only update bunch, to transfer particles between nodes if needed,
             // reset parameters such as LocalNum, initialTotalNum_m.
             // INFOMSG("No space charge Effects are included!"<<endl;);
-	  if((step_m % Options::repartFreq * 100) == 0) { 
+	  if((step_m % Options::repartFreq * 100) == 0) {
                 Vector_t const meanP = calcMeanP();
                 double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
                 Vector_t const meanR = calcMeanR();
@@ -4365,7 +4365,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
         IpplTimings::startTimer(IpplTimings::getTimer("MTS-Kick"));
         if(itsBunch->hasFieldSolver())
             kick(0.5 * dt);
-        
+
         IpplTimings::stopTimer(IpplTimings::getTimer("MTS-Kick"));
 
         // recalculate bingamma and reset the BinID for each particles according to its current gamma
@@ -4490,7 +4490,7 @@ void ParallelCyclotronTracker::Tracker_MTS() {
             IpplTimings::stopTimer(DumpTimer_m);
         }
 
-        if((((step_m + 1) % Options::psDumpFreq == 0) && initialTotalNum_m != 2) ||
+        if((((step_m + 1) % Options::statDumpFreq == 0) && initialTotalNum_m != 2) ||
            (Options::psDumpEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
 
             IpplTimings::startTimer(DumpTimer_m);
@@ -4516,9 +4516,9 @@ void ParallelCyclotronTracker::Tracker_MTS() {
 
     for(size_t ii = 0; ii < itsBunch->getLocalNum(); ++ii) {
         if(itsBunch->ID[ii] == 0) {
-            double FinalMomentum2  = pow(itsBunch->P[ii](0), 2.0) +
-                                     pow(itsBunch->P[ii](1), 2.0) +
-                                     pow(itsBunch->P[ii](2), 2.0);
+            double FinalMomentum2  = pow(itsBunch->P[ii](0), 2) +
+                                     pow(itsBunch->P[ii](1), 2) +
+                                     pow(itsBunch->P[ii](2), 2);
             double FinalEnergy = (sqrt(1.0 + FinalMomentum2) - 1.0) * itsBunch->getM() * 1.0e-6;
             *gmsg << "* Final energy of reference particle = " << FinalEnergy << " [MeV]" << endl;
             *gmsg << "* Total phase space dump number including the initial distribution) = " << lastDumpedStep_m + 1 << endl;
@@ -5121,7 +5121,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         // Do a local frame restart (we have already checked that the old h5 file was saved in local
         // frame as well).
         // Cave: Multi-bunch must not be done in the local frame! (TODO: Is this still true? -DW)
-        if((Options::psDumpLocalFrame != Options::GLOBAL)) {
+        if((Options::psDumpFrame != Options::GLOBAL)) {
 
             *gmsg << "* Restart in the local frame" << endl;
 
@@ -5357,13 +5357,15 @@ void ParallelCyclotronTracker::singleParticleDump() {
 
 void ParallelCyclotronTracker::bunchDumpStatData(){
     IpplTimings::startTimer(DumpTimer_m);
-
+    itsBunch->R *= Vector_t(0.001); // mm --> m
+    itsBunch->calcBeamParameters();
+    itsBunch->R *= Vector_t(1000.0); // mm --> m
     // --------------------------------- Get some Values ---------------------------------------- //
     double const E = itsBunch->get_meanEnergy();
     double const temp_t = itsBunch->getT() * 1e9; // s -> ns
     Vector_t meanR;
     Vector_t meanP;
-    if (Options::psDumpLocalFrame == Options::BUNCH_MEAN) {
+    if (Options::psDumpFrame == Options::BUNCH_MEAN) {
         meanR = calcMeanR();
         meanP = calcMeanP();
     } else {
@@ -5382,7 +5384,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
 
     // If we are saving in local frame, bunch and fields at the bunch center have to be rotated
     // TODO: Make decision if we maybe want to always save statistics data in local frame? -DW
-    if(Options::psDumpLocalFrame != Options::GLOBAL) {
+    if(Options::psDumpFrame != Options::GLOBAL) {
         // -------------------- ----------- Do Transformations ---------------------------------- //
         // Bunch (local) azimuth at meanR w.r.t. y-axis
         phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
@@ -5411,7 +5413,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     itsBunch->R *= Vector_t(1000.0); // mm --> m
 
     // If we are in local mode, transform back after saving
-    if(Options::psDumpLocalFrame != Options::GLOBAL) {
+    if(Options::psDumpFrame != Options::GLOBAL) {
         localToGlobal(itsBunch->R, phi, psi);
         localToGlobal(itsBunch->P, phi, psi);
     }
@@ -5434,7 +5436,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 
     Vector_t meanR;
     Vector_t meanP;
-    if (Options::psDumpLocalFrame == Options::BUNCH_MEAN) {
+    if (Options::psDumpFrame == Options::BUNCH_MEAN) {
         meanR = calcMeanR();
         meanP = calcMeanP();
     } else {
@@ -5481,10 +5483,9 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 
     // -------------- If flag DumpLocalFrame is not set, dump bunch in global frame ------------- //
     if (Options::psDumpFreq < std::numeric_limits<int>::max() ){
-        if (Options::psDumpLocalFrame == Options::GLOBAL) {
+        if (Options::psDumpFrame == Options::GLOBAL) {
             FDext_m[0] = extB_m * 0.1; // kgauss --> T
-            FDext_m[1] = extE_m;
-
+            FDext_m[1] = extE_m;	
             lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, // Global and in m
                                                              FDext_m, E,
                                                              referencePr,
@@ -5498,7 +5499,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
                                                              psi / PIOVER180, // P_mean elevation
 							                      // at ref. R/Th/Z
                                                              false);          // Flag localFrame
-
+	    
             // Tell user in which mode we are dumping
             *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
                   << " (global frame) at integration step " << step_m + 1 << endl;
@@ -5510,7 +5511,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
             // The bunch is transformed into a local coordinate system with meanP in direction of y-axis
             globalToLocal(itsBunch->R, phi, psi, meanR * Vector_t(0.001));
             globalToLocal(itsBunch->P, phi, psi); // P should only be rotated
-            
+
             globalToLocal(extB_m, phi, psi);
             globalToLocal(extE_m, phi, psi);
 
@@ -5585,7 +5586,7 @@ void ParallelCyclotronTracker::evaluateSpaceChargeField() {
         globalToLocal(itsBunch->R, phi, meanR);
         itsBunch->boundp();
         repartition();
-        double const meanGamma = sqrt(1.0 + pow(meanP(0), 2.0) + pow(meanP(1), 2.0));
+        double const meanGamma = sqrt(1.0 + pow(meanP(0), 2) + pow(meanP(1), 2));
         itsBunch->computeSelfFields_cycl(meanGamma);
         localToGlobal(itsBunch->Ef, phi);
         localToGlobal(itsBunch->Bf, phi);

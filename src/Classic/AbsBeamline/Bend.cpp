@@ -480,7 +480,7 @@ double Bend::CalculateBendAngle() {
 
     const double mass = RefPartBunch_m->getM();
     const double gamma = designEnergy_m / mass + 1.0;
-    const double betaGamma = sqrt(pow(gamma, 2.0) - 1.0);
+    const double betaGamma = sqrt(pow(gamma, 2) - 1.0);
     const double beta = betaGamma / gamma;
     const double deltaT = RefPartBunch_m->getdT();
 
@@ -527,7 +527,7 @@ void Bend::CalcCentralField(const Vector_t &R,
     double bxBzFactor = expFactor * nOverRho * R(1);
 
     B(0) = -bxBzFactor * cos(angle);
-    B(1) = expFactor * (1.0 - pow(nOverRho * R(1), 2.0) / 2.0);
+    B(1) = expFactor * (1.0 - pow(nOverRho * R(1), 2) / 2.0);
     B(2) = -bxBzFactor * sin(angle);
 
 }
@@ -572,18 +572,18 @@ void Bend::CalcEngeFunction(double zNormalized,
     if(!std::isnan(engeFunc)) {
 
         expSumDeriv /= gap_m;
-        expSumSecDeriv /= pow(gap_m, 2.0);
+        expSumSecDeriv /= pow(gap_m, 2);
         double engeExpDeriv = expSumDeriv * engeExp;
-        double engeExpSecDeriv = (expSumSecDeriv + pow(expSumDeriv, 2.0))
+        double engeExpSecDeriv = (expSumSecDeriv + pow(expSumDeriv, 2))
             * engeExp;
-        double engeFuncSq = pow(engeFunc, 2.0);
+        double engeFuncSq = pow(engeFunc, 2);
 
         engeFuncDeriv = -engeExpDeriv * engeFuncSq;
         if (std::isnan(engeFuncDeriv) || std::isinf(engeFuncDeriv))
             engeFuncDeriv = 0.0;
 
         engeFuncSecDerivNorm = -engeExpSecDeriv * engeFunc
-            + 2.0 * pow(engeExpDeriv, 2.0)
+            + 2.0 * pow(engeExpDeriv, 2)
             * engeFuncSq;
         if (std::isnan(engeFuncSecDerivNorm) || std::isinf(engeFuncSecDerivNorm))
             engeFuncSecDerivNorm = 0.0;
@@ -614,11 +614,11 @@ void Bend::CalcEntranceFringeField(const Vector_t &REntrance,
 
     double nOverRho = fieldIndex_m / designRadius_m;
     double expFactor = exp(-nOverRho * deltaX);
-    double trigFactor = pow(nOverRho, 2.0) + engeFuncSecDerivNorm;
+    double trigFactor = pow(nOverRho, 2) + engeFuncSecDerivNorm;
 
     double bXEntrance = -engeFunc * nOverRho * expFactor* REntrance(1);
     double bYEntrance = expFactor * engeFunc
-        * (1.0  - trigFactor * pow(REntrance(1), 2.0) / 2.0);
+        * (1.0  - trigFactor * pow(REntrance(1), 2) / 2.0);
     double bZEntrance = -expFactor * engeFuncDeriv * REntrance(1);
 
     B(0) = bXEntrance * cosEntranceAngle_m - bZEntrance * sinEntranceAngle_m;
@@ -641,11 +641,11 @@ void Bend::CalcExitFringeField(const Vector_t &RExit, double deltaX, Vector_t &B
 
     double nOverRho = fieldIndex_m / designRadius_m;
     double expFactor = exp(-nOverRho * deltaX);
-    double trigFactor = pow(nOverRho, 2.0) + engeFuncSecDerivNorm;
+    double trigFactor = pow(nOverRho, 2) + engeFuncSecDerivNorm;
 
     double bXExit = -engeFunc * nOverRho * expFactor* RExit(1);
     double bYExit = expFactor * engeFunc
-        * (1.0 - trigFactor * pow(RExit(1), 2.0) / 2.0);
+        * (1.0 - trigFactor * pow(RExit(1), 2) / 2.0);
     double bZExit = expFactor * engeFuncDeriv * RExit(1);
 
     B(0) = bXExit * cosExitAngle_m - bZExit * sinExitAngle_m;
@@ -863,9 +863,9 @@ double Bend::EstimateFieldAdjustmentStep(double actualBendAngle,
     // Estimate field adjustment step.
     double effectiveLength = angle_m * designRadius_m;
     double fieldStep = (angle_m - bendAngle1) * betaGamma * mass / (2.0 * effectiveLength * Physics::c);
-    if(pow(fieldAmplitude_m * effectiveLength * Physics::c / (betaGamma * mass), 2.0) < 1.0)
+    if(pow(fieldAmplitude_m * effectiveLength * Physics::c / (betaGamma * mass), 2) < 1.0)
         fieldStep = (angle_m - bendAngle1) * betaGamma * mass / (2.0 * effectiveLength * Physics::c)
-            * std::sqrt(1.0 - pow(fieldAmplitude_m * effectiveLength * Physics::c / (betaGamma * mass), 2.0));
+            * std::sqrt(1.0 - pow(fieldAmplitude_m * effectiveLength * Physics::c / (betaGamma * mass), 2));
 
     fieldStep *= amplitude1 / std::abs(amplitude1);
 
@@ -1039,7 +1039,7 @@ bool Bend::FindIdealBendParameters(double chordLength) {
 
     double refMass = RefPartBunch_m->getM();
     double refGamma = designEnergy_m / refMass + 1.0;
-    double refBetaGamma = sqrt(pow(refGamma, 2.0) - 1.0);
+    double refBetaGamma = sqrt(pow(refGamma, 2) - 1.0);
     double refCharge = RefPartBunch_m->getQ();
 
     if(angle_m != 0.0) {
@@ -1085,7 +1085,7 @@ bool Bend::FindIdealBendParameters(double chordLength) {
         }
 
         fieldAmplitude_m = refCharge
-            * std::abs(sqrt(pow(bY_m, 2.0) + pow(bX_m, 2.0))
+            * std::abs(sqrt(pow(bY_m, 2) + pow(bX_m, 2))
                        / refCharge);
         designRadius_m = std::abs(refBetaGamma * refMass / (Physics::c * fieldAmplitude_m));
         double bendAngle = 2.0 * std::asin(chordLength / (2.0 * designRadius_m));
@@ -1137,7 +1137,7 @@ bool Bend::InitializeFieldMap(Inform &msg) {
 
 bool Bend::InMagnetCentralRegion(const Vector_t &R, double &deltaX, double &angle) {
 
-    deltaX = sqrt(pow(R(2), 2.0) + pow(R(0) + designRadius_m, 2.0)) - designRadius_m;
+    deltaX = sqrt(pow(R(2), 2) + pow(R(0) + designRadius_m, 2)) - designRadius_m;
     if(std::abs(deltaX) <= aperture_m / 2.0) {
 
         angle = atan2(R(2), R(0) + designRadius_m);
@@ -1438,7 +1438,7 @@ void Bend::SetBendStrength() {
     // Estimate bend field magnitude.
     double mass = RefPartBunch_m->getM();
     double gamma = designEnergy_m / mass + 1.0;
-    double betaGamma = sqrt(pow(gamma, 2.0) - 1.0);
+    double betaGamma = sqrt(pow(gamma, 2) - 1.0);
     double charge = RefPartBunch_m->getQ();
 
     fieldAmplitude_m = (charge / std::abs(charge)) * betaGamma * mass
@@ -1620,7 +1620,7 @@ bool Bend::TreatAsDrift(Inform &msg, double chordLength) {
 
         double refMass = RefPartBunch_m->getM();
         double refGamma = designEnergy_m / refMass + 1.0;
-        double refBetaGamma = sqrt(pow(refGamma, 2.0) - 1.0);
+        double refBetaGamma = sqrt(pow(refGamma, 2) - 1.0);
 
         double amplitude = std::abs(fieldAmplitude_m);
         double radius = std::abs(refBetaGamma * refMass / (Physics::c * amplitude));
@@ -1636,7 +1636,7 @@ bool Bend::TreatAsDrift(Inform &msg, double chordLength) {
             return false;
 
     } else if(angle_m == 0.0 &&
-              pow(bX_m, 2.0) + pow(bY_m, 2.0) == 0.0) {
+              pow(bX_m, 2) + pow(bY_m, 2) == 0.0) {
 
         WARNMSG("Warning bend angle/strength is zero. Treating as drift."
                 << endl);

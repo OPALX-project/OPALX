@@ -214,7 +214,7 @@ inline bool Collimator::isInColl(Vector_t R, Vector_t P, double recpgamma) {
             ERRORMSG("Not yet implemented");
         } else {
             // case of an elliptic collimator
-            return (std::pow(R(0) / getXsize(), 2.0) + std::pow(R(1) / getYsize(), 2.0)) >= 1.0;
+            return (std::pow(R(0) / getXsize(), 2) + std::pow(R(1) / getYsize(), 2)) >= 1.0;
         }
     }
     return false;
@@ -284,7 +284,7 @@ bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const d
                 if(bunch.PType[i] == ParticleType::REGULAR && bunch.R[i](2) < zend_m && bunch.R[i](2) > zstart_m ) {
                     pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
 		    /// bunch.Bin[i] != -1 makes sure the partcile is not stored in more than one collimator
-                    if ((pflag != 0) && (bunch.Bin[i] != -1))  { 
+                    if ((pflag != 0) && (bunch.Bin[i] != -1))  {
                         if (!sphys_m)
                             lossDs_m->addParticle(bunch.R[i], bunch.P[i], bunch.ID[i]);
                         bunch.Bin[i] = -1;
@@ -311,10 +311,10 @@ void Collimator::initialise(PartBunch *bunch, double &startField, double &endFie
     //if (!sphys_m) {
     if (filename_m == std::string(""))
       lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-    else 
+    else
       lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
       //}
-    
+
     goOnline(-1e6);
 }
 
@@ -329,7 +329,7 @@ void Collimator::initialise(PartBunch *bunch, const double &scaleFactor) {
     else
       lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
     //    }
-    
+
     goOnline(-1e6);
 }
 
