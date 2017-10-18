@@ -143,8 +143,8 @@ private:
         236768,                             ///< right hammer pattern
         15153152,                           ///< T on head pattern
         947072,                             ///< left hammer pattern
-        29596,                              ///< upper right corner pattern
         7399,                               ///< upper left corner pattern
+        29596,                              ///< upper right corner pattern
         7576576,                            ///< mirrored L pattern
         30306304                            ///< L pattern
     };
