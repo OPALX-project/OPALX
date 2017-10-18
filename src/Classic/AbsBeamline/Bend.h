@@ -141,6 +141,10 @@ protected:
     double getLength();
     double getMapLength();
 
+    double bX_m;                /// Amplitude of Bx field (T).
+    double bY_m;                /// Amplitude of By field (T).
+    double designEnergy_m;      /// Bend design energy (eV).
+
 private:
 
     // Not implemented.
@@ -214,11 +218,8 @@ private:
     double angle_m;             /// Bend angle for reference particle with bend
     /// design energy (radians).
     double aperture_m;          /// Aperture of magnet in non-bend plane.
-    double designEnergy_m;      /// Bend design energy (eV).
     double designRadius_m;      /// Bend design radius (m).
     double fieldAmplitude_m;    /// Amplitude of magnet field (T).
-    double bX_m;                /// Amplitude of Bx field (T).
-    double bY_m;                /// Amplitude of By field (T).
     bool angleGreaterThanPi_m;  /// Set to true if bend angle is greater than
     /// 180 degrees.
     double entranceAngle_m;     /// Angle between incoming reference trajectory
