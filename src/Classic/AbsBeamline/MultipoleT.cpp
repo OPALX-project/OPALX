@@ -65,7 +65,6 @@ MultipoleT::MultipoleT(const MultipoleT &right):
     verticalApert_m(right.verticalApert_m),
     horizApert_m(right.horizApert_m),
     dummy() {
-
     RefPartBunch_m = right.RefPartBunch_m;
 }
     
@@ -88,17 +87,16 @@ bool MultipoleT::apply(const Vector_t &R, const Vector_t &P,
     /** If magnet is not straight go to coords along the magnet */
     if(angle_m != 0.0) {
         Vector_t X = R_prime;
-    R_prime = transformCoords(X);
+        R_prime = transformCoords(X);
     }
     if (insideAperture(R_prime)) {
         B[0] = getBx(R_prime);
-    B[1] = getBz(R_prime);
-    B[2] = getBs(R_prime);
-    return false;
-    }
-    else {
+        B[1] = getBz(R_prime);
+        B[2] = getBs(R_prime);
+        return false;
+    } else {
         for(int i = 0; i < 3; i++) {
-        B[i] = 0.0;
+            B[i] = 0.0;
         }
         return true;
     }
@@ -155,47 +153,45 @@ Vector_t MultipoleT::transformCoords(const Vector_t &R) {
     // if radius not variable
     if (not variableRadius_m) {
         double radius = length_m / angle_m;
-    // Transform from Cartesian to Frenet-Seret along the magnet
-    double alpha = atan(R[2] / (R[0] + radius ));
-    if (alpha != 0.0) {
-            X[0] = R[2] / sin(alpha) - radius;
-        X[1] = R[1];
-        X[2] = radius * alpha;
-    }
-    else {
-            X = R;
-    }
-    }
-    // if radius is variable need to transform coordinates at each
-    // point along the trajectory
-    else {
-        double deltaAlpha, S = 0.0, localRadius;
-    double stepSize = varStep_m; // mm -> has a big effect on tracking time
-    if (abs(R[2]) <= stepSize) {
-        return R; // no transformation around origin
-    }
-    Y = R;
-    Vector_t temp;
-        while (abs(Y[2]) > stepSize and getRadius(S) != -1) {
-        localRadius = getRadius(S);
-        deltaAlpha = stepSize / localRadius;
-        if (R[2] < 0) {
-            deltaAlpha *= - 1.; // rotate in the other direction
+        // Transform from Cartesian to Frenet-Seret along the magnet
+        double alpha = atan(R[2] / (R[0] + radius ));
+        if (alpha != 0.0) {
+                X[0] = R[2] / sin(alpha) - radius;
+            X[1] = R[1];
+            X[2] = radius * alpha;
+        } else {
+                X = R;
         }
+    } else {
+        // if radius is variable need to transform coordinates at each
+        // point along the trajectory
+        double deltaAlpha, S = 0.0, localRadius;
+        double stepSize = varStep_m; // mm -> has a big effect on tracking time
+        if (abs(R[2]) <= stepSize) {
+            return R; // no transformation around origin
+        }
+        Y = R;
+        Vector_t temp;
+        while (abs(Y[2]) > stepSize and getRadius(S) != -1) {
+            localRadius = getRadius(S);
+            deltaAlpha = stepSize / localRadius;
+            if (R[2] < 0) {
+                deltaAlpha *= - 1.; // rotate in the other direction
+            }
             temp = Y;
-        // translation
-        temp[0] += localRadius * (1 - cos(deltaAlpha));
-        temp[2] -= localRadius * sin(deltaAlpha);
-        // + rotation along the ideal trajectory
-        Y[2] = temp[2] * cos(deltaAlpha) - temp[0] * sin(deltaAlpha);
-        Y[0] = temp[2] * sin(deltaAlpha) + temp[0] * cos(deltaAlpha);  
-        S += localRadius * deltaAlpha;
-        // until we reach the actual point from Cartesian coordinates
+            // translation
+            temp[0] += localRadius * (1 - cos(deltaAlpha));
+            temp[2] -= localRadius * sin(deltaAlpha);
+            // + rotation along the ideal trajectory
+            Y[2] = temp[2] * cos(deltaAlpha) - temp[0] * sin(deltaAlpha);
+            Y[0] = temp[2] * sin(deltaAlpha) + temp[0] * cos(deltaAlpha);  
+            S += localRadius * deltaAlpha;
+            // until we reach the actual point from Cartesian coordinates
+        }
+        X[0] = Y[0];
+        X[1] = Y[1];
+        X[2] = S;
     }
-    X[0] = Y[0];
-    X[1] = Y[1];
-    X[2] = S;
-    }     
     return X;
 }
 
@@ -205,15 +201,17 @@ void MultipoleT::setTransProfile(unsigned int n, double dTn) {
       transProfile_m.resize(n+1, 0.0);
     }
     transProfile_m[n] = dTn;
- }
+}
 
 bool MultipoleT::setFringeField(double s0, double lambda_l, double lambda_r) {
     fringeField_l.Tanh::setLambda(lambda_l);
-    fringeField_r.Tanh::setLambda(lambda_r);
     fringeField_l.Tanh::setX0(s0);
     fringeField_l.Tanh::setTanhDiffIndices(2 * maxOrder_m + 1);
+
+    fringeField_r.Tanh::setLambda(lambda_r);
     fringeField_r.Tanh::setX0(s0);
     fringeField_r.Tanh::setTanhDiffIndices(2 * maxOrder_m + 1);
+
     return true;
 }
 
@@ -225,26 +223,25 @@ double MultipoleT::getBz(const Vector_t &R) {
     if (angle_m == 0.0) {
         // Straight geometry -> use corresponding field expansion 
         for(unsigned int n = 0; n <= maxOrder_m; n++) {
-        double f_n = 0.0;
-        for(unsigned int i = 0; i <= n; i++)  {
-            f_n += gsl_sf_choose(n, i) * getTransDeriv(2 * i, R[0]) * 
-                   getFringeDeriv(2 * n - 2 * i, R[2]);
+            double f_n = 0.0;
+            for(unsigned int i = 0; i <= n; i++)  {
+                f_n += gsl_sf_choose(n, i) * getTransDeriv(2 * i, R[0]) * 
+                       getFringeDeriv(2 * n - 2 * i, R[2]);
+            }
+            f_n *= gsl_sf_pow_int(-1.0, n);
+            Bz += gsl_sf_pow_int(R[1], 2 * n) / gsl_sf_fact(2 * n) * f_n;
         }
-        f_n *= gsl_sf_pow_int(-1.0, n);
-        Bz += gsl_sf_pow_int(R[1], 2 * n) / gsl_sf_fact(2 * n) * f_n;
-    }
-    }
-    else {
+    } else {
         if (variableRadius_m == true and getFringeDeriv(0, R[2]) < 1.0e-12) {
             // return 0 if end of fringe field is reached
             // this is to avoid functions being called at infinite radius
             return 0.0; 
-    }
+        }
         // Curved geometry -> use corresponding field expansion
         for(unsigned int n = 0; n <= maxOrder_m; n++) {
             double f_n = getFn(n, R[0], R[2]);
-        Bz += gsl_sf_pow_int(R[1], 2 * n) / gsl_sf_fact(2 * n) * f_n;
-      }
+            Bz += gsl_sf_pow_int(R[1], 2 * n) / gsl_sf_fact(2 * n) * f_n;
+        }
     }
     return Bz;
 }
@@ -257,28 +254,27 @@ double MultipoleT::getBx(const Vector_t &R) {
     if (angle_m == 0.0) {
         // Straight geometry -> use corresponding field expansion
         for(unsigned int n = 0; n <= maxOrder_m; n++) {
-        double f_n = 0.0;
-        for(unsigned int i = 0; i <= n; i++) {
-            f_n += gsl_sf_choose(n, i) * getTransDeriv(2 * i + 1, R[0]) * 
-               getFringeDeriv(2 * n - 2 * i, R[2]);
+            double f_n = 0.0;
+            for(unsigned int i = 0; i <= n; i++) {
+                f_n += gsl_sf_choose(n, i) * getTransDeriv(2 * i + 1, R[0]) * 
+                   getFringeDeriv(2 * n - 2 * i, R[2]);
+            }
+            f_n *= gsl_sf_pow_int(-1.0, n);
+            Bx += gsl_sf_pow_int(R[1], 2 * n + 1) / 
+                  gsl_sf_fact(2 * n + 1) * f_n;
         }
-        f_n *= gsl_sf_pow_int(-1.0, n);
-        Bx += gsl_sf_pow_int(R[1], 2 * n + 1) / 
-              gsl_sf_fact(2 * n + 1) * f_n;
-    }
-    }
-    else {
+    } else {
         if (variableRadius_m == true and getFringeDeriv(0, R[2]) < 1.0e-12) {
             // return 0 if end of fringe field is reached
             // this is to avoid functions being called at infinite radius
             return 0.0; 
-    }
+        }
         // Curved geometry -> use corresponding field expansion
         for(unsigned int n = 0; n <= maxOrder_m; n++) {
             double partialX_fn = getFnDerivX(n, R[0], R[2]);
-        Bx += gsl_sf_pow_int(R[1], 2 * n + 1) / gsl_sf_fact(2 * n + 1); 
-        Bx *= partialX_fn;
-    }
+            Bx += gsl_sf_pow_int(R[1], 2 * n + 1) / gsl_sf_fact(2 * n + 1); 
+            Bx *= partialX_fn;
+        }
     }
     return Bx;
 } 
@@ -291,29 +287,28 @@ double MultipoleT::getBs(const Vector_t &R) {
     if (angle_m == 0.0) {
         // Straight geometry -> use corresponding field expansion 
         for(unsigned int n = 0; n <= maxOrder_m; n++) {
-        double f_n = 0.0;
-        for(unsigned int i = 0; i <= n; i++) {
-            f_n += gsl_sf_choose(n, i) * getTransDeriv(2 * i, R[0]) *
-                   getFringeDeriv(2 * n - 2 * i + 1, R[2]);
+            double f_n = 0.0;
+            for(unsigned int i = 0; i <= n; i++) {
+                f_n += gsl_sf_choose(n, i) * getTransDeriv(2 * i, R[0]) *
+                       getFringeDeriv(2 * n - 2 * i + 1, R[2]);
+            }
+            f_n *= gsl_sf_pow_int(-1.0, n);
+            Bs += gsl_sf_pow_int(R[1], 2 * n + 1) / 
+                      gsl_sf_fact(2 * n + 1) * f_n;
         }
-        f_n *= gsl_sf_pow_int(-1.0, n);
-        Bs += gsl_sf_pow_int(R[1], 2 * n + 1) / 
-                  gsl_sf_fact(2 * n + 1) * f_n;
-    }
-    }
-    else {
+    } else {
         if (variableRadius_m == true and getFringeDeriv(0, R[2]) < 1.0e-12) {
             // return 0 if end of fringe field is reached
             // this is to avoid functions being called at infinite radius
             return 0.0; 
-    }
+        }
         // Curved geometry -> use corresponding field expansion
         for(unsigned int n = 0; n <= maxOrder_m; n++) {
-        double partialS_fn = getFnDerivS(n, R[0], R[2]);
-        Bs += gsl_sf_pow_int(R[1], 2 * n + 1) / gsl_sf_fact(2 * n + 1);
-        Bs *= partialS_fn;
-    }
-    Bs /= getScaleFactor(R[0], R[2]);
+            double partialS_fn = getFnDerivS(n, R[0], R[2]);
+            Bs += gsl_sf_pow_int(R[1], 2 * n + 1) / gsl_sf_fact(2 * n + 1);
+            Bs *= partialS_fn;
+        }
+        Bs /= getScaleFactor(R[0], R[2]);
     }
     return Bs;
 }
@@ -336,23 +331,22 @@ double MultipoleT::getTransDeriv(unsigned int n, double x) {
     std::vector<double> temp = transProfile_m;
     if (n <= transMaxOrder_m) {
         if (n != 0) {
-        for(unsigned int i = 1; i <= n; i++) {
-            for(unsigned int j = 0; j <= transMaxOrder_m; j++) {
-            if (j <= transMaxOrder_m - i) {
-                // move terms to the left and multiply by power
-                temp[j] = temp[j + 1] * (j + 1);
+            for(unsigned int i = 1; i <= n; i++) {
+                for(unsigned int j = 0; j <= transMaxOrder_m; j++) {
+                    if (j <= transMaxOrder_m - i) {
+                        // move terms to the left and multiply by power
+                        temp[j] = temp[j + 1] * (j + 1);
+                        } else {
+                        // put 0 at the end for missing higher powers
+                        temp[j] = 0.0;
+                    }
                 }
-            else {
-                    // put 0 at the end for missing higher powers
-                temp[j] = 0.0;
             }
         }
-        }
-    }
-    // Now use the vector to calculate value of the function
+        // Now use the vector to calculate value of the function
         for(unsigned int k = 0; k <= transMaxOrder_m; k++) {
             func += temp[k] * gsl_sf_pow_int(x, k);
-    }
+        }
     }
     return func;
 }
@@ -401,8 +395,7 @@ double MultipoleT::getRadius(double s) {
     // move to current position on central axis
     if (getFringeDeriv(0, s) != 0.0) {
        return propCoeff / getFringeDeriv(0, s);
-    }
-    else {
+    } else {
        return -1; // return -1 if radius is infinite 
     }
 }
@@ -433,12 +426,11 @@ double MultipoleT::getScaleFactor(double x, double s) {
     if (not variableRadius_m) {
         double rho = length_m / angle_m;
         return 1 + x / rho;
-    }
-    else {
+    } else {
         double temp = 0.0;
-    temp += gsl_sf_pow_int(getRadiusFirstDeriv(s), 2.0);
-    temp += gsl_sf_pow_int(1 + x / getRadius(s), 2.0);
-    return gsl_sf_pow_int(temp, 0.5);
+        temp += gsl_sf_pow_int(getRadiusFirstDeriv(s), 2.0);
+        temp += gsl_sf_pow_int(1 + x / getRadius(s), 2.0);
+        return gsl_sf_pow_int(temp, 0.5);
     }
 }
 
@@ -546,24 +538,23 @@ double MultipoleT::getFn(unsigned int n, double x, double s) {
     if (not variableRadius_m) {
         double rho = length_m / angle_m;
         double h_s = 1 + x / rho;
-    double temp = 0.0;
-    temp += getFnDerivX(n - 1, x, s) / (h_s * rho);
-    temp += getFnSecDerivX(n - 1, x, s);
-    temp += getFnSecDerivS(n - 1, x, s) / gsl_sf_pow_int(h_s, 2.0);
-    temp *= -1.0;
-    return temp;
-    }
-    // If radius is variable use corresponding recursion 
-    else {
         double temp = 0.0;
-    double h_s = getScaleFactor(x, s);
+        temp += getFnDerivX(n - 1, x, s) / (h_s * rho);
+        temp += getFnSecDerivX(n - 1, x, s);
+        temp += getFnSecDerivS(n - 1, x, s) / gsl_sf_pow_int(h_s, 2.0);
+        temp *= -1.0;
+        return temp;
+    } else {
+        // If radius is variable use corresponding recursion 
+        double temp = 0.0;
+        double h_s = getScaleFactor(x, s);
         temp += getScaleFactorDerivX(x, s) * getFnDerivX(n - 1, x, s);
-    temp -= getScaleFactorDerivS(x, s) * getFnDerivS(n - 1, x, s) / 
-            gsl_sf_pow_int(h_s, 2.0);
-    temp += getFnSecDerivX(n - 1, x, s) * h_s;
-    temp += getFnSecDerivS(n - 1, x, s) / h_s;
-    temp *= -1.0 / h_s; 
-    return temp;
+        temp -= getScaleFactorDerivS(x, s) * getFnDerivS(n - 1, x, s) / 
+                gsl_sf_pow_int(h_s, 2.0);
+        temp += getFnSecDerivX(n - 1, x, s) * h_s;
+        temp += getFnSecDerivS(n - 1, x, s) / h_s;
+        temp *= -1.0 / h_s; 
+        return temp;
     }
 }    
         
