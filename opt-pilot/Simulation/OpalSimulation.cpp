@@ -24,7 +24,6 @@
 
 #ifdef BOOST_FILESYSTEM
     #include "boost/filesystem/operations.hpp"
-    //#include "boost/filesystem/fstream.hpp"
 #endif
 
 // access to OPAL lib
@@ -75,7 +74,7 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
     std::string hash = HashNameGenerator::generate(dict);
     std::ostringstream tmp;
     tmp.precision(15);
-    tmp << simTmpDir_ << "/" << hash << "_" << my_rank;
+    tmp << simTmpDir_ << "/" << hash ; // ADA << "_" << my_rank;
     simulationDirName_ = tmp.str();
 
     if(getenv("TEMPLATES") == NULL) {
@@ -199,7 +198,7 @@ void OpalSimulation::run() {
     if (err != 0) {
         std::cout << "Cannot chdir to "
                   << simulationDirName_.c_str() << std::endl;
-        std::cout << "Continuing, disregarding this simulation.."
+        std::cout << "Continuing 1, disregarding this simulation.."
                   << std::endl;
         return;
     }
@@ -249,7 +248,7 @@ void OpalSimulation::run() {
 
         std::cout << "Opal exception during simulation run: "
                   << ex->what() << std::endl;
-        std::cout << "Continuing, disregarding this simulation.."
+        std::cout << "Continuing 2, disregarding this simulation.."
                   << std::endl;
 
     } catch(ClassicException *ex) {
@@ -262,7 +261,7 @@ void OpalSimulation::run() {
 
         std::cout << "Classic exception during simulation run: "
                   << ex->what() << std::endl;
-        std::cout << "Continuing, disregarding this simulation.."
+        std::cout << "Continuing 3, disregarding this simulation.."
                   << std::endl;
     }
 

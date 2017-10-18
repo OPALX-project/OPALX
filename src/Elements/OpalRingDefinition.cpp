@@ -123,6 +123,7 @@ void OpalRingDefinition::update() {
     ring->setIsClosed(!(Attributes::getString(itsAttr[IS_CLOSED])=="FALSE"));
     double minR = -1;
     double maxR = -1;
+
     if (itsAttr[MIN_R]) {
         minR = Attributes::getReal(itsAttr[MIN_R]);
         if (!itsAttr[MAX_R]) {

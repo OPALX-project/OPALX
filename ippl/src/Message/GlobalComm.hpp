@@ -312,11 +312,13 @@ bool reduce_masked(Communicate& comm, T& input, T& output,
         }
 
         // we're done ... but do a check to see that we reduced SOMETHING
+	/* ADA: can be "savely" ignored ...
         if (!IncludeVal)
         {
             WARNMSG("reduce: there was nothing to reduce, since the masks ");
             WARNMSG("were all false." << endl);
         }
+	*/
     }
 
     //INCIPPLSTAT(incReductions);
