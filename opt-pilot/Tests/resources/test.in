@@ -25,9 +25,9 @@ else {
 }
 
 obj1: OBJECTIVE,  EXPR="KS*KS";
-o2:   OBJECTIVE,  EXPR="sumErrSq("resources/measurement_test.dat", "rms_x", "statfile")";
-ob3:  OBJECTIVE,  EXPR="fromFile("resources/from_file.dat", "var")";
-d1:   DVAR,       VARIABLE="KS", LOWERBOUND="0.0", UPPERBOUND="0.5";
+  o2: OBJECTIVE,  EXPR="sumErrSq("resources/measurement_test.dat", "rms_x", "statfile")";
+ ob3: OBJECTIVE,  EXPR="fromFile("resources/from_file.dat", "var")";
+  d1: DVAR,       VARIABLE="KS", LOWERBOUND="0.0", UPPERBOUND="0.5";
 c1:   CONSTRAINT, EXPR="KS < 1.0";
 
 objs: OBJECTIVES = (obj1, o2, ob3);
