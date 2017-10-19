@@ -24,6 +24,8 @@ public:
     
     typedef amr::comm_t comm_t;
     typedef amr::dmap_t dmap_t;
+    typedef amr::node_t node_t;
+    typedef amr::global_ordinal_t global_ordinal_t;
     
     typedef std::vector<int>        indices_t;
     typedef std::vector<double>     coefficients_t;
@@ -49,7 +51,8 @@ public:
                       const AmrGeometry_t& _geom,
                       const AmrIntVect_t& rr,
                       AmrBoundary<AmrMultiGridLevel<MatrixType, VectorType> >* bc,
-                      const Teuchos::RCP<comm_t>& comm);
+                      const Teuchos::RCP<comm_t>& comm,
+                      const Teuchos::RCP<node_t>& node);
     
     ~AmrMultiGridLevel();
     
@@ -69,7 +72,8 @@ public:
 private:
     void buildLevelMask_m();
     
-    void buildMap_m(const Teuchos::RCP<comm_t>& comm);
+    void buildMap_m(const Teuchos::RCP<comm_t>& comm,
+                    const Teuchos::RCP<node_t>& node);
     
 public:
     Teuchos::RCP<dmap_t> map_p;         ///< core map

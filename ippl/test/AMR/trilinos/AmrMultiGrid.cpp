@@ -21,7 +21,8 @@ AmrMultiGrid::AmrMultiGrid(Interpolater interp,
       lbase_m(0),
       lfine_m(0)
 {
-    comm_mp = Teuchos::rcp( new comm_t( Ippl::getComm() ) );
+    comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
+    node_mp = KokkosClassic::DefaultNode::getDefaultNode();
     
     switch ( interp ) {
         case Interpolater::TRILINEAR:
@@ -81,7 +82,8 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
                                                          geom[ilev],
                                                          rr,
                                                          new AmrDirichletBoundary<AmrMultiGridLevel_t>(), 
-                                                         comm_mp));
+                                                         comm_mp,
+                                                         node_mp));
         } else {
             // all higher levels have Dirichlet BC
             mglevel_m[lev].reset(new AmrMultiGridLevel_t(rho[ilev]->boxArray(),
@@ -89,7 +91,8 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
                                                          geom[ilev],
                                                          rr,
                                                          new AmrDirichletBoundary<AmrMultiGridLevel_t>(), 
-                                                         comm_mp));
+                                                         comm_mp,
+                                                         node_mp));
         }
     }
     
@@ -780,7 +783,7 @@ void AmrMultiGrid::buildRestrictionMatrix_m(int level) {
     
     double val = 1.0 / double(nNeighbours);
     
-    mglevel_m[level]->R_p = Teuchos::rcp( new matrix_t(mglevel_m[level-1]->map_p, nNeighbours) );
+    mglevel_m[level]->R_p = Teuchos::rcp( new matrix_t(mglevel_m[level-1]->map_p, nNeighbours, Tpetra::StaticProfile) );
     
     
     for (amrex::MFIter mfi(mglevel_m[level-1]->grids,
@@ -1486,10 +1489,7 @@ void AmrMultiGrid::amrex2trilinos_m(const AmrField_t& mf, int comp,
 void AmrMultiGrid::trilinos2amrex_m(AmrField_t& mf, int comp,
                                     const Teuchos::RCP<vector_t>& mv)
 {
-    mv->sync<Kokkos::HostSpace>();
-    auto mv_2d = mv->getLocalView<Kokkos::HostSpace>();
-    auto mv_1d = Kokkos::subview(mv_2d, Kokkos::ALL(), 0);
-    
+    Teuchos::ArrayRCP<const amr::scalar_t> data =  mv->get1dView();
     
     int localidx = 0;
     for (amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi) {
@@ -1505,7 +1505,7 @@ void AmrMultiGrid::trilinos2amrex_m(AmrField_t& mf, int comp,
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     AmrIntVect_t iv(D_DECL(i, j, k));
-                    fab(iv, comp) = mv_1d(localidx++);
+                    fab(iv, comp) = data[localidx++];
                 }
 #if BL_SPACEDIM == 3
             }
