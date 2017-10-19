@@ -688,6 +688,20 @@ void  CollimatorPhysics::Material() {
         A5_c = 1.568e-2;
     }
 
+    else if (material_m == "BoronCarbide") {
+        Z_m = 26;
+        A_m = 55.25;
+        rho_m = 2.48;
+
+        X0_m = 50.14 / rho_m / 100;
+        I_m = 12 * Z_m + 7.0;
+
+        A2_c = 3.963;
+        A3_c = 6065.0;
+        A4_c = 1243.0;
+        A5_c = 7.782e-3;
+    }
+
     else {
         throw GeneralClassicException("CollimatorPhysics::Material", "Material not found ...");
     }
