@@ -126,9 +126,9 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         
         this->buildGradientMatrix_m(lev);
         
-        mglevel_m[lev]->error_p->PutScalar(0.0);
     }
     
+    mglevel_m[lfine_m]->error_p->putScalar(0.0);
     
     double err = 1.0e7;
     double eps = 1.0e-8;
@@ -142,12 +142,10 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
                          mglevel_m[lev]->rho_p,
                          mglevel_m[lev]->phi_p, lev);
         
-        double tmp = 0;
-        mglevel_m[lev]->residual_p->Norm2(&tmp);
+        double tmp = mglevel_m[lev]->residual_p->norm2();
         residualsum += tmp;
         
-        tmp = 0;
-        mglevel_m[lev]->rho_p->Norm2(&tmp);
+        tmp = mglevel_m[lev]->rho_p->norm2();
         rhosum += tmp;
     }
     
@@ -191,12 +189,12 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     for (int lev = nLevel - 1; lev > -1; --lev) {
         int ilev = lbase + lev;
         
-        efield_p = Teuchos::rcp( new vector_t(*mglevel_m[lev]->map_p, false) );
+        efield_p = Teuchos::rcp( new vector_t(mglevel_m[lev]->map_p, false) );
         
         averageDown_m(lev);
         
         for (int d = 0; d < BL_SPACEDIM; ++d) {
-            mglevel_m[lev]->G_p[d]->Multiply(false, *mglevel_m[lev]->phi_p, *efield_p);
+            mglevel_m[lev]->G_p[d]->apply(*mglevel_m[lev]->phi_p, *efield_p);
             this->trilinos2amrex_m(*efield[ilev], d, efield_p);
         }
     }
@@ -213,7 +211,6 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
 
 void AmrMultiGrid::residual_m(Teuchos::RCP<vector_t>& r,
                               const Teuchos::RCP<vector_t>& b,
-//                               const Teuchos::RCP<matrix_t>& A,
                               const Teuchos::RCP<vector_t>& x,
                               int level)
 {
@@ -221,32 +218,30 @@ void AmrMultiGrid::residual_m(Teuchos::RCP<vector_t>& r,
      * r = b - A*x
      */
     if ( level < lfine_m ) {
-        vector_t fine2crse(mglevel_m[level]->A_p->OperatorDomainMap());
-        fine2crse.PutScalar(0.0);
+        vector_t fine2crse(mglevel_m[level]->A_p->getDomainMap());
         
         // get boundary for 
         if ( mglevel_m[level]->Bfine_p != Teuchos::null ) {
-            mglevel_m[level]->Bfine_p->Apply(*mglevel_m[level+1]->phi_p, fine2crse);
+            mglevel_m[level]->Bfine_p->apply(*mglevel_m[level+1]->phi_p, fine2crse);
         }
         
-        vector_t tmp2(mglevel_m[level]->As_p->OperatorDomainMap());
-        mglevel_m[level]->As_p->Apply(*mglevel_m[level]->phi_p, tmp2);
+        vector_t tmp2(mglevel_m[level]->As_p->getDomainMap());
+        mglevel_m[level]->As_p->apply(*mglevel_m[level]->phi_p, tmp2);
         
-        vector_t crse2fine(mglevel_m[level]->A_p->OperatorDomainMap());
-        crse2fine.PutScalar(0.0);
+        vector_t crse2fine(mglevel_m[level]->A_p->getDomainMap());
         
         if ( mglevel_m[level]->Bcrse_p != Teuchos::null ) {
-            mglevel_m[level]->Bcrse_p->Apply(*mglevel_m[level-1]->phi_p, crse2fine);
+            mglevel_m[level]->Bcrse_p->apply(*mglevel_m[level-1]->phi_p, crse2fine);
         }
         
-        tmp2.Update(1.0, fine2crse, 1.0, crse2fine, 1.0);
+        tmp2.update(1.0, fine2crse, 1.0, crse2fine, 1.0);
         
-        Teuchos::RCP<vector_t> tmp3 = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
+        Teuchos::RCP<vector_t> tmp3 = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
     
-        mglevel_m[level]->UnCovered_p->Apply(*mglevel_m[level]->rho_p, *tmp3);
+        mglevel_m[level]->UnCovered_p->apply(*mglevel_m[level]->rho_p, *tmp3);
     
         // ONLY subtract coarse rho
-        mglevel_m[level]->residual_p->Update(1.0, *tmp3, -1.0, tmp2, 0.0);
+        mglevel_m[level]->residual_p->update(1.0, *tmp3, -1.0, tmp2, 0.0);
         
     } else {
         this->residual_no_fine_m(mglevel_m[level]->residual_p,
@@ -263,8 +258,7 @@ void AmrMultiGrid::relax_m(int level) {
     if ( level == lfine_m ) {
         
         if ( level == lbase_m ) {
-            Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
-            tmp->PutScalar(0.0);
+            Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, true) );
             this->residual_no_fine_m(mglevel_m[level]->residual_p,
                                      mglevel_m[level]->phi_p,
                                      tmp,
@@ -285,7 +279,7 @@ void AmrMultiGrid::relax_m(int level) {
         // phi^(l, save) = phi^(l)
         vector_t phi_save = *mglevel_m[level]->phi_p;
         
-        mglevel_m[level-1]->error_p->PutScalar(0.0);
+        mglevel_m[level-1]->error_p->putScalar(0.0);
         
         // smoothing
         for (std::size_t iii = 0; iii < nsmooth_m; ++iii)
@@ -293,7 +287,7 @@ void AmrMultiGrid::relax_m(int level) {
                                mglevel_m[level]->residual_p, level);
         
         // phi = phi + e
-        mglevel_m[level]->phi_p->Update(1.0, *mglevel_m[level]->error_p, 1.0);
+        mglevel_m[level]->phi_p->update(1.0, *mglevel_m[level]->error_p, 1.0);
         
         /*
          * restrict
@@ -307,16 +301,14 @@ void AmrMultiGrid::relax_m(int level) {
          */
         
         // interpolate error from l-1 to l
-        Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
-        tmp->PutScalar(0.0);
-        mglevel_m[level-1]->I_p->Multiply(false, *mglevel_m[level-1]->error_p, *tmp);
+        Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p) );
+        mglevel_m[level-1]->I_p->apply(*mglevel_m[level-1]->error_p, *tmp);
         
         // e^(l) += tmp
-        mglevel_m[level]->error_p->Update(1.0, *tmp, 1.0);
+        mglevel_m[level]->error_p->update(1.0, *tmp, 1.0);
         
         // residual update
-        tmp = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
-        tmp->PutScalar(0.0);
+        tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p) );
         this->residual_no_fine_m(tmp,
                                  mglevel_m[level]->error_p,
                                  mglevel_m[level-1]->error_p,
@@ -326,35 +318,40 @@ void AmrMultiGrid::relax_m(int level) {
         *mglevel_m[level]->residual_p = *tmp;
         
         // delta error
-        Teuchos::RCP<vector_t> derror = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
-        derror->PutScalar(0.0);
+        Teuchos::RCP<vector_t> derror = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p) );
         
         // smoothing
         for (std::size_t iii = 0; iii < nsmooth_m; ++iii)
             this->gsrb_level_m(derror, mglevel_m[level]->residual_p, level);
         
         // e^(l) += de^(l)
-        mglevel_m[level]->error_p->Update(1.0, *derror, 1.0);
+        mglevel_m[level]->error_p->update(1.0, *derror, 1.0);
         
         // phi^(l) = phi^(l, save) + e^(l)
-        mglevel_m[level]->phi_p->Update(1.0, phi_save, 1.0, *mglevel_m[level]->error_p, 0.0);
+        mglevel_m[level]->phi_p->update(1.0, phi_save, 1.0, *mglevel_m[level]->error_p, 0.0);
         
     } else {
         // e = A^(-1)r
         
-        mglevel_m[level]->A_p->Scale(-1.0);
-        mglevel_m[level]->residual_p->Scale(-1.0);
+        mglevel_m[level]->A_p->resumeFill();
+        mglevel_m[level]->A_p->scale(-1.0);
+        mglevel_m[level]->A_p->fillComplete();
+        
+        mglevel_m[level]->residual_p->scale(-1.0);
         
         solver_mp->solve(mglevel_m[level]->A_p,
                          mglevel_m[level]->error_p,
                          mglevel_m[level]->residual_p);
         
-        mglevel_m[level]->A_p->Scale(-1.0);
-        mglevel_m[level]->residual_p->Scale(-1.0);
+        mglevel_m[level]->A_p->resumeFill();
+        mglevel_m[level]->A_p->scale(-1.0);
+        mglevel_m[level]->A_p->fillComplete();
+        
+        mglevel_m[level]->residual_p->scale(-1.0);
         
         // phi = phi + e
         
-        mglevel_m[level]->phi_p->Update(1.0, *mglevel_m[level]->error_p, 1.0);
+        mglevel_m[level]->phi_p->update(1.0, *mglevel_m[level]->error_p, 1.0);
     }
 }
 
@@ -365,29 +362,28 @@ void AmrMultiGrid::residual_no_fine_m(Teuchos::RCP<vector_t>& result,
                                       const Teuchos::RCP<vector_t>& b,
                                       int level)
 {
-    vector_t crse2fine(mglevel_m[level]->A_p->OperatorDomainMap());
-    crse2fine.PutScalar(0.0);
+    vector_t crse2fine(mglevel_m[level]->A_p->getDomainMap());
     
     // get boundary for 
     if ( mglevel_m[level]->Bcrse_p != Teuchos::null ) {
-        mglevel_m[level]->Bcrse_p->Apply(*crs_rhs, crse2fine);
+        mglevel_m[level]->Bcrse_p->apply(*crs_rhs, crse2fine);
     }
     
     // tmp = A * x
-    vector_t tmp(mglevel_m[level]->A_p->OperatorDomainMap());
-    mglevel_m[level]->A_p->Multiply(false, *rhs, tmp);
+    vector_t tmp(mglevel_m[level]->A_p->getDomainMap());
+    mglevel_m[level]->A_p->apply(*rhs, tmp);
     
     
     if ( level > lbase_m ) {
-        vector_t t2mp(mglevel_m[level]->A_p->OperatorDomainMap());
-        mglevel_m[level]->B_p->Multiply(false, *rhs, t2mp);
+        vector_t t2mp(mglevel_m[level]->A_p->getDomainMap());
+        mglevel_m[level]->B_p->apply(*rhs, t2mp);
     
-        tmp.Update(1.0, t2mp, 1.0);
+        tmp.update(1.0, t2mp, 1.0);
     }
     
-    tmp.Update(1.0, crse2fine, 1.0);
+    tmp.update(1.0, crse2fine, 1.0);
     
-    result->Update(1.0, *b, -1.0, tmp, 0.0);
+    result->update(1.0, *b, -1.0, tmp, 0.0);
 }
 
 
@@ -398,8 +394,7 @@ double AmrMultiGrid::l2error_m() {
     
     for (int lev = 0; lev < nLevel; ++lev) {
         
-        double tmp = 0;
-        mglevel_m[lev]->residual_p->Norm2(&tmp);
+        double tmp = mglevel_m[lev]->residual_p->norm2();
         err += tmp;
     }
     
@@ -426,11 +421,11 @@ void AmrMultiGrid::buildPoissonMatrix_m(int level) {
     
     amrex::BoxArray empty;
     
-    const dmap_t& RowMap = *mglevel_m[level]->map_p;
+    mglevel_m[level]->A_p = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p, nEntries, Tpetra::StaticProfile) );
     
-    mglevel_m[level]->A_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy, RowMap, nEntries) );
-    
-    mglevel_m[level]->B_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy, RowMap, nIntBoundary) );
+    if ( level > lbase_m ) {
+        mglevel_m[level]->B_p = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p, nIntBoundary, Tpetra::StaticProfile) );
+    }
     
     indices_t indices, bindices;
     coefficients_t values, bvalues;
@@ -523,20 +518,16 @@ void AmrMultiGrid::buildPoissonMatrix_m(int level) {
                     
                     this->unique_m(indices, values);
                     
-                    int error = mglevel_m[level]->A_p->InsertGlobalValues(globalidx,
-                                                                          indices.size(),
-                                                                          &values[0],
-                                                                          &indices[0]);
+                    mglevel_m[level]->A_p->insertGlobalValues(globalidx,
+                                                              indices.size(),
+                                                              &values[0],
+                                                              &indices[0]);
                     
-                    error += mglevel_m[level]->B_p->InsertGlobalValues(globalidx,
-                                                                       bindices.size(),
-                                                                       &bvalues[0],
-                                                                       &bindices[0]);
-                    
-                    if ( error != 0 )
-                        throw std::runtime_error("Error in filling the Poisson matrix for level "
-                                                 + std::to_string(level) + "!");
-                
+                    if ( level > lbase_m && bindices.size() > 0 )
+                        mglevel_m[level]->B_p->insertGlobalValues(globalidx,
+                                                                  bindices.size(),
+                                                                  &bvalues[0],
+                                                                  &bindices[0]);
 #if BL_SPACEDIM == 3
                 }
 #endif
@@ -544,13 +535,10 @@ void AmrMultiGrid::buildPoissonMatrix_m(int level) {
         }
     }
     
-    int error = mglevel_m[level]->A_p->FillComplete(true);
+    mglevel_m[level]->A_p->fillComplete();
     
-    error += mglevel_m[level]->B_p->FillComplete(true);
-    
-    if ( error != 0 )
-        throw std::runtime_error("Error in completing Poisson matrix for level "
-                                 + std::to_string(level) + "!");
+    if ( level > lbase_m )
+        mglevel_m[level]->B_p->fillComplete();
 }
 
 
@@ -586,12 +574,9 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
     int nEntries = (BL_SPACEDIM << 1) + 1 /* plus boundaries */ +
                    nPhysBoundary + nIntBoundary;
     
-    const dmap_t& RowMap = *mglevel_m[level]->map_p;
+    mglevel_m[level]->As_p = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p, nEntries, Tpetra::StaticProfile) );
     
-    mglevel_m[level]->As_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy, RowMap, nEntries) );
-    
-    
-     mglevel_m[level]->UnCovered_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy, RowMap, 1) );
+    mglevel_m[level]->UnCovered_p = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p, 1, Tpetra::StaticProfile) );
     
     indices_t indices;
     coefficients_t values;
@@ -733,24 +718,16 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                         
                         this->unique_m(indices, values);
                         
-                        int error = mglevel_m[level]->As_p->InsertGlobalValues(globalidx,
-                                                                               indices.size(),
-                                                                               &values[0],
-                                                                               &indices[0]);
-                    
-                        if ( error != 0 )
-                            throw std::runtime_error("Error in filling the Poisson matrix for level "
-                                                     + std::to_string(level) + "!");
+                        mglevel_m[level]->As_p->insertGlobalValues(globalidx,
+                                                                   indices.size(),
+                                                                   &values[0],
+                                                                   &indices[0]);
                         
                         double vv = 1.0;
-                        error = mglevel_m[level]->UnCovered_p->InsertGlobalValues(globalidx,
-                                                                                  1,
-                                                                                  &vv,
-                                                                                  &globalidx);
-                        if ( error != 0 )
-                            throw std::runtime_error("Error in filling the uncovered matrix for level "
-                                                     + std::to_string(level) + "!");
-                        
+                        mglevel_m[level]->UnCovered_p->insertGlobalValues(globalidx,
+                                                                          1,
+                                                                          &vv,
+                                                                          &globalidx);
                     }
 #if BL_SPACEDIM == 3
                 }
@@ -759,17 +736,9 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
         }
     }
     
-    int error = mglevel_m[level]->As_p->FillComplete(true);
+    mglevel_m[level]->As_p->fillComplete();
     
-    if ( error != 0 )
-        throw std::runtime_error("Error in completing special Poisson matrix for level "
-                                 + std::to_string(level) + "!");
-    
-    error = mglevel_m[level]->UnCovered_p->FillComplete(true);
-    
-    if ( error != 0 )
-        throw std::runtime_error("Error in completing uncovered matrix for level "
-                                 + std::to_string(level) + "!");
+    mglevel_m[level]->UnCovered_p->fillComplete();
 }
 
 
@@ -799,10 +768,7 @@ void AmrMultiGrid::buildRestrictionMatrix_m(int level) {
     crse_fine_ba.refine(rr);
     crse_fine_ba = amrex::intersect(mglevel_m[level]->grids, crse_fine_ba);
     crse_fine_ba.coarsen(rr);
-    
-    const dmap_t& RowMap = *mglevel_m[level-1]->map_p;
-    const dmap_t& ColMap = *mglevel_m[level]->map_p;
-    
+        
 #if BL_SPACEDIM == 3
     int nNeighbours = rr[0] * rr[1] * rr[2];
 #else
@@ -814,8 +780,8 @@ void AmrMultiGrid::buildRestrictionMatrix_m(int level) {
     
     double val = 1.0 / double(nNeighbours);
     
-    mglevel_m[level]->R_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy,
-                                                       RowMap, nNeighbours) );
+    mglevel_m[level]->R_p = Teuchos::rcp( new matrix_t(mglevel_m[level-1]->map_p, nNeighbours) );
+    
     
     for (amrex::MFIter mfi(mglevel_m[level-1]->grids,
                            mglevel_m[level-1]->dmap, false);
@@ -860,15 +826,10 @@ void AmrMultiGrid::buildRestrictionMatrix_m(int level) {
                             }
                         }
                     
-                        int error = mglevel_m[level]->R_p->InsertGlobalValues(crse_globalidx,
-                                                                              numEntries,
-                                                                              &values[0],
-                                                                              &indices[0]);
-                        
-                        if ( error != 0 ) {
-                            throw std::runtime_error("Error in filling the restriction matrix for level " +
-                            std::to_string(level) + "!");
-                        }
+                        mglevel_m[level]->R_p->insertGlobalValues(crse_globalidx,
+                                                                  numEntries,
+                                                                  &values[0],
+                                                                  &indices[0]);
                     }
 #if BL_SPACEDIM == 3
                 }
@@ -877,9 +838,8 @@ void AmrMultiGrid::buildRestrictionMatrix_m(int level) {
         }
     }
     
-    if ( mglevel_m[level]->R_p->FillComplete(ColMap, RowMap, true) != 0 )
-        throw std::runtime_error("Error in completing the restriction matrix for level " +
-                                 std::to_string(level) + "!");
+     mglevel_m[level]->R_p->fillComplete(mglevel_m[level]->map_p,
+                                         mglevel_m[level-1]->map_p);
 }
 
 
@@ -903,11 +863,7 @@ void AmrMultiGrid::buildInterpolationMatrix_m(int level) {
     indices_t indices;
     coefficients_t values;
     
-    const dmap_t& RowMap = *mglevel_m[level+1]->map_p;
-    const dmap_t& ColMap = *mglevel_m[level]->map_p;
-    
-    mglevel_m[level]->I_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy,
-                                                       RowMap, nNeighbours, false) );
+    mglevel_m[level]->I_p = Teuchos::rcp( new matrix_t(mglevel_m[level+1]->map_p, nNeighbours, Tpetra::StaticProfile) );
     
     for (amrex::MFIter mfi(mglevel_m[level+1]->grids,
                            mglevel_m[level+1]->dmap, false);
@@ -937,15 +893,10 @@ void AmrMultiGrid::buildInterpolationMatrix_m(int level) {
                     
                     this->unique_m(indices, values);
                     
-                    int error = mglevel_m[level]->I_p->InsertGlobalValues(globalidx,
-                                                                          indices.size(),
-                                                                          &values[0],
-                                                                          &indices[0]);
-                    
-                    if ( error != 0 ) {
-                        throw std::runtime_error("Error in filling the interpolation matrix for level " +
-                                                 std::to_string(level) + "!");
-                    }
+                    mglevel_m[level]->I_p->insertGlobalValues(globalidx,
+                                                              indices.size(),
+                                                              &values[0],
+                                                              &indices[0]);
 #if BL_SPACEDIM == 3
                 }
 #endif
@@ -953,11 +904,8 @@ void AmrMultiGrid::buildInterpolationMatrix_m(int level) {
         }
     }
     
-    int error = mglevel_m[level]->I_p->FillComplete(ColMap, RowMap, true);
-    
-    if ( error != 0 )
-        throw std::runtime_error("Error in completing the interpolation matrix for level " +
-                                 std::to_string(level) + "!");
+    mglevel_m[level]->I_p->fillComplete(mglevel_m[level]->map_p,
+                                        mglevel_m[level+1]->map_p);
 }
 
 
@@ -981,14 +929,11 @@ void AmrMultiGrid::buildCrseBoundaryMatrix_m(int level) {
     crse_fine_ba = amrex::intersect(mglevel_m[level]->grids, crse_fine_ba);
     crse_fine_ba.coarsen(rr);
     
-    const dmap_t& RowMap = *mglevel_m[level]->map_p;
-    const dmap_t& ColMap = *mglevel_m[level-1]->map_p;
-    
     int nNeighbours = 2 * BL_SPACEDIM * mglevel_m[level]->getBCStencilNum() *
                       2 * BL_SPACEDIM * interface_mp->getNumberOfPoints();
     
-    mglevel_m[level]->Bcrse_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy,
-                                                           RowMap, nNeighbours, false) );
+    mglevel_m[level]->Bcrse_p = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p, nNeighbours, Tpetra::StaticProfile) );
+    
     
     for (amrex::MFIter mfi(*mglevel_m[level]->mask, false); mfi.isValid(); ++mfi) {
         const amrex::Box&    bx  = mfi.validbox();
@@ -1050,11 +995,8 @@ void AmrMultiGrid::buildCrseBoundaryMatrix_m(int level) {
         
     }
     
-    int error = mglevel_m[level]->Bcrse_p->FillComplete(ColMap, RowMap, true);
-    
-    if ( error != 0 )
-        throw std::runtime_error("Error in completing the crse boundary matrix for level " +
-                                 std::to_string(level) + "!");
+    mglevel_m[level]->Bcrse_p->fillComplete(mglevel_m[level-1]->map_p,  // col map
+                                            mglevel_m[level]->map_p);   // row map
 }
 
 
@@ -1076,17 +1018,14 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(int level)
     crse_fine_ba = amrex::intersect(mglevel_m[level+1]->grids, crse_fine_ba);
     crse_fine_ba.coarsen(rr);
     
-    const dmap_t& RowMap = *mglevel_m[level]->map_p;
-    const dmap_t& ColMap = *mglevel_m[level+1]->map_p;
-    
     // 2 interfaces per direction --> 2 * rr
     int nNeighbours = 4 * rr[0] * rr[1];
 #if BL_SPACEDIM == 3
     nNeighbours = 6 * rr[0] * rr[1] * rr[2];
 #endif
     
-    mglevel_m[level]->Bfine_p = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy,
-                                                                   RowMap, nNeighbours, false) );
+    mglevel_m[level]->Bfine_p = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p,
+                                                           nNeighbours, Tpetra::StaticProfile) );
     
     indices_t indices;
     coefficients_t values;
@@ -1299,23 +1238,14 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(int level)
         
         this->unique_m(indices, values);
         
-        int error = mglevel_m[level]->Bfine_p->InsertGlobalValues(globalidx,
-                                                                  indices.size(),
-                                                                  &values[0],
-                                                                  &indices[0]);
-        
-        if ( error != 0 ) {
-            // if e.g. nNeighbours < indices.size() --> error
-            throw std::runtime_error("Error in filling the fine boundary matrix for level " +
-                                     std::to_string(level) + "!");
-        }
+        mglevel_m[level]->Bfine_p->insertGlobalValues(globalidx,
+                                                      indices.size(),
+                                                      &values[0],
+                                                      &indices[0]);
     }
     
-    int error = mglevel_m[level]->Bfine_p->FillComplete(ColMap, RowMap, true);
-    
-    if ( error != 0 )
-        throw std::runtime_error("Error in completing the fine boundary matrix for level " +
-                                 std::to_string(level) + "!");
+    mglevel_m[level]->Bfine_p->fillComplete(mglevel_m[level+1]->map_p,
+                                            mglevel_m[level]->map_p);
 }
 
 
@@ -1334,10 +1264,7 @@ void AmrMultiGrid::buildSmootherMatrix_m(int level) {
     if ( level == lbase_m )
         return;
     
-    const dmap_t& RowMap = *mglevel_m[level]->map_p;
-    
-    mglevel_m[level]->S_p = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy,
-                                                       RowMap, 1) );
+    mglevel_m[level]->S_p = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p, 1, Tpetra::StaticProfile) );
     
     const double* dx = mglevel_m[level]->geom.CellSize();
     
@@ -1398,15 +1325,10 @@ void AmrMultiGrid::buildSmootherMatrix_m(int level) {
 #elif BL_SPACEDIM == 3
                     double value = h * ( (interior) ? 1.0 / 6.0 : 0.125 );
 #endif
-                    int error = mglevel_m[level]->S_p->InsertGlobalValues(globalidx,
-                                                                          1,
-                                                                          &value,
-                                                                          &globalidx);
-                    
-                    if ( error != 0 ) {
-                        throw std::runtime_error("Error in filling the smoother matrix for level " +
-                                                  std::to_string(level) + "!");
-                    }
+                    mglevel_m[level]->S_p->insertGlobalValues(globalidx,
+                                                              1,
+                                                              &value,
+                                                              &globalidx);
 #if BL_SPACEDIM == 3
                 }
 #endif
@@ -1414,24 +1336,16 @@ void AmrMultiGrid::buildSmootherMatrix_m(int level) {
         }
     }
     
-    int error = mglevel_m[level]->S_p->FillComplete(true);
-    
-    if ( error != 0 )
-        throw std::runtime_error("Error in completing the smoother matrix for level " +
-                                 std::to_string(level) + "!");
-    
+    mglevel_m[level]->S_p->fillComplete();
 }
 
 
 void AmrMultiGrid::buildGradientMatrix_m(int level) {
     
-    const dmap_t& RowMap = *mglevel_m[level]->map_p;
-    
     int nEntries = 5;
     
     for (int d = 0; d < BL_SPACEDIM; ++d) {
-        mglevel_m[level]->G_p[d] = Teuchos::rcp( new matrix_t(Epetra_DataAccess::Copy,
-                                                              RowMap, nEntries) );
+        mglevel_m[level]->G_p[d] = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p, nEntries, Tpetra::StaticProfile) );
     }
     
     const double* dx = mglevel_m[level]->geom.CellSize();
@@ -1519,15 +1433,10 @@ void AmrMultiGrid::buildGradientMatrix_m(int level) {
                             check(niv, mfab, d, shift);
                         }
                         
-                        int error = mglevel_m[level]->G_p[d]->InsertGlobalValues(globalidx,
-                                                                                 indices.size(),
-                                                                                 &values[0],
-                                                                                 &indices[0]);
-                        
-                        if ( error != 0 ) {
-                            throw std::runtime_error("Error in filling the gradient matrix for level " +
-                                                     std::to_string(level) + "!");
-                        }
+                        mglevel_m[level]->G_p[d]->insertGlobalValues(globalidx,
+                                                                     indices.size(),
+                                                                     &values[0],
+                                                                     &indices[0]);
                     }
 #if BL_SPACEDIM == 3
                 }
@@ -1537,21 +1446,16 @@ void AmrMultiGrid::buildGradientMatrix_m(int level) {
     }
     
     
-    int error = 0;
     for (int d = 0; d < BL_SPACEDIM; ++d)
-        error += mglevel_m[level]->G_p[d]->FillComplete(true);
-    
-    if ( error != 0 )
-        throw std::runtime_error("Error in completing the gradient matrix for level " +
-                                 std::to_string(level) + "!");
+        mglevel_m[level]->G_p[d]->fillComplete();
 }
 
 
 void AmrMultiGrid::amrex2trilinos_m(const AmrField_t& mf, int comp,
                                     Teuchos::RCP<vector_t>& mv, int level)
 {
-    coefficients_t values;
-    indices_t indices;
+    if ( mv.is_null() )
+        mv = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
     
     for (amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi) {
         const amrex::Box&          bx  = mfi.validbox();
@@ -1569,31 +1473,24 @@ void AmrMultiGrid::amrex2trilinos_m(const AmrField_t& mf, int comp,
                     
                     int globalidx = mglevel_m[level]->serialize(iv);
                     
-                    indices.push_back(globalidx);
-                    
-                    values.push_back(fab(iv, comp));
+                    mv->replaceGlobalValue(globalidx, fab(iv, comp));
 #if BL_SPACEDIM == 3
                 }
 #endif
             }
         }
     }
-    
-    if ( mv.is_null() )
-        mv = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
-    
-    int error = mv->ReplaceGlobalValues(mglevel_m[level]->map_p->NumMyElements(),
-                                        &values[0],
-                                        &indices[0]);
-    
-    if ( error != 0 )
-        throw std::runtime_error("Error in filling the vector!");
 }
 
 
 void AmrMultiGrid::trilinos2amrex_m(AmrField_t& mf, int comp,
                                     const Teuchos::RCP<vector_t>& mv)
 {
+    mv->sync<Kokkos::HostSpace>();
+    auto mv_2d = mv->getLocalView<Kokkos::HostSpace>();
+    auto mv_1d = Kokkos::subview(mv_2d, Kokkos::ALL(), 0);
+    
+    
     int localidx = 0;
     for (amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi) {
         const amrex::Box&          bx  = mfi.validbox();
@@ -1608,7 +1505,7 @@ void AmrMultiGrid::trilinos2amrex_m(AmrField_t& mf, int comp,
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     AmrIntVect_t iv(D_DECL(i, j, k));
-                    fab(iv, comp) = (*mv)[localidx++];
+                    fab(iv, comp) = mv_1d(localidx++);
                 }
 #if BL_SPACEDIM == 3
             }
@@ -1752,16 +1649,10 @@ void AmrMultiGrid::checkCrseBoundary_m(Teuchos::RCP<matrix_t>& B,
                  */
                 this->unique_m(indices, values);
                 
-                int error = B->InsertGlobalValues(globalidx,
-                                                  indices.size(),
-                                                  &values[0],
-                                                  &indices[0]);
-                
-                if ( error != 0 ) {
-                    // if e.g. nNeighbours < indices.size() --> error
-                    throw std::runtime_error("Error in filling the boundary matrix for level " +
-                                             std::to_string(level) + "!");
-                }
+                B->insertGlobalValues(globalidx,
+                                      indices.size(),
+                                      &values[0],
+                                      &indices[0]);
 #if BL_SPACEDIM == 3
             }
 #endif
@@ -1774,27 +1665,25 @@ void AmrMultiGrid::gsrb_level_m(Teuchos::RCP<vector_t>& e,
                                 int level)
 {
     // apply "no fine" Laplacian
-    Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
-    tmp->PutScalar(0.0);
-    
+    Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p) );
+
     // tmp = A * x
-    mglevel_m[level]->A_p->Apply(/**mglevel_m[level]->error_p*/*e, *tmp);
+    mglevel_m[level]->A_p->apply(/**mglevel_m[level]->error_p*/*e, *tmp);
     
     // tmp = tmp - r
-    tmp->Update(-1.0, *r, 1.0);
+    tmp->update(-1.0, *r, 1.0);
     
     // tmp2 = S * tmp
-    Teuchos::RCP<vector_t> tmp2 = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
-    mglevel_m[level]->S_p->Apply(*tmp, *tmp2);
+    Teuchos::RCP<vector_t> tmp2 = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
+    mglevel_m[level]->S_p->apply(*tmp, *tmp2);
     
-    e->Update(1.0, *tmp2, 1.0);
+    e->update(1.0, *tmp2, 1.0);
 }
 
 
 void AmrMultiGrid::restrict_m(int level) {
     
-    Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(*mglevel_m[level+1]->map_p, false) );
-    tmp->PutScalar(0.0);
+    Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level+1]->map_p) );
     
     this->residual_no_fine_m(tmp,
                              mglevel_m[level+1]->error_p,
@@ -1802,35 +1691,33 @@ void AmrMultiGrid::restrict_m(int level) {
                              mglevel_m[level+1]->residual_p, level+1);
     
     // average down: residual^(l-1) = R^(l) * tmp
-    mglevel_m[level+1]->R_p->Apply(*tmp, *mglevel_m[level]->residual_p);
+    mglevel_m[level+1]->R_p->apply(*tmp, *mglevel_m[level]->residual_p);
     
     // special matrix, i.e. matrix without covered cells
     // r^(l-1) = rho^(l-1) - A * phi^(l-1)
     
-    vector_t fine2crse(mglevel_m[level]->A_p->OperatorDomainMap());
-    fine2crse.PutScalar(0.0);
+    vector_t fine2crse(mglevel_m[level]->A_p->getDomainMap());
     
     // get boundary for 
-    mglevel_m[level]->Bfine_p->Apply(*mglevel_m[level+1]->phi_p, fine2crse);
+    mglevel_m[level]->Bfine_p->apply(*mglevel_m[level+1]->phi_p, fine2crse);
     
-    vector_t tmp2(mglevel_m[level]->As_p->OperatorDomainMap());
-    mglevel_m[level]->As_p->Apply(*mglevel_m[level]->phi_p, tmp2);
+    vector_t tmp2(mglevel_m[level]->As_p->getDomainMap());
+    mglevel_m[level]->As_p->apply(*mglevel_m[level]->phi_p, tmp2);
     
-    vector_t crse2fine(mglevel_m[level]->A_p->OperatorDomainMap());
-    crse2fine.PutScalar(0.0);
+    vector_t crse2fine(mglevel_m[level]->A_p->getDomainMap());
     
     if ( mglevel_m[level]->Bcrse_p != Teuchos::null ) {
-        mglevel_m[level]->Bcrse_p->Apply(*mglevel_m[level-1]->phi_p, crse2fine);
+        mglevel_m[level]->Bcrse_p->apply(*mglevel_m[level-1]->phi_p, crse2fine);
     }
     
-    tmp2.Update(1.0, fine2crse, 1.0, crse2fine, 1.0);
+    tmp2.update(1.0, fine2crse, 1.0, crse2fine, 1.0);
     
-    Teuchos::RCP<vector_t> tmp3 = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
+    Teuchos::RCP<vector_t> tmp3 = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
     
-    mglevel_m[level]->UnCovered_p->Apply(*mglevel_m[level]->rho_p, *tmp3);
+    mglevel_m[level]->UnCovered_p->apply(*mglevel_m[level]->rho_p, *tmp3);
     
     // ONLY subtract coarse rho
-    mglevel_m[level]->residual_p->Update(1.0, *tmp3, -1.0, tmp2, 1.0);
+    mglevel_m[level]->residual_p->update(1.0, *tmp3, -1.0, tmp2, 1.0);
 }
 
 
@@ -1839,13 +1726,13 @@ void AmrMultiGrid::averageDown_m(int level) {
     if (level == lfine_m )
         return;
     
-    Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
+    Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
     
-    mglevel_m[level+1]->R_p->Multiply(false, *mglevel_m[level+1]->phi_p, *tmp);
+    mglevel_m[level+1]->R_p->apply(*mglevel_m[level+1]->phi_p, *tmp);
     
-    Teuchos::RCP<vector_t> tmp2 = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
+    Teuchos::RCP<vector_t> tmp2 = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
     
-    mglevel_m[level]->UnCovered_p->Multiply(false, *mglevel_m[level]->phi_p, *tmp2);
+    mglevel_m[level]->UnCovered_p->apply(*mglevel_m[level]->phi_p, *tmp2);
     
-    mglevel_m[level]->phi_p->Update(1.0, *tmp, 1.0, *tmp2, 0.0);
+    mglevel_m[level]->phi_p->update(1.0, *tmp, 1.0, *tmp2, 0.0);
 }

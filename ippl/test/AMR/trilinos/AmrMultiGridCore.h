@@ -14,20 +14,54 @@
 #include "BlockCGSolMgr.h"
 
 // Trilinos headers
-#include <Epetra_MpiComm.h>
-#include <Epetra_Map.h>
-#include <Epetra_Vector.h>
-#include <Epetra_CrsMatrix.h>
+#include <Tpetra_Map.hpp>
+#include <Tpetra_Vector.hpp>
+#include <Tpetra_CrsMatrix.hpp>
 
 #include <Teuchos_RCP.hpp>
 #include <Teuchos_ArrayRCP.hpp>
-// #include <Teuchos_DefaultMpiComm.hpp> // wrapper for our communicator
+#include <Teuchos_DefaultMpiComm.hpp> // wrapper for our communicator
+
+#include <Kokkos_DefaultNode.hpp>
 
 namespace amr {
-    typedef Epetra_CrsMatrix    matrix_t;
-    typedef Epetra_Vector       vector_t;
-    typedef Epetra_Map          dmap_t;
-    typedef Epetra_MpiComm      comm_t;
+    // All Tpetra
+    typedef double scalar_t;
+    typedef int local_ordinal_t;
+    typedef int global_ordinal_t;
+    typedef KokkosClassic::DefaultNode::DefaultNodeType node_t;
+    
+    typedef Tpetra::CrsMatrix<scalar_t,
+                              local_ordinal_t,
+                              global_ordinal_t,
+                              node_t
+            > matrix_t;
+            
+    typedef Tpetra::Vector<scalar_t,
+                           local_ordinal_t,
+                           global_ordinal_t,
+                           node_t
+            > vector_t;
+    
+    typedef Tpetra::Operator<scalar_t,
+                             local_ordinal_t,
+                             global_ordinal_t,
+                             node_t
+            > operator_t;
+    
+    typedef Tpetra::MultiVector<scalar_t,
+                                local_ordinal_t,
+                                global_ordinal_t,
+                                node_t
+            > multivector_t;
+    
+    
+    typedef Tpetra::Map<local_ordinal_t,
+                        global_ordinal_t,
+                        node_t
+            > dmap_t;
+    
+    typedef Teuchos::MpiComm<int>    comm_t;
 }
 
 #endif

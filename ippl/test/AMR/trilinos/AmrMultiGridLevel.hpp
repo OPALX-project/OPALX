@@ -38,8 +38,8 @@ AmrMultiGridLevel<MatrixType,
     this->buildMap_m(comm);
     
     
-    residual_p = Teuchos::rcp( new vector_t(*map_p, false) );
-    error_p = Teuchos::rcp( new vector_t(*map_p, false) );
+    residual_p = Teuchos::rcp( new vector_t(map_p, false) );
+    error_p = Teuchos::rcp( new vector_t(map_p, false) );
 }
 
 
@@ -157,11 +157,11 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Teuchos::RCP<co
     AmrIntVect_t lowcorner(D_DECL(lo[0], lo[1], lo[2]));
     
     // where to start indexing
-    const int baseIndex = serialize(lowcorner);
+    amr::global_ordinal_t baseIndex = serialize(lowcorner);
     
     // numGlobalElements == N
     int N = grids.numPts();
     
-    map_p = Teuchos::rcp( new dmap_t(N, localNumElements,
-                                     &globalindices[0], baseIndex, *comm) );
+    map_p = Teuchos::rcp( new dmap_t(N, &globalindices[0],
+                                     localNumElements, baseIndex, comm) );
 }
