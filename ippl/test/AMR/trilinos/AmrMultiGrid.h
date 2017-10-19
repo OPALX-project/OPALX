@@ -212,6 +212,7 @@ private:
     
 private:
     Teuchos::RCP<comm_t> comm_mp;
+    Teuchos::RCP<amr::node_t> node_mp;
     
     std::unique_ptr<AmrInterpolater<AmrMultiGridLevel_t> > interp_mp;
     
