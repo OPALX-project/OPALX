@@ -125,10 +125,9 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         this->buildPotentialVector_m(*phi[ilev], lev);
         
         this->buildGradientMatrix_m(lev);
-        
-        mglevel_m[lev]->error_p->PutScalar(0.0);
     }
     
+    mglevel_m[lfine_m]->error_p->PutScalar(0.0);
     
     double err = 1.0e7;
     double eps = 1.0e-8;
@@ -221,8 +220,7 @@ void AmrMultiGrid::residual_m(Teuchos::RCP<vector_t>& r,
      * r = b - A*x
      */
     if ( level < lfine_m ) {
-        vector_t fine2crse(mglevel_m[level]->A_p->OperatorDomainMap());
-        fine2crse.PutScalar(0.0);
+        vector_t fine2crse(mglevel_m[level]->A_p->OperatorDomainMap(), true);
         
         // get boundary for 
         if ( mglevel_m[level]->Bfine_p != Teuchos::null ) {
@@ -232,8 +230,7 @@ void AmrMultiGrid::residual_m(Teuchos::RCP<vector_t>& r,
         vector_t tmp2(mglevel_m[level]->As_p->OperatorDomainMap());
         mglevel_m[level]->As_p->Apply(*mglevel_m[level]->phi_p, tmp2);
         
-        vector_t crse2fine(mglevel_m[level]->A_p->OperatorDomainMap());
-        crse2fine.PutScalar(0.0);
+        vector_t crse2fine(mglevel_m[level]->A_p->OperatorDomainMap(), true);
         
         if ( mglevel_m[level]->Bcrse_p != Teuchos::null ) {
             mglevel_m[level]->Bcrse_p->Apply(*mglevel_m[level-1]->phi_p, crse2fine);
@@ -263,8 +260,7 @@ void AmrMultiGrid::relax_m(int level) {
     if ( level == lfine_m ) {
         
         if ( level == lbase_m ) {
-            Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
-            tmp->PutScalar(0.0);
+            Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, true) );
             this->residual_no_fine_m(mglevel_m[level]->residual_p,
                                      mglevel_m[level]->phi_p,
                                      tmp,
@@ -307,16 +303,14 @@ void AmrMultiGrid::relax_m(int level) {
          */
         
         // interpolate error from l-1 to l
-        Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
-        tmp->PutScalar(0.0);
+        Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, true) );
         mglevel_m[level-1]->I_p->Multiply(false, *mglevel_m[level-1]->error_p, *tmp);
         
         // e^(l) += tmp
         mglevel_m[level]->error_p->Update(1.0, *tmp, 1.0);
         
         // residual update
-        tmp = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
-        tmp->PutScalar(0.0);
+        tmp = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, true) );
         this->residual_no_fine_m(tmp,
                                  mglevel_m[level]->error_p,
                                  mglevel_m[level-1]->error_p,
@@ -326,8 +320,7 @@ void AmrMultiGrid::relax_m(int level) {
         *mglevel_m[level]->residual_p = *tmp;
         
         // delta error
-        Teuchos::RCP<vector_t> derror = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
-        derror->PutScalar(0.0);
+        Teuchos::RCP<vector_t> derror = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, true) );
         
         // smoothing
         for (std::size_t iii = 0; iii < nsmooth_m; ++iii)
@@ -365,8 +358,7 @@ void AmrMultiGrid::residual_no_fine_m(Teuchos::RCP<vector_t>& result,
                                       const Teuchos::RCP<vector_t>& b,
                                       int level)
 {
-    vector_t crse2fine(mglevel_m[level]->A_p->OperatorDomainMap());
-    crse2fine.PutScalar(0.0);
+    vector_t crse2fine(mglevel_m[level]->A_p->OperatorDomainMap(), true);
     
     // get boundary for 
     if ( mglevel_m[level]->Bcrse_p != Teuchos::null ) {
@@ -1774,8 +1766,7 @@ void AmrMultiGrid::gsrb_level_m(Teuchos::RCP<vector_t>& e,
                                 int level)
 {
     // apply "no fine" Laplacian
-    Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, false) );
-    tmp->PutScalar(0.0);
+    Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, true) );
     
     // tmp = A * x
     mglevel_m[level]->A_p->Apply(/**mglevel_m[level]->error_p*/*e, *tmp);
@@ -1793,8 +1784,7 @@ void AmrMultiGrid::gsrb_level_m(Teuchos::RCP<vector_t>& e,
 
 void AmrMultiGrid::restrict_m(int level) {
     
-    Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(*mglevel_m[level+1]->map_p, false) );
-    tmp->PutScalar(0.0);
+    Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(*mglevel_m[level+1]->map_p, true) );
     
     this->residual_no_fine_m(tmp,
                              mglevel_m[level+1]->error_p,
@@ -1807,8 +1797,7 @@ void AmrMultiGrid::restrict_m(int level) {
     // special matrix, i.e. matrix without covered cells
     // r^(l-1) = rho^(l-1) - A * phi^(l-1)
     
-    vector_t fine2crse(mglevel_m[level]->A_p->OperatorDomainMap());
-    fine2crse.PutScalar(0.0);
+    vector_t fine2crse(mglevel_m[level]->A_p->OperatorDomainMap(), true);
     
     // get boundary for 
     mglevel_m[level]->Bfine_p->Apply(*mglevel_m[level+1]->phi_p, fine2crse);
@@ -1816,8 +1805,7 @@ void AmrMultiGrid::restrict_m(int level) {
     vector_t tmp2(mglevel_m[level]->As_p->OperatorDomainMap());
     mglevel_m[level]->As_p->Apply(*mglevel_m[level]->phi_p, tmp2);
     
-    vector_t crse2fine(mglevel_m[level]->A_p->OperatorDomainMap());
-    crse2fine.PutScalar(0.0);
+    vector_t crse2fine(mglevel_m[level]->A_p->OperatorDomainMap(), true);
     
     if ( mglevel_m[level]->Bcrse_p != Teuchos::null ) {
         mglevel_m[level]->Bcrse_p->Apply(*mglevel_m[level-1]->phi_p, crse2fine);
