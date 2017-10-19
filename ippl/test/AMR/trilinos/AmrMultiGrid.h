@@ -44,6 +44,12 @@ public:
         BLOCK_CG = 0
     };
     
+    enum Smoother {
+        GAUSS_SEIDEL = 0,
+        JACOBI,
+        SOR
+    };
+    
 public:
     
     AmrMultiGrid(Interpolater interp = Interpolater::TRILINEAR,
