@@ -5,7 +5,8 @@ AmrMultiGridLevel<MatrixType,
                                                  const AmrGeometry_t& _geom,
                                                  const AmrIntVect_t& rr,
                                                  AmrBoundary<AmrMultiGridLevel<MatrixType, VectorType> >* bc,
-                                                 const Teuchos::RCP<comm_t>& comm)
+                                                 const Teuchos::RCP<comm_t>& comm,
+                                                 const Teuchos::RCP<node_t>& node)
     : grids(_grids),
       dmap(_dmap),
       geom(_geom),
@@ -35,7 +36,7 @@ AmrMultiGridLevel<MatrixType,
     
     this->buildLevelMask_m();
     
-    this->buildMap_m(comm);
+    this->buildMap_m(comm, node);
     
     
     residual_p = Teuchos::rcp( new vector_t(map_p, false) );
@@ -117,11 +118,15 @@ const AmrIntVect_t& AmrMultiGridLevel<MatrixType, VectorType>::refinement() cons
 
 
 template <class MatrixType, class VectorType>
-void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Teuchos::RCP<comm_t>& comm) {
+void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Teuchos::RCP<comm_t>& comm,
+                                                           const Teuchos::RCP<node_t>& node)
+{
     
     int localNumElements = 0;
     coefficients_t values;
-    indices_t globalindices;
+//     indices_t globalindices;
+    
+    Teuchos::Array<global_ordinal_t> globalindices;
     
     for (amrex::MFIter mfi(grids, dmap, false); mfi.isValid(); ++mfi) {
         const amrex::Box&    bx  = mfi.validbox();  
@@ -162,6 +167,5 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Teuchos::RCP<co
     // numGlobalElements == N
     int N = grids.numPts();
     
-    map_p = Teuchos::rcp( new dmap_t(N, &globalindices[0],
-                                     localNumElements, baseIndex, comm) );
+    map_p = Teuchos::rcp( new dmap_t(N, globalindices, baseIndex, comm, node) );
 }
