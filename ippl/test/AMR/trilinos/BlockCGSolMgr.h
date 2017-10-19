@@ -5,7 +5,7 @@
 
 #include "AmrMultiGridCore.h"
 
-#include <Epetra_LinearProblem.h>
+#include <BelosTpetraAdapter.hpp>
 
 #include <BelosLinearProblem.hpp>
 #include <BelosEpetraAdapter.hpp>
@@ -18,9 +18,12 @@ class BlockCGSolMgr : public LinearSolver<Teuchos::RCP<amr::matrix_t>,
 public:
     typedef amr::matrix_t matrix_t;
     typedef amr::vector_t vector_t;
+    typedef amr::scalar_t scalar_t;
+    typedef amr::multivector_t mv_t;
+    typedef amr::operator_t op_t;
     
-    typedef Belos::BlockCGSolMgr<double, Epetra_MultiVector, Epetra_Operator> solver_t;
-    typedef Belos::LinearProblem<double, Epetra_MultiVector, Epetra_Operator> problem_t;
+    typedef Belos::BlockCGSolMgr<scalar_t, mv_t, op_t> solver_t;
+    typedef Belos::LinearProblem<scalar_t, mv_t, op_t> problem_t;
     
 public:
     
@@ -60,13 +63,12 @@ public:
         
         // get the solution from the problem
         if ( ret == Belos::Converged ) {
-            x = Teuchos::null;
-            x = Teuchos::rcp( new vector_t(Epetra_DataAccess::Copy, *problem_mp->getLHS(), 0) );
+            x->assign(*problem_mp->getLHS());
             
             // print stuff
 //             if ( epetra_comm_m.MyPID() == 0 ) {
-                std::cout << "Achieved tolerance: " << solver_mp->achievedTol() << std::endl
-                        << "Number of iterations: " << solver_mp->getNumIters() << std::endl;
+//                 std::cout << "Achieved tolerance: " << solver_mp->achievedTol() << std::endl
+//                         << "Number of iterations: " << solver_mp->getNumIters() << std::endl;
 //             }
             
         } else {
