@@ -28,7 +28,9 @@
 #include "gsl/gsl_spline.h"
 #include "gsl/gsl_interp.h"
 
+#ifdef WITH_UNIT_TESTS
 #include <gtest/gtest_prod.h>
+#endif
 
 #include <vector>
 
@@ -137,8 +139,9 @@ protected:
 
 private:
 
+#ifdef WITH_UNIT_TESTS
     FRIEND_TEST(Maxwell, Zeros);
-    
+#endif
     // Not implemented.
     void operator=(const Bend &);
 
