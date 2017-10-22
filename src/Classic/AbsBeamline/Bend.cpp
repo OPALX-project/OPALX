@@ -192,7 +192,7 @@ bool Bend::apply(const size_t &i,
                  const double &t,
                  Vector_t &E,
                  Vector_t &B) {
- 
+
     if(designRadius_m > 0.0) {
 
         // Shift position to magnet frame.
@@ -490,8 +490,8 @@ Vector_t Bend::calcEntranceFringeField(const Vector_t &R,
         //double bYEntrance = (expFactor * engeFunc *
         //                      (1.0  - 0.5 * trigFactor * pow(Rprime(1), 2.0)));
         //double bZEntrance = expFactor * Rprime(1) * engeFuncDeriv;
-	
-	
+
+
         // B(1) = (engeFunc *
 	//  (1.0 - 0.5 * engeFuncSecDerivNorm * pow(Rprime(1), 2.0)));
 
@@ -545,7 +545,7 @@ bool Bend::calculateMapField(const Vector_t &R, Vector_t &B) {
     bool verticallyInside = (std::abs(R(1)) < 0.5 * gap_m);
     bool horizontallyInside = false;
     Vector_t rotationCenter(-designRadius_m * cosEntranceAngle_m, R(1), designRadius_m * sinEntranceAngle_m);
-    
+
     if(inMagnetCentralRegion(R)) {
         if (verticallyInside) {
             double deltaX = 0.0;//euclidian_norm(R - rotationCenter) - designRadius_m;
@@ -564,14 +564,14 @@ bool Bend::calculateMapField(const Vector_t &R, Vector_t &B) {
 
     Vector_t BEntrance(0.0), BExit(0.0);
     verticallyInside = (std::abs(R(1)) < gap_m);
-    
+
     if (inMagnetEntranceRegion(R)) {
         horizontallyInside = true;
         if (verticallyInside) {
             BEntrance = calcEntranceFringeField(R, R(0));
         }
     }
-   
+
     if (inMagnetExitRegion(R)) {
         horizontallyInside = true;
         if (verticallyInside) {
@@ -861,7 +861,7 @@ bool Bend::findIdealBendParameters(double chordLength) {
             rotationZAxis_m += Physics::pi;
         }
         designRadius_m = chordLength / (2.0 * std::sin(angle_m / 2.0));
-	
+
 	fieldAmplitude_m = ((refCharge / std::abs(refCharge)) *
                             refBetaGamma * refMass /
                             (Physics::c * designRadius_m));
@@ -1321,6 +1321,9 @@ bool Bend::setupBendGeometry(Inform &msg, double &startField, double &endField) 
     }
 
     reinitialize_m = findIdealBendParameters(chordLength_m);
+    if (getType() == RBEND) {
+        setEntranceAngle(getEntranceAngle());
+    }
     findReferenceExitOrigin(xExit_m, zExit_m);
 
     /*

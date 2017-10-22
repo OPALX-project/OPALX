@@ -152,8 +152,20 @@ bool RBend::findChordLength(Inform &msg,
      * Find bend chord length. If this was not set by the user using the
      * L (length) attribute, infer it from the field map.
      */
-    chordLength = std::abs(2 * getLength() * sin(0.5 * getBendAngle()) /
-                           (sin(getEntranceAngle()) + sin(getBendAngle() - getEntranceAngle())));
+    const double angle = getBendAngle();
+    if (std::abs(angle) > 0.0) {
+        chordLength = 2 * getLength() * sin(0.5 * std::abs(angle)) /
+            (sin(getEntranceAngle()) + sin(std::abs(angle) - getEntranceAngle()));
+    } else {
+        double refMass  = RefPartBunch_m->getM();
+        double refGamma = designEnergy_m / refMass + 1.0;
+        double refBetaGamma = sqrt(pow(refGamma, 2.0) - 1.0);
+        double refCharge = RefPartBunch_m->getQ();
+        double amplitude = (std::abs(bY_m) > 0.0? bY_m: bX_m);
+        double fieldAmplitude = refCharge * std::abs(amplitude / refCharge);
+        double designRadius = std::abs(refBetaGamma * refMass / (Physics::c * fieldAmplitude));
+        chordLength = sin(0.5 * (asin(getLength() / designRadius - sin(getEntranceAngle())) + getEntranceAngle())) * 2 * designRadius;
+    }
 
     return true;
 }
