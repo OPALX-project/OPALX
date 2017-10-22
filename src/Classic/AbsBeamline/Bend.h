@@ -100,7 +100,6 @@ public:
                             double &startField,
                             double &endField);
 
-    // double getBendAngle() const;
     double getBendRadius() const;
     double getEffectiveCenter() const;
     double getEffectiveLength() const;
