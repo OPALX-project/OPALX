@@ -2168,8 +2168,8 @@ Inform &PartBunchBase<T, Dim>::print(Inform &os) {
         os << level1 << "\n";
         os << "* ************** B U N C H ********************************************************* \n";
         os << "* NP              = " << getTotalNum() << "\n";
-        os << "* Qtot            = " << std::setw(17) << getTotalNum() * std::abs(qi_m) * 1.0e9 << " [nC]         "
-	   << "Qi    = "             << std::setw(17) << std::abs(qi_m) * 1.0e9 << " [nC]\n";
+        os << "* Qtot            = " << std::setw(17) << Util::getChargeString(std::abs(sum(Q))) << "         "
+	   << "Qi    = "             << std::setw(17) << Util::getChargeString(std::abs(qi_m)) << "\n";
         os << "* Ekin            = " << std::setw(17) << Util::getEnergyString(eKin_m) << "         "
            << "dEkin = "             << std::setw(17) << Util::getEnergyString(dE_m) << "\n";
         os << "* rmax            = " << Util::getLengthString(rmax_m, 5) << "\n";
@@ -2183,8 +2183,7 @@ Inform &PartBunchBase<T, Dim>::print(Inform &os) {
         os << "* hr              = " << Util::getLengthString(get_hr(), 5) << "\n";
         os << "* dh              = " << std::setw(13) << std::setprecision(5) << dh_m * 100 << " [%]\n";
         os << "* t               = " << std::setw(17) << Util::getTimeString(getT()) << "         "
-	  //           << "dT    = "             << std::setw(17) << Util::getTimeString(getdT()) << "\n";
-           << "dT    = "             << std::setw(17) << Util::getTimeString(this->dt[0]) << "\n";
+           << "dT    = "             << std::setw(17) << Util::getTimeString(getdT()) << "\n";
         os << "* spos            = " << std::setw(17) << Util::getLengthString(pathLength) << "\n";
         os << "* ********************************************************************************** " << endl;
         os.flags(ff);
