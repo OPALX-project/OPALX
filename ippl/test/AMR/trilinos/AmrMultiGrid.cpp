@@ -29,6 +29,9 @@ AmrMultiGrid::AmrMultiGrid(Interpolater interp,
             break;
         case Interpolater::LAGRANGE:
             std::runtime_error("Not yet implemented.");
+        case Interpolater::PIECEWISE_CONST:
+            interp_mp.reset( new AmrPCInterpolater<AmrMultiGridLevel_t>() );
+            break;
         default:
             std::runtime_error("No such interpolater available.");
     }
@@ -41,6 +44,9 @@ AmrMultiGrid::AmrMultiGrid(Interpolater interp,
         case Interpolater::LAGRANGE:
             interface_mp.reset( new AmrLagrangeInterpolater<AmrMultiGridLevel_t>(
                 AmrLagrangeInterpolater<AmrMultiGridLevel_t>::Order::QUADRATIC) );
+            break;
+        case Interpolater::PIECEWISE_CONST:
+            interface_mp.reset( new AmrPCInterpolater<AmrMultiGridLevel_t>() );
             break;
         default:
             std::runtime_error("No such interpolater for the coarse-fine interface available.");
@@ -125,6 +131,8 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         this->buildPotentialVector_m(*phi[ilev], lev);
         
         this->buildGradientMatrix_m(lev);
+        
+        nSweeps_m.push_back(nsmooth_m << (lev+1));
     }
     
     mglevel_m[lfine_m]->error_p->PutScalar(0.0);
@@ -284,7 +292,7 @@ void AmrMultiGrid::relax_m(int level) {
         mglevel_m[level-1]->error_p->PutScalar(0.0);
         
         // smoothing
-        for (std::size_t iii = 0; iii < nsmooth_m; ++iii)
+        for (std::size_t iii = 0; iii < nSweeps_m[level]; ++iii)
             this->gsrb_level_m(mglevel_m[level]->error_p,
                                mglevel_m[level]->residual_p, level);
         
@@ -323,7 +331,7 @@ void AmrMultiGrid::relax_m(int level) {
         Teuchos::RCP<vector_t> derror = Teuchos::rcp( new vector_t(*mglevel_m[level]->map_p, true) );
         
         // smoothing
-        for (std::size_t iii = 0; iii < nsmooth_m; ++iii)
+        for (std::size_t iii = 0; iii < nSweeps_m[level]; ++iii)
             this->gsrb_level_m(derror, mglevel_m[level]->residual_p, level);
         
         // e^(l) += de^(l)
@@ -520,6 +528,8 @@ void AmrMultiGrid::buildPoissonMatrix_m(int level) {
                                                                           &values[0],
                                                                           &indices[0]);
                     
+                    this->unique_m(bindices, bvalues);
+                    
                     error += mglevel_m[level]->B_p->InsertGlobalValues(globalidx,
                                                                        bindices.size(),
                                                                        &bvalues[0],
@@ -575,7 +585,7 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
     // number of internal stencil points
     int nIntBoundary = BL_SPACEDIM * interface_mp->getNumberOfPoints();
     
-    int nEntries = (BL_SPACEDIM << 1) + 1 /* plus boundaries */ +
+    int nEntries = (BL_SPACEDIM << 1) + 5 /* plus boundaries */ +
                    nPhysBoundary + nIntBoundary;
     
     const dmap_t& RowMap = *mglevel_m[level]->map_p;
@@ -729,7 +739,7 @@ void AmrMultiGrid::buildSpecialPoissonMatrix_m(int level) {
                                                                                indices.size(),
                                                                                &values[0],
                                                                                &indices[0]);
-                    
+                        
                         if ( error != 0 )
                             throw std::runtime_error("Error in filling the Poisson matrix for level "
                                                      + std::to_string(level) + "!");
