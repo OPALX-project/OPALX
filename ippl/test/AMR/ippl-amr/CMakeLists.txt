@@ -9,7 +9,7 @@ message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
 #     message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
     
 set (CMAKE_CXX_FLAGS
-    "-O3 ${CMAKE_CXX_FLAGS} -DUNIQUE_PTR"
+    "-O3 ${CMAKE_CXX_FLAGS} -DUNIQUE_PTR -funroll-all-loops -malign-double -ffast-math"
     )
     
 set (CMAKE_CXX_FLAGS
