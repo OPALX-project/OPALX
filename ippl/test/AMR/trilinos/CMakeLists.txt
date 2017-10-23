@@ -86,7 +86,7 @@ ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
     ${HOSTNAME_BASE} MATCHES "daint")
 
 
-set(F90_source_files ../Tagging_nd.f90 electrostatic_pic_3d.f90)
+set(F90_source_files ../Tagging_nd.f90g)
 
 # add_executable( testBoundaryVector testBoundaryVector.cpp)
 
