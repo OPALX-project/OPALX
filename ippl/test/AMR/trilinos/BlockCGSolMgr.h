@@ -28,7 +28,7 @@ public:
         params_mp = Teuchos::rcp( new Teuchos::ParameterList );
     //     params->set( "Block Size", 4 );
         params_mp->set("Maximum Iterations", 1000);
-        params_mp->set("Convergence Tolerance", 1.0e-9);
+        params_mp->set("Convergence Tolerance", 1.0e-2);
         params_mp->set("Block Size", 32);
         
         solver_mp = Teuchos::rcp( new solver_t() );

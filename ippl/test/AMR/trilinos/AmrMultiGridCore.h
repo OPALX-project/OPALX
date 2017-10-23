@@ -8,6 +8,7 @@
 // interpolaters
 #include "AmrTrilinearInterpolater.h"
 #include "AmrLagrangeInterpolater.h"
+#include "AmrPCInterpolater.h"
 
 // linear solvers
 #include "LinearSolver.h"

@@ -37,7 +37,7 @@ public:
     enum Interpolater {
         TRILINEAR = 0,
         LAGRANGE,
-//         TRICUBIC  = 1,
+        PIECEWISE_CONST
     };
     
     enum LinSolver {
@@ -213,6 +213,8 @@ private:
     
     std::size_t nIter_m;
     std::size_t nsmooth_m;
+    
+    std::vector<std::size_t> nSweeps_m;
     
     
     std::vector<std::unique_ptr<AmrMultiGridLevel_t > > mglevel_m;
