@@ -145,20 +145,20 @@ IF ( ${BL_SPACEDIM} EQUAL 3 )
                            -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
-    add_executable( testTrilinosSolver
-                testTrilinosSolver.cpp
-                ../AmrOpal.cpp
-                ../Solver.cpp
-                ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                EllipticDomain.cpp
-                AmrMultiGrid.cpp
-                AmrTrilinos.cpp)
+#     add_executable( testTrilinosSolver
+#                 testTrilinosSolver.cpp
+#                 ../AmrOpal.cpp
+#                 ../Solver.cpp
+#                 ${F90_source_files}
+#                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+#                 EllipticDomain.cpp
+#                 AmrMultiGrid.cpp
+#                 AmrTrilinos.cpp)
     
 
-target_link_libraries (testTrilinosSolver ${LIBS}
-                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+# target_link_libraries (testTrilinosSolver ${LIBS}
+#                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+#                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     add_executable( testBitPattern testBitPattern.cpp)
     
