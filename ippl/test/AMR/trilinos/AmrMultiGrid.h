@@ -224,6 +224,14 @@ private:
     int lbase_m;
     int lfine_m;
     
+    
+    
+    IpplTimings::TimerRef buildTimer_m;
+    IpplTimings::TimerRef restrictTimer_m;
+    IpplTimings::TimerRef smoothTimer_m;
+    IpplTimings::TimerRef interpTimer_m;
+    IpplTimings::TimerRef residnofineTimer_m;
+    
 };
 
 #endif
