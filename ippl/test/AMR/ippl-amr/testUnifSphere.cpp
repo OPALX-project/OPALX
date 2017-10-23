@@ -527,7 +527,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // solve
 #if AMR_MULTIGRID
     if ( params.useTrilinos ) {
-        AmrMultiGrid sol;
+        AmrMultiGrid sol(AmrMultiGrid::Interpolater::PIECEWISE_CONST);
         
         sol.setNumberOfSmoothing(params.smoothing);
     
