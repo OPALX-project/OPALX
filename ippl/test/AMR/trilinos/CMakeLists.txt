@@ -144,12 +144,6 @@ IF ( ${BL_SPACEDIM} EQUAL 3 )
     target_link_libraries (testCopy ${LIBS}
                            -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-
-    add_executable( testComplement testComplement.cpp)
-    
-    target_link_libraries (testComplement ${LIBS}
-                          -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
-                          ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     add_executable( testTrilinosSolver
                 testTrilinosSolver.cpp
