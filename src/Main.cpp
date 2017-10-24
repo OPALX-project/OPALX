@@ -100,7 +100,7 @@ void errorHandlerGSL(const char *reason,
                      int gsl_errno);
 
 
-bool haveOpimiseRun(int argc, char *argv[]) {
+bool haveOptimiseRun(int argc, char *argv[]) {
 
     namespace fs = boost::filesystem;
 
@@ -576,7 +576,7 @@ int main(int argc, char *argv[]) {
 
     int res;
 
-    if ((argc <= 1) || !haveOpimiseRun(argc, argv))
+    if ((argc <= 1) || !haveOptimiseRun(argc, argv))
         res = mainOPAL(argc, argv);
     else
         res = mainOPALOptimiser(argc, argv);
