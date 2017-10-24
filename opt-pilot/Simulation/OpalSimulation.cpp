@@ -8,6 +8,7 @@
 #include <dirent.h>
 #include <cstdlib>
 #include <vector>
+#include <ctime>
 
 #include "Simulation/OpalSimulation.h"
 
@@ -30,7 +31,6 @@
 #include "opal.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
-
 
 OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
                                Expressions::Named_t constraints,
@@ -64,17 +64,36 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
         userVariables_.insert(
             std::pair<std::string, std::string>(parameter.first, value.str()));
     }
-
+    
+    /*
+      This is a copy from Comm/Splitter/ManyMasterSplit.h
+      in order to calculate the leader which is the unique ID in case
+      of more than one core per worker.
+    */
 
     int my_rank=0;
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    int world_size=0;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    unsigned num_coworkers_worker_ = 0;
+    num_coworkers_worker_ = args->getArg<size_t>("num-coworkers");
+    
+    unsigned group_start = 0;
+
+    unsigned worker_group = ((my_rank % world_size) - 2) / num_coworkers_worker_;
+
+    unsigned leader_ = group_start + 2 + worker_group * num_coworkers_worker_;
+    leader_ = leader_ % world_size;
 
     // hash the dictionary to get a short unique directory name for temporary
     // simulation data
-    std::string hash = HashNameGenerator::generate(dict);
+    std::string hash = HashNameGenerator::generate(dict,leader_);
     std::ostringstream tmp;
     tmp.precision(15);
-    tmp << simTmpDir_ << "/" << hash ; // ADA << "_" << my_rank;
+        
+    tmp << simTmpDir_ << "/" << hash; 
+
     simulationDirName_ = tmp.str();
 
     if(getenv("TEMPLATES") == NULL) {
@@ -93,7 +112,6 @@ OpalSimulation::~OpalSimulation() {
     requestedVars_.clear();
     userVariables_.clear();
 }
-
 
 bool OpalSimulation::hasResultsAvailable() {
 
