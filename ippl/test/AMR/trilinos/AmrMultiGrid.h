@@ -44,9 +44,16 @@ public:
         BLOCK_CG = 0
     };
     
+    
+    enum Boundary {
+        DIRICHLET = 0,
+        OPEN
+    };
+    
 public:
     
-    AmrMultiGrid(Interpolater interp = Interpolater::TRILINEAR,
+    AmrMultiGrid(Boundary bc = Boundary::DIRICHLET,
+                 Interpolater interp = Interpolater::TRILINEAR,
                  Interpolater interface = Interpolater::LAGRANGE,
                  LinSolver solver = LinSolver::BLOCK_CG);
     
@@ -224,6 +231,7 @@ private:
     int lbase_m;
     int lfine_m;
     
+    Boundary bc_m;
     
     
     IpplTimings::TimerRef buildTimer_m;

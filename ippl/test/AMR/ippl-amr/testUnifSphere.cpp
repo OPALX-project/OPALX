@@ -60,6 +60,7 @@ struct param_t {
 #if AMR_MULTIGRID
     bool useTrilinos;
     size_t smoothing;
+    AmrMultiGrid::Boundary bc;
 #endif
     AmrOpal::TaggingCriteria criteria;
     double tagfactor;
@@ -85,6 +86,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 #if AMR_MULTIGRID
     params.useTrilinos = false;
     params.smoothing = 12;
+    params.bc = AmrMultiGrid::Boundary::DIRICHLET;
 #endif
     
     
@@ -113,6 +115,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 #if AMR_MULTIGRID
             { "use-trilinos",   no_argument,       0, 'a' },
             { "smoothing",      required_argument, 0, 'g' },
+            { "bc",             required_argument, 0, 'j' },
 #endif
             { "tagging",        required_argument, 0, 't' },
             { "tagging-factor", required_argument, 0, 'f' },
@@ -136,6 +139,18 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.useTrilinos = true; break;
             case 'g':
                 params.smoothing = std::atoi(optarg); break;
+            case 'j':
+            {
+                std::string bc = optarg;
+                
+                if ( bc == "dirichlet" )
+                    params.bc = AmrMultiGrid::Boundary::DIRICHLET;
+                else if ( bc == "open" )
+                    params.bc = AmrMultiGrid::Boundary::OPEN;
+                else
+                    throw std::runtime_error("Error: Check boundary condition argument");
+                break;
+            }
 #endif
             case 'x':
                 params.nr[0] = std::atoi(optarg); ++cnt; break;
@@ -197,6 +212,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 #if AMR_MULTIGRID
                     << "--use-trilinos (optional)" << endl
                     << "--smoothing (optional, trilinos only, default: 12)" << endl
+                    << "--bc (optional, dirichlet or open, default: dirichlet)" << endl
 #endif
                     << "--tagging charge (default) / efield / potential (optional)" << endl
                     << "--tagfactor [charge value / 0 ... 1] (optiona)" << endl;
@@ -527,7 +543,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // solve
 #if AMR_MULTIGRID
     if ( params.useTrilinos ) {
-        AmrMultiGrid sol(AmrMultiGrid::Interpolater::PIECEWISE_CONST);
+        AmrMultiGrid sol(params.bc, AmrMultiGrid::Interpolater::PIECEWISE_CONST);
         
         sol.setNumberOfSmoothing(params.smoothing);
     
