@@ -13,13 +13,15 @@
     #include <fstream>
 #endif
 
-AmrMultiGrid::AmrMultiGrid(Interpolater interp,
+AmrMultiGrid::AmrMultiGrid(Boundary bc,
+                           Interpolater interp,
                            Interpolater interface,
                            LinSolver solver)
     : nIter_m(0),
       nsmooth_m(12),
       lbase_m(0),
-      lfine_m(0)
+      lfine_m(0),
+      bc_m(bc)
 {
     buildTimer_m        = IpplTimings::getTimer("build");
     restrictTimer_m     = IpplTimings::getTimer("restrict");
@@ -88,21 +90,30 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     for (int lev = 0; lev < nLevel; ++lev) {
         int ilev = lbase + lev;
         
-        if ( lev == 0 ) {
-            mglevel_m[lev].reset(new AmrMultiGridLevel_t(rho[ilev]->boxArray(),
-                                                         rho[ilev]->DistributionMap(),
-                                                         geom[ilev],
-                                                         rr,
-                                                         new AmrDirichletBoundary<AmrMultiGridLevel_t>(), 
-                                                         comm_mp));
-        } else {
-            // all higher levels have Dirichlet BC
-            mglevel_m[lev].reset(new AmrMultiGridLevel_t(rho[ilev]->boxArray(),
-                                                         rho[ilev]->DistributionMap(),
-                                                         geom[ilev],
-                                                         rr,
-                                                         new AmrDirichletBoundary<AmrMultiGridLevel_t>(), 
-                                                         comm_mp));
+        switch ( bc_m ) {
+            
+            case Boundary::DIRICHLET:
+            {
+                mglevel_m[lev].reset(new AmrMultiGridLevel_t(rho[ilev]->boxArray(),
+                                                             rho[ilev]->DistributionMap(),
+                                                             geom[ilev],
+                                                             rr,
+                                                             new AmrDirichletBoundary<AmrMultiGridLevel_t>(), 
+                                                             comm_mp));
+                break;
+            }
+            case Boundary::OPEN:
+            {
+                mglevel_m[lev].reset(new AmrMultiGridLevel_t(rho[ilev]->boxArray(),
+                                                             rho[ilev]->DistributionMap(),
+                                                             geom[ilev],
+                                                             rr,
+                                                             new AmrOpenBoundary<AmrMultiGridLevel_t>(),
+                                                             comm_mp));
+                break;
+            }
+            default:
+                throw std::runtime_error("Error: This type of boundary is not supported");
         }
     }
     
@@ -140,7 +151,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         
         this->buildGradientMatrix_m(lev);
         
-        nSweeps_m.push_back(nsmooth_m/* << (lev+1)*/);
+        nSweeps_m.push_back(nsmooth_m >> lev);
     }
     IpplTimings::stopTimer(buildTimer_m);
     
@@ -363,9 +374,19 @@ void AmrMultiGrid::relax_m(int level) {
         mglevel_m[level]->A_p->Scale(-1.0);
         mglevel_m[level]->residual_p->Scale(-1.0);
         
+        
+        double tol = 0.0;
+        mglevel_m[level]->residual_p->MinValue(&tol);
+        
+        tol = std::abs(tol) * 1.0e-1;
+        
+        tol = std::min(tol + 1.0e-9, 1.0e-1);
+        
+        std::cout << tol << std::endl; std::cin.get();
+        
         solver_mp->solve(mglevel_m[level]->A_p,
                          mglevel_m[level]->error_p,
-                         mglevel_m[level]->residual_p);
+                         mglevel_m[level]->residual_p, tol);
         
         mglevel_m[level]->A_p->Scale(-1.0);
         mglevel_m[level]->residual_p->Scale(-1.0);
@@ -1820,8 +1841,13 @@ void AmrMultiGrid::restrict_m(int level) {
                              mglevel_m[level]->error_p,
                              mglevel_m[level+1]->residual_p, level+1);
     
+//     std::cout << *tmp << std::endl;
+    
     // average down: residual^(l-1) = R^(l) * tmp
     mglevel_m[level+1]->R_p->Apply(*tmp, *mglevel_m[level]->residual_p);
+    
+    
+//     std::cout << *mglevel_m[level]->residual_p << std::endl;
     
     // special matrix, i.e. matrix without covered cells
     // r^(l-1) = rho^(l-1) - A * phi^(l-1)
@@ -1848,6 +1874,8 @@ void AmrMultiGrid::restrict_m(int level) {
     
     // ONLY subtract coarse rho
     mglevel_m[level]->residual_p->Update(1.0, *tmp3, -1.0, tmp2, 1.0);
+    
+//     std::cout << *mglevel_m[level]->residual_p << std::endl; std::cin.get();
 }
 
 
