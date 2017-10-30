@@ -72,9 +72,9 @@ AmrMultiGridLevel<MatrixType, VectorType>::~AmrMultiGridLevel()
 template <class MatrixType, class VectorType>
 int AmrMultiGridLevel<MatrixType, VectorType>::serialize(const AmrIntVect_t& iv) const {
 #if BL_SPACEDIM == 3
-    return iv[0] + (iv[1] + nr_m[1] * iv[2]) * nr_m[0];
+    return iv[2] + (iv[1] + nr_m[1] * iv[0]) * nr_m[2];
 #else
-    return iv[0] + iv[1] * nr_m[0];
+    return iv[1] + iv[0] * nr_m[1];
 #endif
 }
 
