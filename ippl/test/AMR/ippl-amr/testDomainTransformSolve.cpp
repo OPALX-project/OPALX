@@ -50,6 +50,10 @@
 
 #include "Physics/Physics.h"
 
+#include <getopt.h>
+
+
+
 typedef AmrOpal::amrplayout_t amrplayout_t;
 typedef AmrOpal::amrbase_t amrbase_t;
 typedef AmrOpal::amrbunch_t amrbunch_t;
@@ -58,6 +62,112 @@ typedef Vektor<double, BL_SPACEDIM> Vector_t;
 typedef std::array<double, BL_SPACEDIM> bc_t;
 
 // #include "../AmrWriter.h"
+
+struct param_t {
+    Vektor<size_t, 3> nr;
+    size_t nLevels;
+    size_t maxBoxSize;
+    bool scaling;
+    bool isHelp;
+    bool isWriteYt;
+};
+
+
+bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
+    /* Parsing Command Line Arguments
+     * 
+     * 26. June 2017
+     * https://www.gnu.org/software/libc/manual/html_node/Getopt-Long-Option-Example.html#Getopt-Long-Option-Example
+     */
+    
+    params.isHelp = false;
+    
+    int c = 0;
+    
+    int cnt = 0;
+    
+    int required = 5;
+    
+    params.scaling = false;
+    params.isWriteYt = false;
+    
+    while ( true ) {
+        static struct option long_options[] = {
+            { "gridx",          required_argument, 0, 'x' },
+            { "gridy",          required_argument, 0, 'y' },
+            { "gridz",          required_argument, 0, 'z' },
+            { "level",          required_argument, 0, 'l' },
+            { "maxgrid",        required_argument, 0, 'm' },
+            { "help",           no_argument,       0, 'h' },
+            { "scaling",        no_argument,       0, 's' },
+            { "writeYt",        no_argument,       0, 'w' },
+            { 0,                0,                 0,  0  }
+        };
+        
+        int option_index = 0;
+        
+        c = getopt_long(argc, argv, "x:y:z:l:m:hs", long_options, &option_index);
+        
+        if ( c == -1 )
+            break;
+        
+        switch ( c ) {
+            case 'x':
+                params.nr[0] = std::atoi(optarg); ++cnt; break;
+            case 'y':
+                params.nr[1] = std::atoi(optarg); ++cnt; break;
+            case 'z':
+                params.nr[2] = std::atoi(optarg); ++cnt; break;
+            case 'l':
+                params.nLevels = std::atoi(optarg) + 1; ++cnt; break;
+            case 'm':
+                params.maxBoxSize = std::atoi(optarg); ++cnt; break;
+            case 's':
+                params.scaling = true;
+                break;
+            case 'w':
+                params.isWriteYt = true;
+                break;
+            case 'h':
+                msg << "Usage: " << argv[0]
+                    << endl
+                    << "--gridx [#gridpoints in x]" << endl
+                    << "--gridy [#gridpoints in y]" << endl
+                    << "--gridz [#gridpoints in z]" << endl
+                    << "--level [#levels]" << endl
+                    << "--maxgrid [max. grid]" << endl
+                    << "--scaling (optional)" << endl
+                    << "--writeYt (optional)" << endl;
+                params.isHelp = true;
+                break;
+            case '?':
+                break;
+            
+            default:
+                break;
+            
+        }
+    }
+    
+    return ( cnt == required );
+}
+
+
+void writeYt(container_t& rho,
+             const container_t& phi,
+             const container_t& efield,
+             const Array<Geometry>& geom,
+             const Array<int>& rr,
+             const double& scalefactor,
+             std::string dir)
+{
+    double time = 0.0;
+    
+    for (unsigned int i = 0; i < rho.size(); ++i)
+        rho[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
+    
+    writePlotFile(dir, rho, phi, efield, rr, geom, time, scalefactor);
+}
 
 
 void initSphere(double r, amrbunch_t* bunch, int nParticles) {
@@ -289,8 +399,7 @@ void doSolve(AmrOpal* myAmrOpal, amrbunch_t* bunch,
 //     bunch->E *= vscale;
 }
 
-void doWithScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
-                   int nLevels, size_t maxBoxSize, Inform& msg)
+void doWithScaling(const param_t& params, size_t nParticles, Inform& msg)
 {
     bc_t lower = {{-1.025, -1.025, -1.025}}; // m
     bc_t upper = {{ 1.025,  1.025,  1.025}}; // m
@@ -299,8 +408,8 @@ void doWithScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
     AmrOpal* myAmrOpal = 0;
     std::unique_ptr<amrbunch_t> bunch;
     
-    setup(myAmrOpal, bunch, lower, upper, nr,
-          nParticles, nLevels, maxBoxSize, msg);
+    setup(myAmrOpal, bunch, lower, upper, params.nr,
+          nParticles, params.nLevels, params.maxBoxSize, msg);
     
     
     container_t rhs;
@@ -314,6 +423,8 @@ void doWithScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     scale = domainMapping(*bunch, scale);
     
+    msg << "Scale: " << scale << endl;
+    
     msg << endl << "Transformed positions" << endl << endl;
     
     bunch->update();
@@ -323,7 +434,7 @@ void doWithScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     msg << "Multi-level statistics" << endl;
     bunch->gatherStatistics();
-    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, nLevels, msg, scale);
+    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, params.nLevels, msg, scale);
     
     msg << endl << "Back to normal positions" << endl << endl;
     
@@ -355,62 +466,38 @@ void doWithScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
     }
     
     
-    std::ofstream out;
-    for (int i = 0; i < Ippl::getNodes(); ++i) {
-        
-        if ( i == Ippl::myNode() ) {
-            
-            if ( i == 0 )
-                out.open("scaling.dat", std::ios::out);
-            else
-                out.open("scaling.dat", std::ios::app);
-            
-            for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
-                out << bunch->E[i](0) << " "
-                    << bunch->E[i](1) << " "
-                    << bunch->E[i](2) << std::endl;
-            out.close();
-        }
-        Ippl::Comm->barrier();
-    }
-    
-    Array<int> rr(nLevels);
-    for (int i = 0; i < nLevels; ++i)
-        rr[i] = 2;
-    
-    const Array<Geometry>& geom = myAmrOpal->Geom();
-    std::string plotsolve = amrex::Concatenate("plt", 0, 4);
-    writePlotFile(plotsolve, rhs, phi, efield, rr, geom, 0);
-    
-//     Array<std::string> varnames;
-//     varnames.push_back("potential");
-
-//     Array<std::string> particle_varnames;
-//     particle_varnames.push_back("mass");
-
-//     Array<int> level_steps;
-//     level_steps.push_back(0);
-//     level_steps.push_back(0);
-
-//     int output_levs = nLevels;
-
-//     Array<const MultiFab*> outputMF(output_levs);
-//     Array<IntVect> outputRR(output_levs);
-//     for (int lev = 0; lev < output_levs; ++lev) {
-//         outputMF[lev] = phi[lev].get();
-//         outputRR[lev] = IntVect(2, 2, 2);
+//     std::ofstream out;
+//     for (int i = 0; i < Ippl::getNodes(); ++i) {
+//         
+//         if ( i == Ippl::myNode() ) {
+//             
+//             if ( i == 0 )
+//                 out.open("scaling.dat", std::ios::out);
+//             else
+//                 out.open("scaling.dat", std::ios::app);
+//             
+//             for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
+//                 out << bunch->E[i](0) << " "
+//                     << bunch->E[i](1) << " "
+//                     << bunch->E[i](2) << std::endl;
+//             out.close();
+//         }
+//         Ippl::Comm->barrier();
 //     }
     
-//     const Array<Geometry>& geom = myAmrOpal->Geom();
-//     WriteMultiLevelPlotfile("plt00000", output_levs, outputMF, 
-//                             varnames, geom, 0.0, level_steps, outputRR);
-//     myPC.Checkpoint("plt00000", "particle0", true, particle_varnames);
+    Array<int> rr(params.nLevels);
+    for (size_t i = 0; i < params.nLevels; ++i)
+        rr[i] = 2;
+    
+    if ( params.isWriteYt ) {
+        const Array<Geometry>& geom = myAmrOpal->Geom();
+        writeYt(rhs, phi, efield, geom, rr, scale, "yt-scaling");
+    }
     
     delete myAmrOpal;
 }
 
-void doWithoutScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
-                      int nLevels, size_t maxBoxSize, Inform& msg)
+void doWithoutScaling(const param_t& params, size_t nParticles, Inform& msg)
 {
 //     double max = 1.025 * 0.004843681885; // 1e3 particles
 //     double max = 1.025 * 0.004996545409; // 1e6 particles
@@ -421,8 +508,8 @@ void doWithoutScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
     AmrOpal* myAmrOpal = 0;
     std::unique_ptr<amrbunch_t> bunch;
     
-    setup(myAmrOpal, bunch, lower, upper, nr,
-          nParticles, nLevels, maxBoxSize, msg);
+    setup(myAmrOpal, bunch, lower, upper, params.nr,
+          nParticles, params.nLevels, params.maxBoxSize, msg);
     
     container_t rhs;
     container_t phi;
@@ -442,7 +529,7 @@ void doWithoutScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
     bunch->gatherStatistics();
     
     
-    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, nLevels, msg, scale);
+    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, params.nLevels, msg, scale);
     
     for (int i = 0; i <= myAmrOpal->finestLevel(); ++i) {
         if ( efield[i]->contains_nan(false) )
@@ -460,33 +547,34 @@ void doWithoutScaling(const Vektor<size_t, 3>& nr, size_t nParticles,
             << "Min. ex-field level " << i << ": " << efield[i]->min(2) << endl;
     }
     
-    std::ofstream out;
-    for (int i = 0; i < Ippl::getNodes(); ++i) {
-        
-        if ( i == Ippl::myNode() ) {
-            
-            if ( i == 0 )
-                out.open("no_scaling.dat", std::ios::out);
-            else
-                out.open("no_scaling.dat", std::ios::app);
-            
-            for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
-                out << bunch->E[i](0) << " "
-                    << bunch->E[i](1) << " "
-                    << bunch->E[i](2) << std::endl;
-            out.close();
-        }
-        Ippl::Comm->barrier();
-    }
+//     std::ofstream out;
+//     for (int i = 0; i < Ippl::getNodes(); ++i) {
+//         
+//         if ( i == Ippl::myNode() ) {
+//             
+//             if ( i == 0 )
+//                 out.open("no_scaling.dat", std::ios::out);
+//             else
+//                 out.open("no_scaling.dat", std::ios::app);
+//             
+//             for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
+//                 out << bunch->E[i](0) << " "
+//                     << bunch->E[i](1) << " "
+//                     << bunch->E[i](2) << std::endl;
+//             out.close();
+//         }
+//         Ippl::Comm->barrier();
+//     }
     
     
-    Array<int> rr(nLevels);
-    for (int i = 0; i < nLevels; ++i)
+    Array<int> rr(params.nLevels);
+    for (size_t i = 0; i < params.nLevels; ++i)
         rr[i] = 2;
     
-    const Array<Geometry>& geom = myAmrOpal->Geom();
-    std::string plotsolve = amrex::Concatenate("plt", 0, 4);
-    writePlotFile(plotsolve, rhs, phi, efield, rr, geom, 0);
+    if ( params.isWriteYt ) {
+        const Array<Geometry>& geom = myAmrOpal->Geom();
+        writeYt(rhs, phi, efield, geom, rr, scale, "yt-no-scaling");
+    }
     
     delete myAmrOpal;
 }
@@ -497,39 +585,37 @@ int main(int argc, char *argv[]) {
     Ippl ippl(argc, argv);
     
     Inform msg("Solver");
+    
+    param_t params;
 
-    std::stringstream call;
-    call << "Call: mpirun -np [#procs] " << argv[0]
-         << " [#gridpoints x] [#gridpoints y] [#gridpoints z] "
-         << "[#levels] [max. box size] [w or w/o scaling]";
-    
-    if ( argc < 7 ) {
-        msg << call.str() << endl;
-        return -1;
-    }
-    
-    // number of grid points in each direction
-    Vektor<size_t, 3> nr(std::atoi(argv[1]),
-                         std::atoi(argv[2]),
-                         std::atoi(argv[3]));
-    
-    
-    size_t nParticles = 1e7;
-    
-    msg << "Particle test running with" << endl
-        << "- #particles = " << nParticles << endl
-        << "- grid       = " << nr << endl;
-        
     amrex::Initialize(argc,argv, false);
-    size_t nLevels = std::atoi(argv[4]) + 1; // i.e. nLevels = 0 --> only single level
-    size_t maxBoxSize = std::atoi(argv[5]);
     
-    if ( std::atoi( argv[6] ) ) {
-        msg << "With Scaling" << endl;
-        doWithScaling(nr, nParticles, nLevels, maxBoxSize, msg);
-    } else {
-        msg << "Without Scaling" << endl;
-        doWithoutScaling(nr, nParticles, nLevels, maxBoxSize, msg);
+    try {
+        if ( !parseProgOptions(argc, argv, params, msg) && !params.isHelp )
+            throw std::runtime_error("\033[1;31mError: Check the program options.\033[0m");
+        else if ( params.isHelp )
+            return 0;
+        
+        
+        size_t nParticles = 1e7;
+        
+        std::string scale = "no";
+        
+        if ( params.scaling )
+            scale = "yes";
+    
+        msg << "Particle test running with" << endl
+            << "- #particles = " << nParticles << endl
+            << "- grid       = " << params.nr << endl
+            << "- scaling    = " << scale << endl;
+        
+        if ( params.scaling )
+            doWithScaling(params, nParticles, msg);
+        else
+            doWithoutScaling(params, nParticles, msg);
+        
+    } catch(const std::exception& ex) {
+        msg << ex.what() << endl;
     }
     
     return 0;
