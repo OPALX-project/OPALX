@@ -787,10 +787,11 @@ int main(int argc, char *argv[]) {
         if ( params.useMgtSolver )
             msg << "- MGT solver is used" << endl;
         
+#if AMR_MULTIGRID
         if ( params.useTrilinos )
             msg << "- Trilinos solver is used with " << params.smoothing
                 << " relaxation steps." << endl;
-            
+#endif
         doAMReX(params, msg);
         
     } catch(const std::exception& ex) {
