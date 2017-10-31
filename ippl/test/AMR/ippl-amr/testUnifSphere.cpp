@@ -519,7 +519,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
     
     // eps in C / (V * m)
-    double constant = -1.0 / Physics::epsilon_0 * scale;  // in [V m / C]
+    double constant = -1.0 / Physics::epsilon_0 ; //* scale;  // in [V m / C]
     for (int i = 0; i <= finest_level; ++i) {
         rhs[i]->mult(constant, 0, 1);       // in [V m]
     }
@@ -584,12 +584,12 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     
     // undo normalization
     for (int i = 0; i <= finest_level; ++i) {
-        phi[i]->mult(l0norm/*[i]*/, 0, 1);
+        phi[i]->mult(scale * l0norm/*[i]*/, 0, 1);
     }
     
     // undo scale
     for (int i = 0; i <= finest_level; ++i)
-        efield[i]->mult(scale * l0norm/*[i]*/, 0, 3);
+        efield[i]->mult(scale * scale * l0norm/*[i]*/, 0, 3);
     
     IpplTimings::stopTimer(solvTimer);
 }
@@ -685,6 +685,10 @@ void doAMReX(const param_t& params, Inform& msg)
     double scale = 1.0;
     
     scale = domainMapping(*bunch, scale);
+    
+    msg << "Scale: " << scale << endl;
+    
+    
     // redistribute on single-level
     bunch->update();
     
