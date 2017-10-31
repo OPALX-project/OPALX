@@ -17,6 +17,22 @@
 
 extern Inform *gmsg;
 
+namespace {
+#if defined (USE_H5HUT2)
+    const h5_int64_t H5TypesCHAR = H5_STRING_T;
+    const h5_int64_t H5TypesFLOAT = H5_FLOAT32_T;
+    const h5_int64_t H5TypesDOUBLE = H5_FLOAT64_T;
+    const h5_int64_t H5TypesINT32 = H5_INT32_T;
+    const h5_int64_t H5TypesINT64 = H5_INT64_T;
+#else
+    const h5_int64_t H5TypesCHAR = H5T_NATIVE_CHAR;
+    const h5_int64_t H5TypesFLOAT = H5T_NATIVE_FLOAT;
+    const h5_int64_t H5TypesDOUBLE = H5T_NATIVE_DOUBLE;
+    const h5_int64_t H5TypesINT32 = H5T_NATIVE_INT32;
+    const h5_int64_t H5TypesINT64 = H5T_NATIVE_INT64;
+#endif
+}
+
 std::string H5PartWrapper::copyFilePrefix_m = ".copy";
 
 H5PartWrapper::H5PartWrapper(const std::string &fileName, h5_int32_t flags):
@@ -76,7 +92,7 @@ void H5PartWrapper::open(h5_int32_t flags) {
     assert (file_m != (void*)H5_ERR);
 #endif
 
-    
+
 }
 
 void H5PartWrapper::storeCavityInformation() {
@@ -215,9 +231,15 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
             numSteps_m = numStepsInSource;
 
         } else {
-
             copyHeader(source);
 
+            if (lastStep < 0) {
+                if (-lastStep > numStepsInSource) {
+                    lastStep = 0;
+                } else {
+                    lastStep = numStepsInSource + lastStep;
+                }
+            }
             // don't copy the whole file, it takes very long
             copyStep(source, lastStep);
             ++ numSteps_m;
@@ -284,13 +306,6 @@ void H5PartWrapper::copyHeader(
     h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
     h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(&buffer[0]);
     h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
-
-    const h5_int64_t H5TypesCHAR = H5T_NATIVE_CHAR;
-    const h5_int64_t H5TypesFLOAT = H5T_NATIVE_FLOAT;
-    const h5_int64_t H5TypesDOUBLE = H5T_NATIVE_DOUBLE;
-    const h5_int64_t H5TypesINT32 = H5T_NATIVE_INT32;
-    const h5_int64_t H5TypesINT64 = H5T_NATIVE_INT64;
-
     for (h5_int64_t i = 0; i < numFileAttributes; ++ i) {
         REPORTONERROR(H5GetFileAttribInfo(source,
                                           i,
@@ -382,12 +397,6 @@ void H5PartWrapper::copyStepHeader(
     h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(&buffer[0]);
     h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
 
-    const h5_int64_t H5TypesCHAR = H5T_NATIVE_CHAR;
-    const h5_int64_t H5TypesFLOAT = H5T_NATIVE_FLOAT;
-    const h5_int64_t H5TypesDOUBLE = H5T_NATIVE_DOUBLE;
-    const h5_int64_t H5TypesINT32 = H5T_NATIVE_INT32;
-    const h5_int64_t H5TypesINT64 = H5T_NATIVE_INT64;
-
     READSTEPATTRIB(String, source, "OPAL_flavour", &buffer[0]);
     predecessorOPALFlavour_m = std::string(&buffer[0]);
 
@@ -465,7 +474,6 @@ void H5PartWrapper::copyStepData(
     h5_ssize_t lastParticle = firstParticle + numParticlesPerNode - 1;
     if (Ippl::myNode() == Ippl::getNodes() - 1)
         lastParticle = numParticles - 1;
-
     REPORTONERROR(H5PartSetView(source, firstParticle, lastParticle));
 
     numParticles = lastParticle - firstParticle + 1;
@@ -482,7 +490,7 @@ void H5PartWrapper::copyStepData(
     const h5_int64_t H5TypesINT32 = H5_INT32_T;
     const h5_int64_t H5TypesINT64 = H5_INT64_T;
 
-   h5_ssize_t numDatasets = H5PartGetNumDatasets(source);
+    h5_ssize_t numDatasets = H5PartGetNumDatasets(source);
 
     for (h5_ssize_t i = 0; i < numDatasets; ++ i) {
         REPORTONERROR(H5PartGetDatasetInfo(source, i, setName, lengthSetName, &setType, &numSetElements));
@@ -547,7 +555,7 @@ size_t H5PartWrapper::getNumParticles() const {
 
 // vi: set et ts=4 sw=4 sts=4:
 // Local Variables:
-// mode:c
+// mode:c++
 // c-basic-offset: 4
 // indent-tabs-mode:nil
 // End:
