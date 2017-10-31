@@ -161,7 +161,7 @@ int DataSink::writePhaseSpace_cycl(PartBunch &beam, Vector_t FDext[], double mea
                                    double azimuth, double elevation, bool local) {
 
     if (!doHDF5_m) return -1;
-    if (beam.getLocalNum() < 3) return -1; // in single particle mode and tune calculation (2 particles) we do not need h5 data
+    if (beam.getTotalNum() < 3) return -1; // in single particle mode and tune calculation (2 particles) we do not need h5 data
 
     IpplTimings::startTimer(H5PartTimer_m);
     std::map<std::string, double> additionalAttributes = {
