@@ -7,7 +7,7 @@ class LinearSolver {
 public:
     virtual void solve(const MatrixType& A,
                        VectorType& x,
-                       const VectorType& b) = 0;
+                       const VectorType& b, double tol) = 0;
     
     virtual void residual(VectorType& r, const VectorType& x, const VectorType& b) = 0;
     

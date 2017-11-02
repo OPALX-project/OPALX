@@ -37,7 +37,7 @@ public:
     enum Interpolater {
         TRILINEAR = 0,
         LAGRANGE,
-//         TRICUBIC  = 1,
+        PIECEWISE_CONST
     };
     
     enum LinSolver {
@@ -48,11 +48,16 @@ public:
         GAUSS_SEIDEL = 0,
         JACOBI,
         SOR
+    
+    enum Boundary {
+        DIRICHLET = 0,
+        OPEN
     };
     
 public:
     
-    AmrMultiGrid(Interpolater interp = Interpolater::TRILINEAR,
+    AmrMultiGrid(Boundary bc = Boundary::DIRICHLET,
+                 Interpolater interp = Interpolater::TRILINEAR,
                  Interpolater interface = Interpolater::LAGRANGE,
                  LinSolver solver = LinSolver::BLOCK_CG);
     
@@ -221,6 +226,8 @@ private:
     std::size_t nIter_m;
     std::size_t nsmooth_m;
     
+    std::vector<std::size_t> nSweeps_m;
+    
     
     std::vector<std::unique_ptr<AmrMultiGridLevel_t > > mglevel_m;
     
@@ -228,6 +235,15 @@ private:
     
     int lbase_m;
     int lfine_m;
+    
+    Boundary bc_m;
+    
+    
+    IpplTimings::TimerRef buildTimer_m;
+    IpplTimings::TimerRef restrictTimer_m;
+    IpplTimings::TimerRef smoothTimer_m;
+    IpplTimings::TimerRef interpTimer_m;
+    IpplTimings::TimerRef residnofineTimer_m;
     
 };
 
