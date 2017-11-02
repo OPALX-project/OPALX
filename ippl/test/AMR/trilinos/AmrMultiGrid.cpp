@@ -376,13 +376,13 @@ void AmrMultiGrid::relax_m(int level) {
         
         
         double tol = 0.0;
-        mglevel_m[level]->residual_p->MaxValue(&tol);
+        mglevel_m[lfine_m]->residual_p->MaxValue(&tol);
         
         tol = std::abs(tol) * 1.0e-1;
         
         tol = std::min(tol, 1.0e-1);
         
-        std::cout << tol << std::endl; std::cin.get();
+        std::cout << tol << std::endl; //std::cin.get();
         
         solver_mp->solve(mglevel_m[level]->A_p,
                          mglevel_m[level]->error_p,

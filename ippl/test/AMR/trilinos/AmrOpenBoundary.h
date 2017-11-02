@@ -58,7 +58,7 @@ void AmrOpenBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
     
     // cell size in direction
     double h = 1.0 / double(nr[d]);
-    double r = 0.7165;
+    double r = 0.715;
     
     // 1st order
     indices.push_back( mglevel->serialize(niv) );
