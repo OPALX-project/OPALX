@@ -326,7 +326,7 @@ void AmrBoxLib::computeSelfFields() {
 #endif
     
         sliceWriter.writeFields(rho_m, phi_m, efield_m,
-                                AmrIntArray_t(), this->geom, step);
+                                AmrIntArray_t(), this->geom, step, scalefactor);
 #endif
     }
 }
@@ -460,7 +460,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
 #endif
     
     sliceWriter.writeFields(rho_m, phi_m, efield_m,
-                            AmrIntArray_t(), this->geom, step);
+                            AmrIntArray_t(), this->geom, step, scalefactor);
 #endif
 }
 
@@ -579,7 +579,7 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
 #endif
     
         sliceWriter.writeFields(rho_m, phi_m, efield_m,
-                                AmrIntArray_t(), this->geom, step);
+                                AmrIntArray_t(), this->geom, step, scalefactor);
 #endif
     }
 }

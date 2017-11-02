@@ -9,7 +9,7 @@ message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
 #     message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
     
 set (CMAKE_CXX_FLAGS
-    "-O3 ${CMAKE_CXX_FLAGS} -DUNIQUE_PTR"
+    "-O3 ${CMAKE_CXX_FLAGS} -DUNIQUE_PTR -funroll-all-loops -malign-double -ffast-math"
     )
     
 set (CMAKE_CXX_FLAGS
@@ -179,9 +179,32 @@ if ( ENABLE_SAAMG_SOLVER )
                     ../MGTSolver.cpp
                     ../Solver.cpp
                     ../trilinos/AmrMultiGrid.cpp)
+    
+    add_executable( testReal
+                    testReal.cpp
+                    ../AmrOpal.cpp
+                    AmrParticleBase.hpp
+                    ../Distribution.cpp
+                    ../H5Reader.cpp
+                    ${F90_source_files}
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ../MGTSolver.cpp
+                    ../Solver.cpp
+                    ../trilinos/AmrMultiGrid.cpp)
 else ()
     add_executable( testUnifSphere
                     testUnifSphere.cpp
+                    ../AmrOpal.cpp
+                    AmrParticleBase.hpp
+                    ../Distribution.cpp
+                    ../H5Reader.cpp
+                    ${F90_source_files}
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ../MGTSolver.cpp
+                    ../Solver.cpp)
+    
+    add_executable( testReal
+                    testReal.cpp
                     ../AmrOpal.cpp
                     AmrParticleBase.hpp
                     ../Distribution.cpp
@@ -257,6 +280,10 @@ target_link_libraries (testGaussian ${LIBS}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testUnifSphere ${LIBS}
+                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testReal ${LIBS}
                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 

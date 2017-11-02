@@ -60,6 +60,7 @@ struct param_t {
 #if AMR_MULTIGRID
     bool useTrilinos;
     size_t smoothing;
+    AmrMultiGrid::Boundary bc;
 #endif
     AmrOpal::TaggingCriteria criteria;
     double tagfactor;
@@ -85,6 +86,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 #if AMR_MULTIGRID
     params.useTrilinos = false;
     params.smoothing = 12;
+    params.bc = AmrMultiGrid::Boundary::DIRICHLET;
 #endif
     
     
@@ -113,6 +115,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 #if AMR_MULTIGRID
             { "use-trilinos",   no_argument,       0, 'a' },
             { "smoothing",      required_argument, 0, 'g' },
+            { "bc",             required_argument, 0, 'j' },
 #endif
             { "tagging",        required_argument, 0, 't' },
             { "tagging-factor", required_argument, 0, 'f' },
@@ -136,6 +139,18 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.useTrilinos = true; break;
             case 'g':
                 params.smoothing = std::atoi(optarg); break;
+            case 'j':
+            {
+                std::string bc = optarg;
+                
+                if ( bc == "dirichlet" )
+                    params.bc = AmrMultiGrid::Boundary::DIRICHLET;
+                else if ( bc == "open" )
+                    params.bc = AmrMultiGrid::Boundary::OPEN;
+                else
+                    throw std::runtime_error("Error: Check boundary condition argument");
+                break;
+            }
 #endif
             case 'x':
                 params.nr[0] = std::atoi(optarg); ++cnt; break;
@@ -197,6 +212,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 #if AMR_MULTIGRID
                     << "--use-trilinos (optional)" << endl
                     << "--smoothing (optional, trilinos only, default: 12)" << endl
+                    << "--bc (optional, dirichlet or open, default: dirichlet)" << endl
 #endif
                     << "--tagging charge (default) / efield / potential (optional)" << endl
                     << "--tagfactor [charge value / 0 ... 1] (optiona)" << endl;
@@ -503,7 +519,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
     
     // eps in C / (V * m)
-    double constant = -1.0 / Physics::epsilon_0 * scale;  // in [V m / C]
+    double constant = -1.0 / Physics::epsilon_0 ; //* scale;  // in [V m / C]
     for (int i = 0; i <= finest_level; ++i) {
         rhs[i]->mult(constant, 0, 1);       // in [V m]
     }
@@ -512,6 +528,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // normalize each level
 //     double l0norm[finest_level + 1];
     double l0norm = rhs[finest_level]->norm0(0);
+    msg << "l0norm = " << l0norm << endl;
     for (int i = 0; i <= finest_level; ++i) {
 //         l0norm[i] = rhs[i]->norm0(0);
         rhs[i]->mult(1.0 / l0norm/*[i]*/, 0, 1);
@@ -527,7 +544,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // solve
 #if AMR_MULTIGRID
     if ( params.useTrilinos ) {
-        AmrMultiGrid sol;
+        AmrMultiGrid sol(params.bc, AmrMultiGrid::Interpolater::PIECEWISE_CONST);
         
         sol.setNumberOfSmoothing(params.smoothing);
     
@@ -568,12 +585,12 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     
     // undo normalization
     for (int i = 0; i <= finest_level; ++i) {
-        phi[i]->mult(l0norm/*[i]*/, 0, 1);
+        phi[i]->mult(scale * l0norm/*[i]*/, 0, 1);
     }
     
     // undo scale
     for (int i = 0; i <= finest_level; ++i)
-        efield[i]->mult(scale * l0norm/*[i]*/, 0, 3);
+        efield[i]->mult(scale * scale * l0norm/*[i]*/, 0, 3);
     
     IpplTimings::stopTimer(solvTimer);
 }
@@ -584,17 +601,17 @@ void doAMReX(const param_t& params, Inform& msg)
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    double halflength = 0.5 * params.length;
-    
-    std::array<double, BL_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
-    
-    RealBox domain;
-    
-    // in helper_functions.h
-    init(domain, params.nr, lower, upper);
-    
-    msg << "Domain: " << domain << endl;
+//     double halflength = 0.5 * params.length;
+//     
+//     std::array<double, BL_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
+//     std::array<double, BL_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
+//     
+//     RealBox domain;
+//     
+//     // in helper_functions.h
+//     init(domain, params.nr, lower, upper);
+//     
+//     msg << "Domain: " << domain << endl;
     
     /*
      * create an Amr object
@@ -623,7 +640,14 @@ void doAMReX(const param_t& params, Inform& msg)
         rrr[i] = 2;
     }
     
-    AmrOpal myAmrOpal(&domain, params.nLevels - 1, nCells, 0 /* cartesian */, rr);
+    RealBox amr_domain;
+    
+    std::array<double, BL_SPACEDIM> amr_lower = {{-1.02, -1.02, -1.02}}; // m
+    std::array<double, BL_SPACEDIM> amr_upper = {{ 1.02,  1.02,  1.02}}; // m
+    
+    init(amr_domain, params.nr, amr_lower, amr_upper);
+    
+    AmrOpal myAmrOpal(&amr_domain, params.nLevels - 1, nCells, 0 /* cartesian */, rr);
     
     myAmrOpal.setTagging(params.criteria);
     
@@ -638,7 +662,7 @@ void doAMReX(const param_t& params, Inform& msg)
     
     const Array<BoxArray>& ba = myAmrOpal.boxArray();
     const Array<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
-    const Array<Geometry>& geom = myAmrOpal.Geom();
+    Array<Geometry>& geom = myAmrOpal.Geom();
     
     
     amrplayout_t* playout = new amrplayout_t(geom, dmap, ba, rrr);
@@ -669,6 +693,10 @@ void doAMReX(const param_t& params, Inform& msg)
     double scale = 1.0;
     
     scale = domainMapping(*bunch, scale);
+    
+    msg << "Scale: " << scale << endl;
+    
+    
     // redistribute on single-level
     bunch->update();
     
@@ -721,10 +749,28 @@ void doAMReX(const param_t& params, Inform& msg)
     msg << "Total field energy: " << fieldenergy << endl;
     
     if (params.isWriteCSV && Ippl::getNodes() == 1 && myAmrOpal.maxGridSize(0) == (int)params.nr[0] )
-        writeCSV(phi, efield, domain.lo(0) / scale, geom[0].CellSize(0) / scale);
+        writeCSV(phi, efield, amr_domain.lo(0) / scale, geom[0].CellSize(0) / scale);
     
-    if ( params.isWriteYt )
+    if ( params.isWriteYt ) {
+//         double halflength = 0.5 * params.length;
+//     
+//         std::array<double, BL_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
+//         std::array<double, BL_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
+//     
+//         RealBox domain;
+//         
+//         init(domain, params.nr, lower, upper);
+//         
+//         RealBox orig = geom[0].ProbDomain();
+//         geom[0].ProbDomain(domain);
+//         
+//         IntVect low(0, 0, 0);
+//         IntVect high(params.nr[0] - 1, params.nr[1] - 1, params.nr[2] - 1);    
+//         Box bx(low, high);
+//         geom[0].Domain(bx);
+        
         writeYt(rhs, phi, efield, geom, rrr, scale);
+    }
 }
 
 
@@ -771,10 +817,11 @@ int main(int argc, char *argv[]) {
         if ( params.useMgtSolver )
             msg << "- MGT solver is used" << endl;
         
+#if AMR_MULTIGRID
         if ( params.useTrilinos )
             msg << "- Trilinos solver is used with " << params.smoothing
                 << " relaxation steps." << endl;
-            
+#endif
         doAMReX(params, msg);
         
     } catch(const std::exception& ex) {
