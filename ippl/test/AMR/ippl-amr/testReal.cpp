@@ -25,6 +25,8 @@
 
 #include "../helper_functions.h"
 
+#include "../Distribution.h"
+
 #include "../writePlotFile.H"
 
 #include <cmath>
@@ -47,16 +49,13 @@ struct param_t {
     Vektor<size_t, 3> nr;
     size_t nLevels;
     size_t maxBoxSize;
-    double radius;
     double length;
-    size_t nParticles;
-    double pCharge;
-    bool isFixedCharge;
     bool isWriteYt;
     bool isWriteCSV;
-    bool isWriteParticles;
     bool isHelp;
     bool useMgtSolver;
+    std::string h5file;
+    size_t h5step;
 #if AMR_MULTIGRID
     bool useTrilinos;
     size_t smoothing;
@@ -75,9 +74,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
      */
     
     params.isWriteYt = false;
-    params.isFixedCharge = false;
     params.isWriteCSV = false;
-    params.isWriteParticles = false;
     params.isHelp = false;
     params.useMgtSolver = false;
     params.criteria = AmrOpal::kChargeDensity;
@@ -103,15 +100,13 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "gridz",          required_argument, 0, 'z' },
             { "level",          required_argument, 0, 'l' },
             { "maxgrid",        required_argument, 0, 'm' },
-            { "radius",         required_argument, 0, 'r' },
             { "boxlength",      required_argument, 0, 'b' },
-            { "nparticles",     required_argument, 0, 'n' },
             { "writeYt",        no_argument,       0, 'w' },
             { "help",           no_argument,       0, 'h' },
-	    { "pcharge",        required_argument, 0, 'c' },
             { "writeCSV",       no_argument,       0, 'v' },
-            { "writeParticles", no_argument,       0, 'p' },
             { "use-mgt-solver", no_argument,       0, 's' },
+            { "h5file",         required_argument, 0, 'd' },
+            { "h5step",         required_argument, 0, 'e' },
 #if AMR_MULTIGRID
             { "use-trilinos",   no_argument,       0, 'a' },
             { "smoothing",      required_argument, 0, 'g' },
@@ -125,9 +120,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         int option_index = 0;
         
 #if AMR_MULTIGRID
-        c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:whcvpst:f:a:g:", long_options, &option_index);
+        c = getopt_long(argc, argv, "x:y:z:l:m:b:whvst:f:a:g:", long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:whcvpst:f:", long_options, &option_index);
+        c = getopt_long(argc, argv, "x:y:z:l:m:b:whvst:f:", long_options, &option_index);
 #endif
         
         if ( c == -1 )
@@ -162,24 +157,17 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.nLevels = std::atoi(optarg) + 1; ++cnt; break;
             case 'm':
                 params.maxBoxSize = std::atoi(optarg); ++cnt; break;
-            case 'r':
-                params.radius = std::atof(optarg); ++cnt; break;
             case 'b':
                 params.length = std::atof(optarg); ++cnt; break;
-            case 'n':
-                params.nParticles = std::atoi(optarg); ++cnt; break;
-            case 'c':
-                params.pCharge = std::atof(optarg);
-                params.isFixedCharge = true;
-                break;
+            case 'd':
+                params.h5file = optarg; ++cnt; break;
+            case 'e':
+                params.h5step = std::atoi(optarg); ++cnt; break;
             case 'w':
                 params.isWriteYt = true;
                 break;
             case 'v':
                 params.isWriteCSV = true;
-                break;
-            case 'p':
-                params.isWriteParticles = true;
                 break;
             case 's':
                 params.useMgtSolver = true;
@@ -201,14 +189,12 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--gridz [#gridpoints in z]" << endl
                     << "--level [#levels]" << endl
                     << "--maxgrid [max. grid]" << endl
-                    << "--radius [sphere radius]" << endl
                     << "--boxlength [cube side length]" << endl
-                    << "--nparticles [#particles]" << endl
-                    << "--pcharge [charge per particle] (optional)" << endl
                     << "--writeYt (optional)" << endl
                     << "--writeCSV (optional)" << endl
-                    << "--writeParticles (optional)" << endl
                     << "--use-mgt-solver (optional)" << endl
+                    << "--h5file" << endl
+                    << "--h5step" << endl
 #if AMR_MULTIGRID
                     << "--use-trilinos (optional)" << endl
                     << "--smoothing (optional, trilinos only, default: 12)" << endl
@@ -312,7 +298,7 @@ void writeYt(container_t& rho,
              const Array<int>& rr,
              const double& scalefactor)
 {
-    std::string dir = "yt-testUnifSphere";
+    std::string dir = "yt-testReal";
     
     double time = 0.0;
     
@@ -519,7 +505,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
     
     // eps in C / (V * m)
-    double constant = -1.0 / Physics::epsilon_0 ; //* scale;  // in [V m / C]
+    double constant = -1.0 / Physics::epsilon_0 * scale;  // in [V m / C]
     for (int i = 0; i <= finest_level; ++i) {
         rhs[i]->mult(constant, 0, 1);       // in [V m]
     }
@@ -528,7 +514,6 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // normalize each level
 //     double l0norm[finest_level + 1];
     double l0norm = rhs[finest_level]->norm0(0);
-    msg << "l0norm = " << l0norm << endl;
     for (int i = 0; i <= finest_level; ++i) {
 //         l0norm[i] = rhs[i]->norm0(0);
         rhs[i]->mult(1.0 / l0norm/*[i]*/, 0, 1);
@@ -585,12 +570,12 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     
     // undo normalization
     for (int i = 0; i <= finest_level; ++i) {
-        phi[i]->mult(scale * l0norm/*[i]*/, 0, 1);
+        phi[i]->mult(l0norm/*[i]*/, 0, 1);
     }
     
     // undo scale
     for (int i = 0; i <= finest_level; ++i)
-        efield[i]->mult(scale * scale * l0norm/*[i]*/, 0, 3);
+        efield[i]->mult(scale * l0norm/*[i]*/, 0, 3);
     
     IpplTimings::stopTimer(solvTimer);
 }
@@ -601,17 +586,17 @@ void doAMReX(const param_t& params, Inform& msg)
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-//     double halflength = 0.5 * params.length;
-//     
-//     std::array<double, BL_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
-//     std::array<double, BL_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
-//     
-//     RealBox domain;
-//     
-//     // in helper_functions.h
-//     init(domain, params.nr, lower, upper);
-//     
-//     msg << "Domain: " << domain << endl;
+    double halflength = 0.5 * params.length;
+    
+    std::array<double, BL_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
+    std::array<double, BL_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
+    
+    RealBox domain;
+    
+    // in helper_functions.h
+    init(domain, params.nr, lower, upper);
+    
+    msg << "Domain: " << domain << endl;
     
     /*
      * create an Amr object
@@ -640,14 +625,7 @@ void doAMReX(const param_t& params, Inform& msg)
         rrr[i] = 2;
     }
     
-    RealBox amr_domain;
-    
-    std::array<double, BL_SPACEDIM> amr_lower = {{-1.02, -1.02, -1.02}}; // m
-    std::array<double, BL_SPACEDIM> amr_upper = {{ 1.02,  1.02,  1.02}}; // m
-    
-    init(amr_domain, params.nr, amr_lower, amr_upper);
-    
-    AmrOpal myAmrOpal(&amr_domain, params.nLevels - 1, nCells, 0 /* cartesian */, rr);
+    AmrOpal myAmrOpal(&domain, params.nLevels - 1, nCells, 0 /* cartesian */, rr);
     
     myAmrOpal.setTagging(params.criteria);
     
@@ -662,7 +640,7 @@ void doAMReX(const param_t& params, Inform& msg)
     
     const Array<BoxArray>& ba = myAmrOpal.boxArray();
     const Array<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
-    Array<Geometry>& geom = myAmrOpal.Geom();
+    const Array<Geometry>& geom = myAmrOpal.Geom();
     
     
     amrplayout_t* playout = new amrplayout_t(geom, dmap, ba, rrr);
@@ -674,29 +652,24 @@ void doAMReX(const param_t& params, Inform& msg)
     bunch->setAllowParticlesNearBoundary(true);
     
     // initialize a particle distribution
-    initSphere(params.radius,
-               bunch,
-               params.nParticles,
-               params.pCharge,
-               params.isFixedCharge,
-               params.isWriteParticles);
+    Distribution dist;
+    
+    dist.readH5(params.h5file, params.h5step);
+    // copy particles to the PartBunchBase object.
+    dist.injectBeam(*bunch);
     
     bunch->update();
     
-    msg << "Bunch radius: " << params.radius << " m" << endl
-        << "#Particles: " << bunch->getTotalNum() << endl
+    int nParticles = bunch->getTotalNum();
+    
+    msg << "#Particles: " << nParticles << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
-        << "Total charge: " << params.nParticles * bunch->qm[0] << " C" << endl
-        << "#Cells per dim for bunch: " << 2.0 * params.radius / *(geom[0].CellSize()) << endl;
+        << "Total charge: " << nParticles * bunch->qm[0] << " C" << endl;
     
     // map particles
     double scale = 1.0;
     
     scale = domainMapping(*bunch, scale);
-    
-    msg << "Scale: " << scale << endl;
-    
-    
     // redistribute on single-level
     bunch->update();
     
@@ -716,11 +689,9 @@ void doAMReX(const param_t& params, Inform& msg)
     
     msg << endl << "Transformed positions" << endl << endl;
     
-    msg << "Bunch radius: " << params.radius * scale << " m" << endl
-        << "#Particles: " << params.nParticles << endl
+    msg << "#Particles: " << nParticles << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
-        << "Total charge: " << params.nParticles * bunch->qm[0] << " C" << endl
-        << "#Cells per dim for bunch: " << 2.0 * params.radius * scale / *(geom[0].CellSize()) << endl;
+        << "Total charge: " << nParticles * bunch->qm[0] << " C";
     
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, scale/*0.0*/ /*time*/);
@@ -749,28 +720,10 @@ void doAMReX(const param_t& params, Inform& msg)
     msg << "Total field energy: " << fieldenergy << endl;
     
     if (params.isWriteCSV && Ippl::getNodes() == 1 && myAmrOpal.maxGridSize(0) == (int)params.nr[0] )
-        writeCSV(phi, efield, amr_domain.lo(0) / scale, geom[0].CellSize(0) / scale);
+        writeCSV(phi, efield, domain.lo(0) / scale, geom[0].CellSize(0) / scale);
     
-    if ( params.isWriteYt ) {
-//         double halflength = 0.5 * params.length;
-//     
-//         std::array<double, BL_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
-//         std::array<double, BL_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
-//     
-//         RealBox domain;
-//         
-//         init(domain, params.nr, lower, upper);
-//         
-//         RealBox orig = geom[0].ProbDomain();
-//         geom[0].ProbDomain(domain);
-//         
-//         IntVect low(0, 0, 0);
-//         IntVect high(params.nr[0] - 1, params.nr[1] - 1, params.nr[2] - 1);    
-//         Box bx(low, high);
-//         geom[0].Domain(bx);
-        
+    if ( params.isWriteYt )
         writeYt(rhs, phi, efield, geom, rrr, scale);
-    }
 }
 
 
@@ -805,23 +758,20 @@ int main(int argc, char *argv[]) {
             << "- grid                  = " << params.nr << endl
             << "- max. grid             = " << params.maxBoxSize << endl
             << "- #level                = " << params.nLevels - 1 << endl
-            << "- sphere radius [m]     = " << params.radius << endl
             << "- cube side length [m]  = " << params.length << endl
-            << "- #particles            = " << params.nParticles << endl
+            << "- h5file                = " << params.h5file << endl
+            << "- h5step                = " << params.h5step << endl
             << "- tagging               = " << tagging << endl
             << "- tagging factor        = " << params.tagfactor << endl;
 
-        if ( params.isFixedCharge )
-            msg << "- charge per particle   = " << params.pCharge << endl;
         
         if ( params.useMgtSolver )
             msg << "- MGT solver is used" << endl;
         
-#if AMR_MULTIGRID
         if ( params.useTrilinos )
             msg << "- Trilinos solver is used with " << params.smoothing
                 << " relaxation steps." << endl;
-#endif
+            
         doAMReX(params, msg);
         
     } catch(const std::exception& ex) {

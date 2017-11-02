@@ -246,7 +246,7 @@ void doSolve(const Array<BoxArray>& ba,
     }
     
     // solve
-    AmrMultiGrid sol;
+    AmrMultiGrid sol(AmrMultiGrid::Boundary::DIRICHLET, AmrMultiGrid::Interpolater::PIECEWISE_CONST);
     
     sol.setNumberOfSmoothing(params.smoothing);
     

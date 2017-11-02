@@ -7,6 +7,9 @@ template <class AmrMultiGridLevel>
 class AmrOpenBoundary : public AmrBoundary<AmrMultiGridLevel> {
     
 public:
+    
+    AmrOpenBoundary() : AmrBoundary<AmrMultiGridLevel>(2) { }
+    
     void apply(const AmrIntVect_t& iv,
                typename AmrMultiGridLevel::indices_t& indices,
                typename AmrMultiGridLevel::coefficients_t& values,
@@ -35,26 +38,34 @@ void AmrOpenBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
     // find interior neighbour cells
     AmrIntVect_t niv = iv;
     AmrIntVect_t n2iv = iv; // next interior cell
-
-    for (int d = 0; d < BL_SPACEDIM; ++d) {
+    
+    int d = 0;
+    for ( ; d < BL_SPACEDIM; ++d) {
         
         if ( niv[d] == -1 ) {
             // lower boundary --> forward difference
             niv[d] = 0;
             n2iv[d] = 1;
+            break;
             
         } else if ( niv[d] == nr[d] ) {
             // upper boundary --> backward difference
             niv[d] = nr[d] - 1;
             n2iv[d] = nr[d] - 2;
+            break;
         }
     }
     
+    // cell size in direction
+    double h = 1.0 / double(nr[d]);
+    double r = 0.715;
+    
+    // 1st order
     indices.push_back( mglevel->serialize(niv) );
-    values.push_back( 2.0 * value );
+    values.push_back( - 2.0 * h / r * value );
     
     indices.push_back( mglevel->serialize(n2iv) );
-    values.push_back( - value );
+    values.push_back( value );
 }
 
 #endif

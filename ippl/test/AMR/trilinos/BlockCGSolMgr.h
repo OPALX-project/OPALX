@@ -31,7 +31,7 @@ public:
         params_mp = Teuchos::rcp( new Teuchos::ParameterList );
     //     params->set( "Block Size", 4 );
         params_mp->set("Maximum Iterations", 1000);
-        params_mp->set("Convergence Tolerance", 1.0e-9);
+        params_mp->set("Convergence Tolerance", 1.0e-1);
         params_mp->set("Block Size", 32);
         
         solver_mp = Teuchos::rcp( new solver_t() );
@@ -46,7 +46,7 @@ public:
     
     void solve(const Teuchos::RCP<matrix_t>& A,
                Teuchos::RCP<vector_t>& x,
-               const Teuchos::RCP<vector_t>& b)
+               const Teuchos::RCP<vector_t>& b, double tol)
     {
         /*
          * solve linear system Ax = b
@@ -58,6 +58,9 @@ public:
             throw std::runtime_error("Belos::LinearProblem failed to set up correctly!");
         
         solver_mp->setProblem(problem_mp);
+        
+        params_mp->set("Convergence Tolerance", tol);
+        solver_mp->setParameters(params_mp);
         
         Belos::ReturnType ret = solver_mp->solve();
         
