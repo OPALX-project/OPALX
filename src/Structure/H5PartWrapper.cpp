@@ -229,9 +229,15 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
             numSteps_m = numStepsInSource;
 
         } else {
-
             copyHeader(source);
 
+            if (lastStep < 0) {
+                if (-lastStep > numStepsInSource) {
+                    lastStep = 0;
+                } else {
+                    lastStep = numStepsInSource + lastStep;
+                }
+            }
             // don't copy the whole file, it takes very long
             copyStep(source, lastStep);
             ++ numSteps_m;
