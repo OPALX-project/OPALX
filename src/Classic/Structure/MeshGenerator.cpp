@@ -860,7 +860,10 @@ void MeshGenerator::write(const std::string &fname) {
     out << indent << "exportWeb(bgcolor)\n\n";
 
     out << "if (args.project_to_plane):\n";
-    out << indent << "projectToPlane(args.project_to_plane)";
+    out << indent << "normal = [0.0, 1.0, 0.0]\n";
+    out << indent << "if (args.normal):\n";
+    out << indent << indent << "normal = args.normal\n";
+    out << indent << "projectToPlane(normal)";
 
 }
 
