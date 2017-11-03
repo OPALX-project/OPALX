@@ -187,12 +187,9 @@ void PartBunch::computeSelfFields(int binNumber) {
 
         /// Find potential from charge in this bin (no image yet) using Poisson's
         /// equation (without coefficient: -1/(eps)).
-        IpplTimings::startTimer(compPotenTimer_m);
         imagePotential = rho_m;
 
         fs_m->solver_m->computePotential(rho_m, hr_scaled);
-
-        IpplTimings::stopTimer(compPotenTimer_m);
 
         /// Scale mesh back (to same units as particle locations.)
         rho_m *= hr_scaled[0] * hr_scaled[1] * hr_scaled[2];
@@ -268,9 +265,7 @@ void PartBunch::computeSelfFields(int binNumber) {
 
         /// Find potential from image charge in this bin using Poisson's
         /// equation (without coefficient: -1/(eps)).
-        IpplTimings::startTimer(compPotenTimer_m);
         fs_m->solver_m->computePotential(imagePotential, hr_scaled, zshift);
-        IpplTimings::stopTimer(compPotenTimer_m);
 
         /// Scale mesh back (to same units as particle locations.)
         imagePotential *= hr_scaled[0] * hr_scaled[1] * hr_scaled[2];
@@ -537,11 +532,7 @@ void PartBunch::computeSelfFields() {
 #endif
 
         // charge density is in rho_m
-        IpplTimings::startTimer(compPotenTimer_m);
-
         fs_m->solver_m->computePotential(rho_m, hr_scaled);
-
-        IpplTimings::stopTimer(compPotenTimer_m);
 
         //do the multiplication of the grid-cube volume coming
         //from the discretization of the convolution integral.
@@ -722,11 +713,7 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
 
         /// now charge density is in rho_m
         /// calculate Possion equation (without coefficient: -1/(eps))
-        IpplTimings::startTimer(compPotenTimer_m);
-
         fs_m->solver_m->computePotential(rho_m, hr_scaled);
-
-        IpplTimings::stopTimer(compPotenTimer_m);
 
         //do the multiplication of the grid-cube volume coming
         //from the discretization of the convolution integral.
@@ -918,11 +905,7 @@ void PartBunch::computeSelfFields_cycl(int bin) {
 
         /// now charge density is in rho_m
         /// calculate Possion equation (without coefficient: -1/(eps))
-        IpplTimings::startTimer(compPotenTimer_m);
-
         fs_m->solver_m->computePotential(rho_m, hr_scaled);
-
-        IpplTimings::stopTimer(compPotenTimer_m);
 
         // Do the multiplication of the grid-cube volume coming from the discretization of the convolution integral.
         // This is only necessary for the FFT solver. FIXME: later move this scaling into FFTPoissonSolver
