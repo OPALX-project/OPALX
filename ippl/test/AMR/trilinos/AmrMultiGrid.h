@@ -48,6 +48,7 @@ public:
         GAUSS_SEIDEL = 0,
         JACOBI,
         SOR
+    };
     
     enum Boundary {
         DIRICHLET = 0,

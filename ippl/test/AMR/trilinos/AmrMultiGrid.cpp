@@ -99,7 +99,8 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
                                                              geom[ilev],
                                                              rr,
                                                              new AmrDirichletBoundary<AmrMultiGridLevel_t>(), 
-                                                             comm_mp));
+                                                             comm_mp,
+                                                             node_mp));
                 break;
             }
             case Boundary::OPEN:
@@ -109,7 +110,8 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
                                                              geom[ilev],
                                                              rr,
                                                              new AmrOpenBoundary<AmrMultiGridLevel_t>(),
-                                                             comm_mp));
+                                                             comm_mp,
+                                                             node_mp));
                 break;
             }
             default:
@@ -375,8 +377,7 @@ void AmrMultiGrid::relax_m(int level) {
         mglevel_m[level]->residual_p->scale(-1.0);
         
         
-        double tol = 0.0;
-        mglevel_m[lfine_m]->residual_p->MaxValue(&tol);
+        double tol = mglevel_m[lfine_m]->residual_p->normInf();
         
         tol = std::abs(tol) * 1.0e-1;
         
