@@ -839,9 +839,9 @@ void MeshGenerator::write(const std::string &fname) {
     out << "parser = argparse.ArgumentParser()\n";
     out << "parser.add_argument('--export-vtk', action='store_true')\n";
     out << "parser.add_argument('--export-web', action='store_true')\n";
+    out << "parser.add_argument('--background', nargs=3, type=float)\n";
     out << "parser.add_argument('--project-to-plane', action='store_true')\n";
     out << "parser.add_argument('--normal', nargs=3, type=float)\n";
-    out << "parser.add_argument('--background', nargs=3, type=float)\n";
     out << "args = parser.parse_args()\n\n";
 
     out << "if (args.export_vtk):\n";
