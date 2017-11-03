@@ -140,7 +140,6 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
     boundpTimer_m = IpplTimings::getTimer("Boundingbox");
     statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
     selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
-    compPotenTimer_m  = IpplTimings::getTimer("SF: Potential");
 
     histoTimer_m = IpplTimings::getTimer("Histogram");
 
@@ -229,7 +228,6 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
     boundpTimer_m = IpplTimings::getTimer("Boundingbox");
     statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
     selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
-    compPotenTimer_m  = IpplTimings::getTimer("SF: Potential");
 
     histoTimer_m = IpplTimings::getTimer("Histogram");
 
@@ -2435,7 +2433,6 @@ void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
     boundpTimer_m = IpplTimings::getTimer("Boundingbox");
     statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
     selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
-    compPotenTimer_m  = IpplTimings::getTimer("SF: Potential");
 
     histoTimer_m = IpplTimings::getTimer("Histogram");
 
