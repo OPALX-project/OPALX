@@ -400,7 +400,7 @@ void MeshGenerator::write(const std::string &fname) {
     out << indent << "        tri_vertices[2][2] - tri_vertices[0][2]]\n";
     out << indent << "return normalize(cross(vec1,vec2))\n\n";
 
-    out << "def exportWeb():\n";
+    out << "def exportWeb(bgcolor):\n";
     // out << indent << "if not os.path.exists('scenes'):\n";
     // out << indent << indent << "os.makedirs('scenes')\n";
     // out << indent << "fh = open('scenes/" << fname << "_ElementPositions.babylon','w')\n";
@@ -508,6 +508,9 @@ void MeshGenerator::write(const std::string &fname) {
 
     out << indent << "index_compressed = base64.b64decode(index_base64)\n";
     out << indent << "index = str(zlib.decompress(index_compressed))\n";
+    out << indent << "if (len(bgcolor) == 3):\n";
+    out << indent << indent << "mesh += \";\\n            \"\n";
+    out << indent << indent << "mesh += \"scene.clearColor = new BABYLON.Color3(%f, %f, %f)\" % (bgcolor[0], bgcolor[1], bgcolor[2])\n\n";
     out << indent << "index = index.replace('##DATA##', mesh)\n";
     out << indent << "fh = open('" << fname << "_ElementPositions.html','w')\n";
     out << indent << "fh.write(index)\n";
@@ -836,14 +839,25 @@ void MeshGenerator::write(const std::string &fname) {
     out << "parser = argparse.ArgumentParser()\n";
     out << "parser.add_argument('--export-vtk', action='store_true')\n";
     out << "parser.add_argument('--export-web', action='store_true')\n";
-    out << "parser.add_argument('--project-to-plane', nargs=3, type=float)\n";
+    out << "parser.add_argument('--project-to-plane', action='store_true')\n";
+    out << "parser.add_argument('--normal', nargs=3, type=float)\n";
+    out << "parser.add_argument('--background', nargs=3, type=float)\n";
     out << "args = parser.parse_args()\n\n";
 
     out << "if (args.export_vtk):\n";
     out << indent << "exportVTK()\n\n";
 
     out << "if (args.export_web):\n";
-    out << indent << "exportWeb()\n\n";
+    out << indent << "bgcolor = []\n";
+    out << indent << "if (args.background):\n";
+    out << indent << indent << "validBackground = True\n";
+    out << indent << indent << "for comp in bgcolor:\n";
+    out << indent << indent << indent << "if comp < 0.0 or comp > 1.0:\n";
+    out << indent << indent << indent << indent << "validBackground = False\n";
+    out << indent << indent << indent << indent << "break\n";
+    out << indent << indent << "if (validBackground):\n";
+    out << indent << indent << indent << "bgcolor = args.background\n";
+    out << indent << "exportWeb(bgcolor)\n\n";
 
     out << "if (args.project_to_plane):\n";
     out << indent << "projectToPlane(args.project_to_plane)";
