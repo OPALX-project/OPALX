@@ -216,6 +216,13 @@ private:
     
     void averageDown_m(int level);
     
+    
+    void initInterpolater_m(const Interpolater& interp);
+    
+    void initCrseFineInterp_m(const Interpolater& interfaces);
+    
+    void initBaseSolver_m(const LinSolver& solver);
+    
 private:
     Teuchos::RCP<comm_t> comm_mp;
     Teuchos::RCP<amr::node_t> node_mp;
