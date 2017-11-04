@@ -267,7 +267,7 @@ void ParallelTTracker::execute() {
 
         if (itsBunch_m->getTotalNum() > 0) {
             if (!itsOpalBeamline_m.containsSource()) {
-                RefPartP_m = euclidian_norm(itsBunch_m->get_pmean())  * Vector_t(0, 0, 1);
+                RefPartP_m = OpalData::getInstance()->getP0() / itsBunch_m->getM() * Vector_t(0, 0, 1);
             }
 
             if (zstart_m > pathLength_m) {
@@ -1177,7 +1177,6 @@ void ParallelTTracker::updateReferenceParticle(const BorisPusher &pusher) {
     RefPartR_m /= scaleFactor;
     pusher.push(RefPartR_m, RefPartP_m, dt);
     RefPartR_m *= scaleFactor;
-
     //++ step;
 }
 
