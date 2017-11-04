@@ -28,7 +28,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
                                              const Vector_t &P,
                                              double t,
                                              double dt) {
-    initialP_m = Vector_t(0, 0, euclidian_norm(P));
+    initialP_m = Vector_t(0, 0, euclidean_norm(P));
     double tErr  = (initialR_m(2) - R(2)) * sqrt(dot(P,P) + 1.0) / (P(2) * Physics::c);
 
     double initialEnergy = Util::getEnergy(P, itsReference_m.getM()) * 1e-6;
