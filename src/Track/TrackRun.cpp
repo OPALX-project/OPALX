@@ -172,10 +172,11 @@ void TrackRun::execute() {
                     errorMsg << it->second << endl;
                 }
             }
-            errorMsg << "\nMake sure you do understand these changes and adjust your input file \n"
-                     << "accordingly. Then add\n"
-                     << "OPTION, VERSION = " << currentVersion << ";\n"
-                     << "to your input file. " << endl;
+            errorMsg << "\n"
+                     << "* Make sure you do understand these changes and adjust your input file \n"
+                     << "* accordingly. Then add\n"
+                     << "* OPTION, VERSION = " << currentVersion << ";\n"
+                     << "* to your input file. " << endl;
             errorMsg << "\n****************************************************************************\n" << endl;
             throw OpalException("TrackRun::execute", "Version mismatch");
         }
