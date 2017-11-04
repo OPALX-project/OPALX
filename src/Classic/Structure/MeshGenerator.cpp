@@ -839,13 +839,14 @@ void MeshGenerator::write(const std::string &fname) {
     out << "parser = argparse.ArgumentParser()\n";
     out << "parser.add_argument('--export-vtk', action='store_true')\n";
     out << "parser.add_argument('--export-web', action='store_true')\n";
+    out << "parser.add_argument('--background', nargs=3, type=float)\n";
     out << "parser.add_argument('--project-to-plane', action='store_true')\n";
     out << "parser.add_argument('--normal', nargs=3, type=float)\n";
-    out << "parser.add_argument('--background', nargs=3, type=float)\n";
     out << "args = parser.parse_args()\n\n";
 
     out << "if (args.export_vtk):\n";
-    out << indent << "exportVTK()\n\n";
+    out << indent << "exportVTK()\n";
+    out << indent << "sys.exit()\n\n";
 
     out << "if (args.export_web):\n";
     out << indent << "bgcolor = []\n";
@@ -857,11 +858,17 @@ void MeshGenerator::write(const std::string &fname) {
     out << indent << indent << indent << indent << "break\n";
     out << indent << indent << "if (validBackground):\n";
     out << indent << indent << indent << "bgcolor = args.background\n";
-    out << indent << "exportWeb(bgcolor)\n\n";
+    out << indent << "exportWeb(bgcolor)\n";
+    out << indent << "sys.exit()\n\n";
 
     out << "if (args.project_to_plane):\n";
-    out << indent << "projectToPlane(args.project_to_plane)";
+    out << indent << "normal = [0.0, 1.0, 0.0]\n";
+    out << indent << "if (args.normal):\n";
+    out << indent << indent << "normal = args.normal\n";
+    out << indent << "projectToPlane(normal)\n";
+    out << indent << "sys.exit()\n\n";
 
+    out << "parser.print_help()\n";
 }
 
 MeshData MeshGenerator::getCylinder(double length,

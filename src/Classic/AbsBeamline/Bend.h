@@ -158,6 +158,7 @@ private:
                                      double deltaX);
     Vector_t calcExitFringeField(const Vector_t &R,
                                  double deltaX);
+    void setupFringeWidths();
     bool calculateMapField(const Vector_t &R,
                            Vector_t &B);
     void calculateRefTrajectory(double &angleX,
@@ -214,6 +215,9 @@ private:
     double fieldIndex_m;        /// Dipole field index.
     double startField_m;        /// Start of magnet field map in s coordinates (m).
     double endField_m;          /// End of magnet field map in s coordinates (m).
+
+    double widthEntranceFringe_m;
+    double widthExitFringe_m;
 
     /*
      * Flag to reinitialize the bend the first time the magnet
