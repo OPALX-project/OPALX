@@ -313,6 +313,7 @@ void Bend::initialise(PartBunchBase<double, 3> *bunch,
         endField_m -= elementEdge_m;
         elementEdge_m = 0.0;
 
+        setupFringeWidths();
         msg << level2
             << "======================================================================\n"
             << "======================================================================\n"
@@ -339,6 +340,7 @@ void Bend::adjustFringeFields(double ratio) {
     delta = std::abs(exitParameter2_m - exitParameter3_m);
     exitParameter3_m = exitParameter2_m + delta * ratio;
 
+    setupFringeWidths();
 }
 
 double Bend::calculateBendAngle() {
@@ -1081,6 +1083,7 @@ void Bend::readFieldMap(Inform &msg) {
     fieldmap_m->get1DProfile1ExitParam(exitParameter1_m,
                                        exitParameter2_m,
                                        exitParameter3_m);
+
     setGapFromFieldMap();
     fieldmap_m->get1DProfile1EngeCoeffs(engeCoeffsEntry_m,
                                         engeCoeffsExit_m);
@@ -1209,6 +1212,8 @@ void Bend::setEngeOriginDelta(double delta) {
     exitParameter1_m = -delta - std::abs(exitParameter1_m - exitParameter2_m);
     exitParameter3_m = -delta + std::abs(exitParameter2_m - exitParameter3_m);
     exitParameter2_m = -delta;
+
+    setupFringeWidths();
 }
 
 void Bend::setFieldCalcParam() {
@@ -1503,11 +1508,11 @@ std::vector<Vector_t> Bend::getOutline() const {
     Vector_t rotationCenter = Vector_t(-designRadius_m * cosEntranceAngle_m, 0.0, designRadius_m * sinEntranceAngle_m);
     unsigned int numSteps = 2;
 
-    outline.push_back(Vector_t(-aperture_m.second[0], 0.0, 0.0));
-    outline.push_back(Vector_t(-aperture_m.second[0] + entranceParameter1_m * tanEntranceAngle_m, 0.0, entranceParameter1_m));
+    outline.push_back(Vector_t(-0.5 * widthEntranceFringe_m, 0.0, 0.0));
+    outline.push_back(Vector_t(-0.5 * widthEntranceFringe_m + entranceParameter1_m * tanEntranceAngle_m, 0.0, entranceParameter1_m));
     outline.push_back(Vector_t(entranceParameter1_m * tanEntranceAngle_m, 0.0, entranceParameter1_m));
-    outline.push_back(Vector_t(aperture_m.second[0] + entranceParameter1_m * tanEntranceAngle_m, 0.0, entranceParameter1_m));
-    outline.push_back(Vector_t(aperture_m.second[0], 0.0, 0.0));
+    outline.push_back(Vector_t(0.5 * widthEntranceFringe_m + entranceParameter1_m * tanEntranceAngle_m, 0.0, entranceParameter1_m));
+    outline.push_back(Vector_t(0.5 * widthEntranceFringe_m, 0.0, 0.0));
 
     {
         double tau1, tau2;
@@ -1544,11 +1549,11 @@ std::vector<Vector_t> Bend::getOutline() const {
         outline.push_back(upperCornerAtExit);
     }
 
-    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(aperture_m.second[0], 0.0, 0.0)));
-    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(aperture_m.second[0] - exitParameter3_m * tanExitAngle_m, 0.0, exitParameter3_m)));
+    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(0.5 * widthExitFringe_m, 0.0, 0.0)));
+    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(0.5 * widthExitFringe_m - exitParameter3_m * tanExitAngle_m, 0.0, exitParameter3_m)));
     outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(-exitParameter3_m * tanExitAngle_m, 0.0, exitParameter3_m)));
-    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(-aperture_m.second[0] - exitParameter3_m * tanExitAngle_m, 0.0, exitParameter3_m)));
-    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(-aperture_m.second[0], 0.0, 0.0)));
+    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(-0.5 * widthExitFringe_m - exitParameter3_m * tanExitAngle_m, 0.0, exitParameter3_m)));
+    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(-0.5 * widthExitFringe_m, 0.0, 0.0)));
 
     {
         double tau1, tau2;
@@ -1782,4 +1787,10 @@ bool Bend::isInside(const Vector_t &R) const {
     }
 
     return (std::abs(R(1)) < 0.5 * gap_m && inMagnetCentralRegion(R));
+}
+
+void Bend::setupFringeWidths()
+{
+    widthEntranceFringe_m = 2 * std::min(entranceParameter3_m - entranceParameter1_m, aperture_m.second[0]) + aperture_m.second[0];
+    widthExitFringe_m = 2 * std::min(exitParameter3_m - exitParameter1_m, aperture_m.second[0]) + aperture_m.second[0];
 }
