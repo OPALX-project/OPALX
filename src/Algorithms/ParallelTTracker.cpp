@@ -263,7 +263,7 @@ void ParallelTTracker::execute() {
         restoreCavityPhases();
     } else {
         RefPartR_m = Vector_t(0.0);
-        RefPartP_m = euclidian_norm(itsBunch_m->get_pmean_Distribution()) * Vector_t(0, 0, 1);
+        RefPartP_m = euclidean_norm(itsBunch_m->get_pmean_Distribution()) * Vector_t(0, 0, 1);
 
         if (itsBunch_m->getTotalNum() > 0) {
             if (!itsOpalBeamline_m.containsSource()) {
@@ -381,7 +381,7 @@ void ParallelTTracker::execute() {
 
             itsBunch_m->incTrackSteps();
 
-            double driftPerTimeStep = euclidian_norm(itsBunch_m->getdT() * Physics::c * RefPartP_m / Util::getGamma(RefPartP_m));
+            double driftPerTimeStep = euclidean_norm(itsBunch_m->getdT() * Physics::c * RefPartP_m / Util::getGamma(RefPartP_m));
             if (std::abs(zStop_m.front() - pathLength_m) < 0.5 * driftPerTimeStep)
                 localTrackSteps_m.front() = step;
         }
@@ -1069,11 +1069,11 @@ void ParallelTTracker::writePhaseSpace(const long long step, bool psDump, bool s
         const size_t localNum = itsBunch_m->getLocalNum();
         double distToLastStop = zStop_m.back() - pathLength_m;
         Vector_t driftPerTimeStep = itsBunch_m->getdT() * Physics::c * RefPartP_m / Util::getGamma(RefPartP_m);
-        bool driftToCorrectPosition = std::abs(distToLastStop) < 0.5 * euclidian_norm(driftPerTimeStep);
+        bool driftToCorrectPosition = std::abs(distToLastStop) < 0.5 * euclidean_norm(driftPerTimeStep);
         Ppos_t stashedR;
 
         if (driftToCorrectPosition) {
-            const double tau = distToLastStop / euclidian_norm(driftPerTimeStep) * itsBunch_m->getdT();
+            const double tau = distToLastStop / euclidean_norm(driftPerTimeStep) * itsBunch_m->getdT();
             if (localNum > 0) {
                 stashedR.create(localNum);
                 stashedR = itsBunch_m->R;
@@ -1154,7 +1154,7 @@ void ParallelTTracker::updateReferenceParticle(const BorisPusher &pusher) {
     //     Vector_t P = referenceToLabCSTrafo_m.rotateTo(RefPartP_m);
     //     Vector_t lEf = referenceToLabCSTrafo_m.rotateTo(Ef);
     //     Vector_t lBf = referenceToLabCSTrafo_m.rotateTo(Bf);
-    //     logger_m << std::setw(18) << std::setprecision(8) << pathLength_m + euclidian_norm(RefPartR_m - oldR)
+    //     logger_m << std::setw(18) << std::setprecision(8) << pathLength_m + euclidean_norm(RefPartR_m - oldR)
     //              << std::setw(18) << std::setprecision(8) << R(0)
     //              << std::setw(18) << std::setprecision(8) << R(1)
     //              << std::setw(18) << std::setprecision(8) << R(2)
@@ -1194,7 +1194,7 @@ void ParallelTTracker::transformBunch(const CoordinateSystemTrafo &trafo) {
 void ParallelTTracker::updateRefToLabCSTrafo(const BorisPusher &pusher) {
     updateReferenceParticle(pusher);
 
-    pathLength_m += euclidian_norm(RefPartR_m);
+    pathLength_m += euclidean_norm(RefPartR_m);
 
     CoordinateSystemTrafo update(RefPartR_m,
                                  getQuaternion(RefPartP_m, Vector_t(0, 0, 1)));
@@ -1228,7 +1228,7 @@ void ParallelTTracker::findStartPosition(const BorisPusher &pusher) {
 
         Vector_t oldR = RefPartR_m;
         updateReferenceParticle(pusher);
-        pathLength_m += euclidian_norm(RefPartR_m - oldR);
+        pathLength_m += euclidean_norm(RefPartR_m - oldR);
 
         if (pathLength_m > zStop_m.front()) {
             if (localTrackSteps_m.size() == 0) return;
@@ -1240,7 +1240,7 @@ void ParallelTTracker::findStartPosition(const BorisPusher &pusher) {
             changeDT();
         }
 
-        double speed = euclidian_norm(RefPartP_m) * Physics::c / sqrt(dot(RefPartP_m, RefPartP_m) + 1);
+        double speed = euclidean_norm(RefPartP_m) * Physics::c / sqrt(dot(RefPartP_m, RefPartP_m) + 1);
         if (std::abs(pathLength_m - zstart_m) <=  0.5 * itsBunch_m->getdT() * speed) {
             double tau = (pathLength_m - zstart_m) / speed;
 
