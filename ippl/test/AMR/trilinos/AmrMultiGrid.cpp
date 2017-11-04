@@ -32,44 +32,13 @@ AmrMultiGrid::AmrMultiGrid(Boundary bc,
     interpTimer_m       = IpplTimings::getTimer("prolongate");
     residnofineTimer_m  = IpplTimings::getTimer("resid-no-fine");
     
-    switch ( interp ) {
-        case Interpolater::TRILINEAR:
-            interp_mp.reset( new AmrTrilinearInterpolater<AmrMultiGridLevel_t>() );
-            break;
-        case Interpolater::LAGRANGE:
-            std::runtime_error("Not yet implemented.");
-        case Interpolater::PIECEWISE_CONST:
-            interp_mp.reset( new AmrPCInterpolater<AmrMultiGridLevel_t>() );
-            break;
-        default:
-            std::runtime_error("No such interpolater available.");
-    }
+    this->initInterpolater_m(interp);
     
     // interpolater for crse-fine-interface
-    switch ( interface ) {
-        case Interpolater::TRILINEAR:
-            interface_mp.reset( new AmrTrilinearInterpolater<AmrMultiGridLevel_t>() );
-            break;
-        case Interpolater::LAGRANGE:
-            interface_mp.reset( new AmrLagrangeInterpolater<AmrMultiGridLevel_t>(
-                AmrLagrangeInterpolater<AmrMultiGridLevel_t>::Order::QUADRATIC) );
-            break;
-        case Interpolater::PIECEWISE_CONST:
-            interface_mp.reset( new AmrPCInterpolater<AmrMultiGridLevel_t>() );
-            break;
-        default:
-            std::runtime_error("No such interpolater for the coarse-fine interface available.");
-    }
-    
+    this->initCrseFineInterp_m(interface);
     
     // base level solver
-    switch ( solver ) {
-        case LinSolver::BLOCK_CG:
-            solver_mp.reset( new BlockCGSolMgr() );
-            break;
-        default:
-            std::runtime_error("No such solver available.");
-    }
+    this->initBaseSolver_m(solver);
 }
 
 void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
@@ -1783,4 +1752,49 @@ void AmrMultiGrid::averageDown_m(int level) {
     mglevel_m[level]->UnCovered_p->apply(*mglevel_m[level]->phi_p, *tmp2);
     
     mglevel_m[level]->phi_p->update(1.0, *tmp, 1.0, *tmp2, 0.0);
+}
+
+
+void AmrMultiGrid::initInterpolater_m(const Interpolater& interp) {
+    switch ( interp ) {
+        case Interpolater::TRILINEAR:
+            interp_mp.reset( new AmrTrilinearInterpolater<AmrMultiGridLevel_t>() );
+            break;
+        case Interpolater::LAGRANGE:
+            std::runtime_error("Not yet implemented.");
+        case Interpolater::PIECEWISE_CONST:
+            interp_mp.reset( new AmrPCInterpolater<AmrMultiGridLevel_t>() );
+            break;
+        default:
+            std::runtime_error("No such interpolater available.");
+    }
+}
+
+
+void AmrMultiGrid::initCrseFineInterp_m(const Interpolater& interface) {
+    switch ( interface ) {
+        case Interpolater::TRILINEAR:
+            interface_mp.reset( new AmrTrilinearInterpolater<AmrMultiGridLevel_t>() );
+            break;
+        case Interpolater::LAGRANGE:
+            interface_mp.reset( new AmrLagrangeInterpolater<AmrMultiGridLevel_t>(
+                AmrLagrangeInterpolater<AmrMultiGridLevel_t>::Order::QUADRATIC) );
+            break;
+        case Interpolater::PIECEWISE_CONST:
+            interface_mp.reset( new AmrPCInterpolater<AmrMultiGridLevel_t>() );
+            break;
+        default:
+            std::runtime_error("No such interpolater for the coarse-fine interface available.");
+    }
+}
+
+
+void AmrMultiGrid::initBaseSolver_m(const LinSolver& solver) {
+    switch ( solver ) {
+        case LinSolver::BLOCK_CG:
+            solver_mp.reset( new BlockCGSolMgr() );
+            break;
+        default:
+            std::runtime_error("No such solver available.");
+    }
 }
