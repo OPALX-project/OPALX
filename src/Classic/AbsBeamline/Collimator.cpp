@@ -283,7 +283,7 @@ bool Collimator::checkCollimator(PartBunchBase<double, 3> *bunch, const int turn
     double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
     std::pair<Vector_t, double> boundingSphere;
     boundingSphere.first = 0.5 * (rmax + rmin);
-    boundingSphere.second = euclidian_norm(rmax - boundingSphere.first);
+    boundingSphere.second = euclidean_norm(rmax - boundingSphere.first);
 
     if (rmax(2) >= zstart_m && rmin(2) <= zend_m) {
         // if ( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){

@@ -375,7 +375,7 @@ double Bend::calculateBendAngle() {
         pusher_m.push(X, P, deltaT);
         X *= cdt;
 
-        deltaS += euclidian_norm(X - oldX);
+        deltaS += euclidean_norm(X - oldX);
 
     }
 
@@ -457,7 +457,7 @@ Vector_t Bend::calcCentralField(const Vector_t &R,
     //double expFactor = exp(-nOverRho * deltaX);
     //double bxBzFactor = expFactor * nOverRho * R(1);
     //Vector_t rotationCenter(-designRadius_m, R(1), 0.0);
-    //double cosangle = dot(R - rotationCenter, Vector_t(1, 0, 0)) / euclidian_norm(R - rotationCenter);
+    //double cosangle = dot(R - rotationCenter, Vector_t(1, 0, 0)) / euclidean_norm(R - rotationCenter);
 
     //B(0) = -bxBzFactor * cosangle;
     //B(1) = expFactor * (1.0 - pow(nOverRho * R(1), 2.0) / 2.0);
@@ -550,7 +550,7 @@ bool Bend::calculateMapField(const Vector_t &R, Vector_t &B) {
 
     if(inMagnetCentralRegion(R)) {
         if (verticallyInside) {
-            double deltaX = 0.0;//euclidian_norm(R - rotationCenter) - designRadius_m;
+            double deltaX = 0.0;//euclidean_norm(R - rotationCenter) - designRadius_m;
             if (isPositionInEntranceField(R)) {
                 B = calcEntranceFringeField(R, deltaX);
             } else if (isPositionInExitField(R)) {
@@ -926,7 +926,7 @@ bool Bend::initializeFieldMap(Inform &msg) {
 bool Bend::inMagnetCentralRegion(const Vector_t &R) const {
 
     Vector_t rotationCenter(-designRadius_m * cosEntranceAngle_m, R(1), designRadius_m * sinEntranceAngle_m);
-    double distFromRotCenter = euclidian_norm(R - rotationCenter);
+    double distFromRotCenter = euclidean_norm(R - rotationCenter);
     Vector_t Rprime = getBeginToEnd_local().transformTo(R);
     Vector_t Rpprime = computeAngleTrafo_m.transformTo(R);
 
@@ -1453,7 +1453,7 @@ std::pair<Vector_t, Vector_t> Bend::getDesignPathSecant(double startsAtDistFromE
 
     for (unsigned int i = 1; i < size; ++ i) {
         Vector_t step = refTrajMap_m[i] - refTrajMap_m[i-1];
-        double stepSize = euclidian_norm(step);
+        double stepSize = euclidean_norm(step);
         if (pathLength + stepSize > startsAtDistFromEdge) {
             double diff = startsAtDistFromEdge - pathLength;
             tangent = step / stepSize;
@@ -1467,12 +1467,12 @@ std::pair<Vector_t, Vector_t> Bend::getDesignPathSecant(double startsAtDistFromE
             for (unsigned j = i; j < size; ++ j) {
                 Vector_t position = refTrajMap_m[j];
 
-                if (euclidian_norm(position - startPosition) >= length) {
+                if (euclidean_norm(position - startPosition) >= length) {
                     step = refTrajMap_m[j-1] - refTrajMap_m[j];
                     double tau = (dot(startPosition - position, step) - sqrt(std::pow(dot(startPosition - position, step), 2) - dot(step, step) * (dot(startPosition - position, startPosition - position) - std::pow(length, 2)))) / dot(step, step);
 
                     tangent = position + tau * step - startPosition;
-                    tangent /= euclidian_norm(tangent);
+                    tangent /= euclidean_norm(tangent);
 
                     return std::make_pair(startPosition, tangent);
                 }
@@ -1480,11 +1480,11 @@ std::pair<Vector_t, Vector_t> Bend::getDesignPathSecant(double startsAtDistFromE
 
             Vector_t position = refTrajMap_m[size - 1];
             Vector_t step = position - refTrajMap_m[size - 2];
-            step /= euclidian_norm(step);
+            step /= euclidean_norm(step);
             double tau = (dot(startPosition - position, step) + sqrt(std::pow(dot(startPosition - position, step), 2) - dot(step, step) * (dot(startPosition - position, startPosition - position) - std::pow(length, 2)))) / dot(step, step);
 
             tangent = position + tau * step - startPosition;
-            tangent /= euclidian_norm(tangent);
+            tangent /= euclidean_norm(tangent);
 
             return std::make_pair(startPosition, tangent);
         }
@@ -1495,7 +1495,7 @@ std::pair<Vector_t, Vector_t> Bend::getDesignPathSecant(double startsAtDistFromE
     double diff = startsAtDistFromEdge - pathLength;
     unsigned int i = size - 1;
     Vector_t step = refTrajMap_m[i] - refTrajMap_m[i-1];
-    double stepSize = euclidian_norm(step);
+    double stepSize = euclidean_norm(step);
     tangent = step / stepSize;
     startPosition = refTrajMap_m[i] + diff * tangent;
     tangent = tangent;
