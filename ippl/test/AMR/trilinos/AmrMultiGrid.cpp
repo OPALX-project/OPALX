@@ -1252,23 +1252,24 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(int level)
         
         for (int iref = ii - begin[0]; iref <= ii + end[0]; ++iref) {
             
-            sign *= ( d == 0 ) ? -1.0 : 1.0;
+//             sign *= ( d == 0 ) ? -1.0 : 1.0;
             
             for (int jref = jj - begin[1]; jref <= jj + end[1]; ++jref) {
                 
-                sign *= ( d == 1 ) ? -1.0 : 1.0;
+//                 sign *= ( d == 1 ) ? -1.0 : 1.0;
 #if BL_SPACEDIM == 3
                 for (int kref = kk - begin[2]; kref <= kk + end[2]; ++kref) {
 #endif
                     /* Since all fine cells on the not-refined cell are
                      * outside of the "domain" --> we need to interpolate
                      */
-                    sign *= ( d == 2 ) ? -1.0 : 1.0;
+//                     sign *= ( d == 2 ) ? -1.0 : 1.0;
                     
                     AmrIntVect_t riv(D_DECL(iref, jref, kref));
                     
                     if ( riv[d] / rr[d] == iv[d] ) {
-                        /* interpolate
+                        /* interpolate --> since interface on lower side -->
+                         * fine ghost cell of crse cell at interface required
                          */
                         double value = -1.0 / ( avg * cdx[d] * fdx[d] );
                         
@@ -1281,6 +1282,10 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(int level)
                             values[iter] *= value;
                         
                     } else {
+                        /* interface at upper side --> fine cell of refined
+                         * coarse cell used --> no need to interpolate fine cell
+                         * value
+                         */
                         double value = 1.0 / ( avg * cdx[d] * fdx[d] );
                         
                         indices.push_back( mglevel_m[level+1]->serialize(riv) );
