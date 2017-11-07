@@ -47,6 +47,16 @@ namespace {
         ASSERT_DOUBLE_EQ(expected, energy);
     }
 
+    TEST_F(SDDSParserTest, ReadLastPosition) {
+
+        double position = 0.0;
+        std::string s = "s";
+        sddsr->getValue(-1, s, position);
+
+        double expected = 4.247573354842603e-03;
+        ASSERT_DOUBLE_EQ(expected, position);
+    }
+
     TEST_F(SDDSParserTest, InterpolateRms_x) {
 
         double spos = 4.0e-03;
