@@ -90,6 +90,7 @@ void SDDSReader::parseFile() {
         }
         std::getline(sdds, line, '\n');
         tmp.push_back(line);
+        if (tmp[0].empty()) continue; // skip empty lines
         columns_m.push_back(tmp);
     }
 }
