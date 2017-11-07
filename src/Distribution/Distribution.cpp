@@ -397,6 +397,8 @@ void Distribution::create(size_t &numberOfParticles, double massIneV) {
     // Now reflect particles if Options::cZero is true
     reflectDistribution(numberOfLocalParticles);
 
+    adjustEnergy();
+
     if (Options::seed != -1)
         Options::seed = gsl_rng_uniform_int(randGen_m, gsl_rng_max(randGen_m));
 
@@ -1260,8 +1262,8 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
     if (LineName == "") return;
 
     const BeamSequence* LineSequence = BeamSequence::find(LineName);
-    
-    if (LineSequence == NULL) 
+
+    if (LineSequence == NULL)
         throw OpalException("Distribution::CreateMatchedGaussDistribution",
                             "didn't find any Cyclotron element in line");
 
@@ -4490,7 +4492,7 @@ void Distribution::writeOutFileHeader() {
 
     unsigned int totalNum = tOrZDist_m.size();
     reduce(totalNum, totalNum, OpAddAssign());
-    if (Ippl::myNode() != 0) 
+    if (Ippl::myNode() != 0)
         return;
 
     std::string fname = "data/" + OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat";
@@ -4728,6 +4730,18 @@ double Distribution::MDependentBehavior::get(double rand) {
 
 double Distribution::GaussianLikeBehavior::get(double rand) {
     return sqrt(-2.0 * log(rand));
+}
+
+void Distribution::adjustEnergy() {
+    if (emitting_m || distrTypeT_m == DistrTypeT::FROMFILE || OpalData::getInstance()->isInOPALCyclMode())
+        return;
+
+    double avrgPz = std::accumulate(pzDist_m.begin(), pzDist_m.end(), 0.0) / totalNumberParticles_m;
+    reduce(avrgPz, avrgPz, OpAddAssign());
+
+    for (double &pz: pzDist_m) {
+        pz -= (avrgPz - avrgpz_m);
+    }
 }
 
 // vi: set et ts=4 sw=4 sts=4:
