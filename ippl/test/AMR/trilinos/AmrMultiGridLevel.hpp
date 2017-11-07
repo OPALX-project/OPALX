@@ -12,13 +12,13 @@ AmrMultiGridLevel<MatrixType,
       geom(_geom),
       rr_m(rr),
       map_p(Teuchos::null),
-      A_p(Teuchos::null),
-      B_p(Teuchos::null),
+      Anf_p(Teuchos::null),
+//       B_p(Teuchos::null),
       R_p(Teuchos::null),
       I_p(Teuchos::null),
       Bcrse_p(Teuchos::null),
       Bfine_p(Teuchos::null),
-      As_p(Teuchos::null),
+      Awf_p(Teuchos::null),
       S_p(Teuchos::null),
       rho_p(Teuchos::null),
       phi_p(Teuchos::null),
@@ -49,13 +49,13 @@ AmrMultiGridLevel<MatrixType, VectorType>::~AmrMultiGridLevel()
 {
     map_p = Teuchos::null;
     
-    A_p = Teuchos::null;
-    B_p = Teuchos::null;
+    Anf_p = Teuchos::null;
+//     B_p = Teuchos::null;
     R_p = Teuchos::null;
     I_p = Teuchos::null;
     Bcrse_p = Teuchos::null;
     Bfine_p = Teuchos::null;
-    As_p = Teuchos::null;
+    Awf_p = Teuchos::null;
     
     for (int j = 0; j < BL_SPACEDIM; ++j)
         G_p[j] = Teuchos::null;
