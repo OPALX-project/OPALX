@@ -13,7 +13,7 @@ AmrMultiGridLevel<MatrixType,
       rr_m(rr),
       map_p(Teuchos::null),
       Anf_p(Teuchos::null),
-//       B_p(Teuchos::null),
+      B_p(Teuchos::null),
       R_p(Teuchos::null),
       I_p(Teuchos::null),
       Bcrse_p(Teuchos::null),
@@ -50,7 +50,7 @@ AmrMultiGridLevel<MatrixType, VectorType>::~AmrMultiGridLevel()
     map_p = Teuchos::null;
     
     Anf_p = Teuchos::null;
-//     B_p = Teuchos::null;
+    B_p = Teuchos::null;
     R_p = Teuchos::null;
     I_p = Teuchos::null;
     Bcrse_p = Teuchos::null;
