@@ -201,13 +201,6 @@ private:
                   coefficients_t& values);
     
     
-    void checkCrseBoundary_m(Teuchos::RCP<matrix_t>& B,
-                             int level,
-                             const amrex::BaseFab<int>& mfab,
-                             const AmrIntVect_t& lo,
-                             const AmrIntVect_t& hi,
-                             const amrex::BoxArray& ba);
-    
     void gsrb_level_m(Teuchos::RCP<vector_t>& e,
                       Teuchos::RCP<vector_t>& r,
                       int level);
