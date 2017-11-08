@@ -555,7 +555,7 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(int level) {
     amrex::BoxArray crse_fine_ba; // empty box array
     
     if ( level < lfine_m ) {
-        mglevel_m[level+1]->geom.CellSize();
+        fdx = mglevel_m[level+1]->geom.CellSize();
         crse_fine_ba = mglevel_m[level]->grids;
         crse_fine_ba.refine(rr);
         crse_fine_ba = amrex::intersect(mglevel_m[level+1]->grids, crse_fine_ba);
