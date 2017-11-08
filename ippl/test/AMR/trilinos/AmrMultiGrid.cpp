@@ -562,21 +562,26 @@ void AmrMultiGrid::buildNoFinePoissonMatrix_m(int level) {
 void AmrMultiGrid::buildCompositePoissonMatrix_m(int level) {
     /*
      * Laplacian of "with fine"
+     * 
+     * For the finest level: Awf == Anf
      */
-    if ( level == lfine_m )
-        return;
     
     
     // find all cells with refinement
     AmrIntVect_t rr = mglevel_m[level]->refinement();
     
     const double* cdx = mglevel_m[level]->geom.CellSize();
-    const double* fdx = mglevel_m[level+1]->geom.CellSize();
+    const double* fdx = 0;
     
-    amrex::BoxArray crse_fine_ba = mglevel_m[level]->grids;
-    crse_fine_ba.refine(rr);
-    crse_fine_ba = amrex::intersect(mglevel_m[level+1]->grids, crse_fine_ba);
-    crse_fine_ba.coarsen(rr);
+    amrex::BoxArray crse_fine_ba; // empty box array
+    
+    if ( level < lfine_m ) {
+        mglevel_m[level+1]->geom.CellSize();
+        crse_fine_ba = mglevel_m[level]->grids;
+        crse_fine_ba.refine(rr);
+        crse_fine_ba = amrex::intersect(mglevel_m[level+1]->grids, crse_fine_ba);
+        crse_fine_ba.coarsen(rr);
+    }
     
     /*
      * 1D not supported by AmrMultiGrid
@@ -591,9 +596,15 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(int level) {
     int nEntries = (BL_SPACEDIM << 1) + 5 /* plus boundaries */ +
                    nPhysBoundary + nIntBoundary;
     
-    mglevel_m[level]->Awf_p = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p, nEntries, Tpetra::StaticProfile) );
+    mglevel_m[level]->Awf_p = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p,
+                                                         nEntries,
+                                                         Tpetra::StaticProfile)
+                                          );
     
-    mglevel_m[level]->UnCovered_p = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p, 1, Tpetra::StaticProfile) );
+    mglevel_m[level]->UnCovered_p = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p,
+                                                               1,
+                                                               Tpetra::StaticProfile)
+                                                );
     
     indices_t indices;
     coefficients_t values;
@@ -615,6 +626,9 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(int level) {
                     AmrIntVect_t iv(D_DECL(i, j, k));
                     
                     if ( !crse_fine_ba.contains(iv) ) {
+                        /*
+                         * Only cells that are not refined
+                         */
                         indices.clear();
                         values.clear();
                         int globalidx = mglevel_m[level]->serialize(iv);
@@ -634,9 +648,9 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(int level) {
                                      */
                                     switch ( mfab(biv) )
                                     {
-                                        case -1:
+                                        case AmrMultiGridLevel_t::Mask::COVERED:
                                             // covered --> interior cell
-                                        case 0:
+                                        case AmrMultiGridLevel_t::Mask::INTERIOR:
                                         {
                                             indices.push_back( mglevel_m[level]->serialize(biv) );
                                             values.push_back( 1.0 / ( dx[d] * dx[d] ) );
@@ -647,10 +661,17 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(int level) {
                                             
                                             break;
                                         }
-                                        case 1:
+                                        case AmrMultiGridLevel_t::Mask::BNDRY:
                                         {
                                             // boundary cell
                                             // only level > 0 have this kind of boundary
+                                            
+                                            /* We are on the fine side of the crse-fine interface
+                                             * --> normal stencil --> no flux matching required
+                                             * --> interpolation of fine ghost cell required
+                                             * (used together with Bcrse)
+                                             */
+                                            
                                             
                                             /* Dirichlet boundary conditions from coarser level.
                                              */
@@ -669,7 +690,7 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(int level) {
                                             
                                             break;
                                         }
-                                        case 2:
+                                        case AmrMultiGridLevel_t::Mask::PHYSBNDRY:
                                         {
                                             // physical boundary cell
                                             double value = 1.0 / ( dx[d] * dx[d] );
@@ -689,6 +710,14 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(int level) {
                                             break;
                                     }
                                 } else {
+                                    /*
+                                     * If neighbour cell is refined, we are on the coarse
+                                     * side of the crse-fine interface --> flux matching
+                                     * required --> interpolation of fine ghost cell
+                                     * (used together with Bfine)
+                                     */
+                                    
+                                    
                                     // flux matching, coarse part
                                     
                                     /* 2D --> 2 fine cells to compute flux per coarse-fine-interace --> avg = 2
@@ -696,19 +725,13 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(int level) {
                                      * 
                                      * @precondition: refinement of 2
                                      */
-#if BL_SPACEDIM == 2
-                                    double avg = 2;
-#elif BL_SPACEDIM == 3
-                                    double avg = 4;
-#endif
-                                    double value = -1.0 / ( avg * cdx[d] * fdx[d] );
+                                    std::size_t nn = indices.size();
                                     
                                     // top and bottom for all directions
                                     for (int d1 = 0; d1 < 2; ++d1) {
 #if BL_SPACEDIM == 3
                                         for (int d2 = 0; d2 < 2; ++d2) {
 #endif
-                                            std::size_t nn = indices.size();
                                             
                                             /* in order to get a top iv --> needs to be odd value in "d"
                                              * in order to get a bottom iv --> needs to be even value in "d"
@@ -722,12 +745,19 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(int level) {
                                             interface_mp->coarse(iv, indices, values, d, shift, crse_fine_ba,
                                                                  fake, mglevel_m[level].get());
                                     
-                                            for (std::size_t iter = nn; iter < indices.size(); ++iter) {
-                                                values[iter] *= value;
-                                            }
 #if BL_SPACEDIM == 3
                                         }
 #endif
+                                    }                                    
+#if BL_SPACEDIM == 2
+                                    double avg = 2;
+#elif BL_SPACEDIM == 3
+                                    double avg = 4;
+#endif
+                                    double value = -1.0 / ( avg * cdx[d] * fdx[d] );
+                                    
+                                    for (std::size_t iter = nn; iter < indices.size(); ++iter) {
+                                        values[iter] *= value;
                                     }
                                 }
                             }
