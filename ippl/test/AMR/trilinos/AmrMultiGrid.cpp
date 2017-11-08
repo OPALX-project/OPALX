@@ -122,7 +122,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         
         this->buildGradientMatrix_m(lev);
         
-        nSweeps_m.push_back(nsmooth_m >> lev);
+        nSweeps_m.push_back(nsmooth_m/* >> lev*/);
     }
     IpplTimings::stopTimer(buildTimer_m);
     
@@ -143,6 +143,8 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         double tmp = mglevel_m[lev]->residual_p->norm2();
         residualsum += tmp;
         
+        std::cout << "level " << lev << " " << tmp << std::endl;
+        
         tmp = mglevel_m[lev]->rho_p->norm2();
         rhosum += tmp;
     }
@@ -159,7 +161,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         relax_m(lfine);
         
 //         // update residual
-//         for (int lev = 0; lev < nLevel; ++lev) {
+//         for (int lev = nLevel-1; lev > -1; --lev) {
 //             
 //             this->residual_m(mglevel_m[lev]->residual_p,
 //                              mglevel_m[lev]->rho_p,
@@ -239,7 +241,19 @@ void AmrMultiGrid::residual_m(Teuchos::RCP<vector_t>& r,
         mglevel_m[level]->UnCovered_p->apply(*mglevel_m[level]->rho_p, *tmp3);
     
         // ONLY subtract coarse rho
-        mglevel_m[level]->residual_p->update(1.0, *tmp3, -1.0, tmp2, 0.0);
+        mglevel_m[level]->residual_p->putScalar(0.0);
+        
+//         Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level+1]->map_p) );
+//         this->residual_no_fine_m(tmp,
+//                                  mglevel_m[level+1]->phi_p,
+//                                  mglevel_m[level]->phi_p,
+//                                  mglevel_m[level+1]->residual_p, level+1);
+    
+//         // average down: residual^(l-1) = R^(l) * tmp
+//         mglevel_m[level+1]->R_p->apply(*tmp, *mglevel_m[level]->residual_p);
+        
+        
+        mglevel_m[level]->residual_p->update(1.0, *tmp3, -1.0, tmp2, 1.0);
         
     } else {
         this->residual_no_fine_m(mglevel_m[level]->residual_p,
@@ -268,6 +282,15 @@ void AmrMultiGrid::relax_m(int level) {
                                      mglevel_m[level]->phi_p,
                                      mglevel_m[level-1]->phi_p,
                                      mglevel_m[level]->rho_p, level);
+            
+            auto out = Teuchos::getFancyOStream (Teuchos::rcpFromRef (std::cout));
+            mglevel_m[level]->residual_p->describe(*out, Teuchos::VERB_HIGH); std::cin.get();
+            
+            
+            mglevel_m[level]->phi_p->describe(*out, Teuchos::VERB_EXTREME); std::cin.get();
+            
+            mglevel_m[level-1]->phi_p->describe(*out, Teuchos::VERB_EXTREME); std::cin.get();
+            
         }
     }
     
@@ -350,7 +373,7 @@ void AmrMultiGrid::relax_m(int level) {
         
         tol = std::abs(tol) * 1.0e-1;
         
-        tol = std::min(tol, 1.0e-1);
+        tol = std::min(tol, 1.0e-2);
         
         std::cout << tol << std::endl; //std::cin.get();
         
@@ -405,6 +428,8 @@ double AmrMultiGrid::l2error_m() {
         
         double tmp = mglevel_m[lev]->residual_p->norm2();
         err += tmp;
+        
+        std::cout << "level " << lev << " " << tmp << std::endl;
     }
     
     return err;
@@ -1381,7 +1406,7 @@ void AmrMultiGrid::buildSmootherMatrix_m(int level) {
 #if BL_SPACEDIM == 2
                     double value = h * ( (interior) ? 0.25 : 0.1875 );
 #elif BL_SPACEDIM == 3
-                    double value = h * ( (interior) ? 1.0 / 6.0 : 1.0 / 24.0 );
+                    double value = h * ( (interior) ? 1.0 / 6.0 : 0.125 );
 #endif
                     mglevel_m[level]->S_p->insertGlobalValues(globalidx,
                                                               1,
@@ -1618,17 +1643,27 @@ void AmrMultiGrid::gsrb_level_m(Teuchos::RCP<vector_t>& e,
     // apply "no fine" Laplacian
     Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p) );
     
-    // tmp = A * x
-    mglevel_m[level]->Anf_p->apply(/**mglevel_m[level]->error_p*/*e, *tmp);
+//     // tmp = A * x
+//     mglevel_m[level]->Anf_p->apply(/**mglevel_m[level]->error_p*/*e, *tmp);
     
-    // tmp = tmp - r
-    tmp->update(-1.0, *r, 1.0);
+//     // tmp = tmp - r
+//     tmp->update(-1.0, *r, 1.0);
     
-    // tmp2 = S * tmp
-    Teuchos::RCP<vector_t> tmp2 = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
-    mglevel_m[level]->S_p->apply(*tmp, *tmp2);
+//     // tmp2 = S * tmp
+//     Teuchos::RCP<vector_t> tmp2 = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
+//     mglevel_m[level]->S_p->apply(*tmp, *tmp2);
+//     e->update(1.0, *tmp2, 1.0);
     
-    e->update(1.0, *tmp2, 1.0);
+    
+    AmrSmoother::Smoother type = AmrSmoother::Smoother::JACOBI;
+    AmrSmoother smoother(mglevel_m[level]->Anf_p,
+                        type,
+                        nSweeps_m[level]);
+    
+    smoother.smooth(e, mglevel_m[level]->Anf_p, r, mglevel_m[level]->S_p);
+    
+    
+    
 }
 
 

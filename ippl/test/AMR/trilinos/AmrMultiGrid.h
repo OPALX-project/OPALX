@@ -44,12 +44,6 @@ public:
         BLOCK_CG = 0
     };
     
-    enum Smoother {
-        GAUSS_SEIDEL = 0,
-        JACOBI,
-        SOR
-    };
-    
     enum Boundary {
         DIRICHLET = 0,
         OPEN
