@@ -1178,24 +1178,18 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(int level)
         }
         
         for (int iref = ii - begin[0]; iref <= ii + end[0]; ++iref) {
-            
-            sign *= ( d == 0 ) ? -1.0 : 1.0;
-            
             for (int jref = jj - begin[1]; jref <= jj + end[1]; ++jref) {
-                
-                sign *= ( d == 1 ) ? -1.0 : 1.0;
 #if BL_SPACEDIM == 3
                 for (int kref = kk - begin[2]; kref <= kk + end[2]; ++kref) {
 #endif
                     /* Since all fine cells on the not-refined cell are
                      * outside of the "domain" --> we need to interpolate
                      */
-                    sign *= ( d == 2 ) ? -1.0 : 1.0;
-                    
                     AmrIntVect_t riv(D_DECL(iref, jref, kref));
                     
                     if ( riv[d] / rr[d] == iv[d] ) {
-                        /* interpolate
+                        /* the fine cell is on the coarse side --> fine
+                         * ghost cell --> we need to interpolate
                          */
                         double value = -1.0 / ( avg * cdx[d] * fdx[d] );
                         
@@ -1610,42 +1604,20 @@ void AmrMultiGrid::gsrb_level_m(Teuchos::RCP<vector_t>& e,
                                 Teuchos::RCP<vector_t>& r,
                                 int level)
 {
-//     // apply "no fine" Laplacian
-//     Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p) );
+    // apply "no fine" Laplacian
+    Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p) );
     
-//     // tmp = A * x
-//     mglevel_m[level]->Anf_p->apply(/**mglevel_m[level]->error_p*/*e, *tmp);
+    // tmp = A * x
+    mglevel_m[level]->Anf_p->apply(/**mglevel_m[level]->error_p*/*e, *tmp);
     
-    mglevel_m[level]->Anf_p->resumeFill();
-    mglevel_m[level]->Anf_p->scale(-1.0);
-    mglevel_m[level]->Anf_p->fillComplete();
-    r->scale(-1.0);
-    double tol = 1.0e-5;
-    solver_mp->solve(mglevel_m[level]->Anf_p,
-                     e,
-                     r, tol);
+    // tmp = tmp - r
+    tmp->update(-1.0, *r, 1.0);
     
-    mglevel_m[level]->Anf_p->resumeFill();
-    mglevel_m[level]->Anf_p->scale(-1.0);
-    mglevel_m[level]->Anf_p->fillComplete();
+    // tmp2 = S * tmp
+    Teuchos::RCP<vector_t> tmp2 = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
+    mglevel_m[level]->S_p->apply(*tmp, *tmp2);
     
-    r->scale(-1.0);
-    
-    
-//     // apply "no fine" Laplacian
-//     Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p) );
-//     
-//     // tmp = A * x
-//     mglevel_m[level]->Anf_p->apply(/**mglevel_m[level]->error_p*/*e, *tmp);
-//     
-//     // tmp = tmp - r
-//     tmp->update(-1.0, *r, 1.0);
-//     
-//     // tmp2 = S * tmp
-//     Teuchos::RCP<vector_t> tmp2 = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
-//     mglevel_m[level]->S_p->apply(*tmp, *tmp2);
-//     
-//     e->update(1.0, *tmp2, 1.0);
+    e->update(1.0, *tmp2, 1.0);
 }
 
 
