@@ -81,7 +81,7 @@ public:
     Teuchos::RCP<dmap_t> map_p;         ///< core map
     
     Teuchos::RCP<matrix_t> Anf_p;       ///< no fine Poisson matrix
-//     Teuchos::RCP<matrix_t> B_p;         ///< Poisson matrix boundary from coarse
+    Teuchos::RCP<matrix_t> B_p;         ///< Poisson matrix boundary from coarse
     Teuchos::RCP<matrix_t> R_p;         ///< restriction matrix
     Teuchos::RCP<matrix_t> I_p;         ///< interpolation matrix
     Teuchos::RCP<matrix_t> Bcrse_p;

@@ -44,6 +44,12 @@ public:
         BLOCK_CG = 0
     };
     
+    enum Smoother {
+        GAUSS_SEIDEL = 0,
+        JACOBI,
+        SOR
+    };
+    
     enum Boundary {
         DIRICHLET = 0,
         OPEN
@@ -84,9 +90,9 @@ private:
     
     void residual_no_fine_m(Teuchos::RCP<vector_t>& result,
                             const Teuchos::RCP<vector_t>& rhs,
+                            const Teuchos::RCP<vector_t>& crs_rhs,
                             const Teuchos::RCP<vector_t>& b,
-                            int level,
-                            const Teuchos::RCP<vector_t>& crs_rhs = Teuchos::null);
+                            int level);
                            
     
     
@@ -195,12 +201,12 @@ private:
                   coefficients_t& values);
     
     
-//     void checkCrseBoundary_m(Teuchos::RCP<matrix_t>& B,
-//                              int level,
-//                              const amrex::BaseFab<int>& mfab,
-//                              const AmrIntVect_t& lo,
-//                              const AmrIntVect_t& hi,
-//                              const amrex::BoxArray& ba);
+    void checkCrseBoundary_m(Teuchos::RCP<matrix_t>& B,
+                             int level,
+                             const amrex::BaseFab<int>& mfab,
+                             const AmrIntVect_t& lo,
+                             const AmrIntVect_t& hi,
+                             const amrex::BoxArray& ba);
     
     void gsrb_level_m(Teuchos::RCP<vector_t>& e,
                       Teuchos::RCP<vector_t>& r,
