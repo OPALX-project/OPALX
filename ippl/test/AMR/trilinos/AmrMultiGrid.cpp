@@ -389,14 +389,6 @@ void AmrMultiGrid::residual_no_fine_m(Teuchos::RCP<vector_t>& result,
     vector_t tmp(mglevel_m[level]->Anf_p->getDomainMap());
     mglevel_m[level]->Anf_p->apply(*rhs, tmp);
     
-    
-    if ( level > lbase_m ) {
-        vector_t t2mp(mglevel_m[level]->Anf_p->getDomainMap());
-        mglevel_m[level]->B_p->apply(*rhs, t2mp);
-    
-        tmp.update(1.0, t2mp, 1.0);
-    }
-    
     tmp.update(1.0, crse2fine, 1.0);
     
     result->update(1.0, *b, -1.0, tmp, 0.0);
@@ -431,21 +423,20 @@ void AmrMultiGrid::buildNoFinePoissonMatrix_m(int level) {
      */
     int nPhysBoundary = 2 * BL_SPACEDIM * mglevel_m[level]->getBCStencilNum();
     
-    int nEntries = (BL_SPACEDIM << 1) + 1 /* plus boundaries */ + nPhysBoundary;
-    
     // number of internal stencil points
     int nIntBoundary = BL_SPACEDIM * interface_mp->getNumberOfPoints();
     
+    int nEntries = (BL_SPACEDIM << 1) + 1 /* plus boundaries */ + nPhysBoundary + nIntBoundary;
+    
     amrex::BoxArray empty;
     
-    mglevel_m[level]->Anf_p = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p, nEntries, Tpetra::StaticProfile) );
+    mglevel_m[level]->Anf_p = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p,
+                                                         nEntries,
+                                                         Tpetra::StaticProfile)
+                                          );
     
-    if ( level > lbase_m ) {
-        mglevel_m[level]->B_p = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p, nIntBoundary, Tpetra::StaticProfile) );
-    }
-    
-    indices_t indices, bindices;
-    coefficients_t values, bvalues;
+    indices_t indices;
+    coefficients_t values;
     
     const double* dx = mglevel_m[level]->geom.CellSize();
     
@@ -463,9 +454,6 @@ void AmrMultiGrid::buildNoFinePoissonMatrix_m(int level) {
 #endif
                     indices.clear();
                     values.clear();
-                    
-                    bindices.clear();
-                    bvalues.clear();
                     
                     AmrIntVect_t iv(D_DECL(i, j, k));
                     int globalidx = mglevel_m[level]->serialize(iv);
@@ -495,14 +483,14 @@ void AmrMultiGrid::buildNoFinePoissonMatrix_m(int level) {
                                     
                                     /* Dirichlet boundary conditions from coarser level.
                                      */
-                                    std::size_t nn = bindices.size();
+                                    std::size_t nn = indices.size();
                                     
-                                    interface_mp->fine(biv, bindices, bvalues, d, -shift, empty,
+                                    interface_mp->fine(biv, indices, values, d, -shift, empty,
                                                        mglevel_m[level].get());
                                     
                                     double value = 1.0 / ( dx[d] * dx[d] );
-                                    for (std::size_t iter = nn; iter < bindices.size(); ++iter)
-                                        bvalues[iter] *= value;
+                                    for (std::size_t iter = nn; iter < indices.size(); ++iter)
+                                        values[iter] *= value;
                                     
                                     break;
                                 }
@@ -539,12 +527,6 @@ void AmrMultiGrid::buildNoFinePoissonMatrix_m(int level) {
                                                                 indices.size(),
                                                                 &values[0],
                                                                 &indices[0]);
-                    
-                    if ( level > lbase_m && bindices.size() > 0 )
-                        mglevel_m[level]->B_p->insertGlobalValues(globalidx,
-                                                                  bindices.size(),
-                                                                  &bvalues[0],
-                                                                  &bindices[0]);
 #if BL_SPACEDIM == 3
                 }
 #endif
@@ -553,9 +535,6 @@ void AmrMultiGrid::buildNoFinePoissonMatrix_m(int level) {
     }
     
     mglevel_m[level]->Anf_p->fillComplete();
-    
-    if ( level > lbase_m )
-        mglevel_m[level]->B_p->fillComplete();
 }
 
 
@@ -707,6 +686,8 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(int level) {
                                             break;
                                         }
                                         default:
+                                            throw std::runtime_error("Error in mask for level "
+                                                                     + std::to_string(level) + "!");
                                             break;
                                     }
                                 } else {
