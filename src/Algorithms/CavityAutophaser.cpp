@@ -50,50 +50,53 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
     amplitude = element->getAmplitudem();
     designEnergy = element->getDesignEnergy();
     originalPhase = element->getPhasem();
-
-    if (amplitude == 0.0) {
-        if (designEnergy <= 0.0 || length <= 0.0) {
-            throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
-                                "neither amplitude or design energy given to cavity " + element->getName());
-        }
-
-        amplitude = 2 * (designEnergy - initialEnergy) / (std::abs(itsReference_m.getQ()) * length);
-
-        element->setAmplitudem(amplitude);
-    }
-
-    if (designEnergy > 0.0) {
-        int count = 0;
-        while (count < 1000) {
-            initialPhase = guessCavityPhase(t + tErr);
-            auto status = optimizeCavityPhase(initialPhase, t + tErr, dt);
-
-            optimizedPhase = status.first;
-            finalEnergy = status.second;
-
-            if (std::abs(designEnergy - finalEnergy) < 1e-7) break;
-
-            amplitude *= std::abs(designEnergy / finalEnergy);
-            element->setAmplitudem(amplitude);
-            initialPhase = optimizedPhase;
-
-            ++ count;
-        }
-    }
-    auto status = optimizeCavityPhase(initialPhase, t + tErr, dt);
-
-    optimizedPhase = status.first;
-    finalEnergy = status.second;
-
     bool apVeto = element->getAutophaseVeto();
 
-    AstraPhase = std::fmod(optimizedPhase + Physics::pi / 2, Physics::two_pi);
-    newPhase = std::fmod(originalPhase + optimizedPhase + Physics::two_pi, Physics::two_pi);
-    element->setPhasem(newPhase);
-    element->setAutophaseVeto();
+    if (!apVeto) {
+        if (amplitude == 0.0) {
+            if (designEnergy <= 0.0 || length <= 0.0) {
+                throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
+                                    "neither amplitude or design energy given to cavity " + element->getName());
+            }
 
-    double basePhase = std::fmod(element->getFrequencym() * (t + tErr), Physics::two_pi);
-    newPhase = std::fmod(newPhase + basePhase, Physics::two_pi);
+            amplitude = 2 * (designEnergy - initialEnergy) / (std::abs(itsReference_m.getQ()) * length);
+
+            element->setAmplitudem(amplitude);
+        }
+
+        if (designEnergy > 0.0) {
+            int count = 0;
+            while (count < 1000) {
+                initialPhase = guessCavityPhase(t + tErr);
+                auto status = optimizeCavityPhase(initialPhase, t + tErr, dt);
+
+                optimizedPhase = status.first;
+                finalEnergy = status.second;
+
+                if (std::abs(designEnergy - finalEnergy) < 1e-7) break;
+
+                amplitude *= std::abs(designEnergy / finalEnergy);
+                element->setAmplitudem(amplitude);
+                initialPhase = optimizedPhase;
+
+                ++ count;
+            }
+        }
+        auto status = optimizeCavityPhase(initialPhase, t + tErr, dt);
+
+        optimizedPhase = status.first;
+        finalEnergy = status.second;
+
+        AstraPhase = std::fmod(optimizedPhase + Physics::pi / 2, Physics::two_pi);
+        newPhase = std::fmod(originalPhase + optimizedPhase + Physics::two_pi, Physics::two_pi);
+        element->setPhasem(newPhase);
+        element->setAutophaseVeto();
+
+        double basePhase = std::fmod(element->getFrequencym() * (t + tErr), Physics::two_pi);
+        newPhase = std::fmod(newPhase + basePhase, Physics::two_pi);
+    } else {
+        optimizedPhase = originalPhase;
+    }
 
     INFOMSG(level1 << endl);
     if (apVeto)
