@@ -1,3 +1,4 @@
+#if BL_SPACEDIM == 3
 template <class AmrMultiGridLevel>
 constexpr typename AmrLagrangeInterpolater<AmrMultiGridLevel>::qpattern_t
     AmrLagrangeInterpolater<AmrMultiGridLevel>::qpattern_ms;
@@ -6,7 +7,7 @@ constexpr typename AmrLagrangeInterpolater<AmrMultiGridLevel>::qpattern_t
 template <class AmrMultiGridLevel>
 constexpr typename AmrLagrangeInterpolater<AmrMultiGridLevel>::lpattern_t
     AmrLagrangeInterpolater<AmrMultiGridLevel>::lpattern_ms;
-
+#endif
 
 template <class AmrMultiGridLevel>
 AmrLagrangeInterpolater<AmrMultiGridLevel>::AmrLagrangeInterpolater(Order order)
