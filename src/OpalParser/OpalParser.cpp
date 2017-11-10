@@ -374,8 +374,11 @@ void OpalParser::parseEnd(Statement &stat) const {
 
         unsigned int position = stat.position();
         std::string positionIndicator = std::string(position + 1, ' ') + "^\n";
+        std::ostringstream statStr;
+        stat.print(statStr);
 
         throw ParseError("OpalParser::parseEnd()",
+                         statStr.str() +
                          positionIndicator +
                          "Syntax error (maybe missing comma or semicolon ? )");
     }
