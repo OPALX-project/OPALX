@@ -397,7 +397,7 @@ void Distribution::create(size_t &numberOfParticles, double massIneV) {
     // Now reflect particles if Options::cZero is true
     reflectDistribution(numberOfLocalParticles);
 
-    adjustEnergy();
+    adjustPhaseSpace();
 
     if (Options::seed != -1)
         Options::seed = gsl_rng_uniform_int(randGen_m, gsl_rng_max(randGen_m));
@@ -3049,8 +3049,10 @@ std::vector<double>& Distribution::getBGzDist() {
 void Distribution::printDist(Inform &os, size_t numberOfParticles) const {
 
     if (numberOfParticles > 0) {
+        size_t np = numberOfParticles * (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE)? 2: 1);
+        reduce(np, np, OpAddAssign());
         os << "* Number of particles: "
-           << numberOfParticles * (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE)? 2: 1)
+           << np
            << endl
            << "* " << endl;
     }
@@ -4732,15 +4734,27 @@ double Distribution::GaussianLikeBehavior::get(double rand) {
     return sqrt(-2.0 * log(rand));
 }
 
-void Distribution::adjustEnergy() {
+void Distribution::adjustPhaseSpace() {
     if (emitting_m || distrTypeT_m == DistrTypeT::FROMFILE || OpalData::getInstance()->isInOPALCyclMode())
         return;
 
-    double avrgPz = std::accumulate(pzDist_m.begin(), pzDist_m.end(), 0.0) / totalNumberParticles_m;
-    reduce(avrgPz, avrgPz, OpAddAssign());
+    double avrg[6];
 
-    for (double &pz: pzDist_m) {
-        pz -= (avrgPz - avrgpz_m);
+    avrg[0] = std::accumulate(xDist_m.begin(), xDist_m.end(), 0.0) / totalNumberParticles_m;
+    avrg[1] = std::accumulate(pxDist_m.begin(), pxDist_m.end(), 0.0) / totalNumberParticles_m;
+    avrg[2] = std::accumulate(yDist_m.begin(), yDist_m.end(), 0.0) / totalNumberParticles_m;
+    avrg[3] = std::accumulate(pyDist_m.begin(), pyDist_m.end(), 0.0) / totalNumberParticles_m;
+    avrg[4] = std::accumulate(tOrZDist_m.begin(), tOrZDist_m.end(), 0.0) / totalNumberParticles_m;
+    avrg[5] = std::accumulate(pzDist_m.begin(), pzDist_m.end(), 0.0) / totalNumberParticles_m;
+    reduce(avrg, avrg + 6, avrg, OpAddAssign());
+
+    for (unsigned int i = 0; i < pzDist_m.size(); ++ i) {
+        xDist_m[i] -= avrg[0];
+        pxDist_m[i] -= avrg[1];
+        yDist_m[i] -= avrg[2];
+        pyDist_m[i] -= avrg[3];
+        tOrZDist_m[i] -= avrg[4];
+        pzDist_m[i] -= (avrg[5] - avrgpz_m);
     }
 }
 
