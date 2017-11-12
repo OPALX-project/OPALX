@@ -82,21 +82,22 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
                 ++ count;
             }
         }
-        auto status = optimizeCavityPhase(initialPhase, t + tErr, dt);
-
-        optimizedPhase = status.first;
-        finalEnergy = status.second;
-
-        AstraPhase = std::fmod(optimizedPhase + Physics::pi / 2, Physics::two_pi);
-        newPhase = std::fmod(originalPhase + optimizedPhase + Physics::two_pi, Physics::two_pi);
-        element->setPhasem(newPhase);
-        element->setAutophaseVeto();
-
-        double basePhase = std::fmod(element->getFrequencym() * (t + tErr), Physics::two_pi);
-        newPhase = std::fmod(newPhase + basePhase, Physics::two_pi);
     } else {
-        optimizedPhase = originalPhase;
+        initialPhase = originalPhase;
     }
+
+    auto status = optimizeCavityPhase(initialPhase, t + tErr, dt);
+
+    optimizedPhase = status.first;
+    finalEnergy = status.second;
+
+    AstraPhase = std::fmod(optimizedPhase + Physics::pi / 2, Physics::two_pi);
+    newPhase = std::fmod(originalPhase + optimizedPhase + Physics::two_pi, Physics::two_pi);
+    element->setPhasem(newPhase);
+    element->setAutophaseVeto();
+
+    double basePhase = std::fmod(element->getFrequencym() * (t + tErr), Physics::two_pi);
+    newPhase = std::fmod(newPhase + basePhase, Physics::two_pi);
 
     INFOMSG(level1 << endl);
     if (apVeto)
