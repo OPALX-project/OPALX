@@ -43,7 +43,6 @@ TravelingWave::TravelingWave():
     phaseCore2_m(0.0),
     phaseExit_m(0.0),
     phaseError_m(0.0),
-    frequency_m(0.0),
     length_m(0.0),
     startCoreField_m(0.0),
     startExitField_m(0.0),
@@ -70,7 +69,6 @@ TravelingWave::TravelingWave(const TravelingWave &right):
     phaseCore2_m(right.phaseCore2_m),
     phaseExit_m(right.phaseExit_m),
     phaseError_m(right.phaseError_m),
-    frequency_m(right.frequency_m),
     length_m(right.length_m),
     startCoreField_m(right.startCoreField_m),
     startExitField_m(right.startExitField_m),
@@ -97,7 +95,6 @@ TravelingWave::TravelingWave(const std::string &name):
     phaseCore2_m(0.0),
     phaseExit_m(0.0),
     phaseError_m(0.0),
-    frequency_m(0.0),
     length_m(0.0),
     startCoreField_m(0.0),
     startExitField_m(0.0),
@@ -375,6 +372,7 @@ void TravelingWave::initialise(PartBunchBase<double, 3> *bunch, double &startFie
                          << frequency_m / two_pi * 1e-6 << " MHz <> "
                          << CoreFieldmap_m->getFrequency() / two_pi * 1e-6 << " MHz; TAKE ON THE LATTER\n";
                 std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
+                *gmsg << errormsg_str << endl;
                 ERRORMSG(errormsg_str << "\n" << endl);
                 if(Ippl::myNode() == 0) {
                     std::ofstream omsg("errormsg.txt", std::ios_base::app);

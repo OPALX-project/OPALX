@@ -113,8 +113,6 @@ private:
     double phaseExit_m;
     double phaseError_m;
 
-    double frequency_m;          /**< Read in frequency of time varying field(MHz)*/
-
     double length_m;
     double startCoreField_m;         /**< starting point of field(m)*/
     double startExitField_m;
