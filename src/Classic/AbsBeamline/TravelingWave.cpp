@@ -247,14 +247,14 @@ bool TravelingWave::apply(const size_t &i, const double &t, Vector_t &E, Vector_
 }
 
 bool TravelingWave::apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) {
-    Vector_t tmpR = R - Vector_t(0, 0, 0.5 * PeriodLength_m);
+    if (R(2) < -0.5 * PeriodLength_m || R(2) + 0.5 * PeriodLength_m >= length_m) return false;
+
+    Vector_t tmpR = Vector_t(R(0), R(1), R(2) + 0.5 * PeriodLength_m);
     double tmpcos, tmpsin;
     Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
-    if (tmpR(2) < 0.0 && tmpR(2) >= length_m) return false;
-    if (!CoreFieldmap_m->isInside(tmpR)) return true;
-
     if (tmpR(2) < startCoreField_m) {
+        if (!CoreFieldmap_m->isInside(tmpR)) return true;
         tmpcos =  (scale_m + scaleError_m) * cos(frequency_m * t + phase_m + phaseError_m);
         tmpsin = -(scale_m + scaleError_m) * sin(frequency_m * t + phase_m + phaseError_m);
 
@@ -264,10 +264,11 @@ bool TravelingWave::apply(const Vector_t &R, const Vector_t &P, const double &t,
         const double z = tmpR(2);
         tmpR(2) = tmpR(2) - PeriodLength_m * floor(tmpR(2) / PeriodLength_m);
         tmpR(2) += startCoreField_m;
+        if (!CoreFieldmap_m->isInside(tmpR)) return true;
 
         tmpcos =  (scaleCore_m + scaleCoreError_m) * cos(frequency_m * t + phaseCore1_m + phaseError_m);
         tmpsin = -(scaleCore_m + scaleCoreError_m) * sin(frequency_m * t + phaseCore1_m + phaseError_m);
-        CoreFieldmap_m->getFieldstrength(R, tmpE, tmpB);
+        CoreFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
         E += tmpcos * tmpE;
         B += tmpsin * tmpB;
 
@@ -282,9 +283,10 @@ bool TravelingWave::apply(const Vector_t &R, const Vector_t &P, const double &t,
         tmpsin = -(scaleCore_m + scaleCoreError_m) * sin(frequency_m * t + phaseCore2_m + phaseError_m);
 
     } else {
+        tmpR(2) -= mappedStartExitField_m;
+        if (!CoreFieldmap_m->isInside(tmpR)) return true;
         tmpcos =  (scale_m + scaleError_m) * cos(frequency_m * t + phaseExit_m + phaseError_m);
         tmpsin = -(scale_m + scaleError_m) * sin(frequency_m * t + phaseExit_m + phaseError_m);
-        tmpR(2) -= mappedStartExitField_m;
     }
 
     CoreFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
@@ -296,14 +298,15 @@ bool TravelingWave::apply(const Vector_t &R, const Vector_t &P, const double &t,
 }
 
 bool TravelingWave::applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) {
+
+    if (R(2) < -0.5 * PeriodLength_m || R(2) + 0.5 * PeriodLength_m >= length_m) return false;
+
+    Vector_t tmpR = Vector_t(R(0), R(1), R(2) + 0.5 * PeriodLength_m);
     double tmpcos, tmpsin;
     Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
-    Vector_t tmpR(R(0), R(1), R(2) - 0.5 * PeriodLength_m);
-    if (tmpR(2) < 0.0 && tmpR(2) >= length_m) return false;
-    if (!CoreFieldmap_m->isInside(tmpR)) return true;
-
     if (tmpR(2) < startCoreField_m) {
+        if (!CoreFieldmap_m->isInside(tmpR)) return true;
         tmpcos =  scale_m * cos(frequency_m * t + phase_m);
         tmpsin = -scale_m * sin(frequency_m * t + phase_m);
 
@@ -313,10 +316,11 @@ bool TravelingWave::applyToReferenceParticle(const Vector_t &R, const Vector_t &
         const double z = tmpR(2);
         tmpR(2) = tmpR(2) - PeriodLength_m * floor(tmpR(2) / PeriodLength_m);
         tmpR(2) += startCoreField_m;
+        if (!CoreFieldmap_m->isInside(tmpR)) return true;
 
         tmpcos =  scaleCore_m * cos(frequency_m * t + phaseCore1_m);
         tmpsin = -scaleCore_m * sin(frequency_m * t + phaseCore1_m);
-        CoreFieldmap_m->getFieldstrength(R, tmpE, tmpB);
+        CoreFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
         E += tmpcos * tmpE;
         B += tmpsin * tmpB;
 
@@ -331,9 +335,11 @@ bool TravelingWave::applyToReferenceParticle(const Vector_t &R, const Vector_t &
         tmpsin = -scaleCore_m * sin(frequency_m * t + phaseCore2_m);
 
     } else {
+        tmpR(2) -= mappedStartExitField_m;
+        if (!CoreFieldmap_m->isInside(tmpR)) return true;
+
         tmpcos =  scale_m * cos(frequency_m * t + phaseExit_m);
         tmpsin = -scale_m * sin(frequency_m * t + phaseExit_m);
-        tmpR(2) -= mappedStartExitField_m;
     }
 
     CoreFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
@@ -405,6 +411,14 @@ void TravelingWave::initialise(PartBunchBase<double, 3> *bunch, double &startFie
     } else {
         endField = startField - 1e-3;
     }
+
+    *gmsg << "TravelingWave.cpp: " << __LINE__ << "\t"
+          << PeriodLength_m << "\t"
+          << length_m << "\t"
+          << startCoreField_m << "\t"
+          << startExitField_m << "\t"
+          << mappedStartExitField_m << "\t"
+          << endl;
 }
 
 void TravelingWave::finalise()
