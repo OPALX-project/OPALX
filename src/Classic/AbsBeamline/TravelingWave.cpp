@@ -255,6 +255,7 @@ bool TravelingWave::apply(const Vector_t &R, const Vector_t &P, const double &t,
 
     if (tmpR(2) < startCoreField_m) {
         if (!CoreFieldmap_m->isInside(tmpR)) return true;
+
         tmpcos =  (scale_m + scaleError_m) * cos(frequency_m * t + phase_m + phaseError_m);
         tmpsin = -(scale_m + scaleError_m) * sin(frequency_m * t + phase_m + phaseError_m);
 
@@ -411,14 +412,6 @@ void TravelingWave::initialise(PartBunchBase<double, 3> *bunch, double &startFie
     } else {
         endField = startField - 1e-3;
     }
-
-    *gmsg << "TravelingWave.cpp: " << __LINE__ << "\t"
-          << PeriodLength_m << "\t"
-          << length_m << "\t"
-          << startCoreField_m << "\t"
-          << startExitField_m << "\t"
-          << mappedStartExitField_m << "\t"
-          << endl;
 }
 
 void TravelingWave::finalise()
