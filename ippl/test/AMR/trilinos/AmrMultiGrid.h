@@ -212,6 +212,11 @@ private:
     
     void initBaseSolver_m(const LinSolver& solver);
     
+    void writeYt_m(const amrex::Array<AmrField_u>& rho,
+                   amrex::Array<AmrField_u>& phi,
+                   amrex::Array<AmrField_u>& efield,
+                   const amrex::Array<AmrGeometry_t>& geom);
+    
 private:
     Teuchos::RCP<comm_t> comm_mp;
     Teuchos::RCP<amr::node_t> node_mp;

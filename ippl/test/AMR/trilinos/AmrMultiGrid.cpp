@@ -1,10 +1,14 @@
 #include "AmrMultiGrid.h"
 
-#include <AMReX_MultiFabUtil.H>
-#include <AMReX_FillPatchUtil.H>
+// #include <AMReX_MultiFabUtil.H>
+// #include <AMReX_FillPatchUtil.H>
 #include <AMReX_Array.H>
 
-#include <AMReX_MacBndry.H>
+// #include <AMReX_MacBndry.H>
+
+#include <iomanip>
+#include <sstream>
+#include "../writePlotFile.H"
 
 
 #define WRITE 1
@@ -130,7 +134,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         
         this->buildGradientMatrix_m(lev);
         
-        nSweeps_m.push_back(nsmooth_m << lev);
+        nSweeps_m.push_back(nsmooth_m/* << lev*/);
     }
 #if MG_TIMER
     IpplTimings::stopTimer(buildTimer_m);
@@ -167,6 +171,8 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     while ( residualsum > eps * rhosum) {
         
         std::cout << residualsum << " " << eps * rhosum << std::endl; //std::cin.get();
+        
+//         this->writeYt_m(rho, phi, efield, geom);
         
         relax_m(lfine);
         
@@ -228,7 +234,22 @@ void AmrMultiGrid::residual_m(Teuchos::RCP<vector_t>& r,
      * r = b - A*x
      */
     if ( level < lfine_m ) {
-        vector_t fine2crse(mglevel_m[level]->Anf_p->getDomainMap());
+        
+//         //*********************************************************************************
+//         Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level+1]->map_p) );
+//     
+//         this->residual_no_fine_m(tmp,
+//                                  mglevel_m[level+1]->phi_p,
+//                                  mglevel_m[level]->phi_p,
+//                                  mglevel_m[level+1]->rho_p, level+1);
+//         
+//         mglevel_m[level]->residual_p->putScalar(0.0);
+//     
+//         // average down: residual^(l-1) = R^(l) * tmp
+//         mglevel_m[level+1]->R_p->apply(*tmp, *mglevel_m[level]->residual_p);
+//         //*********************************************************************************
+        
+        vector_t fine2crse(mglevel_m[level]->Awf_p->getDomainMap());
         
         // get boundary for 
         if ( mglevel_m[level]->Bfine_p != Teuchos::null ) {
@@ -238,7 +259,7 @@ void AmrMultiGrid::residual_m(Teuchos::RCP<vector_t>& r,
         vector_t tmp2(mglevel_m[level]->Awf_p->getDomainMap());
         mglevel_m[level]->Awf_p->apply(*mglevel_m[level]->phi_p, tmp2);
         
-        vector_t crse2fine(mglevel_m[level]->Anf_p->getDomainMap());
+        vector_t crse2fine(mglevel_m[level]->Awf_p->getDomainMap());
         
         if ( mglevel_m[level]->Bcrse_p != Teuchos::null ) {
             mglevel_m[level]->Bcrse_p->apply(*mglevel_m[level-1]->phi_p, crse2fine);
@@ -251,19 +272,9 @@ void AmrMultiGrid::residual_m(Teuchos::RCP<vector_t>& r,
         mglevel_m[level]->UnCovered_p->apply(*mglevel_m[level]->rho_p, *tmp3);
     
         // ONLY subtract coarse rho
-        mglevel_m[level]->residual_p->putScalar(0.0);
+//         mglevel_m[level]->residual_p->putScalar(0.0);
         
-//         Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level+1]->map_p) );
-//         this->residual_no_fine_m(tmp,
-//                                  mglevel_m[level+1]->phi_p,
-//                                  mglevel_m[level]->phi_p,
-//                                  mglevel_m[level+1]->residual_p, level+1);
-    
-//         // average down: residual^(l-1) = R^(l) * tmp
-//         mglevel_m[level+1]->R_p->apply(*tmp, *mglevel_m[level]->residual_p);
-        
-        
-        mglevel_m[level]->residual_p->update(1.0, *tmp3, -1.0, tmp2, 1.0);
+        mglevel_m[level]->residual_p->update(1.0, *tmp3, -1.0, tmp2, 0.0);
         
     } else {
         this->residual_no_fine_m(mglevel_m[level]->residual_p,
@@ -309,7 +320,7 @@ void AmrMultiGrid::relax_m(int level) {
 #if MG_TIMER
         IpplTimings::startTimer(smoothTimer_m);
 #endif
-//         for (std::size_t iii = 0; iii < nSweeps_m[level]; ++iii)
+//         for (std::size_t iii = 0; iii < 4/*nSweeps_m[level]*/; ++iii)
             this->gsrb_level_m(mglevel_m[level]->error_p,
                                mglevel_m[level]->residual_p, level);
 #if MG_TIMER
@@ -365,7 +376,7 @@ void AmrMultiGrid::relax_m(int level) {
 #if MG_TIMER
         IpplTimings::startTimer(smoothTimer_m);
 #endif
-//         for (std::size_t iii = 0; iii < nSweeps_m[level]; ++iii)
+//         for (std::size_t iii = 0; iii < 4/*nSweeps_m[level]*/; ++iii)
             this->gsrb_level_m(derror, mglevel_m[level]->residual_p, level);
 #if MG_TIMER
         IpplTimings::stopTimer(smoothTimer_m);
@@ -391,9 +402,9 @@ void AmrMultiGrid::relax_m(int level) {
         
         tol = std::abs(tol) * 1.0e-1;
         
-        tol = std::min(tol, 1.0e-4);
+        tol = std::min(tol, 1.0e-12);
         
-        std::cout << tol << std::endl; //std::cin.get();
+//         std::cout << tol << std::endl; //std::cin.get();
         
         solver_mp->solve(mglevel_m[level]->Anf_p,
                          mglevel_m[level]->error_p,
@@ -465,7 +476,12 @@ double AmrMultiGrid::lInfError_m() {
     
     for (int lev = 0; lev < nLevel; ++lev) {
         
-        double tmp = mglevel_m[lev]->residual_p->normInf();
+        Teuchos::RCP<vector_t> x = Teuchos::rcp( new vector_t(mglevel_m[lev]->map_p, true) );
+    
+        mglevel_m[lev]->UnCovered_p->apply(*mglevel_m[lev]->residual_p, *x);
+        
+        
+        double tmp = /*mglevel_m[lev]->residual_p*/x->normInf();
         err += tmp;
         
         std::cout << "level " << lev << " " << tmp << std::endl;
@@ -1821,4 +1837,30 @@ void AmrMultiGrid::initBaseSolver_m(const LinSolver& solver) {
         default:
             std::runtime_error("No such solver available.");
     }
+}
+
+
+void AmrMultiGrid::writeYt_m(const amrex::Array<AmrField_u>& rho,
+                             amrex::Array<AmrField_u>& phi,
+                             amrex::Array<AmrField_u>& efield,
+                             const amrex::Array<AmrGeometry_t>& geom)
+{
+    std::stringstream ss;
+    ss << "plt" << std::setfill('0') << std::setw(4) << nIter_m;
+    
+    double time = 0.0;
+    double scalefactor = 200.154;
+    
+//     for (unsigned int i = 0; i < rho.size(); ++i)
+//         rho[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
+    
+    Array<int> rr(lfine_m+1, 2);
+    
+    for (int lev = 0; lev <= lfine_m; ++lev) {
+        int ilev = lbase_m + lev;
+        
+        this->trilinos2amrex_m(*phi[ilev], 0, mglevel_m[lev]->phi_p);
+    }
+    
+    writePlotFile(ss.str(), rho, phi, efield, rr, geom, time, scalefactor);
 }
