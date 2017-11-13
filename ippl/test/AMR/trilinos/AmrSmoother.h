@@ -22,6 +22,7 @@ public:
     
     enum Smoother {
         GAUSS_SEIDEL = 0,
+        SGS,    // symmetric Gauss-Seidel
         JACOBI //,
 //         SOR
     };
