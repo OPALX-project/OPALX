@@ -235,12 +235,13 @@ private:
     
     Boundary bc_m;
     
-    
+#if MG_TIMER
     IpplTimings::TimerRef buildTimer_m;
     IpplTimings::TimerRef restrictTimer_m;
     IpplTimings::TimerRef smoothTimer_m;
     IpplTimings::TimerRef interpTimer_m;
     IpplTimings::TimerRef residnofineTimer_m;
+#endif
     
 };
 
