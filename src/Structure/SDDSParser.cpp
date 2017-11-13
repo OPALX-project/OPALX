@@ -63,7 +63,6 @@ SDDS::file SDDS::SDDSParser::run() {
                                                col.order_m));
     }
 
-    std::cout << sddsData_m.sddsParameters_m.size() << std::endl;
     return sddsData_m;
 }
 
