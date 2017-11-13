@@ -11,6 +11,7 @@ set (_SRCS
   H5PartWrapperForPC.cpp
   H5PartWrapperForPS.cpp
   H5PartWrapperForPT.cpp
+  SDDSParser.cpp
   SDDSParser/array.cpp
   SDDSParser/associate.cpp
   SDDSParser/ast.cpp
