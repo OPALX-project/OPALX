@@ -15,6 +15,22 @@
 
 extern Inform *gmsg;
 
+namespace {
+#if defined (USE_H5HUT2)
+    const h5_int64_t H5TypesCHAR = H5_STRING_T;
+    const h5_int64_t H5TypesFLOAT = H5_FLOAT32_T;
+    const h5_int64_t H5TypesDOUBLE = H5_FLOAT64_T;
+    const h5_int64_t H5TypesINT32 = H5_INT32_T;
+    const h5_int64_t H5TypesINT64 = H5_INT64_T;
+#else
+    const h5_int64_t H5TypesCHAR = H5T_NATIVE_CHAR;
+    const h5_int64_t H5TypesFLOAT = H5T_NATIVE_FLOAT;
+    const h5_int64_t H5TypesDOUBLE = H5T_NATIVE_DOUBLE;
+    const h5_int64_t H5TypesINT32 = H5T_NATIVE_INT32;
+    const h5_int64_t H5TypesINT64 = H5T_NATIVE_INT64;
+#endif
+}
+
 std::string H5PartWrapper::copyFilePrefix_m = ".copy";
 
 H5PartWrapper::H5PartWrapper(const std::string &fileName, h5_int32_t flags):
@@ -182,6 +198,14 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
         assert (source != (void*)H5_ERR);
 #endif
         copyHeader(source);
+
+        if (lastStep < 0) {
+            if (-lastStep > numStepsInSource) {
+                lastStep = 0;
+            } else {
+                lastStep = numStepsInSource + lastStep;
+            }
+        }
 
         // don't copy the whole file, it takes very long
         copyStep(source, lastStep);
@@ -406,7 +430,7 @@ void H5PartWrapper::copyStepHeader(
                                           &attributeType,
                                           &numAttributeElements));
 
-        if (attributeType == H5_STRING_T) {
+        if (attributeType == H5TypesCHAR) {
             if (buffer.size() < numAttributeElements) {
                 buffer.resize(numAttributeElements);
             }
@@ -414,7 +438,7 @@ void H5PartWrapper::copyStepHeader(
             READSTEPATTRIB(String, source, attributeName, &buffer[0]);
             WRITESTRINGSTEPATTRIB(file_m, attributeName, &buffer[0]);
 
-        } else if (attributeType == H5_FLOAT32_T) {
+        } else if (attributeType == H5TypesFLOAT) {
             if (buffer.size() < numAttributeElements * sizeof(h5_float32_t)) {
                 buffer.resize(numAttributeElements * sizeof(h5_float32_t));
             }
@@ -422,7 +446,7 @@ void H5PartWrapper::copyStepHeader(
             READSTEPATTRIB(Float32, source, attributeName, f32buffer);
             WRITESTEPATTRIB(Float32, file_m, attributeName, f32buffer, numAttributeElements);
 
-        } else if (attributeType == H5_FLOAT64_T) {
+        } else if (attributeType == H5TypesDOUBLE) {
             if (buffer.size() < numAttributeElements * sizeof(h5_float64_t)) {
                 buffer.resize(numAttributeElements * sizeof(h5_float64_t));
             }
@@ -430,7 +454,7 @@ void H5PartWrapper::copyStepHeader(
             READSTEPATTRIB(Float64, source, attributeName, f64buffer);
             WRITESTEPATTRIB(Float64, file_m, attributeName, f64buffer, numAttributeElements);
 
-        } else if (attributeType == H5_INT32_T) {
+        } else if (attributeType == H5TypesINT32) {
             if (buffer.size() < numAttributeElements * sizeof(h5_int32_t)) {
                 buffer.resize(numAttributeElements * sizeof(h5_int32_t));
             }
@@ -438,7 +462,7 @@ void H5PartWrapper::copyStepHeader(
             READSTEPATTRIB(Int32, source, attributeName, i32buffer);
             WRITESTEPATTRIB(Int32, file_m, attributeName, i32buffer, numAttributeElements);
 
-        } else if (attributeType == H5_INT64_T) {
+        } else if (attributeType == H5TypesINT64) {
             if (buffer.size() < numAttributeElements * sizeof(h5_int64_t)) {
                 buffer.resize(numAttributeElements * sizeof(h5_int64_t));
             }
@@ -483,11 +507,6 @@ void H5PartWrapper::copyStepData(
     h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
     h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(&buffer[0]);
     h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
-
-    const h5_int64_t H5TypesFLOAT = H5_FLOAT32_T;
-    const h5_int64_t H5TypesDOUBLE = H5_FLOAT64_T;
-    const h5_int64_t H5TypesINT32 = H5_INT32_T;
-    const h5_int64_t H5TypesINT64 = H5_INT64_T;
 
    h5_ssize_t numDatasets = H5PartGetNumDatasets(source);
 
