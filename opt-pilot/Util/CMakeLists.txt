@@ -4,7 +4,6 @@ SET (_UTIL_SRCS
     MPIHelper.cpp
 
     PeakReader.cpp
-    SDDSReader.cpp
     ProbeReader.cpp
     CommentAnnotatedInputFileParser.cpp
 )
