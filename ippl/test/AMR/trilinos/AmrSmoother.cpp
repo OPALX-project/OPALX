@@ -58,7 +58,7 @@ void AmrSmoother::initParameter_m(const Smoother& smoother,
     
     std::string type = "";
     double damping = 1.0;
-    std::pair<bool, double> l1 = std::make_pair(true, 1.7);
+    std::pair<bool, double> l1 = std::make_pair(true, 1.5);
     
     bool backward = false;
     std::pair<bool, double> fix = std::make_pair(true, 1.0e-5);
@@ -70,6 +70,11 @@ void AmrSmoother::initParameter_m(const Smoother& smoother,
         {
             type = "Gauss-Seidel";
             backward = false;
+            break;
+        }
+        case SGS:
+        {
+            type = "Symmetric Gauss-Seidel";
             break;
         }
         case JACOBI:
