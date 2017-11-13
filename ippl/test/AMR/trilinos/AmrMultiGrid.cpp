@@ -145,7 +145,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         double tmp = mglevel_m[lev]->residual_p->norm2();
         residualsum += tmp;
         
-        std::cout << "level " << lev << " " << tmp << std::endl;
+        std::cout << "level " << lev << " " << tmp << " " << mglevel_m[lev]->residual_p->normInf() << std::endl;
         
         tmp = mglevel_m[lev]->rho_p->norm2();
         rhosum += tmp;
@@ -158,7 +158,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     
     while ( residualsum > eps * rhosum) {
         
-        std::cout << residualsum << " " << eps * rhosum << std::endl; std::cin.get();
+        std::cout << residualsum << " " << eps * rhosum << std::endl; //std::cin.get();
         
         relax_m(lfine);
         
@@ -170,7 +170,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
                              mglevel_m[lev]->phi_p, lev);
         }
         
-        residualsum = l2error_m();
+        residualsum = lInfError_m();
         
 #if WRITE
         if ( Ippl::myNode() == 0 ) {
@@ -238,7 +238,7 @@ void AmrMultiGrid::residual_m(Teuchos::RCP<vector_t>& r,
         
         tmp2.update(1.0, fine2crse, 1.0, crse2fine, 1.0);
         
-        Teuchos::RCP<vector_t> tmp3 = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
+        Teuchos::RCP<vector_t> tmp3 = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, true) );
     
         mglevel_m[level]->UnCovered_p->apply(*mglevel_m[level]->rho_p, *tmp3);
     
@@ -368,7 +368,7 @@ void AmrMultiGrid::relax_m(int level) {
         
         tol = std::abs(tol) * 1.0e-1;
         
-        tol = std::min(tol, 1.0e-2);
+        tol = std::min(tol, 1.0e-4);
         
         std::cout << tol << std::endl; //std::cin.get();
         
@@ -422,6 +422,23 @@ double AmrMultiGrid::l2error_m() {
     for (int lev = 0; lev < nLevel; ++lev) {
         
         double tmp = mglevel_m[lev]->residual_p->norm2();
+        err += tmp;
+        
+        std::cout << "level " << lev << " " << tmp << std::endl;
+    }
+    
+    return err;
+}
+
+
+double AmrMultiGrid::lInfError_m() {
+    int nLevel = lfine_m - lbase_m + 1;
+    
+    double err = 0.0;
+    
+    for (int lev = 0; lev < nLevel; ++lev) {
+        
+        double tmp = mglevel_m[lev]->residual_p->normInf();
         err += tmp;
         
         std::cout << "level " << lev << " " << tmp << std::endl;
@@ -1663,38 +1680,12 @@ void AmrMultiGrid::gsrb_level_m(Teuchos::RCP<vector_t>& e,
 //     e->update(1.0, *tmp2, 1.0);
     
     
-//     AmrSmoother::Smoother type = AmrSmoother::Smoother::JACOBI;
-//     AmrSmoother smoother(mglevel_m[level]->Anf_p,
-//                         type,
-//                         nSweeps_m[level]);
-//     
-//     smoother.smooth(e, mglevel_m[level]->Anf_p, r, mglevel_m[level]->S_p);
+    AmrSmoother::Smoother type = AmrSmoother::Smoother::GAUSS_SEIDEL;
+    AmrSmoother smoother(mglevel_m[level]->Anf_p,
+                        type,
+                        nSweeps_m[level]);
     
-    
-    
-    Teuchos::RCP<vector_t> diag = Teuchos::rcp (new vector_t (mglevel_m[level]->Anf_p->getRowMap ()));
-
-      const matrix_t* crsMat =
-        dynamic_cast<const matrix_t*> (mglevel_m[level]->Anf_p.getRawPtr());
-      if (crsMat == NULL || ! crsMat->isStaticGraph ()) {
-        mglevel_m[level]->Anf_p->getLocalDiagCopy (*diag); // slow path
-      } else {
-          std::cout << "Wrong." << std::endl; std::cin.get();
-      }
-    
-    
-//     vector_t diag(mglevel_m[level]->map_p, false);
-//     
-//     mglevel_m[level]->Anf_p->getLocalDiagCopy(diag);
-//     
-    // inverse of elements
-    diag->reciprocal(*diag);
-    
-//     mglevel_m[level]->S_p->apply(*r, *tmp);
-    
-    mglevel_m[level]->Anf_p->gaussSeidel(*r, *e, *diag, 1.0, Tpetra::Forward, nSweeps_m[level] * (2 << level) );
-    
-//     mglevel_m[level]->S_p->apply(*e, *e);
+    smoother.smooth(e, mglevel_m[level]->Anf_p, r, mglevel_m[level]->S_p);
 }
 
 
@@ -1708,6 +1699,7 @@ void AmrMultiGrid::restrict_m(int level) {
                              mglevel_m[level]->residual_p, level);
     
 //     std::cout << *tmp << std::endl;
+    mglevel_m[level-1]->residual_p->putScalar(0.0);
     
     // average down: residual^(l-1) = R^(l) * tmp
     mglevel_m[level]->R_p->apply(*tmp, *mglevel_m[level-1]->residual_p);
@@ -1718,7 +1710,7 @@ void AmrMultiGrid::restrict_m(int level) {
     // special matrix, i.e. matrix without covered cells
     // r^(l-1) = rho^(l-1) - A * phi^(l-1)
     
-    vector_t fine2crse(mglevel_m[level-1]->Anf_p->getDomainMap());
+    vector_t fine2crse(mglevel_m[level-1]->Awf_p->getDomainMap());
     
     // get boundary for 
     mglevel_m[level-1]->Bfine_p->apply(*mglevel_m[level]->phi_p, fine2crse);
@@ -1726,7 +1718,7 @@ void AmrMultiGrid::restrict_m(int level) {
     vector_t tmp2(mglevel_m[level-1]->Awf_p->getDomainMap());
     mglevel_m[level-1]->Awf_p->apply(*mglevel_m[level-1]->phi_p, tmp2);
     
-    vector_t crse2fine(mglevel_m[level-1]->Anf_p->getDomainMap());
+    vector_t crse2fine(mglevel_m[level-1]->Awf_p->getDomainMap());
     
     if ( mglevel_m[level-1]->Bcrse_p != Teuchos::null ) {
         mglevel_m[level-1]->Bcrse_p->apply(*mglevel_m[level-2]->phi_p, crse2fine);

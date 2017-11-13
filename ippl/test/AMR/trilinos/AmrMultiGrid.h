@@ -90,7 +90,9 @@ private:
                            
     
     
-    double l2error_m();    
+    double l2error_m();
+    
+    double lInfError_m();
     
     /*!
      * Build the Poisson matrix for a level assuming no finer level (i.e. the whole fine mesh
