@@ -142,12 +142,12 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
                          mglevel_m[lev]->rho_p,
                          mglevel_m[lev]->phi_p, lev);
         
-        double tmp = mglevel_m[lev]->residual_p->norm2();
+        double tmp = mglevel_m[lev]->residual_p->normInf();
         residualsum += tmp;
         
         std::cout << "level " << lev << " " << tmp << " " << mglevel_m[lev]->residual_p->normInf() << std::endl;
         
-        tmp = mglevel_m[lev]->rho_p->norm2();
+        tmp = mglevel_m[lev]->rho_p->normInf();
         rhosum += tmp;
     }
     
@@ -163,7 +163,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         relax_m(lfine);
         
         // update residual
-        for (int lev = nLevel-1; lev > -1; --lev) {
+        for (int lev = 0; lev < nLevel; ++lev) {
             
             this->residual_m(mglevel_m[lev]->residual_p,
                              mglevel_m[lev]->rho_p,
