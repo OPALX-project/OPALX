@@ -41,6 +41,13 @@ namespace SDDS {
         arrayList sddsArrays_m;                             // 6
         includeList sddsIncludes_m;                         // 7
 
+        void clear() {
+            sddsParameters_m.clear();
+            sddsColumns_m.clear();
+            sddsAssociates_m.clear();
+            sddsArrays_m.clear();
+            sddsIncludes_m.clear();
+        }
     };
 
     inline std::ostream& operator<<(std::ostream& out, const file& fh) {

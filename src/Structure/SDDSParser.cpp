@@ -20,6 +20,10 @@ SDDS::file SDDS::SDDSParser::run() {
     typedef SDDS::parser::skipper<iterator_t> skipper_t;
     typedef SDDS::error_handler<iterator_t> error_handler_t;
 
+    sddsData_m.clear();
+    paramNameToID_m.clear();
+    columnNameToID_m.clear();
+
     skipper_t skipper;
     std::string contents = readFile();
     iterator_t contentsIter = contents.begin();
@@ -49,18 +53,22 @@ SDDS::file SDDS::SDDSParser::run() {
                                 "could not parse SDDS file");
         }
 
+    unsigned int param_order = 0;
     for (const SDDS::parameter &param: sddsData_m.sddsParameters_m) {
         std::string name = *param.name_m;
         fixCaseSensitivity(name);
         paramNameToID_m.insert(std::make_pair(name,
-                                              param.order_m));
+                                              param_order));
+        ++ param_order;
     }
 
+    unsigned int col_order = 0;
     for (const SDDS::column &col: sddsData_m.sddsColumns_m) {
         std::string name = *col.name_m;
         fixCaseSensitivity(name);
         columnNameToID_m.insert(std::make_pair(name,
-                                               col.order_m));
+                                               col_order));
+        ++ col_order;
     }
 
     return sddsData_m;
