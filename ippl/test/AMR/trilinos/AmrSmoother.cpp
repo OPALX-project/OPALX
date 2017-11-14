@@ -39,13 +39,17 @@ void AmrSmoother::smooth(const Teuchos::RCP<vector_t>& x,
 //                    Teuchos::ScalarTraits<scalar_t>::zero());
     
 //     Teuchos::RCP<vector_t> accel = Teuchos::rcp( new vector_t(A->getDomainMap(), false) );
-//     S->apply(*correction, *accel);
+//     S->apply(*b, *accel);
     
 //     x->update(1.0, *accel, 1.0);
+    
+//     Teuchos::RCP<vector_t> xcopy = Teuchos::rcp( new vector_t(A->getDomainMap(), false) );
+//     Tpetra::deep_copy(*xcopy, *x);
     
     prec_mp->apply(*b, *x, Teuchos::NO_TRANS,
                    Teuchos::ScalarTraits<scalar_t>::one(),
                    Teuchos::ScalarTraits<scalar_t>::zero());
+//     x->update(1.0, *xcopy, 1.0);
 }
 
 
