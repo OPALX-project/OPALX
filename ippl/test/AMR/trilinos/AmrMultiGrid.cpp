@@ -256,7 +256,7 @@ void AmrMultiGrid::residual_m(Teuchos::RCP<vector_t>& r,
         }
         
         vector_t tmp2(mglevel_m[level]->Awf_p->getDomainMap());
-        mglevel_m[level]->Awf_p->apply(*mglevel_m[level]->phi_p, tmp2);
+        mglevel_m[level]->Awf_p->apply(*x, tmp2);
         
         vector_t crse2fine(mglevel_m[level]->Awf_p->getDomainMap());
         
@@ -266,20 +266,23 @@ void AmrMultiGrid::residual_m(Teuchos::RCP<vector_t>& r,
         
         tmp2.update(1.0, fine2crse, 1.0, crse2fine, 1.0);
         
+        Teuchos::RCP<vector_t> tmp4 = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, true) );
+        mglevel_m[level]->UnCovered_p->apply(tmp2, *tmp4);
+        
         Teuchos::RCP<vector_t> tmp3 = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, true) );
     
-        mglevel_m[level]->UnCovered_p->apply(*mglevel_m[level]->rho_p, *tmp3);
+        mglevel_m[level]->UnCovered_p->apply(*b, *tmp3);
     
         // ONLY subtract coarse rho
 //         mglevel_m[level]->residual_p->putScalar(0.0);
         
-        mglevel_m[level]->residual_p->update(1.0, *tmp3, -1.0, tmp2, 0.0);
+        r->update(1.0, *tmp3, -1.0, *tmp4, 0.0);
         
     } else {
-        this->residual_no_fine_m(mglevel_m[level]->residual_p,
-                                 mglevel_m[level]->phi_p,
+        this->residual_no_fine_m(r,
+                                 x,
                                  mglevel_m[level-1]->phi_p,
-                                 mglevel_m[level]->rho_p, level);
+                                 b, level);
         
     }
 }
@@ -1780,8 +1783,11 @@ void AmrMultiGrid::restrict_m(int level) {
     
     mglevel_m[level-1]->UnCovered_p->apply(*mglevel_m[level-1]->rho_p, *tmp3);
     
+    Teuchos::RCP<vector_t> tmp4 = Teuchos::rcp( new vector_t(mglevel_m[level-1]->map_p, true) );
+    mglevel_m[level-1]->UnCovered_p->apply(tmp2, *tmp4);
+    
     // ONLY subtract coarse rho
-    mglevel_m[level-1]->residual_p->update(1.0, *tmp3, -1.0, tmp2, 1.0);
+    mglevel_m[level-1]->residual_p->update(1.0, *tmp3, -1.0, *tmp4, 1.0);
 }
 
 
