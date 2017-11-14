@@ -11,11 +11,11 @@
 #include "../writePlotFile.H"
 
 
-#define WRITE 1
+#define AMR_MG_WRITE 1
 
 #define DEBUG 1
 
-#if WRITE
+#if AMR_MG_WRITE
     #include <fstream>
 #endif
 
@@ -154,22 +154,25 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         double tmp = mglevel_m[lev]->residual_p->normInf();
         max_residual = std::max(max_residual, tmp);
         
-        std::cout << "level " << lev << " " << tmp << " " << mglevel_m[lev]->residual_p->normInf() << std::endl;
-        
         tmp = mglevel_m[lev]->rho_p->normInf();
         max_rho = std::max(max_rho, tmp);
     }
     
-#if WRITE
-    std::ofstream out("residual.dat");
+#if AMR_MG_WRITE
+    std::ofstream out;
+    
+    if ( Ippl::myNode() == 0) {
+        out.open("residual.dat", std::ios::out);
+    
+        for (int lev = 0; lev < nLevel; ++lev)
+            out << std::setw(14) << std::right << "level" << lev;
+        out << std::setw(15) << std::right << "max";
+        out << std::endl;
+    }
 #endif
     
     
     while ( max_residual > eps * max_rho) {
-        
-        std::cout << max_residual << " " << eps * max_rho << std::endl; //std::cin.get();
-        
-//         this->writeYt_m(rho, phi, efield, geom);
         
         relax_m(lfine);
         
@@ -183,18 +186,12 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         
         max_residual = lInfError_m();
         
-#if WRITE
-        if ( Ippl::myNode() == 0 ) {
-            out << max_residual << std::endl;
-            std::cerr << max_residual << std::endl;
-        }
-#endif
-        
         ++nIter_m;
     }
     
-#if WRITE
-    out.close();
+#if AMR_MG_WRITE
+    if ( Ippl::myNode() == 0 )
+        out.close();
 #endif
     
     // evaluate the electric field
@@ -474,18 +471,28 @@ double AmrMultiGrid::lInfError_m() {
     
     double err = 0.0;
     
-    for (int lev = 0; lev < nLevel; ++lev) {
-        
-//         Teuchos::RCP<vector_t> x = Teuchos::rcp( new vector_t(mglevel_m[lev]->map_p, true) );
+#if AMR_MG_WRITE
+    std::ofstream out;
+    if ( Ippl::myNode() == 0 )
+        out.open("residual.dat", std::ios::app);
+#endif
     
-//         mglevel_m[lev]->UnCovered_p->apply(*mglevel_m[lev]->residual_p, *x);
-        
-        
-        double tmp = mglevel_m[lev]->residual_p->normInf()/*x->normInf()*/;
+    for (int lev = 0; lev < nLevel; ++lev) {
+        double tmp = mglevel_m[lev]->residual_p->normInf();
         err = std::max(err, tmp);
         
-        std::cout << "level " << lev << " " << tmp << std::endl;
+#if AMR_MG_WRITE
+        if ( Ippl::myNode() == 0 )
+            out << std::setw(15) << std::right << tmp;
+#endif
     }
+    
+#if AMR_MG_WRITE
+    if ( Ippl::myNode() == 0 )
+        out << std::setw(15) << err << std::endl;
+    out.close();
+#endif
+    
     
     return err;
 }
