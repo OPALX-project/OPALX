@@ -19,8 +19,6 @@
     #include <fstream>
 #endif
 
-#define AMR_MG_TIMER 1
-
 AmrMultiGrid::AmrMultiGrid(Boundary bc,
                            Interpolater interp,
                            Interpolater interface,
@@ -34,7 +32,7 @@ AmrMultiGrid::AmrMultiGrid(Boundary bc,
     comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
     node_mp = KokkosClassic::DefaultNode::getDefaultNode();
     
-#if MG_TIMER
+#if AMR_MG_TIMER
     buildTimer_m        = IpplTimings::getTimer("build");
     restrictTimer_m     = IpplTimings::getTimer("restrict");
     smoothTimer_m       = IpplTimings::getTimer("smooth");
@@ -107,7 +105,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     }
     
     // build all necessary matrices and vectors
-#if MG_TIMER
+#if AMR_MG_TIMER
     IpplTimings::startTimer(buildTimer_m);
 #endif
     for (int lev = 0; lev < nLevel; ++lev) {
@@ -136,7 +134,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         
         nSweeps_m.push_back(nsmooth_m/* << lev*/);
     }
-#if MG_TIMER
+#if AMR_MG_TIMER
     IpplTimings::stopTimer(buildTimer_m);
 #endif
     
@@ -319,13 +317,13 @@ void AmrMultiGrid::relax_m(int level) {
         mglevel_m[level-1]->error_p->putScalar(0.0);
         
         // smoothing
-#if MG_TIMER
+#if AMR_MG_TIMER
         IpplTimings::startTimer(smoothTimer_m);
 #endif
 //         for (std::size_t iii = 0; iii < 4/*nSweeps_m[level]*/; ++iii)
             this->gsrb_level_m(mglevel_m[level]->error_p,
                                mglevel_m[level]->residual_p, level);
-#if MG_TIMER
+#if AMR_MG_TIMER
         IpplTimings::stopTimer(smoothTimer_m);
 #endif
         
@@ -335,11 +333,11 @@ void AmrMultiGrid::relax_m(int level) {
         /*
          * restrict
          */
-#if MG_TIMER
+#if AMR_MG_TIMER
         IpplTimings::startTimer(restrictTimer_m);
 #endif
         this->restrict_m(level);
-#if MG_TIMER
+#if AMR_MG_TIMER
         IpplTimings::stopTimer(restrictTimer_m);
 #endif
         
@@ -348,13 +346,13 @@ void AmrMultiGrid::relax_m(int level) {
         /*
          * prolongate / interpolate
          */
-#if MG_TIMER
+#if AMR_MG_TIMER
         IpplTimings::startTimer(interpTimer_m);
 #endif
         // interpolate error from l-1 to l
         Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p) );
         mglevel_m[level-1]->I_p->apply(*mglevel_m[level-1]->error_p, *tmp);
-#if MG_TIMER
+#if AMR_MG_TIMER
         IpplTimings::stopTimer(interpTimer_m);
 #endif
         
@@ -375,12 +373,12 @@ void AmrMultiGrid::relax_m(int level) {
         Teuchos::RCP<vector_t> derror = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p) );
         
         // smoothing
-#if MG_TIMER
+#if AMR_MG_TIMER
         IpplTimings::startTimer(smoothTimer_m);
 #endif
 //         for (std::size_t iii = 0; iii < 4/*nSweeps_m[level]*/; ++iii)
             this->gsrb_level_m(derror, mglevel_m[level]->residual_p, level);
-#if MG_TIMER
+#if AMR_MG_TIMER
         IpplTimings::stopTimer(smoothTimer_m);
 #endif
         
@@ -431,7 +429,7 @@ void AmrMultiGrid::residual_no_fine_m(Teuchos::RCP<vector_t>& result,
                                       const Teuchos::RCP<vector_t>& b,
                                       int level)
 {
-#if MG_TIMER
+#if AMR_MG_TIMER
     IpplTimings::startTimer(residnofineTimer_m);
 #endif
     vector_t crse2fine(mglevel_m[level]->Anf_p->getDomainMap());
@@ -448,7 +446,7 @@ void AmrMultiGrid::residual_no_fine_m(Teuchos::RCP<vector_t>& result,
     tmp.update(1.0, crse2fine, 1.0);
     
     result->update(1.0, *b, -1.0, tmp, 0.0);
-#if MG_TIMER
+#if AMR_MG_TIMER
     IpplTimings::stopTimer(residnofineTimer_m);
 #endif
 }
