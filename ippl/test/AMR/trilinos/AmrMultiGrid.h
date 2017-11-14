@@ -12,6 +12,8 @@
 
 #include "AmrMultiGridLevel.h"
 
+#define AMR_MG_TIMER 1
+
 class AmrMultiGrid {
     
 public:
@@ -240,7 +242,7 @@ private:
     
     Boundary bc_m;
     
-#if MG_TIMER
+#if AMR_MG_TIMER
     IpplTimings::TimerRef buildTimer_m;
     IpplTimings::TimerRef restrictTimer_m;
     IpplTimings::TimerRef smoothTimer_m;
