@@ -74,16 +74,19 @@ void AmrSmoother::initParameter_m(const Smoother& smoother,
         {
             type = "Gauss-Seidel";
             backward = false;
+            damping = 1.0;
             break;
         }
         case SGS:
         {
             type = "Symmetric Gauss-Seidel";
+            damping = 1.0;
             break;
         }
         case JACOBI:
         {
             type = "Jacobi";
+            damping = 6.0 / 7.0;
             break;
         }
         default:
