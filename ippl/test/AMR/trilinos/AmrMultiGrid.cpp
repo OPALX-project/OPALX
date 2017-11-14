@@ -142,12 +142,11 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     
     mglevel_m[lfine_m]->error_p->putScalar(0.0);
     
-    double err = 1.0e7;
     double eps = 1.0e-8;
     
     // initial error
-    double residualsum = 0.0;
-    double rhosum = 0.0;
+    double max_residual = 0.0;
+    double max_rho = 0.0;
     
     for (int lev = 0; lev < nLevel; ++lev) {
         this->residual_m(mglevel_m[lev]->residual_p,
@@ -155,12 +154,12 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
                          mglevel_m[lev]->phi_p, lev);
         
         double tmp = mglevel_m[lev]->residual_p->normInf();
-        residualsum += tmp;
+        max_residual = std::max(max_residual, tmp);
         
         std::cout << "level " << lev << " " << tmp << " " << mglevel_m[lev]->residual_p->normInf() << std::endl;
         
         tmp = mglevel_m[lev]->rho_p->normInf();
-        rhosum += tmp;
+        max_rho = std::max(max_rho, tmp);
     }
     
 #if WRITE
@@ -168,9 +167,9 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
 #endif
     
     
-    while ( residualsum > eps * rhosum) {
+    while ( max_residual > eps * max_rho) {
         
-        std::cout << residualsum << " " << eps * rhosum << std::endl; //std::cin.get();
+        std::cout << max_residual << " " << eps * max_rho << std::endl; //std::cin.get();
         
 //         this->writeYt_m(rho, phi, efield, geom);
         
@@ -184,12 +183,12 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
                              mglevel_m[lev]->phi_p, lev);
         }
         
-        residualsum = lInfError_m();
+        max_residual = lInfError_m();
         
 #if WRITE
         if ( Ippl::myNode() == 0 ) {
-            out << residualsum << std::endl;
-            std::cerr << residualsum << std::endl;
+            out << max_residual << std::endl;
+            std::cerr << max_residual << std::endl;
         }
 #endif
         
@@ -476,13 +475,13 @@ double AmrMultiGrid::lInfError_m() {
     
     for (int lev = 0; lev < nLevel; ++lev) {
         
-        Teuchos::RCP<vector_t> x = Teuchos::rcp( new vector_t(mglevel_m[lev]->map_p, true) );
+//         Teuchos::RCP<vector_t> x = Teuchos::rcp( new vector_t(mglevel_m[lev]->map_p, true) );
     
-        mglevel_m[lev]->UnCovered_p->apply(*mglevel_m[lev]->residual_p, *x);
+//         mglevel_m[lev]->UnCovered_p->apply(*mglevel_m[lev]->residual_p, *x);
         
         
-        double tmp = /*mglevel_m[lev]->residual_p*/x->normInf();
-        err += tmp;
+        double tmp = mglevel_m[lev]->residual_p->normInf()/*x->normInf()*/;
+        err = std::max(err, tmp);
         
         std::cout << "level " << lev << " " << tmp << std::endl;
     }
@@ -1722,9 +1721,17 @@ void AmrMultiGrid::gsrb_level_m(Teuchos::RCP<vector_t>& e,
 //     mglevel_m[level]->S_p->apply(*tmp, *tmp2);
 //     e->update(1.0, *tmp2, 1.0);
     
+//     Teuchos::RCP<matrix_t> C = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p,
+//                                                           10,
+//                                                           Tpetra::StaticProfile) );
+    
+//     Tpetra::MatrixMatrix::Multiply(*mglevel_m[level]->Anf_p, false,
+//                                    *mglevel_m[level]->S_p, false,
+//                                    *C, true);
+    
     
     AmrSmoother::Smoother type = AmrSmoother::Smoother::GAUSS_SEIDEL;
-    AmrSmoother smoother(mglevel_m[level]->Anf_p,
+    AmrSmoother smoother(/*C*/mglevel_m[level]->Anf_p,
                         type,
                         nSweeps_m[level]);
     
