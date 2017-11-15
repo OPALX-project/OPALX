@@ -32,6 +32,11 @@ public:
     typedef AmrMultiGridLevel_t::indices_t indices_t;
     typedef AmrMultiGridLevel_t::coefficients_t coefficients_t;
     
+    typedef amrex::BoxArray boxarray_t;
+    typedef amrex::Box box_t;
+    typedef amrex::BaseFab<int> basefab_t;
+    typedef amrex::FArrayBox farraybox_t;
+    
     typedef std::map<AmrIntVect_t,
                      std::list<std::pair<int, int> >
                      > map_t;
@@ -107,6 +112,28 @@ private:
     double lInfError_m();
     
     /*!
+     * Build all matrices and vectors, i.e. AMReX to Trilinos
+     * @param matrices if we need to build matrices as well or only vectors.
+     */
+    void setup_m(const amrex::Array<AmrField_u>& rho,
+                 amrex::Array<AmrField_u>& phi,
+                 bool matrices = true);
+    
+    /*!
+     * Set matrix and vector pointer
+     * @param level for which we fill matrix + vector
+     * @param matrices if we need to set matrices as well or only vectors.
+     */
+    void open_m(int level, bool matrices);
+    
+    /*!
+     * Call fill complete
+     * @param level for which we filled matrix
+     * @param matrices if we set matrices as well.
+     */
+    void close_m(int level, bool matrices);
+    
+    /*!
      * Build the Poisson matrix for a level assuming no finer level (i.e. the whole fine mesh
      * is taken into account).
      * It takes care of physical boundaries (i.e. mesh boundary).
@@ -114,7 +141,8 @@ private:
      * boundary matrix.
      * @param level for which we build the Poisson matrix
      */
-    void buildNoFinePoissonMatrix_m(int level);
+    void buildNoFinePoissonMatrix_m(const AmrIntVect_t& iv,
+                                    const basefab_t& mfab, int level);
     
     /*!
      * Build the Poisson matrix for a level that got refined (it does not take the covered
@@ -124,7 +152,10 @@ private:
      * boundary matrix.
      * @param level for which we build the special Poisson matrix
      */
-    void buildCompositePoissonMatrix_m(int level);
+    void buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
+                                       const basefab_t& mfab,
+                                       const boxarray_t& ba,
+                                       int level);
     
     /*!
      * Build a matrix that averages down the data of the fine cells down to the
@@ -134,7 +165,13 @@ private:
      * \f]
      * @param level for which to build restriction matrix
      */
-    void buildRestrictionMatrix_m(int level);
+    void buildRestrictionMatrix_m(const AmrIntVect_t& iv,
+                                  const boxarray_t& crse_fine_ba,
+                                  int& ii, int& jj,
+#if AMREX_SPACEDIM == 3
+                                  int& kk,
+#endif
+                                  int level);
     
     /*!
      * Interpolate data from coarse cells to appropriate refined cells. The interpolation
@@ -146,7 +183,8 @@ private:
      * @param level for which to build the interpolation matrix. The finest level
      * does not build such a matrix.
      */
-    void buildInterpolationMatrix_m(int level);
+    void buildInterpolationMatrix_m(const AmrIntVect_t& iv,
+                                    int level);
     
     /*!
      * The boundary values at the crse-fine-interface need to be taken into account properly.
@@ -157,17 +195,31 @@ private:
      * Dirichlet boundary condition
      * @param level the base level is omitted
      */
-    void buildCrseBoundaryMatrix_m(int level);
+    void buildCrseBoundaryMatrix_m(const AmrIntVect_t& iv,
+                                   map_t& cells, int level);
+    
+    void fillCrseBoundaryMatrix_m(map_t& cells,
+                                  const boxarray_t& crse_fine_ba,
+                                  int level);
     
     /*!
      * 
      * @param level the finest level is omitted
      */
-    void buildFineBoundaryMatrix_m(int level);
+    void buildFineBoundaryMatrix_m(const AmrIntVect_t& iv,
+                                   map_t& cells,
+                                   const boxarray_t& crse_fine_ba,
+                                   int level);
     
-    void buildDensityVector_m(const AmrField_t& rho, int level);
+    void fillFineBoundaryMatrix_m(map_t& cells,
+                                  const boxarray_t& crse_fine_ba,
+                                  int level);
     
-    void buildPotentialVector_m(const AmrField_t& phi, int level);
+    void buildDensityVector_m(const AmrField_t& rho,
+                              int level);
+    
+    void buildPotentialVector_m(const AmrField_t& phi,
+                                int level);
     
     /*!
      * The smoother matrix is used in the relaxation step. The base level
@@ -180,7 +232,8 @@ private:
     /*!
      * Gradient matrix is used to compute the electric field
      */
-    void buildGradientMatrix_m(int level);
+    void buildGradientMatrix_m(const AmrIntVect_t& iv,
+                               const basefab_t& mfab, int level);
     
     /*!
      * Data transfer from AMReX to Trilinos.
