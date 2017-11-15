@@ -399,7 +399,7 @@ void AmrMultiGrid::relax_m(int level) {
         
         tol = std::abs(tol) * 1.0e-1;
         
-        tol = std::min(tol, 1.0e-12);
+//         tol = std::min(tol, 1.0e-12);
         
 //         std::cout << tol << std::endl; //std::cin.get();
         
@@ -1217,7 +1217,7 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(int level)
 #endif
                     AmrIntVect_t iv(D_DECL(i, j, k));
                     
-                    if ( !crse_fine_ba.contains(iv) && mfab(iv) != 2 /*not physical bc*/ ) {
+                    if ( !crse_fine_ba.contains(iv) /*&& mfab(iv) != 2 not physical bc*/ ) {
                         /*
                          * iv is a coarse cell that got not refined
                          * 
@@ -1738,7 +1738,7 @@ void AmrMultiGrid::gsrb_level_m(Teuchos::RCP<vector_t>& e,
 //                                    *C, true);
     
     
-    AmrSmoother::Smoother type = AmrSmoother::Smoother::GAUSS_SEIDEL;
+    AmrSmoother::Smoother type = AmrSmoother::Smoother::JACOBI;
     AmrSmoother smoother(/*C*/mglevel_m[level]->Anf_p,
                         type,
                         nSweeps_m[level]);
