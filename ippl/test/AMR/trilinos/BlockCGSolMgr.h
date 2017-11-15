@@ -1,8 +1,6 @@
 #ifndef TRILINOS_SOLVER_H
 #define TRILINOS_SOLVER_H
 
-#include "LinearSolver.h"
-
 #include "AmrMultiGridCore.h"
 
 #include <BelosTpetraAdapter.hpp>
@@ -12,8 +10,8 @@
 
 #include <BelosBlockCGSolMgr.hpp>
 
-class BlockCGSolMgr : public LinearSolver<Teuchos::RCP<amr::matrix_t>,
-                                           Teuchos::RCP<amr::vector_t> >
+class BlockCGSolMgr : public BottomSolver<Teuchos::RCP<amr::matrix_t>,
+                                          Teuchos::RCP<amr::vector_t> >
 {
 public:
     typedef amr::matrix_t matrix_t;
@@ -79,6 +77,7 @@ public:
                 std::cout << "Not converged. Achieved tolerance after " << solver_mp->getNumIters() << " iterations is "
                         << solver_mp->achievedTol() << "." << std::endl;
 //             }
+            x->assign(*problem_mp->getLHS());
         }
         
         

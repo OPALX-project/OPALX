@@ -235,7 +235,7 @@ private:
     
     std::vector<std::unique_ptr<AmrMultiGridLevel_t > > mglevel_m;
     
-    std::shared_ptr<LinearSolver<Teuchos::RCP<matrix_t>, Teuchos::RCP<vector_t> > > solver_mp;
+    std::shared_ptr<BottomSolver<Teuchos::RCP<matrix_t>, Teuchos::RCP<vector_t> > > solver_mp;
     
     int lbase_m;
     int lfine_m;

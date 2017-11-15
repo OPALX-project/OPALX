@@ -1,8 +1,8 @@
-#ifndef LINEAR_SOLVER_H
-#define LINEAR_SOLVER_H
+#ifndef BOTTOM_SOLVER_H
+#define BOTTOM_SOLVER_H
 
 template <class MatrixType, class VectorType>
-class LinearSolver {
+class BottomSolver {
     
 public:
     virtual void solve(const MatrixType& A,
