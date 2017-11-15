@@ -22,7 +22,8 @@
 AmrMultiGrid::AmrMultiGrid(Boundary bc,
                            Interpolater interp,
                            Interpolater interface,
-                           LinSolver solver)
+                           BaseSolver solver,
+                           Preconditioner precond)
     : nIter_m(0),
       nsmooth_m(12),
       lbase_m(0),
@@ -38,6 +39,7 @@ AmrMultiGrid::AmrMultiGrid(Boundary bc,
     smoothTimer_m       = IpplTimings::getTimer("smooth");
     interpTimer_m       = IpplTimings::getTimer("prolongate");
     residnofineTimer_m  = IpplTimings::getTimer("resid-no-fine");
+    bottomTimer_m       = IpplTimings::getTimer("bottom-solver");
 #endif
     
     this->initInterpolater_m(interp);
@@ -46,7 +48,7 @@ AmrMultiGrid::AmrMultiGrid(Boundary bc,
     this->initCrseFineInterp_m(interface);
     
     // base level solver
-    this->initBaseSolver_m(solver);
+    this->initBaseSolver_m(solver, precond);
 }
 
 void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
@@ -137,6 +139,9 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
 #if AMR_MG_TIMER
     IpplTimings::stopTimer(buildTimer_m);
 #endif
+    
+    // set the bottom solve operator
+    solver_mp->setOperator(mglevel_m[lbase_m]->Anf_p);
     
     mglevel_m[lfine_m]->error_p->putScalar(0.0);
     
@@ -274,11 +279,20 @@ void AmrMultiGrid::residual_m(Teuchos::RCP<vector_t>& r,
         r->update(1.0, *tmp3, -1.0, *tmp4, 0.0);
         
     } else {
-        this->residual_no_fine_m(r,
-                                 x,
-                                 mglevel_m[level-1]->phi_p,
-                                 b, level);
+        /* finest level: Awf_p == Anf_p
+         * 
+         * In this case we use Awf_p instead of Anf_p since Anf_p might be
+         * made positive definite for the bottom solver.
+         */
+        Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, true) );
+        mglevel_m[level]->Awf_p->apply(*x, *tmp);
         
+        if ( mglevel_m[level]->Bcrse_p != Teuchos::null ) {
+            Teuchos::RCP<vector_t> crse2fine = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, true) );
+            mglevel_m[level]->Bcrse_p->apply(*mglevel_m[level-1]->phi_p, *crse2fine);
+            tmp->update(1.0, *crse2fine, 1.0);
+        }
+        r->update(1.0, *b, -1.0, *tmp, 0.0);        
     }
 }
 
@@ -288,11 +302,14 @@ void AmrMultiGrid::relax_m(int level) {
     if ( level == lfine_m ) {
         
         if ( level == lbase_m ) {
+            /* Anf_p == Awf_p
+             * 
+             * In this case we use Awf_p instead of Anf_p since Anf_p might be
+             * made positive definite for the bottom solver.
+             */
             Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, true) );
-            this->residual_no_fine_m(mglevel_m[level]->residual_p,
-                                     mglevel_m[level]->phi_p,
-                                     tmp,
-                                     mglevel_m[level]->rho_p, level);
+            mglevel_m[level]->Awf_p->apply(*mglevel_m[level]->phi_p, *tmp);
+            mglevel_m[level]->residual_p->update(1.0, *mglevel_m[level]->rho_p, -1.0, *tmp, 0.0);
         } else {
             //TODO residual is already computed at beginning
             
@@ -387,34 +404,17 @@ void AmrMultiGrid::relax_m(int level) {
         
     } else {
         // e = A^(-1)r
+#if AMR_MG_TIMER
+    IpplTimings::startTimer(bottomTimer_m);
+#endif
+    
+        solver_mp->solve(mglevel_m[level]->error_p,
+                         mglevel_m[level]->residual_p);
         
-        mglevel_m[level]->Anf_p->resumeFill();
-        mglevel_m[level]->Anf_p->scale(-1.0);
-        mglevel_m[level]->Anf_p->fillComplete();
-        
-        mglevel_m[level]->residual_p->scale(-1.0);
-        
-        
-        double tol = mglevel_m[lfine_m]->residual_p->normInf();
-        
-        tol = std::abs(tol) * 1.0e-1;
-        
-//         tol = std::min(tol, 1.0e-12);
-        
-//         std::cout << tol << std::endl; //std::cin.get();
-        
-        solver_mp->solve(mglevel_m[level]->Anf_p,
-                         mglevel_m[level]->error_p,
-                         mglevel_m[level]->residual_p, tol);
-        
-        mglevel_m[level]->Anf_p->resumeFill();
-        mglevel_m[level]->Anf_p->scale(-1.0);
-        mglevel_m[level]->Anf_p->fillComplete();
-        
-        mglevel_m[level]->residual_p->scale(-1.0);
-        
+#if AMR_MG_TIMER
+    IpplTimings::stopTimer(bottomTimer_m);
+#endif
         // phi = phi + e
-        
         mglevel_m[level]->phi_p->update(1.0, *mglevel_m[level]->error_p, 1.0);
     }
 }
@@ -1847,13 +1847,36 @@ void AmrMultiGrid::initCrseFineInterp_m(const Interpolater& interface) {
 }
 
 
-void AmrMultiGrid::initBaseSolver_m(const LinSolver& solver) {
+void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
+                                    const Preconditioner& precond)
+{
     switch ( solver ) {
-        case LinSolver::BLOCK_CG:
-            solver_mp.reset( new BlockCGSolMgr() );
+        case BaseSolver::BICGSTAB:
+            solver_mp.reset( new BelosBottomSolver("BICGSTAB", precond) );
+            break;
+        case BaseSolver::MINRES:
+            solver_mp.reset( new BelosBottomSolver("MINRES", precond) );
+            break;
+        case BaseSolver::PCPG:
+            solver_mp.reset( new BelosBottomSolver("PCPG", precond) );
+            break;
+        case BaseSolver::CG:
+            solver_mp.reset( new BelosBottomSolver("Pseudoblock CG", precond) );
+            break;
+        case BaseSolver::GMRES:
+            solver_mp.reset( new BelosBottomSolver("Pseudoblock GMRES", precond) );
+            break;
+        case BaseSolver::STOCHASTIC_CG:
+            solver_mp.reset( new BelosBottomSolver("Stochastic CG", precond) );
+            break;
+        case BaseSolver::RECYCLING_CG:
+            solver_mp.reset( new BelosBottomSolver("RCG", precond) );
+            break;
+        case BaseSolver::RECYCLING_GMRES:
+            solver_mp.reset( new BelosBottomSolver("GCRODR", precond) );
             break;
         default:
-            std::runtime_error("No such solver available.");
+            std::runtime_error("No such bottom solver available.");
     }
 }
 

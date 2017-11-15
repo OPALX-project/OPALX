@@ -12,7 +12,7 @@
 
 // base level solvers
 #include "BottomSolver.h"
-#include "BlockCGSolMgr.h"
+#include "BelosBottomSolver.h"
 
 // Trilinos headers
 #include <Tpetra_Map.hpp>
