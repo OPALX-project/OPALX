@@ -120,6 +120,7 @@ add_executable( testAmrMultigrid
                 testAmrMultigrid.cpp
                 ${F90_source_files}
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                BelosBottomSolver.cpp
                 AmrMultiGrid.cpp)
 
 add_executable( testSolverComparison

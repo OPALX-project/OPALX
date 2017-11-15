@@ -178,6 +178,7 @@ if ( ENABLE_SAAMG_SOLVER )
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp
+                    ../trilinos/BelosBottomSolver.cpp
                     ../trilinos/AmrSmoother.cpp
                     ../trilinos/AmrMultiGrid.cpp)
     

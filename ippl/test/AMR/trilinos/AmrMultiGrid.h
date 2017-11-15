@@ -42,8 +42,17 @@ public:
         PIECEWISE_CONST
     };
     
-    enum LinSolver {
-        BLOCK_CG = 0
+    enum BaseSolver {
+        // all Belos
+        BICGSTAB,
+        MINRES,
+        PCPG,
+        CG,
+        GMRES,
+        STOCHASTIC_CG,
+        RECYCLING_CG,
+        RECYCLING_GMRES
+        // .. add others
     };
     
     enum Boundary {
@@ -56,7 +65,8 @@ public:
     AmrMultiGrid(Boundary bc = Boundary::DIRICHLET,
                  Interpolater interp = Interpolater::TRILINEAR,
                  Interpolater interface = Interpolater::LAGRANGE,
-                 LinSolver solver = LinSolver::BLOCK_CG);
+                 BaseSolver solver = BaseSolver::CG,
+                 Preconditioner precond = Preconditioner::NONE);
     
     void solve(const amrex::Array<AmrField_u>& rho,
                amrex::Array<AmrField_u>& phi,
@@ -212,7 +222,8 @@ private:
     
     void initCrseFineInterp_m(const Interpolater& interfaces);
     
-    void initBaseSolver_m(const LinSolver& solver);
+    void initBaseSolver_m(const BaseSolver& solver,
+                          const Preconditioner& precond);
     
     void writeYt_m(const amrex::Array<AmrField_u>& rho,
                    amrex::Array<AmrField_u>& phi,
@@ -248,6 +259,7 @@ private:
     IpplTimings::TimerRef smoothTimer_m;
     IpplTimings::TimerRef interpTimer_m;
     IpplTimings::TimerRef residnofineTimer_m;
+    IpplTimings::TimerRef bottomTimer_m;
 #endif
     
 };

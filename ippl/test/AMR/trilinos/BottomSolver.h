@@ -1,16 +1,21 @@
 #ifndef BOTTOM_SOLVER_H
 #define BOTTOM_SOLVER_H
 
+enum class Preconditioner {
+    ILUT,       // incomplete LU
+    CHEBYSHEV,
+    NONE
+};
+
+
 template <class MatrixType, class VectorType>
 class BottomSolver {
     
 public:
-    virtual void solve(const MatrixType& A,
-                       VectorType& x,
-                       const VectorType& b, double tol) = 0;
+    virtual void solve(const VectorType& x,
+                       const VectorType& b) = 0;
     
-    virtual void residual(VectorType& r, const VectorType& x, const VectorType& b) = 0;
-    
+    virtual void setOperator(const MatrixType& A) = 0;
 };
 
 #endif
