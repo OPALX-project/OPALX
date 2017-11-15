@@ -10,8 +10,8 @@
 #include "AmrLagrangeInterpolater.h"
 #include "AmrPCInterpolater.h"
 
-// linear solvers
-#include "LinearSolver.h"
+// base level solvers
+#include "BottomSolver.h"
 #include "BlockCGSolMgr.h"
 
 // Trilinos headers
