@@ -94,6 +94,13 @@ public:
     
 private:
     
+    void initLevels_m(const amrex::Array<AmrField_u>& rho,
+                      const amrex::Array<AmrGeometry_t>& geom);
+    
+    void initGuess_m(amrex::Array<AmrField_u>& phi, bool previous);
+    
+    void iterate_m();
+    
     void residual_m(Teuchos::RCP<vector_t>& r,
                     const Teuchos::RCP<vector_t>& b,
                     const Teuchos::RCP<vector_t>& x,
@@ -295,6 +302,7 @@ private:
     
     int lbase_m;
     int lfine_m;
+    int nlevel_m;
     
     Boundary bc_m;
     
