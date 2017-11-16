@@ -6,7 +6,7 @@
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_PhysBCFunct.H>
+#include <AMReX_Array.H>
 
 #include "AmrMultiGridCore.h"
 
@@ -96,7 +96,6 @@ private:
     
     void residual_m(Teuchos::RCP<vector_t>& r,
                     const Teuchos::RCP<vector_t>& b,
-//                     const Teuchos::RCP<matrix_t>& A,
                     const Teuchos::RCP<vector_t>& x,
                     int level);
     
@@ -113,6 +112,10 @@ private:
     double l2error_m();
     
     double lInfError_m();
+    
+    void initResidual_m(double& maxResidual, double& maxRho);
+    
+    void computeEfield_m(amrex::Array<AmrField_u>& efield);
     
     /*!
      * Build all matrices and vectors, i.e. AMReX to Trilinos
@@ -221,14 +224,6 @@ private:
     void buildPotentialVector_m(const AmrField_t& phi,
                                 int level);
     
-//     /*!
-//      * The smoother matrix is used in the relaxation step. The base level
-//      * does not require a smoother matrix.
-//      * @param level for which to build matrix
-//      */
-//     void buildSmootherMatrix_m(int level);
-    
-    
     /*!
      * Gradient matrix is used to compute the electric field
      */
@@ -280,11 +275,6 @@ private:
     void initBaseSolver_m(const BaseSolver& solver,
                           const Preconditioner& precond);
     
-    void writeYt_m(const amrex::Array<AmrField_u>& rho,
-                   amrex::Array<AmrField_u>& phi,
-                   amrex::Array<AmrField_u>& efield,
-                   const amrex::Array<AmrGeometry_t>& geom);
-    
 private:
     Teuchos::RCP<comm_t> comm_mp;
     Teuchos::RCP<amr::node_t> node_mp;
@@ -301,7 +291,7 @@ private:
     
     std::shared_ptr<BottomSolver<Teuchos::RCP<matrix_t>, Teuchos::RCP<vector_t> > > solver_mp;
     
-    std::vector<std::unique_ptr<AmrSmoother> > smoother_m;
+    std::vector<std::shared_ptr<AmrSmoother> > smoother_m;
     
     int lbase_m;
     int lfine_m;

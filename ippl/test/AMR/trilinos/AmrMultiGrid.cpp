@@ -1,21 +1,11 @@
 #include "AmrMultiGrid.h"
 
-// #include <AMReX_MultiFabUtil.H>
-// #include <AMReX_FillPatchUtil.H>
-#include <AMReX_Array.H>
-
-// #include <AMReX_MacBndry.H>
-
-#include <iomanip>
-#include <sstream>
-#include "../writePlotFile.H"
-
-
 #define AMR_MG_WRITE 1
 
 #define DEBUG 1
 
 #if AMR_MG_WRITE
+    #include <iomanip>
     #include <fstream>
 #endif
 
@@ -123,31 +113,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     double max_residual = 0.0;
     double max_rho = 0.0;
     
-    for (int lev = 0; lev < nLevel; ++lev) {
-        this->residual_m(mglevel_m[lev]->residual_p,
-                         mglevel_m[lev]->rho_p,
-                         mglevel_m[lev]->phi_p, lev);
-        
-        double tmp = mglevel_m[lev]->residual_p->normInf();
-        max_residual = std::max(max_residual, tmp);
-        
-        tmp = mglevel_m[lev]->rho_p->normInf();
-        max_rho = std::max(max_rho, tmp);
-    }
-    
-#if AMR_MG_WRITE
-    std::ofstream out;
-    
-    if ( Ippl::myNode() == 0) {
-        out.open("residual.dat", std::ios::out);
-    
-        for (int lev = 0; lev < nLevel; ++lev)
-            out << std::setw(14) << std::right << "level" << lev;
-        out << std::setw(15) << std::right << "max";
-        out << std::endl;
-    }
-#endif
-    
+    this->initResidual_m(max_residual, max_rho);
     
     while ( max_residual > eps * max_rho) {
         
@@ -166,26 +132,8 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         ++nIter_m;
     }
     
-#if AMR_MG_WRITE
-    if ( Ippl::myNode() == 0 )
-        out.close();
-#endif
-    
-    // evaluate the electric field
-    Teuchos::RCP<vector_t> efield_p = Teuchos::null;
-    for (int lev = nLevel - 1; lev > -1; --lev) {
-        int ilev = lbase + lev;
-        
-        efield_p = Teuchos::rcp( new vector_t(mglevel_m[lev]->map_p, false) );
-        
-        averageDown_m(lev);
-        
-        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-            mglevel_m[lev]->G_p[d]->apply(*mglevel_m[lev]->phi_p, *efield_p);
-            this->trilinos2amrex_m(*efield[ilev], d, efield_p);
-        }
-    }
-    
+    // write efield to AMReX
+    this->computeEfield_m(efield);    
     
     // copy solution back
     for (int lev = 0; lev < nLevel; ++lev) {
@@ -205,20 +153,6 @@ void AmrMultiGrid::residual_m(Teuchos::RCP<vector_t>& r,
      * r = b - A*x
      */
     if ( level < lfine_m ) {
-        
-//         //*********************************************************************************
-//         Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level+1]->map_p) );
-//     
-//         this->residual_no_fine_m(tmp,
-//                                  mglevel_m[level+1]->phi_p,
-//                                  mglevel_m[level]->phi_p,
-//                                  mglevel_m[level+1]->rho_p, level+1);
-//         
-//         mglevel_m[level]->residual_p->putScalar(0.0);
-//     
-//         // average down: residual^(l-1) = R^(l) * tmp
-//         mglevel_m[level+1]->R_p->apply(*tmp, *mglevel_m[level]->residual_p);
-//         //*********************************************************************************
         
         vector_t fine2crse(mglevel_m[level]->Awf_p->getDomainMap());
         
@@ -283,8 +217,6 @@ void AmrMultiGrid::relax_m(int level) {
             mglevel_m[level]->Awf_p->apply(*mglevel_m[level]->phi_p, *tmp);
             mglevel_m[level]->residual_p->update(1.0, *mglevel_m[level]->rho_p, -1.0, *tmp, 0.0);
         } else {
-            //TODO residual is already computed at beginning
-            
             this->residual_no_fine_m(mglevel_m[level]->residual_p,
                                      mglevel_m[level]->phi_p,
                                      mglevel_m[level-1]->phi_p,
@@ -293,10 +225,7 @@ void AmrMultiGrid::relax_m(int level) {
     }
     
     if ( level > 0 ) {
-        //TODO
-        
-        // phi^(l, save) = phi^(l)
-        
+        // phi^(l, save) = phi^(l)        
         Teuchos::RCP<vector_t> phi_save = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p) );
         Tpetra::deep_copy(*phi_save, *mglevel_m[level]->phi_p);
         
@@ -429,13 +358,75 @@ double AmrMultiGrid::lInfError_m() {
     }
     
 #if AMR_MG_WRITE
-    if ( Ippl::myNode() == 0 )
+    if ( Ippl::myNode() == 0 ) {
         out << std::setw(15) << err << std::endl;
-    out.close();
+        out.close();
+    }
 #endif
     
     
     return err;
+}
+
+
+void AmrMultiGrid::initResidual_m(double& maxResidual, double& maxRho) {
+    int nLevel = lfine_m - lbase_m + 1;
+    
+#if AMR_MG_WRITE
+    std::ofstream out;
+    
+    if ( Ippl::myNode() == 0) {
+        out.open("residual.dat", std::ios::out);
+    
+        for (int lev = 0; lev < nLevel; ++lev)
+            out << std::setw(14) << std::right << "level" << lev;
+        out << std::setw(15) << std::right << "max";
+        out << std::endl;
+    }
+#endif
+    
+    
+    for (int lev = 0; lev < nLevel; ++lev) {
+        this->residual_m(mglevel_m[lev]->residual_p,
+                         mglevel_m[lev]->rho_p,
+                         mglevel_m[lev]->phi_p, lev);
+        
+        double tmp = mglevel_m[lev]->residual_p->normInf();
+        maxResidual = std::max(maxResidual, tmp);
+        
+#if AMR_MG_WRITE
+        if ( Ippl::myNode() == 0 )
+            out << std::setw(15) << std::right << tmp;
+#endif
+        
+        tmp = mglevel_m[lev]->rho_p->normInf();
+        maxRho = std::max(maxRho, tmp);
+    }
+    
+#if AMR_MG_WRITE
+    if ( Ippl::myNode() == 0 ) {
+        out << std::setw(15) << maxResidual << std::endl;
+        out.close();
+    }
+#endif
+}
+
+
+void AmrMultiGrid::computeEfield_m(amrex::Array<AmrField_u>& efield) {
+    int nLevel = lfine_m - lbase_m + 1;
+    Teuchos::RCP<vector_t> efield_p = Teuchos::null;
+    for (int lev = nLevel - 1; lev > -1; --lev) {
+        int ilev = lbase_m + lev;
+        
+        efield_p = Teuchos::rcp( new vector_t(mglevel_m[lev]->map_p, false) );
+        
+        averageDown_m(lev);
+        
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            mglevel_m[lev]->G_p[d]->apply(*mglevel_m[lev]->phi_p, *efield_p);
+            this->trilinos2amrex_m(*efield[ilev], d, efield_p);
+        }
+    }
 }
 
 
@@ -518,8 +509,6 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
                         this->buildCrseBoundaryMatrix_m(iv, cells_fine, lev);
                         
                         this->buildFineBoundaryMatrix_m(iv, cells_crse, this_fine_ba, lev);
-                        
-//                         this->buildSmootherMatrix_m(iv, indices, values, mfab, lev);
                         
                         this->buildNoFinePoissonMatrix_m(iv, mfab, lev);
                         
@@ -1372,87 +1361,6 @@ inline void AmrMultiGrid::buildPotentialVector_m(const AmrField_t& phi, int leve
 }
 
 
-// void AmrMultiGrid::buildSmootherMatrix_m(int level) {
-//     // the base level does not require a smoother matrix
-//     if ( level == lbase_m )
-//         return;
-//     
-//     mglevel_m[level]->S_p = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p, 1, Tpetra::StaticProfile) );
-//     
-//     const double* dx = mglevel_m[level]->geom.CellSize();
-//     
-//     double h = std::max(dx[0], dx[1]);
-// #if AMREX_SPACEDIM == 3
-//     h = std::max(h, dx[2]);
-// #endif
-//     h = h * h;
-//     
-//     
-//     for (amrex::MFIter mfi(*mglevel_m[level]->mask, false); mfi.isValid(); ++mfi) {
-//         const amrex::Box& bx  = mfi.validbox();
-//         const amrex::BaseFab<int>& mfab = (*mglevel_m[level]->mask)[mfi];
-//         
-//         const int* lo = bx.loVect();
-//         const int* hi = bx.hiVect();
-//         
-//         for (int i = lo[0]; i <= hi[0]; ++i) {
-//             for (int j = lo[1]; j <= hi[1]; ++j) {
-// #if AMREX_SPACEDIM == 3
-//                 for (int k = lo[2]; k <= hi[2]; ++k) {
-// #endif
-//                     AmrIntVect_t iv(D_DECL(i, j, k));
-//                     
-//                     int globalidx = mglevel_m[level]->serialize(iv);
-//                     
-//                     /*
-//                      * check all directions (Laplacian stencil --> cross)
-//                      */
-//                     bool interior = true;
-//                     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-//                         for (int shift = -1; shift <= 1; shift += 2) {
-//                             AmrIntVect_t biv = iv;                        
-//                             biv[d] += shift;
-//                             
-//                             switch ( mfab(biv) )
-//                             {
-//                                 case AmrMultiGridLevel_t::Mask::COVERED:
-//                                     // covered --> interior cell
-//                                 case AmrMultiGridLevel_t::Mask::INTERIOR:
-//                                     // interior cells
-//                                     interior *= true;
-//                                     break;
-//                                 case AmrMultiGridLevel_t::Mask::BNDRY:
-//                                     // boundary cells
-//                                 case AmrMultiGridLevel_t::Mask::PHYSBNDRY:
-//                                     // boundary cells
-//                                     interior *= false;
-//                                     break;
-//                                 default:
-//                                     break;
-//                             }
-//                         }
-//                     }
-//                     
-// #if AMREX_SPACEDIM == 2
-//                     double value = h * ( (interior) ? 0.25 : 0.1875 );
-// #elif AMREX_SPACEDIM == 3
-//                     double value = h * ( (interior) ? 1.0 / 6.0 : 0.125 );
-// #endif
-//                     mglevel_m[level]->S_p->insertGlobalValues(globalidx,
-//                                                               1,
-//                                                               &value,
-//                                                               &globalidx);
-// #if AMREX_SPACEDIM == 3
-//                 }
-// #endif
-//             }
-//         }
-//     }
-//     
-//     mglevel_m[level]->S_p->fillComplete();
-// }
-
-
 void AmrMultiGrid::buildGradientMatrix_m(const AmrIntVect_t& iv,
                                          const basefab_t& mfab,
                                          int level)
@@ -1680,16 +1588,13 @@ void AmrMultiGrid::restrict_m(int level) {
                              mglevel_m[level-1]->error_p,
                              mglevel_m[level]->residual_p, level);
     
-//     std::cout << *tmp << std::endl;
     mglevel_m[level-1]->residual_p->putScalar(0.0);
     
     // average down: residual^(l-1) = R^(l) * tmp
     mglevel_m[level-1]->R_p->apply(*tmp, *mglevel_m[level-1]->residual_p);
     
     
-//     std::cout << *mglevel_m[level]->residual_p << std::endl;
-    
-    // special matrix, i.e. matrix without covered cells
+    // composite matrix, i.e. matrix without covered cells
     // r^(l-1) = rho^(l-1) - A * phi^(l-1)
     
     vector_t fine2crse(mglevel_m[level-1]->Awf_p->getDomainMap());
@@ -1823,30 +1728,4 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
         default:
             std::runtime_error("No such bottom solver available.");
     }
-}
-
-
-void AmrMultiGrid::writeYt_m(const amrex::Array<AmrField_u>& rho,
-                             amrex::Array<AmrField_u>& phi,
-                             amrex::Array<AmrField_u>& efield,
-                             const amrex::Array<AmrGeometry_t>& geom)
-{
-    std::stringstream ss;
-    ss << "plt" << std::setfill('0') << std::setw(4) << nIter_m;
-    
-    double time = 0.0;
-    double scalefactor = 200.154;
-    
-//     for (unsigned int i = 0; i < rho.size(); ++i)
-//         rho[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
-    
-    Array<int> rr(lfine_m+1, 2);
-    
-    for (int lev = 0; lev <= lfine_m; ++lev) {
-        int ilev = lbase_m + lev;
-        
-        this->trilinos2amrex_m(*phi[ilev], 0, mglevel_m[lev]->phi_p);
-    }
-    
-    writePlotFile(ss.str(), rho, phi, efield, rr, geom, time, scalefactor);
 }

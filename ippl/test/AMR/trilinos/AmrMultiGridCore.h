@@ -14,6 +14,8 @@
 #include "BottomSolver.h"
 #include "BelosBottomSolver.h"
 
+#include "AmrSmoother.h"
+
 // Trilinos headers
 #include <Tpetra_Map.hpp>
 #include <Tpetra_Vector.hpp>
