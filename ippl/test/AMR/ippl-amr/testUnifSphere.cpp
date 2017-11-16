@@ -546,7 +546,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     if ( params.useTrilinos ) {
         AmrMultiGrid sol(params.bc, AmrMultiGrid::Interpolater::PIECEWISE_CONST);
         
-        sol.setNumberOfSmoothing(params.smoothing);
+        sol.setNumberOfSweeps(params.smoothing);
     
         IpplTimings::startTimer(solvTimer);
         
