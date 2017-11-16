@@ -113,6 +113,17 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
                                                              node_mp));
                 break;
             }
+            case Boundary::PERIODIC:
+            {
+                mglevel_m[lev].reset(new AmrMultiGridLevel_t(rho[ilev]->boxArray(),
+                                                             rho[ilev]->DistributionMap(),
+                                                             geom[ilev],
+                                                             rr,
+                                                             new AmrPeriodicBoundary<AmrMultiGridLevel_t>(),
+                                                             comm_mp,
+                                                             node_mp));
+                break;
+            }
             default:
                 throw std::runtime_error("Error: This type of boundary is not supported");
         }
