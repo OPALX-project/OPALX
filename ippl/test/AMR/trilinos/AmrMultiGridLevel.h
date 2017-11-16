@@ -7,8 +7,6 @@
 
 #include "Ippl.h"
 
-#include "AmrSmoother.h"
-
 #include "AmrMultiGridCore.h"
 
 template <class MatrixType, class VectorType>
@@ -87,11 +85,6 @@ public:
     Teuchos::RCP<matrix_t> Bfine_p;     ///< physical boundary vector
     Teuchos::RCP<matrix_t> Awf_p;       ///< composite Poisson matrix
     Teuchos::RCP<matrix_t> G_p[BL_SPACEDIM];      ///< gradient matrices in x, y, and z to compute electric field
-    
-    Teuchos::RCP<matrix_t> S_p;         ///< for Gauss-Seidel (smoothing)
-    
-    
-    Teuchos::RCP<AmrSmoother> sm;
     
     Teuchos::RCP<vector_t> rho_p;       ///< charge density
     Teuchos::RCP<vector_t> phi_p;       ///< potential vector
