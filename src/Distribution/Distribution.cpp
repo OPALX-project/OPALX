@@ -1671,9 +1671,6 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
     for (Distribution* addedDist : addedDistributions_m)
         addedDist->setDistToEmitted(emitting_m);
 
-    if (emitting_m)
-        setupEmissionModel(beam);
-
     // Create distributions.
     create(particlesPerDist_m.at(0), beam->getM());
 
@@ -1685,6 +1682,9 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
 
     // Move added distribution particles to main distribution.
     addDistributions();
+
+    if (emitting_m)
+        setupEmissionModel(beam);
 
     // Check number of particles in distribution.
     checkParticleNumber(numberOfParticles);
