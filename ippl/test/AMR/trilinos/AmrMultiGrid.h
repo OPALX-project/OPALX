@@ -64,7 +64,8 @@ public:
     
     enum Boundary {
         DIRICHLET = 0,
-        OPEN
+        OPEN,
+        PERIODIC
     };
     
     enum Norm {
