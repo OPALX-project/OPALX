@@ -126,6 +126,8 @@ private:
     
     double residualNorm_m();
     
+    double evalNorm_m(const Teuchos::RCP<const vector_t>& x);
+    
     void initResidual_m(double& maxResidual, double& maxRho);
     
     void computeEfield_m(amrex::Array<AmrField_u>& efield);

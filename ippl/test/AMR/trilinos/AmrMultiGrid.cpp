@@ -345,28 +345,9 @@ double AmrMultiGrid::residualNorm_m() {
         out.open("residual.dat", std::ios::app);
 #endif
     
-    double tmp = 0.0;
     
     for (int lev = 0; lev < nlevel_m; ++lev) {
-        
-        switch ( norm_m ) {
-            case Norm::L1:
-            {
-                tmp = mglevel_m[lev]->residual_p->norm1();
-                break;
-            }
-            case Norm::L2:
-            {
-                tmp = mglevel_m[lev]->residual_p->norm2();
-                break;
-            }
-            case Norm::LINF:
-            {
-                tmp = mglevel_m[lev]->residual_p->normInf();
-                break;
-            }
-        }
-        
+        double tmp = evalNorm_m(mglevel_m[lev]->residual_p);
         err = std::max(err, tmp);
         
 #if AMR_MG_WRITE
@@ -384,6 +365,32 @@ double AmrMultiGrid::residualNorm_m() {
     
     
     return err;
+}
+
+
+double AmrMultiGrid::evalNorm_m(const Teuchos::RCP<const vector_t>& x) {
+    double norm = 0.0;
+    
+    switch ( norm_m ) {
+        case Norm::L1:
+        {
+            norm = x->norm1();
+            break;
+        }
+        case Norm::L2:
+        {
+            norm = x->norm2();
+            break;
+        }
+        case Norm::LINF:
+        {
+            norm = x->normInf();
+            break;
+        }
+        default:
+            throw std::runtime_error("This type of norm not suppported.");
+    }
+    return norm;
 }
 
 
@@ -407,7 +414,7 @@ void AmrMultiGrid::initResidual_m(double& maxResidual, double& maxRho) {
                          mglevel_m[lev]->rho_p,
                          mglevel_m[lev]->phi_p, lev);
         
-        double tmp = mglevel_m[lev]->residual_p->normInf();
+        double tmp = evalNorm_m(mglevel_m[lev]->residual_p);
         maxResidual = std::max(maxResidual, tmp);
         
 #if AMR_MG_WRITE
@@ -415,7 +422,7 @@ void AmrMultiGrid::initResidual_m(double& maxResidual, double& maxRho) {
             out << std::setw(15) << std::right << tmp;
 #endif
         
-        tmp = mglevel_m[lev]->rho_p->normInf();
+        tmp = evalNorm_m(mglevel_m[lev]->rho_p);
         maxRho = std::max(maxRho, tmp);
     }
     
