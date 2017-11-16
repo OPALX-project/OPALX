@@ -41,6 +41,8 @@ public:
                      std::list<std::pair<int, int> >
                      > map_t;
     
+    typedef AmrSmoother::Smoother Smoother;
+    
     enum Interpolater {
         TRILINEAR = 0,
         LAGRANGE,
@@ -71,7 +73,8 @@ public:
                  Interpolater interp = Interpolater::TRILINEAR,
                  Interpolater interface = Interpolater::LAGRANGE,
                  BaseSolver solver = BaseSolver::CG,
-                 Preconditioner precond = Preconditioner::NONE);
+                 Preconditioner precond = Preconditioner::NONE,
+                 Smoother smoother = Smoother::JACOBI);
     
     void solve(const amrex::Array<AmrField_u>& rho,
                amrex::Array<AmrField_u>& phi,
@@ -79,8 +82,8 @@ public:
                const amrex::Array<AmrGeometry_t>& geom,
                int lbase, int lfine, bool previous = false);
     
-    void setNumberOfSmoothing(std::size_t nsmooth) {
-        nsmooth_m = nsmooth;
+    void setNumberOfSweeps(std::size_t nSweeps) {
+        nSweeps_m = nSweeps;
     }
     
     
@@ -116,7 +119,7 @@ private:
      * @param matrices if we need to build matrices as well or only vectors.
      */
     void setup_m(const amrex::Array<AmrField_u>& rho,
-                 amrex::Array<AmrField_u>& phi,
+                 const amrex::Array<AmrField_u>& phi,
                  bool matrices = true);
     
     /*!
@@ -167,10 +170,7 @@ private:
      */
     void buildRestrictionMatrix_m(const AmrIntVect_t& iv,
                                   const boxarray_t& crse_fine_ba,
-                                  int& ii, int& jj,
-#if AMREX_SPACEDIM == 3
-                                  int& kk,
-#endif
+                                  D_DECL(int& ii, int& jj, int& kk),
                                   int level);
     
     /*!
@@ -221,12 +221,12 @@ private:
     void buildPotentialVector_m(const AmrField_t& phi,
                                 int level);
     
-    /*!
-     * The smoother matrix is used in the relaxation step. The base level
-     * does not require a smoother matrix.
-     * @param level for which to build matrix
-     */
-    void buildSmootherMatrix_m(int level);
+//     /*!
+//      * The smoother matrix is used in the relaxation step. The base level
+//      * does not require a smoother matrix.
+//      * @param level for which to build matrix
+//      */
+//     void buildSmootherMatrix_m(int level);
     
     
     /*!
@@ -262,11 +262,13 @@ private:
                   coefficients_t& values);
     
     
-    void gsrb_level_m(Teuchos::RCP<vector_t>& e,
-                      Teuchos::RCP<vector_t>& r,
-                      int level);
+    void smooth_m(Teuchos::RCP<vector_t>& e,
+                  Teuchos::RCP<vector_t>& r,
+                  int level);
     
     void restrict_m(int level);
+    
+    void prolongate_m(int level);
     
     void averageDown_m(int level);
     
@@ -292,14 +294,14 @@ private:
     std::unique_ptr<AmrInterpolater<AmrMultiGridLevel_t> > interface_mp;
     
     std::size_t nIter_m;
-    std::size_t nsmooth_m;
-    
-    std::vector<std::size_t> nSweeps_m;
-    
+    std::size_t nSweeps_m;
+    Smoother smootherType_m;
     
     std::vector<std::unique_ptr<AmrMultiGridLevel_t > > mglevel_m;
     
     std::shared_ptr<BottomSolver<Teuchos::RCP<matrix_t>, Teuchos::RCP<vector_t> > > solver_mp;
+    
+    std::vector<std::unique_ptr<AmrSmoother> > smoother_m;
     
     int lbase_m;
     int lfine_m;
