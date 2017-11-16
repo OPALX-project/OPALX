@@ -1134,8 +1134,11 @@ void AmrMultiGrid::buildCrseBoundaryMatrix_m(const AmrIntVect_t& iv,
             AmrIntVect_t niv = iv;
             niv[d] += shift;
             
-            if ( !mglevel_m[level]->grids.contains(niv) ) {
+            if ( !mglevel_m[level]->grids.contains(niv) &&
+                 !mglevel_m[level]->isBoundary(niv) )
+            {
                 // neighbour does not belong to fine grids
+                // includes no cells at physical boundary
                 
                 // insert iv if not yet exists
                 cells[iv].push_back(std::make_pair(shift, d));
