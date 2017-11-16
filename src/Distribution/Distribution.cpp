@@ -1788,7 +1788,6 @@ void Distribution::CreateOpalT(PartBunch &beam,
 
     if (emitting_m) {
         CheckEmissionParameters();
-        SetupEmissionModel(beam);
     } else {
         pmean_m = Vector_t(0.0, 0.0, ConverteVToBetaGamma(GetEkin(), beam.getM()));
     }
@@ -1820,6 +1819,9 @@ void Distribution::CreateOpalT(PartBunch &beam,
 
     // Move added distribution particles to main distribution.
     AddDistributions();
+
+    if (emitting_m)
+        SetupEmissionModel(beam);
 
     ShiftDistCoordinates(beam.getM());
 
