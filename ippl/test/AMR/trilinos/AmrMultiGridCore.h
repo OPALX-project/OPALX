@@ -4,6 +4,7 @@
 // boundary handlers
 #include "AmrDirichletBoundary.h"
 #include "AmrOpenBoundary.h"
+#include "AmrPeriodicBoundary.h"
 
 // interpolaters
 #include "AmrTrilinearInterpolater.h"

@@ -147,6 +147,8 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     params.bc = AmrMultiGrid::Boundary::DIRICHLET;
                 else if ( bc == "open" )
                     params.bc = AmrMultiGrid::Boundary::OPEN;
+                else if ( bc == "periodic" )
+                    params.bc = AmrMultiGrid::Boundary::PERIODIC;
                 else
                     throw std::runtime_error("Error: Check boundary condition argument");
                 break;
