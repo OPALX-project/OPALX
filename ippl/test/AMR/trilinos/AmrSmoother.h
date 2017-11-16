@@ -35,8 +35,7 @@ public:
     
     void smooth(const Teuchos::RCP<vector_t>& x,
                 const Teuchos::RCP<matrix_t>& A,
-                const Teuchos::RCP<vector_t>& b,
-                const Teuchos::RCP<matrix_t>& S);
+                const Teuchos::RCP<vector_t>& b);
     
     
 private:
