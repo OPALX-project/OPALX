@@ -18,7 +18,6 @@ AmrMultiGridLevel<MatrixType,
       Bcrse_p(Teuchos::null),
       Bfine_p(Teuchos::null),
       Awf_p(Teuchos::null),
-      S_p(Teuchos::null),
       rho_p(Teuchos::null),
       phi_p(Teuchos::null),
       residual_p(Teuchos::null),
@@ -27,7 +26,7 @@ AmrMultiGridLevel<MatrixType,
 {
     bc_mp.reset(bc);
     
-    for (int j = 0; j < BL_SPACEDIM; ++j) {
+    for (int j = 0; j < AMREX_SPACEDIM; ++j) {
         G_p[j] = Teuchos::null;
         
         nr_m[j] = _geom.Domain().length(j);
@@ -55,10 +54,9 @@ AmrMultiGridLevel<MatrixType, VectorType>::~AmrMultiGridLevel()
     Bfine_p = Teuchos::null;
     Awf_p = Teuchos::null;
     
-    for (int j = 0; j < BL_SPACEDIM; ++j)
+    for (int j = 0; j < AMREX_SPACEDIM; ++j)
         G_p[j] = Teuchos::null;
     
-    S_p = Teuchos::null;
     UnCovered_p = Teuchos::null;
     
     rho_p = Teuchos::null;
@@ -70,7 +68,7 @@ AmrMultiGridLevel<MatrixType, VectorType>::~AmrMultiGridLevel()
 
 template <class MatrixType, class VectorType>
 int AmrMultiGridLevel<MatrixType, VectorType>::serialize(const AmrIntVect_t& iv) const {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     return iv[2] + (iv[1] + nr_m[1] * iv[0]) * nr_m[2];
 #else
     return iv[1] + iv[0] * nr_m[1];
@@ -133,7 +131,7 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Teuchos::RCP<co
         
         for (int i = lo[0]; i <= hi[0]; ++i) {
             for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     AmrIntVect_t iv(D_DECL(i, j, k));
@@ -143,7 +141,7 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Teuchos::RCP<co
                     globalindices.push_back(globalidx);
                     
                     ++localNumElements;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 }
 #endif
             }
