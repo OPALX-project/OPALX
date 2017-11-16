@@ -33,6 +33,8 @@ public:
                 const Smoother& smoother,
                 local_ordinal_t nSweeps);
     
+    ~AmrSmoother();
+    
     void smooth(const Teuchos::RCP<vector_t>& x,
                 const Teuchos::RCP<matrix_t>& A,
                 const Teuchos::RCP<vector_t>& b);
