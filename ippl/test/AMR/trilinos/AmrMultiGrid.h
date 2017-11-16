@@ -6,7 +6,7 @@
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_PhysBCFunct.H>
+#include <AMReX_Array.H>
 
 #include "AmrMultiGridCore.h"
 
@@ -32,9 +32,16 @@ public:
     typedef AmrMultiGridLevel_t::indices_t indices_t;
     typedef AmrMultiGridLevel_t::coefficients_t coefficients_t;
     
+    typedef amrex::BoxArray boxarray_t;
+    typedef amrex::Box box_t;
+    typedef amrex::BaseFab<int> basefab_t;
+    typedef amrex::FArrayBox farraybox_t;
+    
     typedef std::map<AmrIntVect_t,
                      std::list<std::pair<int, int> >
                      > map_t;
+    
+    typedef AmrSmoother::Smoother Smoother;
     
     enum Interpolater {
         TRILINEAR = 0,
@@ -60,13 +67,22 @@ public:
         OPEN
     };
     
+    enum Norm {
+        L1,
+        L2,
+        LINF
+    };
+    
 public:
     
     AmrMultiGrid(Boundary bc = Boundary::DIRICHLET,
                  Interpolater interp = Interpolater::TRILINEAR,
                  Interpolater interface = Interpolater::LAGRANGE,
                  BaseSolver solver = BaseSolver::CG,
-                 Preconditioner precond = Preconditioner::NONE);
+                 Preconditioner precond = Preconditioner::NONE,
+                 Smoother smoother = Smoother::JACOBI,
+                 Norm norm = Norm::LINF
+                );
     
     void solve(const amrex::Array<AmrField_u>& rho,
                amrex::Array<AmrField_u>& phi,
@@ -74,8 +90,8 @@ public:
                const amrex::Array<AmrGeometry_t>& geom,
                int lbase, int lfine, bool previous = false);
     
-    void setNumberOfSmoothing(std::size_t nsmooth) {
-        nsmooth_m = nsmooth;
+    void setNumberOfSweeps(std::size_t nSweeps) {
+        nSweeps_m = nSweeps;
     }
     
     
@@ -86,9 +102,15 @@ public:
     
 private:
     
+    void initLevels_m(const amrex::Array<AmrField_u>& rho,
+                      const amrex::Array<AmrGeometry_t>& geom);
+    
+    void initGuess_m(amrex::Array<AmrField_u>& phi, bool previous);
+    
+    void iterate_m();
+    
     void residual_m(Teuchos::RCP<vector_t>& r,
                     const Teuchos::RCP<vector_t>& b,
-//                     const Teuchos::RCP<matrix_t>& A,
                     const Teuchos::RCP<vector_t>& x,
                     int level);
     
@@ -102,9 +124,35 @@ private:
                            
     
     
-    double l2error_m();
+    double residualNorm_m();
     
-    double lInfError_m();
+    double evalNorm_m(const Teuchos::RCP<const vector_t>& x);
+    
+    void initResidual_m(double& maxResidual, double& maxRho);
+    
+    void computeEfield_m(amrex::Array<AmrField_u>& efield);
+    
+    /*!
+     * Build all matrices and vectors, i.e. AMReX to Trilinos
+     * @param matrices if we need to build matrices as well or only vectors.
+     */
+    void setup_m(const amrex::Array<AmrField_u>& rho,
+                 const amrex::Array<AmrField_u>& phi,
+                 bool matrices = true);
+    
+    /*!
+     * Set matrix and vector pointer
+     * @param level for which we fill matrix + vector
+     * @param matrices if we need to set matrices as well or only vectors.
+     */
+    void open_m(int level, bool matrices);
+    
+    /*!
+     * Call fill complete
+     * @param level for which we filled matrix
+     * @param matrices if we set matrices as well.
+     */
+    void close_m(int level, bool matrices);
     
     /*!
      * Build the Poisson matrix for a level assuming no finer level (i.e. the whole fine mesh
@@ -114,7 +162,8 @@ private:
      * boundary matrix.
      * @param level for which we build the Poisson matrix
      */
-    void buildNoFinePoissonMatrix_m(int level);
+    void buildNoFinePoissonMatrix_m(const AmrIntVect_t& iv,
+                                    const basefab_t& mfab, int level);
     
     /*!
      * Build the Poisson matrix for a level that got refined (it does not take the covered
@@ -124,7 +173,10 @@ private:
      * boundary matrix.
      * @param level for which we build the special Poisson matrix
      */
-    void buildCompositePoissonMatrix_m(int level);
+    void buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
+                                       const basefab_t& mfab,
+                                       const boxarray_t& ba,
+                                       int level);
     
     /*!
      * Build a matrix that averages down the data of the fine cells down to the
@@ -134,7 +186,10 @@ private:
      * \f]
      * @param level for which to build restriction matrix
      */
-    void buildRestrictionMatrix_m(int level);
+    void buildRestrictionMatrix_m(const AmrIntVect_t& iv,
+                                  const boxarray_t& crse_fine_ba,
+                                  D_DECL(int& ii, int& jj, int& kk),
+                                  int level);
     
     /*!
      * Interpolate data from coarse cells to appropriate refined cells. The interpolation
@@ -146,7 +201,8 @@ private:
      * @param level for which to build the interpolation matrix. The finest level
      * does not build such a matrix.
      */
-    void buildInterpolationMatrix_m(int level);
+    void buildInterpolationMatrix_m(const AmrIntVect_t& iv,
+                                    int level);
     
     /*!
      * The boundary values at the crse-fine-interface need to be taken into account properly.
@@ -157,30 +213,37 @@ private:
      * Dirichlet boundary condition
      * @param level the base level is omitted
      */
-    void buildCrseBoundaryMatrix_m(int level);
+    void buildCrseBoundaryMatrix_m(const AmrIntVect_t& iv,
+                                   map_t& cells, int level);
+    
+    void fillCrseBoundaryMatrix_m(map_t& cells,
+                                  const boxarray_t& crse_fine_ba,
+                                  int level);
     
     /*!
      * 
      * @param level the finest level is omitted
      */
-    void buildFineBoundaryMatrix_m(int level);
+    void buildFineBoundaryMatrix_m(const AmrIntVect_t& iv,
+                                   map_t& cells,
+                                   const boxarray_t& crse_fine_ba,
+                                   int level);
     
-    void buildDensityVector_m(const AmrField_t& rho, int level);
+    void fillFineBoundaryMatrix_m(map_t& cells,
+                                  const boxarray_t& crse_fine_ba,
+                                  int level);
     
-    void buildPotentialVector_m(const AmrField_t& phi, int level);
+    void buildDensityVector_m(const AmrField_t& rho,
+                              int level);
     
-    /*!
-     * The smoother matrix is used in the relaxation step. The base level
-     * does not require a smoother matrix.
-     * @param level for which to build matrix
-     */
-    void buildSmootherMatrix_m(int level);
-    
+    void buildPotentialVector_m(const AmrField_t& phi,
+                                int level);
     
     /*!
      * Gradient matrix is used to compute the electric field
      */
-    void buildGradientMatrix_m(int level);
+    void buildGradientMatrix_m(const AmrIntVect_t& iv,
+                               const basefab_t& mfab, int level);
     
     /*!
      * Data transfer from AMReX to Trilinos.
@@ -209,11 +272,13 @@ private:
                   coefficients_t& values);
     
     
-    void gsrb_level_m(Teuchos::RCP<vector_t>& e,
-                      Teuchos::RCP<vector_t>& r,
-                      int level);
+    void smooth_m(Teuchos::RCP<vector_t>& e,
+                  Teuchos::RCP<vector_t>& r,
+                  int level);
     
     void restrict_m(int level);
+    
+    void prolongate_m(int level);
     
     void averageDown_m(int level);
     
@@ -225,11 +290,6 @@ private:
     void initBaseSolver_m(const BaseSolver& solver,
                           const Preconditioner& precond);
     
-    void writeYt_m(const amrex::Array<AmrField_u>& rho,
-                   amrex::Array<AmrField_u>& phi,
-                   amrex::Array<AmrField_u>& efield,
-                   const amrex::Array<AmrGeometry_t>& geom);
-    
 private:
     Teuchos::RCP<comm_t> comm_mp;
     Teuchos::RCP<amr::node_t> node_mp;
@@ -239,19 +299,22 @@ private:
     std::unique_ptr<AmrInterpolater<AmrMultiGridLevel_t> > interface_mp;
     
     std::size_t nIter_m;
-    std::size_t nsmooth_m;
-    
-    std::vector<std::size_t> nSweeps_m;
-    
+    std::size_t nSweeps_m;
+    Smoother smootherType_m;
     
     std::vector<std::unique_ptr<AmrMultiGridLevel_t > > mglevel_m;
     
     std::shared_ptr<BottomSolver<Teuchos::RCP<matrix_t>, Teuchos::RCP<vector_t> > > solver_mp;
     
+    std::vector<std::shared_ptr<AmrSmoother> > smoother_m;
+    
     int lbase_m;
     int lfine_m;
+    int nlevel_m;
     
     Boundary bc_m;
+    
+    Norm norm_m;
     
 #if AMR_MG_TIMER
     IpplTimings::TimerRef buildTimer_m;

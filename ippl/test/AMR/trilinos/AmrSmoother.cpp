@@ -22,34 +22,19 @@ AmrSmoother::AmrSmoother(const Teuchos::RCP<const matrix_t>& A,
 }
 
 
+AmrSmoother::~AmrSmoother() {
+    prec_mp = Teuchos::null;
+    params_mp = Teuchos::null;
+}
+
+
 void AmrSmoother::smooth(const Teuchos::RCP<vector_t>& x,
                          const Teuchos::RCP<matrix_t>& A,
-                         const Teuchos::RCP<vector_t>& b,
-                         const Teuchos::RCP<matrix_t>& S)
+                         const Teuchos::RCP<vector_t>& b)
 {
-//     Teuchos::RCP<vector_t> residual = Teuchos::rcp( new vector_t(A->getDomainMap(), false) );
-//     A->apply(*x, *residual);
-//     residual->update(1.0, *b, -1.0);
-    
-    
-//     Teuchos::RCP<vector_t> correction = Teuchos::rcp( new vector_t(A->getDomainMap(), false) );
-    
-//     prec_mp->apply(*residual, *correction, Teuchos::NO_TRANS,
-//                    Teuchos::ScalarTraits<scalar_t>::one(),
-//                    Teuchos::ScalarTraits<scalar_t>::zero());
-    
-//     Teuchos::RCP<vector_t> accel = Teuchos::rcp( new vector_t(A->getDomainMap(), false) );
-//     S->apply(*b, *accel);
-    
-//     x->update(1.0, *accel, 1.0);
-    
-//     Teuchos::RCP<vector_t> xcopy = Teuchos::rcp( new vector_t(A->getDomainMap(), false) );
-//     Tpetra::deep_copy(*xcopy, *x);
-    
     prec_mp->apply(*b, *x, Teuchos::NO_TRANS,
                    Teuchos::ScalarTraits<scalar_t>::one(),
                    Teuchos::ScalarTraits<scalar_t>::zero());
-//     x->update(1.0, *xcopy, 1.0);
 }
 
 
