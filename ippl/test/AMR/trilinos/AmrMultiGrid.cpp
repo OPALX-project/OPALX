@@ -14,13 +14,16 @@ AmrMultiGrid::AmrMultiGrid(Boundary bc,
                            Interpolater interface,
                            BaseSolver solver,
                            Preconditioner precond,
-                           Smoother smoother)
+                           Smoother smoother,
+                           Norm norm
+                          )
     : nIter_m(0),
       nSweeps_m(12),
       smootherType_m(smoother),
       lbase_m(0),
       lfine_m(0),
-      bc_m(bc)
+      bc_m(bc),
+      norm_m(norm)
 {
     comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
     node_mp = KokkosClassic::DefaultNode::getDefaultNode();
@@ -150,7 +153,7 @@ void AmrMultiGrid::iterate_m() {
                              mglevel_m[lev]->phi_p, lev);
         }
         
-        max_residual = lInfError_m();
+        max_residual = residualNorm_m();
         
         ++nIter_m;
     }
@@ -246,7 +249,8 @@ void AmrMultiGrid::relax_m(int level) {
         
         // smoothing
         this->smooth_m(mglevel_m[level]->error_p,
-                           mglevel_m[level]->residual_p, level);
+                       mglevel_m[level]->residual_p, level);
+        
         
         // phi = phi + e
         mglevel_m[level]->phi_p->update(1.0, *mglevel_m[level]->error_p, 1.0);
@@ -319,6 +323,7 @@ void AmrMultiGrid::residual_no_fine_m(Teuchos::RCP<vector_t>& result,
         mglevel_m[level]->Bcrse_p->apply(*crs_rhs, crse2fine);
     }
     
+    
     // tmp = A * x
     vector_t tmp(mglevel_m[level]->Anf_p->getDomainMap());
     mglevel_m[level]->Anf_p->apply(*rhs, tmp);
@@ -331,23 +336,7 @@ void AmrMultiGrid::residual_no_fine_m(Teuchos::RCP<vector_t>& result,
 #endif
 }
 
-
-double AmrMultiGrid::l2error_m() {
-    double err = 0.0;
-    
-    for (int lev = 0; lev < nlevel_m; ++lev) {
-        
-        double tmp = mglevel_m[lev]->residual_p->norm2();
-        err += tmp;
-        
-        std::cout << "level " << lev << " " << tmp << std::endl;
-    }
-    
-    return err;
-}
-
-
-double AmrMultiGrid::lInfError_m() {
+double AmrMultiGrid::residualNorm_m() {
     double err = 0.0;
     
 #if AMR_MG_WRITE
@@ -356,8 +345,28 @@ double AmrMultiGrid::lInfError_m() {
         out.open("residual.dat", std::ios::app);
 #endif
     
+    double tmp = 0.0;
+    
     for (int lev = 0; lev < nlevel_m; ++lev) {
-        double tmp = mglevel_m[lev]->residual_p->normInf();
+        
+        switch ( norm_m ) {
+            case Norm::L1:
+            {
+                tmp = mglevel_m[lev]->residual_p->norm1();
+                break;
+            }
+            case Norm::L2:
+            {
+                tmp = mglevel_m[lev]->residual_p->norm2();
+                break;
+            }
+            case Norm::LINF:
+            {
+                tmp = mglevel_m[lev]->residual_p->normInf();
+                break;
+            }
+        }
+        
         err = std::max(err, tmp);
         
 #if AMR_MG_WRITE
@@ -676,8 +685,8 @@ void AmrMultiGrid::close_m(int level, bool matrices) {
     if ( matrices ) {
         if ( level > lbase_m ) {
             
-            mglevel_m[level]->I_p->fillComplete(mglevel_m[level]->map_p,
-                                                mglevel_m[level-1]->map_p);
+            mglevel_m[level]->I_p->fillComplete(mglevel_m[level-1]->map_p,  // col map (domain map)
+                                                mglevel_m[level]->map_p);   // row map (range map)
             
             mglevel_m[level]->Bcrse_p->fillComplete(mglevel_m[level-1]->map_p,  // col map
                                                     mglevel_m[level]->map_p);   // row map
@@ -685,8 +694,8 @@ void AmrMultiGrid::close_m(int level, bool matrices) {
         
         if ( level < lfine_m ) {
             
-            mglevel_m[level]->R_p->fillComplete(mglevel_m[level]->map_p,
-                                                  mglevel_m[level+1]->map_p);
+            mglevel_m[level]->R_p->fillComplete(mglevel_m[level+1]->map_p,
+                                                  mglevel_m[level]->map_p);
             
             mglevel_m[level]->Bfine_p->fillComplete(mglevel_m[level+1]->map_p,
                                                     mglevel_m[level]->map_p);
@@ -1053,8 +1062,8 @@ void AmrMultiGrid::buildRestrictionMatrix_m(const AmrIntVect_t& iv,
 void AmrMultiGrid::buildInterpolationMatrix_m(const AmrIntVect_t& iv,
                                               int level)
 {
-    /* crse (this): level - 1
-     * fine: level
+    /* crse: level - 1
+     * fine (this): level
      */
     
     /*
@@ -1076,9 +1085,9 @@ void AmrMultiGrid::buildInterpolationMatrix_m(const AmrIntVect_t& iv,
      * we need boundary + indices from coarser level
      */
     interp_mp->stencil(iv, indices, values, mglevel_m[level-1].get());
-                    
+    
     this->unique_m(indices, values);
-                    
+    
     mglevel_m[level]->I_p->insertGlobalValues(globalidx,
                                               indices.size(),
                                               &values[0],

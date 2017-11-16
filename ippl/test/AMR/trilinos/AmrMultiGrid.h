@@ -67,6 +67,12 @@ public:
         OPEN
     };
     
+    enum Norm {
+        L1,
+        L2,
+        LINF
+    };
+    
 public:
     
     AmrMultiGrid(Boundary bc = Boundary::DIRICHLET,
@@ -74,7 +80,9 @@ public:
                  Interpolater interface = Interpolater::LAGRANGE,
                  BaseSolver solver = BaseSolver::CG,
                  Preconditioner precond = Preconditioner::NONE,
-                 Smoother smoother = Smoother::JACOBI);
+                 Smoother smoother = Smoother::JACOBI,
+                 Norm norm = Norm::LINF
+                );
     
     void solve(const amrex::Array<AmrField_u>& rho,
                amrex::Array<AmrField_u>& phi,
@@ -116,9 +124,7 @@ private:
                            
     
     
-    double l2error_m();
-    
-    double lInfError_m();
+    double residualNorm_m();
     
     void initResidual_m(double& maxResidual, double& maxRho);
     
@@ -305,6 +311,8 @@ private:
     int nlevel_m;
     
     Boundary bc_m;
+    
+    Norm norm_m;
     
 #if AMR_MG_TIMER
     IpplTimings::TimerRef buildTimer_m;

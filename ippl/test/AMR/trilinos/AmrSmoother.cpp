@@ -24,6 +24,7 @@ AmrSmoother::AmrSmoother(const Teuchos::RCP<const matrix_t>& A,
 
 AmrSmoother::~AmrSmoother() {
     prec_mp = Teuchos::null;
+    params_mp = Teuchos::null;
 }
 
 
