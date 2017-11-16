@@ -52,15 +52,39 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     nIter_m = 0;
     lbase_m = lbase;
     lfine_m = lfine;
-    int nLevel = lfine - lbase + 1;
+    nlevel_m = lfine - lbase + 1;
+    
+    this->initLevels_m(rho, geom);
+    
+    this->initGuess_m(phi, previous);
+    
+    // build all necessary matrices and vectors
+    this->setup_m(rho, phi);
+    
+    // actual solve
+    this->iterate_m();
+    
+    // write efield to AMReX
+    this->computeEfield_m(efield);    
+    
+    // copy solution back
+    for (int lev = 0; lev < nlevel_m; ++lev) {
+        int ilev = lbase + lev;
+        
+        this->trilinos2amrex_m(*phi[ilev], 0, mglevel_m[lev]->phi_p);
+    }
+}
+
+
+void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
+                                const amrex::Array<AmrGeometry_t>& geom)
+{
+    mglevel_m.resize(nlevel_m);
     
     AmrIntVect_t rr = AmrIntVect_t(D_DECL(2, 2, 2));
     
-    // initialize all levels
-    mglevel_m.resize(nLevel);
-    
-    for (int lev = 0; lev < nLevel; ++lev) {
-        int ilev = lbase + lev;
+    for (int lev = 0; lev < nlevel_m; ++lev) {
+        int ilev = lbase_m + lev;
         
         switch ( bc_m ) {
             
@@ -90,22 +114,21 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
                 throw std::runtime_error("Error: This type of boundary is not supported");
         }
     }
-    
+}
+
+
+void AmrMultiGrid::initGuess_m(amrex::Array<AmrField_u>& phi, bool previous) {
     if ( !previous ) {
         // reset
-        for (int lev = 0; lev < nLevel; ++lev) {
-            int ilev = lbase + lev;
+        for (int lev = 0; lev < nlevel_m; ++lev) {
+            int ilev = lbase_m + lev;
             phi[ilev]->setVal(0.0, phi[ilev]->nGrow());
         }
     }
-    
-    // build all necessary matrices and vectors
-    this->setup_m(rho, phi);
-    
-    // set the bottom solve operator
-    solver_mp->setOperator(mglevel_m[lbase_m]->Anf_p);
-    
-    mglevel_m[lfine_m]->error_p->putScalar(0.0);
+}
+
+
+void AmrMultiGrid::iterate_m() {
     
     double eps = 1.0e-8;
     
@@ -117,10 +140,10 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     
     while ( max_residual > eps * max_rho) {
         
-        relax_m(lfine);
+        relax_m(lfine_m);
         
         // update residual
-        for (int lev = 0; lev < nLevel; ++lev) {
+        for (int lev = 0; lev < nlevel_m; ++lev) {
             
             this->residual_m(mglevel_m[lev]->residual_p,
                              mglevel_m[lev]->rho_p,
@@ -130,16 +153,6 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         max_residual = lInfError_m();
         
         ++nIter_m;
-    }
-    
-    // write efield to AMReX
-    this->computeEfield_m(efield);    
-    
-    // copy solution back
-    for (int lev = 0; lev < nLevel; ++lev) {
-        int ilev = lbase + lev;
-        
-        this->trilinos2amrex_m(*phi[ilev], 0, mglevel_m[lev]->phi_p);
     }
 }
 
@@ -320,11 +333,9 @@ void AmrMultiGrid::residual_no_fine_m(Teuchos::RCP<vector_t>& result,
 
 
 double AmrMultiGrid::l2error_m() {
-    int nLevel = lfine_m - lbase_m + 1;
-    
     double err = 0.0;
     
-    for (int lev = 0; lev < nLevel; ++lev) {
+    for (int lev = 0; lev < nlevel_m; ++lev) {
         
         double tmp = mglevel_m[lev]->residual_p->norm2();
         err += tmp;
@@ -337,8 +348,6 @@ double AmrMultiGrid::l2error_m() {
 
 
 double AmrMultiGrid::lInfError_m() {
-    int nLevel = lfine_m - lbase_m + 1;
-    
     double err = 0.0;
     
 #if AMR_MG_WRITE
@@ -347,7 +356,7 @@ double AmrMultiGrid::lInfError_m() {
         out.open("residual.dat", std::ios::app);
 #endif
     
-    for (int lev = 0; lev < nLevel; ++lev) {
+    for (int lev = 0; lev < nlevel_m; ++lev) {
         double tmp = mglevel_m[lev]->residual_p->normInf();
         err = std::max(err, tmp);
         
@@ -370,15 +379,13 @@ double AmrMultiGrid::lInfError_m() {
 
 
 void AmrMultiGrid::initResidual_m(double& maxResidual, double& maxRho) {
-    int nLevel = lfine_m - lbase_m + 1;
-    
 #if AMR_MG_WRITE
     std::ofstream out;
     
     if ( Ippl::myNode() == 0) {
         out.open("residual.dat", std::ios::out);
     
-        for (int lev = 0; lev < nLevel; ++lev)
+        for (int lev = 0; lev < nlevel_m; ++lev)
             out << std::setw(14) << std::right << "level" << lev;
         out << std::setw(15) << std::right << "max";
         out << std::endl;
@@ -386,7 +393,7 @@ void AmrMultiGrid::initResidual_m(double& maxResidual, double& maxRho) {
 #endif
     
     
-    for (int lev = 0; lev < nLevel; ++lev) {
+    for (int lev = 0; lev < nlevel_m; ++lev) {
         this->residual_m(mglevel_m[lev]->residual_p,
                          mglevel_m[lev]->rho_p,
                          mglevel_m[lev]->phi_p, lev);
@@ -413,9 +420,8 @@ void AmrMultiGrid::initResidual_m(double& maxResidual, double& maxRho) {
 
 
 void AmrMultiGrid::computeEfield_m(amrex::Array<AmrField_u>& efield) {
-    int nLevel = lfine_m - lbase_m + 1;
     Teuchos::RCP<vector_t> efield_p = Teuchos::null;
-    for (int lev = nLevel - 1; lev > -1; --lev) {
+    for (int lev = nlevel_m - 1; lev > -1; --lev) {
         int ilev = lbase_m + lev;
         
         efield_p = Teuchos::rcp( new vector_t(mglevel_m[lev]->map_p, false) );
@@ -438,12 +444,10 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
     IpplTimings::startTimer(buildTimer_m);
 #endif
         
-    int nLevel = lfine_m - lbase_m + 1;
+    // the base level has no smoother --> nlevel_m - 1
+    smoother_m.resize(nlevel_m-1);
     
-    // the base level has no smoother --> nLevel - 1
-    smoother_m.resize(nLevel-1);
-    
-    for (int lev = 0; lev < nLevel; ++lev) {
+    for (int lev = 0; lev < nlevel_m; ++lev) {
     
         this->open_m(lev, matrices);
         
@@ -543,6 +547,13 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
                                                      smootherType_m, nSweeps_m) );
         }
     }
+    
+    if ( matrices ) {
+        // set the bottom solve operator
+        solver_mp->setOperator(mglevel_m[lbase_m]->Anf_p);
+    }
+    
+    mglevel_m[lfine_m]->error_p->putScalar(0.0);
     
 #if AMR_MG_TIMER
     IpplTimings::stopTimer(buildTimer_m);
