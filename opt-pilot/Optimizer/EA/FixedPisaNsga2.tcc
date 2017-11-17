@@ -750,7 +750,11 @@ void FixedPisaNsga2<CO, MO>::dumpPopulationToJSON() {
     for ( Expressions::Named_t::iterator it = constraints_m.begin();
           it != constraints_m.end(); ++it )
     {
-        file << "\t\t\"" << it->second->toString() << "\"";
+	std::string s = it->second->toString();
+	/// cleanup string to make json reader happy
+	s.erase(std::remove(s.begin(), s.end(), '"'), s.end());
+
+        file << "\t\t\"" << s << "\"";
         
         if ( it != std::prev(constraints_m.end(), 1) )
             file << ",";
