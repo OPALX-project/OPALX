@@ -179,6 +179,7 @@ if ( ENABLE_SAAMG_SOLVER )
                     ../MGTSolver.cpp
                     ../Solver.cpp
                     ../trilinos/BelosBottomSolver.cpp
+                    ../trilinos/AmesosBottomSolver.cpp
                     ../trilinos/AmrSmoother.cpp
                     ../trilinos/AmrMultiGrid.cpp)
     

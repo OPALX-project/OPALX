@@ -61,6 +61,7 @@ struct param_t {
     bool useTrilinos;
     size_t smoothing;
     AmrMultiGrid::Boundary bc;
+    AmrMultiGrid::BaseSolver bs;
 #endif
     AmrOpal::TaggingCriteria criteria;
     double tagfactor;
@@ -87,6 +88,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     params.useTrilinos = false;
     params.smoothing = 12;
     params.bc = AmrMultiGrid::Boundary::DIRICHLET;
+    params.bs = AmrMultiGrid::BaseSolver::CG;
 #endif
     
     
@@ -116,6 +118,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "use-trilinos",   no_argument,       0, 'a' },
             { "smoothing",      required_argument, 0, 'g' },
             { "bc",             required_argument, 0, 'j' },
+            { "basesolver",     required_argument, 0, 'u' },
 #endif
             { "tagging",        required_argument, 0, 't' },
             { "tagging-factor", required_argument, 0, 'f' },
@@ -151,6 +154,41 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     params.bc = AmrMultiGrid::Boundary::PERIODIC;
                 else
                     throw std::runtime_error("Error: Check boundary condition argument");
+                break;
+            }
+            case 'u':
+            {
+                std::string bs = optarg;
+                
+                if ( bs == "bicgstab" )
+                    params.bs = AmrMultiGrid::BaseSolver::BICGSTAB;
+                else if ( bs == "minres" )
+                    params.bs = AmrMultiGrid::BaseSolver::MINRES;
+                else if ( bs == "pcpg" )
+                    params.bs = AmrMultiGrid::BaseSolver::PCPG;
+                else if ( bs == "gmres" )
+                    params.bs = AmrMultiGrid::BaseSolver::GMRES;
+                else if ( bs == "stochastic_cg" )
+                    params.bs = AmrMultiGrid::BaseSolver::STOCHASTIC_CG;
+                else if ( bs == "recycling_cg" )
+                    params.bs = AmrMultiGrid::BaseSolver::RECYCLING_CG;
+                else if ( bs == "recycling_gmres" )
+                    params.bs = AmrMultiGrid::BaseSolver::RECYCLING_GMRES;
+                else if ( bs == "klu2" )
+                    params.bs = AmrMultiGrid::BaseSolver::KLU2;
+                else if ( bs == "superlu" )
+                    params.bs = AmrMultiGrid::BaseSolver::SUPERLU;
+                else if ( bs == "umfpack" )
+                    params.bs = AmrMultiGrid::BaseSolver::UMFPACK;
+                else if ( bs == "pardiso_mkl" )
+                    params.bs = AmrMultiGrid::BaseSolver::PARDISO_MKL;
+                else if ( bs == "mumps" )
+                    params.bs = AmrMultiGrid::BaseSolver::MUMPS;
+                else if ( bs == "lapack" )
+                    params.bs = AmrMultiGrid::BaseSolver::LAPACK;
+                else
+                    throw std::runtime_error("Error: Check base solver argument");
+                
                 break;
             }
 #endif
@@ -546,7 +584,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // solve
 #if AMR_MULTIGRID
     if ( params.useTrilinos ) {
-        AmrMultiGrid sol(params.bc, AmrMultiGrid::Interpolater::PIECEWISE_CONST);
+        AmrMultiGrid sol(params.bc, AmrMultiGrid::Interpolater::PIECEWISE_CONST,
+                         AmrMultiGrid::Interpolater::LAGRANGE, params.bs);
         
         sol.setNumberOfSweeps(params.smoothing);
     

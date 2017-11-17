@@ -1742,6 +1742,7 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
                                     const Preconditioner& precond)
 {
     switch ( solver ) {
+        // Belos solvers
         case BaseSolver::BICGSTAB:
             solver_mp.reset( new BelosBottomSolver("BICGSTAB", precond) );
             break;
@@ -1765,6 +1766,25 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
             break;
         case BaseSolver::RECYCLING_GMRES:
             solver_mp.reset( new BelosBottomSolver("GCRODR", precond) );
+            break;
+        // Amesos2 solvers
+        case BaseSolver::KLU2:
+            solver_mp.reset( new AmesosBottomSolver("klu2") );
+            break;
+        case BaseSolver::SUPERLU:
+            solver_mp.reset( new AmesosBottomSolver("superlu") );
+            break;
+        case BaseSolver::UMFPACK:
+            solver_mp.reset( new AmesosBottomSolver("umfpack") );
+            break;
+        case BaseSolver::PARDISO_MKL:
+            solver_mp.reset( new AmesosBottomSolver("pardiso_mkl") );
+            break;
+        case BaseSolver::MUMPS:
+            solver_mp.reset( new AmesosBottomSolver("mumps") );
+            break;
+        case BaseSolver::LAPACK:
+            solver_mp.reset( new AmesosBottomSolver("lapack") );
             break;
         default:
             std::runtime_error("No such bottom solver available.");
