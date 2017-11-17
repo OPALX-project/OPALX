@@ -58,8 +58,15 @@ public:
         GMRES,
         STOCHASTIC_CG,
         RECYCLING_CG,
-        RECYCLING_GMRES
-        // .. add others
+        RECYCLING_GMRES,
+        // all Amesos2
+        KLU2,
+        SUPERLU,
+        UMFPACK,
+        PARDISO_MKL,
+        MUMPS,
+        LAPACK
+        // add others ...
     };
     
     enum Boundary {
