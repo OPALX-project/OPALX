@@ -11,7 +11,7 @@
 #include <string>
 
 class BelosBottomSolver : public BottomSolver<Teuchos::RCP<amr::matrix_t>,
-                                              Teuchos::RCP<amr::vector_t> >
+                                              Teuchos::RCP<amr::multivector_t> >
 {
 public:
     typedef amr::matrix_t matrix_t;
@@ -35,8 +35,8 @@ public:
     
     ~BelosBottomSolver();
     
-    void solve(const Teuchos::RCP<vector_t>& x,
-               const Teuchos::RCP<vector_t>& b);
+    void solve(const Teuchos::RCP<mv_t>& x,
+               const Teuchos::RCP<mv_t>& b);
     
     void setOperator(const Teuchos::RCP<matrix_t>& A);
     
