@@ -188,7 +188,6 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     params.bs = AmrMultiGrid::BaseSolver::LAPACK;
                 else
                     throw std::runtime_error("Error: Check base solver argument");
-                
                 break;
             }
 #endif

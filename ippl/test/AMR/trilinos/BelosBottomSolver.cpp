@@ -22,8 +22,8 @@ BelosBottomSolver::~BelosBottomSolver() {
 }
 
 
-void BelosBottomSolver::solve(const Teuchos::RCP<vector_t>& x,
-                              const Teuchos::RCP<vector_t>& b)
+void BelosBottomSolver::solve(const Teuchos::RCP<mv_t>& x,
+                              const Teuchos::RCP<mv_t>& b)
 {
     /*
      * solve linear system Ax = b

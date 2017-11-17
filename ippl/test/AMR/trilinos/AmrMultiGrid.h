@@ -17,10 +17,11 @@
 class AmrMultiGrid {
     
 public:
-    typedef amr::matrix_t matrix_t;
-    typedef amr::vector_t vector_t;
-    typedef amr::dmap_t   dmap_t;
-    typedef amr::comm_t   comm_t;
+    typedef amr::matrix_t       matrix_t;
+    typedef amr::vector_t       vector_t;
+    typedef amr::multivector_t  mv_t;
+    typedef amr::dmap_t         dmap_t;
+    typedef amr::comm_t         comm_t;
     
     typedef AmrMultiGridLevel<matrix_t, vector_t> AmrMultiGridLevel_t;
     
@@ -312,7 +313,7 @@ private:
     
     std::vector<std::unique_ptr<AmrMultiGridLevel_t > > mglevel_m;
     
-    std::shared_ptr<BottomSolver<Teuchos::RCP<matrix_t>, Teuchos::RCP<vector_t> > > solver_mp;
+    std::shared_ptr<BottomSolver<Teuchos::RCP<matrix_t>, Teuchos::RCP<mv_t> > > solver_mp;
     
     std::vector<std::shared_ptr<AmrSmoother> > smoother_m;
     
