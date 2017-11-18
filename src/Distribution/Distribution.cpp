@@ -1808,6 +1808,9 @@ void Distribution::CreateOpalT(PartBunch &beam,
          addedDistIt != addedDistributions_m.end(); addedDistIt++)
         (*addedDistIt)->SetDistToEmitted(emitting_m);
 
+    if (emitting_m)
+        SetupEmissionModel(beam);
+
     // Create distributions.
     Create(particlesPerDist_m.at(0), beam.getM());
 
@@ -1820,8 +1823,8 @@ void Distribution::CreateOpalT(PartBunch &beam,
     // Move added distribution particles to main distribution.
     AddDistributions();
 
-    if (emitting_m)
-        SetupEmissionModel(beam);
+    if (emitting_m && emissionModel_m == EmissionModelT::NONE)
+        SetupEmissionModelNone(beam);
 
     ShiftDistCoordinates(beam.getM());
 
@@ -4462,9 +4465,6 @@ void Distribution::SetupEmissionModel(PartBunch &beam) {
 
     switch (emissionModel_m) {
 
-    case EmissionModelT::NONE:
-        SetupEmissionModelNone(beam);
-        break;
     case EmissionModelT::ASTRA:
         SetupEmissionModelAstra(beam);
         break;
