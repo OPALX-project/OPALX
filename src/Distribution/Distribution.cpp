@@ -1686,6 +1686,9 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
     // Move added distribution particles to main distribution.
     addDistributions();
 
+    if (emitting_m && emissionModel_m == EmissionModelT::NONE)
+        setupEmissionModelNone(beam);
+
     // Check number of particles in distribution.
     checkParticleNumber(numberOfParticles);
 
@@ -4285,9 +4288,6 @@ void Distribution::setupEmissionModel(PartBunchBase<double, 3> *beam) {
 
     switch (emissionModel_m) {
 
-    case EmissionModelT::NONE:
-        setupEmissionModelNone(beam);
-        break;
     case EmissionModelT::ASTRA:
         setupEmissionModelAstra(beam);
         break;
