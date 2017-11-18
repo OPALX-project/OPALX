@@ -28,6 +28,7 @@
 #include <cmath>
 #include <iostream>
 
+extern Inform *gmsg;
 // Class RealConstant
 // ------------------------------------------------------------------------
 
@@ -62,14 +63,12 @@ RealConstant::RealConstant():
     std::string version_str(PACKAGE_VERSION);
     int version = 0;
     {
-        size_t i = 0;
-        while (i < version_str.size()) {
-            size_t n = version_str.find_first_of("0123456789",i);
-            if (n != std::string::npos) {
-                version = version * 10 + version_str[n] - 48;
-                version_str[n] = '.';
+        for (size_t i = 0; i < version_str.size(); ++ i) {
+            if (version_str[i] == '.') {
+                version *= 10;
+            } else {
+                version = version * 10 + version_str[i] - 48;
             }
-            i = n;
         }
     }
     opal->create(new RealConstant("OPALVERSION", this, version));
