@@ -34,7 +34,7 @@
 #include "Physics/Physics.h"
 #include <random>
 
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
     #include "../trilinos/AmrMultiGrid.h"
 #endif
 
@@ -56,7 +56,7 @@ struct param_t {
     bool useMgtSolver;
     std::string h5file;
     size_t h5step;
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
     bool useTrilinos;
     size_t smoothing;
     AmrMultiGrid::Boundary bc;
@@ -80,7 +80,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     params.criteria = AmrOpal::kChargeDensity;
     params.tagfactor = 1.0e-14; 
     
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
     params.useTrilinos = false;
     params.smoothing = 12;
     params.bc = AmrMultiGrid::Boundary::DIRICHLET;
@@ -107,7 +107,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "use-mgt-solver", no_argument,       0, 's' },
             { "h5file",         required_argument, 0, 'd' },
             { "h5step",         required_argument, 0, 'e' },
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
             { "use-trilinos",   no_argument,       0, 'a' },
             { "smoothing",      required_argument, 0, 'g' },
             { "bc",             required_argument, 0, 'j' },
@@ -119,7 +119,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         
         int option_index = 0;
         
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
         c = getopt_long(argc, argv, "x:y:z:l:m:b:whvst:f:a:g:", long_options, &option_index);
 #else
         c = getopt_long(argc, argv, "x:y:z:l:m:b:whvst:f:", long_options, &option_index);
@@ -129,7 +129,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             break;
         
         switch ( c ) {
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
             case 'a':
                 params.useTrilinos = true; break;
             case 'g':
@@ -195,7 +195,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--use-mgt-solver (optional)" << endl
                     << "--h5file" << endl
                     << "--h5step" << endl
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
                     << "--use-trilinos (optional)" << endl
                     << "--smoothing (optional, trilinos only, default: 12)" << endl
                     << "--bc (optional, dirichlet or open, default: dirichlet)" << endl
@@ -213,7 +213,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         }
     }
     
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
     if ( params.useMgtSolver && params.useTrilinos ) {
         params.useMgtSolver = false;
         msg << "Favouring Trilinos over MGT." << endl;
@@ -527,11 +527,11 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     Real offset = 0.;
 
     // solve
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
     if ( params.useTrilinos ) {
         AmrMultiGrid sol(params.bc, AmrMultiGrid::Interpolater::PIECEWISE_CONST);
         
-        sol.setNumberOfSmoothing(params.smoothing);
+        sol.setNumberOfSweeps(params.smoothing);
     
         IpplTimings::startTimer(solvTimer);
         

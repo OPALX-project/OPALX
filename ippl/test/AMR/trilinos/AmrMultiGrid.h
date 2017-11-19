@@ -59,14 +59,26 @@ public:
         GMRES,
         STOCHASTIC_CG,
         RECYCLING_CG,
-        RECYCLING_GMRES,
+        RECYCLING_GMRES
         // all Amesos2
-        KLU2,
-        SUPERLU,
-        UMFPACK,
-        PARDISO_MKL,
-        MUMPS,
-        LAPACK
+#ifdef HAVE_AMESOS2_KLU2
+        , KLU2
+#endif
+#ifdef HAVE_AMESOS2_SUPERLU
+        , SUPERLU
+#endif
+#ifdef HAVE_AMESOS2_UMFPACK  
+        , UMFPACK
+#endif
+#ifdef HAVE_AMESOS2_PARDISO_MKL
+        , PARDISO_MKL
+#endif
+#ifdef HAVE_AMESOS2_MUMPS
+        , MUMPS
+#endif
+#ifdef HAVE_AMESOS2_LAPACK
+        , LAPACK
+#endif
         // add others ...
     };
     

@@ -17,8 +17,8 @@ set (CMAKE_CXX_FLAGS
 )
 
 
-if ( ENABLE_SAAMG_SOLVER )
-    set (CMAKE_CXX_FLAGS "-DAMR_MULTIGRID ${CMAKE_CXX_FLAGS}")
+if ( ENABLE_AMR_MG_SOLVER )
+    set (CMAKE_CXX_FLAGS "-DHAVE_AMR_MG_SOLVER ${CMAKE_CXX_FLAGS}")
 endif ()
 
 set (BOOSTROOT $ENV{BOOST_DIR})
@@ -167,7 +167,7 @@ add_executable( testGaussian
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
 
-if ( ENABLE_SAAMG_SOLVER )
+if ( ENABLE_AMR_MG_SOLVER )
     add_executable( testUnifSphere
                     testUnifSphere.cpp
                     ../AmrOpal.cpp

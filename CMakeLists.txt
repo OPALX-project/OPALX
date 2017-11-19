@@ -99,6 +99,7 @@ ENDIF (ENABLE_DKS)
 
 # Handle options
 OPTION (ENABLE_AMR "Enable AMReX based AMR solver" OFF)
+OPTION (ENABLE_AMR_MG_SOLVER "Enable AMR MG solver" OFF)
 
 OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
 
@@ -148,8 +149,12 @@ STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
 # Trilinos_TPL_LIBRARIES, instead of cray-tpsl/16.07.1 it uses
 # cray-tpsl/16.06.1 libraries -> Linker error.
 # We can avoid this issue by not going into the if-statement
-if (NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND ENABLE_SAAMG_SOLVER )
+if (NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori"
+    AND (ENABLE_SAAMG_SOLVER OR (ENABLE_AMR_MG_SOLVER AND ENABLE_AMR) ) )
+    
     MESSAGE (STATUS "Enable SAAMG_SOLVER  " ${ENABLE_SAAMG_SOLVER})
+    MESSAGE (STATUS "Enable AMR_MG_SOLVER " ${ENABLE_AMR_MG_SOLVER})
+    
     find_package (Trilinos REQUIRED HINTS $ENV{TRILINOS_PREFIX} $ENV{TRILINOS_DIR} $ENV{TRILINOS})
 
     message (STATUS "Found Trilinos: ${Trilinos_DIR}")
