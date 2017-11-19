@@ -493,7 +493,7 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
         }
         
         
-        /* Find all fine cells that are at the crse-fine interace
+        /* Find all fine cells that are at the crse-fine interface
          * 
          * Put them into a map (to avoid duplicates, e.g. due to corners).
          * Finally, iterate through the list of cells
@@ -502,7 +502,7 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
         // not part of the box array
         map_t cells_fine;
         
-        /* Find all coarse cells that are at the crse-fine interace but are
+        /* Find all coarse cells that are at the crse-fine interface but are
          * not refined.
          * Put them into a map (to avoid duplicates, e.g. due to corners).
          * Finally, iterate through the list of cells
