@@ -193,6 +193,9 @@ if ( ENABLE_AMR_MG_SOLVER )
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp
+                    ../trilinos/BelosBottomSolver.cpp
+                    ../trilinos/AmesosBottomSolver.cpp
+                    ../trilinos/AmrSmoother.cpp
                     ../trilinos/AmrMultiGrid.cpp)
 else ()
     add_executable( testUnifSphere
