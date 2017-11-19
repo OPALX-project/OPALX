@@ -32,7 +32,7 @@
 #include "Physics/Physics.h"
 #include <random>
 
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
     #include "../trilinos/AmrMultiGrid.h"
 #endif
 
@@ -57,7 +57,7 @@ struct param_t {
     bool isWriteParticles;
     bool isHelp;
     bool useMgtSolver;
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
     bool useTrilinos;
     size_t smoothing;
     AmrMultiGrid::Boundary bc;
@@ -84,7 +84,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     params.criteria = AmrOpal::kChargeDensity;
     params.tagfactor = 1.0e-14; 
     
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
     params.useTrilinos = false;
     params.smoothing = 12;
     params.bc = AmrMultiGrid::Boundary::DIRICHLET;
@@ -114,7 +114,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "writeCSV",       no_argument,       0, 'v' },
             { "writeParticles", no_argument,       0, 'p' },
             { "use-mgt-solver", no_argument,       0, 's' },
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
             { "use-trilinos",   no_argument,       0, 'a' },
             { "smoothing",      required_argument, 0, 'g' },
             { "bc",             required_argument, 0, 'j' },
@@ -127,7 +127,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         
         int option_index = 0;
         
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
         c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:whcvpst:f:a:g:", long_options, &option_index);
 #else
         c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:whcvpst:f:", long_options, &option_index);
@@ -137,7 +137,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             break;
         
         switch ( c ) {
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
             case 'a':
                 params.useTrilinos = true; break;
             case 'g':
@@ -174,18 +174,30 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     params.bs = AmrMultiGrid::BaseSolver::RECYCLING_CG;
                 else if ( bs == "recycling_gmres" )
                     params.bs = AmrMultiGrid::BaseSolver::RECYCLING_GMRES;
+#ifdef HAVE_AMESOS2_KLU2
                 else if ( bs == "klu2" )
                     params.bs = AmrMultiGrid::BaseSolver::KLU2;
+#endif
+#ifdef HAVE_AMESOS2_SUPERLU
                 else if ( bs == "superlu" )
                     params.bs = AmrMultiGrid::BaseSolver::SUPERLU;
+#endif
+#ifdef HAVE_AMESOS2_UMFPACK
                 else if ( bs == "umfpack" )
                     params.bs = AmrMultiGrid::BaseSolver::UMFPACK;
+#endif
+#ifdef HAVE_AMESOS2_PARDISO_MKL
                 else if ( bs == "pardiso_mkl" )
                     params.bs = AmrMultiGrid::BaseSolver::PARDISO_MKL;
+#endif
+#ifdef HAVE_AMESOS2_MUMPS
                 else if ( bs == "mumps" )
                     params.bs = AmrMultiGrid::BaseSolver::MUMPS;
+#endif
+#ifdef HAVE_AMESOS2_LAPACK
                 else if ( bs == "lapack" )
                     params.bs = AmrMultiGrid::BaseSolver::LAPACK;
+#endif
                 else
                     throw std::runtime_error("Error: Check base solver argument");
                 break;
@@ -248,7 +260,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--writeCSV (optional)" << endl
                     << "--writeParticles (optional)" << endl
                     << "--use-mgt-solver (optional)" << endl
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
                     << "--use-trilinos (optional)" << endl
                     << "--smoothing (optional, trilinos only, default: 12)" << endl
                     << "--bc (optional, dirichlet or open, default: dirichlet)" << endl
@@ -266,7 +278,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         }
     }
     
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
     if ( params.useMgtSolver && params.useTrilinos ) {
         params.useMgtSolver = false;
         msg << "Favouring Trilinos over MGT." << endl;
@@ -581,7 +593,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     Real offset = 0.;
 
     // solve
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
     if ( params.useTrilinos ) {
         AmrMultiGrid sol(params.bc, AmrMultiGrid::Interpolater::PIECEWISE_CONST,
                          AmrMultiGrid::Interpolater::LAGRANGE, params.bs);
@@ -857,7 +869,7 @@ int main(int argc, char *argv[]) {
         if ( params.useMgtSolver )
             msg << "- MGT solver is used" << endl;
         
-#if AMR_MULTIGRID
+#if HAVE_AMR_MG_SOLVER
         if ( params.useTrilinos )
             msg << "- Trilinos solver is used with " << params.smoothing
                 << " relaxation steps." << endl;
