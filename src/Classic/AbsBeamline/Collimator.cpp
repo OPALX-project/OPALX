@@ -32,8 +32,6 @@
 
 extern Inform *gmsg;
 
-using namespace std;
-
 // Class Collimator
 // ------------------------------------------------------------------------
 
@@ -285,7 +283,7 @@ bool Collimator::checkCollimator(PartBunchBase<double, 3> *bunch, const int turn
     double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
     std::pair<Vector_t, double> boundingSphere;
     boundingSphere.first = 0.5 * (rmax + rmin);
-    boundingSphere.second = euclidian_norm(rmax - boundingSphere.first);
+    boundingSphere.second = euclidean_norm(rmax - boundingSphere.first);
 
     if (rmax(2) >= zstart_m && rmin(2) <= zend_m) {
         // if ( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
@@ -371,8 +369,8 @@ void Collimator::print() {
             std::string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
             ERRORMSG(errormsg << endl);
             if (Ippl::myNode() == 0) {
-                ofstream omsg("errormsg.txt", ios_base::app);
-                omsg << errormsg << endl;
+                std::ofstream omsg("errormsg.txt", std::ios_base::app);
+                omsg << errormsg << std::endl;
                 omsg.close();
             }
             informed_m = true;
@@ -416,7 +414,7 @@ void Collimator::setOutputFN(std::string fn) {
     filename_m = fn;
 }
 
-string Collimator::getOutputFN() {
+std::string Collimator::getOutputFN() {
     if (filename_m == std::string(""))
         return getName();
     else
@@ -432,7 +430,7 @@ ElementBase::ElementType Collimator::getType() const {
     return COLLIMATOR;
 }
 
-string Collimator::getCollimatorShape() {
+std::string Collimator::getCollimatorShape() {
     if (isAPepperPot_m)
         return "PeperPot";
     else if (isASlit_m)

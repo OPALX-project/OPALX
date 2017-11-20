@@ -28,9 +28,14 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
                                              const Vector_t &P,
                                              double t,
                                              double dt) {
-    initialP_m = Vector_t(0, 0, euclidian_norm(P));
-    double tErr  = (initialR_m(2) - R(2)) * sqrt(dot(P,P) + 1.0) / (P(2) * Physics::c);
+    if(!(itsCavity_m->getType() == ElementBase::TRAVELINGWAVE ||
+         itsCavity_m->getType() == ElementBase::RFCAVITY)) {
+        throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
+                            "given element is not a cavity");
+    }
 
+    initialP_m = Vector_t(0, 0, euclidean_norm(P));
+    double tErr  = (initialR_m(2) - R(2)) * sqrt(dot(P,P) + 1.0) / (P(2) * Physics::c);
     double initialEnergy = Util::getEnergy(P, itsReference_m.getM()) * 1e-6;
     double originalPhase = 0.0, newPhase = 0.0, AstraPhase = 0.0;
     double initialPhase = guessCavityPhase(t + tErr);
@@ -40,75 +45,81 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
     double finalEnergy = 0.0;
     const double length = itsCavity_m->getElementLength();
 
-    if(!(itsCavity_m->getType() == ElementBase::TRAVELINGWAVE ||
-         itsCavity_m->getType() == ElementBase::RFCAVITY)) {
-        throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
-                            "given element is not a cavity");
-    }
-
     RFCavity *element = static_cast<RFCavity *>(itsCavity_m.get());
     amplitude = element->getAmplitudem();
     designEnergy = element->getDesignEnergy();
     originalPhase = element->getPhasem();
-
-    if (amplitude == 0.0) {
-        if (designEnergy <= 0.0 || length <= 0.0) {
-            throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
-                                "neither amplitude or design energy given to cavity " + element->getName());
-        }
-
-        amplitude = 2 * (designEnergy - initialEnergy) / (std::abs(itsReference_m.getQ()) * length);
-
-        element->setAmplitudem(amplitude);
-    }
-
-    if (designEnergy > 0.0) {
-        int count = 0;
-        while (count < 1000) {
-            initialPhase = guessCavityPhase(t + tErr);
-            auto status = optimizeCavityPhase(initialPhase, t + tErr, dt);
-
-            optimizedPhase = status.first;
-            finalEnergy = status.second;
-
-            if (std::abs(designEnergy - finalEnergy) < 1e-7) break;
-
-            amplitude *= std::abs(designEnergy / finalEnergy);
-            element->setAmplitudem(amplitude);
-            initialPhase = optimizedPhase;
-
-            ++ count;
-        }
-    }
-    auto status = optimizeCavityPhase(initialPhase, t + tErr, dt);
-
-    optimizedPhase = status.first;
-    finalEnergy = status.second;
-
     bool apVeto = element->getAutophaseVeto();
-
-    AstraPhase = std::fmod(optimizedPhase + Physics::pi / 2, Physics::two_pi);
-    newPhase = std::fmod(originalPhase + optimizedPhase + Physics::two_pi, Physics::two_pi);
-    element->setPhasem(newPhase);
-    element->setAutophaseVeto();
-
     double basePhase = std::fmod(element->getFrequencym() * (t + tErr), Physics::two_pi);
-    newPhase = std::fmod(newPhase + basePhase, Physics::two_pi);
 
-    INFOMSG(level1 << endl);
-    if (apVeto)
-        INFOMSG(level1 << ">>>>>> APVETO >>>>>> " << endl);
+    if (!apVeto) {
+        if (amplitude == 0.0) {
+            if (designEnergy <= 0.0 || length <= 0.0) {
+                throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
+                                    "neither amplitude or design energy given to cavity " + element->getName());
+            }
 
-    INFOMSG(itsCavity_m->getName() << "_phi = "  << std::setprecision(4) << std::fixed << newPhase * Physics::rad2deg <<  " [deg], "
-            << "corresp. in Astra = " << AstraPhase * Physics::rad2deg << " [deg],\n"
-            << "E = " << finalEnergy << " [MeV], " << "phi_nom = " << originalPhase * Physics::rad2deg << " [deg]\n"
-            << "Ez_0 = " << amplitude << " [MV/m]" << "\n"
-            << "time = " << (t + tErr) * 1e9 << " [ns], dt = " << dt * 1e12 << " [ps]" << endl);
+            amplitude = 2 * (designEnergy - initialEnergy) / (std::abs(itsReference_m.getQ()) * length);
 
-    if (apVeto)
+            element->setAmplitudem(amplitude);
+        }
+
+        if (designEnergy > 0.0) {
+            int count = 0;
+            while (count < 1000) {
+                initialPhase = guessCavityPhase(t + tErr);
+                auto status = optimizeCavityPhase(initialPhase, t + tErr, dt);
+
+                optimizedPhase = status.first;
+                finalEnergy = status.second;
+
+                if (std::abs(designEnergy - finalEnergy) < 1e-7) break;
+
+                amplitude *= std::abs(designEnergy / finalEnergy);
+                element->setAmplitudem(amplitude);
+                initialPhase = optimizedPhase;
+
+                ++ count;
+            }
+        }
+        auto status = optimizeCavityPhase(initialPhase, t + tErr, dt);
+
+        optimizedPhase = status.first;
+        finalEnergy = status.second;
+
+        AstraPhase = std::fmod(optimizedPhase + Physics::pi / 2, Physics::two_pi);
+        newPhase = std::fmod(originalPhase + optimizedPhase + Physics::two_pi, Physics::two_pi);
+        element->setPhasem(newPhase);
+        element->setAutophaseVeto();
+        OpalData::getInstance()->setMaxPhase(itsCavity_m->getName(), newPhase);
+
+        newPhase = std::fmod(newPhase + basePhase, Physics::two_pi);
+
+        INFOMSG(level1 << endl);
+        INFOMSG(level1 << std::fixed << std::setprecision(4)
+                << itsCavity_m->getName() << "_phi = "  << newPhase * Physics::rad2deg <<  " [deg], "
+                << "corresp. in Astra = " << AstraPhase * Physics::rad2deg << " [deg],\n"
+                << "E = " << finalEnergy << " [MeV], " << "phi_nom = " << originalPhase * Physics::rad2deg << " [deg]\n"
+                << "Ez_0 = " << amplitude << " [MV/m]" << "\n"
+                << "time = " << (t + tErr) * 1e9 << " [ns], dt = " << dt * 1e12 << " [ps]" << endl);
+
+    } else {
+        auto status = optimizeCavityPhase(originalPhase, t + tErr, dt);
+
+        optimizedPhase = originalPhase;
+        finalEnergy = status.second;
+
+        newPhase = std::fmod(originalPhase + basePhase, Physics::two_pi);
+
+        INFOMSG(level1 << "\n"
+                << ">>>>>> APVETO >>>>>> " << endl);
+        INFOMSG(level1 << std::fixed << std::setprecision(4)
+                << itsCavity_m->getName() << "_phi = "  << newPhase * Physics::rad2deg <<  " [deg],\n"
+                << "E = " << finalEnergy << " [MeV], " << "phi_nom = " << originalPhase * Physics::rad2deg << " [deg]\n"
+                << "Ez_0 = " << amplitude << " [MV/m]" << "\n"
+                << "time = " << (t + tErr) * 1e9 << " [ns], dt = " << dt * 1e12 << " [ps]" << endl);
         INFOMSG(level1 << " <<<<<< APVETO <<<<<< " << endl);
-
-    OpalData::getInstance()->setMaxPhase(itsCavity_m->getName(), newPhase);
+    }
 
     return optimizedPhase;
 }
@@ -143,7 +154,7 @@ std::pair<double, double> CavityAutophaser::optimizeCavityPhase(double initialPh
         double basePhase = std::fmod(element->getFrequencym() * t, Physics::two_pi);
         double phase = std::fmod(originalPhase - basePhase + Physics::two_pi, Physics::two_pi);
         double E = track(initialR_m, initialP_m, t, dt, phase);
-        std::pair<double, double> status(-basePhase, E);
+        std::pair<double, double> status(originalPhase, E);//-basePhase, E);
         return status;
     }
 
@@ -167,9 +178,9 @@ std::pair<double, double> CavityAutophaser::optimizeCavityPhase(double initialPh
     if(j == 0) {
         phi = initialPhase;
         E = Emax;
-        j = -1;
+        // j = -1;
         do {
-            j ++;
+            // j ++;
             Emax = E;
             initialPhase = phi;
             phi += dphi;

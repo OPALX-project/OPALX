@@ -665,9 +665,7 @@ std::string Fieldmap::typeset_msg(const std::string &msg, const std::string &tit
     while(remaining_length > 0) {
         size_t eol = msg.find("\n", current_position);
         std::string next_to_process;
-        if(eol + 1 == msg.length()) {
-            break;
-        } else if(eol != std::string::npos) {
+        if(eol != std::string::npos) {
             next_to_process = msg.substr(current_position, eol - current_position);
         } else {
             next_to_process = msg.substr(current_position);
@@ -697,7 +695,6 @@ std::string Fieldmap::typeset_msg(const std::string &msg, const std::string &tit
         current_position = eol + 1;
         remaining_length = msg.length() - current_position;
     }
-
     return_string += frame;
 
     return return_string;

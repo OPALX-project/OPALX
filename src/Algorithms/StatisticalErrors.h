@@ -17,7 +17,6 @@
 #include <gtest/gtest_prod.h>
 #endif
 
-#include <boost/variant.hpp>
 #include <iostream>
 #include <list>
 
@@ -48,18 +47,6 @@ class Solenoid;
 class TravelingWave;
 struct OpalInputInterpreter;
 
-namespace SDDS {
-    struct file;
-
-    namespace ast {
-        typedef boost::variant<float,
-                               double,
-                               short,
-                               long,
-                               char,
-                               std::string> variant_t;
-    }
-}
 
 class StatisticalErrors: public Tracker {
 
@@ -137,7 +124,7 @@ private:
     PRMessage getCrunchJobFromPrimary(int tag);
     void collectOutputData(const std::string &directory);
     void processOutputData(const std::string &directory);
-    std::string readSDDSFile(const std::string &directory);
+    // std::string readSDDSFile(const std::string &directory);
     void writeSDDSFile();
     void writeSDDSHeader(std::ofstream &out,
                          std::vector<std::string> &order);
@@ -159,9 +146,7 @@ private:
     std::vector<double> readShortData(std::ifstream &in);
     std::vector<double> readLongData(std::ifstream &in);
 
-    SDDS::file parseSDDSFile(std::string & contents);
-    std::list<SDDS::ast::variant_t> getColumnData(const SDDS::file &data,
-                                                  const std::string &columnName);
+    // SDDS::file parseSDDSFile(std::string & contents);
     void removeOldDataFiles();
     void removeBinaryDataFiles();
     std::map<std::string, std::vector<double> > distributeProcessingJobs();

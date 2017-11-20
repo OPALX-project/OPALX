@@ -36,6 +36,7 @@ public:
         for(auto constraint : constraints) {
             bool allDesignVariables = true;
             std::set<std::string> req_vars = constraint.second->getReqVars();
+            if (req_vars.empty()) allDesignVariables = false;
             for (std::string req_var : req_vars) {
                 // check if it is a design variable
                 if (std::find(dNames_m.begin(),dNames_m.end(),req_var) == dNames_m.end()) {

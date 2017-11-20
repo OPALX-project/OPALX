@@ -71,7 +71,7 @@ namespace {
         ET,         // Longitudinal emittance
 
         // BEAM FREQUENCY
-        BFREQ,  // Beam frequency in Hz
+        BFREQ,  // Beam frequency in MHz
 
         // DESCRIPTION OF BUNCHES:
         KBUNCH,     // Number of bunches
@@ -135,7 +135,7 @@ Beam::Beam():
 
     // BEAM FREQUENCY
     itsAttr[BFREQ] = Attributes::makeReal
-                     ("BFREQ", "Beam frequency in Hz (all bunches)");
+                     ("BFREQ", "Beam frequency in MHz (all bunches)");
 
     // DESCRIPTION OF BUNCHES:
     itsAttr[KBUNCH] = Attributes::makeReal

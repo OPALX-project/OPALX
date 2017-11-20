@@ -18,6 +18,7 @@ set (_SRCS
   OpalMarker.cpp
   OpalMonitor.cpp
   OpalMultipole.cpp
+  OpalMultipoleT.cpp
   OpalOctupole.cpp
   OpalOffset/OpalLocalCylindricalOffset.cpp
   OpalOffset/OpalLocalCartesianOffset.cpp
@@ -34,6 +35,7 @@ set (_SRCS
   OpalRingDefinition.cpp
   OpalSBend.cpp
   OpalSBend3D.cpp
+  OpalScalingFFAGMagnet.cpp
   OpalSeparator.cpp
   OpalSeptum.cpp
   OpalSextupole.cpp
@@ -79,6 +81,7 @@ set (HDRS
     OpalMarker.h
     OpalMonitor.h
     OpalMultipole.h
+    OpalMultipoleT.h
     OpalOctupole.h
     OpalParallelPlate.h
     OpalPatch.h

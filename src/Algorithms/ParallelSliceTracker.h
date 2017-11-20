@@ -1,8 +1,8 @@
 #ifndef OPAL_ParallelSliceTracker_HH
 #define OPAL_ParallelSliceTracker_HH
 
-#include <vector>
 #include <list>
+#include <memory>
 
 #include "Algorithms/bet/EnvelopeBunch.h"
 

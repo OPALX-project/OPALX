@@ -19,6 +19,7 @@
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/Patch.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
@@ -29,6 +30,7 @@
 #include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/SBend3D.h"
+#include "AbsBeamline/ScalingFFAGMagnet.h"
 #include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
@@ -112,6 +114,9 @@ public:
     /// Apply the algorithm to a multipole.
     virtual void visitMultipole(const Multipole &);
 
+    /// Apply the algorithm to a multipoleT.
+    virtual void visitMultipoleT(const MultipoleT &);
+
     /// Apply the algorithm to an Offset.
     virtual void visitOffset(const Offset &);
 
@@ -156,6 +161,9 @@ public:
 
     /// Apply the algorithm to a solenoid.
     virtual void visitSource(const Source &);
+
+    /// Apply the algorithm to a spiral sector magnet.
+    virtual void visitScalingFFAGMagnet(const ScalingFFAGMagnet &);
 
     /// Apply the algorithm to a ParallelPlate.
     virtual void visitParallelPlate(const ParallelPlate &);
@@ -301,6 +309,11 @@ void SpecificElementVisitor<ELEM>::visitMultipole(const Multipole &element) {
 }
 
 template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitMultipoleT(const MultipoleT &element) {
+    CastsTrait<ELEM, MultipoleT>::apply(allElementsOfTypeE, element);
+}
+
+template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitOffset(const Offset &element) {
     CastsTrait<ELEM, Offset>::apply(allElementsOfTypeE, element);
 }
@@ -353,6 +366,11 @@ void SpecificElementVisitor<ELEM>::visitSBend(const SBend &element) {
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSBend3D(const SBend3D &element) {
     CastsTrait<ELEM, SBend3D>::apply(allElementsOfTypeE, element);
+}
+
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitScalingFFAGMagnet(const ScalingFFAGMagnet &element) {
+    CastsTrait<ELEM, ScalingFFAGMagnet>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
