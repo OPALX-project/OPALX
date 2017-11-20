@@ -51,7 +51,7 @@ class LoadFieldMap {
     // skip_line - skip a line in the input file, index from 0; ignored if -ve
     LoadFieldMap(std::string name, int polynomial_order, int smoothing_order,
                  int skip_line)
-        : fname_m(name), sbend3d_m(NULL) {
+        : sbend3d_m(NULL), fname_m(name) {
         writeFieldMap(skip_line);
         getFieldMap(polynomial_order, smoothing_order);
     }
@@ -267,3 +267,31 @@ TEST(SBend3DTest, SBend3DPolyPatchTest) {
         std::cerr << err.what() << std::endl;
     }
 }
+
+
+TEST(SBend3DTest, GeometryTest2) {
+    // Sucked geometry information from
+    //     Classic/AbsBeamline/Ring.cpp::appendElement
+    // Transform in OPAL-T coords
+    LoadFieldMap fieldLoader("field9", 1, 1, -1);
+    SBend3D* field = fieldLoader.sbend3d_m;
+    std::cerr << " SBend3DTest::GeometryTest2 A" << std::endl;
+    Euclid3D delta = field->getGeometry().getTotalTransform();
+    Vector3D v = delta.getVector();
+    Vector3D r = delta.getRotation().getAxis();
+    std::cerr << " SBend3DTest::GeometryTest2 B" << std::endl;
+
+    // Transform to cycl coordinates
+    Euclid3D euclid(v(2), v(0), -v(1), r(2), r(0), -r(1));
+    delta = euclid;
+    std::cerr << " SBend3DTest::GeometryTest2 C" << std::endl;
+    // Calculate change in position
+    Vector_t deltaPos(delta.getVector()(0), delta.getVector()(1), 0);
+    double endRot = delta.getRotation().getAxis()(2);
+    Vector_t deltaNorm(cos(endRot), sin(endRot), 0.);
+    std::cerr << " SBend3DTest::GeometryTest2 D" << std::endl;
+
+    std::cerr << 24.*(1-cos(M_PI/12.)) << " " << 24.*sin(M_PI/12.) << " ** " << cos(M_PI/12.) << " " << sin(M_PI/12.) << " ** " << M_PI/12. << std::endl;
+    std::cerr << deltaPos << " ** " << deltaNorm << " ** " << endRot << std::endl;
+}
+

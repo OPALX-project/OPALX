@@ -165,7 +165,7 @@ void OrbitThreader::integrate(const IndexMap::value_t &activeSet, size_t maxStep
         }
 
         if (step % loggingFrequency_m == 0 && Ippl::myNode() == 0) {
-            logger_m << std::setw(18) << std::setprecision(8) << pathLength_m + std::copysign(euclidian_norm(r_m - oldR), dt_m)
+            logger_m << std::setw(18) << std::setprecision(8) << pathLength_m + std::copysign(euclidean_norm(r_m - oldR), dt_m)
                      << std::setw(18) << std::setprecision(8) << r_m(0)
                      << std::setw(18) << std::setprecision(8) << r_m(1)
                      << std::setw(18) << std::setprecision(8) << r_m(2)
@@ -189,7 +189,7 @@ void OrbitThreader::integrate(const IndexMap::value_t &activeSet, size_t maxStep
         integrator_m.push(r_m, p_m, dt_m);
         r_m *= Physics::c * dt_m;
 
-        pathLength_m += std::copysign(euclidian_norm(r_m - oldR), dt_m);
+        pathLength_m += std::copysign(euclidean_norm(r_m - oldR), dt_m);
         ++ step;
         time_m += dt_m;
 
@@ -306,7 +306,7 @@ void OrbitThreader::registerElement(const IndexMap::value_t &elementSet,
 
         Vector_t initialR = itsOpalBeamline_m.transformToLocalCS(*it, R);
         Vector_t initialP = itsOpalBeamline_m.rotateToLocalCS(*it, P);
-        double elementEdge = start - initialR(2) * euclidian_norm(initialP) / initialP(2);
+        double elementEdge = start - initialR(2) * euclidean_norm(initialP) / initialP(2);
 
         elementPosition ep = {start, pathLength_m, elementEdge};
         elementRegistry_m.insert(std::make_pair(name, ep));

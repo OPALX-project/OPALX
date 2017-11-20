@@ -95,7 +95,8 @@ class Offset : public Component {
      *   - theta_in angle between the previous element and the displacement
      *     vector
      *   - theta_out angle between the displacement vector and the next element
-     *   - displacement length of the displacement vector
+     *   - displacement length of the displacement vector in the theta_in 
+     *     direction
      */
     static Offset localCylindricalOffset(std::string name,
                                          double theta_in,

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <sstream>
 
-#include <boost/algorithm/string.hpp>
+#include "boost/algorithm/string.hpp"
 #include "boost/tuple/tuple.hpp"
 #include "boost/foreach.hpp"
 
@@ -151,15 +151,20 @@ std::string CommentAnnotatedInputFileParser::getAttribute(
     // "name = value" attribute style
     if(attribute.compare("name") == 0) {
 
+        // get string on left side of colon
         StringList_t res;
         boost::split(res, str, boost::is_any_of(":"),
                      boost::token_compress_on);
         std::string ret = res[0];
 
         // remove comment symbols at the beginning of the line
-        if(comment_symbol_ == "")
+        if(comment_symbol_ == "") {
+            // trim left space
+            boost::trim_left(ret);
             return ret;
+        }
 
+        // get string on right side of comment
         boost::split(res, ret, boost::is_any_of(comment_symbol_),
                      boost::token_compress_on);
         return res[1];
