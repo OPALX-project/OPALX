@@ -34,6 +34,7 @@
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/Patch.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
@@ -44,6 +45,7 @@
 #include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/SBend3D.h"
+#include "AbsBeamline/ScalingFFAGMagnet.h"
 #include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
@@ -141,6 +143,10 @@ void DefaultVisitor::visitMultipole(const Multipole &mult) {
     applyDefault(mult);
 }
 
+void DefaultVisitor::visitMultipoleT(const MultipoleT &multT) {
+    applyDefault(multT);
+}
+
 void DefaultVisitor::visitOffset(const Offset& off) {
     applyDefault(off);
 }
@@ -195,6 +201,11 @@ void DefaultVisitor::visitSBend3D(const SBend3D &bend) {
 }
 
 
+void DefaultVisitor::visitScalingFFAGMagnet(const ScalingFFAGMagnet &spiral) {
+    applyDefault(spiral);
+}
+
+
 void DefaultVisitor::visitSeparator(const Separator &sep) {
     applyDefault(sep);
 }
@@ -212,6 +223,7 @@ void DefaultVisitor::visitSolenoid(const Solenoid &sol) {
 void DefaultVisitor::visitSource(const Source &sou) {
     applyDefault(sou);
 }
+
 
 void DefaultVisitor::visitParallelPlate(const ParallelPlate &pplate) {
     applyDefault(pplate);

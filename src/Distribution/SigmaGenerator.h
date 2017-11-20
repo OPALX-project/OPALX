@@ -488,7 +488,7 @@ template<typename Value_type, typename Size_type>
         for (size_type i = 0; i < nStepsPerSector_m; ++i) {
             if (!harmonic) {
                 Mcycs[i] = mapgen.generateMap(H_m(h[i],h[i]*h[i]+fidx[i],-fidx[i]),ds[i],truncOrder_m);
-                Mscs[i] = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),sigmas_m[i](2,2),sigmas_m[i](4,4)),ds[i],truncOrder_m);
+                Mscs[i]  = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),sigmas_m[i](2,2),sigmas_m[i](4,4)),ds[i],truncOrder_m);
             } else {
                 Mscs[i] = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),sigmas_m[i](2,2),sigmas_m[i](4,4)),const_ds,truncOrder_m);
             }
@@ -715,7 +715,7 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
     value_type invbg = 1.0 / (beta_m * gamma_m);
     value_type micro = 1.0e-6;
     value_type mega = 1.0e6;
-    value_type kilo = 1.0e3;
+    //value_type kilo = 1.0e3;
 
     // convert mass m_m from MeV/c^2 to eV*s^{2}/m^{2}
     value_type m = m_m * mega/(Physics::c * Physics::c);        // [m] = eV*s^{2}/m^{2}, [m_m] = MeV/c^2
@@ -950,12 +950,12 @@ typename SigmaGenerator<Value_type, Size_type>::matrix_type SigmaGenerator<Value
 
 
     // x-direction
-    value_type alphax = 0.0;
+    //value_type alphax = 0.0;
     value_type betax  = std::sqrt(std::fabs(eigen(0) / eigen(1)));
     value_type gammax = 1.0 / betax;
 
     // z-direction
-    value_type alphaz = 0.0;
+    //value_type alphaz = 0.0;
     value_type betaz  = std::sqrt(std::fabs(eigen(2) / eigen(3)));
     value_type gammaz = 1.0 / betaz;
 

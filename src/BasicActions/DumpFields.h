@@ -64,6 +64,9 @@ class DumpFields : public Action {
     /** Constructor */
     DumpFields();
 
+    /** Constructor */
+    DumpFields(const std::string &name, DumpFields *parent);
+
     /** Destructor deletes grid_m and if in the dumps set, take it out */
     virtual ~DumpFields();
 
@@ -104,8 +107,8 @@ class DumpFields : public Action {
     virtual void buildGrid();
     static void checkInt(double value, std::string name, double tolerance = 1e-9);
 
-    interpolation::ThreeDGrid* grid_m;
-    std::string filename_m;
+    interpolation::ThreeDGrid* grid_m = NULL;
+    std::string filename_m = "";
 
     static std::unordered_set<DumpFields*> dumpsSet_m;
     static std::string dumpfields_docstring;

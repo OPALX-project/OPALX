@@ -43,7 +43,6 @@ TravelingWave::TravelingWave():
     phaseCore2_m(0.0),
     phaseExit_m(0.0),
     phaseError_m(0.0),
-    frequency_m(0.0),
     length_m(0.0),
     startCoreField_m(0.0),
     startExitField_m(0.0),
@@ -70,7 +69,6 @@ TravelingWave::TravelingWave(const TravelingWave &right):
     phaseCore2_m(right.phaseCore2_m),
     phaseExit_m(right.phaseExit_m),
     phaseError_m(right.phaseError_m),
-    frequency_m(right.frequency_m),
     length_m(right.length_m),
     startCoreField_m(right.startCoreField_m),
     startExitField_m(right.startExitField_m),
@@ -97,7 +95,6 @@ TravelingWave::TravelingWave(const std::string &name):
     phaseCore2_m(0.0),
     phaseExit_m(0.0),
     phaseError_m(0.0),
-    frequency_m(0.0),
     length_m(0.0),
     startCoreField_m(0.0),
     startExitField_m(0.0),
@@ -250,14 +247,15 @@ bool TravelingWave::apply(const size_t &i, const double &t, Vector_t &E, Vector_
 }
 
 bool TravelingWave::apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) {
-    Vector_t tmpR = R - Vector_t(0, 0, 0.5 * PeriodLength_m);
+    if (R(2) < -0.5 * PeriodLength_m || R(2) + 0.5 * PeriodLength_m >= length_m) return false;
+
+    Vector_t tmpR = Vector_t(R(0), R(1), R(2) + 0.5 * PeriodLength_m);
     double tmpcos, tmpsin;
     Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
-    if (tmpR(2) < 0.0 && tmpR(2) >= length_m) return false;
-    if (!CoreFieldmap_m->isInside(tmpR)) return true;
-
     if (tmpR(2) < startCoreField_m) {
+        if (!CoreFieldmap_m->isInside(tmpR)) return true;
+
         tmpcos =  (scale_m + scaleError_m) * cos(frequency_m * t + phase_m + phaseError_m);
         tmpsin = -(scale_m + scaleError_m) * sin(frequency_m * t + phase_m + phaseError_m);
 
@@ -267,10 +265,11 @@ bool TravelingWave::apply(const Vector_t &R, const Vector_t &P, const double &t,
         const double z = tmpR(2);
         tmpR(2) = tmpR(2) - PeriodLength_m * floor(tmpR(2) / PeriodLength_m);
         tmpR(2) += startCoreField_m;
+        if (!CoreFieldmap_m->isInside(tmpR)) return true;
 
         tmpcos =  (scaleCore_m + scaleCoreError_m) * cos(frequency_m * t + phaseCore1_m + phaseError_m);
         tmpsin = -(scaleCore_m + scaleCoreError_m) * sin(frequency_m * t + phaseCore1_m + phaseError_m);
-        CoreFieldmap_m->getFieldstrength(R, tmpE, tmpB);
+        CoreFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
         E += tmpcos * tmpE;
         B += tmpsin * tmpB;
 
@@ -285,9 +284,10 @@ bool TravelingWave::apply(const Vector_t &R, const Vector_t &P, const double &t,
         tmpsin = -(scaleCore_m + scaleCoreError_m) * sin(frequency_m * t + phaseCore2_m + phaseError_m);
 
     } else {
+        tmpR(2) -= mappedStartExitField_m;
+        if (!CoreFieldmap_m->isInside(tmpR)) return true;
         tmpcos =  (scale_m + scaleError_m) * cos(frequency_m * t + phaseExit_m + phaseError_m);
         tmpsin = -(scale_m + scaleError_m) * sin(frequency_m * t + phaseExit_m + phaseError_m);
-        tmpR(2) -= mappedStartExitField_m;
     }
 
     CoreFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
@@ -299,14 +299,15 @@ bool TravelingWave::apply(const Vector_t &R, const Vector_t &P, const double &t,
 }
 
 bool TravelingWave::applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) {
+
+    if (R(2) < -0.5 * PeriodLength_m || R(2) + 0.5 * PeriodLength_m >= length_m) return false;
+
+    Vector_t tmpR = Vector_t(R(0), R(1), R(2) + 0.5 * PeriodLength_m);
     double tmpcos, tmpsin;
     Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
-    Vector_t tmpR(R(0), R(1), R(2) - 0.5 * PeriodLength_m);
-    if (tmpR(2) < 0.0 && tmpR(2) >= length_m) return false;
-    if (!CoreFieldmap_m->isInside(tmpR)) return true;
-
     if (tmpR(2) < startCoreField_m) {
+        if (!CoreFieldmap_m->isInside(tmpR)) return true;
         tmpcos =  scale_m * cos(frequency_m * t + phase_m);
         tmpsin = -scale_m * sin(frequency_m * t + phase_m);
 
@@ -316,10 +317,11 @@ bool TravelingWave::applyToReferenceParticle(const Vector_t &R, const Vector_t &
         const double z = tmpR(2);
         tmpR(2) = tmpR(2) - PeriodLength_m * floor(tmpR(2) / PeriodLength_m);
         tmpR(2) += startCoreField_m;
+        if (!CoreFieldmap_m->isInside(tmpR)) return true;
 
         tmpcos =  scaleCore_m * cos(frequency_m * t + phaseCore1_m);
         tmpsin = -scaleCore_m * sin(frequency_m * t + phaseCore1_m);
-        CoreFieldmap_m->getFieldstrength(R, tmpE, tmpB);
+        CoreFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
         E += tmpcos * tmpE;
         B += tmpsin * tmpB;
 
@@ -334,9 +336,11 @@ bool TravelingWave::applyToReferenceParticle(const Vector_t &R, const Vector_t &
         tmpsin = -scaleCore_m * sin(frequency_m * t + phaseCore2_m);
 
     } else {
+        tmpR(2) -= mappedStartExitField_m;
+        if (!CoreFieldmap_m->isInside(tmpR)) return true;
+
         tmpcos =  scale_m * cos(frequency_m * t + phaseExit_m);
         tmpsin = -scale_m * sin(frequency_m * t + phaseExit_m);
-        tmpR(2) -= mappedStartExitField_m;
     }
 
     CoreFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
@@ -375,6 +379,7 @@ void TravelingWave::initialise(PartBunchBase<double, 3> *bunch, double &startFie
                          << frequency_m / two_pi * 1e-6 << " MHz <> "
                          << CoreFieldmap_m->getFrequency() / two_pi * 1e-6 << " MHz; TAKE ON THE LATTER\n";
                 std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
+                *gmsg << errormsg_str << endl;
                 ERRORMSG(errormsg_str << "\n" << endl);
                 if(Ippl::myNode() == 0) {
                     std::ofstream omsg("errormsg.txt", std::ios_base::app);
@@ -524,7 +529,8 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
                 }
 
                 const int prevPrecision = Ippl::Info->precision(8);
-                INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad, "
+                INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad = "
+                        << tmp_phi * Physics::rad2deg << " deg,\n"
                         << "Ekin= " << E[N3 - 1] << " MeV" << std::setprecision(prevPrecision) << endl);
                 return tmp_phi;
             }
@@ -563,7 +569,8 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
 
 
         const int prevPrecision = Ippl::Info->precision(8);
-        INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad, "
+        INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad = "
+                        << tmp_phi * Physics::rad2deg << " deg,\n"
                 << "Ekin= " << E[N3 - 1] << " MeV" << std::setprecision(prevPrecision) << endl);
 
         return phi;

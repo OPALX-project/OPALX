@@ -53,6 +53,8 @@ class OpalRingDefinition: public OpalElement {
         SCALE,
         RFFREQ,
         IS_CLOSED,
+        MIN_R,
+        MAX_R,
         SIZE // size of the enum
     };
 

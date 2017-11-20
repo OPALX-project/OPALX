@@ -429,6 +429,7 @@ private:
     void printEmissionModelNone(Inform &os) const;
     void printEmissionModelNonEquil(Inform &os) const;
     void printEnergyBins(Inform &os) const;
+    void adjustPhaseSpace();
     void reflectDistribution(size_t &numberOfParticles);
     void scaleDistCoordinates();
     void setAttributes();

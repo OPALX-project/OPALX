@@ -27,8 +27,6 @@
 #include "Fields/EMField.h"
 #include "Algorithms/Vektor.h"
 
-#define EPS_MISALIGNMENT 1e-8
-
 class PartData;
 
 template <class T, unsigned Dim>

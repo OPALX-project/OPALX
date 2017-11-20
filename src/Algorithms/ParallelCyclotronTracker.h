@@ -121,6 +121,9 @@ public:
     /// Apply the algorithm to a Multipole.
     virtual void visitMultipole(const Multipole &);
 
+    /// Apply the algorithm to a MultipoleT
+    virtual void visitMultipoleT (const MultipoleT &);
+    
     /// Apply the algorithm to a Offset.
     virtual void visitOffset(const Offset &);
 
@@ -138,6 +141,9 @@ public:
 
     /// Apply the algorithm to a SBend3D.
     virtual void visitSBend3D(const SBend3D &);
+
+    /// Apply the algorithm to a ScalingFFAGMagnet.
+    virtual void visitScalingFFAGMagnet(const ScalingFFAGMagnet &bend);
 
     /// Apply the algorithm to a Separator.
     virtual void visitSeparator(const Separator &);

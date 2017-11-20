@@ -44,25 +44,24 @@ std::string(" field file, for checking that fields are read in correctly")+
 std::string(" from disk. The fields are written out on a Cartesian grid.");
 
 DumpFields::DumpFields() :
-                    Action(10, "DUMPFIELDS", dumpfields_docstring.c_str()),
-                    grid_m(NULL), filename_m("") {
+                    Action(10, "DUMPFIELDS", dumpfields_docstring.c_str()) {
     // would be nice if "steps" could be integer
     itsAttr[0] = Attributes::makeReal
-                 ("X_START", "Start point in the grid in x [mm]");
+                 ("X_START", "Start point in the grid in x [m]");
     itsAttr[1] = Attributes::makeReal
-                 ("DX", "Grid step size in x [mm]");
+                 ("DX", "Grid step size in x [m]");
     itsAttr[2] = Attributes::makeReal
                  ("X_STEPS", "Number of steps in x");
     itsAttr[3] = Attributes::makeReal
-                 ("Y_START", "Start point in the grid in y [mm]");
+                 ("Y_START", "Start point in the grid in y [m]");
     itsAttr[4] = Attributes::makeReal
-                 ("DY", "Grid step size in y [mm]");
+                 ("DY", "Grid step size in y [m]");
     itsAttr[5] = Attributes::makeReal
                  ("Y_STEPS", "Number of steps in y");
     itsAttr[6] = Attributes::makeReal
-                 ("Z_START", "Start point in the grid in z [mm]");
+                 ("Z_START", "Start point in the grid in z [m]");
     itsAttr[7] = Attributes::makeReal
-                 ("DZ", "Grid step size in z [mm]");
+                 ("DZ", "Grid step size in z [m]");
     itsAttr[8] = Attributes::makeReal
                  ("Z_STEPS", "Number of steps in z");
     itsAttr[9] = Attributes::makeString
@@ -71,13 +70,17 @@ DumpFields::DumpFields() :
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
+DumpFields::DumpFields(const std::string &name, DumpFields *parent):
+    Action(name, parent)
+{}
+
 DumpFields::~DumpFields() {
     delete grid_m;
     dumpsSet_m.erase(this);
 }
 
 DumpFields* DumpFields::clone(const std::string &name) {
-    DumpFields* dumper = new DumpFields();
+    DumpFields* dumper = new DumpFields(name, this);
     if (grid_m != NULL) {
         dumper->grid_m = grid_m->clone();
     }
@@ -162,9 +165,9 @@ void DumpFields::writeFieldThis(Component* field) {
     }
     // set precision
     fout << grid_m->end().toInteger() << "\n";
-    fout << 1 << " x [mm]\n";
-    fout << 2 << " y [mm]\n";
-    fout << 3 << " z [mm]\n";
+    fout << 1 << " x [m]\n";
+    fout << 2 << " y [m]\n";
+    fout << 3 << " z [m]\n";
     fout << 4 << " Bx [kGauss]\n";
     fout << 5 << " By [kGauss]\n";
     fout << 6 << " Bz [kGauss]\n";

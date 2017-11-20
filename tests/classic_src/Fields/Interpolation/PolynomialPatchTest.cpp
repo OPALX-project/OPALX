@@ -45,7 +45,7 @@ TEST(PolynomialPatchTest, TestPolynomialPatch) {
     SquarePolynomialVector ref(3, refCoeffs);
    // copy it into the grid
     std::vector<SquarePolynomialVector*> poly;
-    for (size_t i = 0; i < grid.end().toInteger(); ++i)
+    for (int i = 0; i < grid.end().toInteger(); ++i)
         poly.push_back(new SquarePolynomialVector(ref));
     PolynomialPatch patch(grid.clone(), grid.clone(), poly);
     ThreeDGrid testGrid(1/4., 2/4., 3/4., -1, -2, -3, 4*4, 3*4, 2*4);

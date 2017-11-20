@@ -117,6 +117,7 @@
 #include "Elements/OpalRCollimator.h"
 #include "Elements/OpalSBend.h"
 #include "Elements/OpalSBend3D.h"
+#include "Elements/OpalScalingFFAGMagnet.h"
 #include "Elements/OpalSeparator.h"
 #include "Elements/OpalSeptum.h"
 #include "Elements/OpalSextupole.h"
@@ -151,6 +152,8 @@ namespace Configure {
         OpalData *opal = OpalData::getInstance();
         opal->create(new Call());
         opal->create(new Dump());
+        opal->create(new DumpFields());
+        opal->create(new DumpEMFields());
         opal->create(new Echo());
         opal->create(new Dynamic());
         opal->create(new Eigen());
@@ -244,6 +247,7 @@ namespace Configure {
         opal->create(new OpalRCollimator());
         opal->create(new OpalSBend());
         opal->create(new OpalSBend3D());
+        opal->create(new OpalScalingFFAGMagnet());
         opal->create(new OpalSeparator());
         opal->create(new OpalSeptum());
         opal->create(new OpalSextupole());

@@ -168,7 +168,7 @@ private:
     bool bcz_m;
 
     IpplTimings::TimerRef GreensFunctionTimer_m;
-
+  /*
     IpplTimings::TimerRef IntGreensFunctionTimer1_m;
     IpplTimings::TimerRef IntGreensFunctionTimer2_m;
     IpplTimings::TimerRef IntGreensFunctionTimer3_m;
@@ -182,7 +182,7 @@ private:
 
     IpplTimings::TimerRef GreensFunctionTimer1_m;
     IpplTimings::TimerRef GreensFunctionTimer4_m;
-
+  */
     IpplTimings::TimerRef ComputePotential_m;
 };
 

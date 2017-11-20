@@ -70,6 +70,9 @@ Ring::Ring(const Ring& ring)
       latticeRInit_m(ring.latticeRInit_m),
       latticePhiInit_m(ring.latticePhiInit_m),
       latticeThetaInit_m(ring.latticeThetaInit_m),
+      willDoAperture_m(ring.willDoAperture_m),
+      minR2_m(ring.minR2_m),
+      maxR2_m(ring.maxR2_m),
       isLocked_m(ring.isLocked_m),
       isClosed_m(ring.isClosed_m),
       symmetry_m(ring.symmetry_m),
@@ -119,6 +122,13 @@ bool Ring::apply(const Vector_t &R, const Vector_t &P,
     std::vector<RingSection*> sections = getSectionsAt(R); // I think this doesn't actually use R -DW
     bool outOfBounds = true;
     // assume field maps don't set B, E to 0...
+    if (willDoAperture_m) {
+        double rSquared = R[0]*R[0]+R[1]*R[1];
+        if (rSquared < minR2_m || rSquared > maxR2_m) {
+            return true;
+        }
+    }
+
     for (size_t i = 0; i < sections.size(); ++i) {
         Vector_t B_temp(0.0, 0.0, 0.0);
         Vector_t E_temp(0.0, 0.0, 0.0);
@@ -127,7 +137,6 @@ bool Ring::apply(const Vector_t &R, const Vector_t &P,
         B += (scale_m * B_temp);
         E += (scale_m * E_temp);
     }
-    // std::cerr << "Ring::apply " << sections.size() << " Pos: " << R << " B: " << B << std::endl;
     return outOfBounds;
 }
 
@@ -361,3 +370,15 @@ bool Ring::sectionCompare(RingSection const* const sec1,
                           RingSection const* const sec2) {
     return sec1 > sec2;
 }
+
+void Ring::setRingAperture(double minR, double maxR) {
+    if (minR < 0 || maxR < 0) {
+            throw GeneralClassicException("Ring::setRingAperture",
+                        "Could not parse negative or undefined aperture limit");
+    }
+
+    willDoAperture_m = true;
+    minR2_m = minR*minR;
+    maxR2_m = maxR*maxR;
+}
+

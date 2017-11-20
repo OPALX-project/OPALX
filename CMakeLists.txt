@@ -50,9 +50,9 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.3")
         message (FATAL_ERROR "To build OPAL you need GCC version 4.7.3 or greater")
-    elseif (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER "4.7.2")
-       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-error -Wno-reorder -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11")
     endif ()
+    # Warning flags, -Wno-unused-local-typedefs is needed for boost versions below 1.59
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11")
 else ()
     message (STATUS "Unknown C++ compiler. Please use the GNU or Intel compiler, IF you are having problems.")
 endif ()
@@ -125,21 +125,21 @@ ENDIF (USE_H5HUT2)
 IF (ENABLE_AMR)
     MESSAGE (STATUS "Enable AMR_SOLVER    " ${ENABLE_AMR})
     ENABLE_LANGUAGE (Fortran)
-    
+
     find_package (AMReX CONFIG REQUIRED HINTS $ENV{AMREX_HOME}/cmake $ENV{AMREX_DIR}/cmake $ENV{AMREX_PREFIX}/cmake)
 
     MESSAGE (STATUS "Found AMReX include dir: ${AMREX_INCLUDE_DIR}")
     MESSAGE (STATUS "Found AMReX library dir: ${AMREX_LIBRARY_DIR}")
     MESSAGE (STATUS "Found AMReX libraries: ${AMREX_LIBRARIES}")
     MESSAGE (STATUS "AMReX built with: ${AMREX_DEFINES}")
-    
+
     # We need to replace the quotes of the AMREX_GIT_VERSION flag in AMREX_DEFINES
     # otherwise IpplVersions.h complains
     STRING(REPLACE "\"" "'" AMREX_DEFINES ${AMREX_DEFINES})
-    
+
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_AMR ${AMREX_DEFINES}")
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-unused-but-set-variable -Wno-maybe-uninitialized")
-    
+
 ENDIF (ENABLE_AMR)
 
 # remove digits from hostname: edison03 -> edison
@@ -230,7 +230,6 @@ ADD_SUBDIRECTORY (opt-pilot)
 
 ADD_SUBDIRECTORY (src)
 ADD_SUBDIRECTORY (tools)
-ADD_SUBDIRECTORY (doc/user_guide)
 
 IF (BUILD_OPAL_UNIT_TESTS)
      ADD_SUBDIRECTORY(tests)

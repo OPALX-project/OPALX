@@ -45,6 +45,7 @@ class Lambertson;
 class Marker;
 class Monitor;
 class Multipole;
+class MultipoleT;
 class Offset;
 class Patch;
 class Probe;
@@ -56,6 +57,7 @@ class TravelingWave;
 class RFQuadrupole;
 class SBend;
 class SBend3D;
+class ScalingFFAGMagnet;
 class Cyclotron;
 class Separator;
 class Septum;
@@ -144,6 +146,9 @@ public:
     /// Apply the algorithm to a multipole.
     virtual void visitMultipole(const Multipole &) = 0;
 
+    /// Apply the algorithm to an arbitrary straight Multipole.
+    virtual void visitMultipoleT(const MultipoleT &) = 0;
+
     /// Apply the algorithm to a patch.
     virtual void visitPatch(const Patch &) = 0;
 
@@ -182,6 +187,9 @@ public:
 
     /// Apply the algorithm to a solenoid.
     virtual void visitSolenoid(const Solenoid &) = 0;
+
+    /// Apply the algorithm to a solenoid.
+    virtual void visitScalingFFAGMagnet(const ScalingFFAGMagnet &) = 0;
 
     /// Apply the algorithm to a source.
     virtual void visitSource(const Source &) = 0;

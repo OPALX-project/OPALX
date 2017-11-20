@@ -10,7 +10,7 @@ typedef Vektor<double, 3> Vector_t;
 /// comment: this should go to AppTypes/Vektor.h
 
 inline
-double euclidian_norm(Vector_t a) {
+double euclidean_norm(Vector_t a) {
     return sqrt(dot(a,a));
 }
 

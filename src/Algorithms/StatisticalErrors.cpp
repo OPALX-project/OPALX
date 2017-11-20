@@ -41,10 +41,7 @@ namespace{
 
     enum { NORMAL,
            DONE };
-
 }
-
-typedef std::list<SDDS::ast::variant_t> sdds_column_data_t;
 
 StatisticalErrors::StatisticalErrors(const Beamline &beamline,
                                      const PartData &reference,
@@ -559,10 +556,11 @@ void StatisticalErrors::processOutputData(const std::string &sddsFileName) {
 
     if (Ippl::myNode() != 0 || !fs::exists(sddsFileName)) return;
 
-    std::string contents = readSDDSFile(sddsFileName);
-    SDDS::file sddsData;
+    // std::string contents = readSDDSFile(sddsFileName);
+    SDDS::SDDSParser parser;
     try {
-        sddsData = parseSDDSFile(contents);
+        parser = SDDS::SDDSParser(sddsFileName);
+        parser.run();
     } catch (OpalException &ex) {
         ERRORMSG(__FILE__ << ": " << __LINE__ << ": could not parse sdds file '" << sddsFileName << "'\n" << endl);
     }
@@ -574,7 +572,7 @@ void StatisticalErrors::processOutputData(const std::string &sddsFileName) {
 
         for (std::string col: objectives_m) {
 
-            sdds_column_data_t values = getColumnData(sddsData, col);
+            SDDS::ast::columnData_t values = parser.getColumnData(col);
             int length = values.size();
             std::string fname = dataDirName + col + ".dat";
             std::ofstream out(fname, std::ios::binary);
@@ -591,74 +589,6 @@ void StatisticalErrors::processOutputData(const std::string &sddsFileName) {
     } catch (OpalException &ex) {
         ERRORMSG(__FILE__ << ": " << __LINE__ << ": " << ex.where());
     }
-}
-
-SDDS::file StatisticalErrors::parseSDDSFile(std::string & contents) {
-    typedef std::string::const_iterator iterator_t;
-    typedef SDDS::parser::file_parser<iterator_t> file_parser_t;
-    typedef SDDS::parser::skipper<iterator_t> skipper_t;
-    typedef SDDS::error_handler<iterator_t> error_handler_t;
-
-    skipper_t skipper;
-    SDDS::file sddsFile;
-    iterator_t contentsIter = contents.begin();
-    iterator_t contentsEnd = contents.end();
-    error_handler_t error_handler(contentsIter, contentsEnd);
-    file_parser_t parser(error_handler);
-
-    bool success = phrase_parse(contentsIter, contentsEnd, parser, skipper, sddsFile);
-    {
-        SDDS::parameterList::iterator piter = sddsFile.sddsParameters_m.begin();
-        SDDS::parameterList::iterator pend = sddsFile.sddsParameters_m.end();
-        for (; piter != pend && success; ++ piter) {
-            success = piter->parse(contentsIter, contentsEnd, skipper);
-        }
-        while (success && contentsIter != contentsEnd) {
-            SDDS::columnList::iterator citer = sddsFile.sddsColumns_m.begin();
-            SDDS::columnList::iterator cend = sddsFile.sddsColumns_m.end();
-            for (; citer != cend && success; ++ citer) {
-                success = citer->parse(contentsIter, contentsEnd, skipper);
-            }
-        }
-    }
-
-    if (!success || contentsIter != contentsEnd)
-        {
-            throw OpalException("StatisticalErrors::parseSDDSFile",
-                                "could not parse SDDS file");
-        }
-
-    return sddsFile;
-}
-
-sdds_column_data_t StatisticalErrors::getColumnData(const SDDS::file &data,
-                                                    const std::string &columnName) {
-    for (const SDDS::column &col: data.sddsColumns_m) {
-        if (*col.name_m == columnName) {
-            return col.values_m;
-        }
-    }
-    throw OpalException("StatisticalErrors::getColumnData",
-                        "could not find column '" + columnName + "'");
-}
-
-std::string StatisticalErrors::readSDDSFile(const std::string &input) {
-    std::ifstream in(input.c_str());
-
-    if (in) {
-        std::string contents;
-        in.seekg(0, std::ios::end);
-        contents.resize(in.tellg());
-        in.seekg(0, std::ios::beg);
-
-        in.read(&contents[0], contents.size());
-
-        in.close();
-
-        return contents;
-    }
-    throw OpalException("StatisticalErrors::readSDDSFile",
-                        "could not open file " + input);
 }
 
 void StatisticalErrors::writeSDDSFile() {
@@ -681,8 +611,8 @@ void StatisticalErrors::writeSDDSHeader(std::ofstream &out,
                                         std::vector<std::string> &order) {
     OPALTimer::Timer simtimer;
     std::string referenceStatFileName = "reference/" + OpalData::getInstance()->getInputBasename() + ".stat";
-    std::string referenceData = readSDDSFile(referenceStatFileName);
-    SDDS::file parsedRefData = parseSDDSFile(referenceData);
+    SDDS::SDDSParser parser(referenceStatFileName);
+    SDDS::file parsedRefData = parser.run();
     SDDS::columnList &columns = parsedRefData.sddsColumns_m;
 
     std::string dateStr(simtimer.date());
@@ -872,7 +802,7 @@ std::vector<double> StatisticalErrors::interpolateSDDSData(const std::vector<dou
     std::vector<double> interpolated(newSize);
 
     for (unsigned int i = 0; i < newSize; ++ i) {
-        while (oldPositions[j] <= newPositions[i] && j < oldSize) {
+        while (j < oldSize && oldPositions[j] <= newPositions[i]) {
             ++ j;
         }
         if (j == 0 || j == oldSize) {
@@ -1001,9 +931,9 @@ std::vector<double> StatisticalErrors::getReferenceSamplingPositions() {
     std::vector<double> pdata;
     if (Ippl::myNode() == 0) {
         std::string referenceStatFileName = "reference/" + OpalData::getInstance()->getInputBasename() + ".stat";
-        std::string referenceData = readSDDSFile(referenceStatFileName);
-        SDDS::file parsedRefData = parseSDDSFile(referenceData);
-        sdds_column_data_t positions = getColumnData(parsedRefData, "s");
+        SDDS::SDDSParser parser(referenceStatFileName);
+        SDDS::file parsedRefData = parser.run();
+        SDDS::ast::columnData_t positions = parser.getColumnData("s");
         int length = positions.size();
         pdata.resize(length);
 
