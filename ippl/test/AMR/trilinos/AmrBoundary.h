@@ -19,7 +19,7 @@ public:
      * @param nr is the number of grid points
      */
     bool isBoundary(const AmrIntVect_t& iv, const int* nr) const {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     return ( iv[0] < 0 || iv[0] >= nr[0] ||
              iv[1] < 0 || iv[1] >= nr[1] ||
              iv[2] < 0 || iv[2] >= nr[2] );

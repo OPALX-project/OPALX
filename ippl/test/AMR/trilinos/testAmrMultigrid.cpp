@@ -20,7 +20,7 @@ using namespace amrex;
 typedef Array<std::unique_ptr<MultiFab> > container_t;
 
 struct param_t {
-    Vektor<size_t, BL_SPACEDIM> nr;
+    Vektor<size_t, AMREX_SPACEDIM> nr;
     size_t maxBoxSize;
     bool isWriteYt;
     bool isWriteCSV;
@@ -44,13 +44,13 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     
     int cnt = 0;
     
-    int required = 3 +  BL_SPACEDIM;
+    int required = 3 +  AMREX_SPACEDIM;
     
     while ( true ) {
         static struct option long_options[] = {
             { "gridx",          required_argument, 0, 'x' },
             { "gridy",          required_argument, 0, 'y' },
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             { "gridz",          required_argument, 0, 'z' },
 #endif
             { "smoothing",      required_argument, 0, 's' },
@@ -65,7 +65,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         int option_index = 0;
         
         c = getopt_long(argc, argv,
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                         "x:y:z:s:l:m:whv",
 #else
                         "x:y:s:l:m:whv",
@@ -80,7 +80,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.nr[0] = std::atoi(optarg); ++cnt; break;
             case 'y':
                 params.nr[1] = std::atoi(optarg); ++cnt; break;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             case 'z':
                 params.nr[2] = std::atoi(optarg); ++cnt; break;
 #endif
@@ -101,7 +101,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << endl
                     << "--gridx [#gridpoints in x]" << endl
                     << "--gridy [#gridpoints in y]" << endl
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                     << "--gridz [#gridpoints in z]" << endl
 #endif
                     << "--smoothing [#steps]" << endl
@@ -232,7 +232,7 @@ void doSolve(const Array<BoxArray>& ba,
         //                                                                       # component # ghost cells                                                                                                                                          
         rhs[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev],    1          , 0));
         phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev],    1          , 1));
-        efield[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev], BL_SPACEDIM, 1));
+        efield[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev], AMREX_SPACEDIM, 1));
         
         rhs[lev]->setVal(-1.0 /*- lev*/);
         phi[lev]->setVal(0.0, 1);
@@ -276,7 +276,7 @@ void doAMReX(const param_t& params, Inform& msg)
     int nlevs = params.nLevels + 1;
     
     RealBox real_box;
-    for (int n = 0; n < BL_SPACEDIM; n++) {
+    for (int n = 0; n < AMREX_SPACEDIM; n++) {
         real_box.setLo(n, 0.0);
         real_box.setHi(n, 1.0);
     }
@@ -295,8 +295,8 @@ void doAMReX(const param_t& params, Inform& msg)
     int coord = 0;
 
     // This sets the boundary conditions to Dirichlet
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    int is_per[AMREX_SPACEDIM];
+    for (int i = 0; i < AMREX_SPACEDIM; i++) 
         is_per[i] = 0; 
 
     // This defines a Geometry object which is useful for writing the plotfiles  

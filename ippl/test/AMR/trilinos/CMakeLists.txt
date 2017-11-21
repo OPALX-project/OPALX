@@ -13,8 +13,10 @@ set (CMAKE_CXX_FLAGS
     )
     
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO -DIPPL_AMR ${AMREX_DEFINES} ${CMAKE_CXX_FLAGS}"
+    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO -DIPPL_AMR ${CMAKE_CXX_FLAGS}"
 )
+
+add_definitions(${AMREX_DEFINES})
 
 set (BOOSTROOT $ENV{BOOST_DIR})
 set(Boost_USE_STATIC_LIBS ON)
@@ -94,7 +96,7 @@ set(F90_source_files ../Tagging_nd.f90)
 #                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
 #                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
-IF ( ${BL_SPACEDIM} EQUAL 2 )
+IF ( ${AMREX_DIM} EQUAL 2 )
 
     add_executable( testRestrictionMatrix testRestrictionMatrix.cpp)
     
@@ -114,12 +116,13 @@ IF ( ${BL_SPACEDIM} EQUAL 2 )
     
     add_executable( testLagrange testLagrange.cpp)
     
-ENDIF ( ${BL_SPACEDIM} EQUAL 2 )
+ENDIF ( ${AMREX_DIM} EQUAL 2 )
 
 add_executable( testAmrMultigrid
                 testAmrMultigrid.cpp
                 ${F90_source_files}
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                AmrMultiGridCore.h
                 BelosBottomSolver.cpp
                 AmesosBottomSolver.cpp
                 AmrSmoother.cpp
@@ -130,6 +133,9 @@ add_executable( testSolverComparison
                 ../Solver.cpp
                 ${F90_source_files}
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                BelosBottomSolver.cpp
+                AmesosBottomSolver.cpp
+                AmrSmoother.cpp
                 AmrMultiGrid.cpp)
 
 # add_executable( testTrilinosGeometry
@@ -141,7 +147,7 @@ add_executable( testSolverComparison
 #                 EllipticDomain.cpp
 #                 AmrTrilinos.cpp)
 
-IF ( ${BL_SPACEDIM} EQUAL 3 )
+IF ( ${AMREX_DIM} EQUAL 3 )
     add_executable( testCopy testCopy.cpp)
 
     target_link_libraries (testCopy ${LIBS}
@@ -168,10 +174,10 @@ IF ( ${BL_SPACEDIM} EQUAL 3 )
     
     target_link_libraries (testBitPattern ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
-ENDIF ( ${BL_SPACEDIM} EQUAL 3 )
+ENDIF ( ${AMREX_DIM} EQUAL 3 )
                         
 
-IF ( ${BL_SPACEDIM} EQUAL 2 )
+IF ( ${AMREX_DIM} EQUAL 2 )
     target_link_libraries (testRestrictionMatrix ${LIBS}
                            -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
@@ -208,7 +214,7 @@ IF ( ${BL_SPACEDIM} EQUAL 2 )
                            -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
-ENDIF ( ${BL_SPACEDIM} EQUAL 2 )
+ENDIF ( ${AMREX_DIM} EQUAL 2 )
 # target_link_libraries (testTrilinosGeometry ${LIBS}
 #                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
 #                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})

@@ -3,7 +3,7 @@
 
 #include "AmrInterpolater.h"
 
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     #include <bitset>
     #include <iterator>
     #include <array>
@@ -19,7 +19,7 @@ public:
         QUADRATIC
     };
     
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     typedef std::bitset<25> qbits_t; ///< for checking the neighbour cells (quadratic)
     typedef std::bitset<9> lbits_t; ///< for checking the neighbour cells (linear)
     typedef std::array<unsigned int long, 9> qpattern_t;    ///< quadratic pattern
@@ -135,7 +135,7 @@ private:
                          const AmrIntVect_t& riv,
                          AmrMultiGridLevel* mglevel);
     
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
 private:
     static constexpr qpattern_t qpattern_ms {
         473536,                             ///< cross pattern

@@ -40,7 +40,7 @@ struct TestParams {
 
 
 int serialize(const IntVect& iv, int* nr) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     return iv[0] + (iv[1] + nr[1] * iv[2]) * nr[0];
 #else
     return iv[0] + iv[1] * nr[0];
@@ -51,7 +51,7 @@ class PhysBoundary {
 public:
     
     bool isBoundary(const IntVect& iv, int* nr) const {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
         return ( iv[0] < 0 || iv[0] >= nr[0] ||
                  iv[1] < 0 || iv[1] >= nr[1] ||
                  iv[2] < 0 || iv[2] >= nr[2] );
@@ -80,7 +80,7 @@ public:
         
         // find interior neighbour cell
         IntVect niv;
-        for (int i = 0; i < BL_SPACEDIM; ++i) {
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             if ( iv[i] > -1 && iv[i] < nr[i] )
                 niv[i] = iv[i];
             else
@@ -111,7 +111,7 @@ public:
 class TrilinearInterpolater {
     
 public:
-    TrilinearInterpolater() : nNeighbours_m(2 << (BL_SPACEDIM - 1))
+    TrilinearInterpolater() : nNeighbours_m(2 << (AMREX_SPACEDIM - 1))
     { }
     
     const int& getNumberOfPoints() const {
@@ -132,7 +132,7 @@ public:
          * floor( k - 0.5 ) / rr[2]
          */
         IntVect civ;
-        for (int d = 0; d < BL_SPACEDIM; ++d) {
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             
             double tmp = iv[d] - 0.5;
             if ( std::signbit(tmp) )
@@ -148,13 +148,13 @@ public:
         // ref ratio 2 only
         double dx = 0.5 * ( iv[0] - civ[0] * 2 ) - 0.25;
         double dy = 0.5 * ( iv[1] - civ[1] * 2 ) - 0.25;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
         double dz = 0.5 * ( iv[2] - civ[2] * 2 ) - 0.25;
 #endif
         
         double xdiff = 1.0 - dx;
         double ydiff = 1.0 - dy;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
         double zdiff = 1.0 - dz;
 #endif
         // (i, j, k)
@@ -206,7 +206,7 @@ public:
             ++numEntries;
         }
         
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
         // (i, j, k+1)
         tmp = IntVect(D_DECL(civ[0], civ[1], civ[2]+1));
         value = AMREX_D_TERM(xdiff, * ydiff, * dz);
@@ -272,7 +272,7 @@ void buildMap(Teuchos::RCP<Epetra_Map>& map, const BoxArray& grids, const Distri
               const Geometry& geom, Epetra_MpiComm& comm, int level)
 {
     int nr[3];
-    for (int j = 0; j < BL_SPACEDIM; ++j)
+    for (int j = 0; j < AMREX_SPACEDIM; ++j)
         nr[j] = geom.Domain().length(j);
     
     // numGlobalElements == N
@@ -293,7 +293,7 @@ void buildMap(Teuchos::RCP<Epetra_Map>& map, const BoxArray& grids, const Distri
         
         for (int i = lo[0]; i <= hi[0]; ++i) {
             for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
 //                     std::cout << ++counter << std::endl;
@@ -313,7 +313,7 @@ void buildMap(Teuchos::RCP<Epetra_Map>& map, const BoxArray& grids, const Distri
                     
                     ++localNumElements;
 //                     }
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 }
 #endif
             }
@@ -350,7 +350,7 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
      */
     int cnr[3];
     int fnr[3];
-    for (int j = 0; j < BL_SPACEDIM; ++j) {
+    for (int j = 0; j < AMREX_SPACEDIM; ++j) {
         fnr[j] = geom[level].Domain().length(j);
         cnr[j] = geom[level-1].Domain().length(j);
     }
@@ -392,7 +392,7 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
         // left boundary
         int ii = lo[0] - 1; // ghost
         for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                 IntVect iv(D_DECL(ii, j, k));
@@ -423,7 +423,7 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
                 } else if ( mfab(iv) == 2 ) {
                     // physical boundary
                 }
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             }
 #endif
         }
@@ -433,7 +433,7 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
         // right boundary
         ii = hi[0] + 1; // ghost
         for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                 IntVect iv(D_DECL(ii, j, k));
@@ -464,7 +464,7 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
                 } else if ( mfab(iv) == 2 ) {
                     // physical boundary
                 }
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             }
 #endif
         }
@@ -488,7 +488,7 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
         
         for (int i = lo[0]+start;
              i <= hi[0]-end /*  */; ++i) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                 IntVect iv(D_DECL(i, jj, k));
@@ -519,7 +519,7 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
                 } else if ( mfab(iv) == 2 ) {
                     // physical boundary
                 }
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             }
 #endif
         }
@@ -540,7 +540,7 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
         end = ( mfab(IntVect(D_DECL(hi[0]+1, hi[1], hi[2]))) == 1 ) ? 1 : 0;
         
         for (int i = lo[0]+start; i <= hi[0]-end; ++i) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                 IntVect iv(D_DECL(i, jj, k));
@@ -567,12 +567,12 @@ void buildTrilinearInterpMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
                 } else if ( mfab(iv) == 2 ) {
                     // physical boundary
                 }
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             }
 #endif
         }
         
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
         // front boundary
 //         start = ( mfab(IntVect(D_DECL(lo[0]-1, hi[1], lo[2]))) == 1 ) ? 1 : 0;
 //         end = ( mfab(IntVect(D_DECL(hi[0]+1, hi[1], hi[2]))) == 1 ) ? 1 : 0;
@@ -653,13 +653,13 @@ void test(TestParams& parms)
     int nlevs = parms.nlevs + 1;
     
     RealBox real_box;
-    for (int n = 0; n < BL_SPACEDIM; n++) {
+    for (int n = 0; n < AMREX_SPACEDIM; n++) {
         real_box.setLo(n, 0.0);
         real_box.setHi(n, 1.0);
     }
 
     RealBox fine_box;
-    for (int n = 0; n < BL_SPACEDIM; n++)
+    for (int n = 0; n < AMREX_SPACEDIM; n++)
     {
        fine_box.setLo(n,0.25);
        fine_box.setHi(n,0.75);
@@ -679,8 +679,8 @@ void test(TestParams& parms)
     int coord = 0;
 
     // This sets the boundary conditions to be doubly or triply periodic
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    int is_per[AMREX_SPACEDIM];
+    for (int i = 0; i < AMREX_SPACEDIM; i++) 
         is_per[i] = 1; 
 
     // This defines a Geometry object which is useful for writing the plotfiles  

@@ -40,7 +40,7 @@ void AmrOpenBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
     AmrIntVect_t n2iv = iv; // next interior cell
     
     int d = 0;
-    for ( ; d < BL_SPACEDIM; ++d) {
+    for ( ; d < AMREX_SPACEDIM; ++d) {
         
         if ( niv[d] == -1 ) {
             // lower boundary --> forward difference
