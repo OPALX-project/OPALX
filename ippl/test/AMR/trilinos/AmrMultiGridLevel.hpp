@@ -124,10 +124,10 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Teuchos::RCP<co
     
     Teuchos::Array<global_ordinal_t> globalindices;
     
-    for (amrex::MFIter mfi(grids, dmap, false); mfi.isValid(); ++mfi) {
-        const amrex::Box&    bx  = mfi.validbox();  
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
+    for (amrex::MFIter mfi(grids, dmap, true); mfi.isValid(); ++mfi) {
+        const amrex::Box&    tbx  = mfi.tilebox();
+        const int* lo = tbx.loVect();
+        const int* hi = tbx.hiVect();
         
         for (int i = lo[0]; i <= hi[0]; ++i) {
             for (int j = lo[1]; j <= hi[1]; ++j) {
