@@ -157,6 +157,11 @@ public:
 private:
     
     /*!
+     * Instantiate boundary object
+     */
+    void initPhysicalBoundary_m();
+    
+    /*!
      * Instantiate all levels and set boundary conditions
      * @param rho is the charge density
      * @param geom is the geometry
@@ -497,7 +502,8 @@ private:
     int lfine_m;            ///< fineste level
     int nlevel_m;           ///< number of levelss
     
-    Boundary bc_m;          ///< physical boundary type
+    Boundary bcType_m;          ///< physical boundary type
+    std::shared_ptr<AmrBoundary<AmrMultiGridLevel_t> > bc_m;
     
     Norm norm_m;            ///< norm for convergence criteria (l1, l2, linf)
     
