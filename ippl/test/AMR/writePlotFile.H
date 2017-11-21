@@ -88,7 +88,7 @@ writePlotFile (const std::string& dir,
           HeaderFile << "phi\n";
         
 //         for (int ivar = 1; ivar <= efield.nComp(); ivar++) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
           HeaderFile << "Ex\nEy\nEz\n";
 #else
           HeaderFile << "Ex\nEy\n";
@@ -97,22 +97,22 @@ writePlotFile (const std::string& dir,
         
         
         // dimensionality
-        HeaderFile << BL_SPACEDIM << '\n';
+        HeaderFile << AMREX_SPACEDIM << '\n';
         
         // time
         HeaderFile << time << '\n';
         HeaderFile << nLevels - 1 << std::endl; // maximum level number (0=single level)
         
         // physical domain
-        for (int i = 0; i < BL_SPACEDIM; i++)
+        for (int i = 0; i < AMREX_SPACEDIM; i++)
             HeaderFile << geom[0].ProbLo(i) / scale << ' ';
         HeaderFile << '\n';
-        for (int i = 0; i < BL_SPACEDIM; i++)
+        for (int i = 0; i < AMREX_SPACEDIM; i++)
             HeaderFile << geom[0].ProbHi(i) / scale << ' ';
         HeaderFile << std::endl;
         
         // reference ratio
-        for (std::size_t i = 0; i < refRatio.size(); ++i)
+        for (int i = 0; i < refRatio.size(); ++i)
             HeaderFile << refRatio[i] << ' ';
         HeaderFile << std::endl;
         
@@ -126,7 +126,7 @@ writePlotFile (const std::string& dir,
         
         // cell sizes for all level
         for (int i = 0; i < nLevels; ++i) {
-            for (int k = 0; k < BL_SPACEDIM; k++)
+            for (int k = 0; k < AMREX_SPACEDIM; k++)
                 HeaderFile << geom[i].CellSize()[k] / scale << ' ';
             HeaderFile << '\n';
         }
@@ -168,7 +168,7 @@ writePlotFile (const std::string& dir,
     
             for (int i = 0; i < rho[lev]->boxArray().size(); ++i)
             {
-                amrex::Real dx[BL_SPACEDIM] = {
+                amrex::Real dx[AMREX_SPACEDIM] = {
                     D_DECL(
                         geom[lev].CellSize(0),
                         geom[lev].CellSize(1),
@@ -177,10 +177,10 @@ writePlotFile (const std::string& dir,
                 };
                 dx[0] /= scale;
                 dx[1] /= scale;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 dx[2] /= scale;
 #endif
-                amrex::Real lo[BL_SPACEDIM] = {
+                amrex::Real lo[AMREX_SPACEDIM] = {
                     D_DECL(
                         geom[lev].ProbLo(0),
                         geom[lev].ProbLo(1),
@@ -189,7 +189,7 @@ writePlotFile (const std::string& dir,
                 };
                 lo[0] /= scale;
                 lo[1] /= scale;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 lo[2] /= scale;
 #endif
                 
@@ -197,7 +197,7 @@ writePlotFile (const std::string& dir,
                 RealBox loc = RealBox(rho[lev]->boxArray()[i],
                                       &dx[0], &lo[0]);
                 
-                for (int n = 0; n < BL_SPACEDIM; n++)
+                for (int n = 0; n < AMREX_SPACEDIM; n++)
                     HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
             }
     
@@ -216,7 +216,7 @@ writePlotFile (const std::string& dir,
         */
         MultiFab::Copy(data, *rho[lev],    0, 0, 1, 0);
         MultiFab::Copy(data, *phi[lev],    0, 1, 1, 0);
-        MultiFab::Copy(data, *efield[lev], 0, 2, BL_SPACEDIM, 0); // (Ex, Ey, Ez)
+        MultiFab::Copy(data, *efield[lev], 0, 2, AMREX_SPACEDIM, 0); // (Ex, Ey, Ez)
 //         MultiFab::Copy(data, efield[lev], 0, 2, 1, 0);   // Ex
 //         MultiFab::Copy(data, efield[lev], 1, 3, 1, 0);   // Ey
 //         MultiFab::Copy(data, efield[lev], 2, 4, 1, 0);   // Ez

@@ -410,8 +410,8 @@ void doAMReX(const param_t& params, Inform& msg)
     
     double halflength = 0.5 * params.length;
     
-    std::array<double, BL_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
+    std::array<double, AMREX_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
+    std::array<double, AMREX_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
     
     RealBox domain;
     

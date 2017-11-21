@@ -37,7 +37,7 @@ class Distribution {
 
 public:
     typedef std::vector<double> container_t;
-    typedef Vektor<double, BL_SPACEDIM> Vector_t;
+    typedef Vektor<double, AMREX_SPACEDIM> Vector_t;
     typedef std::function<double(const Vector_t&,
                          const Vector_t&,
                          double,
@@ -177,7 +177,7 @@ public:
      */
     void injectBeam(
 #ifdef IPPL_AMR
-        PartBunchAmr< ParticleAmrLayout<double, BL_SPACEDIM> > & bunch,
+        PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> > & bunch,
 #else
         PartBunchBase& bunch,
 #endif
@@ -190,7 +190,7 @@ public:
      */
     void setDistribution(
 #ifdef IPPL_AMR
-        PartBunchAmr< ParticleAmrLayout<double, BL_SPACEDIM> >& bunch,
+        PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >& bunch,
 #else
         PartBunchBase& bunch,
 #endif

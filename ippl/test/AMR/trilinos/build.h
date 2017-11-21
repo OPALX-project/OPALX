@@ -11,15 +11,15 @@ void buildInterpolationMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
     if ( level == (int)dmap.size() - 1 )
         return;
     
-    int cnr[BL_SPACEDIM];
-    int fnr[BL_SPACEDIM];
-    for (int j = 0; j < BL_SPACEDIM; ++j) {
+    int cnr[AMREX_SPACEDIM];
+    int fnr[AMREX_SPACEDIM];
+    for (int j = 0; j < AMREX_SPACEDIM; ++j) {
         cnr[j] = geom[level].Domain().length(j);
         fnr[j] = geom[level+1].Domain().length(j);
     }
     
     
-    int nNeighbours = (2 << (BL_SPACEDIM -1 ));
+    int nNeighbours = (2 << (AMREX_SPACEDIM -1 ));
     
     std::vector<int> indices; //(nNeighbours);
     std::vector<double> values; //(nNeighbours);
@@ -40,7 +40,7 @@ void buildInterpolationMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
         
         for (int i = lo[0]; i <= hi[0]; ++i) {
             for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     IntVect iv(D_DECL(i, j, k));
@@ -66,7 +66,7 @@ void buildInterpolationMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
                         throw std::runtime_error("Error in filling the interpolation matrix for level " +
                                                  std::to_string(level) + "!");
                     }
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 }
 #endif
             }
@@ -103,7 +103,7 @@ void buildPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
      * 2D --> 5 elements per row
      * 3D --> 7 elements per row
      */
-    int nEntries = (BL_SPACEDIM << 1) + 1 /* plus boundaries */ + 10 /*FIXME*/;
+    int nEntries = (AMREX_SPACEDIM << 1) + 1 /* plus boundaries */ + 10 /*FIXME*/;
     
     std::cout << "nEntries = " << nEntries << std::endl;
     
@@ -122,8 +122,8 @@ void buildPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
     
     mask->BuildMask(geom[level].Domain(), geom[level].periodicity(), -1, 1, 2, 0);
     
-    int nr[BL_SPACEDIM];
-    for (int j = 0; j < BL_SPACEDIM; ++j)
+    int nr[AMREX_SPACEDIM];
+    for (int j = 0; j < AMREX_SPACEDIM; ++j)
         nr[j] = geom[level].Domain().length(j);
     
     for (amrex::MFIter mfi(*mask, false); mfi.isValid(); ++mfi) {
@@ -135,7 +135,7 @@ void buildPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
         
         for (int i = lo[0]; i <= hi[0]; ++i) {
             for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     int numEntries = 0;
@@ -147,7 +147,7 @@ void buildPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
                     /*
                      * check neighbours in all directions (Laplacian stencil --> cross)
                      */
-                    for (int d = 0; d < BL_SPACEDIM; ++d) {
+                    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                         for (int shift = -1; shift <= 1; shift += 2) {
                             IntVect biv = iv;                        
                             biv[d] += shift;
@@ -193,7 +193,7 @@ void buildPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
                         indices.push_back( globidx );
                         values.push_back( -2.0 / ( dx[0] * dx[0] ) +
                                           -2.0 / ( dx[1] * dx[1] )
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                                           - 2.0 / ( dx[2] * dx[2] )
 #endif
                         );
@@ -228,7 +228,7 @@ void buildPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
                         throw std::runtime_error("Error in filling the Poisson matrix for level "
                                                  + std::to_string(level) + "!");
                 
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 }
 #endif
             }
@@ -264,9 +264,9 @@ void buildRestrictionMatrix(Teuchos::RCP<Epetra_CrsMatrix>& R,
     
     std::cout << "buildRestrictionMatrix" << std::endl;
     
-    int cnr[BL_SPACEDIM];
-    int fnr[BL_SPACEDIM];
-    for (int j = 0; j < BL_SPACEDIM; ++j) {
+    int cnr[AMREX_SPACEDIM];
+    int fnr[AMREX_SPACEDIM];
+    for (int j = 0; j < AMREX_SPACEDIM; ++j) {
         cnr[j] = geom[level-1].Domain().length(j);
         fnr[j] = geom[level].Domain().length(j);
     }
@@ -291,7 +291,7 @@ void buildRestrictionMatrix(Teuchos::RCP<Epetra_CrsMatrix>& R,
     std::cout << ColMap.IsOneToOne() << " " << RowMap.IsOneToOne() << std::endl;
     
     
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     int nNeighbours = rr[0] * rr[1] * rr[2];
 #else
     int nNeighbours = rr[0] * rr[1];
@@ -314,7 +314,7 @@ void buildRestrictionMatrix(Teuchos::RCP<Epetra_CrsMatrix>& R,
             int ii = i * rr[0];
             for (int j = lo[1]; j <= hi[1]; ++j) {
                 int jj = j * rr[1];
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 for (int k = lo[2]; k <= hi[2]; ++k) {
                     int kk = k * rr[2];
 #endif
@@ -333,7 +333,7 @@ void buildRestrictionMatrix(Teuchos::RCP<Epetra_CrsMatrix>& R,
                         // neighbours
                         for (int iref = 0; iref < rr[0]; ++iref) {
                             for (int jref = 0; jref < rr[1]; ++jref) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                                 for (int kref = 0; kref < rr[2]; ++kref) {
 #endif
                                     IntVect riv(D_DECL(ii + iref, jj + jref, kk + kref));
@@ -344,7 +344,7 @@ void buildRestrictionMatrix(Teuchos::RCP<Epetra_CrsMatrix>& R,
                                     indices[numEntries] = fine_globidx;
                                     values[numEntries]  = val;
                                     ++numEntries;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                                 }
 #endif
                             }
@@ -361,7 +361,7 @@ void buildRestrictionMatrix(Teuchos::RCP<Epetra_CrsMatrix>& R,
                             std::to_string(level) + "!");
                         }
                     }
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 }
 #endif
             }
@@ -402,7 +402,7 @@ void buildSmootherMatrix(Teuchos::RCP<Epetra_CrsMatrix>& S,
     const double* dx = geom.CellSize();
     
     double h2 = std::max(dx[0], dx[1]);
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     h2 = std::max(h2, dx[2]);
 #endif
     h2 *= h2;
@@ -413,8 +413,8 @@ void buildSmootherMatrix(Teuchos::RCP<Epetra_CrsMatrix>& S,
     
     mask->BuildMask(geom.Domain(), geom.periodicity(), -1, 1, 2, 0);
     
-    int nr[BL_SPACEDIM];
-    for (int j = 0; j < BL_SPACEDIM; ++j)
+    int nr[AMREX_SPACEDIM];
+    for (int j = 0; j < AMREX_SPACEDIM; ++j)
         nr[j] = geom.Domain().length(j);
     
     for (amrex::MFIter mfi(*mask, false); mfi.isValid(); ++mfi) {
@@ -426,7 +426,7 @@ void buildSmootherMatrix(Teuchos::RCP<Epetra_CrsMatrix>& S,
         
         for (int i = lo[0]; i <= hi[0]; ++i) {
             for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     IntVect iv(D_DECL(i, j, k));
@@ -437,7 +437,7 @@ void buildSmootherMatrix(Teuchos::RCP<Epetra_CrsMatrix>& S,
                      * check all directions (Laplacian stencil --> cross)
                      */
                     bool interior = true;
-                    for (int d = 0; d < BL_SPACEDIM; ++d) {
+                    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                         for (int shift = -1; shift <= 1; shift += 2) {
                             IntVect biv = iv;                        
                             biv[d] += shift;
@@ -473,7 +473,7 @@ void buildSmootherMatrix(Teuchos::RCP<Epetra_CrsMatrix>& S,
                         throw std::runtime_error("Error in filling the smoother matrix for level " +
                                                  std::to_string(level) + "!");
                     }
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 }
 #endif
             }
@@ -518,7 +518,7 @@ void buildSpecialPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
      * 2D --> 5 elements per row
      * 3D --> 7 elements per row
      */
-    int nEntries = (BL_SPACEDIM << 1) + 1 /* plus boundaries */ + 10 /*FIXME*/;
+    int nEntries = (AMREX_SPACEDIM << 1) + 1 /* plus boundaries */ + 10 /*FIXME*/;
     
     std::cout << "nEntries = " << nEntries << std::endl;
     
@@ -537,8 +537,8 @@ void buildSpecialPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
     
     mask->BuildMask(geom[level].Domain(), geom[level].periodicity(), -1, 1, 2, 0);
     
-    int nr[BL_SPACEDIM];
-    for (int j = 0; j < BL_SPACEDIM; ++j)
+    int nr[AMREX_SPACEDIM];
+    for (int j = 0; j < AMREX_SPACEDIM; ++j)
         nr[j] = geom[level].Domain().length(j);
     
     for (amrex::MFIter mfi(*mask, false); mfi.isValid(); ++mfi) {
@@ -550,7 +550,7 @@ void buildSpecialPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
         
         for (int i = lo[0]; i <= hi[0]; ++i) {
             for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     IntVect iv(D_DECL(i, j, k));
@@ -564,7 +564,7 @@ void buildSpecialPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
                         /*
                          * check neighbours in all directions (Laplacian stencil --> cross)
                          */
-                        for (int d = 0; d < BL_SPACEDIM; ++d) {
+                        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                             for (int shift = -1; shift <= 1; shift += 2) {
                                 IntVect biv = iv;                        
                                 biv[d] += shift;
@@ -639,7 +639,7 @@ void buildSpecialPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
 //                             indices.push_back( globidx );
 //                             values.push_back( -2.0 / ( dx[0] * dx[0] ) +
 //                                               -2.0 / ( dx[1] * dx[1] )
-// #if BL_SPACEDIM == 3
+// #if AMREX_SPACEDIM == 3
 //                                               -2.0 / ( dx[2] * dx[2] )
 // #endif
 //                             );
@@ -674,7 +674,7 @@ void buildSpecialPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
                             throw std::runtime_error("Error in filling the Poisson matrix for level "
                                                      + std::to_string(level) + "!");
                     }
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 }
 #endif
             }
@@ -701,13 +701,13 @@ void checkBoundary(Teuchos::RCP<Epetra_CrsMatrix>& B,
                    const IntVect& lo,
                    const IntVect& hi)
 {
-    int nr[BL_SPACEDIM];
-    for (int j = 0; j < BL_SPACEDIM; ++j)
+    int nr[AMREX_SPACEDIM];
+    for (int j = 0; j < AMREX_SPACEDIM; ++j)
         nr[j] = geom[level].Domain().length(j);
     
-    int cnr[BL_SPACEDIM];
+    int cnr[AMREX_SPACEDIM];
     if ( level > 0 ) {
-        for (int j = 0; j < BL_SPACEDIM; ++j)
+        for (int j = 0; j < AMREX_SPACEDIM; ++j)
             cnr[j] = geom[level-1].Domain().length(j);
     }
         
@@ -760,7 +760,7 @@ void checkBoundary(Teuchos::RCP<Epetra_CrsMatrix>& B,
     
     for (int i = lo[0]; i <= hi[0]; ++i) {
         for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                 // last interior cell
@@ -776,7 +776,7 @@ void checkBoundary(Teuchos::RCP<Epetra_CrsMatrix>& B,
                 /*
                  * check all directions (Laplacian stencil --> cross)
                  */
-                for (int d = 0; d < BL_SPACEDIM; ++d) {
+                for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                     for (int shift = -1; shift <= 1; shift += 2) {
                         IntVect biv = iv;                        
                         biv[d] += shift;
@@ -822,7 +822,7 @@ void checkBoundary(Teuchos::RCP<Epetra_CrsMatrix>& B,
                     throw std::runtime_error("Error in filling the boundary matrix for level " +
                                              std::to_string(level) + "!");
                 }
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             }
 #endif
         }
@@ -842,7 +842,7 @@ void buildCrseBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bcrse,
     const Epetra_Map& RowMap = *maps[level];
     const Epetra_Map& ColMap = *maps[level-1];
     
-    int nNeighbours = (2 << (BL_SPACEDIM -1 )) /*FIXME interpolation stencil indices*/ + 10;
+    int nNeighbours = (2 << (AMREX_SPACEDIM -1 )) /*FIXME interpolation stencil indices*/ + 10;
     
     Bcrse = Teuchos::rcp( new Epetra_CrsMatrix(Epetra_DataAccess::Copy,
                                                RowMap, nNeighbours, false) );
@@ -893,7 +893,7 @@ void buildCrseBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bcrse,
         
         checkBoundary(Bcrse, geom, level, mfab, lower, upper);
         
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
         /*
          * front boundary (without left, right, upper and lower last cell!)
          */
@@ -946,7 +946,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
     const Epetra_Map& ColMap = *maps[level+1];
     
     int nNeighbours = 4 /*#interfaces*/ * rr[0] * rr[1] /*of refined cell*/;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     nNeighbours = 6 /*#interfaces*/ * rr[0] * rr[1] * rr[2] /*of refined cell*/;
 #endif
     
@@ -963,9 +963,9 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
     
     mask->BuildMask(geom[level].Domain(), geom[level].periodicity(), -1, 1, 2, 0);
     
-    int cnr[BL_SPACEDIM];
-    int fnr[BL_SPACEDIM];
-    for (int j = 0; j < BL_SPACEDIM; ++j) {
+    int cnr[AMREX_SPACEDIM];
+    int fnr[AMREX_SPACEDIM];
+    for (int j = 0; j < AMREX_SPACEDIM; ++j) {
         cnr[j] = geom[level].Domain().length(j);
         fnr[j] = geom[level+1].Domain().length(j);
     }
@@ -991,7 +991,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
         
         for (int i = lo[0]; i <= hi[0]; ++i) {
             for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     IntVect iv(D_DECL(i, j, k));
@@ -1003,7 +1003,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
                          * --> check all neighbours to see if at crse-fine
                          * interface
                          */
-                        for (int d = 0; d < BL_SPACEDIM; ++d) {
+                        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                             for (int shift = -1; shift <= 1; shift += 2) {
                                 // neighbour
                                 IntVect covered = iv;
@@ -1020,7 +1020,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
                             }
                         }
                     }
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 }
 #endif
             }
@@ -1040,18 +1040,18 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
             case 0:
                 // horizontal
                 avg = rr[1];
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 avg *= rr[2];
 #endif
                 break;
             case 1:
                 // vertical
                 avg = rr[0];
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 avg *= rr[2];
 #endif
                 break;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             case 2:
                 avg = rr[0] * rr[1];
                 break;
@@ -1070,7 +1070,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
             for (int jref = jj - begin[1]; jref <= jj + end[1]; ++jref) {
                 
                 sign *= ( d == 1 ) ? -1.0 : 1.0;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 for (int kref = kk - begin[2]; kref <= kk + end[2]; ++kref) {
 #endif
                     /* Since all fine cells on the not-refined cell are
@@ -1118,7 +1118,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
                         indices.push_back( serialize(riv, &fnr[0]) );
                         values.push_back( value );
                     }
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 }
 #endif
             }
@@ -1150,8 +1150,8 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
             /* we need to iterate over correct fine cells. It depends
              * on the orientation of the interface
              */
-            int begin[BL_SPACEDIM] = { D_DECL( int(d == 0), int(d == 1), int(d == 2) ) };
-            int end[BL_SPACEDIM]   = { D_DECL( int(d != 0), int(d != 1), int(d != 2) ) };
+            int begin[AMREX_SPACEDIM] = { D_DECL( int(d == 0), int(d == 1), int(d == 2) ) };
+            int end[AMREX_SPACEDIM]   = { D_DECL( int(d != 0), int(d != 1), int(d != 2) ) };
             
             
             // neighbour
@@ -1175,7 +1175,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
                     // --> interface is on the lower face
                     int ii = iv[0] * rr[0];
                     int jj = iv[1] * rr[1];
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                     int kk = iv[2] * rr[2];
 #endif
                     // iterate over all fine cells at the interface
@@ -1190,7 +1190,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
                     // --> interface is on the upper face
                     int ii = covered[0] * rr[0];
                     int jj = covered[1] * rr[1];
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                     int kk = covered[2] * rr[2];
 #endif
                     fill(indices, values, numEntries, D_DECL(ii, jj, kk), &begin[0], &end[0], d, iv, shift, 1.0);
@@ -1251,7 +1251,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
 //     const Epetra_Map& ColMap = *maps[level+1];
 //     
 //     int nNeighbours = 4 /*#interfaces*/ * rr[0] * rr[1] /*of refined cell*/;
-// #if BL_SPACEDIM == 3
+// #if AMREX_SPACEDIM == 3
 //     nNeighbours = 6 /*#interfaces*/ * rr[0] * rr[1] * rr[2] /*of refined cell*/;
 // #endif
 //     
@@ -1268,9 +1268,9 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
 //     
 //     mask->BuildMask(geom[level].Domain(), geom[level].periodicity(), -1, 1, 2, 0);
 //     
-//     int cnr[BL_SPACEDIM];
-//     int fnr[BL_SPACEDIM];
-//     for (int j = 0; j < BL_SPACEDIM; ++j) {
+//     int cnr[AMREX_SPACEDIM];
+//     int fnr[AMREX_SPACEDIM];
+//     for (int j = 0; j < AMREX_SPACEDIM; ++j) {
 //         cnr[j] = geom[level].Domain().length(j);
 //         fnr[j] = geom[level+1].Domain().length(j);
 //     }
@@ -1296,7 +1296,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
 //         
 //         for (int i = lo[0]; i <= hi[0]; ++i) {
 //             for (int j = lo[1]; j <= hi[1]; ++j) {
-// #if BL_SPACEDIM == 3
+// #if AMREX_SPACEDIM == 3
 //                 for (int k = lo[2]; k <= hi[2]; ++k) {
 // #endif
 //                     IntVect iv(D_DECL(i, j, k));
@@ -1308,7 +1308,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
 //                          * --> check all neighbours to see if at crse-fine
 //                          * interface
 //                          */
-//                         for (int d = 0; d < BL_SPACEDIM; ++d) {
+//                         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
 //                             for (int shift = -1; shift <= 1; shift += 2) {
 //                                 // neighbour
 //                                 IntVect covered = iv;
@@ -1325,7 +1325,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
 //                             }
 //                         }
 //                     }
-// #if BL_SPACEDIM == 3
+// #if AMREX_SPACEDIM == 3
 //                 }
 // #endif
 //             }
@@ -1346,7 +1346,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
 //             for (int jref = jj - begin[1]; jref <= jj + end[1]; ++jref) {
 //                 
 //                 sign *= ( d == 1 ) ? -1.0 : 1.0;
-// #if BL_SPACEDIM == 3
+// #if AMREX_SPACEDIM == 3
 //                 for (int kref = kk - begin[2]; kref <= kk + end[2]; ++kref) {
 // #endif
 //                     /* Since all fine cells on the not-refined cell are
@@ -1379,7 +1379,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
 //                         indices.push_back( serialize(riv, &fnr[0]) );
 //                         values.push_back( sign / ( cdx[d] * fdx[d] ) );
 //                     }
-// #if BL_SPACEDIM == 3
+// #if AMREX_SPACEDIM == 3
 //                 }
 // #endif
 //             }
@@ -1411,8 +1411,8 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
 //             /* we need to iterate over correct fine cells. It depends
 //              * on the orientation of the interface
 //              */
-//             int begin[BL_SPACEDIM] = { D_DECL( int(d == 0), int(d == 1), int(d == 2) ) };
-//             int end[BL_SPACEDIM]   = { D_DECL( int(d != 0), int(d != 1), int(d != 2) ) };
+//             int begin[AMREX_SPACEDIM] = { D_DECL( int(d == 0), int(d == 1), int(d == 2) ) };
+//             int end[AMREX_SPACEDIM]   = { D_DECL( int(d != 0), int(d != 1), int(d != 2) ) };
 //             
 //             
 //             // neighbour
@@ -1434,7 +1434,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
 //                     // --> interface is on the lower face
 //                     int ii = iv[0] * rr[0];
 //                     int jj = iv[1] * rr[1];
-// #if BL_SPACEDIM == 3
+// #if AMREX_SPACEDIM == 3
 //                     int kk = iv[2] * rr[2];
 // #endif
 //                     // iterate over all fine cells at the interface
@@ -1449,7 +1449,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
 //                     // --> interface is on the upper face
 //                     int ii = covered[0] * rr[0];
 //                     int jj = covered[1] * rr[1];
-// #if BL_SPACEDIM == 3
+// #if AMREX_SPACEDIM == 3
 //                     int kk = covered[2] * rr[2];
 // #endif
 //                     fill(indices, values, numEntries, D_DECL(ii, jj, kk), &begin[0], &end[0], d, iv, shift, -1.0);

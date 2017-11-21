@@ -21,8 +21,8 @@ Solver::solve_for_accel(const container_t& rhs,
         for (int lev = base_level; lev <= finest_level ; lev++)
         {
             const DistributionMapping& dm = rhs[lev]->DistributionMap();
-            grad_phi_edge[lev].resize(BL_SPACEDIM);
-            for (int n = 0; n < BL_SPACEDIM; ++n) {
+            grad_phi_edge[lev].resize(AMREX_SPACEDIM);
+            for (int n = 0; n < AMREX_SPACEDIM; ++n) {
                 BoxArray ba = rhs[lev]->boxArray();
                 grad_phi_edge[lev][n].reset(new MultiFab(ba.surroundingNodes(n), dm, 1, 1));
             }
@@ -60,7 +60,7 @@ Solver::solve_for_accel(const container_t& rhs,
                                               amrex::GetArrOfConstPtrs(grad_phi_edge[lev]),
                                               geom[lev]);
         
-            grad_phi[lev]->FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
+            grad_phi[lev]->FillBoundary(0,AMREX_SPACEDIM,geom[lev].periodicity());
         }
         
         for (int lev = base_level; lev <= finest_level; ++lev) {
@@ -84,20 +84,20 @@ Solver::solve_with_f90(const container_pt& rhs,
 {
     int nlevs = finest_level - base_level + 1;
 
-    int mg_bc[2*BL_SPACEDIM];
+    int mg_bc[2*AMREX_SPACEDIM];
 
     // This tells the solver that we are using Dirichlet bc's
     if (Geometry::isAllPeriodic()) {
 //         if ( ParallelDescriptor::IOProcessor() )
 //             std::cerr << "Periodic BC" << std::endl;
         
-        for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
             // periodic BC
             mg_bc[2*dir + 0] = MGT_BC_PER;
             mg_bc[2*dir + 1] = MGT_BC_PER;
         }
     } else if ( Geometry::isAnyPeriodic() ) {
-        for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
             if ( Geometry::isPeriodic(dir) ) {
                 mg_bc[2*dir + 0] = MGT_BC_PER;
                 mg_bc[2*dir + 1] = MGT_BC_PER;
@@ -110,7 +110,7 @@ Solver::solve_with_f90(const container_pt& rhs,
 //         if ( ParallelDescriptor::IOProcessor() )
 //             std::cerr << "Dirichlet BC" << std::endl;
         
-        for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
             // Dirichlet BC
             mg_bc[2*dir + 0] = MGT_BC_DIR;
             mg_bc[2*dir + 1] = MGT_BC_DIR;
@@ -132,7 +132,7 @@ Solver::solve_with_f90(const container_pt& rhs,
     IntVect crse_ratio = (base_level == 0) ? 
 	IntVect::TheZeroVector() : IntVect::TheUnitVector() * 2;
 
-    FMultiGrid fmg(geom_p, base_level, crse_ratio);
+    amrex::FMultiGrid fmg(geom_p, base_level, crse_ratio);
 
     if (base_level == 0) {
 	fmg.set_bc(mg_bc, *phi_p[base_level]);
@@ -193,8 +193,8 @@ void Solver::solve_with_hypre(MultiFab& soln, MultiFab& rhs, const BoxArray& bs,
     MultiFab alpha(bs, 1, 0);
     alpha.setVal(0.0);
     
-    PArray<MultiFab> beta(BL_SPACEDIM, PArrayManage);
-    for ( int n=0; n<BL_SPACEDIM; ++n ) {
+    PArray<MultiFab> beta(AMREX_SPACEDIM, PArrayManage);
+    for ( int n=0; n<AMREX_SPACEDIM; ++n ) {
         BoxArray bx(bs);
         beta.set(n, new MultiFab(bx.surroundingNodes(n), 1, 0, Fab_allocate));
         beta[n].setVal(1.0);
@@ -214,7 +214,7 @@ void Solver::set_boundary(BndryData& bd, const MultiFab& rhs, int comp)
   BL_PROFILE("set_boundary()");
   Real bc_value = 0.0;
 
-  for (int n=0; n<BL_SPACEDIM; ++n) {
+  for (int n=0; n<AMREX_SPACEDIM; ++n) {
     for (MFIter mfi(rhs); mfi.isValid(); ++mfi ) {
       int i = mfi.index(); 
       

@@ -131,13 +131,11 @@ IF (ENABLE_AMR)
     MESSAGE (STATUS "Found AMReX include dir: ${AMREX_INCLUDE_DIR}")
     MESSAGE (STATUS "Found AMReX library dir: ${AMREX_LIBRARY_DIR}")
     MESSAGE (STATUS "Found AMReX libraries: ${AMREX_LIBRARIES}")
-    MESSAGE (STATUS "AMReX built with: ${AMREX_DEFINES}")
-
-    # We need to replace the quotes of the AMREX_GIT_VERSION flag in AMREX_DEFINES
-    # otherwise IpplVersions.h complains
-    STRING(REPLACE "\"" "'" AMREX_DEFINES ${AMREX_DEFINES})
-
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_AMR ${AMREX_DEFINES}")
+    echo_amrex_config_options()
+    
+    add_definitions(${AMREX_DEFINES})
+    
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_AMR")
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-unused-but-set-variable -Wno-maybe-uninitialized")
 
 ENDIF (ENABLE_AMR)

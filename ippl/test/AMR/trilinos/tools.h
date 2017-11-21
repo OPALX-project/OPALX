@@ -20,7 +20,7 @@ typedef Array<std::unique_ptr<MultiFab> > container_t;
 
 
 int serialize(const IntVect& iv, int* nr) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     return iv[0] + (iv[1] + nr[1] * iv[2]) * nr[0];
 #else
     return iv[0] + iv[1] * nr[0];
@@ -37,7 +37,7 @@ void applyBoundary(const IntVect& iv,
 {
     // find interior neighbour cell
     IntVect niv;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         if ( iv[i] > -1 && iv[i] < nr[i] )
             niv[i] = iv[i];
         else
@@ -69,7 +69,7 @@ void applyBoundary(const IntVect& iv,
 //     IntVect niv = iv;
 //     IntVect n2iv = iv; // next interior cell
 // 
-//     for (int d = 0; d < BL_SPACEDIM; ++d) {
+//     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
 //         
 //         if ( niv[d] == -1 ) {
 //             // lower boundary --> forward difference
@@ -94,7 +94,7 @@ void applyBoundary(const IntVect& iv,
 //     
 // //     // find interior neighbour cell
 // //     IntVect niv;
-// //     for (int i = 0; i < BL_SPACEDIM; ++i) {
+// //     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 // //         if ( iv[i] > -1 && iv[i] < nr[i] )
 // //             niv[i] = iv[i];
 // //         else
@@ -103,7 +103,7 @@ void applyBoundary(const IntVect& iv,
 // //     
 // //     // find next interior neighbour cell
 // //     IntVect n2iv = niv;
-// //     for (int i = 0; i < BL_SPACEDIM; ++i) {
+// //     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 // //         if ( iv[i] == -1 || iv[i] == nr[i] )
 // //             n2iv[i] = ( niv[i] + 1 < nr[i] ) ? niv[i] + 1 : niv[i] - 1;
 // //     }
@@ -138,7 +138,7 @@ void writeYt(container_t& rho,
 
 
 bool isBoundary(const IntVect& iv, const int* nr) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     return ( iv[0] < 0 || iv[0] >= nr[0] ||
              iv[1] < 0 || iv[1] >= nr[1] ||
              iv[2] < 0 || iv[2] >= nr[2] );
@@ -204,7 +204,7 @@ void stencil(const IntVect& iv,
      * floor( k - 0.5 ) / rr[2]
      */
     IntVect civ;
-    for (int d = 0; d < BL_SPACEDIM; ++d) {
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             
         double tmp = iv[d] - 0.5;
         if ( std::signbit(tmp) )
@@ -219,13 +219,13 @@ void stencil(const IntVect& iv,
     // ref ratio 2 only
     double dx = 0.5 * ( iv[0] - civ[0] * 2 ) - 0.25;
     double dy = 0.5 * ( iv[1] - civ[1] * 2 ) - 0.25;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     double dz = 0.5 * ( iv[2] - civ[2] * 2 ) - 0.25;
 #endif
         
     double xdiff = 1.0 - dx;
     double ydiff = 1.0 - dy;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     double zdiff = 1.0 - dz;
 #endif
     
@@ -274,7 +274,7 @@ void stencil(const IntVect& iv,
         ++numEntries;
     }
         
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     // (i, j, k+1)
     tmp = IntVect(D_DECL(civ[0], civ[1], civ[2]+1));
     value = AMREX_D_TERM(xdiff, * ydiff, * dz);
@@ -326,7 +326,7 @@ void buildMap(Teuchos::RCP<Epetra_Map>& map, const BoxArray& grids, const Distri
               const Geometry& geom, Epetra_MpiComm& comm, int level)
 {
     int nr[3];
-    for (int j = 0; j < BL_SPACEDIM; ++j)
+    for (int j = 0; j < AMREX_SPACEDIM; ++j)
         nr[j] = geom.Domain().length(j);
     
     int N = grids.numPts();
@@ -343,7 +343,7 @@ void buildMap(Teuchos::RCP<Epetra_Map>& map, const BoxArray& grids, const Distri
         
         for (int i = lo[0]; i <= hi[0]; ++i) {
             for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     IntVect iv(D_DECL(i, j, k));
@@ -352,7 +352,7 @@ void buildMap(Teuchos::RCP<Epetra_Map>& map, const BoxArray& grids, const Distri
                     globalindices.push_back(globalidx);
                     
                     ++localNumElements;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 }
 #endif
             }
@@ -392,13 +392,13 @@ void trilinos2amrex(MultiFab& mf,
         
         for (int i = lo[0]; i <= hi[0]; ++i) {
             for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     IntVect iv(D_DECL(i, j, k));
                     fab(iv) = (*mv)[localidx++];
                 }
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             }
 #endif
         }
@@ -411,9 +411,9 @@ void amrex2trilinos(const MultiFab& mf,
                     const Array<Geometry>& geom, int level)
 {
     
-    int nr[BL_SPACEDIM];
+    int nr[AMREX_SPACEDIM];
 
-    for (int j = 0; j < BL_SPACEDIM; ++j)
+    for (int j = 0; j < AMREX_SPACEDIM; ++j)
         nr[j] = geom[level].Domain().length(j);
     
     std::vector<double> values;
@@ -428,7 +428,7 @@ void amrex2trilinos(const MultiFab& mf,
         
         for (int i = lo[0]; i <= hi[0]; ++i) {
             for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     IntVect iv(D_DECL(i, j, k));
@@ -438,7 +438,7 @@ void amrex2trilinos(const MultiFab& mf,
                     indices.push_back(globalidx);
                     
                     values.push_back(fab(iv));
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 }
 #endif
             }
