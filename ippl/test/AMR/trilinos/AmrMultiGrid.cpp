@@ -510,16 +510,16 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
         // std::list<std::pair<int, int> > contains the shift and direction to come to the covered cell
         map_t cells_crse;
         
-        for (amrex::MFIter mfi(*mglevel_m[lev]->mask, false);
+        for (amrex::MFIter mfi(*mglevel_m[lev]->mask, true);
              mfi.isValid(); ++mfi)
         {
-            const box_t&       bx  = mfi.validbox();
+            const box_t&       tbx  = mfi.tilebox();
             const basefab_t&  mfab = (*mglevel_m[lev]->mask)[mfi];
             const farraybox_t& rfab = (*rho[ilev])[mfi];
             const farraybox_t& pfab = (*phi[ilev])[mfi];
             
-            const int* lo = bx.loVect();
-            const int* hi = bx.hiVect();
+            const int* lo = tbx.loVect();
+            const int* hi = tbx.hiVect();
         
             for (int i = lo[0]; i <= hi[0]; ++i) {
                 int ii = i * rr[0];
@@ -1500,12 +1500,12 @@ void AmrMultiGrid::amrex2trilinos_m(const AmrField_t& mf, int comp,
     if ( mv.is_null() )
         mv = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
     
-    for (amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi) {
-        const amrex::Box&          bx  = mfi.validbox();
+    for (amrex::MFIter mfi(mf, true); mfi.isValid(); ++mfi) {
+        const amrex::Box&          tbx  = mfi.tilebox();
         const amrex::FArrayBox&    fab = mf[mfi];
         
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
+        const int* lo = tbx.loVect();
+        const int* hi = tbx.hiVect();
         
         for (int i = lo[0]; i <= hi[0]; ++i) {
             for (int j = lo[1]; j <= hi[1]; ++j) {
@@ -1532,12 +1532,12 @@ void AmrMultiGrid::trilinos2amrex_m(AmrField_t& mf, int comp,
     Teuchos::ArrayRCP<const amr::scalar_t> data =  mv->get1dView();
     
     int localidx = 0;
-    for (amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi) {
-        const amrex::Box&          bx  = mfi.validbox();
+    for (amrex::MFIter mfi(mf, true); mfi.isValid(); ++mfi) {
+        const amrex::Box&          tbx  = mfi.tilebox();
         amrex::FArrayBox&          fab = mf[mfi];
         
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
+        const int* lo = tbx.loVect();
+        const int* hi = tbx.hiVect();
         
         for (int i = lo[0]; i <= hi[0]; ++i) {
             for (int j = lo[1]; j <= hi[1]; ++j) {
