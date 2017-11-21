@@ -10,7 +10,6 @@ AmrMultiGridLevel<MatrixType,
     : grids(_grids),
       dmap(_dmap),
       geom(_geom),
-      rr_m(rr),
       map_p(Teuchos::null),
       Anf_p(Teuchos::null),
       R_p(Teuchos::null),
@@ -22,7 +21,8 @@ AmrMultiGridLevel<MatrixType,
       phi_p(Teuchos::null),
       residual_p(Teuchos::null),
       error_p(Teuchos::null),
-      UnCovered_p(Teuchos::null)
+      UnCovered_p(Teuchos::null),
+      rr_m(rr)
 {
     bc_mp.reset(bc);
     

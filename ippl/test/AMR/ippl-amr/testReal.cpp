@@ -34,7 +34,7 @@
 #include "Physics/Physics.h"
 #include <random>
 
-#if HAVE_AMR_MG_SOLVER
+#ifdef HAVE_AMR_MG_SOLVER
     #include "../trilinos/AmrMultiGrid.h"
 #endif
 
@@ -56,7 +56,7 @@ struct param_t {
     bool useMgtSolver;
     std::string h5file;
     size_t h5step;
-#if HAVE_AMR_MG_SOLVER
+#ifdef HAVE_AMR_MG_SOLVER
     bool useTrilinos;
     size_t smoothing;
     AmrMultiGrid::Boundary bc;
@@ -80,7 +80,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     params.criteria = AmrOpal::kChargeDensity;
     params.tagfactor = 1.0e-14; 
     
-#if HAVE_AMR_MG_SOLVER
+#ifdef HAVE_AMR_MG_SOLVER
     params.useTrilinos = false;
     params.smoothing = 12;
     params.bc = AmrMultiGrid::Boundary::DIRICHLET;
@@ -107,7 +107,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "use-mgt-solver", no_argument,       0, 's' },
             { "h5file",         required_argument, 0, 'd' },
             { "h5step",         required_argument, 0, 'e' },
-#if HAVE_AMR_MG_SOLVER
+#ifdef HAVE_AMR_MG_SOLVER
             { "use-trilinos",   no_argument,       0, 'a' },
             { "smoothing",      required_argument, 0, 'g' },
             { "bc",             required_argument, 0, 'j' },
@@ -119,7 +119,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         
         int option_index = 0;
         
-#if HAVE_AMR_MG_SOLVER
+#ifdef HAVE_AMR_MG_SOLVER
         c = getopt_long(argc, argv, "x:y:z:l:m:b:whvst:f:a:g:", long_options, &option_index);
 #else
         c = getopt_long(argc, argv, "x:y:z:l:m:b:whvst:f:", long_options, &option_index);
@@ -129,7 +129,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             break;
         
         switch ( c ) {
-#if HAVE_AMR_MG_SOLVER
+#ifdef HAVE_AMR_MG_SOLVER
             case 'a':
                 params.useTrilinos = true; break;
             case 'g':
@@ -195,7 +195,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--use-mgt-solver (optional)" << endl
                     << "--h5file" << endl
                     << "--h5step" << endl
-#if HAVE_AMR_MG_SOLVER
+#ifdef HAVE_AMR_MG_SOLVER
                     << "--use-trilinos (optional)" << endl
                     << "--smoothing (optional, trilinos only, default: 12)" << endl
                     << "--bc (optional, dirichlet or open, default: dirichlet)" << endl
@@ -213,7 +213,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         }
     }
     
-#if HAVE_AMR_MG_SOLVER
+#ifdef HAVE_AMR_MG_SOLVER
     if ( params.useMgtSolver && params.useTrilinos ) {
         params.useMgtSolver = false;
         msg << "Favouring Trilinos over MGT." << endl;
@@ -233,8 +233,8 @@ void writeCSV(const container_t& phi,
     std::string outfile = "potential.grid";
     std::ofstream out;
     for (MFIter mfi(*phi[0]); mfi.isValid(); ++mfi) {
-        const Box& bx = mfi.validbox();
-        const FArrayBox& lhs = (*phi[0])[mfi];
+        const amrex::Box& bx = mfi.validbox();
+        const amrex::FArrayBox& lhs = (*phi[0])[mfi];
         
         for (int proc = 0; proc < amrex::ParallelDescriptor::NProcs(); ++proc) {
             if ( proc == amrex::ParallelDescriptor::MyProc() ) {
@@ -261,8 +261,8 @@ void writeCSV(const container_t& phi,
     
     outfile = "efield.grid";
     for (MFIter mfi(*efield[0]); mfi.isValid(); ++mfi) {
-        const Box& bx = mfi.validbox();
-        const FArrayBox& lhs = (*efield[0])[mfi];
+        const amrex::Box& bx = mfi.validbox();
+        const amrex::FArrayBox& lhs = (*efield[0])[mfi];
         
         for (int proc = 0; proc < amrex::ParallelDescriptor::NProcs(); ++proc) {
             if ( proc == amrex::ParallelDescriptor::MyProc() ) {
@@ -294,8 +294,8 @@ void writeCSV(const container_t& phi,
 void writeYt(container_t& rho,
              const container_t& phi,
              const container_t& efield,
-             const Array<Geometry>& geom,
-             const Array<int>& rr,
+             const amrex::Array<amrex::Geometry>& geom,
+             const amrex::Array<int>& rr,
              const double& scalefactor)
 {
     std::string dir = "yt-testReal";
@@ -373,7 +373,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              container_t& rhs,
              container_t& phi,
              container_t& efield,
-             const Array<int>& rr,
+             const amrex::Array<int>& rr,
              Inform& msg,
              const double& scale, const param_t& params)
 {
@@ -425,7 +425,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
      */
     int bottom_solver = 1;
     
-    ParmParse pp("mg");
+    amrex::ParmParse pp("mg");
 
     pp.add("maxiter", maxiter);
     pp.add("maxiter_b", maxiter_b);
@@ -447,7 +447,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     //
     if (!pp.query("cg_solver", cg_solver))
     {
-        ParmParse pp("cg");
+        amrex::ParmParse pp("cg");
 
         pp.add("cg_solver", cg_solver);
     }
@@ -488,7 +488,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         amrex::MultiFab::Copy(*rhs[lev], *partMF[lev], 0, 0, 1, 0);
     }
     
-    const Array<Geometry>& geom = myAmrOpal.Geom();
+    const amrex::Array<amrex::Geometry>& geom = myAmrOpal.Geom();
     
     for (uint i = 0; i < rhs.size(); ++i)
         if ( rhs[i]->contains_nan() || rhs[i]->contains_inf() )
@@ -501,7 +501,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     msg << "Total Charge (computed): " << totCharge << " C" << endl
         << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
     
-    Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
+    amrex::Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
     msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
     
     // eps in C / (V * m)
@@ -524,10 +524,10 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     //     to make the Poisson equations solvable                                                                                                                                                                
     // **************************************************************************                                                                                                                                
 
-    Real offset = 0.;
+    amrex::Real offset = 0.;
 
     // solve
-#if HAVE_AMR_MG_SOLVER
+#ifdef HAVE_AMR_MG_SOLVER
     if ( params.useTrilinos ) {
         AmrMultiGrid sol(params.bc, AmrMultiGrid::Interpolater::PIECEWISE_CONST);
         
@@ -588,10 +588,10 @@ void doAMReX(const param_t& params, Inform& msg)
     
     double halflength = 0.5 * params.length;
     
-    std::array<double, BL_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
+    std::array<double, AMREX_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
+    std::array<double, AMREX_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
     
-    RealBox domain;
+    amrex::RealBox domain;
     
     // in helper_functions.h
     init(domain, params.nr, lower, upper);
@@ -601,25 +601,25 @@ void doAMReX(const param_t& params, Inform& msg)
     /*
      * create an Amr object
      */
-    ParmParse pp("amr");
+    amrex::ParmParse pp("amr");
     pp.add("max_grid_size", int(params.maxBoxSize));
     
-    Array<int> error_buf(params.nLevels, 0);
+    amrex::Array<int> error_buf(params.nLevels, 0);
     
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
     
-    ParmParse pgeom("geometry");
-    Array<int> is_per = { 0, 0, 0};
+    amrex::ParmParse pgeom("geometry");
+    amrex::Array<int> is_per = { 0, 0, 0};
     pgeom.addarr("is_periodic", is_per);
     
-    Array<int> nCells(3);
+    amrex::Array<int> nCells(3);
     for (int i = 0; i < 3; ++i)
         nCells[i] = params.nr[i];
     
     
     std::vector<int> rr(params.nLevels);
-    Array<int> rrr(params.nLevels);
+    amrex::Array<int> rrr(params.nLevels);
     for (unsigned int i = 0; i < params.nLevels; ++i) {
         rr[i] = 2;
         rrr[i] = 2;
@@ -638,9 +638,9 @@ void doAMReX(const param_t& params, Inform& msg)
     // 2. initialize all particles (just single-level)
     // ========================================================================
     
-    const Array<BoxArray>& ba = myAmrOpal.boxArray();
-    const Array<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
-    const Array<Geometry>& geom = myAmrOpal.Geom();
+    const amrex::Array<amrex::BoxArray>& ba = myAmrOpal.boxArray();
+    const amrex::Array<amrex::DistributionMapping>& dmap = myAmrOpal.DistributionMap();
+    const amrex::Array<amrex::Geometry>& geom = myAmrOpal.Geom();
     
     
     amrplayout_t* playout = new amrplayout_t(geom, dmap, ba, rrr);

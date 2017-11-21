@@ -32,7 +32,7 @@ using amrex::Real;
 
 typedef Array<std::unique_ptr<MultiFab> > container_t;
 
-typedef Vektor<double, BL_SPACEDIM> Vector_t;
+typedef Vektor<double, AMREX_SPACEDIM> Vector_t;
 
 
 template< typename amrbase_t >
@@ -241,8 +241,8 @@ inline void init(RealBox& domain,
                  const Vektor<size_t, 3>& nr,
                  int nLevels,
                  size_t maxBoxSize,
-                 const std::array<double, BL_SPACEDIM>& lower,
-                 const std::array<double, BL_SPACEDIM>& upper)
+                 const std::array<double, AMREX_SPACEDIM>& lower,
+                 const std::array<double, AMREX_SPACEDIM>& upper)
 {
     /*
      * nLevels is the number of levels allowed, i.e if nLevels = 1
@@ -257,13 +257,13 @@ inline void init(RealBox& domain,
     Box bx(low, high);
     
     // box
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         domain.setLo(i, lower[i]); // m
         domain.setHi(i, upper[i]); // m
     }
     
     // Dirichlet boundary conditions in all directions
-    int bc[BL_SPACEDIM] = {0, 0, 0};
+    int bc[AMREX_SPACEDIM] = {0, 0, 0};
     
     geom.resize(nLevels);
     
@@ -285,7 +285,7 @@ inline void init(RealBox& domain,
     
     // refinement ratio
     rr.resize(nLevels - 1);
-    for (std::size_t lev = 0; lev < rr.size(); ++lev)
+    for (int lev = 0; lev < rr.size(); ++lev)
         rr[lev] = 2;
     
     // geometries of refined levels
@@ -304,8 +304,8 @@ inline void init(RealBox& domain,
  */
 inline void init(RealBox& domain,
                  const Vektor<size_t, 3>& nr,
-                 const std::array<double, BL_SPACEDIM>& lower,
-                 const std::array<double, BL_SPACEDIM>& upper)
+                 const std::array<double, AMREX_SPACEDIM>& lower,
+                 const std::array<double, AMREX_SPACEDIM>& upper)
 {
     /*
      * nLevels is the number of levels allowed, i.e if nLevels = 1
@@ -320,13 +320,13 @@ inline void init(RealBox& domain,
 //     Box bx(low, high);
     
     // box
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         domain.setLo(i, lower[i]); // m
         domain.setHi(i, upper[i]); // m
     }
     
 //     // Dirichlet boundary conditions in all directions
-//     int bc[BL_SPACEDIM] = {0, 0, 0};
+//     int bc[AMREX_SPACEDIM] = {0, 0, 0};
 }
 
 /*!
@@ -348,7 +348,7 @@ inline void initGridData(container_t& rhs,
     //                                                               # component # ghost cells                                                                                                                                          
     rhs[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm,      1          , 0));
     phi[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm,      1          , 1));
-    grad_phi[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm, BL_SPACEDIM, 1));
+    grad_phi[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm, AMREX_SPACEDIM, 1));
 
     rhs[level]->setVal(0.0);
     phi[level]->setVal(0.0, 1);
@@ -371,7 +371,7 @@ inline void initGridData(container_t& rhs,
 {
     //                                                               # component # ghost cells                                                                                                                                          
     rhs[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm,      1          , 0));
-    grad_phi[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm, BL_SPACEDIM, 1));
+    grad_phi[level] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm, AMREX_SPACEDIM, 1));
 
     rhs[level]->setVal(0.0);
     grad_phi[level]->setVal(0.0);

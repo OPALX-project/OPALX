@@ -1,6 +1,6 @@
 template <class AmrMultiGridLevel>
 AmrTrilinearInterpolater<AmrMultiGridLevel>::AmrTrilinearInterpolater()
-    : AmrInterpolater<AmrMultiGridLevel>(2 << (BL_SPACEDIM - 1))
+    : AmrInterpolater<AmrMultiGridLevel>(2 << (AMREX_SPACEDIM - 1))
 { }
 
 
@@ -17,7 +17,7 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
      * floor( k - 0.5 ) / rr[2]
      */
     AmrIntVect_t civ;
-    for (int d = 0; d < BL_SPACEDIM; ++d) {
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             
         double tmp = iv[d] - 0.5;
         if ( std::signbit(tmp) )
@@ -31,13 +31,13 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
     // ref ratio 2 only
     double dx = 0.5 * ( iv[0] - civ[0] * 2 ) - 0.25;
     double dy = 0.5 * ( iv[1] - civ[1] * 2 ) - 0.25;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     double dz = 0.5 * ( iv[2] - civ[2] * 2 ) - 0.25;
 #endif
         
     double xdiff = 1.0 - dx;
     double ydiff = 1.0 - dy;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     double zdiff = 1.0 - dz;
 #endif
     // (i, j, k)
@@ -81,7 +81,7 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
         values.push_back( value );
     }
         
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     // (i, j, k+1)
     tmp = AmrIntVect_t(D_DECL(civ[0], civ[1], civ[2]+1));
     value = AMREX_D_TERM(xdiff, * ydiff, * dz);

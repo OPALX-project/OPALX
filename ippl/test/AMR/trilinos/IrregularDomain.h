@@ -9,7 +9,7 @@
 // #include "Algorithms/PBunchDefs.h"
 // #include "Algorithms/Quaternion.h"
 
-typedef Vektor<double, BL_SPACEDIM> Vector_t;
+typedef Vektor<double, AMREX_SPACEDIM> Vector_t;
 
 /// enumeration corresponding to different interpolation methods at the boundary
 enum {

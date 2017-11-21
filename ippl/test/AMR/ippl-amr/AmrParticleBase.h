@@ -33,8 +33,6 @@
 
 #include "LevelNumCounter.h"
 
-using namespace amrex;
-
 
 //AMRPArticleBase class definition. Template parameter is the specific AmrParticleLayout-derived
 //class which determines how the particles are distribute amoung processors.
@@ -54,7 +52,8 @@ typedef typename std::map<int,PBox> PMap;
 template<class PLayout>
 class AmrParticleBase : public IpplParticleBase<PLayout> {
     
- public:
+public:
+     
     typedef typename PLayout::ParticlePos_t   ParticlePos_t;
     typedef typename PLayout::ParticleIndex_t ParticleIndex_t;
     typedef typename PLayout::SingleParticlePos_t SingleParticlePos_t;
@@ -74,57 +73,57 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
     LevelNumCounter_t LocalNumPerLevel_m;
 
     // Function from AMReX adjusted to work with Ippl AmrParticleBase class
-    static void CIC_Cells_Fracs_Basic (const SingleParticlePos_t &R, const Real* plo, 
-                                       const Real* dx, Real* fracs,  IntVect* cells);
+    static void CIC_Cells_Fracs_Basic (const SingleParticlePos_t &R, const amrex::Real* plo, 
+                                       const amrex::Real* dx, amrex::Real* fracs,  amrex::IntVect* cells);
 
     // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     static int CIC_Cells_Fracs (const SingleParticlePos_t &R,
-                                const Real*         plo,
-                                const Real*         dx_geom,
-                                const Real*         dx_part,
-                                Array<Real>&        fracs,
-                                Array<IntVect>&     cells);
+                                const amrex::Real*         plo,
+                                const amrex::Real*         dx_geom,
+                                const amrex::Real*         dx_part,
+                                amrex::Array<amrex::Real>&        fracs,
+                                amrex::Array<amrex::IntVect>&     cells);
     // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     bool FineToCrse (const int ip,
                      int                                flev,
-                     const Array<IntVect>&              fcells,
-                     const BoxArray&                    fvalid,
-                     const BoxArray&                    compfvalid_grown,
-                     Array<IntVect>&                    ccells,
-                     Array<Real>&                       cfracs,
-                     Array<int>&                        which,
-                     Array<int>&                        cgrid,
-                     Array<IntVect>&                    pshifts,
-                     std::vector< std::pair<int,Box> >& isects);
+                     const amrex::Array<amrex::IntVect>&              fcells,
+                     const amrex::BoxArray&                    fvalid,
+                     const amrex::BoxArray&                    compfvalid_grown,
+                     amrex::Array<amrex::IntVect>&                    ccells,
+                     amrex::Array<amrex::Real>&                       cfracs,
+                     amrex::Array<int>&                        which,
+                     amrex::Array<int>&                        cgrid,
+                     amrex::Array<amrex::IntVect>&                    pshifts,
+                     std::vector< std::pair<int,amrex::Box> >& isects);
 
     // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     void FineCellsToUpdateFromCrse (const int ip,
                                     int lev,
-                                    const IntVect& ccell,
-                                    const IntVect& cshift,
-                                    Array<int>& fgrid,
-                                    Array<Real>& ffrac,
-                                    Array<IntVect>& fcells,
-                                    std::vector< std::pair<int,Box> >& isects);
+                                    const amrex::IntVect& ccell,
+                                    const amrex::IntVect& cshift,
+                                    amrex::Array<int>& fgrid,
+                                    amrex::Array<amrex::Real>& ffrac,
+                                    amrex::Array<amrex::IntVect>& fcells,
+                                    std::vector< std::pair<int,amrex::Box> >& isects);
 
     //Function from AMReX adjusted to work with Ippl AmrParticleBase class
     //sends/receivs the particles that are needed by other processes to during AssignDensity
-    void AssignDensityDoit(int level, Array<std::unique_ptr<MultiFab> >& mf, PMap& data,
+    void AssignDensityDoit(int level, amrex::Array<std::unique_ptr<amrex::MultiFab> >& mf, PMap& data,
                            int ncomp, int lev_min = 0);
 
     // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     // Assign values from grid back to particles
-    void Interp(const SingleParticlePos_t &R, const Geometry &geom, const FArrayBox& fab, 
-                const int* idx, Real* val, int cnt);
+    void Interp(const SingleParticlePos_t &R, const amrex::Geometry &geom, const amrex::FArrayBox& fab, 
+                const int* idx, amrex::Real* val, int cnt);
     
     
     
     
     
     // amrex repository AMReX_MultiFabUtil.H (missing in AMReX repository)
-    void sum_fine_to_coarse(/*const */MultiFab& S_fine, MultiFab& S_crse,
-                            int scomp, int ncomp, const IntVect& ratio,
-                            const Geometry& cgeom, const Geometry& fgeom) const
+    void sum_fine_to_coarse(/*const */amrex::MultiFab& S_fine, amrex::MultiFab& S_crse,
+                            int scomp, int ncomp, const amrex::IntVect& ratio,
+                            const amrex::Geometry& cgeom, const amrex::Geometry& fgeom) const
     {
         BL_ASSERT(S_crse.nComp() == S_fine.nComp());
         BL_ASSERT(ratio == ratio[0]);
@@ -135,17 +134,17 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
         //
         // Coarsen() the fine stuff on processors owning the fine data.
         //
-        BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
+        amrex::BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
 
-        MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, nGrow);
+        amrex::MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, nGrow);
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(crse_S_fine, true); mfi.isValid(); ++mfi)
+        for (amrex::MFIter mfi(crse_S_fine, true); mfi.isValid(); ++mfi)
         {
             //  NOTE: The tilebox is defined at the coarse level.
-            const Box& tbx = mfi.growntilebox(nGrow);
+            const amrex::Box& tbx = mfi.growntilebox(nGrow);
             
             BL_FORT_PROC_CALL(BL_AVGDOWN, bl_avgdown)
                 (tbx.loVect(), tbx.hiVect(),
@@ -155,7 +154,7 @@ class AmrParticleBase : public IpplParticleBase<PLayout> {
         }
         
         S_crse.copy(crse_S_fine, 0, scomp, ncomp, nGrow, 0,
-                    cgeom.periodicity(), FabArrayBase::ADD);
+                    cgeom.periodicity(), amrex::FabArrayBase::ADD);
     }
   
 public: 
@@ -322,19 +321,19 @@ public:
     
     template <class AType>
     void AssignDensityFort (ParticleAttrib<AType> &pa,
-                            Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
+                            amrex::Array<std::unique_ptr<amrex::MultiFab> >& mf_to_be_filled, 
                             int lev_min, int ncomp, int finest_level) const;
     
     template <class AType>
     void InterpolateFort (ParticleAttrib<AType> &pa,
-                          Array<std::unique_ptr<MultiFab> >& mesh_data, 
+                          amrex::Array<std::unique_ptr<amrex::MultiFab> >& mesh_data, 
                           int lev_min, int lev_max);
     
     template <class AType>
-    void InterpolateSingleLevelFort (ParticleAttrib<AType> &pa, MultiFab& mesh_data, int lev);
+    void InterpolateSingleLevelFort (ParticleAttrib<AType> &pa, amrex::MultiFab& mesh_data, int lev);
     
     template <class AType>
-    void AssignCellDensitySingleLevelFort (ParticleAttrib<AType> &pa, MultiFab& mf, int level,
+    void AssignCellDensitySingleLevelFort (ParticleAttrib<AType> &pa, amrex::MultiFab& mf, int level,
 					   int ncomp=1, int particle_lvl_offset = 0) const;
 
 
@@ -343,7 +342,7 @@ public:
     template <class AType>
         void AssignDensity(ParticleAttrib<AType> &pa,
                            bool sub_cycle,
-                           Array<std::unique_ptr<MultiFab> >& mf_to_be_filled,
+                           amrex::Array<std::unique_ptr<amrex::MultiFab> >& mf_to_be_filled,
                            int lev_min,
                            int finest_level)
         {
@@ -351,7 +350,7 @@ public:
             IpplTimings::startTimer(AssignDensityTimer_m);
 
             PLayout *Layout = &this->getLayout();
-            const ParGDBBase* m_gdb = Layout->GetParGDB();
+            const amrex::ParGDBBase* m_gdb = Layout->GetParGDB();
             size_t LocalNum = this->getLocalNum();
 
             //TODO: lev min should be > 0 if there are no particles from level 0 in the node
@@ -386,7 +385,7 @@ public:
             for (int lev = lev_min; lev <= finest_level; lev++)
             { 
                 const int lev_index = lev - lev_min;
-                mf_to_be_filled[lev_index].reset(new MultiFab(m_gdb->boxArray(lev),
+                mf_to_be_filled[lev_index].reset(new amrex::MultiFab(m_gdb->boxArray(lev),
                                                               m_gdb->DistributionMap(lev),
                                                               1, 1));
                 mf_to_be_filled[lev_index]->setVal(0.0);
@@ -402,7 +401,7 @@ public:
                 }
             }
             
-            Array<std::unique_ptr<MultiFab> > mf_part;
+            amrex::Array<std::unique_ptr<amrex::MultiFab> > mf_part;
             if (!all_grids_the_same)
             { 
                 // Create the space for the temporary, mf_part
@@ -410,7 +409,7 @@ public:
                 for (int lev = lev_min; lev <= finest_level; lev++)
                 {
                     const int lev_index = lev - lev_min;
-                    mf_part[lev_index].reset(new MultiFab(m_gdb->ParticleBoxArray(lev),
+                    mf_part[lev_index].reset(new amrex::MultiFab(m_gdb->ParticleBoxArray(lev),
                                                           m_gdb->ParticleDistributionMap(lev),
                                                           1, 1));
                     mf_part[lev_index]->setVal(0.0);
@@ -447,10 +446,10 @@ public:
             //
             const int M = D_TERM(2,+2,+4);
 
-            Array<int>     cgrid(M);
-            Array<int>    cwhich(M),  fwhich(M);
-            Array<Real>    fracs(M),  cfracs(M);
-            Array<IntVect> cells(M),  ccells(M), cfshifts(M);
+            amrex::Array<int>     cgrid(M);
+            amrex::Array<int>    cwhich(M),  fwhich(M);
+            amrex::Array<amrex::Real>    fracs(M),  cfracs(M);
+            amrex::Array<amrex::IntVect> cells(M),  ccells(M), cfshifts(M);
 
             ParticleType pb;
 
@@ -458,11 +457,11 @@ public:
             // I'm going to allocate these badboys here & pass'm into routines that use'm.
             // This should greatly cut down on memory allocation/deallocation.
             //
-            Array<IntVect>                    pshifts(27);
-            std::vector< std::pair<int,Box> > isects;
-            Array<int>                        fgrid(M);
-            Array<Real>                       ffracs(M);
-            Array<IntVect>                    fcells;
+            amrex::Array<amrex::IntVect>                    pshifts(27);
+            std::vector< std::pair<int,amrex::Box> > isects;
+            amrex::Array<int>                        fgrid(M);
+            amrex::Array<amrex::Real>                       ffracs(M);
+            amrex::Array<amrex::IntVect>                    fcells;
             //
             // "fvalid" contains all the valid region of the MultiFab at this level, together
             // with any ghost cells lying outside the domain, that can be periodically shifted into the
@@ -473,31 +472,31 @@ public:
 
             for (int lev = lev_min; lev <= finest_level; lev++)
             {
-                const Geometry& gm        = m_gdb->Geom(lev);
-                const Geometry& gm_fine   = (lev < finest_level) ? m_gdb->Geom(lev+1) : gm;
-                const Geometry& gm_coarse = (lev > 0) ? m_gdb->Geom(lev-1) : gm;
-                const Box&      dm        = gm.Domain();
-                const Real*     dx        = gm.CellSize();
-                const Real*     plo       = gm.ProbLo();
-                const Real*     dx_fine   = (lev < finest_level) ? m_gdb->Geom(lev+1).CellSize() : dx;
-                const Real*     dx_coarse = (lev > 0) ? m_gdb->Geom(lev-1).CellSize() : dx;
+                const amrex::Geometry& gm        = m_gdb->Geom(lev);
+                const amrex::Geometry& gm_fine   = (lev < finest_level) ? m_gdb->Geom(lev+1) : gm;
+                const amrex::Geometry& gm_coarse = (lev > 0) ? m_gdb->Geom(lev-1) : gm;
+                const amrex::Box&      dm        = gm.Domain();
+                const amrex::Real*     dx        = gm.CellSize();
+                const amrex::Real*     plo       = gm.ProbLo();
+                const amrex::Real*     dx_fine   = (lev < finest_level) ? m_gdb->Geom(lev+1).CellSize() : dx;
+                const amrex::Real*     dx_coarse = (lev > 0) ? m_gdb->Geom(lev-1).CellSize() : dx;
                 const int       lev_index = lev - lev_min;
-                const BoxArray& grids     = mf[lev_index]->boxArray();
+                const amrex::BoxArray& grids     = mf[lev_index]->boxArray();
                 const int       dgrow     = (lev == 0) ? 1 : m_gdb->MaxRefRatio(lev-1);
 
-                BoxArray compfvalid, compfvalid_grown, fvalid = mf[lev_index]->boxArray();
+                amrex::BoxArray compfvalid, compfvalid_grown, fvalid = mf[lev_index]->boxArray();
 
                 //
                 // Do we have Fine->Crse overlap on a periodic boundary?
                 // We want to add all ghost cells that can be shifted into valid region.
                 //
-                BoxList valid;
+                amrex::BoxList valid;
 
                 for (int i = 0; i < grids.size(); i++)
                 {
                     if (gm.isAnyPeriodic())
                     {
-                        const Box& dest = amrex::grow(grids[i],dgrow);
+                        const amrex::Box& dest = amrex::grow(grids[i],dgrow);
 
                         if ( ! dm.contains(dest))
                         {
@@ -509,8 +508,8 @@ public:
 
                                 for (const auto& iv : pshifts)
                                 {
-                                    const Box& sbx = grids[j] + iv;
-                                    const Box& dbx = dest & sbx;
+                                    const amrex::Box& sbx = grids[j] + iv;
+                                    const amrex::Box& dbx = dest & sbx;
 
                                     BL_ASSERT(dbx.ok());
 
@@ -529,7 +528,7 @@ public:
                     for (int i = 0; i < grids.size(); i++) {
                         valid.push_back(grids[i]);
                     }
-                    fvalid = BoxArray(valid);
+                    fvalid = amrex::BoxArray(valid);
                     fvalid.removeOverlap();
                 }
 
@@ -537,13 +536,13 @@ public:
                 // If we're at a lev < finestLevel, this is the coarsened fine BoxArray.
                 // We use this for figuring out Crse->Fine issues.
                 //
-                BoxArray ccba;
+                amrex::BoxArray ccba;
                 if (lev > 0)
                 {
                     ccba = m_gdb->boxArray(lev);
                     ccba.coarsen(m_gdb->refRatio(lev-1));
                 }
-                BoxArray cfba;
+                amrex::BoxArray cfba;
                 if (lev < finest_level)
                 {
                     cfba = m_gdb->boxArray(lev+1);
@@ -555,19 +554,19 @@ public:
                 //
                 // This is cfba with any shifted ghost cells.
                 //
-                BoxArray cfvalid = cfba;
+                amrex::BoxArray cfvalid = cfba;
 
                 if (lev < finest_level)
                 {
-                    BoxList cvalid;
+                    amrex::BoxList cvalid;
 
-                    const BoxArray& cgrids = mf[lev_index]->boxArray();
+                    const amrex::BoxArray& cgrids = mf[lev_index]->boxArray();
 
                     for (int i = 0; i < cfba.size(); i++)
                     {
                         if (gm.isAnyPeriodic())
                         {
-                            const Box& dest = amrex::grow(cfba[i], mf[lev_index]->nGrow());
+                            const amrex::Box& dest = amrex::grow(cfba[i], mf[lev_index]->nGrow());
 
                             if ( ! dm.contains(dest))
                             {
@@ -579,7 +578,7 @@ public:
 
                                     for (const auto& kiv : pshifts)
                                     {
-                                        const Box& sbx = cfba[i] - kiv;
+                                        const amrex::Box& sbx = cfba[i] - kiv;
 
                                         cvalid.push_back(sbx);
                                     }
@@ -596,7 +595,7 @@ public:
                         for (int i = 0; i < cfba.size(); i++) {
                             cvalid.push_back(cfba[i]);
                         }
-                        cfvalid = BoxArray(cvalid);
+                        cfvalid = amrex::BoxArray(cvalid);
                         cfvalid.removeOverlap();
                     }
                 }
@@ -619,7 +618,7 @@ public:
                 // If we're at a lev > 0, this is the coarsened BoxArray.
                 // We use this for figuring out Fine->Crse issues.
                 //
-                BoxArray cba;
+                amrex::BoxArray cba;
                 if (lev > 0)
                 {
                     cba = m_gdb->boxArray(lev);
@@ -639,7 +638,7 @@ public:
                         break;
                     }
 
-                    FArrayBox&  fab = (*mf[lev_index])[m_grid[ip]];
+                    amrex::FArrayBox&  fab = (*mf[lev_index])[m_grid[ip]];
     
                     //
                     // Get "fracs" and "cells" for the particle "p" at this level.
@@ -726,14 +725,14 @@ public:
                                     //
                                     // Make sure this fine cell is valid. Check for periodicity.
                                     //
-                                    const Box bx(fcells[j],fcells[j]);
+                                    const amrex::Box bx(fcells[j],fcells[j]);
                                     gm_fine.periodicShift(bx, gm_fine.Domain(), pshifts);
                                     if ( !pshifts.empty() )
                                     {
                                         BL_ASSERT(pshifts.size() == 1);
                                         fcells[j] = fcells[j] - pshifts[0];
                                     }
-                                    mf[lev_index+1]->boxArray().intersections(Box(fcells[j], fcells[j]),
+                                    mf[lev_index+1]->boxArray().intersections(amrex::Box(fcells[j], fcells[j]),
                                                                              isects,true,0);
                                     if (isects.size() == 0) {
                                         continue;
@@ -771,7 +770,7 @@ public:
                                     //
                                     // Check for periodicity.
                                     //
-                                    const Box bx(ccells[j],ccells[j]);
+                                    const amrex::Box bx(ccells[j],ccells[j]);
                                     gm_coarse.periodicShift(bx, gm_coarse.Domain(), pshifts);
             
                                     if ( ! pshifts.empty())
@@ -782,7 +781,7 @@ public:
                                     //
                                     // Find its resident grid.
                                     //
-                                    mf[lev_index - 1]->boxArray().intersections(Box(ccells[j],ccells[j]),
+                                    mf[lev_index - 1]->boxArray().intersections(amrex::Box(ccells[j],ccells[j]),
                                                                                 isects,true,0);
                                     if (isects.size() == 0) {
                                         continue;
@@ -820,7 +819,7 @@ public:
                         bool AnyCrseToFine = false;
                         if (lev < finest_level) {
                             // dummy template values
-                            ParticleContainer<0> p;
+                            amrex::ParticleContainer<0> p;
                             AnyCrseToFine = p.CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts);
                         }
                         //
@@ -857,7 +856,7 @@ public:
                         }
                         else if (AnyFineToCrse)
                         {
-                            Real sum_crse = 0, sum_fine = 0;
+                            amrex::Real sum_crse = 0, sum_fine = 0;
 
                             for (int i = 0; i < M; i++)
                             {
@@ -948,7 +947,7 @@ public:
                                 }
                             }
 
-                            const Real sum_so_far = sum_crse + sum_fine; 
+                            const amrex::Real sum_so_far = sum_crse + sum_fine; 
         
                             BL_ASSERT(sum_so_far > 0);
                             BL_ASSERT(sum_so_far < 1);
@@ -963,7 +962,7 @@ public:
                                     sum_fine += fracs[i];
                             }
         
-                            const Real mult = (1 - sum_so_far) / sum_fine;
+                            const amrex::Real mult = (1 - sum_so_far) / sum_fine;
                             sum_fine = 0;
                             for (int i = 0; i < M; i++)
                             {
@@ -983,7 +982,7 @@ public:
                         }
                         else if (AnyCrseToFine)
                         {
-                            Real sum = 0;
+                            amrex::Real sum = 0;
                             for (int i = 0; i < M; i++)
                             {
                                 if (!cwhich[i])
@@ -1048,9 +1047,9 @@ public:
             for (int lev = lev_min; lev <= finest_level; lev++)
             {
                 const int       lev_index = lev - lev_min;
-                const Geometry& gm        = m_gdb->Geom(lev);
-                const Real*     dx        = gm.CellSize();
-                const Real      vol       = D_TERM(dx[0], *dx[1], *dx[2]);
+                const amrex::Geometry& gm        = m_gdb->Geom(lev);
+                const amrex::Real*     dx        = gm.CellSize();
+                const amrex::Real      vol       = D_TERM(dx[0], *dx[1], *dx[2]);
     
                 mf[lev_index]->SumBoundary(gm.periodicity());
 
@@ -1085,7 +1084,7 @@ public:
     //Assign density for a single level
     template <class AType> 
         void AssignDensitySingleLevel (ParticleAttrib<AType> &pa, 
-                                       MultiFab& mf_to_be_filled,
+                                       amrex::MultiFab& mf_to_be_filled,
                                        int lev,
                                        int particle_lvl_offset = 0)
         {
@@ -1101,14 +1100,14 @@ public:
     // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     template <class AType>
         void AssignCellDensitySingleLevel(ParticleAttrib<AType> &pa,
-                                          MultiFab& mf_to_be_filled,
+                                          amrex::MultiFab& mf_to_be_filled,
                                           int lev,
                                           int particle_lvl_offset = 0)
         {
     
-            MultiFab* mf_pointer;
+            amrex::MultiFab* mf_pointer;
             PLayout *Layout = &this->getLayout();
-            const ParGDBBase* m_gdb = Layout->GetParGDB();
+            const amrex::ParGDBBase* m_gdb = Layout->GetParGDB();
 
             if ( m_gdb->OnSameGrids(lev, mf_to_be_filled) ) {
                 // If we are already working with the internal mf defined on the 
@@ -1117,7 +1116,7 @@ public:
             } else {
                 // If mf_to_be_filled is not defined on the particle_box_array, then we need 
                 // to make a temporary here and copy into mf_to_be_filled at the end.
-                mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), m_gdb->ParticleDistributionMap(lev), 1,
+                mf_pointer = new amrex::MultiFab(m_gdb->ParticleBoxArray(lev), m_gdb->ParticleDistributionMap(lev), 1,
                                           mf_to_be_filled.nGrow());
             }
   
@@ -1127,16 +1126,16 @@ public:
             if (mf_pointer->nGrow() < 1) 
                 amrex::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
 
-            const Geometry& gm          = m_gdb->Geom(lev);
-            const Real*     plo         = gm.ProbLo();
-            const Real*     dx_particle = m_gdb->Geom(lev + particle_lvl_offset).CellSize();
-            const Real*     dx          = gm.CellSize();
+            const amrex::Geometry& gm          = m_gdb->Geom(lev);
+            const amrex::Real*     plo         = gm.ProbLo();
+            const amrex::Real*     dx_particle = m_gdb->Geom(lev + particle_lvl_offset).CellSize();
+            const amrex::Real*     dx          = gm.CellSize();
 
             if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
                 amrex::Error("AssignDensity: problem must be periodic in no or all directions");
             }
 
-            for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
+            for (amrex::MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
                 (*mf_pointer)[mfi].setVal(0);
             }
     
@@ -1149,10 +1148,10 @@ public:
                     if (m_lev[ip] != (unsigned)lev)
                         break;
 
-                    FArrayBox& fab = (*mf_pointer)[m_grid[ip]];
+                    amrex::FArrayBox& fab = (*mf_pointer)[m_grid[ip]];
 
-                    Array<Real> fracs;
-                    Array<IntVect> cells;
+                    amrex::Array<amrex::Real> fracs;
+                    amrex::Array<amrex::IntVect> cells;
 
                     const int M = CIC_Cells_Fracs(this->R[ip], plo, dx, dx_particle, fracs, cells);
                     //
@@ -1194,7 +1193,7 @@ public:
             // to density. If there are additional components (like velocity), we don't
             // want to divide those by volume.
             //
-            const Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
+            const amrex::Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
 
             mf_pointer->mult(1/vol,0,1);
 
@@ -1212,13 +1211,13 @@ public:
     //Function from AMReX adjusted to work with Ippl AmrParticleBase class
     template<class AType>
         void NodalDepositionSingleLevel(ParticleAttrib<AType> &pa,
-                                        MultiFab& mf_to_be_filled,
+                                        amrex::MultiFab& mf_to_be_filled,
                                         int lev,
                                         int particle_lvl_offset = 0)
         {
-            MultiFab* mf_pointer;
+            amrex::MultiFab* mf_pointer;
             PLayout *Layout = &this->getLayout();
-            const ParGDBBase* m_gdb = Layout->GetParGDB();
+            const amrex::ParGDBBase* m_gdb = Layout->GetParGDB();
 
             if ( m_gdb->OnSameGrids(lev, mf_to_be_filled) )
                 {
@@ -1230,63 +1229,63 @@ public:
                 {
                     // If mf_to_be_filled is not defined on the particle_box_array, then we need 
                     // to make a temporary here and copy into mf_to_be_filled at the end.
-                    mf_pointer = new MultiFab(amrex::convert(m_gdb->ParticleBoxArray(lev),
+                    mf_pointer = new amrex::MultiFab(amrex::convert(m_gdb->ParticleBoxArray(lev),
                                                              mf_to_be_filled.boxArray().ixType()),
                                               m_gdb->ParticleDistributionMap(lev),
                                               1, mf_to_be_filled.nGrow());
                 }
 
-            const Geometry& gm          = m_gdb->Geom(lev);
-            const Real*     dx          = gm.CellSize();
+            const amrex::Geometry& gm          = m_gdb->Geom(lev);
+            const amrex::Real*     dx          = gm.CellSize();
     
             if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) 
                 amrex::Error("AssignDensity: problem must be periodic in no or all directions");
 
             mf_pointer->setVal(0.0);
 
-            Array<IntVect> cells;
+            amrex::Array<amrex::IntVect> cells;
             cells.resize(8);
     
-            Array<Real> fracs;
+            amrex::Array<amrex::Real> fracs;
             fracs.resize(8);
 
-            Array<Real> sx;
+            amrex::Array<amrex::Real> sx;
             sx.resize(2);
-            Array<Real> sy;
+            amrex::Array<amrex::Real> sy;
             sy.resize(2);
-            Array<Real> sz;
+            amrex::Array<amrex::Real> sz;
             sz.resize(2);
 
             //loop trough particles and distribute values on the grid
             size_t LocalNum = this->getLocalNum();
             for (size_t ip = 0; ip < LocalNum; ++ip) 
                 {
-                    FArrayBox& fab = (*mf_pointer)[m_grid[ip]];
+                    amrex::FArrayBox& fab = (*mf_pointer)[m_grid[ip]];
                     
 //                     // FIXME Is "Where" really needed?
 //                     Where(this->R, ip);
                     
-                    IntVect m_cell = Layout->Index(this->R[ip], this->m_lev[ip]);
+                    amrex::IntVect m_cell = Layout->Index(this->R[ip], this->m_lev[ip]);
                     cells[0] = m_cell;
-                    cells[1] = m_cell+IntVect(1,0,0);
-                    cells[2] = m_cell+IntVect(0,1,0);
-                    cells[3] = m_cell+IntVect(1,1,0);
-                    cells[4] = m_cell+IntVect(0,0,1);
-                    cells[5] = m_cell+IntVect(1,0,1);
-                    cells[6] = m_cell+IntVect(0,1,1);
-                    cells[7] = m_cell+IntVect(1,1,1);
+                    cells[1] = m_cell+amrex::IntVect(1,0,0);
+                    cells[2] = m_cell+amrex::IntVect(0,1,0);
+                    cells[3] = m_cell+amrex::IntVect(1,1,0);
+                    cells[4] = m_cell+amrex::IntVect(0,0,1);
+                    cells[5] = m_cell+amrex::IntVect(1,0,1);
+                    cells[6] = m_cell+amrex::IntVect(0,1,1);
+                    cells[7] = m_cell+amrex::IntVect(1,1,1);
 
-                    Real x = this->R[ip][0] / dx[0];
-                    Real y = this->R[ip][1] / dx[1];
-                    Real z = this->R[ip][2] / dx[2];
+                    amrex::Real x = this->R[ip][0] / dx[0];
+                    amrex::Real y = this->R[ip][1] / dx[1];
+                    amrex::Real z = this->R[ip][2] / dx[2];
 
                     int i = m_cell[0];
                     int j = m_cell[1];
                     int k = m_cell[2];
 
-                    Real xint = x - i;
-                    Real yint = y - j;
-                    Real zint = z - k;
+                    amrex::Real xint = x - i;
+                    amrex::Real yint = y - j;
+                    amrex::Real zint = z - k;
 
                     sx[0] = 1.0-xint;
                     sx[1] = xint;
@@ -1315,7 +1314,7 @@ public:
             // to density. If there are additional components (like velocity), we don't
             // want to divide those by volume.
             //
-            const Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
+            const amrex::Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
 
             mf_pointer->mult(1/vol,0,1);
 
@@ -1335,11 +1334,11 @@ public:
     //
     template <class AType>
         void GetGravity(ParticleAttrib<AType> &pa,
-                        Array<std::unique_ptr<MultiFab> > &mf) 
+                        amrex::Array<std::unique_ptr<amrex::MultiFab> > &mf) 
         {
 
             PLayout *Layout = &this->getLayout();
-            const ParGDBBase* m_gdb = Layout->GetParGDB();
+            const amrex::ParGDBBase* m_gdb = Layout->GetParGDB();
             size_t LocalNum = this->getLocalNum();
 
             //loop trough all the particles
@@ -1348,16 +1347,16 @@ public:
                 int grid = m_grid[ip];
 
                 //get the FArrayBox where this particle is located
-                FArrayBox& fab = (*(mf[lev].get()))[grid];
+                amrex::FArrayBox& fab = (*(mf[lev].get()))[grid];
       
-                Real grav[BL_SPACEDIM];
-                int idx[BL_SPACEDIM] = {  D_DECL(0,1,2) };
+                amrex::Real grav[AMREX_SPACEDIM];
+                int idx[AMREX_SPACEDIM] = {  D_DECL(0,1,2) };
       
                 //get the value at grid point in grav array
-                Interp(this->R[ip], m_gdb->Geom(lev), fab, idx, grav, BL_SPACEDIM);
+                Interp(this->R[ip], m_gdb->Geom(lev), fab, idx, grav, AMREX_SPACEDIM);
 
                 //assign to particle attribute
-                for (int i = 0; i < BL_SPACEDIM; ++i)
+                for (int i = 0; i < AMREX_SPACEDIM; ++i)
                     pa[ip][i] = grav[i];
             }
 

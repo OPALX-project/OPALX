@@ -52,7 +52,7 @@
 
 using namespace amrex;
 
-typedef Vektor<double, BL_SPACEDIM> Vector_t;
+typedef Vektor<double, AMREX_SPACEDIM> Vector_t;
 
 typedef ParticleAmrLayout<double,Dim> amrplayout_t;
 typedef AmrParticleBase<amrplayout_t> amrbase_t;
@@ -151,8 +151,8 @@ void doAMReX(const Vektor<size_t, 3>& nr, size_t nParticles,
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    std::array<double, BL_SPACEDIM> lower = {{-0.0525, -0.0525, -0.0525}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ 0.0525,  0.0525,  0.0525}}; // m
+    std::array<double, AMREX_SPACEDIM> lower = {{-0.0525, -0.0525, -0.0525}}; // m
+    std::array<double, AMREX_SPACEDIM> upper = {{ 0.0525,  0.0525,  0.0525}}; // m
     
     RealBox domain;
     

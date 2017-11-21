@@ -308,7 +308,7 @@ void Distribution::readH5(const std::string& filename, int step) {
 
 void Distribution::injectBeam(
 #ifdef IPPL_AMR
-    PartBunchAmr< ParticleAmrLayout<double, BL_SPACEDIM> >& bunch,
+    PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >& bunch,
 #else
     PartBunchBase& bunch,
 #endif
@@ -355,7 +355,7 @@ void Distribution::injectBeam(
 
 void Distribution::setDistribution(
 #ifdef IPPL_AMR
-    PartBunchAmr< ParticleAmrLayout<double, BL_SPACEDIM> >& bunch,
+    PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >& bunch,
 #else
     PartBunchBase& bunch,
 #endif

@@ -38,13 +38,13 @@ void test(TestParams& parms)
     int nlevs = parms.nlevs + 1;
     
     RealBox real_box;
-    for (int n = 0; n < BL_SPACEDIM; n++) {
+    for (int n = 0; n < AMREX_SPACEDIM; n++) {
         real_box.setLo(n, 0.0);
         real_box.setHi(n, 1.0);
     }
 
     RealBox fine_box;
-    for (int n = 0; n < BL_SPACEDIM; n++)
+    for (int n = 0; n < AMREX_SPACEDIM; n++)
     {
        fine_box.setLo(n,0.25);
        fine_box.setHi(n,0.75);
@@ -64,8 +64,8 @@ void test(TestParams& parms)
     int coord = 0;
 
     // This sets the boundary conditions to be doubly or triply periodic
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    int is_per[AMREX_SPACEDIM];
+    for (int i = 0; i < AMREX_SPACEDIM; i++) 
         is_per[i] = 1; 
 
     // This defines a Geometry object which is useful for writing the plotfiles  
@@ -164,7 +164,7 @@ void test(TestParams& parms)
             
             // not used (only for plotting)
             phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev],    1          , 1));
-            efield[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev], BL_SPACEDIM, 1));
+            efield[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev], AMREX_SPACEDIM, 1));
                 
             phi[lev]->setVal(0.0, 1);
             efield[lev]->setVal(0.0, 1);

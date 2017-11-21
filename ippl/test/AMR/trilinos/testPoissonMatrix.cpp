@@ -14,7 +14,7 @@
 #include "build.h"
 
 struct param_t {
-    int nr[BL_SPACEDIM];
+    int nr[AMREX_SPACEDIM];
     size_t maxBoxSize;
     bool isWriteYt;
     bool isHelp;
@@ -35,13 +35,13 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     
     int cnt = 0;
     
-    int required = 2 +  BL_SPACEDIM;
+    int required = 2 +  AMREX_SPACEDIM;
     
     while ( true ) {
         static struct option long_options[] = {
             { "gridx",          required_argument, 0, 'x' },
             { "gridy",          required_argument, 0, 'y' },
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             { "gridz",          required_argument, 0, 'z' },
 #endif
             { "level",          required_argument, 0, 'l' },
@@ -54,7 +54,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         int option_index = 0;
         
         c = getopt_long(argc, argv,
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                         "x:y:z:l:m:wh",
 #else
                         "x:y:l:m:wh",
@@ -69,7 +69,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.nr[0] = std::atoi(optarg); ++cnt; break;
             case 'y':
                 params.nr[1] = std::atoi(optarg); ++cnt; break;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             case 'z':
                 params.nr[2] = std::atoi(optarg); ++cnt; break;
 #endif
@@ -85,7 +85,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << endl
                     << "--gridx [#gridpoints in x]" << endl
                     << "--gridy [#gridpoints in y]" << endl
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                     << "--gridz [#gridpoints in z]" << endl
 #endif
                     << "--level [#level (<= 1)]" << endl
@@ -116,13 +116,13 @@ void fill(MultiFab& mf) {
         
         for (int i = lo[0]; i <= hi[0]; ++i) {
             for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     IntVect iv(D_DECL(i, j, k));
                     
                     fab(iv) = i + j + 1.0;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 }
 #endif
             }
@@ -136,7 +136,7 @@ void test(const param_t& params)
     int nlevs = params.nLevels + 1;
     
     RealBox real_box;
-    for (int n = 0; n < BL_SPACEDIM; n++) {
+    for (int n = 0; n < AMREX_SPACEDIM; n++) {
         real_box.setLo(n, 0.0);
         real_box.setHi(n, 1.0);
     }
@@ -155,8 +155,8 @@ void test(const param_t& params)
     int coord = 0;
 
     // This sets the boundary conditions to be doubly or triply periodic
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    int is_per[AMREX_SPACEDIM];
+    for (int i = 0; i < AMREX_SPACEDIM; i++) 
         is_per[i] = 0; 
 
     // This defines a Geometry object which is useful for writing the plotfiles  
@@ -233,7 +233,7 @@ void test(const param_t& params)
 //         // not used (only for plotting)
 //         if ( params.isWriteYt ) {
 //             phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev],    1          , 1));
-//             efield[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev], BL_SPACEDIM, 1));
+//             efield[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev], AMREX_SPACEDIM, 1));
 //             
 //             phi[lev]->setVal(0.0, 1);
 //             efield[lev]->setVal(0.0, 1);
@@ -281,7 +281,7 @@ int main(int argc, char* argv[])
         
         msg << "Particle test running with" << endl
             << "- grid      = " << params.nr[0] << " " << params.nr[1]
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             << " " << params.nr[2]
 #endif
             << endl

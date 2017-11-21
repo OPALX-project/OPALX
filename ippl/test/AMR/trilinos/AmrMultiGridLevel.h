@@ -76,6 +76,10 @@ private:
                     const Teuchos::RCP<node_t>& node);
     
 public:
+    const amrex::BoxArray& grids;
+    const amrex::DistributionMapping& dmap;
+    const AmrGeometry_t& geom;
+    
     Teuchos::RCP<dmap_t> map_p;         ///< core map
     
     Teuchos::RCP<matrix_t> Anf_p;       ///< no fine Poisson matrix
@@ -84,7 +88,7 @@ public:
     Teuchos::RCP<matrix_t> Bcrse_p;
     Teuchos::RCP<matrix_t> Bfine_p;     ///< physical boundary vector
     Teuchos::RCP<matrix_t> Awf_p;       ///< composite Poisson matrix
-    Teuchos::RCP<matrix_t> G_p[BL_SPACEDIM];      ///< gradient matrices in x, y, and z to compute electric field
+    Teuchos::RCP<matrix_t> G_p[AMREX_SPACEDIM];      ///< gradient matrices in x, y, and z to compute electric field
     
     Teuchos::RCP<vector_t> rho_p;       ///< charge density
     Teuchos::RCP<vector_t> phi_p;       ///< potential vector
@@ -94,12 +98,9 @@ public:
     
     std::unique_ptr<mask_t> mask;       ///< interior, phys boundary, interface, covered
     
-    const amrex::BoxArray& grids;
-    const amrex::DistributionMapping& dmap;
-    const AmrGeometry_t& geom;
     
 private:
-    int nr_m[BL_SPACEDIM];
+    int nr_m[AMREX_SPACEDIM];
     
     AmrIntVect_t rr_m;
     

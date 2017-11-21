@@ -52,14 +52,15 @@
 
 #include <getopt.h>
 
+using namespace amrex;
 
 
 typedef AmrOpal::amrplayout_t amrplayout_t;
 typedef AmrOpal::amrbase_t amrbase_t;
 typedef AmrOpal::amrbunch_t amrbunch_t;
 
-typedef Vektor<double, BL_SPACEDIM> Vector_t;
-typedef std::array<double, BL_SPACEDIM> bc_t;
+typedef Vektor<double, AMREX_SPACEDIM> Vector_t;
+typedef std::array<double, AMREX_SPACEDIM> bc_t;
 
 // #include "../AmrWriter.h"
 

@@ -1,4 +1,4 @@
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
 template <class AmrMultiGridLevel>
 constexpr typename AmrLagrangeInterpolater<AmrMultiGridLevel>::qpattern_t
     AmrLagrangeInterpolater<AmrMultiGridLevel>::qpattern_ms;
@@ -128,16 +128,16 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     AmrMultiGridLevel* mglevel)
 {
     //TODO Extend to 3D
-#if BL_SPACEDIM == 2
-    bool top = (riv[(dir+1)%BL_SPACEDIM] % 2 == 1);
+#if AMREX_SPACEDIM == 2
+    bool top = (riv[(dir+1)%AMREX_SPACEDIM] % 2 == 1);
     
     // right / upper / back
     AmrIntVect_t niv = iv;
-    niv[(dir+1)%BL_SPACEDIM ] += 1;
+    niv[(dir+1)%AMREX_SPACEDIM ] += 1;
     
     // left / lower / front
     AmrIntVect_t miv = iv;
-    miv[(dir+1)%BL_SPACEDIM ] -= 1;
+    miv[(dir+1)%AMREX_SPACEDIM ] -= 1;
     
     // factor for fine
     double fac = 8.0 / 15.0;
@@ -168,7 +168,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     } else
         throw std::runtime_error("Lagrange Error: No valid scenario found!");
     
-#elif BL_SPACEDIM == 3
+#elif AMREX_SPACEDIM == 3
     
     /*          x   y   z
      * ------------------
@@ -190,8 +190,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     /*
      * check in 3x3 area (using iv as center) if 4 cells are not covered
      */
-    int d1 = (dir+1)%BL_SPACEDIM;
-    int d2 = (dir+2)%BL_SPACEDIM;
+    int d1 = (dir+1)%AMREX_SPACEDIM;
+    int d2 = (dir+2)%AMREX_SPACEDIM;
     
     lbits_t area;
     int bit = 0;
@@ -337,25 +337,25 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
 {
-#if BL_SPACEDIM == 2
+#if AMREX_SPACEDIM == 2
     
-    bool top = (riv[(dir+1)%BL_SPACEDIM] % 2 == 1);
+    bool top = (riv[(dir+1)%AMREX_SPACEDIM] % 2 == 1);
     
     // right / upper / back
     AmrIntVect_t niv = iv;
-    niv[(dir+1)%BL_SPACEDIM ] += 1;
+    niv[(dir+1)%AMREX_SPACEDIM ] += 1;
     
     // left / lower / front
     AmrIntVect_t miv = iv;
-    miv[(dir+1)%BL_SPACEDIM ] -= 1;
+    miv[(dir+1)%AMREX_SPACEDIM ] -= 1;
     
     // 2nd right / upper / back
     AmrIntVect_t n2iv = niv;
-    n2iv[(dir+1)%BL_SPACEDIM ] += 1;
+    n2iv[(dir+1)%AMREX_SPACEDIM ] += 1;
     
     // 2nd left / lower / front
     AmrIntVect_t m2iv = miv;
-    m2iv[(dir+1)%BL_SPACEDIM ] -= 1;
+    m2iv[(dir+1)%AMREX_SPACEDIM ] -= 1;
         
     /* 3 cases:
      * --------
@@ -475,7 +475,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         this->crseLinear_m(iv, indices, values, dir, shift, ba, riv, mglevel);
     }
     
-#elif BL_SPACEDIM == 3
+#elif AMREX_SPACEDIM == 3
     
     /*          x   y   z
      * ------------------
@@ -503,8 +503,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     /*
      * check in 5x5 area (using iv as center) if 9 cells are not covered
      */
-    int d1 = (dir+1)%BL_SPACEDIM;
-    int d2 = (dir+2)%BL_SPACEDIM;
+    int d1 = (dir+1)%AMREX_SPACEDIM;
+    int d2 = (dir+2)%AMREX_SPACEDIM;
     
     qbits_t area;
     int bit = 0;

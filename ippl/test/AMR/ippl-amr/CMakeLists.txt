@@ -13,11 +13,12 @@ set (CMAKE_CXX_FLAGS
     )
     
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO -DIPPL_AMR ${AMREX_DEFINES} ${CMAKE_CXX_FLAGS}"
+    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO -DIPPL_AMR ${CMAKE_CXX_FLAGS}"
 )
 
+add_definitions(${AMREX_DEFINES})
 
-if ( ENABLE_AMR_MG_SOLVER )
+if ( ${ENABLE_AMR_MG_SOLVER} )
     set (CMAKE_CXX_FLAGS "-DHAVE_AMR_MG_SOLVER ${CMAKE_CXX_FLAGS}")
 endif ()
 
@@ -166,8 +167,8 @@ add_executable( testGaussian
                 ${F90_source_files}
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
-
-if ( ENABLE_AMR_MG_SOLVER )
+                
+if ( ${ENABLE_AMR_MG_SOLVER} )
     add_executable( testUnifSphere
                     testUnifSphere.cpp
                     ../AmrOpal.cpp
@@ -178,6 +179,7 @@ if ( ENABLE_AMR_MG_SOLVER )
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp
+                    ../trilinos/AmrMultiGridCore.h
                     ../trilinos/BelosBottomSolver.cpp
                     ../trilinos/AmesosBottomSolver.cpp
                     ../trilinos/AmrSmoother.cpp
@@ -219,7 +221,7 @@ else ()
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp)
-endif ()
+endif ( ${ENABLE_AMR_MG_SOLVER} )
 
 add_executable( testLayout
                 testLayout.cpp

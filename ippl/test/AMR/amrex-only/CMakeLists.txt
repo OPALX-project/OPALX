@@ -13,10 +13,14 @@ set (CMAKE_CXX_FLAGS
     )
     
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 ${AMREX_DEFINES}"
+    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 ${CMAKE_CXX_FLAGS}"
 )
 
+add_definitions(${AMREX_DEFINES})
+
 include_directories (
+    ${CMAKE_SOURCE_DIR}/ippl/src
+    ${IPPL_INCLUDE_DIR}
     ${AMREX_INCLUDE_DIR}
 )
     
@@ -33,6 +37,8 @@ STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
     
 IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
     SET (LIBS
+        ${IPPL_LIBRARY}
+        ippl
         m
         z
     )
@@ -41,12 +47,14 @@ ELSE()
         mpi
         mpi_cxx
         mpi_mpifh
+        ${IPPL_LIBRARY}
+        ippl
         m
         z
     )
 ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
 
-if ( ${BL_SPACEDIM} EQUAL 3 )
+if ( ${AMREX_DIM} EQUAL 3 )
     add_executable( testDeposition
                     testDeposition.cpp)
     
@@ -65,7 +73,7 @@ if ( ${BL_SPACEDIM} EQUAL 3 )
                     testSolverFail.cpp
                     ../Tagging_nd.f90
                     ../AmrOpal_F.h
-                    Solver.cpp)
+                    ../Solver.cpp)
     
     # 4. March 2017,
     # http://stackoverflow.com/questions/13429656/cmake-how-to-copy-contents-of-a-directory-into-build-directory-after-make
@@ -91,4 +99,4 @@ if ( ${BL_SPACEDIM} EQUAL 3 )
     target_link_libraries (testSolverFail ${LIBS}
                            -lgfortran ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-endif()
+endif( ${AMREX_DIM} EQUAL 3 )

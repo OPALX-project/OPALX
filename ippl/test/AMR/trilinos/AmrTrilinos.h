@@ -142,8 +142,8 @@ private:
         // The values of phys_bc & ref_ratio do not matter
         // because we are not going to use those parts of MacBndry.
         IntVect ref_ratio = IntVect::TheZeroVector();
-        Array<int> lo_bc(BL_SPACEDIM, 0);
-        Array<int> hi_bc(BL_SPACEDIM, 0);
+        Array<int> lo_bc(AMREX_SPACEDIM, 0);
+        Array<int> hi_bc(AMREX_SPACEDIM, 0);
         BCRec phys_bc(lo_bc.dataPtr(), hi_bc.dataPtr());
     
 //         if (crse_phi == 0 && phi == 0) 
@@ -262,9 +262,9 @@ private:
         
         fluxes_m.resize(lev + 1);
         
-        fluxes_m[lev].resize(BL_SPACEDIM);
+        fluxes_m[lev].resize(AMREX_SPACEDIM);
         
-        for (int n = 0; n < BL_SPACEDIM; ++n) {
+        for (int n = 0; n < AMREX_SPACEDIM; ++n) {
             BoxArray ba = phi->boxArray();
             const DistributionMapping& dmap = phi->DistributionMap();
             fluxes_m[lev][n].reset(new MultiFab(ba.surroundingNodes(n), dmap, 1, 1));
@@ -320,7 +320,7 @@ private:
         computeFlux_m(phi[lev+1], geom[lev+1], lev+1);
         
         
-        for (int i = 0; i < BL_SPACEDIM ; i++) {
+        for (int i = 0; i < AMREX_SPACEDIM ; i++) {
             Array<MultiFab*> p = amrex::GetArrOfPtrs(fluxes_m[lev+1]);
             fine->FineAdd((*p[i]), i, 0, 0, 1, 1.);
         }

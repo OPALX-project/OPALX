@@ -486,7 +486,7 @@ bool BoxLibLayout<T, Dim>::PeriodicShift (SingleParticlePos_t R) const
     const AmrIntVect_t&  iv      = Index(R, 0);
     bool            shifted = false;  
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         if (!geom.isPeriodic(i)) continue;
 
@@ -625,7 +625,7 @@ typename BoxLibLayout<T, Dim>::AmrIntVect_t
 template <class T, unsigned Dim>
 int BoxLibLayout<T, Dim>::MaxRefRatio (int level) const {
     int maxval = 0;
-    for (int n = 0; n<BL_SPACEDIM; n++) 
+    for (int n = 0; n<AMREX_SPACEDIM; n++) 
         maxval = std::max(maxval, refRatio_m[level][n]);
     return maxval;
 }
@@ -638,7 +638,7 @@ void BoxLibLayout<T, Dim>::initBaseBox_m(int nGridPoints,
 {
     // physical box (in meters)
     AmrDomain_t real_box;
-    for (int d = 0; d < BL_SPACEDIM; ++d) {
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         real_box.setLo(d, lowerBound[d] - dh);
         real_box.setHi(d, upperBound[d] + dh);
     }
@@ -654,8 +654,8 @@ void BoxLibLayout<T, Dim>::initBaseBox_m(int nGridPoints,
     int coord = 0;
 
     // Dirichlet boundary conditions
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    int is_per[AMREX_SPACEDIM];
+    for (int i = 0; i < AMREX_SPACEDIM; i++) 
         is_per[i] = 0;
     
     AmrGeometry_t geom;

@@ -33,7 +33,7 @@ void AmrDirichletBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
 {
     // find interior neighbour cell
     AmrIntVect_t niv;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         if ( iv[i] > -1 && iv[i] < nr[i] )
             niv[i] = iv[i];
         else

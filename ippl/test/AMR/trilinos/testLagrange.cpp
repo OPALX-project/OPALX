@@ -17,7 +17,7 @@
 #include "tools.h"
 
 struct param_t {
-    int nr[BL_SPACEDIM];
+    int nr[AMREX_SPACEDIM];
     size_t maxBoxSize;
     bool isWriteYt;
     bool isHelp;
@@ -38,13 +38,13 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     
     int cnt = 0;
     
-    int required = 2 +  BL_SPACEDIM;
+    int required = 2 +  AMREX_SPACEDIM;
     
     while ( true ) {
         static struct option long_options[] = {
             { "gridx",          required_argument, 0, 'x' },
             { "gridy",          required_argument, 0, 'y' },
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             { "gridz",          required_argument, 0, 'z' },
 #endif
             { "level",          required_argument, 0, 'l' },
@@ -57,7 +57,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         int option_index = 0;
         
         c = getopt_long(argc, argv,
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                         "x:y:z:l:m:wh",
 #else
                         "x:y:l:m:wh",
@@ -72,7 +72,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.nr[0] = std::atoi(optarg); ++cnt; break;
             case 'y':
                 params.nr[1] = std::atoi(optarg); ++cnt; break;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             case 'z':
                 params.nr[2] = std::atoi(optarg); ++cnt; break;
 #endif
@@ -88,7 +88,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << endl
                     << "--gridx [#gridpoints in x]" << endl
                     << "--gridy [#gridpoints in y]" << endl
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                     << "--gridz [#gridpoints in z]" << endl
 #endif
                     << "--level [#level (<= 1)]" << endl
@@ -119,13 +119,13 @@ void fill(MultiFab& mf) {
         
         for (int i = lo[0]; i <= hi[0]; ++i) {
             for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     IntVect iv(D_DECL(i, j, k));
                     
                     fab(iv) = i + j + 1.0;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 }
 #endif
             }
@@ -154,7 +154,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bf2c_c,
     const Epetra_Map& ColMap = *maps[level+1];
     
     int nNeighbours = 3 + /*FIXME Dirichlet*/ 1; // 2nd order Lagrange interpolation
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     nNeighbours = 5; // 2nd order Lagrange interpolation in 2D (center cell is twice --> thus, 6 - 1 = 5)
 #endif
     
@@ -163,7 +163,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bf2c_c,
                                                 RowMap, /*ColMap, */nNeighbours, false) );
     
     int nFine = 4 /* for one interface */ * 2 /*if 2 interfaces, 3 interface shouldn't appear */;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     nFine = 8;
 #endif
     
@@ -180,9 +180,9 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bf2c_c,
     
     mask->BuildMask(geom[level].Domain(), geom[level].periodicity(), -1, 1, 2, 0);
     
-    int cnr[BL_SPACEDIM];
-    int fnr[BL_SPACEDIM];
-    for (int j = 0; j < BL_SPACEDIM; ++j) {
+    int cnr[AMREX_SPACEDIM];
+    int fnr[AMREX_SPACEDIM];
+    for (int j = 0; j < AMREX_SPACEDIM; ++j) {
         cnr[j] = geom[level].Domain().length(j);
         fnr[j] = geom[level+1].Domain().length(j);
     }
@@ -208,7 +208,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bf2c_c,
         
         for (int i = lo[0]; i <= hi[0]; ++i) {
             for (int j = lo[1]; j <= hi[1]; ++j) {
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     IntVect iv(D_DECL(i, j, k));
@@ -220,7 +220,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bf2c_c,
                          * --> check all neighbours to see if at crse-fine
                          * interface
                          */
-                        for (int d = 0; d < BL_SPACEDIM; ++d) {
+                        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                             for (int shift = -1; shift <= 1; shift += 2) {
                                 // neighbour
                                 IntVect covered = iv;
@@ -237,7 +237,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bf2c_c,
                             }
                         }
                     }
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 }
 #endif
             }
@@ -253,19 +253,19 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bf2c_c,
         
         // right / upper / back
         IntVect niv = iv;
-        niv[(d+1)%BL_SPACEDIM ] += 1;
+        niv[(d+1)%AMREX_SPACEDIM ] += 1;
         
         // left / lower / front
         IntVect miv = iv;
-        miv[(d+1)%BL_SPACEDIM ] -= 1;
+        miv[(d+1)%AMREX_SPACEDIM ] -= 1;
         
         // 2nd right / upper / back
         IntVect n2iv = niv;
-        n2iv[(d+1)%BL_SPACEDIM ] += 1;
+        n2iv[(d+1)%AMREX_SPACEDIM ] += 1;
         
         // 2nd left / lower / front
         IntVect m2iv = miv;
-        m2iv[(d+1)%BL_SPACEDIM ] -= 1;
+        m2iv[(d+1)%AMREX_SPACEDIM ] -= 1;
         
         /* 3 cases:
          * --------
@@ -458,18 +458,18 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bf2c_c,
             case 0:
                 // horizontal
                 avg = rr[1];
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 avg *= rr[2];
 #endif
                 break;
             case 1:
                 // vertical
                 avg = rr[0];
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 avg *= rr[2];
 #endif
                 break;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             case 2:
                 avg = rr[0] * rr[1];
                 break;
@@ -488,7 +488,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bf2c_c,
             for (int jref = jj - begin[1]; jref <= jj + end[1]; ++jref) {
                 
                 sign *= ( d == 1 ) ? -1.0 : 1.0;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 for (int kref = kk - begin[2]; kref <= kk + end[2]; ++kref) {
 #endif
                     /* Since all fine cells on the not-refined cell are
@@ -520,7 +520,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bf2c_c,
                         indices.push_back( serialize(riv, &fnr[0]) );
                         values.push_back( value );
                     }                    
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                 }
 #endif
             }
@@ -553,8 +553,8 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bf2c_c,
             /* we need to iterate over correct fine cells. It depends
              * on the orientation of the interface
              */
-            int begin[BL_SPACEDIM] = { D_DECL( int(d == 0), int(d == 1), int(d == 2) ) };
-            int end[BL_SPACEDIM]   = { D_DECL( int(d != 0), int(d != 1), int(d != 2) ) };
+            int begin[AMREX_SPACEDIM] = { D_DECL( int(d == 0), int(d == 1), int(d == 2) ) };
+            int end[AMREX_SPACEDIM]   = { D_DECL( int(d != 0), int(d != 1), int(d != 2) ) };
             
             // refined cell
             IntVect covered = iv;
@@ -575,7 +575,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bf2c_c,
                     // --> interface is on the lower face
                     int ii = iv[0] * rr[0];
                     int jj = iv[1] * rr[1];
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                     int kk = iv[2] * rr[2];
 #endif
                     // iterate over all fine cells at the interface
@@ -590,7 +590,7 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bf2c_c,
                     // --> interface is on the upper face
                     int ii = covered[0] * rr[0];
                     int jj = covered[1] * rr[1];
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
                     int kk = covered[2] * rr[2];
 #endif
                     fine_lagrange(iv, d, shift, &begin[0], &end[0], D_DECL(ii, jj, kk));
@@ -631,7 +631,7 @@ void test(const param_t& params)
     int nlevs = params.nLevels + 1;
     
     RealBox real_box;
-    for (int n = 0; n < BL_SPACEDIM; n++) {
+    for (int n = 0; n < AMREX_SPACEDIM; n++) {
         real_box.setLo(n, 0.0);
         real_box.setHi(n, 1.0);
     }
@@ -650,8 +650,8 @@ void test(const param_t& params)
     int coord = 0;
 
     // This sets the boundary conditions to be doubly or triply periodic
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    int is_per[AMREX_SPACEDIM];
+    for (int i = 0; i < AMREX_SPACEDIM; i++) 
         is_per[i] = 0; 
 
     // This defines a Geometry object which is useful for writing the plotfiles  
@@ -731,7 +731,7 @@ void test(const param_t& params)
         // not used (only for plotting)
         if ( params.isWriteYt ) {
             phi[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev],    1          , 1));
-            efield[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev], BL_SPACEDIM, 1));
+            efield[lev] = std::unique_ptr<MultiFab>(new MultiFab(ba[lev], dmap[lev], AMREX_SPACEDIM, 1));
             
             phi[lev]->setVal(0.0, 1);
             efield[lev]->setVal(0.0, 1);
@@ -775,7 +775,7 @@ int main(int argc, char* argv[])
         
         msg << "Particle test running with" << endl
             << "- grid      = " << params.nr[0] << " " << params.nr[1]
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
             << " " << params.nr[2]
 #endif
             << endl

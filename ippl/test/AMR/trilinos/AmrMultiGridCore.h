@@ -1,22 +1,5 @@
 #ifndef AMR_MULTI_GRID_CORE_H
-#define AMR_MULTI_GRID_CORE
-
-// boundary handlers
-#include "AmrDirichletBoundary.h"
-#include "AmrOpenBoundary.h"
-#include "AmrPeriodicBoundary.h"
-
-// interpolaters
-#include "AmrTrilinearInterpolater.h"
-#include "AmrLagrangeInterpolater.h"
-#include "AmrPCInterpolater.h"
-
-// base level solvers
-#include "BottomSolver.h"
-#include "BelosBottomSolver.h"
-#include "AmesosBottomSolver.h"
-
-#include "AmrSmoother.h"
+#define AMR_MULTI_GRID_CORE_H
 
 // Trilinos headers
 #include <Tpetra_Map.hpp>
@@ -68,5 +51,22 @@ namespace amr {
     
     typedef Teuchos::MpiComm<int>    comm_t;
 }
+
+// boundary handlers
+#include "AmrDirichletBoundary.h"
+#include "AmrOpenBoundary.h"
+#include "AmrPeriodicBoundary.h"
+
+// interpolaters
+#include "AmrTrilinearInterpolater.h"
+#include "AmrLagrangeInterpolater.h"
+#include "AmrPCInterpolater.h"
+
+// base level solvers
+#include "BottomSolver.h"
+#include "BelosBottomSolver.h"
+#include "AmesosBottomSolver.h"
+
+#include "AmrSmoother.h"
 
 #endif

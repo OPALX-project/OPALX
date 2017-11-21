@@ -802,7 +802,7 @@ void AmrTrilinos::getGradient_1(AmrField_t& phi,
 {
     container_t grad_phi_edge(3);
     
-    for (int n = 0; n < BL_SPACEDIM; ++n) {
+    for (int n = 0; n < AMREX_SPACEDIM; ++n) {
         BoxArray ba = phi->boxArray();
         const DistributionMapping& dmap = phi->DistributionMap();
         grad_phi_edge[n].reset(new MultiFab(ba.surroundingNodes(n), dmap, 1, 1));
@@ -871,7 +871,7 @@ void AmrTrilinos::getGradient_1(AmrField_t& phi,
                                       amrex::GetArrOfConstPtrs(grad_phi_edge),
                                       geom);
         
-    efield->FillBoundary(0, BL_SPACEDIM, geom.periodicity());
+    efield->FillBoundary(0, AMREX_SPACEDIM, geom.periodicity());
 }
 
 
