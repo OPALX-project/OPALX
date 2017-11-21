@@ -199,6 +199,22 @@ if ( ${ENABLE_AMR_MG_SOLVER} )
                     ../trilinos/AmesosBottomSolver.cpp
                     ../trilinos/AmrSmoother.cpp
                     ../trilinos/AmrMultiGrid.cpp)
+    
+    add_executable( testMultipleSources
+                    testMultipleSources.cpp
+                    ../AmrOpal.cpp
+                    AmrParticleBase.hpp
+                    ../Distribution.cpp
+                    ../H5Reader.cpp
+                    ${F90_source_files}
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ../MGTSolver.cpp
+                    ../Solver.cpp
+                    ../trilinos/AmrMultiGridCore.h
+                    ../trilinos/BelosBottomSolver.cpp
+                    ../trilinos/AmesosBottomSolver.cpp
+                    ../trilinos/AmrSmoother.cpp
+                    ../trilinos/AmrMultiGrid.cpp)
 else ()
     add_executable( testUnifSphere
                     testUnifSphere.cpp
@@ -221,6 +237,18 @@ else ()
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp)
+    
+    add_executable( testMultipleSources
+                    testMultipleSources.cpp
+                    ../AmrOpal.cpp
+                    AmrParticleBase.hpp
+                    ../Distribution.cpp
+                    ../H5Reader.cpp
+                    ${F90_source_files}
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ../MGTSolver.cpp
+                    ../Solver.cpp)
+    
 endif ( ${ENABLE_AMR_MG_SOLVER} )
 
 add_executable( testLayout
@@ -292,6 +320,10 @@ target_link_libraries (testUnifSphere ${LIBS}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testReal ${LIBS}
+                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testMultipleSources ${LIBS}
                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
