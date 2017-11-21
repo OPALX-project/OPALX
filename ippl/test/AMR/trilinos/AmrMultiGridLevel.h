@@ -21,6 +21,12 @@ public:
     typedef MatrixType matrix_t;
     typedef VectorType vector_t;
     typedef amrex::FabArray<amrex::BaseFab<int> > mask_t;
+    typedef AmrBoundary<
+                    AmrMultiGridLevel<
+                        MatrixType,
+                        VectorType
+                    >
+            > boundary_t;
     
     typedef amr::comm_t comm_t;
     typedef amr::dmap_t dmap_t;
@@ -50,7 +56,7 @@ public:
                       const amrex::DistributionMapping& _dmap,
                       const AmrGeometry_t& _geom,
                       const AmrIntVect_t& rr,
-                      AmrBoundary<AmrMultiGridLevel<MatrixType, VectorType> >* bc,
+                      boundary_t* const bc,
                       const Teuchos::RCP<comm_t>& comm,
                       const Teuchos::RCP<node_t>& node);
     
@@ -64,8 +70,6 @@ public:
                        indices_t& indices,
                        coefficients_t& values,
                        const double& value);
-    
-    int getBCStencilNum();
     
     const AmrIntVect_t& refinement() const;
     
@@ -82,30 +86,31 @@ public:
     
     Teuchos::RCP<dmap_t> map_p;         ///< core map
     
-    Teuchos::RCP<matrix_t> Anf_p;       ///< no fine Poisson matrix
-    Teuchos::RCP<matrix_t> R_p;         ///< restriction matrix
-    Teuchos::RCP<matrix_t> I_p;         ///< interpolation matrix
-    Teuchos::RCP<matrix_t> Bcrse_p;
-    Teuchos::RCP<matrix_t> Bfine_p;     ///< physical boundary vector
-    Teuchos::RCP<matrix_t> Awf_p;       ///< composite Poisson matrix
-    Teuchos::RCP<matrix_t> G_p[AMREX_SPACEDIM];      ///< gradient matrices in x, y, and z to compute electric field
+    Teuchos::RCP<matrix_t> Anf_p;               ///< no fine Poisson matrix
+    Teuchos::RCP<matrix_t> R_p;                 ///< restriction matrix
+    Teuchos::RCP<matrix_t> I_p;                 ///< interpolation matrix
+    Teuchos::RCP<matrix_t> Bcrse_p;             ///< boundary from coarse cells
+    Teuchos::RCP<matrix_t> Bfine_p;             ///< boundary from fine cells
+    Teuchos::RCP<matrix_t> Awf_p;               ///< composite Poisson matrix
+    
+    /// gradient matrices in x, y, and z to compute electric field
+    Teuchos::RCP<matrix_t> G_p[AMREX_SPACEDIM];
     
     Teuchos::RCP<vector_t> rho_p;       ///< charge density
     Teuchos::RCP<vector_t> phi_p;       ///< potential vector
-    Teuchos::RCP<vector_t> residual_p;
-    Teuchos::RCP<vector_t> error_p;
-    Teuchos::RCP<matrix_t> UnCovered_p;
+    Teuchos::RCP<vector_t> residual_p;  ///< residual over all cells
+    Teuchos::RCP<vector_t> error_p;     ///< error over all cells
+    Teuchos::RCP<matrix_t> UnCovered_p; ///< uncovered cells
     
     std::unique_ptr<mask_t> mask;       ///< interior, phys boundary, interface, covered
     
     
 private:
-    int nr_m[AMREX_SPACEDIM];
+    int nr_m[AMREX_SPACEDIM];           ///< number of grid points
     
-    AmrIntVect_t rr_m;
+    AmrIntVect_t rr_m;                  ///< refinement
     
-    std::unique_ptr<AmrBoundary<AmrMultiGridLevel<MatrixType, VectorType> > > bc_mp;
-    
+    boundary_t* const bc_mp;
 };
 
 

@@ -4,7 +4,7 @@ AmrMultiGridLevel<MatrixType,
                                                  const amrex::DistributionMapping& _dmap,
                                                  const AmrGeometry_t& _geom,
                                                  const AmrIntVect_t& rr,
-                                                 AmrBoundary<AmrMultiGridLevel<MatrixType, VectorType> >* bc,
+                                                 boundary_t* const bc,
                                                  const Teuchos::RCP<comm_t>& comm,
                                                  const Teuchos::RCP<node_t>& node)
     : grids(_grids),
@@ -22,10 +22,9 @@ AmrMultiGridLevel<MatrixType,
       residual_p(Teuchos::null),
       error_p(Teuchos::null),
       UnCovered_p(Teuchos::null),
-      rr_m(rr)
+      rr_m(rr),
+      bc_mp(bc)
 {
-    bc_mp.reset(bc);
-    
     for (int j = 0; j < AMREX_SPACEDIM; ++j) {
         G_p[j] = Teuchos::null;
         
@@ -89,12 +88,6 @@ void AmrMultiGridLevel<MatrixType, VectorType>::applyBoundary(const AmrIntVect_t
                                                               const double& value)
 {
     bc_mp->apply(iv, indices, values, value, this, &nr_m[0]);
-}
-
-
-template <class MatrixType, class VectorType>
-int AmrMultiGridLevel<MatrixType, VectorType>::getBCStencilNum() {
-    return bc_mp->getNumberOfPoints();
 }
 
 
