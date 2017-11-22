@@ -61,8 +61,8 @@ if ( ${AMREX_DIM} EQUAL 3 )
     add_executable( AssignMultiLevelDensity
                     AssignMultiLevelDensity.cpp)
 
-    add_executable( testGeometry
-                    testGeometry.cpp)
+#    add_executable( testGeometry
+#                    testGeometry.cpp)
     
     add_executable( testDepositionFail
                     testDepositionFail.cpp
@@ -88,9 +88,9 @@ if ( ${AMREX_DIM} EQUAL 3 )
                            -lgfortran ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
-    target_link_libraries (testGeometry ${LIBS}
-                           -lgfortran ${AMREX_LIBRARIES}
-                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+#    target_link_libraries (testGeometry ${LIBS}
+#                           -lgfortran ${AMREX_LIBRARIES}
+#                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testDepositionFail ${LIBS}
                            -lgfortran ${AMREX_LIBRARIES}
