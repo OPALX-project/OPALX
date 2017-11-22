@@ -17,7 +17,8 @@ namespace amr {
     typedef double scalar_t;
     typedef int local_ordinal_t;
     typedef int global_ordinal_t;
-    typedef KokkosClassic::DefaultNode::DefaultNodeType node_t;
+    typedef ::Kokkos::Compat::KokkosSerialWrapperNode node_t;
+//     typedef KokkosClassic::DefaultNode::DefaultNodeType node_t;
     
     typedef Tpetra::CrsMatrix<scalar_t,
                               local_ordinal_t,
