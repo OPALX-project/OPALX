@@ -26,7 +26,7 @@ AmrMultiGrid::AmrMultiGrid(Boundary bc,
       norm_m(norm)
 {
     comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
-    node_mp = KokkosClassic::DefaultNode::getDefaultNode();
+    node_mp = KokkosClassic::Details::getNode<amr::node_t>(); //KokkosClassic::DefaultNode::getDefaultNode();
     
 #if AMR_MG_TIMER
     buildTimer_m        = IpplTimings::getTimer("build");
