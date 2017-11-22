@@ -4,7 +4,9 @@
 #include "AmrMultiGridCore.h"
 
 #include <BelosLinearProblem.hpp>
-#include <BelosSolverFactory_Tpetra.hpp>
+#include <BelosTpetraAdapter.hpp>
+#include <BelosSolverFactory.hpp>
+// #include <BelosSolverFactory_Tpetra.hpp>
 
 #include <Ifpack2_Factory.hpp>
 
