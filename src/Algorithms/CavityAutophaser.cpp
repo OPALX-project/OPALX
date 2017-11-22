@@ -43,7 +43,6 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
     double amplitude = 0.0;
     double designEnergy = 0.0;
     double finalEnergy = 0.0;
-    const double length = itsCavity_m->getElementLength();
 
     RFCavity *element = static_cast<RFCavity *>(itsCavity_m.get());
     amplitude = element->getAmplitudem();
@@ -53,18 +52,22 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
     double basePhase = std::fmod(element->getFrequencym() * (t + tErr), Physics::two_pi);
 
     if (!apVeto) {
-        if (amplitude == 0.0) {
-            if (designEnergy <= 0.0 || length <= 0.0) {
+        if (amplitude == 0.0 && designEnergy <= 0.0) {
+            throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
+                                "neither amplitude or design energy given to cavity " + element->getName());
+        }
+
+        if (designEnergy > 0.0) {
+            const double length = itsCavity_m->getElementLength();
+            if (length <= 0.0) {
                 throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
-                                    "neither amplitude or design energy given to cavity " + element->getName());
+                                    "length of cavity " + element->getName() + " is zero");
             }
 
             amplitude = 2 * (designEnergy - initialEnergy) / (std::abs(itsReference_m.getQ()) * length);
 
             element->setAmplitudem(amplitude);
-        }
 
-        if (designEnergy > 0.0) {
             int count = 0;
             while (count < 1000) {
                 initialPhase = guessCavityPhase(t + tErr);
@@ -208,6 +211,7 @@ std::pair<double, double> CavityAutophaser::optimizeCavityPhase(double initialPh
 
     E = track(initialR_m, initialP_m, t, dt, Phimax + originalPhase);
     std::pair<double, double> status(Phimax, E);
+
     return status;
 }
 
