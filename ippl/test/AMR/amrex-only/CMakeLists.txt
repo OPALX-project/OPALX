@@ -35,7 +35,8 @@ link_directories (
 # remove digits from hostname: edison03 -> edison
 STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
     
-IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
+IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
+   ${HOSTNAME_BASE} MATCHES "daint")
     SET (LIBS
         ${IPPL_LIBRARY}
         ippl
@@ -52,7 +53,8 @@ ELSE()
         m
         z
     )
-ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
+ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
+      ${HOSTNAME_BASE} MATCHES "daint")
 
 if ( ${AMREX_DIM} EQUAL 3 )
     add_executable( testDeposition

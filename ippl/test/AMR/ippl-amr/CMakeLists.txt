@@ -65,7 +65,7 @@ link_directories (
 STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
     
 IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
-    ${HOSTNAME_BASE} MATCHES "daint")
+   ${HOSTNAME_BASE} MATCHES "daint")
     SET (LIBS
         ${H5Hut_LIBRARY}
         ${HDF5_LIBRARY}
@@ -89,7 +89,7 @@ ELSE()
         z
     )
 ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
-    ${HOSTNAME_BASE} MATCHES "daint")
+      ${HOSTNAME_BASE} MATCHES "daint")
 
 
 set(F90_source_files ../Tagging_nd.f90)
