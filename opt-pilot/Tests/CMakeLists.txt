@@ -115,7 +115,6 @@ set (PILOT_TESTS
     MPIHelperTest
     OpalInputFileParserTest
     SDDSParserTest
-    SDDSParserTestTwo
     ManagedIDsTest
     IndividualTest
     PopulationTest
