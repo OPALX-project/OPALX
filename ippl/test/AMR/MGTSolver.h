@@ -4,8 +4,6 @@
 #include <AMReX_MGT_Solver.H>
 #include <memory>
 
-using namespace amrex;
-
 /// Based on https://github.com/AMReX-Codes/Nyx.git Gravity.cpp
 class MGTSolver {
     

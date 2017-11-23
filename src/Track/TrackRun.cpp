@@ -37,20 +37,20 @@
 
 #include "BasicActions/Option.h"
 
+#include "Distribution/Distribution.h"
 #include "Elements/OpalBeamBeam3D.h"
 #include "Track/Track.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Round.h"
 #include "Utilities/Util.h"
 #include "Structure/Beam.h"
+#include "Structure/BoundaryGeometry.h"
 #include "Structure/FieldSolver.h"
 #include "Structure/DataSink.h"
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPT.h"
 #include "Structure/H5PartWrapperForPC.h"
 #include "Structure/H5PartWrapperForPS.h"
-#include "Distribution/Distribution.h"
-#include "Structure/BoundaryGeometry.h"
 
 #include "OPALconfig.h"
 #include "changes.h"
@@ -94,7 +94,6 @@ TrackRun::TrackRun():
            "the given lattice."),
     itsTracker(NULL),
     dist(NULL),
-    distrs_m(),
     fs(NULL),
     ds(NULL),
     phaseSpaceSink_m(NULL) {
@@ -136,7 +135,6 @@ TrackRun::TrackRun(const std::string &name, TrackRun *parent):
     Action(name, parent),
     itsTracker(NULL),
     dist(NULL),
-    distrs_m(),
     fs(NULL),
     ds(NULL),
     phaseSpaceSink_m(NULL) {
@@ -147,7 +145,6 @@ TrackRun::TrackRun(const std::string &name, TrackRun *parent):
 TrackRun::~TrackRun()
 {
     delete phaseSpaceSink_m;
-    phaseSpaceSink_m = NULL;
 }
 
 
@@ -175,10 +172,11 @@ void TrackRun::execute() {
                     errorMsg << it->second << endl;
                 }
             }
-            errorMsg << "\nMake sure you do understand these changes and adjust your input file \n"
-                     << "accordingly. Then add\n"
-                     << "OPTION, VERSION = " << currentVersion << ";\n"
-                     << "to your input file. " << endl;
+            errorMsg << "\n"
+                     << "* Make sure you do understand these changes and adjust your input file \n"
+                     << "* accordingly. Then add\n"
+                     << "* OPTION, VERSION = " << currentVersion << ";\n"
+                     << "* to your input file. " << endl;
             errorMsg << "\n****************************************************************************\n" << endl;
             throw OpalException("TrackRun::execute", "Version mismatch");
         }
@@ -464,8 +462,7 @@ void TrackRun::setupTTracker(){
             opal->setDataSink(new DataSink(phaseSpaceSink_m));
         } else if(Options::scan) {
             ds = opal->getDataSink();
-            if(ds)
-                delete ds;
+            delete ds;
             opal->setDataSink(new DataSink(phaseSpaceSink_m));
         } else {
             ds = opal->getDataSink();
@@ -733,7 +730,7 @@ void TrackRun::setupCyclotronTracker(){
 
         // mode of generating new bunches:
         // "FORCE" means generating one bunch after each revolution, until get "TURNS" bunches.
-        // "AUTO" means only when the distance between two neighbor bunches is bellow the limitation,
+        // "AUTO" means only when the distance between two neighbor bunches is below the limitation,
         //        then starts to generate new bunches after each revolution,until get "TURNS" bunches;
         //        otherwise, run single bunch track
 
@@ -768,8 +765,8 @@ void TrackRun::setupCyclotronTracker(){
 
                 itsTracker->setMultiBunchMode(2);
 
-                *gmsg << "AUTO mode: The multi bunches will be injected only when the distance between two neighborring bunches " << endl
-                      << "is bellow the limitation. The control parameter is set to " << paraMb << endl;
+                *gmsg << "AUTO mode: The multi bunches will be injected only when the distance between two neighboring bunches " << endl
+                      << "is below the limitation. The control parameter is set to " << paraMb << endl;
             }
             //////
             else

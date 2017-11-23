@@ -14,7 +14,7 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_FMultiGrid.H>
 
-using namespace amrex;
+#include "Ippl.h"
 
 #include <memory>
 #include <vector>
@@ -42,8 +42,8 @@ using namespace amrex;
 class Solver {
 
 public:
-    typedef Array<std::unique_ptr<MultiFab> > container_t;
-    typedef Array<MultiFab*> container_pt;
+    typedef amrex::Array<std::unique_ptr<amrex::MultiFab> > container_t;
+    typedef amrex::Array<amrex::MultiFab*> container_pt;
 
     /*!
      * Prepares the solver and calls the solve_with_f90 function.
@@ -60,10 +60,10 @@ public:
     void solve_for_accel(const container_t& rhs,
                          const container_t& phi,
                          const container_t& grad_phi,
-                         const Array<Geometry>& geom,
+                         const amrex::Array<amrex::Geometry>& geom,
                          int base_level,
                          int finest_level,
-                         Real offset,
+                         amrex::Real offset,
                          bool timing=true,
                          bool doGradient=true);
     /*!
@@ -80,16 +80,21 @@ public:
      * @param doGradient  compute the gradient (true) or not (false)
      */
     void solve_with_f90(const container_pt& rhs,
-                        const container_pt& phi, const Array<container_pt>& grad_phi_edge, 
-                        const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol,
+                        const container_pt& phi, const amrex::Array<container_pt>& grad_phi_edge, 
+                        const amrex::Array<amrex::Geometry>& geom, int base_level, int finest_level,
+                        amrex::Real tol, amrex::Real abs_tol,
                         bool timing, bool doGradient);
     
 #ifdef USEHYPRE
-    void solve_with_hypre(MultiFab& soln, MultiFab& rhs, const BoxArray& bs,
-                          const Geometry& geom);
+    void solve_with_hypre(amrex::MultiFab& soln,
+                          amrex::MultiFab& rhs,
+                          const amrex::BoxArray& bs,
+                          const amrex::Geometry& geom);
 
 private:
-    void set_boundary(BndryData& bd, const MultiFab& rhs, int comp);
+    void set_boundary(amrex::BndryData& bd,
+                      const amrex::MultiFab& rhs,
+                      int comp);
 
 #endif
 };

@@ -18,7 +18,7 @@
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/optional.hpp>
 
-#include <list>
+#include <vector>
 
 #define BOOST_SPIRIT_NO_PREDEFINED_TERMINALS
 #define BOOST_SPIRIT_QI_DEBUG
@@ -40,7 +40,7 @@ namespace SDDS {
         boost::optional<std::string> units_m;
         boost::optional<std::string> description_m;
         boost::optional<ast::datatype> type_m;
-        std::list<ast::variant_t> values_m;
+        ast::columnData_t values_m;
         static unsigned int count_m;
 
         bool checkMandatories() const
@@ -145,7 +145,7 @@ namespace SDDS {
         }
     };
 
-    struct columnList: std::list<column> {};
+    struct columnList: std::vector<column> {};
 
     template <typename Iterator>
     struct columnOrder

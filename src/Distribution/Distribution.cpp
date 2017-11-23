@@ -397,6 +397,8 @@ void Distribution::create(size_t &numberOfParticles, double massIneV) {
     // Now reflect particles if Options::cZero is true
     reflectDistribution(numberOfLocalParticles);
 
+    adjustPhaseSpace(massIneV);
+
     if (Options::seed != -1)
         Options::seed = gsl_rng_uniform_int(randGen_m, gsl_rng_max(randGen_m));
 
@@ -1260,8 +1262,8 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
     if (LineName == "") return;
 
     const BeamSequence* LineSequence = BeamSequence::find(LineName);
-    
-    if (LineSequence == NULL) 
+
+    if (LineSequence == NULL)
         throw OpalException("Distribution::CreateMatchedGaussDistribution",
                             "didn't find any Cyclotron element in line");
 
@@ -1628,7 +1630,12 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
     IpplTimings::startTimer(beam->distrCreate_m);
 
     // This is PC from BEAM
-    avrgpz_m = beam->getP()/beam->getM();
+    double deltaP = Attributes::getReal(itsAttr[Attrib::Distribution::OFFSETP]);
+    if (inputMoUnits_m == InputMomentumUnitsT::EV) {
+        deltaP = converteVToBetaGamma(deltaP, beam->getM());
+    }
+
+    avrgpz_m = beam->getP()/beam->getM() + deltaP;
 
     totalNumberParticles_m = numberOfParticles;
 
@@ -1684,6 +1691,9 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
     // Move added distribution particles to main distribution.
     addDistributions();
 
+    if (emitting_m && emissionModel_m == EmissionModelT::NONE)
+        setupEmissionModelNone(beam);
+
     // Check number of particles in distribution.
     checkParticleNumber(numberOfParticles);
 
@@ -1691,7 +1701,7 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
         checkEmissionParameters();
     } else {
         if (distrTypeT_m != DistrTypeT::FROMFILE) {
-            pmean_m = Vector_t(0.0, 0.0, converteVToBetaGamma(getEkin(), beam->getM()));
+            pmean_m = Vector_t(0, 0, avrgpz_m);
         }
     }
 
@@ -2919,8 +2929,8 @@ void Distribution::injectBeam(PartBunchBase<double, 3> *beam) {
                                      tOrZDist_m.at(partIndex));
 
         beam->P[partIndex] = Vector_t(pxDist_m.at(partIndex),
-                                     pyDist_m.at(partIndex),
-                                     pzDist_m.at(partIndex));
+                                      pyDist_m.at(partIndex),
+                                      pzDist_m.at(partIndex));
 
         beam->Q[partIndex] = beam->getChargePerParticle();
         beam->Ef[partIndex] = Vector_t(0.0);
@@ -2958,9 +2968,6 @@ void Distribution::injectBeam(PartBunchBase<double, 3> *beam) {
     pzDist_m.clear();
 
     beam->boundp();
-
-    if (distrTypeT_m != DistrTypeT::FROMFILE)
-        beam->correctEnergy(avrgpz_m);
     beam->calcEMean();
 }
 
@@ -3047,8 +3054,10 @@ std::vector<double>& Distribution::getBGzDist() {
 void Distribution::printDist(Inform &os, size_t numberOfParticles) const {
 
     if (numberOfParticles > 0) {
+        size_t np = numberOfParticles * (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE)? 2: 1);
+        reduce(np, np, OpAddAssign());
         os << "* Number of particles: "
-           << numberOfParticles * (Options::cZero && !(distrTypeT_m == DistrTypeT::FROMFILE)? 2: 1)
+           << np
            << endl
            << "* " << endl;
     }
@@ -3589,6 +3598,8 @@ void Distribution::setAttributes() {
         = Attributes::makeReal("OFFSETPY", "Average py offset of distribution.", 0.0);
     itsAttr[Attrib::Distribution::OFFSETPZ]
         = Attributes::makeReal("OFFSETPZ", "Average pz offset of distribution.", 0.0);
+    itsAttr[Attrib::Distribution::OFFSETP]
+        = Attributes::makeReal("OFFSETP", "Momentum shift relative to referenc particle.", 0.0);
 
     // Parameters for defining an initial distribution.
     itsAttr[Attrib::Distribution::SIGMAX] = Attributes::makeReal("SIGMAX", "SIGMAx (m)", 0.0);
@@ -4281,9 +4292,6 @@ void Distribution::setupEmissionModel(PartBunchBase<double, 3> *beam) {
 
     switch (emissionModel_m) {
 
-    case EmissionModelT::NONE:
-        setupEmissionModelNone(beam);
-        break;
     case EmissionModelT::ASTRA:
         setupEmissionModelAstra(beam);
         break;
@@ -4361,7 +4369,7 @@ void Distribution::setupParticleBins(double massIneV, PartBunchBase<double, 3> *
 
         if (!itsAttr[Attrib::Legacy::Distribution::PT].defaultUsed())
             throw OpalException("Distribution::setupParticleBins",
-                                "PT is obsolet. The moments of the beam is defined with OFFSETPZ");
+                                "PT is obsolete. The moments of the beam is defined with OFFSETPZ");
 
         // we get gamma from PC of the beam
         const double pz    = beam->getP()/beam->getM();
@@ -4460,7 +4468,7 @@ void Distribution::shiftDistCoordinates(double massIneV) {
         double deltaPz = Attributes::getReal(currDist->itsAttr[Attrib::Distribution::OFFSETPZ]);
 
         if (Attributes::getReal(currDist->itsAttr[Attrib::Legacy::Distribution::PT])!=0.0)
-            WARNMSG("PT & PZ are obsolet and will be ignored. The moments of the beam is defined with PC" << endl);
+            WARNMSG("PT & PZ are obsolete and will be ignored. The moments of the beam is defined with PC" << endl);
 
         // Check input momentum units.
         if (inputMoUnits_m == InputMomentumUnitsT::EV) {
@@ -4485,61 +4493,62 @@ void Distribution::shiftDistCoordinates(double massIneV) {
 
 void Distribution::writeOutFileHeader() {
 
-    if (Attributes::getBool(itsAttr[Attrib::Distribution::WRITETOFILE])) {
+    if (Attributes::getBool(itsAttr[Attrib::Distribution::WRITETOFILE]) == false)
+        return;
 
-        unsigned int totalNum = tOrZDist_m.size();
-        reduce(totalNum, totalNum, OpAddAssign());
-        if (Ippl::myNode() == 0) {
-            std::string fname = "data/" + OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat";
-            *gmsg << "* **********************************************************************************" << endl;
-            *gmsg << "* Write initial distribution to file \"" << fname << "\"" << endl;
-            *gmsg << "* **********************************************************************************" << endl;
-            std::ofstream outputFile(fname);
-            if (outputFile.bad()) {
-                *gmsg << "Unable to open output file \"" << fname << "\"" << endl;
-            } else {
-                outputFile.setf(std::ios::left);
-                outputFile << "# ";
-                if (emitting_m) {
-                    outputFile.width(17);
-                    outputFile << "x [m]";
-                    outputFile.width(17);
-                    outputFile << "px [betax gamma]";
-                    outputFile.width(17);
-                    outputFile << "y [m]";
-                    outputFile.width(17);
-                    outputFile << "py [betay gamma]";
-                    outputFile.width(17);
-                    outputFile << "t [s]";
-                    outputFile.width(17);
-                    outputFile << "pz [betaz gamma]" ;
-                    outputFile.width(17);
-                    outputFile << "Bin Number" << std::endl;
-                } else {
-                    outputFile.width(17);
-                    outputFile << "x [m]";
-                    outputFile.width(17);
-                    outputFile << "px [betax gamma]";
-                    outputFile.width(17);
-                    outputFile << "y [m]";
-                    outputFile.width(17);
-                    outputFile << "py [betay gamma]";
-                    outputFile.width(17);
-                    outputFile << "z [m]";
-                    outputFile.width(17);
-                    outputFile << "pz [betaz gamma]";
-                    if (numberOfEnergyBins_m > 0) {
-                        outputFile.width(17);
-                        outputFile << "Bin Number";
-                    }
-                    outputFile << std::endl;
+    unsigned int totalNum = tOrZDist_m.size();
+    reduce(totalNum, totalNum, OpAddAssign());
+    if (Ippl::myNode() != 0)
+        return;
 
-                    outputFile << "# " << totalNum << std::endl;
-                }
+    std::string fname = "data/" + OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat";
+    *gmsg << "* **********************************************************************************" << endl;
+    *gmsg << "* Write initial distribution to file \"" << fname << "\"" << endl;
+    *gmsg << "* **********************************************************************************" << endl;
+    std::ofstream outputFile(fname);
+    if (outputFile.bad()) {
+        *gmsg << "Unable to open output file \"" << fname << "\"" << endl;
+    } else {
+        outputFile.setf(std::ios::left);
+        outputFile << "# ";
+        if (emitting_m) {
+            outputFile.width(17);
+            outputFile << "x [m]";
+            outputFile.width(17);
+            outputFile << "px [betax gamma]";
+            outputFile.width(17);
+            outputFile << "y [m]";
+            outputFile.width(17);
+            outputFile << "py [betay gamma]";
+            outputFile.width(17);
+            outputFile << "t [s]";
+            outputFile.width(17);
+            outputFile << "pz [betaz gamma]" ;
+            outputFile.width(17);
+            outputFile << "Bin Number" << std::endl;
+        } else {
+            outputFile.width(17);
+            outputFile << "x [m]";
+            outputFile.width(17);
+            outputFile << "px [betax gamma]";
+            outputFile.width(17);
+            outputFile << "y [m]";
+            outputFile.width(17);
+            outputFile << "py [betay gamma]";
+            outputFile.width(17);
+            outputFile << "z [m]";
+            outputFile.width(17);
+            outputFile << "pz [betaz gamma]";
+            if (numberOfEnergyBins_m > 0) {
+                outputFile.width(17);
+                outputFile << "Bin Number";
             }
-            outputFile.close();
+            outputFile << std::endl;
+
+            outputFile << "# " << totalNum << std::endl;
         }
     }
+    outputFile.close();
 }
 
 void Distribution::writeOutFileEmission() {
@@ -4669,55 +4678,55 @@ void Distribution::writeOutFileEmission() {
 
 void Distribution::writeOutFileInjection() {
 
-    if (Attributes::getBool(itsAttr[Attrib::Distribution::WRITETOFILE])) {
+    if (Attributes::getBool(itsAttr[Attrib::Distribution::WRITETOFILE]) == false)
+        return;
 
-        std::string fname = "data/" + OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat";
-        // Nodes take turn writing particles to file.
-        for (int nodeIndex = 0; nodeIndex < Ippl::getNodes(); nodeIndex++) {
+    std::string fname = "data/" + OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat";
+    // Nodes take turn writing particles to file.
+    for (int nodeIndex = 0; nodeIndex < Ippl::getNodes(); nodeIndex++) {
 
-            // Write to file if its our turn.
-            size_t numberOfParticles = 0;
-            if (Ippl::myNode() == nodeIndex) {
-                std::ofstream outputFile(fname, std::fstream::app);
-                if (outputFile.bad()) {
-                    *gmsg << "Node " << Ippl::myNode() << " unable to write"
-                          << "to file \"" << fname << "\"" << endl;
-                } else {
+        // Write to file if its our turn.
+        size_t numberOfParticles = 0;
+        if (Ippl::myNode() == nodeIndex) {
+            std::ofstream outputFile(fname, std::fstream::app);
+            if (outputFile.bad()) {
+                *gmsg << "Node " << Ippl::myNode() << " unable to write"
+                      << "to file \"" << fname << "\"" << endl;
+            } else {
 
-                    outputFile.precision(9);
-                    outputFile.setf(std::ios::scientific);
-                    outputFile.setf(std::ios::right);
+                outputFile.precision(9);
+                outputFile.setf(std::ios::scientific);
+                outputFile.setf(std::ios::right);
 
-                    numberOfParticles = tOrZDist_m.size();
-                    for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
+                numberOfParticles = tOrZDist_m.size();
+                for (size_t partIndex = 0; partIndex < numberOfParticles; partIndex++) {
 
+                    outputFile.width(17);
+                    outputFile << xDist_m.at(partIndex);
+                    outputFile.width(17);
+                    outputFile << pxDist_m.at(partIndex);
+                    outputFile.width(17);
+                    outputFile << yDist_m.at(partIndex);
+                    outputFile.width(17);
+                    outputFile << pyDist_m.at(partIndex);
+                    outputFile.width(17);
+                    outputFile << tOrZDist_m.at(partIndex);
+                    outputFile.width(17);
+                    outputFile << pzDist_m.at(partIndex);
+                    if (numberOfEnergyBins_m > 0) {
+                        size_t binNumber = findEBin(tOrZDist_m.at(partIndex));
                         outputFile.width(17);
-                        outputFile << xDist_m.at(partIndex);
-                        outputFile.width(17);
-                        outputFile << pxDist_m.at(partIndex);
-                        outputFile.width(17);
-                        outputFile << yDist_m.at(partIndex);
-                        outputFile.width(17);
-                        outputFile << pyDist_m.at(partIndex);
-                        outputFile.width(17);
-                        outputFile << tOrZDist_m.at(partIndex);
-                        outputFile.width(17);
-                        outputFile << pzDist_m.at(partIndex);
-                        if (numberOfEnergyBins_m > 0) {
-                            size_t binNumber = findEBin(tOrZDist_m.at(partIndex));
-                            outputFile.width(17);
-                            outputFile << binNumber;
-                        }
-                        outputFile << std::endl;
-
+                        outputFile << binNumber;
                     }
-                }
-                outputFile.close();
-            }
+                    outputFile << std::endl;
 
-            // Wait for writing node before moving on.
-            reduce(numberOfParticles, numberOfParticles, OpAddAssign());
+                }
+            }
+            outputFile.close();
         }
+
+        // Wait for writing node before moving on.
+        reduce(numberOfParticles, numberOfParticles, OpAddAssign());
     }
 }
 
@@ -4727,6 +4736,47 @@ double Distribution::MDependentBehavior::get(double rand) {
 
 double Distribution::GaussianLikeBehavior::get(double rand) {
     return sqrt(-2.0 * log(rand));
+}
+
+void Distribution::adjustPhaseSpace(double massIneV) {
+    if (emitting_m || distrTypeT_m == DistrTypeT::FROMFILE || OpalData::getInstance()->isInOPALCyclMode())
+        return;
+
+    double deltaPx = Attributes::getReal(itsAttr[Attrib::Distribution::OFFSETPX]);
+    double deltaPy = Attributes::getReal(itsAttr[Attrib::Distribution::OFFSETPY]);
+    // Check input momentum units.
+    if (inputMoUnits_m == InputMomentumUnitsT::EV) {
+        deltaPx = converteVToBetaGamma(deltaPx, massIneV);
+        deltaPy = converteVToBetaGamma(deltaPy, massIneV);
+    }
+
+    double avrg[6];
+    avrg[0] = std::accumulate(xDist_m.begin(), xDist_m.end(), 0.0) / totalNumberParticles_m;
+    avrg[1] = std::accumulate(pxDist_m.begin(), pxDist_m.end(), 0.0) / totalNumberParticles_m;
+    avrg[2] = std::accumulate(yDist_m.begin(), yDist_m.end(), 0.0) / totalNumberParticles_m;
+    avrg[3] = std::accumulate(pyDist_m.begin(), pyDist_m.end(), 0.0) / totalNumberParticles_m;
+    avrg[4] = std::accumulate(tOrZDist_m.begin(), tOrZDist_m.end(), 0.0) / totalNumberParticles_m;
+    avrg[5] = 0.0;
+    for (unsigned int i = 0; i < pzDist_m.size(); ++ i) {
+        // taylor series of sqrt(px*px + py*py + pz*pz) = pz * sqrt(1 + eps*eps) where eps << 1
+        avrg[5] += (pzDist_m[i] +
+                    (std::pow(pxDist_m[i] + deltaPx, 2) +
+                     std::pow(pyDist_m[i] + deltaPy, 2)) / (2 * pzDist_m[i]));
+    }
+    reduce(avrg, avrg + 6, avrg, OpAddAssign());
+    avrg[5] /= totalNumberParticles_m;
+
+    // solve
+    // \sum_{i = 0}^{N-1} \sqrt{(pz_i + \eps)^2 + px_i^2 + py_i^2} = N p
+    double eps = avrgpz_m - avrg[5];
+    for (unsigned int i = 0; i < pzDist_m.size(); ++ i) {
+        xDist_m[i] -= avrg[0];
+        pxDist_m[i] -= avrg[1];
+        yDist_m[i] -= avrg[2];
+        pyDist_m[i] -= avrg[3];
+        tOrZDist_m[i] -= avrg[4];
+        pzDist_m[i] += eps;
+    }
 }
 
 // vi: set et ts=4 sw=4 sts=4:

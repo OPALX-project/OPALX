@@ -97,15 +97,15 @@ OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL fiel
 IF (ENABLE_AMR)
     MESSAGE (STATUS "Enable AMR_SOLVER    " ${ENABLE_AMR})
     ENABLE_LANGUAGE (Fortran)
-    
+
     find_package (AMReX CONFIG REQUIRED HINTS $ENV{AMREX_HOME}/cmake $ENV{AMREX_DIR}/cmake $ENV{AMREX_PREFIX}/cmake)
 
     MESSAGE (STATUS "Found AMReX include dir: ${AMREX_INCLUDE_DIR}")
     MESSAGE (STATUS "Found AMReX library dir: ${AMREX_LIBRARY_DIR}")
     MESSAGE (STATUS "Found AMReX libraries: ${AMREX_LIBRARIES}")
-    
+
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_AMR")
-    
+
 ENDIF (ENABLE_AMR)
 
 if (ENABLE_SAAMG_SOLVER)

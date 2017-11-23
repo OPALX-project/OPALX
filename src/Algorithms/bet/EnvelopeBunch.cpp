@@ -40,7 +40,10 @@ extern Inform *gmsg;
     beta = 0.85 -> 460 keV
 */
 #define BETA_MIN1 0.30     // minimum beta-value for space-charge calculations: start
+
+#ifndef USE_HOMDYN_SC_MODEL
 #define BETA_MIN2 0.45     // minimum beta-value for space-charge calculations: full impact
+#endif
 
 // Hack allows odeint in rk.C to be called with a class member function
 static EnvelopeBunch *thisBunch = NULL;  // pointer to access calling bunch

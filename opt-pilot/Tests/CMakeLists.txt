@@ -33,16 +33,31 @@ link_directories (
 )
 
 set (OPT_PILOT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/opt-pilot)
+set (SDDSPARSER_SRC
+    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/array.cpp
+    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/associate.cpp
+    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/ast.cpp
+    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/column.cpp
+    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/data.cpp
+    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/description.cpp
+    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/file.cpp
+    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/include.cpp
+    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/parameter.cpp
+    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/version.cpp
+    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser.cpp
+    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
+    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+)
 
 set (ExpressionTest_SRC
-    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSReader.cpp
+    ${SDDSPARSER_SRC}
     ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/expression.cpp
     ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/evaluator.cpp
 )
 
 set (SumErrSqExpressionTest_SRC
     ${OPT_PILOT_SOURCE_DIR}/Expression/SumErrSq.cpp
-    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSReader.cpp
+    ${SDDSPARSER_SRC}
     ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/expression.cpp
     ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/evaluator.cpp
 )
@@ -84,13 +99,13 @@ set (PopulationTest_SRC
 )
 
 set (SDDSParserTest_SRC
-    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSReader.cpp
+    ${SDDSPARSER_SRC}
 )
 
 set (OpalInputFileParserTest_SRC
     ${OPT_PILOT_SOURCE_DIR}/Expression/SumErrSq.cpp
     ${OPT_PILOT_SOURCE_DIR}/Expression/FromFile.cpp
-    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSReader.cpp
+    ${SDDSPARSER_SRC}
     ${OPT_PILOT_SOURCE_DIR}/Util/CommentAnnotatedInputFileParser.cpp
     ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/expression.cpp
     ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/evaluator.cpp
@@ -100,6 +115,7 @@ set (PILOT_TESTS
     MPIHelperTest
     OpalInputFileParserTest
     SDDSParserTest
+    SDDSParserTestTwo
     ManagedIDsTest
     IndividualTest
     PopulationTest

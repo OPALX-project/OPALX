@@ -19,6 +19,7 @@
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/Patch.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
@@ -112,6 +113,9 @@ public:
 
     /// Apply the algorithm to a multipole.
     virtual void visitMultipole(const Multipole &);
+
+    /// Apply the algorithm to a multipoleT.
+    virtual void visitMultipoleT(const MultipoleT &);
 
     /// Apply the algorithm to an Offset.
     virtual void visitOffset(const Offset &);
@@ -302,6 +306,11 @@ void SpecificElementVisitor<ELEM>::visitMonitor(const Monitor &element) {
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitMultipole(const Multipole &element) {
     CastsTrait<ELEM, Multipole>::apply(allElementsOfTypeE, element);
+}
+
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitMultipoleT(const MultipoleT &element) {
+    CastsTrait<ELEM, MultipoleT>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>

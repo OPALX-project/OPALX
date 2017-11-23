@@ -13,6 +13,7 @@
 #include <boost/spirit/include/qi.hpp>
 
 #include <string>
+#include <vector>
 
 namespace SDDS {
     namespace ast {
@@ -37,6 +38,9 @@ namespace SDDS {
                                long,
                                char,
                                std::string> variant_t;
+
+        typedef std::vector<variant_t> columnData_t;
+
         inline
         std::string getDataTypeString(datatype type) {
             switch(type) {

@@ -34,6 +34,7 @@
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/Patch.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
@@ -140,6 +141,10 @@ void DefaultVisitor::visitMonitor(const Monitor &mon) {
 
 void DefaultVisitor::visitMultipole(const Multipole &mult) {
     applyDefault(mult);
+}
+
+void DefaultVisitor::visitMultipoleT(const MultipoleT &multT) {
+    applyDefault(multT);
 }
 
 void DefaultVisitor::visitOffset(const Offset& off) {
