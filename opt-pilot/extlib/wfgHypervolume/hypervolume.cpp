@@ -196,95 +196,95 @@ Canada, July 2006.
 // returns the hypervolume of ps[0 ..] in 3D
 // assumes that ps is sorted improving
 {
-  avl_init_node(ps.points[ps.nPoints-1].tnode,ps.points[ps.nPoints-1].objectives);
-  avl_insert_top(tree,ps.points[ps.nPoints-1].tnode);
+    avl_init_node(ps.points[ps.nPoints-1].tnode,ps.points[ps.nPoints-1].objectives);
+    avl_insert_top(tree,ps.points[ps.nPoints-1].tnode);
 
-  double hypera = (ref.objectives[0] - ps.points[ps.nPoints-1].objectives[0]) *
-    (ref.objectives[1] - ps.points[ps.nPoints-1].objectives[1]);
+    double hypera = (ref.objectives[0] - ps.points[ps.nPoints-1].objectives[0]) *
+        (ref.objectives[1] - ps.points[ps.nPoints-1].objectives[1]);
 
-  double height;
-  if (ps.nPoints == 1)
-    height = ref.objectives[2] - ps.points[ps.nPoints-1].objectives[2];
-  else
-    height = ps.points[ps.nPoints-2].objectives[2] - ps.points[ps.nPoints-1].objectives[2];
-
-  double hyperv = hypera * height;
-
-  for (int i = ps.nPoints - 2; i >= 0; i--)
-  {
-    if (i == 0)
-      height = ref.objectives[2] - ps.points[i].objectives[2];
+    double height;
+    if (ps.nPoints == 1)
+        height = ref.objectives[2] - ps.points[ps.nPoints-1].objectives[2];
     else
-      height = ps.points[i-1].objectives[2] - ps.points[i].objectives[2];
+        height = ps.points[ps.nPoints-2].objectives[2] - ps.points[ps.nPoints-1].objectives[2];
 
-      // search tree for point q to the right of current point
-      const double * prv_ip, * nxt_ip;
-      avl_node_t *tnode;
+    double hyperv = hypera * height;
 
-      avl_init_node(ps.points[i].tnode, ps.points[i].objectives);
+    for (int i = ps.nPoints - 2; i >= 0; i--) {
+        
+        if (i == 0)
+            height = ref.objectives[2] - ps.points[i].objectives[2];
+        else
+            height = ps.points[i-1].objectives[2] - ps.points[i].objectives[2];
 
-      if (avl_search_closest(tree, ps.points[i].objectives, &tnode) <= 0) {
-          nxt_ip = (double *)(tnode->item);
-          tnode = tnode->prev;
-      } else {
-          nxt_ip = (tnode->next!=NULL)
-              ? (double *)(tnode->next->item)
-              : ref.objectives;
-      }
-                // if p is not dominated
-                if (nxt_ip[0] > ps.points[i].objectives[0]) {
+        // search tree for point q to the right of current point
+        const double * prv_ip, * nxt_ip;
+        avl_node_t *tnode;
 
-                  // insert p in tree
-                    avl_insert_after(tree, tnode, ps.points[i].tnode);
+        avl_init_node(ps.points[i].tnode, ps.points[i].objectives);
 
-                    if (tnode !=NULL) {
-                        prv_ip = (double *)(tnode->item);
-
-                        if (prv_ip[0] > ps.points[i].objectives[0]) {
-                            const double * cur_ip;
-
-                            tnode = ps.points[i].tnode->prev;
-                            // cur_ip = point dominated by pp with highest [0]-coordinate
-                            cur_ip = (double *)(tnode->item);
-
-                            // for each point in s in tree dominated by p
-                            while (tnode->prev) {
-                                prv_ip = (double *)(tnode->prev->item);
-                                // decrease area by contribution of s
-                                hypera -= (prv_ip[1] - cur_ip[1])*(nxt_ip[0] - cur_ip[0]);
-                                if (prv_ip[0] < ps.points[i].objectives[0])
-                                    break; // prv is not dominated by pp
-                                cur_ip = prv_ip;
-                                // remove s from tree
-                                avl_unlink_node(tree,tnode);
-                                tnode = tnode->prev;
-                            }
-
-                            // remove s from tree
-                            avl_unlink_node(tree,tnode);
-
-                            if (!tnode->prev) {
-                                // decrease area by contribution of s
-                                hypera -= (ref.objectives[1] - cur_ip[1])*(nxt_ip[0] - cur_ip[0]);
-                                prv_ip = ref.objectives;
-                            }
-                        }
-                    } else
-                        prv_ip = ref.objectives;
-
-                    // increase area by contribution of p
-                    hypera += (prv_ip[1] -
-                        ps.points[i].objectives[1])*(nxt_ip[0] -
-                          ps.points[i].objectives[0]);
-
-                }
-
-                if (height > 0)
-                    hyperv += hypera * height;
+        if (avl_search_closest(tree, ps.points[i].objectives, &tnode) <= 0) {
+            nxt_ip = (double *)(tnode->item);
+            tnode = tnode->prev;
+        } else {
+            nxt_ip = (tnode->next!=NULL)
+                ? (double *)(tnode->next->item)
+                : ref.objectives;
         }
-        avl_clear_tree(tree);
-        return hyperv;
-  }
+        // if p is not dominated
+        if (nxt_ip[0] > ps.points[i].objectives[0]) {
+
+            // insert p in tree
+            avl_insert_after(tree, tnode, ps.points[i].tnode);
+
+            if (tnode !=NULL) {
+                prv_ip = (double *)(tnode->item);
+
+                if (prv_ip[0] > ps.points[i].objectives[0]) {
+                    const double * cur_ip;
+
+                    tnode = ps.points[i].tnode->prev;
+                    // cur_ip = point dominated by pp with highest [0]-coordinate
+                    cur_ip = (double *)(tnode->item);
+
+                    // for each point in s in tree dominated by p
+                    while (tnode->prev) {
+                        prv_ip = (double *)(tnode->prev->item);
+                        // decrease area by contribution of s
+                        hypera -= (prv_ip[1] - cur_ip[1])*(nxt_ip[0] - cur_ip[0]);
+                        if (prv_ip[0] < ps.points[i].objectives[0])
+                            break; // prv is not dominated by pp
+                        cur_ip = prv_ip;
+                        // remove s from tree
+                        avl_unlink_node(tree,tnode);
+                        tnode = tnode->prev;
+                    }
+
+                    // remove s from tree
+                    avl_unlink_node(tree,tnode);
+
+                    if (!tnode->prev) {
+                        // decrease area by contribution of s
+                        hypera -= (ref.objectives[1] - cur_ip[1])*(nxt_ip[0] - cur_ip[0]);
+                        prv_ip = ref.objectives;
+                    }
+                }
+            } else
+                prv_ip = ref.objectives;
+
+            // increase area by contribution of p
+            hypera += (prv_ip[1] -
+                       ps.points[i].objectives[1])*(nxt_ip[0] -
+                                                    ps.points[i].objectives[0]);
+
+        }
+
+        if (height > 0)
+            hyperv += hypera * height;
+    }
+    avl_clear_tree(tree);
+    return hyperv;
+}
 
 
 double inclhv(POINT p)

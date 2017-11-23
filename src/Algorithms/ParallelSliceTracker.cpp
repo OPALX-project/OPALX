@@ -1,9 +1,7 @@
 #include "Algorithms/ParallelSliceTracker.h"
 
-#include <cfloat>
-#include <iostream>
-#include <fstream>
-#include <iomanip>
+#include <memory>
+#include <string>
 
 #include "AbstractObjects/OpalData.h"
 #include "Beamlines/Beamline.h"
@@ -259,21 +257,21 @@ void ParallelSliceTracker::computeSpaceChargeFields() {
 
 void ParallelSliceTracker::dumpStats(long long step) {
 
-        double sposRef = itsBunch_m->get_sPos();
-        if (step != 0 && (step % Options::psDumpFreq == 0 || step % Options::statDumpFreq == 0))
-            writePhaseSpace(step, sposRef);
+    double sposRef = itsBunch_m->get_sPos();
+    if (step != 0 && (step % Options::psDumpFreq == 0 || step % Options::statDumpFreq == 0))
+        writePhaseSpace(step, sposRef);
 }
 
 
 void ParallelSliceTracker::switchElements(double scaleMargin) {
 
-  double margin = 1.0;
+    double margin = 1.0;
 
-        itsOpalBeamline_m->resetStatus();
-        currentSimulationTime_m = itsBunch_m->getT();
-        itsOpalBeamline_m->switchElements(itsBunch_m->zTail() - margin,
-                                          itsBunch_m->zHead() + margin,
-                                          itsBunch_m->Eavg() * 1e-6);
+    itsOpalBeamline_m->resetStatus();
+    currentSimulationTime_m = itsBunch_m->getT();
+    itsOpalBeamline_m->switchElements(itsBunch_m->zTail() - margin,
+                                      itsBunch_m->zHead() + margin,
+                                      itsBunch_m->Eavg() * 1e-6);
 }
 
 

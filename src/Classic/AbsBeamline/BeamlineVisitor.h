@@ -45,6 +45,7 @@ class Lambertson;
 class Marker;
 class Monitor;
 class Multipole;
+class MultipoleT;
 class Offset;
 class Patch;
 class Probe;
@@ -144,6 +145,9 @@ public:
 
     /// Apply the algorithm to a multipole.
     virtual void visitMultipole(const Multipole &) = 0;
+
+    /// Apply the algorithm to an arbitrary straight Multipole.
+    virtual void visitMultipoleT(const MultipoleT &) = 0;
 
     /// Apply the algorithm to a patch.
     virtual void visitPatch(const Patch &) = 0;

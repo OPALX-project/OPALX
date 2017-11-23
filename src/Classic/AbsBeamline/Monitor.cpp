@@ -104,7 +104,7 @@ bool Monitor::applyToReferenceParticle(const Vector_t &R,
             double frac = (middle - R(2)) / (P(2) * recpgamma);
             double time = t + frac * dt;
             Vector_t dR = (0.5 + frac) * P * recpgamma;
-            double ds = euclidian_norm(dR);
+            double ds = euclidean_norm(dR);
             lossDs_m->addReferenceParticle(csTrafoGlobal2Local_m.transformFrom(R + dR),
                                            csTrafoGlobal2Local_m.rotateFrom(P),
                                            time,

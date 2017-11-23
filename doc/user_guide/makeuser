@@ -1,6 +1,0 @@
-#!/bin/sh
-# make HTML version of the user manual
-
-latex2html -dir /afs/psi.ch/project/amas/www/docs/opal/user-guide-html -html_version 3.2 \
-    -index_in_navigation -t "OPAL Draft Documentation " -toc_depth 3\
-    -address andreas.adelmann@psi.ch  opal_user_guide

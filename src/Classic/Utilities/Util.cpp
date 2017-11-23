@@ -22,7 +22,7 @@ namespace Util {
         // y axis
         Vector_t tmp = rotation.rotate(Vector_t(0, 0, 1));
         tmp(1) = 0.0;
-        // tmp /= euclidian_norm(tmp);
+        // tmp /= euclidean_norm(tmp);
         double theta = fmod(atan2(tmp(0), tmp(2)) + Physics::two_pi, Physics::two_pi);
 
         Quaternion rotTheta(cos(0.5 * theta), 0, sin(0.5 * theta), 0);
@@ -31,7 +31,7 @@ namespace Util {
         // x axis
         tmp = rotation.rotate(Vector_t(0, 0, 1));
         tmp(0) = 0.0;
-        tmp /= euclidian_norm(tmp);
+        tmp /= euclidean_norm(tmp);
         double phi = fmod(atan2(-tmp(1), tmp(2)) + Physics::two_pi, Physics::two_pi);
 
         Quaternion rotPhi(cos(0.5 * phi), sin(0.5 * phi), 0, 0);
@@ -40,7 +40,7 @@ namespace Util {
         // z axis
         tmp = rotation.rotate(Vector_t(1, 0, 0));
         tmp(2) = 0.0;
-        tmp /= euclidian_norm(tmp);
+        tmp /= euclidean_norm(tmp);
         double psi = fmod(atan2(tmp(1), tmp(0)) + Physics::two_pi, Physics::two_pi);
 
         return Vector_t(theta, phi, psi);

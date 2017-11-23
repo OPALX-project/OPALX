@@ -221,7 +221,6 @@ bool Bend::apply(const Vector_t &R,
     if(designRadius_m > 0.0) {
 
         Vector_t X = R;
-
         Vector_t bField(0.0);
         if (!calculateMapField(X, bField)) {
 
@@ -232,7 +231,6 @@ bool Bend::apply(const Vector_t &R,
 
         return true;
     }
-
     return false;
 
 }
@@ -256,7 +254,6 @@ bool Bend::applyToReferenceParticle(const Vector_t &R,
 
         return true;
     }
-
     return false;
 }
 
@@ -316,6 +313,7 @@ void Bend::initialise(PartBunchBase<double, 3> *bunch,
         endField_m -= elementEdge_m;
         elementEdge_m = 0.0;
 
+        setupFringeWidths();
         msg << level2
             << "======================================================================\n"
             << "======================================================================\n"
@@ -342,6 +340,7 @@ void Bend::adjustFringeFields(double ratio) {
     delta = std::abs(exitParameter2_m - exitParameter3_m);
     exitParameter3_m = exitParameter2_m + delta * ratio;
 
+    setupFringeWidths();
 }
 
 double Bend::calculateBendAngle() {
@@ -376,7 +375,7 @@ double Bend::calculateBendAngle() {
         pusher_m.push(X, P, deltaT);
         X *= cdt;
 
-        deltaS += euclidian_norm(X - oldX);
+        deltaS += euclidean_norm(X - oldX);
 
     }
 
@@ -454,15 +453,15 @@ Vector_t Bend::calcCentralField(const Vector_t &R,
                                 double deltaX) {
 
     Vector_t B(0, 0, 0);
-    // double nOverRho = fieldIndex_m / designRadius_m;
-    // double expFactor = exp(-nOverRho * deltaX);
-    // double bxBzFactor = expFactor * nOverRho * R(1);
-    // Vector_t rotationCenter(-designRadius_m, R(1), 0.0);
-    // double cosangle = dot(R - rotationCenter, Vector_t(1, 0, 0)) / euclidian_norm(R - rotationCenter);
+    //double nOverRho = fieldIndex_m / designRadius_m;
+    //double expFactor = exp(-nOverRho * deltaX);
+    //double bxBzFactor = expFactor * nOverRho * R(1);
+    //Vector_t rotationCenter(-designRadius_m, R(1), 0.0);
+    //double cosangle = dot(R - rotationCenter, Vector_t(1, 0, 0)) / euclidean_norm(R - rotationCenter);
 
-    // B(0) = -bxBzFactor * cosangle;
-    // B(1) = expFactor * (1.0 - pow(nOverRho * R(1), 2.0) / 2.0);
-    // B(2) = -bxBzFactor * sqrt(1 - std::pow(cosangle, 2));
+    //B(0) = -bxBzFactor * cosangle;
+    //B(1) = expFactor * (1.0 - pow(nOverRho * R(1), 2.0) / 2.0);
+    //B(2) = -bxBzFactor * sqrt(1 - std::pow(cosangle, 2));
 
     B(1) = 1.0;
 
@@ -484,19 +483,23 @@ Vector_t Bend::calcEntranceFringeField(const Vector_t &R,
         double engeFunc = gsl_spline_eval(entryFieldValues_m[0], Rprime(2), entryFieldAccel_m);
         double engeFuncDeriv = gsl_spline_eval(entryFieldValues_m[1], Rprime(2), entryFieldAccel_m);
         double engeFuncSecDeriv = gsl_spline_eval(entryFieldValues_m[2], Rprime(2), entryFieldAccel_m);
-        // double nOverRho = fieldIndex_m / designRadius_m;
-        // double expFactor = exp(-nOverRho * deltaX);
-        // double trigFactor = pow(nOverRho, 2.0) + engeFuncSecDerivNorm;
 
-        // double bXEntrance = -nOverRho * expFactor * Rprime(1) * engeFunc;
-        // double bYEntrance = (expFactor * engeFunc *
+        //double nOverRho = fieldIndex_m / designRadius_m;
+        //double expFactor = exp(-nOverRho * deltaX);
+        //double trigFactor = pow(nOverRho, 2.0) + engeFuncSecDerivNorm;
+
+        //double bXEntrance = -nOverRho * expFactor * Rprime(1) * engeFunc;
+        //double bYEntrance = (expFactor * engeFunc *
         //                      (1.0  - 0.5 * trigFactor * pow(Rprime(1), 2.0)));
-        // double bZEntrance = -expFactor * Rprime(1) * engeFuncDeriv;
+        //double bZEntrance = expFactor * Rprime(1) * engeFuncDeriv;
+
 
         // B(1) = (engeFunc *
-        //         (1.0 - 0.5 * engeFuncSecDerivNorm * pow(Rprime(1), 2.0)));
-        B(1) = (engeFunc - 0.5 * engeFuncSecDeriv * pow(Rprime(1), 2.0));
-        B(2) = engeFuncDeriv * Rprime(1);
+	//  (1.0 - 0.5 * engeFuncSecDerivNorm * pow(Rprime(1), 2.0)));
+
+	B(1) = (engeFunc - 0.5 * engeFuncSecDeriv * pow(Rprime(1), 2.0));
+
+	B(2) = engeFuncDeriv * Rprime(1);
     }
 
     return toEntranceRegion.rotateFrom(B);
@@ -519,18 +522,20 @@ Vector_t Bend::calcExitFringeField(const Vector_t &R,
         double engeFunc = gsl_spline_eval(exitFieldValues_m[0], Rprime(2), exitFieldAccel_m);
         double engeFuncDeriv = gsl_spline_eval(exitFieldValues_m[1], Rprime(2), exitFieldAccel_m);
         double engeFuncSecDeriv = gsl_spline_eval(exitFieldValues_m[2], Rprime(2), exitFieldAccel_m);
-        // double nOverRho = fieldIndex_m / designRadius_m;
-        // double expFactor = exp(-nOverRho * deltaX);
-        // double trigFactor = pow(nOverRho, 2.0) + engeFuncSecDerivNorm;
 
-        // double bXExit = -nOverRho * expFactor * Rprime(1) * engeFunc;
-        // double bYExit = (expFactor * engeFunc *
-        //                  (1.0 - 0.5 * trigFactor * pow(Rprime(1), 2.0)));
-        // double bZExit = expFactor * Rprime(1) * engeFuncDeriv;
+        //double nOverRho = fieldIndex_m / designRadius_m;
+        //double expFactor = exp(-nOverRho * deltaX);
+        //double trigFactor = pow(nOverRho, 2.0) + engeFuncSecDerivNorm;
 
-        // B(1) = (engeFunc *
-        //         (1.0 - 0.5 * engeFuncSecDerivNorm * pow(Rprime(1), 2.0)));
-        B(1) = (engeFunc - 0.5 * engeFuncSecDeriv * pow(Rprime(1), 2.0));
+        //double bXExit = -nOverRho * expFactor * Rprime(1) * engeFunc;
+        //double bYExit = (expFactor * engeFunc *
+        //                 (1.0 - 0.5 * trigFactor * pow(Rprime(1), 2.0)));
+        //double bZExit = expFactor * Rprime(1) * engeFuncDeriv;
+
+        //B(1) = (engeFunc *
+        //        (1.0 - 0.5 * engeFuncSecDerivNorm * pow(Rprime(1), 2.0)));
+	B(1) = (engeFunc - 0.5 * engeFuncSecDeriv * pow(Rprime(1), 2.0));
+
         B(2) = engeFuncDeriv * Rprime(1);
     }
     return toExitRegion.rotateFrom(B);
@@ -539,14 +544,13 @@ Vector_t Bend::calcExitFringeField(const Vector_t &R,
 bool Bend::calculateMapField(const Vector_t &R, Vector_t &B) {
 
     B = Vector_t(0.0);
-
     bool verticallyInside = (std::abs(R(1)) < 0.5 * gap_m);
     bool horizontallyInside = false;
     Vector_t rotationCenter(-designRadius_m * cosEntranceAngle_m, R(1), designRadius_m * sinEntranceAngle_m);
 
     if(inMagnetCentralRegion(R)) {
         if (verticallyInside) {
-            double deltaX = 0.0;//euclidian_norm(R - rotationCenter) - designRadius_m;
+            double deltaX = 0.0;//euclidean_norm(R - rotationCenter) - designRadius_m;
             if (isPositionInEntranceField(R)) {
                 B = calcEntranceFringeField(R, deltaX);
             } else if (isPositionInExitField(R)) {
@@ -740,14 +744,14 @@ void Bend::findBendEffectiveLength(double startField, double endField) {
                         bendAngle1 = newBendAngle;
                         delta1 = delta;
                     } else {
-                        bendAngle2 = newBendAngle;
+                        // bendAngle2 = newBendAngle;
                         delta2 = delta;
                     }
 
                 } else {
 
                     if(newBendAngle - angle_m < 0.0) {
-                        bendAngle2 = newBendAngle;
+                        // bendAngle2 = newBendAngle;
                         delta2 = delta;
                     } else {
                         bendAngle1 = newBendAngle;
@@ -822,14 +826,14 @@ void Bend::findBendStrength(double mass,
                     bendAngle1 = newBendAngle;
                     amplitude1 = fieldAmplitude_m;
                 } else {
-                    bendAngle2 = newBendAngle;
+                    // bendAngle2 = newBendAngle;
                     amplitude2 = fieldAmplitude_m;
                 }
 
             } else {
 
                 if(newBendAngle - angle_m < 0.0) {
-                    bendAngle2 = newBendAngle;
+                    // bendAngle2 = newBendAngle;
                     amplitude2 = fieldAmplitude_m;
                 } else {
                     bendAngle1 = newBendAngle;
@@ -859,7 +863,8 @@ bool Bend::findIdealBendParameters(double chordLength) {
             rotationZAxis_m += Physics::pi;
         }
         designRadius_m = chordLength / (2.0 * std::sin(angle_m / 2.0));
-        fieldAmplitude_m = ((refCharge / std::abs(refCharge)) *
+
+	fieldAmplitude_m = ((refCharge / std::abs(refCharge)) *
                             refBetaGamma * refMass /
                             (Physics::c * designRadius_m));
         reinitialize = true;
@@ -879,7 +884,6 @@ bool Bend::findIdealBendParameters(double chordLength) {
 
         reinitialize = false;
     }
-
     return reinitialize;
 }
 
@@ -922,7 +926,7 @@ bool Bend::initializeFieldMap(Inform &msg) {
 bool Bend::inMagnetCentralRegion(const Vector_t &R) const {
 
     Vector_t rotationCenter(-designRadius_m * cosEntranceAngle_m, R(1), designRadius_m * sinEntranceAngle_m);
-    double distFromRotCenter = euclidian_norm(R - rotationCenter);
+    double distFromRotCenter = euclidean_norm(R - rotationCenter);
     Vector_t Rprime = getBeginToEnd_local().transformTo(R);
     Vector_t Rpprime = computeAngleTrafo_m.transformTo(R);
 
@@ -1079,6 +1083,7 @@ void Bend::readFieldMap(Inform &msg) {
     fieldmap_m->get1DProfile1ExitParam(exitParameter1_m,
                                        exitParameter2_m,
                                        exitParameter3_m);
+
     setGapFromFieldMap();
     fieldmap_m->get1DProfile1EngeCoeffs(engeCoeffsEntry_m,
                                         engeCoeffsExit_m);
@@ -1186,6 +1191,7 @@ void Bend::setBendStrength() {
     fieldAmplitude_m = ((charge / std::abs(charge)) * betaGamma * mass /
                         (Physics::c * designRadius_m));
 
+
     // Search for angle if initial guess is not good enough.
     findBendStrength(mass, gamma, betaGamma, charge);
 }
@@ -1206,6 +1212,8 @@ void Bend::setEngeOriginDelta(double delta) {
     exitParameter1_m = -delta - std::abs(exitParameter1_m - exitParameter2_m);
     exitParameter3_m = -delta + std::abs(exitParameter2_m - exitParameter3_m);
     exitParameter2_m = -delta;
+
+    setupFringeWidths();
 }
 
 void Bend::setFieldCalcParam() {
@@ -1318,6 +1326,9 @@ bool Bend::setupBendGeometry(Inform &msg, double &startField, double &endField) 
     }
 
     reinitialize_m = findIdealBendParameters(chordLength_m);
+    if (getType() == RBEND) {
+        setEntranceAngle(getEntranceAngle());
+    }
     findReferenceExitOrigin(xExit_m, zExit_m);
 
     /*
@@ -1442,7 +1453,7 @@ std::pair<Vector_t, Vector_t> Bend::getDesignPathSecant(double startsAtDistFromE
 
     for (unsigned int i = 1; i < size; ++ i) {
         Vector_t step = refTrajMap_m[i] - refTrajMap_m[i-1];
-        double stepSize = euclidian_norm(step);
+        double stepSize = euclidean_norm(step);
         if (pathLength + stepSize > startsAtDistFromEdge) {
             double diff = startsAtDistFromEdge - pathLength;
             tangent = step / stepSize;
@@ -1456,12 +1467,12 @@ std::pair<Vector_t, Vector_t> Bend::getDesignPathSecant(double startsAtDistFromE
             for (unsigned j = i; j < size; ++ j) {
                 Vector_t position = refTrajMap_m[j];
 
-                if (euclidian_norm(position - startPosition) >= length) {
+                if (euclidean_norm(position - startPosition) >= length) {
                     step = refTrajMap_m[j-1] - refTrajMap_m[j];
                     double tau = (dot(startPosition - position, step) - sqrt(std::pow(dot(startPosition - position, step), 2) - dot(step, step) * (dot(startPosition - position, startPosition - position) - std::pow(length, 2)))) / dot(step, step);
 
                     tangent = position + tau * step - startPosition;
-                    tangent /= euclidian_norm(tangent);
+                    tangent /= euclidean_norm(tangent);
 
                     return std::make_pair(startPosition, tangent);
                 }
@@ -1469,11 +1480,11 @@ std::pair<Vector_t, Vector_t> Bend::getDesignPathSecant(double startsAtDistFromE
 
             Vector_t position = refTrajMap_m[size - 1];
             Vector_t step = position - refTrajMap_m[size - 2];
-            step /= euclidian_norm(step);
+            step /= euclidean_norm(step);
             double tau = (dot(startPosition - position, step) + sqrt(std::pow(dot(startPosition - position, step), 2) - dot(step, step) * (dot(startPosition - position, startPosition - position) - std::pow(length, 2)))) / dot(step, step);
 
             tangent = position + tau * step - startPosition;
-            tangent /= euclidian_norm(tangent);
+            tangent /= euclidean_norm(tangent);
 
             return std::make_pair(startPosition, tangent);
         }
@@ -1484,7 +1495,7 @@ std::pair<Vector_t, Vector_t> Bend::getDesignPathSecant(double startsAtDistFromE
     double diff = startsAtDistFromEdge - pathLength;
     unsigned int i = size - 1;
     Vector_t step = refTrajMap_m[i] - refTrajMap_m[i-1];
-    double stepSize = euclidian_norm(step);
+    double stepSize = euclidean_norm(step);
     tangent = step / stepSize;
     startPosition = refTrajMap_m[i] + diff * tangent;
     tangent = tangent;
@@ -1497,11 +1508,11 @@ std::vector<Vector_t> Bend::getOutline() const {
     Vector_t rotationCenter = Vector_t(-designRadius_m * cosEntranceAngle_m, 0.0, designRadius_m * sinEntranceAngle_m);
     unsigned int numSteps = 2;
 
-    outline.push_back(Vector_t(-aperture_m.second[0], 0.0, 0.0));
-    outline.push_back(Vector_t(-aperture_m.second[0] + entranceParameter1_m * tanEntranceAngle_m, 0.0, entranceParameter1_m));
+    outline.push_back(Vector_t(-0.5 * widthEntranceFringe_m, 0.0, 0.0));
+    outline.push_back(Vector_t(-0.5 * widthEntranceFringe_m + entranceParameter1_m * tanEntranceAngle_m, 0.0, entranceParameter1_m));
     outline.push_back(Vector_t(entranceParameter1_m * tanEntranceAngle_m, 0.0, entranceParameter1_m));
-    outline.push_back(Vector_t(aperture_m.second[0] + entranceParameter1_m * tanEntranceAngle_m, 0.0, entranceParameter1_m));
-    outline.push_back(Vector_t(aperture_m.second[0], 0.0, 0.0));
+    outline.push_back(Vector_t(0.5 * widthEntranceFringe_m + entranceParameter1_m * tanEntranceAngle_m, 0.0, entranceParameter1_m));
+    outline.push_back(Vector_t(0.5 * widthEntranceFringe_m, 0.0, 0.0));
 
     {
         double tau1, tau2;
@@ -1538,11 +1549,11 @@ std::vector<Vector_t> Bend::getOutline() const {
         outline.push_back(upperCornerAtExit);
     }
 
-    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(aperture_m.second[0], 0.0, 0.0)));
-    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(aperture_m.second[0] - exitParameter3_m * tanExitAngle_m, 0.0, exitParameter3_m)));
+    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(0.5 * widthExitFringe_m, 0.0, 0.0)));
+    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(0.5 * widthExitFringe_m - exitParameter3_m * tanExitAngle_m, 0.0, exitParameter3_m)));
     outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(-exitParameter3_m * tanExitAngle_m, 0.0, exitParameter3_m)));
-    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(-aperture_m.second[0] - exitParameter3_m * tanExitAngle_m, 0.0, exitParameter3_m)));
-    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(-aperture_m.second[0], 0.0, 0.0)));
+    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(-0.5 * widthExitFringe_m - exitParameter3_m * tanExitAngle_m, 0.0, exitParameter3_m)));
+    outline.push_back(getBeginToEnd_local().transformFrom(Vector_t(-0.5 * widthExitFringe_m, 0.0, 0.0)));
 
     {
         double tau1, tau2;
@@ -1776,4 +1787,10 @@ bool Bend::isInside(const Vector_t &R) const {
     }
 
     return (std::abs(R(1)) < 0.5 * gap_m && inMagnetCentralRegion(R));
+}
+
+void Bend::setupFringeWidths()
+{
+    widthEntranceFringe_m = 2 * std::min(entranceParameter3_m - entranceParameter1_m, aperture_m.second[0]) + aperture_m.second[0];
+    widthExitFringe_m = 2 * std::min(exitParameter3_m - exitParameter1_m, aperture_m.second[0]) + aperture_m.second[0];
 }

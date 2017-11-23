@@ -113,6 +113,7 @@ namespace Attrib
             OFFSETPX,
             OFFSETPY,
             OFFSETPZ,
+            OFFSETP,
             SIGMAX,
             SIGMAY,
             SIGMAR,
@@ -429,6 +430,7 @@ private:
     void printEmissionModelNone(Inform &os) const;
     void printEmissionModelNonEquil(Inform &os) const;
     void printEnergyBins(Inform &os) const;
+    void adjustPhaseSpace(double massIneV);
     void reflectDistribution(size_t &numberOfParticles);
     void scaleDistCoordinates();
     void setAttributes();

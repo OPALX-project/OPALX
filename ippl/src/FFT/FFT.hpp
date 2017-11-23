@@ -1152,10 +1152,6 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
 				       int streamId,
 				       const bool& constInput)
 {
-  // time the whole mess
-  static IpplTimings::TimerRef tottimer=IpplTimings::getTimer("RC-total-gpu");
-  IpplTimings::startTimer(tottimer);
-  
   //check the domain of incoming field
   const Layout_t& in_layout = f.getLayout();
   const Domain_t& in_dom = in_layout.getDomain();
@@ -1303,7 +1299,6 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
   /* end dks part */
 
   // finish timing the whole mess
-  IpplTimings::stopTimer(tottimer);	
 }
 #endif
 
@@ -1566,16 +1561,9 @@ FFT<RCTransform,Dim,T>::transform(
 				  typename FFT<RCTransform,Dim,T>::ComplexField_t& g,
 				  const bool& constInput)
 {
-  // ippl timers
-  static IpplTimings::TimerRef tr1=IpplTimings::getTimer("RC-RRtranspose");
-  static IpplTimings::TimerRef tr2=IpplTimings::getTimer("RC-CCtranspose");
-  static IpplTimings::TimerRef ffttr1=IpplTimings::getTimer("RC-RC1Dfft");
-  static IpplTimings::TimerRef ffttr2=IpplTimings::getTimer("RC-CC1Dfft");
-  static IpplTimings::TimerRef tottimer=IpplTimings::getTimer("RC-total");
   FFTDBG(Inform tmsg("FFT-RC-forward"));
 
   // time the whole mess
-  IpplTimings::startTimer(tottimer);
 
   // indicate we're doing another fft
   // incipplstat(incffts);
@@ -1636,10 +1624,7 @@ FFT<RCTransform,Dim,T>::transform(
     // transpose AND PERMUTE TO REAL FIELD WITH TRANSFORM DIM FIRST
     FFTDBG(tmsg << "doing transpose of real field into temporary ");
     FFTDBG(tmsg << "with layout = " << tempR->getLayout() << std::endl);
-    IpplTimings::startTimer(tr1);
     (*tempR)[tempR->getDomain()] = f[in_dom];
-    IpplTimings::stopTimer(tr1);
-
     
   }
 
@@ -1676,9 +1661,6 @@ FFT<RCTransform,Dim,T>::transform(
 
   FFTDBG(tmsg << "doing real->complex fft of first dimension ..." << std::endl);
   
-  
-  IpplTimings::startTimer(ffttr1);
-
   // loop over all the vnodes, working on the lfield in each.
   typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
   typename ComplexField_t::const_iterator_if cl_i = temp->begin_if();
@@ -1718,9 +1700,6 @@ FFT<RCTransform,Dim,T>::transform(
     
   } // loop over all the lfields
 
-  IpplTimings::stopTimer(ffttr1);
-
-
   // compress temporary storage
   if (this->compressTemps() && tempR != &f)
     *tempR = 0;
@@ -1755,11 +1734,9 @@ FFT<RCTransform,Dim,T>::transform(
       FFTDBG(tmsg << "doing complex->complex transpose into field ");
       FFTDBG(tmsg << "with layout = " << tempFields_m[idim]->getLayout());
       FFTDBG(tmsg << std::endl);
-      IpplTimings::startTimer(tr2);
       
       (*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] = 
         (*temp)[temp->getLayout().getDomain()];
-      IpplTimings::stopTimer(tr2);
 
       // compress out previous iterate's storage:
       if (this->compressTemps())
@@ -1776,9 +1753,7 @@ FFT<RCTransform,Dim,T>::transform(
       FFTDBG(tmsg << "with layout = " << g.getLayout());
       FFTDBG(tmsg << std::endl);
       
-      IpplTimings::startTimer(tr2);
       g[out_dom] = (*temp)[temp->getLayout().getDomain()];
-      IpplTimings::stopTimer(tr2);
 
       // compress out previous iterate's storage:
       if (this->compressTemps())
@@ -1789,7 +1764,6 @@ FFT<RCTransform,Dim,T>::transform(
     
 
     FFTDBG(tmsg << "doing complex->complex fft of other dimension .." << std::endl);
-    IpplTimings::startTimer(ffttr2);
 
     // loop over all the vnodes, working on the lfield in each.
     typename ComplexField_t::const_iterator_if l_i, l_end = temp->end_if();
@@ -1818,8 +1792,6 @@ FFT<RCTransform,Dim,T>::transform(
       } // loop over 1D strips
     } // loop over all the LFields
 
-    IpplTimings::stopTimer(ffttr2);
-  
   } // loop over all transformed dimensions 
 
   
@@ -1832,9 +1804,8 @@ FFT<RCTransform,Dim,T>::transform(
     FFTDBG(tmsg << "into return ");
     FFTDBG(tmsg << "with layout = " << g.getLayout());
     FFTDBG(tmsg << std::endl); 
-    IpplTimings::startTimer(tr2);
+
     g[out_dom] = (*temp)[temp->getLayout().getDomain()];
-    IpplTimings::stopTimer(tr2);
 
     if (this->compressTemps()) *temp = 0;
     
@@ -1844,7 +1815,6 @@ FFT<RCTransform,Dim,T>::transform(
   if (direction == +1) g = g * this->getNormFact();
 
   // finish timing the whole mess
-  IpplTimings::stopTimer(tottimer);
   
 }
 //#endif
@@ -1870,9 +1840,6 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
 				       int streamId,
 				       const bool& constInput)
 {
-  // time the whole mess
-  static IpplTimings::TimerRef tottimer=IpplTimings::getTimer("RC-total-gpu");
-  IpplTimings::startTimer(tottimer);
 
   const Layout_t& out_layout = g.getLayout();
   const Domain_t& out_dom = out_layout.getDomain();
@@ -2015,7 +1982,6 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
   }
 		
   // finish timing the whole mess
-  IpplTimings::stopTimer(tottimer);
 }
 #endif
 
@@ -2258,16 +2224,7 @@ FFT<RCTransform,Dim,T>::transform(
 				  typename FFT<RCTransform,Dim,T>::RealField_t& g,
 				  const bool& constInput)
 {
-  // IPPL timers
-  static IpplTimings::TimerRef tr1=IpplTimings::getTimer("RC-RRtranspose");
-  static IpplTimings::TimerRef tr2=IpplTimings::getTimer("RC-CCtranspose");
-  static IpplTimings::TimerRef ffttr1=IpplTimings::getTimer("RC-RC1Dfft");
-  static IpplTimings::TimerRef ffttr2=IpplTimings::getTimer("RC-CC1Dfft");
-  static IpplTimings::TimerRef tottimer=IpplTimings::getTimer("RC-total");
   FFTDBG(Inform tmsg("FFT-RC-reverse"));
-
-  // time the whole mess
-  IpplTimings::startTimer(tottimer);
 
   // indicate we're doing another FFT
   // INCIPPLSTAT(incFFTs);
@@ -2316,10 +2273,8 @@ FFT<RCTransform,Dim,T>::transform(
       // transpose and permute to Field with transform dim first
       FFTDBG(tmsg << "Doing complex->complex transpose into field ");
       FFTDBG(tmsg << "with layout = "<<tempFields_m[idim]->getLayout()<<std::endl);
-      IpplTimings::startTimer(tr2);
       (*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] = 
         (*temp)[temp->getLayout().getDomain()];
-      IpplTimings::stopTimer(tr2);
 
       // Compress out previous iterate's storage:
       if (this->compressTemps() && temp != &f)
@@ -2329,7 +2284,6 @@ FFT<RCTransform,Dim,T>::transform(
     
     FFTDBG(tmsg << "Doing complex->complex fft of other dimension .." << std::endl);
     
-    IpplTimings::startTimer(ffttr2);
 
     // Loop over all the Vnodes, working on the LField in each.
     typename ComplexField_t::const_iterator_if l_i, l_end = temp->end_if();
@@ -2359,8 +2313,6 @@ FFT<RCTransform,Dim,T>::transform(
       } // loop over 1D strips
     } // loop over all the LFields
 
-    IpplTimings::stopTimer(ffttr2);
-    
   } // loop over all transformed dimensions 
 
   // handle last CR transform separately
@@ -2420,10 +2372,8 @@ FFT<RCTransform,Dim,T>::transform(
     // transpose and permute to complex Field with transform dim first
     FFTDBG(tmsg << "Doing final complex->complex transpose into field ");
     FFTDBG(tmsg << "with layout = "<<tempFields_m[0]->getLayout()<<std::endl);
-    IpplTimings::startTimer(tr2);
     (*tempFields_m[0])[tempLayouts_m[0]->getDomain()] =
       (*temp)[temp->getLayout().getDomain()];
-    IpplTimings::stopTimer(tr2);
 
     // compress previous iterates storage
     if (this->compressTemps() && temp != &f)
@@ -2434,8 +2384,6 @@ FFT<RCTransform,Dim,T>::transform(
 
   FFTDBG(tmsg << "Doing complex->real fft of final dimension ..." << std::endl);
   
-  IpplTimings::startTimer(ffttr1);
-
   // Loop over all the Vnodes, working on the LField in each.
   typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
   typename ComplexField_t::const_iterator_if cl_i = temp->begin_if();
@@ -2474,9 +2422,6 @@ FFT<RCTransform,Dim,T>::transform(
     } // loop over 1D strips
   } // loop over all the LFields
 
-  IpplTimings::stopTimer(ffttr1);
-  
-
   // compress previous iterates storage
   if (this->compressTemps() && temp != &f)
     *temp = 0;
@@ -2488,9 +2433,7 @@ FFT<RCTransform,Dim,T>::transform(
     // Now assign into output Field, and compress last temp's storage:
     FFTDBG(tmsg << "Doing cleanup real->real transpose into return ");
     FFTDBG(tmsg << "with layout = " << g.getLayout() << std::endl);
-    IpplTimings::startTimer(tr1);
     g[out_dom] = (*tempR)[tempR->getLayout().getDomain()];
-    IpplTimings::stopTimer(tr1);
 
     if (this->compressTemps())
       *tempR = 0;
@@ -2501,7 +2444,6 @@ FFT<RCTransform,Dim,T>::transform(
   if (direction == +1) g = g * this->getNormFact();
 
   // finish up timing the whole mess
-  IpplTimings::stopTimer(tottimer);
 }
 //#endif
 

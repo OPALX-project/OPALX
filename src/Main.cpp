@@ -100,7 +100,7 @@ void errorHandlerGSL(const char *reason,
                      int gsl_errno);
 
 
-bool haveOpimiseRun(int argc, char *argv[]) {
+bool haveOptimiseRun(int argc, char *argv[]) {
 
     namespace fs = boost::filesystem;
 
@@ -296,7 +296,11 @@ int mainOPAL(int argc, char *argv[]) {
 
 #ifdef OPAL_DKS
     *gmsg << "OPAL compiled with DKS (Dynamic Kernel Scheduler) Version "
-	  << DKS_VERSION << endl << endl;
+	  << DKS_VERSION;
+    if (IpplInfo::DKSEnabled)
+      *gmsg << " GPU present" << endl << endl;
+    else
+      *gmsg << " GPU not present" << endl << endl;
 #endif
 
     *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) \nto the OPAL developers " << PACKAGE_BUGREPORT << "\n" << endl;
@@ -336,7 +340,6 @@ int mainOPAL(int argc, char *argv[]) {
     FTps<double, 6>::setGlobalTruncOrder(10);
 
     OpalData *opal = OpalData::getInstance();
-
     try {
         Configure::configure();
 
@@ -375,6 +378,7 @@ int mainOPAL(int argc, char *argv[]) {
         } else {
             int arg = -1;
             std::string fname;
+            std::string restartFileName;
             // if(argc > 3) {
             //     if(argc > 5) {
             //         // will write dumping date into a new h5 file
@@ -394,7 +398,7 @@ int mainOPAL(int argc, char *argv[]) {
                     continue;
                 } else if (argStr == std::string("-restartfn") ||
                            argStr == std::string("--restartfn")) {
-                    opal->setRestartFileName(argv[++ ii]);
+                    restartFileName = std::string(argv[++ ii]);
                     continue;
                 } else if (argStr == std::string("-version") ||
                            argStr == std::string("--version")) {
@@ -472,8 +476,16 @@ int mainOPAL(int argc, char *argv[]) {
             }
 
             opal->storeInputFn(fname);
-            opal->setRestartFileName(opal->getInputBasename() + std::string(".h5"));
 
+            if (opal->inRestartRun()) {
+                if (restartFileName == "")
+                    restartFileName = opal->getInputBasename() + std::string(".h5");
+                if (!fs::exists(restartFileName)) {
+                    INFOMSG("Restart file \"" << restartFileName << "\" doesn't exist!" << endl);
+                    exit(1);
+                }
+                opal->setRestartFileName(restartFileName);
+            }
 
             FileStream *is;
 
@@ -572,7 +584,7 @@ int main(int argc, char *argv[]) {
 
     int res;
 
-    if ((argc <= 1) || !haveOpimiseRun(argc, argv))
+    if ((argc <= 1) || !haveOptimiseRun(argc, argv))
         res = mainOPAL(argc, argv);
     else
         res = mainOPALOptimiser(argc, argv);

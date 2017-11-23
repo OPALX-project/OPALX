@@ -8,6 +8,7 @@
 #include <dirent.h>
 #include <cstdlib>
 #include <vector>
+#include <ctime>
 
 #include "Simulation/OpalSimulation.h"
 
@@ -22,16 +23,13 @@
 #include "boost/smart_ptr.hpp"
 #include "boost/algorithm/string.hpp"
 
-#ifdef BOOST_FILESYSTEM
-    #include "boost/filesystem/operations.hpp"
-    //#include "boost/filesystem/fstream.hpp"
-#endif
+#include "boost/filesystem.hpp"
+#include "boost/filesystem/operations.hpp"
 
 // access to OPAL lib
 #include "opal.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
-
 
 OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
                                Expressions::Named_t constraints,
@@ -42,12 +40,15 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
                , constraints_(constraints)
                , comm_(comm)
 {
+    namespace fs = boost::filesystem;
+
     if(getenv("SIMTMPDIR") == NULL) {
         std::cout << "Environment variable SIMTMPDIR not defined!"
                   << std::endl;
         simTmpDir_ = getenv("PWD");
     } else
         simTmpDir_ = getenv("SIMTMPDIR");
+
     simulationName_ = name;
 
     // prepare design variables given by the optimizer for generating the
@@ -66,16 +67,35 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
             std::pair<std::string, std::string>(parameter.first, value.str()));
     }
 
+    /*
+      This is a copy from Comm/Splitter/ManyMasterSplit.h
+      in order to calculate the leader which is the unique ID in case
+      of more than one core per worker.
+    */
 
     int my_rank=0;
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    int world_size=0;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    unsigned num_coworkers_worker_ = 0;
+    num_coworkers_worker_ = args->getArg<size_t>("num-coworkers");
+
+    unsigned group_start = 0;
+
+    unsigned worker_group = ((my_rank % world_size) - 2) / num_coworkers_worker_;
+
+    unsigned leader_ = group_start + 2 + worker_group * num_coworkers_worker_;
+    leader_ = leader_ % world_size;
 
     // hash the dictionary to get a short unique directory name for temporary
     // simulation data
     std::string hash = HashNameGenerator::generate(dict);
     std::ostringstream tmp;
     tmp.precision(15);
-    tmp << simTmpDir_ << "/" << hash << "_" << my_rank;
+
+    tmp << simTmpDir_ << "/" << hash << "_" << leader_;
+
     simulationDirName_ = tmp.str();
 
     if(getenv("TEMPLATES") == NULL) {
@@ -86,6 +106,12 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
     std::string tmplFile = tmplDir + "/" + simulationName_ + ".tmpl";
     // data file is assumed to be located in the root directory
     std::string dataFile = simulationName_ + ".data";
+    if (!fs::exists(dataFile))
+        throw OptPilotException("OpalSimulation::OpalSimulation", "The data file '" + dataFile + "' doesn't exist");
+
+    if (!fs::exists(tmplFile))
+        throw OptPilotException("OpalSimulation::OpalSimulation", "The template file '" + tmplFile + "' doesn't exit");
+
     gs_.reset(new GenerateOpalSimulation(tmplFile, dataFile, userVariables_));
 }
 
@@ -94,7 +120,6 @@ OpalSimulation::~OpalSimulation() {
     requestedVars_.clear();
     userVariables_.clear();
 }
-
 
 bool OpalSimulation::hasResultsAvailable() {
 
@@ -130,7 +155,7 @@ void OpalSimulation::setupSimulation() {
                 "Environment variable FIELDMAPS not defined!");
         }
         std::string fieldmapPath = getenv("FIELDMAPS");
-	
+
         struct dirent **files;
         int count = scandir(fieldmapPath.c_str(), &files, 0, alphasort);
 
@@ -184,7 +209,7 @@ void OpalSimulation::restoreOut() {
 
 
 void OpalSimulation::run() {
-  
+
     // make sure input file is not already existing
     MPI_Barrier(comm_);
     if( hasResultsAvailable() ) return;
@@ -199,7 +224,7 @@ void OpalSimulation::run() {
     if (err != 0) {
         std::cout << "Cannot chdir to "
                   << simulationDirName_.c_str() << std::endl;
-        std::cout << "Continuing, disregarding this simulation.."
+        std::cout << "Continuing 1, disregarding this simulation.."
                   << std::endl;
         return;
     }
@@ -249,7 +274,7 @@ void OpalSimulation::run() {
 
         std::cout << "Opal exception during simulation run: "
                   << ex->what() << std::endl;
-        std::cout << "Continuing, disregarding this simulation.."
+        std::cout << "Continuing 2, disregarding this simulation.."
                   << std::endl;
 
     } catch(ClassicException *ex) {
@@ -262,7 +287,7 @@ void OpalSimulation::run() {
 
         std::cout << "Classic exception during simulation run: "
                   << ex->what() << std::endl;
-        std::cout << "Continuing, disregarding this simulation.."
+        std::cout << "Continuing 3, disregarding this simulation.."
                   << std::endl;
     }
 
@@ -394,7 +419,7 @@ bool OpalSimulation::getVariableDictionary(variableDictionary_t& dictionary,
     } catch(OptPilotException &e) {
         std::cout << "Exception while parsing SDDS file: "
                   << e.what() << std::endl;
-        
+
         //XXX: in this case we mark the bunch as invalid since
         //     broken stat files can crash opt (why do they
         //     exist?)
@@ -405,7 +430,7 @@ bool OpalSimulation::getVariableDictionary(variableDictionary_t& dictionary,
     // get all the required variable values from the stat file
     for(std::string req_var : req_vars) {
         if(dictionary.count(req_var) != 0) continue;
-        
+
         try {
             double value = 0.0;
             sddsr->getValue(-1 /*atTime*/, req_var, value);

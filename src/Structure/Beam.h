@@ -83,7 +83,7 @@ public:
     /// Return the charge number in elementary charge
     double getCharge() const;
 
-    /// Return the beam frequency in Hz
+    /// Return the beam frequency in MHz
     double getFrequency() const;
 
     /// Return Particle's name

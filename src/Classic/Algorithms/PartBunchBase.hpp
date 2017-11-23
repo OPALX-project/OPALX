@@ -95,7 +95,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
       t_m(0.0),
       eKin_m(0.0),
       dE_m(0.0),
-      spos_m(0.0), 
+      spos_m(0.0),
       globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
       globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
       rmax_m(0.0),
@@ -136,11 +136,10 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
       pbase(pb)
 {
     setup(pb);
-    
+
     boundpTimer_m = IpplTimings::getTimer("Boundingbox");
     statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
     selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
-    compPotenTimer_m  = IpplTimings::getTimer("SF: Potential");
 
     histoTimer_m = IpplTimings::getTimer("Histogram");
 
@@ -225,11 +224,10 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
       pbase(pb)
 {
     setup(pb);
-    
+
     boundpTimer_m = IpplTimings::getTimer("Boundingbox");
     statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
     selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
-    compPotenTimer_m  = IpplTimings::getTimer("SF: Potential");
 
     histoTimer_m = IpplTimings::getTimer("Histogram");
 
@@ -315,7 +313,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb,
     dcBeam_m(false),
     pbase(pb)
 {
-    
+
 }
 
 
@@ -386,8 +384,8 @@ PartBunchBase<T, Dim>::PartBunchBase(const PartBunchBase<T, Dim>& rhs):
 // AbstractParticle<T, Dim>* PartBunchBase<T, Dim>::getParticleBase() {
 //     return pbase;
 // }
-// 
-// 
+//
+//
 // template <class T, unsigned Dim>
 // const AbstractParticle<T, Dim>* PartBunchBase<T, Dim>::getParticleBase() const {
 //     return pbase;
@@ -742,13 +740,13 @@ double PartBunchBase<T, Dim>::getBinGamma(int bin) {
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setBinCharge(int bin, double q) {
-    this->Q = where(eq(this->Bin, bin), q, 0.0);
+  this->Q = where(eq(this->Bin, bin), q, 0.0);
 }
 
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setBinCharge(int bin) {
-    this->Q = where(eq(this->Bin, bin), this->Q, 0.0);
+  this->Q = where(eq(this->Bin, bin), this->qi_m, 0.0);
 }
 
 
@@ -918,7 +916,7 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
         countLost = std::unique_ptr<size_t[]>(new size_t[tempN]);
         for(int ii = 0; ii < tempN; ii++) countLost[ii] = 0;
     }
-    
+
     this->updateDomainLength(nr_m);
 
     get_bounds(rmin_m, rmax_m);
@@ -990,13 +988,13 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
 
     // rescale mesh
     this->updateFields(hr_m, rmin_m);
-    
+
     if(weHaveBins()) {
         pbin_m->updatePartInBin_cyc(countLost.get());
     }
-    
+
     update();
-    
+
     IpplTimings::stopTimer(boundpTimer_m);
 }
 
@@ -1623,7 +1621,7 @@ void PartBunchBase<T, Dim>::calcBeamParameters() {
 
     eps_m = eps_norm_m / Vector_t(gamma * sqrt(1.0 - 1.0 / (gamma * gamma)));
     IpplTimings::stopTimer(statParamTimer_m);
-    
+
 }
 
 
@@ -1753,7 +1751,7 @@ template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setSolver(FieldSolver *fs) {
     fs_m = fs;
     fs_m->initSolver(this);
-    
+
     /**
        CAN not re-inizialize ParticleLayout
        this is an IPPL issue
@@ -2150,6 +2148,7 @@ void PartBunchBase<T, Dim>::correctEnergy(double avrgp_m) {
 
 template <class T, unsigned Dim>
 Inform &PartBunchBase<T, Dim>::print(Inform &os) {
+
     if(getTotalNum() != 0) {  // to suppress Nan's
         Inform::FmtFlags_t ff = os.flags();
 
@@ -2167,8 +2166,8 @@ Inform &PartBunchBase<T, Dim>::print(Inform &os) {
         os << level1 << "\n";
         os << "* ************** B U N C H ********************************************************* \n";
         os << "* NP              = " << getTotalNum() << "\n";
-        os << "* Qtot            = " << std::setw(17) << Util::getChargeString(abs(sum(Q))) << "         "
-           << "Qi    = "             << std::setw(17) << Util::getChargeString(std::abs(qi_m)) << "\n";
+        os << "* Qtot            = " << std::setw(17) << Util::getChargeString(std::abs(sum(Q))) << "         "
+	   << "Qi    = "             << std::setw(17) << Util::getChargeString(std::abs(qi_m)) << "\n";
         os << "* Ekin            = " << std::setw(17) << Util::getEnergyString(eKin_m) << "         "
            << "dEkin = "             << std::setw(17) << Util::getEnergyString(dE_m) << "\n";
         os << "* rmax            = " << Util::getLengthString(rmax_m, 5) << "\n";
@@ -2196,7 +2195,7 @@ Inform &PartBunchBase<T, Dim>::print(Inform &os) {
 
 template <class T, unsigned Dim>
 size_t PartBunchBase<T, Dim>::calcMoments() {
-    
+
     double part[2 * Dim];
 
     double loc_centroid[2 * Dim];
@@ -2277,7 +2276,7 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::calcMomentsInitial() {
-    
+
     double part[2 * Dim];
 
     for(unsigned int i = 0; i < 2 * Dim; ++i) {
@@ -2358,7 +2357,7 @@ Inform &operator<<(Inform &os, PartBunchBase<T, Dim> &p) {
 
 
 /*
- * Virtual member functions 
+ * Virtual member functions
  */
 
 template <class T, unsigned Dim>
@@ -2369,7 +2368,7 @@ void PartBunchBase<T, Dim>::runTests() {
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::resetInterpolationCache(bool clearCache) {
-    
+
 }
 
 template <class T, unsigned Dim>
@@ -2412,7 +2411,7 @@ void PartBunchBase<T, Dim>::setBCForDCBeam() {
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::updateFields(const Vector_t& hr, const Vector_t& origin)
 {
-    
+
 }
 
 
@@ -2424,24 +2423,23 @@ void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
     pb->addAttribute(Phi);
     pb->addAttribute(Ef);
     pb->addAttribute(Eftmp);
-    
+
     pb->addAttribute(Bf);
     pb->addAttribute(Bin);
     pb->addAttribute(dt);
     pb->addAttribute(PType);
     pb->addAttribute(TriID);
-    
+
     boundpTimer_m = IpplTimings::getTimer("Boundingbox");
     statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
     selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
-    compPotenTimer_m  = IpplTimings::getTimer("SF: Potential");
 
     histoTimer_m = IpplTimings::getTimer("Histogram");
 
     distrCreate_m = IpplTimings::getTimer("Create Distr");
     distrReload_m = IpplTimings::getTimer("Load Distr");
-    
-    
+
+
     partPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
     globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
 
@@ -2456,7 +2454,7 @@ void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
           pmsg_m = std::unique_ptr<Inform>(new Inform(0, *f_stream, 0));
       }
     */
-    
+
     // set the default IPPL behaviour
     setMinimumNumberOfParticlesPerCore(0);
 }

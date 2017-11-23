@@ -22,6 +22,7 @@ set (_SRCS
   Marker.cpp
   Monitor.cpp
   Multipole.cpp
+  MultipoleT.cpp
   Offset.cpp
   ParallelPlate.cpp
   Patch.cpp
@@ -71,6 +72,7 @@ set (HDRS
     Marker.h
     Monitor.h
     Multipole.h
+    MultipoleT.h
     Offset.h
     ParallelPlate.h
     Patch.h

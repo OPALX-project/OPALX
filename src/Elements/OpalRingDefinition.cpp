@@ -59,6 +59,10 @@ OpalRingDefinition::OpalRingDefinition() :
     // I see also makeBool, but dont know how it works; no registerBoolAttribute
     itsAttr[IS_CLOSED] = Attributes::makeString("IS_CLOSED",
                                                 "Set to 'false' to disable checking for closure of the ring");
+    itsAttr[MIN_R] = Attributes::makeReal("MIN_R",
+                                           "Minimum allowed radius during tracking [m]. If not defined, any radius is allowed. If MIN_R is defined, MAX_R must also be defined.");
+    itsAttr[MAX_R] = Attributes::makeReal("MAX_R",
+                                           "Maximum allowed radius during tracking [m]. If not defined, any radius is allowed. If MAX_R is defined, MIN_R must also be defined.");
 
     registerRealAttribute("LAT_RINIT");
     registerRealAttribute("LAT_PHIINIT");
@@ -71,6 +75,9 @@ OpalRingDefinition::OpalRingDefinition() :
     registerRealAttribute("SCALE");
     registerRealAttribute("RFFREQ");
     registerStringAttribute("IS_CLOSED");
+    registerRealAttribute("SCALE");
+    registerRealAttribute("MIN_R");
+    registerRealAttribute("MAX_R");
 
     registerOwnership();
 
@@ -114,6 +121,22 @@ void OpalRingDefinition::update() {
     ring->setHarmonicNumber(Attributes::getReal(itsAttr[HARMONIC_NUMBER]));
     ring->setRFFreq(Attributes::getReal(itsAttr[RFFREQ]));
     ring->setIsClosed(!(Attributes::getString(itsAttr[IS_CLOSED])=="FALSE"));
+    double minR = -1;
+    double maxR = -1;
+
+    if (itsAttr[MIN_R]) {
+        minR = Attributes::getReal(itsAttr[MIN_R]);
+        if (!itsAttr[MAX_R]) {
+            throw (""); // EXCEPTION
+        }
+    }
+    if (itsAttr[MAX_R]) {
+        maxR = Attributes::getReal(itsAttr[MAX_R]);
+        if (!itsAttr[MIN_R]) {
+            throw (""); // EXCEPTION
+        }
+        ring->setRingAperture(minR, maxR);
+    }
 
     setElement(ring->makeWrappers());
 }

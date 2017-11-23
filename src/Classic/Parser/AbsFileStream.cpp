@@ -45,12 +45,10 @@ bool AbsFileStream::optimCmdPresent(std::string str) {
   
   std::string s = str;
   std::transform(s.begin(), s.end(),s.begin(), ::toupper);
-  return (s.find("DVAR")!=std::string::npos)  || 
-         (s.find("DVARS")!=std::string::npos) ||
-         (s.find("OBJECTIVE")!=std::string::npos) ||
-         (s.find("OBJECTIVES")!=std::string::npos) ||
-         (s.find("CONSTRAINTS")!=std::string::npos) ||
-         (s.find("OPTIMIZE")!=std::string::npos);
+  return (s.find("DVAR")        !=std::string::npos) || // will also find DVARS
+         (s.find("OBJECTIVE")   !=std::string::npos) || // will also find OBJECTIVES
+         (s.find("CONSTRAINT")  !=std::string::npos) || // will also find CONSTRAINTS
+         (s.find("OPTIMIZE")    !=std::string::npos);
 }
 
 

@@ -9,7 +9,7 @@
 
 
 // AmrOpal::AmrOpal() { }
-AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord,
+AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<int>& n_cell_in, int coord,
 #ifdef IPPL_AMR
                  PartBunchAmr<amrplayout_t>* bunch)
 #else
@@ -30,11 +30,11 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
     initBaseLevel();
     
     nChargePerCell_m.resize(max_level_in + 1);
-    nChargePerCell_m[0] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(0), this->DistributionMap(0), 1, 1));
+    nChargePerCell_m[0] = std::unique_ptr<amrex::MultiFab>(new amrex::MultiFab(this->boxArray(0), this->DistributionMap(0), 1, 1));
     nChargePerCell_m[0]->setVal(0.0, 1);
 }
 
-AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord)
+AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<int>& n_cell_in, int coord)
     : AmrMesh(rb, max_level_in, n_cell_in, coord),
       tagging_m(kChargeDensity),
       scaling_m(0.75),
@@ -44,16 +44,16 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
 {
     finest_level = 0;
     
-    const BoxArray& ba = MakeBaseGrids();
+    const amrex::BoxArray& ba = MakeBaseGrids();
     
-    DistributionMapping dm(ba, ParallelDescriptor::NProcs());
+    amrex::DistributionMapping dm(ba, amrex::ParallelDescriptor::NProcs());
     
     nChargePerCell_m.resize(max_level_in + 1);
     
     MakeNewLevel(0, 0.0, ba, dm);
 }
 
-AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord,
+AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<int>& n_cell_in, int coord,
                  const std::vector<int>& refratio)
     : AmrMesh(rb, max_level_in, n_cell_in, coord, refratio),
       tagging_m(kChargeDensity),
@@ -64,9 +64,9 @@ AmrOpal::AmrOpal(const RealBox* rb, int max_level_in, const Array<int>& n_cell_i
 {
     finest_level = 0;
     
-    const BoxArray& ba = MakeBaseGrids();
+    const amrex::BoxArray& ba = MakeBaseGrids();
     
-    DistributionMapping dm(ba, ParallelDescriptor::NProcs());
+    amrex::DistributionMapping dm(ba, amrex::ParallelDescriptor::NProcs());
     
     nChargePerCell_m.resize(max_level_in + 1);
     
@@ -85,11 +85,11 @@ void AmrOpal::initBaseLevel() {
     finest_level = 0; // AmrMesh protected member variable
 #ifdef IPPL_AMR
     amrplayout_t* PLayout = &bunch_m->getLayout();
-    const BoxArray& ba = PLayout->ParticleBoxArray(0);
-    const DistributionMapping& dm = PLayout->ParticleDistributionMap(0 /*level*/);
+    const amrex::BoxArray& ba = PLayout->ParticleBoxArray(0);
+    const amrex::DistributionMapping& dm = PLayout->ParticleDistributionMap(0 /*level*/);
 #else
-    const BoxArray& ba = bunch_m->ParticleBoxArray(0 /*level*/);
-    const DistributionMapping& dm = bunch_m->ParticleDistributionMap(0 /*level*/);
+    const amrex::BoxArray& ba = bunch_m->ParticleBoxArray(0 /*level*/);
+    const amrex::DistributionMapping& dm = bunch_m->ParticleDistributionMap(0 /*level*/);
 #endif
     
     SetBoxArray(0 /*level*/, ba);
@@ -104,7 +104,7 @@ void AmrOpal::writePlotFileYt(std::string filename, int step) {
     chargeOnGrid.resize(finest_level + 1);
     
     for (int i = 0; i < finest_level; ++i) {
-        chargeOnGrid[i].reset(new MultiFab(this->boxArray(i), this->DistributionMap(i), 1, 0));
+        chargeOnGrid[i].reset(new amrex::MultiFab(this->boxArray(i), this->DistributionMap(i), 1, 0));
         chargeOnGrid[i]->setVal(0.0);
     }
         
@@ -119,21 +119,21 @@ void AmrOpal::writePlotFileYt(std::string filename, int step) {
     //
     // Only let 64 CPUs be writing at any one time.
     //
-    VisMF::SetNOutFiles(64);
+    amrex::VisMF::SetNOutFiles(64);
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
-    if (ParallelDescriptor::IOProcessor())
+    if (amrex::ParallelDescriptor::IOProcessor())
         if (!amrex::UtilCreateDirectory(dir, 0755))
             amrex::CreateDirectoryFailed(dir);
     //
     // Force other processors to wait till directory is built.
     //
-    ParallelDescriptor::Barrier();
+    amrex::ParallelDescriptor::Barrier();
 
     std::string HeaderFileName = dir + "/Header";
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    amrex::VisMF::IO_Buffer io_buffer(amrex::VisMF::IO_Buffer_Size);
 
     std::ofstream HeaderFile;
 
@@ -141,7 +141,7 @@ void AmrOpal::writePlotFileYt(std::string filename, int step) {
 
     int nData = chargeOnGrid[0]->nComp();
     
-    if (ParallelDescriptor::IOProcessor())
+    if (amrex::ParallelDescriptor::IOProcessor())
     {
         //
         // Only the IOProcessor() writes to the header file.
@@ -160,17 +160,17 @@ void AmrOpal::writePlotFileYt(std::string filename, int step) {
         
         
         // dimensionality
-        HeaderFile << BL_SPACEDIM << '\n';
+        HeaderFile << AMREX_SPACEDIM << '\n';
         
         // time
         HeaderFile << 0.0 << '\n';
         HeaderFile << nLevels - 1 << std::endl; // maximum level number (0=single level)
         
         // physical domain
-        for (int i = 0; i < BL_SPACEDIM; i++)
+        for (int i = 0; i < AMREX_SPACEDIM; i++)
             HeaderFile << geom[0].ProbLo(i) << ' ';
         HeaderFile << '\n';
-        for (int i = 0; i < BL_SPACEDIM; i++)
+        for (int i = 0; i < AMREX_SPACEDIM; i++)
             HeaderFile << geom[0].ProbHi(i) << ' ';
         HeaderFile << std::endl;
         
@@ -191,7 +191,7 @@ void AmrOpal::writePlotFileYt(std::string filename, int step) {
         
         // cell sizes for all level
         for (int i = 0; i < nLevels; ++i) {
-            for (int k = 0; k < BL_SPACEDIM; k++)
+            for (int k = 0; k < AMREX_SPACEDIM; k++)
                 HeaderFile << geom[i].CellSize()[k] << ' ';
             HeaderFile << '\n';
         }
@@ -218,23 +218,23 @@ void AmrOpal::writePlotFileYt(std::string filename, int step) {
         //
         // Only the I/O processor makes the directory if it doesn't already exist.
         //
-        if (ParallelDescriptor::IOProcessor())
+        if (amrex::ParallelDescriptor::IOProcessor())
             if (!amrex::UtilCreateDirectory(FullPath, 0755))
                 amrex::CreateDirectoryFailed(FullPath);
         //
         // Force other processors to wait till directory is built.
         //
-        ParallelDescriptor::Barrier();
+        amrex::ParallelDescriptor::Barrier();
         
-        if (ParallelDescriptor::IOProcessor())
+        if (amrex::ParallelDescriptor::IOProcessor())
         {
             HeaderFile << lev << ' ' << chargeOnGrid[lev]->boxArray().size() << ' ' << 0 << '\n';
             HeaderFile << 0 << '\n';    // # time steps at this level
     
             for (int i = 0; i < chargeOnGrid[lev]->boxArray().size(); ++i)
             {
-                RealBox loc = RealBox(chargeOnGrid[lev]->boxArray()[i],geom[lev].CellSize(),geom[lev].ProbLo());
-                for (int n = 0; n < BL_SPACEDIM; n++)
+                amrex::RealBox loc = amrex::RealBox(chargeOnGrid[lev]->boxArray()[i],geom[lev].CellSize(),geom[lev].ProbLo());
+                for (int n = 0; n < AMREX_SPACEDIM; n++)
                     HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
             }
     
@@ -243,21 +243,21 @@ void AmrOpal::writePlotFileYt(std::string filename, int step) {
             HeaderFile << PathNameInHeader << '\n';
         }
         
-        MultiFab data(chargeOnGrid[lev]->boxArray(), chargeOnGrid[lev]->DistributionMap(), nData, 0);
+        amrex::MultiFab data(chargeOnGrid[lev]->boxArray(), chargeOnGrid[lev]->DistributionMap(), nData, 0);
         // dst, src, srccomp, dstcomp, numcomp, nghost
         /*
         * srccomp: the component to copy
         * dstcmop: the component where to copy
         * numcomp: how many components to copy
         */
-        MultiFab::Copy(data, *chargeOnGrid[lev],    0, 0, 1, 0);
+        amrex::MultiFab::Copy(data, *chargeOnGrid[lev],    0, 0, 1, 0);
         //
         // Use the Full pathname when naming the MultiFab.
         //
         std::string TheFullPath = FullPath;
         TheFullPath += BaseName;
     
-        VisMF::Write(data,TheFullPath);
+        amrex::VisMF::Write(data,TheFullPath);
     }
     
     for (int i = 0; i <= finest_level; ++i) {
@@ -270,20 +270,20 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
     chargeOnGrid.resize(finest_level + 1);
     
     for (int i = 0; i < finest_level; ++i) {
-        chargeOnGrid[i].reset(new MultiFab(this->boxArray(i), this->DistributionMap(i), 1, 0));
+        chargeOnGrid[i].reset(new amrex::MultiFab(this->boxArray(i), this->DistributionMap(i), 1, 0));
         chargeOnGrid[i]->setVal(0.0);
     }
     
-    Array<std::string> varnames(1, "rho");
+    amrex::Array<std::string> varnames(1, "rho");
     
-    Array<const MultiFab*> tmp(finest_level + 1);
+    amrex::Array<const amrex::MultiFab*> tmp(finest_level + 1);
     for (/*unsigned*/ int i = 0; i < finest_level + 1; ++i) {
         tmp[i] = chargeOnGrid[i].get();
     }
     
     const auto& mf = tmp;
     
-    Array<int> istep(finest_level+1, step);
+    amrex::Array<int> istep(finest_level+1, step);
     
     amrex::WriteMultiLevelPlotfile(filename, finest_level + 1, mf, varnames,
                                    Geom(), 0.0, istep, refRatio());
@@ -294,7 +294,7 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
 }
 
 
-void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
+void AmrOpal::ErrorEst(int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) {
     switch ( tagging_m ) {
         case kChargeDensity:
             tagForChargeDensity_m(lev, tags, time, ngrow);
@@ -324,25 +324,25 @@ void AmrOpal::ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
 }
 
 
-void AmrOpal::MakeNewLevelFromScratch(int lev, Real time, const BoxArray& ba,
-                                      const DistributionMapping& dm)
+void AmrOpal::MakeNewLevelFromScratch(int lev, amrex::Real time, const amrex::BoxArray& ba,
+                                      const amrex::DistributionMapping& dm)
 {
     amrex::Abort("How did we get her!");
 }
 
 
-void AmrOpal::MakeNewLevelFromCoarse(int lev, Real time, const BoxArray& ba,
-                                     const DistributionMapping& dm)
+void AmrOpal::MakeNewLevelFromCoarse(int lev, amrex::Real time, const amrex::BoxArray& ba,
+                                     const amrex::DistributionMapping& dm)
 {
     amrex::Abort("How did we get her!");
 }
 
 
 void
-AmrOpal::regrid (int lbase, Real time)
+AmrOpal::regrid (int lbase, amrex::Real time)
 {
     int new_finest = 0;
-    Array<BoxArray> new_grids(finest_level+2);
+    amrex::Array<amrex::BoxArray> new_grids(finest_level+2);
     
     MakeNewGrids(lbase, time, new_finest, new_grids);
 
@@ -354,7 +354,7 @@ AmrOpal::regrid (int lbase, Real time)
         {
             if (new_grids[lev] != grids[lev]) // otherwise nothing
             {
-                DistributionMapping new_dmap(new_grids[lev], ParallelDescriptor::NProcs());
+                amrex::DistributionMapping new_dmap(new_grids[lev], amrex::ParallelDescriptor::NProcs());
                 RemakeLevel(lev, time, new_grids[lev], new_dmap);
                 
                 /*
@@ -373,7 +373,7 @@ AmrOpal::regrid (int lbase, Real time)
 	}
 	else  // a new level
 	{
-	    DistributionMapping new_dmap(new_grids[lev], ParallelDescriptor::NProcs());
+	    amrex::DistributionMapping new_dmap(new_grids[lev], amrex::ParallelDescriptor::NProcs());
 	    MakeNewLevel(lev, time, new_grids[lev], new_dmap);
             
             /*
@@ -409,23 +409,23 @@ AmrOpal::regrid (int lbase, Real time)
 
 
 void
-AmrOpal::RemakeLevel (int lev, Real time,
-                      const BoxArray& new_grids, const DistributionMapping& new_dmap)
+AmrOpal::RemakeLevel (int lev, amrex::Real time,
+                      const amrex::BoxArray& new_grids, const amrex::DistributionMapping& new_dmap)
 {
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
-    nChargePerCell_m[lev].reset(new MultiFab(new_grids, new_dmap, 1, 1));
+    nChargePerCell_m[lev].reset(new amrex::MultiFab(new_grids, new_dmap, 1, 1));
 }
 
 void
-AmrOpal::MakeNewLevel (int lev, Real time,
-                       const BoxArray& new_grids, const DistributionMapping& new_dmap)
+AmrOpal::MakeNewLevel (int lev, amrex::Real time,
+                       const amrex::BoxArray& new_grids, const amrex::DistributionMapping& new_dmap)
 {
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
-    nChargePerCell_m[lev] = std::unique_ptr<MultiFab>(new MultiFab(new_grids, dmap[lev], 1, 1));
+    nChargePerCell_m[lev] = std::unique_ptr<amrex::MultiFab>(new amrex::MultiFab(new_grids, dmap[lev], 1, 1));
 }
 
 void AmrOpal::ClearLevel(int lev) {
@@ -459,7 +459,7 @@ void AmrOpal::scatter_m(int lev) {
 
 
 // use scale instead of time to scale charge due to mapping of particles
-void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
+void AmrOpal::tagForChargeDensity_m(int lev, amrex::TagBoxArray& tags, amrex::Real scale/*time*/, int ngrow) {
     
     scatter_m(lev);
     
@@ -467,21 +467,21 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real scale/*time
         nChargePerCell_m[i]->mult(scale, 1);
     }
     
-    const int clearval = TagBox::CLEAR;
-    const int   tagval = TagBox::SET;
+    const int clearval = amrex::TagBox::CLEAR;
+    const int   tagval = amrex::TagBox::SET;
 
-    const Real* dx      = geom[lev].CellSize();
-    const Real* prob_lo = geom[lev].ProbLo();
+    const amrex::Real* dx      = geom[lev].CellSize();
+    const amrex::Real* prob_lo = geom[lev].ProbLo();
     
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        Array<int>  itags;
-        for (MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
-            const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
+        amrex::Array<int>  itags;
+        for (amrex::MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+            const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
-            TagBox&     tagfab  = tags[mfi];
+            amrex::TagBox&     tagfab  = tags[mfi];
             
             // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
             // So we are going to get a temporary integer array.
@@ -505,7 +505,7 @@ void AmrOpal::tagForChargeDensity_m(int lev, TagBoxArray& tags, Real scale/*time
     }
 }
 
-void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
+void AmrOpal::tagForPotentialStrength_m(int lev, amrex::TagBoxArray& tags, amrex::Real scale/*time*/, int ngrow) {
     /* Perform a single level solve a level lev and tag all cells for refinement
      * where the value of the potential is higher than 75 percent of the maximum potential
      * value of this level.
@@ -520,7 +520,7 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real scale/*
     mfs_mt nPartPerCell(nlevels);
     
     for ( int i = 0; i < nlevels; ++ i) {
-        nPartPerCell[i] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(i),
+        nPartPerCell[i] = std::unique_ptr<amrex::MultiFab>(new amrex::MultiFab(this->boxArray(i),
                                                              this->DistributionMap(i),
                                                              1, 2)
                                                  );
@@ -540,7 +540,7 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real scale/*
     
     // 2. Solve Poisson's equation on level lev
     
-    Real offset = 0.0;
+    amrex::Real offset = 0.0;
     
     if ( geom[0].isAllPeriodic() ) {
         for (std::size_t i = 0; i < bunch_m->getLocalNum(); ++i) {
@@ -557,10 +557,10 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real scale/*
     Solver::container_t grad_phi(nlevels);
     for ( int i = 0; i < nlevels; ++i ) {
         //                                                                # component # ghost cells                                                                                                                                          
-        phi[i] = std::unique_ptr<MultiFab>(
-            new MultiFab(this->boxArray(i), this->DistributionMap(i), 1          , 1));
-        grad_phi[i] = std::unique_ptr<MultiFab>(
-            new MultiFab(this->boxArray(i), this->DistributionMap(i), BL_SPACEDIM, 1));
+        phi[i] = std::unique_ptr<amrex::MultiFab>(
+            new amrex::MultiFab(this->boxArray(i), this->DistributionMap(i), 1          , 1));
+        grad_phi[i] = std::unique_ptr<amrex::MultiFab>(
+            new amrex::MultiFab(this->boxArray(i), this->DistributionMap(i), AMREX_SPACEDIM, 1));
         phi[i]->setVal(0.0, 1);
         grad_phi[i]->setVal(0.0, 1);
     }
@@ -577,27 +577,27 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real scale/*
                         false); // we need no gradient
     
     // 3. Tag cells for refinement
-    const int clearval = TagBox::CLEAR;
-    const int   tagval = TagBox::SET;
+    const int clearval = amrex::TagBox::CLEAR;
+    const int   tagval = amrex::TagBox::SET;
 
-    const Real* dx      = geom[lev].CellSize();
-    const Real* prob_lo = geom[lev].ProbLo();
+    const amrex::Real* dx      = geom[lev].CellSize();
+    const amrex::Real* prob_lo = geom[lev].ProbLo();
     
-    Real minp = 0.0;
-    Real maxp = 0.0;
+    amrex::Real minp = 0.0;
+    amrex::Real maxp = 0.0;
     maxp = scaling_m * phi[lev]->max(0);
     minp = scaling_m * phi[lev]->min(0);
-    Real value = std::max( std::abs(minp), std::abs(maxp) );
+    amrex::Real value = std::max( std::abs(minp), std::abs(maxp) );
     
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        Array<int>  itags;
-        for (MFIter mfi(*phi[lev],false/*true*/); mfi.isValid(); ++mfi) {
-            const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
+        amrex::Array<int>  itags;
+        for (amrex::MFIter mfi(*phi[lev],false/*true*/); mfi.isValid(); ++mfi) {
+            const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
-            TagBox&     tagfab  = tags[mfi];
+            amrex::TagBox&     tagfab  = tags[mfi];
             
             // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
             // So we are going to get a temporary integer array.
@@ -625,7 +625,7 @@ void AmrOpal::tagForPotentialStrength_m(int lev, TagBoxArray& tags, Real scale/*
         nPartPerCell[i].reset(nullptr);
 }
 
-void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
+void AmrOpal::tagForEfieldStrength_m(int lev, amrex::TagBoxArray& tags, amrex::Real scale/*time*/, int ngrow) {
     /* Perform a single level solve a level lev and tag all cells for refinement
      * where the value of the potential is higher than 75 percent of the maximum potential
      * value of this level.
@@ -640,7 +640,7 @@ void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*tim
     mfs_mt nPartPerCell(nlevels);
     
     for ( int i = 0; i < nlevels; ++ i) {
-        nPartPerCell[i] = std::unique_ptr<MultiFab>(new MultiFab(this->boxArray(i),
+        nPartPerCell[i] = std::unique_ptr<amrex::MultiFab>(new amrex::MultiFab(this->boxArray(i),
                                                              this->DistributionMap(i),
                                                              1, 2)
                                                  );
@@ -659,7 +659,7 @@ void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*tim
         nPartPerCell[i]->mult(scale, 0, 1);
     
     // 2. Solve Poisson's equation on level lev
-    Real offset = 0.0;
+    amrex::Real offset = 0.0;
     
     if ( geom[0].isAllPeriodic() ) {
         for (std::size_t i = 0; i < bunch_m->getLocalNum(); ++i) {
@@ -676,10 +676,10 @@ void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*tim
     Solver::container_t grad_phi(nlevels);
     for ( int i = 0; i < nlevels; ++i ) {
         //                                                                # component # ghost cells                                                                                                                                          
-        phi[i] = std::unique_ptr<MultiFab>(
-            new MultiFab(this->boxArray(i), this->DistributionMap(i), 1          , 1));
-        grad_phi[i] = std::unique_ptr<MultiFab>(
-            new MultiFab(this->boxArray(i), this->DistributionMap(i), BL_SPACEDIM, 1));
+        phi[i] = std::unique_ptr<amrex::MultiFab>(
+            new amrex::MultiFab(this->boxArray(i), this->DistributionMap(i), 1          , 1));
+        grad_phi[i] = std::unique_ptr<amrex::MultiFab>(
+            new amrex::MultiFab(this->boxArray(i), this->DistributionMap(i), AMREX_SPACEDIM, 1));
         phi[i]->setVal(0.0, 1);
         grad_phi[i]->setVal(0.0, 1);
     }
@@ -695,16 +695,16 @@ void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*tim
                         false);
     
     // 3. Tag cells for refinement
-    const int clearval = TagBox::CLEAR;
-    const int   tagval = TagBox::SET;
+    const int clearval = amrex::TagBox::CLEAR;
+    const int   tagval = amrex::TagBox::SET;
     
-    Real min[3] = {0.0, 0.0, 0.0};
-    Real max[3] = {0.0, 0.0, 0.0};
+    amrex::Real min[3] = {0.0, 0.0, 0.0};
+    amrex::Real max[3] = {0.0, 0.0, 0.0};
     for (int i = 0; i < 3; ++i) {
         max[i] = scaling_m * grad_phi[lev]->max(i);
         min[i] = scaling_m * grad_phi[lev]->min(i);
     }
-    Real efield[3] = {0.0, 0.0, 0.0};
+    amrex::Real efield[3] = {0.0, 0.0, 0.0};
     for (int i = 0; i < 3; ++i)
         efield[i] = std::max( std::abs(min[i]), std::abs(max[i]) );
     
@@ -714,11 +714,11 @@ void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*tim
 #endif
     {
 //         Array<int>  itags;
-        for (MFIter mfi(*grad_phi[lev],false/*true*/); mfi.isValid(); ++mfi) {
-            const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
+        for (amrex::MFIter mfi(*grad_phi[lev],false/*true*/); mfi.isValid(); ++mfi) {
+            const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
-            TagBox&     tagfab  = tags[mfi];
-            FArrayBox&  fab     = (*grad_phi[lev])[mfi];
+            amrex::TagBox&     tagfab  = tags[mfi];
+            amrex::FArrayBox&  fab     = (*grad_phi[lev])[mfi];
             // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
             // So we are going to get a temporary integer array.
 //             tagfab.get_itags(itags, tilebx);
@@ -731,7 +731,7 @@ void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*tim
             for (int i = tlo[0]; i <= thi[0]; ++i) {
                 for (int j = tlo[1]; j <= thi[1]; ++j) {
                     for (int k = tlo[2]; k <= thi[2]; ++k) {
-                        IntVect iv(i,j,k);
+                        amrex::IntVect iv(i,j,k);
                         if (std::abs(fab(iv, 0)) >= efield[0])
                             tagfab(iv) = tagval;
                         else if (std::abs(fab(iv, 1)) >= efield[1])
@@ -759,11 +759,11 @@ void AmrOpal::tagForEfieldStrength_m(int lev, TagBoxArray& tags, Real scale/*tim
 }
 
 
-void AmrOpal::tagForMomentum_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
+void AmrOpal::tagForMomentum_m(int lev, amrex::TagBoxArray& tags, amrex::Real scale/*time*/, int ngrow) {
 #ifdef IPPL_AMR
     amrplayout_t* PLayout = &bunch_m->getLayout();
-    const BoxArray& ba = PLayout->ParticleBoxArray(lev);
-    const DistributionMapping& dm = PLayout->ParticleDistributionMap(lev);
+    const amrex::BoxArray& ba = PLayout->ParticleBoxArray(lev);
+    const amrex::DistributionMapping& dm = PLayout->ParticleDistributionMap(lev);
     
     
     const auto& LocalNumPerLevel = bunch_m->getLocalNumPerLevel();
@@ -779,16 +779,16 @@ void AmrOpal::tagForMomentum_m(int lev, TagBoxArray& tags, Real scale/*time*/, i
     
     double momentum2 = scaling_m * dot(pmax, pmax);
     
-    std::map<IntVect, bool> cells;
+    std::map<amrex::IntVect, bool> cells;
     for (size_t i = lBegin; i < lEnd; ++i) {
         if ( dot(bunch_m->P[i], bunch_m->P[i]) >= momentum2 ) {
-            IntVect iv = PLayout->Index(bunch_m->R[i], lev);
+            amrex::IntVect iv = PLayout->Index(bunch_m->R[i], lev);
             cells[iv] = true;
         }
     }
         
-    const int clearval = TagBox::CLEAR;
-    const int   tagval = TagBox::SET;
+    const int clearval = amrex::TagBox::CLEAR;
+    const int   tagval = amrex::TagBox::SET;
     
     
 #ifdef _OPENMP
@@ -796,10 +796,10 @@ void AmrOpal::tagForMomentum_m(int lev, TagBoxArray& tags, Real scale/*time*/, i
 #endif
     {
 //         Array<int>  itags;
-        for (MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
-            const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
+        for (amrex::MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+            const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
-            TagBox&     tagfab  = tags[mfi];
+            amrex::TagBox&     tagfab  = tags[mfi];
             
             // data pointer and index space
             const int*  tlo     = tilebx.loVect();
@@ -808,7 +808,7 @@ void AmrOpal::tagForMomentum_m(int lev, TagBoxArray& tags, Real scale/*time*/, i
             for (int i = tlo[0]; i <= thi[0]; ++i) {
                 for (int j = tlo[1]; j <= thi[1]; ++j) {
                     for (int k = tlo[2]; k <= thi[2]; ++k) {
-                        IntVect iv(i, j, k);
+                        amrex::IntVect iv(i, j, k);
                         if ( cells.find(iv) != cells.end() )
                             tagfab(iv) = tagval;
                         else
@@ -826,11 +826,11 @@ void AmrOpal::tagForMomentum_m(int lev, TagBoxArray& tags, Real scale/*time*/, i
 }
 
 
-void AmrOpal::tagForMaxNumParticles_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
+void AmrOpal::tagForMaxNumParticles_m(int lev, amrex::TagBoxArray& tags, amrex::Real scale/*time*/, int ngrow) {
 #ifdef IPPL_AMR
     amrplayout_t* PLayout = &bunch_m->getLayout();
-    const BoxArray& ba = PLayout->ParticleBoxArray(lev);
-    const DistributionMapping& dm = PLayout->ParticleDistributionMap(lev);
+    const amrex::BoxArray& ba = PLayout->ParticleBoxArray(lev);
+    const amrex::DistributionMapping& dm = PLayout->ParticleDistributionMap(lev);
     
     
     const auto& LocalNumPerLevel = bunch_m->getLocalNumPerLevel();
@@ -839,14 +839,14 @@ void AmrOpal::tagForMaxNumParticles_m(int lev, TagBoxArray& tags, Real scale/*ti
     size_t lEnd   = LocalNumPerLevel.end(lev);
     
     // count particles per cell
-    std::map<IntVect, size_t> cells;
+    std::map<amrex::IntVect, size_t> cells;
     for (size_t i = lBegin; i < lEnd; ++i) {
-        IntVect iv = PLayout->Index(bunch_m->R[i], lev);
+        amrex::IntVect iv = PLayout->Index(bunch_m->R[i], lev);
         ++cells[iv];
     }
         
-    const int clearval = TagBox::CLEAR;
-    const int   tagval = TagBox::SET;
+    const int clearval = amrex::TagBox::CLEAR;
+    const int   tagval = amrex::TagBox::SET;
     
     
 #ifdef _OPENMP
@@ -854,10 +854,10 @@ void AmrOpal::tagForMaxNumParticles_m(int lev, TagBoxArray& tags, Real scale/*ti
 #endif
     {
 //         Array<int>  itags;
-        for (MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
-            const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
+        for (amrex::MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+            const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
-            TagBox&     tagfab  = tags[mfi];
+            amrex::TagBox&     tagfab  = tags[mfi];
 //             tagfab.get_itags(itags, tilebx);
 
             // data pointer and index space
@@ -867,7 +867,7 @@ void AmrOpal::tagForMaxNumParticles_m(int lev, TagBoxArray& tags, Real scale/*ti
             for (int i = tlo[0]; i <= thi[0]; ++i) {
                 for (int j = tlo[1]; j <= thi[1]; ++j) {
                     for (int k = tlo[2]; k <= thi[2]; ++k) {
-                        IntVect iv(i, j, k);
+                        amrex::IntVect iv(i, j, k);
                         if ( cells.find(iv) != cells.end() && cells[iv] <= maxNumPart_m )
                             tagfab(iv) = tagval;
                         else
@@ -885,21 +885,21 @@ void AmrOpal::tagForMaxNumParticles_m(int lev, TagBoxArray& tags, Real scale/*ti
 }
 
 
-void AmrOpal::tagForMinNumParticles_m(int lev, TagBoxArray& tags, Real scale/*time*/, int ngrow) {
+void AmrOpal::tagForMinNumParticles_m(int lev, amrex::TagBoxArray& tags, amrex::Real scale/*time*/, int ngrow) {
 #ifdef IPPL_AMR
     amrplayout_t* PLayout = &bunch_m->getLayout();
-    const BoxArray& ba = PLayout->ParticleBoxArray(lev);
-    const DistributionMapping& dm = PLayout->ParticleDistributionMap(lev);
+    const amrex::BoxArray& ba = PLayout->ParticleBoxArray(lev);
+    const amrex::DistributionMapping& dm = PLayout->ParticleDistributionMap(lev);
     
     // count particles per cell
-    std::map<IntVect, size_t> cells;
+    std::map<amrex::IntVect, size_t> cells;
     for (size_t i = 0; i < bunch_m->getLocalNum(); ++i) {
-        IntVect iv = PLayout->Index(bunch_m->R[i], lev);
+        amrex::IntVect iv = PLayout->Index(bunch_m->R[i], lev);
         ++cells[iv];
     }
         
-    const int clearval = TagBox::CLEAR;
-    const int   tagval = TagBox::SET;
+    const int clearval = amrex::TagBox::CLEAR;
+    const int   tagval = amrex::TagBox::SET;
     
     
 #ifdef _OPENMP
@@ -907,10 +907,10 @@ void AmrOpal::tagForMinNumParticles_m(int lev, TagBoxArray& tags, Real scale/*ti
 #endif
     {
 //         Array<int>  itags;
-        for (MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
-            const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
+        for (amrex::MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+            const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
-            TagBox&     tagfab  = tags[mfi];
+            amrex::TagBox&     tagfab  = tags[mfi];
             
             // data pointer and index space
             const int*  tlo     = tilebx.loVect();
@@ -919,7 +919,7 @@ void AmrOpal::tagForMinNumParticles_m(int lev, TagBoxArray& tags, Real scale/*ti
             for (int i = tlo[0]; i <= thi[0]; ++i) {
                 for (int j = tlo[1]; j <= thi[1]; ++j) {
                     for (int k = tlo[2]; k <= thi[2]; ++k) {
-                        IntVect iv(i, j, k);
+                        amrex::IntVect iv(i, j, k);
                         if ( cells.find(iv) != cells.end() && cells[iv] >= minNumPart_m )
                             tagfab(iv) = tagval;
                         else
@@ -937,7 +937,7 @@ void AmrOpal::tagForMinNumParticles_m(int lev, TagBoxArray& tags, Real scale/*ti
 }
 
 
-void AmrOpal::tagForCenteredRegion_m(int lev, TagBoxArray& tags, Real time, int ngrow) {
+void AmrOpal::tagForCenteredRegion_m(int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) {
     
     for (int i = lev; i <= finest_level; ++i) {
         nChargePerCell_m[i]->setVal(0.0, 1);
@@ -949,28 +949,28 @@ void AmrOpal::tagForCenteredRegion_m(int lev, TagBoxArray& tags, Real time, int 
     }
     
     for (int i = finest_level-1; i >= lev; --i) {
-        MultiFab tmp(nChargePerCell_m[i]->boxArray(), nChargePerCell_m[i]->DistributionMap(), 1, 0);
+        amrex::MultiFab tmp(nChargePerCell_m[i]->boxArray(), nChargePerCell_m[i]->DistributionMap(), 1, 0);
         tmp.setVal(0.0);
         amrex::average_down(*nChargePerCell_m[i+1], tmp, 0, 1, refRatio(i));
-        MultiFab::Add(*nChargePerCell_m[i], tmp, 0, 0, 1, 0);
+        amrex::MultiFab::Add(*nChargePerCell_m[i], tmp, 0, 0, 1, 0);
     }
     
     
-    const int clearval = TagBox::CLEAR;
-    const int   tagval = TagBox::SET;
+    const int clearval = amrex::TagBox::CLEAR;
+    const int   tagval = amrex::TagBox::SET;
 
-    const Real* dx      = geom[lev].CellSize();
-    const Real* prob_lo = geom[lev].ProbLo();
+    const amrex::Real* dx      = geom[lev].CellSize();
+    const amrex::Real* prob_lo = geom[lev].ProbLo();
     
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        Array<int>  itags;
-        for (MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
-            const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
+        amrex::Array<int>  itags;
+        for (amrex::MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+            const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
-            TagBox&     tagfab  = tags[mfi];
+            amrex::TagBox&     tagfab  = tags[mfi];
             
             // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
             // So we are going to get a temporary integer array.
