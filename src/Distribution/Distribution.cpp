@@ -397,7 +397,7 @@ void Distribution::create(size_t &numberOfParticles, double massIneV) {
     // Now reflect particles if Options::cZero is true
     reflectDistribution(numberOfLocalParticles);
 
-    adjustPhaseSpace();
+    adjustPhaseSpace(massIneV);
 
     if (Options::seed != -1)
         Options::seed = gsl_rng_uniform_int(randGen_m, gsl_rng_max(randGen_m));
@@ -1630,7 +1630,12 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
     IpplTimings::startTimer(beam->distrCreate_m);
 
     // This is PC from BEAM
-    avrgpz_m = beam->getP()/beam->getM();
+    double deltaP = Attributes::getReal(itsAttr[Attrib::Distribution::OFFSETP]);
+    if (inputMoUnits_m == InputMomentumUnitsT::EV) {
+        deltaP = converteVToBetaGamma(deltaP, beam->getM());
+    }
+
+    avrgpz_m = beam->getP()/beam->getM() + deltaP;
 
     totalNumberParticles_m = numberOfParticles;
 
@@ -1696,7 +1701,7 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
         checkEmissionParameters();
     } else {
         if (distrTypeT_m != DistrTypeT::FROMFILE) {
-            pmean_m = Vector_t(0.0, 0.0, converteVToBetaGamma(getEkin(), beam->getM()));
+            pmean_m = Vector_t(0, 0, avrgpz_m);
         }
     }
 
@@ -2924,8 +2929,8 @@ void Distribution::injectBeam(PartBunchBase<double, 3> *beam) {
                                      tOrZDist_m.at(partIndex));
 
         beam->P[partIndex] = Vector_t(pxDist_m.at(partIndex),
-                                     pyDist_m.at(partIndex),
-                                     pzDist_m.at(partIndex));
+                                      pyDist_m.at(partIndex),
+                                      pzDist_m.at(partIndex));
 
         beam->Q[partIndex] = beam->getChargePerParticle();
         beam->Ef[partIndex] = Vector_t(0.0);
@@ -2963,9 +2968,6 @@ void Distribution::injectBeam(PartBunchBase<double, 3> *beam) {
     pzDist_m.clear();
 
     beam->boundp();
-
-    if (distrTypeT_m != DistrTypeT::FROMFILE)
-        beam->correctEnergy(avrgpz_m);
     beam->calcEMean();
 }
 
@@ -3596,6 +3598,8 @@ void Distribution::setAttributes() {
         = Attributes::makeReal("OFFSETPY", "Average py offset of distribution.", 0.0);
     itsAttr[Attrib::Distribution::OFFSETPZ]
         = Attributes::makeReal("OFFSETPZ", "Average pz offset of distribution.", 0.0);
+    itsAttr[Attrib::Distribution::OFFSETP]
+        = Attributes::makeReal("OFFSETP", "Momentum shift relative to referenc particle.", 0.0);
 
     // Parameters for defining an initial distribution.
     itsAttr[Attrib::Distribution::SIGMAX] = Attributes::makeReal("SIGMAX", "SIGMAx (m)", 0.0);
@@ -4734,27 +4738,44 @@ double Distribution::GaussianLikeBehavior::get(double rand) {
     return sqrt(-2.0 * log(rand));
 }
 
-void Distribution::adjustPhaseSpace() {
+void Distribution::adjustPhaseSpace(double massIneV) {
     if (emitting_m || distrTypeT_m == DistrTypeT::FROMFILE || OpalData::getInstance()->isInOPALCyclMode())
         return;
 
-    double avrg[6];
+    double deltaPx = Attributes::getReal(itsAttr[Attrib::Distribution::OFFSETPX]);
+    double deltaPy = Attributes::getReal(itsAttr[Attrib::Distribution::OFFSETPY]);
+    // Check input momentum units.
+    if (inputMoUnits_m == InputMomentumUnitsT::EV) {
+        deltaPx = converteVToBetaGamma(deltaPx, massIneV);
+        deltaPy = converteVToBetaGamma(deltaPy, massIneV);
+    }
 
+    double avrg[6];
     avrg[0] = std::accumulate(xDist_m.begin(), xDist_m.end(), 0.0) / totalNumberParticles_m;
     avrg[1] = std::accumulate(pxDist_m.begin(), pxDist_m.end(), 0.0) / totalNumberParticles_m;
     avrg[2] = std::accumulate(yDist_m.begin(), yDist_m.end(), 0.0) / totalNumberParticles_m;
     avrg[3] = std::accumulate(pyDist_m.begin(), pyDist_m.end(), 0.0) / totalNumberParticles_m;
     avrg[4] = std::accumulate(tOrZDist_m.begin(), tOrZDist_m.end(), 0.0) / totalNumberParticles_m;
-    avrg[5] = std::accumulate(pzDist_m.begin(), pzDist_m.end(), 0.0) / totalNumberParticles_m;
+    avrg[5] = 0.0;
+    for (unsigned int i = 0; i < pzDist_m.size(); ++ i) {
+        // taylor series of sqrt(px*px + py*py + pz*pz) = pz * sqrt(1 + eps*eps) where eps << 1
+        avrg[5] += (pzDist_m[i] +
+                    (std::pow(pxDist_m[i] + deltaPx, 2) +
+                     std::pow(pyDist_m[i] + deltaPy, 2)) / (2 * pzDist_m[i]));
+    }
     reduce(avrg, avrg + 6, avrg, OpAddAssign());
+    avrg[5] /= totalNumberParticles_m;
 
+    // solve
+    // \sum_{i = 0}^{N-1} \sqrt{(pz_i + \eps)^2 + px_i^2 + py_i^2} = N p
+    double eps = avrgpz_m - avrg[5];
     for (unsigned int i = 0; i < pzDist_m.size(); ++ i) {
         xDist_m[i] -= avrg[0];
         pxDist_m[i] -= avrg[1];
         yDist_m[i] -= avrg[2];
         pyDist_m[i] -= avrg[3];
         tOrZDist_m[i] -= avrg[4];
-        pzDist_m[i] -= (avrg[5] - avrgpz_m);
+        pzDist_m[i] += eps;
     }
 }
 
