@@ -43,7 +43,7 @@ namespace {
         std::string s = "energy";
         sddsr->getValue(1, s, energy);
 
-        double expected = 2.220252349855340e-01;
+        double expected = 7.159841726652937e+01;
         ASSERT_DOUBLE_EQ(expected, energy);
     }
 
@@ -53,23 +53,23 @@ namespace {
         std::string s = "s";
         sddsr->getValue(-1, s, position);
 
-        double expected = 4.247573354842603e-03;
+        double expected = 1.097273618871144e+00;
         ASSERT_DOUBLE_EQ(expected, position);
     }
 
     TEST_F(SDDSParserTest, InterpolateRms_x) {
 
-        double spos = 4.0e-03;
+        double spos = 1;
         double rmsx_interp = 0.0;
 
         EXPECT_NO_THROW({
             sddsr->getInterpolatedValue(spos, "rms_x", rmsx_interp);
         });
 
-        double spos_before = 3.786226707177705e-03;
-        double spos_after  = 4.015012129060398e-03;
-        double rmsx_before = 3.147090549966750e-04;
-        double rmsx_after  = 3.166390884805550e-04;
+        double spos_before = 7.314126542367660e-01;
+        double spos_after  = 1.097273618871144e+00;
+        double rmsx_before = 1.739826974864265e-02;
+        double rmsx_after  = 1.154446652697715e-02;
 
         double expected = rmsx_before + (spos - spos_before) * (rmsx_after - rmsx_before) / (spos_after - spos_before);
 
