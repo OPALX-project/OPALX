@@ -13,8 +13,10 @@ set (CMAKE_CXX_FLAGS
     )
     
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO -DIPPL_AMR ${AMREX_DEFINES} ${CMAKE_CXX_FLAGS}"
+    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO -DIPPL_AMR ${CMAKE_CXX_FLAGS}"
 )
+
+add_definitions(${AMREX_DEFINES})
     
 include_directories (
     ${CMAKE_SOURCE_DIR}/src
@@ -39,7 +41,8 @@ link_directories (
 # remove digits from hostname: edison03 -> edison
 STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
     
-IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
+IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
+   ${HOSTNAME_BASE} MATCHES "daint")
     SET (LIBS
         ${H5Hut_LIBRARY}
         ${HDF5_LIBRARY}
@@ -60,7 +63,8 @@ ELSE()
         m
         z
     )
-ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
+ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
+      ${HOSTNAME_BASE} MATCHES "daint")
 
 # add_executable(testCRTP testCRTP.cpp)
 

@@ -28,6 +28,10 @@
 #include "gsl/gsl_spline.h"
 #include "gsl/gsl_interp.h"
 
+#ifdef WITH_UNIT_TESTS
+#include <gtest/gtest_prod.h>
+#endif
+
 #include <vector>
 
 class Fieldmap;
@@ -96,7 +100,6 @@ public:
                             double &startField,
                             double &endField);
 
-    // double getBendAngle() const;
     double getBendRadius() const;
     double getEffectiveCenter() const;
     double getEffectiveLength() const;
@@ -135,6 +138,9 @@ protected:
 
 private:
 
+#ifdef WITH_UNIT_TESTS
+    FRIEND_TEST(Maxwell, Zeros);
+#endif
     // Not implemented.
     void operator=(const Bend &);
 
@@ -152,6 +158,7 @@ private:
                                      double deltaX);
     Vector_t calcExitFringeField(const Vector_t &R,
                                  double deltaX);
+    void setupFringeWidths();
     bool calculateMapField(const Vector_t &R,
                            Vector_t &B);
     void calculateRefTrajectory(double &angleX,
@@ -208,6 +215,9 @@ private:
     double fieldIndex_m;        /// Dipole field index.
     double startField_m;        /// Start of magnet field map in s coordinates (m).
     double endField_m;          /// End of magnet field map in s coordinates (m).
+
+    double widthEntranceFringe_m;
+    double widthExitFringe_m;
 
     /*
      * Flag to reinitialize the bend the first time the magnet

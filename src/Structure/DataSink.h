@@ -40,9 +40,9 @@ class H5PartWrapper;
 
 class DataSink {
 public:
-    
+
     typedef std::vector<std::pair<std::string, unsigned int> > losses_t;
-    
+
     /** \brief Default constructor.
      *
      * The default constructor is called at the start of a new calculation (as
@@ -207,12 +207,12 @@ public:
      *
      */
     void writeLBalHeader(PartBunchBase<double, 3> *beam, std::ofstream &outputFile);
-    
+
     void writeLBalData(PartBunchBase<double, 3> *beam,
                        std::ofstream &outputFile,
                        unsigned int pwi);
-    
-    
+
+
     /** \brief Write SDDS header.
      *
      * Writes the appropriate SDDS format header information to processor memory so the SDDS tools can be used
@@ -221,7 +221,7 @@ public:
      *
      */
     void writeMemoryHeader(std::ofstream &outputFile);
-    
+
     void writeMemoryData(PartBunchBase<double, 3> *beam,
                          std::ofstream &outputFile,
                          unsigned int pwi);
@@ -235,7 +235,7 @@ private:
     static std::string convertToString(int number);
 
     void rewindLines(const std::string &fileName, size_t numberOfLines) const;
-
+    void replaceVersionString(const std::string &fileName) const;
     /** \brief First write to the statistics output file.
      *
      * Initially set to true so that SDDS format header information is written to file
@@ -256,7 +256,7 @@ private:
 
     /// Name of output file for processor load balancing information.
     std::string lBalFileName_m;
-    
+
     /// Name of output file for processor memory information
     std::string memFileName_m;
 

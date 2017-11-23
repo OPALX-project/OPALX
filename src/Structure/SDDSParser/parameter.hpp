@@ -115,7 +115,7 @@ namespace SDDS {
         }
     };
 
-    struct parameterList : std::list<parameter> {};
+    struct parameterList : std::vector<parameter> {};
 
     template <typename Iterator>
     struct parameterOrder

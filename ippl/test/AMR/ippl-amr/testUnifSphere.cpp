@@ -32,6 +32,11 @@
 #include "Physics/Physics.h"
 #include <random>
 
+#ifdef HAVE_AMR_MG_SOLVER
+    #include "../trilinos/AmrMultiGrid.h"
+#endif
+
+
 #include <getopt.h>
 
 typedef AmrOpal::amrplayout_t amrplayout_t;
@@ -52,6 +57,12 @@ struct param_t {
     bool isWriteParticles;
     bool isHelp;
     bool useMgtSolver;
+#ifdef HAVE_AMR_MG_SOLVER
+    bool useTrilinos;
+    size_t smoothing;
+    AmrMultiGrid::Boundary bc;
+    AmrMultiGrid::BaseSolver bs;
+#endif
     AmrOpal::TaggingCriteria criteria;
     double tagfactor;
 };
@@ -72,6 +83,14 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     params.useMgtSolver = false;
     params.criteria = AmrOpal::kChargeDensity;
     params.tagfactor = 1.0e-14; 
+    
+#ifdef HAVE_AMR_MG_SOLVER
+    params.useTrilinos = false;
+    params.smoothing = 12;
+    params.bc = AmrMultiGrid::Boundary::DIRICHLET;
+    params.bs = AmrMultiGrid::BaseSolver::CG;
+#endif
+    
     
     int c = 0;
     
@@ -95,6 +114,12 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "writeCSV",       no_argument,       0, 'v' },
             { "writeParticles", no_argument,       0, 'p' },
             { "use-mgt-solver", no_argument,       0, 's' },
+#ifdef HAVE_AMR_MG_SOLVER
+            { "use-trilinos",   no_argument,       0, 'a' },
+            { "smoothing",      required_argument, 0, 'g' },
+            { "bc",             required_argument, 0, 'j' },
+            { "basesolver",     required_argument, 0, 'u' },
+#endif
             { "tagging",        required_argument, 0, 't' },
             { "tagging-factor", required_argument, 0, 'f' },
             { 0,                0,                 0,  0  }
@@ -102,12 +127,82 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         
         int option_index = 0;
         
+#ifdef HAVE_AMR_MG_SOLVER
+        c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:whcvpst:f:a:g:", long_options, &option_index);
+#else
         c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:whcvpst:f:", long_options, &option_index);
+#endif
         
         if ( c == -1 )
             break;
         
         switch ( c ) {
+#ifdef HAVE_AMR_MG_SOLVER
+            case 'a':
+                params.useTrilinos = true; break;
+            case 'g':
+                params.smoothing = std::atoi(optarg); break;
+            case 'j':
+            {
+                std::string bc = optarg;
+                
+                if ( bc == "dirichlet" )
+                    params.bc = AmrMultiGrid::Boundary::DIRICHLET;
+                else if ( bc == "open" )
+                    params.bc = AmrMultiGrid::Boundary::OPEN;
+                else if ( bc == "periodic" )
+                    params.bc = AmrMultiGrid::Boundary::PERIODIC;
+                else
+                    throw std::runtime_error("Error: Check boundary condition argument");
+                break;
+            }
+            case 'u':
+            {
+                std::string bs = optarg;
+                
+                if ( bs == "bicgstab" )
+                    params.bs = AmrMultiGrid::BaseSolver::BICGSTAB;
+                else if ( bs == "minres" )
+                    params.bs = AmrMultiGrid::BaseSolver::MINRES;
+                else if ( bs == "pcpg" )
+                    params.bs = AmrMultiGrid::BaseSolver::PCPG;
+                else if ( bs == "gmres" )
+                    params.bs = AmrMultiGrid::BaseSolver::GMRES;
+                else if ( bs == "stochastic_cg" )
+                    params.bs = AmrMultiGrid::BaseSolver::STOCHASTIC_CG;
+                else if ( bs == "recycling_cg" )
+                    params.bs = AmrMultiGrid::BaseSolver::RECYCLING_CG;
+                else if ( bs == "recycling_gmres" )
+                    params.bs = AmrMultiGrid::BaseSolver::RECYCLING_GMRES;
+#ifdef HAVE_AMESOS2_KLU2
+                else if ( bs == "klu2" )
+                    params.bs = AmrMultiGrid::BaseSolver::KLU2;
+#endif
+#ifdef HAVE_AMESOS2_SUPERLU
+                else if ( bs == "superlu" )
+                    params.bs = AmrMultiGrid::BaseSolver::SUPERLU;
+#endif
+#ifdef HAVE_AMESOS2_UMFPACK
+                else if ( bs == "umfpack" )
+                    params.bs = AmrMultiGrid::BaseSolver::UMFPACK;
+#endif
+#ifdef HAVE_AMESOS2_PARDISO_MKL
+                else if ( bs == "pardiso_mkl" )
+                    params.bs = AmrMultiGrid::BaseSolver::PARDISO_MKL;
+#endif
+#ifdef HAVE_AMESOS2_MUMPS
+                else if ( bs == "mumps" )
+                    params.bs = AmrMultiGrid::BaseSolver::MUMPS;
+#endif
+#ifdef HAVE_AMESOS2_LAPACK
+                else if ( bs == "lapack" )
+                    params.bs = AmrMultiGrid::BaseSolver::LAPACK;
+#endif
+                else
+                    throw std::runtime_error("Error: Check base solver argument");
+                break;
+            }
+#endif
             case 'x':
                 params.nr[0] = std::atoi(optarg); ++cnt; break;
             case 'y':
@@ -165,6 +260,11 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--writeCSV (optional)" << endl
                     << "--writeParticles (optional)" << endl
                     << "--use-mgt-solver (optional)" << endl
+#ifdef HAVE_AMR_MG_SOLVER
+                    << "--use-trilinos (optional)" << endl
+                    << "--smoothing (optional, trilinos only, default: 12)" << endl
+                    << "--bc (optional, dirichlet or open, default: dirichlet)" << endl
+#endif
                     << "--tagging charge (default) / efield / potential (optional)" << endl
                     << "--tagfactor [charge value / 0 ... 1] (optiona)" << endl;
                 params.isHelp = true;
@@ -177,6 +277,13 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             
         }
     }
+    
+#ifdef HAVE_AMR_MG_SOLVER
+    if ( params.useMgtSolver && params.useTrilinos ) {
+        params.useMgtSolver = false;
+        msg << "Favouring Trilinos over MGT." << endl;
+    }
+#endif
     
     return ( cnt == required );
 }
@@ -191,8 +298,8 @@ void writeCSV(const container_t& phi,
     std::string outfile = "potential.grid";
     std::ofstream out;
     for (MFIter mfi(*phi[0]); mfi.isValid(); ++mfi) {
-        const Box& bx = mfi.validbox();
-        const FArrayBox& lhs = (*phi[0])[mfi];
+        const amrex::Box& bx = mfi.validbox();
+        const amrex::FArrayBox& lhs = (*phi[0])[mfi];
         
         for (int proc = 0; proc < amrex::ParallelDescriptor::NProcs(); ++proc) {
             if ( proc == amrex::ParallelDescriptor::MyProc() ) {
@@ -207,7 +314,7 @@ void writeCSV(const container_t& phi,
                 int k = 0.5 * (bx.hiVect()[2] - bx.loVect()[2]);
                 
                 for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
-                    IntVect ivec(i, j, k);
+                    amrex::IntVect ivec(i, j, k);
                     // add one in order to have same convention as PartBunch::computeSelfField()
                     out << lower + i * dx << ", " << lhs(ivec, 0)  << std::endl;
                 }
@@ -219,8 +326,8 @@ void writeCSV(const container_t& phi,
     
     outfile = "efield.grid";
     for (MFIter mfi(*efield[0]); mfi.isValid(); ++mfi) {
-        const Box& bx = mfi.validbox();
-        const FArrayBox& lhs = (*efield[0])[mfi];
+        const amrex::Box& bx = mfi.validbox();
+        const amrex::FArrayBox& lhs = (*efield[0])[mfi];
         
         for (int proc = 0; proc < amrex::ParallelDescriptor::NProcs(); ++proc) {
             if ( proc == amrex::ParallelDescriptor::MyProc() ) {
@@ -235,7 +342,7 @@ void writeCSV(const container_t& phi,
                 int k = 0.5 * (bx.hiVect()[2] - bx.loVect()[2]);
                 
                 for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
-                    IntVect ivec(i, j, k);
+                    amrex::IntVect ivec(i, j, k);
                     // add one in order to have same convention as PartBunch::computeSelfField()
                     out << lower + i * dx << ", " << lhs(ivec, 0) << ", "
                         << lhs(ivec, 1) << ", " << lhs(ivec, 2) << std::endl;
@@ -252,8 +359,8 @@ void writeCSV(const container_t& phi,
 void writeYt(container_t& rho,
              const container_t& phi,
              const container_t& efield,
-             const Array<Geometry>& geom,
-             const Array<int>& rr,
+             const amrex::Array<amrex::Geometry>& geom,
+             const amrex::Array<int>& rr,
              const double& scalefactor)
 {
     std::string dir = "yt-testUnifSphere";
@@ -331,7 +438,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              container_t& rhs,
              container_t& phi,
              container_t& efield,
-             const Array<int>& rr,
+             const amrex::Array<int>& rr,
              Inform& msg,
              const double& scale, const param_t& params)
 {
@@ -383,7 +490,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
      */
     int bottom_solver = 1;
     
-    ParmParse pp("mg");
+    amrex::ParmParse pp("mg");
 
     pp.add("maxiter", maxiter);
     pp.add("maxiter_b", maxiter_b);
@@ -405,7 +512,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     //
     if (!pp.query("cg_solver", cg_solver))
     {
-        ParmParse pp("cg");
+        amrex::ParmParse pp("cg");
 
         pp.add("cg_solver", cg_solver);
     }
@@ -446,7 +553,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         amrex::MultiFab::Copy(*rhs[lev], *partMF[lev], 0, 0, 1, 0);
     }
     
-    const Array<Geometry>& geom = myAmrOpal.Geom();
+    const amrex::Array<amrex::Geometry>& geom = myAmrOpal.Geom();
     
     for (uint i = 0; i < rhs.size(); ++i)
         if ( rhs[i]->contains_nan() || rhs[i]->contains_inf() )
@@ -459,11 +566,11 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     msg << "Total Charge (computed): " << totCharge << " C" << endl
         << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
     
-    Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
+    amrex::Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
     msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
     
     // eps in C / (V * m)
-    double constant = -1.0 / Physics::epsilon_0 * scale;  // in [V m / C]
+    double constant = -1.0 / Physics::epsilon_0 ; //* scale;  // in [V m / C]
     for (int i = 0; i <= finest_level; ++i) {
         rhs[i]->mult(constant, 0, 1);       // in [V m]
     }
@@ -472,6 +579,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // normalize each level
 //     double l0norm[finest_level + 1];
     double l0norm = rhs[finest_level]->norm0(0);
+    msg << "l0norm = " << l0norm << endl;
     for (int i = 0; i <= finest_level; ++i) {
 //         l0norm[i] = rhs[i]->norm0(0);
         rhs[i]->mult(1.0 / l0norm/*[i]*/, 0, 1);
@@ -482,10 +590,33 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     //     to make the Poisson equations solvable                                                                                                                                                                
     // **************************************************************************                                                                                                                                
 
-    Real offset = 0.;
+    amrex::Real offset = 0.;
 
     // solve
+#ifdef HAVE_AMR_MG_SOLVER
+    if ( params.useTrilinos ) {
+        AmrMultiGrid sol(params.bc, AmrMultiGrid::Interpolater::PIECEWISE_CONST,
+                         AmrMultiGrid::Interpolater::LAGRANGE, params.bs);
+        
+        sol.setNumberOfSweeps(params.smoothing);
+    
+        IpplTimings::startTimer(solvTimer);
+        
+        sol.solve(rhs,            // [V m]
+                  phi,            // [V m^3]
+                  efield,       // [V m^2]
+                  geom,
+                  base_level,
+                  finest_level);
+    
+        IpplTimings::stopTimer(solvTimer);
+        
+        msg << "#iterations: " << sol.getNumIters() << endl;
+        
+    } else if ( params.useMgtSolver ) {
+#else
     if ( params.useMgtSolver ) {
+#endif
         MGTSolver sol;
         IpplTimings::startTimer(solvTimer);
         sol.solve(rhs,            // [V m]
@@ -506,12 +637,12 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     
     // undo normalization
     for (int i = 0; i <= finest_level; ++i) {
-        phi[i]->mult(l0norm/*[i]*/, 0, 1);
+        phi[i]->mult(scale * l0norm/*[i]*/, 0, 1);
     }
     
     // undo scale
     for (int i = 0; i <= finest_level; ++i)
-        efield[i]->mult(scale * l0norm/*[i]*/, 0, 3);
+        efield[i]->mult(scale * scale * l0norm/*[i]*/, 0, 3);
     
     IpplTimings::stopTimer(solvTimer);
 }
@@ -522,46 +653,53 @@ void doAMReX(const param_t& params, Inform& msg)
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    double halflength = 0.5 * params.length;
-    
-    std::array<double, BL_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
-    
-    RealBox domain;
-    
-    // in helper_functions.h
-    init(domain, params.nr, lower, upper);
-    
-    msg << "Domain: " << domain << endl;
+//     double halflength = 0.5 * params.length;
+//     
+//     std::array<double, AMREX_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
+//     std::array<double, AMREX_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
+//     
+//     amrex::RealBox domain;
+//     
+//     // in helper_functions.h
+//     init(domain, params.nr, lower, upper);
+//     
+//     msg << "Domain: " << domain << endl;
     
     /*
      * create an Amr object
      */
-    ParmParse pp("amr");
+    amrex::ParmParse pp("amr");
     pp.add("max_grid_size", int(params.maxBoxSize));
     
-    Array<int> error_buf(params.nLevels, 0);
+    amrex::Array<int> error_buf(params.nLevels, 0);
     
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
     
-    ParmParse pgeom("geometry");
-    Array<int> is_per = { 0, 0, 0};
+    amrex::ParmParse pgeom("geometry");
+    amrex::Array<int> is_per = { 0, 0, 0};
     pgeom.addarr("is_periodic", is_per);
     
-    Array<int> nCells(3);
+    amrex::Array<int> nCells(3);
     for (int i = 0; i < 3; ++i)
         nCells[i] = params.nr[i];
     
     
     std::vector<int> rr(params.nLevels);
-    Array<int> rrr(params.nLevels);
+    amrex::Array<int> rrr(params.nLevels);
     for (unsigned int i = 0; i < params.nLevels; ++i) {
         rr[i] = 2;
         rrr[i] = 2;
     }
     
-    AmrOpal myAmrOpal(&domain, params.nLevels - 1, nCells, 0 /* cartesian */, rr);
+    amrex::RealBox amr_domain;
+    
+    std::array<double, AMREX_SPACEDIM> amr_lower = {{-1.02, -1.02, -1.02}}; // m
+    std::array<double, AMREX_SPACEDIM> amr_upper = {{ 1.02,  1.02,  1.02}}; // m
+    
+    init(amr_domain, params.nr, amr_lower, amr_upper);
+    
+    AmrOpal myAmrOpal(&amr_domain, params.nLevels - 1, nCells, 0 /* cartesian */, rr);
     
     myAmrOpal.setTagging(params.criteria);
     
@@ -574,9 +712,9 @@ void doAMReX(const param_t& params, Inform& msg)
     // 2. initialize all particles (just single-level)
     // ========================================================================
     
-    const Array<BoxArray>& ba = myAmrOpal.boxArray();
-    const Array<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
-    const Array<Geometry>& geom = myAmrOpal.Geom();
+    const amrex::Array<amrex::BoxArray>& ba = myAmrOpal.boxArray();
+    const amrex::Array<amrex::DistributionMapping>& dmap = myAmrOpal.DistributionMap();
+    amrex::Array<amrex::Geometry>& geom = myAmrOpal.Geom();
     
     
     amrplayout_t* playout = new amrplayout_t(geom, dmap, ba, rrr);
@@ -607,6 +745,10 @@ void doAMReX(const param_t& params, Inform& msg)
     double scale = 1.0;
     
     scale = domainMapping(*bunch, scale);
+    
+    msg << "Scale: " << scale << endl;
+    
+    
     // redistribute on single-level
     bunch->update();
     
@@ -659,10 +801,28 @@ void doAMReX(const param_t& params, Inform& msg)
     msg << "Total field energy: " << fieldenergy << endl;
     
     if (params.isWriteCSV && Ippl::getNodes() == 1 && myAmrOpal.maxGridSize(0) == (int)params.nr[0] )
-        writeCSV(phi, efield, domain.lo(0) / scale, geom[0].CellSize(0) / scale);
+        writeCSV(phi, efield, amr_domain.lo(0) / scale, geom[0].CellSize(0) / scale);
     
-    if ( params.isWriteYt )
+    if ( params.isWriteYt ) {
+//         double halflength = 0.5 * params.length;
+//     
+//         std::array<double, AMREX_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
+//         std::array<double, AMREX_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
+//     
+//         amrex::RealBox domain;
+//         
+//         init(domain, params.nr, lower, upper);
+//         
+//         amrex::RealBox orig = geom[0].ProbDomain();
+//         geom[0].ProbDomain(domain);
+//         
+//         amrex::IntVect low(0, 0, 0);
+//         amrex::IntVect high(params.nr[0] - 1, params.nr[1] - 1, params.nr[2] - 1);    
+//         Box bx(low, high);
+//         geom[0].Domain(bx);
+        
         writeYt(rhs, phi, efield, geom, rrr, scale);
+    }
 }
 
 
@@ -708,7 +868,12 @@ int main(int argc, char *argv[]) {
         
         if ( params.useMgtSolver )
             msg << "- MGT solver is used" << endl;
-            
+        
+#ifdef HAVE_AMR_MG_SOLVER
+        if ( params.useTrilinos )
+            msg << "- Trilinos solver is used with " << params.smoothing
+                << " relaxation steps." << endl;
+#endif
         doAMReX(params, msg);
         
     } catch(const std::exception& ex) {

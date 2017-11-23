@@ -39,6 +39,7 @@
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
@@ -61,6 +62,7 @@
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "BeamlineGeometry/RBendGeometry.h"
+#include "BeamlineGeometry/StraightGeometry.h"
 #include "Beamlines/Beamline.h"
 
 #include "Fields/BMultipoleField.h"
@@ -98,13 +100,14 @@ class PartData;
 using Physics::pi;
 using Physics::q_e;
 
+
 const double c_mmtns = Physics::c * 1.0e-6; // m/s --> mm/ns
 
 Vector_t const ParallelCyclotronTracker::xaxis = Vector_t(1.0, 0.0, 0.0);
 Vector_t const ParallelCyclotronTracker::yaxis = Vector_t(0.0, 1.0, 0.0);
 Vector_t const ParallelCyclotronTracker::zaxis = Vector_t(0.0, 0.0, 1.0);
 
-#define PSdim 6
+//#define PSdim 6
 
 extern Inform *gmsg;
 
@@ -507,7 +510,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     *gmsg << endl;
 
     double sym = elptr->getSymmetry();
-    *gmsg << "* " << sym << "-fold field symmerty " << endl;
+    *gmsg << "* " << sym << "-fold field symmetry " << endl;
 
     // ckr: this just returned the default value as defined in Component.h
     // double rff = elptr->getRfFrequ();
@@ -723,6 +726,22 @@ void ParallelCyclotronTracker::visitMonitor(const Monitor &corr) {
 void ParallelCyclotronTracker::visitMultipole(const Multipole &mult) {
     *gmsg << "In Multipole; L= " << mult.getElementLength() << " however the element is missing " << endl;
     myElements.push_back(dynamic_cast<Multipole *>(mult.clone()));
+}
+
+/**
+ *
+ *
+ * @param multT
+ */
+void ParallelCyclotronTracker::visitMultipoleT(const MultipoleT &multT) {
+    *gmsg << "Adding MultipoleT" << endl;
+    if (opalRing_m != NULL) {
+        opalRing_m->appendElement(multT);
+    } else {
+        throw OpalException("ParallelCyclotronTracker::visitMultipoleT",
+                            "Need to define a RINGDEFINITION to use MultipoleT element");
+    }
+    myElements.push_back(dynamic_cast<MultipoleT *>(multT.clone()));
 }
 
 /**
@@ -2725,7 +2744,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 
     //itsBunch_m->R *= Vector_t(0.001); // mm --> m
 
-    // -------------- If flag DumpLocalFrame is not set, dump bunch in global frame ------------- //
+    // -------------- If flag psDumpFrame is global, dump bunch in global frame ------------- //
     if (Options::psDumpFreq < std::numeric_limits<int>::max() ){
         if (Options::psDumpFrame == Options::GLOBAL) {
 
@@ -2757,7 +2776,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 	    }
         }
 
-        // ---------------- If flag DumpLocalFrame is set, dump bunch in local frame ---------------- //
+        // ---------------- If flag psDumpFrame is local, dump bunch in local frame ---------------- //
         else {
 
             // The bunch is transformed into a local coordinate system with meanP in direction of y-axis

@@ -28,7 +28,9 @@ typedef AmrOpal::amrplayout_t amrplayout_t;
 typedef AmrOpal::amrbase_t amrbase_t;
 typedef AmrOpal::amrbunch_t amrbunch_t;
 
-typedef Vektor<double, BL_SPACEDIM> Vector_t;
+typedef Vektor<double, AMREX_SPACEDIM> Vector_t;
+
+using namespace amrex;
 
 // ----------------------------------------------------------------------------
 
@@ -317,8 +319,8 @@ void doPlasma(Vektor<std::size_t, 3> nr,
               Distribution::Type type,
               Inform& msg)
 {
-    std::array<double, BL_SPACEDIM> lower = {{0.0, 0.0, 0.0}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{4.0 * Physics::pi,
+    std::array<double, AMREX_SPACEDIM> lower = {{0.0, 0.0, 0.0}}; // m
+    std::array<double, AMREX_SPACEDIM> upper = {{4.0 * Physics::pi,
                                               4.0 * Physics::pi,
                                               4.0 * Physics::pi}
     }; // m
@@ -541,7 +543,7 @@ void doPlasma(Vektor<std::size_t, 3> nr,
         // periodic shift
         double up = 4.0 * Physics::pi;
         for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
-            for (int d = 0; d < BL_SPACEDIM; ++d) {
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                 if ( bunch->R[j](d) > up )
                     bunch->R[j](d) = bunch->R[j](d) - up;
                 else if ( bunch->R[j](d) < 0.0 )

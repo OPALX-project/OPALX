@@ -102,6 +102,8 @@ void MeshGenerator::write(const std::string &fname) {
     out << std::fixed << std::setprecision(6);
 
     out << "import os, sys, argparse, math, base64, zlib, struct\n\n";
+    out << "if sys.version_info < (3,0):\n";
+    out << "    range = xrange\n\n";
 
     std::stringstream vertices_ascii;
     std::ostringstream vertices_compressed;
@@ -253,9 +255,9 @@ void MeshGenerator::write(const std::string &fname) {
     out << "def decodeVertices():\n";
     out << indent << "vertices_binary = zlib.decompress(base64.b64decode(vertices_base64))\n";
     out << indent << "k = 0\n";
-    out << indent << "for i in xrange(len(numVertices)):\n";
+    out << indent << "for i in range(len(numVertices)):\n";
     out << indent << indent << "current = []\n";
-    out << indent << indent << "for j in xrange(numVertices[i] * 3):\n";
+    out << indent << indent << "for j in range(numVertices[i] * 3):\n";
     out << indent << indent << indent << "current.append(float(struct.unpack('=d', vertices_binary[k:k+8])[0]))\n";
     out << indent << indent << indent << "k += 8\n";
     out << indent << indent << "vertices.append(current)\n\n";
@@ -265,7 +267,7 @@ void MeshGenerator::write(const std::string &fname) {
 
     out << "def normalize(a):\n";
     out << indent << "length = math.sqrt(dot(a, a))\n";
-    out << indent << "for i in xrange(3):\n";
+    out << indent << "for i in range(3):\n";
     out << indent << indent << "a[i]/=length\n";
     out << indent << "return a\n\n";
 
@@ -360,12 +362,12 @@ void MeshGenerator::write(const std::string &fname) {
 
     out << indent << "decodeVertices()\n\n";
 
-    out << indent << "for i in xrange(len(vertices)):\n";
-    out << indent << indent << "for j in xrange(0, len(vertices[i]), 3):\n";
+    out << indent << "for i in range(len(vertices)):\n";
+    out << indent << indent << "for j in range(0, len(vertices[i]), 3):\n";
     out << indent << indent << indent << "vertices_str += (\"%f %f %f\\n\" %(vertices[i][j], vertices[i][j+1], vertices[i][j+2]))\n";
     out << indent << indent << indent << "vertexCounter += 1\n\n";
 
-    out << indent << indent << "for j in xrange(0, len(triangles[i]), 3):\n";
+    out << indent << indent << "for j in range(0, len(triangles[i]), 3):\n";
     out << indent << indent << indent << "triangles_str += (\"3 %d %d %d\\n\" % (triangles[i][j] + startIdx, triangles[i][j+1] + startIdx, triangles[i][j+2] + startIdx))\n";
     out << indent << indent << indent << "cellTypes_str += \"5\\n\"\n";
     out << indent << indent << indent << "tmp_color = lookup_table[color[i]]\n";
@@ -398,7 +400,7 @@ void MeshGenerator::write(const std::string &fname) {
     out << indent << "        tri_vertices[2][2] - tri_vertices[0][2]]\n";
     out << indent << "return normalize(cross(vec1,vec2))\n\n";
 
-    out << "def exportWeb():\n";
+    out << "def exportWeb(bgcolor):\n";
     // out << indent << "if not os.path.exists('scenes'):\n";
     // out << indent << indent << "os.makedirs('scenes')\n";
     // out << indent << "fh = open('scenes/" << fname << "_ElementPositions.babylon','w')\n";
@@ -450,12 +452,12 @@ void MeshGenerator::write(const std::string &fname) {
     out << indent << "mesh += \"\\\"materials\\\":[],\"\n";
     out << indent << "mesh += \"\\\"meshes\\\":[\"\n\n";
 
-    out << indent << "for i in xrange(len(triangles)):\n";
+    out << indent << "for i in range(len(triangles)):\n";
     out << indent << indent << "vertex_list = []\n";
     out << indent << indent << "indices_list = []\n";
     out << indent << indent << "normals_list = []\n";
     out << indent << indent << "color_list = []\n";
-    out << indent << indent << "for j in xrange(0, len(triangles[i]), 3):\n";
+    out << indent << indent << "for j in range(0, len(triangles[i]), 3):\n";
     out << indent << indent << indent << "tri_vertices = []\n";
     out << indent << indent << indent << "idcs = triangles[i][j:j + 3]\n";
     out << indent << indent << indent << "tri_vertices.append(vertices[i][3 * idcs[0]:3 * (idcs[0] + 1)])\n";
@@ -505,7 +507,10 @@ void MeshGenerator::write(const std::string &fname) {
     out << indent << "mesh += \"}'\"\n";
 
     out << indent << "index_compressed = base64.b64decode(index_base64)\n";
-    out << indent << "index = zlib.decompress(index_compressed)\n";
+    out << indent << "index = str(zlib.decompress(index_compressed))\n";
+    out << indent << "if (len(bgcolor) == 3):\n";
+    out << indent << indent << "mesh += \";\\n            \"\n";
+    out << indent << indent << "mesh += \"scene.clearColor = new BABYLON.Color3(%f, %f, %f)\" % (bgcolor[0], bgcolor[1], bgcolor[2])\n\n";
     out << indent << "index = index.replace('##DATA##', mesh)\n";
     out << indent << "fh = open('" << fname << "_ElementPositions.html','w')\n";
     out << indent << "fh.write(index)\n";
@@ -729,10 +734,10 @@ void MeshGenerator::write(const std::string &fname) {
 
     out << indent << "decodeVertices()\n\n";
 
-    out << indent << "for i in xrange(len(vertices)):\n";
+    out << indent << "for i in range(len(vertices)):\n";
     out << indent << indent << "positions = {}\n";
     out << indent << indent << "connections = {}\n";
-    out << indent << indent << "for j in xrange(0, len(vertices[i]), 3):\n";
+    out << indent << indent << "for j in range(0, len(vertices[i]), 3):\n";
     out << indent << indent << indent << "nextPos3D = ori.rotate(vertices[i][j:j+3])\n";
     out << indent << indent << indent << "nextPos2D = nextPos3D[0:2]\n";
     out << indent << indent << indent << "positions[j/3] = nextPos2D\n\n";
@@ -749,12 +754,12 @@ void MeshGenerator::write(const std::string &fname) {
     out << indent << indent << indent << "if positions[j][0] == maxX and positions[j][1] > positions[idx][1]:\n";
     out << indent << indent << indent << indent << "idx = j\n\n";
 
-    out << indent << indent << "for j in xrange(0, len(triangles[i]), 3):\n";
-    out << indent << indent << indent << "for k in xrange(0, 3):\n";
+    out << indent << indent << "for j in range(0, len(triangles[i]), 3):\n";
+    out << indent << indent << indent << "for k in range(0, 3):\n";
     out << indent << indent << indent << indent << "vertIdx = triangles[i][j + k]\n";
     out << indent << indent << indent << indent << "if not vertIdx in connections:\n";
     out << indent << indent << indent << indent << indent << "connections[vertIdx] = []\n";
-    out << indent << indent << indent << indent << "for l in xrange(1, 3):\n";
+    out << indent << indent << indent << indent << "for l in range(1, 3):\n";
     out << indent << indent << indent << indent << indent << "connections[vertIdx].append(triangles[i][j + ((k + l) % 3)])\n\n";
 
     out << indent << indent << "numConnections = 0\n";
@@ -823,8 +828,8 @@ void MeshGenerator::write(const std::string &fname) {
     out << indent << indent << "if count > numConnections:\n";
     out << indent << indent << indent << "sys.stderr.write(\"error: projection cycling on element id: %d\\n\" % i)\n\n";
 
-    out << indent << indent << "for j in xrange(0, len(decoration[i]), 6):\n";
-    out << indent << indent << indent << "for k in xrange(j, j + 6, 3):\n";
+    out << indent << indent << "for j in range(0, len(decoration[i]), 6):\n";
+    out << indent << indent << indent << "for k in range(j, j + 6, 3):\n";
     out << indent << indent << indent << indent << "nextPos3D = ori.rotate(decoration[i][k:k+3])\n";
     out << indent << indent << indent << indent << "fh.write(\"%.6f    %.6f\\n\" % (nextPos3D[0], nextPos3D[1]))\n";
     out << indent << indent << indent << "fh.write(\"\\n\")\n\n";
@@ -834,18 +839,36 @@ void MeshGenerator::write(const std::string &fname) {
     out << "parser = argparse.ArgumentParser()\n";
     out << "parser.add_argument('--export-vtk', action='store_true')\n";
     out << "parser.add_argument('--export-web', action='store_true')\n";
-    out << "parser.add_argument('--project-to-plane', nargs=3, type=float)\n";
+    out << "parser.add_argument('--background', nargs=3, type=float)\n";
+    out << "parser.add_argument('--project-to-plane', action='store_true')\n";
+    out << "parser.add_argument('--normal', nargs=3, type=float)\n";
     out << "args = parser.parse_args()\n\n";
 
     out << "if (args.export_vtk):\n";
-    out << indent << "exportVTK()\n\n";
+    out << indent << "exportVTK()\n";
+    out << indent << "sys.exit()\n\n";
 
     out << "if (args.export_web):\n";
-    out << indent << "exportWeb()\n\n";
+    out << indent << "bgcolor = []\n";
+    out << indent << "if (args.background):\n";
+    out << indent << indent << "validBackground = True\n";
+    out << indent << indent << "for comp in bgcolor:\n";
+    out << indent << indent << indent << "if comp < 0.0 or comp > 1.0:\n";
+    out << indent << indent << indent << indent << "validBackground = False\n";
+    out << indent << indent << indent << indent << "break\n";
+    out << indent << indent << "if (validBackground):\n";
+    out << indent << indent << indent << "bgcolor = args.background\n";
+    out << indent << "exportWeb(bgcolor)\n";
+    out << indent << "sys.exit()\n\n";
 
     out << "if (args.project_to_plane):\n";
-    out << indent << "projectToPlane(args.project_to_plane)";
+    out << indent << "normal = [0.0, 1.0, 0.0]\n";
+    out << indent << "if (args.normal):\n";
+    out << indent << indent << "normal = args.normal\n";
+    out << indent << "projectToPlane(normal)\n";
+    out << indent << "sys.exit()\n\n";
 
+    out << "parser.print_help()\n";
 }
 
 MeshData MeshGenerator::getCylinder(double length,
