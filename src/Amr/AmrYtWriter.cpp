@@ -83,12 +83,12 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
 
         // variable names
         for (int ivar = 1; ivar <= rho[0]->nComp(); ivar++)
-          HeaderFile << "rho\n";
+            HeaderFile << "rho\n";
         
         for (int ivar = 1; ivar <= phi[0]->nComp(); ivar++)
-          HeaderFile << "potential\n";
+            HeaderFile << "potential\n";
         
-          HeaderFile << "Ex\nEy\nEz\n";
+        HeaderFile << "Ex\nEy\nEz\n";
         
         // dimensionality
         HeaderFile << AMREX_SPACEDIM << '\n';
