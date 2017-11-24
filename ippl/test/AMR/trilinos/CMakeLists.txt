@@ -90,6 +90,8 @@ ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
 
 set(F90_source_files ../Tagging_nd.f90)
 
+set(EXECS "")
+
 # add_executable( testBoundaryVector testBoundaryVector.cpp)
 
 # target_link_libraries (testBoundaryVector ${LIBS}
@@ -174,6 +176,11 @@ IF ( ${AMREX_DIM} EQUAL 3 )
     
     target_link_libraries (testBitPattern ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
+    set( EXECS
+         ${EXECS}
+	 testBitPattern
+	 testCopy
+    )
 ENDIF ( ${AMREX_DIM} EQUAL 3 )
                         
 
@@ -214,6 +221,18 @@ IF ( ${AMREX_DIM} EQUAL 2 )
                            -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
+    set( EXECS
+         ${EXECS}
+	 testRestrictionMatrix
+	 testInterpolationMatrix
+	 testBoundaryMatrix
+	 testSmootherMatrix
+	 testPoissonMatrix
+	 testNoFine
+	 testWithFine
+	 testSpecialPoissonMatrix
+	 testLagrange
+    )
 ENDIF ( ${AMREX_DIM} EQUAL 2 )
 # target_link_libraries (testTrilinosGeometry ${LIBS}
 #                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
@@ -226,3 +245,12 @@ target_link_libraries (testAmrMultigrid ${LIBS}
 target_link_libraries (testSolverComparison ${LIBS}
                           -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+
+set( EXECS
+     ${EXECS}
+     testAmrMultigrid
+     testSolverComparison
+)
+
+install (TARGETS ${EXECS} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/libexec/amr/trilinos")
