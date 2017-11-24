@@ -288,8 +288,7 @@ target_link_libraries (testPerformance ${LIBS}
 
 target_link_libraries (testPlasma ${LIBS}
                         -lgfortran ${AMREX_LIBRARIES}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS}
-                        -lboost_system -lboost_filesystem)
+                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testTagging ${LIBS}
                         -lgfortran ${AMREX_LIBRARIES}
