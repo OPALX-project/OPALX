@@ -101,4 +101,14 @@ if ( ${AMREX_DIM} EQUAL 3 )
     target_link_libraries (testSolverFail ${LIBS}
                            -lgfortran ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-endif( ${AMREX_DIM} EQUAL 3 )
+
+set (EXECS
+    testDeposition
+    AssignMultiLevelDensity
+    testDepositionFail
+    testSolverFail
+)
+
+install (TARGETS ${EXECS} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/libexec/amr/amrex-only")
+
+endif ( ${AMREX_DIM} EQUAL 3)
