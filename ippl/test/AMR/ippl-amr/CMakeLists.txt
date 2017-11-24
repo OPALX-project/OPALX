@@ -329,3 +329,23 @@ target_link_libraries (testMultipleSources ${LIBS}
 target_link_libraries (testLayout ${LIBS}
                         -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+
+set (EXECS
+    testAmrPartBase
+    testNewTracker
+    testPerformance
+    testPlasma
+    testTagging
+#    testInitGuessSolver
+    testInitialBox
+    testScatterAMReX
+    testDomainTransformSolve
+    testGaussian
+    testUnifSphere
+    testReal
+    testMultipleSources
+    testLayout
+)
+
+install (TARGETS ${EXECS} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/libexec/amr/ippl-amr")
