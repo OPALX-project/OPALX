@@ -18,7 +18,7 @@
 
 mkdir ~/ippl_build
 cd ~/ippl_build
-CXX=mpicxx F77=gfortran cmake -DCMAKE_VERBOSE_MAKEFILE=OFF -DCMAKE_INSTALL_PREFIX=~/extlib/ippl ~/svnwork/ippl
+CXX=mpicxx cmake -DCMAKE_VERBOSE_MAKEFILE=OFF -DCMAKE_INSTALL_PREFIX=~/extlib/ippl ~/svnwork/ippl
 
 # Depending on your architecture use on of the following flags:
 #   -DLINUXGCC=ON   "Use Linux GCC flags"   DEFAULT
