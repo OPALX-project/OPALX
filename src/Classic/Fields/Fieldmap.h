@@ -19,7 +19,7 @@ enum MapType {
     TAstraElectroStatic,
     T1DMagnetoStatic,
     TAstraMagnetoStatic,
-    T1DProfile1,
+   T1DProfile1,
     T1DProfile2,
     T2DDynamic,
     T2DDynamic_cspline,
@@ -107,15 +107,15 @@ protected:
     void getLine(std::ifstream &in, std::string &buffer);
     static void getLine(std::ifstream &in, int &lines_read, std::string &buffer);
     template<class S>
-    bool interpreteLine(std::ifstream &in, S &value, const bool &file_length_known = true);
+	    bool interpreteLine(std::ifstream &in, S &value, const bool &file_length_known = true);
     template<class S, class T>
-    bool interpreteLine(std::ifstream &in, S &value1, T &value2, const bool &file_length_known = true);
+	    bool interpreteLine(std::ifstream &in, S &value1, T &value2, const bool &file_length_known = true);
     template<class S, class T, class U>
-    bool interpreteLine(std::ifstream &in, S &value1, T &value2, U &value3, const bool &file_length_known = true);
+	    bool interpreteLine(std::ifstream &in, S &value1, T &value2, U &value3, const bool &file_length_known = true);
     template<class S, class T, class U, class V>
-    bool interpreteLine(std::ifstream &in, S &value1, T &value2, U &value3, V &value4, const bool &file_length_known = true);
+	    bool interpreteLine(std::ifstream &in, S &value1, T &value2, U &value3, V &value4, const bool &file_length_known = true);
     template<class S>
-    bool interpreteLine(std::ifstream &in, S &value1, S &value2, S &value3, S &value4, S &value5, S &value6, const bool &file_length_known = true);
+	    bool interpreteLine(std::ifstream &in, S &value1, S &value2, S &value3, S &value4, S &value5, S &value6, const bool &file_length_known = true);
 
     bool interpreteEOF(std::ifstream &in);
 
@@ -151,9 +151,9 @@ public:
     virtual void freeMap() = 0;
 private:
     template<typename T>
-    struct TypeParseTraits {
-        static const char *name;
-    };
+	    struct TypeParseTraits {
+		    static const char *name;
+	    };
 
     static char buffer_m[READ_BUFFER_LENGTH];
     static std::string alpha_numeric;

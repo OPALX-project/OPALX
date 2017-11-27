@@ -480,7 +480,7 @@ private:
     /// mean energy of the bunch (MeV)
     double eKin_m;
     /// energy of the bunch
-    double *energy_m;
+    //double *energy_m;
     /// energy spread of the beam in keV
     double dE_m;
 

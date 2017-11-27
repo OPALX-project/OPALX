@@ -42,6 +42,12 @@ using namespace std;
 
 RFCavity::RFCavity():
     Component(),
+    phase_td_m(nullptr),
+    phase_name_m(""),
+    amplitude_td_m(nullptr),
+    amplitude_name_m(""),
+    frequency_td_m(nullptr),
+    frequency_name_m(""),
     filename_m(""),
     scale_m(1.0),
     phase_m(0.0),
@@ -63,13 +69,7 @@ RFCavity::RFCavity():
     RNormal_m(nullptr),
     VrNormal_m(nullptr),
     DvDr_m(nullptr),
-    num_points_m(0),
-    phase_td_m(nullptr),
-    amplitude_td_m(nullptr),
-    frequency_td_m(nullptr),
-    phase_name_m(""),
-    amplitude_name_m(""),
-    frequency_name_m("")
+    num_points_m(0)
 {
     setElType(isRF);
 }
@@ -77,6 +77,12 @@ RFCavity::RFCavity():
 
 RFCavity::RFCavity(const RFCavity &right):
     Component(right),
+    phase_td_m(right.phase_td_m),
+    phase_name_m(right.phase_name_m),
+    amplitude_td_m(right.amplitude_td_m),
+    amplitude_name_m(right.amplitude_name_m),
+    frequency_td_m(right.frequency_td_m),
+    frequency_name_m(right.frequency_name_m),
     filename_m(right.filename_m),
     scale_m(right.scale_m),
     phase_m(right.phase_m),
@@ -98,13 +104,8 @@ RFCavity::RFCavity(const RFCavity &right):
     RNormal_m(nullptr),
     VrNormal_m(nullptr),
     DvDr_m(nullptr),
-    num_points_m(right.num_points_m),
-    phase_td_m(right.phase_td_m),
-    amplitude_td_m(right.amplitude_td_m),
-    frequency_td_m(right.frequency_td_m),
-    phase_name_m(right.phase_name_m),
-    amplitude_name_m(right.amplitude_name_m),
-    frequency_name_m(right.frequency_name_m) {
+    num_points_m(right.num_points_m)
+{
 
     setElType(isRF);
 
@@ -133,6 +134,9 @@ RFCavity::RFCavity(const RFCavity &right):
 
 RFCavity::RFCavity(const std::string &name):
     Component(name),
+    phase_td_m(nullptr),
+    amplitude_td_m(nullptr),
+    frequency_td_m(nullptr),
     filename_m(""),
     scale_m(1.0),
     phase_m(0.0),
@@ -154,9 +158,6 @@ RFCavity::RFCavity(const std::string &name):
     RNormal_m(nullptr),
     VrNormal_m(nullptr),
     DvDr_m(nullptr),
-    phase_td_m(nullptr),
-    amplitude_td_m(nullptr),
-    frequency_td_m(nullptr),
     //     RNormal_m(std::nullptr_t(NULL)),
     //     VrNormal_m(std::nullptr_t(NULL)),
     //     DvDr_m(std::nullptr_t(NULL)),

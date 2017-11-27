@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <cstddef>
 #include <cmath>
+#include <vector>
 
 using namespace std;
 
@@ -30,6 +31,7 @@ using namespace std;
 /* Internal functions
    ========================================================================= */
 
+#if 0
 /* vector
    allocate an array of doubles [0..n-1] and check memory */
 static double *vector(int n) {
@@ -43,6 +45,7 @@ static double *vector(int n) {
     }
     return b;
 } /* vector */
+#endif
 
 /* Internal functions
    ========================================================================= */
@@ -56,10 +59,9 @@ static double *vector(int n) {
 */
 void spline(double x[], double y[], int n, double y2[]) {
     int i, k;
-    double
-    p, qn, sig, un, *u;
+    double p, qn, sig, un;
 
-    u = vector(n - 1);
+    std::vector<double> u(n - 1);
     y2[0] = u[0] = 0.0;
     //  y2[0] = -0.5;
     // u[0]=(3.0/(x[1]-x[0]))*((y[1]-y[0])/(x[1]-x[0]));
@@ -79,8 +81,6 @@ void spline(double x[], double y[], int n, double y2[]) {
     y2[n-1] = (un - qn * u[n-2]) / (qn * y2[n-2] + 1.0);
     for(k = n - 2; k >= 0; k--)
         y2[k] = y2[k] * y2[k+1] + u[k];
-
-    free(u);
 } /* spline() */
 
 

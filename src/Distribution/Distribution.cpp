@@ -240,6 +240,7 @@ Distribution::Distribution():
     cathodeFermiEnergy_m(0.0),
     cathodeTemp_m(0.0),
     emitEnergyUpperLimit_m(0.0),
+    avrgpz_m(0.0),
     inputMoUnits_m(InputMomentumUnitsT::NONE),
     sigmaTRise_m(0.0),
     sigmaTFall_m(0.0),
@@ -264,13 +265,12 @@ Distribution::Distribution():
     secondaryFlag_m(0),
     ppVw_m(0.0),
     vVThermal_m(0.0),
-    referencePz_m(0.0),
-    referenceZ_m(0.0),
-    avrgpz_m(0.0),
     I_m(0.0),
     E_m(0.0),
-    bega_m(0.0),
-    M_m(0.0)
+    M_m(0.0),
+    referencePz_m(0.0),
+    referenceZ_m(0.0),
+    bega_m(0.0)
 {
     SetAttributes();
 
@@ -360,15 +360,15 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     secondaryFlag_m(parent->secondaryFlag_m),
     ppVw_m(parent->ppVw_m),
     vVThermal_m(parent->vVThermal_m),
+    I_m(parent->I_m),
+    E_m(parent->E_m),
+    M_m(parent->M_m),
     tRise_m(parent->tRise_m),
     tFall_m(parent->tFall_m),
     sigmaRise_m(parent->sigmaRise_m),
     sigmaFall_m(parent->sigmaFall_m),
     cutoff_m(parent->cutoff_m),
-    I_m(parent->I_m),
-    E_m(parent->E_m),
-    bega_m(parent->bega_m),
-    M_m(parent->M_m)
+    bega_m(parent->bega_m)
 {
 }
 
@@ -1069,7 +1069,7 @@ void Distribution::ApplyEmissModelNonEquil(double eZ,
 
 void Distribution::CalcPartPerDist(size_t numberOfParticles) {
 
-    typedef std::vector<Distribution *>::iterator iterator;
+    //typedef std::vector<Distribution *>::iterator iterator;
 
     if (numberOfDistributions_m == 1) {
         particlesPerDist_m.push_back(numberOfParticles);

@@ -36,16 +36,16 @@ using namespace std;
 #endif
 
 DataSink::DataSink() :
+    H5call_m(0),
     lossWrCounter_m(0),
     doHDF5_m(true),
-    h5wrapper_m(NULL),
-    H5call_m(0)
+    h5wrapper_m(NULL)
 { }
 
 DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
+	H5call_m(0),
     lossWrCounter_m(0),
-    h5wrapper_m(h5wrapper),
-    H5call_m(0)
+    h5wrapper_m(h5wrapper)
 {
     namespace fs = boost::filesystem;
 
@@ -85,9 +85,9 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
 }
 
 DataSink::DataSink(H5PartWrapper *h5wrapper):
+    H5call_m(0),
     lossWrCounter_m(0),
-    h5wrapper_m(h5wrapper),
-    H5call_m(0)
+    h5wrapper_m(h5wrapper)
 {
     /// Constructor steps:
     /// Get timers from IPPL.

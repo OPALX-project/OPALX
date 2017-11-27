@@ -494,7 +494,6 @@ void AutophaseTracker::receiveCavityPhases() {
     getMessage(*mess, nData);
 
     {
-        typedef std::vector<MaxPhasesT>::iterator iterator_t;
         for(int i = 0; i < nData; i++) {
             std::string elName;
             double maxPhi;
@@ -504,7 +503,6 @@ void AutophaseTracker::receiveCavityPhases() {
         }
     }
     {
-        typedef energyEvolution_t::iterator iterator_t;
         for(int i = 0; i < nData; i++) {
             double spos;
             double maxEnergy;

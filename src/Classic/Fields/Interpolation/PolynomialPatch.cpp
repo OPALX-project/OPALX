@@ -102,9 +102,13 @@ VectorMap* PolynomialPatch::clone() const {
     return new PolynomialPatch(new_mesh, new_validity, new_points);
 }
 
-PolynomialPatch::PolynomialPatch()
-  : grid_points_(NULL), validity_region_(NULL), points_(), point_dimension_(0),
-    value_dimension_(0) {
+PolynomialPatch::PolynomialPatch() :
+	validity_region_(NULL),
+	grid_points_(NULL),
+	points_(),
+	point_dimension_(0),
+	value_dimension_(0)
+{
 }
 
 PolynomialPatch::~PolynomialPatch() {

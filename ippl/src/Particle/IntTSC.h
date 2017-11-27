@@ -54,7 +54,7 @@ public:
     CompressedBrickIterator<FT,Dim> fiter;
     //BENI: offset not needed, since NGP is used as center
 	//int lgpoff[Dim];
-    unsigned int d;
+    //unsigned int d;
     // find nearest grid point for particle position, store in NDIndex obj
     ngp = FindNGP(mesh, ppos, ctag);
     // get position of ngp
@@ -96,7 +96,7 @@ public:
     CenteringTag<C> ctag;
     Vektor<PT,Dim> gpos, delta;
     CompressedBrickIterator<FT,Dim> fiter;
-    unsigned int d;
+
     // find nearest grid point for particle position, store in NDIndex obj
     ngp = FindNGP(mesh, ppos, ctag);
     // get position of ngp
@@ -107,7 +107,7 @@ public:
     fiter = getFieldIter(f,ngp);
     // Now we find the offset from ngp to next-lowest grip point (lgp)
 	/*
-    for (d=0; d<Dim; ++d) {
+    for (unsigned int d=0; d<Dim; ++d) {
       if (gpos(d) > ppos(d)) {
         lgpoff[d] = -1;                // save the offset
         gpos(d) = gpos(d) - delta(d);  // adjust gpos to lgp position
@@ -154,7 +154,6 @@ public:
     NDIndex<Dim> ngp;
     CompressedBrickIterator<FT,Dim> fiter;
     int lgpoff[Dim];
-    unsigned int d;
     // find nearest grid point for particle position, store in NDIndex obj
     ngp = FindNGP(mesh, ppos, ctag);
     // get position of ngp
@@ -165,7 +164,7 @@ public:
     fiter = getFieldIter(f,ngp);
 	/*
     // Now we find the offset from ngp to next-lowest grip point (lgp)
-    for (d=0; d<Dim; ++d) {
+    for (unsigned int d=0; d<Dim; ++d) {
       if (gpos(d) > ppos(d)) {
         lgpoff[d] = -1;                // save the offset
         gpos(d) = gpos(d) - delta(d);  // adjust gpos to lgp position
@@ -196,7 +195,7 @@ public:
     CenteringTag<C> ctag;
     Vektor<PT,Dim> gpos, delta;
     CompressedBrickIterator<FT,Dim> fiter;
-    unsigned int d;
+
     // find nearest grid point for particle position, store in NDIndex obj
     ngp = FindNGP(mesh, ppos, ctag);
     // get position of ngp
@@ -207,7 +206,7 @@ public:
     fiter = getFieldIter(f,ngp);
 	/*
     // Now we find the offset from ngp to next-lowest grip point (lgp)
-    for (d=0; d<Dim; ++d) {
+    for (unsigned int d=0; d<Dim; ++d) {
       if (gpos(d) > ppos(d)) {
         lgpoff[d] = -1;                // save the offset
         gpos(d) = gpos(d) - delta(d);  // adjust gpos to lgp position
@@ -266,8 +265,6 @@ public:
     Vektor<PT,1U> gpos, dpos, delta;
     NDIndex<1U> ngp;
     CompressedBrickIterator<FT,1U> fiter;
-    int lgpoff[1U];
-    unsigned int d;
     // find nearest grid point for particle position, store in NDIndex obj
     ngp = FindNGP(mesh, ppos, ctag);
     // get position of ngp
@@ -307,7 +304,6 @@ public:
     CenteringTag<C> ctag;
     Vektor<PT,1U> gpos, delta;
     CompressedBrickIterator<FT,1U> fiter;
-    unsigned int d;
     // find nearest grid point for particle position, store in NDIndex obj
     ngp = FindNGP(mesh, ppos, ctag);
     // get position of ngp
@@ -376,8 +372,6 @@ public:
     Vektor<PT,1U> gpos, dpos, delta;
     NDIndex<1U> ngp;
     CompressedBrickIterator<FT,1U> fiter;
-    int lgpoff[1U];
-    unsigned int d;
     // find nearest grid point for particle position, store in NDIndex obj
     ngp = FindNGP(mesh, ppos, ctag);
     // get position of ngp
@@ -421,7 +415,6 @@ public:
     CenteringTag<C> ctag;
     Vektor<PT,1U> gpos, delta;
     CompressedBrickIterator<FT,1U> fiter;
-    unsigned int d;
     // find nearest grid point for particle position, store in NDIndex obj
     ngp = FindNGP(mesh, ppos, ctag);
     // get position of ngp
@@ -504,8 +497,6 @@ public:
     Vektor<PT,2U> gpos, dpos, delta;
     NDIndex<2U> ngp;
     CompressedBrickIterator<FT,2U> fiter;
-    int lgpoff[2U];
-    unsigned int d;
     // find nearest grid point for particle position, store in NDIndex obj
     ngp = FindNGP(mesh, ppos, ctag);
     // get position of ngp
@@ -553,7 +544,6 @@ public:
     CenteringTag<C> ctag;
     Vektor<PT,2U> gpos, delta;
     CompressedBrickIterator<FT,2U> fiter;
-    unsigned int d;
     // find nearest grid point for particle position, store in NDIndex obj
     ngp = FindNGP(mesh, ppos, ctag);
     // get position of ngp
@@ -640,8 +630,6 @@ public:
     Vektor<PT,2U> gpos, dpos, delta;
     NDIndex<2U> ngp;
     CompressedBrickIterator<FT,2U> fiter;
-    int lgpoff[2U];
-    unsigned int d;
     // find nearest grid point for particle position, store in NDIndex obj
     ngp = FindNGP(mesh, ppos, ctag);
     // get position of ngp
@@ -691,7 +679,6 @@ public:
     CenteringTag<C> ctag;
     Vektor<PT,2U> gpos, delta;
     CompressedBrickIterator<FT,2U> fiter;
-    unsigned int d;
     // find nearest grid point for particle position, store in NDIndex obj
     ngp = FindNGP(mesh, ppos, ctag);
     // get position of ngp
@@ -834,7 +821,6 @@ public:
     CenteringTag<C> ctag;
     Vektor<PT,3U> gpos, delta;
     CompressedBrickIterator<FT,3U> fiter;
-    unsigned int d;
     // find nearest grid point for particle position, store in NDIndex obj
     ngp = FindNGP(mesh, ppos, ctag);
     // get position of ngp
@@ -948,7 +934,6 @@ public:
     CenteringTag<C> ctag;
     Vektor<PT,3U> gpos, delta;
     CompressedBrickIterator<FT,3U> fiter;
-    unsigned int d;
     // find nearest grid point for particle position, store in NDIndex obj
     ngp = FindNGP(mesh, ppos, ctag);
     // get position of ngp
