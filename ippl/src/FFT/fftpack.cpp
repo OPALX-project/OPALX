@@ -1,17 +1,35 @@
-/* fftpack.F -- translated by f2c (version 19970805).
-   You must link the resulting object file with the libraries:
-	-lf2c -lm   (in that order)
+/* fftpack_preprocessed.F -- translated by f2c (version 20100827).
+   You must link the resulting object file with libf2c:
+	on Microsoft Windows system, link with libf2c.lib;
+	on Linux or Unix systems, link with .../path/to/libf2c.a -lm
+	or, if you install libf2c.a in a standard place, with -lf2c -lm
+	-- in that order, at the end of the command line, as in
+		cc *.o -lf2c -lm
+	Source for libf2c is in /netlib/f2c/libf2c.zip, e.g.,
+
+		http://www.netlib.org/f2c/libf2c.zip
 */
 
+#include "f2c.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* ======================================================================== */
+
+/*     The IPPL Framework */
+
+/*     This program was prepared by the Regents of the University of */
 /*     Visit http://people.web.psi.ch/adelmann/ for more details */
 
-/*========================================================================*/
+/* ======================================================================== */
 /* ======================================================================= */
 /* ============================fftpack.F================================== */
 /* =============contains routines rffti, rfftf, rfftf,==================== */
 /* ==========cffti, cfftf, cfftb, sinti, and sint (from Netlib)=========== */
 /* ======================================================================= */
+/*     Cray machines do not support double precision type.  Use real. */
 /* ---------------------------DOUBLE PRECISION---------------------------- */
 /* Subroutine */ int rffti_(integer *n, doublereal *wsave)
 {
@@ -31,7 +49,7 @@
     return 0;
 } /* rffti_ */
 
-/* Subroutine */ int rffti1_(integer *n, doublereal *wa, integer *ifac)
+/* Subroutine */ int rffti1_(integer *n, doublereal *wa, doublereal *xxifac)
 {
     /* Initialized data */
 
@@ -39,29 +57,36 @@
 
     /* System generated locals */
     integer i__1, i__2, i__3;
-
+    static doublereal equiv_0[15];
+    static integer equiv_1[15];
     /* Builtin functions */
     double cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static doublereal argh;
-    static integer ntry, i__, j;
-    static doublereal argld;
-    static integer k1, l1, l2, ib;
+    static integer i__, j, k1, l1, l2, ib;
     static doublereal fi;
     static integer ld, ii, nf, ip, nl, is, nq, nr;
     static doublereal arg;
     static integer ido, ipm;
     static doublereal tpi;
     static integer nfm1;
+#define jfac (equiv_1)
+#define rfac (equiv_0)
+    static doublereal argh;
+    static integer ntry;
+    static doublereal argld;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
-    --ifac;
+    --xxifac;
     --wa;
 
     /* Function Body */
+    for (i__ = 1; i__ <= 15; ++i__) {
+	rfac[i__ - 1] = xxifac[i__];
+/* L100: */
+    }
     nl = *n;
     nf = 0;
     j = 0;
@@ -87,7 +112,7 @@ L104:
     }
 L105:
     ++nf;
-    ifac[nf + 2] = ntry;
+    jfac[nf + 1] = ntry;
     nl = nq;
     if (ntry != 2) {
 	goto L107;
@@ -98,17 +123,17 @@ L105:
     i__1 = nf;
     for (i__ = 2; i__ <= i__1; ++i__) {
 	ib = nf - i__ + 2;
-	ifac[ib + 2] = ifac[ib + 1];
+	jfac[ib + 1] = jfac[ib];
 /* L106: */
     }
-    ifac[3] = 2;
+    jfac[2] = 2;
 L107:
     if (nl != 1) {
 	goto L104;
     }
-    ifac[1] = *n;
-    ifac[2] = nf;
-    tpi = (float)6.28318530717959;
+    jfac[0] = *n;
+    jfac[1] = nf;
+    tpi = 6.28318530717959f;
     argh = tpi / (real) (*n);
     is = 0;
     nfm1 = nf - 1;
@@ -118,7 +143,7 @@ L107:
     }
     i__1 = nfm1;
     for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = ifac[k1 + 2];
+	ip = jfac[k1 + 1];
 	ld = 0;
 	l2 = l1 * ip;
 	ido = *n / l2;
@@ -128,11 +153,11 @@ L107:
 	    ld += l1;
 	    i__ = is;
 	    argld = (real) ld * argh;
-	    fi = (float)0.;
+	    fi = 0.f;
 	    i__3 = ido;
 	    for (ii = 3; ii <= i__3; ii += 2) {
 		i__ += 2;
-		fi += (float)1.;
+		fi += 1.f;
 		arg = fi * argld;
 		wa[i__ - 1] = cos(arg);
 		wa[i__] = sin(arg);
@@ -144,8 +169,16 @@ L107:
 	l1 = l2;
 /* L110: */
     }
+    for (i__ = 1; i__ <= 15; ++i__) {
+	xxifac[i__] = rfac[i__ - 1];
+/* L111: */
+    }
     return 0;
 } /* rffti1_ */
+
+#undef rfac
+#undef jfac
+
 
 /* Subroutine */ int rfftf_(integer *n, doublereal *r__, doublereal *wsave)
 {
@@ -167,42 +200,48 @@ L107:
 } /* rfftf_ */
 
 /* Subroutine */ int rfftf1_(integer *n, doublereal *c__, doublereal *ch, 
-	doublereal *wa, integer *ifac)
+	doublereal *wa, doublereal *xxifac)
 {
     /* System generated locals */
     integer i__1;
+    static doublereal equiv_0[15];
 
     /* Local variables */
+    static integer i__, k1, l1, l2, na, kh, nf, ip, iw, ix2, ix3, ix4, ido, 
+	    idl1;
+#define jfac ((integer *)equiv_0)
+#define rfac (equiv_0)
     extern /* Subroutine */ int radf2_(integer *, integer *, doublereal *, 
 	    doublereal *, doublereal *), radf3_(integer *, integer *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *), radf4_(
 	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *), radf5_(integer *, integer *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *);
-    static integer i__;
-    extern /* Subroutine */ int radfg_(integer *, integer *, integer *, 
-	    integer *, doublereal *, doublereal *, doublereal *, doublereal *,
-	     doublereal *, doublereal *);
-    static integer k1, l1, l2, na, kh, nf, ip, iw, ix2, ix3, ix4, ido, idl1;
+	    doublereal *, doublereal *), radfg_(integer *, integer *, integer 
+	    *, integer *, doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *, doublereal *);
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
-    --ifac;
+    --xxifac;
     --wa;
     --ch;
     --c__;
 
     /* Function Body */
-    nf = ifac[2];
+    for (i__ = 1; i__ <= 15; ++i__) {
+	rfac[i__ - 1] = xxifac[i__];
+/* L100: */
+    }
+    nf = jfac[1];
     na = 1;
     l2 = *n;
     iw = *n;
     i__1 = nf;
     for (k1 = 1; k1 <= i__1; ++k1) {
 	kh = nf - k1;
-	ip = ifac[kh + 3];
+	ip = jfac[kh + 2];
 	l1 = l2 / ip;
 	ido = *n / l2;
 	idl1 = ido * l1;
@@ -293,6 +332,10 @@ L110:
     return 0;
 } /* rfftf1_ */
 
+#undef rfac
+#undef jfac
+
+
 /* Subroutine */ int radfg_(integer *ido, integer *ip, integer *l1, integer *
 	idl1, doublereal *cc, doublereal *c1, doublereal *c2, doublereal *ch, 
 	doublereal *ch2, doublereal *wa)
@@ -310,32 +353,32 @@ L110:
     double cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static integer idij, ipph, i__, j, k, l, j2, ic, jc, lc, ik, is;
+    static integer i__, j, k, l, j2, ic, jc, lc, ik, is;
     static doublereal dc2, ai1, ai2, ar1, ar2, ds2;
     static integer nbd;
     static doublereal dcp, arg, dsp, ar1h, ar2h;
-    static integer idp2, ipp2;
+    static integer idp2, ipp2, idij, ipph;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     c1_dim1 = *ido;
     c1_dim2 = *l1;
-    c1_offset = c1_dim1 * (c1_dim2 + 1) + 1;
+    c1_offset = 1 + c1_dim1 * (1 + c1_dim2);
     c1 -= c1_offset;
     cc_dim1 = *ido;
     cc_dim2 = *ip;
-    cc_offset = cc_dim1 * (cc_dim2 + 1) + 1;
+    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
     cc -= cc_offset;
     ch2_dim1 = *idl1;
-    ch2_offset = ch2_dim1 + 1;
+    ch2_offset = 1 + ch2_dim1;
     ch2 -= ch2_offset;
     c2_dim1 = *idl1;
-    c2_offset = c2_dim1 + 1;
+    c2_offset = 1 + c2_dim1;
     c2 -= c2_offset;
     --wa;
 
@@ -492,8 +535,8 @@ L121:
 /* L123: */
     }
 
-    ar1 = (float)1.;
-    ai1 = (float)0.;
+    ar1 = 1.f;
+    ai1 = 0.f;
     i__1 = ipph;
     for (l = 2; l <= i__1; ++l) {
 	lc = ipp2 - l;
@@ -666,11 +709,11 @@ L141:
 /* ----------------------------TJW */
     /* Parameter adjustments */
     ch_dim1 = *ido;
-    ch_offset = ch_dim1 * 6 + 1;
+    ch_offset = 1 + ch_dim1 * 6;
     ch -= ch_offset;
     cc_dim1 = *ido;
     cc_dim2 = *l1;
-    cc_offset = cc_dim1 * (cc_dim2 + 1) + 1;
+    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -782,11 +825,11 @@ L141:
 /* ----------------------------TJW */
     /* Parameter adjustments */
     ch_dim1 = *ido;
-    ch_offset = (ch_dim1 << 2) + 1;
+    ch_offset = 1 + (ch_dim1 << 2);
     ch -= ch_offset;
     cc_dim1 = *ido;
     cc_dim2 = *l1;
-    cc_offset = cc_dim1 * (cc_dim2 + 1) + 1;
+    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -857,11 +900,11 @@ L141:
 /* ----------------------------TJW */
     /* Parameter adjustments */
     ch_dim1 = *ido;
-    ch_offset = ch_dim1 * 3 + 1;
+    ch_offset = 1 + ch_dim1 * 3;
     ch -= ch_offset;
     cc_dim1 = *ido;
     cc_dim2 = *l1;
-    cc_offset = cc_dim1 * (cc_dim2 + 1) + 1;
+    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
     cc -= cc_offset;
     --wa1;
 
@@ -941,11 +984,11 @@ L107:
 /* ----------------------------TJW */
     /* Parameter adjustments */
     ch_dim1 = *ido;
-    ch_offset = ch_dim1 * 5 + 1;
+    ch_offset = 1 + ch_dim1 * 5;
     ch -= ch_offset;
     cc_dim1 = *ido;
     cc_dim2 = *l1;
-    cc_offset = cc_dim1 * (cc_dim2 + 1) + 1;
+    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -1058,41 +1101,46 @@ L107:
 } /* rfftb_ */
 
 /* Subroutine */ int rfftb1_(integer *n, doublereal *c__, doublereal *ch, 
-	doublereal *wa, integer *ifac)
+	doublereal *wa, doublereal *xxifac)
 {
     /* System generated locals */
     integer i__1;
+    static doublereal equiv_0[15];
 
     /* Local variables */
+    static integer i__, k1, l1, l2, na, nf, ip, iw, ix2, ix3, ix4, ido, idl1;
+#define jfac ((integer *)equiv_0)
+#define rfac (equiv_0)
     extern /* Subroutine */ int radb2_(integer *, integer *, doublereal *, 
 	    doublereal *, doublereal *), radb3_(integer *, integer *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *), radb4_(
 	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *), radb5_(integer *, integer *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *);
-    static integer i__;
-    extern /* Subroutine */ int radbg_(integer *, integer *, integer *, 
-	    integer *, doublereal *, doublereal *, doublereal *, doublereal *,
-	     doublereal *, doublereal *);
-    static integer k1, l1, l2, na, nf, ip, iw, ix2, ix3, ix4, ido, idl1;
+	    doublereal *, doublereal *), radbg_(integer *, integer *, integer 
+	    *, integer *, doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *, doublereal *);
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
-    --ifac;
+    --xxifac;
     --wa;
     --ch;
     --c__;
 
     /* Function Body */
-    nf = ifac[2];
+    for (i__ = 1; i__ <= 15; ++i__) {
+	rfac[i__ - 1] = xxifac[i__];
+/* L100: */
+    }
+    nf = jfac[1];
     na = 0;
     l1 = 1;
     iw = 1;
     i__1 = nf;
     for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = ifac[k1 + 2];
+	ip = jfac[k1 + 1];
 	l2 = ip * l1;
 	ido = *n / l2;
 	idl1 = ido * l1;
@@ -1189,6 +1237,10 @@ L115:
     return 0;
 } /* rfftb1_ */
 
+#undef rfac
+#undef jfac
+
+
 /* Subroutine */ int radbg_(integer *ido, integer *ip, integer *l1, integer *
 	idl1, doublereal *cc, doublereal *c1, doublereal *c2, doublereal *ch, 
 	doublereal *ch2, doublereal *wa)
@@ -1206,32 +1258,32 @@ L115:
     double cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static integer idij, ipph, i__, j, k, l, j2, ic, jc, lc, ik, is;
+    static integer i__, j, k, l, j2, ic, jc, lc, ik, is;
     static doublereal dc2, ai1, ai2, ar1, ar2, ds2;
     static integer nbd;
     static doublereal dcp, arg, dsp, ar1h, ar2h;
-    static integer idp2, ipp2;
+    static integer idp2, ipp2, idij, ipph;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     c1_dim1 = *ido;
     c1_dim2 = *l1;
-    c1_offset = c1_dim1 * (c1_dim2 + 1) + 1;
+    c1_offset = 1 + c1_dim1 * (1 + c1_dim2);
     c1 -= c1_offset;
     cc_dim1 = *ido;
     cc_dim2 = *ip;
-    cc_offset = cc_dim1 * (cc_dim2 + 1) + 1;
+    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
     cc -= cc_offset;
     ch2_dim1 = *idl1;
-    ch2_offset = ch2_dim1 + 1;
+    ch2_offset = 1 + ch2_dim1;
     ch2 -= ch2_offset;
     c2_dim1 = *idl1;
-    c2_offset = c2_dim1 + 1;
+    c2_offset = 1 + c2_dim1;
     c2 -= c2_offset;
     --wa;
 
@@ -1345,8 +1397,8 @@ L112:
 /* L115: */
     }
 L116:
-    ar1 = (float)1.;
-    ai1 = (float)0.;
+    ar1 = 1.f;
+    ai1 = 0.f;
     i__1 = ipph;
     for (l = 2; l <= i__1; ++l) {
 	lc = ipp2 - l;
@@ -1557,10 +1609,10 @@ L143:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 6 + 1;
+    cc_offset = 1 + cc_dim1 * 6;
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -1679,10 +1731,10 @@ L143:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = (cc_dim1 << 2) + 1;
+    cc_offset = 1 + (cc_dim1 << 2);
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -1758,10 +1810,10 @@ L143:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 3 + 1;
+    cc_offset = 1 + cc_dim1 * 3;
     cc -= cc_offset;
     --wa1;
 
@@ -1841,10 +1893,10 @@ L107:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 5 + 1;
+    cc_offset = 1 + cc_dim1 * 5;
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -1947,9 +1999,9 @@ L107:
 
 /* Subroutine */ int cffti_(integer *n, doublereal *wsave)
 {
+    static integer iw1, iw2;
     extern /* Subroutine */ int cffti1_(integer *, doublereal *, doublereal *)
 	    ;
-    static integer iw1, iw2;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
@@ -1966,7 +2018,7 @@ L107:
     return 0;
 } /* cffti_ */
 
-/* Subroutine */ int cffti1_(integer *n, doublereal *wa, integer *ifac)
+/* Subroutine */ int cffti1_(integer *n, doublereal *wa, doublereal *xxifac)
 {
     /* Initialized data */
 
@@ -1974,28 +2026,36 @@ L107:
 
     /* System generated locals */
     integer i__1, i__2, i__3;
-
+    static doublereal equiv_0[15];
+    static integer equiv_1[15];
+    
     /* Builtin functions */
     double cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static doublereal argh;
-    static integer idot, ntry, i__, j;
-    static doublereal argld;
-    static integer i1, k1, l1, l2, ib;
+    static integer i__, j, i1, k1, l1, l2, ib;
     static doublereal fi;
     static integer ld, ii, nf, ip, nl, nq, nr;
     static doublereal arg;
     static integer ido, ipm;
     static doublereal tpi;
+#define jfac (equiv_1)
+#define rfac (equiv_0)
+    static doublereal argh;
+    static integer idot, ntry;
+    static doublereal argld;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
-    --ifac;
+    --xxifac;
     --wa;
 
     /* Function Body */
+    for (i__ = 1; i__ <= 15; ++i__) {
+	rfac[i__ - 1] = xxifac[i__];
+/* L100: */
+    }
     nl = *n;
     nf = 0;
     j = 0;
@@ -2021,7 +2081,7 @@ L104:
     }
 L105:
     ++nf;
-    ifac[nf + 2] = ntry;
+    jfac[nf + 1] = ntry;
     nl = nq;
     if (ntry != 2) {
 	goto L107;
@@ -2032,23 +2092,23 @@ L105:
     i__1 = nf;
     for (i__ = 2; i__ <= i__1; ++i__) {
 	ib = nf - i__ + 2;
-	ifac[ib + 2] = ifac[ib + 1];
+	jfac[ib + 1] = jfac[ib];
 /* L106: */
     }
-    ifac[3] = 2;
+    jfac[2] = 2;
 L107:
     if (nl != 1) {
 	goto L104;
     }
-    ifac[1] = *n;
-    ifac[2] = nf;
-    tpi = (float)6.28318530717959;
+    jfac[0] = *n;
+    jfac[1] = nf;
+    tpi = 6.28318530717959f;
     argh = tpi / (real) (*n);
     i__ = 2;
     l1 = 1;
     i__1 = nf;
     for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = ifac[k1 + 2];
+	ip = jfac[k1 + 1];
 	ld = 0;
 	l2 = l1 * ip;
 	ido = *n / l2;
@@ -2057,15 +2117,15 @@ L107:
 	i__2 = ipm;
 	for (j = 1; j <= i__2; ++j) {
 	    i1 = i__;
-	    wa[i__ - 1] = (float)1.;
-	    wa[i__] = (float)0.;
+	    wa[i__ - 1] = 1.f;
+	    wa[i__] = 0.f;
 	    ld += l1;
-	    fi = (float)0.;
+	    fi = 0.f;
 	    argld = (real) ld * argh;
 	    i__3 = idot;
 	    for (ii = 4; ii <= i__3; ii += 2) {
 		i__ += 2;
-		fi += (float)1.;
+		fi += 1.f;
 		arg = fi * argld;
 		wa[i__ - 1] = cos(arg);
 		wa[i__] = sin(arg);
@@ -2082,14 +2142,22 @@ L109:
 	l1 = l2;
 /* L110: */
     }
+    for (i__ = 1; i__ <= 15; ++i__) {
+	xxifac[i__] = rfac[i__ - 1];
+/* L111: */
+    }
     return 0;
 } /* cffti1_ */
 
+#undef rfac
+#undef jfac
+
+
 /* Subroutine */ int cfftf_(integer *n, doublereal *c__, doublereal *wsave)
 {
+    static integer iw1, iw2;
     extern /* Subroutine */ int cfftf1_(integer *, doublereal *, doublereal *,
 	     doublereal *, doublereal *);
-    static integer iw1, iw2;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
@@ -2108,42 +2176,48 @@ L109:
 } /* cfftf_ */
 
 /* Subroutine */ int cfftf1_(integer *n, doublereal *c__, doublereal *ch, 
-	doublereal *wa, integer *ifac)
+	doublereal *wa, doublereal *xxifac)
 {
     /* System generated locals */
     integer i__1;
+    static doublereal equiv_0[15];
 
     /* Local variables */
-    static integer idot, i__;
+    static integer i__, k1, l1, l2, n2, na, nf, ip, iw, ix2, ix3, ix4, nac, 
+	    ido, idl1;
+#define jfac ((integer *)equiv_0)
+#define rfac (equiv_0)
+    static integer idot;
     extern /* Subroutine */ int passf_(integer *, integer *, integer *, 
 	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *);
-    static integer k1, l1, l2, n2;
-    extern /* Subroutine */ int passf2_(integer *, integer *, doublereal *, 
-	    doublereal *, doublereal *), passf3_(integer *, integer *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *), passf4_(
+	    doublereal *, doublereal *, doublereal *), passf2_(integer *, 
+	    integer *, doublereal *, doublereal *, doublereal *), passf3_(
 	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *), passf5_(integer *, integer *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *);
-    static integer na, nf, ip, iw, ix2, ix3, ix4, nac, ido, idl1;
+	    doublereal *), passf4_(integer *, integer *, doublereal *, 
+	    doublereal *, doublereal *, doublereal *, doublereal *), passf5_(
+	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *, doublereal *);
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
-    --ifac;
+    --xxifac;
     --wa;
     --ch;
     --c__;
 
     /* Function Body */
-    nf = ifac[2];
+    for (i__ = 1; i__ <= 15; ++i__) {
+	rfac[i__ - 1] = xxifac[i__];
+/* L100: */
+    }
+    nf = jfac[1];
     na = 0;
     l1 = 1;
     iw = 1;
     i__1 = nf;
     for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = ifac[k1 + 2];
+	ip = jfac[k1 + 1];
 	l2 = ip * l1;
 	ido = *n / l2;
 	idot = ido + ido;
@@ -2242,6 +2316,10 @@ L115:
     return 0;
 } /* cfftf1_ */
 
+#undef rfac
+#undef jfac
+
+
 /* Subroutine */ int passf_(integer *nac, integer *ido, integer *ip, integer *
 	l1, integer *idl1, doublereal *cc, doublereal *c1, doublereal *c2, 
 	doublereal *ch, doublereal *ch2, doublereal *wa)
@@ -2252,37 +2330,35 @@ L115:
 	    i__1, i__2, i__3;
 
     /* Local variables */
-    static integer idij, idlj, idot, ipph, i__, j, k, l, jc, lc, ik, nt, idj, 
-	    idl, inc, idp;
+    static integer i__, j, k, l, jc, lc, ik, idj, idl, inc, idp;
     static doublereal wai, war;
-    static integer ipp2;
+    static integer ipp2, idij, idlj, idot, ipph;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     c1_dim1 = *ido;
     c1_dim2 = *l1;
-    c1_offset = c1_dim1 * (c1_dim2 + 1) + 1;
+    c1_offset = 1 + c1_dim1 * (1 + c1_dim2);
     c1 -= c1_offset;
     cc_dim1 = *ido;
     cc_dim2 = *ip;
-    cc_offset = cc_dim1 * (cc_dim2 + 1) + 1;
+    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
     cc -= cc_offset;
     ch2_dim1 = *idl1;
-    ch2_offset = ch2_dim1 + 1;
+    ch2_offset = 1 + ch2_dim1;
     ch2 -= ch2_offset;
     c2_dim1 = *idl1;
-    c2_offset = c2_dim1 + 1;
+    c2_offset = 1 + c2_dim1;
     c2 -= c2_offset;
     --wa;
 
     /* Function Body */
     idot = *ido / 2;
-    nt = *ip * *idl1;
     ipp2 = *ip + 2;
     ipph = (*ip + 1) / 2;
     idp = *ip * *ido;
@@ -2508,10 +2584,10 @@ L127:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 6 + 1;
+    cc_offset = 1 + cc_dim1 * 6;
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -2641,10 +2717,10 @@ L102:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = (cc_dim1 << 2) + 1;
+    cc_offset = 1 + (cc_dim1 << 2);
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -2725,10 +2801,10 @@ L102:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 3 + 1;
+    cc_offset = 1 + cc_dim1 * 3;
     cc -= cc_offset;
     --wa1;
 
@@ -2789,10 +2865,10 @@ L102:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 5 + 1;
+    cc_offset = 1 + cc_dim1 * 5;
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -2881,9 +2957,9 @@ L102:
 
 /* Subroutine */ int cfftb_(integer *n, doublereal *c__, doublereal *wsave)
 {
+    static integer iw1, iw2;
     extern /* Subroutine */ int cfftb1_(integer *, doublereal *, doublereal *,
 	     doublereal *, doublereal *);
-    static integer iw1, iw2;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
@@ -2902,42 +2978,48 @@ L102:
 } /* cfftb_ */
 
 /* Subroutine */ int cfftb1_(integer *n, doublereal *c__, doublereal *ch, 
-	doublereal *wa, integer *ifac)
+	doublereal *wa, doublereal *xxifac)
 {
     /* System generated locals */
     integer i__1;
+    static doublereal equiv_0[15];
 
     /* Local variables */
-    static integer idot, i__;
+    static integer i__, k1, l1, l2, n2, na, nf, ip, iw, ix2, ix3, ix4, nac, 
+	    ido, idl1;
+#define jfac ((integer *)equiv_0)
+#define rfac (equiv_0)
+    static integer idot;
     extern /* Subroutine */ int passb_(integer *, integer *, integer *, 
 	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *);
-    static integer k1, l1, l2, n2;
-    extern /* Subroutine */ int passb2_(integer *, integer *, doublereal *, 
-	    doublereal *, doublereal *), passb3_(integer *, integer *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *), passb4_(
+	    doublereal *, doublereal *, doublereal *), passb2_(integer *, 
+	    integer *, doublereal *, doublereal *, doublereal *), passb3_(
 	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *), passb5_(integer *, integer *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *);
-    static integer na, nf, ip, iw, ix2, ix3, ix4, nac, ido, idl1;
+	    doublereal *), passb4_(integer *, integer *, doublereal *, 
+	    doublereal *, doublereal *, doublereal *, doublereal *), passb5_(
+	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *, doublereal *);
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
-    --ifac;
+    --xxifac;
     --wa;
     --ch;
     --c__;
 
     /* Function Body */
-    nf = ifac[2];
+    for (i__ = 1; i__ <= 15; ++i__) {
+	rfac[i__ - 1] = xxifac[i__];
+/* L100: */
+    }
+    nf = jfac[1];
     na = 0;
     l1 = 1;
     iw = 1;
     i__1 = nf;
     for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = ifac[k1 + 2];
+	ip = jfac[k1 + 1];
 	l2 = ip * l1;
 	ido = *n / l2;
 	idot = ido + ido;
@@ -3036,6 +3118,10 @@ L115:
     return 0;
 } /* cfftb1_ */
 
+#undef rfac
+#undef jfac
+
+
 /* Subroutine */ int passb_(integer *nac, integer *ido, integer *ip, integer *
 	l1, integer *idl1, doublereal *cc, doublereal *c1, doublereal *c2, 
 	doublereal *ch, doublereal *ch2, doublereal *wa)
@@ -3046,37 +3132,35 @@ L115:
 	    i__1, i__2, i__3;
 
     /* Local variables */
-    static integer idij, idlj, idot, ipph, i__, j, k, l, jc, lc, ik, nt, idj, 
-	    idl, inc, idp;
+    static integer i__, j, k, l, jc, lc, ik, idj, idl, inc, idp;
     static doublereal wai, war;
-    static integer ipp2;
+    static integer ipp2, idij, idlj, idot, ipph;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     c1_dim1 = *ido;
     c1_dim2 = *l1;
-    c1_offset = c1_dim1 * (c1_dim2 + 1) + 1;
+    c1_offset = 1 + c1_dim1 * (1 + c1_dim2);
     c1 -= c1_offset;
     cc_dim1 = *ido;
     cc_dim2 = *ip;
-    cc_offset = cc_dim1 * (cc_dim2 + 1) + 1;
+    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
     cc -= cc_offset;
     ch2_dim1 = *idl1;
-    ch2_offset = ch2_dim1 + 1;
+    ch2_offset = 1 + ch2_dim1;
     ch2 -= ch2_offset;
     c2_dim1 = *idl1;
-    c2_offset = c2_dim1 + 1;
+    c2_offset = 1 + c2_dim1;
     c2 -= c2_offset;
     --wa;
 
     /* Function Body */
     idot = *ido / 2;
-    nt = *ip * *idl1;
     ipp2 = *ip + 2;
     ipph = (*ip + 1) / 2;
     idp = *ip * *ido;
@@ -3302,10 +3386,10 @@ L127:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 6 + 1;
+    cc_offset = 1 + cc_dim1 * 6;
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -3435,10 +3519,10 @@ L102:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = (cc_dim1 << 2) + 1;
+    cc_offset = 1 + (cc_dim1 << 2);
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -3519,10 +3603,10 @@ L102:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 3 + 1;
+    cc_offset = 1 + cc_dim1 * 3;
     cc -= cc_offset;
     --wa1;
 
@@ -3583,10 +3667,10 @@ L102:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 5 + 1;
+    cc_offset = 1 + cc_dim1 * 5;
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -3687,9 +3771,9 @@ L102:
 
     /* Local variables */
     static integer k;
-    extern /* Subroutine */ int rffti_(integer *, doublereal *);
     static doublereal dt;
     static integer np1, ns2;
+    extern /* Subroutine */ int rffti_(integer *, doublereal *);
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
@@ -3705,7 +3789,7 @@ L102:
     dt = pi / (real) np1;
     i__1 = ns2;
     for (k = 1; k <= i__1; ++k) {
-	wsave[k] = sin(k * dt) * (float)2.;
+	wsave[k] = sin(k * dt) * 2.f;
 /* L101: */
     }
     rffti_(&np1, &wsave[ns2 + 1]);
@@ -3714,9 +3798,9 @@ L102:
 
 /* Subroutine */ int sint_(integer *n, doublereal *x, doublereal *wsave)
 {
+    static integer np1, iw1, iw2, iw3;
     extern /* Subroutine */ int sint1_(integer *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *);
-    static integer np1, iw1, iw2, iw3;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
@@ -3734,7 +3818,7 @@ L102:
 } /* sint_ */
 
 /* Subroutine */ int sint1_(integer *n, doublereal *war, doublereal *was, 
-	doublereal *xh, doublereal *x, integer *ifac)
+	doublereal *xh, doublereal *x, doublereal *xxifac)
 {
     /* Initialized data */
 
@@ -3744,16 +3828,17 @@ L102:
     integer i__1;
 
     /* Local variables */
-    static integer modn, i__, k;
-    static doublereal xhold, t1, t2;
+    static integer i__, k;
+    static doublereal t1, t2;
+    static integer kc, np1, ns2, modn;
+    static doublereal xhold;
     extern /* Subroutine */ int rfftf1_(integer *, doublereal *, doublereal *,
-	     doublereal *, integer *);
-    static integer kc, np1, ns2;
+	     doublereal *, doublereal *);
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
-    --ifac;
+    --xxifac;
     --x;
     --xh;
     --was;
@@ -3784,7 +3869,7 @@ L102:
 L103:
     np1 = *n + 1;
     ns2 = *n / 2;
-    x[1] = (float)0.;
+    x[1] = 0.f;
     i__1 = ns2;
     for (k = 1; k <= i__1; ++k) {
 	kc = np1 - k;
@@ -3796,10 +3881,10 @@ L103:
     }
     modn = *n % 2;
     if (modn != 0) {
-	x[ns2 + 2] = xh[ns2 + 1] * (float)4.;
+	x[ns2 + 2] = xh[ns2 + 1] * 4.f;
     }
-    rfftf1_(&np1, &x[1], &xh[1], &war[1], &ifac[1]);
-    xh[1] = x[1] * (float).5;
+    rfftf1_(&np1, &x[1], &xh[1], &war[1], &xxifac[1]);
+    xh[1] = x[1] * .5f;
     i__1 = *n;
     for (i__ = 3; i__ <= i__1; i__ += 2) {
 	xh[i__ - 1] = -x[i__];
@@ -3838,7 +3923,7 @@ L106:
     return 0;
 } /* frffti_ */
 
-/* Subroutine */ int frffti1_(integer *n, real *wa, integer *ifac)
+/* Subroutine */ int frffti1_(integer *n, real *wa, real *xxifac)
 {
     /* Initialized data */
 
@@ -3846,29 +3931,37 @@ L106:
 
     /* System generated locals */
     integer i__1, i__2, i__3;
+    static real equiv_0[15];
+    static integer equiv_1[15];
 
     /* Builtin functions */
     double cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static real argh;
-    static integer ntry, i__, j;
-    static real argld;
-    static integer k1, l1, l2, ib;
+    static integer i__, j, k1, l1, l2, ib;
     static real fi;
     static integer ld, ii, nf, ip, nl, is, nq, nr;
     static real arg;
     static integer ido, ipm;
     static real tpi;
     static integer nfm1;
+#define jfac (equiv_1)
+#define rfac (equiv_0)
+    static real argh;
+    static integer ntry;
+    static real argld;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
-    --ifac;
+    --xxifac;
     --wa;
 
     /* Function Body */
+    for (i__ = 1; i__ <= 15; ++i__) {
+	rfac[i__ - 1] = xxifac[i__];
+/* L100: */
+    }
     nl = *n;
     nf = 0;
     j = 0;
@@ -3894,7 +3987,7 @@ L104:
     }
 L105:
     ++nf;
-    ifac[nf + 2] = ntry;
+    jfac[nf + 1] = ntry;
     nl = nq;
     if (ntry != 2) {
 	goto L107;
@@ -3905,17 +3998,17 @@ L105:
     i__1 = nf;
     for (i__ = 2; i__ <= i__1; ++i__) {
 	ib = nf - i__ + 2;
-	ifac[ib + 2] = ifac[ib + 1];
+	jfac[ib + 1] = jfac[ib];
 /* L106: */
     }
-    ifac[3] = 2;
+    jfac[2] = 2;
 L107:
     if (nl != 1) {
 	goto L104;
     }
-    ifac[1] = *n;
-    ifac[2] = nf;
-    tpi = (float)6.28318530717959;
+    jfac[0] = *n;
+    jfac[1] = nf;
+    tpi = 6.28318530717959f;
     argh = tpi / (real) (*n);
     is = 0;
     nfm1 = nf - 1;
@@ -3925,7 +4018,7 @@ L107:
     }
     i__1 = nfm1;
     for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = ifac[k1 + 2];
+	ip = jfac[k1 + 1];
 	ld = 0;
 	l2 = l1 * ip;
 	ido = *n / l2;
@@ -3935,11 +4028,11 @@ L107:
 	    ld += l1;
 	    i__ = is;
 	    argld = (real) ld * argh;
-	    fi = (float)0.;
+	    fi = 0.f;
 	    i__3 = ido;
 	    for (ii = 3; ii <= i__3; ii += 2) {
 		i__ += 2;
-		fi += (float)1.;
+		fi += 1.f;
 		arg = fi * argld;
 		wa[i__ - 1] = cos(arg);
 		wa[i__] = sin(arg);
@@ -3951,8 +4044,16 @@ L107:
 	l1 = l2;
 /* L110: */
     }
+    for (i__ = 1; i__ <= 15; ++i__) {
+	xxifac[i__] = rfac[i__ - 1];
+/* L111: */
+    }
     return 0;
 } /* frffti1_ */
+
+#undef rfac
+#undef jfac
+
 
 /* Subroutine */ int frfftf_(integer *n, real *r__, real *wsave)
 {
@@ -3973,41 +4074,47 @@ L107:
     return 0;
 } /* frfftf_ */
 
-/* Subroutine */ int frfftf1_(integer *n, real *c__, real *ch, real *wa, 
-	integer *ifac)
+/* Subroutine */ int frfftf1_(integer *n, real *c__, real *ch, real *wa, real 
+	*xxifac)
 {
     /* System generated locals */
     integer i__1;
+    static real equiv_0[15];
 
     /* Local variables */
-    static integer i__, k1, l1, l2;
+    static integer i__, k1, l1, l2, na, kh, nf, ip, iw, ix2, ix3, ix4, ido, 
+	    idl1;
+#define jfac ((integer *)equiv_0)
+#define rfac (equiv_0)
     extern /* Subroutine */ int fradf2_(integer *, integer *, real *, real *, 
 	    real *), fradf3_(integer *, integer *, real *, real *, real *, 
 	    real *), fradf4_(integer *, integer *, real *, real *, real *, 
 	    real *, real *), fradf5_(integer *, integer *, real *, real *, 
-	    real *, real *, real *, real *);
-    static integer na, kh, nf, ip;
-    extern /* Subroutine */ int fradfg_(integer *, integer *, integer *, 
-	    integer *, real *, real *, real *, real *, real *, real *);
-    static integer iw, ix2, ix3, ix4, ido, idl1;
+	    real *, real *, real *, real *), fradfg_(integer *, integer *, 
+	    integer *, integer *, real *, real *, real *, real *, real *, 
+	    real *);
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
-    --ifac;
+    --xxifac;
     --wa;
     --ch;
     --c__;
 
     /* Function Body */
-    nf = ifac[2];
+    for (i__ = 1; i__ <= 15; ++i__) {
+	rfac[i__ - 1] = xxifac[i__];
+/* L100: */
+    }
+    nf = jfac[1];
     na = 1;
     l2 = *n;
     iw = *n;
     i__1 = nf;
     for (k1 = 1; k1 <= i__1; ++k1) {
 	kh = nf - k1;
-	ip = ifac[kh + 3];
+	ip = jfac[kh + 2];
 	l1 = l2 / ip;
 	ido = *n / l2;
 	idl1 = ido * l1;
@@ -4098,12 +4205,16 @@ L110:
     return 0;
 } /* frfftf1_ */
 
+#undef rfac
+#undef jfac
+
+
 /* Subroutine */ int fradfg_(integer *ido, integer *ip, integer *l1, integer *
 	idl1, real *cc, real *c1, real *c2, real *ch, real *ch2, real *wa)
 {
     /* Initialized data */
 
-    static real tpi = (float)6.28318530717959;
+    static real tpi = 6.28318530717959f;
 
     /* System generated locals */
     integer ch_dim1, ch_dim2, ch_offset, cc_dim1, cc_dim2, cc_offset, c1_dim1,
@@ -4114,32 +4225,32 @@ L110:
     double cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static integer idij, ipph, i__, j, k, l, j2, ic, jc, lc, ik, is;
+    static integer i__, j, k, l, j2, ic, jc, lc, ik, is;
     static real dc2, ai1, ai2, ar1, ar2, ds2;
     static integer nbd;
     static real dcp, arg, dsp, ar1h, ar2h;
-    static integer idp2, ipp2;
+    static integer idp2, ipp2, idij, ipph;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     c1_dim1 = *ido;
     c1_dim2 = *l1;
-    c1_offset = c1_dim1 * (c1_dim2 + 1) + 1;
+    c1_offset = 1 + c1_dim1 * (1 + c1_dim2);
     c1 -= c1_offset;
     cc_dim1 = *ido;
     cc_dim2 = *ip;
-    cc_offset = cc_dim1 * (cc_dim2 + 1) + 1;
+    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
     cc -= cc_offset;
     ch2_dim1 = *idl1;
-    ch2_offset = ch2_dim1 + 1;
+    ch2_offset = 1 + ch2_dim1;
     ch2 -= ch2_offset;
     c2_dim1 = *idl1;
-    c2_offset = c2_dim1 + 1;
+    c2_offset = 1 + c2_dim1;
     c2 -= c2_offset;
     --wa;
 
@@ -4296,8 +4407,8 @@ L121:
 /* L123: */
     }
 
-    ar1 = (float)1.;
-    ai1 = (float)0.;
+    ar1 = 1.f;
+    ai1 = 0.f;
     i__1 = ipph;
     for (l = 2; l <= i__1; ++l) {
 	lc = ipp2 - l;
@@ -4451,10 +4562,10 @@ L141:
 {
     /* Initialized data */
 
-    static real tr11 = (float).309016994374947;
-    static real ti11 = (float).951056516295154;
-    static real tr12 = (float)-.809016994374947;
-    static real ti12 = (float).587785252292473;
+    static real tr11 = .309016994374947f;
+    static real ti11 = .951056516295154f;
+    static real tr12 = -.809016994374947f;
+    static real ti12 = .587785252292473f;
 
     /* System generated locals */
     integer cc_dim1, cc_dim2, cc_offset, ch_dim1, ch_offset, i__1, i__2;
@@ -4469,11 +4580,11 @@ L141:
 /* ----------------------------TJW */
     /* Parameter adjustments */
     ch_dim1 = *ido;
-    ch_offset = ch_dim1 * 6 + 1;
+    ch_offset = 1 + ch_dim1 * 6;
     ch -= ch_offset;
     cc_dim1 = *ido;
     cc_dim2 = *l1;
-    cc_offset = cc_dim1 * (cc_dim2 + 1) + 1;
+    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -4570,8 +4681,8 @@ L141:
 {
     /* Initialized data */
 
-    static real taur = (float)-.5;
-    static real taui = (float).866025403784439;
+    static real taur = -.5f;
+    static real taui = .866025403784439f;
 
     /* System generated locals */
     integer ch_dim1, ch_offset, cc_dim1, cc_dim2, cc_offset, i__1, i__2;
@@ -4585,11 +4696,11 @@ L141:
 /* ----------------------------TJW */
     /* Parameter adjustments */
     ch_dim1 = *ido;
-    ch_offset = (ch_dim1 << 2) + 1;
+    ch_offset = 1 + (ch_dim1 << 2);
     ch -= ch_offset;
     cc_dim1 = *ido;
     cc_dim2 = *l1;
-    cc_offset = cc_dim1 * (cc_dim2 + 1) + 1;
+    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -4660,11 +4771,11 @@ L141:
 /* ----------------------------TJW */
     /* Parameter adjustments */
     ch_dim1 = *ido;
-    ch_offset = ch_dim1 * 3 + 1;
+    ch_offset = 1 + ch_dim1 * 3;
     ch -= ch_offset;
     cc_dim1 = *ido;
     cc_dim2 = *l1;
-    cc_offset = cc_dim1 * (cc_dim2 + 1) + 1;
+    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
     cc -= cc_offset;
     --wa1;
 
@@ -4729,7 +4840,7 @@ L107:
 {
     /* Initialized data */
 
-    static real hsqt2 = (float).7071067811865475;
+    static real hsqt2 = .7071067811865475f;
 
     /* System generated locals */
     integer cc_dim1, cc_dim2, cc_offset, ch_dim1, ch_offset, i__1, i__2;
@@ -4744,11 +4855,11 @@ L107:
 /* ----------------------------TJW */
     /* Parameter adjustments */
     ch_dim1 = *ido;
-    ch_offset = ch_dim1 * 5 + 1;
+    ch_offset = 1 + ch_dim1 * 5;
     ch -= ch_offset;
     cc_dim1 = *ido;
     cc_dim2 = *l1;
-    cc_offset = cc_dim1 * (cc_dim2 + 1) + 1;
+    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -4860,40 +4971,45 @@ L107:
     return 0;
 } /* frfftb_ */
 
-/* Subroutine */ int frfftb1_(integer *n, real *c__, real *ch, real *wa, 
-	integer *ifac)
+/* Subroutine */ int frfftb1_(integer *n, real *c__, real *ch, real *wa, real 
+	*xxifac)
 {
     /* System generated locals */
     integer i__1;
+    static real equiv_0[15];
 
     /* Local variables */
-    static integer i__, k1, l1, l2;
+    static integer i__, k1, l1, l2, na, nf, ip, iw, ix2, ix3, ix4, ido, idl1;
+#define jfac ((integer *)equiv_0)
+#define rfac (equiv_0)
     extern /* Subroutine */ int fradb2_(integer *, integer *, real *, real *, 
 	    real *), fradb3_(integer *, integer *, real *, real *, real *, 
 	    real *), fradb4_(integer *, integer *, real *, real *, real *, 
 	    real *, real *), fradb5_(integer *, integer *, real *, real *, 
-	    real *, real *, real *, real *);
-    static integer na, nf;
-    extern /* Subroutine */ int fradbg_(integer *, integer *, integer *, 
-	    integer *, real *, real *, real *, real *, real *, real *);
-    static integer ip, iw, ix2, ix3, ix4, ido, idl1;
+	    real *, real *, real *, real *), fradbg_(integer *, integer *, 
+	    integer *, integer *, real *, real *, real *, real *, real *, 
+	    real *);
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
-    --ifac;
+    --xxifac;
     --wa;
     --ch;
     --c__;
 
     /* Function Body */
-    nf = ifac[2];
+    for (i__ = 1; i__ <= 15; ++i__) {
+	rfac[i__ - 1] = xxifac[i__];
+/* L100: */
+    }
+    nf = jfac[1];
     na = 0;
     l1 = 1;
     iw = 1;
     i__1 = nf;
     for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = ifac[k1 + 2];
+	ip = jfac[k1 + 1];
 	l2 = ip * l1;
 	ido = *n / l2;
 	idl1 = ido * l1;
@@ -4990,12 +5106,16 @@ L115:
     return 0;
 } /* frfftb1_ */
 
+#undef rfac
+#undef jfac
+
+
 /* Subroutine */ int fradbg_(integer *ido, integer *ip, integer *l1, integer *
 	idl1, real *cc, real *c1, real *c2, real *ch, real *ch2, real *wa)
 {
     /* Initialized data */
 
-    static real tpi = (float)6.28318530717959;
+    static real tpi = 6.28318530717959f;
 
     /* System generated locals */
     integer ch_dim1, ch_dim2, ch_offset, cc_dim1, cc_dim2, cc_offset, c1_dim1,
@@ -5006,32 +5126,32 @@ L115:
     double cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static integer idij, ipph, i__, j, k, l, j2, ic, jc, lc, ik, is;
+    static integer i__, j, k, l, j2, ic, jc, lc, ik, is;
     static real dc2, ai1, ai2, ar1, ar2, ds2;
     static integer nbd;
     static real dcp, arg, dsp, ar1h, ar2h;
-    static integer idp2, ipp2;
+    static integer idp2, ipp2, idij, ipph;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     c1_dim1 = *ido;
     c1_dim2 = *l1;
-    c1_offset = c1_dim1 * (c1_dim2 + 1) + 1;
+    c1_offset = 1 + c1_dim1 * (1 + c1_dim2);
     c1 -= c1_offset;
     cc_dim1 = *ido;
     cc_dim2 = *ip;
-    cc_offset = cc_dim1 * (cc_dim2 + 1) + 1;
+    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
     cc -= cc_offset;
     ch2_dim1 = *idl1;
-    ch2_offset = ch2_dim1 + 1;
+    ch2_offset = 1 + ch2_dim1;
     ch2 -= ch2_offset;
     c2_dim1 = *idl1;
-    c2_offset = c2_dim1 + 1;
+    c2_offset = 1 + c2_dim1;
     c2 -= c2_offset;
     --wa;
 
@@ -5145,8 +5265,8 @@ L112:
 /* L115: */
     }
 L116:
-    ar1 = (float)1.;
-    ai1 = (float)0.;
+    ar1 = 1.f;
+    ai1 = 0.f;
     i__1 = ipph;
     for (l = 2; l <= i__1; ++l) {
 	lc = ipp2 - l;
@@ -5337,10 +5457,10 @@ L143:
 {
     /* Initialized data */
 
-    static real tr11 = (float).309016994374947;
-    static real ti11 = (float).951056516295154;
-    static real tr12 = (float)-.809016994374947;
-    static real ti12 = (float).587785252292473;
+    static real tr11 = .309016994374947f;
+    static real ti11 = .951056516295154f;
+    static real tr12 = -.809016994374947f;
+    static real ti12 = .587785252292473f;
 
     /* System generated locals */
     integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
@@ -5356,10 +5476,10 @@ L143:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 6 + 1;
+    cc_offset = 1 + cc_dim1 * 6;
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -5462,8 +5582,8 @@ L143:
 {
     /* Initialized data */
 
-    static real taur = (float)-.5;
-    static real taui = (float).866025403784439;
+    static real taur = -.5f;
+    static real taui = .866025403784439f;
 
     /* System generated locals */
     integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
@@ -5478,10 +5598,10 @@ L143:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = (cc_dim1 << 2) + 1;
+    cc_offset = 1 + (cc_dim1 << 2);
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -5557,10 +5677,10 @@ L143:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 3 + 1;
+    cc_offset = 1 + cc_dim1 * 3;
     cc -= cc_offset;
     --wa1;
 
@@ -5624,7 +5744,7 @@ L107:
 {
     /* Initialized data */
 
-    static real sqrt2 = (float)1.414213562373095;
+    static real sqrt2 = 1.414213562373095f;
 
     /* System generated locals */
     integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
@@ -5640,10 +5760,10 @@ L107:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 5 + 1;
+    cc_offset = 1 + cc_dim1 * 5;
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -5764,7 +5884,7 @@ L107:
     return 0;
 } /* fcffti_ */
 
-/* Subroutine */ int fcffti1_(integer *n, real *wa, integer *ifac)
+/* Subroutine */ int fcffti1_(integer *n, real *wa, real *xxifac)
 {
     /* Initialized data */
 
@@ -5772,28 +5892,36 @@ L107:
 
     /* System generated locals */
     integer i__1, i__2, i__3;
+    static real equiv_0[15];
+    static integer equiv_1[15];
 
     /* Builtin functions */
     double cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static real argh;
-    static integer idot, ntry, i__, j;
-    static real argld;
-    static integer i1, k1, l1, l2, ib;
+    static integer i__, j, i1, k1, l1, l2, ib;
     static real fi;
     static integer ld, ii, nf, ip, nl, nq, nr;
     static real arg;
     static integer ido, ipm;
     static real tpi;
+#define jfac (equiv_1)
+#define rfac (equiv_0)
+    static real argh;
+    static integer idot, ntry;
+    static real argld;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
-    --ifac;
+    --xxifac;
     --wa;
 
     /* Function Body */
+    for (i__ = 1; i__ <= 15; ++i__) {
+	rfac[i__ - 1] = xxifac[i__];
+/* L100: */
+    }
     nl = *n;
     nf = 0;
     j = 0;
@@ -5819,7 +5947,7 @@ L104:
     }
 L105:
     ++nf;
-    ifac[nf + 2] = ntry;
+    jfac[nf + 1] = ntry;
     nl = nq;
     if (ntry != 2) {
 	goto L107;
@@ -5830,23 +5958,23 @@ L105:
     i__1 = nf;
     for (i__ = 2; i__ <= i__1; ++i__) {
 	ib = nf - i__ + 2;
-	ifac[ib + 2] = ifac[ib + 1];
+	jfac[ib + 1] = jfac[ib];
 /* L106: */
     }
-    ifac[3] = 2;
+    jfac[2] = 2;
 L107:
     if (nl != 1) {
 	goto L104;
     }
-    ifac[1] = *n;
-    ifac[2] = nf;
-    tpi = (float)6.28318530717959;
+    jfac[0] = *n;
+    jfac[1] = nf;
+    tpi = 6.28318530717959f;
     argh = tpi / (real) (*n);
     i__ = 2;
     l1 = 1;
     i__1 = nf;
     for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = ifac[k1 + 2];
+	ip = jfac[k1 + 1];
 	ld = 0;
 	l2 = l1 * ip;
 	ido = *n / l2;
@@ -5855,15 +5983,15 @@ L107:
 	i__2 = ipm;
 	for (j = 1; j <= i__2; ++j) {
 	    i1 = i__;
-	    wa[i__ - 1] = (float)1.;
-	    wa[i__] = (float)0.;
+	    wa[i__ - 1] = 1.f;
+	    wa[i__] = 0.f;
 	    ld += l1;
-	    fi = (float)0.;
+	    fi = 0.f;
 	    argld = (real) ld * argh;
 	    i__3 = idot;
 	    for (ii = 4; ii <= i__3; ii += 2) {
 		i__ += 2;
-		fi += (float)1.;
+		fi += 1.f;
 		arg = fi * argld;
 		wa[i__ - 1] = cos(arg);
 		wa[i__] = sin(arg);
@@ -5880,14 +6008,22 @@ L109:
 	l1 = l2;
 /* L110: */
     }
+    for (i__ = 1; i__ <= 15; ++i__) {
+	xxifac[i__] = rfac[i__ - 1];
+/* L111: */
+    }
     return 0;
 } /* fcffti1_ */
 
+#undef rfac
+#undef jfac
+
+
 /* Subroutine */ int fcfftf_(integer *n, real *c__, real *wsave)
 {
+    static integer iw1, iw2;
     extern /* Subroutine */ int fcfftf1_(integer *, real *, real *, real *, 
 	    real *);
-    static integer iw1, iw2;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
@@ -5905,41 +6041,47 @@ L109:
     return 0;
 } /* fcfftf_ */
 
-/* Subroutine */ int fcfftf1_(integer *n, real *c__, real *ch, real *wa, 
-	integer *ifac)
+/* Subroutine */ int fcfftf1_(integer *n, real *c__, real *ch, real *wa, real 
+	*xxifac)
 {
     /* System generated locals */
     integer i__1;
+    static real equiv_0[15];
 
     /* Local variables */
-    static integer idot, i__, k1, l1, l2, n2, na, nf, ip, iw;
+    static integer i__, k1, l1, l2, n2, na, nf, ip, iw, ix2, ix3, ix4, nac, 
+	    ido, idl1;
+#define jfac ((integer *)equiv_0)
+#define rfac (equiv_0)
+    static integer idot;
     extern /* Subroutine */ int fpassf_(integer *, integer *, integer *, 
 	    integer *, integer *, real *, real *, real *, real *, real *, 
-	    real *);
-    static integer ix2, ix3, ix4;
-    extern /* Subroutine */ int fpassf2_(integer *, integer *, real *, real *,
-	     real *), fpassf3_(integer *, integer *, real *, real *, real *, 
-	    real *), fpassf4_(integer *, integer *, real *, real *, real *, 
-	    real *, real *), fpassf5_(integer *, integer *, real *, real *, 
-	    real *, real *, real *, real *);
-    static integer nac, ido, idl1;
+	    real *), fpassf2_(integer *, integer *, real *, real *, real *), 
+	    fpassf3_(integer *, integer *, real *, real *, real *, real *), 
+	    fpassf4_(integer *, integer *, real *, real *, real *, real *, 
+	    real *), fpassf5_(integer *, integer *, real *, real *, real *, 
+	    real *, real *, real *);
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
-    --ifac;
+    --xxifac;
     --wa;
     --ch;
     --c__;
 
     /* Function Body */
-    nf = ifac[2];
+    for (i__ = 1; i__ <= 15; ++i__) {
+	rfac[i__ - 1] = xxifac[i__];
+/* L100: */
+    }
+    nf = jfac[1];
     na = 0;
     l1 = 1;
     iw = 1;
     i__1 = nf;
     for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = ifac[k1 + 2];
+	ip = jfac[k1 + 1];
 	l2 = ip * l1;
 	ido = *n / l2;
 	idot = ido + ido;
@@ -6038,6 +6180,10 @@ L115:
     return 0;
 } /* fcfftf1_ */
 
+#undef rfac
+#undef jfac
+
+
 /* Subroutine */ int fpassf_(integer *nac, integer *ido, integer *ip, integer 
 	*l1, integer *idl1, real *cc, real *c1, real *c2, real *ch, real *ch2,
 	 real *wa)
@@ -6048,37 +6194,35 @@ L115:
 	    i__1, i__2, i__3;
 
     /* Local variables */
-    static integer idij, idlj, idot, ipph, i__, j, k, l, jc, lc, ik, nt, idj, 
-	    idl, inc, idp;
+    static integer i__, j, k, l, jc, lc, ik, idj, idl, inc, idp;
     static real wai, war;
-    static integer ipp2;
+    static integer ipp2, idij, idlj, idot, ipph;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     c1_dim1 = *ido;
     c1_dim2 = *l1;
-    c1_offset = c1_dim1 * (c1_dim2 + 1) + 1;
+    c1_offset = 1 + c1_dim1 * (1 + c1_dim2);
     c1 -= c1_offset;
     cc_dim1 = *ido;
     cc_dim2 = *ip;
-    cc_offset = cc_dim1 * (cc_dim2 + 1) + 1;
+    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
     cc -= cc_offset;
     ch2_dim1 = *idl1;
-    ch2_offset = ch2_dim1 + 1;
+    ch2_offset = 1 + ch2_dim1;
     ch2 -= ch2_offset;
     c2_dim1 = *idl1;
-    c2_offset = c2_dim1 + 1;
+    c2_offset = 1 + c2_dim1;
     c2 -= c2_offset;
     --wa;
 
     /* Function Body */
     idot = *ido / 2;
-    nt = *ip * *idl1;
     ipp2 = *ip + 2;
     ipph = (*ip + 1) / 2;
     idp = *ip * *ido;
@@ -6285,10 +6429,10 @@ L127:
 {
     /* Initialized data */
 
-    static real tr11 = (float).309016994374947;
-    static real ti11 = (float)-.951056516295154;
-    static real tr12 = (float)-.809016994374947;
-    static real ti12 = (float)-.587785252292473;
+    static real tr11 = .309016994374947f;
+    static real ti11 = -.951056516295154f;
+    static real tr12 = -.809016994374947f;
+    static real ti12 = -.587785252292473f;
 
     /* System generated locals */
     integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
@@ -6303,10 +6447,10 @@ L127:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 6 + 1;
+    cc_offset = 1 + cc_dim1 * 6;
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -6421,8 +6565,8 @@ L102:
 {
     /* Initialized data */
 
-    static real taur = (float)-.5;
-    static real taui = (float)-.866025403784439;
+    static real taur = -.5f;
+    static real taui = -.866025403784439f;
 
     /* System generated locals */
     integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
@@ -6436,10 +6580,10 @@ L102:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = (cc_dim1 << 2) + 1;
+    cc_offset = 1 + (cc_dim1 << 2);
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -6520,10 +6664,10 @@ L102:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 3 + 1;
+    cc_offset = 1 + cc_dim1 * 3;
     cc -= cc_offset;
     --wa1;
 
@@ -6584,10 +6728,10 @@ L102:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 5 + 1;
+    cc_offset = 1 + cc_dim1 * 5;
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -6676,9 +6820,9 @@ L102:
 
 /* Subroutine */ int fcfftb_(integer *n, real *c__, real *wsave)
 {
+    static integer iw1, iw2;
     extern /* Subroutine */ int fcfftb1_(integer *, real *, real *, real *, 
 	    real *);
-    static integer iw1, iw2;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
@@ -6696,41 +6840,47 @@ L102:
     return 0;
 } /* fcfftb_ */
 
-/* Subroutine */ int fcfftb1_(integer *n, real *c__, real *ch, real *wa, 
-	integer *ifac)
+/* Subroutine */ int fcfftb1_(integer *n, real *c__, real *ch, real *wa, real 
+	*xxifac)
 {
     /* System generated locals */
     integer i__1;
+    static real equiv_0[15];
 
     /* Local variables */
-    static integer idot, i__, k1, l1, l2, n2, na, nf, ip, iw;
+    static integer i__, k1, l1, l2, n2, na, nf, ip, iw, ix2, ix3, ix4, nac, 
+	    ido, idl1;
+#define jfac ((integer *)equiv_0)
+#define rfac (equiv_0)
+    static integer idot;
     extern /* Subroutine */ int fpassb_(integer *, integer *, integer *, 
 	    integer *, integer *, real *, real *, real *, real *, real *, 
-	    real *);
-    static integer ix2, ix3, ix4;
-    extern /* Subroutine */ int fpassb2_(integer *, integer *, real *, real *,
-	     real *), fpassb3_(integer *, integer *, real *, real *, real *, 
-	    real *), fpassb4_(integer *, integer *, real *, real *, real *, 
-	    real *, real *), fpassb5_(integer *, integer *, real *, real *, 
-	    real *, real *, real *, real *);
-    static integer nac, ido, idl1;
+	    real *), fpassb2_(integer *, integer *, real *, real *, real *), 
+	    fpassb3_(integer *, integer *, real *, real *, real *, real *), 
+	    fpassb4_(integer *, integer *, real *, real *, real *, real *, 
+	    real *), fpassb5_(integer *, integer *, real *, real *, real *, 
+	    real *, real *, real *);
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
-    --ifac;
+    --xxifac;
     --wa;
     --ch;
     --c__;
 
     /* Function Body */
-    nf = ifac[2];
+    for (i__ = 1; i__ <= 15; ++i__) {
+	rfac[i__ - 1] = xxifac[i__];
+/* L100: */
+    }
+    nf = jfac[1];
     na = 0;
     l1 = 1;
     iw = 1;
     i__1 = nf;
     for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = ifac[k1 + 2];
+	ip = jfac[k1 + 1];
 	l2 = ip * l1;
 	ido = *n / l2;
 	idot = ido + ido;
@@ -6829,6 +6979,10 @@ L115:
     return 0;
 } /* fcfftb1_ */
 
+#undef rfac
+#undef jfac
+
+
 /* Subroutine */ int fpassb_(integer *nac, integer *ido, integer *ip, integer 
 	*l1, integer *idl1, real *cc, real *c1, real *c2, real *ch, real *ch2,
 	 real *wa)
@@ -6839,37 +6993,35 @@ L115:
 	    i__1, i__2, i__3;
 
     /* Local variables */
-    static integer idij, idlj, idot, ipph, i__, j, k, l, jc, lc, ik, nt, idj, 
-	    idl, inc, idp;
+    static integer i__, j, k, l, jc, lc, ik, idj, idl, inc, idp;
     static real wai, war;
-    static integer ipp2;
+    static integer ipp2, idij, idlj, idot, ipph;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     c1_dim1 = *ido;
     c1_dim2 = *l1;
-    c1_offset = c1_dim1 * (c1_dim2 + 1) + 1;
+    c1_offset = 1 + c1_dim1 * (1 + c1_dim2);
     c1 -= c1_offset;
     cc_dim1 = *ido;
     cc_dim2 = *ip;
-    cc_offset = cc_dim1 * (cc_dim2 + 1) + 1;
+    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
     cc -= cc_offset;
     ch2_dim1 = *idl1;
-    ch2_offset = ch2_dim1 + 1;
+    ch2_offset = 1 + ch2_dim1;
     ch2 -= ch2_offset;
     c2_dim1 = *idl1;
-    c2_offset = c2_dim1 + 1;
+    c2_offset = 1 + c2_dim1;
     c2 -= c2_offset;
     --wa;
 
     /* Function Body */
     idot = *ido / 2;
-    nt = *ip * *idl1;
     ipp2 = *ip + 2;
     ipph = (*ip + 1) / 2;
     idp = *ip * *ido;
@@ -7076,10 +7228,10 @@ L127:
 {
     /* Initialized data */
 
-    static real tr11 = (float).309016994374947;
-    static real ti11 = (float).951056516295154;
-    static real tr12 = (float)-.809016994374947;
-    static real ti12 = (float).587785252292473;
+    static real tr11 = .309016994374947f;
+    static real ti11 = .951056516295154f;
+    static real tr12 = -.809016994374947f;
+    static real ti12 = .587785252292473f;
 
     /* System generated locals */
     integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
@@ -7094,10 +7246,10 @@ L127:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 6 + 1;
+    cc_offset = 1 + cc_dim1 * 6;
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -7212,8 +7364,8 @@ L102:
 {
     /* Initialized data */
 
-    static real taur = (float)-.5;
-    static real taui = (float).866025403784439;
+    static real taur = -.5f;
+    static real taui = .866025403784439f;
 
     /* System generated locals */
     integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
@@ -7227,10 +7379,10 @@ L102:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = (cc_dim1 << 2) + 1;
+    cc_offset = 1 + (cc_dim1 << 2);
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -7311,10 +7463,10 @@ L102:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 3 + 1;
+    cc_offset = 1 + cc_dim1 * 3;
     cc -= cc_offset;
     --wa1;
 
@@ -7375,10 +7527,10 @@ L102:
     /* Parameter adjustments */
     ch_dim1 = *ido;
     ch_dim2 = *l1;
-    ch_offset = ch_dim1 * (ch_dim2 + 1) + 1;
+    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
     ch -= ch_offset;
     cc_dim1 = *ido;
-    cc_offset = cc_dim1 * 5 + 1;
+    cc_offset = 1 + cc_dim1 * 5;
     cc -= cc_offset;
     --wa1;
     --wa2;
@@ -7469,7 +7621,7 @@ L102:
 {
     /* Initialized data */
 
-    static real pi = (float)3.14159265358979;
+    static real pi = 3.14159265358979f;
 
     /* System generated locals */
     integer i__1;
@@ -7480,8 +7632,8 @@ L102:
     /* Local variables */
     static integer k;
     static real dt;
-    extern /* Subroutine */ int frffti_(integer *, real *);
     static integer np1, ns2;
+    extern /* Subroutine */ int frffti_(integer *, real *);
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
@@ -7497,7 +7649,7 @@ L102:
     dt = pi / (real) np1;
     i__1 = ns2;
     for (k = 1; k <= i__1; ++k) {
-	wsave[k] = sin(k * dt) * (float)2.;
+	wsave[k] = sin(k * dt) * 2.f;
 /* L101: */
     }
     frffti_(&np1, &wsave[ns2 + 1]);
@@ -7506,9 +7658,9 @@ L102:
 
 /* Subroutine */ int fsint_(integer *n, real *x, real *wsave)
 {
+    static integer np1, iw1, iw2, iw3;
     extern /* Subroutine */ int fsint1_(integer *, real *, real *, real *, 
 	    real *, real *);
-    static integer np1, iw1, iw2, iw3;
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
@@ -7526,26 +7678,27 @@ L102:
 } /* fsint_ */
 
 /* Subroutine */ int fsint1_(integer *n, real *war, real *was, real *xh, real 
-	*x, integer *ifac)
+	*x, real *xxifac)
 {
     /* Initialized data */
 
-    static real sqrt3 = (float)1.73205080756888;
+    static real sqrt3 = 1.73205080756888f;
 
     /* System generated locals */
     integer i__1;
 
     /* Local variables */
-    static integer modn, i__, k;
-    static real xhold, t1, t2;
-    static integer kc, np1, ns2;
+    static integer i__, k;
+    static real t1, t2;
+    static integer kc, np1, ns2, modn;
+    static real xhold;
     extern /* Subroutine */ int frfftf1_(integer *, real *, real *, real *, 
-	    integer *);
+	    real *);
 
 /* ----------------------------TJW */
 /* ----------------------------TJW */
     /* Parameter adjustments */
-    --ifac;
+    --xxifac;
     --x;
     --xh;
     --was;
@@ -7576,7 +7729,7 @@ L102:
 L103:
     np1 = *n + 1;
     ns2 = *n / 2;
-    x[1] = (float)0.;
+    x[1] = 0.f;
     i__1 = ns2;
     for (k = 1; k <= i__1; ++k) {
 	kc = np1 - k;
@@ -7588,10 +7741,10 @@ L103:
     }
     modn = *n % 2;
     if (modn != 0) {
-	x[ns2 + 2] = xh[ns2 + 1] * (float)4.;
+	x[ns2 + 2] = xh[ns2 + 1] * 4.f;
     }
-    frfftf1_(&np1, &x[1], &xh[1], &war[1], &ifac[1]);
-    xh[1] = x[1] * (float).5;
+    frfftf1_(&np1, &x[1], &xh[1], &war[1], &xxifac[1]);
+    xh[1] = x[1] * .5f;
     i__1 = *n;
     for (i__ = 3; i__ <= i__1; i__ += 2) {
 	xh[i__ - 1] = -x[i__];
@@ -7613,12 +7766,5 @@ L106:
 } /* fsint1_ */
 
 #ifdef __cplusplus
-	}
+}
 #endif
-
-/***************************************************************************
- * $RCSfile: addheaderfooter,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:17 $
- * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $ 
- ***************************************************************************/
-

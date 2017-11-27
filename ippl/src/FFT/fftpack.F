@@ -13,7 +13,7 @@ c=============contains routines rffti, rfftf, rfftf,====================
 c==========cffti, cfftf, cfftb, sinti, and sint (from Netlib)===========
 c=======================================================================
 
-c     Cray machines don't support double precision type.  Use real.
+c     Cray machines do not support double precision type.  Use real.
 
 #if defined(IPPL_T3E)
 #define FLOAT REAL
