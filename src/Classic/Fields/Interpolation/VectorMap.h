@@ -101,10 +101,9 @@ bool VectorMap::checkValue(const std::vector<double>& value) const {
 }
 
 void VectorMap::function(const Mesh::Iterator& point, double* value) const {
-  double* PointA = new double[this->getPointDimension()];
+  double PointA[this->getPointDimension()];
   point.getPosition(PointA);
   function(PointA, value);
-  delete PointA;
 }
 
 void VectorMap::functionAppend

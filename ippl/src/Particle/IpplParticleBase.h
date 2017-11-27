@@ -150,8 +150,8 @@ public:
     // If this constructor is used, the user must call 'initialize' with
     // a layout object in order to use this.
     IpplParticleBase() :
-        Layout(NULL),
         MIN_NUM_PART_PER_CORE(0),
+        Layout(NULL),
         TotalNum(0),
         LocalNum(0),
         DestroyNum(0),

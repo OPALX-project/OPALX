@@ -130,7 +130,6 @@ private:
     static const Entry entries[];
 };
 
-
 // Implementation of template class SingleMultipole
 // ------------------------------------------------------------------------
 
@@ -199,12 +198,21 @@ const StraightGeometry &SingleMultipole<order>::getGeometry() const {
     return geometry;
 }
 
-
 template <int order> inline
 ElementBase *SingleMultipole<order>::clone() const {
     return new SingleMultipole<order>(*this);
 }
 
+#define DECLARE_SINGLE_MULTIPOLE_ENTRIES(i)	\
+	template<> \
+	const typename SingleMultipole<i>::Entry SingleMultipole<i>::entries[];
+
+DECLARE_SINGLE_MULTIPOLE_ENTRIES(-4);
+DECLARE_SINGLE_MULTIPOLE_ENTRIES(-3);
+DECLARE_SINGLE_MULTIPOLE_ENTRIES(-2);
+DECLARE_SINGLE_MULTIPOLE_ENTRIES(2);
+DECLARE_SINGLE_MULTIPOLE_ENTRIES(3);
+DECLARE_SINGLE_MULTIPOLE_ENTRIES(4);
 
 template <int order> inline
 Channel *SingleMultipole<order>::getChannel(const std::string &aKey, bool) {

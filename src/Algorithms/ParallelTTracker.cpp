@@ -124,10 +124,10 @@ timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
 timeFieldEvaluation_m(IpplTimings::getTimer("Fieldeval")),
 BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
 WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
-Nimpact_m(0),
-SeyNum_m(0.0),
 timeIntegrationTimer1Push_m(IpplTimings::getTimer("TIntegration1Push")),
-timeIntegrationTimer2Push_m(IpplTimings::getTimer("TIntegration2Push"))
+timeIntegrationTimer2Push_m(IpplTimings::getTimer("TIntegration2Push")),
+Nimpact_m(0),
+SeyNum_m(0.0)
 {
 }
 
@@ -183,11 +183,11 @@ timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
 timeFieldEvaluation_m(IpplTimings::getTimer("Fieldeval")),
 BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
 WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
+timeIntegrationTimer1Push_m(IpplTimings::getTimer("TIntegration1Push")),
+timeIntegrationTimer2Push_m(IpplTimings::getTimer("TIntegration2Push")),
 timeIntegrator_m(timeIntegrator),
 Nimpact_m(0),
-SeyNum_m(0.0),
-timeIntegrationTimer1Push_m(IpplTimings::getTimer("TIntegration1Push")),
-timeIntegrationTimer2Push_m(IpplTimings::getTimer("TIntegration2Push"))
+SeyNum_m(0.0)
 {
 
     for (std::vector<unsigned long long>::const_iterator it = maxSteps.begin(); it != maxSteps.end(); ++ it) {

@@ -1,4 +1,5 @@
 #include "Fields/Fieldmap.h"
+#include "Fields/Fieldmap.hpp"
 #include "Fields/FM3DDynamic.h"
 #include "Fields/FM3DH5Block.h"
 #include "Fields/FM3DH5Block_nonscale.h"
@@ -32,9 +33,6 @@
 #include <ios>
 
 #include <assert.h>
-
-#define REGISTER_PARSE_TYPE(X) template <> struct Fieldmap::TypeParseTraits<X> \
-    { static const char* name; } ; const char* Fieldmap::TypeParseTraits<X>::name = #X
 
 Fieldmap *Fieldmap::getFieldmap(std::string Filename, bool fast) {
     std::map<std::string, FieldmapDescription>::iterator position = FieldmapDictionary.find(Filename);
@@ -726,10 +724,15 @@ void Fieldmap::SetFieldGap(double gap) {
 
 }
 
+#if 0
+#define REGISTER_PARSE_TYPE(X) template <> struct Fieldmap::TypeParseTraits<X> \
+    { static const char* name; } ; const char* Fieldmap::TypeParseTraits<X>::name = #X
+
 REGISTER_PARSE_TYPE(int);
 REGISTER_PARSE_TYPE(unsigned int);
 REGISTER_PARSE_TYPE(double);
 REGISTER_PARSE_TYPE(std::string);
+#endif
 
 std::string Fieldmap::alpha_numeric("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-+\211");
 std::map<std::string, Fieldmap::FieldmapDescription> Fieldmap::FieldmapDictionary = std::map<std::string, Fieldmap::FieldmapDescription>();

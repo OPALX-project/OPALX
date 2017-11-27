@@ -57,7 +57,14 @@ public:
     assertion( const assertion& a );
   ~assertion() throw() { delete[] msg; }
     assertion& operator=( const assertion& a );
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Woverloaded-virtual"
+#endif
     const char* what()  { return msg; }
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 };
 
 //---------------------------------------------------------------------------//

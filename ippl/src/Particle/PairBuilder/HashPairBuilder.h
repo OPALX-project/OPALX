@@ -59,7 +59,7 @@ public:
          */
         
         //in 3D we interact with 14 neighboring cells (including self cell interaction)
-        int neigh = 14;
+        unsigned int neigh = 14;
         
         int offset[14][3] = {{ 1, 1, 1}, { 0, 1, 1}, {-1, 1, 1},
             { 1, 0, 1}, { 0, 0, 1}, {-1, 0, 1},
@@ -76,9 +76,9 @@ public:
             buckets[bucket_id] = i;
         }
         
-        for (int i=0; i< Nbucket; ++i) {
+        for (unsigned long i=0; i< Nbucket; ++i) {
             //dmsg << "Bucket " << i << " stores particles " << endl;
-            int j = buckets[i];
+            unsigned long j = buckets[i];
             while (j!= END) {
                 //dmsg << j << " :: " << particles.R[j] << endl;
                 j = next[j];

@@ -39,8 +39,8 @@ Monitor::Monitor():
     Component(),
     filename_m(""),
     plane_m(OFF),
-    type_m(SPATIAL),
     position_m(0.0),
+    type_m(SPATIAL),
     informed_m(false)
 {}
 
@@ -49,8 +49,8 @@ Monitor::Monitor(const Monitor &right):
     Component(right),
     filename_m(right.filename_m),
     plane_m(right.plane_m),
-    type_m(right.type_m),
     position_m(right.position_m),
+    type_m(right.type_m),
     informed_m(right.informed_m)
 {}
 
@@ -59,8 +59,8 @@ Monitor::Monitor(const std::string &name):
     Component(name),
     filename_m(""),
     plane_m(OFF),
-    type_m(SPATIAL),
     position_m(0.0),
+    type_m(SPATIAL),
     informed_m(false)
 {}
 

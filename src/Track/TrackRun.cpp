@@ -158,8 +158,8 @@ TrackRun *TrackRun::clone(const std::string &name) {
 
 void TrackRun::execute() {
     std::string packageVersionStr = PACKAGE_VERSION;
-    unsigned int posFirstDot = packageVersionStr.find_first_of('.');
-    unsigned int posSecondDot = packageVersionStr.find_first_of('.', posFirstDot + 1);
+    auto posFirstDot = packageVersionStr.find_first_of('.');
+    auto posSecondDot = packageVersionStr.find_first_of('.', posFirstDot + 1);
 
     if (posSecondDot - posFirstDot < 3) {
         packageVersionStr.replace(posFirstDot, 1, "0");

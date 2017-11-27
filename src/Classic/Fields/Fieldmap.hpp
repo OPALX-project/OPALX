@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include "Fields/Fieldmap.h"
+#include <boost/type_index.hpp>
 
 inline Fieldmap::Fieldmap(const std::string & aFilename) :
     Filename_m(aFilename),
@@ -21,7 +22,6 @@ inline void Fieldmap::getLine(std::ifstream & in, std::string & buffer)
 template<class T>
 bool Fieldmap::interpreteLine(std::ifstream & in, T & value, const bool & file_length_known)
 {
-    static std::string expecting(TypeParseTraits<T>::name);
     bool read_all = true;
     std::string buffer;
 
@@ -38,15 +38,26 @@ bool Fieldmap::interpreteLine(std::ifstream & in, T & value, const bool & file_l
             missingValuesWarning();
             return false;
         }
+	std::string expecting(boost::typeindex::type_id<T>().pretty_name());
         interpreteWarning((interpreter.rdstate() ^ std::ios_base::eofbit), read_all, expecting, buffer);
     }
     return (!(interpreter.rdstate() ^ std::ios_base::eofbit) && read_all);   // eof should not be an error but if not eof
 }
 
+#if 0
+#define DECLARE_PARSE_TYPE(X) \
+	template <> \
+	const typename Fieldmap::TypeParseTraits<X> Fieldmap::TypeParseTraits<X>::#X;
+
+DECLARE_PARSE_TYPE(int);
+DECLARE_PARSE_TYPE(unsigned int);
+DECLARE_PARSE_TYPE(double);
+DECLARE_PARSE_TYPE(std::string);
+#endif
+
 template<class S, class T>
 bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, T & value2, const bool & file_length_known)
 {
-    static std::string expecting(std::string(TypeParseTraits<S>::name) + std::string(" ") + std::string(TypeParseTraits<T>::name));
     bool read_all = true;
     std::string buffer;
 
@@ -66,6 +77,9 @@ bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, T & value2, const 
             missingValuesWarning();
             return false;
         }
+	std::string expecting(boost::typeindex::type_id<S>().pretty_name());
+	expecting += std::string(" ") + boost::typeindex::type_id<T>().pretty_name();
+
         interpreteWarning((interpreter.rdstate() ^ std::ios_base::eofbit), read_all, expecting, buffer);
     }
     return (!(interpreter.rdstate() ^ std::ios_base::eofbit) && read_all);   // eof should not be an error but if not eof
@@ -74,9 +88,6 @@ bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, T & value2, const 
 template<class S, class T, class U>
 bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, T & value2, U & value3, const bool & file_length_known)
 {
-    static std::string expecting(std::string(TypeParseTraits<S>::name) + std::string(" ") + \
-                            std::string(TypeParseTraits<T>::name) + std::string(" ") + \
-                            std::string(TypeParseTraits<U>::name));
     bool read_all = true;
     std::string buffer;
 
@@ -98,6 +109,9 @@ bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, T & value2, U & va
             missingValuesWarning();
             return false;
         }
+	std::string expecting(boost::typeindex::type_id<S>().pretty_name() + std::string(" ") +
+			      boost::typeindex::type_id<T>().pretty_name() + std::string(" ") +
+			      boost::typeindex::type_id<U>().pretty_name());
         interpreteWarning((interpreter.rdstate() ^ std::ios_base::eofbit), read_all, expecting, buffer);
     }
     return (!(interpreter.rdstate() ^ std::ios_base::eofbit) && read_all);   // eof should not be an error but if not eof
@@ -106,10 +120,6 @@ bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, T & value2, U & va
 template<class S, class T, class U, class V>
 bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, T & value2, U & value3, V & value4, const bool & file_length_known)
 {
-    static std::string expecting(std::string(TypeParseTraits<S>::name) + std::string(" ") + \
-                            std::string(TypeParseTraits<T>::name) + std::string(" ") + \
-                            std::string(TypeParseTraits<U>::name) + std::string(" ") + \
-                            std::string(TypeParseTraits<V>::name));
     bool read_all = true;
     std::string buffer;
 
@@ -133,6 +143,10 @@ bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, T & value2, U & va
             missingValuesWarning();
             return false;
         }
+	std::string expecting(boost::typeindex::type_id<S>().pretty_name() + std::string(" ") +
+			      boost::typeindex::type_id<T>().pretty_name() + std::string(" ") +
+			      boost::typeindex::type_id<U>().pretty_name() + std::string(" ") +
+			      boost::typeindex::type_id<V>().pretty_name());
         interpreteWarning((interpreter.rdstate() ^ std::ios_base::eofbit), read_all, expecting, buffer);
     }
     return (!(interpreter.rdstate() ^ std::ios_base::eofbit) && read_all);   // eof should not be an error but if not eof
@@ -141,12 +155,6 @@ bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, T & value2, U & va
 template<class S>
 bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, S & value2, S & value3, S & value4, S & value5, S & value6, const bool & file_length_known)
 {
-    static std::string expecting(std::string(TypeParseTraits<S>::name) + std::string(" ") + \
-                            std::string(TypeParseTraits<S>::name) + std::string(" ") + \
-                            std::string(TypeParseTraits<S>::name) + std::string(" ") + \
-                            std::string(TypeParseTraits<S>::name) + std::string(" ") + \
-                            std::string(TypeParseTraits<S>::name) + std::string(" ") + \
-                            std::string(TypeParseTraits<S>::name));
     bool read_all = true;
     std::string buffer;
 
@@ -174,6 +182,12 @@ bool Fieldmap::interpreteLine(std::ifstream & in, S & value1, S & value2, S & va
             missingValuesWarning();
             return false;
         }
+	std::string expecting(boost::typeindex::type_id<S>().pretty_name() + std::string(" ") +
+			      boost::typeindex::type_id<S>().pretty_name() + std::string(" ") +
+			      boost::typeindex::type_id<S>().pretty_name() + std::string(" ") +
+			      boost::typeindex::type_id<S>().pretty_name() + std::string(" ") +
+			      boost::typeindex::type_id<S>().pretty_name() + std::string(" ") +
+			      boost::typeindex::type_id<S>().pretty_name());
         interpreteWarning((interpreter.rdstate() ^ std::ios_base::eofbit), read_all, expecting, buffer);
     }
     return (!(interpreter.rdstate() ^ std::ios_base::eofbit) && read_all);   // eof should not be an error but if not eof

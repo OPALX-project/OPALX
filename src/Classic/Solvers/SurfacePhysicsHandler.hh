@@ -33,8 +33,8 @@ private:
 
 inline SurfacePhysicsHandler::SurfacePhysicsHandler(std::string name, ElementBase *elref):
     element_ref_m(elref),
-    name_m(name),
-    allParticleInMat_m(false)
+    allParticleInMat_m(false),
+    name_m(name)
 {}
 
 inline void SurfacePhysicsHandler::updateElement(ElementBase *newref) {

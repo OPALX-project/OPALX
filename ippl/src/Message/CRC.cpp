@@ -105,10 +105,10 @@ static CRCTYPE crctab[256] =
 /* calculate the CRC for the given buffer of bytes, of length icnt */
 CRCTYPE crc(void *icp, int icnt)
 {
-    register int initcrc = -1;
-    register int cnt = icnt;
-    register CRCTYPE crc = (CRCTYPE)initcrc;
-    register unsigned char *cp = (unsigned char *)icp;
+    int initcrc = -1;
+    int cnt = icnt;
+    CRCTYPE crc = (CRCTYPE)initcrc;
+    unsigned char *cp = (unsigned char *)icp;
     while (cnt--)
         crc=((crc>>8)&0xffffff)^crctab[(crc&0xff)^*cp++];
 

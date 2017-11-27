@@ -55,11 +55,16 @@ public:
                      double initialR,
                      double initialP);
     virtual ~AutophaseTracker();
-
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Woverloaded-virtual"
+#endif
     void execute(const std::queue<double> &dtAllTracks,
                  const std::queue<double> &maxZ,
                  const std::queue<unsigned long long> &maxTrackSteps);
-
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
     void save(const std::string &fname);
 
 
