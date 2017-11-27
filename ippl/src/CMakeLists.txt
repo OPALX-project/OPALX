@@ -79,7 +79,7 @@ ENDWHILE()
 MESSAGE (STATUS "")
 
 SET (IPPL_SRCS_FORT
-    FFT/fftpack.F
+#    FFT/fftpack.F
     )
 
 SET (IPPL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -159,13 +159,14 @@ ENDIF (ENABLE_DKS)
 ADD_LIBRARY ( ippl ${IPPL_SRCS} ${IPPL_SRCS_FORT} )
 
 IF (ENABLE_DKS)
-    #TARGET_LINK_LIBRARIES(ippl dks)
-    TARGET_LINK_LIBRARIES(ippl 
-      -lgfortran
-      dks
-      ${DKS_CUDA_LIBS})
+    TARGET_LINK_LIBRARIES(
+        ippl 
+        dks
+        ${DKS_CUDA_LIBS}
+    )
+>>>>>>> cb2ff1c... IPPL: use f2c version of fftpack
 ELSE ()
-    TARGET_LINK_LIBRARIES(ippl -lgfortran)
+    TARGET_LINK_LIBRARIES(ippl)
 ENDIF (ENABLE_DKS)
 
 INSTALL (FILES ${MAKE_DEF} DESTINATION lib)
