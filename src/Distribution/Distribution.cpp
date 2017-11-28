@@ -2683,8 +2683,7 @@ void Distribution::generateLongFlattopT(size_t numberOfParticles) {
      * Generate particles in flat top. The flat top can also have sinusoidal
      * modulations.
      */
-    double modulationAmp = Attributes::getReal(itsAttr[Attrib::Distribution::FTOSCAMPLITUDE])
-        / 100.0;
+    double modulationAmp = Attributes::getReal(itsAttr[Attrib::Distribution::FTOSCAMPLITUDE]) / 100.0;
     if (modulationAmp > 1.0)
         modulationAmp = 1.0;
     double numModulationPeriods
@@ -3493,7 +3492,6 @@ void Distribution::setAttributes() {
                                  "SURFACERANDCREATE, "
                                  "GUNGAUSSFLATTOPTH, "
                                  "ASTRAFLATTOPTH, "
-                                 "GAUSS, "
                                  "GAUSSMATCHED");
     itsAttr[Attrib::Legacy::Distribution::DISTRIBUTION]
         = Attributes::makeString("DISTRIBUTION","This attribute isn't supported any more. Use TYPE instead");
@@ -3509,8 +3507,8 @@ void Distribution::setAttributes() {
         = Attributes::makeReal("EY", "Projected normalized emittance EY (m-rad) used to create matched distribution ", 1E-6);
     itsAttr[Attrib::Distribution::ET]
         = Attributes::makeReal("ET", "Projected normalized emittance ET (m-rad) used to create matched distribution ", 1E-6);
-    itsAttr[Attrib::Distribution::E2]
-        = Attributes::makeReal("E2", "If E2<Eb, we compute the tunes from the beams energy Eb to E2 with dE=0.25 MeV ", 0.0);
+    // itsAttr[Attrib::Distribution::E2]
+    //     = Attributes::makeReal("E2", "If E2<Eb, we compute the tunes from the beams energy Eb to E2 with dE=0.25 MeV ", 0.0);
     itsAttr[Attrib::Distribution::RESIDUUM]
         = Attributes::makeReal("RESIDUUM", "Residuum for the closed orbit finder and sigma matrix generator ", 1e-8);
     itsAttr[Attrib::Distribution::MAXSTEPSCO]
@@ -3804,11 +3802,11 @@ void Distribution::setAttributes() {
      */
 
     // Parameters for emitting a distribution.
-    itsAttr[Attrib::Legacy::Distribution::DEBIN]
-        = Attributes::makeReal("DEBIN", "Energy band for a bin in keV that defines "
-                               "when to combine bins. That is, when the energy "
-                               "spread of all bins is below this number "
-                               "combine bins into a single bin.", 1000000.0);
+    // itsAttr[Attrib::Legacy::Distribution::DEBIN]
+    //     = Attributes::makeReal("DEBIN", "Energy band for a bin in keV that defines "
+    //                            "when to combine bins. That is, when the energy "
+    //                            "spread of all bins is below this number "
+    //                            "combine bins into a single bin.", 1000000.0);
     itsAttr[Attrib::Legacy::Distribution::SBIN]
         = Attributes::makeReal("SBIN", "Number of sample bins to use per energy bin "
                                "when emitting a distribution.", 100.0);
@@ -4200,7 +4198,7 @@ void Distribution::setDistParametersGauss(double massIneV) {
             }
             else {
                 throw OpalException("Distribution::SetDistParametersGauss",
-                                    "Inconsitent set of correlations specified, check manual");
+                                    "Inconsistent set of correlations specified, check manual");
             }
         }
         else {
@@ -4363,9 +4361,6 @@ void Distribution::setupParticleBins(double massIneV, PartBunchBase<double, 3> *
 
         int sampleBins = static_cast<int>(std::abs(Attributes::getReal(itsAttr[Attrib::Legacy::Distribution::SBIN])));
         energyBins_m = new PartBins(numberOfEnergyBins_m, sampleBins);
-
-        double dEBins = Attributes::getReal(itsAttr[Attrib::Legacy::Distribution::DEBIN]);
-        energyBins_m->setRebinEnergy(dEBins);
 
         if (!itsAttr[Attrib::Legacy::Distribution::PT].defaultUsed())
             throw OpalException("Distribution::setupParticleBins",

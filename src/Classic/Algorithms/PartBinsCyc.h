@@ -82,9 +82,6 @@ public:
 
 private:
 
-    /** Defines energy threshold for rebining */
-    double dERebin_m;
-
     /** number of emitted bins */
     int nemittedBins_m;
 
