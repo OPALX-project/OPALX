@@ -183,7 +183,7 @@ Solver::solve_with_f90(const container_pt& rhs,
 
     int always_use_bnorm = 0;
     int need_grad_phi = (doGradient) ? 1 : 0;
-    fmg.set_verbose(5);
+    fmg.set_verbose(0);
     
     if ( timing )
         IpplTimings::stopTimer(initSolverTimer);
@@ -221,7 +221,7 @@ Solver::solve_with_f90(const container_pt& rhs,
 // where a and b are scalars, alpha and beta are arrays
 void Solver::solve_with_hypre(amrex::MultiFab& soln, amrex::MultiFab& rhs, const amrex::BoxArray& bs, const amrex::Geometry& geom)
 {
-    int  verbose       = 2;
+    int  verbose       = 0;
     amrex::Real tolerance_rel = 1.e-8;
     amrex::Real tolerance_abs = 0.0;
     int  maxiter       = 100;
