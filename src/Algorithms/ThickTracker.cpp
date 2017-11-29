@@ -19,6 +19,8 @@
 // ------------------------------------------------------------------------
 
 #include "Algorithms/ThickTracker.h"
+#include "Algorithms/OrbitThreader.h" 
+#include "Algorithms/CavityAutophaser.h"
 
 #include <cfloat>
 
@@ -47,6 +49,7 @@
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "BeamlineGeometry/RBendGeometry.h"
 #include "Beamlines/Beamline.h"
+#include "Beamlines/FlaggedBeamline.h"
 
 #include "Fields/BMultipoleField.h"
 #include "FixedAlgebra/FTps.h"
@@ -54,9 +57,8 @@
 #include "FixedAlgebra/FVps.h"
 
 #include "Physics/Physics.h"
-
 #include "Utilities/NumToStr.h"
-
+#include "Elements/OpalBeamline.h"
 
 class Beamline;
 class PartData;
@@ -79,27 +81,389 @@ namespace {
     Vector fixedPointInt4(const Vector &zin, const VSeries &f, double s, double ds,
                           int nx = 50, int cx = 4);
 };
-
+//
 // Class ThickTracker
 // ------------------------------------------------------------------------
-
+//
 ThickTracker::ThickTracker(const Beamline &beamline,
                            const PartData &reference,
                            bool revBeam, bool revTrack):
-    Tracker(beamline, reference, revBeam, revTrack)
-{}
+  Tracker(beamline, reference, revBeam, revTrack),
+  itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getCoordTransformationTo()),
+  pathLength_m(0.0),
+  zStop_m(),
+  dtCurrentTrack_m(0.0),
+  dtAllTracks_m(),
+  localTrackSteps_m()
+{
+}
 
 
 ThickTracker::ThickTracker(const Beamline &beamline,
                            PartBunchBase<double, 3> *bunch,
-                           const PartData &reference,
-                           bool revBeam, bool revTrack):
-    Tracker(beamline, bunch, reference, revBeam, revTrack)
-{}
+			   DataSink &ds,
+			   const PartData &reference,	  
+                           bool revBeam, bool revTrack,
+			   const std::vector<unsigned long long> &maxSteps,
+			   double zstart,
+			   const std::vector<double> &zstop,
+			   const std::vector<double> &dt):
+  Tracker(beamline, bunch, reference, revBeam, revTrack),
+  itsDataSink_m(&ds), 
+  itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getCoordTransformationTo()),
+  pathLength_m(0.0),
+  zstart_m(zstart),
+  zStop_m(),
+  dtCurrentTrack_m(0.0),
+  dtAllTracks_m(),
+  localTrackSteps_m()
+{
+  CoordinateSystemTrafo labToRef(beamline.getOrigin3D(),
+				 beamline.getCoordTransformationTo());
+  referenceToLabCSTrafo_m = labToRef.inverted();
+
+  for (std::vector<unsigned long long>::const_iterator it = maxSteps.begin(); it != maxSteps.end(); ++ it) {
+    localTrackSteps_m.push(*it);
+  }
+  for (std::vector<double>::const_iterator it = dt.begin(); it != dt.end(); ++ it) {
+    dtAllTracks_m.push(*it);
+  }
+  for (std::vector<double>::const_iterator it = zstop.begin(); it != zstop.end(); ++ it) {
+    zStop_m.push(*it);
+  }
+}
 
 
 ThickTracker::~ThickTracker()
 {}
+
+
+
+void ThickTracker::visitBeamline(const Beamline &bl) {
+    const FlaggedBeamline* fbl = static_cast<const FlaggedBeamline*>(&bl);
+    if (fbl->getRelativeFlag()) {
+        OpalBeamline stash(fbl->getOrigin3D(), fbl->getCoordTransformationTo());
+        stash.swap(itsOpalBeamline_m);
+        fbl->iterate(*this, false);
+        itsOpalBeamline_m.prepareSections();
+        itsOpalBeamline_m.compute3DLattice();
+        stash.merge(itsOpalBeamline_m);
+        stash.swap(itsOpalBeamline_m);
+    } else {
+        fbl->iterate(*this, false);
+    }
+}
+
+
+void ThickTracker::updateRFElement(std::string elName, double maxPhase) {
+    FieldList cavities = itsOpalBeamline_m.getElementByType(ElementBase::RFCAVITY);
+    FieldList travelingwaves = itsOpalBeamline_m.getElementByType(ElementBase::TRAVELINGWAVE);
+    cavities.insert(cavities.end(), travelingwaves.begin(), travelingwaves.end());
+
+    for (FieldList::iterator fit = cavities.begin(); fit != cavities.end(); ++ fit) {
+        if ((*fit).getElement()->getName() == elName) {
+
+            RFCavity *element = static_cast<RFCavity *>((*fit).getElement().get());
+
+            element->setPhasem(maxPhase);
+            element->setAutophaseVeto();
+
+            INFOMSG("Restored cavity phase from the h5 file. Name: " << element->getName() << ", phase: " << maxPhase << " rad" << endl);
+            return;
+        }
+    }
+}
+
+
+void ThickTracker::prepareSections() {
+
+    itsBeamline_m.accept(*this);
+    itsOpalBeamline_m.prepareSections();
+}
+
+
+
+void ThickTracker::saveCavityPhases() {
+    itsDataSink_m->storeCavityInformation();
+}
+
+void ThickTracker::restoreCavityPhases() {
+    typedef std::vector<MaxPhasesT>::iterator iterator_t;
+
+    if (OpalData::getInstance()->hasPriorTrack() ||
+        OpalData::getInstance()->inRestartRun()) {
+        iterator_t it = OpalData::getInstance()->getFirstMaxPhases();
+        iterator_t end = OpalData::getInstance()->getLastMaxPhases();
+        for (; it < end; ++ it) {
+            updateRFElement((*it).first, (*it).second);
+        }
+    }
+}
+
+
+void ThickTracker::autophaseCavities(const BorisPusher &pusher) {
+
+  //    double t = itsBunch_m->getT();
+    Vector_t nextR = RefPartR_m / (Physics::c * itsBunch_m->getdT());
+    pusher.push(nextR, RefPartP_m, itsBunch_m->getdT());
+    nextR *= Physics::c * itsBunch_m->getdT();
+
+    auto elementSet = itsOpalBeamline_m.getElements(referenceToLabCSTrafo_m.transformTo(nextR));
+    /*
+    for (auto element: elementSet) {
+        if (element->getType() == ElementBase::TRAVELINGWAVE) {
+            const TravelingWave *TWelement = static_cast<const TravelingWave *>(element.get());
+            if (!TWelement->getAutophaseVeto()) {
+                RefPartR_m = referenceToLabCSTrafo_m.transformTo(RefPartR_m);
+                RefPartP_m = referenceToLabCSTrafo_m.rotateTo(RefPartP_m);
+                CavityAutophaser ap(itsReference, element);
+                ap.getPhaseAtMaxEnergy(itsOpalBeamline_m.transformToLocalCS(element, RefPartR_m),
+                                       itsOpalBeamline_m.rotateToLocalCS(element, RefPartP_m),
+                                       t, itsBunch_m->getdT());
+                RefPartR_m = referenceToLabCSTrafo_m.transformFrom(RefPartR_m);
+                RefPartP_m = referenceToLabCSTrafo_m.rotateFrom(RefPartP_m);
+            }
+
+        } else if (element->getType() == ElementBase::RFCAVITY) {
+            const RFCavity *RFelement = static_cast<const RFCavity *>(element.get());
+            if (!RFelement->getAutophaseVeto()) {
+                RefPartR_m = referenceToLabCSTrafo_m.transformTo(RefPartR_m);
+                RefPartP_m = referenceToLabCSTrafo_m.rotateTo(RefPartP_m);
+                CavityAutophaser ap(itsReference, element);
+                ap.getPhaseAtMaxEnergy(itsOpalBeamline_m.transformToLocalCS(element, RefPartR_m),
+                                       itsOpalBeamline_m.rotateToLocalCS(element, RefPartP_m),
+                                       t, itsBunch_m->getdT());
+                RefPartR_m = referenceToLabCSTrafo_m.transformFrom(RefPartR_m);
+                RefPartP_m = referenceToLabCSTrafo_m.rotateFrom(RefPartP_m);
+            }
+        }
+    }
+    */
+}
+
+
+void ThickTracker::updateReferenceParticle(const BorisPusher &pusher) {
+    const double dt = std::min(itsBunch_m->getT(), itsBunch_m->getdT());
+    const double scaleFactor = Physics::c * dt;
+    Vector_t Ef(0.0), Bf(0.0);
+
+    RefPartR_m /= scaleFactor;
+    pusher.push(RefPartR_m, RefPartP_m, dt);
+    RefPartR_m *= scaleFactor;
+
+    IndexMap::value_t elements = itsOpalBeamline_m.getElements(referenceToLabCSTrafo_m.transformTo(RefPartR_m));
+    IndexMap::value_t::const_iterator it = elements.begin();
+    const IndexMap::value_t::const_iterator end = elements.end();
+
+    for (; it != end; ++ it) {
+        CoordinateSystemTrafo refToLocalCSTrafo = itsOpalBeamline_m.getCSTrafoLab2Local((*it)) * referenceToLabCSTrafo_m;
+
+        Vector_t localR = refToLocalCSTrafo.transformTo(RefPartR_m);
+        Vector_t localP = refToLocalCSTrafo.rotateTo(RefPartP_m);
+        Vector_t localE(0.0), localB(0.0);
+
+        if ((*it)->applyToReferenceParticle(localR,
+                                            localP,
+                                            itsBunch_m->getT() - 0.5 * dt,
+                                            localE,
+                                            localB)) {
+            *gmsg << level1 << "The reference particle hit an element" << endl;
+            globalEOL_m = true;
+        }
+
+        Ef += refToLocalCSTrafo.rotateFrom(localE);
+        Bf += refToLocalCSTrafo.rotateFrom(localB);
+    }
+    pusher.kick(RefPartR_m, RefPartP_m, Ef, Bf, dt);
+    RefPartR_m /= scaleFactor;
+    pusher.push(RefPartR_m, RefPartP_m, dt);
+    RefPartR_m *= scaleFactor;
+}
+
+
+
+
+void ThickTracker::selectDT() {
+    if (itsBunch_m->getIfBeamEmitting()) {
+        double dt = itsBunch_m->getEmissionDeltaT();
+        itsBunch_m->setdT(dt);
+    } else {
+        double dt = dtCurrentTrack_m;
+        itsBunch_m->setdT(dt);
+    }
+}
+
+void ThickTracker::changeDT() {
+    selectDT();
+    const unsigned int localNum = itsBunch_m->getLocalNum();
+    for (unsigned int i = 0; i < localNum; ++ i) {
+        itsBunch_m->dt[i] = itsBunch_m->getdT();
+    }
+}
+
+void ThickTracker::findStartPosition(const BorisPusher &pusher) {
+
+    double t = 0.0;
+    itsBunch_m->setT(t);
+
+    dtCurrentTrack_m = dtAllTracks_m.front();
+    changeDT();
+
+    if (Util::getEnergy(RefPartP_m, itsBunch_m->getM()) < 1e-3) {
+        double gamma = 0.1 / itsBunch_m->getM() + 1.0;
+        RefPartP_m = sqrt(std::pow(gamma, 2) - 1) * Vector_t(0, 0, 1);
+    }
+
+    while (true) {
+        autophaseCavities(pusher);
+
+        t += itsBunch_m->getdT();
+        itsBunch_m->setT(t);
+
+        Vector_t oldR = RefPartR_m;
+        updateReferenceParticle(pusher);
+        pathLength_m += euclidean_norm(RefPartR_m - oldR);
+
+        if (pathLength_m > zStop_m.front()) {
+            if (localTrackSteps_m.size() == 0) return;
+
+            dtAllTracks_m.pop();
+            localTrackSteps_m.pop();
+            zStop_m.pop();
+
+            changeDT();
+        }
+
+        double speed = euclidean_norm(RefPartP_m) * Physics::c / sqrt(dot(RefPartP_m, RefPartP_m) + 1);
+        if (std::abs(pathLength_m - zstart_m) <=  0.5 * itsBunch_m->getdT() * speed) {
+            double tau = (pathLength_m - zstart_m) / speed;
+
+            t += tau;
+            itsBunch_m->setT(t);
+
+            RefPartR_m /= (Physics::c * tau);
+            pusher.push(RefPartR_m, RefPartP_m, tau);
+            RefPartR_m *= (Physics::c * tau);
+
+            pathLength_m = zstart_m;
+
+            CoordinateSystemTrafo update(RefPartR_m,
+                                         getQuaternion(RefPartP_m, Vector_t(0, 0, 1)));
+            referenceToLabCSTrafo_m = referenceToLabCSTrafo_m * update.inverted();
+
+            RefPartR_m = update.transformTo(RefPartR_m);
+            RefPartP_m = update.rotateTo(RefPartP_m);
+
+            return;
+        }
+    }
+}
+
+
+void ThickTracker::execute() {
+  Inform msg("ThickTracker ", *gmsg);
+
+  OpalData::getInstance()->setInPrepState(true);
+
+  BorisPusher pusher(itsReference);
+  OpalData::getInstance()->setGlobalPhaseShift(0.0);
+
+  dtCurrentTrack_m = itsBunch_m->getdT();
+
+  if (OpalData::getInstance()->hasPriorTrack() || OpalData::getInstance()->inRestartRun()) {
+    Options::openMode = Options::APPEND;
+  }
+
+  prepareSections();
+
+  itsOpalBeamline_m.compute3DLattice();
+  itsOpalBeamline_m.save3DLattice();
+  itsOpalBeamline_m.save3DInput();
+  
+  std::queue<double> timeStepSizes(dtAllTracks_m);
+  std::queue<unsigned long long> numSteps(localTrackSteps_m);
+  double minTimeStep = timeStepSizes.front();
+  unsigned long long totalNumSteps = 0;
+  while (timeStepSizes.size() > 0) {
+    if (minTimeStep > timeStepSizes.front()) {
+      totalNumSteps = std::ceil(totalNumSteps * minTimeStep / timeStepSizes.front());
+      minTimeStep = timeStepSizes.front();
+    }
+    totalNumSteps += std::ceil(numSteps.front() * timeStepSizes.front() / minTimeStep);
+    
+    numSteps.pop();
+    timeStepSizes.pop();
+  }
+  
+  itsOpalBeamline_m.activateElements();
+
+  if (OpalData::getInstance()->hasPriorTrack() ||
+      OpalData::getInstance()->inRestartRun()) {
+
+    referenceToLabCSTrafo_m = itsBunch_m->toLabTrafo_m;
+    RefPartR_m = referenceToLabCSTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
+    RefPartP_m = referenceToLabCSTrafo_m.rotateFrom(itsBunch_m->RefPartP_m);
+    
+    pathLength_m = itsBunch_m->get_sPos();
+    zstart_m = pathLength_m;
+    
+    restoreCavityPhases();
+  } else {
+    RefPartR_m = Vector_t(0.0);
+    RefPartP_m = euclidean_norm(itsBunch_m->get_pmean_Distribution()) * Vector_t(0, 0, 1);
+    
+    if (itsBunch_m->getTotalNum() > 0) {
+      if (!itsOpalBeamline_m.containsSource()) {
+	RefPartP_m = OpalData::getInstance()->getP0() / itsBunch_m->getM() * Vector_t(0, 0, 1);
+      }
+      
+      if (zstart_m > pathLength_m) {
+	findStartPosition(pusher);
+      }
+      
+      itsBunch_m->set_sPos(pathLength_m);
+    }
+  }
+
+  Vector_t rmin, rmax;
+  // msg << *itsBunch_m << endl;
+  itsBunch_m->get_bounds(rmin, rmax);
+
+  OrbitThreader oth(itsReference,
+		    referenceToLabCSTrafo_m.transformTo(RefPartR_m),
+		    referenceToLabCSTrafo_m.rotateTo(RefPartP_m),
+		    pathLength_m,
+		    -rmin(2),
+		    itsBunch_m->getT(),
+		    minTimeStep,
+		    totalNumSteps,
+		    zStop_m.back() + 2 * rmax(2),
+		    itsOpalBeamline_m);
+
+  oth.execute();
+    
+  msg << "in execute " << __LINE__ << " " << __FILE__ << endl;
+
+  auto allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
+  FieldList::iterator it = allElements.begin();
+
+  const FieldList::iterator end = allElements.end();
+  
+  if (it == end)
+    msg << "No element in lattice" << endl;
+  
+  for (; it != end; ++ it) {
+    std::shared_ptr<Component> element = (*it).getElement();
+    msg << "Element name " << element->getName() << endl;
+  }
+}
+
+
+
+
+
+
+
 
 
 void ThickTracker::visitBeamBeam(const BeamBeam &) {
@@ -147,6 +511,7 @@ void ThickTracker::visitDiagnostic(const Diagnostic &diag) {
 
 
 void ThickTracker::visitDrift(const Drift &drift) {
+    std::cerr << "==> In ThickTracker::visitDrift()" << std::endl;
     applyDrift(flip_s * drift.getElementLength());
 }
 
@@ -168,7 +533,7 @@ void ThickTracker::visitMonitor(const Monitor &corr) {
 
 
 void ThickTracker::visitMultipole(const Multipole &mult) {
-    //std::cerr << "==> In ThickTracker::visitMultipole(const Multipole &mult)" << std::endl;
+    std::cerr << "==> In ThickTracker::visitMultipole(const Multipole &mult)" << std::endl;
     // Geometry and Field
     double length = flip_s * mult.getElementLength();
     double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();

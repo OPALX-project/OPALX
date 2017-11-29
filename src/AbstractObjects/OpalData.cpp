@@ -144,7 +144,7 @@ struct OpalDataImpl {
     bool isInOPALCyclMode_m;
     bool isInOPALTMode_m;
     bool isInOPALEnvMode_m;
-    
+    bool isInOPALThickTrackerMode_m;
     bool isInPrepState_m;
 };
 
@@ -164,7 +164,8 @@ OpalDataImpl::OpalDataImpl():
     isInOPALCyclMode_m(false),
     isInOPALTMode_m(false),
     isInOPALEnvMode_m(false),
-    isInPrepState_m(false)
+    isInPrepState_m(false),
+    isInOPALThickTrackerMode_m(false)
 {
     bunch_m = 0;
     slbunch_m = 0;
@@ -277,6 +278,7 @@ void OpalData::reset() {
     p->isInOPALTMode_m = false;
     p->isInOPALEnvMode_m = false;
     p->isInPrepState_m = false;
+    p->isInOPALThickTrackerMode_m = false;
 }
 
 bool OpalData::isInOPALCyclMode() {
@@ -286,8 +288,13 @@ bool OpalData::isInOPALCyclMode() {
 bool OpalData::isInOPALTMode() {
     return  p->isInOPALTMode_m;
 }
+
 bool OpalData::isInOPALEnvMode() {
     return p->isInOPALEnvMode_m;
+}
+
+bool OpalData::isInOPALThickTrackerMode() {
+    return p->isInOPALThickTrackerMode_m;
 }
 
 void OpalData::setInOPALCyclMode() {
@@ -300,6 +307,10 @@ void OpalData::setInOPALTMode() {
 
 void OpalData::setInOPALEnvMode() {
     p->isInOPALEnvMode_m = true;
+}
+
+void OpalData::setInOPALThickTrackerMode() {
+    p->isInOPALThickTrackerMode_m = true;
 }
 
 bool OpalData::isInPrepState() {
