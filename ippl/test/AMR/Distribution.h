@@ -128,6 +128,16 @@ public:
      * @param seed of the Mersenne-Twister
      */
     void gaussian(double mean, double stddev, size_t nloc, int seed);
+
+    /// More general version of Gaussian particle distribution
+    /*!
+     * @param mean for each direction independently
+     * @param stddev for each direction
+     * @param nloc local number of particles
+     * @param seed of Mersenne-Twister
+     */
+    void gaussian(const double* mean, const double* stddev,
+		  size_t nloc, int seed);
     
     /// Generate particle distributions according to B.\ Ulmer
     /*!
