@@ -19,6 +19,9 @@
 // ------------------------------------------------------------------------
 
 #include "Algorithms/Tracker.h"
+#include "Steppers/BorisPusher.h"
+#include "Structure/DataSink.h"                                                                                             
+#include "Elements/OpalBeamline.h"
 
 class BMultipoleField;
 
@@ -86,8 +89,14 @@ public:
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
     explicit ThickTracker(const Beamline &bl, PartBunchBase<double, 3> *bunch,
-                          const PartData &data, bool revBeam, bool revTrack);
-
+			  DataSink &ds,
+                          const PartData &data, 
+			  bool revBeam, bool revTrack,
+			  const std::vector<unsigned long long> &maxSTEPS,
+			  double zstart,
+			  const std::vector<double> &zstop,
+			  const std::vector<double> &dt);
+    
     virtual ~ThickTracker();
 
     /// Apply the algorithm to a BeamBeam.
@@ -149,6 +158,25 @@ public:
     // Apply the algorithm to a CyclotronValley.
     virtual void visitCyclotronValley(const CyclotronValley &);
 
+
+    /// Apply the algorithm to a beam line.
+    //  overwrite the execute-methode from DefaultVisitor
+    virtual void visitBeamline(const Beamline &);
+
+    /// Apply the algorithm to the top-level beamline.
+    //  overwrite the execute-methode from DefaultVisitor
+    virtual void execute();
+
+    void updateReferenceParticle(const BorisPusher &pusher);
+    void updateRFElement(std::string elName, double maxPhase);
+    void prepareSections();  
+    void saveCavityPhases();
+    void restoreCavityPhases();
+    void changeDT();
+    void selectDT();
+    void autophaseCavities(const BorisPusher &pusher);
+    void findStartPosition(const BorisPusher &pusher);
+
 private:
 
     // Not implemented.
@@ -161,6 +189,40 @@ private:
                              const BMultipoleField &field, double scale);
     void applyExitFringe(double edge, double curve,
                          const BMultipoleField &field, double scale);
+
+
+
+    Vector_t RefPartR_m; 
+    Vector_t RefPartP_m; 
+
+    DataSink *itsDataSink_m; 
+
+    OpalBeamline itsOpalBeamline_m;
+
+    double pathLength_m;
+
+    /// where to start
+    double zstart_m;
+
+
+    /// where to stop
+    std::queue<double> zStop_m;
+
+    double dtCurrentTrack_m;  
+    std::queue<double> dtAllTracks_m;
+
+    /// The maximal number of steps the system is integrated per TRACK 
+    std::queue<unsigned long long> localTrackSteps_m;
+
+    CoordinateSystemTrafo referenceToLabCSTrafo_m;
+
+
+
+
+
+
+
+    bool globalEOL_m;
 
 };
 
