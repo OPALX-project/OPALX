@@ -164,8 +164,8 @@ OpalDataImpl::OpalDataImpl():
     isInOPALCyclMode_m(false),
     isInOPALTMode_m(false),
     isInOPALEnvMode_m(false),
-    isInPrepState_m(false),
-    isInOPALThickTrackerMode_m(false)
+    isInOPALThickTrackerMode_m(false),
+    isInPrepState_m(false)
 {
     bunch_m = 0;
     slbunch_m = 0;
