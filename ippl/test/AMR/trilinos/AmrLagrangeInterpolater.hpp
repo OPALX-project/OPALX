@@ -18,8 +18,8 @@ AmrLagrangeInterpolater<AmrMultiGridLevel>::AmrLagrangeInterpolater(Order order)
 template <class AmrMultiGridLevel>
 void AmrLagrangeInterpolater<AmrMultiGridLevel>::stencil(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::indices_t& indices,
-    typename AmrMultiGridLevel::coefficients_t& values,
+    typename AmrMultiGridLevel::umap_t& map,
+    const typename AmrMultiGridLevel::scalar_t& scale,
     AmrMultiGridLevel* mglevel)
 {
     
@@ -29,8 +29,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::stencil(
 template <class AmrMultiGridLevel>
 void AmrLagrangeInterpolater<AmrMultiGridLevel>::coarse(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::indices_t& indices,
-    typename AmrMultiGridLevel::coefficients_t& values,
+    typename AmrMultiGridLevel::umap_t& map,
+    const typename AmrMultiGridLevel::scalar_t& scale,
     int dir, int shift, const amrex::BoxArray& ba,
     const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
@@ -38,11 +38,11 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::coarse(
     // polynomial degree = #points - 1
     switch ( this->nPoints_m - 1 ) {
         
-        case Order::LINEAR:
-            this->crseLinear_m(iv, indices, values, dir, shift, ba, riv, mglevel);
-            break;
         case Order::QUADRATIC:
-            this->crseQuadratic_m(iv, indices, values, dir, shift, ba, riv, mglevel);
+            this->crseQuadratic_m(iv, map, scale, dir, shift, ba, riv, mglevel);
+            break;
+        case Order::LINEAR:
+            this->crseLinear_m(iv, map, scale, dir, shift, ba, riv, mglevel);
             break;
         default:
             std::runtime_error("Not implemented interpolation");
@@ -53,19 +53,19 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::coarse(
 template <class AmrMultiGridLevel>
 void AmrLagrangeInterpolater<AmrMultiGridLevel>::fine(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::indices_t& indices,
-    typename AmrMultiGridLevel::coefficients_t& values,
+    typename AmrMultiGridLevel::umap_t& map,
+    const typename AmrMultiGridLevel::scalar_t& scale,
     int dir, int shift, const amrex::BoxArray& ba,
     AmrMultiGridLevel* mglevel)
 {
     // polynomial degree = #points - 1
     switch ( this->nPoints_m - 1 ) {
         
-        case Order::LINEAR:
-            this->fineLinear_m(iv, indices, values, dir, shift, ba, mglevel);
-            break;
         case Order::QUADRATIC:
-            this->fineQuadratic_m(iv, indices, values, dir, shift, ba, mglevel);
+            this->fineQuadratic_m(iv, map, scale, dir, shift, ba, mglevel);
+            break;
+        case Order::LINEAR:
+            this->fineLinear_m(iv, map, scale, dir, shift, ba, mglevel);
             break;
         default:
             std::runtime_error("Not implemented interpolation");
@@ -76,8 +76,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fine(
 template <class AmrMultiGridLevel>
 void AmrLagrangeInterpolater<AmrMultiGridLevel>::fineLinear_m(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::indices_t& indices,
-    typename AmrMultiGridLevel::coefficients_t& values,
+    typename AmrMultiGridLevel::umap_t& map,
+    const typename AmrMultiGridLevel::scalar_t& scale,
     int dir, int shift, const amrex::BoxArray& ba,
     AmrMultiGridLevel* mglevel)
 {
@@ -87,42 +87,38 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fineLinear_m(
     AmrIntVect_t tmp = iv;
     // first fine cell on refined coarse cell (closer to interface)
     tmp[dir] += shift;
-    indices.push_back( mglevel->serialize(tmp) );
-    values.push_back( 2.0 );
+    map[mglevel->serialize(tmp)] += 2.0 * scale;
     
     // second fine cell on refined coarse cell (further away from interface)
     tmp[dir] += shift;
-    indices.push_back( mglevel->serialize(tmp) );
-    values.push_back( -1.0 );
+    map[mglevel->serialize(tmp)] -= scale;
 }
 
 
 template <class AmrMultiGridLevel>
 void AmrLagrangeInterpolater<AmrMultiGridLevel>::fineQuadratic_m(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::indices_t& indices,
-    typename AmrMultiGridLevel::coefficients_t& values,
+    typename AmrMultiGridLevel::umap_t& map,
+    const typename AmrMultiGridLevel::scalar_t& scale,
     int dir, int shift, const amrex::BoxArray& ba,
     AmrMultiGridLevel* mglevel)
 {
     AmrIntVect_t tmp = iv;
     // first fine cell on refined coarse cell (closer to interface)
     tmp[dir] += shift;
-    indices.push_back( mglevel->serialize(tmp) );
-    values.push_back( 2.0 / 3.0 );
+    map[mglevel->serialize(tmp)] += 2.0 / 3.0 * scale;
                         
     // second fine cell on refined coarse cell (further away from interface)
     tmp[dir] += shift;
-    indices.push_back( mglevel->serialize(tmp) );
-    values.push_back( -0.2 );
+    map[mglevel->serialize(tmp)] -= 0.2 * scale;
 }
 
 
 template <class AmrMultiGridLevel>
 void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::indices_t& indices,
-    typename AmrMultiGridLevel::coefficients_t& values,
+    typename AmrMultiGridLevel::umap_t& map,
+    const typename AmrMultiGridLevel::scalar_t& scale,
     int dir, int shift, const amrex::BoxArray& ba,
     const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
@@ -140,30 +136,25 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     miv[(dir+1)%AMREX_SPACEDIM ] -= 1;
     
     // factor for fine
-    double fac = 8.0 / 15.0;
+    double fac = 8.0 / 15.0 * scale;
     
     if ( !ba.contains(niv) ) {
         // check r / u / b --> 1: valid; 0: not valid
         
-        indices.push_back( mglevel->serialize(iv) );
-        //                        y_t    y_b
-        values.push_back( fac * (top) ? 0.75 : 1.25 );
+        //                                           y_t    y_b
+        map[mglevel->serialize(iv)] += fac * (top) ? 0.75 : 1.25;
         
-        indices.push_back( mglevel->serialize(niv) );
-        //                        y_t    y_b
-        values.push_back( fac * (top) ? 0.25 : -0.25 );
-        
+        //                                            y_t    y_b
+        map[mglevel->serialize(niv)] += fac * (top) ? 0.25 : -0.25;
         
     } else if ( !ba.contains(miv) ) {
         // check l / f --> 1: valid; 0: not valid
         
-        indices.push_back( mglevel->serialize(iv) );
-        //                        y_t    y_b
-        values.push_back( fac * (top) ? 0.75 : 1.25 );
+        //                                           y_t    y_b
+        map[mglevel->serialize(iv)] += fac * (top) ? 0.75 : 1.25;
         
-        indices.push_back( mglevel->serialize(miv) );
-        //                        y_t    y_b
-        values.push_back( fac * (top) ? 0.25 : -0.25 );
+        //                                            y_t    y_b
+        map[mglevel->serialize(miv)] += fac * (top) ? 0.25 : -0.25;
         
     } else
         throw std::runtime_error("Lagrange Error: No valid scenario found!");
@@ -213,17 +204,16 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
         tmp[d1] -= i;
     }
     
-    bool found = false;
     qpattern_t::const_iterator pit = std::begin(this->lpattern_ms);
     
-    while ( !found && pit != std::end(this->lpattern_ms) ) {
+    while ( pit != std::end(this->lpattern_ms) ) {
         if ( *pit == (area & lbits_t(*pit)).to_ulong() )
             break;
         ++pit;
     }
     
     // factor for fine
-    double fac = 8.0 / 15.0;
+    double fac = 8.0 / 15.0 * scale;
     
     // if pattern is known
     bool known = true;
@@ -309,10 +299,9 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
             
             double value = fac * L[i-begin[0]] * K[j-begin[1]];
             if ( mglevel->isBoundary(niv) ) {
-                mglevel->applyBoundary(niv, indices, values, value);
+                mglevel->applyBoundary(niv, map, value);
             } else {
-                indices.push_back( mglevel->serialize(niv) );
-                values.push_back( value );
+		map[mglevel->serialize(niv)] += value;
             }
             
             // undo
@@ -331,8 +320,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
 template <class AmrMultiGridLevel>
 void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::indices_t& indices,
-    typename AmrMultiGridLevel::coefficients_t& values,
+    typename AmrMultiGridLevel::umap_t& map,
+    const typename AmrMultiGridLevel::scalar_t& scale,
     int dir, int shift, const amrex::BoxArray& ba,
     const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
@@ -391,27 +380,23 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
          */            
         // cell is not refined and not at physical boundary
         
-        indices.push_back( mglevel->serialize(iv) );
-        
         // y_t or y_b
-        values.push_back( 0.5 );
+        map[mglevel->serialize(iv)] += 0.5 * scale;
         
-        //                     y_t          y_b
-        double value = (top) ? 1.0 / 12.0 : -0.05;
+        //                             y_t          y_b
+        double value = scale * (top) ? 1.0 / 12.0 : -0.05;
         if ( mglevel->isBoundary(niv) ) {
-            mglevel->applyBoundary(niv, indices, values, value);
+            mglevel->applyBoundary(niv, map, value);
         } else {
-            indices.push_back( mglevel->serialize(niv) );
-            values.push_back( value );
+            map[mglevel->serialize(niv)] += value;
         }
         
-        //              y_t     y_b
-        value = (top) ? -0.05 : 1.0 / 12.0;
+        //                      y_t     y_b
+        value = scale * (top) ? -0.05 : 1.0 / 12.0;
         if ( mglevel->isBoundary(miv) ) {
-            mglevel->applyBoundary(miv, indices, values, value);
+            mglevel->applyBoundary(miv, map, value);
         } else {
-            indices.push_back( mglevel->serialize(miv) );
-            values.push_back( value );
+	    map[mglevel->serialize(miv)] += value;
         }
         
     } else if ( rub && rub2 ) {
@@ -419,60 +404,54 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
          * corner case --> right / upper / back + 2nd right / upper / back
          */
         //                     y_t          y_b
-        double value = (top) ? 7.0 / 20.0 : 0.75;
-        indices.push_back( mglevel->serialize(iv) );
-        values.push_back( value );
+        double value = scale * (top) ? 7.0 / 20.0 : 0.75;
+        map[mglevel->serialize(iv)] += value;
         
-        //              y_t          y_b
-        value = (top) ? 7.0 / 30.0 : -0.3;
+        //                      y_t          y_b
+        value = scale * (top) ? 7.0 / 30.0 : -0.3;
         if ( mglevel->isBoundary(niv) ) {
-            mglevel->applyBoundary(niv, indices, values, value);
+            mglevel->applyBoundary(niv, map, value);
         } else {
-            indices.push_back( mglevel->serialize(niv) );
-            values.push_back( value );
+            map[mglevel->serialize(niv)] += value;
         }
         
-        //              y_t     y_b
-        value = (top) ? -0.05 : 1.0 / 12.0;
+        //                      y_t     y_b
+        value = scale * (top) ? -0.05 : 1.0 / 12.0;
         if ( mglevel->isBoundary(n2iv) ) {
-            mglevel->applyBoundary(n2iv, indices, values, value);
+            mglevel->applyBoundary(n2iv, map, value);
         } else {
-            indices.push_back( mglevel->serialize(n2iv) );
-            values.push_back( value );
+            map[mglevel->serialize(n2iv)] += value;
         }
         
     } else if ( lf && lf2 ) {
         /*
          * corner case --> left / lower / front + 2nd left / lower / front
          */
-        //                     y_t    y_b
-        double value = (top) ? 0.75 : 7.0 / 20.0;
-        indices.push_back( mglevel->serialize(iv) );
-        values.push_back( value );
+        //                             y_t    y_b
+        double value = scale * (top) ? 0.75 : 7.0 / 20.0;
+        map[mglevel->serialize(iv)] += value;
         
-        //              y_t           y_b
-        value = (top) ? -0.3 :  7.0 / 30;
+        //                      y_t           y_b
+        value = scale * (top) ? -0.3 :  7.0 / 30;
         if ( mglevel->isBoundary(miv) ) {
-            mglevel->applyBoundary(miv, indices, values, value);
+            mglevel->applyBoundary(miv, map, value);
         } else {
-            indices.push_back( mglevel->serialize(miv) );
-            values.push_back( value );
+            map[mglevel->serialize(miv)] += value;
         }
         
-        //              y_t          y_b
-        value = (top) ? 1.0 / 12.0 : -0.05;
+        //                      y_t          y_b
+        value = scale * (top) ? 1.0 / 12.0 : -0.05;
         if ( mglevel->isBoundary(m2iv) ) {
-            mglevel->applyBoundary(m2iv, indices, values, value);
+            mglevel->applyBoundary(m2iv, map, value);
         } else {
-            indices.push_back( mglevel->serialize(m2iv) );
-            values.push_back( value );
+            map[mglevel->serialize(m2iv)] += value;
         }
         
     } else {
         /* last trial: linear Lagrange interpolation
          * --> it throws an error if not possible
          */
-        this->crseLinear_m(iv, indices, values, dir, shift, ba, riv, mglevel);
+        this->crseLinear_m(iv, map, scale, dir, shift, ba, riv, mglevel);
     }
     
 #elif AMREX_SPACEDIM == 3
@@ -536,7 +515,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     }
     
     // factor for fine
-    double fac = 8.0 / 15.0;
+    double fac = 8.0 / 15.0 * scale;
     
     // if pattern is known
     bool known = true;
@@ -701,7 +680,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
              * --> it throws an error if not possible
              */
             known = false;
-            this->crseLinear_m(iv, indices, values, dir, shift, ba, riv, mglevel);
+            this->crseLinear_m(iv, map, scale, dir, shift, ba, riv, mglevel);
             break;
         }
     }
@@ -718,10 +697,9 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
                 
                 double value = fac * L[i-begin[0]] * K[j-begin[1]];
                 if ( mglevel->isBoundary(tmp) ) {
-                    mglevel->applyBoundary(tmp, indices, values, value);
+                    mglevel->applyBoundary(tmp, map, value);
                 } else {
-                    indices.push_back( mglevel->serialize(tmp) );
-                    values.push_back( value );
+                    map[mglevel->serialize(tmp)] += value;
                 }
                     
                 // undo

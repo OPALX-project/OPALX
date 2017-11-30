@@ -15,20 +15,20 @@ public:
     AmrTrilinearInterpolater();
     
     void stencil(const AmrIntVect_t& iv,
-                 typename AmrMultiGridLevel::indices_t& indices,
-                 typename AmrMultiGridLevel::coefficients_t& values,
+                 typename AmrMultiGridLevel::umap_t& map,
+		 const typename AmrMultiGridLevel::scalar_t& scale,
                  AmrMultiGridLevel* mglevel);
     
     void coarse(const AmrIntVect_t& iv,
-                typename AmrMultiGridLevel::indices_t& indices,
-                typename AmrMultiGridLevel::coefficients_t& values,
+                typename AmrMultiGridLevel::umap_t& map,
+                const typename AmrMultiGridLevel::scalar_t& scale,
                 int dir, int shift, const amrex::BoxArray& ba,
                 const AmrIntVect_t& riv,
                 AmrMultiGridLevel* mglevel);
     
     void fine(const AmrIntVect_t& iv,
-              typename AmrMultiGridLevel::indices_t& indices,
-              typename AmrMultiGridLevel::coefficients_t& values,
+              typename AmrMultiGridLevel::umap_t& map,
+              const typename AmrMultiGridLevel::scalar_t& scale,
               int dir, int shift, const amrex::BoxArray& ba,
               AmrMultiGridLevel* mglevel);
 };

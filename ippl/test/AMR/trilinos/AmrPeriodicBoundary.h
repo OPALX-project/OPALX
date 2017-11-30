@@ -15,9 +15,8 @@ public:
     AmrPeriodicBoundary() : AmrBoundary<AmrMultiGridLevel>(1) { }
     
     void apply(const AmrIntVect_t& iv,
-               typename AmrMultiGridLevel::indices_t& indices,
-               typename AmrMultiGridLevel::coefficients_t& values,
-               const double& value,
+               typename AmrMultiGridLevel::umap_t& map,
+               const typename AmrMultiGridLevel::scalar_t& value,
                AmrMultiGridLevel* mglevel,
                const int* nr);
 };
@@ -25,9 +24,8 @@ public:
 
 template <class AmrMultiGridLevel>
 void AmrPeriodicBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
-                                                   typename AmrMultiGridLevel::indices_t& indices,
-                                                   typename AmrMultiGridLevel::coefficients_t& values,
-                                                   const double& value,
+                                                   typename AmrMultiGridLevel::umap_t& map,
+                                                   const typename AmrMultiGridLevel::scalar_t& value,
                                                    AmrMultiGridLevel* mglevel,
                                                    const int* nr)
 {
@@ -37,8 +35,7 @@ void AmrPeriodicBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
         niv[d] = ( iv[d] == -1 ) ? nr[d] - 1 : 0;
     }
     
-    indices.push_back( mglevel->serialize(niv) );
-    values.push_back( value );
+    map[mglevel->serialize(niv)] += value;
 }
 
 #endif
