@@ -31,16 +31,14 @@ public:
     
     /*!
      * @param iv is the cell where we want to have the boundary value
-     * @param indices global matrix indices
-     * @param values matrix entries (coefficients)
-     * @param numEntries in matrix row (increase when adding index)
+     * @param map with indices global matrix indices and matrix values
+     * @param value matrix entry (coefficients)
      * @param value of matrix entry that is supposed for index
      * @param nr is the number of grid points
      */
     virtual void apply(const AmrIntVect_t& iv,
-                       typename AmrMultiGridLevel::indices_t& indices,
-                       typename AmrMultiGridLevel::coefficients_t& values,
-                       const double& value,
+                       typename AmrMultiGridLevel::umap_t& map,
+                       const typename AmrMultiGridLevel::scalar_t& value,
                        AmrMultiGridLevel* mglevel,
                        const int* nr) = 0;
     
