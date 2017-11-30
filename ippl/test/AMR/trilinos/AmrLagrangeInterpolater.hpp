@@ -9,6 +9,52 @@ constexpr typename AmrLagrangeInterpolater<AmrMultiGridLevel>::lpattern_t
     AmrLagrangeInterpolater<AmrMultiGridLevel>::lpattern_ms;
 #endif
 
+//                                                      y_t   y_b
+template <class AmrMultiGridLevel>
+const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
+    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup1_ms[2] = {-0.25, 0.25};
+
+template <class AmrMultiGridLevel>
+const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
+    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup2_ms[2] = {1.25, 0.75};
+
+#if AMREX_SPACEDIM == 3
+template <class AmrMultiGridLevel>
+const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
+    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup3_ms[2] = {5.0 / 32.0, -3.0 / 32.0 };
+
+template <class AmrMultiGridLevel>
+const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
+    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup3r_ms[2] = {-3.0 / 32.0, 5.0 / 32.0 };
+
+template <class AmrMultiGridLevel>
+const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
+    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup4_ms[2] = {7.0 / 16.0, -9.0 / 16.0 };
+
+template <class AmrMultiGridLevel>
+const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
+    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup4r_ms[2] = {-9.0 / 16.0, 7.0 / 16.0 };
+
+template <class AmrMultiGridLevel>
+const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
+    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup5_ms[2] = {45.0 / 32.0, 21.0 / 32.0};
+
+template <class AmrMultiGridLevel>
+const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
+    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup5r_ms[2] = {21.0 / 32.0, 45.0 / 32.0};
+
+template <class AmrMultiGridLevel>
+const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
+    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup6_ms = 15.0 / 16.0;
+
+template <class AmrMultiGridLevel>
+const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
+    AmrLagrangeInterpolater<AmrMultiGridLevel>::factor_ms = 8.0 / 15.0;
+#endif
+
+
+
+
 template <class AmrMultiGridLevel>
 AmrLagrangeInterpolater<AmrMultiGridLevel>::AmrLagrangeInterpolater(Order order)
     : AmrInterpolater<AmrMultiGridLevel>( lo_t(order) + 1 )
@@ -140,21 +186,13 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     
     if ( !ba.contains(niv) ) {
         // check r / u / b --> 1: valid; 0: not valid
-        
-        //                                           y_t    y_b
-        map[mglevel->serialize(iv)] += fac * (top) ? 0.75 : 1.25;
-        
-        //                                            y_t    y_b
-        map[mglevel->serialize(niv)] += fac * (top) ? 0.25 : -0.25;
+        map[mglevel->serialize(iv)] += fac * lookup2[top];
+        map[mglevel->serialize(niv)] += fac * lookup1[top];
         
     } else if ( !ba.contains(miv) ) {
         // check l / f --> 1: valid; 0: not valid
-        
-        //                                           y_t    y_b
-        map[mglevel->serialize(iv)] += fac * (top) ? 0.75 : 1.25;
-        
-        //                                            y_t    y_b
-        map[mglevel->serialize(miv)] += fac * (top) ? 0.25 : -0.25;
+        map[mglevel->serialize(iv)] += fac * lookup2[top];
+        map[mglevel->serialize(miv)] += fac * lookup1[top];
         
     } else
         throw std::runtime_error("Lagrange Error: No valid scenario found!");
@@ -213,16 +251,16 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     }
     
     // factor for fine
-    scalar_t fac = 8.0 / 15.0 * scale;
+    scalar_t fac = factor_ms * scale;
     
     // if pattern is known
     bool known = true;
     
     scalar_t L[2] = {0.0, 0.0};
-    bool top1 = (riv[d1] % 2 == 1);
+    lo_t top1 = riv[d1] % 2;
     
     scalar_t K[2] = {0.0, 0.0};
-    bool top2 = (riv[d2] % 2 == 1);
+    lo_t top2 = riv[d2] % 2;
     
     lo_t begin[2] = { 0, 0 };
     lo_t end[2]   = { 0, 0 };
@@ -231,13 +269,13 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
         case this->lpattern_ms[0]:
         {
             // corner top right pattern
-            L[0] = (top1) ? 0.25 : -0.25;   // L_{-1}
-            L[1] = (top1) ? 0.75 : 1.25;    // L_{0}
+            L[0] = lookup1_ms[top1]; // L_{-1}
+            L[1] = lookup2_ms[top1]; // L_{0}
             begin[0] = -1;
             end[0]   =  0;
             
-            K[0] = (top2) ? 0.25 : -0.25;   // K_{-1}
-            K[1] = (top2) ? 0.75 : 1.25;    // K_{0}
+            K[0] = lookup1_ms[top2]; // K_{-1}
+            K[1] = lookup2_ms[top2]; // K_{0}
             begin[1] = -1;
             end[1]   =  0;
             break;
@@ -245,13 +283,13 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
         case this->lpattern_ms[1]:
         {
             // corner bottom right pattern
-            L[0] = (top1) ? 0.75 : 1.25;    // L_{0}
-            L[1] = (top1) ? 0.25 : -0.25;   // L_{1}
+            L[0] = lookup2_ms[top1]; // L_{0}
+            L[1] = lookup1_ms[top1]; // L_{1}
             begin[0] = 0;
             end[0]   = 1;
             
-            K[0] = (top2) ? 0.25 : -0.25;   // K_{-1}
-            K[1] = (top2) ? 0.75 : 1.25;    // K_{0}
+            K[0] = lookup1_ms[top2]; // K_{-1}
+            K[1] = lookup2_ms[top2]; // K_{0}
             begin[1] = -1;
             end[1]   =  0;
             break;
@@ -259,13 +297,13 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
         case this->lpattern_ms[2]:
         {
             // corner bottom left pattern
-            L[0] = (top1) ? 0.75 : 1.25;    // L_{0}
-            L[1] = (top1) ? 0.25 : -0.25;   // L_{1}
+	    L[0] = lookup2_ms[top1]; // L_{0}
+            L[1] = lookup1_ms[top1]; // L_{1}
             begin[0] = 0;
             end[0]   = 1;
             
-            K[0] = (top2) ? 0.75 : 1.25;    // K_{0}
-            K[1] = (top2) ? 0.25 : -0.25;   // K_{1}
+            K[0] = lookup2_ms[top2]; // K_{0}
+            K[1] = lookup1_ms[top2]; // K_{1}
             begin[1] = 0;
             end[1]   = 1;
             break;
@@ -273,13 +311,13 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
         case this->lpattern_ms[3]:
         {
             // corner top left pattern
-            L[0] = (top1) ? 0.25 : -0.25;   // L_{-1}
-            L[1] = (top1) ? 0.75 : 1.25;    // L_{0}
+            L[0] = lookup1_ms[top1]; // L_{-1}
+            L[1] = lookup2_ms[top1]; // L_{0}
             begin[0] = -1;
             end[0]   =  0;
             
-            K[0] = (top2) ? 0.75 : 1.25;    // K_{0}
-            K[1] = (top2) ? 0.25 : -0.25;   // K_{1}
+            K[0] = lookup2_ms[top2]; // K_{0}
+            K[1] = lookup1_ms[top2]; // K_{1}
             begin[1] = 0;
             end[1]   = 1;
             break;
@@ -515,16 +553,16 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     }
     
     // factor for fine
-    scalar_t fac = 8.0 / 15.0 * scale;
+    scalar_t fac = factor_ms * scale;
     
     // if pattern is known
     bool known = true;
     
     scalar_t L[3] = {0.0, 0.0, 0.0};
-    bool top1 = (riv[d1] % 2 == 1);
+    lo_t top1 = riv[d1] % 2;
     
     scalar_t K[3] = {0.0, 0.0, 0.0};
-    bool top2 = (riv[d2] % 2 == 1);
+    lo_t top2 = riv[d2] % 2;
     
     lo_t begin[2] = { 0, 0 };
     lo_t end[2]   = { 0, 0 };
@@ -533,15 +571,15 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         case this->qpattern_ms[0]:
         {
             // cross pattern
-            L[0] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{-1}
-            L[1] = 15.0 / 16.0;                         // L_{0}
-            L[2] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{1}
+            L[0] = lookup3_ms[top1];  // L_{-1}
+            L[1] = lookup6_ms;        // L_{0}
+            L[2] = lookup3r_ms[top1]; // L_{1}
             begin[0] = -1;
             end[0]   =  1;
             
-            K[0] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{-1}
-            K[1] = 15.0 / 16.0;                         // K_{0}
-            K[2] = (top2) ? 5.0 / 32.0 : -3.0 / 32.0;   // K_{1}
+            K[0] = lookup3_ms[top2];  // K_{-1}
+            K[1] = lookup6_ms;        // K_{0}
+            K[2] = lookup3r_ms[top2]; // K_{1}
             begin[1] = -1;
             end[1]   =  1;
             break;
@@ -549,15 +587,15 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         case this->qpattern_ms[1]:
         {
             // T pattern
-            L[0] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{-2}
-            L[1] = (top1) ? -9.0 / 16.0 : 7.0 / 16.0;   // L_{-1}
-            L[2] = (top1) ? 45.0 / 32.0 : 21.0 / 32.0;  // L_{0}
+            L[0] = lookup3r_ms[top1]; // L_{-2}
+            L[1] = lookup4_ms[top1];  // L_{-1}
+            L[2] = lookup5r_ms[top1]; // L_{0}
             begin[0] = -2;
             end[0]   =  0;
             
-            K[0] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{-1}
-            K[1] = 15.0 / 16.0;                         // K_{0}
-            K[2] = (top2) ? 5.0 / 32.0 : -3.0 / 32.0;   // K_{1}
+            K[0] = lookup3_ms[top2];  // K_{-1}
+            K[1] = lookup6_ms;        // K_{0}
+            K[2] = lookup3r_ms[top2]; // K_{1}
             begin[1] = -1;
             end[1]   =  1;
             break;
@@ -565,15 +603,15 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         case this->qpattern_ms[2]:
         {
             // right hammer pattern
-            L[0] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{-1}
-            L[1] = 15.0 / 16.0;                         // L_{0}
-            L[2] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{1}
+            L[0] = lookup3_ms[top1];  // L_{-1}
+            L[1] = lookup6_ms;        // L_{0}
+            L[2] = lookup3r_ms[top1]; // L_{1}
             begin[0] = -1;
             end[0] = 1;
             
-            K[0] = (top2) ? 5.0 / 32.0 : -3.0 / 32.0;  // K_{-2}
-            K[1] = (top2) ? -9.0 / 16.0 : 7.0 / 16.0;   // K_{-1}
-            K[2] = (top2) ? 45.0 / 32.0 : 21.0 / 32.0;   // K_{0}
+            K[0] = lookup3r_ms[top2]; // K_{-2}
+            K[1] = lookup4_ms[top2];  // K_{-1}
+            K[2] = lookup5r_ms[top2]; // K_{0}
             begin[1] = -2;
             end[1]   = 0;
             break;
@@ -581,15 +619,15 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         case this->qpattern_ms[3]:
         {
             // T on head pattern
-            L[0] = (top1) ? 21.0 / 32.0 : 45.0 / 32.0;  // L_{0}
-            L[1] = (top1) ? 7.0 / 16.0 : -9.0 / 16.0;   // L_{1}
-            L[2] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{2}
+            L[0] = lookup5_ms[top1];  // L_{0}
+            L[1] = lookup4r_ms[top1]; // L_{1}
+            L[2] = lookup3_ms[top1];  // L_{2}
             begin[0] = 0;
             end[0]   = 2;
             
-            K[0] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{-1}
-            K[1] = 15.0 / 16.0;                         // K_{0}
-            K[2] = (top2) ? 5.0 / 32.0 : -3.0 / 32.0;   // K_{1}
+            K[0] = lookup3_ms[top2];  // K_{-1}
+            K[1] = lookup6_ms;        // K_{0}
+            K[2] = lookup3r_ms[top2]; // K_{1}
             begin[1] = -1;
             end[1]   =  1;
             break;
@@ -597,15 +635,15 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         case this->qpattern_ms[4]:
         {
             // left hammer pattern
-            L[0] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{-1}
-            L[1] = 15.0 / 16.0;                         // L_{0}
-            L[2] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{1}
+            L[0] = lookup3_ms[top1];  // L_{-1}
+            L[1] = lookup6_ms;        // L_{0}
+            L[2] = lookup3r_ms[top1]; // L_{1}
             begin[0] = -1;
             end[0] = 1;
             
-            K[0] = (top2) ? 21.0 / 32.0 : 45.0 / 32.0;  // K_{0}
-            K[1] = (top2) ? 7.0 / 16.0 : -9.0 / 16.0;   // K_{1}
-            K[2] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{2}
+            K[0] = lookup5_ms[top2];  // K_{0}
+            K[1] = lookup4r_ms[top2]; // K_{1}
+            K[2] = lookup3_ms[top2];  // K_{2}
             begin[1] = 0;
             end[1]   = 2;
             break;
@@ -613,15 +651,15 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         case this->qpattern_ms[5]:
         {
             // upper left corner pattern
-            L[0] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{-2}
-            L[1] = (top1) ? -9.0 / 16.0 : 7.0 / 16.0;   // L_{-1}
-            L[2] = (top1) ? 45.0 / 32.0 : 21.0 / 32.0;  // L_{0}
+            L[0] = lookup3r_ms[top1]; // L_{-2}
+            L[1] = lookup4_ms[top1];  // L_{-1}
+            L[2] = lookup5r_ms[top1]; // L_{0}
             begin[0] = -2;
             end[0]   =  0;
             
-            K[0] = (top2) ? 21.0 / 32.0 : 45.0 / 32.0;  // K_{0}
-            K[1] = (top2) ? 7.0 / 16.0 : -9.0 / 16.0;   // K_{1}
-            K[2] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{2}
+            K[0] = lookup5_ms[top2];  // K_{0}
+            K[1] = lookup4r_ms[top2]; // K_{1}
+            K[2] = lookup3_ms[top2];  // K_{2}
             begin[1] = 0;
             end[1]   = 2;
             break;
@@ -629,15 +667,15 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         case this->qpattern_ms[6]:
         {
             // upper right corner pattern
-            L[0] = (top1) ? 5.0 / 32.0 : -3.0 / 32.0;   // L_{-2}
-            L[1] = (top1) ? -9.0 / 16.0 : 7.0 / 16.0;   // L_{-1}
-            L[2] = (top1) ? 45.0 / 32.0 : 21.0 / 32.0;  // L_{0}
+            L[0] = lookup3r_ms[top1]; // L_{-2}
+            L[1] = lookup4_ms[top1];  // L_{-1}
+            L[2] = lookup5r_ms[top1]; // L_{0}
             begin[0] = -2;
             end[0]   =  0;
             
-            K[0] = (top2) ? 5.0 / 32.0 : -3.0 / 32.0;  // K_{-2}
-            K[1] = (top2) ? -9.0 / 16.0 : 7.0 / 16.0;   // K_{-1}
-            K[2] = (top2) ? 45.0 / 32.0 : 21.0 / 32.0;   // K_{0}
+            K[0] = lookup3r_ms[top2]; // K_{-2}
+            K[1] = lookup4_ms[top2];  // K_{-1}
+            K[2] = lookup5r_ms[top2]; // K_{0}
             begin[1] = -2;
             end[1]   =  0;
             break;
@@ -645,15 +683,15 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         case this->qpattern_ms[7]:
         {
             // mirrored L pattern
-            L[0] = (top1) ? 21.0 / 32.0 : 45.0 / 32.0;  // L_{0}
-            L[1] = (top1) ? 7.0 / 16.0 : -9.0 / 16.0;   // L_{1}
-            L[2] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{2}
+            L[0] = lookup5_ms[top1];  // L_{0}
+            L[1] = lookup4r_ms[top1]; // L_{1}
+            L[2] = lookup3_ms[top1];  // L_{2}
             begin[0] = 0;
             end[0]   = 2;
             
-            K[0] = (top2) ? 5.0 / 32.0 : -3.0 / 32.0;  // K_{-2}
-            K[1] = (top2) ? -9.0 / 16.0 : 7.0 / 16.0;   // K_{-1}
-            K[2] = (top2) ? 45.0 / 32.0 : 21.0 / 32.0;   // K_{0}
+            K[0] = lookup3r_ms[top2]; // K_{-2}
+            K[1] = lookup4_ms[top2];  // K_{-1}
+            K[2] = lookup5r_ms[top2]; // K_{0}
             begin[1] = -2;
             end[1]   =  0;
             break;
@@ -661,15 +699,15 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         case this->qpattern_ms[8]:
         {
             // L pattern
-            L[0] = (top1) ? 21.0 / 32.0 : 45.0 / 32.0;  // L_{0}
-            L[1] = (top1) ? 7.0 / 16.0 : -9.0 / 16.0;   // L_{1}
-            L[2] = (top1) ? -3.0 / 32.0 : 5.0 / 32.0;   // L_{2}
+            L[0] = lookup5_ms[top1];  // L_{0}
+            L[1] = lookup4r_ms[top1]; // L_{1}
+            L[2] = lookup3_ms[top1];  // L_{2}
             begin[0] = 0;
             end[0]   = 2;
             
-            K[0] = (top2) ? 21.0 / 32.0 : 45.0 / 32.0;  // K_{0}
-            K[1] = (top2) ? 7.0 / 16.0 : -9.0 / 16.0;   // K_{1}
-            K[2] = (top2) ? -3.0 / 32.0 : 5.0 / 32.0;   // K_{2}
+            K[0] = lookup5_ms[top2];  // K_{0}
+            K[1] = lookup4r_ms[top2]; // K_{1}
+            K[2] = lookup3_ms[top2];  // K_{2}
             begin[1] = 0;
             end[1]   = 2;
             break;

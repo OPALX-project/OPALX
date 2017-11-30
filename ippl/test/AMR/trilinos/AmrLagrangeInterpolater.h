@@ -144,8 +144,8 @@ private:
                          const AmrIntVect_t& riv,
                          AmrMultiGridLevel* mglevel);
     
-#if AMREX_SPACEDIM == 3
 private:
+#if AMREX_SPACEDIM == 3
     static constexpr qpattern_t qpattern_ms {
         473536,                             ///< cross pattern
         14798,                              ///< T pattern
@@ -164,6 +164,20 @@ private:
         432,                                ///< corner bottom left pattern
         54                                  ///< corner top left pattern
     };
+#endif
+
+    // y_b   y_t
+    static const scalar_t lookup1_ms[2];
+    static const scalar_t lookup2_ms[2];
+#if AMREX_SPACEDIM == 3
+    static const scalar_t lookup3_ms[2];
+    static const scalar_t lookup3r_ms[2];
+    static const scalar_t lookup4_ms[2];
+    static const scalar_t lookup4r_ms[2];
+    static const scalar_t lookup5_ms[2];
+    static const scalar_t lookup5r_ms[2];
+    static const scalar_t lookup6_ms;
+    static const scalar_t factor_ms;
 #endif
 };
 
