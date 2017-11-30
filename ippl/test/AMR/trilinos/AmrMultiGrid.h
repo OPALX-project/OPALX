@@ -302,14 +302,10 @@ private:
      * @param iv is the current cell
      * @param crse_fine_ba all coarse cells that got refined
      * @param mfab is the mask (internal cell, boundary cell, ...) of that level
-     * @param ii fine cell in x
-     * @param jj fine cell in y
-     * @param kk fine cell in z
      * @param level for which to build restriction matrix
      */
     void buildRestrictionMatrix_m(const AmrIntVect_t& iv,
                                   const boxarray_t& crse_fine_ba,
-                                  D_DECL(int& ii, int& jj, int& kk),
                                   int level);
     
     /*!
@@ -520,7 +516,14 @@ private:
     IpplTimings::TimerRef residnofineTimer_m;   ///< timer for no-fine residual computation
     IpplTimings::TimerRef bottomTimer_m;        ///< bottom solver timer
 #endif
-    
+
+    IpplTimings::TimerRef bRestict_m;
+    IpplTimings::TimerRef bInterp_m;
+    IpplTimings::TimerRef bCompo_m;
+    IpplTimings::TimerRef bPoiss_m;
+    IpplTimings::TimerRef bBf_m;
+    IpplTimings::TimerRef bBc_m;
+    IpplTimings::TimerRef bG_m;
 };
 
 #endif
