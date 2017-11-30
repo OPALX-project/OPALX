@@ -76,9 +76,9 @@ public:
             buckets[bucket_id] = i;
         }
 
-        for (int i=0; i< Nbucket; ++i) {
+        for (std::size_t i=0; i< Nbucket; ++i) {
             //dmsg << "Bucket " << i << " stores particles " << endl;
-            int j = buckets[i];
+		std::size_t j = buckets[i];
             while (j!= END) {
                 //dmsg << j << " :: " << particles.R[j] << endl;
                 j = next[j];
@@ -92,7 +92,7 @@ public:
                     //dmsg << "bx = " << bx << "by = " << by << " bz = " << bz <<endl;
                     unsigned bucket_id_self = bz*buckets_per_dim[1]*buckets_per_dim[0]+by*buckets_per_dim[0]+bx;
                     //compute index of neighboring cell to interact with
-                    for (unsigned n=0; n<neigh;++n){
+                    for (int n=0; n<neigh;++n){
                         unsigned bx_neigh = bx+offset[n][0];
                         unsigned by_neigh = by+offset[n][1];
                         unsigned bz_neigh = bz+offset[n][2];
