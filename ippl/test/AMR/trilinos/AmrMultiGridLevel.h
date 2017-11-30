@@ -41,8 +41,6 @@ public:
     typedef std::vector<scalar_t>              coefficients_t;
     typedef std::unordered_map<lo_t, scalar_t> umap_t;
     
-    typedef Vektor<double, 3> Vector_t;
-    
     // covered   : ghost cells covered by valid cells of this FabArray
     //             (including periodically shifted valid cells)
     // notcovered: ghost cells not covered by valid cells

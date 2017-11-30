@@ -17,13 +17,14 @@
 class AmrMultiGrid {
     
 public:
-    typedef amr::matrix_t        matrix_t;
-    typedef amr::vector_t        vector_t;
-    typedef amr::multivector_t   mv_t;
-    typedef amr::dmap_t          dmap_t;
-    typedef amr::comm_t          comm_t;
-    typedef amr::local_ordinal_t lo_t;
-    typedef amr::scalar_t        scalar_t;
+    typedef amr::matrix_t         matrix_t;
+    typedef amr::vector_t         vector_t;
+    typedef amr::multivector_t    mv_t;
+    typedef amr::dmap_t           dmap_t;
+    typedef amr::comm_t           comm_t;
+    typedef amr::local_ordinal_t  lo_t;
+    typedef amr::global_ordinal_t go_t;
+    typedef amr::scalar_t         scalar_t;
     
     typedef AmrMultiGridLevel<matrix_t, vector_t> AmrMultiGridLevel_t;
     
@@ -42,7 +43,7 @@ public:
     typedef amrex::FArrayBox farraybox_t;
     
     typedef std::map<AmrIntVect_t,
-                     std::list<std::pair<int, int> >
+                     std::list<std::pair<go_t, go_t> >
                      > map_t;
     
     typedef AmrSmoother::Smoother Smoother;
@@ -220,21 +221,21 @@ private:
      * @returns the maximum norm over all levels using the norm specified
      * by the user
      */
-    double residualNorm_m();
+    scalar_t residualNorm_m();
     
     /*!
      * Vector norm computation.
      * @param x is the vector for which we compute the norm
      * @returns the evaluated norm of a level
      */
-    double evalNorm_m(const Teuchos::RCP<const vector_t>& x);
+    scalar_t evalNorm_m(const Teuchos::RCP<const vector_t>& x);
     
     /*!
      * Initial convergence criteria values.
      * @param maxResidual maximum norm of residual over all levels
      * @param maxRho maximum norm of right-hand side over all levels
      */
-    void initResidual_m(double& maxResidual, double& maxRho);
+    void initResidual_m(scalar_t& maxResidual, scalar_t& maxRho);
     
     /*!
      * @param efield to compute

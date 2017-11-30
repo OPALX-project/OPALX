@@ -7,10 +7,15 @@
 
 template <class AmrMultiGridLevel>
 class AmrBoundary {
+
+public:
+    typedef typename AmrMultiGridLevel::umap_t umap_t;
+    typedef typename AmrMultiGridLevel::lo_t lo_t;
+    typedef typename AmrMultiGridLevel::scalar_t scalar_t;
     
 public:
-    
-    AmrBoundary(int nPoints) : nPoints_m(nPoints) { };
+
+    AmrBoundary(lo_t nPoints) : nPoints_m(nPoints) { };
     
     
     /*!
@@ -18,7 +23,7 @@ public:
      * @param iv cell to check
      * @param nr is the number of grid points
      */
-    bool isBoundary(const AmrIntVect_t& iv, const int* nr) const {
+    bool isBoundary(const AmrIntVect_t& iv, const lo_t* nr) const {
 #if AMREX_SPACEDIM == 3
     return ( iv[0] < 0 || iv[0] >= nr[0] ||
              iv[1] < 0 || iv[1] >= nr[1] ||
@@ -37,18 +42,18 @@ public:
      * @param nr is the number of grid points
      */
     virtual void apply(const AmrIntVect_t& iv,
-                       typename AmrMultiGridLevel::umap_t& map,
-                       const typename AmrMultiGridLevel::scalar_t& value,
+                       umap_t& map,
+                       const scalar_t& value,
                        AmrMultiGridLevel* mglevel,
-                       const int* nr) = 0;
+                       const lo_t* nr) = 0;
     
     
-    const int& getNumberOfPoints() const {
+    const lo_t& getNumberOfPoints() const {
         return nPoints_m;
     }
     
 private:
-    const int nPoints_m;    ///< Number of points used for boundary
+    const lo_t nPoints_m;    ///< Number of points used for boundary
 };
 
 #endif
