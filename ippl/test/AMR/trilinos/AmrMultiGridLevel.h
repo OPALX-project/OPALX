@@ -9,6 +9,8 @@
 
 #include "AmrMultiGridCore.h"
 
+#include <unordered_map>
+
 template <class MatrixType, class VectorType>
 class AmrMultiGridLevel {
     
@@ -32,9 +34,12 @@ public:
     typedef amr::dmap_t dmap_t;
     typedef amr::node_t node_t;
     typedef amr::global_ordinal_t global_ordinal_t;
-    
-    typedef std::vector<int>        indices_t;
-    typedef std::vector<double>     coefficients_t;
+    typedef amr::scalar_t scalar_t;
+    typedef amr::local_ordinal_t lo_t;
+
+    typedef std::vector<lo_t>                  indices_t;
+    typedef std::vector<scalar_t>              coefficients_t;
+    typedef std::unordered_map<lo_t, scalar_t> umap_t;
     
     typedef Vektor<double, 3> Vector_t;
     
@@ -67,9 +72,8 @@ public:
     bool isBoundary(const AmrIntVect_t& iv) const;
     
     void applyBoundary(const AmrIntVect_t& iv,
-                       indices_t& indices,
-                       coefficients_t& values,
-                       const double& value);
+                       umap_t& map,
+                       const scalar_t& value);
     
     const AmrIntVect_t& refinement() const;
     

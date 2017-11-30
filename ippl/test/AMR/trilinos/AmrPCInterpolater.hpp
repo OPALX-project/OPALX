@@ -7,21 +7,19 @@ AmrPCInterpolater<AmrMultiGridLevel>::AmrPCInterpolater()
 template <class AmrMultiGridLevel>
 void AmrPCInterpolater<AmrMultiGridLevel>::stencil(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::indices_t& indices,
-    typename AmrMultiGridLevel::coefficients_t& values,
+    typename AmrMultiGridLevel::umap_t& map,
+    const typename AmrMultiGridLevel::scalar_t& scale,
     AmrMultiGridLevel* mglevel)
 {
     AmrIntVect_t civ = iv;
     civ.coarsen(mglevel->refinement());
 
     int crse_gidx = mglevel->serialize(civ);
-    double value = 1.0;
     
     if ( mglevel->isBoundary(civ) ) {
-        mglevel->applyBoundary(civ, indices, values, value);
+        mglevel->applyBoundary(civ, map, scale);
     } else {
-        indices.push_back( crse_gidx );
-        values.push_back( value );
+        map[crse_gidx] += scale;
     }
 }
 
@@ -29,8 +27,8 @@ void AmrPCInterpolater<AmrMultiGridLevel>::stencil(
 template <class AmrMultiGridLevel>
 void AmrPCInterpolater<AmrMultiGridLevel>::coarse(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::indices_t& indices,
-    typename AmrMultiGridLevel::coefficients_t& values,
+    typename AmrMultiGridLevel::umap_t& map,
+    const typename AmrMultiGridLevel::scalar_t& scale,
     int dir, int shift, const amrex::BoxArray& ba,
     const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
@@ -42,8 +40,8 @@ void AmrPCInterpolater<AmrMultiGridLevel>::coarse(
 template <class AmrMultiGridLevel>
 void AmrPCInterpolater<AmrMultiGridLevel>::fine(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::indices_t& indices,
-    typename AmrMultiGridLevel::coefficients_t& values,
+    typename AmrMultiGridLevel::umap_t& map,
+    const typename AmrMultiGridLevel::scalar_t& scale,
     int dir, int shift, const amrex::BoxArray& ba,
     AmrMultiGridLevel* mglevel)
 {
@@ -51,5 +49,5 @@ void AmrPCInterpolater<AmrMultiGridLevel>::fine(
      * The AmrPCInterpolater interpolates directly to the
      * fine ghost cell.
      */
-    this->stencil(iv, indices, values, mglevel);
+    this->stencil(iv, map, scale, mglevel);
 }

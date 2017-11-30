@@ -17,22 +17,25 @@
 class AmrMultiGrid {
     
 public:
-    typedef amr::matrix_t       matrix_t;
-    typedef amr::vector_t       vector_t;
-    typedef amr::multivector_t  mv_t;
-    typedef amr::dmap_t         dmap_t;
-    typedef amr::comm_t         comm_t;
+    typedef amr::matrix_t        matrix_t;
+    typedef amr::vector_t        vector_t;
+    typedef amr::multivector_t   mv_t;
+    typedef amr::dmap_t          dmap_t;
+    typedef amr::comm_t          comm_t;
+    typedef amr::local_ordinal_t lo_t;
+    typedef amr::scalar_t        scalar_t;
     
     typedef AmrMultiGridLevel<matrix_t, vector_t> AmrMultiGridLevel_t;
     
-    typedef AmrMultiGridLevel_t::AmrField_t AmrField_t;
-    typedef AmrMultiGridLevel_t::AmrGeometry_t AmrGeometry_t;
-    typedef AmrMultiGridLevel_t::AmrField_u AmrField_u;
-    typedef AmrMultiGridLevel_t::AmrField_s AmrField_s;
-    typedef AmrMultiGridLevel_t::AmrIntVect_t AmrIntVect_t;
-    typedef AmrMultiGridLevel_t::indices_t indices_t;
+    typedef AmrMultiGridLevel_t::AmrField_t     AmrField_t;
+    typedef AmrMultiGridLevel_t::AmrGeometry_t  AmrGeometry_t;
+    typedef AmrMultiGridLevel_t::AmrField_u     AmrField_u;
+    typedef AmrMultiGridLevel_t::AmrField_s     AmrField_s;
+    typedef AmrMultiGridLevel_t::AmrIntVect_t   AmrIntVect_t;
+    typedef AmrMultiGridLevel_t::indices_t      indices_t;
     typedef AmrMultiGridLevel_t::coefficients_t coefficients_t;
-    
+    typedef AmrMultiGridLevel_t::umap_t         umap_t;
+
     typedef amrex::BoxArray boxarray_t;
     typedef amrex::Box box_t;
     typedef amrex::BaseFab<int> basefab_t;
@@ -419,13 +422,14 @@ private:
     void trilinos2amrex_m(AmrField_t& mf, int comp, const Teuchos::RCP<vector_t>& mv);
     
     /*!
-     * Some indices might occur several times due to boundary conditions, etc.
-     * This function removes all duplicates and sums the coefficients up.
+     * Some indices might occur several times due to boundary conditions, etc. We
+     * avoid this by filling a map and then copying the data to a vector for filling
+     * the matrices. The map gets cleared inside the function.
      * @param indices in matrix
      * @param values are the coefficients
      */
-    void unique_m(indices_t& indices,
-                  coefficients_t& values);
+    void map2vector_m(umap_t& map, indices_t& indices,
+		      coefficients_t& values);
     
     /*!
      * Perfrom one smoothing step
