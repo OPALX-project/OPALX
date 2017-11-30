@@ -14,6 +14,11 @@ class AmrLagrangeInterpolater : public AmrInterpolater<AmrMultiGridLevel>
 {
 public:
     
+    typedef typename AmrMultiGridLevel::global_ordinal_t go_t;
+    typedef typename AmrMultiGridLevel::lo_t lo_t;
+    typedef typename AmrMultiGridLevel::scalar_t scalar_t;
+    typedef typename AmrMultiGridLevel::umap_t umap_t;
+
     enum Order {
         LINEAR = 1,
         QUADRATIC
@@ -31,21 +36,21 @@ public:
     AmrLagrangeInterpolater(Order order);
     
     void stencil(const AmrIntVect_t& iv,
-                 typename AmrMultiGridLevel::umap_t& map,
-                 const typename AmrMultiGridLevel::scalar_t& scale,
+                 umap_t& map,
+                 const scalar_t& scale,
                  AmrMultiGridLevel* mglevel);
     
     void coarse(const AmrIntVect_t& iv,
-                typename AmrMultiGridLevel::umap_t& map,
-                const typename AmrMultiGridLevel::scalar_t& scale,
-                int dir, int shift, const amrex::BoxArray& ba,
+                umap_t& map,
+                const scalar_t& scale,
+                lo_t dir, lo_t shift, const amrex::BoxArray& ba,
                 const AmrIntVect_t& riv,
                 AmrMultiGridLevel* mglevel);
     
     void fine(const AmrIntVect_t& iv,
-              typename AmrMultiGridLevel::umap_t& map,
-	      const typename AmrMultiGridLevel::scalar_t& scale,
-              int dir, int shift, const amrex::BoxArray& ba,
+              umap_t& map,
+	      const scalar_t& scale,
+              lo_t dir, lo_t shift, const amrex::BoxArray& ba,
               AmrMultiGridLevel* mglevel);
     
 private:
@@ -67,9 +72,9 @@ private:
      * and boundary avlues at physical domain, e.g. Dirichlet, open BC
      */
     void fineLinear_m(const AmrIntVect_t& iv,
-		      typename AmrMultiGridLevel::umap_t& map,
-		      const typename AmrMultiGridLevel::scalar_t& scale,
-		      int dir, int shift, const amrex::BoxArray& ba,
+		      umap_t& map,
+		      const scalar_t& scale,
+		      lo_t dir, lo_t shift, const amrex::BoxArray& ba,
 		      AmrMultiGridLevel* mglevel);
     
     /*!
@@ -89,9 +94,9 @@ private:
      * and boundary avlues at physical domain, e.g. Dirichlet, open BC
      */
     void fineQuadratic_m(const AmrIntVect_t& iv,
-			 typename AmrMultiGridLevel::umap_t& map,
-			 const typename AmrMultiGridLevel::scalar_t& scale,
-			 int dir, int shift, const amrex::BoxArray& ba,
+			 umap_t& map,
+			 const scalar_t& scale,
+			 lo_t dir, lo_t shift, const amrex::BoxArray& ba,
 			 AmrMultiGridLevel* mglevel);
     
     /*!
@@ -110,9 +115,9 @@ private:
      * and boundary values at physical domain, e.g. Dirichlet, open BC
      */
     void crseLinear_m(const AmrIntVect_t& iv,
-                      typename AmrMultiGridLevel::umap_t& map,
-		      const typename AmrMultiGridLevel::scalar_t& scale,
-                      int dir, int shift, const amrex::BoxArray& ba,
+                      umap_t& map,
+		      const scalar_t& scale,
+                      lo_t dir, lo_t shift, const amrex::BoxArray& ba,
                       const AmrIntVect_t& riv,
                       AmrMultiGridLevel* mglevel);
     
@@ -133,9 +138,9 @@ private:
      * and boundary values at physical domain, e.g. Dirichlet, open BC
      */
     void crseQuadratic_m(const AmrIntVect_t& iv,
-                         typename AmrMultiGridLevel::umap_t& map,
-                         const typename AmrMultiGridLevel::scalar_t& scale,
-                         int dir, int shift, const amrex::BoxArray& ba,
+                         umap_t& map,
+                         const scalar_t& scale,
+                         lo_t dir, lo_t shift, const amrex::BoxArray& ba,
                          const AmrIntVect_t& riv,
                          AmrMultiGridLevel* mglevel);
     
