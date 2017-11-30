@@ -6,18 +6,24 @@
 ///< Abstract base class for all coarse to fine cell interpolaters
 template <class AmrMultiGridLevel>
 class AmrInterpolater {
+
+public:
+    typedef typename AmrMultiGridLevel::global_ordinal_t go_t;
+    typedef typename AmrMultiGridLevel::lo_t lo_t;
+    typedef typename AmrMultiGridLevel::scalar_t scalar_t;
+    typedef typename AmrMultiGridLevel::umap_t umap_t;
     
 public:
     
     /*!
      * @param nPoints is the number of interpolation points used
      */
-    AmrInterpolater(int nPoints) : nPoints_m(nPoints) { }
+    AmrInterpolater(lo_t nPoints) : nPoints_m(nPoints) { }
     
     /*!
      * Number of cell points used for interpolation.
      */
-    const int& getNumberOfPoints() const {
+    const lo_t& getNumberOfPoints() const {
         return nPoints_m;
     }
     
@@ -31,8 +37,8 @@ public:
      * and boundary values at physical domain, e.g. Dirichlet, open BC
      */
     virtual void stencil(const AmrIntVect_t& iv,
-                         typename AmrMultiGridLevel::umap_t& map,
-			 const typename AmrMultiGridLevel::scalar_t& scale,
+                         umap_t& map,
+			 const scalar_t& scale,
                          AmrMultiGridLevel* mglevel) = 0;
     
     /*!
@@ -52,9 +58,9 @@ public:
      * and boundary values at physical domain, e.g. Dirichlet, open BC
      */
     virtual void coarse(const AmrIntVect_t& iv,
-                        typename AmrMultiGridLevel::umap_t& map,
-			const typename AmrMultiGridLevel::scalar_t& scale,
-                        int dir, int shift, const amrex::BoxArray& ba,
+                        umap_t& map,
+			const scalar_t& scale,
+                        lo_t dir, lo_t shift, const amrex::BoxArray& ba,
                         const AmrIntVect_t& riv,
                         AmrMultiGridLevel* mglevel) = 0;
     
@@ -75,13 +81,13 @@ public:
      * and boundary avlues at physical domain, e.g. Dirichlet, open BC
      */
     virtual void fine(const AmrIntVect_t& iv,
-                      typename AmrMultiGridLevel::umap_t& map,
-                      const typename AmrMultiGridLevel::scalar_t& scale,
-                      int dir, int shift, const amrex::BoxArray& ba,
+                      umap_t& map,
+                      const scalar_t& scale,
+                      lo_t dir, lo_t shift, const amrex::BoxArray& ba,
                       AmrMultiGridLevel* mglevel) = 0;
     
 protected:
-    const int nPoints_m;    ///< Number of points used for interpolation
+    const lo_t nPoints_m;    ///< Number of points used for interpolation
 };
 
 #endif

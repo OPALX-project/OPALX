@@ -132,11 +132,11 @@ void AmrMultiGrid::initGuess_m(amrex::Array<AmrField_u>& phi, bool previous) {
 
 void AmrMultiGrid::iterate_m() {
     
-    double eps = 1.0e-8;
+    scalar_t eps = 1.0e-8;
     
     // initial error
-    double max_residual = 0.0;
-    double max_rho = 0.0;
+    scalar_t max_residual = 0.0;
+    scalar_t max_rho = 0.0;
     
     this->initResidual_m(max_residual, max_rho);
     
@@ -335,8 +335,8 @@ void AmrMultiGrid::residual_no_fine_m(Teuchos::RCP<vector_t>& result,
 #endif
 }
 
-double AmrMultiGrid::residualNorm_m() {
-    double err = 0.0;
+typename AmrMultiGrid::scalar_t AmrMultiGrid::residualNorm_m() {
+    scalar_t err = 0.0;
     
 #if AMR_MG_WRITE
     std::ofstream out;
@@ -346,7 +346,7 @@ double AmrMultiGrid::residualNorm_m() {
     
     
     for (int lev = 0; lev < nlevel_m; ++lev) {
-        double tmp = evalNorm_m(mglevel_m[lev]->residual_p);
+        scalar_t tmp = evalNorm_m(mglevel_m[lev]->residual_p);
         err = std::max(err, tmp);
         
 #if AMR_MG_WRITE
@@ -367,8 +367,10 @@ double AmrMultiGrid::residualNorm_m() {
 }
 
 
-double AmrMultiGrid::evalNorm_m(const Teuchos::RCP<const vector_t>& x) {
-    double norm = 0.0;
+typename AmrMultiGrid::scalar_t
+AmrMultiGrid::evalNorm_m(const Teuchos::RCP<const vector_t>& x)
+{
+    scalar_t norm = 0.0;
     
     switch ( norm_m ) {
         case Norm::L1:
@@ -393,7 +395,7 @@ double AmrMultiGrid::evalNorm_m(const Teuchos::RCP<const vector_t>& x) {
 }
 
 
-void AmrMultiGrid::initResidual_m(double& maxResidual, double& maxRho) {
+void AmrMultiGrid::initResidual_m(scalar_t& maxResidual, scalar_t& maxRho) {
 #if AMR_MG_WRITE
     std::ofstream out;
     
@@ -413,7 +415,7 @@ void AmrMultiGrid::initResidual_m(double& maxResidual, double& maxRho) {
                          mglevel_m[lev]->rho_p,
                          mglevel_m[lev]->phi_p, lev);
         
-        double tmp = evalNorm_m(mglevel_m[lev]->residual_p);
+        scalar_t tmp = evalNorm_m(mglevel_m[lev]->residual_p);
         maxResidual = std::max(maxResidual, tmp);
         
 #if AMR_MG_WRITE
@@ -737,9 +739,9 @@ void AmrMultiGrid::buildNoFinePoissonMatrix_m(const AmrIntVect_t& iv,
     indices_t indices;
     coefficients_t values;
     
-    const double* dx = mglevel_m[level]->geom.CellSize();
+    const scalar_t* dx = mglevel_m[level]->geom.CellSize();
     
-    const double idx2[] = {
+    const scalar_t idx2[] = {
         D_DECL( 1.0 / ( dx[0] * dx[0] ),
                 1.0 / ( dx[1] * dx[1] ),
                 1.0 / ( dx[2] * dx[2] ) )
@@ -819,16 +821,16 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
      * For the finest level: Awf == Anf
      */
     
-    const double* cdx = mglevel_m[level]->geom.CellSize();
+    const scalar_t* cdx = mglevel_m[level]->geom.CellSize();
     
-    const double idx2[] = {
+    const scalar_t idx2[] = {
         D_DECL( 1.0 / ( cdx[0] * cdx[0] ),
                 1.0 / ( cdx[1] * cdx[1] ),
                 1.0 / ( cdx[2] * cdx[2] ) )
     };
     
     
-    const double* fdx = 0;
+    const scalar_t* fdx = 0;
     
     // finest level --> crse_fine_ba is an empty box array
     
@@ -931,8 +933,8 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
                      * @precondition: refinement of 2
                      */
                     // top and bottom for all directions
-		    double avg = AMREX_D_PICK(1.0, 2.0, 4.0);
-                    double value = -1.0 / ( avg * cdx[d] * fdx[d] );
+		    scalar_t avg = AMREX_D_PICK(1.0, 2.0, 4.0);
+                    scalar_t value = -1.0 / ( avg * cdx[d] * fdx[d] );
 		    
                     for (int d1 = 0; d1 < 2; ++d1) {
 #if AMREX_SPACEDIM == 3
@@ -966,7 +968,7 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
                                                     &values[0],
                                                     &indices[0]);
         
-        double vv = 1.0;
+        scalar_t vv = 1.0;
         mglevel_m[level]->UnCovered_p->insertGlobalValues(globalidx,
                                                           1,
                                                           &vv,
@@ -1108,9 +1110,9 @@ void AmrMultiGrid::fillCrseBoundaryMatrix_m(map_t& cells,
     if ( level == lbase_m )
         return;
     
-    const double* dx = mglevel_m[level]->geom.CellSize();
+    const scalar_t* dx = mglevel_m[level]->geom.CellSize();
     
-    const double idx2[] = {
+    const scalar_t idx2[] = {
         D_DECL( 1.0 / ( dx[0] * dx[0] ),
                 1.0 / ( dx[1] * dx[1] ),
                 1.0 / ( dx[2] * dx[2] ) )
@@ -1210,8 +1212,8 @@ void AmrMultiGrid::fillFineBoundaryMatrix_m(map_t& cells,
     indices_t indices;
     coefficients_t values;
     
-    const double* cdx = mglevel_m[level]->geom.CellSize();
-    const double* fdx = mglevel_m[level+1]->geom.CellSize();
+    const scalar_t* cdx = mglevel_m[level]->geom.CellSize();
+    const scalar_t* fdx = mglevel_m[level+1]->geom.CellSize();
     
     auto fill = [&](umap_t& map,
                     D_DECL(int ii, int jj, int kk),
@@ -1220,7 +1222,7 @@ void AmrMultiGrid::fillFineBoundaryMatrix_m(map_t& cells,
                     int sign)
     {
         // number of fine cell gradients
-        double avg = AMREX_D_PICK(1, 2, 4);
+        scalar_t avg = AMREX_D_PICK(1, 2, 4);
         
         for (int iref = ii - begin[0]; iref <= ii + end[0]; ++iref) {
             for (int jref = jj - begin[1]; jref <= jj + end[1]; ++jref) {
@@ -1236,12 +1238,12 @@ void AmrMultiGrid::fillFineBoundaryMatrix_m(map_t& cells,
                         /* the fine cell is on the coarse side --> fine
                          * ghost cell --> we need to interpolate
                          */
-                        double value = -1.0 / ( avg * cdx[d] * fdx[d] );
+                        scalar_t value = -1.0 / ( avg * cdx[d] * fdx[d] );
                         
                         interface_mp->fine(riv, map, value, d, shift, crse_fine_ba,
                                            mglevel_m[level+1].get());
                     } else {
-                        double value = 1.0 / ( avg * cdx[d] * fdx[d] );
+                        scalar_t value = 1.0 / ( avg * cdx[d] * fdx[d] );
 			map[mglevel_m[level+1]->serialize(riv)] += value;
                     }
 #if AMREX_SPACEDIM == 3
@@ -1345,7 +1347,7 @@ void AmrMultiGrid::buildGradientMatrix_m(const AmrIntVect_t& iv,
                                          int level)
 {
     
-    const double* dx = mglevel_m[level]->geom.CellSize();
+    const scalar_t* dx = mglevel_m[level]->geom.CellSize();
     
     umap_t map;
     indices_t indices;
@@ -1354,7 +1356,7 @@ void AmrMultiGrid::buildGradientMatrix_m(const AmrIntVect_t& iv,
     auto check = [&](const AmrIntVect_t& iv,
                      const basefab_t& mfab,
                      int dir,
-                     double shift)
+                     scalar_t shift)
     {
         switch ( mfab(iv) )
         {
@@ -1373,7 +1375,7 @@ void AmrMultiGrid::buildGradientMatrix_m(const AmrIntVect_t& iv,
                                              + std::to_string(level) + "!");
 #endif
                 
-                double value = - shift * 0.5 / dx[dir];
+                scalar_t value = - shift * 0.5 / dx[dir];
                 
                 // use 1st order Lagrange --> only cells of this level required
                 AmrIntVect_t tmp = iv;
@@ -1390,7 +1392,7 @@ void AmrMultiGrid::buildGradientMatrix_m(const AmrIntVect_t& iv,
             {
                 // physical boundary cells
                 
-                double value = - shift * 0.5 / dx[dir];
+                scalar_t value = - shift * 0.5 / dx[dir];
                 
                 mglevel_m[level]->applyBoundary(iv,
                                                 map,
@@ -1495,7 +1497,7 @@ void AmrMultiGrid::map2vector_m(umap_t& map, indices_t& indices,
     values.reserve(map.size());
     
     std::for_each(map.begin(), map.end(),
-		  [&](const std::pair<const int, double>& entry)
+		  [&](const std::pair<const int, scalar_t>& entry)
 		  {
 		      indices.push_back(entry.first);
 		      values.push_back(entry.second);

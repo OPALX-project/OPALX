@@ -7,14 +7,14 @@ AmrPCInterpolater<AmrMultiGridLevel>::AmrPCInterpolater()
 template <class AmrMultiGridLevel>
 void AmrPCInterpolater<AmrMultiGridLevel>::stencil(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::umap_t& map,
-    const typename AmrMultiGridLevel::scalar_t& scale,
+    umap_t& map,
+    const scalar_t& scale,
     AmrMultiGridLevel* mglevel)
 {
     AmrIntVect_t civ = iv;
     civ.coarsen(mglevel->refinement());
 
-    int crse_gidx = mglevel->serialize(civ);
+    go_t crse_gidx = mglevel->serialize(civ);
     
     if ( mglevel->isBoundary(civ) ) {
         mglevel->applyBoundary(civ, map, scale);
@@ -27,9 +27,9 @@ void AmrPCInterpolater<AmrMultiGridLevel>::stencil(
 template <class AmrMultiGridLevel>
 void AmrPCInterpolater<AmrMultiGridLevel>::coarse(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::umap_t& map,
-    const typename AmrMultiGridLevel::scalar_t& scale,
-    int dir, int shift, const amrex::BoxArray& ba,
+    umap_t& map,
+    const scalar_t& scale,
+    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
     const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
 {
@@ -40,9 +40,9 @@ void AmrPCInterpolater<AmrMultiGridLevel>::coarse(
 template <class AmrMultiGridLevel>
 void AmrPCInterpolater<AmrMultiGridLevel>::fine(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::umap_t& map,
-    const typename AmrMultiGridLevel::scalar_t& scale,
-    int dir, int shift, const amrex::BoxArray& ba,
+    umap_t& map,
+    const scalar_t& scale,
+    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
     AmrMultiGridLevel* mglevel)
 {
     /*

@@ -5,25 +5,30 @@
 
 template <class AmrMultiGridLevel>
 class AmrOpenBoundary : public AmrBoundary<AmrMultiGridLevel> {
+
+public:
+    typedef typename AmrMultiGridLevel::umap_t umap_t;
+    typedef typename AmrMultiGridLevel::lo_t lo_t;
+    typedef typename AmrMultiGridLevel::scalar_t scalar_t;
     
 public:
     
     AmrOpenBoundary() : AmrBoundary<AmrMultiGridLevel>(2) { }
     
     void apply(const AmrIntVect_t& iv,
-               typename AmrMultiGridLevel::umap_t& map,
-               const typename AmrMultiGridLevel::scalar_t& value,
+               umap_t& map,
+               const scalar_t& value,
                AmrMultiGridLevel* mglevel,
-               const int* nr);
+               const lo_t* nr);
 };
 
 
 template <class AmrMultiGridLevel>
 void AmrOpenBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
-					       typename AmrMultiGridLevel::umap_t& map,
-					       const typename AmrMultiGridLevel::scalar_t& value,
+					       umap_t& map,
+					       const scalar_t& value,
 					       AmrMultiGridLevel* mglevel,
-					       const int* nr)
+					       const lo_t* nr)
 {
     /* there should be only one boundary at a time, i.e.
      * either x-, y- or z-direction
@@ -37,7 +42,7 @@ void AmrOpenBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
     AmrIntVect_t niv = iv;
     AmrIntVect_t n2iv = iv; // next interior cell
     
-    int d = 0;
+    lo_t d = 0;
     for ( ; d < AMREX_SPACEDIM; ++d) {
         
         if ( niv[d] == -1 ) {
@@ -55,8 +60,8 @@ void AmrOpenBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
     }
     
     // cell size in direction
-    double h = 1.0 / double(nr[d]);
-    double r = 0.358;
+    scalar_t h = 1.0 / scalar_t(nr[d]);
+    scalar_t r = 0.358;
     
     // 1st order
     map[mglevel->serialize(niv)] += 2.0 * r / (2.0 * r + h) * value;

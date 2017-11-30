@@ -11,23 +11,28 @@ template <class AmrMultiGridLevel>
 class AmrDirichletBoundary : public AmrBoundary<AmrMultiGridLevel> {
     
 public:
+    typedef typename AmrMultiGridLevel::umap_t umap_t;
+    typedef typename AmrMultiGridLevel::lo_t lo_t;
+    typedef typename AmrMultiGridLevel::scalar_t scalar_t;
+    
+public:
     
     AmrDirichletBoundary() : AmrBoundary<AmrMultiGridLevel>(1) { }
     
     void apply(const AmrIntVect_t& iv,
-               typename AmrMultiGridLevel::umap_t& map,
-               const typename AmrMultiGridLevel::scalar_t& value,
+               umap_t& map,
+               const scalar_t& value,
                AmrMultiGridLevel* mglevel,
-               const int* nr);
+               const lo_t* nr);
 };
 
 
 template <class AmrMultiGridLevel>
 void AmrDirichletBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
-                                                    typename AmrMultiGridLevel::umap_t& map,
-						    const typename AmrMultiGridLevel::scalar_t& value,
+                                                    umap_t& map,
+						    const scalar_t& value,
                                                     AmrMultiGridLevel* mglevel,
-                                                    const int* nr)
+                                                    const lo_t* nr)
 {
     // find interior neighbour cell
     AmrIntVect_t niv;

@@ -11,7 +11,7 @@ constexpr typename AmrLagrangeInterpolater<AmrMultiGridLevel>::lpattern_t
 
 template <class AmrMultiGridLevel>
 AmrLagrangeInterpolater<AmrMultiGridLevel>::AmrLagrangeInterpolater(Order order)
-    : AmrInterpolater<AmrMultiGridLevel>( int(order) + 1 )
+    : AmrInterpolater<AmrMultiGridLevel>( lo_t(order) + 1 )
 { }
 
 
@@ -31,7 +31,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::coarse(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::umap_t& map,
     const typename AmrMultiGridLevel::scalar_t& scale,
-    int dir, int shift, const amrex::BoxArray& ba,
+    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
     const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
 {
@@ -55,7 +55,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fine(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::umap_t& map,
     const typename AmrMultiGridLevel::scalar_t& scale,
-    int dir, int shift, const amrex::BoxArray& ba,
+    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
     AmrMultiGridLevel* mglevel)
 {
     // polynomial degree = #points - 1
@@ -78,7 +78,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fineLinear_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::umap_t& map,
     const typename AmrMultiGridLevel::scalar_t& scale,
-    int dir, int shift, const amrex::BoxArray& ba,
+    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
     AmrMultiGridLevel* mglevel)
 {
     /*
@@ -100,7 +100,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fineQuadratic_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::umap_t& map,
     const typename AmrMultiGridLevel::scalar_t& scale,
-    int dir, int shift, const amrex::BoxArray& ba,
+    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
     AmrMultiGridLevel* mglevel)
 {
     AmrIntVect_t tmp = iv;
@@ -119,7 +119,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::umap_t& map,
     const typename AmrMultiGridLevel::scalar_t& scale,
-    int dir, int shift, const amrex::BoxArray& ba,
+    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
     const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
 {
@@ -136,7 +136,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     miv[(dir+1)%AMREX_SPACEDIM ] -= 1;
     
     // factor for fine
-    double fac = 8.0 / 15.0 * scale;
+    scalar_t fac = 8.0 / 15.0 * scale;
     
     if ( !ba.contains(niv) ) {
         // check r / u / b --> 1: valid; 0: not valid
@@ -181,11 +181,11 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     /*
      * check in 3x3 area (using iv as center) if 4 cells are not covered
      */
-    int d1 = (dir+1)%AMREX_SPACEDIM;
-    int d2 = (dir+2)%AMREX_SPACEDIM;
+    lo_t d1 = (dir+1)%AMREX_SPACEDIM;
+    lo_t d2 = (dir+2)%AMREX_SPACEDIM;
     
     lbits_t area;
-    int bit = 0;
+    lo_t bit = 0;
     
     AmrIntVect_t tmp = iv;
     for (int i = -1; i < 2; ++i) {
@@ -213,19 +213,19 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     }
     
     // factor for fine
-    double fac = 8.0 / 15.0 * scale;
+    scalar_t fac = 8.0 / 15.0 * scale;
     
     // if pattern is known
     bool known = true;
     
-    double L[2] = {0.0, 0.0};
+    scalar_t L[2] = {0.0, 0.0};
     bool top1 = (riv[d1] % 2 == 1);
     
-    double K[2] = {0.0, 0.0};
+    scalar_t K[2] = {0.0, 0.0};
     bool top2 = (riv[d2] % 2 == 1);
     
-    int begin[2] = { 0, 0 };
-    int end[2]   = { 0, 0 };
+    lo_t begin[2] = { 0, 0 };
+    lo_t end[2]   = { 0, 0 };
     
     switch ( *pit ) {
         case this->lpattern_ms[0]:
@@ -297,7 +297,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
         for (int j = begin[1]; j <= end[1]; ++j) {
             niv[d2] += j;
             
-            double value = fac * L[i-begin[0]] * K[j-begin[1]];
+            scalar_t value = fac * L[i-begin[0]] * K[j-begin[1]];
             if ( mglevel->isBoundary(niv) ) {
                 mglevel->applyBoundary(niv, map, value);
             } else {
@@ -322,7 +322,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::umap_t& map,
     const typename AmrMultiGridLevel::scalar_t& scale,
-    int dir, int shift, const amrex::BoxArray& ba,
+    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
     const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
 {
@@ -384,7 +384,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         map[mglevel->serialize(iv)] += 0.5 * scale;
         
         //                             y_t          y_b
-        double value = scale * (top) ? 1.0 / 12.0 : -0.05;
+        scalar_t value = scale * (top) ? 1.0 / 12.0 : -0.05;
         if ( mglevel->isBoundary(niv) ) {
             mglevel->applyBoundary(niv, map, value);
         } else {
@@ -404,7 +404,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
          * corner case --> right / upper / back + 2nd right / upper / back
          */
         //                     y_t          y_b
-        double value = scale * (top) ? 7.0 / 20.0 : 0.75;
+        scalar_t value = scale * (top) ? 7.0 / 20.0 : 0.75;
         map[mglevel->serialize(iv)] += value;
         
         //                      y_t          y_b
@@ -428,7 +428,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
          * corner case --> left / lower / front + 2nd left / lower / front
          */
         //                             y_t    y_b
-        double value = scale * (top) ? 0.75 : 7.0 / 20.0;
+        scalar_t value = scale * (top) ? 0.75 : 7.0 / 20.0;
         map[mglevel->serialize(iv)] += value;
         
         //                      y_t           y_b
@@ -482,11 +482,11 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     /*
      * check in 5x5 area (using iv as center) if 9 cells are not covered
      */
-    int d1 = (dir+1)%AMREX_SPACEDIM;
-    int d2 = (dir+2)%AMREX_SPACEDIM;
+    lo_t d1 = (dir+1)%AMREX_SPACEDIM;
+    lo_t d2 = (dir+2)%AMREX_SPACEDIM;
     
     qbits_t area;
-    int bit = 0;
+    lo_t bit = 0;
     
     AmrIntVect_t tmp = iv;
     for (int i = -2; i < 3; ++i) {
@@ -515,19 +515,19 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     }
     
     // factor for fine
-    double fac = 8.0 / 15.0 * scale;
+    scalar_t fac = 8.0 / 15.0 * scale;
     
     // if pattern is known
     bool known = true;
     
-    double L[3] = {0.0, 0.0, 0.0};
+    scalar_t L[3] = {0.0, 0.0, 0.0};
     bool top1 = (riv[d1] % 2 == 1);
     
-    double K[3] = {0.0, 0.0, 0.0};
+    scalar_t K[3] = {0.0, 0.0, 0.0};
     bool top2 = (riv[d2] % 2 == 1);
     
-    int begin[2] = { 0, 0 };
-    int end[2]   = { 0, 0 };
+    lo_t begin[2] = { 0, 0 };
+    lo_t end[2]   = { 0, 0 };
     
     switch ( *pit ) {
         case this->qpattern_ms[0]:
@@ -695,7 +695,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             for (int j = begin[1]; j <= end[1]; ++j) {
                 tmp[d2] += j;
                 
-                double value = fac * L[i-begin[0]] * K[j-begin[1]];
+                scalar_t value = fac * L[i-begin[0]] * K[j-begin[1]];
                 if ( mglevel->isBoundary(tmp) ) {
                     mglevel->applyBoundary(tmp, map, value);
                 } else {

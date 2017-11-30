@@ -7,8 +7,8 @@ AmrTrilinearInterpolater<AmrMultiGridLevel>::AmrTrilinearInterpolater()
 template <class AmrMultiGridLevel>
 void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::umap_t& map,
-    const typename AmrMultiGridLevel::scalar_t& scale,
+    umap_t& map,
+    const scalar_t& scale,
     AmrMultiGridLevel* mglevel)
 {
     /* lower left coarse cell (i, j, k)
@@ -19,7 +19,7 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
     AmrIntVect_t civ;
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             
-        double tmp = iv[d] - 0.5;
+        scalar_t tmp = iv[d] - 0.5;
         if ( std::signbit(tmp) )
             civ[d] = std::floor(tmp);
         else
@@ -29,20 +29,20 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
     civ.coarsen(mglevel->refinement());
         
     // ref ratio 2 only
-    double dx = 0.5 * ( iv[0] - civ[0] * 2 ) - 0.25;
-    double dy = 0.5 * ( iv[1] - civ[1] * 2 ) - 0.25;
+    scalar_t dx = 0.5 * ( iv[0] - civ[0] * 2 ) - 0.25;
+    scalar_t dy = 0.5 * ( iv[1] - civ[1] * 2 ) - 0.25;
 #if AMREX_SPACEDIM == 3
-    double dz = 0.5 * ( iv[2] - civ[2] * 2 ) - 0.25;
+    scalar_t dz = 0.5 * ( iv[2] - civ[2] * 2 ) - 0.25;
 #endif
         
-    double xdiff = 1.0 - dx;
-    double ydiff = 1.0 - dy;
+    scalar_t xdiff = 1.0 - dx;
+    scalar_t ydiff = 1.0 - dy;
 #if AMREX_SPACEDIM == 3
-    double zdiff = 1.0 - dz;
+    scalar_t zdiff = 1.0 - dz;
 #endif
     // (i, j, k)
-    int crse_gidx = mglevel->serialize(civ);
-    double value = AMREX_D_TERM(xdiff, * ydiff, * zdiff) * scale;
+    go_t crse_gidx = mglevel->serialize(civ);
+    scalar_t value = AMREX_D_TERM(xdiff, * ydiff, * zdiff) * scale;
     
     if ( mglevel->isBoundary(civ) ) {
         mglevel->applyBoundary(civ, map, value);
@@ -120,9 +120,9 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
 template <class AmrMultiGridLevel>
 void AmrTrilinearInterpolater<AmrMultiGridLevel>::coarse(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::umap_t& map,
-    const typename AmrMultiGridLevel::scalar_t& scale,
-    int dir, int shift, const amrex::BoxArray& ba,
+    umap_t& map,
+    const scalar_t& scale,
+    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
     const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
 {
@@ -133,9 +133,9 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::coarse(
 template <class AmrMultiGridLevel>
 void AmrTrilinearInterpolater<AmrMultiGridLevel>::fine(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::umap_t& map,
-    const typename AmrMultiGridLevel::scalar_t& scale,
-    int dir, int shift, const amrex::BoxArray& ba,
+    umap_t& map,
+    const scalar_t& scale,
+    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
     AmrMultiGridLevel* mglevel)
 {
     /*
