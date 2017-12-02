@@ -116,7 +116,7 @@ namespace SDDS { namespace parser
 
         on_error<fail>(start,
             error_handler_function(_error_handler)(
-                "Error! Expecting ", _4, _3));
+                  std::string("Error! Expecting "), _4, _3));
 
         on_success(start,
             order_function_t()(_val,_1));
