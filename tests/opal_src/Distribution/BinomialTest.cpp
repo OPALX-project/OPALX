@@ -56,6 +56,7 @@ TEST(BinomialTest, FullSigmaTest1) {
     dist.setDistType();
     dist.checkIfEmitted();
     size_t numParticles = 1000000;
+    dist.totalNumberParticles_m = numParticles;
     dist.create(numParticles, Physics::m_p);
 
     double R11 = sqrt(gsl_stats_variance(&(dist.xDist_m[0]), 1, dist.xDist_m.size())) * 1e3;
@@ -137,6 +138,7 @@ TEST(BinomialTest, FullSigmaTest2) {
     dist.checkIfEmitted();
 
     size_t numParticles = 1000000;
+    dist.totalNumberParticles_m = numParticles;
     dist.create(numParticles, Physics::m_p);
 
     double R11 = sqrt(gsl_stats_variance(&(dist.xDist_m[0]), 1, dist.xDist_m.size())) * 1e3;
