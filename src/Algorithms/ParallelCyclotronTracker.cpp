@@ -56,6 +56,7 @@
 
 #include "AbstractObjects/Element.h"
 
+#include "Beamlines/FlaggedBeamline.h"
 #include "Elements/OpalBeamline.h"
 #include "AbsBeamline/Ring.h"
 
@@ -181,7 +182,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     TransformTimer_m   = IpplTimings::getTimer("Frametransform");
     DumpTimer_m        = IpplTimings::getTimer("Dump");
     BinRepartTimer_m   = IpplTimings::getTimer("Binaryrepart");
-    
+
     // FIXME Change track command
     if ( initialTotalNum_m == 1 ) {
         mode_m = MODE::SINGLE;
@@ -191,7 +192,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
         mode_m = MODE::BUNCH;
     } else
         mode_m = MODE::UNDEFINED;
-    
+
     if ( timeIntegrator == 0 ) {
         stepper_m = stepper::INTEGRATOR::RK4;
     } else if ( timeIntegrator == 1) {
@@ -422,7 +423,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     // Fresh run (no restart):
     if(!OpalData::getInstance()->inRestartRun()) {
 
-        // Get reference values from cyclotron element 
+        // Get reference values from cyclotron element
         // For now, these are still stored in mm. should be the only ones. -DW
         referenceR     = elptr->getRinit();
         referenceTheta = elptr->getPHIinit();
@@ -1133,7 +1134,8 @@ void ParallelCyclotronTracker::buildupFieldList(double BcParameter[], ElementBas
  * @param bl
  */
 void ParallelCyclotronTracker::visitBeamline(const Beamline &bl) {
-    itsBeamline->iterate(*dynamic_cast<BeamlineVisitor *>(this), false);
+    const FlaggedBeamline* fbl = static_cast<const FlaggedBeamline*>(&bl);
+    fbl->iterate(*this, false);//*dynamic_cast<BeamlineVisitor *>(this), false);
 }
 
 void ParallelCyclotronTracker::checkNumPart(std::string s) {
@@ -1190,14 +1192,14 @@ void ParallelCyclotronTracker::execute() {
     extB_m = Vector_t(0.0, 0.0, 0.0);
     DumpFields::writeFields((((*FieldDimensions.begin())->second).second));
     DumpEMFields::writeFields((((*FieldDimensions.begin())->second).second));
-                               
+
     function_t func = std::bind(&ParallelCyclotronTracker::getFieldsAtPoint,
                                 this,
                                 std::placeholders::_1,
                                 std::placeholders::_2,
                                 std::placeholders::_3,
                                 std::placeholders::_4);
-    
+
     switch ( stepper_m )
     {
         case stepper::INTEGRATOR::RK4:
@@ -1218,13 +1220,13 @@ void ParallelCyclotronTracker::execute() {
             throw OpalException("ParallelTTracker::execute",
                                 "Invalid name of TIMEINTEGRATOR in Track command");
     }
-    
+
     if ( stepper_m == stepper::INTEGRATOR::MTS)
         MtsTracker();
     else
         GenericTracker();
-    
-    
+
+
     *gmsg << "* ----------------------------------------------- *" << endl;
     *gmsg << "* Finalizing i.e. write data and close files :" << endl;
     for(auto fd : FieldDimensions) {
@@ -1235,64 +1237,64 @@ void ParallelCyclotronTracker::execute() {
 
 
 void ParallelCyclotronTracker::MtsTracker() {
-    /* 
+    /*
      * variable             unit        meaning
      * ------------------------------------------------
      * t                    [ns]        time
      * dt                   [ns]        time step
      * oldReferenceTheta    [rad]       azimuth angle
      * itsBunch_m->R        [m]         particle position
-     * 
+     *
      */
-    
+
     double t = 0, dt = 0, oldReferenceTheta = 0;
     std::tie(t, dt, oldReferenceTheta) = initializeTracking_m();
-    
+
     int const numSubsteps = std::max(Options::mtsSubsteps, 1);
-    
+
     *gmsg << "MTS: Number of substeps per step is " << numSubsteps << endl;
-    
+
     double const dt_inner = dt / double(numSubsteps);
-    
+
     *gmsg << "MTS: The inner time step is therefore " << dt_inner << " [ns]" << endl;
-    
+
 //     int SteptoLastInj = itsBunch_m->getSteptoLastInj();
-    
+
     bool flagTransition = false; // flag to determine when to transit from single-bunch to multi-bunches mode
 
-    
+
     *gmsg << "* ---------------------------- Start tracking ----------------------------" << endl;
-    
+
     if ( itsBunch_m->hasFieldSolver() )
         computeSpaceChargeFields_m();
-    
+
     for(; (step_m < maxSteps_m) && (itsBunch_m->getTotalNum()>0); step_m++) {
-        
+
         bool dumpEachTurn = false;
-        
+
         if(step_m % Options::sptDumpFreq == 0) {
             //itsBunch_m->R *= Vector_t(1000.0);
             singleParticleDump();
             //itsBunch_m->R *= Vector_t(0.001);
         }
-        
+
         Ippl::Comm->barrier();
-        
+
         // First half kick from space charge force
         if(itsBunch_m->hasFieldSolver()) {
             kick(0.5 * dt);
         }
-        
+
         // Substeps for external field integration
         for(int n = 0; n < numSubsteps; ++n)
             borisExternalFields(dt_inner);
 
-        
+
         // bunch injection
         // TODO: Where is correct location for this piece of code? Beginning/end of step? Before field solve?
         if(numBunch_m > 1)
             injectBunch_m(flagTransition);
-            
+
         if ( itsBunch_m->hasFieldSolver() ) {
             computeSpaceChargeFields_m();
         } else {
@@ -1313,7 +1315,7 @@ void ParallelCyclotronTracker::MtsTracker() {
         // Second half kick from space charge force
         if(itsBunch_m->hasFieldSolver())
             kick(0.5 * dt);
-        
+
         // recalculate bingamma and reset the BinID for each particles according to its current gamma
         if((itsBunch_m->weHaveBins()) && BunchCount_m > 1) {
             if(step_m % Options::rebinFreq == 0) {
@@ -1323,18 +1325,18 @@ void ParallelCyclotronTracker::MtsTracker() {
 
         // dump some data after one push in single particle tracking
         if ( mode_m == MODE::SINGLE ) {
-            
+
             unsigned int i = 0;
-            
+
             double temp_meanTheta = calculateAngle2(itsBunch_m->R[i](0),
                                                     itsBunch_m->R[i](1)); // [-pi, pi]
-            
+
             dumpThetaEachTurn_m(t, itsBunch_m->R[i], itsBunch_m->P[i],
                                 temp_meanTheta, dumpEachTurn);
-            
+
             dumpAzimuthAngles_m(t, itsBunch_m->R[i], itsBunch_m->P[i],
                         oldReferenceTheta, temp_meanTheta);
-            
+
             oldReferenceTheta = temp_meanTheta;
         } else if ( mode_m == MODE::BUNCH ) {
             // both for single bunch and multi-bunch
@@ -1349,7 +1351,7 @@ void ParallelCyclotronTracker::MtsTracker() {
                       << ", Total number of live particles: "
                       << itsBunch_m->getTotalNum() << endl;
             }
-            
+
             // Recalculate bingamma and reset the BinID for each particles according to its current gamma
             if (itsBunch_m->weHaveBins() && BunchCount_m > 1 &&
                 step_m % Options::rebinFreq == 0)
@@ -1357,24 +1359,24 @@ void ParallelCyclotronTracker::MtsTracker() {
                 itsBunch_m->resetPartBinID2(eta_m);
             }
         }
-        
+
         // printing + updating bunch parameters + updating t
         update_m(t, dt, dumpEachTurn);
-        
-        
+
+
     }
-    
+
     // Some post-integration stuff
     *gmsg << endl;
     *gmsg << "* ---------------------------- DONE TRACKING PARTICLES -------------------------------- * " << endl;
-    
-    
+
+
     //FIXME
     dvector_t Ttime = dvector_t();
     dvector_t Tdeltr = dvector_t();
     dvector_t Tdeltz = dvector_t();
     ivector_t TturnNumber = ivector_t();
-    
+
     finalizeTracking_m(Ttime, Tdeltr, Tdeltz, TturnNumber);
 }
 
@@ -1384,14 +1386,14 @@ void ParallelCyclotronTracker::MtsTracker() {
  *
  */
 void ParallelCyclotronTracker::GenericTracker() {
-    /* 
+    /*
      * variable             unit        meaning
      * ------------------------------------------------
      * t                    [ns]        time
      * dt                   [ns]        time step
      * oldReferenceTheta    [rad]       azimuth angle
      * itsBunch_m->R        [m]         particle position
-     * 
+     *
      */
     // Generic Tracker that has three modes defined by timeIntegrator_m:
     // 0 --- RK-4 (default)
@@ -1403,7 +1405,7 @@ void ParallelCyclotronTracker::GenericTracker() {
 
     double t = 0, dt = 0, oldReferenceTheta = 0;
     std::tie(t, dt, oldReferenceTheta) = initializeTracking_m();
-    
+
     // If initialTotalNum_m = 2, trigger SEO mode and prepare for transverse tuning calculation
     // Where is the IF here? -DW
     dvector_t Ttime, Tdeltr, Tdeltz;
@@ -1421,7 +1423,7 @@ void ParallelCyclotronTracker::GenericTracker() {
     for(; (step_m < maxSteps_m) && (itsBunch_m->getTotalNum()>0); step_m++) {
 
         bool dumpEachTurn = false;
-        
+
         switch (mode_m)
         {
             case MODE::SEO:
@@ -1446,7 +1448,7 @@ void ParallelCyclotronTracker::GenericTracker() {
                                     "No such tracking mode.");
         }
 
-        
+
         // Update bunch and some parameters and output some info
         update_m(t, dt, dumpEachTurn);
 
@@ -1455,12 +1457,12 @@ void ParallelCyclotronTracker::GenericTracker() {
     // Some post-integration stuff
     *gmsg << endl;
     *gmsg << "* ---------------------------- DONE TRACKING PARTICLES -------------------------------- * " << endl;
-    
+
     finalizeTracking_m(Ttime, Tdeltr, Tdeltz, TturnNumber);
 }
 
 bool ParallelCyclotronTracker::getFieldsAtPoint(const double &t, const size_t &Pindex, Vector_t &Efield, Vector_t &Bfield) {
-    
+
     bool outOfBound = this->computeExternalFields_m(Pindex, t, Efield, Bfield);
 
     // For runs without space charge effects, override this step to save time
@@ -2094,7 +2096,7 @@ void ParallelCyclotronTracker::push(double h) {
      * dt2 [ns]
      */
     IpplTimings::startTimer(IntegrationTimer_m);
-    
+
     // h [ns] --> h [s]
     h *= 1.0e-9;
 
@@ -2150,13 +2152,13 @@ void ParallelCyclotronTracker::push(double h) {
 
 void ParallelCyclotronTracker::kick(double h) {
     IpplTimings::startTimer(IntegrationTimer_m);
-    
+
     BorisPusher pusher;
     double const q = itsBunch_m->Q[0] / q_e; // For now all particles have the same charge
     double const M = itsBunch_m->M[0] * 1.0e9; // For now all particles have the same rest energy
-    
+
     for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
-        
+
         pusher.kick(itsBunch_m->R[i], itsBunch_m->P[i],
                     itsBunch_m->Ef[i], itsBunch_m->Bf[i],
                     h * 1.0e-9, M, q);
@@ -2174,12 +2176,12 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
     // Evaluate external fields
     IpplTimings::startTimer(IntegrationTimer_m);
     for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
-        
+
         itsBunch_m->Ef[i] = Vector_t(0.0, 0.0, 0.0);
         itsBunch_m->Bf[i] = Vector_t(0.0, 0.0, 0.0);
-        
+
         computeExternalFields_m(i, itsBunch_m->getT() * 1e9 /*ns*/,
-                                itsBunch_m->Ef[i], itsBunch_m->Bf[i]);        
+                                itsBunch_m->Ef[i], itsBunch_m->Bf[i]);
     }
     IpplTimings::stopTimer(IntegrationTimer_m);
 
@@ -2768,7 +2770,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
             // Tell user in which mode we are dumping
 	    // New: no longer dumping for num part < 3, omit phase space dump number info
 	    if (lastDumpedStep_m == -1){
-		    *gmsg << endl << "* Integration step " << step_m + 1 
+		    *gmsg << endl << "* Integration step " << step_m + 1
                           << " (no phase space dump for <= 2 particles)" << endl;
 	    } else {
                 *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
@@ -2871,7 +2873,7 @@ void ParallelCyclotronTracker::update_m(double& t, const double& dt,
             bunchDumpStatData();
         }
     }
-    
+
     if (!(step_m + 1 % 1000))
         *gmsg << "Step " << step_m + 1 << endl;
 }
@@ -2881,14 +2883,14 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
     // Read in some control parameters
     setup_m.scSolveFreq         = (spiral_flag) ? 1 : Options::scSolveFreq;
     setup_m.stepsPerTurn        = itsBunch_m->getStepsPerTurn();
-    
+
     // Define 3 special azimuthal angles where dump particle's six parameters
     // at each turn into 3 ASCII files. only important in single particle tracking
     setup_m.azimuth_angle0 = 0.0;
     setup_m.azimuth_angle1 = 22.5 * Physics::deg2rad;
     setup_m.azimuth_angle2 = 45.0 * Physics::deg2rad;
-    
-    
+
+
     double harm       = getHarmonicNumber();
     double dt         = itsBunch_m->getdT() * 1.0e9 * harm; // time step size (s --> ns)
     double t          = itsBunch_m->getT() * 1.0e9;               // current time   (s --> ns)
@@ -2926,9 +2928,9 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
         itsBunch_m->setT(0.0);
         t = 0.0;
     }
-    
+
     initDistInGlobalFrame();
-    
+
     turnnumber_m = 1;
 
     // --- Output to user --- //
@@ -2946,8 +2948,8 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
     *gmsg << "* Single particle trajectory dump frequency is set to " << Options::sptDumpFreq << endl;
     *gmsg << "* The frequency to solve space charge fields is set to " << setup_m.scSolveFreq << endl;
     *gmsg << "* The repartition frequency is set to " << Options::repartFreq << endl;
-    
-    
+
+
     switch ( mode_m )
     {
         case MODE::SEO:
@@ -2975,7 +2977,7 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
             if(Ippl::getNodes() != 1)
                 throw OpalException("Error in ParallelCyclotronTracker::execute",
                                     "SINGLE PARTICLE MODE ONLY WORKS SERIALLY ON A SINGLE NODE!");
-            
+
             // For single particle mode open output files
             openFiles(OpalData::getInstance()->getInputBasename());
             break;
@@ -2986,7 +2988,7 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
             throw OpalException("ParallelCyclotronTracker::GenericTracker()",
                                 "No such tracking mode.");
     }
-    
+
     return std::make_tuple(t, dt, oldReferenceTheta);
 }
 
@@ -3006,7 +3008,7 @@ void ParallelCyclotronTracker::finalizeTracking_m(dvector_t& Ttime,
     }
 
     Ippl::Comm->barrier();
-    
+
     switch ( mode_m )
     {
         case MODE::SEO:
@@ -3040,7 +3042,7 @@ void ParallelCyclotronTracker::finalizeTracking_m(dvector_t& Ttime,
             }
         }
     }
-    
+
     Ippl::Comm->barrier();
 
     if (myNode_m == 0)
@@ -3073,7 +3075,7 @@ void ParallelCyclotronTracker::seoMode_m(double& t, const double dt, bool& dumpE
                                          dvector_t& Ttime, dvector_t& Tdeltr,
                                          dvector_t& Tdeltz, ivector_t& TturnNumber)
 {
-    
+
     // 2 particles: Trigger SEO mode
     // (Switch off cavity and calculate betatron osciliation tuning)
     double r_tuning[2], z_tuning[2] ;
@@ -3096,16 +3098,16 @@ void ParallelCyclotronTracker::seoMode_m(double& t, const double dt, bool& dumpE
         double OldTheta = calculateAngle(itsBunch_m->R[i](0), itsBunch_m->R[i](1));
         r_tuning[i] = itsBunch_m->R[i](0) * cos(OldTheta) +
                       itsBunch_m->R[i](1) * sin(OldTheta);
-        
+
         z_tuning[i] = itsBunch_m->R[i](2);
-        
-        
+
+
         // Integrate for one step in the lab Cartesian frame (absolute value).
         itsStepper_mp->advance(itsBunch_m, i, t, dt);
 
         if( (i == 0) && (step_m > 10) && ((step_m%setup_m.stepsPerTurn) == 0))
             turnnumber_m++;
-    
+
     } // end for: finish one step tracking for all particles for initialTotalNum_m == 2 mode
     IpplTimings::stopTimer(IntegrationTimer_m);
 
@@ -3131,7 +3133,7 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
 
     // apply the plugin elements: probe, collimator, stripper, septum
     applyPluginElements(dt);
-            
+
     // check if we loose particles at the boundary
     bgf_main_collision_test();
     // ********************************************************************************** //
@@ -3154,34 +3156,34 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
 
     double temp_meanTheta = calculateAngle2(itsBunch_m->R[i](0),
                                             itsBunch_m->R[i](1)); // [-pi, pi]
-        
-        
+
+
     dumpThetaEachTurn_m(t, itsBunch_m->R[i], itsBunch_m->P[i],
                         temp_meanTheta, dumpEachTurn);
-        
+
     dumpAzimuthAngles_m(t, itsBunch_m->R[i], itsBunch_m->P[i],
                         oldReferenceTheta, temp_meanTheta);
 
     oldReferenceTheta = temp_meanTheta;
-                
+
     // used for gap crossing checking
     Vector_t Rold = itsBunch_m->R[i]; // [x,y,z]    (mm)
     Vector_t Pold = itsBunch_m->P[i]; // [px,py,pz] (beta*gamma)
-                
+
     // integrate for one step in the lab Cartesian frame (absolute value).
     flagNoDeletion = itsStepper_mp->advance(itsBunch_m, i, t, dt);
-                
+
     if ( !flagNoDeletion ) {
         *gmsg << "* SPT: The particle was lost at step "
               << step_m << "!" << endl;
         throw OpalException("ParallelCyclotronTracker",
                             "The particle is out of the region of interest.");
     }
-                
+
     // If gap crossing happens, do momenta kicking
     gapCrossKick_m(i, t, dt, Rold, Pold);
-        
-    
+
+
     IpplTimings::stopTimer(IntegrationTimer_m);
 
     // Destroy particles if they are marked as Bin = -1 in the plugin elements
@@ -3191,10 +3193,10 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
 
 
 void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dumpEachTurn) {
-    
+
      // Flag for transition from single-bunch to multi-bunches mode
     bool flagTransition = false;
-    
+
     // single particle dumping
     if(step_m % Options::sptDumpFreq == 0)
         singleParticleDump();
@@ -3208,7 +3210,7 @@ void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dum
     // Calculate SC field before each time step and keep constant during integration.
     // Space Charge effects are included only when total macropaticles number is NOT LESS THAN 1000.
     if (itsBunch_m->hasFieldSolver()) {
-        
+
         if (step_m % setup_m.scSolveFreq == 0) {
 
             IpplTimings::startTimer(TransformTimer_m);
@@ -3245,22 +3247,22 @@ void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dum
 
     // check if we loose particles at the boundary
     bgf_main_collision_test();
-            
+
     IpplTimings::startTimer(IntegrationTimer_m);
-    
+
     for(size_t i = 0; i < itsBunch_m->getLocalNum(); i++) {
-        
+
         // used for gap crossing checking
         Vector_t Rold = itsBunch_m->R[i]; // [x,y,z]    (mm)
         Vector_t Pold = itsBunch_m->P[i]; // [px,py,pz] (beta*gamma)
-        
+
         // Integrate for one step in the lab Cartesian frame (absolute value).
         itsStepper_mp->advance(itsBunch_m, i, t, dt);
-        
+
         // If gap crossing happens, do momenta kicking
         gapCrossKick_m(i, t, dt, Rold, Pold);
     }
-    
+
     IpplTimings::stopTimer(IntegrationTimer_m);
 
     // Destroy particles if they are marked as Bin = -1 in the plugin elements
@@ -3276,7 +3278,7 @@ void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dum
     {
         itsBunch_m->resetPartBinID2(eta_m);
     }
-    
+
     // Some status output for user after each turn
     if ( (step_m > 10) && ((step_m + 1) % setup_m.stepsPerTurn) == 0) {
         turnnumber_m++;
@@ -3287,7 +3289,7 @@ void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dum
               << ", Total number of live particles: "
               << itsBunch_m->getTotalNum() << endl;
     }
-    
+
     Ippl::Comm->barrier();
 }
 
@@ -3303,33 +3305,33 @@ void ParallelCyclotronTracker::gapCrossKick_m(size_t i, double t,
         bool tag_crossing = false;
         double DistOld = 0.0; //mm
         RFCavity * rfcav;
-                    
+
         if (((*sindex)->first) == ElementBase::RFCAVITY) {
             // here check gap cross in the list, if do , set tag_crossing to TRUE
             rfcav = static_cast<RFCavity *>(((*sindex)->second).second);
             tag_crossing = checkGapCross(Rold, itsBunch_m->R[i], rfcav, DistOld);
         }
-            
+
         if ( tag_crossing ) {
-                        
+
             double oldMomentum2  = dot(Pold, Pold);
             double oldBetgam = sqrt(oldMomentum2);
             double oldGamma = sqrt(1.0 + oldMomentum2);
             double oldBeta = oldBetgam / oldGamma;
             double dt1 = DistOld / (Physics::c * oldBeta * 1.0e-6); // ns
             double dt2 = dt - dt1;
-                        
+
             // retrack particle from the old postion to cavity gap point
             // restore the old coordinates and momenta
             itsBunch_m->R[i] = Rold;
             itsBunch_m->P[i] = Pold;
-                        
+
             if (dt / dt1 < 1.0e9)
                 itsStepper_mp->advance(itsBunch_m, i, t, dt1);
-                        
+
             // Momentum kick
             RFkick(rfcav, t, dt1, i);
-                        
+
             /* Retrack particle from cavity gap point for
              * the left time to finish the entire timestep
              */
@@ -3358,8 +3360,8 @@ void ParallelCyclotronTracker::dumpAzimuthAngles_m(const double& t,
                      << " " << R(2)
                      << " " << P(2) << std::endl;
     };
-    
-    
+
+
     if ((oldReferenceTheta < setup_m.azimuth_angle0 - setup_m.deltaTheta) &&
         (  temp_meanTheta >= setup_m.azimuth_angle0 - setup_m.deltaTheta))
     {
@@ -3391,9 +3393,9 @@ void ParallelCyclotronTracker::dumpThetaEachTurn_m(const double& t,
         ++turnnumber_m;
 
         dumpEachTurn = true;
-        
+
         *gmsg << "* SPT: Finished turn " << turnnumber_m - 1 << endl;
-    
+
         outfThetaEachTurn_m << "#Turn number = " << turnnumber_m
                             << ", Time = " << t << " [ns]" << std::endl
                             << " " << std::sqrt(R(0) * R(0) + R(1) * R(1))
@@ -3412,13 +3414,13 @@ void ParallelCyclotronTracker::computeSpaceChargeFields_m() {
     // Firstly reset E and B to zero before fill new space charge field data for each track step
     itsBunch_m->Bf = Vector_t(0.0);
     itsBunch_m->Ef = Vector_t(0.0);
-        
+
     if (spiral_flag and itsBunch_m->getFieldSolverType() == "SAAMG") {
         // --- Single bunch mode with spiral inflector --- //
 
         // If we are doing a spiral inflector simulation and are using the SAAMG solver
         // we don't rotate or translate the bunch and gamma is 1.0 (non-relativistic).
-            
+
         //itsBunch_m->R *= Vector_t(0.001); // mm --> m
 
         IpplTimings::stopTimer(TransformTimer_m);
@@ -3431,75 +3433,75 @@ void ParallelCyclotronTracker::computeSpaceChargeFields_m() {
         IpplTimings::startTimer(TransformTimer_m);
 
         //itsBunch_m->R *= Vector_t(1000.0); // m --> mm
-            
+
     } else {
-        
+
         Vector_t const meanR = calcMeanR(); // (m)
-            
+
         PreviousMeanP = calcMeanP();
-        
+
         // Since calcMeanP takes into account all particles of all bins (TODO: Check this! -DW)
         // Using the quaternion method with PreviousMeanP and yaxis should give the correct result
-    
+
         Quaternion_t quaternionToYAxis;
-            
+
         getQuaternionTwoVectors(PreviousMeanP, yaxis, quaternionToYAxis);
-            
+
         globalToLocal(itsBunch_m->R, quaternionToYAxis, meanR);
-            
+
         //itsBunch_m->R *= Vector_t(0.001); // mm --> m
-            
+
         if ((step_m + 1) % Options::boundpDestroyFreq == 0)
             itsBunch_m->boundp_destroy();
         else
             itsBunch_m->boundp();
-            
+
         IpplTimings::stopTimer(TransformTimer_m);
-            
+
         if ((itsBunch_m->weHaveBins()) && BunchCount_m > 1) {
             // --- Multibunche mode --- //
-                
+
             // Calcualte gamma for each energy bin
             itsBunch_m->calcGammas_cycl();
-                
+
             repartition();
-                
+
             // Calculate space charge field for each energy bin
             for(int b = 0; b < itsBunch_m->getLastemittedBin(); b++) {
-    
+
                 itsBunch_m->setBinCharge(b, itsBunch_m->getChargePerParticle());
                 //itsBunch_m->setGlobalMeanR(0.001 * meanR);
                 itsBunch_m->setGlobalMeanR(meanR);
                 itsBunch_m->setGlobalToLocalQuaternion(quaternionToYAxis);
                 itsBunch_m->computeSelfFields_cycl(b);
             }
-    
+
             itsBunch_m->Q = itsBunch_m->getChargePerParticle();
-                
+
         } else {
             // --- Single bunch mode --- //
-                
+
             double temp_meangamma = std::sqrt(1.0 + dot(PreviousMeanP, PreviousMeanP));
-                
+
             repartition();
-    
+
             //itsBunch_m->setGlobalMeanR(0.001 * meanR);
             itsBunch_m->setGlobalMeanR(meanR);
             itsBunch_m->setGlobalToLocalQuaternion(quaternionToYAxis);
-                
+
             itsBunch_m->computeSelfFields_cycl(temp_meangamma);
-                
+
         }
-            
-            
+
+
         IpplTimings::startTimer(TransformTimer_m);
-            
+
         //scale coordinates back
         //itsBunch_m->R *= Vector_t(1000.0); // m --> mm
-        
+
         // Transform coordinates back to global
         localToGlobal(itsBunch_m->R, quaternionToYAxis, meanR);
-            
+
         // Transform self field back to global frame (rotate only)
         localToGlobal(itsBunch_m->Ef, quaternionToYAxis);
         localToGlobal(itsBunch_m->Bf, quaternionToYAxis);
@@ -3511,13 +3513,13 @@ bool ParallelCyclotronTracker::computeExternalFields_m(const size_t& i, const do
                                                        Vector_t& Efield, Vector_t& Bfield)
 {
     beamline_list::iterator sindex = FieldDimensions.begin();
-    
+
     // Flag whether a particle is out of field
     bool outOfBound = (((*sindex)->second).second)->apply(i, t, Efield, Bfield);
 
     Bfield *= 0.10;  // kGauss --> T
     Efield *= 1.0e6; // kV/mm  --> V/m
-    
+
     return outOfBound;
 }
 
@@ -3565,7 +3567,7 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
             RLastTurn_m = RThisTurn_m;
         }
     }
-        
+
     else if ((BunchCount_m < numBunch_m) && (step_m == setup_m.stepsNextCheck)) {
         // Matthias: SteptoLastInj was used in MtsTracker, removed by DW in GenericTracker
 
@@ -3587,17 +3589,17 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
                 saveOneBunch();
 
             readOneBunch(BunchCount_m - 1);
-                
+
 //             if (timeIntegrator_m == 0) //FIXME Matthias
                 itsBunch_m->resetPartBinID2(eta_m);
-                
+
         } else if (multiBunchMode_m == 2) {
 
             if(OpalData::getInstance()->inRestartRun())
                 readOneBunchFromFile(BunchCount_m - 1);
             else
                 readOneBunch(BunchCount_m - 1);
-                
+
 //             if (timeIntegrator_m == 0)  //FIXME Matthias
                 itsBunch_m->resetPartBinID2(eta_m);
         }
