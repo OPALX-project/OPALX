@@ -1,3 +1,5 @@
+#ifndef CLASSIC_Taylor_CC
+#define CLASSIC_Taylor_CC
 // ------------------------------------------------------------------------
 // $RCSfile: Taylor.cpp,v $
 // ------------------------------------------------------------------------
@@ -18,6 +20,9 @@
 // ------------------------------------------------------------------------
 
 #include <numeric>
+#include <iomanip>
+
+#include "FixedAlgebra/Taylor.h"
 
 
 // Template class Taylor<T>.
@@ -290,3 +295,5 @@ std::ostream &operator<<(std::ostream &os, const Taylor<T> &series) {
 
     return os;
 }
+
+#endif

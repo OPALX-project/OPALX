@@ -25,6 +25,14 @@
 #include <cmath>
 #include <complex>
 
+using std::complex;
+using std::abs;
+using std::conj;
+using std::imag;
+using std::norm;
+using std::real;
+using std::swap;
+
 
 // Class FComplexEigen
 // ------------------------------------------------------------------------
@@ -41,7 +49,7 @@ public:
     /// Constructor.
     //  Find eigenvalues for matrix [b]M[/b].
     //  If [b]vec[/b] is true, the eigenvectors are also computed.
-    FComplexEigen(const FMatrix<std::complex<double>, N, N> &M, bool vec = false);
+    FComplexEigen(const FMatrix<complex<double>, N, N> &M, bool vec = false);
 
     FComplexEigen();
     FComplexEigen(const FComplexEigen &);
@@ -49,11 +57,11 @@ public:
 
     /// Get eigenvalues.
     //  Return eigenvalues as complex vector.
-    const FVector<std::complex<double>, N> &eigenValues() const;
+    const FVector<complex<double>, N> &eigenValues() const;
 
     /// Get eigenvectors.
     //  Return eigenvectors as a complex matrix.
-    const FMatrix<std::complex<double>, N, N> &eigenVectors() const;
+    const FMatrix<complex<double>, N, N> &eigenVectors() const;
 
 private:
 
@@ -61,25 +69,25 @@ private:
     void operator=(const FComplexEigen &);
 
     // Used by eigenvalue and eigenvector routines
-    static void balance(FMatrix<std::complex<double>, N, N> &,
+    static void balance(FMatrix<complex<double>, N, N> &,
                         int &low, int &high, double scale[N]);
 
     void balbak(int low, int high, const double scale[N]);
 
-    static void exchange(FMatrix<std::complex<double>, N, N> &,
+    static void exchange(FMatrix<complex<double>, N, N> &,
                          int j, int m, int low, int high);
 
-    int hqr(FMatrix<std::complex<double>, N, N> &, int low, int high);
+    int hqr(FMatrix<complex<double>, N, N> &, int low, int high);
 
-    int hqr2(FMatrix<std::complex<double>, N, N> &, int low, int high,
-             std::complex<double> ort[N]);
+    int hqr2(FMatrix<complex<double>, N, N> &, int low, int high,
+             complex<double> ort[N]);
 
-    static void orthes(FMatrix<std::complex<double>, N, N> &, int low,
-                       int high, std::complex<double> ort[N]);
+    static void orthes(FMatrix<complex<double>, N, N> &, int low,
+                       int high, complex<double> ort[N]);
 
     // Representation of the eigenvalues and eigenvectors.
-    FVector<std::complex<double>, N>   lambda;
-    FMatrix<std::complex<double>, N, N> vectors;
+    FVector<complex<double>, N>   lambda;
+    FMatrix<complex<double>, N, N> vectors;
 };
 
 
@@ -93,8 +101,8 @@ private:
 
 
 namespace {
-    inline double abssum(std::complex<double> a) {
-        return std::abs(std::real(a)) + std::abs(std::imag(a));
+    inline double abssum(complex<double> a) {
+        return std::abs(real(a)) + std::abs(imag(a));
     }
 };
 
@@ -112,17 +120,17 @@ FComplexEigen<N>::FComplexEigen(const FComplexEigen<N> &rhs):
 
 
 template <int N>
-FComplexEigen<N>::FComplexEigen(const FMatrix<std::complex<double>, N, N> &M,
+FComplexEigen<N>::FComplexEigen(const FMatrix<complex<double>, N, N> &M,
                                 bool vec):
     lambda(), vectors() {
     for(int i = 0; i < N; ++i) vectors(i, i) = 1.0;
-    FMatrix<std::complex<double>, N, N> copy(M);
+    FMatrix<complex<double>, N, N> copy(M);
 
     int low, upp;
     double scale[N];
     balance(copy, low, upp, scale);
 
-    std::complex<double> ort[N];
+    complex<double> ort[N];
     orthes(copy, low, upp, ort);
 
     if(vec) {
@@ -148,19 +156,19 @@ FComplexEigen<N>::~FComplexEigen() {
 
 
 template <int N>
-const FVector<std::complex<double>, N> &FComplexEigen<N>::eigenValues() const {
+const FVector<complex<double>, N> &FComplexEigen<N>::eigenValues() const {
     return lambda;
 }
 
 
 template <int N>
-const FMatrix<std::complex<double>, N, N> &FComplexEigen<N>::eigenVectors() const {
+const FMatrix<complex<double>, N, N> &FComplexEigen<N>::eigenVectors() const {
     return vectors;
 }
 
 
 template <int N>
-void FComplexEigen<N>::balance(FMatrix<std::complex<double>, N, N> &copy, int &low,
+void FComplexEigen<N>::balance(FMatrix<complex<double>, N, N> &copy, int &low,
                                int &upp, double scale[N])
 // This subroutine is a translation of the Algol procedure "cbalance",
 // a complex version of "balance",
@@ -171,7 +179,7 @@ void FComplexEigen<N>::balance(FMatrix<std::complex<double>, N, N> &copy, int &l
 // whenever possible.
 //
 // On input:
-// copy       Contains the std::complex<double> matrix to be balanced.
+// copy       Contains the complex<double> matrix to be balanced.
 //
 // On output:
 // copy       Contains the balanced matrix.
@@ -193,7 +201,7 @@ void FComplexEigen<N>::balance(FMatrix<std::complex<double>, N, N> &copy, int &l
 // The order in which the interchanges are made is N - 1 to upp + 1,
 // then 0 to low - 1.
 //
-// Arithmetic is std::complex<double> throughout.
+// Arithmetic is complex<double> throughout.
 //
 {
     low = 0;
@@ -291,7 +299,7 @@ next_column:
 template <int N>
 void FComplexEigen<N>::balbak(int low, int upp, const double scale[N])
 // This subroutine is a translation of the Algol procedure cbabk2,
-// a std::complex<double> version of balbak,
+// a complex<double> version of balbak,
 // Num. Math. 13, 293-304(1969) by Parlett and Reinsch.
 // Handbook for Auto. Comp., Vol.ii-Linear Algebra, 315-326(1971).
 //
@@ -337,16 +345,16 @@ void FComplexEigen<N>::balbak(int low, int upp, const double scale[N])
 
 template <int N>
 void FComplexEigen<N>::exchange
-(FMatrix<std::complex<double>, N, N> &copy, int j, int m, int low, int upp) {
+(FMatrix<complex<double>, N, N> &copy, int j, int m, int low, int upp) {
     if(j != m) {
-        for(int i = 0; i <= upp; i++) std::swap(copy[i][j], copy[i][m]);
-        for(int i = low; i <= N; i++) std::swap(copy[j][i], copy[m][i]);
+        for(int i = 0; i <= upp; i++) swap(copy[i][j], copy[i][m]);
+        for(int i = low; i <= N; i++) swap(copy[j][i], copy[m][i]);
     }
 }
 
 
 template <int N>
-int FComplexEigen<N>::hqr(FMatrix<std::complex<double>, N, N> &h,
+int FComplexEigen<N>::hqr(FMatrix<complex<double>, N, N> &h,
                           int low, int upp)
 // This subroutine is a translation of a unitary analogue of the
 // Algol procedure  comlr, Num. Math. 12, 369-376(1968) by Martin
@@ -359,7 +367,7 @@ int FComplexEigen<N>::hqr(FMatrix<std::complex<double>, N, N> &h,
 // upper Hessenberg matrix by the QR method.
 //
 // On input:
-// h         Contains the std::complex<double> upper Hessenberg matrix.
+// h         Contains the complex<double> upper Hessenberg matrix.
 //           Its lower triangles below the subdiagonal contain
 //           information about the unitary transformations used in
 //           the reduction by  orthes, if performed.
@@ -380,15 +388,15 @@ int FComplexEigen<N>::hqr(FMatrix<std::complex<double>, N, N> &h,
 // j+1       If the limit of 30n iterations is exhausted
 //           while the j-th eigenvalue is being sought.
 {
-    std::complex<double> s, x, y, z;
+    complex<double> s, x, y, z;
 
     // Create real subdiagonal elements.
     for(int i = low + 1; i <= upp; i++) {
-        if(std::imag(h[i][i-1]) != 0.0) {
+        if(imag(h[i][i-1]) != 0.0) {
             double norm = std::abs(h[i][i-1]);
             y = h[i][i-1] / norm;
-            h[i][i-1] = std::complex<double>(norm, 0.0);
-            for(int j = i; j <= upp; j++) h[i][j] = std::conj(y) * h[i][j];
+            h[i][i-1] = complex<double>(norm, 0.0);
+            for(int j = i; j <= upp; j++) h[i][j] = conj(y) * h[i][j];
             int ll = (upp <= i) ? upp : (i + 1);
             for(int j = low; j <= ll; j++) h[j][i] = y * h[j][i];
         }
@@ -400,7 +408,7 @@ int FComplexEigen<N>::hqr(FMatrix<std::complex<double>, N, N> &h,
     }
 
     // Search for eigenvalues,
-    std::complex<double> t = 0.0;
+    complex<double> t = 0.0;
     int itn = N * 30;
 
     for(int en = upp + 1; en-- > low;) {
@@ -412,7 +420,7 @@ int FComplexEigen<N>::hqr(FMatrix<std::complex<double>, N, N> &h,
             for(l = en; l > low; l--) {
                 double tst1, tst2;
                 tst1 = abssum(h[l-1][l-1]) + abssum(h[l][l]);
-                tst2 = tst1 + std::abs(std::real(h[l][l-1]));
+                tst2 = tst1 + std::abs(real(h[l][l-1]));
                 if(tst2 == tst1) break;
             }
 
@@ -424,13 +432,13 @@ int FComplexEigen<N>::hqr(FMatrix<std::complex<double>, N, N> &h,
 
             if(its != 10  &&  its != 20) {
                 s = h[en][en];
-                x = h[en-1][en] * std::real(h[en][en-1]);
+                x = h[en-1][en] * real(h[en][en-1]);
 
                 if(x != 0.0) {
                     y = (h[en-1][en-1] - s) / 2.0;
                     z = sqrt(y * y + x);
 
-                    if(std::real(y) * std::real(z) + std::imag(y) * std::imag(z) < 0.0)
+                    if(real(y) * real(z) + imag(y) * imag(z) < 0.0)
                         z = - z;
 
                     x /= (y + z);
@@ -438,7 +446,7 @@ int FComplexEigen<N>::hqr(FMatrix<std::complex<double>, N, N> &h,
                 }
             } else {
                 // Form exceptional shift.
-                s = std::abs(std::real(h[en][en-1])) + std::abs(std::real(h[en-1][en-2]));
+                s = std::abs(real(h[en][en-1])) + std::abs(real(h[en-1][en-2]));
             }
 
             for(int i = low; i <= en; i++) h[i][i] -= s;
@@ -448,22 +456,22 @@ int FComplexEigen<N>::hqr(FMatrix<std::complex<double>, N, N> &h,
 
             // Reduce to triangle (rows).
             for(int i = l + 1; i <= en; i++) {
-                double sr = std::real(h[i][i-1]);
+                double sr = real(h[i][i-1]);
                 double norm = hypot(std::abs(h[i-1][i-1]), sr);
                 lambda[i-1] = x = h[i-1][i-1] / norm;
                 h[i-1][i-1] = norm;
                 double fi = sr / norm;
-                h[i][i-1] = std::complex<double>(0.0, fi);
+                h[i][i-1] = complex<double>(0.0, fi);
 
                 for(int j = i; j <= en; j++) {
                     y = h[i-1][j];
                     z = h[i][j];
-                    h[i-1][j] = std::conj(x) * y + fi * z;
+                    h[i-1][j] = conj(x) * y + fi * z;
                     h[i][j]   = x * z       - fi * y;
                 }
             }
 
-            double si = std::imag(h[en][en]);
+            double si = imag(h[en][en]);
 
             if(si != 0.0) {
                 double norm = std::abs(h[en][en]);
@@ -473,20 +481,20 @@ int FComplexEigen<N>::hqr(FMatrix<std::complex<double>, N, N> &h,
 
             // Inverse operation (columns).
             for(int j = l + 1; j <= en; j++) {
-                double fi = std::imag(h[j][j-1]);
+                double fi = imag(h[j][j-1]);
                 x = lambda[j-1];
 
                 for(int i = l; i < j; i++) {
                     y = h[i][j-1];
                     z = h[i][j];
                     h[i][j-1] = x * y       + fi * z;
-                    h[i][j]   = std::conj(x) * z - fi * y;
+                    h[i][j]   = conj(x) * z - fi * y;
                 }
 
-                double yr   = std::real(h[j][j-1]);
+                double yr   = real(h[j][j-1]);
                 z           = h[j][j];
-                h[j][j-1] = std::real(x) * yr + fi * std::real(z);
-                h[j][j]   = std::conj(x) * z  - fi * yr;
+                h[j][j-1] = real(x) * yr + fi * real(z);
+                h[j][j]   = conj(x) * z  - fi * yr;
             }
 
             if(si != 0.0) {
@@ -504,8 +512,8 @@ int FComplexEigen<N>::hqr(FMatrix<std::complex<double>, N, N> &h,
 
 
 template <int N>
-int FComplexEigen<N>::hqr2(FMatrix<std::complex<double>, N, N> &h, int low,
-                           int upp, std::complex<double> ort[N])
+int FComplexEigen<N>::hqr2(FMatrix<complex<double>, N, N> &h, int low,
+                           int upp, complex<double> ort[N])
 // This subroutine is a translation of a unitary analogue of the
 // Algol procedure  comlr2, Num. Math. 16, 181-204(1970) by Peters
 // and Wilkinson.
@@ -514,13 +522,13 @@ int FComplexEigen<N>::hqr2(FMatrix<std::complex<double>, N, N> &h, int low,
 // (Comp. Jour. 4, 332-345(1962)) for the LR algorithm.
 //
 // This subroutine finds the eigenvalues and eigenvectors
-// of a std::complex<double> upper Hessenberg matrix by the qr
-// method.  The eigenvectors of a std::complex<double> general matrix
+// of a complex<double> upper Hessenberg matrix by the qr
+// method.  The eigenvectors of a complex<double> general matrix
 // can also be found if  orthes  has been used to reduce
 // this general matrix to Hessenberg form.
 //
 // On input:
-// h         Contains the std::complex<double> upper Hessenberg matrix.
+// h         Contains the complex<double> upper Hessenberg matrix.
 //           Its lower triangle below the subdiagonal contains further
 //           information about the transformations which were used in the
 //           reduction by  orthes, if performed.  If the eigenvectors of
@@ -551,21 +559,21 @@ int FComplexEigen<N>::hqr2(FMatrix<std::complex<double>, N, N> &h, int low,
 // j+1       If the limit of 30n iterations is exhausted
 //           while the j-th eigenvalue is being sought.
 {
-    std::complex<double> s, x, y, z;
+    complex<double> s, x, y, z;
 
     // Form the matrix of accumulated transformations from the information
     // left by "orthes".
     for(int i = upp - 1; i > low; i--) {
         if(ort[i] != 0.0  &&  h[i][i-1] != 0.0) {
             // Norm below is negative of h formed in orthes
-            double norm = std::real(h[i][i-1]) * std::real(ort[i]) +
-                          std::imag(h[i][i-1]) * std::imag(ort[i]);
+            double norm = real(h[i][i-1]) * real(ort[i]) +
+                          imag(h[i][i-1]) * imag(ort[i]);
 
             for(int k = i + 1; k <= upp; k++) ort[k] = h[k][i-1];
 
             for(int j = i; j <= upp; j++) {
                 s = 0.0;
-                for(int k = i; k <= upp; k++) s += std::conj(ort[k]) * vectors[k][j];
+                for(int k = i; k <= upp; k++) s += conj(ort[k]) * vectors[k][j];
                 s /= norm;
                 for(int k = i; k <= upp; k++) vectors[k][j] += s * ort[k];
             }
@@ -574,11 +582,11 @@ int FComplexEigen<N>::hqr2(FMatrix<std::complex<double>, N, N> &h, int low,
 
     // Create real subdiagonal elements.
     for(int i = low + 1; i <= upp; i++) {
-        if(std::imag(h[i][i-1]) != 0.0) {
+        if(imag(h[i][i-1]) != 0.0) {
             double norm = std::abs(h[i][i-1]);
             y = h[i][i-1] / norm;
             h[i][i-1] = norm;
-            for(int j = i; j < N; j++) h[i][j] = std::conj(y) * h[i][j];
+            for(int j = i; j < N; j++) h[i][j] = conj(y) * h[i][j];
             int ll = (upp <= i) ? upp : (i + 1);
             for(int j = 0; j <= ll; j++) h[j][i] = y * h[j][i];
             for(int j = low; j <= upp; j++) vectors[j][i] = y * vectors[j][i];
@@ -590,7 +598,7 @@ int FComplexEigen<N>::hqr2(FMatrix<std::complex<double>, N, N> &h, int low,
         if(i < low  ||  i > upp) lambda[i] = h[i][i];
     }
 
-    std::complex<double> t = 0.0;
+    complex<double> t = 0.0;
     int itn = N * 30;
 
     // Search for eigenvalues.
@@ -603,7 +611,7 @@ int FComplexEigen<N>::hqr2(FMatrix<std::complex<double>, N, N> &h, int low,
             for(l = en; l > low; l--) {
                 double tst1, tst2;
                 tst1 = abssum(h[l-1][l-1]) + abssum(h[l][l]);
-                tst2 = tst1 + std::abs(std::real(h[l][l-1]));
+                tst2 = tst1 + std::abs(real(h[l][l-1]));
                 if(tst2 == tst1) break;
             }
 
@@ -615,13 +623,13 @@ int FComplexEigen<N>::hqr2(FMatrix<std::complex<double>, N, N> &h, int low,
             if(its != 10  &&  its != 20) {
                 // Form shift.
                 s = h[en][en];
-                x = h[en-1][en] * std::real(h[en][en-1]);
+                x = h[en-1][en] * real(h[en][en-1]);
 
                 if(x != 0.0) {
                     y = (h[en-1][en-1] - s) / 2.0;
                     z = sqrt(y * y + x);
 
-                    if(std::real(y) * std::real(z) + std::imag(y) * std::imag(z) < 0.0)
+                    if(real(y) * real(z) + imag(y) * imag(z) < 0.0)
                         z = - z;
 
                     x /= (y + z);
@@ -629,7 +637,7 @@ int FComplexEigen<N>::hqr2(FMatrix<std::complex<double>, N, N> &h, int low,
                 }
             } else {
                 // Form exceptional shift.
-                s = std::abs(std::real(h[en][en-1])) + std::abs(std::real(h[en-1][en-2]));
+                s = std::abs(real(h[en][en-1])) + std::abs(real(h[en-1][en-2]));
             }
 
             for(int i = low; i <= en; i++) h[i][i] -= s;
@@ -639,52 +647,52 @@ int FComplexEigen<N>::hqr2(FMatrix<std::complex<double>, N, N> &h, int low,
 
             // Reduce to triangle (rows).
             for(int i = l + 1; i <= en; i++) {
-                double sr = std::real(h[i][i-1]);
+                double sr = real(h[i][i-1]);
                 double norm = hypot(std::abs(h[i-1][i-1]), sr);
                 lambda[i-1] = x = h[i-1][i-1] / norm;
                 h[i-1][i-1] = norm;
                 double fi = sr / norm;
-                h[i][i-1] = std::complex<double>(0.0, fi);
+                h[i][i-1] = complex<double>(0.0, fi);
 
                 for(int j = i; j < N; j++) {
                     y = h[i-1][j];
                     z = h[i][j];
-                    h[i-1][j] = std::conj(x) * y + fi * z;
+                    h[i-1][j] = conj(x) * y + fi * z;
                     h[i][j]   = x       * z - fi * y;
                 }
             }
 
-            double si = std::imag(h[en][en]);
+            double si = imag(h[en][en]);
 
             if(si != 0.0) {
                 double norm = std::abs(h[en][en]);
                 s = h[en][en] / norm;
                 h[en][en] = norm;
-                for(int j = en + 1; j < N; j++) h[en][j] *= std::conj(s);
+                for(int j = en + 1; j < N; j++) h[en][j] *= conj(s);
             }
 
             // Inverse operation (columns).
             for(int j = l + 1; j <= en; j++) {
                 x = lambda[j-1];
-                double fi = std::imag(h[j][j-1]);
+                double fi = imag(h[j][j-1]);
 
                 for(int i = 0; i < j; i++) {
                     y = h[i][j-1];
                     z = h[i][j];
                     h[i][j-1] = x       * y + fi * z;
-                    h[i][j]   = std::conj(x) * z - fi * y;
+                    h[i][j]   = conj(x) * z - fi * y;
                 }
 
-                double yr   = std::real(h[j][j-1]);
+                double yr   = real(h[j][j-1]);
                 z           = h[j][j];
-                h[j][j-1] = std::real(x) * yr + fi * std::real(z);
-                h[j][j]   = std::conj(x) * z  - fi * yr;
+                h[j][j-1] = real(x) * yr + fi * real(z);
+                h[j][j]   = conj(x) * z  - fi * yr;
 
                 for(int i = low; i <= upp; i++) {
                     y = vectors[i][j-1];
                     z = vectors[i][j];
                     vectors[i][j-1] = x       * y + fi * z;
-                    vectors[i][j]   = std::conj(x) * z - fi * y;
+                    vectors[i][j]   = conj(x) * z - fi * y;
                 }
             }
 
@@ -772,20 +780,20 @@ int FComplexEigen<N>::hqr2(FMatrix<std::complex<double>, N, N> &h, int low,
 
 
 template <int N>
-void FComplexEigen<N>::orthes(FMatrix<std::complex<double>, N, N> &copy, int low,
-                              int upp, std::complex<double> ort[N])
-// This subroutine is a translation of a std::complex<double> analogue of
+void FComplexEigen<N>::orthes(FMatrix<complex<double>, N, N> &copy, int low,
+                              int upp, complex<double> ort[N])
+// This subroutine is a translation of a complex<double> analogue of
 // the Algol procedure orthes, Num. Math. 12, 349-368(1968)
 // by Martin and Wilkinson.
 // Handbook for Auto. Comp., Vol.ii-Linear Algebra, 339-358(1971).
 //
-// Given a std::complex<double> general matrix, this subroutine
+// Given a complex<double> general matrix, this subroutine
 // reduces a submatrix situated in rows and columns
 // low through upp to upper Hessenberg form by
 // unitary similarity transformations.
 //
 // On input:
-// copy      Contains the std::complex<double> input matrix.
+// copy      Contains the complex<double> input matrix.
 //
 // low, upp  Are integers determined by the balancing subroutine "balance".
 //           if  "balance"  has not been used, set low=1, upp=n.
@@ -809,7 +817,7 @@ void FComplexEigen<N>::orthes(FMatrix<std::complex<double>, N, N> &copy, int low
         if(scale != 0.0) {
             for(int i = upp + 1; i-- > m;) {
                 ort[i] = copy[i][m-1] / scale;
-                h += std::norm(ort[i]);
+                h += norm(ort[i]);
             }
 
             double g = sqrt(h);
@@ -826,18 +834,18 @@ void FComplexEigen<N>::orthes(FMatrix<std::complex<double>, N, N> &copy, int low
 
             // Form (I - (u*ut)/h) * A.
             for(int j = m; j < N; j++) {
-                std::complex<double> f = 0.0;
-                for(int i = upp + 1; i-- > m;) f += std::conj(ort[i]) * copy[i][j];
+                complex<double> f = 0.0;
+                for(int i = upp + 1; i-- > m;) f += conj(ort[i]) * copy[i][j];
                 f /= h;
                 for(int i = m; i <= upp; i++) copy[i][j] -= f * ort[i];
             }
 
             // Form (I - (u*ut)/h) * A * (I - (u*ut)/h).
             for(int i = 0; i <= upp; i++) {
-                std::complex<double> f = 0.0;
+                complex<double> f = 0.0;
                 for(int j = upp + 1; j-- > m;) f += ort[j] * copy[i][j];
                 f /= h;
-                for(int j = m; j <= upp; j++) copy[i][j] -= f * std::conj(ort[j]);
+                for(int j = m; j <= upp; j++) copy[i][j] -= f * conj(ort[j]);
             }
 
             ort[m] *= scale;
