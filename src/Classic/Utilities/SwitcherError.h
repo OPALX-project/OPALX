@@ -6,7 +6,7 @@
 class SwitcherError:public ClassicException
 {
 public:
-    SwitcherError(const std::string &meth, const std::string &msg);
+    SwitcherError(const string &meth, const string &msg);
 
     SwitcherError(const SwitcherError &);
     virtual ~SwitcherError();
@@ -14,7 +14,7 @@ public:
 private:
 
     // Not implemented.
-    SwitcherError();
+    SwitcherError();    
 };
 
 #endif

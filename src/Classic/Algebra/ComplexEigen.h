@@ -24,12 +24,14 @@
 #include "Algebra/Vector.h"
 #include <complex>
 
+using std::complex;
+
 
 // Class ComplexEigen
 // ------------------------------------------------------------------------
 /// Complex eigenvector routines.
 //  Representation of eigenvalues and eigenvectors
-//  for a matrix of type Matrix<std::complex<double> >.
+//  for a matrix of type Matrix<complex<double> >.
 
 class ComplexEigen {
 
@@ -38,7 +40,7 @@ public:
     /// Constructor.
     //  Construct the vector of eigenvalues for the matrix [b]M[/b].
     //  If [b]vec[/b] is true, the matrix of eigenvectors is also built.
-    ComplexEigen(const Matrix<std::complex<double> > &m, bool vec = false);
+    ComplexEigen(const Matrix<complex<double> > &m, bool vec = false);
 
     ComplexEigen();
     ComplexEigen(const ComplexEigen &);
@@ -46,11 +48,11 @@ public:
 
     /// Get eigenvalues.
     //  Return the eigenvalues as a complex vector.
-    const Vector<std::complex<double> > &eigenValues() const;
+    const Vector<complex<double> > &eigenValues() const;
 
     /// Get eigenvectors.
     //  Return the eigenvectors as the column vectors of a complex matrix.
-    const Matrix<std::complex<double> > &eigenVectors() const;
+    const Matrix<complex<double> > &eigenVectors() const;
 
 private:
 
@@ -59,24 +61,24 @@ private:
 
     // Used by eigenvalue and eigenvector routines
     static void balance
-    (Matrix<std::complex<double> > &, int &low, int &high, Array1D<double> &);
+    (Matrix<complex<double> > &, int &low, int &high, Array1D<double> &);
 
     void balbak(int low, int high, const Array1D<double> &scale);
 
-    static void exchange(Matrix<std::complex<double> > &, int j, int m,
+    static void exchange(Matrix<complex<double> > &, int j, int m,
                          int low, int high);
 
-    int hqr(Matrix<std::complex<double> > &, int low, int high);
+    int hqr(Matrix<complex<double> > &, int low, int high);
 
-    int hqr2(Matrix<std::complex<double> > &, int low, int high,
-             Array1D<std::complex<double> > &ort);
+    int hqr2(Matrix<complex<double> > &, int low, int high,
+             Array1D<complex<double> > &ort);
 
-    static void orthes(Matrix<std::complex<double> > &, int low, int high,
-                       Array1D<std::complex<double> > &ort);
+    static void orthes(Matrix<complex<double> > &, int low, int high,
+                       Array1D<complex<double> > &ort);
 
     // Representation of the eigenvalues and eigenvectors.
-    Vector<std::complex<double> > lambda;
-    Matrix<std::complex<double> > vectors;
+    Vector<complex<double> > lambda;
+    Matrix<complex<double> > vectors;
 };
 
 #endif // CLASSIC_ComplexEigen_HH
