@@ -41,7 +41,7 @@ protected:
     // [DT][b]msg [/b]
     // [DD]the message string identifying the exception
     // [/DL]
-    ArithmeticError(const std::string &meth, const std::string &msg);
+    ArithmeticError(const string &meth, const string &msg);
 
     ArithmeticError(const ArithmeticError &);
     virtual ~ArithmeticError();
