@@ -20,8 +20,10 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Algebra/Vector.h"
 #include "Algebra/VpsInvMap.h"
+
+template <class T> class Vector;
+
 
 // Class DynamicFixedPoint
 // ------------------------------------------------------------------------
