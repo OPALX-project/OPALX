@@ -432,7 +432,7 @@ factorBerzForestIrwin(const FTps<double, 2 * N> &HH) {
     FMatrix<double, 2 * N, 2 * N> M = makeMatrix(H_2);
 
     // Eigenvalues and eigenvectors of M.
-    FVector<std::complex<double>, 2 * N> mu; // eigenvalues
+    FVector<complex<double>, 2 * N> mu; // eigenvalues
     FMatrix<double, 2 * N, 2 * N> V;   // eigenvectors
     FMatrix<double, 2 * N, 2 * N> V_inv; // inverse of V
     {
@@ -515,7 +515,7 @@ factorBerzForestIrwin(const FTps<double, 2 * N> &HH) {
 
         for(int m = f.getBottomIndex(); m < f.getTopIndex(); m++) {
             const FMonomial<2 * N> &index = FTpsData<2 * N>::getExponents(m);
-            std::complex<double> factor = 0.0;
+            complex<double> factor = 0.0;
             int count = 0;
 
             for(int j = 0; j < 2 * modes; j += 2) {
@@ -1084,7 +1084,7 @@ catenateZero(const DragtFinnMap<N> &g) const {
     h.assign(g_mat * f_mat);
 
     // Extract the generators.
-    int order = std::max(getOrder(), g.getOrder());
+    int order = max(getOrder(), g.getOrder());
     FMatrix<double, 2 * N, 2 * N> g_inv = FLUMatrix<double, 2 * N>(g_mat).inverse();
     FTps<double, 2 * N> f_gen =
         itsGenerators.filter(2, itsGenerators.getMaxOrder()).substitute(g_inv)
@@ -1355,12 +1355,12 @@ move_g_1(DragtFinnMap<N> &f, DragtFinnMap<N> &g) {
 
 template <int N>
 int DragtFinnMap<N>::
-orderModes(FMatrix<double, 2 * N, 2 * N> &V, FVector<std::complex<double>, 2 * N> &mu) {
+orderModes(FMatrix<double, 2 * N, 2 * N> &V, FVector<complex<double>, 2 * N> &mu) {
     // Static constant.
     static const double tol = 1.0e-12;
 
     FMatrix<double, 2 * N, 2 * N>      tmat(V);
-    FVector<std::complex<double>, 2 * N> tmu(mu);
+    FVector<complex<double>, 2 * N> tmu(mu);
     int nDim = 2 * N;
     int n_c = 0;
     int n_r = 0;
