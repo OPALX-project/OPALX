@@ -42,5 +42,5 @@ set (HDRS
     VpsMap.h
 )
 
-install (FILES ${_HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Algebra")
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Algebra")
 install (FILES ${_SRCS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Algebra")
