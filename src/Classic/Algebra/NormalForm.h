@@ -24,6 +24,8 @@
 #include "Algebra/VpsInvMap.h"
 #include <complex>
 
+using std::complex;
+
 
 // Class NormalForm
 // ------------------------------------------------------------------------
@@ -61,7 +63,7 @@ public:
 
     /// Get eigenvalues.
     //  Return the eigenvalues of the linear part as a complex vector.
-    const Vector<std::complex<double> > &eigenValues() const;
+    const Vector<complex<double> > &eigenValues() const;
 
     /// Get eigenvectors.
     //  Return the eigenvectors of the linear part in packed form.
@@ -78,7 +80,7 @@ public:
 protected:
 
     // Order the modes of the map and associate them to the planes.
-    void orderModes(Vector<std::complex<double> >, Matrix<double>);
+    void orderModes(Vector<complex<double> >, Matrix<double>);
 
 private:
 
@@ -100,7 +102,7 @@ private:
     Tps<double> N_Lie;
 
     // The vector of eigenvalues.
-    Vector<std::complex<double> > lambda;
+    Vector<complex<double> > lambda;
 
     // The matrix of eigenvectors.
     Matrix<double> V;
