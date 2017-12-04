@@ -20,13 +20,13 @@
 //
 // ------------------------------------------------------------------------
 
-#include "FixedAlgebra/TransportFun.h"
-
 #include <iosfwd>
 
 template <class T, int M, int N> class FMatrix;
 template <class T, int N> class FVector;
 template <class T, int N> class FVps;
+template <class T, int N> class TransportFun;
+
 
 // Template class TransportMap<T,N>
 // ------------------------------------------------------------------------
@@ -217,6 +217,6 @@ operator-(const FVector<T, N> &lhs, const TransportMap<T, N> &rhs);
 
 
 // Implementation.
-#include <FixedAlgebra/TransportMap.hpp>
+#include "FixedAlgebra/TransportMap.cpp"
 
 #endif // CLASSIC_TransportMap_HH
