@@ -41,7 +41,7 @@ public:
     // [DT][b]msg [/b]
     // [DD]the message string identifying the exception
     // [/DL]
-    NormalFormError(const std::string &meth, const std::string &msg);
+    NormalFormError(const string &meth, const string &msg);
 
     NormalFormError(const NormalFormError &);
     virtual ~NormalFormError();
