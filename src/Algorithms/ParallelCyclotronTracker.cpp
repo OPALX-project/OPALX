@@ -53,6 +53,7 @@
 
 #include "AbstractObjects/Element.h"
 
+#include "Beamlines/FlaggedBeamline.h"
 #include "Elements/OpalBeamline.h"
 #include "AbsBeamline/Ring.h"
 
@@ -1089,7 +1090,8 @@ void ParallelCyclotronTracker::buildupFieldList(double BcParameter[], std::strin
  * @param bl
  */
 void ParallelCyclotronTracker::visitBeamline(const Beamline &bl) {
-    itsBeamline->iterate(*dynamic_cast<BeamlineVisitor *>(this), false);
+    const FlaggedBeamline* fbl = static_cast<const FlaggedBeamline*>(&bl);
+    fbl->iterate(*this, false);
 }
 
 void ParallelCyclotronTracker::checkNumPart(std::string s) {
@@ -3606,7 +3608,7 @@ void ParallelCyclotronTracker::Tracker_Generic() {
 
             if((((step_m + 1) % Options::statDumpFreq == 0) && initialTotalNum_m != 2)
                 || (doDumpAfterEachTurn && dumpEachTurn && initialTotalNum_m != 2)) {
-	      
+
 	      // Write statistics data to stat file
 	      bunchDumpStatData();
             }
@@ -5487,7 +5489,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     if (Options::psDumpFreq < std::numeric_limits<int>::max() ){
         if (Options::psDumpFrame == Options::GLOBAL) {
             FDext_m[0] = extB_m * 0.1; // kgauss --> T
-            FDext_m[1] = extE_m;	
+            FDext_m[1] = extE_m;
             lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(*itsBunch, // Global and in m
                                                              FDext_m, E,
                                                              referencePr,
@@ -5501,7 +5503,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
                                                              psi / PIOVER180, // P_mean elevation
 							                      // at ref. R/Th/Z
                                                              false);          // Flag localFrame
-	    
+
             // Tell user in which mode we are dumping
             *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
                   << " (global frame) at integration step " << step_m + 1 << endl;
