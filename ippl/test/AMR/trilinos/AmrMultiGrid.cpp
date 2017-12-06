@@ -45,7 +45,7 @@ AmrMultiGrid::AmrMultiGrid(Boundary bc,
     bBc_m = IpplTimings::getTimer("build-bcrse");
     bG_m  = IpplTimings::getTimer("build-grad");
     bBffill_m = IpplTimings::getTimer("fill-bfine");
-    bBcfill_m = IpplTimings::getTimer("fill-bcrse");
+    bSmoother_m = IpplTimings::getTimer("build-smoother");
 
 #endif
     
@@ -165,24 +165,6 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
 	mglevel_m[lev]->refmask->copy(refined, 0, 0, 1, 0, 2);
 	mglevel_m[lev]->refmask->FillBoundary(false);
     }
-
-//    /* and the mask of coarsened cells
-//     */
-/*
-    for (int lev = 1; lev < nlevel_m; ++lev) {
-	// get boxarray with coarsened cells
-	amrex::BoxArray ba = mglevel_m[lev]->grids;
-	ba.coarsen(mglevel_m[lev]->refinement());
-	ba = amrex::intersect(mglevel_m[lev]->crsemask->boxArray(), ba);
-	
-	amrex::DistributionMapping dmap(ba, Ippl::getNodes());
-	AmrMultiGridLevel_t::mask_t refined(ba, dmap, 1, 0);
-        refined.setVal(AmrMultiGridLevel_t::Refined::YES);
-
-	// fill intersection with YES
-        mglevel_m[lev]->crsemask->copy(refined);
-    }
-*/
 }
 
 
@@ -540,34 +522,7 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
         // find all coarse cells that are covered by fine cells
         AmrIntVect_t rr = mglevel_m[lev]->refinement();
         
-        amrex::BoxArray this_fine_ba;   // empty
-        
-        if ( lev < lfine_m ) {
-            this_fine_ba = mglevel_m[lev]->grids;
-            this_fine_ba.refine(rr);
-            this_fine_ba = amrex::intersect(mglevel_m[lev+1]->grids, this_fine_ba);
-            this_fine_ba.coarsen(rr);
-        }
-        
-        
-        /* Find all fine cells that are at the crse-fine interface
-         * 
-         * Put them into a map (to avoid duplicates, e.g. due to corners).
-         * Finally, iterate through the list of cells
-         */
-        // std::list<std::pair<int, int> > contains the shift and direction to come to the fine cell
-        // not part of the box array
-        map_t cells_fine;
-        
-        /* Find all coarse cells that are at the crse-fine interface but are
-         * not refined.
-         * Put them into a map (to avoid duplicates, e.g. due to corners).
-         * Finally, iterate through the list of cells
-         */
-        // std::list<std::pair<int, int> > contains the shift and direction to come to the covered cell
-        map_t cells_crse;
-        
-        for (amrex::MFIter mfi(*mglevel_m[lev]->mask, true);
+	for (amrex::MFIter mfi(*mglevel_m[lev]->mask, true);
              mfi.isValid(); ++mfi)
         {
             const box_t&       tbx = mfi.tilebox();
@@ -603,7 +558,7 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
 			IpplTimings::stopTimer(bBc_m);
 
 			IpplTimings::startTimer(bBf_m);
-                        this->buildFineBoundaryMatrix_m(iv, cells_crse, this_fine_ba, lev);
+			this->buildFineBoundaryMatrix_m(iv, mfab, rfab, cfab, lev);
 			IpplTimings::stopTimer(bBf_m);
 
 			IpplTimings::startTimer(bPoiss_m);
@@ -611,7 +566,7 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
 			IpplTimings::stopTimer(bPoiss_m);
 
 			IpplTimings::startTimer(bCompo_m);
-                        this->buildCompositePoissonMatrix_m(iv, mfab, rfab, cfab, this_fine_ba, lev);
+                        this->buildCompositePoissonMatrix_m(iv, mfab, rfab, cfab, lev);
 			IpplTimings::stopTimer(bCompo_m);
 
 			IpplTimings::startTimer(bG_m);
@@ -625,28 +580,15 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
                 }
             }
         }
-        
-        //if ( lev > lbase_m ) {
-//          amrex::BoxArray crse_this_ba = mglevel_m[lev-1]->grids;
-	    //           crse_this_ba.refine(rr);
-	    //     crse_this_ba = amrex::intersect(mglevel_m[lev]->grids, crse_this_ba);
-	    // crse_this_ba.coarsen(rr);
-            
-	  IpplTimings::startTimer(bBcfill_m);
-//	  this->fillCrseBoundaryMatrix_m(cells_fine, lev);
-	  IpplTimings::stopTimer(bBcfill_m);
-	  //}
-        
-	IpplTimings::startTimer(bBffill_m);
-        this->fillFineBoundaryMatrix_m(cells_crse, this_fine_ba, lev);
-	IpplTimings::stopTimer(bBffill_m);
-        
+                
         this->close_m(lev, matrices);
         
+	IpplTimings::startTimer(bSmoother_m);
         if ( lev > lbase_m ) {
             smoother_m[lev-1].reset( new AmrSmoother(mglevel_m[lev]->Anf_p,
                                                      smootherType_m, nSweeps_m) );
         }
+	IpplTimings::stopTimer(bSmoother_m);
     }
     
     if ( matrices ) {
@@ -898,7 +840,6 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
                                                  const basefab_t& mfab,
 						 const basefab_t& rfab,
 						 const basefab_t& cfab,
-                                                 const boxarray_t& crse_fine_ba,
                                                  int level)
 {
     /*
@@ -984,7 +925,7 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
 		    
 		    /* Dirichlet boundary conditions from coarser level.
 		     */
-		    interface_mp->fine(biv, map, idx2[d], d, -shift, crse_fine_ba,
+		    interface_mp->fine(biv, map, idx2[d], d, -shift, amrex::BoxArray(),
 				       mglevel_m[level].get());
 		    
 		    // add center once
@@ -1283,8 +1224,11 @@ void AmrMultiGrid::fillCrseBoundaryMatrix_m(map_t& cells,
 
 
 void AmrMultiGrid::buildFineBoundaryMatrix_m(const AmrIntVect_t& iv,
-                                             map_t& cells,
-                                             const boxarray_t& crse_fine_ba,
+					     const basefab_t& mfab,
+					     const basefab_t& rfab,
+					     const basefab_t& cfab,
+					     //                 map_t& cells,
+                                             //const boxarray_t& crse_fine_ba,
                                              int level)
 {
     /* fine: level + 1
@@ -1292,50 +1236,15 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(const AmrIntVect_t& iv,
      */
     
     // the finest level does not need data from a finer level
-    if ( level == lfine_m )
+    if ( rfab(iv) == AmrMultiGridLevel_t::Refined::YES || level == lfine_m )
         return;
     
-    if ( !crse_fine_ba.contains(iv) /*&& mfab(iv) != 2 not physical bc*/ ) {
-        /*
-         * iv is a coarse cell that got not refined
-         * 
-         * --> check all neighbours to see if at crse-fine
-         * interface
-         */
-        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-            for (int shift = -1; shift <= 1; shift += 2) {
-                // neighbour
-                AmrIntVect_t covered = iv;
-                covered[d] += shift;
-                
-                if ( crse_fine_ba.contains(covered) &&
-                     !mglevel_m[level]->isBoundary(covered) /*not physical bc*/ )
-                {
-                    // neighbour is covered by fine cells
-                    
-                    // insert if not yet exists
-                    cells[iv].push_back(std::make_pair(shift, d));
-                }
-            }
-        }
-    }
-}
-    
-    
-void AmrMultiGrid::fillFineBoundaryMatrix_m(map_t& cells,
-                                            const boxarray_t& crse_fine_ba,
-                                            int level)
-{
-    // the finest level does not need data from a finer level
-    if ( level == lfine_m )
-        return;
+    const scalar_t* cdx = mglevel_m[level]->geom.CellSize();
+    const scalar_t* fdx = mglevel_m[level+1]->geom.CellSize();
     
     umap_t map;
     indices_t indices;
     coefficients_t values;
-    
-    const scalar_t* cdx = mglevel_m[level]->geom.CellSize();
-    const scalar_t* fdx = mglevel_m[level+1]->geom.CellSize();
     
     auto fill = [&](umap_t& map,
                     D_DECL(int ii, int jj, int kk),
@@ -1345,8 +1254,8 @@ void AmrMultiGrid::fillFineBoundaryMatrix_m(map_t& cells,
     {
         // number of fine cell gradients
         scalar_t avg = AMREX_D_PICK(1, 2, 4);
-        
-        for (int iref = ii - begin[0]; iref <= ii + end[0]; ++iref) {
+	
+	for (int iref = ii - begin[0]; iref <= ii + end[0]; ++iref) {
             for (int jref = jj - begin[1]; jref <= jj + end[1]; ++jref) {
 #if AMREX_SPACEDIM == 3
                 for (int kref = kk - begin[2]; kref <= kk + end[2]; ++kref) {
@@ -1355,18 +1264,18 @@ void AmrMultiGrid::fillFineBoundaryMatrix_m(map_t& cells,
                      * outside of the "domain" --> we need to interpolate
                      */
                     AmrIntVect_t riv(D_DECL(iref, jref, kref));
-                    
+		    
                     if ( riv[d] / 2 /*refinement*/ == iv[d] ) {
                         /* the fine cell is on the coarse side --> fine
                          * ghost cell --> we need to interpolate
                          */
                         scalar_t value = -1.0 / ( avg * cdx[d] * fdx[d] );
-                        
-                        interface_mp->fine(riv, map, value, d, shift, crse_fine_ba,
+			
+			interface_mp->fine(riv, map, value, d, shift, amrex::BoxArray(),
                                            mglevel_m[level+1].get());
                     } else {
                         scalar_t value = 1.0 / ( avg * cdx[d] * fdx[d] );
-			map[mglevel_m[level+1]->serialize(riv)] += value;
+                        map[mglevel_m[level+1]->serialize(riv)] += value;
                     }
 #if AMREX_SPACEDIM == 3
                 }
@@ -1375,82 +1284,87 @@ void AmrMultiGrid::fillFineBoundaryMatrix_m(map_t& cells,
         }
     };
     
-    for (map_t::iterator it = cells.begin(); it != cells.end(); ++it) {
-        // not covered coarse cell at crse-fine interface
-        AmrIntVect_t iv = it->first;
-        int globalidx = mglevel_m[level]->serialize(iv);
-        
-        indices.clear();
-        values.clear();
-        
-        while ( !it->second.empty() ) {
-            /*
-             * "shift" is the amount of is a coarse cell that got refined
-             * "d" is the direction to shift
-             * 
-             * --> check all covered neighbour cells
-             */
-            int shift = it->second.front().first;
-            int d     = it->second.front().second;
-            it->second.pop_front();
-            
-            
-            /* we need to iterate over correct fine cells. It depends
-             * on the orientation of the interface
-             */
-            int begin[AMREX_SPACEDIM] = { D_DECL( int(d == 0), int(d == 1), int(d == 2) ) };
-            int end[AMREX_SPACEDIM]   = { D_DECL( int(d != 0), int(d != 1), int(d != 2) ) };
-            
-            // neighbour
-            AmrIntVect_t covered = iv;
-            covered[d] += shift;
-                    
-            /*
-             * neighbour cell got refined but is not on physical boundary
-             * --> we are at a crse-fine interface
-             * 
-             * we need now to find out which fine cells
-             * are required to satisfy the flux matching
-             * condition
-             */
-            
-            switch ( shift ) {
-                case -1:
-                {
-                    // --> interface is on the lower face
-                    int ii = iv[0] * 2; // refinemet in x
-                    int jj = iv[1] * 2; // refinemet in y
+    
+    /*
+     * iv is a coarse cell that got not refined
+     * 
+     * --> check all neighbours to see if at crse-fine
+     * interface
+     */
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+	for (int shift = -1; shift <= 1; shift += 2) {
+	    // neighbour
+	    AmrIntVect_t covered = iv;
+	    covered[d] += shift;
+                
+	    if ( rfab(covered) == AmrMultiGridLevel_t::Refined::YES &&
+		 mfab(covered) != AmrMultiGridLevel_t::PHYSBNDRY )
+	    {
+		// neighbour is covered by fine cells
+                
+		/*
+		 * "shift" is the amount of is a coarse cell that got refined
+		 * "d" is the direction to shift
+		 *
+		 * --> check all covered neighbour cells
+		 */
+		
+		/* we need to iterate over correct fine cells. It depends
+		 * on the orientation of the interface
+		 */
+		int begin[AMREX_SPACEDIM] = { D_DECL( int(d == 0), int(d == 1), int(d == 2) ) };
+		int end[AMREX_SPACEDIM]   = { D_DECL( int(d != 0), int(d != 1), int(d != 2) ) };
+		
+		/*
+		 * neighbour cell got refined but is not on physical boundary
+		 * --> we are at a crse-fine interface
+		 *
+		 * we need now to find out which fine cells
+		 * are required to satisfy the flux matching
+		 * condition
+		 */
+		
+		switch ( shift ) {
+		    case -1:
+		    {
+			// --> interface is on the lower face
+			int ii = iv[0] << 1; // refinemet in x
+			int jj = iv[1] << 1; // refinemet in y
 #if AMREX_SPACEDIM == 3
-                    int kk = iv[2] * 2; // refinemet in z
+			int kk = iv[2] << 1; // refinemet in z
 #endif
-                    // iterate over all fine cells at the interface
-                    // start with lower cells --> cover coarse neighbour
-                    // cell
-                    fill(map, D_DECL(ii, jj, kk), &begin[0], &end[0], d, iv, shift, 1.0);
-                    break;
-                }
-                case 1:
-                default:
-                {
-                    // --> interface is on the upper face
-                    int ii = covered[0] * 2; // refinemet in x
-                    int jj = covered[1] * 2; // refinemet in y
+			// iterate over all fine cells at the interface
+			// start with lower cells --> cover coarse neighbour
+			// cell
+			fill(map, D_DECL(ii, jj, kk), &begin[0], &end[0], d, iv, shift, 1.0);
+			break;
+		    }
+		    case 1:
+		    default:
+		    {
+			// --> interface is on the upper face
+			int ii = covered[0] << 1; // refinemet in x
+			int jj = covered[1] << 1; // refinemet in y
 #if AMREX_SPACEDIM == 3
-                    int kk = covered[2] * 2; // refinemet in z
+			int kk = covered[2] << 1; // refinemet in z
 #endif
-                    fill(map, D_DECL(ii, jj, kk), &begin[0], &end[0], d, iv, shift, 1.0);
-                    break;
-                }
-            }
-        }
-        
-        this->map2vector_m(map, indices, values);
-        
-        mglevel_m[level]->Bfine_p->insertGlobalValues(globalidx,
-                                                      indices.size(),
-                                                      &values[0],
-                                                      &indices[0]);
+			fill(map, D_DECL(ii, jj, kk), &begin[0], &end[0], d, iv, shift, 1.0);
+			break;
+		    }
+		}
+	    }
+	}
     }
+    
+    this->map2vector_m(map, indices, values);
+    
+    // iv: not covered coarse cell at crse-fine interface
+    int globalidx = mglevel_m[level]->serialize(iv);
+    
+    mglevel_m[level]->Bfine_p->insertGlobalValues(globalidx,
+                                                  indices.size(),
+                                                  &values[0],
+                                                  &indices[0]);
 }
 
 
