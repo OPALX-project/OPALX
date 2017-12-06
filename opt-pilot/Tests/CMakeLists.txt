@@ -129,15 +129,13 @@ set (PILOT_TESTS
 set (TEST_LIBS
     gtest
     pthread
-    boost_system
-    boost_serialization
-    mpi
-    mpi_cxx
+    ${Boost_LIBRARIES}
+    ${MPI_LIBRARIES}
 )
 
 set (PYTHON_LIBS
-    ${PYTHON_LIBRARIES}
-    boost_python
+#    ${PYTHON_LIBRARIES}
+#    boost_python
 )
 
 FOREACH(test ${PILOT_TESTS})

@@ -173,7 +173,7 @@ public:
 
     /// Taylor series.
     //  Expand Taylor series with coefficiens [b]series[/b] and order one.
-    TransportFun taylor(const T series[3]) const;
+    TransportFun taylor(const T series[2]) const;
 
     /// Read TransportFun on the stream [b]is[/b].
     std::istream &get(std::istream &is);
@@ -262,7 +262,7 @@ std::ostream &operator<<(std::ostream &os, const TransportFun<T, N> &);
 
 
 // Implementation.
-#include <FixedAlgebra/TransportFun.hpp>
+#include "FixedAlgebra/TransportFun.cpp"
 #include "FixedAlgebra/TransportMap.h"
 
 #endif // CLASSIC_TransportFun_HH

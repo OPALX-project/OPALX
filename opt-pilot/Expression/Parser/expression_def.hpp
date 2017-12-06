@@ -176,7 +176,7 @@ namespace client { namespace parser
         // Error handling: on error in expr, call error_handler.
         on_error<fail>(expr,
             error_handler_function(error_handler)(
-                "Error! Expecting ", _4, _3));
+                 std::string("Error! Expecting "), _4, _3));
 
         ///////////////////////////////////////////////////////////////////////
         // Annotation: on success in primary_expr, call annotation.
@@ -184,5 +184,3 @@ namespace client { namespace parser
             annotation_function(error_handler.iters)(_val, _1));
     }
 }}
-
-
