@@ -153,7 +153,7 @@ set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
 target_link_libraries( OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${AMREX_LIBRARIES} ${OTHER_CMAKE_EXE_LINKER_FLAGS} )
 
 add_executable( opal Main.cpp )
-target_link_libraries( opal ${OPAL_LIBS} OPALib ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} -lgfortran ${AMREX_LIBRARIES} ${F_MPI} ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+target_link_libraries( opal ${OPAL_LIBS} OPALib ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES} ${F_MPI} ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
