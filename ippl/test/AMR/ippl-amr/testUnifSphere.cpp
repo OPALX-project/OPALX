@@ -814,6 +814,14 @@ void doAMReX(const param_t& params, Inform& msg)
     
     bunch->gatherStatistics();
     
+    static IpplTimings::TimerRef statisticsTimer = IpplTimings::getTimer("bunch-statistics");
+    std::string statistics = "particle-statistics-ncores-" + std::to_string(Ippl::getNodes()) + ".dat";
+    IpplTimings::startTimer(statisticsTimer);
+    bunch->dumpStatistics(statistics);
+    IpplTimings::stopTimer(statisticsTimer);
+
+    msg << "#boxes: " <<  myAmrOpal.boxArray(0).size() << endl;
+    
     doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, msg, scale, params);
     
     msg << endl << "Back to normal positions" << endl << endl;
