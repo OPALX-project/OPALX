@@ -20,11 +20,10 @@
 //
 // ------------------------------------------------------------------------
 
-#include "FixedAlgebra/LinearFun.h"
-
 #include <iosfwd>
 
 template <class T, int M, int N> class FMatrix;
+template <class T, int N> class LinearFun;
 template <class T, int N> class FVector;
 template <class T, int N> class FVps;
 
@@ -215,6 +214,6 @@ std::ostream &operator<<(std::ostream &os, const LinearMap<T, N> &vps);
 
 
 // Implementation.
-#include <FixedAlgebra/LinearMap.hpp>
+#include "FixedAlgebra/LinearMap.cpp"
 
 #endif // CLASSIC_LinearMap_HH

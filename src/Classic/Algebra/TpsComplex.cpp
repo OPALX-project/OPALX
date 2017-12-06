@@ -19,8 +19,8 @@
 //
 // ------------------------------------------------------------------------
 
-#include <Algebra/Tps.hpp>
-#include <Algebra/Vps.hpp>
+#include "Algebra/Tps.cpp"
+#include "Algebra/Vps.cpp"
 #include <complex>
 
 

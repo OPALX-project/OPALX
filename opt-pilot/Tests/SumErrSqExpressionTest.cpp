@@ -48,9 +48,9 @@ namespace {
     TEST_F(SumErrSqExpressionTest, EvaluateSumErrSqExpression) {
 
         variableDictionary_t vars;
-        double expected = (1.893993852447673e-02*1.893993852447673e-02 +
-                           1.739826974864265e-02*1.739826974864265e-02 +
-                           1.154446652697715e-02*1.154446652697715e-02) / 3.0;
+        double expected = (3.087242557177229e-04*3.087242557177229e-04 +
+                           3.127445619624299e-04*3.127445619624299e-04 +
+                           3.185324887508158e-04*3.185324887508158e-04) / 3.0;
         expected = sqrt(expected);
 
         functionDictionary_t funcs;
