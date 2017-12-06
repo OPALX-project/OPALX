@@ -58,7 +58,12 @@ const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
 template <class AmrMultiGridLevel>
 AmrLagrangeInterpolater<AmrMultiGridLevel>::AmrLagrangeInterpolater(Order order)
     : AmrInterpolater<AmrMultiGridLevel>( lo_t(order) + 1 )
-{ }
+{
+    area_m = IpplTimings::getTimer("lag-area");
+    switch_m = IpplTimings::getTimer("lag-switch");
+    while_m = IpplTimings::getTimer("lag-while");
+    end_m = IpplTimings::getTimer("lag-end");
+}
 
 
 template <class AmrMultiGridLevel>
@@ -77,7 +82,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::coarse(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::umap_t& map,
     const typename AmrMultiGridLevel::scalar_t& scale,
-    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
+    lo_t dir, lo_t shift, const basefab_t& rfab,
     const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
 {
@@ -85,10 +90,10 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::coarse(
     switch ( this->nPoints_m - 1 ) {
         
         case Order::QUADRATIC:
-            this->crseQuadratic_m(iv, map, scale, dir, shift, ba, riv, mglevel);
+            this->crseQuadratic_m(iv, map, scale, dir, shift, rfab, riv, mglevel);
             break;
         case Order::LINEAR:
-            this->crseLinear_m(iv, map, scale, dir, shift, ba, riv, mglevel);
+            this->crseLinear_m(iv, map, scale, dir, shift, rfab, riv, mglevel);
             break;
         default:
             std::runtime_error("Not implemented interpolation");
@@ -165,7 +170,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::umap_t& map,
     const typename AmrMultiGridLevel::scalar_t& scale,
-    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
+    lo_t dir, lo_t shift, const basefab_t& rfab,
     const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
 {
@@ -184,12 +189,12 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     // factor for fine
     scalar_t fac = 8.0 / 15.0 * scale;
     
-    if ( !ba.contains(niv) ) {
+    if ( !rfab(niv) ) {
         // check r / u / b --> 1: valid; 0: not valid
         map[mglevel->serialize(iv)] += fac * lookup2[top];
         map[mglevel->serialize(niv)] += fac * lookup1[top];
         
-    } else if ( !ba.contains(miv) ) {
+    } else if ( !rfab(miv) ) {
         // check l / f --> 1: valid; 0: not valid
         map[mglevel->serialize(iv)] += fac * lookup2[top];
         map[mglevel->serialize(miv)] += fac * lookup1[top];
@@ -232,7 +237,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
             
             tmp[d2] += j;
             
-            area[bit] = !ba.contains(tmp);
+            area[bit] = !rfab(tmp);
             ++bit;
             
             // undo
@@ -360,7 +365,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::umap_t& map,
     const typename AmrMultiGridLevel::scalar_t& scale,
-    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
+    lo_t dir, lo_t shift, const basefab_t& rfab,
     const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
 {
@@ -400,16 +405,16 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
      */
     
     // check r / u / b --> 1: valid; 0: not valid
-    bool rub = !ba.contains(niv);
+    bool rub = !rfab(niv);
     
     // check l / f --> 1: valid; 0: not valid
-    bool lf = !ba.contains(miv);
+    bool lf = !rfab(miv);
     
     // check 2nd r / u / b
-    bool rub2 = !ba.contains(n2iv);
+    bool rub2 = !rfab(n2iv);
     
     // check 2nd l / f
-    bool lf2 = !ba.contains(m2iv);
+    bool lf2 = !rfab(m2iv);
     
     if ( rub && lf )
     {
@@ -489,7 +494,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         /* last trial: linear Lagrange interpolation
          * --> it throws an error if not possible
          */
-        this->crseLinear_m(iv, map, scale, dir, shift, ba, riv, mglevel);
+        this->crseLinear_m(iv, map, scale, dir, shift, rfab, riv, mglevel);
     }
     
 #elif AMREX_SPACEDIM == 3
@@ -526,6 +531,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     qbits_t area;
     lo_t bit = 0;
     
+    IpplTimings::startTimer(area_m);
+    
     AmrIntVect_t tmp = iv;
     for (int i = -2; i < 3; ++i) {
         tmp[d1] += i;
@@ -533,7 +540,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             
             tmp[d2] += j;
             
-            area[bit] = !ba.contains(tmp);
+            area[bit] = !rfab(tmp);
             ++bit;
             
             // undo
@@ -542,15 +549,20 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         // undo
         tmp[d1] -= i;
     }
+
+    IpplTimings::stopTimer(area_m);
     
-    bool found = false;
     qpattern_t::const_iterator pit = std::begin(this->qpattern_ms);
     
-    while ( !found && pit != std::end(this->qpattern_ms) ) {
+    IpplTimings::startTimer(while_m);
+
+    while ( pit != std::end(this->qpattern_ms) ) {
         if ( *pit == (area & qbits_t(*pit)).to_ulong() )
             break;
         ++pit;
     }
+
+    IpplTimings::stopTimer(while_m);
     
     // factor for fine
     scalar_t fac = factor_ms * scale;
@@ -566,6 +578,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     
     lo_t begin[2] = { 0, 0 };
     lo_t end[2]   = { 0, 0 };
+    
+    IpplTimings::startTimer(switch_m);
     
     switch ( *pit ) {
         case this->qpattern_ms[0]:
@@ -718,12 +732,15 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
              * --> it throws an error if not possible
              */
             known = false;
-            this->crseLinear_m(iv, map, scale, dir, shift, ba, riv, mglevel);
+            this->crseLinear_m(iv, map, scale, dir, shift, rfab, riv, mglevel);
             break;
         }
     }
+
+    IpplTimings::stopTimer(switch_m);
     
     if ( known ) {
+	IpplTimings::startTimer(end_m);
         /*
          * if pattern is known --> add stencil
          */
@@ -746,6 +763,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             // undo
             tmp[d1] -= i;
         }
+	IpplTimings::stopTimer(end_m);
     }
     
 #else

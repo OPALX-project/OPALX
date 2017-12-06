@@ -9,6 +9,8 @@
     #include <array>
 #endif
 
+#include "Ippl.h"
+
 template <class AmrMultiGridLevel>
 class AmrLagrangeInterpolater : public AmrInterpolater<AmrMultiGridLevel>
 {
@@ -18,6 +20,7 @@ public:
     typedef typename AmrMultiGridLevel::lo_t lo_t;
     typedef typename AmrMultiGridLevel::scalar_t scalar_t;
     typedef typename AmrMultiGridLevel::umap_t umap_t;
+    typedef typename AmrMultiGridLevel::basefab_t basefab_t;
 
     enum Order {
         LINEAR = 1,
@@ -43,7 +46,7 @@ public:
     void coarse(const AmrIntVect_t& iv,
                 umap_t& map,
                 const scalar_t& scale,
-                lo_t dir, lo_t shift, const amrex::BoxArray& ba,
+                lo_t dir, lo_t shift, const basefab_t& rfab,
                 const AmrIntVect_t& riv,
                 AmrMultiGridLevel* mglevel);
     
@@ -117,7 +120,7 @@ private:
     void crseLinear_m(const AmrIntVect_t& iv,
                       umap_t& map,
 		      const scalar_t& scale,
-                      lo_t dir, lo_t shift, const amrex::BoxArray& ba,
+                      lo_t dir, lo_t shift, const basefab_t& rfab,
                       const AmrIntVect_t& riv,
                       AmrMultiGridLevel* mglevel);
     
@@ -140,7 +143,7 @@ private:
     void crseQuadratic_m(const AmrIntVect_t& iv,
                          umap_t& map,
                          const scalar_t& scale,
-                         lo_t dir, lo_t shift, const amrex::BoxArray& ba,
+                         lo_t dir, lo_t shift, const basefab_t& rfab,
                          const AmrIntVect_t& riv,
                          AmrMultiGridLevel* mglevel);
     
@@ -179,6 +182,11 @@ private:
     static const scalar_t lookup6_ms;
     static const scalar_t factor_ms;
 #endif
+    
+    IpplTimings::TimerRef area_m;
+    IpplTimings::TimerRef switch_m;
+    IpplTimings::TimerRef while_m;
+    IpplTimings::TimerRef end_m;
 };
 
 #include "AmrLagrangeInterpolater.hpp"

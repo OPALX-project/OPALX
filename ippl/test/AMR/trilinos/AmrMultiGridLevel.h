@@ -22,7 +22,8 @@ public:
     typedef amrex::IntVect AmrIntVect_t;
     typedef MatrixType matrix_t;
     typedef VectorType vector_t;
-    typedef amrex::FabArray<amrex::BaseFab<int> > mask_t;
+    typedef amrex::BaseFab<int> basefab_t;
+    typedef amrex::FabArray<basefab_t> mask_t;
     typedef AmrBoundary<
                     AmrMultiGridLevel<
                         MatrixType,
@@ -52,6 +53,13 @@ public:
         INTERIOR  =  0,
         BNDRY     =  1,
         PHYSBNDRY =  2
+    };
+
+    // NO   : not a refined cell 
+    // YES  : cell got refined
+    enum Refined {
+        NO = 0,
+	YES
     };
     
 public:
@@ -105,7 +113,8 @@ public:
     Teuchos::RCP<matrix_t> UnCovered_p; ///< uncovered cells
     
     std::unique_ptr<mask_t> mask;       ///< interior, phys boundary, interface, covered
-    
+    std::unique_ptr<mask_t> refmask;    ///< covered (i.e. refined) or not-covered
+    std::unique_ptr<mask_t> crsemask;
     
 private:
     int nr_m[AMREX_SPACEDIM];           ///< number of grid points
