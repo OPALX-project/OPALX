@@ -12,6 +12,7 @@ public:
     typedef typename AmrMultiGridLevel::lo_t lo_t;
     typedef typename AmrMultiGridLevel::scalar_t scalar_t;
     typedef typename AmrMultiGridLevel::umap_t umap_t;
+    typedef typename AmrMultiGridLevel::basefab_t basefab_t;
     
 public:
     
@@ -60,7 +61,7 @@ public:
     virtual void coarse(const AmrIntVect_t& iv,
                         umap_t& map,
 			const scalar_t& scale,
-                        lo_t dir, lo_t shift, const amrex::BoxArray& ba,
+                        lo_t dir, lo_t shift, const basefab_t& rfab,
                         const AmrIntVect_t& riv,
                         AmrMultiGridLevel* mglevel) = 0;
     

@@ -29,7 +29,7 @@ void AmrPCInterpolater<AmrMultiGridLevel>::coarse(
     const AmrIntVect_t& iv,
     umap_t& map,
     const scalar_t& scale,
-    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
+    lo_t dir, lo_t shift, const basefab_t& rfab,
     const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
 {

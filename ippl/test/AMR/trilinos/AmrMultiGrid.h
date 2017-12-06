@@ -45,7 +45,7 @@ public:
     typedef std::map<AmrIntVect_t,
                      std::list<std::pair<go_t, go_t> >
                      > map_t;
-    
+        
     typedef AmrSmoother::Smoother Smoother;
     
     /// Supported interpolaters for prolongation operation
@@ -285,11 +285,14 @@ private:
      * boundary matrix.
      * @param iv is the current cell
      * @param mfab is the mask (internal cell, boundary cell, ...) of that level
+     * @param rfab is the mask between levels
      * @param ba all coarse cells that got refined
      * @param level for which we build the special Poisson matrix
      */
     void buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
                                        const basefab_t& mfab,
+				       const basefab_t& rfab,
+				       const basefab_t& cfab,
                                        const boxarray_t& ba,
                                        int level);
     
@@ -300,12 +303,11 @@ private:
      *      x^{(l)} = R\cdot x^{(l+1)}
      * \f]
      * @param iv is the current cell
-     * @param crse_fine_ba all coarse cells that got refined
-     * @param mfab is the mask (internal cell, boundary cell, ...) of that level
+     * @param rfab is the mask between levels
      * @param level for which to build restriction matrix
      */
     void buildRestrictionMatrix_m(const AmrIntVect_t& iv,
-                                  const boxarray_t& crse_fine_ba,
+				  const basefab_t& rfab,
                                   int level);
     
     /*!
@@ -330,11 +332,14 @@ private:
      * \f]
      * Dirichlet boundary condition
      * @param iv is the current cell
+     * @param mfab is the mask (internal cell, boundary cell, ...) of that level
      * @param cells all fine cells that are at the crse-fine interface
      * @param level the base level is omitted
      */
     void buildCrseBoundaryMatrix_m(const AmrIntVect_t& iv,
-                                   map_t& cells, int level);
+				   const basefab_t& mfab,
+				   const basefab_t& cfab,
+		                   int level);
     
     /*!
      * Fill matrix with coarse boundary
@@ -344,7 +349,7 @@ private:
      * @param level the base level is omitted
      */
     void fillCrseBoundaryMatrix_m(map_t& cells,
-                                  const boxarray_t& crse_fine_ba,
+				  const basefab_t& rfab,
                                   int level);
     
     /*!
@@ -524,6 +529,8 @@ private:
     IpplTimings::TimerRef bBf_m;
     IpplTimings::TimerRef bBc_m;
     IpplTimings::TimerRef bG_m;
+    IpplTimings::TimerRef bBffill_m;
+    IpplTimings::TimerRef bBcfill_m;
 };
 
 #endif
