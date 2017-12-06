@@ -270,6 +270,8 @@ TEST(SBend3DTest, SBend3DPolyPatchTest) {
 
 
 TEST(SBend3DTest, GeometryTest2) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // Sucked geometry information from
     //     Classic/AbsBeamline/Ring.cpp::appendElement
     // Transform in OPAL-T coords
@@ -294,4 +296,3 @@ TEST(SBend3DTest, GeometryTest2) {
     std::cerr << 24.*(1-cos(M_PI/12.)) << " " << 24.*sin(M_PI/12.) << " ** " << cos(M_PI/12.) << " " << sin(M_PI/12.) << " ** " << M_PI/12. << std::endl;
     std::cerr << deltaPos << " ** " << deltaNorm << " ** " << endRot << std::endl;
 }
-

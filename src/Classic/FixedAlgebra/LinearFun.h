@@ -234,7 +234,7 @@ std::ostream &operator<<(std::ostream &os, const LinearFun<T, N> &);
 
 
 // Implementation.
-#include <FixedAlgebra/LinearFun.hpp>
+#include "FixedAlgebra/LinearFun.cpp"
 #include "FixedAlgebra/LinearMap.h"
 
 #endif // CLASSIC_LinearFun_HH

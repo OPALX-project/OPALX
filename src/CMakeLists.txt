@@ -134,8 +134,7 @@ ELSE()
     ${OPTP_LIBRARY}
     ${OPTP_LIBS}
     ${Boost_LIBRARIES}
-    mpi
-    mpi_cxx
+    ${MPI_LIBRARIES}
     m
     z
 )

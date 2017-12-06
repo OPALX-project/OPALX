@@ -38,7 +38,7 @@ public:
     // [DT][b]meth[/b]
     // [DD]the name of the method or function detecting the exception
     // [/DL]
-    explicit DivideError(const std::string &meth);
+    explicit DivideError(const string &meth);
 
     DivideError(const DivideError &);
     virtual ~DivideError();

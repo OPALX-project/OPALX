@@ -20,7 +20,35 @@
 
 #include "Algorithms/Tracker.h"
 #include "Steppers/BorisPusher.h"
-#include "Structure/DataSink.h"                                                                                             
+#include "Structure/DataSink.h"                                                                      
+
+#include "Algorithms/OrbitThreader.h"
+#include "Algorithms/IndexMap.h"
+#include "AbsBeamline/AlignWrapper.h"
+#include "AbsBeamline/BeamBeam.h"
+#include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/Corrector.h"
+#include "AbsBeamline/Diagnostic.h"
+#include "AbsBeamline/Degrader.h"
+#include "AbsBeamline/Drift.h"
+#include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/Lambertson.h"
+#include "AbsBeamline/Marker.h"
+#include "AbsBeamline/Monitor.h"
+#include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/Probe.h"
+#include "AbsBeamline/RBend.h"
+#include "AbsBeamline/RBend3D.h"
+#include "AbsBeamline/RFCavity.h"
+#include "AbsBeamline/TravelingWave.h"
+#include "AbsBeamline/RFQuadrupole.h"
+#include "AbsBeamline/SBend.h"
+#include "AbsBeamline/Separator.h"
+#include "AbsBeamline/Septum.h"
+#include "AbsBeamline/Solenoid.h"
+#include "AbsBeamline/ParallelPlate.h"
+#include "AbsBeamline/CyclotronValley.h"
+                       
 #include "Elements/OpalBeamline.h"
 
 class BMultipoleField;
@@ -99,6 +127,9 @@ public:
     
     virtual ~ThickTracker();
 
+
+    virtual void visitAlignWrapper(const AlignWrapper &);
+
     /// Apply the algorithm to a BeamBeam.
     virtual void visitBeamBeam(const BeamBeam &);
 
@@ -137,6 +168,9 @@ public:
     /// Apply the algorithm to a RFCavity.
     virtual void visitRFCavity(const RFCavity &);
 
+    /// Apply the algorithm to a RFCavity.
+    virtual void visitTravelingWave(const TravelingWave &);
+
     /// Apply the algorithm to a RFQuadrupole.
     virtual void visitRFQuadrupole(const RFQuadrupole &);
 
@@ -155,8 +189,9 @@ public:
     /// Apply the algorithm to a ParallelPlate.
     virtual void visitParallelPlate(const ParallelPlate &);
 
-    // Apply the algorithm to a CyclotronValley.
+    /// Apply the algorithm to a CyclotronValley.
     virtual void visitCyclotronValley(const CyclotronValley &);
+
 
 
     /// Apply the algorithm to a beam line.
@@ -190,8 +225,6 @@ private:
     void applyExitFringe(double edge, double curve,
                          const BMultipoleField &field, double scale);
 
-
-
     Vector_t RefPartR_m; 
     Vector_t RefPartP_m; 
 
@@ -216,14 +249,112 @@ private:
 
     CoordinateSystemTrafo referenceToLabCSTrafo_m;
 
-
-
-
-
-
-
     bool globalEOL_m;
 
 };
+
+inline void ThickTracker::visitAlignWrapper(const AlignWrapper &wrap) {
+    itsOpalBeamline_m.visit(wrap, *this, itsBunch_m);
+}
+
+inline void ThickTracker::visitBeamBeam(const BeamBeam &bb) {
+    itsOpalBeamline_m.visit(bb, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitCollimator(const Collimator &coll) {
+    itsOpalBeamline_m.visit(coll, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitCorrector(const Corrector &corr) {
+    itsOpalBeamline_m.visit(corr, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitDegrader(const Degrader &deg) {
+    itsOpalBeamline_m.visit(deg, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitDiagnostic(const Diagnostic &diag) {
+    itsOpalBeamline_m.visit(diag, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitDrift(const Drift &drift) {
+    itsOpalBeamline_m.visit(drift, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitLambertson(const Lambertson &lamb) {
+    itsOpalBeamline_m.visit(lamb, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitMarker(const Marker &marker) {
+    itsOpalBeamline_m.visit(marker, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitMonitor(const Monitor &mon) {
+    itsOpalBeamline_m.visit(mon, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitMultipole(const Multipole &mult) {
+    itsOpalBeamline_m.visit(mult, *this, itsBunch_m);
+}
+
+inline void ThickTracker::visitProbe(const Probe &prob) {
+    itsOpalBeamline_m.visit(prob, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitRBend(const RBend &bend) {
+    itsOpalBeamline_m.visit(bend, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitRFCavity(const RFCavity &as) {
+    itsOpalBeamline_m.visit(as, *this, itsBunch_m);
+}
+
+inline void ThickTracker::visitTravelingWave(const TravelingWave &as) {
+    itsOpalBeamline_m.visit(as, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitRFQuadrupole(const RFQuadrupole &rfq) {
+    itsOpalBeamline_m.visit(rfq, *this, itsBunch_m);
+}
+
+inline void ThickTracker::visitSBend(const SBend &bend) {
+    itsOpalBeamline_m.visit(bend, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitSeparator(const Separator &sep) {
+    itsOpalBeamline_m.visit(sep, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitSeptum(const Septum &sept) {
+    itsOpalBeamline_m.visit(sept, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitSolenoid(const Solenoid &solenoid) {
+    itsOpalBeamline_m.visit(solenoid, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitParallelPlate(const ParallelPlate &pplate) {
+    itsOpalBeamline_m.visit(pplate, *this, itsBunch_m);
+}
+
+inline void ThickTracker::visitCyclotronValley(const CyclotronValley &cv) {
+    itsOpalBeamline_m.visit(cv, *this, itsBunch_m);
+}
 
 #endif // OPAL_ThickTracker_HH

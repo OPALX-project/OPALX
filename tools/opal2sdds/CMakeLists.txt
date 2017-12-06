@@ -27,8 +27,7 @@ SET (SDDS_LIBS
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARY}
     z
-    mpi
-    mpi_cxx
+    ${MPI_LIBRARIES}
     dl
 )
 

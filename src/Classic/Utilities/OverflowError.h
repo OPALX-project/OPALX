@@ -39,7 +39,7 @@ public:
     // [DD]the name of the method or function detecting the exception
     // [/DL]
     // Construction/destruction.
-    OverflowError(const std::string &meth);
+    OverflowError(const string &meth);
 
     OverflowError(const OverflowError &);
     virtual ~OverflowError();
