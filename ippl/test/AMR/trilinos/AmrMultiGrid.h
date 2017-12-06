@@ -307,6 +307,9 @@ private:
      * @param level for which to build restriction matrix
      */
     void buildRestrictionMatrix_m(const AmrIntVect_t& iv,
+				  D_DECL(const int& ii,
+					 const int& jj,
+					 const int& kk),
 				  const basefab_t& rfab,
                                   int level);
     
