@@ -130,10 +130,10 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
 
 	mglevel_m[lev]->refmask.reset(
             new AmrMultiGridLevel_t::mask_t(mglevel_m[lev]->grids,
-                                            mglevel_m[lev]->dmap, 1, 1)
+                                            mglevel_m[lev]->dmap, 1, 2)
             );
-	mglevel_m[lev]->refmask->setVal(AmrMultiGridLevel_t::Refined::NO, 1);
-	
+	mglevel_m[lev]->refmask->setVal(AmrMultiGridLevel_t::Refined::NO, 2);
+	mglevel_m[lev]->refmask->FillBoundary(false);
 
 	amrex::BoxArray ba = mglevel_m[lev]->grids;
 	ba.coarsen(rr);
@@ -143,6 +143,7 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
             );
         mglevel_m[lev]->crsemask->setVal(AmrMultiGridLevel_t::Refined::NO, 2);
 	mglevel_m[lev]->crsemask->setVal(AmrMultiGridLevel_t::Refined::YES, 0);
+	mglevel_m[lev]->crsemask->FillBoundary(false);
     }
 
     /* to complete initialization we need to fill
@@ -161,7 +162,8 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
 	refined.setVal(AmrMultiGridLevel_t::Refined::YES);
 
 	// fill intersection with YES
-	mglevel_m[lev]->refmask->copy(refined, 0, 0, 1, 0, 1);
+	mglevel_m[lev]->refmask->copy(refined, 0, 0, 1, 0, 2);
+	mglevel_m[lev]->refmask->FillBoundary(false);
     }
 
 //    /* and the mask of coarsened cells
@@ -579,14 +581,17 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
             const int* hi = tbx.hiVect();
         
             for (int i = lo[0]; i <= hi[0]; ++i) {
+		int ii = i << 1;
                 for (int j = lo[1]; j <= hi[1]; ++j) {
+		    int jj = j << 1;
 #if AMREX_SPACEDIM == 3
                     for (int k = lo[2]; k <= hi[2]; ++k) {
+			int kk = k << 1;
 #endif
                         AmrIntVect_t iv(D_DECL(i, j, k));
                         
 			IpplTimings::startTimer(bRestict_m);
-                        this->buildRestrictionMatrix_m(iv, rfab, lev);
+                        this->buildRestrictionMatrix_m(iv, D_DECL(ii, jj, kk), rfab, lev);
 			IpplTimings::stopTimer(bRestict_m);
 
 			IpplTimings::startTimer(bInterp_m);
@@ -596,8 +601,6 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
 			IpplTimings::startTimer(bBc_m);
                         this->buildCrseBoundaryMatrix_m(iv, mfab, cfab, lev);
 			IpplTimings::stopTimer(bBc_m);
-
-			std::cout << "boundary" << std::endl;
 
 			IpplTimings::startTimer(bBf_m);
                         this->buildFineBoundaryMatrix_m(iv, cells_crse, this_fine_ba, lev);
@@ -610,8 +613,6 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
 			IpplTimings::startTimer(bCompo_m);
                         this->buildCompositePoissonMatrix_m(iv, mfab, rfab, cfab, this_fine_ba, lev);
 			IpplTimings::stopTimer(bCompo_m);
-
-			std::cout << "poisson" << std::endl;
 
 			IpplTimings::startTimer(bG_m);
                         this->buildGradientMatrix_m(iv, mfab, lev);
@@ -905,7 +906,7 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
      * 
      * For the finest level: Awf == Anf
      */
-    if ( rfab(iv) == AmrMultiGridLevel_t::Refined::NO && lbase_m != lfine_m )
+    if ( rfab(iv) == AmrMultiGridLevel_t::Refined::YES ) //|| lbase_m != lfine_m )
 	return;
     /*                                                                                                            
      * Only cells that are not refined
@@ -1039,7 +1040,7 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
 #if AMREX_SPACEDIM == 3
 			fake[(d+2)%AMREX_SPACEDIM] = d2;
 #endif
-			interface_mp->coarse(iv, map, value, d, shift, cfab,
+			interface_mp->coarse(iv, map, value, d, shift, rfab,
 					     fake, mglevel_m[level].get());
 			
 #if AMREX_SPACEDIM == 3
@@ -1066,6 +1067,9 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
 
 
 void AmrMultiGrid::buildRestrictionMatrix_m(const AmrIntVect_t& iv,
+					    D_DECL(const int& ii,
+						   const int& jj,
+						   const int& kk),
                                             const basefab_t& rfab,
                                             int level)
 {
@@ -1089,11 +1093,6 @@ void AmrMultiGrid::buildRestrictionMatrix_m(const AmrIntVect_t& iv,
     indices.reserve(2 << (AMREX_SPACEDIM - 1));
     coefficients_t values;
     values.reserve(2 << (AMREX_SPACEDIM -1));
-    
-    AMREX_D_DECL(int ii = iv[0] << 1,
-		     jj = iv[1] << 1,
-		     kk = iv[2] << 1);
-    
     
     int crse_globalidx = mglevel_m[level]->serialize(iv);
     
