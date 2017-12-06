@@ -44,6 +44,8 @@ AmrMultiGrid::AmrMultiGrid(Boundary bc,
     bBf_m = IpplTimings::getTimer("build-bfine");
     bBc_m = IpplTimings::getTimer("build-bcrse");
     bG_m  = IpplTimings::getTimer("build-grad");
+    bBffill_m = IpplTimings::getTimer("fill-bfine");
+    bBcfill_m = IpplTimings::getTimer("fill-bcrse");
 
 #endif
     
@@ -125,7 +127,60 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
                                                      bc_m.get(),
                                                      comm_mp,
                                                      node_mp));
+
+	mglevel_m[lev]->refmask.reset(
+            new AmrMultiGridLevel_t::mask_t(mglevel_m[lev]->grids,
+                                            mglevel_m[lev]->dmap, 1, 1)
+            );
+	mglevel_m[lev]->refmask->setVal(AmrMultiGridLevel_t::Refined::NO, 1);
+	
+
+	amrex::BoxArray ba = mglevel_m[lev]->grids;
+	ba.coarsen(rr);
+	mglevel_m[lev]->crsemask.reset(
+            new AmrMultiGridLevel_t::mask_t(ba,
+                                            mglevel_m[lev]->dmap, 1, 2)
+            );
+        mglevel_m[lev]->crsemask->setVal(AmrMultiGridLevel_t::Refined::NO, 2);
+	mglevel_m[lev]->crsemask->setVal(AmrMultiGridLevel_t::Refined::YES, 0);
     }
+
+    /* to complete initialization we need to fill
+     * the mask of refinement
+     */
+    for (int lev = 0; lev < nlevel_m-1; ++lev) {
+	// get boxarray with refined cells
+	amrex::BoxArray ba = mglevel_m[lev]->grids;
+	ba.refine(rr);
+	ba = amrex::intersect(mglevel_m[lev+1]->grids, ba);
+	ba.coarsen(rr);
+
+	// refined cells
+	amrex::DistributionMapping dmap(ba, Ippl::getNodes());
+	AmrMultiGridLevel_t::mask_t refined(ba, dmap, 1, 0);
+	refined.setVal(AmrMultiGridLevel_t::Refined::YES);
+
+	// fill intersection with YES
+	mglevel_m[lev]->refmask->copy(refined, 0, 0, 1, 0, 1);
+    }
+
+//    /* and the mask of coarsened cells
+//     */
+/*
+    for (int lev = 1; lev < nlevel_m; ++lev) {
+	// get boxarray with coarsened cells
+	amrex::BoxArray ba = mglevel_m[lev]->grids;
+	ba.coarsen(mglevel_m[lev]->refinement());
+	ba = amrex::intersect(mglevel_m[lev]->crsemask->boxArray(), ba);
+	
+	amrex::DistributionMapping dmap(ba, Ippl::getNodes());
+	AmrMultiGridLevel_t::mask_t refined(ba, dmap, 1, 0);
+        refined.setVal(AmrMultiGridLevel_t::Refined::YES);
+
+	// fill intersection with YES
+        mglevel_m[lev]->crsemask->copy(refined);
+    }
+*/
 }
 
 
@@ -513,9 +568,11 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
         for (amrex::MFIter mfi(*mglevel_m[lev]->mask, true);
              mfi.isValid(); ++mfi)
         {
-            const box_t&       tbx  = mfi.tilebox();
+            const box_t&       tbx = mfi.tilebox();
             const basefab_t&  mfab = (*mglevel_m[lev]->mask)[mfi];
-            const farraybox_t& rfab = (*rho[ilev])[mfi];
+	    const basefab_t&  rfab = (*mglevel_m[lev]->refmask)[mfi];
+	    const basefab_t&  cfab = (*mglevel_m[lev]->crsemask)[mfi];
+            const farraybox_t& rhofab = (*rho[ilev])[mfi];
             const farraybox_t& pfab = (*phi[ilev])[mfi];
             
             const int* lo = tbx.loVect();
@@ -529,7 +586,7 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
                         AmrIntVect_t iv(D_DECL(i, j, k));
                         
 			IpplTimings::startTimer(bRestict_m);
-                        this->buildRestrictionMatrix_m(iv, this_fine_ba, lev);
+                        this->buildRestrictionMatrix_m(iv, rfab, lev);
 			IpplTimings::stopTimer(bRestict_m);
 
 			IpplTimings::startTimer(bInterp_m);
@@ -537,8 +594,10 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
 			IpplTimings::stopTimer(bInterp_m);
 
 			IpplTimings::startTimer(bBc_m);
-                        this->buildCrseBoundaryMatrix_m(iv, cells_fine, lev);
+                        this->buildCrseBoundaryMatrix_m(iv, mfab, cfab, lev);
 			IpplTimings::stopTimer(bBc_m);
+
+			std::cout << "boundary" << std::endl;
 
 			IpplTimings::startTimer(bBf_m);
                         this->buildFineBoundaryMatrix_m(iv, cells_crse, this_fine_ba, lev);
@@ -549,32 +608,37 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
 			IpplTimings::stopTimer(bPoiss_m);
 
 			IpplTimings::startTimer(bCompo_m);
-                        this->buildCompositePoissonMatrix_m(iv, mfab, this_fine_ba, lev);
+                        this->buildCompositePoissonMatrix_m(iv, mfab, rfab, cfab, this_fine_ba, lev);
 			IpplTimings::stopTimer(bCompo_m);
+
+			std::cout << "poisson" << std::endl;
 
 			IpplTimings::startTimer(bG_m);
                         this->buildGradientMatrix_m(iv, mfab, lev);
 			IpplTimings::stopTimer(bG_m);
 
                         int globalidx = mglevel_m[lev]->serialize(iv);
-                        mglevel_m[lev]->rho_p->replaceGlobalValue(globalidx, rfab(iv, 0));
+                        mglevel_m[lev]->rho_p->replaceGlobalValue(globalidx, rhofab(iv, 0));
                         mglevel_m[lev]->phi_p->replaceGlobalValue(globalidx, pfab(iv, 0));
                     }
                 }
             }
         }
         
-        
-        if ( lev > lbase_m ) {
-            amrex::BoxArray crse_this_ba = mglevel_m[lev-1]->grids;
-            crse_this_ba.refine(rr);
-            crse_this_ba = amrex::intersect(mglevel_m[lev]->grids, crse_this_ba);
-            crse_this_ba.coarsen(rr);
+        //if ( lev > lbase_m ) {
+//          amrex::BoxArray crse_this_ba = mglevel_m[lev-1]->grids;
+	    //           crse_this_ba.refine(rr);
+	    //     crse_this_ba = amrex::intersect(mglevel_m[lev]->grids, crse_this_ba);
+	    // crse_this_ba.coarsen(rr);
             
-            this->fillCrseBoundaryMatrix_m(cells_fine, crse_this_ba, lev);
-        }
+	  IpplTimings::startTimer(bBcfill_m);
+//	  this->fillCrseBoundaryMatrix_m(cells_fine, lev);
+	  IpplTimings::stopTimer(bBcfill_m);
+	  //}
         
+	IpplTimings::startTimer(bBffill_m);
         this->fillFineBoundaryMatrix_m(cells_crse, this_fine_ba, lev);
+	IpplTimings::stopTimer(bBffill_m);
         
         this->close_m(lev, matrices);
         
@@ -831,6 +895,8 @@ void AmrMultiGrid::buildNoFinePoissonMatrix_m(const AmrIntVect_t& iv,
 
 void AmrMultiGrid::buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
                                                  const basefab_t& mfab,
+						 const basefab_t& rfab,
+						 const basefab_t& cfab,
                                                  const boxarray_t& crse_fine_ba,
                                                  int level)
 {
@@ -839,10 +905,10 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
      * 
      * For the finest level: Awf == Anf
      */
-    if ( crse_fine_ba.contains(iv) )
+    if ( rfab(iv) == AmrMultiGridLevel_t::Refined::NO && lbase_m != lfine_m )
 	return;
     /*                                                                                                            
-     * Only cells that are not refined                                                                            
+     * Only cells that are not refined
      */
     
     const scalar_t* cdx = mglevel_m[level]->geom.CellSize();
@@ -884,7 +950,7 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
 	    AmrIntVect_t biv = iv;                        
 	    biv[d] += shift;
             
-	    if ( !crse_fine_ba.contains(biv) )
+	    if ( rfab(biv) == AmrMultiGridLevel_t::Refined::NO )
 	    {
 		/*
 		 * It can't be a refined cell!
@@ -973,7 +1039,7 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
 #if AMREX_SPACEDIM == 3
 			fake[(d+2)%AMREX_SPACEDIM] = d2;
 #endif
-			interface_mp->coarse(iv, map, value, d, shift, crse_fine_ba,
+			interface_mp->coarse(iv, map, value, d, shift, cfab,
 					     fake, mglevel_m[level].get());
 			
 #if AMREX_SPACEDIM == 3
@@ -1000,7 +1066,7 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
 
 
 void AmrMultiGrid::buildRestrictionMatrix_m(const AmrIntVect_t& iv,
-                                            const boxarray_t& crse_fine_ba,
+                                            const basefab_t& rfab,
                                             int level)
 {
     /*
@@ -1008,7 +1074,7 @@ void AmrMultiGrid::buildRestrictionMatrix_m(const AmrIntVect_t& iv,
      */
     
     // finest level does not need to have a restriction matrix
-    if ( level == lfine_m )
+    if ( !rfab(iv) || level == lfine_m )
         return;
     
     /* Difficulty:  If a fine cell belongs to another processor than the underlying
@@ -1028,30 +1094,29 @@ void AmrMultiGrid::buildRestrictionMatrix_m(const AmrIntVect_t& iv,
 		     jj = iv[1] << 1,
 		     kk = iv[2] << 1);
     
-    if ( crse_fine_ba.contains(iv) ) {
-        int crse_globalidx = mglevel_m[level]->serialize(iv);
-        
-        // neighbours
-        for (int iref = 0; iref < 2; ++iref) {
-            for (int jref = 0; jref < 2; ++jref) {
+    
+    int crse_globalidx = mglevel_m[level]->serialize(iv);
+    
+    // neighbours
+    for (int iref = 0; iref < 2; ++iref) {
+	for (int jref = 0; jref < 2; ++jref) {
 #if AMREX_SPACEDIM == 3
-                for (int kref = 0; kref < 2; ++kref) {
+	    for (int kref = 0; kref < 2; ++kref) {
 #endif
-                    AmrIntVect_t riv(D_DECL(ii + iref, jj + jref, kk + kref));
-                                    
-                    indices.push_back( mglevel_m[level+1]->serialize(riv) );
-		    values.push_back( AMREX_D_PICK(0.5, 0.25, 0.125) );
+		AmrIntVect_t riv(D_DECL(ii + iref, jj + jref, kk + kref));
+                
+		indices.push_back( mglevel_m[level+1]->serialize(riv) );
+		values.push_back( AMREX_D_PICK(0.5, 0.25, 0.125) );
 #if AMREX_SPACEDIM == 3
-                }
+	    }
 #endif
-            }
-        }
-        
-        mglevel_m[level]->R_p->insertGlobalValues(crse_globalidx,
-                                                  indices.size(),
-                                                  &values[0],
-                                                  &indices[0]);
+	}
     }
+    
+    mglevel_m[level]->R_p->insertGlobalValues(crse_globalidx,
+					      indices.size(),
+					      &values[0],
+					      &indices[0]);
 }
 
 
@@ -1093,7 +1158,9 @@ void AmrMultiGrid::buildInterpolationMatrix_m(const AmrIntVect_t& iv,
 
 
 void AmrMultiGrid::buildCrseBoundaryMatrix_m(const AmrIntVect_t& iv,
-                                             map_t& cells, int level)
+					     const basefab_t& mfab,
+					     const basefab_t& cfab,
+					     int level)
 {
     /*
      * fine (this): level
@@ -1106,36 +1173,65 @@ void AmrMultiGrid::buildCrseBoundaryMatrix_m(const AmrIntVect_t& iv,
     
     // iv is a fine cell
     
+    const scalar_t* dx = mglevel_m[level]->geom.CellSize();
+
+    const scalar_t idx2[] = {
+        D_DECL( 1.0 / ( dx[0] * dx[0] ),
+                1.0 / ( dx[1] * dx[1] ),
+                1.0 / ( dx[2] * dx[2] ) )
+    };
+
+    umap_t map;
+    indices_t indices;
+    coefficients_t values;
+    
     // check its neighbours to see if at crse-fine interface
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         for (int shift = -1; shift <= 1; shift += 2) {
             // neighbour
             AmrIntVect_t niv = iv;
             niv[d] += shift;
-            
-            if ( !mglevel_m[level]->grids.contains(niv) &&
-                 !mglevel_m[level]->isBoundary(niv) )
+	    
+            if ( mfab(niv) == AmrMultiGridLevel_t::Mask::BNDRY )
             {
                 // neighbour does not belong to fine grids
                 // includes no cells at physical boundary
-                
-                // insert iv if not yet exists
-                cells[iv].push_back(std::make_pair(shift, d));
+		
+		// coarse cell that is not refined
+		AmrIntVect_t civ = iv;
+		civ[d] += shift;
+		civ.coarsen(mglevel_m[level]->refinement());
+
+		// we need boundary + indices from coarser level
+		// we need normalization by mesh size squared
+		interface_mp->coarse(civ, map, idx2[d], d, shift, cfab,
+				     iv, mglevel_m[level-1].get());
+		
+//		// insert iv if not yet exists
+//		cells[iv].push_back(std::make_pair(shift, d));
             }
         }
     }
+    
+    this->map2vector_m(map, indices, values);
+    
+    int globalidx = mglevel_m[level]->serialize(iv);
+    mglevel_m[level]->Bcrse_p->insertGlobalValues(globalidx,
+						  indices.size(),
+						  &values[0],
+						  &indices[0]);
 }
 
 
 void AmrMultiGrid::fillCrseBoundaryMatrix_m(map_t& cells,
-                                            const boxarray_t& crse_fine_ba,
+					    const basefab_t& rfab,
                                             int level)
 {
-    // the base level has only physical boundaries
-    if ( level == lbase_m )
+    // there's no finer level
+    if ( level == lfine_m )
         return;
     
-    const scalar_t* dx = mglevel_m[level]->geom.CellSize();
+    const scalar_t* dx = mglevel_m[level+1]->geom.CellSize();
     
     const scalar_t idx2[] = {
         D_DECL( 1.0 / ( dx[0] * dx[0] ),
@@ -1150,37 +1246,39 @@ void AmrMultiGrid::fillCrseBoundaryMatrix_m(map_t& cells,
     for (map_t::iterator it = cells.begin(); it != cells.end(); ++it) {
         // fine cell at crse-fine interface
         AmrIntVect_t iv = it->first;
-        int globalidx = mglevel_m[level]->serialize(iv);
-        
-        indices.clear();
-        values.clear();
-        
-        while ( !it->second.empty() ) {
-            /*
-             * "shift" is the amount of cells to fine cell that does not belong to fine grids
-             * "d" is the direction to shift
-             */
-            int shift = it->second.front().first;
-            int d     = it->second.front().second;
-            it->second.pop_front();
-            
-            // coarse cell that is not refined
-            AmrIntVect_t civ = iv;
-            civ[d] += shift;
-            civ.coarsen(mglevel_m[level]->refinement());
-            
-            // we need boundary + indices from coarser level
-            // we need normalization by mesh size squared
-	    interface_mp->coarse(civ, map, idx2[d], d, shift, crse_fine_ba,
-                                 iv, mglevel_m[level-1].get());
+	int globalidx = mglevel_m[level+1]->serialize(iv);
+
+	indices.clear();
+	values.clear();
+
+	while( !it->second.empty() ) {
+	    /*
+	     * "shift is the amount of cells to fine cell that does not belong
+	     * to fine grids
+	     * "d" is the direction to shift
+	     */
+	    int shift = it->second.front().first;
+	    int d     = it->second.front().second;
+	    it->second.pop_front();
+	    
+	    // coarse cell that is not refined
+	    AmrIntVect_t civ = iv;
+	    civ[d] += shift;
+	    civ.coarsen(mglevel_m[level]->refinement());
+	    
+	    // we need boundary + indices from coarser level
+	    // we need normalization by mesh size squared
+	    interface_mp->coarse(civ, map, idx2[d], d, shift, rfab,
+                                 iv, mglevel_m[level].get());
+
 	}
-        
-        this->map2vector_m(map, indices, values);
-        
-        mglevel_m[level]->Bcrse_p->insertGlobalValues(globalidx,
-                                                      indices.size(),
-                                                      &values[0],
-                                                      &indices[0]);
+	
+	this->map2vector_m(map, indices, values);
+	    
+	mglevel_m[level+1]->Bcrse_p->insertGlobalValues(globalidx,
+							indices.size(),
+							&values[0],
+							&indices[0]);
     }
 }
 
