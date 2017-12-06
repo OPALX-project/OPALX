@@ -32,6 +32,8 @@ c----------------------------TJW
       call rffti1 (n,wsave(n+1),wsave(2*n+1))
       return
       end
+
+
       subroutine rffti1 (n,wa,xxifac)
 c----------------------------TJW
       implicit FLOAT (a-h,o-z)
@@ -1927,6 +1929,11 @@ c----------------------------TJW
       implicit integer (i-n)
 c----------------------------TJW
       dimension       x(*)       ,wsave(*)
+
+c     with n = 20
+c     iw1 = 11
+c     iw2 = 11+20+1=32
+c     iw3 = 32+21=53
       np1 = n+1
       iw1 = n/2+1
       iw2 = iw1+np1
@@ -1934,6 +1941,8 @@ c----------------------------TJW
       call sint1(n,x,wsave,wsave(iw1),wsave(iw2),wsave(iw3))
       return
       end
+
+      
       subroutine sint1(n,war,was,xh,x,xxifac)
 c----------------------------TJW
       implicit FLOAT (a-h,o-z)
@@ -1990,6 +1999,7 @@ c----------------------------TJW
       call frffti1 (n,wsave(n+1),wsave(2*n+1))
       return
       end
+      
       subroutine frffti1 (n,wa,xxifac)
 c----------------------------TJW
       implicit real (a-h,o-z)
