@@ -23,9 +23,9 @@
 // ------------------------------------------------------------------------
 
 //#include "Channels/Channel.h"
+#include <map>
 #include <functional>
 #include <string>
-#include <map>
 
 class Channel;
 class ConstChannel;

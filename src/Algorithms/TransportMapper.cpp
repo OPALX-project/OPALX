@@ -75,7 +75,7 @@ TransportMapper::~TransportMapper()
 
 void TransportMapper::getMap(LinearMap<double, 6> &map) const {
     for(int i = 0; i < 6; ++i) {
-        for(int j = 0; j <= 6; ++i) {
+        for(int j = 0; j <= 6; ++j) {
             map[i][j] = itsMap[i][j];
         }
     }
@@ -94,7 +94,7 @@ void TransportMapper::getMap(FVps<double, 6> &map) const {
 
 void TransportMapper::setMap(const LinearMap<double, 6> &map) {
     for(int i = 0; i < 6; ++i) {
-        for(int j = 0; j <= 6; ++i) {
+        for(int j = 0; j <= 6; ++j) {
             itsMap[i][j] = map[i][j];
         }
 

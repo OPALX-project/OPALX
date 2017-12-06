@@ -127,7 +127,8 @@ private:
 
     void calcStat(double Eng);
 
-    bool allParticlesIn_m;
+    // :FIXME: remove unused declaration
+    //bool allParticlesIn_m;
 
     double  T_m;                     // own time, maybe larger than in the bunch object
 
@@ -196,7 +197,8 @@ private:
 
     IpplTimings::TimerRef DegraderApplyTimer_m;
     IpplTimings::TimerRef DegraderLoopTimer_m;
-    IpplTimings::TimerRef DegraderInitTimer_m;
+    // :FIXME: remove unused declaration
+    // IpplTimings::TimerRef DegraderInitTimer_m;
     IpplTimings::TimerRef DegraderDestroyTimer_m;
 };
 
@@ -215,3 +217,10 @@ void CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, const double &delta
 }
 
 #endif //COLLIMATORPHYSICS_HH
+
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:

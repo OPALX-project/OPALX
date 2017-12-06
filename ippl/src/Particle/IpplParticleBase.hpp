@@ -161,7 +161,7 @@ void IpplParticleBase<PLayout>::resetID(void) {
     bool success = Ippl::Comm->send(msg1,master,tag1);
     PAssert(success);
     // now receive back our initial ID number
-    size_t initialID;
+    size_t initialID = 0;
     int tag2 = Ippl::Comm->next_tag(P_RESET_ID_TAG,P_LAYOUT_CYCLE);
     Message* msg2 = Ippl::Comm->receive_block(master,tag2);
     PAssert(msg2);
