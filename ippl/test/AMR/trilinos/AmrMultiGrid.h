@@ -286,14 +286,12 @@ private:
      * @param iv is the current cell
      * @param mfab is the mask (internal cell, boundary cell, ...) of that level
      * @param rfab is the mask between levels
-     * @param ba all coarse cells that got refined
      * @param level for which we build the special Poisson matrix
      */
     void buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
                                        const basefab_t& mfab,
 				       const basefab_t& rfab,
 				       const basefab_t& cfab,
-                                       const boxarray_t& ba,
                                        int level);
     
     /*!
@@ -369,20 +367,10 @@ private:
      * @param level the finest level is omitted
      */
     void buildFineBoundaryMatrix_m(const AmrIntVect_t& iv,
-                                   map_t& cells,
-                                   const boxarray_t& crse_fine_ba,
+                                   const basefab_t& mfab,
+				   const basefab_t& rfab,
+				   const basefab_t& cfab,
                                    int level);
-    
-    /*!
-     * Fill matrix with fine boundary
-     * @param cells all coarse cells that are at the crse-fine interface but are
-     * not refined
-     * @param crse_fine_ba coarse cells that got refined
-     * @param level the finest level is omitted
-     */
-    void fillFineBoundaryMatrix_m(map_t& cells,
-                                  const boxarray_t& crse_fine_ba,
-                                  int level);
     
     /*!
      * Copy data from AMReX to Trilinos
@@ -533,7 +521,7 @@ private:
     IpplTimings::TimerRef bBc_m;
     IpplTimings::TimerRef bG_m;
     IpplTimings::TimerRef bBffill_m;
-    IpplTimings::TimerRef bBcfill_m;
+    IpplTimings::TimerRef bSmoother_m;
 };
 
 #endif
