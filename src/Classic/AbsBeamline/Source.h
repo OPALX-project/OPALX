@@ -26,6 +26,7 @@ public:
 
     virtual void addKT(int i, double t, Vector_t &K);
 
+    using Component::apply;
     virtual bool apply(const double &t);
 
     virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);

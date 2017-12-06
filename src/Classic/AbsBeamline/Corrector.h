@@ -103,7 +103,7 @@ public:
 
     void setKickY(double k);
 
-    virtual void setDesignEnergy(double ekin, bool changeable = true);
+    virtual void setDesignEnergy(const double& ekin, bool changeable = true);
 
     double getKickX() const;
 
