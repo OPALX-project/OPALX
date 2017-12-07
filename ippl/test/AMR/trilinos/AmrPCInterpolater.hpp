@@ -15,11 +15,11 @@ void AmrPCInterpolater<AmrMultiGridLevel>::stencil(
     civ.coarsen(mglevel->refinement());
 
     go_t crse_gidx = mglevel->serialize(civ);
-    
-    if ( mglevel->isBoundary(civ) ) {
-        mglevel->applyBoundary(civ, map, scale);
+
+    if ( !mglevel->isBoundary(civ) ) {
+	map[crse_gidx] += scale;
     } else {
-        map[crse_gidx] += scale;
+	mglevel->applyBoundary(civ, map, scale);
     }
 }
 
