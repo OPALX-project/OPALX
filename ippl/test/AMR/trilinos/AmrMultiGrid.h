@@ -41,11 +41,7 @@ public:
     typedef amrex::Box box_t;
     typedef amrex::BaseFab<int> basefab_t;
     typedef amrex::FArrayBox farraybox_t;
-    
-    typedef std::map<AmrIntVect_t,
-                     std::list<std::pair<go_t, go_t> >
-                     > map_t;
-        
+            
     typedef AmrSmoother::Smoother Smoother;
     
     /// Supported interpolaters for prolongation operation
@@ -195,13 +191,13 @@ private:
     void residual_m(Teuchos::RCP<vector_t>& r,
                     const Teuchos::RCP<vector_t>& b,
                     const Teuchos::RCP<vector_t>& x,
-                    int level);
+                    const lo_t& level);
     
     /*!
      * Recursive call.
      * @param level to relax
      */
-    void relax_m(int level);
+    void relax_m(const lo_t& level);
     
     /*!
      * Compute the residual of a level without considering refined level.
@@ -215,7 +211,7 @@ private:
                             const Teuchos::RCP<vector_t>& rhs,
                             const Teuchos::RCP<vector_t>& crs_rhs,
                             const Teuchos::RCP<vector_t>& b,
-                            int level);
+                            const lo_t& level);
                            
     /*!
      * @returns the maximum norm over all levels using the norm specified
@@ -248,21 +244,21 @@ private:
      */
     void setup_m(const amrex::Array<AmrField_u>& rho,
                  const amrex::Array<AmrField_u>& phi,
-                 bool matrices = true);
+                 const bool& matrices = true);
     
     /*!
      * Set matrix and vector pointer
      * @param level for which we fill matrix + vector
      * @param matrices if we need to set matrices as well or only vectors.
      */
-    void open_m(int level, bool matrices);
+    void open_m(const lo_t& level, const bool& matrices);
     
     /*!
      * Call fill complete
      * @param level for which we filled matrix
      * @param matrices if we set matrices as well.
      */
-    void close_m(int level, bool matrices);
+    void close_m(const lo_t& level, const bool& matrices);
     
     /*!
      * Build the Poisson matrix for a level assuming no finer level (i.e. the whole fine mesh
@@ -274,8 +270,11 @@ private:
      * @param mfab is the mask (internal cell, boundary cell, ...) of that level
      * @param level for which we build the Poisson matrix
      */
-    void buildNoFinePoissonMatrix_m(const AmrIntVect_t& iv,
-                                    const basefab_t& mfab, int level);
+    void buildNoFinePoissonMatrix_m(const go_t& gidx,
+				    const AmrIntVect_t& iv,
+                                    const basefab_t& mfab,
+				    const scalar_t* invdx2,
+				    const lo_t& level);
     
     /*!
      * Build the Poisson matrix for a level that got refined (it does not take the covered
@@ -288,11 +287,13 @@ private:
      * @param rfab is the mask between levels
      * @param level for which we build the special Poisson matrix
      */
-    void buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
+    void buildCompositePoissonMatrix_m(const go_t& gidx,
+				       const AmrIntVect_t& iv,
                                        const basefab_t& mfab,
 				       const basefab_t& rfab,
 				       const basefab_t& cfab,
-                                       int level);
+				       const scalar_t* invdx2,
+                                       const lo_t& level);
     
     /*!
      * Build a matrix that averages down the data of the fine cells down to the
@@ -304,12 +305,13 @@ private:
      * @param rfab is the mask between levels
      * @param level for which to build restriction matrix
      */
-    void buildRestrictionMatrix_m(const AmrIntVect_t& iv,
-				  D_DECL(const int& ii,
-					 const int& jj,
-					 const int& kk),
+    void buildRestrictionMatrix_m(const go_t& gidx,
+				  const AmrIntVect_t& iv,
+				  D_DECL(const go_t& ii,
+					 const go_t& jj,
+					 const go_t& kk),
 				  const basefab_t& rfab,
-                                  int level);
+                                  const lo_t& level);
     
     /*!
      * Interpolate data from coarse cells to appropriate refined cells. The interpolation
@@ -322,8 +324,9 @@ private:
      * @param level for which to build the interpolation matrix. The finest level
      * does not build such a matrix.
      */
-    void buildInterpolationMatrix_m(const AmrIntVect_t& iv,
-                                    int level);
+    void buildInterpolationMatrix_m(const go_t& gidx,
+				    const AmrIntVect_t& iv,
+                                    const lo_t& level);
     
     /*!
      * The boundary values at the crse-fine-interface need to be taken into account properly.
@@ -337,21 +340,12 @@ private:
      * @param cells all fine cells that are at the crse-fine interface
      * @param level the base level is omitted
      */
-    void buildCrseBoundaryMatrix_m(const AmrIntVect_t& iv,
+    void buildCrseBoundaryMatrix_m(const go_t& gidx,
+				   const AmrIntVect_t& iv,
 				   const basefab_t& mfab,
 				   const basefab_t& cfab,
-		                   int level);
-    
-    /*!
-     * Fill matrix with coarse boundary
-     * @param cells all fine cells that are at the crse-fine interface
-     * @param crse_fine_ba coarse cells that got refined
-     * @param iv is the current cell
-     * @param level the base level is omitted
-     */
-    void fillCrseBoundaryMatrix_m(map_t& cells,
-				  const basefab_t& rfab,
-                                  int level);
+				   const scalar_t* invdx2,
+		                   const lo_t& level);
     
     /*!
      * The boundary values at the crse-fine-interface need to be taken into account properly.
@@ -366,11 +360,12 @@ private:
      * @param crse_fine_ba coarse cells that got refined
      * @param level the finest level is omitted
      */
-    void buildFineBoundaryMatrix_m(const AmrIntVect_t& iv,
+    void buildFineBoundaryMatrix_m(const go_t& gidx,
+				   const AmrIntVect_t& iv,
                                    const basefab_t& mfab,
 				   const basefab_t& rfab,
 				   const basefab_t& cfab,
-                                   int level);
+                                   const lo_t& level);
     
     /*!
      * Copy data from AMReX to Trilinos
@@ -378,7 +373,7 @@ private:
      * @param level for which to copy
      */
     void buildDensityVector_m(const AmrField_t& rho,
-                              int level);
+                              const lo_t& level);
     
     /*!
      * Copy data from AMReX to Trilinos
@@ -386,7 +381,7 @@ private:
      * @param level for which to copy
      */
     void buildPotentialVector_m(const AmrField_t& phi,
-                                int level);
+                                const lo_t& level);
     
     /*!
      * Gradient matrix is used to compute the electric field
@@ -394,8 +389,11 @@ private:
      * @param mfab is the mask (internal cell, boundary cell, ...) of that level
      * @param level for which to compute
      */
-    void buildGradientMatrix_m(const AmrIntVect_t& iv,
-                               const basefab_t& mfab, int level);
+    void buildGradientMatrix_m(const go_t& gidx,
+			       const AmrIntVect_t& iv,
+                               const basefab_t& mfab,
+			       const scalar_t* invdx,
+			       const lo_t& level);
     
     /*!
      * Data transfer from AMReX to Trilinos.
@@ -404,7 +402,10 @@ private:
      * @param mv is the vector to be filled
      * @param level where to perform
      */
-    void amrex2trilinos_m(const AmrField_t& mf, int comp, Teuchos::RCP<vector_t>& mv, int level);
+    void amrex2trilinos_m(const AmrField_t& mf,
+			  const lo_t& comp,
+			  Teuchos::RCP<vector_t>& mv,
+			  const lo_t& level);
     
     /*!
      * Data transfer from Trilinos to AMReX.
@@ -412,7 +413,9 @@ private:
      * @param comp component to copy
      * @param mv is the corresponding Trilinos vector
      */
-    void trilinos2amrex_m(AmrField_t& mf, int comp, const Teuchos::RCP<vector_t>& mv);
+    void trilinos2amrex_m(AmrField_t& mf,
+			  const lo_t& comp,
+			  const Teuchos::RCP<vector_t>& mv);
     
     /*!
      * Some indices might occur several times due to boundary conditions, etc. We
@@ -432,25 +435,25 @@ private:
      */
     void smooth_m(Teuchos::RCP<vector_t>& e,
                   Teuchos::RCP<vector_t>& r,
-                  int level);
+                  const lo_t& level);
     
     /*!
      * Restrict coarse level residual based on fine level residual
      * @param level to restrict
      */
-    void restrict_m(int level);
+    void restrict_m(const lo_t& level);
     
     /*!
      * Update error of fine level based on error of coarse level
      * @param level to update
      */
-    void prolongate_m(int level);
+    void prolongate_m(const lo_t& level);
     
     /*!
      * Average data from fine level to coarse
      * @param level finest level is omitted
      */
-    void averageDown_m(int level);
+    void averageDown_m(const lo_t& level);
     
     /*!
      * Instantiate interpolater
