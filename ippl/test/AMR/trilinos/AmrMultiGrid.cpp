@@ -541,12 +541,6 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
 {
     this->open_m(lbase_m, matrices);
     
-    mglevel_m[lbase_m]->rho_p = Teuchos::rcp(
-        new vector_t(mglevel_m[lbase_m]->map_p, false) );
-    
-    mglevel_m[lbase_m]->phi_p = Teuchos::rcp(
-        new vector_t(mglevel_m[lbase_m]->map_p, false) );
-
     const scalar_t* invdx = mglevel_m[lbase_m]->geom.InvCellSize();
     
     const scalar_t invdx2[] = {
@@ -554,42 +548,47 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
 		invdx[1] * invdx[1],
 		invdx[2] * invdx[2] )
     };
-    
-    for (amrex::MFIter mfi(*mglevel_m[lbase_m]->mask, true);
-	 mfi.isValid(); ++mfi)
-    {
-	const box_t&       tbx = mfi.tilebox();
-	const basefab_t&  mfab = (*mglevel_m[lbase_m]->mask)[mfi];
-	const farraybox_t& rhofab = (*rho[lbase_m])[mfi];
-	const farraybox_t& pfab = (*phi[lbase_m])[mfi];
-	
-	const int* lo = tbx.loVect();
-	const int* hi = tbx.hiVect();
-	
-	for (int i = lo[0]; i <= hi[0]; ++i) {
-	    for (int j = lo[1]; j <= hi[1]; ++j) {
+
+    if ( matrices ) {
+	for (amrex::MFIter mfi(*mglevel_m[lbase_m]->mask, true);
+	     mfi.isValid(); ++mfi)
+	{
+	    const box_t&       tbx = mfi.tilebox();
+	    const basefab_t&  mfab = (*mglevel_m[lbase_m]->mask)[mfi];
+	    const farraybox_t& rhofab = (*rho[lbase_m])[mfi];
+	    const farraybox_t& pfab = (*phi[lbase_m])[mfi];
+	    
+	    const int* lo = tbx.loVect();
+	    const int* hi = tbx.hiVect();
+	    
+	    for (int i = lo[0]; i <= hi[0]; ++i) {
+		for (int j = lo[1]; j <= hi[1]; ++j) {
 #if AMREX_SPACEDIM == 3
-		for (int k = lo[2]; k <= hi[2]; ++k) {
+		    for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
-		    AmrIntVect_t iv(D_DECL(i, j, k));
-		    int gidx = mglevel_m[lbase_m]->serialize(iv);
-		    
-		    IpplTimings::startTimer(bPoiss_m);
-		    this->buildNoFinePoissonMatrix_m(gidx, iv, mfab, invdx2, lbase_m);
-		    IpplTimings::stopTimer(bPoiss_m);
-		    
-		    IpplTimings::startTimer(bG_m);
-		    this->buildGradientMatrix_m(gidx, iv, mfab, invdx, lbase_m);
-		    IpplTimings::stopTimer(bG_m);
-		    
-		    mglevel_m[lbase_m]->rho_p->replaceGlobalValue(gidx, rhofab(iv, 0));
-		    mglevel_m[lbase_m]->phi_p->replaceGlobalValue(gidx, pfab(iv, 0));
-		    
+			AmrIntVect_t iv(D_DECL(i, j, k));
+			int gidx = mglevel_m[lbase_m]->serialize(iv);
+			
+			IpplTimings::startTimer(bPoiss_m);
+			this->buildNoFinePoissonMatrix_m(gidx, iv, mfab, invdx2, lbase_m);
+			IpplTimings::stopTimer(bPoiss_m);
+			
+			IpplTimings::startTimer(bG_m);
+			this->buildGradientMatrix_m(gidx, iv, mfab, invdx, lbase_m);
+			IpplTimings::stopTimer(bG_m);
+			
+			mglevel_m[lbase_m]->rho_p->replaceGlobalValue(gidx, rhofab(iv, 0));
+			mglevel_m[lbase_m]->phi_p->replaceGlobalValue(gidx, pfab(iv, 0));
+			
 #if AMREX_SPACEDIM == 3
+		    }
+#endif
 		}
-#endif
 	    }
 	}
+    } else {
+	this->buildDensityVector_m(*rho[lbase_m], lbase_m);
+	this->buildPotentialVector_m(*phi[lbase_m], lbase_m);
     }
 
     this->close_m(lbase_m, matrices);
@@ -625,69 +624,78 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
                     invdx[2] * invdx[2] )
         };
 
-        for (amrex::MFIter mfi(*mglevel_m[lev]->mask, true);
-             mfi.isValid(); ++mfi)
-        {
-            const box_t&       tbx = mfi.tilebox();
-            const basefab_t&  mfab = (*mglevel_m[lev]->mask)[mfi];
-            const basefab_t&  rfab = (*mglevel_m[lev]->refmask)[mfi];
-            const basefab_t&  cfab = (*mglevel_m[lev]->crsemask)[mfi];
-            const farraybox_t& rhofab = (*rho[ilev])[mfi];
-            const farraybox_t& pfab = (*phi[ilev])[mfi];
-
-            const int* lo = tbx.loVect();
-            const int* hi = tbx.hiVect();
-
-            for (int i = lo[0]; i <= hi[0]; ++i) {
-                int ii = i << 1;
-                for (int j = lo[1]; j <= hi[1]; ++j) {
-                    int jj = j << 1;
+	if ( matrices ) {
+	    
+	    for (amrex::MFIter mfi(*mglevel_m[lev]->mask, true);
+		 mfi.isValid(); ++mfi)
+	    {
+		const box_t&       tbx = mfi.tilebox();
+		const basefab_t&  mfab = (*mglevel_m[lev]->mask)[mfi];
+		const basefab_t&  rfab = (*mglevel_m[lev]->refmask)[mfi];
+		const basefab_t&  cfab = (*mglevel_m[lev]->crsemask)[mfi];
+		const farraybox_t& rhofab = (*rho[ilev])[mfi];
+		const farraybox_t& pfab = (*phi[ilev])[mfi];
+		
+		const int* lo = tbx.loVect();
+		const int* hi = tbx.hiVect();
+		
+		for (int i = lo[0]; i <= hi[0]; ++i) {
+		    int ii = i << 1;
+		    for (int j = lo[1]; j <= hi[1]; ++j) {
+			int jj = j << 1;
 #if AMREX_SPACEDIM == 3
-                    for (int k = lo[2]; k <= hi[2]; ++k) {
-                        int kk = k << 1;
+			for (int k = lo[2]; k <= hi[2]; ++k) {
+			    int kk = k << 1;
 #endif
-                        AmrIntVect_t iv(D_DECL(i, j, k));
-                        int gidx = mglevel_m[lev]->serialize(iv);
-
-			IpplTimings::startTimer(bRestict_m);
-                        this->buildRestrictionMatrix_m(gidx, iv,
-                                                       D_DECL(ii, jj, kk), rfab, lev);
-			IpplTimings::stopTimer(bRestict_m);
-
-			IpplTimings::startTimer(bInterp_m);
-                        this->buildInterpolationMatrix_m(gidx, iv, lev);
-			IpplTimings::stopTimer(bInterp_m);
-
-			IpplTimings::startTimer(bBc_m);
-                        this->buildCrseBoundaryMatrix_m(gidx, iv, mfab,
-                                                        cfab, invdx2, lev);
-			IpplTimings::stopTimer(bBc_m);
-
-			IpplTimings::startTimer(bBf_m);
-                        this->buildFineBoundaryMatrix_m(gidx, iv,
-                                                        mfab, rfab, cfab, lev);
-			IpplTimings::stopTimer(bBf_m);
-
-			IpplTimings::startTimer(bPoiss_m);
-                        this->buildNoFinePoissonMatrix_m(gidx, iv, mfab, invdx2, lev);
-			IpplTimings::stopTimer(bPoiss_m);
-
-			IpplTimings::startTimer(bCompo_m);
-                        this->buildCompositePoissonMatrix_m(gidx, iv, mfab, rfab,
-                                                            cfab, invdx2, lev);
-			IpplTimings::stopTimer(bCompo_m);
-
-			IpplTimings::startTimer(bG_m);
-                        this->buildGradientMatrix_m(gidx, iv, mfab, invdx, lev);
-			IpplTimings::stopTimer(bG_m);
-
-                        mglevel_m[lev]->rho_p->replaceGlobalValue(gidx, rhofab(iv, 0));
-                        mglevel_m[lev]->phi_p->replaceGlobalValue(gidx, pfab(iv, 0));
+			    AmrIntVect_t iv(D_DECL(i, j, k));
+			    int gidx = mglevel_m[lev]->serialize(iv);
+			    
+			    IpplTimings::startTimer(bRestict_m);
+			    this->buildRestrictionMatrix_m(gidx, iv,
+							   D_DECL(ii, jj, kk), rfab, lev);
+			    IpplTimings::stopTimer(bRestict_m);
+			    
+			    IpplTimings::startTimer(bInterp_m);
+			    this->buildInterpolationMatrix_m(gidx, iv, lev);
+			    IpplTimings::stopTimer(bInterp_m);
+			    
+			    IpplTimings::startTimer(bBc_m);
+			    this->buildCrseBoundaryMatrix_m(gidx, iv, mfab,
+							    cfab, invdx2, lev);
+			    IpplTimings::stopTimer(bBc_m);
+			    
+			    IpplTimings::startTimer(bBf_m);
+			    this->buildFineBoundaryMatrix_m(gidx, iv,
+							    mfab, rfab, cfab, lev);
+			    IpplTimings::stopTimer(bBf_m);
+			    
+			    IpplTimings::startTimer(bPoiss_m);
+			    this->buildNoFinePoissonMatrix_m(gidx, iv, mfab, invdx2, lev);
+			    IpplTimings::stopTimer(bPoiss_m);
+			    
+			    IpplTimings::startTimer(bCompo_m);
+			    this->buildCompositePoissonMatrix_m(gidx, iv, mfab, rfab,
+								cfab, invdx2, lev);
+			    IpplTimings::stopTimer(bCompo_m);
+			    
+			    IpplTimings::startTimer(bG_m);
+			    this->buildGradientMatrix_m(gidx, iv, mfab, invdx, lev);
+			    IpplTimings::stopTimer(bG_m);
+			    
+			    mglevel_m[lev]->rho_p->replaceGlobalValue(gidx, rhofab(iv, 0));
+			    mglevel_m[lev]->phi_p->replaceGlobalValue(gidx, pfab(iv, 0));
 #if AMREX_SPACEDIM == 3
-                    }
+			}
 #endif
-                }
-            }
+		    }
+		}
+	    }
+	} else {
+	    for (lo_t lev = 0; lev < nlevel_m; ++lev) {
+		int ilev = lbase_m + lev;
+		this->buildDensityVector_m(*rho[ilev], lev);
+		this->buildPotentialVector_m(*phi[ilev], lev);
+	    }
 	}
 
 	this->close_m(lev, matrices);
