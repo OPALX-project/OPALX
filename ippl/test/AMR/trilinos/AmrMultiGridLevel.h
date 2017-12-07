@@ -80,6 +80,11 @@ public:
     void applyBoundary(const AmrIntVect_t& iv,
                        umap_t& map,
                        const scalar_t& value);
+
+    void applyBoundary(const AmrIntVect_t& iv,
+		       const lo_t& dir,
+		       umap_t& map,
+		       const scalar_t& value);
     
     const AmrIntVect_t& refinement() const;
     

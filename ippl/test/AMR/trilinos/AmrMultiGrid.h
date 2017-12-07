@@ -245,7 +245,21 @@ private:
     void setup_m(const amrex::Array<AmrField_u>& rho,
                  const amrex::Array<AmrField_u>& phi,
                  const bool& matrices = true);
+
+    /*!
+     * Build all matrices and vectors needed for single-level computation
+     */
+    void buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
+			    const amrex::Array<AmrField_u>& phi,
+			    const bool& matrices = true);
     
+    /*!
+     * Build all matrices and vectors needed for multi-level computation
+     */
+    void buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
+			   const amrex::Array<AmrField_u>& phi,
+			   const bool& matrices = true);
+
     /*!
      * Set matrix and vector pointer
      * @param level for which we fill matrix + vector
@@ -523,7 +537,6 @@ private:
     IpplTimings::TimerRef bBf_m;
     IpplTimings::TimerRef bBc_m;
     IpplTimings::TimerRef bG_m;
-    IpplTimings::TimerRef bBffill_m;
     IpplTimings::TimerRef bSmoother_m;
 };
 

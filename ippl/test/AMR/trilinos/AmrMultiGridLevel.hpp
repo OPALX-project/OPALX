@@ -70,9 +70,9 @@ AmrMultiGridLevel<MatrixType, VectorType>::~AmrMultiGridLevel()
 template <class MatrixType, class VectorType>
 int AmrMultiGridLevel<MatrixType, VectorType>::serialize(const AmrIntVect_t& iv) const {
 #if AMREX_SPACEDIM == 3
-    return iv[2] + (iv[1] + nr_m[1] * iv[0]) * nr_m[2];
+    return iv[0] + (iv[1] + nr_m[1] * iv[2]) * nr_m[0];
 #else
-    return iv[1] + iv[0] * nr_m[1];
+    return iv[0] + iv[1] * nr_m[0];
 #endif
 }
 
@@ -85,10 +85,20 @@ bool AmrMultiGridLevel<MatrixType, VectorType>::isBoundary(const AmrIntVect_t& i
 
 template <class MatrixType, class VectorType>
 void AmrMultiGridLevel<MatrixType, VectorType>::applyBoundary(const AmrIntVect_t& iv,
-                                                              umap_t& map,
+							      umap_t& map,
                                                               const scalar_t& value)
 {
     bc_mp->apply(iv, map, value, this, &nr_m[0]);
+}
+
+
+template <class MatrixType, class VectorType>
+void AmrMultiGridLevel<MatrixType, VectorType>::applyBoundary(const AmrIntVect_t& iv,
+							      const lo_t& dir,
+                                                              umap_t& map,
+                                                              const scalar_t& value)
+{
+    bc_mp->apply(iv, dir, map, value, this, &nr_m[0]);
 }
 
 

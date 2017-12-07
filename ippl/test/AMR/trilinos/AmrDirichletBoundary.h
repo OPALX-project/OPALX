@@ -20,30 +20,29 @@ public:
     AmrDirichletBoundary() : AmrBoundary<AmrMultiGridLevel>(1) { }
     
     void apply(const AmrIntVect_t& iv,
-               umap_t& map,
-               const scalar_t& value,
-               AmrMultiGridLevel* mglevel,
-               const lo_t* nr);
+	       const lo_t& dir,
+	       umap_t& map,
+	       const scalar_t& value,
+	       AmrMultiGridLevel* mglevel,
+	       const lo_t* nr);
 };
 
 
 template <class AmrMultiGridLevel>
 void AmrDirichletBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
-                                                    umap_t& map,
+						    const lo_t& dir,
+						    umap_t& map,
 						    const scalar_t& value,
-                                                    AmrMultiGridLevel* mglevel,
-                                                    const lo_t* nr)
+						    AmrMultiGridLevel* mglevel,
+						    const lo_t* nr)
 {
     // find interior neighbour cell
-    AmrIntVect_t niv;
-    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-        if ( iv[i] > -1 && iv[i] < nr[i] )
-            niv[i] = iv[i];
-        else
-            niv[i] = (iv[i] == -1) ? iv[i] + 1 : iv[i] - 1;
-    }
-    
+    AmrIntVect_t niv = iv;
+    niv[dir] = (iv[dir] == -1) ? iv[dir] + 1 : iv[dir] - 1;
     map[mglevel->serialize(niv)] -= value;
 }
+
+
+
 
 #endif
