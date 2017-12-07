@@ -44,7 +44,6 @@ AmrMultiGrid::AmrMultiGrid(Boundary bc,
     bBf_m = IpplTimings::getTimer("build-bfine");
     bBc_m = IpplTimings::getTimer("build-bcrse");
     bG_m  = IpplTimings::getTimer("build-grad");
-    bBffill_m = IpplTimings::getTimer("fill-bfine");
     bSmoother_m = IpplTimings::getTimer("build-smoother");
 
 #endif
@@ -624,6 +623,22 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
 }
 
 
+void AmrMultiGrid::buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
+				      const amrex::Array<AmrField_u>& phi,
+				      const bool& matrices)
+{
+
+}
+
+
+void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
+				     const amrex::Array<AmrField_u>& phi,
+				     const bool& matrices)
+{
+
+}
+
+
 void AmrMultiGrid::open_m(const lo_t& level,
 			  const bool& matrices)
 {    
@@ -800,9 +815,8 @@ void AmrMultiGrid::buildNoFinePoissonMatrix_m(const go_t& gidx,
             
             switch ( mfab(biv) )
             {
-                case AmrMultiGridLevel_t::Mask::COVERED:
-                    // covered --> interior cell
                 case AmrMultiGridLevel_t::Mask::INTERIOR:
+                case AmrMultiGridLevel_t::Mask::COVERED: // covered --> interior cell 
                 {
 		    map[mglevel_m[level]->serialize(biv)] += invdx2[d];
                     break;
@@ -825,7 +839,7 @@ void AmrMultiGrid::buildNoFinePoissonMatrix_m(const go_t& gidx,
                 case AmrMultiGridLevel_t::Mask::PHYSBNDRY:
                 {
                     // physical boundary cell
-                    mglevel_m[level]->applyBoundary(biv, map,
+                    mglevel_m[level]->applyBoundary(biv, d, map,
                                                     invdx2[d] /*matrix coefficient*/);
                     break;
                 }
@@ -934,7 +948,7 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const go_t& gidx,
 		case AmrMultiGridLevel_t::Mask::PHYSBNDRY:
 		{
 		    // physical boundary cell
-		    mglevel_m[level]->applyBoundary(biv, map,
+		    mglevel_m[level]->applyBoundary(biv, d, map,
 						    invdx2[d] /*matrix coefficient*/);
 		    
 		    // add center once
@@ -1325,10 +1339,10 @@ void AmrMultiGrid::buildGradientMatrix_m(const go_t& gidx,
     {
         switch ( mfab(iv) )
         {
+            case AmrMultiGridLevel_t::Mask::INTERIOR:
+	        // interior cells
             case AmrMultiGridLevel_t::Mask::COVERED:
                 // covered --> interior cell
-            case AmrMultiGridLevel_t::Mask::INTERIOR:
-                // interior cells
                 map[mglevel_m[level]->serialize(iv)] -= shift * 0.5 * invdx[dir];
                 break;
             case AmrMultiGridLevel_t::Mask::BNDRY:
@@ -1359,8 +1373,8 @@ void AmrMultiGrid::buildGradientMatrix_m(const go_t& gidx,
                 
                 scalar_t value = - shift * 0.5 * invdx[dir];
                 
-                mglevel_m[level]->applyBoundary(iv, map,
-                                                value);
+                mglevel_m[level]->applyBoundary(iv, dir,
+						map, value);
                 break;
             }
             default:

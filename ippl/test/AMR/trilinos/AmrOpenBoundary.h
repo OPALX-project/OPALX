@@ -16,51 +16,44 @@ public:
     AmrOpenBoundary() : AmrBoundary<AmrMultiGridLevel>(2) { }
     
     void apply(const AmrIntVect_t& iv,
+               const lo_t& dir,
                umap_t& map,
                const scalar_t& value,
                AmrMultiGridLevel* mglevel,
                const lo_t* nr);
+    
 };
 
 
 template <class AmrMultiGridLevel>
 void AmrOpenBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
+					       const lo_t& dir,
 					       umap_t& map,
 					       const scalar_t& value,
 					       AmrMultiGridLevel* mglevel,
 					       const lo_t* nr)
 {
-    /* there should be only one boundary at a time, i.e.
-     * either x-, y- or z-direction
-     */
-    
     /* depending on boundary we need forward
      * or backward difference for the gradient
      */
+
     
     // find interior neighbour cells
     AmrIntVect_t niv = iv;
-    AmrIntVect_t n2iv = iv; // next interior cell
+    AmrIntVect_t n2iv = iv;
     
-    lo_t d = 0;
-    for ( ; d < AMREX_SPACEDIM; ++d) {
-        
-        if ( niv[d] == -1 ) {
-            // lower boundary --> forward difference
-            niv[d] = 0;
-            n2iv[d] = 1;
-            break;
-            
-        } else if ( niv[d] == nr[d] ) {
-            // upper boundary --> backward difference
-            niv[d] = nr[d] - 1;
-            n2iv[d] = nr[d] - 2;
-            break;
-        }
+    if ( niv[dir] == -1 ) {
+	// lower boundary --> forward difference
+	niv[dir]  = 0;
+	n2iv[dir] = 1;
+    } else {
+	// upper boundary --> backward difference
+	niv[dir]  = nr[dir] - 1;
+	n2iv[dir] = nr[dir] - 2;
     }
     
-    // cell size in direction
-    scalar_t h = 1.0 / scalar_t(nr[d]);
+    // celll size in direction
+    scalar_t h = 1.0 / scalar_t(nr[dir]);
     scalar_t r = 0.358;
     
     // 1st order

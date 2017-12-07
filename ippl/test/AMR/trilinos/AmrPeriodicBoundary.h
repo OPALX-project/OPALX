@@ -20,6 +20,7 @@ public:
     AmrPeriodicBoundary() : AmrBoundary<AmrMultiGridLevel>(1) { }
     
     void apply(const AmrIntVect_t& iv,
+               const lo_t& dir,
                umap_t& map,
                const scalar_t& value,
                AmrMultiGridLevel* mglevel,
@@ -29,18 +30,18 @@ public:
 
 template <class AmrMultiGridLevel>
 void AmrPeriodicBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
+						   const lo_t& dir,
                                                    umap_t& map,
                                                    const scalar_t& value,
                                                    AmrMultiGridLevel* mglevel,
                                                    const lo_t* nr)
 {
     // find interior neighbour cell on opposite site
-    AmrIntVect_t niv;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-        niv[d] = ( iv[d] == -1 ) ? nr[d] - 1 : 0;
-    }
+    AmrIntVect_t niv = iv;
+    niv[dir] = ( iv[dir] == -1 ) ? nr[dir] - 1 : 0;
     
     map[mglevel->serialize(niv)] += value;
 }
+
 
 #endif
