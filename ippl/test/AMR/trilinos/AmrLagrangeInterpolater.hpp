@@ -258,9 +258,6 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     // factor for fine
     scalar_t fac = factor_ms * scale;
     
-    // if pattern is known
-    bool known = true;
-    
     scalar_t L[2] = {0.0, 0.0};
     lo_t top1 = riv[d1] % 2;
     
@@ -567,9 +564,6 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     // factor for fine
     scalar_t fac = factor_ms * scale;
     
-    // if pattern is known
-    bool known = true;
-    
     scalar_t L[3] = {0.0, 0.0, 0.0};
     lo_t top1 = riv[d1] % 2;
     
@@ -731,40 +725,37 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             /* unknown pattern --> last trial: linear Lagrange interpolation
              * --> it throws an error if not possible
              */
-            known = false;
             this->crseLinear_m(iv, map, scale, dir, shift, rfab, riv, mglevel);
-            break;
+	    return;
         }
     }
 
     IpplTimings::stopTimer(switch_m);
     
-    if ( known ) {
-	IpplTimings::startTimer(end_m);
-        /*
-         * if pattern is known --> add stencil
-         */
-        AmrIntVect_t tmp = iv;
-        for (int i = begin[0]; i <= end[0]; ++i) {
-            tmp[d1] += i;
-            for (int j = begin[1]; j <= end[1]; ++j) {
-                tmp[d2] += j;
-                
-                scalar_t value = fac * L[i-begin[0]] * K[j-begin[1]];
-                if ( mglevel->isBoundary(tmp) ) {
-                    mglevel->applyBoundary(tmp, map, value);
-                } else {
-                    map[mglevel->serialize(tmp)] += value;
-                }
-                    
-                // undo
-                tmp[d2] -= j;
-            }
-            // undo
-            tmp[d1] -= i;
-        }
-	IpplTimings::stopTimer(end_m);
+    IpplTimings::startTimer(end_m);
+    /*
+     * if pattern is known --> add stencil
+     */
+    AmrIntVect_t tmp1 = iv;
+    for (int i = begin[0]; i <= end[0]; ++i) {
+	tmp1[d1] += i;
+	for (int j = begin[1]; j <= end[1]; ++j) {
+	    tmp1[d2] += j;
+            
+	    scalar_t value = fac * L[i-begin[0]] * K[j-begin[1]];
+	    if ( mglevel->isBoundary(tmp1) ) {
+		mglevel->applyBoundary(tmp1, map, value);
+	    } else {
+		map[mglevel->serialize(tmp1)] += value;
+	    }
+            
+	    // undo
+	    tmp1[d2] -= j;
+	}
+	// undo
+	tmp1[d1] -= i;
     }
+    IpplTimings::stopTimer(end_m);
     
 #else
     #error Lagrange interpolation: Only 2D and 3D are supported!
