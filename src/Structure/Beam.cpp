@@ -289,14 +289,6 @@ void Beam::update() {
         }
     };
 
-    // Emittances added above by JMJ 4/4/2000 so that UNNAMED_BEAM has
-    // proper defaults (problem found by Julien Pancin, see email today).
-    // This did not seem to work for him to deleted them again.  Confused.
-    // Slightly worried about this preventing anyone giving
-    // normalised emittances EXN, EYN, ETN.
-
-    // MISSING: Other data for BEAM.
-
     // Set default name.
     if(getOpalName().empty()) setOpalName("UNNAMED_BEAM");
 }
