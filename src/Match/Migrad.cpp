@@ -92,7 +92,7 @@ void Migrad::execute() {
     Match::block->getVariables(x);
     if(! Match::block->evaluate(x, f)) {
         state = FAILED;
-    } else if((fnorm = euclidian_norm(f)) <= tol) {
+    } else if((fnorm = euclidean_norm(f)) <= tol) {
         state = CONVERGED;
     } else {
         // Initialise algorithm.

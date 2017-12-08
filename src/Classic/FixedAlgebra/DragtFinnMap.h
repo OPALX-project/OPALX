@@ -841,7 +841,7 @@ dynamicFixedPoint(FVector<double, 2 * N> &fp, DragtFinnMap &map) {
         trackOrbit(fp1, map);
         FVector<double, 2 * N> error = fp1 - fp;
 
-        if(euclidian_norm(error) < tol) break;
+        if(euclidean_norm(error) < tol) break;
 
         FMatrix<double, 2 * N, 2 * N> M = map.getMatrix();
         M = M - 1.0;
@@ -864,7 +864,7 @@ staticFixedPoint(FVector<double, 2 * N> &fp, DragtFinnMap &map) {
         trackOrbit(fp1, map);
         FVector<double, 2 * N> error = fp1 - fp;
 
-        if(euclidian_norm(error) < tol) break;
+        if(euclidean_norm(error) < tol) break;
 
         FMatrix<double, 2 * N, 2 * N> M = map.getMatrix();
         M = M - 1.0;
