@@ -167,6 +167,15 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
 }
 
 
+void AmrMultiGrid::clearMasks_m() {
+    for (int lev = 0; lev < nlevel_m; ++lev) {
+	mglevel_m[lev]->refmask.reset(nullptr);
+	mglevel_m[lev]->crsemask.reset(nullptr);
+	mglevel_m[lev]->mask.reset(nullptr);
+    }
+}
+
+
 void AmrMultiGrid::initGuess_m(amrex::Array<AmrField_u>& phi, bool previous) {
     if ( !previous ) {
         // reset
@@ -526,6 +535,8 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
     if ( matrices ) {
         // set the bottom solve operator
         solver_mp->setOperator(mglevel_m[lbase_m]->Anf_p);
+	
+	this->clearMasks_m();
     }
 
     

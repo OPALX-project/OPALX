@@ -170,6 +170,11 @@ private:
                       const amrex::Array<AmrGeometry_t>& geom);
     
     /*!
+     * Clear masks (required to build matrices) no longer needed.
+     */
+    void clearMasks_m();
+    
+    /*!
      * Reset potential to zero (currently)
      * @param phi is the potential
      * @param previous solution as initial guess
