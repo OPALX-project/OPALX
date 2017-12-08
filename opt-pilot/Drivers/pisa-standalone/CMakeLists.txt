@@ -15,6 +15,7 @@ target_link_libraries ( pisa-standalone.exe
     ${OPTP_LIBRARY}
     ${BOOST_FILESYSTEM}
     ${MPI_CXX_LIBRARIES}
+    -lgfortran
     )
 
 message(STATUS "OPTP_LIBRARY ${OPTP_LIBRARY}")

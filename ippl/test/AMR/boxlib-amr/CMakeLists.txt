@@ -157,66 +157,66 @@ add_executable (testOldPerformance
                 ../Solver.cpp)
     
     # Boxlib has a circular dependency between -lcboxlib and -lfboxlib --> resolve by: -lcboxlib -lfboxlib -lcboxlib
-#     target_link_libraries (testAmrPartBunch ${LIBS} ${AMREX_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-#     target_link_libraries (testSolver ${LIBS} ${AMREX_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-#     target_link_libraries (testError ${LIBS} ${AMREX_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+#     target_link_libraries (testAmrPartBunch ${LIBS} -lgfortran ${AMREX_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+#     target_link_libraries (testSolver ${LIBS} -lgfortran ${AMREX_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+#     target_link_libraries (testError ${LIBS} -lgfortran ${AMREX_LIBRARIES} -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (iterative)
 
 target_link_libraries (testH5Read ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testHdf5 ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
 target_link_libraries (testGaussian ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
 target_link_libraries (testUniform ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
 target_link_libraries (testUnifSphere ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
                         
 target_link_libraries (testGridSolve ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testUnifSphereGrid ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testReal ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
 target_link_libraries (testMultiBunch ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
 target_link_libraries (toFile ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
 target_link_libraries (testTracker ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
 target_link_libraries (testOldPlasma ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS}
                         -lboost_system -lboost_filesystem)
     
 target_link_libraries (testPerfectLoadBalancing ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testOldPerformance ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         -lcboxlib ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
