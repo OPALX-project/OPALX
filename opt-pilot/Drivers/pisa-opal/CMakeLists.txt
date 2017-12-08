@@ -40,6 +40,7 @@ target_link_libraries( pisa-opal.exe
     OPALib
     ${MPI_CXX_LIBRARIES}
     ${Trilinos_LIBRARIES}
+    -lgfortran
     ${OPTP_LIBS}
     ${Boost_LIBRARIES}
     z
