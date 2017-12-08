@@ -70,9 +70,9 @@ add_executable( testAdapterPattern
                )
 
 # target_link_libraries (testCRTP ${LIBS}
-#                         ${AMREX_LIBRARIES}
+#                         -lgfortran ${AMREX_LIBRARIES}
 #                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testAdapterPattern ${LIBS}
-                       ${AMREX_LIBRARIES}
+                       -lgfortran ${AMREX_LIBRARIES}
                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})

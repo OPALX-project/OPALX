@@ -72,22 +72,22 @@ if ( ${BL_SPACEDIM} EQUAL 3 )
                        COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/inputs $<TARGET_FILE_DIR:testDeposition>)
 
     target_link_libraries (testDeposition ${LIBS}
-                           ${AMREX_LIBRARIES}
+                           -lgfortran ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
                         
     target_link_libraries (AssignMultiLevelDensity ${LIBS}
-                           ${AMREX_LIBRARIES}
+                           -lgfortran ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
     target_link_libraries (testGeometry ${LIBS}
-                           ${AMREX_LIBRARIES}
+                           -lgfortran ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testDepositionFail ${LIBS}
-                           ${AMREX_LIBRARIES}
+                           -lgfortran ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testSolverFail ${LIBS}
-                           ${AMREX_LIBRARIES}
+                           -lgfortran ${AMREX_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 endif()
