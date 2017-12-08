@@ -408,7 +408,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
         *gmsg         << "* 1.) It is up to the user to provide appropriate geometry, electric and magnetic fields!" << endl;
         *gmsg         << "*     (Use BANDRF type cyclotron and use RFMAPFN to load both magnetic" << endl;
         *gmsg         << "*     and electric fields, setting SUPERPOSE to an array of TRUE values.)" << endl;
-        *gmsg         << "* 2.) For high currentst is strongly recommended to use the SAAMG fieldsolver," << endl;
+        *gmsg         << "* 2.) For high currents it is strongly recommended to use the SAAMG fieldsolver," << endl;
         *gmsg         << "*     FFT does not give the correct results (boundaty conditions are missing)." << endl;
         *gmsg         << "* 3.) The whole geometry will be meshed and used for the fieldsolve." << endl;
         *gmsg         << "*     There will be no transformations of the bunch into a local frame und consequently," << endl;

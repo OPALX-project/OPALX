@@ -2170,7 +2170,7 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
 
     /*!
      *
-     * \brief Following W. Johos for his report  <a href="http://gfa.web.psi.ch/publications/presentations/WernerJoho/TM-11-14.pdf"> TM-11-14 </a>
+     * \brief Following W. Johos for his report  <a href="https://intranet.psi.ch/pub/AUTHOR_WWW/ABE/TalksDE/TM-11-14.pdf"> TM-11-14 </a>
      *
      * For the \f$x,p_x\f$ phase space we have:
      * \f[
@@ -2195,10 +2195,10 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
             * cos(asin(correlationMatrix_m(2 * index + 1, 2 * index)));
 
         if (std::abs(emittance(index)) > std::numeric_limits<double>::epsilon()) {
-            beta(index) = pow(sigmaR_m[index], 2.0) / emittance(index);
+            beta(index)  = pow(sigmaR_m[index], 2.0) / emittance(index);
             gamma(index) = pow(sigmaP_m[index], 2.0) / emittance(index);
         } else {
-            beta(index) = sqrt(std::numeric_limits<double>::max());
+            beta(index)  = sqrt(std::numeric_limits<double>::max());
             gamma(index) = sqrt(std::numeric_limits<double>::max());
         }
         alpha(index) = -correlationMatrix_m(2 * index + 1, 2 * index)
@@ -2278,7 +2278,7 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
         AL = Physics::two_pi * gsl_rng_uniform(randGen_m);
         U = A * cos(AL);
         V = A * sin(AL);
-        x[2] = X[2] * (Ux * correlationMatrix_m(4, 0) + Vx * l32 + U * l33);
+        x[2] = X[2] *  (Ux * correlationMatrix_m(4, 0) + Vx * l32 + U * l33);
         p[2] = PX[2] * (Ux * correlationMatrix_m(5, 0) + Vx * l42 + U * l43 + V * l44);
 
         // Save to each processor in turn.
