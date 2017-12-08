@@ -192,50 +192,50 @@ add_custom_command(TARGET testScatterAMReX POST_BUILD
 
 
 target_link_libraries (testAmrPartBase ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testNewTracker ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testPerformance ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testPlasma ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS}
                         -lboost_system -lboost_filesystem)
 
 target_link_libraries (testTagging ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 # target_link_libraries (testInitGuessSolver ${LIBS}
-#                         ${AMREX_LIBRARIES}
+#                         -lgfortran ${AMREX_LIBRARIES}
 #                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testInitialBox ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testScatterAMReX ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testDomainTransformSolve ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testGaussian ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testUnifSphere ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testLayout ${LIBS}
-                        ${AMREX_LIBRARIES}
+                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
