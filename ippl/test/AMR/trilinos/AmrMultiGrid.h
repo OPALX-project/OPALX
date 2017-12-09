@@ -193,10 +193,10 @@ private:
      * @param x is the left-hand side
      * @param level to solve for
      */
-    void residual_m(Teuchos::RCP<vector_t>& r,
+    void residual_m(const lo_t& level,
+		    Teuchos::RCP<vector_t>& r,
                     const Teuchos::RCP<vector_t>& b,
-                    const Teuchos::RCP<vector_t>& x,
-                    const lo_t& level);
+                    const Teuchos::RCP<vector_t>& x);
     
     /*!
      * Recursive call.
@@ -212,11 +212,11 @@ private:
      * @param b is the left-hand side
      * @param level to solver for
      */
-    void residual_no_fine_m(Teuchos::RCP<vector_t>& result,
+    void residual_no_fine_m(const lo_t& level,
+			    Teuchos::RCP<vector_t>& result,
                             const Teuchos::RCP<vector_t>& rhs,
                             const Teuchos::RCP<vector_t>& crs_rhs,
-                            const Teuchos::RCP<vector_t>& b,
-                            const lo_t& level);
+                            const Teuchos::RCP<vector_t>& b);
                            
     /*!
      * @returns the maximum norm over all levels using the norm specified
@@ -250,7 +250,7 @@ private:
     void setup_m(const amrex::Array<AmrField_u>& rho,
                  const amrex::Array<AmrField_u>& phi,
                  const bool& matrices = true);
-
+    
     /*!
      * Build all matrices and vectors needed for single-level computation
      */
@@ -289,11 +289,11 @@ private:
      * @param mfab is the mask (internal cell, boundary cell, ...) of that level
      * @param level for which we build the Poisson matrix
      */
-    void buildNoFinePoissonMatrix_m(const go_t& gidx,
+    void buildNoFinePoissonMatrix_m(const lo_t& level,
+				    const go_t& gidx,
 				    const AmrIntVect_t& iv,
                                     const basefab_t& mfab,
-				    const scalar_t* invdx2,
-				    const lo_t& level);
+				    const scalar_t* invdx2);
     
     /*!
      * Build the Poisson matrix for a level that got refined (it does not take the covered
@@ -306,13 +306,13 @@ private:
      * @param rfab is the mask between levels
      * @param level for which we build the special Poisson matrix
      */
-    void buildCompositePoissonMatrix_m(const go_t& gidx,
+    void buildCompositePoissonMatrix_m(const lo_t& level,
+				       const go_t& gidx,
 				       const AmrIntVect_t& iv,
                                        const basefab_t& mfab,
 				       const basefab_t& rfab,
 				       const basefab_t& cfab,
-				       const scalar_t* invdx2,
-                                       const lo_t& level);
+				       const scalar_t* invdx2);
     
     /*!
      * Build a matrix that averages down the data of the fine cells down to the
@@ -324,13 +324,13 @@ private:
      * @param rfab is the mask between levels
      * @param level for which to build restriction matrix
      */
-    void buildRestrictionMatrix_m(const go_t& gidx,
+    void buildRestrictionMatrix_m(const lo_t& level,
+				  const go_t& gidx,
 				  const AmrIntVect_t& iv,
 				  D_DECL(const go_t& ii,
 					 const go_t& jj,
 					 const go_t& kk),
-				  const basefab_t& rfab,
-                                  const lo_t& level);
+				  const basefab_t& rfab);
     
     /*!
      * Interpolate data from coarse cells to appropriate refined cells. The interpolation
@@ -343,9 +343,9 @@ private:
      * @param level for which to build the interpolation matrix. The finest level
      * does not build such a matrix.
      */
-    void buildInterpolationMatrix_m(const go_t& gidx,
-				    const AmrIntVect_t& iv,
-                                    const lo_t& level);
+    void buildInterpolationMatrix_m(const lo_t& level,
+				    const go_t& gidx,
+				    const AmrIntVect_t& iv);
     
     /*!
      * The boundary values at the crse-fine-interface need to be taken into account properly.
@@ -359,12 +359,12 @@ private:
      * @param cells all fine cells that are at the crse-fine interface
      * @param level the base level is omitted
      */
-    void buildCrseBoundaryMatrix_m(const go_t& gidx,
+    void buildCrseBoundaryMatrix_m(const lo_t& level,
+				   const go_t& gidx,
 				   const AmrIntVect_t& iv,
 				   const basefab_t& mfab,
 				   const basefab_t& cfab,
-				   const scalar_t* invdx2,
-		                   const lo_t& level);
+				   const scalar_t* invdx2);
     
     /*!
      * The boundary values at the crse-fine-interface need to be taken into account properly.
@@ -379,28 +379,28 @@ private:
      * @param crse_fine_ba coarse cells that got refined
      * @param level the finest level is omitted
      */
-    void buildFineBoundaryMatrix_m(const go_t& gidx,
+    void buildFineBoundaryMatrix_m(const lo_t& level,
+				   const go_t& gidx,
 				   const AmrIntVect_t& iv,
                                    const basefab_t& mfab,
 				   const basefab_t& rfab,
-				   const basefab_t& cfab,
-                                   const lo_t& level);
+				   const basefab_t& cfab);
     
     /*!
      * Copy data from AMReX to Trilinos
      * @param rho is the charge density
      * @param level for which to copy
      */
-    void buildDensityVector_m(const AmrField_t& rho,
-                              const lo_t& level);
+    void buildDensityVector_m(const lo_t& level,
+			      const AmrField_t& rho);
     
     /*!
      * Copy data from AMReX to Trilinos
      * @param phi is the potential
      * @param level for which to copy
      */
-    void buildPotentialVector_m(const AmrField_t& phi,
-                                const lo_t& level);
+    void buildPotentialVector_m(const lo_t& level,
+				const AmrField_t& phi);
     
     /*!
      * Gradient matrix is used to compute the electric field
@@ -408,11 +408,11 @@ private:
      * @param mfab is the mask (internal cell, boundary cell, ...) of that level
      * @param level for which to compute
      */
-    void buildGradientMatrix_m(const go_t& gidx,
+    void buildGradientMatrix_m(const lo_t& level,
+			       const go_t& gidx,
 			       const AmrIntVect_t& iv,
                                const basefab_t& mfab,
-			       const scalar_t* invdx,
-			       const lo_t& level);
+			       const scalar_t* invdx);
     
     /*!
      * Data transfer from AMReX to Trilinos.
@@ -421,10 +421,10 @@ private:
      * @param mv is the vector to be filled
      * @param level where to perform
      */
-    void amrex2trilinos_m(const AmrField_t& mf,
+    void amrex2trilinos_m(const lo_t& level,
 			  const lo_t& comp,
-			  Teuchos::RCP<vector_t>& mv,
-			  const lo_t& level);
+			  const AmrField_t& mf,
+			  Teuchos::RCP<vector_t>& mv);
     
     /*!
      * Data transfer from Trilinos to AMReX.
@@ -432,8 +432,8 @@ private:
      * @param comp component to copy
      * @param mv is the corresponding Trilinos vector
      */
-    void trilinos2amrex_m(AmrField_t& mf,
-			  const lo_t& comp,
+    void trilinos2amrex_m(const lo_t& comp,
+			  AmrField_t& mf,
 			  const Teuchos::RCP<vector_t>& mv);
     
     /*!
@@ -447,14 +447,14 @@ private:
 		      coefficients_t& values);
     
     /*!
-     * Perfrom one smoothing step
+     * Perform one smoothing step
      * @param e error to update (left-hand side)
      * @param r residual (right-hand side)
      * @param level on which to relax
      */
-    void smooth_m(Teuchos::RCP<vector_t>& e,
-                  Teuchos::RCP<vector_t>& r,
-                  const lo_t& level);
+    void smooth_m(const lo_t& level,
+		  Teuchos::RCP<vector_t>& e,
+                  Teuchos::RCP<vector_t>& r);
     
     /*!
      * Restrict coarse level residual based on fine level residual
@@ -535,6 +535,9 @@ private:
     IpplTimings::TimerRef bottomTimer_m;        ///< bottom solver timer
 #endif
 
+    IpplTimings::TimerRef bopen_m;
+    IpplTimings::TimerRef bclose_m;
+    IpplTimings::TimerRef bclear_m;
     IpplTimings::TimerRef bRestict_m;
     IpplTimings::TimerRef bInterp_m;
     IpplTimings::TimerRef bCompo_m;

@@ -36,7 +36,9 @@ AmrMultiGrid::AmrMultiGrid(Boundary bc,
     residnofineTimer_m  = IpplTimings::getTimer("resid-no-fine");
     bottomTimer_m       = IpplTimings::getTimer("bottom-solver");
 
-
+    bopen_m = IpplTimings::getTimer("build-open");
+    bclose_m = IpplTimings::getTimer("build-close");
+    bclear_m = IpplTimings::getTimer("build-clear");
     bRestict_m = IpplTimings::getTimer("build-restrict");
     bInterp_m = IpplTimings::getTimer("build-interp");
     bCompo_m = IpplTimings::getTimer("build-comp");
@@ -87,7 +89,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     for (int lev = 0; lev < nlevel_m; ++lev) {
         int ilev = lbase + lev;
         
-        this->trilinos2amrex_m(*phi[ilev], 0, mglevel_m[lev]->phi_p);
+        this->trilinos2amrex_m(0, *phi[ilev], mglevel_m[lev]->phi_p);
     }
 }
 
@@ -168,11 +170,13 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
 
 
 void AmrMultiGrid::clearMasks_m() {
+    IpplTimings::startTimer(bclear_m);
     for (int lev = 0; lev < nlevel_m; ++lev) {
 	mglevel_m[lev]->refmask.reset(nullptr);
 	mglevel_m[lev]->crsemask.reset(nullptr);
 	mglevel_m[lev]->mask.reset(nullptr);
     }
+    IpplTimings::stopTimer(bclear_m);
 }
 
 
@@ -204,9 +208,10 @@ void AmrMultiGrid::iterate_m() {
         // update residual
         for (int lev = 0; lev < nlevel_m; ++lev) {
             
-            this->residual_m(mglevel_m[lev]->residual_p,
+            this->residual_m(lev,
+			     mglevel_m[lev]->residual_p,
                              mglevel_m[lev]->rho_p,
-                             mglevel_m[lev]->phi_p, lev);
+                             mglevel_m[lev]->phi_p);
         }
         
         max_residual = residualNorm_m();
@@ -216,10 +221,10 @@ void AmrMultiGrid::iterate_m() {
 }
 
 
-void AmrMultiGrid::residual_m(Teuchos::RCP<vector_t>& r,
+void AmrMultiGrid::residual_m(const lo_t& level,
+			      Teuchos::RCP<vector_t>& r,
                               const Teuchos::RCP<vector_t>& b,
-                              const Teuchos::RCP<vector_t>& x,
-                              const lo_t& level)
+                              const Teuchos::RCP<vector_t>& x)
 {
     /*
      * r = b - A*x
@@ -297,10 +302,11 @@ void AmrMultiGrid::relax_m(const lo_t& level) {
             mglevel_m[level]->residual_p->update(1.0, *mglevel_m[level]->rho_p, -1.0, *tmp, 0.0);
 	    
         } else {
-            this->residual_no_fine_m(mglevel_m[level]->residual_p,
+            this->residual_no_fine_m(level,
+				     mglevel_m[level]->residual_p,
                                      mglevel_m[level]->phi_p,
                                      mglevel_m[level-1]->phi_p,
-                                     mglevel_m[level]->rho_p, level);
+                                     mglevel_m[level]->rho_p);
         }
     }
     
@@ -312,8 +318,9 @@ void AmrMultiGrid::relax_m(const lo_t& level) {
         mglevel_m[level-1]->error_p->putScalar(0.0);
         
         // smoothing
-        this->smooth_m(mglevel_m[level]->error_p,
-                       mglevel_m[level]->residual_p, level);
+        this->smooth_m(level,
+		       mglevel_m[level]->error_p,
+                       mglevel_m[level]->residual_p);
         
         
         // phi = phi + e
@@ -333,11 +340,10 @@ void AmrMultiGrid::relax_m(const lo_t& level) {
         
         // residual update
         Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p) );
-        this->residual_no_fine_m(tmp,
+        this->residual_no_fine_m(level, tmp,
                                  mglevel_m[level]->error_p,
                                  mglevel_m[level-1]->error_p,
-                                 mglevel_m[level]->residual_p,
-                                 level);
+                                 mglevel_m[level]->residual_p);
         
         Tpetra::deep_copy(*mglevel_m[level]->residual_p, *tmp);
         
@@ -345,7 +351,7 @@ void AmrMultiGrid::relax_m(const lo_t& level) {
         Teuchos::RCP<vector_t> derror = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p) );
         
         // smoothing
-        this->smooth_m(derror, mglevel_m[level]->residual_p, level);
+        this->smooth_m(level, derror, mglevel_m[level]->residual_p);
         
         // e^(l) += de^(l)
         mglevel_m[level]->error_p->update(1.0, *derror, 1.0);
@@ -371,11 +377,11 @@ void AmrMultiGrid::relax_m(const lo_t& level) {
 }
 
 
-void AmrMultiGrid::residual_no_fine_m(Teuchos::RCP<vector_t>& result,
+void AmrMultiGrid::residual_no_fine_m(const lo_t& level,
+				      Teuchos::RCP<vector_t>& result,
                                       const Teuchos::RCP<vector_t>& rhs,
                                       const Teuchos::RCP<vector_t>& crs_rhs,
-                                      const Teuchos::RCP<vector_t>& b,
-                                      const lo_t& level)
+                                      const Teuchos::RCP<vector_t>& b)
 {
 #if AMR_MG_TIMER
     IpplTimings::startTimer(residnofineTimer_m);
@@ -475,9 +481,10 @@ void AmrMultiGrid::initResidual_m(scalar_t& maxResidual, scalar_t& maxRho) {
     
     
     for (int lev = 0; lev < nlevel_m; ++lev) {
-        this->residual_m(mglevel_m[lev]->residual_p,
+        this->residual_m(lev,
+			 mglevel_m[lev]->residual_p,
                          mglevel_m[lev]->rho_p,
-                         mglevel_m[lev]->phi_p, lev);
+                         mglevel_m[lev]->phi_p);
         
         scalar_t tmp = evalNorm_m(mglevel_m[lev]->residual_p);
         maxResidual = std::max(maxResidual, tmp);
@@ -511,7 +518,7 @@ void AmrMultiGrid::computeEfield_m(amrex::Array<AmrField_u>& efield) {
         
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             mglevel_m[lev]->G_p[d]->apply(*mglevel_m[lev]->phi_p, *efield_p);
-            this->trilinos2amrex_m(*efield[ilev], d, efield_p);
+            this->trilinos2amrex_m(d, *efield[ilev], efield_p);
         }
     }
 }
@@ -581,11 +588,11 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
 			int gidx = mglevel_m[lbase_m]->serialize(iv);
 			
 			IpplTimings::startTimer(bPoiss_m);
-			this->buildNoFinePoissonMatrix_m(gidx, iv, mfab, invdx2, lbase_m);
+			this->buildNoFinePoissonMatrix_m(lbase_m, gidx, iv, mfab, invdx2);
 			IpplTimings::stopTimer(bPoiss_m);
 			
 			IpplTimings::startTimer(bG_m);
-			this->buildGradientMatrix_m(gidx, iv, mfab, invdx, lbase_m);
+			this->buildGradientMatrix_m(lbase_m, gidx, iv, mfab, invdx);
 			IpplTimings::stopTimer(bG_m);
 			
 			mglevel_m[lbase_m]->rho_p->replaceGlobalValue(gidx, rhofab(iv, 0));
@@ -598,8 +605,8 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
 	    }
 	}
     } else {
-	this->buildDensityVector_m(*rho[lbase_m], lbase_m);
-	this->buildPotentialVector_m(*phi[lbase_m], lbase_m);
+	this->buildDensityVector_m(lbase_m, *rho[lbase_m]);
+	this->buildPotentialVector_m(lbase_m, *phi[lbase_m]);
     }
 
     this->close_m(lbase_m, matrices);
@@ -662,35 +669,35 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
 			    int gidx = mglevel_m[lev]->serialize(iv);
 			    
 			    IpplTimings::startTimer(bRestict_m);
-			    this->buildRestrictionMatrix_m(gidx, iv,
-							   D_DECL(ii, jj, kk), rfab, lev);
+			    this->buildRestrictionMatrix_m(lev, gidx, iv,
+							   D_DECL(ii, jj, kk), rfab);
 			    IpplTimings::stopTimer(bRestict_m);
 			    
 			    IpplTimings::startTimer(bInterp_m);
-			    this->buildInterpolationMatrix_m(gidx, iv, lev);
+			    this->buildInterpolationMatrix_m(lev, gidx, iv);
 			    IpplTimings::stopTimer(bInterp_m);
 			    
 			    IpplTimings::startTimer(bBc_m);
-			    this->buildCrseBoundaryMatrix_m(gidx, iv, mfab,
-							    cfab, invdx2, lev);
+			    this->buildCrseBoundaryMatrix_m(lev, gidx, iv, mfab,
+							    cfab, invdx2);
 			    IpplTimings::stopTimer(bBc_m);
 			    
 			    IpplTimings::startTimer(bBf_m);
-			    this->buildFineBoundaryMatrix_m(gidx, iv,
-							    mfab, rfab, cfab, lev);
+			    this->buildFineBoundaryMatrix_m(lev, gidx, iv,
+							    mfab, rfab, cfab);
 			    IpplTimings::stopTimer(bBf_m);
 			    
 			    IpplTimings::startTimer(bPoiss_m);
-			    this->buildNoFinePoissonMatrix_m(gidx, iv, mfab, invdx2, lev);
+			    this->buildNoFinePoissonMatrix_m(lev, gidx, iv, mfab, invdx2);
 			    IpplTimings::stopTimer(bPoiss_m);
 			    
 			    IpplTimings::startTimer(bCompo_m);
-			    this->buildCompositePoissonMatrix_m(gidx, iv, mfab, rfab,
-								cfab, invdx2, lev);
+			    this->buildCompositePoissonMatrix_m(lev, gidx, iv, mfab,
+								rfab, cfab, invdx2);
 			    IpplTimings::stopTimer(bCompo_m);
 			    
 			    IpplTimings::startTimer(bG_m);
-			    this->buildGradientMatrix_m(gidx, iv, mfab, invdx, lev);
+			    this->buildGradientMatrix_m(lev, gidx, iv, mfab, invdx);
 			    IpplTimings::stopTimer(bG_m);
 			    
 			    mglevel_m[lev]->rho_p->replaceGlobalValue(gidx, rhofab(iv, 0));
@@ -704,8 +711,8 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
 	} else {
 	    for (lo_t lev = 0; lev < nlevel_m; ++lev) {
 		int ilev = lbase_m + lev;
-		this->buildDensityVector_m(*rho[ilev], lev);
-		this->buildPotentialVector_m(*phi[ilev], lev);
+		this->buildDensityVector_m(lev, *rho[ilev]);
+		this->buildPotentialVector_m(lev, *phi[ilev]);
 	    }
 	}
 
@@ -723,7 +730,8 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
 
 void AmrMultiGrid::open_m(const lo_t& level,
 			  const bool& matrices)
-{    
+{
+    IpplTimings::startTimer(bopen_m);
     if ( matrices ) {
     
         if ( level > lbase_m ) {
@@ -829,12 +837,15 @@ void AmrMultiGrid::open_m(const lo_t& level,
     
     mglevel_m[level]->phi_p = Teuchos::rcp(
         new vector_t(mglevel_m[level]->map_p, false) );
+
+    IpplTimings::stopTimer(bopen_m);
 }
 
 
 void AmrMultiGrid::close_m(const lo_t& level,
 			   const bool& matrices)
 {    
+    IpplTimings::startTimer(bclose_m);
     if ( matrices ) {
         if ( level > lbase_m ) {
             
@@ -863,14 +874,15 @@ void AmrMultiGrid::close_m(const lo_t& level,
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
             mglevel_m[level]->G_p[d]->fillComplete();
     }
+    IpplTimings::stopTimer(bclose_m);
 }
 
 
-void AmrMultiGrid::buildNoFinePoissonMatrix_m(const go_t& gidx,
+void AmrMultiGrid::buildNoFinePoissonMatrix_m(const lo_t& level,
+					      const go_t& gidx,
 					      const AmrIntVect_t& iv,
                                               const basefab_t& mfab,
-					      const scalar_t* invdx2,
-					      const lo_t& level)
+					      const scalar_t* invdx2)
 {
     /*
      * Laplacian of "no fine"
@@ -946,13 +958,13 @@ void AmrMultiGrid::buildNoFinePoissonMatrix_m(const go_t& gidx,
 }
 
 
-void AmrMultiGrid::buildCompositePoissonMatrix_m(const go_t& gidx,
+void AmrMultiGrid::buildCompositePoissonMatrix_m(const lo_t& level,
+						 const go_t& gidx,
 						 const AmrIntVect_t& iv,
                                                  const basefab_t& mfab,
 						 const basefab_t& rfab,
 						 const basefab_t& cfab,
-						 const scalar_t* invdx2,
-                                                 const lo_t& level)
+						 const scalar_t* invdx2)
 {
     /*
      * Laplacian of "with fine"
@@ -1103,13 +1115,13 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const go_t& gidx,
 }
 
 
-void AmrMultiGrid::buildRestrictionMatrix_m(const go_t& gidx,
+void AmrMultiGrid::buildRestrictionMatrix_m(const lo_t& level,
+					    const go_t& gidx,
 					    const AmrIntVect_t& iv,
 					    D_DECL(const go_t& ii,
 						   const go_t& jj,
 						   const go_t& kk),
-                                            const basefab_t& rfab,
-                                            const lo_t& level)
+                                            const basefab_t& rfab)
 {
     /*
      * x^(l) = R * x^(l+1)
@@ -1155,9 +1167,9 @@ void AmrMultiGrid::buildRestrictionMatrix_m(const go_t& gidx,
 }
 
 
-void AmrMultiGrid::buildInterpolationMatrix_m(const go_t& gidx,
-					      const AmrIntVect_t& iv,
-                                              const lo_t& level)
+void AmrMultiGrid::buildInterpolationMatrix_m(const lo_t& level,
+					      const go_t& gidx,
+					      const AmrIntVect_t& iv)
 {
     /* crse: level - 1
      * fine (this): level
@@ -1191,12 +1203,12 @@ void AmrMultiGrid::buildInterpolationMatrix_m(const go_t& gidx,
 }
 
 
-void AmrMultiGrid::buildCrseBoundaryMatrix_m(const go_t& gidx,
+void AmrMultiGrid::buildCrseBoundaryMatrix_m(const lo_t& level,
+					     const go_t& gidx,
 					     const AmrIntVect_t& iv,
 					     const basefab_t& mfab,
 					     const basefab_t& cfab,
-					     const scalar_t* invdx2,
-					     const lo_t& level)
+					     const scalar_t* invdx2)
 {
     /*
      * fine (this): level
@@ -1247,12 +1259,12 @@ void AmrMultiGrid::buildCrseBoundaryMatrix_m(const go_t& gidx,
 }
 
 
-void AmrMultiGrid::buildFineBoundaryMatrix_m(const go_t& gidx,
+void AmrMultiGrid::buildFineBoundaryMatrix_m(const lo_t& level,
+					     const go_t& gidx,
 					     const AmrIntVect_t& iv,
 					     const basefab_t& mfab,
 					     const basefab_t& rfab,
-					     const basefab_t& cfab,
-                                             const lo_t& level)
+					     const basefab_t& cfab)
 {
     /* fine: level + 1
      * coarse (this): level
@@ -1390,25 +1402,25 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(const go_t& gidx,
 }
 
 
-inline void AmrMultiGrid::buildDensityVector_m(const AmrField_t& rho,
-					       const lo_t& level)
+inline void AmrMultiGrid::buildDensityVector_m(const lo_t& level,
+					       const AmrField_t& rho)
 {
-    this->amrex2trilinos_m(rho, 0, mglevel_m[level]->rho_p, level);
+    this->amrex2trilinos_m(level, 0, rho, mglevel_m[level]->rho_p);
 }
 
 
-inline void AmrMultiGrid::buildPotentialVector_m(const AmrField_t& phi,
-						 const lo_t& level)
+inline void AmrMultiGrid::buildPotentialVector_m(const lo_t& level,
+						 const AmrField_t& phi)
 {
-    this->amrex2trilinos_m(phi, 0, mglevel_m[level]->phi_p, level);
+    this->amrex2trilinos_m(level, 0, phi, mglevel_m[level]->phi_p);
 }
 
 
-void AmrMultiGrid::buildGradientMatrix_m(const go_t& gidx,
+void AmrMultiGrid::buildGradientMatrix_m(const lo_t& level,
+					 const go_t& gidx,
 					 const AmrIntVect_t& iv,
                                          const basefab_t& mfab,
-					 const scalar_t* invdx,
-                                         const lo_t& level)
+					 const scalar_t* invdx)
 {
     umap_t map;
     indices_t indices;
@@ -1481,10 +1493,10 @@ void AmrMultiGrid::buildGradientMatrix_m(const go_t& gidx,
 }
 
 
-void AmrMultiGrid::amrex2trilinos_m(const AmrField_t& mf,
+void AmrMultiGrid::amrex2trilinos_m(const lo_t& level,
 				    const lo_t& comp,
-                                    Teuchos::RCP<vector_t>& mv,
-				    const lo_t& level)
+				    const AmrField_t& mf,
+                                    Teuchos::RCP<vector_t>& mv)
 {
     if ( mv.is_null() )
         mv = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
@@ -1515,8 +1527,8 @@ void AmrMultiGrid::amrex2trilinos_m(const AmrField_t& mf,
 }
 
 
-void AmrMultiGrid::trilinos2amrex_m(AmrField_t& mf,
-				    const lo_t& comp,
+void AmrMultiGrid::trilinos2amrex_m(const lo_t& comp,
+				    AmrField_t& mf,
                                     const Teuchos::RCP<vector_t>& mv)
 {
     Teuchos::ArrayRCP<const amr::scalar_t> data =  mv->get1dView();
@@ -1567,22 +1579,19 @@ void AmrMultiGrid::map2vector_m(umap_t& map, indices_t& indices,
 }
 
 
-void AmrMultiGrid::smooth_m(Teuchos::RCP<vector_t>& e,
-                            Teuchos::RCP<vector_t>& r,
-                            const lo_t& level)
+void AmrMultiGrid::smooth_m(const lo_t& level,
+			    Teuchos::RCP<vector_t>& e,
+                            Teuchos::RCP<vector_t>& r)
 {
 #if AMR_MG_TIMER
-        IpplTimings::startTimer(smoothTimer_m);
+    IpplTimings::startTimer(smoothTimer_m);
 #endif
 
-    // apply "no fine" Laplacian
-    Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p) );
-    
     // base level has no smoother --> l - 1
     smoother_m[level-1]->smooth(e, mglevel_m[level]->Anf_p, r);
     
 #if AMR_MG_TIMER
-        IpplTimings::stopTimer(smoothTimer_m);
+    IpplTimings::stopTimer(smoothTimer_m);
 #endif
 }
 
@@ -1595,10 +1604,10 @@ void AmrMultiGrid::restrict_m(const lo_t& level) {
     
     Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p) );
     
-    this->residual_no_fine_m(tmp,
+    this->residual_no_fine_m(level, tmp,
                              mglevel_m[level]->error_p,
                              mglevel_m[level-1]->error_p,
-                             mglevel_m[level]->residual_p, level);
+                             mglevel_m[level]->residual_p);
     
     mglevel_m[level-1]->residual_p->putScalar(0.0);
     
