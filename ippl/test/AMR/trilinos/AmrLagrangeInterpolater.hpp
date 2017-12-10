@@ -69,6 +69,7 @@ AmrLagrangeInterpolater<AmrMultiGridLevel>::AmrLagrangeInterpolater(Order order)
 template <class AmrMultiGridLevel>
 void AmrLagrangeInterpolater<AmrMultiGridLevel>::stencil(
     const AmrIntVect_t& iv,
+    const basefab_t& fab,
     typename AmrMultiGridLevel::umap_t& map,
     const typename AmrMultiGridLevel::scalar_t& scale,
     AmrMultiGridLevel* mglevel)
@@ -106,17 +107,17 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fine(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::umap_t& map,
     const typename AmrMultiGridLevel::scalar_t& scale,
-    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
+    lo_t dir, lo_t shift,
     AmrMultiGridLevel* mglevel)
 {
     // polynomial degree = #points - 1
     switch ( this->nPoints_m - 1 ) {
         
         case Order::QUADRATIC:
-            this->fineQuadratic_m(iv, map, scale, dir, shift, ba, mglevel);
+            this->fineQuadratic_m(iv, map, scale, dir, shift, mglevel);
             break;
         case Order::LINEAR:
-            this->fineLinear_m(iv, map, scale, dir, shift, ba, mglevel);
+            this->fineLinear_m(iv, map, scale, dir, shift, mglevel);
             break;
         default:
             std::runtime_error("Not implemented interpolation");
@@ -129,7 +130,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fineLinear_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::umap_t& map,
     const typename AmrMultiGridLevel::scalar_t& scale,
-    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
+    lo_t dir, lo_t shift,
     AmrMultiGridLevel* mglevel)
 {
     /*
@@ -151,7 +152,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fineQuadratic_m(
     const AmrIntVect_t& iv,
     typename AmrMultiGridLevel::umap_t& map,
     const typename AmrMultiGridLevel::scalar_t& scale,
-    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
+    lo_t dir, lo_t shift,
     AmrMultiGridLevel* mglevel)
 {
     AmrIntVect_t tmp = iv;
