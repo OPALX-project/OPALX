@@ -39,6 +39,7 @@ public:
     AmrLagrangeInterpolater(Order order);
     
     void stencil(const AmrIntVect_t& iv,
+		 const basefab_t& fab,
                  umap_t& map,
                  const scalar_t& scale,
                  AmrMultiGridLevel* mglevel);
@@ -53,7 +54,7 @@ public:
     void fine(const AmrIntVect_t& iv,
               umap_t& map,
 	      const scalar_t& scale,
-              lo_t dir, lo_t shift, const amrex::BoxArray& ba,
+              lo_t dir, lo_t shift,
               AmrMultiGridLevel* mglevel);
     
 private:
@@ -70,14 +71,13 @@ private:
      * @param shift is either -1 or 1. If the refined coarse cell is on the left / lower / front
      * side, shift is equal to -1, otherwise the interface is on the right / upper / back side
      * and the value is 1.
-     * @param ba contains all coarse cells that got refined
      * @param mglevel used to get the global indices and refinement ratio among levels,
      * and boundary avlues at physical domain, e.g. Dirichlet, open BC
      */
     void fineLinear_m(const AmrIntVect_t& iv,
 		      umap_t& map,
 		      const scalar_t& scale,
-		      lo_t dir, lo_t shift, const amrex::BoxArray& ba,
+		      lo_t dir, lo_t shift,
 		      AmrMultiGridLevel* mglevel);
     
     /*!
@@ -92,14 +92,13 @@ private:
      * @param shift is either -1 or 1. If the refined coarse cell is on the left / lower / front
      * side, shift is equal to -1, otherwise the interface is on the right / upper / back side
      * and the value is 1.
-     * @param ba contains all coarse cells that got refined
      * @param mglevel used to get the global indices and refinement ratio among levels,
      * and boundary avlues at physical domain, e.g. Dirichlet, open BC
      */
     void fineQuadratic_m(const AmrIntVect_t& iv,
 			 umap_t& map,
 			 const scalar_t& scale,
-			 lo_t dir, lo_t shift, const amrex::BoxArray& ba,
+			 lo_t dir, lo_t shift,
 			 AmrMultiGridLevel* mglevel);
     
     /*!

@@ -7,6 +7,7 @@ AmrPCInterpolater<AmrMultiGridLevel>::AmrPCInterpolater()
 template <class AmrMultiGridLevel>
 void AmrPCInterpolater<AmrMultiGridLevel>::stencil(
     const AmrIntVect_t& iv,
+    const basefab_t& fab,
     umap_t& map,
     const scalar_t& scale,
     AmrMultiGridLevel* mglevel)
@@ -14,13 +15,8 @@ void AmrPCInterpolater<AmrMultiGridLevel>::stencil(
     AmrIntVect_t civ = iv;
     civ.coarsen(mglevel->refinement());
 
-    go_t crse_gidx = mglevel->serialize(civ);
-
-    if ( !mglevel->isBoundary(civ) ) {
-	map[crse_gidx] += scale;
-    } else {
-	mglevel->applyBoundary(civ, map, scale);
-    }
+    if ( !mglevel->applyBoundary(civ, fab, map, scale) )
+	map[mglevel->serialize(civ)] += scale;
 }
 
 
@@ -42,12 +38,12 @@ void AmrPCInterpolater<AmrMultiGridLevel>::fine(
     const AmrIntVect_t& iv,
     umap_t& map,
     const scalar_t& scale,
-    lo_t dir, lo_t shift, const amrex::BoxArray& ba,
+    lo_t dir, lo_t shift, const basefab_t& fab,
     AmrMultiGridLevel* mglevel)
 {
     /*
      * The AmrPCInterpolater interpolates directly to the
      * fine ghost cell.
      */
-    this->stencil(iv, map, scale, mglevel);
+    this->stencil(iv, fab, map, scale, mglevel);
 }
