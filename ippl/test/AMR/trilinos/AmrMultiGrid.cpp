@@ -691,7 +691,7 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
 			    IpplTimings::stopTimer(bRestict_m);
 			    
 			    IpplTimings::startTimer(bInterp_m);
-			    this->buildInterpolationMatrix_m(lev, gidx, iv);
+			    this->buildInterpolationMatrix_m(lev, gidx, iv, cfab);
 			    IpplTimings::stopTimer(bInterp_m);
 			    
 			    IpplTimings::startTimer(bBc_m);
@@ -910,7 +910,6 @@ void AmrMultiGrid::buildNoFinePoissonMatrix_m(const lo_t& level,
      * 2D --> 5 elements per row
      * 3D --> 7 elements per row
      */
-    amrex::BoxArray empty;
     
     umap_t map;
     indices_t indices;
@@ -943,7 +942,7 @@ void AmrMultiGrid::buildNoFinePoissonMatrix_m(const lo_t& level,
 #endif    
                     /* Dirichlet boundary conditions from coarser level.
                      */
-                    interface_mp->fine(biv, map, invdx2[d], d, -shift, empty,
+                    interface_mp->fine(biv, map, invdx2[d], d, -shift,
                                        mglevel_m[level].get());
                     break;
                 }
@@ -1049,7 +1048,7 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const lo_t& level,
 		    
 		    /* Dirichlet boundary conditions from coarser level.
 		     */
-		    interface_mp->fine(biv, map, invdx2[d], d, -shift, amrex::BoxArray(),
+		    interface_mp->fine(biv, map, invdx2[d], d, -shift,
 				       mglevel_m[level].get());
 		    
 		    // add center once
@@ -1186,7 +1185,8 @@ void AmrMultiGrid::buildRestrictionMatrix_m(const lo_t& level,
 
 void AmrMultiGrid::buildInterpolationMatrix_m(const lo_t& level,
 					      const go_t& gidx,
-					      const AmrIntVect_t& iv)
+					      const AmrIntVect_t& iv,
+					      const basefab_t& cfab)
 {
     /* crse: level - 1
      * fine (this): level
@@ -1209,7 +1209,7 @@ void AmrMultiGrid::buildInterpolationMatrix_m(const lo_t& level,
     /*
      * we need boundary + indices from coarser level
      */
-    interp_mp->stencil(iv, map, 1.0, mglevel_m[level-1].get());
+    interp_mp->stencil(iv, cfab,  map, 1.0, mglevel_m[level-1].get());
     
     this->map2vector_m(map, indices, values);
     
@@ -1323,7 +1323,7 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(const lo_t& level,
                          */
                         scalar_t value = - invavg * invcdx[d] * invfdx[d];
 			
-			interface_mp->fine(riv, map, value, d, shift, amrex::BoxArray(),
+			interface_mp->fine(riv, map, value, d, shift,
                                            mglevel_m[level+1].get());
                     } else {
                         scalar_t value = invavg * invcdx[d] * invfdx[d];

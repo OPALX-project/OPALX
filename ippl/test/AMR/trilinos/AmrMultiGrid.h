@@ -345,7 +345,8 @@ private:
      */
     void buildInterpolationMatrix_m(const lo_t& level,
 				    const go_t& gidx,
-				    const AmrIntVect_t& iv);
+				    const AmrIntVect_t& iv,
+				    const basefab_t& cfab);
     
     /*!
      * The boundary values at the crse-fine-interface need to be taken into account properly.

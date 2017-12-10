@@ -17,6 +17,7 @@ public:
     AmrPCInterpolater();
     
     void stencil(const AmrIntVect_t& iv,
+		 const basefab_t& fab,
                  umap_t& map,
 		 const scalar_t& scale,
                  AmrMultiGridLevel* mglevel);
@@ -31,7 +32,7 @@ public:
     void fine(const AmrIntVect_t& iv,
               umap_t& map,
               const scalar_t& scale,
-              lo_t dir, lo_t shift, const amrex::BoxArray& ba,
+              lo_t dir, lo_t shift, const basefab_t& fab,
               AmrMultiGridLevel* mglevel);
     
 };
