@@ -189,12 +189,12 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     // factor for fine
     scalar_t fac = 8.0 / 15.0 * scale;
     
-    if ( !rfab(niv) ) {
+    if ( rfab(niv) != AmrMultiGridLevel::Refined::YES ) {
         // check r / u / b --> 1: valid; 0: not valid
         map[mglevel->serialize(iv)] += fac * lookup2[top];
         map[mglevel->serialize(niv)] += fac * lookup1[top];
         
-    } else if ( !rfab(miv) ) {
+    } else if ( rfab(miv) != AmrMultiGridLevel::Refined::YES ) {
         // check l / f --> 1: valid; 0: not valid
         map[mglevel->serialize(iv)] += fac * lookup2[top];
         map[mglevel->serialize(miv)] += fac * lookup1[top];
@@ -237,7 +237,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
             
             tmp[d2] += j;
             
-            area[bit] = !rfab(tmp);
+            area[bit] = rfab(tmp);
             ++bit;
             
             // undo
@@ -338,11 +338,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
             niv[d2] += j;
             
             scalar_t value = fac * L[i-begin[0]] * K[j-begin[1]];
-            if ( mglevel->isBoundary(niv) ) {
-                mglevel->applyBoundary(niv, map, value);
-            } else {
+            if ( !mglevel->applyBoundary(niv, rfab, map, value) )
 		map[mglevel->serialize(niv)] += value;
-            }
             
             // undo
             niv[d2] -= j;
@@ -402,16 +399,16 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
      */
     
     // check r / u / b --> 1: valid; 0: not valid
-    bool rub = !rfab(niv);
+    bool rub = rfab(niv);
     
     // check l / f --> 1: valid; 0: not valid
-    bool lf = !rfab(miv);
+    bool lf = rfab(miv);
     
     // check 2nd r / u / b
-    bool rub2 = !rfab(n2iv);
+    bool rub2 = rfab(n2iv);
     
     // check 2nd l / f
-    bool lf2 = !rfab(m2iv);
+    bool lf2 = rfab(m2iv);
     
     if ( rub && lf )
     {
@@ -425,19 +422,13 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         
         //                             y_t          y_b
         scalar_t value = scale * (top) ? 1.0 / 12.0 : -0.05;
-        if ( mglevel->isBoundary(niv) ) {
-            mglevel->applyBoundary(niv, map, value);
-        } else {
+        if ( !mglevel->applyBoundary(niv, rfab, map, value) )
             map[mglevel->serialize(niv)] += value;
-        }
         
         //                      y_t     y_b
         value = scale * (top) ? -0.05 : 1.0 / 12.0;
-        if ( mglevel->isBoundary(miv) ) {
-            mglevel->applyBoundary(miv, map, value);
-        } else {
+        if ( !mglevel->applyBoundary(miv, rfab, map, value) )
 	    map[mglevel->serialize(miv)] += value;
-        }
         
     } else if ( rub && rub2 ) {
         /*
@@ -449,19 +440,13 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         
         //                      y_t          y_b
         value = scale * (top) ? 7.0 / 30.0 : -0.3;
-        if ( mglevel->isBoundary(niv) ) {
-            mglevel->applyBoundary(niv, map, value);
-        } else {
+        if ( !mglevel->applyBoundary(niv, rfab, map, value) )
             map[mglevel->serialize(niv)] += value;
-        }
         
         //                      y_t     y_b
         value = scale * (top) ? -0.05 : 1.0 / 12.0;
-        if ( mglevel->isBoundary(n2iv) ) {
-            mglevel->applyBoundary(n2iv, map, value);
-        } else {
+        if ( !mglevel->applyBoundary(n2iv, rfab, map, value) )
             map[mglevel->serialize(n2iv)] += value;
-        }
         
     } else if ( lf && lf2 ) {
         /*
@@ -473,19 +458,13 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         
         //                      y_t           y_b
         value = scale * (top) ? -0.3 :  7.0 / 30;
-        if ( mglevel->isBoundary(miv) ) {
-            mglevel->applyBoundary(miv, map, value);
-        } else {
+        if ( !mglevel->applyBoundary(miv, rfab, map, value) )
             map[mglevel->serialize(miv)] += value;
-        }
         
         //                      y_t          y_b
         value = scale * (top) ? 1.0 / 12.0 : -0.05;
-        if ( mglevel->isBoundary(m2iv) ) {
-            mglevel->applyBoundary(m2iv, map, value);
-        } else {
+        if ( !mglevel->applyBoundary(m2iv, rfab, map, value) )
             map[mglevel->serialize(m2iv)] += value;
-        }
         
     } else {
         /* last trial: linear Lagrange interpolation
@@ -537,7 +516,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
             
             tmp[d2] += j;
             
-            area[bit] = !rfab(tmp);
+            area[bit] = rfab(tmp);
             ++bit;
             
             // undo
@@ -743,11 +722,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
 	    tmp1[d2] += j;
             
 	    scalar_t value = fac * L[i-begin[0]] * K[j-begin[1]];
-	    if ( mglevel->isBoundary(tmp1) ) {
-		mglevel->applyBoundary(tmp1, map, value);
-	    } else {
+	    if ( !mglevel->applyBoundary(tmp1, rfab, map, value) )
 		map[mglevel->serialize(tmp1)] += value;
-	    }
             
 	    // undo
 	    tmp1[d2] -= j;
