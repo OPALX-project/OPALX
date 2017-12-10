@@ -58,8 +58,8 @@ public:
     // NO   : not a refined cell 
     // YES  : cell got refined
     enum Refined {
-        NO = 0,
-	YES
+        YES = 0,
+	NO  = 1
     };
     
 public:
@@ -77,9 +77,14 @@ public:
     
     bool isBoundary(const AmrIntVect_t& iv) const;
     
-    void applyBoundary(const AmrIntVect_t& iv,
+    bool applyBoundary(const AmrIntVect_t& iv,
                        umap_t& map,
                        const scalar_t& value);
+    
+    bool applyBoundary(const AmrIntVect_t& iv,
+		       const basefab_t& fab,
+		       umap_t& map,
+		       const scalar_t& value);
 
     void applyBoundary(const AmrIntVect_t& iv,
 		       const lo_t& dir,

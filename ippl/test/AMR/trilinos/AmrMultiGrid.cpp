@@ -142,8 +142,17 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
             new AmrMultiGridLevel_t::mask_t(ba,
                                             mglevel_m[lev]->dmap, 1, 2)
             );
-        mglevel_m[lev]->crsemask->setVal(AmrMultiGridLevel_t::Refined::NO, 2);
-	mglevel_m[lev]->crsemask->setVal(AmrMultiGridLevel_t::Refined::YES, 0);
+    }
+
+    for (int lev = 1; lev < nlevel_m; ++lev) {
+
+	mglevel_m[lev]->crsemask->setVal(AmrMultiGridLevel_t::Refined::NO, 2);
+        mglevel_m[lev]->crsemask->setVal(AmrMultiGridLevel_t::Refined::YES, 0);
+
+	// used for boundary interpolation --> replaces expensive calls to isBoundary
+	mglevel_m[lev]->crsemask->setDomainBndry(AmrMultiGridLevel_t::Mask::PHYSBNDRY,
+						 mglevel_m[lev-1]->geom); //FIXME: geometry of lev - 1
+	// really needed ?
 	mglevel_m[lev]->crsemask->FillBoundary(false);
     }
 
@@ -161,9 +170,17 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
 	amrex::DistributionMapping dmap(ba, Ippl::getNodes());
 	AmrMultiGridLevel_t::mask_t refined(ba, dmap, 1, 0);
 	refined.setVal(AmrMultiGridLevel_t::Refined::YES);
+//	refined.setDomainBndry(AmrMultiGridLevel_t::Mask::PHYSBNDRY, mglevel_m[lev]->geom);
 
 	// fill intersection with YES
 	mglevel_m[lev]->refmask->copy(refined, 0, 0, 1, 0, 2);
+
+	/* physical boundary cells will never be refined cells
+	 * since they are ghost cells
+	 */
+	mglevel_m[lev]->refmask->setDomainBndry(AmrMultiGridLevel_t::Mask::PHYSBNDRY,
+						mglevel_m[lev]->geom);
+	
 	mglevel_m[lev]->refmask->FillBoundary(false);
     }
 }
@@ -999,7 +1016,7 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const lo_t& level,
 	    AmrIntVect_t biv = iv;                        
 	    biv[d] += shift;
             
-	    if ( rfab(biv) == AmrMultiGridLevel_t::Refined::NO )
+	    if ( rfab(biv) != AmrMultiGridLevel_t::Refined::YES )
 	    {
 		/*
 		 * It can't be a refined cell!
@@ -1128,7 +1145,7 @@ void AmrMultiGrid::buildRestrictionMatrix_m(const lo_t& level,
      */
     
     // finest level does not need to have a restriction matrix
-    if ( !rfab(iv) || level == lfine_m )
+    if ( rfab(iv) == AmrMultiGridLevel_t::Refined::NO || level == lfine_m )
         return;
     
     /* Difficulty:  If a fine cell belongs to another processor than the underlying

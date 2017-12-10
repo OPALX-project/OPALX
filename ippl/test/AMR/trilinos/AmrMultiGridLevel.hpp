@@ -84,11 +84,21 @@ bool AmrMultiGridLevel<MatrixType, VectorType>::isBoundary(const AmrIntVect_t& i
 
 
 template <class MatrixType, class VectorType>
-void AmrMultiGridLevel<MatrixType, VectorType>::applyBoundary(const AmrIntVect_t& iv,
+bool AmrMultiGridLevel<MatrixType, VectorType>::applyBoundary(const AmrIntVect_t& iv,
 							      umap_t& map,
                                                               const scalar_t& value)
 {
-    bc_mp->apply(iv, map, value, this, &nr_m[0]);
+    return bc_mp->apply(iv, map, value, this, &nr_m[0]);
+}
+
+
+template <class MatrixType, class VectorType>
+bool AmrMultiGridLevel<MatrixType, VectorType>::applyBoundary(const AmrIntVect_t& iv,
+							      const basefab_t& fab,
+                                                              umap_t& map,
+                                                              const scalar_t& value)
+{
+    return bc_mp->apply(iv, fab, map, value, this, &nr_m[0]);
 }
 
 

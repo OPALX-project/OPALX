@@ -12,6 +12,7 @@ public:
     typedef typename AmrMultiGridLevel::umap_t umap_t;
     typedef typename AmrMultiGridLevel::lo_t lo_t;
     typedef typename AmrMultiGridLevel::scalar_t scalar_t;
+    typedef typename AmrMultiGridLevel::basefab_t basefab_t;
     
 public:
 
@@ -24,14 +25,9 @@ public:
      * @param nr is the number of grid points
      */
     bool isBoundary(const AmrIntVect_t& iv, const lo_t* nr) const {
-#if AMREX_SPACEDIM == 3
-    return ( iv[0] < 0 || iv[0] >= nr[0] ||
-             iv[1] < 0 || iv[1] >= nr[1] ||
-             iv[2] < 0 || iv[2] >= nr[2] );
-#else
-    return ( iv[0] < 0 || iv[0] >= nr[0] ||
-             iv[1] < 0 || iv[1] >= nr[1] );
-#endif
+	return AMREX_D_TERM(   isBoundary(iv, 0, nr),
+			    || isBoundary(iv, 1, nr),
+			    || isBoundary(iv, 2, nr));
     }
 
     /*!
@@ -53,11 +49,30 @@ public:
      * @param value of matrix entry that is supposed for index
      * @param nr is the number of grid points
      */
-    void apply(const AmrIntVect_t& iv,
+    bool apply(const AmrIntVect_t& iv,
 	       umap_t& map,
 	       const scalar_t& value,
 	       AmrMultiGridLevel* mglevel,
 	       const lo_t* nr);
+
+    /*!
+     * Slightly faster version of apply().
+     * @param iv is the cell where we want to have the boundary value
+     * @param fab is the mask
+     * @param map with indices global matrix indices and matrix values
+     * @param value matrix entry (coefficients)
+     * @param value of matrix entry that is supposed for index
+     * @param nr is the number of grid points
+     * @precondition Basefab needs to be a mask with
+     * AmrMultiGridLevel::Mask::PHYSBNDRY
+     */
+    bool apply(const AmrIntVect_t& iv,
+               const basefab_t& fab,
+               umap_t& map,
+               const scalar_t& value,
+               AmrMultiGridLevel* mglevel,
+               const lo_t* nr);
+
     
     /*!
      * Apply boundary in a certain direction.
@@ -75,7 +90,6 @@ public:
                        AmrMultiGridLevel* mglevel,
                        const lo_t* nr) = 0;
     
-    
     const lo_t& getNumberOfPoints() const {
         return nPoints_m;
     }
@@ -86,16 +100,42 @@ private:
 
 
 template <class AmrMultiGridLevel>
-void AmrBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
+bool AmrBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
 					   umap_t& map,
 					   const scalar_t& value,
 					   AmrMultiGridLevel* mglevel,
 					   const lo_t* nr)
 {
+    bool applied = false;
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-	if ( this->isBoundary(iv, d, nr) )
+	if ( this->isBoundary(iv, d, nr) ) {
+	    applied = true;
 	    this->apply(iv, d, map, value, mglevel, nr);
+	}
     }
+    return applied;
+}
+
+
+template <class AmrMultiGridLevel>
+bool AmrBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
+					   const basefab_t& fab,
+					   umap_t& map,
+					   const scalar_t& value,
+					   AmrMultiGridLevel* mglevel,
+					   const lo_t* nr)
+{
+    if ( fab(iv) != AmrMultiGridLevel::Mask::PHYSBNDRY )
+	return false;
+    
+    bool applied = false;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+	if ( this->isBoundary(iv, d, nr) ) {
+	    applied = true;
+	    this->apply(iv, d, map, value, mglevel, nr);
+	}
+    }
+    return applied;
 }
 
 #endif
