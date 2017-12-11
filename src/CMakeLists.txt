@@ -8,13 +8,16 @@ set (CMAKE_CXX_FLAGS
 IF(ENABLE_SAAMG_SOLVER)
     set (CMAKE_CXX_FLAGS
         "-DHAVE_SAAMG_SOLVER ${CMAKE_CXX_FLAGS}"
-    )
+        )
 ENDIF(ENABLE_SAAMG_SOLVER)
 
 IF(ENABLE_AMR)
-    IF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND NOT ${HOSTNAME_BASE} MATCHES "daint")
+    IF(NOT (
+	        ${HOSTNAME_BASE} MATCHES "edison" OR
+	        ${HOSTNAME_BASE} MATCHES "cori" OR
+	        ${HOSTNAME_BASE} MATCHES "daint"))
         set (F_MPI "-lmpi" "-lmpi_mpifh")
-    ENDIF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND NOT ${HOSTNAME_BASE} MATCHES "daint")
+    ENDIF()
 ENDIF(ENABLE_AMR)
 
 SET (PACKAGE_COMPILE_OPTIONS \"${CMAKE_CXX_FLAGS}\")
@@ -98,7 +101,7 @@ include_directories ( BEFORE
     ${AMREX_INCLUDE_DIR}
     ${GTEST_INCLUDE_DIRS}
     ${OPTP_INCLUDE_DIR}
-)
+    )
 
 link_directories (
     ${IPPL_LIBRARY_DIR}
@@ -106,15 +109,22 @@ link_directories (
     ${Trilinos_LIBRARY_DIRS}
     ${Trilinos_TPL_LIBRARY_DIRS}
     ${AMREX_LIBRARY_DIR}
-)
+    )
 
 IF (ENABLE_DKS)
-   include_directories (${DKS_INCLUDE_DIR})
-   link_directories (${DKS_LIBRARY_DIR})
+    include_directories (${DKS_INCLUDE_DIR})
+    link_directories (${DKS_LIBRARY_DIR})
 ENDIF (ENABLE_DKS)
 
-IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR ${HOSTNAME_BASE} MATCHES "daint")
- SET (OPAL_LIBS
+
+IF(NOT (
+            ${HOSTNAME_BASE} MATCHES "edison" OR
+            ${HOSTNAME_BASE} MATCHES "cori" OR
+            ${HOSTNAME_BASE} MATCHES "daint"))
+    SET (ADDITIOANL_LIBS ${MPI_LIBRARIES})
+ENDIF()
+
+SET (OPAL_LIBS
     ${GSL_LIBRARY}
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARY}
@@ -122,37 +132,40 @@ IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR ${HOS
     ${OPTP_LIBRARY}
     ${OPTP_LIBS}
     ${Boost_LIBRARIES}
+    ${ADDITIOANL_LIBS}
     m
     z
-)
-ELSE()
- SET (OPAL_LIBS
-    ${GSL_LIBRARY}
-    ${H5Hut_LIBRARY}
-    ${HDF5_LIBRARY}
-    ${IPPL_LIBRARY}
-    ${OPTP_LIBRARY}
-    ${OPTP_LIBS}
-    ${Boost_LIBRARIES}
-    ${MPI_LIBRARIES}
-    m
-    z
-)
-ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR ${HOSTNAME_BASE} MATCHES "daint")
+    )
 
 IF (ENABLE_DKS)
-   set (OPAL_LIBS
-       ${OPAL_LIBS}
-       dks
-       ${DKS_CUDA_LIBS})
+    set (OPAL_LIBS
+        ${OPAL_LIBS}
+        dks
+        ${DKS_CUDA_LIBS})
 ENDIF (ENABLE_DKS)
 
 add_library( OPALib ${OPAL_SRCS} )
 set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
-target_link_libraries( OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${AMREX_LIBRARIES} ${OTHER_CMAKE_EXE_LINKER_FLAGS} )
+
+set (SAAMG_SOLVER_LIBS "")
+IF (ENABLE_SAAMG_SOLVER)
+    set (SAAMG_SOLVER_LIBS ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} -lgfortran)
+ENDIF()
+
+target_link_libraries( OPALib
+    ${OPAL_LIBS}
+    ${SAAMG_SOLVER_LIBS}
+    ${AMREX_LIBRARIES}
+    ${OTHER_CMAKE_EXE_LINKER_FLAGS}
+    )
 
 add_executable( opal Main.cpp )
-target_link_libraries( opal ${OPAL_LIBS} OPALib ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} -lgfortran ${AMREX_LIBRARIES} ${F_MPI} ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+target_link_libraries( opal
+    ${OPAL_LIBS} OPALib
+    ${SAAMG_SOLVER_LIBS}
+    ${AMREX_LIBRARIES} ${F_MPI}
+    ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS}
+    )
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
@@ -163,6 +176,13 @@ set (HDRS
     opal.h
     OPALrevision.h
     changes.h
-)
+    )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/src")
+
+# vi: set et ts=4 sw=4 sts=4:
+# Local Variables:
+# mode:cmake
+# cmake-tab-width: 4
+# indent-tabs-mode:nil
+# End:
