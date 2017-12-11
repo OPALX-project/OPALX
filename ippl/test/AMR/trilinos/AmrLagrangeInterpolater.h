@@ -181,11 +181,6 @@ private:
     static const scalar_t lookup6_ms;
     static const scalar_t factor_ms;
 #endif
-    
-    IpplTimings::TimerRef area_m;
-    IpplTimings::TimerRef switch_m;
-    IpplTimings::TimerRef while_m;
-    IpplTimings::TimerRef end_m;
 };
 
 #include "AmrLagrangeInterpolater.hpp"

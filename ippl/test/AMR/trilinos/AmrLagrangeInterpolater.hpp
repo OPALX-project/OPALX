@@ -58,12 +58,7 @@ const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
 template <class AmrMultiGridLevel>
 AmrLagrangeInterpolater<AmrMultiGridLevel>::AmrLagrangeInterpolater(Order order)
     : AmrInterpolater<AmrMultiGridLevel>( lo_t(order) + 1 )
-{
-    area_m = IpplTimings::getTimer("lag-area");
-    switch_m = IpplTimings::getTimer("lag-switch");
-    while_m = IpplTimings::getTimer("lag-while");
-    end_m = IpplTimings::getTimer("lag-end");
-}
+{ }
 
 
 template <class AmrMultiGridLevel>
@@ -508,8 +503,6 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     qbits_t area;
     lo_t bit = 0;
     
-    IpplTimings::startTimer(area_m);
-    
     AmrIntVect_t tmp = iv;
     for (int i = -2; i < 3; ++i) {
         tmp[d1] += i;
@@ -526,20 +519,14 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         // undo
         tmp[d1] -= i;
     }
-
-    IpplTimings::stopTimer(area_m);
     
     qpattern_t::const_iterator pit = std::begin(this->qpattern_ms);
-    
-    IpplTimings::startTimer(while_m);
 
     while ( pit != std::end(this->qpattern_ms) ) {
         if ( *pit == (area & qbits_t(*pit)).to_ulong() )
             break;
         ++pit;
     }
-
-    IpplTimings::stopTimer(while_m);
     
     // factor for fine
     scalar_t fac = factor_ms * scale;
@@ -552,8 +539,6 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
     
     lo_t begin[2] = { 0, 0 };
     lo_t end[2]   = { 0, 0 };
-    
-    IpplTimings::startTimer(switch_m);
     
     switch ( *pit ) {
         case this->qpattern_ms[0]:
@@ -709,10 +694,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
 	    return;
         }
     }
-
-    IpplTimings::stopTimer(switch_m);
     
-    IpplTimings::startTimer(end_m);
     /*
      * if pattern is known --> add stencil
      */
@@ -732,7 +714,6 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
 	// undo
 	tmp1[d1] -= i;
     }
-    IpplTimings::stopTimer(end_m);
     
 #else
     #error Lagrange interpolation: Only 2D and 3D are supported!
