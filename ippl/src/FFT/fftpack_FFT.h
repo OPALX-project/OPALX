@@ -26,27 +26,27 @@
 // FFTPACK function prototypes for Fortran routines
 extern "C" {
   // double-precision CC FFT
-  void cffti (int& n, double& wsave);
-  void cfftf (int& n, double& r, double& wsave);
-  void cfftb (int& n, double& r, double& wsave);
+  void cffti (size_t n, double& wsave);
+  void cfftf (size_t n, double& r, double& wsave);
+  void cfftb (size_t n, double& r, double& wsave);
   // double-precision RC FFT
-  void rffti (int& n, double& wsave);
-  void rfftf (int& n, double& r, double& wsave);
-  void rfftb (int& n, double& r, double& wsave);
+  void rffti (size_t n, double& wsave);
+  void rfftf (size_t n, double& r, double& wsave);
+  void rfftb (size_t n, double& r, double& wsave);
   // double-precision sine transform
-  void sinti (int& n, double& wsave);
-  void sint (int& n, double& r, double& wsave);
+  void sinti (size_t n, double& wsave);
+  void sint  (size_t n, double& r, double& wsave);
   // single-precision CC FFT
-  void fcffti (int& n, float& wsave);
-  void fcfftf (int& n, float& r, float& wsave);
-  void fcfftb (int& n, float& r, float& wsave);
+  void fcffti (size_t n, float& wsave);
+  void fcfftf (size_t n, float& r, float& wsave);
+  void fcfftb (size_t n, float& r, float& wsave);
   // single-precision RC FFT
-  void frffti (int& n, float& wsave);
-  void frfftf (int& n, float& r, float& wsave);
-  void frfftb (int& n, float& r, float& wsave);
+  void frffti (size_t n, float& wsave);
+  void frfftf (size_t n, float& r, float& wsave);
+  void frfftb (size_t n, float& r, float& wsave);
   // single-precision sine transform
-  void fsinti (int& n, float& wsave);
-  void fsint (int& n, float& r, float& wsave);
+  void fsinti (size_t n, float& wsave);
+  void fsint (size_t n, float& r, float& wsave);
 }
 
 
@@ -63,17 +63,17 @@ public:
   // interface functions used by class FFTPACK
 
   // initialization functions for CC FFT, RC FFT, and sine transform
-  static void ccffti(int n, float* wsave) { fcffti (n, *wsave); }
-  static void rcffti(int n, float* wsave) { frffti (n, *wsave); }
-  static void rrffti(int n, float* wsave) { fsinti (n, *wsave); }
+  static void ccffti(size_t n, float* wsave) { fcffti (n, *wsave); }
+  static void rcffti(size_t n, float* wsave) { frffti (n, *wsave); }
+  static void rrffti(size_t n, float* wsave) { fsinti (n, *wsave); }
   // forward and backward CC FFT
-  static void ccfftf(int n, float* r, float* wsave) { fcfftf (n, *r, *wsave); }
-  static void ccfftb(int n, float* r, float* wsave) { fcfftb (n, *r, *wsave); }
+  static void ccfftf(size_t n, float* r, float* wsave) { fcfftf (n, *r, *wsave); }
+  static void ccfftb(size_t n, float* r, float* wsave) { fcfftb (n, *r, *wsave); }
   // forward and backward RC FFT
-  static void rcfftf(int n, float* r, float* wsave) { frfftf (n, *r, *wsave); }
-  static void rcfftb(int n, float* r, float* wsave) { frfftb (n, *r, *wsave); }
+  static void rcfftf(size_t n, float* r, float* wsave) { frfftf (n, *r, *wsave); }
+  static void rcfftb(size_t n, float* r, float* wsave) { frfftb (n, *r, *wsave); }
   // sine transform
-  static void rrfft(int n, float* r, float* wsave) { fsint (n, *r, *wsave); }
+  static void rrfft(size_t n, float* r, float* wsave) { fsint (n, *r, *wsave); }
 
 };
 
@@ -85,17 +85,17 @@ public:
   // interface functions used by class FFTPACK
 
   // initialization functions for CC FFT, RC FFT, and sine transform
-  static void ccffti(int n, double* wsave) { cffti (n, *wsave); }
-  static void rcffti(int n, double* wsave) { rffti (n, *wsave); }
-  static void rrffti(int n, double* wsave) { sinti (n, *wsave); }
+  static void ccffti(size_t n, double* wsave) { cffti (n, *wsave); }
+  static void rcffti(size_t n, double* wsave) { rffti (n, *wsave); }
+  static void rrffti(size_t n, double* wsave) { sinti (n, *wsave); }
   // forward and backward CC FFT
-  static void ccfftf(int n, double* r, double* wsave) {cfftf (n, *r, *wsave);}
-  static void ccfftb(int n, double* r, double* wsave) {cfftb (n, *r, *wsave);}
+  static void ccfftf(size_t n, double* r, double* wsave) {cfftf (n, *r, *wsave);}
+  static void ccfftb(size_t n, double* r, double* wsave) {cfftb (n, *r, *wsave);}
   // forward and backward RC FFT
-  static void rcfftf(int n, double* r, double* wsave) {rfftf (n, *r, *wsave);}
-  static void rcfftb(int n, double* r, double* wsave) {rfftb (n, *r, *wsave);}
+  static void rcfftf(size_t n, double* r, double* wsave) {rfftf (n, *r, *wsave);}
+  static void rcfftb(size_t n, double* r, double* wsave) {rfftb (n, *r, *wsave);}
   // sine transform
-  static void rrfft(int n, double* r, double* wsave) { sint (n, *r, *wsave); }
+  static void rrfft(size_t n, double* r, double* wsave) { sint (n, *r, *wsave); }
 };
 
 

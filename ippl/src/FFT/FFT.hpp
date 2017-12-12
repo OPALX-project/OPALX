@@ -49,7 +49,7 @@
     given domain. Also specify which dimensions to transform along.
 */
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 FFT<CCTransform,Dim,T>::FFT(
 			    const typename FFT<CCTransform,Dim,T>::Domain_t& cdomain, 
 			    const bool transformTheseDims[Dim],
@@ -85,9 +85,9 @@ FFT<CCTransform,Dim,T>::FFT(
 */
 
   // construct array of axis lengths
-  unsigned nTransformDims = this->numTransformDims();
+  size_t nTransformDims = this->numTransformDims();
   int* lengths = new int[nTransformDims];
-  unsigned d;
+  size_t d;
   for (d=0; d<nTransformDims; ++d)
     lengths[d] = cdomain[this->activeDimension(d)].length();
 
@@ -114,15 +114,15 @@ FFT<CCTransform,Dim,T>::FFT(
     setup performs all the initializations necessary after the transform
     directions have been specified.
 */
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 void
 FFT<CCTransform,Dim,T>::setup(void)
 {
   // Tau profiling
    
 
-  unsigned d, activeDim;
-  unsigned nTransformDims = this->numTransformDims();
+  size_t d, activeDim;
+  size_t nTransformDims = this->numTransformDims();
   // Set up the arrays of temporary Fields and FieldLayouts:
   e_dim_tag serialParallel[Dim];  // Specifies SERIAL, PARALLEL dims in temp
   // make zeroth dimension always SERIAL
@@ -135,7 +135,7 @@ FFT<CCTransform,Dim,T>::setup(void)
   tempFields_m = new ComplexField_t*[nTransformDims];
 
   // loop over transform dimensions
-  for (unsigned dim=0; dim<nTransformDims; ++dim) {
+  for (size_t dim=0; dim<nTransformDims; ++dim) {
     // get number of dimension to be transformed
     activeDim = this->activeDimension(dim);
     // Get input Field's domain
@@ -144,7 +144,7 @@ FFT<CCTransform,Dim,T>::setup(void)
     Domain_t ndip;
     ndip[0] = ndic[activeDim];
     for (d=1; d<Dim; ++d) {
-      unsigned int nextDim = activeDim + d;
+      size_t nextDim = activeDim + d;
       if (nextDim >= Dim) nextDim -= Dim;
       ndip[d] = ndic[nextDim];
     }
@@ -163,7 +163,7 @@ FFT<CCTransform,Dim,T>::setup(void)
 // Destructor
 //-----------------------------------------------------------------------------
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 FFT<CCTransform,Dim,T>::~FFT(void) {
 
   // Tau profiling
@@ -175,8 +175,8 @@ FFT<CCTransform,Dim,T>::~FFT(void) {
   */
    
   // delete arrays of temporary fields and field layouts
-  unsigned nTransformDims = this->numTransformDims();
-  for (unsigned d=0; d<nTransformDims; ++d) {
+  size_t nTransformDims = this->numTransformDims();
+  for (size_t d=0; d<nTransformDims; ++d) {
     delete tempFields_m[d];
     delete tempLayouts_m[d];
   }
@@ -189,7 +189,7 @@ FFT<CCTransform,Dim,T>::~FFT(void) {
 // do the CC FFT; separate input and output fields
 //-----------------------------------------------------------------------------
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 void
 FFT<CCTransform,Dim,T>::transform(
 				  int direction,
@@ -209,10 +209,10 @@ FFT<CCTransform,Dim,T>::transform(
            this->checkDomain(this->getDomain(),out_dom) );
 
   // Common loop iterate and other vars:
-  unsigned d;
+  size_t d;
   int idim;            // idim loops over the number of transform dims.
   int begdim, enddim;  // beginning and end of transform dim loop
-  unsigned nTransformDims = this->numTransformDims();
+  size_t nTransformDims = this->numTransformDims();
   // Field* for temp Field management:
   ComplexField_t* temp = &f;
   // Local work array passed to FFT:
@@ -378,7 +378,7 @@ FFT<CCTransform, Dim, T>::transform(
 }
 #else
 */
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 void
 FFT<CCTransform,Dim,T>::transform(
 				  int direction,
@@ -394,10 +394,10 @@ FFT<CCTransform,Dim,T>::transform(
   PAssert(this->checkDomain(this->getDomain(),in_dom));
 
   // Common loop iterate and other vars:
-  unsigned d;
+  size_t d;
   int idim;            // idim loops over the number of transform dims.
   int begdim, enddim;  // beginning and end of transform dim loop
-  unsigned nTransformDims = this->numTransformDims();
+  size_t nTransformDims = this->numTransformDims();
   // Field* for temp Field management:
   ComplexField_t* temp = &f;
   // Local work array passed to FFT:
@@ -522,7 +522,7 @@ FFT<CCTransform,1U,T>::FFT(
   
   
 
-  unsigned nTransformDims = 1U;
+  size_t nTransformDims = 1U;
   // get axis length
   int length;
   length = cdomain[0].length();
@@ -821,7 +821,7 @@ FFT<CCTransform,1U,T>::transform(
 // complex array of length n/2+1.
 //-----------------------------------------------------------------------------
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 FFT<RCTransform,Dim,T>::FFT(
 			    const typename FFT<RCTransform,Dim,T>::Domain_t& rdomain,
 			    const typename FFT<RCTransform,Dim,T>::Domain_t& cdomain,
@@ -831,9 +831,9 @@ FFT<RCTransform,Dim,T>::FFT(
     complexDomain_m(cdomain), serialAxes_m(1)
 {
   // construct array of axis lengths
-  unsigned nTransformDims = this->numTransformDims();
+  size_t nTransformDims = this->numTransformDims();
   int* lengths = new int[nTransformDims];
-  unsigned d;
+  size_t d;
   for (d=0; d<nTransformDims; ++d)
     lengths[d] = rdomain[this->activeDimension(d)].length();
 
@@ -862,7 +862,7 @@ FFT<RCTransform,Dim,T>::FFT(
 // given real and complex domains. Default: transform along all dimensions.
 //-----------------------------------------------------------------------------
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 FFT<RCTransform,Dim,T>::FFT(
 			    const typename FFT<RCTransform,Dim,T>::Domain_t& rdomain,
 			    const typename FFT<RCTransform,Dim,T>::Domain_t& cdomain,
@@ -875,7 +875,7 @@ FFT<RCTransform,Dim,T>::FFT(
   
   // construct array of axis lengths
   int lengths[Dim];
-  unsigned d;
+  size_t d;
   for (d=0; d<Dim; ++d)
     lengths[d] = rdomain[d].length();
 
@@ -902,7 +902,7 @@ FFT<RCTransform,Dim,T>::FFT(
 // directions have been specified.
 //-----------------------------------------------------------------------------
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 void
 FFT<RCTransform,Dim,T>::setup(void) {
 
@@ -911,10 +911,10 @@ FFT<RCTransform,Dim,T>::setup(void) {
   
    
 
-  PAssert(serialAxes_m > 0 && (unsigned int) serialAxes_m < Dim);
+  PAssert(serialAxes_m > 0 && (size_t) serialAxes_m < Dim);
 
-  unsigned d, d2, activeDim;
-  unsigned nTransformDims = this->numTransformDims();
+  size_t d, d2, activeDim;
+  size_t nTransformDims = this->numTransformDims();
 
   // Set up the arrays of temporary Fields and FieldLayouts:
 
@@ -924,7 +924,7 @@ FFT<RCTransform,Dim,T>::setup(void) {
   e_dim_tag NserialParallel[Dim];
   for (d=0; d < Dim; ++d) {
     serialParallel[d] = (d == 0 ? SERIAL : PARALLEL);
-    NserialParallel[d] = (d < (unsigned int) serialAxes_m ? SERIAL : PARALLEL);
+    NserialParallel[d] = (d < (size_t) serialAxes_m ? SERIAL : PARALLEL);
   }
 
   // check that domain lengths agree between real and complex domains
@@ -957,7 +957,7 @@ FFT<RCTransform,Dim,T>::setup(void) {
   ndip[0] = domain[activeDim];
   ndipc[0] = complexDomain_m[activeDim];
   for (d=1; d<Dim; ++d) {
-    unsigned int nextDim = activeDim + d;
+    size_t nextDim = activeDim + d;
     if (nextDim >= Dim) nextDim -= Dim;
     ndip[d] = domain[nextDim];
     ndipc[d] = complexDomain_m[nextDim];
@@ -1002,7 +1002,7 @@ FFT<RCTransform,Dim,T>::setup(void) {
   // now construct the remaining temporary complex fields
 
   // loop through and create actual permuted layouts, and also fields
-  unsigned int dim = 1;			// already have one temp field
+  size_t dim = 1;			// already have one temp field
   while (dim < nTransformDims) {
 
     int sp;
@@ -1019,7 +1019,7 @@ FFT<RCTransform,Dim,T>::setup(void) {
       // permute the fft order for the first 'serialAxes_m' axes
       if (serialAxes_m > 1) {
 	tmporder[0] = fftorder[0];
-	for (d=0; d < (unsigned int) (serialAxes_m-1); ++d)
+	for (d=0; d < (size_t) (serialAxes_m-1); ++d)
 	  fftorder[d] = fftorder[d+1];
 	fftorder[serialAxes_m - 1] = tmporder[0];
       }
@@ -1039,15 +1039,15 @@ FFT<RCTransform,Dim,T>::setup(void) {
 // Destructor
 //-----------------------------------------------------------------------------
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 FFT<RCTransform,Dim,T>::~FFT(void) {
 
   // Tau profiling
   
   
   // delete temporary fields and layouts
-  unsigned nTransformDims = this->numTransformDims();
-  for (unsigned d=0; d<nTransformDims; ++d) {
+  size_t nTransformDims = this->numTransformDims();
+  for (size_t d=0; d<nTransformDims; ++d) {
     delete tempFields_m[d];
     delete tempLayouts_m[d];
   }
@@ -1067,7 +1067,7 @@ FFT<RCTransform,Dim,T>::~FFT(void) {
   on gpu for result field (complex), does the fft and returns
 */
 #ifdef IPPL_DKS
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 void
 FFT<RCTransform,Dim,T>::transformDKSRC(
 				       int direction,
@@ -1088,7 +1088,7 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
    
   PAssert( this->checkDomain(this->getDomain(), in_dom) );
 
-  unsigned nTransformDims = this->numTransformDims();
+  size_t nTransformDims = this->numTransformDims();
 
   //*** using tempRField_m and transposing f field ***//
   /*
@@ -1146,7 +1146,7 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
   /** get global dimensions of real domain and local dimensions of real subdomain	
       calc global dimensions of complex subdomain */
   int NR_l[Dim], NR_g[Dim], NC_g[Dim]; 
-  for (unsigned d = 0; d < Dim; d++) {
+  for (size_t d = 0; d < Dim; d++) {
     NR_l[d] = (int)rldf->size(d);
     NR_g[d] = (int)tempR->getDomain()[d].length();
     NC_g[d] = NR_g[d];
@@ -1484,7 +1484,7 @@ FFT<RCTransform,Dim,T>::transform(
 }
 #else
 */
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 void
 FFT<RCTransform,Dim,T>::transform(
 				  int direction,
@@ -1517,9 +1517,9 @@ FFT<RCTransform,Dim,T>::transform(
            this->checkDomain(complexDomain_m,out_dom) );
 
   // common loop iterate and other vars:
-  unsigned d;
-  unsigned int idim;      // idim loops over the number of transform dims.
-  unsigned nTransformDims = this->numTransformDims();
+  size_t d;
+  size_t idim;      // idim loops over the number of transform dims.
+  size_t nTransformDims = this->numTransformDims();
 
   // handle first rc transform separately
   idim = 0;
@@ -1785,7 +1785,7 @@ FFT<RCTransform,Dim,T>::transform(
   transfers back the real field
 */
 #ifdef IPPL_DKS
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 void
 FFT<RCTransform,Dim,T>::transformDKSCR(
 				       int direction, 
@@ -1808,7 +1808,7 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
 
   PAssert( this->checkDomain(this->getDomain(),out_dom) );
   
-  unsigned nTransformDims = this->numTransformDims();
+  size_t nTransformDims = this->numTransformDims();
   
   // see if we can put final result directly into g
   RealField_t* tempR;
@@ -1857,7 +1857,7 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
 	
   //get sizes of global domains and local subdomains
   int NR_l[Dim], NR_g[Dim], NC_g[Dim];
-  for (unsigned d=0; d<Dim; d++) {
+  for (size_t d=0; d<Dim; d++) {
     NR_l[d] = (int)rldf->size(d);
     NR_g[d] = (int)tempR->getDomain()[d].length();
     NC_g[d] = NR_g[d];
@@ -2176,7 +2176,7 @@ FFT<RCTransform,Dim,T>::transform(
 }
 #else
 */
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 void
 FFT<RCTransform,Dim,T>::transform(
 				  int direction,
@@ -2207,9 +2207,9 @@ FFT<RCTransform,Dim,T>::transform(
            this->checkDomain(this->getDomain(),out_dom) );
 
   // Common loop iterate and other vars:
-  unsigned d;
-  unsigned int idim;      // idim loops over the number of transform dims.
-  unsigned nTransformDims = this->numTransformDims();
+  size_t d;
+  size_t idim;      // idim loops over the number of transform dims.
+  size_t nTransformDims = this->numTransformDims();
 
   // proceed with the complex-to-complex transforms
 
@@ -2451,7 +2451,7 @@ FFT<RCTransform,1U,T>::FFT(
                   transformTheseDims, compressTemps), 
     complexDomain_m(cdomain)
 {
-  unsigned nTransformDims = 1U;
+  size_t nTransformDims = 1U;
   // get axis length
   int length;
   length = rdomain[0].length();
@@ -2797,7 +2797,7 @@ FFT<RCTransform,1U,T>::transform(
 // complex array of length n/2+1.
 //-----------------------------------------------------------------------------
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 FFT<SineTransform,Dim,T>::FFT(
 			      const typename FFT<SineTransform,Dim,T>::Domain_t& rdomain,
 			      const typename FFT<SineTransform,Dim,T>::Domain_t& cdomain,
@@ -2808,7 +2808,7 @@ FFT<SineTransform,Dim,T>::FFT(
     complexDomain_m(&cdomain)
 {
 
-  unsigned d;
+  size_t d;
   // store which dimensions get sine transforms and count how many
   numSineTransforms_m = 0;
   for (d=0; d<Dim; ++d) {
@@ -2820,7 +2820,7 @@ FFT<SineTransform,Dim,T>::FFT(
   }
 
   // construct array of axis lengths for all transform dims
-  unsigned nTransformDims = this->numTransformDims();
+  size_t nTransformDims = this->numTransformDims();
   int* lengths = new int[nTransformDims];
   for (d=0; d<nTransformDims; ++d)
     lengths[d] = rdomain[this->activeDimension(d)].length();
@@ -2859,7 +2859,7 @@ FFT<SineTransform,Dim,T>::FFT(
 // given real and complex domains. Default: transform along all dimensions.
 //-----------------------------------------------------------------------------
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 FFT<SineTransform,Dim,T>::FFT(
 			      const typename FFT<SineTransform,Dim,T>::Domain_t& rdomain,
 			      const typename FFT<SineTransform,Dim,T>::Domain_t& cdomain,
@@ -2868,7 +2868,7 @@ FFT<SineTransform,Dim,T>::FFT(
     complexDomain_m(&cdomain)
 {
 
-  unsigned d;
+  size_t d;
   // store which dimensions get sine transforms and count how many
   numSineTransforms_m = 0;
   for (d=0; d<Dim; ++d) {
@@ -2914,7 +2914,7 @@ FFT<SineTransform,Dim,T>::FFT(
 // domain. Also specify which dimensions to sine transform along.
 //-----------------------------------------------------------------------------
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 FFT<SineTransform,Dim,T>::FFT(
 			      const typename FFT<SineTransform,Dim,T>::Domain_t& rdomain,
 			      const bool sineTransformDims[Dim], const bool& compressTemps)
@@ -2928,7 +2928,7 @@ FFT<SineTransform,Dim,T>::FFT(
 
   // store which dimensions get sine transforms and how many
   numSineTransforms_m = this->numTransformDims();
-  unsigned d;
+  size_t d;
   for (d=0; d<Dim; ++d)
     sineTransformDims_m[d] = sineTransformDims[d];
 
@@ -2959,7 +2959,7 @@ FFT<SineTransform,Dim,T>::FFT(
 // given real domain. Default: sine transform along all dimensions.
 //-----------------------------------------------------------------------------
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 FFT<SineTransform,Dim,T>::FFT(
 			      const typename FFT<SineTransform,Dim,T>::Domain_t& rdomain, const bool& compressTemps) 
   : FFTBase<Dim,T>(FFT<SineTransform,Dim,T>::sineFFT, rdomain, compressTemps)
@@ -2969,7 +2969,7 @@ FFT<SineTransform,Dim,T>::FFT(
   
    
 
-  unsigned d;
+  size_t d;
   // store which dimensions get sine transforms and how many
   numSineTransforms_m = this->numTransformDims();
   for (d=0; d<Dim; ++d)
@@ -3000,7 +3000,7 @@ FFT<SineTransform,Dim,T>::FFT(
 // directions have been specified.
 //-----------------------------------------------------------------------------
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 void
 FFT<SineTransform,Dim,T>::setup(void) {
 
@@ -3009,10 +3009,10 @@ FFT<SineTransform,Dim,T>::setup(void) {
   
    
 
-  unsigned d, dim, activeDim = 0;
-  unsigned int icount;
+  size_t d, dim, activeDim = 0;
+  size_t icount;
   Domain_t ndip;
-  unsigned nTransformDims = this->numTransformDims();  // total number of transforms
+  size_t nTransformDims = this->numTransformDims();  // total number of transforms
   const Domain_t& domain = this->getDomain();          // get real Field domain
 
   // Set up the arrays of temporary Fields and FieldLayouts:
@@ -3067,7 +3067,7 @@ FFT<SineTransform,Dim,T>::setup(void) {
       // make new domain with permuted Indexes, icount first
       ndip[0] = domain[icount];
       for (d=1; d<Dim; ++d) {
-        unsigned int nextDim = icount + d;
+        size_t nextDim = icount + d;
         if (nextDim >= Dim) nextDim -= Dim;
         ndip[d] = domain[nextDim];
       }
@@ -3082,7 +3082,7 @@ FFT<SineTransform,Dim,T>::setup(void) {
     // build final real Field for rc transform along activeDim
     ndip[0] = domain[activeDim];
     for (d=1; d<Dim; ++d) {
-      unsigned int nextDim = activeDim + d;
+      size_t nextDim = activeDim + d;
       if (nextDim >= Dim) nextDim -= Dim;
       ndip[d] = domain[nextDim];
     }
@@ -3096,7 +3096,7 @@ FFT<SineTransform,Dim,T>::setup(void) {
     if (!this->compressTemps()) (*tempRFields_m[numSineTransforms_m]).Uncompress();
 
     // now create the temporary complex Fields
-    unsigned int numComplex = nTransformDims - numSineTransforms_m;
+    size_t numComplex = nTransformDims - numSineTransforms_m;
     // allocate arrays of temp fields and layouts
     tempLayouts_m = new Layout_t*[numComplex];
     tempFields_m = new ComplexField_t*[numComplex];
@@ -3108,7 +3108,7 @@ FFT<SineTransform,Dim,T>::setup(void) {
       // make new domain with permuted Indexes, icount first
       ndip[0] = (*complexDomain_m)[icount];
       for (d=1; d<Dim; ++d) {
-        unsigned int nextDim = icount + d;
+        size_t nextDim = icount + d;
         if (nextDim >= Dim) nextDim -= Dim;
         ndip[d] = (*complexDomain_m)[nextDim];
       }
@@ -3134,7 +3134,7 @@ FFT<SineTransform,Dim,T>::setup(void) {
       // make new domain with permuted Indexes, activeDim first
       ndip[0] = domain[activeDim];
       for (d=1; d<Dim; ++d) {
-        unsigned int nextDim = activeDim + d;
+        size_t nextDim = activeDim + d;
         if (nextDim >= Dim) nextDim -= Dim;
         ndip[d] = domain[nextDim];
       }
@@ -3155,7 +3155,7 @@ FFT<SineTransform,Dim,T>::setup(void) {
 // Destructor
 //-----------------------------------------------------------------------------
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 FFT<SineTransform,Dim,T>::~FFT(void) {
 
   // Tau profiling
@@ -3164,14 +3164,14 @@ FFT<SineTransform,Dim,T>::~FFT(void) {
    
 
   // delete temporary fields and layouts
-  unsigned d;
-  unsigned nTransformDims = this->numTransformDims();
+  size_t d;
+  size_t nTransformDims = this->numTransformDims();
   if (nTransformDims > numSineTransforms_m) {
     for (d=0; d<numSineTransforms_m+1; ++d) {
       delete tempRFields_m[d];
       delete tempRLayouts_m[d];
     }
-    unsigned int numComplex = nTransformDims - numSineTransforms_m;
+    size_t numComplex = nTransformDims - numSineTransforms_m;
     for (d=0; d<numComplex; ++d) {
       delete tempFields_m[d];
       delete tempLayouts_m[d];
@@ -3193,7 +3193,7 @@ FFT<SineTransform,Dim,T>::~FFT(void) {
 // Sine and RC FFT; separate input and output fields, direction is +1 or -1
 //-----------------------------------------------------------------------------
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 void
 FFT<SineTransform,Dim,T>::transform(
 				    int direction,
@@ -3214,10 +3214,10 @@ FFT<SineTransform,Dim,T>::transform(
            this->checkDomain(*complexDomain_m,out_dom) );
 
   // Common loop iterate and other vars:
-  unsigned d;
+  size_t d;
   int icount, activeDim;
   int idim;      // idim loops over the number of transform dims.
-  unsigned nTransformDims = this->numTransformDims();
+  size_t nTransformDims = this->numTransformDims();
   // check that there is a real-to-complex transform to do
   PInsist(nTransformDims>numSineTransforms_m,
           "Wrong output Field type for real-to-real transform!!");
@@ -3464,7 +3464,7 @@ FFT<SineTransform,Dim,T>::transform(
 // Sine and RC FFT; opposite direction, from complex to real
 //-----------------------------------------------------------------------------
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 void
 FFT<SineTransform,Dim,T>::transform(
 				    int direction,
@@ -3485,10 +3485,10 @@ FFT<SineTransform,Dim,T>::transform(
            this->checkDomain(this->getDomain(),out_dom) );
 
   // Common loop iterate and other vars:
-  unsigned d;
+  size_t d;
   int icount, activeDim;
   int idim;      // idim loops over the number of transform dims.
-  unsigned nTransformDims = this->numTransformDims();
+  size_t nTransformDims = this->numTransformDims();
 
   // proceed with the complex-to-complex transforms
 
@@ -3741,7 +3741,7 @@ FFT<SineTransform,Dim,T>::transform(
 // Sine FFT only; separate input and output fields, direction is +1 or -1
 //-----------------------------------------------------------------------------
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 void
 FFT<SineTransform,Dim,T>::transform(
 				    int direction,
@@ -3762,10 +3762,10 @@ FFT<SineTransform,Dim,T>::transform(
            this->checkDomain(this->getDomain(),out_dom) );
 
   // Common loop iterate and other vars:
-  unsigned d;
+  size_t d;
   int idim;      // idim loops over the number of transform dims.
   int begdim, enddim;
-  unsigned nTransformDims = this->numTransformDims();
+  size_t nTransformDims = this->numTransformDims();
   // check that there is no real-to-complex transform to do
   PInsist(nTransformDims==numSineTransforms_m,
           "Wrong output Field type for real-to-complex transform!!");
@@ -3877,7 +3877,7 @@ FFT<SineTransform,Dim,T>::transform(
 // Sine FFT only; in-place transform, direction is +1 or -1
 //-----------------------------------------------------------------------------
 
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 void
 FFT<SineTransform,Dim,T>::transform(
 				    int direction,
@@ -3892,10 +3892,10 @@ FFT<SineTransform,Dim,T>::transform(
   PAssert(this->checkDomain(this->getDomain(),in_dom));
 
   // Common loop iterate and other vars:
-  unsigned d;
+  size_t d;
   int idim;      // idim loops over the number of transform dims.
   int begdim, enddim;
-  unsigned nTransformDims = this->numTransformDims();
+  size_t nTransformDims = this->numTransformDims();
   // check that there is no real-to-complex transform to do
   PInsist(nTransformDims==numSineTransforms_m,
           "Cannot perform real-to-complex transform in-place!!");
