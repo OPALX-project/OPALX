@@ -20,6 +20,7 @@ SET (_HDRS
   GlobalComm.h
   Message.hpp
   Message.h
+  Operations.h
   TagMaker.h
   Tags.h
   )
