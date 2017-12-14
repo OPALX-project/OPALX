@@ -724,8 +724,7 @@ protected:
     /*
       Data structure for particle load balance information
     */
-
-    std::unique_ptr<size_t[]> partPerNode_m;
+    
     std::unique_ptr<size_t[]> globalPartPerNode_m;
     size_t minLocNum_m;
 
