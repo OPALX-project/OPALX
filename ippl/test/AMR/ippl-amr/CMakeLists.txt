@@ -18,7 +18,7 @@ set (CMAKE_CXX_FLAGS
 
 add_definitions(${AMREX_DEFINES})
 
-if ( ${ENABLE_AMR_MG_SOLVER} )
+if ( ENABLE_AMR_MG_SOLVER )
     set (CMAKE_CXX_FLAGS "-DHAVE_AMR_MG_SOLVER ${CMAKE_CXX_FLAGS}")
 endif ()
 
@@ -168,7 +168,7 @@ add_executable( testGaussian
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
                 
-if ( ${ENABLE_AMR_MG_SOLVER} )
+if ( ENABLE_AMR_MG_SOLVER )
     add_executable( testUnifSphere
                     testUnifSphere.cpp
                     ../AmrOpal.cpp
@@ -249,7 +249,7 @@ else ()
                     ../MGTSolver.cpp
                     ../Solver.cpp)
     
-endif ( ${ENABLE_AMR_MG_SOLVER} )
+endif ( ENABLE_AMR_MG_SOLVER )
 
 add_executable( testLayout
                 testLayout.cpp
@@ -288,8 +288,7 @@ target_link_libraries (testPerformance ${LIBS}
 
 target_link_libraries (testPlasma ${LIBS}
                         -lgfortran ${AMREX_LIBRARIES}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS}
-                        -lboost_system -lboost_filesystem)
+                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testTagging ${LIBS}
                         -lgfortran ${AMREX_LIBRARIES}
@@ -330,3 +329,23 @@ target_link_libraries (testMultipleSources ${LIBS}
 target_link_libraries (testLayout ${LIBS}
                         -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+
+set (EXECS
+    testAmrPartBase
+    testNewTracker
+    testPerformance
+    testPlasma
+    testTagging
+#    testInitGuessSolver
+    testInitialBox
+    testScatterAMReX
+    testDomainTransformSolve
+    testGaussian
+    testUnifSphere
+    testReal
+    testMultipleSources
+    testLayout
+)
+
+install (TARGETS ${EXECS} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/libexec/amr/ippl-amr")
