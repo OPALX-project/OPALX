@@ -726,7 +726,6 @@ protected:
     */
     
     std::unique_ptr<size_t[]> globalPartPerNode_m;
-    size_t minLocNum_m;
 
 
     Distribution *dist_m;
