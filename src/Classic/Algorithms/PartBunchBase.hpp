@@ -62,7 +62,6 @@ extern Inform *gmsg;
 //       globalTrackStep_m(0),
 //       numBunch_m(1),
 //       SteptoLastInj_m(0),
-//       partPerNode_m(nullptr),
 //       globalPartPerNode_m(nullptr),
 //       dist_m(nullptr),
 //       globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
@@ -128,7 +127,6 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
       globalTrackStep_m(0),
       numBunch_m(1),
       SteptoLastInj_m(0),
-      partPerNode_m(nullptr),
       globalPartPerNode_m(nullptr),
       minLocNum_m(0),
       dist_m(nullptr),
@@ -145,9 +143,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
 
     distrCreate_m = IpplTimings::getTimer("Create Distr");
     distrReload_m = IpplTimings::getTimer("Load Distr");
-
-
-    partPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
+    
     globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
 
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(std::string("GlobalLosses"), !Options::asciidump));
@@ -216,7 +212,6 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
       globalTrackStep_m(0),
       numBunch_m(1),
       SteptoLastInj_m(0),
-      partPerNode_m(nullptr),
       globalPartPerNode_m(nullptr),
       minLocNum_m(0),
       dist_m(nullptr),
@@ -233,9 +228,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
 
     distrCreate_m = IpplTimings::getTimer("Create Distr");
     distrReload_m = IpplTimings::getTimer("Load Distr");
-
-
-    partPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
+    
     globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
 
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(std::string("GlobalLosses"), !Options::asciidump));
@@ -306,7 +299,6 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb,
     globalTrackStep_m(0),
     numBunch_m(1),
     SteptoLastInj_m(0),
-    partPerNode_m(nullptr),
     globalPartPerNode_m(nullptr),
     minLocNum_m(0),
     dist_m(nullptr),
@@ -370,7 +362,6 @@ PartBunchBase<T, Dim>::PartBunchBase(const PartBunchBase<T, Dim>& rhs):
     globalTrackStep_m(rhs.globalTrackStep_m),
     numBunch_m(rhs.numBunch_m),
     SteptoLastInj_m(rhs.SteptoLastInj_m),
-    partPerNode_m(nullptr),
     globalPartPerNode_m(nullptr),
     minLocNum_m(rhs.minLocNum_m),
     dist_m(nullptr),
@@ -753,7 +744,7 @@ void PartBunchBase<T, Dim>::setBinCharge(int bin) {
 template <class T, unsigned Dim>
 size_t PartBunchBase<T, Dim>::calcNumPartsOutside(Vector_t x) {
 
-    partPerNode_m[Ippl::myNode()] = 0;
+    std::size_t localnum = 0;
     const Vector_t meanR = get_rmean();
 
     for(unsigned long k = 0; k < getLocalNum(); ++ k)
@@ -761,12 +752,16 @@ size_t PartBunchBase<T, Dim>::calcNumPartsOutside(Vector_t x) {
             abs(R[k](1) - meanR(1)) > x(1) ||
             abs(R[k](2) - meanR(2)) > x(2)) {
 
-            ++ partPerNode_m[Ippl::myNode()];
+            ++localnum;
         }
-
-    reduce(partPerNode_m.get(), partPerNode_m.get() + Ippl::getNodes(), globalPartPerNode_m.get(), OpAddAssign());
-
-    return *globalPartPerNode_m.get();
+    
+    gather(&localnum, &globalPartPerNode_m[0], 1);
+    
+    size_t npOutside = std::accumulate(globalPartPerNode_m.get(),
+                                       globalPartPerNode_m.get() + Ippl::getNodes(), 0,
+                                       std::plus<size_t>());
+    
+    return npOutside;
 }
 
 
@@ -1513,16 +1508,11 @@ void PartBunchBase<T, Dim>::gatherLoadBalanceStatistics() {
     minLocNum_m =  std::numeric_limits<size_t>::max();
 
     for(int i = 0; i < Ippl::getNodes(); i++)
-        partPerNode_m[i] = globalPartPerNode_m[i] = 0;
+        globalPartPerNode_m[i] = 0;
 
-    partPerNode_m[Ippl::myNode()] = getLocalNum();
+    std::size_t localnum = getLocalNum();
+    gather(&localnum, &globalPartPerNode_m[0], 1);
     
-    MPI_Gather(&partPerNode_m[Ippl::myNode()], 1, MPI_UINT64_T,
-               globalPartPerNode_m.get(), 1, MPI_UINT64_T,
-               0 /*root*/, Ippl::getComm());
-    
-//     reduce(partPerNode_m.get(), partPerNode_m.get() + Ippl::getNodes(), globalPartPerNode_m.get(), OpAddAssign());
-
     for(int i = 0; i < Ippl::getNodes(); i++)
         if (globalPartPerNode_m[i] <  minLocNum_m)
             minLocNum_m = globalPartPerNode_m[i];
@@ -2444,7 +2434,6 @@ void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
     distrReload_m = IpplTimings::getTimer("Load Distr");
 
 
-    partPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
     globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
 
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(std::string("GlobalLosses"), !Options::asciidump));

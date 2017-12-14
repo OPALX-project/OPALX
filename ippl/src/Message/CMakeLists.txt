@@ -14,6 +14,7 @@ SET (_HDRS
   CommSHMEMPI.h
   Communicate.h
   CRC.h
+  DataTypes.h
   Formatter.h
   GlobalComm.hpp
   GlobalComm.h
