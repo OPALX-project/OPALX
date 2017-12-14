@@ -67,8 +67,7 @@ extern Inform *gmsg;
 //       globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
 //       globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
 //       lowParticleCount_m(false),
-//       dcBeam_m(false),
-//       minLocNum_m(0)
+//       dcBeam_m(false)
 // {
 //     R(*(pbase->R_p));   // undefined behaviour due to reference to null pointer
 //     ID(*(pbase->ID_p));   // undefined behaviour due to reference to null pointer
@@ -128,7 +127,6 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
       numBunch_m(1),
       SteptoLastInj_m(0),
       globalPartPerNode_m(nullptr),
-      minLocNum_m(0),
       dist_m(nullptr),
       dcBeam_m(false),
       pbase(pb)
@@ -213,7 +211,6 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
       numBunch_m(1),
       SteptoLastInj_m(0),
       globalPartPerNode_m(nullptr),
-      minLocNum_m(0),
       dist_m(nullptr),
       dcBeam_m(false),
       pbase(pb)
@@ -300,7 +297,6 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb,
     numBunch_m(1),
     SteptoLastInj_m(0),
     globalPartPerNode_m(nullptr),
-    minLocNum_m(0),
     dist_m(nullptr),
     dcBeam_m(false),
     pbase(pb)
@@ -363,7 +359,6 @@ PartBunchBase<T, Dim>::PartBunchBase(const PartBunchBase<T, Dim>& rhs):
     numBunch_m(rhs.numBunch_m),
     SteptoLastInj_m(rhs.SteptoLastInj_m),
     globalPartPerNode_m(nullptr),
-    minLocNum_m(rhs.minLocNum_m),
     dist_m(nullptr),
     dcBeam_m(rhs.dcBeam_m),
     pbase(rhs.pbase)
@@ -1505,17 +1500,12 @@ void PartBunchBase<T, Dim>::set_meshEnlargement(double dh) {
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::gatherLoadBalanceStatistics() {
-    minLocNum_m =  std::numeric_limits<size_t>::max();
 
     for(int i = 0; i < Ippl::getNodes(); i++)
         globalPartPerNode_m[i] = 0;
 
     std::size_t localnum = getLocalNum();
     gather(&localnum, &globalPartPerNode_m[0], 1);
-    
-    for(int i = 0; i < Ippl::getNodes(); i++)
-        if (globalPartPerNode_m[i] <  minLocNum_m)
-            minLocNum_m = globalPartPerNode_m[i];
 }
 
 
@@ -1595,8 +1585,8 @@ void PartBunchBase<T, Dim>::calcBeamParameters() {
     double gamma = 0.0;
     for(size_t i = 0; i < locNp; i++)
         gamma += sqrt(1.0 + dot(P[i], P[i]));
-
-    reduce(gamma, gamma, OpAddAssign());
+    
+    allreduce(gamma, gamma, 1, std::plus<double>());
     gamma /= N;
 
     calcEMean();
@@ -2226,7 +2216,7 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
                 break;
             }
         }
-        reduce(totalNum, totalNum, OpMinAssign());
+        allreduce(totalNum, totalNum, 1, std::less<long int>());
     }
 
     for(unsigned long k = 0; k < localNum; ++ k) {
@@ -2250,13 +2240,13 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
             loc_moment[j][i] = loc_moment[i][j];
         }
     }
-
-    reduce(&(loc_moment[0][0]), &(loc_moment[0][0]) + 2 * Dim * 2 * Dim,
-           &(moments[0][0]), OpAddAssign());
-
-    reduce(&(loc_centroid[0]), &(loc_centroid[0]) + 2 * Dim,
-           &(centroid_m[0]), OpAddAssign());
-
+    
+    allreduce(&(loc_moment[0][0]), &(moments[0][0]),
+              2 * Dim * 2 * Dim, std::plus<double>());
+    
+    allreduce(&loc_centroid[0], &centroid_m[0],
+              2 * Dim, std::plus<double>());
+    
     for(unsigned int i = 0; i < 2 * Dim; i++) {
         for(unsigned int j = 0; j <= i; j++) {
             moments_m(i, j) = moments[i][j];
