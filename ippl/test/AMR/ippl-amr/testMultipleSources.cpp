@@ -45,7 +45,6 @@ struct param_t {
     Vektor<size_t, 3> nr;
     size_t nLevels;
     size_t maxBoxSize;
-    double radius;
     double length;
     size_t nParticles;
     double pCharge;
@@ -57,9 +56,11 @@ struct param_t {
     bool useMgtSolver;
 #ifdef HAVE_AMR_MG_SOLVER
     bool useTrilinos;
-    size_t smoothing;
+    size_t nsweeps;
     AmrMultiGrid::Boundary bc;
     AmrMultiGrid::BaseSolver bs;
+    AmrMultiGrid::Smoother smoother;
+    Preconditioner prec;
 #endif
     AmrOpal::TaggingCriteria criteria;
     double tagfactor;
@@ -84,9 +85,11 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     
 #ifdef HAVE_AMR_MG_SOLVER
     params.useTrilinos = false;
-    params.smoothing = 12;
+    params.nsweeps = 12;
     params.bc = AmrMultiGrid::Boundary::DIRICHLET;
     params.bs = AmrMultiGrid::BaseSolver::CG;
+    params.smoother = AmrMultiGrid::Smoother::GAUSS_SEIDEL;
+    params.prec = Preconditioner::NONE;
 #endif
     
     
@@ -94,7 +97,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     
     int cnt = 0;
     
-    int required = 8;
+    int required = 7;
     
     while ( true ) {
         static struct option long_options[] = {
@@ -103,7 +106,6 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "gridz",          required_argument, 0, 'z' },
             { "level",          required_argument, 0, 'l' },
             { "maxgrid",        required_argument, 0, 'm' },
-            { "radius",         required_argument, 0, 'r' },
             { "boxlength",      required_argument, 0, 'b' },
             { "nparticles",     required_argument, 0, 'n' },
             { "writeYt",        no_argument,       0, 'w' },
@@ -114,7 +116,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "use-mgt-solver", no_argument,       0, 's' },
 #ifdef HAVE_AMR_MG_SOLVER
             { "use-trilinos",   no_argument,       0, 'a' },
-            { "smoothing",      required_argument, 0, 'g' },
+            { "nsweeps",        required_argument, 0, 'g' },
+            { "smoother",       required_argument, 0, 'q' },
+            { "prec",           required_argument, 0, 'o' },
             { "bc",             required_argument, 0, 'j' },
             { "basesolver",     required_argument, 0, 'u' },
 #endif
@@ -126,9 +130,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         int option_index = 0;
         
 #ifdef HAVE_AMR_MG_SOLVER
-        c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:whcvpst:f:a:g:", long_options, &option_index);
+        c = getopt_long(argc, argv, "x:y:z:l:m:b:n:whcvpst:f:a:g:q:o:", long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:whcvpst:f:", long_options, &option_index);
+        c = getopt_long(argc, argv, "x:y:z:l:m:b:n:whcvpst:f:", long_options, &option_index);
 #endif
         
         if ( c == -1 )
@@ -139,7 +143,29 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             case 'a':
                 params.useTrilinos = true; break;
             case 'g':
-                params.smoothing = std::atoi(optarg); break;
+                params.nsweeps = std::atoi(optarg); break;
+	    case 'q':
+	    {
+	        std::string smoother = optarg;
+	        if ( smoother == "SGS" )
+	            params.smoother = AmrMultiGrid::Smoother::SGS;
+	        else if ( smoother == "JACOBI" )
+	            params.smoother = AmrMultiGrid::Smoother::JACOBI;
+	        else
+	            throw std::runtime_error("Error: Check smoother argument");
+	        break;
+	    }
+	    case 'o':
+	    {
+	        std::string prec = optarg;
+	        if ( prec == "ILUT" )
+	            params.prec = Preconditioner::ILUT;
+	        else if ( prec == "CHEBYSHEV" )
+	            params.prec = Preconditioner::CHEBYSHEV;
+	        else
+	            throw std::runtime_error("Error: Check preconditioner argument");
+	        break;
+	    }
             case 'j':
             {
                 std::string bc = optarg;
@@ -211,8 +237,6 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.nLevels = std::atoi(optarg) + 1; ++cnt; break;
             case 'm':
                 params.maxBoxSize = std::atoi(optarg); ++cnt; break;
-            case 'r':
-                params.radius = std::atof(optarg); ++cnt; break;
             case 'b':
                 params.length = std::atof(optarg); ++cnt; break;
             case 'n':
@@ -250,7 +274,6 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--gridz [#gridpoints in z]" << endl
                     << "--level [#levels]" << endl
                     << "--maxgrid [max. grid]" << endl
-                    << "--radius [sphere radius]" << endl
                     << "--boxlength [cube side length]" << endl
                     << "--nparticles [#particles]" << endl
                     << "--pcharge [charge per particle] (optional)" << endl
@@ -260,7 +283,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--use-mgt-solver (optional)" << endl
 #ifdef HAVE_AMR_MG_SOLVER
                     << "--use-trilinos (optional)" << endl
-                    << "--smoothing (optional, trilinos only, default: 12)" << endl
+                    << "--nsweeps (optional, trilinos only, default: 12)" << endl
+		    << "--smoother (optional, trilinos only, default: GAUSS_SEIDEL)" << endl
+		    << "--prec (optional, trilinos only, default: NONE)" << endl
                     << "--bc (optional, dirichlet or open, default: dirichlet)" << endl
 #endif
                     << "--tagging charge (default) / efield / potential (optional)" << endl
@@ -533,9 +558,10 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
 #ifdef HAVE_AMR_MG_SOLVER
     if ( params.useTrilinos ) {
         AmrMultiGrid sol(params.bc, AmrMultiGrid::Interpolater::PIECEWISE_CONST,
-                         AmrMultiGrid::Interpolater::LAGRANGE, params.bs);
+                         AmrMultiGrid::Interpolater::LAGRANGE, params.bs,
+                         params.prec, params.smoother);
         
-        sol.setNumberOfSweeps(params.smoothing);
+        sol.setNumberOfSweeps(params.nsweeps);
     
         IpplTimings::startTimer(solvTimer);
         
@@ -667,28 +693,31 @@ void doAMReX(const param_t& params, Inform& msg)
     Distribution dist;
     
     // first source
-    dist.gaussian(-0.02, params.radius, nloc, Ippl::myNode());
+    double mean1[] = {0, 0, 0};
+    double stddev[] = {0.0025, 0.0025, 0.0025};
+
+    dist.gaussian(mean1, stddev, nloc, Ippl::myNode());
     dist.injectBeam(*bunch);
     bunch->update();
     
     // second source
-    dist.gaussian(0.02, params.radius, nloc, Ippl::myNode());
+    double mean2[] = {0, 0, 0.02};
+    dist.gaussian(mean2, stddev, nloc, Ippl::myNode());
     dist.injectBeam(*bunch);
     bunch->update();
     
     // third source
-    dist.gaussian(0.04, params.radius, nloc, Ippl::myNode());
+    double mean3[] = {0, 0, 0.03};
+    dist.gaussian(mean3, stddev, nloc, Ippl::myNode());
     dist.injectBeam(*bunch);
     bunch->update();
     
     for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
         bunch->qm[i] = Physics::q_e;  // in [C]
     
-    msg << "Bunch radius: " << params.radius << " m" << endl
-        << "#Particles: " << bunch->getTotalNum() << endl
+    msg << "#Particles: " << bunch->getTotalNum() << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
-        << "Total charge: " << params.nParticles * bunch->qm[0] << " C" << endl
-        << "#Cells per dim for bunch: " << 2.0 * params.radius / *(geom[0].CellSize()) << endl;
+        << "Total charge: " << params.nParticles * bunch->qm[0] << " C" << endl;
     
     // map particles
     double scale = 1.0;
@@ -717,11 +746,9 @@ void doAMReX(const param_t& params, Inform& msg)
     
     msg << endl << "Transformed positions" << endl << endl;
     
-    msg << "Bunch radius: " << params.radius * scale << " m" << endl
-        << "#Particles: " << params.nParticles << endl
+    msg << "#Particles: " << params.nParticles << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
-        << "Total charge: " << params.nParticles * bunch->qm[0] << " C" << endl
-        << "#Cells per dim for bunch: " << 2.0 * params.radius * scale / *(geom[0].CellSize()) << endl;
+        << "Total charge: " << params.nParticles * bunch->qm[0] << " C" << endl;
     
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, scale/*0.0*/ /*time*/);
@@ -806,7 +833,6 @@ int main(int argc, char *argv[]) {
             << "- grid                  = " << params.nr << endl
             << "- max. grid             = " << params.maxBoxSize << endl
             << "- #level                = " << params.nLevels - 1 << endl
-            << "- sphere radius [m]     = " << params.radius << endl
             << "- cube side length [m]  = " << params.length << endl
             << "- #particles            = " << params.nParticles << endl
             << "- tagging               = " << tagging << endl
@@ -819,9 +845,17 @@ int main(int argc, char *argv[]) {
             msg << "- MGT solver is used" << endl;
         
 #ifdef HAVE_AMR_MG_SOLVER
-        if ( params.useTrilinos )
-            msg << "- Trilinos solver is used with " << params.smoothing
-                << " relaxation steps." << endl;
+	if ( params.useTrilinos ) {
+	    std::string smoother = "Gauss-Seidel";
+	    if ( params.smoother == AmrMultiGrid::Smoother::SGS )
+	        smoother = "symmetric" + smoother;
+	    else if ( params.smoother == AmrMultiGrid::Smoother::JACOBI )
+	        smoother = "Jacobi";
+	    msg << "- Trilinos solver is used with: "
+	        << "    - nsweeps:     " << params.nsweeps
+	        << "    - smoother:    " << smoother
+	        << endl;
+	}
 #endif
         doAMReX(params, msg);
         

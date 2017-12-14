@@ -5,6 +5,8 @@ include_directories (
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/ippl/src
     ${CLASSIC_SOURCE_DIR}
+    ${H5Hut_INCLUDE_DIR}
+    ${HDF5_INCLUDE_DIR}
 )
 
 link_directories (
