@@ -30,6 +30,7 @@
 #include "Message/Tags.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplStats.h"
+#include "Message/DataTypes.h"
 
 #include <algorithm>
 
@@ -442,3 +443,31 @@ bool scatter(InputIterator s1, InputIterator s2,
 
     return scatter(*Ippl::Comm, s1, s2, t1, target_node, target_position, op);
 }
+
+template <typename T>
+void gather(const T* input, T* output, int count, int root) {
+    MPI_Datatype type = get_mpi_datatype<T>(*input);
+    
+    MPI_Gather(const_cast<T*>(input), count, type,
+               output, count, type, root, Ippl::getComm());
+}
+
+
+template <typename T>
+void scatter(const T* input, T* output, int count, int root) {
+    MPI_Datatype type = get_mpi_datatype<T>(*input);
+    
+    MPI_Scatter(const_cast<T*>(input), count, type,
+                output, count, type, root, Ippl::getComm());
+}
+
+
+// template <typename T>
+// void reduce(const T* input, T* output, int count, int root) {
+//     MPI_Datatype type = get_mpi_datatype<T>(*input);
+//     
+//     MPI_Op op = get_mpi_operation();
+//     
+//     MPI_Reduce(const_cast<T*>(input), output, count, type,
+//                op, root, Ippl::getComm());
+// }
