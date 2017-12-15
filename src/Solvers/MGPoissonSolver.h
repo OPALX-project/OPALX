@@ -14,22 +14,15 @@
 //////////////////////////////////////////////////////////////
 #include "ml_include.h"
 
-#ifdef HAVE_MPI
 #include "mpi.h"
+#include "Epetra_Map.h"
 #include "Epetra_MpiComm.h"
-#else
-#include "Epetra_SerialComm.h"
-#endif
-
+#include "Epetra_Vector.h"
+#include "Epetra_CrsMatrix.h"
 #if defined(HAVE_ML_EPETRA) && defined(HAVE_ML_TEUCHOS) && defined(HAVE_ML_AZTECOO)
 
-class Epetra_Map;
-class Epetra_Vector;
-class Epetra_CrsMatrix;
-//#include "Epetra_LinearProblem.h"
-class Epetra_MultiVector;
-class Epetra_Operator;
-class Epetra_MpiComm;
+
+//class Epetra_Operator;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
