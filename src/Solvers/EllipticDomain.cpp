@@ -89,8 +89,8 @@ void EllipticDomain::Compute(Vector_t hr){
     IntersectXDir.clear();
 
     // build a index and coordinate map
-    register int idx = 0;
-    register int x, y;
+    int idx = 0;
+    int x, y;
 
     for(x = 0; x < nr[0]; x++) {
         for(y = 0; y < nr[1]; y++) {
@@ -166,8 +166,8 @@ void EllipticDomain::Compute(Vector_t hr, NDIndex<3> localId){
     IntersectXDir.clear();
 
     // build a index and coordinate map
-    register int idx = 0;
-    register int x, y;
+    int idx = 0;
+    int x, y;
 
     for(x = localId[0].first();  x<= localId[0].last(); x++) {
         for(y = localId[1].first(); y <= localId[1].last(); y++) {

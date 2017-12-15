@@ -49,7 +49,6 @@
 #pragma GCC diagnostic pop
 
 #include <algorithm>
-#include <omp.h>
 
 using Teuchos::RCP;
 using Teuchos::rcp;
@@ -64,13 +63,14 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch &beam,
                                    double tol,
                                    int maxiters,
                                    std::string precmode):
-    itsBunch_m(&beam),
-    mesh_m(mesh),
-    layout_m(fl),
     geometries_m(geometries),
     tol_m(tol),
     maxiters_m(maxiters),
-    Comm(Ippl::getComm()) {
+    Comm(Ippl::getComm()),
+    itsBunch_m(&beam),
+    mesh_m(mesh),
+    layout_m(fl)
+{
 
     domain_m = layout_m->getDomain();
 
@@ -152,7 +152,12 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch &beam,
 
 
 MGPoissonSolver::MGPoissonSolver(PartBunch &beam):
-    layout_m(&beam.getFieldLayout()), mesh_m(&beam.getMesh()), itsBunch_m(&beam), LHS(0), Comm(Ippl::getComm()) {
+    LHS(0),
+    Comm(Ippl::getComm()),
+    itsBunch_m(&beam),
+    mesh_m(&beam.getMesh()),
+    layout_m(&beam.getFieldLayout())
+{
 
     throw OpalException("MGPoissonSolver", "Copy Constructor not implemented yet");
 }
@@ -244,7 +249,7 @@ void MGPoissonSolver::extrapolateLHS() {
         }
         *LHS = *(*P)(0);
      } else
-        throw OpalException("MGPoissonSolver", "Invalid number of old LHS: " + OldLHS.size());
+	    throw OpalException("MGPoissonSolver", "Invalid number of old LHS: " + std::to_string(OldLHS.size()));
 }
 
 

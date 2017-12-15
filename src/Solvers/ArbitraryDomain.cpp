@@ -171,8 +171,8 @@ void ArbitraryDomain::Compute(Vector_t hr){
     IdxMap.clear();
     CoordMap.clear();
 
-    register int id=0;
-    register int idx, idy, idz;
+    int id=0;
+    int idx, idy, idz;
     for (idz = 0; idz < nr[2]; idz++) {
         for (idy = 0; idy < nr[1]; idy++) {
             for (idx = 0; idx < nr[0]; idx++) {
@@ -383,7 +383,7 @@ void ArbitraryDomain::Compute(Vector_t hr, NDIndex<3> localId){
     // Build up index and coord map
     IdxMap.clear();
     CoordMap.clear();
-    register int index = startIdx - numGhostNodesLeft;
+    int index = startIdx - numGhostNodesLeft;
 
     INFOMSG(level2 << "* Building up index and coordinate map..." << endl);
 
