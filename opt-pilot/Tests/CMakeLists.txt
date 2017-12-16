@@ -34,19 +34,17 @@ link_directories (
 
 set (OPT_PILOT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/opt-pilot)
 set (SDDSPARSER_SRC
-    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/array.cpp
-    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/associate.cpp
-    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/ast.cpp
-    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/column.cpp
-    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/data.cpp
-    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/description.cpp
-    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/file.cpp
-    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/include.cpp
-    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/parameter.cpp
-    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/version.cpp
-    ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser.cpp
-    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
-    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSParser/array.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSParser/associate.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSParser/ast.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSParser/column.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSParser/data.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSParser/description.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSParser/file.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSParser/include.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSParser/parameter.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSParser/version.cpp
+    ${OPT_PILOT_SOURCE_DIR}/Util/SDDSParser.cpp
 )
 
 set (ExpressionTest_SRC
