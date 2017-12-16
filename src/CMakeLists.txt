@@ -56,6 +56,9 @@ MACRO (ADD_OPAL_HEADERS )
     ENDIF ()
 ENDMACRO ()
 
+ADD_OPAL_SOURCES(opal.cpp)
+ADD_OPAL_SOURCES(changes.cpp)
+
 add_subdirectory (AbstractObjects)
 add_subdirectory (Algebra)
 add_subdirectory (Algorithms)
@@ -71,6 +74,7 @@ add_subdirectory (Expressions)
 add_subdirectory (Lines)
 add_subdirectory (OpalConfigure)
 add_subdirectory (OpalParser)
+add_subdirectory (Optimize)
 add_subdirectory (Match)
 add_subdirectory (PhysicsActions)
 add_subdirectory (Solvers)
@@ -84,9 +88,6 @@ add_subdirectory (ValueDefinitions)
 IF(ENABLE_AMR)
     add_subdirectory (Amr)
 ENDIF(ENABLE_AMR)
-
-ADD_OPAL_SOURCES(opal.cpp)
-ADD_OPAL_SOURCES(changes.cpp)
 
 include_directories ( BEFORE
     ${OPAL_SRC_DIR}
@@ -125,12 +126,12 @@ IF(NOT (
 ENDIF()
 
 SET (OPAL_LIBS
+    ${OPTP_LIBS}
+    ${OPTP_LIBRARY}
+    ${IPPL_LIBRARY}
     ${GSL_LIBRARY}
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARY}
-    ${IPPL_LIBRARY}
-    ${OPTP_LIBRARY}
-    ${OPTP_LIBS}
     ${Boost_LIBRARIES}
     ${ADDITIOANL_LIBS}
     m
