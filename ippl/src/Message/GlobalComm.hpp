@@ -493,3 +493,20 @@ template <typename T, class Op>
 void allreduce(const T& input, T& output, int count, Op op) {
     allreduce(&input, &output, count, op);
 }
+
+
+template <typename T, class Op>
+void allreduce(T* inout, int count, Op op) {
+    MPI_Datatype type = get_mpi_datatype<T>(*inout);
+    
+    MPI_Op mpiOp = get_mpi_op<Op>(op);
+    
+    MPI_Allreduce(MPI_IN_PLACE, inout, count, type,
+                  mpiOp, Ippl::getComm());
+}
+
+
+template <typename T, class Op>
+void allreduce(T& inout, int count, Op op) {
+    allreduce(&inout, count, op);
+}
