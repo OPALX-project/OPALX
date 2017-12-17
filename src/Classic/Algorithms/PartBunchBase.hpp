@@ -1586,7 +1586,7 @@ void PartBunchBase<T, Dim>::calcBeamParameters() {
     for(size_t i = 0; i < locNp; i++)
         gamma += sqrt(1.0 + dot(P[i], P[i]));
     
-    allreduce(gamma, gamma, 1, std::plus<double>());
+    allreduce(gamma, 1, std::plus<double>());
     gamma /= N;
 
     calcEMean();
@@ -2216,7 +2216,7 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
                 break;
             }
         }
-        allreduce(totalNum, totalNum, 1, std::less<long int>());
+        allreduce(totalNum, 1, std::less<long int>());
     }
 
     for(unsigned long k = 0; k < localNum; ++ k) {
