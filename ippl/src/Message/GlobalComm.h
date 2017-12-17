@@ -130,6 +130,12 @@ void allreduce(const T* input, T* output, int count, Op op);
 template <typename T, class Op>
 void allreduce(const T& input, T& output, int count, Op op);
 
+template <typename T, class Op>
+void allreduce(T* inout, int count, Op op);
+
+template <typename T, class Op>
+void allreduce(T& inout, int count, Op op);
+
 
 #include "Message/GlobalComm.hpp"
 
