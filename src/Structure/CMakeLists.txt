@@ -36,7 +36,7 @@ set (HDRS
     OpalInputInterpreter.h
     OpalWake.h
     PriEmissionPhysics.h
-    SDDSParser.h
+#    SDDSParser.h
     SecondaryEmissionPhysics.h
     ParticleMatterInteraction.h
     TracerParticles.hpp
