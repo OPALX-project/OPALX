@@ -1,6 +1,7 @@
 #include "AbsBeamline/ElementBase.h"
 
-struct MeshData {
+class MeshData {
+public:
     std::vector<Vector_t> vertices_m;
     std::vector<Vektor<unsigned int, 3> > triangles_m;
     std::vector<std::pair<Vector_t, Vector_t> > decorations_m;
@@ -39,3 +40,10 @@ private:
 
     std::vector<MeshData> elements_m;
 };
+
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:

@@ -24,6 +24,8 @@
 #include "Algebra/Vector.h"
 #include <complex>
 
+using std::complex;
+
 
 // Class DoubleEigen
 // ------------------------------------------------------------------------
@@ -46,11 +48,11 @@ public:
 
     /// Get eigenvalues.
     //  Return the eigenvalues as a complex vector.
-    Vector<std::complex<double> > eigenValues() const;
+    Vector<complex<double> > eigenValues() const;
 
     /// Get eigenvectors.
     //  Return the eigenvectors as the column vectors of a complex matrix.
-    Matrix<std::complex<double> > eigenVectors() const;
+    Matrix<complex<double> > eigenVectors() const;
 
     /// Get eigenvectors.
     //  Return the eigenvectors packed in a real matrix.
@@ -86,7 +88,7 @@ private:
     void balbak(int low, int high, Vector<double> &scale);
 
     // Representation of the eigenvalues and eigenvectors.
-    Vector<std::complex<double> > lambda;
+    Vector<complex<double> > lambda;
     Matrix<double>           vectors;
 };
 

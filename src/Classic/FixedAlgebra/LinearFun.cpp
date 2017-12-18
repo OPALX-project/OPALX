@@ -265,7 +265,7 @@ LinearFun<T, N> LinearFun<T, N>::substitute(const LinearMap<T, N> &m) const {
     z.data[0] = data[0];
 
     for(int i = 0; i <= N; ++i) {
-        for(int j = 0; j < N; ++j) {
+        for(int j = 0; j < N; ++i) {
             z.data[i] += data[j] * m[j][i];
         }
     }

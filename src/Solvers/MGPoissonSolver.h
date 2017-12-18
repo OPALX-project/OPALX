@@ -133,7 +133,7 @@ public:
 
 private:
 
-    //TODO: we need to update this an maybe change attached
+    //TODO: we need to update this and maybe change attached
     //solver!
     /// holding the currently active geometry
     BoundaryGeometry *currentGeometry;

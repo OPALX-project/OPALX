@@ -360,15 +360,15 @@ public:
 
     /// Make representation unique.
     inline void unique();
-
+    
     /// Get a list containing the indexes of non-zero coefficients of a FTps
     // Returns a STL list containing the indexes
     std::list<int> getListOfNonzeroCoefficients() const;
-
+    
     /// Extract exponents of coefficient
     // Retuns a 1D Array containing the exponents to index [b]index[/b].
     FArray1D<int, N> extractExponents(int index) const;
-
+    
     /// Multiply FTps with itself
     // Return the power of the truncated power series
     FTps<T, N> makePower(int power) const;
@@ -398,7 +398,7 @@ private:
 
     // Check that min-, max-, and trcOrder's have the correct relationships.
     // If not, complain with a message that names the given "method".
-    static void checkOrders(const std::string &method, int minOrder, int maxOrder, int &trcOrder);
+    static void checkOrders(const string &method, int minOrder, int maxOrder, int &trcOrder);
 
     // Pointer to representation.
     // This is the only non-static data member of class FTps<T,N>.
@@ -499,6 +499,6 @@ std::ostream &operator<<(std::ostream &os, const FTps<T, N> &);
 
 // Implementation.
 #include "FixedAlgebra/FVps.h"
-#include "FixedAlgebra/FTps.hpp"
+#include "FixedAlgebra/FTps.cpp"
 
 #endif // CLASSIC_FTps_HH

@@ -24,6 +24,15 @@
 #include "FixedAlgebra/FTps.h"
 #include "Utilities/DomainError.h"
 
+#include <complex> // std::real
+
+#include <type_traits>
+
+// 25. March 2017,
+// http://stackoverflow.com/questions/30736951/templated-class-check-if-complex-at-compile-time
+template<class T> struct is_complex : std::false_type {};
+template<class T> struct is_complex<std::complex<T>> : std::true_type {};
+
 
 // Class FTps; global functions acting on FTps objects.
 //   Elementary functions acting on FTps<T,N> objects.
@@ -134,14 +143,17 @@ FTps<T, N> sqrt(const FTps<T, N> &x, int trunc) {
                            "Square-root of EXACT polynomial must be truncated.");
 
     T aZero = x[0];
-    if(aZero <= T(0) || x.getMinOrder() != 0) {
+    if( ( std::real(aZero) <= std::real(T(0)) &&
+          std::imag(aZero) <= std::real(T(0))
+        ) || x.getMinOrder() != 0)
+    {
         std::cerr << "FTps::sqrt(x) called with\nconstant term = " << aZero
                   << "; minOrder = " << x.getMinOrder() << std::endl
                   << "x = " << x << std::endl;
         throw DomainError("sqrt(const FTps &,int)");
     }
 
-    T two_aZero = 2 * aZero;
+    T two_aZero = T(2) * aZero;
     Array1D<T> series(trcOrder + 1);
     series[0] = sqrt(aZero);
     for(int i = 1; i <= trcOrder; i++) {
@@ -371,6 +383,11 @@ FTps<T, N> csch(const FTps<T, N> &x, int trunc) {
 /// Error function.
 template <class T, int N>
 FTps<T, N> erf(const FTps<T, N> &x, int trunc) {
+    
+    if ( is_complex<T>::value )
+        throw LogicalError("::erf(FTps<T,N> &x, int trunc)",
+                           "Error function does not support complex numbers.");
+    
     // Default: trunc = EXACT
     int trcOrder = std::min(x.getTruncOrder(), trunc);
 
@@ -380,15 +397,15 @@ FTps<T, N> erf(const FTps<T, N> &x, int trunc) {
 
     T aZero = x[0];
     if(x.getMinOrder() != 0) aZero = T(0);
-
+    
     Array1D<T> series(trcOrder + 1);
-    series[0] = std::erf(aZero);
+    series[0] = std::erf(std::real(aZero));
     series[1] = 2.0 / std::sqrt(M_PI) * std::exp(-aZero*aZero);
-
+    
     for(int i = 2; i <= trcOrder; ++i) {
         series[i] = - 2.0 / double(i-1) * double((i-2)) * series[i-2] / double(i);
     }
-
+    
     return x.taylor(series, trcOrder);
 }
 
@@ -396,7 +413,7 @@ FTps<T, N> erf(const FTps<T, N> &x, int trunc) {
 template <class T, int N>
 FTps<T, N> erfc(const FTps<T, N> &x, int trunc) {
     // Default: trunc = EXACT
-
+    
     return T(1) - erf(x, trunc);
 }
 

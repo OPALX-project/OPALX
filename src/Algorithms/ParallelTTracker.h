@@ -55,7 +55,6 @@
 #include "AbsBeamline/CyclotronValley.h"
 
 #include "Beamlines/Beamline.h"
-#include "Beamlines/FlaggedBeamline.h"
 #include "Elements/OpalBeamline.h"
 #include "Solvers/WakeFunction.hh"
 

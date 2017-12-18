@@ -97,7 +97,7 @@ void LMDif::execute() {
     Match::block->getVariables(x);
     if(! Match::block->evaluate(x, f)) {
         state = FAILED;
-    } else if((fnorm = euclidian_norm(f)) <= tol) {
+    } else if((fnorm = euclidean_norm(f)) <= tol) {
         state = CONVERGED;
     } else {
         // Initialize iterations.
@@ -147,7 +147,7 @@ void LMDif::execute() {
                 double fnorm1;
 
                 if(Match::block->evaluate(x - h, f1)) {
-                    fnorm1 = euclidian_norm(f1);
+                    fnorm1 = euclidean_norm(f1);
                 } else {
                     fnorm1 = 2.0 * fnorm;
                 }
@@ -160,7 +160,7 @@ void LMDif::execute() {
 
                 // Compute the scaled predicted reduction
                 // and the scaled directional derivative.
-                double gnorm = euclidian_norm(jacobian * h);
+                double gnorm = euclidean_norm(jacobian * h);
                 double temp1 = gnorm / fnorm;
                 double temp2 = sqrt(mu) * dhnorm / fnorm;
                 double prered = temp1 * temp1 + 2.0 * temp2 * temp2;

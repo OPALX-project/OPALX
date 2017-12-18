@@ -36,12 +36,12 @@
 #include "Classic/AbsBeamline/ScalingFFAGMagnet.h"
 #include "Classic/AbsBeamline/Offset.h"
 
-class ScalingFFAGMagnetTest : public ::testing::Test { 
-public: 
-    ScalingFFAGMagnetTest() : sector_m(NULL), fout_m() { 
+class ScalingFFAGMagnetTest : public ::testing::Test {
+public:
+    ScalingFFAGMagnetTest() : sector_m(NULL), fout_m(), silencer_m() {
     }
- 
-    void SetUp( ) { 
+
+    void SetUp( ) {
         sector_m = new ScalingFFAGMagnet("test");
         // characteristic length is R*dphi => 0.6545 m
         endfieldmodel::Tanh* tanh = new endfieldmodel::Tanh(psi0_m, psi0_m/5., 20);
@@ -59,8 +59,8 @@ public:
         sector_m->setVerticalExtent(1.); // 1 m
         sector_m->initialise();
     }
- 
-    void TearDown( ) { 
+
+    void TearDown( ) {
         delete sector_m;
         sector_m = NULL;
     }
@@ -173,7 +173,7 @@ public:
         Vector_t B(0., 0., 0.);
         Vector_t BCart(0., 0., 0.);
         double t = 0;
-        
+
         sector_m->getFieldValueCylindrical(posCyl, B);
         bool outsideFieldMap = sector_m->apply(posCart, mom, t, E, BCart);
         double delta = y/1000.;
@@ -208,7 +208,7 @@ public:
     }
 
 private:
-
+    OpalTestUtilities::SilenceTest silencer_m;
 };
 
 TEST_F(ScalingFFAGMagnetTest, ConstructorTest) {
@@ -332,7 +332,6 @@ TEST_F(ScalingFFAGMagnetTest, DFCoefficientsTanDeltaTest) {
 }
 
 TEST_F(ScalingFFAGMagnetTest, TanhTest) {
-    OpalTestUtilities::SilenceTest silence;
     double numericalDerivative = sector_m->getEndField()->function(-psi0_m, 0);
     for (size_t order = 0; order < 5; ++order) {
         double analyticalDerivative = sector_m->getEndField()->function(-psi0_m, order);
@@ -372,7 +371,6 @@ TEST_F(ScalingFFAGMagnetTest, ConvergenceYTest) {
 }
 
 TEST_F(ScalingFFAGMagnetTest, ConvergenceOrderTest) {
-    OpalTestUtilities::SilenceTest silence;
     for (double y = 0.5; y > 0.2; y /= 10.) { // 50 cm off midplane
         std::cout << "order y divB |curlB| curlB" << std::endl;
         std::vector<double> divBVec(13);
@@ -406,14 +404,13 @@ TEST_F(ScalingFFAGMagnetTest, ConvergenceOrderTest) {
 }
 
 TEST_F(ScalingFFAGMagnetTest, ConvergenceOrderHackedTest) {
-    OpalTestUtilities::SilenceTest silence;
     double y = 0.05;
     bool cylindrical = false;
     int maxOrder = 10;
     // nb: if tan delta is 0., convergence reached at i = 7
     for (double td = 0.2; td < 1.1; td += 0.2) { // 50 cm off midplane
         std::cout << "order y     B     divB     |curlB|     curlB" << std::endl;
-        
+
         std::vector<double> divBVec(maxOrder);
         std::vector<double> curlBVec(maxOrder);
         double delta = y/100.;
@@ -535,4 +532,3 @@ TEST_F(ScalingFFAGMagnetTest, GeometryTest) {
     EXPECT_EQ(rot(1), -psi0_m*4);
     EXPECT_EQ(rot(2), 0.);
 }
-

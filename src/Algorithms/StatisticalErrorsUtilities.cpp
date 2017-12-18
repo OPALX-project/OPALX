@@ -3,7 +3,7 @@
 //
 
 #include "Algorithms/StatisticalErrorsUtilities.h"
-#include "Structure/SDDSParser/ast.hpp"
+#include "Util/SDDSParser/ast.hpp"
 
 BinaryWriter::BinaryWriter(std::ofstream &out):
     out_m(out)

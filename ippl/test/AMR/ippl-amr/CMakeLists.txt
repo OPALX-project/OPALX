@@ -82,8 +82,7 @@ ELSE()
         ${IPPL_LIBRARY}
         ippl
 	${Boost_LIBRARIES}
-        mpi
-        mpi_cxx
+    ${MPI_LIBRARIES}
         mpi_mpifh
         m
         z
