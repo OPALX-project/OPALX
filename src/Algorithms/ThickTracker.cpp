@@ -19,34 +19,16 @@
 // ------------------------------------------------------------------------
 
 #include "Algorithms/ThickTracker.h"
+#include "Algorithms/OrbitThreader.h" 
+#include "Algorithms/CavityAutophaser.h"
 
 #include <cfloat>
-
-#include "AbsBeamline/Collimator.h"
-#include "AbsBeamline/Corrector.h"
-#include "AbsBeamline/Diagnostic.h"
-#include "AbsBeamline/Degrader.h"
-#include "AbsBeamline/Drift.h"
-#include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/Lambertson.h"
-#include "AbsBeamline/Marker.h"
-#include "AbsBeamline/Monitor.h"
-#include "AbsBeamline/Multipole.h"
-#include "AbsBeamline/RBend.h"
-#include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/RFQuadrupole.h"
-#include "AbsBeamline/Probe.h"
-#include "AbsBeamline/SBend.h"
-#include "AbsBeamline/Separator.h"
-#include "AbsBeamline/Septum.h"
-#include "AbsBeamline/Solenoid.h"
-#include "AbsBeamline/ParallelPlate.h"
-#include "AbsBeamline/CyclotronValley.h"
 
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "BeamlineGeometry/RBendGeometry.h"
 #include "Beamlines/Beamline.h"
+#include "Beamlines/FlaggedBeamline.h"
 
 #include "Fields/BMultipoleField.h"
 #include "FixedAlgebra/FTps.h"
@@ -54,9 +36,8 @@
 #include "FixedAlgebra/FVps.h"
 
 #include "Physics/Physics.h"
-
 #include "Utilities/NumToStr.h"
-
+#include "Elements/OpalBeamline.h"
 
 class Beamline;
 class PartData;
@@ -69,6 +50,8 @@ typedef FTps<double, PSdim> Series;
 typedef FVps<double, PSdim> Map, VSeries;
 typedef FMatrix<FTps<double, PSdim>, PSdim, PSdim> MxSeries;
 
+
+/*
 namespace {
     Vector implicitIntStep(const Vector &zin, const VSeries &f, const MxSeries gradf1, double ds,
                            int nx = 20);
@@ -79,717 +62,395 @@ namespace {
     Vector fixedPointInt4(const Vector &zin, const VSeries &f, double s, double ds,
                           int nx = 50, int cx = 4);
 };
+*/
 
+//
 // Class ThickTracker
 // ------------------------------------------------------------------------
-
+//
 ThickTracker::ThickTracker(const Beamline &beamline,
                            const PartData &reference,
                            bool revBeam, bool revTrack):
-    Tracker(beamline, reference, revBeam, revTrack)
-{}
+  Tracker(beamline, reference, revBeam, revTrack),
+  itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getCoordTransformationTo()),
+  pathLength_m(0.0),
+  zStop_m(),
+  dtCurrentTrack_m(0.0),
+  dtAllTracks_m(),
+  localTrackSteps_m()
+{
+}
 
 
 ThickTracker::ThickTracker(const Beamline &beamline,
                            PartBunchBase<double, 3> *bunch,
-                           const PartData &reference,
-                           bool revBeam, bool revTrack):
-    Tracker(beamline, bunch, reference, revBeam, revTrack)
-{}
+			   DataSink &ds,
+			   const PartData &reference,	  
+                           bool revBeam, bool revTrack,
+			   const std::vector<unsigned long long> &maxSteps,
+			   double zstart,
+			   const std::vector<double> &zstop,
+			   const std::vector<double> &dt):
+  Tracker(beamline, bunch, reference, revBeam, revTrack),
+  itsDataSink_m(&ds), 
+  itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getCoordTransformationTo()),
+  pathLength_m(0.0),
+  zstart_m(zstart),
+  zStop_m(),
+  dtCurrentTrack_m(0.0),
+  dtAllTracks_m(),
+  localTrackSteps_m()
+{
+  CoordinateSystemTrafo labToRef(beamline.getOrigin3D(),
+				 beamline.getCoordTransformationTo());
+  referenceToLabCSTrafo_m = labToRef.inverted();
+
+  for (std::vector<unsigned long long>::const_iterator it = maxSteps.begin(); it != maxSteps.end(); ++ it) {
+    localTrackSteps_m.push(*it);
+  }
+  for (std::vector<double>::const_iterator it = dt.begin(); it != dt.end(); ++ it) {
+    dtAllTracks_m.push(*it);
+  }
+  for (std::vector<double>::const_iterator it = zstop.begin(); it != zstop.end(); ++ it) {
+    zStop_m.push(*it);
+  }
+}
 
 
 ThickTracker::~ThickTracker()
 {}
 
 
-void ThickTracker::visitBeamBeam(const BeamBeam &) {
-    // *** MISSING *** Tracker for beam-beam.
-}
 
+void ThickTracker::visitBeamline(const Beamline &bl) {
 
-void ThickTracker::visitCollimator(const Collimator &coll) {
-    applyDrift(flip_s * coll.getElementLength());
-}
-
-
-void ThickTracker::visitCorrector(const Corrector &corr) {
-    // This implements the ThinTracker version.
-    double length = flip_s * corr.getElementLength();
-
-    // Drift through first half of length.
-    if(length != 0.0) applyDrift(length / 2.0);
-
-    // Apply kick.
-    double scale =
-        (flip_s * flip_B * itsReference.getQ() * c) / itsReference.getP();
-    if(length != 0.0) scale *= length; // Is this right?!?
-    const BDipoleField &field = corr.getField();
-
-    for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
-        OpalParticle part = itsBunch_m->get_part(i);
-        part.px() -= field.getBy() * scale;
-        part.py() += field.getBx() * scale;
-        itsBunch_m->set_part(part, i);
-    }
-
-    // Drift through second half of length.
-    if(length != 0.0) applyDrift(length / 2.0);
-}
-
-void ThickTracker::visitDegrader(const Degrader &deg) {
-    applyDrift(flip_s * deg.getElementLength());
-}
-
-void ThickTracker::visitDiagnostic(const Diagnostic &diag) {
-    // The diagnostic has no effect on particle tracking.
-    applyDrift(flip_s * diag.getElementLength());
-}
-
-
-void ThickTracker::visitDrift(const Drift &drift) {
-    applyDrift(flip_s * drift.getElementLength());
-}
-
-
-void ThickTracker::visitLambertson(const Lambertson &lamb) {
-    // Assume the particle go through the magnet's window.
-    applyDrift(flip_s * lamb.getElementLength());
-}
-
-
-void ThickTracker::visitMarker(const Marker &marker) {
-    // Do nothing.
-}
-
-
-void ThickTracker::visitMonitor(const Monitor &corr) {
-    applyDrift(flip_s * corr.getElementLength());
-}
-
-
-void ThickTracker::visitMultipole(const Multipole &mult) {
-    //std::cerr << "==> In ThickTracker::visitMultipole(const Multipole &mult)" << std::endl;
-    // Geometry and Field
-    double length = flip_s * mult.getElementLength();
-    double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();
-    const BMultipoleField &field = mult.getField();
-    int order = field.order();
-    double beta = itsReference.getBeta();
-
-    if(length == 0.0) {
-        // Thin multipole, field coefficients are integral(B*dl).
-        scale *= flip_s;
-        applyThinMultipole(field, scale);
+    const FlaggedBeamline* fbl = static_cast<const FlaggedBeamline*>(&bl);
+    if (fbl->getRelativeFlag()) {
+        *gmsg << " do stuff" << endl;
+        OpalBeamline stash(fbl->getOrigin3D(), fbl->getCoordTransformationTo());
+        stash.swap(itsOpalBeamline_m);
+        fbl->iterate(*this, false);
+        itsOpalBeamline_m.prepareSections();
+        itsOpalBeamline_m.compute3DLattice();
+        stash.merge(itsOpalBeamline_m);
+        stash.swap(itsOpalBeamline_m);
     } else {
-        // Finite-length multipole, field coefficients are B.
-        // Apply entrance fringe field.
-        applyEntranceFringe(0.0, 0.0, field, scale);
+        fbl->iterate(*this, false);
+    }
+}
 
-        // Construct terms in Hamiltonian H.
-        // (1) Define variables.
-        static const Series px = Series::makeVariable(PX);
-        static const Series py = Series::makeVariable(PY);
-        static const Series pt = Series::makeVariable(PT) + 1.0; // 1 + \delta = p/p0
-        static const Map ident;
-        // (2) Construct kinematic terms.
-        double kin = itsReference.getM() / itsReference.getP(); // 1/(beta*gamma)
-        Series ptk = (pt * pt + kin * kin);
-        Series pz2 = (pt * pt - px * px - py * py);
-        // (3) Build vector potential in straight reference frame.
-        Series As = buildMultipoleVectorPotential(field) * scale;
-        As.setTruncOrder(Series::EXACT);
 
-        // Use implicit integration to propagate particles.
-        for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
-            OpalParticle part = itsBunch_m->get_part(i);
-            Vector zin;
-            zin[X] = part.x();
-            zin[PX] = part.px();
-            zin[Y] = part.y();
-            zin[PY] = part.py();
-            zin[T] = part.t();
-            zin[PT] = part.pt();
-            // Build H_trans and J.grad(H_trans).
-            if(zin[X] != DBL_MAX) {
-                bool ok = true;
-                try {
-                    Map translate = zin + ident;
-                    Series H_trans = (1 / beta) * sqrt(ptk.substitute(translate), order)
-                                     - sqrt(pz2.substitute(translate), order)
-                                     + As.substitute(translate);
-                    VSeries JgradH;
-                    for(int i = 0; i < PSdim; i += 2) {
-                        JgradH[ i ] =  H_trans.derivative(i + 1);
-                        JgradH[i+1] = -H_trans.derivative(i);
-                    }
-                    static const Vector zeroV;
-                    Vector zf = zin + implicitInt4(zeroV, JgradH, length, 0.5 * length);
-                    part.x() = zf[X];
-                    part.px() = zf[PX];
-                    part.y() = zf[Y];
-                    part.py() = zf[PY];
-                    part.t() = zf[T];
-                    part.pt() = zf[PT];
-                } catch(SingularMatrixError &smx) {
-                    std::cerr << " [ThickTracker::visitMultipole:] Singular matrix error caught from method " << smx.where() << "\n"
-                              << "   " << smx.what() << "\n"
-                              << "   Treating particle as lost." << std::endl;
-                    ok = false;
-                } catch(DomainError &dmx) {
-                    std::cerr << " [ThickTracker::visitMultipole:] Domain error caught from method " << dmx.where() << "\n"
-                              << "   Treating particle as lost." << std::endl;
-                    ok = false;
-                } catch(ConvergenceError &cnvx) {
-                    std::cerr << " [ThickTracker::visitMultipole:] Convergence error caught from method " << cnvx.where() << "\n"
-                              << "   " << cnvx.what() << "\n"
-                              << "   Treating particle as lost." << std::endl;
-                    ok = false;
-                }
-                if(!ok) {
-                    part.x() = DBL_MAX;
-                    part.px() = DBL_MAX;
-                    part.y() = DBL_MAX;
-                    part.py() = DBL_MAX;
-                    part.t() = DBL_MAX;
-                    part.pt() = DBL_MAX;
-                }
+void ThickTracker::updateRFElement(std::string elName, double maxPhase) {
+
+}
+
+
+void ThickTracker::prepareSections() {
+    itsBeamline_m.accept(*this);
+    itsOpalBeamline_m.prepareSections();
+}
+
+
+
+void ThickTracker::saveCavityPhases() {
+    itsDataSink_m->storeCavityInformation();
+}
+
+void ThickTracker::restoreCavityPhases() {
+    typedef std::vector<MaxPhasesT>::iterator iterator_t;
+
+    if (OpalData::getInstance()->hasPriorTrack() ||
+        OpalData::getInstance()->inRestartRun()) {
+        iterator_t it = OpalData::getInstance()->getFirstMaxPhases();
+        iterator_t end = OpalData::getInstance()->getLastMaxPhases();
+        for (; it < end; ++ it) {
+            updateRFElement((*it).first, (*it).second);
+        }
+    }
+}
+
+
+void ThickTracker::autophaseCavities(const BorisPusher &pusher) {
+
+    double t = itsBunch_m->getT();
+    Vector_t nextR = RefPartR_m / (Physics::c * itsBunch_m->getdT());
+    pusher.push(nextR, RefPartP_m, itsBunch_m->getdT());
+    nextR *= Physics::c * itsBunch_m->getdT();
+
+    auto elementSet = itsOpalBeamline_m.getElements(referenceToLabCSTrafo_m.transformTo(nextR));
+
+    for (auto element: elementSet) {
+        if (element->getType() == ElementBase::TRAVELINGWAVE) {
+            const TravelingWave *TWelement = static_cast<const TravelingWave *>(element.get());
+            if (!TWelement->getAutophaseVeto()) {
+                RefPartR_m = referenceToLabCSTrafo_m.transformTo(RefPartR_m);
+                RefPartP_m = referenceToLabCSTrafo_m.rotateTo(RefPartP_m);
+                CavityAutophaser ap(itsReference, element);
+                ap.getPhaseAtMaxEnergy(itsOpalBeamline_m.transformToLocalCS(element, RefPartR_m),
+                                       itsOpalBeamline_m.rotateToLocalCS(element, RefPartP_m),
+                                       t, itsBunch_m->getdT());
+                RefPartR_m = referenceToLabCSTrafo_m.transformFrom(RefPartR_m);
+                RefPartP_m = referenceToLabCSTrafo_m.rotateFrom(RefPartP_m);
             }
-            itsBunch_m->set_part(part, i);
+
+        } else if (element->getType() == ElementBase::RFCAVITY) {
+            const RFCavity *RFelement = static_cast<const RFCavity *>(element.get());
+            if (!RFelement->getAutophaseVeto()) {
+                RefPartR_m = referenceToLabCSTrafo_m.transformTo(RefPartR_m);
+                RefPartP_m = referenceToLabCSTrafo_m.rotateTo(RefPartP_m);
+                CavityAutophaser ap(itsReference, element);
+                ap.getPhaseAtMaxEnergy(itsOpalBeamline_m.transformToLocalCS(element, RefPartR_m),
+                                       itsOpalBeamline_m.rotateToLocalCS(element, RefPartP_m),
+                                       t, itsBunch_m->getdT());
+                RefPartR_m = referenceToLabCSTrafo_m.transformFrom(RefPartR_m);
+                RefPartP_m = referenceToLabCSTrafo_m.rotateFrom(RefPartP_m);
+            }
+        }
+    }
+
+}
+
+
+void ThickTracker::updateReferenceParticle(const BorisPusher &pusher) {
+    const double dt = std::min(itsBunch_m->getT(), itsBunch_m->getdT());
+    const double scaleFactor = Physics::c * dt;
+    Vector_t Ef(0.0), Bf(0.0);
+
+    RefPartR_m /= scaleFactor;
+    pusher.push(RefPartR_m, RefPartP_m, dt);
+    RefPartR_m *= scaleFactor;
+
+    IndexMap::value_t elements = itsOpalBeamline_m.getElements(referenceToLabCSTrafo_m.transformTo(RefPartR_m));
+    IndexMap::value_t::const_iterator it = elements.begin();
+    const IndexMap::value_t::const_iterator end = elements.end();
+
+    for (; it != end; ++ it) {
+        CoordinateSystemTrafo refToLocalCSTrafo = itsOpalBeamline_m.getCSTrafoLab2Local((*it)) * referenceToLabCSTrafo_m;
+
+        Vector_t localR = refToLocalCSTrafo.transformTo(RefPartR_m);
+        Vector_t localP = refToLocalCSTrafo.rotateTo(RefPartP_m);
+        Vector_t localE(0.0), localB(0.0);
+
+        if ((*it)->applyToReferenceParticle(localR,
+                                            localP,
+                                            itsBunch_m->getT() - 0.5 * dt,
+                                            localE,
+                                            localB)) {
+            *gmsg << level1 << "The reference particle hit an element" << endl;
+            globalEOL_m = true;
         }
 
-        // Apply exit fringe field.
-        applyExitFringe(0.0, 0.0, field, scale);
+        Ef += refToLocalCSTrafo.rotateFrom(localE);
+        Bf += refToLocalCSTrafo.rotateFrom(localB);
     }
-    //std::cerr << "==> Leaving ThickTracker::visitMultipole(...)" << std::endl;
+    pusher.kick(RefPartR_m, RefPartP_m, Ef, Bf, dt);
+    RefPartR_m /= scaleFactor;
+    pusher.push(RefPartR_m, RefPartP_m, dt);
+    RefPartR_m *= scaleFactor;
 }
 
-void ThickTracker::visitProbe(const Probe &prob) {
-    applyDrift(flip_s * prob.getElementLength());
-}
 
 
-void ThickTracker::visitRBend(const RBend &bend) {
-    //std::cerr << "==> In ThickTracker::visitRBend(const RBend &bend)" << std::endl;
-    // Geometry and Field.
-    const RBendGeometry &geometry = bend.getGeometry();
-    double length = flip_s * geometry.getElementLength();
-    double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();
-    const BMultipoleField &field = bend.getField();
-    int order = field.order();
-    double beta_inv = 1.0 / itsReference.getBeta();
 
-    // Compute slices and stepsize.
-    int nSlices = (int) bend.getSlices();
-    double stepsize = bend.getStepsize();
-    if(stepsize != 0.0) {
-        int nst = (int) ceil(length / stepsize);
-        nSlices = std::max(nSlices, nst);
-    }
-    double d_ell = length / nSlices;
-
-    if(length == 0.0) {
-        // Thin RBend.
-        double half_angle = flip_s * geometry.getBendAngle() / 2.0;
-        Euclid3D rotat = Euclid3D::YRotation(- half_angle);
-        applyTransform(rotat, 0.0); // Transform from in-plane to mid-plane.
-        applyThinMultipole(field, scale); // Apply multipole kick.
-        applyTransform(rotat, 0.0); // Transform from mid-plane to out-plane.
+void ThickTracker::selectDT() {
+    if (itsBunch_m->getIfBeamEmitting()) {
+        double dt = itsBunch_m->getEmissionDeltaT();
+        itsBunch_m->setdT(dt);
     } else {
-        // Finite-length RBend.
-        if(back_path) {
-            // Apply rotation global to local.
-            applyTransform(Inverse(geometry.getExitPatch()));
-            // Apply entrance fringe field.
-            applyEntranceFringe(bend.getExitFaceRotation(), scale, field, scale);
-        } else {
-            // Apply rotation global to local.
-            applyTransform(geometry.getEntrancePatch());
-            // Apply exit fringe field.
-            applyEntranceFringe(bend.getEntryFaceRotation(), scale, field, scale);
-        }
-
-        // Construct terms in Hamiltonian H.
-        // (1) Define variables.
-        static const Series px  = Series::makeVariable(PX);
-        static const Series py  = Series::makeVariable(PY);
-        static const Series de  = Series::makeVariable(PT);
-        static const Series de2 = de * de;
-        static const Series pxy2 = px * px + py * py;
-        static const Map ident;
-        // (2) Construct kinematic terms.
-        double kin = itsReference.getM() / itsReference.getP(); // mc^2/pc = 1/(beta*gamma)
-        double kin2 = kin * kin;
-        // (3) Vector potential in straight reference.
-        Series As = buildMultipoleVectorPotential(field) * scale;
-        As.setTruncOrder(Series::EXACT);
-
-        // Use implicit integration to propagate particles.
-
-        for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
-            OpalParticle part = itsBunch_m->get_part(i);
-            Vector zin, zf;
-            zin[X] = part.x();
-            zin[PX] = part.px();
-            zin[Y] = part.y();
-            zin[PY] = part.py();
-            zin[T] = part.t();
-            zin[PT] = part.pt();
-            if(zin[X] != DBL_MAX) {
-                bool ok = true;
-                try {
-                    for(int slice = 0; slice < nSlices; ++slice) {
-                        // Build H_trans and J.grad(H_trans).
-                        Map translate = zin + ident;
-                        double d1 = 1.0 + zin[PT];
-                        Series de12 = d1 * d1 + 2.0 * d1 * de + de2;
-                        Series H_trans = beta_inv * sqrt(de12 + kin2, order)
-                                         - sqrt(de12 - zin[PX] * zin[PX] - zin[PY] * zin[PY] - 2.0 * (zin[PX] * px + zin[PY] * py) - pxy2, order)
-                                         + As.substitute(translate);
-                        VSeries JgradH;
-                        for(int i = 0; i < PSdim; i += 2) {
-                            JgradH[ i ] =  H_trans.derivative(i + 1);
-                            JgradH[i+1] = -H_trans.derivative(i);
-                        }
-                        // Propagate particle.
-                        static const Vector zeroV;
-                        zf = zin + implicitInt4(zeroV, JgradH, d_ell, 0.5 * d_ell);
-                        //            zf = zin;
-                        //            std::cerr << " [visitRBend:] zin = " << zin;
-                        //            std::cerr << "                dl = " << d_ell << std::endl;
-                        //            std::cerr << "                zf = " << zf     << std::endl;
-                        zin = zf;
-                    }
-                } catch(SingularMatrixError &smx) {
-                    std::cerr << " [ThickTracker::visitRBend:] Singular matrix error caught; treating particle as lost." << std::endl;
-                    ok = false;
-                } catch(DomainError &dmx) {
-                    std::cerr << " [ThickTracker::visitRBend:] Domain error caught; treating particle as lost." << std::endl;
-                    ok = false;
-                } catch(ConvergenceError &cnvx) {
-                    std::cerr << " [ThickTracker::visitRBend:] Convergence error caught; treating particle as lost." << std::endl;
-                    ok = false;
-                }
-                if(ok) {
-                    part.x() = zf[X];
-                    part.px() = zf[PX];
-                    part.y() = zf[Y];
-                    part.py() = zf[PY];
-                    part.t() = zf[T];
-                    part.pt() = zf[PT];
-                } else {
-                    part.x() = DBL_MAX;
-                    part.px() = DBL_MAX;
-                    part.y() = DBL_MAX;
-                    part.py() = DBL_MAX;
-                    part.t() = DBL_MAX;
-                    part.pt() = DBL_MAX;
-                }
-            }
-            itsBunch_m->set_part(part, i);
-        }
-
-        if(back_path) {
-            // Apply exit fringe field.
-            applyExitFringe(bend.getEntryFaceRotation(), scale, field, scale);
-            // Transform from local to global.
-            applyTransform(Inverse(geometry.getEntrancePatch()));
-        } else {
-            // Apply entrance fringe field.
-            applyEntranceFringe(bend.getExitFaceRotation(), scale, field, scale);
-            // Transform from local to global.
-            applyTransform(geometry.getExitPatch());
-        }
-    }
-    //std::cerr << "==> Leaving ThickTracker::visitRBend(...)" << std::endl;
-}
-
-
-void ThickTracker::visitRFCavity(const RFCavity &as) {
-    // This implements the ThinTracker version.
-    double length = flip_s * as.getElementLength();
-
-    // Drift through half length.
-    if(length != 0.0) applyDrift(length / 2.0);
-
-    // Apply accelerating voltage.
-    double freq = as.getFrequency();
-    double kin = itsReference.getM() / itsReference.getP();
-    double peak = flip_s * as.getAmplitude() / itsReference.getP();
-
-    for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
-        OpalParticle part = itsBunch_m->get_part(i);
-        double pt    = (part.pt() + 1.0);
-        double speed = (c * pt) / sqrt(pt * pt + kin * kin);
-        double phase = as.getPhase() + (freq * part.t()) / speed;
-        part.pt() += peak * sin(phase) / pt;
-        itsBunch_m->set_part(part, i);
-    }
-
-    // Drift through half length.
-    if(length != 0.0) applyDrift(length / 2.0);
-}
-
-
-void ThickTracker::visitRFQuadrupole(const RFQuadrupole &rfq) {
-    // *** MISSING *** Tracking for RF quadrupole.
-    applyDrift(flip_s * rfq.getElementLength());
-}
-
-
-void ThickTracker::visitSBend(const SBend &bend) {
-    //std::cerr << "==> In ThickTracker::visitSBend(const SBend &bend)" << std::endl;
-    // Geometry and Field.
-    const PlanarArcGeometry &geometry = bend.getGeometry();
-    double length = flip_s * geometry.getElementLength();
-    double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();
-    const BMultipoleField &field = bend.getField();
-    int order = field.order();
-    double beta_inv = 1.0 / itsReference.getBeta();
-
-    // Compute slices and stepsize.
-    int nSlices = (int) bend.getSlices();
-    double stepsize = bend.getStepsize();
-    if(stepsize != 0.0) {
-        int nst = (int) ceil(length / stepsize);
-        nSlices = std::max(nSlices, nst);
-    }
-    double d_ell = length / nSlices;
-
-    if(length == 0.0) {
-        // Thin SBend.
-        double half_angle = geometry.getBendAngle() / 2.0;
-        Euclid3D rotat = Euclid3D::YRotation(- half_angle);
-        applyTransform(rotat, 0.0); // Transform from in-plane to mid-plane.
-        applyThinSBend(field, scale, 0.0); // Apply multipole kick.
-        applyTransform(rotat, 0.0); // Transform from mid-plane to out-plane.
-    } else {
-        // Finite-length SBend.
-        // Apply entrance fringe field.
-        applyEntranceFringe(bend.getEntryFaceRotation(),
-                            bend.getEntryFaceCurvature(), field, scale);
-
-        // Construct terms in Hamiltonian H.
-        // (1) Define variables.
-        static const Series x   = Series::makeVariable(X);
-        static const Series px  = Series::makeVariable(PX);
-        static const Series py  = Series::makeVariable(PY);
-        static const Series de  = Series::makeVariable(PT);
-        static const Series de2 = de * de;
-        static const Series pxy2 = px * px + py * py;
-        static const Map ident;
-        // (2) Construct kinematic terms.
-        double h = geometry.getCurvature();
-        double kin = itsReference.getM() / itsReference.getP(); // mc^2/pc = 1/(beta*gamma)
-        double kin2 = kin * kin;
-        Series hx1 = (1.0 + h * x);
-        // (3) Build vector potential, actually -(1+h*x)*As in reference frame of curvature h.
-        Series As = buildSBendVectorPotential(field, h) * scale;
-        As.setTruncOrder(Series::EXACT);
-
-        // Use implicit integration to propagate particles.
-
-
-        for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
-            OpalParticle part = itsBunch_m->get_part(i);
-
-            Vector zin, zf;
-            zin[X] = part.x();
-            zin[PX] = part.px();
-            zin[Y] = part.y();
-            zin[PY] = part.py();
-            zin[T] = part.t();
-            zin[PT] = part.pt();
-            if(zin[X] != DBL_MAX) {
-                bool ok = true;
-                try {
-                    for(int slice = 0; slice < nSlices; ++slice) {
-                        // Build H_trans and J.grad(H_trans).
-                        Map translate = zin + ident;
-                        double d1 = 1.0 + zin[PT];
-                        Series de12 = d1 * d1 + 2.0 * d1 * de + de2;
-                        Series H_trans = beta_inv * sqrt(de12 + kin2, order)
-                                         - (hx1 + h * zin[X])
-                                         * sqrt(de12 - zin[PX] * zin[PX] - zin[PY] * zin[PY] - 2.0 * (zin[PX] * px + zin[PY] * py) - pxy2, order)
-                                         + As.substitute(translate);
-                        VSeries JgradH;
-                        for(int i = 0; i < PSdim; i += 2) {
-                            JgradH[ i ] =  H_trans.derivative(i + 1);
-                            JgradH[i+1] = -H_trans.derivative(i);
-                        }
-                        // Propagate particle.
-                        static const Vector zeroV;
-                        zf = zin + fixedPointInt4(zeroV, JgradH, d_ell, 0.5 * d_ell);
-                        //zf = zin + implicitInt4(zeroV,JgradH,d_ell,0.5*d_ell);
-                        //            zf = zin;
-                        //            std::cerr << " [visitSBend:] zin = " << zin;
-                        //            std::cerr << "                dl = " << d_ell << std::endl;
-                        //            std::cerr << "                zf = " << zf     << std::endl;
-                        zin = zf;
-                    }
-                } catch(SingularMatrixError &smx) {
-                    std::cerr << " [ThickTracker::visitSBend:] Singular matrix error caught from method " << smx.where() << "\n"
-                              << "   " << smx.what() << "\n"
-                              << "   Treating particle as lost." << std::endl;
-                    ok = false;
-                } catch(DomainError &dmx) {
-                    std::cerr << " [ThickTracker::visitSBend:] Domain error caught from method " << dmx.where() << "\n"
-                              "   Treating particle as lost." << std::endl;
-                    ok = false;
-                } catch(ConvergenceError &cnvx) {
-                    std::cerr << " [ThickTracker::visitSBend:] Convergence error caught from method " << cnvx.where() << "\n"
-                              << "   " << cnvx.what() << "\n"
-                              << "   Treating particle as lost." << std::endl;
-                    ok = false;
-                }
-                if(ok) {
-                    part.x() = zf[X];
-                    part.px() = zf[PX];
-                    part.y() = zf[Y];
-                    part.py() = zf[PY];
-                    part.t() = zf[T];
-                    part.pt() = zf[PT];
-                } else {
-                    part.x() = DBL_MAX;
-                    part.px() = DBL_MAX;
-                    part.y() = DBL_MAX;
-                    part.py() = DBL_MAX;
-                    part.t() = DBL_MAX;
-                    part.pt() = DBL_MAX;
-                }
-            }
-            itsBunch_m->set_part(part, i);
-        }
-
-        // Apply exit fringe field.
-        applyExitFringe(bend.getExitFaceRotation(),
-                        bend.getExitFaceCurvature(), field, scale);
-    }
-    //std::cerr << "==> Leaving ThickTracker::visitSBend(...)" << std::endl;
-}
-
-
-void ThickTracker::visitSeparator(const Separator &sep) {
-    // This implements the ThinTracker version.
-    double length = flip_s * sep.getElementLength();
-
-    if(length != 0.0) {
-        // Drift through first half of length.
-        applyDrift(length / 2.0);
-
-        // Apply kick.
-        double scale = (length * itsReference.getQ()) / itsReference.getP();
-        double Ex = scale * sep.getEx();
-        double Ey = scale * sep.getEy();
-
-        for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
-            OpalParticle part = itsBunch_m->get_part(i);
-            double pt = 1.0 + part.pt();
-            part.px() += Ex / pt;
-            part.py() += Ey / pt;
-            itsBunch_m->set_part(part, i);
-        }
-
-        // Drift through second half of length.
-        applyDrift(length / 2.0);
+        double dt = dtCurrentTrack_m;
+        itsBunch_m->setdT(dt);
     }
 }
 
-
-void ThickTracker::visitSeptum(const Septum &sept) {
-    // Assume the particle go through the magnet's window.
-    applyDrift(flip_s * sept.getElementLength());
+void ThickTracker::changeDT() {
+    selectDT();
+    const unsigned int localNum = itsBunch_m->getLocalNum();
+    for (unsigned int i = 0; i < localNum; ++ i) {
+        itsBunch_m->dt[i] = itsBunch_m->getdT();
+    }
 }
 
+void ThickTracker::findStartPosition(const BorisPusher &pusher) {
 
-void ThickTracker::visitSolenoid(const Solenoid &solenoid) {
-    // This needs to be checked!
-    double length = flip_s * solenoid.getElementLength();
+    double t = 0.0;
+    itsBunch_m->setT(t);
 
-    if(length != 0.0) {
-        double ks = (flip_B * itsReference.getQ() * solenoid.getBz() * c) /
-                    (2.0 * itsReference.getP());
+    dtCurrentTrack_m = dtAllTracks_m.front();
+    changeDT();
 
-        if(ks) {
-            double kin = itsReference.getM() / itsReference.getP();
-            double refTime = length / itsReference.getBeta();
+    if (Util::getEnergy(RefPartP_m, itsBunch_m->getM()) < 1e-3) {
+        double gamma = 0.1 / itsBunch_m->getM() + 1.0;
+        RefPartP_m = sqrt(std::pow(gamma, 2) - 1) * Vector_t(0, 0, 1);
+    }
 
+    while (true) {
+        autophaseCavities(pusher);
 
-            for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
-                OpalParticle part = itsBunch_m->get_part(i);
-                double pt = part.pt() + 1.0;
-                double px = part.px() + ks * part.y();
-                double py = part.py() - ks * part.x();
-                double pz = sqrt(pt * pt - px * px - py * py);
-                double E = sqrt(pt * pt + kin * kin);
+        t += itsBunch_m->getdT();
+        itsBunch_m->setT(t);
 
-                double k = ks / pz;
-                double C = cos(k * length);
-                double S = sin(k * length);
+        Vector_t oldR = RefPartR_m;
+        updateReferenceParticle(pusher);
+        pathLength_m += euclidean_norm(RefPartR_m - oldR);
 
-                double xt  = C * part.x()  + S * part.y();
-                double yt  = C * part.y()  - S * part.x();
-                double pxt = C * part.px() + S * part.py();
-                double pyt = C * part.py() - S * part.px();
+        if (pathLength_m > zStop_m.front()) {
+            if (localTrackSteps_m.size() == 0) return;
 
-                part.x()  = C * xt  + (S / k) * pxt;
-                part.y()  = C * yt  + (S / k) * pyt;
-                part.px() = C * pxt - (S * k) * xt;
-                part.py() = C * pyt - (S * k) * yt;
-                part.t() += pt * (refTime / E - length / pz);
-                itsBunch_m->set_part(part, i);
-            }
-        } else {
-            applyDrift(length);
+            dtAllTracks_m.pop();
+            localTrackSteps_m.pop();
+            zStop_m.pop();
+
+            changeDT();
+        }
+
+        double speed = euclidean_norm(RefPartP_m) * Physics::c / sqrt(dot(RefPartP_m, RefPartP_m) + 1);
+        if (std::abs(pathLength_m - zstart_m) <=  0.5 * itsBunch_m->getdT() * speed) {
+            double tau = (pathLength_m - zstart_m) / speed;
+
+            t += tau;
+            itsBunch_m->setT(t);
+
+            RefPartR_m /= (Physics::c * tau);
+            pusher.push(RefPartR_m, RefPartP_m, tau);
+            RefPartR_m *= (Physics::c * tau);
+
+            pathLength_m = zstart_m;
+
+            CoordinateSystemTrafo update(RefPartR_m,
+                                         getQuaternion(RefPartP_m, Vector_t(0, 0, 1)));
+            referenceToLabCSTrafo_m = referenceToLabCSTrafo_m * update.inverted();
+
+            RefPartR_m = update.transformTo(RefPartR_m);
+            RefPartP_m = update.rotateTo(RefPartP_m);
+
+            return;
         }
     }
 }
 
 
-void ThickTracker::visitParallelPlate(const ParallelPlate &pplate) {
-    //do nothing
-}
+void ThickTracker::execute() {
+  Inform msg("ThickTracker ", *gmsg);
 
-void ThickTracker::visitCyclotronValley(const CyclotronValley &cv) {
-    // Do nothing here.
-}
+  msg << "in execute " << __LINE__ << " " << __FILE__ << endl;
 
+  /*
+    First some setup and general preparation. Mostly copied from ParalellTTracker.
+    Some of them we maybe do not need at all.
+   */
 
-void ThickTracker::applyEntranceFringe(double angle, double curve,
-                                       const BMultipoleField &field, double scale) {
-    // *** MISSING *** Higher order terms for entrance fringe.
-    double ca = cos(angle);
-    double sa = sin(angle);
-    double ta = tan(angle);
+  OpalData::getInstance()->setInPrepState(true);
 
-    int order = field.order();
-    static const Series x = Series::makeVariable(X);
-    Series by = field.normal(order);
-    for(int i = order; --i >= 1;) by = by * x + field.normal(i);
-    by *= scale;
+  BorisPusher pusher(itsReference);
+  OpalData::getInstance()->setGlobalPhaseShift(0.0);
 
-    //Track particles.
+  dtCurrentTrack_m = itsBunch_m->getdT();
 
-    for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
-        OpalParticle part = itsBunch_m->get_part(i);
-        // Read particle coordinates.
-        double x = part.x();
-        double px = part.px();
-        double y = part.y();
-        double py = part.py();
-        double t = part.t();
-        double pt = part.pt();
-        if(x != DBL_MAX) {
-            double p = pt + 1.0;
-            // rotate to magnet face
-            double ps = sqrt(p * p - px * px - py * py);
-            x = x / (ca * (1.0 - ta * px / ps));
-            px = ca * px + sa * ps;
-            double ellovpp = sa * x / ps;
-            y += ellovpp * py;
-            t -= ellovpp * p;
-            // fringe
-            Vector z;
-            z[X] = x;
-            z[PX] = px;
-            z[Y] = y;
-            z[PY] = py;
-            z[T] = t;
-            z[PT] = pt;
-            double psy = sqrt(p * p - px * px);
-            py -= by.evaluate(z) * y * px / psy;
-            // rotate from magnet face
-            ps = sqrt(p * p - px * px - py * py);
-            x = x / (ca * (1.0 + ta * px / ps));
-            px = ca * px - sa * ps;
-            ellovpp = sa * x / ps;
-            y -= ellovpp * py;
-            t += ellovpp * p;
-            // edge effect
-            z[X] = x;
-            z[PX] = px;
-            z[Y] = y;
-            z[PY] = py;
-            z[T] = t;  //z[PT] = pt;
-            px += by.evaluate(z) * ta * x;
-            // Load particle coordinates.
-            part.x() = x;
-            part.px() = px;
-            part.y() = y;
-            part.py() = py;
-            part.t() = t;
-            part.pt() = pt;
-        }
-        itsBunch_m->set_part(part, i);
+  if (OpalData::getInstance()->hasPriorTrack() || OpalData::getInstance()->inRestartRun()) {
+    Options::openMode = Options::APPEND;
+  }
+
+  prepareSections();
+
+  itsOpalBeamline_m.compute3DLattice();
+  itsOpalBeamline_m.save3DLattice();
+  itsOpalBeamline_m.save3DInput();
+
+  std::queue<double> timeStepSizes(dtAllTracks_m);
+  std::queue<unsigned long long> numSteps(localTrackSteps_m);
+  double minTimeStep = timeStepSizes.front();
+  unsigned long long totalNumSteps = 0;
+  while (timeStepSizes.size() > 0) {
+    if (minTimeStep > timeStepSizes.front()) {
+      totalNumSteps = std::ceil(totalNumSteps * minTimeStep / timeStepSizes.front());
+      minTimeStep = timeStepSizes.front();
     }
-}
+    totalNumSteps += std::ceil(numSteps.front() * timeStepSizes.front() / minTimeStep);
+    
+    numSteps.pop();
+    timeStepSizes.pop();
+  }
+  
+  itsOpalBeamline_m.activateElements();
 
+  if (OpalData::getInstance()->hasPriorTrack() ||
+      OpalData::getInstance()->inRestartRun()) {
 
-void ThickTracker::applyExitFringe(double angle, double curve,
-                                   const BMultipoleField &field, double scale) {
-    // *** MISSING *** Higher order terms for exit fringe.
-    double ca = cos(angle);
-    double sa = sin(angle);
-    double ta = tan(angle);
-
-    int order = field.order();
-    static const Series x = Series::makeVariable(X);
-    Series by = field.normal(order);
-    for(int i = order; --i >= 1;) by = by * x + field.normal(i);
-    by *= scale;
-
-    //Track particles.
-    for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
-        OpalParticle part = itsBunch_m->get_part(i);
-        // Read particle coordinates.
-        double x = part.x();
-        double px = part.px();
-        double y = part.y();
-        double py = part.py();
-        double t = part.t();
-        double pt = part.pt();
-        if(x != DBL_MAX) {
-            double p = pt + 1.0;
-            // edge effect
-            Vector z;
-            z[X] = x;
-            z[PX] = px;
-            z[Y] = y;
-            z[PY] = py;
-            z[T] = t;
-            z[PT] = pt;
-            px += by.evaluate(z) * ta * x;
-            // rotate to magnet face
-            double ps = sqrt(p * p - px * px - py * py);
-            x = x / (ca * (1.0 + ta * px / ps));
-            px = ca * px - sa * ps;
-            double ellovpp = sa * x / ps;
-            y -= ellovpp * py;
-            t += ellovpp * p;
-            // fringe
-            z[X] = x;
-            z[PX] = px;
-            z[Y] = y;  //z[PY] = py;
-            z[T] = t;  //z[PT] = pt;
-            double psy = sqrt(p * p - px * px);
-            py += by.evaluate(z) * y * px / psy;
-            // rotate from magnet face
-            ps = sqrt(p * p - px * px - py * py);
-            x = x / (ca * (1.0 - ta * px / ps));
-            px = ca * px + sa * ps;
-            ellovpp = sa * x / ps;
-            y += ellovpp * py;
-            t -= ellovpp * p;
-            // Load particle coordinates.
-            part.x() = x;
-            part.px() = px;
-            part.y() = y;
-            part.py() = py;
-            part.t() = t;
-            part.pt() = pt;
-        }
-        itsBunch_m->set_part(part, i);
+    referenceToLabCSTrafo_m = itsBunch_m->toLabTrafo_m;
+    RefPartR_m = referenceToLabCSTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
+    RefPartP_m = referenceToLabCSTrafo_m.rotateFrom(itsBunch_m->RefPartP_m);
+    
+    pathLength_m = itsBunch_m->get_sPos();
+    zstart_m = pathLength_m;
+    
+    restoreCavityPhases();
+  } else {
+    RefPartR_m = Vector_t(0.0);
+    RefPartP_m = euclidean_norm(itsBunch_m->get_pmean_Distribution()) * Vector_t(0, 0, 1);
+    
+    if (itsBunch_m->getTotalNum() > 0) {
+      if (!itsOpalBeamline_m.containsSource()) {
+	RefPartP_m = OpalData::getInstance()->getP0() / itsBunch_m->getM() * Vector_t(0, 0, 1);
+      }
+      
+      if (zstart_m > pathLength_m) {
+	findStartPosition(pusher);
+      }
+      
+      itsBunch_m->set_sPos(pathLength_m);
     }
+  }
+
+  Vector_t rmin, rmax;
+  itsBunch_m->get_bounds(rmin, rmax);
+
+  OrbitThreader oth(itsReference,
+		    referenceToLabCSTrafo_m.transformTo(RefPartR_m),
+		    referenceToLabCSTrafo_m.rotateTo(RefPartP_m),
+		    pathLength_m,
+		    -rmin(2),
+		    itsBunch_m->getT(),
+		    minTimeStep,
+		    totalNumSteps,
+		    zStop_m.back() + 2 * rmax(2),
+		    itsOpalBeamline_m);
+  
+  oth.execute();
+  
+  /*
+    End of setup and general preparation.
+  */
+
+
+  msg << *itsBunch_m << endl;
+
+
+  /*
+    This is an example how one can loop
+    over all elements.
+  */    
+
+  auto allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
+    
+  FieldList::iterator it = allElements.begin();
+    
+  const FieldList::iterator end = allElements.end();
+  
+  if (it == end)
+    msg << "No element in lattice" << endl;
+    
+  for (; it != end; ++ it) {
+    std::shared_ptr<Component> element = (*it).getElement();
+    msg << "Element name " << element->getName() << endl;
+  }
 }
+
+
+
+
+
+
+/*
 
 namespace {
     Vector implicitInt4(const Vector &zin, const VSeries &f, double s, double ds, int nx, int cx) {
@@ -1027,3 +688,4 @@ namespace {
         return zf;
     }
 };
+*/

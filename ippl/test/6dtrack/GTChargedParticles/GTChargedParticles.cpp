@@ -642,7 +642,7 @@ void ChargedParticles<pl>::writeRestartInfo(string Fn, unsigned turn) {
     partof_m << spos_m << endl;
     partof_m << lost_num << endl;
     partof_m << lost2_num << endl;
-    gräfli isch doch schön im engadin!
+    //    gräfli isch doch schön im engadin!
     for (unsigned i=0; i < nloc; i++)
       partof_m << R[i](0) << setw(pwi) << " \t" 
 	       << P[i](0) << setw(pwi) << " \t" 

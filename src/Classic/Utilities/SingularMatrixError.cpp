@@ -25,7 +25,7 @@
 // ------------------------------------------------------------------------
 
 
-SingularMatrixError::SingularMatrixError(const std::string &meth):
+SingularMatrixError::SingularMatrixError(const string &meth):
     ArithmeticError(meth, "Singular matrix.")
 {}
 

@@ -20,17 +20,16 @@
 //
 // ------------------------------------------------------------------------
 
-#include "FixedAlgebra/FTps.h"
-
 #include <algorithm>
 #include <iosfwd>
 
 template <class T> class Array1D;
 template <class T, int M, int N> class FMatrix;
+template <class T, int N> class FTps;
 template <class T, int N> class FVector;
 template <class T, int N> class LinearMap;
 template <class T, int N> class TransportMap;
-
+template <class T, int N> class FArray1D;
 
 // Template class FVps<T,N>
 // ------------------------------------------------------------------------
@@ -152,7 +151,7 @@ public:
 
     /// Multiply and assign.
     FVps &operator*=(const FTps<T, N> &rhs);
-
+    
     /// Multiply.
     FVps operator*(const FVps<T, N>& rhs) const;
 
@@ -231,11 +230,11 @@ public:
 
     /// Substitute map into matrix.
     FVps substituteInto(const FMatrix<T, N, N> &lhs) const;
-
-    // Get a FTps that is a combination of the polynomials of FVps.
+    
+    /// Get a FTps that is a combination of the polynomials of FVps.
     // Computes a FTps by multiplying the FTps of FVps using the powers specified by [b]power[/b].
     FTps<T, N> getFTps(const FArray1D<int, N>& power) const;
-
+    
     /// Get a FVps from stream [b]is[/b].
     std::istream &get(std::istream &is);
 
@@ -276,6 +275,10 @@ FVps<T, N> operator+(const FVector<T, N> &lhs, const FVps<T, N> &rhs);
 /// Subtract.
 template <class T, int N>
 FVps<T, N> operator-(const FVector<T, N> &lhs, const FVps<T, N> &rhs);
+
+/// Multiply.
+template <class T, int N>
+FVector<T, N> operator*(const FVps<T, N> &lhs, const FVector<T, N>& rhs);
 
 /// Multiply.
 template <class T, int N>
@@ -327,6 +330,6 @@ std::ostream &operator<<(std::ostream &os, const FVps<T, N> &vps);
 
 
 // Implementation.
-#include "FixedAlgebra/FVps.hpp"
+#include "FixedAlgebra/FVps.cpp"
 
 #endif // CLASSIC_FVps_HH

@@ -1516,8 +1516,12 @@ void PartBunchBase<T, Dim>::gatherLoadBalanceStatistics() {
         partPerNode_m[i] = globalPartPerNode_m[i] = 0;
 
     partPerNode_m[Ippl::myNode()] = getLocalNum();
-
-    reduce(partPerNode_m.get(), partPerNode_m.get() + Ippl::getNodes(), globalPartPerNode_m.get(), OpAddAssign());
+    
+    MPI_Gather(&partPerNode_m[Ippl::myNode()], 1, MPI_UINT64_T,
+               globalPartPerNode_m.get(), 1, MPI_UINT64_T,
+               0 /*root*/, Ippl::getComm());
+    
+//     reduce(partPerNode_m.get(), partPerNode_m.get() + Ippl::getNodes(), globalPartPerNode_m.get(), OpAddAssign());
 
     for(int i = 0; i < Ippl::getNodes(); i++)
         if (globalPartPerNode_m[i] <  minLocNum_m)

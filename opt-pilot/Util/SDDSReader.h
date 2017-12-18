@@ -1,7 +1,7 @@
 #ifndef __SDDSREADER_H__
 #define __SDDSREADER_H__
 
-#include "Structure/SDDSParser.h"
+#include "SDDSParser.h"
 
 class SDDSReader: public SDDS::SDDSParser
 {

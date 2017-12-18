@@ -1,3 +1,8 @@
+#include <map>
+#include <limits>
+#include <iostream>
+#include <fstream>
+
 #include "Algorithms/IndexMap.h"
 #include "AbstractObjects/OpalData.h"
 #include "AbsBeamline/Multipole.h"
@@ -7,10 +12,6 @@
 #include "OPALconfig.h"
 
 #include <boost/filesystem.hpp>
-
-#include <limits>
-#include <iostream>
-#include <fstream>
 
 extern Inform *gmsg;
 

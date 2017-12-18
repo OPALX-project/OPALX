@@ -94,7 +94,7 @@ void Simplex::execute() {
 
     double fnorm;
 
-    else if ((fnorm = euclidian_norm(F)) <= tol) {
+    else if ((fnorm = euclidean_norm(F)) <= tol) {
 
     */
 
@@ -111,7 +111,7 @@ void Simplex::execute() {
     Match::block->getVariables(X);
     if(! Match::block->evaluate(X, F)) {
         state = FAILED;
-    } else if(euclidian_norm(F) <= tol) {
+    } else if(euclidean_norm(F) <= tol) {
         state = CONVERGED;
     } else {
         // Fetch command attributes.

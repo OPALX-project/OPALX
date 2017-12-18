@@ -25,7 +25,7 @@
 // ------------------------------------------------------------------------
 
 
-DivideError::DivideError(const std::string &method):
+DivideError::DivideError(const string &method):
     ArithmeticError(method, "Divide error.")
 {}
 
