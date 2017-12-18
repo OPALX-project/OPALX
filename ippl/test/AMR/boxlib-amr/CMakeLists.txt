@@ -53,8 +53,7 @@ ELSE()
         ${HDF5_LIBRARY}
         ${IPPL_LIBRARY}
         ippl
-        mpi
-        mpi_cxx
+        ${MPI_LIBRARIES}
         mpi_mpifh
         m
         z

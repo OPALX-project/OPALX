@@ -96,11 +96,11 @@ FVector<T, N> operator/(const FVector<T, N> &, const T &);
 template<class T, int N>
 FVector<T, N> operator*(const T &, const FVector<T, N> &);
 
-/// Euclidian norm.
+/// Euclidean norm.
 template<class T, int N>
-T euclidian_norm(const FVector<T, N> &);
+T euclidean_norm(const FVector<T, N> &);
 
-/// Euclidian norm of diagonal matrix D times FVector V.
+/// Euclidean norm of diagonal matrix D times FVector V.
 template<class T, int N>
 T scaled_norm(const FArray1D<T, N> D, const FVector<T, N> &V);
 
@@ -226,7 +226,7 @@ FVector<T, N> operator*(const T &x, const FVector<T, N> &lhs) {
 
 
 template<class T, int N>
-T euclidian_norm(const FVector<T, N> &V) {
+T euclidean_norm(const FVector<T, N> &V) {
     return sqrt(std::inner_product(V.begin(), V.end(), V.begin(), T(0)));
 }
 

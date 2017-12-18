@@ -2,19 +2,19 @@
 //  Copyright & License: See Copyright.readme in src directory
 //
 
-#include "Structure/SDDSParser/ast.hpp"
-#include "Structure/SDDSParser/file.hpp"
-#include "Structure/SDDSParser/skipper.hpp"
-#include "Structure/SDDSParser/array.hpp"
-#include "Structure/SDDSParser/associate.hpp"
-#include "Structure/SDDSParser/column.hpp"
-#include "Structure/SDDSParser/data.hpp"
-#include "Structure/SDDSParser/description.hpp"
-#include "Structure/SDDSParser/include.hpp"
-#include "Structure/SDDSParser/parameter.hpp"
-//#include "Structure/SDDSParser/variant.h"
+#include "Util/SDDSParser/ast.hpp"
+#include "Util/SDDSParser/file.hpp"
+#include "Util/SDDSParser/skipper.hpp"
+#include "Util/SDDSParser/array.hpp"
+#include "Util/SDDSParser/associate.hpp"
+#include "Util/SDDSParser/column.hpp"
+#include "Util/SDDSParser/data.hpp"
+#include "Util/SDDSParser/description.hpp"
+#include "Util/SDDSParser/include.hpp"
+#include "Util/SDDSParser/parameter.hpp"
+//#include "Util/SDDSParser/variant.h"
 
-#include "Utilities/OpalException.h"
+#include "Util/OptPilotException.h"
 
 #include <iostream>
 #include <fstream>
@@ -70,8 +70,8 @@ namespace SDDS {
             if(columnNameToID_m.count(column_name) > 0) {
                 col_idx = columnNameToID_m[column_name];
             } else {
-                throw OpalException("SDDSParser::getValue",
-                                    "unknown column name: '" + column_name + "'!");
+                throw OptPilotException("SDDSParser::getValue",
+                                        "unknown column name: '" + column_name + "'!");
             }
 
             // round timestep to last if not in range
@@ -133,12 +133,12 @@ namespace SDDS {
                 }
 
                 if(this_row == num_rows)
-                    throw OpalException("SDDSParser::getInterpolatedValue",
-                                        "all values < specified spos");
+                    throw OptPilotException("SDDSParser::getInterpolatedValue",
+                                            "all values < specified spos");
 
             } else {
-                throw OpalException("SDDSParser::getInterpolatedValue",
-                                    "unknown column name: '" + col_name + "'!");
+                throw OptPilotException("SDDSParser::getInterpolatedValue",
+                                        "unknown column name: '" + col_name + "'!");
             }
 
             // simple linear interpolation
@@ -159,8 +159,8 @@ namespace SDDS {
                 auto value = sddsData_m.sddsParameters_m[id].value_m;
                 nval = boost::get<T>(value);
             } else {
-                throw OpalException("SDDSParser::getParameterValue",
-                                    "unknown parameter name: '" + parameter_name + "'!");
+                throw OptPilotException("SDDSParser::getParameterValue",
+                                        "unknown parameter name: '" + parameter_name + "'!");
             }
         }
 
