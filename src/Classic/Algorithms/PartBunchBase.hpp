@@ -2182,19 +2182,17 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
 
     double part[2 * Dim];
 
-    double loc_centroid[2 * Dim];
-    double loc_moment[2 * Dim][2 * Dim];
-    double moments[2 * Dim][2 * Dim];
     const unsigned long localNum = getLocalNum();
-
-    for(unsigned int i = 0; i < 2 * Dim; i++) {
-        loc_centroid[i] = 0.0;
-        for(unsigned int j = 0; j <= i; j++) {
-            loc_moment[i][j] = 0.0;
-            loc_moment[j][i] = loc_moment[i][j];
-        }
-    }
-
+    
+    /* 2 * Dim centroids + Dim * ( 2 * Dim + 1 ) 2nd moments
+     * --> 1st order moments: 0, ..., 2 * Dim - 1
+     * --> 2nd order moments: 2 * Dim, ..., Dim * ( 2 * Dim + 1 )
+     * 
+     * For a 6x6 matrix we have each 2nd order moment (except diagonal
+     * entries) twice. We only store the upper half of the matrix.
+     */
+    std::vector<double> loc_moments(2 * Dim + Dim * ( 2 * Dim + 1 ));
+    
     long int totalNum = this->getTotalNum();
     if (OpalData::getInstance()->isInOPALCyclMode()) {
         for(unsigned long k = 0; k < localNum; ++ k) {
@@ -2205,14 +2203,15 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
                 part[0] = R[k](0);
                 part[2] = R[k](1);
                 part[4] = R[k](2);
-
-                for(unsigned int i = 0; i < 2 * Dim; i++) {
-                    loc_centroid[i] -= part[i];
+                
+                unsigned int l = 2 * Dim;
+                for (unsigned int i = 0; i < 2 * Dim; ++i) {
+                    loc_moments[i] -= part[i];
                     for(unsigned int j = 0; j <= i; j++) {
-                        loc_moment[i][j] -= part[i] * part[j];
+                        loc_moments[l++] -= part[i] * part[j];
                     }
                 }
-                -- totalNum;
+                --totalNum;
                 break;
             }
         }
@@ -2226,34 +2225,31 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
         part[0] = R[k](0);
         part[2] = R[k](1);
         part[4] = R[k](2);
-
-        for(unsigned int i = 0; i < 2 * Dim; ++ i) {
-            loc_centroid[i] += part[i];
-            for(unsigned int j = 0; j <= i; ++ j) {
-                loc_moment[i][j] += part[i] * part[j];
+        
+        
+        unsigned int l = 2 * Dim;
+        for (unsigned int i = 0; i < 2 * Dim; ++i) {
+            loc_moments[i] += part[i];
+            for(unsigned int j = 0; j <= i; j++) {
+                loc_moments[l++] += part[i] * part[j];
             }
         }
     }
-
-    for(unsigned int i = 0; i < 2 * Dim; i++) {
-        for(unsigned int j = 0; j < i; j++) {
-            loc_moment[j][i] = loc_moment[i][j];
-        }
-    }
     
-    allreduce(&(loc_moment[0][0]), &(moments[0][0]),
-              2 * Dim * 2 * Dim, std::plus<double>());
+    allreduce(&loc_moments[0], loc_moments.size(), std::plus<double>());
     
-    allreduce(&loc_centroid[0], &centroid_m[0],
-              2 * Dim, std::plus<double>());
+    // copy to member variables
+    for (unsigned int i = 0; i< 2 * Dim; ++i)
+        centroid_m[i] = loc_moments[i];
     
-    for(unsigned int i = 0; i < 2 * Dim; i++) {
+    unsigned int l = 2 * Dim;
+    for (unsigned int i = 0; i < 2 * Dim; ++i) {
         for(unsigned int j = 0; j <= i; j++) {
-            moments_m(i, j) = moments[i][j];
+            moments_m(i, j) = loc_moments[l++];
             moments_m(j, i) = moments_m(i, j);
         }
     }
-
+    
     return totalNum;
 }
 
