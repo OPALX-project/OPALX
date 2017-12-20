@@ -100,11 +100,7 @@ private:
     bool h5hut_mode_m;
 
     /// H5 file for particle data.
-#if defined (USE_H5HUT2)
     h5_file_t H5file_m;
-#else
-    h5_file_t *H5file_m;
-#endif
 
     /// Current record, or time step, of H5 file.
     h5_int64_t H5call_m;
