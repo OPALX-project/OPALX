@@ -9,16 +9,13 @@ IF(ENABLE_SAAMG_SOLVER)
     set (CMAKE_CXX_FLAGS
         "-DHAVE_SAAMG_SOLVER ${CMAKE_CXX_FLAGS}"
         )
-ENDIF(ENABLE_SAAMG_SOLVER)
-
-IF(ENABLE_AMR)
-    IF(NOT (
-	        ${HOSTNAME_BASE} MATCHES "edison" OR
-	        ${HOSTNAME_BASE} MATCHES "cori" OR
-	        ${HOSTNAME_BASE} MATCHES "daint"))
-        set (F_MPI "-lmpi" "-lmpi_mpifh")
-    ENDIF()
-ENDIF(ENABLE_AMR)
+    set (SAAMG_SOLVER_LIBS
+        ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
+        -lgfortran
+        )
+ELSE()
+    set (SAAMG_SOLVER_LIBS "")
+ENDIF()
 
 SET (PACKAGE_COMPILE_OPTIONS \"${CMAKE_CXX_FLAGS}\")
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALconfig.h)
@@ -116,14 +113,6 @@ IF (ENABLE_DKS)
     link_directories (${DKS_LIBRARY_DIR})
 ENDIF (ENABLE_DKS)
 
-
-IF(NOT (
-            ${HOSTNAME_BASE} MATCHES "edison" OR
-            ${HOSTNAME_BASE} MATCHES "cori" OR
-            ${HOSTNAME_BASE} MATCHES "daint"))
-    SET (ADDITIOANL_LIBS ${MPI_LIBRARIES})
-ENDIF()
-
 SET (OPAL_LIBS
     ${GSL_LIBRARY}
     ${H5Hut_LIBRARY}
@@ -132,9 +121,6 @@ SET (OPAL_LIBS
     ${OPTP_LIBRARY}
     ${OPTP_LIBS}
     ${Boost_LIBRARIES}
-    ${ADDITIOANL_LIBS}
-    m
-    z
     )
 
 IF (ENABLE_DKS)
@@ -147,23 +133,15 @@ ENDIF (ENABLE_DKS)
 add_library( OPALib ${OPAL_SRCS} )
 set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
 
-set (SAAMG_SOLVER_LIBS "")
-IF (ENABLE_SAAMG_SOLVER)
-    set (SAAMG_SOLVER_LIBS ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} -lgfortran)
-ENDIF()
-
-target_link_libraries( OPALib
-    ${OPAL_LIBS}
-    ${SAAMG_SOLVER_LIBS}
-    ${AMREX_LIBRARIES}
-    ${OTHER_CMAKE_EXE_LINKER_FLAGS}
-    )
-
 add_executable( opal Main.cpp )
 target_link_libraries( opal
-    ${OPAL_LIBS} OPALib
+    ${OPAL_LIBS}
+    OPALib
     ${SAAMG_SOLVER_LIBS}
-    ${AMREX_LIBRARIES} ${F_MPI}
+    ${AMREX_LIBRARIES}
+    ${MPI_CXX_LIBRARIES}
+    m
+    z
     ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS}
     )
 
