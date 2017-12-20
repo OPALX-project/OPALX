@@ -23,13 +23,10 @@
 
 #if defined(HAVE_ML_EPETRA) && defined(HAVE_ML_TEUCHOS) && defined(HAVE_ML_AZTECOO)
 
-class Epetra_Map;
-class Epetra_Vector;
-class Epetra_CrsMatrix;
-//#include "Epetra_LinearProblem.h"
-class Epetra_MultiVector;
-class Epetra_Operator;
-class Epetra_MpiComm;
+#include "Epetra_Map.h"
+#include "Epetra_Vector.h"
+#include "Epetra_CrsMatrix.h"
+#include "Epetra_MpiComm.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
