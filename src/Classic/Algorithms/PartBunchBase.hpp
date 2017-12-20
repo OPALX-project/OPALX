@@ -1222,6 +1222,9 @@ void PartBunchBase<T, Dim>::get_bounds(Vector_t &rmin, Vector_t &rmax) {
 		if (rmax(d) < R[i](d)) rmax(d) = R[i](d);
 	    }
 	}
+    } else {
+	rmin = Vector_t(0.0, 0.0, 0.0);
+	rmax = Vector_t(0.0, 0.0, 0.0);
     }
     
     double min[Dim];
@@ -1240,6 +1243,11 @@ void PartBunchBase<T, Dim>::get_bounds(Vector_t &rmin, Vector_t &rmax) {
         rmin[i] = min[i];
         rmax[i] = max[i];
     }
+    
+    //bounds(this->R, rmin, rmax);
+
+//    std::cout << rmin << std::endl;
+//    std::cout << rmax << std::endl;
 }
 
 
