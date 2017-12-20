@@ -1209,20 +1209,7 @@ void PartBunchBase<T, Dim>::setZ(int i, double zcoo)
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::get_bounds(Vector_t &rmin, Vector_t &rmax) {
     
-//    this->getLocalBounds(rmin, rmax);
-
-    const size_t localNum = getLocalNum();
-    
-    if ( localNum > 0 ) {
-	rmin = R[0];
-	rmax = R[0];
-	for (size_t i = 1; i < localNum; ++ i) {
-	    for (unsigned short d = 0; d < 3u; ++ d) {
-		if (rmin(d) > R[i](d)) rmin(d) = R[i](d);
-		if (rmax(d) < R[i](d)) rmax(d) = R[i](d);
-	    }
-	}
-    }
+    this->getLocalBounds(rmin, rmax);
     
     double min[Dim];
     double max[Dim];
@@ -1246,14 +1233,18 @@ void PartBunchBase<T, Dim>::get_bounds(Vector_t &rmin, Vector_t &rmax) {
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::getLocalBounds(Vector_t &rmin, Vector_t &rmax) {
     const size_t localNum = getLocalNum();
-    if (localNum == 0) return;
-
+    if (localNum == 0) {
+	rmin = Vector_t(0.0, 0.0, 0.0);
+	rmax = Vector_t(0.0, 0.0, 0.0);
+	return;
+    }
+    
     rmin = R[0];
     rmax = R[0];
     for (size_t i = 1; i < localNum; ++ i) {
         for (unsigned short d = 0; d < 3u; ++ d) {
             if (rmin(d) > R[i](d)) rmin(d) = R[i](d);
-	    else if (rmax(d) < R[i](2)) rmax(d) = R[i](d);
+	    if (rmax(d) < R[i](d)) rmax(d) = R[i](d);
         }
     }
 }
