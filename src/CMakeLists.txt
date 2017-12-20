@@ -114,8 +114,14 @@ if (ENABLE_DKS)
     link_directories (${DKS_LIBRARY_DIR})
 endif ()
 
-add_library (OPAL ${OPAL_SRCS})
-target_link_libraries (OPAL
+#
+# we cannot use the target name 'OPAL' for 'libOPAL'. On systems with
+# case-insensitive filesystems (like macOS) this conflicts with the
+# target 'opal' for the OPAL binary.
+#
+add_library (libOPAL ${OPAL_SRCS})
+set_target_properties (libOPAL PROPERTIES OUTPUT_NAME OPAL)
+target_link_libraries (libOPAL
     ${OPTP_LIBS}
     ${OPTP_LIBRARY}
     ${IPPL_LIBRARY}
@@ -126,12 +132,12 @@ target_link_libraries (OPAL
     )
 
 if (ENABLE_DKS)
-    target_link_libraries (OPAL
+    target_link_libraries (libOPAL
         dks
         ${DKS_CUDA_LIBS})
 endif ()
 
-target_link_libraries (OPAL
+target_link_libraries (libOPAL
     ${SAAMG_SOLVER_LIBS}
     ${AMREX_LIBRARIES}
     ${MPI_CXX_LIBRARIES}
@@ -139,7 +145,7 @@ target_link_libraries (OPAL
 
 add_executable (opal Main.cpp)
 target_link_libraries( opal
-    OPAL
+    libOPAL
     m
     z
     ${CMAKE_DL_LIBS}
@@ -147,7 +153,7 @@ target_link_libraries( opal
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
-install (TARGETS OPAL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
+install (TARGETS libOPAL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
 
 set (HDRS
     OPALconfig.h
