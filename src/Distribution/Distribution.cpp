@@ -2482,7 +2482,7 @@ void Distribution::generateFlattopZ(size_t numberOfParticles) {
             yDist_m.push_back(y);
             pyDist_m.push_back(py);
             tOrZDist_m.push_back(z);
-            pzDist_m.push_back(pz);
+            pzDist_m.push_back(avrgpz_m + pz);
         }
     }
 
