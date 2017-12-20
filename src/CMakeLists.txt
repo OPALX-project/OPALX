@@ -5,24 +5,24 @@ set (CMAKE_CXX_FLAGS
     "${IPPL_CMAKE_CXX_FLAGS} -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
     )
 
-IF(ENABLE_SAAMG_SOLVER)
+if (ENABLE_SAAMG_SOLVER)
     set (CMAKE_CXX_FLAGS
         "-DHAVE_SAAMG_SOLVER ${CMAKE_CXX_FLAGS}"
         )
     set (SAAMG_SOLVER_LIBS
         ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
-        -lgfortran
+        ${Fortran_LIBS}
         )
-ELSE()
+else ()
     set (SAAMG_SOLVER_LIBS "")
-ENDIF()
+endif ()
 
-SET (PACKAGE_COMPILE_OPTIONS \"${CMAKE_CXX_FLAGS}\")
+set (PACKAGE_COMPILE_OPTIONS \"${CMAKE_CXX_FLAGS}\")
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALconfig.h)
 configure_file(revision.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALrevision.h)
 
-SET (OPAL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-SET (OPAL_SRCS )
+set (OPAL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set (OPAL_SRCS )
 macro (ADD_OPAL_SOURCES)
     file (RELATIVE_PATH _relPath "${OPAL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
     foreach (_src ${ARGN})
@@ -38,20 +38,20 @@ macro (ADD_OPAL_SOURCES)
     endif()
 endmacro()
 
-MACRO (ADD_OPAL_HEADERS )
-    FILE (RELATIVE_PATH _relPath "${OPAL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
-    FOREACH (_hdr ${ARGN})
-        IF (_relPath)
-            LIST (APPEND OPAL_HDRS "${_relPath}/${_hdr}")
-        ELSE ()
-            LIST (APPEND OPAL_HDRS "${_hdr}")
-        ENDIF ()
-    ENDFOREACH ()
-    IF (_relPath)
+macro (ADD_OPAL_HEADERS )
+    file (RELATIVE_PATH _relPath "${OPAL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+    foreach (_hdr ${ARGN})
+        if (_relPath)
+            list (APPEND OPAL_HDRS "${_relPath}/${_hdr}")
+        else ()
+            list (APPEND OPAL_HDRS "${_hdr}")
+        endif ()
+    endforeach ()
+    if (_relPath)
         # propagate HDRS to parent directory
-        SET (OPAL_HDRS ${OPAL_HDRS} PARENT_SCOPE)
-    ENDIF ()
-ENDMACRO ()
+        set (OPAL_HDRS ${OPAL_HDRS} PARENT_SCOPE)
+    endif ()
+endmacro ()
 
 ADD_OPAL_SOURCES(opal.cpp)
 ADD_OPAL_SOURCES(changes.cpp)
@@ -82,9 +82,9 @@ add_subdirectory (Track)
 add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
 
-IF(ENABLE_AMR)
+if (ENABLE_AMR)
     add_subdirectory (Amr)
-ENDIF(ENABLE_AMR)
+endif ()
 
 include_directories ( BEFORE
     ${OPAL_SRC_DIR}
@@ -109,12 +109,13 @@ link_directories (
     ${AMREX_LIBRARY_DIR}
     )
 
-IF (ENABLE_DKS)
+if (ENABLE_DKS)
     include_directories (${DKS_INCLUDE_DIR})
     link_directories (${DKS_LIBRARY_DIR})
-ENDIF (ENABLE_DKS)
+endif ()
 
-SET (OPAL_LIBS
+add_library (OPAL ${OPAL_SRCS})
+target_link_libraries (OPAL
     ${OPTP_LIBS}
     ${OPTP_LIBRARY}
     ${IPPL_LIBRARY}
@@ -124,37 +125,29 @@ SET (OPAL_LIBS
     ${Boost_LIBRARIES}
     )
 
-IF (ENABLE_DKS)
-    set (OPAL_LIBS
-        ${OPAL_LIBS}
+if (ENABLE_DKS)
+    target_link_libraries (OPAL
         dks
         ${DKS_CUDA_LIBS})
-ENDIF (ENABLE_DKS)
+endif ()
 
-add_library( OPALib ${OPAL_SRCS} )
-set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
-target_link_libraries( OPALib
-    ${OPAL_LIBS}
-    #${SAAMG_SOLVER_LIBS}
-    #${AMREX_LIBRARIES}
-    #${OTHER_CMAKE_EXE_LINKER_FLAGS}
-    )
-
-add_executable( opal Main.cpp )
-target_link_libraries( opal
-    ${OPAL_LIBS}
-    OPALib
+target_link_libraries (OPAL
     ${SAAMG_SOLVER_LIBS}
     ${AMREX_LIBRARIES}
     ${MPI_CXX_LIBRARIES}
+    )
+
+add_executable (opal Main.cpp)
+target_link_libraries( opal
+    OPAL
     m
     z
-    ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS}
+    ${CMAKE_DL_LIBS}
     )
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
-install (TARGETS OPALib DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
+install (TARGETS OPAL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
 
 set (HDRS
     OPALconfig.h
