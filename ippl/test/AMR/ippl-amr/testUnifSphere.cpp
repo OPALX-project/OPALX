@@ -134,7 +134,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         int option_index = 0;
         
 #ifdef HAVE_AMR_MG_SOLVER
-        c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:whcvpst:f:a:g:q:o:", long_options, &option_index);
+        c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:whcvpst:f:a:g:q:o:u:", long_options, &option_index);
 #else
         c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:whcvpst:f:", long_options, &option_index);
 #endif
@@ -294,6 +294,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 		    << "--smoother (optional, trilinos only, default: GAUSS_SEIDEL)" << endl
 		    << "--prec (optional, trilinos only, default: NONE)" << endl
                     << "--bc (optional, dirichlet or open, default: dirichlet)" << endl
+		    << "--basesolver (optional, trilinos only, default: CG)" << endl
 #endif
                     << "--tagging charge (default) / efield / potential (optional)" << endl
                     << "--tagfactor [charge value / 0 ... 1] (optiona)" << endl;
@@ -814,7 +815,7 @@ void doAMReX(const param_t& params, Inform& msg)
     
     bunch->gatherStatistics();
     
-    static IpplTimings::TimerRef statisticsTimer = IpplTimings::getTimer("bunch-statistics");
+    static IpplTimings::TimerRef statisticsTimer = IpplTimings::getTimer("dump-statistics");
     std::string statistics = "particle-statistics-ncores-" + std::to_string(Ippl::getNodes()) + ".dat";
     IpplTimings::startTimer(statisticsTimer);
     bunch->dumpStatistics(statistics);
