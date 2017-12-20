@@ -756,7 +756,7 @@ void doAMReX(const param_t& params, Inform& msg)
     
     bunch->gatherStatistics();
     
-    static IpplTimings::TimerRef statisticsTimer = IpplTimings::getTimer("bunch-statistics");
+    static IpplTimings::TimerRef statisticsTimer = IpplTimings::getTimer("dump-statistics");
     std::string statistics = "particle-statistics-ncores-" + std::to_string(Ippl::getNodes()) + ".dat";
     IpplTimings::startTimer(statisticsTimer);
     bunch->dumpStatistics(statistics);
