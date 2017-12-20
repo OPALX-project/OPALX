@@ -920,7 +920,7 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
     
     IpplTimings::startTimer(boundpBoundsTimer_m);
     get_bounds(rmin_m, rmax_m);
-    IpplTimings::startTimer(boundpUpdateTimer_m);
+    IpplTimings::stopTimer(boundpBoundsTimer_m);
     
     len = rmax_m - rmin_m;
 
