@@ -133,6 +133,12 @@ ENDIF (ENABLE_DKS)
 
 add_library( OPALib ${OPAL_SRCS} )
 set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
+target_link_libraries( OPALib
+    ${OPAL_LIBS}
+    #${SAAMG_SOLVER_LIBS}
+    #${AMREX_LIBRARIES}
+    #${OTHER_CMAKE_EXE_LINKER_FLAGS}
+    )
 
 add_executable( opal Main.cpp )
 target_link_libraries( opal
