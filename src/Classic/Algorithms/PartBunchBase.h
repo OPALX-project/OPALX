@@ -591,6 +591,8 @@ public:
     
 protected:
     IpplTimings::TimerRef boundpTimer_m;
+    IpplTimings::TimerRef boundpBoundsTimer_m;
+    IpplTimings::TimerRef boundpUpdateTimer_m;
     IpplTimings::TimerRef statParamTimer_m;
 
     IpplTimings::TimerRef histoTimer_m;
