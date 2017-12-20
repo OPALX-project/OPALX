@@ -134,6 +134,9 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
     setup(pb);
 
     boundpTimer_m = IpplTimings::getTimer("Boundingbox");
+    boundpBoundsTimer_m = IpplTimings::getTimer("Boundingbox-bounds");
+    boundpUpdateTimer_m = IpplTimings::getTimer("Boundingbox-update");
+    
     statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
     selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
 
@@ -218,6 +221,8 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
     setup(pb);
 
     boundpTimer_m = IpplTimings::getTimer("Boundingbox");
+    boundpBoundsTimer_m = IpplTimings::getTimer("Boundingbox-bounds");
+    boundpUpdateTimer_m = IpplTimings::getTimer("Boundingbox-update");
     statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
     selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
 
@@ -834,8 +839,9 @@ void PartBunchBase<T, Dim>::boundp() {
         const bool fullUpdate = (dcBeam_m && (hr_m[2] < 0.0)) || !dcBeam_m;
 
         this->updateDomainLength(nr_m);
-
+        IpplTimings::startTimer(boundpBoundsTimer_m);
         get_bounds(rmin_m, rmax_m);
+        IpplTimings::stopTimer(boundpBoundsTimer_m);
         Vector_t len = rmax_m - rmin_m;
 
             double volume = 1.0;
@@ -884,7 +890,9 @@ void PartBunchBase<T, Dim>::boundp() {
             throw GeneralClassicException("boundp() ", "h<0, can not build a mesh");
         }
     }
+    IpplTimings::startTimer(boundpUpdateTimer_m);
     update();
+    IpplTimings::stopTimer(boundpUpdateTimer_m);
     R.resetDirtyFlag();
 
     IpplTimings::stopTimer(boundpTimer_m);
@@ -909,7 +917,11 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
 
     this->updateDomainLength(nr_m);
 
+    
+    IpplTimings::startTimer(boundpBoundsTimer_m);
     get_bounds(rmin_m, rmax_m);
+    IpplTimings::startTimer(boundpUpdateTimer_m);
+    
     len = rmax_m - rmin_m;
 
     calcBeamParameters();
@@ -982,8 +994,10 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
     if(weHaveBins()) {
         pbin_m->updatePartInBin_cyc(countLost.get());
     }
-
+    
+    IpplTimings::startTimer(boundpUpdateTimer_m);
     update();
+    IpplTimings::stopTimer(boundpUpdateTimer_m);
 
     IpplTimings::stopTimer(boundpTimer_m);
 }
@@ -1194,7 +1208,25 @@ void PartBunchBase<T, Dim>::setZ(int i, double zcoo)
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::get_bounds(Vector_t &rmin, Vector_t &rmax) {
-    bounds(this->R, rmin, rmax);
+    
+    this->getLocalBounds(rmin, rmax);
+    
+    double min[Dim];
+    double max[Dim];
+    
+    for (unsigned int i = 0; i < Dim; ++i) {
+        min[i] = rmin[i];
+        max[i] = rmax[i];
+    }
+    
+    //FIXME use a min-max function
+    allreduce(&min[0], Dim, std::less<double>());
+    allreduce(&max[0], Dim, std::greater<double>());
+    
+    for (unsigned int i = 0; i < Dim; ++i) {
+        rmin[i] = min[i];
+        rmax[i] = max[i];
+    }
 }
 
 
@@ -1208,7 +1240,7 @@ void PartBunchBase<T, Dim>::getLocalBounds(Vector_t &rmin, Vector_t &rmax) {
     for (size_t i = 1; i < localNum; ++ i) {
         for (unsigned short d = 0; d < 3u; ++ d) {
             if (rmin(d) > R[i](d)) rmin(d) = R[i](d);
-            else if (rmax(d) < R[i](2)) rmax(d) = R[i](d);
+            if (rmax(d) < R[i](d)) rmax(d) = R[i](d);
         }
     }
 }
@@ -2411,6 +2443,8 @@ void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
     pb->addAttribute(TriID);
 
     boundpTimer_m = IpplTimings::getTimer("Boundingbox");
+    boundpBoundsTimer_m = IpplTimings::getTimer("Boundingbox-bounds");
+    boundpUpdateTimer_m = IpplTimings::getTimer("Boundingbox-update");
     statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
     selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
 
