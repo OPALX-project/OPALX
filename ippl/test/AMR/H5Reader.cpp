@@ -18,8 +18,6 @@ H5Reader::H5Reader()
 void H5Reader::open(int step) {
     close();
     
-    
-#if defined (USE_H5HUT2)
     h5_prop_t props = H5CreateFileProp ();
     MPI_Comm comm = Ippl::getComm();
     h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
@@ -29,10 +27,6 @@ void H5Reader::open(int step) {
     assert (h5err != H5_ERR);
     file_m = H5OpenFile (filename_m.c_str(), H5_O_RDONLY, props);
     assert (file_m != (h5_file_t)H5_ERR);
-#else
-    file_m = H5OpenFile(filename_m.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, Ippl::getComm());
-    assert (file_m != (void*)H5_ERR);
-#endif
     
     H5SetStep(file_m, step);
 }
@@ -135,7 +129,7 @@ void H5Reader::writeScalarField(const container_t& scalfield,
     
     h5_file_t file = 0;
     std::string fname = "test_scalfield.h5";
-#if defined (USE_H5HUT2)
+
     h5_prop_t props = H5CreateFileProp ();
     MPI_Comm comm = Ippl::getComm(); // ParallelDescriptor::m_comm_all; //
     h5_err_t h5err = H5SetPropFileMPIOIndependent(props, &comm);
@@ -146,10 +140,6 @@ void H5Reader::writeScalarField(const container_t& scalfield,
     assert (h5err != H5_ERR);
     file = H5OpenFile (fname.c_str(), H5_O_WRONLY, props);
     assert (file != (h5_file_t)H5_ERR);
-#else
-    file = H5OpenFile(fname.c_str(), H5_O_WRONLY, Ippl::getComm()); // ParallelDescriptor::m_comm_all); 
-    assert (file != (void*)H5_ERR);
-#endif
     
     H5SetStep (file, 0);
     
