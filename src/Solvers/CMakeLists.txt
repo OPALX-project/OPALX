@@ -36,6 +36,11 @@ set (HDRS
 
 if ( ENABLE_AMR )
     list(APPEND HDRS AmrPoissonSolver.h BoxLibSolvers/FMGPoissonSolver.h)
+    
+    if ( ENABLE_AMR_MG_SOLVER )
+        add_subdirectory (TAMG)
+    endif ( ENABLE_AMR_MG_SOLVER )
 endif (ENABLE_AMR )
+
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Solvers")

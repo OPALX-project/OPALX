@@ -1,0 +1,119 @@
+#ifndef AMR_MULTI_GRID_LEVEL
+#define AMR_MULTI_GRID_LEVEL
+
+#include <vector>
+
+#include <AMReX_IntVect.H>
+
+#include "Ippl.h"
+
+#include "AmrMultiGridCore.h"
+
+template <class MatrixType, class VectorType>
+class AmrMultiGridLevel {
+    
+public:
+    typedef amrex::MultiFab AmrField_t;
+    typedef amrex::Geometry AmrGeometry_t;
+    typedef std::unique_ptr<AmrField_t> AmrField_u;
+    typedef std::shared_ptr<AmrField_t> AmrField_s;
+    typedef amrex::IntVect AmrIntVect_t;
+    typedef MatrixType matrix_t;
+    typedef VectorType vector_t;
+    typedef amrex::FabArray<amrex::BaseFab<int> > mask_t;
+    typedef AmrBoundary<
+                    AmrMultiGridLevel<
+                        MatrixType,
+                        VectorType
+                    >
+            > boundary_t;
+    
+    typedef amr::comm_t comm_t;
+    typedef amr::dmap_t dmap_t;
+    typedef amr::node_t node_t;
+    typedef amr::global_ordinal_t global_ordinal_t;
+    
+    typedef std::vector<int>        indices_t;
+    typedef std::vector<double>     coefficients_t;
+    
+    typedef Vektor<double, 3> Vector_t;
+    
+    // covered   : ghost cells covered by valid cells of this FabArray
+    //             (including periodically shifted valid cells)
+    // notcovered: ghost cells not covered by valid cells
+    //             (including ghost cells outside periodic boundaries) (BNDRY)
+    // physbnd   : boundary cells outside the domain (excluding periodic boundaries)
+    // interior  : interior cells (i.e., valid cells)
+    enum Mask {
+        COVERED   = -1,
+        INTERIOR  =  0,
+        BNDRY     =  1,
+        PHYSBNDRY =  2
+    };
+    
+public:
+    AmrMultiGridLevel(const amrex::BoxArray& _grids,
+                      const amrex::DistributionMapping& _dmap,
+                      const AmrGeometry_t& _geom,
+                      const AmrIntVect_t& rr,
+                      boundary_t* const bc,
+                      const Teuchos::RCP<comm_t>& comm,
+                      const Teuchos::RCP<node_t>& node);
+    
+    ~AmrMultiGridLevel();
+    
+    int serialize(const AmrIntVect_t& iv) const;
+    
+    bool isBoundary(const AmrIntVect_t& iv) const;
+    
+    void applyBoundary(const AmrIntVect_t& iv,
+                       indices_t& indices,
+                       coefficients_t& values,
+                       const double& value);
+    
+    const AmrIntVect_t& refinement() const;
+    
+private:
+    void buildLevelMask_m();
+    
+    void buildMap_m(const Teuchos::RCP<comm_t>& comm,
+                    const Teuchos::RCP<node_t>& node);
+    
+public:
+    const amrex::BoxArray& grids;
+    const amrex::DistributionMapping& dmap;
+    const AmrGeometry_t& geom;
+    
+    Teuchos::RCP<dmap_t> map_p;         ///< core map
+    
+    Teuchos::RCP<matrix_t> Anf_p;               ///< no fine Poisson matrix
+    Teuchos::RCP<matrix_t> R_p;                 ///< restriction matrix
+    Teuchos::RCP<matrix_t> I_p;                 ///< interpolation matrix
+    Teuchos::RCP<matrix_t> Bcrse_p;             ///< boundary from coarse cells
+    Teuchos::RCP<matrix_t> Bfine_p;             ///< boundary from fine cells
+    Teuchos::RCP<matrix_t> Awf_p;               ///< composite Poisson matrix
+    
+    /// gradient matrices in x, y, and z to compute electric field
+    Teuchos::RCP<matrix_t> G_p[AMREX_SPACEDIM];
+    
+    Teuchos::RCP<vector_t> rho_p;       ///< charge density
+    Teuchos::RCP<vector_t> phi_p;       ///< potential vector
+    Teuchos::RCP<vector_t> residual_p;  ///< residual over all cells
+    Teuchos::RCP<vector_t> error_p;     ///< error over all cells
+    Teuchos::RCP<matrix_t> UnCovered_p; ///< uncovered cells
+    
+    std::unique_ptr<mask_t> mask;       ///< interior, phys boundary, interface, covered
+    
+    
+private:
+    int nr_m[AMREX_SPACEDIM];           ///< number of grid points
+    
+    AmrIntVect_t rr_m;                  ///< refinement
+    
+    boundary_t* const bc_mp;
+};
+
+
+#include "AmrMultiGridLevel.hpp"
+
+#endif
