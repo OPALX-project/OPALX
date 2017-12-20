@@ -42,6 +42,10 @@
     #include "Algorithms/AmrPartBunch.h"
 #endif
 
+#ifdef HAVE_AMR_MG_SOLVER
+    #include "Solvers/TAMG/AmrMultiGrid.h"
+#endif
+
 using namespace Expressions;
 using namespace Physics;
 
@@ -67,7 +71,7 @@ namespace {
         GREENSF,    // holds greensfunction to be used [FFT only]
         BBOXINCR,   // how much the boundingbox is increased
         GEOMETRY,   // geometry of boundary [SAAMG only]
-        ITSOLVER,   // iterative solver [SAAMG only]
+        ITSOLVER,   // iterative solver [SAAMG + TAMG]
         INTERPL,    // interpolation used for boundary points [SAAMG only]
         TOL,        // tolerance of the SAAMG preconditioned solver [SAAMG only]
         MAXITERS,   // max number of iterations [SAAMG only]
@@ -88,6 +92,14 @@ namespace {
         AMR_MIN_NUM_PART,
         AMR_SCALING,
 #endif
+#ifdef HAVE_AMR_MG_SOLVER
+        // TAMG = Trilinos-Adaptive-Multi-Grid
+        TAMG_SMOOTHER,      // AMR, smoother for level solution
+        TAMG_NSWEEPS,       // AMR, number of smoothing sweeps
+        TAMG_PREC,          // AMR, preconditioner for bottom solver
+        TAMG_INTERP,        // AMR, interpolater for solution from level l to l+1
+        TAMG_NORM,          // AMR, norm convergence criteria
+#endif
         // FOR XXX BASED SOLVER
         SIZE
     };
@@ -98,61 +110,148 @@ FieldSolver::FieldSolver():
     Definition(SIZE, "FIELDSOLVER",
                "The \"FIELDSOLVER\" statement defines data for a the field solver ") {
 
-    itsAttr[FSTYPE] = Attributes::makeString("FSTYPE", "Name of the attached field solver: FFT, FFTPERIODIC, SAAMG, AMR, and NONE ");
+    itsAttr[FSTYPE] = Attributes::makeString("FSTYPE",
+                                             "Name of the attached field solver: FFT, FFTPERIODIC, SAAMG, AMR, and NONE ");
 
     itsAttr[MX] = Attributes::makeReal("MX", "Meshsize in x");
     itsAttr[MY] = Attributes::makeReal("MY", "Meshsize in y");
     itsAttr[MT] = Attributes::makeReal("MT", "Meshsize in z(t)");
 
-    itsAttr[PARFFTX] = Attributes::makeBool("PARFFTX", "True, dimension 0 i.e x is parallelized", false);
-    itsAttr[PARFFTY] = Attributes::makeBool("PARFFTY", "True, dimension 1 i.e y is parallelized", false);
-    itsAttr[PARFFTT] = Attributes::makeBool("PARFFTT", "True, dimension 2 i.e z(t) is parallelized", true);
+    itsAttr[PARFFTX] = Attributes::makeBool("PARFFTX",
+                                            "True, dimension 0 i.e x is parallelized",
+                                            false);
+    
+    itsAttr[PARFFTY] = Attributes::makeBool("PARFFTY",
+                                            "True, dimension 1 i.e y is parallelized",
+                                            false);
+    
+    itsAttr[PARFFTT] = Attributes::makeBool("PARFFTT",
+                                            "True, dimension 2 i.e z(t) is parallelized",
+                                            true);
 
     //FFT ONLY:
-    itsAttr[BCFFTX] = Attributes::makeString("BCFFTX", "Boundary conditions in x: open, dirichlet (box), periodic");
-    itsAttr[BCFFTY] = Attributes::makeString("BCFFTY", "Boundary conditions in y: open, dirichlet (box), periodic");
-    itsAttr[BCFFTT] = Attributes::makeString("BCFFTT", "Boundary conditions in z(t): open, periodic");
+    itsAttr[BCFFTX] = Attributes::makeString("BCFFTX",
+                                             "Boundary conditions in x: open, dirichlet (box), periodic");
+    
+    itsAttr[BCFFTY] = Attributes::makeString("BCFFTY",
+                                             "Boundary conditions in y: open, dirichlet (box), periodic");
+    
+    itsAttr[BCFFTT] = Attributes::makeString("BCFFTT",
+                                             "Boundary conditions in z(t): open, periodic");
 
-    itsAttr[GREENSF]  = Attributes::makeString("GREENSF", "Which Greensfunction to be used [STANDARD | INTEGRATED]", "INTEGRATED");
-    itsAttr[BBOXINCR] = Attributes::makeReal("BBOXINCR", "Increase of bounding box in % ", 2.0);
+    itsAttr[GREENSF]  = Attributes::makeString("GREENSF",
+                                               "Which Greensfunction to be used [STANDARD | INTEGRATED]",
+                                               "INTEGRATED");
+    
+    itsAttr[BBOXINCR] = Attributes::makeReal("BBOXINCR",
+                                             "Increase of bounding box in % ",
+                                             2.0);
 
     // P3M only:
-    itsAttr[RC]  = Attributes::makeReal("RC", "cutoff radius for PP interactions",0.0);
-    itsAttr[ALPHA]  = Attributes::makeReal("ALPHA", "Green’s function splitting parameter",0.0);
-    itsAttr[EPSILON]  = Attributes::makeReal("EPSILON", "regularization for PP interaction",0.0);
+    itsAttr[RC] = Attributes::makeReal("RC",
+                                       "cutoff radius for PP interactions",
+                                       0.0);
+    
+    itsAttr[ALPHA] = Attributes::makeReal("ALPHA",
+                                          "Green’s function splitting parameter",
+                                          0.0);
+    
+    itsAttr[EPSILON] = Attributes::makeReal("EPSILON",
+                                            "regularization for PP interaction",
+                                            0.0);
 
     //SAAMG and in case of FFT with dirichlet BC in x and y
-    itsAttr[GEOMETRY] = Attributes::makeString("GEOMETRY", "GEOMETRY to be used as domain boundary", "");
-    itsAttr[ITSOLVER]  = Attributes::makeString("ITSOLVER", "Type of iterative solver [CG | BiCGSTAB | GMRES]", "CG");
-    itsAttr[INTERPL]  = Attributes::makeString("INTERPL", "interpolation used for boundary points [CONSTANT | LINEAR | QUADRATIC]", "LINEAR");
-    itsAttr[TOL] = Attributes::makeReal("TOL", "Tolerance for iterative solver", 1e-8);
-    itsAttr[MAXITERS] = Attributes::makeReal("MAXITERS", "Maximum number of iterations of iterative solver", 100);
-    itsAttr[PRECMODE]  = Attributes::makeString("PRECMODE", "Preconditioner Mode [STD | HIERARCHY | REUSE]", "HIERARCHY");
+    itsAttr[GEOMETRY] = Attributes::makeString("GEOMETRY",
+                                               "GEOMETRY to be used as domain boundary",
+                                               "");
+    
+    itsAttr[ITSOLVER] = Attributes::makeString("ITSOLVER",
+                                               "Type of iterative solver [CG | BiCGSTAB | GMRES]",
+                                               "CG");
+    
+    itsAttr[INTERPL] = Attributes::makeString("INTERPL",
+                                              "interpolation used for boundary points [CONSTANT | LINEAR | QUADRATIC]",
+                                              "LINEAR");
+    
+    itsAttr[TOL] = Attributes::makeReal("TOL",
+                                        "Tolerance for iterative solver",
+                                        1e-8);
+    
+    itsAttr[MAXITERS] = Attributes::makeReal("MAXITERS",
+                                             "Maximum number of iterations of iterative solver",
+                                             100);
+    
+    itsAttr[PRECMODE] = Attributes::makeString("PRECMODE",
+                                               "Preconditioner Mode [STD | HIERARCHY | REUSE]",
+                                               "HIERARCHY");
 
     // AMR
 #ifdef ENABLE_AMR
-    itsAttr[AMR_MAXLEVEL] = Attributes::makeReal("AMR_MAXLEVEL", "Maximum number of levels in AMR", 0);
-    itsAttr[AMR_REFX] = Attributes::makeReal("AMR_REFX", "Refinement ration in x-direction in AMR", 2);
-    itsAttr[AMR_REFY] = Attributes::makeReal("AMR_REFY", "Refinement ration in y-direction in AMR", 2);
-    itsAttr[AMR_REFT] = Attributes::makeReal("AMR_REFT", "Refinement ration in z-direction in AMR", 2);
+    itsAttr[AMR_MAXLEVEL] = Attributes::makeReal("AMR_MAXLEVEL",
+                                                 "Maximum number of levels in AMR",
+                                                 0);
+    
+    itsAttr[AMR_REFX] = Attributes::makeReal("AMR_REFX",
+                                             "Refinement ration in x-direction in AMR",
+                                             2);
+    
+    itsAttr[AMR_REFY] = Attributes::makeReal("AMR_REFY",
+                                             "Refinement ration in y-direction in AMR",
+                                             2);
+    
+    itsAttr[AMR_REFT] = Attributes::makeReal("AMR_REFT",
+                                             "Refinement ration in z-direction in AMR",
+                                             2);
+    
     itsAttr[AMR_SUBCYCLE] = Attributes::makeBool("AMR_SUBCYCLE",
-                                                 "Subcycling in time for refined levels in AMR", false);
-    itsAttr[AMR_MAXGRID] = Attributes::makeReal("AMR_MAXGRID", "Maximum grid size in AMR", 16);
+                                                 "Subcycling in time for refined levels in AMR",
+                                                 false);
+    
+    itsAttr[AMR_MAXGRID] = Attributes::makeReal("AMR_MAXGRID",
+                                                "Maximum grid size in AMR",
+                                                16);
     
     itsAttr[AMR_TAGGING] = Attributes::makeString("AMR_TAGGING",
                                                   "Refinement criteria [CHARGE_DENSITY | POTENTIAL | EFIELD]",
                                                   "CHARGE_DENSITY");
+    
     itsAttr[AMR_DENSITY] = Attributes::makeReal("AMR_DENSITY",
                                                "Tagging value for charge density refinement [C / cell volume]",
                                                1.0e-14);
+    
     itsAttr[AMR_MAX_NUM_PART] = Attributes::makeReal("AMR_MAX_NUM_PART",
-                                                     "Tagging value for max. #particles", 1);
+                                                     "Tagging value for max. #particles",
+                                                     1);
+    
     itsAttr[AMR_MIN_NUM_PART] = Attributes::makeReal("AMR_MIN_NUM_PART",
-                                                     "Tagging value for min. #particles", 1);
+                                                     "Tagging value for min. #particles",
+                                                     1);
+    
     itsAttr[AMR_SCALING] = Attributes::makeReal("AMR_SCALING",
                                                 "Scaling value for maximum value tagging "
                                                 "(only POTENTIAL / CHARGE_DENSITY / "
                                                 "MOMENTA", 0.75);
+#endif
+    
+#ifdef HAVE_AMR_MG_SOLVER
+    itsAttr[TAMG_SMOOTHER] = Attributes::makeString("TAMG_SMOOTHER",
+                                                    "Smoothing of level solution", "GS");
+    
+    itsAttr[TAMG_NSWEEPS] = Attributes::makeReal("TAMG_NSWEEPS",
+                                                 "Number of relaxation steps",
+                                                 8);
+    
+    itsAttr[TAMG_PREC] = Attributes::makeString("TAMG_PREC",
+                                                "Preconditioner of bottom solver",
+                                                "NONE");
+    
+    itsAttr[TAMG_INTERP] = Attributes::makeString("TAMG_INTERP",
+                                                  "Interpolater between levels",
+                                                  "PC");
+    
+    itsAttr[TAMG_NORM] = Attributes::makeString("TAMG_NORM",
+                                                "Norm for convergence criteria",
+                                                "L2");
 #endif
 
     mesh_m = 0;
@@ -444,6 +543,23 @@ Inform &FieldSolver::printInfo(Inform &os) const {
     }
 #endif
 
+#ifdef HAVE_AMR_MG_SOLVER
+    if (fsType == "TAMG") {
+        os << "* ITSOLVER (TAMG)  "
+           << Util::toUpper(Attributes::getString(itsAttr[ITSOLVER])) << '\n'
+           << "* TAMG_PREC        "
+           << Util::toUpper(Attributes::getString(itsAttr[TAMG_PREC])) << '\n'
+           << "* TAMG_SMOOTHER    "
+           << Util::toUpper(Attributes::getString(itsAttr[TAMG_SMOOTHER])) << '\n'
+           << "* TAMG_NSWEEPS     "
+           << Attributes::getReal(itsAttr[TAMG_NSWEEPS]) << '\n'
+           << "* TAMG_INTERP      "
+           << Util::toUpper(Attributes::getString(itsAttr[TAMG_INTERP])) << '\n'
+           << "* TAMG_NORM        "
+           << Util::toUpper(Attributes::getString(itsAttr[TAMG_NORM])) << endl;
+    }
+#endif
+
     if(Attributes::getBool(itsAttr[PARFFTX]))
         os << "* XDIM         parallel  " << endl;
     else
@@ -470,7 +586,7 @@ Inform &FieldSolver::printInfo(Inform &os) const {
 #ifdef ENABLE_AMR
 void FieldSolver::initAmrObject_m() {
     
-    itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
+    itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) * 0.01);
     
     // setup initial info for creating the object
     AmrBoxLib::AmrInitialInfo info;
@@ -486,27 +602,7 @@ void FieldSolver::initAmrObject_m() {
     
     itsAmrObject_mp = AmrBoxLib::create(info, dynamic_cast<AmrPartBunch*>(itsBunch_m));
     
-    AmrObject::TaggingCriteria tagging = AmrObject::TaggingCriteria::CHARGE_DENSITY;
-    
-    std::string tag = Attributes::getString(itsAttr[AMR_TAGGING]);
-    
-    if ( tag == "POTENTIAL" )
-        tagging = AmrObject::TaggingCriteria::POTENTIAL;
-    else if (tag == "EFIELD" )
-        tagging = AmrObject::TaggingCriteria::EFIELD;
-    else if ( tag == "MOMENTA" )
-        tagging = AmrObject::TaggingCriteria::MOMENTA;
-    else if ( tag == "MAX_NUM_PARTICLES" )
-        tagging = AmrObject::TaggingCriteria::MAX_NUM_PARTICLES;
-    else if ( tag == "MIN_NUM_PARTICLES" )
-        tagging = AmrObject::TaggingCriteria::MIN_NUM_PARTICLES;
-    else if ( tag != "CHARGE_DENSITY" )
-        throw OpalException("FieldSolver::initAmrObject_m()",
-                            "Not supported refinement criteria "
-                            "[CHARGE_DENSITY | POTENTIAL | EFIELD | "
-                            "MOMENTA | MAX_NUM_PARTICLES | MIN_NUM_PARTICLES].");
-    
-    itsAmrObject_mp->setTagging(tagging);
+    itsAmrObject_mp->setTagging( Attributes::getString(itsAttr[AMR_TAGGING]) );
     
     itsAmrObject_mp->setScalingFactor( Attributes::getReal(itsAttr[AMR_SCALING]) );
     
@@ -523,19 +619,37 @@ void FieldSolver::initAmrObject_m() {
 
 
 void FieldSolver::initAmrSolver_m() {
-    std::string fsType = Attributes::getString(itsAttr[FSTYPE]);
+    std::string fsType = Util::toUpper(Attributes::getString(itsAttr[FSTYPE]));
     if (fsType == "FMG") {
         
         if ( dynamic_cast<AmrBoxLib*>( itsAmrObject_mp.get() ) == 0 )
-            throw OpalException("FieldSolver::initAmrSolver_m()", "FMultiGrid solver requires BoxLib.");
+            throw OpalException("FieldSolver::initAmrSolver_m()",
+                                "FMultiGrid solver requires BoxLib.");
         
         solver_m = new FMGPoissonSolver(static_cast<AmrBoxLib*>(itsAmrObject_mp.get()));
         
     } else if (fsType == "HYPRE") {
-        throw OpalException("FieldSolver::initAmrSolver_m()", "HYPRE solver not yet implemented.");
+        throw OpalException("FieldSolver::initAmrSolver_m()",
+                            "HYPRE solver not yet implemented.");
     } else if (fsType == "HPGMG") {
-        throw OpalException("FieldSolver::initAmrSolver_m()", "HPGMG solver not yet implemented.");
+        throw OpalException("FieldSolver::initAmrSolver_m()",
+                            "HPGMG solver not yet implemented.");
+    } else if (fsType == "TAMG") {
+        if ( dynamic_cast<AmrBoxLib*>( itsAmrObject_mp.get() ) == 0 )
+            throw OpalException("FieldSolver::initAmrSolver_m()",
+                                "FMultiGrid solver requires BoxLib.");
+        
+        solver_m = new AmrMultiGrid(Attributes::getString(itsAttr[ITSOLVER]),
+                                    Attributes::getString(itsAttr[TAMG_PREC]),
+                                    Attributes::getString(itsAttr[BCFFTX]),
+                                    Attributes::getString(itsAttr[BCFFTY]),
+                                    Attributes::getString(itsAttr[BCFFTZ]),
+                                    Attributes::getString(itsAttr[TAMG_SMOOTHER]),
+                                    Attributes::getReal(itsAttr[TAMG_NSWEEPS]),
+                                    Attributes::getString(itsAttr[TAMG_INTERP]),
+                                    Attributes::getString(itsAttr[TAMG_NORM]));
     } else
-        throw OpalException("FieldSolver::initAmrSolver_m()", "Unknown solver " + fsType + ".");
+        throw OpalException("FieldSolver::initAmrSolver_m()",
+                            "Unknown solver " + fsType + ".");
 }
 #endif
