@@ -1,5 +1,9 @@
 #include "AmrMultiGrid.h"
 
+#include <map>
+
+#include "Utilities/OpalException.h"
+
 #define AMR_MG_WRITE 1
 
 #define DEBUG 1
@@ -8,6 +12,48 @@
     #include <iomanip>
     #include <fstream>
 #endif
+
+AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
+                           const std::string& prec,
+                           const std::string& bcx,
+                           const std::string& bcy,
+                           const std::string& bcz,
+                           const std::string& smoother,
+                           const std::size_t& nSweeps,
+                           const std::string& interp,
+                           const std::string& norm)
+    : nIter_m(0),
+      nSweeps_m(nSweeps),
+      lbase_m(0),
+      lfine_m(0)
+{
+    comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
+    node_mp = KokkosClassic::Details::getNode<amr::node_t>(); //KokkosClassic::DefaultNode::getDefaultNode();
+    
+#if AMR_MG_TIMER
+    buildTimer_m        = IpplTimings::getTimer("build");
+    restrictTimer_m     = IpplTimings::getTimer("restrict");
+    smoothTimer_m       = IpplTimings::getTimer("smooth");
+    interpTimer_m       = IpplTimings::getTimer("prolongate");
+    residnofineTimer_m  = IpplTimings::getTimer("resid-no-fine");
+    bottomTimer_m       = IpplTimings::getTimer("bottom-solver");
+#endif
+    
+    //FIXME
+    this->initPhysicalBoundary_m();
+    
+    const Interpolater interpolater = this->convertToEnumInterpolater_m(interp);
+    this->initInterpolater_m(interpolater);
+    
+    // interpolater for crse-fine-interface
+    this->initCrseFineInterp_m(Interpolater::LAGRANGE);
+    
+    // base level solver
+    const BaseSolver solver = this->convertToEnumBaseSolver_m(bsolver);
+    const Preconditioner precond = this->convertToEnumPreconditioner_m(prec);
+    this->initBaseSolver_m(solver, precond);
+}
+
 
 AmrMultiGrid::AmrMultiGrid(Boundary bc,
                            Interpolater interp,
@@ -1789,4 +1835,94 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
         default:
             std::runtime_error("No such bottom solver available.");
     }
+}
+
+
+AmrMultiGrid::Boundary
+AmrMultiGrid::convertToEnumBoundary_m(const std::string& bc) {
+    std::map<std::string, Boundary> map;
+    
+    map["DIRICHLET"]    = Boundary::DIRICHLET;
+    map["OPEN"]         = Boundary::OPEN;
+    map["PERIODIC"]     = Boundary::PERIODIC;
+    
+    auto boundary = map.find(bc);
+    
+    if ( boundary == map.end() )
+        throw OpalException("AmrMultiGrid::convertToEnumBoundary_m()",
+                            "No boundary type '" + bc + "'.'");
+    return boundary->second;
+}
+
+AmrMultiGrid::Interpolater
+AmrMultiGrid::convertToEnumInterpolater_m(const std::string& interp) {
+    std::map<std::string, Interpolater> map;
+    
+    map["TRILINEAR"]    = Interpolater::TRILINEAR;
+    map["LAGRANGE"]     = Interpolater::LAGRANGE;
+    map["PC"]           = Interpolater::PIECEWISE_CONST;
+    
+    auto interpolater = map.find(interp);
+    
+    if ( interpolater == map.end() )
+        throw OpalException("AmrMultiGrid::convertToEnumInterpolater_m()",
+                            "No interpolater '" + interp + "'.'");
+    return interpolater->second;
+}
+
+
+AmrMultiGrid::BaseSolver
+AmrMultiGrid::convertToEnumBaseSolver_m(const std::string& bsolver) {
+    std::map<std::string, BaseSolver> map;
+    
+    map["BICGSTAB"]         = BaseSolver::BICGSTAB;
+    map["MINRES"]           = BaseSolver::MINRES;
+    map["PCPG"]             = BaseSolver::PCPG;
+    map["CG"]               = BaseSolver::CG;
+    map["GMRES"]            = BaseSolver::GMRES;
+    map["STOCHASTIC_CG"]    = BaseSolver::STOCHASTIC_CG;
+    map["RECYCLING_CG"]     = BaseSolver::RECYCLING_GMRES;
+    map["RECYCLING_GMRES"]  = BaseSolver::RECYCLING_GMRES;
+#ifdef HAVE_AMESOS2_KLU2
+    map["KLU2"]             = BaseSolver::KLU2;
+#endif
+#ifdef HAVE_AMESOS2_SUPERLU
+    map["SUPERLU"]          = BaseSolver::SUPERLU;
+#endif
+#ifdef HAVE_AMESOS2_UMFPACK  
+    map["UMFPACK"]          = BaseSolver::UMFPACK;
+#endif
+#ifdef HAVE_AMESOS2_PARDISO_MKL
+    map["PARDISO_MKL"]      = BaseSolver::PARDISO_MKL;
+#endif
+#ifdef HAVE_AMESOS2_MUMPS
+    map["MUMPS"]            = BaseSolver::MUMPS;
+#endif
+#ifdef HAVE_AMESOS2_LAPACK
+    map["LAPACK"]           =  BaseSolver::LAPACK;
+#endif
+    
+    auto solver = map.find(bsolver);
+    
+    if ( solver == map.end() )
+        throw OpalException("AmrMultiGrid::convertToEnumBaseSolver_m()",
+                            "No bottom solver '" + bsolver + "'.'");
+    return solver->second;
+}
+
+
+AmrMultiGrid::Preconditioner
+AmrMultiGrid::convertToEnumPreconditioner_m(const std::string& prec) {
+    std::map<std::string, Preconditioner> map;
+    
+    map["ILUT"]         = Preconditioner::ILUT;
+    map["CHEBYSHEV"]    = Preconditioner::CHEBYSHEV;
+    map["NONE"]         = Preconditioner::NONE;
+    
+    auto precond = map.find(prec);
+    
+    if ( precond == map.end() )
+        throw OpalException("AmrMultiGrid::convertToEnumPreconditioner_m()",
+                            "No preconditioner '" + prec + "'.'");
+    return precond->second;
 }
