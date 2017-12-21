@@ -157,7 +157,7 @@ TrackRun *TrackRun::clone(const std::string &name) {
 
 
 void TrackRun::execute() {
-    std::string packageVersionStr = PACKAGE_VERSION;
+    std::string packageVersionStr = OPAL_PACKAGE_VERSION;
     auto posFirstDot = packageVersionStr.find_first_of('.');
     auto posSecondDot = packageVersionStr.find_first_of('.', posFirstDot + 1);
 

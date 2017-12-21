@@ -123,7 +123,8 @@ int main(int argc, char *argv[]) {
 
 
     *gmsg << endl
-          << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << PACKAGE_VERSION << "\n\n"
+          << "This is OPAL (Object Oriented Parallel Accelerator Library) Version "
+	  << OPAL_PACKAGE_VERSION << "\n\n"
           << "                (c) PSI, http://amas.web.psi.ch" << endl
           << endl;
 
@@ -132,7 +133,8 @@ int main(int argc, char *argv[]) {
 	  << DKS_VERSION << endl << endl;
 #endif
 
-    *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) \nto the OPAL developers " << PACKAGE_BUGREPORT << "\n" << endl;
+    *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) \nto the OPAL developers "
+	  << OPAL_PACKAGE_BUGREPORT << "\n" << endl;
     *gmsg << "Time: " << timeStr << " date: " << dateStr << "\n" << endl;
 
 

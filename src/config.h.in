@@ -2,16 +2,13 @@
 #define PACKAGE ${PACKAGE}
 
 /* Define to the address where bug reports for this package should be sent. */
-#define PACKAGE_BUGREPORT ${PACKAGE_BUGREPORT}
+#define OPAL_PACKAGE_BUGREPORT "${OPAL_PACKAGE_BUGREPORT}"
 
 /* Define to the one symbol short name of this package. */
-#define PACKAGE_TARNAME ${PACKAGE_TARNAME}
-
-/* Define to the one symbol short name of this package. */
-#define PACKAGE_NAME ${PACKAGE_NAME}
+#define OPAL_PACKAGE_NAME "${OPAL_PACKAGE_NAME}"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION ${PACKAGE_VERSION}
+#define OPAL_PACKAGE_VERSION "${OPAL_PACKAGE_VERSION}"
 
 /* Define DKS version used in this package. */
 #define DKS_VERSION ${DKS_PACKAGE_VERSION}

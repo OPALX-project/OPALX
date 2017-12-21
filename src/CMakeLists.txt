@@ -118,15 +118,12 @@ ELSE()
     ${HDF5_LIBRARY}
     ${IPPL_LIBRARY}
     ${Boost_LIBRARIES}
-    mpi
-    mpi_cxx
+    ${MPI_CXX_LIBRARIES}
+    ${Fortran_LIBS}
     m
     z
 )
-ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
- ${HOSTNAME_BASE} MATCHES "daint")
-
-
+ENDIF()
 
 IF (ENABLE_DKS)
    set (OPAL_LIBS

@@ -163,7 +163,7 @@ void Save::execute() {
 
         std::string comchar = "// ";
 
-        os << comchar << "<OPAL Version " << PACKAGE_VERSION << " GIT version "
+        os << comchar << "<OPAL Version " << OPAL_PACKAGE_VERSION << " GIT version "
            << GIT_VERSION << "  (c) PSI, http://amas.web.psi.ch"
            << std::endl << ";" << std::endl ;
 
@@ -188,7 +188,7 @@ void Save::execute() {
         os << comchar << "</Special definitions> ;"
            << std::endl << ";" << std::endl ;
 
-        os << comchar << "<OPAL Version " << PACKAGE_VERSION << " GIT version "
+        os << comchar << "<OPAL Version " << OPAL_PACKAGE_VERSION << " GIT version "
            << GIT_VERSION << "  (c) PSI, http://amas.web.psi.ch"
            << std::endl << ";" << std::endl ;
     }
