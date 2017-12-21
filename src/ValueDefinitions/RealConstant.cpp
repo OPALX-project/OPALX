@@ -60,7 +60,7 @@ RealConstant::RealConstant():
 
     opal->create(new RealConstant("CLIGHT", this, Physics::c));
 
-    std::string version_str(PACKAGE_VERSION);
+    std::string version_str(OPAL_PACKAGE_VERSION);
     int version = 0;
     {
         for (size_t i = 0; i < version_str.size(); ++ i) {

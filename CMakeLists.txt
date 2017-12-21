@@ -1,35 +1,25 @@
-CMAKE_MINIMUM_REQUIRED (VERSION 2.8.10)
-PROJECT (OPAL)
-SET (OPAL_VERSION_MAJOR 1)
-SET (OPAL_VERSION_MINOR 6.1)
-set (PACKAGE \"opal\")
-set (PACKAGE_BUGREPORT \"opal@lists.psi.ch\")
-set (PACKAGE_NAME \"OPAL\")
-set (PACKAGE_TARNAME \"opal\")
-set (PACKAGE_VERSION "\"${OPAL_VERSION_MAJOR}.${OPAL_VERSION_MINOR}\"")
-set (OPAL_PACKAGE_VERSION "\"${OPAL_VERSION_MAJOR}.${OPAL_VERSION_MINOR}\"")
-
-IF (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
-    SET (CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
-        "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
-        FORCE
-	)
-ENDIF (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
-
-
-CMAKE_HOST_SYSTEM_INFORMATION(RESULT HOSTNAME QUERY HOSTNAME)
-
-MESSAGE (STATUS "Build type is: " ${CMAKE_BUILD_TYPE})
-MESSAGE (STATUS "Host OS System: ${CMAKE_HOST_SYSTEM}")
-MESSAGE (STATUS "Hostname:  ${HOSTNAME}")
+cmake_minimum_required (VERSION 2.8.10)
+project (OPAL)
+set (OPAL_MAJOR_VERSION 1)
+set (OPAL_MINOR_VERSION 6)
+set (OPAL_PATCH_VERSION 1)
+set (OPAL_PACKAGE_BUGREPORT opal@lists.psi.ch)
+set (OPAL_PACKAGE_VERSION
+  ${OPAL_MAJOR_VERSION}.${OPAL_MINOR_VERSION}.${OPAL_PATCH_VERSION})
 
 # Select flags.
-SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g ")
-SET (CMAKE_CXX_FLAGS_RELEASE "-O3")
-SET (CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
+set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g ")
+set (CMAKE_CXX_FLAGS_RELEASE "-O3")
+set (CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
 
-# Resolve all library dependencies
-SET (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
+set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
+
+cmake_host_system_information (RESULT HOSTNAME QUERY HOSTNAME)
+
+message (STATUS "Build type is: " ${CMAKE_BUILD_TYPE})
+message (STATUS "Host OS System: ${CMAKE_HOST_SYSTEM}")
+message (STATUS "Hostname:  ${HOSTNAME}")
+
 
 find_package (MPI REQUIRED)
 message (STATUS "The C++ compiler identification is: ${CMAKE_CXX_COMPILER_ID}")
@@ -53,6 +43,22 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
 else ()
     message (STATUS "Unknown C++ compiler. Please use the GNU or Intel compiler, IF you are having problems.")
 endif ()
+
+enable_language (Fortran OPTIONAL)
+message (STATUS "Fortran compilers: ${CMAKE_Fortran_COMPILER_NAMES}")
+if (CMAKE_Fortran_COMPILER)
+    message (STATUS "The Fortran compiler identification is: ${CMAKE_Fortran_COMPILER_ID}")
+    message (STATUS "The Fortran compiler version is: ${CMAKE_Fortran_COMPILER_VERSION}")
+    message (STATUS "The Fortran compiler is: ${CMAKE_Fortran_COMPILER}")
+    if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+        set (Fortran_LIBS "-lgfortran")
+    endif ()
+else ()
+    message (STATUS "No Fortran compiler found (optional)")
+    if (ENABLE_AMR)
+        message (ERROR "AMR is enabled but no Fortran compiler found!")
+    endif ()
+endif()
 
 FIND_PACKAGE (H5Hut REQUIRED)
 FIND_PACKAGE (HDF5 REQUIRED)
