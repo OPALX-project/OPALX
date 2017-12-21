@@ -99,6 +99,44 @@ template <class InputIterator, class RandomIterator, class ScatterOp>
 bool scatter(InputIterator, InputIterator, RandomIterator,
              int *, int *, const ScatterOp&);
 
+
+
+/* Gather the data in the given source container from all other nodes to a
+ * specific node (default: 0).
+ */
+template <typename T>
+void gather(const T* input, T* output, int count, int root = 0);
+
+
+/* Scatter the data from all other nodes to a
+ * specific node (default: 0).
+ */
+template <typename T>
+void scatter(const T* input, T* output, int count, int root = 0);
+
+/* Reduce data coming from all nodes to a specific node
+ * (default: 0). Apply certain operation
+ * 
+ */
+template <typename T, class Op>
+void reduce(const T* input, T* output, int count, Op op, int root = 0);
+
+template <typename T, class Op>
+void reduce(const T& input, T& output, int count, Op op, int root = 0);
+
+template <typename T, class Op>
+void allreduce(const T* input, T* output, int count, Op op);
+
+template <typename T, class Op>
+void allreduce(const T& input, T& output, int count, Op op);
+
+template <typename T, class Op>
+void allreduce(T* inout, int count, Op op);
+
+template <typename T, class Op>
+void allreduce(T& inout, int count, Op op);
+
+
 #include "Message/GlobalComm.hpp"
 
 #endif // GLOBAL_COMM_H
