@@ -63,7 +63,7 @@ struct param_t {
     AmrMultiGrid::Boundary bc;
     AmrMultiGrid::BaseSolver bs;
     AmrMultiGrid::Smoother smoother;
-    Preconditioner prec;
+    AmrMultiGrid::Preconditioner prec;
 #endif
     AmrOpal::TaggingCriteria criteria;
     double tagfactor;
@@ -92,7 +92,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     params.bc = AmrMultiGrid::Boundary::DIRICHLET;
     params.bs = AmrMultiGrid::BaseSolver::CG;
     params.smoother = AmrMultiGrid::Smoother::GAUSS_SEIDEL;
-    params.prec = Preconditioner::NONE;
+    params.prec = AmrMultiGrid::Preconditioner::NONE;
 #endif
     
     
@@ -163,9 +163,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 	    {
 		std::string prec = optarg;
 		if ( prec == "ILUT" )
-		    params.prec = Preconditioner::ILUT;
+		    params.prec = AmrMultiGrid::Preconditioner::ILUT;
 		else if ( prec == "CHEBYSHEV" )
-		    params.prec = Preconditioner::CHEBYSHEV;
+		    params.prec = AmrMultiGrid::Preconditioner::CHEBYSHEV;
 		else
 		    throw std::runtime_error("Error: Check preconditioner argument");
 		break;

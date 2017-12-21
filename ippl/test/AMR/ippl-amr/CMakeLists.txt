@@ -40,6 +40,8 @@ include_directories (
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/ippl/src
     ${CMAKE_SOURCE_DIR}/src/Classic/
+    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/
+    ${CMAKE_SOURCE_DIR}/src/Utilities/
     ${IPPL_INCLUDE_DIR}
     ${H5Hut_INCLUDE_DIR}
     ${HDF5_INCLUDE_DIR}
@@ -177,6 +179,8 @@ if ( ENABLE_AMR_MG_SOLVER )
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp
                     ../trilinos/AmrMultiGridCore.h
@@ -193,6 +197,8 @@ if ( ENABLE_AMR_MG_SOLVER )
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp
                     ../trilinos/BelosBottomSolver.cpp
@@ -208,6 +214,8 @@ if ( ENABLE_AMR_MG_SOLVER )
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp
                     ../trilinos/AmrMultiGridCore.h
@@ -224,6 +232,8 @@ else ()
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp)
     
@@ -235,6 +245,8 @@ else ()
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp)
     
@@ -246,6 +258,8 @@ else ()
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp)
     

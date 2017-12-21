@@ -24,6 +24,7 @@ public:
     typedef amr::local_ordinal_t lo_t;
     typedef amr::global_ordinal_t go_t;
     typedef amr::node_t node_t;
+    typedef amr::Preconditioner Preconditioner;
     
     typedef Belos::SolverManager<scalar_t, mv_t, op_t> solver_t;
     typedef Belos::LinearProblem<scalar_t, mv_t, op_t> problem_t;

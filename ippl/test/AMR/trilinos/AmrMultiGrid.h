@@ -44,6 +44,8 @@ public:
     
     typedef AmrSmoother::Smoother Smoother;
     
+    typedef amr::Preconditioner Preconditioner;
+    
     /// Supported interpolaters for prolongation operation
     enum Interpolater {
         TRILINEAR = 0,
@@ -99,6 +101,28 @@ public:
     };
     
 public:
+    
+    /*!
+     * Instantiation used in Structure/FieldSolver.cpp
+     * @param bsolver bottom solver
+     * @param prec preconditioner for bottom solver
+     * @param bcx boundary condition in x
+     * @param bcy boundary condition in y
+     * @param bcz boundary condition in z
+     * @param smoother for level solution
+     * @param nSweeps when smoothing
+     * @param interp interpolater between levels
+     * @param norm for convergence criteria
+     */
+    AmrMultiGrid(const std::string& bsolver,
+                 const std::string& prec,
+                 const std::string& bcx,
+                 const std::string& bcy,
+                 const std::string& bcz,
+                 const std::string& smoother,
+                 const std::size_t& nSweeps,
+                 const std::string& interp,
+                 const std::string& norm);
     
     /*!
      * Instantiation.
@@ -474,6 +498,31 @@ private:
      */
     void initBaseSolver_m(const BaseSolver& solver,
                           const Preconditioner& precond);
+    
+    /*!
+     * Convertstring to enum Boundary
+     * @param bc boundary condition
+     */
+    Boundary convertToEnumBoundary_m(const std::string& bc);
+    
+    /*!
+     * Converts string to enum Interpolater
+     * @param interp interpolater
+     */
+    Interpolater convertToEnumInterpolater_m(const std::string& interp);
+    
+    /*!
+     * Converts string to enum BaseSolver
+     * @param bsolver bottom solver
+     */
+    BaseSolver convertToEnumBaseSolver_m(const std::string& bsolver);
+    
+    /*!
+     * FIXME
+     * Converts string to enum Preconditioner
+     * @param prec preconditioner
+     */
+    Preconditioner convertToEnumPreconditioner_m(const std::string& prec);
     
 private:
     Teuchos::RCP<comm_t> comm_mp;       ///< communicator

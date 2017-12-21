@@ -1,12 +1,13 @@
 #ifndef BOTTOM_SOLVER_H
 #define BOTTOM_SOLVER_H
 
-enum class Preconditioner {
-    ILUT,       // incomplete LU
-    CHEBYSHEV,
-    NONE
-};
-
+namespace amr {
+    enum Preconditioner {
+        ILUT,       // incomplete LU
+        CHEBYSHEV,
+        NONE
+    };
+}
 
 template <class MatrixType, class VectorType>
 class BottomSolver {
