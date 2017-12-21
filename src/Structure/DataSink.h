@@ -264,11 +264,7 @@ private:
     std::string surfaceLossFileName_m;
 
     /// H5 file for surface loss data.
-#if defined (USE_H5HUT2)
     h5_file_t H5fileS_m;
-#else
-    h5_file_t *H5fileS_m;
-#endif
 
     /// Current record, or time step, of H5 file.
     int H5call_m;
