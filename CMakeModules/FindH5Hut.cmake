@@ -40,9 +40,8 @@ CHECK_INCLUDE_FILE (H5_file_attribs.h HAVE_API2_FUNCTIONS "-DPARALLEL_IO")
 
 IF (HAVE_API2_FUNCTIONS)
     MESSAGE (STATUS "H5hut version is >= 2")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_H5HUT2")
 ELSE (HAVE_API2_FUNCTIONS)
-    MESSAGE (STATUS "H5hut version is 1.x")
+    MESSAGE (ERROR "H5hut version >= 2 required!")
 ENDIF (HAVE_API2_FUNCTIONS)
 
 # Local Variables:
