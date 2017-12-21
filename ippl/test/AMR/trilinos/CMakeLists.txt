@@ -36,6 +36,8 @@ include_directories (
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/ippl/src
     ${CMAKE_SOURCE_DIR}/src/Classic/
+    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/
+    ${CMAKE_SOURCE_DIR}/src/Utilities/
     ${IPPL_INCLUDE_DIR}
     ${H5Hut_INCLUDE_DIR}
     ${HDF5_INCLUDE_DIR}
@@ -124,6 +126,8 @@ add_executable( testAmrMultigrid
                 testAmrMultigrid.cpp
                 ${F90_source_files}
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                 AmrMultiGridCore.h
                 BelosBottomSolver.cpp
                 AmesosBottomSolver.cpp
@@ -135,6 +139,8 @@ add_executable( testSolverComparison
                 ../Solver.cpp
                 ${F90_source_files}
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                 BelosBottomSolver.cpp
                 AmesosBottomSolver.cpp
                 AmrSmoother.cpp
