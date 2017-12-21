@@ -59,7 +59,6 @@ LossDataSink::~LossDataSink() {
 }
 
 void LossDataSink::openH5() {
-#if defined (USE_H5HUT2)
     h5_prop_t props = H5CreateFileProp ();
     MPI_Comm comm = Ippl::getComm();
     H5SetPropFileMPIOCollective (props, &comm);
@@ -69,13 +68,6 @@ void LossDataSink::openH5() {
         throw GeneralClassicException("LossDataSink::openH5",
                                       "failed to open h5 file '" + fn_m + "'");
     }
-#else
-    H5file_m = H5OpenFile(fn_m.c_str(), H5_O_WRONLY, Ippl::getComm());
-    if(H5file_m == (void*)H5_ERR) {
-        throw GeneralClassicException("LossDataSink::openH5",
-                                      "failed to open h5 file '" + fn_m + "'");
-    }
-#endif
 }
 
 void LossDataSink::writeHeaderH5() {

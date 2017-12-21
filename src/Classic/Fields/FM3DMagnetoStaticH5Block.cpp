@@ -25,17 +25,12 @@ FM3DMagnetoStaticH5Block::FM3DMagnetoStaticH5Block(string aFilename):
 
     Type = T3DMagnetoStaticH5Block;
 
-#if defined (USE_H5HUT2)
     h5_prop_t props = H5CreateFileProp ();
     MPI_Comm comm = Ippl::getComm();
     h5err = H5SetPropFileMPIOCollective (props, &comm);
     assert (h5err != H5_ERR);
     h5_file_t file = H5OpenFile (aFilename.c_str(), H5_O_RDONLY, props);
     assert (file != (h5_file_t)H5_ERR);
-#else
-    h5_file_t *file = H5OpenFile (aFilename.c_str(), H5_O_RDONLY, Ippl::getComm());
-    assert (file != (void*)H5_ERR);
-#endif
 
     h5_int64_t last_step = H5GetNumSteps(file) - 1;
     assert (last_step >= 0);
@@ -94,17 +89,12 @@ void FM3DMagnetoStaticH5Block::readMap() {
     (void)h5err;
 #endif
 
-#if defined (USE_H5HUT2)
     h5_prop_t props = H5CreateFileProp ();
     MPI_Comm comm = Ippl::getComm();
     h5err = H5SetPropFileMPIOCollective (props, &comm);
     assert (h5err != H5_ERR);
     h5_file_t file = H5OpenFile (Filename_m.c_str(), H5_O_RDONLY, props);
     assert (file != (h5_file_t)H5_ERR);
-#else
-    h5_file_t *file = H5OpenFile (Filename_m.c_str(), H5_O_RDONLY, Ippl::getComm());
-    assert (file != (void*)H5_ERR);
-#endif
 
     long field_size = 0;
     int Nnodes = Ippl::getNodes();//min(20, Ippl::getNodes());
