@@ -1244,7 +1244,7 @@ void PartBunchBase<T, Dim>::getLocalBounds(Vector_t &rmin, Vector_t &rmax) {
     for (size_t i = 1; i < localNum; ++ i) {
         for (unsigned short d = 0; d < 3u; ++ d) {
             if (rmin(d) > R[i](d)) rmin(d) = R[i](d);
-	    if (rmax(d) < R[i](d)) rmax(d) = R[i](d);
+	    else if (rmax(d) < R[i](d)) rmax(d) = R[i](d);
         }
     }
 }
