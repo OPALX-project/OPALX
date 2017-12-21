@@ -45,7 +45,6 @@
 #pragma GCC diagnostic pop
 
 #include <algorithm>
-#include <omp.h>
 
 using Teuchos::RCP;
 using Teuchos::rcp;
@@ -243,7 +242,7 @@ void MGPoissonSolver::extrapolateLHS() {
         }
         *LHS = *(*P)(0);
      } else
-        throw OpalException("MGPoissonSolver", "Invalid number of old LHS: " + OldLHS.size());
+	    throw OpalException("MGPoissonSolver", "Invalid number of old LHS: " + std::to_string(OldLHS.size()));
 }
 
 
