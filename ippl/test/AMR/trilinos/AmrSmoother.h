@@ -1,9 +1,12 @@
 #ifndef AMR_SMOOTHER_H
 #define AMR_SMOOTHER_H
 
+#include <string>
+
 #include "AmrMultiGridCore.h"
 
 #include "Ifpack2_Factory.hpp"
+
 
 class AmrSmoother {
     
@@ -39,6 +42,7 @@ public:
                 const Teuchos::RCP<matrix_t>& A,
                 const Teuchos::RCP<vector_t>& b);
     
+    static Smoother convertToEnumSmoother(const std::string& smoother);
     
 private:
     
