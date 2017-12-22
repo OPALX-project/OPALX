@@ -185,8 +185,8 @@ IF ( ${AMREX_DIM} EQUAL 3 )
     
     set( EXECS
          ${EXECS}
-	 testBitPattern
-	 testCopy
+         testBitPattern
+         testCopy
     )
 ENDIF ( ${AMREX_DIM} EQUAL 3 )
                         
@@ -230,15 +230,15 @@ IF ( ${AMREX_DIM} EQUAL 2 )
 
     set( EXECS
          ${EXECS}
-	 testRestrictionMatrix
-	 testInterpolationMatrix
-	 testBoundaryMatrix
-	 testSmootherMatrix
-	 testPoissonMatrix
-	 testNoFine
-	 testWithFine
-	 testSpecialPoissonMatrix
-	 testLagrange
+         testRestrictionMatrix
+         testInterpolationMatrix
+         testBoundaryMatrix
+         testSmootherMatrix
+         testPoissonMatrix
+         testNoFine
+         testWithFine
+         testSpecialPoissonMatrix
+         testLagrange
     )
 ENDIF ( ${AMREX_DIM} EQUAL 2 )
 # target_link_libraries (testTrilinosGeometry ${LIBS}
