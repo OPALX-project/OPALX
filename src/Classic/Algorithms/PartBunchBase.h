@@ -591,6 +591,8 @@ public:
     
 protected:
     IpplTimings::TimerRef boundpTimer_m;
+    IpplTimings::TimerRef boundpBoundsTimer_m;
+    IpplTimings::TimerRef boundpUpdateTimer_m;
     IpplTimings::TimerRef statParamTimer_m;
 
     IpplTimings::TimerRef histoTimer_m;
@@ -724,10 +726,8 @@ protected:
     /*
       Data structure for particle load balance information
     */
-
-    std::unique_ptr<size_t[]> partPerNode_m;
+    
     std::unique_ptr<size_t[]> globalPartPerNode_m;
-    size_t minLocNum_m;
 
 
     Distribution *dist_m;

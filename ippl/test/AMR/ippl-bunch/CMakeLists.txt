@@ -13,10 +13,8 @@ set (CMAKE_CXX_FLAGS
     )
     
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO -DIPPL_AMR ${CMAKE_CXX_FLAGS}"
+    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DPARALLEL_IO -DIPPL_AMR ${AMREX_DEFINES} ${CMAKE_CXX_FLAGS}"
 )
-
-add_definitions(${AMREX_DEFINES})
     
 include_directories (
     ${CMAKE_SOURCE_DIR}/src
@@ -57,8 +55,7 @@ ELSE()
         ${HDF5_LIBRARY}
         ${IPPL_LIBRARY}
         ippl
-        mpi
-        mpi_cxx
+        ${MPI_LIBRARIES}
         mpi_mpifh
         m
         z

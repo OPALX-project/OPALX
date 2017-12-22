@@ -200,7 +200,7 @@ private:
 // Global Function.
 // ------------------------------------------------------------------------
 
-/// Euclidian inverse.
+/// Euclidean inverse.
 inline Euclid3D Inverse(const Euclid3D &t) {
     return t.inverse();
 }

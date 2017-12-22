@@ -15,7 +15,7 @@ link_directories (
 )
 
 set (CMAKE_CXX_FLAGS
-        "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
+        "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
     )
 
 SET (IPPL_LIBS ippl)
