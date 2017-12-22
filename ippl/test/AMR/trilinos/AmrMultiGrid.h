@@ -36,6 +36,7 @@ public:
     typedef AmrMultiGridLevel_t::indices_t      indices_t;
     typedef AmrMultiGridLevel_t::coefficients_t coefficients_t;
     typedef AmrMultiGridLevel_t::umap_t         umap_t;
+    typedef AmrMultiGridLevel_t::boundary_t     boundary_t;
 
     typedef amrex::BoxArray boxarray_t;
     typedef amrex::Box box_t;
@@ -126,7 +127,9 @@ public:
     
     /*!
      * Instantiation.
-     * @param bc physical boundary condition
+     * @param bcx physical boundary condition in x
+     * @param bcy physical boundary condition in y
+     * @param bcz physical boundary condition in z
      * @param interp interpolater from coarse to fine grids without taking care of
      * coarse-fine interface
      * @param interface interpolater taking care of coarse-fine interface
@@ -135,7 +138,9 @@ public:
      * @param smoother for error
      * @param norm convergence criteria
      */
-    AmrMultiGrid(Boundary bc = Boundary::DIRICHLET,
+    AmrMultiGrid(Boundary bcx = Boundary::DIRICHLET,
+                 Boundary bcy = Boundary::DIRICHLET,
+                 Boundary bcz = Boundary::DIRICHLET,
                  Interpolater interp = Interpolater::TRILINEAR,
                  Interpolater interface = Interpolater::LAGRANGE,
                  BaseSolver solver = BaseSolver::CG,
@@ -182,8 +187,10 @@ private:
     
     /*!
      * Instantiate boundary object
+     * @param bc boundary conditions
+     * @precondition length must be equal to AMREX_SPACEDIM
      */
-    void initPhysicalBoundary_m();
+    void initPhysicalBoundary_m(const Boundary* bc);
     
     /*!
      * Instantiate all levels and set boundary conditions
@@ -582,8 +589,8 @@ private:
     int lfine_m;            ///< fineste level
     int nlevel_m;           ///< number of levelss
     
-    Boundary bcType_m;          ///< physical boundary type
-    std::shared_ptr<AmrBoundary<AmrMultiGridLevel_t> > bc_m;
+    boundary_t bc_m[AMREX_SPACEDIM];
+    int nBcPoints_m;
     
     Norm norm_m;            ///< norm for convergence criteria (l1, l2, linf)
     
