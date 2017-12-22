@@ -1,5 +1,7 @@
 #include "BelosBottomSolver.h"
 
+#include "Utilities/OpalException.h"
+
 BelosBottomSolver::BelosBottomSolver(std::string solvertype, Preconditioner precond)
     : problem_mp( Teuchos::rcp( new problem_t() ) ),
       precond_m(precond),
@@ -58,7 +60,8 @@ void BelosBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
     A->fillComplete();
     
     if ( problem_mp == Teuchos::null )
-        throw std::runtime_error("No problem defined.");
+        throw OpalException("BelosBottomSolver::setOperator()",
+                            "No problem defined.");
     
     problem_mp->setOperator(A);
     
@@ -103,7 +106,8 @@ void BelosBottomSolver::initPreconditioner_m()
             prectype_m = "";
             break;
         default:
-            throw std::runtime_error("This type of Ifpack2 preconditioner not supported.");
+            throw OpalException("BelosBottomSolver::initPreconditioner_m()",
+                                "This type of Ifpack2 preconditioner not supported.");
     }
     
 }
