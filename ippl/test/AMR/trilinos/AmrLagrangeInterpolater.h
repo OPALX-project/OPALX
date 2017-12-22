@@ -39,7 +39,7 @@ public:
     AmrLagrangeInterpolater(Order order);
     
     void stencil(const AmrIntVect_t& iv,
-		 const basefab_t& fab,
+                 const basefab_t& fab,
                  umap_t& map,
                  const scalar_t& scale,
                  AmrMultiGridLevel* mglevel);
@@ -53,7 +53,7 @@ public:
     
     void fine(const AmrIntVect_t& iv,
               umap_t& map,
-	      const scalar_t& scale,
+              const scalar_t& scale,
               lo_t dir, lo_t shift,
               AmrMultiGridLevel* mglevel);
     
@@ -75,10 +75,10 @@ private:
      * and boundary avlues at physical domain, e.g. Dirichlet, open BC
      */
     void fineLinear_m(const AmrIntVect_t& iv,
-		      umap_t& map,
-		      const scalar_t& scale,
-		      lo_t dir, lo_t shift,
-		      AmrMultiGridLevel* mglevel);
+                      umap_t& map,
+                      const scalar_t& scale,
+                      lo_t dir, lo_t shift,
+                      AmrMultiGridLevel* mglevel);
     
     /*!
      * Second order interpolation on fine cell interface side
@@ -96,10 +96,10 @@ private:
      * and boundary avlues at physical domain, e.g. Dirichlet, open BC
      */
     void fineQuadratic_m(const AmrIntVect_t& iv,
-			 umap_t& map,
-			 const scalar_t& scale,
-			 lo_t dir, lo_t shift,
-			 AmrMultiGridLevel* mglevel);
+                         umap_t& map,
+                         const scalar_t& scale,
+                         lo_t dir, lo_t shift,
+                         AmrMultiGridLevel* mglevel);
     
     /*!
      * First oder interpolation on coarse cell interface side
@@ -118,7 +118,7 @@ private:
      */
     void crseLinear_m(const AmrIntVect_t& iv,
                       umap_t& map,
-		      const scalar_t& scale,
+                      const scalar_t& scale,
                       lo_t dir, lo_t shift, const basefab_t& rfab,
                       const AmrIntVect_t& riv,
                       AmrMultiGridLevel* mglevel);

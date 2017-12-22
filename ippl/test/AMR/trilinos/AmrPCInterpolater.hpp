@@ -16,7 +16,7 @@ void AmrPCInterpolater<AmrMultiGridLevel>::stencil(
     civ.coarsen(mglevel->refinement());
 
     if ( !mglevel->applyBoundary(civ, fab, map, scale) )
-	map[mglevel->serialize(civ)] += scale;
+        map[mglevel->serialize(civ)] += scale;
 }
 
 

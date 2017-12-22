@@ -110,7 +110,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "nparticles",     required_argument, 0, 'n' },
             { "writeYt",        no_argument,       0, 'w' },
             { "help",           no_argument,       0, 'h' },
-	    { "pcharge",        required_argument, 0, 'c' },
+            { "pcharge",        required_argument, 0, 'c' },
             { "writeCSV",       no_argument,       0, 'v' },
             { "writeParticles", no_argument,       0, 'p' },
             { "use-mgt-solver", no_argument,       0, 's' },
@@ -144,28 +144,28 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.useTrilinos = true; break;
             case 'g':
                 params.nsweeps = std::atoi(optarg); break;
-	    case 'q':
-	    {
-	        std::string smoother = optarg;
-	        if ( smoother == "SGS" )
-	            params.smoother = AmrMultiGrid::Smoother::SGS;
-	        else if ( smoother == "JACOBI" )
-	            params.smoother = AmrMultiGrid::Smoother::JACOBI;
-	        else
-	            throw std::runtime_error("Error: Check smoother argument");
-	        break;
-	    }
-	    case 'o':
-	    {
-	        std::string prec = optarg;
-	        if ( prec == "ILUT" )
-	            params.prec = AmrMultiGrid::Preconditioner::ILUT;
-	        else if ( prec == "CHEBYSHEV" )
-	            params.prec = AmrMultiGrid::Preconditioner::CHEBYSHEV;
-	        else
-	            throw std::runtime_error("Error: Check preconditioner argument");
-	        break;
-	    }
+            case 'q':
+            {
+                std::string smoother = optarg;
+                if ( smoother == "SGS" )
+                    params.smoother = AmrMultiGrid::Smoother::SGS;
+                else if ( smoother == "JACOBI" )
+                    params.smoother = AmrMultiGrid::Smoother::JACOBI;
+                else
+                    throw std::runtime_error("Error: Check smoother argument");
+                break;
+            }
+            case 'o':
+            {
+                std::string prec = optarg;
+                if ( prec == "ILUT" )
+                    params.prec = AmrMultiGrid::Preconditioner::ILUT;
+                else if ( prec == "CHEBYSHEV" )
+                    params.prec = AmrMultiGrid::Preconditioner::CHEBYSHEV;
+                else
+                    throw std::runtime_error("Error: Check preconditioner argument");
+                break;
+            }
             case 'j':
             {
                 std::string bc = optarg;
@@ -284,8 +284,8 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 #ifdef HAVE_AMR_MG_SOLVER
                     << "--use-trilinos (optional)" << endl
                     << "--nsweeps (optional, trilinos only, default: 12)" << endl
-		    << "--smoother (optional, trilinos only, default: GAUSS_SEIDEL)" << endl
-		    << "--prec (optional, trilinos only, default: NONE)" << endl
+                    << "--smoother (optional, trilinos only, default: GAUSS_SEIDEL)" << endl
+                    << "--prec (optional, trilinos only, default: NONE)" << endl
                     << "--bc (optional, dirichlet or open, default: dirichlet)" << endl
 #endif
                     << "--tagging charge (default) / efield / potential (optional)" << endl
@@ -753,10 +753,10 @@ void doAMReX(const param_t& params, Inform& msg)
     
 
     if ( Ippl::myNode() == 0 ) {
-	std::ofstream out("boxes-per-level-ncores-" + std::to_string(Ippl::getNodes()) + ".dat");
-	for (int i = 0; i <= myAmrOpal.finestLevel(); ++i)
-	    out << i << " " << myAmrOpal.boxArray(i).size() << std::endl;
-	out.close();
+        std::ofstream out("boxes-per-level-ncores-" + std::to_string(Ippl::getNodes()) + ".dat");
+        for (int i = 0; i <= myAmrOpal.finestLevel(); ++i)
+            out << i << " " << myAmrOpal.boxArray(i).size() << std::endl;
+        out.close();
     }
     
     bunch->gatherLevelStatistics();
@@ -772,7 +772,7 @@ void doAMReX(const param_t& params, Inform& msg)
     IpplTimings::stopTimer(statisticsTimer);
     
     for (int i = 0; i < 10; ++i)
-	doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, msg, scale, params);
+        doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, msg, scale, params);
     
     msg << endl << "Back to normal positions" << endl << endl;
     
@@ -858,17 +858,17 @@ int main(int argc, char *argv[]) {
             msg << "- MGT solver is used" << endl;
         
 #ifdef HAVE_AMR_MG_SOLVER
-	if ( params.useTrilinos ) {
-	    std::string smoother = "Gauss-Seidel";
-	    if ( params.smoother == AmrMultiGrid::Smoother::SGS )
-	        smoother = "symmetric" + smoother;
-	    else if ( params.smoother == AmrMultiGrid::Smoother::JACOBI )
-	        smoother = "Jacobi";
-	    msg << "- Trilinos solver is used with: "
-	        << "    - nsweeps:     " << params.nsweeps
-	        << "    - smoother:    " << smoother
-	        << endl;
-	}
+        if ( params.useTrilinos ) {
+            std::string smoother = "Gauss-Seidel";
+            if ( params.smoother == AmrMultiGrid::Smoother::SGS )
+                smoother = "symmetric" + smoother;
+            else if ( params.smoother == AmrMultiGrid::Smoother::JACOBI )
+                smoother = "Jacobi";
+            msg << "- Trilinos solver is used with: "
+                << "    - nsweeps:     " << params.nsweeps
+                << "    - smoother:    " << smoother
+                << endl;
+        }
 #endif
         doAMReX(params, msg);
         

@@ -73,7 +73,7 @@ IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
         ${HDF5_LIBRARY}
         ${IPPL_LIBRARY}
         ippl
-	${Boost_LIBRARIES}
+        ${Boost_LIBRARIES}
         m
         z
     )
@@ -372,9 +372,9 @@ target_link_libraries (testMultipleSources ${LIBS}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testUnifBox ${LIBS}
-                        -lgfortran ${Trilinos_LIBRARIES}
-			${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
-			${OTHER_CMAKE_EXE_LINKER_FLAGS}	${CMAKE_DL_LIBS})
+                       -lgfortran ${Trilinos_LIBRARIES}
+                       ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testLayout ${LIBS}
                         -lgfortran ${AMREX_LIBRARIES}

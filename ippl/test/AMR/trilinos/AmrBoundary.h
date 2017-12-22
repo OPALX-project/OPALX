@@ -25,9 +25,9 @@ public:
      * @param nr is the number of grid points
      */
     bool isBoundary(const AmrIntVect_t& iv, const lo_t* nr) const {
-	return AMREX_D_TERM(   isBoundary(iv, 0, nr),
-			    || isBoundary(iv, 1, nr),
-			    || isBoundary(iv, 2, nr));
+        return AMREX_D_TERM(   isBoundary(iv, 0, nr),
+                            || isBoundary(iv, 1, nr),
+                            || isBoundary(iv, 2, nr));
     }
 
     /*!
@@ -36,9 +36,9 @@ public:
      * @param nr is the number of grid points
      */
     bool isBoundary(const AmrIntVect_t& iv,
-		    const lo_t& dir,
-		    const lo_t* nr) const {
-	return ( iv[dir] < 0 || iv[dir] >= nr[0] );
+                    const lo_t& dir,
+                    const lo_t* nr) const {
+        return ( iv[dir] < 0 || iv[dir] >= nr[0] );
     }
     
     /*!
@@ -50,10 +50,10 @@ public:
      * @param nr is the number of grid points
      */
     bool apply(const AmrIntVect_t& iv,
-	       umap_t& map,
-	       const scalar_t& value,
-	       AmrMultiGridLevel* mglevel,
-	       const lo_t* nr);
+               umap_t& map,
+               const scalar_t& value,
+               AmrMultiGridLevel* mglevel,
+               const lo_t* nr);
 
     /*!
      * Slightly faster version of apply().
@@ -84,7 +84,7 @@ public:
      * @param nr is the number of grid points
      */
     virtual void apply(const AmrIntVect_t& iv,
-		       const lo_t& dir,
+                       const lo_t& dir,
                        umap_t& map,
                        const scalar_t& value,
                        AmrMultiGridLevel* mglevel,
@@ -101,17 +101,17 @@ private:
 
 template <class AmrMultiGridLevel>
 bool AmrBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
-					   umap_t& map,
-					   const scalar_t& value,
-					   AmrMultiGridLevel* mglevel,
-					   const lo_t* nr)
+                                           umap_t& map,
+                                           const scalar_t& value,
+                                           AmrMultiGridLevel* mglevel,
+                                           const lo_t* nr)
 {
     bool applied = false;
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-	if ( this->isBoundary(iv, d, nr) ) {
-	    applied = true;
-	    this->apply(iv, d, map, value, mglevel, nr);
-	}
+        if ( this->isBoundary(iv, d, nr) ) {
+            applied = true;
+            this->apply(iv, d, map, value, mglevel, nr);
+        }
     }
     return applied;
 }
@@ -119,21 +119,21 @@ bool AmrBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
 
 template <class AmrMultiGridLevel>
 bool AmrBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
-					   const basefab_t& fab,
-					   umap_t& map,
-					   const scalar_t& value,
-					   AmrMultiGridLevel* mglevel,
-					   const lo_t* nr)
+                                           const basefab_t& fab,
+                                           umap_t& map,
+                                           const scalar_t& value,
+                                           AmrMultiGridLevel* mglevel,
+                                           const lo_t* nr)
 {
     if ( fab(iv) != AmrMultiGridLevel::Mask::PHYSBNDRY )
-	return false;
+        return false;
     
     bool applied = false;
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-	if ( this->isBoundary(iv, d, nr) ) {
-	    applied = true;
-	    this->apply(iv, d, map, value, mglevel, nr);
-	}
+        if ( this->isBoundary(iv, d, nr) ) {
+            applied = true;
+            this->apply(iv, d, map, value, mglevel, nr);
+        }
     }
     return applied;
 }

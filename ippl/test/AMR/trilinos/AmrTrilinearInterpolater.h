@@ -21,9 +21,9 @@ public:
     AmrTrilinearInterpolater();
     
     void stencil(const AmrIntVect_t& iv,
-		 const basefab_t& fab,
+                 const basefab_t& fab,
                  umap_t& map,
-		 const scalar_t& scale,
+                 const scalar_t& scale,
                  AmrMultiGridLevel* mglevel);
     
     void coarse(const AmrIntVect_t& iv,
