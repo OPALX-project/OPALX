@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -39,14 +39,13 @@
 // include files
 #include "Utility/Timer.h"
 
-
 #ifdef IPPL_XT3
 #include <catamount/dclock.h>
 #endif
 
 #if defined(IPPL_T3E)
 #define tick_secs(ticks, clock_ticks) \
-( (double) ticks / (double) clock_ticks )          
+( (double) ticks / (double) clock_ticks )
 #endif
 
 //  TIMERON and TIMEROFF define the current state of a Timer
@@ -67,7 +66,7 @@
 
 Timer::Timer()
 {
-  
+
 
 #ifdef __MWERKS__
   // For now, stub out all Timer guts for MetroWerks
@@ -98,7 +97,7 @@ Timer::Timer()
 
 Timer::~Timer()
 {
-  
+
 
 #ifdef __MWERKS__
   // For now, stub out all Timer guts for MetroWerks
@@ -129,7 +128,7 @@ Timer::~Timer()
 
 void Timer::clear()
 {
-  
+
 
 #ifdef __MWERKS__
   // For now, stub out all Timer guts for MetroWerks
@@ -170,7 +169,7 @@ void Timer::clear()
 
 void Timer::start()
 {
-  
+
 
 #ifdef __MWERKS__
   // For now, stub out all Timer guts for MetroWerks
@@ -221,7 +220,7 @@ void Timer::start()
 
 void Timer::stop()
 {
-  
+
 
 #ifdef __MWERKS__
   // For now, stub out all Timer guts for MetroWerks
@@ -276,7 +275,7 @@ void Timer::stop()
 
 double Timer::clock_time()
 {
-  
+
 
 #ifdef __MWERKS__
   // For now, stub out all Timer guts for MetroWerks
@@ -285,7 +284,7 @@ double Timer::clock_time()
 
 #if !defined(IPPL_XT3)
   long seconds;	    // seconds elapsed
-  
+
 #if !defined(IPPL_T3E)
   long useconds;    // useconds (mirco-seconds) elapsed
 #endif
@@ -299,7 +298,7 @@ double Timer::clock_time()
       // Timer is currently off, so just return accumulated time
 #if !defined(IPPL_XT3)
       seconds = current_secs;
-      
+
 #if !defined(IPPL_T3E)
       useconds = current_usecs;
 #endif
@@ -347,7 +346,7 @@ double Timer::clock_time()
 #endif
 
   return ret_val;
-  
+
 #endif // __MWERKS__
 }
 /*			END OF FUNCTION clock_time			*/
@@ -366,13 +365,13 @@ double Timer::clock_time()
 
 double Timer::user_time()
 {
-  
+
 
 #ifdef __MWERKS__
 // For now, stub out all Timer guts for MetroWerks
   return 0.0;
 #else
-  double ret_val;		//  Return value	
+  double ret_val;		//  Return value
 
 #if ( defined(IPPL_T3E) || defined(IPPL_XT3) )
   // Not defined yet on T3E or TFLOP.
@@ -415,7 +414,7 @@ double Timer::user_time()
 
 double Timer::system_time()
 {
-  
+
 
 #ifdef __MWERKS__
 // For now, stub out all Timer guts for MetroWerks
@@ -452,5 +451,5 @@ double Timer::system_time()
 /***************************************************************************
  * $RCSfile: Timer.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: Timer.cpp,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: Timer.cpp,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $
  ***************************************************************************/

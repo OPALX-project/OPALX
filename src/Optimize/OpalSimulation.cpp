@@ -42,13 +42,15 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
 {
     namespace fs = boost::filesystem;
 
-    if(getenv("SIMTMPDIR") == NULL) {
-        std::cout << "Environment variable SIMTMPDIR not defined!"
-                  << std::endl;
-        simTmpDir_ = getenv("PWD");
-    } else
-        simTmpDir_ = getenv("SIMTMPDIR");
-
+    simTmpDir_ = args->getArg<std::string>("simtmpdir");
+    if (simTmpDir_ == "") {
+        if(getenv("SIMTMPDIR") == NULL) {
+            std::cout << "Environment variable SIMTMPDIR not defined!"
+                      << std::endl;
+            simTmpDir_ = getenv("PWD");
+        } else
+            simTmpDir_ = getenv("SIMTMPDIR");
+    }
     simulationName_ = name;
 
     // prepare design variables given by the optimizer for generating the
@@ -98,11 +100,14 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
 
     simulationDirName_ = tmp.str();
 
-    if(getenv("TEMPLATES") == NULL) {
-        throw OptPilotException("OpalSimulation::OpalSimulation",
-            "Environment variable TEMPLATES not defined!");
+    std::string tmplDir = args->getArg<std::string>("templates");
+    if (tmplDir == "") {
+        if(getenv("TEMPLATES") == NULL) {
+            throw OptPilotException("OpalSimulation::OpalSimulation",
+                                    "Environment variable TEMPLATES not defined!");
+        }
+        tmplDir = getenv("TEMPLATES");
     }
-    std::string tmplDir = getenv("TEMPLATES");
     std::string tmplFile = tmplDir + "/" + simulationName_ + ".tmpl";
     // data file is assumed to be located in the root directory
     std::string dataFile = simulationName_ + ".data";
@@ -254,7 +259,6 @@ void OpalSimulation::run() {
         std::cout.setstate(std::ios::failbit);
         // std::cerr.setstate(std::ios::failbit);
 #endif
-
         // now we can run the simulation
         run_opal(arg, inputFileName.str(), -1, comm_);
 
