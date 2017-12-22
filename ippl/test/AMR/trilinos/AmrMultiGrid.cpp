@@ -39,7 +39,12 @@ AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
     bottomTimer_m       = IpplTimings::getTimer("bottom-solver");
 #endif
     
-    //FIXME
+    //FIXME Allow different boundary condition in each direction
+    const Boundary xBoundary = this->convertToEnumBoundary_m(bcx);
+    const Boundary yBoundary = this->convertToEnumBoundary_m(bcy);
+    const Boundary zBoundary = this->convertToEnumBoundary_m(bcz);
+    
+    bcType_m = xBoundary;
     this->initPhysicalBoundary_m();
     
     const Interpolater interpolater = this->convertToEnumInterpolater_m(interp);
