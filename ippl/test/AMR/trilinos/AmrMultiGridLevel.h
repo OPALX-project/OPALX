@@ -59,7 +59,7 @@ public:
     // YES  : cell got refined
     enum Refined {
         YES = 0,
-	NO  = 1
+        NO  = 1
     };
     
 public:
@@ -82,14 +82,14 @@ public:
                        const scalar_t& value);
     
     bool applyBoundary(const AmrIntVect_t& iv,
-		       const basefab_t& fab,
-		       umap_t& map,
-		       const scalar_t& value);
+                       const basefab_t& fab,
+                       umap_t& map,
+                       const scalar_t& value);
 
     void applyBoundary(const AmrIntVect_t& iv,
-		       const lo_t& dir,
-		       umap_t& map,
-		       const scalar_t& value);
+                       const lo_t& dir,
+                       umap_t& map,
+                       const scalar_t& value);
     
     const AmrIntVect_t& refinement() const;
     
@@ -106,12 +106,12 @@ public:
     
     Teuchos::RCP<dmap_t> map_p;         ///< core map
     
-    Teuchos::RCP<matrix_t> Anf_p;               ///< no fine Poisson matrix
-    Teuchos::RCP<matrix_t> R_p;                 ///< restriction matrix
-    Teuchos::RCP<matrix_t> I_p;                 ///< interpolation matrix
-    Teuchos::RCP<matrix_t> Bcrse_p;             ///< boundary from coarse cells
-    Teuchos::RCP<matrix_t> Bfine_p;             ///< boundary from fine cells
-    Teuchos::RCP<matrix_t> Awf_p;               ///< composite Poisson matrix
+    Teuchos::RCP<matrix_t> Anf_p;       ///< no fine Poisson matrix
+    Teuchos::RCP<matrix_t> R_p;         ///< restriction matrix
+    Teuchos::RCP<matrix_t> I_p;         ///< interpolation matrix
+    Teuchos::RCP<matrix_t> Bcrse_p;     ///< boundary from coarse cells
+    Teuchos::RCP<matrix_t> Bfine_p;     ///< boundary from fine cells
+    Teuchos::RCP<matrix_t> Awf_p;       ///< composite Poisson matrix
     
     /// gradient matrices in x, y, and z to compute electric field
     Teuchos::RCP<matrix_t> G_p[AMREX_SPACEDIM];
