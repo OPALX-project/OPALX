@@ -49,11 +49,11 @@ public:
      * @param value of matrix entry that is supposed for index
      * @param nr is the number of grid points
      */
-    bool apply(const AmrIntVect_t& iv,
-               umap_t& map,
-               const scalar_t& value,
-               AmrMultiGridLevel* mglevel,
-               const lo_t* nr);
+// //     bool apply(const AmrIntVect_t& iv,
+// //                umap_t& map,
+// //                const scalar_t& value,
+// //                AmrMultiGridLevel* mglevel,
+// //                const lo_t* nr);
 
     /*!
      * Slightly faster version of apply().
@@ -66,12 +66,12 @@ public:
      * @precondition Basefab needs to be a mask with
      * AmrMultiGridLevel::Mask::PHYSBNDRY
      */
-    bool apply(const AmrIntVect_t& iv,
-               const basefab_t& fab,
-               umap_t& map,
-               const scalar_t& value,
-               AmrMultiGridLevel* mglevel,
-               const lo_t* nr);
+//     bool apply(const AmrIntVect_t& iv,
+//                const basefab_t& fab,
+//                umap_t& map,
+//                const scalar_t& value,
+//                AmrMultiGridLevel* mglevel,
+//                const lo_t* nr);
 
     
     /*!
@@ -99,43 +99,45 @@ private:
 };
 
 
-template <class AmrMultiGridLevel>
-bool AmrBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
-                                           umap_t& map,
-                                           const scalar_t& value,
-                                           AmrMultiGridLevel* mglevel,
-                                           const lo_t* nr)
-{
-    bool applied = false;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-        if ( this->isBoundary(iv, d, nr) ) {
-            applied = true;
-            this->apply(iv, d, map, value, mglevel, nr);
-        }
-    }
-    return applied;
-}
+// template <class AmrMultiGridLevel>
+// bool AmrBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
+//                                            umap_t& map,
+//                                            const scalar_t& value,
+//                                            AmrMultiGridLevel* mglevel,
+//                                            const lo_t* nr)
+// {
+//     // in AmrMultiGridLevel
+//     bool applied = false;
+//     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+//         if ( this->isBoundary(iv, d, nr) ) {
+//             applied = true;
+//             this->apply(iv, d, map, value, mglevel, nr);
+//         }
+//     }
+//     return applied;
+// }
 
 
-template <class AmrMultiGridLevel>
-bool AmrBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
-                                           const basefab_t& fab,
-                                           umap_t& map,
-                                           const scalar_t& value,
-                                           AmrMultiGridLevel* mglevel,
-                                           const lo_t* nr)
-{
-    if ( fab(iv) != AmrMultiGridLevel::Mask::PHYSBNDRY )
-        return false;
-    
-    bool applied = false;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-        if ( this->isBoundary(iv, d, nr) ) {
-            applied = true;
-            this->apply(iv, d, map, value, mglevel, nr);
-        }
-    }
-    return applied;
-}
+// template <class AmrMultiGridLevel>
+// bool AmrBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
+//                                            const basefab_t& fab,
+//                                            umap_t& map,
+//                                            const scalar_t& value,
+//                                            AmrMultiGridLevel* mglevel,
+//                                            const lo_t* nr)
+// {
+//     // in AmrMultiGridLevel
+//     if ( fab(iv) != AmrMultiGridLevel::Mask::PHYSBNDRY )
+//         return false;
+//     
+//     bool applied = false;
+//     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+//         if ( this->isBoundary(iv, d, nr) ) {
+//             applied = true;
+//             this->apply(iv, d, map, value, mglevel, nr);
+//         }
+//     }
+//     return applied;
+// }
 
 #endif

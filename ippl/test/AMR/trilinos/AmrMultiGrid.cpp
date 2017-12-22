@@ -26,7 +26,8 @@ AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
       nSweeps_m(nSweeps),
       lbase_m(0),
       lfine_m(0),
-      nlevel_m(1)
+      nlevel_m(1),
+      nBcPoints_m(0)
 {
     comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
     node_mp = KokkosClassic::Details::getNode<amr::node_t>(); //KokkosClassic::DefaultNode::getDefaultNode();
@@ -40,13 +41,13 @@ AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
     bottomTimer_m       = IpplTimings::getTimer("bottom-solver");
 #endif
     
-    //FIXME Allow different boundary condition in each direction
-    const Boundary xBoundary = this->convertToEnumBoundary_m(bcx);
-    const Boundary yBoundary = this->convertToEnumBoundary_m(bcy);
-    const Boundary zBoundary = this->convertToEnumBoundary_m(bcz);
+    const Boundary bcs[AMREX_SPACEDIM] = {
+        this->convertToEnumBoundary_m(bcx),
+        this->convertToEnumBoundary_m(bcy),
+        this->convertToEnumBoundary_m(bcz)
+    };
     
-    bcType_m = xBoundary;
-    this->initPhysicalBoundary_m();
+    this->initPhysicalBoundary_m(&bcs[0]);
     
     smootherType_m = this->convertToEnumSmoother_m(smoother);
     
@@ -65,7 +66,9 @@ AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
 }
 
 
-AmrMultiGrid::AmrMultiGrid(Boundary bc,
+AmrMultiGrid::AmrMultiGrid(Boundary bcx,
+                           Boundary bcy,
+                           Boundary bcz,
                            Interpolater interp,
                            Interpolater interface,
                            BaseSolver solver,
@@ -79,7 +82,7 @@ AmrMultiGrid::AmrMultiGrid(Boundary bc,
       lbase_m(0),
       lfine_m(0),
       nlevel_m(1),
-      bcType_m(bc),
+      nBcPoints_m(0),
       norm_m(norm)
 {
     comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
@@ -107,7 +110,9 @@ AmrMultiGrid::AmrMultiGrid(Boundary bc,
 
 #endif
     
-    this->initPhysicalBoundary_m();
+    const Boundary bcs[AMREX_SPACEDIM] = { bcx, bcy, bcz };
+    
+    this->initPhysicalBoundary_m(&bcs[0]);
     
     this->initInterpolater_m(interp);
     
@@ -151,20 +156,30 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
 }
 
 
-void AmrMultiGrid::initPhysicalBoundary_m() {
-    switch ( bcType_m ) {
+void AmrMultiGrid::initPhysicalBoundary_m(const Boundary* bc)
+{
+    // make sure it's reset
+    nBcPoints_m = 0;
+    
+    for (unsigned int i = 0; i < AMREX_SPACEDIM; ++i) {
+        switch ( bc[i] ) {
             case Boundary::DIRICHLET:
-                bc_m.reset( new AmrDirichletBoundary<AmrMultiGridLevel_t>() );
+                bc_m[i].reset( new AmrDirichletBoundary<AmrMultiGridLevel_t>() );
                 break;
             case Boundary::OPEN:
-                bc_m.reset( new AmrOpenBoundary<AmrMultiGridLevel_t>() );
+                bc_m[i].reset( new AmrOpenBoundary<AmrMultiGridLevel_t>() );
                 break;
             case Boundary::PERIODIC:
-                bc_m.reset( new AmrPeriodicBoundary<AmrMultiGridLevel_t>() );
+                bc_m[i].reset( new AmrPeriodicBoundary<AmrMultiGridLevel_t>() );
                 break;
             default:
                 throw OpalException("AmrMultiGrid::initPhysicalBoundary_m()",
                                     "This type of boundary is not supported");
+        }
+        // we use the maximum in order to build matrices
+        int tmp = bc_m[i]->getNumberOfPoints();
+        if ( nBcPoints_m < tmp )
+            nBcPoints_m = tmp;
     }
 }
 
@@ -183,7 +198,7 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
                                                      rho[ilev]->DistributionMap(),
                                                      geom[ilev],
                                                      rr,
-                                                     bc_m.get(),
+                                                     bc_m,
                                                      comm_mp,
                                                      node_mp));
 
@@ -816,7 +831,7 @@ void AmrMultiGrid::open_m(const lo_t& level,
              * interpolation matrix
              */
             
-            int nNeighbours = (bc_m->getNumberOfPoints() + 1) * interp_mp->getNumberOfPoints();
+            int nNeighbours = (nBcPoints_m + 1) * interp_mp->getNumberOfPoints();
     
             mglevel_m[level]->I_p = Teuchos::rcp( new matrix_t(mglevel_m[level]->map_p,
                                                                nNeighbours,
@@ -826,7 +841,7 @@ void AmrMultiGrid::open_m(const lo_t& level,
              * coarse boundary matrix
              */
             
-            nNeighbours = 2 * AMREX_SPACEDIM * bc_m->getNumberOfPoints() *
+            nNeighbours = 2 * AMREX_SPACEDIM * nBcPoints_m *
                           2 * AMREX_SPACEDIM * interface_mp->getNumberOfPoints();
             
             mglevel_m[level]->Bcrse_p = Teuchos::rcp(
@@ -866,7 +881,7 @@ void AmrMultiGrid::open_m(const lo_t& level,
          * no-fine Poisson matrix
          */
         
-        int nPhysBoundary = 2 * AMREX_SPACEDIM * bc_m->getNumberOfPoints();
+        int nPhysBoundary = 2 * AMREX_SPACEDIM * nBcPoints_m;
     
         // number of internal stencil points
         int nIntBoundary = AMREX_SPACEDIM * interface_mp->getNumberOfPoints();
