@@ -83,8 +83,9 @@ ELSE()
         ${HDF5_LIBRARY}
         ${IPPL_LIBRARY}
         ippl
-	${Boost_LIBRARIES}
-    ${MPI_LIBRARIES}
+        ${Boost_LIBRARIES}
+        ${Trilinos_LIBRARIES}
+        ${MPI_LIBRARIES}
         mpi_mpifh
         m
         z
