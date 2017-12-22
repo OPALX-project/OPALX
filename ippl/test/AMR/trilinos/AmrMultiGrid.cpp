@@ -157,7 +157,8 @@ void AmrMultiGrid::initPhysicalBoundary_m() {
                 bc_m.reset( new AmrPeriodicBoundary<AmrMultiGridLevel_t>() );
                 break;
             default:
-                throw std::runtime_error("Error: This type of boundary is not supported");
+                throw OpalException("AmrMultiGrid::initPhysicalBoundary_m()",
+                                    "This type of boundary is not supported");
     }
 }
 
@@ -527,7 +528,8 @@ AmrMultiGrid::evalNorm_m(const Teuchos::RCP<const vector_t>& x)
             break;
         }
         default:
-            throw std::runtime_error("This type of norm not suppported.");
+            throw OpalException("AmrMultiGrid::evalNorm_m()",
+                                "This type of norm not suppported.");
     }
     return norm;
 }
@@ -988,8 +990,9 @@ void AmrMultiGrid::buildNoFinePoissonMatrix_m(const lo_t& level,
                     // only level > 0 have this kind of boundary
 #if DEBUG
                     if ( level == lbase_m )
-                        throw std::runtime_error("Error in mask for level "
-                                                 + std::to_string(level) + "!");
+                        throw OpalException("AmrMultiGrid::buildNoFinePoissonMatrix_m()",
+                                            "Error in mask for level "
+                                            + std::to_string(level) + "!");
 #endif    
                     /* Dirichlet boundary conditions from coarser level.
                      */
@@ -1005,8 +1008,9 @@ void AmrMultiGrid::buildNoFinePoissonMatrix_m(const lo_t& level,
                     break;
                 }
                 default:
-                    throw std::runtime_error("Error in mask for level "
-                                             + std::to_string(level) + "!");
+                    throw OpalException("AmrMultiGrid::buildNoFinePoissonMatrix_m()",
+                                        "Error in mask for level "
+                                        + std::to_string(level) + "!");
             }
         }
     }
@@ -1026,12 +1030,12 @@ void AmrMultiGrid::buildNoFinePoissonMatrix_m(const lo_t& level,
 
 
 void AmrMultiGrid::buildCompositePoissonMatrix_m(const lo_t& level,
-						 const go_t& gidx,
-						 const AmrIntVect_t& iv,
+                                                 const go_t& gidx,
+                                                 const AmrIntVect_t& iv,
                                                  const basefab_t& mfab,
-						 const basefab_t& rfab,
-						 const basefab_t& cfab,
-						 const scalar_t* invdx2)
+                                                 const basefab_t& rfab,
+                                                 const basefab_t& cfab,
+                                                 const scalar_t* invdx2)
 {
     /*
      * Laplacian of "with fine"
@@ -1087,8 +1091,9 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const lo_t& level,
 		    // only level > 0 have this kind of boundary
 #if DEBUG
 		    if ( level == lbase_m )
-			throw std::runtime_error("Error in mask for level "
-						 + std::to_string(level) + "!");
+			throw OpalException("AmrMultiGrid::buildCompositePoissonMatrix_m()",
+                                            "Error in mask for level "
+                                            + std::to_string(level) + "!");
 #endif
 		    
 		    /* We are on the fine side of the crse-fine interface
@@ -1117,8 +1122,9 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const lo_t& level,
 		    break;
 		}
 		default:
-		    throw std::runtime_error("Error in mask for level "
-					     + std::to_string(level) + "!");
+		    throw OpalException("AmrMultiGrid::buildCompositePoissonMatrix_m()",
+                                        "Error in mask for level "
+                                        + std::to_string(level) + "!");
 		}
 	    } else {
 		/*
@@ -1512,8 +1518,9 @@ void AmrMultiGrid::buildGradientMatrix_m(const lo_t& level,
                 // interior boundary cells --> only level > 0
 #if DEBUG
                 if ( level == lbase_m )
-                    throw std::runtime_error("Error in mask for level "
-                                             + std::to_string(level) + "!");
+                    throw OpalException("AmrMultiGrid::buildGradientMatrix_m()",
+                                        "Error in mask for level "
+                                        + std::to_string(level) + "!");
 #endif
                 
                 scalar_t value = - shift * 0.5 * invdx[dir];
@@ -1760,12 +1767,14 @@ void AmrMultiGrid::initInterpolater_m(const Interpolater& interp) {
             interp_mp.reset( new AmrTrilinearInterpolater<AmrMultiGridLevel_t>() );
             break;
         case Interpolater::LAGRANGE:
-            std::runtime_error("Not yet implemented.");
+            throw OpalException("AmrMultiGrid::initInterpolater_m()",
+                                "Not yet implemented.");
         case Interpolater::PIECEWISE_CONST:
             interp_mp.reset( new AmrPCInterpolater<AmrMultiGridLevel_t>() );
             break;
         default:
-            std::runtime_error("No such interpolater available.");
+            throw OpalException("AmrMultiGrid::initInterpolater_m()",
+                                "No such interpolater available.");
     }
 }
 
@@ -1783,7 +1792,8 @@ void AmrMultiGrid::initCrseFineInterp_m(const Interpolater& interface) {
             interface_mp.reset( new AmrPCInterpolater<AmrMultiGridLevel_t>() );
             break;
         default:
-            std::runtime_error("No such interpolater for the coarse-fine interface available.");
+            throw OpalException("AmrMultiGrid::initCrseFineInterp_m()",
+                                "No such interpolater for the coarse-fine interface available.");
     }
 }
 
@@ -1849,7 +1859,8 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
             break;
 #endif
         default:
-            std::runtime_error("No such bottom solver available.");
+            throw OpalException("AmrMultiGrid::initBaseSolver_m()",
+                                "No such bottom solver available.");
     }
 }
 
