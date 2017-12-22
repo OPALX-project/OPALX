@@ -129,6 +129,8 @@ target_link_libraries (libOPAL
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARY}
     ${Boost_LIBRARIES}
+    m
+    z
     )
 
 if (ENABLE_DKS)
@@ -146,8 +148,6 @@ target_link_libraries (libOPAL
 add_executable (opal Main.cpp)
 target_link_libraries( opal
     libOPAL
-    m
-    z
     ${CMAKE_DL_LIBS}
     )
 
