@@ -128,7 +128,6 @@ DRIVE: Line = (GS, DR1);
 // TPULSEFWHM:    FWHM in longitudinal direction (s).
 // CUTOFFLONG:    Longitudinal cuttoff in units of sigma.
 // NBIN:          Number of energy bins to use during emission.
-// DEBIN:         Defines when to combine bins (Min energy difference in KeV). 
 // EMISSIONSTEPS: Number of steps during emssion. 
 //                Emission time step is adjusted to fit this number.
 // EKIN:          Kinetic energy of electrons at emission (eV). 
@@ -152,7 +151,6 @@ Dist: DISTRIBUTION, TYPE = FLATTOP,
         TPULSEFWHM = 20.0e-12, 
         CUTOFFLONG = 4.0,
         NBIN = 9,
-        DEBIN = 1, 
         EMISSIONSTEPS = 100,
         EMISSIONMODEL = ASTRA,
         EKIN = 0.55,           

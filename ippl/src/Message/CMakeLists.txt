@@ -14,11 +14,13 @@ SET (_HDRS
   CommSHMEMPI.h
   Communicate.h
   CRC.h
+  DataTypes.h
   Formatter.h
   GlobalComm.hpp
   GlobalComm.h
   Message.hpp
   Message.h
+  Operations.h
   TagMaker.h
   Tags.h
   )

@@ -25,7 +25,7 @@
 // ------------------------------------------------------------------------
 
 
-ConvergenceError::ConvergenceError(const std::string &meth, const std::string &msg):
+ConvergenceError::ConvergenceError(const string &meth, const string &msg):
     ArithmeticError(meth, msg)
 {}
 

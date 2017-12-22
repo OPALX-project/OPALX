@@ -45,8 +45,7 @@ IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
     )
 ELSE()
     SET (LIBS
-        mpi
-        mpi_cxx
+        ${MPI_LIBRARIES}
         mpi_mpifh
         ${IPPL_LIBRARY}
         ippl

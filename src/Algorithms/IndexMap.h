@@ -2,11 +2,11 @@
 #define OPAL_INDEXMAP_H
 
 #include <ostream>
+#include <map>
 
 #include "AbsBeamline/Component.h"
 #include "Utilities/OpalException.h"
 
-#include <map>
 #include <set>
 #include <utility>
 
@@ -51,7 +51,7 @@ public:
 private:
     class myCompare {
     public:
-        bool operator()(const key_t x , const key_t y)
+        bool operator()(const key_t x , const key_t y) const
         {
             if (x.first < y.first) return true;
 

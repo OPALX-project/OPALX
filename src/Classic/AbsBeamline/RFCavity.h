@@ -140,7 +140,9 @@ public:
 
     virtual void goOffline();
 
-    virtual void setDesignEnergy(double ekin);
+    using Component::setDesignEnergy;
+    virtual void setDesignEnergy(const double& ekin);
+    virtual void setDesignEnergy(const double& ekin, bool);
     virtual double getDesignEnergy() const;
 
     void setRmin(double rmin);
@@ -334,7 +336,13 @@ double RFCavity::getdB(const int & i,
 }
 
 inline
-void RFCavity::setDesignEnergy(double ekin)
+void RFCavity::setDesignEnergy(const double& ekin)
+{
+    designEnergy_m = ekin;
+}
+
+inline
+void RFCavity::setDesignEnergy(const double& ekin, bool)
 {
     designEnergy_m = ekin;
 }

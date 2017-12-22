@@ -147,6 +147,6 @@ PoissonBracket(const Taylor<T> &, const Taylor<T> &);
 template <class T>
 std::ostream &operator<<(std::ostream &, const Taylor<T> &);
 
-#include <FixedAlgebra/Taylor.hpp>
+#include "FixedAlgebra/Taylor.cpp"
 
 #endif // CLASSIC_Taylor_HH

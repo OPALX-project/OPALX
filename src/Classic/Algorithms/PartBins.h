@@ -170,12 +170,6 @@ public:
 
     Inform &print(Inform &os);
 
-    /** Set energy [keV] to define a rebin condition */
-
-    void setRebinEnergy(double e) { dERebin_m = e; }
-
-    double getRebinEnergy() { return dERebin_m; }
-
     int getSBins() { return sBins_m; };
 
     /** get the number of used bin */
@@ -254,9 +248,6 @@ public:
 
 
 private:
-
-    /** Defines energy threshold for rebining */
-    double dERebin_m;
 
     /** number of emitted bins */
     int nemittedBins_m;

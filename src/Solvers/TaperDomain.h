@@ -34,6 +34,7 @@ public:
     /// returns discretization at 3D index
     void getBoundaryStencil(int idx, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
     /// returns index of neighbours at (x,y,z)
+    using IrregularDomain::getNeighbours;
     void getNeighbours(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B);
     /// returns index of neighbours at 3D index
     void getNeighbours(int idx, double &W, double &E, double &S, double &N, double &F, double &B);
