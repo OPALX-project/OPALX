@@ -69,7 +69,8 @@ IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
         ${HDF5_LIBRARY}
         ${IPPL_LIBRARY}
         ippl
-	${Boost_LIBRARIES}
+        ${Boost_LIBRARIES}
+        ${Trilinos_LIBRARIES}
         m
         z
     )
@@ -79,7 +80,7 @@ ELSE()
         ${HDF5_LIBRARY}
         ${IPPL_LIBRARY}
         ippl
-	${Boost_LIBRARIES}
+        ${Boost_LIBRARIES}
         mpi
         mpi_cxx
         mpi_mpifh
