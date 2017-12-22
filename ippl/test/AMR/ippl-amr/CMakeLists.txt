@@ -232,6 +232,8 @@ if ( ENABLE_AMR_MG_SOLVER )
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp
                     ../trilinos/AmrMultiGridCore.h
@@ -287,6 +289,8 @@ else ()
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp)
 
