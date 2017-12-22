@@ -1,3 +1,5 @@
+#include "Utilities/OpalException.h"
+
 #if AMREX_SPACEDIM == 3
 template <class AmrMultiGridLevel>
 constexpr typename AmrLagrangeInterpolater<AmrMultiGridLevel>::qpattern_t
@@ -92,7 +94,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::coarse(
             this->crseLinear_m(iv, map, scale, dir, shift, rfab, riv, mglevel);
             break;
         default:
-            std::runtime_error("Not implemented interpolation");
+            throw OpalException("AmrLagrangeInterpolater::coarse()",
+                                "Not implemented interpolation");
     }
 }
 
@@ -115,7 +118,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fine(
             this->fineLinear_m(iv, map, scale, dir, shift, mglevel);
             break;
         default:
-            std::runtime_error("Not implemented interpolation");
+            throw OpalException("AmrLagrangeInterpolater::fine()",
+                                "Not implemented interpolation");
     }
 }
 
@@ -196,7 +200,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
         map[mglevel->serialize(miv)] += fac * lookup1[top];
         
     } else
-        throw std::runtime_error("Lagrange Error: No valid scenario found!");
+        throw OpalException("AmrLagrangeInterpolater::crseLinear_m()",
+                            "No valid interpolation scenario found!");
     
 #elif AMREX_SPACEDIM == 3
     
@@ -321,7 +326,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
             break;
         }
         default:
-            throw std::runtime_error("Lagrange Error: No valid scenario found!");
+            throw OpalException("AmrLagrangeInterpolater::crseLinear_m()",
+                                "No valid interpolation scenario found!");
     }
     
     /*
