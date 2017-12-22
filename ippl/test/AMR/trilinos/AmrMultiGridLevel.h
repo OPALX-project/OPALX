@@ -24,12 +24,11 @@ public:
     typedef VectorType vector_t;
     typedef amrex::BaseFab<int> basefab_t;
     typedef amrex::FabArray<basefab_t> mask_t;
-    typedef AmrBoundary<
-                    AmrMultiGridLevel<
-                        MatrixType,
-                        VectorType
-                    >
-            > boundary_t;
+    typedef std::shared_ptr<AmrBoundary<AmrMultiGridLevel<MatrixType,
+                                                          VectorType
+                                                          >
+                                        >
+                            > boundary_t;
     
     typedef amr::comm_t comm_t;
     typedef amr::dmap_t dmap_t;
@@ -67,7 +66,7 @@ public:
                       const amrex::DistributionMapping& _dmap,
                       const AmrGeometry_t& _geom,
                       const AmrIntVect_t& rr,
-                      boundary_t* const bc,
+                      const boundary_t* bc,
                       const Teuchos::RCP<comm_t>& comm,
                       const Teuchos::RCP<node_t>& node);
     
@@ -131,7 +130,7 @@ private:
     
     AmrIntVect_t rr_m;                  ///< refinement
     
-    boundary_t* const bc_mp;
+    boundary_t bc_mp[AMREX_SPACEDIM];
 };
 
 
