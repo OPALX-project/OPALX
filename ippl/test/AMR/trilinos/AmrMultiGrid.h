@@ -589,8 +589,8 @@ private:
     int lfine_m;            ///< fineste level
     int nlevel_m;           ///< number of levelss
     
-    boundary_t bc_m[AMREX_SPACEDIM];
-    int nBcPoints_m;
+    boundary_t bc_m[AMREX_SPACEDIM];    ///< boundary conditions
+    int nBcPoints_m;                    ///< maximum number of stencils points for BC
     
     Norm norm_m;            ///< norm for convergence criteria (l1, l2, linf)
     

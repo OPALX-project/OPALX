@@ -12,6 +12,7 @@
 
 #include <string>
 
+/// Interface to Belos solvers of the Trilinos package
 class BelosBottomSolver : public BottomSolver<Teuchos::RCP<amr::matrix_t>,
                                               Teuchos::RCP<amr::multivector_t> >
 {
@@ -33,6 +34,10 @@ public:
     
 public:
     
+    /*!
+     * @param solvertype to use
+     * @param precond preconditioner of matrix
+     */
     BelosBottomSolver(std::string solvertype = "Pseudoblock CG",
                       Preconditioner precond = Preconditioner::NONE);
     
@@ -44,25 +49,36 @@ public:
     void setOperator(const Teuchos::RCP<matrix_t>& A);
     
 private:
-    
+    /*!
+     * Create a solver instance
+     * @param solvertype to create
+     */
     void initSolver_m(std::string solvertype);
     
+    /*!
+     * Initialize preconditioner parameter list
+     */
     void initPreconditioner_m();
     
+    /*!
+     * Create the preconditioner
+     * @param A system matrix
+     */
     void computePrecond_m(const Teuchos::RCP<const matrix_t>& A);
     
 private:
-    Teuchos::RCP<problem_t> problem_mp;
-    Teuchos::RCP<Teuchos::ParameterList> params_mp;
-    Teuchos::RCP<solver_t>  solver_mp;
+    Teuchos::RCP<problem_t> problem_mp;             ///< represents linear problem
+    Teuchos::RCP<Teuchos::ParameterList> params_mp; ///< parameter list of solver
+    Teuchos::RCP<solver_t>  solver_mp;              ///< solver instance
     
-    Preconditioner precond_m;
-    std::string prectype_m;
-    Teuchos::RCP<Teuchos::ParameterList> prec_mp;
-    Teuchos::RCP<precond_t> P_mp;
+    Preconditioner precond_m;                       ///< preconditioner type
+    std::string prectype_m;                         ///< preconditioner type
+    Teuchos::RCP<Teuchos::ParameterList> prec_mp;   ///< parameter list of preconditioner
+    Teuchos::RCP<precond_t> P_mp;                   ///< preconditioner
     
-    scalar_t reltol_m;
+    scalar_t reltol_m;                              ///< relative tolerance
     
+    /// allowed number of steps for iterative solvers
     int maxiter_m;
 };
 
