@@ -1,5 +1,13 @@
 set (_SRCS
   DragtFinnMap.cpp
+  FLieGenerator.cpp
+  FTps.cpp
+  FVps.cpp
+  LinearFun.cpp
+  LinearMap.cpp
+  Taylor.cpp
+  TransportFun.cpp
+  TransportMap.cpp
   )
 
 include_directories (
@@ -17,7 +25,6 @@ set (HDRS
     FDoubleEigen.h
     FDynamicFP.h
     FLieGenerator.h
-    FLieGenerator.hpp
     FLUMatrix.h
     FMatrix.h
     FMonomial.h
@@ -26,23 +33,17 @@ set (HDRS
     FStaticFP.h
     FTpsData.h
     FTps.h
-    FTps.hpp
     FTpsMath.h
     FVector.h
     FVps.h
-    FVps.hpp
     LinearFun.h
-    LinearFun.hpp
     LinearMap.h
-    LinearMap.hpp
     LinearMath.h
     Taylor.h
-    Taylor.hpp
     TransportFun.h
-    TransportFun.hpp
     TransportMap.h
-    TransportMap.hpp
     TransportMath.h
 )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/FixedAlgebra")
+install (FILES ${_SRCS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/FixedAlgebra")

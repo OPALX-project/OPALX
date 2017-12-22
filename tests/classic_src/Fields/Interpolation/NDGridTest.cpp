@@ -1,27 +1,27 @@
-/* 
+/*
  *  Copyright (c) 2017, Chris Rogers
  *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without 
- *  modification, are permitted provided that the following conditions are met: 
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
  *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer. 
- *  2. Redistributions in binary form must reproduce the above copyright notice, 
- *     this list of conditions and the following disclaimer in the documentation 
+ *     this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
  *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to 
- *     endorse or promote products derived from this software without specific 
+ *  3. Neither the name of STFC nor the names of its contributors may be used to
+ *     endorse or promote products derived from this software without specific
  *     prior written permission.
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -29,26 +29,28 @@
 #include "Fields/Interpolation/NDGrid.h"
 #include "Fields/Interpolation/Mesh.h"
 
+#include "opal_test_utilities/SilenceTest.h"
+
 namespace ndgridtest {
 
-class NDGridTest : public ::testing::Test { 
-public: 
-    NDGridTest() : grid_m(NULL) { 
+class NDGridTest : public ::testing::Test {
+public:
+    NDGridTest() : grid_m(NULL) {
     }
- 
-    void SetUp( ) { 
+
+    void SetUp( ) {
         std::vector< std::vector<double> > gridCoordinates(2);
         gridCoordinates[0] = std::vector<double>(2, 0.);
-        gridCoordinates[0][1] = 3.;	
+        gridCoordinates[0][1] = 3.;
         gridCoordinates[1] = std::vector<double>(3, 1.);
-        gridCoordinates[1][1] = 5.;	
+        gridCoordinates[1][1] = 5.;
         gridCoordinates[1][2] = 9.;
         grid_m = new interpolation::NDGrid(gridCoordinates);
         gridCoordinates[1][2] = 10.; // force it to not be regular
         grid2_m = new interpolation::NDGrid(gridCoordinates);
     }
- 
-    void TearDown( ) { 
+
+    void TearDown( ) {
         delete grid_m;
         grid_m = NULL;
         delete grid2_m;
@@ -66,12 +68,16 @@ private:
 };
 
 TEST_F(NDGridTest, DefaultConstructorTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     interpolation::NDGrid grid;
     EXPECT_EQ(grid.begin(), grid.end());
 }
 
 // also tests size
 TEST_F(NDGridTest, Constructor1Test) {
+    OpalTestUtilities::SilenceTest silencer;
+
     int size[] = {5, 6, 7, 8};
     double spacing[] = {1., 2., 3., 4.};
     double min[] = {-1., -2., -3., -4.};
@@ -86,6 +92,8 @@ TEST_F(NDGridTest, Constructor1Test) {
 }
 
 TEST_F(NDGridTest, Constructor2Test) {
+    OpalTestUtilities::SilenceTest silencer;
+
     std::vector<int> size(2);
     size[0] = 2;
     size[1] = 3;
@@ -100,10 +108,12 @@ TEST_F(NDGridTest, Constructor2Test) {
         ASSERT_EQ(grid1.size(i), size[i]);
         EXPECT_NEAR(grid1.coord(1, i), gridCoordinates[i][0], 1e-12) << "Failed for i " << i;
         EXPECT_NEAR(grid1.coord(i+2, i), gridCoordinates[i][size[i]-1], 1e-12) << "Failed for i " << i;
-    }   
+    }
 }
 
 TEST_F(NDGridTest, Constructor3Test) {
+    OpalTestUtilities::SilenceTest silencer;
+
     std::vector< std::vector<double> > gridCoordinates(2);
     gridCoordinates[0] = std::vector<double>(2, 0.);
     gridCoordinates[1] = std::vector<double>(3, 1.);
@@ -115,10 +125,12 @@ TEST_F(NDGridTest, Constructor3Test) {
         ASSERT_EQ(grid1.size(i), size);
         EXPECT_NEAR(grid1.coord(1, i), gridCoordinates[i][0], 1e-12) << "Failed for i " << i;
         EXPECT_NEAR(grid1.coord(i+2, i), gridCoordinates[i][size-1], 1e-12) << "Failed for i " << i;
-    }   
+    }
 }
 
 TEST_F(NDGridTest, CoordTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     std::vector< std::vector<double> > gridCoordinates(2);
     gridCoordinates[0] = std::vector<double>(2, 0.);
     gridCoordinates[1] = std::vector<double>(3, 1.);
@@ -128,14 +140,16 @@ TEST_F(NDGridTest, CoordTest) {
     for (int i = 0; i < 2; ++i) {
             EXPECT_NEAR(grid_var.coord(1, i), gridCoordinates[i][0], 1e-12) << "Failed for i " << i;
             EXPECT_NEAR(grid_const.coord(1, i), gridCoordinates[i][0], 1e-12) << "Failed for i " << i;
-    }   
+    }
 }
 
 TEST_F(NDGridTest, CoordVectorTest) {  // and newCoordArray
+    OpalTestUtilities::SilenceTest silencer;
+
     std::vector< std::vector<double> > gridCoordinates(2);
     gridCoordinates[0] = std::vector<double>(2, 0.);
     gridCoordinates[1] = std::vector<double>(3, 1.);
-    gridCoordinates[1][2] = 9.;	
+    gridCoordinates[1][2] = 9.;
     interpolation::NDGrid grid(gridCoordinates);
     for (int i = 0; i < 2; ++i) {
         std::vector<double> coords_v = grid.coordVector(i);
@@ -150,6 +164,8 @@ TEST_F(NDGridTest, CoordVectorTest) {  // and newCoordArray
 }
 
 TEST_F(NDGridTest, CoordLowerBoundTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // first dimension ... 0., 3.;
     int index = -1;
     grid_m->coordLowerBound(-1., 0, index);
@@ -186,6 +202,8 @@ TEST_F(NDGridTest, CoordLowerBoundTest) {
 }
 
 TEST_F(NDGridTest, LowerBoundTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // first dimension ... 0., 3.;
     // second dimension ...  1., 5., 9.
     std::vector<int> index1(2, -2);
@@ -208,6 +226,8 @@ TEST_F(NDGridTest, LowerBoundTest) {
 }
 
 TEST_F(NDGridTest, MinMaxTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     EXPECT_EQ(grid_m->min(0), 0.);
     EXPECT_EQ(grid_m->min(1), 1.);
     EXPECT_EQ(grid_m->max(0), 3.);
@@ -215,6 +235,8 @@ TEST_F(NDGridTest, MinMaxTest) {
 }
 
 TEST_F(NDGridTest, SetCoordTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     double xNew[] = {5., 10., 12., 15.};
     grid_m->setCoord(0, 4, xNew);
     std::vector<double> xTest = grid_m->coordVector(0);
@@ -225,6 +247,8 @@ TEST_F(NDGridTest, SetCoordTest) {
 }
 
 TEST_F(NDGridTest, BeginEndTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     ASSERT_EQ(grid_m->begin().getState().size(), 2);
     EXPECT_EQ(grid_m->begin().getState()[0], 1);
     EXPECT_EQ(grid_m->begin().getState()[1], 1);
@@ -234,6 +258,8 @@ TEST_F(NDGridTest, BeginEndTest) {
 }
 
 TEST_F(NDGridTest, GetPositionTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     std::vector<double> position(3, -1);
     interpolation::Mesh::Iterator it = grid_m->begin();
     grid_m->getPosition(it, &position[0]);
@@ -248,6 +274,8 @@ TEST_F(NDGridTest, GetPositionTest) {
 }
 
 TEST_F(NDGridTest, GetSetConstantSpacingTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     EXPECT_TRUE(grid_m->getConstantSpacing());
     grid_m->setConstantSpacing(false);
     EXPECT_FALSE(grid_m->getConstantSpacing());
@@ -270,6 +298,8 @@ TEST_F(NDGridTest, GetSetConstantSpacingTest) {
 }
 
 TEST_F(NDGridTest, ToIntegerTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     interpolation::Mesh::Iterator it = grid_m->begin();
     EXPECT_EQ(grid_m->toInteger(it), 0);
     it[0] = 2;
@@ -278,6 +308,8 @@ TEST_F(NDGridTest, ToIntegerTest) {
 }
 
 TEST_F(NDGridTest, GetNearestTest) {
+    OpalTestUtilities::SilenceTest silencer;
+
     // first dimension ... 0., 3.;
     // second dimension ...  1., 5., 9.
 
@@ -304,4 +336,3 @@ TEST_F(NDGridTest, GetNearestTest) {
 }
 
 } // namespace ndgridtest
-

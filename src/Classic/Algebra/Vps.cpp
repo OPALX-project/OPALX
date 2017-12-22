@@ -30,6 +30,8 @@
 #include <algorithm>
 #include <iostream>
 
+#include <cstring>
+
 
 // Template class Vps<T>
 // ------------------------------------------------------------------------
@@ -213,7 +215,7 @@ std::istream &Vps<T>::get(std::istream &is) {
     is.flags(std::ios::skipws);
     is.get(head, 4);
 
-    if(strcmp(head, "Vps") != 0) {
+    if(std::strcmp(head, "Vps") != 0) {
         throw FormatError("Vps::get()", "Flag word \"Vps\" missing.");
     }
 

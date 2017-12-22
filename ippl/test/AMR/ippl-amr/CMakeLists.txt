@@ -13,10 +13,9 @@ set (CMAKE_CXX_FLAGS
     )
     
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO -DIPPL_AMR ${CMAKE_CXX_FLAGS}"
+    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DPARALLEL_IO -DIPPL_AMR ${AMREX_DEFINES} ${CMAKE_CXX_FLAGS}"
 )
 
-add_definitions(${AMREX_DEFINES})
 
 if ( ENABLE_AMR_MG_SOLVER )
     set (CMAKE_CXX_FLAGS "-DHAVE_AMR_MG_SOLVER ${CMAKE_CXX_FLAGS}")
@@ -84,8 +83,7 @@ ELSE()
         ${IPPL_LIBRARY}
         ippl
 	${Boost_LIBRARIES}
-        mpi
-        mpi_cxx
+    ${MPI_LIBRARIES}
         mpi_mpifh
         m
         z
@@ -223,6 +221,22 @@ if ( ENABLE_AMR_MG_SOLVER )
                     ../trilinos/AmesosBottomSolver.cpp
                     ../trilinos/AmrSmoother.cpp
                     ../trilinos/AmrMultiGrid.cpp)
+
+    add_executable( testUnifBox
+                    testUnifBox.cpp
+                    ../AmrOpal.cpp
+                    AmrParticleBase.hpp
+                    ../Distribution.cpp
+                    ../H5Reader.cpp
+                    ${F90_source_files}
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ../MGTSolver.cpp
+                    ../Solver.cpp
+                    ../trilinos/AmrMultiGridCore.h
+                    ../trilinos/BelosBottomSolver.cpp
+                    ../trilinos/AmesosBottomSolver.cpp
+                    ../trilinos/AmrSmoother.cpp
+                    ../trilinos/AmrMultiGrid.cpp)
 else ()
     add_executable( testUnifSphere
                     testUnifSphere.cpp
@@ -263,6 +277,17 @@ else ()
                     ../MGTSolver.cpp
                     ../Solver.cpp)
     
+    add_executable( testUnifBox
+                    testUnifBox.cpp
+                    ../AmrOpal.cpp
+                    AmrParticleBase.hpp
+                    ../Distribution.cpp
+                    ../H5Reader.cpp
+                    ${F90_source_files}
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ../MGTSolver.cpp
+                    ../Solver.cpp)
+
 endif ( ENABLE_AMR_MG_SOLVER )
 
 add_executable( testLayout
@@ -340,6 +365,11 @@ target_link_libraries (testMultipleSources ${LIBS}
                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
+target_link_libraries (testUnifBox ${LIBS}
+                        -lgfortran ${Trilinos_LIBRARIES}
+			${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+			${OTHER_CMAKE_EXE_LINKER_FLAGS}	${CMAKE_DL_LIBS})
+
 target_link_libraries (testLayout ${LIBS}
                         -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
@@ -359,6 +389,7 @@ set (EXECS
     testUnifSphere
     testReal
     testMultipleSources
+    testUnifBox
     testLayout
 )
 

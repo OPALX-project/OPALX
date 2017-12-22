@@ -11,7 +11,7 @@ message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
 set (CMAKE_CXX_FLAGS "-O3 ${CMAKE_CXX_FLAGS} -DBL_USE_FORTRAN_MPI")
     
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
+    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
 )
     
 include_directories (
@@ -53,8 +53,7 @@ ELSE()
         ${HDF5_LIBRARY}
         ${IPPL_LIBRARY}
         ippl
-        mpi
-        mpi_cxx
+        ${MPI_LIBRARIES}
         mpi_mpifh
         m
         z

@@ -63,7 +63,7 @@ private:
     void setupTTracker();
     void setupCyclotronTracker();
     void setupStatisticalErrors(const std::string & method);
-
+    void setupThickTracker();
     void setupFieldsolver();
 
     double setDistributionParallelT(Beam *beam);

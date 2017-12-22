@@ -193,7 +193,7 @@ namespace Attrib
             MAXSTEPSCO,
             MAXSTEPSSI,
             ORDERMAPS,
-            E2,
+            //            E2,
             RGUESS,
             ID1,                       // special particle that the user can set
             ID2,                       // special particle that the user can set
@@ -209,7 +209,7 @@ namespace Attrib
             enum LegacyAttributesT {
                 // DESCRIPTION OF THE DISTRIBUTION:
                 DISTRIBUTION = Attrib::Distribution::SIZE,
-                DEBIN,
+                // DEBIN,
                 SBIN,
                 SIGMAPT,
                 CUTOFF,

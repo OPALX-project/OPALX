@@ -10,7 +10,7 @@
 #include <vector>
 #include <ctime>
 
-#include "Simulation/OpalSimulation.h"
+#include "Optimize/OpalSimulation.h"
 
 #include "Util/SDDSReader.h"
 #include "Util/OptPilotException.h"

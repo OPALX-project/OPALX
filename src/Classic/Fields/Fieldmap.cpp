@@ -360,17 +360,12 @@ MapType Fieldmap::readHeader(std::string Filename) {
 #endif
         char name[20];
         h5_size_t len_name = sizeof(name);
-#if defined (USE_H5HUT2)
 	h5_prop_t props = H5CreateFileProp ();
         MPI_Comm comm = Ippl::getComm();
         h5err = H5SetPropFileMPIOCollective (props, &comm);
         assert (h5err != H5_ERR);
         h5_file_t file = H5OpenFile (Filename.c_str(), H5_O_RDONLY, props);
 	assert (file != (h5_file_t)H5_ERR);
-#else
-	h5_file_t *file = H5OpenFile (Filename.c_str(), H5_O_RDONLY, Ippl::getComm());
-	assert (file != (void*)H5_ERR);
-#endif
 
 	h5err = H5SetStep(file, 0);
         assert (h5err != H5_ERR);

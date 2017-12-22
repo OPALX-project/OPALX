@@ -55,10 +55,19 @@ private:
 
     // define a mapping to arguments in argument vector
     boost::tuple<std::string, int> argument_types;
+    // :FIXME: remove unused enum
+#if 0
     enum {
           peak_filename
         , turn_number
     } argument_type_id;
+#endif
 };
 
 #endif
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:

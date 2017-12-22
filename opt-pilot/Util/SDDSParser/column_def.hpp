@@ -27,7 +27,6 @@ namespace SDDS { namespace parser
         using qi::on_success;
         using qi::fail;
         using phx::function;
-        typedef function<columnOrder<Iterator> > order_function_t;
         typedef function<error_handler<Iterator> > error_handler_function;
 
         // qi::_0_type _0;
@@ -115,11 +114,7 @@ namespace SDDS { namespace parser
 
         on_error<fail>(start,
             error_handler_function(_error_handler)(
-                "Error! Expecting ", _4, _3));
-        ///////////////////////////////////////////////////////////////////////
-        // Annotation: on success in primary_expr, call annotation.
-        on_success(start,
-            order_function_t()(_val,_1));
+                  std::string("Error! Expecting "), _4, _3));
 
     }
 }}

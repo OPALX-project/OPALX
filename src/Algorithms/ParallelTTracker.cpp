@@ -31,6 +31,7 @@
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/CavityAutophaser.h"
 #include "Beamlines/Beamline.h"
+#include "Beamlines/FlaggedBeamline.h"
 #include "Lines/Sequence.h"
 
 #include "Solvers/CSRWakeFunction.hh"
