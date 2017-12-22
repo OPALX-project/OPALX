@@ -25,7 +25,8 @@ AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
     : nIter_m(0),
       nSweeps_m(nSweeps),
       lbase_m(0),
-      lfine_m(0)
+      lfine_m(0),
+      nlevel_m(1)
 {
     comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
     node_mp = KokkosClassic::Details::getNode<amr::node_t>(); //KokkosClassic::DefaultNode::getDefaultNode();
@@ -46,6 +47,10 @@ AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
     
     bcType_m = xBoundary;
     this->initPhysicalBoundary_m();
+    
+    smootherType_m = this->convertToEnumSmoother_m(smoother);
+    
+    norm_m = this->convertToEnumNorm_m(norm);
     
     const Interpolater interpolater = this->convertToEnumInterpolater_m(interp);
     this->initInterpolater_m(interpolater);
@@ -73,6 +78,7 @@ AmrMultiGrid::AmrMultiGrid(Boundary bc,
       smootherType_m(smoother),
       lbase_m(0),
       lfine_m(0),
+      nlevel_m(1),
       bcType_m(bc),
       norm_m(norm)
 {
@@ -1877,7 +1883,7 @@ AmrMultiGrid::convertToEnumBoundary_m(const std::string& bc) {
     
     if ( boundary == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumBoundary_m()",
-                            "No boundary type '" + bc + "'.'");
+                            "No boundary type '" + bc + "'.");
     return boundary->second;
 }
 
@@ -1893,7 +1899,7 @@ AmrMultiGrid::convertToEnumInterpolater_m(const std::string& interp) {
     
     if ( interpolater == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumInterpolater_m()",
-                            "No interpolater '" + interp + "'.'");
+                            "No interpolater '" + interp + "'.");
     return interpolater->second;
 }
 
@@ -1933,7 +1939,7 @@ AmrMultiGrid::convertToEnumBaseSolver_m(const std::string& bsolver) {
     
     if ( solver == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumBaseSolver_m()",
-                            "No bottom solver '" + bsolver + "'.'");
+                            "No bottom solver '" + bsolver + "'.");
     return solver->second;
 }
 
@@ -1950,6 +1956,29 @@ AmrMultiGrid::convertToEnumPreconditioner_m(const std::string& prec) {
     
     if ( precond == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumPreconditioner_m()",
-                            "No preconditioner '" + prec + "'.'");
+                            "No preconditioner '" + prec + "'.");
     return precond->second;
+}
+
+
+AmrMultiGrid::Smoother
+AmrMultiGrid::convertToEnumSmoother_m(const std::string& smoother) {
+    return AmrSmoother::convertToEnumSmoother(smoother);
+}
+
+
+AmrMultiGrid::Norm
+AmrMultiGrid::convertToEnumNorm_m(const std::string& norm) {
+    std::map<std::string, Norm> map;
+    
+    map["L1"]   = Norm::L1;
+    map["L2"]   = Norm::L2;
+    map["LINF"] = Norm::LINF;
+    
+    auto n = map.find(norm);
+    
+    if ( n == map.end() )
+        throw OpalException("AmrMultiGrid::convertToEnumNorm_m()",
+                            "No norm '" + norm + "'.");
+    return n->second;
 }

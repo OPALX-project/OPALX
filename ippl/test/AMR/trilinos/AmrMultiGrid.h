@@ -538,11 +538,22 @@ private:
     BaseSolver convertToEnumBaseSolver_m(const std::string& bsolver);
     
     /*!
-     * FIXME
      * Converts string to enum Preconditioner
      * @param prec preconditioner
      */
     Preconditioner convertToEnumPreconditioner_m(const std::string& prec);
+    
+    /*!
+     * Converts string to enum Smoother
+     * @param smoother of level solution
+     */
+    Smoother convertToEnumSmoother_m(const std::string& smoother);
+    
+    /*!
+     * Converts string to enum Norm
+     * @param norm either L1, L2, LInf
+     */
+    Norm convertToEnumNorm_m(const std::string& norm);
     
 private:
     Teuchos::RCP<comm_t> comm_mp;       ///< communicator
