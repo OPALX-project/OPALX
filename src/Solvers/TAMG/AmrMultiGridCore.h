@@ -12,6 +12,8 @@
 
 #include <Kokkos_DefaultNode.hpp>
 
+#include "Amr/AmrDefs.h"
+
 namespace amr {
     // All Tpetra
     typedef double scalar_t;

@@ -10,39 +10,45 @@
 
 #include "AmrMultiGridCore.h"
 
+#include "Solvers/AmrPoissonSolver.h"
+#include "Amr/AmrBoxLib.h"
+
 #include "AmrMultiGridLevel.h"
 
 #define AMR_MG_TIMER 1
 
-class AmrMultiGrid {
+class AmrMultiGrid : public AmrPoissonSolver< AmrBoxLib > {
     
 public:
-    typedef amr::matrix_t       matrix_t;
-    typedef amr::vector_t       vector_t;
-    typedef amr::multivector_t  mv_t;
-    typedef amr::dmap_t         dmap_t;
-    typedef amr::comm_t         comm_t;
+    typedef amr::matrix_t         matrix_t;
+    typedef amr::vector_t         vector_t;
+    typedef amr::multivector_t    mv_t;
+    typedef amr::dmap_t           dmap_t;
+    typedef amr::comm_t           comm_t;
+    typedef amr::local_ordinal_t  lo_t;
+    typedef amr::global_ordinal_t go_t;
+    typedef amr::scalar_t         scalar_t;
     
     typedef AmrMultiGridLevel<matrix_t, vector_t> AmrMultiGridLevel_t;
     
-    typedef AmrMultiGridLevel_t::AmrField_t AmrField_t;
-    typedef AmrMultiGridLevel_t::AmrGeometry_t AmrGeometry_t;
-    typedef AmrMultiGridLevel_t::AmrField_u AmrField_u;
-    typedef AmrMultiGridLevel_t::AmrField_s AmrField_s;
-    typedef AmrMultiGridLevel_t::AmrIntVect_t AmrIntVect_t;
-    typedef AmrMultiGridLevel_t::indices_t indices_t;
+    typedef AmrMultiGridLevel_t::AmrField_t     AmrField_t;
+    typedef AmrMultiGridLevel_t::AmrGeometry_t  AmrGeometry_t;
+    typedef AmrMultiGridLevel_t::AmrField_u     AmrField_u;
+    typedef AmrMultiGridLevel_t::AmrField_s     AmrField_s;
+    typedef AmrMultiGridLevel_t::AmrIntVect_t   AmrIntVect_t;
+    typedef AmrMultiGridLevel_t::indices_t      indices_t;
     typedef AmrMultiGridLevel_t::coefficients_t coefficients_t;
-    
+    typedef AmrMultiGridLevel_t::umap_t         umap_t;
+    typedef AmrMultiGridLevel_t::boundary_t     boundary_t;
+
     typedef amrex::BoxArray boxarray_t;
     typedef amrex::Box box_t;
     typedef amrex::BaseFab<int> basefab_t;
     typedef amrex::FArrayBox farraybox_t;
-    
-    typedef std::map<AmrIntVect_t,
-                     std::list<std::pair<int, int> >
-                     > map_t;
-    
+            
     typedef AmrSmoother::Smoother Smoother;
+    
+    typedef amr::Preconditioner Preconditioner;
     
     /// Supported interpolaters for prolongation operation
     enum Interpolater {
@@ -102,6 +108,7 @@ public:
     
     /*!
      * Instantiation used in Structure/FieldSolver.cpp
+     * @param itsAmrObject_p has information about refinemen ratios, etc.
      * @param bsolver bottom solver
      * @param prec preconditioner for bottom solver
      * @param bcx boundary condition in x
@@ -112,7 +119,8 @@ public:
      * @param interp interpolater between levels
      * @param norm for convergence criteria
      */
-    AmrMultiGrid(const std::string& bsolver,
+    AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
+                 const std::string& bsolver,
                  const std::string& prec,
                  const std::string& bcx,
                  const std::string& bcy,
@@ -124,7 +132,9 @@ public:
     
     /*!
      * Instantiation.
-     * @param bc physical boundary condition
+     * @param bcx physical boundary condition in x
+     * @param bcy physical boundary condition in y
+     * @param bcz physical boundary condition in z
      * @param interp interpolater from coarse to fine grids without taking care of
      * coarse-fine interface
      * @param interface interpolater taking care of coarse-fine interface
@@ -133,27 +143,9 @@ public:
      * @param smoother for error
      * @param norm convergence criteria
      */
-    AmrMultiGrid(Boundary bc = Boundary::DIRICHLET,
-                 Interpolater interp = Interpolater::TRILINEAR,
-                 Interpolater interface = Interpolater::LAGRANGE,
-                 BaseSolver solver = BaseSolver::CG,
-                 Preconditioner precond = Preconditioner::NONE,
-                 Smoother smoother = Smoother::JACOBI,
-                 Norm norm = Norm::LINF
-                );
-    
-    /*!
-     * Instantiation.
-     * @param bc physical boundary condition
-     * @param interp interpolater from coarse to fine grids without taking care of
-     * coarse-fine interface
-     * @param interface interpolater taking care of coarse-fine interface
-     * @param solver for bottom level
-     * @param preconditioner for bottom solver if available
-     * @param smoother for error
-     * @param norm convergence criteria
-     */
-    AmrMultiGrid(Boundary bc = Boundary::DIRICHLET,
+    AmrMultiGrid(Boundary bcx = Boundary::DIRICHLET,
+                 Boundary bcy = Boundary::DIRICHLET,
+                 Boundary bcz = Boundary::DIRICHLET,
                  Interpolater interp = Interpolater::TRILINEAR,
                  Interpolater interface = Interpolater::LAGRANGE,
                  BaseSolver solver = BaseSolver::CG,
@@ -195,13 +187,27 @@ public:
         return nIter_m;
     }
     
+    double getXRangeMin(unsigned short level = 0);
+    double getXRangeMax(unsigned short level = 0);
+    double getYRangeMin(unsigned short level = 0);
+    double getYRangeMax(unsigned short level = 0);
+    double getZRangeMin(unsigned short level = 0);
+    double getZRangeMax(unsigned short level = 0);
+    
+    /**
+     * Print information abour tolerances.
+     * @param os output stream where to write to
+     */
+    Inform &print(Inform &os) const;
     
 private:
     
     /*!
      * Instantiate boundary object
+     * @param bc boundary conditions
+     * @precondition length must be equal to AMREX_SPACEDIM
      */
-    void initPhysicalBoundary_m();
+    void initPhysicalBoundary_m(const Boundary* bc);
     
     /*!
      * Instantiate all levels and set boundary conditions
@@ -210,6 +216,11 @@ private:
      */
     void initLevels_m(const amrex::Array<AmrField_u>& rho,
                       const amrex::Array<AmrGeometry_t>& geom);
+    
+    /*!
+     * Clear masks (required to build matrices) no longer needed.
+     */
+    void clearMasks_m();
     
     /*!
      * Reset potential to zero (currently)
@@ -230,16 +241,16 @@ private:
      * @param x is the left-hand side
      * @param level to solve for
      */
-    void residual_m(Teuchos::RCP<vector_t>& r,
+    void residual_m(const lo_t& level,
+                    Teuchos::RCP<vector_t>& r,
                     const Teuchos::RCP<vector_t>& b,
-                    const Teuchos::RCP<vector_t>& x,
-                    int level);
+                    const Teuchos::RCP<vector_t>& x);
     
     /*!
      * Recursive call.
      * @param level to relax
      */
-    void relax_m(int level);
+    void relax_m(const lo_t& level);
     
     /*!
      * Compute the residual of a level without considering refined level.
@@ -249,31 +260,31 @@ private:
      * @param b is the left-hand side
      * @param level to solver for
      */
-    void residual_no_fine_m(Teuchos::RCP<vector_t>& result,
+    void residual_no_fine_m(const lo_t& level,
+                            Teuchos::RCP<vector_t>& result,
                             const Teuchos::RCP<vector_t>& rhs,
                             const Teuchos::RCP<vector_t>& crs_rhs,
-                            const Teuchos::RCP<vector_t>& b,
-                            int level);
+                            const Teuchos::RCP<vector_t>& b);
                            
     /*!
      * @returns the maximum norm over all levels using the norm specified
      * by the user
      */
-    double residualNorm_m();
+    scalar_t residualNorm_m();
     
     /*!
      * Vector norm computation.
      * @param x is the vector for which we compute the norm
      * @returns the evaluated norm of a level
      */
-    double evalNorm_m(const Teuchos::RCP<const vector_t>& x);
+    scalar_t evalNorm_m(const Teuchos::RCP<const vector_t>& x);
     
     /*!
      * Initial convergence criteria values.
      * @param maxResidual maximum norm of residual over all levels
      * @param maxRho maximum norm of right-hand side over all levels
      */
-    void initResidual_m(double& maxResidual, double& maxRho);
+    void initResidual_m(scalar_t& maxResidual, scalar_t& maxRho);
     
     /*!
      * @param efield to compute
@@ -286,21 +297,35 @@ private:
      */
     void setup_m(const amrex::Array<AmrField_u>& rho,
                  const amrex::Array<AmrField_u>& phi,
-                 bool matrices = true);
+                 const bool& matrices = true);
     
+    /*!
+     * Build all matrices and vectors needed for single-level computation
+     */
+    void buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
+                            const amrex::Array<AmrField_u>& phi,
+                            const bool& matrices = true);
+    
+    /*!
+     * Build all matrices and vectors needed for multi-level computation
+     */
+    void buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
+                           const amrex::Array<AmrField_u>& phi,
+                           const bool& matrices = true);
+
     /*!
      * Set matrix and vector pointer
      * @param level for which we fill matrix + vector
      * @param matrices if we need to set matrices as well or only vectors.
      */
-    void open_m(int level, bool matrices);
+    void open_m(const lo_t& level, const bool& matrices);
     
     /*!
      * Call fill complete
      * @param level for which we filled matrix
      * @param matrices if we set matrices as well.
      */
-    void close_m(int level, bool matrices);
+    void close_m(const lo_t& level, const bool& matrices);
     
     /*!
      * Build the Poisson matrix for a level assuming no finer level (i.e. the whole fine mesh
@@ -312,8 +337,11 @@ private:
      * @param mfab is the mask (internal cell, boundary cell, ...) of that level
      * @param level for which we build the Poisson matrix
      */
-    void buildNoFinePoissonMatrix_m(const AmrIntVect_t& iv,
-                                    const basefab_t& mfab, int level);
+    void buildNoFinePoissonMatrix_m(const lo_t& level,
+                                    const go_t& gidx,
+                                    const AmrIntVect_t& iv,
+                                    const basefab_t& mfab,
+                                    const scalar_t* invdx2);
     
     /*!
      * Build the Poisson matrix for a level that got refined (it does not take the covered
@@ -323,13 +351,16 @@ private:
      * boundary matrix.
      * @param iv is the current cell
      * @param mfab is the mask (internal cell, boundary cell, ...) of that level
-     * @param ba all coarse cells that got refined
+     * @param rfab is the mask between levels
      * @param level for which we build the special Poisson matrix
      */
-    void buildCompositePoissonMatrix_m(const AmrIntVect_t& iv,
+    void buildCompositePoissonMatrix_m(const lo_t& level,
+                                       const go_t& gidx,
+                                       const AmrIntVect_t& iv,
                                        const basefab_t& mfab,
-                                       const boxarray_t& ba,
-                                       int level);
+                                       const basefab_t& rfab,
+                                       const basefab_t& cfab,
+                                       const scalar_t* invdx2);
     
     /*!
      * Build a matrix that averages down the data of the fine cells down to the
@@ -338,17 +369,16 @@ private:
      *      x^{(l)} = R\cdot x^{(l+1)}
      * \f]
      * @param iv is the current cell
-     * @param crse_fine_ba all coarse cells that got refined
-     * @param mfab is the mask (internal cell, boundary cell, ...) of that level
-     * @param ii fine cell in x
-     * @param jj fine cell in y
-     * @param kk fine cell in z
+     * @param rfab is the mask between levels
      * @param level for which to build restriction matrix
      */
-    void buildRestrictionMatrix_m(const AmrIntVect_t& iv,
-                                  const boxarray_t& crse_fine_ba,
-                                  D_DECL(int& ii, int& jj, int& kk),
-                                  int level);
+    void buildRestrictionMatrix_m(const lo_t& level,
+                                  const go_t& gidx,
+                                  const AmrIntVect_t& iv,
+                                  D_DECL(const go_t& ii,
+                                         const go_t& jj,
+                                         const go_t& kk),
+                                  const basefab_t& rfab);
     
     /*!
      * Interpolate data from coarse cells to appropriate refined cells. The interpolation
@@ -361,8 +391,10 @@ private:
      * @param level for which to build the interpolation matrix. The finest level
      * does not build such a matrix.
      */
-    void buildInterpolationMatrix_m(const AmrIntVect_t& iv,
-                                    int level);
+    void buildInterpolationMatrix_m(const lo_t& level,
+                                    const go_t& gidx,
+                                    const AmrIntVect_t& iv,
+                                    const basefab_t& cfab);
     
     /*!
      * The boundary values at the crse-fine-interface need to be taken into account properly.
@@ -372,22 +404,16 @@ private:
      * \f]
      * Dirichlet boundary condition
      * @param iv is the current cell
+     * @param mfab is the mask (internal cell, boundary cell, ...) of that level
      * @param cells all fine cells that are at the crse-fine interface
      * @param level the base level is omitted
      */
-    void buildCrseBoundaryMatrix_m(const AmrIntVect_t& iv,
-                                   map_t& cells, int level);
-    
-    /*!
-     * Fill matrix with coarse boundary
-     * @param cells all fine cells that are at the crse-fine interface
-     * @param crse_fine_ba coarse cells that got refined
-     * @param iv is the current cell
-     * @param level the base level is omitted
-     */
-    void fillCrseBoundaryMatrix_m(map_t& cells,
-                                  const boxarray_t& crse_fine_ba,
-                                  int level);
+    void buildCrseBoundaryMatrix_m(const lo_t& level,
+                                   const go_t& gidx,
+                                   const AmrIntVect_t& iv,
+                                   const basefab_t& mfab,
+                                   const basefab_t& cfab,
+                                   const scalar_t* invdx2);
     
     /*!
      * The boundary values at the crse-fine-interface need to be taken into account properly.
@@ -402,37 +428,28 @@ private:
      * @param crse_fine_ba coarse cells that got refined
      * @param level the finest level is omitted
      */
-    void buildFineBoundaryMatrix_m(const AmrIntVect_t& iv,
-                                   map_t& cells,
-                                   const boxarray_t& crse_fine_ba,
-                                   int level);
-    
-    /*!
-     * Fill matrix with fine boundary
-     * @param cells all coarse cells that are at the crse-fine interface but are
-     * not refined
-     * @param crse_fine_ba coarse cells that got refined
-     * @param level the finest level is omitted
-     */
-    void fillFineBoundaryMatrix_m(map_t& cells,
-                                  const boxarray_t& crse_fine_ba,
-                                  int level);
+    void buildFineBoundaryMatrix_m(const lo_t& level,
+                                   const go_t& gidx,
+                                   const AmrIntVect_t& iv,
+                                   const basefab_t& mfab,
+                                   const basefab_t& rfab,
+                                   const basefab_t& cfab);
     
     /*!
      * Copy data from AMReX to Trilinos
      * @param rho is the charge density
      * @param level for which to copy
      */
-    void buildDensityVector_m(const AmrField_t& rho,
-                              int level);
+    void buildDensityVector_m(const lo_t& level,
+                              const AmrField_t& rho);
     
     /*!
      * Copy data from AMReX to Trilinos
      * @param phi is the potential
      * @param level for which to copy
      */
-    void buildPotentialVector_m(const AmrField_t& phi,
-                                int level);
+    void buildPotentialVector_m(const lo_t& level,
+                                const AmrField_t& phi);
     
     /*!
      * Gradient matrix is used to compute the electric field
@@ -440,8 +457,11 @@ private:
      * @param mfab is the mask (internal cell, boundary cell, ...) of that level
      * @param level for which to compute
      */
-    void buildGradientMatrix_m(const AmrIntVect_t& iv,
-                               const basefab_t& mfab, int level);
+    void buildGradientMatrix_m(const lo_t& level,
+                               const go_t& gidx,
+                               const AmrIntVect_t& iv,
+                               const basefab_t& mfab,
+                               const scalar_t* invdx);
     
     /*!
      * Data transfer from AMReX to Trilinos.
@@ -450,7 +470,10 @@ private:
      * @param mv is the vector to be filled
      * @param level where to perform
      */
-    void amrex2trilinos_m(const AmrField_t& mf, int comp, Teuchos::RCP<vector_t>& mv, int level);
+    void amrex2trilinos_m(const lo_t& level,
+                          const lo_t& comp,
+                          const AmrField_t& mf,
+                          Teuchos::RCP<vector_t>& mv);
     
     /*!
      * Data transfer from Trilinos to AMReX.
@@ -458,44 +481,47 @@ private:
      * @param comp component to copy
      * @param mv is the corresponding Trilinos vector
      */
-    void trilinos2amrex_m(AmrField_t& mf, int comp, const Teuchos::RCP<vector_t>& mv);
+    void trilinos2amrex_m(const lo_t& comp,
+                          AmrField_t& mf,
+                          const Teuchos::RCP<vector_t>& mv);
     
     /*!
-     * Some indices might occur several times due to boundary conditions, etc.
-     * This function removes all duplicates and sums the coefficients up.
+     * Some indices might occur several times due to boundary conditions, etc. We
+     * avoid this by filling a map and then copying the data to a vector for filling
+     * the matrices. The map gets cleared inside the function.
      * @param indices in matrix
      * @param values are the coefficients
      */
-    void unique_m(indices_t& indices,
-                  coefficients_t& values);
+    void map2vector_m(umap_t& map, indices_t& indices,
+                      coefficients_t& values);
     
     /*!
-     * Perfrom one smoothing step
+     * Perform one smoothing step
      * @param e error to update (left-hand side)
      * @param r residual (right-hand side)
      * @param level on which to relax
      */
-    void smooth_m(Teuchos::RCP<vector_t>& e,
-                  Teuchos::RCP<vector_t>& r,
-                  int level);
+    void smooth_m(const lo_t& level,
+                  Teuchos::RCP<vector_t>& e,
+                  Teuchos::RCP<vector_t>& r);
     
     /*!
      * Restrict coarse level residual based on fine level residual
      * @param level to restrict
      */
-    void restrict_m(int level);
+    void restrict_m(const lo_t& level);
     
     /*!
      * Update error of fine level based on error of coarse level
      * @param level to update
      */
-    void prolongate_m(int level);
+    void prolongate_m(const lo_t& level);
     
     /*!
      * Average data from fine level to coarse
      * @param level finest level is omitted
      */
-    void averageDown_m(int level);
+    void averageDown_m(const lo_t& level);
     
     /*!
      * Instantiate interpolater
@@ -518,18 +544,40 @@ private:
                           const Preconditioner& precond);
     
     /*!
+     * Convertstring to enum Boundary
+     * @param bc boundary condition
+     */
+    Boundary convertToEnumBoundary_m(const std::string& bc);
+    
+    /*!
+     * Converts string to enum Interpolater
+     * @param interp interpolater
+     */
+    Interpolater convertToEnumInterpolater_m(const std::string& interp);
+    
+    /*!
      * Converts string to enum BaseSolver
      * @param bsolver bottom solver
      */
-    BaseSolver convertToBaseSolver_m(const std::string& bsolver);
+    BaseSolver convertToEnumBaseSolver_m(const std::string& bsolver);
     
     /*!
-     * FIXME
      * Converts string to enum Preconditioner
      * @param prec preconditioner
      */
-    Preconditioner convertToPrec_m(const std::string& prec);
+    Preconditioner convertToEnumPreconditioner_m(const std::string& prec);
     
+    /*!
+     * Converts string to enum Smoother
+     * @param smoother of level solution
+     */
+    Smoother convertToEnumSmoother_m(const std::string& smoother);
+    
+    /*!
+     * Converts string to enum Norm
+     * @param norm either L1, L2, LInf
+     */
+    Norm convertToEnumNorm_m(const std::string& norm);
     
 private:
     Teuchos::RCP<comm_t> comm_mp;       ///< communicator
@@ -558,8 +606,8 @@ private:
     int lfine_m;            ///< fineste level
     int nlevel_m;           ///< number of levelss
     
-    Boundary bcType_m;          ///< physical boundary type
-    std::shared_ptr<AmrBoundary<AmrMultiGridLevel_t> > bc_m;
+    boundary_t bc_m[AMREX_SPACEDIM];    ///< boundary conditions
+    int nBcPoints_m;                    ///< maximum number of stencils points for BC
     
     Norm norm_m;            ///< norm for convergence criteria (l1, l2, linf)
     
@@ -571,7 +619,23 @@ private:
     IpplTimings::TimerRef residnofineTimer_m;   ///< timer for no-fine residual computation
     IpplTimings::TimerRef bottomTimer_m;        ///< bottom solver timer
 #endif
-    
+
+    IpplTimings::TimerRef bopen_m;
+    IpplTimings::TimerRef bclose_m;
+    IpplTimings::TimerRef bclear_m;
+    IpplTimings::TimerRef bRestict_m;
+    IpplTimings::TimerRef bInterp_m;
+    IpplTimings::TimerRef bCompo_m;
+    IpplTimings::TimerRef bPoiss_m;
+    IpplTimings::TimerRef bBf_m;
+    IpplTimings::TimerRef bBc_m;
+    IpplTimings::TimerRef bG_m;
+    IpplTimings::TimerRef bSmoother_m;
 };
+
+
+inline Inform &operator<<(Inform &os, const AmrMultiGrid &fs) {
+    return fs.print(os);
+}
 
 #endif

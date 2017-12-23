@@ -1,6 +1,10 @@
 #include "AmrSmoother.h"
-#include <string>
+
+#include <map>
 #include <utility>
+
+#include "Utilities/OpalException.h"
+#include "Utilities/Util.h"
 
 AmrSmoother::AmrSmoother(const Teuchos::RCP<const matrix_t>& A,
                          const Smoother& smoother,
@@ -38,6 +42,23 @@ void AmrSmoother::smooth(const Teuchos::RCP<vector_t>& x,
 }
 
 
+AmrSmoother::Smoother
+AmrSmoother::convertToEnumSmoother(const std::string& smoother) {
+    std::map<std::string, Smoother> map;
+    
+    map["GS"]     = Smoother::GAUSS_SEIDEL;
+    map["SGS"]    = Smoother::SGS;
+    map["JACOBI"] = Smoother::JACOBI;
+    
+    auto sm = map.find(Util::toUpper(smoother));
+    
+    if ( sm == map.end() )
+        throw OpalException("AmrMultiGrid::convertToEnumNorm_m()",
+                            "No smoother '" + smoother + "'.");
+    return sm->second;
+}
+
+
 void AmrSmoother::initParameter_m(const Smoother& smoother,
                                   local_ordinal_t nSweeps)
 {
@@ -46,11 +67,11 @@ void AmrSmoother::initParameter_m(const Smoother& smoother,
     
     
     std::string type = "";
-    double damping = 1.0;
-    std::pair<bool, double> l1 = std::make_pair(true, 1.5);
+    scalar_t damping = 1.0;
+    std::pair<bool, scalar_t> l1 = std::make_pair(true, 1.5);
     
     bool backward = false;
-    std::pair<bool, double> fix = std::make_pair(true, 1.0e-5);
+    std::pair<bool, scalar_t> fix = std::make_pair(true, 1.0e-5);
     bool check = true;
     
     switch ( smoother ) {
