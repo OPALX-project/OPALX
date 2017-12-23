@@ -11,37 +11,39 @@ template <class AmrMultiGridLevel>
 class AmrDirichletBoundary : public AmrBoundary<AmrMultiGridLevel> {
     
 public:
+    typedef typename AmrMultiGridLevel::umap_t      umap_t;
+    typedef typename AmrMultiGridLevel::lo_t        lo_t;
+    typedef typename AmrMultiGridLevel::scalar_t    scalar_t;
+    typedef amr::AmrIntVect_t                       AmrIntVect_t;
+    
+public:
     
     AmrDirichletBoundary() : AmrBoundary<AmrMultiGridLevel>(1) { }
     
     void apply(const AmrIntVect_t& iv,
-               typename AmrMultiGridLevel::indices_t& indices,
-               typename AmrMultiGridLevel::coefficients_t& values,
-               const double& value,
+               const lo_t& dir,
+               umap_t& map,
+               const scalar_t& value,
                AmrMultiGridLevel* mglevel,
-               const int* nr);
+               const lo_t* nr);
 };
 
 
 template <class AmrMultiGridLevel>
 void AmrDirichletBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
-                                                    typename AmrMultiGridLevel::indices_t& indices,
-                                                    typename AmrMultiGridLevel::coefficients_t& values,
-                                                    const double& value,
+                                                    const lo_t& dir,
+                                                    umap_t& map,
+                                                    const scalar_t& value,
                                                     AmrMultiGridLevel* mglevel,
-                                                    const int* nr)
+                                                    const lo_t* nr)
 {
     // find interior neighbour cell
-    AmrIntVect_t niv;
-    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-        if ( iv[i] > -1 && iv[i] < nr[i] )
-            niv[i] = iv[i];
-        else
-            niv[i] = (iv[i] == -1) ? iv[i] + 1 : iv[i] - 1;
-    }
-    
-    indices.push_back( mglevel->serialize(niv) );
-    values.push_back( -value );
+    AmrIntVect_t niv = iv;
+    niv[dir] = (iv[dir] == -1) ? iv[dir] + 1 : iv[dir] - 1;
+    map[mglevel->serialize(niv)] -= value;
 }
+
+
+
 
 #endif

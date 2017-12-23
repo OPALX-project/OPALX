@@ -65,9 +65,9 @@ namespace {
         PARFFTX,    // parallelized grind in x
         PARFFTY,    // parallelized grind in y
         PARFFTT,    // parallelized grind in z
-        BCFFTX,     // boundary condition in x [FFT only]
-        BCFFTY,     // boundary condition in y [FFT only]
-        BCFFTT,     // boundary condition in z [FFT only]
+        BCFFTX,     // boundary condition in x [FFT + TAMG only]
+        BCFFTY,     // boundary condition in y [FFT + TAMG only]
+        BCFFTT,     // boundary condition in z [FFT + TAMG only]
         GREENSF,    // holds greensfunction to be used [FFT only]
         BBOXINCR,   // how much the boundingbox is increased
         GEOMETRY,   // geometry of boundary [SAAMG only]
@@ -556,7 +556,13 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << "* TAMG_INTERP      "
            << Util::toUpper(Attributes::getString(itsAttr[TAMG_INTERP])) << '\n'
            << "* TAMG_NORM        "
-           << Util::toUpper(Attributes::getString(itsAttr[TAMG_NORM])) << endl;
+           << Util::toUpper(Attributes::getString(itsAttr[TAMG_NORM])) << '\n'
+           << "* BCFFTX           "
+           << Util::toUpper(Attributes::getString(itsAttr[BCFFTX])) << '\n'
+           << "* BCFFTY           "
+           << Util::toUpper(Attributes::getString(itsAttr[BCFFTY])) << '\n'
+           << "* BCFFTT           "
+           << Util::toUpper(Attributes::getString(itsAttr[BCFFTT])) << endl;
     }
 #endif
 
@@ -639,11 +645,12 @@ void FieldSolver::initAmrSolver_m() {
             throw OpalException("FieldSolver::initAmrSolver_m()",
                                 "FMultiGrid solver requires BoxLib.");
         
-        solver_m = new AmrMultiGrid(Attributes::getString(itsAttr[ITSOLVER]),
+        solver_m = new AmrMultiGrid(static_cast<AmrBoxLib*>(itsAmrObject_mp.get()),
+                                    Attributes::getString(itsAttr[ITSOLVER]),
                                     Attributes::getString(itsAttr[TAMG_PREC]),
                                     Attributes::getString(itsAttr[BCFFTX]),
                                     Attributes::getString(itsAttr[BCFFTY]),
-                                    Attributes::getString(itsAttr[BCFFTZ]),
+                                    Attributes::getString(itsAttr[BCFFTT]),
                                     Attributes::getString(itsAttr[TAMG_SMOOTHER]),
                                     Attributes::getReal(itsAttr[TAMG_NSWEEPS]),
                                     Attributes::getString(itsAttr[TAMG_INTERP]),
