@@ -52,15 +52,18 @@ namespace {
         NUMCOWORKERS,
         SELECTOR,
         DUMPDAT,
+        DUMPFREQ,
         NUMINDGEN,
         MAXGENERATIONS,
         EPSILON,
         EXPECTEDHYPERVOL,
         CONVHVOLPROG,
+        ONEPILOTCONVERGE,
         SOLSYNCH,
         GENEMUTATIONPROBABILITY,
         MUTATIONPROBABILITY,
         RECOMBINATIONPROBABILITY,
+        SIMBINCROSSOVERNU,
         SIMTMPDIR,
         TEMPLATEDIR,
         FIELDMAPDIR,
@@ -83,34 +86,40 @@ OptimizeCmd::OptimizeCmd():
         ("DVARS", "List of optimization variables to be used");
     itsAttr[CONSTRAINTS] = Attributes::makeStringArray
         ("CONSTRAINTS", "List of constraints to be used");
-    itsAttr[INITIALPOPULATION] = Attributes::makeString
+    itsAttr[INITIALPOPULATION] = Attributes::makeReal
         ("INITIALPOPULATION", "Size of the initial population");
-    itsAttr[NUMMASTERS] = Attributes::makeString
+    itsAttr[NUMMASTERS] = Attributes::makeReal
         ("NUM_MASTERS", "Number of master nodes");
-    itsAttr[NUMCOWORKERS] = Attributes::makeString
+    itsAttr[NUMCOWORKERS] = Attributes::makeReal
         ("NUM_COWORKERS", "Number processors per worker");
     itsAttr[SELECTOR] = Attributes::makeString
         ("SELECTOR", "Path of the selector (PISA only)");
-    itsAttr[DUMPDAT] = Attributes::makeString
+    itsAttr[DUMPDAT] = Attributes::makeReal
         ("DUMP_DAT", "Dump old generation data format with frequency (PISA only)");
-    itsAttr[NUMINDGEN] = Attributes::makeString
+    itsAttr[DUMPFREQ] = Attributes::makeReal
+        ("DUMP_FREQ", "Dump old generation data format with frequency (PISA only)");
+    itsAttr[NUMINDGEN] = Attributes::makeReal
         ("NUM_IND_GEN", "Number of individuals in a generation (PISA only)");
-    itsAttr[MAXGENERATIONS] = Attributes::makeString
+    itsAttr[MAXGENERATIONS] = Attributes::makeReal
         ("MAXGENERATIONS", "Number of generations to run");
-    itsAttr[EPSILON] = Attributes::makeString
+    itsAttr[EPSILON] = Attributes::makeReal
         ("EPSILON", "Tolerance of hypervolume criteria");
-    itsAttr[EXPECTEDHYPERVOL] = Attributes::makeString
+    itsAttr[EXPECTEDHYPERVOL] = Attributes::makeReal
         ("EXPECTED_HYPERVOL", "The reference hypervolume");
-    itsAttr[CONVHVOLPROG] = Attributes::makeString
+    itsAttr[CONVHVOLPROG] = Attributes::makeReal
         ("CONV_HVOL_PROG", "converge if change in hypervolume is smaller");
-    itsAttr[SOLSYNCH] = Attributes::makeString
+    itsAttr[ONEPILOTCONVERGE] = Attributes::makeBool
+        ("ONE_PILOT_CONVERGE", "");
+    itsAttr[SOLSYNCH] = Attributes::makeReal
         ("SOL_SYNCH", "Solution exchange frequency");
     itsAttr[GENEMUTATIONPROBABILITY] = Attributes::makeReal
-        ("GENE_MUTATION_PROBABILITY", "Mutation probability of individual gene, default: 0.5", 0.5);
+        ("GENE_MUTATION_PROBABILITY", "Mutation probability of individual gene, default: 0.5");
     itsAttr[MUTATIONPROBABILITY] = Attributes::makeReal
-        ("MUTATION_PROBABILITY", "Mutation probability of genom, default: 0.5", 0.5);
+        ("MUTATION_PROBABILITY", "Mutation probability of genom, default: 0.5");
     itsAttr[RECOMBINATIONPROBABILITY] = Attributes::makeReal
-        ("RECOMBINATION_PROBABILITY", "Probability for genes to recombine, default: 0.5", 0.5);
+        ("RECOMBINATION_PROBABILITY", "Probability for genes to recombine, default: 0.5");
+    itsAttr[SIMBINCROSSOVERNU] = Attributes::makeReal
+        ("SIMBIN_CROSSOVER_NU", "Simulated binary crossover");
     itsAttr[SIMTMPDIR] = Attributes::makeString
         ("SIMTMPDIR", "Directory where simulations are run");
     itsAttr[TEMPLATEDIR] = Attributes::makeString
@@ -194,90 +203,68 @@ void OptimizeCmd::execute() {
 
     std::vector<std::string> arguments(opal->getArguments());
     std::vector<char*> argv;
+    std::map<unsigned int, std::string> argumentMapper({
+            {INPUT, "inputfile"},
+            {OUTPUT, "outfile"},
+            {OUTDIR, "outdir"},
+            {INITIALPOPULATION, "initialPopulation"},
+            {NUMMASTERS, "num-masters"},
+            {NUMCOWORKERS, "num-coworkers"},
+            {SELECTOR, "selector"},
+            {DUMPDAT, "dump-dat"},
+            {DUMPFREQ, "dump-freq"},
+            {NUMINDGEN, "num-ind-gen"},
+            {MAXGENERATIONS, "maxGenerations"},
+            {EPSILON, "epsilon"},
+            {EXPECTEDHYPERVOL, "expected-hypervol"},
+            {CONVHVOLPROG, "conv-hvol-prog"},
+            {ONEPILOTCONVERGE, "one-pilot-converge"},
+            {SOLSYNCH, "sol-synch"},
+            {GENEMUTATIONPROBABILITY, "gene-mutation-probability"},
+            {MUTATIONPROBABILITY, "mutation-probability"},
+            {RECOMBINATIONPROBABILITY, "recombination-probability"},
+            {SIMBINCROSSOVERNU, "simbin-crossover-nu"}
+        });
 
-    if (Attributes::getString(itsAttr[INPUT]) != "") {
-        std::string argument = "--inputfile=" + Attributes::getString(itsAttr[INPUT]);
-        arguments.push_back(argument);
-    } else {
+    auto it = argumentMapper.end();
+    for (unsigned int i = 0; i < SIZE; ++ i) {
+        if ((it = argumentMapper.find(i)) != argumentMapper.end()) {
+            std::string type = itsAttr[i].getType();
+            if (type == "string") {
+                if (Attributes::getString(itsAttr[i]) != "") {
+                    std::string argument = "--" + (*it).second + "=" + Attributes::getString(itsAttr[i]);
+                    arguments.push_back(argument);
+                }
+            } else if (type == "real") {
+                if (itsAttr[i]) {
+                    if (i == EPSILON || i == EXPECTEDHYPERVOL || i == CONVHVOLPROG) { // float
+                        std::string argument = "--" + (*it).second + "=" + std::to_string(Attributes::getReal(itsAttr[i]));
+                        arguments.push_back(argument);
+                    } else { // integer
+                        int val = Attributes::getReal(itsAttr[i]);
+                        std::string argument = "--" + (*it).second + "=" + std::to_string(val);
+                        arguments.push_back(argument);
+                    }
+                }
+            } else if (type == "logical") {
+                if (itsAttr[i]) {
+                    std::string argument = "--" + (*it).second + "=" + std::to_string(Attributes::getBool(itsAttr[i]));
+                    arguments.push_back(argument);
+                }
+            }
+        }
+    }
+    if (Attributes::getString(itsAttr[INPUT]) == "") {
         throw OpalException("OptimizeCmd::execute",
                             "The argument INPUT has to be provided");
     }
-    if (Attributes::getString(itsAttr[OUTPUT]) != "") {
-        std::string argument = "--outfile=" + Attributes::getString(itsAttr[OUTPUT]);
-        arguments.push_back(argument);
-    }
-    if (Attributes::getString(itsAttr[OUTDIR]) != "") {
-        std::string argument = "--outdir=" + Attributes::getString(itsAttr[OUTDIR]);
-        arguments.push_back(argument);
-    }
-    if (Attributes::getString(itsAttr[INITIALPOPULATION]) != "") {
-        std::string argument = "--initialPopulation=" + Attributes::getString(itsAttr[INITIALPOPULATION]);
-        arguments.push_back(argument);
-    } else {
+    if (Attributes::getReal(itsAttr[INITIALPOPULATION]) <= 0) {
         throw OpalException("OptimizeCmd::execute",
                             "The argument INITIALPOPULATION has to be provided");
     }
-    if (Attributes::getString(itsAttr[NUMMASTERS]) != "") {
-        std::string argument = "--num-masters=" + Attributes::getString(itsAttr[NUMMASTERS]);
-        arguments.push_back(argument);
-    }
-    if (Attributes::getString(itsAttr[NUMCOWORKERS]) != "") {
-        std::string argument = "--num-coworkers=" + Attributes::getString(itsAttr[NUMCOWORKERS]);
-        arguments.push_back(argument);
-    }
-    if (Attributes::getString(itsAttr[SELECTOR]) != "") {
-        std::string argument = "--selector=" + Attributes::getString(itsAttr[SELECTOR]);
-        arguments.push_back(argument);
-    }
-    if (Attributes::getString(itsAttr[DUMPDAT]) != "") {
-        std::string argument = "--dump-dat=" + Attributes::getString(itsAttr[DUMPDAT]);
-        arguments.push_back(argument);
-    }
-    if (Attributes::getString(itsAttr[NUMINDGEN]) != "") {
-        std::string argument = "--num-ind-gen=" + Attributes::getString(itsAttr[NUMINDGEN]);
-        arguments.push_back(argument);
-    }
-    if (Attributes::getString(itsAttr[MAXGENERATIONS]) != "") {
-        std::string argument = "--maxGenerations=" + Attributes::getString(itsAttr[MAXGENERATIONS]);
-        arguments.push_back(argument);
-    } else {
+    if (Attributes::getReal(itsAttr[MAXGENERATIONS]) <= 0) {
         throw OpalException("OptimizeCmd::execute",
                             "The argument MAXGENERATIONS has to be provided");
-    }
-    if (Attributes::getString(itsAttr[EPSILON]) != "") {
-        std::string argument = "--epsilon=" + Attributes::getString(itsAttr[EPSILON]);
-        arguments.push_back(argument);
-    }
-    if (Attributes::getString(itsAttr[EXPECTEDHYPERVOL]) != "") {
-        std::string argument = "--expected-hypervol=" + Attributes::getString(itsAttr[EXPECTEDHYPERVOL]);
-        arguments.push_back(argument);
-    }
-    if (Attributes::getString(itsAttr[CONVHVOLPROG]) != "") {
-        std::string argument = "--conv-hvol-prog=" + Attributes::getString(itsAttr[CONVHVOLPROG]);
-        arguments.push_back(argument);
-    }
-    if (Attributes::getString(itsAttr[SOLSYNCH]) != "") {
-        std::string argument = "--sol-synch=" + Attributes::getString(itsAttr[SOLSYNCH]);
-        arguments.push_back(argument);
-    }
-
-    {
-        std::ostringstream oss;
-        oss << Attributes::getReal(itsAttr[GENEMUTATIONPROBABILITY]);
-        std::string argument = "--gene-mutation-probability=" + oss.str();
-        arguments.push_back(argument);
-    }
-    {
-        std::ostringstream oss;
-        oss << Attributes::getReal(itsAttr[MUTATIONPROBABILITY]);
-        std::string argument = "--mutation-probability=" + oss.str();
-        arguments.push_back(argument);
-    }
-    {
-        std::ostringstream oss;
-        oss << Attributes::getReal(itsAttr[RECOMBINATIONPROBABILITY]);
-        std::string argument = "--recombination-probability=" + oss.str();
-        arguments.push_back(argument);
     }
 
     if (Attributes::getString(itsAttr[SIMTMPDIR]) != "") {
