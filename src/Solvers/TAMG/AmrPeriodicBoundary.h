@@ -9,36 +9,40 @@
  */
 template <class AmrMultiGridLevel>
 class AmrPeriodicBoundary : public AmrBoundary<AmrMultiGridLevel> {
-    
+
+public:
+    typedef typename AmrMultiGridLevel::umap_t      umap_t;
+    typedef typename AmrMultiGridLevel::lo_t        lo_t;
+    typedef typename AmrMultiGridLevel::scalar_t    scalar_t;
+    typedef amr::AmrIntVect_t                       AmrIntVect_t;
+
 public:
     
     AmrPeriodicBoundary() : AmrBoundary<AmrMultiGridLevel>(1) { }
     
     void apply(const AmrIntVect_t& iv,
-               typename AmrMultiGridLevel::indices_t& indices,
-               typename AmrMultiGridLevel::coefficients_t& values,
-               const double& value,
+               const lo_t& dir,
+               umap_t& map,
+               const scalar_t& value,
                AmrMultiGridLevel* mglevel,
-               const int* nr);
+               const lo_t* nr);
 };
 
 
 template <class AmrMultiGridLevel>
 void AmrPeriodicBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
-                                                   typename AmrMultiGridLevel::indices_t& indices,
-                                                   typename AmrMultiGridLevel::coefficients_t& values,
-                                                   const double& value,
+						   const lo_t& dir,
+                                                   umap_t& map,
+                                                   const scalar_t& value,
                                                    AmrMultiGridLevel* mglevel,
-                                                   const int* nr)
+                                                   const lo_t* nr)
 {
     // find interior neighbour cell on opposite site
-    AmrIntVect_t niv;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-        niv[d] = ( iv[d] == -1 ) ? nr[d] - 1 : 0;
-    }
+    AmrIntVect_t niv = iv;
+    niv[dir] = ( iv[dir] == -1 ) ? nr[dir] - 1 : 0;
     
-    indices.push_back( mglevel->serialize(niv) );
-    values.push_back( value );
+    map[mglevel->serialize(niv)] += value;
 }
+
 
 #endif
