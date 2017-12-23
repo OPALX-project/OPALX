@@ -2033,7 +2033,7 @@ double AmrMultiGrid::getZRangeMax(unsigned short level) {
 }
 
 
-Inform &FMGPoissonSolver::print(Inform &os) const {
+Inform &AmrMultiGrid::print(Inform &os) const {
     os << "* ********************* A M R M u l t i G r i d ********************** " << endl
     //FIXME
        << "* ******************************************************************** " << endl;
