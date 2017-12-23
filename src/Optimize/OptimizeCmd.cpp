@@ -237,8 +237,16 @@ void OptimizeCmd::execute() {
                 }
             } else if (type == "real") {
                 if (itsAttr[i]) {
-                    if (i == EPSILON || i == EXPECTEDHYPERVOL || i == CONVHVOLPROG) { // float
-                        std::string argument = "--" + (*it).second + "=" + std::to_string(Attributes::getReal(itsAttr[i]));
+                    if (i == EPSILON ||
+                        i == EXPECTEDHYPERVOL ||
+                        i == CONVHVOLPROG ||
+                        i == GENEMUTATIONPROBABILITY ||
+                        i == MUTATIONPROBABILITY ||
+                        i == RECOMBINATIONPROBABILITY ||
+                        i == SIMBINCROSSOVERNU) { // float
+                        std::string val = std::to_string (Attributes::getReal(itsAttr[i]));
+                        val.erase ( val.find_last_not_of('0') + 1, std::string::npos );
+                        std::string argument = "--" + (*it).second + "=" + val;
                         arguments.push_back(argument);
                     } else { // integer
                         int val = Attributes::getReal(itsAttr[i]);
