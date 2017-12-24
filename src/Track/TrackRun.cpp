@@ -590,8 +590,9 @@ void TrackRun::setupTTracker(){
         } else if(Options::scan) {
             ds = opal->getDataSink();
             namespace fs = boost::filesystem;
+            std::string basename = opal->getInputBasename() + "_scan_";
             if (ds == NULL) {
-                const boost::regex my_filter( opal->getInputBasename() + "_[0-9]{5,5}\\.stat" );
+                const boost::regex my_filter( basename + "[0-9]{5,5}\\.stat" );
 
                 std::vector< std::string > all_matching_files;
 
@@ -611,13 +612,13 @@ void TrackRun::setupTTracker(){
             } else {
                 if (Ippl::myNode() == 0) {
                     size_t n = 1;
-                    std::string filename = opal->getInputBasename() + "_run00001.stat";
+                    std::string filename = basename + "00001.stat";
                     while (fs::exists(filename)) {
                         std::ostringstream oss;
                         oss.fill('0');
                         oss.width(5);
                         oss << ++ n;
-                        filename = opal->getInputBasename() + "_run" + oss.str() + ".stat";
+                        filename = basename + oss.str() + ".stat";
                     }
 
                     delete ds;
@@ -625,7 +626,7 @@ void TrackRun::setupTTracker(){
                     std::ostringstream oss;
                     std::string from = opal->getInputBasename() + ".stat";
                     oss << std::setfill('0') << std::setw(5) << n;
-                    std::string to = opal->getInputBasename() + "_run" + oss.str() + ".stat";
+                    std::string to = basename + oss.str() + ".stat";
 
                     fs::copy_file(from, to, fs::copy_option::overwrite_if_exists);
 
