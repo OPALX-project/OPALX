@@ -56,6 +56,8 @@
 #include "changes.h"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/regex.hpp>
+#include <boost/filesystem.hpp>
 
 #include <fstream>
 #include <iomanip>
@@ -205,7 +207,7 @@ void TrackRun::execute() {
     }
 
     if(method == "THIN" || method == "THICK") {
-        // 
+        //
         std::string file = Attributes::getString(itsAttr[FNAME]);
         std::ofstream os(file.c_str());
 
@@ -220,7 +222,7 @@ void TrackRun::execute() {
         for(int turn = 1; turn < turns; ++turn) {
             itsTracker->execute();
         }
-        
+
 	// Track the last turn.
         itsTracker->execute();
 
@@ -358,7 +360,7 @@ void TrackRun::setupSliceTracker() {
 
 
 
-void TrackRun::setupThickTracker() 
+void TrackRun::setupThickTracker()
 {
     OpalData::getInstance()->setInOPALThickTrackerMode();
     bool isFollowupTrack = (opal->hasBunchAllocated() && !Options::scan);
@@ -461,7 +463,7 @@ void TrackRun::setupThickTracker()
       *gmsg << *dist << endl;
 
     if (Track::block->bunch->getTotalNum() > 0) {
-        double spos = Track::block->bunch->get_sPos() + Track::block->zstart;
+        double spos = /*Track::block->bunch->get_sPos() +*/ Track::block->zstart;
         auto &zstop = Track::block->zstop;
         auto &timeStep = Track::block->localTimeSteps;
         auto &dT = Track::block->dT;
@@ -502,8 +504,12 @@ void TrackRun::setupTTracker(){
             *gmsg << "* ********************************************************************************** " << endl;
             *gmsg << "* Selected Tracking Method == PARALLEL-T, FOLLOWUP TRACK in SCAN MODE" << endl;
             *gmsg << "* ********************************************************************************** " << endl;
+            *gmsg << __DBGMSG__ << Track::block->bunch->RefPartR_m << "\t" << Track::block->bunch->RefPartP_m << endl;
             Track::block->bunch->setLocalTrackStep(0);
             Track::block->bunch->setGlobalTrackStep(0);
+            Track::block->bunch->set_sPos(0.0);
+            Track::block->bunch->RefPartR_m = Vector_t(0.0);
+            Track::block->bunch->RefPartP_m = Vector_t(0.0);
         } else {
             *gmsg << "* ********************************************************************************** " << endl;
             *gmsg << "* Selected Tracking Method == PARALLEL-T, FOLLOWUP TRACK" << endl;
@@ -515,6 +521,7 @@ void TrackRun::setupTTracker(){
             *gmsg << "* ********************************************************************************** " << endl;
             *gmsg << "* Selected Tracking Method == PARALLEL-T, NEW TRACK in SCAN MODE" << endl;
             *gmsg << "* ********************************************************************************** " << endl;
+
         } else {
             *gmsg << "* ********************************************************************************** " << endl;
             *gmsg << "* Selected Tracking Method == PARALLEL-T, NEW TRACK" << endl;
@@ -583,7 +590,57 @@ void TrackRun::setupTTracker(){
             opal->setDataSink(new DataSink(phaseSpaceSink_m));
         } else if(Options::scan) {
             ds = opal->getDataSink();
-            delete ds;
+            namespace fs = boost::filesystem;
+            if (ds == NULL) {
+                const boost::regex my_filter( opal->getInputBasename() + "_[0-9]{5,5}\\.stat" );
+
+                std::vector< std::string > all_matching_files;
+
+                fs::directory_iterator end_itr; // Default ctor yields past-the-end
+                for( fs::directory_iterator it( "." ); it != end_itr; ++ it )
+                    {
+                        // Skip if not a file
+                        if( !fs::is_regular_file( it->status() ) ) continue;
+
+                        boost::smatch what;
+
+                        std::string filename = it->path().filename().native();
+                        // Skip if no match for V2:
+                        if( !boost::regex_match(filename , what, my_filter ) ) continue;
+                        // For V3:
+                        //if( !boost::regex_match( i->path().filename(), what, my_filter ) ) continue;
+
+                        // File matches, store it
+                        // all_matching_files.push_back( i->path().filename() );
+                        fs::remove(it->path());
+                    }
+            } else {
+                if (Ippl::myNode() == 0) {
+                    size_t n = 1;
+                    std::string filename = opal->getInputBasename() + "_run00001.stat";
+                    while (fs::exists(filename)) {
+                        std::ostringstream oss;
+                        oss.fill('0');
+                        oss.width(5);
+                        oss << ++ n;
+                        filename = opal->getInputBasename() + "_run" + oss.str() + ".stat";
+                    }
+
+                    delete ds;
+
+                    std::ostringstream oss;
+                    std::string from = opal->getInputBasename() + ".stat";
+                    oss << std::setfill('0') << std::setw(5) << n;
+                    std::string to = opal->getInputBasename() + "_run" + oss.str() + ".stat";
+
+                    fs::copy_file(from, to, fs::copy_option::overwrite_if_exists);
+
+                } else {
+                    delete ds;
+                }
+            }
+            Ippl::Comm->barrier();
+
             opal->setDataSink(new DataSink(phaseSpaceSink_m));
         } else {
             ds = opal->getDataSink();
@@ -600,6 +657,7 @@ void TrackRun::setupTTracker(){
 
     if(!opal->hasBunchAllocated() || Options::scan) {
         if(!mpacflg) {
+            *gmsg << std::scientific;
             *gmsg << *dist << endl;
         } else {
             *gmsg << "* Multipacting flag is true. The particle distribution in the run command will be ignored " << endl;
@@ -607,7 +665,7 @@ void TrackRun::setupTTracker(){
     }
 
     if (Track::block->bunch->getTotalNum() > 0) {
-        double spos = Track::block->bunch->get_sPos() + Track::block->zstart;
+        double spos = /*Track::block->bunch->get_sPos() +*/ Track::block->zstart;
         auto &zstop = Track::block->zstop;
         auto &timeStep = Track::block->localTimeSteps;
         auto &dT = Track::block->dT;
