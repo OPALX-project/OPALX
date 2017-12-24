@@ -237,22 +237,12 @@ void OptimizeCmd::execute() {
                 }
             } else if (type == "real") {
                 if (itsAttr[i]) {
-                    if (i == EPSILON ||
-                        i == EXPECTEDHYPERVOL ||
-                        i == CONVHVOLPROG ||
-                        i == GENEMUTATIONPROBABILITY ||
-                        i == MUTATIONPROBABILITY ||
-                        i == RECOMBINATIONPROBABILITY ||
-                        i == SIMBINCROSSOVERNU) { // float
-                        std::string val = std::to_string (Attributes::getReal(itsAttr[i]));
-                        val.erase ( val.find_last_not_of('0') + 1, std::string::npos );
-                        std::string argument = "--" + (*it).second + "=" + val;
-                        arguments.push_back(argument);
-                    } else { // integer
-                        int val = Attributes::getReal(itsAttr[i]);
-                        std::string argument = "--" + (*it).second + "=" + std::to_string(val);
-                        arguments.push_back(argument);
-                    }
+                    std::string val = std::to_string (Attributes::getReal(itsAttr[i]));
+                    size_t last = val.find_last_not_of('0');
+                    if (val[last] != '.') ++ last;
+                    val.erase (last, std::string::npos );
+                    std::string argument = "--" + (*it).second + "=" + val;
+                    arguments.push_back(argument);
                 }
             } else if (type == "logical") {
                 if (itsAttr[i]) {
