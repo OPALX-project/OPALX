@@ -121,8 +121,6 @@ void CSRIGFWakeFunction::initialize(const ElementBase *ref) {
     //     totalBendAngle_m = bend->getBendAngle();
     //     bendName_m = bend->getName();
     }
-
-    *gmsg << level1 << __DBGMSG__ << "\t" << getName() << "\t" << bendName_m << endl;
 }
 
 void CSRIGFWakeFunction::calculateLineDensity(PartBunchBase<double, 3> *bunch, std::pair<double, double> &meshInfo) {
