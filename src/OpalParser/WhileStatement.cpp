@@ -24,8 +24,7 @@
 #include "Parser/Parser.h"
 #include "Parser/Token.h"
 #include "Parser/TokenStream.h"
-#include "Utilities/OpalException.h"
-
+#include "Utilities/ParseError.h"
 
 // class WhileStatement
 //   Statement of the form "WHILE ( <condition> ) <statement>".
@@ -56,8 +55,8 @@ WhileStatement::WhileStatement(const Parser &parser, TokenStream &is):
 
         while_block = parser.readStatement(&is);
     } else {
-        throw OpalException("WhileStatement::WhileStatement()",
-                            "Invalid \"WHILE\" statement.");
+        throw ParseError("WhileStatement::WhileStatement()",
+                         "Invalid \"WHILE\" statement.");
     }
 }
 
@@ -81,7 +80,7 @@ void WhileStatement::execute(const Parser &parser) {
             OpalData::getInstance()->update();
         }
     } catch(...) {
-        throw OpalException("WhileStatement::execute()",
-                            "Invalid WHILE condition.");
+        throw ParseError("WhileStatement::execute()",
+                         "Invalid WHILE condition.");
     }
 }
