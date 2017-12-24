@@ -272,7 +272,8 @@ void OpalSimulation::run() {
         std::cerr.clear();
 #endif
 
-        std::cout << "Opal exception during simulation run: "
+        std::cout << "Opal exception during simulation run: \n"
+                  << ex->where() << "\n"
                   << ex->what() << std::endl;
         std::cout << "Continuing 2, disregarding this simulation.."
                   << std::endl;
@@ -285,7 +286,8 @@ void OpalSimulation::run() {
         std::cerr.clear();
 #endif
 
-        std::cout << "Classic exception during simulation run: "
+        std::cout << "Classic exception during simulation run: \n"
+                  << ex->where() << "\n"
                   << ex->what() << std::endl;
         std::cout << "Continuing 3, disregarding this simulation.."
                   << std::endl;
