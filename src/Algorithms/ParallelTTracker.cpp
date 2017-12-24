@@ -251,8 +251,9 @@ void ParallelTTracker::execute() {
 
     itsOpalBeamline_m.activateElements();
 
-    if (OpalData::getInstance()->hasPriorTrack() ||
-        OpalData::getInstance()->inRestartRun()) {
+    if (!Options::scan &&
+        (OpalData::getInstance()->hasPriorTrack() ||
+         OpalData::getInstance()->inRestartRun())) {
 
         referenceToLabCSTrafo_m = itsBunch_m->toLabTrafo_m;
         RefPartR_m = referenceToLabCSTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
