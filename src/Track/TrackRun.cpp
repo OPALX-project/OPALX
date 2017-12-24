@@ -504,7 +504,6 @@ void TrackRun::setupTTracker(){
             *gmsg << "* ********************************************************************************** " << endl;
             *gmsg << "* Selected Tracking Method == PARALLEL-T, FOLLOWUP TRACK in SCAN MODE" << endl;
             *gmsg << "* ********************************************************************************** " << endl;
-            *gmsg << __DBGMSG__ << Track::block->bunch->RefPartR_m << "\t" << Track::block->bunch->RefPartP_m << endl;
             Track::block->bunch->setLocalTrackStep(0);
             Track::block->bunch->setGlobalTrackStep(0);
             Track::block->bunch->set_sPos(0.0);
@@ -603,15 +602,10 @@ void TrackRun::setupTTracker(){
                         if( !fs::is_regular_file( it->status() ) ) continue;
 
                         boost::smatch what;
-
                         std::string filename = it->path().filename().native();
-                        // Skip if no match for V2:
-                        if( !boost::regex_match(filename , what, my_filter ) ) continue;
-                        // For V3:
-                        //if( !boost::regex_match( i->path().filename(), what, my_filter ) ) continue;
 
-                        // File matches, store it
-                        // all_matching_files.push_back( i->path().filename() );
+                        if( !boost::regex_match(filename , what, my_filter ) ) continue;
+
                         fs::remove(it->path());
                     }
             } else {
@@ -665,7 +659,7 @@ void TrackRun::setupTTracker(){
     }
 
     if (Track::block->bunch->getTotalNum() > 0) {
-        double spos = /*Track::block->bunch->get_sPos() +*/ Track::block->zstart;
+        double spos = Track::block->zstart;
         auto &zstop = Track::block->zstop;
         auto &timeStep = Track::block->localTimeSteps;
         auto &dT = Track::block->dT;
