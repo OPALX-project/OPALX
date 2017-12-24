@@ -600,13 +600,14 @@ Statement *OpalParser::readStatement(TokenStream *is) const {
 
 void OpalParser::run() const {
     stopFlag = false;
-    Inform errorMsg("Error", std::cerr);
+    Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
     while(Statement *stat = readStatement(&*inputStack.back())) {
         try {
             // The dispatch via Statement::execute() allows a special
             // treatment of structured statements.
             stat->execute(*this);
         } catch(ParseError &ex) {
+            Inform errorMsg("Error", std::cerr);
             errorMsg << "\n*** Parse error detected by function \""
                      << ex.where() << "\"\n";
             stat->printWhere(errorMsg, true);
