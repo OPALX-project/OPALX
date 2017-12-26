@@ -61,7 +61,7 @@ void CSRIGFWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
         const Vector_t &R = bunch->R[i];
         unsigned int indexz = (unsigned int)floor((R(2) - meshOrigin) / meshSpacing);
         double leverz = (R(2) - meshOrigin) / meshSpacing - indexz;
-        PAssert(indexz < numOfSlices - 1);
+        PAssert_LT(indexz + 1, numOfSlices);
 
         bunch->Ef[i](2) += (1. - leverz) * Ez_m[indexz] + leverz * Ez_m[indexz + 1];
     }

@@ -345,7 +345,7 @@ public:
   bool TryCompress()          { return this->getLField()->TryCompress(); }
   bool TryCompress(T v)       { return this->getLField()->TryCompress(v);}
   bool IsCompressed() const   {
-      PAssert(this->getLField()->IsCompressed() == P.IsCompressed());
+      PAssert_EQ(this->getLField()->IsCompressed(), P.IsCompressed());
       return this->getLField()->IsCompressed();
   }
   bool DomainCompressed() const { return true; }

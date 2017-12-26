@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -16,7 +16,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -35,8 +35,8 @@
 #endif
 
 
-/** 
-    FFT.cpp:  implementations for FFT constructor/destructor and transforms 
+/**
+    FFT.cpp:  implementations for FFT constructor/destructor and transforms
 */
 
 
@@ -44,20 +44,20 @@
 // FFT CCTransform Constructors
 //=============================================================================
 
-/** 
+/**
     Create a new FFT object of type CCTransform, with a
     given domain. Also specify which dimensions to transform along.
 */
 
 template <size_t Dim, class T>
 FFT<CCTransform,Dim,T>::FFT(
-			    const typename FFT<CCTransform,Dim,T>::Domain_t& cdomain, 
+			    const typename FFT<CCTransform,Dim,T>::Domain_t& cdomain,
 			    const bool transformTheseDims[Dim],
 			    const bool& compressTemps)
   : FFTBase<Dim,T>(FFT<CCTransform,Dim,T>::ccFFT, cdomain,
                    transformTheseDims, compressTemps)
 {
- 
+
 /*
 #ifdef IPPL_DKS
 #ifdef IPPL_DKS_OPENCL
@@ -65,16 +65,16 @@ FFT<CCTransform,Dim,T>::FFT(
   base.setAPI("OpenCL", 6);
   base.setDevice("-gpu", 4);
   base.initDevice();
-    		
+
 #endif
-    	
+
 #ifdef IPPL_DKS_CUDA
   INFOMSG("Init DKS base cuda" << endl);
   base.setAPI("Cuda", 4);
   base.setDevice("-gpu", 4);
   base.initDevice();
 #endif
-    	
+
 #ifdef IPPL_DKS_MIC
   INFOMSG("Init DKS base MIC" << endl);
   base.setAPI("OpenMP", 6);
@@ -110,7 +110,7 @@ FFT<CCTransform,Dim,T>::FFT(
 
 
 
-/** 
+/**
     setup performs all the initializations necessary after the transform
     directions have been specified.
 */
@@ -119,7 +119,7 @@ void
 FFT<CCTransform,Dim,T>::setup(void)
 {
   // Tau profiling
-   
+
 
   size_t d, activeDim;
   size_t nTransformDims = this->numTransformDims();
@@ -167,13 +167,13 @@ template <size_t Dim, class T>
 FFT<CCTransform,Dim,T>::~FFT(void) {
 
   // Tau profiling
-  
-  /*	  
+
+  /*
 	  #ifdef IPPL_OPENCL
 	  base.ocl_cleanUp();
 	  #endif
   */
-   
+
   // delete arrays of temporary fields and field layouts
   size_t nTransformDims = this->numTransformDims();
   for (size_t d=0; d<nTransformDims; ++d) {
@@ -205,8 +205,8 @@ FFT<CCTransform,Dim,T>::transform(
   const Domain_t& in_dom = in_layout.getDomain();
   const Layout_t& out_layout = g.getLayout();
   const Domain_t& out_dom = out_layout.getDomain();
-  PAssert( this->checkDomain(this->getDomain(),in_dom) &&
-           this->checkDomain(this->getDomain(),out_dom) );
+  PAssert_EQ( this->checkDomain(this->getDomain(),in_dom) &&
+              this->checkDomain(this->getDomain(),out_dom), true);
 
   // Common loop iterate and other vars:
   size_t d;
@@ -217,12 +217,12 @@ FFT<CCTransform,Dim,T>::transform(
   ComplexField_t* temp = &f;
   // Local work array passed to FFT:
   Complex_t* localdata;
-      
+
   // Loop over the dimensions be transformed:
   begdim = (direction == +1) ? 0 : static_cast<int>(nTransformDims-1);
   enddim = (direction == +1) ? static_cast<int>(nTransformDims) : -1;
   for (idim = begdim; idim != enddim; idim += direction) {
-    
+
     // Now do the serial transforms along this dimension:
 
     bool skipTranspose = false;
@@ -254,7 +254,7 @@ FFT<CCTransform,Dim,T>::transform(
 
     if (!skipTranspose) {
       // transpose and permute to Field with transform dim first
-      (*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] = 
+      (*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] =
         (*temp)[temp->getLayout().getDomain()];
 
       // Compress out previous iterate's storage:
@@ -272,7 +272,7 @@ FFT<CCTransform,Dim,T>::transform(
       if (this->compressTemps() && temp != &f) *temp = 0;
       temp = &g;  // Field* management aid
     }
-    
+
     // Loop over all the Vnodes, working on the LField in each.
     typename ComplexField_t::const_iterator_if l_i, l_end = temp->end_if();
     for (l_i = temp->begin_if(); l_i != l_end; ++l_i) {
@@ -294,16 +294,16 @@ FFT<CCTransform,Dim,T>::transform(
         localdata += length;
       } // loop over 1D strips
     } // loop over all the LFields
-    
-  } // loop over all transformed dimensions 
+
+  } // loop over all transformed dimensions
 
   // skip final assignment and compress if we used g as final temporary
   if (temp != &g) {
-    
+
     // Now assign into output Field, and compress last temp's storage:
     g[out_dom] = (*temp)[temp->getLayout().getDomain()];
     if (this->compressTemps() && temp != &f) *temp = 0;
-    
+
   }
 
   // Normalize:
@@ -324,7 +324,7 @@ FFT<CCTransform, Dim, T>::transform(
 				    int direction,
 				    typename FFT<CCTransform,Dim,T>::ComplexField_t& f)
 {
- 
+
   const Layout_t& in_layout = f.getLayout();
   const Domain_t& in_dom = in_layout.getDomain();
   PAssert(this->checkDomain(this->getDomain(),in_dom));
@@ -333,7 +333,7 @@ FFT<CCTransform, Dim, T>::transform(
   ComplexField_t* temp = &f;
   //Local work array to get data from ComplexField
   Complex_t* localdata;
-    
+
   //long total_size = in_dom.size();
 
   typename ComplexField_t::const_iterator_if l_i, l_end = temp->end_if();
@@ -344,36 +344,36 @@ FFT<CCTransform, Dim, T>::transform(
   //make sure we are uncomplressed
   ldf->Uncompress();
   int N[3] = {ldf->size(0), ldf->size(1), ldf->size(2)};
-    
+
   localdata = ldf->getP();
-    
+
   // DKS part
   int ierr;
   void *mem_ptr;
   int size = N[0]*N[1]*N[2];
-    
+
   base.setupFFT(3, N);
   mem_ptr = base.allocateMemory<Complex_t>(size, ierr);
   ierr = base.writeData<Complex_t>(mem_ptr, localdata, size);
-        
+
   if (direction == 1) {
     base.callFFT(mem_ptr, 3, N);
-    base.callNormalizeFFT(mem_ptr, 3, N); 
+    base.callNormalizeFFT(mem_ptr, 3, N);
   } else {
     base.callIFFT(mem_ptr, 3, N);
     //base.callNormalizeFFT(mem_ptr, 3, N);
   }
-    
-   
+
+
   base.readData<Complex_t>(mem_ptr, localdata, size);
   base.freeMemory<Complex_t>(mem_ptr, size);
-        
-  //assign back to the original Field  
+
+  //assign back to the original Field
   if (temp != &f) {
     f[in_dom] = (*temp)[temp->getLayout().getDomain()];
     if(this->compressTemps()) *temp = 0;
   }
-    
+
   return;
 }
 #else
@@ -387,11 +387,11 @@ FFT<CCTransform,Dim,T>::transform(
 
   // indicate we're doing another FFT
   // INCIPPLSTAT(incFFTs);
-  
+
   // Check domain of incoming Field
   const Layout_t& in_layout = f.getLayout();
   const Domain_t& in_dom = in_layout.getDomain();
-  PAssert(this->checkDomain(this->getDomain(),in_dom));
+  PAssert_EQ(this->checkDomain(this->getDomain(),in_dom), true);
 
   // Common loop iterate and other vars:
   size_t d;
@@ -402,12 +402,12 @@ FFT<CCTransform,Dim,T>::transform(
   ComplexField_t* temp = &f;
   // Local work array passed to FFT:
   Complex_t* localdata;
-      
+
   // Loop over the dimensions be transformed:
   begdim = (direction == +1) ? 0 : static_cast<int>(nTransformDims-1);
   enddim = (direction == +1) ? static_cast<int>(nTransformDims) : -1;
   for (idim = begdim; idim != enddim; idim += direction) {
-    
+
     // Now do the serial transforms along this dimension:
 
     bool skipTranspose = false;
@@ -439,7 +439,7 @@ FFT<CCTransform,Dim,T>::transform(
 
     if (!skipTranspose) {
       // transpose and permute to Field with transform dim first
-      (*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] = 
+      (*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] =
         (*temp)[temp->getLayout().getDomain()];
 
       // Compress out previous iterate's storage:
@@ -457,7 +457,7 @@ FFT<CCTransform,Dim,T>::transform(
       if (this->compressTemps()) *temp = 0;
       temp = &f;  // Field* management aid
     }
-    
+
     // Loop over all the Vnodes, working on the LField in each.
     typename ComplexField_t::const_iterator_if l_i, l_end = temp->end_if();
     for (l_i = temp->begin_if(); l_i != l_end; ++l_i) {
@@ -479,17 +479,17 @@ FFT<CCTransform,Dim,T>::transform(
         localdata += length;
       } // loop over 1D strips
     } // loop over all the LFields
-    
 
-  } // loop over all transformed dimensions 
+
+  } // loop over all transformed dimensions
 
   // skip final assignment and compress if we used f as final temporary
   if (temp != &f) {
-    
+
     // Now assign back into original Field, and compress last temp's storage:
     f[in_dom] = (*temp)[temp->getLayout().getDomain()];
     if (this->compressTemps()) *temp = 0;
-    
+
   }
 
   // Normalize:
@@ -511,16 +511,16 @@ FFT<CCTransform,Dim,T>::transform(
 
 template <class T>
 FFT<CCTransform,1U,T>::FFT(
-			   const typename FFT<CCTransform,1U,T>::Domain_t& cdomain, 
+			   const typename FFT<CCTransform,1U,T>::Domain_t& cdomain,
 			   const bool transformTheseDims[1U], const bool& compressTemps)
   : FFTBase<1U,T>(FFT<CCTransform,1U,T>::ccFFT, cdomain,
                   transformTheseDims, compressTemps)
 {
 
   // Tau profiling
-  
-  
-  
+
+
+
 
   size_t nTransformDims = 1U;
   // get axis length
@@ -547,14 +547,14 @@ FFT<CCTransform,1U,T>::FFT(
 template <class T>
 FFT<CCTransform,1U,T>::FFT(
 			   const typename FFT<CCTransform,1U,T>::Domain_t& cdomain,
-			   const bool& compressTemps) 
+			   const bool& compressTemps)
   : FFTBase<1U,T>(FFT<CCTransform,1U,T>::ccFFT, cdomain, compressTemps)
 {
 
   // Tau profiling
-  
-  
-   
+
+
+
 
   // get axis length
   int length;
@@ -582,9 +582,9 @@ void
 FFT<CCTransform,1U,T>::setup(void)
 {
   // Tau profiling
-  
-  
-   
+
+
+
 
   // Get input Field's domain
   const Domain_t& ndic = this->getDomain();
@@ -606,9 +606,9 @@ template <class T>
 FFT<CCTransform,1U,T>::~FFT(void) {
 
   // Tau profiling
-  
-  
-   
+
+
+
 
   // delete temporary fields and field layouts
   delete tempFields_m;
@@ -637,15 +637,15 @@ FFT<CCTransform,1U,T>::transform(
   const Domain_t& in_dom = in_layout.getDomain();
   const Layout_t& out_layout = g.getLayout();
   const Domain_t& out_dom = out_layout.getDomain();
-  PAssert( this->checkDomain(this->getDomain(),in_dom) &&
-           this->checkDomain(this->getDomain(),out_dom) );
+  PAssert_EQ( this->checkDomain(this->getDomain(),in_dom) &&
+              this->checkDomain(this->getDomain(),out_dom), true);
 
   // Field* for temp Field management:
   ComplexField_t* temp = &f;
   // Local work array passed to FFT:
   Complex_t* localdata;
-      
-  
+
+
   // Now do the serial transforms along this dimension:
 
   // get temp domain for comparison
@@ -690,9 +690,9 @@ FFT<CCTransform,1U,T>::transform(
     if (this->compressTemps() && temp != &f) *temp = 0;
     temp = &g;  // Field* management aid
   }
-  
-      
-  
+
+
+
 
   // should be only one LField!
   typename ComplexField_t::const_iterator_if l_i = temp->begin_if();
@@ -708,15 +708,15 @@ FFT<CCTransform,1U,T>::transform(
     this->getEngine().callFFT(0, direction, localdata);
   }
 
-  
+
 
   // skip final assignment and compress if we used g as final temporary
   if (temp != &g) {
-    
+
     // Now assign into output Field, and compress last temp's storage:
     g = (*temp);
     if (this->compressTemps() && temp != &f) *temp = 0;
-    
+
   }
 
   // Normalize:
@@ -743,14 +743,14 @@ FFT<CCTransform,1U,T>::transform(
   // Check domain of incoming Field
   const Layout_t& in_layout = f.getLayout();
   const Domain_t& in_dom = in_layout.getDomain();
-  PAssert(this->checkDomain(this->getDomain(),in_dom));
+  PAssert_EQ(this->checkDomain(this->getDomain(),in_dom), true);
 
   // Field* for temp Field management:
   ComplexField_t* temp = &f;
   // Local work array passed to FFT:
   Complex_t* localdata;
-      
-  
+
+
   // Now do the serial transforms along this dimension:
 
   // get domain for comparison
@@ -772,9 +772,9 @@ FFT<CCTransform,1U,T>::transform(
     (*tempFields_m) = (*temp);
     temp = tempFields_m;  // Field* management aid
   }
-  
-      
-  
+
+
+
 
   // should be only one LField!
   typename ComplexField_t::const_iterator_if l_i = temp->begin_if();
@@ -790,15 +790,15 @@ FFT<CCTransform,1U,T>::transform(
     this->getEngine().callFFT(0, direction, localdata);
   }
 
-  
+
 
   // skip final assignment and compress if we used f as final temporary
   if (temp != &f) {
-    
+
     // Now assign back into original Field, and compress last temp's storage:
     f = (*temp);
     if (this->compressTemps()) *temp = 0;
-    
+
   }
 
   // Normalize:
@@ -827,7 +827,7 @@ FFT<RCTransform,Dim,T>::FFT(
 			    const typename FFT<RCTransform,Dim,T>::Domain_t& cdomain,
 			    const bool transformTheseDims[Dim], const bool& compressTemps)
   : FFTBase<Dim,T>(FFT<RCTransform,Dim,T>::rcFFT, rdomain,
-                   transformTheseDims, compressTemps), 
+                   transformTheseDims, compressTemps),
     complexDomain_m(cdomain), serialAxes_m(1)
 {
 /*
@@ -838,9 +838,9 @@ FFT<RCTransform,Dim,T>::FFT(
   base.setAPI("OpenCL", 6);
   base.setDevice("-gpu", 4);
   base.initDevice();
-    		
+
 #endif
-    	
+
 #ifdef IPPL_DKS_CUDA
   INFOMSG("Init DKS base cuda" << endl);
   base.setAPI("Cuda", 4);
@@ -851,7 +851,7 @@ FFT<RCTransform,Dim,T>::FFT(
   base.createStream(fftStreamId);
 
 #endif
-    	
+
 #ifdef IPPL_DKS_MIC
   INFOMSG("Init DKS base MIC" <<  endl);
   base.setAPI("OpenMP", 6);
@@ -909,7 +909,7 @@ FFT<RCTransform,Dim,T>::FFT(
     complexDomain_m(cdomain), serialAxes_m(serialAxes)
 {
   // Tau profiling
-  
+
 /*
 #ifdef IPPL_DKS
 #ifdef IPPL_DKS_OPENCL
@@ -917,9 +917,9 @@ FFT<RCTransform,Dim,T>::FFT(
   base.setAPI("OpenCL", 6);
   base.setDevice("-gpu", 4);
   base.initDevice();
-    		
+
 #endif
-  
+
 #ifdef IPPL_DKS_CUDA
   INFOMSG("Init DKS base cuda" << endl);
   base.setAPI("Cuda", 4);
@@ -929,7 +929,7 @@ FFT<RCTransform,Dim,T>::FFT(
 
   base.createStream(fftStreamId);
 #endif
-    	
+
 
 #ifdef IPPL_DKS_MIC
   INFOMSG("Init DKS base MIC" << endl);
@@ -981,11 +981,12 @@ void
 FFT<RCTransform,Dim,T>::setup(void) {
 
   // Tau profiling
-  
-  
-   
 
-  PAssert(serialAxes_m > 0 && (size_t) serialAxes_m < Dim);
+
+
+
+  PAssert_GT(serialAxes_m, 0);
+  PAssert_LT((size_t) serialAxes_m, Dim);
 
   size_t d, d2, activeDim;
   size_t nTransformDims = this->numTransformDims();
@@ -1117,8 +1118,8 @@ template <size_t Dim, class T>
 FFT<RCTransform,Dim,T>::~FFT(void) {
 
   // Tau profiling
-  
-  
+
+
   // delete temporary fields and layouts
   size_t nTransformDims = this->numTransformDims();
   for (size_t d=0; d<nTransformDims; ++d) {
@@ -1156,7 +1157,7 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
   const Layout_t& in_layout = f.getLayout();
   const Domain_t& in_dom = in_layout.getDomain();
 
-  PAssert( this->checkDomain(this->getDomain(), in_dom) );
+  PAssert_EQ( this->checkDomain(this->getDomain(), in_dom), true);
 
   size_t nTransformDims = this->numTransformDims();
 
@@ -1202,10 +1203,10 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
   */
   //*** just use f field as is and keep decomposition as defined in input file ***//
   RealField_t* tempR = &f;
-	
+
   typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
   rl_i = tempR->begin_if();
- 
+
   // get the lfields
   RealLField_t* rldf = (*rl_i).second.get();
   // make sure we are uncompressed
@@ -1213,21 +1214,21 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
   // get the raw data pointers
   T* localreal = rldf->getP();
 
-  /** get global dimensions of real domain and local dimensions of real subdomain	
+  /** get global dimensions of real domain and local dimensions of real subdomain
       calc global dimensions of complex subdomain */
-  int NR_l[Dim], NR_g[Dim], NC_g[Dim]; 
+  int NR_l[Dim], NR_g[Dim], NC_g[Dim];
   for (size_t d = 0; d < Dim; d++) {
     NR_l[d] = (int)rldf->size(d);
     NR_g[d] = (int)tempR->getDomain()[d].length();
     NC_g[d] = NR_g[d];
   }
   NC_g[0] = (NC_g[0] / 2) + 1;
-	
-  //get global and local domain sizes	
+
+  //get global and local domain sizes
   int sizereal = NR_l[0]*NR_l[1]*NR_l[2];
   int totalreal = tempR->getDomain().size();
   //int totalcomp = NC_g[0]*NC_g[1]*NC_g[2];
-  
+
   //local vnodes get starting position for real field subdomains
   int *idx = new int[Ippl::getNodes()];
   int *idy = new int[Ippl::getNodes()];
@@ -1239,7 +1240,7 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
     idy[node] = tmp[1].min();
     idz[node] = tmp[2].min();
   }
-	
+
   //remote vnodes get starting position for real field subdomains
   for (typename Layout_t::iterator_dv remote = tempR->getLayout().begin_rdv(); remote != tempR->getLayout().end_rdv(); ++remote) {
     Domain_t tmp = (*remote).second->getDomain();
@@ -1250,16 +1251,16 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
   }
 
   int id[3] = {idx[Ippl::myNode()], idy[Ippl::myNode()], idz[Ippl::myNode()]};
-	    
+
   if (Ippl::myNode() == 0) {
-	
+
     //if only one node is working do dksbase write otherwise use cuda aware mpi
     if (Ippl::getNodes() > 1) {
 
       if (streamId == -1) {
 	//gather data from different mpi processes directly into gpu buffer
-	dksbase.gather3DData( real_ptr, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, 
-			   idx, idy, idz, 			 
+	dksbase.gather3DData( real_ptr, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l,
+			   idx, idy, idz,
 			   Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
       } else {
 	//gather data using CUDA IPC for async data transfer
@@ -1268,24 +1269,24 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
 	dksbase.syncDevice();
 	MPI_Barrier(Ippl::getComm());
       }
-      
+
     } else {
       //write real data to device
       dksbase.writeDataAsync<T>(real_ptr, localreal, totalreal, streamId);
       //dksbase.writeData<T>(real_ptr, localreal, totalreal);
     }
-    
+
     //call real to complex fft
     dksbase.callR2CFFT(real_ptr, comp_ptr, nTransformDims, (int*)NR_g, streamId);
 
     //normalize fft
     if (direction == +1)
       dksbase.callNormalizeFFT(comp_ptr, nTransformDims, (int*) NC_g, streamId);
-    	
+
   } else {
     if (streamId == -1) {
       //send data via gatherv to gpu controled by root process
-      dksbase.gather3DData( NULL, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz, 
+      dksbase.gather3DData( NULL, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz,
 			 Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
     } else {
       //transfer data to device memory
@@ -1294,7 +1295,7 @@ FFT<RCTransform,Dim,T>::transformDKSRC(
       dksbase.syncDevice();
       MPI_Barrier(Ippl::getComm());
     }
-   
+
   }
   /* end dks part */
 
@@ -1315,7 +1316,7 @@ FFT<RCTransform,Dim,T>::transform(
   // time the whole mess
   static IpplTimings::TimerRef tottimer=IpplTimings::getTimer("RC-total-gpu");
   IpplTimings::startTimer(tottimer);
-	
+
   // check domain of incoming fields
   const Layout_t& in_layout = f.getLayout();
   const Domain_t& in_dom = in_layout.getDomain();
@@ -1324,9 +1325,9 @@ FFT<RCTransform,Dim,T>::transform(
 
   PAssert( this->checkDomain(this->getDomain(),in_dom) &&
            this->checkDomain(complexDomain_m,out_dom) );
-	
+
   RealField_t* tempR = tempRField_m;  // field* management aid
-  
+
   if (!constInput) {
     // see if we can use input field f as a temporary
     bool skipTemp = true;
@@ -1365,42 +1366,42 @@ FFT<RCTransform,Dim,T>::transform(
 
   // field* for temp field management:
   ComplexField_t* temp = tempFields_m[0];
-	
+
   // see if we can put final result directly into g.  this is useful if
   // we're doing just a 1d fft of one dimension of a multi-dimensional field.
-  	
+
   unsigned nTransformDims = this->numTransformDims();
-	
+
   if (nTransformDims == 1) {  // only a single rc transform
     bool skipTemp = true;
 
     // more rigorous match required here; check that layouts are identical
     if (!(out_layout == *tempLayouts_m[0])) {
       skipTemp = false;
-    } else {    
+    } else {
       for (unsigned d=0; d<Dim; ++d)
 	if (out_layout.getDistribution(d) != tempLayouts_m[0]->getDistribution(d))
 	  skipTemp = false;
-	    
+
       if ( out_layout.numVnodes() != tempLayouts_m[0]->numVnodes() )
 	skipTemp = false;
-      
+
       // also make sure there are no guard cells
       if (!(g.getGC() == FFT<RCTransform,Dim,T>::nullGC))
 	skipTemp = false;
-	    
+
       // if we can skip using the temporary, set the pointer to the output
       // field for the first fft to the second provided field (g)
       if (skipTemp)
 	temp = &g;
     }
   }
-	
+
   typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
   rl_i = tempR->begin_if();
   typename ComplexField_t::const_iterator_if cl_i = temp->end_if();
   cl_i = temp->begin_if();
-	
+
   // get the lfields
   RealLField_t* rldf = (*rl_i).second.get();
   ComplexLField_t* cldf = (*cl_i).second.get();
@@ -1408,28 +1409,28 @@ FFT<RCTransform,Dim,T>::transform(
   // make sure we are uncompressed
   rldf->Uncompress();
   cldf->Uncompress();
-	
+
   // get the raw data pointers
   T* localreal = rldf->getP();
   Complex_t* localcomp = cldf->getP();
-  
-  //get global dimensions of domain and local dimensions of subdomain	
-  int NR_l[Dim], NC_l[Dim], NR_g[Dim], NC_g[Dim]; 
+
+  //get global dimensions of domain and local dimensions of subdomain
+  int NR_l[Dim], NC_l[Dim], NR_g[Dim], NC_g[Dim];
   for (unsigned d = 0; d < Dim; d++) {
     NR_l[d] = (int)rldf->size(d);
     NC_l[d] = (int)cldf->size(d);
     NR_g[d] = (int)tempR->getDomain()[d].length();
     NC_g[d] = (int)temp->getDomain()[d].length();
   }
-	
+
   //get global and local domain sizes
   int sizereal = NR_l[0]*NR_l[1]*NR_l[2];
   int sizecomp = NC_l[0]*NC_l[1]*NC_l[2];
-  
+
   int totalreal = tempR->getDomain().size();
   int totalcomp = temp->getDomain().size();
 
-	
+
   //local vnodes get starting position for real field subdomains
   int *idx = new int[Ippl::getNodes()];
   int *idy = new int[Ippl::getNodes()];
@@ -1441,7 +1442,7 @@ FFT<RCTransform,Dim,T>::transform(
     idy[node] = tmp[1].min();
     idz[node] = tmp[2].min();
   }
-	
+
   //remote vnodes get starting position for real field subdomains
   for (typename Layout_t::iterator_dv remote = tempR->getLayout().begin_rdv(); remote != tempR->getLayout().end_rdv(); ++remote) {
     Domain_t tmp = (*remote).second->getDomain();
@@ -1462,7 +1463,7 @@ FFT<RCTransform,Dim,T>::transform(
     cidy[node] = tmp[1].min();
     cidz[node] = tmp[2].min();
   }
-	
+
   //remote vnodes get starting position
   for (typename Layout_t::iterator_dv remote = temp->getLayout().begin_rdv(); remote != temp->getLayout().end_rdv(); ++remote) {
     Domain_t tmp = (*remote).second->getDomain();
@@ -1477,79 +1478,79 @@ FFT<RCTransform,Dim,T>::transform(
 
   int ierr;
   void *real_ptr, *comp_ptr;
-	    
+
   if (Ippl::myNode() == 0) {
-    	    	
+
     //allocate memory on device for real and complex arrays
     real_ptr = base.allocateMemory<T>(totalreal, ierr);
     comp_ptr = base.allocateMemory<Complex_t>(totalcomp, ierr);
-	
+
     //if only one node is working do dksbase write otherwise use cuda aware mpi
     if (Ippl::getNodes() > 1) {
       //gather data from different mpi processes directly into gpu buffer
-      base.gather3DData( real_ptr, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz, 
+      base.gather3DData( real_ptr, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz,
 			 Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
 
     } else {
       //write real data to device
       ierr = base.writeData<T>(real_ptr, localreal, totalreal);
     }
-    
+
     //call real to complex fft
-    base.callR2CFFT(real_ptr, comp_ptr, nTransformDims, (int*)NR_g); 
-      	
+    base.callR2CFFT(real_ptr, comp_ptr, nTransformDims, (int*)NR_g);
+
     //if only one node is working do dksbase read otherwise use cuda aware mpi
     if (Ippl::getNodes() > 1) {
       //scatter data to different mpi processes directly from gpu buffer
       MPI_Barrier( Ippl::getComm() );
-      
+
       base.scatter3DData(comp_ptr, localcomp, sizecomp, MPI_DOUBLE_COMPLEX, NC_g, NC_l, cidx, cidy,
 			 cidz, Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
 
     } else {
       //read complex data from device
       base.readData<Complex_t>(comp_ptr, localcomp, totalcomp);
-    }		
+    }
 
     //free device memory
     base.freeMemory<T>(real_ptr, totalreal);
     base.freeMemory<Complex_t>(comp_ptr, totalcomp);
-    
+
   } else {
 
     //send data via gatherv to gpu controled by root process
-    base.gather3DData( NULL, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz, 
+    base.gather3DData( NULL, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz,
 		       Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
     //receive data from gpu controled by root process
     MPI_Barrier(Ippl::getComm());
-    base.scatter3DData(NULL, localcomp, sizecomp, MPI_DOUBLE_COMPLEX, NC_g, NC_l, cidx, cidy, cidz, 
+    base.scatter3DData(NULL, localcomp, sizecomp, MPI_DOUBLE_COMPLEX, NC_g, NC_l, cidx, cidy, cidz,
 		       Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
 
   }
-	
+
   //assign complex field
   if (temp != &g) {
-      
-    (*tempFields_m[1])[tempLayouts_m[1]->getDomain()] = 
+
+    (*tempFields_m[1])[tempLayouts_m[1]->getDomain()] =
       (*temp)[temp->getLayout().getDomain()];
-   
+
     temp = tempFields_m[1];  // field* management aid
-    
+
     g[out_dom] = (*temp)[temp->getLayout().getDomain()];
     if (this->compressTemps()) *temp = 0;
   }
-	
+
   if (tempR != &f) {
     if (this->compressTemps()) *tempR = 0;
   }
-    
+
   // normalize:
-  //if (direction == +1) 
+  //if (direction == +1)
   //  g = g * this->getNormFact();
-	  
+
   // finish timing the whole mess
   IpplTimings::stopTimer(tottimer);
-  	
+
 }
 #else
 */
@@ -1573,10 +1574,10 @@ FFT<RCTransform,Dim,T>::transform(
   const Domain_t& in_dom = in_layout.getDomain();
   const Layout_t& out_layout = g.getLayout();
   const Domain_t& out_dom = out_layout.getDomain();
-  
-  
-  PAssert( this->checkDomain(this->getDomain(),in_dom) &&
-           this->checkDomain(complexDomain_m,out_dom) );
+
+
+  PAssert_EQ( this->checkDomain(this->getDomain(),in_dom) &&
+              this->checkDomain(complexDomain_m,out_dom), true);
 
   // common loop iterate and other vars:
   size_t d;
@@ -1619,13 +1620,13 @@ FFT<RCTransform,Dim,T>::transform(
 
   // if we're not using input as a temporary ...
   if (tempR != &f) {
-    
+
 
     // transpose AND PERMUTE TO REAL FIELD WITH TRANSFORM DIM FIRST
     FFTDBG(tmsg << "doing transpose of real field into temporary ");
     FFTDBG(tmsg << "with layout = " << tempR->getLayout() << std::endl);
     (*tempR)[tempR->getDomain()] = f[in_dom];
-    
+
   }
 
   // field* for temp field management:
@@ -1660,7 +1661,7 @@ FFT<RCTransform,Dim,T>::transform(
   }
 
   FFTDBG(tmsg << "doing real->complex fft of first dimension ..." << std::endl);
-  
+
   // loop over all the vnodes, working on the lfield in each.
   typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
   typename ComplexField_t::const_iterator_if cl_i = temp->begin_if();
@@ -1688,7 +1689,7 @@ FFT<RCTransform,Dim,T>::transform(
       for (int ilen=0; ilen<lengthreal; ilen+=2) {
         localcomp[ilen/2] = Complex_t(localreal[ilen],localreal[ilen+1]);
       }
-	
+
       // do the 1d real-to-complex fft:
       // note that real-to-complex fft direction is always +1
       this->getEngine().callFFT(idim, +1, localcomp);
@@ -1697,7 +1698,7 @@ FFT<RCTransform,Dim,T>::transform(
       localreal += lengthreal;
       localcomp += lengthcomp;
     } // loop over 1d strips
-    
+
   } // loop over all the lfields
 
   // compress temporary storage
@@ -1708,10 +1709,10 @@ FFT<RCTransform,Dim,T>::transform(
 
   // local work array passed to fft:
   Complex_t* localdata;
-      
+
   // loop over the remaining dimensions to be transformed:
   for (idim = 1; idim < nTransformDims; ++idim) {
-    
+
     bool skipTranspose = false;
 
     // if this is the last transform dimension, we might be able
@@ -1734,8 +1735,8 @@ FFT<RCTransform,Dim,T>::transform(
       FFTDBG(tmsg << "doing complex->complex transpose into field ");
       FFTDBG(tmsg << "with layout = " << tempFields_m[idim]->getLayout());
       FFTDBG(tmsg << std::endl);
-      
-      (*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] = 
+
+      (*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] =
         (*temp)[temp->getLayout().getDomain()];
 
       // compress out previous iterate's storage:
@@ -1752,16 +1753,16 @@ FFT<RCTransform,Dim,T>::transform(
       FFTDBG(tmsg << "into return ");
       FFTDBG(tmsg << "with layout = " << g.getLayout());
       FFTDBG(tmsg << std::endl);
-      
+
       g[out_dom] = (*temp)[temp->getLayout().getDomain()];
 
       // compress out previous iterate's storage:
       if (this->compressTemps())
 	*temp = 0;
       temp = &g;  // field* management aid
-      
+
     }
-    
+
 
     FFTDBG(tmsg << "doing complex->complex fft of other dimension .." << std::endl);
 
@@ -1776,7 +1777,7 @@ FFT<RCTransform,Dim,T>::transform(
 
       // get the raw data pointer
       localdata = ldf->getP();
-	
+
       // do 1d complex-to-complex fft's on all the strips in the lfield:
       int nstrips = 1, length = ldf->size(0);
       for (d=1; d<Dim; ++d)
@@ -1786,36 +1787,36 @@ FFT<RCTransform,Dim,T>::transform(
 	// do the 1D FFT:
         //this->getEngine().callFFT(idim, direction, localdata);
         this->getEngine().callFFT(idim, +1, localdata);
-      
+
         // advance the data pointer
         localdata += length;
       } // loop over 1D strips
     } // loop over all the LFields
 
-  } // loop over all transformed dimensions 
+  } // loop over all transformed dimensions
 
-  
+
   // skip final assignment and compress if we used g as final temporary
   if (temp != &g) {
-    
+
 
     // Now assign into output Field, and compress last temp's storage:
     FFTDBG(tmsg << "Doing cleanup complex->complex transpose ");
     FFTDBG(tmsg << "into return ");
     FFTDBG(tmsg << "with layout = " << g.getLayout());
-    FFTDBG(tmsg << std::endl); 
+    FFTDBG(tmsg << std::endl);
 
     g[out_dom] = (*temp)[temp->getLayout().getDomain()];
 
     if (this->compressTemps()) *temp = 0;
-    
+
   }
 
   // Normalize:
   if (direction == +1) g = g * this->getNormFact();
 
   // finish timing the whole mess
-  
+
 }
 //#endif
 
@@ -1832,7 +1833,7 @@ FFT<RCTransform,Dim,T>::transform(
 template <size_t Dim, class T>
 void
 FFT<RCTransform,Dim,T>::transformDKSCR(
-				       int direction, 
+				       int direction,
 				       RealField_t& g,
 				       void* real_ptr,
 				       void* comp_ptr,
@@ -1843,14 +1844,14 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
 
   const Layout_t& out_layout = g.getLayout();
   const Domain_t& out_dom = out_layout.getDomain();
-  
+
   //if (Ippl::myNode() == 0)
   //  std::cout << "DEBUG INVERSE g: " << g.getLayout() << std::endl;
 
-  PAssert( this->checkDomain(this->getDomain(),out_dom) );
-  
+  PAssert_EQ( this->checkDomain(this->getDomain(),out_dom), true);
+
   size_t nTransformDims = this->numTransformDims();
-  
+
   // see if we can put final result directly into g
   RealField_t* tempR;
 
@@ -1876,14 +1877,14 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
 
   if (skipTemp)
     tempR = &g;
-  else 
+  else
     tempR = tempRField_m;
   */
   //***Use g as is and keep decomposition as defined in input file***/
   tempR = &g;
   //if (Ippl::myNode() == 0)
   //  std::cout << "DEBUG INVERSE tempR: " << tempR->getLayout() << std::endl;
-  
+
 
   typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
   rl_i = tempR->begin_if();
@@ -1895,7 +1896,7 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
 
   // get the raw data pointers
   T* localreal = rldf->getP();
-	
+
   //get sizes of global domains and local subdomains
   int NR_l[Dim], NR_g[Dim], NC_g[Dim];
   for (size_t d=0; d<Dim; d++) {
@@ -1904,7 +1905,7 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
     NC_g[d] = NR_g[d];
   }
   NC_g[0] = (NC_g[0] / 2) + 1;
-	
+
   //get sizes of global and local domains
   int totalreal = tempR->getDomain().size();
 
@@ -1919,7 +1920,7 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
     idy[node] = tmp[1].min();
     idz[node] = tmp[2].min();
   }
-	
+
   //remote vnodes get starting position for real field subdomains
   for (typename Layout_t::iterator_dv remote = tempR->getLayout().begin_rdv(); remote != tempR->getLayout().end_rdv(); ++remote) {
     Domain_t tmp = (*remote).second->getDomain();
@@ -1928,12 +1929,12 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
     idy[node] = tmp[1].min();
     idz[node] = tmp[2].min();
   }
-    
+
   int id[3] = {idx[Ippl::myNode()], idy[Ippl::myNode()], idz[Ippl::myNode()]};
 
   /* DKS part */
   if (Ippl::myNode() == 0) {
-    
+
     //call real to complex fft
     dksbase.callC2RFFT(real_ptr, comp_ptr, nTransformDims, (int*)NR_g, streamId);
 
@@ -1945,8 +1946,8 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
       dksbase.syncDevice();
       MPI_Barrier(Ippl::getComm());
       /*
-      dksbase.scatter3DData(real_ptr, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, 
-			    idx, idy, idz, Ippl::getNodes(), Ippl::myNode(), 
+      dksbase.scatter3DData(real_ptr, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l,
+			    idx, idy, idz, Ippl::getNodes(), Ippl::myNode(),
 			    0, Ippl::getComm() );
       */
       dksbase.scatter3DDataAsync<T>(real_ptr, localreal, NR_g, NR_l, id);
@@ -1959,13 +1960,13 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
       dksbase.syncDevice();
       //dksbase.readData<T>(real_ptr, localreal, totalreal);
     }
-    	    
+
   } else {
-    
+
     //receive data from GPU controled by root process
     MPI_Barrier(Ippl::getComm());
     /*
-    dksbase.scatter3DData(NULL, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz, 
+    dksbase.scatter3DData(NULL, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz,
 		       Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
     */
     dksbase.scatter3DDataAsync<T>(real_ptr, localreal, NR_g, NR_l, id);
@@ -1980,7 +1981,7 @@ FFT<RCTransform,Dim,T>::transformDKSCR(
     g[out_dom] = (*tempR)[tempR->getLayout().getDomain()];
     if (this->compressTemps()) *tempR = 0;
   }
-		
+
   // finish timing the whole mess
 }
 #endif
@@ -2006,40 +2007,40 @@ FFT<RCTransform,Dim,T>::transform(
   const Domain_t& in_dom = in_layout.getDomain();
   const Layout_t& out_layout = g.getLayout();
   const Domain_t& out_dom = out_layout.getDomain();
-  	
+
   PAssert( this->checkDomain(complexDomain_m,in_dom) &&
 	   this->checkDomain(this->getDomain(),out_dom) );
-      
-      
-   		
+
+
+
   unsigned nTransformDims = this->numTransformDims();
   // Field* for temp Field management:
   ComplexField_t* temp = &f;
 
   // get domain for comparison
   const Domain_t& first_dom = tempLayouts_m[0]->getDomain();
-    
+
   bool skipTranspose = true;
-      		
+
   // check that zeroth axis is the same and is serial
   // and that there are no guard cells
   skipTranspose = ( (in_dom[0].sameBase(first_dom[0])) &&
 		    (in_dom[0].length() == first_dom[0].length()) &&
 		    (in_layout.getDistribution(0) == SERIAL) &&
 		    (f.getGC() == FFT<RCTransform,Dim,T>::nullGC) );
-    	
+
 
   if (!skipTranspose) {
     // transpose and permute to Field with transform dim first
     (*tempFields_m[0])[tempLayouts_m[0]->getDomain()] = (*temp)[temp->getLayout().getDomain()];
-	
+
     //Compress out previous iterate's storage:
     if (this->compressTemps() && temp != &f)
       *temp = 0;
     temp = tempFields_m[0];  // Field* management aid
   }
-	
-	
+
+
   // see if we can put final result directly into g
   RealField_t* tempR;
   bool skipTemp = true;
@@ -2062,15 +2063,15 @@ FFT<RCTransform,Dim,T>::transform(
 
   if (skipTemp)
     tempR = &g;
-  else 
+  else
     tempR = tempRField_m;
-	
+
 
     //unsigned nTransformDims = this->numTransformDims();
     //RealField_t* tempR = &g;
     //ComplexField_t* temp = &f;
 
-	
+
   typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
   rl_i = tempR->begin_if();
   typename ComplexField_t::const_iterator_if cl_i = temp->end_if();
@@ -2083,11 +2084,11 @@ FFT<RCTransform,Dim,T>::transform(
   // make sure we are uncompressed
   rldf->Uncompress();
   cldf->Uncompress();
-	
+
   // get the raw data pointers
   T* localreal = rldf->getP();
   Complex_t* localcomp = cldf->getP();
-	
+
   //get sizes of global domains and local subdomains
   int NR_l[Dim], NC_l[Dim], NR_g[Dim], NC_g[Dim];
   for (unsigned d=0; d<Dim; d++) {
@@ -2096,13 +2097,13 @@ FFT<RCTransform,Dim,T>::transform(
     NR_g[d] = (int)tempR->getDomain()[d].length();
     NC_g[d] = (int)temp->getDomain()[d].length();
   }
-	
+
   //get sizes of global and local domains
   int sizereal = NR_l[0]*NR_l[1]*NR_l[2];
   int sizecomp = NC_l[0]*NC_l[1]*NC_l[2];
   int totalreal = tempR->getDomain().size();
   int totalcomp = temp->getDomain().size();
-      
+
   //local vnodes get starting position for complex field subdomains
   int *cidx = new int[Ippl::getNodes()];
   int *cidy = new int[Ippl::getNodes()];
@@ -2115,7 +2116,7 @@ FFT<RCTransform,Dim,T>::transform(
     cidy[node] = tmp[1].min();
     cidz[node] = tmp[2].min();
   }
-	
+
   //remote vnodes get starting position for complex field subdomains
   for (typename Layout_t::iterator_dv remote = temp->getLayout().begin_rdv(); remote != temp->getLayout().end_rdv(); ++remote) {
     Domain_t tmp = (*remote).second->getDomain();
@@ -2137,7 +2138,7 @@ FFT<RCTransform,Dim,T>::transform(
     idy[node] = tmp[1].min();
     idz[node] = tmp[2].min();
   }
-	
+
   //remote vnodes get starting position for real field subdomains
   for (typename Layout_t::iterator_dv remote = tempR->getLayout().begin_rdv(); remote != tempR->getLayout().end_rdv(); ++remote) {
     Domain_t tmp = (*remote).second->getDomain();
@@ -2150,17 +2151,17 @@ FFT<RCTransform,Dim,T>::transform(
   //int id[3] = {idx[Ippl::myNode()], idy[Ippl::myNode()], idz[Ippl::myNode()]};
   //int cid[3] = {cidx[Ippl::myNode()], cidy[Ippl::myNode()], cidz[Ippl::myNode()]};
 
-  //do the FFT on GPU    
+  //do the FFT on GPU
   int ierr;
   void *real_ptr, *comp_ptr;
-   
+
   //DKS part
   if (Ippl::myNode() == 0) {
-    
+
     //allocate memory on device for real and complex arrays
     real_ptr = base.allocateMemory<T>(totalreal, ierr);
     comp_ptr = base.allocateMemory<Complex_t>(totalcomp, ierr);
-    
+
     if (Ippl::getNodes() > 1) {
       base.gather3DData( comp_ptr, localcomp, sizecomp, MPI_DOUBLE_COMPLEX, NC_g, NC_l,
 			 cidx, cidy, cidz, Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
@@ -2169,35 +2170,35 @@ FFT<RCTransform,Dim,T>::transform(
       //write real data to device
       ierr = base.writeData<Complex_t>(comp_ptr, localcomp, totalcomp);
     }
-    
+
     //call real to complex fft
-    base.callC2RFFT(real_ptr, comp_ptr, nTransformDims, (int*)NR_g); 
-    if (direction == -1) 
+    base.callC2RFFT(real_ptr, comp_ptr, nTransformDims, (int*)NR_g);
+    if (direction == -1)
       base.callNormalizeC2RFFT(real_ptr, nTransformDims, (int*)NR_g);
-    
+
     if (Ippl::getNodes() > 1) {
       MPI_Barrier(Ippl::getComm());
-      base.scatter3DData(real_ptr, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz, 
+      base.scatter3DData(real_ptr, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz,
 			 Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
 
     } else {
       //read real data from device
       base.readData<T>(real_ptr, localreal, totalreal);
     }
-    	    
+
     //free device memory
     base.freeMemory<T>(real_ptr, totalreal);
     base.freeMemory<Complex_t>(comp_ptr, totalcomp);
   } else {
 
     //send data via gatherv to gpu controled by root process
-    base.gather3DData( NULL, localcomp, sizecomp, MPI_DOUBLE_COMPLEX, NC_g, NC_l, cidx, cidy, cidz, 
+    base.gather3DData( NULL, localcomp, sizecomp, MPI_DOUBLE_COMPLEX, NC_g, NC_l, cidx, cidy, cidz,
 		       Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
     //receive data from GPU controled by root process
     MPI_Barrier(Ippl::getComm());
-    base.scatter3DData(NULL, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz, 
+    base.scatter3DData(NULL, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz,
 		       Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
-			
+
   }
   //end dks part
 
@@ -2207,10 +2208,10 @@ FFT<RCTransform,Dim,T>::transform(
     if (this->compressTemps()) *tempR = 0;
     if (this->compressTemps() && temp != &f) *temp = 0;
   }
-	
+
   // Normalize:
   //if (direction == +1) g = g * this->getNormFact();
-  	
+
   // finish timing the whole mess
   IpplTimings::stopTimer(tottimer);
 }
@@ -2234,8 +2235,8 @@ FFT<RCTransform,Dim,T>::transform(
   const Domain_t& in_dom = in_layout.getDomain();
   const Layout_t& out_layout = g.getLayout();
   const Domain_t& out_dom = out_layout.getDomain();
-  PAssert( this->checkDomain(complexDomain_m,in_dom) &&
-           this->checkDomain(this->getDomain(),out_dom) );
+  PAssert_EQ( this->checkDomain(complexDomain_m,in_dom) &&
+              this->checkDomain(this->getDomain(),out_dom), true);
 
   // Common loop iterate and other vars:
   size_t d;
@@ -2249,10 +2250,10 @@ FFT<RCTransform,Dim,T>::transform(
 
   // Local work array passed to FFT:
   Complex_t* localdata;
-      
+
   // Loop over all dimensions to be transformed except last one:
   for (idim = nTransformDims-1; idim != 0; --idim) {
-    
+
     // Now do the serial transforms along this dimension:
 
     bool skipTranspose = false;
@@ -2273,7 +2274,7 @@ FFT<RCTransform,Dim,T>::transform(
       // transpose and permute to Field with transform dim first
       FFTDBG(tmsg << "Doing complex->complex transpose into field ");
       FFTDBG(tmsg << "with layout = "<<tempFields_m[idim]->getLayout()<<std::endl);
-      (*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] = 
+      (*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] =
         (*temp)[temp->getLayout().getDomain()];
 
       // Compress out previous iterate's storage:
@@ -2281,9 +2282,9 @@ FFT<RCTransform,Dim,T>::transform(
 	*temp = 0;
       temp = tempFields_m[idim];  // Field* management aid
     }
-    
+
     FFTDBG(tmsg << "Doing complex->complex fft of other dimension .." << std::endl);
-    
+
 
     // Loop over all the Vnodes, working on the LField in each.
     typename ComplexField_t::const_iterator_if l_i, l_end = temp->end_if();
@@ -2307,13 +2308,13 @@ FFT<RCTransform,Dim,T>::transform(
 	// Do the 1D FFT:
         //this->getEngine().callFFT(idim, direction, localdata);
 	this->getEngine().callFFT(idim, -1, localdata);
-        
+
 	// advance the data pointer
         localdata += length;
       } // loop over 1D strips
     } // loop over all the LFields
 
-  } // loop over all transformed dimensions 
+  } // loop over all transformed dimensions
 
   // handle last CR transform separately
   idim = 0;
@@ -2340,7 +2341,7 @@ FFT<RCTransform,Dim,T>::transform(
 
   if (skipTemp)
     tempR = &g;
-  else 
+  else
     tempR = tempRField_m;
 
   skipTemp = true;
@@ -2367,7 +2368,7 @@ FFT<RCTransform,Dim,T>::transform(
     skipTemp = false;
   }
 
-  
+
   if (!skipTemp) {
     // transpose and permute to complex Field with transform dim first
     FFTDBG(tmsg << "Doing final complex->complex transpose into field ");
@@ -2380,10 +2381,10 @@ FFT<RCTransform,Dim,T>::transform(
       *temp = 0;
     temp = tempFields_m[0];
   }
-  
+
 
   FFTDBG(tmsg << "Doing complex->real fft of final dimension ..." << std::endl);
-  
+
   // Loop over all the Vnodes, working on the LField in each.
   typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
   typename ComplexField_t::const_iterator_if cl_i = temp->begin_if();
@@ -2428,7 +2429,7 @@ FFT<RCTransform,Dim,T>::transform(
 
   // skip final assignment and compress if we used g as final temporary
   if (tempR != &g) {
-    
+
 
     // Now assign into output Field, and compress last temp's storage:
     FFTDBG(tmsg << "Doing cleanup real->real transpose into return ");
@@ -2437,7 +2438,7 @@ FFT<RCTransform,Dim,T>::transform(
 
     if (this->compressTemps())
       *tempR = 0;
-    
+
   }
 
   // Normalize:
@@ -2464,7 +2465,7 @@ FFT<RCTransform,1U,T>::FFT(
 			   const typename FFT<RCTransform,1U,T>::Domain_t& cdomain,
 			   const bool transformTheseDims[1U], const bool& compressTemps)
   : FFTBase<1U,T>(FFT<RCTransform,1U,T>::rcFFT, rdomain,
-                  transformTheseDims, compressTemps), 
+                  transformTheseDims, compressTemps),
     complexDomain_m(cdomain)
 {
   size_t nTransformDims = 1U;
@@ -2493,14 +2494,14 @@ template <class T>
 FFT<RCTransform,1U,T>::FFT(
 			   const typename FFT<RCTransform,1U,T>::Domain_t& rdomain,
 			   const typename FFT<RCTransform,1U,T>::Domain_t& cdomain,
-			   const bool& compressTemps) 
+			   const bool& compressTemps)
   : FFTBase<1U,T>(FFT<RCTransform,1U,T>::rcFFT, rdomain, compressTemps),
     complexDomain_m(cdomain)
 {
   // Tau profiling
-  
-  
-   
+
+
+
 
   // get axis length
   int length;
@@ -2528,9 +2529,9 @@ void
 FFT<RCTransform,1U,T>::setup(void) {
 
   // Tau profiling
-  
-  
-   
+
+
+
 
   // check that domain lengths agree between real and complex domains
   const Domain_t& domain = this->getDomain();
@@ -2566,9 +2567,9 @@ template <class T>
 FFT<RCTransform,1U,T>::~FFT(void) {
 
   // Tau profiling
-  
-  
-   
+
+
+
 
   // delete temporary fields and layouts
   delete tempFields_m;
@@ -2598,8 +2599,8 @@ FFT<RCTransform,1U,T>::transform(
   const Domain_t& in_dom = in_layout.getDomain();
   const Layout_t& out_layout = g.getLayout();
   const Domain_t& out_dom = out_layout.getDomain();
-  PAssert( this->checkDomain(this->getDomain(),in_dom) &&
-           this->checkDomain(complexDomain_m,out_dom) );
+  PAssert_EQ( this->checkDomain(this->getDomain(),in_dom) &&
+              this->checkDomain(complexDomain_m,out_dom), true);
 
   // Common loop iterate and other vars:
   RealField_t* tempR = this->tempRField_m;  // Field* management aid
@@ -2618,10 +2619,10 @@ FFT<RCTransform,1U,T>::transform(
   }
 
   if (tempR != &f) {  // not using input as a temporary
-    
+
     // assign to real Field with proper layout
     (*tempR) = f;
-    
+
   }
 
   // Field* for temp Field management:
@@ -2638,7 +2639,7 @@ FFT<RCTransform,1U,T>::transform(
   if (!(g.getGC() == FFT<RCTransform,1U,T>::nullGC)) skipFinal = false;
   if (skipFinal) temp = &g;
 
-  
+
   // There should be just one vnode!
   typename RealField_t::const_iterator_if rl_i = tempR->begin_if();
   typename ComplexField_t::const_iterator_if cl_i = temp->begin_if();
@@ -2655,26 +2656,26 @@ FFT<RCTransform,1U,T>::transform(
 
     int lengthreal = rldf->size(0);
     // move the data into the complex strip, which is two reals longer
-    for (int ilen=0; ilen<lengthreal; ilen+=2) 
+    for (int ilen=0; ilen<lengthreal; ilen+=2)
       localcomp[ilen/2] = Complex_t(localreal[ilen],localreal[ilen+1]);
     // Do the 1D real-to-complex FFT:
     // note that real-to-complex FFT direction is always +1
     this->getEngine().callFFT(0, +1, localcomp);
-  } 
-  
+  }
 
-  
+
+
   // compress temporary storage
   if (this->compressTemps() && tempR != &f) *tempR = 0;
-  
+
 
   // skip final assignment and compress if we used g as final temporary
   if (temp != &g) {
-    
+
     // Now assign into output Field, and compress last temp's storage:
     g = (*temp);
     if (this->compressTemps()) *temp = 0;
-    
+
   }
 
   // Normalize:
@@ -2704,12 +2705,12 @@ FFT<RCTransform,1U,T>::transform(
   const Domain_t& in_dom = in_layout.getDomain();
   const Layout_t& out_layout = g.getLayout();
   const Domain_t& out_dom = out_layout.getDomain();
-  PAssert( this->checkDomain(complexDomain_m,in_dom) &&
-           this->checkDomain(this->getDomain(),out_dom) );
+  PAssert_EQ( this->checkDomain(complexDomain_m,in_dom) &&
+              this->checkDomain(this->getDomain(),out_dom), true);
 
   // Field* for temp Field management:
   ComplexField_t* temp = &f;
-      
+
   // see if we can put final result directly into g
   RealField_t* tempR;
   bool skipFinal = true;
@@ -2723,7 +2724,7 @@ FFT<RCTransform,1U,T>::transform(
   if (!(g.getGC() == FFT<RCTransform,1U,T>::nullGC)) skipFinal = false;
   if (skipFinal)
     tempR = &g;
-  else 
+  else
     tempR = this->tempRField_m;
 
   bool skipTemp = true;
@@ -2743,7 +2744,7 @@ FFT<RCTransform,1U,T>::transform(
     skipTemp = false;
   }
 
-  
+
   if (!skipTemp) {
     // assign to complex Field with proper layout
     (*tempFields_m) = (*temp);
@@ -2751,9 +2752,9 @@ FFT<RCTransform,1U,T>::transform(
     if (this->compressTemps() && temp != &f) *temp = 0;
     temp = tempFields_m;
   }
-  
 
-  
+
+
   // There should be just one vnode!
   typename RealField_t::const_iterator_if rl_i = tempR->begin_if();
   typename ComplexField_t::const_iterator_if cl_i = temp->begin_if();
@@ -2778,20 +2779,20 @@ FFT<RCTransform,1U,T>::transform(
       localreal[ilen+1] = imag(localcomp[ilen/2]);
     }
   }
-  
 
-  
+
+
   // compress previous iterates storage
   if (this->compressTemps() && temp != &f) *temp = 0;
-  
+
 
   // skip final assignment and compress if we used g as final temporary
   if (tempR != &g) {
-    
+
     // Now assign into output Field, and compress last temp's storage:
     g = (*tempR);
     if (this->compressTemps()) *tempR = 0;
-    
+
   }
 
   // Normalize:
@@ -2820,7 +2821,7 @@ FFT<SineTransform,Dim,T>::FFT(
 			      const bool transformTheseDims[Dim], const bool sineTransformDims[Dim],
 			      const bool& compressTemps)
   : FFTBase<Dim,T>(FFT<SineTransform,Dim,T>::sineFFT, rdomain,
-                   transformTheseDims, compressTemps), 
+                   transformTheseDims, compressTemps),
     complexDomain_m(&cdomain)
 {
 
@@ -2830,7 +2831,7 @@ FFT<SineTransform,Dim,T>::FFT(
   for (d=0; d<Dim; ++d) {
     sineTransformDims_m[d] = sineTransformDims[d];
     if (sineTransformDims[d]) {
-      PAssert(transformTheseDims[d]);  // should be marked as a transform dim
+      PAssert_EQ(transformTheseDims[d], true);  // should be marked as a transform dim
       ++numSineTransforms_m;
     }
   }
@@ -2879,7 +2880,7 @@ template <size_t Dim, class T>
 FFT<SineTransform,Dim,T>::FFT(
 			      const typename FFT<SineTransform,Dim,T>::Domain_t& rdomain,
 			      const typename FFT<SineTransform,Dim,T>::Domain_t& cdomain,
-			      const bool sineTransformDims[Dim], const bool& compressTemps) 
+			      const bool sineTransformDims[Dim], const bool& compressTemps)
   : FFTBase<Dim,T>(FFT<SineTransform,Dim,T>::sineFFT, rdomain, compressTemps),
     complexDomain_m(&cdomain)
 {
@@ -2938,9 +2939,9 @@ FFT<SineTransform,Dim,T>::FFT(
                    sineTransformDims, compressTemps)
 {
   // Tau profiling
-  
-  
-  
+
+
+
 
   // store which dimensions get sine transforms and how many
   numSineTransforms_m = this->numTransformDims();
@@ -2977,13 +2978,13 @@ FFT<SineTransform,Dim,T>::FFT(
 
 template <size_t Dim, class T>
 FFT<SineTransform,Dim,T>::FFT(
-			      const typename FFT<SineTransform,Dim,T>::Domain_t& rdomain, const bool& compressTemps) 
+			      const typename FFT<SineTransform,Dim,T>::Domain_t& rdomain, const bool& compressTemps)
   : FFTBase<Dim,T>(FFT<SineTransform,Dim,T>::sineFFT, rdomain, compressTemps)
 {
   // Tau profiling
-  
-  
-   
+
+
+
 
   size_t d;
   // store which dimensions get sine transforms and how many
@@ -3021,9 +3022,9 @@ void
 FFT<SineTransform,Dim,T>::setup(void) {
 
   // Tau profiling
-  
-  
-   
+
+
+
 
   size_t d, dim, activeDim = 0;
   size_t icount;
@@ -3053,7 +3054,7 @@ FFT<SineTransform,Dim,T>::setup(void) {
       }
       ++d;
     }
-    PAssert(match);  // check that we found rc transform dimension
+    PAssert_EQ(match, true);  // check that we found rc transform dimension
     // compare lengths of real and complex Field domains
     for (d=0; d<Dim; ++d) {
       if (d == activeDim) {
@@ -3079,7 +3080,7 @@ FFT<SineTransform,Dim,T>::setup(void) {
     for (dim=0; dim<numSineTransforms_m; ++dim, ++icount) {
       // get next dimension to be sine transformed
       while (!sineTransformDims_m[icount]) ++icount;
-      PAssert(icount<Dim);  // check that icount is valid dimension
+      PAssert_LT(icount, Dim);  // check that icount is valid dimension
       // make new domain with permuted Indexes, icount first
       ndip[0] = domain[icount];
       for (d=1; d<Dim; ++d) {
@@ -3120,7 +3121,7 @@ FFT<SineTransform,Dim,T>::setup(void) {
     for (dim=0; dim<numComplex; ++dim, ++icount) {
       // get next non-sine transform dimension
       while (!this->transformDim(icount) || sineTransformDims_m[icount]) ++icount;
-      PAssert(icount<Dim);  // check that this is a valid dimension
+      PAssert_LT(icount, Dim);  // check that this is a valid dimension
       // make new domain with permuted Indexes, icount first
       ndip[0] = (*complexDomain_m)[icount];
       for (d=1; d<Dim; ++d) {
@@ -3175,9 +3176,9 @@ template <size_t Dim, class T>
 FFT<SineTransform,Dim,T>::~FFT(void) {
 
   // Tau profiling
-  
-  
-   
+
+
+
 
   // delete temporary fields and layouts
   size_t d;
@@ -3226,8 +3227,8 @@ FFT<SineTransform,Dim,T>::transform(
   const Domain_t& in_dom = in_layout.getDomain();
   const Layout_t& out_layout = g.getLayout();
   const Domain_t& out_dom = out_layout.getDomain();
-  PAssert( this->checkDomain(this->getDomain(),in_dom) &&
-           this->checkDomain(*complexDomain_m,out_dom) );
+  PAssert_EQ( this->checkDomain(this->getDomain(),in_dom) &&
+              this->checkDomain(*complexDomain_m,out_dom), true );
 
   // Common loop iterate and other vars:
   size_t d;
@@ -3244,18 +3245,18 @@ FFT<SineTransform,Dim,T>::transform(
   RealField_t* tempR = &f;
   // Local work array passed to FFT:
   T* localdataR;
-      
+
   // Loop over the dimensions to be sine transformed:
   icount = 0;
   activeDim = 0;
   for (idim = 0; idim != numSineTransforms_m; ++idim, ++icount, ++activeDim) {
-    
+
     // find next sine transform dim
     while (!sineTransformDims_m[icount]) {
       if (this->transformDim(icount)) ++activeDim;
       ++icount;
     }
-    PAssert(activeDim<Dim);  // check that this is a valid dimension!
+    PAssert_LT(activeDim, Dim);  // check that this is a valid dimension!
     // Now do the serial transforms along this dimension:
 
     bool skipTranspose = false;
@@ -3274,16 +3275,16 @@ FFT<SineTransform,Dim,T>::transform(
 
     if (!skipTranspose) {
       // transpose and permute to Field with transform dim first
-      (*tempRFields_m[idim])[tempRLayouts_m[idim]->getDomain()] = 
+      (*tempRFields_m[idim])[tempRLayouts_m[idim]->getDomain()] =
         (*tempR)[tempR->getLayout().getDomain()];
 
       // Compress out previous iterate's storage:
       if (this->compressTemps() && tempR != &f) *tempR = 0;
       tempR = tempRFields_m[idim];  // Field* management aid
     }
-    
-      
-    
+
+
+
     // Loop over all the Vnodes, working on the LField in each.
     typename RealField_t::const_iterator_if l_i, l_end = tempR->end_if();
     for (l_i = tempR->begin_if(); l_i != l_end; ++l_i) {
@@ -3305,8 +3306,8 @@ FFT<SineTransform,Dim,T>::transform(
         localdataR += length;
       } // loop over 1D strips
     } // loop over all the LFields
-    
-  } // loop over all transformed dimensions 
+
+  } // loop over all transformed dimensions
 
   // now handle the RC transform separately
 
@@ -3317,9 +3318,9 @@ FFT<SineTransform,Dim,T>::transform(
     if (sineTransformDims_m[icount]) ++activeDim;
     ++icount;
   }
-  PAssert(activeDim<Dim);  // check that this is a valid dimension!
+  PAssert_LT(activeDim, Dim);  // check that this is a valid dimension!
 
-  
+
   // transpose and permute to final real Field with transform dim first
   int last = numSineTransforms_m;
   (*tempRFields_m[last])[tempRLayouts_m[last]->getDomain()] =
@@ -3328,7 +3329,7 @@ FFT<SineTransform,Dim,T>::transform(
   // Compress out previous iterate's storage:
   if (this->compressTemps() && tempR != &f) *tempR = 0;
   tempR = tempRFields_m[last];  // Field* management aid
-  
+
 
   // Field* for temp Field management:
   ComplexField_t* temp = tempFields_m[0];
@@ -3350,7 +3351,7 @@ FFT<SineTransform,Dim,T>::transform(
   }
 
 
-  
+
   // Loop over all the Vnodes, working on the LField in each.
   typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
   typename ComplexField_t::const_iterator_if cl_i = temp->begin_if();
@@ -3370,7 +3371,7 @@ FFT<SineTransform,Dim,T>::transform(
     for (d=1; d<Dim; ++d) nstrips *= rldf->size(d);
     for (int istrip=0; istrip<nstrips; ++istrip) {
       // move the data into the complex strip, which is two reals longer
-      for (int ilen=0; ilen<lengthreal; ilen+=2) 
+      for (int ilen=0; ilen<lengthreal; ilen+=2)
         localcomp[ilen/2] = Complex_t(localreal[ilen],localreal[ilen+1]);
       // Do the 1D real-to-complex FFT:
       // note that real-to-complex FFT direction is always +1
@@ -3380,24 +3381,24 @@ FFT<SineTransform,Dim,T>::transform(
       localcomp += lengthcomp;
     } // loop over 1D strips
   } // loop over all the LFields
-  
+
 
   // now proceed with the other complex-to-complex transforms
 
   // Local work array passed to FFT:
   Complex_t* localdata;
-      
+
   // Loop over the remaining dimensions to be transformed:
   ++icount;
   ++activeDim;
   for (idim = 1; idim != numComplex; ++idim, ++icount, ++activeDim) {
-    
+
     // find the next non-sine transform dimension
     while (!this->transformDim(icount) || sineTransformDims_m[icount]) {
       if (sineTransformDims_m[icount]) ++activeDim;
       ++icount;
     }
-    PAssert(activeDim<Dim);  // check that this is a valid dimension!
+    PAssert_LT(activeDim, Dim);  // check that this is a valid dimension!
     // Now do the serial transforms along this dimension:
 
     bool skipTranspose = false;
@@ -3416,7 +3417,7 @@ FFT<SineTransform,Dim,T>::transform(
 
     if (!skipTranspose) {
       // transpose and permute to Field with transform dim first
-      (*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] = 
+      (*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] =
         (*temp)[temp->getLayout().getDomain()];
 
       // Compress out previous iterate's storage:
@@ -3434,9 +3435,9 @@ FFT<SineTransform,Dim,T>::transform(
       if (this->compressTemps()) *temp = 0;
       temp = &g;  // Field* management aid
     }
-    
-      
-    
+
+
+
     // Loop over all the Vnodes, working on the LField in each.
     typename ComplexField_t::const_iterator_if l_i, l_end = temp->end_if();
     for (l_i = temp->begin_if(); l_i != l_end; ++l_i) {
@@ -3458,16 +3459,16 @@ FFT<SineTransform,Dim,T>::transform(
         localdata += length;
       } // loop over 1D strips
     } // loop over all the LFields
-    
-  } // loop over all transformed dimensions 
+
+  } // loop over all transformed dimensions
 
   // skip final assignment and compress if we used g as final temporary
   if (temp != &g) {
-    
+
     // Now assign into output Field, and compress last temp's storage:
     g[out_dom] = (*temp)[temp->getLayout().getDomain()];
     if (this->compressTemps()) *temp = 0;
-    
+
   }
 
   // Normalize:
@@ -3497,8 +3498,8 @@ FFT<SineTransform,Dim,T>::transform(
   const Domain_t& in_dom = in_layout.getDomain();
   const Layout_t& out_layout = g.getLayout();
   const Domain_t& out_dom = out_layout.getDomain();
-  PAssert( this->checkDomain(*complexDomain_m,in_dom) &&
-           this->checkDomain(this->getDomain(),out_dom) );
+  PAssert_EQ( this->checkDomain(*complexDomain_m,in_dom) &&
+              this->checkDomain(this->getDomain(),out_dom), true );
 
   // Common loop iterate and other vars:
   size_t d;
@@ -3512,19 +3513,19 @@ FFT<SineTransform,Dim,T>::transform(
   ComplexField_t* temp = &f;
   // Local work array passed to FFT:
   Complex_t* localdata;
-      
+
   // Loop over all dimensions to be non-sine transformed except last one:
   int numComplex = nTransformDims - numSineTransforms_m;
   icount = Dim-1;  // start with last dimension
   activeDim = nTransformDims-1;
   for (idim = numComplex-1; idim != 0; --idim, --icount, --activeDim) {
-    
+
     // find next non-sine transform dim
     while (!this->transformDim(icount) || sineTransformDims_m[icount]) {
       if (sineTransformDims_m[icount]) --activeDim;
       --icount;
     }
-    PAssert(activeDim>=0);  // check that this is a valid dimension!
+    PAssert_GE(activeDim, 0);  // check that this is a valid dimension!
     // Now do the serial transforms along this dimension:
 
     bool skipTranspose = false;
@@ -3543,16 +3544,16 @@ FFT<SineTransform,Dim,T>::transform(
 
     if (!skipTranspose) {
       // transpose and permute to Field with transform dim first
-      (*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] = 
+      (*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] =
         (*temp)[temp->getLayout().getDomain()];
 
       // Compress out previous iterate's storage:
       if (this->compressTemps() && temp != &f) *temp = 0;
       temp = tempFields_m[idim];  // Field* management aid
     }
-    
-      
-    
+
+
+
     // Loop over all the Vnodes, working on the LField in each.
     typename ComplexField_t::const_iterator_if l_i, l_end = temp->end_if();
     for (l_i = temp->begin_if(); l_i != l_end; ++l_i) {
@@ -3574,8 +3575,8 @@ FFT<SineTransform,Dim,T>::transform(
         localdata += length;
       } // loop over 1D strips
     } // loop over all the LFields
-    
-  } // loop over all transformed dimensions 
+
+  } // loop over all transformed dimensions
 
   // handle the CR transform separately
 
@@ -3584,7 +3585,7 @@ FFT<SineTransform,Dim,T>::transform(
     if (sineTransformDims_m[icount]) --activeDim;
     --icount;
   }
-  PAssert(activeDim>=0);  // check that this is a valid dimension!
+  PAssert_GE(activeDim, 0);  // check that this is a valid dimension!
 
   // Temp Field* management aid
   RealField_t* tempR = tempRFields_m[numSineTransforms_m];
@@ -3609,17 +3610,17 @@ FFT<SineTransform,Dim,T>::transform(
   }
 
   if (!skipTemp) {
-    
+
     // transpose and permute to complex Field with transform dim first
     (*tempFields_m[0])[tempLayouts_m[0]->getDomain()] =
       (*temp)[temp->getLayout().getDomain()];
     // compress previous iterates storage
     if (this->compressTemps() && temp != &f) *temp = 0;
     temp = tempFields_m[0];
-    
+
   }
 
-  
+
   // Loop over all the Vnodes, working on the LField in each.
   typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
   typename ComplexField_t::const_iterator_if cl_i = temp->begin_if();
@@ -3651,30 +3652,30 @@ FFT<SineTransform,Dim,T>::transform(
       localcomp += lengthcomp;
     } // loop over 1D strips
   } // loop over all the LFields
-  
 
-  
+
+
   // compress previous iterates storage
   if (this->compressTemps() && temp != &f) *temp = 0;
-  
+
 
   // now do the real-to-real FFTs
 
   // Local work array passed to FFT:
   T* localdataR;
-      
+
   // Loop over the remaining dimensions to be transformed:
   icount = Dim-1;  // start with last dimension
   activeDim = nTransformDims - 1;
   for (idim = numSineTransforms_m-1; idim != -1;
        --idim, --icount, --activeDim) {
-    
+
     // find next sine transform dim
     while (!sineTransformDims_m[icount]) {
       if (this->transformDim(icount)) --activeDim;
       --icount;
     }
-    PAssert(activeDim>=0);  // check that this is a valid dimension!
+    PAssert_GE(activeDim, 0);  // check that this is a valid dimension!
     // Now do the serial transforms along this dimension:
 
     bool skipTranspose = false;
@@ -3693,7 +3694,7 @@ FFT<SineTransform,Dim,T>::transform(
 
     if (!skipTranspose) {
       // transpose and permute to Field with transform dim first
-      (*tempRFields_m[idim])[tempRLayouts_m[idim]->getDomain()] = 
+      (*tempRFields_m[idim])[tempRLayouts_m[idim]->getDomain()] =
         (*tempR)[tempR->getLayout().getDomain()];
 
       // Compress out previous iterate's storage:
@@ -3711,9 +3712,9 @@ FFT<SineTransform,Dim,T>::transform(
       if (this->compressTemps()) *tempR = 0;
       tempR = &g;  // Field* management aid
     }
-    
-      
-    
+
+
+
     // Loop over all the Vnodes, working on the LField in each.
     typename RealField_t::const_iterator_if l_i, l_end = tempR->end_if();
     for (l_i = tempR->begin_if(); l_i != l_end; ++l_i) {
@@ -3735,16 +3736,16 @@ FFT<SineTransform,Dim,T>::transform(
         localdataR += length;
       } // loop over 1D strips
     } // loop over all the LFields
-    
-  } // loop over all transformed dimensions 
+
+  } // loop over all transformed dimensions
 
   // skip final assignment and compress if we used g as final temporary
   if (tempR != &g) {
-    
+
     // Now assign into output Field, and compress last temp's storage:
     g[out_dom] = (*tempR)[tempR->getLayout().getDomain()];
     if (this->compressTemps()) *tempR = 0;
-    
+
   }
 
   // Normalize:
@@ -3774,8 +3775,8 @@ FFT<SineTransform,Dim,T>::transform(
   const Domain_t& in_dom = in_layout.getDomain();
   const Layout_t& out_layout = g.getLayout();
   const Domain_t& out_dom = out_layout.getDomain();
-  PAssert( this->checkDomain(this->getDomain(),in_dom) &&
-           this->checkDomain(this->getDomain(),out_dom) );
+  PAssert_EQ( this->checkDomain(this->getDomain(),in_dom) &&
+              this->checkDomain(this->getDomain(),out_dom), true );
 
   // Common loop iterate and other vars:
   size_t d;
@@ -3792,12 +3793,12 @@ FFT<SineTransform,Dim,T>::transform(
   RealField_t* tempR = &f;
   // Local work array passed to FFT:
   T* localdataR;
-      
+
   // Loop over the dimensions to be sine transformed:
   begdim = (direction == +1) ? 0 : static_cast<int>(nTransformDims-1);
   enddim = (direction == +1) ? static_cast<int>(nTransformDims) : -1;
   for (idim = begdim; idim != enddim; idim+=direction) {
-    
+
     // Now do the serial transforms along this dimension:
 
     bool skipTranspose = false;
@@ -3829,7 +3830,7 @@ FFT<SineTransform,Dim,T>::transform(
 
     if (!skipTranspose) {
       // transpose and permute to Field with transform dim first
-      (*tempRFields_m[idim])[tempRLayouts_m[idim]->getDomain()] = 
+      (*tempRFields_m[idim])[tempRLayouts_m[idim]->getDomain()] =
         (*tempR)[tempR->getLayout().getDomain()];
 
       // Compress out previous iterate's storage:
@@ -3847,9 +3848,9 @@ FFT<SineTransform,Dim,T>::transform(
       if (this->compressTemps() && tempR != &f) *tempR = 0;
       tempR = &g;  // Field* management aid
     }
-    
-      
-    
+
+
+
     // Loop over all the Vnodes, working on the LField in each.
     typename RealField_t::const_iterator_if l_i, l_end = tempR->end_if();
     for (l_i = tempR->begin_if(); l_i != l_end; ++l_i) {
@@ -3871,16 +3872,16 @@ FFT<SineTransform,Dim,T>::transform(
         localdataR += length;
       } // loop over 1D strips
     } // loop over all the LFields
-    
-  } // loop over all transformed dimensions 
+
+  } // loop over all transformed dimensions
 
   // skip final assignment and compress if we used g as final temporary
   if (tempR != &g) {
-    
+
     // Now assign into output Field, and compress last temp's storage:
     g[out_dom] = (*tempR)[tempR->getLayout().getDomain()];
     if (this->compressTemps() && tempR != &f) *tempR = 0;
-    
+
   }
 
   // Normalize:
@@ -3905,7 +3906,7 @@ FFT<SineTransform,Dim,T>::transform(
   // Check domain of incoming Field
   const Layout_t& in_layout = f.getLayout();
   const Domain_t& in_dom = in_layout.getDomain();
-  PAssert(this->checkDomain(this->getDomain(),in_dom));
+  PAssert_EQ(this->checkDomain(this->getDomain(),in_dom), true);
 
   // Common loop iterate and other vars:
   size_t d;
@@ -3922,12 +3923,12 @@ FFT<SineTransform,Dim,T>::transform(
   RealField_t* tempR = &f;
   // Local work array passed to FFT:
   T* localdataR;
-      
+
   // Loop over the dimensions to be sine transformed:
   begdim = (direction == +1) ? 0 : static_cast<int>(nTransformDims-1);
   enddim = (direction == +1) ? static_cast<int>(nTransformDims) : -1;
   for (idim = begdim; idim != enddim; idim+=direction) {
-    
+
     // Now do the serial transforms along this dimension:
 
     bool skipTranspose = false;
@@ -3959,7 +3960,7 @@ FFT<SineTransform,Dim,T>::transform(
 
     if (!skipTranspose) {
       // transpose and permute to Field with transform dim first
-      (*tempRFields_m[idim])[tempRLayouts_m[idim]->getDomain()] = 
+      (*tempRFields_m[idim])[tempRLayouts_m[idim]->getDomain()] =
         (*tempR)[tempR->getLayout().getDomain()];
 
       // Compress out previous iterate's storage:
@@ -3977,9 +3978,9 @@ FFT<SineTransform,Dim,T>::transform(
       if (this->compressTemps() && tempR != &f) *tempR = 0;
       tempR = &f;  // Field* management aid
     }
-    
-      
-    
+
+
+
     // Loop over all the Vnodes, working on the LField in each.
     typename RealField_t::const_iterator_if l_i, l_end = tempR->end_if();
     for (l_i = tempR->begin_if(); l_i != l_end; ++l_i) {
@@ -4001,16 +4002,16 @@ FFT<SineTransform,Dim,T>::transform(
         localdataR += length;
       } // loop over 1D strips
     } // loop over all the LFields
-    
-  } // loop over all transformed dimensions 
+
+  } // loop over all transformed dimensions
 
   // skip final assignment and compress if we used g as final temporary
   if (tempR != &f) {
-    
+
     // Now assign into output Field, and compress last temp's storage:
     f[in_dom] = (*tempR)[tempR->getLayout().getDomain()];
     if (this->compressTemps()) *tempR = 0;
-    
+
   }
 
   // Normalize:
@@ -4038,9 +4039,9 @@ FFT<SineTransform,1U,T>::FFT(
                   sineTransformDims, compressTemps)
 {
   // Tau profiling
-  
-  
-  
+
+
+
 
   // get axis length
   int length;
@@ -4066,13 +4067,13 @@ FFT<SineTransform,1U,T>::FFT(
 template <class T>
 FFT<SineTransform,1U,T>::FFT(
 			     const typename FFT<SineTransform,1U,T>::Domain_t& rdomain,
-			     const bool& compressTemps) 
+			     const bool& compressTemps)
   : FFTBase<1U,T>(FFT<SineTransform,1U,T>::sineFFT, rdomain, compressTemps)
 {
   // Tau profiling
-  
-  
-   
+
+
+
 
   // get axis length
   int length;
@@ -4100,9 +4101,9 @@ void
 FFT<SineTransform,1U,T>::setup(void) {
 
   // Tau profiling
-  
-  
-   
+
+
+
 
   const Domain_t& domain = this->getDomain();          // get real Field domain
 
@@ -4124,9 +4125,9 @@ template <class T>
 FFT<SineTransform,1U,T>::~FFT(void) {
 
   // Tau profiling
-  
-  
-   
+
+
+
 
   // delete temporary field and layout
   delete tempRFields_m;
@@ -4153,15 +4154,15 @@ FFT<SineTransform,1U,T>::transform(
   const Domain_t& in_dom = in_layout.getDomain();
   const Layout_t& out_layout = g.getLayout();
   const Domain_t& out_dom = out_layout.getDomain();
-  PAssert( this->checkDomain(this->getDomain(),in_dom) &&
-           this->checkDomain(this->getDomain(),out_dom) );
+  PAssert_EQ( this->checkDomain(this->getDomain(),in_dom) &&
+              this->checkDomain(this->getDomain(),out_dom), true);
 
   // Field* management aid
   RealField_t* tempR = &f;
   // Local work array passed to FFT:
   T* localdataR;
-      
-  
+
+
   // Now do the serial transform along this dimension:
 
   // get the domain for comparison
@@ -4205,9 +4206,9 @@ FFT<SineTransform,1U,T>::transform(
     if (this->compressTemps() && tempR != &f) *tempR = 0;
     tempR = &g;  // Field* management aid
   }
-  
-      
-  
+
+
+
   // There should be just one LField.
   typename RealField_t::const_iterator_if l_i = tempR->begin_if();
   if (l_i != tempR->end_if()) {
@@ -4221,16 +4222,16 @@ FFT<SineTransform,1U,T>::transform(
 
     // Do the 1D FFT:
     this->getEngine().callFFT(0, direction, localdataR);
-  } 
-  
+  }
+
 
   // skip final assignment and compress if we used g as final temporary
   if (tempR != &g) {
-    
+
     // Now assign into output Field, and compress last temp's storage:
     g = (*tempR);
     if (this->compressTemps() && tempR != &f) *tempR = 0;
-    
+
   }
 
   // Normalize:
@@ -4255,14 +4256,14 @@ FFT<SineTransform,1U,T>::transform(
   // Check domain of incoming Field
   const Layout_t& in_layout = f.getLayout();
   const Domain_t& in_dom = in_layout.getDomain();
-  PAssert(this->checkDomain(this->getDomain(),in_dom));
+  PAssert_EQ(this->checkDomain(this->getDomain(),in_dom), true);
 
   // Field* management aid
   RealField_t* tempR = &f;
   // Local work array passed to FFT:
   T* localdataR;
-      
-  
+
+
   // Now do the serial transform along this dimension:
 
   // get domain for comparison
@@ -4306,9 +4307,9 @@ FFT<SineTransform,1U,T>::transform(
     if (this->compressTemps() && tempR != &f) *tempR = 0;
     tempR = &f;  // Field* management aid
   }
-  
-      
-  
+
+
+
   // There should be just one LField.
   typename RealField_t::const_iterator_if l_i = tempR->begin_if();
   if (l_i != tempR->end_if()) {
@@ -4323,15 +4324,15 @@ FFT<SineTransform,1U,T>::transform(
     // Do the 1D FFT:
     this->getEngine().callFFT(0, direction, localdataR);
   }
-  
+
 
   // skip final assignment and compress if we used g as final temporary
   if (tempR != &f) {
-    
+
     // Now assign into output Field, and compress last temp's storage:
     f = (*tempR);
     if (this->compressTemps()) *tempR = 0;
-    
+
   }
 
   // Normalize:
@@ -4345,5 +4346,5 @@ FFT<SineTransform,1U,T>::transform(
 /***************************************************************************
  * $RCSfile: FFT.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:25 $
- * IPPL_VERSION_ID: $Id: FFT.cpp,v 1.1.1.1 2003/01/23 07:40:25 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: FFT.cpp,v 1.1.1.1 2003/01/23 07:40:25 adelmann Exp $
  ***************************************************************************/

@@ -64,7 +64,7 @@ void CSRWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
 
         unsigned int indexz = (unsigned int)floor(distanceToOrigin);
         double leverz = distanceToOrigin - indexz;
-        PAssert(indexz < lineDensity_m.size() - 1);
+        PAssert_LT(indexz, lineDensity_m.size() - 1);
 
         bunch->Ef[i](2) += (1. - leverz) * Ez_m[indexz] + leverz * Ez_m[indexz + 1];
     }
