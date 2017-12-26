@@ -102,7 +102,7 @@ double Multipole::getSkewComponent(int n) const {
 
 void Multipole::setNormalComponent(int n, double v, double vError) {
     //   getField().setNormalComponent(n, v);
-    PAssert(n >= 1);
+    PAssert_GE(n, 1);
 
     if(n >  max_NormalComponent_m) {
         max_NormalComponent_m = n;
@@ -131,7 +131,7 @@ void Multipole::setNormalComponent(int n, double v, double vError) {
 
 void Multipole::setSkewComponent(int n, double v, double vError) {
     //   getField().setSkewComponent(n, v);
-    PAssert(n >= 1);
+    PAssert_GT(n, 1);
 
     if(n  > max_SkewComponent_m) {
         max_SkewComponent_m = n;

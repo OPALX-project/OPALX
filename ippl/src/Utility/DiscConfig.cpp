@@ -351,7 +351,8 @@ bool DiscConfig::parse_config(const char *BaseFile, bool WritingFile) {
     // receive back the config file and node name info
     int node = 0;
     msg = Ippl::Comm->receive_block(node, tag);
-    PAssert(msg != 0 && node == 0);
+    PAssert(msg);
+    PAssert_EQ(node, 0);
     ::getMessage(*msg,ConfigItems);
     ::getMessage(*msg,NodeNameItems);
     delete msg;
@@ -390,7 +391,7 @@ bool DiscConfig::parse_config(const char *BaseFile, bool WritingFile) {
       // get the hostname from the remote node, and append to a list
       int node = COMM_ANY_NODE;
       Message *msg = Ippl::Comm->receive_block(node, tag);
-      PAssert(msg != 0);
+      PAssert(msg);
       string nodename;
       ::getMessage(*msg,nodename);
       sprintf(name, " %s %d", nodename.c_str(), node);

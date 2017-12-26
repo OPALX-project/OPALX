@@ -93,7 +93,7 @@ Track::~Track()
 {}
 
 void Track::stash() {
-    PAssert(stashedTrack.size() == 0);
+    PAssert_EQ(stashedTrack.size(), 0);
 
     stashedTrack.push(block);
     block = 0;
