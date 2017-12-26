@@ -618,6 +618,7 @@ void OpalParser::run() const {
                 what = what.substr(pos + 1, std::string::npos);
                 pos = what.find_first_of('\n');
             } while (pos != std::string::npos);
+            errorMsg << "    " << what << endl;
 
 	    exit(1);
         } catch(OpalException &ex) {
@@ -631,6 +632,7 @@ void OpalParser::run() const {
                 what = what.substr(pos + 1, std::string::npos);
                 pos = what.find_first_of('\n');
             } while (pos != std::string::npos);
+            errorMsg << "    " << what << endl;
 
             exit(1);
         } catch(ClassicException &ex) {
@@ -644,6 +646,7 @@ void OpalParser::run() const {
                 what = what.substr(pos + 1, std::string::npos);
                 pos = what.find_first_of('\n');
             } while (pos != std::string::npos);
+            errorMsg << "    " << what << endl;
 
             exit(1);
         } catch(std::bad_alloc &) {
@@ -659,6 +662,7 @@ void OpalParser::run() const {
                 what = what.substr(pos + 1, std::string::npos);
                 pos = what.find_first_of('\n');
             } while (pos != std::string::npos);
+            errorMsg << "    " << what << endl;
 
             errorMsg << "\n************************************\n" << endl;
             throw std::runtime_error("in Parser");
@@ -673,7 +677,9 @@ void OpalParser::run() const {
                 what = what.substr(pos + 1, std::string::npos);
                 pos = what.find_first_of('\n');
             } while (pos != std::string::npos);
+            errorMsg << "    " << what << endl;
 
+            exit(1);
         } catch(...) {
             errorMsg << "\n*** Error:\n";
             stat->printWhere(errorMsg, false);
