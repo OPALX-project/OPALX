@@ -283,7 +283,7 @@ ParticleAttrib<T>::getMessage(Message& msg, size_t M)
     if (isTemporary()) {
       size_t checksize;
       ::getMessage(msg, checksize);
-      PAssert(checksize == M);
+      PAssert_EQ(checksize, M);
       create(M);
     }
     else {
@@ -492,7 +492,7 @@ template<class T>
 void ParticleAttrib<T>::sort(SortList_t &slist)
 {
     // Make sure the sort-list has the proper length.
-    PAssert(slist.size() >= size());
+    PAssert_GE(slist.size(), size());
     
     // Inform dbgmsg("PA<T>::sort");
     // dbgmsg << "Sorting " << size() << " items." << endl;
@@ -500,7 +500,7 @@ void ParticleAttrib<T>::sort(SortList_t &slist)
     // Go through the sort-list instructions, and move items around.
     int i = 0, j = 0, k = -1, mysize = size();
     while ( i < mysize ) {
-        PAssert(slist[i] < mysize);
+        PAssert_LT(slist[i], mysize);
         
         // skip this swap if the swap-list value is negative.  This
         // happens when we've already put the item in the proper place.
@@ -515,7 +515,7 @@ void ParticleAttrib<T>::sort(SortList_t &slist)
         k = slist[j];
         
         // We should not have a negative slist value for the destination
-        PAssert(k >= 0);
+        PAssert_GE(k, 0);
         
         // OK, swap the items
         std::iter_swap(ParticleList.begin() + i, ParticleList.begin() + j);

@@ -220,7 +220,7 @@ public:
 	    for (unsigned int a=0; a < get_NumAttributes(record); ++a) {
 	      // read the data
 	      void *buf = read_data(datafile, a, record, sf);
-	      PAssert(buf != 0);
+	      PAssert(buf);
 
 	      // put it in the Message
 	      msg->setCopy(false).setDelete(true);
@@ -326,7 +326,7 @@ public:
 
 	    // read in the data for the attribute
 	    void *buf = read_data(datafile, 0, record, sf);
-	    PAssert(buf != 0);
+	    PAssert(buf);
 
 	    // put it in the Message
 	    msg->setCopy(false).setDelete(true);
@@ -449,7 +449,7 @@ public:
 	// receive the message
 	int any_node = COMM_ANY_NODE;
 	Message *recmsg = Ippl::Comm->receive_block(any_node, tag);
-	PAssert(recmsg != 0);
+	PAssert(recmsg);
 	notreceived--;
 
 	DPCTLDBG(dbgmsg<<"Received msg from node " << any_node << " w tag ");
@@ -596,7 +596,7 @@ public:
 	// receive the message
 	int any_node = COMM_ANY_NODE;
 	Message *recmsg = Ippl::Comm->receive_block(any_node, tag);
-	PAssert(recmsg != 0);
+	PAssert(recmsg);
 	notreceived--;
 
 	DPCTLDBG(dbgmsg<< "Received msg from node " << any_node << " w tag ");

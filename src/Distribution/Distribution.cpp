@@ -531,7 +531,7 @@ void Distribution::doRestartOpalT(PartBunchBase<double, 3> *beam, size_t Np, int
         lastParticle = numParticles - 1;
 
     numParticles = lastParticle - firstParticle + 1;
-    PAssert(numParticles >= 0);
+    PAssert_GE(numParticles, 0);
 
     beam->create(numParticles);
 
@@ -571,7 +571,7 @@ void Distribution::doRestartOpalCycl(PartBunchBase<double, 3> *beam,
         lastParticle = numParticles - 1;
 
     numParticles = lastParticle - firstParticle + 1;
-    PAssert(numParticles >= 0);
+    PAssert_GE(numParticles, 0);
 
     beam->create(numParticles);
 
