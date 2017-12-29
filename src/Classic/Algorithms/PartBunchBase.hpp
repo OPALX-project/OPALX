@@ -136,7 +136,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
     boundpTimer_m = IpplTimings::getTimer("Boundingbox");
     boundpBoundsTimer_m = IpplTimings::getTimer("Boundingbox-bounds");
     boundpUpdateTimer_m = IpplTimings::getTimer("Boundingbox-update");
-    
+
     statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
     selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
 
@@ -144,7 +144,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
 
     distrCreate_m = IpplTimings::getTimer("Create Distr");
     distrReload_m = IpplTimings::getTimer("Load Distr");
-    
+
     globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
 
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(std::string("GlobalLosses"), !Options::asciidump));
@@ -230,7 +230,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
 
     distrCreate_m = IpplTimings::getTimer("Create Distr");
     distrReload_m = IpplTimings::getTimer("Load Distr");
-    
+
     globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
 
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(std::string("GlobalLosses"), !Options::asciidump));
@@ -754,13 +754,13 @@ size_t PartBunchBase<T, Dim>::calcNumPartsOutside(Vector_t x) {
 
             ++localnum;
         }
-    
+
     gather(&localnum, &globalPartPerNode_m[0], 1);
-    
+
     size_t npOutside = std::accumulate(globalPartPerNode_m.get(),
                                        globalPartPerNode_m.get() + Ippl::getNodes(), 0,
                                        std::plus<size_t>());
-    
+
     return npOutside;
 }
 
@@ -917,11 +917,11 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
 
     this->updateDomainLength(nr_m);
 
-    
+
     IpplTimings::startTimer(boundpBoundsTimer_m);
     get_bounds(rmin_m, rmax_m);
     IpplTimings::stopTimer(boundpBoundsTimer_m);
-    
+
     len = rmax_m - rmin_m;
 
     calcBeamParameters();
@@ -994,7 +994,7 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
     if(weHaveBins()) {
         pbin_m->updatePartInBin_cyc(countLost.get());
     }
-    
+
     IpplTimings::startTimer(boundpUpdateTimer_m);
     update();
     IpplTimings::stopTimer(boundpUpdateTimer_m);
@@ -1069,6 +1069,7 @@ size_t PartBunchBase<T, Dim>::destroyT() {
 
     const size_t localNum = getLocalNum();
     const size_t totalNum = getTotalNum();
+    size_t ne = 0;
 
     if(weHaveEnergyBins()) {
         tmpbinemitted = std::unique_ptr<size_t[]>(new size_t[getNumberOfEnergyBins()]);
@@ -1078,43 +1079,26 @@ size_t PartBunchBase<T, Dim>::destroyT() {
         for(unsigned int i = 0; i < localNum; i++) {
             if (Bin[i] < 0) {
                 destroy(1, i);
+                ++ ne;
             } else
                 tmpbinemitted[Bin[i]]++;
         }
     } else {
         Inform dmsg("destroy: ", INFORM_ALL_NODES);
-        size_t ne = 0;
         for(size_t i = 0; i < localNum; i++) {
-            if((Bin[i] < 0) && ((localNum - ne) > minNumParticlesPerCore)) {   // need in minimum x particles per node
-                ne++;
-                destroy(1, i);
+            if((Bin[i] < 0)) {
+                if ((localNum - ne) > minNumParticlesPerCore) {   // need in minimum x particles per node
+                    ne++;
+                    destroy(1, i);
+                }
             }
         }
         lowParticleCount_m = ((localNum - ne) <= minNumParticlesPerCore);
         reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
-        // unsigned int i = 0, j = localNum;
-        // while (j > 0 && Bin[j - 1] < 0) -- j;
+    }
 
-        // while (i + 1 < j) {
-        //     if (Bin[i] < 0) {
-        //         this->swap(i,j - 1);
-        //         -- j;
-
-        //         while (i + 1 < j && Bin[j - 1] < 0) -- j;
-        //     }
-        //     ++ i;
-        // }
-
-        // j = std::max(j, minNumParticlesPerCore);
-        // for(unsigned int i = localNum; i > j; -- i) {
-        //     destroy(1, i-1, true);
-        // }
-        // lowParticleCount_m = (j == minNumParticlesPerCore);
-        // reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
-
-        if (ne > 0) {
-            performDestroy(true);
-        }
+    if (ne > 0) {
+        performDestroy(true);
     }
 
     calcBeamParameters();
@@ -1208,21 +1192,21 @@ void PartBunchBase<T, Dim>::setZ(int i, double zcoo)
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::get_bounds(Vector_t &rmin, Vector_t &rmax) {
-    
+
     this->getLocalBounds(rmin, rmax);
-    
+
     double min[Dim];
     double max[Dim];
-    
+
     for (unsigned int i = 0; i < Dim; ++i) {
         min[i] = rmin[i];
         max[i] = rmax[i];
     }
-    
+
     //FIXME use a min-max function
     allreduce(&min[0], Dim, std::less<double>());
     allreduce(&max[0], Dim, std::greater<double>());
-    
+
     for (unsigned int i = 0; i < Dim; ++i) {
         rmin[i] = min[i];
         rmax[i] = max[i];
@@ -1238,7 +1222,7 @@ void PartBunchBase<T, Dim>::getLocalBounds(Vector_t &rmin, Vector_t &rmax) {
 	rmax = Vector_t(0.0, 0.0, 0.0);
 	return;
     }
-    
+
     rmin = R[0];
     rmax = R[0];
     for (size_t i = 1; i < localNum; ++ i) {
@@ -1621,7 +1605,7 @@ void PartBunchBase<T, Dim>::calcBeamParameters() {
     double gamma = 0.0;
     for(size_t i = 0; i < locNp; i++)
         gamma += sqrt(1.0 + dot(P[i], P[i]));
-    
+
     allreduce(gamma, 1, std::plus<double>());
     gamma /= N;
 
@@ -2219,16 +2203,16 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
     double part[2 * Dim];
 
     const unsigned long localNum = getLocalNum();
-    
+
     /* 2 * Dim centroids + Dim * ( 2 * Dim + 1 ) 2nd moments
      * --> 1st order moments: 0, ..., 2 * Dim - 1
      * --> 2nd order moments: 2 * Dim, ..., Dim * ( 2 * Dim + 1 )
-     * 
+     *
      * For a 6x6 matrix we have each 2nd order moment (except diagonal
      * entries) twice. We only store the upper half of the matrix.
      */
     std::vector<double> loc_moments(2 * Dim + Dim * ( 2 * Dim + 1 ));
-    
+
     long int totalNum = this->getTotalNum();
     if (OpalData::getInstance()->isInOPALCyclMode()) {
         for(unsigned long k = 0; k < localNum; ++ k) {
@@ -2239,7 +2223,7 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
                 part[0] = R[k](0);
                 part[2] = R[k](1);
                 part[4] = R[k](2);
-                
+
                 unsigned int l = 2 * Dim;
                 for (unsigned int i = 0; i < 2 * Dim; ++i) {
                     loc_moments[i] -= part[i];
@@ -2261,8 +2245,8 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
         part[0] = R[k](0);
         part[2] = R[k](1);
         part[4] = R[k](2);
-        
-        
+
+
         unsigned int l = 2 * Dim;
         for (unsigned int i = 0; i < 2 * Dim; ++i) {
             loc_moments[i] += part[i];
@@ -2271,13 +2255,13 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
             }
         }
     }
-    
+
     allreduce(&loc_moments[0], loc_moments.size(), std::plus<double>());
-    
+
     // copy to member variables
     for (unsigned int i = 0; i< 2 * Dim; ++i)
         centroid_m[i] = loc_moments[i];
-    
+
     unsigned int l = 2 * Dim;
     for (unsigned int i = 0; i < 2 * Dim; ++i) {
         for(unsigned int j = 0; j <= i; j++) {
@@ -2285,7 +2269,7 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
             moments_m(j, i) = moments_m(i, j);
         }
     }
-    
+
     return totalNum;
 }
 
