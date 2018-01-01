@@ -127,6 +127,7 @@ AmrMultiGrid::AmrMultiGrid(Boundary bcx,
     this->initBaseSolver_m(solver, precond);
 }
 
+
 void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
                          amrex::Array<AmrField_u>& phi,
                          amrex::Array<AmrField_u>& efield,
@@ -154,6 +155,40 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     // copy solution back
     for (int lev = 0; lev < nlevel_m; ++lev) {
         int ilev = lbase + lev;
+        
+        this->trilinos2amrex_m(0, *phi[ilev], mglevel_m[lev]->phi_p);
+    }
+}
+
+
+void AmrMultiGrid::solve(AmrFieldContainer_t &rho,
+                         AmrFieldContainer_t &phi,
+                         AmrFieldContainer_t &efield,
+                         unsigned short baseLevel,
+                         unsigned short finestLevel,
+                         bool prevAsGuess)
+{
+    nIter_m = 0;
+    lbase_m = baseLevel;
+    lfine_m = finestLevel;
+    nlevel_m = lfine_m - lbase_m + 1;
+    
+    this->initLevels_m(rho, itsAmrObject_mp->Geom());
+    
+    this->initGuess_m(phi, prevAsGuess);
+    
+    // build all necessary matrices and vectors
+    this->setup_m(rho, phi);
+    
+    // actual solve
+    this->iterate_m();
+    
+    // write efield to AMReX
+    this->computeEfield_m(efield);    
+    
+    // copy solution back
+    for (int lev = 0; lev < nlevel_m; ++lev) {
+        int ilev = lbase_m + lev;
         
         this->trilinos2amrex_m(0, *phi[ilev], mglevel_m[lev]->phi_p);
     }

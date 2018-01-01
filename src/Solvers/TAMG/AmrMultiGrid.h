@@ -171,6 +171,23 @@ public:
                int lbase, int lfine, bool previous = false);
     
     /*!
+     * Used in OPAL
+     * 
+     * @param rho right-hand side charge density on grid [C / m]
+     * @param phi electrostatic potential (unknown) [V]
+     * @param efield electric field [V / m]
+     * @param baseLevel for solve
+     * @param finestLevel for solve
+     * @param prevAsGuess use of previous solution as initial guess
+     */
+    void solve(AmrFieldContainer_t &rho,
+                       AmrFieldContainer_t &phi,
+                       AmrFieldContainer_t &efield,
+                       unsigned short baseLevel,
+                       unsigned short finestLevel,
+                       bool prevAsGuess = true);
+    
+    /*!
      * Specify the number of smoothing steps
      * @param nSweeps for each smoothing step
      */
