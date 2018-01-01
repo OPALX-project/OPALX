@@ -40,6 +40,7 @@
 #include <exception>
 #include <iostream>
 #include <new>
+#include <memory>
 #include <boost/algorithm/string.hpp>
 
 #include <Ippl.h>
@@ -136,8 +137,12 @@ void OpalParser::execute(Object *object, const std::string &name) const {
     }
 
     // Execute or check the command.
-    object->execute();
-
+    try {
+        object->execute();
+    } catch (...) {
+        std::cout << "OpalParser::execute" << std::endl;
+        throw;
+    }
     // Trace execution.
     if(Options::mtrace && object->shouldTrace()) {
         double time = double(clock()) / double(CLOCKS_PER_SEC);
@@ -164,15 +169,16 @@ void OpalParser::parseAction(Statement &stat) const {
         cmdName = parseString(stat, "Object name expected");
         printHelp(cmdName);
     } else if(Object *object = find(cmdName)) {
-        Object *copy = 0;
+        // Object *copy = 0;
         try {
-            copy = object->clone("");
+            std::unique_ptr<Object> copy(object->clone(""));
             copy->parse(stat);
             parseEnd(stat);
-            execute(copy, cmdName);
-            delete copy;
+            execute(copy.get(), cmdName);
+            // delete copy;
         } catch(...) {
-            delete copy;
+            std::cout << "OpalParser::parseAction" << std::endl;
+            // delete copy;
             throw;
         }
     } else {
@@ -357,6 +363,7 @@ void OpalParser::parseDefine(Statement &stat) const {
             OpalData::getInstance()->define(copy);
         } catch(...) {
             delete copy;
+            std::cout << "OpalParser::parseDefine" << std::endl;
             throw;
         }
     } else {
@@ -431,6 +438,7 @@ void OpalParser::parseMacro(const std::string &macName, Statement &stat) const {
                 execute(instance, macName);
             } catch(...) {
                 delete instance;
+                std::cout << "OpalParser::parseMacro" << std::endl;
                 throw;
             }
         } else {
@@ -591,6 +599,7 @@ Statement *OpalParser::readStatement(TokenStream *is) const {
         ERRORMSG("     " << *stat <<"    a" << what << '\n' << endl);
 
         stat = readStatement(is);
+        std::cout << "OpalParser::readStatement" << std::endl;
 	exit(1);
     }
 
@@ -600,7 +609,6 @@ Statement *OpalParser::readStatement(TokenStream *is) const {
 
 void OpalParser::run() const {
     stopFlag = false;
-    Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
     while(Statement *stat = readStatement(&*inputStack.back())) {
         try {
             // The dispatch via Statement::execute() allows a special
@@ -620,72 +628,7 @@ void OpalParser::run() const {
             } while (pos != std::string::npos);
             errorMsg << "    " << what << endl;
 
-	    exit(1);
-        } catch(OpalException &ex) {
-            errorMsg << "\n*** User error detected by function \""
-                     << ex.where() << "\"\n";
-            stat->printWhere(errorMsg, true);
-            std::string what = ex.what();
-            size_t pos = what.find_first_of('\n');
-            do {
-                errorMsg << "    " << what.substr(0, pos) << endl;
-                what = what.substr(pos + 1, std::string::npos);
-                pos = what.find_first_of('\n');
-            } while (pos != std::string::npos);
-            errorMsg << "    " << what << endl;
-
-            exit(1);
-        } catch(ClassicException &ex) {
-            errorMsg << "\n*** User error detected by function \""
-                     << ex.where() << "\"\n";
-            stat->printWhere(errorMsg, true);
-            std::string what = ex.what();
-            size_t pos = what.find_first_of('\n');
-            do {
-                errorMsg << "    " << what.substr(0, pos) << endl;
-                what = what.substr(pos + 1, std::string::npos);
-                pos = what.find_first_of('\n');
-            } while (pos != std::string::npos);
-            errorMsg << "    " << what << endl;
-
-            exit(1);
-        } catch(std::bad_alloc &) {
-            errorMsg << "\n*** Error:\n";
-            stat->printWhere(errorMsg, false);
-            errorMsg << "    " << *stat << "    Sorry, virtual memory exhausted.\n" << endl;
-        } catch(assertion &ex) {
-            errorMsg << "\n*** Runtime-error ******************\n";
-            std::string what = ex.what();
-            size_t pos = what.find_first_of('\n');
-            do {
-                errorMsg << "    " << what.substr(0, pos) << endl;
-                what = what.substr(pos + 1, std::string::npos);
-                pos = what.find_first_of('\n');
-            } while (pos != std::string::npos);
-            errorMsg << "    " << what << endl;
-
-            errorMsg << "\n************************************\n" << endl;
-            throw std::runtime_error("in Parser");
-        } catch(std::exception &ex) {
-            errorMsg << "\n*** Error:\n";
-            stat->printWhere(errorMsg, false);
-            errorMsg << "    Internal OPAL error: ";
-            std::string what = ex.what();
-            size_t pos = what.find_first_of('\n');
-            do {
-                errorMsg << "    " << what.substr(0, pos) << endl;
-                what = what.substr(pos + 1, std::string::npos);
-                pos = what.find_first_of('\n');
-            } while (pos != std::string::npos);
-            errorMsg << "    " << what << endl;
-
-            exit(1);
-        } catch(...) {
-            errorMsg << "\n*** Error:\n";
-            stat->printWhere(errorMsg, false);
-
-            errorMsg << "    " << *stat << "    Unexpected exception caught.\n" << endl;
-	    throw std::runtime_error("in Parser");
+	    MPI_Abort(MPI_COMM_WORLD, -100);
         }
 
         delete stat;
