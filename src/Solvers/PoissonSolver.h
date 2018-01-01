@@ -27,12 +27,17 @@ public:
     // compute the scalar potential in open space
     virtual void computePotential(Field_t &rho, Vector_t hr) = 0;
     
-    /*!
-     * @param rho specifies the charge-density field
-     * @param baseLevel of adaptive mesh refinement solvers (AMR). Used in case of sub-cycling in time.
-     * @param finestLevel of AMR.
-     */
 #ifdef ENABLE_AMR
+    /**
+     * AMR solver calls
+     * 
+     * @param rho right-hand side charge density on grid [C / m]
+     * @param phi electrostatic potential (unknown) [V]
+     * @param efield electric field [V / m]
+     * @param baseLevel for solve
+     * @param finestLevel for solve
+     * @param prevAsGuess use of previous solution as initial guess
+     */
     virtual void solve(AmrFieldContainer_t &rho,
                        AmrFieldContainer_t &phi,
                        AmrFieldContainer_t &efield,
