@@ -227,7 +227,13 @@ void TrackRun::execute() {
         itsTracker->execute();
 
     } else {
-        itsTracker->execute();
+        try {
+            itsTracker->execute();
+        } catch (...) {
+            std::cout << "TrackRun::execute" << std::endl;
+            throw;
+        }
+
         opal->setRestartRun(false);
     }
 

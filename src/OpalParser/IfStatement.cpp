@@ -89,6 +89,9 @@ void IfStatement::execute(const Parser &parser) {
             else_block->execute(parser);
         }
     } catch(...) {
-        throw ParseError("IfStatement::execute()", "Invalid IF condition.");
+        std::ostringstream oss;
+        this->print(oss);
+        ERRORMSG("Invalid IF condition '" + oss.str() + "'");
+        throw;
     }
 }

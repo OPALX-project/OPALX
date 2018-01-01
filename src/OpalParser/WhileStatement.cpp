@@ -65,7 +65,7 @@ WhileStatement::~WhileStatement() {
     if(while_block != 0) delete while_block;
 }
 
-
+#include "Utilities/OpalException.h"
 void WhileStatement::execute(const Parser &parser) {
     curr = tokens.begin();
     keep = ++curr;
@@ -80,7 +80,9 @@ void WhileStatement::execute(const Parser &parser) {
             OpalData::getInstance()->update();
         }
     } catch(...) {
-        throw ParseError("WhileStatement::execute()",
-                         "Invalid WHILE condition.");
+        std::ostringstream oss;
+        this->print(oss);
+        ERRORMSG("Invalid WHILE condition '" + oss.str() + "'");
+        throw;
     }
 }

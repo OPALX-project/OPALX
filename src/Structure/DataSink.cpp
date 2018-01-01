@@ -97,6 +97,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
     } else {
         INFOMSG("Creating new file for memory consumption data: " << memFileName_m << endl);
     }
+    h5wrapper_m->close();
 }
 
 DataSink::DataSink(H5PartWrapper *h5wrapper):
@@ -123,6 +124,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper):
     doHDF5_m = Options::enableHDF5;
 
     h5wrapper_m->writeHeader();
+    h5wrapper_m->close();
 }
 
 DataSink::~DataSink() {
