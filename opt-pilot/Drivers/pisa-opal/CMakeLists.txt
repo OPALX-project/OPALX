@@ -1,12 +1,3 @@
-if (Boost_FILESYSTEM_FOUND)
-    set (BOOST_FILESYSTEM
-        boost_filesystem
-	)
-else (Boost_FILESYSTEM_FOUND)
-    set (BOOST_FILESYSTEM
-	)
-endif (Boost_FILESYSTEM_FOUND)
-
 # OPAL
 message(STATUS "OPAL_LIBS ${OPAL_LIBS}")
 
