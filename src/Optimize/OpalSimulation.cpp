@@ -477,13 +477,12 @@ void OpalSimulation::invalidBunch() {
 void OpalSimulation::cleanUp() {
     namespace fs = boost::filesystem;
     try {
-        int my_rank=0;
+        int my_rank = 0;
         MPI_Comm_rank(comm_, &my_rank);
         if (my_rank == 0) {
             fs::path p(simulationDirName_.c_str());
             fs::remove_all(p);
         }
-        MPI_Barrier(comm_);
     } catch(fs::filesystem_error &ex) {
         std::cout << "Can't remove directory '" << simulationDirName_ << "', (" << ex.what() << ")" << std::endl;
     } catch(...) {
