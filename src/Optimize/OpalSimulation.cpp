@@ -106,8 +106,9 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
     std::string tmplFile = tmplDir + "/" + simulationName_ + ".tmpl";
     // data file is assumed to be located in the root directory
     std::string dataFile = simulationName_ + ".data";
+    fs::path pwd = fs::current_path();
     if (!fs::exists(dataFile))
-        throw OptPilotException("OpalSimulation::OpalSimulation", "The data file '" + dataFile + "' doesn't exist");
+        throw OptPilotException("OpalSimulation::OpalSimulation", "The data file '" + dataFile + "' \n     doesn't exist in directory '" + pwd.native() + "'");
 
     if (!fs::exists(tmplFile))
         throw OptPilotException("OpalSimulation::OpalSimulation", "The template file '" + tmplFile + "' doesn't exit");
@@ -209,6 +210,7 @@ void OpalSimulation::restoreOut() {
 
 
 void OpalSimulation::run() {
+    namespace fs = boost::filesystem;
 
     // make sure input file is not already existing
     MPI_Barrier(comm_);
@@ -217,7 +219,7 @@ void OpalSimulation::run() {
 
     setupSimulation();
 
-    pwd_ = getenv("PWD");
+    pwd_ = fs::current_path().native();
     pwd_ += "/";
     int err = chdir(simulationDirName_.c_str());
 
@@ -278,6 +280,7 @@ void OpalSimulation::run() {
         std::cout << "Continuing 2, disregarding this simulation.."
                   << std::endl;
 
+        chdir(pwd_.c_str());
     } catch(ClassicException *ex) {
 
         //restoreOut();
@@ -291,6 +294,8 @@ void OpalSimulation::run() {
                   << ex->what() << std::endl;
         std::cout << "Continuing 3, disregarding this simulation.."
                   << std::endl;
+
+        chdir(pwd_.c_str());
     }
 
     Options::seed = seed;
@@ -299,7 +304,7 @@ void OpalSimulation::run() {
     err = chdir(pwd_.c_str());
     if (err != 0) {
         std::cout << "Cannot chdir to "
-                  << simulationDirName_.c_str() << std::endl;
+                  << pwd_ << std::endl;
     }
 }
 
