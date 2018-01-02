@@ -464,13 +464,13 @@ void OpalSimulation::invalidBunch() {
 }
 
 void OpalSimulation::cleanUp() {
-
-#ifdef BOOST_FILESYSTEM
+    namespace fs = boost::filesystem;
     try {
-        boost::filesystem::path p(simulationDirName_.c_str());
-        boost::filesystem::remove_all(p);
+        fs::path p(simulationDirName_.c_str());
+        fs::remove_all(p);
+    } catch(fs::filesystem_error &ex) {
+        std::cout << "Can't remove directory '" << simulationDirName_ << "', (" << ex.what() << ")" << std::endl;
     } catch(...) {
+        std::cout << "Can't remove directory '" << simulationDirName_ << "'" << std::endl;
     }
-#endif
-
 }
