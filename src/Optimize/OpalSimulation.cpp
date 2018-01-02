@@ -13,6 +13,7 @@
 #include "Optimize/OpalSimulation.h"
 
 #include "Util/SDDSReader.h"
+#include "Util/SDDSParser/SDDSParserException.h"
 #include "Util/OptPilotException.h"
 #include "Util/HashNameGenerator.h"
 
@@ -280,7 +281,6 @@ void OpalSimulation::run() {
         std::cout << "Continuing 2, disregarding this simulation.."
                   << std::endl;
 
-        chdir(pwd_.c_str());
     } catch(ClassicException *ex) {
 
         //restoreOut();
@@ -295,7 +295,6 @@ void OpalSimulation::run() {
         std::cout << "Continuing 3, disregarding this simulation.."
                   << std::endl;
 
-        chdir(pwd_.c_str());
     }
 
     Options::seed = seed;
@@ -332,74 +331,86 @@ void OpalSimulation::collectResults() {
         invalidBunch();
     } else {
 
-        for(auto namedObjective : objectives_) {
+        try {
+            for(auto namedObjective : objectives_) {
 
-            Expressions::Expr_t *objective = namedObjective.second;
+                Expressions::Expr_t *objective = namedObjective.second;
 
-            // find out which variables we need in order to evaluate the
-            // objective
-            variableDictionary_t variable_dictionary;
-            bool check = getVariableDictionary(variable_dictionary,fn,objective);
-            if (check == false) break;
+                // find out which variables we need in order to evaluate the
+                // objective
+                variableDictionary_t variable_dictionary;
+                bool check = getVariableDictionary(variable_dictionary,fn,objective);
+                if (check == false) break;
 
-            // and evaluate the expression using the built dictionary of
-            // variable values
-            Expressions::Result_t result =
-                objective->evaluate(variable_dictionary);
+                // and evaluate the expression using the built dictionary of
+                // variable values
+                Expressions::Result_t result =
+                    objective->evaluate(variable_dictionary);
 
-            std::vector<double> values;
-            values.push_back(boost::get<0>(result));
-            bool is_valid = boost::get<1>(result);
+                std::vector<double> values;
+                values.push_back(boost::get<0>(result));
+                bool is_valid = boost::get<1>(result);
 
-            reqVarInfo_t tmps = {EVALUATE, values, is_valid};
-            requestedVars_.insert(
-                std::pair<std::string, reqVarInfo_t>(namedObjective.first, tmps));
+                reqVarInfo_t tmps = {EVALUATE, values, is_valid};
+                requestedVars_.insert(
+                                      std::pair<std::string, reqVarInfo_t>(namedObjective.first, tmps));
 
+            }
+        } catch(SDDSParserException &e) {
+            std::cout << "Evaluation of objectives threw an exception ('" << e.what() << "' in " << e.where() << ")!" << std::endl;
+        } catch(...) {
+            std::cout << "Evaluation of objectives threw an exception!" << std::endl;
         }
 
-        // .. and constraints
-        for(auto namedConstraint : constraints_) {
+        try {
+            // .. and constraints
+            for(auto namedConstraint : constraints_) {
 
-            Expressions::Expr_t *constraint = namedConstraint.second;
+                Expressions::Expr_t *constraint = namedConstraint.second;
 
-            // find out which variables we need in order to evaluate the
-            // objective
-            variableDictionary_t variable_dictionary;
-            bool check = getVariableDictionary(variable_dictionary,fn,constraint);
-            if (check == false) break;
+                // find out which variables we need in order to evaluate the
+                // objective
+                variableDictionary_t variable_dictionary;
+                bool check = getVariableDictionary(variable_dictionary,fn,constraint);
+                if (check == false) break;
 
-            Expressions::Result_t result =
-                constraint->evaluate(variable_dictionary);
+                Expressions::Result_t result =
+                    constraint->evaluate(variable_dictionary);
 
-            std::vector<double> values;
-            values.push_back(boost::get<0>(result));
-            bool is_valid = boost::get<1>(result);
+                std::vector<double> values;
+                values.push_back(boost::get<0>(result));
+                bool is_valid = boost::get<1>(result);
 
-            //FIXME: hack to give feedback about values of LHS and RHS
-            std::string constr_str = constraint->toString();
-            std::vector<std::string> split;
-            boost::split(split, constr_str, boost::is_any_of("<>!="),
-                        boost::token_compress_on);
-            std::string lhs_constr_str = split[0];
-            std::string rhs_constr_str = split[1];
-            boost::trim_left_if(rhs_constr_str, boost::is_any_of("="));
+                //FIXME: hack to give feedback about values of LHS and RHS
+                std::string constr_str = constraint->toString();
+                std::vector<std::string> split;
+                boost::split(split, constr_str, boost::is_any_of("<>!="),
+                             boost::token_compress_on);
+                std::string lhs_constr_str = split[0];
+                std::string rhs_constr_str = split[1];
+                boost::trim_left_if(rhs_constr_str, boost::is_any_of("="));
 
-            functionDictionary_t funcs = constraint->getRegFuncs();
-            boost::scoped_ptr<Expressions::Expr_t> lhs(
-                new Expressions::Expr_t(lhs_constr_str, funcs));
-            boost::scoped_ptr<Expressions::Expr_t> rhs(
-                new Expressions::Expr_t(rhs_constr_str, funcs));
+                functionDictionary_t funcs = constraint->getRegFuncs();
+                boost::scoped_ptr<Expressions::Expr_t> lhs(
+                                                           new Expressions::Expr_t(lhs_constr_str, funcs));
+                boost::scoped_ptr<Expressions::Expr_t> rhs(
+                                                           new Expressions::Expr_t(rhs_constr_str, funcs));
 
-            Expressions::Result_t lhs_res = lhs->evaluate(variable_dictionary);
-            Expressions::Result_t rhs_res = rhs->evaluate(variable_dictionary);
+                Expressions::Result_t lhs_res = lhs->evaluate(variable_dictionary);
+                Expressions::Result_t rhs_res = rhs->evaluate(variable_dictionary);
 
-            values.push_back(boost::get<0>(lhs_res));
-            values.push_back(boost::get<0>(rhs_res));
+                values.push_back(boost::get<0>(lhs_res));
+                values.push_back(boost::get<0>(rhs_res));
 
-            reqVarInfo_t tmps = {EVALUATE, values, is_valid};
-            requestedVars_.insert(
-                    std::pair<std::string, reqVarInfo_t>(namedConstraint.first, tmps));
+                reqVarInfo_t tmps = {EVALUATE, values, is_valid};
+                requestedVars_.insert(
+                                      std::pair<std::string, reqVarInfo_t>(namedConstraint.first, tmps));
 
+            }
+        } catch(SDDSParserException &e) {
+            std::cout << "Evaluation of constraints threw an exception ('" << e.what() << "' in " << e.where() << ")!" << std::endl;
+        } catch(...) {
+            std::cout << "Evaluation of constraints threw an exception!" << std::endl;
         }
 
     }
@@ -466,8 +477,13 @@ void OpalSimulation::invalidBunch() {
 void OpalSimulation::cleanUp() {
     namespace fs = boost::filesystem;
     try {
-        fs::path p(simulationDirName_.c_str());
-        fs::remove_all(p);
+        int my_rank=0;
+        MPI_Comm_rank(comm_, &my_rank);
+        if (my_rank == 0) {
+            fs::path p(simulationDirName_.c_str());
+            fs::remove_all(p);
+        }
+        MPI_Barrier(comm_);
     } catch(fs::filesystem_error &ex) {
         std::cout << "Can't remove directory '" << simulationDirName_ << "', (" << ex.what() << ")" << std::endl;
     } catch(...) {
