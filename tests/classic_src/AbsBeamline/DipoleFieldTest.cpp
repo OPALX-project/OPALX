@@ -8,17 +8,20 @@
 #include "Algorithms/PartBunch.h"
 #include "BeamlineCore/MultipoleRep.h"
 #include "AbsBeamline/ElementBase.h"
+
+#include "opal_test_utilities/SilenceTest.h"
+
 #include <fstream>
 using namespace std;
 
 vector< vector<double> > partialsDerivB(const Vector_t &R,const Vector_t B, double stepSize, SBendRep* dummyField)
-{  
-    // builds a matrix of all partial derivatives of B -> dx_i B_j 
+{
+    // builds a matrix of all partial derivatives of B -> dx_i B_j
     vector< vector<double> > allPartials(3, vector<double>(3));
     double t = 0 ;
     Vector_t P, E;
     for(int i = 0; i < 3; i++)
-	{ 
+	{
 	  // B at the previous and next grid points R_prev,  R_next
 	  Vector_t R_prev = R, R_next = R;
 	  R_prev[i] -= stepSize;
@@ -33,13 +36,13 @@ vector< vector<double> > partialsDerivB(const Vector_t &R,const Vector_t B, doub
 }
 
 vector< vector<double> > partialsDerivB_5(const Vector_t &R,const Vector_t B, double stepSize, SBendRep* dummyField)
-{  
-    // builds a matrix of all partial derivatives of B -> dx_i B_j 
+{
+    // builds a matrix of all partial derivatives of B -> dx_i B_j
     vector< vector<double> > allPartials(3, vector<double>(3));
     double t = 0 ;
     Vector_t P, E;
     for(int i = 0; i < 3; i++)
-	{ 
+	{
 	  // B at the previous and next grid points R_prev,  R_next
 	  Vector_t R_pprev = R, R_prev = R, R_next = R, R_nnext = R;
 	  R_pprev(i) -= 2 * stepSize;
@@ -50,13 +53,13 @@ vector< vector<double> > partialsDerivB_5(const Vector_t &R,const Vector_t B, do
 	  dummyField->apply(R_prev, P, t, E, B_prev);
 	  dummyField->apply(R_next, P, t, E, B_next);
 	  dummyField->apply(R_pprev, P, t, E, B_pprev);
-	  dummyField->apply(R_nnext, P, t, E, B_nnext); 
+	  dummyField->apply(R_nnext, P, t, E, B_nnext);
 	  for(int j = 0; j < 3; j++)
 	    allPartials[i][j] = (B_pprev[j] - 8 * B_prev[j] + 8 * B_next[j] - B_nnext[j]) / (12 * stepSize);
 	}
      return allPartials;
 }
-    
+
 double calcDivB(Vector_t &R, Vector_t B, double stepSize, SBendRep* dummyField )
 {
     double div = 0;
@@ -65,7 +68,7 @@ double calcDivB(Vector_t &R, Vector_t B, double stepSize, SBendRep* dummyField )
     for(int i = 0; i < 3; i++)
         div += partials[i][i];
     return div;
-}   
+}
 
 vector<double> calcCurlB(Vector_t &R, Vector_t B, double stepSize, SBendRep* dummyField)
 {
@@ -81,6 +84,8 @@ vector<double> calcCurlB(Vector_t &R, Vector_t B, double stepSize, SBendRep* dum
 
 TEST(Maxwell, Zeros)
 {
+    OpalTestUtilities::SilenceTest silencer;
+
     SBendRep* myMagnet = new SBendRep("myMagnet");
     myMagnet->BendBase::setFieldMapFN("1DPROFILE1-DEFAULT");
     myMagnet->BendBase::setLength(0.2);
@@ -96,7 +101,7 @@ TEST(Maxwell, Zeros)
     PartBunch* bunch = new PartBunch(partData);
     bunch->resetM(0.938);
     bunch->setdT(1.0e-12);//time step
-    double startField = 2.0, endField = 10.0 ;   
+    double startField = 2.0, endField = 10.0 ;
     myMagnet->Bend::initialise(bunch, startField, endField);
     delete partData;
     delete bunch;
@@ -108,9 +113,9 @@ TEST(Maxwell, Zeros)
     int counter = 0;
     //ofstream fout("some_data");
     for(z = 0.0; z <0.0015; z+= 0.0015)
-        for(x = 0.; x<0.04; x += 0.04)   
+        for(x = 0.; x<0.04; x += 0.04)
 	  for(double phi = -Physics::pi / 7.1 ; phi < 2/3. * Physics::pi; phi += Physics::pi/2000.)
-                { 
+                {
 		  // step = phi/(Physics::pi/20);
 		  //std::cout<<"Step #"<<step<<endl;
 		  counter ++;
@@ -139,7 +144,7 @@ TEST(Maxwell, Zeros)
 		  EXPECT_NEAR(curl[0], 0, 0.15);
 		  EXPECT_NEAR(curl[1], 0, 0.15);
 		  EXPECT_NEAR(curl[2], 0, 0.15);
-      	  
+
 	        }
     //fout.close();
     cout<<"bending radius: "<<myMagnet->Bend::designRadius_m<<endl;
@@ -165,6 +170,8 @@ TEST(Maxwell, Zeros)
 
 TEST(Quad, Quadrupole)
 {
+    OpalTestUtilities::SilenceTest silencer;
+
     MultipoleRep* quad = new MultipoleRep();
     //the following are used to initialise myMagnet
     PartData* partData = new PartData();
@@ -200,5 +207,3 @@ TEST(Quad, Quadrupole)
     cout<<"length: "<<quad->getElementLength()<<endl;
 
 }
-
-

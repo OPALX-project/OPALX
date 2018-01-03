@@ -123,6 +123,8 @@ class PPSolveFactoryTestFixture : public ::testing::Test {
 
 // check linear fit exactly reproduces data on grid points
 TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialLinear) {
+    OpalTestUtilities::SilenceTest silencer;
+
     PPSolveFactory fac1(grid->clone(),
                        values,
                        1,
@@ -140,6 +142,8 @@ TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialLinear) {
 // check quadratic fit exactly reproduces data on and off grid points (data
 // comes from a quadratic polynomial as source)
 TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic) {
+    OpalTestUtilities::SilenceTest silencer;
+
     PPSolveFactory fac2(grid->clone(),
                        values,
                        2,
@@ -179,6 +183,8 @@ TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic) {
 // check smoothed quadratic fit exactly reproduces data on and off grid points
 // except near to the boundary
 TEST_F(PPSolveFactoryTestFixture, DISABLED_TestSolvePolynomialQuadraticSmoothed) {
+    OpalTestUtilities::SilenceTest silencer;
+
     PPSolveFactory fac2(grid->clone(),
                        values,
                        1,

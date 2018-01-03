@@ -262,7 +262,6 @@ classic/5.0/src/Beamlines/FlaggedElmPtr.h -text
 classic/5.0/src/Beamlines/SimpleBeamline.cpp -text
 classic/5.0/src/Beamlines/SimpleBeamline.h -text
 classic/5.0/src/Beamlines/TBeamline.h -text
-classic/5.0/src/Beamlines/TBeamline.hh.kcc -text
 classic/5.0/src/CMakeLists.txt -text
 classic/5.0/src/Channels/CMakeLists.txt -text
 classic/5.0/src/Channels/Channel.cpp -text

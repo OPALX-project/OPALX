@@ -18,7 +18,7 @@
  *  according to
  *
  *  \f[
- *    result = \frac{1}{n} * \sqrt{\sum_{i=0}^n (measurement_i - value_i)^2}
+ *    result = \frac{1}{n} * \sqrt{\sum_{i=start}^end (measurement_i - value_i)^2}
  *  \f]
  *
  */
@@ -79,13 +79,21 @@ private:
 
     // define a mapping to arguments in argument vector
     boost::tuple<std::string, std::string, int, int> argument_types;
+    // :FIXME: remove unused enum
+#if 0
     enum {
           meas_filename
         , sim_filename
         , begin
         , end
     } argument_type_id;
-
+#endif
 };
 
 #endif
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:

@@ -42,7 +42,7 @@ public:
     // [DD]the message string identifying the exception
     // [/DL]
     // Construction/destruction.
-    CLRangeError(const std::string &meth, const std::string &msg);
+    CLRangeError(const string &meth, const string &msg);
 
     CLRangeError(const CLRangeError &);
     virtual ~CLRangeError();

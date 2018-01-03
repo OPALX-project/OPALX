@@ -291,26 +291,26 @@ FVps<T, N> FVps<T, N>::operator*(const FVps<T, N>& rhs) const {
     for(int i = 0; i < N; ++i) {
         // get truncated power series for variable i
         FTps<T, N> tps = this->getComponent(i);
-
+        
         // initialize tps of result
         FTps<T, N> r = 0.0;
         // fake order --> gets updated inside this function
         r.setMinOrder(1);
-
+        
         /* get coefficients and exponents of their monomials and multiply
          * truncated power series of rhs with appropriate power and coefficient
          */
         std::list<int> coeffs = tps.getListOfNonzeroCoefficients();
-
+        
         for(std::list<int>::iterator it = coeffs.begin(); it != coeffs.end(); ++it) {
-
+            
             FArray1D<int, N> expons = tps.extractExponents(*it);
-
+            
             // represents the monomial --> is polynomial due to multiplication of each variable's polynomial
             FTps<T, N> mono = 1.0;
-
+            
             for(int j = 0; j < N; ++j) {
-
+                
                 if (expons[j] != 0) {
                     // multiply each variable of the monomial of appropriate power, i.e. build monomial
                     FTps<T, N> tmp = rhs.getComponent(j);
@@ -319,17 +319,17 @@ FVps<T, N> FVps<T, N>::operator*(const FVps<T, N>& rhs) const {
             }
             // multiply truncated power series with appropriate coefficient
             mono *= tps.getCoefficient(*it);
-
+            
             /* sum up all polynomials that build the FTps of the result map for that variable,
              * make sure that the minimum order is correct.
              */
             r.setMinOrder(std::min(r.getMinOrder(), mono.getMinOrder()));
             r += mono;
-        }
+        }        
         // computation of Tps of variable i finished
         result.setComponent(i,r);
     }
-
+    
     return result;
 }
 
@@ -1032,24 +1032,24 @@ FVps<T, N> FVps<T, N>::substituteInto(const FMatrix<T, N, N> &lhs) const {
 
 template <class T, int N>
 FTps<T, N> FVps<T, N>::getFTps(const FArray1D<int, N>& power) const {
-
-    // function does not handle negative powers
+    
+    // function does not handle negative powers   
     if ( std::any_of(power.begin(), power.end(), [&](int p) { return p < 0; }) )
         throw LogicalError("FVps<T,N>::getFTps(power)", "Negative power.");
-
+    
     // initial Tps
     FTps<T, N> result = 1.0;
-
+    
     // go through variables and multiply its power to "result"
     for (int i = 0; i < N; ++i) {
         // get polynomial
         FTps<T, N> rhs = getComponent(i);
-
+        
         // multiply polynomials
         for (int j = 0; j < power[i]; ++j)
             result = result.multiply(rhs, FTps<T, N>::getGlobalTruncOrder()); // make sure that no global trunc exceeding
     }
-
+    
     return result;/*.truncate(FTps<T, N>::getGlobalTruncOrder());*/
 }
 
@@ -1129,6 +1129,17 @@ template <class T, int N>
 FVps<T, N> operator-(const FVector<T, N> &lhs, const FVps<T, N> &rhs) {
     FVps<T, N> result;
     for(int i = 0; i < N; ++i) result[i] = lhs[i] - rhs[i];
+    return result;
+}
+
+
+template <class T, int N>
+FVector<T, N> operator*(const FVps<T, N> &lhs, const FVector<T, N> &rhs) {
+    FVector<T, N> result;
+    for (int i = 0; i < N; ++i) {
+        FTps<T, N> tps = lhs.getComponent(i);
+        result[i] = tps.evaluate(rhs);
+    }
     return result;
 }
 

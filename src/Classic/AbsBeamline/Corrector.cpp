@@ -123,7 +123,7 @@ void Corrector::goOnline(const double &) {
     online_m = true;
 }
 
-void Corrector::setDesignEnergy(double ekin, bool changeable) {
+void Corrector::setDesignEnergy(const double& ekin, bool changeable) {
     if (designEnergyChangeable_m) {
         designEnergy_m = ekin;
         designEnergyChangeable_m = changeable;

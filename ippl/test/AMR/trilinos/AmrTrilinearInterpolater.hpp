@@ -7,8 +7,9 @@ AmrTrilinearInterpolater<AmrMultiGridLevel>::AmrTrilinearInterpolater()
 template <class AmrMultiGridLevel>
 void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::indices_t& indices,
-    typename AmrMultiGridLevel::coefficients_t& values,
+    const basefab_t& fab,
+    umap_t& map,
+    const scalar_t& scale,
     AmrMultiGridLevel* mglevel)
 {
     /* lower left coarse cell (i, j, k)
@@ -19,7 +20,7 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
     AmrIntVect_t civ;
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             
-        double tmp = iv[d] - 0.5;
+        scalar_t tmp = iv[d] - 0.5;
         if ( std::signbit(tmp) )
             civ[d] = std::floor(tmp);
         else
@@ -29,98 +30,66 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
     civ.coarsen(mglevel->refinement());
         
     // ref ratio 2 only
-    double dx = 0.5 * ( iv[0] - civ[0] * 2 ) - 0.25;
-    double dy = 0.5 * ( iv[1] - civ[1] * 2 ) - 0.25;
+    scalar_t dx = 0.5 * ( iv[0] - civ[0] * 2 ) - 0.25;
+    scalar_t dy = 0.5 * ( iv[1] - civ[1] * 2 ) - 0.25;
 #if AMREX_SPACEDIM == 3
-    double dz = 0.5 * ( iv[2] - civ[2] * 2 ) - 0.25;
+    scalar_t dz = 0.5 * ( iv[2] - civ[2] * 2 ) - 0.25;
 #endif
         
-    double xdiff = 1.0 - dx;
-    double ydiff = 1.0 - dy;
+    scalar_t xdiff = 1.0 - dx;
+    scalar_t ydiff = 1.0 - dy;
 #if AMREX_SPACEDIM == 3
-    double zdiff = 1.0 - dz;
+    scalar_t zdiff = 1.0 - dz;
 #endif
     // (i, j, k)
-    int crse_gidx = mglevel->serialize(civ);
-    double value = AMREX_D_TERM(xdiff, * ydiff, * zdiff);
+    go_t crse_gidx = mglevel->serialize(civ);
+    scalar_t value = AMREX_D_TERM(xdiff, * ydiff, * zdiff) * scale;
     
-    if ( mglevel->isBoundary(civ) ) {
-        mglevel->applyBoundary(civ, indices, values, value);
-    } else {
-        indices.push_back( crse_gidx );
-        values.push_back( value );
-    }
+    if ( !mglevel->applyBoundary(civ, fab, map, value) )
+	map[crse_gidx] += value;
     
     // (i+1, j, k)
     AmrIntVect_t tmp(D_DECL(civ[0]+1, civ[1], civ[2]));
-    value = AMREX_D_TERM(dx, * ydiff, * zdiff);
-    if ( mglevel->isBoundary(tmp) ) {
-        mglevel->applyBoundary(tmp, indices, values, value);
-    } else {
-        indices.push_back( mglevel->serialize(tmp) );
-        values.push_back( value );
-    }
+    value = AMREX_D_TERM(dx, * ydiff, * zdiff) * scale;
+    if ( !mglevel->applyBoundary(tmp, map, value) )
+        map[mglevel->serialize(tmp)] += value;
     
     // (i, j+1, k)
     tmp = AmrIntVect_t(D_DECL(civ[0], civ[1]+1, civ[2]));
-    value = AMREX_D_TERM(xdiff, * dy, * zdiff);
-    if ( mglevel->isBoundary(tmp) ) {
-        mglevel->applyBoundary(tmp, indices, values, value);
-    } else {
-        indices.push_back( mglevel->serialize(tmp) );
-        values.push_back( value );
-    }
+    value = AMREX_D_TERM(xdiff, * dy, * zdiff) * scale;
+    if ( !mglevel->applyBoundary(tmp, map, value) )
+	map[mglevel->serialize(tmp)] += value;
     
     // (i+1, j+1, k)
     tmp = AmrIntVect_t(D_DECL(civ[0]+1, civ[1]+1, civ[2]));
-    value = AMREX_D_TERM(dx, * dy, * zdiff);
-    if ( mglevel->isBoundary(tmp) ) {
-        mglevel->applyBoundary(tmp, indices, values, value);
-    } else {
-        indices.push_back( mglevel->serialize(tmp) );
-        values.push_back( value );
-    }
+    value = AMREX_D_TERM(dx, * dy, * zdiff) * scale;
+    if ( !mglevel->applyBoundary(tmp, map, value) )
+        map[mglevel->serialize(tmp)] += value;
         
 #if AMREX_SPACEDIM == 3
     // (i, j, k+1)
     tmp = AmrIntVect_t(D_DECL(civ[0], civ[1], civ[2]+1));
-    value = AMREX_D_TERM(xdiff, * ydiff, * dz);
-    if ( mglevel->isBoundary(tmp) ) {
-        mglevel->applyBoundary(tmp, indices, values, value);
-    } else {
-        indices.push_back( mglevel->serialize(tmp) );
-        values.push_back( value );
-    }
+    value = AMREX_D_TERM(xdiff, * ydiff, * dz) * scale;
+    if ( !mglevel->applyBoundary(tmp, map, value) )
+        map[mglevel->serialize(tmp)] += value;
     
     // (i+1, j, k+1)
     tmp = AmrIntVect_t(D_DECL(civ[0]+1, civ[1], civ[2]+1));
-    value = AMREX_D_TERM(dx, * ydiff, * dz);
-    if ( mglevel->isBoundary(tmp) ) {
-        mglevel->applyBoundary(tmp, indices, values, value);
-    } else {
-        indices.push_back( mglevel->serialize(tmp) );
-        values.push_back( value );
-    }
+    value = AMREX_D_TERM(dx, * ydiff, * dz) * scale;
+    if ( !mglevel->applyBoundary(tmp, map, value) )
+        map[mglevel->serialize(tmp)] += value;
     
     // (i, j+1, k+1)
     tmp = AmrIntVect_t(D_DECL(civ[0], civ[1]+1, civ[2]+1));
-    value = AMREX_D_TERM(xdiff, * dy, * dz);
-    if ( mglevel->isBoundary(tmp) ) {
-        mglevel->applyBoundary(tmp, indices, values, value);
-    } else {
-        indices.push_back( mglevel->serialize(tmp) );
-        values.push_back( value );
-    }
+    value = AMREX_D_TERM(xdiff, * dy, * dz) * scale;
+    if ( !mglevel->applyBoundary(tmp, map, value) )
+        map[mglevel->serialize(tmp)] += value;
     
     // (i+1, j+1, k+1)
     tmp = AmrIntVect_t(D_DECL(civ[0]+1, civ[1]+1, civ[2]+1));
-    value = AMREX_D_TERM(dx, * dy, * dz);
-    if ( mglevel->isBoundary(tmp) ) {
-        mglevel->applyBoundary(tmp, indices, values, value);
-    } else {
-        indices.push_back( mglevel->serialize(tmp) );
-        values.push_back( value );
-    }
+    value = AMREX_D_TERM(dx, * dy, * dz) * scale;
+    if ( !mglevel->applyBoundary(tmp, map, value) )
+	map[mglevel->serialize(tmp)] += value;
 #endif
 }
 
@@ -128,9 +97,9 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
 template <class AmrMultiGridLevel>
 void AmrTrilinearInterpolater<AmrMultiGridLevel>::coarse(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::indices_t& indices,
-    typename AmrMultiGridLevel::coefficients_t& values,
-    int dir, int shift, const amrex::BoxArray& ba,
+    umap_t& map,
+    const scalar_t& scale,
+    lo_t dir, lo_t shift, const basefab_t& rfab,
     const AmrIntVect_t& riv,
     AmrMultiGridLevel* mglevel)
 {
@@ -141,14 +110,14 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::coarse(
 template <class AmrMultiGridLevel>
 void AmrTrilinearInterpolater<AmrMultiGridLevel>::fine(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::indices_t& indices,
-    typename AmrMultiGridLevel::coefficients_t& values,
-    int dir, int shift, const amrex::BoxArray& ba,
+    umap_t& map,
+    const scalar_t& scale,
+    lo_t dir, lo_t shift, const basefab_t& fab,
     AmrMultiGridLevel* mglevel)
 {
     /*
      * The AmrTrilinearInterpolater interpolates directly to the
      * fine ghost cell.
      */
-    this->stencil(iv, indices, values, mglevel);
+    this->stencil(iv, fab, map, scale, mglevel);
 }
