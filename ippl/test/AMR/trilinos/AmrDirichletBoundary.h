@@ -20,21 +20,21 @@ public:
     AmrDirichletBoundary() : AmrBoundary<AmrMultiGridLevel>(1) { }
     
     void apply(const AmrIntVect_t& iv,
-	       const lo_t& dir,
-	       umap_t& map,
-	       const scalar_t& value,
-	       AmrMultiGridLevel* mglevel,
-	       const lo_t* nr);
+               const lo_t& dir,
+               umap_t& map,
+               const scalar_t& value,
+               AmrMultiGridLevel* mglevel,
+               const lo_t* nr);
 };
 
 
 template <class AmrMultiGridLevel>
 void AmrDirichletBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
-						    const lo_t& dir,
-						    umap_t& map,
-						    const scalar_t& value,
-						    AmrMultiGridLevel* mglevel,
-						    const lo_t* nr)
+                                                    const lo_t& dir,
+                                                    umap_t& map,
+                                                    const scalar_t& value,
+                                                    AmrMultiGridLevel* mglevel,
+                                                    const lo_t* nr)
 {
     // find interior neighbour cell
     AmrIntVect_t niv = iv;

@@ -1,6 +1,9 @@
 #include "AmrSmoother.h"
-#include <string>
+
+#include <map>
 #include <utility>
+
+#include "Utilities/OpalException.h"
 
 AmrSmoother::AmrSmoother(const Teuchos::RCP<const matrix_t>& A,
                          const Smoother& smoother,
@@ -35,6 +38,23 @@ void AmrSmoother::smooth(const Teuchos::RCP<vector_t>& x,
     prec_mp->apply(*b, *x, Teuchos::NO_TRANS,
                    Teuchos::ScalarTraits<scalar_t>::one(),
                    Teuchos::ScalarTraits<scalar_t>::zero());
+}
+
+
+AmrSmoother::Smoother
+AmrSmoother::convertToEnumSmoother(const std::string& smoother) {
+    std::map<std::string, Smoother> map;
+    
+    map["GS"]     = Smoother::GAUSS_SEIDEL;
+    map["SGS"]    = Smoother::SGS;
+    map["JACOBI"] = Smoother::JACOBI;
+    
+    auto sm = map.find(smoother);
+    
+    if ( sm == map.end() )
+        throw OpalException("AmrMultiGrid::convertToEnumNorm_m()",
+                            "No smoother '" + smoother + "'.");
+    return sm->second;
 }
 
 

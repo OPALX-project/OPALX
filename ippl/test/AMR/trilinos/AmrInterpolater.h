@@ -38,9 +38,9 @@ public:
      * and boundary values at physical domain, e.g. Dirichlet, open BC
      */
     virtual void stencil(const AmrIntVect_t& iv,
-			 const basefab_t& fab,
+                         const basefab_t& fab,
                          umap_t& map,
-			 const scalar_t& scale,
+                         const scalar_t& scale,
                          AmrMultiGridLevel* mglevel) = 0;
     
     /*!
@@ -61,7 +61,7 @@ public:
      */
     virtual void coarse(const AmrIntVect_t& iv,
                         umap_t& map,
-			const scalar_t& scale,
+                        const scalar_t& scale,
                         lo_t dir, lo_t shift, const basefab_t& rfab,
                         const AmrIntVect_t& riv,
                         AmrMultiGridLevel* mglevel) = 0;

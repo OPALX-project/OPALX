@@ -1,3 +1,5 @@
+#include "Utilities/OpalException.h"
+
 #if AMREX_SPACEDIM == 3
 template <class AmrMultiGridLevel>
 constexpr typename AmrLagrangeInterpolater<AmrMultiGridLevel>::qpattern_t
@@ -92,7 +94,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::coarse(
             this->crseLinear_m(iv, map, scale, dir, shift, rfab, riv, mglevel);
             break;
         default:
-            std::runtime_error("Not implemented interpolation");
+            throw OpalException("AmrLagrangeInterpolater::coarse()",
+                                "Not implemented interpolation");
     }
 }
 
@@ -115,7 +118,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fine(
             this->fineLinear_m(iv, map, scale, dir, shift, mglevel);
             break;
         default:
-            std::runtime_error("Not implemented interpolation");
+            throw OpalException("AmrLagrangeInterpolater::fine()",
+                                "Not implemented interpolation");
     }
 }
 
@@ -196,7 +200,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
         map[mglevel->serialize(miv)] += fac * lookup1[top];
         
     } else
-        throw std::runtime_error("Lagrange Error: No valid scenario found!");
+        throw OpalException("AmrLagrangeInterpolater::crseLinear_m()",
+                            "No valid interpolation scenario found!");
     
 #elif AMREX_SPACEDIM == 3
     
@@ -295,7 +300,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
         case this->lpattern_ms[2]:
         {
             // corner bottom left pattern
-	    L[0] = lookup2_ms[top1]; // L_{0}
+            L[0] = lookup2_ms[top1]; // L_{0}
             L[1] = lookup1_ms[top1]; // L_{1}
             begin[0] = 0;
             end[0]   = 1;
@@ -321,7 +326,8 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
             break;
         }
         default:
-            throw std::runtime_error("Lagrange Error: No valid scenario found!");
+            throw OpalException("AmrLagrangeInterpolater::crseLinear_m()",
+                                "No valid interpolation scenario found!");
     }
     
     /*
@@ -335,7 +341,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
             
             scalar_t value = fac * L[i-begin[0]] * K[j-begin[1]];
             if ( !mglevel->applyBoundary(niv, rfab, map, value) )
-		map[mglevel->serialize(niv)] += value;
+                map[mglevel->serialize(niv)] += value;
             
             // undo
             niv[d2] -= j;
@@ -424,7 +430,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
         //                      y_t     y_b
         value = scale * (top) ? -0.05 : 1.0 / 12.0;
         if ( !mglevel->applyBoundary(miv, rfab, map, value) )
-	    map[mglevel->serialize(miv)] += value;
+            map[mglevel->serialize(miv)] += value;
         
     } else if ( rub && rub2 ) {
         /*
@@ -691,7 +697,7 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
              * --> it throws an error if not possible
              */
             this->crseLinear_m(iv, map, scale, dir, shift, rfab, riv, mglevel);
-	    return;
+            return;
         }
     }
     
@@ -700,19 +706,19 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
      */
     AmrIntVect_t tmp1 = iv;
     for (int i = begin[0]; i <= end[0]; ++i) {
-	tmp1[d1] += i;
-	for (int j = begin[1]; j <= end[1]; ++j) {
-	    tmp1[d2] += j;
+        tmp1[d1] += i;
+        for (int j = begin[1]; j <= end[1]; ++j) {
+            tmp1[d2] += j;
             
-	    scalar_t value = fac * L[i-begin[0]] * K[j-begin[1]];
-	    if ( !mglevel->applyBoundary(tmp1, rfab, map, value) )
-		map[mglevel->serialize(tmp1)] += value;
+            scalar_t value = fac * L[i-begin[0]] * K[j-begin[1]];
+            if ( !mglevel->applyBoundary(tmp1, rfab, map, value) )
+                map[mglevel->serialize(tmp1)] += value;
             
-	    // undo
-	    tmp1[d2] -= j;
-	}
-	// undo
-	tmp1[d1] -= i;
+            // undo
+            tmp1[d2] -= j;
+        }
+        // undo
+        tmp1[d1] -= i;
     }
     
 #else

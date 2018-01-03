@@ -13,9 +13,10 @@ set (CMAKE_CXX_FLAGS
     )
     
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DPARALLEL_IO -DIPPL_AMR ${AMREX_DEFINES} ${CMAKE_CXX_FLAGS}"
+    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DPARALLEL_IO -DIPPL_AMR ${CMAKE_CXX_FLAGS}"
 )
 
+add_definitions(${AMREX_DEFINES})
 
 if ( ENABLE_AMR_MG_SOLVER )
     set (CMAKE_CXX_FLAGS "-DHAVE_AMR_MG_SOLVER ${CMAKE_CXX_FLAGS}")
@@ -39,6 +40,8 @@ include_directories (
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/ippl/src
     ${CMAKE_SOURCE_DIR}/src/Classic/
+    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/
+    ${CMAKE_SOURCE_DIR}/src/Utilities/
     ${IPPL_INCLUDE_DIR}
     ${H5Hut_INCLUDE_DIR}
     ${HDF5_INCLUDE_DIR}
@@ -70,7 +73,7 @@ IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
         ${HDF5_LIBRARY}
         ${IPPL_LIBRARY}
         ippl
-	${Boost_LIBRARIES}
+        ${Boost_LIBRARIES}
         m
         z
     )
@@ -80,8 +83,9 @@ ELSE()
         ${HDF5_LIBRARY}
         ${IPPL_LIBRARY}
         ippl
-	${Boost_LIBRARIES}
-    ${MPI_LIBRARIES}
+        ${Boost_LIBRARIES}
+        ${Trilinos_LIBRARIES}
+        ${MPI_LIBRARIES}
         mpi_mpifh
         m
         z
@@ -175,6 +179,8 @@ if ( ENABLE_AMR_MG_SOLVER )
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp
                     ../trilinos/AmrMultiGridCore.h
@@ -191,6 +197,8 @@ if ( ENABLE_AMR_MG_SOLVER )
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp
                     ../trilinos/BelosBottomSolver.cpp
@@ -206,6 +214,8 @@ if ( ENABLE_AMR_MG_SOLVER )
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp
                     ../trilinos/AmrMultiGridCore.h
@@ -222,6 +232,8 @@ if ( ENABLE_AMR_MG_SOLVER )
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp
                     ../trilinos/AmrMultiGridCore.h
@@ -238,6 +250,8 @@ else ()
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp)
     
@@ -249,6 +263,8 @@ else ()
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp)
     
@@ -260,6 +276,8 @@ else ()
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp)
     
@@ -271,6 +289,8 @@ else ()
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp)
 
@@ -352,9 +372,9 @@ target_link_libraries (testMultipleSources ${LIBS}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testUnifBox ${LIBS}
-                        -lgfortran ${Trilinos_LIBRARIES}
-			${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
-			${OTHER_CMAKE_EXE_LINKER_FLAGS}	${CMAKE_DL_LIBS})
+                       -lgfortran ${Trilinos_LIBRARIES}
+                       ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testLayout ${LIBS}
                         -lgfortran ${AMREX_LIBRARIES}

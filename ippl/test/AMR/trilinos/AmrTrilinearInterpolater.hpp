@@ -46,7 +46,7 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
     scalar_t value = AMREX_D_TERM(xdiff, * ydiff, * zdiff) * scale;
     
     if ( !mglevel->applyBoundary(civ, fab, map, value) )
-	map[crse_gidx] += value;
+        map[crse_gidx] += value;
     
     // (i+1, j, k)
     AmrIntVect_t tmp(D_DECL(civ[0]+1, civ[1], civ[2]));
@@ -58,7 +58,7 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
     tmp = AmrIntVect_t(D_DECL(civ[0], civ[1]+1, civ[2]));
     value = AMREX_D_TERM(xdiff, * dy, * zdiff) * scale;
     if ( !mglevel->applyBoundary(tmp, map, value) )
-	map[mglevel->serialize(tmp)] += value;
+        map[mglevel->serialize(tmp)] += value;
     
     // (i+1, j+1, k)
     tmp = AmrIntVect_t(D_DECL(civ[0]+1, civ[1]+1, civ[2]));
@@ -89,7 +89,7 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
     tmp = AmrIntVect_t(D_DECL(civ[0]+1, civ[1]+1, civ[2]+1));
     value = AMREX_D_TERM(dx, * dy, * dz) * scale;
     if ( !mglevel->applyBoundary(tmp, map, value) )
-	map[mglevel->serialize(tmp)] += value;
+        map[mglevel->serialize(tmp)] += value;
 #endif
 }
 
