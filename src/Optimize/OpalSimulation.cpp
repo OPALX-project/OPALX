@@ -356,13 +356,7 @@ void OpalSimulation::collectResults() {
                                       std::pair<std::string, reqVarInfo_t>(namedObjective.first, tmps));
 
             }
-        } catch(SDDSParserException &e) {
-            std::cout << "Evaluation of objectives threw an exception ('" << e.what() << "' in " << e.where() << ")!" << std::endl;
-        } catch(...) {
-            std::cout << "Evaluation of objectives threw an exception!" << std::endl;
-        }
 
-        try {
             // .. and constraints
             for(auto namedConstraint : constraints_) {
 
@@ -408,9 +402,11 @@ void OpalSimulation::collectResults() {
 
             }
         } catch(SDDSParserException &e) {
-            std::cout << "Evaluation of constraints threw an exception ('" << e.what() << "' in " << e.where() << ")!" << std::endl;
+            std::cout << "Evaluation of objectives or constraints threw an exception ('" << e.what() << "' in " << e.where() << ")!" << std::endl;
+            invalidBunch();
         } catch(...) {
-            std::cout << "Evaluation of constraints threw an exception!" << std::endl;
+            std::cout << "Evaluation of objectives or constraints threw an exception!" << std::endl;
+            invalidBunch();
         }
 
     }
