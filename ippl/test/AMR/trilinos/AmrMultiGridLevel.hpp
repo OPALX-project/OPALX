@@ -4,7 +4,7 @@ AmrMultiGridLevel<MatrixType,
                                                  const amrex::DistributionMapping& _dmap,
                                                  const AmrGeometry_t& _geom,
                                                  const AmrIntVect_t& rr,
-                                                 boundary_t* const bc,
+                                                 const boundary_t* bc,
                                                  const Teuchos::RCP<comm_t>& comm,
                                                  const Teuchos::RCP<node_t>& node)
     : grids(_grids),
@@ -23,7 +23,6 @@ AmrMultiGridLevel<MatrixType,
       error_p(Teuchos::null),
       UnCovered_p(Teuchos::null),
       rr_m(rr),
-      bc_mp(bc),
       refmask(nullptr),
       crsemask(nullptr)
 {
@@ -31,6 +30,8 @@ AmrMultiGridLevel<MatrixType,
         G_p[j] = Teuchos::null;
         
         nr_m[j] = _geom.Domain().length(j);
+        
+        bc_mp[j] = bc[j];
     }
     
     this->buildLevelMask_m();
@@ -79,36 +80,54 @@ int AmrMultiGridLevel<MatrixType, VectorType>::serialize(const AmrIntVect_t& iv)
 
 template <class MatrixType, class VectorType>
 bool AmrMultiGridLevel<MatrixType, VectorType>::isBoundary(const AmrIntVect_t& iv) const {
-    return bc_mp->isBoundary(iv, &nr_m[0]);
+    // it doesn't matter with which direction we check, since it checks all
+    return bc_mp[0]->isBoundary(iv, &nr_m[0]);
 }
 
 
 template <class MatrixType, class VectorType>
 bool AmrMultiGridLevel<MatrixType, VectorType>::applyBoundary(const AmrIntVect_t& iv,
-							      umap_t& map,
-                                                              const scalar_t& value)
-{
-    return bc_mp->apply(iv, map, value, this, &nr_m[0]);
-}
-
-
-template <class MatrixType, class VectorType>
-bool AmrMultiGridLevel<MatrixType, VectorType>::applyBoundary(const AmrIntVect_t& iv,
-							      const basefab_t& fab,
                                                               umap_t& map,
                                                               const scalar_t& value)
 {
-    return bc_mp->apply(iv, fab, map, value, this, &nr_m[0]);
+    bool applied = false;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        if ( bc_mp[d]->isBoundary(iv, d, &nr_m[0]) ) {
+            applied = true;
+            bc_mp[d]->apply(iv, d, map, value, this, &nr_m[0]);
+        }
+    }
+    return applied;
+}
+
+
+template <class MatrixType, class VectorType>
+bool AmrMultiGridLevel<MatrixType, VectorType>::applyBoundary(const AmrIntVect_t& iv,
+                                                              const basefab_t& fab,
+                                                              umap_t& map,
+                                                              const scalar_t& value)
+{
+    if ( fab(iv) != Mask::PHYSBNDRY )
+        return false;
+    
+    bool applied = false;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        if ( bc_mp[d]->isBoundary(iv, d, &nr_m[0]) ) {
+            applied = true;
+            bc_mp[d]->apply(iv, d, map, value, this, &nr_m[0]);
+        }
+    }
+    return applied;
 }
 
 
 template <class MatrixType, class VectorType>
 void AmrMultiGridLevel<MatrixType, VectorType>::applyBoundary(const AmrIntVect_t& iv,
-							      const lo_t& dir,
+                                                              const lo_t& dir,
                                                               umap_t& map,
                                                               const scalar_t& value)
 {
-    bc_mp->apply(iv, dir, map, value, this, &nr_m[0]);
+    bc_mp[dir]->apply(iv, dir, map, value, this, &nr_m[0]);
 }
 
 

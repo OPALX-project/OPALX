@@ -24,12 +24,11 @@ public:
     typedef VectorType vector_t;
     typedef amrex::BaseFab<int> basefab_t;
     typedef amrex::FabArray<basefab_t> mask_t;
-    typedef AmrBoundary<
-                    AmrMultiGridLevel<
-                        MatrixType,
-                        VectorType
-                    >
-            > boundary_t;
+    typedef std::shared_ptr<AmrBoundary<AmrMultiGridLevel<MatrixType,
+                                                          VectorType
+                                                          >
+                                        >
+                            > boundary_t;
     
     typedef amr::comm_t comm_t;
     typedef amr::dmap_t dmap_t;
@@ -37,9 +36,14 @@ public:
     typedef amr::global_ordinal_t global_ordinal_t;
     typedef amr::scalar_t scalar_t;
     typedef amr::local_ordinal_t lo_t;
-
+    
+    /// Type for matrix indices
     typedef std::vector<lo_t>                  indices_t;
+    
+    /// Type for matrix entries
     typedef std::vector<scalar_t>              coefficients_t;
+    
+    // Type with matrix index (column) and coefficient value
     typedef std::unordered_map<lo_t, scalar_t> umap_t;
     
     // covered   : ghost cells covered by valid cells of this FabArray
@@ -59,59 +63,107 @@ public:
     // YES  : cell got refined
     enum Refined {
         YES = 0,
-	NO  = 1
+        NO  = 1
     };
     
 public:
+    /*!
+     * @param _grids of this level
+     * @param _dmap AMReX core distribution map
+     * @param _geom of domain
+     * @param rr refinement ratio
+     * @param bc physical boundaries (x, y, z)
+     * @param comm MPI communicator
+     * @param node Kokkos node type (Serial, OpenMP, CUDA)
+     */
     AmrMultiGridLevel(const amrex::BoxArray& _grids,
                       const amrex::DistributionMapping& _dmap,
                       const AmrGeometry_t& _geom,
                       const AmrIntVect_t& rr,
-                      boundary_t* const bc,
+                      const boundary_t* bc,
                       const Teuchos::RCP<comm_t>& comm,
                       const Teuchos::RCP<node_t>& node);
     
     ~AmrMultiGridLevel();
     
+    /*!
+     * Map a 2D / 3D grid point to an array index
+     * @param iv grid point (i, j, k)
+     */
     int serialize(const AmrIntVect_t& iv) const;
     
+    /*!
+     * Checks if grid point is on the physical / mesh boundary
+     * @param iv grid point (i, j, k)
+     */
     bool isBoundary(const AmrIntVect_t& iv) const;
     
+    /*!
+     * Checks all directions if physical / mesh boundary.
+     * @param iv is the cell where we want to have the boundary value
+     * @param map with indices global matrix indices and matrix values
+     * @param value matrix entry (coefficients)
+     */
     bool applyBoundary(const AmrIntVect_t& iv,
                        umap_t& map,
                        const scalar_t& value);
     
+    /*!
+     * Slightly faster version of apply().
+     * @param iv is the cell where we want to have the boundary value
+     * @param fab is the mask
+     * @param map with indices global matrix indices and matrix values
+     * @param value matrix entry (coefficients)
+     * @precondition Basefab needs to be a mask with
+     * AmrMultiGridLevel::Mask::PHYSBNDRY
+     */
     bool applyBoundary(const AmrIntVect_t& iv,
-		       const basefab_t& fab,
-		       umap_t& map,
-		       const scalar_t& value);
-
+                       const basefab_t& fab,
+                       umap_t& map,
+                       const scalar_t& value);
+    
+    /*!
+     * Apply boundary in a certain direction.
+     * @param iv is the cell where we want to have the boundary value
+     * @param dir direction of physical / mesh boundary
+     * @param map with indices global matrix indices and matrix values
+     * @param value matrix entry (coefficients)
+     */
     void applyBoundary(const AmrIntVect_t& iv,
-		       const lo_t& dir,
-		       umap_t& map,
-		       const scalar_t& value);
+                       const lo_t& dir,
+                       umap_t& map,
+                       const scalar_t& value);
     
     const AmrIntVect_t& refinement() const;
     
 private:
+    /*!
+     * Build a mask specifying if a grid point is covered,
+     * an interior cell, at physical boundary or at interior boundary
+     */
     void buildLevelMask_m();
     
+    /*!
+     * Build Tpetra::Map of this level
+     * @param comm MPI communicator
+     * @param node Kokkos node type
+     */
     void buildMap_m(const Teuchos::RCP<comm_t>& comm,
                     const Teuchos::RCP<node_t>& node);
     
 public:
-    const amrex::BoxArray& grids;
-    const amrex::DistributionMapping& dmap;
-    const AmrGeometry_t& geom;
+    const amrex::BoxArray& grids;           ///< boxes of this level
+    const amrex::DistributionMapping& dmap; ///< AMReX core distribution map
+    const AmrGeometry_t& geom;              ///< geometry of this problem
     
-    Teuchos::RCP<dmap_t> map_p;         ///< core map
+    Teuchos::RCP<dmap_t> map_p;         ///< Tpetra core map
     
-    Teuchos::RCP<matrix_t> Anf_p;               ///< no fine Poisson matrix
-    Teuchos::RCP<matrix_t> R_p;                 ///< restriction matrix
-    Teuchos::RCP<matrix_t> I_p;                 ///< interpolation matrix
-    Teuchos::RCP<matrix_t> Bcrse_p;             ///< boundary from coarse cells
-    Teuchos::RCP<matrix_t> Bfine_p;             ///< boundary from fine cells
-    Teuchos::RCP<matrix_t> Awf_p;               ///< composite Poisson matrix
+    Teuchos::RCP<matrix_t> Anf_p;       ///< no fine Poisson matrix
+    Teuchos::RCP<matrix_t> R_p;         ///< restriction matrix
+    Teuchos::RCP<matrix_t> I_p;         ///< interpolation matrix
+    Teuchos::RCP<matrix_t> Bcrse_p;     ///< boundary from coarse cells
+    Teuchos::RCP<matrix_t> Bfine_p;     ///< boundary from fine cells
+    Teuchos::RCP<matrix_t> Awf_p;       ///< composite Poisson matrix
     
     /// gradient matrices in x, y, and z to compute electric field
     Teuchos::RCP<matrix_t> G_p[AMREX_SPACEDIM];
@@ -131,7 +183,7 @@ private:
     
     AmrIntVect_t rr_m;                  ///< refinement
     
-    boundary_t* const bc_mp;
+    boundary_t bc_mp[AMREX_SPACEDIM];   ///< boundary conditions
 };
 
 
