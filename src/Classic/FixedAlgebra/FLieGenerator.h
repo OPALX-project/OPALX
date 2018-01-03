@@ -209,6 +209,6 @@ PoissonBracket(const FLieGenerator<T, N> &, const FLieGenerator<T, N> &);
 template <class T, int N>
 std::ostream &operator<<(std::ostream &, const FLieGenerator<T, N> &);
 
-#include <FixedAlgebra/FLieGenerator.hpp>
+#include "FixedAlgebra/FLieGenerator.cpp"
 
 #endif // CLASSIC_FLieGenerator_HH

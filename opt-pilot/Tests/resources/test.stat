@@ -1,7 +1,7 @@
 SDDS1
 &description text="Statistics data opal-cc_astra_fm.in" 
 , contents="stat parameters" &end
-&parameter name=processors, type=long, description="Number of Processors" &end
+&parameter name=processors, type=string, description="Number of Processors" &end
 &parameter name=revision, type=string, description="svn revision of opal" &end
 &column name=t, type=double, units=s, description="1 Time" &end
 &column name=s, type=double, units=m, description="2 Average Longitudinal Position" &end
@@ -53,7 +53,7 @@ SDDS1
 &column name=R0_x, type=double, units=m , description="48 R0 Particle Position in x  " &end
 &column name=R0_y, type=double, units=m , description="49 R0 Particle Position in y  " &end
 &column name=R0_s, type=double, units=m , description="50 R0 Particle Position in s  " &end
-&data mode=ascii &end
+&data mode=ascii, no_row_counts=1 &end
 Cores used 1
 OPAL 1.1.8 r53c6231bd243b974b82c4e28df5212363508f60d
 3.300000000000017e-11         	3.125036293759764e-03         	100         	2.000000000000000e-10         	2.220252349855340e-01         	3.087242557177229e-04         	3.087242557177229e-04         	6.013287401001391e-04         	5.699943602224404e-03         	5.699943602224404e-03         	1.135682379588297e-01         	6.313111276809700e-07         	6.313111276809700e-07         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	2.051521493396950e-04         	0.000000000000000e+00         	0.000000000000000e+00         	-8.119946263983650e+01         	0.000000000000000e+00         	0.000000000000000e+00         	2.004658694567277e-04         	0.000000000000000e+00         	0.000000000000000e+00         	-7.994601292850352e+01         	0.000000000000000e+00         	0.000000000000000e+00         	1.975249453301612e-04         	0.000000000000000e+00         	0.000000000000000e+00         	-7.931405001155436e+01         	0.000000000000000e+00         	0	0	0

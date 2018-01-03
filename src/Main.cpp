@@ -42,18 +42,8 @@ Inform *gmsg;
 #ifdef ENABLE_AMR
 #include <AMReX_ParallelDescriptor.H>
 #endif
-
-#include <gsl/gsl_errno.h>
-
-#include <boost/filesystem.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-
-#include <cstring>
-#include <set>
-#include <algorithm>
-
 /*
-  Includes related the to optimizer
+  Includes related to the optimizer
 */
 #include "boost/smart_ptr.hpp"
 
@@ -66,7 +56,7 @@ Inform *gmsg;
 #include "Optimizer/EA/IndependentBitMutation.h"
 
 #include "Util/OpalInputFileParser.h"
-#include "Simulation/OpalSimulation.h"
+#include "Optimize/OpalSimulation.h"
 
 #include "Comm/CommSplitter.h"
 #include "Comm/Topology/NoCommTopology.h"
@@ -80,6 +70,15 @@ Inform *gmsg;
 #include "Expression/RadialPeak.h"
 #include "Expression/SumErrSqRadialPeak.h"
 #include "Expression/ProbeVariable.h"
+
+#include <gsl/gsl_errno.h>
+
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+
+#include <cstring>
+#include <set>
+#include <algorithm>
 
 //  DTA
 #define NC 5

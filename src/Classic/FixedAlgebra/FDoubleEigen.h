@@ -24,6 +24,13 @@
 #include "FixedAlgebra/FVector.h"
 #include <complex>
 
+using std::complex;
+using std::abs;
+using std::imag;
+using std::max;
+using std::real;
+using std::swap;
+
 
 // Class FDoubleEigen
 // ------------------------------------------------------------------------
@@ -48,11 +55,11 @@ public:
 
     /// Get eigenvalues.
     //  Return eigenvalues as a complex vector.
-    FVector<std::complex<double>, N> eigenValues() const;
+    FVector<complex<double>, N> eigenValues() const;
 
     /// Get eigenvectors.
     //  Return eigenvectors as a complex matrix.
-    FMatrix<std::complex<double>, N, N> eigenVectors() const;
+    FMatrix<complex<double>, N, N> eigenVectors() const;
 
     /// Get eigenvectors.
     //  Return eigenvectors packed in a real matrix.
@@ -88,7 +95,7 @@ private:
     void balbak(int low, int high, double scale[N]);
 
     // Representation of the eigenvalues and eigenvectors.
-    FVector<std::complex<double>, N> lambda;
+    FVector<complex<double>, N> lambda;
     FMatrix<double, N, N>       vectors;
 };
 
@@ -111,9 +118,9 @@ void cdiv(double ar, double ai, double br, double bi,
     double ais = ai / s;
     double brs = br / s;
     double bis = bi / s;
-
+    
     s = brs * brs + bis * bis;
-
+    
     cr = (ars * brs + ais * bis) / s;
     ci = (ais * brs - ars * bis) / s;
 }
@@ -181,7 +188,7 @@ FDoubleEigen<N>::~FDoubleEigen()
 
 
 template <int N>
-FVector<std::complex<double>, N> FDoubleEigen<N>::eigenValues() const
+FVector<complex<double>, N> FDoubleEigen<N>::eigenValues() const
 // Return Eigenvalues as complex vector.
 {
     return lambda;
@@ -189,22 +196,22 @@ FVector<std::complex<double>, N> FDoubleEigen<N>::eigenValues() const
 
 
 template <int N>
-FMatrix<std::complex<double>, N, N> FDoubleEigen<N>::eigenVectors() const
+FMatrix<complex<double>, N, N> FDoubleEigen<N>::eigenVectors() const
 // Return eigenvectors as a complex matrix.
 {
-    FMatrix<std::complex<double>, N, N> R;
+    FMatrix<complex<double>, N, N> R;
 
     for(int i = 0; i < N; i++) {
-        if(std::imag(lambda[i]) == 0.0) {
+        if(imag(lambda[i]) == 0.0) {
             // One real eigenvector.
             for(int j = 0; j < N; j++) {
-                R[j][i] = std::complex<double>(vectors[j][i]);
+                R[j][i] = complex<double>(vectors[j][i]);
             }
         } else {
             // Two complex eigenvectors.
             for(int j = 0; j < N; j++) {
-                R[j][i]   = std::complex<double>(vectors[j][i], + vectors[j][i+1]);
-                R[j][i+1] = std::complex<double>(vectors[j][i], - vectors[j][i+1]);
+                R[j][i]   = complex<double>(vectors[j][i], + vectors[j][i+1]);
+                R[j][i+1] = complex<double>(vectors[j][i], - vectors[j][i+1]);
             }
             i++;
         }
@@ -432,8 +439,8 @@ void FDoubleEigen<N>::elmhes(FMatrix<double, N, N> &copy, int low,
         index[m] = i;
 
         if(i != m) {
-            for(int j = m - 1; j < N;    j++) std::swap(copy[i][j], copy[m][j]);
-            for(int j = 0;     j <= upp; j++) std::swap(copy[j][i], copy[j][m]);
+            for(int j = m - 1; j < N;    j++) swap(copy[i][j], copy[m][j]);
+            for(int j = 0;     j <= upp; j++) swap(copy[j][i], copy[j][m]);
         }
 
         if(x != 0.0) {
@@ -501,8 +508,8 @@ template <int N>
 void FDoubleEigen<N>::exchange(FMatrix<double, N, N> &copy,
                                int j, int m, int low, int upp) {
     if(j != m) {
-        for(int i = 0;   i <= upp; i++) std::swap(copy[i][j], copy[i][m]);
-        for(int i = low; i < N;    i++) std::swap(copy[j][i], copy[m][i]);
+        for(int i = 0;   i <= upp; i++) swap(copy[i][j], copy[i][m]);
+        for(int i = low; i < N;    i++) swap(copy[j][i], copy[m][i]);
     }
 }
 
@@ -543,8 +550,8 @@ int FDoubleEigen<N>::hqr(FMatrix<double, N, N> &h, int low, int upp)
 //             while the j-th eigenvalue is being sought.
 {
     // Store roots isolated by "balance".
-    for(int i = 0;       i < low; i++) lambda[i] = std::complex<double>(h[i][i]);
-    for(int i = upp + 1; i < N;   i++) lambda[i] = std::complex<double>(h[i][i]);
+    for(int i = 0;       i < low; i++) lambda[i] = complex<double>(h[i][i]);
+    for(int i = upp + 1; i < N;   i++) lambda[i] = complex<double>(h[i][i]);
 
     // Compute matrix norm.
     double norm = 0.0;
@@ -673,7 +680,7 @@ int FDoubleEigen<N>::hqr(FMatrix<double, N, N> &h, int low, int upp)
         }
 
 one_root:
-        lambda[en] = std::complex<double>(x + t);
+        lambda[en] = complex<double>(x + t);
         continue;
 
 two_roots:
@@ -685,12 +692,12 @@ two_roots:
         if(q >= 0.0) {
             // Real pair.
             z = (p > 0.0) ? (p + z) : (p - z);
-            lambda[en-1] = std::complex<double>(x + z);
-            lambda[en]   = std::complex<double>((z != 0.0) ? (x - w / z) : x + z);
+            lambda[en-1] = complex<double>(x + z);
+            lambda[en]   = complex<double>((z != 0.0) ? (x - w / z) : x + z);
         } else {
             // Complex pair.
-            lambda[en-1] = std::complex<double>(x + p, + z);
-            lambda[en]   = std::complex<double>(x + p, - z);
+            lambda[en-1] = complex<double>(x + p, + z);
+            lambda[en]   = complex<double>(x + p, - z);
         }
 
         en--;
@@ -752,8 +759,8 @@ int FDoubleEigen<N>::hqr2(FMatrix<double, N, N> &h, int low, int upp)
     double tst1, tst2;
 
     // Store roots isolated by "balance".
-    for(int i = 0;       i < low; i++) lambda[i] = std::complex<double>(h[i][i]);
-    for(int i = upp + 1; i < N;   i++) lambda[i] = std::complex<double>(h[i][i]);
+    for(int i = 0;       i < low; i++) lambda[i] = complex<double>(h[i][i]);
+    for(int i = upp + 1; i < N;   i++) lambda[i] = complex<double>(h[i][i]);
 
     // Compute matrix norm.
     double norm = 0.0;
@@ -893,7 +900,7 @@ int FDoubleEigen<N>::hqr2(FMatrix<double, N, N> &h, int low, int upp)
         }
 
 one_root:
-        lambda[en] = std::complex<double>(h[en][en] = x + t);
+        lambda[en] = complex<double>(h[en][en] = x + t);
         continue;
 
 two_roots:
@@ -938,8 +945,8 @@ two_roots:
             }
         } else {
             // Complex pair.
-            lambda[en-1] = std::complex<double>(x + p, + z);
-            lambda[en]   = std::complex<double>(x + p, - z);
+            lambda[en-1] = complex<double>(x + p, + z);
+            lambda[en]   = complex<double>(x + p, - z);
         }
 
         en--;
@@ -950,8 +957,8 @@ two_roots:
     if(norm == 0.0) return 0;
 
     for(int en = N; en-- > 0;) {
-        p = std::real(lambda[en]);
-        q = std::imag(lambda[en]);
+        p = real(lambda[en]);
+        q = imag(lambda[en]);
 
         if(q < 0.0) {
             // Complex vector.
@@ -981,21 +988,21 @@ two_roots:
                         sa += h[i][j] * h[j][en];
                     }
 
-                    if(std::imag(lambda[i]) < 0.0) {
+                    if(imag(lambda[i]) < 0.0) {
                         z = w;
                         r = ra;
                         s = sa;
                     } else {
                         m = i;
-                        if(std::imag(lambda[i]) == 0.0) {
+                        if(imag(lambda[i]) == 0.0) {
                             cdiv(- ra, -sa, w, q, h[i][en-1], h[i][en]);
                         } else {
                             // Solve complex equations.
                             x = h[i][i+1];
                             y = h[i+1][i];
-                            double vr = (std::real(lambda[i]) - p) * (std::real(lambda[i]) - p) +
-                                        std::imag(lambda[i]) * std::imag(lambda[i]) - q * q;
-                            double vi = std::real(lambda[i] - p) * 2.0 * q;
+                            double vr = (real(lambda[i]) - p) * (real(lambda[i]) - p) +
+                                        imag(lambda[i]) * imag(lambda[i]) - q * q;
+                            double vi = real(lambda[i] - p) * 2.0 * q;
 
                             if(vr == 0.0  &&  vi == 0.0) {
                                 tst1 =
@@ -1021,7 +1028,7 @@ two_roots:
                         }
 
                         // Overflow control.
-                        t = std::max(std::abs(h[i][en-1]), std::abs(h[i][en]));
+                        t = max(std::abs(h[i][en-1]), std::abs(h[i][en]));
 
                         if(t != 0.0  && (t + 1.0 / t) <= t) {
                             for(int j = i; j <= en; j++) {
@@ -1044,12 +1051,12 @@ two_roots:
                     r = 0.0;
                     for(int j = m; j <= en; j++) r += h[i][j] * h[j][en];
 
-                    if(std::imag(lambda[i]) < 0.0) {
+                    if(imag(lambda[i]) < 0.0) {
                         z = w;
                         s = r;
                     } else {
                         m = i;
-                        if(std::imag(lambda[i]) == 0.0) {
+                        if(imag(lambda[i]) == 0.0) {
                             t = w;
                             if(t == 0.0) {
                                 t = tst1 = norm;
@@ -1065,8 +1072,8 @@ two_roots:
                             // Solve real equations.
                             x = h[i][i+1];
                             y = h[i+1][i];
-                            q = (std::real(lambda[i]) - p) * (std::real(lambda[i]) - p) +
-                                std::imag(lambda[i]) * std::imag(lambda[i]);
+                            q = (real(lambda[i]) - p) * (real(lambda[i]) - p) +
+                                imag(lambda[i]) * imag(lambda[i]);
                             t = (x * s - z * r) / q;
                             h[i][en] = t;
                             h[i+1][en] = (std::abs(x) > std::abs(z)) ?

@@ -25,7 +25,7 @@
 // ------------------------------------------------------------------------
 
 
-OverflowError::OverflowError(const std::string &meth):
+OverflowError::OverflowError(const string &meth):
     ArithmeticError(meth, "Overflow error.")
 {}
 

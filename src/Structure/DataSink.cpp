@@ -14,7 +14,7 @@
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPS.h"
 #include "Utilities/Timer.h"
-#include "Structure/SDDSParser.h"
+#include "Util/SDDSParser.h"
 
 #ifdef ENABLE_AMR
     #include "Algorithms/AmrPartBunch.h"
@@ -1003,7 +1003,6 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
     if(firstWriteH5Surface_m) {
         firstWriteH5Surface_m = false;
 
-#if defined (USE_H5HUT2)
 	h5_prop_t props = H5CreateFileProp ();
 	MPI_Comm comm = Ippl::getComm();
 	H5SetPropFileMPIOCollective (props, &comm);
@@ -1012,13 +1011,6 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
             throw OpalException("DataSink::writeSurfaceInteraction",
                                 "failed to open h5 file '" + surfaceLossFileName_m + "' for surface loss");
         }
-#else
-        H5fileS_m = H5OpenFile(surfaceLossFileName_m.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, Ippl::getComm());
-        if(H5fileS_m == (void*)H5_ERR) {
-            throw OpalException("DataSink::writeSurfaceInteraction",
-                                "failed to open h5 file '" + surfaceLossFileName_m + "' for surface loss");
-        }
-#endif
 
     }
     int nTot = bg.getNumBFaces();
@@ -1397,11 +1389,11 @@ void DataSink::writeLBalData(PartBunchBase<double, 3> *beam,
 {
     os_lBalData << beam->getT() * 1e9 << setw(pwi) << "\t";     // 1
 
-    int nProcs = Ippl::getNodes();
-    for (int p = 0; p < nProcs; p++) {
+    size_t nProcs = Ippl::getNodes();
+    for (size_t p = 0; p < nProcs; ++ p) {
         os_lBalData << beam->getLoadBalance(p)  << setw(pwi);
 
-        if ( p < nProcs - 1 )
+        if ( p + 1 < nProcs )
             os_lBalData << "\t";
 
     }

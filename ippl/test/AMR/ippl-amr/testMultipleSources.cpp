@@ -483,16 +483,15 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     
     
     
-    // =======================================================================                                                                                                                                   
-    // 4. prepare for multi-level solve                                                                                                                                                                          
     // =======================================================================
-
+    // 4. prepare for multi-level solve               
+    // =======================================================================
     rhs.resize(params.nLevels);
     phi.resize(params.nLevels);
     efield.resize(params.nLevels);
     
 
-    // Define the density on level 0 from all particles at all levels                                                                                                                                            
+    // Define the density on level 0 from all particles at all levels
     int base_level   = 0;
     int finest_level = myAmrOpal.finestLevel();
     
@@ -547,11 +546,10 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         rhs[i]->mult(1.0 / l0norm/*[i]*/, 0, 1);
     }
     
-    // **************************************************************************                                                                                                                                
-    // Compute the total charge of all particles in order to compute the offset                                                                                                                                  
-    //     to make the Poisson equations solvable                                                                                                                                                                
-    // **************************************************************************                                                                                                                                
-
+    // **************************************************************************
+    // Compute the total charge of all particles in order to compute the offset
+    //     to make the Poisson equations solvable
+    // **************************************************************************
     amrex::Real offset = 0.;
 
     // solve
@@ -735,7 +733,7 @@ void doAMReX(const param_t& params, Inform& msg)
     msg << "//\n//  Process Statistic BEFORE regrid\n//" << endl;
     
     bunch->gatherStatistics();
-    
+
     // ========================================================================
     // 3. multi-level redistribute
     // ========================================================================
@@ -753,13 +751,28 @@ void doAMReX(const param_t& params, Inform& msg)
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, scale/*0.0*/ /*time*/);
     
+
+    if ( Ippl::myNode() == 0 ) {
+	std::ofstream out("boxes-per-level-ncores-" + std::to_string(Ippl::getNodes()) + ".dat");
+	for (int i = 0; i <= myAmrOpal.finestLevel(); ++i)
+	    out << i << " " << myAmrOpal.boxArray(i).size() << std::endl;
+	out.close();
+    }
+    
     bunch->gatherLevelStatistics();
     
     msg << "//\n//  Process Statistic AFTER regrid\n//" << endl;
     
     bunch->gatherStatistics();
     
-    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, msg, scale, params);
+    static IpplTimings::TimerRef statisticsTimer = IpplTimings::getTimer("dump-statistics");
+    std::string statistics = "particle-statistics-ncores-" + std::to_string(Ippl::getNodes()) + ".dat";
+    IpplTimings::startTimer(statisticsTimer);
+    bunch->dumpStatistics(statistics);
+    IpplTimings::stopTimer(statisticsTimer);
+    
+    for (int i = 0; i < 10; ++i)
+	doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, msg, scale, params);
     
     msg << endl << "Back to normal positions" << endl << endl;
     

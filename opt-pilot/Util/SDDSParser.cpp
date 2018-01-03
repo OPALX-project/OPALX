@@ -1,4 +1,4 @@
-#include "Structure/SDDSParser.h"
+#include "SDDSParser.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -49,8 +49,8 @@ SDDS::file SDDS::SDDSParser::run() {
 
     if (!success || contentsIter != contentsEnd)
         {
-            throw OpalException("StatisticalErrors::parseSDDSFile",
-                                "could not parse SDDS file");
+            throw OptPilotException("StatisticalErrors::parseSDDSFile",
+                                    "could not parse SDDS file");
         }
 
     unsigned int param_order = 0;
@@ -90,8 +90,8 @@ std::string SDDS::SDDSParser::readFile() {
         return contents;
     }
 
-    throw OpalException("StatisticalErrors::readSDDSFile",
-                        "could not open file '" + sddsFileName_m + "'");
+    throw OptPilotException("StatisticalErrors::readSDDSFile",
+                            "could not open file '" + sddsFileName_m + "'");
 
     return std::string("");
 }
@@ -103,8 +103,8 @@ SDDS::ast::columnData_t SDDS::SDDSParser::getColumnData(const std::string &colum
             return col.values_m;
         }
     }
-    throw OpalException("StatisticalErrors::getColumnData",
-                        "could not find column '" + columnName + "'");
+    throw OptPilotException("StatisticalErrors::getColumnData",
+                            "could not find column '" + columnName + "'");
 }
 
 //XXX use either all upper, or all lower case chars

@@ -1,3 +1,5 @@
+#ifndef CLASSIC_FLieGenerator_CC
+#define CLASSIC_FLieGenerator_CC
 // ------------------------------------------------------------------------
 // $RCSfile: FLieGenerator.cpp,v $
 // ------------------------------------------------------------------------
@@ -17,6 +19,7 @@
 //
 // ------------------------------------------------------------------------
 
+#include "FixedAlgebra/FLieGenerator.h"
 #include "Algebra/Array1D.h"
 #include "FixedAlgebra/FArray1D.h"
 #include "FixedAlgebra/FMatrix.h"
@@ -24,6 +27,7 @@
 #include "FixedAlgebra/FTps.h"
 #include <complex>
 #include <iosfwd>
+
 
 
 // Template class FLieGenerator<T,N>.
@@ -540,3 +544,5 @@ std::ostream &operator<<(std::ostream &os, const FLieGenerator<T, N> &gen) {
     os.precision(old_prec);
     return os;
 }
+
+#endif

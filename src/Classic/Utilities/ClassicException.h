@@ -22,6 +22,8 @@
 
 #include <string>
 
+using std::string;
+
 
 // Class ClassicException
 // ------------------------------------------------------------------------
@@ -31,7 +33,7 @@ class ClassicException {
 
 public:
 
-    /// Return the message std::string for the exception.
+    /// Return the message string for the exception.
     virtual const std::string &what() const;
 
     /// Return the name of the method or function which detected the exception.

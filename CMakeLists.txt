@@ -45,7 +45,7 @@ if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -diag-disable 383 -diag-disable 981 -std=c++11")
 
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG -std=c++11")
 
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.3")
@@ -56,6 +56,22 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
 else ()
     message (STATUS "Unknown C++ compiler. Please use the GNU or Intel compiler, IF you are having problems.")
 endif ()
+
+enable_language (Fortran OPTIONAL)
+message (STATUS "Fortran compilers: ${CMAKE_Fortran_COMPILER_NAMES}")
+if (CMAKE_Fortran_COMPILER)
+    message (STATUS "The Fortran compiler identification is: ${CMAKE_Fortran_COMPILER_ID}")
+    message (STATUS "The Fortran compiler version is: ${CMAKE_Fortran_COMPILER_VERSION}")
+    message (STATUS "The Fortran compiler is: ${CMAKE_Fortran_COMPILER}")
+    if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+        set (Fortran_LIBS "-lgfortran")
+    endif ()
+else ()
+    message (STATUS "No Fortran compiler found (optional)")
+    if (ENABLE_AMR)
+        message (ERROR "AMR is enabled but no Fortran compiler found!")
+    endif ()
+endif()
 
 FIND_PACKAGE (H5Hut REQUIRED)
 FIND_PACKAGE (HDF5 REQUIRED)
@@ -79,21 +95,21 @@ OPTION (ENABLE_DKS "Enable DKS" OFF)
 
 ### Load DKS package ###
 IF (ENABLE_DKS)
-   FIND_PACKAGE(DKS 1.1.1 REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
-   set (DKS_VERSION_OPAL \"${DKS_VERSION}\")
-   MESSAGE (STATUS "Found DKS version: ${DKS_VERSION}")
-   MESSAGE (STATUS "Found DKS library: ${DKS_LIBRARY}")
-   MESSAGE (STATUS "Found DKS include dir: ${DKS_INCLUDE_DIR}")
-   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDKS_MPI")
+    FIND_PACKAGE(DKS 1.1.1 REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
+    set (DKS_VERSION_OPAL \"${DKS_VERSION}\")
+    MESSAGE (STATUS "Found DKS version: ${DKS_VERSION}")
+    MESSAGE (STATUS "Found DKS library: ${DKS_LIBRARY}")
+    MESSAGE (STATUS "Found DKS include dir: ${DKS_INCLUDE_DIR}")
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDKS_MPI")
 
-   ### OpenCL compiler flags ###
-   #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lOpenCL -pthread -DDKS_OPENCL")
+    ### OpenCL compiler flags ###
+    #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lOpenCL -pthread -DDKS_OPENCL")
 
-   ### CUDA compiler flags ###
-   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDKS_CUDA")
+    ### CUDA compiler flags ###
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDKS_CUDA")
 
-   ### if any accelerator enabled set flag to use DKS ###
-   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIPPL_DKS -DIPPL_DKS_CUDA -DOPAL_DKS")
+    ### if any accelerator enabled set flag to use DKS ###
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIPPL_DKS -DIPPL_DKS_CUDA -DOPAL_DKS")
 ENDIF (ENABLE_DKS)
 ### END DKS part ###
 
@@ -118,15 +134,12 @@ IF (BUILD_OPAL_UNIT_TESTS)
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_UNIT_TESTS")
 ENDIF (BUILD_OPAL_UNIT_TESTS)
 
-IF (USE_H5HUT2)
-	SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_H5HUT2")
-ENDIF (USE_H5HUT2)
-
 IF (ENABLE_AMR)
     MESSAGE (STATUS "Enable AMR_SOLVER    " ${ENABLE_AMR})
     ENABLE_LANGUAGE (Fortran)
 
-    find_package (AMReX CONFIG REQUIRED HINTS $ENV{AMREX_HOME}/cmake $ENV{AMREX_DIR}/cmake $ENV{AMREX_PREFIX}/cmake)
+    find_package (AMReX CONFIG REQUIRED
+        HINTS $ENV{AMREX_HOME}/cmake $ENV{AMREX_DIR}/cmake $ENV{AMREX_PREFIX}/cmake)
 
     MESSAGE (STATUS "Found AMReX include dir: ${AMREX_INCLUDE_DIR}")
     MESSAGE (STATUS "Found AMReX library dir: ${AMREX_LIBRARY_DIR}")
@@ -147,34 +160,34 @@ STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
 # Trilinos_TPL_LIBRARIES, instead of cray-tpsl/16.07.1 it uses
 # cray-tpsl/16.06.1 libraries -> Linker error.
 # We can avoid this issue by not going into the if-statement
-if (NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori"
-    AND (ENABLE_SAAMG_SOLVER OR (ENABLE_AMR_MG_SOLVER AND ENABLE_AMR) ) )
-    
+IF (ENABLE_SAAMG_SOLVER)
     MESSAGE (STATUS "Enable SAAMG_SOLVER  " ${ENABLE_SAAMG_SOLVER})
-    MESSAGE (STATUS "Enable AMR_MG_SOLVER " ${ENABLE_AMR_MG_SOLVER})
-    
-    find_package (Trilinos REQUIRED HINTS $ENV{TRILINOS_PREFIX} $ENV{TRILINOS_DIR} $ENV{TRILINOS})
+    IF (NOT (
+                ${HOSTNAME_BASE} MATCHES "edison" OR
+                ${HOSTNAME_BASE} MATCHES "cori"))
+        
+        find_package (Trilinos REQUIRED HINTS $ENV{TRILINOS_PREFIX} $ENV{TRILINOS_DIR} $ENV{TRILINOS})
 
-    message (STATUS "Found Trilinos: ${Trilinos_DIR}")
-    message (STATUS "      Trilinos version: ${Trilinos_VERSION}")
-    message (STATUS "      Trilinos package list: ${Trilinos_PACKAGE_LIST}")
-    message (STATUS "      Trilinos libraries: ${Trilinos_LIBRARIES}")
-    message (STATUS "      Trilinos TPL libraries: ${Trilinos_TPL_LIBRARIES}")
+        message (STATUS "Found Trilinos: ${Trilinos_DIR}")
+        message (STATUS "      Trilinos version: ${Trilinos_VERSION}")
+        message (STATUS "      Trilinos package list: ${Trilinos_PACKAGE_LIST}")
+        message (STATUS "      Trilinos libraries: ${Trilinos_LIBRARIES}")
+        message (STATUS "      Trilinos TPL libraries: ${Trilinos_TPL_LIBRARIES}")
 
-    if (NOT ${MPI_CXX_COMPILER} STREQUAL ${Trilinos_CXX_COMPILER} )
-        message (STATUS "Compiler mismatch:")
-        message (STATUS "        Trilinos was compiled with:")
-        message (STATUS "            ${Trilinos_C_COMPILER}")
-        message (STATUS "            ${Trilinos_CXX_COMPILER}")
-        message (STATUS "            ${Trilinos_Fortran_COMPILER}")
-        message (STATUS "        You are using:")
-        message (STATUS "            ${CMAKE_C_COMPILER}")
-        message (STATUS "            ${CMAKE_CXX_COMPILER}")
-        message (STATUS "            ${CMAKE_Fortran_COMPILER}")
-        message (FATAL  "")
-    endif ()
-endif ()
-
+        if (NOT ${MPI_CXX_COMPILER} STREQUAL ${Trilinos_CXX_COMPILER} )
+            message (STATUS "Compiler mismatch:")
+            message (STATUS "        Trilinos was compiled with:")
+            message (STATUS "            ${Trilinos_C_COMPILER}")
+            message (STATUS "            ${Trilinos_CXX_COMPILER}")
+            message (STATUS "            ${Trilinos_Fortran_COMPILER}")
+            message (STATUS "        You are using:")
+            message (STATUS "            ${CMAKE_C_COMPILER}")
+            message (STATUS "            ${CMAKE_CXX_COMPILER}")
+            message (STATUS "            ${CMAKE_Fortran_COMPILER}")
+            message (FATAL  "")
+        ENDIF ()
+    ENDIF ()
+ENDIF ()
 
 IF (DBG_SCALARFIELD)
     MESSAGE (STATUS "\nWrite scalar rho_m field is enabled ")
@@ -214,7 +227,7 @@ IF(GIT_FOUND)
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         COMMAND git rev-parse HEAD
         OUTPUT_VARIABLE GIT_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
+        )
     SET (OPAL_WC_REVISION \"${GIT_OUT}\")
 ELSE()
     MESSAGE (STATUS "could not find git")
@@ -230,26 +243,33 @@ ADD_SUBDIRECTORY (src)
 ADD_SUBDIRECTORY (tools)
 
 IF (BUILD_OPAL_UNIT_TESTS)
-     ADD_SUBDIRECTORY(tests)
+    ADD_SUBDIRECTORY(tests)
 ENDIF (BUILD_OPAL_UNIT_TESTS)
 
 # make variables visible in other CMakeLists files
 set(OPAL_CXX_FLAGS ${OPAL_CXX_FLAGS}
-         CACHE INTERNAL "" FORCE
-)
+    CACHE INTERNAL "" FORCE
+    )
 
 set(OPAL_LIBS ${OPAL_LIBS}
-         CACHE INTERNAL "" FORCE
-)
+    CACHE INTERNAL "" FORCE
+    )
 
 # configure file
 configure_file (
-  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config_install.cmake
-)
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config_install.cmake
+    )
 
 install (
-  FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config_install.cmake
-  DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/${PROJECT_NAME}"
-  RENAME ${PROJECT_NAME}Config.cmake
-)
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config_install.cmake
+    DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/${PROJECT_NAME}"
+    RENAME ${PROJECT_NAME}Config.cmake
+    )
+
+# vi: set et ts=4 sw=4 sts=4:
+# Local Variables:
+# mode:cmake
+# cmake-tab-width: 4
+# indent-tabs-mode:nil
+# End:

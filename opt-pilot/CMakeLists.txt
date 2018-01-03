@@ -40,10 +40,6 @@ include_directories(SYSTEM ${MPI_INCLUDE_PATH})
 
 #-----------------------------------------------------------------------------
 
-include_directories(${CMAKE_SOURCE_DIR}/src)
-include_directories(${CMAKE_SOURCE_DIR}/src/Classic)
-include_directories(${CMAKE_SOURCE_DIR}/ippl/src)
-
 set(BOOST_ROOT $ENV{BOOST_HOME})
 set(Boost_USE_STATIC_LIBS ON)
 set(BOOST_NO_SYSTEM_PATHS TRUE)
@@ -89,7 +85,6 @@ endmacro()
 set (OPTP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" PARENT_SCOPE)
 
 add_subdirectory (Expression)
-add_subdirectory (Simulation)
 add_subdirectory (Util)
 add_subdirectory (extlib)
 
