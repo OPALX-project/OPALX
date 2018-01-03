@@ -17,11 +17,26 @@ else ()
     set (SAAMG_SOLVER_LIBS "")
 endif ()
 
-IF (ENABLE_AMR AND ENABLE_AMR_MG_SOLVER)
+if (ENABLE_AMR)
+    set(AMR_LIBS
+        ${MPI_Fortran_LIBRARIES}
+        ${Fortran_LIBS}
+        ${AMREX_LIBRARIES}
+        
+    )
+else (ENABLE_AMR)
+    set(AMR_LIBS "")
+endif (ENABLE_AMR)
+
+if (ENABLE_AMR AND ENABLE_AMR_MG_SOLVER)
     set (CMAKE_CXX_FLAGS
         "-DHAVE_AMR_MG_SOLVER ${CMAKE_CXX_FLAGS}"
     )
-ENDIF(ENABLE_AMR AND ENABLE_AMR_MG_SOLVER)
+    set (AMR_MG_SOLVER_LIBS
+        ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES})
+else (ENABLE_AMR AND ENABLE_AMR_MG_SOLVER)
+    set (AMR_MG_SOLVER_LIBS "")
+endif(ENABLE_AMR AND ENABLE_AMR_MG_SOLVER)
 
 set (PACKAGE_COMPILE_OPTIONS \"${CMAKE_CXX_FLAGS}\")
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALconfig.h)
@@ -145,7 +160,8 @@ endif ()
 
 target_link_libraries (libOPAL
     ${SAAMG_SOLVER_LIBS}
-    ${AMREX_LIBRARIES}
+    ${AMR_MG_SOLVER_LIBS}
+    ${AMR_LIBS}
     ${MPI_CXX_LIBRARIES}
     )
 

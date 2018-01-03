@@ -1,18 +1,19 @@
 #ifndef AMR_INTERPOLATER_H
 #define AMR_INTERPOLATER_H
 
-#include <AMReX_BoxArray.H>
+#include "Amr/AmrDefs.h"
 
 ///< Abstract base class for all coarse to fine cell interpolaters
 template <class AmrMultiGridLevel>
 class AmrInterpolater {
 
 public:
-    typedef typename AmrMultiGridLevel::global_ordinal_t go_t;
-    typedef typename AmrMultiGridLevel::lo_t lo_t;
-    typedef typename AmrMultiGridLevel::scalar_t scalar_t;
-    typedef typename AmrMultiGridLevel::umap_t umap_t;
-    typedef typename AmrMultiGridLevel::basefab_t basefab_t;
+    typedef typename AmrMultiGridLevel::global_ordinal_t    go_t;
+    typedef typename AmrMultiGridLevel::lo_t                lo_t;
+    typedef typename AmrMultiGridLevel::scalar_t            scalar_t;
+    typedef typename AmrMultiGridLevel::umap_t              umap_t;
+    typedef typename AmrMultiGridLevel::basefab_t           basefab_t;
+    typedef amr::AmrIntVect_t                               AmrIntVect_t;
     
 public:
     

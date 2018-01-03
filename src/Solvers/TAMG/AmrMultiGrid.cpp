@@ -3,6 +3,7 @@
 #include <map>
 
 #include "Utilities/OpalException.h"
+#include "Utilities/Util.h"
 
 #define AMR_MG_WRITE 0
 
@@ -13,7 +14,8 @@
     #include <fstream>
 #endif
 
-AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
+AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
+                           const std::string& bsolver,
                            const std::string& prec,
                            const std::string& bcx,
                            const std::string& bcy,
@@ -22,7 +24,8 @@ AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
                            const std::size_t& nSweeps,
                            const std::string& interp,
                            const std::string& norm)
-    : nIter_m(0),
+    : AmrPoissonSolver<AmrBoxLib>(itsAmrObject_p),
+      nIter_m(0),
       nSweeps_m(nSweeps),
       lbase_m(0),
       lfine_m(0),
@@ -76,7 +79,8 @@ AmrMultiGrid::AmrMultiGrid(Boundary bcx,
                            Smoother smoother,
                            Norm norm
                           )
-    : nIter_m(0),
+    : AmrPoissonSolver<AmrBoxLib>(nullptr),
+      nIter_m(0),
       nSweeps_m(12),
       smootherType_m(smoother),
       lbase_m(0),
@@ -123,6 +127,7 @@ AmrMultiGrid::AmrMultiGrid(Boundary bcx,
     this->initBaseSolver_m(solver, precond);
 }
 
+
 void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
                          amrex::Array<AmrField_u>& phi,
                          amrex::Array<AmrField_u>& efield,
@@ -150,6 +155,40 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     // copy solution back
     for (int lev = 0; lev < nlevel_m; ++lev) {
         int ilev = lbase + lev;
+        
+        this->trilinos2amrex_m(0, *phi[ilev], mglevel_m[lev]->phi_p);
+    }
+}
+
+
+void AmrMultiGrid::solve(AmrFieldContainer_t &rho,
+                         AmrFieldContainer_t &phi,
+                         AmrFieldContainer_t &efield,
+                         unsigned short baseLevel,
+                         unsigned short finestLevel,
+                         bool prevAsGuess)
+{
+    nIter_m = 0;
+    lbase_m = baseLevel;
+    lfine_m = finestLevel;
+    nlevel_m = lfine_m - lbase_m + 1;
+    
+    this->initLevels_m(rho, itsAmrObject_mp->Geom());
+    
+    this->initGuess_m(phi, prevAsGuess);
+    
+    // build all necessary matrices and vectors
+    this->setup_m(rho, phi);
+    
+    // actual solve
+    this->iterate_m();
+    
+    // write efield to AMReX
+    this->computeEfield_m(efield);    
+    
+    // copy solution back
+    for (int lev = 0; lev < nlevel_m; ++lev) {
+        int ilev = lbase_m + lev;
         
         this->trilinos2amrex_m(0, *phi[ilev], mglevel_m[lev]->phi_p);
     }
@@ -1894,7 +1933,7 @@ AmrMultiGrid::convertToEnumBoundary_m(const std::string& bc) {
     map["OPEN"]         = Boundary::OPEN;
     map["PERIODIC"]     = Boundary::PERIODIC;
     
-    auto boundary = map.find(bc);
+    auto boundary = map.find(Util::toUpper(bc));
     
     if ( boundary == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumBoundary_m()",
@@ -1910,7 +1949,7 @@ AmrMultiGrid::convertToEnumInterpolater_m(const std::string& interp) {
     map["LAGRANGE"]     = Interpolater::LAGRANGE;
     map["PC"]           = Interpolater::PIECEWISE_CONST;
     
-    auto interpolater = map.find(interp);
+    auto interpolater = map.find(Util::toUpper(interp));
     
     if ( interpolater == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumInterpolater_m()",
@@ -1950,7 +1989,7 @@ AmrMultiGrid::convertToEnumBaseSolver_m(const std::string& bsolver) {
     map["LAPACK"]           =  BaseSolver::LAPACK;
 #endif
     
-    auto solver = map.find(bsolver);
+    auto solver = map.find(Util::toUpper(bsolver));
     
     if ( solver == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumBaseSolver_m()",
@@ -1967,7 +2006,7 @@ AmrMultiGrid::convertToEnumPreconditioner_m(const std::string& prec) {
     map["CHEBYSHEV"]    = Preconditioner::CHEBYSHEV;
     map["NONE"]         = Preconditioner::NONE;
     
-    auto precond = map.find(prec);
+    auto precond = map.find(Util::toUpper(prec));
     
     if ( precond == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumPreconditioner_m()",
@@ -1990,10 +2029,48 @@ AmrMultiGrid::convertToEnumNorm_m(const std::string& norm) {
     map["L2"]   = Norm::L2;
     map["LINF"] = Norm::LINF;
     
-    auto n = map.find(norm);
+    auto n = map.find(Util::toUpper(norm));
     
     if ( n == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumNorm_m()",
                             "No norm '" + norm + "'.");
     return n->second;
+}
+
+
+double AmrMultiGrid::getXRangeMin(unsigned short level) {
+    return itsAmrObject_mp->Geom(level).ProbLo(0);
+}
+
+
+double AmrMultiGrid::getXRangeMax(unsigned short level) {
+    return itsAmrObject_mp->Geom(level).ProbHi(0);
+}
+
+
+double AmrMultiGrid::getYRangeMin(unsigned short level) {
+    return itsAmrObject_mp->Geom(level).ProbLo(1);
+}
+
+
+double AmrMultiGrid::getYRangeMax(unsigned short level) {
+    return itsAmrObject_mp->Geom(level).ProbHi(1);
+}
+
+
+double AmrMultiGrid::getZRangeMin(unsigned short level) {
+    return itsAmrObject_mp->Geom(level).ProbLo(2);
+}
+
+
+double AmrMultiGrid::getZRangeMax(unsigned short level) {
+    return itsAmrObject_mp->Geom(level).ProbHi(2);
+}
+
+
+Inform &AmrMultiGrid::print(Inform &os) const {
+    os << "* ********************* A M R M u l t i G r i d ********************** " << endl
+    //FIXME
+       << "* ******************************************************************** " << endl;
+    return os;
 }

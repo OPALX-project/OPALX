@@ -11,9 +11,10 @@ template <class AmrMultiGridLevel>
 class AmrDirichletBoundary : public AmrBoundary<AmrMultiGridLevel> {
     
 public:
-    typedef typename AmrMultiGridLevel::umap_t umap_t;
-    typedef typename AmrMultiGridLevel::lo_t lo_t;
-    typedef typename AmrMultiGridLevel::scalar_t scalar_t;
+    typedef typename AmrMultiGridLevel::umap_t      umap_t;
+    typedef typename AmrMultiGridLevel::lo_t        lo_t;
+    typedef typename AmrMultiGridLevel::scalar_t    scalar_t;
+    typedef amr::AmrIntVect_t                       AmrIntVect_t;
     
 public:
     

@@ -10,11 +10,14 @@
 
 #include "AmrMultiGridCore.h"
 
+#include "Solvers/AmrPoissonSolver.h"
+#include "Amr/AmrBoxLib.h"
+
 #include "AmrMultiGridLevel.h"
 
 #define AMR_MG_TIMER 1
 
-class AmrMultiGrid {
+class AmrMultiGrid : public AmrPoissonSolver< AmrBoxLib > {
     
 public:
     typedef amr::matrix_t         matrix_t;
@@ -105,6 +108,7 @@ public:
     
     /*!
      * Instantiation used in Structure/FieldSolver.cpp
+     * @param itsAmrObject_p has information about refinemen ratios, etc.
      * @param bsolver bottom solver
      * @param prec preconditioner for bottom solver
      * @param bcx boundary condition in x
@@ -115,7 +119,8 @@ public:
      * @param interp interpolater between levels
      * @param norm for convergence criteria
      */
-    AmrMultiGrid(const std::string& bsolver,
+    AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
+                 const std::string& bsolver,
                  const std::string& prec,
                  const std::string& bcx,
                  const std::string& bcy,
@@ -166,6 +171,23 @@ public:
                int lbase, int lfine, bool previous = false);
     
     /*!
+     * Used in OPAL
+     * 
+     * @param rho right-hand side charge density on grid [C / m]
+     * @param phi electrostatic potential (unknown) [V]
+     * @param efield electric field [V / m]
+     * @param baseLevel for solve
+     * @param finestLevel for solve
+     * @param prevAsGuess use of previous solution as initial guess
+     */
+    void solve(AmrFieldContainer_t &rho,
+                       AmrFieldContainer_t &phi,
+                       AmrFieldContainer_t &efield,
+                       unsigned short baseLevel,
+                       unsigned short finestLevel,
+                       bool prevAsGuess = true);
+    
+    /*!
      * Specify the number of smoothing steps
      * @param nSweeps for each smoothing step
      */
@@ -182,6 +204,18 @@ public:
         return nIter_m;
     }
     
+    double getXRangeMin(unsigned short level = 0);
+    double getXRangeMax(unsigned short level = 0);
+    double getYRangeMin(unsigned short level = 0);
+    double getYRangeMax(unsigned short level = 0);
+    double getZRangeMin(unsigned short level = 0);
+    double getZRangeMax(unsigned short level = 0);
+    
+    /**
+     * Print information abour tolerances.
+     * @param os output stream where to write to
+     */
+    Inform &print(Inform &os) const;
     
 private:
     
@@ -615,5 +649,10 @@ private:
     IpplTimings::TimerRef bG_m;
     IpplTimings::TimerRef bSmoother_m;
 };
+
+
+inline Inform &operator<<(Inform &os, const AmrMultiGrid &fs) {
+    return fs.print(os);
+}
 
 #endif

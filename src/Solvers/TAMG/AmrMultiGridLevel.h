@@ -15,15 +15,15 @@ template <class MatrixType, class VectorType>
 class AmrMultiGridLevel {
     
 public:
-    typedef amrex::MultiFab AmrField_t;
-    typedef amrex::Geometry AmrGeometry_t;
+    typedef amr::AmrField_t             AmrField_t;
+    typedef amr::AmrGeometry_t          AmrGeometry_t;
     typedef std::unique_ptr<AmrField_t> AmrField_u;
     typedef std::shared_ptr<AmrField_t> AmrField_s;
-    typedef amrex::IntVect AmrIntVect_t;
-    typedef MatrixType matrix_t;
-    typedef VectorType vector_t;
-    typedef amrex::BaseFab<int> basefab_t;
-    typedef amrex::FabArray<basefab_t> mask_t;
+    typedef amr::AmrIntVect_t           AmrIntVect_t;
+    typedef MatrixType                  matrix_t;
+    typedef VectorType                  vector_t;
+    typedef amrex::BaseFab<int>         basefab_t;
+    typedef amrex::FabArray<basefab_t>  mask_t;
     typedef std::shared_ptr<AmrBoundary<AmrMultiGridLevel<MatrixType,
                                                           VectorType
                                                           >
@@ -38,10 +38,10 @@ public:
     typedef amr::local_ordinal_t lo_t;
     
     /// Type for matrix indices
-    typedef std::vector<lo_t>                  indices_t;
+    typedef std::vector<lo_t> indices_t;
     
     /// Type for matrix entries
-    typedef std::vector<scalar_t>              coefficients_t;
+    typedef std::vector<scalar_t> coefficients_t;
     
     // Type with matrix index (column) and coefficient value
     typedef std::unordered_map<lo_t, scalar_t> umap_t;

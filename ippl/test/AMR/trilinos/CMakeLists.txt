@@ -36,6 +36,8 @@ include_directories (
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/ippl/src
     ${CMAKE_SOURCE_DIR}/src/Classic/
+    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/
+    ${CMAKE_SOURCE_DIR}/src/Utilities/
     ${IPPL_INCLUDE_DIR}
     ${H5Hut_INCLUDE_DIR}
     ${HDF5_INCLUDE_DIR}
@@ -67,7 +69,8 @@ IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
         ${HDF5_LIBRARY}
         ${IPPL_LIBRARY}
         ippl
-	${Boost_LIBRARIES}
+        ${Boost_LIBRARIES}
+        ${Trilinos_LIBRARIES}
         m
         z
     )
@@ -77,7 +80,7 @@ ELSE()
         ${HDF5_LIBRARY}
         ${IPPL_LIBRARY}
         ippl
-	${Boost_LIBRARIES}
+        ${Boost_LIBRARIES}
         mpi
         mpi_cxx
         mpi_mpifh
@@ -124,6 +127,8 @@ add_executable( testAmrMultigrid
                 testAmrMultigrid.cpp
                 ${F90_source_files}
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                 AmrMultiGridCore.h
                 BelosBottomSolver.cpp
                 AmesosBottomSolver.cpp
@@ -135,6 +140,8 @@ add_executable( testSolverComparison
                 ../Solver.cpp
                 ${F90_source_files}
                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+                ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
+                ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                 BelosBottomSolver.cpp
                 AmesosBottomSolver.cpp
                 AmrSmoother.cpp
@@ -178,8 +185,8 @@ IF ( ${AMREX_DIM} EQUAL 3 )
     
     set( EXECS
          ${EXECS}
-	 testBitPattern
-	 testCopy
+         testBitPattern
+         testCopy
     )
 ENDIF ( ${AMREX_DIM} EQUAL 3 )
                         
@@ -223,15 +230,15 @@ IF ( ${AMREX_DIM} EQUAL 2 )
 
     set( EXECS
          ${EXECS}
-	 testRestrictionMatrix
-	 testInterpolationMatrix
-	 testBoundaryMatrix
-	 testSmootherMatrix
-	 testPoissonMatrix
-	 testNoFine
-	 testWithFine
-	 testSpecialPoissonMatrix
-	 testLagrange
+         testRestrictionMatrix
+         testInterpolationMatrix
+         testBoundaryMatrix
+         testSmootherMatrix
+         testPoissonMatrix
+         testNoFine
+         testWithFine
+         testSpecialPoissonMatrix
+         testLagrange
     )
 ENDIF ( ${AMREX_DIM} EQUAL 2 )
 # target_link_libraries (testTrilinosGeometry ${LIBS}

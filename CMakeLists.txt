@@ -160,8 +160,14 @@ STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
 # Trilinos_TPL_LIBRARIES, instead of cray-tpsl/16.07.1 it uses
 # cray-tpsl/16.06.1 libraries -> Linker error.
 # We can avoid this issue by not going into the if-statement
-IF (ENABLE_SAAMG_SOLVER)
-    MESSAGE (STATUS "Enable SAAMG_SOLVER  " ${ENABLE_SAAMG_SOLVER})
+IF (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_MG_SOLVER)
+
+    IF ( ENABLE_SAAMG_SOLVER )
+        MESSAGE (STATUS "Enable SAAMG_SOLVER  " ${ENABLE_SAAMG_SOLVER})
+    ELSE ( ENABLE_SAAMG_SOLVER )
+        MESSAGE (STATUS "Enable AMR_MG_SOLVER " ${ENABLE_AMR_MG_SOLVER})
+    ENDIF( ENABLE_SAAMG_SOLVER )
+    
     IF (NOT (
                 ${HOSTNAME_BASE} MATCHES "edison" OR
                 ${HOSTNAME_BASE} MATCHES "cori"))
