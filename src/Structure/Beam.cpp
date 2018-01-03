@@ -9,24 +9,6 @@
 // Class: Beam
 //   The class for the OPAL BEAM command.
 //
-//   Note by JMJ 4/4/2000:
-//   At present it is possible to define unnormalised and normalised
-//   emittances independently.  Similarly for GAMMA, ENERGY and PC.
-//   We need to specify a basic set of independent class data members
-//   and then define methods for setting the basic ones via their values.
-//   The OPAL9 parser can probably be relied upon to cause later definitions
-//   on a command line to override earlier ones.
-//   The basic set should be, e.g.,
-//      {PARTICLE,MASS,CHARGE,PC,EX,EY,ET,
-//          KBUNCH,NPART,BUNCHED,RADIATE,DAMP,QUANTUM}
-//   This will need some care in transforming things.   The appropriate
-//   setXXX methods would just involve solving an equations defining the
-//   XXX quantity in terms of the base ones and deciding which one it is
-//   to override.  E.g., setting EXN would reset EX.
-//   Maybe print a warning message when this happens.
-//   It would, of course, be preferable not to allow the user to specify
-//   GAMMA when he can specify PC, or EXN when he can specify EX but
-//   some people will want these conveniences.
 // ------------------------------------------------------------------------
 //
 // $Date: 2003/08/11 22:09:00 $
@@ -65,27 +47,15 @@ namespace {
         // BEAM CURRENT AND EMITTANCES:
         BCURRENT,   // Beam current in A
         EX,         // Horizontal emittance
-        EXN,        // Normalised horizontal emittance
         EY,         // Vertical emittance
-        EYN,        // Normalises vertical emittance
         ET,         // Longitudinal emittance
 
         // BEAM FREQUENCY
         BFREQ,  // Beam frequency in MHz
 
         // DESCRIPTION OF BUNCHES:
-        KBUNCH,     // Number of bunches
         NPART,      // Number of particles per bunch
         NSLICE,     // Number of slices per bunch
-        BUNCHED,    // True, if the beam is bunched
-        RADIATE,    // True, if the particles radiate energy
-        DAMP,       // True, if damping is considered
-        QUANTUM,    // True, if quantum excitation is considered
-        SPACECHARGE,// True, if space charge computation is desired
-
-        // DESCIPTION OF FIELDSOLVER will be eventually a separate opject
-        FIELDSOLVER,
-        // THE INTEGRATION TIMESTEP IN SEC
         SIZE
     };
 }
@@ -96,16 +66,13 @@ const double Beam::energy_scale = 1.0e9;
 
 Beam::Beam():
     Definition(SIZE, "BEAM",
-               "The \"BEAM\" statement defines data for a the particles "
+               "The \"BEAM\" statement defines data for the particles "
                "in a beam."),
     reference(1.0, Physics::m_p *energy_scale, 1.0 * energy_scale) {
 
-    itsAttr[FIELDSOLVER] = Attributes::makeString
-                           ("FIELDSOLVER", "Name of the attached field solver ");
-
     // DESCRIPTION OF SINGLE PARTICLE:
     itsAttr[PARTICLE] = Attributes::makeString
-                        ("PARTICLE", "Name of particle to be used (Ch 9 of the user manual) ");
+                        ("PARTICLE", "Name of particle to be used");
     itsAttr[MASS] = Attributes::makeReal
                     ("MASS", "Particle rest mass in GeV");
     itsAttr[CHARGE] = Attributes::makeReal
@@ -124,12 +91,8 @@ Beam::Beam():
                         ("BCURRENT", "Beam current in A (all bunches)");
     itsAttr[EX] = Attributes::makeReal
                   ("EX", "Horizontal emittance");
-    itsAttr[EXN] = Attributes::makeReal
-                   ("EXN", "Normalised horizontal emittance");
     itsAttr[EY] = Attributes::makeReal
                   ("EY", "Vertical emittance");
-    itsAttr[EYN] = Attributes::makeReal
-                   ("EYN", "Normalised vertical emittance");
     itsAttr[ET] = Attributes::makeReal
                   ("ET", "Longitudinal emittance");
 
@@ -138,22 +101,10 @@ Beam::Beam():
                      ("BFREQ", "Beam frequency in MHz (all bunches)");
 
     // DESCRIPTION OF BUNCHES:
-    itsAttr[KBUNCH] = Attributes::makeReal
-                      ("KBUNCH", "Number of bunches in beam", 1.0);
     itsAttr[NPART] = Attributes::makeReal
                      ("NPART", "Number of particles in bunch");
     itsAttr[NSLICE] = Attributes::makeReal
                       ("NSLICE", "Number of slices in bunch");
-    itsAttr[BUNCHED] = Attributes::makeBool
-                       ("BUNCHED", "True, if the beam is bunched");
-    itsAttr[RADIATE] = Attributes::makeBool
-                       ("RADIATE", "True, if the particles radiate energy");
-    itsAttr[DAMP] = Attributes::makeBool
-                    ("DAMP", "True, if damping is considered");
-    itsAttr[QUANTUM] = Attributes::makeBool
-                       ("QUANTUM", "True, if quantum excitation is considered");
-    itsAttr[SPACECHARGE] = Attributes::makeBool
-                           ("SPACECHARGE", "True, if space charge computation is desired");
 
     // Set up default beam.
     Beam *defBeam = clone("UNNAMED_BEAM");
@@ -337,14 +288,6 @@ void Beam::update() {
                                 "\"PC\" should be greater than 0.");
         }
     };
-
-    // Emittances added above by JMJ 4/4/2000 so that UNNAMED_BEAM has
-    // proper defaults (problem found by Julien Pancin, see email today).
-    // This did not seem to work for him to deleted them again.  Confused.
-    // Slightly worried about this preventing anyone giving
-    // normalised emittances EXN, EYN, ETN.
-
-    // MISSING: Other data for BEAM.
 
     // Set default name.
     if(getOpalName().empty()) setOpalName("UNNAMED_BEAM");

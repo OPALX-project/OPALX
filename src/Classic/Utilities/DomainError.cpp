@@ -25,7 +25,7 @@
 // ------------------------------------------------------------------------
 
 
-DomainError::DomainError(const std::string &meth):
+DomainError::DomainError(const string &meth):
     ArithmeticError(meth, "Domain error.")
 {}
 

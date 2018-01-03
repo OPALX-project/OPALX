@@ -39,6 +39,7 @@
 #include "Utility/Timer.h"
 #include "Utility/my_auto_ptr.h"
 
+#include <string>
 #include <vector>
 #include <map>
 #include <limits>

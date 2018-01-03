@@ -23,7 +23,9 @@ AmrMultiGridLevel<MatrixType,
       error_p(Teuchos::null),
       UnCovered_p(Teuchos::null),
       rr_m(rr),
-      bc_mp(bc)
+      bc_mp(bc),
+      refmask(nullptr),
+      crsemask(nullptr)
 {
     for (int j = 0; j < AMREX_SPACEDIM; ++j) {
         G_p[j] = Teuchos::null;
@@ -68,9 +70,9 @@ AmrMultiGridLevel<MatrixType, VectorType>::~AmrMultiGridLevel()
 template <class MatrixType, class VectorType>
 int AmrMultiGridLevel<MatrixType, VectorType>::serialize(const AmrIntVect_t& iv) const {
 #if AMREX_SPACEDIM == 3
-    return iv[2] + (iv[1] + nr_m[1] * iv[0]) * nr_m[2];
+    return iv[0] + (iv[1] + nr_m[1] * iv[2]) * nr_m[0];
 #else
-    return iv[1] + iv[0] * nr_m[1];
+    return iv[0] + iv[1] * nr_m[0];
 #endif
 }
 
@@ -82,18 +84,37 @@ bool AmrMultiGridLevel<MatrixType, VectorType>::isBoundary(const AmrIntVect_t& i
 
 
 template <class MatrixType, class VectorType>
-void AmrMultiGridLevel<MatrixType, VectorType>::applyBoundary(const AmrIntVect_t& iv,
-                                                              indices_t& indices,
-                                                              coefficients_t& values,
-                                                              const double& value)
+bool AmrMultiGridLevel<MatrixType, VectorType>::applyBoundary(const AmrIntVect_t& iv,
+							      umap_t& map,
+                                                              const scalar_t& value)
 {
-    bc_mp->apply(iv, indices, values, value, this, &nr_m[0]);
+    return bc_mp->apply(iv, map, value, this, &nr_m[0]);
+}
+
+
+template <class MatrixType, class VectorType>
+bool AmrMultiGridLevel<MatrixType, VectorType>::applyBoundary(const AmrIntVect_t& iv,
+							      const basefab_t& fab,
+                                                              umap_t& map,
+                                                              const scalar_t& value)
+{
+    return bc_mp->apply(iv, fab, map, value, this, &nr_m[0]);
+}
+
+
+template <class MatrixType, class VectorType>
+void AmrMultiGridLevel<MatrixType, VectorType>::applyBoundary(const AmrIntVect_t& iv,
+							      const lo_t& dir,
+                                                              umap_t& map,
+                                                              const scalar_t& value)
+{
+    bc_mp->apply(iv, dir, map, value, this, &nr_m[0]);
 }
 
 
 template <class MatrixType, class VectorType>
 void AmrMultiGridLevel<MatrixType, VectorType>::buildLevelMask_m() {
-    mask.reset(new amrex::FabArray<amrex::BaseFab<int> >(grids, dmap, 1, 1));
+    mask.reset(new mask_t(grids, dmap, 1, 1));
     mask->BuildMask(geom.Domain(), geom.periodicity(),
                     Mask::COVERED, Mask::BNDRY,
                     Mask::PHYSBNDRY, Mask::INTERIOR);

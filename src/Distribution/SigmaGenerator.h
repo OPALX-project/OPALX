@@ -676,7 +676,8 @@ inline typename SigmaGenerator<Value_type, Size_type>::value_type SigmaGenerator
 template<typename Value_type, typename Size_type>
 inline std::array<Value_type,3> SigmaGenerator<Value_type, Size_type>::getEmittances() const {
     value_type bgam = gamma_m*beta_m;
-    return std::array<value_type,3>({emittance_m[0]/Physics::pi/bgam, emittance_m[1]/Physics::pi/bgam, emittance_m[2]/Physics::pi/bgam});
+    return std::array<value_type,3>{{
+		    emittance_m[0]/Physics::pi/bgam, emittance_m[1]/Physics::pi/bgam, emittance_m[2]/Physics::pi/bgam}};
 }
 
 // -----------------------------------------------------------------------------------------------------------------------

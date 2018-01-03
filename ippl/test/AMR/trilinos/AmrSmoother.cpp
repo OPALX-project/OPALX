@@ -46,11 +46,11 @@ void AmrSmoother::initParameter_m(const Smoother& smoother,
     
     
     std::string type = "";
-    double damping = 1.0;
-    std::pair<bool, double> l1 = std::make_pair(true, 1.5);
+    scalar_t damping = 1.0;
+    std::pair<bool, scalar_t> l1 = std::make_pair(true, 1.5);
     
     bool backward = false;
-    std::pair<bool, double> fix = std::make_pair(true, 1.0e-5);
+    std::pair<bool, scalar_t> fix = std::make_pair(true, 1.0e-5);
     bool check = true;
     
     switch ( smoother ) {

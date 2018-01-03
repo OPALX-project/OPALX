@@ -1,24 +1,27 @@
 #include "gtest/gtest.h"
 #include "AbsBeamline/MultipoleT.h"
+
+#include "opal_test_utilities/SilenceTest.h"
+
 #include<fstream>
 
 using namespace std;
 
 vector< vector<double> > partialsDerivB(const Vector_t &R,const Vector_t B, double stepSize, MultipoleT* dummyField)
-{  
-    // builds a matrix of all partial derivatives of B -> dx_i B_j 
+{
+    // builds a matrix of all partial derivatives of B -> dx_i B_j
     vector< vector<double> > allPartials(3, vector<double>(3));
     double t = 0 ;
     Vector_t P, E;
     for(int i = 0; i < 3; i++)
-    { 
+    {
       // B at the previous and next grid points R_prev,  R_next
       Vector_t R_prev = R, R_next = R;
       R_prev[i] -= stepSize;
       R_next[i] += stepSize;
       Vector_t B_prev, B_next;
       dummyField->apply(R_prev, P, t, E, B_prev);
-      dummyField->apply(R_next, P, t, E, B_next); 
+      dummyField->apply(R_next, P, t, E, B_next);
       for(int j = 0; j < 3; j++)
         allPartials[i][j] = (B_next[j] - B_prev[j]) / (2 * stepSize);
     }
@@ -26,13 +29,13 @@ vector< vector<double> > partialsDerivB(const Vector_t &R,const Vector_t B, doub
 }
 
 vector< vector<double> > partialsDerivB_5(const Vector_t &R,const Vector_t B, double stepSize, MultipoleT* dummyField)
-{  
-    // builds a matrix of all partial derivatives of B -> dx_i B_j 
+{
+    // builds a matrix of all partial derivatives of B -> dx_i B_j
     vector< vector<double> > allPartials(3, vector<double>(3));
     double t = 0 ;
     Vector_t P, E;
     for(int i = 0; i < 3; i++)
-    { 
+    {
       // B at the previous and next grid points R_prev,  R_next
       Vector_t R_pprev = R, R_prev = R, R_next = R, R_nnext = R;
       R_pprev(i) -= 2 * stepSize;
@@ -49,7 +52,7 @@ vector< vector<double> > partialsDerivB_5(const Vector_t &R,const Vector_t B, do
     }
     return allPartials;
 }
-    
+
 double calcDivB(Vector_t &R, Vector_t B, double stepSize, MultipoleT* dummyField )
 {
     double div = 0;
@@ -58,7 +61,7 @@ double calcDivB(Vector_t &R, Vector_t B, double stepSize, MultipoleT* dummyField
     for(int i = 0; i < 3; i++)
         div += partials[i][i];
     return div;
-}   
+}
 
 vector<double> calcCurlB(Vector_t &R, Vector_t B, double stepSize, MultipoleT* dummyField)
 {
@@ -73,6 +76,8 @@ vector<double> calcCurlB(Vector_t &R, Vector_t B, double stepSize, MultipoleT* d
 
 TEST(MultipoleTTest, Field)
 {
+    OpalTestUtilities::SilenceTest silencer;
+
     MultipoleT* myMagnet = new MultipoleT("Quadrupole");
     double centralField = 5;
     double fringeLength = 0.5;
@@ -107,6 +112,8 @@ TEST(MultipoleTTest, Field)
 }
 
 TEST(MultipoleTTest, Maxwell) {
+    OpalTestUtilities::SilenceTest silencer;
+
     MultipoleT* myMagnet = new MultipoleT("Quadrupole");
     double centralField = 5;
     double fringeLength = 0.5;
@@ -145,11 +152,13 @@ TEST(MultipoleTTest, Maxwell) {
 }
 
 TEST(MultipoleTTest, CurvedMagnet) {
+    OpalTestUtilities::SilenceTest silencer;
+
     MultipoleT* myMagnet = new MultipoleT("Combined function");
     myMagnet->setLength(4.0);
     myMagnet->setBendAngle(0.0); // BUG small, non-zero bend angle ruins the convergence
     myMagnet->setAperture(0.4, 0.4);
-    myMagnet->setFringeField(2, 0.5, 0.5); 
+    myMagnet->setFringeField(2, 0.5, 0.5);
     myMagnet->setVarRadius();
     myMagnet->setVarStep(0.1);
     myMagnet->setTransMaxOrder(1);
@@ -185,6 +194,6 @@ TEST(MultipoleTTest, CurvedMagnet) {
                      << " Del: " << div << " " << curlMag << std::endl;
             }
         }
-    }  
+    }
 
 }

@@ -121,7 +121,7 @@ public:
                                           Vector_t &B);
 
     virtual double getDesignEnergy() const;
-    virtual void setDesignEnergy(double energy, bool changeable = true);
+    virtual void setDesignEnergy(const double& energy, bool changeable);
 
     virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) = 0;
 
@@ -217,7 +217,7 @@ inline EBVectors Component::EBfield(const Point3D &P, double t) const
 inline void Component::setExitFaceSlope(const double &m)
 { exit_face_slope_m = m; }
 
-inline void Component::setDesignEnergy(double , bool )
+inline void Component::setDesignEnergy(const double& energy, bool changeable = true )
 { }
 
 inline double Component::getDesignEnergy() const

@@ -6,7 +6,7 @@ SET (OPAL2SDDS_VERSION_MINOR 1)
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
+    "${IPPL_CMAKE_CXX_FLAGS} -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
     )
 
 INCLUDE_DIRECTORIES (
@@ -27,8 +27,7 @@ SET (SDDS_LIBS
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARY}
     z
-    mpi
-    mpi_cxx
+    ${MPI_LIBRARIES}
     dl
 )
 

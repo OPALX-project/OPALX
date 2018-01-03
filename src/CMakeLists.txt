@@ -2,14 +2,20 @@ cmake_minimum_required (VERSION 2.8.10)
 set (DKS_VERSION_OPAL \"${DKS_VERSION}\")
 
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
+    "${IPPL_CMAKE_CXX_FLAGS} -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
     )
 
-IF(ENABLE_SAAMG_SOLVER)
+if (ENABLE_SAAMG_SOLVER)
     set (CMAKE_CXX_FLAGS
         "-DHAVE_SAAMG_SOLVER ${CMAKE_CXX_FLAGS}"
-    )
-ENDIF(ENABLE_SAAMG_SOLVER)
+        )
+    set (SAAMG_SOLVER_LIBS
+        ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
+        ${Fortran_LIBS}
+        )
+else ()
+    set (SAAMG_SOLVER_LIBS "")
+endif ()
 
 IF (ENABLE_AMR AND ENABLE_AMR_MG_SOLVER)
     set (CMAKE_CXX_FLAGS
@@ -17,18 +23,12 @@ IF (ENABLE_AMR AND ENABLE_AMR_MG_SOLVER)
     )
 ENDIF(ENABLE_AMR AND ENABLE_AMR_MG_SOLVER)
 
-IF(ENABLE_AMR)
-    IF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND NOT ${HOSTNAME_BASE} MATCHES "daint")
-        set (F_MPI "-lmpi" "-lmpi_mpifh")
-    ENDIF(NOT ${HOSTNAME_BASE} MATCHES "edison" AND NOT ${HOSTNAME_BASE} MATCHES "cori" AND NOT ${HOSTNAME_BASE} MATCHES "daint")
-ENDIF(ENABLE_AMR)
-
-SET (PACKAGE_COMPILE_OPTIONS \"${CMAKE_CXX_FLAGS}\")
+set (PACKAGE_COMPILE_OPTIONS \"${CMAKE_CXX_FLAGS}\")
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALconfig.h)
 configure_file(revision.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALrevision.h)
 
-SET (OPAL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-SET (OPAL_SRCS )
+set (OPAL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set (OPAL_SRCS )
 macro (ADD_OPAL_SOURCES)
     file (RELATIVE_PATH _relPath "${OPAL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
     foreach (_src ${ARGN})
@@ -44,20 +44,23 @@ macro (ADD_OPAL_SOURCES)
     endif()
 endmacro()
 
-MACRO (ADD_OPAL_HEADERS )
-    FILE (RELATIVE_PATH _relPath "${OPAL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
-    FOREACH (_hdr ${ARGN})
-        IF (_relPath)
-            LIST (APPEND OPAL_HDRS "${_relPath}/${_hdr}")
-        ELSE ()
-            LIST (APPEND OPAL_HDRS "${_hdr}")
-        ENDIF ()
-    ENDFOREACH ()
-    IF (_relPath)
+macro (ADD_OPAL_HEADERS )
+    file (RELATIVE_PATH _relPath "${OPAL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+    foreach (_hdr ${ARGN})
+        if (_relPath)
+            list (APPEND OPAL_HDRS "${_relPath}/${_hdr}")
+        else ()
+            list (APPEND OPAL_HDRS "${_hdr}")
+        endif ()
+    endforeach ()
+    if (_relPath)
         # propagate HDRS to parent directory
-        SET (OPAL_HDRS ${OPAL_HDRS} PARENT_SCOPE)
-    ENDIF ()
-ENDMACRO ()
+        set (OPAL_HDRS ${OPAL_HDRS} PARENT_SCOPE)
+    endif ()
+endmacro ()
+
+ADD_OPAL_SOURCES(opal.cpp)
+ADD_OPAL_SOURCES(changes.cpp)
 
 add_subdirectory (AbstractObjects)
 add_subdirectory (Algebra)
@@ -74,6 +77,7 @@ add_subdirectory (Expressions)
 add_subdirectory (Lines)
 add_subdirectory (OpalConfigure)
 add_subdirectory (OpalParser)
+add_subdirectory (Optimize)
 add_subdirectory (Match)
 add_subdirectory (PhysicsActions)
 add_subdirectory (Solvers)
@@ -84,12 +88,9 @@ add_subdirectory (Track)
 add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
 
-IF(ENABLE_AMR)
+if (ENABLE_AMR)
     add_subdirectory (Amr)
-ENDIF(ENABLE_AMR)
-
-ADD_OPAL_SOURCES(opal.cpp)
-ADD_OPAL_SOURCES(changes.cpp)
+endif ()
 
 include_directories ( BEFORE
     ${OPAL_SRC_DIR}
@@ -104,7 +105,7 @@ include_directories ( BEFORE
     ${AMREX_INCLUDE_DIR}
     ${GTEST_INCLUDE_DIRS}
     ${OPTP_INCLUDE_DIR}
-)
+    )
 
 link_directories (
     ${IPPL_LIBRARY_DIR}
@@ -112,64 +113,66 @@ link_directories (
     ${Trilinos_LIBRARY_DIRS}
     ${Trilinos_TPL_LIBRARY_DIRS}
     ${AMREX_LIBRARY_DIR}
-)
+    )
 
-IF (ENABLE_DKS)
-   include_directories (${DKS_INCLUDE_DIR})
-   link_directories (${DKS_LIBRARY_DIR})
-ENDIF (ENABLE_DKS)
+if (ENABLE_DKS)
+    include_directories (${DKS_INCLUDE_DIR})
+    link_directories (${DKS_LIBRARY_DIR})
+endif ()
 
-IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR ${HOSTNAME_BASE} MATCHES "daint")
- SET (OPAL_LIBS
+#
+# we cannot use the target name 'OPAL' for 'libOPAL'. On systems with
+# case-insensitive filesystems (like macOS) this conflicts with the
+# target 'opal' for the OPAL binary.
+#
+add_library (libOPAL ${OPAL_SRCS})
+set_target_properties (libOPAL PROPERTIES OUTPUT_NAME OPAL)
+target_link_libraries (libOPAL
+    ${OPTP_LIBS}
+    ${OPTP_LIBRARY}
+    ${IPPL_LIBRARY}
     ${GSL_LIBRARY}
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARY}
-    ${IPPL_LIBRARY}
-    ${OPTP_LIBRARY}
-    ${OPTP_LIBS}
     ${Boost_LIBRARIES}
+    )
+
+if (ENABLE_DKS)
+    target_link_libraries (libOPAL
+        dks
+        ${DKS_CUDA_LIBS})
+endif ()
+
+target_link_libraries (libOPAL
+    ${SAAMG_SOLVER_LIBS}
+    ${AMREX_LIBRARIES}
+    ${MPI_CXX_LIBRARIES}
+    )
+
+add_executable (opal Main.cpp)
+target_link_libraries( opal
+    libOPAL
     m
     z
-)
-ELSE()
- SET (OPAL_LIBS
-    ${GSL_LIBRARY}
-    ${H5Hut_LIBRARY}
-    ${HDF5_LIBRARY}
-    ${IPPL_LIBRARY}
-    ${OPTP_LIBRARY}
-    ${OPTP_LIBS}
-    ${Boost_LIBRARIES}
-    mpi
-    mpi_cxx
-    m
-    z
-)
-ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR ${HOSTNAME_BASE} MATCHES "daint")
-
-IF (ENABLE_DKS)
-   set (OPAL_LIBS
-       ${OPAL_LIBS}
-       dks
-       ${DKS_CUDA_LIBS})
-ENDIF (ENABLE_DKS)
-
-add_library( OPALib ${OPAL_SRCS} )
-set_target_properties( OPALib PROPERTIES OUTPUT_NAME OPAL )
-target_link_libraries( OPALib ${OPAL_LIBS} ${Trilinos_LIBRARIES} ${AMREX_LIBRARIES} ${OTHER_CMAKE_EXE_LINKER_FLAGS} )
-
-add_executable( opal Main.cpp )
-target_link_libraries( opal ${OPAL_LIBS} OPALib ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} -lgfortran ${AMREX_LIBRARIES} ${F_MPI} ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    ${CMAKE_DL_LIBS}
+    )
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
-install (TARGETS OPALib DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
+install (TARGETS libOPAL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
 
 set (HDRS
     OPALconfig.h
     opal.h
     OPALrevision.h
     changes.h
-)
+    )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/src")
+
+# vi: set et ts=4 sw=4 sts=4:
+# Local Variables:
+# mode:cmake
+# cmake-tab-width: 4
+# indent-tabs-mode:nil
+# End:

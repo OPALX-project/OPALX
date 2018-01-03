@@ -38,7 +38,7 @@ public:
     // [DT][b]meth[/b]
     // [DD]the name of the method or function detecting the exception
     // [/DL]
-    DomainError(const std::string &meth);
+    DomainError(const string &meth);
 
     DomainError(const DomainError &);
     virtual ~DomainError();

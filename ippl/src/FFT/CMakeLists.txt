@@ -1,4 +1,5 @@
 SET (_SRCS
+	fftpack.cpp
   )
 
 SET (_HDRS

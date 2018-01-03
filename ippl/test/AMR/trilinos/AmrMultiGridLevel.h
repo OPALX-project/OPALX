@@ -9,6 +9,8 @@
 
 #include "AmrMultiGridCore.h"
 
+#include <unordered_map>
+
 template <class MatrixType, class VectorType>
 class AmrMultiGridLevel {
     
@@ -20,7 +22,8 @@ public:
     typedef amrex::IntVect AmrIntVect_t;
     typedef MatrixType matrix_t;
     typedef VectorType vector_t;
-    typedef amrex::FabArray<amrex::BaseFab<int> > mask_t;
+    typedef amrex::BaseFab<int> basefab_t;
+    typedef amrex::FabArray<basefab_t> mask_t;
     typedef AmrBoundary<
                     AmrMultiGridLevel<
                         MatrixType,
@@ -32,11 +35,12 @@ public:
     typedef amr::dmap_t dmap_t;
     typedef amr::node_t node_t;
     typedef amr::global_ordinal_t global_ordinal_t;
-    
-    typedef std::vector<int>        indices_t;
-    typedef std::vector<double>     coefficients_t;
-    
-    typedef Vektor<double, 3> Vector_t;
+    typedef amr::scalar_t scalar_t;
+    typedef amr::local_ordinal_t lo_t;
+
+    typedef std::vector<lo_t>                  indices_t;
+    typedef std::vector<scalar_t>              coefficients_t;
+    typedef std::unordered_map<lo_t, scalar_t> umap_t;
     
     // covered   : ghost cells covered by valid cells of this FabArray
     //             (including periodically shifted valid cells)
@@ -49,6 +53,13 @@ public:
         INTERIOR  =  0,
         BNDRY     =  1,
         PHYSBNDRY =  2
+    };
+
+    // NO   : not a refined cell 
+    // YES  : cell got refined
+    enum Refined {
+        YES = 0,
+	NO  = 1
     };
     
 public:
@@ -66,10 +77,19 @@ public:
     
     bool isBoundary(const AmrIntVect_t& iv) const;
     
+    bool applyBoundary(const AmrIntVect_t& iv,
+                       umap_t& map,
+                       const scalar_t& value);
+    
+    bool applyBoundary(const AmrIntVect_t& iv,
+		       const basefab_t& fab,
+		       umap_t& map,
+		       const scalar_t& value);
+
     void applyBoundary(const AmrIntVect_t& iv,
-                       indices_t& indices,
-                       coefficients_t& values,
-                       const double& value);
+		       const lo_t& dir,
+		       umap_t& map,
+		       const scalar_t& value);
     
     const AmrIntVect_t& refinement() const;
     
@@ -103,7 +123,8 @@ public:
     Teuchos::RCP<matrix_t> UnCovered_p; ///< uncovered cells
     
     std::unique_ptr<mask_t> mask;       ///< interior, phys boundary, interface, covered
-    
+    std::unique_ptr<mask_t> refmask;    ///< covered (i.e. refined) or not-covered
+    std::unique_ptr<mask_t> crsemask;
     
 private:
     int nr_m[AMREX_SPACEDIM];           ///< number of grid points

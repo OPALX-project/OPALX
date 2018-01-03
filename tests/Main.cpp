@@ -2,8 +2,9 @@
 
 #include "mpi.h"
 
-#include "Utility/Inform.h" // ippl
+#include "Utility/IpplInfo.h" // ippl
 
+Ippl *ippl;
 Inform* gmsg;
 
 class NewLineAdder: public ::testing::EmptyTestEventListener {

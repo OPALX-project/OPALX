@@ -21,7 +21,9 @@
 // ------------------------------------------------------------------------
 
 #include "Utilities/CLRangeError.h"
+#include "Utilities/SizeError.h"
 #include <algorithm>
+#include <initializer_list>
 #include <ostream>
 
 
@@ -58,6 +60,9 @@ public:
     /// Copy constructor.
     FArray1D(const FArray1D &);
 
+    /// Consructor with initializer list (needs C++11) (see http://en.cppreference.com/w/cpp/utility/initializer_list)
+    FArray1D(const std::initializer_list<T>&);
+    
     /// Assignment.
     const FArray1D &operator=(const FArray1D &);
 
@@ -127,6 +132,24 @@ FArray1D<T, N>::FArray1D(const T &val) {
     std::fill(begin(), end(), val);
 }
 
+#include <iostream>
+
+template<class T, int N>
+FArray1D<T, N>::FArray1D(const std::initializer_list<T>& init) {
+    
+    
+    if (init.size() > N) {
+        throw SizeError("FArray1D<T,N>(const std::initializer_list<T>&)","Size exceeds array dimension.");
+    }
+    
+    // copy list to array
+    std::copy(init.begin(), init.end(), begin());
+    
+    // if initializer list smaller than array dimension, fill rest with zero
+    if (init.size() < N) {
+        std::fill(begin()+init.size(), end(), T(0));
+    }
+}
 
 template<class T, int N>
 const FArray1D<T, N> &FArray1D<T, N>::operator=(const FArray1D &rhs) {

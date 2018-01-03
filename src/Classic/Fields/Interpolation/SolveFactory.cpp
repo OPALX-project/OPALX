@@ -41,7 +41,9 @@ SolveFactory::SolveFactory(int polynomial_order,
                            std::vector< std::vector<double> > positions,
                            std::vector< std::vector<double> > deriv_positions,
                            std::vector< std::vector<int> >& deriv_indices)
-  : polynomial_order_(polynomial_order), smoothing_order_(smoothing_order) {
+// :FIXME: unused!
+// : polynomial_order_(polynomial_order), smoothing_order_(smoothing_order)
+{
     n_poly_coeffs_ = SquarePolynomialVector::NumberOfPolynomialCoefficients(point_dim, smoothing_order);
     square_points_ = PPSolveFactory::getNearbyPointsSquares(point_dim, -1, smoothing_order);
     square_deriv_nearby_points_ = PPSolveFactory::getNearbyPointsSquares(point_dim, -1, smoothing_order);

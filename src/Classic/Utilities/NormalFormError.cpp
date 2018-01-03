@@ -25,8 +25,8 @@
 // ------------------------------------------------------------------------
 
 
-NormalFormError::NormalFormError(const std::string &meth,
-                                 const std::string &msg):
+NormalFormError::NormalFormError(const string &meth,
+                                 const string &msg):
     ArithmeticError(meth, msg)
 {}
 
