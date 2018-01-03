@@ -322,14 +322,14 @@ IpplTimings::IpplTimings() { }
 IpplTimings::~IpplTimings() { }
 
 void IpplTimings::stash() {
-    PAssert(stashedInstance.size() == 0);
+    PAssert_EQ(stashedInstance.size(), 0);
 
     stashedInstance.push(instance);
     instance = new Timing();
 }
 
 void IpplTimings::pop() {
-    PAssert(stashedInstance.size() > 0);
+    PAssert_GT(stashedInstance.size(), 0);
 
     delete instance;
     instance = stashedInstance.top();

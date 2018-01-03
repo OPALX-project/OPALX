@@ -103,7 +103,7 @@ FindCutAxis(const NDIndex<Dim> &domain, const FieldLayout<Dim> &layout)
   }
 
   // Make sure we found one.
-  //PAssert(cutAxis>=0);
+  //PAssert_GE(cutAxis, 0);
 
   if(cutAxis<0)
     throw BinaryRepartitionFailed();
@@ -416,7 +416,7 @@ ReceiveReduce(NDIndex<Dim>& domain, BareField<double,Dim>& weights,
       // Receive a message.
       int any_node = COMM_ANY_NODE;
       Message *mess = Ippl::Comm->receive_block(any_node,reduce_tag);
-      PAssert(mess != 0);
+      PAssert(mess);
       DEBUGMSG("ReceiveReduce: Comm->Receive from Node " << any_node << ", tag=" << reduce_tag << endl);
       // Loop over all the domains in this message.
       int received_domains = 0;
@@ -499,7 +499,7 @@ ReceiveCuts(std::vector< NDIndex<Dim> > &domains,
       int whichDomain = COMM_ANY_NODE;
       int cutLocation = 0, cutAxis = 0;
       Message *mess = Ippl::Comm->receive_block(whichDomain,bcast_tag);
-      PAssert(mess != 0);
+      PAssert(mess);
       DEBUGMSG("ReceiveCuts: received bcast " << expected << endl);
       mess->get(cutLocation);
       mess->get(cutAxis);
@@ -529,7 +529,7 @@ ReceiveCuts(std::vector< NDIndex<Dim> > &domains,
   // Strip out the domains with no processors assigned.
   domains.clear();
   nprocs.clear();
-  PAssert(cutProcs.size() == cutDomains.size());
+  PAssert_EQ(cutProcs.size(), cutDomains.size());
   for (unsigned int i=0; i<cutProcs.size(); ++i)
     {
       if ( cutProcs[i] != 0 )
@@ -539,7 +539,7 @@ ReceiveCuts(std::vector< NDIndex<Dim> > &domains,
 	}
       else
 	{
-	  PAssert(cutDomains[i].size() == 0);
+	  PAssert_EQ(cutDomains[i].size(), 0);
 	}
     }
 }

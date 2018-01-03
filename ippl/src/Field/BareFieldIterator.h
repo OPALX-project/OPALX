@@ -218,7 +218,7 @@ public:
   bool IsCompressed() const
   {
     bool is_compressed = CompressedBrickIterator<T,Dim>::IsCompressed();
-    PAssert((*CurrentLField).second->IsCompressed() == is_compressed);
+    PAssert_EQ((*CurrentLField).second->IsCompressed(), is_compressed);
     return is_compressed;
   }
 

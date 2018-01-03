@@ -14,7 +14,7 @@
 #include "Util/SDDSParser/parameter.hpp"
 //#include "Util/SDDSParser/variant.h"
 
-#include "Util/OptPilotException.h"
+#include "Util/SDDSParser/SDDSParserException.h"
 
 #include <iostream>
 #include <fstream>
@@ -70,7 +70,7 @@ namespace SDDS {
             if(columnNameToID_m.count(column_name) > 0) {
                 col_idx = columnNameToID_m[column_name];
             } else {
-                throw OptPilotException("SDDSParser::getValue",
+                throw SDDSParserException("SDDSParser::getValue",
                                         "unknown column name: '" + column_name + "'!");
             }
 
@@ -133,11 +133,11 @@ namespace SDDS {
                 }
 
                 if(this_row == num_rows)
-                    throw OptPilotException("SDDSParser::getInterpolatedValue",
+                    throw SDDSParserException("SDDSParser::getInterpolatedValue",
                                             "all values < specified spos");
 
             } else {
-                throw OptPilotException("SDDSParser::getInterpolatedValue",
+                throw SDDSParserException("SDDSParser::getInterpolatedValue",
                                         "unknown column name: '" + col_name + "'!");
             }
 
@@ -159,7 +159,7 @@ namespace SDDS {
                 auto value = sddsData_m.sddsParameters_m[id].value_m;
                 nval = boost::get<T>(value);
             } else {
-                throw OptPilotException("SDDSParser::getParameterValue",
+                throw SDDSParserException("SDDSParser::getParameterValue",
                                         "unknown parameter name: '" + parameter_name + "'!");
             }
         }

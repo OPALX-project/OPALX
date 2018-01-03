@@ -10,6 +10,7 @@
 #include "Utilities/Util.h"
 #include "Physics/Physics.h"
 
+#include "h5core/h5_types.h"
 #include <boost/filesystem.hpp>
 
 #include <sstream>
@@ -242,8 +243,10 @@ void H5PartWrapperForPT::writeHeader() {
 void H5PartWrapperForPT::writeStep(PartBunchBase<double, 3>* bunch, const std::map<std::string, double> &additionalStepAttributes) {
     if (bunch->getTotalNum() == 0) return;
 
+    open(H5_O_APPENDONLY);
     writeStepHeader(bunch, additionalStepAttributes);
     writeStepData(bunch);
+    close();
 }
 
 void H5PartWrapperForPT::writeStepHeader(PartBunchBase<double, 3>* bunch, const std::map<std::string, double> &additionalStepAttributes) {

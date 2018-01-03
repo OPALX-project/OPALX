@@ -84,7 +84,7 @@ void SubBareField<T,Dim,S>::get(T& r) {
   
   
   // make sure we have a properly bracketed object
-  PAssert(checkBrackets());
+  PAssert_EQ(checkBrackets(), true);
 
   // construct an NDIndex which refers to the single point.
   NDIndex<Dim> Indexes;
@@ -121,7 +121,7 @@ void SubBareField<T,Dim,S>::write(std::ostream& o) {
   
   
   // make sure we have the right number of brackets
-  PAssert(Dim == Brackets);
+  PAssert_EQ(Dim, Brackets);
 
   // determine the range of values which we need to print
   NDIndex<Dim> testIndex;
