@@ -192,7 +192,8 @@ IpplParticleBase<PLayout>::putMessage(Message& msg, size_t M, size_t I) {
   if (M > 0) {
     // this routine should only be called for local particles; call
     // ghostPutMessage to put in particles which might be ghost particles
-    PAssert(I < R.size() && (I+M) <= R.size());
+    PAssert_LT(I, R.size());
+    PAssert_LE(I + M, R.size());
 
     attrib_container_t::iterator abeg = AttribList.begin();
     attrib_container_t::iterator aend = AttribList.end();

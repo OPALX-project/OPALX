@@ -51,10 +51,6 @@ if (Boost_INCLUDE_DIRS)
     include_directories (${Boost_INCLUDE_DIRS})
 endif ()
 
-if (Boost_FILESYSTEM_FOUND)
-    add_definitions(-DBOOST_FILESYSTEM)
-endif (Boost_FILESYSTEM_FOUND)
-
 #-----------------------------------------------------------------------------
 # options
 

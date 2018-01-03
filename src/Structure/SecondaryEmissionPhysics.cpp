@@ -42,8 +42,8 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
     setSeMaterial(matNumber);//set material based parameters
     seyNum=calcProb(incEnergy, cosTheta, prob);//calculate probability
     calcEmiNum(incEnergy, cosTheta, prob, seNum);//calculate emitted number
-    PAssert(seNum<11);//debug
-    PAssert(seNum>=0);//debug
+    PAssert_LT(seNum, 11);//debug
+    PAssert_GE(seNum, 0);//debug
     double Eemit[10];
     double emiTheta[10];
     double emiPhi[10];
@@ -662,7 +662,7 @@ void SecondaryEmissionPhysics::calcEmiNum(const double incEnergy,
         double theta = acos(cosTheta);
         double delta_max = vSeyMax*(1.0+vKtheta*theta*theta/Physics::two_pi);//here the symbols k are different with reference.
         double E_max = vEmax*(1.0+vKenergy*theta*theta/Physics::two_pi);
-        PAssert(E_max-vEzero>0);
+        PAssert_GT(E_max - vEzero, 0);
         double v = (incEnergy-vEzero)/(E_max-vEzero);
 
         if (v<=3.6) {

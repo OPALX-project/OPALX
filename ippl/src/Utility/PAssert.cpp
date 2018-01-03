@@ -33,7 +33,6 @@
 
 // include files
 #include "Utility/PAssert.h"
-#include "Utility/IpplInfo.h"
 
 #include <iostream>
 using namespace std;
@@ -79,10 +78,12 @@ assertion& assertion::operator=( const assertion& a )
 void toss_cookies( const char *cond, const char *file, int line )
 {
   // inform other nodes they should quit
-  Ippl::exitAllNodes(cond, false);
+  // Ippl::exitAllNodes(cond, false);
+    std::string what = "Assertion '" + std::string(cond) + "' failed. \n";
+    what += "in \n";
+    what += std::string(file) + ", line  " + std::to_string(line);
 
-  throw assertion( cond, file, line );
-
+    throw std::runtime_error(what);
 }
 
 //---------------------------------------------------------------------------//

@@ -1,13 +1,13 @@
-#ifndef __OPTPILOTEXCEPTION_H__
-#define __OPTPILOTEXCEPTION_H__
+#ifndef __SDDSPARSEREXCEPTION_H__
+#define __SDDSPARSEREXCEPTION_H__
 
 #include <string>
 
-class OptPilotException {
+class SDDSParserException {
 
 public:
 
-    OptPilotException(const std::string &meth, const std::string &descr) {
+    SDDSParserException(const std::string &meth, const std::string &descr) {
         descr_ = descr;
         meth_ = meth;
     }

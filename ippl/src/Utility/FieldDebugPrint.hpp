@@ -180,7 +180,7 @@ void FieldDebugPrint<T,Dim>::print(BareField<T,Dim>& F,
         // Receive the generic message.
         int any_node = COMM_ANY_NODE;
         Message *mess = Ippl::Comm->receive_block(any_node, tag);
-        PAssert(mess != 0);
+        PAssert(mess);
 
         // keep getting blocks until we're done with the message
         int datahere;

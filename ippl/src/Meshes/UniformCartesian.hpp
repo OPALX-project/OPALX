@@ -479,7 +479,7 @@ template<unsigned Dim, class MFLOAT>
 MFLOAT UniformCartesian<Dim,MFLOAT>::
 get_meshSpacing(unsigned d) const
 {
-  PAssert(d<Dim);
+  PAssert_LT(d, Dim);
   MFLOAT ms = meshSpacing[d];
   return ms;
 }

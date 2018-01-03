@@ -659,7 +659,7 @@ FieldLayout<Dim>::setup(const NDIndex<Dim>& domain,
     v=vtot;
   }
   // Make sure we had a power of two number of vnodes.
-  PAssert( v == vnodes );
+  PAssert_EQ( v, vnodes );
 
   // Now make the vnodes, using the domains just generated.
   // Some of them we store in the local list, others in the remote.
@@ -893,7 +893,7 @@ getVnodesPerDirection(unsigned dir) {
   // If not set, then not appropriate to be calling this function. Example:
   // now-power-of-two-constructed FieldLayout which did *not* specify numbers
   // of vnodes along each direction:
-  PAssert(vnodesPerDirection_m != 0);
+  PAssert(vnodesPerDirection_m);
 
   return(vnodesPerDirection_m[dir]);
 }
@@ -975,7 +975,7 @@ FieldLayout<Dim>::FieldLayout(const NDIndex<Dim>& domain,
       // Receive a broadcast message from any node.
       int other_node = COMM_ANY_NODE;
       Message *recv_mess = Ippl::Comm->receive_block(other_node,tag);
-      PAssert(recv_mess != 0);
+      PAssert(recv_mess);
       // Extract the number of vnodes coming in.
       int count = 0;
       recv_mess->get(count);
@@ -1058,7 +1058,7 @@ FieldLayout<Dim>::FieldLayout(const NDIndex<Dim>& domain,
       // Receive a broadcast message from any node.
       int other_node = COMM_ANY_NODE;
       Message *recv_mess = Ippl::Comm->receive_block(other_node,tag);
-      PAssert(recv_mess != 0);
+      PAssert(recv_mess);
       // Extract the number of vnodes coming in.
       int count;
       recv_mess->get(count);

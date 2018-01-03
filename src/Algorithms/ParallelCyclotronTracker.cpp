@@ -1743,7 +1743,7 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
             lastParticle = numParticles - 1;
 
         numParticles = lastParticle - firstParticle + 1;
-        PAssert(numParticles >= 0);
+        PAssert_GE(numParticles, 0l);
 
         dataSource.readStep(tmpBunch.get(), firstParticle, lastParticle);
         dataSource.close();

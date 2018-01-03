@@ -24,7 +24,7 @@
 #include "Parser/Parser.h"
 #include "Parser/Token.h"
 #include "Parser/TokenStream.h"
-#include "Utilities/OpalException.h"
+#include "Utilities/ParseError.h"
 
 
 // class IfStatement
@@ -63,8 +63,8 @@ IfStatement::IfStatement(const Parser &parser, TokenStream &is):
             is.putBack(token);
         }
     } else {
-        throw OpalException("IfStatement::IfStatement()",
-                            "Invalid \"IF\" statement.");
+        throw ParseError("IfStatement::IfStatement()",
+                         "Invalid \"IF\" statement.");
     }
 }
 
@@ -89,6 +89,9 @@ void IfStatement::execute(const Parser &parser) {
             else_block->execute(parser);
         }
     } catch(...) {
-        throw OpalException("IfStatement::execute()", "Invalid IF condition.");
+        std::ostringstream oss;
+        this->print(oss);
+        ERRORMSG("Invalid IF condition '" + oss.str() + "'");
+        throw;
     }
 }

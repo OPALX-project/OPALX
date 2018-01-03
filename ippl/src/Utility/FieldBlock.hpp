@@ -233,7 +233,7 @@ void FieldBlock<T,Dim,Mesh,Centering>::write(Field<T,Dim,Mesh,Centering>& f,
       // Receive the generic message.
       int any_node = COMM_ANY_NODE;
       Message *mess = Ippl::Comm->receive_block(any_node, tag);
-      PAssert(mess != 0);
+      PAssert(mess);
 
       // msg << "received a message from node " << any_node;
       // msg << " on parent node " << Parent << " with tag " << tag << endl;
@@ -422,7 +422,7 @@ void FieldBlock<T,Dim,Mesh,Centering>::read(Field<T,Dim,Mesh,Centering>& f,
     // Receive the generic message.
     int any_node = COMM_ANY_NODE;
     Message *mess = Ippl::Comm->receive_block(any_node, tag);
-    PAssert(mess != 0);
+    PAssert_NE(mess, 0);
 
     // Extract the rhs BrickIterator from it.
     NDIndex<Dim> localBlock;
