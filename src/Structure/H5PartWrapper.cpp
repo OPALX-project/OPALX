@@ -52,7 +52,7 @@ H5PartWrapper::H5PartWrapper(const std::string &fileName, int restartStep, std::
 }
 
 H5PartWrapper::~H5PartWrapper() {
-        close();
+    close();
 }
 
 void H5PartWrapper::close() {

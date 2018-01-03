@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -91,8 +91,8 @@ MAKE_INITIALIZER(long long)
 //////////////////////////////////////////////////////////////////////
 
 template<class T, unsigned Dim>
-LField<T,Dim>::LField(const NDIndex<Dim>& owned, 
-		      const NDIndex<Dim>& allocated, 
+LField<T,Dim>::LField(const NDIndex<Dim>& owned,
+		      const NDIndex<Dim>& allocated,
 		      int vnode)
 : vnode_m(vnode),
   P(0),
@@ -106,7 +106,7 @@ LField<T,Dim>::LField(const NDIndex<Dim>& owned,
   ownedCompressIndex(-1),
   offsetBlocks(Unique::get() % IPPL_OFFSET_BLOCKS)
 {
-  
+
   // Give the LField some initial (compressed) value
   LFieldInitializer<T>::apply(*Begin);
 
@@ -120,8 +120,8 @@ LField<T,Dim>::LField(const NDIndex<Dim>& owned,
 
 //UL: for pinned mempory allocation
 template<class T, unsigned Dim>
-LField<T,Dim>::LField(const NDIndex<Dim>& owned, 
-		      const NDIndex<Dim>& allocated, 
+LField<T,Dim>::LField(const NDIndex<Dim>& owned,
+		      const NDIndex<Dim>& allocated,
 		      int vnode, bool p)
   : vnode_m(vnode),
     P(0),
@@ -135,7 +135,7 @@ LField<T,Dim>::LField(const NDIndex<Dim>& owned,
     ownedCompressIndex(-1),
     offsetBlocks(Unique::get() % IPPL_OFFSET_BLOCKS)
 {
-  
+
   // Give the LField some initial (compressed) value
   LFieldInitializer<T>::apply(*Begin);
 
@@ -167,8 +167,8 @@ LField<T,Dim>::LField(const LField<T,Dim>& lf)
     ownedCompressIndex(lf.ownedCompressIndex),
     offsetBlocks(Unique::get() % IPPL_OFFSET_BLOCKS)
 {
-  
-  
+
+
 
   if ( lf.IsCompressed() )
     {
@@ -181,7 +181,7 @@ LField<T,Dim>::LField(const LField<T,Dim>& lf)
   else
     {
       // Make sure we have something in this LField
-      PAssert(lf.Allocated.size()!=0);
+      PAssert_NE(lf.Allocated.size(), 0);
 
       // If it is not compressed, allocate storage
       int n = lf.Allocated.size();
@@ -222,8 +222,8 @@ template<class T, unsigned Dim>
 bool
 LField<T,Dim>::TryCompress(bool baseOnPhysicalCells)
 {
-  
-  
+
+
 
   if (IsCompressed() || IpplInfo::noFieldCompression)
     return false;
@@ -264,8 +264,8 @@ template<class T, unsigned Dim>
 bool
 LField<T,Dim>::CanCompress(T val) const
 {
-  
-  
+
+
 
   // Debugging macro
   LFIELDMSG(Inform dbgmsg("CanCompress"));
@@ -287,11 +287,11 @@ LField<T,Dim>::CanCompress(T val) const
   T *ptr1 = P;
   T *mid1 = P + allocCompressIndex;
   T *end1 = P + sz;
-  
-  PAssert(sz > 0);
+
+  PAssert_GT(sz, 0);
   PAssert(P != 0);
-  PAssert(allocCompressIndex >= 0);
-  PAssert(allocCompressIndex < sz);
+  PAssert_GE(allocCompressIndex, 0);
+  PAssert_LT(allocCompressIndex, sz);
 
   // Quick short-cut check: compare to the last value in the
   // array that did not match before.
@@ -311,7 +311,7 @@ LField<T,Dim>::CanCompress(T val) const
 	  LFIELDMSG(dbgmsg << " of " << allocCompressIndex << endl);
 
 	  // It failed the test, so we can just keep the same index to
-	  // check next time, and return.  
+	  // check next time, and return.
 	  return false;
 	}
     }
@@ -378,7 +378,7 @@ LField<T,Dim>::CanCompress(T val) const
 
   // If we are at this point, we did not find anything that did not
   // match, so we can compress (woo hoo).
-  
+
   LFIELDMSG(dbgmsg << "Found that we CAN compress, after " << sz);
   LFIELDMSG(dbgmsg << " compares." << endl);
   ADDIPPLSTAT(incCompressionCompares, sz);
@@ -397,8 +397,8 @@ LField<T,Dim>::CanCompress(T val) const
 template<class T, unsigned Dim>
 bool LField<T,Dim>::CanCompressBasedOnPhysicalCells() const
 {
-  
-  
+
+
 
   // Debugging macro
 
@@ -426,7 +426,7 @@ bool LField<T,Dim>::CanCompressBasedOnPhysicalCells() const
   if (IpplInfo::extraCompressChecks && ownedCompressIndex > 0)
     {
       // There was a previous value, so get that one to compare against
-      PAssert((unsigned int) ownedCompressIndex < getAllocated().size());
+      PAssert_LT((unsigned int) ownedCompressIndex, getAllocated().size());
       val = *(P + ownedCompressIndex);
       LFIELDMSG(dbgmsg << "Checking owned cells using previous ");
       LFIELDMSG(dbgmsg << "comparison value " << val << " from index = ");
@@ -485,8 +485,8 @@ template<class T, unsigned Dim>
 void
 LField<T,Dim>::Compress(const T& val)
 {
-  
-  
+
+
 
   LFIELDMSG(Inform dbgmsg("LField::Compress", INFORM_ALL_NODES));
   LFIELDMSG(dbgmsg << "Compressing LField with domain = " << getOwned());
@@ -535,8 +535,8 @@ template<class T, unsigned Dim>
 void
 LField<T,Dim>::CompressBasedOnPhysicalCells()
 {
-  
-  
+
+
 
   // We do nothing in this case if compression is turned off.
 
@@ -566,10 +566,10 @@ LField<T,Dim>::CompressBasedOnPhysicalCells()
 template<class T, unsigned Dim>
 void LField<T,Dim>::ReallyUncompress(bool fill_domain)
 {
-  
-  
 
-  PAssert(Allocated.size()!=0);
+
+
+  PAssert_NE(Allocated.size(), 0);
 
   // Allocate the data.
 
@@ -615,12 +615,12 @@ void LField<T,Dim>::ReallyUncompress(bool fill_domain)
 //////////////////////////////////////////////////////////////////////
 
 template<class T, unsigned Dim>
-typename LField<T,Dim>::iterator 
+typename LField<T,Dim>::iterator
 LField<T,Dim>::begin(const NDIndex<Dim>& domain)
 {
   // Remove this profiling because this is too lightweight.
-  // 
-  // 
+  //
+  //
   return iterator(P,domain,Allocated,CompressedData);
 }
 
@@ -634,9 +634,9 @@ LField<T,Dim>::begin(const NDIndex<Dim>& domain)
 //////////////////////////////////////////////////////////////////////
 
 template<class T, unsigned Dim>
-typename LField<T,Dim>::iterator 
+typename LField<T,Dim>::iterator
 LField<T,Dim>::begin(const NDIndex<Dim>& domain, T& compstore)
-{ 
+{
 
   if (IsCompressed())
     compstore = CompressedData;
@@ -651,11 +651,11 @@ LField<T,Dim>::begin(const NDIndex<Dim>& domain, T& compstore)
 //////////////////////////////////////////////////////////////////////
 
 template<class T, unsigned Dim>
-void 
+void
 LField<T,Dim>::swapData( LField<T,Dim>& a )
 {
-  
-  
+
+
 
   // Swap the pointers to the data.
   {
@@ -663,7 +663,7 @@ LField<T,Dim>::swapData( LField<T,Dim>& a )
     P=a.P;
     a.P=temp;
   }
-  
+
   // Swap the compressed data.
   {
     T temp = CompressedData;
@@ -707,15 +707,15 @@ LField<T,Dim>::swapData( LField<T,Dim>& a )
 //
 //////////////////////////////////////////////////////////////////////
 
-// allocate memory for LField and if DKS is used and page-locked (pl) is +1 allocate 
+// allocate memory for LField and if DKS is used and page-locked (pl) is +1 allocate
 // page-locked memory for storage
 template<class T, unsigned Dim>
-void 
+void
 LField<T,Dim>::allocateStorage(int newsize)
 {
   PAssert(P == 0);
-  PAssert(newsize > 0);
-  PAssert(offsetBlocks >= 0);
+  PAssert_GT(newsize, 0);
+  PAssert_GE(offsetBlocks, 0);
 
   // Determine how many blocks to offset the data, if we are asked to
 
@@ -743,7 +743,7 @@ LField<T,Dim>::allocateStorage(int newsize)
 //////////////////////////////////////////////////////////////////////
 
 template<class T, unsigned Dim>
-void 
+void
 LField<T,Dim>::deallocateStorage()
 {
   if (P != 0)
@@ -777,8 +777,8 @@ LField<T,Dim>::deallocateStorage()
 template<class T, unsigned Dim>
 void LField<T,Dim>::write(std::ostream& out) const
 {
-  
-  
+
+
   for (iterator p = begin(); p!=end(); ++p)
     out << *p << " ";
 }
@@ -787,5 +787,5 @@ void LField<T,Dim>::write(std::ostream& out) const
 /***************************************************************************
  * $RCSfile: LField.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:26 $
- * IPPL_VERSION_ID: $Id: LField.cpp,v 1.1.1.1 2003/01/23 07:40:26 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: LField.cpp,v 1.1.1.1 2003/01/23 07:40:26 adelmann Exp $
  ***************************************************************************/
