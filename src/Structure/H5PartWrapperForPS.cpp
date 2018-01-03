@@ -230,8 +230,10 @@ void H5PartWrapperForPS::writeHeader() {
 void H5PartWrapperForPS::writeStep(PartBunchBase<double, 3>* bunch, const std::map<std::string, double> &additionalStepAttributes) {
     if (static_cast<EnvelopeBunch*>(bunch)->getTotalNum() == 0) return;
 
+    open(H5_O_APPENDONLY);
     writeStepHeader(bunch, additionalStepAttributes);
     writeStepData(bunch);
+    close();
 }
 
 void H5PartWrapperForPS::writeStepHeader(PartBunchBase<double, 3>* bunch,
