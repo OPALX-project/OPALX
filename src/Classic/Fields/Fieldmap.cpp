@@ -366,7 +366,8 @@ MapType Fieldmap::readHeader(std::string Filename) {
         assert (h5err != H5_ERR);
         h5_file_t file = H5OpenFile (Filename.c_str(), H5_O_RDONLY, props);
 	assert (file != (h5_file_t)H5_ERR);
-
+	H5CloseProp (props);
+	
 	h5err = H5SetStep(file, 0);
         assert (h5err != H5_ERR);
 
