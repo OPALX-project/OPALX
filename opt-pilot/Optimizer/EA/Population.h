@@ -177,7 +177,8 @@ public:
             individual temp = it->second;
             for(size_t i=0; i<temp->objectives.size(); i++)
                 file << temp->objectives[i] << " ";
-            file << std::endl;
+            if (temp->objectives.size() > 0)
+                file << std::endl;
         }
 
         file << "#" << std::endl;

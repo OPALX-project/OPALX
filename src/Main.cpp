@@ -500,8 +500,8 @@ int mainOPAL(int argc, char *argv[]) {
                 *gmsg << "* Reading input stream \"" << fname << "\"." << endl;
                 parser.run(is);
                 *gmsg << "* End of input stream \"" << fname << "\"." << endl;
-            }        }
-
+            }
+        }
 
         IpplTimings::stopTimer(mainTimer);
 
@@ -550,23 +550,82 @@ int mainOPAL(int argc, char *argv[]) {
         delete Ippl::Debug;
         return 0;
 
+    } catch(OpalException &ex) {
+        Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
+        errorMsg << "\n*** User error detected by function \""
+                 << ex.where() << "\"\n";
+        // stat->printWhere(errorMsg, true);
+        std::string what = ex.what();
+        size_t pos = what.find_first_of('\n');
+        do {
+            errorMsg << "    " << what.substr(0, pos) << endl;
+            what = what.substr(pos + 1, std::string::npos);
+            pos = what.find_first_of('\n');
+        } while (pos != std::string::npos);
+        errorMsg << "    " << what << endl;
+
+        MPI_Abort(MPI_COMM_WORLD, -100);
     } catch(ClassicException &ex) {
-        *gmsg << endl << "*** User error detected by function \"" << ex.where() << "\":\n"
-              << ex.what() << endl;
-        abort();
+        Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
+        errorMsg << "\n*** User error detected by function \""
+                 << ex.where() << "\"\n";
+        // stat->printWhere(errorMsg, true);
+        std::string what = ex.what();
+        size_t pos = what.find_first_of('\n');
+        do {
+            errorMsg << "    " << what.substr(0, pos) << endl;
+            what = what.substr(pos + 1, std::string::npos);
+            pos = what.find_first_of('\n');
+        } while (pos != std::string::npos);
+        errorMsg << "    " << what << endl;
 
-    } catch(std::bad_alloc &) {
-        *gmsg << "Sorry, virtual memory exhausted." << endl;
-        abort();
+        MPI_Abort(MPI_COMM_WORLD, -100);
+    } catch(std::bad_alloc &ex) {
+        Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
+        errorMsg << "\n*** Error:\n";
+        errorMsg << "    Sorry, virtual memory exhausted.\n"
+                 << ex.what()
+                 << endl;
 
-    } catch(std::exception const& e) {
-        *gmsg << "Exception: " << e.what() << "\n";
-        abort();
+        MPI_Abort(MPI_COMM_WORLD, -100);
+    } catch(assertion &ex) {
+        Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
+        errorMsg << "\n*** Runtime-error ******************\n";
+        std::string what = ex.what();
+        size_t pos = what.find_first_of('\n');
+        do {
+            errorMsg << "    " << what.substr(0, pos) << endl;
+            what = what.substr(pos + 1, std::string::npos);
+            pos = what.find_first_of('\n');
+        } while (pos != std::string::npos);
+        errorMsg << "    " << what << endl;
 
+        errorMsg << "\n************************************\n" << endl;
+        throw std::runtime_error("in Parser");
+    } catch(std::exception &ex) {
+        Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
+        errorMsg << "\n"
+                 << "*** Error:\n"
+                 << "    Internal OPAL error: \n";
+        std::string what = ex.what();
+        size_t pos = what.find_first_of('\n');
+        do {
+            errorMsg << "    " << what.substr(0, pos) << endl;
+            what = what.substr(pos + 1, std::string::npos);
+            pos = what.find_first_of('\n');
+        } while (pos != std::string::npos);
+        errorMsg << "    " << what << endl;
+
+        MPI_Abort(MPI_COMM_WORLD, -100);
     } catch(...) {
-        *gmsg << "Unexpected exception." << endl;
-        abort();
+        Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
+        errorMsg << "\n*** Error:\n"
+                 << "    Unexpected exception caught.\n" << endl;
+
+        MPI_Abort(MPI_COMM_WORLD, -100);
     }
+
+    return 1;
 }
 
 void errorHandlerGSL(const char *reason,

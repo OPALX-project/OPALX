@@ -89,7 +89,7 @@ unsigned long FM3DMagnetoStaticExtended::getIndex(unsigned int i, unsigned int j
 {
     unsigned long result = i + j * num_gridpx_m;
     result = k + result * num_gridpz_m;
-    PAssert(result < num_gridpx_m * num_gridpy_m * num_gridpz_m);
+    PAssert_LT(result, num_gridpx_m * num_gridpy_m * num_gridpz_m);
     return result;
 }
 
