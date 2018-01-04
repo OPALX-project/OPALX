@@ -54,7 +54,7 @@ Index::Index(int f, int l)
   BaseFirst(0),
   Base(Unique::get())
 {
-  PAssert(l-f+1>=0);
+  PAssert_GE(l - f + 1, 0);
 }
 
 inline 
@@ -64,7 +64,7 @@ Index::Index(int f, int l, int s)
   BaseFirst(0),
   Base(Unique::get())
 {
-  PAssert(s!=0);
+  PAssert_NE(s, 0);
   if ( f==l ) {
     Length = 1;
   }
@@ -284,8 +284,8 @@ inline bool Index::containsAllPoints(const Index &b) const
 // Split an index into equal parts
 inline bool Index::split(Index& l, Index& r) const
 {
-  PAssert(Stride==1);
-  PAssert(Length > 1);
+  PAssert_EQ(Stride, 1);
+  PAssert_GT(Length, 1);
   //if ( Length <= 1 )
   //  return false;
   //else
@@ -302,9 +302,10 @@ inline bool Index::split(Index& l, Index& r) const
 // Split an index with the given ratio
 inline bool Index::split(Index& l, Index& r, double a) const
 {
-  PAssert(Stride==1);
-  PAssert(Length > 1);
-  PAssert((a<1.0)&&(a>0.0));
+  PAssert_EQ(Stride, 1);
+  PAssert_GT(Length, 1);
+  PAssert_LT(a, 1.0);
+  PAssert_GT(a, 0.0);
   //if ( Length <= 1 )
   //  return false;
   //else

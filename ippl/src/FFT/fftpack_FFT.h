@@ -202,8 +202,8 @@ FFTPACK<T>::callFFT(unsigned transformDim, int direction,
                     FFTPACK<T>::Complex_t* data) {
 
   // check transform dimension and direction arguments
-  PAssert(transformDim<numTransformDims_m);
-  PAssert(direction==+1 || direction==-1);
+  PAssert_LT(transformDim, numTransformDims_m);
+  PAssert_EQ(std::abs(direction), 1);
 
   // cast complex number pointer to T* for calling Fortran routines
   T* rdata = reinterpret_cast<T*>(data);
@@ -262,8 +262,8 @@ inline void
 FFTPACK<T>::callFFT(unsigned transformDim, int direction, T* data) {
 
   // check transform dimension and direction arguments
-  PAssert(transformDim<numTransformDims_m);
-  PAssert(direction==+1 || direction==-1);
+  PAssert_LT(transformDim, numTransformDims_m);
+  PAssert_EQ(std::abs(direction), 1);
 
   // branch on transform type for this dimension
   switch (transformType_m[transformDim]) {

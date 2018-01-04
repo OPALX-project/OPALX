@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -34,8 +34,8 @@
 ///////////////////////////////////////////////////////////////////////////
 // Constructor: read and parse the given meta file
 DiscMeta::DiscMeta(const char *fname) {
-  
-  
+
+
 
   if (fname != 0)
     MetaFile = fname;
@@ -84,9 +84,9 @@ DiscMeta::~DiscMeta() {
 ///////////////////////////////////////////////////////////////////////////
 // return the line number of the Nth valid line (from 1 ... M)
 int DiscMeta::getLineNumber(unsigned int n) const {
-  
-  
-  PAssert(n < size());
+
+
+  PAssert_LT(n, size());
 
   unsigned int i=0;
   const_iterator iter = begin();
@@ -103,8 +103,8 @@ int DiscMeta::getLineNumber(unsigned int n) const {
 ///////////////////////////////////////////////////////////////////////////
 // return the keyword of the Nth line
 const std::string &DiscMeta::getKeyword(unsigned int n) {
-  
-  
+
+
 
   return getWords(n)[0];
 }
@@ -113,9 +113,9 @@ const std::string &DiscMeta::getKeyword(unsigned int n) {
 ///////////////////////////////////////////////////////////////////////////
 // return the number of words in the value for the Nth line
 int DiscMeta::getNumWords(unsigned int n) const {
-  
-  
-  PAssert(n < size());
+
+
+  PAssert_LT(n, size());
 
   unsigned int i=0;
   const_iterator iter = begin();
@@ -132,8 +132,8 @@ int DiscMeta::getNumWords(unsigned int n) const {
 ///////////////////////////////////////////////////////////////////////////
 // return the list of words in the Nth line
 std::string *DiscMeta::getWords(unsigned int n) {
-  
-  
+
+
 
   unsigned int i=0;
   iterator iter = begin();
@@ -151,8 +151,8 @@ std::string *DiscMeta::getWords(unsigned int n) {
 // read in a single line from the meta data file and parse it.
 // return success of operation.
 bool DiscMeta::read_meta_line(FILE *f, std::string *&tokens, int &numtokens) {
-  
-  
+
+
 
   const int bufferSize = 1024*128;
   char bufferstore[bufferSize];
@@ -183,8 +183,8 @@ bool DiscMeta::read_meta_line(FILE *f, std::string *&tokens, int &numtokens) {
 ///////////////////////////////////////////////////////////////////////////
 // print out debugging information for this DiscMeta
 void DiscMeta::printDebug(Inform &msg) {
-  
-  
+
+
 
   msg << "Meta file name = " << MetaFile << endl;
   msg << "Lines in file = " << size() << endl;
@@ -201,5 +201,5 @@ void DiscMeta::printDebug(Inform &msg) {
 /***************************************************************************
  * $RCSfile: DiscMeta.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: DiscMeta.cpp,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: DiscMeta.cpp,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $
  ***************************************************************************/

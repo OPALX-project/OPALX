@@ -726,7 +726,7 @@ bool DiscField<Dim>::read_meta() {
     DFDBG(dbgmsg << "Waiting for meta info from node " << node);
     DFDBG(dbgmsg << " with tag " << tag << endl);
     Message *msg = Ippl::Comm->receive_block(node, tag);
-    PAssert(msg != 0);
+    PAssert(msg);
 
     // get info out of message
     DFDBG(dbgmsg << "Summary of received meta info:" << endl);

@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -36,9 +36,9 @@
 // A local function we use for the recursive bisection.
 //
 
-static void 
-recurseCoordinateVRB(int dim, 
-                     const int *strides, const int* sizes, const int *offsets, 
+static void
+recurseCoordinateVRB(int dim,
+                     const int *strides, const int* sizes, const int *offsets,
                      int nprocs, int firstProc, int *procs );
 
 //////////////////////////////////////////////////////////////////////
@@ -50,13 +50,13 @@ recurseCoordinateVRB(int dim,
 // directions.
 //
 // This function just sets up the arguments for the recursive
-// algorithm.  That algorithm works by subdividing blocks of 
-// vnodes and blocks of processors. 
+// algorithm.  That algorithm works by subdividing blocks of
+// vnodes and blocks of processors.
 //
-// The blocks are identified with the offsets of the lower left 
-// corner and the sizes of the block in each dimension.  
+// The blocks are identified with the offsets of the lower left
+// corner and the sizes of the block in each dimension.
 //
-// The processors are identified by a continuous range from 
+// The processors are identified by a continuous range from
 // a firstProc and a number of procs nprocs.
 //
 // In addition to the input arguments, it calculates for the recursion:
@@ -104,12 +104,12 @@ vnodeRecursiveBisection(int dim, const int *sizes, int nprocs, int *procs)
 // sizes  : the size of the block in each dimension.
 //
 
-static void 
-assign(int dim, const int *strides, const int *sizes, const int *offsets, 
+static void
+assign(int dim, const int *strides, const int *sizes, const int *offsets,
        int x, int *procs)
 {
   // Make sure the input is sensible.
-  PAssert(dim>0);
+  PAssert_GT(dim, 0);
   PAssert(sizes);
   PAssert(offsets);
   PAssert(procs);
@@ -160,26 +160,26 @@ assign(int dim, const int *strides, const int *sizes, const int *offsets,
 // offsets : The lower left corner of the block of vnodes.
 // nprocs  : The number of processors to put these vnodes on.
 // firstProc : The first proc we are putting these vnodes on.
-// 
+//
 // Output:
 // procs: Array to store the processor for each vnode.
-// 
+//
 
-static void 
-recurseCoordinateVRB(int dim, 
-                     const int* strides, const int* sizes, const int *offsets, 
+static void
+recurseCoordinateVRB(int dim,
+                     const int* strides, const int* sizes, const int *offsets,
                      int nprocs, int firstProc, int *procs )
 {
   // Make sure the input is sensible.
-  PAssert(dim>0);
+  PAssert_GT(dim, 0);
   PAssert(sizes);
-  PAssert(nprocs>0);
+  PAssert_GT(nprocs, 0);
   PAssert(procs);
-  PAssert(firstProc>=0);
-  for (int i=0; i<dim; ++i) 
+  PAssert_GE(firstProc, 0);
+  for (int i=0; i<dim; ++i)
     {
-      PAssert(sizes[i]>0);
-      PAssert(offsets[i]>=0);
+      PAssert_GT(sizes[i], 0);
+      PAssert_GE(offsets[i], 0);
     }
 
 #ifdef __VRB_DIAGNOSTIC__
@@ -202,7 +202,7 @@ recurseCoordinateVRB(int dim,
       assign(dim,strides,sizes,offsets,firstProc,procs);
     }
 
-  // If there is more than one processor left, 
+  // If there is more than one processor left,
   // recurse by splitting the procs into two groups and
   // the work into two groups, and allocating work to procs.
   else
@@ -213,7 +213,7 @@ recurseCoordinateVRB(int dim,
       int totalVnodes = sizes[0];
       for (d=1; d<dim; ++d)
         totalVnodes *= sizes[d];
-      PAssert(totalVnodes>=nprocs);
+      PAssert_GE(totalVnodes, nprocs);
 
       // Find the number of processors on each side.
       int leftProcs = nprocs/2;
@@ -254,7 +254,7 @@ recurseCoordinateVRB(int dim,
           double b = l/(double)leftProcs - r/(double)rightProcs;
 
           // Get the absolute value of the unbalance.
-          if ( b<0 ) 
+          if ( b<0 )
             b=-b;
 
           // Compare to the best so far.
@@ -272,9 +272,9 @@ recurseCoordinateVRB(int dim,
         }
 
       // If we couldn't find a good split, die.
-      PAssert(leftVnodes>0);
+      PAssert_GT(leftVnodes, 0);
 
-      // We now know what dimension to split on, and where in 
+      // We now know what dimension to split on, and where in
       // that dimension to split.  Recurse.
 
       // Make a copy of the sizes array.
@@ -286,7 +286,7 @@ recurseCoordinateVRB(int dim,
       int *newOffsets = new int[dim];
       for (d=0; d<dim; ++d)
         newOffsets[d] = offsets[d];
-      
+
       // Get the sizes for the left.
       newSizes[splitDim] = leftVnodes;
 
@@ -314,7 +314,7 @@ recurseCoordinateVRB(int dim,
 // print out a hypercube of proc data.
 //
 
-static void 
+static void
 print(int dim, const int *sizes, const int *procs)
 {
   if ( dim == 1 )
@@ -339,16 +339,16 @@ print(int dim, const int *sizes, const int *procs)
 
 //////////////////////////////////////////////////////////////////////
 
-int 
+int
 main(int argc, char *argv[])
 {
   // The number of dimensions is the number of args to the program.
   int dim = argc-2;
-  PAssert(dim>0);
+  PAssert_GT(dim, 0);
 
   // Get the number of procs.
   int nprocs = atoi(argv[1]);
-  PAssert(nprocs>0);
+  PAssert_GT(nprocs, 0);
 
   // Get the size of each dimension.
   int *sizes = new int[dim];
@@ -374,5 +374,5 @@ main(int argc, char *argv[])
 /***************************************************************************
  * $RCSfile: VRB.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:27 $
- * IPPL_VERSION_ID: $Id: VRB.cpp,v 1.1.1.1 2003/01/23 07:40:27 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: VRB.cpp,v 1.1.1.1 2003/01/23 07:40:27 adelmann Exp $
  ***************************************************************************/

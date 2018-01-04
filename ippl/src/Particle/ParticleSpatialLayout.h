@@ -126,14 +126,14 @@ public:
     // get number of particles on a physical node
     int getNodeCount(unsigned i) const
     {
-        PAssert(i < (unsigned int) Ippl::getNodes());
+        PAssert_LT(i, (unsigned int) Ippl::getNodes());
         return NodeCount[i];
     }
 
     // get flag for empty node domain
     bool getEmptyNode(unsigned i) const
     {
-        PAssert(i < (unsigned int) Ippl::getNodes());
+        PAssert_LT(i, (unsigned int) Ippl::getNodes());
         return EmptyNode[i];
     }
 
@@ -169,8 +169,8 @@ public:
     // Get the Neighbor Node for a given dimension
     int getNeighborNode(unsigned int d, unsigned int n)
     {
-        PAssert(d<Dim);
-        PAssert(n<(unsigned int) Ippl::getNodes());
+        PAssert_LT(d, Dim);
+        PAssert_LT(n, (unsigned int) Ippl::getNodes());
 
         if (SwapNodeList[d][n])
             return n;
@@ -536,7 +536,7 @@ protected:
 
 				    // the node has been found - add index to put list
 				    unsigned node = (*(touchingVN.first)).second->getNode();
-				    PAssert(SwapNodeList[d][node]);
+				    PAssert_EQ(SwapNodeList[d][node], true);
 				    PutList[node].push_back(ip);
 
 				    // .. and then add to DestroyList
@@ -645,7 +645,7 @@ protected:
                 {
 		    // the node has been found - add index to put list
 		    unsigned node = (*(touchingVN.first)).second->getNode();
-		    PAssert(SwapNodeList[0][node]);
+		    PAssert_EQ(SwapNodeList[0][node], true);
 		    PutList[node].push_back(ip);
 
 		    // .. and then add to DestroyList
@@ -760,7 +760,7 @@ protected:
 
                                     // the node has been found - add index to put list
                                     unsigned node = (*(touchingVN.first)).second->getNode();
-                                    PAssert(SwapNodeList[d][node]);
+                                    PAssert_EQ(SwapNodeList[d][node], true);
                                     PutList[node].push_back(ip);
 
                                     // .. and then add to DestroyList
@@ -1001,7 +1001,7 @@ protected:
                                 {
                                     // the node has been found - add index to put list
                                     unsigned node = (*(touchingVN.first)).second->getNode();
-                                    PAssert(SwapNodeList[d][node]);
+                                    PAssert_EQ(SwapNodeList[d][node], true);
                                     PutList[node].push_back(ip);
 
                                     // .. and then add to DestroyList
@@ -1110,7 +1110,7 @@ protected:
                 {
                     // the node has been found - add index to put list
                     unsigned node = (*(touchingVN.first)).second->getNode();
-                    PAssert(SwapNodeList[0][node]);
+                    PAssert_EQ(SwapNodeList[0][node], true);
                     PutList[node].push_back(ip);
 
                     // .. and then add to DestroyList

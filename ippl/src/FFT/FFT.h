@@ -169,7 +169,7 @@ public:
     // Check domain of incoming Field
     const Layout_t& in_layout = f.getLayout();
     const Domain_t& in_dom = in_layout.getDomain();
-    PAssert(this->checkDomain(this->getDomain(),in_dom));
+    PAssert_EQ(this->checkDomain(this->getDomain(),in_dom), true);
 
     // Common loop iterate and other vars:
     size_t d;

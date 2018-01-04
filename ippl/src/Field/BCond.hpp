@@ -90,7 +90,7 @@ BCondBase<T,D,M,C>::BCondBase(unsigned int face, int i, int j)
       int hi = i > j ? i : j;
       m_component = ((hi+1)*hi/2) + lo;
     } else if (getTensorOrder(get_tag(T())) == IPPL_ANTISYMTENSOR) {
-      PAssert(i > j);
+      PAssert_GT(i, j);
       m_component = ((i-1)*i/2) + j;
     } else {
       ERRORMSG(
@@ -4929,7 +4929,7 @@ fillSlabWithZero(Field<T,D,M,C>& field,
 #endif // __MWERKS__
 
 	      // Sanity check.
-	      PAssert(component>=0);
+	      PAssert_GE(component, 0);
 
               // Build the expression and evaluate it. tjw:mwerks dies here:
 	      Expr_t(data,Rhs_t(0),component).apply();
@@ -5071,9 +5071,9 @@ calcEurekaDomain(const NDIndex<D>& realDomain,
     }
 
   // Sanity checks.
-  PAssert( low<=high );
-  PAssert( high<=slab[dim].max() );
-  PAssert( low >=slab[dim].min() );
+  PAssert_LE( low, high );
+  PAssert_LE( high, slab[dim].max() );
+  PAssert_GE( low, slab[dim].min() );
 
   // Build the domain.
   slab[dim] = Index(low,high);
@@ -5154,9 +5154,9 @@ calcEurekaSlabToFill(const Field<T,D,M,CartesianCentering<CE,D,NC> >& field,
 	    low++;
 
 	  // Sanity checks.
-	  PAssert( low<=high );
-	  PAssert( high<=slab[d].max() );
-	  PAssert( low >=slab[d].min() );
+	  PAssert_LE( low, high );
+	  PAssert_LE( high, slab[d].max() );
+	  PAssert_GE( low, slab[d].min() );
 
           // Record this part of the slab.
           slab[d] = Index(low,high);
@@ -5173,9 +5173,9 @@ calcEurekaSlabToFill(const Field<T,D,M,CartesianCentering<CE,D,NC> >& field,
             high--;
 
 	  // Sanity checks.
-	  PAssert( low<=high );
-	  PAssert( high<=slab[d].max() );
-	  PAssert( low >=slab[d].min() );
+	  PAssert_LE( low, high );
+	  PAssert_LE( high, slab[d].max() );
+	  PAssert_GE( low, slab[d].min() );
 
           // Record this part of the slab.
           slab[d] = Index(low,high);

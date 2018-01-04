@@ -72,7 +72,7 @@ public:
 
   static void *grow(long amt)
   {
-    PAssert(amt >= 0);
+    PAssert_GE(amt, 0);
     return DiscBuffer::resize(DiscBuffer::size() + amt);
   }
 
