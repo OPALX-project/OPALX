@@ -148,7 +148,7 @@ private:
     FieldLayout_t *FL_m;
 
     /// The particle layout
-    Layout_t *PL_m;
+    std::unique_ptr<Layout_t> PL_m;
 
     /// all the particles are here ...
     PartBunchBase<double, 3> *itsBunch_m;

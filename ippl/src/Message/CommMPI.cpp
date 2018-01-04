@@ -99,8 +99,8 @@ CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpi
     // initialize mpi
     if (weInitialized)
         MPI_Init(&argc, &argv);
-    else
-        INFOMSG("NOT initializing MPI = " << endl);
+    //else
+    //    INFOMSG("NOT initializing MPI = " << endl);
 
     // restore original executable name without absolute path
     strcpy(argv[0],execname);
