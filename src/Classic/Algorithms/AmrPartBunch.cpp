@@ -241,11 +241,10 @@ void AmrPartBunch::gatherLevelStatistics() {
         
     for (size_t i = 0; i < LocalNumPerLevel.size(); ++i)
         partPerLevel[i] = LocalNumPerLevel[i];
-        
-    reduce(partPerLevel.get(),
-           partPerLevel.get() + nLevel,
-           globalPartPerLevel_m.get(),
-           OpAddAssign());
+    
+    reduce(*partPerLevel.get(),
+           *globalPartPerLevel_m.get(),
+           nLevel, std::plus<size_t>());
 }
 
 
