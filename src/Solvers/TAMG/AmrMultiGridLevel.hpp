@@ -22,9 +22,9 @@ AmrMultiGridLevel<MatrixType,
       residual_p(Teuchos::null),
       error_p(Teuchos::null),
       UnCovered_p(Teuchos::null),
-      rr_m(rr),
       refmask(nullptr),
-      crsemask(nullptr)
+      crsemask(nullptr),
+      rr_m(rr)
 {
     for (int j = 0; j < AMREX_SPACEDIM; ++j) {
         G_p[j] = Teuchos::null;
