@@ -77,6 +77,7 @@ void H5PartWrapper::open(h5_int32_t flags) {
     assert (h5err != H5_ERR);
     file_m = H5OpenFile (fileName_m.c_str(), flags, props);
     assert (file_m != (h5_file_t)H5_ERR);
+    H5CloseProp (props);
 }
 
 void H5PartWrapper::storeCavityInformation() {
@@ -131,6 +132,7 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
         assert (h5err != H5_ERR);
         h5_file_t source = H5OpenFile (sourceFile.c_str(), H5_O_RDONLY, props);
         assert (source != (h5_file_t)H5_ERR);
+        H5CloseProp (props);
         h5_ssize_t numStepsInSource = H5GetNumSteps(source);
 
         if (lastStep == -1 || lastStep >= numStepsInSource) {
@@ -164,6 +166,7 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
 	assert (h5err != H5_ERR);
 	source = H5OpenFile (sourceFileName.c_str(), H5_O_RDONLY, props);
 	assert (source != (h5_file_t)H5_ERR);
+        H5CloseProp (props);
         copyHeader(source);
 
         if (lastStep < 0) {
@@ -198,6 +201,7 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
         assert (h5err != H5_ERR);
         h5_file_t source = H5OpenFile (sourceFile.c_str(), H5_O_RDONLY, props);
         assert (source != (h5_file_t)H5_ERR);
+        H5CloseProp (props);
         h5_ssize_t numStepsInSource = H5GetNumSteps(source);
 
         if (lastStep == -1 || lastStep >= numStepsInSource) {

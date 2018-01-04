@@ -31,6 +31,7 @@ FM3DH5Block_nonscale::FM3DH5Block_nonscale(std::string aFilename):
     assert (h5err != H5_ERR);
     h5_file_t file = H5OpenFile (aFilename.c_str(), H5_O_RDONLY, props);
     assert (file != (h5_file_t)H5_ERR);
+    H5CloseProp (props);
 
     h5_int64_t last_step = H5GetNumSteps(file) - 1;
     assert (last_step >= 0);
@@ -92,6 +93,7 @@ void FM3DH5Block_nonscale::readMap() {
     assert (h5err != H5_ERR);
     h5_file_t file = H5OpenFile (Filename_m.c_str(), H5_O_RDONLY, props);
     assert (file != (h5_file_t)H5_ERR);
+    H5CloseProp (props);
 
     long field_size = 0;
     int Nnodes = Ippl::getNodes();//min(20, Ippl::getNodes());

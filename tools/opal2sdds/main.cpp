@@ -112,6 +112,7 @@ void readH5HutFile(const std::string &fname, size_t step, data_t &data, attribut
     H5SetPropFileMPIOCollective (props, &comm);
 
     file_t file = H5OpenFile(fname.c_str(), H5_O_RDONLY, props);
+    H5CloseProp (props);
     h5_ssize_t numStepsInSource = H5GetNumSteps(file);
     h5_ssize_t readStep = (step > (size_t)(numStepsInSource - 1)? numStepsInSource - 1: step);
 
@@ -336,6 +337,7 @@ void printInfo(const std::string &input) {
     H5SetPropFileMPIOCollective (props, &comm);
 
     file_t file = H5OpenFile(input.c_str(), H5_O_RDONLY, props);
+    H5CloseProp (props);
     h5_ssize_t numStepsInSource = H5GetNumSteps(file);
 
     std::cout << std::left << std::setw(15) << "Step number" << std::setw(15) << "Position [m]" << std::endl;

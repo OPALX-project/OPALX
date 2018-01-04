@@ -479,6 +479,7 @@ public:
         assert (h5err != H5_ERR);
         H5f_m = H5OpenFile (fn.c_str(), H5_O_RDONLY, props);
         assert (H5f_m != (h5_file_t)H5_ERR);
+	H5CloseProp (props);
     }
 
 
