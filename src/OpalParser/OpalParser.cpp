@@ -40,7 +40,6 @@
 #include <exception>
 #include <iostream>
 #include <new>
-#include <memory>
 #include <boost/algorithm/string.hpp>
 
 #include <Ippl.h>
@@ -137,12 +136,8 @@ void OpalParser::execute(Object *object, const std::string &name) const {
     }
 
     // Execute or check the command.
-    try {
-        object->execute();
-    } catch (...) {
-        std::cout << "OpalParser::execute" << std::endl;
-        throw;
-    }
+    object->execute();
+
     // Trace execution.
     if(Options::mtrace && object->shouldTrace()) {
         double time = double(clock()) / double(CLOCKS_PER_SEC);
@@ -169,16 +164,15 @@ void OpalParser::parseAction(Statement &stat) const {
         cmdName = parseString(stat, "Object name expected");
         printHelp(cmdName);
     } else if(Object *object = find(cmdName)) {
-        // Object *copy = 0;
+        Object *copy = 0;
         try {
-            std::unique_ptr<Object> copy(object->clone(""));
+            copy = object->clone("");
             copy->parse(stat);
             parseEnd(stat);
-            execute(copy.get(), cmdName);
-            // delete copy;
-        } catch(...) {
-            std::cout << "OpalParser::parseAction" << std::endl;
-            // delete copy;
+            execute(copy, cmdName);
+            delete copy;
+        } catch (...) {
+            delete copy;
             throw;
         }
     } else {
@@ -363,7 +357,6 @@ void OpalParser::parseDefine(Statement &stat) const {
             OpalData::getInstance()->define(copy);
         } catch(...) {
             delete copy;
-            std::cout << "OpalParser::parseDefine" << std::endl;
             throw;
         }
     } else {
@@ -438,7 +431,6 @@ void OpalParser::parseMacro(const std::string &macName, Statement &stat) const {
                 execute(instance, macName);
             } catch(...) {
                 delete instance;
-                std::cout << "OpalParser::parseMacro" << std::endl;
                 throw;
             }
         } else {
@@ -599,7 +591,6 @@ Statement *OpalParser::readStatement(TokenStream *is) const {
         ERRORMSG("     " << *stat <<"    a" << what << '\n' << endl);
 
         stat = readStatement(is);
-        std::cout << "OpalParser::readStatement" << std::endl;
 	exit(1);
     }
 

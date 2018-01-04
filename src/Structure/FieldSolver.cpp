@@ -256,7 +256,7 @@ FieldSolver::FieldSolver():
 
     mesh_m = 0;
     FL_m = 0;
-    PL_m = 0;
+    PL_m.reset(nullptr);
 
     solver_m = 0;
 
@@ -269,7 +269,7 @@ FieldSolver::FieldSolver(const std::string &name, FieldSolver *parent):
 {
     mesh_m = 0;
     FL_m = 0;
-    PL_m = 0;
+    PL_m.reset(nullptr);
     solver_m = 0;
 }
 
@@ -361,7 +361,7 @@ void FieldSolver::initCartesianFields() {
     // create prototype mesh and layout objects for this problem domain
     mesh_m   = new Mesh_t(domain);
     FL_m     = new FieldLayout_t(*mesh_m, decomp);
-    PL_m     = new Layout_t(*FL_m, *mesh_m);
+    PL_m.reset(new Layout_t(*FL_m, *mesh_m));
     // OpalData::getInstance()->setMesh(mesh_m);
     // OpalData::getInstance()->setFieldLayout(FL_m);
     // OpalData::getInstance()->setLayout(PL_m);
