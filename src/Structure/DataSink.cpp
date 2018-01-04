@@ -1013,6 +1013,7 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
             throw OpalException("DataSink::writeSurfaceInteraction",
                                 "failed to open h5 file '" + surfaceLossFileName_m + "' for surface loss");
         }
+	H5CloseProp (props);
 
     }
     int nTot = bg.getNumBFaces();
