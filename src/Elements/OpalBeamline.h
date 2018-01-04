@@ -177,7 +177,7 @@ void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunchBase<doub
     Inform msg("OPAL ");
     double startField = 0.0;
     double endField = 0.0;
-    std::shared_ptr<T> elptr(dynamic_cast<T *>(element.clone()->removeWrappers()));
+    std::shared_ptr<T> elptr(dynamic_cast<T *>(element.removeWrappers()->clone()));
 
     if (elptr->isElementPositionSet())
         startField = elptr->getElementPosition();

@@ -16,6 +16,10 @@ public:
         return descr_.c_str();
     }
 
+    virtual const char* where() const throw() {
+        return meth_.c_str();
+    }
+
 private:
 
     std::string descr_;

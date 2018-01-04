@@ -186,9 +186,9 @@ ConejoBalancer::setupVnodes(int localVnodes, int remoteVnodes)
   // is consistent with the previous.
   else
     {
-      PAssert(m_localVnodes == localVnodes);
-      PAssert(m_totalVnodes == localVnodes + remoteVnodes);
-      PAssert( (m_balancer!=0) == (m_myProc==0 ) );
+      PAssert_EQ(m_localVnodes, localVnodes);
+      PAssert_EQ(m_totalVnodes, localVnodes + remoteVnodes);
+      PAssert_EQ( (m_balancer!=0), (m_myProc==0 ) );
     }
 }
 
@@ -211,7 +211,7 @@ void
 ConejoBalancer::recordVnodeCount(int count, int proc)
 {
   // Make sure this processor number makes sense.
-  PAssert( proc >= 0 );
+  PAssert_GE( proc, 0 );
 
   // Check to see if this is the first time it is being called.
   if ( m_vnodeCounts[proc] < 0 )
@@ -223,7 +223,7 @@ ConejoBalancer::recordVnodeCount(int count, int proc)
   else
     {
       // Make sure this count agrees with record.
-      PAssert( m_vnodeCounts[proc] == count );
+      PAssert_EQ( m_vnodeCounts[proc], count );
     }
 }
 

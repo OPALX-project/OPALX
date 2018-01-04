@@ -49,7 +49,7 @@ SDDS::file SDDS::SDDSParser::run() {
 
     if (!success || contentsIter != contentsEnd)
         {
-            throw OptPilotException("StatisticalErrors::parseSDDSFile",
+            throw SDDSParserException("StatisticalErrors::parseSDDSFile",
                                     "could not parse SDDS file");
         }
 
@@ -90,7 +90,7 @@ std::string SDDS::SDDSParser::readFile() {
         return contents;
     }
 
-    throw OptPilotException("StatisticalErrors::readSDDSFile",
+    throw SDDSParserException("StatisticalErrors::readSDDSFile",
                             "could not open file '" + sddsFileName_m + "'");
 
     return std::string("");
@@ -103,7 +103,7 @@ SDDS::ast::columnData_t SDDS::SDDSParser::getColumnData(const std::string &colum
             return col.values_m;
         }
     }
-    throw OptPilotException("StatisticalErrors::getColumnData",
+    throw SDDSParserException("StatisticalErrors::getColumnData",
                             "could not find column '" + columnName + "'");
 }
 

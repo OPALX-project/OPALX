@@ -785,7 +785,7 @@ template<unsigned Dim, class MFLOAT>
 void Cartesian<Dim,MFLOAT>::
 get_meshSpacing(unsigned d, MFLOAT* spacings) const
 {
-  PAssert(d<Dim);
+  PAssert_LT(d, Dim);
   for (int cell=0; cell < gridSizes[d]-1; cell++)
     spacings[cell] = (*(meshSpacing[d].find(cell))).second;
   return;
@@ -794,7 +794,7 @@ get_meshSpacing(unsigned d, MFLOAT* spacings) const
 //leak MFLOAT* Cartesian<Dim,MFLOAT>::
 //leak get_meshSpacing(unsigned d) const
 //leak {
-//leak   PAssert(d<Dim);
+//leak   PAssert_LT(d, Dim);
 //leak   MFLOAT* theMeshSpacing = new MFLOAT[gridSizes[d]-1];
 //leak   for (int cell=0; cell < gridSizes[d]-1; cell++)
 //leak     theMeshSpacing[cell] = (*(meshSpacing[d].find(cell))).second;
@@ -2199,7 +2199,7 @@ Field<T,1U,Cartesian<1U,MFLOAT>,Cell>&
 Div(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x,
     Field<T,1U,Cartesian<1U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,1U>,1U>& vertSpacings = *(x.get_mesh().VertSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2214,7 +2214,7 @@ Field<T,2U,Cartesian<2U,MFLOAT>,Cell>&
 Div(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x,
     Field<T,2U,Cartesian<2U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,2U>,2U>& vertSpacings = *(x.get_mesh().VertSpacings);
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2232,7 +2232,7 @@ Field<T,3U,Cartesian<3U,MFLOAT>,Cell>&
 Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x,
     Field<T,3U,Cartesian<3U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,3U>,3U>& vertSpacings = *(x.get_mesh().VertSpacings);
   const NDIndex<3U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2257,7 +2257,7 @@ Field<T,1U,Cartesian<1U,MFLOAT>,Vert>&
 Div(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x,
     Field<T,1U,Cartesian<1U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,1U>,1U>& cellSpacings = *(x.get_mesh().CellSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2272,7 +2272,7 @@ Field<T,2U,Cartesian<2U,MFLOAT>,Vert>&
 Div(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x,
     Field<T,2U,Cartesian<2U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,2U>,2U>& cellSpacings = *(x.get_mesh().CellSpacings);
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2290,7 +2290,7 @@ Field<T,3U,Cartesian<3U,MFLOAT>,Vert>&
 Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x,
     Field<T,3U,Cartesian<3U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,3U>,3U>& cellSpacings = *(x.get_mesh().CellSpacings);
   const NDIndex<3U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2330,7 +2330,7 @@ Field<T,1U,Cartesian<1U,MFLOAT>,Vert>&
 Div(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x,
     Field<T,1U,Cartesian<1U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,1U>,1U>& vS = *(x.get_mesh().VertSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2345,7 +2345,7 @@ Field<T,2U,Cartesian<2U,MFLOAT>,Vert>&
 Div(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x,
     Field<T,2U,Cartesian<2U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,2U>,2U>& vS = *(x.get_mesh().VertSpacings);
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2366,7 +2366,7 @@ Field<T,3U,Cartesian<3U,MFLOAT>,Vert>&
 Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x,
     Field<T,3U,Cartesian<3U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,3U>,3U>& vS = *(x.get_mesh().VertSpacings);
   const NDIndex<3U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2403,7 +2403,7 @@ Field<T,1U,Cartesian<1U,MFLOAT>,Cell>&
 Div(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x,
     Field<T,1U,Cartesian<1U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,1U>,1U>& cS = *(x.get_mesh().CellSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2418,7 +2418,7 @@ Field<T,2U,Cartesian<2U,MFLOAT>,Cell>&
 Div(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x,
     Field<T,2U,Cartesian<2U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,2U>,2U>& cS = *(x.get_mesh().CellSpacings);
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2439,7 +2439,7 @@ Field<T,3U,Cartesian<3U,MFLOAT>,Cell>&
 Div(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x,
     Field<T,3U,Cartesian<3U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,3U>,3U>& cS = *(x.get_mesh().CellSpacings);
   const NDIndex<3U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2472,7 +2472,7 @@ Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>&
 Div(Field<Tenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x,
     Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,1U>,1U>& vertSpacings = *(x.get_mesh().VertSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2487,7 +2487,7 @@ Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>&
 Div(Field<Tenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x,
     Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,2U>,2U>& vertSpacings = *(x.get_mesh().VertSpacings);
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2505,7 +2505,7 @@ Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>&
 Div(Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x,
     Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,3U>,3U>& vertSpacings = *(x.get_mesh().VertSpacings);
   const NDIndex<3U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2530,7 +2530,7 @@ Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>&
 Div(Field<SymTenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x,
     Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,1U>,1U>& vertSpacings = *(x.get_mesh().VertSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2545,7 +2545,7 @@ Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>&
 Div(Field<SymTenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x,
     Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,2U>,2U>& vertSpacings = *(x.get_mesh().VertSpacings);
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2563,7 +2563,7 @@ Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>&
 Div(Field<SymTenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x,
     Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,3U>,3U>& vertSpacings = *(x.get_mesh().VertSpacings);
   const NDIndex<3U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2589,7 +2589,7 @@ Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>&
 Div(Field<Tenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x,
     Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,1U>,1U>& cellSpacings = *(x.get_mesh().CellSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2604,7 +2604,7 @@ Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>&
 Div(Field<Tenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x,
     Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,2U>,2U>& cellSpacings = *(x.get_mesh().CellSpacings);
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2622,7 +2622,7 @@ Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>&
 Div(Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x,
     Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,3U>,3U>& cellSpacings = *(x.get_mesh().CellSpacings);
   const NDIndex<3U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2648,7 +2648,7 @@ Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>&
 Div(Field<SymTenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x,
     Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,1U>,1U>& cellSpacings = *(x.get_mesh().CellSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2663,7 +2663,7 @@ Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>&
 Div(Field<SymTenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x,
     Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,2U>,2U>& cellSpacings = *(x.get_mesh().CellSpacings);
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2681,7 +2681,7 @@ Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>&
 Div(Field<SymTenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x,
     Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,3U>,3U>& cellSpacings = *(x.get_mesh().CellSpacings);
   const NDIndex<3U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2709,7 +2709,7 @@ Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>&
 Grad(Field<T,1U,Cartesian<1U,MFLOAT>,Vert>& x,
      Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,1U>,1U>& vertSpacings = *(x.get_mesh().VertSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2723,7 +2723,7 @@ Field<Vektor<T,2u>,2U,Cartesian<2U,MFLOAT>,Cell>&
 Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Vert>& x,
      Field<Vektor<T,2u>,2U,Cartesian<2U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,2U>,2U>& vertSpacings = *(x.get_mesh().VertSpacings);
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2740,7 +2740,7 @@ Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>&
 Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Vert>& x,
      Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,3U>,3U>& vertSpacings = *(x.get_mesh().VertSpacings);
   const NDIndex<3U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2766,7 +2766,7 @@ Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>&
 Grad(Field<T,1U,Cartesian<1U,MFLOAT>,Cell>& x,
      Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,1U>,1U>& cellSpacings = *(x.get_mesh().CellSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2780,7 +2780,7 @@ Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>&
 Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Cell>& x,
      Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,2U>,2U>& cellSpacings = *(x.get_mesh().CellSpacings);
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2797,7 +2797,7 @@ Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>&
 Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Cell>& x,
      Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,3U>,3U>& cellSpacings = *(x.get_mesh().CellSpacings);
   const NDIndex<3U>& domain = r.getDomain();
   Index I = domain[0];
@@ -2837,7 +2837,7 @@ Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>&
 Grad(Field<T,1U,Cartesian<1U,MFLOAT>,Vert>& x,
      Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,1U>,1U>& vertSpacings =
     *(x.get_mesh().VertSpacings);
   const NDIndex<1U>& domain = r.getDomain();
@@ -2855,7 +2855,7 @@ Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>&
 Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Vert>& x,
      Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,2U>,2U>& vertSpacings =
     *(x.get_mesh().VertSpacings);
   const NDIndex<2U>& domain = r.getDomain();
@@ -2881,7 +2881,7 @@ Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>&
 Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Vert>& x,
      Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,3U>,3U>& vertSpacings =
     *(x.get_mesh().VertSpacings);
   const NDIndex<3U>& domain = r.getDomain();
@@ -2917,7 +2917,7 @@ Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>&
 Grad(Field<T,1U,Cartesian<1U,MFLOAT>,Cell>& x,
      Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,1U>,1U>& cellSpacings =
     *(x.get_mesh().CellSpacings);
   const NDIndex<1U>& domain = r.getDomain();
@@ -2935,7 +2935,7 @@ Field<Vektor<T,2u>,2U,Cartesian<2U,MFLOAT>,Cell>&
 Grad(Field<T,2U,Cartesian<2U,MFLOAT>,Cell>& x,
      Field<Vektor<T,2u>,2U,Cartesian<2U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,2U>,2U>& cellSpacings =
     *(x.get_mesh().CellSpacings);
   const NDIndex<2U>& domain = r.getDomain();
@@ -2961,7 +2961,7 @@ Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>&
 Grad(Field<T,3U,Cartesian<3U,MFLOAT>,Cell>& x,
      Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,3U>,3U>& cellSpacings =
     *(x.get_mesh().CellSpacings);
   const NDIndex<3U>& domain = r.getDomain();
@@ -2997,7 +2997,7 @@ Field<Tenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>&
 Grad(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& x,
      Field<Tenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,1U>,1U>& vS = *(x.get_mesh().VertSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
@@ -3012,7 +3012,7 @@ Field<Tenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>&
 Grad(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& x,
      Field<Tenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,2U>,2U>& vS = *(x.get_mesh().VertSpacings);
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
@@ -3030,7 +3030,7 @@ Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>&
 Grad(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& x,
      Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,3U>,3U>& vS = *(x.get_mesh().VertSpacings);
   const NDIndex<3U>& domain = r.getDomain();
   Index I = domain[0];
@@ -3057,7 +3057,7 @@ Field<Tenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>&
 Grad(Field<Vektor<T,1U>,1U,Cartesian<1U,MFLOAT>,Cell>& x,
      Field<Tenzor<T,1U>,1U,Cartesian<1U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,1U>,1U>& cellSpacings = *(x.get_mesh().CellSpacings);
   const NDIndex<1U>& domain = r.getDomain();
   Index I = domain[0];
@@ -3072,7 +3072,7 @@ Field<Tenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>&
 Grad(Field<Vektor<T,2U>,2U,Cartesian<2U,MFLOAT>,Cell>& x,
      Field<Tenzor<T,2U>,2U,Cartesian<2U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,2U>,2U>& cS = *(x.get_mesh().CellSpacings);
   const NDIndex<2U>& domain = r.getDomain();
   Index I = domain[0];
@@ -3090,7 +3090,7 @@ Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>&
 Grad(Field<Vektor<T,3U>,3U,Cartesian<3U,MFLOAT>,Cell>& x,
      Field<Tenzor<T,3U>,3U,Cartesian<3U,MFLOAT>,Vert>& r)
 {
-  PAssert(x.get_mesh().hasSpacingFields);
+  PAssert_EQ(x.get_mesh().hasSpacingFields, true);
   BareField<Vektor<MFLOAT,3U>,3U>& cS = *(x.get_mesh().CellSpacings);
   const NDIndex<3U>& domain = r.getDomain();
   Index I = domain[0];

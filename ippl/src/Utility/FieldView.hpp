@@ -215,7 +215,7 @@ FieldView<T,Dim,Mesh,Centering>::update_2D_data(void)
       // Receive the generic message.
       int any_node = COMM_ANY_NODE;
       Message *mess = Ippl::Comm->receive_block(any_node, tag);
-      PAssert(mess != 0);
+      PAssert(mess);
 
       // Extract the rhs BrickIterator from it.
       NDIndex<Dim> localBlock;
@@ -315,7 +315,7 @@ FieldView<T,Dim,Mesh,Centering>::update_3D_data(unsigned slice)
       // Receive the generic message.
       int any_node = COMM_ANY_NODE;
       Message *mess = Ippl::Comm->receive_block(any_node, tag);
-      PAssert(mess != 0);
+      PAssert(mess);
 
       // Extract the rhs BrickIterator from it.
       NDIndex<3U> localBlock;

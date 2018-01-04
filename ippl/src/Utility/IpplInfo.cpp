@@ -1076,7 +1076,7 @@ void IpplInfo::find_smp_nodes() {
 }
 
 void IpplInfo::stash() {
-    PAssert(stashedStaticMembers.size() == 0);
+    PAssert_EQ(stashedStaticMembers.size(), 0);
 
     StaticIpplInfo obj;
 
@@ -1138,7 +1138,7 @@ void IpplInfo::stash() {
 }
 
 void IpplInfo::pop() {
-    PAssert(stashedStaticMembers.size() == 1);
+    PAssert_EQ(stashedStaticMembers.size(), 1);
 
     StaticIpplInfo obj = stashedStaticMembers.top();
     stashedStaticMembers.pop();
