@@ -39,139 +39,139 @@ public:
     typedef typename AbstractParticle<T, Dim>::ParticleIndex_t ParticleIndex_t;
     typedef typename AbstractParticle<T, Dim>::UpdateFlags UpdateFlags;
     typedef typename AbstractParticle<T, Dim>::Position_t Position_t;
-    
+
     typedef std::pair<Vector_t, Vector_t> VectorPair_t;
-    
+
     static const unsigned Dimension = Dim;
-    
+
     enum UnitState_t { units = 0, unitless = 1 };
-    
+
 public:
-    
+
     PartBunchBase(AbstractParticle<T, Dim>* pb);
-    
-    virtual ~PartBunchBase() { }
-    
+
+    virtual ~PartBunchBase() { delete pbase;}
+
     /*
      * Bunch common member functions
      */
-    
+
     PartBunchBase(AbstractParticle<T, Dim>* pb, const PartData *ref);
-    
+
     /// Conversion.
     PartBunchBase(AbstractParticle<T, Dim>* pb,
                   const std::vector<OpalParticle> &,
                   const PartData *ref); //TODO
-    
+
     PartBunchBase(const PartBunchBase &rhs); //TODO
-    
+
     // This is required since we initialize the Layout and the RegionLayout with default constructor
     virtual void initialize(FieldLayout_t *fLayout) = 0;
-    
+
     bool getIfBeamEmitting();
-    
+
     int getLastEmittedEnergyBin();
-    
+
     size_t getNumberOfEmissionSteps();
-    
+
     int getNumberOfEnergyBins();
-    
+
     void Rebin();
-    
+
     void setEnergyBins(int numberOfEnergyBins);
-    
+
     bool weHaveEnergyBins();
-    
+
     //FIXME: unify methods, use convention that all particles have own dt
     void switchToUnitlessPositions(bool use_dt_per_particle = false);
-    
+
     //FIXME: unify methods, use convention that all particles have own dt
     void switchOffUnitlessPositions(bool use_dt_per_particle = false);
-    
+
     /** \brief After each Schottky scan we delete
         all the particles.
 
     */
     void cleanUpParticles();
-    
+
     void resetIfScan();
-    
+
     void setDistribution(Distribution *d,
                          std::vector<Distribution *> addedDistributions,
                          size_t &np,
                          bool scan);
-    
+
     bool isGridFixed();
-    
-    
+
+
     /*
        Energy bins related functions
      */
-    
+
     void setTEmission(double t);
-    
+
     double getTEmission();
-    
+
     bool doEmission();
-    
+
     bool weHaveBins() const;
-    
+
     void setPBins(PartBins *pbin);
-    
+
     void setPBins(PartBinsCyc *pbin);
-    
+
     /** \brief Emit particles in the given bin
         i.e. copy the particles from the bin structure into the
         particle container
     */
     size_t emitParticles(double eZ);
-    
+
     void updateNumTotal();
-    
+
     void rebin();
-    
+
     int getNumBins();
-    
+
     int getLastemittedBin();
-    
+
     /** \brief Compute the gammas of all bins */
     void calcGammas();
-    
+
     void calcGammas_cycl();
-    
+
     /** \brief Get gamma of one bin */
     double getBinGamma(int bin);
-    
+
     /** \brief Set the charge of one bin to the value of q and all other to zero */
     void setBinCharge(int bin, double q);
-    
+
     /** \brief Set the charge of all other the ones in bin to zero */
     void setBinCharge(int bin);
-    
+
     /** \brief returns the number of particles outside of a box defined by x */
     size_t calcNumPartsOutside(Vector_t x);
-    
+
     void calcLineDensity(unsigned int nBins, std::vector<double> &lineDensity,
                          std::pair<double, double> &meshInfo);
-    
+
     /*
        Mesh and Field Layout related functions
      */
-    
+
     virtual void boundp();
-    
+
     /** delete particles which are too far away from the center of beam*/
     void boundp_destroy();
-    
+
     /** This is only temporary in order to get the collimator and pepperpot workinh */
     size_t boundp_destroyT();
-    
+
     size_t destroyT();
-    
+
     /*
        Read out coordinates
      */
-    
+
     virtual double getPx(int i);
     virtual double getPy(int i);
     virtual double getPz(int i);
@@ -187,41 +187,41 @@ public:
     virtual double getY0(int i);
 
     virtual void setZ(int i, double zcoo);
-    
+
     void get_bounds(Vector_t &rmin, Vector_t &rmax);
-    
+
     void getLocalBounds(Vector_t &rmin, Vector_t &rmax);
-    
+
     std::pair<Vector_t, double> getBoundingSphere();
-    
+
     std::pair<Vector_t, double> getLocalBoundingSphere();
-    
-    
+
+
     /*
        Compatibility function push_back
      */
-    
+
     void push_back(OpalParticle p);
-    
+
     void set_part(FVector<double, 6> z, int ii);
 
     void set_part(OpalParticle p, int ii);
-    
+
     OpalParticle get_part(int ii);
-    
+
     /// Return maximum amplitudes.
     //  The matrix [b]D[/b] is used to normalise the first two modes.
     //  The maximum normalised amplitudes for these modes are stored
     //  in [b]axmax[/b] and [b]aymax[/b].
     void maximumAmplitudes(const FMatrix<double, 6, 6> &D,
                            double &axmax, double &aymax);
-    
+
     void   setdT(double dt);
     double getdT() const;
 
     void   setT(double t);
     double getT() const;
-    
+
     /**
      * get the spos of the primary beam
      *
@@ -229,11 +229,11 @@ public:
      *
      */
     double get_sPos();
-    
+
     void set_sPos(double s);
 
     double get_gamma() const;
-    
+
     double get_meanKineticEnergy() const;
     Vector_t get_origin() const;
     Vector_t get_maxExtent() const;
@@ -253,21 +253,21 @@ public:
 
     double get_DDx() const;
     double get_DDy() const;
-    
+
     virtual void set_meshEnlargement(double dh);
 
     void gatherLoadBalanceStatistics();
     size_t getLoadBalance(int p) const;
-    
+
     void get_PBounds(Vector_t &min, Vector_t &max) const;
-    
+
     void calcBeamParameters();
-    
+
     void calcBeamParametersInitial(); // Calculate initial beam parameters before emission.
-    
+
     double getCouplingConstant() const;
     void setCouplingConstant(double c);
-    
+
     // set the charge per simulation particle
     void setCharge(double q);
     // set the charge per simulation particle when total particle number equals 0
@@ -275,7 +275,7 @@ public:
 
     // set the mass per simulation particle
     void setMass(double mass);
-    
+
     /// \brief Need Ek for the Schottky effect calculation (eV)
     double getEkin() const;
 
@@ -284,19 +284,19 @@ public:
 
     /// Need the laser energy for the Schottky effect calculation (eV)
     double getLaserEnergy() const;
-    
+
     /// get the total charge per simulation particle
     double getCharge() const;
 
     /// get the macro particle charge
     double getChargePerParticle() const;
-    
+
     virtual void setSolver(FieldSolver *fs);
-    
+
     bool hasFieldSolver();
-    
+
     std::string getFieldSolverType() const;
-    
+
     void setLPath(double s);
     double getLPath() const;
 
@@ -319,16 +319,16 @@ public:
     Vector_t getGlobalMeanR();
     void setGlobalToLocalQuaternion(Quaternion_t globalToLocalQuaternion);
     Quaternion_t getGlobalToLocalQuaternion();
-    
+
     void setSteptoLastInj(int n);
     int getSteptoLastInj();
-    
+
     /// calculate average angle of longitudinal direction of bins
     double calcMeanPhi();
-    
+
     /// reset Bin[] for each particle according to the method given in paper PAST-AB(064402) by  G. Fubiani et al.
     bool resetPartBinID2(const double eta);
-    
+
     double getQ() const;
     double getM() const;
     double getP() const;
@@ -336,48 +336,48 @@ public:
 
     void resetQ(double q);
     void resetM(double m);
-    
+
     double getdE();
     double getInitialBeta() const;
     double getInitialGamma() const;
     virtual double getGamma(int i);
     virtual double getBeta(int i);
     virtual void actT();
-    
+
     const PartData *getReference() const;
-    
+
     double getEmissionDeltaT();
-    
+
     Quaternion_t getQKs3D();
     void         setQKs3D(Quaternion_t q);
     Vector_t     getKs3DRefr();
     void         setKs3DRefr(Vector_t r);
     Vector_t     getKs3DRefp();
     void         setKs3DRefp(Vector_t p);
-    
+
     void iterateEmittedBin(int binNumber);
-    
+
     void calcEMean();
-    
+
     void correctEnergy(double avrgp);
-    
+
     Inform &print(Inform &os);
-    
+
     /*
-     * (Pure) virtual member functions 
+     * (Pure) virtual member functions
      */
-    
+
     virtual void runTests();
-    
+
     virtual void do_binaryRepart();
-    
+
     virtual void resetInterpolationCache(bool clearCache = false);
-    
+
     /** \brief calculates back the max/min of the efield on the grid */
     virtual VectorPair_t getEExtrema() = 0;
-    
+
     virtual double getRho(int x, int y, int z) = 0;
-    
+
     virtual void computeSelfFields() = 0;
 
     /** /brief used for self fields with binned distribution */
@@ -385,155 +385,155 @@ public:
 
     virtual void computeSelfFields_cycl(double gamma) = 0;
     virtual void computeSelfFields_cycl(int bin) = 0;
-    
+
     virtual void swap(unsigned int i, unsigned int j);
-    
+
     /*
        Mesh and Field Layout related functions
      */
-    
+
     virtual void setBCAllPeriodic();
     virtual void setBCAllOpen();
 
     virtual void setBCForDCBeam();
-    
-    
+
+
 //     virtual void setMesh(Mesh_t* mesh) = 0;
 //     virtual Mesh_t &getMesh() = 0;
-    
+
 //     virtual void setFieldLayout(FieldLayout_t* fLayout) = 0;
     virtual FieldLayout_t &getFieldLayout() = 0;
-    
+
     /*
      * Wrapped member functions of IpplParticleBase
      */
-    
+
     size_t getTotalNum() const {
         return pbase->getTotalNum();
     }
-        
+
     size_t getLocalNum() const {
         return pbase->getLocalNum();
     }
-    
-    
+
+
     size_t getDestroyNum() const {
         return pbase->getDestroyNum();
     }
-    
+
     size_t getGhostNum() const {
         return pbase->getGhostNum();
     }
-    
+
     void setTotalNum(size_t n) {
         pbase->setTotalNum(n);
     }
-    
+
     void setLocalNum(size_t n) {
         pbase->setLocalNum(n);
     }
-    
+
     unsigned int getMinimumNumberOfParticlesPerCore() const {
         return pbase->getMinimumNumberOfParticlesPerCore();
     }
-    
+
     void setMinimumNumberOfParticlesPerCore(unsigned int n) {
         pbase->setMinimumNumberOfParticlesPerCore(n);
     }
-    
+
     ParticleLayout<T, Dim> & getLayout() {
         return pbase->getLayout();
     }
-    
+
     const ParticleLayout<T, Dim>& getLayout() const {
         return pbase->getLayout();
     }
-    
+
     bool getUpdateFlag(UpdateFlags f) const {
         return pbase->getUpdateFlag(f);
     }
-    
+
     void setUpdateFlag(UpdateFlags f, bool val) {
         pbase->setUpdateFlag(f, val);
     }
-    
+
     ParticleBConds<Position_t, Dimension>& getBConds() {
         return pbase->getBConds();
     }
-    
+
     void setBConds(const ParticleBConds<Position_t, Dimension>& bc) {
         pbase->setBConds(bc);
     }
-    
+
     bool singleInitNode() const {
         return pbase->singleInitNode();
     }
-    
+
     void resetID() {
         pbase->resetID();
     }
-    
+
     void update() {
         pbase->update();
     }
-    
+
     void update(const ParticleAttrib<char>& canSwap) {
         pbase->update(canSwap);
     }
-    
+
     void createWithID(unsigned id) {
         pbase->createWithID(id);
     }
-    
+
     void create(size_t M) {
         pbase->create(M);
     }
-    
+
     void globalCreate(size_t np) {
         pbase->globalCreate(np);
     }
-    
+
     void destroy(size_t M, size_t I, bool doNow = false) {
         pbase->destroy(M, I, doNow);
     }
-    
+
     void performDestroy(bool updateLocalNum = false) {
         pbase->performDestroy(updateLocalNum);
     }
-    
+
     void ghostDestroy(size_t M, size_t I) {
         pbase->ghostDestroy(M, I);
     }
-    
+
 protected:
     size_t calcMoments();    // Calculates bunch moments using only emitted particles.
-    
+
     /* Calcualtes bunch moments by summing over bins
      * (not accurate when any particles have been emitted).
      */
     void calcMomentsInitial();
-    
+
     double calculateAngle(double x, double y);
     double calculateAngle2(double x, double y);
-    
-    
+
+
 private:
     virtual void updateDomainLength(Vektor<int, 3>& grid) = 0;
-    
+
     virtual void updateFields(const Vector_t& hr, const Vector_t& origin);
-    
+
     void setup(AbstractParticle<T, Dim>* pb);
-    
+
 public:
     /*
      * Bunch attributes
      */
-    
-    
+
+
     ParticlePos_t& R;
     ParticleIndex_t& ID;
-    
-    
+
+
     // Particle container attributes
     ParticleAttrib< Vector_t > P;      // particle momentum //  ParticleSpatialLayout<double, 3>::ParticlePos_t P;
     ParticleAttrib< double >   Q;      // charge per simulation particle, unit: C.
@@ -548,13 +548,13 @@ public:
 
     ParticleAttrib< short >    PType; // we can distinguish dark current particles from primary particle
     ParticleAttrib< int >      TriID; // holds the ID of triangle that the particle hit. Only for BoundaryGeometry case.
-    
-    
+
+
     Vector_t RefPartR_m;
     Vector_t RefPartP_m;
     CoordinateSystemTrafo toLabTrafo_m;
-    
-    
+
+
     /// avoid calls to Ippl::myNode()
     int myNode_m;
 
@@ -572,7 +572,7 @@ public:
     // save particles in case of one core
     std::unique_ptr<Inform> pmsg_m;
     std::unique_ptr<std::ofstream> f_stream;
-    
+
     /// timer for IC, can not be in Distribution.h
     IpplTimings::TimerRef distrReload_m;
     IpplTimings::TimerRef distrCreate_m;
@@ -582,13 +582,13 @@ public:
 
     /// if a local node has less than 2 particles  lowParticleCount_m == true
     bool lowParticleCount_m;
-    
+
     /// timer for selfField calculation (also used in concrete AmrObject classes)
     IpplTimings::TimerRef compPotenTimer_m;
-    
+
     /// timer for selfField calculation
     IpplTimings::TimerRef selfFieldTimer_m;
-    
+
 protected:
     IpplTimings::TimerRef boundpTimer_m;
     IpplTimings::TimerRef boundpBoundsTimer_m;
@@ -596,11 +596,11 @@ protected:
     IpplTimings::TimerRef statParamTimer_m;
 
     IpplTimings::TimerRef histoTimer_m;
-    
-    
+
+
     const PartData *reference;
-    
-    
+
+
 //     /*
 //       Member variables starts here
 //     */
@@ -611,7 +611,7 @@ protected:
 
     /// holds the centroid of the beam
     double centroid_m[2 * Dim];
-    
+
     /// 6x6 matrix of the moments of the beam
     FMatrix<double, 2 * Dim, 2 * Dim> moments_m;
 
@@ -682,10 +682,10 @@ protected:
     double couplingConstant_m;
 
     double qi_m;
-    
+
     /// counter to store the distributin dump
     int distDump_m;
-    
+
     ///
     int fieldDBGStep_m;
 
@@ -726,7 +726,7 @@ protected:
     /*
       Data structure for particle load balance information
     */
-    
+
     std::unique_ptr<size_t[]> globalPartPerNode_m;
 
 
@@ -734,8 +734,8 @@ protected:
 
     // flag to tell if we are a DC-beam
     bool dcBeam_m;
-    
-    
+
+
 // protected:
     /*std::unique_ptr<*/AbstractParticle<T, Dim>*/* >*/ pbase;
 };
