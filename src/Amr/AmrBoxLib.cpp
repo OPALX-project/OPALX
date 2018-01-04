@@ -99,7 +99,7 @@ void AmrBoxLib::initFineLevels() {
             amrpbase_p->setForbidTransform(true);
         }
 
-        if ( max_level > 0) {
+        if ( max_level > 0 && bunch_mp->getNumBunch() > 1 ) {
             
             amrpbase_p->update(0, 0);
             
