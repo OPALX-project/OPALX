@@ -85,6 +85,7 @@ void LossDataSink::openH5(h5_int32_t mode) {
         throw GeneralClassicException("LossDataSink::openH5",
                                       "failed to open h5 file '" + fn_m + "'");
     }
+    H5CloseProp (props);
 }
 
 void LossDataSink::writeHeaderH5() {

@@ -27,7 +27,8 @@ void H5Reader::open(int step) {
     assert (h5err != H5_ERR);
     file_m = H5OpenFile (filename_m.c_str(), H5_O_RDONLY, props);
     assert (file_m != (h5_file_t)H5_ERR);
-    
+    H5CloseProp (props);
+
     H5SetStep(file_m, step);
 }
 
@@ -140,7 +141,8 @@ void H5Reader::writeScalarField(const container_t& scalfield,
     assert (h5err != H5_ERR);
     file = H5OpenFile (fname.c_str(), H5_O_WRONLY, props);
     assert (file != (h5_file_t)H5_ERR);
-    
+    H5CloseProp (props);
+
     H5SetStep (file, 0);
     
     h5_int64_t herr;

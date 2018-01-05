@@ -140,6 +140,12 @@
 #include "Lines/Line.h"
 #include "Lines/Sequence.h"
 
+// Optimize command
+#include "Optimize/OptimizeCmd.h"
+#include "Optimize/DVar.h"
+#include "Optimize/Objective.h"
+#include "Optimize/Constraint.h"
+
 #include "changes.h"
 
 // Namespace Configure
@@ -167,6 +173,7 @@ namespace Configure {
         opal->create(new MatrixCmd());
         opal->create(new Micado());
         opal->create(new Option());
+        opal->create(new OptimizeCmd());
         opal->create(new Save());
         opal->create(new Select());
         opal->create(new Show());
@@ -212,6 +219,10 @@ namespace Configure {
         opal->create(new Period());
         opal->create(new Insertion());
         opal->create(new Survey());
+
+        opal->create(new DVar());
+        opal->create(new Objective());
+        opal->create(new Constraint());
     }
 
 

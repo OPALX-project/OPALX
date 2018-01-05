@@ -259,6 +259,8 @@ public:
     void setMaxTrackSteps(unsigned long long s);
     void incMaxTrackSteps(unsigned long long s);
 
+    void storeArguments(int argc, char *argv[]);
+    std::vector<std::string> getArguments();
 private:
 
     static bool isInstantiated;
