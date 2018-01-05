@@ -11,6 +11,12 @@ void MGTSolver::solve(const container_t& rho,
                       container_t& efield,
                       const amrex::Array<amrex::Geometry>& geom)
 {
+    using amrex::Geometry;
+    using amrex::Array;
+    using amrex::BoxArray;
+    using amrex::Real;
+    using amrex::MultiFab;
+    
 //     Real reltol = 1.0e-14;
 //     Real abstol = 1.0e-12;
     double abstol = 0.0;
@@ -31,7 +37,7 @@ void MGTSolver::solve(const container_t& rho,
         dmv[lev]          = rho[baseLevel+lev]->DistributionMap();
         
         phi[lev]          = std::unique_ptr<amrex::MultiFab>(new amrex::MultiFab(bav[lev], dmv[lev], 1          , 1));
-        efield[lev]       = std::unique_ptr<amrex::MultiFab>(new amrex::MultiFab(bav[lev], dmv[lev], BL_SPACEDIM, 1));
+        efield[lev]       = std::unique_ptr<amrex::MultiFab>(new amrex::MultiFab(bav[lev], dmv[lev], AMREX_SPACEDIM, 1));
         efield[lev]->setVal(0.0, 1);
     }
     
@@ -40,11 +46,11 @@ void MGTSolver::solve(const container_t& rho,
     
     for (int lev = baseLevel; lev <= finestLevel; lev++)
     {
-        grad_phi_prev[lev].resize(BL_SPACEDIM);
-        BL_ASSERT(grad_phi_prev[lev].size() == BL_SPACEDIM);
-        for (int n = 0; n < BL_SPACEDIM; ++n)
+        grad_phi_prev[lev].resize(AMREX_SPACEDIM);
+        BL_ASSERT(grad_phi_prev[lev].size() == AMREX_SPACEDIM);
+        for (int n = 0; n < AMREX_SPACEDIM; ++n)
         {
-            const BoxArray eba = amrex::BoxArray(bav[lev]).surroundingNodes(n);
+            const amrex::BoxArray eba = amrex::BoxArray(bav[lev]).surroundingNodes(n);
             grad_phi_prev[lev][n].reset(new amrex::MultiFab(eba, dmv[lev], 1, 1));
         }
     }
@@ -59,11 +65,11 @@ void MGTSolver::solve(const container_t& rho,
 
     for (int lev = 0; lev < num_levels; lev++)
     {
-        xa[lev].resize(BL_SPACEDIM);
-        xb[lev].resize(BL_SPACEDIM);
+        xa[lev].resize(AMREX_SPACEDIM);
+        xb[lev].resize(AMREX_SPACEDIM);
         if (baseLevel + lev == 0)
         {
-            for (int i = 0; i < BL_SPACEDIM; ++i)
+            for (int i = 0; i < AMREX_SPACEDIM; ++i)
             {
                 xa[lev][i] = 0;
                 xb[lev][i] = 0;
@@ -72,7 +78,7 @@ void MGTSolver::solve(const container_t& rho,
         else
         {
             const Real* dx_crse = geom[baseLevel + lev - 1].CellSize();
-            for (int i = 0; i < BL_SPACEDIM; ++i)
+            for (int i = 0; i < AMREX_SPACEDIM; ++i)
             {
                 xa[lev][i] = 0.5 * dx_crse[i];
                 xb[lev][i] = 0.5 * dx_crse[i];
@@ -108,7 +114,7 @@ void MGTSolver::solve(const container_t& rho,
     //
     // Store the Dirichlet boundary condition for phi in bndry.
     //
-    MacBndry bndry(bav[baseLevel], dmv[baseLevel], 1, geom[baseLevel]);
+    amrex::MacBndry bndry(bav[baseLevel], dmv[baseLevel], 1, geom[baseLevel]);
     const int src_comp  = 0;
     const int dest_comp = 0;
     const int num_comp  = 1;
@@ -116,7 +122,7 @@ void MGTSolver::solve(const container_t& rho,
     amrex::BCRec phys_bc;
     
     // Get boundary conditions
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         phys_bc.setLo(i, 0);
         phys_bc.setHi(i, 0);
@@ -126,9 +132,9 @@ void MGTSolver::solve(const container_t& rho,
     bndry.setBndryValues(*phi_p[0], src_comp, dest_comp, num_comp, phys_bc);
     
     int stencil_type = amrex::CC_CROSS_STENCIL;
-    int mg_bc[2*BL_SPACEDIM];
+    int mg_bc[2*AMREX_SPACEDIM];
     
-    for (int dir = 0; dir < BL_SPACEDIM; ++dir)
+    for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
     {
         if (geom[0].isPeriodic(dir))
         {
@@ -142,7 +148,7 @@ void MGTSolver::solve(const container_t& rho,
         }
     }
     
-    MGT_Solver mgt_solver(fgeom, mg_bc, bav, dmv, false, stencil_type, false, 0, 1, 0);
+    amrex::MGT_Solver mgt_solver(fgeom, mg_bc, bav, dmv, false, stencil_type, false, 0, 1, 0);
     
     mgt_solver.set_const_gravity_coeffs(xa, xb);
     
@@ -174,7 +180,7 @@ void MGTSolver::solve(const container_t& rho,
             mgt_solver.get_fluxes(lev, amrex::GetArrOfPtrs(grad_phi_prev[baseLevel+lev]), dx);
         }
         
-       IntVect fine_ratio = amrex::IntVect::TheUnitVector() * 2; 
+       amrex::IntVect fine_ratio = amrex::IntVect::TheUnitVector() * 2; 
         
         // Average phi from fine to coarse level
     for (int lev = finestLevel; lev > baseLevel; lev--)
@@ -190,18 +196,18 @@ void MGTSolver::solve(const container_t& rho,
         //
         // Coarsen() the fine stuff on processors owning the fine data.
         //
-        BoxArray crse_gphi_fine_BA(bav[lev+1].size());
+        amrex::BoxArray crse_gphi_fine_BA(bav[lev+1].size());
         
-        IntVect fine_ratio = amrex::IntVect::TheUnitVector() * 2;
+        amrex::IntVect fine_ratio = amrex::IntVect::TheUnitVector() * 2;
         
         for (int i = 0; i < crse_gphi_fine_BA.size(); ++i)
             crse_gphi_fine_BA.set(i, amrex::coarsen(bav[lev+1][i],
                                                     fine_ratio));
             
-        Array<std::unique_ptr<MultiFab> > crse_gphi_fine(BL_SPACEDIM);
-        for (int n = 0; n < BL_SPACEDIM; ++n)
+        Array<std::unique_ptr<MultiFab> > crse_gphi_fine(AMREX_SPACEDIM);
+        for (int n = 0; n < AMREX_SPACEDIM; ++n)
         {
-            const BoxArray eba = BoxArray(crse_gphi_fine_BA).surroundingNodes(n);
+            const amrex::BoxArray eba = amrex::BoxArray(crse_gphi_fine_BA).surroundingNodes(n);
             crse_gphi_fine[n].reset(new MultiFab(eba, dmv[lev+1], 1, 0));
         }
         
@@ -210,7 +216,7 @@ void MGTSolver::solve(const container_t& rho,
         
         const Geometry& cgeom = geom[lev];
         
-        for (int n = 0; n < BL_SPACEDIM; ++n) {
+        for (int n = 0; n < AMREX_SPACEDIM; ++n) {
             grad_phi_prev[lev][n]->copy(*crse_gphi_fine[n], cgeom.periodicity());
         }
         
@@ -223,7 +229,7 @@ void MGTSolver::solve(const container_t& rho,
                                               amrex::GetArrOfConstPtrs(grad_phi_prev[lev]),
                                               geom[lev]);
         
-            efield[lev]->FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
+            efield[lev]->FillBoundary(0,AMREX_SPACEDIM,geom[lev].periodicity());
         }
         
         for (int lev = baseLevel; lev <= finestLevel; ++lev) {

@@ -3,6 +3,14 @@
 
 #include <AMReX_Geometry.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_MultiFab.H>
+
+using amrex::MultiFab;
+using amrex::Array;
+using amrex::Geometry;
+using amrex::VisMF;
+using amrex::Real;
+using amrex::RealBox;
 
 /*!
  * @file writePlotFile.H
@@ -41,15 +49,15 @@ writePlotFile (const std::string& dir,
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
-    if (ParallelDescriptor::IOProcessor())
+    if (amrex::ParallelDescriptor::IOProcessor())
         if (!amrex::UtilCreateDirectory(dir, 0755))
             amrex::CreateDirectoryFailed(dir);
     //
     // Force other processors to wait till directory is built.
     //
-    ParallelDescriptor::Barrier();
+    amrex::ParallelDescriptor::Barrier();
 
-    std::string HeaderFileName = dir + "/OpalAmrHeader";
+    std::string HeaderFileName = dir + "/Header";
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
@@ -59,7 +67,7 @@ writePlotFile (const std::string& dir,
 
     int nData = rho[0]->nComp() + phi[0]->nComp() + efield[0]->nComp();
     
-    if (ParallelDescriptor::IOProcessor())
+    if (amrex::ParallelDescriptor::IOProcessor())
     {
         //
         // Only the IOProcessor() writes to the header file.
@@ -67,7 +75,8 @@ writePlotFile (const std::string& dir,
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
         if (!HeaderFile.good())
             amrex::FileOpenFailed(HeaderFileName);
-        HeaderFile << "OpalAmr-V1.0\n";
+//         HeaderFile << "OpalAmr-V1.0\n";
+        HeaderFile << "HyperClaw-V1.1\n";
 
         HeaderFile << nData << '\n';
 
@@ -76,30 +85,34 @@ writePlotFile (const std::string& dir,
           HeaderFile << "rho\n";
         
         for (int ivar = 1; ivar <= phi[0]->nComp(); ivar++)
-          HeaderFile << "potential\n";
+          HeaderFile << "phi\n";
         
 //         for (int ivar = 1; ivar <= efield.nComp(); ivar++) {
+#if AMREX_SPACEDIM == 3
           HeaderFile << "Ex\nEy\nEz\n";
+#else
+          HeaderFile << "Ex\nEy\n";
+#endif
 //         }
         
         
         // dimensionality
-        HeaderFile << BL_SPACEDIM << '\n';
+        HeaderFile << AMREX_SPACEDIM << '\n';
         
         // time
         HeaderFile << time << '\n';
         HeaderFile << nLevels - 1 << std::endl; // maximum level number (0=single level)
         
         // physical domain
-        for (int i = 0; i < BL_SPACEDIM; i++)
+        for (int i = 0; i < AMREX_SPACEDIM; i++)
             HeaderFile << geom[0].ProbLo(i) / scale << ' ';
         HeaderFile << '\n';
-        for (int i = 0; i < BL_SPACEDIM; i++)
+        for (int i = 0; i < AMREX_SPACEDIM; i++)
             HeaderFile << geom[0].ProbHi(i) / scale << ' ';
         HeaderFile << std::endl;
         
         // reference ratio
-        for (std::size_t i = 0; i < refRatio.size(); ++i)
+        for (int i = 0; i < refRatio.size(); ++i)
             HeaderFile << refRatio[i] << ' ';
         HeaderFile << std::endl;
         
@@ -113,7 +126,7 @@ writePlotFile (const std::string& dir,
         
         // cell sizes for all level
         for (int i = 0; i < nLevels; ++i) {
-            for (int k = 0; k < BL_SPACEDIM; k++)
+            for (int k = 0; k < AMREX_SPACEDIM; k++)
                 HeaderFile << geom[i].CellSize()[k] / scale << ' ';
             HeaderFile << '\n';
         }
@@ -140,43 +153,51 @@ writePlotFile (const std::string& dir,
         //
         // Only the I/O processor makes the directory if it doesn't already exist.
         //
-        if (ParallelDescriptor::IOProcessor())
+        if (amrex::ParallelDescriptor::IOProcessor())
             if (!amrex::UtilCreateDirectory(FullPath, 0755))
                 amrex::CreateDirectoryFailed(FullPath);
         //
         // Force other processors to wait till directory is built.
         //
-        ParallelDescriptor::Barrier();
+        amrex::ParallelDescriptor::Barrier();
         
-        if (ParallelDescriptor::IOProcessor())
+        if (amrex::ParallelDescriptor::IOProcessor())
         {
             HeaderFile << lev << ' ' << rho[lev]->boxArray().size() << ' ' << 0 << '\n';
             HeaderFile << 0 << '\n';    // # time steps at this level
     
             for (int i = 0; i < rho[lev]->boxArray().size(); ++i)
             {
-                amrex::Real dx[3] = {
-                    geom[lev].CellSize(0),
-                    geom[lev].CellSize(1),
-                    geom[lev].CellSize(2)
+                amrex::Real dx[AMREX_SPACEDIM] = {
+                    D_DECL(
+                        geom[lev].CellSize(0),
+                        geom[lev].CellSize(1),
+                        geom[lev].CellSize(2)
+                    )
                 };
                 dx[0] /= scale;
                 dx[1] /= scale;
+#if AMREX_SPACEDIM == 3
                 dx[2] /= scale;
-                amrex::Real lo[3] = {
-                    geom[lev].ProbLo(0),
-                    geom[lev].ProbLo(1),
-                    geom[lev].ProbLo(2)
+#endif
+                amrex::Real lo[AMREX_SPACEDIM] = {
+                    D_DECL(
+                        geom[lev].ProbLo(0),
+                        geom[lev].ProbLo(1),
+                        geom[lev].ProbLo(2)
+                    )
                 };
                 lo[0] /= scale;
                 lo[1] /= scale;
+#if AMREX_SPACEDIM == 3
                 lo[2] /= scale;
+#endif
                 
                 
                 RealBox loc = RealBox(rho[lev]->boxArray()[i],
                                       &dx[0], &lo[0]);
                 
-                for (int n = 0; n < BL_SPACEDIM; n++)
+                for (int n = 0; n < AMREX_SPACEDIM; n++)
                     HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
             }
     
@@ -195,7 +216,7 @@ writePlotFile (const std::string& dir,
         */
         MultiFab::Copy(data, *rho[lev],    0, 0, 1, 0);
         MultiFab::Copy(data, *phi[lev],    0, 1, 1, 0);
-        MultiFab::Copy(data, *efield[lev], 0, 2, 3, 0); // (Ex, Ey, Ez)
+        MultiFab::Copy(data, *efield[lev], 0, 2, AMREX_SPACEDIM, 0); // (Ex, Ey, Ez)
 //         MultiFab::Copy(data, efield[lev], 0, 2, 1, 0);   // Ex
 //         MultiFab::Copy(data, efield[lev], 1, 3, 1, 0);   // Ey
 //         MultiFab::Copy(data, efield[lev], 2, 4, 1, 0);   // Ez
