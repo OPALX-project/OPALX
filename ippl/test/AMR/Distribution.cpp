@@ -104,6 +104,50 @@ void Distribution::gaussian(double mean, double stddev, size_t nloc, int seed) {
     }
 }
 
+void Distribution::gaussian(const double* mean, const double* stddev,
+			    size_t nloc, int seed)
+{
+    nloc_m = nloc;
+    std::mt19937_64 xmt(0);
+    std::mt19937_64 ymt(1);
+    std::mt19937_64 zmt(2);
+    std::normal_distribution<double> xdist(mean[0], stddev[0]);
+    std::normal_distribution<double> ydist(mean[1], stddev[1]);
+    std::normal_distribution<double> zdist(mean[2], stddev[2]);
+
+    for (size_t i = 0; i < 6 * nloc_m * seed; ++i) {
+      xdist(xmt);
+      ydist(ymt);
+      zdist(zmt);
+    }
+
+    x_m.resize(nloc);
+    y_m.resize(nloc);
+    z_m.resize(nloc);
+
+    px_m.resize(nloc);
+    py_m.resize(nloc);
+    pz_m.resize(nloc);
+
+    q_m.resize(nloc);
+    mass_m.resize(nloc);
+
+    for (size_t i = 0; i < nloc; ++i) {
+      x_m[i] = xdist(xmt);
+      y_m[i] = ydist(ymt);
+      z_m[i] = zdist(zmt);
+
+      px_m[i] = xdist(xmt);
+      py_m[i] = ydist(ymt);
+      pz_m[i] = zdist(zmt);
+
+
+      q_m[i] = 1.0;
+      mass_m[i] = 1.0;
+    }
+}
+
+
 void Distribution::special(const Vector_t& lower, const Vector_t& upper,
                            const Vektor<std::size_t, 3>& nx, const Vektor<std::size_t, 3>& nv,
                            const Vektor<double, 3>& vmax, Type type, double alpha, double kk)
@@ -308,7 +352,7 @@ void Distribution::readH5(const std::string& filename, int step) {
 
 void Distribution::injectBeam(
 #ifdef IPPL_AMR
-    PartBunchAmr< ParticleAmrLayout<double, BL_SPACEDIM> >& bunch,
+    PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >& bunch,
 #else
     PartBunchBase& bunch,
 #endif
@@ -355,7 +399,7 @@ void Distribution::injectBeam(
 
 void Distribution::setDistribution(
 #ifdef IPPL_AMR
-    PartBunchAmr< ParticleAmrLayout<double, BL_SPACEDIM> >& bunch,
+    PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >& bunch,
 #else
     PartBunchBase& bunch,
 #endif

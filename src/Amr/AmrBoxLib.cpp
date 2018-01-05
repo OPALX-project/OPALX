@@ -99,7 +99,7 @@ void AmrBoxLib::initFineLevels() {
             amrpbase_p->setForbidTransform(true);
         }
 
-        if ( max_level > 0) {
+        if ( max_level > 0 && bunch_mp->getNumBunch() > 1 ) {
             
             amrpbase_p->update(0, 0);
             
@@ -326,7 +326,7 @@ void AmrBoxLib::computeSelfFields() {
 #endif
     
         sliceWriter.writeFields(rho_m, phi_m, efield_m,
-                                AmrIntArray_t(), this->geom, step);
+                                AmrIntArray_t(), this->geom, step, scalefactor);
 #endif
     }
 }
@@ -460,7 +460,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
 #endif
     
     sliceWriter.writeFields(rho_m, phi_m, efield_m,
-                            AmrIntArray_t(), this->geom, step);
+                            AmrIntArray_t(), this->geom, step, scalefactor);
 #endif
 }
 
@@ -579,7 +579,7 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
 #endif
     
         sliceWriter.writeFields(rho_m, phi_m, efield_m,
-                                AmrIntArray_t(), this->geom, step);
+                                AmrIntArray_t(), this->geom, step, scalefactor);
 #endif
     }
 }
@@ -1153,14 +1153,14 @@ void AmrBoxLib::initParmParse_m(const AmrInitialInfo& info, AmrLayout_t* layout_
     amrex::ParmParse pAmr("amr");
     pAmr.add("max_grid_size", info.maxgrid);
     
-    const int nratios_vect = info.maxlevel * BL_SPACEDIM;
+    const int nratios_vect = info.maxlevel * AMREX_SPACEDIM;
     
     AmrIntArray_t refRatio(nratios_vect);
     
     for (int i = 0; i < info.maxlevel; ++i) {
-        refRatio[i * BL_SPACEDIM]     = info.refratx;
-        refRatio[i * BL_SPACEDIM + 1] = info.refraty;
-        refRatio[i * BL_SPACEDIM + 2] = info.refratz;
+        refRatio[i * AMREX_SPACEDIM]     = info.refratx;
+        refRatio[i * AMREX_SPACEDIM + 1] = info.refraty;
+        refRatio[i * AMREX_SPACEDIM + 2] = info.refratz;
     }
     
     pAmr.addarr("ref_ratio_vect", refRatio);
