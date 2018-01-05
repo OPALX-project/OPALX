@@ -11,7 +11,7 @@ FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* itsAmrObject_p)
       abstol_m(0.0)
 {
     // Dirichlet boundary conditions are default
-    for (int d = 0; d < BL_SPACEDIM; ++d) {
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         bc_m[2 * d]     = MGT_BC_DIR;
         bc_m[2 * d + 1] = MGT_BC_DIR;
     }
@@ -29,12 +29,12 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
     const GeomContainer_t& geom = itsAmrObject_mp->Geom();
 
     if (AmrGeometry_t::isAllPeriodic()) {
-        for (int d = 0; d < BL_SPACEDIM; ++d) {
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             bc_m[2 * d]     = MGT_BC_PER;
             bc_m[2 * d + 1] = MGT_BC_PER;
         }
     } else if ( AmrGeometry_t::isAnyPeriodic() ) {
-        for (int d = 0; d < BL_SPACEDIM; ++d) {
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             if ( AmrGeometry_t::isPeriodic(d) ) {
                 bc_m[2 * d]     = MGT_BC_PER;
                 bc_m[2 * d + 1] = MGT_BC_PER;
@@ -46,9 +46,9 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
     
     for (int lev = baseLevel; lev <= finestLevel ; ++lev) {
         const AmrProcMap_t& dmap = rho[lev]->DistributionMap();
-	grad_phi_edge[lev].resize(BL_SPACEDIM);
+	grad_phi_edge[lev].resize(AMREX_SPACEDIM);
         
-        for (int n = 0; n < BL_SPACEDIM; ++n) {
+        for (int n = 0; n < AMREX_SPACEDIM; ++n) {
 	    AmrGrid_t ba = rho[lev]->boxArray();
             grad_phi_edge[lev][n].reset(new AmrField_t(ba.surroundingNodes(n), dmap, 1, 1));
 	    grad_phi_edge[lev][n]->setVal(0.0, 1);
@@ -95,7 +95,7 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
                                           amrex::GetArrOfConstPtrs(grad_phi_edge[lev]),
                                           geom[lev]);
         
-        efield[lev]->FillBoundary(0, BL_SPACEDIM,geom[lev].periodicity());
+        efield[lev]->FillBoundary(0, AMREX_SPACEDIM,geom[lev].periodicity());
         // we need also minus sign due to \vec{E} = - \nabla\phi
         efield[lev]->mult(-l0norm, 0, 3);
     }

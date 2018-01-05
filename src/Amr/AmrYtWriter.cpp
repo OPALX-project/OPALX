@@ -83,25 +83,25 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
 
         // variable names
         for (int ivar = 1; ivar <= rho[0]->nComp(); ivar++)
-          HeaderFile << "rho\n";
+            HeaderFile << "rho\n";
         
         for (int ivar = 1; ivar <= phi[0]->nComp(); ivar++)
-          HeaderFile << "potential\n";
+            HeaderFile << "potential\n";
         
-          HeaderFile << "Ex\nEy\nEz\n";
+        HeaderFile << "Ex\nEy\nEz\n";
         
         // dimensionality
-        HeaderFile << BL_SPACEDIM << '\n';
+        HeaderFile << AMREX_SPACEDIM << '\n';
         
         // time
         HeaderFile << time << '\n';
         HeaderFile << nLevels - 1 << std::endl; // maximum level number (0=single level)
         
         // physical domain
-        for (int i = 0; i < BL_SPACEDIM; i++)
+        for (int i = 0; i < AMREX_SPACEDIM; i++)
             HeaderFile << geom[0].ProbLo(i) / scale << ' ';
         HeaderFile << '\n';
-        for (int i = 0; i < BL_SPACEDIM; i++)
+        for (int i = 0; i < AMREX_SPACEDIM; i++)
             HeaderFile << geom[0].ProbHi(i) / scale << ' ';
         HeaderFile << std::endl;
         
@@ -120,7 +120,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         
         // cell sizes for all level
         for (int i = 0; i < nLevels; ++i) {
-            for (int k = 0; k < BL_SPACEDIM; k++)
+            for (int k = 0; k < AMREX_SPACEDIM; k++)
                 HeaderFile << geom[i].CellSize()[k] / scale << ' ';
             HeaderFile << '\n';
         }
@@ -182,7 +182,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
                                                         &dx[0], &lo[0]);
 //                                                         geom[lev].CellSize(),
 //                                                         geom[lev].ProbLo());
-                for (int n = 0; n < BL_SPACEDIM; n++)
+                for (int n = 0; n < AMREX_SPACEDIM; n++)
                     HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
             }
     

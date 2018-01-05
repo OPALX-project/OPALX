@@ -3,12 +3,12 @@ template <class T, unsigned Dim>
 bool ParticleAmrLayout<T, Dim>::do_tiling = false;
 
 template <class T, unsigned Dim>
-IntVect ParticleAmrLayout<T, Dim>::tile_size   { D_DECL(1024000,8,8) };
+amrex::IntVect ParticleAmrLayout<T, Dim>::tile_size   { D_DECL(1024000,8,8) };
 
 // Function from AMReX adjusted to work with Ippl AmrParticleBase class
 //get the cell where particle is located - uses AmrParticleBase object and particle id
 template <class T, unsigned Dim>
-IntVect ParticleAmrLayout<T, Dim>::Index (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
+amrex::IntVect ParticleAmrLayout<T, Dim>::Index (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
 					  const unsigned int ip,
 					  int lev) const
 {
@@ -17,11 +17,11 @@ IntVect ParticleAmrLayout<T, Dim>::Index (AmrParticleBase< ParticleAmrLayout<T,D
 
 //get the cell where particle is located - uses the particle position vector R
 template <class T, unsigned Dim>
-IntVect ParticleAmrLayout<T, Dim>::Index (SingleParticlePos_t &R,
+amrex::IntVect ParticleAmrLayout<T, Dim>::Index (SingleParticlePos_t &R,
 					  int lev) const
 {
-    IntVect iv;
-    const Geometry& geom = Geom(lev);
+    amrex::IntVect iv;
+    const amrex::Geometry& geom = Geom(lev);
 
     D_TERM(iv[0]=floor((R[0]-geom.ProbLo(0))/geom.CellSize(0));,
            iv[1]=floor((R[1]-geom.ProbLo(1))/geom.CellSize(1));,
@@ -33,7 +33,7 @@ IntVect ParticleAmrLayout<T, Dim>::Index (SingleParticlePos_t &R,
 }
 
 template <class T, unsigned Dim>
-int ParticleAmrLayout<T, Dim>::getTileIndex(const IntVect& iv, const Box& box, Box& tbx) {
+int ParticleAmrLayout<T, Dim>::getTileIndex(const amrex::IntVect& iv, const amrex::Box& box, amrex::Box& tbx) {
     if (do_tiling == false) {
         tbx = box;
         return 0;
@@ -60,9 +60,9 @@ int ParticleAmrLayout<T, Dim>::getTileIndex(const IntVect& iv, const Box& box, B
                 thi = tlo + ts_right - 1;
             }
         };
-        const IntVect& small = box.smallEnd();
-        const IntVect& big   = box.bigEnd();
-        IntVect ntiles, ivIndex, tilelo, tilehi;
+        const amrex::IntVect& small = box.smallEnd();
+        const amrex::IntVect& big   = box.bigEnd();
+        amrex::IntVect ntiles, ivIndex, tilelo, tilehi;
 
         D_TERM(int iv0 = std::min(std::max(iv[0], small[0]), big[0]);,
                int iv1 = std::min(std::max(iv[1], small[1]), big[1]);,
@@ -72,7 +72,7 @@ int ParticleAmrLayout<T, Dim>::getTileIndex(const IntVect& iv, const Box& box, B
                tiling_1d(iv1, small[1], big[1], tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
                tiling_1d(iv2, small[2], big[2], tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
 
-        tbx = Box(tilelo, tilehi);
+        tbx = amrex::Box(tilelo, tilehi);
 
         return D_TERM(ivIndex[0], + ntiles[0]*ivIndex[1], + ntiles[0]*ntiles[1]*ivIndex[2]);
     }
@@ -95,20 +95,20 @@ bool ParticleAmrLayout<T, Dim>::Where (AmrParticleBase< ParticleAmrLayout<T,Dim>
     
     BL_ASSERT(nGrow == 0 || (nGrow >= 0 && lev_min == lev_max));
 
-    std::vector< std::pair<int,Box> > isects;
+    std::vector< std::pair<int,amrex::Box> > isects;
 
     for (unsigned int lev = (unsigned)lev_max; lev >= (unsigned)lev_min; lev--)
     {
-        const IntVect& iv = Index(p, ip, lev);
-        const BoxArray& ba = ParticleBoxArray(lev);
+        const amrex::IntVect& iv = Index(p, ip, lev);
+        const amrex::BoxArray& ba = ParticleBoxArray(lev);
         BL_ASSERT(ba.ixType().cellCentered());
 
 	if (lev == p.m_lev[ip]) { 
             // The fact that we are here means this particle does not belong to any finer grids.
 	    if (0 <= p.m_grid[ip] && p.m_grid[ip] < ba.size())
 	    {
-		const Box& bx = ba.getCellCenteredBox(p.m_grid[ip]);
-                const Box& gbx = amrex::grow(bx,nGrow);
+		const amrex::Box& bx = ba.getCellCenteredBox(p.m_grid[ip]);
+                const amrex::Box& gbx = amrex::grow(bx,nGrow);
                 if (gbx.contains(iv))
                 {
 //                     if (bx != pld.m_gridbox || !pld.m_tilebox.contains(iv)) {
@@ -120,7 +120,7 @@ bool ParticleAmrLayout<T, Dim>::Where (AmrParticleBase< ParticleAmrLayout<T,Dim>
             }
         }
         
-        ba.intersections(Box(iv, iv), isects, true, nGrow);
+        ba.intersections(amrex::Box(iv, iv), isects, true, nGrow);
         
         if (!isects.empty())
         {
@@ -157,14 +157,14 @@ bool ParticleAmrLayout<T, Dim>::EnforcePeriodicWhere (AmrParticleBase<ParticleAm
 
     if (PeriodicShift(R))
     {
-        std::vector< std::pair<int,Box> > isects;
+        std::vector< std::pair<int,amrex::Box> > isects;
 
         for (int lev = lev_max; lev >= lev_min; lev--)
         {
-            const IntVect& iv = Index(R, lev);
-            const BoxArray& ba = ParticleBoxArray(lev);
+            const amrex::IntVect& iv = Index(R, lev);
+            const amrex::BoxArray& ba = ParticleBoxArray(lev);
             
-            ba.intersections(Box(iv,iv),isects,true,0);
+            ba.intersections(amrex::Box(iv,iv),isects,true,0);
 
             if (!isects.empty())
             {
@@ -195,12 +195,12 @@ bool ParticleAmrLayout<T, Dim>::PeriodicShift (SingleParticlePos_t R) const
     //
     // We'll use level 0 stuff since ProbLo/ProbHi are the same for every level.
     //
-    const Geometry& geom    = Geom(0);
-    const Box&      dmn     = geom.Domain();
-    const IntVect&  iv      = Index(R, 0);
+    const amrex::Geometry& geom    = Geom(0);
+    const amrex::Box&      dmn     = geom.Domain();
+    const amrex::IntVect&  iv      = Index(R, 0);
     bool            shifted = false;  
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         if (!geom.isPeriodic(i)) continue;
 
