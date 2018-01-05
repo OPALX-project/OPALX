@@ -25,6 +25,8 @@
 
 #define Dim 3
 
+using namespace amrex;
+
 typedef ParticleAmrLayout<double,Dim> amrplayout_t;
 typedef AmrParticleBase<amrplayout_t> amrbase_t;
 typedef PartBunchAmr<amrplayout_t> amrbunch_t;
@@ -99,13 +101,13 @@ void doTestScatter(TestParams& parms) {
     int nlevs = parms.nlevs;
     
     RealBox real_box;
-    for (int n = 0; n < BL_SPACEDIM; n++) {
+    for (int n = 0; n < AMREX_SPACEDIM; n++) {
         real_box.setLo(n, 0.0);
         real_box.setHi(n, 1.0);
     }
 
     RealBox fine_box;
-    for (int n = 0; n < BL_SPACEDIM; n++)
+    for (int n = 0; n < AMREX_SPACEDIM; n++)
     {
        fine_box.setLo(n,0.25);
        fine_box.setHi(n,0.75);
@@ -124,8 +126,8 @@ void doTestScatter(TestParams& parms) {
     int coord = 0;
 
     // This sets the boundary conditions to be doubly or triply periodic
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    int is_per[AMREX_SPACEDIM];
+    for (int i = 0; i < AMREX_SPACEDIM; i++) 
         is_per[i] = 1; 
 
     // This defines a Geometry object which is useful for writing the plotfiles  

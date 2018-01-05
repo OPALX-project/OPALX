@@ -58,7 +58,7 @@ public:
         Inform msg("gatherLevelStatistics");
         
         PLayout* playout = &this->getLayout();
-        const ParGDBBase* gdb = playout->GetParGDB();
+        const amrex::ParGDBBase* gdb = playout->GetParGDB();
         int nLevel = gdb->finestLevel() + 1;
         
         std::unique_ptr<size_t[]> partPerLevel( new size_t[nLevel] );
@@ -122,16 +122,16 @@ public:
                 wm = (i == 0) ? wm : Inform::APPEND;
                 
                 PLayout* playout = &this->getLayout();
-                const ParGDBBase* gdb = playout->GetParGDB();
+                const amrex::ParGDBBase* gdb = playout->GetParGDB();
                 
                 std::string grid_file = "grids_" + st.str() + ".dat";
                 Inform msg("", grid_file.c_str(), wm, i);
                 for (int l = 0; l < gdb->finestLevel() + 1; ++l) {
-                    Geometry geom = gdb->Geom(l);
+                    amrex::Geometry geom = gdb->Geom(l);
                     for (int g = 0; g < gdb->ParticleBoxArray(l).size(); ++g) {
                         msg << l << ' ';
-                        RealBox loc = RealBox(gdb->boxArray(l)[g],geom.CellSize(),geom.ProbLo());
-                        for (int n = 0; n < BL_SPACEDIM; n++)
+                        amrex::RealBox loc = amrex::RealBox(gdb->boxArray(l)[g],geom.CellSize(),geom.ProbLo());
+                        for (int n = 0; n < AMREX_SPACEDIM; n++)
                             msg << loc.lo(n) << ' ' << loc.hi(n) << ' ';
                         msg << endl;
                     }
