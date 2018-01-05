@@ -22,6 +22,8 @@
 
 #define Dim 3
 
+using namespace amrex;
+
 typedef ParticleAmrLayout<double,Dim> amrplayout_t;
 typedef AmrParticleBase<amrplayout_t> amrbase_t;
 typedef PartBunchAmr<amrplayout_t> amrbunch_t;
@@ -60,7 +62,7 @@ void createRandomParticles(amrbunch_t *bunch, int N, int myNode, int seed = 1) {
 void initBunch(amrbunch_t* &bunch, int N) {
     
     RealBox real_box;
-    for (int n = 0; n < BL_SPACEDIM; n++) {
+    for (int n = 0; n < AMREX_SPACEDIM; n++) {
         real_box.setLo(n,  0.0);
         real_box.setHi(n,  1.0);
     }
@@ -72,8 +74,8 @@ void initBunch(amrbunch_t* &bunch, int N) {
     
     int coord = 0;
     
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    int is_per[AMREX_SPACEDIM];
+    for (int i = 0; i < AMREX_SPACEDIM; i++) 
         is_per[i] = 0;
     
     
@@ -109,7 +111,7 @@ void initBunch(amrbunch_t* &bunch, int N) {
 void initAmr(AmrOpal* &myAmrOpal) {
     
     RealBox real_box;
-    for (int n = 0; n < BL_SPACEDIM; n++) {
+    for (int n = 0; n < AMREX_SPACEDIM; n++) {
         real_box.setLo(n, 0.0);
         real_box.setHi(n, 1.0);
     }

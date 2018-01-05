@@ -36,14 +36,14 @@ using namespace amrex;
  */
 
 class MyParticleContainer
-    : public ParticleContainer<BL_SPACEDIM + 1 /* momenta */>
+    : public ParticleContainer<AMREX_SPACEDIM + 1 /* momenta */>
 {
  public:
 
     MyParticleContainer(const Geometry            & geom, 
                         const DistributionMapping & dmap,
                         const BoxArray            & ba)
-        : ParticleContainer<BL_SPACEDIM + 1> (geom, dmap, ba), particles_rm(GetParticles())
+        : ParticleContainer<AMREX_SPACEDIM + 1> (geom, dmap, ba), particles_rm(GetParticles())
         {}
 
     // init particles within sphere of radius r
@@ -82,7 +82,7 @@ class MyParticleContainer
         
         ParticleLocData pld;
         
-        for (uint i = 0; i < nLocParticles; ++i) {
+        for (int i = 0; i < nLocParticles; ++i) {
             double phi = std::acos( ph(eng[0]) );
             double theta = th(eng[1]);
             double radius = r * std::cbrt( u(eng[2]) );
@@ -98,12 +98,12 @@ class MyParticleContainer
             p.m_rdata.arr[2] = z;
             
             // charge instead of mass
-            p.m_rdata.arr[BL_SPACEDIM] = qi; // C
+            p.m_rdata.arr[AMREX_SPACEDIM] = qi; // C
             
             // momenta
-            p.m_rdata.arr[4/*BL_SPACEDIM + i*/] = 0.0;
-            p.m_rdata.arr[5/*BL_SPACEDIM + i*/] = 0.0;
-            p.m_rdata.arr[6/*BL_SPACEDIM + i*/] = 0.0;
+            p.m_rdata.arr[4/*AMREX_SPACEDIM + i*/] = 0.0;
+            p.m_rdata.arr[5/*AMREX_SPACEDIM + i*/] = 0.0;
+            p.m_rdata.arr[6/*AMREX_SPACEDIM + i*/] = 0.0;
             
             if (!this->Where(p, pld))
                 amrex::Abort("invalid particle");
@@ -371,7 +371,7 @@ void solve(MyAmr& myAmr, MyParticleContainer& myPC) {
         const BoxArray& ba = myAmr.boxArray(i);
         rho[i] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm,    1,           0));
         phi[i] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm,    1,           1));
-        efield[i] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm, BL_SPACEDIM, 1));
+        efield[i] = std::unique_ptr<MultiFab>(new MultiFab(ba, dm, AMREX_SPACEDIM, 1));
     
         rho[i]->setVal(0.0);
         phi[i]->setVal(0.0, 1);
@@ -417,7 +417,7 @@ void doTest(TestParams& parms)
     double halflength = parms.sphere_radius * 1.05;
     
     RealBox real_box;
-    for (int n = 0; n < BL_SPACEDIM; n++) {
+    for (int n = 0; n < AMREX_SPACEDIM; n++) {
         real_box.setLo(n, -halflength);
         real_box.setHi(n, halflength);
     }
