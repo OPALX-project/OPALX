@@ -8,6 +8,9 @@
 #include "error_handler.hpp"
 #include "annotation.hpp"
 #include <boost/spirit/include/phoenix_function.hpp>
+#include <boost/spirit/include/phoenix.hpp>
+#include <boost/fusion/adapted.hpp>
+//#include <boost/spirit/include/qi_lit.hpp>
 
 namespace client { namespace parser
 {
@@ -19,6 +22,7 @@ namespace client { namespace parser
 	//        qi::_2_type _2;
         qi::_3_type _3;
         qi::_4_type _4;
+        qi::_a_type _a;
 
         qi::char_type char_;
         qi::uint_type uint_;
@@ -26,6 +30,9 @@ namespace client { namespace parser
         qi::_val_type _val;
         qi::raw_type raw;
         qi::lexeme_type lexeme;
+        qi::lit_type lit;
+        qi::no_skip_type no_skip;
+        qi::omit_type omit;
         qi::alpha_type alpha;
         qi::alnum_type alnum;
         qi::bool_type bool_;
@@ -142,9 +149,9 @@ namespace client { namespace parser
             ;
 
         quoted_string %=
-                '"'
-            >   *(char_ - '"')
-            >   '"'
+            omit [ char_("'\"") [_a = _1] ]
+            >>  no_skip [ *(char_ - char_(_a)) ]
+            >>  lit(_a)
             ;
 
         argument_list = -((expr | quoted_string) % ',');
