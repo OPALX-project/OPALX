@@ -1734,6 +1734,7 @@ Change orientation if diff is:
     MPI_Comm comm = Ippl::getComm();
     H5SetPropFileMPIOCollective (props, &comm);
     h5_file_t f = H5OpenFile (h5FileName_m.c_str(), H5_O_RDONLY, props);
+    H5CloseProp (props);
 
     h5t_mesh_t* m = NULL;
     H5FedOpenTriangleMesh (f, "0", &m);

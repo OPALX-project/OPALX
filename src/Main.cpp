@@ -252,7 +252,7 @@ int mainOPALOptimiser(int argc, char *argv[]) {
 
 
 int mainOPAL(int argc, char *argv[]) {
-    ippl = new Ippl(argc, argv);
+    Ippl *ippl = new Ippl(argc, argv);
     gmsg = new  Inform("OPAL");
 
     namespace fs = boost::filesystem;
@@ -339,6 +339,7 @@ int mainOPAL(int argc, char *argv[]) {
     FTps<double, 6>::setGlobalTruncOrder(10);
 
     OpalData *opal = OpalData::getInstance();
+    opal->storeArguments(argc, argv);
     try {
         Configure::configure();
 
@@ -642,10 +643,10 @@ int main(int argc, char *argv[]) {
 
     int res;
 
-    if ((argc <= 1) || !haveOptimiseRun(argc, argv))
+    // if ((argc <= 1) || !haveOptimiseRun(argc, argv))
         res = mainOPAL(argc, argv);
-    else
-        res = mainOPALOptimiser(argc, argv);
+    // else
+    //     res = mainOPALOptimiser(argc, argv);
     return res;
 
 }

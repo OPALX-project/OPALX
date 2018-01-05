@@ -146,6 +146,8 @@ struct OpalDataImpl {
     bool isInOPALEnvMode_m;
     bool isInOPALThickTrackerMode_m;
     bool isInPrepState_m;
+
+    std::vector<std::string> arguments_m;
 };
 
 
@@ -801,4 +803,15 @@ std::vector<std::string> OpalData::getAllNames() {
     //// /DTA
 
     return result;
+}
+
+void OpalData::storeArguments(int argc, char *argv[]) {
+    p->arguments_m.clear();
+    for (int i = 0; i < argc; ++ i) {
+        p->arguments_m.push_back(argv[i]);
+    }
+}
+
+std::vector<std::string> OpalData::getArguments() {
+    return p->arguments_m;
 }
