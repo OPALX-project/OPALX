@@ -1,10 +1,12 @@
 #include "opal_test_utilities/SilenceTest.h"
+#include "Utility/IpplInfo.h"
 
 std::streambuf *OpalTestUtilities::SilenceTest::_defaultCout = NULL;
 std::streambuf *OpalTestUtilities::SilenceTest::_defaultCerr = NULL;
 
 OpalTestUtilities::SilenceTest::SilenceTest():
     _failed(false) {
+    IpplInfo::instantiateGlobals();
     if (_defaultCout == NULL ) {
         _defaultCout = std::cout.rdbuf();
         _defaultCerr = std::cerr.rdbuf();

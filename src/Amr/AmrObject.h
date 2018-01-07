@@ -4,6 +4,7 @@
 #include "Index/NDIndex.h"
 
 #include "Algorithms/PBunchDefs.h"
+#include "Utilities/Util.h"
 
 // #include "Algorithms/AmrPartBunch.h"
 
@@ -74,6 +75,33 @@ public:
      */
     void setTagging(TaggingCriteria tagging) {
         tagging_m = tagging;
+    }
+    
+    /*!
+     * Choose a new tagging strategy (string version).
+     * Is used in src/Structure/FieldSolver.cpp
+     * @param tagging strategy
+     */
+    void setTagging(std::string tagging) {
+        tagging = Util::toUpper(tagging);
+        
+        if ( tagging == "POTENTIAL" )
+            tagging_m = TaggingCriteria::POTENTIAL;
+        else if (tagging == "EFIELD" )
+            tagging_m = TaggingCriteria::EFIELD;
+        else if ( tagging == "MOMENTA" )
+            tagging_m = TaggingCriteria::MOMENTA;
+        else if ( tagging == "MAX_NUM_PARTICLES" )
+            tagging_m = TaggingCriteria::MAX_NUM_PARTICLES;
+        else if ( tagging == "MIN_NUM_PARTICLES" )
+            tagging_m = TaggingCriteria::MIN_NUM_PARTICLES;
+        else if ( tagging == "CHARGE_DENSITY" )
+            tagging_m = TaggingCriteria::CHARGE_DENSITY;
+        else
+            throw OpalException("AmrObject::setTagging(std::string)",
+                                "Not supported refinement criteria "
+                                "[CHARGE_DENSITY | POTENTIAL | EFIELD | "
+                                "MOMENTA | MAX_NUM_PARTICLES | MIN_NUM_PARTICLES].");
     }
     
     /*!

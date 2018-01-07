@@ -29,7 +29,7 @@
 using namespace amrex;
 
 class MyParticleContainer
-    : public ParticleContainer<BL_SPACEDIM>
+    : public ParticleContainer<AMREX_SPACEDIM>
 {
 public:
 
@@ -37,7 +37,7 @@ public:
                         const Array<DistributionMapping> & dmap,
                         const Array<BoxArray>            & ba,
                         const Array<int>                 & rr)
-        : ParticleContainer<BL_SPACEDIM> (geom, dmap, ba, rr), particles_rm(GetParticles())
+        : ParticleContainer<AMREX_SPACEDIM> (geom, dmap, ba, rr), particles_rm(GetParticles())
         {
         }
 
@@ -54,7 +54,7 @@ public:
         const Real      strttime = ParallelDescriptor::second();
         const Geometry& geom     = m_gdb->Geom(0);
         
-        Real r, x, len[BL_SPACEDIM] = { D_DECL(geom.ProbLength(0),
+        Real r, x, len[AMREX_SPACEDIM] = { D_DECL(geom.ProbLength(0),
                                                geom.ProbLength(1),
                                                geom.ProbLength(2)) };
         
@@ -74,40 +74,40 @@ public:
         // positions no matter how many CPUs we have.  This is here
         // mainly for debugging purposes.  It's not really useful for
         // very large numbers of particles.
-        Array<typename ParticleType::RealType> pos(icount*BL_SPACEDIM);
+        Array<typename ParticleType::RealType> pos(icount*AMREX_SPACEDIM);
         
         if (ParallelDescriptor::IOProcessor()) {
-            for (long j = 0; j < icount; j++) {
-                for (int i = 0; i < BL_SPACEDIM; i++) {
+            for (unsigned long j = 0; j < icount; j++) {
+                for (int i = 0; i < AMREX_SPACEDIM; i++) {
                     do {
                         x = dist(mt) + 0.25;
                     }
                     while (x < xlo[i] || x > xhi[i]);
                     
-                    pos[j*BL_SPACEDIM + i] = x;
+                    pos[j*AMREX_SPACEDIM + i] = x;
                 }
             }
         }
         
         // Send the particle positions to other procs (this is very slow)
-        ParallelDescriptor::Bcast(pos.dataPtr(), icount*BL_SPACEDIM, IOProc);
+        ParallelDescriptor::Bcast(pos.dataPtr(), icount*AMREX_SPACEDIM, IOProc);
         
         ParticleLocData pld;
         
         int cnt = 0;
-        for (long j = 0; j < icount; j++) {
+        for (unsigned long j = 0; j < icount; j++) {
             ParticleType p;
             
-            for (int i = 0; i < BL_SPACEDIM; i++)
-                p.m_rdata.arr[i] = pos[j*BL_SPACEDIM + i];
+            for (int i = 0; i < AMREX_SPACEDIM; i++)
+                p.m_rdata.arr[i] = pos[j*AMREX_SPACEDIM + i];
         
-            p.m_rdata.arr[BL_SPACEDIM] = mass;
+            p.m_rdata.arr[AMREX_SPACEDIM] = mass;
             
             // momenta
-//             for (int i = 1; i < 1 + BL_SPACEDIM; i++)
-                p.m_rdata.arr[4/*BL_SPACEDIM + i*/] = 0.0;
-                p.m_rdata.arr[5/*BL_SPACEDIM + i*/] = 0.0;
-                p.m_rdata.arr[6/*BL_SPACEDIM + i*/] = 0.0;
+//             for (int i = 1; i < 1 + AMREX_SPACEDIM; i++)
+                p.m_rdata.arr[4/*AMREX_SPACEDIM + i*/] = 0.0;
+                p.m_rdata.arr[5/*AMREX_SPACEDIM + i*/] = 0.0;
+                p.m_rdata.arr[6/*AMREX_SPACEDIM + i*/] = 0.0;
 
             if (!this->Where(p, pld))
                 amrex::Abort("invalid particle");
@@ -134,7 +134,7 @@ public:
         Geometry geom = m_gdb->Geom(0);
         
         RealBox rb = geom.ProbDomain();
-        for (int n = 0; n < BL_SPACEDIM; n++) {
+        for (int n = 0; n < AMREX_SPACEDIM; n++) {
             std::cout << rb.lo(n) << " " << rb.hi(n) << std::endl;
         }
         
@@ -160,7 +160,7 @@ public:
     
     void updateGeometry(double lower, double upper) {
         RealBox real_box;
-        for (int n = 0; n < BL_SPACEDIM; n++) {
+        for (int n = 0; n < AMREX_SPACEDIM; n++) {
             real_box.setLo(n, lower);
             real_box.setHi(n, upper);
         }
@@ -171,8 +171,8 @@ public:
         int coord = 0;
     
         // This sets the boundary conditions to be doubly or triply periodic
-        int is_per[BL_SPACEDIM];
-        for (int i = 0; i < BL_SPACEDIM; i++) 
+        int is_per[AMREX_SPACEDIM];
+        for (int i = 0; i < AMREX_SPACEDIM; i++) 
             is_per[i] = 0; 
         
         int nlevs = GetParticles().size();
@@ -233,7 +233,7 @@ void testGeometry() {
     int max_grid_size = 8;
     
     RealBox real_box;
-    for (int n = 0; n < BL_SPACEDIM; n++) {
+    for (int n = 0; n < AMREX_SPACEDIM; n++) {
         real_box.setLo(n, 0.0);
         real_box.setHi(n, 0.5);
     }
@@ -251,8 +251,8 @@ void testGeometry() {
     int coord = 0;
 
     // This sets the boundary conditions to be doubly or triply periodic
-    int is_per[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    int is_per[AMREX_SPACEDIM];
+    for (int i = 0; i < AMREX_SPACEDIM; i++) 
         is_per[i] = 0; 
 
     // This defines a Geometry object which is useful for writing the plotfiles  

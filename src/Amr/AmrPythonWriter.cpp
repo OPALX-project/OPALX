@@ -92,7 +92,7 @@ void AmrPythonWriter::writeBunch(const AmrPartBunch* bunch_p,
                                                             &dx[0], &lo[0]);
 //                                                             geom.CellSize(),
 //                                                             geom.ProbLo());
-                    for (int n = 0; n < BL_SPACEDIM; n++)
+                    for (int n = 0; n < AMREX_SPACEDIM; n++)
                         msg_grid << loc.lo(n) << ' ' << loc.hi(n) << ' ';
                     msg_grid << endl;
                 }

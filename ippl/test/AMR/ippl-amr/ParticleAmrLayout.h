@@ -45,8 +45,6 @@
 #include <AMReX_Particles.H>
 #include <AMReX_RealBox.H>
 
-using namespace amrex;
-
 template <class T, unsigned Dim>
 class ParticleAmrLayout : public ParticleLayout<T, Dim>
 {
@@ -64,14 +62,14 @@ public:
     typedef ParticleAttrib<Index_t>             ParticleIndex_t;
     
     static bool do_tiling;
-    static IntVect tile_size;
+    static amrex::IntVect tile_size;
     
 private:
   
     //ParGDBBase class from AMReX is used to determine grid, level 
     //and node where each particle belongs
-    ParGDBBase* m_gdb;
-    ParGDB m_gdb_object;
+    amrex::ParGDBBase* m_gdb;
+    amrex::ParGDB m_gdb_object;
 
     // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     // Checks/sets a particles location on levels lev_min and higher.
@@ -99,14 +97,14 @@ public:
         m_gdb(nullptr) {}
 
     //constructor: takes ParGDBBase as argument
-    ParticleAmrLayout(ParGDBBase* gdb) : 
+    ParticleAmrLayout(amrex::ParGDBBase* gdb) : 
         m_gdb(gdb) {}
 
     //constructor: takes AMReX Geometry, DistributionMapping and BoxArray objects as arguments and
     //defines a new ParGDBBase object
-    ParticleAmrLayout(const Geometry &geom, 
-                      const DistributionMapping &dmap, 
-                      const BoxArray &ba) :
+    ParticleAmrLayout(const amrex::Geometry &geom, 
+                      const amrex::DistributionMapping &dmap, 
+                      const amrex::BoxArray &ba) :
         m_gdb_object(geom, dmap, ba)
     {
         m_gdb = &m_gdb_object;
@@ -114,84 +112,84 @@ public:
 
     //constructor: takes AMReX Geometry, DistributionMapping, BoxArray and an array of refinements
     //at each level and constructs a new ParGDBBase object
-    ParticleAmrLayout(const Array<Geometry>            & geom, 
-                      const Array<DistributionMapping> & dmap,
-                      const Array<BoxArray>            & ba,
-                      const Array<int>                 & rr):
+    ParticleAmrLayout(const amrex::Array<amrex::Geometry>            & geom, 
+                      const amrex::Array<amrex::DistributionMapping> & dmap,
+                      const amrex::Array<amrex::BoxArray>            & ba,
+                      const amrex::Array<int>                 & rr):
         m_gdb_object(geom,dmap,ba,rr)
     {
         m_gdb = & m_gdb_object;
     }
 
     //define the ParGDBBase object
-    void Define (ParGDBBase* gdb) 
+    void Define (amrex::ParGDBBase* gdb) 
     {
         m_gdb = gdb;
     }
   
     //create new ParGDBBase using Geometry, DistributionMapping and BoxArray
-    void Define (const Geometry &geom, 
-                 const DistributionMapping &dmap, 
-                 const BoxArray &ba) 
+    void Define (const amrex::Geometry &geom, 
+                 const amrex::DistributionMapping &dmap, 
+                 const amrex::BoxArray &ba) 
     {
-        m_gdb_object = ParGDB(geom, dmap, ba);
+        m_gdb_object = amrex::ParGDB(geom, dmap, ba);
         m_gdb = &m_gdb_object;
     }
 
     //create new ParGDBBase using Geometry, DistributionMapping, BoxArray and 
     //array with refinements at each level
-    void Define (const Array<Geometry>            & geom, 
-                 const Array<DistributionMapping> & dmap,
-                 const Array<BoxArray>            & ba,
-                 const Array<int>                 & rr)
+    void Define (const amrex::Array<amrex::Geometry>            & geom, 
+                 const amrex::Array<amrex::DistributionMapping> & dmap,
+                 const amrex::Array<amrex::BoxArray>            & ba,
+                 const amrex::Array<int>                 & rr)
     {
-        m_gdb_object = ParGDB(geom, dmap, ba, rr);
+        m_gdb_object = amrex::ParGDB(geom, dmap, ba, rr);
         m_gdb = &m_gdb_object;
     }
 
     //set a new BoxArray for the ParGDBBase at level lev
-    void SetParticleBoxArray(int lev, const BoxArray& new_ba)
+    void SetParticleBoxArray(int lev, const amrex::BoxArray& new_ba)
     {
         m_gdb->SetParticleBoxArray(lev, new_ba);
     }
 
     //set a new DistributionMapping for ParGDBBase at level lev
-    void SetParticleDistributionMap(int lev, const DistributionMapping& new_dmap)
+    void SetParticleDistributionMap(int lev, const amrex::DistributionMapping& new_dmap)
     {
         m_gdb->SetParticleDistributionMap(lev, new_dmap);
     }
 
     //get the BoxArray at level lev
-    const BoxArray& ParticleBoxArray (int lev) const 
+    const amrex::BoxArray& ParticleBoxArray (int lev) const 
     { 
         return m_gdb->ParticleBoxArray(lev); 
     }
 
     //get the Distribution mapping at level lev
-    const DistributionMapping& ParticleDistributionMap (int lev) const 
+    const amrex::DistributionMapping& ParticleDistributionMap (int lev) const 
     { 
         return m_gdb->ParticleDistributionMap(lev); 
     }
     
-    const Geometry& Geom (int lev) const { return m_gdb->Geom(lev); }
+    const amrex::Geometry& Geom (int lev) const { return m_gdb->Geom(lev); }
     
     int finestLevel () const { return m_gdb->finestLevel(); }
     int maxLevel ()    const { return m_gdb->maxLevel(); }
 
     //get the PartGDBBase object
-    const ParGDBBase* GetParGDB () const
+    const amrex::ParGDBBase* GetParGDB () const
     { 
         return m_gdb; 
     }
 
     // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     //get the cell of the particle
-    IntVect Index (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
+    amrex::IntVect Index (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
                    const unsigned int ip, int leve) const;
 
     // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     //get the cell of the particle
-    IntVect Index (SingleParticlePos_t &R, int lev) const;
+    amrex::IntVect Index (SingleParticlePos_t &R, int lev) const;
 
     // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     //redistribute the particles using AMReXs ParGDB class to determine where particle should go
@@ -392,19 +390,19 @@ public:
     
     
 private:
-    int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);
+    int getTileIndex(const amrex::IntVect& iv, const amrex::Box& box,amrex:: Box& tbx);
     
     void locateParticle(AmrParticleBase< ParticleAmrLayout<T,Dim> >& p, 
                         const unsigned int ip,
                         int lev_min, int lev_max, int nGrow,
                         bool &particleLeftDomain) const
     {
-        bool outside = D_TERM( p.R[ip](0) <  Geometry::ProbLo(0)
-                            || p.R[ip](0) >= Geometry::ProbHi(0),
-                            || p.R[ip](1) <  Geometry::ProbLo(1)
-                            || p.R[ip](1) >= Geometry::ProbHi(1),
-                            || p.R[ip](2) <  Geometry::ProbLo(2)
-                            || p.R[ip](2) >= Geometry::ProbHi(2));
+        bool outside = D_TERM( p.R[ip](0) <  amrex::Geometry::ProbLo(0)
+                            || p.R[ip](0) >= amrex::Geometry::ProbHi(0),
+                            || p.R[ip](1) <  amrex::Geometry::ProbLo(1)
+                            || p.R[ip](1) >= amrex::Geometry::ProbHi(1),
+                            || p.R[ip](2) <  amrex::Geometry::ProbLo(2)
+                            || p.R[ip](2) >= amrex::Geometry::ProbHi(2));
         
         bool success;
         if (outside)
