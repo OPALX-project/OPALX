@@ -37,7 +37,7 @@ class Distribution {
 
 public:
     typedef std::vector<double> container_t;
-    typedef Vektor<double, BL_SPACEDIM> Vector_t;
+    typedef Vektor<double, AMREX_SPACEDIM> Vector_t;
     typedef std::function<double(const Vector_t&,
                          const Vector_t&,
                          double,
@@ -128,6 +128,16 @@ public:
      * @param seed of the Mersenne-Twister
      */
     void gaussian(double mean, double stddev, size_t nloc, int seed);
+
+    /// More general version of Gaussian particle distribution
+    /*!
+     * @param mean for each direction independently
+     * @param stddev for each direction
+     * @param nloc local number of particles
+     * @param seed of Mersenne-Twister
+     */
+    void gaussian(const double* mean, const double* stddev,
+		  size_t nloc, int seed);
     
     /// Generate particle distributions according to B.\ Ulmer
     /*!
@@ -177,7 +187,7 @@ public:
      */
     void injectBeam(
 #ifdef IPPL_AMR
-        PartBunchAmr< ParticleAmrLayout<double, BL_SPACEDIM> > & bunch,
+        PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> > & bunch,
 #else
         PartBunchBase& bunch,
 #endif
@@ -190,7 +200,7 @@ public:
      */
     void setDistribution(
 #ifdef IPPL_AMR
-        PartBunchAmr< ParticleAmrLayout<double, BL_SPACEDIM> >& bunch,
+        PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >& bunch,
 #else
         PartBunchBase& bunch,
 #endif

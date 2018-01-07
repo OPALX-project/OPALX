@@ -48,12 +48,21 @@ Inform *IpplInfo::Warn = 0;
 Inform *IpplInfo::Error = 0;
 Inform *IpplInfo::Debug = 0;
 
-// Communicate *IpplInfo::Comm = new Communicate();
-// IpplStats  *IpplInfo::Stats = new IpplStats();
-// Inform *IpplInfo::Info = new Inform("Ippl");
-// Inform *IpplInfo::Warn = new Inform("Warning", std::cerr);
-// Inform *IpplInfo::Error = new Inform("Error", std::cerr, INFORM_ALL_NODES);
-// Inform *IpplInfo::Debug = new Inform("**DEBUG**", std::cerr, INFORM_ALL_NODES);
+void IpplInfo::instantiateGlobals() {
+    if (Comm == 0)
+        Comm = new Communicate();
+    if (Stats == 0)
+        Stats = new IpplStats();
+    if (Info == 0)
+        Info = new Inform("Ippl");
+    if (Warn == 0)
+        Warn = new Inform("Warning", std::cerr);
+    if (Error == 0)
+        Error = new Inform("Error", std::cerr, INFORM_ALL_NODES);
+    if (Debug == 0)
+        Debug = new Inform("**DEBUG**", std::cerr, INFORM_ALL_NODES);
+}
+
 std::stack<StaticIpplInfo> IpplInfo::stashedStaticMembers;
 
 //dks base member of IpplInfo initialized to default values
