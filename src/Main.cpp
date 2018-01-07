@@ -507,7 +507,8 @@ int mainOPAL(int argc, char *argv[]) {
 
         IpplTimings::print();
 
-	IpplTimings::print(std::string("timing.dat"));
+	IpplTimings::print(std::string("timing.dat"),
+                           OpalData::getInstance()->getProblemCharacteristicValues());
 
         if(Ippl::myNode() == 0) {
             std::ifstream errormsg("errormsg.txt");
