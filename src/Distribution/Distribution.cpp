@@ -4758,7 +4758,7 @@ void Distribution::adjustPhaseSpace(double massIneV) {
                     (std::pow(pxDist_m[i] + deltaPx, 2) +
                      std::pow(pyDist_m[i] + deltaPy, 2)) / (2 * pzDist_m[i]));
     }
-    reduce(avrg, avrg + 6, avrg, OpAddAssign());
+    allreduce(&(avrg[0]), 6, std::plus<double>());
     avrg[5] /= totalNumberParticles_m;
 
     // solve
