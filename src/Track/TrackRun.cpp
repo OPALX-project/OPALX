@@ -1006,6 +1006,11 @@ void TrackRun::setupFieldsolver() {
                                 "The number of simulation particles (" + std::to_string(numParticles) + ") \n" +
                                 "is smaller than the number of gridpoints (" + std::to_string(numGridPoints) + ").\n" +
                                 "Please increase the number of particles or reduce the size of the mesh.\n");
+
+        OpalData::getInstance()->addProblemCharacteristicValue("MX", fs->getMX());
+        OpalData::getInstance()->addProblemCharacteristicValue("MY", fs->getMY());
+        OpalData::getInstance()->addProblemCharacteristicValue("MT", fs->getMT());
+
     }
 
     fs->initCartesianFields();

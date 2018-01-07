@@ -228,7 +228,7 @@ void Timing::print() {
 
 //////////////////////////////////////////////////////////////////////
 // save the timing results into a file
-void Timing::print(const std::string &fn) {
+void Timing::print(const std::string &fn, const std::map<std::string, unsigned int> &problemSize) {
 
     std::ofstream *timer_stream;
     Inform *msg;
@@ -239,7 +239,6 @@ void Timing::print(const std::string &fn) {
     timer_stream = new std::ofstream;
     timer_stream->open( fn.c_str(), std::ios::out );
     msg = new Inform( 0, *timer_stream, 0 );
-    Inform gmsg("bla ");
     // report the average time for each timer
     // Inform msg("Timings");
     /*
@@ -250,6 +249,14 @@ void Timing::print(const std::string &fn) {
      *msg << " name nodes (cputot cpumax) (walltot wallmax) cpumin wallmin cpuav wallav  ";
      *msg << "\n";
      */
+
+    if (problemSize.size() > 0) {
+        *msg << "Problem size:\n";
+        for (auto it: problemSize) {
+            *msg << "    " << std::setw(10) << it.first << ": " << it.second << "\n";
+        }
+        *msg << endl;
+    }
 
     *msg << std::setw(27) << "num Nodes"
          << std::setw(10) << "CPU tot"
