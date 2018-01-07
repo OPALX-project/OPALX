@@ -319,6 +319,7 @@ public:
   // print out statistics to the given Inform stream
   static void printStatistics(Inform&);
 
+  static void instantiateGlobals();
 private:
 
   static MPI_Comm communicator_m;
