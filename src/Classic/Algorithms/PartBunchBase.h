@@ -50,7 +50,7 @@ public:
 
     PartBunchBase(AbstractParticle<T, Dim>* pb);
 
-    virtual ~PartBunchBase() { delete pbase;}
+    virtual ~PartBunchBase() { }
 
     /*
      * Bunch common member functions
@@ -735,9 +735,7 @@ protected:
     // flag to tell if we are a DC-beam
     bool dcBeam_m;
 
-
-// protected:
-    /*std::unique_ptr<*/AbstractParticle<T, Dim>*/* >*/ pbase;
+    std::shared_ptr<AbstractParticle<T, Dim> > pbase;
 };
 
 #include "PartBunchBase.hpp"

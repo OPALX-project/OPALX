@@ -115,6 +115,7 @@ ENDIF (ENABLE_DKS)
 
 # Handle options
 OPTION (ENABLE_AMR "Enable AMReX based AMR solver" OFF)
+OPTION (ENABLE_AMR_MG_SOLVER "Enable AMR MG solver" OFF)
 
 OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
 
@@ -135,6 +136,7 @@ ENDIF (BUILD_OPAL_UNIT_TESTS)
 
 IF (ENABLE_AMR)
     MESSAGE (STATUS "Enable AMR_SOLVER    " ${ENABLE_AMR})
+    ENABLE_LANGUAGE (Fortran)
 
     find_package (AMReX CONFIG REQUIRED
         HINTS $ENV{AMREX_HOME}/cmake $ENV{AMREX_DIR}/cmake $ENV{AMREX_PREFIX}/cmake)
@@ -142,13 +144,11 @@ IF (ENABLE_AMR)
     MESSAGE (STATUS "Found AMReX include dir: ${AMREX_INCLUDE_DIR}")
     MESSAGE (STATUS "Found AMReX library dir: ${AMREX_LIBRARY_DIR}")
     MESSAGE (STATUS "Found AMReX libraries: ${AMREX_LIBRARIES}")
-    MESSAGE (STATUS "AMReX built with: ${AMREX_DEFINES}")
-
-    # We need to replace the quotes of the AMREX_GIT_VERSION flag in AMREX_DEFINES
-    # otherwise IpplVersions.h complains
-    STRING(REPLACE "\"" "'" AMREX_DEFINES ${AMREX_DEFINES})
-
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_AMR ${AMREX_DEFINES}")
+    echo_amrex_config_options()
+    
+    add_definitions(${AMREX_DEFINES})
+    
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_AMR")
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-unused-but-set-variable -Wno-maybe-uninitialized")
 
 ENDIF (ENABLE_AMR)
@@ -160,8 +160,14 @@ STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
 # Trilinos_TPL_LIBRARIES, instead of cray-tpsl/16.07.1 it uses
 # cray-tpsl/16.06.1 libraries -> Linker error.
 # We can avoid this issue by not going into the if-statement
-IF (ENABLE_SAAMG_SOLVER)
-    MESSAGE (STATUS "Enable SAAMG_SOLVER  " ${ENABLE_SAAMG_SOLVER})
+IF (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_MG_SOLVER)
+
+    IF ( ENABLE_SAAMG_SOLVER )
+        MESSAGE (STATUS "Enable SAAMG_SOLVER  " ${ENABLE_SAAMG_SOLVER})
+    ELSE ( ENABLE_SAAMG_SOLVER )
+        MESSAGE (STATUS "Enable AMR_MG_SOLVER " ${ENABLE_AMR_MG_SOLVER})
+    ENDIF( ENABLE_SAAMG_SOLVER )
+    
     IF (NOT (
                 ${HOSTNAME_BASE} MATCHES "edison" OR
                 ${HOSTNAME_BASE} MATCHES "cori"))
