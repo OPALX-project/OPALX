@@ -529,6 +529,7 @@ void Distribution::doRestartOpalT(PartBunchBase<double, 3> *beam, size_t Np, int
     size_t lastParticle = firstParticle + numParticlesPerNode - 1;
     if (Ippl::myNode() == Ippl::getNodes() - 1)
         lastParticle = numParticles - 1;
+    OpalData::getInstance()->addProblemCharacteristicValue("NP", numParticles);
 
     numParticles = lastParticle - firstParticle + 1;
     PAssert_GE(numParticles, 0);
@@ -569,6 +570,7 @@ void Distribution::doRestartOpalCycl(PartBunchBase<double, 3> *beam,
     size_t lastParticle = firstParticle + numParticlesPerNode - 1;
     if (Ippl::myNode() == Ippl::getNodes() - 1)
         lastParticle = numParticles - 1;
+    OpalData::getInstance()->addProblemCharacteristicValue("NP", numParticles);
 
     numParticles = lastParticle - firstParticle + 1;
     PAssert_GE(numParticles, 0);
@@ -1546,6 +1548,7 @@ void Distribution::createOpalCycl(PartBunchBase<double, 3> *beam,
 
     injectBeam(beam);
 
+    OpalData::getInstance()->addProblemCharacteristicValue("NP", numberOfParticles);
 }
 
 void Distribution::createOpalE(Beam *beam,
@@ -1768,6 +1771,7 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
     if (!emitting_m)
         injectBeam(beam);
 
+    OpalData::getInstance()->addProblemCharacteristicValue("NP", numberOfParticles);
     IpplTimings::stopTimer(beam->distrCreate_m);
 }
 

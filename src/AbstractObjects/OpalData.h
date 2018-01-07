@@ -259,6 +259,9 @@ public:
     void setMaxTrackSteps(unsigned long long s);
     void incMaxTrackSteps(unsigned long long s);
 
+    void addProblemCharacteristicValue(const std::string &name, unsigned int value);
+    const std::map<std::string, unsigned int> &getProblemCharacteristicValues() const;
+
     void storeArguments(int argc, char *argv[]);
     std::vector<std::string> getArguments();
 private:
