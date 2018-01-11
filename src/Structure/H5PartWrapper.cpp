@@ -82,16 +82,22 @@ void H5PartWrapper::open(h5_int32_t flags) {
 
 void H5PartWrapper::storeCavityInformation() {
     /// Write number of Cavities with autophase information
-    h5_int64_t nAutopPhaseCavities = OpalData::getInstance()->getNumberOfMaxPhases();
+    h5_int64_t nAutoPhaseCavities = OpalData::getInstance()->getNumberOfMaxPhases();
     h5_int64_t nFormerlySavedAutoPhaseCavities = 0;
+    bool fileWasClosed = (file_m == 0);
 
+    if (nAutoPhaseCavities == 0) return;
+    if (fileWasClosed) open(H5_O_APPENDONLY);
     if (!H5HasFileAttrib(file_m, "nAutoPhaseCavities") ||
         H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &nFormerlySavedAutoPhaseCavities) != H5_SUCCESS) {
         nFormerlySavedAutoPhaseCavities = 0;
     }
-    if (nFormerlySavedAutoPhaseCavities == nAutopPhaseCavities) return;
+    if (nFormerlySavedAutoPhaseCavities == nAutoPhaseCavities) {
+        if (fileWasClosed) close();
+        return;
+    }
 
-    WRITEFILEATTRIB(Int64, file_m, "nAutoPhaseCavities", &nAutopPhaseCavities, 1);
+    WRITEFILEATTRIB(Int64, file_m, "nAutoPhaseCavities", &nAutoPhaseCavities, 1);
 
     unsigned int elementNumber = 1;
     std::vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases();
@@ -112,6 +118,8 @@ void H5PartWrapper::storeCavityInformation() {
                 << nameAttributeName << " -> " << elementName << " --- "
                 << valueAttributeName << " -> " << elementPhase << endl);
     }
+
+    if (fileWasClosed) close();
 }
 
 void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int32_t flags) {
