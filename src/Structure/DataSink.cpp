@@ -1,6 +1,11 @@
 //
 //  Copyright & License: See Copyright.readme in src directory
 //
+//   Original, Observer in the Linac code written by  Tim Cleland,
+//             Julian Cummings, William Humphrey, and Graham Mark
+//             Salman Habib and Robert Ryne
+//             Los Alamos National Laboratory
+//
 
 #include "Structure/DataSink.h"
 
@@ -31,13 +36,6 @@
 extern Inform *gmsg;
 
 using namespace std;
-
-//using Physics::m_e;
-
-// backward compatibility with 1.99.5
-#if defined(H5_O_FLUSHSTEP)
-#define H5_FLUSH_STEP H5_O_FLUSHSTEP
-#endif
 
 DataSink::DataSink() :
     H5call_m(0),
@@ -1042,22 +1040,28 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
     std::unique_ptr<double[]> tmploss(new double[nTot]);
     for(int i = 0; i < nTot; i++)
         tmploss[i] = 0.0;
-    //memset( tmploss, 0.0, nTot * sizeof(double));
-    reduce(bg.TriPrPartloss_m, bg.TriPrPartloss_m + nTot, tmploss.get(), OpAddAssign()); // may be removed if we have parallelized the geometry .
+
+    // :NOTE: may be removed if we have parallelized the geometry .
+    reduce(bg.TriPrPartloss_m, bg.TriPrPartloss_m + nTot, tmploss.get(), OpAddAssign());
 
     for(int i = 0; i < nTot; i++) {
         if(pc == Ippl::myNode()) {
             if(count < N_mean) {
                 if(pc != 0) {
                     //farray[count] =  bg.TriPrPartloss_m[Ippl::myNode()*N_mean+count];
-                    if(((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::Absorption)) == (BGphysics::Absorption)) && (((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) && ((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission)))) {
+                    size_t idx = pc * N_mean + count + N_extra;
+                    if (((bg.TriBGphysicstag_m[idx] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
+                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
+                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
                         farray[count] = 0.0;
                     } else {
                         farray[count] =  tmploss[pc * N_mean + count + N_extra];
                     }
                     count ++;
                 } else {
-                    if(((bg.TriBGphysicstag_m[count] & (BGphysics::Absorption)) == (BGphysics::Absorption)) && (((bg.TriBGphysicstag_m[count] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) && ((bg.TriBGphysicstag_m[count] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission)))) {
+                    if (((bg.TriBGphysicstag_m[count] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
+                        ((bg.TriBGphysicstag_m[count] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
+                        ((bg.TriBGphysicstag_m[count] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
                         farray[count] = 0.0;
                     } else {
                         farray[count] =  tmploss[count];
@@ -1082,17 +1086,20 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
     for(int i = 0; i < nTot; i++) {
         if(pc == Ippl::myNode()) {
             if(count < N_mean) {
-
                 if(pc != 0) {
-
-                    if(((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::Absorption)) == (BGphysics::Absorption)) && (((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) && ((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission)))) {
+                    size_t idx = pc * N_mean + count + N_extra;
+                    if (((bg.TriBGphysicstag_m[idx] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
+                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
+                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
                         farray[count] = 0.0;
                     } else {
                         farray[count] =  tmploss[pc * N_mean + count + N_extra];
                     }
                     count ++;
                 } else {
-                    if(((bg.TriBGphysicstag_m[count] & (BGphysics::Absorption)) == (BGphysics::Absorption)) && (((bg.TriBGphysicstag_m[count] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) && ((bg.TriBGphysicstag_m[count] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission)))) {
+                    if (((bg.TriBGphysicstag_m[count] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
+                        ((bg.TriBGphysicstag_m[count] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
+                        ((bg.TriBGphysicstag_m[count] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
                         farray[count] = 0.0;
                     } else {
                         farray[count] =  tmploss[count];
@@ -1120,15 +1127,19 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
             if(count < N_mean) {
 
                 if(pc != 0) {
-
-                    if(((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::Absorption)) == (BGphysics::Absorption)) && (((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) && ((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission)))) {
+                    size_t idx = pc * N_mean + count + N_extra;
+                    if (((bg.TriBGphysicstag_m[idx] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
+                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
+                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
                         farray[count] = 0.0;
                     } else {
                         farray[count] =  tmploss[pc * N_mean + count + N_extra];
                     }
                     count ++;
                 } else {
-                    if(((bg.TriBGphysicstag_m[count] & (BGphysics::Absorption)) == (BGphysics::Absorption)) && (((bg.TriBGphysicstag_m[count] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) && ((bg.TriBGphysicstag_m[count] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission)))) {
+                    if (((bg.TriBGphysicstag_m[count] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
+                        ((bg.TriBGphysicstag_m[count] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
+                        ((bg.TriBGphysicstag_m[count] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
                         farray[count] = 0.0;
                     } else {
                         farray[count] =  tmploss[count];
@@ -1511,8 +1522,9 @@ void DataSink::writeMemoryData(PartBunchBase<double, 3> *beam,
     os_memData << endl;
 }
 
-
-/***************************************************************************
- * $RCSfile: DataSink.cpp,v $   $Author: adelmann $
- * $Revision: 1.3 $   $Date: 2004/06/02 19:38:54 $
- ***************************************************************************/
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:
