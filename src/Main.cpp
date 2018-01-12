@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
     std::string dateStr(simtimer.date());
     std::string timeStr(simtimer.time());
 
-    H5SetVerbosityLevel(0); //65535);
+    H5SetVerbosityLevel(1); //65535);
 
     gsl_set_error_handler(&errorHandlerGSL);
 
