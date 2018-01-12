@@ -1,11 +1,6 @@
 //
 //  Copyright & License: See Copyright.readme in src directory
 //
-//   Original, Observer in the Linac code written by  Tim Cleland,
-//             Julian Cummings, William Humphrey, and Graham Mark
-//             Salman Habib and Robert Ryne
-//             Los Alamos National Laboratory
-//
 
 #include "Structure/DataSink.h"
 
