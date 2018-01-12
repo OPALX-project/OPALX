@@ -325,7 +325,9 @@ std::string DataSink::convertToString(int number) {
 
 #endif // DataSink_H_
 
-/***************************************************************************
- * $RCSfile: DataSink.h,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 13:29:44 $
- ***************************************************************************/
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:
