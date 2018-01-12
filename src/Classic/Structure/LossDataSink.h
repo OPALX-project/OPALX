@@ -1,3 +1,7 @@
+//
+//  Copyright & License: See Copyright.readme in src directory
+//
+
 #ifndef OPAL_LOSSOUTPUT_H_
 #define OPAL_LOSSOUTPUT_H_
 
