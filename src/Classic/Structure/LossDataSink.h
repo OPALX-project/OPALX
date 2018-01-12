@@ -45,44 +45,41 @@ class LossDataSink {
     static void writeStatistics();
 
 private:
-
-    void open() {
+    void openASCII() {
         if(Ippl::myNode() == 0) {
             os_m.open(fn_m.c_str(), std::ios::out);
         }
     }
+    void openH5(h5_int32_t mode = H5_O_WRONLY);
 
-    void append() {
+    void appendASCII() {
         if(Ippl::myNode() == 0) {
             os_m.open(fn_m.c_str(), std::ios::app);
         }
     }
 
-    void close() {
-        if(Ippl::myNode() == 0)
-            os_m.close();
-    }
-
     void writeHeaderASCII() {
         if(Ippl::myNode() == 0) {
-            if (time_m.size() != 0)
-                os_m << "# Element " << element_m << " x (mm),  y (mm),  z (mm),  px ( ),  py ( ),  pz ( ), id,  turn,  time (ns) " << std::endl;
-            else
-                os_m << "# Element " << element_m << " x (mm),  y (mm),  z (mm),  px ( ),  py ( ),  pz ( ), id " << std::endl;
+            os_m << "# Element " << element_m << " x (mm),  y (mm),  z (mm),  px ( ),  py ( ),  pz ( ), id";
+            if (time_m.size() != 0) {
+                os_m << ",  turn,  time (ns) ";
+            }
+            os_m << std::endl;
         }
+    }
+    void writeHeaderH5();
+
+    void saveASCII();
+    void saveH5(unsigned int setIdx);
+
+    void closeASCII() {
+        if(Ippl::myNode() == 0)
+            os_m.close();
     }
 
     bool hasNoParticlesToDump();
 
     bool hasTimeAttribute();
-
-    void writeHeaderH5();
-
-    void openH5(h5_int32_t mode = H5_O_WRONLY);
-
-    void saveH5(unsigned int setIdx);
-
-    void saveASCII();
 
     void reportOnError(h5_int64_t rc, const char* file, int line);
 
@@ -92,15 +89,16 @@ private:
     // filename without extension
     std::string fn_m;
 
-    // used to write out the data
-    std::ofstream os_m;
-
-    std::string element_m;
-
+    // write either in ASCII or H5hut format
     bool h5hut_mode_m;
 
-    /// H5 file for particle data.
+    // used to write out data in ASCII mode
+    std::ofstream os_m;
+
+    /// used to write out data in H5hut mode
     h5_file_t H5file_m;
+
+    std::string element_m;
 
     /// Current record, or time step, of H5 file.
     h5_int64_t H5call_m;
@@ -133,10 +131,11 @@ size_t LossDataSink::size() const {
     return x_m.size();
 }
 
-inline
-void LossDataSink::reportOnError(h5_int64_t rc, const char* file, int line) {
-    if (rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << file << " @ line " << line << endl);
-}
-
 #endif
+
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:
