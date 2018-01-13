@@ -1,5 +1,6 @@
 #include "Fields/Astra1DDynamic_fast.h"
 #include "Utilities/GeneralClassicException.h"
+#include "Utilities/Util.h"
 #include "Physics/Physics.h"
 
 #include <fstream>
@@ -168,8 +169,23 @@ void Astra1DDynamic_fast::getOnaxisEz(std::vector<std::pair<double, double> > & 
 bool Astra1DDynamic_fast::readFileHeader(std::ifstream &file) {
     std::string tmpString;
     int tmpInt;
+    bool passed = true;
 
-    bool passed = interpreteLine<std::string, int>(file, tmpString, tmpInt);
+    try {
+        passed = interpreteLine<std::string, int>(file, tmpString, tmpInt);
+    } catch (GeneralClassicException &e) {
+        passed = interpreteLine<std::string, int, std::string>(file, tmpString, tmpInt, tmpString);
+
+        tmpString = Util::toUpper(tmpString);
+        if (tmpString != "TRUE" &&
+            tmpString != "FALSE")
+            throw GeneralClassicException("Astra1DDynamic_fast::readFileHeader",
+                                          "The third string on the first line of 1D field "
+                                          "maps has to be either TRUE or FALSE");
+
+        normalize_m = (tmpString == "TRUE");
+    }
+
     passed = passed && interpreteLine<double>(file, frequency_m);
 
     return passed;
@@ -180,7 +196,12 @@ int Astra1DDynamic_fast::stripFileHeader(std::ifstream &file) {
     double tmpDouble;
     int accuracy;
 
-    interpreteLine<std::string, int>(file, tmpString, accuracy);
+    try {
+        interpreteLine<std::string, int>(file, tmpString, accuracy);
+    } catch (GeneralClassicException &e) {
+        interpreteLine<std::string, int, std::string>(file, tmpString, accuracy, tmpString);
+    }
+
     interpreteLine<double>(file, tmpDouble);
 
     return accuracy;
