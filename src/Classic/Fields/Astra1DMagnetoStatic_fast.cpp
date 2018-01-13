@@ -1,5 +1,6 @@
 #include "Fields/Astra1DMagnetoStatic_fast.h"
 #include "Utilities/GeneralClassicException.h"
+#include "Utilities/Util.h"
 #include "Physics/Physics.h"
 
 #include <fstream>
@@ -118,7 +119,21 @@ bool Astra1DMagnetoStatic_fast::readFileHeader(std::ifstream &file) {
     std::string tmpString;
     int tmpInt;
 
-    bool passed = interpreteLine<std::string, int>(file, tmpString, tmpInt);
+    bool passed;
+    try {
+        passed = interpreteLine<std::string, int>(file, tmpString, tmpInt);
+    } catch (GeneralClassicException &e) {
+        passed = interpreteLine<std::string, int, std::string>(file, tmpString, tmpInt, tmpString);
+
+        tmpString = Util::toUpper(tmpString);
+        if (tmpString != "TRUE" &&
+            tmpString != "FALSE")
+            throw GeneralClassicException("Astra1DDynamic_fast::readFileHeader",
+                                          "The third string on the first line of 1D field "
+                                          "maps has to be either TRUE or FALSE");
+
+        normalize_m = (tmpString == "TRUE");
+    }
 
     return passed;
 }
@@ -127,7 +142,11 @@ int Astra1DMagnetoStatic_fast::stripFileHeader(std::ifstream &file) {
     std::string tmpString;
     int accuracy;
 
-    interpreteLine<std::string, int>(file, tmpString, accuracy);
+    try {
+        interpreteLine<std::string, int>(file, tmpString, accuracy);
+    } catch (GeneralClassicException &e) {
+        interpreteLine<std::string, int, std::string>(file, tmpString, accuracy, tmpString);
+    }
 
     return accuracy;
 }
