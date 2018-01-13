@@ -8,6 +8,7 @@
 
 Astra1D_fast::Astra1D_fast(std::string aFilename):
     Fieldmap(aFilename) {
+    normalize_m = true;
 }
 
 Astra1D_fast::~Astra1D_fast() {
@@ -75,6 +76,8 @@ double Astra1D_fast::readFieldData(std::ifstream &file) {
     }
     num_gridpz_m = nsp;
     hz_m = (zend_m - zbegin_m) / (num_gridpz_m - 1);
+
+    if (!normalize_m) return 1.0;
 
     return maxValue;
 }
