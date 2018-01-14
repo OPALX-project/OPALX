@@ -808,7 +808,6 @@ std::vector<std::string> OpalData::getAllNames() {
 }
 
 void OpalData::addProblemCharacteristicValue(const std::string &name, unsigned int value) {
-    *gmsg << "OpalData.cpp: " << __LINE__ << "\t" << name << ": " << value << endl;
     if (p->problemSize_m.find(name) != p->problemSize_m.end()) {
         p->problemSize_m.insert(std::make_pair(name, value));
     } else {

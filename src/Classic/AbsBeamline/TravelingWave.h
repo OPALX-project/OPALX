@@ -102,7 +102,6 @@ private:
     /*   Fieldmap *EntryFringeField_m; */
     /*   Fieldmap *ExitFringeField_m; */
 
-    double scale_m;              /**< scale multiplier*/
     double scaleCore_m;
     double scaleError_m;
     double scaleCoreError_m;
