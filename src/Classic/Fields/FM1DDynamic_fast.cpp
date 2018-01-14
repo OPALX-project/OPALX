@@ -367,7 +367,6 @@ double FM1DDynamic_fast::readFileData(std::ifstream &fieldFile,
         maxEz = 1.0;
 
     return maxEz;
-
 }
 
 bool FM1DDynamic_fast::readFileHeader(std::ifstream &fieldFile) {
@@ -418,6 +417,8 @@ bool FM1DDynamic_fast::readFileHeader(std::ifstream &fieldFile) {
 
 void FM1DDynamic_fast::scaleField(double maxEz,
                                   std::vector<std::pair<double, double>> &eZ) {
+    if (!normalize_m) return;
+
     for (unsigned int dataIndex = 0; dataIndex < numberOfGridPoints_m; ++ dataIndex)
         eZ.at(dataIndex).second /= maxEz;
 }
