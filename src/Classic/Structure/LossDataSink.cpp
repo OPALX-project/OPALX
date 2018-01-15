@@ -11,14 +11,6 @@
 
 #include <cassert>
 
-#define WRITE_FILEATTRIB_STRING( attribute, value ) {             \
-    h5_int64_t h5err = H5WriteFileAttribString (H5file_m, attribute, value); \
-    if (h5err <= H5_ERR) {                                              \
-        std::stringstream ss;                                               \
-        ss << "failed to write string attribute " << attribute << " to file " << fn_m; \
-        throw GeneralClassicException(std::string(__func__), ss.str()); \
-    }\
-}
 #define ADD_ATTACHMENT( fname ) {             \
     h5_int64_t h5err = H5AddAttachment (H5file_m, fname); \
     if (h5err <= H5_ERR) {                                              \
@@ -158,7 +150,6 @@ LossDataSink::LossDataSink(const LossDataSink &rsh):
 LossDataSink::LossDataSink() {
     LossDataSink(std::string("NULL"), false);
 }
-#define _unused(x) ((void)(x))
 
 LossDataSink::~LossDataSink() {
     if (H5file_m) {
