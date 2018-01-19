@@ -144,10 +144,10 @@ const Euclid3DGeometry &Offset::getGeometry() const {
     return *geometry_m;
 }
 
-std::ostream& operator<<(std::ostream& out, const Vector_t& vec) {
-    out << "(" << vec(0) << ", " << vec(1) << ", " << vec(2) << ")";
-    return out;
-}
+// std::ostream& operator<<(std::ostream& out, const Vector_t& vec) {
+//     out << "(" << vec(0) << ", " << vec(1) << ", " << vec(2) << ")";
+//     return out;
+// }
 
 double Offset::getTheta(Vector_t vec1, Vector_t vec2) {
     if (fabs(vec1(2)) > 1e-9 || fabs(vec2(2)) > 1e-9)
