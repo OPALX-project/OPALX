@@ -1106,7 +1106,6 @@ src/Track/TrackSave.h -text
 src/Track/TrackStart.cpp -text
 src/Track/TrackStart.h -text
 src/Utilities/CMakeLists.txt -text
-src/Utilities/NumToStr.cpp -text
 src/Utilities/NumToStr.h -text
 src/Utilities/OpalException.cpp -text
 src/Utilities/OpalException.h -text
@@ -1148,7 +1147,7 @@ src/opal.h -text
 tests/CMakeLists.txt -text
 tests/Main.cpp -text
 tests/classic_src/CMakeLists.txt -text
-tests/classic_src/AbsBeamline//CMakeLists.txt -text
+tests/classic_src/AbsBeamline/CMakeLists.txt -text
 tests/classic_src/AbsBeamline/OffsetTest.cpp -text
 tests/classic_src/AbsBeamline/RingTest.cpp -text
 tests/classic_src/AbsBeamline/SBend3DTest.cpp -text
