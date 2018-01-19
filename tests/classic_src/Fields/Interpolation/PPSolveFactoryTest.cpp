@@ -45,6 +45,7 @@
 
 using namespace interpolation;
 
+namespace {
 void test_points(int dim, int lower, int upper, std::vector< std::vector<int> > pts) {
       int upper_size = 1;
       int lower_size = 1;
@@ -77,6 +78,7 @@ void test_points(int dim, int lower, int upper, std::vector< std::vector<int> > 
               EXPECT_FALSE(equal);
           }
       }
+}
 }
 
 TEST(PPSolveFactoryTest, TestNearbyPointsSquares) {
@@ -220,7 +222,7 @@ TEST_F(PPSolveFactoryTestFixture, DISABLED_TestSolvePolynomialQuadraticSmoothed)
     }
 }
 
-
+namespace {
 std::vector<double> get_value(std::vector<double> x, int np) {
     static const double twopi = asin(1.)*4;
     std::vector<double> a_value(3);
@@ -314,7 +316,7 @@ void plot(int n_points, std::vector<double> start, std::vector<double> end, Poly
 void plot(int n_points, std::vector<double> start, std::vector<double> end, PolynomialPatch* patch, int n_grid_points, std::string title) {
 }
 #endif // PolynomialPatchTest_MakePlots
-
+}
 
 TEST(PPSolveFactoryTest, TestThreeDSolveSinCos) {
     OpalTestUtilities::SilenceTest silencer;

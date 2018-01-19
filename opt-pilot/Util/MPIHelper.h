@@ -62,10 +62,12 @@ enum MPITag_t {
 enum State_t {IDLE = 0, RUNNING = 1};
 
 /// serializes params using Boost archive
-void serialize(Param_t params, std::ostringstream &os);
+void serialize(Param_t           params, std::ostringstream &os);
+void serialize(reqVarContainer_t params, std::ostringstream &os);
 
 /// deserializes params using Boost archive
-void deserialize(char *buffer, Param_t &params);
+void deserialize(char *buffer, Param_t           &params);
+void deserialize(char *buffer, reqVarContainer_t &params);
 
 /// broadcast params to all entities in comm
 void MPI_Bcast_params(Param_t &params, size_t root, MPI_Comm comm);

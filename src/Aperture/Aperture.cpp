@@ -30,6 +30,26 @@ using namespace std;
 
 namespace {
 
+    //return the inverse of the "alpha,beta,gamma" transformation matrix
+
+    FMatrix<double, 3, 3> invers(double c, double c_prim, double s, double s_prim) {
+        FMatrix<double, 3, 3> M;
+        double det = -pow(c_prim, 3) * pow(s, 3) + 3 * c * s_prim * pow(c_prim, 2)
+            * pow(s, 2) - 3 * pow(c, 2) * c_prim * s * pow(s_prim, 2) + pow(c, 3) * pow(s_prim, 3);
+
+        M(0, 0) = (-c_prim * s * pow(s_prim, 2) + c * pow(s_prim, 3)) / det;
+        M(0, 1) = (-2 * c_prim * pow(s, 2) * s_prim + 2 * c * s * pow(s_prim, 2)) / det;
+        M(0, 2) = (-c_prim * pow(s, 3) + c * pow(s, 2) * s_prim) / det;
+        M(1, 0) = (-pow(c_prim, 2) * s * s_prim + c * c_prim * pow(s_prim, 2)) / det;
+        M(1, 1) = (-pow(c_prim, 2) * pow(s, 2) + pow(c, 2) * pow(s_prim, 2)) / det;
+        M(1, 2) = (-c * c_prim * pow(s, 2) + pow(c, 2) * s * s_prim) / det;
+        M(2, 0) = (-pow(c_prim, 3) * s + c * pow(c_prim, 2) * s_prim) / det;
+        M(2, 1) = (-2 * c * pow(c_prim, 2) * s + 2 * pow(c, 2) * c_prim * s_prim) / det;
+        M(2, 2) = (-pow(c, 2) * c_prim * s + pow(c, 3) * s_prim) / det;
+
+        return M;
+    }
+
     struct ColDesc {
 
         // Column name.
@@ -218,25 +238,6 @@ inline std::string Aperture::A_row::getType_elm() {
 }
 inline double Aperture::A_row::getOrb() {
     return Orb;
-}
-//return the inverse of the "alpha,beta,gamma" transformation matrix
-
-FMatrix<double, 3, 3> invers(double c, double c_prim, double s, double s_prim) {
-    FMatrix<double, 3, 3> M;
-    double det = -pow(c_prim, 3) * pow(s, 3) + 3 * c * s_prim * pow(c_prim, 2)
-                 * pow(s, 2) - 3 * pow(c, 2) * c_prim * s * pow(s_prim, 2) + pow(c, 3) * pow(s_prim, 3);
-
-    M(0, 0) = (-c_prim * s * pow(s_prim, 2) + c * pow(s_prim, 3)) / det;
-    M(0, 1) = (-2 * c_prim * pow(s, 2) * s_prim + 2 * c * s * pow(s_prim, 2)) / det;
-    M(0, 2) = (-c_prim * pow(s, 3) + c * pow(s, 2) * s_prim) / det;
-    M(1, 0) = (-pow(c_prim, 2) * s * s_prim + c * c_prim * pow(s_prim, 2)) / det;
-    M(1, 1) = (-pow(c_prim, 2) * pow(s, 2) + pow(c, 2) * pow(s_prim, 2)) / det;
-    M(1, 2) = (-c * c_prim * pow(s, 2) + pow(c, 2) * s * s_prim) / det;
-    M(2, 0) = (-pow(c_prim, 3) * s + c * pow(c_prim, 2) * s_prim) / det;
-    M(2, 1) = (-2 * c * pow(c_prim, 2) * s + 2 * pow(c, 2) * c_prim * s_prim) / det;
-    M(2, 2) = (-pow(c, 2) * c_prim * s + pow(c, 3) * s_prim) / det;
-
-    return M;
 }
 
 //iterator used for the displacement in the list of optic elments
