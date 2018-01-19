@@ -36,10 +36,10 @@ extern Inform* gmsg;
 
 namespace BGphysics {
     enum TPHYACTION {
-        Nop = 0x01,                 // tringle is transparent to particle like beam window
+        Nop = 0x01,                 // triangle is transparent to particle like beam window
         Absorption = 0x02,          // triangle has no field and secondary emission
         FNEmission = 0x04,          // triangle has field emission
-        SecondaryEmission = 0x08    // trangle has secondary emission
+        SecondaryEmission = 0x08    // triangle has secondary emission
     };
 }
 

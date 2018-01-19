@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: CyclotronRep
-//   Defines a concrete representation for a sector (curved) bend.
+//   Defines a concrete representation for a cyclotron.
 //
 // ------------------------------------------------------------------------
 // Class category: BeamlineCore
@@ -20,10 +20,8 @@
 
 #include "BeamlineCore/CyclotronRep.h"
 #include "AbsBeamline/ElementImage.h"
-#include "Channels/IndexedChannel.h"
 #include "Channels/IndirectChannel.h"
 #include "ComponentWrappers/CyclotronWrapper.h"
-#include <cctype>
 
 // Attribute access table.
 // ------------------------------------------------------------------------
@@ -83,26 +81,13 @@ ElementBase *CyclotronRep::clone() const {
 
 
 Channel *CyclotronRep::getChannel(const std::string &aKey, bool create) {
-    if(aKey[0] == 'a'  ||  aKey[0] == 'b') {
-        int n = 0;
-
-        for(std::string::size_type k = 1; k < aKey.length(); k++) {
-            if(isdigit(aKey[k])) {
-                n = 10 * n + aKey[k] - '0';
-            } else {
-                return 0;
-            }
-        }
-    } else {
-        for(const Entry *table = entries; table->name != 0; ++table) {
-            if(aKey == table->name) {
-                return new IndirectChannel<CyclotronRep>(*this, table->get, table->set);
-            }
-        }
-
-        return ElementBase::getChannel(aKey, create);
+    for(const Entry *entry = entries; entry->name != 0; ++entry) {
+      if(aKey == entry->name) {
+        return new IndirectChannel<CyclotronRep>(*this, entry->get, entry->set);
+      }
     }
-    return 0;
+
+    return ElementBase::getChannel(aKey, create);
 }
 
 
@@ -153,8 +138,6 @@ const BMultipoleField &CyclotronRep::getField() const {
 void CyclotronRep::setField(const BMultipoleField &f) {
     field = f;
 }
-
-
 
 ElementBase *CyclotronRep::makeFieldWrapper() {
     ElementBase *wrap = new CyclotronWrapper(this);
