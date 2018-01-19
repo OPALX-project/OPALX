@@ -58,7 +58,7 @@ PartBunch::PartBunch(const PartData *ref): // Layout is set using setSolver()
     PartBunchBase<double, 3>(new PartBunch::pbase_t(new Layout_t()), ref),
     interpolationCacheSet_m(false)
 {
-    
+
 }
 
 PartBunch::PartBunch(const std::vector<OpalParticle> &rhs,
@@ -124,10 +124,10 @@ void PartBunch::runTests() {
 
 void PartBunch::do_binaryRepart() {
     get_bounds(rmin_m, rmax_m);
-    
+
     pbase_t* underlyingPbase =
         dynamic_cast<pbase_t*>(pbase.get());
-    
+
     BinaryRepartition(*underlyingPbase);
     update();
     get_bounds(rmin_m, rmax_m);
@@ -278,7 +278,7 @@ void PartBunch::computeSelfFields(int binNumber) {
 #ifdef DBG_SCALARFIELD
         VField_t tmp_eg = eg_m;
 
-        
+
         if (Ippl::getNodes() == 1 && (fieldDBGStep_m + 1) % dumpFreq == 0) {
 #else
         VField_t tmp_eg;
@@ -286,7 +286,7 @@ void PartBunch::computeSelfFields(int binNumber) {
         if (false) {
 #endif
             INFOMSG(level1 << "*** START DUMPING SCALAR FIELD ***" << endl);
-            
+
 
             std::string SfileName = OpalData::getInstance()->getInputBasename();
             boost::format phi_fn("data/%1%-phi_scalar-%|2$05|.dat");
@@ -1079,14 +1079,14 @@ void PartBunch::setBCAllOpen() {
 void PartBunch::setBCForDCBeam() {
     //UL: set periodic BC in all dimensions
     for(int i = 0; i < 2 * 3; ++i) {
-      if (Ippl::getNodes() > 1) {
-        bc_m[i] = new ParallelPeriodicFace<double, 3, Mesh_t, Center_t>(i);
-        vbc_m[i] = new ParallelPeriodicFace<Vector_t, 3, Mesh_t, Center_t>(i);
-      } else {
-	bc_m[i] = new PeriodicFace<double, 3, Mesh_t, Center_t>(i);
-        vbc_m[i] = new PeriodicFace<Vector_t, 3, Mesh_t, Center_t>(i);
-      }
-      getBConds()[i] = ParticlePeriodicBCond;
+        if (Ippl::getNodes() > 1) {
+            bc_m[i] = new ParallelPeriodicFace<double, 3, Mesh_t, Center_t>(i);
+            vbc_m[i] = new ParallelPeriodicFace<Vector_t, 3, Mesh_t, Center_t>(i);
+        } else {
+            bc_m[i] = new PeriodicFace<double, 3, Mesh_t, Center_t>(i);
+            vbc_m[i] = new PeriodicFace<Vector_t, 3, Mesh_t, Center_t>(i);
+        }
+        getBConds()[i] = ParticlePeriodicBCond;
     }
     dcBeam_m=true;
     INFOMSG(level3 << "BC set for DC-Beam, all periodic" << endl);
@@ -1167,10 +1167,10 @@ void PartBunch::resetInterpolationCache(bool clearCache) {
 }
 
 void PartBunch::swap(unsigned int i, unsigned int j) {
-    
+
     // FIXME
     PartBunchBase<double, 3>::swap(i, j);
-    
+
     if (interpolationCacheSet_m)
         std::swap(interpolationCache_m[i], interpolationCache_m[j]);
 }
