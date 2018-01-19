@@ -80,24 +80,14 @@ Inform *gmsg;
 #include <set>
 #include <algorithm>
 
-//  DTA
-#define NC 5
-
-void printStringVector(const std::vector<std::string> &strings) {
-    unsigned int iend = strings.size(), nc = 0;
-    for(unsigned int i = 0; i < iend; ++i) {
-        std::cout << "  " << strings[i];
-        if(++nc == NC) { nc = 0; std::cout << std::endl; }
+namespace {
+    void errorHandlerGSL(const char *reason,
+                         const char *file,
+                         int line,
+                         int gsl_errno) {
+        throw OpalException(file, reason);
     }
-    if(nc != 0) std::cout << std::endl;
-    std::cout << std::endl;
 }
-
-void errorHandlerGSL(const char *reason,
-                     const char *file,
-                     int line,
-                     int gsl_errno);
-
 
 int main(int argc, char *argv[]) {
     Ippl *ippl = new Ippl(argc, argv);
@@ -195,8 +185,8 @@ int main(int argc, char *argv[]) {
         FileStream::setEcho(Options::echo);
 
         char *startup = getenv("HOME");
-	boost::filesystem::path p = strncat(startup, "/init.opal", 20);
-	if (startup != NULL && is_regular_file(p)) {
+        boost::filesystem::path p = strncat(startup, "/init.opal", 20);
+        if (startup != NULL && is_regular_file(p)) {
 
             FileStream::setEcho(false);
             FileStream *is;
@@ -227,8 +217,6 @@ int main(int argc, char *argv[]) {
             int arg = -1;
             std::string fname;
             std::string restartFileName;
-            // if(argc > 3) {
-            //     if(argc > 5) {
             //         // will write dumping date into a new h5 file
             for(int ii = 1; ii < argc; ++ ii) {
                 std::string argStr = std::string(argv[ii]);
@@ -355,7 +343,7 @@ int main(int argc, char *argv[]) {
 
         IpplTimings::print();
 
-	IpplTimings::print(std::string("timing.dat"),
+        IpplTimings::print(std::string("timing.dat"),
                            OpalData::getInstance()->getProblemCharacteristicValues());
 
         if(Ippl::myNode() == 0) {
@@ -389,7 +377,7 @@ int main(int argc, char *argv[]) {
         }
 
         Ippl::Comm->barrier();
-	Fieldmap::clearDictionary();
+        Fieldmap::clearDictionary();
         OpalData::deleteInstance();
         delete gmsg;
         delete ippl;
@@ -475,11 +463,4 @@ int main(int argc, char *argv[]) {
     }
 
     return 1;
-}
-
-void errorHandlerGSL(const char *reason,
-                     const char *file,
-                     int,
-                     int) {
-    throw OpalException(file, reason);
 }

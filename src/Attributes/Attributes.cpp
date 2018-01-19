@@ -15,6 +15,8 @@
 //
 // ------------------------------------------------------------------------
 
+#include "Attributes/Attributes.h"
+
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Bool.h"
 #include "Attributes/BoolArray.h"

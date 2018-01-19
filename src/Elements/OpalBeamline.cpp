@@ -9,10 +9,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <fstream>
-#include <regex>
 using namespace std;
-
-extern Inform *gmsg;
 
 OpalBeamline::OpalBeamline():
     elements_m(),
@@ -585,66 +582,68 @@ void OpalBeamline::save3DLattice() {
     mesh.write(OpalData::getInstance()->getInputBasename());
 }
 
-std::string parseInput() {
+namespace {
+    std::string parseInput() {
 
-    std::ifstream in(OpalData::getInstance()->getInputFn());
-    std::string source("");
-    std::string str;
-    char testBit;
-    const std::string commentFormat("");
-    const boost::regex empty("^[ \t]*$");
-    const boost::regex lineEnd(";");
-    const std::string lineEndFormat(";\n");
-    const boost::regex cppCommentExpr("//.*");
-    const boost::regex cCommentExpr("/\\*.*?\\*/"); // "/\\*(?>[^*/]+|\\*[^/]|/[^*])*(?>(?R)(?>[^*/]+|\\*[^/]|/[^*])*)*\\*/"
-    bool priorEmpty = true;
-
-    in.get(testBit);
-    while (!in.eof()) {
-        in.putback(testBit);
-
-        std::getline(in, str);
-        str = boost::regex_replace(str, cppCommentExpr, commentFormat);
-        str = boost::regex_replace(str, empty, commentFormat);
-        if (str.size() > 0) {
-            source += str;// + '\n';
-            priorEmpty = false;
-        } else if (!priorEmpty) {
-            source += "##EMPTY_LINE##";
-            priorEmpty = true;
-        }
+        std::ifstream in(OpalData::getInstance()->getInputFn());
+        std::string source("");
+        std::string str;
+        char testBit;
+        const std::string commentFormat("");
+        const boost::regex empty("^[ \t]*$");
+        const boost::regex lineEnd(";");
+        const std::string lineEndFormat(";\n");
+        const boost::regex cppCommentExpr("//.*");
+        const boost::regex cCommentExpr("/\\*.*?\\*/"); // "/\\*(?>[^*/]+|\\*[^/]|/[^*])*(?>(?R)(?>[^*/]+|\\*[^/]|/[^*])*)*\\*/"
+        bool priorEmpty = true;
 
         in.get(testBit);
+        while (!in.eof()) {
+            in.putback(testBit);
+
+            std::getline(in, str);
+            str = boost::regex_replace(str, cppCommentExpr, commentFormat);
+            str = boost::regex_replace(str, empty, commentFormat);
+            if (str.size() > 0) {
+                source += str;// + '\n';
+                priorEmpty = false;
+            } else if (!priorEmpty) {
+                source += "##EMPTY_LINE##";
+                priorEmpty = true;
+            }
+
+            in.get(testBit);
+        }
+
+        source = boost::regex_replace(source, cCommentExpr, commentFormat);
+        source = boost::regex_replace(source, lineEnd, lineEndFormat, boost::match_default | boost::format_all);
+
+        return source;
     }
 
-    source = boost::regex_replace(source, cCommentExpr, commentFormat);
-    source = boost::regex_replace(source, lineEnd, lineEndFormat, boost::match_default | boost::format_all);
+    unsigned int getMinimalSignificantDigits(double num, const unsigned int maxDigits) {
+        char buf[32];
+        snprintf(buf, 32, "%.*f", maxDigits + 1, num);
+        string numStr(buf);
+        unsigned int length = numStr.length();
 
-    return source;
-}
+        unsigned int numDigits = maxDigits;
+        unsigned int i = 2;
+        while (i < maxDigits + 1 && numStr[length - i] == '0') {
+            --numDigits;
+            ++ i;
+        }
 
-unsigned int getMinimalSignificantDigits(double num, const unsigned int maxDigits) {
-    char buf[32];
-    snprintf(buf, 32, "%.*f", maxDigits + 1, num);
-    string numStr(buf);
-    unsigned int length = numStr.length();
-
-    unsigned int numDigits = maxDigits;
-    unsigned int i = 2;
-    while (i < maxDigits + 1 && numStr[length - i] == '0') {
-        --numDigits;
-        ++ i;
+        return numDigits;
     }
 
-    return numDigits;
-}
+    std::string round2string(double num, const unsigned int maxDigits) {
+        char buf[64];
 
-std::string round2string(double num, const unsigned int maxDigits) {
-    char buf[64];
+        snprintf(buf, 64, "%.*f", getMinimalSignificantDigits(num, maxDigits), num);
 
-    snprintf(buf, 64, "%.*f", getMinimalSignificantDigits(num, maxDigits), num);
-
-    return std::string(buf);
+        return std::string(buf);
+    }
 }
 
 void OpalBeamline::save3DInput() {

@@ -21,6 +21,8 @@ class Measurement {
 public:
     double spos;
     double measurement;
+
+    friend std::istream & operator>>(std::istream & stream, Measurement & measurement);
 };
 
 /**

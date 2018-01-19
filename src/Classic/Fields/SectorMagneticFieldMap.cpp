@@ -504,7 +504,3 @@ ThreeDGrid* SectorMagneticFieldMap::IO::generateGrid
     grid->setConstantSpacing(true);
     return grid;
 }
-
-double dot_prod(Vector_t vec_1, Vector_t vec_2) {
-    return vec_1[0]*vec_2[0] + vec_1[1]*vec_2[1] + vec_1[2]*vec_2[2];
-}

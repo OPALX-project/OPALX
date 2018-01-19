@@ -148,11 +148,10 @@
 
 #include "changes.h"
 
-// Namespace Configure
 // Modify these methods to add new commands.
 // ------------------------------------------------------------------------
 
-namespace Configure {
+namespace {
 
     void makeActions() {
         OpalData *opal = OpalData::getInstance();
@@ -279,8 +278,9 @@ namespace Configure {
         opal->create(new Sequence());
         opal->create(new OpalRingDefinition());
     }
+};
 
-
+namespace Configure {
     void configure() {
         makeDefinitions();
         makeElements();

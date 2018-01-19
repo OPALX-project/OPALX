@@ -1,6 +1,8 @@
 #include <map>
 #include <string>
 
+#include "changes.h"
+
 namespace Versions {
     std::map<unsigned int, std::string> changes;
 
