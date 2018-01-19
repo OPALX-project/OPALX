@@ -495,10 +495,10 @@ void LossDataSink::splitSets(unsigned int numSets) {
     const size_t nLoc = x_m.size();
     size_t avgNumPerSet = nLoc / numSets;
     std::vector<size_t> numPartsInSet(numSets, avgNumPerSet);
-    size_t test = numSets * avgNumPerSet;
+    // size_t test = numSets * avgNumPerSet;
     for (unsigned int j = 0; j < (nLoc - numSets * avgNumPerSet); ++ j) {
         ++ numPartsInSet[j];
-        ++ test;
+        // ++ test;
     }
 
     if (/*nLoc > 0 && */time_m.size() == nLoc) {

@@ -37,18 +37,16 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
     initialP_m = Vector_t(0, 0, euclidean_norm(P));
     double tErr  = (initialR_m(2) - R(2)) * sqrt(dot(P,P) + 1.0) / (P(2) * Physics::c);
     double initialEnergy = Util::getEnergy(P, itsReference_m.getM()) * 1e-6;
-    double originalPhase = 0.0, newPhase = 0.0, AstraPhase = 0.0;
+    double newPhase = 0.0, AstraPhase = 0.0;
     double initialPhase = guessCavityPhase(t + tErr);
     double optimizedPhase = 0.0;
-    double amplitude = 0.0;
-    double designEnergy = 0.0;
     double finalEnergy = 0.0;
 
     RFCavity *element = static_cast<RFCavity *>(itsCavity_m.get());
-    amplitude = element->getAmplitudem();
-    designEnergy = element->getDesignEnergy();
-    originalPhase = element->getPhasem();
-    bool apVeto = element->getAutophaseVeto();
+    double amplitude     = element->getAmplitudem();
+    double designEnergy  = element->getDesignEnergy();
+    double originalPhase = element->getPhasem();
+    bool   apVeto        = element->getAutophaseVeto();
     double basePhase = std::fmod(element->getFrequencym() * (t + tErr), Physics::two_pi);
 
     if (!apVeto) {

@@ -298,7 +298,7 @@ TEST_F(ScalingFFAGMagnetTest, DFCoefficientsTest) {
       {+25./2.*3./4., 0., +1./2.*3./4.+25./6./4., 0., +1./6./4.}, // n = 4
     };
     std::vector< std::vector<double> > coeffs = sector_m->getDfCoefficients();
-    ASSERT_GE(coeffs.size(), 5);
+    ASSERT_GE(coeffs.size(), (size_t)5);
     for (size_t n = 0; n < 5; ++n) {
         ASSERT_EQ(coeffs[n].size(), n+1);
         for (size_t i = 0; i < coeffs[n].size(); ++i) {
@@ -322,7 +322,7 @@ TEST_F(ScalingFFAGMagnetTest, DFCoefficientsTanDeltaTest) {
       {+25./2.*3./4., -25./6./4.*2.*3.*2.-10.*3/4., -999., -999., -999.}, // n = 4
     };
     std::vector< std::vector<double> > coeffs = sector_m->getDfCoefficients();
-    ASSERT_GE(coeffs.size(), 4);
+    ASSERT_GE(coeffs.size(), (size_t)4);
     for (size_t n = 0; n < 4; ++n) {
         ASSERT_EQ(coeffs[n].size(), n+1);
         for (size_t i = 0; i < coeffs[n].size(); ++i) {

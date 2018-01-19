@@ -18,18 +18,17 @@ extern Inform *gmsg;
 int run_opal(char *arg[], std::string inputfile, int restartStep, MPI_Comm comm) {
 
     std::string::size_type startExtension    = inputfile.find_last_of('.');
-    std::string::size_type startRelativePath = inputfile.find_last_of('/');
-    std::string relativePath("");
-    if (startRelativePath != std::string::npos) {
-        relativePath = inputfile.substr(0, startRelativePath + 1);
-    }
+    // std::string::size_type startRelativePath = inputfile.find_last_of('/');
+    // std::string relativePath("");
+    // if (startRelativePath != std::string::npos) {
+    //     relativePath = inputfile.substr(0, startRelativePath + 1);
+    // }
     std::string outputFileName = inputfile.substr(0,startExtension) + ".out";
     std::ofstream output(outputFileName.c_str());
 
     MPI_Barrier(comm);
 
-    // int narg = 5, remove = 1;
-    IpplInfoWrapper *newippl = new IpplInfoWrapper(inputfile, comm);//narg, arg, remove, comm);
+    IpplInfoWrapper *newippl = new IpplInfoWrapper(inputfile, comm);
     gmsg = new Inform("OPAL ", output);
     IpplInfo::Info->setDestination(output);
     IpplInfo::Error->setDestination(output);
@@ -47,8 +46,8 @@ int run_opal(char *arg[], std::string inputfile, int restartStep, MPI_Comm comm)
     try {
         is = new FileStream(inputfile);
     } catch(...) {
-      is = 0;
-	throw new OpalException("run_opal", "Could not open inputfile: " + inputfile);
+        is = 0;
+        throw new OpalException("run_opal", "Could not open inputfile: " + inputfile);
     }
 
     // run simulation
