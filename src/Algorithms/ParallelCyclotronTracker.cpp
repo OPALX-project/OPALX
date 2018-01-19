@@ -73,7 +73,6 @@
 
 #include "Physics/Physics.h"
 
-#include "Utilities/NumToStr.h"
 #include "Utilities/OpalException.h"
 
 #include "BasicActions/DumpFields.h"
@@ -333,8 +332,7 @@ void ParallelCyclotronTracker::visitRing(const Ring &ring) {
 
     *gmsg << "* ----------------------------- Adding Ring ------------------------------ *" << endl;
 
-    if (opalRing_m != NULL)
-        delete opalRing_m;
+    delete opalRing_m;
 
     opalRing_m = dynamic_cast<Ring*>(ring.clone());
 
