@@ -63,8 +63,8 @@ TEST(SolveFactoryTest, TestSolveNoDerivs) {
     SquarePolynomialVector* vec = fac.PolynomialSolve(values,
                                                       deriv_pos);
     MMatrix<double> testCoeffs = vec->GetCoefficientsAsMatrix();
-    ASSERT_EQ(testCoeffs.num_row(), 3);
-    ASSERT_EQ(testCoeffs.num_col(), 9);
+    ASSERT_EQ(testCoeffs.num_row(), (size_t)3);
+    ASSERT_EQ(testCoeffs.num_col(), (size_t)9);
     for (size_t i = 0; i < 3; ++i)
         for (size_t j = 0; j < 3; ++j)
             EXPECT_NEAR(testCoeffs(i+1, j+1), refCoeffs(i+1, j+1), 1e-6);

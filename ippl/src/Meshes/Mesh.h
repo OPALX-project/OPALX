@@ -23,7 +23,7 @@
 // include files
 #include "FieldLayout/FieldLayout.h"
 #include "FieldLayout/FieldLayoutUser.h"
-
+#include "Utility/UserList.h"
 
 // Enumeration used for specifying mesh boundary conditions. Mesh BC are used
 // for things like figuring out how to return the mesh spacing for a cell 

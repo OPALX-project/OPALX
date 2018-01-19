@@ -168,7 +168,7 @@ Option::Option():
                       ("CZERO", "If set to true a symmetric distribution is created -> centroid == 0.0 ", cZero);
 
     itsAttr[RNGTYPE] =  Attributes::makeString
-                        ("RNGTYPE", "RANDOM (default), Quasi-random number gernerators: HALTON, SOBOL, NIEDERREITER (Gsl ref manual 18.5)", rngtype);
+                        ("RNGTYPE", "RANDOM (default), Quasi-random number generators: HALTON, SOBOL, NIEDERREITER (Gsl ref manual 18.5)", rngtype);
 
 
     itsAttr[CLOTUNEONLY] =  Attributes::makeBool

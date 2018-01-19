@@ -8,15 +8,6 @@
 #include "lomb.h"
 #include <iostream>
 
-bool operator <(const LOMB_TYPE &a, const LOMB_TYPE &b) {
-    return a.y < b.y;
-}
-
-bool operator ==(const LOMB_TYPE &a, const double &b) {
-    return a.y == b;
-}
-
-
 LOMB_class::LOMB_class(int)
 /*---------------------------------------------------------------------------*
  * constructor

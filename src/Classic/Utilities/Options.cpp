@@ -36,8 +36,6 @@ namespace Options {
 
     bool enableHDF5 = true;
 
-    // bool efDump = false;
-
     // The global random generator.
     Random rangen;
 
