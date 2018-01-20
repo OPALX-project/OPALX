@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -48,12 +48,12 @@
 template<unsigned Dim, class Mesh>
 inline void
 centeredInitialize(CenteredFieldLayout<Dim,Mesh,Cell> & cfl,
-		   const Mesh& mesh, 
-		   e_dim_tag* edt, 
+		   const Mesh& mesh,
+		   e_dim_tag* edt,
 		   int vnodes)
 {
   NDIndex<Dim> ndi;
-  for (unsigned int d=0; d<Dim; d++) 
+  for (unsigned int d=0; d<Dim; d++)
     ndi[d] = Index(mesh.gridSizes[d] - 1);
   cfl.initialize(ndi, edt, vnodes);
 }
@@ -62,12 +62,26 @@ centeredInitialize(CenteredFieldLayout<Dim,Mesh,Cell> & cfl,
 template<unsigned Dim, class Mesh>
 inline void
 centeredInitialize(CenteredFieldLayout<Dim,Mesh,Vert> & cfl,
-		   const Mesh& mesh, 
-		   e_dim_tag* edt, 
+		   const Mesh& mesh,
+		   e_dim_tag* edt,
 		   int vnodes)
 {
   NDIndex<Dim> ndi;
-  for (unsigned int d=0; d<Dim; d++) 
+  for (unsigned int d=0; d<Dim; d++)
+    ndi[d] = Index(mesh.gridSizes[d]);
+  cfl.initialize(ndi, edt, vnodes);
+}
+
+//------------------Edge centering---------------------------------------------
+template<unsigned Dim, class Mesh>
+inline void
+centeredInitialize(CenteredFieldLayout<Dim,Mesh,Edge> & cfl,
+		   const Mesh& mesh,
+		   e_dim_tag* edt,
+		   int vnodes)
+{
+  NDIndex<Dim> ndi;
+  for (unsigned int d=0; d<Dim; d++)
     ndi[d] = Index(mesh.gridSizes[d]);
   cfl.initialize(ndi, edt, vnodes);
 }
@@ -78,12 +92,12 @@ template<const CenteringEnum* CE, unsigned Dim, class Mesh,
 inline void
 centeredInitialize(CenteredFieldLayout<Dim,Mesh,
 		   CartesianCentering<CE,Dim,NComponents> > & cfl,
-		   const Mesh& mesh, 
-		   e_dim_tag* edt, 
+		   const Mesh& mesh,
+		   e_dim_tag* edt,
 		   int vnodes)
 {
   NDIndex<Dim> ndi;
-  // For componentwise layout of Field of multicomponent object, like 
+  // For componentwise layout of Field of multicomponent object, like
   // Field<Vektor...>, allow for maximal number of objects needed per
   // dimension (the number for the object component requiring the maximal
   // number):
@@ -116,9 +130,9 @@ centeredInitialize(CenteredFieldLayout<Dim,Mesh,
 template<unsigned Dim, class Mesh>
 inline void
 centeredInitialize(CenteredFieldLayout<Dim,Mesh,Cell> & cfl,
-		   const Mesh& mesh, 
-		   e_dim_tag* edt, 
-		   unsigned* vnodesAlongDirection, 
+		   const Mesh& mesh,
+		   e_dim_tag* edt,
+		   unsigned* vnodesAlongDirection,
 		   bool recurse,
 		   int vnodes)
 {
@@ -131,9 +145,24 @@ centeredInitialize(CenteredFieldLayout<Dim,Mesh,Cell> & cfl,
 template<unsigned Dim, class Mesh>
 inline void
 centeredInitialize(CenteredFieldLayout<Dim,Mesh,Vert> & cfl,
-		   const Mesh& mesh, 
-		   e_dim_tag* edt, 
-		   unsigned* vnodesAlongDirection, 
+		   const Mesh& mesh,
+		   e_dim_tag* edt,
+		   unsigned* vnodesAlongDirection,
+		   bool recurse,
+		   int vnodes)
+{
+  NDIndex<Dim> ndi;
+  for (unsigned int d=0; d<Dim; d++) ndi[d] = Index(mesh.gridSizes[d]);
+  cfl.initialize(ndi, edt, vnodesAlongDirection, recurse, vnodes);
+}
+
+//------------------Edge centering---------------------------------------------
+template<unsigned Dim, class Mesh>
+inline void
+centeredInitialize(CenteredFieldLayout<Dim,Mesh,Edge> & cfl,
+		   const Mesh& mesh,
+		   e_dim_tag* edt,
+		   unsigned* vnodesAlongDirection,
 		   bool recurse,
 		   int vnodes)
 {
@@ -148,14 +177,14 @@ template<const CenteringEnum* CE, unsigned Dim, class Mesh,
 inline void
 centeredInitialize(CenteredFieldLayout<Dim,Mesh,
 		   CartesianCentering<CE,Dim,NComponents> > & cfl,
-		   const Mesh& mesh, 
-		   e_dim_tag* edt, 
-		   unsigned* vnodesAlongDirection, 
+		   const Mesh& mesh,
+		   e_dim_tag* edt,
+		   unsigned* vnodesAlongDirection,
 		   bool recurse,
 		   int vnodes)
 {
   NDIndex<Dim> ndi;
-  // For componentwise layout of Field of multicomponent object, like 
+  // For componentwise layout of Field of multicomponent object, like
   // Field<Vektor...>, allow for maximal number of objects needed per
   // dimension (the number for the object component requiring the maximal
   // number):
@@ -183,7 +212,7 @@ centeredInitialize(CenteredFieldLayout<Dim,Mesh,
 template<unsigned Dim, class Mesh>
 inline void
 centeredInitialize(CenteredFieldLayout<Dim,Mesh,Cell> & cfl,
-		   const Mesh& mesh, 
+		   const Mesh& mesh,
 		   const NDIndex<Dim> *dombegin,
 		   const NDIndex<Dim> *domend,
 		   const int *nbegin,
@@ -198,7 +227,22 @@ centeredInitialize(CenteredFieldLayout<Dim,Mesh,Cell> & cfl,
 template<unsigned Dim, class Mesh>
 inline void
 centeredInitialize(CenteredFieldLayout<Dim,Mesh,Vert> & cfl,
-		   const Mesh& mesh, 
+		   const Mesh& mesh,
+		   const NDIndex<Dim> *dombegin,
+		   const NDIndex<Dim> *domend,
+		   const int *nbegin,
+		   const int *nend)
+{
+  NDIndex<Dim> ndi;
+  for (unsigned int d=0; d<Dim; d++) ndi[d] = Index(mesh.gridSizes[d]);
+  cfl.initialize(ndi, dombegin, domend, nbegin, nend);
+}
+
+//------------------Edge centering---------------------------------------------
+template<unsigned Dim, class Mesh>
+inline void
+centeredInitialize(CenteredFieldLayout<Dim,Mesh,Edge> & cfl,
+		   const Mesh& mesh,
 		   const NDIndex<Dim> *dombegin,
 		   const NDIndex<Dim> *domend,
 		   const int *nbegin,
@@ -215,13 +259,13 @@ template<const CenteringEnum* CE, unsigned Dim, class Mesh,
 inline void
 centeredInitialize(CenteredFieldLayout<Dim,Mesh,
 		   CartesianCentering<CE,Dim,NComponents> > & cfl,
-		   const Mesh& mesh, 
+		   const Mesh& mesh,
 		   const NDIndex<Dim> *dombegin,
 		   const NDIndex<Dim> *domend,
 		   const int *nbegin,
 		   const int *nend)
 {
-  // For componentwise layout of Field of multicomponent object, like 
+  // For componentwise layout of Field of multicomponent object, like
   // Field<Vektor...>, allow for maximal number of objects needed per
   // dimension (the number for the object component requiring the maximal
   // number):
@@ -259,8 +303,8 @@ centeredInitialize(CenteredFieldLayout<Dim,Mesh,
 // This one also works if nothing except mesh is specified:
 template<unsigned Dim, class Mesh, class Centering>
 CenteredFieldLayout<Dim,Mesh,Centering>::
-CenteredFieldLayout(Mesh& mesh, 
-		    e_dim_tag *p, 
+CenteredFieldLayout(Mesh& mesh,
+		    e_dim_tag *p,
 		    int vnodes)
 {
 
@@ -273,8 +317,8 @@ CenteredFieldLayout(Mesh& mesh,
 // Constructors for 1 ... 6 dimensions with parallel/serial specifiers:
 template<unsigned Dim, class Mesh, class Centering>
 CenteredFieldLayout<Dim,Mesh,Centering>::
-CenteredFieldLayout(Mesh& mesh, 
-		    e_dim_tag p1, 
+CenteredFieldLayout(Mesh& mesh,
+		    e_dim_tag p1,
 		    int vnodes)
 {
 
@@ -286,8 +330,8 @@ CenteredFieldLayout(Mesh& mesh,
 }
 template<unsigned Dim, class Mesh, class Centering>
 CenteredFieldLayout<Dim,Mesh,Centering>::
-CenteredFieldLayout(Mesh& mesh, 
-		    e_dim_tag p1, e_dim_tag p2, 
+CenteredFieldLayout(Mesh& mesh,
+		    e_dim_tag p1, e_dim_tag p2,
 		    int vnodes)
 {
 
@@ -301,8 +345,8 @@ CenteredFieldLayout(Mesh& mesh,
 }
 template<unsigned Dim, class Mesh, class Centering>
 CenteredFieldLayout<Dim,Mesh,Centering>::
-CenteredFieldLayout(Mesh& mesh, 
-		    e_dim_tag p1, e_dim_tag p2, e_dim_tag p3, 
+CenteredFieldLayout(Mesh& mesh,
+		    e_dim_tag p1, e_dim_tag p2, e_dim_tag p3,
 		    int vnodes)
 {
 
@@ -316,7 +360,7 @@ CenteredFieldLayout(Mesh& mesh,
 }
 template<unsigned Dim, class Mesh, class Centering>
 CenteredFieldLayout<Dim,Mesh,Centering>::
-CenteredFieldLayout(Mesh& mesh, 
+CenteredFieldLayout(Mesh& mesh,
 		    e_dim_tag p1, e_dim_tag p2, e_dim_tag p3, e_dim_tag p4,
 		    int vnodes)
 {
@@ -331,7 +375,7 @@ CenteredFieldLayout(Mesh& mesh,
 }
 template<unsigned Dim, class Mesh, class Centering>
 CenteredFieldLayout<Dim,Mesh,Centering>::
-CenteredFieldLayout(Mesh& mesh, 
+CenteredFieldLayout(Mesh& mesh,
 		    e_dim_tag p1, e_dim_tag p2, e_dim_tag p3, e_dim_tag p4,
 		    e_dim_tag p5,
 		    int vnodes)
@@ -347,7 +391,7 @@ CenteredFieldLayout(Mesh& mesh,
 }
 template<unsigned Dim, class Mesh, class Centering>
 CenteredFieldLayout<Dim,Mesh,Centering>::
-CenteredFieldLayout(Mesh& mesh, 
+CenteredFieldLayout(Mesh& mesh,
 		    e_dim_tag p1, e_dim_tag p2, e_dim_tag p3, e_dim_tag p4,
 		    e_dim_tag p5, e_dim_tag p6,
 		    int vnodes)
@@ -372,9 +416,9 @@ CenteredFieldLayout(Mesh& mesh,
 // Constructor for arbitrary dimension with parallel/serial specifier array:
 template<unsigned Dim, class Mesh, class Centering>
 CenteredFieldLayout<Dim,Mesh,Centering>::
-CenteredFieldLayout(Mesh& mesh, 
-		    e_dim_tag *p, 
-		    unsigned* vnodesAlongDirection, 
+CenteredFieldLayout(Mesh& mesh,
+		    e_dim_tag *p,
+		    unsigned* vnodesAlongDirection,
 		    bool recurse,
 		    int vnodes)
 {
@@ -386,8 +430,8 @@ CenteredFieldLayout(Mesh& mesh,
 // Constructors for 1 ... 6 dimensions with parallel/serial specifiers:
 template<unsigned Dim, class Mesh, class Centering>
 CenteredFieldLayout<Dim,Mesh,Centering>::
-CenteredFieldLayout(Mesh& mesh, 
-		    e_dim_tag p1, 
+CenteredFieldLayout(Mesh& mesh,
+		    e_dim_tag p1,
 		    unsigned vnodes1,
 		    bool recurse,
 		    int vnodes)
@@ -401,8 +445,8 @@ CenteredFieldLayout(Mesh& mesh,
 }
 template<unsigned Dim, class Mesh, class Centering>
 CenteredFieldLayout<Dim,Mesh,Centering>::
-CenteredFieldLayout(Mesh& mesh, 
-		    e_dim_tag p1, e_dim_tag p2, 
+CenteredFieldLayout(Mesh& mesh,
+		    e_dim_tag p1, e_dim_tag p2,
 		    unsigned vnodes1, unsigned vnodes2,
 		    bool recurse,
 		    int vnodes)
@@ -420,8 +464,8 @@ CenteredFieldLayout(Mesh& mesh,
 }
 template<unsigned Dim, class Mesh, class Centering>
 CenteredFieldLayout<Dim,Mesh,Centering>::
-CenteredFieldLayout(Mesh& mesh, 
-		    e_dim_tag p1, e_dim_tag p2, e_dim_tag p3, 
+CenteredFieldLayout(Mesh& mesh,
+		    e_dim_tag p1, e_dim_tag p2, e_dim_tag p3,
 		    unsigned vnodes1, unsigned vnodes2, unsigned vnodes3,
 		    bool recurse,
 		    int vnodes)
@@ -434,12 +478,12 @@ CenteredFieldLayout(Mesh& mesh,
   e_dim_tag edt[3];
   edt[0] = p1; edt[1] = p2; edt[2] = p3;
   unsigned vad[3];
-  vad[0] = vnodes1; vad[1] = vnodes2; vad[2] = vnodes3; 
+  vad[0] = vnodes1; vad[1] = vnodes2; vad[2] = vnodes3;
   centeredInitialize(*this, mesh, edt, vad, recurse, vnodes);
 }
 template<unsigned Dim, class Mesh, class Centering>
 CenteredFieldLayout<Dim,Mesh,Centering>::
-CenteredFieldLayout(Mesh& mesh, 
+CenteredFieldLayout(Mesh& mesh,
 		    e_dim_tag p1, e_dim_tag p2, e_dim_tag p3, e_dim_tag p4,
 		    unsigned vnodes1, unsigned vnodes2, unsigned vnodes3,
 		    unsigned vnodes4,
@@ -454,13 +498,13 @@ CenteredFieldLayout(Mesh& mesh,
   e_dim_tag edt[4];
   edt[0] = p1; edt[1] = p2; edt[2] = p3; edt[3] = p4;
   unsigned vad[4];
-  vad[0] = vnodes1; vad[1] = vnodes2; vad[2] = vnodes3; 
+  vad[0] = vnodes1; vad[1] = vnodes2; vad[2] = vnodes3;
   vad[3] = vnodes4;
   centeredInitialize(*this, mesh, edt, vad, recurse, vnodes);
 }
 template<unsigned Dim, class Mesh, class Centering>
 CenteredFieldLayout<Dim,Mesh,Centering>::
-CenteredFieldLayout(Mesh& mesh, 
+CenteredFieldLayout(Mesh& mesh,
 		    e_dim_tag p1, e_dim_tag p2, e_dim_tag p3, e_dim_tag p4,
 		    e_dim_tag p5,
 		    unsigned vnodes1, unsigned vnodes2, unsigned vnodes3,
@@ -476,13 +520,13 @@ CenteredFieldLayout(Mesh& mesh,
   e_dim_tag edt[5];
   edt[0] = p1; edt[1] = p2; edt[2] = p3; edt[3] = p4; edt[4] = p5;
   unsigned vad[5];
-  vad[0] = vnodes1; vad[1] = vnodes2; vad[2] = vnodes3; 
+  vad[0] = vnodes1; vad[1] = vnodes2; vad[2] = vnodes3;
   vad[3] = vnodes4; vad[4] = vnodes5;
   centeredInitialize(*this, mesh, edt, vad, recurse, vnodes);
 }
 template<unsigned Dim, class Mesh, class Centering>
 CenteredFieldLayout<Dim,Mesh,Centering>::
-CenteredFieldLayout(Mesh& mesh, 
+CenteredFieldLayout(Mesh& mesh,
 		    e_dim_tag p1, e_dim_tag p2, e_dim_tag p3, e_dim_tag p4,
 		    e_dim_tag p5, e_dim_tag p6,
 		    unsigned vnodes1, unsigned vnodes2, unsigned vnodes3,
@@ -498,7 +542,7 @@ CenteredFieldLayout(Mesh& mesh,
   e_dim_tag edt[6];
   edt[0] = p1; edt[1] = p2; edt[2] = p3; edt[3] = p4; edt[4] = p5; edt[5] = p6;
   unsigned vad[6];
-  vad[0] = vnodes1; vad[1] = vnodes2; vad[2] = vnodes3; 
+  vad[0] = vnodes1; vad[1] = vnodes2; vad[2] = vnodes3;
   vad[3] = vnodes4; vad[4] = vnodes5; vad[5] = vnodes6;
   centeredInitialize(*this, mesh, edt, vad, recurse, vnodes);
 }
@@ -523,5 +567,5 @@ CenteredFieldLayout(Mesh& mesh,
 /***************************************************************************
  * $RCSfile: CenteredFieldLayout.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:27 $
- * IPPL_VERSION_ID: $Id: CenteredFieldLayout.cpp,v 1.1.1.1 2003/01/23 07:40:27 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: CenteredFieldLayout.cpp,v 1.1.1.1 2003/01/23 07:40:27 adelmann Exp $
  ***************************************************************************/

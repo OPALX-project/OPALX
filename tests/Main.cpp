@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
     if (!gmsg) {
         return 1;
     }
-    MPI_Init(&argc, &argv);
+    ippl = new Ippl(argc, argv);
 
     ::testing::TestEventListeners &listeners =
           ::testing::UnitTest::GetInstance()->listeners();

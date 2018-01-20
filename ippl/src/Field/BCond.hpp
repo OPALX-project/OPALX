@@ -487,6 +487,9 @@ void InterpolationFaceBCApply(InterpolationFace<T,D,M,Cell>& pf,
 template<class T, unsigned D, class M>
 void PeriodicFaceBCApply(PeriodicFace<T,D,M,Vert>& pf,
 			 Field<T,D,M,Vert>& A );
+template<class T, unsigned D, class M>
+void PeriodicFaceBCApply(PeriodicFace<T,D,M,Edge>& pf,
+			 Field<T,D,M,Edge>& A );
 template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
 void PeriodicFaceBCApply(PeriodicFace<T,D,M,
 			 CartesianCentering<CE,D,NC> >& pf,
@@ -805,6 +808,100 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,Vert>& pf,
 
 
 //-----------------------------------------------------------------------------
+// Specialization of PeriodicFace::apply() for Edge centering.
+// Rather, indirectly-called specialized global function PeriodicFaceBCApply
+//-----------------------------------------------------------------------------
+template<class T, unsigned D, class M>
+void PeriodicFaceBCApply(PeriodicFace<T,D,M,Edge>& pf,
+			 Field<T,D,M,Edge>& A )
+{
+  // NOTE: See the ExtrapolateFaceBCApply functions below for more
+  // comprehensible comments --TJW
+
+  // Find the slab that is the destination.
+  const NDIndex<D>& domain( A.getDomain() );
+  NDIndex<D> slab = AddGuardCells(domain,A.getGuardCellSizes());
+  unsigned d = pf.getFace()/2;
+  int offset;
+  if ( pf.getFace() & 1 )
+    {
+      // TJW: this used to say "leftGuard(d)", which I think was wrong:
+      slab[d] = Index(domain[d].max(), domain[d].max() + A.rightGuard(d));
+      // N.B.: the extra +1 here is what distinguishes this Edge-centered
+      // implementation from the Cell-centered one:
+      offset = -domain[d].length() + 1;
+    }
+  else
+    {
+      slab[d] = Index( domain[d].min() - A.leftGuard(d), domain[d].min()-1 );
+      // N.B.: the extra -1 here is what distinguishes this Edge-centered
+      // implementation from the Cell-centered one:
+      offset = domain[d].length() - 1;
+    }
+
+  // Loop over the ones the slab touches.
+  typename Field<T,D,M,Edge>::iterator_if fill_i;
+  for (fill_i=A.begin_if(); fill_i!=A.end_if(); ++fill_i)
+    {
+      // Cache some things we will use often below.
+      LField<T,D> &fill = *(*fill_i).second;
+      const NDIndex<D> &fill_alloc = fill.getAllocated();
+      if ( slab.touches( fill_alloc ) )
+        {
+          // Find what it touches in this LField.
+          NDIndex<D> dest = slab.intersect( fill_alloc );
+
+          // Find where that comes from.
+          NDIndex<D> src = dest;
+          src[d] = src[d] + offset;
+
+          // Loop over the ones that src touches.
+          typename Field<T,D,M,Edge>::iterator_if from_i;
+          for (from_i=A.begin_if(); from_i!=A.end_if(); ++from_i)
+            {
+              // Cache a few things.
+              LField<T,D> &from = *(*from_i).second;
+              const NDIndex<D> &from_owned = from.getOwned();
+              const NDIndex<D> &from_alloc = from.getAllocated();
+              // If src touches this LField...
+              if ( src.touches( from_owned ) )
+                {
+		  // bfh: Worry about compression ...
+		  // If 'fill' is a compressed LField, then writing data into
+		  // it via the expression will actually write the value for
+		  // all elements of the LField.  We can do the following:
+		  //   a) figure out if the 'fill' elements are all the same
+		  //      value, if 'from' elements are the same value, if
+		  //      the 'fill' elements are the same as the elements
+		  //      throughout that LField, and then just do an
+		  //      assigment for a single element
+		  //   b) just uncompress the 'fill' LField, to make sure we
+		  //      do the right thing.
+		  // I vote for b).
+		  fill.Uncompress();
+
+                  NDIndex<D> from_it = src.intersect( from_alloc );
+                  NDIndex<D> fill_it = dest.plugBase( from_it );
+                  // Build iterators for the copy...
+                  typedef typename LField<T,D>::iterator LFI;
+                  LFI lhs = fill.begin(fill_it);
+                  LFI rhs = from.begin(from_it);
+                  // And do the assignment.
+		  // BrickExpression<D,LFI,LFI,OpAssign >(lhs,rhs).apply();
+		  if (pf.getComponent() == BCondBase<T,D,M,Edge>::allComponents) {
+		    BrickExpression<D,LFI,LFI,OpPeriodic<T> >
+		      (lhs,rhs,OpPeriodic<T>()).apply();
+		  } else {
+		    BrickExpression<D,LFI,LFI,OpPeriodicComponent<T> >
+		      (lhs,rhs,OpPeriodicComponent<T>(pf.getComponent())).apply();
+		  }
+                }
+            }
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
 // Specialization of PeriodicFace::apply() for CartesianCentering centering.
 // Rather, indirectly-called specialized global function PeriodicFaceBCApply
 //-----------------------------------------------------------------------------
@@ -1015,6 +1112,54 @@ template <class T, unsigned D, class M>
 inline void
 CalcParallelPeriodicDomain(const Field<T,D,M,Vert> &A,
 			   const ParallelPeriodicFace<T,D,M,Vert>& pf,
+			   NDIndex<D> &dest_slab,
+			   int &offset)
+{
+  // Direction Dim has faces 2*Dim and 2*Dim + 1, so the following
+  // expression converts the face index to the direction index.
+
+  const NDIndex<D>& domain(A.getDomain());
+
+  unsigned d = pf.getFace()/2;
+
+  if (pf.getFace() & 1) // Odd ("top" or "right") face
+    {
+      // A vert-centered periodic field duplicates the boundary
+      // point. As a result, the right boundary point is filled from
+      // the left boundary point. Thus, the points that we need to fill
+      // include the last physical point (domain[d].max()) and the
+      // guard points.
+
+      dest_slab[d] =
+	Index(domain[d].max(), domain[d].max() + A.rightGuard(d));
+
+      // The offset to the points that we are going to read; i.e. the
+      // read domain will be "dest_slab + offset". This is the number of
+      // physical points in that direction.
+
+      offset = -domain[d].length() + 1;
+    }
+  else // Even ("bottom" or "left") face
+    {
+      // The points that we need to fill start with the first guard
+      // cell on the bottom and continue up through the cell before
+      // the first physical cell.
+
+      dest_slab[d] =
+	Index(domain[d].min() - A.leftGuard(d), domain[d].min()-1);
+
+      // See above.
+
+      offset = domain[d].length() - 1;
+    }
+}
+
+// See comments above - vert centering wrong, I think.
+// TODO ckr: compare this with the general case below
+template <class T, unsigned D, class M>
+inline void
+CalcParallelPeriodicDomain(const Field<T,D,M,Edge> &A,
+			   const ParallelPeriodicFace<T,D,M,Edge>& pf,
 			   NDIndex<D> &dest_slab,
 			   int &offset)
 {
@@ -2664,6 +2809,9 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Cell>& ef,
 template<class T, unsigned D, class M>
 void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Vert>& ef,
 			    Field<T,D,M,Vert>& A );
+template<class T, unsigned D, class M>
+void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Edge>& ef,
+			    Field<T,D,M,Edge>& A );
 template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
 void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
 			    CartesianCentering<CE,D,NC> >& ef,
@@ -2991,6 +3139,137 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Vert>& ef,
 	      // must loop over LFields to find the ones the touch the src.
 
 	      typename Field<T,D,M,Vert>::iterator_if from_i;
+	      for (from_i=A.begin_if(); from_i!=A.end_if(); ++from_i)
+		{
+		  // Cache a few things.
+
+		  LField<T,D> &from = *(*from_i).second;
+		  const NDIndex<D> &from_owned = from.getOwned();
+		  const NDIndex<D> &from_alloc = from.getAllocated();
+
+		  // If src touches this LField...
+
+		  if (src.touches(from_owned))
+		    ExtrapolateFaceBCApply2(dest, src, fill, from,
+		      from_alloc, ef);
+		}
+	    }
+	}
+    }
+}
+
+
+
+//-----------------------------------------------------------------------------
+// Specialization of ExtrapolateFace::apply() for Edge centering.
+// Rather, indirectly-called specialized global function ExtrapolateFaceBCApply
+//-----------------------------------------------------------------------------
+
+template<class T, unsigned D, class M>
+void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Edge>& ef,
+			    Field<T,D,M,Edge>& A )
+{
+  // Find the slab that is the destination.
+  // That is, in English, get an NDIndex spanning elements in the guard layers
+  // on the face associated with the ExtrapaloteFace object:
+
+  const NDIndex<D>& domain(A.getDomain());
+  NDIndex<D> slab = AddGuardCells(domain,A.getGuardCellSizes());
+
+  // The direction (dimension of the Field) associated with the active face.
+  // The numbering convention makes this division by two return the right
+  // value, which will be between 0 and (D-1):
+
+  unsigned d = ef.getFace()/2;
+  int offset;
+
+  // The following bitwise AND logical test returns true if ef.m_face is odd
+  // (meaning the "high" or "right" face in the numbering convention) and
+  // returns false if ef.m_face is even (meaning the "low" or "left" face
+  // in the numbering convention):
+
+  if ( ef.getFace() & 1 )
+    {
+      // For "high" face, index in active direction goes from max index of
+      // Field plus 1 to the same plus number of guard layers:
+      // TJW: this used to say "leftGuard(d)", which I think was wrong:
+
+      slab[d] = Index( domain[d].max() + 1, domain[d].max() + A.rightGuard(d));
+
+      // Used in computing interior elements used in computing fill values for
+      // boundary guard  elements; see below:
+      // N.B.: the extra -1 here is what distinguishes this Edge-centered
+      // implementation from the Cell-centered one:
+
+      offset = 2*domain[d].max() + 1 - 1;
+    }
+  else
+    {
+      // For "low" face, index in active direction goes from min index of
+      // Field minus the number of guard layers (usually a negative number)
+      // to the same min index minus 1 (usually negative, and usually -1):
+
+      slab[d] = Index( domain[d].min() - A.leftGuard(d), domain[d].min()-1 );
+      // Used in computing interior elements used in computing fill values for
+      // boundary guard  elements; see below:
+      // N.B.: the extra +1 here is what distinguishes this Edge-centered
+      // implementation from the Cell-centered one:
+
+      offset = 2*domain[d].min() - 1 + 1;
+    }
+
+  // Loop over all the LField's in the Field A:
+
+  typename Field<T,D,M,Edge>::iterator_if fill_i;
+  for (fill_i=A.begin_if(); fill_i!=A.end_if(); ++fill_i)
+    {
+      // Cache some things we will use often below.
+      // Pointer to the data for the current LField (right????):
+
+      LField<T,D> &fill = *(*fill_i).second;
+      // NDIndex spanning all elements in the LField, including the guards:
+
+      const NDIndex<D> &fill_alloc = fill.getAllocated();
+      // If the previously-created boundary guard-layer NDIndex "slab"
+      // contains any of the elements in this LField (they will be guard
+      // elements if it does), assign the values into them here by applying
+      // the boundary condition:
+
+      if ( slab.touches( fill_alloc ) )
+        {
+          // Find what it touches in this LField.
+
+          NDIndex<D> dest = slab.intersect( fill_alloc );
+
+          // For exrapolation boundary conditions, the boundary guard-layer
+	  // elements are typically copied from interior values; the "src"
+	  // NDIndex specifies the interior elements to be copied into the
+	  // "dest" boundary guard-layer elements (possibly after some
+	  // mathematical operations like multipplying by minus 1 later):
+
+          NDIndex<D> src = dest;
+
+	  // Now calculate the interior elements; the offset variable computed
+	  // above makes this correct for "low" or "high" face cases:
+
+          src[d] = offset - src[d];
+
+	  // At this point, we need to see if 'src' is fully contained by
+	  // by 'fill_alloc'. If it is, we have a lot less work to do.
+
+	  if (fill_alloc.contains(src))
+	    {
+	      // Great! Our domain contains the elements we're filling from.
+
+	      ExtrapolateFaceBCApply2(dest, src, fill, fill,
+	        fill_alloc, ef);
+	    }
+	  else
+	    {
+	      // Yuck! Our domain doesn't contain all of the src. We
+	      // must loop over LFields to find the ones the touch the src.
+
+	      typename Field<T,D,M,Edge>::iterator_if from_i;
 	      for (from_i=A.begin_if(); from_i!=A.end_if(); ++from_i)
 		{
 		  // Cache a few things.
@@ -3346,6 +3625,9 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Cell>& ef,
 template<class T, unsigned D, class M>
 void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Vert>& ef,
 			    Field<T,D,M,Vert>& A );
+template<class T, unsigned D, class M>
+void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Edge>& ef,
+			    Field<T,D,M,Edge>& A );
 template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
 void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 			    CartesianCentering<CE,D,NC> >& ef,
@@ -3787,6 +4069,168 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Vert>& ef,
 
 
 //-----------------------------------------------------------------------------
+// Specialization of ExtrapolateAndZeroFace::apply() for Edge centering.
+// Rather, indirectly-called specialized global function
+// ExtrapolateAndZeroFaceBCApply
+//-----------------------------------------------------------------------------
+
+template<class T, unsigned D, class M>
+void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Edge>& ef,
+                                   Field<T,D,M,Edge>& A )
+{
+  // Find the slab that is the destination.
+  // That is, in English, get an NDIndex spanning elements in the guard layers
+  // on the face associated with the ExtrapaloteFace object:
+
+  const NDIndex<D>& domain(A.getDomain());
+  NDIndex<D> slab = AddGuardCells(domain,A.getGuardCellSizes());
+  //boo-boo-2  NDIndex<D> phys = domain;
+  NDIndex<D> phys = slab;
+
+  // The direction (dimension of the Field) associated with the active face.
+  // The numbering convention makes this division by two return the right
+  // value, which will be between 0 and (D-1):
+
+  unsigned d = ef.getFace()/2;
+  int offset;
+
+  // The following bitwise AND logical test returns true if ef.m_face is odd
+  // (meaning the "high" or "right" face in the numbering convention) and
+  // returns false if ef.m_face is even (meaning the "low" or "left" face in
+  // the numbering convention):
+
+  if ( ef.getFace() & 1 )
+    {
+      // For "high" face, index in active direction goes from max index of
+      // Field plus 1 to the same plus number of guard layers:
+      // TJW: this used to say "leftGuard(d)", which I think was wrong:
+
+      slab[d] = Index( domain[d].max() + 1, domain[d].max() + A.rightGuard(d));
+
+      // Compute the layer of physical cells we're going to set.
+
+      phys[d] = Index( domain[d].max(),  domain[d].max(), 1);
+
+      // Used in computing interior elements used in computing fill values for
+      // boundary guard  elements; see below:
+      // N.B.: the extra -1 here is what distinguishes this Edge-centered
+      // implementation from the Cell-centered one:
+
+      offset = 2*domain[d].max() + 1 - 1;
+    }
+  else
+    {
+      // For "low" face, index in active direction goes from min index of
+      // Field minus the number of guard layers (usually a negative number)
+      // to the same min index minus 1 (usually negative, and usually -1):
+
+      slab[d] = Index( domain[d].min() - A.leftGuard(d), domain[d].min()-1 );
+
+      // Compute the layer of physical cells we're going to set.
+
+      phys[d] = Index( domain[d].min(),  domain[d].min(), 1);
+
+      // Used in computing interior elements used in computing fill values for
+      // boundary guard  elements; see below:
+      // N.B.: the extra +1 here is what distinguishes this Edge-centered
+      // implementation from the Cell-centered one:
+
+      offset = 2*domain[d].min() - 1 + 1;
+    }
+
+  // Loop over all the LField's in the Field A:
+
+  typename Field<T,D,M,Edge>::iterator_if fill_i;
+  for (fill_i=A.begin_if(); fill_i!=A.end_if(); ++fill_i)
+    {
+      // Cache some things we will use often below.
+      // Pointer to the data for the current LField (right????):
+
+      LField<T,D> &fill = *(*fill_i).second;
+
+      // Get the physical part of this LField and see if that touches
+      // the physical cells we want to zero.
+
+      //boo-boo-2      const NDIndex<D> &fill_owned = fill.getOwned();
+      const NDIndex<D> &fill_alloc = fill.getAllocated();
+
+      //boo-boo-2      if (phys.touches(fill_owned))
+      if (phys.touches(fill_alloc))
+	{
+	  // Find out what we're touching.
+
+	  //boo-boo-2	  NDIndex<D> dest = phys.intersect(fill_owned);
+	  NDIndex<D> dest = phys.intersect(fill_alloc);
+
+	  // Zero the cells.
+
+	  ExtrapolateAndZeroFaceBCApply3(dest, fill, ef);
+	}
+
+      // NDIndex spanning all elements in the LField, including the guards:
+
+      //boo-boo-2      const NDIndex<D> &fill_alloc = fill.getAllocated();
+
+      // If the previously-created boundary guard-layer NDIndex "slab"
+      // contains any of the elements in this LField (they will be guard
+      // elements if it does), assign the values into them here by applying
+      // the boundary condition:
+
+      if ( slab.touches( fill_alloc ) )
+        {
+          // Find what it touches in this LField.
+
+          NDIndex<D> dest = slab.intersect( fill_alloc );
+
+          // For exrapolation boundary conditions, the boundary guard-layer
+	  // elements are typically copied from interior values; the "src"
+	  // NDIndex specifies the interior elements to be copied into the
+	  // "dest" boundary guard-layer elements (possibly after some
+	  // mathematical operations like multipplying by minus 1 later):
+
+          NDIndex<D> src = dest;
+
+	  // Now calculate the interior elements; the offset variable computed
+	  // above makes this correct for "low" or "high" face cases:
+
+          src[d] = offset - src[d];
+
+	  // At this point, we need to see if 'src' is fully contained by
+	  // by 'fill_alloc'. If it is, we have a lot less work to do.
+
+	  if (fill_alloc.contains(src))
+	    {
+	      // Great! Our domain contains the elements we're filling from.
+
+	      ExtrapolateAndZeroFaceBCApply2(dest, src, fill, fill,
+	        fill_alloc, ef);
+	    }
+	  else
+	    {
+	      // Yuck! Our domain doesn't contain all of the src. We
+	      // must loop over LFields to find the ones the touch the src.
+
+	      typename Field<T,D,M,Edge>::iterator_if from_i;
+	      for (from_i=A.begin_if(); from_i!=A.end_if(); ++from_i)
+		{
+		  // Cache a few things.
+
+		  LField<T,D> &from = *(*from_i).second;
+		  const NDIndex<D> &from_owned = from.getOwned();
+		  const NDIndex<D> &from_alloc = from.getAllocated();
+
+		  // If src touches this LField...
+
+		  if (src.touches(from_owned))
+		    ExtrapolateAndZeroFaceBCApply2(dest, src, fill, from,
+		      from_alloc, ef);
+		}
+	    }
+	}
+    }
+}
+
+//-----------------------------------------------------------------------------
 // Specialization of ExtrapolateAndZeroFace::apply() for CartesianCentering
 // centering.  Rather,indirectly-called specialized global function
 // ExtrapolateAndZeroFaceBCApply:
@@ -4110,6 +4554,9 @@ void FunctionFaceBCApply(FunctionFace<T,D,M,Cell>& ff,
 template<class T, unsigned D, class M>
 void FunctionFaceBCApply(FunctionFace<T,D,M,Vert>& ff,
 			 Field<T,D,M,Vert>& A );
+template<class T, unsigned D, class M>
+void FunctionFaceBCApply(FunctionFace<T,D,M,Edge>& ff,
+			 Field<T,D,M,Edge>& A );
 template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
 void FunctionFaceBCApply(FunctionFace<T,D,M,
 			 CartesianCentering<CE,D,NC> >& ff,
@@ -4259,6 +4706,92 @@ void FunctionFaceBCApply(FunctionFace<T,D,M,Vert>& ff,
 
           // Loop over the ones that src touches.
           typename Field<T,D,M,Vert>::iterator_if from_i;
+          for (from_i=A.begin_if(); from_i!=A.end_if(); ++from_i)
+            {
+              // Cache a few things.
+              LField<T,D> &from = *(*from_i).second;
+              const NDIndex<D> &from_owned = from.getOwned();
+              const NDIndex<D> &from_alloc = from.getAllocated();
+              // If src touches this LField...
+              if ( src.touches( from_owned ) )
+                {
+		  // bfh: Worry about compression ...
+		  // If 'fill' is a compressed LField, then writing data into
+		  // it via the expression will actually write the value for
+		  // all elements of the LField.  We can do the following:
+		  //   a) figure out if the 'fill' elements are all the same
+		  //      value, if 'from' elements are the same value, if
+		  //      the 'fill' elements are the same as the elements
+		  //      throughout that LField, and then just do an
+		  //      assigment for a single element
+		  //   b) just uncompress the 'fill' LField, to make sure we
+		  //      do the right thing.
+		  // I vote for b).
+		  fill.Uncompress();
+
+                  NDIndex<D> from_it = src.intersect( from_alloc );
+                  NDIndex<D> fill_it = dest.plugBase( from_it );
+                  // Build iterators for the copy...
+		  typedef typename LField<T,D>::iterator LFI;
+                  LFI lhs = fill.begin(fill_it);
+                  LFI rhs = from.begin(from_it);
+                  // And do the assignment.
+		  BrickExpression<D,LFI,LFI,OpBCFunctionEq<T> >
+		    (lhs,rhs,OpBCFunctionEq<T>(ff.Func)).apply();
+                }
+            }
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Specialization of FunctionFace::apply() for Edge centering.
+// Rather, indirectly-called specialized global function FunctionFaceBCApply
+//-----------------------------------------------------------------------------
+template<class T, unsigned D, class M>
+void FunctionFaceBCApply(FunctionFace<T,D,M,Edge>& ff,
+			 Field<T,D,M,Edge>& A )
+{
+  // NOTE: See the ExtrapolateFaceBCApply functions above for more
+  // comprehensible comments --TJW
+
+  // Find the slab that is the destination.
+  const NDIndex<D>& domain( A.getDomain() );
+  NDIndex<D> slab = AddGuardCells(domain,A.getGuardCellSizes());
+  unsigned d = ff.getFace()/2;
+  int offset;
+  if ( ff.getFace() & 1 ) {
+    // TJW: this used to say "leftGuard(d)", which I think was wrong:
+    slab[d] = Index( domain[d].max() + 1,  domain[d].max() + A.rightGuard(d));
+    // N.B.: the extra -1 here is what distinguishes this Edge-centered
+    // implementation from the Cell-centered one:
+    offset = 2*domain[d].max() + 1 - 1;
+  }
+  else {
+    slab[d] = Index( domain[d].min() - A.leftGuard(d), domain[d].min()-1 );
+    // N.B.: the extra +1 here is what distinguishes this Edge-centered
+    // implementation from the Cell-centered one:
+    offset = 2*domain[d].min() - 1 + 1;
+  }
+
+  // Loop over the ones the slab touches.
+  typename Field<T,D,M,Edge>::iterator_if fill_i;
+  for (fill_i=A.begin_if(); fill_i!=A.end_if(); ++fill_i)
+    {
+      // Cache some things we will use often below.
+      LField<T,D> &fill = *(*fill_i).second;
+      const NDIndex<D> &fill_alloc = fill.getAllocated();
+      if ( slab.touches( fill_alloc ) )
+        {
+          // Find what it touches in this LField.
+          NDIndex<D> dest = slab.intersect( fill_alloc );
+
+          // Find where that comes from.
+          NDIndex<D> src = dest;
+          src[d] = offset - src[d];
+
+          // Loop over the ones that src touches.
+          typename Field<T,D,M,Edge>::iterator_if from_i;
           for (from_i=A.begin_if(); from_i!=A.end_if(); ++from_i)
             {
               // Cache a few things.
@@ -4472,6 +5005,9 @@ void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,Cell>& ff,
 template<class T, unsigned D, class M>
 void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,Vert>& ff,
 				  Field<T,D,M,Vert>& A );
+template<class T, unsigned D, class M>
+void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,Edge>& ff,
+				  Field<T,D,M,Edge>& A );
 template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
 void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,
 				  CartesianCentering<CE,D,NC> >& ff,
@@ -4623,6 +5159,94 @@ void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,Vert>& ff,
 
           // Loop over the ones that src touches.
           typename Field<T,D,M,Vert>::iterator_if from_i;
+          for (from_i=A.begin_if(); from_i!=A.end_if(); ++from_i)
+            {
+              // Cache a few things.
+              LField<T,D> &from = *(*from_i).second;
+              const NDIndex<D> &from_owned = from.getOwned();
+              const NDIndex<D> &from_alloc = from.getAllocated();
+              // If src touches this LField...
+              if ( src.touches( from_owned ) )
+                {
+		  // bfh: Worry about compression ...
+		  // If 'fill' is a compressed LField, then writing data into
+		  // it via the expression will actually write the value for
+		  // all elements of the LField.  We can do the following:
+		  //   a) figure out if the 'fill' elements are all the same
+		  //      value, if 'from' elements are the same value, if
+		  //      the 'fill' elements are the same as the elements
+		  //      throughout that LField, and then just do an
+		  //      assigment for a single element
+		  //   b) just uncompress the 'fill' LField, to make sure we
+		  //      do the right thing.
+		  // I vote for b).
+		  fill.Uncompress();
+
+                  NDIndex<D> from_it = src.intersect( from_alloc );
+                  NDIndex<D> fill_it = dest.plugBase( from_it );
+                  // Build iterators for the copy...
+		  typedef typename LField<T,D>::iterator LFI;
+                  LFI lhs = fill.begin(fill_it);
+                  LFI rhs = from.begin(from_it);
+                  // And do the assignment.
+		  BrickExpression<D,LFI,LFI,OpBCFunctionEqComponent<T> >
+		    (lhs,rhs,OpBCFunctionEqComponent<T>
+		     (ff.Func,ff.getComponent())).apply();
+                }
+            }
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+//Specialization of ComponentFunctionFace::apply() for Edge centering.
+//Rather, indirectly-called specialized global function
+//ComponentFunctionFaceBCApply
+//-----------------------------------------------------------------------------
+template<class T, unsigned D, class M>
+void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,Edge>& ff,
+			 Field<T,D,M,Edge>& A )
+{
+  // NOTE: See the ExtrapolateFaceBCApply functions above for more
+  // comprehensible comments --TJW
+
+  // Find the slab that is the destination.
+  const NDIndex<D>& domain( A.getDomain() );
+  NDIndex<D> slab = AddGuardCells(domain,A.getGuardCellSizes());
+  unsigned d = ff.getFace()/2;
+  int offset;
+  if ( ff.getFace() & 1 ) {
+    // TJW: this used to say "leftGuard(d)", which I think was wrong:
+    slab[d] = Index( domain[d].max() + 1,  domain[d].max() + A.rightGuard(d));
+    // N.B.: the extra -1 here is what distinguishes this Edge-centered
+    // implementation from the Cell-centered one:
+    offset = 2*domain[d].max() + 1 - 1;
+  }
+  else {
+    slab[d] = Index( domain[d].min() - A.leftGuard(d), domain[d].min()-1 );
+    // N.B.: the extra +1 here is what distinguishes this Edge-centered
+    // implementation from the Cell-centered one:
+    offset = 2*domain[d].min() - 1 + 1;
+  }
+
+  // Loop over the ones the slab touches.
+  typename Field<T,D,M,Edge>::iterator_if fill_i;
+  for (fill_i=A.begin_if(); fill_i!=A.end_if(); ++fill_i)
+    {
+      // Cache some things we will use often below.
+      LField<T,D> &fill = *(*fill_i).second;
+      const NDIndex<D> &fill_alloc = fill.getAllocated();
+      if ( slab.touches( fill_alloc ) )
+        {
+          // Find what it touches in this LField.
+          NDIndex<D> dest = slab.intersect( fill_alloc );
+
+          // Find where that comes from.
+          NDIndex<D> src = dest;
+          src[d] = offset - src[d];
+
+          // Loop over the ones that src touches.
+          typename Field<T,D,M,Edge>::iterator_if from_i;
           for (from_i=A.begin_if(); from_i!=A.end_if(); ++from_i)
             {
               // Cache a few things.
@@ -5098,6 +5722,13 @@ calcEurekaSlabToFill(const Field<T,D,M,Cell>& field, int face,int)
 template<class T, unsigned int D, class M>
 static NDIndex<D>
 calcEurekaSlabToFill(const Field<T,D,M,Vert>& field, int face,int)
+{
+  return calcEurekaDomain(field.getDomain(),face,field.getGC());
+}
+
+template<class T, unsigned int D, class M>
+static NDIndex<D>
+calcEurekaSlabToFill(const Field<T,D,M,Edge>& field, int face,int)
 {
   return calcEurekaDomain(field.getDomain(),face,field.getGC());
 }
