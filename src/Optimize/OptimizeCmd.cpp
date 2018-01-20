@@ -197,7 +197,7 @@ void OptimizeCmd::execute() {
     std::string fname = inputfile.stem().native();
     ff = sameSDDSVariable(fname);
     funcs.insert(std::pair<std::string, client::function::type>
-                 ("sameSDDSVariableAt", ff));
+                 ("statVariableAt", ff));
 
     //////////////////////////////////////////////////////////////////////////
 
@@ -310,28 +310,6 @@ void OptimizeCmd::execute() {
         *gmsg << arguments[i] << " ";
     }
     *gmsg << endl;
-/*
- * `--inputfile=fname`: input file containing optimization problem
- * `--outfile=fname`: name used in output file generation
- * `--outdir=dirname`: name of directory used to store generation output
-                        files (generated if non-existing)
-                        * `--initialPopulation=num`: size of the initial population
-                        * `--num-masters=num`: number of master nodes
-                        * `--num-coworkers=num`: number processors per worker
-                        * `--selector=path`: path of the selector (PISA only)
-                        * `--dump-dat=freq`: dump old generation data format with frequency (PISA only)
-                        * `--num-ind-gen=num`: number of individuals in a generation (PISA only)
-
-- and for convergence we support:
-* `--maxGenerations=num`: number of generations to run
-* `--epslion=num`: tolerance of hypervolume criteria
-* `--expected-hypervol=num`: the reference hypervolume
-* `--conv-hvol-prog=num`: converge if change in hypervolume is smaller
-* `--gene-mutation-probability=num
-* `--mutation-probability=0.5
-* `--recombination-probability=0.5
-* `--sol-synch=0
-*/
 
     for (const std::string &name: dvarsstr) {
         Object *obj = opal->find(name);
