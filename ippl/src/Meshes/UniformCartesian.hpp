@@ -1465,6 +1465,69 @@ Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
   return r;
 }
 //----------------------------------------------------------------------
+// Divergence Vektor/Edge -> Scalar/Vert
+//----------------------------------------------------------------------
+template < class T, class MFLOAT >
+Field<T,1U,UniformCartesian<1U,MFLOAT>,Vert>&
+Div(Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Edge>& x,
+    Field<T,1U,UniformCartesian<1U,MFLOAT>,Vert>& r)
+{
+  const NDIndex<1U>& domain = r.getDomain();
+  Index I = domain[0];
+  Vektor<T,1U> idx;
+  idx[0] = 1.0/x.get_mesh().get_meshSpacing(0);
+
+  assign( r[I] , dot( idx , (x[I] - x[I-1]) ) );
+  return r;
+}
+//----------------------------------------------------------------------
+template < class T, class MFLOAT >
+Field<T,2U,UniformCartesian<2U,MFLOAT>,Vert>&
+Div(Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Edge>& x,
+    Field<T,2U,UniformCartesian<2U,MFLOAT>,Vert>& r)
+{
+  const NDIndex<2U>& domain = r.getDomain();
+  Index I = domain[0];
+  Index J = domain[1];
+  Vektor<T,2U> idx,idy;
+  idx[0] = 1.0/x.get_mesh().get_meshSpacing(0);
+  idx[1] = 0.0;
+  idy[0] = 0.0;
+  idy[1] = 1.0/x.get_mesh().get_meshSpacing(1);
+
+  assign( r[I][J] ,
+	  dot( idx , (x[I][J] - x[I-1][J  ])) +
+	  dot( idy , (x[I][J] - x[I  ][J-1])) );
+  return r;
+}
+//----------------------------------------------------------------------
+template < class T, class MFLOAT >
+Field<T,3U,UniformCartesian<3U,MFLOAT>,Vert>&
+Div(Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Edge>& x,
+    Field<T,3U,UniformCartesian<3U,MFLOAT>,Vert>& r)
+{
+  const NDIndex<3U>& domain = r.getDomain();
+  Index I = domain[0];
+  Index J = domain[1];
+  Index K = domain[2];
+  Vektor<T,3U> idx,idy,idz;
+  idx[0] = 1.0/x.get_mesh().get_meshSpacing(0);
+  idx[1] = 0.0;
+  idx[2] = 0.0;
+  idy[0] = 0.0;
+  idy[1] = 1.0/x.get_mesh().get_meshSpacing(1);
+  idy[2] = 0.0;
+  idz[0] = 0.0;
+  idz[1] = 0.0;
+  idz[2] = 1.0/x.get_mesh().get_meshSpacing(2);
+
+  assign( r[I][J][K] ,
+	  dot(idx , (x[I][J][K] - x[I-1][J  ][K  ] )) +
+	  dot(idy , (x[I][J][K] - x[I  ][J-1][K  ] )) +
+	  dot(idz , (x[I][J][K] - x[I  ][J  ][K-1] )) );
+  return r;
+}
+//----------------------------------------------------------------------
 // Divergence Vektor/Cell -> Scalar/Cell
 //----------------------------------------------------------------------
 template < class T, class MFLOAT >
@@ -1805,6 +1868,98 @@ Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
 	  x[I+1][J  ][K+1] * x.get_mesh().Dvc[5] +
 	  x[I  ][J+1][K+1] * x.get_mesh().Dvc[6] +
 	  x[I+1][J+1][K+1] * x.get_mesh().Dvc[7]);
+
+  return r;
+}
+//----------------------------------------------------------------------
+// Grad Scalar/Vert -> Vektor/Edge
+//----------------------------------------------------------------------
+template < class T, class MFLOAT >
+Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Edge>&
+Grad(Field<T,1U,UniformCartesian<1U,MFLOAT>,Vert>& x,
+     Field<Vektor<T,1U>,1U,UniformCartesian<1U,MFLOAT>,Edge>& r)
+{
+  const NDIndex<1U>& domain = r.getDomain();
+  Index I = Index(domain[0].first(), domain[0].last()-1);
+
+  assign( r[I] ,
+	  x[I  ] * x.get_mesh().Dvc[0] +
+	  x[I+1] * x.get_mesh().Dvc[1]);
+  return r;
+}
+//----------------------------------------------------------------------
+template < class T, class MFLOAT >
+Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Edge>&
+Grad(Field<T,2U,UniformCartesian<2U,MFLOAT>,Vert>& x,
+     Field<Vektor<T,2U>,2U,UniformCartesian<2U,MFLOAT>,Edge>& r)
+{
+  const NDIndex<2U>& domain = r.getDomain();
+  Index I = Index(domain[0].first(), domain[0].last()-1);
+  Index J = Index(domain[1].first(), domain[1].last()-1);
+
+  Vektor<T,2U> idx,idy;
+  idx[0] = 1.0/x.get_mesh().get_meshSpacing(0);
+  idx[1] = 0.0;
+  idy[0] = 0.0;
+  idy[1] = 1.0/x.get_mesh().get_meshSpacing(1);
+
+  assign( r[I][J] ,
+	  (x[I+1][J  ] - x[I  ][J  ]) * idx +
+          (x[I  ][J+1] - x[I  ][J  ]) * idy);
+  I = Index(domain[0].last(), domain[0].last());
+  assign( r[I][J](1),
+          (x[I][J+1] - x[I][J]));
+  I = Index(domain[0].first(), domain[0].last()-1);
+  J = Index(domain[1].last(), domain[1].last());
+  assign( r[I][J](0),
+          (x[I+1][J] - x[I][J]));
+  J = Index(domain[1].first(), domain[1].last()-1);
+  return r;
+}
+//----------------------------------------------------------------------
+template < class T, class MFLOAT >
+Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Edge>&
+Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Vert>& x,
+     Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Edge>& r)
+{
+  const NDIndex<3U>& domain = r.getDomain();
+  Index I = Index(domain[0].first(), domain[0].last()-1);
+  Index J = Index(domain[1].first(), domain[1].last()-1);
+  Index K = Index(domain[2].first(), domain[2].last()-1);
+
+  Vektor<T,3U> idx,idy,idz;
+  idx[0] = 1.0/x.get_mesh().get_meshSpacing(0);
+  idx[1] = 0.0;
+  idx[2] = 0.0;
+  idy[0] = 0.0;
+  idy[1] = 1.0/x.get_mesh().get_meshSpacing(1);
+  idy[2] = 0.0;
+  idz[0] = 0.0;
+  idz[1] = 0.0;
+  idz[2] = 1.0/x.get_mesh().get_meshSpacing(2);
+
+  assign( r[I][J][K] ,
+	  (x[I+1][J  ][K  ] - x[I  ][J  ][K  ]) * idx +
+          (x[I  ][J+1][K  ] - x[I  ][J  ][K  ]) * idy +
+          (x[I  ][J  ][K+1] - x[I  ][J  ][K  ]) * idz);
+  I = Index(domain[0].last(), domain[0].last());
+  assign( r[I][J][K](1),
+          (x[I  ][J+1][K  ] - x[I  ][J  ][K  ]));
+  assign( r[I][J][K](2),
+          (x[I  ][J  ][K+1] - x[I  ][J  ][K  ]));
+  I = Index(domain[0].first(), domain[0].last()-1);
+  J = Index(domain[1].last(), domain[1].last());
+  assign( r[I][J][K](0),
+          (x[I+1][J  ][K  ] - x[I  ][J  ][K  ]));
+  assign( r[I][J][K](2),
+          (x[I  ][J  ][K+1] - x[I  ][J  ][K  ]));
+  J = Index(domain[1].first(), domain[1].last()-1);
+  K = Index(domain[2].last(), domain[2].last());
+  assign( r[I][J][K](0),
+          (x[I+1][J  ][K  ] - x[I  ][J  ][K  ]));
+  assign( r[I][J][K](1),
+          (x[I  ][J+1][K  ] - x[I  ][J  ][K  ]));
+  K = Index(domain[2].first(), domain[2].last()-1);
 
   return r;
 }
