@@ -63,36 +63,20 @@ link_directories (
     ${Trilinos_TPL_LIBRARY_DIRS}
 )
     
-# remove digits from hostname: edison03 -> edison
-STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
-    
-IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
-   ${HOSTNAME_BASE} MATCHES "daint")
-    SET (LIBS
-        ${H5Hut_LIBRARY}
-        ${HDF5_LIBRARY}
-        ${IPPL_LIBRARY}
-        ippl
-        ${Boost_LIBRARIES}
-        m
-        z
-    )
-ELSE()
-    SET (LIBS
-        ${H5Hut_LIBRARY}
-        ${HDF5_LIBRARY}
-        ${IPPL_LIBRARY}
-        ippl
-        ${Boost_LIBRARIES}
-        ${Trilinos_LIBRARIES}
-        ${MPI_LIBRARIES}
-        mpi_mpifh
-        m
-        z
-    )
-ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
-      ${HOSTNAME_BASE} MATCHES "daint")
-
+SET (LIBS
+    ${H5Hut_LIBRARY}
+    ${HDF5_LIBRARY}
+    ${IPPL_LIBRARY}
+    ippl
+    ${Boost_LIBRARIES}
+    ${Trilinos_LIBRARIES}
+    ${MPI_LIBRARIES}
+    ${MPI_Fortran_LIBRARIES}
+    ${Fortran_LIBS}
+    ${AMREX_LIBRARIES}
+    m
+    z
+)
 
 set(F90_source_files ../Tagging_nd.f90)
 
@@ -320,64 +304,53 @@ add_custom_command(TARGET testScatterAMReX POST_BUILD
 
 
 target_link_libraries (testAmrPartBase ${LIBS}
-                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testNewTracker ${LIBS}
-                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testPerformance ${LIBS}
-                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testPlasma ${LIBS}
-                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testTagging ${LIBS}
-                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 # target_link_libraries (testInitGuessSolver ${LIBS}
-#                         -lgfortran ${AMREX_LIBRARIES}
 #                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testInitialBox ${LIBS}
-                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testScatterAMReX ${LIBS}
-                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testDomainTransformSolve ${LIBS}
-                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testGaussian ${LIBS}
-                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testUnifSphere ${LIBS}
-                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                        ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testReal ${LIBS}
-                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                        ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testMultipleSources ${LIBS}
-                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                        ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testUnifBox ${LIBS}
-                       -lgfortran ${Trilinos_LIBRARIES}
-                       ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                       ${Trilinos_LIBRARIES}
+                       ${Trilinos_TPL_LIBRARIES}
                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testLayout ${LIBS}
-                        -lgfortran ${AMREX_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 
