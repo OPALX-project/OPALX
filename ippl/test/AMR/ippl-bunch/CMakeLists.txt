@@ -17,6 +17,14 @@ set (CMAKE_CXX_FLAGS
 )
 
 add_definitions(${AMREX_DEFINES})
+
+# FIXME Why do we need this?
+# remove digits from hostname: edison03 -> edison
+STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
+
+IF (${HOSTNAME_BASE} MATCHES "daint")
+    set(MPI_LIBRARIES "-lmpich -lmpichcxx -lfmpich -lmpichf90")
+ENDIF (${HOSTNAME_BASE} MATCHES "daint")
     
 include_directories (
     ${CMAKE_SOURCE_DIR}/src
