@@ -59,37 +59,20 @@ link_directories (
     ${Trilinos_TPL_LIBRARY_DIRS}
 )
     
-# remove digits from hostname: edison03 -> edison
-STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
-    
-IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
-    ${HOSTNAME_BASE} MATCHES "daint")
-    SET (LIBS
-        ${H5Hut_LIBRARY}
-        ${HDF5_LIBRARY}
-        ${IPPL_LIBRARY}
-        ippl
-        ${Boost_LIBRARIES}
-        ${Trilinos_LIBRARIES}
-        m
-        z
-    )
-ELSE()
-    SET (LIBS
-        ${H5Hut_LIBRARY}
-        ${HDF5_LIBRARY}
-        ${IPPL_LIBRARY}
-        ippl
-        ${Boost_LIBRARIES}
-        mpi
-        mpi_cxx
-        mpi_mpifh
-        m
-        z
-    )
-ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
-    ${HOSTNAME_BASE} MATCHES "daint")
-
+SET (LIBS
+    ${H5Hut_LIBRARY}
+    ${HDF5_LIBRARY}
+    ${IPPL_LIBRARY}
+    ippl
+    ${Boost_LIBRARIES}
+    ${Trilinos_LIBRARIES}
+    ${MPI_LIBRARIES}
+    ${MPI_Fortran_LIBRARIES}
+    ${Fortran_LIBS}
+    ${AMREX_LIBRARIES}
+    m
+    z
+)
 
 set(F90_source_files ../Tagging_nd.f90)
 
@@ -98,7 +81,7 @@ set(EXECS "")
 # add_executable( testBoundaryVector testBoundaryVector.cpp)
 
 # target_link_libraries (testBoundaryVector ${LIBS}
-#                        -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+#                        ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
 #                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 IF ( ${AMREX_DIM} EQUAL 2 )
@@ -160,7 +143,7 @@ IF ( ${AMREX_DIM} EQUAL 3 )
     add_executable( testCopy testCopy.cpp)
 
     target_link_libraries (testCopy ${LIBS}
-                           -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
 #     add_executable( testTrilinosSolver
@@ -175,7 +158,7 @@ IF ( ${AMREX_DIM} EQUAL 3 )
     
 
 # target_link_libraries (testTrilinosSolver ${LIBS}
-#                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+#                         ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
 #                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     add_executable( testBitPattern testBitPattern.cpp)
@@ -193,39 +176,39 @@ ENDIF ( ${AMREX_DIM} EQUAL 3 )
 
 IF ( ${AMREX_DIM} EQUAL 2 )
     target_link_libraries (testRestrictionMatrix ${LIBS}
-                           -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
     target_link_libraries (testInterpolationMatrix ${LIBS}
-                           -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testBoundaryMatrix ${LIBS}
-                           -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testSmootherMatrix ${LIBS}
-                           -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testPoissonMatrix ${LIBS}
-                           -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testNoFine ${LIBS}
-                           -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testWithFine ${LIBS}
-                           -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testSpecialPoissonMatrix ${LIBS}
-                           -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     target_link_libraries (testLagrange ${LIBS}
-                           -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
     set( EXECS
@@ -242,15 +225,15 @@ IF ( ${AMREX_DIM} EQUAL 2 )
     )
 ENDIF ( ${AMREX_DIM} EQUAL 2 )
 # target_link_libraries (testTrilinosGeometry ${LIBS}
-#                         -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+#                         ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
 #                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testAmrMultigrid ${LIBS}
-                          -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                          ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testSolverComparison ${LIBS}
-                          -lgfortran ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${AMREX_LIBRARIES}
+                          ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 
