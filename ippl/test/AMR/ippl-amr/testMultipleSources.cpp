@@ -679,8 +679,8 @@ void doAMReX(const param_t& params, Inform& msg)
     
     amrex::RealBox amr_domain;
     
-    std::array<double, AMREX_SPACEDIM> amr_lower = {{-1.02, -1.02, -1.02}}; // m
-    std::array<double, AMREX_SPACEDIM> amr_upper = {{ 1.02,  1.02,  1.02}}; // m
+    std::array<double, AMREX_SPACEDIM> amr_lower = {{-1.04, -1.04, -1.04}}; // m
+    std::array<double, AMREX_SPACEDIM> amr_upper = {{ 1.04,  1.04,  1.04}}; // m
     
     init(amr_domain, params.nr, amr_lower, amr_upper);
     
@@ -718,19 +718,19 @@ void doAMReX(const param_t& params, Inform& msg)
     double mean1[] = {0, 0, 0};
     double stddev[] = {0.0025, 0.0025, 0.0025};
 
-    dist.gaussian(mean1, stddev, nloc, Ippl::myNode());
+    dist.gaussian(&mean1[0], &stddev[0], nloc, Ippl::myNode());
     dist.injectBeam(*bunch);
     bunch->update();
     
     // second source
     double mean2[] = {0, 0, 0.02};
-    dist.gaussian(mean2, stddev, nloc, Ippl::myNode());
+    dist.gaussian(&mean2[0], &stddev[0], nloc, Ippl::myNode());
     dist.injectBeam(*bunch);
     bunch->update();
     
     // third source
     double mean3[] = {0, 0, 0.03};
-    dist.gaussian(mean3, stddev, nloc, Ippl::myNode());
+    dist.gaussian(&mean3[0], &stddev[0], nloc, Ippl::myNode());
     dist.injectBeam(*bunch);
     bunch->update();
     
