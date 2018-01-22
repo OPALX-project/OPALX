@@ -246,7 +246,10 @@ void doSolve(const Array<BoxArray>& ba,
     }
     
     // solve
-    AmrMultiGrid sol(AmrMultiGrid::Boundary::DIRICHLET, AmrMultiGrid::Interpolater::PIECEWISE_CONST);
+    AmrMultiGrid sol(AmrMultiGrid::Boundary::DIRICHLET,
+                     AmrMultiGrid::Boundary::DIRICHLET,
+                     AmrMultiGrid::Boundary::DIRICHLET,
+                     AmrMultiGrid::Interpolater::PIECEWISE_CONST);
     
     sol.setNumberOfSweeps(params.smoothing);
     
