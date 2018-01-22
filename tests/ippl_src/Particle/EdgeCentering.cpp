@@ -70,7 +70,7 @@ public:
     ParticleAttrib< Vector_t >   P;
 };
 
-TEST(FieldLayoutTest, EdgeTest_1) {
+TEST(FieldLayoutTest, DISABLED_EdgeTest_1) {
     OpalTestUtilities::SilenceTest silencer;
 
     const unsigned int Nx = 32, Ny = 32, NZ = 64;
