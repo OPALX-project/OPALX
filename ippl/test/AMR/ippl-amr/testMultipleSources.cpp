@@ -46,7 +46,7 @@ struct param_t {
     size_t nLevels;
     size_t maxBoxSize;
     double length;
-    size_t nParticles;
+    size_t nParticlesPerBunch;
     double pCharge;
     bool isFixedCharge;
     bool isWriteYt;
@@ -125,7 +125,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "level",          required_argument, 0, 'l' },
             { "maxgrid",        required_argument, 0, 'm' },
             { "boxlength",      required_argument, 0, 'b' },
-            { "nparticles",     required_argument, 0, 'n' },
+            { "npartperbunch",  required_argument, 0, 'n' },
             { "writeYt",        no_argument,       0, 'w' },
             { "help",           no_argument,       0, 'h' },
             { "pcharge",        required_argument, 0, 'c' },
@@ -261,7 +261,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             case 'b':
                 params.length = std::atof(optarg); ++cnt; break;
             case 'n':
-                params.nParticles = 3 * std::atoi(optarg); ++cnt; break;
+                params.nParticlesPerBunch = std::atoi(optarg); ++cnt; break;
             case 'c':
                 params.pCharge = std::atof(optarg);
                 params.isFixedCharge = true;
@@ -296,7 +296,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--level [#levels]" << endl
                     << "--maxgrid [max. grid]" << endl
                     << "--boxlength [cube side length]" << endl
-                    << "--nparticles [#particles]" << endl
+                    << "--npartperbunch [#particles per bunch]" << endl
                     << "--pcharge [charge per particle] (optional)" << endl
                     << "--writeYt (optional)" << endl
                     << "--writeCSV (optional)" << endl
@@ -711,7 +711,7 @@ void doAMReX(const param_t& params, Inform& msg)
     bunch->setAllowParticlesNearBoundary(true);
     
     // initialize particle distribution
-    unsigned long int nloc = params.nParticles / Ippl::getNodes() / 3;
+    unsigned long int nloc = params.nParticlesPerBunch / Ippl::getNodes();
     Distribution dist;
     
     // first source
@@ -739,7 +739,7 @@ void doAMReX(const param_t& params, Inform& msg)
     
     msg << "#Particles: " << bunch->getTotalNum() << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
-        << "Total charge: " << params.nParticles * bunch->qm[0] << " C" << endl;
+        << "Total charge: " << bunch->getTotalNum() * bunch->qm[0] << " C" << endl;
     
     // map particles
     double scale = 1.0;
@@ -768,9 +768,9 @@ void doAMReX(const param_t& params, Inform& msg)
     
     msg << endl << "Transformed positions" << endl << endl;
     
-    msg << "#Particles: " << params.nParticles << endl
+    msg << "#Particles: " << bunch->getTotalNum() << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
-        << "Total charge: " << params.nParticles * bunch->qm[0] << " C" << endl;
+        << "Total charge: " << bunch->getTotalNum() * bunch->qm[0] << " C" << endl;
     
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, scale/*0.0*/ /*time*/);
@@ -871,7 +871,7 @@ int main(int argc, char *argv[]) {
             << "- max. grid             = " << params.maxBoxSize << endl
             << "- #level                = " << params.nLevels - 1 << endl
             << "- cube side length [m]  = " << params.length << endl
-            << "- #particles            = " << params.nParticles << endl
+            << "- #particles per bunch  = " << params.nParticlesPerBunch << endl
             << "- tagging               = " << tagging << endl
             << "- tagging factor        = " << params.tagfactor << endl;
 
