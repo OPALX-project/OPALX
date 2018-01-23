@@ -152,9 +152,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         int option_index = 0;
         
 #ifdef HAVE_AMR_MG_SOLVER
-        c = getopt_long(argc, argv, "x:y:z:l:m:b:n:whcvpst:f:a:g:q:o:u:i:j:k:", long_options, &option_index);
+        c = getopt_long(argc, argv, "x:y:z:l:m:b:n:whcvpst:f:a:g:q:o:u:i:j:k:d:", long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "x:y:z:l:m:b:n:whcvpst:f:", long_options, &option_index);
+        c = getopt_long(argc, argv, "x:y:z:l:m:b:n:whcvpst:f:d:", long_options, &option_index);
 #endif
         
         if ( c == -1 )
