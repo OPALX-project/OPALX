@@ -665,6 +665,9 @@ void doAMReX(const param_t& params, Inform& msg)
     
     amrex::Array<int> error_buf(params.nLevels, 0);
     
+    amrex::Array<int> bf(params.nLevels, int(params.blocking_factor));
+    pp.addarr("blocking_factor", bf);
+    
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
     
@@ -692,8 +695,6 @@ void doAMReX(const param_t& params, Inform& msg)
     init(amr_domain, params.nr, amr_lower, amr_upper);
     
     AmrOpal myAmrOpal(&amr_domain, params.nLevels - 1, nCells, 0 /* cartesian */, rr);
-    
-    myAmrOpal.SetBlockingFactor(params.blocking_factor);
     
     myAmrOpal.setTagging(params.criteria);
     
