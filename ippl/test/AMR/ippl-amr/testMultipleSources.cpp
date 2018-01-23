@@ -45,7 +45,7 @@ struct param_t {
     Vektor<size_t, 3> nr;
     size_t nLevels;
     size_t maxBoxSize;
-    size_t blocking_factor
+    size_t blocking_factor;
     double length;
     size_t nParticlesPerBunch;
     double pCharge;
@@ -301,6 +301,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--gridz [#gridpoints in z]" << endl
                     << "--level [#levels]" << endl
                     << "--maxgrid [max. grid]" << endl
+                    << "--blocking_factor [val] (only grids modulo bf == 0 allowed)" << endl
                     << "--boxlength [cube side length]" << endl
                     << "--npartperbunch [#particles per bunch]" << endl
                     << "--pcharge [charge per particle] (optional)" << endl
