@@ -656,7 +656,6 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
         E2[i] = E[i];
     }
 
-    *gmsg << __DBGMSG__ << E[N-1] << "\t" << E2[N-1] << endl;
     for(int iter = 0; iter < 10; ++ iter) {
         A = B = 0.0;
         for(unsigned int i = 1; i < N; ++ i) {
@@ -689,8 +688,6 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
         }
         phi = tmp_phi - floor(tmp_phi / Physics::two_pi + 0.5) * Physics::two_pi;
 
-        *gmsg << __DBGMSG__ << E[N-1] << "\t" << E2[N-1] << endl;
-
         for(unsigned int i = 1; i < N; ++ i) {
             E[i] = E[i - 1];
             E2[i] = E2[i - 1];
@@ -698,10 +695,6 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
             E2[i] += q * scale_m * getdE(i, t2, dz, phi + dphi, frequency_m, F);
             double a = E[i], b = E2[i];
             if (std::isnan(a) || std::isnan(b)) {
-                *gmsg << __DBGMSG__ << getdE(i, t, dz, phi, frequency_m, F) << "\t"
-                      << getdE(i, t2, dz, phi + dphi, frequency_m, F) << "\t"
-                      << t[i] << "\t" << t[i - 1] << "\t"
-                      << t2[i] << "\t" << t2[i - 1] << endl;
                 throw GeneralClassicException("RFCavity::getAutoPhaseEstimate",
                                               "solution is nan");
             }
@@ -713,7 +706,6 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
             E[i] += q * scale_m * getdE(i, t, dz, phi, frequency_m, F) ;
             E2[i] += q * scale_m * getdE(i, t2, dz, phi + dphi, frequency_m, F);
         }
-        *gmsg << __DBGMSG__ << E[N-1] << "\t" << E2[N-1] << endl;
 
         double cosine_part = 0.0, sine_part = 0.0;
         double p0 = sqrt((E0 / mass + 1) * (E0 / mass + 1) - 1);
