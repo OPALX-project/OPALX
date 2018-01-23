@@ -4,9 +4,11 @@ MESSAGE (STATUS "Adding test AMR found in ${_relPath}")
 set (CMAKE_CXX_FLAGS
     "-O3 ${CMAKE_CXX_FLAGS}"
     )
+
+set (AMREX_FLAGS "${AMREX_Fortran_FLAGS} ${AMREX_Fortran_DEFINITIONS}")
     
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 ${CMAKE_CXX_FLAGS}"
+    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 ${CMAKE_CXX_FLAGS} ${AMREX_FLAGS}")
 )
 
 add_definitions(${AMREX_DEFINES})
@@ -32,6 +34,8 @@ SET (LIBS
     ${MPI_Fortran_LIBRARIES}
     ${Fortran_LIBS}
     ${AMREX_LIBRARIES}
+    ${AMREX_EXTRA_CXX_LINK_LINE}
+    ${AMREX_EXTRA_Fortran_LINK_LINE}
     m
     z
 )
