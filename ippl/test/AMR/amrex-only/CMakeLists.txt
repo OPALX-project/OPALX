@@ -1,13 +1,6 @@
 FILE (RELATIVE_PATH _relPath "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
 MESSAGE (STATUS "Adding test AMR found in ${_relPath}")
-#     MESSAGE (STATUS "MPI COMPILER ${MPI_UNDERLYING_COMPILER}")
-    
-find_package (MPI REQUIRED)
-#     message (STATUS "The C++ compiler identification is: ${CMAKE_CXX_COMPILER_ID}")
-#     message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
-message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
-#     message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
-    
+
 set (CMAKE_CXX_FLAGS
     "-O3 ${CMAKE_CXX_FLAGS}"
     )
@@ -17,15 +10,6 @@ set (CMAKE_CXX_FLAGS
 )
 
 add_definitions(${AMREX_DEFINES})
-
-# FIXME Why do we need this?
-# remove digits from hostname: edison03 -> edison
-STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
-
-IF (${HOSTNAME_BASE} MATCHES "daint")
-    set(MPI_LIBRARIES "-lmpich -lmpichcxx -lfmpich -lmpichf90")
-ENDIF (${HOSTNAME_BASE} MATCHES "daint")
-
 
 include_directories (
     ${CMAKE_SOURCE_DIR}/ippl/src
@@ -44,7 +28,7 @@ link_directories (
 SET (LIBS
     ${IPPL_LIBRARY}
     ippl
-    ${MPI_LIBRARIES}
+    ${MPI_CXX_LIBRARIES}
     ${MPI_Fortran_LIBRARIES}
     ${Fortran_LIBS}
     ${AMREX_LIBRARIES}
