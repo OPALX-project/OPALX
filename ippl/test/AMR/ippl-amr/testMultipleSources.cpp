@@ -45,6 +45,7 @@ struct param_t {
     Vektor<size_t, 3> nr;
     size_t nLevels;
     size_t maxBoxSize;
+    size_t blocking_factor
     double length;
     size_t nParticlesPerBunch;
     double pCharge;
@@ -115,36 +116,37 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     
     int cnt = 0;
     
-    int required = 7;
+    int required = 8;
     
     while ( true ) {
         static struct option long_options[] = {
-            { "gridx",          required_argument, 0, 'x' },
-            { "gridy",          required_argument, 0, 'y' },
-            { "gridz",          required_argument, 0, 'z' },
-            { "level",          required_argument, 0, 'l' },
-            { "maxgrid",        required_argument, 0, 'm' },
-            { "boxlength",      required_argument, 0, 'b' },
-            { "npartperbunch",  required_argument, 0, 'n' },
-            { "writeYt",        no_argument,       0, 'w' },
-            { "help",           no_argument,       0, 'h' },
-            { "pcharge",        required_argument, 0, 'c' },
-            { "writeCSV",       no_argument,       0, 'v' },
-            { "writeParticles", no_argument,       0, 'p' },
-            { "use-mgt-solver", no_argument,       0, 's' },
+            { "gridx",           required_argument, 0, 'x' },
+            { "gridy",           required_argument, 0, 'y' },
+            { "gridz",           required_argument, 0, 'z' },
+            { "level",           required_argument, 0, 'l' },
+            { "maxgrid",         required_argument, 0, 'm' },
+            { "blocking_factor", required_argument, 0, 'd' },
+            { "boxlength",       required_argument, 0, 'b' },
+            { "npartperbunch",   required_argument, 0, 'n' },
+            { "writeYt",         no_argument,       0, 'w' },
+            { "help",            no_argument,       0, 'h' },
+            { "pcharge",         required_argument, 0, 'c' },
+            { "writeCSV",        no_argument,       0, 'v' },
+            { "writeParticles",  no_argument,       0, 'p' },
+            { "use-mgt-solver",  no_argument,       0, 's' },
 #ifdef HAVE_AMR_MG_SOLVER
-            { "use-trilinos",   no_argument,       0, 'a' },
-            { "nsweeps",        required_argument, 0, 'g' },
-            { "smoother",       required_argument, 0, 'q' },
-            { "prec",           required_argument, 0, 'o' },
-            { "bcx",            required_argument, 0, 'i' },
-            { "bcy",            required_argument, 0, 'j' },
-            { "bcz",            required_argument, 0, 'k' },
-            { "basesolver",     required_argument, 0, 'u' },
+            { "use-trilinos",    no_argument,       0, 'a' },
+            { "nsweeps",         required_argument, 0, 'g' },
+            { "smoother",        required_argument, 0, 'q' },
+            { "prec",            required_argument, 0, 'o' },
+            { "bcx",             required_argument, 0, 'i' },
+            { "bcy",             required_argument, 0, 'j' },
+            { "bcz",             required_argument, 0, 'k' },
+            { "basesolver",      required_argument, 0, 'u' },
 #endif
-            { "tagging",        required_argument, 0, 't' },
-            { "tagging-factor", required_argument, 0, 'f' },
-            { 0,                0,                 0,  0  }
+            { "tagging",         required_argument, 0, 't' },
+            { "tagging-factor",  required_argument, 0, 'f' },
+            { 0,                 0,                 0,  0  }
         };
         
         int option_index = 0;
@@ -260,6 +262,8 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.nLevels = std::atoi(optarg) + 1; ++cnt; break;
             case 'm':
                 params.maxBoxSize = std::atoi(optarg); ++cnt; break;
+            case 'd':
+                params.blocking_factor = std::atoi(optarg); ++cnt; break;
             case 'b':
                 params.length = std::atof(optarg); ++cnt; break;
             case 'n':
@@ -688,6 +692,8 @@ void doAMReX(const param_t& params, Inform& msg)
     
     AmrOpal myAmrOpal(&amr_domain, params.nLevels - 1, nCells, 0 /* cartesian */, rr);
     
+    myAmrOpal.SetBlockingFactor(params.blocking_factor);
+    
     myAmrOpal.setTagging(params.criteria);
     
     if ( params.criteria == AmrOpal::kChargeDensity )
@@ -879,6 +885,7 @@ int main(int argc, char *argv[]) {
         msg << "Particle test running with" << endl
             << "- grid                  = " << params.nr << endl
             << "- max. grid             = " << params.maxBoxSize << endl
+            << "- blocking factor       = " << params.blocking_factor << endl
             << "- #level                = " << params.nLevels - 1 << endl
             << "- cube side length [m]  = " << params.length << endl
             << "- #particles per bunch  = " << params.nParticlesPerBunch << endl
@@ -900,6 +907,7 @@ int main(int argc, char *argv[]) {
                 smoother = "Jacobi";
             msg << "- Trilinos solver is used with: "
                 << "    - nsweeps:     " << params.nsweeps
+                << endl
                 << "    - smoother:    " << smoother
                 << endl;
         }
