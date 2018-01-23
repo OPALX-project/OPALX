@@ -18,7 +18,7 @@
 #include "../Solver.h"
 #include "../MGTSolver.h"
 #include "../AmrOpal.h"
-#include "../Distribution.h"
+#include "../H5Reader.h"
 
 #include "../helper_functions.h"
 
@@ -737,9 +737,17 @@ void doAMReX(const param_t& params, Inform& msg)
     for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
         bunch->qm[i] = Physics::q_e;  // in [C]
     
+    if ( params.isWriteParticles ) {
+        H5Reader h5("testMultipleSources.h5");
+        h5.open(0);
+        h5.write(bunch.get());
+        h5.close();
+    }
+    
     msg << "#Particles: " << bunch->getTotalNum() << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
         << "Total charge: " << bunch->getTotalNum() * bunch->qm[0] << " C" << endl;
+    
     
     // map particles
     double scale = 1.0;

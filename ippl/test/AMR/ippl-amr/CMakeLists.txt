@@ -2,12 +2,6 @@ FILE (RELATIVE_PATH _relPath "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}"
 MESSAGE (STATUS "Adding test AMR found in ${_relPath}")
 #     MESSAGE (STATUS "MPI COMPILER ${MPI_UNDERLYING_COMPILER}")
     
-find_package (MPI REQUIRED)
-#     message (STATUS "The C++ compiler identification is: ${CMAKE_CXX_COMPILER_ID}")
-#     message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
-message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
-#     message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
-    
 set (CMAKE_CXX_FLAGS
     "-O3 ${CMAKE_CXX_FLAGS} -DUNIQUE_PTR -funroll-all-loops -malign-double -ffast-math"
     )
@@ -23,27 +17,13 @@ add_definitions(${AMREX_DEFINES})
 STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
 
 IF (${HOSTNAME_BASE} MATCHES "daint")
-    set(MPI_LIBRARIES "-lmpich -lmpichcxx -lfmpich -lmpichf90")
+    set(MPI_CXX_LIBRARIES "-lmpich -lmpichcxx -lfmpich -lmpichf90")
 ENDIF (${HOSTNAME_BASE} MATCHES "daint")
 
 if ( ENABLE_AMR_MG_SOLVER )
     set (CMAKE_CXX_FLAGS "-DHAVE_AMR_MG_SOLVER ${CMAKE_CXX_FLAGS}")
 endif ()
 
-set (BOOSTROOT $ENV{BOOST_DIR})
-set(Boost_USE_STATIC_LIBS ON)
-set(Boost_USE_MULTITHREADED OFF)
-set(Boost_USE_STATIC_RUNTIME OFF)
-find_package (Boost 1.54.0 REQUIRED COMPONENTS filesystem system iostreams
-regex)
-
-if (Boost_INCLUDE_DIRS)
-    message (STATUS "Found boost include dir: ${Boost_INCLUDE_DIR}")
-    message (STATUS "Found boost library dir: ${Boost_LIBRARY_DIR}")
-    message (STATUS "Found boost libraries: ${Boost_LIBRARIES}")
-    include_directories (${Boost_INCLUDE_DIRS})
-endif ()
-    
 include_directories (
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/ippl/src
@@ -78,7 +58,7 @@ SET (LIBS
     ippl
     ${Boost_LIBRARIES}
     ${Trilinos_LIBRARIES}
-    ${MPI_LIBRARIES}
+    ${MPI_CXX_LIBRARIES}
     ${MPI_Fortran_LIBRARIES}
     ${Fortran_LIBS}
     ${AMREX_LIBRARIES}
