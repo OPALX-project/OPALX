@@ -415,7 +415,8 @@ void writeYt(container_t& rho,
              const container_t& efield,
              const amrex::Array<amrex::Geometry>& geom,
              const amrex::Array<int>& rr,
-             const double& scalefactor)
+             const double& scalefactor,
+	     const param_t& params)
 {
     std::string dir = "yt-testMultipleSources";
     
@@ -570,7 +571,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     double constant = -1.0;
 
     if ( !params.isFixedCharge )
-	constant =/ Physics::epsilon_0 ; //* scale;  // in [V m / C]
+	constant /= Physics::epsilon_0 ; //* scale;  // in [V m / C]
 
     for (int i = 0; i <= finest_level; ++i) {
         rhs[i]->mult(constant, 0, 1);       // in [V m]
@@ -869,7 +870,7 @@ void doAMReX(const param_t& params, Inform& msg)
 //         Box bx(low, high);
 //         geom[0].Domain(bx);
         
-        writeYt(rhs, phi, efield, geom, rrr, scale);
+        writeYt(rhs, phi, efield, geom, rrr, scale, params);
     }
 }
 
