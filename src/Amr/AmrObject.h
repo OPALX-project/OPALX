@@ -33,6 +33,20 @@ public:
         MIN_NUM_PARTICLES       ///< min. #particles per cell
     };
     
+    
+    /*!
+     * This data structure is only used for creating an object
+     * via the static member function AmrBoxLib::create()
+     * that is called in FieldSolver::initAmrObject_m
+     */
+    struct AmrInfo {
+        int grid[3];        ///< Number of grid points in x-, y- and z-direction
+        int maxgrid[3];     ///< Maximum grid size in x-, y- and z-direction
+        int bf[3];          ///< Grid blocking factor in x-, y- and z-direction
+        int maxlevel;       ///< Maximum level for AMR (0: single-level)
+        int refratio[3];    ///< Mesh refinement ratio in x-, y- and z-direction
+    };
+    
 public:
     
     AmrObject() : tagging_m(CHARGE_DENSITY),
