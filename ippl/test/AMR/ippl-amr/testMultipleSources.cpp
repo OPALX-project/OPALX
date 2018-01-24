@@ -766,7 +766,7 @@ void doAMReX(const param_t& params, Inform& msg)
 	    bunch->qm[i] = Physics::q_e;  // in [C]
     else
 	for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
-            bunch->qm[i] = params.pcharge;
+            bunch->qm[i] = params.pCharge;
     
     if ( params.isWriteParticles ) {
         H5Reader h5("testMultipleSources.h5");
