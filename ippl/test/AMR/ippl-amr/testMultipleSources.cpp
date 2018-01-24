@@ -750,8 +750,10 @@ void doAMReX(const param_t& params, Inform& msg)
     dist.injectBeam(*bunch);
     bunch->update();
     
-    for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
-        bunch->qm[i] = Physics::q_e;  // in [C]
+
+    if ( !params.isFixedCharge )
+	for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
+	    bunch->qm[i] = Physics::q_e;  // in [C]
     
     if ( params.isWriteParticles ) {
         H5Reader h5("testMultipleSources.h5");
