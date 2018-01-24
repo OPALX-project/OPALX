@@ -606,6 +606,11 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         
         msg << "#iterations: " << sol.getNumIters() << endl;
         
+        for (int i = 0; i <= finest_level; ++i) {
+            msg << "norm of residual (level " << i << "): "
+                << sol.getLevelResidualNorm(i) << endl;
+        }
+        
     } else if ( params.useMgtSolver ) {
 #else
     if ( params.useMgtSolver ) {
