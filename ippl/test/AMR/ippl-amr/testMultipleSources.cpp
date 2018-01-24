@@ -749,7 +749,7 @@ void doAMReX(const param_t& params, Inform& msg)
     
     if ( params.isWriteParticles ) {
         H5Reader h5("testMultipleSources.h5");
-        h5.open(0);
+        h5.open(0, H5_O_WRONLY);
         h5.write(bunch.get());
         h5.close();
     }
