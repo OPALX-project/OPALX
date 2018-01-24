@@ -788,7 +788,7 @@ void doAMReX(const param_t& params, Inform& msg)
     msg << "Total field energy: " << fieldenergy << endl;
     
     if (params.isWriteCSV && Ippl::getNodes() == 1 && myAmrOpal.maxGridSize(0) == (int)params.nr[0] )
-        writeCSV(phi, efield, domain.lo(0) / scale, geom[0].CellSize(0) / scale);
+        writeCSV(phi, efield, amr_domain.lo(0) / scale, geom[0].CellSize(0) / scale);
     
     if ( params.isWriteYt )
         writeYt(rhs, phi, efield, geom, rrr, scale);
