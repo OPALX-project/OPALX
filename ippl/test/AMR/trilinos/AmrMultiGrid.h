@@ -183,6 +183,25 @@ public:
     }
     
     
+    /*!
+     * Obtain the residual norm of a level
+     * @param level for which error is requested
+     * @returns the norm of the residual
+     */
+    scalar_t getLevelResidualNorm(lo_t level) {
+        return evalNorm_m(mglevel_m[level]->residual_p);
+    }
+    
+    
+    /*!
+     * Obtain the residual norm
+     * @returns the maximum of all residual norms over all levels
+     */
+    scalar_t getMaxResidualNorm() {
+        return residualNorm_m();
+    }
+    
+    
 private:
     
     /*!

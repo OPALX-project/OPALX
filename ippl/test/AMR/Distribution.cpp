@@ -317,6 +317,9 @@ void Distribution::readH5(const std::string& filename, int step) {
     
     nloc_m = h5.getNumParticles();
     ntot_m = nloc_m;
+
+    if ( Ippl::myNode() == 0 )
+	std::cout << "#particles found: " << ntot_m << std::endl;
     
     size_t numParticlesPerNode = nloc_m / Ippl::getNodes();
 

@@ -100,18 +100,6 @@ public:
 
 #ifdef ENABLE_AMR
     bool isAmrSolverType() const;
-
-    int getAmrMaxLevel() const;
-
-    int getAmrRefRatioX() const;
-
-    int getAmrRefRatioY() const;
-
-    int getAmrRefRatioT() const;
-
-    bool isAmrSubCycling() const;
-
-    int getAmrMaxGridSize() const;
     
     AmrObject *getAmrObject() {
         return itsAmrObject_mp.get();
