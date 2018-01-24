@@ -314,6 +314,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--nsweeps (optional, trilinos only, default: 12)" << endl
                     << "--smoother (optional, trilinos only, default: GAUSS_SEIDEL)" << endl
                     << "--prec (optional, trilinos only, default: NONE)" << endl
+                    << "--bcx (optional, dirichlet or open, default: dirichlet)" << endl
                     << "--bcy (optional, dirichlet or open, default: dirichlet)" << endl
                     << "--bcz (optional, dirichlet or open, default: dirichlet)" << endl
                     << "--basesolver (optional, trilinos only, default: CG)" << endl

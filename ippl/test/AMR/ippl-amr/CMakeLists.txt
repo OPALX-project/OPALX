@@ -161,8 +161,8 @@ if ( ENABLE_AMR_MG_SOLVER )
                     ../trilinos/AmrSmoother.cpp
                     ../trilinos/AmrMultiGrid.cpp)
     
-    add_executable( testReal
-                    testReal.cpp
+    add_executable( testFromH5
+                    testFromH5.cpp
                     ../AmrOpal.cpp
                     AmrParticleBase.hpp
                     ../Distribution.cpp
@@ -227,8 +227,8 @@ else ()
                     ../MGTSolver.cpp
                     ../Solver.cpp)
     
-    add_executable( testReal
-                    testReal.cpp
+    add_executable( testFromH5
+                    testFromH5.cpp
                     ../AmrOpal.cpp
                     AmrParticleBase.hpp
                     ../Distribution.cpp
@@ -325,7 +325,7 @@ target_link_libraries (testUnifSphere ${LIBS}
                         ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
-target_link_libraries (testReal ${LIBS}
+target_link_libraries (testFromH5 ${LIBS}
                         ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
@@ -354,7 +354,7 @@ set (EXECS
     testDomainTransformSolve
     testGaussian
     testUnifSphere
-    testReal
+    testFromH5
     testMultipleSources
     testUnifBox
     testLayout
