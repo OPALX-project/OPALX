@@ -39,22 +39,6 @@ public:
     typedef amrex::TagBoxArray          TagBoxArray_t;
     typedef amrex::MFIter               MFIter_t;
     
-    /*!
-     * This data structure is only used for creating an object
-     * via the static member fucction AmrBoxLib::create()
-     * that is called in FieldSolver::initAmrObject_m
-     */
-    struct AmrInitialInfo {
-        int gridx;          ///< Number of grid points in x-direction
-        int gridy;          ///< Number of grid points in y-direction
-        int gridz;          ///< Number of grid points in z-direction
-        int maxgrid;        ///< Maximum grid size allowed
-        int maxlevel;       ///< Maximum level for AMR (0: single-level)
-        int refratx;        ///< Mesh refinement ratio in x-direction
-        int refraty;        ///< Mesh refinement ratio in y-direction
-        int refratz;        ///< Mesh refinement ratio in z-direction
-    };
-    
     
     /*!
      * Used for the redistribution of grids
@@ -87,7 +71,7 @@ public:
      * @param bunch_p pointing to. Is used for getting the geometry (i.e. physical
      * domain of the problem).
      */
-    static std::unique_ptr<AmrBoxLib> create(const AmrInitialInfo& info,
+    static std::unique_ptr<AmrBoxLib> create(const AmrInfo& info,
                                              AmrPartBunch* bunch_p);
     
     /*!
@@ -296,7 +280,7 @@ private:
      *             OPAL input file
      * @param layout_p of bunch
      */
-    static void initParmParse_m(const AmrInitialInfo& info, AmrLayout_t* layout_p);
+    static void initParmParse_m(const AmrInfo& info, AmrLayout_t* layout_p);
     
     
 private:

@@ -89,9 +89,14 @@ namespace {
         AMR_MAXLEVEL,       // AMR, maximum refinement level
         AMR_REFX,           // AMR, refinement ratio in x
         AMR_REFY,           // AMR, refinement ratio in y
-        AMR_REFT,           // AMR, refinement ration in z
+        AMR_REFZ,           // AMR, refinement ration in z
         AMR_SUBCYCLE,       // AMR, subcycling in time for refined levels (default: false)
-        AMR_MAXGRID,        // AMR, maximum grid size (default: 16)
+        AMR_MAXGRIDX,       // AMR, maximum grid size in x (default: 16)
+        AMR_MAXGRIDY,       // AMR, maximum grid size in y (default: 16)
+        AMR_MAXGRIDZ,       // AMR, maximum grid size in z (default: 16)
+        AMR_BFX,            // AMR, blocking factor in x (maxgrid needs to be a multiple, default: 8)
+        AMR_BFY,            // AMR, blocking factor in y (maxgrid needs to be a multiple, default: 8)
+        AMR_BFZ,            // AMR, blocking factor in z (maxgrid needs to be a multiple, default: 8)
         AMR_TAGGING,
         AMR_DENSITY,
         AMR_MAX_NUM_PART,
@@ -208,7 +213,7 @@ FieldSolver::FieldSolver():
                                              "Refinement ration in y-direction in AMR",
                                              2);
 
-    itsAttr[AMR_REFT] = Attributes::makeReal("AMR_REFT",
+    itsAttr[AMR_REFZ] = Attributes::makeReal("AMR_REFZ",
                                              "Refinement ration in z-direction in AMR",
                                              2);
 
@@ -216,9 +221,29 @@ FieldSolver::FieldSolver():
                                                  "Subcycling in time for refined levels in AMR",
                                                  false);
 
-    itsAttr[AMR_MAXGRID] = Attributes::makeReal("AMR_MAXGRID",
-                                                "Maximum grid size in AMR",
-                                                16);
+    itsAttr[AMR_MAXGRIDX] = Attributes::makeReal("AMR_MAXGRIDX",
+                                                 "Maximum grid size in x for AMR",
+                                                 16);
+
+    itsAttr[AMR_MAXGRIDY] = Attributes::makeReal("AMR_MAXGRIDY",
+                                                 "Maximum grid size in y for AMR",
+                                                 16);
+
+    itsAttr[AMR_MAXGRIDZ] = Attributes::makeReal("AMR_MAXGRIDZ",
+                                                 "Maximum grid size in z for AMR",
+                                                 16);
+
+    itsAttr[AMR_BFX] = Attributes::makeReal("AMR_BFX",
+                                            "Blocking factor in x for AMR (AMR_MAXGRIDX needs to be a multiple",
+                                            8);
+
+    itsAttr[AMR_BFY] = Attributes::makeReal("AMR_BFY",
+                                            "Blocking factor in y for AMR (AMR_MAXGRIDY needs to be a multiple",
+                                            8);
+
+    itsAttr[AMR_BFZ] = Attributes::makeReal("AMR_BFZ",
+                                            "Blocking factor in y for AMR (AMR_MAXGRIDZ needs to be a multiple",
+                                            8);
 
     itsAttr[AMR_TAGGING] = Attributes::makeString("AMR_TAGGING",
                                                   "Refinement criteria [CHARGE_DENSITY | POTENTIAL | EFIELD]",
@@ -387,30 +412,6 @@ bool FieldSolver::hasPeriodicZ() {
 inline bool FieldSolver::isAmrSolverType() const {
     return Options::amr;
 }
-
-inline int FieldSolver::getAmrMaxLevel() const {
-    return Attributes::getReal(itsAttr[AMR_MAXLEVEL]);
-}
-
-inline int FieldSolver::getAmrRefRatioX() const {
-    return Attributes::getReal(itsAttr[AMR_REFX]);
-}
-
-inline int FieldSolver::getAmrRefRatioY() const {
-    return Attributes::getReal(itsAttr[AMR_REFY]);
-}
-
-inline int FieldSolver::getAmrRefRatioT() const {
-    return Attributes::getReal(itsAttr[AMR_REFT]);
-}
-
-inline bool FieldSolver::isAmrSubCycling() const {
-    return Attributes::getBool(itsAttr[AMR_SUBCYCLE]);
-}
-
-inline int FieldSolver::getAmrMaxGridSize() const {
-    return Attributes::getReal(itsAttr[AMR_MAXGRID]);
-}
 #endif
 
 void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
@@ -546,9 +547,14 @@ Inform &FieldSolver::printInfo(Inform &os) const {
         os << "* AMR_MAXLEVEL     " << Attributes::getReal(itsAttr[AMR_MAXLEVEL]) << '\n'
            << "* AMR_REFX         " << Attributes::getReal(itsAttr[AMR_REFX]) << '\n'
            << "* AMR_REFY         " << Attributes::getReal(itsAttr[AMR_REFY]) << '\n'
-           << "* AMR_REFT         " << Attributes::getReal(itsAttr[AMR_REFT]) << '\n'
+           << "* AMR_REFZ         " << Attributes::getReal(itsAttr[AMR_REFZ]) << '\n'
            << "* AMR_SUBCYCLE     " << Attributes::getBool(itsAttr[AMR_SUBCYCLE]) << '\n'
-           << "* AMR_MAXGRID      " << Attributes::getReal(itsAttr[AMR_MAXGRID]) << '\n'
+           << "* AMR_MAXGRIDX     " << Attributes::getReal(itsAttr[AMR_MAXGRIDX]) << '\n'
+           << "* AMR_MAXGRIDY     " << Attributes::getReal(itsAttr[AMR_MAXGRIDY]) << '\n'
+           << "* AMR_MAXGRIDZ     " << Attributes::getReal(itsAttr[AMR_MAXGRIDZ]) << '\n'
+           << "* AMR_BFX          " << Attributes::getReal(itsAttr[AMR_BFX]) << '\n'
+           << "* AMR_BFY          " << Attributes::getReal(itsAttr[AMR_BFY]) << '\n'
+           << "* AMR_BFZ          " << Attributes::getReal(itsAttr[AMR_BFZ]) << '\n'
            << "* AMR_TAGGING      " << Attributes::getString(itsAttr[AMR_TAGGING]) <<'\n'
            << "* AMR_DENSITY      " << Attributes::getReal(itsAttr[AMR_DENSITY]) << '\n'
            << "* AMR_MAX_NUM_PART " << Attributes::getReal(itsAttr[AMR_MAX_NUM_PART]) << '\n'
@@ -615,15 +621,20 @@ void FieldSolver::initAmrObject_m() {
     itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) * 0.01);
 
     // setup initial info for creating the object
-    AmrBoxLib::AmrInitialInfo info;
-    info.gridx      = (int)this->getMX();
-    info.gridy      = (int)this->getMY();
-    info.gridz      = (int)this->getMT();
-    info.maxgrid    = this->getAmrMaxGridSize();
-    info.maxlevel   = this->getAmrMaxLevel();
-    info.refratx    = this->getAmrRefRatioX();
-    info.refraty    = this->getAmrRefRatioY();
-    info.refratz    = this->getAmrRefRatioT();
+    AmrObject::AmrInfo info;
+    info.grid[0]     = (int)this->getMX();
+    info.grid[1]     = (int)this->getMY();
+    info.grid[2]     = (int)this->getMT();
+    info.maxgrid[0]  = Attributes::getReal(itsAttr[AMR_MAXGRIDX]);
+    info.maxgrid[1]  = Attributes::getReal(itsAttr[AMR_MAXGRIDY]);
+    info.maxgrid[2]  = Attributes::getReal(itsAttr[AMR_MAXGRIDZ]);
+    info.bf[0]       = Attributes::getReal(itsAttr[AMR_BFX]);
+    info.bf[1]       = Attributes::getReal(itsAttr[AMR_BFY]);
+    info.bf[2]       = Attributes::getReal(itsAttr[AMR_BFZ]);
+    info.maxlevel    = Attributes::getReal(itsAttr[AMR_MAXLEVEL]);
+    info.refratio[0] = Attributes::getReal(itsAttr[AMR_REFX]);
+    info.refratio[1] = Attributes::getReal(itsAttr[AMR_REFY]);
+    info.refratio[2] = Attributes::getReal(itsAttr[AMR_REFZ]);
 
 
     itsAmrObject_mp = AmrBoxLib::create(info, dynamic_cast<AmrPartBunch*>(itsBunch_m));
