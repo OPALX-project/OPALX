@@ -51,6 +51,7 @@ struct param_t {
     bool isWriteCSV;
     bool isHelp;
     bool useMgtSolver;
+    bool noEpsilon0;
     std::string h5file;
     size_t h5step;
 #ifdef HAVE_AMR_MG_SOLVER
@@ -93,6 +94,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     params.isWriteCSV = false;
     params.isHelp = false;
     params.useMgtSolver = false;
+    params.noEpsilon0 = false;
     params.criteria = AmrOpal::kChargeDensity;
     params.tagfactor = 1.0e-14; 
     
@@ -127,6 +129,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "help",            no_argument,       0, 'h' },
             { "writeCSV",        no_argument,       0, 'v' },
             { "use-mgt-solver",  no_argument,       0, 's' },
+	    { "no-epsilon0",     no_argument,       0, 'n' },
             { "h5file",          required_argument, 0, 'd' },
             { "h5step",          required_argument, 0, 'e' },
 #ifdef HAVE_AMR_MG_SOLVER
@@ -147,9 +150,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         int option_index = 0;
         
 #ifdef HAVE_AMR_MG_SOLVER
-        c = getopt_long(argc, argv, "x:y:z:l:m:b:whvst:f:a:g:q:o:i:j:k:u:d:e:c:", long_options, &option_index);
+        c = getopt_long(argc, argv, "x:y:z:l:m:b:whvst:f:a:g:q:o:i:j:k:u:d:e:c:n", long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "x:y:z:l:m:b:whvst:f:d:e:c:", long_options, &option_index);
+        c = getopt_long(argc, argv, "x:y:z:l:m:b:whvst:f:d:e:c:n", long_options, &option_index);
 #endif
         
         if ( c == -1 )
@@ -274,6 +277,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             case 's':
                 params.useMgtSolver = true;
                 break;
+	    case 'n':
+                params.noEpsilon0 = true;
+                break;
             case 't':
                 if ( std::strcmp("efield", optarg) == 0 )
                     params.criteria = AmrOpal::kEfieldStrength;
@@ -296,6 +302,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--writeYt (optional)" << endl
                     << "--writeCSV (optional)" << endl
                     << "--use-mgt-solver (optional)" << endl
+                    << "--no-epsilon0 (optional)" << endl
                     << "--h5file" << endl
                     << "--h5step" << endl
 #ifdef HAVE_AMR_MG_SOLVER
@@ -404,14 +411,20 @@ void writeYt(container_t& rho,
              const container_t& efield,
              const amrex::Array<amrex::Geometry>& geom,
              const amrex::Array<int>& rr,
-             const double& scalefactor)
+             const double& scalefactor,
+             const param_t& params)
 {
     std::string dir = "yt-testFromH5";
     
     double time = 0.0;
     
+    double fac = 1.0;
+
+    if ( !params.noEpsilon0 )
+        fac = Physics::epsilon_0;
+
     for (unsigned int i = 0; i < rho.size(); ++i)
-        rho[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
+        rho[i]->mult(- fac / scalefactor, 0, 1);
     
     writePlotFile(dir, rho, phi, efield, rr, geom, time, scalefactor);
 }
@@ -545,14 +558,18 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // Check charge conservation
     double totCharge = totalCharge(rhs, finest_level, geom);
     
-    msg << "Total Charge (computed): " << totCharge << " C" << endl
-        << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
+    msg << "Total Charge (computed): " << totCharge << " C" << endl;
+    if ( !params.noEpsilon0 )
+        msg << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
     
     amrex::Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
     msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
     
     // eps in C / (V * m)
-    double constant = -1.0 / Physics::epsilon_0;  // in [V m / C]
+    double constant = -1.0;
+    if ( !params.noEpsilon0 )
+        constant /= Physics::epsilon_0;  // in [V m / C]
+
     for (int i = 0; i <= finest_level; ++i) {
         rhs[i]->mult(constant, 0, 1);       // in [V m]
     }
@@ -797,7 +814,7 @@ void doAMReX(const param_t& params, Inform& msg)
         writeCSV(phi, efield, amr_domain.lo(0) / scale, geom[0].CellSize(0) / scale);
     
     if ( params.isWriteYt )
-        writeYt(rhs, phi, efield, geom, rrr, scale);
+        writeYt(rhs, phi, efield, geom, rrr, scale, params);
 }
 
 
