@@ -70,22 +70,16 @@ void H5Reader::read(Distribution::container_t& x,
     READDATA(Float64, file_m, "x", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
         x[n] = f64buffer[n];
-        
-        x[n] -= int(x[n]);
     }
 
     READDATA(Float64, file_m, "y", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
         z[n] = f64buffer[n];
-        
-        // do shift due to box
-        z[n] -= int(z[n]);
     }
 
     READDATA(Float64, file_m, "z", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
         y[n] = f64buffer[n];
-	y[n] -= int(y[n]);
     }
 
     READDATA(Float64, file_m, "px", f64buffer);
@@ -124,6 +118,7 @@ void H5Reader::writeHeader() {
     WRITESTRINGFILEATTRIB(file_m, "pzUnit", "#beta#gamma");
     WRITESTRINGFILEATTRIB(file_m, "MASSUnit", "GeV");
     WRITESTRINGFILEATTRIB(file_m, "CHARGEUnit", "C");
+    WRITESTRINGFILEATTRIB(file_m, "NumPartUnit", "1");
 }
 
 void H5Reader::write(PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >* bunch)
@@ -133,6 +128,8 @@ void H5Reader::write(PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >* 
     std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
     h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
     h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
+    
+    H5PartSetNumParticles(file_m, numLocalParticles);
     
     for(size_t i = 0; i < numLocalParticles; ++ i)
         f64buffer[i] =  bunch->R[i](0);
