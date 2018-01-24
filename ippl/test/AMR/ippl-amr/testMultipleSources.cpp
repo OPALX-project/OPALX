@@ -415,14 +415,20 @@ void writeYt(container_t& rho,
              const container_t& efield,
              const amrex::Array<amrex::Geometry>& geom,
              const amrex::Array<int>& rr,
-             const double& scalefactor)
+             const double& scalefactor,
+	     const param_t& params)
 {
     std::string dir = "yt-testMultipleSources";
     
     double time = 0.0;
     
+    double fac = 1.0;
+
+    if ( !params.isFixedCharge )
+	fac = Physics::epsilon_0;
+
     for (unsigned int i = 0; i < rho.size(); ++i)
-        rho[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
+        rho[i]->mult(- fac / scalefactor, 0, 1);
     
     writePlotFile(dir, rho, phi, efield, rr, geom, time, scalefactor);
 }
@@ -562,7 +568,11 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
     
     // eps in C / (V * m)
-    double constant = -1.0 / Physics::epsilon_0 ; //* scale;  // in [V m / C]
+    double constant = -1.0;
+
+    if ( !params.isFixedCharge )
+	constant /= Physics::epsilon_0 ; //* scale;  // in [V m / C]
+
     for (int i = 0; i <= finest_level; ++i) {
         rhs[i]->mult(constant, 0, 1);       // in [V m]
     }
@@ -750,8 +760,13 @@ void doAMReX(const param_t& params, Inform& msg)
     dist.injectBeam(*bunch);
     bunch->update();
     
-    for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
-        bunch->qm[i] = Physics::q_e;  // in [C]
+
+    if ( !params.isFixedCharge )
+	for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
+	    bunch->qm[i] = Physics::q_e;  // in [C]
+    else
+	for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
+            bunch->qm[i] = params.pCharge;
     
     if ( params.isWriteParticles ) {
         H5Reader h5("testMultipleSources.h5");
@@ -858,7 +873,7 @@ void doAMReX(const param_t& params, Inform& msg)
 //         Box bx(low, high);
 //         geom[0].Domain(bx);
         
-        writeYt(rhs, phi, efield, geom, rrr, scale);
+        writeYt(rhs, phi, efield, geom, rrr, scale, params);
     }
 }
 
