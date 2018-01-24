@@ -18,7 +18,7 @@
 #include "../Solver.h"
 #include "../MGTSolver.h"
 #include "../AmrOpal.h"
-#include "../Distribution.h"
+#include "../H5Reader.h"
 
 #include "../helper_functions.h"
 
@@ -45,8 +45,9 @@ struct param_t {
     Vektor<size_t, 3> nr;
     size_t nLevels;
     size_t maxBoxSize;
+    size_t blocking_factor;
     double length;
-    size_t nParticles;
+    size_t nParticlesPerBunch;
     double pCharge;
     bool isFixedCharge;
     bool isWriteYt;
@@ -115,44 +116,45 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     
     int cnt = 0;
     
-    int required = 7;
+    int required = 8;
     
     while ( true ) {
         static struct option long_options[] = {
-            { "gridx",          required_argument, 0, 'x' },
-            { "gridy",          required_argument, 0, 'y' },
-            { "gridz",          required_argument, 0, 'z' },
-            { "level",          required_argument, 0, 'l' },
-            { "maxgrid",        required_argument, 0, 'm' },
-            { "boxlength",      required_argument, 0, 'b' },
-            { "nparticles",     required_argument, 0, 'n' },
-            { "writeYt",        no_argument,       0, 'w' },
-            { "help",           no_argument,       0, 'h' },
-            { "pcharge",        required_argument, 0, 'c' },
-            { "writeCSV",       no_argument,       0, 'v' },
-            { "writeParticles", no_argument,       0, 'p' },
-            { "use-mgt-solver", no_argument,       0, 's' },
+            { "gridx",           required_argument, 0, 'x' },
+            { "gridy",           required_argument, 0, 'y' },
+            { "gridz",           required_argument, 0, 'z' },
+            { "level",           required_argument, 0, 'l' },
+            { "maxgrid",         required_argument, 0, 'm' },
+            { "blocking_factor", required_argument, 0, 'd' },
+            { "boxlength",       required_argument, 0, 'b' },
+            { "npartperbunch",   required_argument, 0, 'n' },
+            { "writeYt",         no_argument,       0, 'w' },
+            { "help",            no_argument,       0, 'h' },
+            { "pcharge",         required_argument, 0, 'c' },
+            { "writeCSV",        no_argument,       0, 'v' },
+            { "writeParticles",  no_argument,       0, 'p' },
+            { "use-mgt-solver",  no_argument,       0, 's' },
 #ifdef HAVE_AMR_MG_SOLVER
-            { "use-trilinos",   no_argument,       0, 'a' },
-            { "nsweeps",        required_argument, 0, 'g' },
-            { "smoother",       required_argument, 0, 'q' },
-            { "prec",           required_argument, 0, 'o' },
-            { "bcx",            required_argument, 0, 'i' },
-            { "bcy",            required_argument, 0, 'j' },
-            { "bcz",            required_argument, 0, 'k' },
-            { "basesolver",     required_argument, 0, 'u' },
+            { "use-trilinos",    no_argument,       0, 'a' },
+            { "nsweeps",         required_argument, 0, 'g' },
+            { "smoother",        required_argument, 0, 'q' },
+            { "prec",            required_argument, 0, 'o' },
+            { "bcx",             required_argument, 0, 'i' },
+            { "bcy",             required_argument, 0, 'j' },
+            { "bcz",             required_argument, 0, 'k' },
+            { "basesolver",      required_argument, 0, 'u' },
 #endif
-            { "tagging",        required_argument, 0, 't' },
-            { "tagging-factor", required_argument, 0, 'f' },
-            { 0,                0,                 0,  0  }
+            { "tagging",         required_argument, 0, 't' },
+            { "tagging-factor",  required_argument, 0, 'f' },
+            { 0,                 0,                 0,  0  }
         };
         
         int option_index = 0;
         
 #ifdef HAVE_AMR_MG_SOLVER
-        c = getopt_long(argc, argv, "x:y:z:l:m:b:n:whcvpst:f:a:g:q:o:u:i:j:k:", long_options, &option_index);
+        c = getopt_long(argc, argv, "x:y:z:l:m:b:n:whcvpst:f:a:g:q:o:u:i:j:k:d:", long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "x:y:z:l:m:b:n:whcvpst:f:", long_options, &option_index);
+        c = getopt_long(argc, argv, "x:y:z:l:m:b:n:whcvpst:f:d:", long_options, &option_index);
 #endif
         
         if ( c == -1 )
@@ -205,7 +207,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             {
                 std::string bs = optarg;
                 
-                if ( bs == "bicgstab" )
+                if ( bs == "cg" )
+                    params.bs = AmrMultiGrid::BaseSolver::CG;
+                else if ( bs == "bicgstab" )
                     params.bs = AmrMultiGrid::BaseSolver::BICGSTAB;
                 else if ( bs == "minres" )
                     params.bs = AmrMultiGrid::BaseSolver::MINRES;
@@ -258,10 +262,12 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.nLevels = std::atoi(optarg) + 1; ++cnt; break;
             case 'm':
                 params.maxBoxSize = std::atoi(optarg); ++cnt; break;
+            case 'd':
+                params.blocking_factor = std::atoi(optarg); ++cnt; break;
             case 'b':
                 params.length = std::atof(optarg); ++cnt; break;
             case 'n':
-                params.nParticles = 3 * std::atoi(optarg); ++cnt; break;
+                params.nParticlesPerBunch = std::atoi(optarg); ++cnt; break;
             case 'c':
                 params.pCharge = std::atof(optarg);
                 params.isFixedCharge = true;
@@ -295,8 +301,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--gridz [#gridpoints in z]" << endl
                     << "--level [#levels]" << endl
                     << "--maxgrid [max. grid]" << endl
+                    << "--blocking_factor [val] (only grids modulo bf == 0 allowed)" << endl
                     << "--boxlength [cube side length]" << endl
-                    << "--nparticles [#particles]" << endl
+                    << "--npartperbunch [#particles per bunch]" << endl
                     << "--pcharge [charge per particle] (optional)" << endl
                     << "--writeYt (optional)" << endl
                     << "--writeCSV (optional)" << endl
@@ -307,6 +314,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--nsweeps (optional, trilinos only, default: 12)" << endl
                     << "--smoother (optional, trilinos only, default: GAUSS_SEIDEL)" << endl
                     << "--prec (optional, trilinos only, default: NONE)" << endl
+                    << "--bcx (optional, dirichlet or open, default: dirichlet)" << endl
                     << "--bcy (optional, dirichlet or open, default: dirichlet)" << endl
                     << "--bcz (optional, dirichlet or open, default: dirichlet)" << endl
                     << "--basesolver (optional, trilinos only, default: CG)" << endl
@@ -407,14 +415,20 @@ void writeYt(container_t& rho,
              const container_t& efield,
              const amrex::Array<amrex::Geometry>& geom,
              const amrex::Array<int>& rr,
-             const double& scalefactor)
+             const double& scalefactor,
+	     const param_t& params)
 {
     std::string dir = "yt-testMultipleSources";
     
     double time = 0.0;
     
+    double fac = 1.0;
+
+    if ( !params.isFixedCharge )
+	fac = Physics::epsilon_0;
+
     for (unsigned int i = 0; i < rho.size(); ++i)
-        rho[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
+        rho[i]->mult(- fac / scalefactor, 0, 1);
     
     writePlotFile(dir, rho, phi, efield, rr, geom, time, scalefactor);
 }
@@ -554,7 +568,11 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
     
     // eps in C / (V * m)
-    double constant = -1.0 / Physics::epsilon_0 ; //* scale;  // in [V m / C]
+    double constant = -1.0;
+
+    if ( !params.isFixedCharge )
+	constant /= Physics::epsilon_0 ; //* scale;  // in [V m / C]
+
     for (int i = 0; i <= finest_level; ++i) {
         rhs[i]->mult(constant, 0, 1);       // in [V m]
     }
@@ -597,6 +615,11 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         IpplTimings::stopTimer(solvTimer);
         
         msg << "#iterations: " << sol.getNumIters() << endl;
+        
+        for (int i = 0; i <= finest_level; ++i) {
+            msg << "norm of residual (level " << i << "): "
+                << sol.getLevelResidualNorm(i) << endl;
+        }
         
     } else if ( params.useMgtSolver ) {
 #else
@@ -658,6 +681,9 @@ void doAMReX(const param_t& params, Inform& msg)
     
     amrex::Array<int> error_buf(params.nLevels, 0);
     
+    amrex::Array<int> bf(params.nLevels, int(params.blocking_factor));
+    pp.addarr("blocking_factor", bf);
+    
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
     
@@ -679,8 +705,8 @@ void doAMReX(const param_t& params, Inform& msg)
     
     amrex::RealBox amr_domain;
     
-    std::array<double, AMREX_SPACEDIM> amr_lower = {{-1.02, -1.02, -1.02}}; // m
-    std::array<double, AMREX_SPACEDIM> amr_upper = {{ 1.02,  1.02,  1.02}}; // m
+    std::array<double, AMREX_SPACEDIM> amr_lower = {{-1.04, -1.04, -1.04}}; // m
+    std::array<double, AMREX_SPACEDIM> amr_upper = {{ 1.04,  1.04,  1.04}}; // m
     
     init(amr_domain, params.nr, amr_lower, amr_upper);
     
@@ -711,35 +737,48 @@ void doAMReX(const param_t& params, Inform& msg)
     bunch->setAllowParticlesNearBoundary(true);
     
     // initialize particle distribution
-    unsigned long int nloc = params.nParticles / Ippl::getNodes() / 3;
+    unsigned long int nloc = params.nParticlesPerBunch / Ippl::getNodes();
     Distribution dist;
     
     // first source
     double mean1[] = {0, 0, 0};
     double stddev[] = {0.0025, 0.0025, 0.0025};
 
-    dist.gaussian(mean1, stddev, nloc, Ippl::myNode());
+    dist.gaussian(&mean1[0], &stddev[0], nloc, Ippl::myNode());
     dist.injectBeam(*bunch);
     bunch->update();
     
     // second source
     double mean2[] = {0, 0, 0.02};
-    dist.gaussian(mean2, stddev, nloc, Ippl::myNode());
+    dist.gaussian(&mean2[0], &stddev[0], nloc, Ippl::myNode());
     dist.injectBeam(*bunch);
     bunch->update();
     
     // third source
     double mean3[] = {0, 0, 0.03};
-    dist.gaussian(mean3, stddev, nloc, Ippl::myNode());
+    dist.gaussian(&mean3[0], &stddev[0], nloc, Ippl::myNode());
     dist.injectBeam(*bunch);
     bunch->update();
     
-    for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
-        bunch->qm[i] = Physics::q_e;  // in [C]
+
+    if ( !params.isFixedCharge )
+	for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
+	    bunch->qm[i] = Physics::q_e;  // in [C]
+    else
+	for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
+            bunch->qm[i] = params.pCharge;
+    
+    if ( params.isWriteParticles ) {
+        H5Reader h5("testMultipleSources.h5");
+        h5.open(0, H5_O_WRONLY);
+        h5.write(bunch.get());
+        h5.close();
+    }
     
     msg << "#Particles: " << bunch->getTotalNum() << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
-        << "Total charge: " << params.nParticles * bunch->qm[0] << " C" << endl;
+        << "Total charge: " << bunch->getTotalNum() * bunch->qm[0] << " C" << endl;
+    
     
     // map particles
     double scale = 1.0;
@@ -768,9 +807,9 @@ void doAMReX(const param_t& params, Inform& msg)
     
     msg << endl << "Transformed positions" << endl << endl;
     
-    msg << "#Particles: " << params.nParticles << endl
+    msg << "#Particles: " << bunch->getTotalNum() << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
-        << "Total charge: " << params.nParticles * bunch->qm[0] << " C" << endl;
+        << "Total charge: " << bunch->getTotalNum() * bunch->qm[0] << " C" << endl;
     
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, scale/*0.0*/ /*time*/);
@@ -834,7 +873,7 @@ void doAMReX(const param_t& params, Inform& msg)
 //         Box bx(low, high);
 //         geom[0].Domain(bx);
         
-        writeYt(rhs, phi, efield, geom, rrr, scale);
+        writeYt(rhs, phi, efield, geom, rrr, scale, params);
     }
 }
 
@@ -869,9 +908,10 @@ int main(int argc, char *argv[]) {
         msg << "Particle test running with" << endl
             << "- grid                  = " << params.nr << endl
             << "- max. grid             = " << params.maxBoxSize << endl
+            << "- blocking factor       = " << params.blocking_factor << endl
             << "- #level                = " << params.nLevels - 1 << endl
             << "- cube side length [m]  = " << params.length << endl
-            << "- #particles            = " << params.nParticles << endl
+            << "- #particles per bunch  = " << params.nParticlesPerBunch << endl
             << "- tagging               = " << tagging << endl
             << "- tagging factor        = " << params.tagfactor << endl;
 
@@ -890,6 +930,7 @@ int main(int argc, char *argv[]) {
                 smoother = "Jacobi";
             msg << "- Trilinos solver is used with: "
                 << "    - nsweeps:     " << params.nsweeps
+                << endl
                 << "    - smoother:    " << smoother
                 << endl;
         }
