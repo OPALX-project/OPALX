@@ -70,6 +70,14 @@ public:
     virtual ~AmrObject() {}
     
     /*!
+     * Collect information about grid load balancing.
+     * @param gridsPerCore is filled.
+     * @param gridsPerLevel is filled
+     */
+    virtual void getGridStatistics(std::map<int, int>& gridsPerCore,
+                                   std::vector<int>& gridsPerLevel) const = 0;
+    
+    /*!
      * Setup all fine levels after object creation.
      */
     virtual void initFineLevels() = 0; 
