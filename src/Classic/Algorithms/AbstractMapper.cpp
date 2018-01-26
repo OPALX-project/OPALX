@@ -25,6 +25,15 @@
 
 typedef FTps<double, 6> Series;
 
+// namespace {
+//     void printSciForm(std::ostream &os, double num, int prec = 14, int fw = 22) {
+//         std::streamsize old_prec = os.precision(prec);       // Save old,
+//         os.setf(std::ios::scientific, std::ios::floatfield); // and set new formats.
+//         os << std::setw(fw) << num;                          // Print number.
+//         os.precision(old_prec);                              // Restore old formats.
+//         os.setf(std::ios::fixed, std::ios::floatfield);
+//     }
+// }
 
 // Class AbstractMapper
 // ------------------------------------------------------------------------
@@ -65,15 +74,6 @@ buildMultipoleVectorPotential(const BMultipoleField &field) {
     } else {
         return Series(0.0);
     }
-}
-
-
-void printSciForm(std::ostream &os, double num, int prec = 14, int fw = 22) {
-    std::streamsize old_prec = os.precision(prec);       // Save old,
-    os.setf(std::ios::scientific, std::ios::floatfield); // and set new formats.
-    os << std::setw(fw) << num;                          // Print number.
-    os.precision(old_prec);                              // Restore old formats.
-    os.setf(std::ios::fixed, std::ios::floatfield);
 }
 
 Series AbstractMapper::

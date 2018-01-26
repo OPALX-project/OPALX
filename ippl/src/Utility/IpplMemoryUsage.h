@@ -72,7 +72,7 @@ public:
     static IpplMemory_p getInstance(Unit unit=Unit::GB, bool reset = true);
     
     /*!
-     * Get the memory of a specific core
+     * Get the memory of a specific core (only valid call for root core 0)
      * @param core we want memory of.
      * @returns the max. resident set size
      */

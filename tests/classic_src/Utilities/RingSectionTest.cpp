@@ -168,14 +168,16 @@ TEST(RingSectionTest, TestGetFieldValue) {
     }
 }
 
-bool sort_comparator(Vector_t v1, Vector_t v2) {
-    if (fabs(v1(0) - v2(0)) < 1e-6) {
-        if (fabs(v1(1) - v2(1)) < 1e-6) {
-            return v1(2) > v2(2);
+namespace {
+    bool sort_comparator(Vector_t v1, Vector_t v2) {
+        if (fabs(v1(0) - v2(0)) < 1e-6) {
+            if (fabs(v1(1) - v2(1)) < 1e-6) {
+                return v1(2) > v2(2);
+            }
+            return v1(1) > v2(1);
         }
-        return v1(1) > v2(1);
+        return v1(0) > v2(0);
     }
-    return v1(0) > v2(0);
 }
 
 TEST(RingSectionTest, TestGetVirtualBoundingBox) {
@@ -205,13 +207,15 @@ TEST(RingSectionTest, TestGetVirtualBoundingBox) {
     }
 }
 
-RingSection buildORS(double r, double phi1, double phi2) {
-    RingSection ors;
-    ors.setStartPosition(Vector_t(sin(phi1)*r, cos(phi1)*r, 0.));
-    ors.setStartNormal(Vector_t(cos(phi1), -sin(phi1), 0.));
-    ors.setEndPosition(Vector_t(sin(phi2)*r, cos(phi2)*r, 0.));
-    ors.setEndNormal(Vector_t(cos(phi2), -sin(phi2), 0.));
-    return ors;
+namespace {
+    RingSection buildORS(double r, double phi1, double phi2) {
+        RingSection ors;
+        ors.setStartPosition(Vector_t(sin(phi1)*r, cos(phi1)*r, 0.));
+        ors.setStartNormal(Vector_t(cos(phi1), -sin(phi1), 0.));
+        ors.setEndPosition(Vector_t(sin(phi2)*r, cos(phi2)*r, 0.));
+        ors.setEndNormal(Vector_t(cos(phi2), -sin(phi2), 0.));
+        return ors;
+    }
 }
 
 TEST(RingSectionTest, TestDoesOverlap) {

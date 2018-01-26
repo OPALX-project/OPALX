@@ -36,30 +36,34 @@ namespace client { namespace parser
     //  The expression grammar
     ///////////////////////////////////////////////////////////////////////////////
     template <typename Iterator>
-    struct expression : qi::grammar<Iterator, ast::expression(), skipper<Iterator> >
+    struct expression : qi::grammar<Iterator, ast::expression(), qi::locals<char>, skipper<Iterator> >
     {
         expression(error_handler<Iterator>& error_handler);
 
-        qi::rule<Iterator, ast::expression(), skipper<Iterator> >
+        qi::rule<Iterator, ast::expression(), qi::locals<char>, skipper<Iterator> >
             expr, equality_expr, relational_expr,
             logical_or_expr, logical_and_expr,
             additive_expr, multiplicative_expr
             ;
 
-        qi::rule<Iterator, ast::operand(), skipper<Iterator> >
+        qi::rule<Iterator, ast::operand(), qi::locals<char>, skipper<Iterator> >
             unary_expr, primary_expr, constant_expr
             ;
 
-        qi::rule<Iterator, ast::function_call(), skipper<Iterator> >
+        qi::rule<Iterator, ast::function_call(), qi::locals<char>, skipper<Iterator> >
             function_call
             ;
 
-        qi::rule<Iterator, std::list<ast::function_call_argument>(), skipper<Iterator> >
+        qi::rule<Iterator, std::list<ast::function_call_argument>(), qi::locals<char>, skipper<Iterator> >
             argument_list
             ;
 
-        qi::rule<Iterator, std::string(), skipper<Iterator> >
-            identifier, quoted_string
+        qi::rule<Iterator, std::string(), qi::locals<char>, skipper<Iterator> >
+            identifier
+            ;
+
+        qi::rule<Iterator, std::string(), qi::locals<char>, skipper<Iterator> >
+            quoted_string
             ;
 
         qi::symbols<char, ast::optoken>
@@ -75,5 +79,3 @@ namespace client { namespace parser
 }}
 
 #endif
-
-

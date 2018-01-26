@@ -116,9 +116,9 @@ class SolveFactory {
     void BuildHInvMatrix(std::vector< std::vector<double> > positions,
                          std::vector< std::vector<double> > deriv_positions,
                          std::vector< std::vector<int> >& deriv_indices);
-
-    int polynomial_order_;
-    int smoothing_order_;
+    // :FIXME: remove unused declaration
+    // int polynomial_order_;
+    // int smoothing_order_;
     int n_poly_coeffs_;
     std::vector< std::vector<int> > square_points_;
     std::vector< std::vector<int> > square_deriv_nearby_points_;

@@ -2,8 +2,8 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- * This program was prepared by PSI. 
+ *
+ * This program was prepared by PSI.
  * All rights in the program are reserved by PSI.
  * Neither PSI nor the author(s)
  * makes any warranty, express or implied, or assumes any liability or
@@ -17,7 +17,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -26,10 +26,11 @@
 // include files
 #include "Meshes/Centering.h"
 
-// Names for the centering classes Cell and Vert, which are being kept around 
+// Names for the centering classes Cell and Vert, which are being kept around
 // for backwards compatibility and possibly use with noncartesian meshes:
 const char* Cell::CenteringName = "Cell";
 const char* Vert::CenteringName = "Vert";
+const char* Edge::CenteringName = "Edge";
 
 const char* Centering::CenteringEnum_Names[] = {"CELL  ","VERTEX","EDGE  "};
 
@@ -44,8 +45,13 @@ void Vert::print_Centerings(std::ostream& out)
   out << Vert::CenteringName << std::endl;
 }
 
+void Edge::print_Centerings(std::ostream& out)
+{
+    out << Edge::CenteringName << std::endl;
+}
+
 /***************************************************************************
  * $RCSfile: Centering.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:28 $
- * IPPL_VERSION_ID: $Id: Centering.cpp,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: Centering.cpp,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $
  ***************************************************************************/

@@ -2,7 +2,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -21,7 +21,7 @@
 // Recommendation: use CommonCartesianCenterings<D,NComponents,0U>::allCell
 // instead of this for cartesian meshes.
 // Keep this class around for backwards compatibility, and possibly for use
-// with non-cartesian meshes. 
+// with non-cartesian meshes.
 class Centering
 {
 public:
@@ -38,12 +38,19 @@ public:
 // Recommendation: use CommonCartesianCenterings<D,NComponents,0U>::allVert
 // instead of this for cartesian meshes.
 // Keep this class around for backwards compatibility, and possibly for use
-// with non-cartesian meshes. 
+// with non-cartesian meshes.
 class Vert
-{ 
+{
 public:
   static const char* CenteringName;
   static void print_Centerings(std::ostream&);
+};
+
+class Edge
+{
+public:
+    static const char* CenteringName;
+    static void print_Centerings(std::ostream&);
 };
 
 #endif // CENTERING_H
@@ -51,5 +58,5 @@ public:
 /***************************************************************************
  * $RCSfile: Centering.h,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:28 $
- * IPPL_VERSION_ID: $Id: Centering.h,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: Centering.h,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $
  ***************************************************************************/

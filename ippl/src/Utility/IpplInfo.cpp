@@ -41,12 +41,28 @@
 
 /////////////////////////////////////////////////////////////////////
 // public static members of IpplInfo, initialized to default values
-Communicate *IpplInfo::Comm = new Communicate();
-IpplStats  *IpplInfo::Stats = new IpplStats();
-Inform *IpplInfo::Info = new Inform("Ippl");
-Inform *IpplInfo::Warn = new Inform("Warning", std::cerr);
-Inform *IpplInfo::Error = new Inform("Error", std::cerr, INFORM_ALL_NODES);
-Inform *IpplInfo::Debug = new Inform("**DEBUG**", std::cerr, INFORM_ALL_NODES);
+Communicate *IpplInfo::Comm = 0;
+IpplStats  *IpplInfo::Stats = 0;
+Inform *IpplInfo::Info = 0;
+Inform *IpplInfo::Warn = 0;
+Inform *IpplInfo::Error = 0;
+Inform *IpplInfo::Debug = 0;
+
+void IpplInfo::instantiateGlobals() {
+    if (Comm == 0)
+        Comm = new Communicate();
+    if (Stats == 0)
+        Stats = new IpplStats();
+    if (Info == 0)
+        Info = new Inform("Ippl");
+    if (Warn == 0)
+        Warn = new Inform("Warning", std::cerr);
+    if (Error == 0)
+        Error = new Inform("Error", std::cerr, INFORM_ALL_NODES);
+    if (Debug == 0)
+        Debug = new Inform("**DEBUG**", std::cerr, INFORM_ALL_NODES);
+}
+
 std::stack<StaticIpplInfo> IpplInfo::stashedStaticMembers;
 
 //dks base member of IpplInfo initialized to default values
@@ -178,6 +194,14 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
 
     communicator_m = mpicomm;
 
+    if (NumCreated == 0) {
+        Comm = new Communicate();
+        Stats = new IpplStats();
+        Info = new Inform("Ippl");
+        Warn = new Inform("Warning", std::cerr);
+        Error = new Inform("Error", std::cerr, INFORM_ALL_NODES);
+        Debug = new Inform("**DEBUG**", std::cerr, INFORM_ALL_NODES);
+    }
     // You can only specify argc, argv once; if it is done again, print a warning
     // and continue as if we had not given argc, argv.
     if ( CommInitialized ) {
@@ -564,6 +588,15 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
 /////////////////////////////////////////////////////////////////////
 // Constructor 2: default constructor.
 IpplInfo::IpplInfo() {
+    if (NumCreated == 0) {
+        Comm = new Communicate();
+        Stats = new IpplStats();
+        Info = new Inform("Ippl");
+        Warn = new Inform("Warning", std::cerr);
+        Error = new Inform("Error", std::cerr, INFORM_ALL_NODES);
+        Debug = new Inform("**DEBUG**", std::cerr, INFORM_ALL_NODES);
+    }
+
     // just indicate we've also been created
     NumCreated++;
 }
@@ -572,6 +605,15 @@ IpplInfo::IpplInfo() {
 /////////////////////////////////////////////////////////////////////
 // Constructor 3: copy constructor.
 IpplInfo::IpplInfo(const IpplInfo&) {
+    if (NumCreated == 0) {
+        Comm = new Communicate();
+        Stats = new IpplStats();
+        Info = new Inform("Ippl");
+        Warn = new Inform("Warning", std::cerr);
+        Error = new Inform("Error", std::cerr, INFORM_ALL_NODES);
+        Debug = new Inform("**DEBUG**", std::cerr, INFORM_ALL_NODES);
+    }
+
     // just indicate we've also been created
     NumCreated++;
 }
@@ -1043,7 +1085,7 @@ void IpplInfo::find_smp_nodes() {
 }
 
 void IpplInfo::stash() {
-    PAssert(stashedStaticMembers.size() == 0);
+    PAssert_EQ(stashedStaticMembers.size(), 0);
 
     StaticIpplInfo obj;
 
@@ -1105,7 +1147,7 @@ void IpplInfo::stash() {
 }
 
 void IpplInfo::pop() {
-    PAssert(stashedStaticMembers.size() == 1);
+    PAssert_EQ(stashedStaticMembers.size(), 1);
 
     StaticIpplInfo obj = stashedStaticMembers.top();
     stashedStaticMembers.pop();

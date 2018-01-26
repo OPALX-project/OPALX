@@ -2,8 +2,9 @@
 
 #include "mpi.h"
 
-#include "Utility/Inform.h" // ippl
+#include "Utility/IpplInfo.h" // ippl
 
+Ippl *ippl;
 Inform* gmsg;
 
 class NewLineAdder: public ::testing::EmptyTestEventListener {
@@ -19,7 +20,7 @@ int main(int argc, char **argv) {
     if (!gmsg) {
         return 1;
     }
-    MPI_Init(&argc, &argv);
+    ippl = new Ippl(argc, argv);
 
     ::testing::TestEventListeners &listeners =
           ::testing::UnitTest::GetInstance()->listeners();

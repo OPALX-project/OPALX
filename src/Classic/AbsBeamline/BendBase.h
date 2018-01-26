@@ -26,7 +26,7 @@ public:
     void setFullGap(double);
     double getFullGap() const;
 
-    virtual void setDesignEnergy(double energy, bool changeable = true);
+    virtual void setDesignEnergy(const double& energy, bool changeable = true);
     double getDesignEnergy() const;
     std::vector<Vector_t> getDesignPath() const;
 
@@ -109,7 +109,7 @@ double BendBase::getFullGap() const {
 }
 
 inline
-void BendBase::setDesignEnergy(double energy, bool changeable) {
+void BendBase::setDesignEnergy(const double& energy, bool changeable) {
     if (designEnergyChangeable_m) {
         designEnergy_m = std::abs(energy) * 1e6;
         designEnergyChangeable_m = changeable;

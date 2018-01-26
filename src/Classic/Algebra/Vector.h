@@ -98,10 +98,10 @@ template<class T> Vector<T> operator/(const Vector<T> &, const T &);
 /// Scalar multiplied by vector.
 template<class T> Vector<T> operator*(const T &, const Vector<T> &);
 
-/// Euclidian norm.
-template<class T> T euclidian_norm(const Vector<T> &);
+/// Euclidean norm.
+template<class T> T euclidean_norm(const Vector<T> &);
 
-/// Euclidian norm of diagonal matrix D times vector V.
+/// Euclidean norm of diagonal matrix D times vector V.
 template<class T> T scaled_norm(const Array1D<T> D, const Vector<T> &V);
 
 
@@ -243,7 +243,7 @@ Vector<T> operator*(const T &x, const Vector<T> &V1) {
 }
 
 
-template<class T> T euclidian_norm(const Vector<T> &V) {
+template<class T> T euclidean_norm(const Vector<T> &V) {
     return sqrt(std::inner_product(V.begin(), V.end(), V.begin(), T(0)));
 }
 

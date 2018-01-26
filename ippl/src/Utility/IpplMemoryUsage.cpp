@@ -95,19 +95,12 @@ void IpplMemoryUsage::sample() {
     // update max_rss_m
     this->sample_m();
     
-    std::unique_ptr<double[]> localMemPerCore = std::unique_ptr<double[]>(
-        new double[Ippl::getNodes()]
-    );
-    
     for(int i = 0; i < Ippl::getNodes(); i++)
-        localMemPerCore[i] = globalMemPerCore_m[i] = 0;
-        
-    localMemPerCore[Ippl::myNode()] = max_rss_m;
+        globalMemPerCore_m[i] = 0;
     
-    reduce(localMemPerCore.get(),
-           localMemPerCore.get() + Ippl::getNodes(),
-           globalMemPerCore_m.get(),
-           OpAddAssign());
+    double localMemPerCore = max_rss_m;
+    
+    gather(&localMemPerCore, &globalMemPerCore_m[0], 1);
 }
 
 

@@ -5,7 +5,7 @@
 AmrPartBunch::AmrPartBunch(const PartData *ref)
     : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(new AmrLayout_t()), ref),
       amrobj_mp(nullptr),
-      amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase)),
+      amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase.get())),
       fieldlayout_m(nullptr)
 {
     amrpbase_mp->initializeAmr();
@@ -16,7 +16,7 @@ AmrPartBunch::AmrPartBunch(const std::vector<OpalParticle> &rhs,
                            const PartData *ref)
     : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(new AmrLayout_t()), rhs, ref),
       amrobj_mp(nullptr),
-      amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase)),
+      amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase.get())),
       fieldlayout_m(nullptr)
 {
     amrpbase_mp->initializeAmr();
@@ -26,14 +26,14 @@ AmrPartBunch::AmrPartBunch(const std::vector<OpalParticle> &rhs,
 AmrPartBunch::AmrPartBunch(const AmrPartBunch &rhs)
     : PartBunchBase<double, 3>(rhs),
       amrobj_mp(nullptr),
-      amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase)),
+      amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase.get())),
       fieldlayout_m(nullptr)
 {
     amrpbase_mp->initializeAmr();
 }
 
 AmrPartBunch::~AmrPartBunch() {
-    delete amrpbase_mp;
+    
 }
 
 
@@ -64,10 +64,13 @@ void AmrPartBunch::do_binaryRepart() {
              */
             amrobj_mp->initFineLevels();
             
-        } else if ( maxLevel > 0)  {
+        } else if ( maxLevel > 0 && this->numBunch_m > 1 )  {
             /* we do an explicit domain mapping of the particles and then
              * forbid it during the regrid process, this way it's only
              * executed ones --> saves computation
+             * 
+             * allow only multi-level in case of multi-bunch
+             * simulation
              */
             bool isForbidTransform = amrpbase_mp->isForbidTransform();
             
@@ -81,19 +84,19 @@ void AmrPartBunch::do_binaryRepart() {
              * level and grid
              */
             this->update();
-                
+            
             int lev_top = std::min(amrobj_mp->finestLevel(), maxLevel - 1);
             
             *gmsg << "* Start regriding:" << endl
                   << "*     Old finest level: "
                   << amrobj_mp->finestLevel() << endl;
-                
+            
             /* ATTENTION: The bunch has to be updated during
              * the regrid process!
              * We regrid from base level 0 up to the finest level.
              */
             amrobj_mp->regrid(0, lev_top, t_m * 1.0e9 /*time [ns] */);
-            
+                
             *gmsg << "*     New finest level: "
                   << amrobj_mp->finestLevel() << endl
                   << "* Finished regriding" << endl;
@@ -241,11 +244,10 @@ void AmrPartBunch::gatherLevelStatistics() {
         
     for (size_t i = 0; i < LocalNumPerLevel.size(); ++i)
         partPerLevel[i] = LocalNumPerLevel[i];
-        
-    reduce(partPerLevel.get(),
-           partPerLevel.get() + nLevel,
-           globalPartPerLevel_m.get(),
-           OpAddAssign());
+    
+    reduce(*partPerLevel.get(),
+           *globalPartPerLevel_m.get(),
+           nLevel, std::plus<size_t>());
 }
 
 

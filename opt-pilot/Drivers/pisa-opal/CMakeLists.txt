@@ -1,12 +1,3 @@
-if (Boost_FILESYSTEM_FOUND)
-    set (BOOST_FILESYSTEM
-        boost_filesystem
-	)
-else (Boost_FILESYSTEM_FOUND)
-    set (BOOST_FILESYSTEM
-	)
-endif (Boost_FILESYSTEM_FOUND)
-
 # OPAL
 message(STATUS "OPAL_LIBS ${OPAL_LIBS}")
 
@@ -40,7 +31,6 @@ target_link_libraries( pisa-opal.exe
     OPALib
     ${MPI_CXX_LIBRARIES}
     ${Trilinos_LIBRARIES}
-    -lgfortran
     ${OPTP_LIBS}
     ${Boost_LIBRARIES}
     z

@@ -40,10 +40,6 @@ include_directories(SYSTEM ${MPI_INCLUDE_PATH})
 
 #-----------------------------------------------------------------------------
 
-include_directories(${CMAKE_SOURCE_DIR}/src)
-include_directories(${CMAKE_SOURCE_DIR}/src/Classic)
-include_directories(${CMAKE_SOURCE_DIR}/ippl/src)
-
 set(BOOST_ROOT $ENV{BOOST_HOME})
 set(Boost_USE_STATIC_LIBS ON)
 set(BOOST_NO_SYSTEM_PATHS TRUE)
@@ -54,10 +50,6 @@ if (Boost_INCLUDE_DIRS)
     message (STATUS "Boost include dirs: ${Boost_INCLUDE_DIRS}")
     include_directories (${Boost_INCLUDE_DIRS})
 endif ()
-
-if (Boost_FILESYSTEM_FOUND)
-    add_definitions(-DBOOST_FILESYSTEM)
-endif (Boost_FILESYSTEM_FOUND)
 
 #-----------------------------------------------------------------------------
 # options
@@ -89,7 +81,6 @@ endmacro()
 set (OPTP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" PARENT_SCOPE)
 
 add_subdirectory (Expression)
-add_subdirectory (Simulation)
 add_subdirectory (Util)
 add_subdirectory (extlib)
 

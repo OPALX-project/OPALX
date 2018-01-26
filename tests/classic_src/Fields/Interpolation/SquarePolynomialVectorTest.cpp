@@ -38,10 +38,10 @@ TEST(SquarePolynomialVectorTest, TestConstructorDestructor) {
     OpalTestUtilities::SilenceTest silencer;
 
     SquarePolynomialVector test1;
-    EXPECT_EQ(test1.PointDimension(), 0);
-    EXPECT_EQ(test1.ValueDimension(), 0);
-    EXPECT_EQ(test1.GetCoefficientsAsMatrix().num_col(), 0);
-    EXPECT_EQ(test1.GetCoefficientsAsMatrix().num_row(), 0);
+    EXPECT_EQ(test1.PointDimension(), (unsigned int)0);
+    EXPECT_EQ(test1.ValueDimension(), (unsigned int)0);
+    EXPECT_EQ(test1.GetCoefficientsAsMatrix().num_col(), (unsigned int)0);
+    EXPECT_EQ(test1.GetCoefficientsAsMatrix().num_row(), (unsigned int)0);
 
     std::vector<double> data(18);
     for (size_t i = 0; i < data.size(); ++i)
@@ -49,8 +49,8 @@ TEST(SquarePolynomialVectorTest, TestConstructorDestructor) {
     MMatrix<double> refCoeffs(2, 9, &data[0]); // 2x9 -> c, x, y, xy, xx, xxy, xxyy, xyy, yy,
     SquarePolynomialVector test2(2, refCoeffs);
     MMatrix<double> testCoeffs = test2.GetCoefficientsAsMatrix();
-    ASSERT_EQ(testCoeffs.num_row(), 2);
-    ASSERT_EQ(testCoeffs.num_col(), 9);
+    ASSERT_EQ(testCoeffs.num_row(), (unsigned int)2);
+    ASSERT_EQ(testCoeffs.num_col(), (unsigned int)9);
     for (size_t i = 0; i < testCoeffs.num_row(); ++i) {
         for (size_t j = 0; j < testCoeffs.num_col(); ++j) {
             EXPECT_EQ(testCoeffs(i+1, j+1), refCoeffs(i+1, j+1));

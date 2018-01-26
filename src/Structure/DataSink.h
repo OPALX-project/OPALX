@@ -1,11 +1,6 @@
 //
 //  Copyright & License: See Copyright.readme in src directory
 //
-//   Original, Observer in the Linac code written by  Tim Cleland,
-//             Julian Cummings, William Humphrey, and Graham Mark
-//             Salman Habib and Robert Ryne
-//             Los Alamos National Laboratory
-//
 
 /**
    \brief Class: DataSink
@@ -264,11 +259,7 @@ private:
     std::string surfaceLossFileName_m;
 
     /// H5 file for surface loss data.
-#if defined (USE_H5HUT2)
     h5_file_t H5fileS_m;
-#else
-    h5_file_t *H5fileS_m;
-#endif
 
     /// Current record, or time step, of H5 file.
     int H5call_m;
@@ -329,7 +320,9 @@ std::string DataSink::convertToString(int number) {
 
 #endif // DataSink_H_
 
-/***************************************************************************
- * $RCSfile: DataSink.h,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 13:29:44 $
- ***************************************************************************/
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:

@@ -2,7 +2,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -669,6 +669,136 @@ public:
     return;
   }
 
+  // scatter particle data into Field using particle position and mesh
+  template <class FT, class M, class PT>
+  static
+  void scatter(const Vektor<FT,2U>& pdata, Field<Vektor<FT,2U>,2U,M,Edge>& f,
+	       const Vektor<PT,2U>& ppos, const M& mesh) {
+    CenteringTag<Cell> ctag;
+    Vektor<PT,2U> ppos2, dpos, gpos, delta;
+    NDIndex<2U> ngp;
+
+    CompressedBrickIterator<Vektor<FT,2U>,2U> fiter;
+
+    // find nearest grid point for particle position, store in NDIndex obj
+    ngp = FindNGP(mesh, ppos, ctag);
+    FindDelta(delta, mesh, ngp, ctag);
+
+    for (unsigned int comp = 0; comp < 2U; ++comp) {
+      Vektor<PT,2U> cppos = ppos;
+      cppos(comp) += 0.5 * delta(comp);
+      ngp = FindNGP(mesh, cppos, ctag);
+      ngp[comp] = ngp[comp] - 1;
+
+      FindPos(gpos, mesh, ngp, CenteringTag<Vert>());
+      gpos(comp) += 0.5 * delta(comp);
+      dpos = ppos - gpos;
+      dpos /= delta;
+
+      // Try to find ngp in local fields and get iterator
+      fiter = Interpolator::getFieldIter(f,ngp);
+
+      // accumulate into local elements
+      (*fiter)(comp) += (1 - dpos(0)) * (1 - dpos(1)) * pdata(comp);
+      (fiter.offset(1,0))(comp) += dpos(0) * (1 - dpos(1)) * pdata(comp);
+      (fiter.offset(0,1))(comp) += (1 - dpos(0)) * dpos(1) * pdata(comp);
+      (fiter.offset(1,1))(comp) += dpos(0) * dpos(1) * pdata(comp);
+    }
+    return;
+  }
+
+  template <class FT, class M, class PT>
+  static
+  void scatter(const FT& pdata, Field<FT,2U,M,Edge>& f,
+	       const Vektor<PT,2U>& ppos, const M& mesh) {
+    ERRORMSG("IntCIC::scatter on Edge based field: not implemented for non-vectors!!"<<endl);
+    return;
+  }
+  // scatter particle data into Field using particle position and mesh
+  // and cache mesh information for reuse
+  template <class FT, class M, class PT>
+  static
+  void scatter(const FT& pdata, Field<FT,2U,M,Edge>& f,
+	       const Vektor<PT,2U>& ppos, const M& mesh,
+               NDIndex<2U>& ngp, int lgpoff[2U], Vektor<PT,2U>& dpos) {
+    ERRORMSG("IntCIC::scatter on Edge based field with cache: not implemented!!"<<endl);
+    return;
+  }
+
+  template <class FT, class M, class PT>
+  static
+  void scatter(const FT& pdata, Field<FT,2U,M,Edge>& f,
+	       const NDIndex<2U>& ngp, const int lgpoff[2U],
+               const Vektor<PT,2U>& dpos) {
+    ERRORMSG("IntCIC::scatter on Edge based field with cache: not implemented!!"<<endl);
+    return;
+  }
+
+  // gather particle data from Field using particle position and mesh
+  template <class FT, class M, class PT>
+  static
+  void gather(Vektor<FT,2U>& pdata, const Field<Vektor<FT,2U>,2U,M,Edge>& f,
+	      const Vektor<PT,2U>& ppos, const M& mesh) {
+    Vektor<PT,2U> dpos, gpos, delta;
+    NDIndex<2U> ngp = mesh.getNearestVertex(ppos);;
+    CompressedBrickIterator<Vektor<FT,2U>,2U> fiter;
+
+    FindDelta(delta, mesh, ngp, CenteringTag<Vert>());
+
+    for (unsigned int comp = 0; comp < 2U; ++ comp) {
+      Vektor<PT,2U> cppos = ppos;
+      cppos(comp) += 0.5 * delta(comp);
+      ngp = mesh.getCellContaining(cppos);
+      ngp[comp] = ngp[comp] - 1;
+      gpos = mesh.getVertexPosition(ngp);
+      gpos(comp) += 0.5 * delta(comp);
+
+      // get distance from ppos to gpos
+      dpos = ppos - gpos;
+      // normalize dpos by mesh spacing
+      dpos /= delta;
+      // accumulate into local elements
+
+      // Try to find ngp in local fields and get iterator
+      fiter = Interpolator::getFieldIter(f,ngp);
+
+      // accumulate into particle attrib
+      pdata(comp) = ((1 - dpos(0)) * (1 - dpos(1)) * (*fiter)(comp) +
+                     dpos(0)       * (1 - dpos(1)) * (fiter.offset(1,0))(comp) +
+                     (1 - dpos(0)) * dpos(1)       * (fiter.offset(0,1))(comp) +
+                     dpos(0)       * dpos(1)       * (fiter.offset(1,1))(comp));
+    }
+    return;
+  }
+
+  template <class FT, class M, class PT>
+  static
+  void gather(FT& pdata, const Field<FT,2U,M,Edge>& f,
+	      const Vektor<PT,2U>& ppos, const M& mesh) {
+    ERRORMSG("IntCIC::gather on Edge based field: not implemented for non-vectors!!"<<endl);
+    return;
+  }
+
+  // gather particle data from Field using particle position and mesh
+  // and cache mesh information for reuse
+  template <class FT, class M, class PT>
+  static
+  void gather(FT& pdata, const Field<FT,2U,M,Edge>& f,
+	      const Vektor<PT,2U>& ppos, const M& mesh,
+              NDIndex<2U>& ngp, int lgpoff[2U], Vektor<PT,2U>& dpos) {
+    ERRORMSG("IntCIC::gather on Edge based field with cache: not implemented!!"<<endl);
+    return;
+  }
+
+  // gather particle data from Field using cached mesh information
+  template <class FT, class M, class PT>
+  static
+  void gather(FT& pdata, const Field<FT,2U,M,Edge>& f,
+	      const NDIndex<2U>& ngp, const int lgpoff[2U],
+              const Vektor<PT,2U>& dpos) {
+    ERRORMSG("IntCIC::gather on Edge based field with cache: not implemented!!"<<endl);
+    return;
+  }
 };
 
 
@@ -916,6 +1046,144 @@ public:
     return;
   }
 
+  // scatter particle data into Field using particle position and mesh
+  template <class FT, class M, class PT>
+  static
+  void scatter(const Vektor<FT,3U>& pdata, Field<Vektor<FT,3U>,3U,M,Edge>& f,
+	       const Vektor<PT,3U>& ppos, const M& mesh) {
+    CenteringTag<Cell> ctag;
+    Vektor<PT,3U> ppos2, dpos, gpos, delta;
+    NDIndex<3U> ngp;
+
+    CompressedBrickIterator<Vektor<FT,3U>,3U> fiter;
+
+    // find nearest grid point for particle position, store in NDIndex obj
+    ngp = FindNGP(mesh, ppos, ctag);
+    FindDelta(delta, mesh, ngp, ctag);
+
+    for (unsigned int comp = 0; comp < 3U; ++comp) {
+      Vektor<PT,3U> cppos = ppos;
+      cppos(comp) += 0.5 * delta(comp);
+      ngp = FindNGP(mesh, cppos, ctag);
+      ngp[comp] = ngp[comp] - 1;
+
+      FindPos(gpos, mesh, ngp, CenteringTag<Vert>());
+      gpos(comp) += 0.5 * delta(comp);
+      dpos = ppos - gpos;
+      dpos /= delta;
+
+      // Try to find ngp in local fields and get iterator
+      fiter = Interpolator::getFieldIter(f,ngp);
+
+      // accumulate into local elements
+      (*fiter)(comp) += (1 - dpos(0)) * (1 - dpos(1)) * (1 - dpos(2)) * pdata(comp);
+      (fiter.offset(1,0,0))(comp) += dpos(0) * (1 - dpos(1)) * (1 - dpos(2)) * pdata(comp);
+      (fiter.offset(0,1,0))(comp) += (1 - dpos(0)) * dpos(1) * (1 - dpos(2)) * pdata(comp);
+      (fiter.offset(1,1,0))(comp) += dpos(0) * dpos(1) * (1 - dpos(2)) * pdata(comp);
+      (fiter.offset(0,0,1))(comp) += (1 - dpos(0)) * (1 - dpos(1)) * dpos(2) * pdata(comp);
+      (fiter.offset(1,0,1))(comp) += dpos(0) * (1 - dpos(1)) * dpos(2) * pdata(comp);
+      (fiter.offset(0,1,1))(comp) += (1 - dpos(0)) * dpos(1) * dpos(2) * pdata(comp);
+      (fiter.offset(1,1,1))(comp) += dpos(0) * dpos(1) * dpos(2) * pdata(comp);
+    }
+    return;
+  }
+
+  template <class FT, class M, class PT>
+  static
+  void scatter(const FT& pdata, Field<FT,3U,M,Edge>& f,
+	       const Vektor<PT,3U>& ppos, const M& mesh) {
+    ERRORMSG("IntCIC::scatter on Edge based field: not implemented for non-vectors!!"<<endl);
+    return;
+  }
+  // scatter particle data into Field using particle position and mesh
+  // and cache mesh information for reuse
+  template <class FT, class M, class PT>
+  static
+  void scatter(const FT& pdata, Field<FT,3U,M,Edge>& f,
+	       const Vektor<PT,3U>& ppos, const M& mesh,
+               NDIndex<3U>& ngp, int lgpoff[3U], Vektor<PT,3U>& dpos) {
+    ERRORMSG("IntCIC::scatter on Edge based field with cache: not implemented!!"<<endl);
+    return;
+  }
+
+  template <class FT, class M, class PT>
+  static
+  void scatter(const FT& pdata, Field<FT,3U,M,Edge>& f,
+	       const NDIndex<3U>& ngp, const int lgpoff[3U],
+               const Vektor<PT,3U>& dpos) {
+    ERRORMSG("IntCIC::scatter on Edge based field with cache: not implemented!!"<<endl);
+    return;
+  }
+
+  // gather particle data from Field using particle position and mesh
+  template <class FT, class M, class PT>
+  static
+  void gather(Vektor<FT,3U>& pdata, const Field<Vektor<FT,3U>,3U,M,Edge>& f,
+	      const Vektor<PT,3U>& ppos, const M& mesh) {
+    Vektor<PT,3U> dpos, gpos, delta;
+    NDIndex<3U> ngp = mesh.getNearestVertex(ppos);;
+    CompressedBrickIterator<Vektor<FT,3U>,3U> fiter;
+
+    FindDelta(delta, mesh, ngp, CenteringTag<Vert>());
+
+    for (unsigned int comp = 0; comp < 3U; ++ comp) {
+      Vektor<PT,3U> cppos = ppos;
+      cppos(comp) += 0.5 * delta(comp);
+      ngp = mesh.getCellContaining(cppos);
+      ngp[comp] = ngp[comp] - 1;
+      gpos = mesh.getVertexPosition(ngp);
+      gpos(comp) += 0.5 * delta(comp);
+
+      // get distance from ppos to gpos
+      dpos = ppos - gpos;
+      // normalize dpos by mesh spacing
+      dpos /= delta;
+      // accumulate into local elements
+
+      // Try to find ngp in local fields and get iterator
+      fiter = Interpolator::getFieldIter(f,ngp);
+
+      // accumulate into particle attrib
+      pdata(comp) = ((1 - dpos(0)) * (1 - dpos(1)) * (1 - dpos(2)) * (*fiter)(comp) +
+                     dpos(0)       * (1 - dpos(1)) * (1 - dpos(2)) * (fiter.offset(1,0,0))(comp) +
+                     (1 - dpos(0)) * dpos(1)       * (1 - dpos(2)) * (fiter.offset(0,1,0))(comp) +
+                     dpos(0)       * dpos(1)       * (1 - dpos(2)) * (fiter.offset(1,1,0))(comp) +
+                     (1 - dpos(0)) * (1 - dpos(1)) * dpos(2)       * (fiter.offset(0,0,1))(comp) +
+                     dpos(0)       * (1 - dpos(1)) * dpos(2)       * (fiter.offset(1,0,1))(comp) +
+                     (1 - dpos(0)) * dpos(1)       * dpos(2)       * (fiter.offset(0,1,1))(comp) +
+                     dpos(0)       * dpos(1)       * dpos(2)       * (fiter.offset(1,1,1))(comp));
+    }
+    return;
+  }
+
+  template <class FT, class M, class PT>
+  static
+  void gather(FT& pdata, const Field<FT,3U,M,Edge>& f,
+	      const Vektor<PT,3U>& ppos, const M& mesh) {
+    ERRORMSG("IntCIC::gather on Edge based field: not implemented for non-vectors!!"<<endl);
+    return;
+  }
+
+  // gather particle data from Field using particle position and mesh
+  // and cache mesh information for reuse
+  template <class FT, class M, class PT>
+  static
+  void gather(FT& pdata, const Field<FT,3U,M,Edge>& f,
+	      const Vektor<PT,3U>& ppos, const M& mesh,
+              NDIndex<3U>& ngp, int lgpoff[3U], Vektor<PT,3U>& dpos) {
+    ERRORMSG("IntCIC::gather on Edge based field with cache: not implemented!!"<<endl);
+    return;
+  }
+
+  // gather particle data from Field using cached mesh information
+  template <class FT, class M, class PT>
+  static
+  void gather(FT& pdata, const Field<FT,3U,M,Edge>& f,
+	      const NDIndex<3U>& ngp, const int lgpoff[3U],
+              const Vektor<PT,3U>& dpos) {
+    ERRORMSG("IntCIC::gather on Edge based field with cache: not implemented!!"<<endl);
+    return;
+  }
 };
 
 
@@ -992,6 +1260,5 @@ public:
 /***************************************************************************
  * $RCSfile: IntCIC.h,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:28 $
- * IPPL_VERSION_ID: $Id: IntCIC.h,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: IntCIC.h,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $
  ***************************************************************************/
-

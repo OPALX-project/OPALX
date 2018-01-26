@@ -27,7 +27,7 @@
  * defines the necessary templated classes and functions to make
  * ParticleAttrib a capable expression-template participant.
  *
- * For some types such as Vektor, Tenzor, etc. which have multipple items,
+ * For some types such as Vektor, Tenzor, etc. which have multiple items,
  * we want to involve just the Nth item from each data element in an
  * expression.  The () operator here returns an object of type
  * ParticleAttribElem, which will use the () operator on each individual

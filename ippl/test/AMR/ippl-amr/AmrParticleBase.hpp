@@ -4,23 +4,21 @@
 #include <AMReX_ParmParse.H>
 #include <limits>
 
-using namespace amrex;
-
 // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
 template<class PLayout>
 void AmrParticleBase<PLayout>::Interp(const SingleParticlePos_t &R,
-				      const Geometry &geom,
-				      const FArrayBox& fab,
+				      const amrex::Geometry &geom,
+				      const amrex::FArrayBox& fab,
 				      const int* idx,
-				      Real* val,
+				      amrex::Real* val,
 				      int cnt)
 {
   const int       M   = D_TERM(2,+2,+4);
-  const Real*     plo = geom.ProbLo();
-  const Real*     dx  = geom.CellSize();
+  const amrex::Real*     plo = geom.ProbLo();
+  const amrex::Real*     dx  = geom.CellSize();
   
-  Real    fracs[M];
-  IntVect cells[M];
+  amrex::Real    fracs[M];
+  amrex::IntVect cells[M];
   //
   // Get "fracs" and "cells".
   //
@@ -30,41 +28,41 @@ void AmrParticleBase<PLayout>::Interp(const SingleParticlePos_t &R,
   {
     BL_ASSERT(idx[i] >= 0 && idx[i] < fab.nComp());
     // dummy template values
-    val[i] = Particle<0, 0>::InterpDoit(fab,fracs,cells,idx[i]);
+    val[i] = amrex::Particle<0, 0>::InterpDoit(fab,fracs,cells,idx[i]);
   }
 }
 
 // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
 template<class PLayout>
 void AmrParticleBase<PLayout>::CIC_Cells_Fracs_Basic(const SingleParticlePos_t &R, 
-						     const Real* plo, 
-						     const Real* dx, 
-						     Real* fracs,  
-						     IntVect* cells)
+						     const amrex::Real* plo, 
+						     const amrex::Real* dx, 
+						     amrex::Real* fracs,  
+						     amrex::IntVect* cells)
 {
 
-  const Real len[BL_SPACEDIM] = { D_DECL((R[0]-plo[0])/dx[0] + Real(0.5),
-					 (R[1]-plo[1])/dx[1] + Real(0.5),
-					 (R[2]-plo[2])/dx[2] + Real(0.5)) };
+  const amrex::Real len[AMREX_SPACEDIM] = { D_DECL((R[0]-plo[0])/dx[0] + amrex::Real(0.5),
+					 (R[1]-plo[1])/dx[1] + amrex::Real(0.5),
+					 (R[2]-plo[2])/dx[2] + amrex::Real(0.5)) };
 
-  const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
+  const amrex::IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
   
-  const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
+  const amrex::Real frac[AMREX_SPACEDIM] = { D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
 
   // dummy template values
-  Particle<0, 0>::CIC_Fracs(frac, fracs);
-  Particle<0, 0>::CIC_Cells(cell, cells);
+  amrex::Particle<0, 0>::CIC_Fracs(frac, fracs);
+  amrex::Particle<0, 0>::CIC_Cells(cell, cells);
 
 }
 
 // Function from BoxLib adjusted to work with Ippl AmrParticleBase class
 template<class PLayout>
 int AmrParticleBase<PLayout>::CIC_Cells_Fracs (const SingleParticlePos_t &R,
-					       const Real*         plo,
-					       const Real*         dx_geom,
-					       const Real*         dx_part,
-					       Array<Real>&        fracs,
-					       Array<IntVect>&     cells)
+					       const amrex::Real*         plo,
+					       const amrex::Real*         dx_geom,
+					       const amrex::Real*         dx_part,
+					       amrex::Array<amrex::Real>&        fracs,
+					       amrex::Array<amrex::IntVect>&     cells)
 {
     BL_PROFILE("AmrParticleBase::CIC_Cells_Fracs()");
     if (dx_geom == dx_part)
@@ -78,19 +76,19 @@ int AmrParticleBase<PLayout>::CIC_Cells_Fracs (const SingleParticlePos_t &R,
     //
     // The first element in fracs and cells is the lowest corner, the last is the highest.
     //
-    const Real hilen[BL_SPACEDIM] = { D_DECL((R[0]-plo[0]+dx_part[0]/2)/dx_geom[0],
+    const amrex::Real hilen[AMREX_SPACEDIM] = { D_DECL((R[0]-plo[0]+dx_part[0]/2)/dx_geom[0],
                                              (R[1]-plo[1]+dx_part[1]/2)/dx_geom[1],
                                              (R[2]-plo[2]+dx_part[2]/2)/dx_geom[2]) };
 
-    const Real lolen[BL_SPACEDIM] = { D_DECL((R[0]-plo[0]-dx_part[0]/2)/dx_geom[0],
+    const amrex::Real lolen[AMREX_SPACEDIM] = { D_DECL((R[0]-plo[0]-dx_part[0]/2)/dx_geom[0],
                                              (R[1]-plo[1]-dx_part[1]/2)/dx_geom[1],
                                              (R[2]-plo[2]-dx_part[2]/2)/dx_geom[2]) };
 
-    const IntVect hicell(D_DECL(floor(hilen[0]), floor(hilen[1]), floor(hilen[2])));
+    const amrex::IntVect hicell(D_DECL(floor(hilen[0]), floor(hilen[1]), floor(hilen[2])));
     
-    const IntVect locell(D_DECL(floor(lolen[0]), floor(lolen[1]), floor(lolen[2])));
+    const amrex::IntVect locell(D_DECL(floor(lolen[0]), floor(lolen[1]), floor(lolen[2])));
     
-    const Real cell_density = D_TERM(dx_geom[0]/dx_part[0],*dx_geom[1]/dx_part[1],*dx_geom[2]/dx_part[2]);
+    const amrex::Real cell_density = D_TERM(dx_geom[0]/dx_part[0],*dx_geom[1]/dx_part[1],*dx_geom[2]/dx_part[2]);
     
     const int M = D_TERM((hicell[0]-locell[0]+1),*(hicell[1]-locell[1]+1),*(hicell[2]-locell[2]+1));
 
@@ -102,17 +100,17 @@ int AmrParticleBase<PLayout>::CIC_Cells_Fracs (const SingleParticlePos_t &R,
     int i = 0;
     for (int zi = locell[2]; zi <= hicell[2]; zi++)
     {
-        const Real zf = std::min(hilen[2]-zi,Real(1))-std::max(lolen[2]-zi,Real(0));
+        const amrex::Real zf = std::min(hilen[2]-zi,amrex::Real(1))-std::max(lolen[2]-zi,amrex::Real(0));
         for (int yi = locell[1]; yi <= hicell[1]; yi++)
         {
-            const Real yf = std::min(hilen[1]-yi,Real(1))-std::max(lolen[1]-yi,Real(0));
+            const amrex::Real yf = std::min(hilen[1]-yi,amrex::Real(1))-std::max(lolen[1]-yi,amrex::Real(0));
             for (int xi = locell[0]; xi <= hicell[0]; xi++)
             {
                 cells[i][0] = xi;
                 cells[i][1] = yi;
                 cells[i][2] = zi;
-                fracs[i] = zf * yf * (std::min(hilen[0]-xi,Real(1))
-				      -std::max(lolen[0]-xi,Real(0))) * cell_density;
+                fracs[i] = zf * yf * (std::min(hilen[0]-xi,amrex::Real(1))
+				      -std::max(lolen[0]-xi,amrex::Real(0))) * cell_density;
                 i++;
             }
         }
@@ -125,18 +123,18 @@ int AmrParticleBase<PLayout>::CIC_Cells_Fracs (const SingleParticlePos_t &R,
 template<class PLayout>
 bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
 					   int                               flev,
-					   const Array<IntVect>&              fcells,
-					   const BoxArray&                    fvalid,
-					   const BoxArray&                    compfvalid_grown,
-					   Array<IntVect>&                    ccells,
-					   Array<Real>&                       cfracs,
-					   Array<int>&                        which,
-					   Array<int>&                        cgrid,
-					   Array<IntVect>&                    pshifts,
-					   std::vector< std::pair<int,Box> >& isects)
+					   const amrex::Array<amrex::IntVect>&              fcells,
+					   const amrex::BoxArray&                    fvalid,
+					   const amrex::BoxArray&                    compfvalid_grown,
+					   amrex::Array<amrex::IntVect>&                    ccells,
+					   amrex::Array<amrex::Real>&                       cfracs,
+					   amrex::Array<int>&                        which,
+					   amrex::Array<int>&                        cgrid,
+					   amrex::Array<amrex::IntVect>&                    pshifts,
+					   std::vector< std::pair<int,amrex::Box> >& isects)
 {
     PLayout *Layout = &this->getLayout();
-    const ParGDBBase* m_gdb = Layout->GetParGDB();
+    const amrex::ParGDBBase* m_gdb = Layout->GetParGDB();
     
     BL_PROFILE("AmrParticleBase::FineToCrse()");
     BL_ASSERT(m_gdb != 0);
@@ -162,8 +160,8 @@ bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
     
 //     Layout->Where(this->R, ip); //FIXME Is this really needed?
     
-    const Box& ibx = amrex::grow(m_gdb->ParticleBoxArray(flev)[this->m_grid[ip]],-1);
-    IntVect m_cell = Layout->Index(this->R[ip], flev);
+    const amrex::Box& ibx = amrex::grow(m_gdb->ParticleBoxArray(flev)[this->m_grid[ip]],-1);
+    amrex::IntVect m_cell = Layout->Index(this->R[ip], flev);
     
     BL_ASSERT(ibx.ok());
     
@@ -184,9 +182,9 @@ bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
     //
     // Otherwise ...
     //
-    const Geometry& cgm = m_gdb->Geom(flev-1);
-    const IntVect&  rr  = m_gdb->refRatio(flev-1);
-    const BoxArray& cba = m_gdb->ParticleBoxArray(flev-1);
+    const amrex::Geometry& cgm = m_gdb->Geom(flev-1);
+    const amrex::IntVect&  rr  = m_gdb->refRatio(flev-1);
+    const amrex::BoxArray& cba = m_gdb->ParticleBoxArray(flev-1);
     
     CIC_Cells_Fracs(this->R[ip], cgm.ProbLo(), cgm.CellSize(), cgm.CellSize(), cfracs, ccells);
     
@@ -194,13 +192,13 @@ bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
     
     for (int i = 0; i < M; i++)
     {
-        IntVect ccell_refined = ccells[i]*rr;
+        amrex::IntVect ccell_refined = ccells[i]*rr;
         //
         // We've got to protect against the case when we're at the low
         // end of the domain because coarsening & refining don't work right
         // when indices go negative.
         //
-        for (int dm = 0; dm < BL_SPACEDIM; dm++)
+        for (int dm = 0; dm < AMREX_SPACEDIM; dm++)
             ccell_refined[dm] = std::max(ccell_refined[dm], -1);
     
         if (!fvalid.contains(ccell_refined))
@@ -208,7 +206,7 @@ bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
             result   = true;
             which[i] = 1;
             
-            Box cbx(ccells[i],ccells[i]);
+            amrex::Box cbx(ccells[i],ccells[i]);
     
             if (!cgm.Domain().contains(ccells[i]))
             {
@@ -247,28 +245,28 @@ template<class PLayout>
 void AmrParticleBase<PLayout>::FineCellsToUpdateFromCrse (
   const int ip,
   int lev,
-  const IntVect& ccell,
-  const IntVect& cshift,
-  Array<int>& fgrid,
-  Array<Real>& ffrac,
-  Array<IntVect>& fcells,
-  std::vector< std::pair<int,Box> >& isects)
+  const amrex::IntVect& ccell,
+  const amrex::IntVect& cshift,
+  amrex::Array<int>& fgrid,
+  amrex::Array<amrex::Real>& ffrac,
+  amrex::Array<amrex::IntVect>& fcells,
+  std::vector< std::pair<int,amrex::Box> >& isects)
 {
   BL_PROFILE("ParticleContainer<NR, NI, NA>::FineCellsToUpdateFromCrse()");
     
     PLayout *Layout = &this->getLayout();
-    const ParGDBBase* m_gdb = Layout->GetParGDB();
+    const amrex::ParGDBBase* m_gdb = Layout->GetParGDB();
     
     BL_ASSERT(lev >= 0);
     BL_ASSERT(lev < m_gdb->finestLevel());
 
-    const Box&      fbx = amrex::refine(Box(ccell,ccell),m_gdb->refRatio(lev));
-    const BoxArray& fba = m_gdb->ParticleBoxArray(lev+1);
-    const Real*     plo = m_gdb->Geom(lev).ProbLo();
-    const Real*     dx  = m_gdb->Geom(lev).CellSize();
-    const Real*     fdx = m_gdb->Geom(lev+1).CellSize();
+    const amrex::Box&      fbx = amrex::refine(amrex::Box(ccell,ccell),m_gdb->refRatio(lev));
+    const amrex::BoxArray& fba = m_gdb->ParticleBoxArray(lev+1);
+    const amrex::Real*     plo = m_gdb->Geom(lev).ProbLo();
+    const amrex::Real*     dx  = m_gdb->Geom(lev).CellSize();
+    const amrex::Real*     fdx = m_gdb->Geom(lev+1).CellSize();
 
-    if (cshift == IntVect::TheZeroVector())
+    if (cshift == amrex::IntVect::TheZeroVector())
     {
         BL_ASSERT(fba.contains(fbx));
     }
@@ -284,14 +282,14 @@ void AmrParticleBase<PLayout>::FineCellsToUpdateFromCrse (
     // Which fine cells does particle "p" (that wants to update "ccell") do we
     // touch at the finer level?
     //
-    for (IntVect iv = fbx.smallEnd(); iv <= fbx.bigEnd(); fbx.next(iv))
+    for (amrex::IntVect iv = fbx.smallEnd(); iv <= fbx.bigEnd(); fbx.next(iv))
     {
         bool touches = true;
 
-        for (int k = 0; k < BL_SPACEDIM; k++)
+        for (int k = 0; k < AMREX_SPACEDIM; k++)
         {
-            const Real celllo = iv[k]  * fdx[k] + plo[k];
-            const Real cellhi = celllo + fdx[k];
+            const amrex::Real celllo = iv[k]  * fdx[k] + plo[k];
+            const amrex::Real cellhi = celllo + fdx[k];
 
             if ((this->R[ip][k] < celllo) && (celllo > (this->R[ip][k] + dx[k]/2)))
                 touches = false;
@@ -306,30 +304,30 @@ void AmrParticleBase<PLayout>::FineCellsToUpdateFromCrse (
         }
     }
 
-    Real sum_fine = 0;
+    amrex::Real sum_fine = 0;
     //
     // We need to figure out the fine fractions and the fine grid needed updating.
     //
     for (unsigned int j = 0; j < fcells.size(); j++)
     {
-        IntVect& iv = fcells[j];
+        amrex::IntVect& iv = fcells[j];
 
-        Real the_frac = 1;
+        amrex::Real the_frac = 1;
 
-        for (int k = 0; k < BL_SPACEDIM; k++)
+        for (int k = 0; k < AMREX_SPACEDIM; k++)
         {
-            const Real celllo = (iv[k] * fdx[k] + plo[k]);
+            const amrex::Real celllo = (iv[k] * fdx[k] + plo[k]);
 
             if (this->R[ip][k] <= celllo)
             {
-                const Real isecthi = this->R[ip][k] + dx[k]/2;
+                const amrex::Real isecthi = this->R[ip][k] + dx[k]/2;
 
                 the_frac *= std::min((isecthi - celllo),fdx[k]);
             }
             else
             {
-                const Real cellhi  = (iv[k]+1) * fdx[k] + plo[k];
-                const Real isectlo = this->R[ip][k] - dx[k]/2;
+                const amrex::Real cellhi  = (iv[k]+1) * fdx[k] + plo[k];
+                const amrex::Real isectlo = this->R[ip][k] - dx[k]/2;
 
                 the_frac *= std::min((cellhi - isectlo),fdx[k]);
             }
@@ -339,20 +337,20 @@ void AmrParticleBase<PLayout>::FineCellsToUpdateFromCrse (
 
         sum_fine += the_frac;
 
-        if (cshift != IntVect::TheZeroVector())
+        if (cshift != amrex::IntVect::TheZeroVector())
         {
             //
             // Update to the correct fine cell needing updating.
             // Note that "cshift" is from the coarse perspective.
             //
-            const IntVect& fshift = cshift * m_gdb->refRatio(lev);
+            const amrex::IntVect& fshift = cshift * m_gdb->refRatio(lev);
             //
             // Update fcells[j] to indicate a shifted fine cell needing updating.
             //
             iv -= fshift;
         }
 
-        fba.intersections(Box(iv,iv),isects,true,0);
+        fba.intersections(amrex::Box(iv,iv),isects,true,0);
 
         BL_ASSERT(!isects.empty());
 
@@ -371,7 +369,7 @@ void AmrParticleBase<PLayout>::FineCellsToUpdateFromCrse (
 
 template<class PLayout>
 void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
-						 Array<std::unique_ptr<MultiFab> >& mf,
+						 amrex::Array<std::unique_ptr<amrex::MultiFab> >& mf,
 						 PMap&             data,
 						 int               ncomp,
 						 int               lev_min)
@@ -381,7 +379,7 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
   BL_PROFILE("ParticleContainer<NR,NI,C>::AssignDensityDoit()");
   BL_ASSERT(1 >= ncomp);
 
-  const int NProcs = ParallelDescriptor::NProcs();
+  const int NProcs = amrex::ParallelDescriptor::NProcs();
 
   if (NProcs == 1)
   {
@@ -392,9 +390,9 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
   //
   // We may have data that needs to be sent to another CPU.
   //
-  const int MyProc = ParallelDescriptor::MyProc();
+  const int MyProc = amrex::ParallelDescriptor::MyProc();
 
-  Array<int> Snds(NProcs,0), Rcvs(NProcs,0);
+  amrex::Array<int> Snds(NProcs,0), Rcvs(NProcs,0);
 
   int NumSnds = 0, NumRcvs = 0;
 
@@ -404,7 +402,7 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
     Snds[kv.first] = kv.second.size();
   }
 
-  ParallelDescriptor::ReduceIntMax(NumSnds);
+  amrex::ParallelDescriptor::ReduceIntMax(NumSnds);
 
   if (NumSnds == 0) {
     //
@@ -414,19 +412,19 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
   }
 
   BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(int),
-		  ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+		  amrex::ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
 
   BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
 			       1,
-			       ParallelDescriptor::Mpi_typemap<int>::type(),
+			       amrex::ParallelDescriptor::Mpi_typemap<int>::type(),
 			       Rcvs.dataPtr(),
 			       1,
-			       ParallelDescriptor::Mpi_typemap<int>::type(),
-			       ParallelDescriptor::Communicator()) );
+			       amrex::ParallelDescriptor::Mpi_typemap<int>::type(),
+			       amrex::ParallelDescriptor::Communicator()) );
   BL_ASSERT(Rcvs[MyProc] == 0);
 
   BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(int),
-		  ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+		  amrex::ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 
   typedef std::map<int,int> IntIntMap;
 
@@ -450,25 +448,25 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
   //
   // Don't need these anymore.
   //
-  Array<int>().swap(Snds);
-  Array<int>().swap(Rcvs);
+  amrex::Array<int>().swap(Snds);
+  amrex::Array<int>().swap(Rcvs);
   //
   // The data we want to receive.
   //
   // We only use: m_lev, m_grid, m_cell & m_data[0..ncomp-1] from the particles.
   //
-  const int iChunkSize = 2 + BL_SPACEDIM;
+  const int iChunkSize = 2 + AMREX_SPACEDIM;
   const int rChunkSize = ncomp;
 
-  Array<int>                    irecvdata (NumRcvs*iChunkSize);
-  Array<amrex::ParticleCommData::RealType> rrecvdata (NumRcvs*rChunkSize);
+  amrex::Array<int>                    irecvdata (NumRcvs*iChunkSize);
+  amrex::Array<amrex::ParticleCommData::RealType> rrecvdata (NumRcvs*rChunkSize);
 
-  Array<int>         index(2*RcvCnts.size());
-  Array<MPI_Status>  stats(2*RcvCnts.size());
-  Array<MPI_Request> rreqs(2*RcvCnts.size());
+  amrex::Array<int>         index(2*RcvCnts.size());
+  amrex::Array<MPI_Status>  stats(2*RcvCnts.size());
+  amrex::Array<MPI_Request> rreqs(2*RcvCnts.size());
 
-  const int SeqNumI = ParallelDescriptor::SeqNum();
-  const int SeqNumR = ParallelDescriptor::SeqNum();
+  const int SeqNumI = amrex::ParallelDescriptor::SeqNum();
+  const int SeqNumR = amrex::ParallelDescriptor::SeqNum();
   //
   // Post the receives.
   //
@@ -487,14 +485,14 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
     BL_ASSERT(iCnt < std::numeric_limits<int>::max());
     BL_ASSERT(rCnt < std::numeric_limits<int>::max());
 
-    rreqs[2*idx+0] = ParallelDescriptor::Arecv(&irecvdata[iIdx],iCnt,Who,SeqNumI).req();
-    rreqs[2*idx+1] = ParallelDescriptor::Arecv(&rrecvdata[rIdx],rCnt,Who,SeqNumR).req();
+    rreqs[2*idx+0] = amrex::ParallelDescriptor::Arecv(&irecvdata[iIdx],iCnt,Who,SeqNumI).req();
+    rreqs[2*idx+1] = amrex::ParallelDescriptor::Arecv(&rrecvdata[rIdx],rCnt,Who,SeqNumR).req();
   }
   //
   // Send the data.
   //
-  Array<int>                    isenddata;
-  Array<amrex::ParticleCommData::RealType> rsenddata;
+  amrex::Array<int>                    isenddata;
+  amrex::Array<amrex::ParticleCommData::RealType> rsenddata;
 
   for (const auto& kv : SndCnts)
   {
@@ -534,15 +532,15 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
 
     PBox().swap(pbox);
 
-    ParallelDescriptor::Send(isenddata.dataPtr(),iCnt,Who,SeqNumI);
-    ParallelDescriptor::Send(rsenddata.dataPtr(),rCnt,Who,SeqNumR);
+    amrex::ParallelDescriptor::Send(isenddata.dataPtr(),iCnt,Who,SeqNumI);
+    amrex::ParallelDescriptor::Send(rsenddata.dataPtr(),rCnt,Who,SeqNumR);
   }
   //
   // Receive the data.
   //
   for (int NWaits = rreqs.size(), completed; NWaits > 0; NWaits -= completed)
   {
-    ParallelDescriptor::Waitsome(rreqs, completed, index, stats);
+    amrex::ParallelDescriptor::Waitsome(rreqs, completed, index, stats);
   }
   //
   // Now update "mf".
@@ -556,7 +554,7 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
     {
       const int     lev  = idata[0];
       const int     grd  = idata[1];
-      const IntVect cell = IntVect(D_DECL(idata[2],idata[3],idata[4]));
+      const amrex::IntVect cell = amrex::IntVect(D_DECL(idata[2],idata[3],idata[4]));
 
       BL_ASSERT((*mf[lev]).DistributionMap()[grd] == MyProc);
       BL_ASSERT((*mf[lev])[grd].box().contains(cell));
@@ -575,28 +573,28 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
 template<class PLayout>
 template <class AType>
 void AmrParticleBase<PLayout>::AssignDensityFort (ParticleAttrib<AType> &pa,
-                                                  Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
+                                                  amrex::Array<std::unique_ptr<amrex::MultiFab> >& mf_to_be_filled, 
                                                   int lev_min, int ncomp, int finest_level) const
 {
 //     BL_PROFILE("AssignDensityFort()");
     IpplTimings::startTimer(AssignDensityTimer_m);
     const PLayout *Layout = &this->getLayout();
-    const ParGDBBase* m_gdb = Layout->GetParGDB();
+    const amrex::ParGDBBase* m_gdb = Layout->GetParGDB();
     
     // not done in amrex
     int rho_index = 0;
     
-    PhysBCFunct cphysbc, fphysbc;
+    amrex::PhysBCFunct cphysbc, fphysbc;
     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
     int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-    Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
-    PCInterp mapper;
+    amrex::Array<amrex::BCRec> bcs(1, amrex::BCRec(lo_bc, hi_bc));
+    amrex::PCInterp mapper;
     
-    Array<std::unique_ptr<MultiFab> > tmp(finest_level+1);
+    amrex::Array<std::unique_ptr<amrex::MultiFab> > tmp(finest_level+1);
     for (int lev = lev_min; lev <= finest_level; ++lev) {
-        const BoxArray& ba = mf_to_be_filled[lev]->boxArray();
-        const DistributionMapping& dm = mf_to_be_filled[lev]->DistributionMap();
-        tmp[lev].reset(new MultiFab(ba, dm, 1, 0));
+        const amrex::BoxArray& ba = mf_to_be_filled[lev]->boxArray();
+        const amrex::DistributionMapping& dm = mf_to_be_filled[lev]->DistributionMap();
+        tmp[lev].reset(new amrex::MultiFab(ba, dm, 1, 0));
         tmp[lev]->setVal(0.0);
     }
     
@@ -636,7 +634,7 @@ void AmrParticleBase<PLayout>::AssignDensityFort (ParticleAttrib<AType> &pa,
 template<class PLayout>
 template <class AType>
 void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<AType> &pa,
-                                                                 MultiFab& mf_to_be_filled,
+                                                                 amrex::MultiFab& mf_to_be_filled,
                                                                  int       lev,
                                                                  int       ncomp,
                                                                  int       particle_lvl_offset) const
@@ -644,13 +642,13 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
 //     BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignCellDensitySingleLevelFort()");
     
     const PLayout *Layout = &this->getLayout();
-    const ParGDBBase* m_gdb = Layout->GetParGDB();
+    const amrex::ParGDBBase* m_gdb = Layout->GetParGDB();
     
     int rho_index = 0;
     
 //     if (rho_index != 0) amrex::Abort("AssignCellDensitySingleLevel only works if rho_index = 0");
 
-    MultiFab* mf_pointer;
+    amrex::MultiFab* mf_pointer;
 
     if (m_gdb->OnSameGrids(lev, mf_to_be_filled)) {
       // If we are already working with the internal mf defined on the 
@@ -660,7 +658,7 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
     else {
       // If mf_to_be_filled is not defined on the particle_box_array, then we need 
       // to make a temporary here and copy into mf_to_be_filled at the end.
-      mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),
+      mf_pointer = new amrex::MultiFab(m_gdb->ParticleBoxArray(lev),
                                 m_gdb->ParticleDistributionMap(lev),
                                 ncomp, mf_to_be_filled.nGrow());
     }
@@ -672,24 +670,24 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
     if (mf_pointer->nGrow() < 1) 
        amrex::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
 
-    const Real      strttime    = ParallelDescriptor::second();
-    const Geometry& gm          = m_gdb->Geom(lev);
-    const Real*     plo         = gm.ProbLo();
-    const Real*     dx_particle = m_gdb->Geom(lev + particle_lvl_offset).CellSize();
-    const Real*     dx          = gm.CellSize();
+    const amrex::Real      strttime    = amrex::ParallelDescriptor::second();
+    const amrex::Geometry& gm          = m_gdb->Geom(lev);
+    const amrex::Real*     plo         = gm.ProbLo();
+    const amrex::Real*     dx_particle = m_gdb->Geom(lev + particle_lvl_offset).CellSize();
+    const amrex::Real*     dx          = gm.CellSize();
 
     if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
       amrex::Error("AssignDensity: problem must be periodic in no or all directions");
     }
     
-    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
+    for (amrex::MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
         (*mf_pointer)[mfi].setVal(0);
     }
     
     //loop trough particles and distribute values on the grid
     size_t LocalNum = this->getLocalNum();
     
-    Real inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
+    amrex::Real inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
     double lxyz[3] = { 0.0, 0.0, 0.0 };
     double wxyz_hi[3] = { 0.0, 0.0, 0.0 };
     double wxyz_lo[3] = { 0.0, 0.0, 0.0 };
@@ -701,8 +699,8 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
     for (size_t ip = lBegin; ip < lEnd; ++ip) {
         
         const int grid = m_grid[ip];
-        FArrayBox& fab = (*mf_pointer)[grid];
-        const Box& box = fab.box();
+        amrex::FArrayBox& fab = (*mf_pointer)[grid];
+        const amrex::Box& box = fab.box();
         
         // not callable:
         // begin amrex_deposit_cic(pbx.data(), nstride, N, fab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);
@@ -717,14 +715,14 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
         int& j = ijk[1];
         int& k = ijk[2];
         
-        IntVect i1(i-1, j-1, k-1);
-        IntVect i2(i-1, j-1, k);
-        IntVect i3(i-1, j,   k-1);
-        IntVect i4(i-1, j,   k);
-        IntVect i5(i,   j-1, k-1);
-        IntVect i6(i,   j-1, k);
-        IntVect i7(i,   j,   k-1);
-        IntVect i8(i,   j,   k);
+        amrex::IntVect i1(i-1, j-1, k-1);
+        amrex::IntVect i2(i-1, j-1, k);
+        amrex::IntVect i3(i-1, j,   k-1);
+        amrex::IntVect i4(i-1, j,   k);
+        amrex::IntVect i5(i,   j-1, k-1);
+        amrex::IntVect i6(i,   j-1, k);
+        amrex::IntVect i7(i,   j,   k-1);
+        amrex::IntVect i8(i,   j,   k);
         
         fab(i1, 0) += wxyz_lo[0]*wxyz_lo[1]*wxyz_lo[2]*pa[ip];
         fab(i2, 0) += wxyz_lo[0]*wxyz_lo[1]*wxyz_hi[2]*pa[ip];
@@ -742,7 +740,7 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
     // Only multiply the first component by (1/vol) because this converts mass
     // to density. If there are additional components (like velocity), we don't
     // want to divide those by volume.
-    const Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
+    const amrex::Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
 
     mf_pointer->mult(1.0/vol, 0, 1, mf_pointer->nGrow());
 
@@ -758,7 +756,7 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
 template<class PLayout>
 template <class AType>
 void AmrParticleBase<PLayout>::InterpolateFort (ParticleAttrib<AType> &pa,
-                                                Array<std::unique_ptr<MultiFab> >& mesh_data, 
+                                                amrex::Array<std::unique_ptr<amrex::MultiFab> >& mesh_data, 
                                                 int lev_min, int lev_max)
 {
     for (int lev = lev_min; lev <= lev_max; ++lev) {
@@ -769,22 +767,22 @@ void AmrParticleBase<PLayout>::InterpolateFort (ParticleAttrib<AType> &pa,
 template<class PLayout>
 template <class AType>
 void AmrParticleBase<PLayout>::InterpolateSingleLevelFort (ParticleAttrib<AType> &pa,
-                                                           MultiFab& mesh_data, int lev)
+                                                           amrex::MultiFab& mesh_data, int lev)
 {
     if (mesh_data.nGrow() < 1)
         amrex::Error("Must have at least one ghost cell when in InterpolateSingleLevelFort");
     
     PLayout *Layout = &this->getLayout();
-    const ParGDBBase* m_gdb = Layout->GetParGDB();
+    const amrex::ParGDBBase* m_gdb = Layout->GetParGDB();
     
-    const Geometry& gm          = m_gdb->Geom(lev);
-    const Real*     plo         = gm.ProbLo();
-    const Real*     dx          = gm.CellSize();
+    const amrex::Geometry& gm          = m_gdb->Geom(lev);
+    const amrex::Real*     plo         = gm.ProbLo();
+    const amrex::Real*     dx          = gm.CellSize();
     
     //loop trough particles and distribute values on the grid
     size_t LocalNum = this->getLocalNum();
     
-    Real inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
+    amrex::Real inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
     double lxyz[3] = { 0.0, 0.0, 0.0 };
     double wxyz_hi[3] = { 0.0, 0.0, 0.0 };
     double wxyz_lo[3] = { 0.0, 0.0, 0.0 };
@@ -796,8 +794,8 @@ void AmrParticleBase<PLayout>::InterpolateSingleLevelFort (ParticleAttrib<AType>
     for (size_t ip = lBegin; ip < lEnd; ++ip) {
         
         const int grid = m_grid[ip];
-        FArrayBox& fab = mesh_data[grid];
-        const Box& box = fab.box();
+        amrex::FArrayBox& fab = mesh_data[grid];
+        const amrex::Box& box = fab.box();
         int nComp = fab.nComp();
         
         // not callable
@@ -813,14 +811,14 @@ void AmrParticleBase<PLayout>::InterpolateSingleLevelFort (ParticleAttrib<AType>
         int& j = ijk[1];
         int& k = ijk[2];
         
-        IntVect i1(i-1, j-1, k-1);
-        IntVect i2(i-1, j-1, k);
-        IntVect i3(i-1, j,   k-1);
-        IntVect i4(i-1, j,   k);
-        IntVect i5(i,   j-1, k-1);
-        IntVect i6(i,   j-1, k);
-        IntVect i7(i,   j,   k-1);
-        IntVect i8(i,   j,   k);
+        amrex::IntVect i1(i-1, j-1, k-1);
+        amrex::IntVect i2(i-1, j-1, k);
+        amrex::IntVect i3(i-1, j,   k-1);
+        amrex::IntVect i4(i-1, j,   k);
+        amrex::IntVect i5(i,   j-1, k-1);
+        amrex::IntVect i6(i,   j-1, k);
+        amrex::IntVect i7(i,   j,   k-1);
+        amrex::IntVect i8(i,   j,   k);
         
         for (int nc = 0; nc < nComp; ++nc) {
             pa[ip](nc) = wxyz_lo[0]*wxyz_lo[1]*wxyz_lo[2]*fab(i1, nc) +

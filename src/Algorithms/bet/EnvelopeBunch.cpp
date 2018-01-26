@@ -1401,7 +1401,7 @@ void EnvelopeBunch::initialize(int num_slices, double Q, double energy, double w
 
     //FIXME:
     // 12: on-axis, radial, default track all
-    this->setSolver(12);
+    this->setSolverParameter(12);
 }
 
 double EnvelopeBunch::AvBField() {

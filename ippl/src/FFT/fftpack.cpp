@@ -1,7770 +1,932 @@
-/* fftpack_preprocessed.F -- translated by f2c (version 20100827).
-   You must link the resulting object file with libf2c:
-	on Microsoft Windows system, link with libf2c.lib;
-	on Linux or Unix systems, link with .../path/to/libf2c.a -lm
-	or, if you install libf2c.a in a standard place, with -lf2c -lm
-	-- in that order, at the end of the command line, as in
-		cc *.o -lf2c -lm
-	Source for libf2c is in /netlib/f2c/libf2c.zip, e.g.,
+/*
+ *  This file is part of libfftpack.
+ *
+ *  libfftpack is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  libfftpack is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with libfftpack; if not, write to the Free Software
+ *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 
-		http://www.netlib.org/f2c/libf2c.zip
+/*
+ *  libfftpack is being developed at the Max-Planck-Institut fuer Astrophysik
+ *  and financially supported by the Deutsches Zentrum fuer Luft- und Raumfahrt
+ *  (DLR).
+ */
+
+/*
+  fftpack.c : A set of FFT routines in C.
+  Algorithmically based on Fortran-77 FFTPACK by Paul N. Swarztrauber
+  (Version 4, 1985).
+
+  C port by Martin Reinecke (2010)
 */
 
-#include "f2c.h"
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* ======================================================================== */
-
-/*     The IPPL Framework */
-
-/*     This program was prepared by the Regents of the University of */
-/*     Visit http://people.web.psi.ch/adelmann/ for more details */
-
-/* ======================================================================== */
-/* ======================================================================= */
-/* ============================fftpack.F================================== */
-/* =============contains routines rffti, rfftf, rfftf,==================== */
-/* ==========cffti, cfftf, cfftb, sinti, and sint (from Netlib)=========== */
-/* ======================================================================= */
-/*     Cray machines do not support double precision type.  Use real. */
-/* ---------------------------DOUBLE PRECISION---------------------------- */
-/* Subroutine */ int rffti_(integer *n, doublereal *wsave)
-{
-    extern /* Subroutine */ int rffti1_(integer *, doublereal *, doublereal *)
-	    ;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --wsave;
-
-    /* Function Body */
-    if (*n == 1) {
-	return 0;
-    }
-    rffti1_(n, &wsave[*n + 1], &wsave[(*n << 1) + 1]);
-    return 0;
-} /* rffti_ */
-
-/* Subroutine */ int rffti1_(integer *n, doublereal *wa, doublereal *xxifac)
-{
-    /* Initialized data */
-
-    static integer ntryh[4] = { 4,2,3,5 };
-
-    /* System generated locals */
-    integer i__1, i__2, i__3;
-    static doublereal equiv_0[15];
-    static integer equiv_1[15];
-    /* Builtin functions */
-    double cos(doublereal), sin(doublereal);
-
-    /* Local variables */
-    static integer i__, j, k1, l1, l2, ib;
-    static doublereal fi;
-    static integer ld, ii, nf, ip, nl, is, nq, nr;
-    static doublereal arg;
-    static integer ido, ipm;
-    static doublereal tpi;
-    static integer nfm1;
-#define jfac (equiv_1)
-#define rfac (equiv_0)
-    static doublereal argh;
-    static integer ntry;
-    static doublereal argld;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --xxifac;
-    --wa;
-
-    /* Function Body */
-    for (i__ = 1; i__ <= 15; ++i__) {
-	rfac[i__ - 1] = xxifac[i__];
-/* L100: */
-    }
-    nl = *n;
-    nf = 0;
-    j = 0;
-L101:
-    ++j;
-    if (j - 4 <= 0) {
-	goto L102;
-    } else {
-	goto L103;
-    }
-L102:
-    ntry = ntryh[j - 1];
-    goto L104;
-L103:
-    ntry += 2;
-L104:
-    nq = nl / ntry;
-    nr = nl - ntry * nq;
-    if (nr != 0) {
-	goto L101;
-    } else {
-	goto L105;
-    }
-L105:
-    ++nf;
-    jfac[nf + 1] = ntry;
-    nl = nq;
-    if (ntry != 2) {
-	goto L107;
-    }
-    if (nf == 1) {
-	goto L107;
-    }
-    i__1 = nf;
-    for (i__ = 2; i__ <= i__1; ++i__) {
-	ib = nf - i__ + 2;
-	jfac[ib + 1] = jfac[ib];
-/* L106: */
-    }
-    jfac[2] = 2;
-L107:
-    if (nl != 1) {
-	goto L104;
-    }
-    jfac[0] = *n;
-    jfac[1] = nf;
-    tpi = 6.28318530717959f;
-    argh = tpi / (real) (*n);
-    is = 0;
-    nfm1 = nf - 1;
-    l1 = 1;
-    if (nfm1 == 0) {
-	return 0;
-    }
-    i__1 = nfm1;
-    for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = jfac[k1 + 1];
-	ld = 0;
-	l2 = l1 * ip;
-	ido = *n / l2;
-	ipm = ip - 1;
-	i__2 = ipm;
-	for (j = 1; j <= i__2; ++j) {
-	    ld += l1;
-	    i__ = is;
-	    argld = (real) ld * argh;
-	    fi = 0.f;
-	    i__3 = ido;
-	    for (ii = 3; ii <= i__3; ii += 2) {
-		i__ += 2;
-		fi += 1.f;
-		arg = fi * argld;
-		wa[i__ - 1] = cos(arg);
-		wa[i__] = sin(arg);
-/* L108: */
-	    }
-	    is += ido;
-/* L109: */
-	}
-	l1 = l2;
-/* L110: */
-    }
-    for (i__ = 1; i__ <= 15; ++i__) {
-	xxifac[i__] = rfac[i__ - 1];
-/* L111: */
-    }
-    return 0;
-} /* rffti1_ */
-
-#undef rfac
-#undef jfac
-
-
-/* Subroutine */ int rfftf_(integer *n, doublereal *r__, doublereal *wsave)
-{
-    extern /* Subroutine */ int rfftf1_(integer *, doublereal *, doublereal *,
-	     doublereal *, doublereal *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --wsave;
-    --r__;
-
-    /* Function Body */
-    if (*n == 1) {
-	return 0;
-    }
-    rfftf1_(n, &r__[1], &wsave[1], &wsave[*n + 1], &wsave[(*n << 1) + 1]);
-    return 0;
-} /* rfftf_ */
-
-/* Subroutine */ int rfftf1_(integer *n, doublereal *c__, doublereal *ch, 
-	doublereal *wa, doublereal *xxifac)
-{
-    /* System generated locals */
-    integer i__1;
-    static doublereal equiv_0[15];
-
-    /* Local variables */
-    static integer i__, k1, l1, l2, na, kh, nf, ip, iw, ix2, ix3, ix4, ido, 
-	    idl1;
-#define jfac ((integer *)equiv_0)
-#define rfac (equiv_0)
-    extern /* Subroutine */ int radf2_(integer *, integer *, doublereal *, 
-	    doublereal *, doublereal *), radf3_(integer *, integer *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *), radf4_(
-	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *), radf5_(integer *, integer *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *), radfg_(integer *, integer *, integer 
-	    *, integer *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --xxifac;
-    --wa;
-    --ch;
-    --c__;
-
-    /* Function Body */
-    for (i__ = 1; i__ <= 15; ++i__) {
-	rfac[i__ - 1] = xxifac[i__];
-/* L100: */
-    }
-    nf = jfac[1];
-    na = 1;
-    l2 = *n;
-    iw = *n;
-    i__1 = nf;
-    for (k1 = 1; k1 <= i__1; ++k1) {
-	kh = nf - k1;
-	ip = jfac[kh + 2];
-	l1 = l2 / ip;
-	ido = *n / l2;
-	idl1 = ido * l1;
-	iw -= (ip - 1) * ido;
-	na = 1 - na;
-	if (ip != 4) {
-	    goto L102;
-	}
-	ix2 = iw + ido;
-	ix3 = ix2 + ido;
-	if (na != 0) {
-	    goto L101;
-	}
-	radf4_(&ido, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2], &wa[ix3]);
-	goto L110;
-L101:
-	radf4_(&ido, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2], &wa[ix3]);
-	goto L110;
-L102:
-	if (ip != 2) {
-	    goto L104;
-	}
-	if (na != 0) {
-	    goto L103;
-	}
-	radf2_(&ido, &l1, &c__[1], &ch[1], &wa[iw]);
-	goto L110;
-L103:
-	radf2_(&ido, &l1, &ch[1], &c__[1], &wa[iw]);
-	goto L110;
-L104:
-	if (ip != 3) {
-	    goto L106;
-	}
-	ix2 = iw + ido;
-	if (na != 0) {
-	    goto L105;
-	}
-	radf3_(&ido, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2]);
-	goto L110;
-L105:
-	radf3_(&ido, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2]);
-	goto L110;
-L106:
-	if (ip != 5) {
-	    goto L108;
-	}
-	ix2 = iw + ido;
-	ix3 = ix2 + ido;
-	ix4 = ix3 + ido;
-	if (na != 0) {
-	    goto L107;
-	}
-	radf5_(&ido, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2], &wa[ix3], &wa[
-		ix4]);
-	goto L110;
-L107:
-	radf5_(&ido, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2], &wa[ix3], &wa[
-		ix4]);
-	goto L110;
-L108:
-	if (ido == 1) {
-	    na = 1 - na;
-	}
-	if (na != 0) {
-	    goto L109;
-	}
-	radfg_(&ido, &ip, &l1, &idl1, &c__[1], &c__[1], &c__[1], &ch[1], &ch[
-		1], &wa[iw]);
-	na = 1;
-	goto L110;
-L109:
-	radfg_(&ido, &ip, &l1, &idl1, &ch[1], &ch[1], &ch[1], &c__[1], &c__[1]
-		, &wa[iw]);
-	na = 0;
-L110:
-	l2 = l1;
-/* L111: */
-    }
-    if (na == 1) {
-	return 0;
-    }
-    i__1 = *n;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	c__[i__] = ch[i__];
-/* L112: */
-    }
-    return 0;
-} /* rfftf1_ */
-
-#undef rfac
-#undef jfac
-
-
-/* Subroutine */ int radfg_(integer *ido, integer *ip, integer *l1, integer *
-	idl1, doublereal *cc, doublereal *c1, doublereal *c2, doublereal *ch, 
-	doublereal *ch2, doublereal *wa)
-{
-    /* Initialized data */
-
-    static doublereal tpi = 6.28318530717959;
-
-    /* System generated locals */
-    integer ch_dim1, ch_dim2, ch_offset, cc_dim1, cc_dim2, cc_offset, c1_dim1,
-	     c1_dim2, c1_offset, c2_dim1, c2_offset, ch2_dim1, ch2_offset, 
-	    i__1, i__2, i__3;
-
-    /* Builtin functions */
-    double cos(doublereal), sin(doublereal);
-
-    /* Local variables */
-    static integer i__, j, k, l, j2, ic, jc, lc, ik, is;
-    static doublereal dc2, ai1, ai2, ar1, ar2, ds2;
-    static integer nbd;
-    static doublereal dcp, arg, dsp, ar1h, ar2h;
-    static integer idp2, ipp2, idij, ipph;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    c1_dim1 = *ido;
-    c1_dim2 = *l1;
-    c1_offset = 1 + c1_dim1 * (1 + c1_dim2);
-    c1 -= c1_offset;
-    cc_dim1 = *ido;
-    cc_dim2 = *ip;
-    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
-    cc -= cc_offset;
-    ch2_dim1 = *idl1;
-    ch2_offset = 1 + ch2_dim1;
-    ch2 -= ch2_offset;
-    c2_dim1 = *idl1;
-    c2_offset = 1 + c2_dim1;
-    c2 -= c2_offset;
-    --wa;
-
-    /* Function Body */
-    arg = tpi / (real) (*ip);
-    dcp = cos(arg);
-    dsp = sin(arg);
-    ipph = (*ip + 1) / 2;
-    ipp2 = *ip + 2;
-    idp2 = *ido + 2;
-    nbd = (*ido - 1) / 2;
-    if (*ido == 1) {
-	goto L119;
-    }
-    i__1 = *idl1;
-    for (ik = 1; ik <= i__1; ++ik) {
-	ch2[ik + ch2_dim1] = c2[ik + c2_dim1];
-/* L101: */
-    }
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    ch[(k + j * ch_dim2) * ch_dim1 + 1] = c1[(k + j * c1_dim2) * 
-		    c1_dim1 + 1];
-/* L102: */
-	}
-/* L103: */
-    }
-    if (nbd > *l1) {
-	goto L107;
-    }
-    is = -(*ido);
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	is += *ido;
-	idij = is;
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    idij += 2;
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		ch[i__ - 1 + (k + j * ch_dim2) * ch_dim1] = wa[idij - 1] * c1[
-			i__ - 1 + (k + j * c1_dim2) * c1_dim1] + wa[idij] * 
-			c1[i__ + (k + j * c1_dim2) * c1_dim1];
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = wa[idij - 1] * c1[i__ 
-			+ (k + j * c1_dim2) * c1_dim1] - wa[idij] * c1[i__ - 
-			1 + (k + j * c1_dim2) * c1_dim1];
-/* L104: */
-	    }
-/* L105: */
-	}
-/* L106: */
-    }
-    goto L111;
-L107:
-    is = -(*ido);
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	is += *ido;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    idij = is;
-	    i__3 = *ido;
-	    for (i__ = 3; i__ <= i__3; i__ += 2) {
-		idij += 2;
-		ch[i__ - 1 + (k + j * ch_dim2) * ch_dim1] = wa[idij - 1] * c1[
-			i__ - 1 + (k + j * c1_dim2) * c1_dim1] + wa[idij] * 
-			c1[i__ + (k + j * c1_dim2) * c1_dim1];
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = wa[idij - 1] * c1[i__ 
-			+ (k + j * c1_dim2) * c1_dim1] - wa[idij] * c1[i__ - 
-			1 + (k + j * c1_dim2) * c1_dim1];
-/* L108: */
-	    }
-/* L109: */
-	}
-/* L110: */
-    }
-L111:
-    if (nbd < *l1) {
-	goto L115;
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    i__3 = *ido;
-	    for (i__ = 3; i__ <= i__3; i__ += 2) {
-		c1[i__ - 1 + (k + j * c1_dim2) * c1_dim1] = ch[i__ - 1 + (k + 
-			j * ch_dim2) * ch_dim1] + ch[i__ - 1 + (k + jc * 
-			ch_dim2) * ch_dim1];
-		c1[i__ - 1 + (k + jc * c1_dim2) * c1_dim1] = ch[i__ + (k + j *
-			 ch_dim2) * ch_dim1] - ch[i__ + (k + jc * ch_dim2) * 
-			ch_dim1];
-		c1[i__ + (k + j * c1_dim2) * c1_dim1] = ch[i__ + (k + j * 
-			ch_dim2) * ch_dim1] + ch[i__ + (k + jc * ch_dim2) * 
-			ch_dim1];
-		c1[i__ + (k + jc * c1_dim2) * c1_dim1] = ch[i__ - 1 + (k + jc 
-			* ch_dim2) * ch_dim1] - ch[i__ - 1 + (k + j * ch_dim2)
-			 * ch_dim1];
-/* L112: */
-	    }
-/* L113: */
-	}
-/* L114: */
-    }
-    goto L121;
-L115:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		c1[i__ - 1 + (k + j * c1_dim2) * c1_dim1] = ch[i__ - 1 + (k + 
-			j * ch_dim2) * ch_dim1] + ch[i__ - 1 + (k + jc * 
-			ch_dim2) * ch_dim1];
-		c1[i__ - 1 + (k + jc * c1_dim2) * c1_dim1] = ch[i__ + (k + j *
-			 ch_dim2) * ch_dim1] - ch[i__ + (k + jc * ch_dim2) * 
-			ch_dim1];
-		c1[i__ + (k + j * c1_dim2) * c1_dim1] = ch[i__ + (k + j * 
-			ch_dim2) * ch_dim1] + ch[i__ + (k + jc * ch_dim2) * 
-			ch_dim1];
-		c1[i__ + (k + jc * c1_dim2) * c1_dim1] = ch[i__ - 1 + (k + jc 
-			* ch_dim2) * ch_dim1] - ch[i__ - 1 + (k + j * ch_dim2)
-			 * ch_dim1];
-/* L116: */
-	    }
-/* L117: */
-	}
-/* L118: */
-    }
-    goto L121;
-L119:
-    i__1 = *idl1;
-    for (ik = 1; ik <= i__1; ++ik) {
-	c2[ik + c2_dim1] = ch2[ik + ch2_dim1];
-/* L120: */
-    }
-L121:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    c1[(k + j * c1_dim2) * c1_dim1 + 1] = ch[(k + j * ch_dim2) * 
-		    ch_dim1 + 1] + ch[(k + jc * ch_dim2) * ch_dim1 + 1];
-	    c1[(k + jc * c1_dim2) * c1_dim1 + 1] = ch[(k + jc * ch_dim2) * 
-		    ch_dim1 + 1] - ch[(k + j * ch_dim2) * ch_dim1 + 1];
-/* L122: */
-	}
-/* L123: */
-    }
-
-    ar1 = 1.f;
-    ai1 = 0.f;
-    i__1 = ipph;
-    for (l = 2; l <= i__1; ++l) {
-	lc = ipp2 - l;
-	ar1h = dcp * ar1 - dsp * ai1;
-	ai1 = dcp * ai1 + dsp * ar1;
-	ar1 = ar1h;
-	i__2 = *idl1;
-	for (ik = 1; ik <= i__2; ++ik) {
-	    ch2[ik + l * ch2_dim1] = c2[ik + c2_dim1] + ar1 * c2[ik + (
-		    c2_dim1 << 1)];
-	    ch2[ik + lc * ch2_dim1] = ai1 * c2[ik + *ip * c2_dim1];
-/* L124: */
-	}
-	dc2 = ar1;
-	ds2 = ai1;
-	ar2 = ar1;
-	ai2 = ai1;
-	i__2 = ipph;
-	for (j = 3; j <= i__2; ++j) {
-	    jc = ipp2 - j;
-	    ar2h = dc2 * ar2 - ds2 * ai2;
-	    ai2 = dc2 * ai2 + ds2 * ar2;
-	    ar2 = ar2h;
-	    i__3 = *idl1;
-	    for (ik = 1; ik <= i__3; ++ik) {
-		ch2[ik + l * ch2_dim1] += ar2 * c2[ik + j * c2_dim1];
-		ch2[ik + lc * ch2_dim1] += ai2 * c2[ik + jc * c2_dim1];
-/* L125: */
-	    }
-/* L126: */
-	}
-/* L127: */
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	i__2 = *idl1;
-	for (ik = 1; ik <= i__2; ++ik) {
-	    ch2[ik + ch2_dim1] += c2[ik + j * c2_dim1];
-/* L128: */
-	}
-/* L129: */
-    }
-
-    if (*ido < *l1) {
-	goto L132;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 1; i__ <= i__2; ++i__) {
-	    cc[i__ + (k * cc_dim2 + 1) * cc_dim1] = ch[i__ + (k + ch_dim2) * 
-		    ch_dim1];
-/* L130: */
-	}
-/* L131: */
-    }
-    goto L135;
-L132:
-    i__1 = *ido;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    cc[i__ + (k * cc_dim2 + 1) * cc_dim1] = ch[i__ + (k + ch_dim2) * 
-		    ch_dim1];
-/* L133: */
-	}
-/* L134: */
-    }
-L135:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	j2 = j + j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    cc[*ido + (j2 - 2 + k * cc_dim2) * cc_dim1] = ch[(k + j * ch_dim2)
-		     * ch_dim1 + 1];
-	    cc[(j2 - 1 + k * cc_dim2) * cc_dim1 + 1] = ch[(k + jc * ch_dim2) *
-		     ch_dim1 + 1];
-/* L136: */
-	}
-/* L137: */
-    }
-    if (*ido == 1) {
-	return 0;
-    }
-    if (nbd < *l1) {
-	goto L141;
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	j2 = j + j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    i__3 = *ido;
-	    for (i__ = 3; i__ <= i__3; i__ += 2) {
-		ic = idp2 - i__;
-		cc[i__ - 1 + (j2 - 1 + k * cc_dim2) * cc_dim1] = ch[i__ - 1 + 
-			(k + j * ch_dim2) * ch_dim1] + ch[i__ - 1 + (k + jc * 
-			ch_dim2) * ch_dim1];
-		cc[ic - 1 + (j2 - 2 + k * cc_dim2) * cc_dim1] = ch[i__ - 1 + (
-			k + j * ch_dim2) * ch_dim1] - ch[i__ - 1 + (k + jc * 
-			ch_dim2) * ch_dim1];
-		cc[i__ + (j2 - 1 + k * cc_dim2) * cc_dim1] = ch[i__ + (k + j *
-			 ch_dim2) * ch_dim1] + ch[i__ + (k + jc * ch_dim2) * 
-			ch_dim1];
-		cc[ic + (j2 - 2 + k * cc_dim2) * cc_dim1] = ch[i__ + (k + jc *
-			 ch_dim2) * ch_dim1] - ch[i__ + (k + j * ch_dim2) * 
-			ch_dim1];
-/* L138: */
-	    }
-/* L139: */
-	}
-/* L140: */
-    }
-    return 0;
-L141:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	j2 = j + j;
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		cc[i__ - 1 + (j2 - 1 + k * cc_dim2) * cc_dim1] = ch[i__ - 1 + 
-			(k + j * ch_dim2) * ch_dim1] + ch[i__ - 1 + (k + jc * 
-			ch_dim2) * ch_dim1];
-		cc[ic - 1 + (j2 - 2 + k * cc_dim2) * cc_dim1] = ch[i__ - 1 + (
-			k + j * ch_dim2) * ch_dim1] - ch[i__ - 1 + (k + jc * 
-			ch_dim2) * ch_dim1];
-		cc[i__ + (j2 - 1 + k * cc_dim2) * cc_dim1] = ch[i__ + (k + j *
-			 ch_dim2) * ch_dim1] + ch[i__ + (k + jc * ch_dim2) * 
-			ch_dim1];
-		cc[ic + (j2 - 2 + k * cc_dim2) * cc_dim1] = ch[i__ + (k + jc *
-			 ch_dim2) * ch_dim1] - ch[i__ + (k + j * ch_dim2) * 
-			ch_dim1];
-/* L142: */
-	    }
-/* L143: */
-	}
-/* L144: */
-    }
-    return 0;
-} /* radfg_ */
-
-/* Subroutine */ int radf5_(integer *ido, integer *l1, doublereal *cc, 
-	doublereal *ch, doublereal *wa1, doublereal *wa2, doublereal *wa3, 
-	doublereal *wa4)
-{
-    /* Initialized data */
-
-    static doublereal tr11 = .309016994374947;
-    static doublereal ti11 = .951056516295154;
-    static doublereal tr12 = -.809016994374947;
-    static doublereal ti12 = .587785252292473;
-
-    /* System generated locals */
-    integer cc_dim1, cc_dim2, cc_offset, ch_dim1, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k, ic;
-    static doublereal ci2, di2, ci4, ci5, di3, di4, di5, ci3, cr2, cr3, dr2, 
-	    dr3, dr4, dr5, cr5, cr4, ti2, ti3, ti5, ti4, tr2, tr3, tr4, tr5;
-    static integer idp2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_offset = 1 + ch_dim1 * 6;
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_dim2 = *l1;
-    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-    --wa3;
-    --wa4;
-
-    /* Function Body */
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	cr2 = cc[(k + cc_dim2 * 5) * cc_dim1 + 1] + cc[(k + (cc_dim2 << 1)) * 
-		cc_dim1 + 1];
-	ci5 = cc[(k + cc_dim2 * 5) * cc_dim1 + 1] - cc[(k + (cc_dim2 << 1)) * 
-		cc_dim1 + 1];
-	cr3 = cc[(k + (cc_dim2 << 2)) * cc_dim1 + 1] + cc[(k + cc_dim2 * 3) * 
-		cc_dim1 + 1];
-	ci4 = cc[(k + (cc_dim2 << 2)) * cc_dim1 + 1] - cc[(k + cc_dim2 * 3) * 
-		cc_dim1 + 1];
-	ch[(k * 5 + 1) * ch_dim1 + 1] = cc[(k + cc_dim2) * cc_dim1 + 1] + cr2 
-		+ cr3;
-	ch[*ido + (k * 5 + 2) * ch_dim1] = cc[(k + cc_dim2) * cc_dim1 + 1] + 
-		tr11 * cr2 + tr12 * cr3;
-	ch[(k * 5 + 3) * ch_dim1 + 1] = ti11 * ci5 + ti12 * ci4;
-	ch[*ido + (k * 5 + 4) * ch_dim1] = cc[(k + cc_dim2) * cc_dim1 + 1] + 
-		tr12 * cr2 + tr11 * cr3;
-	ch[(k * 5 + 5) * ch_dim1 + 1] = ti12 * ci5 - ti11 * ci4;
-/* L101: */
-    }
-    if (*ido == 1) {
-	return 0;
-    }
-    idp2 = *ido + 2;
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    dr2 = wa1[i__ - 2] * cc[i__ - 1 + (k + (cc_dim2 << 1)) * cc_dim1] 
-		    + wa1[i__ - 1] * cc[i__ + (k + (cc_dim2 << 1)) * cc_dim1];
-	    di2 = wa1[i__ - 2] * cc[i__ + (k + (cc_dim2 << 1)) * cc_dim1] - 
-		    wa1[i__ - 1] * cc[i__ - 1 + (k + (cc_dim2 << 1)) * 
-		    cc_dim1];
-	    dr3 = wa2[i__ - 2] * cc[i__ - 1 + (k + cc_dim2 * 3) * cc_dim1] + 
-		    wa2[i__ - 1] * cc[i__ + (k + cc_dim2 * 3) * cc_dim1];
-	    di3 = wa2[i__ - 2] * cc[i__ + (k + cc_dim2 * 3) * cc_dim1] - wa2[
-		    i__ - 1] * cc[i__ - 1 + (k + cc_dim2 * 3) * cc_dim1];
-	    dr4 = wa3[i__ - 2] * cc[i__ - 1 + (k + (cc_dim2 << 2)) * cc_dim1] 
-		    + wa3[i__ - 1] * cc[i__ + (k + (cc_dim2 << 2)) * cc_dim1];
-	    di4 = wa3[i__ - 2] * cc[i__ + (k + (cc_dim2 << 2)) * cc_dim1] - 
-		    wa3[i__ - 1] * cc[i__ - 1 + (k + (cc_dim2 << 2)) * 
-		    cc_dim1];
-	    dr5 = wa4[i__ - 2] * cc[i__ - 1 + (k + cc_dim2 * 5) * cc_dim1] + 
-		    wa4[i__ - 1] * cc[i__ + (k + cc_dim2 * 5) * cc_dim1];
-	    di5 = wa4[i__ - 2] * cc[i__ + (k + cc_dim2 * 5) * cc_dim1] - wa4[
-		    i__ - 1] * cc[i__ - 1 + (k + cc_dim2 * 5) * cc_dim1];
-	    cr2 = dr2 + dr5;
-	    ci5 = dr5 - dr2;
-	    cr5 = di2 - di5;
-	    ci2 = di2 + di5;
-	    cr3 = dr3 + dr4;
-	    ci4 = dr4 - dr3;
-	    cr4 = di3 - di4;
-	    ci3 = di3 + di4;
-	    ch[i__ - 1 + (k * 5 + 1) * ch_dim1] = cc[i__ - 1 + (k + cc_dim2) *
-		     cc_dim1] + cr2 + cr3;
-	    ch[i__ + (k * 5 + 1) * ch_dim1] = cc[i__ + (k + cc_dim2) * 
-		    cc_dim1] + ci2 + ci3;
-	    tr2 = cc[i__ - 1 + (k + cc_dim2) * cc_dim1] + tr11 * cr2 + tr12 * 
-		    cr3;
-	    ti2 = cc[i__ + (k + cc_dim2) * cc_dim1] + tr11 * ci2 + tr12 * ci3;
-	    tr3 = cc[i__ - 1 + (k + cc_dim2) * cc_dim1] + tr12 * cr2 + tr11 * 
-		    cr3;
-	    ti3 = cc[i__ + (k + cc_dim2) * cc_dim1] + tr12 * ci2 + tr11 * ci3;
-	    tr5 = ti11 * cr5 + ti12 * cr4;
-	    ti5 = ti11 * ci5 + ti12 * ci4;
-	    tr4 = ti12 * cr5 - ti11 * cr4;
-	    ti4 = ti12 * ci5 - ti11 * ci4;
-	    ch[i__ - 1 + (k * 5 + 3) * ch_dim1] = tr2 + tr5;
-	    ch[ic - 1 + (k * 5 + 2) * ch_dim1] = tr2 - tr5;
-	    ch[i__ + (k * 5 + 3) * ch_dim1] = ti2 + ti5;
-	    ch[ic + (k * 5 + 2) * ch_dim1] = ti5 - ti2;
-	    ch[i__ - 1 + (k * 5 + 5) * ch_dim1] = tr3 + tr4;
-	    ch[ic - 1 + (k * 5 + 4) * ch_dim1] = tr3 - tr4;
-	    ch[i__ + (k * 5 + 5) * ch_dim1] = ti3 + ti4;
-	    ch[ic + (k * 5 + 4) * ch_dim1] = ti4 - ti3;
-/* L102: */
-	}
-/* L103: */
-    }
-    return 0;
-} /* radf5_ */
-
-/* Subroutine */ int radf3_(integer *ido, integer *l1, doublereal *cc, 
-	doublereal *ch, doublereal *wa1, doublereal *wa2)
-{
-    /* Initialized data */
-
-    static doublereal taur = -.5;
-    static doublereal taui = .866025403784439;
-
-    /* System generated locals */
-    integer ch_dim1, ch_offset, cc_dim1, cc_dim2, cc_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k, ic;
-    static doublereal ci2, di2, di3, cr2, dr2, dr3, ti2, ti3, tr2, tr3;
-    static integer idp2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_offset = 1 + (ch_dim1 << 2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_dim2 = *l1;
-    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-
-    /* Function Body */
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	cr2 = cc[(k + (cc_dim2 << 1)) * cc_dim1 + 1] + cc[(k + cc_dim2 * 3) * 
-		cc_dim1 + 1];
-	ch[(k * 3 + 1) * ch_dim1 + 1] = cc[(k + cc_dim2) * cc_dim1 + 1] + cr2;
-	ch[(k * 3 + 3) * ch_dim1 + 1] = taui * (cc[(k + cc_dim2 * 3) * 
-		cc_dim1 + 1] - cc[(k + (cc_dim2 << 1)) * cc_dim1 + 1]);
-	ch[*ido + (k * 3 + 2) * ch_dim1] = cc[(k + cc_dim2) * cc_dim1 + 1] + 
-		taur * cr2;
-/* L101: */
-    }
-    if (*ido == 1) {
-	return 0;
-    }
-    idp2 = *ido + 2;
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    dr2 = wa1[i__ - 2] * cc[i__ - 1 + (k + (cc_dim2 << 1)) * cc_dim1] 
-		    + wa1[i__ - 1] * cc[i__ + (k + (cc_dim2 << 1)) * cc_dim1];
-	    di2 = wa1[i__ - 2] * cc[i__ + (k + (cc_dim2 << 1)) * cc_dim1] - 
-		    wa1[i__ - 1] * cc[i__ - 1 + (k + (cc_dim2 << 1)) * 
-		    cc_dim1];
-	    dr3 = wa2[i__ - 2] * cc[i__ - 1 + (k + cc_dim2 * 3) * cc_dim1] + 
-		    wa2[i__ - 1] * cc[i__ + (k + cc_dim2 * 3) * cc_dim1];
-	    di3 = wa2[i__ - 2] * cc[i__ + (k + cc_dim2 * 3) * cc_dim1] - wa2[
-		    i__ - 1] * cc[i__ - 1 + (k + cc_dim2 * 3) * cc_dim1];
-	    cr2 = dr2 + dr3;
-	    ci2 = di2 + di3;
-	    ch[i__ - 1 + (k * 3 + 1) * ch_dim1] = cc[i__ - 1 + (k + cc_dim2) *
-		     cc_dim1] + cr2;
-	    ch[i__ + (k * 3 + 1) * ch_dim1] = cc[i__ + (k + cc_dim2) * 
-		    cc_dim1] + ci2;
-	    tr2 = cc[i__ - 1 + (k + cc_dim2) * cc_dim1] + taur * cr2;
-	    ti2 = cc[i__ + (k + cc_dim2) * cc_dim1] + taur * ci2;
-	    tr3 = taui * (di2 - di3);
-	    ti3 = taui * (dr3 - dr2);
-	    ch[i__ - 1 + (k * 3 + 3) * ch_dim1] = tr2 + tr3;
-	    ch[ic - 1 + (k * 3 + 2) * ch_dim1] = tr2 - tr3;
-	    ch[i__ + (k * 3 + 3) * ch_dim1] = ti2 + ti3;
-	    ch[ic + (k * 3 + 2) * ch_dim1] = ti3 - ti2;
-/* L102: */
-	}
-/* L103: */
-    }
-    return 0;
-} /* radf3_ */
-
-/* Subroutine */ int radf2_(integer *ido, integer *l1, doublereal *cc, 
-	doublereal *ch, doublereal *wa1)
-{
-    /* System generated locals */
-    integer ch_dim1, ch_offset, cc_dim1, cc_dim2, cc_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k, ic;
-    static doublereal ti2, tr2;
-    static integer idp2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_offset = 1 + ch_dim1 * 3;
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_dim2 = *l1;
-    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
-    cc -= cc_offset;
-    --wa1;
-
-    /* Function Body */
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ch[((k << 1) + 1) * ch_dim1 + 1] = cc[(k + cc_dim2) * cc_dim1 + 1] + 
-		cc[(k + (cc_dim2 << 1)) * cc_dim1 + 1];
-	ch[*ido + ((k << 1) + 2) * ch_dim1] = cc[(k + cc_dim2) * cc_dim1 + 1] 
-		- cc[(k + (cc_dim2 << 1)) * cc_dim1 + 1];
-/* L101: */
-    }
-    if ((i__1 = *ido - 2) < 0) {
-	goto L107;
-    } else if (i__1 == 0) {
-	goto L105;
-    } else {
-	goto L102;
-    }
-L102:
-    idp2 = *ido + 2;
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    tr2 = wa1[i__ - 2] * cc[i__ - 1 + (k + (cc_dim2 << 1)) * cc_dim1] 
-		    + wa1[i__ - 1] * cc[i__ + (k + (cc_dim2 << 1)) * cc_dim1];
-	    ti2 = wa1[i__ - 2] * cc[i__ + (k + (cc_dim2 << 1)) * cc_dim1] - 
-		    wa1[i__ - 1] * cc[i__ - 1 + (k + (cc_dim2 << 1)) * 
-		    cc_dim1];
-	    ch[i__ + ((k << 1) + 1) * ch_dim1] = cc[i__ + (k + cc_dim2) * 
-		    cc_dim1] + ti2;
-	    ch[ic + ((k << 1) + 2) * ch_dim1] = ti2 - cc[i__ + (k + cc_dim2) *
-		     cc_dim1];
-	    ch[i__ - 1 + ((k << 1) + 1) * ch_dim1] = cc[i__ - 1 + (k + 
-		    cc_dim2) * cc_dim1] + tr2;
-	    ch[ic - 1 + ((k << 1) + 2) * ch_dim1] = cc[i__ - 1 + (k + cc_dim2)
-		     * cc_dim1] - tr2;
-/* L103: */
-	}
-/* L104: */
-    }
-    if (*ido % 2 == 1) {
-	return 0;
-    }
-L105:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ch[((k << 1) + 2) * ch_dim1 + 1] = -cc[*ido + (k + (cc_dim2 << 1)) * 
-		cc_dim1];
-	ch[*ido + ((k << 1) + 1) * ch_dim1] = cc[*ido + (k + cc_dim2) * 
-		cc_dim1];
-/* L106: */
-    }
-L107:
-    return 0;
-} /* radf2_ */
-
-/* Subroutine */ int radf4_(integer *ido, integer *l1, doublereal *cc, 
-	doublereal *ch, doublereal *wa1, doublereal *wa2, doublereal *wa3)
-{
-    /* Initialized data */
-
-    static doublereal hsqt2 = .7071067811865475;
-
-    /* System generated locals */
-    integer cc_dim1, cc_dim2, cc_offset, ch_dim1, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k, ic;
-    static doublereal ci2, ci3, ci4, cr2, cr3, cr4, ti1, ti2, ti3, ti4, tr1, 
-	    tr2, tr3, tr4;
-    static integer idp2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_offset = 1 + ch_dim1 * 5;
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_dim2 = *l1;
-    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-    --wa3;
-
-    /* Function Body */
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	tr1 = cc[(k + (cc_dim2 << 1)) * cc_dim1 + 1] + cc[(k + (cc_dim2 << 2))
-		 * cc_dim1 + 1];
-	tr2 = cc[(k + cc_dim2) * cc_dim1 + 1] + cc[(k + cc_dim2 * 3) * 
-		cc_dim1 + 1];
-	ch[((k << 2) + 1) * ch_dim1 + 1] = tr1 + tr2;
-	ch[*ido + ((k << 2) + 4) * ch_dim1] = tr2 - tr1;
-	ch[*ido + ((k << 2) + 2) * ch_dim1] = cc[(k + cc_dim2) * cc_dim1 + 1] 
-		- cc[(k + cc_dim2 * 3) * cc_dim1 + 1];
-	ch[((k << 2) + 3) * ch_dim1 + 1] = cc[(k + (cc_dim2 << 2)) * cc_dim1 
-		+ 1] - cc[(k + (cc_dim2 << 1)) * cc_dim1 + 1];
-/* L101: */
-    }
-    if ((i__1 = *ido - 2) < 0) {
-	goto L107;
-    } else if (i__1 == 0) {
-	goto L105;
-    } else {
-	goto L102;
-    }
-L102:
-    idp2 = *ido + 2;
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    cr2 = wa1[i__ - 2] * cc[i__ - 1 + (k + (cc_dim2 << 1)) * cc_dim1] 
-		    + wa1[i__ - 1] * cc[i__ + (k + (cc_dim2 << 1)) * cc_dim1];
-	    ci2 = wa1[i__ - 2] * cc[i__ + (k + (cc_dim2 << 1)) * cc_dim1] - 
-		    wa1[i__ - 1] * cc[i__ - 1 + (k + (cc_dim2 << 1)) * 
-		    cc_dim1];
-	    cr3 = wa2[i__ - 2] * cc[i__ - 1 + (k + cc_dim2 * 3) * cc_dim1] + 
-		    wa2[i__ - 1] * cc[i__ + (k + cc_dim2 * 3) * cc_dim1];
-	    ci3 = wa2[i__ - 2] * cc[i__ + (k + cc_dim2 * 3) * cc_dim1] - wa2[
-		    i__ - 1] * cc[i__ - 1 + (k + cc_dim2 * 3) * cc_dim1];
-	    cr4 = wa3[i__ - 2] * cc[i__ - 1 + (k + (cc_dim2 << 2)) * cc_dim1] 
-		    + wa3[i__ - 1] * cc[i__ + (k + (cc_dim2 << 2)) * cc_dim1];
-	    ci4 = wa3[i__ - 2] * cc[i__ + (k + (cc_dim2 << 2)) * cc_dim1] - 
-		    wa3[i__ - 1] * cc[i__ - 1 + (k + (cc_dim2 << 2)) * 
-		    cc_dim1];
-	    tr1 = cr2 + cr4;
-	    tr4 = cr4 - cr2;
-	    ti1 = ci2 + ci4;
-	    ti4 = ci2 - ci4;
-	    ti2 = cc[i__ + (k + cc_dim2) * cc_dim1] + ci3;
-	    ti3 = cc[i__ + (k + cc_dim2) * cc_dim1] - ci3;
-	    tr2 = cc[i__ - 1 + (k + cc_dim2) * cc_dim1] + cr3;
-	    tr3 = cc[i__ - 1 + (k + cc_dim2) * cc_dim1] - cr3;
-	    ch[i__ - 1 + ((k << 2) + 1) * ch_dim1] = tr1 + tr2;
-	    ch[ic - 1 + ((k << 2) + 4) * ch_dim1] = tr2 - tr1;
-	    ch[i__ + ((k << 2) + 1) * ch_dim1] = ti1 + ti2;
-	    ch[ic + ((k << 2) + 4) * ch_dim1] = ti1 - ti2;
-	    ch[i__ - 1 + ((k << 2) + 3) * ch_dim1] = ti4 + tr3;
-	    ch[ic - 1 + ((k << 2) + 2) * ch_dim1] = tr3 - ti4;
-	    ch[i__ + ((k << 2) + 3) * ch_dim1] = tr4 + ti3;
-	    ch[ic + ((k << 2) + 2) * ch_dim1] = tr4 - ti3;
-/* L103: */
-	}
-/* L104: */
-    }
-    if (*ido % 2 == 1) {
-	return 0;
-    }
-L105:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ti1 = -hsqt2 * (cc[*ido + (k + (cc_dim2 << 1)) * cc_dim1] + cc[*ido + 
-		(k + (cc_dim2 << 2)) * cc_dim1]);
-	tr1 = hsqt2 * (cc[*ido + (k + (cc_dim2 << 1)) * cc_dim1] - cc[*ido + (
-		k + (cc_dim2 << 2)) * cc_dim1]);
-	ch[*ido + ((k << 2) + 1) * ch_dim1] = tr1 + cc[*ido + (k + cc_dim2) * 
-		cc_dim1];
-	ch[*ido + ((k << 2) + 3) * ch_dim1] = cc[*ido + (k + cc_dim2) * 
-		cc_dim1] - tr1;
-	ch[((k << 2) + 2) * ch_dim1 + 1] = ti1 - cc[*ido + (k + cc_dim2 * 3) *
-		 cc_dim1];
-	ch[((k << 2) + 4) * ch_dim1 + 1] = ti1 + cc[*ido + (k + cc_dim2 * 3) *
-		 cc_dim1];
-/* L106: */
-    }
-L107:
-    return 0;
-} /* radf4_ */
-
-/* Subroutine */ int rfftb_(integer *n, doublereal *r__, doublereal *wsave)
-{
-    extern /* Subroutine */ int rfftb1_(integer *, doublereal *, doublereal *,
-	     doublereal *, doublereal *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --wsave;
-    --r__;
-
-    /* Function Body */
-    if (*n == 1) {
-	return 0;
-    }
-    rfftb1_(n, &r__[1], &wsave[1], &wsave[*n + 1], &wsave[(*n << 1) + 1]);
-    return 0;
-} /* rfftb_ */
-
-/* Subroutine */ int rfftb1_(integer *n, doublereal *c__, doublereal *ch, 
-	doublereal *wa, doublereal *xxifac)
-{
-    /* System generated locals */
-    integer i__1;
-    static doublereal equiv_0[15];
-
-    /* Local variables */
-    static integer i__, k1, l1, l2, na, nf, ip, iw, ix2, ix3, ix4, ido, idl1;
-#define jfac ((integer *)equiv_0)
-#define rfac (equiv_0)
-    extern /* Subroutine */ int radb2_(integer *, integer *, doublereal *, 
-	    doublereal *, doublereal *), radb3_(integer *, integer *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *), radb4_(
-	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *), radb5_(integer *, integer *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *), radbg_(integer *, integer *, integer 
-	    *, integer *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --xxifac;
-    --wa;
-    --ch;
-    --c__;
-
-    /* Function Body */
-    for (i__ = 1; i__ <= 15; ++i__) {
-	rfac[i__ - 1] = xxifac[i__];
-/* L100: */
-    }
-    nf = jfac[1];
-    na = 0;
-    l1 = 1;
-    iw = 1;
-    i__1 = nf;
-    for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = jfac[k1 + 1];
-	l2 = ip * l1;
-	ido = *n / l2;
-	idl1 = ido * l1;
-	if (ip != 4) {
-	    goto L103;
-	}
-	ix2 = iw + ido;
-	ix3 = ix2 + ido;
-	if (na != 0) {
-	    goto L101;
-	}
-	radb4_(&ido, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2], &wa[ix3]);
-	goto L102;
-L101:
-	radb4_(&ido, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2], &wa[ix3]);
-L102:
-	na = 1 - na;
-	goto L115;
-L103:
-	if (ip != 2) {
-	    goto L106;
-	}
-	if (na != 0) {
-	    goto L104;
-	}
-	radb2_(&ido, &l1, &c__[1], &ch[1], &wa[iw]);
-	goto L105;
-L104:
-	radb2_(&ido, &l1, &ch[1], &c__[1], &wa[iw]);
-L105:
-	na = 1 - na;
-	goto L115;
-L106:
-	if (ip != 3) {
-	    goto L109;
-	}
-	ix2 = iw + ido;
-	if (na != 0) {
-	    goto L107;
-	}
-	radb3_(&ido, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2]);
-	goto L108;
-L107:
-	radb3_(&ido, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2]);
-L108:
-	na = 1 - na;
-	goto L115;
-L109:
-	if (ip != 5) {
-	    goto L112;
-	}
-	ix2 = iw + ido;
-	ix3 = ix2 + ido;
-	ix4 = ix3 + ido;
-	if (na != 0) {
-	    goto L110;
-	}
-	radb5_(&ido, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2], &wa[ix3], &wa[
-		ix4]);
-	goto L111;
-L110:
-	radb5_(&ido, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2], &wa[ix3], &wa[
-		ix4]);
-L111:
-	na = 1 - na;
-	goto L115;
-L112:
-	if (na != 0) {
-	    goto L113;
-	}
-	radbg_(&ido, &ip, &l1, &idl1, &c__[1], &c__[1], &c__[1], &ch[1], &ch[
-		1], &wa[iw]);
-	goto L114;
-L113:
-	radbg_(&ido, &ip, &l1, &idl1, &ch[1], &ch[1], &ch[1], &c__[1], &c__[1]
-		, &wa[iw]);
-L114:
-	if (ido == 1) {
-	    na = 1 - na;
-	}
-L115:
-	l1 = l2;
-	iw += (ip - 1) * ido;
-/* L116: */
-    }
-    if (na == 0) {
-	return 0;
-    }
-    i__1 = *n;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	c__[i__] = ch[i__];
-/* L117: */
-    }
-    return 0;
-} /* rfftb1_ */
-
-#undef rfac
-#undef jfac
-
-
-/* Subroutine */ int radbg_(integer *ido, integer *ip, integer *l1, integer *
-	idl1, doublereal *cc, doublereal *c1, doublereal *c2, doublereal *ch, 
-	doublereal *ch2, doublereal *wa)
-{
-    /* Initialized data */
-
-    static doublereal tpi = 6.28318530717959;
-
-    /* System generated locals */
-    integer ch_dim1, ch_dim2, ch_offset, cc_dim1, cc_dim2, cc_offset, c1_dim1,
-	     c1_dim2, c1_offset, c2_dim1, c2_offset, ch2_dim1, ch2_offset, 
-	    i__1, i__2, i__3;
-
-    /* Builtin functions */
-    double cos(doublereal), sin(doublereal);
-
-    /* Local variables */
-    static integer i__, j, k, l, j2, ic, jc, lc, ik, is;
-    static doublereal dc2, ai1, ai2, ar1, ar2, ds2;
-    static integer nbd;
-    static doublereal dcp, arg, dsp, ar1h, ar2h;
-    static integer idp2, ipp2, idij, ipph;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    c1_dim1 = *ido;
-    c1_dim2 = *l1;
-    c1_offset = 1 + c1_dim1 * (1 + c1_dim2);
-    c1 -= c1_offset;
-    cc_dim1 = *ido;
-    cc_dim2 = *ip;
-    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
-    cc -= cc_offset;
-    ch2_dim1 = *idl1;
-    ch2_offset = 1 + ch2_dim1;
-    ch2 -= ch2_offset;
-    c2_dim1 = *idl1;
-    c2_offset = 1 + c2_dim1;
-    c2 -= c2_offset;
-    --wa;
-
-    /* Function Body */
-    arg = tpi / (real) (*ip);
-    dcp = cos(arg);
-    dsp = sin(arg);
-    idp2 = *ido + 2;
-    nbd = (*ido - 1) / 2;
-    ipp2 = *ip + 2;
-    ipph = (*ip + 1) / 2;
-    if (*ido < *l1) {
-	goto L103;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 1; i__ <= i__2; ++i__) {
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * cc_dim2 + 1) * 
-		    cc_dim1];
-/* L101: */
-	}
-/* L102: */
-    }
-    goto L106;
-L103:
-    i__1 = *ido;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * cc_dim2 + 1) * 
-		    cc_dim1];
-/* L104: */
-	}
-/* L105: */
-    }
-L106:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	j2 = j + j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    ch[(k + j * ch_dim2) * ch_dim1 + 1] = cc[*ido + (j2 - 2 + k * 
-		    cc_dim2) * cc_dim1] + cc[*ido + (j2 - 2 + k * cc_dim2) * 
-		    cc_dim1];
-	    ch[(k + jc * ch_dim2) * ch_dim1 + 1] = cc[(j2 - 1 + k * cc_dim2) *
-		     cc_dim1 + 1] + cc[(j2 - 1 + k * cc_dim2) * cc_dim1 + 1];
-/* L107: */
-	}
-/* L108: */
-    }
-    if (*ido == 1) {
-	goto L116;
-    }
-    if (nbd < *l1) {
-	goto L112;
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    i__3 = *ido;
-	    for (i__ = 3; i__ <= i__3; i__ += 2) {
-		ic = idp2 - i__;
-		ch[i__ - 1 + (k + j * ch_dim2) * ch_dim1] = cc[i__ - 1 + ((j 
-			<< 1) - 1 + k * cc_dim2) * cc_dim1] + cc[ic - 1 + ((j 
-			<< 1) - 2 + k * cc_dim2) * cc_dim1];
-		ch[i__ - 1 + (k + jc * ch_dim2) * ch_dim1] = cc[i__ - 1 + ((j 
-			<< 1) - 1 + k * cc_dim2) * cc_dim1] - cc[ic - 1 + ((j 
-			<< 1) - 2 + k * cc_dim2) * cc_dim1];
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = cc[i__ + ((j << 1) - 
-			1 + k * cc_dim2) * cc_dim1] - cc[ic + ((j << 1) - 2 + 
-			k * cc_dim2) * cc_dim1];
-		ch[i__ + (k + jc * ch_dim2) * ch_dim1] = cc[i__ + ((j << 1) - 
-			1 + k * cc_dim2) * cc_dim1] + cc[ic + ((j << 1) - 2 + 
-			k * cc_dim2) * cc_dim1];
-/* L109: */
-	    }
-/* L110: */
-	}
-/* L111: */
-    }
-    goto L116;
-L112:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		ch[i__ - 1 + (k + j * ch_dim2) * ch_dim1] = cc[i__ - 1 + ((j 
-			<< 1) - 1 + k * cc_dim2) * cc_dim1] + cc[ic - 1 + ((j 
-			<< 1) - 2 + k * cc_dim2) * cc_dim1];
-		ch[i__ - 1 + (k + jc * ch_dim2) * ch_dim1] = cc[i__ - 1 + ((j 
-			<< 1) - 1 + k * cc_dim2) * cc_dim1] - cc[ic - 1 + ((j 
-			<< 1) - 2 + k * cc_dim2) * cc_dim1];
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = cc[i__ + ((j << 1) - 
-			1 + k * cc_dim2) * cc_dim1] - cc[ic + ((j << 1) - 2 + 
-			k * cc_dim2) * cc_dim1];
-		ch[i__ + (k + jc * ch_dim2) * ch_dim1] = cc[i__ + ((j << 1) - 
-			1 + k * cc_dim2) * cc_dim1] + cc[ic + ((j << 1) - 2 + 
-			k * cc_dim2) * cc_dim1];
-/* L113: */
-	    }
-/* L114: */
-	}
-/* L115: */
-    }
-L116:
-    ar1 = 1.f;
-    ai1 = 0.f;
-    i__1 = ipph;
-    for (l = 2; l <= i__1; ++l) {
-	lc = ipp2 - l;
-	ar1h = dcp * ar1 - dsp * ai1;
-	ai1 = dcp * ai1 + dsp * ar1;
-	ar1 = ar1h;
-	i__2 = *idl1;
-	for (ik = 1; ik <= i__2; ++ik) {
-	    c2[ik + l * c2_dim1] = ch2[ik + ch2_dim1] + ar1 * ch2[ik + (
-		    ch2_dim1 << 1)];
-	    c2[ik + lc * c2_dim1] = ai1 * ch2[ik + *ip * ch2_dim1];
-/* L117: */
-	}
-	dc2 = ar1;
-	ds2 = ai1;
-	ar2 = ar1;
-	ai2 = ai1;
-	i__2 = ipph;
-	for (j = 3; j <= i__2; ++j) {
-	    jc = ipp2 - j;
-	    ar2h = dc2 * ar2 - ds2 * ai2;
-	    ai2 = dc2 * ai2 + ds2 * ar2;
-	    ar2 = ar2h;
-	    i__3 = *idl1;
-	    for (ik = 1; ik <= i__3; ++ik) {
-		c2[ik + l * c2_dim1] += ar2 * ch2[ik + j * ch2_dim1];
-		c2[ik + lc * c2_dim1] += ai2 * ch2[ik + jc * ch2_dim1];
-/* L118: */
-	    }
-/* L119: */
-	}
-/* L120: */
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	i__2 = *idl1;
-	for (ik = 1; ik <= i__2; ++ik) {
-	    ch2[ik + ch2_dim1] += ch2[ik + j * ch2_dim1];
-/* L121: */
-	}
-/* L122: */
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    ch[(k + j * ch_dim2) * ch_dim1 + 1] = c1[(k + j * c1_dim2) * 
-		    c1_dim1 + 1] - c1[(k + jc * c1_dim2) * c1_dim1 + 1];
-	    ch[(k + jc * ch_dim2) * ch_dim1 + 1] = c1[(k + j * c1_dim2) * 
-		    c1_dim1 + 1] + c1[(k + jc * c1_dim2) * c1_dim1 + 1];
-/* L123: */
-	}
-/* L124: */
-    }
-    if (*ido == 1) {
-	goto L132;
-    }
-    if (nbd < *l1) {
-	goto L128;
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    i__3 = *ido;
-	    for (i__ = 3; i__ <= i__3; i__ += 2) {
-		ch[i__ - 1 + (k + j * ch_dim2) * ch_dim1] = c1[i__ - 1 + (k + 
-			j * c1_dim2) * c1_dim1] - c1[i__ + (k + jc * c1_dim2) 
-			* c1_dim1];
-		ch[i__ - 1 + (k + jc * ch_dim2) * ch_dim1] = c1[i__ - 1 + (k 
-			+ j * c1_dim2) * c1_dim1] + c1[i__ + (k + jc * 
-			c1_dim2) * c1_dim1];
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = c1[i__ + (k + j * 
-			c1_dim2) * c1_dim1] + c1[i__ - 1 + (k + jc * c1_dim2) 
-			* c1_dim1];
-		ch[i__ + (k + jc * ch_dim2) * ch_dim1] = c1[i__ + (k + j * 
-			c1_dim2) * c1_dim1] - c1[i__ - 1 + (k + jc * c1_dim2) 
-			* c1_dim1];
-/* L125: */
-	    }
-/* L126: */
-	}
-/* L127: */
-    }
-    goto L132;
-L128:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		ch[i__ - 1 + (k + j * ch_dim2) * ch_dim1] = c1[i__ - 1 + (k + 
-			j * c1_dim2) * c1_dim1] - c1[i__ + (k + jc * c1_dim2) 
-			* c1_dim1];
-		ch[i__ - 1 + (k + jc * ch_dim2) * ch_dim1] = c1[i__ - 1 + (k 
-			+ j * c1_dim2) * c1_dim1] + c1[i__ + (k + jc * 
-			c1_dim2) * c1_dim1];
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = c1[i__ + (k + j * 
-			c1_dim2) * c1_dim1] + c1[i__ - 1 + (k + jc * c1_dim2) 
-			* c1_dim1];
-		ch[i__ + (k + jc * ch_dim2) * ch_dim1] = c1[i__ + (k + j * 
-			c1_dim2) * c1_dim1] - c1[i__ - 1 + (k + jc * c1_dim2) 
-			* c1_dim1];
-/* L129: */
-	    }
-/* L130: */
-	}
-/* L131: */
-    }
-L132:
-    if (*ido == 1) {
-	return 0;
-    }
-    i__1 = *idl1;
-    for (ik = 1; ik <= i__1; ++ik) {
-	c2[ik + c2_dim1] = ch2[ik + ch2_dim1];
-/* L133: */
-    }
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    c1[(k + j * c1_dim2) * c1_dim1 + 1] = ch[(k + j * ch_dim2) * 
-		    ch_dim1 + 1];
-/* L134: */
-	}
-/* L135: */
-    }
-    if (nbd > *l1) {
-	goto L139;
-    }
-    is = -(*ido);
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	is += *ido;
-	idij = is;
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    idij += 2;
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		c1[i__ - 1 + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[
-			i__ - 1 + (k + j * ch_dim2) * ch_dim1] - wa[idij] * 
-			ch[i__ + (k + j * ch_dim2) * ch_dim1];
-		c1[i__ + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[i__ 
-			+ (k + j * ch_dim2) * ch_dim1] + wa[idij] * ch[i__ - 
-			1 + (k + j * ch_dim2) * ch_dim1];
-/* L136: */
-	    }
-/* L137: */
-	}
-/* L138: */
-    }
-    goto L143;
-L139:
-    is = -(*ido);
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	is += *ido;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    idij = is;
-	    i__3 = *ido;
-	    for (i__ = 3; i__ <= i__3; i__ += 2) {
-		idij += 2;
-		c1[i__ - 1 + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[
-			i__ - 1 + (k + j * ch_dim2) * ch_dim1] - wa[idij] * 
-			ch[i__ + (k + j * ch_dim2) * ch_dim1];
-		c1[i__ + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[i__ 
-			+ (k + j * ch_dim2) * ch_dim1] + wa[idij] * ch[i__ - 
-			1 + (k + j * ch_dim2) * ch_dim1];
-/* L140: */
-	    }
-/* L141: */
-	}
-/* L142: */
-    }
-L143:
-    return 0;
-} /* radbg_ */
-
-/* Subroutine */ int radb5_(integer *ido, integer *l1, doublereal *cc, 
-	doublereal *ch, doublereal *wa1, doublereal *wa2, doublereal *wa3, 
-	doublereal *wa4)
-{
-    /* Initialized data */
-
-    static doublereal tr11 = .309016994374947;
-    static doublereal ti11 = .951056516295154;
-    static doublereal tr12 = -.809016994374947;
-    static doublereal ti12 = .587785252292473;
-
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k, ic;
-    static doublereal ci2, ci3, ci4, ci5, di3, di4, di5, di2, cr2, cr3, cr5, 
-	    cr4, ti2, ti3, ti4, ti5, dr3, dr4, dr5, dr2, tr2, tr3, tr4, tr5;
-    static integer idp2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 6;
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-    --wa3;
-    --wa4;
-
-    /* Function Body */
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ti5 = cc[(k * 5 + 3) * cc_dim1 + 1] + cc[(k * 5 + 3) * cc_dim1 + 1];
-	ti4 = cc[(k * 5 + 5) * cc_dim1 + 1] + cc[(k * 5 + 5) * cc_dim1 + 1];
-	tr2 = cc[*ido + (k * 5 + 2) * cc_dim1] + cc[*ido + (k * 5 + 2) * 
-		cc_dim1];
-	tr3 = cc[*ido + (k * 5 + 4) * cc_dim1] + cc[*ido + (k * 5 + 4) * 
-		cc_dim1];
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[(k * 5 + 1) * cc_dim1 + 1] + tr2 
-		+ tr3;
-	cr2 = cc[(k * 5 + 1) * cc_dim1 + 1] + tr11 * tr2 + tr12 * tr3;
-	cr3 = cc[(k * 5 + 1) * cc_dim1 + 1] + tr12 * tr2 + tr11 * tr3;
-	ci5 = ti11 * ti5 + ti12 * ti4;
-	ci4 = ti12 * ti5 - ti11 * ti4;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cr2 - ci5;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = cr3 - ci4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 1] = cr3 + ci4;
-	ch[(k + ch_dim2 * 5) * ch_dim1 + 1] = cr2 + ci5;
-/* L101: */
-    }
-    if (*ido == 1) {
-	return 0;
-    }
-    idp2 = *ido + 2;
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    ti5 = cc[i__ + (k * 5 + 3) * cc_dim1] + cc[ic + (k * 5 + 2) * 
-		    cc_dim1];
-	    ti2 = cc[i__ + (k * 5 + 3) * cc_dim1] - cc[ic + (k * 5 + 2) * 
-		    cc_dim1];
-	    ti4 = cc[i__ + (k * 5 + 5) * cc_dim1] + cc[ic + (k * 5 + 4) * 
-		    cc_dim1];
-	    ti3 = cc[i__ + (k * 5 + 5) * cc_dim1] - cc[ic + (k * 5 + 4) * 
-		    cc_dim1];
-	    tr5 = cc[i__ - 1 + (k * 5 + 3) * cc_dim1] - cc[ic - 1 + (k * 5 + 
-		    2) * cc_dim1];
-	    tr2 = cc[i__ - 1 + (k * 5 + 3) * cc_dim1] + cc[ic - 1 + (k * 5 + 
-		    2) * cc_dim1];
-	    tr4 = cc[i__ - 1 + (k * 5 + 5) * cc_dim1] - cc[ic - 1 + (k * 5 + 
-		    4) * cc_dim1];
-	    tr3 = cc[i__ - 1 + (k * 5 + 5) * cc_dim1] + cc[ic - 1 + (k * 5 + 
-		    4) * cc_dim1];
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + (k * 5 + 1) *
-		     cc_dim1] + tr2 + tr3;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * 5 + 1) * 
-		    cc_dim1] + ti2 + ti3;
-	    cr2 = cc[i__ - 1 + (k * 5 + 1) * cc_dim1] + tr11 * tr2 + tr12 * 
-		    tr3;
-	    ci2 = cc[i__ + (k * 5 + 1) * cc_dim1] + tr11 * ti2 + tr12 * ti3;
-	    cr3 = cc[i__ - 1 + (k * 5 + 1) * cc_dim1] + tr12 * tr2 + tr11 * 
-		    tr3;
-	    ci3 = cc[i__ + (k * 5 + 1) * cc_dim1] + tr12 * ti2 + tr11 * ti3;
-	    cr5 = ti11 * tr5 + ti12 * tr4;
-	    ci5 = ti11 * ti5 + ti12 * ti4;
-	    cr4 = ti12 * tr5 - ti11 * tr4;
-	    ci4 = ti12 * ti5 - ti11 * ti4;
-	    dr3 = cr3 - ci4;
-	    dr4 = cr3 + ci4;
-	    di3 = ci3 + cr4;
-	    di4 = ci3 - cr4;
-	    dr5 = cr2 + ci5;
-	    dr2 = cr2 - ci5;
-	    di5 = ci2 - cr5;
-	    di2 = ci2 + cr5;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 2] * dr2 
-		    - wa1[i__ - 1] * di2;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 2] * di2 + 
-		    wa1[i__ - 1] * dr2;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 2] * dr3 - 
-		    wa2[i__ - 1] * di3;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 2] * di3 + wa2[
-		    i__ - 1] * dr3;
-	    ch[i__ - 1 + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 2] * dr4 
-		    - wa3[i__ - 1] * di4;
-	    ch[i__ + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 2] * di4 + 
-		    wa3[i__ - 1] * dr4;
-	    ch[i__ - 1 + (k + ch_dim2 * 5) * ch_dim1] = wa4[i__ - 2] * dr5 - 
-		    wa4[i__ - 1] * di5;
-	    ch[i__ + (k + ch_dim2 * 5) * ch_dim1] = wa4[i__ - 2] * di5 + wa4[
-		    i__ - 1] * dr5;
-/* L102: */
-	}
-/* L103: */
-    }
-    return 0;
-} /* radb5_ */
-
-/* Subroutine */ int radb3_(integer *ido, integer *l1, doublereal *cc, 
-	doublereal *ch, doublereal *wa1, doublereal *wa2)
-{
-    /* Initialized data */
-
-    static doublereal taur = -.5;
-    static doublereal taui = .866025403784439;
-
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k, ic;
-    static doublereal ci2, ci3, di2, di3, cr2, cr3, dr2, dr3, ti2, tr2;
-    static integer idp2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + (cc_dim1 << 2);
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-
-    /* Function Body */
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	tr2 = cc[*ido + (k * 3 + 2) * cc_dim1] + cc[*ido + (k * 3 + 2) * 
-		cc_dim1];
-	cr2 = cc[(k * 3 + 1) * cc_dim1 + 1] + taur * tr2;
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[(k * 3 + 1) * cc_dim1 + 1] + tr2;
-	ci3 = taui * (cc[(k * 3 + 3) * cc_dim1 + 1] + cc[(k * 3 + 3) * 
-		cc_dim1 + 1]);
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cr2 - ci3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = cr2 + ci3;
-/* L101: */
-    }
-    if (*ido == 1) {
-	return 0;
-    }
-    idp2 = *ido + 2;
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    tr2 = cc[i__ - 1 + (k * 3 + 3) * cc_dim1] + cc[ic - 1 + (k * 3 + 
-		    2) * cc_dim1];
-	    cr2 = cc[i__ - 1 + (k * 3 + 1) * cc_dim1] + taur * tr2;
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + (k * 3 + 1) *
-		     cc_dim1] + tr2;
-	    ti2 = cc[i__ + (k * 3 + 3) * cc_dim1] - cc[ic + (k * 3 + 2) * 
-		    cc_dim1];
-	    ci2 = cc[i__ + (k * 3 + 1) * cc_dim1] + taur * ti2;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * 3 + 1) * 
-		    cc_dim1] + ti2;
-	    cr3 = taui * (cc[i__ - 1 + (k * 3 + 3) * cc_dim1] - cc[ic - 1 + (
-		    k * 3 + 2) * cc_dim1]);
-	    ci3 = taui * (cc[i__ + (k * 3 + 3) * cc_dim1] + cc[ic + (k * 3 + 
-		    2) * cc_dim1]);
-	    dr2 = cr2 - ci3;
-	    dr3 = cr2 + ci3;
-	    di2 = ci2 + cr3;
-	    di3 = ci2 - cr3;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 2] * dr2 
-		    - wa1[i__ - 1] * di2;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 2] * di2 + 
-		    wa1[i__ - 1] * dr2;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 2] * dr3 - 
-		    wa2[i__ - 1] * di3;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 2] * di3 + wa2[
-		    i__ - 1] * dr3;
-/* L102: */
-	}
-/* L103: */
-    }
-    return 0;
-} /* radb3_ */
-
-/* Subroutine */ int radb2_(integer *ido, integer *l1, doublereal *cc, 
-	doublereal *ch, doublereal *wa1)
-{
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k, ic;
-    static doublereal ti2, tr2;
-    static integer idp2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 3;
-    cc -= cc_offset;
-    --wa1;
-
-    /* Function Body */
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[((k << 1) + 1) * cc_dim1 + 1] + 
-		cc[*ido + ((k << 1) + 2) * cc_dim1];
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cc[((k << 1) + 1) * cc_dim1 
-		+ 1] - cc[*ido + ((k << 1) + 2) * cc_dim1];
-/* L101: */
-    }
-    if ((i__1 = *ido - 2) < 0) {
-	goto L107;
-    } else if (i__1 == 0) {
-	goto L105;
-    } else {
-	goto L102;
-    }
-L102:
-    idp2 = *ido + 2;
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + ((k << 1) + 
-		    1) * cc_dim1] + cc[ic - 1 + ((k << 1) + 2) * cc_dim1];
-	    tr2 = cc[i__ - 1 + ((k << 1) + 1) * cc_dim1] - cc[ic - 1 + ((k << 
-		    1) + 2) * cc_dim1];
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + ((k << 1) + 1) * 
-		    cc_dim1] - cc[ic + ((k << 1) + 2) * cc_dim1];
-	    ti2 = cc[i__ + ((k << 1) + 1) * cc_dim1] + cc[ic + ((k << 1) + 2) 
-		    * cc_dim1];
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 2] * tr2 
-		    - wa1[i__ - 1] * ti2;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 2] * ti2 + 
-		    wa1[i__ - 1] * tr2;
-/* L103: */
-	}
-/* L104: */
-    }
-    if (*ido % 2 == 1) {
-	return 0;
-    }
-L105:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ch[*ido + (k + ch_dim2) * ch_dim1] = cc[*ido + ((k << 1) + 1) * 
-		cc_dim1] + cc[*ido + ((k << 1) + 1) * cc_dim1];
-	ch[*ido + (k + (ch_dim2 << 1)) * ch_dim1] = -(cc[((k << 1) + 2) * 
-		cc_dim1 + 1] + cc[((k << 1) + 2) * cc_dim1 + 1]);
-/* L106: */
-    }
-L107:
-    return 0;
-} /* radb2_ */
-
-/* Subroutine */ int radb4_(integer *ido, integer *l1, doublereal *cc, 
-	doublereal *ch, doublereal *wa1, doublereal *wa2, doublereal *wa3)
-{
-    /* Initialized data */
-
-    static doublereal sqrt2 = 1.414213562373095;
-
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k, ic;
-    static doublereal ci2, ci3, ci4, cr2, cr3, cr4, ti1, ti2, ti3, ti4, tr1, 
-	    tr2, tr3, tr4;
-    static integer idp2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 5;
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-    --wa3;
-
-    /* Function Body */
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	tr1 = cc[((k << 2) + 1) * cc_dim1 + 1] - cc[*ido + ((k << 2) + 4) * 
-		cc_dim1];
-	tr2 = cc[((k << 2) + 1) * cc_dim1 + 1] + cc[*ido + ((k << 2) + 4) * 
-		cc_dim1];
-	tr3 = cc[*ido + ((k << 2) + 2) * cc_dim1] + cc[*ido + ((k << 2) + 2) *
-		 cc_dim1];
-	tr4 = cc[((k << 2) + 3) * cc_dim1 + 1] + cc[((k << 2) + 3) * cc_dim1 
-		+ 1];
-	ch[(k + ch_dim2) * ch_dim1 + 1] = tr2 + tr3;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = tr1 - tr4;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = tr2 - tr3;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 1] = tr1 + tr4;
-/* L101: */
-    }
-    if ((i__1 = *ido - 2) < 0) {
-	goto L107;
-    } else if (i__1 == 0) {
-	goto L105;
-    } else {
-	goto L102;
-    }
-L102:
-    idp2 = *ido + 2;
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    ti1 = cc[i__ + ((k << 2) + 1) * cc_dim1] + cc[ic + ((k << 2) + 4) 
-		    * cc_dim1];
-	    ti2 = cc[i__ + ((k << 2) + 1) * cc_dim1] - cc[ic + ((k << 2) + 4) 
-		    * cc_dim1];
-	    ti3 = cc[i__ + ((k << 2) + 3) * cc_dim1] - cc[ic + ((k << 2) + 2) 
-		    * cc_dim1];
-	    tr4 = cc[i__ + ((k << 2) + 3) * cc_dim1] + cc[ic + ((k << 2) + 2) 
-		    * cc_dim1];
-	    tr1 = cc[i__ - 1 + ((k << 2) + 1) * cc_dim1] - cc[ic - 1 + ((k << 
-		    2) + 4) * cc_dim1];
-	    tr2 = cc[i__ - 1 + ((k << 2) + 1) * cc_dim1] + cc[ic - 1 + ((k << 
-		    2) + 4) * cc_dim1];
-	    ti4 = cc[i__ - 1 + ((k << 2) + 3) * cc_dim1] - cc[ic - 1 + ((k << 
-		    2) + 2) * cc_dim1];
-	    tr3 = cc[i__ - 1 + ((k << 2) + 3) * cc_dim1] + cc[ic - 1 + ((k << 
-		    2) + 2) * cc_dim1];
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = tr2 + tr3;
-	    cr3 = tr2 - tr3;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = ti2 + ti3;
-	    ci3 = ti2 - ti3;
-	    cr2 = tr1 - tr4;
-	    cr4 = tr1 + tr4;
-	    ci2 = ti1 + ti4;
-	    ci4 = ti1 - ti4;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 2] * cr2 
-		    - wa1[i__ - 1] * ci2;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 2] * ci2 + 
-		    wa1[i__ - 1] * cr2;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 2] * cr3 - 
-		    wa2[i__ - 1] * ci3;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 2] * ci3 + wa2[
-		    i__ - 1] * cr3;
-	    ch[i__ - 1 + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 2] * cr4 
-		    - wa3[i__ - 1] * ci4;
-	    ch[i__ + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 2] * ci4 + 
-		    wa3[i__ - 1] * cr4;
-/* L103: */
-	}
-/* L104: */
-    }
-    if (*ido % 2 == 1) {
-	return 0;
-    }
-L105:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ti1 = cc[((k << 2) + 2) * cc_dim1 + 1] + cc[((k << 2) + 4) * cc_dim1 
-		+ 1];
-	ti2 = cc[((k << 2) + 4) * cc_dim1 + 1] - cc[((k << 2) + 2) * cc_dim1 
-		+ 1];
-	tr1 = cc[*ido + ((k << 2) + 1) * cc_dim1] - cc[*ido + ((k << 2) + 3) *
-		 cc_dim1];
-	tr2 = cc[*ido + ((k << 2) + 1) * cc_dim1] + cc[*ido + ((k << 2) + 3) *
-		 cc_dim1];
-	ch[*ido + (k + ch_dim2) * ch_dim1] = tr2 + tr2;
-	ch[*ido + (k + (ch_dim2 << 1)) * ch_dim1] = sqrt2 * (tr1 - ti1);
-	ch[*ido + (k + ch_dim2 * 3) * ch_dim1] = ti2 + ti2;
-	ch[*ido + (k + (ch_dim2 << 2)) * ch_dim1] = -sqrt2 * (tr1 + ti1);
-/* L106: */
-    }
-L107:
-    return 0;
-} /* radb4_ */
-
-/* Subroutine */ int cffti_(integer *n, doublereal *wsave)
-{
-    static integer iw1, iw2;
-    extern /* Subroutine */ int cffti1_(integer *, doublereal *, doublereal *)
-	    ;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --wsave;
-
-    /* Function Body */
-    if (*n == 1) {
-	return 0;
-    }
-    iw1 = *n + *n + 1;
-    iw2 = iw1 + *n + *n;
-    cffti1_(n, &wsave[iw1], &wsave[iw2]);
-    return 0;
-} /* cffti_ */
-
-/* Subroutine */ int cffti1_(integer *n, doublereal *wa, doublereal *xxifac)
-{
-    /* Initialized data */
-
-    static integer ntryh[4] = { 3,4,2,5 };
-
-    /* System generated locals */
-    integer i__1, i__2, i__3;
-    static doublereal equiv_0[15];
-    static integer equiv_1[15];
-    
-    /* Builtin functions */
-    double cos(doublereal), sin(doublereal);
-
-    /* Local variables */
-    static integer i__, j, i1, k1, l1, l2, ib;
-    static doublereal fi;
-    static integer ld, ii, nf, ip, nl, nq, nr;
-    static doublereal arg;
-    static integer ido, ipm;
-    static doublereal tpi;
-#define jfac (equiv_1)
-#define rfac (equiv_0)
-    static doublereal argh;
-    static integer idot, ntry;
-    static doublereal argld;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --xxifac;
-    --wa;
-
-    /* Function Body */
-    for (i__ = 1; i__ <= 15; ++i__) {
-	rfac[i__ - 1] = xxifac[i__];
-/* L100: */
-    }
-    nl = *n;
-    nf = 0;
-    j = 0;
-L101:
-    ++j;
-    if (j - 4 <= 0) {
-	goto L102;
-    } else {
-	goto L103;
-    }
-L102:
-    ntry = ntryh[j - 1];
-    goto L104;
-L103:
-    ntry += 2;
-L104:
-    nq = nl / ntry;
-    nr = nl - ntry * nq;
-    if (nr != 0) {
-	goto L101;
-    } else {
-	goto L105;
-    }
-L105:
-    ++nf;
-    jfac[nf + 1] = ntry;
-    nl = nq;
-    if (ntry != 2) {
-	goto L107;
-    }
-    if (nf == 1) {
-	goto L107;
-    }
-    i__1 = nf;
-    for (i__ = 2; i__ <= i__1; ++i__) {
-	ib = nf - i__ + 2;
-	jfac[ib + 1] = jfac[ib];
-/* L106: */
-    }
-    jfac[2] = 2;
-L107:
-    if (nl != 1) {
-	goto L104;
-    }
-    jfac[0] = *n;
-    jfac[1] = nf;
-    tpi = 6.28318530717959f;
-    argh = tpi / (real) (*n);
-    i__ = 2;
-    l1 = 1;
-    i__1 = nf;
-    for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = jfac[k1 + 1];
-	ld = 0;
-	l2 = l1 * ip;
-	ido = *n / l2;
-	idot = ido + ido + 2;
-	ipm = ip - 1;
-	i__2 = ipm;
-	for (j = 1; j <= i__2; ++j) {
-	    i1 = i__;
-	    wa[i__ - 1] = 1.f;
-	    wa[i__] = 0.f;
-	    ld += l1;
-	    fi = 0.f;
-	    argld = (real) ld * argh;
-	    i__3 = idot;
-	    for (ii = 4; ii <= i__3; ii += 2) {
-		i__ += 2;
-		fi += 1.f;
-		arg = fi * argld;
-		wa[i__ - 1] = cos(arg);
-		wa[i__] = sin(arg);
-/* L108: */
-	    }
-	    if (ip <= 5) {
-		goto L109;
-	    }
-	    wa[i1 - 1] = wa[i__ - 1];
-	    wa[i1] = wa[i__];
-L109:
-	    ;
-	}
-	l1 = l2;
-/* L110: */
-    }
-    for (i__ = 1; i__ <= 15; ++i__) {
-	xxifac[i__] = rfac[i__ - 1];
-/* L111: */
-    }
-    return 0;
-} /* cffti1_ */
-
-#undef rfac
-#undef jfac
-
-
-/* Subroutine */ int cfftf_(integer *n, doublereal *c__, doublereal *wsave)
-{
-    static integer iw1, iw2;
-    extern /* Subroutine */ int cfftf1_(integer *, doublereal *, doublereal *,
-	     doublereal *, doublereal *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --wsave;
-    --c__;
-
-    /* Function Body */
-    if (*n == 1) {
-	return 0;
-    }
-    iw1 = *n + *n + 1;
-    iw2 = iw1 + *n + *n;
-    cfftf1_(n, &c__[1], &wsave[1], &wsave[iw1], &wsave[iw2]);
-    return 0;
-} /* cfftf_ */
-
-/* Subroutine */ int cfftf1_(integer *n, doublereal *c__, doublereal *ch, 
-	doublereal *wa, doublereal *xxifac)
-{
-    /* System generated locals */
-    integer i__1;
-    static doublereal equiv_0[15];
-
-    /* Local variables */
-    static integer i__, k1, l1, l2, n2, na, nf, ip, iw, ix2, ix3, ix4, nac, 
-	    ido, idl1;
-#define jfac ((integer *)equiv_0)
-#define rfac (equiv_0)
-    static integer idot;
-    extern /* Subroutine */ int passf_(integer *, integer *, integer *, 
-	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *), passf2_(integer *, 
-	    integer *, doublereal *, doublereal *, doublereal *), passf3_(
-	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *), passf4_(integer *, integer *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *), passf5_(
-	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --xxifac;
-    --wa;
-    --ch;
-    --c__;
-
-    /* Function Body */
-    for (i__ = 1; i__ <= 15; ++i__) {
-	rfac[i__ - 1] = xxifac[i__];
-/* L100: */
-    }
-    nf = jfac[1];
-    na = 0;
-    l1 = 1;
-    iw = 1;
-    i__1 = nf;
-    for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = jfac[k1 + 1];
-	l2 = ip * l1;
-	ido = *n / l2;
-	idot = ido + ido;
-	idl1 = idot * l1;
-	if (ip != 4) {
-	    goto L103;
-	}
-	ix2 = iw + idot;
-	ix3 = ix2 + idot;
-	if (na != 0) {
-	    goto L101;
-	}
-	passf4_(&idot, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2], &wa[ix3]);
-	goto L102;
-L101:
-	passf4_(&idot, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2], &wa[ix3]);
-L102:
-	na = 1 - na;
-	goto L115;
-L103:
-	if (ip != 2) {
-	    goto L106;
-	}
-	if (na != 0) {
-	    goto L104;
-	}
-	passf2_(&idot, &l1, &c__[1], &ch[1], &wa[iw]);
-	goto L105;
-L104:
-	passf2_(&idot, &l1, &ch[1], &c__[1], &wa[iw]);
-L105:
-	na = 1 - na;
-	goto L115;
-L106:
-	if (ip != 3) {
-	    goto L109;
-	}
-	ix2 = iw + idot;
-	if (na != 0) {
-	    goto L107;
-	}
-	passf3_(&idot, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2]);
-	goto L108;
-L107:
-	passf3_(&idot, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2]);
-L108:
-	na = 1 - na;
-	goto L115;
-L109:
-	if (ip != 5) {
-	    goto L112;
-	}
-	ix2 = iw + idot;
-	ix3 = ix2 + idot;
-	ix4 = ix3 + idot;
-	if (na != 0) {
-	    goto L110;
-	}
-	passf5_(&idot, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2], &wa[ix3], &wa[
-		ix4]);
-	goto L111;
-L110:
-	passf5_(&idot, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2], &wa[ix3], &wa[
-		ix4]);
-L111:
-	na = 1 - na;
-	goto L115;
-L112:
-	if (na != 0) {
-	    goto L113;
-	}
-	passf_(&nac, &idot, &ip, &l1, &idl1, &c__[1], &c__[1], &c__[1], &ch[1]
-		, &ch[1], &wa[iw]);
-	goto L114;
-L113:
-	passf_(&nac, &idot, &ip, &l1, &idl1, &ch[1], &ch[1], &ch[1], &c__[1], 
-		&c__[1], &wa[iw]);
-L114:
-	if (nac != 0) {
-	    na = 1 - na;
-	}
-L115:
-	l1 = l2;
-	iw += (ip - 1) * idot;
-/* L116: */
-    }
-    if (na == 0) {
-	return 0;
-    }
-    n2 = *n + *n;
-    i__1 = n2;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	c__[i__] = ch[i__];
-/* L117: */
-    }
-    return 0;
-} /* cfftf1_ */
-
-#undef rfac
-#undef jfac
-
-
-/* Subroutine */ int passf_(integer *nac, integer *ido, integer *ip, integer *
-	l1, integer *idl1, doublereal *cc, doublereal *c1, doublereal *c2, 
-	doublereal *ch, doublereal *ch2, doublereal *wa)
-{
-    /* System generated locals */
-    integer ch_dim1, ch_dim2, ch_offset, cc_dim1, cc_dim2, cc_offset, c1_dim1,
-	     c1_dim2, c1_offset, c2_dim1, c2_offset, ch2_dim1, ch2_offset, 
-	    i__1, i__2, i__3;
-
-    /* Local variables */
-    static integer i__, j, k, l, jc, lc, ik, idj, idl, inc, idp;
-    static doublereal wai, war;
-    static integer ipp2, idij, idlj, idot, ipph;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    c1_dim1 = *ido;
-    c1_dim2 = *l1;
-    c1_offset = 1 + c1_dim1 * (1 + c1_dim2);
-    c1 -= c1_offset;
-    cc_dim1 = *ido;
-    cc_dim2 = *ip;
-    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
-    cc -= cc_offset;
-    ch2_dim1 = *idl1;
-    ch2_offset = 1 + ch2_dim1;
-    ch2 -= ch2_offset;
-    c2_dim1 = *idl1;
-    c2_offset = 1 + c2_dim1;
-    c2 -= c2_offset;
-    --wa;
-
-    /* Function Body */
-    idot = *ido / 2;
-    ipp2 = *ip + 2;
-    ipph = (*ip + 1) / 2;
-    idp = *ip * *ido;
-
-    if (*ido < *l1) {
-	goto L106;
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    i__3 = *ido;
-	    for (i__ = 1; i__ <= i__3; ++i__) {
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = cc[i__ + (j + k * 
-			cc_dim2) * cc_dim1] + cc[i__ + (jc + k * cc_dim2) * 
-			cc_dim1];
-		ch[i__ + (k + jc * ch_dim2) * ch_dim1] = cc[i__ + (j + k * 
-			cc_dim2) * cc_dim1] - cc[i__ + (jc + k * cc_dim2) * 
-			cc_dim1];
-/* L101: */
-	    }
-/* L102: */
-	}
-/* L103: */
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 1; i__ <= i__2; ++i__) {
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * cc_dim2 + 1) * 
-		    cc_dim1];
-/* L104: */
-	}
-/* L105: */
-    }
-    goto L112;
-L106:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *ido;
-	for (i__ = 1; i__ <= i__2; ++i__) {
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = cc[i__ + (j + k * 
-			cc_dim2) * cc_dim1] + cc[i__ + (jc + k * cc_dim2) * 
-			cc_dim1];
-		ch[i__ + (k + jc * ch_dim2) * ch_dim1] = cc[i__ + (j + k * 
-			cc_dim2) * cc_dim1] - cc[i__ + (jc + k * cc_dim2) * 
-			cc_dim1];
-/* L107: */
-	    }
-/* L108: */
-	}
-/* L109: */
-    }
-    i__1 = *ido;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * cc_dim2 + 1) * 
-		    cc_dim1];
-/* L110: */
-	}
-/* L111: */
-    }
-L112:
-    idl = 2 - *ido;
-    inc = 0;
-    i__1 = ipph;
-    for (l = 2; l <= i__1; ++l) {
-	lc = ipp2 - l;
-	idl += *ido;
-	i__2 = *idl1;
-	for (ik = 1; ik <= i__2; ++ik) {
-	    c2[ik + l * c2_dim1] = ch2[ik + ch2_dim1] + wa[idl - 1] * ch2[ik 
-		    + (ch2_dim1 << 1)];
-	    c2[ik + lc * c2_dim1] = -wa[idl] * ch2[ik + *ip * ch2_dim1];
-/* L113: */
-	}
-	idlj = idl;
-	inc += *ido;
-	i__2 = ipph;
-	for (j = 3; j <= i__2; ++j) {
-	    jc = ipp2 - j;
-	    idlj += inc;
-	    if (idlj > idp) {
-		idlj -= idp;
-	    }
-	    war = wa[idlj - 1];
-	    wai = wa[idlj];
-	    i__3 = *idl1;
-	    for (ik = 1; ik <= i__3; ++ik) {
-		c2[ik + l * c2_dim1] += war * ch2[ik + j * ch2_dim1];
-		c2[ik + lc * c2_dim1] -= wai * ch2[ik + jc * ch2_dim1];
-/* L114: */
-	    }
-/* L115: */
-	}
-/* L116: */
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	i__2 = *idl1;
-	for (ik = 1; ik <= i__2; ++ik) {
-	    ch2[ik + ch2_dim1] += ch2[ik + j * ch2_dim1];
-/* L117: */
-	}
-/* L118: */
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *idl1;
-	for (ik = 2; ik <= i__2; ik += 2) {
-	    ch2[ik - 1 + j * ch2_dim1] = c2[ik - 1 + j * c2_dim1] - c2[ik + 
-		    jc * c2_dim1];
-	    ch2[ik - 1 + jc * ch2_dim1] = c2[ik - 1 + j * c2_dim1] + c2[ik + 
-		    jc * c2_dim1];
-	    ch2[ik + j * ch2_dim1] = c2[ik + j * c2_dim1] + c2[ik - 1 + jc * 
-		    c2_dim1];
-	    ch2[ik + jc * ch2_dim1] = c2[ik + j * c2_dim1] - c2[ik - 1 + jc * 
-		    c2_dim1];
-/* L119: */
-	}
-/* L120: */
-    }
-    *nac = 1;
-    if (*ido == 2) {
-	return 0;
-    }
-    *nac = 0;
-    i__1 = *idl1;
-    for (ik = 1; ik <= i__1; ++ik) {
-	c2[ik + c2_dim1] = ch2[ik + ch2_dim1];
-/* L121: */
-    }
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    c1[(k + j * c1_dim2) * c1_dim1 + 1] = ch[(k + j * ch_dim2) * 
-		    ch_dim1 + 1];
-	    c1[(k + j * c1_dim2) * c1_dim1 + 2] = ch[(k + j * ch_dim2) * 
-		    ch_dim1 + 2];
-/* L122: */
-	}
-/* L123: */
-    }
-    if (idot > *l1) {
-	goto L127;
-    }
-    idij = 0;
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	idij += 2;
-	i__2 = *ido;
-	for (i__ = 4; i__ <= i__2; i__ += 2) {
-	    idij += 2;
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		c1[i__ - 1 + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[
-			i__ - 1 + (k + j * ch_dim2) * ch_dim1] + wa[idij] * 
-			ch[i__ + (k + j * ch_dim2) * ch_dim1];
-		c1[i__ + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[i__ 
-			+ (k + j * ch_dim2) * ch_dim1] - wa[idij] * ch[i__ - 
-			1 + (k + j * ch_dim2) * ch_dim1];
-/* L124: */
-	    }
-/* L125: */
-	}
-/* L126: */
-    }
-    return 0;
-L127:
-    idj = 2 - *ido;
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	idj += *ido;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    idij = idj;
-	    i__3 = *ido;
-	    for (i__ = 4; i__ <= i__3; i__ += 2) {
-		idij += 2;
-		c1[i__ - 1 + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[
-			i__ - 1 + (k + j * ch_dim2) * ch_dim1] + wa[idij] * 
-			ch[i__ + (k + j * ch_dim2) * ch_dim1];
-		c1[i__ + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[i__ 
-			+ (k + j * ch_dim2) * ch_dim1] - wa[idij] * ch[i__ - 
-			1 + (k + j * ch_dim2) * ch_dim1];
-/* L128: */
-	    }
-/* L129: */
-	}
-/* L130: */
-    }
-    return 0;
-} /* passf_ */
-
-/* Subroutine */ int passf5_(integer *ido, integer *l1, doublereal *cc, 
-	doublereal *ch, doublereal *wa1, doublereal *wa2, doublereal *wa3, 
-	doublereal *wa4)
-{
-    /* Initialized data */
-
-    static doublereal tr11 = .309016994374947;
-    static doublereal ti11 = -.951056516295154;
-    static doublereal tr12 = -.809016994374947;
-    static doublereal ti12 = -.587785252292473;
-
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k;
-    static doublereal ci2, ci3, ci4, ci5, di3, di4, di5, di2, cr2, cr3, cr5, 
-	    cr4, ti2, ti3, ti4, ti5, dr3, dr4, dr5, dr2, tr2, tr3, tr4, tr5;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 6;
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-    --wa3;
-    --wa4;
-
-    /* Function Body */
-    if (*ido != 2) {
-	goto L102;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ti5 = cc[(k * 5 + 2) * cc_dim1 + 2] - cc[(k * 5 + 5) * cc_dim1 + 2];
-	ti2 = cc[(k * 5 + 2) * cc_dim1 + 2] + cc[(k * 5 + 5) * cc_dim1 + 2];
-	ti4 = cc[(k * 5 + 3) * cc_dim1 + 2] - cc[(k * 5 + 4) * cc_dim1 + 2];
-	ti3 = cc[(k * 5 + 3) * cc_dim1 + 2] + cc[(k * 5 + 4) * cc_dim1 + 2];
-	tr5 = cc[(k * 5 + 2) * cc_dim1 + 1] - cc[(k * 5 + 5) * cc_dim1 + 1];
-	tr2 = cc[(k * 5 + 2) * cc_dim1 + 1] + cc[(k * 5 + 5) * cc_dim1 + 1];
-	tr4 = cc[(k * 5 + 3) * cc_dim1 + 1] - cc[(k * 5 + 4) * cc_dim1 + 1];
-	tr3 = cc[(k * 5 + 3) * cc_dim1 + 1] + cc[(k * 5 + 4) * cc_dim1 + 1];
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[(k * 5 + 1) * cc_dim1 + 1] + tr2 
-		+ tr3;
-	ch[(k + ch_dim2) * ch_dim1 + 2] = cc[(k * 5 + 1) * cc_dim1 + 2] + ti2 
-		+ ti3;
-	cr2 = cc[(k * 5 + 1) * cc_dim1 + 1] + tr11 * tr2 + tr12 * tr3;
-	ci2 = cc[(k * 5 + 1) * cc_dim1 + 2] + tr11 * ti2 + tr12 * ti3;
-	cr3 = cc[(k * 5 + 1) * cc_dim1 + 1] + tr12 * tr2 + tr11 * tr3;
-	ci3 = cc[(k * 5 + 1) * cc_dim1 + 2] + tr12 * ti2 + tr11 * ti3;
-	cr5 = ti11 * tr5 + ti12 * tr4;
-	ci5 = ti11 * ti5 + ti12 * ti4;
-	cr4 = ti12 * tr5 - ti11 * tr4;
-	ci4 = ti12 * ti5 - ti11 * ti4;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cr2 - ci5;
-	ch[(k + ch_dim2 * 5) * ch_dim1 + 1] = cr2 + ci5;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 2] = ci2 + cr5;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 2] = ci3 + cr4;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = cr3 - ci4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 1] = cr3 + ci4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 2] = ci3 - cr4;
-	ch[(k + ch_dim2 * 5) * ch_dim1 + 2] = ci2 - cr5;
-/* L101: */
-    }
-    return 0;
-L102:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 2; i__ <= i__2; i__ += 2) {
-	    ti5 = cc[i__ + (k * 5 + 2) * cc_dim1] - cc[i__ + (k * 5 + 5) * 
-		    cc_dim1];
-	    ti2 = cc[i__ + (k * 5 + 2) * cc_dim1] + cc[i__ + (k * 5 + 5) * 
-		    cc_dim1];
-	    ti4 = cc[i__ + (k * 5 + 3) * cc_dim1] - cc[i__ + (k * 5 + 4) * 
-		    cc_dim1];
-	    ti3 = cc[i__ + (k * 5 + 3) * cc_dim1] + cc[i__ + (k * 5 + 4) * 
-		    cc_dim1];
-	    tr5 = cc[i__ - 1 + (k * 5 + 2) * cc_dim1] - cc[i__ - 1 + (k * 5 + 
-		    5) * cc_dim1];
-	    tr2 = cc[i__ - 1 + (k * 5 + 2) * cc_dim1] + cc[i__ - 1 + (k * 5 + 
-		    5) * cc_dim1];
-	    tr4 = cc[i__ - 1 + (k * 5 + 3) * cc_dim1] - cc[i__ - 1 + (k * 5 + 
-		    4) * cc_dim1];
-	    tr3 = cc[i__ - 1 + (k * 5 + 3) * cc_dim1] + cc[i__ - 1 + (k * 5 + 
-		    4) * cc_dim1];
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + (k * 5 + 1) *
-		     cc_dim1] + tr2 + tr3;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * 5 + 1) * 
-		    cc_dim1] + ti2 + ti3;
-	    cr2 = cc[i__ - 1 + (k * 5 + 1) * cc_dim1] + tr11 * tr2 + tr12 * 
-		    tr3;
-	    ci2 = cc[i__ + (k * 5 + 1) * cc_dim1] + tr11 * ti2 + tr12 * ti3;
-	    cr3 = cc[i__ - 1 + (k * 5 + 1) * cc_dim1] + tr12 * tr2 + tr11 * 
-		    tr3;
-	    ci3 = cc[i__ + (k * 5 + 1) * cc_dim1] + tr12 * ti2 + tr11 * ti3;
-	    cr5 = ti11 * tr5 + ti12 * tr4;
-	    ci5 = ti11 * ti5 + ti12 * ti4;
-	    cr4 = ti12 * tr5 - ti11 * tr4;
-	    ci4 = ti12 * ti5 - ti11 * ti4;
-	    dr3 = cr3 - ci4;
-	    dr4 = cr3 + ci4;
-	    di3 = ci3 + cr4;
-	    di4 = ci3 - cr4;
-	    dr5 = cr2 + ci5;
-	    dr2 = cr2 - ci5;
-	    di5 = ci2 - cr5;
-	    di2 = ci2 + cr5;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * dr2 
-		    + wa1[i__] * di2;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * di2 - 
-		    wa1[i__] * dr2;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * dr3 + 
-		    wa2[i__] * di3;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * di3 - wa2[
-		    i__] * dr3;
-	    ch[i__ - 1 + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 1] * dr4 
-		    + wa3[i__] * di4;
-	    ch[i__ + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 1] * di4 - 
-		    wa3[i__] * dr4;
-	    ch[i__ - 1 + (k + ch_dim2 * 5) * ch_dim1] = wa4[i__ - 1] * dr5 + 
-		    wa4[i__] * di5;
-	    ch[i__ + (k + ch_dim2 * 5) * ch_dim1] = wa4[i__ - 1] * di5 - wa4[
-		    i__] * dr5;
-/* L103: */
-	}
-/* L104: */
-    }
-    return 0;
-} /* passf5_ */
-
-/* Subroutine */ int passf3_(integer *ido, integer *l1, doublereal *cc, 
-	doublereal *ch, doublereal *wa1, doublereal *wa2)
-{
-    /* Initialized data */
-
-    static doublereal taur = -.5;
-    static doublereal taui = -.866025403784439;
-
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k;
-    static doublereal ci2, ci3, di2, di3, cr2, cr3, dr2, dr3, ti2, tr2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + (cc_dim1 << 2);
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-
-    /* Function Body */
-    if (*ido != 2) {
-	goto L102;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	tr2 = cc[(k * 3 + 2) * cc_dim1 + 1] + cc[(k * 3 + 3) * cc_dim1 + 1];
-	cr2 = cc[(k * 3 + 1) * cc_dim1 + 1] + taur * tr2;
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[(k * 3 + 1) * cc_dim1 + 1] + tr2;
-	ti2 = cc[(k * 3 + 2) * cc_dim1 + 2] + cc[(k * 3 + 3) * cc_dim1 + 2];
-	ci2 = cc[(k * 3 + 1) * cc_dim1 + 2] + taur * ti2;
-	ch[(k + ch_dim2) * ch_dim1 + 2] = cc[(k * 3 + 1) * cc_dim1 + 2] + ti2;
-	cr3 = taui * (cc[(k * 3 + 2) * cc_dim1 + 1] - cc[(k * 3 + 3) * 
-		cc_dim1 + 1]);
-	ci3 = taui * (cc[(k * 3 + 2) * cc_dim1 + 2] - cc[(k * 3 + 3) * 
-		cc_dim1 + 2]);
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cr2 - ci3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = cr2 + ci3;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 2] = ci2 + cr3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 2] = ci2 - cr3;
-/* L101: */
-    }
-    return 0;
-L102:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 2; i__ <= i__2; i__ += 2) {
-	    tr2 = cc[i__ - 1 + (k * 3 + 2) * cc_dim1] + cc[i__ - 1 + (k * 3 + 
-		    3) * cc_dim1];
-	    cr2 = cc[i__ - 1 + (k * 3 + 1) * cc_dim1] + taur * tr2;
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + (k * 3 + 1) *
-		     cc_dim1] + tr2;
-	    ti2 = cc[i__ + (k * 3 + 2) * cc_dim1] + cc[i__ + (k * 3 + 3) * 
-		    cc_dim1];
-	    ci2 = cc[i__ + (k * 3 + 1) * cc_dim1] + taur * ti2;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * 3 + 1) * 
-		    cc_dim1] + ti2;
-	    cr3 = taui * (cc[i__ - 1 + (k * 3 + 2) * cc_dim1] - cc[i__ - 1 + (
-		    k * 3 + 3) * cc_dim1]);
-	    ci3 = taui * (cc[i__ + (k * 3 + 2) * cc_dim1] - cc[i__ + (k * 3 + 
-		    3) * cc_dim1]);
-	    dr2 = cr2 - ci3;
-	    dr3 = cr2 + ci3;
-	    di2 = ci2 + cr3;
-	    di3 = ci2 - cr3;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * di2 - 
-		    wa1[i__] * dr2;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * dr2 
-		    + wa1[i__] * di2;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * di3 - wa2[
-		    i__] * dr3;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * dr3 + 
-		    wa2[i__] * di3;
-/* L103: */
-	}
-/* L104: */
-    }
-    return 0;
-} /* passf3_ */
-
-/* Subroutine */ int passf2_(integer *ido, integer *l1, doublereal *cc, 
-	doublereal *ch, doublereal *wa1)
-{
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k;
-    static doublereal ti2, tr2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 3;
-    cc -= cc_offset;
-    --wa1;
-
-    /* Function Body */
-    if (*ido > 2) {
-	goto L102;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[((k << 1) + 1) * cc_dim1 + 1] + 
-		cc[((k << 1) + 2) * cc_dim1 + 1];
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cc[((k << 1) + 1) * cc_dim1 
-		+ 1] - cc[((k << 1) + 2) * cc_dim1 + 1];
-	ch[(k + ch_dim2) * ch_dim1 + 2] = cc[((k << 1) + 1) * cc_dim1 + 2] + 
-		cc[((k << 1) + 2) * cc_dim1 + 2];
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 2] = cc[((k << 1) + 1) * cc_dim1 
-		+ 2] - cc[((k << 1) + 2) * cc_dim1 + 2];
-/* L101: */
-    }
-    return 0;
-L102:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 2; i__ <= i__2; i__ += 2) {
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + ((k << 1) + 
-		    1) * cc_dim1] + cc[i__ - 1 + ((k << 1) + 2) * cc_dim1];
-	    tr2 = cc[i__ - 1 + ((k << 1) + 1) * cc_dim1] - cc[i__ - 1 + ((k <<
-		     1) + 2) * cc_dim1];
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + ((k << 1) + 1) * 
-		    cc_dim1] + cc[i__ + ((k << 1) + 2) * cc_dim1];
-	    ti2 = cc[i__ + ((k << 1) + 1) * cc_dim1] - cc[i__ + ((k << 1) + 2)
-		     * cc_dim1];
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * ti2 - 
-		    wa1[i__] * tr2;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * tr2 
-		    + wa1[i__] * ti2;
-/* L103: */
-	}
-/* L104: */
-    }
-    return 0;
-} /* passf2_ */
-
-/* Subroutine */ int passf4_(integer *ido, integer *l1, doublereal *cc, 
-	doublereal *ch, doublereal *wa1, doublereal *wa2, doublereal *wa3)
-{
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k;
-    static doublereal ci2, ci3, ci4, cr2, cr3, cr4, ti1, ti2, ti3, ti4, tr1, 
-	    tr2, tr3, tr4;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 5;
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-    --wa3;
-
-    /* Function Body */
-    if (*ido != 2) {
-	goto L102;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ti1 = cc[((k << 2) + 1) * cc_dim1 + 2] - cc[((k << 2) + 3) * cc_dim1 
-		+ 2];
-	ti2 = cc[((k << 2) + 1) * cc_dim1 + 2] + cc[((k << 2) + 3) * cc_dim1 
-		+ 2];
-	tr4 = cc[((k << 2) + 2) * cc_dim1 + 2] - cc[((k << 2) + 4) * cc_dim1 
-		+ 2];
-	ti3 = cc[((k << 2) + 2) * cc_dim1 + 2] + cc[((k << 2) + 4) * cc_dim1 
-		+ 2];
-	tr1 = cc[((k << 2) + 1) * cc_dim1 + 1] - cc[((k << 2) + 3) * cc_dim1 
-		+ 1];
-	tr2 = cc[((k << 2) + 1) * cc_dim1 + 1] + cc[((k << 2) + 3) * cc_dim1 
-		+ 1];
-	ti4 = cc[((k << 2) + 4) * cc_dim1 + 1] - cc[((k << 2) + 2) * cc_dim1 
-		+ 1];
-	tr3 = cc[((k << 2) + 2) * cc_dim1 + 1] + cc[((k << 2) + 4) * cc_dim1 
-		+ 1];
-	ch[(k + ch_dim2) * ch_dim1 + 1] = tr2 + tr3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = tr2 - tr3;
-	ch[(k + ch_dim2) * ch_dim1 + 2] = ti2 + ti3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 2] = ti2 - ti3;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = tr1 + tr4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 1] = tr1 - tr4;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 2] = ti1 + ti4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 2] = ti1 - ti4;
-/* L101: */
-    }
-    return 0;
-L102:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 2; i__ <= i__2; i__ += 2) {
-	    ti1 = cc[i__ + ((k << 2) + 1) * cc_dim1] - cc[i__ + ((k << 2) + 3)
-		     * cc_dim1];
-	    ti2 = cc[i__ + ((k << 2) + 1) * cc_dim1] + cc[i__ + ((k << 2) + 3)
-		     * cc_dim1];
-	    ti3 = cc[i__ + ((k << 2) + 2) * cc_dim1] + cc[i__ + ((k << 2) + 4)
-		     * cc_dim1];
-	    tr4 = cc[i__ + ((k << 2) + 2) * cc_dim1] - cc[i__ + ((k << 2) + 4)
-		     * cc_dim1];
-	    tr1 = cc[i__ - 1 + ((k << 2) + 1) * cc_dim1] - cc[i__ - 1 + ((k <<
-		     2) + 3) * cc_dim1];
-	    tr2 = cc[i__ - 1 + ((k << 2) + 1) * cc_dim1] + cc[i__ - 1 + ((k <<
-		     2) + 3) * cc_dim1];
-	    ti4 = cc[i__ - 1 + ((k << 2) + 4) * cc_dim1] - cc[i__ - 1 + ((k <<
-		     2) + 2) * cc_dim1];
-	    tr3 = cc[i__ - 1 + ((k << 2) + 2) * cc_dim1] + cc[i__ - 1 + ((k <<
-		     2) + 4) * cc_dim1];
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = tr2 + tr3;
-	    cr3 = tr2 - tr3;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = ti2 + ti3;
-	    ci3 = ti2 - ti3;
-	    cr2 = tr1 + tr4;
-	    cr4 = tr1 - tr4;
-	    ci2 = ti1 + ti4;
-	    ci4 = ti1 - ti4;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * cr2 
-		    + wa1[i__] * ci2;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * ci2 - 
-		    wa1[i__] * cr2;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * cr3 + 
-		    wa2[i__] * ci3;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * ci3 - wa2[
-		    i__] * cr3;
-	    ch[i__ - 1 + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 1] * cr4 
-		    + wa3[i__] * ci4;
-	    ch[i__ + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 1] * ci4 - 
-		    wa3[i__] * cr4;
-/* L103: */
-	}
-/* L104: */
-    }
-    return 0;
-} /* passf4_ */
-
-/* Subroutine */ int cfftb_(integer *n, doublereal *c__, doublereal *wsave)
-{
-    static integer iw1, iw2;
-    extern /* Subroutine */ int cfftb1_(integer *, doublereal *, doublereal *,
-	     doublereal *, doublereal *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --wsave;
-    --c__;
-
-    /* Function Body */
-    if (*n == 1) {
-	return 0;
-    }
-    iw1 = *n + *n + 1;
-    iw2 = iw1 + *n + *n;
-    cfftb1_(n, &c__[1], &wsave[1], &wsave[iw1], &wsave[iw2]);
-    return 0;
-} /* cfftb_ */
-
-/* Subroutine */ int cfftb1_(integer *n, doublereal *c__, doublereal *ch, 
-	doublereal *wa, doublereal *xxifac)
-{
-    /* System generated locals */
-    integer i__1;
-    static doublereal equiv_0[15];
-
-    /* Local variables */
-    static integer i__, k1, l1, l2, n2, na, nf, ip, iw, ix2, ix3, ix4, nac, 
-	    ido, idl1;
-#define jfac ((integer *)equiv_0)
-#define rfac (equiv_0)
-    static integer idot;
-    extern /* Subroutine */ int passb_(integer *, integer *, integer *, 
-	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *), passb2_(integer *, 
-	    integer *, doublereal *, doublereal *, doublereal *), passb3_(
-	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *), passb4_(integer *, integer *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *), passb5_(
-	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --xxifac;
-    --wa;
-    --ch;
-    --c__;
-
-    /* Function Body */
-    for (i__ = 1; i__ <= 15; ++i__) {
-	rfac[i__ - 1] = xxifac[i__];
-/* L100: */
-    }
-    nf = jfac[1];
-    na = 0;
-    l1 = 1;
-    iw = 1;
-    i__1 = nf;
-    for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = jfac[k1 + 1];
-	l2 = ip * l1;
-	ido = *n / l2;
-	idot = ido + ido;
-	idl1 = idot * l1;
-	if (ip != 4) {
-	    goto L103;
-	}
-	ix2 = iw + idot;
-	ix3 = ix2 + idot;
-	if (na != 0) {
-	    goto L101;
-	}
-	passb4_(&idot, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2], &wa[ix3]);
-	goto L102;
-L101:
-	passb4_(&idot, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2], &wa[ix3]);
-L102:
-	na = 1 - na;
-	goto L115;
-L103:
-	if (ip != 2) {
-	    goto L106;
-	}
-	if (na != 0) {
-	    goto L104;
-	}
-	passb2_(&idot, &l1, &c__[1], &ch[1], &wa[iw]);
-	goto L105;
-L104:
-	passb2_(&idot, &l1, &ch[1], &c__[1], &wa[iw]);
-L105:
-	na = 1 - na;
-	goto L115;
-L106:
-	if (ip != 3) {
-	    goto L109;
-	}
-	ix2 = iw + idot;
-	if (na != 0) {
-	    goto L107;
-	}
-	passb3_(&idot, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2]);
-	goto L108;
-L107:
-	passb3_(&idot, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2]);
-L108:
-	na = 1 - na;
-	goto L115;
-L109:
-	if (ip != 5) {
-	    goto L112;
-	}
-	ix2 = iw + idot;
-	ix3 = ix2 + idot;
-	ix4 = ix3 + idot;
-	if (na != 0) {
-	    goto L110;
-	}
-	passb5_(&idot, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2], &wa[ix3], &wa[
-		ix4]);
-	goto L111;
-L110:
-	passb5_(&idot, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2], &wa[ix3], &wa[
-		ix4]);
-L111:
-	na = 1 - na;
-	goto L115;
-L112:
-	if (na != 0) {
-	    goto L113;
-	}
-	passb_(&nac, &idot, &ip, &l1, &idl1, &c__[1], &c__[1], &c__[1], &ch[1]
-		, &ch[1], &wa[iw]);
-	goto L114;
-L113:
-	passb_(&nac, &idot, &ip, &l1, &idl1, &ch[1], &ch[1], &ch[1], &c__[1], 
-		&c__[1], &wa[iw]);
-L114:
-	if (nac != 0) {
-	    na = 1 - na;
-	}
-L115:
-	l1 = l2;
-	iw += (ip - 1) * idot;
-/* L116: */
-    }
-    if (na == 0) {
-	return 0;
-    }
-    n2 = *n + *n;
-    i__1 = n2;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	c__[i__] = ch[i__];
-/* L117: */
-    }
-    return 0;
-} /* cfftb1_ */
-
-#undef rfac
-#undef jfac
-
-
-/* Subroutine */ int passb_(integer *nac, integer *ido, integer *ip, integer *
-	l1, integer *idl1, doublereal *cc, doublereal *c1, doublereal *c2, 
-	doublereal *ch, doublereal *ch2, doublereal *wa)
-{
-    /* System generated locals */
-    integer ch_dim1, ch_dim2, ch_offset, cc_dim1, cc_dim2, cc_offset, c1_dim1,
-	     c1_dim2, c1_offset, c2_dim1, c2_offset, ch2_dim1, ch2_offset, 
-	    i__1, i__2, i__3;
-
-    /* Local variables */
-    static integer i__, j, k, l, jc, lc, ik, idj, idl, inc, idp;
-    static doublereal wai, war;
-    static integer ipp2, idij, idlj, idot, ipph;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    c1_dim1 = *ido;
-    c1_dim2 = *l1;
-    c1_offset = 1 + c1_dim1 * (1 + c1_dim2);
-    c1 -= c1_offset;
-    cc_dim1 = *ido;
-    cc_dim2 = *ip;
-    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
-    cc -= cc_offset;
-    ch2_dim1 = *idl1;
-    ch2_offset = 1 + ch2_dim1;
-    ch2 -= ch2_offset;
-    c2_dim1 = *idl1;
-    c2_offset = 1 + c2_dim1;
-    c2 -= c2_offset;
-    --wa;
-
-    /* Function Body */
-    idot = *ido / 2;
-    ipp2 = *ip + 2;
-    ipph = (*ip + 1) / 2;
-    idp = *ip * *ido;
-
-    if (*ido < *l1) {
-	goto L106;
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    i__3 = *ido;
-	    for (i__ = 1; i__ <= i__3; ++i__) {
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = cc[i__ + (j + k * 
-			cc_dim2) * cc_dim1] + cc[i__ + (jc + k * cc_dim2) * 
-			cc_dim1];
-		ch[i__ + (k + jc * ch_dim2) * ch_dim1] = cc[i__ + (j + k * 
-			cc_dim2) * cc_dim1] - cc[i__ + (jc + k * cc_dim2) * 
-			cc_dim1];
-/* L101: */
-	    }
-/* L102: */
-	}
-/* L103: */
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 1; i__ <= i__2; ++i__) {
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * cc_dim2 + 1) * 
-		    cc_dim1];
-/* L104: */
-	}
-/* L105: */
-    }
-    goto L112;
-L106:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *ido;
-	for (i__ = 1; i__ <= i__2; ++i__) {
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = cc[i__ + (j + k * 
-			cc_dim2) * cc_dim1] + cc[i__ + (jc + k * cc_dim2) * 
-			cc_dim1];
-		ch[i__ + (k + jc * ch_dim2) * ch_dim1] = cc[i__ + (j + k * 
-			cc_dim2) * cc_dim1] - cc[i__ + (jc + k * cc_dim2) * 
-			cc_dim1];
-/* L107: */
-	    }
-/* L108: */
-	}
-/* L109: */
-    }
-    i__1 = *ido;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * cc_dim2 + 1) * 
-		    cc_dim1];
-/* L110: */
-	}
-/* L111: */
-    }
-L112:
-    idl = 2 - *ido;
-    inc = 0;
-    i__1 = ipph;
-    for (l = 2; l <= i__1; ++l) {
-	lc = ipp2 - l;
-	idl += *ido;
-	i__2 = *idl1;
-	for (ik = 1; ik <= i__2; ++ik) {
-	    c2[ik + l * c2_dim1] = ch2[ik + ch2_dim1] + wa[idl - 1] * ch2[ik 
-		    + (ch2_dim1 << 1)];
-	    c2[ik + lc * c2_dim1] = wa[idl] * ch2[ik + *ip * ch2_dim1];
-/* L113: */
-	}
-	idlj = idl;
-	inc += *ido;
-	i__2 = ipph;
-	for (j = 3; j <= i__2; ++j) {
-	    jc = ipp2 - j;
-	    idlj += inc;
-	    if (idlj > idp) {
-		idlj -= idp;
-	    }
-	    war = wa[idlj - 1];
-	    wai = wa[idlj];
-	    i__3 = *idl1;
-	    for (ik = 1; ik <= i__3; ++ik) {
-		c2[ik + l * c2_dim1] += war * ch2[ik + j * ch2_dim1];
-		c2[ik + lc * c2_dim1] += wai * ch2[ik + jc * ch2_dim1];
-/* L114: */
-	    }
-/* L115: */
-	}
-/* L116: */
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	i__2 = *idl1;
-	for (ik = 1; ik <= i__2; ++ik) {
-	    ch2[ik + ch2_dim1] += ch2[ik + j * ch2_dim1];
-/* L117: */
-	}
-/* L118: */
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *idl1;
-	for (ik = 2; ik <= i__2; ik += 2) {
-	    ch2[ik - 1 + j * ch2_dim1] = c2[ik - 1 + j * c2_dim1] - c2[ik + 
-		    jc * c2_dim1];
-	    ch2[ik - 1 + jc * ch2_dim1] = c2[ik - 1 + j * c2_dim1] + c2[ik + 
-		    jc * c2_dim1];
-	    ch2[ik + j * ch2_dim1] = c2[ik + j * c2_dim1] + c2[ik - 1 + jc * 
-		    c2_dim1];
-	    ch2[ik + jc * ch2_dim1] = c2[ik + j * c2_dim1] - c2[ik - 1 + jc * 
-		    c2_dim1];
-/* L119: */
-	}
-/* L120: */
-    }
-    *nac = 1;
-    if (*ido == 2) {
-	return 0;
-    }
-    *nac = 0;
-    i__1 = *idl1;
-    for (ik = 1; ik <= i__1; ++ik) {
-	c2[ik + c2_dim1] = ch2[ik + ch2_dim1];
-/* L121: */
-    }
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    c1[(k + j * c1_dim2) * c1_dim1 + 1] = ch[(k + j * ch_dim2) * 
-		    ch_dim1 + 1];
-	    c1[(k + j * c1_dim2) * c1_dim1 + 2] = ch[(k + j * ch_dim2) * 
-		    ch_dim1 + 2];
-/* L122: */
-	}
-/* L123: */
-    }
-    if (idot > *l1) {
-	goto L127;
-    }
-    idij = 0;
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	idij += 2;
-	i__2 = *ido;
-	for (i__ = 4; i__ <= i__2; i__ += 2) {
-	    idij += 2;
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		c1[i__ - 1 + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[
-			i__ - 1 + (k + j * ch_dim2) * ch_dim1] - wa[idij] * 
-			ch[i__ + (k + j * ch_dim2) * ch_dim1];
-		c1[i__ + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[i__ 
-			+ (k + j * ch_dim2) * ch_dim1] + wa[idij] * ch[i__ - 
-			1 + (k + j * ch_dim2) * ch_dim1];
-/* L124: */
-	    }
-/* L125: */
-	}
-/* L126: */
-    }
-    return 0;
-L127:
-    idj = 2 - *ido;
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	idj += *ido;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    idij = idj;
-	    i__3 = *ido;
-	    for (i__ = 4; i__ <= i__3; i__ += 2) {
-		idij += 2;
-		c1[i__ - 1 + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[
-			i__ - 1 + (k + j * ch_dim2) * ch_dim1] - wa[idij] * 
-			ch[i__ + (k + j * ch_dim2) * ch_dim1];
-		c1[i__ + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[i__ 
-			+ (k + j * ch_dim2) * ch_dim1] + wa[idij] * ch[i__ - 
-			1 + (k + j * ch_dim2) * ch_dim1];
-/* L128: */
-	    }
-/* L129: */
-	}
-/* L130: */
-    }
-    return 0;
-} /* passb_ */
-
-/* Subroutine */ int passb5_(integer *ido, integer *l1, doublereal *cc, 
-	doublereal *ch, doublereal *wa1, doublereal *wa2, doublereal *wa3, 
-	doublereal *wa4)
-{
-    /* Initialized data */
-
-    static doublereal tr11 = .309016994374947;
-    static doublereal ti11 = .951056516295154;
-    static doublereal tr12 = -.809016994374947;
-    static doublereal ti12 = .587785252292473;
-
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k;
-    static doublereal ci2, ci3, ci4, ci5, di3, di4, di5, di2, cr2, cr3, cr5, 
-	    cr4, ti2, ti3, ti4, ti5, dr3, dr4, dr5, dr2, tr2, tr3, tr4, tr5;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 6;
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-    --wa3;
-    --wa4;
-
-    /* Function Body */
-    if (*ido != 2) {
-	goto L102;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ti5 = cc[(k * 5 + 2) * cc_dim1 + 2] - cc[(k * 5 + 5) * cc_dim1 + 2];
-	ti2 = cc[(k * 5 + 2) * cc_dim1 + 2] + cc[(k * 5 + 5) * cc_dim1 + 2];
-	ti4 = cc[(k * 5 + 3) * cc_dim1 + 2] - cc[(k * 5 + 4) * cc_dim1 + 2];
-	ti3 = cc[(k * 5 + 3) * cc_dim1 + 2] + cc[(k * 5 + 4) * cc_dim1 + 2];
-	tr5 = cc[(k * 5 + 2) * cc_dim1 + 1] - cc[(k * 5 + 5) * cc_dim1 + 1];
-	tr2 = cc[(k * 5 + 2) * cc_dim1 + 1] + cc[(k * 5 + 5) * cc_dim1 + 1];
-	tr4 = cc[(k * 5 + 3) * cc_dim1 + 1] - cc[(k * 5 + 4) * cc_dim1 + 1];
-	tr3 = cc[(k * 5 + 3) * cc_dim1 + 1] + cc[(k * 5 + 4) * cc_dim1 + 1];
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[(k * 5 + 1) * cc_dim1 + 1] + tr2 
-		+ tr3;
-	ch[(k + ch_dim2) * ch_dim1 + 2] = cc[(k * 5 + 1) * cc_dim1 + 2] + ti2 
-		+ ti3;
-	cr2 = cc[(k * 5 + 1) * cc_dim1 + 1] + tr11 * tr2 + tr12 * tr3;
-	ci2 = cc[(k * 5 + 1) * cc_dim1 + 2] + tr11 * ti2 + tr12 * ti3;
-	cr3 = cc[(k * 5 + 1) * cc_dim1 + 1] + tr12 * tr2 + tr11 * tr3;
-	ci3 = cc[(k * 5 + 1) * cc_dim1 + 2] + tr12 * ti2 + tr11 * ti3;
-	cr5 = ti11 * tr5 + ti12 * tr4;
-	ci5 = ti11 * ti5 + ti12 * ti4;
-	cr4 = ti12 * tr5 - ti11 * tr4;
-	ci4 = ti12 * ti5 - ti11 * ti4;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cr2 - ci5;
-	ch[(k + ch_dim2 * 5) * ch_dim1 + 1] = cr2 + ci5;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 2] = ci2 + cr5;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 2] = ci3 + cr4;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = cr3 - ci4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 1] = cr3 + ci4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 2] = ci3 - cr4;
-	ch[(k + ch_dim2 * 5) * ch_dim1 + 2] = ci2 - cr5;
-/* L101: */
-    }
-    return 0;
-L102:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 2; i__ <= i__2; i__ += 2) {
-	    ti5 = cc[i__ + (k * 5 + 2) * cc_dim1] - cc[i__ + (k * 5 + 5) * 
-		    cc_dim1];
-	    ti2 = cc[i__ + (k * 5 + 2) * cc_dim1] + cc[i__ + (k * 5 + 5) * 
-		    cc_dim1];
-	    ti4 = cc[i__ + (k * 5 + 3) * cc_dim1] - cc[i__ + (k * 5 + 4) * 
-		    cc_dim1];
-	    ti3 = cc[i__ + (k * 5 + 3) * cc_dim1] + cc[i__ + (k * 5 + 4) * 
-		    cc_dim1];
-	    tr5 = cc[i__ - 1 + (k * 5 + 2) * cc_dim1] - cc[i__ - 1 + (k * 5 + 
-		    5) * cc_dim1];
-	    tr2 = cc[i__ - 1 + (k * 5 + 2) * cc_dim1] + cc[i__ - 1 + (k * 5 + 
-		    5) * cc_dim1];
-	    tr4 = cc[i__ - 1 + (k * 5 + 3) * cc_dim1] - cc[i__ - 1 + (k * 5 + 
-		    4) * cc_dim1];
-	    tr3 = cc[i__ - 1 + (k * 5 + 3) * cc_dim1] + cc[i__ - 1 + (k * 5 + 
-		    4) * cc_dim1];
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + (k * 5 + 1) *
-		     cc_dim1] + tr2 + tr3;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * 5 + 1) * 
-		    cc_dim1] + ti2 + ti3;
-	    cr2 = cc[i__ - 1 + (k * 5 + 1) * cc_dim1] + tr11 * tr2 + tr12 * 
-		    tr3;
-	    ci2 = cc[i__ + (k * 5 + 1) * cc_dim1] + tr11 * ti2 + tr12 * ti3;
-	    cr3 = cc[i__ - 1 + (k * 5 + 1) * cc_dim1] + tr12 * tr2 + tr11 * 
-		    tr3;
-	    ci3 = cc[i__ + (k * 5 + 1) * cc_dim1] + tr12 * ti2 + tr11 * ti3;
-	    cr5 = ti11 * tr5 + ti12 * tr4;
-	    ci5 = ti11 * ti5 + ti12 * ti4;
-	    cr4 = ti12 * tr5 - ti11 * tr4;
-	    ci4 = ti12 * ti5 - ti11 * ti4;
-	    dr3 = cr3 - ci4;
-	    dr4 = cr3 + ci4;
-	    di3 = ci3 + cr4;
-	    di4 = ci3 - cr4;
-	    dr5 = cr2 + ci5;
-	    dr2 = cr2 - ci5;
-	    di5 = ci2 - cr5;
-	    di2 = ci2 + cr5;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * dr2 
-		    - wa1[i__] * di2;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * di2 + 
-		    wa1[i__] * dr2;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * dr3 - 
-		    wa2[i__] * di3;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * di3 + wa2[
-		    i__] * dr3;
-	    ch[i__ - 1 + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 1] * dr4 
-		    - wa3[i__] * di4;
-	    ch[i__ + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 1] * di4 + 
-		    wa3[i__] * dr4;
-	    ch[i__ - 1 + (k + ch_dim2 * 5) * ch_dim1] = wa4[i__ - 1] * dr5 - 
-		    wa4[i__] * di5;
-	    ch[i__ + (k + ch_dim2 * 5) * ch_dim1] = wa4[i__ - 1] * di5 + wa4[
-		    i__] * dr5;
-/* L103: */
-	}
-/* L104: */
-    }
-    return 0;
-} /* passb5_ */
-
-/* Subroutine */ int passb3_(integer *ido, integer *l1, doublereal *cc, 
-	doublereal *ch, doublereal *wa1, doublereal *wa2)
-{
-    /* Initialized data */
-
-    static doublereal taur = -.5;
-    static doublereal taui = .866025403784439;
-
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k;
-    static doublereal ci2, ci3, di2, di3, cr2, cr3, dr2, dr3, ti2, tr2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + (cc_dim1 << 2);
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-
-    /* Function Body */
-    if (*ido != 2) {
-	goto L102;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	tr2 = cc[(k * 3 + 2) * cc_dim1 + 1] + cc[(k * 3 + 3) * cc_dim1 + 1];
-	cr2 = cc[(k * 3 + 1) * cc_dim1 + 1] + taur * tr2;
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[(k * 3 + 1) * cc_dim1 + 1] + tr2;
-	ti2 = cc[(k * 3 + 2) * cc_dim1 + 2] + cc[(k * 3 + 3) * cc_dim1 + 2];
-	ci2 = cc[(k * 3 + 1) * cc_dim1 + 2] + taur * ti2;
-	ch[(k + ch_dim2) * ch_dim1 + 2] = cc[(k * 3 + 1) * cc_dim1 + 2] + ti2;
-	cr3 = taui * (cc[(k * 3 + 2) * cc_dim1 + 1] - cc[(k * 3 + 3) * 
-		cc_dim1 + 1]);
-	ci3 = taui * (cc[(k * 3 + 2) * cc_dim1 + 2] - cc[(k * 3 + 3) * 
-		cc_dim1 + 2]);
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cr2 - ci3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = cr2 + ci3;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 2] = ci2 + cr3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 2] = ci2 - cr3;
-/* L101: */
-    }
-    return 0;
-L102:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 2; i__ <= i__2; i__ += 2) {
-	    tr2 = cc[i__ - 1 + (k * 3 + 2) * cc_dim1] + cc[i__ - 1 + (k * 3 + 
-		    3) * cc_dim1];
-	    cr2 = cc[i__ - 1 + (k * 3 + 1) * cc_dim1] + taur * tr2;
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + (k * 3 + 1) *
-		     cc_dim1] + tr2;
-	    ti2 = cc[i__ + (k * 3 + 2) * cc_dim1] + cc[i__ + (k * 3 + 3) * 
-		    cc_dim1];
-	    ci2 = cc[i__ + (k * 3 + 1) * cc_dim1] + taur * ti2;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * 3 + 1) * 
-		    cc_dim1] + ti2;
-	    cr3 = taui * (cc[i__ - 1 + (k * 3 + 2) * cc_dim1] - cc[i__ - 1 + (
-		    k * 3 + 3) * cc_dim1]);
-	    ci3 = taui * (cc[i__ + (k * 3 + 2) * cc_dim1] - cc[i__ + (k * 3 + 
-		    3) * cc_dim1]);
-	    dr2 = cr2 - ci3;
-	    dr3 = cr2 + ci3;
-	    di2 = ci2 + cr3;
-	    di3 = ci2 - cr3;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * di2 + 
-		    wa1[i__] * dr2;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * dr2 
-		    - wa1[i__] * di2;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * di3 + wa2[
-		    i__] * dr3;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * dr3 - 
-		    wa2[i__] * di3;
-/* L103: */
-	}
-/* L104: */
-    }
-    return 0;
-} /* passb3_ */
-
-/* Subroutine */ int passb2_(integer *ido, integer *l1, doublereal *cc, 
-	doublereal *ch, doublereal *wa1)
-{
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k;
-    static doublereal ti2, tr2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 3;
-    cc -= cc_offset;
-    --wa1;
-
-    /* Function Body */
-    if (*ido > 2) {
-	goto L102;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[((k << 1) + 1) * cc_dim1 + 1] + 
-		cc[((k << 1) + 2) * cc_dim1 + 1];
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cc[((k << 1) + 1) * cc_dim1 
-		+ 1] - cc[((k << 1) + 2) * cc_dim1 + 1];
-	ch[(k + ch_dim2) * ch_dim1 + 2] = cc[((k << 1) + 1) * cc_dim1 + 2] + 
-		cc[((k << 1) + 2) * cc_dim1 + 2];
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 2] = cc[((k << 1) + 1) * cc_dim1 
-		+ 2] - cc[((k << 1) + 2) * cc_dim1 + 2];
-/* L101: */
-    }
-    return 0;
-L102:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 2; i__ <= i__2; i__ += 2) {
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + ((k << 1) + 
-		    1) * cc_dim1] + cc[i__ - 1 + ((k << 1) + 2) * cc_dim1];
-	    tr2 = cc[i__ - 1 + ((k << 1) + 1) * cc_dim1] - cc[i__ - 1 + ((k <<
-		     1) + 2) * cc_dim1];
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + ((k << 1) + 1) * 
-		    cc_dim1] + cc[i__ + ((k << 1) + 2) * cc_dim1];
-	    ti2 = cc[i__ + ((k << 1) + 1) * cc_dim1] - cc[i__ + ((k << 1) + 2)
-		     * cc_dim1];
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * ti2 + 
-		    wa1[i__] * tr2;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * tr2 
-		    - wa1[i__] * ti2;
-/* L103: */
-	}
-/* L104: */
-    }
-    return 0;
-} /* passb2_ */
-
-/* Subroutine */ int passb4_(integer *ido, integer *l1, doublereal *cc, 
-	doublereal *ch, doublereal *wa1, doublereal *wa2, doublereal *wa3)
-{
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k;
-    static doublereal ci2, ci3, ci4, cr2, cr3, cr4, ti1, ti2, ti3, ti4, tr1, 
-	    tr2, tr3, tr4;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 5;
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-    --wa3;
-
-    /* Function Body */
-    if (*ido != 2) {
-	goto L102;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ti1 = cc[((k << 2) + 1) * cc_dim1 + 2] - cc[((k << 2) + 3) * cc_dim1 
-		+ 2];
-	ti2 = cc[((k << 2) + 1) * cc_dim1 + 2] + cc[((k << 2) + 3) * cc_dim1 
-		+ 2];
-	tr4 = cc[((k << 2) + 4) * cc_dim1 + 2] - cc[((k << 2) + 2) * cc_dim1 
-		+ 2];
-	ti3 = cc[((k << 2) + 2) * cc_dim1 + 2] + cc[((k << 2) + 4) * cc_dim1 
-		+ 2];
-	tr1 = cc[((k << 2) + 1) * cc_dim1 + 1] - cc[((k << 2) + 3) * cc_dim1 
-		+ 1];
-	tr2 = cc[((k << 2) + 1) * cc_dim1 + 1] + cc[((k << 2) + 3) * cc_dim1 
-		+ 1];
-	ti4 = cc[((k << 2) + 2) * cc_dim1 + 1] - cc[((k << 2) + 4) * cc_dim1 
-		+ 1];
-	tr3 = cc[((k << 2) + 2) * cc_dim1 + 1] + cc[((k << 2) + 4) * cc_dim1 
-		+ 1];
-	ch[(k + ch_dim2) * ch_dim1 + 1] = tr2 + tr3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = tr2 - tr3;
-	ch[(k + ch_dim2) * ch_dim1 + 2] = ti2 + ti3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 2] = ti2 - ti3;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = tr1 + tr4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 1] = tr1 - tr4;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 2] = ti1 + ti4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 2] = ti1 - ti4;
-/* L101: */
-    }
-    return 0;
-L102:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 2; i__ <= i__2; i__ += 2) {
-	    ti1 = cc[i__ + ((k << 2) + 1) * cc_dim1] - cc[i__ + ((k << 2) + 3)
-		     * cc_dim1];
-	    ti2 = cc[i__ + ((k << 2) + 1) * cc_dim1] + cc[i__ + ((k << 2) + 3)
-		     * cc_dim1];
-	    ti3 = cc[i__ + ((k << 2) + 2) * cc_dim1] + cc[i__ + ((k << 2) + 4)
-		     * cc_dim1];
-	    tr4 = cc[i__ + ((k << 2) + 4) * cc_dim1] - cc[i__ + ((k << 2) + 2)
-		     * cc_dim1];
-	    tr1 = cc[i__ - 1 + ((k << 2) + 1) * cc_dim1] - cc[i__ - 1 + ((k <<
-		     2) + 3) * cc_dim1];
-	    tr2 = cc[i__ - 1 + ((k << 2) + 1) * cc_dim1] + cc[i__ - 1 + ((k <<
-		     2) + 3) * cc_dim1];
-	    ti4 = cc[i__ - 1 + ((k << 2) + 2) * cc_dim1] - cc[i__ - 1 + ((k <<
-		     2) + 4) * cc_dim1];
-	    tr3 = cc[i__ - 1 + ((k << 2) + 2) * cc_dim1] + cc[i__ - 1 + ((k <<
-		     2) + 4) * cc_dim1];
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = tr2 + tr3;
-	    cr3 = tr2 - tr3;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = ti2 + ti3;
-	    ci3 = ti2 - ti3;
-	    cr2 = tr1 + tr4;
-	    cr4 = tr1 - tr4;
-	    ci2 = ti1 + ti4;
-	    ci4 = ti1 - ti4;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * cr2 
-		    - wa1[i__] * ci2;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * ci2 + 
-		    wa1[i__] * cr2;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * cr3 - 
-		    wa2[i__] * ci3;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * ci3 + wa2[
-		    i__] * cr3;
-	    ch[i__ - 1 + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 1] * cr4 
-		    - wa3[i__] * ci4;
-	    ch[i__ + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 1] * ci4 + 
-		    wa3[i__] * cr4;
-/* L103: */
-	}
-/* L104: */
-    }
-    return 0;
-} /* passb4_ */
-
-/* Subroutine */ int sinti_(integer *n, doublereal *wsave)
-{
-    /* Initialized data */
-
-    static doublereal pi = 3.14159265358979;
-
-    /* System generated locals */
-    integer i__1;
-
-    /* Builtin functions */
-    double sin(doublereal);
-
-    /* Local variables */
-    static integer k;
-    static doublereal dt;
-    static integer np1, ns2;
-    extern /* Subroutine */ int rffti_(integer *, doublereal *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --wsave;
-
-    /* Function Body */
-    if (*n <= 1) {
-	return 0;
-    }
-    ns2 = *n / 2;
-    np1 = *n + 1;
-    dt = pi / (real) np1;
-    i__1 = ns2;
-    for (k = 1; k <= i__1; ++k) {
-	wsave[k] = sin(k * dt) * 2.f;
-/* L101: */
-    }
-    rffti_(&np1, &wsave[ns2 + 1]);
-    return 0;
-} /* sinti_ */
-
-/* Subroutine */ int sint_(integer *n, doublereal *x, doublereal *wsave)
-{
-    static integer np1, iw1, iw2, iw3;
-    extern /* Subroutine */ int sint1_(integer *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --wsave;
-    --x;
-
-    /* Function Body */
-    np1 = *n + 1;
-    iw1 = *n / 2 + 1;
-    iw2 = iw1 + np1;
-    iw3 = iw2 + np1;
-    sint1_(n, &x[1], &wsave[1], &wsave[iw1], &wsave[iw2], &wsave[iw3]);
-    return 0;
-} /* sint_ */
-
-/* Subroutine */ int sint1_(integer *n, doublereal *war, doublereal *was, 
-	doublereal *xh, doublereal *x, doublereal *xxifac)
-{
-    /* Initialized data */
-
-    static doublereal sqrt3 = 1.73205080756888;
-
-    /* System generated locals */
-    integer i__1;
-
-    /* Local variables */
-    static integer i__, k;
-    static doublereal t1, t2;
-    static integer kc, np1, ns2, modn;
-    static doublereal xhold;
-    extern /* Subroutine */ int rfftf1_(integer *, doublereal *, doublereal *,
-	     doublereal *, doublereal *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --xxifac;
-    --x;
-    --xh;
-    --was;
-    --war;
-
-    /* Function Body */
-    i__1 = *n;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	xh[i__] = war[i__];
-	war[i__] = x[i__];
-/* L100: */
-    }
-    if ((i__1 = *n - 2) < 0) {
-	goto L101;
-    } else if (i__1 == 0) {
-	goto L102;
-    } else {
-	goto L103;
-    }
-L101:
-    xh[1] += xh[1];
-    goto L106;
-L102:
-    xhold = sqrt3 * (xh[1] + xh[2]);
-    xh[2] = sqrt3 * (xh[1] - xh[2]);
-    xh[1] = xhold;
-    goto L106;
-L103:
-    np1 = *n + 1;
-    ns2 = *n / 2;
-    x[1] = 0.f;
-    i__1 = ns2;
-    for (k = 1; k <= i__1; ++k) {
-	kc = np1 - k;
-	t1 = xh[k] - xh[kc];
-	t2 = was[k] * (xh[k] + xh[kc]);
-	x[k + 1] = t1 + t2;
-	x[kc + 1] = t2 - t1;
-/* L104: */
-    }
-    modn = *n % 2;
-    if (modn != 0) {
-	x[ns2 + 2] = xh[ns2 + 1] * 4.f;
-    }
-    rfftf1_(&np1, &x[1], &xh[1], &war[1], &xxifac[1]);
-    xh[1] = x[1] * .5f;
-    i__1 = *n;
-    for (i__ = 3; i__ <= i__1; i__ += 2) {
-	xh[i__ - 1] = -x[i__];
-	xh[i__] = xh[i__ - 2] + x[i__ - 1];
-/* L105: */
-    }
-    if (modn != 0) {
-	goto L106;
-    }
-    xh[*n] = -x[*n + 1];
-L106:
-    i__1 = *n;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	x[i__] = war[i__];
-	war[i__] = xh[i__];
-/* L107: */
-    }
-    return 0;
-} /* sint1_ */
-
-/* ---------------------------SINGLE PRECISION---------------------------- */
-/* Subroutine */ int frffti_(integer *n, real *wsave)
-{
-    extern /* Subroutine */ int frffti1_(integer *, real *, real *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --wsave;
-
-    /* Function Body */
-    if (*n == 1) {
-	return 0;
-    }
-    frffti1_(n, &wsave[*n + 1], &wsave[(*n << 1) + 1]);
-    return 0;
-} /* frffti_ */
-
-/* Subroutine */ int frffti1_(integer *n, real *wa, real *xxifac)
-{
-    /* Initialized data */
-
-    static integer ntryh[4] = { 4,2,3,5 };
-
-    /* System generated locals */
-    integer i__1, i__2, i__3;
-    static real equiv_0[15];
-    static integer equiv_1[15];
-
-    /* Builtin functions */
-    double cos(doublereal), sin(doublereal);
-
-    /* Local variables */
-    static integer i__, j, k1, l1, l2, ib;
-    static real fi;
-    static integer ld, ii, nf, ip, nl, is, nq, nr;
-    static real arg;
-    static integer ido, ipm;
-    static real tpi;
-    static integer nfm1;
-#define jfac (equiv_1)
-#define rfac (equiv_0)
-    static real argh;
-    static integer ntry;
-    static real argld;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --xxifac;
-    --wa;
-
-    /* Function Body */
-    for (i__ = 1; i__ <= 15; ++i__) {
-	rfac[i__ - 1] = xxifac[i__];
-/* L100: */
-    }
-    nl = *n;
-    nf = 0;
-    j = 0;
-L101:
-    ++j;
-    if (j - 4 <= 0) {
-	goto L102;
-    } else {
-	goto L103;
-    }
-L102:
-    ntry = ntryh[j - 1];
-    goto L104;
-L103:
-    ntry += 2;
-L104:
-    nq = nl / ntry;
-    nr = nl - ntry * nq;
-    if (nr != 0) {
-	goto L101;
-    } else {
-	goto L105;
-    }
-L105:
-    ++nf;
-    jfac[nf + 1] = ntry;
-    nl = nq;
-    if (ntry != 2) {
-	goto L107;
-    }
-    if (nf == 1) {
-	goto L107;
-    }
-    i__1 = nf;
-    for (i__ = 2; i__ <= i__1; ++i__) {
-	ib = nf - i__ + 2;
-	jfac[ib + 1] = jfac[ib];
-/* L106: */
-    }
-    jfac[2] = 2;
-L107:
-    if (nl != 1) {
-	goto L104;
-    }
-    jfac[0] = *n;
-    jfac[1] = nf;
-    tpi = 6.28318530717959f;
-    argh = tpi / (real) (*n);
-    is = 0;
-    nfm1 = nf - 1;
-    l1 = 1;
-    if (nfm1 == 0) {
-	return 0;
-    }
-    i__1 = nfm1;
-    for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = jfac[k1 + 1];
-	ld = 0;
-	l2 = l1 * ip;
-	ido = *n / l2;
-	ipm = ip - 1;
-	i__2 = ipm;
-	for (j = 1; j <= i__2; ++j) {
-	    ld += l1;
-	    i__ = is;
-	    argld = (real) ld * argh;
-	    fi = 0.f;
-	    i__3 = ido;
-	    for (ii = 3; ii <= i__3; ii += 2) {
-		i__ += 2;
-		fi += 1.f;
-		arg = fi * argld;
-		wa[i__ - 1] = cos(arg);
-		wa[i__] = sin(arg);
-/* L108: */
-	    }
-	    is += ido;
-/* L109: */
-	}
-	l1 = l2;
-/* L110: */
-    }
-    for (i__ = 1; i__ <= 15; ++i__) {
-	xxifac[i__] = rfac[i__ - 1];
-/* L111: */
-    }
-    return 0;
-} /* frffti1_ */
-
-#undef rfac
-#undef jfac
-
-
-/* Subroutine */ int frfftf_(integer *n, real *r__, real *wsave)
-{
-    extern /* Subroutine */ int frfftf1_(integer *, real *, real *, real *, 
-	    real *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --wsave;
-    --r__;
-
-    /* Function Body */
-    if (*n == 1) {
-	return 0;
-    }
-    frfftf1_(n, &r__[1], &wsave[1], &wsave[*n + 1], &wsave[(*n << 1) + 1]);
-    return 0;
-} /* frfftf_ */
-
-/* Subroutine */ int frfftf1_(integer *n, real *c__, real *ch, real *wa, real 
-	*xxifac)
-{
-    /* System generated locals */
-    integer i__1;
-    static real equiv_0[15];
-
-    /* Local variables */
-    static integer i__, k1, l1, l2, na, kh, nf, ip, iw, ix2, ix3, ix4, ido, 
-	    idl1;
-#define jfac ((integer *)equiv_0)
-#define rfac (equiv_0)
-    extern /* Subroutine */ int fradf2_(integer *, integer *, real *, real *, 
-	    real *), fradf3_(integer *, integer *, real *, real *, real *, 
-	    real *), fradf4_(integer *, integer *, real *, real *, real *, 
-	    real *, real *), fradf5_(integer *, integer *, real *, real *, 
-	    real *, real *, real *, real *), fradfg_(integer *, integer *, 
-	    integer *, integer *, real *, real *, real *, real *, real *, 
-	    real *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --xxifac;
-    --wa;
-    --ch;
-    --c__;
-
-    /* Function Body */
-    for (i__ = 1; i__ <= 15; ++i__) {
-	rfac[i__ - 1] = xxifac[i__];
-/* L100: */
-    }
-    nf = jfac[1];
-    na = 1;
-    l2 = *n;
-    iw = *n;
-    i__1 = nf;
-    for (k1 = 1; k1 <= i__1; ++k1) {
-	kh = nf - k1;
-	ip = jfac[kh + 2];
-	l1 = l2 / ip;
-	ido = *n / l2;
-	idl1 = ido * l1;
-	iw -= (ip - 1) * ido;
-	na = 1 - na;
-	if (ip != 4) {
-	    goto L102;
-	}
-	ix2 = iw + ido;
-	ix3 = ix2 + ido;
-	if (na != 0) {
-	    goto L101;
-	}
-	fradf4_(&ido, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2], &wa[ix3]);
-	goto L110;
-L101:
-	fradf4_(&ido, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2], &wa[ix3]);
-	goto L110;
-L102:
-	if (ip != 2) {
-	    goto L104;
-	}
-	if (na != 0) {
-	    goto L103;
-	}
-	fradf2_(&ido, &l1, &c__[1], &ch[1], &wa[iw]);
-	goto L110;
-L103:
-	fradf2_(&ido, &l1, &ch[1], &c__[1], &wa[iw]);
-	goto L110;
-L104:
-	if (ip != 3) {
-	    goto L106;
-	}
-	ix2 = iw + ido;
-	if (na != 0) {
-	    goto L105;
-	}
-	fradf3_(&ido, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2]);
-	goto L110;
-L105:
-	fradf3_(&ido, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2]);
-	goto L110;
-L106:
-	if (ip != 5) {
-	    goto L108;
-	}
-	ix2 = iw + ido;
-	ix3 = ix2 + ido;
-	ix4 = ix3 + ido;
-	if (na != 0) {
-	    goto L107;
-	}
-	fradf5_(&ido, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2], &wa[ix3], &wa[
-		ix4]);
-	goto L110;
-L107:
-	fradf5_(&ido, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2], &wa[ix3], &wa[
-		ix4]);
-	goto L110;
-L108:
-	if (ido == 1) {
-	    na = 1 - na;
-	}
-	if (na != 0) {
-	    goto L109;
-	}
-	fradfg_(&ido, &ip, &l1, &idl1, &c__[1], &c__[1], &c__[1], &ch[1], &ch[
-		1], &wa[iw]);
-	na = 1;
-	goto L110;
-L109:
-	fradfg_(&ido, &ip, &l1, &idl1, &ch[1], &ch[1], &ch[1], &c__[1], &c__[
-		1], &wa[iw]);
-	na = 0;
-L110:
-	l2 = l1;
-/* L111: */
-    }
-    if (na == 1) {
-	return 0;
-    }
-    i__1 = *n;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	c__[i__] = ch[i__];
-/* L112: */
-    }
-    return 0;
-} /* frfftf1_ */
-
-#undef rfac
-#undef jfac
-
-
-/* Subroutine */ int fradfg_(integer *ido, integer *ip, integer *l1, integer *
-	idl1, real *cc, real *c1, real *c2, real *ch, real *ch2, real *wa)
-{
-    /* Initialized data */
-
-    static real tpi = 6.28318530717959f;
-
-    /* System generated locals */
-    integer ch_dim1, ch_dim2, ch_offset, cc_dim1, cc_dim2, cc_offset, c1_dim1,
-	     c1_dim2, c1_offset, c2_dim1, c2_offset, ch2_dim1, ch2_offset, 
-	    i__1, i__2, i__3;
-
-    /* Builtin functions */
-    double cos(doublereal), sin(doublereal);
-
-    /* Local variables */
-    static integer i__, j, k, l, j2, ic, jc, lc, ik, is;
-    static real dc2, ai1, ai2, ar1, ar2, ds2;
-    static integer nbd;
-    static real dcp, arg, dsp, ar1h, ar2h;
-    static integer idp2, ipp2, idij, ipph;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    c1_dim1 = *ido;
-    c1_dim2 = *l1;
-    c1_offset = 1 + c1_dim1 * (1 + c1_dim2);
-    c1 -= c1_offset;
-    cc_dim1 = *ido;
-    cc_dim2 = *ip;
-    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
-    cc -= cc_offset;
-    ch2_dim1 = *idl1;
-    ch2_offset = 1 + ch2_dim1;
-    ch2 -= ch2_offset;
-    c2_dim1 = *idl1;
-    c2_offset = 1 + c2_dim1;
-    c2 -= c2_offset;
-    --wa;
-
-    /* Function Body */
-    arg = tpi / (real) (*ip);
-    dcp = cos(arg);
-    dsp = sin(arg);
-    ipph = (*ip + 1) / 2;
-    ipp2 = *ip + 2;
-    idp2 = *ido + 2;
-    nbd = (*ido - 1) / 2;
-    if (*ido == 1) {
-	goto L119;
-    }
-    i__1 = *idl1;
-    for (ik = 1; ik <= i__1; ++ik) {
-	ch2[ik + ch2_dim1] = c2[ik + c2_dim1];
-/* L101: */
-    }
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    ch[(k + j * ch_dim2) * ch_dim1 + 1] = c1[(k + j * c1_dim2) * 
-		    c1_dim1 + 1];
-/* L102: */
-	}
-/* L103: */
-    }
-    if (nbd > *l1) {
-	goto L107;
-    }
-    is = -(*ido);
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	is += *ido;
-	idij = is;
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    idij += 2;
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		ch[i__ - 1 + (k + j * ch_dim2) * ch_dim1] = wa[idij - 1] * c1[
-			i__ - 1 + (k + j * c1_dim2) * c1_dim1] + wa[idij] * 
-			c1[i__ + (k + j * c1_dim2) * c1_dim1];
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = wa[idij - 1] * c1[i__ 
-			+ (k + j * c1_dim2) * c1_dim1] - wa[idij] * c1[i__ - 
-			1 + (k + j * c1_dim2) * c1_dim1];
-/* L104: */
-	    }
-/* L105: */
-	}
-/* L106: */
-    }
-    goto L111;
-L107:
-    is = -(*ido);
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	is += *ido;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    idij = is;
-	    i__3 = *ido;
-	    for (i__ = 3; i__ <= i__3; i__ += 2) {
-		idij += 2;
-		ch[i__ - 1 + (k + j * ch_dim2) * ch_dim1] = wa[idij - 1] * c1[
-			i__ - 1 + (k + j * c1_dim2) * c1_dim1] + wa[idij] * 
-			c1[i__ + (k + j * c1_dim2) * c1_dim1];
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = wa[idij - 1] * c1[i__ 
-			+ (k + j * c1_dim2) * c1_dim1] - wa[idij] * c1[i__ - 
-			1 + (k + j * c1_dim2) * c1_dim1];
-/* L108: */
-	    }
-/* L109: */
-	}
-/* L110: */
-    }
-L111:
-    if (nbd < *l1) {
-	goto L115;
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    i__3 = *ido;
-	    for (i__ = 3; i__ <= i__3; i__ += 2) {
-		c1[i__ - 1 + (k + j * c1_dim2) * c1_dim1] = ch[i__ - 1 + (k + 
-			j * ch_dim2) * ch_dim1] + ch[i__ - 1 + (k + jc * 
-			ch_dim2) * ch_dim1];
-		c1[i__ - 1 + (k + jc * c1_dim2) * c1_dim1] = ch[i__ + (k + j *
-			 ch_dim2) * ch_dim1] - ch[i__ + (k + jc * ch_dim2) * 
-			ch_dim1];
-		c1[i__ + (k + j * c1_dim2) * c1_dim1] = ch[i__ + (k + j * 
-			ch_dim2) * ch_dim1] + ch[i__ + (k + jc * ch_dim2) * 
-			ch_dim1];
-		c1[i__ + (k + jc * c1_dim2) * c1_dim1] = ch[i__ - 1 + (k + jc 
-			* ch_dim2) * ch_dim1] - ch[i__ - 1 + (k + j * ch_dim2)
-			 * ch_dim1];
-/* L112: */
-	    }
-/* L113: */
-	}
-/* L114: */
-    }
-    goto L121;
-L115:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		c1[i__ - 1 + (k + j * c1_dim2) * c1_dim1] = ch[i__ - 1 + (k + 
-			j * ch_dim2) * ch_dim1] + ch[i__ - 1 + (k + jc * 
-			ch_dim2) * ch_dim1];
-		c1[i__ - 1 + (k + jc * c1_dim2) * c1_dim1] = ch[i__ + (k + j *
-			 ch_dim2) * ch_dim1] - ch[i__ + (k + jc * ch_dim2) * 
-			ch_dim1];
-		c1[i__ + (k + j * c1_dim2) * c1_dim1] = ch[i__ + (k + j * 
-			ch_dim2) * ch_dim1] + ch[i__ + (k + jc * ch_dim2) * 
-			ch_dim1];
-		c1[i__ + (k + jc * c1_dim2) * c1_dim1] = ch[i__ - 1 + (k + jc 
-			* ch_dim2) * ch_dim1] - ch[i__ - 1 + (k + j * ch_dim2)
-			 * ch_dim1];
-/* L116: */
-	    }
-/* L117: */
-	}
-/* L118: */
-    }
-    goto L121;
-L119:
-    i__1 = *idl1;
-    for (ik = 1; ik <= i__1; ++ik) {
-	c2[ik + c2_dim1] = ch2[ik + ch2_dim1];
-/* L120: */
-    }
-L121:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    c1[(k + j * c1_dim2) * c1_dim1 + 1] = ch[(k + j * ch_dim2) * 
-		    ch_dim1 + 1] + ch[(k + jc * ch_dim2) * ch_dim1 + 1];
-	    c1[(k + jc * c1_dim2) * c1_dim1 + 1] = ch[(k + jc * ch_dim2) * 
-		    ch_dim1 + 1] - ch[(k + j * ch_dim2) * ch_dim1 + 1];
-/* L122: */
-	}
-/* L123: */
-    }
-
-    ar1 = 1.f;
-    ai1 = 0.f;
-    i__1 = ipph;
-    for (l = 2; l <= i__1; ++l) {
-	lc = ipp2 - l;
-	ar1h = dcp * ar1 - dsp * ai1;
-	ai1 = dcp * ai1 + dsp * ar1;
-	ar1 = ar1h;
-	i__2 = *idl1;
-	for (ik = 1; ik <= i__2; ++ik) {
-	    ch2[ik + l * ch2_dim1] = c2[ik + c2_dim1] + ar1 * c2[ik + (
-		    c2_dim1 << 1)];
-	    ch2[ik + lc * ch2_dim1] = ai1 * c2[ik + *ip * c2_dim1];
-/* L124: */
-	}
-	dc2 = ar1;
-	ds2 = ai1;
-	ar2 = ar1;
-	ai2 = ai1;
-	i__2 = ipph;
-	for (j = 3; j <= i__2; ++j) {
-	    jc = ipp2 - j;
-	    ar2h = dc2 * ar2 - ds2 * ai2;
-	    ai2 = dc2 * ai2 + ds2 * ar2;
-	    ar2 = ar2h;
-	    i__3 = *idl1;
-	    for (ik = 1; ik <= i__3; ++ik) {
-		ch2[ik + l * ch2_dim1] += ar2 * c2[ik + j * c2_dim1];
-		ch2[ik + lc * ch2_dim1] += ai2 * c2[ik + jc * c2_dim1];
-/* L125: */
-	    }
-/* L126: */
-	}
-/* L127: */
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	i__2 = *idl1;
-	for (ik = 1; ik <= i__2; ++ik) {
-	    ch2[ik + ch2_dim1] += c2[ik + j * c2_dim1];
-/* L128: */
-	}
-/* L129: */
-    }
-
-    if (*ido < *l1) {
-	goto L132;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 1; i__ <= i__2; ++i__) {
-	    cc[i__ + (k * cc_dim2 + 1) * cc_dim1] = ch[i__ + (k + ch_dim2) * 
-		    ch_dim1];
-/* L130: */
-	}
-/* L131: */
-    }
-    goto L135;
-L132:
-    i__1 = *ido;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    cc[i__ + (k * cc_dim2 + 1) * cc_dim1] = ch[i__ + (k + ch_dim2) * 
-		    ch_dim1];
-/* L133: */
-	}
-/* L134: */
-    }
-L135:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	j2 = j + j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    cc[*ido + (j2 - 2 + k * cc_dim2) * cc_dim1] = ch[(k + j * ch_dim2)
-		     * ch_dim1 + 1];
-	    cc[(j2 - 1 + k * cc_dim2) * cc_dim1 + 1] = ch[(k + jc * ch_dim2) *
-		     ch_dim1 + 1];
-/* L136: */
-	}
-/* L137: */
-    }
-    if (*ido == 1) {
-	return 0;
-    }
-    if (nbd < *l1) {
-	goto L141;
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	j2 = j + j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    i__3 = *ido;
-	    for (i__ = 3; i__ <= i__3; i__ += 2) {
-		ic = idp2 - i__;
-		cc[i__ - 1 + (j2 - 1 + k * cc_dim2) * cc_dim1] = ch[i__ - 1 + 
-			(k + j * ch_dim2) * ch_dim1] + ch[i__ - 1 + (k + jc * 
-			ch_dim2) * ch_dim1];
-		cc[ic - 1 + (j2 - 2 + k * cc_dim2) * cc_dim1] = ch[i__ - 1 + (
-			k + j * ch_dim2) * ch_dim1] - ch[i__ - 1 + (k + jc * 
-			ch_dim2) * ch_dim1];
-		cc[i__ + (j2 - 1 + k * cc_dim2) * cc_dim1] = ch[i__ + (k + j *
-			 ch_dim2) * ch_dim1] + ch[i__ + (k + jc * ch_dim2) * 
-			ch_dim1];
-		cc[ic + (j2 - 2 + k * cc_dim2) * cc_dim1] = ch[i__ + (k + jc *
-			 ch_dim2) * ch_dim1] - ch[i__ + (k + j * ch_dim2) * 
-			ch_dim1];
-/* L138: */
-	    }
-/* L139: */
-	}
-/* L140: */
-    }
-    return 0;
-L141:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	j2 = j + j;
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		cc[i__ - 1 + (j2 - 1 + k * cc_dim2) * cc_dim1] = ch[i__ - 1 + 
-			(k + j * ch_dim2) * ch_dim1] + ch[i__ - 1 + (k + jc * 
-			ch_dim2) * ch_dim1];
-		cc[ic - 1 + (j2 - 2 + k * cc_dim2) * cc_dim1] = ch[i__ - 1 + (
-			k + j * ch_dim2) * ch_dim1] - ch[i__ - 1 + (k + jc * 
-			ch_dim2) * ch_dim1];
-		cc[i__ + (j2 - 1 + k * cc_dim2) * cc_dim1] = ch[i__ + (k + j *
-			 ch_dim2) * ch_dim1] + ch[i__ + (k + jc * ch_dim2) * 
-			ch_dim1];
-		cc[ic + (j2 - 2 + k * cc_dim2) * cc_dim1] = ch[i__ + (k + jc *
-			 ch_dim2) * ch_dim1] - ch[i__ + (k + j * ch_dim2) * 
-			ch_dim1];
-/* L142: */
-	    }
-/* L143: */
-	}
-/* L144: */
-    }
-    return 0;
-} /* fradfg_ */
-
-/* Subroutine */ int fradf5_(integer *ido, integer *l1, real *cc, real *ch, 
-	real *wa1, real *wa2, real *wa3, real *wa4)
-{
-    /* Initialized data */
-
-    static real tr11 = .309016994374947f;
-    static real ti11 = .951056516295154f;
-    static real tr12 = -.809016994374947f;
-    static real ti12 = .587785252292473f;
-
-    /* System generated locals */
-    integer cc_dim1, cc_dim2, cc_offset, ch_dim1, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k, ic;
-    static real ci2, di2, ci4, ci5, di3, di4, di5, ci3, cr2, cr3, dr2, dr3, 
-	    dr4, dr5, cr5, cr4, ti2, ti3, ti5, ti4, tr2, tr3, tr4, tr5;
-    static integer idp2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_offset = 1 + ch_dim1 * 6;
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_dim2 = *l1;
-    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-    --wa3;
-    --wa4;
-
-    /* Function Body */
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	cr2 = cc[(k + cc_dim2 * 5) * cc_dim1 + 1] + cc[(k + (cc_dim2 << 1)) * 
-		cc_dim1 + 1];
-	ci5 = cc[(k + cc_dim2 * 5) * cc_dim1 + 1] - cc[(k + (cc_dim2 << 1)) * 
-		cc_dim1 + 1];
-	cr3 = cc[(k + (cc_dim2 << 2)) * cc_dim1 + 1] + cc[(k + cc_dim2 * 3) * 
-		cc_dim1 + 1];
-	ci4 = cc[(k + (cc_dim2 << 2)) * cc_dim1 + 1] - cc[(k + cc_dim2 * 3) * 
-		cc_dim1 + 1];
-	ch[(k * 5 + 1) * ch_dim1 + 1] = cc[(k + cc_dim2) * cc_dim1 + 1] + cr2 
-		+ cr3;
-	ch[*ido + (k * 5 + 2) * ch_dim1] = cc[(k + cc_dim2) * cc_dim1 + 1] + 
-		tr11 * cr2 + tr12 * cr3;
-	ch[(k * 5 + 3) * ch_dim1 + 1] = ti11 * ci5 + ti12 * ci4;
-	ch[*ido + (k * 5 + 4) * ch_dim1] = cc[(k + cc_dim2) * cc_dim1 + 1] + 
-		tr12 * cr2 + tr11 * cr3;
-	ch[(k * 5 + 5) * ch_dim1 + 1] = ti12 * ci5 - ti11 * ci4;
-/* L101: */
-    }
-    if (*ido == 1) {
-	return 0;
-    }
-    idp2 = *ido + 2;
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    dr2 = wa1[i__ - 2] * cc[i__ - 1 + (k + (cc_dim2 << 1)) * cc_dim1] 
-		    + wa1[i__ - 1] * cc[i__ + (k + (cc_dim2 << 1)) * cc_dim1];
-	    di2 = wa1[i__ - 2] * cc[i__ + (k + (cc_dim2 << 1)) * cc_dim1] - 
-		    wa1[i__ - 1] * cc[i__ - 1 + (k + (cc_dim2 << 1)) * 
-		    cc_dim1];
-	    dr3 = wa2[i__ - 2] * cc[i__ - 1 + (k + cc_dim2 * 3) * cc_dim1] + 
-		    wa2[i__ - 1] * cc[i__ + (k + cc_dim2 * 3) * cc_dim1];
-	    di3 = wa2[i__ - 2] * cc[i__ + (k + cc_dim2 * 3) * cc_dim1] - wa2[
-		    i__ - 1] * cc[i__ - 1 + (k + cc_dim2 * 3) * cc_dim1];
-	    dr4 = wa3[i__ - 2] * cc[i__ - 1 + (k + (cc_dim2 << 2)) * cc_dim1] 
-		    + wa3[i__ - 1] * cc[i__ + (k + (cc_dim2 << 2)) * cc_dim1];
-	    di4 = wa3[i__ - 2] * cc[i__ + (k + (cc_dim2 << 2)) * cc_dim1] - 
-		    wa3[i__ - 1] * cc[i__ - 1 + (k + (cc_dim2 << 2)) * 
-		    cc_dim1];
-	    dr5 = wa4[i__ - 2] * cc[i__ - 1 + (k + cc_dim2 * 5) * cc_dim1] + 
-		    wa4[i__ - 1] * cc[i__ + (k + cc_dim2 * 5) * cc_dim1];
-	    di5 = wa4[i__ - 2] * cc[i__ + (k + cc_dim2 * 5) * cc_dim1] - wa4[
-		    i__ - 1] * cc[i__ - 1 + (k + cc_dim2 * 5) * cc_dim1];
-	    cr2 = dr2 + dr5;
-	    ci5 = dr5 - dr2;
-	    cr5 = di2 - di5;
-	    ci2 = di2 + di5;
-	    cr3 = dr3 + dr4;
-	    ci4 = dr4 - dr3;
-	    cr4 = di3 - di4;
-	    ci3 = di3 + di4;
-	    ch[i__ - 1 + (k * 5 + 1) * ch_dim1] = cc[i__ - 1 + (k + cc_dim2) *
-		     cc_dim1] + cr2 + cr3;
-	    ch[i__ + (k * 5 + 1) * ch_dim1] = cc[i__ + (k + cc_dim2) * 
-		    cc_dim1] + ci2 + ci3;
-	    tr2 = cc[i__ - 1 + (k + cc_dim2) * cc_dim1] + tr11 * cr2 + tr12 * 
-		    cr3;
-	    ti2 = cc[i__ + (k + cc_dim2) * cc_dim1] + tr11 * ci2 + tr12 * ci3;
-	    tr3 = cc[i__ - 1 + (k + cc_dim2) * cc_dim1] + tr12 * cr2 + tr11 * 
-		    cr3;
-	    ti3 = cc[i__ + (k + cc_dim2) * cc_dim1] + tr12 * ci2 + tr11 * ci3;
-	    tr5 = ti11 * cr5 + ti12 * cr4;
-	    ti5 = ti11 * ci5 + ti12 * ci4;
-	    tr4 = ti12 * cr5 - ti11 * cr4;
-	    ti4 = ti12 * ci5 - ti11 * ci4;
-	    ch[i__ - 1 + (k * 5 + 3) * ch_dim1] = tr2 + tr5;
-	    ch[ic - 1 + (k * 5 + 2) * ch_dim1] = tr2 - tr5;
-	    ch[i__ + (k * 5 + 3) * ch_dim1] = ti2 + ti5;
-	    ch[ic + (k * 5 + 2) * ch_dim1] = ti5 - ti2;
-	    ch[i__ - 1 + (k * 5 + 5) * ch_dim1] = tr3 + tr4;
-	    ch[ic - 1 + (k * 5 + 4) * ch_dim1] = tr3 - tr4;
-	    ch[i__ + (k * 5 + 5) * ch_dim1] = ti3 + ti4;
-	    ch[ic + (k * 5 + 4) * ch_dim1] = ti4 - ti3;
-/* L102: */
-	}
-/* L103: */
-    }
-    return 0;
-} /* fradf5_ */
-
-/* Subroutine */ int fradf3_(integer *ido, integer *l1, real *cc, real *ch, 
-	real *wa1, real *wa2)
-{
-    /* Initialized data */
-
-    static real taur = -.5f;
-    static real taui = .866025403784439f;
-
-    /* System generated locals */
-    integer ch_dim1, ch_offset, cc_dim1, cc_dim2, cc_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k, ic;
-    static real ci2, di2, di3, cr2, dr2, dr3, ti2, ti3, tr2, tr3;
-    static integer idp2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_offset = 1 + (ch_dim1 << 2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_dim2 = *l1;
-    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-
-    /* Function Body */
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	cr2 = cc[(k + (cc_dim2 << 1)) * cc_dim1 + 1] + cc[(k + cc_dim2 * 3) * 
-		cc_dim1 + 1];
-	ch[(k * 3 + 1) * ch_dim1 + 1] = cc[(k + cc_dim2) * cc_dim1 + 1] + cr2;
-	ch[(k * 3 + 3) * ch_dim1 + 1] = taui * (cc[(k + cc_dim2 * 3) * 
-		cc_dim1 + 1] - cc[(k + (cc_dim2 << 1)) * cc_dim1 + 1]);
-	ch[*ido + (k * 3 + 2) * ch_dim1] = cc[(k + cc_dim2) * cc_dim1 + 1] + 
-		taur * cr2;
-/* L101: */
-    }
-    if (*ido == 1) {
-	return 0;
-    }
-    idp2 = *ido + 2;
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    dr2 = wa1[i__ - 2] * cc[i__ - 1 + (k + (cc_dim2 << 1)) * cc_dim1] 
-		    + wa1[i__ - 1] * cc[i__ + (k + (cc_dim2 << 1)) * cc_dim1];
-	    di2 = wa1[i__ - 2] * cc[i__ + (k + (cc_dim2 << 1)) * cc_dim1] - 
-		    wa1[i__ - 1] * cc[i__ - 1 + (k + (cc_dim2 << 1)) * 
-		    cc_dim1];
-	    dr3 = wa2[i__ - 2] * cc[i__ - 1 + (k + cc_dim2 * 3) * cc_dim1] + 
-		    wa2[i__ - 1] * cc[i__ + (k + cc_dim2 * 3) * cc_dim1];
-	    di3 = wa2[i__ - 2] * cc[i__ + (k + cc_dim2 * 3) * cc_dim1] - wa2[
-		    i__ - 1] * cc[i__ - 1 + (k + cc_dim2 * 3) * cc_dim1];
-	    cr2 = dr2 + dr3;
-	    ci2 = di2 + di3;
-	    ch[i__ - 1 + (k * 3 + 1) * ch_dim1] = cc[i__ - 1 + (k + cc_dim2) *
-		     cc_dim1] + cr2;
-	    ch[i__ + (k * 3 + 1) * ch_dim1] = cc[i__ + (k + cc_dim2) * 
-		    cc_dim1] + ci2;
-	    tr2 = cc[i__ - 1 + (k + cc_dim2) * cc_dim1] + taur * cr2;
-	    ti2 = cc[i__ + (k + cc_dim2) * cc_dim1] + taur * ci2;
-	    tr3 = taui * (di2 - di3);
-	    ti3 = taui * (dr3 - dr2);
-	    ch[i__ - 1 + (k * 3 + 3) * ch_dim1] = tr2 + tr3;
-	    ch[ic - 1 + (k * 3 + 2) * ch_dim1] = tr2 - tr3;
-	    ch[i__ + (k * 3 + 3) * ch_dim1] = ti2 + ti3;
-	    ch[ic + (k * 3 + 2) * ch_dim1] = ti3 - ti2;
-/* L102: */
-	}
-/* L103: */
-    }
-    return 0;
-} /* fradf3_ */
-
-/* Subroutine */ int fradf2_(integer *ido, integer *l1, real *cc, real *ch, 
-	real *wa1)
-{
-    /* System generated locals */
-    integer ch_dim1, ch_offset, cc_dim1, cc_dim2, cc_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k, ic;
-    static real ti2, tr2;
-    static integer idp2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_offset = 1 + ch_dim1 * 3;
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_dim2 = *l1;
-    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
-    cc -= cc_offset;
-    --wa1;
-
-    /* Function Body */
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ch[((k << 1) + 1) * ch_dim1 + 1] = cc[(k + cc_dim2) * cc_dim1 + 1] + 
-		cc[(k + (cc_dim2 << 1)) * cc_dim1 + 1];
-	ch[*ido + ((k << 1) + 2) * ch_dim1] = cc[(k + cc_dim2) * cc_dim1 + 1] 
-		- cc[(k + (cc_dim2 << 1)) * cc_dim1 + 1];
-/* L101: */
-    }
-    if ((i__1 = *ido - 2) < 0) {
-	goto L107;
-    } else if (i__1 == 0) {
-	goto L105;
-    } else {
-	goto L102;
-    }
-L102:
-    idp2 = *ido + 2;
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    tr2 = wa1[i__ - 2] * cc[i__ - 1 + (k + (cc_dim2 << 1)) * cc_dim1] 
-		    + wa1[i__ - 1] * cc[i__ + (k + (cc_dim2 << 1)) * cc_dim1];
-	    ti2 = wa1[i__ - 2] * cc[i__ + (k + (cc_dim2 << 1)) * cc_dim1] - 
-		    wa1[i__ - 1] * cc[i__ - 1 + (k + (cc_dim2 << 1)) * 
-		    cc_dim1];
-	    ch[i__ + ((k << 1) + 1) * ch_dim1] = cc[i__ + (k + cc_dim2) * 
-		    cc_dim1] + ti2;
-	    ch[ic + ((k << 1) + 2) * ch_dim1] = ti2 - cc[i__ + (k + cc_dim2) *
-		     cc_dim1];
-	    ch[i__ - 1 + ((k << 1) + 1) * ch_dim1] = cc[i__ - 1 + (k + 
-		    cc_dim2) * cc_dim1] + tr2;
-	    ch[ic - 1 + ((k << 1) + 2) * ch_dim1] = cc[i__ - 1 + (k + cc_dim2)
-		     * cc_dim1] - tr2;
-/* L103: */
-	}
-/* L104: */
-    }
-    if (*ido % 2 == 1) {
-	return 0;
-    }
-L105:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ch[((k << 1) + 2) * ch_dim1 + 1] = -cc[*ido + (k + (cc_dim2 << 1)) * 
-		cc_dim1];
-	ch[*ido + ((k << 1) + 1) * ch_dim1] = cc[*ido + (k + cc_dim2) * 
-		cc_dim1];
-/* L106: */
-    }
-L107:
-    return 0;
-} /* fradf2_ */
-
-/* Subroutine */ int fradf4_(integer *ido, integer *l1, real *cc, real *ch, 
-	real *wa1, real *wa2, real *wa3)
-{
-    /* Initialized data */
-
-    static real hsqt2 = .7071067811865475f;
-
-    /* System generated locals */
-    integer cc_dim1, cc_dim2, cc_offset, ch_dim1, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k, ic;
-    static real ci2, ci3, ci4, cr2, cr3, cr4, ti1, ti2, ti3, ti4, tr1, tr2, 
-	    tr3, tr4;
-    static integer idp2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_offset = 1 + ch_dim1 * 5;
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_dim2 = *l1;
-    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-    --wa3;
-
-    /* Function Body */
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	tr1 = cc[(k + (cc_dim2 << 1)) * cc_dim1 + 1] + cc[(k + (cc_dim2 << 2))
-		 * cc_dim1 + 1];
-	tr2 = cc[(k + cc_dim2) * cc_dim1 + 1] + cc[(k + cc_dim2 * 3) * 
-		cc_dim1 + 1];
-	ch[((k << 2) + 1) * ch_dim1 + 1] = tr1 + tr2;
-	ch[*ido + ((k << 2) + 4) * ch_dim1] = tr2 - tr1;
-	ch[*ido + ((k << 2) + 2) * ch_dim1] = cc[(k + cc_dim2) * cc_dim1 + 1] 
-		- cc[(k + cc_dim2 * 3) * cc_dim1 + 1];
-	ch[((k << 2) + 3) * ch_dim1 + 1] = cc[(k + (cc_dim2 << 2)) * cc_dim1 
-		+ 1] - cc[(k + (cc_dim2 << 1)) * cc_dim1 + 1];
-/* L101: */
-    }
-    if ((i__1 = *ido - 2) < 0) {
-	goto L107;
-    } else if (i__1 == 0) {
-	goto L105;
-    } else {
-	goto L102;
-    }
-L102:
-    idp2 = *ido + 2;
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    cr2 = wa1[i__ - 2] * cc[i__ - 1 + (k + (cc_dim2 << 1)) * cc_dim1] 
-		    + wa1[i__ - 1] * cc[i__ + (k + (cc_dim2 << 1)) * cc_dim1];
-	    ci2 = wa1[i__ - 2] * cc[i__ + (k + (cc_dim2 << 1)) * cc_dim1] - 
-		    wa1[i__ - 1] * cc[i__ - 1 + (k + (cc_dim2 << 1)) * 
-		    cc_dim1];
-	    cr3 = wa2[i__ - 2] * cc[i__ - 1 + (k + cc_dim2 * 3) * cc_dim1] + 
-		    wa2[i__ - 1] * cc[i__ + (k + cc_dim2 * 3) * cc_dim1];
-	    ci3 = wa2[i__ - 2] * cc[i__ + (k + cc_dim2 * 3) * cc_dim1] - wa2[
-		    i__ - 1] * cc[i__ - 1 + (k + cc_dim2 * 3) * cc_dim1];
-	    cr4 = wa3[i__ - 2] * cc[i__ - 1 + (k + (cc_dim2 << 2)) * cc_dim1] 
-		    + wa3[i__ - 1] * cc[i__ + (k + (cc_dim2 << 2)) * cc_dim1];
-	    ci4 = wa3[i__ - 2] * cc[i__ + (k + (cc_dim2 << 2)) * cc_dim1] - 
-		    wa3[i__ - 1] * cc[i__ - 1 + (k + (cc_dim2 << 2)) * 
-		    cc_dim1];
-	    tr1 = cr2 + cr4;
-	    tr4 = cr4 - cr2;
-	    ti1 = ci2 + ci4;
-	    ti4 = ci2 - ci4;
-	    ti2 = cc[i__ + (k + cc_dim2) * cc_dim1] + ci3;
-	    ti3 = cc[i__ + (k + cc_dim2) * cc_dim1] - ci3;
-	    tr2 = cc[i__ - 1 + (k + cc_dim2) * cc_dim1] + cr3;
-	    tr3 = cc[i__ - 1 + (k + cc_dim2) * cc_dim1] - cr3;
-	    ch[i__ - 1 + ((k << 2) + 1) * ch_dim1] = tr1 + tr2;
-	    ch[ic - 1 + ((k << 2) + 4) * ch_dim1] = tr2 - tr1;
-	    ch[i__ + ((k << 2) + 1) * ch_dim1] = ti1 + ti2;
-	    ch[ic + ((k << 2) + 4) * ch_dim1] = ti1 - ti2;
-	    ch[i__ - 1 + ((k << 2) + 3) * ch_dim1] = ti4 + tr3;
-	    ch[ic - 1 + ((k << 2) + 2) * ch_dim1] = tr3 - ti4;
-	    ch[i__ + ((k << 2) + 3) * ch_dim1] = tr4 + ti3;
-	    ch[ic + ((k << 2) + 2) * ch_dim1] = tr4 - ti3;
-/* L103: */
-	}
-/* L104: */
-    }
-    if (*ido % 2 == 1) {
-	return 0;
-    }
-L105:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ti1 = -hsqt2 * (cc[*ido + (k + (cc_dim2 << 1)) * cc_dim1] + cc[*ido + 
-		(k + (cc_dim2 << 2)) * cc_dim1]);
-	tr1 = hsqt2 * (cc[*ido + (k + (cc_dim2 << 1)) * cc_dim1] - cc[*ido + (
-		k + (cc_dim2 << 2)) * cc_dim1]);
-	ch[*ido + ((k << 2) + 1) * ch_dim1] = tr1 + cc[*ido + (k + cc_dim2) * 
-		cc_dim1];
-	ch[*ido + ((k << 2) + 3) * ch_dim1] = cc[*ido + (k + cc_dim2) * 
-		cc_dim1] - tr1;
-	ch[((k << 2) + 2) * ch_dim1 + 1] = ti1 - cc[*ido + (k + cc_dim2 * 3) *
-		 cc_dim1];
-	ch[((k << 2) + 4) * ch_dim1 + 1] = ti1 + cc[*ido + (k + cc_dim2 * 3) *
-		 cc_dim1];
-/* L106: */
-    }
-L107:
-    return 0;
-} /* fradf4_ */
-
-/* Subroutine */ int frfftb_(integer *n, real *r__, real *wsave)
-{
-    extern /* Subroutine */ int frfftb1_(integer *, real *, real *, real *, 
-	    real *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --wsave;
-    --r__;
-
-    /* Function Body */
-    if (*n == 1) {
-	return 0;
-    }
-    frfftb1_(n, &r__[1], &wsave[1], &wsave[*n + 1], &wsave[(*n << 1) + 1]);
-    return 0;
-} /* frfftb_ */
-
-/* Subroutine */ int frfftb1_(integer *n, real *c__, real *ch, real *wa, real 
-	*xxifac)
-{
-    /* System generated locals */
-    integer i__1;
-    static real equiv_0[15];
-
-    /* Local variables */
-    static integer i__, k1, l1, l2, na, nf, ip, iw, ix2, ix3, ix4, ido, idl1;
-#define jfac ((integer *)equiv_0)
-#define rfac (equiv_0)
-    extern /* Subroutine */ int fradb2_(integer *, integer *, real *, real *, 
-	    real *), fradb3_(integer *, integer *, real *, real *, real *, 
-	    real *), fradb4_(integer *, integer *, real *, real *, real *, 
-	    real *, real *), fradb5_(integer *, integer *, real *, real *, 
-	    real *, real *, real *, real *), fradbg_(integer *, integer *, 
-	    integer *, integer *, real *, real *, real *, real *, real *, 
-	    real *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --xxifac;
-    --wa;
-    --ch;
-    --c__;
-
-    /* Function Body */
-    for (i__ = 1; i__ <= 15; ++i__) {
-	rfac[i__ - 1] = xxifac[i__];
-/* L100: */
-    }
-    nf = jfac[1];
-    na = 0;
-    l1 = 1;
-    iw = 1;
-    i__1 = nf;
-    for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = jfac[k1 + 1];
-	l2 = ip * l1;
-	ido = *n / l2;
-	idl1 = ido * l1;
-	if (ip != 4) {
-	    goto L103;
-	}
-	ix2 = iw + ido;
-	ix3 = ix2 + ido;
-	if (na != 0) {
-	    goto L101;
-	}
-	fradb4_(&ido, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2], &wa[ix3]);
-	goto L102;
-L101:
-	fradb4_(&ido, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2], &wa[ix3]);
-L102:
-	na = 1 - na;
-	goto L115;
-L103:
-	if (ip != 2) {
-	    goto L106;
-	}
-	if (na != 0) {
-	    goto L104;
-	}
-	fradb2_(&ido, &l1, &c__[1], &ch[1], &wa[iw]);
-	goto L105;
-L104:
-	fradb2_(&ido, &l1, &ch[1], &c__[1], &wa[iw]);
-L105:
-	na = 1 - na;
-	goto L115;
-L106:
-	if (ip != 3) {
-	    goto L109;
-	}
-	ix2 = iw + ido;
-	if (na != 0) {
-	    goto L107;
-	}
-	fradb3_(&ido, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2]);
-	goto L108;
-L107:
-	fradb3_(&ido, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2]);
-L108:
-	na = 1 - na;
-	goto L115;
-L109:
-	if (ip != 5) {
-	    goto L112;
-	}
-	ix2 = iw + ido;
-	ix3 = ix2 + ido;
-	ix4 = ix3 + ido;
-	if (na != 0) {
-	    goto L110;
-	}
-	fradb5_(&ido, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2], &wa[ix3], &wa[
-		ix4]);
-	goto L111;
-L110:
-	fradb5_(&ido, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2], &wa[ix3], &wa[
-		ix4]);
-L111:
-	na = 1 - na;
-	goto L115;
-L112:
-	if (na != 0) {
-	    goto L113;
-	}
-	fradbg_(&ido, &ip, &l1, &idl1, &c__[1], &c__[1], &c__[1], &ch[1], &ch[
-		1], &wa[iw]);
-	goto L114;
-L113:
-	fradbg_(&ido, &ip, &l1, &idl1, &ch[1], &ch[1], &ch[1], &c__[1], &c__[
-		1], &wa[iw]);
-L114:
-	if (ido == 1) {
-	    na = 1 - na;
-	}
-L115:
-	l1 = l2;
-	iw += (ip - 1) * ido;
-/* L116: */
-    }
-    if (na == 0) {
-	return 0;
-    }
-    i__1 = *n;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	c__[i__] = ch[i__];
-/* L117: */
-    }
-    return 0;
-} /* frfftb1_ */
-
-#undef rfac
-#undef jfac
-
-
-/* Subroutine */ int fradbg_(integer *ido, integer *ip, integer *l1, integer *
-	idl1, real *cc, real *c1, real *c2, real *ch, real *ch2, real *wa)
-{
-    /* Initialized data */
-
-    static real tpi = 6.28318530717959f;
-
-    /* System generated locals */
-    integer ch_dim1, ch_dim2, ch_offset, cc_dim1, cc_dim2, cc_offset, c1_dim1,
-	     c1_dim2, c1_offset, c2_dim1, c2_offset, ch2_dim1, ch2_offset, 
-	    i__1, i__2, i__3;
-
-    /* Builtin functions */
-    double cos(doublereal), sin(doublereal);
-
-    /* Local variables */
-    static integer i__, j, k, l, j2, ic, jc, lc, ik, is;
-    static real dc2, ai1, ai2, ar1, ar2, ds2;
-    static integer nbd;
-    static real dcp, arg, dsp, ar1h, ar2h;
-    static integer idp2, ipp2, idij, ipph;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    c1_dim1 = *ido;
-    c1_dim2 = *l1;
-    c1_offset = 1 + c1_dim1 * (1 + c1_dim2);
-    c1 -= c1_offset;
-    cc_dim1 = *ido;
-    cc_dim2 = *ip;
-    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
-    cc -= cc_offset;
-    ch2_dim1 = *idl1;
-    ch2_offset = 1 + ch2_dim1;
-    ch2 -= ch2_offset;
-    c2_dim1 = *idl1;
-    c2_offset = 1 + c2_dim1;
-    c2 -= c2_offset;
-    --wa;
-
-    /* Function Body */
-    arg = tpi / (real) (*ip);
-    dcp = cos(arg);
-    dsp = sin(arg);
-    idp2 = *ido + 2;
-    nbd = (*ido - 1) / 2;
-    ipp2 = *ip + 2;
-    ipph = (*ip + 1) / 2;
-    if (*ido < *l1) {
-	goto L103;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 1; i__ <= i__2; ++i__) {
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * cc_dim2 + 1) * 
-		    cc_dim1];
-/* L101: */
-	}
-/* L102: */
-    }
-    goto L106;
-L103:
-    i__1 = *ido;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * cc_dim2 + 1) * 
-		    cc_dim1];
-/* L104: */
-	}
-/* L105: */
-    }
-L106:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	j2 = j + j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    ch[(k + j * ch_dim2) * ch_dim1 + 1] = cc[*ido + (j2 - 2 + k * 
-		    cc_dim2) * cc_dim1] + cc[*ido + (j2 - 2 + k * cc_dim2) * 
-		    cc_dim1];
-	    ch[(k + jc * ch_dim2) * ch_dim1 + 1] = cc[(j2 - 1 + k * cc_dim2) *
-		     cc_dim1 + 1] + cc[(j2 - 1 + k * cc_dim2) * cc_dim1 + 1];
-/* L107: */
-	}
-/* L108: */
-    }
-    if (*ido == 1) {
-	goto L116;
-    }
-    if (nbd < *l1) {
-	goto L112;
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    i__3 = *ido;
-	    for (i__ = 3; i__ <= i__3; i__ += 2) {
-		ic = idp2 - i__;
-		ch[i__ - 1 + (k + j * ch_dim2) * ch_dim1] = cc[i__ - 1 + ((j 
-			<< 1) - 1 + k * cc_dim2) * cc_dim1] + cc[ic - 1 + ((j 
-			<< 1) - 2 + k * cc_dim2) * cc_dim1];
-		ch[i__ - 1 + (k + jc * ch_dim2) * ch_dim1] = cc[i__ - 1 + ((j 
-			<< 1) - 1 + k * cc_dim2) * cc_dim1] - cc[ic - 1 + ((j 
-			<< 1) - 2 + k * cc_dim2) * cc_dim1];
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = cc[i__ + ((j << 1) - 
-			1 + k * cc_dim2) * cc_dim1] - cc[ic + ((j << 1) - 2 + 
-			k * cc_dim2) * cc_dim1];
-		ch[i__ + (k + jc * ch_dim2) * ch_dim1] = cc[i__ + ((j << 1) - 
-			1 + k * cc_dim2) * cc_dim1] + cc[ic + ((j << 1) - 2 + 
-			k * cc_dim2) * cc_dim1];
-/* L109: */
-	    }
-/* L110: */
-	}
-/* L111: */
-    }
-    goto L116;
-L112:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		ch[i__ - 1 + (k + j * ch_dim2) * ch_dim1] = cc[i__ - 1 + ((j 
-			<< 1) - 1 + k * cc_dim2) * cc_dim1] + cc[ic - 1 + ((j 
-			<< 1) - 2 + k * cc_dim2) * cc_dim1];
-		ch[i__ - 1 + (k + jc * ch_dim2) * ch_dim1] = cc[i__ - 1 + ((j 
-			<< 1) - 1 + k * cc_dim2) * cc_dim1] - cc[ic - 1 + ((j 
-			<< 1) - 2 + k * cc_dim2) * cc_dim1];
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = cc[i__ + ((j << 1) - 
-			1 + k * cc_dim2) * cc_dim1] - cc[ic + ((j << 1) - 2 + 
-			k * cc_dim2) * cc_dim1];
-		ch[i__ + (k + jc * ch_dim2) * ch_dim1] = cc[i__ + ((j << 1) - 
-			1 + k * cc_dim2) * cc_dim1] + cc[ic + ((j << 1) - 2 + 
-			k * cc_dim2) * cc_dim1];
-/* L113: */
-	    }
-/* L114: */
-	}
-/* L115: */
-    }
-L116:
-    ar1 = 1.f;
-    ai1 = 0.f;
-    i__1 = ipph;
-    for (l = 2; l <= i__1; ++l) {
-	lc = ipp2 - l;
-	ar1h = dcp * ar1 - dsp * ai1;
-	ai1 = dcp * ai1 + dsp * ar1;
-	ar1 = ar1h;
-	i__2 = *idl1;
-	for (ik = 1; ik <= i__2; ++ik) {
-	    c2[ik + l * c2_dim1] = ch2[ik + ch2_dim1] + ar1 * ch2[ik + (
-		    ch2_dim1 << 1)];
-	    c2[ik + lc * c2_dim1] = ai1 * ch2[ik + *ip * ch2_dim1];
-/* L117: */
-	}
-	dc2 = ar1;
-	ds2 = ai1;
-	ar2 = ar1;
-	ai2 = ai1;
-	i__2 = ipph;
-	for (j = 3; j <= i__2; ++j) {
-	    jc = ipp2 - j;
-	    ar2h = dc2 * ar2 - ds2 * ai2;
-	    ai2 = dc2 * ai2 + ds2 * ar2;
-	    ar2 = ar2h;
-	    i__3 = *idl1;
-	    for (ik = 1; ik <= i__3; ++ik) {
-		c2[ik + l * c2_dim1] += ar2 * ch2[ik + j * ch2_dim1];
-		c2[ik + lc * c2_dim1] += ai2 * ch2[ik + jc * ch2_dim1];
-/* L118: */
-	    }
-/* L119: */
-	}
-/* L120: */
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	i__2 = *idl1;
-	for (ik = 1; ik <= i__2; ++ik) {
-	    ch2[ik + ch2_dim1] += ch2[ik + j * ch2_dim1];
-/* L121: */
-	}
-/* L122: */
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    ch[(k + j * ch_dim2) * ch_dim1 + 1] = c1[(k + j * c1_dim2) * 
-		    c1_dim1 + 1] - c1[(k + jc * c1_dim2) * c1_dim1 + 1];
-	    ch[(k + jc * ch_dim2) * ch_dim1 + 1] = c1[(k + j * c1_dim2) * 
-		    c1_dim1 + 1] + c1[(k + jc * c1_dim2) * c1_dim1 + 1];
-/* L123: */
-	}
-/* L124: */
-    }
-    if (*ido == 1) {
-	goto L132;
-    }
-    if (nbd < *l1) {
-	goto L128;
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    i__3 = *ido;
-	    for (i__ = 3; i__ <= i__3; i__ += 2) {
-		ch[i__ - 1 + (k + j * ch_dim2) * ch_dim1] = c1[i__ - 1 + (k + 
-			j * c1_dim2) * c1_dim1] - c1[i__ + (k + jc * c1_dim2) 
-			* c1_dim1];
-		ch[i__ - 1 + (k + jc * ch_dim2) * ch_dim1] = c1[i__ - 1 + (k 
-			+ j * c1_dim2) * c1_dim1] + c1[i__ + (k + jc * 
-			c1_dim2) * c1_dim1];
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = c1[i__ + (k + j * 
-			c1_dim2) * c1_dim1] + c1[i__ - 1 + (k + jc * c1_dim2) 
-			* c1_dim1];
-		ch[i__ + (k + jc * ch_dim2) * ch_dim1] = c1[i__ + (k + j * 
-			c1_dim2) * c1_dim1] - c1[i__ - 1 + (k + jc * c1_dim2) 
-			* c1_dim1];
-/* L125: */
-	    }
-/* L126: */
-	}
-/* L127: */
-    }
-    goto L132;
-L128:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		ch[i__ - 1 + (k + j * ch_dim2) * ch_dim1] = c1[i__ - 1 + (k + 
-			j * c1_dim2) * c1_dim1] - c1[i__ + (k + jc * c1_dim2) 
-			* c1_dim1];
-		ch[i__ - 1 + (k + jc * ch_dim2) * ch_dim1] = c1[i__ - 1 + (k 
-			+ j * c1_dim2) * c1_dim1] + c1[i__ + (k + jc * 
-			c1_dim2) * c1_dim1];
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = c1[i__ + (k + j * 
-			c1_dim2) * c1_dim1] + c1[i__ - 1 + (k + jc * c1_dim2) 
-			* c1_dim1];
-		ch[i__ + (k + jc * ch_dim2) * ch_dim1] = c1[i__ + (k + j * 
-			c1_dim2) * c1_dim1] - c1[i__ - 1 + (k + jc * c1_dim2) 
-			* c1_dim1];
-/* L129: */
-	    }
-/* L130: */
-	}
-/* L131: */
-    }
-L132:
-    if (*ido == 1) {
-	return 0;
-    }
-    i__1 = *idl1;
-    for (ik = 1; ik <= i__1; ++ik) {
-	c2[ik + c2_dim1] = ch2[ik + ch2_dim1];
-/* L133: */
-    }
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    c1[(k + j * c1_dim2) * c1_dim1 + 1] = ch[(k + j * ch_dim2) * 
-		    ch_dim1 + 1];
-/* L134: */
-	}
-/* L135: */
-    }
-    if (nbd > *l1) {
-	goto L139;
-    }
-    is = -(*ido);
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	is += *ido;
-	idij = is;
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    idij += 2;
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		c1[i__ - 1 + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[
-			i__ - 1 + (k + j * ch_dim2) * ch_dim1] - wa[idij] * 
-			ch[i__ + (k + j * ch_dim2) * ch_dim1];
-		c1[i__ + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[i__ 
-			+ (k + j * ch_dim2) * ch_dim1] + wa[idij] * ch[i__ - 
-			1 + (k + j * ch_dim2) * ch_dim1];
-/* L136: */
-	    }
-/* L137: */
-	}
-/* L138: */
-    }
-    goto L143;
-L139:
-    is = -(*ido);
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	is += *ido;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    idij = is;
-	    i__3 = *ido;
-	    for (i__ = 3; i__ <= i__3; i__ += 2) {
-		idij += 2;
-		c1[i__ - 1 + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[
-			i__ - 1 + (k + j * ch_dim2) * ch_dim1] - wa[idij] * 
-			ch[i__ + (k + j * ch_dim2) * ch_dim1];
-		c1[i__ + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[i__ 
-			+ (k + j * ch_dim2) * ch_dim1] + wa[idij] * ch[i__ - 
-			1 + (k + j * ch_dim2) * ch_dim1];
-/* L140: */
-	    }
-/* L141: */
-	}
-/* L142: */
-    }
-L143:
-    return 0;
-} /* fradbg_ */
-
-/* Subroutine */ int fradb5_(integer *ido, integer *l1, real *cc, real *ch, 
-	real *wa1, real *wa2, real *wa3, real *wa4)
-{
-    /* Initialized data */
-
-    static real tr11 = .309016994374947f;
-    static real ti11 = .951056516295154f;
-    static real tr12 = -.809016994374947f;
-    static real ti12 = .587785252292473f;
-
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k, ic;
-    static real ci2, ci3, ci4, ci5, di3, di4, di5, di2, cr2, cr3, cr5, cr4, 
-	    ti2, ti3, ti4, ti5, dr3, dr4, dr5, dr2, tr2, tr3, tr4, tr5;
-    static integer idp2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 6;
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-    --wa3;
-    --wa4;
-
-    /* Function Body */
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ti5 = cc[(k * 5 + 3) * cc_dim1 + 1] + cc[(k * 5 + 3) * cc_dim1 + 1];
-	ti4 = cc[(k * 5 + 5) * cc_dim1 + 1] + cc[(k * 5 + 5) * cc_dim1 + 1];
-	tr2 = cc[*ido + (k * 5 + 2) * cc_dim1] + cc[*ido + (k * 5 + 2) * 
-		cc_dim1];
-	tr3 = cc[*ido + (k * 5 + 4) * cc_dim1] + cc[*ido + (k * 5 + 4) * 
-		cc_dim1];
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[(k * 5 + 1) * cc_dim1 + 1] + tr2 
-		+ tr3;
-	cr2 = cc[(k * 5 + 1) * cc_dim1 + 1] + tr11 * tr2 + tr12 * tr3;
-	cr3 = cc[(k * 5 + 1) * cc_dim1 + 1] + tr12 * tr2 + tr11 * tr3;
-	ci5 = ti11 * ti5 + ti12 * ti4;
-	ci4 = ti12 * ti5 - ti11 * ti4;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cr2 - ci5;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = cr3 - ci4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 1] = cr3 + ci4;
-	ch[(k + ch_dim2 * 5) * ch_dim1 + 1] = cr2 + ci5;
-/* L101: */
-    }
-    if (*ido == 1) {
-	return 0;
-    }
-    idp2 = *ido + 2;
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    ti5 = cc[i__ + (k * 5 + 3) * cc_dim1] + cc[ic + (k * 5 + 2) * 
-		    cc_dim1];
-	    ti2 = cc[i__ + (k * 5 + 3) * cc_dim1] - cc[ic + (k * 5 + 2) * 
-		    cc_dim1];
-	    ti4 = cc[i__ + (k * 5 + 5) * cc_dim1] + cc[ic + (k * 5 + 4) * 
-		    cc_dim1];
-	    ti3 = cc[i__ + (k * 5 + 5) * cc_dim1] - cc[ic + (k * 5 + 4) * 
-		    cc_dim1];
-	    tr5 = cc[i__ - 1 + (k * 5 + 3) * cc_dim1] - cc[ic - 1 + (k * 5 + 
-		    2) * cc_dim1];
-	    tr2 = cc[i__ - 1 + (k * 5 + 3) * cc_dim1] + cc[ic - 1 + (k * 5 + 
-		    2) * cc_dim1];
-	    tr4 = cc[i__ - 1 + (k * 5 + 5) * cc_dim1] - cc[ic - 1 + (k * 5 + 
-		    4) * cc_dim1];
-	    tr3 = cc[i__ - 1 + (k * 5 + 5) * cc_dim1] + cc[ic - 1 + (k * 5 + 
-		    4) * cc_dim1];
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + (k * 5 + 1) *
-		     cc_dim1] + tr2 + tr3;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * 5 + 1) * 
-		    cc_dim1] + ti2 + ti3;
-	    cr2 = cc[i__ - 1 + (k * 5 + 1) * cc_dim1] + tr11 * tr2 + tr12 * 
-		    tr3;
-	    ci2 = cc[i__ + (k * 5 + 1) * cc_dim1] + tr11 * ti2 + tr12 * ti3;
-	    cr3 = cc[i__ - 1 + (k * 5 + 1) * cc_dim1] + tr12 * tr2 + tr11 * 
-		    tr3;
-	    ci3 = cc[i__ + (k * 5 + 1) * cc_dim1] + tr12 * ti2 + tr11 * ti3;
-	    cr5 = ti11 * tr5 + ti12 * tr4;
-	    ci5 = ti11 * ti5 + ti12 * ti4;
-	    cr4 = ti12 * tr5 - ti11 * tr4;
-	    ci4 = ti12 * ti5 - ti11 * ti4;
-	    dr3 = cr3 - ci4;
-	    dr4 = cr3 + ci4;
-	    di3 = ci3 + cr4;
-	    di4 = ci3 - cr4;
-	    dr5 = cr2 + ci5;
-	    dr2 = cr2 - ci5;
-	    di5 = ci2 - cr5;
-	    di2 = ci2 + cr5;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 2] * dr2 
-		    - wa1[i__ - 1] * di2;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 2] * di2 + 
-		    wa1[i__ - 1] * dr2;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 2] * dr3 - 
-		    wa2[i__ - 1] * di3;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 2] * di3 + wa2[
-		    i__ - 1] * dr3;
-	    ch[i__ - 1 + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 2] * dr4 
-		    - wa3[i__ - 1] * di4;
-	    ch[i__ + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 2] * di4 + 
-		    wa3[i__ - 1] * dr4;
-	    ch[i__ - 1 + (k + ch_dim2 * 5) * ch_dim1] = wa4[i__ - 2] * dr5 - 
-		    wa4[i__ - 1] * di5;
-	    ch[i__ + (k + ch_dim2 * 5) * ch_dim1] = wa4[i__ - 2] * di5 + wa4[
-		    i__ - 1] * dr5;
-/* L102: */
-	}
-/* L103: */
-    }
-    return 0;
-} /* fradb5_ */
-
-/* Subroutine */ int fradb3_(integer *ido, integer *l1, real *cc, real *ch, 
-	real *wa1, real *wa2)
-{
-    /* Initialized data */
-
-    static real taur = -.5f;
-    static real taui = .866025403784439f;
-
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k, ic;
-    static real ci2, ci3, di2, di3, cr2, cr3, dr2, dr3, ti2, tr2;
-    static integer idp2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + (cc_dim1 << 2);
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-
-    /* Function Body */
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	tr2 = cc[*ido + (k * 3 + 2) * cc_dim1] + cc[*ido + (k * 3 + 2) * 
-		cc_dim1];
-	cr2 = cc[(k * 3 + 1) * cc_dim1 + 1] + taur * tr2;
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[(k * 3 + 1) * cc_dim1 + 1] + tr2;
-	ci3 = taui * (cc[(k * 3 + 3) * cc_dim1 + 1] + cc[(k * 3 + 3) * 
-		cc_dim1 + 1]);
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cr2 - ci3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = cr2 + ci3;
-/* L101: */
-    }
-    if (*ido == 1) {
-	return 0;
-    }
-    idp2 = *ido + 2;
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    tr2 = cc[i__ - 1 + (k * 3 + 3) * cc_dim1] + cc[ic - 1 + (k * 3 + 
-		    2) * cc_dim1];
-	    cr2 = cc[i__ - 1 + (k * 3 + 1) * cc_dim1] + taur * tr2;
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + (k * 3 + 1) *
-		     cc_dim1] + tr2;
-	    ti2 = cc[i__ + (k * 3 + 3) * cc_dim1] - cc[ic + (k * 3 + 2) * 
-		    cc_dim1];
-	    ci2 = cc[i__ + (k * 3 + 1) * cc_dim1] + taur * ti2;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * 3 + 1) * 
-		    cc_dim1] + ti2;
-	    cr3 = taui * (cc[i__ - 1 + (k * 3 + 3) * cc_dim1] - cc[ic - 1 + (
-		    k * 3 + 2) * cc_dim1]);
-	    ci3 = taui * (cc[i__ + (k * 3 + 3) * cc_dim1] + cc[ic + (k * 3 + 
-		    2) * cc_dim1]);
-	    dr2 = cr2 - ci3;
-	    dr3 = cr2 + ci3;
-	    di2 = ci2 + cr3;
-	    di3 = ci2 - cr3;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 2] * dr2 
-		    - wa1[i__ - 1] * di2;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 2] * di2 + 
-		    wa1[i__ - 1] * dr2;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 2] * dr3 - 
-		    wa2[i__ - 1] * di3;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 2] * di3 + wa2[
-		    i__ - 1] * dr3;
-/* L102: */
-	}
-/* L103: */
-    }
-    return 0;
-} /* fradb3_ */
-
-/* Subroutine */ int fradb2_(integer *ido, integer *l1, real *cc, real *ch, 
-	real *wa1)
-{
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k, ic;
-    static real ti2, tr2;
-    static integer idp2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 3;
-    cc -= cc_offset;
-    --wa1;
-
-    /* Function Body */
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[((k << 1) + 1) * cc_dim1 + 1] + 
-		cc[*ido + ((k << 1) + 2) * cc_dim1];
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cc[((k << 1) + 1) * cc_dim1 
-		+ 1] - cc[*ido + ((k << 1) + 2) * cc_dim1];
-/* L101: */
-    }
-    if ((i__1 = *ido - 2) < 0) {
-	goto L107;
-    } else if (i__1 == 0) {
-	goto L105;
-    } else {
-	goto L102;
-    }
-L102:
-    idp2 = *ido + 2;
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + ((k << 1) + 
-		    1) * cc_dim1] + cc[ic - 1 + ((k << 1) + 2) * cc_dim1];
-	    tr2 = cc[i__ - 1 + ((k << 1) + 1) * cc_dim1] - cc[ic - 1 + ((k << 
-		    1) + 2) * cc_dim1];
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + ((k << 1) + 1) * 
-		    cc_dim1] - cc[ic + ((k << 1) + 2) * cc_dim1];
-	    ti2 = cc[i__ + ((k << 1) + 1) * cc_dim1] + cc[ic + ((k << 1) + 2) 
-		    * cc_dim1];
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 2] * tr2 
-		    - wa1[i__ - 1] * ti2;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 2] * ti2 + 
-		    wa1[i__ - 1] * tr2;
-/* L103: */
-	}
-/* L104: */
-    }
-    if (*ido % 2 == 1) {
-	return 0;
-    }
-L105:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ch[*ido + (k + ch_dim2) * ch_dim1] = cc[*ido + ((k << 1) + 1) * 
-		cc_dim1] + cc[*ido + ((k << 1) + 1) * cc_dim1];
-	ch[*ido + (k + (ch_dim2 << 1)) * ch_dim1] = -(cc[((k << 1) + 2) * 
-		cc_dim1 + 1] + cc[((k << 1) + 2) * cc_dim1 + 1]);
-/* L106: */
-    }
-L107:
-    return 0;
-} /* fradb2_ */
-
-/* Subroutine */ int fradb4_(integer *ido, integer *l1, real *cc, real *ch, 
-	real *wa1, real *wa2, real *wa3)
-{
-    /* Initialized data */
-
-    static real sqrt2 = 1.414213562373095f;
-
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k, ic;
-    static real ci2, ci3, ci4, cr2, cr3, cr4, ti1, ti2, ti3, ti4, tr1, tr2, 
-	    tr3, tr4;
-    static integer idp2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 5;
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-    --wa3;
-
-    /* Function Body */
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	tr1 = cc[((k << 2) + 1) * cc_dim1 + 1] - cc[*ido + ((k << 2) + 4) * 
-		cc_dim1];
-	tr2 = cc[((k << 2) + 1) * cc_dim1 + 1] + cc[*ido + ((k << 2) + 4) * 
-		cc_dim1];
-	tr3 = cc[*ido + ((k << 2) + 2) * cc_dim1] + cc[*ido + ((k << 2) + 2) *
-		 cc_dim1];
-	tr4 = cc[((k << 2) + 3) * cc_dim1 + 1] + cc[((k << 2) + 3) * cc_dim1 
-		+ 1];
-	ch[(k + ch_dim2) * ch_dim1 + 1] = tr2 + tr3;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = tr1 - tr4;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = tr2 - tr3;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 1] = tr1 + tr4;
-/* L101: */
-    }
-    if ((i__1 = *ido - 2) < 0) {
-	goto L107;
-    } else if (i__1 == 0) {
-	goto L105;
-    } else {
-	goto L102;
-    }
-L102:
-    idp2 = *ido + 2;
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 3; i__ <= i__2; i__ += 2) {
-	    ic = idp2 - i__;
-	    ti1 = cc[i__ + ((k << 2) + 1) * cc_dim1] + cc[ic + ((k << 2) + 4) 
-		    * cc_dim1];
-	    ti2 = cc[i__ + ((k << 2) + 1) * cc_dim1] - cc[ic + ((k << 2) + 4) 
-		    * cc_dim1];
-	    ti3 = cc[i__ + ((k << 2) + 3) * cc_dim1] - cc[ic + ((k << 2) + 2) 
-		    * cc_dim1];
-	    tr4 = cc[i__ + ((k << 2) + 3) * cc_dim1] + cc[ic + ((k << 2) + 2) 
-		    * cc_dim1];
-	    tr1 = cc[i__ - 1 + ((k << 2) + 1) * cc_dim1] - cc[ic - 1 + ((k << 
-		    2) + 4) * cc_dim1];
-	    tr2 = cc[i__ - 1 + ((k << 2) + 1) * cc_dim1] + cc[ic - 1 + ((k << 
-		    2) + 4) * cc_dim1];
-	    ti4 = cc[i__ - 1 + ((k << 2) + 3) * cc_dim1] - cc[ic - 1 + ((k << 
-		    2) + 2) * cc_dim1];
-	    tr3 = cc[i__ - 1 + ((k << 2) + 3) * cc_dim1] + cc[ic - 1 + ((k << 
-		    2) + 2) * cc_dim1];
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = tr2 + tr3;
-	    cr3 = tr2 - tr3;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = ti2 + ti3;
-	    ci3 = ti2 - ti3;
-	    cr2 = tr1 - tr4;
-	    cr4 = tr1 + tr4;
-	    ci2 = ti1 + ti4;
-	    ci4 = ti1 - ti4;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 2] * cr2 
-		    - wa1[i__ - 1] * ci2;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 2] * ci2 + 
-		    wa1[i__ - 1] * cr2;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 2] * cr3 - 
-		    wa2[i__ - 1] * ci3;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 2] * ci3 + wa2[
-		    i__ - 1] * cr3;
-	    ch[i__ - 1 + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 2] * cr4 
-		    - wa3[i__ - 1] * ci4;
-	    ch[i__ + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 2] * ci4 + 
-		    wa3[i__ - 1] * cr4;
-/* L103: */
-	}
-/* L104: */
-    }
-    if (*ido % 2 == 1) {
-	return 0;
-    }
-L105:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ti1 = cc[((k << 2) + 2) * cc_dim1 + 1] + cc[((k << 2) + 4) * cc_dim1 
-		+ 1];
-	ti2 = cc[((k << 2) + 4) * cc_dim1 + 1] - cc[((k << 2) + 2) * cc_dim1 
-		+ 1];
-	tr1 = cc[*ido + ((k << 2) + 1) * cc_dim1] - cc[*ido + ((k << 2) + 3) *
-		 cc_dim1];
-	tr2 = cc[*ido + ((k << 2) + 1) * cc_dim1] + cc[*ido + ((k << 2) + 3) *
-		 cc_dim1];
-	ch[*ido + (k + ch_dim2) * ch_dim1] = tr2 + tr2;
-	ch[*ido + (k + (ch_dim2 << 1)) * ch_dim1] = sqrt2 * (tr1 - ti1);
-	ch[*ido + (k + ch_dim2 * 3) * ch_dim1] = ti2 + ti2;
-	ch[*ido + (k + (ch_dim2 << 2)) * ch_dim1] = -sqrt2 * (tr1 + ti1);
-/* L106: */
-    }
-L107:
-    return 0;
-} /* fradb4_ */
-
-/* Subroutine */ int fcffti_(integer *n, real *wsave)
-{
-    static integer iw1, iw2;
-    extern /* Subroutine */ int fcffti1_(integer *, real *, real *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --wsave;
-
-    /* Function Body */
-    if (*n == 1) {
-	return 0;
-    }
-    iw1 = *n + *n + 1;
-    iw2 = iw1 + *n + *n;
-    fcffti1_(n, &wsave[iw1], &wsave[iw2]);
-    return 0;
-} /* fcffti_ */
-
-/* Subroutine */ int fcffti1_(integer *n, real *wa, real *xxifac)
-{
-    /* Initialized data */
-
-    static integer ntryh[4] = { 3,4,2,5 };
-
-    /* System generated locals */
-    integer i__1, i__2, i__3;
-    static real equiv_0[15];
-    static integer equiv_1[15];
-
-    /* Builtin functions */
-    double cos(doublereal), sin(doublereal);
-
-    /* Local variables */
-    static integer i__, j, i1, k1, l1, l2, ib;
-    static real fi;
-    static integer ld, ii, nf, ip, nl, nq, nr;
-    static real arg;
-    static integer ido, ipm;
-    static real tpi;
-#define jfac (equiv_1)
-#define rfac (equiv_0)
-    static real argh;
-    static integer idot, ntry;
-    static real argld;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --xxifac;
-    --wa;
-
-    /* Function Body */
-    for (i__ = 1; i__ <= 15; ++i__) {
-	rfac[i__ - 1] = xxifac[i__];
-/* L100: */
-    }
-    nl = *n;
-    nf = 0;
-    j = 0;
-L101:
-    ++j;
-    if (j - 4 <= 0) {
-	goto L102;
-    } else {
-	goto L103;
-    }
-L102:
-    ntry = ntryh[j - 1];
-    goto L104;
-L103:
-    ntry += 2;
-L104:
-    nq = nl / ntry;
-    nr = nl - ntry * nq;
-    if (nr != 0) {
-	goto L101;
-    } else {
-	goto L105;
-    }
-L105:
-    ++nf;
-    jfac[nf + 1] = ntry;
-    nl = nq;
-    if (ntry != 2) {
-	goto L107;
-    }
-    if (nf == 1) {
-	goto L107;
-    }
-    i__1 = nf;
-    for (i__ = 2; i__ <= i__1; ++i__) {
-	ib = nf - i__ + 2;
-	jfac[ib + 1] = jfac[ib];
-/* L106: */
-    }
-    jfac[2] = 2;
-L107:
-    if (nl != 1) {
-	goto L104;
-    }
-    jfac[0] = *n;
-    jfac[1] = nf;
-    tpi = 6.28318530717959f;
-    argh = tpi / (real) (*n);
-    i__ = 2;
-    l1 = 1;
-    i__1 = nf;
-    for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = jfac[k1 + 1];
-	ld = 0;
-	l2 = l1 * ip;
-	ido = *n / l2;
-	idot = ido + ido + 2;
-	ipm = ip - 1;
-	i__2 = ipm;
-	for (j = 1; j <= i__2; ++j) {
-	    i1 = i__;
-	    wa[i__ - 1] = 1.f;
-	    wa[i__] = 0.f;
-	    ld += l1;
-	    fi = 0.f;
-	    argld = (real) ld * argh;
-	    i__3 = idot;
-	    for (ii = 4; ii <= i__3; ii += 2) {
-		i__ += 2;
-		fi += 1.f;
-		arg = fi * argld;
-		wa[i__ - 1] = cos(arg);
-		wa[i__] = sin(arg);
-/* L108: */
-	    }
-	    if (ip <= 5) {
-		goto L109;
-	    }
-	    wa[i1 - 1] = wa[i__ - 1];
-	    wa[i1] = wa[i__];
-L109:
-	    ;
-	}
-	l1 = l2;
-/* L110: */
-    }
-    for (i__ = 1; i__ <= 15; ++i__) {
-	xxifac[i__] = rfac[i__ - 1];
-/* L111: */
-    }
-    return 0;
-} /* fcffti1_ */
-
-#undef rfac
-#undef jfac
-
-
-/* Subroutine */ int fcfftf_(integer *n, real *c__, real *wsave)
-{
-    static integer iw1, iw2;
-    extern /* Subroutine */ int fcfftf1_(integer *, real *, real *, real *, 
-	    real *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --wsave;
-    --c__;
-
-    /* Function Body */
-    if (*n == 1) {
-	return 0;
-    }
-    iw1 = *n + *n + 1;
-    iw2 = iw1 + *n + *n;
-    fcfftf1_(n, &c__[1], &wsave[1], &wsave[iw1], &wsave[iw2]);
-    return 0;
-} /* fcfftf_ */
-
-/* Subroutine */ int fcfftf1_(integer *n, real *c__, real *ch, real *wa, real 
-	*xxifac)
-{
-    /* System generated locals */
-    integer i__1;
-    static real equiv_0[15];
-
-    /* Local variables */
-    static integer i__, k1, l1, l2, n2, na, nf, ip, iw, ix2, ix3, ix4, nac, 
-	    ido, idl1;
-#define jfac ((integer *)equiv_0)
-#define rfac (equiv_0)
-    static integer idot;
-    extern /* Subroutine */ int fpassf_(integer *, integer *, integer *, 
-	    integer *, integer *, real *, real *, real *, real *, real *, 
-	    real *), fpassf2_(integer *, integer *, real *, real *, real *), 
-	    fpassf3_(integer *, integer *, real *, real *, real *, real *), 
-	    fpassf4_(integer *, integer *, real *, real *, real *, real *, 
-	    real *), fpassf5_(integer *, integer *, real *, real *, real *, 
-	    real *, real *, real *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --xxifac;
-    --wa;
-    --ch;
-    --c__;
-
-    /* Function Body */
-    for (i__ = 1; i__ <= 15; ++i__) {
-	rfac[i__ - 1] = xxifac[i__];
-/* L100: */
-    }
-    nf = jfac[1];
-    na = 0;
-    l1 = 1;
-    iw = 1;
-    i__1 = nf;
-    for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = jfac[k1 + 1];
-	l2 = ip * l1;
-	ido = *n / l2;
-	idot = ido + ido;
-	idl1 = idot * l1;
-	if (ip != 4) {
-	    goto L103;
-	}
-	ix2 = iw + idot;
-	ix3 = ix2 + idot;
-	if (na != 0) {
-	    goto L101;
-	}
-	fpassf4_(&idot, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2], &wa[ix3]);
-	goto L102;
-L101:
-	fpassf4_(&idot, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2], &wa[ix3]);
-L102:
-	na = 1 - na;
-	goto L115;
-L103:
-	if (ip != 2) {
-	    goto L106;
-	}
-	if (na != 0) {
-	    goto L104;
-	}
-	fpassf2_(&idot, &l1, &c__[1], &ch[1], &wa[iw]);
-	goto L105;
-L104:
-	fpassf2_(&idot, &l1, &ch[1], &c__[1], &wa[iw]);
-L105:
-	na = 1 - na;
-	goto L115;
-L106:
-	if (ip != 3) {
-	    goto L109;
-	}
-	ix2 = iw + idot;
-	if (na != 0) {
-	    goto L107;
-	}
-	fpassf3_(&idot, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2]);
-	goto L108;
-L107:
-	fpassf3_(&idot, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2]);
-L108:
-	na = 1 - na;
-	goto L115;
-L109:
-	if (ip != 5) {
-	    goto L112;
-	}
-	ix2 = iw + idot;
-	ix3 = ix2 + idot;
-	ix4 = ix3 + idot;
-	if (na != 0) {
-	    goto L110;
-	}
-	fpassf5_(&idot, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2], &wa[ix3], &
-		wa[ix4]);
-	goto L111;
-L110:
-	fpassf5_(&idot, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2], &wa[ix3], &
-		wa[ix4]);
-L111:
-	na = 1 - na;
-	goto L115;
-L112:
-	if (na != 0) {
-	    goto L113;
-	}
-	fpassf_(&nac, &idot, &ip, &l1, &idl1, &c__[1], &c__[1], &c__[1], &ch[
-		1], &ch[1], &wa[iw]);
-	goto L114;
-L113:
-	fpassf_(&nac, &idot, &ip, &l1, &idl1, &ch[1], &ch[1], &ch[1], &c__[1],
-		 &c__[1], &wa[iw]);
-L114:
-	if (nac != 0) {
-	    na = 1 - na;
-	}
-L115:
-	l1 = l2;
-	iw += (ip - 1) * idot;
-/* L116: */
-    }
-    if (na == 0) {
-	return 0;
-    }
-    n2 = *n + *n;
-    i__1 = n2;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	c__[i__] = ch[i__];
-/* L117: */
-    }
-    return 0;
-} /* fcfftf1_ */
-
-#undef rfac
-#undef jfac
-
-
-/* Subroutine */ int fpassf_(integer *nac, integer *ido, integer *ip, integer 
-	*l1, integer *idl1, real *cc, real *c1, real *c2, real *ch, real *ch2,
-	 real *wa)
-{
-    /* System generated locals */
-    integer ch_dim1, ch_dim2, ch_offset, cc_dim1, cc_dim2, cc_offset, c1_dim1,
-	     c1_dim2, c1_offset, c2_dim1, c2_offset, ch2_dim1, ch2_offset, 
-	    i__1, i__2, i__3;
-
-    /* Local variables */
-    static integer i__, j, k, l, jc, lc, ik, idj, idl, inc, idp;
-    static real wai, war;
-    static integer ipp2, idij, idlj, idot, ipph;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    c1_dim1 = *ido;
-    c1_dim2 = *l1;
-    c1_offset = 1 + c1_dim1 * (1 + c1_dim2);
-    c1 -= c1_offset;
-    cc_dim1 = *ido;
-    cc_dim2 = *ip;
-    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
-    cc -= cc_offset;
-    ch2_dim1 = *idl1;
-    ch2_offset = 1 + ch2_dim1;
-    ch2 -= ch2_offset;
-    c2_dim1 = *idl1;
-    c2_offset = 1 + c2_dim1;
-    c2 -= c2_offset;
-    --wa;
-
-    /* Function Body */
-    idot = *ido / 2;
-    ipp2 = *ip + 2;
-    ipph = (*ip + 1) / 2;
-    idp = *ip * *ido;
-
-    if (*ido < *l1) {
-	goto L106;
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    i__3 = *ido;
-	    for (i__ = 1; i__ <= i__3; ++i__) {
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = cc[i__ + (j + k * 
-			cc_dim2) * cc_dim1] + cc[i__ + (jc + k * cc_dim2) * 
-			cc_dim1];
-		ch[i__ + (k + jc * ch_dim2) * ch_dim1] = cc[i__ + (j + k * 
-			cc_dim2) * cc_dim1] - cc[i__ + (jc + k * cc_dim2) * 
-			cc_dim1];
-/* L101: */
-	    }
-/* L102: */
-	}
-/* L103: */
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 1; i__ <= i__2; ++i__) {
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * cc_dim2 + 1) * 
-		    cc_dim1];
-/* L104: */
-	}
-/* L105: */
-    }
-    goto L112;
-L106:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *ido;
-	for (i__ = 1; i__ <= i__2; ++i__) {
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = cc[i__ + (j + k * 
-			cc_dim2) * cc_dim1] + cc[i__ + (jc + k * cc_dim2) * 
-			cc_dim1];
-		ch[i__ + (k + jc * ch_dim2) * ch_dim1] = cc[i__ + (j + k * 
-			cc_dim2) * cc_dim1] - cc[i__ + (jc + k * cc_dim2) * 
-			cc_dim1];
-/* L107: */
-	    }
-/* L108: */
-	}
-/* L109: */
-    }
-    i__1 = *ido;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * cc_dim2 + 1) * 
-		    cc_dim1];
-/* L110: */
-	}
-/* L111: */
-    }
-L112:
-    idl = 2 - *ido;
-    inc = 0;
-    i__1 = ipph;
-    for (l = 2; l <= i__1; ++l) {
-	lc = ipp2 - l;
-	idl += *ido;
-	i__2 = *idl1;
-	for (ik = 1; ik <= i__2; ++ik) {
-	    c2[ik + l * c2_dim1] = ch2[ik + ch2_dim1] + wa[idl - 1] * ch2[ik 
-		    + (ch2_dim1 << 1)];
-	    c2[ik + lc * c2_dim1] = -wa[idl] * ch2[ik + *ip * ch2_dim1];
-/* L113: */
-	}
-	idlj = idl;
-	inc += *ido;
-	i__2 = ipph;
-	for (j = 3; j <= i__2; ++j) {
-	    jc = ipp2 - j;
-	    idlj += inc;
-	    if (idlj > idp) {
-		idlj -= idp;
-	    }
-	    war = wa[idlj - 1];
-	    wai = wa[idlj];
-	    i__3 = *idl1;
-	    for (ik = 1; ik <= i__3; ++ik) {
-		c2[ik + l * c2_dim1] += war * ch2[ik + j * ch2_dim1];
-		c2[ik + lc * c2_dim1] -= wai * ch2[ik + jc * ch2_dim1];
-/* L114: */
-	    }
-/* L115: */
-	}
-/* L116: */
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	i__2 = *idl1;
-	for (ik = 1; ik <= i__2; ++ik) {
-	    ch2[ik + ch2_dim1] += ch2[ik + j * ch2_dim1];
-/* L117: */
-	}
-/* L118: */
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *idl1;
-	for (ik = 2; ik <= i__2; ik += 2) {
-	    ch2[ik - 1 + j * ch2_dim1] = c2[ik - 1 + j * c2_dim1] - c2[ik + 
-		    jc * c2_dim1];
-	    ch2[ik - 1 + jc * ch2_dim1] = c2[ik - 1 + j * c2_dim1] + c2[ik + 
-		    jc * c2_dim1];
-	    ch2[ik + j * ch2_dim1] = c2[ik + j * c2_dim1] + c2[ik - 1 + jc * 
-		    c2_dim1];
-	    ch2[ik + jc * ch2_dim1] = c2[ik + j * c2_dim1] - c2[ik - 1 + jc * 
-		    c2_dim1];
-/* L119: */
-	}
-/* L120: */
-    }
-    *nac = 1;
-    if (*ido == 2) {
-	return 0;
-    }
-    *nac = 0;
-    i__1 = *idl1;
-    for (ik = 1; ik <= i__1; ++ik) {
-	c2[ik + c2_dim1] = ch2[ik + ch2_dim1];
-/* L121: */
-    }
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    c1[(k + j * c1_dim2) * c1_dim1 + 1] = ch[(k + j * ch_dim2) * 
-		    ch_dim1 + 1];
-	    c1[(k + j * c1_dim2) * c1_dim1 + 2] = ch[(k + j * ch_dim2) * 
-		    ch_dim1 + 2];
-/* L122: */
-	}
-/* L123: */
-    }
-    if (idot > *l1) {
-	goto L127;
-    }
-    idij = 0;
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	idij += 2;
-	i__2 = *ido;
-	for (i__ = 4; i__ <= i__2; i__ += 2) {
-	    idij += 2;
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		c1[i__ - 1 + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[
-			i__ - 1 + (k + j * ch_dim2) * ch_dim1] + wa[idij] * 
-			ch[i__ + (k + j * ch_dim2) * ch_dim1];
-		c1[i__ + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[i__ 
-			+ (k + j * ch_dim2) * ch_dim1] - wa[idij] * ch[i__ - 
-			1 + (k + j * ch_dim2) * ch_dim1];
-/* L124: */
-	    }
-/* L125: */
-	}
-/* L126: */
-    }
-    return 0;
-L127:
-    idj = 2 - *ido;
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	idj += *ido;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    idij = idj;
-	    i__3 = *ido;
-	    for (i__ = 4; i__ <= i__3; i__ += 2) {
-		idij += 2;
-		c1[i__ - 1 + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[
-			i__ - 1 + (k + j * ch_dim2) * ch_dim1] + wa[idij] * 
-			ch[i__ + (k + j * ch_dim2) * ch_dim1];
-		c1[i__ + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[i__ 
-			+ (k + j * ch_dim2) * ch_dim1] - wa[idij] * ch[i__ - 
-			1 + (k + j * ch_dim2) * ch_dim1];
-/* L128: */
-	    }
-/* L129: */
-	}
-/* L130: */
-    }
-    return 0;
-} /* fpassf_ */
-
-/* Subroutine */ int fpassf5_(integer *ido, integer *l1, real *cc, real *ch, 
-	real *wa1, real *wa2, real *wa3, real *wa4)
-{
-    /* Initialized data */
-
-    static real tr11 = .309016994374947f;
-    static real ti11 = -.951056516295154f;
-    static real tr12 = -.809016994374947f;
-    static real ti12 = -.587785252292473f;
-
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k;
-    static real ci2, ci3, ci4, ci5, di3, di4, di5, di2, cr2, cr3, cr5, cr4, 
-	    ti2, ti3, ti4, ti5, dr3, dr4, dr5, dr2, tr2, tr3, tr4, tr5;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 6;
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-    --wa3;
-    --wa4;
-
-    /* Function Body */
-    if (*ido != 2) {
-	goto L102;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ti5 = cc[(k * 5 + 2) * cc_dim1 + 2] - cc[(k * 5 + 5) * cc_dim1 + 2];
-	ti2 = cc[(k * 5 + 2) * cc_dim1 + 2] + cc[(k * 5 + 5) * cc_dim1 + 2];
-	ti4 = cc[(k * 5 + 3) * cc_dim1 + 2] - cc[(k * 5 + 4) * cc_dim1 + 2];
-	ti3 = cc[(k * 5 + 3) * cc_dim1 + 2] + cc[(k * 5 + 4) * cc_dim1 + 2];
-	tr5 = cc[(k * 5 + 2) * cc_dim1 + 1] - cc[(k * 5 + 5) * cc_dim1 + 1];
-	tr2 = cc[(k * 5 + 2) * cc_dim1 + 1] + cc[(k * 5 + 5) * cc_dim1 + 1];
-	tr4 = cc[(k * 5 + 3) * cc_dim1 + 1] - cc[(k * 5 + 4) * cc_dim1 + 1];
-	tr3 = cc[(k * 5 + 3) * cc_dim1 + 1] + cc[(k * 5 + 4) * cc_dim1 + 1];
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[(k * 5 + 1) * cc_dim1 + 1] + tr2 
-		+ tr3;
-	ch[(k + ch_dim2) * ch_dim1 + 2] = cc[(k * 5 + 1) * cc_dim1 + 2] + ti2 
-		+ ti3;
-	cr2 = cc[(k * 5 + 1) * cc_dim1 + 1] + tr11 * tr2 + tr12 * tr3;
-	ci2 = cc[(k * 5 + 1) * cc_dim1 + 2] + tr11 * ti2 + tr12 * ti3;
-	cr3 = cc[(k * 5 + 1) * cc_dim1 + 1] + tr12 * tr2 + tr11 * tr3;
-	ci3 = cc[(k * 5 + 1) * cc_dim1 + 2] + tr12 * ti2 + tr11 * ti3;
-	cr5 = ti11 * tr5 + ti12 * tr4;
-	ci5 = ti11 * ti5 + ti12 * ti4;
-	cr4 = ti12 * tr5 - ti11 * tr4;
-	ci4 = ti12 * ti5 - ti11 * ti4;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cr2 - ci5;
-	ch[(k + ch_dim2 * 5) * ch_dim1 + 1] = cr2 + ci5;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 2] = ci2 + cr5;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 2] = ci3 + cr4;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = cr3 - ci4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 1] = cr3 + ci4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 2] = ci3 - cr4;
-	ch[(k + ch_dim2 * 5) * ch_dim1 + 2] = ci2 - cr5;
-/* L101: */
-    }
-    return 0;
-L102:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 2; i__ <= i__2; i__ += 2) {
-	    ti5 = cc[i__ + (k * 5 + 2) * cc_dim1] - cc[i__ + (k * 5 + 5) * 
-		    cc_dim1];
-	    ti2 = cc[i__ + (k * 5 + 2) * cc_dim1] + cc[i__ + (k * 5 + 5) * 
-		    cc_dim1];
-	    ti4 = cc[i__ + (k * 5 + 3) * cc_dim1] - cc[i__ + (k * 5 + 4) * 
-		    cc_dim1];
-	    ti3 = cc[i__ + (k * 5 + 3) * cc_dim1] + cc[i__ + (k * 5 + 4) * 
-		    cc_dim1];
-	    tr5 = cc[i__ - 1 + (k * 5 + 2) * cc_dim1] - cc[i__ - 1 + (k * 5 + 
-		    5) * cc_dim1];
-	    tr2 = cc[i__ - 1 + (k * 5 + 2) * cc_dim1] + cc[i__ - 1 + (k * 5 + 
-		    5) * cc_dim1];
-	    tr4 = cc[i__ - 1 + (k * 5 + 3) * cc_dim1] - cc[i__ - 1 + (k * 5 + 
-		    4) * cc_dim1];
-	    tr3 = cc[i__ - 1 + (k * 5 + 3) * cc_dim1] + cc[i__ - 1 + (k * 5 + 
-		    4) * cc_dim1];
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + (k * 5 + 1) *
-		     cc_dim1] + tr2 + tr3;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * 5 + 1) * 
-		    cc_dim1] + ti2 + ti3;
-	    cr2 = cc[i__ - 1 + (k * 5 + 1) * cc_dim1] + tr11 * tr2 + tr12 * 
-		    tr3;
-	    ci2 = cc[i__ + (k * 5 + 1) * cc_dim1] + tr11 * ti2 + tr12 * ti3;
-	    cr3 = cc[i__ - 1 + (k * 5 + 1) * cc_dim1] + tr12 * tr2 + tr11 * 
-		    tr3;
-	    ci3 = cc[i__ + (k * 5 + 1) * cc_dim1] + tr12 * ti2 + tr11 * ti3;
-	    cr5 = ti11 * tr5 + ti12 * tr4;
-	    ci5 = ti11 * ti5 + ti12 * ti4;
-	    cr4 = ti12 * tr5 - ti11 * tr4;
-	    ci4 = ti12 * ti5 - ti11 * ti4;
-	    dr3 = cr3 - ci4;
-	    dr4 = cr3 + ci4;
-	    di3 = ci3 + cr4;
-	    di4 = ci3 - cr4;
-	    dr5 = cr2 + ci5;
-	    dr2 = cr2 - ci5;
-	    di5 = ci2 - cr5;
-	    di2 = ci2 + cr5;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * dr2 
-		    + wa1[i__] * di2;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * di2 - 
-		    wa1[i__] * dr2;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * dr3 + 
-		    wa2[i__] * di3;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * di3 - wa2[
-		    i__] * dr3;
-	    ch[i__ - 1 + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 1] * dr4 
-		    + wa3[i__] * di4;
-	    ch[i__ + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 1] * di4 - 
-		    wa3[i__] * dr4;
-	    ch[i__ - 1 + (k + ch_dim2 * 5) * ch_dim1] = wa4[i__ - 1] * dr5 + 
-		    wa4[i__] * di5;
-	    ch[i__ + (k + ch_dim2 * 5) * ch_dim1] = wa4[i__ - 1] * di5 - wa4[
-		    i__] * dr5;
-/* L103: */
-	}
-/* L104: */
-    }
-    return 0;
-} /* fpassf5_ */
-
-/* Subroutine */ int fpassf3_(integer *ido, integer *l1, real *cc, real *ch, 
-	real *wa1, real *wa2)
-{
-    /* Initialized data */
-
-    static real taur = -.5f;
-    static real taui = -.866025403784439f;
-
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k;
-    static real ci2, ci3, di2, di3, cr2, cr3, dr2, dr3, ti2, tr2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + (cc_dim1 << 2);
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-
-    /* Function Body */
-    if (*ido != 2) {
-	goto L102;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	tr2 = cc[(k * 3 + 2) * cc_dim1 + 1] + cc[(k * 3 + 3) * cc_dim1 + 1];
-	cr2 = cc[(k * 3 + 1) * cc_dim1 + 1] + taur * tr2;
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[(k * 3 + 1) * cc_dim1 + 1] + tr2;
-	ti2 = cc[(k * 3 + 2) * cc_dim1 + 2] + cc[(k * 3 + 3) * cc_dim1 + 2];
-	ci2 = cc[(k * 3 + 1) * cc_dim1 + 2] + taur * ti2;
-	ch[(k + ch_dim2) * ch_dim1 + 2] = cc[(k * 3 + 1) * cc_dim1 + 2] + ti2;
-	cr3 = taui * (cc[(k * 3 + 2) * cc_dim1 + 1] - cc[(k * 3 + 3) * 
-		cc_dim1 + 1]);
-	ci3 = taui * (cc[(k * 3 + 2) * cc_dim1 + 2] - cc[(k * 3 + 3) * 
-		cc_dim1 + 2]);
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cr2 - ci3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = cr2 + ci3;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 2] = ci2 + cr3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 2] = ci2 - cr3;
-/* L101: */
-    }
-    return 0;
-L102:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 2; i__ <= i__2; i__ += 2) {
-	    tr2 = cc[i__ - 1 + (k * 3 + 2) * cc_dim1] + cc[i__ - 1 + (k * 3 + 
-		    3) * cc_dim1];
-	    cr2 = cc[i__ - 1 + (k * 3 + 1) * cc_dim1] + taur * tr2;
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + (k * 3 + 1) *
-		     cc_dim1] + tr2;
-	    ti2 = cc[i__ + (k * 3 + 2) * cc_dim1] + cc[i__ + (k * 3 + 3) * 
-		    cc_dim1];
-	    ci2 = cc[i__ + (k * 3 + 1) * cc_dim1] + taur * ti2;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * 3 + 1) * 
-		    cc_dim1] + ti2;
-	    cr3 = taui * (cc[i__ - 1 + (k * 3 + 2) * cc_dim1] - cc[i__ - 1 + (
-		    k * 3 + 3) * cc_dim1]);
-	    ci3 = taui * (cc[i__ + (k * 3 + 2) * cc_dim1] - cc[i__ + (k * 3 + 
-		    3) * cc_dim1]);
-	    dr2 = cr2 - ci3;
-	    dr3 = cr2 + ci3;
-	    di2 = ci2 + cr3;
-	    di3 = ci2 - cr3;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * di2 - 
-		    wa1[i__] * dr2;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * dr2 
-		    + wa1[i__] * di2;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * di3 - wa2[
-		    i__] * dr3;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * dr3 + 
-		    wa2[i__] * di3;
-/* L103: */
-	}
-/* L104: */
-    }
-    return 0;
-} /* fpassf3_ */
-
-/* Subroutine */ int fpassf2_(integer *ido, integer *l1, real *cc, real *ch, 
-	real *wa1)
-{
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k;
-    static real ti2, tr2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 3;
-    cc -= cc_offset;
-    --wa1;
-
-    /* Function Body */
-    if (*ido > 2) {
-	goto L102;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[((k << 1) + 1) * cc_dim1 + 1] + 
-		cc[((k << 1) + 2) * cc_dim1 + 1];
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cc[((k << 1) + 1) * cc_dim1 
-		+ 1] - cc[((k << 1) + 2) * cc_dim1 + 1];
-	ch[(k + ch_dim2) * ch_dim1 + 2] = cc[((k << 1) + 1) * cc_dim1 + 2] + 
-		cc[((k << 1) + 2) * cc_dim1 + 2];
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 2] = cc[((k << 1) + 1) * cc_dim1 
-		+ 2] - cc[((k << 1) + 2) * cc_dim1 + 2];
-/* L101: */
-    }
-    return 0;
-L102:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 2; i__ <= i__2; i__ += 2) {
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + ((k << 1) + 
-		    1) * cc_dim1] + cc[i__ - 1 + ((k << 1) + 2) * cc_dim1];
-	    tr2 = cc[i__ - 1 + ((k << 1) + 1) * cc_dim1] - cc[i__ - 1 + ((k <<
-		     1) + 2) * cc_dim1];
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + ((k << 1) + 1) * 
-		    cc_dim1] + cc[i__ + ((k << 1) + 2) * cc_dim1];
-	    ti2 = cc[i__ + ((k << 1) + 1) * cc_dim1] - cc[i__ + ((k << 1) + 2)
-		     * cc_dim1];
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * ti2 - 
-		    wa1[i__] * tr2;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * tr2 
-		    + wa1[i__] * ti2;
-/* L103: */
-	}
-/* L104: */
-    }
-    return 0;
-} /* fpassf2_ */
-
-/* Subroutine */ int fpassf4_(integer *ido, integer *l1, real *cc, real *ch, 
-	real *wa1, real *wa2, real *wa3)
-{
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k;
-    static real ci2, ci3, ci4, cr2, cr3, cr4, ti1, ti2, ti3, ti4, tr1, tr2, 
-	    tr3, tr4;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 5;
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-    --wa3;
-
-    /* Function Body */
-    if (*ido != 2) {
-	goto L102;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ti1 = cc[((k << 2) + 1) * cc_dim1 + 2] - cc[((k << 2) + 3) * cc_dim1 
-		+ 2];
-	ti2 = cc[((k << 2) + 1) * cc_dim1 + 2] + cc[((k << 2) + 3) * cc_dim1 
-		+ 2];
-	tr4 = cc[((k << 2) + 2) * cc_dim1 + 2] - cc[((k << 2) + 4) * cc_dim1 
-		+ 2];
-	ti3 = cc[((k << 2) + 2) * cc_dim1 + 2] + cc[((k << 2) + 4) * cc_dim1 
-		+ 2];
-	tr1 = cc[((k << 2) + 1) * cc_dim1 + 1] - cc[((k << 2) + 3) * cc_dim1 
-		+ 1];
-	tr2 = cc[((k << 2) + 1) * cc_dim1 + 1] + cc[((k << 2) + 3) * cc_dim1 
-		+ 1];
-	ti4 = cc[((k << 2) + 4) * cc_dim1 + 1] - cc[((k << 2) + 2) * cc_dim1 
-		+ 1];
-	tr3 = cc[((k << 2) + 2) * cc_dim1 + 1] + cc[((k << 2) + 4) * cc_dim1 
-		+ 1];
-	ch[(k + ch_dim2) * ch_dim1 + 1] = tr2 + tr3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = tr2 - tr3;
-	ch[(k + ch_dim2) * ch_dim1 + 2] = ti2 + ti3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 2] = ti2 - ti3;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = tr1 + tr4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 1] = tr1 - tr4;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 2] = ti1 + ti4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 2] = ti1 - ti4;
-/* L101: */
-    }
-    return 0;
-L102:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 2; i__ <= i__2; i__ += 2) {
-	    ti1 = cc[i__ + ((k << 2) + 1) * cc_dim1] - cc[i__ + ((k << 2) + 3)
-		     * cc_dim1];
-	    ti2 = cc[i__ + ((k << 2) + 1) * cc_dim1] + cc[i__ + ((k << 2) + 3)
-		     * cc_dim1];
-	    ti3 = cc[i__ + ((k << 2) + 2) * cc_dim1] + cc[i__ + ((k << 2) + 4)
-		     * cc_dim1];
-	    tr4 = cc[i__ + ((k << 2) + 2) * cc_dim1] - cc[i__ + ((k << 2) + 4)
-		     * cc_dim1];
-	    tr1 = cc[i__ - 1 + ((k << 2) + 1) * cc_dim1] - cc[i__ - 1 + ((k <<
-		     2) + 3) * cc_dim1];
-	    tr2 = cc[i__ - 1 + ((k << 2) + 1) * cc_dim1] + cc[i__ - 1 + ((k <<
-		     2) + 3) * cc_dim1];
-	    ti4 = cc[i__ - 1 + ((k << 2) + 4) * cc_dim1] - cc[i__ - 1 + ((k <<
-		     2) + 2) * cc_dim1];
-	    tr3 = cc[i__ - 1 + ((k << 2) + 2) * cc_dim1] + cc[i__ - 1 + ((k <<
-		     2) + 4) * cc_dim1];
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = tr2 + tr3;
-	    cr3 = tr2 - tr3;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = ti2 + ti3;
-	    ci3 = ti2 - ti3;
-	    cr2 = tr1 + tr4;
-	    cr4 = tr1 - tr4;
-	    ci2 = ti1 + ti4;
-	    ci4 = ti1 - ti4;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * cr2 
-		    + wa1[i__] * ci2;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * ci2 - 
-		    wa1[i__] * cr2;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * cr3 + 
-		    wa2[i__] * ci3;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * ci3 - wa2[
-		    i__] * cr3;
-	    ch[i__ - 1 + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 1] * cr4 
-		    + wa3[i__] * ci4;
-	    ch[i__ + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 1] * ci4 - 
-		    wa3[i__] * cr4;
-/* L103: */
-	}
-/* L104: */
-    }
-    return 0;
-} /* fpassf4_ */
-
-/* Subroutine */ int fcfftb_(integer *n, real *c__, real *wsave)
-{
-    static integer iw1, iw2;
-    extern /* Subroutine */ int fcfftb1_(integer *, real *, real *, real *, 
-	    real *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --wsave;
-    --c__;
-
-    /* Function Body */
-    if (*n == 1) {
-	return 0;
-    }
-    iw1 = *n + *n + 1;
-    iw2 = iw1 + *n + *n;
-    fcfftb1_(n, &c__[1], &wsave[1], &wsave[iw1], &wsave[iw2]);
-    return 0;
-} /* fcfftb_ */
-
-/* Subroutine */ int fcfftb1_(integer *n, real *c__, real *ch, real *wa, real 
-	*xxifac)
-{
-    /* System generated locals */
-    integer i__1;
-    static real equiv_0[15];
-
-    /* Local variables */
-    static integer i__, k1, l1, l2, n2, na, nf, ip, iw, ix2, ix3, ix4, nac, 
-	    ido, idl1;
-#define jfac ((integer *)equiv_0)
-#define rfac (equiv_0)
-    static integer idot;
-    extern /* Subroutine */ int fpassb_(integer *, integer *, integer *, 
-	    integer *, integer *, real *, real *, real *, real *, real *, 
-	    real *), fpassb2_(integer *, integer *, real *, real *, real *), 
-	    fpassb3_(integer *, integer *, real *, real *, real *, real *), 
-	    fpassb4_(integer *, integer *, real *, real *, real *, real *, 
-	    real *), fpassb5_(integer *, integer *, real *, real *, real *, 
-	    real *, real *, real *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --xxifac;
-    --wa;
-    --ch;
-    --c__;
-
-    /* Function Body */
-    for (i__ = 1; i__ <= 15; ++i__) {
-	rfac[i__ - 1] = xxifac[i__];
-/* L100: */
-    }
-    nf = jfac[1];
-    na = 0;
-    l1 = 1;
-    iw = 1;
-    i__1 = nf;
-    for (k1 = 1; k1 <= i__1; ++k1) {
-	ip = jfac[k1 + 1];
-	l2 = ip * l1;
-	ido = *n / l2;
-	idot = ido + ido;
-	idl1 = idot * l1;
-	if (ip != 4) {
-	    goto L103;
-	}
-	ix2 = iw + idot;
-	ix3 = ix2 + idot;
-	if (na != 0) {
-	    goto L101;
-	}
-	fpassb4_(&idot, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2], &wa[ix3]);
-	goto L102;
-L101:
-	fpassb4_(&idot, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2], &wa[ix3]);
-L102:
-	na = 1 - na;
-	goto L115;
-L103:
-	if (ip != 2) {
-	    goto L106;
-	}
-	if (na != 0) {
-	    goto L104;
-	}
-	fpassb2_(&idot, &l1, &c__[1], &ch[1], &wa[iw]);
-	goto L105;
-L104:
-	fpassb2_(&idot, &l1, &ch[1], &c__[1], &wa[iw]);
-L105:
-	na = 1 - na;
-	goto L115;
-L106:
-	if (ip != 3) {
-	    goto L109;
-	}
-	ix2 = iw + idot;
-	if (na != 0) {
-	    goto L107;
-	}
-	fpassb3_(&idot, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2]);
-	goto L108;
-L107:
-	fpassb3_(&idot, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2]);
-L108:
-	na = 1 - na;
-	goto L115;
-L109:
-	if (ip != 5) {
-	    goto L112;
-	}
-	ix2 = iw + idot;
-	ix3 = ix2 + idot;
-	ix4 = ix3 + idot;
-	if (na != 0) {
-	    goto L110;
-	}
-	fpassb5_(&idot, &l1, &c__[1], &ch[1], &wa[iw], &wa[ix2], &wa[ix3], &
-		wa[ix4]);
-	goto L111;
-L110:
-	fpassb5_(&idot, &l1, &ch[1], &c__[1], &wa[iw], &wa[ix2], &wa[ix3], &
-		wa[ix4]);
-L111:
-	na = 1 - na;
-	goto L115;
-L112:
-	if (na != 0) {
-	    goto L113;
-	}
-	fpassb_(&nac, &idot, &ip, &l1, &idl1, &c__[1], &c__[1], &c__[1], &ch[
-		1], &ch[1], &wa[iw]);
-	goto L114;
-L113:
-	fpassb_(&nac, &idot, &ip, &l1, &idl1, &ch[1], &ch[1], &ch[1], &c__[1],
-		 &c__[1], &wa[iw]);
-L114:
-	if (nac != 0) {
-	    na = 1 - na;
-	}
-L115:
-	l1 = l2;
-	iw += (ip - 1) * idot;
-/* L116: */
-    }
-    if (na == 0) {
-	return 0;
-    }
-    n2 = *n + *n;
-    i__1 = n2;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	c__[i__] = ch[i__];
-/* L117: */
-    }
-    return 0;
-} /* fcfftb1_ */
-
-#undef rfac
-#undef jfac
-
-
-/* Subroutine */ int fpassb_(integer *nac, integer *ido, integer *ip, integer 
-	*l1, integer *idl1, real *cc, real *c1, real *c2, real *ch, real *ch2,
-	 real *wa)
-{
-    /* System generated locals */
-    integer ch_dim1, ch_dim2, ch_offset, cc_dim1, cc_dim2, cc_offset, c1_dim1,
-	     c1_dim2, c1_offset, c2_dim1, c2_offset, ch2_dim1, ch2_offset, 
-	    i__1, i__2, i__3;
-
-    /* Local variables */
-    static integer i__, j, k, l, jc, lc, ik, idj, idl, inc, idp;
-    static real wai, war;
-    static integer ipp2, idij, idlj, idot, ipph;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    c1_dim1 = *ido;
-    c1_dim2 = *l1;
-    c1_offset = 1 + c1_dim1 * (1 + c1_dim2);
-    c1 -= c1_offset;
-    cc_dim1 = *ido;
-    cc_dim2 = *ip;
-    cc_offset = 1 + cc_dim1 * (1 + cc_dim2);
-    cc -= cc_offset;
-    ch2_dim1 = *idl1;
-    ch2_offset = 1 + ch2_dim1;
-    ch2 -= ch2_offset;
-    c2_dim1 = *idl1;
-    c2_offset = 1 + c2_dim1;
-    c2 -= c2_offset;
-    --wa;
-
-    /* Function Body */
-    idot = *ido / 2;
-    ipp2 = *ip + 2;
-    ipph = (*ip + 1) / 2;
-    idp = *ip * *ido;
-
-    if (*ido < *l1) {
-	goto L106;
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    i__3 = *ido;
-	    for (i__ = 1; i__ <= i__3; ++i__) {
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = cc[i__ + (j + k * 
-			cc_dim2) * cc_dim1] + cc[i__ + (jc + k * cc_dim2) * 
-			cc_dim1];
-		ch[i__ + (k + jc * ch_dim2) * ch_dim1] = cc[i__ + (j + k * 
-			cc_dim2) * cc_dim1] - cc[i__ + (jc + k * cc_dim2) * 
-			cc_dim1];
-/* L101: */
-	    }
-/* L102: */
-	}
-/* L103: */
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 1; i__ <= i__2; ++i__) {
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * cc_dim2 + 1) * 
-		    cc_dim1];
-/* L104: */
-	}
-/* L105: */
-    }
-    goto L112;
-L106:
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *ido;
-	for (i__ = 1; i__ <= i__2; ++i__) {
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		ch[i__ + (k + j * ch_dim2) * ch_dim1] = cc[i__ + (j + k * 
-			cc_dim2) * cc_dim1] + cc[i__ + (jc + k * cc_dim2) * 
-			cc_dim1];
-		ch[i__ + (k + jc * ch_dim2) * ch_dim1] = cc[i__ + (j + k * 
-			cc_dim2) * cc_dim1] - cc[i__ + (jc + k * cc_dim2) * 
-			cc_dim1];
-/* L107: */
-	    }
-/* L108: */
-	}
-/* L109: */
-    }
-    i__1 = *ido;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * cc_dim2 + 1) * 
-		    cc_dim1];
-/* L110: */
-	}
-/* L111: */
-    }
-L112:
-    idl = 2 - *ido;
-    inc = 0;
-    i__1 = ipph;
-    for (l = 2; l <= i__1; ++l) {
-	lc = ipp2 - l;
-	idl += *ido;
-	i__2 = *idl1;
-	for (ik = 1; ik <= i__2; ++ik) {
-	    c2[ik + l * c2_dim1] = ch2[ik + ch2_dim1] + wa[idl - 1] * ch2[ik 
-		    + (ch2_dim1 << 1)];
-	    c2[ik + lc * c2_dim1] = wa[idl] * ch2[ik + *ip * ch2_dim1];
-/* L113: */
-	}
-	idlj = idl;
-	inc += *ido;
-	i__2 = ipph;
-	for (j = 3; j <= i__2; ++j) {
-	    jc = ipp2 - j;
-	    idlj += inc;
-	    if (idlj > idp) {
-		idlj -= idp;
-	    }
-	    war = wa[idlj - 1];
-	    wai = wa[idlj];
-	    i__3 = *idl1;
-	    for (ik = 1; ik <= i__3; ++ik) {
-		c2[ik + l * c2_dim1] += war * ch2[ik + j * ch2_dim1];
-		c2[ik + lc * c2_dim1] += wai * ch2[ik + jc * ch2_dim1];
-/* L114: */
-	    }
-/* L115: */
-	}
-/* L116: */
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	i__2 = *idl1;
-	for (ik = 1; ik <= i__2; ++ik) {
-	    ch2[ik + ch2_dim1] += ch2[ik + j * ch2_dim1];
-/* L117: */
-	}
-/* L118: */
-    }
-    i__1 = ipph;
-    for (j = 2; j <= i__1; ++j) {
-	jc = ipp2 - j;
-	i__2 = *idl1;
-	for (ik = 2; ik <= i__2; ik += 2) {
-	    ch2[ik - 1 + j * ch2_dim1] = c2[ik - 1 + j * c2_dim1] - c2[ik + 
-		    jc * c2_dim1];
-	    ch2[ik - 1 + jc * ch2_dim1] = c2[ik - 1 + j * c2_dim1] + c2[ik + 
-		    jc * c2_dim1];
-	    ch2[ik + j * ch2_dim1] = c2[ik + j * c2_dim1] + c2[ik - 1 + jc * 
-		    c2_dim1];
-	    ch2[ik + jc * ch2_dim1] = c2[ik + j * c2_dim1] - c2[ik - 1 + jc * 
-		    c2_dim1];
-/* L119: */
-	}
-/* L120: */
-    }
-    *nac = 1;
-    if (*ido == 2) {
-	return 0;
-    }
-    *nac = 0;
-    i__1 = *idl1;
-    for (ik = 1; ik <= i__1; ++ik) {
-	c2[ik + c2_dim1] = ch2[ik + ch2_dim1];
-/* L121: */
-    }
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    c1[(k + j * c1_dim2) * c1_dim1 + 1] = ch[(k + j * ch_dim2) * 
-		    ch_dim1 + 1];
-	    c1[(k + j * c1_dim2) * c1_dim1 + 2] = ch[(k + j * ch_dim2) * 
-		    ch_dim1 + 2];
-/* L122: */
-	}
-/* L123: */
-    }
-    if (idot > *l1) {
-	goto L127;
-    }
-    idij = 0;
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	idij += 2;
-	i__2 = *ido;
-	for (i__ = 4; i__ <= i__2; i__ += 2) {
-	    idij += 2;
-	    i__3 = *l1;
-	    for (k = 1; k <= i__3; ++k) {
-		c1[i__ - 1 + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[
-			i__ - 1 + (k + j * ch_dim2) * ch_dim1] - wa[idij] * 
-			ch[i__ + (k + j * ch_dim2) * ch_dim1];
-		c1[i__ + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[i__ 
-			+ (k + j * ch_dim2) * ch_dim1] + wa[idij] * ch[i__ - 
-			1 + (k + j * ch_dim2) * ch_dim1];
-/* L124: */
-	    }
-/* L125: */
-	}
-/* L126: */
-    }
-    return 0;
-L127:
-    idj = 2 - *ido;
-    i__1 = *ip;
-    for (j = 2; j <= i__1; ++j) {
-	idj += *ido;
-	i__2 = *l1;
-	for (k = 1; k <= i__2; ++k) {
-	    idij = idj;
-	    i__3 = *ido;
-	    for (i__ = 4; i__ <= i__3; i__ += 2) {
-		idij += 2;
-		c1[i__ - 1 + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[
-			i__ - 1 + (k + j * ch_dim2) * ch_dim1] - wa[idij] * 
-			ch[i__ + (k + j * ch_dim2) * ch_dim1];
-		c1[i__ + (k + j * c1_dim2) * c1_dim1] = wa[idij - 1] * ch[i__ 
-			+ (k + j * ch_dim2) * ch_dim1] + wa[idij] * ch[i__ - 
-			1 + (k + j * ch_dim2) * ch_dim1];
-/* L128: */
-	    }
-/* L129: */
-	}
-/* L130: */
-    }
-    return 0;
-} /* fpassb_ */
-
-/* Subroutine */ int fpassb5_(integer *ido, integer *l1, real *cc, real *ch, 
-	real *wa1, real *wa2, real *wa3, real *wa4)
-{
-    /* Initialized data */
-
-    static real tr11 = .309016994374947f;
-    static real ti11 = .951056516295154f;
-    static real tr12 = -.809016994374947f;
-    static real ti12 = .587785252292473f;
-
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k;
-    static real ci2, ci3, ci4, ci5, di3, di4, di5, di2, cr2, cr3, cr5, cr4, 
-	    ti2, ti3, ti4, ti5, dr3, dr4, dr5, dr2, tr2, tr3, tr4, tr5;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 6;
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-    --wa3;
-    --wa4;
-
-    /* Function Body */
-    if (*ido != 2) {
-	goto L102;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ti5 = cc[(k * 5 + 2) * cc_dim1 + 2] - cc[(k * 5 + 5) * cc_dim1 + 2];
-	ti2 = cc[(k * 5 + 2) * cc_dim1 + 2] + cc[(k * 5 + 5) * cc_dim1 + 2];
-	ti4 = cc[(k * 5 + 3) * cc_dim1 + 2] - cc[(k * 5 + 4) * cc_dim1 + 2];
-	ti3 = cc[(k * 5 + 3) * cc_dim1 + 2] + cc[(k * 5 + 4) * cc_dim1 + 2];
-	tr5 = cc[(k * 5 + 2) * cc_dim1 + 1] - cc[(k * 5 + 5) * cc_dim1 + 1];
-	tr2 = cc[(k * 5 + 2) * cc_dim1 + 1] + cc[(k * 5 + 5) * cc_dim1 + 1];
-	tr4 = cc[(k * 5 + 3) * cc_dim1 + 1] - cc[(k * 5 + 4) * cc_dim1 + 1];
-	tr3 = cc[(k * 5 + 3) * cc_dim1 + 1] + cc[(k * 5 + 4) * cc_dim1 + 1];
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[(k * 5 + 1) * cc_dim1 + 1] + tr2 
-		+ tr3;
-	ch[(k + ch_dim2) * ch_dim1 + 2] = cc[(k * 5 + 1) * cc_dim1 + 2] + ti2 
-		+ ti3;
-	cr2 = cc[(k * 5 + 1) * cc_dim1 + 1] + tr11 * tr2 + tr12 * tr3;
-	ci2 = cc[(k * 5 + 1) * cc_dim1 + 2] + tr11 * ti2 + tr12 * ti3;
-	cr3 = cc[(k * 5 + 1) * cc_dim1 + 1] + tr12 * tr2 + tr11 * tr3;
-	ci3 = cc[(k * 5 + 1) * cc_dim1 + 2] + tr12 * ti2 + tr11 * ti3;
-	cr5 = ti11 * tr5 + ti12 * tr4;
-	ci5 = ti11 * ti5 + ti12 * ti4;
-	cr4 = ti12 * tr5 - ti11 * tr4;
-	ci4 = ti12 * ti5 - ti11 * ti4;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cr2 - ci5;
-	ch[(k + ch_dim2 * 5) * ch_dim1 + 1] = cr2 + ci5;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 2] = ci2 + cr5;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 2] = ci3 + cr4;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = cr3 - ci4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 1] = cr3 + ci4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 2] = ci3 - cr4;
-	ch[(k + ch_dim2 * 5) * ch_dim1 + 2] = ci2 - cr5;
-/* L101: */
-    }
-    return 0;
-L102:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 2; i__ <= i__2; i__ += 2) {
-	    ti5 = cc[i__ + (k * 5 + 2) * cc_dim1] - cc[i__ + (k * 5 + 5) * 
-		    cc_dim1];
-	    ti2 = cc[i__ + (k * 5 + 2) * cc_dim1] + cc[i__ + (k * 5 + 5) * 
-		    cc_dim1];
-	    ti4 = cc[i__ + (k * 5 + 3) * cc_dim1] - cc[i__ + (k * 5 + 4) * 
-		    cc_dim1];
-	    ti3 = cc[i__ + (k * 5 + 3) * cc_dim1] + cc[i__ + (k * 5 + 4) * 
-		    cc_dim1];
-	    tr5 = cc[i__ - 1 + (k * 5 + 2) * cc_dim1] - cc[i__ - 1 + (k * 5 + 
-		    5) * cc_dim1];
-	    tr2 = cc[i__ - 1 + (k * 5 + 2) * cc_dim1] + cc[i__ - 1 + (k * 5 + 
-		    5) * cc_dim1];
-	    tr4 = cc[i__ - 1 + (k * 5 + 3) * cc_dim1] - cc[i__ - 1 + (k * 5 + 
-		    4) * cc_dim1];
-	    tr3 = cc[i__ - 1 + (k * 5 + 3) * cc_dim1] + cc[i__ - 1 + (k * 5 + 
-		    4) * cc_dim1];
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + (k * 5 + 1) *
-		     cc_dim1] + tr2 + tr3;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * 5 + 1) * 
-		    cc_dim1] + ti2 + ti3;
-	    cr2 = cc[i__ - 1 + (k * 5 + 1) * cc_dim1] + tr11 * tr2 + tr12 * 
-		    tr3;
-	    ci2 = cc[i__ + (k * 5 + 1) * cc_dim1] + tr11 * ti2 + tr12 * ti3;
-	    cr3 = cc[i__ - 1 + (k * 5 + 1) * cc_dim1] + tr12 * tr2 + tr11 * 
-		    tr3;
-	    ci3 = cc[i__ + (k * 5 + 1) * cc_dim1] + tr12 * ti2 + tr11 * ti3;
-	    cr5 = ti11 * tr5 + ti12 * tr4;
-	    ci5 = ti11 * ti5 + ti12 * ti4;
-	    cr4 = ti12 * tr5 - ti11 * tr4;
-	    ci4 = ti12 * ti5 - ti11 * ti4;
-	    dr3 = cr3 - ci4;
-	    dr4 = cr3 + ci4;
-	    di3 = ci3 + cr4;
-	    di4 = ci3 - cr4;
-	    dr5 = cr2 + ci5;
-	    dr2 = cr2 - ci5;
-	    di5 = ci2 - cr5;
-	    di2 = ci2 + cr5;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * dr2 
-		    - wa1[i__] * di2;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * di2 + 
-		    wa1[i__] * dr2;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * dr3 - 
-		    wa2[i__] * di3;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * di3 + wa2[
-		    i__] * dr3;
-	    ch[i__ - 1 + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 1] * dr4 
-		    - wa3[i__] * di4;
-	    ch[i__ + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 1] * di4 + 
-		    wa3[i__] * dr4;
-	    ch[i__ - 1 + (k + ch_dim2 * 5) * ch_dim1] = wa4[i__ - 1] * dr5 - 
-		    wa4[i__] * di5;
-	    ch[i__ + (k + ch_dim2 * 5) * ch_dim1] = wa4[i__ - 1] * di5 + wa4[
-		    i__] * dr5;
-/* L103: */
-	}
-/* L104: */
-    }
-    return 0;
-} /* fpassb5_ */
-
-/* Subroutine */ int fpassb3_(integer *ido, integer *l1, real *cc, real *ch, 
-	real *wa1, real *wa2)
-{
-    /* Initialized data */
-
-    static real taur = -.5f;
-    static real taui = .866025403784439f;
-
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k;
-    static real ci2, ci3, di2, di3, cr2, cr3, dr2, dr3, ti2, tr2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + (cc_dim1 << 2);
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-
-    /* Function Body */
-    if (*ido != 2) {
-	goto L102;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	tr2 = cc[(k * 3 + 2) * cc_dim1 + 1] + cc[(k * 3 + 3) * cc_dim1 + 1];
-	cr2 = cc[(k * 3 + 1) * cc_dim1 + 1] + taur * tr2;
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[(k * 3 + 1) * cc_dim1 + 1] + tr2;
-	ti2 = cc[(k * 3 + 2) * cc_dim1 + 2] + cc[(k * 3 + 3) * cc_dim1 + 2];
-	ci2 = cc[(k * 3 + 1) * cc_dim1 + 2] + taur * ti2;
-	ch[(k + ch_dim2) * ch_dim1 + 2] = cc[(k * 3 + 1) * cc_dim1 + 2] + ti2;
-	cr3 = taui * (cc[(k * 3 + 2) * cc_dim1 + 1] - cc[(k * 3 + 3) * 
-		cc_dim1 + 1]);
-	ci3 = taui * (cc[(k * 3 + 2) * cc_dim1 + 2] - cc[(k * 3 + 3) * 
-		cc_dim1 + 2]);
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cr2 - ci3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = cr2 + ci3;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 2] = ci2 + cr3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 2] = ci2 - cr3;
-/* L101: */
-    }
-    return 0;
-L102:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 2; i__ <= i__2; i__ += 2) {
-	    tr2 = cc[i__ - 1 + (k * 3 + 2) * cc_dim1] + cc[i__ - 1 + (k * 3 + 
-		    3) * cc_dim1];
-	    cr2 = cc[i__ - 1 + (k * 3 + 1) * cc_dim1] + taur * tr2;
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + (k * 3 + 1) *
-		     cc_dim1] + tr2;
-	    ti2 = cc[i__ + (k * 3 + 2) * cc_dim1] + cc[i__ + (k * 3 + 3) * 
-		    cc_dim1];
-	    ci2 = cc[i__ + (k * 3 + 1) * cc_dim1] + taur * ti2;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + (k * 3 + 1) * 
-		    cc_dim1] + ti2;
-	    cr3 = taui * (cc[i__ - 1 + (k * 3 + 2) * cc_dim1] - cc[i__ - 1 + (
-		    k * 3 + 3) * cc_dim1]);
-	    ci3 = taui * (cc[i__ + (k * 3 + 2) * cc_dim1] - cc[i__ + (k * 3 + 
-		    3) * cc_dim1]);
-	    dr2 = cr2 - ci3;
-	    dr3 = cr2 + ci3;
-	    di2 = ci2 + cr3;
-	    di3 = ci2 - cr3;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * di2 + 
-		    wa1[i__] * dr2;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * dr2 
-		    - wa1[i__] * di2;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * di3 + wa2[
-		    i__] * dr3;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * dr3 - 
-		    wa2[i__] * di3;
-/* L103: */
-	}
-/* L104: */
-    }
-    return 0;
-} /* fpassb3_ */
-
-/* Subroutine */ int fpassb2_(integer *ido, integer *l1, real *cc, real *ch, 
-	real *wa1)
-{
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k;
-    static real ti2, tr2;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 3;
-    cc -= cc_offset;
-    --wa1;
-
-    /* Function Body */
-    if (*ido > 2) {
-	goto L102;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ch[(k + ch_dim2) * ch_dim1 + 1] = cc[((k << 1) + 1) * cc_dim1 + 1] + 
-		cc[((k << 1) + 2) * cc_dim1 + 1];
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = cc[((k << 1) + 1) * cc_dim1 
-		+ 1] - cc[((k << 1) + 2) * cc_dim1 + 1];
-	ch[(k + ch_dim2) * ch_dim1 + 2] = cc[((k << 1) + 1) * cc_dim1 + 2] + 
-		cc[((k << 1) + 2) * cc_dim1 + 2];
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 2] = cc[((k << 1) + 1) * cc_dim1 
-		+ 2] - cc[((k << 1) + 2) * cc_dim1 + 2];
-/* L101: */
-    }
-    return 0;
-L102:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 2; i__ <= i__2; i__ += 2) {
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = cc[i__ - 1 + ((k << 1) + 
-		    1) * cc_dim1] + cc[i__ - 1 + ((k << 1) + 2) * cc_dim1];
-	    tr2 = cc[i__ - 1 + ((k << 1) + 1) * cc_dim1] - cc[i__ - 1 + ((k <<
-		     1) + 2) * cc_dim1];
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = cc[i__ + ((k << 1) + 1) * 
-		    cc_dim1] + cc[i__ + ((k << 1) + 2) * cc_dim1];
-	    ti2 = cc[i__ + ((k << 1) + 1) * cc_dim1] - cc[i__ + ((k << 1) + 2)
-		     * cc_dim1];
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * ti2 + 
-		    wa1[i__] * tr2;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * tr2 
-		    - wa1[i__] * ti2;
-/* L103: */
-	}
-/* L104: */
-    }
-    return 0;
-} /* fpassb2_ */
-
-/* Subroutine */ int fpassb4_(integer *ido, integer *l1, real *cc, real *ch, 
-	real *wa1, real *wa2, real *wa3)
-{
-    /* System generated locals */
-    integer cc_dim1, cc_offset, ch_dim1, ch_dim2, ch_offset, i__1, i__2;
-
-    /* Local variables */
-    static integer i__, k;
-    static real ci2, ci3, ci4, cr2, cr3, cr4, ti1, ti2, ti3, ti4, tr1, tr2, 
-	    tr3, tr4;
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    ch_dim1 = *ido;
-    ch_dim2 = *l1;
-    ch_offset = 1 + ch_dim1 * (1 + ch_dim2);
-    ch -= ch_offset;
-    cc_dim1 = *ido;
-    cc_offset = 1 + cc_dim1 * 5;
-    cc -= cc_offset;
-    --wa1;
-    --wa2;
-    --wa3;
-
-    /* Function Body */
-    if (*ido != 2) {
-	goto L102;
-    }
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	ti1 = cc[((k << 2) + 1) * cc_dim1 + 2] - cc[((k << 2) + 3) * cc_dim1 
-		+ 2];
-	ti2 = cc[((k << 2) + 1) * cc_dim1 + 2] + cc[((k << 2) + 3) * cc_dim1 
-		+ 2];
-	tr4 = cc[((k << 2) + 4) * cc_dim1 + 2] - cc[((k << 2) + 2) * cc_dim1 
-		+ 2];
-	ti3 = cc[((k << 2) + 2) * cc_dim1 + 2] + cc[((k << 2) + 4) * cc_dim1 
-		+ 2];
-	tr1 = cc[((k << 2) + 1) * cc_dim1 + 1] - cc[((k << 2) + 3) * cc_dim1 
-		+ 1];
-	tr2 = cc[((k << 2) + 1) * cc_dim1 + 1] + cc[((k << 2) + 3) * cc_dim1 
-		+ 1];
-	ti4 = cc[((k << 2) + 2) * cc_dim1 + 1] - cc[((k << 2) + 4) * cc_dim1 
-		+ 1];
-	tr3 = cc[((k << 2) + 2) * cc_dim1 + 1] + cc[((k << 2) + 4) * cc_dim1 
-		+ 1];
-	ch[(k + ch_dim2) * ch_dim1 + 1] = tr2 + tr3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 1] = tr2 - tr3;
-	ch[(k + ch_dim2) * ch_dim1 + 2] = ti2 + ti3;
-	ch[(k + ch_dim2 * 3) * ch_dim1 + 2] = ti2 - ti3;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 1] = tr1 + tr4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 1] = tr1 - tr4;
-	ch[(k + (ch_dim2 << 1)) * ch_dim1 + 2] = ti1 + ti4;
-	ch[(k + (ch_dim2 << 2)) * ch_dim1 + 2] = ti1 - ti4;
-/* L101: */
-    }
-    return 0;
-L102:
-    i__1 = *l1;
-    for (k = 1; k <= i__1; ++k) {
-	i__2 = *ido;
-	for (i__ = 2; i__ <= i__2; i__ += 2) {
-	    ti1 = cc[i__ + ((k << 2) + 1) * cc_dim1] - cc[i__ + ((k << 2) + 3)
-		     * cc_dim1];
-	    ti2 = cc[i__ + ((k << 2) + 1) * cc_dim1] + cc[i__ + ((k << 2) + 3)
-		     * cc_dim1];
-	    ti3 = cc[i__ + ((k << 2) + 2) * cc_dim1] + cc[i__ + ((k << 2) + 4)
-		     * cc_dim1];
-	    tr4 = cc[i__ + ((k << 2) + 4) * cc_dim1] - cc[i__ + ((k << 2) + 2)
-		     * cc_dim1];
-	    tr1 = cc[i__ - 1 + ((k << 2) + 1) * cc_dim1] - cc[i__ - 1 + ((k <<
-		     2) + 3) * cc_dim1];
-	    tr2 = cc[i__ - 1 + ((k << 2) + 1) * cc_dim1] + cc[i__ - 1 + ((k <<
-		     2) + 3) * cc_dim1];
-	    ti4 = cc[i__ - 1 + ((k << 2) + 2) * cc_dim1] - cc[i__ - 1 + ((k <<
-		     2) + 4) * cc_dim1];
-	    tr3 = cc[i__ - 1 + ((k << 2) + 2) * cc_dim1] + cc[i__ - 1 + ((k <<
-		     2) + 4) * cc_dim1];
-	    ch[i__ - 1 + (k + ch_dim2) * ch_dim1] = tr2 + tr3;
-	    cr3 = tr2 - tr3;
-	    ch[i__ + (k + ch_dim2) * ch_dim1] = ti2 + ti3;
-	    ci3 = ti2 - ti3;
-	    cr2 = tr1 + tr4;
-	    cr4 = tr1 - tr4;
-	    ci2 = ti1 + ti4;
-	    ci4 = ti1 - ti4;
-	    ch[i__ - 1 + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * cr2 
-		    - wa1[i__] * ci2;
-	    ch[i__ + (k + (ch_dim2 << 1)) * ch_dim1] = wa1[i__ - 1] * ci2 + 
-		    wa1[i__] * cr2;
-	    ch[i__ - 1 + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * cr3 - 
-		    wa2[i__] * ci3;
-	    ch[i__ + (k + ch_dim2 * 3) * ch_dim1] = wa2[i__ - 1] * ci3 + wa2[
-		    i__] * cr3;
-	    ch[i__ - 1 + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 1] * cr4 
-		    - wa3[i__] * ci4;
-	    ch[i__ + (k + (ch_dim2 << 2)) * ch_dim1] = wa3[i__ - 1] * ci4 + 
-		    wa3[i__] * cr4;
-/* L103: */
+
+#include "fftpack.h"
+
+#include "c_utils.c"
+
+#define WA(x,i) wa[(i)+(x)*ido]
+#define CH(a,b,c) ch[(a)+ido*((b)+l1*(c))]
+#define CC(a,b,c) cc[(a)+ido*((b)+cdim*(c))]
+#define PM(a,b,c,d) { a=c+d; b=c-d; }
+#define PMC(a,b,c,d) { a.r=c.r+d.r; a.i=c.i+d.i; b.r=c.r-d.r; b.i=c.i-d.i; }
+#define ADDC(a,b,c) { a.r=b.r+c.r; a.i=b.i+c.i; }
+#define SCALEC(a,b) { a.r*=b; a.i*=b; }
+#define CONJFLIPC(a) { double tmp_=a.r; a.r=-a.i; a.i=tmp_; }
+/* (a+ib) = conj(c+id) * (e+if) */
+#define MULPM(a,b,c,d,e,f) { a=c*e+d*f; b=c*f-d*e; }
+
+	typedef struct {
+		double r,i;
+	} cmplx;
+
+#define CONCAT(a,b) a ## b
+
+#define X(arg) CONCAT(passb,arg)
+#define BACKWARD
+#include "FFT/fftpack_inc.c"
+#undef BACKWARD
+#undef X
+
+#define X(arg) CONCAT(passf,arg)
+#include "fftpack_inc.c"
+#undef X
+
+#undef CC
+#undef CH
+#define CC(a,b,c) cc[(a)+ido*((b)+l1*(c))]
+#define CH(a,b,c) ch[(a)+ido*((b)+cdim*(c))]
+
+	static void radf2 (size_t ido, size_t l1, const double *cc, double *ch,
+			   const double *wa)
+	{
+		const size_t cdim=2;
+		size_t i, k, ic;
+		double ti2, tr2;
+
+		for (k=0; k<l1; k++)
+			PM (CH(0,0,k),CH(ido-1,1,k),CC(0,k,0),CC(0,k,1))
+				if ((ido&1)==0)
+					for (k=0; k<l1; k++)
+					{
+						CH(    0,1,k) = -CC(ido-1,k,1);
+						CH(ido-1,0,k) =  CC(ido-1,k,0);
+					}
+		if (ido<=2) return;
+		for (k=0; k<l1; k++)
+			for (i=2; i<ido; i+=2)
+			{
+				ic=ido-i;
+				MULPM (tr2,ti2,WA(0,i-2),WA(0,i-1),CC(i-1,k,1),CC(i,k,1))
+					PM (CH(i-1,0,k),CH(ic-1,1,k),CC(i-1,k,0),tr2)
+					PM (CH(i  ,0,k),CH(ic  ,1,k),ti2,CC(i  ,k,0))
+					}
+	}
+
+	static void radf3(size_t ido, size_t l1, const double *cc, double *ch,
+			  const double *wa)
+	{
+		const size_t cdim=3;
+		static const double taur=-0.5, taui=0.86602540378443864676;
+		size_t i, k, ic;
+		double ci2, di2, di3, cr2, dr2, dr3, ti2, ti3, tr2, tr3;
+
+		for (k=0; k<l1; k++)
+		{
+			cr2=CC(0,k,1)+CC(0,k,2);
+			CH(0,0,k) = CC(0,k,0)+cr2;
+			CH(0,2,k) = taui*(CC(0,k,2)-CC(0,k,1));
+			CH(ido-1,1,k) = CC(0,k,0)+taur*cr2;
+		}
+		if (ido==1) return;
+		for (k=0; k<l1; k++)
+			for (i=2; i<ido; i+=2)
+			{
+				ic=ido-i;
+				MULPM (dr2,di2,WA(0,i-2),WA(0,i-1),CC(i-1,k,1),CC(i,k,1))
+					MULPM (dr3,di3,WA(1,i-2),WA(1,i-1),CC(i-1,k,2),CC(i,k,2))
+					cr2=dr2+dr3;
+				ci2=di2+di3;
+				CH(i-1,0,k) = CC(i-1,k,0)+cr2;
+				CH(i  ,0,k) = CC(i  ,k,0)+ci2;
+				tr2 = CC(i-1,k,0)+taur*cr2;
+				ti2 = CC(i  ,k,0)+taur*ci2;
+				tr3 = taui*(di2-di3);
+				ti3 = taui*(dr3-dr2);
+				PM(CH(i-1,2,k),CH(ic-1,1,k),tr2,tr3)
+					PM(CH(i  ,2,k),CH(ic  ,1,k),ti3,ti2)
+					}
+	}
+
+	static void radf4(size_t ido, size_t l1, const double *cc, double *ch,
+			  const double *wa)
+	{
+		const size_t cdim=4;
+		static const double hsqt2=0.70710678118654752440;
+		size_t i, k, ic;
+		double ci2, ci3, ci4, cr2, cr3, cr4, ti1, ti2, ti3, ti4, tr1, tr2, tr3, tr4;
+
+		for (k=0; k<l1; k++)
+		{
+			PM (tr1,CH(0,2,k),CC(0,k,3),CC(0,k,1))
+				PM (tr2,CH(ido-1,1,k),CC(0,k,0),CC(0,k,2))
+				PM (CH(0,0,k),CH(ido-1,3,k),tr2,tr1)
+				}
+		if ((ido&1)==0)
+			for (k=0; k<l1; k++)
+			{
+				ti1=-hsqt2*(CC(ido-1,k,1)+CC(ido-1,k,3));
+				tr1= hsqt2*(CC(ido-1,k,1)-CC(ido-1,k,3));
+				PM (CH(ido-1,0,k),CH(ido-1,2,k),CC(ido-1,k,0),tr1)
+					PM (CH(    0,3,k),CH(    0,1,k),ti1,CC(ido-1,k,2))
+					}
+		if (ido<=2) return;
+		for (k=0; k<l1; k++)
+			for (i=2; i<ido; i+=2)
+			{
+				ic=ido-i;
+				MULPM(cr2,ci2,WA(0,i-2),WA(0,i-1),CC(i-1,k,1),CC(i,k,1))
+					MULPM(cr3,ci3,WA(1,i-2),WA(1,i-1),CC(i-1,k,2),CC(i,k,2))
+					MULPM(cr4,ci4,WA(2,i-2),WA(2,i-1),CC(i-1,k,3),CC(i,k,3))
+					PM(tr1,tr4,cr4,cr2)
+					PM(ti1,ti4,ci2,ci4)
+					PM(tr2,tr3,CC(i-1,k,0),cr3)
+					PM(ti2,ti3,CC(i  ,k,0),ci3)
+					PM(CH(i-1,0,k),CH(ic-1,3,k),tr2,tr1)
+					PM(CH(i  ,0,k),CH(ic  ,3,k),ti1,ti2)
+					PM(CH(i-1,2,k),CH(ic-1,1,k),tr3,ti4)
+					PM(CH(i  ,2,k),CH(ic  ,1,k),tr4,ti3)
+					}
+	}
+
+	static void radf5(size_t ido, size_t l1, const double *cc, double *ch,
+			  const double *wa)
+	{
+		const size_t cdim=5;
+		static const double tr11= 0.3090169943749474241, ti11=0.95105651629515357212,
+			tr12=-0.8090169943749474241, ti12=0.58778525229247312917;
+		size_t i, k, ic;
+		double ci2, di2, ci4, ci5, di3, di4, di5, ci3, cr2, cr3, dr2, dr3,
+			dr4, dr5, cr5, cr4, ti2, ti3, ti5, ti4, tr2, tr3, tr4, tr5;
+
+		for (k=0; k<l1; k++)
+		{
+			PM (cr2,ci5,CC(0,k,4),CC(0,k,1))
+				PM (cr3,ci4,CC(0,k,3),CC(0,k,2))
+				CH(0,0,k)=CC(0,k,0)+cr2+cr3;
+			CH(ido-1,1,k)=CC(0,k,0)+tr11*cr2+tr12*cr3;
+			CH(0,2,k)=ti11*ci5+ti12*ci4;
+			CH(ido-1,3,k)=CC(0,k,0)+tr12*cr2+tr11*cr3;
+			CH(0,4,k)=ti12*ci5-ti11*ci4;
+		}
+		if (ido==1) return;
+		for (k=0; k<l1;++k)
+			for (i=2; i<ido; i+=2)
+			{
+				ic=ido-i;
+				MULPM (dr2,di2,WA(0,i-2),WA(0,i-1),CC(i-1,k,1),CC(i,k,1))
+					MULPM (dr3,di3,WA(1,i-2),WA(1,i-1),CC(i-1,k,2),CC(i,k,2))
+					MULPM (dr4,di4,WA(2,i-2),WA(2,i-1),CC(i-1,k,3),CC(i,k,3))
+					MULPM (dr5,di5,WA(3,i-2),WA(3,i-1),CC(i-1,k,4),CC(i,k,4))
+					PM(cr2,ci5,dr5,dr2)
+					PM(ci2,cr5,di2,di5)
+					PM(cr3,ci4,dr4,dr3)
+					PM(ci3,cr4,di3,di4)
+					CH(i-1,0,k)=CC(i-1,k,0)+cr2+cr3;
+				CH(i  ,0,k)=CC(i  ,k,0)+ci2+ci3;
+				tr2=CC(i-1,k,0)+tr11*cr2+tr12*cr3;
+				ti2=CC(i  ,k,0)+tr11*ci2+tr12*ci3;
+				tr3=CC(i-1,k,0)+tr12*cr2+tr11*cr3;
+				ti3=CC(i  ,k,0)+tr12*ci2+tr11*ci3;
+				MULPM(tr5,tr4,cr5,cr4,ti11,ti12)
+					MULPM(ti5,ti4,ci5,ci4,ti11,ti12)
+					PM(CH(i-1,2,k),CH(ic-1,1,k),tr2,tr5)
+					PM(CH(i  ,2,k),CH(ic  ,1,k),ti5,ti2)
+					PM(CH(i-1,4,k),CH(ic-1,3,k),tr3,tr4)
+					PM(CH(i  ,4,k),CH(ic  ,3,k),ti4,ti3)
+					}
+	}
+
+#undef CH
+#undef CC
+#define CH(a,b,c) ch[(a)+ido*((b)+l1*(c))]
+#define CC(a,b,c) cc[(a)+ido*((b)+cdim*(c))]
+#define C1(a,b,c) cc[(a)+ido*((b)+l1*(c))]
+#define C2(a,b) cc[(a)+idl1*(b)]
+#define CH2(a,b) ch[(a)+idl1*(b)]
+	static void radfg(size_t ido, size_t ip, size_t l1, size_t idl1,
+			  double *cc, double *ch, const double *wa)
+	{
+		const size_t cdim=ip;
+		static const double twopi=6.28318530717958647692;
+		size_t idij, ipph, i, j, k, l, j2, ic, jc, lc, ik;
+		double ai1, ai2, ar1, ar2, arg;
+		double *csarr;
+		size_t aidx;
+
+		ipph=(ip+1)/ 2;
+		if(ido!=1)
+		{
+			memcpy(ch,cc,idl1*sizeof(double));
+
+			for(j=1; j<ip; j++)
+				for(k=0; k<l1; k++)
+				{
+					CH(0,k,j)=C1(0,k,j);
+					idij=(j-1)*ido+1;
+					for(i=2; i<ido; i+=2,idij+=2)
+						MULPM(CH(i-1,k,j),CH(i,k,j),wa[idij-1],wa[idij],C1(i-1,k,j),C1(i,k,j))
+							}
+
+			for(j=1,jc=ip-1; j<ipph; j++,jc--)
+				for(k=0; k<l1; k++)
+					for(i=2; i<ido; i+=2)
+					{
+						PM(C1(i-1,k,j),C1(i  ,k,jc),CH(i-1,k,jc),CH(i-1,k,j ))
+							PM(C1(i  ,k,j),C1(i-1,k,jc),CH(i  ,k,j ),CH(i  ,k,jc))
+							}
+		}
+		else
+			memcpy(cc,ch,idl1*sizeof(double));
+
+		for(j=1,jc=ip-1; j<ipph; j++,jc--)
+			for(k=0; k<l1; k++)
+				PM(C1(0,k,j),C1(0,k,jc),CH(0,k,jc),CH(0,k,j))
+
+					csarr=RALLOC(double,2*ip);
+		arg=twopi / ip;
+		csarr[0]=1.;
+		csarr[1]=0.;
+		csarr[2]=csarr[2*ip-2]=cos(arg);
+		csarr[3]=sin(arg); csarr[2*ip-1]=-csarr[3];
+		for (i=2; i<=ip/2; ++i)
+		{
+			csarr[2*i]=csarr[2*ip-2*i]=cos(i*arg);
+			csarr[2*i+1]=sin(i*arg);
+			csarr[2*ip-2*i+1]=-csarr[2*i+1];
+		}
+		for(l=1,lc=ip-1; l<ipph; l++,lc--)
+		{
+			ar1=csarr[2*l];
+			ai1=csarr[2*l+1];
+			for(ik=0; ik<idl1; ik++)
+			{
+				CH2(ik,l)=C2(ik,0)+ar1*C2(ik,1);
+				CH2(ik,lc)=ai1*C2(ik,ip-1);
+			}
+			aidx=2*l;
+			for(j=2,jc=ip-2; j<ipph; j++,jc--)
+			{
+				aidx+=2*l;
+				if (aidx>=2*ip) aidx-=2*ip;
+				ar2=csarr[aidx];
+				ai2=csarr[aidx+1];
+				for(ik=0; ik<idl1; ik++)
+				{
+					CH2(ik,l )+=ar2*C2(ik,j );
+					CH2(ik,lc)+=ai2*C2(ik,jc);
+				}
+			}
+		}
+		DEALLOC(csarr);
+
+		for(j=1; j<ipph; j++)
+			for(ik=0; ik<idl1; ik++)
+				CH2(ik,0)+=C2(ik,j);
+
+		for(k=0; k<l1; k++)
+			memcpy(&CC(0,0,k),&CH(0,k,0),ido*sizeof(double));
+		for(j=1; j<ipph; j++)
+		{
+			jc=ip-j;
+			j2=2*j;
+			for(k=0; k<l1; k++)
+			{
+				CC(ido-1,j2-1,k) = CH(0,k,j );
+				CC(0    ,j2  ,k) = CH(0,k,jc);
+			}
+		}
+		if(ido==1) return;
+
+		for(j=1; j<ipph; j++)
+		{
+			jc=ip-j;
+			j2=2*j;
+			for(k=0; k<l1; k++)
+				for(i=2; i<ido; i+=2)
+				{
+					ic=ido-i;
+					PM (CC(i-1,j2,k),CC(ic-1,j2-1,k),CH(i-1,k,j ),CH(i-1,k,jc))
+						PM (CC(i  ,j2,k),CC(ic  ,j2-1,k),CH(i  ,k,jc),CH(i  ,k,j ))
+						}
+		}
+	}
+
+#undef CC
+#undef CH
+#define CH(a,b,c) ch[(a)+ido*((b)+l1*(c))]
+#define CC(a,b,c) cc[(a)+ido*((b)+cdim*(c))]
+
+	static void radb2(size_t ido, size_t l1, const double *cc, double *ch,
+			  const double *wa)
+	{
+		const size_t cdim=2;
+		size_t i, k, ic;
+		double ti2, tr2;
+
+		for (k=0; k<l1; k++)
+			PM (CH(0,k,0),CH(0,k,1),CC(0,0,k),CC(ido-1,1,k))
+				if ((ido&1)==0)
+					for (k=0; k<l1; k++)
+					{
+						CH(ido-1,k,0) =  2*CC(ido-1,0,k);
+						CH(ido-1,k,1) = -2*CC(0    ,1,k);
+					}
+		if (ido<=2) return;
+		for (k=0; k<l1;++k)
+			for (i=2; i<ido; i+=2)
+			{
+				ic=ido-i;
+				PM (CH(i-1,k,0),tr2,CC(i-1,0,k),CC(ic-1,1,k))
+					PM (ti2,CH(i  ,k,0),CC(i  ,0,k),CC(ic  ,1,k))
+					MULPM (CH(i,k,1),CH(i-1,k,1),WA(0,i-2),WA(0,i-1),ti2,tr2)
+					}
+	}
+
+	static void radb3(size_t ido, size_t l1, const double *cc, double *ch,
+			  const double *wa)
+	{
+		const size_t cdim=3;
+		static const double taur=-0.5, taui=0.86602540378443864676;
+		size_t i, k, ic;
+		double ci2, ci3, di2, di3, cr2, cr3, dr2, dr3, ti2, tr2;
+
+		for (k=0; k<l1; k++)
+		{
+			tr2=2*CC(ido-1,1,k);
+			cr2=CC(0,0,k)+taur*tr2;
+			CH(0,k,0)=CC(0,0,k)+tr2;
+			ci3=2*taui*CC(0,2,k);
+			PM (CH(0,k,2),CH(0,k,1),cr2,ci3);
+		}
+		if (ido==1) return;
+		for (k=0; k<l1; k++)
+			for (i=2; i<ido; i+=2)
+			{
+				ic=ido-i;
+				tr2=CC(i-1,2,k)+CC(ic-1,1,k);
+				ti2=CC(i  ,2,k)-CC(ic  ,1,k);
+				cr2=CC(i-1,0,k)+taur*tr2;
+				ci2=CC(i  ,0,k)+taur*ti2;
+				CH(i-1,k,0)=CC(i-1,0,k)+tr2;
+				CH(i  ,k,0)=CC(i  ,0,k)+ti2;
+				cr3=taui*(CC(i-1,2,k)-CC(ic-1,1,k));
+				ci3=taui*(CC(i  ,2,k)+CC(ic  ,1,k));
+				PM(dr3,dr2,cr2,ci3)
+					PM(di2,di3,ci2,cr3)
+					MULPM(CH(i,k,1),CH(i-1,k,1),WA(0,i-2),WA(0,i-1),di2,dr2)
+					MULPM(CH(i,k,2),CH(i-1,k,2),WA(1,i-2),WA(1,i-1),di3,dr3)
+					}
+	}
+
+	static void radb4(size_t ido, size_t l1, const double *cc, double *ch,
+			  const double *wa)
+	{
+		const size_t cdim=4;
+		static const double sqrt2=1.41421356237309504880;
+		size_t i, k, ic;
+		double ci2, ci3, ci4, cr2, cr3, cr4, ti1, ti2, ti3, ti4, tr1, tr2, tr3, tr4;
+
+		for (k=0; k<l1; k++)
+		{
+			PM (tr2,tr1,CC(0,0,k),CC(ido-1,3,k))
+				tr3=2*CC(ido-1,1,k);
+			tr4=2*CC(0,2,k);
+			PM (CH(0,k,0),CH(0,k,2),tr2,tr3)
+				PM (CH(0,k,3),CH(0,k,1),tr1,tr4)
+				}
+		if ((ido&1)==0)
+			for (k=0; k<l1; k++)
+			{
+				PM (ti1,ti2,CC(0    ,3,k),CC(0    ,1,k))
+					PM (tr2,tr1,CC(ido-1,0,k),CC(ido-1,2,k))
+					CH(ido-1,k,0)=tr2+tr2;
+				CH(ido-1,k,1)=sqrt2*(tr1-ti1);
+				CH(ido-1,k,2)=ti2+ti2;
+				CH(ido-1,k,3)=-sqrt2*(tr1+ti1);
+			}
+		if (ido<=2) return;
+		for (k=0; k<l1;++k)
+			for (i=2; i<ido; i+=2)
+			{
+				ic=ido-i;
+				PM (tr2,tr1,CC(i-1,0,k),CC(ic-1,3,k))
+					PM (ti1,ti2,CC(i  ,0,k),CC(ic  ,3,k))
+					PM (tr4,ti3,CC(i  ,2,k),CC(ic  ,1,k))
+					PM (tr3,ti4,CC(i-1,2,k),CC(ic-1,1,k))
+					PM (CH(i-1,k,0),cr3,tr2,tr3)
+					PM (CH(i  ,k,0),ci3,ti2,ti3)
+					PM (cr4,cr2,tr1,tr4)
+					PM (ci2,ci4,ti1,ti4)
+					MULPM (CH(i,k,1),CH(i-1,k,1),WA(0,i-2),WA(0,i-1),ci2,cr2)
+					MULPM (CH(i,k,2),CH(i-1,k,2),WA(1,i-2),WA(1,i-1),ci3,cr3)
+					MULPM (CH(i,k,3),CH(i-1,k,3),WA(2,i-2),WA(2,i-1),ci4,cr4)
+					}
+	}
+
+	static void radb5(size_t ido, size_t l1, const double *cc, double *ch,
+			  const double *wa)
+	{
+		const size_t cdim=5;
+		static const double tr11= 0.3090169943749474241, ti11=0.95105651629515357212,
+			tr12=-0.8090169943749474241, ti12=0.58778525229247312917;
+		size_t i, k, ic;
+		double ci2, ci3, ci4, ci5, di3, di4, di5, di2, cr2, cr3, cr5, cr4,
+			ti2, ti3, ti4, ti5, dr3, dr4, dr5, dr2, tr2, tr3, tr4, tr5;
+
+		for (k=0; k<l1; k++)
+		{
+			ti5=2*CC(0,2,k);
+			ti4=2*CC(0,4,k);
+			tr2=2*CC(ido-1,1,k);
+			tr3=2*CC(ido-1,3,k);
+			CH(0,k,0)=CC(0,0,k)+tr2+tr3;
+			cr2=CC(0,0,k)+tr11*tr2+tr12*tr3;
+			cr3=CC(0,0,k)+tr12*tr2+tr11*tr3;
+			MULPM(ci5,ci4,ti5,ti4,ti11,ti12)
+				PM(CH(0,k,4),CH(0,k,1),cr2,ci5)
+				PM(CH(0,k,3),CH(0,k,2),cr3,ci4)
+				}
+		if (ido==1) return;
+		for (k=0; k<l1;++k)
+			for (i=2; i<ido; i+=2)
+			{
+				ic=ido-i;
+				PM(tr2,tr5,CC(i-1,2,k),CC(ic-1,1,k))
+					PM(ti5,ti2,CC(i  ,2,k),CC(ic  ,1,k))
+					PM(tr3,tr4,CC(i-1,4,k),CC(ic-1,3,k))
+					PM(ti4,ti3,CC(i  ,4,k),CC(ic  ,3,k))
+					CH(i-1,k,0)=CC(i-1,0,k)+tr2+tr3;
+				CH(i  ,k,0)=CC(i  ,0,k)+ti2+ti3;
+				cr2=CC(i-1,0,k)+tr11*tr2+tr12*tr3;
+				ci2=CC(i  ,0,k)+tr11*ti2+tr12*ti3;
+				cr3=CC(i-1,0,k)+tr12*tr2+tr11*tr3;
+				ci3=CC(i  ,0,k)+tr12*ti2+tr11*ti3;
+				MULPM(cr5,cr4,tr5,tr4,ti11,ti12)
+					MULPM(ci5,ci4,ti5,ti4,ti11,ti12)
+					PM(dr4,dr3,cr3,ci4)
+					PM(di3,di4,ci3,cr4)
+					PM(dr5,dr2,cr2,ci5)
+					PM(di2,di5,ci2,cr5)
+					MULPM(CH(i,k,1),CH(i-1,k,1),WA(0,i-2),WA(0,i-1),di2,dr2)
+					MULPM(CH(i,k,2),CH(i-1,k,2),WA(1,i-2),WA(1,i-1),di3,dr3)
+					MULPM(CH(i,k,3),CH(i-1,k,3),WA(2,i-2),WA(2,i-1),di4,dr4)
+					MULPM(CH(i,k,4),CH(i-1,k,4),WA(3,i-2),WA(3,i-1),di5,dr5)
+					}
+	}
+
+	static void radbg(size_t ido, size_t ip, size_t l1, size_t idl1,
+			  double *cc, double *ch, const double *wa)
+	{
+		const size_t cdim=ip;
+		static const double twopi=6.28318530717958647692;
+		size_t idij, ipph, i, j, k, l, j2, ic, jc, lc, ik;
+		double ai1, ai2, ar1, ar2, arg;
+		double *csarr;
+		size_t aidx;
+
+		ipph=(ip+1)/ 2;
+		for(k=0; k<l1; k++)
+			memcpy(&CH(0,k,0),&CC(0,0,k),ido*sizeof(double));
+		for(j=1; j<ipph; j++)
+		{
+			jc=ip-j;
+			j2=2*j;
+			for(k=0; k<l1; k++)
+			{
+				CH(0,k,j )=2*CC(ido-1,j2-1,k);
+				CH(0,k,jc)=2*CC(0    ,j2  ,k);
+			}
+		}
+
+		if(ido!=1)
+			for(j=1,jc=ip-1; j<ipph; j++,jc--)
+				for(k=0; k<l1; k++)
+					for(i=2; i<ido; i+=2)
+					{
+						ic=ido-i;
+						PM (CH(i-1,k,j ),CH(i-1,k,jc),CC(i-1,2*j,k),CC(ic-1,2*j-1,k))
+							PM (CH(i  ,k,jc),CH(i  ,k,j ),CC(i  ,2*j,k),CC(ic  ,2*j-1,k))
+							}
+
+		csarr=RALLOC(double,2*ip);
+		arg=twopi/ip;
+		csarr[0]=1.;
+		csarr[1]=0.;
+		csarr[2]=csarr[2*ip-2]=cos(arg);
+		csarr[3]=sin(arg); csarr[2*ip-1]=-csarr[3];
+		for (i=2; i<=ip/2; ++i)
+		{
+			csarr[2*i]=csarr[2*ip-2*i]=cos(i*arg);
+			csarr[2*i+1]=sin(i*arg);
+			csarr[2*ip-2*i+1]=-csarr[2*i+1];
+		}
+		for(l=1; l<ipph; l++)
+		{
+			lc=ip-l;
+			ar1=csarr[2*l];
+			ai1=csarr[2*l+1];
+			for(ik=0; ik<idl1; ik++)
+			{
+				C2(ik,l)=CH2(ik,0)+ar1*CH2(ik,1);
+				C2(ik,lc)=ai1*CH2(ik,ip-1);
+			}
+			aidx=2*l;
+			for(j=2; j<ipph; j++)
+			{
+				jc=ip-j;
+				aidx+=2*l;
+				if (aidx>=2*ip) aidx-=2*ip;
+				ar2=csarr[aidx];
+				ai2=csarr[aidx+1];
+				for(ik=0; ik<idl1; ik++)
+				{
+					C2(ik,l )+=ar2*CH2(ik,j );
+					C2(ik,lc)+=ai2*CH2(ik,jc);
+				}
+			}
+		}
+		DEALLOC(csarr);
+
+		for(j=1; j<ipph; j++)
+			for(ik=0; ik<idl1; ik++)
+				CH2(ik,0)+=CH2(ik,j);
+
+		for(j=1,jc=ip-1; j<ipph; j++,jc--)
+			for(k=0; k<l1; k++)
+				PM (CH(0,k,jc),CH(0,k,j),C1(0,k,j),C1(0,k,jc))
+
+					if(ido==1)
+						return;
+		for(j=1,jc=ip-1; j<ipph; j++,jc--)
+			for(k=0; k<l1; k++)
+				for(i=2; i<ido; i+=2)
+				{
+					PM (CH(i-1,k,jc),CH(i-1,k,j ),C1(i-1,k,j),C1(i  ,k,jc))
+						PM (CH(i  ,k,j ),CH(i  ,k,jc),C1(i  ,k,j),C1(i-1,k,jc))
+						}
+		memcpy(cc,ch,idl1*sizeof(double));
+
+		for(j=1; j<ip; j++)
+			for(k=0; k<l1; k++)
+			{
+				C1(0,k,j)=CH(0,k,j);
+				idij=(j-1)*ido+1;
+				for(i=2; i<ido; i+=2,idij+=2)
+					MULPM (C1(i,k,j),C1(i-1,k,j),wa[idij-1],wa[idij],CH(i,k,j),CH(i-1,k,j))
+						}
+	}
+
+#undef CC
+#undef CH
+#undef PM
+#undef MULPM
+
+
+/*----------------------------------------------------------------------
+  cfftf1, cfftb1, cfftf, cfftb, cffti1, cffti. Complex FFTs.
+  ----------------------------------------------------------------------*/
+
+	static void cfft1(size_t n, cmplx c[], cmplx ch[], const cmplx wa[],
+			  const size_t ifac[], int isign)
+	{
+		size_t k1, l1=1, nf=ifac[1], iw=0;
+		cmplx *p1=c, *p2=ch;
+
+		for(k1=0; k1<nf; k1++)
+		{
+			size_t ip=ifac[k1+2];
+			size_t l2=ip*l1;
+			size_t ido = n/l2;
+			if(ip==4)
+				(isign>0) ? passb4(ido, l1, p1, p2, wa+iw)
+					: passf4(ido, l1, p1, p2, wa+iw);
+			else if(ip==2)
+				(isign>0) ? passb2(ido, l1, p1, p2, wa+iw)
+					: passf2(ido, l1, p1, p2, wa+iw);
+			else if(ip==3)
+				(isign>0) ? passb3(ido, l1, p1, p2, wa+iw)
+					: passf3(ido, l1, p1, p2, wa+iw);
+			else if(ip==5)
+				(isign>0) ? passb5(ido, l1, p1, p2, wa+iw)
+					: passf5(ido, l1, p1, p2, wa+iw);
+			else if(ip==6)
+				(isign>0) ? passb6(ido, l1, p1, p2, wa+iw)
+					: passf6(ido, l1, p1, p2, wa+iw);
+			else
+				(isign>0) ? passbg(ido, ip, l1, p1, p2, wa+iw)
+					: passfg(ido, ip, l1, p1, p2, wa+iw);
+			SWAP(p1,p2,cmplx *);
+			l1=l2;
+			iw+=(ip-1)*ido;
+		}
+		if (p1!=c)
+			memcpy (c,p1,n*sizeof(cmplx));
+	}
+
+	void cfftf(size_t n, double c[], double wsave[])
+	{
+		if (n!=1)
+			cfft1(n, (cmplx*)c, (cmplx*)wsave, (cmplx*)(wsave+2*n),
+			      (size_t*)(wsave+4*n),-1);
+	}
+
+	void cfftb(size_t n, double c[], double wsave[])
+	{
+		if (n!=1)
+			cfft1(n, (cmplx*)c, (cmplx*)wsave, (cmplx*)(wsave+2*n),
+			      (size_t*)(wsave+4*n),+1);
+	}
+
+	static void factorize (size_t n, const size_t *pf, size_t npf, size_t *ifac)
+	{
+		size_t nl=n, nf=0, ntry=0, j=0, i;
+
+	startloop:
+		j++;
+		ntry = (j<=npf) ? pf[j-1] : ntry+2;
+		do
+		{
+			size_t nq=nl / ntry;
+			size_t nr=nl-ntry*nq;
+			if (nr!=0)
+				goto startloop;
+			nf++;
+			ifac[nf+1]=ntry;
+			nl=nq;
+			if ((ntry==2) && (nf!=1))
+			{
+				for (i=nf+1; i>2; --i)
+					ifac[i]=ifac[i-1];
+				ifac[2]=2;
+			}
+		}
+		while(nl!=1);
+		ifac[0]=n;
+		ifac[1]=nf;
+	}
+
+	static void cffti1(size_t n, double wa[], size_t ifac[])
+	{
+		static const size_t ntryh[5]={4,6,3,2,5};
+		static const double twopi=6.28318530717958647692;
+		size_t j, k, fi;
+
+		double argh=twopi/n;
+		size_t i=0, l1=1;
+		factorize (n,ntryh,5,ifac);
+		for(k=1; k<=ifac[1]; k++)
+		{
+			size_t ip=ifac[k+1];
+			size_t ido=n/(l1*ip);
+			for(j=1; j<ip; j++)
+			{
+				size_t is = i;
+				double argld=j*l1*argh;
+				wa[i  ]=1;
+				wa[i+1]=0;
+				for(fi=1; fi<=ido; fi++)
+				{
+					double arg=fi*argld;
+					i+=2;
+					wa[i  ]=cos(arg);
+					wa[i+1]=sin(arg);
+				}
+				if(ip>6)
+				{
+					wa[is  ]=wa[i  ];
+					wa[is+1]=wa[i+1];
+				}
+			}
+			l1*=ip;
+		}
+	}
+
+	void cffti(size_t n, double wsave[])
+	{ if (n!=1) cffti1(n, wsave+2*n,(size_t*)(wsave+4*n)); }
+
+
+/*----------------------------------------------------------------------
+  rfftf1, rfftb1, rfftf, rfftb, rffti1, rffti. Real FFTs.
+  ----------------------------------------------------------------------*/
+
+	static void rfftf1(
+		size_t n,
+		double c[],
+		double ch[],
+		const double wa[],
+		const size_t ifac[]
+		) {
+		size_t k1, l1=n, nf=ifac[1], iw=n-1;
+		double *p1=ch, *p2=c;
+
+		for(k1=1; k1<=nf;++k1)
+		{
+			size_t ip=ifac[nf-k1+2];
+			size_t ido=n / l1;
+			l1 /= ip;
+			iw-=(ip-1)*ido;
+			SWAP (p1,p2,double *);
+			if(ip==4)
+				radf4(ido, l1, p1, p2, wa+iw);
+			else if(ip==2)
+				radf2(ido, l1, p1, p2, wa+iw);
+			else if(ip==3)
+				radf3(ido, l1, p1, p2, wa+iw);
+			else if(ip==5)
+				radf5(ido, l1, p1, p2, wa+iw);
+			else
+			{
+				if (ido==1)
+					SWAP (p1,p2,double *);
+				radfg(ido, ip, l1, ido*l1, p1, p2, wa+iw);
+				SWAP (p1,p2,double *);
+			}
+		}
+		if (p1==c)
+			memcpy (c,ch,n*sizeof(double));
+	}
+
+	static void rfftb1(size_t n, double c[], double ch[], const double wa[],
+			   const size_t ifac[])
+	{
+		size_t k1, l1=1, nf=ifac[1], iw=0;
+		double *p1=c, *p2=ch;
+
+		for(k1=1; k1<=nf; k1++)
+		{
+			size_t ip = ifac[k1+1],
+				ido= n/(ip*l1);
+			if(ip==4)
+				radb4(ido, l1, p1, p2, wa+iw);
+			else if(ip==2)
+				radb2(ido, l1, p1, p2, wa+iw);
+			else if(ip==3)
+				radb3(ido, l1, p1, p2, wa+iw);
+			else if(ip==5)
+				radb5(ido, l1, p1, p2, wa+iw);
+			else
+			{
+				radbg(ido, ip, l1, ido*l1, p1, p2, wa+iw);
+				if (ido!=1)
+					SWAP (p1,p2,double *);
+			}
+			SWAP (p1,p2,double *);
+			l1*=ip;
+			iw+=(ip-1)*ido;
+		}
+		if (p1!=c)
+			memcpy (c,ch,n*sizeof(double));
+	}
+
+	void rfftf(size_t n, double r[], double wsave[])
+	{ if(n!=1) rfftf1(n, r, wsave, wsave+n,(size_t*)(wsave+2*n)); }
+
+	void rfftb(size_t n, double r[], double wsave[])
+	{ if(n!=1) rfftb1(n, r, wsave, wsave+n,(size_t*)(wsave+2*n)); }
+
+	static void rffti1(size_t n, double wa[], size_t ifac[])
+	{
+		static const size_t ntryh[4]={4,2,3,5};
+		static const double twopi=6.28318530717958647692;
+		size_t i, j, k, fi;
+
+		double argh=twopi/n;
+		size_t is=0, l1=1;
+		factorize (n,ntryh,4,ifac);
+		for (k=1; k<ifac[1]; k++)
+		{
+			size_t ip=ifac[k+1],
+				ido=n/(l1*ip);
+			for (j=1; j<ip; ++j)
+			{
+				double argld=j*l1*argh;
+				for(i=is,fi=1; i<=ido+is-3; i+=2,++fi)
+				{
+					double arg=fi*argld;
+					wa[i  ]=cos(arg);
+					wa[i+1]=sin(arg);
+				}
+				is+=ido;
+			}
+			l1*=ip;
+		}
+	}
+
+	void rffti(size_t n, double wsave[])
+	{
+		if (n!=1) {
+			rffti1(n, wsave+n,(size_t*)(wsave+2*n));
+		}
+	}
+
+	const double pi = 3.14159265358979;
+	void sinti (size_t n, double wsave[])
+	{
+		if (n <= 1) return;
+		size_t ns2 = n / 2;
+		double dt = pi / double (n+1);
+		for (size_t k = 0; k < ns2; k++) {
+			wsave[k] = 2.0 * sin ((k+1) * dt);
+		}
+		rffti (n+1, wsave+ns2);
+	}
+
+	/*
+	  with n = 20
+	  +0 -> was	    wsave[0..9]
+	  +10 -> xh	    wsave[10..30]
+	  +31 -> x	    wsave[31..51]
+	  +52 -> xxifac	    wsave[52..]
+	*/
+
+	void sint1 (size_t n, double war[], double was[], double xh[], double x[], double xxifac[])
+	{
+		double sqrt3 = 1.73205080756888;
+
+		for (size_t i = 0; i < n; i++) {
+			xh[i] = war[i];
+			war[i] = x[i];
+		}
+
+		if (n < 2) {
+			xh[0] *= 2;
+		} else if (n == 2) {
+			double xhold = sqrt3*(xh[0]+xh[1]);
+			xh[1] = sqrt3*(xh[0]-xh[1]);
+			xh[0] = xhold;
+		} else {
+			size_t np1 = n + 1;
+			size_t ns2 = n / 2;
+			x[0] = 0.0;
+			for (size_t k = 0; k < ns2; k++) {
+				size_t kc = np1 - k;
+				double t1 = xh[k] - xh[kc];
+				double t2 = was[k] * (xh[k] + xh[kc]);
+				x[k+1] = t1 + t2;
+				x[kc+1] = t2 - t1;
+			}
+			size_t modn = n % 2;
+			if (modn != 0) {
+				x[ns2+2] = 4.0 * xh[ns2+1];
+			}
+			rfftf1 (np1, x, xh, war, (size_t*)xxifac);
+			xh[0] *= 0.5;
+			for (size_t i = 2; i < n; i += 2) {
+				xh[i-1] = -x[i];
+				xh[i] = xh[i-2] + x[i-1];
+			}
+			if (modn == 0) {
+				xh[n-1] = -x[n];
+			}
+		}
+		for (size_t i = 0; i < n; i++) {
+			x[i] = war[i];
+			war[i] = xh[i];
+		}
+	}
+
+	void sint (size_t n, double x[], double wsave[])
+	{
+		sint1 (
+			n,
+			x,
+			wsave,
+			wsave + n/2,
+			wsave + n/2 + n + 1,
+			wsave + n/2 + 2*n + 2
+			);
 	}
-/* L104: */
-    }
-    return 0;
-} /* fpassb4_ */
-
-/* Subroutine */ int fsinti_(integer *n, real *wsave)
-{
-    /* Initialized data */
-
-    static real pi = 3.14159265358979f;
-
-    /* System generated locals */
-    integer i__1;
-
-    /* Builtin functions */
-    double sin(doublereal);
-
-    /* Local variables */
-    static integer k;
-    static real dt;
-    static integer np1, ns2;
-    extern /* Subroutine */ int frffti_(integer *, real *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --wsave;
-
-    /* Function Body */
-    if (*n <= 1) {
-	return 0;
-    }
-    ns2 = *n / 2;
-    np1 = *n + 1;
-    dt = pi / (real) np1;
-    i__1 = ns2;
-    for (k = 1; k <= i__1; ++k) {
-	wsave[k] = sin(k * dt) * 2.f;
-/* L101: */
-    }
-    frffti_(&np1, &wsave[ns2 + 1]);
-    return 0;
-} /* fsinti_ */
-
-/* Subroutine */ int fsint_(integer *n, real *x, real *wsave)
-{
-    static integer np1, iw1, iw2, iw3;
-    extern /* Subroutine */ int fsint1_(integer *, real *, real *, real *, 
-	    real *, real *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --wsave;
-    --x;
-
-    /* Function Body */
-    np1 = *n + 1;
-    iw1 = *n / 2 + 1;
-    iw2 = iw1 + np1;
-    iw3 = iw2 + np1;
-    fsint1_(n, &x[1], &wsave[1], &wsave[iw1], &wsave[iw2], &wsave[iw3]);
-    return 0;
-} /* fsint_ */
-
-/* Subroutine */ int fsint1_(integer *n, real *war, real *was, real *xh, real 
-	*x, real *xxifac)
-{
-    /* Initialized data */
-
-    static real sqrt3 = 1.73205080756888f;
-
-    /* System generated locals */
-    integer i__1;
-
-    /* Local variables */
-    static integer i__, k;
-    static real t1, t2;
-    static integer kc, np1, ns2, modn;
-    static real xhold;
-    extern /* Subroutine */ int frfftf1_(integer *, real *, real *, real *, 
-	    real *);
-
-/* ----------------------------TJW */
-/* ----------------------------TJW */
-    /* Parameter adjustments */
-    --xxifac;
-    --x;
-    --xh;
-    --was;
-    --war;
-
-    /* Function Body */
-    i__1 = *n;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	xh[i__] = war[i__];
-	war[i__] = x[i__];
-/* L100: */
-    }
-    if ((i__1 = *n - 2) < 0) {
-	goto L101;
-    } else if (i__1 == 0) {
-	goto L102;
-    } else {
-	goto L103;
-    }
-L101:
-    xh[1] += xh[1];
-    goto L106;
-L102:
-    xhold = sqrt3 * (xh[1] + xh[2]);
-    xh[2] = sqrt3 * (xh[1] - xh[2]);
-    xh[1] = xhold;
-    goto L106;
-L103:
-    np1 = *n + 1;
-    ns2 = *n / 2;
-    x[1] = 0.f;
-    i__1 = ns2;
-    for (k = 1; k <= i__1; ++k) {
-	kc = np1 - k;
-	t1 = xh[k] - xh[kc];
-	t2 = was[k] * (xh[k] + xh[kc]);
-	x[k + 1] = t1 + t2;
-	x[kc + 1] = t2 - t1;
-/* L104: */
-    }
-    modn = *n % 2;
-    if (modn != 0) {
-	x[ns2 + 2] = xh[ns2 + 1] * 4.f;
-    }
-    frfftf1_(&np1, &x[1], &xh[1], &war[1], &xxifac[1]);
-    xh[1] = x[1] * .5f;
-    i__1 = *n;
-    for (i__ = 3; i__ <= i__1; i__ += 2) {
-	xh[i__ - 1] = -x[i__];
-	xh[i__] = xh[i__ - 2] + x[i__ - 1];
-/* L105: */
-    }
-    if (modn != 0) {
-	goto L106;
-    }
-    xh[*n] = -x[*n + 1];
-L106:
-    i__1 = *n;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-	x[i__] = war[i__];
-	war[i__] = xh[i__];
-/* L107: */
-    }
-    return 0;
-} /* fsint1_ */
 
 #ifdef __cplusplus
 }
 #endif
+

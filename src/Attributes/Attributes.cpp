@@ -15,6 +15,8 @@
 //
 // ------------------------------------------------------------------------
 
+#include "Attributes/Attributes.h"
+
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Bool.h"
 #include "Attributes/BoolArray.h"
@@ -32,6 +34,12 @@
 #include "Expressions/SRefAttr.h"
 #include "Expressions/SValue.h"
 #include "Utilities/OpalException.h"
+
+#include "AbstractObjects/OpalData.h"
+#include "ValueDefinitions/RealVariable.h"
+#include "Utilities/Util.h"
+
+#include <boost/regex.hpp>
 
 using std::string;
 using namespace Expressions;
@@ -294,16 +302,46 @@ namespace Attributes {
 
     std::string getString(const Attribute &attr) {
         if(AttributeBase *base = &attr.getBase()) {
+            std::string expr;
             if(dynamic_cast<String *>(&attr.getHandler())) {
-                return dynamic_cast<SValue<std::string> *>(base)->evaluate();
+                expr = dynamic_cast<SValue<std::string> *>(base)->evaluate();
             } else if(SValue<SRefAttr<std::string> > *ref =
                           dynamic_cast<SValue<SRefAttr<std::string> > *>(base)) {
                 const SRefAttr<std::string> &value = ref->evaluate();
-                return value.evaluate();
+                expr = value.evaluate();
             } else {
                 throw OpalException("Attributes::getString()", "Attribute \"" +
                                     attr.getName() + "\" is not string.");
             }
+
+            auto opal = OpalData::getInstance();
+
+            boost::regex variableRE("\\$\\{(.*?)\\}");
+            boost::smatch what;
+
+            std::string exprDeref;
+            std::string::const_iterator start = expr.begin();
+            std::string::const_iterator end = expr.end();
+
+            while (boost::regex_search(start, end, what, variableRE, boost::match_default)) {
+                exprDeref += std::string(start, what[0].first);
+                std::string variable = Util::toUpper(std::string(what[1].first, what[1].second));
+
+                if (Object *obj = opal->find(variable)) {
+                    std::ostringstream value;
+
+                    RealVariable *real = static_cast<RealVariable*>(obj);
+                    real->printValue(value);
+                    exprDeref += value.str();
+                } else {
+                    exprDeref += std::string(what[0].first, what[0].second);
+                }
+
+                start = what[0].second;
+            }
+            exprDeref += std::string(start, end);
+
+            return exprDeref;
         } else {
             return std::string();
         }
@@ -335,7 +373,37 @@ namespace Attributes {
     std::vector<std::string> getStringArray(const Attribute &attr) {
         if(AttributeBase *base = &attr.getBase()) {
             if(dynamic_cast<StringArray *>(&attr.getHandler())) {
-                return dynamic_cast<AValue<std::string>*>(base)->evaluate();
+                auto opal = OpalData::getInstance();
+
+                boost::regex variableRE("\\$\\{(.*?)\\}");
+                boost::smatch what;
+
+                std::vector<std::string> value = dynamic_cast<AValue<std::string>*>(base)->evaluate();
+                for (auto expr: value) {
+                    std::string exprDeref;
+                    std::string::const_iterator start = expr.begin();
+                    std::string::const_iterator end = expr.end();
+
+                    while (boost::regex_search(start, end, what, variableRE, boost::match_default)) {
+                        exprDeref += std::string(start, what[0].first);
+                        std::string variable = Util::toUpper(std::string(what[1].first, what[1].second));
+
+                        if (Object *obj = opal->find(variable)) {
+                            std::ostringstream value;
+
+                            RealVariable *real = static_cast<RealVariable*>(obj);
+                            real->printValue(value);
+                            exprDeref += value.str();
+                        } else {
+                            exprDeref += std::string(what[0].first, what[0].second);
+                        }
+
+                        start = what[0].second;
+                    }
+                    expr = exprDeref + std::string(start, end);
+                }
+
+                return value;
             } else {
                 throw OpalException("Attributes::getStringArray()", "Attribute \"" +
                                     attr.getName() + "\" is not a string array.");

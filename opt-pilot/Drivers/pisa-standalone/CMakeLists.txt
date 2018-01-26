@@ -1,7 +1,7 @@
 include_directories (
     ${CMAKE_SOURCE_DIR}
     )
-link_directories ( 
+link_directories (
     ${OPTP_LIBRARY_DIR}
     ${Boost_LIBRARY_DIRS}
     )
@@ -13,9 +13,7 @@ add_executable( pisa-standalone.exe
 target_link_libraries ( pisa-standalone.exe
     ${OPTP_LIBS}
     ${OPTP_LIBRARY}
-    ${BOOST_FILESYSTEM}
     ${MPI_CXX_LIBRARIES}
-    -lgfortran
     )
 
 message(STATUS "OPTP_LIBRARY ${OPTP_LIBRARY}")

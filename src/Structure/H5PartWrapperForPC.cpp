@@ -281,8 +281,10 @@ void H5PartWrapperForPC::writeStep(PartBunchBase<double, 3>* bunch,
 {
     if (bunch->getTotalNum() == 0) return;
 
+    open(H5_O_APPENDONLY);
     writeStepHeader(bunch, additionalStepAttributes);
     writeStepData(bunch);
+    close();
 
     ++ numSteps_m;
 }

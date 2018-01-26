@@ -59,15 +59,9 @@ protected:
     // Skip C-like comments.
     bool skipComments();
 
-    // Detect optimiser-like comments.
-    bool optimCmdPresent(std::string str);
-
     // Current input line and position in line.
     std::string line;
     int curr_char;
-
-
-
 
 private:
 

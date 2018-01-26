@@ -151,7 +151,8 @@ struct Timing
     void print();
 
     // print the results to a file
-    void print(const std::string &fn);
+    void print(const std::string &fn,
+               const std::map<std::string, unsigned int> &problemSize);
 
 
     // type of storage for list of TimerInfo
@@ -208,8 +209,9 @@ public:
     }
 
     // print the results to a file
-    static void print(std::string fn) {
-        instance->print(fn);
+    static void print(std::string fn,
+                      const std::map<std::string, unsigned int> &problemSize = std::map<std::string, unsigned int>()) {
+        instance->print(fn, problemSize);
     }
 
     static void stash();

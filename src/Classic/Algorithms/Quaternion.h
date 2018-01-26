@@ -1,8 +1,6 @@
 #ifndef OPAL_QUATERNION_H
 #define OPAL_QUATERNION_H
 
-#include <limits>
-
 #include "AppTypes/Vektor.h"
 #include "Algorithms/Vektor.h"
 

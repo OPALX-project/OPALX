@@ -139,6 +139,9 @@ public:
     /*
      * Bunch attributes
      */
+    /*std::unique_ptr<*/AbstractParticle<T, Dim>*/* >*/ pbase;
+    
+    
     ParticlePos_t& R;
     ParticleIndex_t& ID;
     
@@ -160,7 +163,6 @@ public:
     ParticleAttrib< int >      TriID; // holds the ID of triangle that the particle hit. Only for BoundaryGeometry case.
     
 // protected:
-    /*std::unique_ptr<*/AbstractParticle<T, Dim>*/* >*/ pbase;
 };
 
 #endif

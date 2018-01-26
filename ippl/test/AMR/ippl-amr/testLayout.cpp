@@ -31,6 +31,8 @@
 
 #include <getopt.h>
 
+using namespace amrex;
+
 typedef AmrOpal::amrplayout_t amrplayout_t;
 typedef AmrOpal::amrbase_t amrbase_t;
 typedef AmrOpal::amrbunch_t amrbunch_t;
@@ -158,8 +160,8 @@ void doAMReX(const param_t& params, Inform& msg)
     
     double halflength = 0.5 * params.length;
     
-    std::array<double, BL_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
+    std::array<double, AMREX_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
+    std::array<double, AMREX_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
     
     RealBox domain;
     

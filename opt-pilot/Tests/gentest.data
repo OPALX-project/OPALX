@@ -95,7 +95,6 @@ EKIN       				0.63    # kinetic energy of electrons at emission [eV]
 QBUNCH     				200     # Bunch charge [pC]
 #
 NBIN      				5   	# Number of energy bins (gun)
-DEBIN      				80 	# energy span for which particles are merged to one bin [keV]
 #
 MX         				32 	# Mesh size in X Simona: it was 64
 MY         				32  	# Mesh size in Y Simona: it was 64

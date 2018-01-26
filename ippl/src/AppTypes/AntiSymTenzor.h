@@ -157,13 +157,13 @@ public:
       : elem_m(model.elem_m), where_m(model.where_m) { }
     const AssignProxy &operator=(const AssignProxy &a)
       {
-	PAssert(where_m != 0 || a.elem_m == -a.elem_m);
+	PAssert_EQ(where_m != 0 || a.elem_m == -a.elem_m, true);
 	elem_m = where_m < 0 ? -a.elem_m : a.elem_m;
 	return *this;
       }
     const AssignProxy &operator=(const Element_t &e)
       {
-	PAssert(where_m != 0 || e == -e);
+	PAssert_EQ(where_m != 0 || e == -e, true);
 	elem_m = where_m < 0 ? -e : e;
 	return *this;
       }
@@ -358,13 +358,13 @@ public:
       : elem_m(model.elem_m), where_m(model.where_m) {}
     const AssignProxy& operator=(const AssignProxy& a)
       {
-	PAssert(where_m != 0 || a.elem_m == -a.elem_m);
+	PAssert_EQ(where_m != 0 || a.elem_m == -a.elem_m, true);
 	elem_m = where_m < 0 ? -a.elem_m : a.elem_m;
 	return *this;
       }
     const AssignProxy& operator=(const Element_t& e)
       {
-	PAssert(where_m != 0 || e == -e);
+	PAssert_EQ(where_m != 0 || e == -e, true);
 	elem_m = where_m < 0 ? -e : e;
 	return *this;
       }
@@ -383,7 +383,7 @@ public:
   // Operators
   
   Element_t operator()(unsigned int i, unsigned int j) const {
-    PAssert(i==j);
+    PAssert_EQ(i, j);
     return T(0.0);
   }
 
@@ -394,7 +394,7 @@ public:
   }
 
   AssignProxy operator()(unsigned int i, unsigned int j) {
-    PAssert(i==j);
+    PAssert_EQ(i, j);
     return AssignProxy(AntiSymTenzor<T,1>::Zero, 0);
   }
 

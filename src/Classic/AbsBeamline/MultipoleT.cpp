@@ -28,6 +28,7 @@
 
 #include "Algorithms/PartBunch.h"
 #include "MultipoleT.h"
+#include <gsl/gsl_math.h>
 
 using namespace endfieldmodel;
 
@@ -411,7 +412,7 @@ double MultipoleT::getRadiusSecDeriv(double s) {
     /** @return The second derivative of radius function
       */
     double deriv = 0.0;
-    deriv += gsl_sf_pow_int(getFringeDeriv(1, s), 2.0) / getFringeDeriv(0, s);
+    deriv += gsl_pow_2(getFringeDeriv(1, s)) / getFringeDeriv(0, s);
     deriv -= getFringeDeriv(2, s);
     deriv *= getRadius(s);
     return deriv;
@@ -428,9 +429,9 @@ double MultipoleT::getScaleFactor(double x, double s) {
         return 1 + x / rho;
     } else {
         double temp = 0.0;
-        temp += gsl_sf_pow_int(getRadiusFirstDeriv(s), 2.0);
-        temp += gsl_sf_pow_int(1 + x / getRadius(s), 2.0);
-        return gsl_sf_pow_int(temp, 0.5);
+        temp += gsl_pow_2(getRadiusFirstDeriv(s));
+        temp += gsl_pow_2(1 + x / getRadius(s));
+        return std::pow(temp, 0.5);
     }
 }
 
@@ -442,7 +443,7 @@ double MultipoleT::getScaleFactorDerivX(double x, double s) {
       */
     double temp = 0.0;
     temp += (1 + x / getRadius(s)) / getRadius(s);
-    temp /= gsl_sf_pow_int(getScaleFactor(x, s), 0.5);
+    temp /= std::pow(getScaleFactor(x, s), 0.5);
     return temp;
 }
 
@@ -453,9 +454,9 @@ double MultipoleT::getScaleFactorDerivS(double x, double s) {
       * -> * [-(1+x/rho)*x/rho^2 + partial^2 rho / partial^x]
       */ 
     double temp = 0.0;
-    temp -= (1 + x /getRadius(s)) * x / gsl_sf_pow_int(getRadius(s), 2.);
+    temp -= (1 + x /getRadius(s)) * x / gsl_pow_2(getRadius(s));
     temp += getRadiusSecDeriv(s);
-    temp *= getRadiusFirstDeriv(s) / gsl_sf_pow_int(getScaleFactor(x, s), -0.5);
+    temp *= getRadiusFirstDeriv(s) / std::pow(getScaleFactor(x, s), -0.5);
     return temp;
 }
 
@@ -506,7 +507,7 @@ double MultipoleT::getFnSecDerivX(unsigned int n, double x, double s) {
     double stepSize = 1e-3;
     deriv += getFn(n, x + 2. * stepSize, s) + getFn(n, x - 2. * stepSize, s);
     deriv -= getFn(n, x + stepSize, s) + getFn(n, x - stepSize, s);
-    deriv /= 3. * gsl_sf_pow_int(stepSize, 2.);
+    deriv /= 3. * gsl_pow_2(stepSize);
     return deriv;
 }
 
@@ -523,7 +524,7 @@ double MultipoleT::getFnSecDerivS(unsigned int n, double x, double s) {
     double stepSize = 1e-3;
     deriv += getFn(n, x, s + 2. * stepSize) + getFn(n, x, s - 2. * stepSize);
     deriv -= getFn(n, x, s + stepSize) + getFn(n, x, s - stepSize);
-    deriv /= 3. * gsl_sf_pow_int(stepSize, 2.);
+    deriv /= 3. * gsl_pow_2(stepSize);
     return deriv;
 }
 
@@ -541,7 +542,7 @@ double MultipoleT::getFn(unsigned int n, double x, double s) {
         double temp = 0.0;
         temp += getFnDerivX(n - 1, x, s) / (h_s * rho);
         temp += getFnSecDerivX(n - 1, x, s);
-        temp += getFnSecDerivS(n - 1, x, s) / gsl_sf_pow_int(h_s, 2.0);
+        temp += getFnSecDerivS(n - 1, x, s) / gsl_pow_2(h_s);
         temp *= -1.0;
         return temp;
     } else {
@@ -550,7 +551,7 @@ double MultipoleT::getFn(unsigned int n, double x, double s) {
         double h_s = getScaleFactor(x, s);
         temp += getScaleFactorDerivX(x, s) * getFnDerivX(n - 1, x, s);
         temp -= getScaleFactorDerivS(x, s) * getFnDerivS(n - 1, x, s) / 
-                gsl_sf_pow_int(h_s, 2.0);
+                gsl_pow_2(h_s);
         temp += getFnSecDerivX(n - 1, x, s) * h_s;
         temp += getFnSecDerivS(n - 1, x, s) / h_s;
         temp *= -1.0 / h_s; 

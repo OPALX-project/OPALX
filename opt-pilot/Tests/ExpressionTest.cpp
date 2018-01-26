@@ -26,6 +26,16 @@ struct my_abs {
     }
 };
 
+struct my_pow {
+
+    Expressions::Result_t operator()(client::function::arguments_t args) {
+
+        double base = boost::get<double>(args[0]);
+        double exponent = boost::get<double>(args[1]);
+        return boost::make_tuple(pow(base, exponent), true);
+    }
+};
+
 
     // The fixture for testing class Foo.
     class ExpressionTest : public ::testing::Test {
@@ -96,6 +106,68 @@ struct my_abs {
         });
 
         double expected = fabs(1 + a * a * 2 * b + 2);
+        ASSERT_DOUBLE_EQ(expected, boost::get<0>(result));
+        ASSERT_TRUE(boost::get<1>(result));
+
+    }
+
+    TEST_F(ExpressionTest, EvaluateCombinedExpression) {
+
+        functionDictionary_t funcs;
+        client::function::type abs_func;
+        abs_func = my_abs();
+        funcs.insert(std::pair<std::string, client::function::type>
+                ("abs", abs_func));
+
+        std::string testexpr = "abs(1.0 + A * 2.0) + abs(B + 2.0)";
+        boost::scoped_ptr<Expression> e(new Expression(testexpr, funcs));
+
+        double a = 5.2;
+        double b = -10.2;
+
+        variableDictionary_t vars;
+        vars.insert(std::pair<std::string, double>("A", a));
+        vars.insert(std::pair<std::string, double>("B", b));
+
+        Expressions::Result_t result;
+        EXPECT_NO_THROW({
+            result = e->evaluate(vars);
+        });
+
+        double expected = fabs(1 + a * 2) + fabs(b + 2);
+        ASSERT_DOUBLE_EQ(expected, boost::get<0>(result));
+        ASSERT_TRUE(boost::get<1>(result));
+
+    }
+
+    TEST_F(ExpressionTest, EvaluateNestedExpression) {
+
+        functionDictionary_t funcs;
+        client::function::type abs_func;
+        abs_func = my_abs();
+        funcs.insert(std::pair<std::string, client::function::type>
+                ("abs", abs_func));
+        client::function::type pow_func;
+        pow_func = my_pow();
+        funcs.insert(std::pair<std::string, client::function::type>
+                ("pow", pow_func));
+
+        std::string testexpr = "abs(1.0 + pow(A, 3) * 2.0) + abs(B + 2.0)";
+        boost::scoped_ptr<Expression> e(new Expression(testexpr, funcs));
+
+        double a = 5.2;
+        double b = -10.2;
+
+        variableDictionary_t vars;
+        vars.insert(std::pair<std::string, double>("A", a));
+        vars.insert(std::pair<std::string, double>("B", b));
+
+        Expressions::Result_t result;
+        EXPECT_NO_THROW({
+            result = e->evaluate(vars);
+        });
+
+        double expected = fabs(1 + pow(a, 3.0) * 2) + fabs(b + 2);
         ASSERT_DOUBLE_EQ(expected, boost::get<0>(result));
         ASSERT_TRUE(boost::get<1>(result));
 

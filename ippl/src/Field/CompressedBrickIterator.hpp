@@ -308,7 +308,7 @@ permute(const CompressedBrickIterator<T,D1>& iter,
 	  }
       // Didn't find it.
       // Make sure the length is 1.
-      PAssert( current[d1].length() == 1 );
+      PAssert_EQ( current[d1].length(), 1 );
     FoundIt:
       ;
     }

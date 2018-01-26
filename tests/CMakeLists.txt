@@ -5,7 +5,7 @@ set (TEST_EXE opal_unit_tests)
 set (SRC_DIRS classic_src opal_src)
 
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS} -DWITH_UNIT_TESTS"
+    "${IPPL_CMAKE_CXX_FLAGS} -DPARALLEL_IO ${CMAKE_CXX_FLAGS} -DWITH_UNIT_TESTS"
 )
 
 set (TEST_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -26,6 +26,7 @@ endmacro()
 
 add_subdirectory (opal_src)
 add_subdirectory (classic_src)
+add_subdirectory (ippl_src)
 add_subdirectory (opal_test_utilities)
 
 
@@ -38,7 +39,6 @@ LINK_DIRECTORIES( ${GTEST_LIB_DIR}
     ${Trilinos_LIBRARY_DIRS}
     ${Trilinos_TPL_LIBRARY_DIRS}
     ${AMREX_LIBRARY_DIR}
-    ${Boost_LIBRARIES}
 )
 
 INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIRS}
@@ -65,8 +65,7 @@ INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIRS}
 ADD_EXECUTABLE(${TEST_EXE} ${TEST_SRCS})
 TARGET_LINK_LIBRARIES(
 	${TEST_EXE}
-	OPALib
-	${OPAL_LIBS}
+	libOPAL
 	${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
 	${AMREX_LIBRARIES}
 	${OTHER_CMAKE_EXE_LINKER_FLAGS}

@@ -1,5 +1,4 @@
 set (_SRCS
-  NumToStr.cpp
   OpalException.cpp
   OpalFilter.cpp
   OpalSection.cpp

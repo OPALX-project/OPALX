@@ -99,7 +99,7 @@ private:
                        double l0norm, int finestLevel);
     
 private:
-    int bc_m[2*BL_SPACEDIM];        ///< Boundary conditions
+    int bc_m[2*AMREX_SPACEDIM];        ///< Boundary conditions
     double reltol_m;                ///< Relative tolearance for solver
     double abstol_m;                ///< Absolute tolerance for solver
 };

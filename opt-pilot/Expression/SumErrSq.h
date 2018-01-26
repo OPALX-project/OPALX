@@ -21,6 +21,8 @@ class Measurement {
 public:
     double spos;
     double measurement;
+
+    friend std::istream & operator>>(std::istream & stream, Measurement & measurement);
 };
 
 /**
@@ -85,14 +87,6 @@ private:
 
     // define a mapping to arguments in argument vector
     boost::tuple<std::string, std::string, std::string> argument_types;
-    // :FIXME: unused enum
-#if 0
-    enum {
-          measurement_filename
-        , var_name
-        , stat_filename
-    } argument_type_id;
-#endif
 };
 
 #endif

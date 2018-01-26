@@ -161,9 +161,11 @@ private:
     double L2_m;
 
     /// semi-major of the ellipse
-    double SemiMajor;
+    // :FIXME: unused
+    //double SemiMajor;
     /// semi-minor of the ellipse
-    double SemiMinor;
+    // :FIXME: unused
+    //double SemiMinor;
 
     /// interpolation type
     int interpolationMethod;

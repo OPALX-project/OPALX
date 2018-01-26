@@ -35,19 +35,19 @@ void initBunch(std::unique_ptr<PartBunchBase<double, 3> >& bunch) {
     
     //physical domain boundaries
     RealBox domain;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         domain.setLo(i, -2.0);
         domain.setHi(i, 2.0);
     }
     
     RealBox fine_domain;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         fine_domain.setLo(i, 0.0);
         fine_domain.setHi(i, 0.5);
     }
     
     //periodic boundary conditions in all directions
-    int bc[BL_SPACEDIM] = {1, 1, 1};
+    int bc[AMREX_SPACEDIM] = {1, 1, 1};
     
     //Container for geometry at all levels
     Array<Geometry> geom;

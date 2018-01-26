@@ -4,7 +4,20 @@
 #include "Utility/RandomNumberGen.h"
 #include "Utilities/GeneralClassicException.h"
 
-extern Inform *gmsg;
+namespace {
+    Vector_t normalize(const Vector_t & vec)
+    {
+        double length = sqrt(dot(vec, vec));
+
+#ifndef NOPAssert
+        if (length < 1e-12)
+            throw GeneralClassicException("normalize()",
+                                          "length of vector less than 1e-12");
+#endif
+
+        return vec / length;
+    }
+}
 
 Quaternion::Quaternion(const Tenzor<double, 3> &M):
     Vektor<double, 4>(0.0)
@@ -16,19 +29,6 @@ Quaternion::Quaternion(const Tenzor<double, 3> &M):
     (*this)(1) = std::abs(M(2, 1) - M(1, 2)) > 0? copysign((*this)(1), M(2, 1) - M(1, 2)): 0.0;
     (*this)(2) = std::abs(M(0, 2) - M(2, 0)) > 0? copysign((*this)(2), M(0, 2) - M(2, 0)): 0.0;
     (*this)(3) = std::abs(M(1, 0) - M(0, 1)) > 0? copysign((*this)(3), M(1, 0) - M(0, 1)): 0.0;
-}
-
-Vector_t normalize(const Vector_t & vec)
-{
-    double length = sqrt(dot(vec, vec));
-
-#ifndef NOPAssert
-    if (length < 1e-12)
-        throw GeneralClassicException("normalize()",
-                                      "length of vector less than 1e-12");
-#endif
-
-    return vec / length;
 }
 
 Quaternion getQuaternion(Vector_t u, Vector_t ref)

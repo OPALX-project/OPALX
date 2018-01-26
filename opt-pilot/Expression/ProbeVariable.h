@@ -52,11 +52,14 @@ private:
 
     // define a mapping to arguments in argument vector
     boost::tuple<std::string, int, std::string> argument_types;
+	// :FIXME: unused
+#if 0
     enum {
           var_name
         , id
         , probe_filename
     } argument_type_id;
+#endif
 };
 
 #endif

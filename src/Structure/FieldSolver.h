@@ -100,18 +100,6 @@ public:
 
 #ifdef ENABLE_AMR
     bool isAmrSolverType() const;
-
-    int getAmrMaxLevel() const;
-
-    int getAmrRefRatioX() const;
-
-    int getAmrRefRatioY() const;
-
-    int getAmrRefRatioT() const;
-
-    bool isAmrSubCycling() const;
-
-    int getAmrMaxGridSize() const;
     
     AmrObject *getAmrObject() {
         return itsAmrObject_mp.get();
@@ -148,7 +136,7 @@ private:
     FieldLayout_t *FL_m;
 
     /// The particle layout
-    Layout_t *PL_m;
+    std::unique_ptr<Layout_t> PL_m;
 
     /// all the particles are here ...
     PartBunchBase<double, 3> *itsBunch_m;

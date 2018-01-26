@@ -473,17 +473,13 @@ public:
     }
 
     void openH5(std::string fn){
-#if defined (USE_H5HUT2)
         h5_prop_t props = H5CreateFileProp ();
         MPI_Comm comm = Ippl::getComm();
         h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
         assert (h5err != H5_ERR);
         H5f_m = H5OpenFile (fn.c_str(), H5_O_RDONLY, props);
         assert (H5f_m != (h5_file_t)H5_ERR);
-#else
-        H5f_m = H5OpenFile(fn.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, Ippl::getComm());
-        assert (H5f_m != (void*)H5_ERR);
-#endif
+	H5CloseProp (props);
     }
 
 
@@ -537,11 +533,7 @@ public:
     //TEMP debug variable
     double RhoSum=0;
     
-#if defined (USE_H5HUT2)
     h5_file_t H5f_m;
-#else
-    h5_file_t *H5f_m;
-#endif
     double temperature[Dim];
     double avg_vel[Dim];
 

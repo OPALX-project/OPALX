@@ -53,8 +53,8 @@ inline
 void lcm(int s1, int s2, int &s, int &m1, int &m2)
 {
   
-  PAssert(s1>0);   // For simplicity, make some assumptions.
-  PAssert(s2>0);
+  PAssert_GT(s1, 0);   // For simplicity, make some assumptions.
+  PAssert_GT(s2, 0);
   int i1=s1;
   int i2=s2;
   int _m1 = 1;
@@ -128,12 +128,12 @@ Index::intersect(const Index& rhs) const
     cout << "rhs  = " << rhs.First << "," << rhs.Length << "," << rhs.Stride << "," << rhs.BaseFirst << "," << rhs.Base << endl;
     cout << "ret  = " << ret.First << "," << ret.Length << "," << ret.Stride << "," << ret.BaseFirst << "," << ret.Base << endl;
     cout << "test = " << test.First << "," << test.Length << "," << test.Stride << "," << test.BaseFirst << "," << test.Base << endl;
-    PAssert( ret.Length    == test.Length );
+    PAssert_EQ( ret.Length, test.Length );
     if ( ret.Length > 0 ) {
-      PAssert( ret.First     == test.First );
-      PAssert( ret.Stride    == test.Stride );
-      PAssert( ret.BaseFirst == test.BaseFirst );
-      PAssert( ret.Base      == test.Base );
+      PAssert_EQ( ret.First    , test.First );
+      PAssert_EQ( ret.Stride   , test.Stride );
+      PAssert_EQ( ret.BaseFirst, test.BaseFirst );
+      PAssert_EQ( ret.Base,      test.Base );
     }
 #endif // UNDEFINED
 
@@ -148,8 +148,8 @@ Index::intersect(const Index& rhs) const
 static Index do_intersect(const Index &a, const Index &b)
 {
   
-  PAssert(a.stride()>0);		// This should be assured by the
-  PAssert(b.stride()>0);		// caller of this function.
+  PAssert_GT(a.stride(), 0);		// This should be assured by the
+  PAssert_GT(b.stride(), 0);		// caller of this function.
 
   int newStride;		// The stride for the new index is
   int a_mul,b_mul;		// a_mul=newStride/a.stride() ...
@@ -165,7 +165,7 @@ static Index do_intersect(const Index &a, const Index &b)
       a_i++;
       a_off += a.stride();
     }
-  PAssert(a_off >= b.first());	// make sure I'm understanding this right...
+  PAssert_GE(a_off, b.first());	// make sure I'm understanding this right...
 
   // Now do an exhaustive search for the first point in common.
   // Count over all possible offsets for a.
@@ -204,7 +204,7 @@ Index Index::general_intersect(const Index& that) const
       Index r;
       r = reverse().intersect(that).reverse();
       int diff = (r.First-First)/Stride;
-      PAssert(diff>=0);
+      PAssert_GE(diff, 0);
       r.BaseFirst = BaseFirst + diff;
       return r;
     }
@@ -221,7 +221,7 @@ Index Index::general_intersect(const Index& that) const
   // to the original interval.
   r.Base = Base;
   int diff = (r.First - First)/Stride;
-  PAssert(diff>=0);
+  PAssert_GE(diff, 0);
   r.BaseFirst = BaseFirst + diff;
   return r;
 }
