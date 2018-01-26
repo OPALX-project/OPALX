@@ -146,6 +146,10 @@ struct OpalDataImpl {
     bool isInOPALEnvMode_m;
     bool isInOPALThickTrackerMode_m;
     bool isInPrepState_m;
+
+    std::map<std::string, unsigned int> problemSize_m;
+
+    std::vector<std::string> arguments_m;
 };
 
 
@@ -801,4 +805,27 @@ std::vector<std::string> OpalData::getAllNames() {
     //// /DTA
 
     return result;
+}
+
+void OpalData::addProblemCharacteristicValue(const std::string &name, unsigned int value) {
+    if (p->problemSize_m.find(name) != p->problemSize_m.end()) {
+        p->problemSize_m.insert(std::make_pair(name, value));
+    } else {
+        p->problemSize_m[name] = value;
+    }
+}
+
+const std::map<std::string, unsigned int> &OpalData::getProblemCharacteristicValues() const {
+    return p->problemSize_m;
+}
+
+void OpalData::storeArguments(int argc, char *argv[]) {
+    p->arguments_m.clear();
+    for (int i = 0; i < argc; ++ i) {
+        p->arguments_m.push_back(argv[i]);
+    }
+}
+
+std::vector<std::string> OpalData::getArguments() {
+    return p->arguments_m;
 }

@@ -96,32 +96,22 @@ public:
         , comm_(comm)
         , cmd_args_(args)
     {
-        global_rank_ = comm_->globalRank();
+        setup(known_expr_funcs);
+    }
 
-        if(global_rank_ == 0) {
-            std::cout << "\033[01;35m";
-            std::cout << "             _                _ _       _   " << std::endl;
-            std::cout << "            | |              (_) |     | |  " << std::endl;
-            std::cout << "  ___  _ __ | |_ ______ _ __  _| | ___ | |_ " << std::endl;
-            std::cout << " / _ \\| '_ \\| __|______| '_ \\| | |/ _ \\| __|" << std::endl;
-            std::cout << "| (_) | |_) | |_       | |_) | | | (_) | |_ " << std::endl;
-            std::cout << " \\___/| .__/ \\__|      | .__/|_|_|\\___/ \\__|" << std::endl;
-            std::cout << "      | |              | |                  " << std::endl;
-            std::cout << "      |_|              |_|                  " << std::endl;
-	    // ADA            std::cout << "☷ Version: \t"    << PACKAGE_VERSION << std::endl;
-            //std::cout << "☷ Git: \t\t"      << GIT_VERSION     << std::endl;
-            //std::cout << "☷ Build Date: \t" << BUILD_DATE      << std::endl;
-            std::cout << "\e[0m";
-            std::cout << std::endl;
-        }
-
-        parseInputFile(known_expr_funcs);
-        MPI_Barrier(MPI_COMM_WORLD);
-
-        // here the control flow starts to diverge
-        if      ( comm_->isOptimizer() ) { startOptimizer(); }
-        else if ( comm_->isWorker()    ) { startWorker();    }
-        else if ( comm_->isPilot()     ) { startPilot();     }
+    Pilot(CmdArguments_t args, boost::shared_ptr<Comm_t> comm,
+          functionDictionary_t known_expr_funcs,
+          const DVarContainer_t &dvar,
+          const Expressions::Named_t &obj,
+          const Expressions::Named_t &cons)
+        : Poller(comm->mpiComm())
+        , comm_(comm)
+        , cmd_args_(args)
+        , objectives_(obj)
+        , constraints_(cons)
+        , dvars_(dvar)
+    {
+        setup(known_expr_funcs);
     }
 
     ~Pilot()
@@ -174,6 +164,35 @@ private:
     //DEBUG
     boost::scoped_ptr<Trace> job_trace_;
 
+
+    void setup(functionDictionary_t known_expr_funcs) {
+        global_rank_ = comm_->globalRank();
+
+        if(global_rank_ == 0) {
+            std::cout << "\033[01;35m";
+            std::cout << "             _                _ _       _   " << std::endl;
+            std::cout << "            | |              (_) |     | |  " << std::endl;
+            std::cout << "  ___  _ __ | |_ ______ _ __  _| | ___ | |_ " << std::endl;
+            std::cout << " / _ \\| '_ \\| __|______| '_ \\| | |/ _ \\| __|" << std::endl;
+            std::cout << "| (_) | |_) | |_       | |_) | | | (_) | |_ " << std::endl;
+            std::cout << " \\___/| .__/ \\__|      | .__/|_|_|\\___/ \\__|" << std::endl;
+            std::cout << "      | |              | |                  " << std::endl;
+            std::cout << "      |_|              |_|                  " << std::endl;
+	    // ADA            std::cout << "☷ Version: \t"    << PACKAGE_VERSION << std::endl;
+            //std::cout << "☷ Git: \t\t"      << GIT_VERSION     << std::endl;
+            //std::cout << "☷ Build Date: \t" << BUILD_DATE      << std::endl;
+            std::cout << "\e[0m";
+            std::cout << std::endl;
+        }
+
+        parseInputFile(known_expr_funcs);
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        // here the control flow starts to diverge
+        if      ( comm_->isOptimizer() ) { startOptimizer(); }
+        else if ( comm_->isWorker()    ) { startWorker();    }
+        else if ( comm_->isPilot()     ) { startPilot();     }
+    }
 
     void parseInputFile(functionDictionary_t known_expr_funcs) {
 

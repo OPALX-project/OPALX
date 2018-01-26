@@ -42,18 +42,8 @@ Inform *gmsg;
 #ifdef ENABLE_AMR
 #include <AMReX_ParallelDescriptor.H>
 #endif
-
-#include <gsl/gsl_errno.h>
-
-#include <boost/filesystem.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-
-#include <cstring>
-#include <set>
-#include <algorithm>
-
 /*
-  Includes related the to optimizer
+  Includes related to the optimizer
 */
 #include "boost/smart_ptr.hpp"
 
@@ -66,7 +56,7 @@ Inform *gmsg;
 #include "Optimizer/EA/IndependentBitMutation.h"
 
 #include "Util/OpalInputFileParser.h"
-#include "Simulation/OpalSimulation.h"
+#include "Optimize/OpalSimulation.h"
 
 #include "Comm/CommSplitter.h"
 #include "Comm/Topology/NoCommTopology.h"
@@ -81,179 +71,26 @@ Inform *gmsg;
 #include "Expression/SumErrSqRadialPeak.h"
 #include "Expression/ProbeVariable.h"
 
-//  DTA
-#define NC 5
+#include <gsl/gsl_errno.h>
 
-void printStringVector(const std::vector<std::string> &strings) {
-    unsigned int iend = strings.size(), nc = 0;
-    for(unsigned int i = 0; i < iend; ++i) {
-        std::cout << "  " << strings[i];
-        if(++nc == NC) { nc = 0; std::cout << std::endl; }
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+
+#include <cstring>
+#include <set>
+#include <algorithm>
+
+namespace {
+    void errorHandlerGSL(const char *reason,
+                         const char *file,
+                         int line,
+                         int gsl_errno) {
+        throw OpalException(file, reason);
     }
-    if(nc != 0) std::cout << std::endl;
-    std::cout << std::endl;
 }
 
-void errorHandlerGSL(const char *reason,
-                     const char *file,
-                     int line,
-                     int gsl_errno);
-
-
-bool haveOptimiseRun(int argc, char *argv[]) {
-
-    namespace fs = boost::filesystem;
-
-    std::string so("--initialPopulation");
-    bool foundOptArg = false;
-
-    int arg = -1;
-    std::string fname;
-
-    for(int ii = 1; ii < argc; ++ ii) {
-        std::string argStr = std::string(argv[ii]);
-
-        if (argStr.find(so) != std::string::npos) {
-            foundOptArg = true;
-        }
-
-        if (argStr == std::string("--input")) {
-            ++ ii;
-            arg = ii;
-            INFOMSG(argv[ii] << endl);
-            continue;
-        } else if (argStr == std::string("-restart") ||
-                   argStr == std::string("--restart")) {
-            return false;
-        } else if (argStr == std::string("-restartfn") ||
-                   argStr == std::string("--restartfn")) {
-            return false;
-        } else if (argStr == std::string("-version") ||
-                   argStr == std::string("--version")) {
-            return false;
-        } else if (argStr == std::string("-help") ||
-                   argStr == std::string("--help")) {
-            return false;
-        }
-        else {
-            if (arg == -1 &&
-                (ii == 1 || ii + 1 == argc) &&
-                argv[ii][0] != '-') {
-                arg = ii;
-                continue;
-            } else {
-                continue;
-            }
-        }
-    }
-
-    if (arg == -1) {
-        INFOMSG("No input file provided!" << endl);
-        exit(1);
-    }
-
-    fname = std::string(argv[arg]);
-    if (!fs::exists(fname)) {
-        INFOMSG("Input file \"" << fname << "\" doesn't exist!" << endl);
-        exit(1);
-    }
-
-    std::ifstream inFile;
-    inFile.open(fname);
-
-    std::stringstream strStream;
-    strStream << inFile.rdbuf();
-    std::string str = strStream.str();
-
-    std::transform(str.begin(), str.end(),str.begin(), ::toupper);
-
-    const std::string s1("OPTIMIZE");
-    const std::string s2("OBJECTIVE");
-    const std::string s3("DVAR");
-
-    bool res = (boost::algorithm::contains(str, s1) &&
-                boost::algorithm::contains(str, s2) &&
-                boost::algorithm::contains(str, s3));
-
-    inFile.close();
-
-    return res && foundOptArg;
-}
-
-int mainOPALOptimiser(int argc, char *argv[]) {
-
-    MPI_Init(&argc, &argv);
-
-    // Setup/Configuration
-    //////////////////////////////////////////////////////////////////////////
-    typedef OpalInputFileParser Input_t;
-    typedef OpalSimulation Sim_t;
-
-    typedef FixedPisaNsga2< BlendCrossover, IndependentBitMutation > Opt_t;
-
-    typedef CommSplitter< ManyMasterSplit< NoCommTopology > > Comm_t;
-    typedef SocialNetworkGraph< NoCommTopology > SolPropagationGraph_t;
-
-    typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
-
-    // prepare function dictionary and add all available functions in
-    // expressions
-    functionDictionary_t funcs;
-    client::function::type ff;
-    ff = FromFile();
-    funcs.insert(std::pair<std::string, client::function::type>
-                 ("fromFile", ff));
-    ff = SumErrSq();
-    funcs.insert(std::pair<std::string, client::function::type>
-                 ("sumErrSq", ff));
-    ff = SDDSVariable();
-    funcs.insert(std::pair<std::string, client::function::type>
-                 ("sddsVariableAt", ff));
-
-    ff = RadialPeak();
-    funcs.insert(std::pair<std::string, client::function::type>
-                 ("radialPeak", ff));
-    ff = SumErrSqRadialPeak();
-    funcs.insert(std::pair<std::string, client::function::type>
-                 ("sumErrSqRadialPeak", ff));
-
-    ff = ProbeVariable();
-    funcs.insert(std::pair<std::string, client::function::type>
-                 ("probVariableWithID", ff));
-
-    //////////////////////////////////////////////////////////////////////////
-
-    try {
-        CmdArguments_t args(new CmdArguments(argc, argv));
-
-        std::string fname = args->getArg<std::string>("inputfile", true);
-        ff = sameSDDSVariable(fname);
-        funcs.insert(std::pair<std::string, client::function::type>
-                     ("sameSDDSVariableAt", ff));
-
-        boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
-        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs));
-
-    } catch (OptPilotException &e) {
-        std::cout << "Exception caught: " << e.what() << std::endl;
-        MPI_Abort(MPI_COMM_WORLD, -100);
-    }
-
-    Ippl::Comm->barrier();
-    Fieldmap::clearDictionary();
-    OpalData::deleteInstance();
-    delete gmsg;
-    delete ippl;
-    delete Ippl::Info;
-    delete Ippl::Warn;
-    delete Ippl::Error;
-    delete Ippl::Debug;
-    return 0;
-}
-
-
-int mainOPAL(int argc, char *argv[]) {
-    ippl = new Ippl(argc, argv);
+int main(int argc, char *argv[]) {
+    Ippl *ippl = new Ippl(argc, argv);
     gmsg = new  Inform("OPAL");
 
     namespace fs = boost::filesystem;
@@ -268,7 +105,7 @@ int mainOPAL(int argc, char *argv[]) {
     std::string dateStr(simtimer.date());
     std::string timeStr(simtimer.time());
 
-    H5SetVerbosityLevel(0); //65535);
+    H5SetVerbosityLevel(1); //65535);
 
     gsl_set_error_handler(&errorHandlerGSL);
 
@@ -340,6 +177,7 @@ int mainOPAL(int argc, char *argv[]) {
     FTps<double, 6>::setGlobalTruncOrder(10);
 
     OpalData *opal = OpalData::getInstance();
+    opal->storeArguments(argc, argv);
     try {
         Configure::configure();
 
@@ -347,8 +185,8 @@ int mainOPAL(int argc, char *argv[]) {
         FileStream::setEcho(Options::echo);
 
         char *startup = getenv("HOME");
-	boost::filesystem::path p = strncat(startup, "/init.opal", 20);
-	if (startup != NULL && is_regular_file(p)) {
+        boost::filesystem::path p = strncat(startup, "/init.opal", 20);
+        if (startup != NULL && is_regular_file(p)) {
 
             FileStream::setEcho(false);
             FileStream *is;
@@ -379,8 +217,6 @@ int mainOPAL(int argc, char *argv[]) {
             int arg = -1;
             std::string fname;
             std::string restartFileName;
-            // if(argc > 3) {
-            //     if(argc > 5) {
             //         // will write dumping date into a new h5 file
             for(int ii = 1; ii < argc; ++ ii) {
                 std::string argStr = std::string(argv[ii]);
@@ -500,14 +336,15 @@ int mainOPAL(int argc, char *argv[]) {
                 *gmsg << "* Reading input stream \"" << fname << "\"." << endl;
                 parser.run(is);
                 *gmsg << "* End of input stream \"" << fname << "\"." << endl;
-            }        }
-
+            }
+        }
 
         IpplTimings::stopTimer(mainTimer);
 
         IpplTimings::print();
 
-	IpplTimings::print(std::string("timing.dat"));
+        IpplTimings::print(std::string("timing.dat"),
+                           OpalData::getInstance()->getProblemCharacteristicValues());
 
         if(Ippl::myNode() == 0) {
             std::ifstream errormsg("errormsg.txt");
@@ -540,7 +377,7 @@ int mainOPAL(int argc, char *argv[]) {
         }
 
         Ippl::Comm->barrier();
-	Fieldmap::clearDictionary();
+        Fieldmap::clearDictionary();
         OpalData::deleteInstance();
         delete gmsg;
         delete ippl;
@@ -550,44 +387,80 @@ int mainOPAL(int argc, char *argv[]) {
         delete Ippl::Debug;
         return 0;
 
+    } catch(OpalException &ex) {
+        Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
+        errorMsg << "\n*** User error detected by function \""
+                 << ex.where() << "\"\n";
+        // stat->printWhere(errorMsg, true);
+        std::string what = ex.what();
+        size_t pos = what.find_first_of('\n');
+        do {
+            errorMsg << "    " << what.substr(0, pos) << endl;
+            what = what.substr(pos + 1, std::string::npos);
+            pos = what.find_first_of('\n');
+        } while (pos != std::string::npos);
+        errorMsg << "    " << what << endl;
+
+        MPI_Abort(MPI_COMM_WORLD, -100);
     } catch(ClassicException &ex) {
-        *gmsg << endl << "*** User error detected by function \"" << ex.where() << "\":\n"
-              << ex.what() << endl;
-        abort();
+        Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
+        errorMsg << "\n*** User error detected by function \""
+                 << ex.where() << "\"\n";
+        // stat->printWhere(errorMsg, true);
+        std::string what = ex.what();
+        size_t pos = what.find_first_of('\n');
+        do {
+            errorMsg << "    " << what.substr(0, pos) << endl;
+            what = what.substr(pos + 1, std::string::npos);
+            pos = what.find_first_of('\n');
+        } while (pos != std::string::npos);
+        errorMsg << "    " << what << endl;
 
-    } catch(std::bad_alloc &) {
-        *gmsg << "Sorry, virtual memory exhausted." << endl;
-        abort();
+        MPI_Abort(MPI_COMM_WORLD, -100);
+    } catch(std::bad_alloc &ex) {
+        Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
+        errorMsg << "\n*** Error:\n";
+        errorMsg << "    Sorry, virtual memory exhausted.\n"
+                 << ex.what()
+                 << endl;
 
-    } catch(std::exception const& e) {
-        *gmsg << "Exception: " << e.what() << "\n";
-        abort();
+        MPI_Abort(MPI_COMM_WORLD, -100);
+    } catch(assertion &ex) {
+        Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
+        errorMsg << "\n*** Runtime-error ******************\n";
+        std::string what = ex.what();
+        size_t pos = what.find_first_of('\n');
+        do {
+            errorMsg << "    " << what.substr(0, pos) << endl;
+            what = what.substr(pos + 1, std::string::npos);
+            pos = what.find_first_of('\n');
+        } while (pos != std::string::npos);
+        errorMsg << "    " << what << endl;
 
+        errorMsg << "\n************************************\n" << endl;
+        throw std::runtime_error("in Parser");
+    } catch(std::exception &ex) {
+        Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
+        errorMsg << "\n"
+                 << "*** Error:\n"
+                 << "    Internal OPAL error: \n";
+        std::string what = ex.what();
+        size_t pos = what.find_first_of('\n');
+        do {
+            errorMsg << "    " << what.substr(0, pos) << endl;
+            what = what.substr(pos + 1, std::string::npos);
+            pos = what.find_first_of('\n');
+        } while (pos != std::string::npos);
+        errorMsg << "    " << what << endl;
+
+        MPI_Abort(MPI_COMM_WORLD, -100);
     } catch(...) {
-        *gmsg << "Unexpected exception." << endl;
-        abort();
+        Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
+        errorMsg << "\n*** Error:\n"
+                 << "    Unexpected exception caught.\n" << endl;
+
+        MPI_Abort(MPI_COMM_WORLD, -100);
     }
-}
 
-void errorHandlerGSL(const char *reason,
-                     const char *file,
-                     int,
-                     int) {
-    throw OpalException(file, reason);
-}
-
-
-
-// The OPAL main program.
-
-int main(int argc, char *argv[]) {
-
-    int res;
-
-    if ((argc <= 1) || !haveOptimiseRun(argc, argv))
-        res = mainOPAL(argc, argv);
-    else
-        res = mainOPALOptimiser(argc, argv);
-    return res;
-
+    return 1;
 }

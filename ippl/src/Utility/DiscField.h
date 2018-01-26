@@ -435,7 +435,7 @@ public:
 	      // will read in extra data and our storage will be offset to
 	      // start at the place where the new data is actually located.
 
-	      PAssert(readoffset >= 0);
+	      PAssert_GE(readoffset, 0);
 	      Offset_t extra = readoffset % dioinfo.d_miniosz;
 	      readoffset -= extra;
 	      DFDBG(dbgmsg << "DIO: Moving read offset back by " << extra);
@@ -449,7 +449,7 @@ public:
 	      size_t ndiff = readbytes % dioinfo.d_miniosz;
 	      if (ndiff > 0)
 		readbytes += (dioinfo.d_miniosz - ndiff);
-	      PAssert(nbytes >= readbytes);
+	      PAssert_GE(nbytes, readbytes);
 	      DFDBG(dbgmsg << "DIO: Adjusted readbytes from ");
 	      DFDBG(dbgmsg << (nelems * sizeof(T)) << " to " << readbytes);
 	      DFDBG(dbgmsg << endl);
@@ -457,7 +457,7 @@ public:
 	      // Point the buffer at the real first element, adjusted to
 	      // counteract our moving the offset location back to a
 	      // block-size multipple.
-	      PAssert(extra % sizeof(T) == 0);
+	      PAssert_EQ(extra % sizeof(T), 0);
 	      buffer += (extra / sizeof(T));
 	      DFDBG(dbgmsg << "DIO: Adjusted buffer pointer forward ");
 	      DFDBG(dbgmsg << (extra / sizeof(T)) << " elements." << endl);
@@ -1241,7 +1241,7 @@ private:
       if (openedDirectIO) {
 	// For direct-io, make sure we write out blocks with size that is
 	// a multipple of the minimum io size
-	PAssert(dioinfo.d_miniosz % sizeof(T) == 0);
+	PAssert_EQ(dioinfo.d_miniosz % sizeof(T), 0);
 	if (chunkbytes == 0 || chunkbytes > dioinfo.d_maxiosz)
 	  chunkbytes = dioinfo.d_maxiosz;
 	else if (chunkbytes < dioinfo.d_miniosz)
@@ -1641,16 +1641,16 @@ private:
     DFDBG(dbgmsg << "readsize=" << readsize << ", seekpos=" << seekpos);
     DFDBG(dbgmsg <<", sizeof(T)=" << sizeof(T) << endl);
 
-    PAssert(seekpos >= 0);
-    PAssert(readsize > 0);
-    PAssert(buffer != 0);
-    PAssert(outputDatafd >= 0);
-    PAssert(readsize % sizeof(T) == 0);
+    PAssert_GE(seekpos, 0);
+    PAssert_GT(readsize, 0);
+    PAssert(buffer);
+    PAssert_GE(outputDatafd, 0);
+    PAssert_EQ(readsize % sizeof(T), 0);
 
 #ifdef IPPL_DIRECTIO
     if (openedDirectIO) {
-      PAssert(readsize % dioinfo.d_miniosz == 0);
-      PAssert(seekpos  % dioinfo.d_miniosz == 0);
+      PAssert_EQ(readsize % dioinfo.d_miniosz, 0);
+      PAssert_EQ(seekpos  % dioinfo.d_miniosz, 0);
     }
 #endif
 

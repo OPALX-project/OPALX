@@ -688,13 +688,16 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
         }
         phi = tmp_phi - floor(tmp_phi / Physics::two_pi + 0.5) * Physics::two_pi;
 
-
         for(unsigned int i = 1; i < N; ++ i) {
             E[i] = E[i - 1];
             E2[i] = E2[i - 1];
             E[i] += q * scale_m * getdE(i, t, dz, phi, frequency_m, F) ;
             E2[i] += q * scale_m * getdE(i, t2, dz, phi + dphi, frequency_m, F);
-
+            double a = E[i], b = E2[i];
+            if (std::isnan(a) || std::isnan(b)) {
+                throw GeneralClassicException("RFCavity::getAutoPhaseEstimate",
+                                              "solution is nan");
+            }
             t[i] = t[i - 1] + getdT(i, E, dz, mass);
             t2[i] = t2[i - 1] + getdT(i, E2, dz, mass);
 

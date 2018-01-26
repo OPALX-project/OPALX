@@ -121,7 +121,7 @@ TEST_F(NDGridTest, Constructor3Test) {
     interpolation::NDGrid grid1(gridCoordinates);
     ASSERT_EQ(grid1.getPositionDimension(), 2);
     for (int i = 0; i < 2; ++i) {
-        size_t size = gridCoordinates[i].size();
+        int size = gridCoordinates[i].size();
         ASSERT_EQ(grid1.size(i), size);
         EXPECT_NEAR(grid1.coord(1, i), gridCoordinates[i][0], 1e-12) << "Failed for i " << i;
         EXPECT_NEAR(grid1.coord(i+2, i), gridCoordinates[i][size-1], 1e-12) << "Failed for i " << i;
@@ -138,8 +138,8 @@ TEST_F(NDGridTest, CoordTest) {
     interpolation::NDGrid grid_var(gridCoordinates);
     const interpolation::NDGrid grid_const(gridCoordinates);
     for (int i = 0; i < 2; ++i) {
-            EXPECT_NEAR(grid_var.coord(1, i), gridCoordinates[i][0], 1e-12) << "Failed for i " << i;
-            EXPECT_NEAR(grid_const.coord(1, i), gridCoordinates[i][0], 1e-12) << "Failed for i " << i;
+        EXPECT_NEAR(grid_var.coord(1, i), gridCoordinates[i][0], 1e-12) << "Failed for i " << i;
+        EXPECT_NEAR(grid_const.coord(1, i), gridCoordinates[i][0], 1e-12) << "Failed for i " << i;
     }
 }
 
@@ -240,7 +240,7 @@ TEST_F(NDGridTest, SetCoordTest) {
     double xNew[] = {5., 10., 12., 15.};
     grid_m->setCoord(0, 4, xNew);
     std::vector<double> xTest = grid_m->coordVector(0);
-    EXPECT_EQ(xTest.size(), 4);
+    EXPECT_EQ(xTest.size(), (unsigned int)4);
     for (size_t i = 0; i < 4; ++i) {
         EXPECT_EQ(xTest[i], xNew[i]);
     }
@@ -249,10 +249,10 @@ TEST_F(NDGridTest, SetCoordTest) {
 TEST_F(NDGridTest, BeginEndTest) {
     OpalTestUtilities::SilenceTest silencer;
 
-    ASSERT_EQ(grid_m->begin().getState().size(), 2);
+    ASSERT_EQ(grid_m->begin().getState().size(), (unsigned int)2);
     EXPECT_EQ(grid_m->begin().getState()[0], 1);
     EXPECT_EQ(grid_m->begin().getState()[1], 1);
-    ASSERT_EQ(grid_m->end().getState().size(), 2);
+    ASSERT_EQ(grid_m->end().getState().size(), (unsigned int)2);
     EXPECT_EQ(grid_m->end().getState()[0], 3); // one past the last (2, 3)
     EXPECT_EQ(grid_m->end().getState()[1], 1);
 }

@@ -47,6 +47,19 @@ namespace interpolation {
 
 typedef PolynomialCoefficient Coeff;
 
+namespace {
+    std::vector<double> getDeltaPos(Mesh* mesh) {
+        Mesh::Iterator it = mesh->begin();
+        std::vector<double> pos1 = it.getPosition();
+        for (size_t i = 0; i < it.getState().size(); ++i)
+            it[i]++;
+        std::vector<double> pos2 = it.getPosition();
+        for (size_t i = 0; i < pos2.size(); ++i)
+            pos2[i] -= pos1[i];
+        return pos2;
+    }
+}
+
 PPSolveFactory::PPSolveFactory(Mesh* points,
                                std::vector<std::vector<double> > values,
                                int polyPatchOrder,
@@ -98,17 +111,6 @@ PPSolveFactory::PPSolveFactory(Mesh* points,
                                       (i, 0, smoothingOrder-polyPatchOrder);
     smoothingPoints_m = getNearbyPointsSquares
                                 (posDim, polyPatchOrder_m-1, polyPatchOrder_m);
-}
-
-std::vector<double> getDeltaPos(Mesh* mesh) {
-    Mesh::Iterator it = mesh->begin();
-    std::vector<double> pos1 = it.getPosition();
-    for (size_t i = 0; i < it.getState().size(); ++i)
-        it[i]++;
-    std::vector<double> pos2 = it.getPosition();
-    for (size_t i = 0; i < pos2.size(); ++i)
-        pos2[i] -= pos1[i];
-    return pos2;
 }
 
 std::vector<double> PPSolveFactory::outOfBoundsPosition(

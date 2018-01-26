@@ -29,6 +29,7 @@
 #include <iomanip>
 
 
+
 #include <AMReX_ParmParse.H>
 
 
@@ -44,11 +45,13 @@
 
 #include "Physics/Physics.h"
 
+using namespace amrex;
+
 typedef AmrOpal::amrplayout_t amrplayout_t;
 typedef AmrOpal::amrbase_t amrbase_t;
 typedef AmrOpal::amrbunch_t amrbunch_t;
 
-typedef Vektor<double, BL_SPACEDIM> Vector_t;
+typedef Vektor<double, AMREX_SPACEDIM> Vector_t;
 
 void kick(const Vector_t& R,
           Vector_t& P,
@@ -152,8 +155,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    std::array<double, BL_SPACEDIM> lower = {{-1.0, -1.0, -1.0}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ 1.0,  1.0,  1.0}}; // m
+    std::array<double, AMREX_SPACEDIM> lower = {{-1.0, -1.0, -1.0}}; // m
+    std::array<double, AMREX_SPACEDIM> upper = {{ 1.0,  1.0,  1.0}}; // m
     
     RealBox domain;
     
@@ -278,7 +281,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
             push(bunch->R[i], bunch->P[i], dt);
             
             // periodic shift
-            for (int d = 0; d < BL_SPACEDIM; ++d) {
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                 if ( std::abs( bunch->R[i](d) ) > 1.0 ) {
                     bunch->R[i](d) = ( std::signbit(bunch->R[i](d)) ) ? 2.0 + bunch->R[i](d) : bunch->R[i](d) - 2;
                 }
@@ -307,7 +310,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
             push(bunch->R[i], bunch->P[i], dt);
             
             // periodic shift
-            for (int d = 0; d < BL_SPACEDIM; ++d) {
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                 if ( std::abs( bunch->R[i](d) ) > 1.0 ) {
                     bunch->R[i](d) = ( std::signbit(bunch->R[i](d)) ) ? 2.0 + bunch->R[i](d) : bunch->R[i](d) - 2.0;
                 }

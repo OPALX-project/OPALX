@@ -53,7 +53,7 @@ typedef AmrOpal::amrplayout_t amrplayout_t;
 typedef AmrOpal::amrbase_t amrbase_t;
 typedef AmrOpal::amrbunch_t amrbunch_t;
 
-typedef Vektor<double, BL_SPACEDIM> Vector_t;
+typedef Vektor<double, AMREX_SPACEDIM> Vector_t;
 
 void precondition(AmrOpal& myAmrOpal,
                   container_t& rhs,
@@ -84,7 +84,7 @@ void precondition(AmrOpal& myAmrOpal,
         
     PCInterp mapper;
     Array<BCRec> bc(1);
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         bc[0].setLo(i, INT_DIR);
         bc[0].setHi(i, INT_DIR);
     }
@@ -208,8 +208,8 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-    std::array<double, BL_SPACEDIM> lower = {{-0.5, -0.5, -0.5}}; // m
-    std::array<double, BL_SPACEDIM> upper = {{ 0.5,  0.5,  0.5}}; // m
+    std::array<double, AMREX_SPACEDIM> lower = {{-0.5, -0.5, -0.5}}; // m
+    std::array<double, AMREX_SPACEDIM> upper = {{ 0.5,  0.5,  0.5}}; // m
     
     RealBox domain;
     

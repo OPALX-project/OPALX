@@ -82,13 +82,14 @@ MultiBalancer::~MultiBalancer()
 void MultiBalancer::newMaterial()
 {
   // Make sure we're not in the wrong mode.
-  PAssert( m_phase != distributed );
+  PAssert_NE( m_phase, distributed );
   
   // Do a sanity check on the previous material,
   // provided that this is not the first one.
   if ( m_phase == someMaterials )
     // Make sure we got the right number of vnodes.
-    PAssert( m_inputWeights.back()->size() == m_vnodes );
+    // Note that braces are added since PAssert can be empty
+    {PAssert_EQ( m_inputWeights.back()->size(), m_vnodes );}
 
   // Add a new vector of weights to the materials container.
   m_inputWeights.push_back( new VnodeWeights_t );
@@ -112,7 +113,7 @@ void MultiBalancer::newMaterial()
 void MultiBalancer::appendWeights(double *begin, double *end)
 {
   // Make sure we have a nonzero number of materials.
-  PAssert(m_materials>0);
+  PAssert_GT(m_materials, 0);
 
   // Get a reference to the container where we'll be putting these.
   VnodeWeights_t& weights = *m_inputWeights.back();
@@ -122,7 +123,7 @@ void MultiBalancer::appendWeights(double *begin, double *end)
     weights.push_back(*begin);
 
   // Make sure we didn't make it longer than it should be.
-  PAssert( weights.size() <= m_vnodes );
+  PAssert_LE( weights.size(), m_vnodes );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -134,7 +135,7 @@ void MultiBalancer::appendWeights(double *begin, double *end)
 void MultiBalancer::distribute()
 {
   // Make sure we're in the right mode.
-  PAssert( m_phase != noMaterials );
+  PAssert_NE( m_phase, noMaterials );
 
   // If we've already distributed, we don't need to do anything.
   if ( m_phase == distributed )
@@ -231,7 +232,7 @@ unsigned int MultiBalancer::findProcForVnode( unsigned int v )
           totalWeight += w;
         }
 
-      // If the new weight for this proc is less then the previous
+      // If the new weight for this proc is less than the previous
       // least weight, then this is the new best candidate.
       if ( totalWeight < minWeight )
         {
@@ -242,7 +243,7 @@ unsigned int MultiBalancer::findProcForVnode( unsigned int v )
 
   // Return the best candidate processor found.
   // We had better have found something.
-  PAssert(minProc<m_procs);
+  PAssert_LT(minProc, m_procs);
   return minProc;
 }
 
@@ -260,7 +261,7 @@ MultiBalancer::calcTotalWeights(VnodeWeights_t& vnodeTotalWeights)
       // Do a sanity check.
       // Make sure that all of the input materials have the same
       // number of vnodes.
-      PAssert( (*matp)->size() == m_vnodes );
+      PAssert_EQ( (*matp)->size(), m_vnodes );
 
       // Accumulate the weight of each vnode into the 
       // array of total weights.

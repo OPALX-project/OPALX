@@ -267,7 +267,7 @@ private:
 	msg->get(s);
 
       // Make sure the size isn't negative.
-	PAssert(s>=0);
+	PAssert_GE(s, 0);
 
 	// If there are any there, unpack them.
 	if ( s != 0 ) 

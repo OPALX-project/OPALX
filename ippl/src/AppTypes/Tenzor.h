@@ -175,13 +175,13 @@ public:
 
   Element_t &operator[]( unsigned int i )
   {
-    PAssert(i<Size);
+    PAssert_LT(i, Size);
     return X[i];
   }
 
   Element_t operator[]( unsigned int i ) const
   {
-    PAssert(i<Size);
+    PAssert_LT(i, Size);
     return X[i];
   }
 

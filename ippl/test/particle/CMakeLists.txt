@@ -5,6 +5,8 @@ include_directories (
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/ippl/src
     ${CLASSIC_SOURCE_DIR}
+    ${H5Hut_INCLUDE_DIR}
+    ${HDF5_INCLUDE_DIR}
 )
 
 link_directories (
@@ -13,7 +15,7 @@ link_directories (
 )
 
 set (CMAKE_CXX_FLAGS
-        "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
+        "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
     )
 
 SET (IPPL_LIBS ippl)

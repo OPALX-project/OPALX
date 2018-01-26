@@ -9,7 +9,8 @@
 #include "helper_functions.h" // container_t
 
 #define READDATA(type, file, name, value) H5PartReadData##type(file, name, value);
-
+#define WRITEDATA(type, file, name, value) H5PartWriteData##type(file, name, value);
+#define WRITESTRINGFILEATTRIB(file, name, value) H5WriteFileAttribString(file, name, value);
 
 /*!
  * @file H5Reader.h
@@ -35,10 +36,11 @@ public:
     H5Reader();
     
     /*!
-     * Open the file and set the step to read
-     * @param step to read in
+     * Open the file and set the step to read / write
+     * @param step to read in / write
+     * @param flags (read) H5_O_RDONLY or (write) H5_O_WRONLY
      */
-    void open(int step);
+    void open(int step, h5_int32_t flags = H5_O_RDONLY);
     
     /*!
      * Close the file and sets the pointer to NULL
@@ -72,6 +74,16 @@ public:
               size_t firstParticle,
               size_t lastParticle);
     
+    
+#ifdef IPPL_AMR
+    void writeHeader();
+    
+    /*!
+     * Write a particle distribution to a file
+     */
+    void write(PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >* bunch);
+#endif
+    
     /*!
      * @returns the number of particles
      */
@@ -84,12 +96,7 @@ public:
     
 private:
     std::string filename_m;     ///< Path and filename
-#if defined (USE_H5HUT2)
     h5_file_t file_m;           ///< Opened file
-#else
-    h5_file_t *file_m;
-#endif        
-    
 };
 
 #endif

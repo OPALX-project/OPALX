@@ -45,6 +45,7 @@
 
 using namespace interpolation;
 
+namespace {
 void test_points(int dim, int lower, int upper, std::vector< std::vector<int> > pts) {
       int upper_size = 1;
       int lower_size = 1;
@@ -57,10 +58,10 @@ void test_points(int dim, int lower, int upper, std::vector< std::vector<int> > 
       if (upper < 0)
           upper_size = 0;
       // size should be difference in area of the squares
-      EXPECT_EQ(pts.size(), upper_size - lower_size);
+      EXPECT_EQ(pts.size(), (unsigned int)(upper_size - lower_size));
       for (size_t i = 0; i < pts.size(); ++i) {
           // each pts element should have length dim
-          EXPECT_EQ(pts[i].size(), dim);
+          EXPECT_EQ(pts[i].size(), (size_t)dim);
           // each pts element should have indices with lower < size <= upper
           bool in_bounds = true;
           for (int j = 0; j < dim; ++j) {
@@ -77,6 +78,7 @@ void test_points(int dim, int lower, int upper, std::vector< std::vector<int> > 
               EXPECT_FALSE(equal);
           }
       }
+}
 }
 
 TEST(PPSolveFactoryTest, TestNearbyPointsSquares) {
@@ -152,7 +154,7 @@ TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic) {
     // first check that the polynomial at 0, 0, 0 is the same as ref
     std::vector<double> zero(3, 0.);
     SquarePolynomialVector* test = patch2->getPolynomialVector(&zero[0]);
-    EXPECT_EQ(patch2->getValueDimension(), 2);
+    EXPECT_EQ(patch2->getValueDimension(), (unsigned int)2);
     MMatrix<double> testCoeffs = test->GetCoefficientsAsMatrix();
     std::cout << "Ref" << std::endl;
     std::cout << refCoeffs << std::endl;
@@ -220,7 +222,7 @@ TEST_F(PPSolveFactoryTestFixture, DISABLED_TestSolvePolynomialQuadraticSmoothed)
     }
 }
 
-
+namespace {
 std::vector<double> get_value(std::vector<double> x, int np) {
     static const double twopi = asin(1.)*4;
     std::vector<double> a_value(3);
@@ -314,7 +316,7 @@ void plot(int n_points, std::vector<double> start, std::vector<double> end, Poly
 void plot(int n_points, std::vector<double> start, std::vector<double> end, PolynomialPatch* patch, int n_grid_points, std::string title) {
 }
 #endif // PolynomialPatchTest_MakePlots
-
+}
 
 TEST(PPSolveFactoryTest, TestThreeDSolveSinCos) {
     OpalTestUtilities::SilenceTest silencer;
@@ -342,7 +344,7 @@ TEST(PPSolveFactoryTest, TestThreeDSolveSinCos) {
             std::stringstream ss;
             ss << "smooth: " << smooth_order << " poly: " << pp_order;
             plot(100, start, end, ppVec.back(), np, ss.str());
-            EXPECT_EQ(ppVec.back()->getValueDimension(), 3);
+            EXPECT_EQ(ppVec.back()->getValueDimension(), (unsigned int)3);
         }
     }
     std::cout << "Testing" << std::endl;

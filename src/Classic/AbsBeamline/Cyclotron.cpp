@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------------
 //
 // Definitions for class: Cyclotron
-//   Defines the abstract interface for a sector bend magnet.
+//   Defines the abstract interface for a cyclotron.
 //
 // ------------------------------------------------------------------------
 // Class category: AbsBeamline

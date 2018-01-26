@@ -50,6 +50,8 @@ Usage:
 
 #define Dim 3
 
+using namespace amrex;
+
 typedef ParticleAmrLayout<double,Dim> amrplayout_t;
 typedef AmrParticleBase<amrplayout_t> amrbase_t;
 typedef PartBunchAmr<amrplayout_t> amrbunch_t;
@@ -82,10 +84,10 @@ void createRandomParticles(ParticleContainer<4> *pc, int N, int myNode, int seed
     ArrayOfStructs<4, 0> nparticles;
     for (int i = 0; i < N; ++i) {
         Particle<4, 0> p;
-        p.m_rdata.arr[BL_SPACEDIM] = (double)rand() / RAND_MAX; // charge
-        p.m_rdata.arr[BL_SPACEDIM + 1] = 0.0; // momentum
-        p.m_rdata.arr[BL_SPACEDIM + 2] = 0.0; // momentum
-        p.m_rdata.arr[BL_SPACEDIM + 3] = 0.0; // momentum
+        p.m_rdata.arr[AMREX_SPACEDIM] = (double)rand() / RAND_MAX; // charge
+        p.m_rdata.arr[AMREX_SPACEDIM + 1] = 0.0; // momentum
+        p.m_rdata.arr[AMREX_SPACEDIM + 2] = 0.0; // momentum
+        p.m_rdata.arr[AMREX_SPACEDIM + 3] = 0.0; // momentum
         
         // p.m_rdata.pos[i] = p.m_rdata.arr[i] for i = 0, 1, 2
         p.m_rdata.pos[0] = (double)rand() / RAND_MAX;
@@ -346,7 +348,7 @@ void doAMReX(Array<Geometry> &geom, Array<BoxArray> &ba,
 //             for (int i = 0; i < n; i++) {
 //                 Particle<4, 0>& p = pbox[i];
 //                 
-//                 Real grav[BL_SPACEDIM];
+//                 Real grav[AMREX_SPACEDIM];
 //                 
 //                 Particle<4, 0>::GetGravity(gfab, geom[lev], p, grav);
 //     
@@ -395,19 +397,19 @@ int main(int argc, char *argv[]) {
 
   //physical domain boundaries
   RealBox domain;
-  for (int i = 0; i < BL_SPACEDIM; ++i) {
+  for (int i = 0; i < AMREX_SPACEDIM; ++i) {
     domain.setLo(i, 0.0);
     domain.setHi(i, 1.0);
   }
 
   RealBox fine_domain;
-  for (int i = 0; i < BL_SPACEDIM; ++i) {
+  for (int i = 0; i < AMREX_SPACEDIM; ++i) {
     fine_domain.setLo(i, 0.0);
     fine_domain.setHi(i, 0.5);
   }
 
   //periodic boundary conditions in all directions
-  int bc[BL_SPACEDIM] = {1, 1, 1};
+  int bc[AMREX_SPACEDIM] = {1, 1, 1};
 
   //Container for geometry at all levels
   Array<Geometry> geom;
@@ -483,8 +485,8 @@ int main(int argc, char *argv[]) {
   efield.resize(nLevels);
   container_t efield_ippl(nLevels);
   for (size_t lev = 0; lev < nLevels; ++lev) {
-    efield[lev].reset(new MultiFab(ba[lev], dmap[lev], BL_SPACEDIM, 1));
-    efield_ippl[lev].reset(new MultiFab(ba[lev], dmap[lev], BL_SPACEDIM, 1));
+    efield[lev].reset(new MultiFab(ba[lev], dmap[lev], AMREX_SPACEDIM, 1));
+    efield_ippl[lev].reset(new MultiFab(ba[lev], dmap[lev], AMREX_SPACEDIM, 1));
   }
 
 

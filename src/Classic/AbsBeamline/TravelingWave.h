@@ -102,16 +102,12 @@ private:
     /*   Fieldmap *EntryFringeField_m; */
     /*   Fieldmap *ExitFringeField_m; */
 
-    double scale_m;              /**< scale multiplier*/
     double scaleCore_m;
-    double scaleError_m;
     double scaleCoreError_m;
 
-    double phase_m;              /**< phase shift of time varying field(degrees)*/
     double phaseCore1_m;
     double phaseCore2_m;
     double phaseExit_m;
-    double phaseError_m;
 
     double length_m;
     double startCoreField_m;         /**< starting point of field(m)*/

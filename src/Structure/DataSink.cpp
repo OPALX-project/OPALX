@@ -14,7 +14,7 @@
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPS.h"
 #include "Utilities/Timer.h"
-#include "Structure/SDDSParser.h"
+#include "Util/SDDSParser.h"
 
 #ifdef ENABLE_AMR
     #include "Algorithms/AmrPartBunch.h"
@@ -31,13 +31,6 @@
 extern Inform *gmsg;
 
 using namespace std;
-
-//using Physics::m_e;
-
-// backward compatibility with 1.99.5
-#if defined(H5_O_FLUSHSTEP)
-#define H5_FLUSH_STEP H5_O_FLUSHSTEP
-#endif
 
 DataSink::DataSink() :
     H5call_m(0),
@@ -97,6 +90,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
     } else {
         INFOMSG("Creating new file for memory consumption data: " << memFileName_m << endl);
     }
+    h5wrapper_m->close();
 }
 
 DataSink::DataSink(H5PartWrapper *h5wrapper):
@@ -123,6 +117,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper):
     doHDF5_m = Options::enableHDF5;
 
     h5wrapper_m->writeHeader();
+    h5wrapper_m->close();
 }
 
 DataSink::~DataSink() {
@@ -162,7 +157,7 @@ int DataSink::writePhaseSpace_cycl(PartBunchBase<double, 3> *beam, Vector_t FDex
                                    double azimuth, double elevation, bool local) {
 
     if (!doHDF5_m) return -1;
-    if (beam->getLocalNum() < 3) return -1; // in single particle mode and tune calculation (2 particles) we do not need h5 data
+    if (beam->getTotalNum() < 3) return -1; // in single particle mode and tune calculation (2 particles) we do not need h5 data
 
     IpplTimings::startTimer(H5PartTimer_m);
     std::map<std::string, double> additionalAttributes = {
@@ -1003,7 +998,6 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
     if(firstWriteH5Surface_m) {
         firstWriteH5Surface_m = false;
 
-#if defined (USE_H5HUT2)
 	h5_prop_t props = H5CreateFileProp ();
 	MPI_Comm comm = Ippl::getComm();
 	H5SetPropFileMPIOCollective (props, &comm);
@@ -1012,13 +1006,7 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
             throw OpalException("DataSink::writeSurfaceInteraction",
                                 "failed to open h5 file '" + surfaceLossFileName_m + "' for surface loss");
         }
-#else
-        H5fileS_m = H5OpenFile(surfaceLossFileName_m.c_str(), H5_FLUSH_STEP | H5_O_WRONLY, Ippl::getComm());
-        if(H5fileS_m == (void*)H5_ERR) {
-            throw OpalException("DataSink::writeSurfaceInteraction",
-                                "failed to open h5 file '" + surfaceLossFileName_m + "' for surface loss");
-        }
-#endif
+	H5CloseProp (props);
 
     }
     int nTot = bg.getNumBFaces();
@@ -1047,22 +1035,28 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
     std::unique_ptr<double[]> tmploss(new double[nTot]);
     for(int i = 0; i < nTot; i++)
         tmploss[i] = 0.0;
-    //memset( tmploss, 0.0, nTot * sizeof(double));
-    reduce(bg.TriPrPartloss_m, bg.TriPrPartloss_m + nTot, tmploss.get(), OpAddAssign()); // may be removed if we have parallelized the geometry .
+
+    // :NOTE: may be removed if we have parallelized the geometry .
+    reduce(bg.TriPrPartloss_m, bg.TriPrPartloss_m + nTot, tmploss.get(), OpAddAssign());
 
     for(int i = 0; i < nTot; i++) {
         if(pc == Ippl::myNode()) {
             if(count < N_mean) {
                 if(pc != 0) {
                     //farray[count] =  bg.TriPrPartloss_m[Ippl::myNode()*N_mean+count];
-                    if(((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::Absorption)) == (BGphysics::Absorption)) && (((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) && ((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission)))) {
+                    size_t idx = pc * N_mean + count + N_extra;
+                    if (((bg.TriBGphysicstag_m[idx] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
+                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
+                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
                         farray[count] = 0.0;
                     } else {
                         farray[count] =  tmploss[pc * N_mean + count + N_extra];
                     }
                     count ++;
                 } else {
-                    if(((bg.TriBGphysicstag_m[count] & (BGphysics::Absorption)) == (BGphysics::Absorption)) && (((bg.TriBGphysicstag_m[count] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) && ((bg.TriBGphysicstag_m[count] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission)))) {
+                    if (((bg.TriBGphysicstag_m[count] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
+                        ((bg.TriBGphysicstag_m[count] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
+                        ((bg.TriBGphysicstag_m[count] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
                         farray[count] = 0.0;
                     } else {
                         farray[count] =  tmploss[count];
@@ -1087,17 +1081,20 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
     for(int i = 0; i < nTot; i++) {
         if(pc == Ippl::myNode()) {
             if(count < N_mean) {
-
                 if(pc != 0) {
-
-                    if(((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::Absorption)) == (BGphysics::Absorption)) && (((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) && ((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission)))) {
+                    size_t idx = pc * N_mean + count + N_extra;
+                    if (((bg.TriBGphysicstag_m[idx] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
+                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
+                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
                         farray[count] = 0.0;
                     } else {
                         farray[count] =  tmploss[pc * N_mean + count + N_extra];
                     }
                     count ++;
                 } else {
-                    if(((bg.TriBGphysicstag_m[count] & (BGphysics::Absorption)) == (BGphysics::Absorption)) && (((bg.TriBGphysicstag_m[count] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) && ((bg.TriBGphysicstag_m[count] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission)))) {
+                    if (((bg.TriBGphysicstag_m[count] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
+                        ((bg.TriBGphysicstag_m[count] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
+                        ((bg.TriBGphysicstag_m[count] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
                         farray[count] = 0.0;
                     } else {
                         farray[count] =  tmploss[count];
@@ -1125,15 +1122,19 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
             if(count < N_mean) {
 
                 if(pc != 0) {
-
-                    if(((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::Absorption)) == (BGphysics::Absorption)) && (((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) && ((bg.TriBGphysicstag_m[pc * N_mean + count + N_extra] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission)))) {
+                    size_t idx = pc * N_mean + count + N_extra;
+                    if (((bg.TriBGphysicstag_m[idx] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
+                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
+                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
                         farray[count] = 0.0;
                     } else {
                         farray[count] =  tmploss[pc * N_mean + count + N_extra];
                     }
                     count ++;
                 } else {
-                    if(((bg.TriBGphysicstag_m[count] & (BGphysics::Absorption)) == (BGphysics::Absorption)) && (((bg.TriBGphysicstag_m[count] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) && ((bg.TriBGphysicstag_m[count] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission)))) {
+                    if (((bg.TriBGphysicstag_m[count] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
+                        ((bg.TriBGphysicstag_m[count] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
+                        ((bg.TriBGphysicstag_m[count] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
                         farray[count] = 0.0;
                     } else {
                         farray[count] =  tmploss[count];
@@ -1397,11 +1398,11 @@ void DataSink::writeLBalData(PartBunchBase<double, 3> *beam,
 {
     os_lBalData << beam->getT() * 1e9 << setw(pwi) << "\t";     // 1
 
-    int nProcs = Ippl::getNodes();
-    for (int p = 0; p < nProcs; p++) {
+    size_t nProcs = Ippl::getNodes();
+    for (size_t p = 0; p < nProcs; ++ p) {
         os_lBalData << beam->getLoadBalance(p)  << setw(pwi);
 
-        if ( p < nProcs - 1 )
+        if ( p + 1 < nProcs )
             os_lBalData << "\t";
 
     }
@@ -1516,8 +1517,9 @@ void DataSink::writeMemoryData(PartBunchBase<double, 3> *beam,
     os_memData << endl;
 }
 
-
-/***************************************************************************
- * $RCSfile: DataSink.cpp,v $   $Author: adelmann $
- * $Revision: 1.3 $   $Date: 2004/06/02 19:38:54 $
- ***************************************************************************/
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:

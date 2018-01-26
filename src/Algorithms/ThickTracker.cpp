@@ -36,7 +36,7 @@
 #include "FixedAlgebra/FVps.h"
 
 #include "Physics/Physics.h"
-#include "Utilities/NumToStr.h"
+//#include "Utilities/NumToStr.h"
 #include "Elements/OpalBeamline.h"
 
 class Beamline;
@@ -495,7 +495,7 @@ namespace {
                 zt = ::implicitIntStep(zt, f, gradf, ya * dsc, nx);
             } catch(ConvergenceError &cnverr) {
                 if(++ci > cx) {
-                    std::string msg = "Convergence not achieved within " + NumToStr(cx) + " cuts of step-size!";
+                    std::string msg = "Convergence not achieved within " + NumToStr<int>(cx) + " cuts of step-size!";
                     throw ConvergenceError("ThickTracker::implicitInt4()", msg);
                 }
                 if(!cnvWarn) {
@@ -546,7 +546,7 @@ namespace {
         int ni = 0;
         while(bcount < PSdim) {
             if(ni == nx) {
-                std::string msg = "Convergence not achieved within " + NumToStr(nx) + " iterations!";
+                std::string msg = "Convergence not achieved within " + NumToStr<int>(nx) + " iterations!";
                 throw ConvergenceError("ThickTracker::implicitIntStep()", msg);
             }
 
@@ -610,7 +610,7 @@ namespace {
         int ni = 0;
         while(bcount < PSdim) {
             if(ni == nx) {
-                std::string msg = "Convergence not achieved within " + NumToStr(nx) + " iterations!";
+                std::string msg = "Convergence not achieved within " + NumToStr<int>(nx) + " iterations!";
                 throw ConvergenceError("ThickTracker::fixedPointInt2()", msg);
             }
 
@@ -669,7 +669,7 @@ namespace {
                 zt = ::fixedPointInt2(zt, f, ya * dsc, nx);
             } catch(ConvergenceError &cnverr) {
                 if(++ci > cx) {
-                    std::string msg = "Convergence not achieved within " + NumToStr(cx) + " cuts of step-size!";
+                    std::string msg = "Convergence not achieved within " + NumToStr<int>(cx) + " cuts of step-size!";
                     throw ConvergenceError("ThickTracker::fixedPointInt4()", msg);
                 }
                 if(!cnvWarn) {

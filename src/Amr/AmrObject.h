@@ -4,6 +4,7 @@
 #include "Index/NDIndex.h"
 
 #include "Algorithms/PBunchDefs.h"
+#include "Utilities/Util.h"
 
 // #include "Algorithms/AmrPartBunch.h"
 
@@ -30,6 +31,20 @@ public:
         MOMENTA,
         MAX_NUM_PARTICLES,      ///< max. #particles per cell
         MIN_NUM_PARTICLES       ///< min. #particles per cell
+    };
+    
+    
+    /*!
+     * This data structure is only used for creating an object
+     * via the static member function AmrBoxLib::create()
+     * that is called in FieldSolver::initAmrObject_m
+     */
+    struct AmrInfo {
+        int grid[3];        ///< Number of grid points in x-, y- and z-direction
+        int maxgrid[3];     ///< Maximum grid size in x-, y- and z-direction
+        int bf[3];          ///< Grid blocking factor in x-, y- and z-direction
+        int maxlevel;       ///< Maximum level for AMR (0: single-level)
+        int refratio[3];    ///< Mesh refinement ratio in x-, y- and z-direction
     };
     
 public:
@@ -74,6 +89,33 @@ public:
      */
     void setTagging(TaggingCriteria tagging) {
         tagging_m = tagging;
+    }
+    
+    /*!
+     * Choose a new tagging strategy (string version).
+     * Is used in src/Structure/FieldSolver.cpp
+     * @param tagging strategy
+     */
+    void setTagging(std::string tagging) {
+        tagging = Util::toUpper(tagging);
+        
+        if ( tagging == "POTENTIAL" )
+            tagging_m = TaggingCriteria::POTENTIAL;
+        else if (tagging == "EFIELD" )
+            tagging_m = TaggingCriteria::EFIELD;
+        else if ( tagging == "MOMENTA" )
+            tagging_m = TaggingCriteria::MOMENTA;
+        else if ( tagging == "MAX_NUM_PARTICLES" )
+            tagging_m = TaggingCriteria::MAX_NUM_PARTICLES;
+        else if ( tagging == "MIN_NUM_PARTICLES" )
+            tagging_m = TaggingCriteria::MIN_NUM_PARTICLES;
+        else if ( tagging == "CHARGE_DENSITY" )
+            tagging_m = TaggingCriteria::CHARGE_DENSITY;
+        else
+            throw OpalException("AmrObject::setTagging(std::string)",
+                                "Not supported refinement criteria "
+                                "[CHARGE_DENSITY | POTENTIAL | EFIELD | "
+                                "MOMENTA | MAX_NUM_PARTICLES | MIN_NUM_PARTICLES].");
     }
     
     /*!

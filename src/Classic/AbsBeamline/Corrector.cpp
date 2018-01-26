@@ -118,12 +118,13 @@ void Corrector::goOnline(const double &) {
         const double momentum = sqrt(std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * RefPartBunch_m->getM());
         const double magnitude = momentum / (Physics::c * pathLength);
         kickField_m = magnitude * RefPartBunch_m->getQ() * Vector_t(kickY_m, -kickX_m, 0.0);
+        *gmsg << __DBGMSG__ << kickField_m << "\t" << designEnergy_m << endl;
     }
 
     online_m = true;
 }
 
-void Corrector::setDesignEnergy(double ekin, bool changeable) {
+void Corrector::setDesignEnergy(const double& ekin, bool changeable) {
     if (designEnergyChangeable_m) {
         designEnergy_m = ekin;
         designEnergyChangeable_m = changeable;
@@ -134,6 +135,7 @@ void Corrector::setDesignEnergy(double ekin, bool changeable) {
             const double momentum = sqrt(std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * RefPartBunch_m->getM());
             const double magnitude = momentum / (Physics::c * pathLength);
             kickField_m = magnitude * RefPartBunch_m->getQ() * Vector_t(kickY_m, -kickX_m, 0.0);
+            *gmsg << __DBGMSG__ << kickField_m << "\t" << designEnergy_m << endl;
         }
     }
 }

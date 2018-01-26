@@ -11,16 +11,105 @@
 
 #include <cassert>
 
-#define REPORTONERROR(rc) reportOnError(rc, __FILE__, __LINE__)
+#define ADD_ATTACHMENT( fname ) {             \
+    h5_int64_t h5err = H5AddAttachment (H5file_m, fname); \
+    if (h5err <= H5_ERR) {                                              \
+        std::stringstream ss;                                               \
+        ss << "failed to add attachment " << fname << " to file " << fn_m; \
+        throw GeneralClassicException(std::string(__func__), ss.str()); \
+    }\
+}
+#define WRITE_FILEATTRIB_STRING( attribute, value ) {             \
+    h5_int64_t h5err = H5WriteFileAttribString (H5file_m, attribute, value); \
+    if (h5err <= H5_ERR) {                                              \
+        std::stringstream ss;                                               \
+        ss << "failed to write string attribute " << attribute << " to file " << fn_m; \
+        throw GeneralClassicException(std::string(__func__), ss.str()); \
+    }\
+}
+#define WRITE_STEPATTRIB_FLOAT64( attribute, value, size ) { \
+        h5_int64_t h5err = H5WriteStepAttribFloat64 (H5file_m, attribute, value, size); \
+    if (h5err <= H5_ERR) { \
+        std::stringstream ss; \
+        ss << "failed to write float64 attribute " << attribute << " to file " << fn_m; \
+        throw GeneralClassicException(std::string(__func__), ss.str()); \
+    }\
+}
+#define WRITE_STEPATTRIB_INT64( attribute, value, size ) { \
+        h5_int64_t h5err = H5WriteStepAttribInt64 (H5file_m, attribute, value, size); \
+    if (h5err <= H5_ERR) { \
+        std::stringstream ss; \
+        ss << "failed to write int64 attribute " << attribute << " to file " << fn_m; \
+        throw GeneralClassicException(std::string(__func__), ss.str()); \
+    }\
+}
+#define WRITE_DATA_FLOAT64( name, value ) { \
+        h5_int64_t h5err = H5PartWriteDataFloat64 (H5file_m, name, value); \
+    if (h5err <= H5_ERR) { \
+        std::stringstream ss; \
+        ss << "failed to write float64 data " << name << " to file " << fn_m; \
+        throw GeneralClassicException(std::string(__func__), ss.str()); \
+    }\
+}
+#define WRITE_DATA_INT64( name, value ) { \
+        h5_int64_t h5err = H5PartWriteDataInt64 (H5file_m, name, value); \
+    if (h5err <= H5_ERR) { \
+        std::stringstream ss; \
+        ss << "failed to write int64 data " << name << " to file " << fn_m; \
+        throw GeneralClassicException(std::string(__func__), ss.str()); \
+    }\
+}
+#define SET_STEP() {               \
+    h5_int64_t h5err = H5SetStep (H5file_m, H5call_m); \
+    if (h5err <= H5_ERR) {                                              \
+        std::stringstream ss;                                               \
+        ss << "failed to set step " << H5call_m << " in file " << fn_m; \
+        throw GeneralClassicException(std::string(__func__), ss.str()); \
+    }\
+}
+#define GET_NUM_STEPS() {                             \
+    H5call_m = H5GetNumSteps( H5file_m );                        \
+    if (H5call_m <= H5_ERR) {                                             \
+        std::stringstream ss;                                               \
+        ss << "failed to get number of steps of file " << fn_m; \
+        throw GeneralClassicException(std::string(__func__), ss.str()); \
+    }\
+}
+#define SET_NUM_PARTICLES( num ) {             \
+    h5_int64_t h5err = H5PartSetNumParticles (H5file_m, num); \
+    if (h5err <= H5_ERR) {                                              \
+        std::stringstream ss;                                               \
+        ss << "failed to set number of particles to " << num << " in step " << H5call_m << " in file " << fn_m; \
+        throw GeneralClassicException(std::string(__func__), ss.str()); \
+    }\
+}
+    
+#define OPEN_FILE( fname, mode, props ) {        \
+    H5file_m = H5OpenFile (fname, mode, props); \
+    if(H5file_m == (h5_file_t)H5_ERR) { \
+        std::stringstream ss;                                               \
+        ss << "failed to open file " << fn_m; \
+        throw GeneralClassicException(std::string(__func__), ss.str()); \
+    }\
+}
+#define CLOSE_FILE() {               \
+    h5_int64_t h5err = H5CloseFile (H5file_m); \
+    if (h5err <= H5_ERR) {                                              \
+        std::stringstream ss;                                               \
+        ss << "failed to close file " << fn_m; \
+        throw GeneralClassicException(std::string(__func__), ss.str()); \
+    }\
+}
+
 
 extern Inform *gmsg;
 
 std::map<double, std::string> LossDataSink::statFileEntries_s;
 
 LossDataSink::LossDataSink(std::string elem, bool hdf5Save, ElementBase::ElementType type):
-    element_m(elem),
     h5hut_mode_m(hdf5Save),
     H5file_m(0),
+    element_m(elem),
     H5call_m(0),
     type_m(type)
 {
@@ -36,9 +125,9 @@ LossDataSink::LossDataSink(std::string elem, bool hdf5Save, ElementBase::Element
 }
 
 LossDataSink::LossDataSink(const LossDataSink &rsh):
-    element_m(rsh.element_m),
     h5hut_mode_m(rsh.h5hut_mode_m),
     H5file_m(rsh.H5file_m),
+    element_m(rsh.element_m),
     H5call_m(rsh.H5call_m),
     RefPartR_m(rsh.RefPartR_m),
     RefPartP_m(rsh.RefPartP_m),
@@ -61,69 +150,51 @@ LossDataSink::LossDataSink(const LossDataSink &rsh):
 LossDataSink::LossDataSink() {
     LossDataSink(std::string("NULL"), false);
 }
-#define _unused(x) ((void)(x))
 
 LossDataSink::~LossDataSink() {
     if (H5file_m) {
-        h5_int64_t rc;
-        rc = H5CloseFile(H5file_m);
-        assert (rc != H5_ERR);
-        _unused(rc);
-
+        CLOSE_FILE ();
         H5file_m = 0;
     }
     Ippl::Comm->barrier();
 }
 
 void LossDataSink::openH5(h5_int32_t mode) {
-#if defined (USE_H5HUT2)
     h5_prop_t props = H5CreateFileProp ();
     MPI_Comm comm = Ippl::getComm();
     H5SetPropFileMPIOCollective (props, &comm);
-    H5file_m = H5OpenFile (fn_m.c_str(), mode, props);
-
-    if(H5file_m == (h5_file_t)H5_ERR) {
-        throw GeneralClassicException("LossDataSink::openH5",
-                                      "failed to open h5 file '" + fn_m + "'");
-    }
-#else
-
-    H5file_m = H5OpenFile(fn_m.c_str(), mode, Ippl::getComm());
-    if(H5file_m == (void*)H5_ERR) {
-        throw GeneralClassicException("LossDataSink::openH5",
-                                      "failed to open h5 file '" + fn_m + "'");
-    }
-#endif
+    OPEN_FILE (fn_m.c_str(), mode, props);
+    H5CloseProp (props);
 }
+
 
 void LossDataSink::writeHeaderH5() {
 
     // Write file attributes to describe phase space to H5 file.
     std::stringstream OPAL_version;
     OPAL_version << PACKAGE_NAME << " " << OPAL_VERSION_STR << " # git rev. " << Util::getGitRevision();
-    REPORTONERROR(H5WriteFileAttribString(H5file_m, "OPAL_version", OPAL_version.str().c_str()));
-    REPORTONERROR(H5WriteFileAttribString(H5file_m, "tUnit", "s"));
-    REPORTONERROR(H5WriteFileAttribString(H5file_m, "xUnit", "m"));
-    REPORTONERROR(H5WriteFileAttribString(H5file_m, "yUnit", "m"));
-    REPORTONERROR(H5WriteFileAttribString(H5file_m, "zUnit", "m"));
-    REPORTONERROR(H5WriteFileAttribString(H5file_m, "pxUnit", "#beta#gamma"));
-    REPORTONERROR(H5WriteFileAttribString(H5file_m, "pyUnit", "#beta#gamma"));
-    REPORTONERROR(H5WriteFileAttribString(H5file_m, "pzUnit", "#beta#gamma"));
-    REPORTONERROR(H5WriteFileAttribString(H5file_m, "idUnit", "1"));
+    WRITE_FILEATTRIB_STRING ("OPAL_version", OPAL_version.str().c_str());
+    WRITE_FILEATTRIB_STRING ("tUnit", "s");
+    WRITE_FILEATTRIB_STRING ("xUnit", "m");
+    WRITE_FILEATTRIB_STRING ("yUnit", "m");
+    WRITE_FILEATTRIB_STRING ("zUnit", "m");
+    WRITE_FILEATTRIB_STRING ("pxUnit", "#beta#gamma");
+    WRITE_FILEATTRIB_STRING ("pyUnit", "#beta#gamma");
+    WRITE_FILEATTRIB_STRING ("pzUnit", "#beta#gamma");
+    WRITE_FILEATTRIB_STRING ("idUnit", "1");
 
     /// in case of circular machines
     if (hasTimeAttribute()) {
-        REPORTONERROR(H5WriteFileAttribString(H5file_m, "turnUnit", "1"));
-
-        REPORTONERROR(H5WriteFileAttribString(H5file_m, "timeUnit", "s"));
+        WRITE_FILEATTRIB_STRING ("turnUnit", "1");
+        WRITE_FILEATTRIB_STRING ("timeUnit", "s");
     }
-    REPORTONERROR(H5WriteFileAttribString(H5file_m, "SPOSUnit", "mm"));
-    REPORTONERROR(H5WriteFileAttribString(H5file_m, "TIMEUnit", "s"));
+    WRITE_FILEATTRIB_STRING ("SPOSUnit", "mm");
+    WRITE_FILEATTRIB_STRING ("TIMEUnit", "s");
 
-    REPORTONERROR(H5WriteFileAttribString(H5file_m, "mpart", "GeV"));
-    REPORTONERROR(H5WriteFileAttribString(H5file_m, "qi", "C"));
+    WRITE_FILEATTRIB_STRING ("mpart", "GeV");
+    WRITE_FILEATTRIB_STRING ("qi", "C");
 
-    REPORTONERROR(H5AddAttachment(H5file_m, OpalData::getInstance()->getInputFn().c_str()));
+    ADD_ATTACHMENT (OpalData::getInstance()->getInputFn().c_str());
 }
 
 void LossDataSink::addReferenceParticle(const Vector_t &x,
@@ -150,7 +221,8 @@ void LossDataSink::addParticle(const Vector_t &x,const  Vector_t &p, const size_
 }
 
 // For ring type simulation, dump the time and turn number
-void LossDataSink::addParticle(const Vector_t &x, const Vector_t &p, const size_t id, const double time, const size_t turn) {
+void LossDataSink::addParticle(const Vector_t &x, const Vector_t &p, const size_t id,
+			       const double time, const size_t turn) {
     addParticle(x, p, id);
     turn_m.push_back(turn);
     time_m.push_back(time);
@@ -159,12 +231,10 @@ void LossDataSink::addParticle(const Vector_t &x, const Vector_t &p, const size_
 void LossDataSink::save(unsigned int numSets) {
 
     if (element_m == std::string("")) return;
-
     if (hasNoParticlesToDump()) return;
 
+    namespace fs = boost::filesystem;
     if (h5hut_mode_m) {
-        namespace fs = boost::filesystem;
-
         if (!Options::enableHDF5) return;
 
         fn_m = element_m + std::string(".h5");
@@ -173,12 +243,8 @@ void LossDataSink::save(unsigned int numSets) {
             openH5();
             writeHeaderH5();
         } else {
-#ifdef H5HUT_API_VERSION
             openH5(H5_O_APPENDONLY);
-#else
-            openH5(H5_O_APPEND);
-#endif
-            H5call_m = H5GetNumSteps(H5file_m);
+            GET_NUM_STEPS ();
         }
 
         splitSets(numSets);
@@ -186,24 +252,22 @@ void LossDataSink::save(unsigned int numSets) {
         for (unsigned int i = 0; i < numSets; ++ i) {
             saveH5(i);
         }
-	H5CloseFile(H5file_m);
+	CLOSE_FILE ();
 	H5file_m = 0;
-	Ippl::Comm->barrier();
     }
     else {
-
         fn_m = element_m + std::string(".loss");
-        INFOMSG("Save " << fn_m << endl);
-        if(OpalData::getInstance()->inRestartRun())
-	    append();
-        else
-	    open();
+        INFOMSG(level2 << "Save " << fn_m << endl);
+	if (Options::openMode == Options::WRITE || !fs::exists(fn_m)) {
+	    appendASCII();
+        } else {
+	    openASCII();
+        }
         writeHeaderASCII();
         saveASCII();
-        close();
-        Ippl::Comm->barrier();
-
+        closeASCII();
     }
+        Ippl::Comm->barrier();
 
     x_m.clear();
     y_m.clear();
@@ -257,10 +321,6 @@ void LossDataSink::saveH5(unsigned int setIdx) {
         nLoc = startSet_m[setIdx + 1] - startSet_m[setIdx];
     }
 
-    std::unique_ptr<char[]> varray(new char[(nLoc)*sizeof(double)]);
-    double *farray = reinterpret_cast<double *>(varray.get());
-    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
-
     std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
     std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
 
@@ -272,63 +332,31 @@ void LossDataSink::saveH5(unsigned int setIdx) {
     reduce(locN.get(), locN.get() + Ippl::getNodes(), globN.get(), OpAddAssign());
 
     /// Set current record/time step.
-    REPORTONERROR(H5SetStep(H5file_m, H5call_m));
-    REPORTONERROR(H5PartSetNumParticles(H5file_m, nLoc));
+    SET_STEP ();
+    SET_NUM_PARTICLES (nLoc);
 
     if (setIdx < spos_m.size()) {
-        REPORTONERROR(H5WriteStepAttribFloat64(H5file_m, "SPOS", &(spos_m[setIdx]), 1));
-        REPORTONERROR(H5WriteStepAttribFloat64(H5file_m, "TIME", &(refTime_m[setIdx]), 1));
-        REPORTONERROR(H5WriteStepAttribFloat64(H5file_m, "RefPartR", (h5_float64_t *)&(RefPartR_m[setIdx]), 3));
-        REPORTONERROR(H5WriteStepAttribFloat64(H5file_m, "RefPartP", (h5_float64_t *)&(RefPartP_m[setIdx]), 3));
-        REPORTONERROR(H5WriteStepAttribInt64(H5file_m, "GlobalTrackStep", &(globalTrackStep_m[setIdx]), 1));
+        WRITE_STEPATTRIB_FLOAT64 ("SPOS", &(spos_m[setIdx]), 1);
+        WRITE_STEPATTRIB_FLOAT64 ("TIME", &(refTime_m[setIdx]), 1);
+        WRITE_STEPATTRIB_FLOAT64 ("RefPartR", (h5_float64_t *)&(RefPartR_m[setIdx]), 3);
+        WRITE_STEPATTRIB_FLOAT64 ("RefPartP", (h5_float64_t *)&(RefPartP_m[setIdx]), 3);
+        WRITE_STEPATTRIB_INT64("GlobalTrackStep", &(globalTrackStep_m[setIdx]), 1);
     }
     // Write all data
-    size_t j = startIdx;
-    for(size_t i = 0; i < nLoc; ++ i, ++ j)
-        farray[i] = x_m[j];
-    REPORTONERROR(H5PartWriteDataFloat64(H5file_m, "x", farray));
-
-    j = startIdx;
-    for(size_t i = 0; i < nLoc; ++ i, ++ j)
-        farray[i] = y_m[j];
-    REPORTONERROR(H5PartWriteDataFloat64(H5file_m, "y", farray));
-
-    j = startIdx;
-    for(size_t i = 0; i < nLoc; ++ i, ++ j)
-        farray[i] = z_m[j];
-    REPORTONERROR(H5PartWriteDataFloat64(H5file_m, "z", farray));
-
-    j = startIdx;
-    for(size_t i = 0; i < nLoc; ++ i, ++ j)
-        farray[i] = px_m[j];
-    REPORTONERROR(H5PartWriteDataFloat64(H5file_m, "px", farray));
-
-    j = startIdx;
-    for(size_t i = 0; i < nLoc; ++ i, ++ j)
-        farray[i] = py_m[j];
-    REPORTONERROR(H5PartWriteDataFloat64(H5file_m, "py", farray));
-
-    j = startIdx;
-    for(size_t i = 0; i < nLoc; ++ i, ++ j)
-        farray[i] = pz_m[j];
-    REPORTONERROR(H5PartWriteDataFloat64(H5file_m, "pz", farray));
+    WRITE_DATA_FLOAT64 ("x", &x_m[startIdx]);
+    WRITE_DATA_FLOAT64 ("y", &y_m[startIdx]);
+    WRITE_DATA_FLOAT64 ("z", &z_m[startIdx]);
+    WRITE_DATA_FLOAT64 ("px", &px_m[startIdx]);
+    WRITE_DATA_FLOAT64 ("py", &py_m[startIdx]);
+    WRITE_DATA_FLOAT64 ("pz", &pz_m[startIdx]);
 
     /// Write particle id numbers.
-    j = startIdx;
-    for(size_t i = 0; i < nLoc; ++ i, ++ j)
-        larray[i] =  id_m[j];
-    REPORTONERROR(H5PartWriteDataInt64(H5file_m, "id", larray));
-
+    std::vector<h5_int64_t> larray(id_m.begin() + startIdx, id_m.end() );
+    WRITE_DATA_INT64 ("id", &larray[0]);
     if (hasTimeAttribute()) {
-        j = startIdx;
-        for(size_t i = 0; i < nLoc; ++ i, ++ j)
-            farray[i] = time_m[j];
-        REPORTONERROR(H5PartWriteDataFloat64(H5file_m, "time", farray));
-
-        j = startIdx;
-        for(size_t i = 0; i < nLoc; ++ i, ++ j)
-            larray[i] =  turn_m[j];
-        REPORTONERROR(H5PartWriteDataInt64(H5file_m, "turn", larray));
+        WRITE_DATA_FLOAT64 ("time", &time_m[startIdx]);
+        larray.assign (turn_m.begin() + startIdx, turn_m.end() );
+	WRITE_DATA_INT64 ("turn", &larray[0]);
     }
 
     ++ H5call_m;
@@ -467,10 +495,10 @@ void LossDataSink::splitSets(unsigned int numSets) {
     const size_t nLoc = x_m.size();
     size_t avgNumPerSet = nLoc / numSets;
     std::vector<size_t> numPartsInSet(numSets, avgNumPerSet);
-    size_t test = numSets * avgNumPerSet;
+    // size_t test = numSets * avgNumPerSet;
     for (unsigned int j = 0; j < (nLoc - numSets * avgNumPerSet); ++ j) {
         ++ numPartsInSet[j];
-        ++ test;
+        // ++ test;
     }
 
     if (/*nLoc > 0 && */time_m.size() == nLoc) {
@@ -892,3 +920,10 @@ void LossDataSink::writeStatistics() {
     statOut.close();
     statFileEntries_s.clear();
 }
+
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:
