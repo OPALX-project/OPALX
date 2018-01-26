@@ -68,38 +68,38 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
     unsigned int linesToRewind = 0;
     if (fs::exists(statFileName_m)) {
         firstWriteToStat_m = false;
-        INFOMSG("Appending statistical data to existing data file: " << statFileName_m << std::endl);
+        INFOMSG("Appending statistical data to existing data file: " << statFileName_m << endl);
         double spos = h5wrapper->getLastPosition();
         linesToRewind = rewindSDDStoSPos(spos);
         replaceVersionString(statFileName_m);
     } else {
-        INFOMSG("Creating new file for statistical data: " << statFileName_m << std::endl);
+        INFOMSG("Creating new file for statistical data: " << statFileName_m << endl);
     }
 
     if (fs::exists(lBalFileName_m)) {
-        INFOMSG("Appending load balance data to existing data file: " << lBalFileName_m << std::endl);
+        INFOMSG("Appending load balance data to existing data file: " << lBalFileName_m << endl);
         rewindLinesLBal(linesToRewind);
     } else {
-        INFOMSG("Creating new file for load balance data: " << lBalFileName_m << std::endl);
+        INFOMSG("Creating new file for load balance data: " << lBalFileName_m << endl);
     }
 
     if (fs::exists(memFileName_m)) {
-        INFOMSG("Appending memory consumption to existing data file: " << memFileName_m << std::endl);
+        INFOMSG("Appending memory consumption to existing data file: " << memFileName_m << endl);
         if (Ippl::myNode() == 0) {
             rewindLines(memFileName_m, linesToRewind);
         }
     } else {
-        INFOMSG("Creating new file for memory consumption data: " << memFileName_m << std::endl);
+        INFOMSG("Creating new file for memory consumption data: " << memFileName_m << endl);
     }
 
 #ifdef ENABLE_AMR
     if (fs::exists(gridLBalFileName_m)) {
-        INFOMSG("Appending grid load balancing to existing data file: " << gridLBalFileName_m << std::endl);
+        INFOMSG("Appending grid load balancing to existing data file: " << gridLBalFileName_m << endl);
         if (Ippl::myNode() == 0) {
             rewindLines(gridLBalFileName_m, linesToRewind);
         }
     } else {
-        INFOMSG("Creating new file for grid load balancing data: " << gridLBalFileName_m<< std::endl);
+        INFOMSG("Creating new file for grid load balancing data: " << gridLBalFileName_m << endl);
     }
 #endif
     
@@ -520,7 +520,7 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
             os_gridLBalData.open(gridLBalFileName_m.c_str(), std::ios::out);
             os_gridLBalData.precision(15);
             os_gridLBalData.setf(std::ios::scientific, std::ios::floatfield);
-            writeGridLBalHeader(beam, os_gridLBalData);
+            writeGridLBalHeader(&beam, os_gridLBalData);
 #endif
 
             firstWriteToStat_m = false;
@@ -612,7 +612,7 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
         }
 
 #ifdef ENABLE_AMR
-        writeGridLBalData(beam, os_gridLBalData, pwi);
+        writeGridLBalData(&beam, os_gridLBalData, pwi);
         os_gridLBalData.close();
 #endif
     }
@@ -998,7 +998,7 @@ void DataSink::writePartlossZASCII(PartBunchBase<double, 3> *beam, BoundaryGeome
           << "Zcoordinates (m)" << std::setw(18)
           << "Primary part. charge (C)" << std::setw(40)
           << "Field emit. part. charge (C)" << std::setw(40)
-          << "Secondary emit. part. charge (C)" << std::setw(40) << std::endl ;
+          << "Secondary emit. part. charge (C)" << std::setw(40) << endl;
     for(int i = 0; i < Geo_nr(2) ; i++) {
         prPartLossZ[i] = 0;
         sePartLossZ[i] = 0;
@@ -1020,13 +1020,13 @@ void DataSink::writePartlossZASCII(PartBunchBase<double, 3> *beam, BoundaryGeome
               << bg.TriBarycenters_m[j](2) <<  std::setw(40)
               << -bg.TriPrPartloss_m[j] << std::setw(40)
               << -bg.TriFEPartloss_m[j] <<  std::setw(40)
-              << -bg.TriSePartloss_m[j] << std::endl;
+              << -bg.TriSePartloss_m[j] << endl;
     }
     fid << "# Delta_Z/m" << std::setw(18)
         << "Zcoordinates (m)" << std::setw(18)
         << "Primary part. charge (C)" << std::setw(40)
         << "Field emit. part. charge (C)" << std::setw(40)
-        << "Secondary emit. part. charge (C)" << std::setw(40) << "t" << std::endl ;
+        << "Secondary emit. part. charge (C)" << std::setw(40) << "t" << endl;
 
 
     for(int i = 0; i < Geo_nr(2) ; i++) {
@@ -1040,7 +1040,7 @@ void DataSink::writePartlossZASCII(PartBunchBase<double, 3> *beam, BoundaryGeome
             << Geo_mincoords[2] + Geo_hr(2)*i << std::setw(18)
             << primaryPLoss << std::setw(40)
             << fieldemissionPLoss << std::setw(40)
-            << secondaryPLoss << std::setw(40) << t << std::endl;
+            << secondaryPLoss << std::setw(40) << t << endl;
     }
     lossWrCounter_m++;
     delete[] prPartLossZ;
@@ -1085,10 +1085,10 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
 
     rc = H5SetStep(H5fileS_m, step);
     if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << std::endl);
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     rc = H5PartSetNumParticles(H5fileS_m, N_mean);
     if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << std::endl);
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     double    qi = beam->getChargePerParticle();
     rc = H5WriteStepAttribFloat64(H5fileS_m, "qi", &qi, 1);
 
@@ -1132,7 +1132,7 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
     }
     rc = H5PartWriteDataFloat64(H5fileS_m, "PrimaryLoss", farray);
     if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << std::endl);
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     for(int i = 0; i < nTot; i++)
         tmploss[i] = 0.0;
     reduce(bg.TriSePartloss_m, bg.TriSePartloss_m + nTot, tmploss.get(), OpAddAssign()); // may be removed if we parallelize the geometry as well.
@@ -1170,7 +1170,7 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
     }
     rc = H5PartWriteDataFloat64(H5fileS_m, "SecondaryLoss", farray);
     if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << std::endl);
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     for(int i = 0; i < nTot; i++)
         tmploss[i] = 0.0;
 
@@ -1211,7 +1211,7 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
     }
     rc = H5PartWriteDataFloat64(H5fileS_m, "FNEmissionLoss", farray);
     if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << std::endl);
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
     count = 0;
     pc = 0;
     for(int i = 0; i < nTot; i++) {
@@ -1230,7 +1230,7 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
     }
     rc = H5PartWriteDataInt64(H5fileS_m, "TriangleID", larray);
     if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << std::endl);
+        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
 
     /// %Stop timer.
     IpplTimings::stopTimer(H5PartTimer_m);
@@ -1264,18 +1264,18 @@ void DataSink::writeImpactStatistics(PartBunchBase<double, 3> *beam, long long &
 
             if(step == 0) {
                 fid << "#Time/ns"  << std::setw(18) << "#Geometry impacts" << std::setw(18) << "tot_sey" << std::setw(18)
-                    << "TotalCharge" << std::setw(18) << "PartNum" << " numberOfFieldEmittedParticles " << std::endl ;
+                    << "TotalCharge" << std::setw(18) << "PartNum" << " numberOfFieldEmittedParticles " << endl;
             }
             fid << t << std::setw(18) << impact << std::setw(18) << sey_num << std::setw(18) << charge
-                << std::setw(18) << Npart_d << std::setw(18) << numberOfFieldEmittedParticles << std::endl ;
+                << std::setw(18) << Npart_d << std::setw(18) << numberOfFieldEmittedParticles << endl;
         } else {
 
             if(step == 0) {
                 fid << "#Time/ns"  << std::setw(18) << "#Geometry impacts" << std::setw(18) << "tot_sey" << std::setw(18)
-                    << "ParticleNumber" << " numberOfFieldEmittedParticles " << std::endl;
+                    << "ParticleNumber" << " numberOfFieldEmittedParticles " << endl;
             }
             fid << t << std::setw(18) << impact << std::setw(18) << sey_num
-                << std::setw(18) << double(Npart) << std::setw(18) << numberOfFieldEmittedParticles << std::endl ;
+                << std::setw(18) << double(Npart) << std::setw(18) << numberOfFieldEmittedParticles << endl;
         }
     }
 }
