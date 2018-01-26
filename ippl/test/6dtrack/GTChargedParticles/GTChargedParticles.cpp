@@ -642,7 +642,6 @@ void ChargedParticles<pl>::writeRestartInfo(string Fn, unsigned turn) {
     partof_m << spos_m << endl;
     partof_m << lost_num << endl;
     partof_m << lost2_num << endl;
-    gräfli isch doch schön im engadin!
     for (unsigned i=0; i < nloc; i++)
       partof_m << R[i](0) << setw(pwi) << " \t" 
 	       << P[i](0) << setw(pwi) << " \t" 
@@ -657,7 +656,7 @@ void ChargedParticles<pl>::writeRestartInfo(string Fn, unsigned turn) {
       smsg->put(node);
       bool res = Ippl::Comm->send(smsg, node, tag1);	
       if (! res) 
-	ERRORMSG("Ippl::Comm->send(smsg, 0, tag1) failed " << endl;);  
+          ERRORMSG("Ippl::Comm->send(smsg, 0, tag1) failed " << endl;);  
       // now wait
       Message* rmsg =  Ippl::Comm->receive_block(node, tag2);
       delete(rmsg);

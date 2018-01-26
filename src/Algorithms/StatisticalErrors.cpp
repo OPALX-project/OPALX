@@ -11,7 +11,7 @@
 #include "Parser/FileStream.h"
 #include "Structure/OpalInputInterpreter.h"
 #include "Structure/IpplInfoWrapper.h"
-#include "Structure/SDDSParser.h"
+#include "Util/SDDSParser.h"
 #include "Track/Track.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"

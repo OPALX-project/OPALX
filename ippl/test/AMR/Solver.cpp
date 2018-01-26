@@ -1,40 +1,40 @@
 #include "Solver.h"
 
-#include "Ippl.h"
-
 void 
 Solver::solve_for_accel(const container_t& rhs,
                         const container_t& phi,
                         const container_t& grad_phi, 
-                        const Array<Geometry>& geom,
+                        const amrex::Array<amrex::Geometry>& geom,
                         int base_level,
                         int finest_level,
-                        Real offset,
+                        amrex::Real offset,
                         bool timing,
                         bool doGradient)
 {
+    using amrex::Array;
+
     static IpplTimings::TimerRef edge2centerTimer;
     
     if ( timing )
         edge2centerTimer = IpplTimings::getTimer("grad-edge2center");
     
-//     Real reltol = 1.0e-14;
-//     Real abstol = 1.0e-12;
+//     amrex::Real reltol = 1.0e-14;
+//     amrex::Real abstol = 1.0e-12;
     
-//     Real reltol = 1.0e-12;
-    Real reltol = 1.0e-9;
-    Real abstol = 0.0;
+//     amrex::Real reltol = 1.0e-12;
+    amrex::Real reltol = 1.0e-14;
+    amrex::Real abstol = 1.0e-10;
 
-    Array<container_t> grad_phi_edge(rhs.size());
+    amrex::Array<container_t> grad_phi_edge(rhs.size());
     
     if ( doGradient ) {
         for (int lev = base_level; lev <= finest_level ; lev++)
         {
-            const DistributionMapping& dm = rhs[lev]->DistributionMap();
-            grad_phi_edge[lev].resize(BL_SPACEDIM);
-            for (int n = 0; n < BL_SPACEDIM; ++n) {
-                BoxArray ba = rhs[lev]->boxArray();
-                grad_phi_edge[lev][n].reset(new MultiFab(ba.surroundingNodes(n), dm, 1, 1));
+            const amrex::DistributionMapping& dm = rhs[lev]->DistributionMap();
+            grad_phi_edge[lev].resize(AMREX_SPACEDIM);
+            for (int n = 0; n < AMREX_SPACEDIM; ++n) {
+                amrex::BoxArray ba = rhs[lev]->boxArray();
+                grad_phi_edge[lev][n].reset(new amrex::MultiFab(ba.surroundingNodes(n), dm, 1, 1));
             }
         }
     }
@@ -73,7 +73,7 @@ Solver::solve_for_accel(const container_t& rhs,
                                               amrex::GetArrOfConstPtrs(grad_phi_edge[lev]),
                                               geom[lev]);
         
-            grad_phi[lev]->FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
+            grad_phi[lev]->FillBoundary(0,AMREX_SPACEDIM,geom[lev].periodicity());
         }
         
         for (int lev = base_level; lev <= finest_level; ++lev) {
@@ -89,12 +89,12 @@ Solver::solve_for_accel(const container_t& rhs,
 void 
 Solver::solve_with_f90(const container_pt& rhs,
                        const container_pt& phi,
-                       const Array<container_pt>& grad_phi_edge,
-                       const Array<Geometry>& geom,
+                       const amrex::Array<container_pt>& grad_phi_edge,
+                       const amrex::Array<amrex::Geometry>& geom,
                        int base_level,
                        int finest_level,
-                       Real reltol,
-                       Real abstol,
+                       amrex::Real reltol,
+                       amrex::Real abstol,
                        bool timing,
                        bool doGradient)
 {
@@ -114,21 +114,21 @@ Solver::solve_with_f90(const container_pt& rhs,
     
     int nlevs = finest_level - base_level + 1;
 
-    int mg_bc[2*BL_SPACEDIM];
+    int mg_bc[2*AMREX_SPACEDIM];
 
     // This tells the solver that we are using Dirichlet bc's
-    if (Geometry::isAllPeriodic()) {
+    if (amrex::Geometry::isAllPeriodic()) {
 //         if ( ParallelDescriptor::IOProcessor() )
 //             std::cerr << "Periodic BC" << std::endl;
         
-        for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
             // periodic BC
             mg_bc[2*dir + 0] = MGT_BC_PER;
             mg_bc[2*dir + 1] = MGT_BC_PER;
         }
-    } else if ( Geometry::isAnyPeriodic() ) {
-        for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
-            if ( Geometry::isPeriodic(dir) ) {
+    } else if ( amrex::Geometry::isAnyPeriodic() ) {
+        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+            if ( amrex::Geometry::isPeriodic(dir) ) {
                 mg_bc[2*dir + 0] = MGT_BC_PER;
                 mg_bc[2*dir + 1] = MGT_BC_PER;
             } else {
@@ -140,7 +140,7 @@ Solver::solve_with_f90(const container_pt& rhs,
 //         if ( ParallelDescriptor::IOProcessor() )
 //             std::cerr << "Dirichlet BC" << std::endl;
         
-        for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
             // Dirichlet BC
             mg_bc[2*dir + 0] = MGT_BC_DIR;
             mg_bc[2*dir + 1] = MGT_BC_DIR;
@@ -148,7 +148,7 @@ Solver::solve_with_f90(const container_pt& rhs,
     }
 
     // Have to do some packing because these arrays does not always start with base_level
-    Array<Geometry> geom_p(nlevs);
+    amrex::Array<amrex::Geometry> geom_p(nlevs);
     container_pt rhs_p(nlevs);
     container_pt phi_p(nlevs);
     
@@ -159,10 +159,10 @@ Solver::solve_with_f90(const container_pt& rhs,
     }
     
     //FIXME Refinement ratio is hardwired to 2 here.
-    IntVect crse_ratio = (base_level == 0) ? 
-	IntVect::TheZeroVector() : IntVect::TheUnitVector() * 2;
+    amrex::IntVect crse_ratio = (base_level == 0) ? 
+	amrex::IntVect::TheZeroVector() : amrex::IntVect::TheUnitVector() * 2;
 
-    FMultiGrid fmg(geom_p, base_level, crse_ratio);
+    amrex::FMultiGrid fmg(geom_p, base_level, crse_ratio);
 
     if (base_level == 0) {
 	fmg.set_bc(mg_bc, *phi_p[base_level]);
@@ -183,19 +183,19 @@ Solver::solve_with_f90(const container_pt& rhs,
 
     int always_use_bnorm = 0;
     int need_grad_phi = (doGradient) ? 1 : 0;
-    fmg.set_verbose(5);
+    fmg.set_verbose(0);
     
     if ( timing )
         IpplTimings::stopTimer(initSolverTimer);
     
     if ( timing )
         IpplTimings::startTimer(doSolveTimer);
-    Real final_resnorm = fmg.solve(phi_p, rhs_p, reltol, abstol, always_use_bnorm, need_grad_phi);
+    amrex::Real final_resnorm = fmg.solve(phi_p, rhs_p, reltol, abstol, always_use_bnorm, need_grad_phi);
     
-    if ( final_resnorm > reltol ) {
+    if ( final_resnorm > abstol ) {
         std::stringstream ss;
         ss << "Residual norm: " << std::setprecision(16) << final_resnorm
-           << " > " << reltol << " (relative tolerance)";
+           << " > " << abstol << " (absolute tolerance)";
         throw std::runtime_error("\033[1;31mError: The solver did not converge: " +
                                  ss.str() + "\033[0m");
     }
@@ -219,27 +219,27 @@ Solver::solve_with_f90(const container_pt& rhs,
 #ifdef USEHYPRE
 // We solve (a alpha - b del dot beta grad) soln = rhs
 // where a and b are scalars, alpha and beta are arrays
-void Solver::solve_with_hypre(MultiFab& soln, MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
+void Solver::solve_with_hypre(amrex::MultiFab& soln, amrex::MultiFab& rhs, const amrex::BoxArray& bs, const amrex::Geometry& geom)
 {
-    int  verbose       = 2;
-    Real tolerance_rel = 1.e-8;
-    Real tolerance_abs = 0.0;
+    int  verbose       = 0;
+    amrex::Real tolerance_rel = 1.e-8;
+    amrex::Real tolerance_abs = 0.0;
     int  maxiter       = 100;
     BL_PROFILE("solve_with_hypre()");
     BndryData bd(bs, 1, geom);
     set_boundary(bd, rhs, 0);
     
-    Real a = 0.0;
-    Real b = 1.0;
+    amrex::Real a = 0.0;
+    amrex::Real b = 1.0;
     
     // Set up the Helmholtz operator coefficients.
-    MultiFab alpha(bs, 1, 0);
+    amrex::MultiFab alpha(bs, 1, 0);
     alpha.setVal(0.0);
     
-    PArray<MultiFab> beta(BL_SPACEDIM, PArrayManage);
-    for ( int n=0; n<BL_SPACEDIM; ++n ) {
-        BoxArray bx(bs);
-        beta.set(n, new MultiFab(bx.surroundingNodes(n), 1, 0, Fab_allocate));
+    PArray<amrex::MultiFab> beta(AMREX_SPACEDIM, PArrayManage);
+    for ( int n=0; n<AMREX_SPACEDIM; ++n ) {
+        amrex::BoxArray bx(bs);
+        beta.set(n, new amrex::MultiFab(bx.surroundingNodes(n), 1, 0, Fab_allocate));
         beta[n].setVal(1.0);
     }
     
@@ -252,12 +252,12 @@ void Solver::solve_with_hypre(MultiFab& soln, MultiFab& rhs, const BoxArray& bs,
 }
 
 
-void Solver::set_boundary(BndryData& bd, const MultiFab& rhs, int comp)
+void Solver::set_boundary(BndryData& bd, const amrex::MultiFab& rhs, int comp)
 {
   BL_PROFILE("set_boundary()");
-  Real bc_value = 0.0;
+  amrex::Real bc_value = 0.0;
 
-  for (int n=0; n<BL_SPACEDIM; ++n) {
+  for (int n=0; n<AMREX_SPACEDIM; ++n) {
     for (MFIter mfi(rhs); mfi.isValid(); ++mfi ) {
       int i = mfi.index(); 
       
@@ -279,7 +279,7 @@ void Solver::set_boundary(BndryData& bd, const MultiFab& rhs, int comp)
       // Now test to see if we should override the above with Dirichlet or Neumann physical bc's
 //       if (bc_type != Periodic) { 
 	int ibnd = static_cast<int>(LO_DIRICHLET);
-	const Geometry& geom = bd.getGeom();
+	const amrex::Geometry& geom = bd.getGeom();
 
 	// We are on the low side of the domain in coordinate direction n
 	if (bx.smallEnd(n) == geom.Domain().smallEnd(n)) {

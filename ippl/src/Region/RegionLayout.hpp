@@ -454,7 +454,7 @@ void RegionLayout<T,Dim,MeshType>::changeDomain(const NDRegion<T,Dim>& domain,
   // create a mesh, if necessary
   // right now, we assume that the current mesh is adequate, but 
   // we might have to pass a new one in or create one.
-  PAssert(theMesh != 0);
+  PAssert(theMesh);
 
   // set our index space and centering offsets
   for (d=0; d < Dim; ++d) {

@@ -10,6 +10,7 @@
 #include "Utilities/Util.h"
 #include "Physics/Physics.h"
 
+#include "h5core/h5_types.h"
 #include <boost/filesystem.hpp>
 
 #include <sstream>
@@ -69,20 +70,10 @@ void H5PartWrapperForPT::readHeader() {
         auto opal = OpalData::getInstance();
         h5_float64_t phase;
         h5_int64_t numAutoPhaseCavities = 0;
-#ifdef USE_H5HUT2
         if (!H5HasFileAttrib(file_m, "nAutoPhaseCavities") ||
             H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &numAutoPhaseCavities) != H5_SUCCESS) {
             numAutoPhaseCavities = 0;
-        }
-#else
-        H5SetErrorHandler(H5ReportErrorhandler);
-        h5_int64_t rc = H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &numAutoPhaseCavities);
-        H5SetErrorHandler(H5AbortErrorhandler);
-        if (rc != H5_SUCCESS) {
-            numAutoPhaseCavities = 0;
-        }
-#endif
-        else {
+        } else {
             for(long i = 0; i < numAutoPhaseCavities; ++ i) {
                 std::string elementName  = "Cav-" + std::to_string(i + 1) + "-name";
                 std::string elementPhase = "Cav-" + std::to_string(i + 1) + "-value";
@@ -252,8 +243,10 @@ void H5PartWrapperForPT::writeHeader() {
 void H5PartWrapperForPT::writeStep(PartBunchBase<double, 3>* bunch, const std::map<std::string, double> &additionalStepAttributes) {
     if (bunch->getTotalNum() == 0) return;
 
+    open(H5_O_APPENDONLY);
     writeStepHeader(bunch, additionalStepAttributes);
     writeStepData(bunch);
+    close();
 }
 
 void H5PartWrapperForPT::writeStepHeader(PartBunchBase<double, 3>* bunch, const std::map<std::string, double> &additionalStepAttributes) {

@@ -104,7 +104,7 @@ void SectorField::setPolarBoundingBox
                "Bounding box minimum y was greater than maximum y"
                ));
     }
-    if (bbMinY > bbMaxY) {
+    if (bbMinPhi > bbMaxPhi) {
         throw(LogicalError(
                "SectorField::SetPolarBoundingBox",
                "Bounding box minimum angle was greater than maximum angle"

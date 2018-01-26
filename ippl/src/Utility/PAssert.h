@@ -10,9 +10,11 @@
 
 #ifndef PASSERT_H
 #define PASSERT_H
+#include "Utility/IpplInfo.h"
 
 #include <exception>
 #include <stdexcept>
+#include <string>
 //////////////////////////////////////////////////////////////////////
 //
 // This is a compile time assert.
@@ -77,6 +79,21 @@ public:
 // These are the functions that will be called in the assert macros.
 
 void toss_cookies( const char *cond, const char *file, int line );
+template <class S, class T>
+void toss_cookies( const char *cond, const char *astr, const char *bstr, S a, T b, const char *file, int line) {
+
+    //Ippl::exitAllNodes(cond, false);
+
+    std::string what = "Assertion '" + std::string(cond) + "' failed. \n";
+    what += std::string(astr) + " = " + std::to_string(a) + ", ";
+    what += std::string(bstr) + " = " + std::to_string(b) + "\n";
+    what += "in \n";
+    what += std::string(file) + ", line  " + std::to_string(line);
+
+    throw std::runtime_error(what);
+}
+
+
 void insist( const char *cond, const char *msg, const char *file, int line );
 
 //---------------------------------------------------------------------------//
@@ -90,8 +107,21 @@ void insist( const char *cond, const char *msg, const char *file, int line );
 
 #ifdef NOPAssert
 #define PAssert(c)
+#define PAssert_EQ(a, b)
+#define PAssert_NE(a, b)
+#define PAssert_LT(a, b)
+#define PAssert_LE(a, b)
+#define PAssert_GT(a, b)
+#define PAssert_GE(a, b)
 #else
 #define PAssert(c) if (!(c)) toss_cookies( #c, __FILE__, __LINE__ );
+#define PAssert_CMP(cmp, a, b) if (!(cmp)) toss_cookies(#cmp, #a, #b, a, b, __FILE__, __LINE__);
+#define PAssert_EQ(a, b) PAssert_CMP(a == b, a, b)
+#define PAssert_NE(a, b) PAssert_CMP(a != b, a, b)
+#define PAssert_LT(a, b) PAssert_CMP(a < b, a, b)
+#define PAssert_LE(a, b) PAssert_CMP(a <= b, a, b)
+#define PAssert_GT(a, b) PAssert_CMP(a > b, a, b)
+#define PAssert_GE(a, b) PAssert_CMP(a >= b, a, b)
 #endif
 
 //---------------------------------------------------------------------------//

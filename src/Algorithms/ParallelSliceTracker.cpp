@@ -222,7 +222,7 @@ void ParallelSliceTracker::computeExternalFields() {
     IpplTimings::startTimer(timeFieldEvaluation_m);
 
     Vector_t externalE, externalB, KR, KT;
-    bool globalEOL_m;
+    //bool globalEOL_m;
 
     for (int i = 0; i < itsBunch_m->getLocalNum(); i++) {
 
@@ -238,7 +238,7 @@ void ParallelSliceTracker::computeExternalFields() {
         unsigned long rtv = itsOpalBeamline_m->getFieldAt(i, pos, ls,
                 currentSimulationTime_m , externalE, externalB);
 
-        globalEOL_m = globalEOL_m && (rtv & BEAMLINE_EOL);
+        //globalEOL_m = globalEOL_m && (rtv & BEAMLINE_EOL);
 
         itsOpalBeamline_m->getKFactors(i, pos, ls, currentSimulationTime_m, KR, KT);
 

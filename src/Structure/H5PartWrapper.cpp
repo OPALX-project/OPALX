@@ -16,19 +16,11 @@
 extern Inform *gmsg;
 
 namespace {
-#if defined (USE_H5HUT2)
     const h5_int64_t H5TypesCHAR = H5_STRING_T;
     const h5_int64_t H5TypesFLOAT = H5_FLOAT32_T;
     const h5_int64_t H5TypesDOUBLE = H5_FLOAT64_T;
     const h5_int64_t H5TypesINT32 = H5_INT32_T;
     const h5_int64_t H5TypesINT64 = H5_INT64_T;
-#else
-    const h5_int64_t H5TypesCHAR = H5T_NATIVE_CHAR;
-    const h5_int64_t H5TypesFLOAT = H5T_NATIVE_FLOAT;
-    const h5_int64_t H5TypesDOUBLE = H5T_NATIVE_DOUBLE;
-    const h5_int64_t H5TypesINT32 = H5T_NATIVE_INT32;
-    const h5_int64_t H5TypesINT64 = H5T_NATIVE_INT64;
-#endif
 }
 
 std::string H5PartWrapper::copyFilePrefix_m = ".copy";
@@ -60,7 +52,7 @@ H5PartWrapper::H5PartWrapper(const std::string &fileName, int restartStep, std::
 }
 
 H5PartWrapper::~H5PartWrapper() {
-        close();
+    close();
 }
 
 void H5PartWrapper::close() {
@@ -76,7 +68,6 @@ void H5PartWrapper::close() {
 void H5PartWrapper::open(h5_int32_t flags) {
     close();
 
-#if defined (USE_H5HUT2)
     h5_prop_t props = H5CreateFileProp ();
     MPI_Comm comm = Ippl::getComm();
     h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
@@ -86,34 +77,27 @@ void H5PartWrapper::open(h5_int32_t flags) {
     assert (h5err != H5_ERR);
     file_m = H5OpenFile (fileName_m.c_str(), flags, props);
     assert (file_m != (h5_file_t)H5_ERR);
-#else
-    file_m = H5OpenFile(fileName_m.c_str(), H5_FLUSH_STEP | flags, Ippl::getComm());
-    assert (file_m != (void*)H5_ERR);
-#endif
-
-
+    H5CloseProp (props);
 }
 
 void H5PartWrapper::storeCavityInformation() {
     /// Write number of Cavities with autophase information
-    h5_int64_t nAutopPhaseCavities = OpalData::getInstance()->getNumberOfMaxPhases();
+    h5_int64_t nAutoPhaseCavities = OpalData::getInstance()->getNumberOfMaxPhases();
     h5_int64_t nFormerlySavedAutoPhaseCavities = 0;
+    bool fileWasClosed = (file_m == 0);
 
-#ifdef USE_H5HUT2
+    if (nAutoPhaseCavities == 0) return;
+    if (fileWasClosed) open(H5_O_APPENDONLY);
     if (!H5HasFileAttrib(file_m, "nAutoPhaseCavities") ||
         H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &nFormerlySavedAutoPhaseCavities) != H5_SUCCESS) {
         nFormerlySavedAutoPhaseCavities = 0;
     }
-#else
-    H5SetErrorHandler(H5ReportErrorhandler);
-    if (H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &nFormerlySavedAutoPhaseCavities) != H5_SUCCESS) {
-        nFormerlySavedAutoPhaseCavities = 0;
+    if (nFormerlySavedAutoPhaseCavities == nAutoPhaseCavities) {
+        if (fileWasClosed) close();
+        return;
     }
-    H5SetErrorHandler(H5AbortErrorhandler);
-#endif
-    if (nFormerlySavedAutoPhaseCavities == nAutopPhaseCavities) return;
 
-    WRITEFILEATTRIB(Int64, file_m, "nAutoPhaseCavities", &nAutopPhaseCavities, 1);
+    WRITEFILEATTRIB(Int64, file_m, "nAutoPhaseCavities", &nAutoPhaseCavities, 1);
 
     unsigned int elementNumber = 1;
     std::vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases();
@@ -134,6 +118,8 @@ void H5PartWrapper::storeCavityInformation() {
                 << nameAttributeName << " -> " << elementName << " --- "
                 << valueAttributeName << " -> " << elementPhase << endl);
     }
+
+    if (fileWasClosed) close();
 }
 
 void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int32_t flags) {
@@ -145,7 +131,6 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
     }
 
     if (sourceFile == fileName_m) {
-#if defined (USE_H5HUT2)
         h5_prop_t props = H5CreateFileProp ();
         MPI_Comm comm = Ippl::getComm();
         h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
@@ -155,10 +140,7 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
         assert (h5err != H5_ERR);
         h5_file_t source = H5OpenFile (sourceFile.c_str(), H5_O_RDONLY, props);
         assert (source != (h5_file_t)H5_ERR);
-#else
-        h5_file_t *source = H5OpenFile(sourceFile.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, Ippl::getComm());
-        assert (source != (void*)H5_ERR);
-#endif
+        H5CloseProp (props);
         h5_ssize_t numStepsInSource = H5GetNumSteps(source);
 
         if (lastStep == -1 || lastStep >= numStepsInSource) {
@@ -186,17 +168,13 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
         Ippl::Comm->barrier();
 
         open(flags);
-#if defined (USE_H5HUT2)
 	props = H5CreateFileProp ();
 	comm = Ippl::getComm();
 	h5err = H5SetPropFileMPIOCollective (props, &comm);
 	assert (h5err != H5_ERR);
 	source = H5OpenFile (sourceFileName.c_str(), H5_O_RDONLY, props);
 	assert (source != (h5_file_t)H5_ERR);
-#else
-        source = H5OpenFile(sourceFileName.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, Ippl::getComm());
-        assert (source != (void*)H5_ERR);
-#endif
+        H5CloseProp (props);
         copyHeader(source);
 
         if (lastStep < 0) {
@@ -222,7 +200,6 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
 
         open(flags);
 
-#if defined (USE_H5HUT2)
         h5_prop_t props = H5CreateFileProp ();
         MPI_Comm comm = Ippl::getComm();
         h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
@@ -232,10 +209,7 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
         assert (h5err != H5_ERR);
         h5_file_t source = H5OpenFile (sourceFile.c_str(), H5_O_RDONLY, props);
         assert (source != (h5_file_t)H5_ERR);
-#else
-        h5_file_t *source = H5OpenFile(sourceFile.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, Ippl::getComm());
-        assert (source != (void*)H5_ERR);
-#endif
+        H5CloseProp (props);
         h5_ssize_t numStepsInSource = H5GetNumSteps(source);
 
         if (lastStep == -1 || lastStep >= numStepsInSource) {
@@ -311,11 +285,7 @@ void H5PartWrapper::copyFileSystem(const std::string &sourceFile) {
 }
 
 void H5PartWrapper::copyHeader(
-#if defined (USE_H5HUT2)
     h5_file_t source
-#else
-    h5_file_t *source
-#endif
     ) {
     h5_int64_t numFileAttributes = H5GetNumFileAttribs(source);
 
@@ -385,11 +355,7 @@ void H5PartWrapper::copyHeader(
 }
 
 void H5PartWrapper::copyStep(
-#if defined (USE_H5HUT2)
     h5_file_t source,
-#else
-    h5_file_t *source,
-#endif
     int step
     ) {
     REPORTONERROR(H5SetStep(file_m, numSteps_m));
@@ -400,11 +366,7 @@ void H5PartWrapper::copyStep(
 }
 
 void H5PartWrapper::copyStepHeader(
-#if defined (USE_H5HUT2)
     h5_file_t source
-#else
-    h5_file_t *source
-#endif
     ) {
     h5_int64_t numStepAttributes = H5GetNumStepAttribs(source);
 
@@ -478,11 +440,7 @@ void H5PartWrapper::copyStepHeader(
 }
 
 void H5PartWrapper::copyStepData(
-#if defined (USE_H5HUT2)
     h5_file_t source
-#else
-    h5_file_t *source
-#endif
     ) {
     h5_size_t lengthSetName = 256;
     char setName[lengthSetName];

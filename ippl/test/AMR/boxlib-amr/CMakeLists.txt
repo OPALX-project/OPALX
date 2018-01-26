@@ -11,7 +11,7 @@ message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
 set (CMAKE_CXX_FLAGS "-O3 ${CMAKE_CXX_FLAGS} -DBL_USE_FORTRAN_MPI")
     
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
+    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
 )
     
 include_directories (
@@ -37,7 +37,8 @@ link_directories (
 # remove digits from hostname: edison03 -> edison
 STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
     
-IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
+IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
+   ${HOSTNAME_BASE} MATCHES "daint")
     SET (LIBS
         ${H5Hut_LIBRARY}
         ${HDF5_LIBRARY}
@@ -57,7 +58,8 @@ ELSE()
         m
         z
     )
-ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
+ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
+      ${HOSTNAME_BASE} MATCHES "daint")
     
 set(F90_source_files ../Tagging_nd.f90)
     

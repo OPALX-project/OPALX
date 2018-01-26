@@ -535,7 +535,7 @@ bool DiscParticle::read_meta() {
     DPFDBG(dbgmsg << "Waiting for meta info from node " << node);
     DPFDBG(dbgmsg << " with tag " << tag << endl);
     Message *msg = Ippl::Comm->receive_block(node, tag);
-    PAssert(msg != 0);
+    PAssert(msg);
 
     // get info out of message
     DPFDBG(dbgmsg << "Summary of received meta info:" << endl);

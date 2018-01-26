@@ -529,9 +529,10 @@ void Distribution::doRestartOpalT(PartBunchBase<double, 3> *beam, size_t Np, int
     size_t lastParticle = firstParticle + numParticlesPerNode - 1;
     if (Ippl::myNode() == Ippl::getNodes() - 1)
         lastParticle = numParticles - 1;
+    OpalData::getInstance()->addProblemCharacteristicValue("NP", numParticles);
 
     numParticles = lastParticle - firstParticle + 1;
-    PAssert(numParticles >= 0);
+    PAssert_GE(numParticles, 0);
 
     beam->create(numParticles);
 
@@ -569,9 +570,10 @@ void Distribution::doRestartOpalCycl(PartBunchBase<double, 3> *beam,
     size_t lastParticle = firstParticle + numParticlesPerNode - 1;
     if (Ippl::myNode() == Ippl::getNodes() - 1)
         lastParticle = numParticles - 1;
+    OpalData::getInstance()->addProblemCharacteristicValue("NP", numParticles);
 
     numParticles = lastParticle - firstParticle + 1;
-    PAssert(numParticles >= 0);
+    PAssert_GE(numParticles, 0);
 
     beam->create(numParticles);
 
@@ -1546,6 +1548,7 @@ void Distribution::createOpalCycl(PartBunchBase<double, 3> *beam,
 
     injectBeam(beam);
 
+    OpalData::getInstance()->addProblemCharacteristicValue("NP", numberOfParticles);
 }
 
 void Distribution::createOpalE(Beam *beam,
@@ -1768,6 +1771,7 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
     if (!emitting_m)
         injectBeam(beam);
 
+    OpalData::getInstance()->addProblemCharacteristicValue("NP", numberOfParticles);
     IpplTimings::stopTimer(beam->distrCreate_m);
 }
 
@@ -2170,7 +2174,7 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
 
     /*!
      *
-     * \brief Following W. Johos for his report  <a href="http://gfa.web.psi.ch/publications/presentations/WernerJoho/TM-11-14.pdf"> TM-11-14 </a>
+     * \brief Following W. Johos for his report  <a href="https://intranet.psi.ch/pub/AUTHOR_WWW/ABE/TalksDE/TM-11-14.pdf"> TM-11-14 </a>
      *
      * For the \f$x,p_x\f$ phase space we have:
      * \f[
@@ -2195,10 +2199,10 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
             * cos(asin(correlationMatrix_m(2 * index + 1, 2 * index)));
 
         if (std::abs(emittance(index)) > std::numeric_limits<double>::epsilon()) {
-            beta(index) = pow(sigmaR_m[index], 2.0) / emittance(index);
+            beta(index)  = pow(sigmaR_m[index], 2.0) / emittance(index);
             gamma(index) = pow(sigmaP_m[index], 2.0) / emittance(index);
         } else {
-            beta(index) = sqrt(std::numeric_limits<double>::max());
+            beta(index)  = sqrt(std::numeric_limits<double>::max());
             gamma(index) = sqrt(std::numeric_limits<double>::max());
         }
         alpha(index) = -correlationMatrix_m(2 * index + 1, 2 * index)
@@ -2278,7 +2282,7 @@ void Distribution::generateBinomial(size_t numberOfParticles) {
         AL = Physics::two_pi * gsl_rng_uniform(randGen_m);
         U = A * cos(AL);
         V = A * sin(AL);
-        x[2] = X[2] * (Ux * correlationMatrix_m(4, 0) + Vx * l32 + U * l33);
+        x[2] = X[2] *  (Ux * correlationMatrix_m(4, 0) + Vx * l32 + U * l33);
         p[2] = PX[2] * (Ux * correlationMatrix_m(5, 0) + Vx * l42 + U * l43 + V * l44);
 
         // Save to each processor in turn.
@@ -2482,7 +2486,7 @@ void Distribution::generateFlattopZ(size_t numberOfParticles) {
             yDist_m.push_back(y);
             pyDist_m.push_back(py);
             tOrZDist_m.push_back(z);
-            pzDist_m.push_back(pz);
+            pzDist_m.push_back(avrgpz_m + pz);
         }
     }
 
@@ -4758,7 +4762,7 @@ void Distribution::adjustPhaseSpace(double massIneV) {
                     (std::pow(pxDist_m[i] + deltaPx, 2) +
                      std::pow(pyDist_m[i] + deltaPy, 2)) / (2 * pzDist_m[i]));
     }
-    reduce(avrg, avrg + 6, avrg, OpAddAssign());
+    allreduce(&(avrg[0]), 6, std::plus<double>());
     avrg[5] /= totalNumberParticles_m;
 
     // solve

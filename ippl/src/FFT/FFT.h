@@ -52,14 +52,14 @@ class SineTransform {};
 /**
    Non-specialized FFT class.  We specialize based on Transform tag class
 */
-template <class Transform, unsigned Dim, class T>
+template <class Transform, size_t Dim, class T>
 class FFT : public FFTBase<Dim,T> {};
 
 
 /**
    complex-to-complex FFT class
 */
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 class FFT<CCTransform,Dim,T> : public FFTBase<Dim,T> {
 
 private:
@@ -95,7 +95,7 @@ public:
 
     // construct array of axis lengths
     int lengths[Dim];
-    unsigned d;
+    size_t d;
     for (d=0; d<Dim; ++d)
       lengths[d] = cdomain[d].length();
 
@@ -169,13 +169,13 @@ public:
     // Check domain of incoming Field
     const Layout_t& in_layout = f.getLayout();
     const Domain_t& in_dom = in_layout.getDomain();
-    PAssert(this->checkDomain(this->getDomain(),in_dom));
+    PAssert_EQ(this->checkDomain(this->getDomain(),in_dom), true);
 
     // Common loop iterate and other vars:
-    unsigned d;
+    size_t d;
     int idim;            // idim loops over the number of transform dims.
     int begdim, enddim;  // beginning and end of transform dim loop
-    unsigned nTransformDims = this->numTransformDims();
+    size_t nTransformDims = this->numTransformDims();
     // Field* for temp Field management:
     ComplexField_t* temp = &f;
     // Local work array passed to FFT:
@@ -304,7 +304,7 @@ private:
 /**
    invoke two-field transform function using direction name string
 */
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 inline void
 FFT<CCTransform,Dim,T>::transform(
 				  const char* directionName,
@@ -431,7 +431,7 @@ FFT<CCTransform,1U,T>::transform(
 /**
    real-to-complex FFT class
 */
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 class FFT<RCTransform,Dim,T> : public FFTBase<Dim,T> {
 
 private:
@@ -548,7 +548,7 @@ private:
 /**
    invoke real-to-complex transform using string for transform direction
 */
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 inline void
 FFT<RCTransform,Dim,T>::transform(
 				  const char* directionName,
@@ -564,7 +564,7 @@ FFT<RCTransform,Dim,T>::transform(
 /**
    invoke complex-to-real transform using string for transform direction
 */
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 inline void
 FFT<RCTransform,Dim,T>::transform(
 				  const char* directionName,
@@ -704,7 +704,7 @@ FFT<RCTransform,1U,T>::transform(
 /**
    sine transform class
 */
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 class FFT<SineTransform,Dim,T> : public FFTBase<Dim,T> {
 
 public:
@@ -811,7 +811,7 @@ private:
   /**
      number of sine transforms to perform
   */
-  unsigned numSineTransforms_m;
+  size_t numSineTransforms_m;
 
   /**
      layouts for temporary Fields: SERIAL along the zeroth dimension, with
@@ -846,7 +846,7 @@ private:
 /**
    invoke real-to-complex transform using string for transform direction
 */
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 inline void
 FFT<SineTransform,Dim,T>::transform(
 				    const char* directionName,
@@ -862,7 +862,7 @@ FFT<SineTransform,Dim,T>::transform(
 /**
    invoke complex-to-real transform using string for transform direction
 */
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 inline void
 FFT<SineTransform,Dim,T>::transform(
 				    const char* directionName,
@@ -878,7 +878,7 @@ FFT<SineTransform,Dim,T>::transform(
 /**
    invoke real-to-real transform using string for transform direction
 */
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 inline void
 FFT<SineTransform,Dim,T>::transform(
 				    const char* directionName,
@@ -894,7 +894,7 @@ FFT<SineTransform,Dim,T>::transform(
 /**
    invoke in-place real-to-real transform using string for transform direction
 */
-template <unsigned Dim, class T>
+template <size_t Dim, class T>
 inline void
 FFT<SineTransform,Dim,T>::transform(
 				    const char* directionName,

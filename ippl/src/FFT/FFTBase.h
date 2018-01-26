@@ -216,7 +216,7 @@ template <unsigned Dim, class T>
 inline void
 FFTBase<Dim,T>::setDirectionName(int direction,
                                  const char* directionName) {
-    PAssert(direction==+1 || direction==-1);
+    PAssert_EQ(std::abs(direction), 1);
     directions_m[directionName] = direction;
     return;
 }
@@ -244,7 +244,7 @@ FFTBase<Dim,T>::getDirection(const char* directionName) const {
 template <unsigned Dim, class T>
 inline bool
 FFTBase<Dim,T>::transformDim(unsigned d) const {
-    PAssert(d<Dim);
+    PAssert_LT(d, Dim);
     return transformDims_m[d];
 }
 
@@ -258,7 +258,7 @@ FFTBase<Dim,T>::transformDim(unsigned d) const {
 template <unsigned Dim, class T>
 inline unsigned
 FFTBase<Dim,T>::activeDimension(unsigned d) const {
-    PAssert(d<nTransformDims_m);
+    PAssert_LT(d, nTransformDims_m);
     return activeDims_m[d];
 }
 

@@ -213,25 +213,23 @@ public:
   }
 
   Element_t HL(unsigned int hi, unsigned int lo) const {
-    PAssert( hi >= lo );
-    PAssert( hi<D );
-    PAssert( lo<D );
+    PAssert_GE( hi, lo );
+    PAssert_LT( hi, D );
     return X[hi*(hi+1)/2 + lo];
   }
   Element_t& HL(unsigned int hi, unsigned int lo) {
-    PAssert( hi >= lo );
-    PAssert( hi<D );
-    PAssert( lo<D );
+    PAssert_GE( hi, lo );
+    PAssert_LT( hi, D );
     return X[hi*(hi+1)/2 + lo];
   }
 
   Element_t& operator[](unsigned int i) { 
-    PAssert (i < Size);
+    PAssert_LT(i, Size);
     return X[i];
   }
 
   Element_t operator[](unsigned int i) const { 
-    PAssert (i < Size);
+    PAssert_LT(i, Size);
     return X[i];
   }
 

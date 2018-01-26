@@ -251,8 +251,9 @@ void ParallelTTracker::execute() {
 
     itsOpalBeamline_m.activateElements();
 
-    if (OpalData::getInstance()->hasPriorTrack() ||
-        OpalData::getInstance()->inRestartRun()) {
+    if (!Options::scan &&
+        (OpalData::getInstance()->hasPriorTrack() ||
+         OpalData::getInstance()->inRestartRun())) {
 
         referenceToLabCSTrafo_m = itsBunch_m->toLabTrafo_m;
         RefPartR_m = referenceToLabCSTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
@@ -268,7 +269,7 @@ void ParallelTTracker::execute() {
 
         if (itsBunch_m->getTotalNum() > 0) {
             if (!itsOpalBeamline_m.containsSource()) {
-                RefPartP_m = OpalData::getInstance()->getP0() / itsBunch_m->getM() * Vector_t(0, 0, 1);
+                RefPartP_m = itsReference.getP() / itsBunch_m->getM() * Vector_t(0, 0, 1);
             }
 
             if (zstart_m > pathLength_m) {
@@ -596,7 +597,7 @@ void ParallelTTracker::computeExternalFields(OrbitThreader &oth) {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTTracker ", *gmsg);
     const unsigned int localNum = itsBunch_m->getLocalNum();
-
+    bool locPartOutOfBounds = false, globPartOutOfBounds = false;
     Vector_t rmin, rmax;
     itsBunch_m->get_bounds(rmin, rmax);
     IndexMap::value_t elements;
@@ -631,6 +632,8 @@ void ParallelTTracker::computeExternalFields(OrbitThreader &oth) {
                 itsBunch_m->R[i] = localToRefCSTrafo.transformTo(itsBunch_m->R[i]);
                 itsBunch_m->P[i] = localToRefCSTrafo.rotateTo(itsBunch_m->P[i]);
                 itsBunch_m->Bin[i] = -1;
+                locPartOutOfBounds = true;
+
                 continue;
             }
 
@@ -646,8 +649,9 @@ void ParallelTTracker::computeExternalFields(OrbitThreader &oth) {
     computeWakefield(elements);
     computeParticleMatterInteraction(elements, oth);
 
+    reduce(locPartOutOfBounds, globPartOutOfBounds, OpOrAssign());
+
     size_t ne = 0;
-    bool globPartOutOfBounds = (min(itsBunch_m->Bin) < 0) && (itsBunch_m->getTotalNum() > 1);
     if (globPartOutOfBounds) {
         if (itsBunch_m->hasFieldSolver()) {
             ne = itsBunch_m->boundp_destroyT();
@@ -1310,18 +1314,18 @@ struct DistributionInfo {
 };
 
 void ParallelTTracker::evenlyDistributeParticles() {
-    if (itsBunch_m->hasFieldSolver()) return;
+    const int numNodes = Ippl::getNodes();
+    if (itsBunch_m->hasFieldSolver() || numNodes == 1) return;
 
     long onAverage = itsBunch_m->getTotalNum() / Ippl::getNodes();
     if (itsBunch_m->getTotalNum() % Ippl::getNodes() > 0.5 * Ippl::getNodes())
         ++ onAverage;
 
-    std::vector<long> localParticles(Ippl::getNodes(), 0);
+    std::vector<long> localParticles(numNodes, 0);
     localParticles[Ippl::myNode()] = itsBunch_m->getLocalNum() - onAverage;
-    reduce(&(localParticles[0]),
-           &(localParticles[0]) + Ippl::getNodes(),
-           &(localParticles[0]),
-           OpAddAssign());
+    allreduce(&(localParticles[0]),
+              numNodes,
+              std::plus<long>());
 
     std::vector<DistributionInfo> send;
     std::vector<DistributionInfo> receive;
@@ -1354,71 +1358,54 @@ void ParallelTTracker::evenlyDistributeParticles() {
     }
 
     std::vector<MPI_Request> requests;
-    std::vector<char> msgbuf;
-    const char *buffer;
-    int tag = Ippl::Comm->next_tag(P_SPATIAL_TRANSFER_TAG,P_LAYOUT_CYCLE);
-
-    long sizeSingleParticle = 9 * sizeof(double) + sizeof(short) + sizeof(int) + sizeof(PID_t::Return_t);
+    const long sizeSingleParticle = 9 * sizeof(double) + sizeof(short) + sizeof(int) + sizeof(PID_t::Return_t);
     long idx = itsBunch_m->getLocalNum() - 1;
-    unsigned int totalSend = 0, startIndex = 0;
-    for (DistributionInfo &request: send) {
-        totalSend += request.howMany;
-    }
-    msgbuf.reserve(totalSend * sizeSingleParticle);
+    int tag = Ippl::Comm->next_tag(P_SPATIAL_TRANSFER_TAG, P_LAYOUT_CYCLE);
 
-    for (DistributionInfo &request: send) {
+    if (send.size() > 0) {
+        std::vector<char> msgbuf;
+        const char *buffer;
 
-        // long j = startIndex;
-        for (long i = 0; i < request.howMany; ++ i, -- idx) {
-            buffer = reinterpret_cast<const char*>(&(itsBunch_m->R[idx](0)));
-            msgbuf.insert(msgbuf.end(), buffer, buffer + 3 * sizeof(double));
-            buffer = reinterpret_cast<const char*>(&(itsBunch_m->P[idx](0)));
-            msgbuf.insert(msgbuf.end(), buffer, buffer + 3 * sizeof(double));
-            buffer = reinterpret_cast<const char*>(&(itsBunch_m->Q[idx]));
-            msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(double));
-            buffer = reinterpret_cast<const char*>(&(itsBunch_m->M[idx]));
-            msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(double));
-            buffer = reinterpret_cast<const char*>(&(itsBunch_m->dt[idx]));
-            msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(double));
-            buffer = reinterpret_cast<const char*>(&(itsBunch_m->PType[idx]));
-            msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(short));
-            buffer = reinterpret_cast<const char*>(&(itsBunch_m->TriID[idx]));
-            msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(int));
-            buffer = reinterpret_cast<const char*>(&(itsBunch_m->ID[idx]));
-            msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(PID_t::Return_t));
+        unsigned int totalSend = 0, startIndex = 0;
+        for (DistributionInfo &request: send) {
+            totalSend += request.howMany;
+        }
+        msgbuf.reserve(totalSend * sizeSingleParticle);
 
-            // const double *dbuffer = reinterpret_cast<const double*>(&msgbuf[0] + j);
-            // const short *shbuffer = reinterpret_cast<const short*>(&msgbuf[0] + j + 9 * sizeof(double));
-            // const int* ibuffer = reinterpret_cast<const int*>(&msgbuf[0] + j + 9 * sizeof(double) + sizeof(short));
-            // const PID_t::Return_t *sbuffer = reinterpret_cast<const PID_t::Return_t*>(&msgbuf[0] + j + sizeSingleParticle - sizeof(PID_t::Return_t));
+        for (DistributionInfo &request: send) {
 
-            // befo << std::setw(18) << dbuffer[0]
-            //      << std::setw(18) << dbuffer[1]
-            //      << std::setw(18) << dbuffer[2]
-            //      << std::setw(18) << dbuffer[3]
-            //      << std::setw(18) << dbuffer[4]
-            //      << std::setw(18) << dbuffer[5]
-            //      << std::setw(8) << shbuffer[0]
-            //      << std::setw(8) << ibuffer[0]
-            //      << std::setw(18) << *sbuffer
-            //      << std::endl;
+            for (long i = 0; i < request.howMany; ++ i, -- idx) {
+                buffer = reinterpret_cast<const char*>(&(itsBunch_m->R[idx](0)));
+                msgbuf.insert(msgbuf.end(), buffer, buffer + 3 * sizeof(double));
+                buffer = reinterpret_cast<const char*>(&(itsBunch_m->P[idx](0)));
+                msgbuf.insert(msgbuf.end(), buffer, buffer + 3 * sizeof(double));
+                buffer = reinterpret_cast<const char*>(&(itsBunch_m->Q[idx]));
+                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(double));
+                buffer = reinterpret_cast<const char*>(&(itsBunch_m->M[idx]));
+                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(double));
+                buffer = reinterpret_cast<const char*>(&(itsBunch_m->dt[idx]));
+                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(double));
+                buffer = reinterpret_cast<const char*>(&(itsBunch_m->PType[idx]));
+                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(short));
+                buffer = reinterpret_cast<const char*>(&(itsBunch_m->TriID[idx]));
+                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(int));
+                buffer = reinterpret_cast<const char*>(&(itsBunch_m->ID[idx]));
+                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(PID_t::Return_t));
+            }
 
+            size_t sendSizeThis = request.howMany * sizeSingleParticle;
+            MPI_Request req = Ippl::Comm->raw_isend(&(msgbuf[startIndex]),
+                                                    sendSizeThis,
+                                                    request.whom,
+                                                    tag);
 
-            // j += sizeSingleParticle;
+            requests.push_back(req);
+
+            startIndex += sendSizeThis;
         }
 
-        size_t sendSizeThis = request.howMany * sizeSingleParticle;
-        MPI_Request req = Ippl::Comm->raw_isend(&(msgbuf[startIndex]),
-                                                sendSizeThis,
-                                                request.whom,
-                                                tag);
-
-        requests.push_back(req);
-
-        startIndex += sendSizeThis;
+        itsBunch_m->destroy(totalSend, idx + 1, true);
     }
-    itsBunch_m->destroy(totalSend, idx + 1, true);
-    // itsBunch_m->performDestroy();
 
     for (unsigned int i = 0; i < receive.size(); ++ i) {
         int node = Communicate::COMM_ANY_NODE;
@@ -1457,15 +1444,6 @@ void ParallelTTracker::evenlyDistributeParticles() {
                 itsBunch_m->ID[idx] = buffer[0];
             }
             j += sizeof(PID_t::Return_t);
-
-            // aft << std::setw(18) << itsBunch_m->R[idx](0)
-            //       << std::setw(18) << itsBunch_m->R[idx](1)
-            //       << std::setw(18) << itsBunch_m->R[idx](2)
-            //       << std::setw(18) << itsBunch_m->P[idx](0)
-            //       << std::setw(18) << itsBunch_m->P[idx](1)
-            //       << std::setw(18) << itsBunch_m->P[idx](2)
-            //       << std::setw(18) << itsBunch_m->ID[idx]
-            //       << std::endl;
         }
 
         delete[] recvbuf;

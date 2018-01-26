@@ -42,7 +42,8 @@ const int CollimatorPhysics::numpar = 13;
 
 CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *element, std::string &material):
     ParticleMatterInteractionHandler(name, element),
-    allParticlesIn_m(false),
+    // :FIXME: unused
+    //allParticlesIn_m(false),
     T_m(0.0),
     dT_m(0.0),
     material_m(material),
@@ -974,9 +975,10 @@ bool CollimatorPhysics::stillAlive(PartBunchBase<double, 3> *bunch) {
 
 }
 
-
-bool myCompF(PART x, PART y) {
-    return x.label > y.label;
+namespace {
+    bool myCompF(PART x, PART y) {
+      return x.label > y.label;
+    }
 }
 
 void CollimatorPhysics::deleteParticleFromLocalVector() {
@@ -1006,8 +1008,10 @@ void CollimatorPhysics::deleteParticleFromLocalVector() {
 
 #ifdef OPAL_DKS
 
-bool myCompFDKS(PART_DKS x, PART_DKS y) {
-    return x.label > y.label;
+namespace {
+    bool myCompFDKS(PART_DKS x, PART_DKS y) {
+        return x.label > y.label;
+    }
 }
 
 void CollimatorPhysics::addBackToBunchDKS(PartBunchBase<double, 3> *bunch, unsigned i) {

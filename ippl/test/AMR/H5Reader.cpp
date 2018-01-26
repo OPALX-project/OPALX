@@ -15,11 +15,9 @@ H5Reader::H5Reader()
     : filename_m(""), file_m(0)
 { }
 
-void H5Reader::open(int step) {
+void H5Reader::open(int step, h5_int32_t flags) {
     close();
     
-    
-#if defined (USE_H5HUT2)
     h5_prop_t props = H5CreateFileProp ();
     MPI_Comm comm = Ippl::getComm();
     h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
@@ -27,13 +25,10 @@ void H5Reader::open(int step) {
     (void)h5err;
 #endif
     assert (h5err != H5_ERR);
-    file_m = H5OpenFile (filename_m.c_str(), H5_O_RDONLY, props);
+    file_m = H5OpenFile (filename_m.c_str(), flags, props);
     assert (file_m != (h5_file_t)H5_ERR);
-#else
-    file_m = H5OpenFile(filename_m.c_str(), H5_FLUSH_STEP | H5_O_RDONLY, Ippl::getComm());
-    assert (file_m != (void*)H5_ERR);
-#endif
-    
+    H5CloseProp (props);
+
     H5SetStep(file_m, step);
 }
 
@@ -75,22 +70,16 @@ void H5Reader::read(Distribution::container_t& x,
     READDATA(Float64, file_m, "x", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
         x[n] = f64buffer[n];
-        
-        x[n] -= int(x[n]);
     }
 
     READDATA(Float64, file_m, "y", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
         z[n] = f64buffer[n];
-        
-        // do shift due to box
-        z[n] -= int(z[n]);
     }
 
     READDATA(Float64, file_m, "z", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
         y[n] = f64buffer[n];
-	y[n] -= int(y[n]);
     }
 
     READDATA(Float64, file_m, "px", f64buffer);
@@ -108,9 +97,9 @@ void H5Reader::read(Distribution::container_t& x,
         py[n] = f64buffer[n];
     }
 
-//     READDATA(Float64, file_m, "q", f64buffer);
+    READDATA(Float64, file_m, "q", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
-        q[n] = 1.0; //f64buffer[n];
+        q[n] = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "mass", f64buffer);
@@ -118,6 +107,72 @@ void H5Reader::read(Distribution::container_t& x,
         mass[n] = f64buffer[n];
     }
 }
+
+#ifdef IPPL_AMR
+void H5Reader::writeHeader() {
+    WRITESTRINGFILEATTRIB(file_m, "xUnit", "m");
+    WRITESTRINGFILEATTRIB(file_m, "yUnit", "m");
+    WRITESTRINGFILEATTRIB(file_m, "zUnit", "m");
+    WRITESTRINGFILEATTRIB(file_m, "pxUnit", "#beta#gamma");
+    WRITESTRINGFILEATTRIB(file_m, "pyUnit", "#beta#gamma");
+    WRITESTRINGFILEATTRIB(file_m, "pzUnit", "#beta#gamma");
+    WRITESTRINGFILEATTRIB(file_m, "MASSUnit", "GeV");
+    WRITESTRINGFILEATTRIB(file_m, "CHARGEUnit", "C");
+    WRITESTRINGFILEATTRIB(file_m, "NumPartUnit", "1");
+}
+
+void H5Reader::write(PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >* bunch)
+{
+    const size_t numLocalParticles = bunch->getLocalNum();
+    
+    std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
+    h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
+    h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
+    
+    H5PartSetNumParticles(file_m, numLocalParticles);
+    
+    for(size_t i = 0; i < numLocalParticles; ++ i)
+        f64buffer[i] =  bunch->R[i](0);
+    
+    WRITEDATA(Float64, file_m, "x", f64buffer);
+
+    for(size_t i = 0; i < numLocalParticles; ++ i)
+        f64buffer[i] =  bunch->R[i](1);
+
+    WRITEDATA(Float64, file_m, "y", f64buffer);
+
+    for(size_t i = 0; i < numLocalParticles; ++ i)
+        f64buffer[i] =  bunch->R[i](2);
+
+    WRITEDATA(Float64, file_m, "z", f64buffer);
+
+    for(size_t i = 0; i < numLocalParticles; ++ i)
+        f64buffer[i] =  bunch->P[i](0);
+
+    WRITEDATA(Float64, file_m, "px", f64buffer);
+
+    for(size_t i = 0; i < numLocalParticles; ++ i)
+        f64buffer[i] =  bunch->P[i](1);
+
+    WRITEDATA(Float64, file_m, "py", f64buffer);
+
+    for(size_t i = 0; i < numLocalParticles; ++ i)
+        f64buffer[i] =  bunch->P[i](2);
+
+    WRITEDATA(Float64, file_m, "pz", f64buffer);
+
+    for(size_t i = 0; i < numLocalParticles; ++ i)
+        f64buffer[i] =  bunch->qm[i];
+
+    WRITEDATA(Float64, file_m, "q", f64buffer);
+
+    for(size_t i = 0; i < numLocalParticles; ++ i)
+        f64buffer[i] =  bunch->mass[i];
+
+    WRITEDATA(Float64, file_m, "mass", f64buffer);  
+}
+#endif
+
 
 h5_ssize_t H5Reader::getNumParticles() {
     return H5PartGetNumParticles(file_m);
@@ -135,7 +190,7 @@ void H5Reader::writeScalarField(const container_t& scalfield,
     
     h5_file_t file = 0;
     std::string fname = "test_scalfield.h5";
-#if defined (USE_H5HUT2)
+
     h5_prop_t props = H5CreateFileProp ();
     MPI_Comm comm = Ippl::getComm(); // ParallelDescriptor::m_comm_all; //
     h5_err_t h5err = H5SetPropFileMPIOIndependent(props, &comm);
@@ -146,11 +201,8 @@ void H5Reader::writeScalarField(const container_t& scalfield,
     assert (h5err != H5_ERR);
     file = H5OpenFile (fname.c_str(), H5_O_WRONLY, props);
     assert (file != (h5_file_t)H5_ERR);
-#else
-    file = H5OpenFile(fname.c_str(), H5_O_WRONLY, Ippl::getComm()); // ParallelDescriptor::m_comm_all); 
-    assert (file != (void*)H5_ERR);
-#endif
-    
+    H5CloseProp (props);
+
     H5SetStep (file, 0);
     
     h5_int64_t herr;

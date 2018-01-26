@@ -62,10 +62,6 @@ namespace Options {
 
     extern bool idealized;
 
-    // CKR: nowhere used
-    // // true if in bet mode
-    // extern bool bet;
-
     /// Trace flag.
     //  If true, print CPU time before and after each command.
     extern bool mtrace;
@@ -83,10 +79,6 @@ namespace Options {
 
     /// The frequency to dump the phase space, i.e.dump data when step%psDumpFreq==0
     extern int psDumpFreq;
-
-    // CKR: nowhere used
-    // /// Dump centroid when R >rDump
-    // extern double rDump;
 
     /// The frequency to dump statistical values, e.e. dump data when step%statDumpFreq==0
     extern int statDumpFreq;
@@ -129,9 +121,6 @@ namespace Options {
 
     extern bool ebDump;
 
-    // CKR: nowhere used
-    // extern bool efDump;
-
     // if true opal find the phases in the cavities, such that the energy gain is at maximum
     extern int autoPhase;
 
@@ -147,11 +136,13 @@ namespace Options {
     /// number of old left hand sides used to extrapolate a new start vector
     extern int nLHS;
 
+    /// random number generator
     extern std::string rngtype;
 
     /// Do closed orbit and tune calculation only.
     extern bool cloTuneOnly;
 
+    /// opal version of input file
     extern int version;
     
 #ifdef ENABLE_AMR

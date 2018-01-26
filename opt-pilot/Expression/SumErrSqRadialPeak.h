@@ -18,7 +18,7 @@
  *  according to
  *
  *  \f[
- *    result = \frac{1}{n} * \sqrt{\sum_{i=0}^n (measurement_i - value_i)^2}
+ *    result = \frac{1}{n} * \sqrt{\sum_{i=start}^end (measurement_i - value_i)^2}
  *  \f]
  *
  */

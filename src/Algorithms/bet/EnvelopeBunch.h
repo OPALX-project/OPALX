@@ -87,6 +87,7 @@ public:
     IpplTimings::TimerRef spaceChargeTimer_m;
 
     /// initialize an envelope bunch (interface for Distribution class)
+    using PartBunch::initialize;
     void initialize(int sli, double charge, double energy, double width, double te, double frac,
                     double current, double center, double bX, double bY, double mX, double mY, double Bz, int nbin);
 
@@ -135,7 +136,7 @@ public:
     /// set emittance Y
     void setEy(double emi) { emtny0 = emi; }
     /// set the DE solver flag
-    void setSolver(int s) { solver = s; }
+    void setSolverParameter(int s) { solver = s; }
     // set particle energy of bunch in [eV] and optional the correlated energy spread [eV/m]
     void setEnergy(double, double = 0.0);
 

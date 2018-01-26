@@ -16,27 +16,12 @@ typedef struct {
 
 typedef std::vector<LOMB_TYPE>::const_iterator CI_lt;
 typedef std::vector<double>::const_iterator CI_vd;
-typedef std::vector<float >::const_iterator CI_vf;
 
 class Lomb_eq : public std::unary_function<LOMB_TYPE, bool> {
     double b;
 public:
     explicit Lomb_eq(const double &a) : b(a) {}
     bool operator()(const LOMB_TYPE &c) const {return c.y == b;}
-};
-
-class Compare_XPos {
-public:
-    bool operator()(const LOMB_TYPE &a, const LOMB_TYPE &b)
-    { return a.y < b.y; }
-
-};
-
-class Countlomb {
-public:
-    bool operator()(const LOMB_TYPE &a, const double &b)
-    { return a.y == b; }
-
 };
 
 class LOMB_class {
@@ -46,7 +31,7 @@ private:
 
 public:
 
-    LOMB_class(int);          // constructor
+    explicit LOMB_class(int);  // constructor
     virtual ~LOMB_class(void); //destructor
 
     int period(std::vector<LOMB_TYPE> *indata, std::vector<LOMB_TYPE> *outdata,
