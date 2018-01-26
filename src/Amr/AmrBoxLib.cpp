@@ -97,11 +97,11 @@ void AmrBoxLib::getGridStatistics(std::map<int, int>& gridsPerCore,
         /* container index: box
          * container value: cores that owns box
          */
-        const container_t& pmap = this->dmap[lev]->ProcessorMap();
+        const container_t& pmap = this->dmap[lev].ProcessorMap();
         
         gridsPerLevel[lev] = pmap.size();
     
-        for (container_t::iterator it = pmap.begin(); it != pmap.end(); ++it)
+        for (container_t::const_iterator it = pmap.begin(); it != pmap.end(); ++it)
             gridsPerCore[*it] += 1;
     }
 }
