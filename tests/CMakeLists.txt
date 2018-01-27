@@ -26,7 +26,7 @@ endmacro()
 
 add_subdirectory (opal_src)
 add_subdirectory (classic_src)
-#add_subdirectory (ippl_src)
+add_subdirectory (ippl_src)
 add_subdirectory (opal_test_utilities)
 
 

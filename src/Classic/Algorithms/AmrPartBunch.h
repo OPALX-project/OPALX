@@ -79,6 +79,10 @@ public:
     
     void gatherLevelStatistics();
     
+    /*!
+     * Only a valid call of root core (core 0)
+     * @param l is the level
+     */
     const size_t& getLevelStatistics(int l) const;
     
     

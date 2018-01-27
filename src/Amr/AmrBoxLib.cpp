@@ -50,7 +50,7 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
 }
 
 
-std::unique_ptr<AmrBoxLib> AmrBoxLib::create(const AmrInitialInfo& info,
+std::unique_ptr<AmrBoxLib> AmrBoxLib::create(const AmrInfo& info,
                                              AmrPartBunch* bunch_p)
 {
     /* The bunch is initialized first with a Geometry,
@@ -62,9 +62,9 @@ std::unique_ptr<AmrBoxLib> AmrBoxLib::create(const AmrInitialInfo& info,
     AmrDomain_t domain = layout_p->Geom(0).ProbDomain();
     
     AmrIntArray_t nGridPts = {
-        info.gridx,
-        info.gridy,
-        info.gridz
+        info.grid[0],
+        info.grid[1],
+        info.grid[2]
     };
     
     int maxlevel = info.maxlevel;
@@ -81,6 +81,31 @@ std::unique_ptr<AmrBoxLib> AmrBoxLib::create(const AmrInitialInfo& info,
                                                    )
                                      );
 }
+
+
+void AmrBoxLib::getGridStatistics(std::map<int, int>& gridsPerCore,
+                                  std::vector<int>& gridsPerLevel) const
+{
+    typedef std::vector<int> container_t;
+    
+    gridsPerCore.clear();
+    gridsPerLevel.clear();
+    
+    gridsPerLevel.resize(max_level + 1);
+    
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        /* container index: box
+         * container value: cores that owns box
+         */
+        const container_t& pmap = this->dmap[lev].ProcessorMap();
+        
+        gridsPerLevel[lev] = pmap.size();
+    
+        for (container_t::const_iterator it = pmap.begin(); it != pmap.end(); ++it)
+            gridsPerCore[*it] += 1;
+    }
+}
+
 
 void AmrBoxLib::initFineLevels() {
     if ( !refined_m ) {
@@ -1145,25 +1170,31 @@ void AmrBoxLib::initBaseLevel_m(const AmrIntArray_t& nGridPts) {
 }
 
 
-void AmrBoxLib::initParmParse_m(const AmrInitialInfo& info, AmrLayout_t* layout_p) {
+void AmrBoxLib::initParmParse_m(const AmrInfo& info, AmrLayout_t* layout_p) {
     
     /*
      * All parameters that we set with the OPAL input file
      */
     amrex::ParmParse pAmr("amr");
-    pAmr.add("max_grid_size", info.maxgrid);
+    pAmr.add("max_grid_size_x", info.maxgrid[0]);
+    pAmr.add("max_grid_size_y", info.maxgrid[1]);
+    pAmr.add("max_grid_size_z", info.maxgrid[2]);
+    
+    pAmr.add("blocking_factor_x", info.bf[0]);
+    pAmr.add("blocking_factor_y", info.bf[1]);
+    pAmr.add("blocking_factor_z", info.bf[2]);
     
     const int nratios_vect = info.maxlevel * AMREX_SPACEDIM;
     
-    AmrIntArray_t refRatio(nratios_vect);
+    AmrIntArray_t refratio(nratios_vect);
     
     for (int i = 0; i < info.maxlevel; ++i) {
-        refRatio[i * AMREX_SPACEDIM]     = info.refratx;
-        refRatio[i * AMREX_SPACEDIM + 1] = info.refraty;
-        refRatio[i * AMREX_SPACEDIM + 2] = info.refratz;
+        refratio[i * AMREX_SPACEDIM]     = info.refratio[0];
+        refratio[i * AMREX_SPACEDIM + 1] = info.refratio[1];
+        refratio[i * AMREX_SPACEDIM + 2] = info.refratio[2];
     }
     
-    pAmr.addarr("ref_ratio_vect", refRatio);
+    pAmr.addarr("ref_ratio_vect", refratio);
     
     amrex::ParmParse pGeom("geometry");
     AmrIntArray_t isPeriodic = {
@@ -1392,10 +1423,7 @@ void AmrBoxLib::initParmParse_m(const AmrInitialInfo& info, AmrLayout_t* layout_
     
     // Buffer cells around each tagged cell.
     AmrIntArray_t error_buf(nlev, 0);
-    pAmr.addarr("n_error_buf", error_buf);  
-    
-    // Blocking factor in grid generation (by level).
-    AmrIntArray_t blockingFactor(nlev, 8);
+    pAmr.addarr("n_error_buf", error_buf);
     
     // chop up grids to have more grids than the number of procs
     pAmr.add("refine_grid_layout", true);
