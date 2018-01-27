@@ -546,6 +546,9 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     
     for (uint lev = 0; lev < params.nLevels; ++lev) {
         amrex::MultiFab::Copy(*rhs[lev], *partMF[lev], 0, 0, 1, 0);
+
+	double s = rhs[lev]->sum(0);
+	msg << "level " << lev << " rho " << s << endl;
     }
     
     const amrex::Array<amrex::Geometry>& geom = myAmrOpal.Geom();
