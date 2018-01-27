@@ -61,6 +61,7 @@ public:
     // compute the scalar potential in open space
     void computePotential(Field_t &rho, Vector_t hr);
 
+    void computePotentialDKS(Field_t &rho);
     // compute the green's function for a Poisson problem and put it in in grntm_m
     // uses grnIField_m to eliminate excess calculation in greenFunction()
     // given mesh information in nr and hr
@@ -69,8 +70,8 @@ public:
     /// compute the integrated Green function as described in <A HREF="http://prst-ab.aps.org/abstract/PRSTAB/v9/i4/e044204">Three-dimensional quasistatic model for high brightness beam dynamics simulation</A> by Qiang et al.
     void integratedGreensFunction();
 
-    /// Uses DKS to offload the computation of Greens function on the GPU 
-    //compute the integrated Green function as described in <A HREF="http://prst-ab.aps.org/abstract/PRSTAB/v9/i4/e044204">Three-dimensional quasistatic model for high brightness beam dynamics simulation</A> by Qiang et al. 
+    /// Uses DKS to offload the computation of Greens function on the GPU
+    //compute the integrated Green function as described in <A HREF="http://prst-ab.aps.org/abstract/PRSTAB/v9/i4/e044204">Three-dimensional quasistatic model for high brightness beam dynamics simulation</A> by Qiang et al.
     void integratedGreensFunctionDKS();
 
     /// compute the shifted integrated Green function as described in <A HREF="http://prst-ab.aps.org/abstract/PRSTAB/v9/i4/e044204">Three-dimensional quasistatic model for high brightness beam dynamics simulation</A> by Qiang et al.
@@ -86,7 +87,7 @@ public:
 
     Inform &print(Inform &os) const;
 private:
-
+    void initializeFields();
     void mirrorRhoField() FIELDASSIGNOPTIMIZATION;
     void mirrorRhoField(Field_t & ggrn2);// FIELDASSIGNOPTIMIZATION;
 
@@ -116,7 +117,7 @@ private:
     //stream id for calculating greens function
     int streamGreens;
     int streamFFT;
-  
+
 #endif
 
     // Fields used to eliminate excess calculation in greensFunction()
@@ -143,7 +144,7 @@ private:
     std::unique_ptr<FieldLayout_t> layout4_m;
 
     // tmp
-    Field_t tmpgreen;
+    Field_t tmpgreen_m;
 
     // domains for the various fields
     NDIndex<3> domain_m;             // original domain, gridsize
@@ -163,10 +164,8 @@ private:
     BConds<double, 3, Mesh_t, Center_t> bc_m;
     BConds<Vector_t, 3, Mesh_t, Center_t> vbc_m;
 
-    std::string greensFunction_m;
-
     bool bcz_m;
-
+    bool integratedGreens_m;
     IpplTimings::TimerRef GreensFunctionTimer_m;
   /*
     IpplTimings::TimerRef IntGreensFunctionTimer1_m;
