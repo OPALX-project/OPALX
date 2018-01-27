@@ -844,8 +844,9 @@ void doAMReX(const param_t& params, Inform& msg)
     IpplTimings::startTimer(statisticsTimer);
     bunch->dumpStatistics(statistics);
     IpplTimings::stopTimer(statisticsTimer);
-
-    msg << "#boxes: " <<  myAmrOpal.boxArray(0).size() << endl;
+    
+    for (int i = 0; i <= myAmrOpal.finestLevel(); ++i)
+        msg << "#boxes: " <<  myAmrOpal.boxArray(i).size() << endl;
     
     doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, msg, scale, params);
     
@@ -894,7 +895,7 @@ int main(int argc, char *argv[]) {
     
     Ippl ippl(argc, argv);
     
-    Inform msg("Solver");
+    Inform msg(argv[0]);
     
 
     static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("main");
@@ -940,8 +941,8 @@ int main(int argc, char *argv[]) {
                 smoother = "symmetric" + smoother;
             else if ( params.smoother == AmrMultiGrid::Smoother::JACOBI )
                 smoother = "Jacobi";
-            msg << "- Trilinos solver is used with: "
-                << "    - nsweeps:     " << params.nsweeps
+            msg << "- Trilinos solver is used with: " << endl
+                << "    - nsweeps:     " << params.nsweeps << endl
                 << "    - smoother:    " << smoother
                 << endl;
         }
@@ -956,6 +957,18 @@ int main(int argc, char *argv[]) {
     IpplTimings::stopTimer(mainTimer);
 
     IpplTimings::print();
+    
+    std::string fn = std::string(argv[0]) + "-timing.dat";
+    
+    std::map<std::string, unsigned int> problemSize;
+    
+    problemSize["level"] = params.nLevels;
+    problemSize["maxgrid"] = params.maxBoxSize;
+    problemSize["gridx"] = params.nr[0];
+    problemSize["gridy"] = params.nr[1];
+    problemSize["gridz"] = params.nr[2];
+    
+    IpplTimings::print(fn, problemSize);
 
     return 0;
 }
