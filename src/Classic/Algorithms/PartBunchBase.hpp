@@ -129,6 +129,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
       globalPartPerNode_m(nullptr),
       dist_m(nullptr),
       dcBeam_m(false),
+      periodLength_m(Physics::c / 1e9),
       pbase(pb)
 {
     setup(pb);
@@ -216,6 +217,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
       globalPartPerNode_m(nullptr),
       dist_m(nullptr),
       dcBeam_m(false),
+      periodLength_m(Physics::c / 1e9),
       pbase(pb)
 {
     setup(pb);
@@ -304,6 +306,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb,
     globalPartPerNode_m(nullptr),
     dist_m(nullptr),
     dcBeam_m(false),
+    periodLength_m(Physics::c / 1e9),
     pbase(pb)
 {
 
@@ -366,6 +369,7 @@ PartBunchBase<T, Dim>::PartBunchBase(const PartBunchBase<T, Dim>& rhs):
     globalPartPerNode_m(nullptr),
     dist_m(nullptr),
     dcBeam_m(rhs.dcBeam_m),
+    periodLength_m(rhs.periodLength_m),
     pbase(rhs.pbase)
 {
 }
@@ -828,7 +832,7 @@ void PartBunchBase<T, Dim>::boundp() {
     stateOfLastBoundP_ = unit_state_;
 
     if(!isGridFixed()) {
-        const int dimIdx = 3;
+        const int dimIdx = (dcBeam_m? 2: 3);
 
         /**
             In case of dcBeam_m && hr_m < 0
@@ -836,59 +840,60 @@ void PartBunchBase<T, Dim>::boundp() {
             have to set hr completely i.e. x,y and z.
          */
 
-        const bool fullUpdate = (dcBeam_m && (hr_m[2] < 0.0)) || !dcBeam_m;
-
         this->updateDomainLength(nr_m);
         IpplTimings::startTimer(boundpBoundsTimer_m);
         get_bounds(rmin_m, rmax_m);
         IpplTimings::stopTimer(boundpBoundsTimer_m);
         Vector_t len = rmax_m - rmin_m;
 
-            double volume = 1.0;
-        if (fullUpdate) {
-            // double volume = 1.0;
-            for(int i = 0; i < dimIdx; i++) {
-                double length = std::abs(rmax_m[i] - rmin_m[i]);
-                if (length < 1e-10) {
-                    rmax_m[i] += 1e-10;
-                    rmin_m[i] -= 1e-10;
-                } else {
-                    rmax_m[i] += dh_m * length;
-                    rmin_m[i] -= dh_m * length;
-                }
-                hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
-                volume *= std::abs(rmax_m[i] - rmin_m[i]);
+        double volume = 1.0;
+        for(int i = 0; i < dimIdx; i++) {
+            double length = std::abs(rmax_m[i] - rmin_m[i]);
+            if (length < 1e-10) {
+                rmax_m[i] += 1e-10;
+                rmin_m[i] -= 1e-10;
+            } else {
+                rmax_m[i] += dh_m * length;
+                rmin_m[i] -= dh_m * length;
             }
-
-            if (getIfBeamEmitting() && dist_m != NULL) {
-                // keep particles per cell ratio high, don't spread a hand full particles across the whole grid
-                double percent = std::max(1.0 / (nr_m[2] - 1), dist_m->getPercentageEmitted());
-                double length  = std::abs(rmax_m[2] - rmin_m[2]) / (1.0 + 2 * dh_m);
-                if (percent < 1.0 && percent > 0.0) {
-                    rmax_m[2] -= dh_m * length;
-                    rmin_m[2] = rmax_m[2] - length / percent;
-
-                    length /= percent;
-
-                    rmax_m[2] += dh_m * length;
-                    rmin_m[2] -= dh_m * length;
-
-                    hr_m[2] = (rmax_m[2] - rmin_m[2]) / (nr_m[2] - 1);
-                }
-            }
-
-            if (volume < 1e-21 && getTotalNum() > 1 && std::abs(sum(Q)) > 0.0) {
-                WARNMSG(level1 << "!!! Extremly high particle density detected !!!" << endl);
-            }
-            //INFOMSG("It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
+            hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
+        }
+        if (dcBeam_m) {
+            rmax_m[2] = rmin_m[2] + periodLength_m;
+            hr_m[2] = periodLength_m / (nr_m[2] - 1);
+        }
+        for (int i = 0; i < dimIdx; ++ i) {
+            volume *= std::abs(rmax_m[i] - rmin_m[i]);
         }
 
-        if(hr_m[0] * hr_m[1] * hr_m[2] > 0) {
-            Vector_t origin = rmin_m - Vector_t(hr_m[0] / 2.0, hr_m[1] / 2.0, hr_m[2] / 2.0);
-            this->updateFields(hr_m, origin);
-        } else {
+        if (getIfBeamEmitting() && dist_m != NULL) {
+            // keep particles per cell ratio high, don't spread a hand full particles across the whole grid
+            double percent = std::max(1.0 / (nr_m[2] - 1), dist_m->getPercentageEmitted());
+            double length  = std::abs(rmax_m[2] - rmin_m[2]) / (1.0 + 2 * dh_m);
+            if (percent < 1.0 && percent > 0.0) {
+                rmax_m[2] -= dh_m * length;
+                rmin_m[2] = rmax_m[2] - length / percent;
+
+                length /= percent;
+
+                rmax_m[2] += dh_m * length;
+                rmin_m[2] -= dh_m * length;
+
+                hr_m[2] = (rmax_m[2] - rmin_m[2]) / (nr_m[2] - 1);
+            }
+        }
+
+        if (volume < 1e-21 && getTotalNum() > 1 && std::abs(sum(Q)) > 0.0) {
+            WARNMSG(level1 << "!!! Extremly high particle density detected !!!" << endl);
+        }
+        //INFOMSG("It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
+
+        if(hr_m[0] * hr_m[1] * hr_m[2] <= 0) {
             throw GeneralClassicException("boundp() ", "h<0, can not build a mesh");
         }
+
+        Vector_t origin = rmin_m - Vector_t(hr_m[0] / 2.0, hr_m[1] / 2.0, hr_m[2] / 2.0);
+        this->updateFields(hr_m, origin);
     }
     IpplTimings::startTimer(boundpUpdateTimer_m);
     update();
@@ -2458,6 +2463,122 @@ void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
 
     // set the default IPPL behaviour
     setMinimumNumberOfParticlesPerCore(0);
+}
+
+template <class T, unsigned Dim>
+size_t PartBunchBase<T, Dim>::getTotalNum() const {
+    return pbase->getTotalNum();
+}
+
+template <class T, unsigned Dim>
+size_t PartBunchBase<T, Dim>::getLocalNum() const {
+    return pbase->getLocalNum();
+}
+
+
+template <class T, unsigned Dim>
+size_t PartBunchBase<T, Dim>::getDestroyNum() const {
+    return pbase->getDestroyNum();
+}
+
+template <class T, unsigned Dim>
+size_t PartBunchBase<T, Dim>::getGhostNum() const {
+    return pbase->getGhostNum();
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setTotalNum(size_t n) {
+    pbase->setTotalNum(n);
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setLocalNum(size_t n) {
+    pbase->setLocalNum(n);
+}
+
+template <class T, unsigned Dim>
+unsigned int PartBunchBase<T, Dim>::getMinimumNumberOfParticlesPerCore() const {
+    return pbase->getMinimumNumberOfParticlesPerCore();
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setMinimumNumberOfParticlesPerCore(unsigned int n) {
+    pbase->setMinimumNumberOfParticlesPerCore(n);
+}
+
+template <class T, unsigned Dim>
+ParticleLayout<T, Dim> & PartBunchBase<T, Dim>::getLayout() {
+    return pbase->getLayout();
+}
+
+template <class T, unsigned Dim>
+const ParticleLayout<T, Dim>& PartBunchBase<T, Dim>::getLayout() const {
+    return pbase->getLayout();
+}
+
+template <class T, unsigned Dim>
+bool PartBunchBase<T, Dim>::getUpdateFlag(UpdateFlags f) const {
+    return pbase->getUpdateFlag(f);
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setUpdateFlag(UpdateFlags f, bool val) {
+    pbase->setUpdateFlag(f, val);
+}
+
+template <class T, unsigned Dim>
+bool PartBunchBase<T, Dim>::singleInitNode() const {
+    return pbase->singleInitNode();
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::resetID() {
+    pbase->resetID();
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::update() {
+    pbase->update();
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::update(const ParticleAttrib<char>& canSwap) {
+    pbase->update(canSwap);
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::createWithID(unsigned id) {
+    pbase->createWithID(id);
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::create(size_t M) {
+    pbase->create(M);
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::globalCreate(size_t np) {
+    pbase->globalCreate(np);
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::destroy(size_t M, size_t I, bool doNow) {
+    pbase->destroy(M, I, doNow);
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::performDestroy(bool updateLocalNum) {
+    pbase->performDestroy(updateLocalNum);
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::ghostDestroy(size_t M, size_t I) {
+    pbase->ghostDestroy(M, I);
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setBeamFrequency(double f) {
+    periodLength_m = Physics::c / f;
 }
 
 #endif
