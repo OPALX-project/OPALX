@@ -221,6 +221,22 @@ public:
                          std::ofstream &outputFile,
                          unsigned int pwi);
 
+#ifdef ENABLE_AMR
+    /** \brief Write SDDS header. (AMR only)
+     *
+     * Writes the appropriate SDDS format header information to grid load balancing so the SDDS tools can be used
+     * for plotting data.
+     * \param outputFile Name of file to write to.
+     *
+     */
+    void writeGridLBalHeader(PartBunchBase<double, 3> *beam,
+                             std::ofstream &outputFile);
+    
+    void writeGridLBalData(PartBunchBase<double, 3> *beam,
+                           std::ofstream &outputFile,
+                           unsigned int pwi);
+#endif
+    
 
 private:
 
@@ -254,6 +270,11 @@ private:
 
     /// Name of output file for processor memory information
     std::string memFileName_m;
+    
+#ifdef ENABLE_AMR
+    /// Name of output file for grid load balancing information
+    std::string gridLBalFileName_m;
+#endif
 
     /// Name of output file for surface loss data.
     std::string surfaceLossFileName_m;

@@ -82,6 +82,31 @@ std::unique_ptr<AmrBoxLib> AmrBoxLib::create(const AmrInfo& info,
                                      );
 }
 
+
+void AmrBoxLib::getGridStatistics(std::map<int, int>& gridsPerCore,
+                                  std::vector<int>& gridsPerLevel) const
+{
+    typedef std::vector<int> container_t;
+    
+    gridsPerCore.clear();
+    gridsPerLevel.clear();
+    
+    gridsPerLevel.resize(max_level + 1);
+    
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        /* container index: box
+         * container value: cores that owns box
+         */
+        const container_t& pmap = this->dmap[lev].ProcessorMap();
+        
+        gridsPerLevel[lev] = pmap.size();
+    
+        for (container_t::const_iterator it = pmap.begin(); it != pmap.end(); ++it)
+            gridsPerCore[*it] += 1;
+    }
+}
+
+
 void AmrBoxLib::initFineLevels() {
     if ( !refined_m ) {
         *gmsg << "* Initialization of all levels" << endl;

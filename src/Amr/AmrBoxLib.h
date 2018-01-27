@@ -75,6 +75,12 @@ public:
                                              AmrPartBunch* bunch_p);
     
     /*!
+     * Inherited from AmrObject
+     */
+    void getGridStatistics(std::map<int, int>& gridsPerCore,
+                           std::vector<int>& gridsPerLevel) const;
+    
+    /*!
      * Initial gridding. Sets up all levels.
      */
     void initFineLevels();
