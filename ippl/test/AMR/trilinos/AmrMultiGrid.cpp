@@ -145,8 +145,7 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     lfine_m = lfine;
     nlevel_m = lfine - lbase + 1;
     
-    if ( !previous )
-        this->initLevels_m(rho, geom);
+    this->initLevels_m(rho, geom, previous);
     
     // build all necessary matrices and vectors
     this->setup_m(rho, phi, !previous);
@@ -165,6 +164,24 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
         
         this->trilinos2amrex_m(0, *phi[ilev], mglevel_m[lev]->phi_p);
     }
+}
+
+
+void AmrMultiGrid::setNumberOfSweeps(const std::size_t& nSweeps) {
+    if ( nSweeps < 0 )
+        throw OpalException("AmrMultiGrid::setNumberOfSweeps()",
+                            "The number of smoothing sweeps needs to be non-negative!");
+    
+    nSweeps_m = nSweeps;
+}
+
+
+void AmrMultiGrid::setMaxNumberOfIterations(const std::size_t& maxiter) {
+    if ( maxiter < 1 )
+        throw OpalException("AmrMultiGrid::setMaxNumberOfIterations()",
+                            "The max. number of iterations needs to be positive!");
+    
+    maxiter_m = maxiter;
 }
 
 
@@ -197,8 +214,12 @@ void AmrMultiGrid::initPhysicalBoundary_m(const Boundary* bc)
 
 
 void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
-                                const amrex::Array<AmrGeometry_t>& geom)
+                                const amrex::Array<AmrGeometry_t>& geom,
+                                bool previous)
 {
+    if ( previous )
+        return;
+    
     mglevel_m.resize(nlevel_m);
     
     AmrIntVect_t rr = AmrIntVect_t(D_DECL(2, 2, 2));
