@@ -426,7 +426,7 @@ void writeYt(container_t& rho,
              const amrex::Array<amrex::Geometry>& geom,
              const amrex::Array<int>& rr,
              const double& scalefactor,
-	     const param_t& params)
+             const param_t& params)
 {
     std::string dir = "yt-testMultipleSources";
     
@@ -435,7 +435,7 @@ void writeYt(container_t& rho,
     double fac = 1.0;
 
     if ( !params.isFixedCharge )
-	fac = Physics::epsilon_0;
+        fac = Physics::epsilon_0;
 
     for (unsigned int i = 0; i < rho.size(); ++i)
         rho[i]->mult(- fac / scalefactor, 0, 1);
@@ -444,12 +444,110 @@ void writeYt(container_t& rho,
 }
 
 
+void randomMove(amrbunch_t* bunch, int seed, Inform& msg) {
+    /* We move every particle in the range of 1 mm in original space
+     */
+    
+    
+    std::mt19937_64 mt(seed);
+    
+    std::uniform_real_distribution<> dist(-0.001, 0.001);
+    
+    msg << endl << "Move particles randomly" << endl;
+    
+    for (std::size_t i = 0; i < bunch->getLocalNum(); ++i) {
+        for (int d = 0; d < 3; ++d)
+            bunch->R[i](d) += dist(mt);
+    }
+    
+    double scale = 1.0;
+    scale = domainMapping(*bunch, scale);
+    
+    msg << "Transformed positions (scale = " << scale << ")" << endl
+        << "Update particle-to-core" << endl;
+    
+    bunch->update();
+    
+    domainMapping(*bunch, scale, true);
+    
+    msg << "Back to normal positions" << endl;
+}
+
+
+double depositCharge(AmrOpal& myAmrOpal, amrbunch_t* bunch,
+                     container_t& rhs, Inform& msg, const param_t& params, double& scale)
+{
+    scale = 1.0;
+    
+    int base_level   = 0;
+    int finest_level = myAmrOpal.finestLevel();
+    
+    container_t partMF(params.nLevels);
+    for (uint lev = 0; lev < params.nLevels; lev++) {
+        rhs[lev]->setVal(0.0);
+        
+        const amrex::BoxArray& ba = myAmrOpal.boxArray()[lev];
+        const amrex::DistributionMapping& dmap = myAmrOpal.DistributionMap(lev);
+        partMF[lev].reset(new amrex::MultiFab(ba, dmap, 1, 2));
+        partMF[lev]->setVal(0.0, 2);
+    }
+    
+    scale = domainMapping(*bunch, scale);
+    
+    msg << endl << "Transformed positions (scale = " << scale << ")" << endl
+        << "Assign density" << endl;
+    
+    bunch->AssignDensityFort(bunch->qm, partMF, base_level, 1, finest_level);
+    
+    domainMapping(*bunch, scale, true);
+    
+    msg << "Back to normal positions" << endl;
+    
+    for (uint lev = 0; lev < params.nLevels; ++lev) {
+        amrex::MultiFab::Copy(*rhs[lev], *partMF[lev], 0, 0, 1, 0);
+    }
+    
+    for (uint i = 0; i < rhs.size(); ++i)
+        if ( rhs[i]->contains_nan() || rhs[i]->contains_inf() )
+            throw std::runtime_error("\033[1;31mError: NANs or INFs on charge grid.\033[0m");
+    
+    const amrex::Array<amrex::Geometry>& geom = myAmrOpal.Geom();
+    
+    amrex::Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
+    msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
+    
+    // Check charge conservation
+    double totCharge = totalCharge(rhs, finest_level, geom);
+    
+    msg << "Total Charge (computed): " << totCharge << " C" << endl
+        << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
+    
+    // eps in C / (V * m)
+    double constant = -1.0;
+
+    if ( !params.isFixedCharge )
+        constant /= Physics::epsilon_0 ; //* scale;  // in [V m / C]
+
+    for (int i = 0; i <= finest_level; ++i) {
+        rhs[i]->mult(constant, 0, 1);       // in [V m]
+    }
+    
+    
+    // normalize each level
+    double l0norm = rhs[finest_level]->norm0(0);
+    msg << "l0norm = " << l0norm << endl;
+    for (int i = 0; i <= finest_level; ++i)
+        rhs[i]->mult(1.0 / l0norm, 0, 1);
+    return l0norm;
+}
+
+
 void prepareSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
                   container_t& rhs,
                   container_t& phi,
                   container_t& efield,
                   const amrex::Array<int>& rr,
-                  Inform& msg, const param_t& params)
+                  const param_t& params)
 {
     // =======================================================================
     // 4. prepare for multi-level solve               
@@ -467,46 +565,34 @@ void prepareSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         initGridData(rhs, phi, efield,
                      myAmrOpal.boxArray()[lev], myAmrOpal.DistributionMap(lev), lev);
     }
-    
-   container_t partMF(params.nLevels);
-   for (uint lev = 0; lev < params.nLevels; lev++) {
-        const amrex::BoxArray& ba = myAmrOpal.boxArray()[lev];
-        const amrex::DistributionMapping& dmap = myAmrOpal.DistributionMap(lev);
-        partMF[lev].reset(new amrex::MultiFab(ba, dmap, 1, 2));
-        partMF[lev]->setVal(0.0, 2);
-   }
-    
-    bunch->AssignDensityFort(bunch->qm, partMF, base_level, 1, finest_level);
-    
-    for (uint lev = 0; lev < params.nLevels; ++lev) {
-        amrex::MultiFab::Copy(*rhs[lev], *partMF[lev], 0, 0, 1, 0);
-    }
-    
+}
+
+
+void print(AmrOpal& myAmrOpal, const double& scale,
+           container_t& rhs, container_t& phi,
+           container_t& efield, Inform& msg,
+           const amrex::Array<int>& rr,
+           const param_t& params)
+{
     const amrex::Array<amrex::Geometry>& geom = myAmrOpal.Geom();
     
-    for (uint i = 0; i < rhs.size(); ++i)
-        if ( rhs[i]->contains_nan() || rhs[i]->contains_inf() )
-            throw std::runtime_error("\033[1;31mError: NANs or INFs on charge grid.\033[0m");
-    
-    
-    // Check charge conservation
-    double totCharge = totalCharge(rhs, finest_level, geom);
-    
-    msg << "Total Charge (computed): " << totCharge << " C" << endl
-        << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
-    
-    amrex::Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
-    msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
-    
-    // eps in C / (V * m)
-    double constant = -1.0;
-
-    if ( !params.isFixedCharge )
-        constant /= Physics::epsilon_0 ; //* scale;  // in [V m / C]
-
-    for (int i = 0; i <= finest_level; ++i) {
-        rhs[i]->mult(constant, 0, 1);       // in [V m]
+    for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
+        msg << "Max. potential level " << i << ": "<< phi[i]->max(0) << endl
+            << "Min. potential level " << i << ": " << phi[i]->min(0) << endl
+            << "Max. ex-field level " << i << ": " << efield[i]->max(0) << endl
+            << "Min. ex-field level " << i << ": " << efield[i]->min(0) << endl;
     }
+    
+    double fieldenergy = totalFieldEnergy(efield, rr);
+    
+    msg << "Total field energy: " << fieldenergy << endl;
+    
+    amrex::RealBox amr_domain = geom[0].ProbDomain();
+    if (params.isWriteCSV && Ippl::getNodes() == 1 && myAmrOpal.maxGridSize(0) == (int)params.nr[0] )
+        writeCSV(phi, efield, amr_domain.lo(0) / scale, geom[0].CellSize(0) / scale);
+    
+    if ( params.isWriteYt )
+        writeYt(rhs, phi, efield, geom, rr, scale, params);
 }
 
 
@@ -515,8 +601,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              container_t& phi,
              container_t& efield,
              const amrex::Array<int>& rr,
-             Inform& msg,
-             const double& scale, const param_t& params)
+             Inform& msg, const param_t& params)
 {
     static IpplTimings::TimerRef solvTimer = IpplTimings::getTimer("solve");
     
@@ -596,18 +681,14 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     pp.add("bottom_solver", bottom_solver);
     
     
-    prepareSolve(myAmrOpal, bunch, rhs, phi, efield, rr, msg, params);
-    
+    prepareSolve(myAmrOpal, bunch, rhs, phi, efield, rr, params);
     
     int base_level   = 0;
     int finest_level = myAmrOpal.finestLevel();
     const amrex::Array<amrex::Geometry>& geom = myAmrOpal.Geom();
     
-    // normalize each level
-    double l0norm = rhs[finest_level]->norm0(0);
-    msg << "l0norm = " << l0norm << endl;
-    for (int i = 0; i <= finest_level; ++i)
-        rhs[i]->mult(1.0 / l0norm, 0, 1);
+    double scale = 1.0;
+    double l0norm = depositCharge(myAmrOpal, bunch, rhs, msg, params, scale);
     
     // **************************************************************************
     // Compute the total charge of all particles in order to compute the offset
@@ -625,9 +706,11 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         
         sol.setNumberOfSweeps(params.nsweeps);
     
-        IpplTimings::startTimer(solvTimer);
         
         for (uint i = 0; i < params.nsolve; ++i) {
+            
+            IpplTimings::startTimer(solvTimer);
+            
             sol.solve(rhs,            // [V m]
                       phi,            // [V m^3]
                       efield,       // [V m^2]
@@ -635,38 +718,70 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
                       base_level,
                       finest_level, i);
             
-            msg << "#iterations: " << sol.getNumIters() << endl;
+            IpplTimings::stopTimer(solvTimer);
+            
+            // undo normalization
             for (int i = 0; i <= finest_level; ++i) {
-                msg << "norm of residual (level " << i << "): "
-                    << sol.getLevelResidualNorm(i) << endl;
+                phi[i]->mult(scale * l0norm, 0, 1);
+            }
+            
+            // undo scale
+            for (int i = 0; i <= finest_level; ++i)
+                efield[i]->mult(scale * scale * l0norm, 0, 3);
+            
+            print(myAmrOpal, scale, rhs, phi, efield, msg, rr, params);
+            
+            msg << "#iterations: " << sol.getNumIters() << endl;
+            for (int j = 0; j <= finest_level; ++j) {
+                msg << "norm of residual (level " << j << "): "
+                    << sol.getLevelResidualNorm(j) << endl;
+            }
+            
+            if ( params.nsolve > 1 ) {
+                randomMove(bunch, Ippl::myNode() + i, msg);
+                
+                l0norm = depositCharge(myAmrOpal, bunch, rhs, msg, params, scale);
             }
         }
-        
-        IpplTimings::stopTimer(solvTimer);
-        
-        
-        
     } else if ( params.useMgtSolver ) {
 #else
     if ( params.useMgtSolver ) {
 #endif
         MGTSolver sol;
-        IpplTimings::startTimer(solvTimer);
         
         for (uint i = 0; i < params.nsolve; ++i) {
+            IpplTimings::startTimer(solvTimer);
+            
             sol.solve(rhs,            // [V m]
                       phi,            // [V m^3]
                       efield,       // [V m^2]
                       geom);
+            
+            IpplTimings::stopTimer(solvTimer);
+            
+            // undo normalization
+            for (int i = 0; i <= finest_level; ++i) {
+                phi[i]->mult(scale * l0norm, 0, 1);
+            }
+            
+            // undo scale
+            for (int i = 0; i <= finest_level; ++i)
+                efield[i]->mult(scale * scale * l0norm, 0, 3);
+            
+            print(myAmrOpal, scale, rhs, phi, efield, msg, rr, params);
+            
+            if ( params.nsolve > 1 ) {
+                randomMove(bunch, Ippl::myNode() + i, msg);
+                
+                l0norm = depositCharge(myAmrOpal, bunch, rhs, msg, params, scale);
+            }
         }
-        
-        IpplTimings::stopTimer(solvTimer);
-        
     } else {
         Solver sol;
-        IpplTimings::startTimer(solvTimer);
         
         for (uint i = 0; i < params.nsolve; ++i) {
+            IpplTimings::startTimer(solvTimer);
+            
             sol.solve_for_accel(rhs,            // [V m]
                                 phi,            // [V m^3]
                                 efield,       // [V m^2]
@@ -674,19 +789,27 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
                                 base_level,
                                 finest_level,
                                 offset);
+            
+            IpplTimings::stopTimer(solvTimer);
+            
+            // undo normalization
+            for (int i = 0; i <= finest_level; ++i) {
+                phi[i]->mult(scale * l0norm, 0, 1);
+            }
+            
+            // undo scale
+            for (int i = 0; i <= finest_level; ++i)
+                efield[i]->mult(scale * scale * l0norm, 0, 3);
+            
+            print(myAmrOpal, scale, rhs, phi, efield, msg, rr, params);
+            
+            if ( params.nsolve > 1 ) {
+                randomMove(bunch, Ippl::myNode() + i, msg);
+                
+                l0norm = depositCharge(myAmrOpal, bunch, rhs, msg, params, scale);
+            }
         }
-        
-        IpplTimings::stopTimer(solvTimer);
     }
-    
-    // undo normalization
-    for (int i = 0; i <= finest_level; ++i) {
-        phi[i]->mult(scale * l0norm, 0, 1);
-    }
-    
-    // undo scale
-    for (int i = 0; i <= finest_level; ++i)
-        efield[i]->mult(scale * scale * l0norm, 0, 3);
 }
 
 void doAMReX(const param_t& params, Inform& msg)
@@ -777,9 +900,13 @@ void doAMReX(const param_t& params, Inform& msg)
         
         scale = domainMapping(*bunch, scale);
         
+        msg << endl << "Transformed positions (scale = " << scale << ")" << endl << endl;
+        
         bunch->update();
         
         domainMapping(*bunch, scale, true);
+        
+        msg << endl << "Back to normal positions" << endl << endl;
     }
     
     
@@ -820,7 +947,7 @@ void doAMReX(const param_t& params, Inform& msg)
     container_t phi;
     container_t efield;
     
-    msg << endl << "Transformed positions" << endl << endl;
+    msg << endl << "Transformed positions (scale = " << scale << ")" << endl << endl;
     
     msg << "#Particles: " << bunch->getTotalNum() << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
@@ -828,6 +955,11 @@ void doAMReX(const param_t& params, Inform& msg)
     
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, scale/*0.0*/ /*time*/);
+    
+    
+    msg << endl << "Back to normal positions" << endl << endl;
+    
+    domainMapping(*bunch, scale, true);
     
 
     if ( Ippl::myNode() == 0 ) {
@@ -849,28 +981,7 @@ void doAMReX(const param_t& params, Inform& msg)
     bunch->dumpStatistics(statistics);
     IpplTimings::stopTimer(statisticsTimer);
     
-    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, msg, scale, params);
-    
-    msg << endl << "Back to normal positions" << endl << endl;
-    
-    domainMapping(*bunch, scale, true);
-    
-    for (int i = 0; i <= myAmrOpal.finestLevel(); ++i) {
-        msg << "Max. potential level " << i << ": "<< phi[i]->max(0) << endl
-            << "Min. potential level " << i << ": " << phi[i]->min(0) << endl
-            << "Max. ex-field level " << i << ": " << efield[i]->max(0) << endl
-            << "Min. ex-field level " << i << ": " << efield[i]->min(0) << endl;
-    }
-    
-    double fieldenergy = totalFieldEnergy(efield, rrr);
-    
-    msg << "Total field energy: " << fieldenergy << endl;
-    
-    if (params.isWriteCSV && Ippl::getNodes() == 1 && myAmrOpal.maxGridSize(0) == (int)params.nr[0] )
-        writeCSV(phi, efield, amr_domain.lo(0) / scale, geom[0].CellSize(0) / scale);
-    
-    if ( params.isWriteYt )
-        writeYt(rhs, phi, efield, geom, rrr, scale, params);
+    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, msg, params);
 }
 
 
@@ -926,6 +1037,7 @@ int main(int argc, char *argv[]) {
             else if ( params.smoother == AmrMultiGrid::Smoother::JACOBI )
                 smoother = "Jacobi";
             msg << "- Trilinos solver is used with: "
+                << endl
                 << "    - nsweeps:     " << params.nsweeps
                 << endl
                 << "    - smoother:    " << smoother
