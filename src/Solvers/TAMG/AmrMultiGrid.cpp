@@ -26,6 +26,7 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
                            const std::string& norm)
     : AmrPoissonSolver<AmrBoxLib>(itsAmrObject_p),
       nIter_m(0),
+      maxiter_m(100),
       nSweeps_m(nSweeps),
       lbase_m(0),
       lfine_m(0),
@@ -81,6 +82,7 @@ AmrMultiGrid::AmrMultiGrid(Boundary bcx,
                           )
     : AmrPoissonSolver<AmrBoxLib>(nullptr),
       nIter_m(0),
+      maxiter_m(100),
       nSweeps_m(12),
       smootherType_m(smoother),
       lbase_m(0),
@@ -134,17 +136,16 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
                          const amrex::Array<AmrGeometry_t>& geom,
                          int lbase, int lfine, bool previous)
 {
-    nIter_m = 0;
     lbase_m = lbase;
     lfine_m = lfine;
     nlevel_m = lfine - lbase + 1;
     
-    this->initLevels_m(rho, geom);
-    
-    this->initGuess_m(phi, previous);
+    this->initLevels_m(rho, geom, previous);
     
     // build all necessary matrices and vectors
-    this->setup_m(rho, phi);
+    this->setup_m(rho, phi, !previous);
+    
+    this->initGuess_m(previous);
     
     // actual solve
     this->iterate_m();
@@ -168,17 +169,16 @@ void AmrMultiGrid::solve(AmrFieldContainer_t &rho,
                          unsigned short finestLevel,
                          bool prevAsGuess)
 {
-    nIter_m = 0;
     lbase_m = baseLevel;
     lfine_m = finestLevel;
     nlevel_m = lfine_m - lbase_m + 1;
     
-    this->initLevels_m(rho, itsAmrObject_mp->Geom());
-    
-    this->initGuess_m(phi, prevAsGuess);
+    this->initLevels_m(rho, itsAmrObject_mp->Geom(), prevAsGuess);
     
     // build all necessary matrices and vectors
-    this->setup_m(rho, phi);
+    this->setup_m(rho, phi, !prevAsGuess);
+    
+    this->initGuess_m(prevAsGuess);
     
     // actual solve
     this->iterate_m();
@@ -192,6 +192,24 @@ void AmrMultiGrid::solve(AmrFieldContainer_t &rho,
         
         this->trilinos2amrex_m(0, *phi[ilev], mglevel_m[lev]->phi_p);
     }
+}
+
+
+void AmrMultiGrid::setNumberOfSweeps(const std::size_t& nSweeps) {
+    if ( nSweeps < 0 )
+        throw OpalException("AmrMultiGrid::setNumberOfSweeps()",
+                            "The number of smoothing sweeps needs to be non-negative!");
+    
+    nSweeps_m = nSweeps;
+}
+
+
+void AmrMultiGrid::setMaxNumberOfIterations(const std::size_t& maxiter) {
+    if ( maxiter < 1 )
+        throw OpalException("AmrMultiGrid::setMaxNumberOfIterations()",
+                            "The max. number of iterations needs to be positive!");
+    
+    maxiter_m = maxiter;
 }
 
 
@@ -224,8 +242,12 @@ void AmrMultiGrid::initPhysicalBoundary_m(const Boundary* bc)
 
 
 void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
-                                const amrex::Array<AmrGeometry_t>& geom)
+                                const amrex::Array<AmrGeometry_t>& geom,
+                                bool previous)
 {
+    if ( previous )
+        return;
+    
     mglevel_m.resize(nlevel_m);
     
     AmrIntVect_t rr = AmrIntVect_t(D_DECL(2, 2, 2));
@@ -309,14 +331,13 @@ void AmrMultiGrid::clearMasks_m() {
 }
 
 
-void AmrMultiGrid::initGuess_m(amrex::Array<AmrField_u>& phi, bool previous) {
-    if ( !previous ) {
-        // reset
-        for (int lev = 0; lev < nlevel_m; ++lev) {
-            int ilev = lbase_m + lev;
-            phi[ilev]->setVal(0.0, phi[ilev]->nGrow());
-        }
-    }
+void AmrMultiGrid::initGuess_m(bool previous) {
+    if ( previous )
+        return;
+    
+    // reset
+    for (int lev = 0; lev < nlevel_m; ++lev)
+        mglevel_m[lev]->phi_p->putScalar(0.0);
 }
 
 
@@ -326,13 +347,24 @@ void AmrMultiGrid::iterate_m() {
     
     // initial error
     scalar_t max_residual = 0.0;
-    scalar_t max_rho = 0.0;
+    scalar_t max_rho = max_residual;
     
     this->initResidual_m(max_residual, max_rho);
     
-    while ( max_residual > eps * max_rho) {
+    nIter_m = 0;
+    
+    while ( max_residual > eps * max_rho && nIter_m < maxiter_m ) {
         
         relax_m(lfine_m);
+        
+        /* in contrast to algorithm, we average down now
+         * --> potential is valid also on coarse covered
+         * cells
+         * --> however, it may take 1-2 iterations longer
+         */
+        for (int lev = nlevel_m - 1; lev > -1; --lev) {
+            averageDown_m(lev);
+        }
         
         // update residual
         for (int lev = 0; lev < nlevel_m; ++lev) {
@@ -360,7 +392,7 @@ void AmrMultiGrid::residual_m(const lo_t& level,
      */
     if ( level < lfine_m ) {
         
-        vector_t fine2crse(mglevel_m[level]->Awf_p->getDomainMap());
+        vector_t fine2crse(mglevel_m[level]->Awf_p->getDomainMap(), true);
         
         // get boundary for 
         if ( mglevel_m[level]->Bfine_p != Teuchos::null ) {
@@ -534,6 +566,7 @@ void AmrMultiGrid::residual_no_fine_m(const lo_t& level,
 #endif
 }
 
+
 typename AmrMultiGrid::scalar_t AmrMultiGrid::residualNorm_m() {
     scalar_t err = 0.0;
     
@@ -644,8 +677,6 @@ void AmrMultiGrid::computeEfield_m(amrex::Array<AmrField_u>& efield) {
         
         efield_p = Teuchos::rcp( new vector_t(mglevel_m[lev]->map_p, false) );
         
-        averageDown_m(lev);
-        
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             mglevel_m[lev]->G_p[d]->apply(*mglevel_m[lev]->phi_p, *efield_p);
             this->trilinos2amrex_m(d, *efield[ilev], efield_p);
@@ -736,14 +767,14 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
         }
     } else {
         this->buildDensityVector_m(lbase_m, *rho[lbase_m]);
-        this->buildPotentialVector_m(lbase_m, *phi[lbase_m]);
     }
 
     this->close_m(lbase_m, matrices);
     
-    mglevel_m[lbase_m]->Awf_p = mglevel_m[lbase_m]->Anf_p->clone(node_mp);
-    
-    mglevel_m[lbase_m]->UnCovered_p = Teuchos::null;
+    if ( matrices ) {
+        mglevel_m[lbase_m]->Awf_p = mglevel_m[lbase_m]->Anf_p->clone(node_mp);
+        mglevel_m[lbase_m]->UnCovered_p = Teuchos::null;
+    }
 }
 
 
@@ -752,8 +783,9 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
                                      const bool& matrices)
 {
     // the base level has no smoother --> nlevel_m - 1
-    smoother_m.resize(nlevel_m-1);
-
+    if ( matrices )
+        smoother_m.resize(nlevel_m-1);
+    
     for (int lev = 0; lev < nlevel_m; ++lev) {
 
         this->open_m(lev, matrices);
@@ -842,14 +874,13 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
             for (lo_t lev = 0; lev < nlevel_m; ++lev) {
                 int ilev = lbase_m + lev;
                 this->buildDensityVector_m(lev, *rho[ilev]);
-                this->buildPotentialVector_m(lev, *phi[ilev]);
             }
         }
         
         this->close_m(lev, matrices);
         
         IpplTimings::startTimer(bSmoother_m);
-        if ( lev > lbase_m ) {
+        if ( matrices && lev > lbase_m ) {
             smoother_m[lev-1].reset( new AmrSmoother(mglevel_m[lev]->Anf_p,
                                                      smootherType_m, nSweeps_m) );
         }
@@ -965,8 +996,10 @@ void AmrMultiGrid::open_m(const lo_t& level,
     mglevel_m[level]->rho_p = Teuchos::rcp(
         new vector_t(mglevel_m[level]->map_p, false) );
     
-    mglevel_m[level]->phi_p = Teuchos::rcp(
-        new vector_t(mglevel_m[level]->map_p, false) );
+    if ( matrices ) {
+        mglevel_m[level]->phi_p = Teuchos::rcp(
+            new vector_t(mglevel_m[level]->map_p, false) );
+    }
 
     IpplTimings::stopTimer(bopen_m);
 }

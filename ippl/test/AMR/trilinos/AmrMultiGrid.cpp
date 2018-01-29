@@ -320,7 +320,6 @@ void AmrMultiGrid::iterate_m() {
     scalar_t max_residual = 0.0;
     scalar_t max_rho = max_residual;
     
-    
     this->initResidual_m(max_residual, max_rho);
     
     nIter_m = 0;

@@ -185,7 +185,6 @@ public:
         return nIter_m;
     }
     
-    
     /*!
      * Obtain the residual norm of a level
      * @param level for which error is requested
