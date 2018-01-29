@@ -140,7 +140,6 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
                          const amrex::Array<AmrGeometry_t>& geom,
                          int lbase, int lfine, bool previous)
 {
-    nIter_m = 0;
     lbase_m = lbase;
     lfine_m = lfine;
     nlevel_m = lfine - lbase + 1;
@@ -321,7 +320,10 @@ void AmrMultiGrid::iterate_m() {
     scalar_t max_residual = 0.0;
     scalar_t max_rho = max_residual;
     
+    
     this->initResidual_m(max_residual, max_rho);
+    
+    nIter_m = 0;
     
     while ( max_residual > eps * max_rho && nIter_m < maxiter_m ) {
         
@@ -349,8 +351,6 @@ void AmrMultiGrid::iterate_m() {
         
         ++nIter_m;
     }
-    
-    this->initResidual_m(max_residual, max_rho);
 }
 
 
@@ -741,7 +741,6 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
         }
     } else {
         this->buildDensityVector_m(lbase_m, *rho[lbase_m]);
-        this->buildPotentialVector_m(lbase_m, *phi[lbase_m]);
     }
 
     this->close_m(lbase_m, matrices);
@@ -849,7 +848,6 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
             for (lo_t lev = 0; lev < nlevel_m; ++lev) {
                 int ilev = lbase_m + lev;
                 this->buildDensityVector_m(lev, *rho[ilev]);
-                this->buildPotentialVector_m(lev, *phi[ilev]);
             }
         }
         
@@ -972,8 +970,10 @@ void AmrMultiGrid::open_m(const lo_t& level,
     mglevel_m[level]->rho_p = Teuchos::rcp(
         new vector_t(mglevel_m[level]->map_p, false) );
     
-    mglevel_m[level]->phi_p = Teuchos::rcp(
-        new vector_t(mglevel_m[level]->map_p, false) );
+    if ( matrices ) {
+        mglevel_m[level]->phi_p = Teuchos::rcp(
+            new vector_t(mglevel_m[level]->map_p, false) );
+    }
 
     IpplTimings::stopTimer(bopen_m);
 }
