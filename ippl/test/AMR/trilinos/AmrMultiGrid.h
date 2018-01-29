@@ -169,17 +169,13 @@ public:
      * Specify the number of smoothing steps
      * @param nSweeps for each smoothing step
      */
-    void setNumberOfSweeps(std::size_t nSweeps) {
-        nSweeps_m = nSweeps;
-    }
+    void setNumberOfSweeps(const std::size_t& nSweeps);
     
     /*!
      * Specify the maximum number of iterations
      * @param maxiter \f$ [0, \infty[ \f$
      */
-    void setMaxNumberOfIterations(std::size_t maxiter) {
-        maxiter_m = maxiter;
-    }
+    void setMaxNumberOfIterations(const std::size_t& maxiter);
     
     /*!
      * Obtain some convergence info
@@ -222,9 +218,11 @@ private:
      * Instantiate all levels and set boundary conditions
      * @param rho is the charge density
      * @param geom is the geometry
+     * @param previous solution as initial guess
      */
     void initLevels_m(const amrex::Array<AmrField_u>& rho,
-                      const amrex::Array<AmrGeometry_t>& geom);
+                      const amrex::Array<AmrGeometry_t>& geom,
+                      bool previous);
     
     /*!
      * Clear masks (required to build matrices) no longer needed.
