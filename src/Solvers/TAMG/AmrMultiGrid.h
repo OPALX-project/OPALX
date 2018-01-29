@@ -191,10 +191,13 @@ public:
      * Specify the number of smoothing steps
      * @param nSweeps for each smoothing step
      */
-    void setNumberOfSweeps(std::size_t nSweeps) {
-        nSweeps_m = nSweeps;
-    }
+    void setNumberOfSweeps(const std::size_t& nSweeps);
     
+    /*!
+     * Specify the maximum number of iterations
+     * @param maxiter \f$ [0, \infty[ \f$
+     */
+    void setMaxNumberOfIterations(const std::size_t& maxiter);
     
     /*!
      * Obtain some convergence info
@@ -202,6 +205,24 @@ public:
      */
     std::size_t getNumIters() {
         return nIter_m;
+    }
+    
+    /*!
+     * Obtain the residual norm of a level
+     * @param level for which error is requested
+     * @returns the norm of the residual
+     */
+    scalar_t getLevelResidualNorm(lo_t level) {
+        return evalNorm_m(mglevel_m[level]->residual_p);
+    }
+    
+    
+    /*!
+     * Obtain the residual norm
+     * @returns the maximum of all residual norms over all levels
+     */
+    scalar_t getMaxResidualNorm() {
+        return residualNorm_m();
     }
     
     double getXRangeMin(unsigned short level = 0);
@@ -230,9 +251,11 @@ private:
      * Instantiate all levels and set boundary conditions
      * @param rho is the charge density
      * @param geom is the geometry
+     * @param previous solution as initial guess
      */
     void initLevels_m(const amrex::Array<AmrField_u>& rho,
-                      const amrex::Array<AmrGeometry_t>& geom);
+                      const amrex::Array<AmrGeometry_t>& geom,
+                      bool previous);
     
     /*!
      * Clear masks (required to build matrices) no longer needed.
@@ -241,10 +264,9 @@ private:
     
     /*!
      * Reset potential to zero (currently)
-     * @param phi is the potential
      * @param previous solution as initial guess
      */
-    void initGuess_m(amrex::Array<AmrField_u>& phi, bool previous);
+    void initGuess_m(bool previous);
     
     /*!
      * Actual solve.
@@ -607,6 +629,7 @@ private:
     std::unique_ptr<AmrInterpolater<AmrMultiGridLevel_t> > interface_mp;
     
     std::size_t nIter_m;            ///< number of iterations till convergence
+    std::size_t maxiter_m;          ///< maximum number of iterations allowed
     std::size_t nSweeps_m;          ///< number of smoothing iterations
     Smoother smootherType_m;        ///< type of smoother
     
