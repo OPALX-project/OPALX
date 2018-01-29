@@ -159,7 +159,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 #ifdef HAVE_AMR_MG_SOLVER
         c = getopt_long(argc, argv, "a:B:cd:f:g:hi:j:k:l:m:n:o:pq:r:st:u:vwx:y:z:", long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "x:y:z:l:m:b:B:n:whcvpst:f:d:r:", long_options, &option_index);
+        c = getopt_long(argc, argv, "x:y:z:l:m:B:n:whcvpst:f:d:r:", long_options, &option_index);
 #endif
         
         if ( c == -1 )
@@ -705,7 +705,6 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
                          params.prec, params.smoother);
         
         sol.setNumberOfSweeps(params.nsweeps);
-    
         
         for (uint i = 0; i < params.nsolve; ++i) {
             
@@ -721,17 +720,18 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
             IpplTimings::stopTimer(solvTimer);
             
             // undo normalization
-            for (int i = 0; i <= finest_level; ++i) {
-                phi[i]->mult(scale * l0norm, 0, 1);
+            for (int j = 0; j <= finest_level; ++j) {
+                phi[j]->mult(scale * l0norm, 0, 1);
             }
             
             // undo scale
-            for (int i = 0; i <= finest_level; ++i)
-                efield[i]->mult(scale * scale * l0norm, 0, 3);
+            for (int j = 0; j <= finest_level; ++j)
+                efield[j]->mult(scale * scale * l0norm, 0, 3);
             
             print(myAmrOpal, scale, rhs, phi, efield, msg, rr, params);
             
             msg << "#iterations: " << sol.getNumIters() << endl;
+            
             for (int j = 0; j <= finest_level; ++j) {
                 msg << "norm of residual (level " << j << "): "
                     << sol.getLevelResidualNorm(j) << endl;
