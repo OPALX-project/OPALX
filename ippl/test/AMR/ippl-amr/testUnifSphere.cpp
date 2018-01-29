@@ -118,7 +118,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     
     int cnt = 0;
     
-    int required = 8;
+    int required = 7;
     
     while ( true ) {
         static struct option long_options[] = {
@@ -128,7 +128,6 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "level",          required_argument, 0, 'l' },
             { "maxgrid",        required_argument, 0, 'm' },
             { "radius",         required_argument, 0, 'r' },
-            { "boxlength",      required_argument, 0, 'b' },
             { "nparticles",     required_argument, 0, 'n' },
             { "writeYt",        no_argument,       0, 'w' },
             { "help",           no_argument,       0, 'h' },
@@ -154,9 +153,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         int option_index = 0;
         
 #ifdef HAVE_AMR_MG_SOLVER
-        c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:whcvpst:f:a:g:q:o:u:i:j:k:", long_options, &option_index);
+        c = getopt_long(argc, argv, "x:y:z:l:m:r:n:whcvpst:f:a:g:q:o:u:i:j:k:", long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "x:y:z:l:m:r:b:n:whcvpst:f:", long_options, &option_index);
+        c = getopt_long(argc, argv, "x:y:z:l:m:r:n:whcvpst:f:", long_options, &option_index);
 #endif
         
         if ( c == -1 )
@@ -264,8 +263,6 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.maxBoxSize = std::atoi(optarg); ++cnt; break;
             case 'r':
                 params.radius = std::atof(optarg); ++cnt; break;
-            case 'b':
-                params.length = std::atof(optarg); ++cnt; break;
             case 'n':
                 params.nParticles = std::atoi(optarg); ++cnt; break;
             case 'c':
@@ -302,7 +299,6 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--level [#levels]" << endl
                     << "--maxgrid [max. grid]" << endl
                     << "--radius [sphere radius]" << endl
-                    << "--boxlength [cube side length]" << endl
                     << "--nparticles [#particles]" << endl
                     << "--pcharge [charge per particle] (optional)" << endl
                     << "--writeYt (optional)" << endl
@@ -709,18 +705,6 @@ void doAMReX(const param_t& params, Inform& msg)
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-//     double halflength = 0.5 * params.length;
-//     
-//     std::array<double, AMREX_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
-//     std::array<double, AMREX_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
-//     
-//     amrex::RealBox domain;
-//     
-//     // in helper_functions.h
-//     init(domain, params.nr, lower, upper);
-//     
-//     msg << "Domain: " << domain << endl;
-    
     /*
      * create an Amr object
      */
@@ -868,26 +852,8 @@ void doAMReX(const param_t& params, Inform& msg)
     if (params.isWriteCSV && Ippl::getNodes() == 1 && myAmrOpal.maxGridSize(0) == (int)params.nr[0] )
         writeCSV(phi, efield, amr_domain.lo(0) / scale, geom[0].CellSize(0) / scale);
     
-    if ( params.isWriteYt ) {
-//         double halflength = 0.5 * params.length;
-//     
-//         std::array<double, AMREX_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
-//         std::array<double, AMREX_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
-//     
-//         amrex::RealBox domain;
-//         
-//         init(domain, params.nr, lower, upper);
-//         
-//         amrex::RealBox orig = geom[0].ProbDomain();
-//         geom[0].ProbDomain(domain);
-//         
-//         amrex::IntVect low(0, 0, 0);
-//         amrex::IntVect high(params.nr[0] - 1, params.nr[1] - 1, params.nr[2] - 1);    
-//         Box bx(low, high);
-//         geom[0].Domain(bx);
-        
+    if ( params.isWriteYt )
         writeYt(rhs, phi, efield, geom, rrr, scale);
-    }
 }
 
 
@@ -923,7 +889,6 @@ int main(int argc, char *argv[]) {
             << "- max. grid             = " << params.maxBoxSize << endl
             << "- #level                = " << params.nLevels - 1 << endl
             << "- sphere radius [m]     = " << params.radius << endl
-            << "- cube side length [m]  = " << params.length << endl
             << "- #particles            = " << params.nParticles << endl
             << "- tagging               = " << tagging << endl
             << "- tagging factor        = " << params.tagfactor << endl;
