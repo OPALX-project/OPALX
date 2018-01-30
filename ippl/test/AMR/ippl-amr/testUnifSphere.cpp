@@ -47,6 +47,7 @@ struct param_t {
     Vektor<size_t, 3> nr;
     size_t nLevels;
     size_t maxBoxSize;
+    size_t blocking_factor;
     double radius;
     double length;
     size_t nParticles;
@@ -118,42 +119,43 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     
     int cnt = 0;
     
-    int required = 7;
+    int required = 8;
     
     while ( true ) {
         static struct option long_options[] = {
-            { "gridx",          required_argument, 0, 'x' },
-            { "gridy",          required_argument, 0, 'y' },
-            { "gridz",          required_argument, 0, 'z' },
-            { "level",          required_argument, 0, 'l' },
-            { "maxgrid",        required_argument, 0, 'm' },
-            { "radius",         required_argument, 0, 'r' },
-            { "nparticles",     required_argument, 0, 'n' },
-            { "writeYt",        no_argument,       0, 'w' },
-            { "help",           no_argument,       0, 'h' },
-            { "pcharge",        required_argument, 0, 'c' },
-            { "writeCSV",       no_argument,       0, 'v' },
-            { "writeParticles", no_argument,       0, 'p' },
-            { "use-mgt-solver", no_argument,       0, 's' },
+            { "gridx",           required_argument, 0, 'x' },
+            { "gridy",           required_argument, 0, 'y' },
+            { "gridz",           required_argument, 0, 'z' },
+            { "level",           required_argument, 0, 'l' },
+            { "maxgrid",         required_argument, 0, 'm' },
+            { "blocking_factor", required_argument, 0, 'd' },
+            { "radius",          required_argument, 0, 'r' },
+            { "nparticles",      required_argument, 0, 'n' },
+            { "writeYt",         no_argument,       0, 'w' },
+            { "help",            no_argument,       0, 'h' },
+            { "pcharge",         required_argument, 0, 'c' },
+            { "writeCSV",        no_argument,       0, 'v' },
+            { "writeParticles",  no_argument,       0, 'p' },
+            { "use-mgt-solver",  no_argument,       0, 's' },
 #ifdef HAVE_AMR_MG_SOLVER
-            { "use-trilinos",   no_argument,       0, 'a' },
-            { "nsweeps",        required_argument, 0, 'g' },
-            { "smoother",       required_argument, 0, 'q' },
-            { "prec",           required_argument, 0, 'o' },
-            { "bcx",            required_argument, 0, 'i' },
-            { "bcy",            required_argument, 0, 'j' },
-            { "bcz",            required_argument, 0, 'k' },
-            { "basesolver",     required_argument, 0, 'u' },
+            { "use-trilinos",    no_argument,       0, 'a' },
+            { "nsweeps",         required_argument, 0, 'g' },
+            { "smoother",        required_argument, 0, 'q' },
+            { "prec",            required_argument, 0, 'o' },
+            { "bcx",             required_argument, 0, 'i' },
+            { "bcy",             required_argument, 0, 'j' },
+            { "bcz",             required_argument, 0, 'k' },
+            { "basesolver",      required_argument, 0, 'u' },
 #endif
-            { "tagging",        required_argument, 0, 't' },
-            { "tagging-factor", required_argument, 0, 'f' },
-            { 0,                0,                 0,  0  }
+            { "tagging",         required_argument, 0, 't' },
+            { "tagging-factor",  required_argument, 0, 'f' },
+            { 0,                 0,                 0,  0  }
         };
         
         int option_index = 0;
         
 #ifdef HAVE_AMR_MG_SOLVER
-        c = getopt_long(argc, argv, "x:y:z:l:m:r:n:whcvpst:f:a:g:q:o:u:i:j:k:", long_options, &option_index);
+        c = getopt_long(argc, argv, "a:cd:f:g:hi:j:k:l:m:n:o:pq:r:st:u:vwx:y:z:", long_options, &option_index);
 #else
         c = getopt_long(argc, argv, "x:y:z:l:m:r:n:whcvpst:f:", long_options, &option_index);
 #endif
@@ -265,6 +267,8 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.nLevels = std::atoi(optarg) + 1; ++cnt; break;
             case 'm':
                 params.maxBoxSize = std::atoi(optarg); ++cnt; break;
+            case 'd':
+                params.blocking_factor = std::atoi(optarg); ++cnt; break;
             case 'r':
                 params.radius = std::atof(optarg); ++cnt; break;
             case 'n':
@@ -302,6 +306,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--gridz [#gridpoints in z]" << endl
                     << "--level [#levels]" << endl
                     << "--maxgrid [max. grid]" << endl
+                    << "--blocking_factor [val] (only grids modulo bf == 0 allowed)" << endl
                     << "--radius [sphere radius]" << endl
                     << "--nparticles [#particles]" << endl
                     << "--pcharge [charge per particle] (optional)" << endl
@@ -717,6 +722,9 @@ void doAMReX(const param_t& params, Inform& msg)
     
     amrex::Array<int> error_buf(params.nLevels, 0);
     
+    amrex::Array<int> bf(params.nLevels, int(params.blocking_factor));
+    pp.addarr("blocking_factor", bf);
+    
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
     
@@ -891,6 +899,7 @@ int main(int argc, char *argv[]) {
         msg << "Particle test running with" << endl
             << "- grid                  = " << params.nr << endl
             << "- max. grid             = " << params.maxBoxSize << endl
+            << "- blocking factor       = " << params.blocking_factor << endl
             << "- #level                = " << params.nLevels - 1 << endl
             << "- sphere radius [m]     = " << params.radius << endl
             << "- #particles            = " << params.nParticles << endl
