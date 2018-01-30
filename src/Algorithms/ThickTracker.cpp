@@ -18,6 +18,20 @@
 //
 // ------------------------------------------------------------------------
 
+
+/*
+#include <cmath>
+#include <exception>
+#include <functional>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <fstream>
+*/
+
+
+#include <typeinfo>
+#include <fstream>
 #include "Algorithms/ThickTracker.h"
 #include "Algorithms/OrbitThreader.h" 
 #include "Algorithms/CavityAutophaser.h"
@@ -31,13 +45,24 @@
 #include "Beamlines/FlaggedBeamline.h"
 
 #include "Fields/BMultipoleField.h"
-#include "FixedAlgebra/FTps.h"
-#include "FixedAlgebra/FTpsMath.h"
-#include "FixedAlgebra/FVps.h"
+#include "Classic/FixedAlgebra/FTps.h"
+#include "Classic/FixedAlgebra/FTpsMath.h"
+#include "Classic/FixedAlgebra/FVps.h"
+
+#include "Classic/Fields/BSingleMultipoleField.h"
+
+
+#include "Classic/Algorithms/PartData.h"  //for the beam reference
+
 
 #include "Physics/Physics.h"
 //#include "Utilities/NumToStr.h"
+
 #include "Elements/OpalBeamline.h"
+#include <Classic/BeamlineCore/MultipoleRep.h>
+#include "Distribution/MapGenerator.h"
+
+#define DIM 3
 
 class Beamline;
 class PartData;
@@ -269,7 +294,6 @@ void ThickTracker::changeDT() {
         itsBunch_m->dt[i] = itsBunch_m->getdT();
     }
 }
-
 void ThickTracker::findStartPosition(const BorisPusher &pusher) {
 
     double t = 0.0;
@@ -328,126 +352,494 @@ void ThickTracker::findStartPosition(const BorisPusher &pusher) {
     }
 }
 
+/**
+ * @brief Algorithm for Thick Map-Tracking
+ */
+
 
 void ThickTracker::execute() {
-  Inform msg("ThickTracker ", *gmsg);
 
-  msg << "in execute " << __LINE__ << " " << __FILE__ << endl;
+    std::ofstream outfile;
+    std::ofstream tmap;
+    outfile.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/generatedMaps.txt");
+    tmap.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/TransferMap.txt");
+    outfile << std::setprecision(20);
 
-  /*
+	Inform msg("ThickTracker", *gmsg);
+
+	msg << "in execute " << __LINE__ << " " << __FILE__ << endl;
+
+	/*
     First some setup and general preparation. Mostly copied from ParalellTTracker.
     Some of them we maybe do not need at all.
-   */
+	 */
 
-  OpalData::getInstance()->setInPrepState(true);
+    OpalData::getInstance()->setInPrepState(true);
 
-  BorisPusher pusher(itsReference);
-  OpalData::getInstance()->setGlobalPhaseShift(0.0);
+    BorisPusher pusher(itsReference);
+    OpalData::getInstance()->setGlobalPhaseShift(0.0);
 
-  dtCurrentTrack_m = itsBunch_m->getdT();
+    dtCurrentTrack_m = itsBunch_m->getdT();
 
-  if (OpalData::getInstance()->hasPriorTrack() || OpalData::getInstance()->inRestartRun()) {
+    if (OpalData::getInstance()->hasPriorTrack() || OpalData::getInstance()->inRestartRun()) {
     Options::openMode = Options::APPEND;
-  }
-
-  prepareSections();
-
-  itsOpalBeamline_m.compute3DLattice();
-  itsOpalBeamline_m.save3DLattice();
-  itsOpalBeamline_m.save3DInput();
-
-  std::queue<double> timeStepSizes(dtAllTracks_m);
-  std::queue<unsigned long long> numSteps(localTrackSteps_m);
-  double minTimeStep = timeStepSizes.front();
-  unsigned long long totalNumSteps = 0;
-  while (timeStepSizes.size() > 0) {
-    if (minTimeStep > timeStepSizes.front()) {
-      totalNumSteps = std::ceil(totalNumSteps * minTimeStep / timeStepSizes.front());
-      minTimeStep = timeStepSizes.front();
     }
-    totalNumSteps += std::ceil(numSteps.front() * timeStepSizes.front() / minTimeStep);
-    
-    numSteps.pop();
-    timeStepSizes.pop();
-  }
-  
-  itsOpalBeamline_m.activateElements();
 
-  if (OpalData::getInstance()->hasPriorTrack() ||
-      OpalData::getInstance()->inRestartRun()) {
+    prepareSections();
 
-    referenceToLabCSTrafo_m = itsBunch_m->toLabTrafo_m;
-    RefPartR_m = referenceToLabCSTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
-    RefPartP_m = referenceToLabCSTrafo_m.rotateFrom(itsBunch_m->RefPartP_m);
-    
-    pathLength_m = itsBunch_m->get_sPos();
-    zstart_m = pathLength_m;
-    
-    restoreCavityPhases();
-  } else {
-    RefPartR_m = Vector_t(0.0);
-    RefPartP_m = euclidean_norm(itsBunch_m->get_pmean_Distribution()) * Vector_t(0, 0, 1);
-    
-    if (itsBunch_m->getTotalNum() > 0) {
-      if (!itsOpalBeamline_m.containsSource()) {
-	RefPartP_m = OpalData::getInstance()->getP0() / itsBunch_m->getM() * Vector_t(0, 0, 1);
-      }
-      
-      if (zstart_m > pathLength_m) {
-	findStartPosition(pusher);
-      }
-      
-      itsBunch_m->set_sPos(pathLength_m);
-    }
-  }
 
-  Vector_t rmin, rmax;
-  itsBunch_m->get_bounds(rmin, rmax);
-
-  OrbitThreader oth(itsReference,
-		    referenceToLabCSTrafo_m.transformTo(RefPartR_m),
-		    referenceToLabCSTrafo_m.rotateTo(RefPartP_m),
-		    pathLength_m,
-		    -rmin(2),
-		    itsBunch_m->getT(),
-		    minTimeStep,
-		    totalNumSteps,
-		    zStop_m.back() + 2 * rmax(2),
-		    itsOpalBeamline_m);
-  
-  oth.execute();
-  
+//  itsOpalBeamline_m.compute3DLattice();
+//  itsOpalBeamline_m.save3DLattice();
+//  itsOpalBeamline_m.save3DInput();
+//
+//  std::queue<double> timeStepSizes(dtAllTracks_m);
+//  std::queue<unsigned long long> numSteps(localTrackSteps_m);
+//  double minTimeStep = timeStepSizes.front();
+//  unsigned long long totalNumSteps = 0;
+//  while (timeStepSizes.size() > 0) {
+//    if (minTimeStep > timeStepSizes.front()) {
+//      totalNumSteps = std::ceil(totalNumSteps * minTimeStep / timeStepSizes.front());
+//      minTimeStep = timeStepSizes.front();
+//    }
+//    totalNumSteps += std::ceil(numSteps.front() * timeStepSizes.front() / minTimeStep);
+//
+//    numSteps.pop();
+//    timeStepSizes.pop();
+//  }
+//
+//  itsOpalBeamline_m.activateElements();
+//
+//  if (OpalData::getInstance()->hasPriorTrack() ||
+//      OpalData::getInstance()->inRestartRun()) {
+//
+//    referenceToLabCSTrafo_m = itsBunch_m->toLabTrafo_m;
+//    RefPartR_m = referenceToLabCSTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
+//    RefPartP_m = referenceToLabCSTrafo_m.rotateFrom(itsBunch_m->RefPartP_m);
+//
+//    pathLength_m = itsBunch_m->get_sPos();
+//    zstart_m = pathLength_m;
+//
+//    restoreCavityPhases();
+//  } else {
+//    RefPartR_m = Vector_t(0.0);
+//    RefPartP_m = euclidean_norm(itsBunch_m->get_pmean_Distribution()) * Vector_t(0, 0, 1);
+//
+//    if (itsBunch_m->getTotalNum() > 0) {
+//      if (!itsOpalBeamline_m.containsSource()) {
+//	RefPartP_m = OpalData::getInstance()->getP0() / itsBunch_m->getM() * Vector_t(0, 0, 1);
+//      }
+//
+//      if (zstart_m > pathLength_m) {
+//	findStartPosition(pusher);
+//      }
+//
+//      itsBunch_m->set_sPos(pathLength_m);
+//    }
+//  }
+//
+//  Vector_t rmin, rmax;
+//  itsBunch_m->get_bounds(rmin, rmax);
+//
+//  OrbitThreader oth(itsReference,
+//		    referenceToLabCSTrafo_m.transformTo(RefPartR_m),
+//		    referenceToLabCSTrafo_m.rotateTo(RefPartP_m),
+//		    pathLength_m,
+//		    -rmin(2),
+//		    itsBunch_m->getT(),
+//		    minTimeStep,
+//		    totalNumSteps,
+//		    zStop_m.back() + 2 * rmax(2),
+//		    itsOpalBeamline_m);
+//
+//  oth.execute();
+//
   /*
     End of setup and general preparation.
   */
 
 
-  msg << *itsBunch_m << endl;
+    msg << *itsBunch_m << endl;
 
 
-  /*
+    /*
     This is an example how one can loop
     over all elements.
-  */    
+    */
 
-  auto allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
-    
-  FieldList::iterator it = allElements.begin();
-    
-  const FieldList::iterator end = allElements.end();
-  
-  if (it == end)
-    msg << "No element in lattice" << endl;
-    
-  for (; it != end; ++ it) {
-    std::shared_ptr<Component> element = (*it).getElement();
-    msg << "Element name " << element->getName() << endl;
+//=======================================================================
+
+
+    //generate the Hamiltonian
+    typedef FTps<double, 2 * DIM> Series;
+    typedef FVps<double, 2 * DIM> Map;
+
+    Series x = Series::makeVariable(0);		//SIXVect::X);
+    Series px = Series::makeVariable(1);		//SIXVect::PX);
+    Series y = Series::makeVariable(2);		//SIXVect::Y);
+    Series py = Series::makeVariable(3);		//SIXVect::PY);
+    //Series z = Series::makeVariable(4);		//SIXVect::TT);
+    Series delta = Series::makeVariable(5);	//SIXVect::PT);
+
+
+
+//Diese Parameter muessen per & uebernommen werden
+//======================================================
+
+    int order = 2;  //actually already defined
+//   define parameter for Hamiltonian
+//
+//  double b = 1.; 	// field gradient [T/m]
+//  double E = 200.; //PartData::getE(); 	//beam energy [MeV]
+//  double ds = 0.4;     //stepsize [m]
+//
+//  double EProt = refPart.getM();  //938.2720813; //MeV/c
+
+    double  gamma0 =  (itsBunch_m->getInitialGamma())   ;    //(EProt + E) / EProt;
+    double  beta0 =  (itsBunch_m->getInitialBeta());   //std::sqrt(gamma0 * gamma0 - 1.0) / gamma0;
+
+    double  P0 =  (itsBunch_m-> getP()); //beta0 * gamma0 * EProt * 1e6 / Physics::c;
+    double  q =  (itsBunch_m->getQ());	// particle change [e]
+
+//=====================================================
+    double E=(itsReference.getE() - itsReference.getM());
+    E = std::round(E);
+    double AMU = 1.66053873e-27;
+    double EZERO = 1.602176462e-19 ;
+    double CLIGHT= 2.99792458e8 ;
+    double AMUMEV = AMU*(CLIGHT*CLIGHT)/EZERO ;
+    double M0= 1.00727646688;
+
+
+    double ETA = E/(M0*AMUMEV) ;
+    double PHI = std::sqrt(ETA*(2+ETA)) ;
+
+    P0 = (AMUMEV*M0)*PHI;
+    gamma0=ETA+1;
+    beta0= std::sqrt(1-1/(gamma0*gamma0));
+
+
+//=====================================================
+
+
+    beta0 = (PHI / (1 + ETA));
+    gamma0 = PHI / beta0;
+
+    msg << std::setprecision(20);
+    msg << "BreamEnergy: "<< E << endl;
+    msg << "P0 COSY:  " << P0 << endl;
+    msg << "E0 COSY:  " << AMUMEV*M0 << endl;
+//=====================================================
+    Series::setGlobalTruncOrder(order);
+
+//  double r0 = 1.; 					// get aperture, resp. the radius of magnet [m]
+
+
+    ///Creates the Hamiltonian for beam line element
+    /**\param element iterative pointer to the elements along the beam line
+    * \return Hamiltonian times elemenrLength
+    */
+    auto Hamiltonian = [&](std::shared_ptr<Component> element) {
+
+        Series H; //Hamiltonian
+        Series Hs;//Hamiltonian times ElementLength
+
+        switch(element->getType()) {
+
+            /**Driftspace
+             * \f[H_{Drift}= \frac{\delta}{\beta_0} -
+             * \sqrt{\left(\frac{1}{\beta_0} + \delta \right)^2 -p_x^2 -p_y^2 - \frac{1}{\left(\beta_0 \gamma_0\right)^2 } } \f]
+             */
+            case ElementBase::ElementType::DRIFT: {
+                Drift* pDrift= dynamic_cast<Drift*> (element.get());
+                //outfile <<  "0T,  ";
+                //outfile << pDrift ->getElementLength() << "m" <<std::endl;
+                H=( delta / beta0 )
+                - sqrt((1./ beta0 + delta ) *(1./ beta0 + delta )
+                        - ( px*px )
+                        - ( py*py )
+                        - 1./( beta0 * beta0 * gamma0 * gamma0 ),order
+                );
+                Hs = H * pDrift->getElementLength();
+                break;
+            }
+
+            /**Rectangular Bend
+             * \f[H_{Dipole}= \frac{\delta}{\beta_0} - \left( 1+ hx \right)
+             * \sqrt{\left(\frac{1}{\beta_0} + \delta \right)^2 -p_x^2 -p_y^2 - \frac{1}{\left(\beta_0 \gamma_0\right)^2 } } +
+             * \left( 1+ hx \right) k_0 \left(x - \frac{hx^2}{2 \left( 1+ hx \right)}\right) \f]
+             */
+            case ElementBase::ElementType::RBEND: {
+                RBend* pRBend= dynamic_cast<RBend*> (element.get());
+
+//		        double rho = P0 / (b * q); 		                        //bending radius [m]
+                double h = 1. / pRBend ->getBendRadius();               //inverse bending radius [1/m]
+                double K0= pRBend ->getB()*(Physics::c/itsReference.getP());
+
+//		        double phi = 45 * 0.0174532925;                         // tilt angle for dipole fringe field [rad]
+
+
+                //outfile << K0 << "T,  ";
+                //outfile << pRBend ->getArcLength() << "m" <<std::endl;
+                H=( delta / beta0 )
+                - (sqrt ((1./ beta0 + delta) *(1./ beta0 + delta)
+                                - ( px*px )
+                                - ( py*py )
+                                - 1./( beta0*beta0 * gamma0*gamma0 ),order
+                        ))
+                - (h * x)
+                * (sqrt ((1./ beta0 + delta) *(1./ beta0 + delta)
+                                - ( px*px )
+                                - ( py*py )
+                                - 1./( beta0*beta0 * gamma0*gamma0 ),order-1
+                        ))
+                + K0 * x * (1. + 0.5 * h* x);
+
+                Hs = H * pRBend->getArcLength();
+
+                break;
+            }
+
+            /**Sector Bend
+             * \f[H_{Dipole}= \frac{\delta}{\beta_0} - \left( 1+ hx \right)
+             * \sqrt{\left(\frac{1}{\beta_0} + \delta \right)^2 -p_x^2 -p_y^2 - \frac{1}{\left(\beta_0 \gamma_0\right)^2 } } +
+             * \left( 1+ hx \right) k_0 \left(x - \frac{hx^2}{2 \left( 1+ hx \right)}\right) \f]
+             */
+            case ElementBase::ElementType::SBEND: {
+
+                SBend* pSBend= dynamic_cast<SBend*> (element.get());
+//			    double rho = P0 / (b * q); 		                        //bending radius [m]
+                double h = 1. / pSBend ->getBendRadius();               //inverse bending radius [1/m]
+
+                double K0= pSBend ->getB()*(Physics::c/itsReference.getP());
+                msg<< "Magnetic Field Sbend:" << pSBend ->getB() << "T" << endl;
+//			    double phi = 45 * 0.0174532925;                         // tilt angle for dipole fringe field [rad]
+                msg<< "Effecgtive Length:" << pSBend ->getEffectiveLength() << "m" << endl;
+                //outfile << pSBend ->getB() << "T,  ";
+                //outfile << pSBend ->getEffectiveLength() << "m" <<std::endl;
+                H=( delta / beta0 )
+                - (sqrt ((1./ beta0 + delta) *(1./ beta0 + delta)
+                                - ( px*px )
+                                - ( py*py )
+                                - 1./( beta0*beta0 * gamma0*gamma0 ),order
+                        ))
+                - (h * x)
+                * (sqrt ((1./ beta0 + delta) *(1./ beta0 + delta)
+                                - ( px*px )
+                                - ( py*py )
+                                - 1./( beta0*beta0 * gamma0*gamma0 ),order-1
+                        ))
+                + K0 * x * (1. + 0.5 * h* x);
+
+                Hs= H * pSBend->getEffectiveLength();
+
+                break;
+            }
+
+            /**Quadrupole "in Multipolegroup"
+             * \f[H_{Quadrupole}= \frac{\delta}{\beta_0} -
+             * \sqrt{\left(\frac{1}{\beta_0} + \delta \right)^2  -p_x^2 -p_y^2 - \frac{1}{\left(\beta_0 \gamma_0\right)^2 } }	+
+             * \frac{1}{2} k_1 \left( x^2 - y^2 \right) \f]
+             */
+            case ElementBase::ElementType::MULTIPOLE: {
+                Multipole* pMultipole= dynamic_cast<Multipole*> (element.get());
+
+                double K1= pMultipole->getField().getNormalComponent(2)*(Physics::c/P0);
+                K1= std::round(K1*1e6)/1e6;
+//                outfile << K1 << "T/m,  ";
+//                outfile << pMultipole ->getElementLength() << "m,  " ;
+//                outfile << P0 << "MeV"<<std::endl;
+//		        K1 = (q * b) / (P0 * r0)
+
+                H= ( delta / beta0 )
+                - sqrt ((1./ beta0 + delta ) *(1./ beta0 + delta)
+                        - ( px*px )
+                        - ( py*py )
+                        - 1./( beta0*beta0 * gamma0*gamma0 ),order
+                )
+                + 0.5 * (q * K1) *(Physics::c/P0) * (x*x - y*y);
+
+                Hs=H* pMultipole ->getElementLength();
+
+                break;
+            }
+
+            default:
+            throw LogicalError("ThickTracker::exercute,",
+                    "Please use already defined beam line element:  At this time just driftspace, multipoles and dipoles");
+            break;
+
+        }
+        return Hs;
+    };
+
+
+//=======================================================================
+
+
+
+    FieldList allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
+    struct sort_by_pos {
+    bool operator()(const ClassicField &a, const ClassicField &b)
+        {return a.getElement()->getElementPosition() < b.getElement()->getElementPosition();}
+    };
+
+    allElements.sort(sort_by_pos());
+
+
+
+    FieldList::iterator it = allElements.begin();
+    const FieldList::iterator end = allElements.end();
+    if (it == end) msg << "No element in lattice" << endl;
+
+    Map combinedMaps;
+
+
+
+
+
+//    msg << "beam parameter " << itsReference.getE() - itsReference.getM() << endl;
+//    msg << "beam line length: " << allElements.size() << endl;
+//    //const int el = allElements.size();
+    msg << std::setprecision(20);
+    msg << "P0 OPAL:  " << itsBunch_m-> getP() << endl;
+    msg << "E0 OPAL:  " << itsBunch_m-> getM() << endl;
+
+
+
+//    msg << "q:  " << q << endl;
+
+
+    std::map<std::string, double> elementDic;
+    std::map<std::string, double>::iterator dicit;
+
+    std::vector<Map> mapVec;
+    double selement =0;
+    for (; it != end; ++ it) {
+        dicit = elementDic.begin();
+
+        std::shared_ptr<Component> element = (*it).getElement();
+
+
+        dicit= elementDic.find(element->getName());
+        if (dicit !=elementDic.end()){
+            throw LogicalError("ThickTracker::execute,",
+                                "Same Element twice in beamline:"+ element->getName());
+
+        }else{
+            elementDic.insert(std::pair<std::string, double> (element->getName(), element->getElementPosition()));
+        }
+
+        if (selement > element->getElementPosition()){
+            msg << "There is an overlap! @ Element: " << element ->getName() <<
+                    "-> starts at: " << element->getElementPosition()<<
+                    " the previous ends at: " << selement << endl;
+//            throw LogicalError("ThickTracker::exercute,",
+//                                            "Overlap at element:"+ element->getName());
+
+        }else{
+            selement=element->getElementPosition()+ element ->getElementLength();
+        }
+
+        if (element ->getType()==ElementBase::MONITOR){
+            mapVec.insert(mapVec.end(), combinedMaps);
+            combinedMaps.identity();
+
+        }
+
+
+    //    outfile << "Element name: " << element->getName() << std::endl;
+    //    outfile << "Element type:  " << element->getType()<< std::endl;
+        msg << "=============================="<< endl;
+        msg << "Element name: " << element->getName() << endl;
+        msg << "Element Length: " << element->getElementLength() << endl;
+//        msg << "Element nummer:   " << element->getType() << endl;
+        msg <<  "ElementPosition"<< element->getElementPosition()<< endl;
+        msg << "EntryPoint" << element->getEntrance()<< endl;
+
+
+//        outfile << "Element Hamiltonian: \n" << Hamiltonian(element) << std::endl;
+//        outfile << element->getName() << ",   ";
+//        outfile << E/1.0e6 << "MeV,  ";
+
+        Map ElementMap=ExpMap(-Hamiltonian(element) ,order);
+//        outfile << Hamiltonian(element);
+//        outfile << "\n=========="<< std::endl;
+        //outfile << ElementMap << std::endl;
+        combinedMaps = ElementMap * combinedMaps;
+        //outfile << "CombinedMap:  \n" << combinedMaps << std::endl;
+        //outfile << "------------------------------------------------------------" << std::endl;
+
+
   }
+  tmap << "A customized FODO" << std::endl;
+  tmap << combinedMaps << std::endl;
+//  outfile << combinedMaps << std::endl;
+
+  FVector<double, 6> particle;
+  OpalParticle part;
+  outfile <<"P0:  " << itsBunch_m->getP()/(M0*AMUMEV) << "    "
+		  << itsBunch_m->getInitialGamma()*itsBunch_m->getInitialBeta()<< std::endl;
+
+
+  for (unsigned int idx=0; idx< itsBunch_m->getTotalNum(); idx++){
+	  part =itsBunch_m ->get_part(idx);
+
+	  for(int dim=0; dim<6; dim++){
+		  particle[dim]=itsBunch_m ->get_part(idx)[dim];
+	  }
+	  outfile << "=======================" << std::endl;
+	  outfile << "Particle#: " << idx << "   "<<itsBunch_m->getBeta(idx) << std::endl;
+	  outfile << particle;
+//	  outfile << "particle[5]:   " << particle[5] << std::endl;
+//	  outfile << "1st term=   " << (particle[5]*M0*AMUMEV/ itsBunch_m->getP()) << std::endl;
+//	  outfile << "1st term=   " << (particle[5]*itsBunch_m->getM()/ itsBunch_m->getP()) << std::endl;
+	  particle[5]=
+				(particle[5]*itsBunch_m->getM()/itsBunch_m->getP())
+				* std::sqrt( 1./(particle[5]* particle[5]) +1)
+				-1./itsBunch_m->getInitialBeta();
+
+//	  outfile << "---> Unit Transformation <--- \n" << particle;
+	  outfile << "---> The Map is applied <---"<< std::endl;
+	  particle= combinedMaps * particle;
+//	  outfile << "particle[5]" << particle[5] << std::endl;
+//
+//	  outfile << "divident:  " << particle[5]*M0*AMUMEV << std::endl;
+//	  outfile << "divisor:  " << itsBunch_m->getP() << std::endl;
+//	  outfile << "M0:   "  << M0*AMUMEV << "OPAL ->  "<< itsBunch_m->getM() << std::endl;
+//	  outfile << "P0:   " << itsBunch_m->getP() << std::endl;
+//	  outfile << "gamma0:   "  << itsBunch_m->getInitialGamma() << std::endl;
+//	  outfile << "delta:  " << particle[5] << std::endl;
+	  particle[4]= selement;
+	  particle[5]= (particle[5] + 1./itsBunch_m->getInitialBeta()) * itsBunch_m->getP()/itsBunch_m->getM()
+			  /std::sqrt( 1./(itsBunch_m ->get_part(idx)[5]* itsBunch_m ->get_part(idx)[5]) +1) ;
+
+	  outfile << particle << std::endl;
+  }
+
+
+
+
+    msg << part.y() << endl;
+
+
+
+
+
+
+
+	msg<< "number of Particles" << itsBunch_m->getTotalNum() << endl;
+
+
+	for(int i=0; i<6; i++){
+			msg << "OPALPart" << part[i]<< endl;
+	    	msg << "OPALBart" << particle[i]<< endl;
+	    }
+
+	std::map <std::string, double>::iterator mi;
+	  for (mi=elementDic.begin(); mi!=elementDic.end(); ++mi)
+	      msg << mi->first << " = " << mi->second << endl;
+
 }
-
-
-
-
 
 
 /*
