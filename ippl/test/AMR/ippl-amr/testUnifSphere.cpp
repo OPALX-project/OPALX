@@ -170,7 +170,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             case 'q':
             {
                 std::string smoother = optarg;
-                if ( smoother == "SGS" )
+                if ( smoother == "GS" )
+                    params.smoother = AmrMultiGrid::Smoother::GAUSS_SEIDEL;
+                else if ( smoother == "SGS" )
                     params.smoother = AmrMultiGrid::Smoother::SGS;
                 else if ( smoother == "JACOBI" )
                     params.smoother = AmrMultiGrid::Smoother::JACOBI;
@@ -208,7 +210,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             {
                 std::string bs = optarg;
                 
-                if ( bs == "bicgstab" )
+                if ( bs == "cg" )
+                    params.bs = AmrMultiGrid::BaseSolver::CG;
+                else if ( bs == "bicgstab" )
                     params.bs = AmrMultiGrid::BaseSolver::BICGSTAB;
                 else if ( bs == "minres" )
                     params.bs = AmrMultiGrid::BaseSolver::MINRES;
