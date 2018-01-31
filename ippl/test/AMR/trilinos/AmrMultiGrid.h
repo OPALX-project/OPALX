@@ -169,10 +169,13 @@ public:
      * Specify the number of smoothing steps
      * @param nSweeps for each smoothing step
      */
-    void setNumberOfSweeps(std::size_t nSweeps) {
-        nSweeps_m = nSweeps;
-    }
+    void setNumberOfSweeps(const std::size_t& nSweeps);
     
+    /*!
+     * Specify the maximum number of iterations
+     * @param maxiter \f$ [0, \infty[ \f$
+     */
+    void setMaxNumberOfIterations(const std::size_t& maxiter);
     
     /*!
      * Obtain some convergence info
@@ -181,7 +184,6 @@ public:
     std::size_t getNumIters() {
         return nIter_m;
     }
-    
     
     /*!
      * Obtain the residual norm of a level
@@ -215,9 +217,11 @@ private:
      * Instantiate all levels and set boundary conditions
      * @param rho is the charge density
      * @param geom is the geometry
+     * @param previous solution as initial guess
      */
     void initLevels_m(const amrex::Array<AmrField_u>& rho,
-                      const amrex::Array<AmrGeometry_t>& geom);
+                      const amrex::Array<AmrGeometry_t>& geom,
+                      bool previous);
     
     /*!
      * Clear masks (required to build matrices) no longer needed.
@@ -226,10 +230,9 @@ private:
     
     /*!
      * Reset potential to zero (currently)
-     * @param phi is the potential
      * @param previous solution as initial guess
      */
-    void initGuess_m(amrex::Array<AmrField_u>& phi, bool previous);
+    void initGuess_m(bool previous);
     
     /*!
      * Actual solve.
@@ -592,6 +595,7 @@ private:
     std::unique_ptr<AmrInterpolater<AmrMultiGridLevel_t> > interface_mp;
     
     std::size_t nIter_m;            ///< number of iterations till convergence
+    std::size_t maxiter_m;          ///< maximum number of iterations allowed
     std::size_t nSweeps_m;          ///< number of smoothing iterations
     Smoother smootherType_m;        ///< type of smoother
     
@@ -624,6 +628,13 @@ private:
 
     IpplTimings::TimerRef bopen_m;
     IpplTimings::TimerRef bclose_m;
+    IpplTimings::TimerRef bcloseR_m;
+    IpplTimings::TimerRef bcloseI_m;
+    IpplTimings::TimerRef bcloseC_m;
+    IpplTimings::TimerRef bcloseP_m;
+    IpplTimings::TimerRef bcloseBf_m;
+    IpplTimings::TimerRef bcloseBc_m;
+    IpplTimings::TimerRef bcloseG_m;
     IpplTimings::TimerRef bclear_m;
     IpplTimings::TimerRef bRestict_m;
     IpplTimings::TimerRef bInterp_m;
