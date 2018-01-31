@@ -72,6 +72,7 @@ struct param_t {
 };
 
 
+#ifdef HAVE_AMR_MG_SOLVER
 void getBC(AmrMultiGrid::Boundary& boundary, const char* optarg) {
     std::string bc = optarg;
     
@@ -84,6 +85,7 @@ void getBC(AmrMultiGrid::Boundary& boundary, const char* optarg) {
     else
         throw std::runtime_error("Error: Check boundary condition argument");
 }
+#endif
 
 
 bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
