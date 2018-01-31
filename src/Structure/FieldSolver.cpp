@@ -434,7 +434,7 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
 
         initAmrSolver_m();
 
-    } else if(fstype == "FFT") {
+    } else if(fsType_m == "FFT") {
 #else
     if(fsType_m == "FFT") {
 #endif
