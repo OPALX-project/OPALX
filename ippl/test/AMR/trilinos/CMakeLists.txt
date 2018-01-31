@@ -53,11 +53,11 @@ SET (LIBS
     ${IPPL_LIBRARY}
     ippl
     ${Boost_LIBRARIES}
-    ${Trilinos_LIBRARIES}
     ${MPI_CXX_LIBRARIES}
     ${MPI_Fortran_LIBRARIES}
     ${Fortran_LIBS}
     ${AMREX_LIBRARIES}
+    multigrid
     m
     z
 )
@@ -65,12 +65,6 @@ SET (LIBS
 set(F90_source_files ../Tagging_nd.f90)
 
 set(EXECS "")
-
-# add_executable( testBoundaryVector testBoundaryVector.cpp)
-
-# target_link_libraries (testBoundaryVector ${LIBS}
-#                        ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
-#                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 IF ( ${AMREX_DIM} EQUAL 2 )
 
@@ -97,35 +91,13 @@ ENDIF ( ${AMREX_DIM} EQUAL 2 )
 add_executable( testAmrMultigrid
                 testAmrMultigrid.cpp
                 ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
-                AmrMultiGridCore.h
-                BelosBottomSolver.cpp
-                AmesosBottomSolver.cpp
-                AmrSmoother.cpp
-                AmrMultiGrid.cpp)
+                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp)
 
 add_executable( testSolverComparison
                 testSolverComparison.cpp
                 ../Solver.cpp
                 ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
-                BelosBottomSolver.cpp
-                AmesosBottomSolver.cpp
-                AmrSmoother.cpp
-                AmrMultiGrid.cpp)
-
-# add_executable( testTrilinosGeometry
-#                 testTrilinosGeometry.cpp
-#                 ../AmrOpal.cpp
-#                 ../Solver.cpp
-#                 ${F90_source_files}
-#                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-#                 EllipticDomain.cpp
-#                 AmrTrilinos.cpp)
+                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp)
 
 IF ( ${AMREX_DIM} EQUAL 3 )
     add_executable( testCopy testCopy.cpp)
@@ -133,21 +105,6 @@ IF ( ${AMREX_DIM} EQUAL 3 )
     target_link_libraries (testCopy ${LIBS}
                            ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-    
-#     add_executable( testTrilinosSolver
-#                 testTrilinosSolver.cpp
-#                 ../AmrOpal.cpp
-#                 ../Solver.cpp
-#                 ${F90_source_files}
-#                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-#                 EllipticDomain.cpp
-#                 AmrMultiGrid.cpp
-#                 AmrTrilinos.cpp)
-    
-
-# target_link_libraries (testTrilinosSolver ${LIBS}
-#                         ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
-#                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     add_executable( testBitPattern testBitPattern.cpp)
     
@@ -212,9 +169,6 @@ IF ( ${AMREX_DIM} EQUAL 2 )
          testLagrange
     )
 ENDIF ( ${AMREX_DIM} EQUAL 2 )
-# target_link_libraries (testTrilinosGeometry ${LIBS}
-#                         ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
-#                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testAmrMultigrid ${LIBS}
                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
