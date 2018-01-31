@@ -57,7 +57,6 @@ SET (LIBS
     ${IPPL_LIBRARY}
     ippl
     ${Boost_LIBRARIES}
-    ${Trilinos_LIBRARIES}
     ${MPI_CXX_LIBRARIES}
     ${MPI_Fortran_LIBRARIES}
     ${Fortran_LIBS}
@@ -143,6 +142,8 @@ add_executable( testGaussian
                 ../Solver.cpp)
                 
 if ( ENABLE_AMR_MG_SOLVER )
+    set(LIBS ${LIBS} multigrid)
+    
     add_executable( testUnifSphere
                     testUnifSphere.cpp
                     ../AmrOpal.cpp
@@ -151,15 +152,8 @@ if ( ENABLE_AMR_MG_SOLVER )
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
-                    ../Solver.cpp
-                    ../trilinos/AmrMultiGridCore.h
-                    ../trilinos/BelosBottomSolver.cpp
-                    ../trilinos/AmesosBottomSolver.cpp
-                    ../trilinos/AmrSmoother.cpp
-                    ../trilinos/AmrMultiGrid.cpp)
+                    ../Solver.cpp)
     
     add_executable( testFromH5
                     testFromH5.cpp
@@ -169,14 +163,8 @@ if ( ENABLE_AMR_MG_SOLVER )
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
-                    ../Solver.cpp
-                    ../trilinos/BelosBottomSolver.cpp
-                    ../trilinos/AmesosBottomSolver.cpp
-                    ../trilinos/AmrSmoother.cpp
-                    ../trilinos/AmrMultiGrid.cpp)
+                    ../Solver.cpp)
     
     add_executable( testMultipleSources
                     testMultipleSources.cpp
@@ -186,15 +174,8 @@ if ( ENABLE_AMR_MG_SOLVER )
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
-                    ../Solver.cpp
-                    ../trilinos/AmrMultiGridCore.h
-                    ../trilinos/BelosBottomSolver.cpp
-                    ../trilinos/AmesosBottomSolver.cpp
-                    ../trilinos/AmrSmoother.cpp
-                    ../trilinos/AmrMultiGrid.cpp)
+                    ../Solver.cpp)
 
     add_executable( testUnifBox
                     testUnifBox.cpp
@@ -204,15 +185,8 @@ if ( ENABLE_AMR_MG_SOLVER )
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
-                    ../Solver.cpp
-                    ../trilinos/AmrMultiGridCore.h
-                    ../trilinos/BelosBottomSolver.cpp
-                    ../trilinos/AmesosBottomSolver.cpp
-                    ../trilinos/AmrSmoother.cpp
-                    ../trilinos/AmrMultiGrid.cpp)
+                    ../Solver.cpp)
 else ()
     add_executable( testUnifSphere
                     testUnifSphere.cpp
@@ -222,8 +196,6 @@ else ()
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp)
     
@@ -235,8 +207,6 @@ else ()
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp)
     
@@ -248,8 +218,6 @@ else ()
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp)
     
@@ -261,8 +229,6 @@ else ()
                     ../H5Reader.cpp
                     ${F90_source_files}
                     ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
                     ../MGTSolver.cpp
                     ../Solver.cpp)
 
@@ -292,54 +258,49 @@ add_custom_command(TARGET testScatterAMReX POST_BUILD
 
 
 target_link_libraries (testAmrPartBase ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testNewTracker ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testPerformance ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testPlasma ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testTagging ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 # target_link_libraries (testInitGuessSolver ${LIBS}
 #                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testInitialBox ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testScatterAMReX ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testDomainTransformSolve ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testGaussian ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testUnifSphere ${LIBS}
-                        ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testFromH5 ${LIBS}
-                        ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testMultipleSources ${LIBS}
-                        ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testUnifBox ${LIBS}
-                       ${Trilinos_LIBRARIES}
-                       ${Trilinos_TPL_LIBRARIES}
                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 target_link_libraries (testLayout ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 
 set (EXECS
