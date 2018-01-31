@@ -661,7 +661,7 @@ void FieldSolver::initAmrSolver_m() {
 
         if ( dynamic_cast<AmrBoxLib*>( itsAmrObject_mp.get() ) == 0 )
             throw OpalException("FieldSolver::initAmrSolver_m()",
-                                "FMultiGrid solver requires BoxLib.");
+                                "FMultiGrid solver requires AMReX.");
 
         solver_m = new FMGPoissonSolver(static_cast<AmrBoxLib*>(itsAmrObject_mp.get()));
 
@@ -672,9 +672,10 @@ void FieldSolver::initAmrSolver_m() {
         throw OpalException("FieldSolver::initAmrSolver_m()",
                             "HPGMG solver not yet implemented.");
     } else if (fsType == "TAMG") {
+#ifdef HAVE_AMR_MG_SOLVER
         if ( dynamic_cast<AmrBoxLib*>( itsAmrObject_mp.get() ) == 0 )
             throw OpalException("FieldSolver::initAmrSolver_m()",
-                                "FMultiGrid solver requires BoxLib.");
+                                "FMultiGrid solver requires AMReX.");
 
         std::string bcz = Attributes::getString(itsAttr[deprecated::BCFFTT]);
         if (bcz == "") {
@@ -690,6 +691,11 @@ void FieldSolver::initAmrSolver_m() {
                                     Attributes::getReal(itsAttr[TAMG_NSWEEPS]),
                                     Attributes::getString(itsAttr[TAMG_INTERP]),
                                     Attributes::getString(itsAttr[TAMG_NORM]));
+#else
+        throw OpalException("FieldSolver::initAmrSolver_m()",
+                            "Multigrid solver not enabled! "
+                            "Please build OPAL with -DENABLE_AMR_MG_SOLVER=1");
+#endif
     } else
         throw OpalException("FieldSolver::initAmrSolver_m()",
                             "Unknown solver " + fsType + ".");
