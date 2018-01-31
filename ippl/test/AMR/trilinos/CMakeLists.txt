@@ -10,6 +10,8 @@ set (CMAKE_CXX_FLAGS
     "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 -DUSEH5FEDV2 -DPARALLEL_IO -DIPPL_AMR ${CMAKE_CXX_FLAGS}"
 )
 
+set (CMAKE_CXX_FLAGS "-DHAVE_AMR_MG_SOLVER ${CMAKE_CXX_FLAGS}")
+
 add_definitions(${AMREX_DEFINES})
 
 include_directories (

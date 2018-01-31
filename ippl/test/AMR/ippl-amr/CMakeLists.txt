@@ -72,6 +72,7 @@ target_link_libraries(amropal ${LIBS})
 set (TESTLIBS amropal)
 
 if ( ENABLE_AMR_MG_SOLVER )
+    set (CMAKE_CXX_FLAGS "-DHAVE_AMR_MG_SOLVER ${CMAKE_CXX_FLAGS}")
     set(TESTLIBS ${TESTLIBS} multigrid)
 endif ( ENABLE_AMR_MG_SOLVER )
 
