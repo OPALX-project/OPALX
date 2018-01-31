@@ -12,6 +12,7 @@
 #include <iostream>
 #include <set>
 #include <sstream>
+#include <list>
 
 #include <AMReX_ParmParse.H>
 
@@ -434,6 +435,16 @@ void writeYt(container_t& rho,
 }
 
 
+void writeNumIterations(const std::list<std::size_t>& nIters) {
+    std::ofstream out("testFromH5-num-iter.dat");
+    
+    for (const size_t& iter : nIters)
+        out << iter << '\n';
+    
+    out.close();
+}
+
+
 void randomMove(amrbunch_t* bunch, int seed, Inform& msg) {
     /* We move every particle in the range of 1 mm in original space
      */
@@ -696,6 +707,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         
         sol.setNumberOfSweeps(params.nsweeps);
         
+        std::list<std::size_t> nIters;
+        
         for (uint i = 0; i < params.nsolve; ++i) {
             
             IpplTimings::startTimer(solvTimer);
@@ -720,7 +733,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
             
             print(myAmrOpal, scale, rhs, phi, efield, msg, rr, params);
             
-            msg << "#iterations: " << sol.getNumIters() << endl;
+            nIters.push_back(sol.getNumIters());
+            msg << "#iterations: " << nIters.back() << endl;
             
             for (int j = 0; j <= finest_level; ++j) {
                 msg << "norm of residual (level " << j << "): "
@@ -733,6 +747,9 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
                 l0norm = depositCharge(myAmrOpal, bunch, rhs, msg, params, scale);
             }
         }
+        
+        writeNumIterations(nIters);
+        
     } else if ( params.useMgtSolver ) {
 #else
     if ( params.useMgtSolver ) {
