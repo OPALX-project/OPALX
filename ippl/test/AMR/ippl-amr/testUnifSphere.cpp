@@ -189,6 +189,8 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 std::string prec = optarg;
                 if ( prec == "ILUT" )
                     params.prec = AmrMultiGrid::Preconditioner::ILUT;
+                else if ( prec == "RILUK" )
+                    params.prec = AmrMultiGrid::Preconditioner::RILUK;
                 else if ( prec == "CHEBYSHEV" )
                     params.prec = AmrMultiGrid::Preconditioner::CHEBYSHEV;
                 else

@@ -102,6 +102,13 @@ void BelosBottomSolver::initPreconditioner_m()
             prectype_m = "CHEBYSHEV";
             prec_mp->set("chebyshev: degree", 1);
             break;
+        case Preconditioner::RILUK:
+            prectype_m = "RILUK";
+            prec_mp->set("fact: iluk level-of-fill", 0);
+            prec_mp->set("fact: relax value", 0.0);
+            prec_mp->set("fact: absolute threshold", 0.0);
+            prec_mp->set("fact: relative threshold", 1.0);
+            break;
         case Preconditioner::NONE:
             prectype_m = "";
             break;
