@@ -146,6 +146,10 @@ void AmrBoxLib::initFineLevels() {
             *gmsg << "*     New finest level: "
                   << finest_level << endl
                   << "* Finished regriding" << endl;
+        } else {
+            // we need to regrid solver anyway at the beginning
+            PoissonSolver *solver = bunch_mp->getFieldSolver();
+            solver->hasToRegrid();
         }
     
     
@@ -198,6 +202,10 @@ void AmrBoxLib::regrid(int lbase, int lfine, double time) {
     }
     
     finest_level = new_finest;
+    
+    
+    PoissonSolver *solver = bunch_mp->getFieldSolver();
+    solver->hasToRegrid();
 }
 
 

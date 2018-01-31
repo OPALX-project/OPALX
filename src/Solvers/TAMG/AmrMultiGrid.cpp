@@ -140,6 +140,16 @@ void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
     lfine_m = lfine;
     nlevel_m = lfine - lbase + 1;
     
+    /* we cannot use the previous solution
+     * if we have to regrid (AmrPoissonSolver::hasToRegrid())
+     * 
+     * regrid_m is set in AmrBoxlib::regrid()
+     */
+    previous = !this->regrid_m;
+    
+    // we can now reset
+    this->regrid_m = false;
+    
     this->initLevels_m(rho, geom, previous);
     
     // build all necessary matrices and vectors
@@ -172,6 +182,16 @@ void AmrMultiGrid::solve(AmrFieldContainer_t &rho,
     lbase_m = baseLevel;
     lfine_m = finestLevel;
     nlevel_m = lfine_m - lbase_m + 1;
+    
+    /* we cannot use the previous solution
+     * if we have to regrid (AmrPoissonSolver::hasToRegrid())
+     * 
+     * regrid_m is set in AmrBoxlib::regrid()
+     */
+    prevAsGuess = !this->regrid_m;
+    
+    // we can now reset
+    this->regrid_m = false;
     
     this->initLevels_m(rho, itsAmrObject_mp->Geom(), prevAsGuess);
     
@@ -991,7 +1011,6 @@ void AmrMultiGrid::open_m(const lo_t& level,
                              Tpetra::StaticProfile) );
         }
     }
-    
     
     mglevel_m[level]->rho_p = Teuchos::rcp(
         new vector_t(mglevel_m[level]->map_p, false) );
