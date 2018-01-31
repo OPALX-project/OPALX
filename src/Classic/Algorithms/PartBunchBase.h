@@ -154,6 +154,8 @@ public:
     void calcLineDensity(unsigned int nBins, std::vector<double> &lineDensity,
                          std::pair<double, double> &meshInfo);
 
+    void setBeamFrequency(double v);
+
     /*
        Mesh and Field Layout related functions
      */
@@ -408,54 +410,23 @@ public:
      * Wrapped member functions of IpplParticleBase
      */
 
-    size_t getTotalNum() const {
-        return pbase->getTotalNum();
-    }
+    size_t getTotalNum() const;
+    void setTotalNum(size_t n);
+    void setLocalNum(size_t n);
+    size_t getLocalNum() const;
 
-    size_t getLocalNum() const {
-        return pbase->getLocalNum();
-    }
+    size_t getDestroyNum() const;
+    size_t getGhostNum() const;
 
+    unsigned int getMinimumNumberOfParticlesPerCore() const;
+    void setMinimumNumberOfParticlesPerCore(unsigned int n);
 
-    size_t getDestroyNum() const {
-        return pbase->getDestroyNum();
-    }
+    ParticleLayout<T, Dim> & getLayout();
+    const ParticleLayout<T, Dim>& getLayout() const;
 
-    size_t getGhostNum() const {
-        return pbase->getGhostNum();
-    }
+    bool getUpdateFlag(UpdateFlags f) const;
+    void setUpdateFlag(UpdateFlags f, bool val);
 
-    void setTotalNum(size_t n) {
-        pbase->setTotalNum(n);
-    }
-
-    void setLocalNum(size_t n) {
-        pbase->setLocalNum(n);
-    }
-
-    unsigned int getMinimumNumberOfParticlesPerCore() const {
-        return pbase->getMinimumNumberOfParticlesPerCore();
-    }
-
-    void setMinimumNumberOfParticlesPerCore(unsigned int n) {
-        pbase->setMinimumNumberOfParticlesPerCore(n);
-    }
-
-    ParticleLayout<T, Dim> & getLayout() {
-        return pbase->getLayout();
-    }
-
-    const ParticleLayout<T, Dim>& getLayout() const {
-        return pbase->getLayout();
-    }
-
-    bool getUpdateFlag(UpdateFlags f) const {
-        return pbase->getUpdateFlag(f);
-    }
-
-    void setUpdateFlag(UpdateFlags f, bool val) {
-        pbase->setUpdateFlag(f, val);
-    }
 
     ParticleBConds<Position_t, Dimension>& getBConds() {
         return pbase->getBConds();
@@ -465,45 +436,20 @@ public:
         pbase->setBConds(bc);
     }
 
-    bool singleInitNode() const {
-        return pbase->singleInitNode();
-    }
+    bool singleInitNode() const;
 
-    void resetID() {
-        pbase->resetID();
-    }
+    void resetID();
 
-    void update() {
-        pbase->update();
-    }
+    void update();
+    void update(const ParticleAttrib<char>& canSwap);
 
-    void update(const ParticleAttrib<char>& canSwap) {
-        pbase->update(canSwap);
-    }
+    void createWithID(unsigned id);
+    void create(size_t M);
+    void globalCreate(size_t np);
 
-    void createWithID(unsigned id) {
-        pbase->createWithID(id);
-    }
-
-    void create(size_t M) {
-        pbase->create(M);
-    }
-
-    void globalCreate(size_t np) {
-        pbase->globalCreate(np);
-    }
-
-    void destroy(size_t M, size_t I, bool doNow = false) {
-        pbase->destroy(M, I, doNow);
-    }
-
-    void performDestroy(bool updateLocalNum = false) {
-        pbase->performDestroy(updateLocalNum);
-    }
-
-    void ghostDestroy(size_t M, size_t I) {
-        pbase->ghostDestroy(M, I);
-    }
+    void destroy(size_t M, size_t I, bool doNow = false);
+    void performDestroy(bool updateLocalNum = false);
+    void ghostDestroy(size_t M, size_t I);
 
 protected:
     size_t calcMoments();    // Calculates bunch moments using only emitted particles.
@@ -734,7 +680,7 @@ protected:
 
     // flag to tell if we are a DC-beam
     bool dcBeam_m;
-
+    double periodLength_m;
     std::shared_ptr<AbstractParticle<T, Dim> > pbase;
 };
 

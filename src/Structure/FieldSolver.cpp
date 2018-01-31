@@ -341,7 +341,7 @@ FieldSolver *FieldSolver::find(const std::string &name) {
 }
 
 std::string FieldSolver::getType() {
-    return Attributes::getString(itsAttr[FSTYPE]);
+    return Util::toUpper(Attributes::getString(itsAttr[FSTYPE]));
 }
 
 double FieldSolver::getMX() const {
@@ -403,9 +403,9 @@ void FieldSolver::initCartesianFields() {
 
 bool FieldSolver::hasPeriodicZ() {
     if (itsAttr[deprecated::BCFFTT])
-        return Util::toUpper(Attributes::getString(itsAttr[deprecated::BCFFTT])) == std::string("PERIODIC");
+        return (Util::toUpper(Attributes::getString(itsAttr[deprecated::BCFFTT])) == "PERIODIC");
 
-    return Util::toUpper(Attributes::getString(itsAttr[BCFFTZ])) == std::string("PERIODIC");
+    return (Util::toUpper(Attributes::getString(itsAttr[BCFFTZ])) == "PERIODIC");
 }
 
 #ifdef ENABLE_AMR
@@ -416,11 +416,13 @@ inline bool FieldSolver::isAmrSolverType() const {
 
 void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
     itsBunch_m = b;
-    std::string bcx = Attributes::getString(itsAttr[BCFFTX]);
-    std::string bcy = Attributes::getString(itsAttr[BCFFTY]);
-    std::string bcz = Attributes::getString(itsAttr[BCFFTZ]);
+    fsType_m = Util::toUpper(Attributes::getString(itsAttr[FSTYPE]));
+    std::string greens = Util::toUpper(Attributes::getString(itsAttr[GREENSF]));
+    std::string bcx = Util::toUpper(Attributes::getString(itsAttr[BCFFTX]));
+    std::string bcy = Util::toUpper(Attributes::getString(itsAttr[BCFFTY]));
+    std::string bcz = Util::toUpper(Attributes::getString(itsAttr[deprecated::BCFFTT]));
     if (bcz == "") {
-        bcz = Attributes::getString(itsAttr[deprecated::BCFFTT]);
+        bcz = Util::toUpper(Attributes::getString(itsAttr[BCFFTZ]));
     }
 
 #ifdef ENABLE_AMR
@@ -432,15 +434,15 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
 
         initAmrSolver_m();
 
-    } else if(Attributes::getString(itsAttr[FSTYPE]) == "FFT") {
+    } else if(fstype == "FFT") {
 #else
-    if(Attributes::getString(itsAttr[FSTYPE]) == "FFT") {
+    if(fsType_m == "FFT") {
 #endif
-        bool sinTrafo = ((bcx == std::string("DIRICHLET")) && (bcy == std::string("DIRICHLET")) && (bcz == std::string("DIRICHLET")));
+        bool sinTrafo = ((bcx == "DIRICHLET") && (bcy == "DIRICHLET") && (bcz == "DIRICHLET"));
         if(sinTrafo) {
             std::cout << "FFTBOX ACTIVE" << std::endl;
             //we go over all geometries and add the Geometry Elements to the geometry list
-            std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
+            std::string geoms = Util::toUpper(Attributes::getString(itsAttr[GEOMETRY]));
             std::string tmp = "";
             //split and add all to list
             std::vector<BoundaryGeometry *> geometries;
@@ -454,15 +456,14 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
                     tmp += geoms[i];
             }
             BoundaryGeometry *ttmp = geometries[0];
-            solver_m = new FFTBoxPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]), ttmp->getA());
+            solver_m = new FFTBoxPoissonSolver(mesh_m, FL_m, greens, ttmp->getA());
             itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
             fsType_m = "FFTBOX";
         } else {
-            solver_m = new FFTPoissonSolver(mesh_m, FL_m, Attributes::getString(itsAttr[GREENSF]), bcz);
+            solver_m = new FFTPoissonSolver(mesh_m, FL_m, greens, bcz);
             itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
-            fsType_m = "FFT";
         }
-    } else if (Util::toUpper(Attributes::getString(itsAttr[FSTYPE])) == "P3M") {
+    } else if (fsType_m == "P3M") {
         solver_m = new P3MPoissonSolver(mesh_m,
                                         FL_m,
                                         Attributes::getReal(itsAttr[RC]),
@@ -472,11 +473,10 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
         PL_m->setAllCacheDimensions(Attributes::getReal(itsAttr[RC]));
         PL_m->enableCaching();
 
-        fsType_m = "P3M";
-    } else if(Util::toUpper(Attributes::getString(itsAttr[FSTYPE])) == "SAAMG") {
+    } else if(fsType_m == "SAAMG") {
 #ifdef HAVE_SAAMG_SOLVER
         //we go over all geometries and add the Geometry Elements to the geometry list
-        std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
+        std::string geoms = Util::toUpper(Attributes::getString(itsAttr[GEOMETRY]));
         std::string tmp = "";
         //split and add all to list
         std::vector<BoundaryGeometry *> geometries;
@@ -491,17 +491,17 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
             tmp += geoms[i];
         }
         solver_m = new MGPoissonSolver(dynamic_cast<PartBunch*>(itsBunch_m), mesh_m, FL_m,
-                                       geometries, Attributes::getString(itsAttr[ITSOLVER]),
-                                       Attributes::getString(itsAttr[INTERPL]),
+                                       geometries,
+                                       Util::toUpper(Attributes::getString(itsAttr[ITSOLVER])),
+                                       Util::toUpper(Attributes::getString(itsAttr[INTERPL])),
                                        Attributes::getReal(itsAttr[TOL]),
                                        Attributes::getReal(itsAttr[MAXITERS]),
-                                       Attributes::getString(itsAttr[PRECMODE]));
+                                       Util::toUpper(Attributes::getString(itsAttr[PRECMODE])));
         itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
-        fsType_m = "SAAMG";
 #else
         INFOMSG("SAAMG Solver not enabled! Please build OPAL with -DENABLE_SAAMG_SOLVER=1" << endl);
         INFOMSG("switching to FFT solver..." << endl);
-        solver_m = new FFTPoissonSolver(mesh_m, FL_m, Util::toUpper(Attributes::getString(itsAttr[GREENSF])),bcz);
+        solver_m = new FFTPoissonSolver(mesh_m, FL_m, greens, bcz);
         fsType_m = "FFT";
 #endif
     } else {
@@ -540,7 +540,7 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << "* INTERPL      " << Util::toUpper(Attributes::getString(itsAttr[INTERPL]))  << '\n'
            << "* TOL          " << Attributes::getReal(itsAttr[TOL])        << '\n'
            << "* MAXITERS     " << Attributes::getReal(itsAttr[MAXITERS]) << '\n'
-           << "* PRECMODE     " << Attributes::getString(itsAttr[PRECMODE])   << endl;
+           << "* PRECMODE     " << Util::toUpper(Attributes::getString(itsAttr[PRECMODE]))   << endl;
     }
 #ifdef ENABLE_AMR
     else if (fsType == "AMR" || Options::amr) {
@@ -583,7 +583,7 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << "* BCFFTY           "
            << Util::toUpper(Attributes::getString(itsAttr[BCFFTY])) << '\n';
         if (itsAttr[deprecated::BCFFTT]) {
-            os << "* deprecated::BCFFTT           "
+            os << "* BCFFTT (deprec.) "
                << Util::toUpper(Attributes::getString(itsAttr[deprecated::BCFFTT])) << endl;
         } else {
             os << "* BCFFTZ           "
