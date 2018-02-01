@@ -12,7 +12,8 @@ public:
     /*!
      * @param itsAmrObject_p holds information about grids and domain
      */
-    AmrPoissonSolver(AmrObject* itsAmrObject_p) : itsAmrObject_mp(itsAmrObject_p) {}
+    AmrPoissonSolver(AmrObject* itsAmrObject_p)
+        : itsAmrObject_mp(itsAmrObject_p), regrid_m(false) {}
     
     virtual ~AmrPoissonSolver() {}
     
@@ -31,8 +32,15 @@ public:
         throw OpalException("AmrPoissonSolver::test(PartBunchBase<double, 3>)", "Not implemented.");
     }
     
+    void hasToRegrid() {
+        regrid_m = true;
+    }
+    
 protected:
-    AmrObject* itsAmrObject_mp;    
+    AmrObject* itsAmrObject_mp;
+    
+    /// is set to true by itsAmrObject_mp and reset to false by solver
+    bool regrid_m;
 };
 
 
