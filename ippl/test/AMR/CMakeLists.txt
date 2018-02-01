@@ -17,8 +17,6 @@ IF ( ENABLE_AMR )
         
         add_definitions(${AMREX_DEFINES})
         
-        set (CMAKE_CXX_FLAGS "-DHAVE_AMR_MG_SOLVER ${CMAKE_CXX_FLAGS}")
-        
         include_directories (
             ${CMAKE_SOURCE_DIR}/src
             ${CMAKE_SOURCE_DIR}/ippl/src
