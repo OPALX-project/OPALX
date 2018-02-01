@@ -1,5 +1,4 @@
 set (_SRCS
-  Physics.cpp
   )
 
 include_directories (
