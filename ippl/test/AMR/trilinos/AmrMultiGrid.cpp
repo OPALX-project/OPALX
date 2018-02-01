@@ -2024,6 +2024,7 @@ AmrMultiGrid::convertToEnumPreconditioner_m(const std::string& prec) {
     
     map["ILUT"]         = Preconditioner::ILUT;
     map["CHEBYSHEV"]    = Preconditioner::CHEBYSHEV;
+    map["RILUK"]        = Preconditioner::RILUK;
     map["NONE"]         = Preconditioner::NONE;
     
     auto precond = map.find(prec);

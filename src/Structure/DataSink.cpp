@@ -344,10 +344,12 @@ void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
             }
 
 #ifdef ENABLE_AMR
-            os_gridLBalData.open(gridLBalFileName_m.c_str(), std::ios::out);
-            os_gridLBalData.precision(15);
-            os_gridLBalData.setf(std::ios::scientific, std::ios::floatfield);
-            writeGridLBalHeader(beam, os_gridLBalData);
+            if ( dynamic_cast<AmrPartBunch*>(beam) != nullptr ) {
+                os_gridLBalData.open(gridLBalFileName_m.c_str(), std::ios::out);
+                os_gridLBalData.precision(15);
+                os_gridLBalData.setf(std::ios::scientific, std::ios::floatfield);
+                writeGridLBalHeader(beam, os_gridLBalData);
+            }
 #endif
 
             firstWriteToStat_m = false;
@@ -367,9 +369,11 @@ void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
             }
 
 #ifdef ENABLE_AMR
-            os_gridLBalData.open(gridLBalFileName_m.c_str(), std::ios::app);
-            os_gridLBalData.precision(15);
-            os_gridLBalData.setf(std::ios::scientific, std::ios::floatfield);
+            if ( dynamic_cast<AmrPartBunch*>(beam) != nullptr ) {
+                os_gridLBalData.open(gridLBalFileName_m.c_str(), std::ios::app);
+                os_gridLBalData.precision(15);
+                os_gridLBalData.setf(std::ios::scientific, std::ios::floatfield);
+            }
 #endif
         }
 
@@ -461,8 +465,10 @@ void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
         }
         
 #ifdef ENABLE_AMR
-        writeGridLBalData(beam, os_gridLBalData, pwi);
-        os_gridLBalData.close();
+        if ( dynamic_cast<AmrPartBunch*>(beam) != nullptr ) {
+            writeGridLBalData(beam, os_gridLBalData, pwi);
+            os_gridLBalData.close();
+        }
 #endif
     }
 
@@ -517,10 +523,12 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
             }
 
 #ifdef ENABLE_AMR
-            os_gridLBalData.open(gridLBalFileName_m.c_str(), std::ios::out);
-            os_gridLBalData.precision(15);
-            os_gridLBalData.setf(std::ios::scientific, std::ios::floatfield);
-            writeGridLBalHeader(&beam, os_gridLBalData);
+            if ( dynamic_cast<AmrPartBunch*>(&beam) != nullptr ) {
+                os_gridLBalData.open(gridLBalFileName_m.c_str(), std::ios::out);
+                os_gridLBalData.precision(15);
+                os_gridLBalData.setf(std::ios::scientific, std::ios::floatfield);
+                writeGridLBalHeader(&beam, os_gridLBalData);
+            }
 #endif
 
             firstWriteToStat_m = false;
@@ -540,9 +548,11 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
             }
 
 #ifdef ENABLE_AMR
-            os_gridLBalData.open(gridLBalFileName_m.c_str(), std::ios::app);
-            os_gridLBalData.precision(15);
-            os_gridLBalData.setf(std::ios::scientific, std::ios::floatfield);
+            if ( dynamic_cast<AmrPartBunch*>(&beam) != nullptr ) {
+                os_gridLBalData.open(gridLBalFileName_m.c_str(), std::ios::app);
+                os_gridLBalData.precision(15);
+                os_gridLBalData.setf(std::ios::scientific, std::ios::floatfield);
+            }
 #endif
         }
 
@@ -612,8 +622,10 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
         }
 
 #ifdef ENABLE_AMR
-        writeGridLBalData(&beam, os_gridLBalData, pwi);
-        os_gridLBalData.close();
+        if ( dynamic_cast<AmrPartBunch*>(&beam) != nullptr ) {
+            writeGridLBalData(&beam, os_gridLBalData, pwi);
+            os_gridLBalData.close();
+        }
 #endif
     }
 
