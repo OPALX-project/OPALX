@@ -529,9 +529,6 @@ public:
     /// if a local node has less than 2 particles  lowParticleCount_m == true
     bool lowParticleCount_m;
 
-    /// timer for selfField calculation (also used in concrete AmrObject classes)
-    IpplTimings::TimerRef compPotenTimer_m;
-
     /// timer for selfField calculation
     IpplTimings::TimerRef selfFieldTimer_m;
 
