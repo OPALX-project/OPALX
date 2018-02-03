@@ -245,8 +245,6 @@ void AmrBoxLib::computeSelfFields() {
     
     if ( bunch_mp->hasFieldSolver() ) {
         
-        IpplTimings::startTimer(bunch_mp->selfFieldTimer_m);
-        
         AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
         
         // map on Amr domain
@@ -311,8 +309,6 @@ void AmrBoxLib::computeSelfFields() {
         bunch_mp->Bf(0) = bunch_mp->Bf(0) - betaC * bunch_mp->Ef(1);
         bunch_mp->Bf(1) = bunch_mp->Bf(1) + betaC * bunch_mp->Ef(0);
     
-        IpplTimings::stopTimer(bunch_mp->selfFieldTimer_m);
-    
         /*
          * dumping only
          */
@@ -376,6 +372,8 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
      * The potential is not scaled according to domain modification.
      * 
      */
+    if ( !bunch_mp->hasFieldSolver() )
+        return;
     
     
     /*
@@ -409,7 +407,6 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     for (int i = 0; i <= finest_level; ++i) {
         this->rho_m[i]->mult(-1.0 / Physics::epsilon_0, 0, 1);
     }
-    
     
     PoissonSolver *solver = bunch_mp->getFieldSolver();
     IpplTimings::startTimer(bunch_mp->compPotenTimer_m);
@@ -501,7 +498,6 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
 void AmrBoxLib::computeSelfFields_cycl(int bin) {
 
     if ( bunch_mp->hasFieldSolver() ) {
-        IpplTimings::startTimer(bunch_mp->selfFieldTimer_m);
         
         /// get gamma of this bin
         double gamma = bunch_mp->getBinGamma(bin);
@@ -565,8 +561,6 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
 
         bunch_mp->Ef += bunch_mp->Eftmp;
 
-        IpplTimings::stopTimer(bunch_mp->selfFieldTimer_m);
-        
         /*
          * dumping only
          */
