@@ -9,6 +9,7 @@ AmrPartBunch::AmrPartBunch(const PartData *ref)
       fieldlayout_m(nullptr)
 {
     amrpbase_mp->initializeAmr();
+    compPotenTimer_m = IpplTimings::getTimer("Actual solve");
 }
 
 
@@ -20,6 +21,7 @@ AmrPartBunch::AmrPartBunch(const std::vector<OpalParticle> &rhs,
       fieldlayout_m(nullptr)
 {
     amrpbase_mp->initializeAmr();
+    compPotenTimer_m = IpplTimings::getTimer("Actual solve");
 }
 
 
@@ -30,6 +32,7 @@ AmrPartBunch::AmrPartBunch(const AmrPartBunch &rhs)
       fieldlayout_m(nullptr)
 {
     amrpbase_mp->initializeAmr();
+    compPotenTimer_m = IpplTimings::getTimer("Actual solve");
 }
 
 AmrPartBunch::~AmrPartBunch() {
