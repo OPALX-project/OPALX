@@ -72,6 +72,15 @@ void BelosBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
 }
 
 
+std::size_t BelosBottomSolver::getNumIters() {
+    if ( solver_mp == Teuchos::null )
+        throw OpalException("BelosBottomSolver::getNumIters()",
+                            "No solver initialized.");
+    
+    return solver_mp->getNumIters();
+}
+
+
 void BelosBottomSolver::initSolver_m(std::string solvertype) {
     
     Belos::SolverFactory<scalar_t, mv_t, op_t> factory;

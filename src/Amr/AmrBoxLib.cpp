@@ -644,6 +644,11 @@ inline const int& AmrBoxLib::finestLevel() const {
 }
 
 
+inline double AmrBoxLib::getT() const {
+    return bunch_mp->getT();
+}
+
+
 void AmrBoxLib::redistributeGrids(int how) {
 //
 //    // copied + modified version of AMReX_Amr.cpp

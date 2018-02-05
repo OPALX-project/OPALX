@@ -32,6 +32,12 @@ public:
      * @param A system matrix
      */
     virtual void setOperator(const MatrixType& A) = 0;
+    
+    
+    /*!
+     * @returns the number of required iterations
+     */
+    virtual std::size_t getNumIters() = 0;
 };
 
 #endif

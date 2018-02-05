@@ -142,6 +142,11 @@ public:
     virtual const int& finestLevel() const = 0;
     
     /*!
+     * @returns the time of the simulation
+     */
+    virtual double getT() const = 0;
+    
+    /*!
      * Rebalance the grids among the
      * cores
      */
