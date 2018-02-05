@@ -37,12 +37,12 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
     node_mp = KokkosClassic::Details::getNode<amr::node_t>(); //KokkosClassic::DefaultNode::getDefaultNode();
     
 #if AMR_MG_TIMER
-    buildTimer_m        = IpplTimings::getTimer("build");
-    restrictTimer_m     = IpplTimings::getTimer("restrict");
-    smoothTimer_m       = IpplTimings::getTimer("smooth");
-    interpTimer_m       = IpplTimings::getTimer("prolongate");
-    residnofineTimer_m  = IpplTimings::getTimer("resid-no-fine");
-    bottomTimer_m       = IpplTimings::getTimer("bottom-solver");
+    buildTimer_m        = IpplTimings::getTimer("AMR MG matrix setup");
+    restrictTimer_m     = IpplTimings::getTimer("AMR MG restrict");
+    smoothTimer_m       = IpplTimings::getTimer("AMR MG smooth");
+    interpTimer_m       = IpplTimings::getTimer("AMR MG prolongate");
+    residnofineTimer_m  = IpplTimings::getTimer("AMR MG resid-no-fine");
+    bottomTimer_m       = IpplTimings::getTimer("AMR MG bottom-solver");
 #endif
     
     const Boundary bcs[AMREX_SPACEDIM] = {
@@ -95,12 +95,12 @@ AmrMultiGrid::AmrMultiGrid(Boundary bcx,
     node_mp = KokkosClassic::Details::getNode<amr::node_t>(); //KokkosClassic::DefaultNode::getDefaultNode();
     
 #if AMR_MG_TIMER
-    buildTimer_m        = IpplTimings::getTimer("build");
-    restrictTimer_m     = IpplTimings::getTimer("restrict");
-    smoothTimer_m       = IpplTimings::getTimer("smooth");
-    interpTimer_m       = IpplTimings::getTimer("prolongate");
-    residnofineTimer_m  = IpplTimings::getTimer("resid-no-fine");
-    bottomTimer_m       = IpplTimings::getTimer("bottom-solver");
+    buildTimer_m        = IpplTimings::getTimer("AMR MG matrix setup");
+    restrictTimer_m     = IpplTimings::getTimer("AMR MG restrict");
+    smoothTimer_m       = IpplTimings::getTimer("AMR MG smooth");
+    interpTimer_m       = IpplTimings::getTimer("AMR MG prolongate");
+    residnofineTimer_m  = IpplTimings::getTimer("AMR MG resid-no-fine");
+    bottomTimer_m       = IpplTimings::getTimer("AMR MG bottom-solver");
 
     bopen_m = IpplTimings::getTimer("build-open");
     bclose_m = IpplTimings::getTimer("build-close");
