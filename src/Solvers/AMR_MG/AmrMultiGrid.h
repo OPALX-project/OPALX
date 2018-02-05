@@ -15,6 +15,8 @@
 
 #include "AmrMultiGridLevel.h"
 
+#include <fstream>
+
 #define AMR_MG_TIMER 1
 
 class AmrMultiGrid : public AmrPoissonSolver< AmrBoxLib > {
@@ -203,27 +205,25 @@ public:
      * Obtain some convergence info
      * @returns the number of iterations till convergence
      */
-    std::size_t getNumIters() {
-        return nIter_m;
-    }
+    std::size_t getNumIters();
     
     /*!
      * Obtain the residual norm of a level
      * @param level for which error is requested
      * @returns the norm of the residual
      */
-    scalar_t getLevelResidualNorm(lo_t level) {
-        return evalNorm_m(mglevel_m[level]->residual_p);
-    }
-    
+    scalar_t getLevelResidualNorm(lo_t level);
     
     /*!
      * Obtain the residual norm
      * @returns the maximum of all residual norms over all levels
      */
-    scalar_t getMaxResidualNorm() {
-        return residualNorm_m();
-    }
+    scalar_t getMaxResidualNorm();
+    
+    /*!
+     * Enable solver info dumping into SDDS file
+     */
+    void setVerbose(bool verbose);
     
     double getXRangeMin(unsigned short level = 0);
     double getXRangeMax(unsigned short level = 0);
@@ -270,8 +270,9 @@ private:
     
     /*!
      * Actual solve.
+     * @returns the the max. residual
      */
-    void iterate_m();
+    scalar_t iterate_m();
     
     /*!
      * Compute composite residual of a level
@@ -618,6 +619,25 @@ private:
      */
     Norm convertToEnumNorm_m(const std::string& norm);
     
+    /*!
+     * SDDS header is written by root core
+     * @param outfile output stream
+     */
+    void writeSDDSHeader_m(std::ofstream& outfile);
+    
+    /*!
+     * SDDS data write (done by root core)
+     * @param error to write
+     */
+    void writeSDDSData_m(const scalar_t& error);
+    
+#if AMR_MG_TIMER
+    /*!
+     * Create timers
+     */
+    void initTimer_m();
+#endif
+    
 private:
     Teuchos::RCP<comm_t> comm_mp;       ///< communicator
     Teuchos::RCP<amr::node_t> node_mp;  ///< kokkos node
@@ -629,6 +649,7 @@ private:
     std::unique_ptr<AmrInterpolater<AmrMultiGridLevel_t> > interface_mp;
     
     std::size_t nIter_m;            ///< number of iterations till convergence
+    std::size_t bIter_m;            ///< number of iterations of bottom solver
     std::size_t maxiter_m;          ///< maximum number of iterations allowed
     std::size_t nSweeps_m;          ///< number of smoothing iterations
     Smoother smootherType_m;        ///< type of smoother
@@ -651,6 +672,10 @@ private:
     
     Norm norm_m;            ///< norm for convergence criteria (l1, l2, linf)
     
+    bool verbose_m;                 ///< If true, a SDDS file is written
+    std::string fname_m;            ///< SDDS filename
+    std::ios_base::openmode flag_m; ///< std::ios::out or std::ios::app
+    
 #if AMR_MG_TIMER
     IpplTimings::TimerRef buildTimer_m;         ///< timer for matrix and vector construction
     IpplTimings::TimerRef restrictTimer_m;      ///< timer for restriction operation
@@ -658,19 +683,8 @@ private:
     IpplTimings::TimerRef interpTimer_m;        ///< prolongation timer
     IpplTimings::TimerRef residnofineTimer_m;   ///< timer for no-fine residual computation
     IpplTimings::TimerRef bottomTimer_m;        ///< bottom solver timer
+    IpplTimings::TimerRef dumpTimer_m;          ///< write SDDS file timer
 #endif
-
-    IpplTimings::TimerRef bopen_m;
-    IpplTimings::TimerRef bclose_m;
-    IpplTimings::TimerRef bclear_m;
-    IpplTimings::TimerRef bRestict_m;
-    IpplTimings::TimerRef bInterp_m;
-    IpplTimings::TimerRef bCompo_m;
-    IpplTimings::TimerRef bPoiss_m;
-    IpplTimings::TimerRef bBf_m;
-    IpplTimings::TimerRef bBc_m;
-    IpplTimings::TimerRef bG_m;
-    IpplTimings::TimerRef bSmoother_m;
 };
 
 
