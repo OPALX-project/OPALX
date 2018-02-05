@@ -43,7 +43,7 @@
 #endif
 
 #ifdef HAVE_AMR_MG_SOLVER
-    #include "Solvers/TAMG/AmrMultiGrid.h"
+    #include "Solvers/AMR_MG/AmrMultiGrid.h"
 #endif
 
 using namespace Expressions;
@@ -71,13 +71,13 @@ namespace {
         PARFFTX,    // parallelized grind in x
         PARFFTY,    // parallelized grind in y
         PARFFTT,    // parallelized grind in z
-        BCFFTX,     // boundary condition in x [FFT + TAMG only]
-        BCFFTY,     // boundary condition in y [FFT + TAMG only]
-        BCFFTZ,     // boundary condition in z [FFT + TAMG only]
+        BCFFTX,     // boundary condition in x [FFT + AMR_MG only]
+        BCFFTY,     // boundary condition in y [FFT + AMR_MG only]
+        BCFFTZ,     // boundary condition in z [FFT + AMR_MG only]
         GREENSF,    // holds greensfunction to be used [FFT only]
         BBOXINCR,   // how much the boundingbox is increased
         GEOMETRY,   // geometry of boundary [SAAMG only]
-        ITSOLVER,   // iterative solver [SAAMG + TAMG]
+        ITSOLVER,   // iterative solver [SAAMG + AMR_MG]
         INTERPL,    // interpolation used for boundary points [SAAMG only]
         TOL,        // tolerance of the SAAMG preconditioned solver [SAAMG only]
         MAXITERS,   // max number of iterations [SAAMG only]
@@ -104,12 +104,12 @@ namespace {
         AMR_SCALING,
 #endif
 #ifdef HAVE_AMR_MG_SOLVER
-        // TAMG = Trilinos-Adaptive-Multi-Grid
-        TAMG_SMOOTHER,      // AMR, smoother for level solution
-        TAMG_NSWEEPS,       // AMR, number of smoothing sweeps
-        TAMG_PREC,          // AMR, preconditioner for bottom solver
-        TAMG_INTERP,        // AMR, interpolater for solution from level l to l+1
-        TAMG_NORM,          // AMR, norm convergence criteria
+        // AMR_MG = Adaptive-Mesh-Refinement Multi-Grid
+        AMR_MG_SMOOTHER,    // AMR, smoother for level solution
+        AMR_MG_NSWEEPS,     // AMR, number of smoothing sweeps
+        AMR_MG_PREC,        // AMR, preconditioner for bottom solver
+        AMR_MG_INTERP,      // AMR, interpolater for solution from level l to l+1
+        AMR_MG_NORM,        // AMR, norm convergence criteria
 #endif
         // FOR XXX BASED SOLVER
         SIZE
@@ -268,24 +268,24 @@ FieldSolver::FieldSolver():
 #endif
 
 #ifdef HAVE_AMR_MG_SOLVER
-    itsAttr[TAMG_SMOOTHER] = Attributes::makeString("TAMG_SMOOTHER",
-                                                    "Smoothing of level solution", "GS");
+    itsAttr[AMR_MG_SMOOTHER] = Attributes::makeString("AMR_MG_SMOOTHER",
+                                                      "Smoothing of level solution", "GS");
 
-    itsAttr[TAMG_NSWEEPS] = Attributes::makeReal("TAMG_NSWEEPS",
-                                                 "Number of relaxation steps",
-                                                 8);
+    itsAttr[AMR_MG_NSWEEPS] = Attributes::makeReal("AMR_MG_NSWEEPS",
+                                                   "Number of relaxation steps",
+                                                   8);
 
-    itsAttr[TAMG_PREC] = Attributes::makeString("TAMG_PREC",
-                                                "Preconditioner of bottom solver",
-                                                "NONE");
+    itsAttr[AMR_MG_PREC] = Attributes::makeString("AMR_MG_PREC",
+                                                  "Preconditioner of bottom solver",
+                                                  "NONE");
 
-    itsAttr[TAMG_INTERP] = Attributes::makeString("TAMG_INTERP",
-                                                  "Interpolater between levels",
-                                                  "PC");
+    itsAttr[AMR_MG_INTERP] = Attributes::makeString("AMR_MG_INTERP",
+                                                    "Interpolater between levels",
+                                                    "PC");
 
-    itsAttr[TAMG_NORM] = Attributes::makeString("TAMG_NORM",
-                                                "Norm for convergence criteria",
-                                                "L2");
+    itsAttr[AMR_MG_NORM] = Attributes::makeString("AMR_MG_NORM",
+                                                  "Norm for convergence criteria",
+                                                  "L2");
 #endif
 
     mesh_m = 0;
@@ -565,19 +565,19 @@ Inform &FieldSolver::printInfo(Inform &os) const {
 #endif
 
 #ifdef HAVE_AMR_MG_SOLVER
-    if (fsType == "TAMG") {
-        os << "* ITSOLVER (TAMG)  "
+    if (fsType == "AMR_MG") {
+        os << "* ITSOLVER (AMR_MG)  "
            << Util::toUpper(Attributes::getString(itsAttr[ITSOLVER])) << '\n'
-           << "* TAMG_PREC        "
-           << Util::toUpper(Attributes::getString(itsAttr[TAMG_PREC])) << '\n'
-           << "* TAMG_SMOOTHER    "
-           << Util::toUpper(Attributes::getString(itsAttr[TAMG_SMOOTHER])) << '\n'
-           << "* TAMG_NSWEEPS     "
-           << Attributes::getReal(itsAttr[TAMG_NSWEEPS]) << '\n'
-           << "* TAMG_INTERP      "
-           << Util::toUpper(Attributes::getString(itsAttr[TAMG_INTERP])) << '\n'
-           << "* TAMG_NORM        "
-           << Util::toUpper(Attributes::getString(itsAttr[TAMG_NORM])) << '\n'
+           << "* AMR_MG_PREC        "
+           << Util::toUpper(Attributes::getString(itsAttr[AMR_MG_PREC])) << '\n'
+           << "* AMR_MG_SMOOTHER    "
+           << Util::toUpper(Attributes::getString(itsAttr[AMR_MG_SMOOTHER])) << '\n'
+           << "* AMR_MG_NSWEEPS     "
+           << Attributes::getReal(itsAttr[AMR_MG_NSWEEPS]) << '\n'
+           << "* AMR_MG_INTERP      "
+           << Util::toUpper(Attributes::getString(itsAttr[AMR_MG_INTERP])) << '\n'
+           << "* AMR_MG_NORM        "
+           << Util::toUpper(Attributes::getString(itsAttr[AMR_MG_NORM])) << '\n'
            << "* BCFFTX           "
            << Util::toUpper(Attributes::getString(itsAttr[BCFFTX])) << '\n'
            << "* BCFFTY           "
@@ -671,7 +671,7 @@ void FieldSolver::initAmrSolver_m() {
     } else if (fsType == "HPGMG") {
         throw OpalException("FieldSolver::initAmrSolver_m()",
                             "HPGMG solver not yet implemented.");
-    } else if (fsType == "TAMG") {
+    } else if (fsType == "AMR_MG") {
 #ifdef HAVE_AMR_MG_SOLVER
         if ( dynamic_cast<AmrBoxLib*>( itsAmrObject_mp.get() ) == 0 )
             throw OpalException("FieldSolver::initAmrSolver_m()",
@@ -683,14 +683,14 @@ void FieldSolver::initAmrSolver_m() {
         }
         solver_m = new AmrMultiGrid(static_cast<AmrBoxLib*>(itsAmrObject_mp.get()),
                                     Attributes::getString(itsAttr[ITSOLVER]),
-                                    Attributes::getString(itsAttr[TAMG_PREC]),
+                                    Attributes::getString(itsAttr[AMR_MG_PREC]),
                                     Attributes::getString(itsAttr[BCFFTX]),
                                     Attributes::getString(itsAttr[BCFFTY]),
                                     bcz,
-                                    Attributes::getString(itsAttr[TAMG_SMOOTHER]),
-                                    Attributes::getReal(itsAttr[TAMG_NSWEEPS]),
-                                    Attributes::getString(itsAttr[TAMG_INTERP]),
-                                    Attributes::getString(itsAttr[TAMG_NORM]));
+                                    Attributes::getString(itsAttr[AMR_MG_SMOOTHER]),
+                                    Attributes::getReal(itsAttr[AMR_MG_NSWEEPS]),
+                                    Attributes::getString(itsAttr[AMR_MG_INTERP]),
+                                    Attributes::getString(itsAttr[AMR_MG_NORM]));
 #else
         throw OpalException("FieldSolver::initAmrSolver_m()",
                             "Multigrid solver not enabled! "
