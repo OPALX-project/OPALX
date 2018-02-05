@@ -27,6 +27,8 @@ public:
     
     void setOperator(const Teuchos::RCP<matrix_t>& A);
     
+    std::size_t getNumIters();
+    
 private:
     
     std::string solvertype_m;

@@ -110,6 +110,7 @@ namespace {
         AMR_MG_PREC,        // AMR, preconditioner for bottom solver
         AMR_MG_INTERP,      // AMR, interpolater for solution from level l to l+1
         AMR_MG_NORM,        // AMR, norm convergence criteria
+        AMR_MG_VERBOSE,     // AMR, enable solver info writing (SDDS file)
 #endif
         // FOR XXX BASED SOLVER
         SIZE
@@ -286,6 +287,10 @@ FieldSolver::FieldSolver():
     itsAttr[AMR_MG_NORM] = Attributes::makeString("AMR_MG_NORM",
                                                   "Norm for convergence criteria",
                                                   "L2");
+    
+    itsAttr[AMR_MG_VERBOSE] = Attributes::makeBool("AMR_MG_VERBOSE",
+                                                   "Write solver info in SDDS format (*.solver)",
+                                                   false);
 #endif
 
     mesh_m = 0;
@@ -566,21 +571,23 @@ Inform &FieldSolver::printInfo(Inform &os) const {
 
 #ifdef HAVE_AMR_MG_SOLVER
     if (fsType == "AMR_MG") {
-        os << "* ITSOLVER (AMR_MG)  "
+        os << "* ITSOLVER (AMR_MG)    "
            << Util::toUpper(Attributes::getString(itsAttr[ITSOLVER])) << '\n'
-           << "* AMR_MG_PREC        "
+           << "* AMR_MG_PREC          "
            << Util::toUpper(Attributes::getString(itsAttr[AMR_MG_PREC])) << '\n'
-           << "* AMR_MG_SMOOTHER    "
+           << "* AMR_MG_SMOOTHER      "
            << Util::toUpper(Attributes::getString(itsAttr[AMR_MG_SMOOTHER])) << '\n'
-           << "* AMR_MG_NSWEEPS     "
+           << "* AMR_MG_NSWEEPS       "
            << Attributes::getReal(itsAttr[AMR_MG_NSWEEPS]) << '\n'
-           << "* AMR_MG_INTERP      "
+           << "* AMR_MG_INTERP        "
            << Util::toUpper(Attributes::getString(itsAttr[AMR_MG_INTERP])) << '\n'
-           << "* AMR_MG_NORM        "
+           << "* AMR_MG_NORM          "
            << Util::toUpper(Attributes::getString(itsAttr[AMR_MG_NORM])) << '\n'
-           << "* BCFFTX           "
+           << "* AMR_MG_VERBOSE       "
+           << Attributes::getBool(itsAttr[AMR_MG_VERBOSE]) << '\n'
+           << "* BCFFTX               "
            << Util::toUpper(Attributes::getString(itsAttr[BCFFTX])) << '\n'
-           << "* BCFFTY           "
+           << "* BCFFTY               "
            << Util::toUpper(Attributes::getString(itsAttr[BCFFTY])) << '\n';
         if (itsAttr[deprecated::BCFFTT]) {
             os << "* BCFFTT (deprec.) "
@@ -691,6 +698,9 @@ void FieldSolver::initAmrSolver_m() {
                                     Attributes::getReal(itsAttr[AMR_MG_NSWEEPS]),
                                     Attributes::getString(itsAttr[AMR_MG_INTERP]),
                                     Attributes::getString(itsAttr[AMR_MG_NORM]));
+        
+        dynamic_cast<AmrMultiGrid*>(solver_m)->setVerbose(
+            Attributes::getBool(itsAttr[AMR_MG_VERBOSE]));
 #else
         throw OpalException("FieldSolver::initAmrSolver_m()",
                             "Multigrid solver not enabled! "
