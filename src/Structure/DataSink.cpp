@@ -79,6 +79,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
     if (fs::exists(lBalFileName_m)) {
         INFOMSG("Appending load balance data to existing data file: " << lBalFileName_m << endl);
         rewindLinesLBal(linesToRewind);
+        replaceVersionString(lBalFileName_m);
     } else {
         INFOMSG("Creating new file for load balance data: " << lBalFileName_m << endl);
     }
@@ -87,6 +88,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
         INFOMSG("Appending memory consumption to existing data file: " << memFileName_m << endl);
         if (Ippl::myNode() == 0) {
             rewindLines(memFileName_m, linesToRewind);
+            replaceVersionString(memFileName_m);
         }
     } else {
         INFOMSG("Creating new file for memory consumption data: " << memFileName_m << endl);
@@ -97,6 +99,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
         INFOMSG("Appending grid load balancing to existing data file: " << gridLBalFileName_m << endl);
         if (Ippl::myNode() == 0) {
             rewindLines(gridLBalFileName_m, linesToRewind);
+            replaceVersionString(gridLBalFileName_m);
         }
     } else {
         INFOMSG("Creating new file for grid load balancing data: " << gridLBalFileName_m << endl);
