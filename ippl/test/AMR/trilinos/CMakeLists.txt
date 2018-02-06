@@ -51,12 +51,13 @@ SET (LIBS
     ${MPI_Fortran_LIBRARIES}
     ${Fortran_LIBS}
     ${AMREX_LIBRARIES}
-    multigrid
     m
     z
 )
 
 set(F90_source_files ../Tagging_nd.f90)
+
+set (TESTLIBS ../ippl-amr/amropal multigrid)
 
 set(EXECS "")
 
@@ -84,19 +85,17 @@ ENDIF ( ${AMREX_DIM} EQUAL 2 )
 
 add_executable( testAmrMultigrid
                 testAmrMultigrid.cpp
-                ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp)
+                ${F90_source_files})
 
 add_executable( testSolverComparison
                 testSolverComparison.cpp
                 ../Solver.cpp
-                ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp)
+                ${F90_source_files})
 
 IF ( ${AMREX_DIM} EQUAL 3 )
     add_executable( testCopy testCopy.cpp)
 
-    target_link_libraries (testCopy ${LIBS}
+    target_link_libraries (testCopy ${TESTLIBS}
                            ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
@@ -114,39 +113,39 @@ ENDIF ( ${AMREX_DIM} EQUAL 3 )
                         
 
 IF ( ${AMREX_DIM} EQUAL 2 )
-    target_link_libraries (testRestrictionMatrix ${LIBS}
+    target_link_libraries (testRestrictionMatrix ${TESTLIBS}
                            ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
-    target_link_libraries (testInterpolationMatrix ${LIBS}
+    target_link_libraries (testInterpolationMatrix ${TESTLIBS}
                            ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
-    target_link_libraries (testBoundaryMatrix ${LIBS}
+    target_link_libraries (testBoundaryMatrix ${TESTLIBS}
                            ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
-    target_link_libraries (testSmootherMatrix ${LIBS}
+    target_link_libraries (testSmootherMatrix ${TESTLIBS}
                            ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
-    target_link_libraries (testPoissonMatrix ${LIBS}
+    target_link_libraries (testPoissonMatrix ${TESTLIBS}
                            ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
-    target_link_libraries (testNoFine ${LIBS}
+    target_link_libraries (testNoFine ${TESTLIBS}
                            ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
-    target_link_libraries (testWithFine ${LIBS}
+    target_link_libraries (testWithFine ${TESTLIBS}
                            ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
-    target_link_libraries (testSpecialPoissonMatrix ${LIBS}
+    target_link_libraries (testSpecialPoissonMatrix ${TESTLIBS}
                            ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
-    target_link_libraries (testLagrange ${LIBS}
+    target_link_libraries (testLagrange ${TESTLIBS}
                            ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
@@ -164,11 +163,11 @@ IF ( ${AMREX_DIM} EQUAL 2 )
     )
 ENDIF ( ${AMREX_DIM} EQUAL 2 )
 
-target_link_libraries (testAmrMultigrid ${LIBS}
+target_link_libraries (testAmrMultigrid ${TESTLIBS}
                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
-target_link_libraries (testSolverComparison ${LIBS}
+target_link_libraries (testSolverComparison ${TESTLIBS}
                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
