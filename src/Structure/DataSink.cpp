@@ -38,6 +38,7 @@ DataSink::DataSink() :
 { }
 
 DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
+    mode_m(std::ios::out),
     H5call_m(0),
     lossWrCounter_m(0),
     h5wrapper_m(h5wrapper)
@@ -52,10 +53,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
 
     H5PartTimer_m = IpplTimings::getTimer("Write H5-File");
     StatMarkerTimer_m = IpplTimings::getTimer("Write Stat");
-
-    /// Set flags whether SDDS file exists or have to write header first.
-    firstWriteToStat_m = true;
-
+    
     std::string fn = OpalData::getInstance()->getInputBasename();
 
     statFileName_m = fn + std::string(".stat");
@@ -67,7 +65,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
 
     unsigned int linesToRewind = 0;
     if (fs::exists(statFileName_m)) {
-        firstWriteToStat_m = false;
+        mode_m = std::ios::app;
         INFOMSG("Appending statistical data to existing data file: " << statFileName_m << endl);
         double spos = h5wrapper->getLastPosition();
         linesToRewind = rewindSDDStoSPos(spos);
@@ -107,6 +105,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
 }
 
 DataSink::DataSink(H5PartWrapper *h5wrapper):
+    mode_m(std::ios::out),
     H5call_m(0),
     lossWrCounter_m(0),
     h5wrapper_m(h5wrapper)
@@ -118,7 +117,6 @@ DataSink::DataSink(H5PartWrapper *h5wrapper):
 
     /// Set file write flags to true. These will be set to false after first
     /// write operation.
-    firstWriteToStat_m = true;
     firstWriteH5Surface_m = true;
     /// Define file names.
     std::string fn = OpalData::getInstance()->getInputBasename();
@@ -324,127 +322,101 @@ void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
         memory->sample();
     }
 
-    if(Ippl::myNode() == 0) {
-        if(firstWriteToStat_m) {
-            os_statData.open(statFileName_m.c_str(), std::ios::out);
-            os_statData.precision(15);
-            os_statData.setf(std::ios::scientific, std::ios::floatfield);
-            writeSDDSHeader(os_statData, losses);
+    if (Ippl::myNode() == 0) {
+        
+        open_m(os_statData, statFileName_m);
+        open_m(os_lBalData, lBalFileName_m);
+        
+        if ( Options::memoryDump )
+            open_m(os_memData, memFileName_m);
 
-            os_lBalData.open(lBalFileName_m.c_str(), std::ios::out);
-            os_lBalData.precision(15);
-            os_lBalData.setf(std::ios::scientific, std::ios::floatfield);
+#ifdef ENABLE_AMR
+        if ( dynamic_cast<AmrPartBunch*>(beam) != nullptr )
+            open_m(os_gridLBalData, gridLBalFileName_m);
+#endif
+        if (mode_m == std::ios::out) {
+            mode_m = std::ios::app;
+
+            writeSDDSHeader(os_statData, losses);
             writeLBalHeader(beam, os_lBalData);
 
-            if ( Options::memoryDump ) {
-                os_memData.open(memFileName_m.c_str(), std::ios::out);
-                os_memData.precision(15);
-                os_memData.setf(std::ios::scientific, std::ios::floatfield);
+            if ( Options::memoryDump )
                 writeMemoryHeader(os_memData);
-            }
 
 #ifdef ENABLE_AMR
-            if ( dynamic_cast<AmrPartBunch*>(beam) != nullptr ) {
-                os_gridLBalData.open(gridLBalFileName_m.c_str(), std::ios::out);
-                os_gridLBalData.precision(15);
-                os_gridLBalData.setf(std::ios::scientific, std::ios::floatfield);
+            if ( dynamic_cast<AmrPartBunch*>(beam) != nullptr )
                 writeGridLBalHeader(beam, os_gridLBalData);
-            }
-#endif
-
-            firstWriteToStat_m = false;
-        } else {
-            os_statData.open(statFileName_m.c_str(), std::ios::app);
-            os_statData.precision(15);
-            os_statData.setf(std::ios::scientific, std::ios::floatfield);
-
-            os_lBalData.open(lBalFileName_m.c_str(), std::ios::app);
-            os_lBalData.precision(15);
-            os_lBalData.setf(std::ios::scientific, std::ios::floatfield);
-
-            if ( Options::memoryDump ) {
-                os_memData.open(memFileName_m.c_str(), std::ios::app);
-                os_memData.precision(15);
-                os_memData.setf(std::ios::scientific, std::ios::floatfield);
-            }
-
-#ifdef ENABLE_AMR
-            if ( dynamic_cast<AmrPartBunch*>(beam) != nullptr ) {
-                os_gridLBalData.open(gridLBalFileName_m.c_str(), std::ios::app);
-                os_gridLBalData.precision(15);
-                os_gridLBalData.setf(std::ios::scientific, std::ios::floatfield);
-            }
 #endif
         }
 
-        os_statData << beam->getT() * 1e9 << std::setw(pwi) << "\t"                                 // 1
-                    << pathLength << std::setw(pwi) << "\t"                                        // 2
+        os_statData << beam->getT() * 1e9 << std::setw(pwi) << "\t"         // 1
+                    << pathLength << std::setw(pwi) << "\t"                 // 2
 
-                    << beam->getTotalNum() << std::setw(pwi) << "\t"                                // 3
-                    << Q << std::setw(pwi) << "\t"                                                 // 4
+                    << beam->getTotalNum() << std::setw(pwi) << "\t"        // 3
+                    << Q << std::setw(pwi) << "\t"                          // 4
 
-                    << Ekin << std::setw(pwi) << "\t"                                              // 5
+                    << Ekin << std::setw(pwi) << "\t"                       // 5
 
-                    << beam->get_rrms()(0) << std::setw(pwi) << "\t"                                // 6
-                    << beam->get_rrms()(1) << std::setw(pwi) << "\t"                                // 7
-                    << beam->get_rrms()(2) << std::setw(pwi) << "\t"                                // 8
+                    << beam->get_rrms()(0) << std::setw(pwi) << "\t"        // 6
+                    << beam->get_rrms()(1) << std::setw(pwi) << "\t"        // 7
+                    << beam->get_rrms()(2) << std::setw(pwi) << "\t"        // 8
 
-                    << beam->get_prms()(0) << std::setw(pwi) << "\t"                                // 9
-                    << beam->get_prms()(1) << std::setw(pwi) << "\t"                                // 10
-                    << beam->get_prms()(2) << std::setw(pwi) << "\t"                                // 11
+                    << beam->get_prms()(0) << std::setw(pwi) << "\t"        // 9
+                    << beam->get_prms()(1) << std::setw(pwi) << "\t"        // 10
+                    << beam->get_prms()(2) << std::setw(pwi) << "\t"        // 11
 
-                    << beam->get_norm_emit()(0) << std::setw(pwi) << "\t"                           // 12
-                    << beam->get_norm_emit()(1) << std::setw(pwi) << "\t"                           // 13
-                    << beam->get_norm_emit()(2) << std::setw(pwi) << "\t"                           // 14
+                    << beam->get_norm_emit()(0) << std::setw(pwi) << "\t"   // 12
+                    << beam->get_norm_emit()(1) << std::setw(pwi) << "\t"   // 13
+                    << beam->get_norm_emit()(2) << std::setw(pwi) << "\t"   // 14
 
-                    << beam->get_rmean()(0)  << std::setw(pwi) << "\t"                              // 15
-                    << beam->get_rmean()(1)  << std::setw(pwi) << "\t"                              // 16
-                    << beam->get_rmean()(2)  << std::setw(pwi) << "\t"                              // 17
+                    << beam->get_rmean()(0)  << std::setw(pwi) << "\t"      // 15
+                    << beam->get_rmean()(1)  << std::setw(pwi) << "\t"      // 16
+                    << beam->get_rmean()(2)  << std::setw(pwi) << "\t"      // 17
 
-                    << beam->RefPartR_m(0) << std::setw(pwi) << "\t"                                // 18
-                    << beam->RefPartR_m(1) << std::setw(pwi) << "\t"                                // 19
-                    << beam->RefPartR_m(2) << std::setw(pwi) << "\t"                                // 20
+                    << beam->RefPartR_m(0) << std::setw(pwi) << "\t"        // 18
+                    << beam->RefPartR_m(1) << std::setw(pwi) << "\t"        // 19
+                    << beam->RefPartR_m(2) << std::setw(pwi) << "\t"        // 20
 
-                    << beam->RefPartP_m(0) << std::setw(pwi) << "\t"                                // 21
-                    << beam->RefPartP_m(1) << std::setw(pwi) << "\t"                                // 22
-                    << beam->RefPartP_m(2) << std::setw(pwi) << "\t"                                // 23
+                    << beam->RefPartP_m(0) << std::setw(pwi) << "\t"        // 21
+                    << beam->RefPartP_m(1) << std::setw(pwi) << "\t"        // 22
+                    << beam->RefPartP_m(2) << std::setw(pwi) << "\t"        // 23
 
-                    << beam->get_maxExtent()(0) << std::setw(pwi) << "\t"                           // 24
-                    << beam->get_maxExtent()(1) << std::setw(pwi) << "\t"                           // 25
-                    << beam->get_maxExtent()(2) << std::setw(pwi) << "\t"                           // 26
+                    << beam->get_maxExtent()(0) << std::setw(pwi) << "\t"   // 24
+                    << beam->get_maxExtent()(1) << std::setw(pwi) << "\t"   // 25
+                    << beam->get_maxExtent()(2) << std::setw(pwi) << "\t"   // 26
 
             // Write out Courant Snyder parameters.
-                    << beam->get_rprms()(0) << std::setw(pwi) << "\t"                               // 27
-                    << beam->get_rprms()(1) << std::setw(pwi) << "\t"                               // 28
-                    << beam->get_rprms()(2) << std::setw(pwi) << "\t"                               // 29
+                    << beam->get_rprms()(0) << std::setw(pwi) << "\t"       // 27
+                    << beam->get_rprms()(1) << std::setw(pwi) << "\t"       // 28
+                    << beam->get_rprms()(2) << std::setw(pwi) << "\t"       // 29
 
             // Write out dispersion.
-                    << beam->get_Dx() << std::setw(pwi) << "\t"                                      // 30
-                    << beam->get_DDx() << std::setw(pwi) << "\t"                                     // 31
-                    << beam->get_Dy() << std::setw(pwi) << "\t"                                      // 32
-                    << beam->get_DDy() << std::setw(pwi) << "\t"                                     // 33
+                    << beam->get_Dx() << std::setw(pwi) << "\t"             // 30
+                    << beam->get_DDx() << std::setw(pwi) << "\t"            // 31
+                    << beam->get_Dy() << std::setw(pwi) << "\t"             // 32
+                    << beam->get_DDy() << std::setw(pwi) << "\t"            // 33
 
 
             // Write head/reference particle/tail field information.
-                    << FDext[0](0) << std::setw(pwi) << "\t"                                         // 34 B-ref x
-                    << FDext[0](1) << std::setw(pwi) << "\t"                                         // 35 B-ref y
-                    << FDext[0](2) << std::setw(pwi) << "\t"                                         // 36 B-ref z
+                    << FDext[0](0) << std::setw(pwi) << "\t"                // 34 B-ref x
+                    << FDext[0](1) << std::setw(pwi) << "\t"                // 35 B-ref y
+                    << FDext[0](2) << std::setw(pwi) << "\t"                // 36 B-ref z
 
-                    << FDext[1](0) << std::setw(pwi) << "\t"                                         // 37 E-ref x
-                    << FDext[1](1) << std::setw(pwi) << "\t"                                         // 38 E-ref y
-                    << FDext[1](2) << std::setw(pwi) << "\t"                                         // 39 E-ref z
+                    << FDext[1](0) << std::setw(pwi) << "\t"                // 37 E-ref x
+                    << FDext[1](1) << std::setw(pwi) << "\t"                // 38 E-ref y
+                    << FDext[1](2) << std::setw(pwi) << "\t"                // 39 E-ref z
 
-                    << beam->getdE() << std::setw(pwi) << "\t"                                        // 40 dE energy spread
-                    << beam->getdT() * 1e9 << std::setw(pwi) << "\t"                                        // 41 dt time step size
-                    << npOutside << std::setw(pwi) << "\t";                                          // 42 number of particles outside n*sigma
+                    << beam->getdE() << std::setw(pwi) << "\t"              // 40 dE energy spread
+                    << beam->getdT() * 1e9 << std::setw(pwi) << "\t"        // 41 dt time step size
+                    << npOutside << std::setw(pwi) << "\t";                 // 42 number of particles outside n*sigma
 
         if(Ippl::getNodes() == 1 && beam->getLocalNum() > 0) {
-            os_statData << beam->R[0](0) << std::setw(pwi) << "\t";                                   // 43 R0_x
-            os_statData << beam->R[0](1) << std::setw(pwi) << "\t";                                   // 44 R0_y
-            os_statData << beam->R[0](2) << std::setw(pwi) << "\t";                                   // 45 R0_z
-            os_statData << beam->P[0](0) << std::setw(pwi) << "\t";                                   // 46 P0_x
-            os_statData << beam->P[0](1) << std::setw(pwi) << "\t";                                   // 47 P0_y
-            os_statData << beam->P[0](2) << std::setw(pwi) << "\t";                                   // 48 P0_z
+            os_statData << beam->R[0](0) << std::setw(pwi) << "\t";         // 43 R0_x
+            os_statData << beam->R[0](1) << std::setw(pwi) << "\t";         // 44 R0_y
+            os_statData << beam->R[0](2) << std::setw(pwi) << "\t";         // 45 R0_z
+            os_statData << beam->P[0](0) << std::setw(pwi) << "\t";         // 46 P0_x
+            os_statData << beam->P[0](1) << std::setw(pwi) << "\t";         // 47 P0_y
+            os_statData << beam->P[0](2) << std::setw(pwi) << "\t";         // 48 P0_z
         }
 
 
@@ -503,59 +475,32 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
         memory->sample();
     }
 
-    if(Ippl::myNode() == 0) {
-        if(firstWriteToStat_m) {
-            os_statData.open(statFileName_m.c_str(), std::ios::out);
-            os_statData.precision(15);
-            os_statData.setf(std::ios::scientific, std::ios::floatfield);
-            writeSDDSHeader(os_statData);
-
-            os_lBalData.open(lBalFileName_m.c_str(), std::ios::out);
-            os_lBalData.precision(15);
-            os_lBalData.setf(std::ios::scientific, std::ios::floatfield);
-            writeLBalHeader(&beam, os_lBalData);
-
-            if ( Options::memoryDump ) {
-                os_memData.open(memFileName_m.c_str(), std::ios::out);
-                os_memData.precision(15);
-                os_memData.setf(std::ios::scientific, std::ios::floatfield);
-                writeMemoryHeader(os_memData);
-            }
-
+    if (Ippl::myNode() == 0) {
+        
+        open_m(os_statData, statFileName_m);
+        open_m(os_lBalData, lBalFileName_m);
+        
+        if ( Options::memoryDump )
+            open_m(os_memData, memFileName_m);
+        
 #ifdef ENABLE_AMR
-            if ( dynamic_cast<AmrPartBunch*>(&beam) != nullptr ) {
-                os_gridLBalData.open(gridLBalFileName_m.c_str(), std::ios::out);
-                os_gridLBalData.precision(15);
-                os_gridLBalData.setf(std::ios::scientific, std::ios::floatfield);
-                writeGridLBalHeader(&beam, os_gridLBalData);
-            }
+        if ( dynamic_cast<AmrPartBunch*>(&beam) != nullptr )
+            open_m(os_gridLBalData, gridLBalFileName_m);
 #endif
-
-            firstWriteToStat_m = false;
-        } else {
-            os_statData.open(statFileName_m.c_str(), std::ios::app);
-            os_statData.precision(15);
-            os_statData.setf(std::ios::scientific, std::ios::floatfield);
-
-            os_lBalData.open(lBalFileName_m.c_str(), std::ios::app);
-            os_lBalData.precision(15);
-            os_lBalData.setf(std::ios::scientific, std::ios::floatfield);
-
-            if ( Options::memoryDump ) {
-                os_memData.open(memFileName_m.c_str(), std::ios::app);
-                os_memData.precision(15);
-                os_memData.setf(std::ios::scientific, std::ios::floatfield);
-            }
+        
+        if ( mode_m == std::ios::out ) {
+            mode_m = std::ios::app;
+            writeSDDSHeader(os_statData);
+            writeLBalHeader(&beam, os_lBalData);
+            
+            if ( Options::memoryDump )
+                writeMemoryHeader(os_memData);
 
 #ifdef ENABLE_AMR
-            if ( dynamic_cast<AmrPartBunch*>(&beam) != nullptr ) {
-                os_gridLBalData.open(gridLBalFileName_m.c_str(), std::ios::app);
-                os_gridLBalData.precision(15);
-                os_gridLBalData.setf(std::ios::scientific, std::ios::floatfield);
-            }
+            if ( dynamic_cast<AmrPartBunch*>(&beam) != nullptr )
+                writeGridLBalHeader(&beam, os_gridLBalData);
 #endif
         }
-
 
         os_statData << beam.getT() << std::setw(pwi) << "\t"                                       // 1
                     << sposRef << std::setw(pwi) << "\t"                                           // 2
@@ -1380,6 +1325,14 @@ void DataSink::replaceVersionString(const std::string &fileName) const {
         fs.close();
     }
 }
+
+
+void DataSink::open_m(std::ofstream& os, const std::string& fileName) const {
+    os.open(fileName.c_str(), mode_m);
+    os.precision(15);
+    os.setf(std::ios::scientific, std::ios::floatfield);
+}
+
 
 void DataSink::writeLBalHeader(PartBunchBase<double, 3> *beam,
                                std::ofstream &outputFile)

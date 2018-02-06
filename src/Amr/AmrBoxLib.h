@@ -113,6 +113,10 @@ public:
     const int& maxLevel() const;
     const int& finestLevel() const;
     
+    /*!
+     * @returns the time of the bunch [s]
+     */
+    double getT() const;
     
     void redistributeGrids(int how);
     

@@ -33,4 +33,4 @@ set (HDRS
     BottomSolver.h
 )
 
-install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Solvers/TAMG/")
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Solvers/AMR_MG/")
