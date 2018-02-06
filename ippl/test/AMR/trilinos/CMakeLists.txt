@@ -32,6 +32,7 @@ include_directories (
     
 link_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../ippl-amr/
     ${CMAKE_SOURCE_DIR}/src
     ${IPPL_LIBRARY_DIR}
     ${AMREX_LIBRARY_DIR}
@@ -57,7 +58,7 @@ SET (LIBS
 
 set(F90_source_files ../Tagging_nd.f90)
 
-set (TESTLIBS ../ippl-amr/amropal multigrid)
+set (TESTLIBS amropal multigrid)
 
 set(EXECS "")
 
