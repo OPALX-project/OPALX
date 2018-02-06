@@ -536,7 +536,7 @@ void ThickTracker::execute() {
             case ElementBase::ElementType::MULTIPOLE: {
                 Multipole* pMultipole= dynamic_cast<Multipole*> (element.get());
 
-                msg << pMultipole->getNSlices() << endl;
+                msg << "NSLICES = " << pMultipole->getNSlices() << endl;
                 double K1= pMultipole->getField().getNormalComponent(2)*(Physics::c/P0);
                 K1= std::round(K1*1e6)/1e6;
 
