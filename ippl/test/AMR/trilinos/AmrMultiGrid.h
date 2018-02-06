@@ -10,6 +10,8 @@
 
 #include "AmrMultiGridCore.h"
 
+#include "AmrRedistributor.h"
+
 #include "AmrMultiGridLevel.h"
 
 #define AMR_MG_TIMER 1
@@ -616,6 +618,8 @@ private:
     int nBcPoints_m;                    ///< maximum number of stencils points for BC
     
     Norm norm_m;            ///< norm for convergence criteria (l1, l2, linf)
+    
+    std::unique_ptr<AmrRedistributor> balancer_mp;
     
 #if AMR_MG_TIMER
     IpplTimings::TimerRef buildTimer_m;         ///< timer for matrix and vector construction
