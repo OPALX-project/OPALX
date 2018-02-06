@@ -247,13 +247,16 @@ private:
 
     void rewindLines(const std::string &fileName, size_t numberOfLines) const;
     void replaceVersionString(const std::string &fileName) const;
+    
+    void open_m(std::ofstream& os, const std::string& fileName) const;
+    
     /** \brief First write to the statistics output file.
      *
-     * Initially set to true so that SDDS format header information is written to file
+     * Initially set to std::ios::out so that SDDS format header information is written to file
      * during the first write call to the statistics output file. Variable is then
-     * reset to false so that header information is only written once.
+     * reset to std::ios::app so that header information is only written once.
      */
-    bool firstWriteToStat_m;
+    std::ios_base::openmode mode_m;
 
     /** \brief First write to the H5 surface loss file.
      *

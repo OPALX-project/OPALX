@@ -9,8 +9,9 @@ AmrParticleBase<PLayout>::AmrParticleBase() : forbidTransform_m(false),
                                               scale_m(1.0),
                                               LocalNumPerLevel_m()
 {
-    UpdateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
-    SortParticlesTimer_m = IpplTimings::getTimer("AMR sort particles");
+    updateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
+    sortParticlesTimer_m = IpplTimings::getTimer("AMR sort particles");
+    domainMappingTimer_m = IpplTimings::getTimer("AMR map particles");
 }
 
 
@@ -21,8 +22,9 @@ AmrParticleBase<PLayout>::AmrParticleBase(PLayout* layout)
       scale_m(1.0),
       LocalNumPerLevel_m()
 {
-    UpdateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
-    SortParticlesTimer_m = IpplTimings::getTimer("AMR sort particles");
+    updateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
+    sortParticlesTimer_m = IpplTimings::getTimer("AMR sort particles");
+    domainMappingTimer_m = IpplTimings::getTimer("AMR map particles");
 }
 
 
@@ -117,7 +119,7 @@ void AmrParticleBase<PLayout>::update() {
 template<class PLayout>
 void AmrParticleBase<PLayout>::update(int lev_min, int lev_max) {
     
-    IpplTimings::startTimer(UpdateParticlesTimer_m);
+    IpplTimings::startTimer(updateParticlesTimer_m);
 
     // make sure we've been initialized
     PLayout *Layout = &this->getLayout();
@@ -132,13 +134,13 @@ void AmrParticleBase<PLayout>::update(int lev_min, int lev_max) {
     
     INCIPPLSTAT(incParticleUpdates);
     
-    IpplTimings::stopTimer(UpdateParticlesTimer_m);
+    IpplTimings::stopTimer(updateParticlesTimer_m);
 }
 
 template<class PLayout>
 void AmrParticleBase<PLayout>::update(const ParticleAttrib<char>& canSwap) {
     
-    IpplTimings::startTimer(UpdateParticlesTimer_m);
+    IpplTimings::startTimer(updateParticlesTimer_m);
 
     // make sure we've been initialized
     PLayout *Layout = &this->getLayout();
@@ -152,14 +154,14 @@ void AmrParticleBase<PLayout>::update(const ParticleAttrib<char>& canSwap) {
     
     INCIPPLSTAT(incParticleUpdates);
     
-    IpplTimings::stopTimer(UpdateParticlesTimer_m);
+    IpplTimings::stopTimer(updateParticlesTimer_m);
 }
 
 
 template<class PLayout>
 void AmrParticleBase<PLayout>::sort() {
     
-    IpplTimings::startTimer(SortParticlesTimer_m);
+    IpplTimings::startTimer(sortParticlesTimer_m);
     size_t LocalNum = this->getLocalNum();
     SortList_t slist1(LocalNum); //slist1 holds the index of where each element should go
     SortList_t slist2(LocalNum); //slist2 holds the index of which element should go in this position
@@ -181,7 +183,7 @@ void AmrParticleBase<PLayout>::sort() {
     //sort the array according to slist2
     this->sort(slist2);
 
-    IpplTimings::stopTimer(SortParticlesTimer_m);
+    IpplTimings::stopTimer(sortParticlesTimer_m);
 }
 
 
@@ -208,6 +210,8 @@ bool AmrParticleBase<PLayout>::isForbidTransform() const {
 
 template<class PLayout>
 const double& AmrParticleBase<PLayout>::domainMapping(bool inverse) {
+    IpplTimings::startTimer(domainMappingTimer_m);
+    
     Vector_t rmin, rmax;
     bounds(this->R, rmin, rmax);
     
@@ -230,6 +234,8 @@ const double& AmrParticleBase<PLayout>::domainMapping(bool inverse) {
     
     
     scale_m = 1.0 / scale;
+    
+    IpplTimings::stopTimer(domainMappingTimer_m);
     
     return scale_m;
 }

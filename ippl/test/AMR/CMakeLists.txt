@@ -44,6 +44,7 @@ IF ( ENABLE_AMR )
                     trilinos/AmesosBottomSolver.cpp
                     trilinos/AmrSmoother.cpp
                     trilinos/AmrMultiGrid.cpp
+                    trilinos/AmrRedistributor.cpp
                     ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
                     ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp)
         

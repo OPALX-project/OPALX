@@ -141,8 +141,9 @@ public:
     inline const double& getScalingFactor() const;
     
 protected:
-    IpplTimings::TimerRef UpdateParticlesTimer_m;
-    IpplTimings::TimerRef SortParticlesTimer_m;
+    IpplTimings::TimerRef updateParticlesTimer_m;
+    IpplTimings::TimerRef sortParticlesTimer_m;
+    IpplTimings::TimerRef domainMappingTimer_m;
     
     bool forbidTransform_m;             ///< To avoid multiple transformations during regrid
     
