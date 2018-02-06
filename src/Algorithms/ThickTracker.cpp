@@ -37,6 +37,7 @@
 #include "Algorithms/CavityAutophaser.h"
 
 #include <cfloat>
+#include <cmath>
 
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
@@ -359,12 +360,6 @@ void ThickTracker::findStartPosition(const BorisPusher &pusher) {
 
 void ThickTracker::execute() {
 
-    std::ofstream outfile;
-    std::ofstream tmap;
-    outfile.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/generatedMaps.txt");
-    tmap.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/TransferMap.txt");
-    outfile << std::setprecision(20);
-
 	Inform msg("ThickTracker", *gmsg);
 
 	msg << "in execute " << __LINE__ << " " << __FILE__ << endl;
@@ -388,83 +383,8 @@ void ThickTracker::execute() {
     prepareSections();
 
 
-//  itsOpalBeamline_m.compute3DLattice();
-//  itsOpalBeamline_m.save3DLattice();
-//  itsOpalBeamline_m.save3DInput();
-//
-//  std::queue<double> timeStepSizes(dtAllTracks_m);
-//  std::queue<unsigned long long> numSteps(localTrackSteps_m);
-//  double minTimeStep = timeStepSizes.front();
-//  unsigned long long totalNumSteps = 0;
-//  while (timeStepSizes.size() > 0) {
-//    if (minTimeStep > timeStepSizes.front()) {
-//      totalNumSteps = std::ceil(totalNumSteps * minTimeStep / timeStepSizes.front());
-//      minTimeStep = timeStepSizes.front();
-//    }
-//    totalNumSteps += std::ceil(numSteps.front() * timeStepSizes.front() / minTimeStep);
-//
-//    numSteps.pop();
-//    timeStepSizes.pop();
-//  }
-//
-//  itsOpalBeamline_m.activateElements();
-//
-//  if (OpalData::getInstance()->hasPriorTrack() ||
-//      OpalData::getInstance()->inRestartRun()) {
-//
-//    referenceToLabCSTrafo_m = itsBunch_m->toLabTrafo_m;
-//    RefPartR_m = referenceToLabCSTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
-//    RefPartP_m = referenceToLabCSTrafo_m.rotateFrom(itsBunch_m->RefPartP_m);
-//
-//    pathLength_m = itsBunch_m->get_sPos();
-//    zstart_m = pathLength_m;
-//
-//    restoreCavityPhases();
-//  } else {
-//    RefPartR_m = Vector_t(0.0);
-//    RefPartP_m = euclidean_norm(itsBunch_m->get_pmean_Distribution()) * Vector_t(0, 0, 1);
-//
-//    if (itsBunch_m->getTotalNum() > 0) {
-//      if (!itsOpalBeamline_m.containsSource()) {
-//	RefPartP_m = OpalData::getInstance()->getP0() / itsBunch_m->getM() * Vector_t(0, 0, 1);
-//      }
-//
-//      if (zstart_m > pathLength_m) {
-//	findStartPosition(pusher);
-//      }
-//
-//      itsBunch_m->set_sPos(pathLength_m);
-//    }
-//  }
-//
-//  Vector_t rmin, rmax;
-//  itsBunch_m->get_bounds(rmin, rmax);
-//
-//  OrbitThreader oth(itsReference,
-//		    referenceToLabCSTrafo_m.transformTo(RefPartR_m),
-//		    referenceToLabCSTrafo_m.rotateTo(RefPartP_m),
-//		    pathLength_m,
-//		    -rmin(2),
-//		    itsBunch_m->getT(),
-//		    minTimeStep,
-//		    totalNumSteps,
-//		    zStop_m.back() + 2 * rmax(2),
-//		    itsOpalBeamline_m);
-//
-//  oth.execute();
-//
-  /*
-    End of setup and general preparation.
-  */
-
-
     msg << *itsBunch_m << endl;
-
-
-    /*
-    This is an example how one can loop
-    over all elements.
-    */
+    msg << std::setprecision(20);
 
 //=======================================================================
 
@@ -473,33 +393,28 @@ void ThickTracker::execute() {
     typedef FTps<double, 2 * DIM> Series;
     typedef FVps<double, 2 * DIM> Map;
 
-    Series x = Series::makeVariable(0);		//SIXVect::X);
+    Series x = Series::makeVariable(0);			//SIXVect::X);
     Series px = Series::makeVariable(1);		//SIXVect::PX);
-    Series y = Series::makeVariable(2);		//SIXVect::Y);
+    Series y = Series::makeVariable(2);			//SIXVect::Y);
     Series py = Series::makeVariable(3);		//SIXVect::PY);
     //Series z = Series::makeVariable(4);		//SIXVect::TT);
-    Series delta = Series::makeVariable(5);	//SIXVect::PT);
+    Series delta = Series::makeVariable(5);		//SIXVect::PT);
 
 
 
-//Diese Parameter muessen per & uebernommen werden
-//======================================================
+    int order = 8;  //actually already defined
+    bool ModeSlices= true;
 
-    int order = 2;  //actually already defined
-//   define parameter for Hamiltonian
-//
-//  double b = 1.; 	// field gradient [T/m]
-//  double E = 200.; //PartData::getE(); 	//beam energy [MeV]
-//  double ds = 0.4;     //stepsize [m]
-//
-//  double EProt = refPart.getM();  //938.2720813; //MeV/c
+    double  gamma0 =  (itsBunch_m->getInitialGamma())   ;   //(EProt + E) / EProt;
+    double  beta0 =  (itsBunch_m->getInitialBeta());   		//std::sqrt(gamma0 * gamma0 - 1.0) / gamma0;
 
-    double  gamma0 =  (itsBunch_m->getInitialGamma())   ;    //(EProt + E) / EProt;
-    double  beta0 =  (itsBunch_m->getInitialBeta());   //std::sqrt(gamma0 * gamma0 - 1.0) / gamma0;
+    double  P0 =  (itsBunch_m-> getP()); 					//beta0 * gamma0 * EProt * 1e6 / Physics::c;
+    double  q =  (itsBunch_m->getQ());						// particle change [e]
 
-    double  P0 =  (itsBunch_m-> getP()); //beta0 * gamma0 * EProt * 1e6 / Physics::c;
-    double  q =  (itsBunch_m->getQ());	// particle change [e]
 
+
+//=====================================================
+//Redefine constants for comparison with COSY Infinity
 //=====================================================
     double E=(itsReference.getE() - itsReference.getM());
     E = std::round(E);
@@ -517,22 +432,13 @@ void ThickTracker::execute() {
     gamma0=ETA+1;
     beta0= std::sqrt(1-1/(gamma0*gamma0));
 
-
-//=====================================================
-
-
     beta0 = (PHI / (1 + ETA));
     gamma0 = PHI / beta0;
 
-    msg << std::setprecision(20);
-    msg << "BreamEnergy: "<< E << endl;
-    msg << "P0 COSY:  " << P0 << endl;
-    msg << "E0 COSY:  " << AMUMEV*M0 << endl;
 //=====================================================
-    Series::setGlobalTruncOrder(order);
 
-//  double r0 = 1.; 					// get aperture, resp. the radius of magnet [m]
 
+    Series::setGlobalTruncOrder(order+1);
 
     ///Creates the Hamiltonian for beam line element
     /**\param element iterative pointer to the elements along the beam line
@@ -541,7 +447,6 @@ void ThickTracker::execute() {
     auto Hamiltonian = [&](std::shared_ptr<Component> element) {
 
         Series H; //Hamiltonian
-        Series Hs;//Hamiltonian times ElementLength
 
         switch(element->getType()) {
 
@@ -550,16 +455,14 @@ void ThickTracker::execute() {
              * \sqrt{\left(\frac{1}{\beta_0} + \delta \right)^2 -p_x^2 -p_y^2 - \frac{1}{\left(\beta_0 \gamma_0\right)^2 } } \f]
              */
             case ElementBase::ElementType::DRIFT: {
-                Drift* pDrift= dynamic_cast<Drift*> (element.get());
-                //outfile <<  "0T,  ";
-                //outfile << pDrift ->getElementLength() << "m" <<std::endl;
+                //Drift* pDrift= dynamic_cast<Drift*> (element.get());
                 H=( delta / beta0 )
                 - sqrt((1./ beta0 + delta ) *(1./ beta0 + delta )
                         - ( px*px )
                         - ( py*py )
-                        - 1./( beta0 * beta0 * gamma0 * gamma0 ),order
+                        - 1./( beta0 * beta0 * gamma0 * gamma0 ),order+1
                 );
-                Hs = H * pDrift->getElementLength();
+
                 break;
             }
 
@@ -571,30 +474,24 @@ void ThickTracker::execute() {
             case ElementBase::ElementType::RBEND: {
                 RBend* pRBend= dynamic_cast<RBend*> (element.get());
 
-//		        double rho = P0 / (b * q); 		                        //bending radius [m]
                 double h = 1. / pRBend ->getBendRadius();               //inverse bending radius [1/m]
                 double K0= pRBend ->getB()*(Physics::c/itsReference.getP());
 
-//		        double phi = 45 * 0.0174532925;                         // tilt angle for dipole fringe field [rad]
-
-
-                //outfile << K0 << "T,  ";
-                //outfile << pRBend ->getArcLength() << "m" <<std::endl;
                 H=( delta / beta0 )
                 - (sqrt ((1./ beta0 + delta) *(1./ beta0 + delta)
                                 - ( px*px )
                                 - ( py*py )
-                                - 1./( beta0*beta0 * gamma0*gamma0 ),order
+                                - 1./( beta0*beta0 * gamma0*gamma0 ),order+1
                         ))
                 - (h * x)
                 * (sqrt ((1./ beta0 + delta) *(1./ beta0 + delta)
                                 - ( px*px )
                                 - ( py*py )
-                                - 1./( beta0*beta0 * gamma0*gamma0 ),order-1
+                                - 1./( beta0*beta0 * gamma0*gamma0 ),order
                         ))
                 + K0 * x * (1. + 0.5 * h* x);
 
-                Hs = H * pRBend->getArcLength();
+                H= H /pRBend->getElementLength() * pRBend->getArcLength();
 
                 break;
             }
@@ -611,26 +508,22 @@ void ThickTracker::execute() {
                 double h = 1. / pSBend ->getBendRadius();               //inverse bending radius [1/m]
 
                 double K0= pSBend ->getB()*(Physics::c/itsReference.getP());
-                msg<< "Magnetic Field Sbend:" << pSBend ->getB() << "T" << endl;
-//			    double phi = 45 * 0.0174532925;                         // tilt angle for dipole fringe field [rad]
-                msg<< "Effecgtive Length:" << pSBend ->getEffectiveLength() << "m" << endl;
-                //outfile << pSBend ->getB() << "T,  ";
-                //outfile << pSBend ->getEffectiveLength() << "m" <<std::endl;
                 H=( delta / beta0 )
                 - (sqrt ((1./ beta0 + delta) *(1./ beta0 + delta)
                                 - ( px*px )
                                 - ( py*py )
-                                - 1./( beta0*beta0 * gamma0*gamma0 ),order
+                                - 1./( beta0*beta0 * gamma0*gamma0 ),order+1
                         ))
                 - (h * x)
                 * (sqrt ((1./ beta0 + delta) *(1./ beta0 + delta)
                                 - ( px*px )
                                 - ( py*py )
-                                - 1./( beta0*beta0 * gamma0*gamma0 ),order-1
+                                - 1./( beta0*beta0 * gamma0*gamma0 ),order
                         ))
                 + K0 * x * (1. + 0.5 * h* x);
 
-                Hs= H * pSBend->getEffectiveLength();
+
+                H= H /pSBend->getElementLength() *pSBend->getEffectiveLength();
 
                 break;
             }
@@ -643,22 +536,17 @@ void ThickTracker::execute() {
             case ElementBase::ElementType::MULTIPOLE: {
                 Multipole* pMultipole= dynamic_cast<Multipole*> (element.get());
 
+                msg << pMultipole->getNSlices() << endl;
                 double K1= pMultipole->getField().getNormalComponent(2)*(Physics::c/P0);
                 K1= std::round(K1*1e6)/1e6;
-//                outfile << K1 << "T/m,  ";
-//                outfile << pMultipole ->getElementLength() << "m,  " ;
-//                outfile << P0 << "MeV"<<std::endl;
-//		        K1 = (q * b) / (P0 * r0)
 
                 H= ( delta / beta0 )
                 - sqrt ((1./ beta0 + delta ) *(1./ beta0 + delta)
                         - ( px*px )
                         - ( py*py )
-                        - 1./( beta0*beta0 * gamma0*gamma0 ),order
+                        - 1./( beta0*beta0 * gamma0*gamma0 ),order+1
                 )
                 + 0.5 * (q * K1) *(Physics::c/P0) * (x*x - y*y);
-
-                Hs=H* pMultipole ->getElementLength();
 
                 break;
             }
@@ -669,7 +557,7 @@ void ThickTracker::execute() {
             break;
 
         }
-        return Hs;
+        return H;
     };
 
 
@@ -691,54 +579,75 @@ void ThickTracker::execute() {
     const FieldList::iterator end = allElements.end();
     if (it == end) msg << "No element in lattice" << endl;
 
-    Map combinedMaps;
+    Map combinedMaps, ElementMap;
+
+    FVector<double, 6> particle;
+    OpalParticle part;
 
 
 
-
-
-//    msg << "beam parameter " << itsReference.getE() - itsReference.getM() << endl;
-//    msg << "beam line length: " << allElements.size() << endl;
-//    //const int el = allElements.size();
-    msg << std::setprecision(20);
     msg << "P0 OPAL:  " << itsBunch_m-> getP() << endl;
     msg << "E0 OPAL:  " << itsBunch_m-> getM() << endl;
 
 
-
-//    msg << "q:  " << q << endl;
-
-
     std::map<std::string, double> elementDic;
+    std::list<std::pair<int, Map>> mapBeamLine;
+
     std::map<std::string, double>::iterator dicit;
 
     std::vector<Map> mapVec;
+
     double selement =0;
+    double elementpos =0;
+    double stepsize= itsBunch_m->getdT()* Physics::c * itsBunch_m->getInitialBeta();
+    msg << "getdT():  " << stepsize << endl;
+    unsigned int nSlices, totalSlices=0;
+    double residualSliceL;
+    //bool initializedBunch=false;
+
+
+    //files for analysis
+    std::ofstream outfile;
+    outfile.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/generatedMaps.txt");
+    outfile << std::setprecision(8);
+
+    std::ofstream tmap;
+    tmap.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/TransferMap.txt");
+    tmap << std::setprecision(20);
+
+    //loop over beam line
     for (; it != end; ++ it) {
+
         dicit = elementDic.begin();
 
         std::shared_ptr<Component> element = (*it).getElement();
 
+        elementpos= std::round(element->getElementPosition() * 1e6)/1e6;
 
         dicit= elementDic.find(element->getName());
+
+        //order beam line according the element position
         if (dicit !=elementDic.end()){
             throw LogicalError("ThickTracker::execute,",
                                 "Same Element twice in beamline:"+ element->getName());
 
         }else{
-            elementDic.insert(std::pair<std::string, double> (element->getName(), element->getElementPosition()));
+            elementDic.insert(std::pair<std::string, double> (element->getName(), elementpos));
         }
 
-        if (selement > element->getElementPosition()){
+        if (selement > elementpos){
             msg << "There is an overlap! @ Element: " << element ->getName() <<
-                    "-> starts at: " << element->getElementPosition()<<
+                    "-> starts at: " << elementpos<<
                     " the previous ends at: " << selement << endl;
 //            throw LogicalError("ThickTracker::exercute,",
 //                                            "Overlap at element:"+ element->getName());
 
         }else{
-            selement=element->getElementPosition()+ element ->getElementLength();
+            selement=std::round(elementpos+ element ->getElementLength()*1e6)/1e6;
         }
+
+
+        //combine maps in between Monitors
 
         if (element ->getType()==ElementBase::MONITOR){
             mapVec.insert(mapVec.end(), combinedMaps);
@@ -747,337 +656,126 @@ void ThickTracker::execute() {
         }
 
 
-    //    outfile << "Element name: " << element->getName() << std::endl;
-    //    outfile << "Element type:  " << element->getType()<< std::endl;
+//=================================
+// TODO: remove Messages later
+//=================================
+
         msg << "=============================="<< endl;
         msg << "Element name: " << element->getName() << endl;
         msg << "Element Length: " << element->getElementLength() << endl;
-//        msg << "Element nummer:   " << element->getType() << endl;
-        msg <<  "ElementPosition"<< element->getElementPosition()<< endl;
+
+        msg <<  "ElementPosition"<< elementpos<< endl;
         msg << "EntryPoint" << element->getEntrance()<< endl;
 
-
-//        outfile << "Element Hamiltonian: \n" << Hamiltonian(element) << std::endl;
-//        outfile << element->getName() << ",   ";
-//        outfile << E/1.0e6 << "MeV,  ";
-
-        Map ElementMap=ExpMap(-Hamiltonian(element) ,order);
-//        outfile << Hamiltonian(element);
-//        outfile << "\n=========="<< std::endl;
-        //outfile << ElementMap << std::endl;
-        combinedMaps = ElementMap * combinedMaps;
-        //outfile << "CombinedMap:  \n" << combinedMaps << std::endl;
-        //outfile << "------------------------------------------------------------" << std::endl;
+//===================================
 
 
-  }
-  tmap << "A customized FODO" << std::endl;
-  tmap << combinedMaps << std::endl;
-//  outfile << combinedMaps << std::endl;
-
-  FVector<double, 6> particle;
-  OpalParticle part;
-  outfile <<"P0:  " << itsBunch_m->getP()/(M0*AMUMEV) << "    "
-		  << itsBunch_m->getInitialGamma()*itsBunch_m->getInitialBeta()<< std::endl;
 
 
-  for (unsigned int idx=0; idx< itsBunch_m->getTotalNum(); idx++){
-	  part =itsBunch_m ->get_part(idx);
+        //Use Slices for a better visualization
+        if (ModeSlices){
+        	nSlices = element->getElementLength()/ stepsize;
+        	residualSliceL =  std::fmod(element->getElementLength(), stepsize);
 
-	  for(int dim=0; dim<6; dim++){
-		  particle[dim]=itsBunch_m ->get_part(idx)[dim];
-	  }
-	  outfile << "=======================" << std::endl;
-	  outfile << "Particle#: " << idx << "   "<<itsBunch_m->getBeta(idx) << std::endl;
-	  outfile << particle;
-//	  outfile << "particle[5]:   " << particle[5] << std::endl;
-//	  outfile << "1st term=   " << (particle[5]*M0*AMUMEV/ itsBunch_m->getP()) << std::endl;
-//	  outfile << "1st term=   " << (particle[5]*itsBunch_m->getM()/ itsBunch_m->getP()) << std::endl;
-	  particle[5]=
-				(particle[5]*itsBunch_m->getM()/itsBunch_m->getP())
-				* std::sqrt( 1./(particle[5]* particle[5]) +1)
-				-1./itsBunch_m->getInitialBeta();
+        	mapBeamLine.push_back(std::pair<int, Map> (nSlices, ExpMap(-Hamiltonian(element) * stepsize  ,order)));
+        	mapBeamLine.push_back(std::pair<int, Map> (1, ExpMap(-Hamiltonian(element) * residualSliceL ,order)));
 
-//	  outfile << "---> Unit Transformation <--- \n" << particle;
-	  outfile << "---> The Map is applied <---"<< std::endl;
-	  particle= combinedMaps * particle;
-//	  outfile << "particle[5]" << particle[5] << std::endl;
+//=================================
+// TODO: remove Messages later
+//=================================
+
+        	msg << "stepsize:   " << stepsize << endl;
+        	msg << "nSlices:   " << nSlices << endl;
+        	msg << "residualSliceL:   " << residualSliceL << endl;
+
+//================================
 //
-//	  outfile << "divident:  " << particle[5]*M0*AMUMEV << std::endl;
-//	  outfile << "divisor:  " << itsBunch_m->getP() << std::endl;
-//	  outfile << "M0:   "  << M0*AMUMEV << "OPAL ->  "<< itsBunch_m->getM() << std::endl;
-//	  outfile << "P0:   " << itsBunch_m->getP() << std::endl;
-//	  outfile << "gamma0:   "  << itsBunch_m->getInitialGamma() << std::endl;
-//	  outfile << "delta:  " << particle[5] << std::endl;
-	  particle[4]= selement;
-	  particle[5]= (particle[5] + 1./itsBunch_m->getInitialBeta()) * itsBunch_m->getP()/itsBunch_m->getM()
-			  /std::sqrt( 1./(itsBunch_m ->get_part(idx)[5]* itsBunch_m ->get_part(idx)[5]) +1) ;
 
-	  outfile << particle << std::endl;
-  }
+    	}else{
+
+    		ElementMap=ExpMap(-Hamiltonian(element) * element->getElementLength()  ,order);
+
+    		mapBeamLine.push_back(std::pair<int, Map> (1, ElementMap));
+
+        }
+    }
 
 
+	for(std::pair<int,Map>  &elementidx : mapBeamLine) {
+		for (int slice=0; slice < elementidx.first; slice++){
+			combinedMaps= elementidx.second * combinedMaps;
+			totalSlices++;
+		}
+	}
+
+	outfile.seekp(0);
+	outfile <<"Total Particle Number:  " <<  itsBunch_m->getTotalNum() << "  Total number of Slices:   "<< totalSlices << std::endl;
 
 
-    msg << part.y() << endl;
+
+    msg << "totalSlices:   " << totalSlices << endl;
+    msg << "totalDistance  " << totalSlices * stepsize << endl;
+
+    //eliminate higher order terms (occurring through multiplication)
+	combinedMaps=combinedMaps.truncate(order);
+
+	tmap << "A customized FODO" << std::endl;
+	tmap << combinedMaps << std::endl;
+
+
+	//track the Particles
+
+	int sliceidx;
+
+	//(1) Loop Particles
+	for (unsigned int partidx=0; partidx< itsBunch_m->getTotalNum(); ++partidx){
+		msg << "inParticleLoop:   " << partidx << endl;
+		sliceidx=0;
+
+		part =itsBunch_m ->get_part(partidx);
+		for(int dim=0; dim<6; dim++){
+			particle[dim]=itsBunch_m ->get_part(partidx)[dim];
+			if (dim<5) particle[dim]= std::round(particle[dim] * 1e6)/1e6;
+		}
+		outfile << sliceidx <<"  "<< partidx << " ["<< particle;
+
+		//(2) Loop Elements
+		for(std::pair<int,Map>  &elementidx : mapBeamLine) {
+
+			//(3) Loop Slices
+			for (int slice=0; slice < elementidx.first; slice++){
+				combinedMaps= elementidx.second * combinedMaps;
+
+				//Units
+
+				particle[5] = (particle[5]*itsBunch_m->getM()/itsBunch_m->getP())
+					* std::sqrt( 1./(particle[5]* particle[5]) +1)
+					-1./itsBunch_m->getInitialBeta();
+
+				//Apply Map
+				particle= elementidx.second * particle;
+				sliceidx ++;
+
+				//Units back
+				particle[4]+= stepsize;
+
+				particle[5] = (particle[5] + 1./itsBunch_m->getInitialBeta()) * itsBunch_m->getP()/itsBunch_m->getM()
+						/std::sqrt( 1./(itsBunch_m ->get_part(partidx)[5]* itsBunch_m ->get_part(partidx)[5]) +1) ;
+
+				//Write in File
+				outfile << sliceidx <<"  "<< partidx << " ["<< particle;
+			}
+
+		}
+
+	}
 
 
 
 
-
-
-
-	msg<< "number of Particles" << itsBunch_m->getTotalNum() << endl;
-
-
-	for(int i=0; i<6; i++){
-			msg << "OPALPart" << part[i]<< endl;
-	    	msg << "OPALBart" << particle[i]<< endl;
-	    }
 
 	std::map <std::string, double>::iterator mi;
 	  for (mi=elementDic.begin(); mi!=elementDic.end(); ++mi)
 	      msg << mi->first << " = " << mi->second << endl;
 
 }
-
-
-/*
-
-namespace {
-    Vector implicitInt4(const Vector &zin, const VSeries &f, double s, double ds, int nx, int cx) {
-        //std::cerr << "==> In implicitInt4(zin,f,s,ds,nx,cx) ..." << std::endl;
-        // Default: nx = 20, cx = 4
-
-        // This routine integrates the N-dimensional autonomous differential equation
-        // z' = f(z) for a distance s, in steps of size ds.  It uses a "Yoshida-fied"
-        // version of implicitInt2 to obtain zf accurate through fourth-order in the
-        // step-size ds.  When f derives from a Hamiltonian---i.e., f = J.grad(H)---
-        // then this routine performs symplectic integration.  The optional arguments
-        // nx and cx have the same meaning as in implicitInt2().
-
-        // Convergence warning flag.
-        static bool cnvWarn = false;
-
-        // The Yoshida constants: 2ya+yb=1; 2ya^3+yb^3=0.
-        static const double yt = pow(2., 1 / 3.);
-        static const double ya = 1 / (2. - yt);
-        static const double yb = -yt * ya;
-
-        // Build matrix grad(f).
-        MxSeries gradf;
-        for(int i = 0; i < PSdim; ++i)
-            for(int j = 0; j < PSdim; ++j)
-                gradf[i][j] = f[i].derivative(j);
-
-        // Initialize accumulated length, current step-size, and number of cuts.
-        double as = std::abs(s), st = 0., dsc = std::abs(ds);
-        if(s < 0.) dsc = -dsc;
-        int ci = 0;
-
-        // Integrate each step.
-        Vector zf = zin;
-        while(std::abs(st) < as) {
-            Vector zt;
-            bool ok = true;
-            try {
-                if(std::abs(st + dsc) > as) dsc = s - st;
-                zt = ::implicitIntStep(zf, f, gradf, ya * dsc, nx);
-                zt = ::implicitIntStep(zt, f, gradf, yb * dsc, nx);
-                zt = ::implicitIntStep(zt, f, gradf, ya * dsc, nx);
-            } catch(ConvergenceError &cnverr) {
-                if(++ci > cx) {
-                    std::string msg = "Convergence not achieved within " + NumToStr<int>(cx) + " cuts of step-size!";
-                    throw ConvergenceError("ThickTracker::implicitInt4()", msg);
-                }
-                if(!cnvWarn) {
-                    std::cerr << " <***WARNING***> [ThickTracker::implicitInt4()]:\n"
-                              << "   Cutting step size, a probable violation of the symplectic condition."
-                              << std::endl;
-                    cnvWarn = true;
-                }
-                dsc *= 0.5;
-                ok = false;
-            }
-            if(ok) {zf = zt; st += dsc;}
-        }
-
-        //std::cerr << "==> Leaving implicitInt4(...)" << std::endl;
-        return zf;
-    }
-
-    Vector implicitIntStep(const Vector &zin, const VSeries &f, const MxSeries gradf, double ds, int nx) {
-        //std::cerr << "==> In implicitIntStep(zin,f,gradf,ds,nx) ..." << std::endl;
-        //std::cerr << "  ds = " << ds << std::endl;
-        //std::cerr << " zin =\n" << zin << std::endl;
-        // This routine integrates the N-dimensional autonomous differential equation
-        // z' = f(z) for a single step of size ds, using Newton's method to solve the
-        // implicit equation zf = zin + ds*f((zin+zf)/2).  For reasons of efficiency,
-        // its arguments include the matrix gradf = grad(f).  The (optional) argument
-        // nx limits the number of Newton iterations.  This routine returns a result
-        // zf accurate through second-order in the step-size ds.  When f derives from
-        // a Hamiltonian---i.e., f=J.grad(H)---then this routine performs symplectic
-        // integration.
-
-        // Set up flags, etc., for convergence (bounce) test.
-        FVector<bool, PSdim> bounce(false);
-        Vector dz, dz_old;
-        int bcount = 0;
-        static const double thresh = 1.e-8;
-
-        // Use second-order Runge-Kutta integration to determine a good initial guess.
-        double ds2 = 0.5 * ds;
-        Vector z = f.constantTerm(zin);
-        z = zin + ds2 * (z + f.constantTerm(zin + ds * z));
-
-        // Newton iterations:
-        //   z :-> [I-ds/2.grad(f)]^{-1}.[zin+ds.f((zin+z)/2)-ds/2.grad(f).z]
-        // (A possible method for speeding up this computation would
-        //  be to recompute grad(f) every n-th step, where n > 1!)
-        Vector zf;
-        int ni = 0;
-        while(bcount < PSdim) {
-            if(ni == nx) {
-                std::string msg = "Convergence not achieved within " + NumToStr<int>(nx) + " iterations!";
-                throw ConvergenceError("ThickTracker::implicitIntStep()", msg);
-            }
-
-            // Build gf = -ds/2.grad(f)[(zin+z)/2] and idgf_inv = [I-ds/2.grad(f)]^{-1}[(zin+z)/2].
-            Vector zt = 0.5 * (zin + z);
-            Matrix gf, idgf, idgf_inv;
-            for(int i = 0; i < PSdim; ++i)
-                for(int j = 0; j < PSdim; ++j)
-                    gf[i][j] = -ds2 * gradf[i][j].evaluate(zt);
-            idgf = gf;
-            for(int i = 0; i < PSdim; ++i) idgf[i][i] += 1.;
-            FLUMatrix<double, PSdim> lu(idgf);
-            idgf_inv = lu.inverse();
-
-            // Execute Newton step.
-            zf = idgf_inv * (zin + ds * f.constantTerm(zt) + gf * z);
-
-            //std::cerr << " -(ds/2)grad(f) =\n" << gf << std::endl;
-            //std::cerr << " f =\n" << f.constantTerm(zt) << std::endl;
-            //std::cerr << "zk =\n" << zf << std::endl;
-
-            // Test for convergence ("bounce" test).
-            dz_old = dz;
-            dz = zf - z;
-            if(ni) { // (we need at least two iterations before testing makes sense)
-                for(int i = 0; i < PSdim; ++i) {
-                    if(!bounce[i] && (dz[i] == 0. || (std::abs(dz[i]) < thresh && std::abs(dz[i]) >= std::abs(dz_old[i]))))
-                        {bounce[i] = true; ++bcount;}
-                }
-            }
-            z = zf;
-            ++ni;
-        }
-
-        //std::cerr << "  zf =\n" << zf << std::endl;
-        //std::cerr << "==> Leaving implicitIntStep(zin,f,gradf,ds,nx)" << std::endl;
-        return zf;
-    }
-
-    Vector fixedPointInt2(const Vector &zin, const VSeries &f, double ds, int nx) {
-        //std::cerr << "==> In fixedPointInt2(zin,f,ds,nx) ..." << std::endl;
-        // Default: nx = 50
-
-        //std::cerr << "  ds = " << ds << std::endl;
-        //std::cerr << " zin =\n" << zin << std::endl;
-        // This routine integrates the N-dimensional autonomous differential equation
-        // z' = f(z) for a single step of size ds by iterating the equation
-        //         z = zin + ds * f((zin+z)/2)
-        // to find a fixed-point zf for z.  It is accurate through second order in the
-        // step size ds.
-
-        // Set up flags, etc., for convergence (bounce) test.
-        FVector<bool, PSdim> bounce(false);
-        Vector dz, dz_old;
-        int bcount = 0;
-        static const double thresh = 1.e-8;
-
-        // Iterate z :-> zin + ds * f( (zin + z)/2 ).
-        Vector zf;
-        Vector z = zin;
-        int ni = 0;
-        while(bcount < PSdim) {
-            if(ni == nx) {
-                std::string msg = "Convergence not achieved within " + NumToStr<int>(nx) + " iterations!";
-                throw ConvergenceError("ThickTracker::fixedPointInt2()", msg);
-            }
-
-            // Do iteration.
-            zf = zin + ds * f.constantTerm((zin + z) / 2.0);
-
-            // Test for convergence.
-            dz_old = dz;
-            dz = zf - z;
-            if(ni) { // (we need at least two iterations before testing makes sense)
-                for(int i = 0; i < PSdim; ++i) {
-                    if(!bounce[i] && (dz[i] == 0. || (std::abs(dz[i]) < thresh && std::abs(dz[i]) >= std::abs(dz_old[i]))))
-                        {bounce[i] = true; ++bcount;}
-                }
-            }
-            z = zf;
-            ++ni;
-        }
-        //std::cerr << "  zf =\n" << zf << std::endl;
-        //std::cerr << "==> Leaving fixedPointInt2(...)" << std::endl;
-        return zf;
-    }
-
-    Vector fixedPointInt4(const Vector &zin, const VSeries &f, double s, double ds, int nx, int cx) {
-        //std::cerr << "==> In fixedPointInt4(zin,f,s,ds,nx,cx) ..." << std::endl;
-        // Default: nx = 50, cx = 4
-
-        // This routine integrates the N-dimensional autonomous differential equation
-        // z' = f(z) for a distance s, in steps of size ds.  It uses a "Yoshida-fied"
-        // version of fixedPointInt2 to obtain zf accurate through fourth-order in the
-        // step-size ds.  The optional arguments nx and cx have the same meaning as in
-        // implicitInt2().
-
-        // Convergence warning flag.
-        static bool cnvWarn = false;
-
-        // The Yoshida constants: 2ya+yb=1; 2ya^3+yb^3=0.
-        static const double yt = pow(2., 1 / 3.);
-        static const double ya = 1 / (2. - yt);
-        static const double yb = -yt * ya;
-
-        // Initialize accumulated length, current step-size, and number of cuts.
-        double as = std::abs(s), st = 0., dsc = std::abs(ds);
-        if(s < 0.) dsc = -dsc;
-        int ci = 0;
-
-        // Integrate each step.
-        Vector zf = zin;
-        while(std::abs(st) < as) {
-            Vector zt;
-            bool ok = true;
-            try {
-                if(std::abs(st + dsc) > as) dsc = s - st;
-                zt = ::fixedPointInt2(zf, f, ya * dsc, nx);
-                zt = ::fixedPointInt2(zt, f, yb * dsc, nx);
-                zt = ::fixedPointInt2(zt, f, ya * dsc, nx);
-            } catch(ConvergenceError &cnverr) {
-                if(++ci > cx) {
-                    std::string msg = "Convergence not achieved within " + NumToStr<int>(cx) + " cuts of step-size!";
-                    throw ConvergenceError("ThickTracker::fixedPointInt4()", msg);
-                }
-                if(!cnvWarn) {
-                    std::cerr << " <***WARNING***> [ThickTracker::fixedPointInt4()]:\n"
-                              << "   Cutting step size, a probable violation of the symplectic condition."
-                              << std::endl;
-                    cnvWarn = true;
-                }
-                dsc *= 0.5;
-                ok = false;
-            }
-            if(ok) {zf = zt; st += dsc;}
-        }
-
-        //std::cerr << "==> Leaving fixedPointInt4(...)" << std::endl;
-        return zf;
-    }
-};
-*/
