@@ -161,13 +161,13 @@ void Multipole::setSkewComponent(int n, double v, double vError) {
     }
 }
 
-inline
+
 void Multipole::setNSlices(const unsigned int& nSlices) { // Philippe was here
-	nSlices_m = nSlices;
+    nSlices_m = nSlices;
 }
     
-unsigned int Multipole::getNSlices() const {	// Philippe was here
-	return nSlices_m;
+unsigned int Multipole::getNSlices() const { // Philippe was here
+    return nSlices_m;
 }
 
 //ff
