@@ -96,6 +96,10 @@ public:
 
     size_t getMaxNormalComponentIndex() const;
     size_t getMaxSkewComponentIndex() const;
+    
+    void setNSlices(const unsigned int& nSlices); // Philippe was here
+    
+    unsigned int getNSlices() const; // Philippe was here
 
     bool isFocusing(unsigned int component) const;
 
@@ -137,6 +141,7 @@ private:
     std::vector<double> SkewComponentErrors;
     int max_SkewComponent_m;
     int max_NormalComponent_m;
+    unsigned int nSlices_m; // Philippe was here
 };
 
 inline

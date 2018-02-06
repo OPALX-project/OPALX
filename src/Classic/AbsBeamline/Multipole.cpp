@@ -161,6 +161,15 @@ void Multipole::setSkewComponent(int n, double v, double vError) {
     }
 }
 
+inline
+void Multipole::setNSlices(const unsigned int& nSlices) { // Philippe was here
+	nSlices_m = nSlices;
+}
+    
+unsigned int Multipole::getNSlices() const {	// Philippe was here
+	return nSlices_m;
+}
+
 //ff
 // radial focussing term
 void Multipole::addKR(int i, double t, Vector_t &K) {
