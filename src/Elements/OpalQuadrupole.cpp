@@ -51,11 +51,16 @@ OpalQuadrupole::OpalQuadrupole():
 
     itsAttr[DK1S] = Attributes::makeReal
                    ("DK1S", "Normalised skew quadrupole coefficient error in m^(-2)");
+                   
+    itsAttr[NSLICES] = Attributes::makeReal
+                      ("NSLICES",
+                      "The number of slices/ steps for this element in Map Tracking", 1);	//Philippe here
 
     registerRealAttribute("K1");
     registerRealAttribute("DK1");
     registerRealAttribute("K1S");
     registerRealAttribute("DK1S");
+    registerRealAttribute("NSLICES");	//Philippe here
 
     registerOwnership();
 
@@ -147,6 +152,7 @@ void OpalQuadrupole::update() {
     quad->setField(field);
     quad->setNormalComponent(2, Attributes::getReal(itsAttr[K1]), Attributes::getReal(itsAttr[DK1]));
     quad->setSkewComponent(2, Attributes::getReal(itsAttr[K1S]), Attributes::getReal(itsAttr[DK1S]));
+    //quad->setNSlices(Attributes::getReal(itsAttr[NSLICES]));
 
     if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
         parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
