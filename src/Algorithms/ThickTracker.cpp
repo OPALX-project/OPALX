@@ -462,6 +462,10 @@ void ThickTracker::execute() {
                         - ( py*py )
                         - 1./( beta0 * beta0 * gamma0 * gamma0 ),order+1
                 );
+                
+                Drift* drift_p = dynamic_cast<Drift*> (element.get());
+                
+                msg << "drift NSLICES: " << drift_p->getNSlices() << endl;
 
                 break;
             }
