@@ -10,7 +10,7 @@
 
 #include "AmrMultiGridCore.h"
 
-#include "AmrRedistributor.h"
+//#include "AmrRedistributor.h"
 
 #include "AmrMultiGridLevel.h"
 
@@ -619,7 +619,7 @@ private:
     
     Norm norm_m;            ///< norm for convergence criteria (l1, l2, linf)
     
-    std::unique_ptr<AmrRedistributor> balancer_mp;
+//    std::unique_ptr<AmrRedistributor> balancer_mp;
     
 #if AMR_MG_TIMER
     IpplTimings::TimerRef buildTimer_m;         ///< timer for matrix and vector construction
