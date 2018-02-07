@@ -28,8 +28,8 @@ AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
       lbase_m(0),
       lfine_m(0),
       nlevel_m(1),
-      nBcPoints_m(0),
-      balancer_mp(new AmrRedistributor())
+    nBcPoints_m(0)//,
+//      balancer_mp(new AmrRedistributor())
 {
     comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
     node_mp = KokkosClassic::Details::getNode<amr::node_t>(); //KokkosClassic::DefaultNode::getDefaultNode();
@@ -86,19 +86,19 @@ AmrMultiGrid::AmrMultiGrid(Boundary bcx,
       lfine_m(0),
       nlevel_m(1),
       nBcPoints_m(0),
-      norm_m(norm),
-      balancer_mp(new AmrRedistributor())
+    norm_m(norm)//,
+//      balancer_mp(new AmrRedistributor())
 {
     comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
     node_mp = KokkosClassic::Details::getNode<amr::node_t>(); //KokkosClassic::DefaultNode::getDefaultNode();
     
 #if AMR_MG_TIMER
-    buildTimer_m        = IpplTimings::getTimer("build");
-    restrictTimer_m     = IpplTimings::getTimer("restrict");
-    smoothTimer_m       = IpplTimings::getTimer("smooth");
-    interpTimer_m       = IpplTimings::getTimer("prolongate");
-    residnofineTimer_m  = IpplTimings::getTimer("resid-no-fine");
-    bottomTimer_m       = IpplTimings::getTimer("bottom-solver");
+    buildTimer_m        = IpplTimings::getTimer("AMR MG matrix setup");
+    restrictTimer_m     = IpplTimings::getTimer("AMR MG restrict");
+    smoothTimer_m       = IpplTimings::getTimer("AMR MG smooth");
+    interpTimer_m       = IpplTimings::getTimer("AMR MG prolongate");
+    residnofineTimer_m  = IpplTimings::getTimer("AMR MG resid-no-fine");
+    bottomTimer_m       = IpplTimings::getTimer("AMR MG bottom-solver");
 
     bopen_m = IpplTimings::getTimer("build-open");
     bclose_m = IpplTimings::getTimer("build-close");
@@ -495,8 +495,8 @@ void AmrMultiGrid::relax_m(const lo_t& level) {
         
     } else {
         
-        balancer_mp->doExport(mglevel_m[level]->error_p);
-        balancer_mp->doExport(mglevel_m[level]->residual_p);
+	//        balancer_mp->doExport(mglevel_m[level]->error_p);
+        //balancer_mp->doExport(mglevel_m[level]->residual_p);
         
         // e = A^(-1)r
 #if AMR_MG_TIMER
@@ -510,8 +510,8 @@ void AmrMultiGrid::relax_m(const lo_t& level) {
     IpplTimings::stopTimer(bottomTimer_m);
 #endif
         
-        balancer_mp->doImport(mglevel_m[level]->error_p);
-        balancer_mp->doImport(mglevel_m[level]->residual_p);
+    //balancer_mp->doImport(mglevel_m[level]->error_p);
+    //   balancer_mp->doImport(mglevel_m[level]->residual_p);
         
         // phi = phi + e
         mglevel_m[level]->phi_p->update(1.0, *mglevel_m[level]->error_p, 1.0);
@@ -684,9 +684,9 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
     mglevel_m[lfine_m]->error_p->putScalar(0.0);
     
     if ( matrices ) {
-        balancer_mp->solve(mglevel_m[lbase_m]->Anf_p);
+//        balancer_mp->solve(mglevel_m[lbase_m]->Anf_p);
         
-        balancer_mp->doExport(mglevel_m[lbase_m]->Anf_p);
+//        balancer_mp->doExport(mglevel_m[lbase_m]->Anf_p);
         
         // set the bottom solve operator (might change sign values)
         solver_mp->setOperator(mglevel_m[lbase_m]->Anf_p);
