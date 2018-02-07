@@ -455,7 +455,9 @@ void ThickTracker::execute() {
              * \sqrt{\left(\frac{1}{\beta_0} + \delta \right)^2 -p_x^2 -p_y^2 - \frac{1}{\left(\beta_0 \gamma_0\right)^2 } } \f]
              */
             case ElementBase::ElementType::DRIFT: {
-                //Drift* pDrift= dynamic_cast<Drift*> (element.get());
+                Drift* pDrift= dynamic_cast<Drift*> (element.get());
+                msg << "NSLICES = " << pDrift->getNSlices() << endl;
+
                 H=( delta / beta0 )
                 - sqrt((1./ beta0 + delta ) *(1./ beta0 + delta )
                         - ( px*px )
@@ -662,10 +664,10 @@ void ThickTracker::execute() {
 
         msg << "=============================="<< endl;
         msg << "Element name: " << element->getName() << endl;
-        msg << "Element Length: " << element->getElementLength() << endl;
-
-        msg <<  "ElementPosition"<< elementpos<< endl;
-        msg << "EntryPoint" << element->getEntrance()<< endl;
+//        msg << "Element Length: " << element->getElementLength() << endl;
+//
+//        msg <<  "ElementPosition"<< elementpos<< endl;
+//        msg << "EntryPoint" << element->getEntrance()<< endl;
 
 //===================================
 
@@ -684,9 +686,9 @@ void ThickTracker::execute() {
 // TODO: remove Messages later
 //=================================
 
-        	msg << "stepsize:   " << stepsize << endl;
-        	msg << "nSlices:   " << nSlices << endl;
-        	msg << "residualSliceL:   " << residualSliceL << endl;
+//        	msg << "stepsize:   " << stepsize << endl;
+//        	msg << "nSlices:   " << nSlices << endl;
+//        	msg << "residualSliceL:   " << residualSliceL << endl;
 
 //================================
 //
