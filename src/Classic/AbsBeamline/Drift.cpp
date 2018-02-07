@@ -56,6 +56,17 @@ void Drift::initialise(PartBunchBase<double, 3> *bunch, double &startField, doub
     startField_m = startField;
 }
 
+
+//set the number of slices for map tracking
+void Drift::setNSlices(const std::size_t& nSlices) { // Philippe was here
+    nSlices_m = nSlices;
+}
+
+//get the number of slices for map tracking
+std::size_t Drift::getNSlices() const { // Philippe was here
+    return nSlices_m;
+}
+
 void Drift::finalise() {
 }
 
