@@ -49,25 +49,21 @@ public:
     
 public:
     
-    AmrObject() : tagging_m(CHARGE_DENSITY),
-                  scaling_m(0.75),
-                  chargedensity_m(1.0e-15),
-                  maxNumPart_m(1),
-                  minNumPart_m(1),
-                  refined_m(false)
-    {}
+    AmrObject();
     
     AmrObject(TaggingCriteria tagging,
               double scaling,
-              double chargedensity_m) : tagging_m(tagging),
-                                        scaling_m(scaling),
-                                        chargedensity_m(chargedensity_m),
-                                        maxNumPart_m(1),
-                                        minNumPart_m(1),
-                                        refined_m(false)
-    {}
+              double chargedensity);
     
-    virtual ~AmrObject() {}
+    virtual ~AmrObject();
+    
+    /*!
+     * Collect information about grid load balancing.
+     * @param gridsPerCore is filled.
+     * @param gridsPerLevel is filled
+     */
+    virtual void getGridStatistics(std::map<int, int>& gridsPerCore,
+                                   std::vector<int>& gridsPerLevel) const = 0;
     
     /*!
      * Setup all fine levels after object creation.
@@ -87,72 +83,42 @@ public:
      * Is used in src/Structure/FieldSolver.cpp
      * @param tagging strategy
      */
-    void setTagging(TaggingCriteria tagging) {
-        tagging_m = tagging;
-    }
+    void setTagging(TaggingCriteria tagging);
     
     /*!
      * Choose a new tagging strategy (string version).
      * Is used in src/Structure/FieldSolver.cpp
      * @param tagging strategy
      */
-    void setTagging(std::string tagging) {
-        tagging = Util::toUpper(tagging);
-        
-        if ( tagging == "POTENTIAL" )
-            tagging_m = TaggingCriteria::POTENTIAL;
-        else if (tagging == "EFIELD" )
-            tagging_m = TaggingCriteria::EFIELD;
-        else if ( tagging == "MOMENTA" )
-            tagging_m = TaggingCriteria::MOMENTA;
-        else if ( tagging == "MAX_NUM_PARTICLES" )
-            tagging_m = TaggingCriteria::MAX_NUM_PARTICLES;
-        else if ( tagging == "MIN_NUM_PARTICLES" )
-            tagging_m = TaggingCriteria::MIN_NUM_PARTICLES;
-        else if ( tagging == "CHARGE_DENSITY" )
-            tagging_m = TaggingCriteria::CHARGE_DENSITY;
-        else
-            throw OpalException("AmrObject::setTagging(std::string)",
-                                "Not supported refinement criteria "
-                                "[CHARGE_DENSITY | POTENTIAL | EFIELD | "
-                                "MOMENTA | MAX_NUM_PARTICLES | MIN_NUM_PARTICLES].");
-    }
+    void setTagging(std::string tagging);
     
     /*!
      * Scaling factor for tagging.
      * It is used with POTENTIAL and EFIELD
      * @param scaling factor in [0, 1]
      */
-    void setScalingFactor(double scaling) {
-        scaling_m = scaling;
-    }
+    void setScalingFactor(double scaling);
     
     /*!
      * Charge density for tagging with CHARGE_DENSITY
      * @param chargedensity >= 0.0 (e.g. 1e-14)
      */
-    void setChargeDensity(double chargedensity) {
-        chargedensity_m = chargedensity;
-    }
+    void setChargeDensity(double chargedensity);
     
     /*!
      * Maximum number of particles per cell for tagging
      * @param maxNumPart is upper bound for a cell to be marked
      * for refinement
      */
-    void setMaxNumParticles(size_t maxNumPart) {
-        maxNumPart_m = maxNumPart;
-    }
+    void setMaxNumParticles(size_t maxNumPart);
     
     /*!
      * Minimum number of particles per cell for tagging
      * @param minNumPart is lower bound for a cell to be marked
      * for refinement
      */
-    void setMinNumParticles(size_t minNumPart) {
-        minNumPart_m = minNumPart;
-    }
-        
+    void setMinNumParticles(size_t minNumPart);
+    
     /* Methods that are needed by the
      * bunch
      */
@@ -176,6 +142,11 @@ public:
     virtual const int& finestLevel() const = 0;
     
     /*!
+     * @returns the time of the simulation
+     */
+    virtual double getT() const = 0;
+    
+    /*!
      * Rebalance the grids among the
      * cores
      */
@@ -186,9 +157,7 @@ public:
      * first.
      * @returns true fine grids are initialized
      */
-    const bool& isRefined() const {
-        return refined_m;
-    }
+    const bool& isRefined() const;
     
 protected:
     TaggingCriteria tagging_m;  ///< Tagging strategy
@@ -202,6 +171,9 @@ protected:
     size_t minNumPart_m;        ///< Tagging value for MIN_NUM_PARTICLES
     
     bool refined_m;             ///< Only set to true in AmrObject::initFineLevels()
+    
+    /// timer for selfField calculation (used in concrete AmrObject classes)
+    IpplTimings::TimerRef amrSolveTimer_m;
 };
 
 #endif

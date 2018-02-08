@@ -21,6 +21,7 @@ if (ENABLE_AMR)
     set(AMR_LIBS
         ${MPI_Fortran_LIBRARIES}
         ${Fortran_LIBS}
+        ${AMREX_EXTRA_Fortran_LINK_LINE}
         ${AMREX_LIBRARIES}
         
     )

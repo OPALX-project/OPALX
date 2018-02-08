@@ -31,3 +31,8 @@ void AmesosBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
     solver_mp->symbolicFactorization();
     solver_mp->numericFactorization();
 }
+
+
+std::size_t AmesosBottomSolver::getNumIters() {
+    return 1;   // direct solvers do only one step
+}
