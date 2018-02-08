@@ -72,6 +72,15 @@ void BelosBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
 }
 
 
+std::size_t BelosBottomSolver::getNumIters() {
+    if ( solver_mp == Teuchos::null )
+        throw OpalException("BelosBottomSolver::getNumIters()",
+                            "No solver initialized.");
+    
+    return solver_mp->getNumIters();
+}
+
+
 void BelosBottomSolver::initSolver_m(std::string solvertype) {
     
     Belos::SolverFactory<scalar_t, mv_t, op_t> factory;
@@ -101,6 +110,13 @@ void BelosBottomSolver::initPreconditioner_m()
         case Preconditioner::CHEBYSHEV:
             prectype_m = "CHEBYSHEV";
             prec_mp->set("chebyshev: degree", 1);
+            break;
+        case Preconditioner::RILUK:
+            prectype_m = "RILUK";
+            prec_mp->set("fact: iluk level-of-fill", 0);
+            prec_mp->set("fact: relax value", 0.0);
+            prec_mp->set("fact: absolute threshold", 0.0);
+            prec_mp->set("fact: relative threshold", 1.0);
             break;
         case Preconditioner::NONE:
             prectype_m = "";

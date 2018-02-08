@@ -144,6 +144,7 @@ IF (ENABLE_AMR)
     MESSAGE (STATUS "Found AMReX include dir: ${AMREX_INCLUDE_DIR}")
     MESSAGE (STATUS "Found AMReX library dir: ${AMREX_LIBRARY_DIR}")
     MESSAGE (STATUS "Found AMReX libraries: ${AMREX_LIBRARIES}")
+    MESSAGE (STATUS "Found AMReX Fortran links: ${AMREX_EXTRA_Fortran_LINK_LINE}")
     echo_amrex_config_options()
     
     add_definitions(${AMREX_DEFINES})

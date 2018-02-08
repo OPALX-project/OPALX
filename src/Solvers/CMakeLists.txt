@@ -10,21 +10,21 @@ set (_SRCS
   TaperDomain.cpp
   )
 
-set(TAMG_DIR "")
+set(AMR_MG_DIR "")
 
 if ( ENABLE_AMR )
     list(APPEND _SRCS BoxLibSolvers/FMGPoissonSolver.cpp)
     
     if ( ENABLE_AMR_MG_SOLVER )
-        add_subdirectory (TAMG)
-        set(TAMG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/TAMG")
+        add_subdirectory (AMR_MG)
+        set(AMR_MG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/AMR_MG")
     endif ( ENABLE_AMR_MG_SOLVER )
     
 endif (ENABLE_AMR )
 
 include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
-  ${TAMG_DIR}
+  ${AMR_MG_DIR}
 )
 
 add_opal_sources(${_SRCS})
