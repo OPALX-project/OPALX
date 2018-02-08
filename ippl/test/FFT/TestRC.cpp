@@ -371,9 +371,9 @@ int main(int argc, char *argv[])
 
   }
 
+  IpplTimings::startTimer(stopTimer);                                                    
   IpplTimings::print();
   IpplTimings::print(baseFn+std::string(".timing"));
-
   return 0;
 }
 
