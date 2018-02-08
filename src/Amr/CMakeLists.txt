@@ -1,5 +1,6 @@
 set (_SRCS
     AmrBoxLib.cpp
+    AmrObject.cpp
     AmrPythonWriter.cpp
     AmrSliceWriter.cpp
     AmrYtWriter.cpp
@@ -14,9 +15,9 @@ add_opal_sources(${_SRCS})
 
 set (HDRS
     AbstractAmrWriter.h
-    AmrObject.h
     AmrBoxLib.h
     AmrBoxLib_F.h
+    AmrObject.h
     AmrPythonWriter.h
     AmrSliceWriter.h
     AmrYtWriter.h

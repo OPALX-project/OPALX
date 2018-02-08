@@ -530,6 +530,8 @@ void TrackRun::setupTTracker(){
     }
 
     Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
+    Track::block->bunch->setBeamFrequency(beam->getFrequency() * 1e6);
+
     if (Attributes::getString(itsAttr[BOUNDARYGEOMETRY]) != "NONE") {
         // Ask the dictionary if BoundaryGeometry is allocated.
         // If it is allocated use the allocated BoundaryGeometry

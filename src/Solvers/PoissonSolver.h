@@ -47,6 +47,13 @@ public:
     {
         throw OpalException("PoissonSolver::solve()", "Not supported for non-AMR code.");
     };
+    
+    /**
+     * Tell solver to regrid
+     */
+    virtual void hasToRegrid() {
+        throw OpalException("PoissonSolver::hasToRegrid()", "Not supported for non-AMR code.");
+    }
 #endif
                                   
     virtual void computePotential(Field_t &rho, Vector_t hr, double zshift) = 0;

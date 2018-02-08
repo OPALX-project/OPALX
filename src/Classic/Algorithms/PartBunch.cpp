@@ -100,10 +100,10 @@ void PartBunch::runTests() {
     setBCAllPeriodic();
 
     NDIndex<3> domain = getFieldLayout().getDomain();
-    for(unsigned int i = 0; i < Dimension; i++)
+    for (unsigned int i = 0; i < Dimension; i++)
         nr_m[i] = domain[i].length();
 
-    for(int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++)
         hr_m[i] = (ur[i] - ll[i]) / nr_m[i];
 
     getMesh().set_meshSpacing(&(hr_m[0]));
@@ -308,9 +308,9 @@ void PartBunch::computeSelfFields(int binNumber) {
                     << (rmin(1)  - origin(1)) / spacing(1) << "\t"
                     << (rmin(2)  - origin(2)) / spacing(2) << "\t"
                     << rmin(2) << endl);
-            for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
-                for(int y = myidx[1].first(); y <= myidx[1].last(); y++) {
-                    for(int z = myidx[2].first(); z <= myidx[2].last(); z++) {
+            for (int x = myidx[0].first(); x <= myidx[0].last(); x++) {
+                for (int y = myidx[1].first(); y <= myidx[1].last(); y++) {
+                    for (int z = myidx[2].first(); z <= myidx[2].last(); z++) {
                         fstr2 << std::setw(5) << x + 1
                               << std::setw(5) << y + 1
                               << std::setw(5) << z + 1
@@ -381,9 +381,9 @@ void PartBunch::computeSelfFields(int binNumber) {
                              eg_m.get_mesh().get_meshSpacing(2));
 
             NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
-            for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
-                for(int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
-                    for(int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
+            for (int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
+                for (int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
+                    for (int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
                         Vector_t ef = eg_m[x][y][z].get() + tmp_eg[x][y][z].get();
                         fstr2 << std::setw(5) << x + 1
                               << std::setw(5) << y + 1
@@ -440,7 +440,7 @@ void PartBunch::resizeMesh() {
     if(xmin > rmin_m[0] || xmax < rmax_m[0] ||
        ymin > rmin_m[1] || ymax < rmax_m[1]) {
 
-        for(unsigned int n = 0; n < getLocalNum(); n++) {
+        for (unsigned int n = 0; n < getLocalNum(); n++) {
 
             if(R[n](0) < xmin || R[n](0) > xmax ||
                R[n](1) < ymin || R[n](1) > ymax) {
@@ -459,7 +459,7 @@ void PartBunch::resizeMesh() {
     Vector_t mymin = Vector_t(xmin, ymin , zmin);
     Vector_t mymax = Vector_t(xmax, ymax , zmax);
 
-    for(int i = 0; i < 3; i++)
+    for (int i = 0; i < 3; i++)
         hr_m[i]   = (mymax[i] - mymin[i])/nr_m[i];
 
     getMesh().set_meshSpacing(&(hr_m[0]));
@@ -520,9 +520,9 @@ void PartBunch::computeSelfFields() {
         std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::to_string(fieldDBGStep_m);
         fstr1.open(rho_fn.c_str(), std::ios::out);
         NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
-        for(int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
-            for(int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
-                for(int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
+        for (int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
+            for (int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
+                for (int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
                     fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
                 }
             }
@@ -556,9 +556,9 @@ void PartBunch::computeSelfFields() {
         std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::to_string(fieldDBGStep_m);
         fstr2.open(phi_fn.c_str(), std::ios::out);
         NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
-        for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
-            for(int y = myidx[1].first(); y <= myidx[1].last(); y++) {
-                for(int z = myidx[2].first(); z <= myidx[2].last(); z++) {
+        for (int x = myidx[0].first(); x <= myidx[0].last(); x++) {
+            for (int y = myidx[1].first(); y <= myidx[1].last(); y++) {
+                for (int z = myidx[2].first(); z <= myidx[2].last(); z++) {
                     fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
                 }
             }
@@ -608,9 +608,9 @@ void PartBunch::computeSelfFields() {
         std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::to_string(fieldDBGStep_m);
         fstr.open(e_field.c_str(), std::ios::out);
         NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
-        for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
-            for(int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
-                for(int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
+        for (int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
+            for (int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
+                for (int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
                     fstr << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << std::endl;
                 }
             }
@@ -700,9 +700,9 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
         std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::string(istr.str());
         fstr1.open(rho_fn.c_str(), std::ios::out);
         NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
-        for(int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
-            for(int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
-                for(int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
+        for (int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
+            for (int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
+                for (int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
                     fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
                 }
             }
@@ -735,9 +735,9 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
         std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::string(istr.str());
         fstr2.open(phi_fn.c_str(), std::ios::out);
         NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
-        for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
-            for(int y = myidx[1].first(); y <= myidx[1].last(); y++) {
-                for(int z = myidx[2].first(); z <= myidx[2].last(); z++) {
+        for (int x = myidx[0].first(); x <= myidx[0].last(); x++) {
+            for (int y = myidx[1].first(); y <= myidx[1].last(); y++) {
+                for (int z = myidx[2].first(); z <= myidx[2].last(); z++) {
                     fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
                 }
             }
@@ -790,9 +790,9 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
         std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::string(istr.str());
         fstr.open(e_field.c_str(), std::ios::out);
         NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
-        for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
-            for(int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
-                for(int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
+        for (int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
+            for (int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
+                for (int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
                     fstr << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << std::endl;
                 }
             }
@@ -892,9 +892,9 @@ void PartBunch::computeSelfFields_cycl(int bin) {
         std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::string(istr.str());
         fstr1.open(rho_fn.c_str(), std::ios::out);
         NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
-        for(int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
-            for(int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
-                for(int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
+        for (int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
+            for (int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
+                for (int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
                     fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
                 }
             }
@@ -925,9 +925,9 @@ void PartBunch::computeSelfFields_cycl(int bin) {
         std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::string(istr.str());
         fstr2.open(phi_fn.c_str(), std::ios::out);
         NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
-        for(int x = myidx[0].first(); x <= myidx[0].last(); x++) {
-            for(int y = myidx[1].first(); y <= myidx[1].last(); y++) {
-                for(int z = myidx[2].first(); z <= myidx[2].last(); z++) {
+        for (int x = myidx[0].first(); x <= myidx[0].last(); x++) {
+            for (int y = myidx[1].first(); y <= myidx[1].last(); y++) {
+                for (int z = myidx[2].first(); z <= myidx[2].last(); z++) {
                     fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
                 }
             }
@@ -986,9 +986,9 @@ void PartBunch::computeSelfFields_cycl(int bin) {
         std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::string(istr.str());
         fstr.open(e_field.c_str(), std::ios::out);
         NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
-        for(int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
-            for(int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
-                for(int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
+        for (int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
+            for (int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
+                for (int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
                     fstr << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << std::endl;
                 }
             }
@@ -1048,7 +1048,7 @@ FieldLayout_t &PartBunch::getFieldLayout() {
 }
 
 void PartBunch::setBCAllPeriodic() {
-    for(int i = 0; i < 2 * 3; ++i) {
+    for (int i = 0; i < 2 * 3; ++i) {
 
         if (Ippl::getNodes()>1) {
             bc_m[i] = new ParallelInterpolationFace<double, Dimension, Mesh_t, Center_t>(i);
@@ -1067,7 +1067,7 @@ void PartBunch::setBCAllPeriodic() {
 }
 
 void PartBunch::setBCAllOpen() {
-    for(int i = 0; i < 2 * 3; ++i) {
+    for (int i = 0; i < 2 * 3; ++i) {
         bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
         vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
         getBConds()[i] = ParticleNoBCond;
@@ -1077,25 +1077,31 @@ void PartBunch::setBCAllOpen() {
 }
 
 void PartBunch::setBCForDCBeam() {
-    //UL: set periodic BC in all dimensions
-    for(int i = 0; i < 2 * 3; ++i) {
-        if (Ippl::getNodes() > 1) {
-            bc_m[i] = new ParallelPeriodicFace<double, 3, Mesh_t, Center_t>(i);
-            vbc_m[i] = new ParallelPeriodicFace<Vector_t, 3, Mesh_t, Center_t>(i);
+    for (int i = 0; i < 2 * 3; ++ i) {
+        if (i >= 4) {
+            if (Ippl::getNodes() > 1) {
+                bc_m[i] = new ParallelPeriodicFace<double, 3, Mesh_t, Center_t>(i);
+                vbc_m[i] = new ParallelPeriodicFace<Vector_t, 3, Mesh_t, Center_t>(i);
+            } else {
+                bc_m[i] = new PeriodicFace<double, 3, Mesh_t, Center_t>(i);
+                vbc_m[i] = new PeriodicFace<Vector_t, 3, Mesh_t, Center_t>(i);
+            }
+
+            getBConds()[i] = ParticlePeriodicBCond;
         } else {
-            bc_m[i] = new PeriodicFace<double, 3, Mesh_t, Center_t>(i);
-            vbc_m[i] = new PeriodicFace<Vector_t, 3, Mesh_t, Center_t>(i);
+            bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
+            vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
+            getBConds()[i] = ParticleNoBCond;
         }
-        getBConds()[i] = ParticlePeriodicBCond;
     }
     dcBeam_m=true;
-    INFOMSG(level3 << "BC set for DC-Beam, all periodic" << endl);
+    INFOMSG(level3 << "BC set for DC-Beam, longitudinal periodic" << endl);
 }
 
 
 void PartBunch::updateDomainLength(Vektor<int, 3>& grid) {
     NDIndex<3> domain = getFieldLayout().getDomain();
-    for(unsigned int i = 0; i < Dimension; i++)
+    for (unsigned int i = 0; i < Dimension; i++)
         grid[i] = domain[i].length();
 }
 

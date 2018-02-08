@@ -29,6 +29,8 @@
 // Tests the use of the (parallel) FFT class.
 
 #include "Ippl.h"
+#include "Utilities/Timer.h"
+
 #include <fstream>
 
 #include <complex>
@@ -40,6 +42,105 @@ enum FsT {FFTSolver,Pt2PtSolver,TreeSolver,None};
 enum InterPolT {NGP,CIC};
 enum BCT {OOO,OOP,PPP,DDD,DDO,DDP};   // OOO == all dim, open BC
 enum TestCases {test1};
+
+
+
+void writeMemoryHeader(std::ofstream &outputFile)
+{
+
+    std::string dateStr("no time");
+    std::string timeStr("no time");
+    std::string indent("        ");
+
+    IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+
+    outputFile << "SDDS1" << std::endl;
+    outputFile << "&description\n"
+               << indent << "text=\"Memory statistics '"
+               << "TestFFT" << "' "
+               << dateStr << "" << timeStr << "\",\n"
+               << indent << "contents=\"stat parameters\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=processors,\n"
+               << indent << "type=long,\n"
+               << indent << "description=\"Number of Cores used\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=revision,\n"
+               << indent << "type=string,\n"
+               << indent << "description=\"git revision of TestFFT\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=flavor,\n"
+               << indent << "type=string,\n"
+               << indent << "description=\"n.a\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=t,\n"
+               << indent << "type=double,\n"
+               << indent << "units=ns,\n"
+               << indent << "description=\"1 Time\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=memory,\n"
+               << indent << "type=double,\n"
+               << indent << "units=" + memory->getUnit() + ",\n"
+               << indent << "description=\"2 Total Memory\"\n"
+               << "&end\n";
+
+    unsigned int columnStart = 3;
+
+    for (int p = 0; p < Ippl::getNodes(); ++p) {
+        outputFile << "&column\n"
+                   << indent << "name=processor-" << p << ",\n"
+                   << indent << "type=double,\n"
+                   << indent << "units=" + memory->getUnit() + ",\n"
+                   << indent << "description=\"" << columnStart
+                   << " Memory per processor " << p << "\"\n"
+                   << "&end\n";
+        ++columnStart;
+    }
+
+    outputFile << "&data\n"
+               << indent << "mode=ascii,\n"
+               << indent << "no_row_counts=1\n"
+               << "&end\n";
+
+    outputFile << Ippl::getNodes() << std::endl;
+    outputFile << "IPPL test" << " " << "no version" << " git rev. #" << "no version " << std::endl;
+    outputFile << "IPPL test" << std::endl;
+}
+
+void open_m(std::ofstream& os, const std::string& fileName, const std::ios_base::openmode mode) {
+    os.open(fileName.c_str(), mode);
+    os.precision(15);
+    os.setf(std::ios::scientific, std::ios::floatfield);
+}
+
+void writeMemoryData(std::ofstream &os_memData, unsigned int pwi, unsigned int step)
+{
+    os_memData << step << "\t";     // 1
+
+    IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+
+    int nProcs = Ippl::getNodes();
+    double total = 0.0;
+    for (int p = 0; p < nProcs; ++p) {
+        total += memory->getMemoryUsage(p);
+    }
+
+    os_memData << total << std::setw(pwi) << "\t";
+
+    for (int p = 0; p < nProcs; p++) {
+        os_memData << memory->getMemoryUsage(p)  << std::setw(pwi);
+
+        if ( p < nProcs - 1 )
+            os_memData << "\t";
+
+    }
+    os_memData << std::endl;
+}
 
 bool Configure(int argc, char *argv[], InterPolT *interPol, 
 	       unsigned int *nx, unsigned int *ny, unsigned int *nz,
@@ -108,10 +209,32 @@ int main(int argc, char *argv[])
 
   Configure(argc, argv, &interPol, &nx, &ny, &nz, 
             &test2do, &serialDim, &processes, &nLoop); 
+  std::string baseFn = std::string(argv[0])  + 
+    std::string("-mx=") + std::to_string(nx) +
+    std::string("-my=") + std::to_string(ny) +
+    std::string("-mz=") + std::to_string(nz) +
+    std::string("-p=") + std::to_string(processes) +
+    std::string("-ddec=") + std::to_string(serialDim) ;
 
+  unsigned int pwi = 10;
+  std::ios_base::openmode mode_m = std::ios::out;
 
+  std::ofstream os_memData;
+  open_m(os_memData, baseFn+std::string(".mem"), mode_m);
+
+  static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");           
+  IpplTimings::startTimer(mainTimer);                                                    
+
+  static IpplTimings::TimerRef fftTimer = IpplTimings::getTimer("FFT");           
+  static IpplTimings::TimerRef ifftTimer = IpplTimings::getTimer("IFFT");           
+  static IpplTimings::TimerRef fEvalTimer = IpplTimings::getTimer("fEval");           
+
+  writeMemoryHeader(os_memData);
+
+  
   // The preceding cpp definition causes compile-time setting of D:
   const unsigned D=3U;
+
   testmsg << "Dimensionality: D= " << D << " P= " << processes;
   testmsg << " nx= " << nx << " ny= " << ny << " nz= " << nz << endl;
   
@@ -233,40 +356,45 @@ int main(int argc, char *argv[])
     //ccfft.transform( -1 , CFieldPPStan);
     //CFieldPPStan = CFieldPPStan_save;
     
-    testmsg << " Start timer " << endl;
-    
-    timer.start();
-    
-    cout << "Start: " << endl << CFieldPPStan << endl << endl;
-    
+    testmsg << " Start test " << endl;
+
+    IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+    memory->sample();
+    writeMemoryData(os_memData, pwi, 0);
+
     for (unsigned int i=0; i<nLoop; i++)  {
       // Test complex<-->complex transform (simple test: forward then inverse transform, see if get back original values.
+
+      IpplTimings::startTimer(fftTimer);                                                    
       ccfft.transform( +1 , CFieldPPStan);
-      cout << "FFT: " << endl << CFieldPPStan << endl << endl;
+      IpplTimings::stopTimer(fftTimer);                                                    
+
+      IpplTimings::startTimer(ifftTimer);                                                    
       ccfft.transform( -1 , CFieldPPStan);
-      cout << "IFFT: " << endl << CFieldPPStan << endl << endl;
-     
+      IpplTimings::stopTimer(ifftTimer);                                                         
+
+      IpplTimings::startTimer(fEvalTimer);                                                    
       diffFieldPPStan = Abs(CFieldPPStan - CFieldPPStan_save);
       realDiff = max(diffFieldPPStan);
       
-      testmsg << "CC <-> CC: fabs(realDiff) = " << fabs(realDiff) << endl;
-      testmsg << "Time: " << timer.clock_time() << "\tCC <-> CC: fabs(realDiff) = " << fabs(realDiff) << endl;
-      //testmsg << (i+1) << ") Time: " << timer.clock_time() / (i+1) << endl;
+      testmsg << "FFT->IFFT: CC <-> CC: fabs(realDiff) = " << fabs(realDiff) << endl;
       //-------------------------------------------------------------------------
       CFieldPPStan = CFieldPPStan_save;
+      IpplTimings::stopTimer(fEvalTimer);                                                    
+
+      memory->sample();
+      writeMemoryData(os_memData, pwi, i+1);
     }
-    timer.stop();
-    
-    testmsg << " CPU time used = " << timer.cpu_time() << " secs." << endl;
-    testmsg << " Average clock time = " << timer.clock_time() / nLoop << " secs." << endl;
-    
-    
+    testmsg << " Stop test " << endl;
     /*
     ofstream myfile;
     myfile.open("IPPL_FFT", ofstream::app);
     myfile << nx << "\t" << timer.clock_time() << "\t" << timer.clock_time() / nLoop << endl;
     myfile.close();
     */
+    IpplTimings::stopTimer(mainTimer);
+    IpplTimings::print();
+    IpplTimings::print(std::string(baseFn+std::string(".timing")));
     
     return 0;
 }
