@@ -104,7 +104,8 @@ ThickTracker::ThickTracker(const Beamline &beamline,
   zStop_m(),
   dtCurrentTrack_m(0.0),
   dtAllTracks_m(),
-  localTrackSteps_m()
+  localTrackSteps_m(),
+  truncOrder_m(1) // linear
 {
 }
 
@@ -117,7 +118,8 @@ ThickTracker::ThickTracker(const Beamline &beamline,
 			   const std::vector<unsigned long long> &maxSteps,
 			   double zstart,
 			   const std::vector<double> &zstop,
-			   const std::vector<double> &dt):
+			   const std::vector<double> &dt,
+                           const int& truncOrder):
   Tracker(beamline, bunch, reference, revBeam, revTrack),
   itsDataSink_m(&ds), 
   itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getCoordTransformationTo()),
@@ -126,7 +128,8 @@ ThickTracker::ThickTracker(const Beamline &beamline,
   zStop_m(),
   dtCurrentTrack_m(0.0),
   dtAllTracks_m(),
-  localTrackSteps_m()
+  localTrackSteps_m(),
+  truncOrder_m(truncOrder)
 {
   CoordinateSystemTrafo labToRef(beamline.getOrigin3D(),
 				 beamline.getCoordTransformationTo());
@@ -626,6 +629,8 @@ void ThickTracker::execute() {
     msg << std::setprecision(10);
 
 //=======================================================================
+    
+    msg << "Tuncation order: " << this->truncOrder_m << endl;
 
     int order = 1;  //actually already defined  ---> implement in .in file??
     Series::setGlobalTruncOrder(order+1);
