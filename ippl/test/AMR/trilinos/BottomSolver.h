@@ -6,6 +6,7 @@ namespace amr {
     enum Preconditioner {
         ILUT,       // incomplete LU
         CHEBYSHEV,
+        RILUK,      // ILU(k)
         NONE
     };
 }

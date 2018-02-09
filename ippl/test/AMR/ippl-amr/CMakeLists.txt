@@ -12,18 +12,6 @@ set (CMAKE_CXX_FLAGS
 
 add_definitions(${AMREX_DEFINES})
 
-# FIXME Why do we need this?
-# remove digits from hostname: edison03 -> edison
-STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
-
-IF (${HOSTNAME_BASE} MATCHES "daint")
-    set(MPI_CXX_LIBRARIES "-lmpich -lmpichcxx -lfmpich -lmpichf90")
-ENDIF (${HOSTNAME_BASE} MATCHES "daint")
-
-if ( ENABLE_AMR_MG_SOLVER )
-    set (CMAKE_CXX_FLAGS "-DHAVE_AMR_MG_SOLVER ${CMAKE_CXX_FLAGS}")
-endif ()
-
 include_directories (
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/ippl/src
@@ -57,10 +45,10 @@ SET (LIBS
     ${IPPL_LIBRARY}
     ippl
     ${Boost_LIBRARIES}
-    ${Trilinos_LIBRARIES}
     ${MPI_CXX_LIBRARIES}
     ${MPI_Fortran_LIBRARIES}
     ${Fortran_LIBS}
+    ${AMREX_EXTRA_Fortran_LINK_LINE}
     ${AMREX_LIBRARIES}
     m
     z
@@ -68,212 +56,64 @@ SET (LIBS
 
 set(F90_source_files ../Tagging_nd.f90)
 
+add_library(amropal
+            ../AmrOpal.cpp
+            ../AmrOpal_F.h
+            AmrParticleBase.hpp
+            ../Distribution.cpp
+            ../H5Reader.cpp
+            ${F90_source_files}
+            ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
+            ../Solver.cpp
+            ../MGTSolver.cpp)
+
+target_link_libraries(amropal ${LIBS})
+
+set (TESTLIBS amropal)
+
+if ( ENABLE_AMR_MG_SOLVER )
+    set (CMAKE_CXX_FLAGS "-DHAVE_AMR_MG_SOLVER ${CMAKE_CXX_FLAGS}")
+    set(TESTLIBS ${TESTLIBS} multigrid)
+endif ( ENABLE_AMR_MG_SOLVER )
+
 # set_property(SOURCE testAmrPartBase.cpp testPerformance.cpp testPlasma.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -DUNIQUE_PTR ")
 add_executable(testAmrPartBase testAmrPartBase.cpp AmrParticleBase.hpp)
 
 add_executable( testNewTracker
-                testNewTracker.cpp
-                ../AmrOpal.cpp
-                AmrParticleBase.hpp
-                ../Distribution.cpp
-                ../H5Reader.cpp
-                ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                ../Solver.cpp)
+                testNewTracker.cpp)
 
 add_executable( testPerformance
-                testPerformance.cpp
-                ../AmrOpal.cpp
-                AmrParticleBase.hpp
-                ../Distribution.cpp
-                ../H5Reader.cpp
-                ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                ../Solver.cpp)
-
+                testPerformance.cpp)
+                
 add_executable( testPlasma
-                testPlasma.cpp
-                ../AmrOpal.cpp
-                AmrParticleBase.hpp
-                ../Distribution.cpp
-                ../H5Reader.cpp
-                ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                ../Solver.cpp)
-
+                testPlasma.cpp)
+                
 add_executable( testTagging
-                testTagging.cpp
-                ../AmrOpal.cpp
-                AmrParticleBase.hpp
-                ../Distribution.cpp
-                ../H5Reader.cpp
-                ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                ../Solver.cpp)
+                testTagging.cpp)
                 
 add_executable( testInitialBox
-                testInitialBox.cpp
-                ../AmrOpal.cpp
-                AmrParticleBase.hpp
-                ../Distribution.cpp
-                ../H5Reader.cpp
-                ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                ../Solver.cpp)
-                
+                testInitialBox.cpp)
                 
 add_executable( testDomainTransformSolve
-                testDomainTransformSolve.cpp
-                ../AmrOpal.cpp
-                AmrParticleBase.hpp
-                ../Distribution.cpp
-                ../H5Reader.cpp
-                ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                ../Solver.cpp)
+                testDomainTransformSolve.cpp)
 
 add_executable( testGaussian
-                testGaussian.cpp
-                ../AmrOpal.cpp
-                AmrParticleBase.hpp
-                ../Distribution.cpp
-                ../H5Reader.cpp
-                ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                ../Solver.cpp)
+                testGaussian.cpp)
                 
-if ( ENABLE_AMR_MG_SOLVER )
-    add_executable( testUnifSphere
-                    testUnifSphere.cpp
-                    ../AmrOpal.cpp
-                    AmrParticleBase.hpp
-                    ../Distribution.cpp
-                    ../H5Reader.cpp
-                    ${F90_source_files}
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
-                    ../MGTSolver.cpp
-                    ../Solver.cpp
-                    ../trilinos/AmrMultiGridCore.h
-                    ../trilinos/BelosBottomSolver.cpp
-                    ../trilinos/AmesosBottomSolver.cpp
-                    ../trilinos/AmrSmoother.cpp
-                    ../trilinos/AmrMultiGrid.cpp)
+add_executable( testUnifSphere
+                testUnifSphere.cpp)
     
-    add_executable( testFromH5
-                    testFromH5.cpp
-                    ../AmrOpal.cpp
-                    AmrParticleBase.hpp
-                    ../Distribution.cpp
-                    ../H5Reader.cpp
-                    ${F90_source_files}
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
-                    ../MGTSolver.cpp
-                    ../Solver.cpp
-                    ../trilinos/BelosBottomSolver.cpp
-                    ../trilinos/AmesosBottomSolver.cpp
-                    ../trilinos/AmrSmoother.cpp
-                    ../trilinos/AmrMultiGrid.cpp)
-    
-    add_executable( testMultipleSources
-                    testMultipleSources.cpp
-                    ../AmrOpal.cpp
-                    AmrParticleBase.hpp
-                    ../Distribution.cpp
-                    ../H5Reader.cpp
-                    ${F90_source_files}
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
-                    ../MGTSolver.cpp
-                    ../Solver.cpp
-                    ../trilinos/AmrMultiGridCore.h
-                    ../trilinos/BelosBottomSolver.cpp
-                    ../trilinos/AmesosBottomSolver.cpp
-                    ../trilinos/AmrSmoother.cpp
-                    ../trilinos/AmrMultiGrid.cpp)
+add_executable( testFromH5
+                testFromH5.cpp)
 
-    add_executable( testUnifBox
-                    testUnifBox.cpp
-                    ../AmrOpal.cpp
-                    AmrParticleBase.hpp
-                    ../Distribution.cpp
-                    ../H5Reader.cpp
-                    ${F90_source_files}
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
-                    ../MGTSolver.cpp
-                    ../Solver.cpp
-                    ../trilinos/AmrMultiGridCore.h
-                    ../trilinos/BelosBottomSolver.cpp
-                    ../trilinos/AmesosBottomSolver.cpp
-                    ../trilinos/AmrSmoother.cpp
-                    ../trilinos/AmrMultiGrid.cpp)
-else ()
-    add_executable( testUnifSphere
-                    testUnifSphere.cpp
-                    ../AmrOpal.cpp
-                    AmrParticleBase.hpp
-                    ../Distribution.cpp
-                    ../H5Reader.cpp
-                    ${F90_source_files}
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
-                    ../MGTSolver.cpp
-                    ../Solver.cpp)
+add_executable( testMultipleSources
+                testMultipleSources.cpp)
     
-    add_executable( testFromH5
-                    testFromH5.cpp
-                    ../AmrOpal.cpp
-                    AmrParticleBase.hpp
-                    ../Distribution.cpp
-                    ../H5Reader.cpp
-                    ${F90_source_files}
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
-                    ../MGTSolver.cpp
-                    ../Solver.cpp)
-    
-    add_executable( testMultipleSources
-                    testMultipleSources.cpp
-                    ../AmrOpal.cpp
-                    AmrParticleBase.hpp
-                    ../Distribution.cpp
-                    ../H5Reader.cpp
-                    ${F90_source_files}
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
-                    ../MGTSolver.cpp
-                    ../Solver.cpp)
-    
-    add_executable( testUnifBox
-                    testUnifBox.cpp
-                    ../AmrOpal.cpp
-                    AmrParticleBase.hpp
-                    ../Distribution.cpp
-                    ../H5Reader.cpp
-                    ${F90_source_files}
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
-                    ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
-                    ../MGTSolver.cpp
-                    ../Solver.cpp)
-
-endif ( ENABLE_AMR_MG_SOLVER )
+add_executable( testUnifBox
+                testUnifBox.cpp)
 
 add_executable( testLayout
-                testLayout.cpp
-                ../AmrOpal.cpp
-                AmrParticleBase.hpp
-                ${F90_source_files}
-                ../Solver.cpp)
+                testLayout.cpp)
 
 # add_executable( testInitGuessSolver
 #                 testInitGuessSolver.cpp
@@ -291,55 +131,50 @@ add_custom_command(TARGET testScatterAMReX POST_BUILD
                    COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/inputs $<TARGET_FILE_DIR:testScatterAMReX>)
 
 
-target_link_libraries (testAmrPartBase ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-
-target_link_libraries (testNewTracker ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-
-target_link_libraries (testPerformance ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-
-target_link_libraries (testPlasma ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-
-target_link_libraries (testTagging ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-
-# target_link_libraries (testInitGuessSolver ${LIBS}
-#                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-
-target_link_libraries (testInitialBox ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-
-target_link_libraries (testScatterAMReX ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-
-target_link_libraries (testDomainTransformSolve ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-
-target_link_libraries (testGaussian ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-
-target_link_libraries (testUnifSphere ${LIBS}
-                        ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-
-target_link_libraries (testFromH5 ${LIBS}
-                        ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-
-target_link_libraries (testMultipleSources ${LIBS}
-                        ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-
-target_link_libraries (testUnifBox ${LIBS}
-                       ${Trilinos_LIBRARIES}
-                       ${Trilinos_TPL_LIBRARIES}
+target_link_libraries (testAmrPartBase ${TESTLIBS}
                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
-target_link_libraries (testLayout ${LIBS}
-                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+target_link_libraries (testNewTracker ${TESTLIBS}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testPerformance ${TESTLIBS}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testPlasma ${TESTLIBS}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testTagging ${TESTLIBS}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+# target_link_libraries (testInitGuessSolver ${TESTLIBS}
+#                         ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testInitialBox ${TESTLIBS}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testScatterAMReX ${TESTLIBS}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testDomainTransformSolve ${TESTLIBS}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testGaussian ${TESTLIBS}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testUnifSphere ${TESTLIBS}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testFromH5 ${TESTLIBS}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testMultipleSources ${TESTLIBS}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testUnifBox ${TESTLIBS}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
+target_link_libraries (testLayout ${TESTLIBS}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 
 set (EXECS

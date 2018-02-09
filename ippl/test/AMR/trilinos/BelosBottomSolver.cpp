@@ -79,7 +79,10 @@ void BelosBottomSolver::initSolver_m(std::string solvertype) {
     params_mp = Teuchos::parameterList();
     
     params_mp->set("Convergence Tolerance", reltol_m);
+    params_mp->set("Use Single Reduction", true);
     params_mp->set("Maximum Iterations", maxiter_m);
+    params_mp->set("Verbosity", 10);
+    params_mp->set("Output Frequency", 10);
     
     solver_mp = factory.create(solvertype, params_mp);
 }
@@ -94,13 +97,20 @@ void BelosBottomSolver::initPreconditioner_m()
             // inclomplete LU
             prectype_m = "ILUT";
             
-            prec_mp->set("fact: ilut level-of-fill", 5.0);
+            prec_mp->set("fact: ilut level-of-fill", 1.0);
             prec_mp->set("fact: drop tolerance", 0.0);
             
             break;
         case Preconditioner::CHEBYSHEV:
             prectype_m = "CHEBYSHEV";
             prec_mp->set("chebyshev: degree", 1);
+            break;
+        case Preconditioner::RILUK:
+            prectype_m = "RILUK";
+            prec_mp->set("fact: iluk level-of-fill", 0);
+            prec_mp->set("fact: relax value", 0.0);
+            prec_mp->set("fact: absolute threshold", 0.0);
+            prec_mp->set("fact: relative threshold", 1.0);
             break;
         case Preconditioner::NONE:
             prectype_m = "";

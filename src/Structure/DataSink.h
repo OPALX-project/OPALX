@@ -221,6 +221,22 @@ public:
                          std::ofstream &outputFile,
                          unsigned int pwi);
 
+#ifdef ENABLE_AMR
+    /** \brief Write SDDS header. (AMR only)
+     *
+     * Writes the appropriate SDDS format header information to grid load balancing so the SDDS tools can be used
+     * for plotting data.
+     * \param outputFile Name of file to write to.
+     *
+     */
+    void writeGridLBalHeader(PartBunchBase<double, 3> *beam,
+                             std::ofstream &outputFile);
+    
+    void writeGridLBalData(PartBunchBase<double, 3> *beam,
+                           std::ofstream &outputFile,
+                           unsigned int pwi);
+#endif
+    
 
 private:
 
@@ -231,13 +247,16 @@ private:
 
     void rewindLines(const std::string &fileName, size_t numberOfLines) const;
     void replaceVersionString(const std::string &fileName) const;
+    
+    void open_m(std::ofstream& os, const std::string& fileName) const;
+    
     /** \brief First write to the statistics output file.
      *
-     * Initially set to true so that SDDS format header information is written to file
+     * Initially set to std::ios::out so that SDDS format header information is written to file
      * during the first write call to the statistics output file. Variable is then
-     * reset to false so that header information is only written once.
+     * reset to std::ios::app so that header information is only written once.
      */
-    bool firstWriteToStat_m;
+    std::ios_base::openmode mode_m;
 
     /** \brief First write to the H5 surface loss file.
      *
@@ -254,6 +273,11 @@ private:
 
     /// Name of output file for processor memory information
     std::string memFileName_m;
+    
+#ifdef ENABLE_AMR
+    /// Name of output file for grid load balancing information
+    std::string gridLBalFileName_m;
+#endif
 
     /// Name of output file for surface loss data.
     std::string surfaceLossFileName_m;

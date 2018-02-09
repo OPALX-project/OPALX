@@ -28,107 +28,107 @@
 namespace Physics {
 
     /// The value of \f[ \pi \f]
-    extern const double pi  __attribute__ ((unused));
+    constexpr double pi         = 3.14159265358979323846;
 
     /// The value of \f[2 \pi \f]
-    extern const double two_pi  __attribute__ ((unused));
+    constexpr double two_pi     = 2 * pi;
 
     /// The value of \f[ \frac{1}{2} \pi \f]
-    extern const double u_two_pi;
+    constexpr double u_two_pi   = 1.0 / two_pi;
 
     /// The value of \f[ e \f]
-    extern const double e;
+    constexpr double e          = 2.7182818284590452354;
 
     /// The logarithm of $e$ to the base 10
-    extern const double log10e;
+    constexpr double log10e     = 0.43429448190325182765;
 
     /// The conversion factor from radians to degrees
-    extern const double rad2deg;
+    constexpr double rad2deg    = 180.0 / pi;
 
     /// The conversion factor from degrees to radians
-    extern const double deg2rad;
+    constexpr double deg2rad    = 1.0 / rad2deg;
 
     /// The velocity of light in m/s
-    extern const double c;
+    constexpr double c          = 299792458.0;
 
     /// The permeability of vacuum in Vs/Am
-    extern const double mu_0;
+    constexpr double mu_0       = 1.256637061e-06;
 
     /// The permittivity of vacuum in As/Vm
-    extern const double epsilon_0;
+    constexpr double epsilon_0  = 8.854187817e-12;
 
     /// The reduced Planck constant in GeVs
-    extern const double h_bar;
+    constexpr double h_bar      = 6.5821220e-25;
 
     /// The Avogadro's number
-    extern const double Avo;
+    constexpr double Avo        = 6.022e23;
 
     /// Boltzman's constant in eV/K.
-    extern const double kB;
+    constexpr double kB         = 8.6173324e-5;
 
     /// The elementary charge in As
-    extern const double q_e;
+    constexpr double q_e        = 1.60217733e-19;
 
     /// The fine structure constant, no dimension
-    extern const double alpha;
+    constexpr double alpha      = 7.29735308e-03;
 
     /// The electron rest mass in GeV
-    extern const double m_e;
+    constexpr double m_e        = 0.51099892e-03;
 
     /// The classical electron radius in m
-    extern const double r_e;
+    constexpr double r_e        = 2.81794092e-15;
 
     /// The reduced Compton wave length for electrons in m
-    extern const double lamda_e;
+    constexpr double lamda_e    = 3.86159323e-13;
 
     /// The magnetic momentum anomaly for electrons, no dimension
-    extern const double a_e;
+    constexpr double a_e        = 1.159652193e-03;
 
     /// The proton rest mass in GeV
-    extern const double m_p;
-
-    /// The carbon rest mass in GeV
-    extern const double m_c;
-
-    /// The uranium rest mass in GeV
-    extern const double m_u;
-
-    /// The muon rest mass in GeV
-    extern const double m_mu;
-
-    /// The h- rest mass in GeV
-    extern const double m_hm;
-
-    /// The xenon rest mass in GeV
-    extern const double m_xe;
-
-    /// The deuteron rest mass in GeV
-    extern const double m_d;
+    constexpr double m_p        = 0.93827204e+00;
 
     /// The classical proton radius in m
-    extern const double r_p;
+    constexpr double r_p        = 1.53469857e-18;
 
     /// The reduced Compton wave length for protons in m
-    extern const double lamda_p;
+    constexpr double lamda_p    = 2.10308937e-16;
 
     /// The magnetic momentum anomaly for protons, no dimension
-    extern const double a_p;
+    constexpr double a_p        = 1.792847386e+00;
 
     /// The charge of proton
-    extern const double z_p;
+    constexpr double z_p        = 1;
 
-    extern const double EMASS;
+    /// The carbon rest mass in GeV
+    constexpr double m_c        = 12 * 0.931494027e+00;
 
-    extern const double PMASS;
+    /// The uranium rest mass in GeV
+    constexpr double m_u        = 238 * 0.931494027e+00;
 
-    extern const double PCHARGE;
+    /// The muon rest mass in GeV
+    constexpr double m_mu       = 0.10565837;
+
+    /// The h- rest mass in GeV
+    constexpr double m_hm       = 0.939277e+00;
+
+    /// The deuteron rest mass in GeV
+    constexpr double m_d        = 2*0.931494027e+00;
+
+    /// The xenon rest mass in GeV
+    constexpr double m_xe       = 124*0.931494027e+00;
+
+    constexpr double PMASS      = 1.6726231e-27;  // kg
+
+    constexpr double EMASS      = 9.1093897e-31; // kg
+
+    constexpr double PCHARGE    = 1.6021773349e-19; // C
 
     // alfven current
-    extern const double Ia;
+    constexpr double Ia         = 17.045148e+03;
     // e/mc
-    extern const double e0mc;
+    constexpr double e0mc       = 5.86679074042e+02;
     // e/m
-    extern const double e0m;
+    constexpr double e0m        = 1.75881961664e+11;
 };
 
 #endif // CLASSIC_Physics_HH
