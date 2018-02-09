@@ -85,14 +85,7 @@ ENDIF (ENABLE_DKS)
 
 # Handle options
 OPTION (ENABLE_AMR "Enable BoxLib based AMR solver" OFF)
-
-OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
-
-OPTION (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
-OPTION (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
-OPTION (BUILD_LIBOPAL "Enable building the OPAL library" OFF)
-
-OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
+#OPTION (ENABLE_SAAMG_SOLVER "Enable iterative SA-AMG-PCG self field solver" OFF)
 
 IF (ENABLE_AMR)
     MESSAGE (STATUS "Enable AMR_SOLVER    " ${ENABLE_AMR})
@@ -107,49 +100,28 @@ IF (ENABLE_AMR)
 
 ENDIF (ENABLE_AMR)
 
-if (ENABLE_SAAMG_SOLVER)
-    find_package (Trilinos REQUIRED HINTS $ENV{TRILINOS_PREFIX} $ENV{TRILINOS_DIR} $ENV{TRILINOS})
-
-    message (STATUS "Found Trilinos: ${Trilinos_DIR}")
-    message (STATUS "      Trilinos version: ${Trilinos_VERSION}")
-    message (STATUS "      Trilinos package list: ${Trilinos_PACKAGE_LIST}")
-    message (STATUS "      Trilinos libraries: ${Trilinos_LIBRARIES}")
-    message (STATUS "      Trilinos TPL libraries: ${Trilinos_TPL_LIBRARIES}")
-
-    if (NOT ${MPI_CXX_COMPILER} STREQUAL ${Trilinos_CXX_COMPILER} )
-        message (STATUS "Compiler mismatch:")
-        message (STATUS "        Trilinos was compiled with:")
-        message (STATUS "            ${Trilinos_C_COMPILER}")
-        message (STATUS "            ${Trilinos_CXX_COMPILER}")
-        message (STATUS "            ${Trilinos_Fortran_COMPILER}")
-        message (STATUS "        You are using:")
-        message (STATUS "            ${CMAKE_C_COMPILER}")
-        message (STATUS "            ${CMAKE_CXX_COMPILER}")
-        message (STATUS "            ${CMAKE_Fortran_COMPILER}")
-        message (FATAL  "")
-    endif ()
-endif ()
-
-IF (DBG_SCALARFIELD)
-    MESSAGE (STATUS "\nWrite scalar rho_m field is enabled ")
-    SET (CMAKE_CXX_FLAGS "-DDBG_SCALARFIELD ${CMAKE_CXX_FLAGS}")
-ENDIF (DBG_SCALARFIELD)
-
-IF (DBG_STENCIL)
-    MESSAGE (STATUS "\nWrite stencil is enabled ")
-    SET (CMAKE_CXX_FLAGS "-DDBG_STENCIL ${CMAKE_CXX_FLAGS}")
-ENDIF (DBG_STENCIL)
-
-IF (BUILD_LIBOPAL)
-    MESSAGE (STATUS "\nBuilding OPAL library")
-ENDIF (BUILD_LIBOPAL)
-
-IF (NO_FIELD_ASSIGN_OPTIMIZATION)
-    MESSAGE (STATUS "\nCompiler will not try to optimize field assignment")
-    SET (CMAKE_CXX_FLAGS
-        "-DdontOPTIMIZE_FIELD_ASSIGNMENT ${CMAKE_CXX_FLAGS}"
-	)
-ENDIF (NO_FIELD_ASSIGN_OPTIMIZATION)
+#if (ENABLE_SAAMG_SOLVER)
+#    find_package (Trilinos REQUIRED HINTS $ENV{TRILINOS_PREFIX} $ENV{TRILINOS_DIR} $ENV{TRILINOS})
+#
+#    message (STATUS "Found Trilinos: ${Trilinos_DIR}")
+#    message (STATUS "      Trilinos version: ${Trilinos_VERSION}")
+#    message (STATUS "      Trilinos package list: ${Trilinos_PACKAGE_LIST}")
+#    message (STATUS "      Trilinos libraries: ${Trilinos_LIBRARIES}")
+#    message (STATUS "      Trilinos TPL libraries: ${Trilinos_TPL_LIBRARIES}")
+#
+#    if (NOT ${MPI_CXX_COMPILER} STREQUAL ${Trilinos_CXX_COMPILER} )
+#        message (STATUS "Compiler mismatch:")
+#        message (STATUS "        Trilinos was compiled with:")
+#        message (STATUS "            ${Trilinos_C_COMPILER}")
+#        message (STATUS "            ${Trilinos_CXX_COMPILER}")
+#        message (STATUS "            ${Trilinos_Fortran_COMPILER}")
+#        message (STATUS "        You are using:")
+#        message (STATUS "            ${CMAKE_C_COMPILER}")
+#        message (STATUS "            ${CMAKE_CXX_COMPILER}")
+#        message (STATUS "            ${CMAKE_Fortran_COMPILER}")
+#        message (FATAL  "")
+#    endif ()
+#endif ()
 
 INCLUDE(FindGit)
 IF(GIT_FOUND)
