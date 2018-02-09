@@ -54,13 +54,13 @@ OpalQuadrupole::OpalQuadrupole():
                    
     itsAttr[NSLICES] = Attributes::makeReal
                       ("NSLICES",
-                      "The number of slices/ steps for this element in Map Tracking", 1);	//Philippe here
+                      "The number of slices/ steps for this element in Map Tracking", 1);
 
     registerRealAttribute("K1");
     registerRealAttribute("DK1");
     registerRealAttribute("K1S");
     registerRealAttribute("DK1S");
-    registerRealAttribute("NSLICES");	//Philippe here
+    registerRealAttribute("NSLICES");
 
     registerOwnership();
 
