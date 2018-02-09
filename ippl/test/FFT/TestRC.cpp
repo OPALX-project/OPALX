@@ -12,7 +12,9 @@
  ***************************************************************************/
 
 #include "Ippl.h"
-#include <typeinfo>
+#include "Utilities/Timer.h"
+
+#include <fstream>
 
 #include <complex>
 using namespace std;
@@ -80,21 +82,113 @@ bool Configure(int argc, char *argv[],
   return true;
 }
 
+
+void writeMemoryHeader(std::ofstream &outputFile)
+{
+
+    std::string dateStr("no time");
+    std::string timeStr("no time");
+    std::string indent("        ");
+
+    IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+
+    outputFile << "SDDS1" << std::endl;
+    outputFile << "&description\n"
+               << indent << "text=\"Memory statistics '"
+               << "TestFFT" << "' "
+               << dateStr << "" << timeStr << "\",\n"
+               << indent << "contents=\"stat parameters\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=processors,\n"
+               << indent << "type=long,\n"
+               << indent << "description=\"Number of Cores used\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=revision,\n"
+               << indent << "type=string,\n"
+               << indent << "description=\"git revision of TestFFT\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=flavor,\n"
+               << indent << "type=string,\n"
+               << indent << "description=\"n.a\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=t,\n"
+               << indent << "type=double,\n"
+               << indent << "units=ns,\n"
+               << indent << "description=\"1 Time\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=memory,\n"
+               << indent << "type=double,\n"
+               << indent << "units=" + memory->getUnit() + ",\n"
+               << indent << "description=\"2 Total Memory\"\n"
+               << "&end\n";
+
+    unsigned int columnStart = 3;
+
+    for (int p = 0; p < Ippl::getNodes(); ++p) {
+        outputFile << "&column\n"
+                   << indent << "name=processor-" << p << ",\n"
+                   << indent << "type=double,\n"
+                   << indent << "units=" + memory->getUnit() + ",\n"
+                   << indent << "description=\"" << columnStart
+                   << " Memory per processor " << p << "\"\n"
+                   << "&end\n";
+        ++columnStart;
+    }
+
+    outputFile << "&data\n"
+               << indent << "mode=ascii,\n"
+               << indent << "no_row_counts=1\n"
+               << "&end\n";
+
+    outputFile << Ippl::getNodes() << std::endl;
+    outputFile << "IPPL test" << " " << "no version" << " git rev. #" << "no version " << std::endl;
+    outputFile << "IPPL test" << std::endl;
+}
+
+void open_m(std::ofstream& os, const std::string& fileName, const std::ios_base::openmode mode) {
+    os.open(fileName.c_str(), mode);
+    os.precision(15);
+    os.setf(std::ios::scientific, std::ios::floatfield);
+}
+
+void writeMemoryData(std::ofstream &os_memData, unsigned int pwi, unsigned int step)
+{
+    os_memData << step << "\t";     // 1
+
+    IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+
+    int nProcs = Ippl::getNodes();
+    double total = 0.0;
+    for (int p = 0; p < nProcs; ++p) {
+        total += memory->getMemoryUsage(p);
+    }
+
+    os_memData << total << std::setw(pwi) << "\t";
+
+    for (int p = 0; p < nProcs; p++) {
+        os_memData << memory->getMemoryUsage(p)  << std::setw(pwi);
+
+        if ( p < nProcs - 1 )
+            os_memData << "\t";
+
+    }
+    os_memData << std::endl;
+}
+
 int main(int argc, char *argv[])
 {
   
   Ippl ippl(argc,argv);
   Inform testmsg(NULL,0);
 
-  static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
-  static IpplTimings::TimerRef fftTimer = IpplTimings::getTimer("fftTimer");
-
-  IpplTimings::startTimer(mainTimer);
-  
   const unsigned D=3U;
   bool compressTemps = false;
   bool constInput    = true;  // preserve input field in two-field transform
-
 
   unsigned int processes;
   int serialDim;
@@ -102,6 +196,29 @@ int main(int argc, char *argv[])
   unsigned int nLoop;
 
   Configure(argc, argv, &nx, &ny, &nz, &serialDim, &processes, &nLoop); 
+
+  std::string baseFn = std::string(argv[0])  + 
+    std::string("-mx=") + std::to_string(nx) +
+    std::string("-my=") + std::to_string(ny) +
+    std::string("-mz=") + std::to_string(nz) +
+    std::string("-p=") + std::to_string(processes) +
+    std::string("-ddec=") + std::to_string(serialDim) ;
+
+  unsigned int pwi = 10;
+  std::ios_base::openmode mode_m = std::ios::out;
+
+  std::ofstream os_memData;
+  open_m(os_memData, baseFn+std::string(".mem"), mode_m);
+
+  static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");           
+  IpplTimings::startTimer(mainTimer);                                                    
+
+  static IpplTimings::TimerRef fftTimer = IpplTimings::getTimer("FFT");           
+  static IpplTimings::TimerRef ifftTimer = IpplTimings::getTimer("IFFT");           
+  static IpplTimings::TimerRef fEvalTimer = IpplTimings::getTimer("fEval");           
+  static IpplTimings::TimerRef fInitTimer = IpplTimings::getTimer("init");           
+
+  writeMemoryHeader(os_memData);
 
   int vnodes = processes;
   unsigned ngrid[D];   // grid sizes
@@ -129,6 +246,8 @@ int main(int argc, char *argv[])
     serialParallel[d] = PARALLEL;
   serialParallel[serialDim] = SERIAL;
 
+
+  IpplTimings::startTimer(fInitTimer);
   // create standard domain
   NDIndex<D> ndiStandard;
   for (unsigned int d=0; d<D; d++) 
@@ -161,8 +280,8 @@ int main(int argc, char *argv[])
   BareField<double,D> RFieldSPStan_save(layoutSPStan);
   BareField<dcomplex,D> CFieldSPStan0h(layoutSPStan0h);
   
-  INFOMSG("RFieldSPStan   layout= " << layoutSPStan << endl;);
-  INFOMSG("CFieldSPStan0h layout= " << layoutSPStan0h << endl;);
+  //INFOMSG("RFieldSPStan   layout= " << layoutSPStan << endl;);
+  //INFOMSG("CFieldSPStan0h layout= " << layoutSPStan0h << endl;);
   
   // Rather more complete test functions (sine or cosine mode):
   dcomplex sfact(1.0,0.0);      // (1,0) for sine mode; (0,0) for cosine mode
@@ -188,9 +307,10 @@ int main(int argc, char *argv[])
 		  ndiStandard[1]    * ky * yfact -
 		  ndiStandard[2]    * kz * zfact ) );
   
-  cout << "TYPEINFO:" << endl;
+  /* cout << "TYPEINFO:" << endl;
   cout << typeid(RFieldSPStan[0][0][0]).name() << endl;
   cout << typeid(CFieldPPStan[0][0][0]).name() << endl;
+  */
 
   // RC FFT tests  
 
@@ -204,18 +324,7 @@ int main(int argc, char *argv[])
   }
  
   CFieldSPStan0h = dcomplex(0.0,0.0);
-
-  /*
-    Inform fo1(NULL,"realField.dat",Inform::OVERWRITE);
-   
-    for(int x = ndiStandard[0].first(); x <= ndiStandard[0].last(); x++) {
-    for(int y = ndiStandard[1].first(); y <= ndiStandard[1].last(); y++) {
-    for(int z = ndiStandard[2].first(); z <= ndiStandard[2].last(); z++) {
-    fo1 << x << " " << y << " " << z << " " <<  RFieldSPStan[x][y][z].get() << endl;
-    }
-    }
-    }
-  */
+  IpplTimings::stopTimer(fInitTimer);
 
   // create RC FFT object
   FFT<RCTransform,D,double> rcfft(ndiStandard, ndiStandard0h, compressTemps);
@@ -224,31 +333,53 @@ int main(int argc, char *argv[])
   rcfft.setDirectionName(+1, "forward");
   rcfft.setDirectionName(-1, "inverse");
 
-  Inform fo2(NULL,"FFTrealField.dat",Inform::OVERWRITE);
-  
+  testmsg << " Start test " << endl;
+
   testmsg << "RC transform using layout with zeroth dim serial ..." << endl;
 
-
+  IpplTimings::startTimer(fftTimer);                                                    
   rcfft.transform("forward", RFieldSPStan,  CFieldSPStan0h, constInput);
+  IpplTimings::stopTimer(fftTimer);                                       
+             
+  IpplTimings::startTimer(ifftTimer);                                                    
   rcfft.transform("inverse", CFieldSPStan0h, RFieldSPStan, constInput);
+  IpplTimings::stopTimer(ifftTimer);                                       
+
+  IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+  memory->sample();
+  writeMemoryData(os_memData, pwi, 0);
 
   for (unsigned i=0; i<nLoop; i++) {
     RFieldSPStan_save = RFieldSPStan;
 
-    IpplTimings::startTimer(fftTimer);
+    IpplTimings::startTimer(fftTimer);                                                    
     rcfft.transform("forward", RFieldSPStan,  CFieldSPStan0h, constInput);
-    /*
-      for(int x = ndiStandard0h[0].first(); x <= ndiStandard0h[0].last(); x++) {
-      for(int y = ndiStandard0h[1].first(); y <= ndiStandard0h[1].last(); y++) {
-      for(int z = ndiStandard0h[2].first(); z <= ndiStandard0h[2].last(); z++) {
-      fo2 << x << " " << y << " " << z << " " <<  real(CFieldSPStan0h[x][y][z].get()) << " " << imag(CFieldSPStan0h[x][y][z].get()) << endl;
-      }
-      }
-      }   
-    */
+    IpplTimings::stopTimer(fftTimer);                                                    
 
+    IpplTimings::startTimer(ifftTimer);                                                    
     rcfft.transform("inverse", CFieldSPStan0h, RFieldSPStan, constInput);
-    IpplTimings::stopTimer(fftTimer);
+    IpplTimings::stopTimer(ifftTimer);                                                    
+
+    IpplTimings::startTimer(fEvalTimer);                                         
+    diffFieldSPStan = Abs(RFieldSPStan - RFieldSPStan_save);
+    realDiff = max(diffFieldSPStan);
+    IpplTimings::stopTimer(fEvalTimer);                                         
+    testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
+
+    memory->sample();
+    writeMemoryData(os_memData, pwi, i+1);
+
+  }
+
+  IpplTimings::stopTimer(mainTimer);                                                    
+  IpplTimings::print();
+  IpplTimings::print(baseFn+std::string(".timing"));
+  return 0;
+}
+
+  //  Inform fo2(NULL,"FFTrealField.dat",Inform::OVERWRITE);
+  
+
 
     //double total_time = 0;
     //total_time+= timer.cpu_time();
@@ -263,18 +394,7 @@ int main(int argc, char *argv[])
       }
     */
 
-  
-    diffFieldSPStan = Abs(RFieldSPStan - RFieldSPStan_save);
-    realDiff = max(diffFieldSPStan);
-    testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
-  }
 
-  IpplTimings::stopTimer(mainTimer);
-  IpplTimings::print();
-  IpplTimings::print(std::string("TestRC.timing"));
-
-  return 0;
-}
 /***************************************************************************
  * $RCSfile: TestRC.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:36 $
