@@ -321,6 +321,7 @@ IF (LINUXGCC)
 
  ### add test directories ####################################
  ADD_SUBDIRECTORY (src)
+ OPTION (ENABLE_IPPLTESTS "IPPL Tests" OFF)
  IF (ENABLE_IPPLTESTS)
      ADD_SUBDIRECTORY (test)
  ENDIF (ENABLE_IPPLTESTS)
