@@ -129,7 +129,8 @@ public:
 			  const std::vector<unsigned long long> &maxSTEPS,
 			  double zstart,
 			  const std::vector<double> &zstop,
-			  const std::vector<double> &dt);
+			  const std::vector<double> &dt,
+                          const int& truncOrder);
     
     virtual ~ThickTracker();
 
@@ -284,9 +285,9 @@ private:
     CoordinateSystemTrafo referenceToLabCSTrafo_m;
 
     bool globalEOL_m;
-
-
-
+    
+    
+    int truncOrder_m;
 };
 
 inline void ThickTracker::visitAlignWrapper(const AlignWrapper &wrap) {
