@@ -28,8 +28,7 @@ code contains bindings for:
 In order to build opt-pilot install following dependencies:
 
 * [CMake >= 2.8.2](http://www.cmake.org/)
-* [OPAL](http://amas.web.psi.ch/) plus dependencies and compiled with
-  `-DBUILD_LIBOPAL=1`
+* [OPAL](http://amas.web.psi.ch/)
 * [Boost >= 1.49.0](http://www.boost.org/)
 * [Google Tests](http://code.google.com/p/googletest/) for unit testing
 
