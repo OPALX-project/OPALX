@@ -77,6 +77,7 @@ typedef FVps<double, PSdim> Map, VSeries;
 typedef FMatrix<FTps<double, PSdim>, PSdim, PSdim> MxSeries;
 
 
+
 /*
 namespace {
     Vector implicitIntStep(const Vector &zin, const VSeries &f, const MxSeries gradf1, double ds,
@@ -353,6 +354,249 @@ void ThickTracker::findStartPosition(const BorisPusher &pusher) {
     }
 }
 
+/**Drift Space Hamiltonian
+* \f[H_{Drift}= \frac{\delta}{\beta_0} -
+* \sqrt{\left(\frac{1}{\beta_0} + \delta \right)^2 -p_x^2 -p_y^2 - \frac{1}{\left(\beta_0 \gamma_0\right)^2 } } \f]
+*/
+void ThickTracker::setHamiltonianDrift(FTps<double, PSdim>& H, double& beta0, double& gamma0, double& q, int& order ){
+
+			H=( delta / beta0 )
+			- sqrt((1./ beta0 + delta ) *(1./ beta0 + delta )
+					- ( px*px )
+					- ( py*py )
+					- 1./( beta0 * beta0 * gamma0 * gamma0 ),order+1
+			);
+}
+/**Rectangular Bend Hamiltonian
+ * \f[H_{Dipole}= \frac{\delta}{\beta_0} - \left( 1+ hx \right)
+ * \sqrt{\left(\frac{1}{\beta_0} + \delta \right)^2 -p_x^2 -p_y^2 - \frac{1}{\left(\beta_0 \gamma_0\right)^2 } } +
+ * \left( 1+ hx \right) k_0 \left(x - \frac{hx^2}{2 \left( 1+ hx \right)}\right) \f]
+ */
+void ThickTracker::setHamiltonianRBend(FTps<double, PSdim>& H, double& beta0, double& gamma0, double& q,  double& h, double& K0, int& order ){
+
+
+
+	H=( delta / beta0 )
+	- (sqrt ((1./ beta0 + delta) *(1./ beta0 + delta)
+					- ( px*px )
+					- ( py*py )
+					- 1./( beta0*beta0 * gamma0*gamma0 ),order+1
+			))
+	- (h * x)
+	* (sqrt ((1./ beta0 + delta) *(1./ beta0 + delta)
+					- ( px*px )
+					- ( py*py )
+					- 1./( beta0*beta0 * gamma0*gamma0 ),order
+			))
+	+ K0 * x * (1. + 0.5 * h* x);
+
+
+}
+
+
+/**Sector Bend Hamiltonian
+ * \f[H_{Dipole}= \frac{\delta}{\beta_0} - \left( 1+ hx \right)
+ * \sqrt{\left(\frac{1}{\beta_0} + \delta \right)^2 -p_x^2 -p_y^2 - \frac{1}{\left(\beta_0 \gamma_0\right)^2 } } +
+ * \left( 1+ hx \right) k_0 \left(x - \frac{hx^2}{2 \left( 1+ hx \right)}\right) \f]
+ */
+void ThickTracker::setHamiltonianSBend(FTps<double, PSdim>& H, double& beta0, double& gamma0, double& q,  double& h, double& K0, int& order ){
+
+
+	H=( delta / beta0 )
+	- (sqrt ((1./ beta0 + delta) *(1./ beta0 + delta)
+					- ( px*px )
+					- ( py*py )
+					- 1./( beta0*beta0 * gamma0*gamma0 ),order+1
+			))
+	- (h * x)
+	* (sqrt ((1./ beta0 + delta) *(1./ beta0 + delta)
+					- ( px*px )
+					- ( py*py )
+					- 1./( beta0*beta0 * gamma0*gamma0 ),order
+			))
+	+ K0 * x * (1. + 0.5 * h* x);
+
+
+
+}
+
+
+/**Quadrupole "in Multipolegroup" Hamiltonian
+ * \f[H_{Quadrupole}= \frac{\delta}{\beta_0} -
+ * \sqrt{\left(\frac{1}{\beta_0} + \delta \right)^2  -p_x^2 -p_y^2 - \frac{1}{\left(\beta_0 \gamma_0\right)^2 } }	+
+ * \frac{1}{2} k_1 \left( x^2 - y^2 \right) \f]
+ */
+void ThickTracker::setHamiltonianQuadrupole(FTps<double, PSdim>& H, double& beta0, double& gamma0, double& q, double& K1, int& order ){
+
+	H= ( delta / beta0 )
+	- sqrt ((1./ beta0 + delta ) *(1./ beta0 + delta)
+			- ( px*px )
+			- ( py*py )
+			- 1./( beta0*beta0 * gamma0*gamma0 ),order+1
+	)
+	+ 0.5 * K1 * (x*x - y*y);
+}
+
+
+///Fills undefined beam path with a Drift Space
+/** \f[H_{Drift}= \frac{\delta}{\beta_0} -
+* \sqrt{\left(\frac{1}{\beta_0} + \delta \right)^2 -p_x^2 -p_y^2 - \frac{1}{\left(\beta_0 \gamma_0\right)^2 } } \f]
+*/
+void ThickTracker::fillDrift(std::list<structMapTracking>& mapBeamLine,double& elementPos, double& undefSpace, int& order){
+
+	//TODO: fill in a message for each created drift
+	Series H;
+	structMapTracking fillDrift;
+
+	double  gamma0 =  (itsBunch_m->getInitialGamma())   ;   //(EProt + E) / EProt;
+	double  beta0 =  (itsBunch_m->getInitialBeta());   		//std::sqrt(gamma0 * gamma0 - 1.0) / gamma0;
+
+	double  q =  (itsBunch_m->getQ());						// particle change [e]
+
+//=====================================================
+//Redefine constants for comparison with COSY Infinity
+//=====================================================
+	double E=(itsReference.getE() - itsReference.getM());
+	E = std::round(E);
+	double AMU = 1.66053873e-27;
+	double EZERO = 1.602176462e-19 ;
+	double CLIGHT= 2.99792458e8 ;
+	double AMUMEV = AMU*(CLIGHT*CLIGHT)/EZERO ;
+	double M0= 1.00727646688;
+
+
+	double ETA = E/(M0*AMUMEV) ;
+	double PHI = std::sqrt(ETA*(2+ETA)) ;
+
+	gamma0=ETA+1;
+	beta0= std::sqrt(1-1/(gamma0*gamma0));
+
+	beta0 = (PHI / (1 + ETA));
+	gamma0 = PHI / beta0;
+
+//=====================================================
+
+
+	fillDrift.elementName="fillDrift";
+	fillDrift.elementPos= elementPos;
+	fillDrift.nSlices=1;
+	fillDrift.stepSize=undefSpace;
+	setHamiltonianDrift(H, beta0, gamma0, q, order);
+
+	fillDrift.elementMap=ExpMap(-H * fillDrift.stepSize, order);
+
+	mapBeamLine.push_back(fillDrift);
+}
+
+
+
+///Creates the Hamiltonian for beam line element
+/** \param element iterative pointer to the elements along the beam line
+*
+*/
+void ThickTracker::createHamiltonian(FTps<double, 6>& H, std::shared_ptr<Component> element, double& stepSize, std::size_t& nSlices, int& order){
+
+	double  gamma0 =  (itsBunch_m->getInitialGamma())   ;   //(EProt + E) / EProt;
+	double  beta0 =  (itsBunch_m->getInitialBeta());   		//std::sqrt(gamma0 * gamma0 - 1.0) / gamma0;
+
+	double  P0 =  (itsBunch_m-> getP()); 					//beta0 * gamma0 * EProt * 1e6 / Physics::c;
+	double  q =  (itsBunch_m->getQ());						// particle change [e]
+
+//=====================================================
+//Redefine constants for comparison with COSY Infinity
+//=====================================================
+	double E=(itsReference.getE() - itsReference.getM());
+	E = std::round(E);
+	double AMU = 1.66053873e-27;
+	double EZERO = 1.602176462e-19 ;
+	double CLIGHT= 2.99792458e8 ;
+	double AMUMEV = AMU*(CLIGHT*CLIGHT)/EZERO ;
+	double M0= 1.00727646688;
+
+
+	double ETA = E/(M0*AMUMEV) ;
+	double PHI = std::sqrt(ETA*(2+ETA)) ;
+
+	P0 = (AMUMEV*M0)*PHI;
+	gamma0=ETA+1;
+	beta0= std::sqrt(1-1/(gamma0*gamma0));
+
+	beta0 = (PHI / (1 + ETA));
+	gamma0 = PHI / beta0;
+
+//=====================================================
+
+
+	//select the right Hamiltonian for the beam line
+	switch(element->getType()) {
+		case ElementBase::ElementType::DRIFT: {
+			Drift* pDrift= dynamic_cast<Drift*> (element.get());
+
+			nSlices= pDrift->getNSlices();
+			stepSize= pDrift->getElementLength()/nSlices;
+
+			setHamiltonianDrift(H, beta0, gamma0, q, order);
+		break;
+		}
+
+
+		case ElementBase::ElementType::RBEND: {
+			RBend* pRBend= dynamic_cast<RBend*> (element.get());
+			nSlices= pRBend->getNSlices();
+			stepSize= pRBend->getElementLength()/nSlices;
+
+			double h = 1. / pRBend ->getBendRadius();               //inverse bending radius [1/m]
+			double K0= pRBend ->getB()*(Physics::c/itsReference.getP())*q;
+			K0=std::round(K0*1e6)/1e6;
+
+			setHamiltonianRBend(H, beta0, gamma0, q, h, K0, order);
+
+			H= H /pRBend->getElementLength() *pRBend->getArcLength();
+			break;
+		}
+
+
+		case ElementBase::ElementType::SBEND: {
+			SBend* pSBend= dynamic_cast<SBend*> (element.get());
+
+			nSlices= pSBend->getNSlices();
+			stepSize= pSBend->getElementLength()/nSlices;
+
+			double h = 1. / pSBend ->getBendRadius();               //inverse bending radius [1/m]
+			double K0= pSBend ->getB()*(Physics::c/itsReference.getP())*q;
+			K0=std::round(K0*1e6)/1e6;
+
+			setHamiltonianSBend(H, beta0, gamma0, q, h, K0, order);
+
+			H= H /pSBend->getElementLength() *pSBend->getEffectiveLength();
+			break;
+		}
+
+
+		case ElementBase::ElementType::MULTIPOLE: {
+			Multipole* pMultipole= dynamic_cast<Multipole*> (element.get());
+
+			nSlices= pMultipole->getNSlices();
+			stepSize= pMultipole->getElementLength()/nSlices;
+
+			double K1= pMultipole->getField().getNormalComponent(2)*(Physics::c/P0);
+			K1= std::round(K1*1e6)/1e6 *q*(Physics::c/P0);
+
+
+			setHamiltonianQuadrupole(H, beta0, gamma0, q, K1, order);
+			break;
+		}
+
+		default:
+		throw LogicalError("ThickTracker::exercute,",
+				"Please use already defined beam line element:  At this time just driftspace, multipoles and dipoles");
+		break;
+
+	}
+
+}
+
+
 /**
  * @brief Algorithm for Thick Map-Tracking
  */
@@ -364,10 +608,6 @@ void ThickTracker::execute() {
 
 	msg << "in execute " << __LINE__ << " " << __FILE__ << endl;
 
-	/*
-    First some setup and general preparation. Mostly copied from ParalellTTracker.
-    Some of them we maybe do not need at all.
-	 */
 
     OpalData::getInstance()->setInPrepState(true);
 
@@ -382,231 +622,29 @@ void ThickTracker::execute() {
 
     prepareSections();
 
-
     msg << *itsBunch_m << endl;
-    msg << std::setprecision(20);
+    msg << std::setprecision(10);
 
 //=======================================================================
 
-
-    //generate the Hamiltonian
-    typedef FTps<double, 2 * DIM> Series;
-    typedef FVps<double, 2 * DIM> Map;
-
-    Series x = Series::makeVariable(0);			//SIXVect::X);
-    Series px = Series::makeVariable(1);		//SIXVect::PX);
-    Series y = Series::makeVariable(2);			//SIXVect::Y);
-    Series py = Series::makeVariable(3);		//SIXVect::PY);
-    //Series z = Series::makeVariable(4);		//SIXVect::TT);
-    Series delta = Series::makeVariable(5);		//SIXVect::PT);
-
-
-
-    int order = 8;  //actually already defined
-    bool ModeSlices= true;
-
-    double  gamma0 =  (itsBunch_m->getInitialGamma())   ;   //(EProt + E) / EProt;
-    double  beta0 =  (itsBunch_m->getInitialBeta());   		//std::sqrt(gamma0 * gamma0 - 1.0) / gamma0;
-
-    double  P0 =  (itsBunch_m-> getP()); 					//beta0 * gamma0 * EProt * 1e6 / Physics::c;
-    double  q =  (itsBunch_m->getQ());						// particle change [e]
-
-
-
-//=====================================================
-//Redefine constants for comparison with COSY Infinity
-//=====================================================
-    double E=(itsReference.getE() - itsReference.getM());
-    E = std::round(E);
-    double AMU = 1.66053873e-27;
-    double EZERO = 1.602176462e-19 ;
-    double CLIGHT= 2.99792458e8 ;
-    double AMUMEV = AMU*(CLIGHT*CLIGHT)/EZERO ;
-    double M0= 1.00727646688;
-
-
-    double ETA = E/(M0*AMUMEV) ;
-    double PHI = std::sqrt(ETA*(2+ETA)) ;
-
-    P0 = (AMUMEV*M0)*PHI;
-    gamma0=ETA+1;
-    beta0= std::sqrt(1-1/(gamma0*gamma0));
-
-    beta0 = (PHI / (1 + ETA));
-    gamma0 = PHI / beta0;
-
-//=====================================================
-
-
+    int order = 1;  //actually already defined  ---> implement in .in file??
     Series::setGlobalTruncOrder(order+1);
 
-    ///Creates the Hamiltonian for beam line element
-    /**\param element iterative pointer to the elements along the beam line
-    * \return Hamiltonian times elemenrLength
-    */
-    auto Hamiltonian = [&](std::shared_ptr<Component> element) {
-
-        Series H; //Hamiltonian
-
-        switch(element->getType()) {
-
-            /**Driftspace
-             * \f[H_{Drift}= \frac{\delta}{\beta_0} -
-             * \sqrt{\left(\frac{1}{\beta_0} + \delta \right)^2 -p_x^2 -p_y^2 - \frac{1}{\left(\beta_0 \gamma_0\right)^2 } } \f]
-             */
-            case ElementBase::ElementType::DRIFT: {
-                Drift* pDrift= dynamic_cast<Drift*> (element.get());
-                msg << "NSLICES = " << pDrift->getNSlices() << endl;
-
-                H=( delta / beta0 )
-                - sqrt((1./ beta0 + delta ) *(1./ beta0 + delta )
-                        - ( px*px )
-                        - ( py*py )
-                        - 1./( beta0 * beta0 * gamma0 * gamma0 ),order+1
-                );
-
-                break;
-            }
-
-            /**Rectangular Bend
-             * \f[H_{Dipole}= \frac{\delta}{\beta_0} - \left( 1+ hx \right)
-             * \sqrt{\left(\frac{1}{\beta_0} + \delta \right)^2 -p_x^2 -p_y^2 - \frac{1}{\left(\beta_0 \gamma_0\right)^2 } } +
-             * \left( 1+ hx \right) k_0 \left(x - \frac{hx^2}{2 \left( 1+ hx \right)}\right) \f]
-             */
-            case ElementBase::ElementType::RBEND: {
-                RBend* pRBend= dynamic_cast<RBend*> (element.get());
-
-                double h = 1. / pRBend ->getBendRadius();               //inverse bending radius [1/m]
-                double K0= pRBend ->getB()*(Physics::c/itsReference.getP());
-
-                H=( delta / beta0 )
-                - (sqrt ((1./ beta0 + delta) *(1./ beta0 + delta)
-                                - ( px*px )
-                                - ( py*py )
-                                - 1./( beta0*beta0 * gamma0*gamma0 ),order+1
-                        ))
-                - (h * x)
-                * (sqrt ((1./ beta0 + delta) *(1./ beta0 + delta)
-                                - ( px*px )
-                                - ( py*py )
-                                - 1./( beta0*beta0 * gamma0*gamma0 ),order
-                        ))
-                + K0 * x * (1. + 0.5 * h* x);
-
-                H= H /pRBend->getElementLength() * pRBend->getArcLength();
-
-                break;
-            }
-
-            /**Sector Bend
-             * \f[H_{Dipole}= \frac{\delta}{\beta_0} - \left( 1+ hx \right)
-             * \sqrt{\left(\frac{1}{\beta_0} + \delta \right)^2 -p_x^2 -p_y^2 - \frac{1}{\left(\beta_0 \gamma_0\right)^2 } } +
-             * \left( 1+ hx \right) k_0 \left(x - \frac{hx^2}{2 \left( 1+ hx \right)}\right) \f]
-             */
-            case ElementBase::ElementType::SBEND: {
-
-                SBend* pSBend= dynamic_cast<SBend*> (element.get());
-//			    double rho = P0 / (b * q); 		                        //bending radius [m]
-                double h = 1. / pSBend ->getBendRadius();               //inverse bending radius [1/m]
-
-                double K0= pSBend ->getB()*(Physics::c/itsReference.getP());
-                H=( delta / beta0 )
-                - (sqrt ((1./ beta0 + delta) *(1./ beta0 + delta)
-                                - ( px*px )
-                                - ( py*py )
-                                - 1./( beta0*beta0 * gamma0*gamma0 ),order+1
-                        ))
-                - (h * x)
-                * (sqrt ((1./ beta0 + delta) *(1./ beta0 + delta)
-                                - ( px*px )
-                                - ( py*py )
-                                - 1./( beta0*beta0 * gamma0*gamma0 ),order
-                        ))
-                + K0 * x * (1. + 0.5 * h* x);
-
-
-                H= H /pSBend->getElementLength() *pSBend->getEffectiveLength();
-
-                break;
-            }
-
-            /**Quadrupole "in Multipolegroup"
-             * \f[H_{Quadrupole}= \frac{\delta}{\beta_0} -
-             * \sqrt{\left(\frac{1}{\beta_0} + \delta \right)^2  -p_x^2 -p_y^2 - \frac{1}{\left(\beta_0 \gamma_0\right)^2 } }	+
-             * \frac{1}{2} k_1 \left( x^2 - y^2 \right) \f]
-             */
-            case ElementBase::ElementType::MULTIPOLE: {
-                Multipole* pMultipole= dynamic_cast<Multipole*> (element.get());
-
-                msg << "NSLICES = " << pMultipole->getNSlices() << endl;
-                double K1= pMultipole->getField().getNormalComponent(2)*(Physics::c/P0);
-                K1= std::round(K1*1e6)/1e6;
-
-                H= ( delta / beta0 )
-                - sqrt ((1./ beta0 + delta ) *(1./ beta0 + delta)
-                        - ( px*px )
-                        - ( py*py )
-                        - 1./( beta0*beta0 * gamma0*gamma0 ),order+1
-                )
-                + 0.5 * (q * K1) *(Physics::c/P0) * (x*x - y*y);
-
-                break;
-            }
-
-            default:
-            throw LogicalError("ThickTracker::exercute,",
-                    "Please use already defined beam line element:  At this time just driftspace, multipoles and dipoles");
-            break;
-
-        }
-        return H;
-    };
-
-
 //=======================================================================
 
-
-
-    FieldList allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
-    struct sort_by_pos {
-    bool operator()(const ClassicField &a, const ClassicField &b)
-        {return a.getElement()->getElementPosition() < b.getElement()->getElementPosition();}
-    };
-
-    allElements.sort(sort_by_pos());
-
-
-
-    FieldList::iterator it = allElements.begin();
-    const FieldList::iterator end = allElements.end();
-    if (it == end) msg << "No element in lattice" << endl;
-
-    Map combinedMaps, ElementMap;
-
+    Map combinedMaps; //Final Transfer Map
+    Series H;         //createHamiltonian
     FVector<double, 6> particle;
     OpalParticle part;
 
+    structMapTracking mapTrackingElement;
 
+    std::list<structMapTracking> mapBeamLine;
+    std::list<structMapTracking>::iterator mapBeamLineit;
 
-    msg << "P0 OPAL:  " << itsBunch_m-> getP() << endl;
-    msg << "E0 OPAL:  " << itsBunch_m-> getM() << endl;
+    std::vector<Map> mapVec; // not necessary
 
-
-    std::map<std::string, double> elementDic;
-    std::list<std::pair<int, Map>> mapBeamLine;
-
-    std::map<std::string, double>::iterator dicit;
-
-    std::vector<Map> mapVec;
-
-    double selement =0;
-    double elementpos =0;
-    double stepsize= itsBunch_m->getdT()* Physics::c * itsBunch_m->getInitialBeta();
-    msg << "getdT():  " << stepsize << endl;
-    unsigned int nSlices, totalSlices=0;
-    double residualSliceL;
-    //bool initializedBunch=false;
-
+    double positionMapTracking =0;
 
     //files for analysis
     std::ofstream outfile;
@@ -617,106 +655,108 @@ void ThickTracker::execute() {
     tmap.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/TransferMap.txt");
     tmap << std::setprecision(20);
 
+    FieldList allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
+
+	//sorts beamline according elementposition
+	struct sort_by_pos {
+		bool operator()(const ClassicField &a, const ClassicField &b)
+			{return a.getElement()->getElementPosition() < b.getElement()->getElementPosition();}
+	};
+	allElements.sort(sort_by_pos());
+
+    FieldList::iterator it = allElements.begin();
+	const FieldList::iterator end = allElements.end();
+	if (it == end) msg << "No element in lattice" << endl;
+
+
     //loop over beam line
     for (; it != end; ++ it) {
-
-        dicit = elementDic.begin();
-
         std::shared_ptr<Component> element = (*it).getElement();
 
-        elementpos= std::round(element->getElementPosition() * 1e6)/1e6;
+        mapTrackingElement.elementPos= std::round(element->getElementPosition() * 1e6)/1e6;
+        mapTrackingElement.elementName= element->getName();
 
-        dicit= elementDic.find(element->getName());
-
-        //order beam line according the element position
-        if (dicit !=elementDic.end()){
-            throw LogicalError("ThickTracker::execute,",
-                                "Same Element twice in beamline:"+ element->getName());
-
-        }else{
-            elementDic.insert(std::pair<std::string, double> (element->getName(), elementpos));
+        //check for double implementations
+        for(mapBeamLineit=mapBeamLine.begin(); mapBeamLineit != mapBeamLine.end(); ++mapBeamLineit){
+        	if(mapBeamLineit->elementName == mapTrackingElement.elementName){
+        		throw LogicalError("ThickTracker::execute,",
+        		                                "Same Element twice in beamline:"+ element->getName());
+        	}
         }
 
-        if (selement > elementpos){
-            msg << "There is an overlap! @ Element: " << element ->getName() <<
-                    "-> starts at: " << elementpos<<
-                    " the previous ends at: " << selement << endl;
+
+        // Fill Drift , if necessary
+		if (positionMapTracking < mapTrackingElement.elementPos -1e-6){
+			double undefSpace=mapTrackingElement.elementPos - positionMapTracking;
+			msg << undefSpace<<endl;
+			fillDrift(mapBeamLine, positionMapTracking, undefSpace, order);
+		}
+
+		//check for overlap
+        msg << positionMapTracking << "  >  "<< mapTrackingElement.elementPos<< endl;
+		if ( positionMapTracking > mapTrackingElement.elementPos){
+			msg << "There is an overlap! @ Element: " << mapTrackingElement.elementName <<
+					"-> starts at: " << mapTrackingElement.elementPos<<
+					" the previous ends at: " << positionMapTracking << endl;
+
 //            throw LogicalError("ThickTracker::exercute,",
 //                                            "Overlap at element:"+ element->getName());
 
-        }else{
-            selement=std::round(elementpos+ element ->getElementLength()*1e6)/1e6;
-        }
+			if(positionMapTracking < mapTrackingElement.elementPos+ element->getElementLength()){
+				positionMapTracking=std::round((mapTrackingElement.elementPos + element->getElementLength())*1e6)/1e6;
+			}
+
+		}else{
+			positionMapTracking=std::round((mapTrackingElement.elementPos + element->getElementLength())*1e6)/1e6;
+		}
 
 
-        //combine maps in between Monitors
-
-        if (element ->getType()==ElementBase::MONITOR){
-            mapVec.insert(mapVec.end(), combinedMaps);
-            combinedMaps.identity();
-
-        }
 
 
-//=================================
-// TODO: remove Messages later
-//=================================
 
-        msg << "=============================="<< endl;
-        msg << "Element name: " << element->getName() << endl;
-//        msg << "Element Length: " << element->getElementLength() << endl;
+
+//        //combine maps in between Monitors
 //
-//        msg <<  "ElementPosition"<< elementpos<< endl;
-//        msg << "EntryPoint" << element->getEntrance()<< endl;
-
-//===================================
-
-
-
-
-        //Use Slices for a better visualization
-        if (ModeSlices){
-        	nSlices = element->getElementLength()/ stepsize;
-        	residualSliceL =  std::fmod(element->getElementLength(), stepsize);
-
-        	mapBeamLine.push_back(std::pair<int, Map> (nSlices, ExpMap(-Hamiltonian(element) * stepsize  ,order)));
-        	mapBeamLine.push_back(std::pair<int, Map> (1, ExpMap(-Hamiltonian(element) * residualSliceL ,order)));
-
-//=================================
-// TODO: remove Messages later
-//=================================
-
-//        	msg << "stepsize:   " << stepsize << endl;
-//        	msg << "nSlices:   " << nSlices << endl;
-//        	msg << "residualSliceL:   " << residualSliceL << endl;
-
-//================================
+//        if (element ->getType()==ElementBase::MONITOR){
+//            mapVec.insert(mapVec.end(), combinedMaps);
+//            combinedMaps.identity();
 //
+//        }
 
-    	}else{
+        //Create createHamiltonian
+        createHamiltonian(H, element, mapTrackingElement.stepSize, mapTrackingElement.nSlices, order);
 
-    		ElementMap=ExpMap(-Hamiltonian(element) * element->getElementLength()  ,order);
 
-    		mapBeamLine.push_back(std::pair<int, Map> (1, ElementMap));
+        //Save 'slice'Hamiltoninan and repetition
+        mapTrackingElement.elementMap=ExpMap(-H *mapTrackingElement.stepSize  ,order);
+        mapBeamLine.push_back(mapTrackingElement);
 
-        }
+
     }
 
 
-	for(std::pair<int,Map>  &elementidx : mapBeamLine) {
-		for (int slice=0; slice < elementidx.first; slice++){
-			combinedMaps= elementidx.second * combinedMaps;
+    //=================================
+    // TODO: remove Messages later
+    //=================================
+    for (mapBeamLineit=mapBeamLine.begin(); mapBeamLineit != mapBeamLine.end(); ++mapBeamLineit){
+    		msg << "=============================="<< endl;
+    		msg	<< "Name: " <<  mapBeamLineit->elementName << endl;
+			msg	<< "InPosition:  "<< mapBeamLineit->elementPos <<endl;
+			msg	<< "FinPosition: "<< mapBeamLineit->elementPos + mapBeamLineit->nSlices*mapBeamLineit->stepSize << endl;
+    }
+    //=================================
+
+    std::size_t totalSlices=0;
+
+    //combined Map
+	for(mapBeamLineit=mapBeamLine.begin(); mapBeamLineit != mapBeamLine.end(); ++mapBeamLineit) {
+		for (std::size_t slice=0; slice < mapBeamLineit->nSlices; slice++){
+			combinedMaps= mapBeamLineit->elementMap * combinedMaps;
 			totalSlices++;
 		}
 	}
 
-	outfile.seekp(0);
 	outfile <<"Total Particle Number:  " <<  itsBunch_m->getTotalNum() << "  Total number of Slices:   "<< totalSlices << std::endl;
-
-
-
-    msg << "totalSlices:   " << totalSlices << endl;
-    msg << "totalDistance  " << totalSlices * stepsize << endl;
 
     //eliminate higher order terms (occurring through multiplication)
 	combinedMaps=combinedMaps.truncate(order);
@@ -726,7 +766,6 @@ void ThickTracker::execute() {
 
 
 	//track the Particles
-
 	int sliceidx;
 
 	//(1) Loop Particles
@@ -742,24 +781,22 @@ void ThickTracker::execute() {
 		outfile << sliceidx <<"  "<< partidx << " ["<< particle;
 
 		//(2) Loop Elements
-		for(std::pair<int,Map>  &elementidx : mapBeamLine) {
+		for(mapBeamLineit=mapBeamLine.begin(); mapBeamLineit != mapBeamLine.end(); ++mapBeamLineit) {
 
 			//(3) Loop Slices
-			for (int slice=0; slice < elementidx.first; slice++){
-				combinedMaps= elementidx.second * combinedMaps;
+			for (std::size_t slice=0; slice < mapBeamLineit->nSlices; slice++){
 
 				//Units
-
 				particle[5] = (particle[5]*itsBunch_m->getM()/itsBunch_m->getP())
 					* std::sqrt( 1./(particle[5]* particle[5]) +1)
 					-1./itsBunch_m->getInitialBeta();
 
 				//Apply Map
-				particle= elementidx.second * particle;
+				particle= (*mapBeamLineit).elementMap * particle;
 				sliceidx ++;
 
 				//Units back
-				particle[4]+= stepsize;
+				particle[4]= mapBeamLineit->elementPos + mapBeamLineit->stepSize * slice+1;
 
 				particle[5] = (particle[5] + 1./itsBunch_m->getInitialBeta()) * itsBunch_m->getP()/itsBunch_m->getM()
 						/std::sqrt( 1./(itsBunch_m ->get_part(partidx)[5]* itsBunch_m ->get_part(partidx)[5]) +1) ;
@@ -773,11 +810,5 @@ void ThickTracker::execute() {
 	}
 
 
-
-
-
-	std::map <std::string, double>::iterator mi;
-	  for (mi=elementDic.begin(); mi!=elementDic.end(); ++mi)
-	      msg << mi->first << " = " << mi->second << endl;
-
 }
+

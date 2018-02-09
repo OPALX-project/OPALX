@@ -97,9 +97,11 @@ public:
     size_t getMaxNormalComponentIndex() const;
     size_t getMaxSkewComponentIndex() const;
     
-    void setNSlices(const std::size_t& nSlices); // Philippe was here
+    //set number of slices for map tracking
+    void setNSlices(const std::size_t& nSlices);
     
-    std::size_t getNSlices() const; // Philippe was here
+    //set number of slices for map tracking
+    std::size_t getNSlices() const;
 
     bool isFocusing(unsigned int component) const;
 
@@ -141,7 +143,7 @@ private:
     std::vector<double> SkewComponentErrors;
     int max_SkewComponent_m;
     int max_NormalComponent_m;
-    std::size_t nSlices_m; // Philippe was here
+    std::size_t nSlices_m;
 };
 
 inline
