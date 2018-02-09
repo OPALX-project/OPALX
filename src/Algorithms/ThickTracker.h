@@ -220,31 +220,34 @@ public:
     void findStartPosition(const BorisPusher &pusher);
 
 
-    typedef FTps<double, PSdim> Series;
-    typedef FVps<double, PSdim> Map, VSeries;
+    typedef FTps<double, PSdim> series_t;
 
-    Series x = Series::makeVariable(0);			//SIXVect::X);
-	Series px = Series::makeVariable(1);		//SIXVect::PX);
-	Series y = Series::makeVariable(2);			//SIXVect::Y);
-	Series py = Series::makeVariable(3);		//SIXVect::PY);
+    typedef FVps<double, PSdim> map_t;
+
+
+    //TODO: define in constructor in source.
+    series_t x = series_t::makeVariable(0);			//SIXVect::X);
+	series_t px = series_t::makeVariable(1);		//SIXVect::PX);
+	series_t y = series_t::makeVariable(2);			//SIXVect::Y);
+	series_t py = series_t::makeVariable(3);		//SIXVect::PY);
 	//Series z = Series::makeVariable(4);		//SIXVect::TT);
-	Series delta = Series::makeVariable(5);		//SIXVect::PT);
+	series_t delta = series_t::makeVariable(5);		//SIXVect::PT);
 
     struct structMapTracking {
                 	std::string elementName;
-                	Map elementMap;
+                	map_t elementMap;
                 	std::size_t nSlices;
                 	double elementPos;
                 	double stepSize;
                 };
 
-    void createHamiltonian(Series& H, std::shared_ptr<Component> element, double& stepSize, std::size_t& nSlices, int& order);
-    void fillDrift(std::list<structMapTracking>& mapBeamLine,double& elementPos, double& undefSpace, int& order);
+    void createHamiltonian(series_t& H, std::shared_ptr<Component> element, double& stepSize, std::size_t& nSlices);
+    void fillDrift(std::list<structMapTracking>& mapBeamLine,double& elementPos, double& undefSpace);
 
-    void setHamiltonianDrift(Series& H, double& beta0, double& gamma0, double& q, int& order );
-    void setHamiltonianSBend(Series& H, double& beta0, double& gamma0, double& q, double& h, double& K0, int& order );
-    void setHamiltonianRBend(Series& H, double& beta0, double& gamma0, double& q, double& h, double& K0, int& order );
-    void setHamiltonianQuadrupole(Series& H, double& beta0, double& gamma0, double& q, double& K1, int& order );
+    void setHamiltonianDrift(series_t& H, double& beta0, double& gamma0, double& q );
+    void setHamiltonianSBend(series_t& H, double& beta0, double& gamma0, double& q, double& h, double& K0 );
+    void setHamiltonianRBend(series_t& H, double& beta0, double& gamma0, double& q, double& h, double& K0 );
+    void setHamiltonianQuadrupole(series_t& H, double& beta0, double& gamma0, double& q, double& K1 );
 
 
 private:
