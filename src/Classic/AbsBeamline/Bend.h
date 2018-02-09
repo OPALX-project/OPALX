@@ -131,6 +131,14 @@ public:
     virtual CoordinateSystemTrafo getBeginToEnd() const;
 
     virtual bool isInside(const Vector_t &r) const;
+
+
+    //set number of slices for map tracking
+    void setNSlices(const std::size_t& nSlices);
+
+    //set number of slices for map tracking
+    std::size_t getNSlices() const;
+
 protected:
     void setMessageHeader(const std::string & header);
     double getStartField() const;
@@ -288,6 +296,8 @@ private:
 
     CoordinateSystemTrafo computeAngleTrafo_m;
     double maxAngle_m;
+
+    std::size_t nSlices_m;
 };
 
 

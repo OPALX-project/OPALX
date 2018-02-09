@@ -164,12 +164,13 @@ void Multipole::setSkewComponent(int n, double v, double vError) {
     }
 }
 
-
-void Multipole::setNSlices(const std::size_t& nSlices) { // Philippe was here
+//set the number of slices for map tracking
+void Multipole::setNSlices(const std::size_t& nSlices) {
     nSlices_m = nSlices;
 }
-    
-std::size_t Multipole::getNSlices() const { // Philippe was here
+
+//get the number of slices for map tracking
+std::size_t Multipole::getNSlices() const {
     return nSlices_m;
 }
 

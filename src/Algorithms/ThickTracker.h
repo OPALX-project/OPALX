@@ -22,6 +22,10 @@
 #include "Steppers/BorisPusher.h"
 #include "Structure/DataSink.h"                                                                      
 
+#include "Classic/FixedAlgebra/FTps.h"
+#include "Classic/FixedAlgebra/FVps.h"
+
+
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/IndexMap.h"
 #include "AbsBeamline/AlignWrapper.h"
@@ -50,6 +54,8 @@
 #include "AbsBeamline/CyclotronValley.h"
                        
 #include "Elements/OpalBeamline.h"
+
+#define PSdim 6
 
 class BMultipoleField;
 
@@ -212,6 +218,34 @@ public:
     void autophaseCavities(const BorisPusher &pusher);
     void findStartPosition(const BorisPusher &pusher);
 
+
+    typedef FTps<double, PSdim> Series;
+    typedef FVps<double, PSdim> Map, VSeries;
+
+    Series x = Series::makeVariable(0);			//SIXVect::X);
+	Series px = Series::makeVariable(1);		//SIXVect::PX);
+	Series y = Series::makeVariable(2);			//SIXVect::Y);
+	Series py = Series::makeVariable(3);		//SIXVect::PY);
+	//Series z = Series::makeVariable(4);		//SIXVect::TT);
+	Series delta = Series::makeVariable(5);		//SIXVect::PT);
+
+    struct structMapTracking {
+                	std::string elementName;
+                	Map elementMap;
+                	std::size_t nSlices;
+                	double elementPos;
+                	double stepSize;
+                };
+
+    void createHamiltonian(Series& H, std::shared_ptr<Component> element, double& stepSize, std::size_t& nSlices, int& order);
+    void fillDrift(std::list<structMapTracking>& mapBeamLine,double& elementPos, double& undefSpace, int& order);
+
+    void setHamiltonianDrift(Series& H, double& beta0, double& gamma0, double& q, int& order );
+    void setHamiltonianSBend(Series& H, double& beta0, double& gamma0, double& q, double& h, double& K0, int& order );
+    void setHamiltonianRBend(Series& H, double& beta0, double& gamma0, double& q, double& h, double& K0, int& order );
+    void setHamiltonianQuadrupole(Series& H, double& beta0, double& gamma0, double& q, double& K1, int& order );
+
+
 private:
 
     // Not implemented.
@@ -250,6 +284,8 @@ private:
     CoordinateSystemTrafo referenceToLabCSTrafo_m;
 
     bool globalEOL_m;
+
+
 
 };
 
@@ -356,5 +392,7 @@ inline void ThickTracker::visitParallelPlate(const ParallelPlate &pplate) {
 inline void ThickTracker::visitCyclotronValley(const CyclotronValley &cv) {
     itsOpalBeamline_m.visit(cv, *this, itsBunch_m);
 }
+
+
 
 #endif // OPAL_ThickTracker_HH
