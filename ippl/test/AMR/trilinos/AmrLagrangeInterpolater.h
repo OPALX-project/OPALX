@@ -21,6 +21,7 @@ public:
     typedef typename AmrMultiGridLevel::scalar_t scalar_t;
     typedef typename AmrMultiGridLevel::umap_t umap_t;
     typedef typename AmrMultiGridLevel::basefab_t basefab_t;
+    typedef amr::AmrIntVect_t AmrIntVect_t;
 
     enum Order {
         LINEAR = 1,
