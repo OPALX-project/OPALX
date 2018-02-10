@@ -39,6 +39,11 @@ public:
     typedef AmrMultiGridLevel_t::coefficients_t coefficients_t;
     typedef AmrMultiGridLevel_t::umap_t         umap_t;
     typedef AmrMultiGridLevel_t::boundary_t     boundary_t;
+    
+    typedef BottomSolver<
+        Teuchos::RCP<matrix_t>,
+        Teuchos::RCP<mv_t>
+    > bsolver_t;
 
     typedef amrex::BoxArray boxarray_t;
     typedef amrex::Box box_t;
@@ -104,6 +109,27 @@ public:
     };
     
 public:
+    
+    /*!
+     * Instantiation used in Structure/FieldSolver.cpp for
+     * OPAL bottom solvers.
+     * @param bsolver the bottom solver
+     * @param bcx boundary condition in x
+     * @param bcy boundary condition in y
+     * @param bcz boundary condition in z
+     * @param smoother for level solution
+     * @param nSweeps when smoothing
+     * @param interp interpolater between levels
+     * @param norm for convergence criteria
+     */
+    AmrMultiGrid(bsolver_t* bsolver,
+                 const std::string& bcx,
+                 const std::string& bcy,
+                 const std::string& bcz,
+                 const std::string& smoother,
+                 const std::size_t& nSweeps,
+                 const std::string& interp,
+                 const std::string& norm);
     
     /*!
      * Instantiation used in Structure/FieldSolver.cpp
@@ -207,6 +233,25 @@ public:
     
     
 private:
+    
+    /*!
+     * This constructor should be called by
+     * all other constructors. (i.e. constructor delegation)
+     * @param bcx boundary condition in x
+     * @param bcy boundary condition in y
+     * @param bcz boundary condition in z
+     * @param smoother for level solution
+     * @param nSweeps when smoothing
+     * @param interp interpolater between levels
+     * @param norm for convergence criteria
+     */
+    AmrMultiGrid(const std::string& bcx,
+                 const std::string& bcy,
+                 const std::string& bcz,
+                 const std::string& smoother,
+                 const std::size_t& nSweeps,
+                 const std::string& interp,
+                 const std::string& norm);
     
     /*!
      * Instantiate boundary object
@@ -605,7 +650,7 @@ private:
     std::vector<std::unique_ptr<AmrMultiGridLevel_t > > mglevel_m;
     
     /// bottom solver
-    std::shared_ptr<BottomSolver<Teuchos::RCP<matrix_t>, Teuchos::RCP<mv_t> > > solver_mp;
+    std::shared_ptr<bsolver_t> solver_mp;
     
     /// error smoother
     std::vector<std::shared_ptr<AmrSmoother> > smoother_m;

@@ -13,9 +13,7 @@
     #include <fstream>
 #endif
 
-AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
-                           const std::string& prec,
-                           const std::string& bcx,
+AmrMultiGrid::AmrMultiGrid(const std::string& bcx,
                            const std::string& bcy,
                            const std::string& bcz,
                            const std::string& smoother,
@@ -24,12 +22,11 @@ AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
                            const std::string& norm)
     : nIter_m(0),
       maxiter_m(100),
-      nSweeps_m(nSweeps),
+      nSweeps_m(12),
       lbase_m(0),
       lfine_m(0),
       nlevel_m(1),
-    nBcPoints_m(0)//,
-//      balancer_mp(new AmrRedistributor())
+      nBcPoints_m(0)
 {
     comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
     node_mp = KokkosClassic::Details::getNode<amr::node_t>(); //KokkosClassic::DefaultNode::getDefaultNode();
@@ -60,7 +57,33 @@ AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
     
     // interpolater for crse-fine-interface
     this->initCrseFineInterp_m(Interpolater::LAGRANGE);
-    
+}
+
+
+AmrMultiGrid::AmrMultiGrid(bsolver_t* bsolver,
+                           const std::string& bcx,
+                           const std::string& bcy,
+                           const std::string& bcz,
+                           const std::string& smoother,
+                           const std::size_t& nSweeps,
+                           const std::string& interp,
+                           const std::string& norm)
+    : AmrMultiGrid(bcx, bcy, bcz, smoother, nSweeps, interp, norm)
+{
+    solver_mp.reset(bsolver);
+}
+
+AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
+                           const std::string& prec,
+                           const std::string& bcx,
+                           const std::string& bcy,
+                           const std::string& bcz,
+                           const std::string& smoother,
+                           const std::size_t& nSweeps,
+                           const std::string& interp,
+                           const std::string& norm)
+    : AmrMultiGrid(bcx, bcy, bcz, smoother, nSweeps, interp, norm)
+{
     // base level solver
     const BaseSolver solver = this->convertToEnumBaseSolver_m(bsolver);
     const Preconditioner precond = this->convertToEnumPreconditioner_m(prec);
