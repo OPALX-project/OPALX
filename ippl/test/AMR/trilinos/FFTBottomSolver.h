@@ -32,8 +32,11 @@ public:
     
     
 private:
+    void field2vector_m(const Field_t& field,
+                        const Teuchos::RCP<mv_t>& vector);
     
-    
+    void vector2field_m(Field_t& field,
+                        const Teuchos::RCP<mv_t>& vector);
 };
 
 #endif
