@@ -10,6 +10,7 @@ public:
     typedef typename AmrMultiGridLevel::umap_t umap_t;
     typedef typename AmrMultiGridLevel::lo_t lo_t;
     typedef typename AmrMultiGridLevel::scalar_t scalar_t;
+    typedef amr::AmrIntVect_t AmrIntVect_t;
     
 public:
     
@@ -52,12 +53,13 @@ void AmrOpenBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
         n2iv[dir] = nr[dir] - 2;
     }
     
-    // celll size in direction
+    // cell size in direction
     scalar_t h = 1.0 / scalar_t(nr[dir]);
-    scalar_t r = 0.358;
+    scalar_t r = 0.718; // + 0.5 * h; //0.358;
     
     // 1st order
-    map[mglevel->serialize(niv)] += 2.0 * r / (2.0 * r + h) * value;
+//     map[mglevel->serialize(niv)] += 2.0 * r / (2.0 * r + h) * value;
+    map[mglevel->serialize(niv)] += (1.0 - h / r) * value;
 }
 
 #endif
