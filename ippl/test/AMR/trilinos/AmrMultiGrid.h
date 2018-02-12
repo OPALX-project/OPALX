@@ -590,10 +590,14 @@ private:
     /*!
      * Instantiate a bottom solver
      * @param solver type
-     * @param precond preconditioner
      */
-    void initBaseSolver_m(const BaseSolver& solver,
-                          const Preconditioner& precond);
+    void initBaseSolver_m(const BaseSolver& solver);
+    
+    /*!
+     * Instantiate a preconditioner for the bottom solver
+     * @param precond type
+     */
+    void initPrec_m(const Preconditioner& prec);
     
     /*!
      * Convertstring to enum Boundary
@@ -654,6 +658,9 @@ private:
     
     /// error smoother
     std::vector<std::shared_ptr<AmrSmoother> > smoother_m;
+    
+    // preconditioner for bottom solver
+    std::shared_ptr<AmrPreconditioner<matrix_t> > prec_mp;
     
     int lbase_m;            ///< base level (currently only 0 supported)
     int lfine_m;            ///< fineste level
