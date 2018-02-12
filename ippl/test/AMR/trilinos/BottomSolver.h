@@ -1,15 +1,7 @@
 #ifndef BOTTOM_SOLVER_H
 #define BOTTOM_SOLVER_H
 
-namespace amr {
-    /// Bottom solver preconditioners
-    enum Preconditioner {
-        ILUT,       // incomplete LU
-        CHEBYSHEV,
-        RILUK,      // ILU(k)
-        NONE
-    };
-}
+#include "AmrMultiGridDefs.h"
 
 /// Abstract base class for all base level solvers
 template <class MatrixType, class VectorType>
