@@ -1,7 +1,7 @@
 #ifndef FFT_SOLVER_H
 #define FFT_SOLVER_H
 
-#include "AmrMultiGridCore.h"
+#include "BottomSolver.h"
 
 #include "Solvers/FFTPoissonSolver.h"
 

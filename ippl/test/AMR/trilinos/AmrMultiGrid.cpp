@@ -23,6 +23,7 @@ AmrMultiGrid::AmrMultiGrid(const std::string& bcx,
     : nIter_m(0),
       maxiter_m(100),
       nSweeps_m(12),
+      prec_mp(nullptr),
       lbase_m(0),
       lfine_m(0),
       nlevel_m(1),
@@ -84,10 +85,13 @@ AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
                            const std::string& norm)
     : AmrMultiGrid(bcx, bcy, bcz, smoother, nSweeps, interp, norm)
 {
+    // preconditioner
+    const Preconditioner precond = this->convertToEnumPreconditioner_m(prec);
+    this->initPrec_m(precond);
+    
     // base level solver
     const BaseSolver solver = this->convertToEnumBaseSolver_m(bsolver);
-    const Preconditioner precond = this->convertToEnumPreconditioner_m(prec);
-    this->initBaseSolver_m(solver, precond);
+    this->initBaseSolver_m(solver);
 }
 
 
@@ -155,8 +159,11 @@ AmrMultiGrid::AmrMultiGrid(Boundary bcx,
     // interpolater for crse-fine-interface
     this->initCrseFineInterp_m(interface);
     
+    // preconditioner
+    this->initPrec_m(precond);
+    
     // base level solver
-    this->initBaseSolver_m(solver, precond);
+    this->initBaseSolver_m(solver);
 }
 
 void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
@@ -1915,34 +1922,33 @@ void AmrMultiGrid::initCrseFineInterp_m(const Interpolater& interface) {
 }
 
 
-void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
-                                    const Preconditioner& precond)
+void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver)
 {
     switch ( solver ) {
         // Belos solvers
         case BaseSolver::BICGSTAB:
-            solver_mp.reset( new BelosBottomSolver("BICGSTAB", precond) );
+            solver_mp.reset( new BelosBottomSolver("BICGSTAB", prec_mp) );
             break;
         case BaseSolver::MINRES:
-            solver_mp.reset( new BelosBottomSolver("MINRES", precond) );
+            solver_mp.reset( new BelosBottomSolver("MINRES", prec_mp) );
             break;
         case BaseSolver::PCPG:
-            solver_mp.reset( new BelosBottomSolver("PCPG", precond) );
+            solver_mp.reset( new BelosBottomSolver("PCPG", prec_mp) );
             break;
         case BaseSolver::CG:
-            solver_mp.reset( new BelosBottomSolver("Pseudoblock CG", precond) );
+            solver_mp.reset( new BelosBottomSolver("Pseudoblock CG", prec_mp) );
             break;
         case BaseSolver::GMRES:
-            solver_mp.reset( new BelosBottomSolver("Pseudoblock GMRES", precond) );
+            solver_mp.reset( new BelosBottomSolver("Pseudoblock GMRES", prec_mp) );
             break;
         case BaseSolver::STOCHASTIC_CG:
-            solver_mp.reset( new BelosBottomSolver("Stochastic CG", precond) );
+            solver_mp.reset( new BelosBottomSolver("Stochastic CG", prec_mp) );
             break;
         case BaseSolver::RECYCLING_CG:
-            solver_mp.reset( new BelosBottomSolver("RCG", precond) );
+            solver_mp.reset( new BelosBottomSolver("RCG", prec_mp) );
             break;
         case BaseSolver::RECYCLING_GMRES:
-            solver_mp.reset( new BelosBottomSolver("GCRODR", precond) );
+            solver_mp.reset( new BelosBottomSolver("GCRODR", prec_mp) );
             break;
         // Amesos2 solvers
 #ifdef HAVE_AMESOS2_KLU2
@@ -1978,6 +1984,26 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
         default:
             throw OpalException("AmrMultiGrid::initBaseSolver_m()",
                                 "No such bottom solver available.");
+    }
+}
+
+
+void AmrMultiGrid::initPrec_m(const Preconditioner& prec) {
+    switch ( prec ) {
+        case Preconditioner::ILUT:
+        case Preconditioner::CHEBYSHEV:
+        case Preconditioner::RILUK:
+            prec_mp.reset( new Ifpack2Preconditioner(prec) );
+            break;
+        case Preconditioner::SA:
+//             prec_mp.reset( new MueLuPreconditioner() );
+            break;
+        case Preconditioner::NONE:
+            prec_mp.reset( );
+            break;
+        default:
+            throw OpalException("AmrMultiGrid::initPrec_m()",
+                                "No such preconditioner available.");
     }
 }
 

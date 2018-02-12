@@ -46,12 +46,14 @@ IF ( ENABLE_AMR )
 
         add_library(multigrid
                     trilinos/AmrMultiGridCore.h
+                    trilinos/AmrMultiGridDefs.h
                     trilinos/BelosBottomSolver.cpp
                     trilinos/AmesosBottomSolver.cpp
                     trilinos/FFTBottomSolver.cpp
                     trilinos/AmrSmoother.cpp
                     trilinos/AmrMultiGrid.cpp
                     trilinos/AmrRedistributor.cpp
+                    trilinos/Ifpack2Preconditioner.cpp
                     ${CMAKE_SOURCE_DIR}/src/Solvers/FFTPoissonSolver.cpp
                     ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
                     ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp)

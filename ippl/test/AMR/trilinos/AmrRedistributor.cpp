@@ -1,5 +1,7 @@
 #include "AmrRedistributor.h"
 
+#include "Utilities/OpalException.h"
+
 AmrRedistributor::AmrRedistributor()
     : importer_mp(Teuchos::null),
       exporter_mp(Teuchos::null)
