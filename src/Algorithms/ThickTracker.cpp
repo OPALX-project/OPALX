@@ -57,12 +57,14 @@
 
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
+#include "Utilities/Timer.h"
 
 #include "Physics/Physics.h"
 
 #include "Elements/OpalBeamline.h"
 #include <Classic/BeamlineCore/MultipoleRep.h>
 #include "Distribution/MapGenerator.h"
+
 
 #define DIM 3
 
@@ -99,6 +101,12 @@ ThickTracker::ThickTracker(const Beamline &beamline,
   localTrackSteps_m(),
   truncOrder_m(1) // linear
 {
+		series_t x=(series_t::makeVariable(0));
+			series_t px = series_t::makeVariable(1);		//SIXVect::PX);
+			series_t y = series_t::makeVariable(2);			//SIXVect::Y);
+			series_t py = series_t::makeVariable(3);		//SIXVect::PY);
+			//Series z = Series::makeVariable(4);		//SIXVect::TT);
+			series_t delta = series_t::makeVariable(5);		//SIXVect::PT);
 }
 
 
@@ -112,16 +120,16 @@ ThickTracker::ThickTracker(const Beamline &beamline,
 			   const std::vector<double> &zstop,
 			   const std::vector<double> &dt,
                const int& truncOrder):
-  Tracker(beamline, bunch, reference, revBeam, revTrack),
-  itsDataSink_m(&ds), 
-  itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getCoordTransformationTo()),
-  pathLength_m(0.0),
-  zstart_m(zstart),
-  zStop_m(),
-  dtCurrentTrack_m(0.0),
-  dtAllTracks_m(),
-  localTrackSteps_m(),
-  truncOrder_m(truncOrder)
+	  Tracker(beamline, bunch, reference, revBeam, revTrack),
+  	  itsDataSink_m(&ds),
+  	  itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getCoordTransformationTo()),
+  	  pathLength_m(0.0),
+  	  zstart_m(zstart),
+  	  zStop_m(),
+  	  dtCurrentTrack_m(0.0),
+  	  dtAllTracks_m(),
+  	  localTrackSteps_m(),
+  	  truncOrder_m(truncOrder)
 {
   CoordinateSystemTrafo labToRef(beamline.getOrigin3D(),
 				 beamline.getCoordTransformationTo());
@@ -136,6 +144,12 @@ ThickTracker::ThickTracker(const Beamline &beamline,
   for (std::vector<double>::const_iterator it = zstop.begin(); it != zstop.end(); ++ it) {
     zStop_m.push(*it);
   }
+  series_t x=(series_t::makeVariable(0));
+  series_t px = series_t::makeVariable(1);		//SIXVect::PX);
+  series_t y = series_t::makeVariable(2);			//SIXVect::Y);
+  series_t py = series_t::makeVariable(3);		//SIXVect::PY);
+  //Series z = Series::makeVariable(4);		//SIXVect::TT);
+  series_t delta = series_t::makeVariable(5);		//SIXVect::PT);
 }
 
 
@@ -767,11 +781,10 @@ void ThickTracker::execute() {
 	//(1) Loop Elements
 	for(mapBeamLineit=mapBeamLine.begin(); mapBeamLineit != mapBeamLine.end(); ++mapBeamLineit) {
 
-		//(3) Loop Slices
+		//(2) Loop Slices
 		for (std::size_t slice=0; slice < mapBeamLineit->nSlices; slice++){
 			//(3) Loop Particles
 				for (unsigned int partidx=0; partidx< itsBunch_m->getTotalNum(); ++partidx){
-					msg << "inParticleLoop:   " << partidx << endl;
 					sliceidx=0;
 
 					for (int d = 0; d < 3; ++d) {
@@ -797,14 +810,20 @@ void ThickTracker::execute() {
 				//Write in File
 				outfile << sliceidx <<"  "<< partidx << " ["<< particle;
 
+				itsBunch_m->set_part(particle, partidx);
+
 
 
 			}
+			bool const psDump = true;//((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1 == Options::psDumpFreq);
+			bool const statDump = true;//((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1 == Options::statDumpFreq);
+
+			dumpStats(sliceidx, psDump, statDump);
 			sliceidx ++;
+			itsBunch_m->set_sPos(mapBeamLineit->elementPos + mapBeamLineit->stepSize * slice);
+
 			//form ParalellTTracker
-//			bool const psDump = ((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1 == Options::psDumpFreq);
-//			bool const statDump = ((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1 == Options::statDumpFreq);
-			//dumpStats(sliceidx, psDump, statDump);
+
 
 		}
 
@@ -813,16 +832,16 @@ void ThickTracker::execute() {
 
 }
 
-/*void ThickTracker::dumpStats(long long step, bool psDump, bool statDump) {
+void ThickTracker::dumpStats(long long step, bool psDump, bool statDump) {
 
 	OPALTimer::Timer myt2;
     Inform msg("ThickTracker", *gmsg);
 
     std::size_t numParticlesInSimulation_m = itsBunch_m->getTotalNum();
 
-    if (itsBunch_m->getGlobalTrackStep() % 1000 + 1 == 1000) {
+    if (itsBunch_m->getGlobalTrackStep() % 10 + 1 == 10) {
         msg << level1;
-    } else if (itsBunch_m->getGlobalTrackStep() % 100 + 1 == 100) {
+    } else if (true){ //itsBunch_m->getGlobalTrackStep() % 1 + 1 == 1) {
         msg << level2;
     } else {
         msg << level3;
@@ -830,7 +849,7 @@ void ThickTracker::execute() {
 
     if (numParticlesInSimulation_m == 0) {
         msg << myt2.time() << " "
-            << "Step " << setw(6) <<  itsBunch_m->getGlobalTrackStep() << "; "
+            << "Step " << std::setw(6) <<  itsBunch_m->getGlobalTrackStep() << "; "
             << "   -- no emission yet --     "
             << "t= "   << Util::getTimeString(itsBunch_m->getT())
             << endl;
@@ -838,21 +857,15 @@ void ThickTracker::execute() {
     }
 
     itsBunch_m->calcEMean();
-    size_t totalParticles_f = numParticlesInSimulation_m;
-    if (totalParticles_f <= minBinEmitted_m) {
-        msg << myt2.time() << " "
-            << "Step " << setw(6) << itsBunch_m->getGlobalTrackStep() << "; "
-            << "only " << setw(4) << totalParticles_f << " particles emitted; "
-            << "t= "   << Util::getTimeString(itsBunch_m->getT()) << ", "
-            << "E="    << Util::getEnergyString(itsBunch_m->get_meanKineticEnergy()) << ", "
-            << endl;
-    } else if (std::isnan(pathLength_m) || std::isinf(pathLength_m)) {
+    //size_t totalParticles_f = numParticlesInSimulation_m;
+
+    if (std::isnan(pathLength_m) || std::isinf(pathLength_m)) {
         throw OpalException("ParallelTTracker::dumpStats()",
                             "there seems to be something wrong with the position of the bunch!");
     } else {
 
         msg << myt2.time() << " "
-            << "Step " << setw(6)  <<  itsBunch_m->getGlobalTrackStep() << " "
+            << "Step " << std::setw(6)  <<  itsBunch_m->getGlobalTrackStep() << " "
             << "at "   << Util::getLengthString(pathLength_m) << ", "
             << "t= "   << Util::getTimeString(itsBunch_m->getT()) << ", "
             << "E="    << Util::getEnergyString(itsBunch_m->get_meanKineticEnergy())
@@ -965,5 +978,5 @@ void ThickTracker::writePhaseSpace(const long long step, bool psDump, bool statD
 
         msg << level2 << "* Wrote beam phase space." << endl;
     }
-}*/
+}
 
