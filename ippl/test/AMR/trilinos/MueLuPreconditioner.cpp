@@ -1,5 +1,8 @@
 #include "MueLuPreconditioner.h"
 
+#include <MueLu_CreateTpetraPreconditioner.hpp>
+
+
 
 MueLuPreconditioner::MueLuPreconditioner()
     : prec_mp(Teuchos::null)
@@ -8,8 +11,8 @@ MueLuPreconditioner::MueLuPreconditioner()
 }
 
 
-void MueLuPreconditioner::create(const Teuchos::RCP<const amr::matrix_t>& A) {
-    prec_mp = MueLu::CreateTpetraPreconditioner(A, params_m)
+void MueLuPreconditioner::create(Teuchos::RCP<amr::matrix_t>& A) {
+    prec_mp = MueLu::CreateTpetraPreconditioner(A, params_m);
 }
 
 
@@ -26,7 +29,7 @@ void MueLuPreconditioner::init_m() {
     params_m.set("max levels", 3);
     params_m.set("cycle type", "V");
     params_m.set("coarse: max size", 10);
-    params_m.set("multigrid algorithm", "sa")
+    params_m.set("multigrid algorithm", "sa");
     params_m.set("repartition", "enable");
     
     params_m.set("smoother: type", "CHEBYSHEV");

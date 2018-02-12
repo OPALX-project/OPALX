@@ -30,6 +30,7 @@ IF ( ENABLE_AMR )
             ${IPPL_INCLUDE_DIR}
             ${H5Hut_INCLUDE_DIR}
             ${HDF5_INCLUDE_DIR}
+            ${GSL_INCLUDE_DIR}
             ${AMREX_INCLUDE_DIR}
             ${Trilinos_INCLUDE_DIRS}
             ${Trilinos_TPL_INCLUDE_DIRS}
@@ -39,6 +40,7 @@ IF ( ENABLE_AMR )
             ${CMAKE_CURRENT_SOURCE_DIR}
             ${CMAKE_SOURCE_DIR}/src
             ${IPPL_LIBRARY_DIR}
+            ${GSL_LIBRARY_DIR}
             ${AMREX_LIBRARY_DIR}
             ${Trilinos_LIBRARY_DIRS}
             ${Trilinos_TPL_LIBRARY_DIRS}
@@ -54,6 +56,7 @@ IF ( ENABLE_AMR )
                     trilinos/AmrMultiGrid.cpp
                     trilinos/AmrRedistributor.cpp
                     trilinos/Ifpack2Preconditioner.cpp
+		    trilinos/MueLuPreconditioner.cpp
                     ${CMAKE_SOURCE_DIR}/src/Solvers/FFTPoissonSolver.cpp
                     ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
                     ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp)

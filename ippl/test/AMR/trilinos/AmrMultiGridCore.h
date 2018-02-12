@@ -20,6 +20,6 @@
 
 // preconditioners
 #include "Ifpack2Preconditioner.h"
-// #include "MueLuPreconditioner.h"
+#include "MueLuPreconditioner.h"
 
 #endif

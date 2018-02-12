@@ -1996,7 +1996,7 @@ void AmrMultiGrid::initPrec_m(const Preconditioner& prec) {
             prec_mp.reset( new Ifpack2Preconditioner(prec) );
             break;
         case Preconditioner::SA:
-//             prec_mp.reset( new MueLuPreconditioner() );
+            prec_mp.reset( new MueLuPreconditioner() );
             break;
         case Preconditioner::NONE:
             prec_mp.reset( );
