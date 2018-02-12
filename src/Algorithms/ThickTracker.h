@@ -224,14 +224,8 @@ public:
 
     typedef FVps<double, PSdim> map_t;
 
+    series_t x, px, y, py, delta; //z
 
-    //TODO: define in constructor in source.
-    series_t x = series_t::makeVariable(0);			//SIXVect::X);
-	series_t px = series_t::makeVariable(1);		//SIXVect::PX);
-	series_t y = series_t::makeVariable(2);			//SIXVect::Y);
-	series_t py = series_t::makeVariable(3);		//SIXVect::PY);
-	//Series z = Series::makeVariable(4);		//SIXVect::TT);
-	series_t delta = series_t::makeVariable(5);		//SIXVect::PT);
 
     struct structMapTracking {
                 	std::string elementName;
@@ -249,6 +243,8 @@ public:
     void setHamiltonianRBend(series_t& H, double& beta0, double& gamma0, double& q, double& h, double& K0 );
     void setHamiltonianQuadrupole(series_t& H, double& beta0, double& gamma0, double& q, double& K1 );
 
+    void dumpStats(long long step, bool psDump, bool statDump);
+    void writePhaseSpace(const long long step, bool psDump, bool statDump);
 
 private:
 
