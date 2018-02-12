@@ -20,7 +20,7 @@ public:
     
     Ifpack2Preconditioner(Preconditioner prec);
     
-    void create(Teuchos::RCP<amr::matrix_t>& A);
+    void create(const Teuchos::RCP<amr::matrix_t>& A);
     
     Teuchos::RCP<amr::operator_t> get();
     
