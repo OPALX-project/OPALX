@@ -189,6 +189,10 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     params.prec = AmrMultiGrid::Preconditioner::ILUT;
                 else if ( prec == "CHEBYSHEV" )
                     params.prec = AmrMultiGrid::Preconditioner::CHEBYSHEV;
+                else if ( prec == "RILUK" )
+                    params.prec = AmrMultiGrid::Preconditioner::RILUK;
+                else if ( prec == "SA" )
+                    params.prec = AmrMultiGrid::Preconditioner::SA;
                 else
                     throw std::runtime_error("Error: Check preconditioner argument");
                 break;
