@@ -26,7 +26,7 @@ public:
      * Instantiate the preconditioner matrix
      * @param A matrix for which to create preconditioner
      */
-    virtual void create(const Teuchos::RCP<const MatrixType>& A) = 0;
+    virtual void create(Teuchos::RCP<MatrixType>& A) = 0;
     
     virtual Teuchos::RCP<operator_t> get() = 0;
 };
