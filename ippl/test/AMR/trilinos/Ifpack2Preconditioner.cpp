@@ -9,7 +9,7 @@ Ifpack2Preconditioner::Ifpack2Preconditioner(Preconditioner prec)
 }
 
 
-void Ifpack2Preconditioner::create(Teuchos::RCP<amr::matrix_t>& A) {
+void Ifpack2Preconditioner::create(const Teuchos::RCP<amr::matrix_t>& A) {
     Ifpack2::Factory factory;
     
     prec_mp = factory.create(prectype_m, A.getConst());
