@@ -75,6 +75,7 @@ AmrMultiGrid::AmrMultiGrid(bsolver_t* bsolver,
 }
 
 AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
+                           const std::size_t bgrid[AMREX_SPACEDIM],
                            const std::string& prec,
                            const std::string& bcx,
                            const std::string& bcy,
@@ -87,7 +88,7 @@ AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
 {
     // preconditioner
     const Preconditioner precond = this->convertToEnumPreconditioner_m(prec);
-    this->initPrec_m(precond);
+    this->initPrec_m(precond, bgrid);
     
     // base level solver
     const BaseSolver solver = this->convertToEnumBaseSolver_m(bsolver);
@@ -95,7 +96,8 @@ AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
 }
 
 
-AmrMultiGrid::AmrMultiGrid(Boundary bcx,
+AmrMultiGrid::AmrMultiGrid(const std::size_t bgrid[AMREX_SPACEDIM],
+                           Boundary bcx,
                            Boundary bcy,
                            Boundary bcz,
                            Interpolater interp,
@@ -160,7 +162,7 @@ AmrMultiGrid::AmrMultiGrid(Boundary bcx,
     this->initCrseFineInterp_m(interface);
     
     // preconditioner
-    this->initPrec_m(precond);
+    this->initPrec_m(precond, bgrid);
     
     // base level solver
     this->initBaseSolver_m(solver);
@@ -706,9 +708,11 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
     IpplTimings::startTimer(buildTimer_m);
 #endif
     
-    if ( lbase_m == lfine_m )
-        this->buildSingleLevel_m(rho, phi, matrices);
-    else
+    bool isNewOperator = (mglevel_m[lbase_m]->Anf_p == Teuchos::null);
+
+    if ( lbase_m == lfine_m ) {
+        this->buildSingleLevel_m(rho, phi, isNewOperator);
+    } else
         this->buildMultiLevel_m(rho, phi, matrices);
     
     mglevel_m[lfine_m]->error_p->putScalar(0.0);
@@ -718,10 +722,12 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
         
 //        balancer_mp->doExport(mglevel_m[lbase_m]->Anf_p);
         
+        this->clearMasks_m();
+    }
+
+    if ( isNewOperator ) {
         // set the bottom solve operator (might change sign values)
         solver_mp->setOperator(mglevel_m[lbase_m]->Anf_p);
-        
-        this->clearMasks_m();
     }
 
     
@@ -803,7 +809,10 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
     if ( matrices )
         smoother_m.resize(nlevel_m-1);
     
-    for (int lev = 0; lev < nlevel_m; ++lev) {
+    // we need to build base level only at beginning of simulation
+    int startLevel = (mglevel_m[lbase_m]->Anf_p == Teuchos::null) ? 0 : 1;
+
+    for (int lev = startLevel; lev < nlevel_m; ++lev) {
 
         this->open_m(lev, matrices);
 
@@ -1988,7 +1997,9 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver)
 }
 
 
-void AmrMultiGrid::initPrec_m(const Preconditioner& prec) {
+void AmrMultiGrid::initPrec_m(const Preconditioner& prec,
+                              const std::size_t grid[AMREX_SPACEDIM])
+{
     switch ( prec ) {
         case Preconditioner::ILUT:
         case Preconditioner::CHEBYSHEV:
@@ -1996,7 +2007,7 @@ void AmrMultiGrid::initPrec_m(const Preconditioner& prec) {
             prec_mp.reset( new Ifpack2Preconditioner(prec) );
             break;
         case Preconditioner::SA:
-            prec_mp.reset( new MueLuPreconditioner() );
+            prec_mp.reset( new MueLuPreconditioner(grid) );
             break;
         case Preconditioner::NONE:
             prec_mp.reset( );

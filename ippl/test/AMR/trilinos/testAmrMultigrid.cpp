@@ -246,7 +246,9 @@ void doSolve(const Array<BoxArray>& ba,
     }
     
     // solve
-    AmrMultiGrid sol(AmrMultiGrid::Boundary::DIRICHLET,
+    const std::size_t grid[] = { params.nr[0], params.nr[1], params.nr[2] };
+    AmrMultiGrid sol(grid,
+                     AmrMultiGrid::Boundary::DIRICHLET,
                      AmrMultiGrid::Boundary::DIRICHLET,
                      AmrMultiGrid::Boundary::DIRICHLET,
                      AmrMultiGrid::Interpolater::PIECEWISE_CONST);
