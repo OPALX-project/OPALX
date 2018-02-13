@@ -42,15 +42,17 @@ void MueLuPreconditioner::init_m() {
 //    params_m.set("problem: symmetric", false);
     params_m.set("verbosity", "extreme");
     params_m.set("number of equations", 1);
-    params_m.set("max levels", 5);
+    params_m.set("max levels", 8);
     params_m.set("cycle type", "V");
-    params_m.set("coarse: max size", 100);
+
+    params_m.set("coarse: max size", int(grid_mp[0]));
     params_m.set("multigrid algorithm", "sa");
     
     params_m.set("repartition: enable", true);
     params_m.set("repartition: rebalance P and R", true);
     params_m.set("repartition: partitioner", "zoltan2");
-    params_m.set("repartition: min rows per proc", 800);
+    params_m.set("repartition: min rows per proc", int(grid_mp[0]));
+    params_m.set("repartition: start level", 1);
     
     params_m.set("smoother: type", "CHEBYSHEV");
     params_m.set("smoother: pre or post", "both");

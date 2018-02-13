@@ -36,7 +36,7 @@ void BelosBottomSolver::solve(const Teuchos::RCP<mv_t>& x,
     
     Belos::ReturnType ret = solver_mp->solve();
 
-
+/*
     Teuchos::Array<typename Teuchos::ScalarTraits<scalar_t>::magnitudeType> normVec(1);
     mv_t Ax(b->getMap(),1);
     mv_t residual(b->getMap(),1);
@@ -45,7 +45,7 @@ void BelosBottomSolver::solve(const Teuchos::RCP<mv_t>& x,
     residual.norm2(normVec);
 
     std::cout << normVec[0] << std::endl;
-    
+*/  
     if ( ret != Belos::Converged ) {
         //TODO When put into OPAL: Replace with gmsg
         std::cerr << "Warning: Bottom solver not converged. Achieved tolerance"
@@ -88,6 +88,7 @@ void BelosBottomSolver::initSolver_m(std::string solvertype) {
     params_mp->set("Convergence Tolerance", reltol_m);
     params_mp->set("Adaptive Block Size", false);
     params_mp->set("Use Single Reduction", true);
+    params_mp->set("Explicit Residual Scaling", "Norm of RHS");
     params_mp->set("Maximum Iterations", maxiter_m);
     params_mp->set("Verbosity", Belos::Errors + Belos::Warnings +
                                 Belos::TimingDetails + Belos::FinalSummary +
