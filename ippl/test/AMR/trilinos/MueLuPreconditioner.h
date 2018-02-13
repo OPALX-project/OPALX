@@ -2,6 +2,7 @@
 #define MUELU_PRECONDITIONER_H
 
 #include "AmrPreconditioner.h"
+#include "Amr/AmrDefs.h"
 
 #include <MueLu.hpp>
 #include <MueLu_TpetraOperator.hpp>
@@ -18,7 +19,7 @@ public:
     
 public:
     
-    MueLuPreconditioner();
+    MueLuPreconditioner(const std::size_t grid[AMREX_SPACEDIM]);
     
     void create(const Teuchos::RCP<amr::matrix_t>& A);
     
@@ -26,11 +27,17 @@ public:
     
 private:
     void init_m();
+
+    amr::AmrIntVect_t deserialize_m(const std::size_t& gidx);
     
 private:
     Teuchos::ParameterList params_m;
     
     Teuchos::RCP<precond_t> prec_mp;
+
+    Teuchos::RCP<amr::multivector_t> coords_mp;
+
+    const std::size_t* grid_mp;
 };
 
 #endif

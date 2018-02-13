@@ -134,6 +134,7 @@ public:
     /*!
      * Instantiation used in Structure/FieldSolver.cpp
      * @param bsolver bottom solver
+     * @param bgrid is the bottom grid dimension
      * @param prec preconditioner for bottom solver
      * @param bcx boundary condition in x
      * @param bcy boundary condition in y
@@ -144,6 +145,7 @@ public:
      * @param norm for convergence criteria
      */
     AmrMultiGrid(const std::string& bsolver,
+                 const std::size_t bgrid[AMREX_SPACEDIM],
                  const std::string& prec,
                  const std::string& bcx,
                  const std::string& bcy,
@@ -155,6 +157,7 @@ public:
     
     /*!
      * Instantiation.
+     * @param bgrid is the bottomg grid dimension
      * @param bcx physical boundary condition in x
      * @param bcy physical boundary condition in y
      * @param bcz physical boundary condition in z
@@ -166,7 +169,8 @@ public:
      * @param smoother for error
      * @param norm convergence criteria
      */
-    AmrMultiGrid(Boundary bcx = Boundary::DIRICHLET,
+    AmrMultiGrid(const std::size_t bgrid[AMREX_SPACEDIM],
+                 Boundary bcx = Boundary::DIRICHLET,
                  Boundary bcy = Boundary::DIRICHLET,
                  Boundary bcz = Boundary::DIRICHLET,
                  Interpolater interp = Interpolater::TRILINEAR,
@@ -596,8 +600,10 @@ private:
     /*!
      * Instantiate a preconditioner for the bottom solver
      * @param precond type
+     * @param grid is the number of grid points per dimension
      */
-    void initPrec_m(const Preconditioner& prec);
+    void initPrec_m(const Preconditioner& prec,
+                    const std::size_t grid[AMREX_SPACEDIM]);
     
     /*!
      * Convertstring to enum Boundary
