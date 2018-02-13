@@ -128,28 +128,6 @@ AmrMultiGrid::AmrMultiGrid(const std::size_t bgrid[AMREX_SPACEDIM],
     interpTimer_m       = IpplTimings::getTimer("AMR MG prolongate");
     residnofineTimer_m  = IpplTimings::getTimer("AMR MG resid-no-fine");
     bottomTimer_m       = IpplTimings::getTimer("AMR MG bottom-solver");
-
-    bopen_m = IpplTimings::getTimer("build-open");
-    bclose_m = IpplTimings::getTimer("build-close");
-    
-    bcloseR_m = IpplTimings::getTimer("build-close-R");
-    bcloseI_m = IpplTimings::getTimer("build-close-I");
-    bcloseC_m = IpplTimings::getTimer("build-close-C");
-    bcloseP_m = IpplTimings::getTimer("build-close-P");
-    bcloseBf_m = IpplTimings::getTimer("build-close-Bf");
-    bcloseBc_m = IpplTimings::getTimer("build-close-Bc");
-    bcloseG_m = IpplTimings::getTimer("build-close-G");
-    
-    bclear_m = IpplTimings::getTimer("build-clear");
-    bRestict_m = IpplTimings::getTimer("build-restrict");
-    bInterp_m = IpplTimings::getTimer("build-interp");
-    bCompo_m = IpplTimings::getTimer("build-comp");
-    bPoiss_m = IpplTimings::getTimer("build-poiss");
-    bBf_m = IpplTimings::getTimer("build-bfine");
-    bBc_m = IpplTimings::getTimer("build-bcrse");
-    bG_m  = IpplTimings::getTimer("build-grad");
-    bSmoother_m = IpplTimings::getTimer("build-smoother");
-
 #endif
     
     const Boundary bcs[AMREX_SPACEDIM] = { bcx, bcy, bcz };
@@ -326,13 +304,11 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
 
 
 void AmrMultiGrid::clearMasks_m() {
-    IpplTimings::startTimer(bclear_m);
     for (int lev = 0; lev < nlevel_m; ++lev) {
         mglevel_m[lev]->refmask.reset(nullptr);
         mglevel_m[lev]->crsemask.reset(nullptr);
         mglevel_m[lev]->mask.reset(nullptr);
     }
-    IpplTimings::stopTimer(bclear_m);
 }
 
 
@@ -771,13 +747,9 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
                         AmrIntVect_t iv(D_DECL(i, j, k));
                         int gidx = mglevel_m[lbase_m]->serialize(iv);
                         
-                        IpplTimings::startTimer(bPoiss_m);
                         this->buildNoFinePoissonMatrix_m(lbase_m, gidx, iv, mfab, invdx2);
-                        IpplTimings::stopTimer(bPoiss_m);
                         
-                        IpplTimings::startTimer(bG_m);
                         this->buildGradientMatrix_m(lbase_m, gidx, iv, mfab, invdx);
-                        IpplTimings::stopTimer(bG_m);
                         
                         mglevel_m[lbase_m]->rho_p->replaceGlobalValue(gidx, rhofab(iv, 0));
                         mglevel_m[lbase_m]->phi_p->replaceGlobalValue(gidx, pfab(iv, 0));
@@ -856,37 +828,23 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
                             AmrIntVect_t iv(D_DECL(i, j, k));
                             int gidx = mglevel_m[lev]->serialize(iv);
                             
-                            IpplTimings::startTimer(bRestict_m);
                             this->buildRestrictionMatrix_m(lev, gidx, iv,
                                                            D_DECL(ii, jj, kk), rfab);
-                            IpplTimings::stopTimer(bRestict_m);
                             
-                            IpplTimings::startTimer(bInterp_m);
                             this->buildInterpolationMatrix_m(lev, gidx, iv, cfab);
-                            IpplTimings::stopTimer(bInterp_m);
                             
-                            IpplTimings::startTimer(bBc_m);
                             this->buildCrseBoundaryMatrix_m(lev, gidx, iv, mfab,
                                                             cfab, invdx2);
-                            IpplTimings::stopTimer(bBc_m);
                             
-                            IpplTimings::startTimer(bBf_m);
                             this->buildFineBoundaryMatrix_m(lev, gidx, iv,
                                                             mfab, rfab, cfab);
-                            IpplTimings::stopTimer(bBf_m);
                             
-                            IpplTimings::startTimer(bPoiss_m);
                             this->buildNoFinePoissonMatrix_m(lev, gidx, iv, mfab, invdx2);
-                            IpplTimings::stopTimer(bPoiss_m);
                             
-                            IpplTimings::startTimer(bCompo_m);
                             this->buildCompositePoissonMatrix_m(lev, gidx, iv, mfab,
                                                                 rfab, cfab, invdx2);
-                            IpplTimings::stopTimer(bCompo_m);
                             
-                            IpplTimings::startTimer(bG_m);
                             this->buildGradientMatrix_m(lev, gidx, iv, mfab, invdx);
-                            IpplTimings::stopTimer(bG_m);
                             
                             mglevel_m[lev]->rho_p->replaceGlobalValue(gidx, rhofab(iv, 0));
                             mglevel_m[lev]->phi_p->replaceGlobalValue(gidx, pfab(iv, 0));
@@ -905,12 +863,10 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
         
         this->close_m(lev, matrices);
         
-        IpplTimings::startTimer(bSmoother_m);
         if ( matrices && lev > lbase_m ) {
             smoother_m[lev-1].reset( new AmrSmoother(mglevel_m[lev]->Anf_p,
                                                      smootherType_m, nSweeps_m) );
         }
-        IpplTimings::stopTimer(bSmoother_m);
     }
 }
 
@@ -918,7 +874,6 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
 void AmrMultiGrid::open_m(const lo_t& level,
                           const bool& matrices)
 {
-    IpplTimings::startTimer(bopen_m);
     if ( matrices ) {
     
         if ( level > lbase_m ) {
@@ -1026,58 +981,40 @@ void AmrMultiGrid::open_m(const lo_t& level,
         mglevel_m[level]->phi_p = Teuchos::rcp(
             new vector_t(mglevel_m[level]->map_p, false) );
     }
-
-    IpplTimings::stopTimer(bopen_m);
 }
 
 
 void AmrMultiGrid::close_m(const lo_t& level,
                            const bool& matrices)
 {    
-    IpplTimings::startTimer(bclose_m);
     if ( matrices ) {
         if ( level > lbase_m ) {
             
-            IpplTimings::startTimer(bcloseI_m);
             mglevel_m[level]->I_p->fillComplete(mglevel_m[level-1]->map_p,  // col map (domain map)
                                                 mglevel_m[level]->map_p);   // row map (range map)
-            IpplTimings::stopTimer(bcloseI_m);
             
-            IpplTimings::startTimer(bcloseBc_m);
             mglevel_m[level]->Bcrse_p->fillComplete(mglevel_m[level-1]->map_p,  // col map
                                                     mglevel_m[level]->map_p);   // row map
-            IpplTimings::stopTimer(bcloseBc_m);
         }
         
         if ( level < lfine_m ) {
             
-            IpplTimings::startTimer(bcloseR_m);
             mglevel_m[level]->R_p->fillComplete(mglevel_m[level+1]->map_p,
                                                   mglevel_m[level]->map_p);
-            IpplTimings::stopTimer(bcloseR_m);
             
-            IpplTimings::startTimer(bcloseBf_m);
             mglevel_m[level]->Bfine_p->fillComplete(mglevel_m[level+1]->map_p,
                                                     mglevel_m[level]->map_p);
-            IpplTimings::stopTimer(bcloseBf_m);
         }
         
-        IpplTimings::startTimer(bcloseP_m);
         mglevel_m[level]->Anf_p->fillComplete();
-        IpplTimings::stopTimer(bcloseP_m);
         
-        IpplTimings::startTimer(bcloseC_m);
         mglevel_m[level]->Awf_p->fillComplete();
-        IpplTimings::stopTimer(bcloseC_m);
         
         mglevel_m[level]->UnCovered_p->fillComplete();
         
-        IpplTimings::startTimer(bcloseG_m);
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
             mglevel_m[level]->G_p[d]->fillComplete();
-        IpplTimings::stopTimer(bcloseG_m);
     }
-    IpplTimings::stopTimer(bclose_m);
 }
 
 
