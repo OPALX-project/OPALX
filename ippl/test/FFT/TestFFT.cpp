@@ -228,10 +228,10 @@ int main(int argc, char *argv[])
   static IpplTimings::TimerRef fftTimer = IpplTimings::getTimer("FFT");           
   static IpplTimings::TimerRef ifftTimer = IpplTimings::getTimer("IFFT");           
   static IpplTimings::TimerRef fEvalTimer = IpplTimings::getTimer("fEval");           
+  static IpplTimings::TimerRef fInitTimer = IpplTimings::getTimer("init");           
 
   writeMemoryHeader(os_memData);
 
-  
   // The preceding cpp definition causes compile-time setting of D:
   const unsigned D=3U;
 
@@ -261,7 +261,7 @@ int main(int argc, char *argv[])
   // Compression of temporaries:
   bool compressTemps;
   vnodes = processes;
-  compressTemps = false;
+  compressTemps = true;
   ngrid[0]=nx;
   ngrid[1]=ny;
   ngrid[2]=nz;
@@ -273,130 +273,133 @@ int main(int argc, char *argv[])
     //------------------------complex<-->complex-------------------------------
     // Complex test Fields
     // create standard domain
-    NDIndex<D> ndiStandard;
-    for (d=0; d<D; d++) 
-      ndiStandard[d] = Index(ngrid[d]);
+  IpplTimings::startTimer(fInitTimer);
+  NDIndex<D> ndiStandard;
+  for (d=0; d<D; d++) 
+    ndiStandard[d] = Index(ngrid[d]);
+  
+  // create new domain with axes permuted to match FFT output
+  NDIndex<D> ndiPermuted;
+  ndiPermuted[0] = ndiStandard[D-1];
+  for (d=1; d<D; d++) 
+    ndiPermuted[d] = ndiStandard[d-1];
 
-    // create new domain with axes permuted to match FFT output
-    NDIndex<D> ndiPermuted;
-    ndiPermuted[0] = ndiStandard[D-1];
-    for (d=1; d<D; d++) 
-      ndiPermuted[d] = ndiStandard[d-1];
+  // create half-size domain for RC transform along zeroth axis
+  NDIndex<D> ndiStandard0h = ndiStandard;
+  ndiStandard0h[0] = Index(ngrid[0]/2+1);
+  // create new domain with axes permuted to match FFT output
+  NDIndex<D> ndiPermuted0h;
+  ndiPermuted0h[0] = ndiStandard0h[D-1];
+  for (d=1; d<D; d++) 
+    ndiPermuted0h[d] = ndiStandard0h[d-1];
 
-    // create half-size domain for RC transform along zeroth axis
-    NDIndex<D> ndiStandard0h = ndiStandard;
-    ndiStandard0h[0] = Index(ngrid[0]/2+1);
-    // create new domain with axes permuted to match FFT output
-    NDIndex<D> ndiPermuted0h;
-    ndiPermuted0h[0] = ndiStandard0h[D-1];
-    for (d=1; d<D; d++) 
-      ndiPermuted0h[d] = ndiStandard0h[d-1];
+  // create half-size domain for sine transform along zeroth axis
+  // and RC transform along first axis
+  NDIndex<D> ndiStandard1h = ndiStandard;
+  ndiStandard1h[1] = Index(ngrid[1]/2+1);
+  // create new domain with axes permuted to match FFT output
+  NDIndex<D> ndiPermuted1h;
+  ndiPermuted1h[0] = ndiStandard1h[D-1];
+  for (d=1; d<D; d++) 
+    ndiPermuted1h[d] = ndiStandard1h[d-1];
 
-    // create half-size domain for sine transform along zeroth axis
-    // and RC transform along first axis
-    NDIndex<D> ndiStandard1h = ndiStandard;
-    ndiStandard1h[1] = Index(ngrid[1]/2+1);
-    // create new domain with axes permuted to match FFT output
-    NDIndex<D> ndiPermuted1h;
-    ndiPermuted1h[0] = ndiStandard1h[D-1];
-    for (d=1; d<D; d++) 
-      ndiPermuted1h[d] = ndiStandard1h[d-1];
-
-    // all parallel layout, standard domain, normal axis order
-    FieldLayout<D> layoutPPStan(ndiStandard,allParallel,vnodes);
+  // all parallel layout, standard domain, normal axis order
+  FieldLayout<D> layoutPPStan(ndiStandard,allParallel,vnodes);
     
-    FieldLayout<D> layoutPPStan0h(ndiStandard0h,allParallel,vnodes);
+  FieldLayout<D> layoutPPStan0h(ndiStandard0h,allParallel,vnodes);
     
-    FieldLayout<D> layoutPPStan1h(ndiStandard1h,allParallel,vnodes);
+  FieldLayout<D> layoutPPStan1h(ndiStandard1h,allParallel,vnodes);
     
-    // create test Fields for complex-to-complex FFT
-    BareField<dcomplex,D> CFieldPPStan(layoutPPStan);
-    BareField<dcomplex,D> CFieldPPStan_save(layoutPPStan);
-    BareField<double,D> diffFieldPPStan(layoutPPStan);
-    
-    // For calling FieldDebug functions from debugger, set up output format:
-    setFormat(4,3);
+  // create test Fields for complex-to-complex FFT
+  BareField<dcomplex,D> CFieldPPStan(layoutPPStan);
+  BareField<dcomplex,D> CFieldPPStan_save(layoutPPStan);
+  BareField<double,D> diffFieldPPStan(layoutPPStan);
+  
 
-    // Rather more complete test functions (sine or cosine mode):
-    dcomplex sfact(1.0,0.0);      // (1,0) for sine mode; (0,0) for cosine mode
-    dcomplex cfact(0.0,0.0);      // (0,0) for sine mode; (1,0) for cosine mode
+  // Rather more complete test functions (sine or cosine mode):
+  dcomplex sfact(1.0,0.0);      // (1,0) for sine mode; (0,0) for cosine mode
+  dcomplex cfact(0.0,0.0);      // (0,0) for sine mode; (1,0) for cosine mode
 
-    // Conditionally-compiled loading functions (couldn't make these
-    double xfact, kx, yfact, ky, zfact, kz;
-    xfact = pi/(ngrid[0] + 1.0);
-    yfact = 2.0*twopi/(ngrid[1]);
-    zfact = 2.0*twopi/(ngrid[2]);
-    kx = 1.0; ky = 2.0; kz = 3.0; // wavenumbers
+  double xfact, kx, yfact, ky, zfact, kz;
+  xfact = pi/(ngrid[0] + 1.0);
+  yfact = 2.0*twopi/(ngrid[1]);
+  zfact = 2.0*twopi/(ngrid[2]);
+  kx = 1.0; ky = 2.0; kz = 3.0; // wavenumbers
+
+  CFieldPPStan[ndiStandard[0]][ndiStandard[1]][ndiStandard[2]] = 
+    sfact * ( sin( (ndiStandard[0]+1) * kx * xfact +
+		    ndiStandard[1]    * ky * yfact +
+		    ndiStandard[2]    * kz * zfact ) +
+	      sin( (ndiStandard[0]+1) * kx * xfact -
+		    ndiStandard[1]    * ky * yfact -
+		    ndiStandard[2]    * kz * zfact ) ) + 
+    cfact * (-cos( (ndiStandard[0]+1) * kx * xfact +
+		    ndiStandard[1]    * ky * yfact +
+		    ndiStandard[2]    * kz * zfact ) + 
+	      cos( (ndiStandard[0]+1) * kx * xfact -
+		    ndiStandard[1]    * ky * yfact -
+		    ndiStandard[2]    * kz * zfact ) );
+
+  CFieldPPStan_save = CFieldPPStan; // Save values for checking later
+    
+  // CC FFT tests
+  // Instantiate complex<-->complex FFT object
+  // Transform in all directions
+  FFT<CCTransform,D,double> ccfft(ndiStandard, compressTemps);
+  IpplTimings::stopTimer(fInitTimer);
+
+  // set direction names
+  ccfft.setDirectionName(+1, "forward");
+  ccfft.setDirectionName(-1, "inverse");
+  
+  testmsg << " Start test " << endl;
+                                                    
+  IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+  memory->sample();
+  writeMemoryData(os_memData, pwi, 0);
+
+  for (unsigned int i=0; i<nLoop; i++)  {
+    // Test complex<-->complex transform (simple test: forward then inverse transform, see if get back original values.
+
+    IpplTimings::startTimer(ifftTimer);                                                    
+    ccfft.transform( "inverse" , CFieldPPStan);
+    IpplTimings::stopTimer(ifftTimer);                                                         
+    IpplTimings::startTimer(fftTimer);                                                    
+    ccfft.transform( "forward" , CFieldPPStan);
+    IpplTimings::stopTimer(fftTimer);                                                    
+
+
+    IpplTimings::startTimer(fEvalTimer);                                                    
+    diffFieldPPStan = Abs(CFieldPPStan - CFieldPPStan_save);
+    realDiff = max(diffFieldPPStan);
+
     CFieldPPStan[ndiStandard[0]][ndiStandard[1]][ndiStandard[2]] = 
-      sfact * ( sin( (ndiStandard[0]+1) * kx * xfact +
-                      ndiStandard[1]    * ky * yfact +
-                      ndiStandard[2]    * kz * zfact ) +
-		sin( (ndiStandard[0]+1) * kx * xfact -
-                      ndiStandard[1]    * ky * yfact -
-                      ndiStandard[2]    * kz * zfact ) ) + 
-      cfact * (-cos( (ndiStandard[0]+1) * kx * xfact +
-                      ndiStandard[1]    * ky * yfact +
-                      ndiStandard[2]    * kz * zfact ) + 
-		cos( (ndiStandard[0]+1) * kx * xfact -
-                      ndiStandard[1]    * ky * yfact -
-                      ndiStandard[2]    * kz * zfact ) );
+    sfact * ( sin( (ndiStandard[0]+1) * kx * xfact +
+		    ndiStandard[1]    * ky * yfact +
+		    ndiStandard[2]    * kz * zfact ) +
+	      sin( (ndiStandard[0]+1) * kx * xfact -
+		    ndiStandard[1]    * ky * yfact -
+		    ndiStandard[2]    * kz * zfact ) ) + 
+    cfact * (-cos( (ndiStandard[0]+1) * kx * xfact +
+		    ndiStandard[1]    * ky * yfact +
+		    ndiStandard[2]    * kz * zfact ) + 
+	      cos( (ndiStandard[0]+1) * kx * xfact -
+		    ndiStandard[1]    * ky * yfact -
+		    ndiStandard[2]    * kz * zfact ) );
+    CFieldPPStan_save = CFieldPPStan;
+    IpplTimings::stopTimer(fEvalTimer);                
+                                    
+    testmsg << "FFT->IFFT: CC <-> CC: fabs(realDiff) = " << fabs(realDiff) << endl;
 
-    CFieldPPStan_save = CFieldPPStan; // Save values for checking later
-    
-    // CC FFT tests
-    // Instantiate complex<-->complex FFT object
-    // Transform in all directions
-    FFT<CCTransform,D,double> ccfft(ndiStandard, compressTemps);
-
-    // set direction names
-    // ccfft.setDirectionName(+1, "forward");
-    // ccfft.setDirectionName(-1, "inverse");
-    
-    //ccfft.transform(+1, CFieldPPStan);
-    //ccfft.transform( -1 , CFieldPPStan);
-    //CFieldPPStan = CFieldPPStan_save;
-    
-    testmsg << " Start test " << endl;
-
-    IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
     memory->sample();
-    writeMemoryData(os_memData, pwi, 0);
-
-    for (unsigned int i=0; i<nLoop; i++)  {
-      // Test complex<-->complex transform (simple test: forward then inverse transform, see if get back original values.
-
-      IpplTimings::startTimer(fftTimer);                                                    
-      ccfft.transform( +1 , CFieldPPStan);
-      IpplTimings::stopTimer(fftTimer);                                                    
-
-      IpplTimings::startTimer(ifftTimer);                                                    
-      ccfft.transform( -1 , CFieldPPStan);
-      IpplTimings::stopTimer(ifftTimer);                                                         
-
-      IpplTimings::startTimer(fEvalTimer);                                                    
-      diffFieldPPStan = Abs(CFieldPPStan - CFieldPPStan_save);
-      realDiff = max(diffFieldPPStan);
-      
-      testmsg << "FFT->IFFT: CC <-> CC: fabs(realDiff) = " << fabs(realDiff) << endl;
-      //-------------------------------------------------------------------------
-      CFieldPPStan = CFieldPPStan_save;
-      IpplTimings::stopTimer(fEvalTimer);                                                    
-
-      memory->sample();
-      writeMemoryData(os_memData, pwi, i+1);
-    }
-    testmsg << " Stop test " << endl;
-    /*
-    ofstream myfile;
-    myfile.open("IPPL_FFT", ofstream::app);
-    myfile << nx << "\t" << timer.clock_time() << "\t" << timer.clock_time() / nLoop << endl;
-    myfile.close();
-    */
-    IpplTimings::stopTimer(mainTimer);
-    IpplTimings::print();
-    IpplTimings::print(std::string(baseFn+std::string(".timing")));
+    writeMemoryData(os_memData, pwi, i+1);
+  }
+  testmsg << " Stop test " << endl;
+  IpplTimings::stopTimer(mainTimer);
+  IpplTimings::print();
+  IpplTimings::print(std::string(baseFn+std::string(".timing")));
     
-    return 0;
+  return 0;
 }
 
 /***************************************************************************
@@ -410,3 +413,9 @@ int main(int argc, char *argv[])
  * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $ 
  ***************************************************************************/
 
+    /*
+    ofstream myfile;
+    myfile.open("IPPL_FFT", ofstream::app);
+    myfile << nx << "\t" << timer.clock_time() << "\t" << timer.clock_time() / nLoop << endl;
+    myfile.close();
+    */
