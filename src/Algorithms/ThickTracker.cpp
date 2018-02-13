@@ -613,9 +613,9 @@ void ThickTracker::createHamiltonian(series_t& H, std::shared_ptr<Component> ele
 
 void ThickTracker::execute() {
 
-	Inform msg("ThickTracker", *gmsg);
+    Inform msg("ThickTracker", *gmsg);
 
-	msg << "in execute " << __LINE__ << " " << __FILE__ << endl;
+    msg << "in execute " << __LINE__ << " " << __FILE__ << endl;
 
 
     OpalData::getInstance()->setInPrepState(true);
@@ -645,7 +645,6 @@ void ThickTracker::execute() {
 
     map_t combinedMaps; //Final Transfer map_t
     series_t H;         //createHamiltonian
-    FVector<double, 6> particle;
     OpalParticle part;
 
     structMapTracking mapTrackingElement;
@@ -658,6 +657,7 @@ void ThickTracker::execute() {
     double positionMapTracking =0;
 
     //files for analysis
+#ifdef PHIL_WRITE
     std::ofstream outfile;
     outfile.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/generatedMaps.txt");
     outfile << std::setprecision(8);
@@ -665,7 +665,8 @@ void ThickTracker::execute() {
     std::ofstream tmap;
     tmap.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/TransferMap.txt");
     tmap << std::setprecision(20);
-
+#endif
+    
     FieldList allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
 
 	//sorts beamline according elementposition
@@ -697,29 +698,29 @@ void ThickTracker::execute() {
 
 
         // Fill Drift , if necessary
-		if (positionMapTracking < mapTrackingElement.elementPos -1e-6){
-			double undefSpace=mapTrackingElement.elementPos - positionMapTracking;
-			msg << undefSpace<<endl;
-			fillDrift(mapBeamLine, positionMapTracking, undefSpace);
-		}
+        if (positionMapTracking < mapTrackingElement.elementPos -1e-6){
+            double undefSpace=mapTrackingElement.elementPos - positionMapTracking;
+            msg << undefSpace<<endl;
+            fillDrift(mapBeamLine, positionMapTracking, undefSpace);
+        }
 
-		//check for overlap
+        //check for overlap
         msg << positionMapTracking << "  >  "<< mapTrackingElement.elementPos<< endl;
-		if ( positionMapTracking > mapTrackingElement.elementPos){
-			msg << "There is an overlap! @ Element: " << mapTrackingElement.elementName <<
-					"-> starts at: " << mapTrackingElement.elementPos<<
-					" the previous ends at: " << positionMapTracking << endl;
+        if ( positionMapTracking > mapTrackingElement.elementPos){
+            msg << "There is an overlap! @ Element: " << mapTrackingElement.elementName <<
+                   "-> starts at: " << mapTrackingElement.elementPos<<
+                   " the previous ends at: " << positionMapTracking << endl;
 
 //            throw LogicalError("ThickTracker::exercute,",
 //                                            "Overlap at element:"+ element->getName());
 
-			if(positionMapTracking < mapTrackingElement.elementPos+ element->getElementLength()){
-				positionMapTracking=std::round((mapTrackingElement.elementPos + element->getElementLength())*1e6)/1e6;
-			}
+            if(positionMapTracking < mapTrackingElement.elementPos+ element->getElementLength()){
+                positionMapTracking=std::round((mapTrackingElement.elementPos + element->getElementLength())*1e6)/1e6;
+            }
 
-		}else{
-			positionMapTracking=std::round((mapTrackingElement.elementPos + element->getElementLength())*1e6)/1e6;
-		}
+        }else{
+            positionMapTracking=std::round((mapTrackingElement.elementPos + element->getElementLength())*1e6)/1e6;
+        }
 
 
 
@@ -749,92 +750,106 @@ void ThickTracker::execute() {
     //=================================
     // TODO: remove Messages later
     //=================================
-    for (mapBeamLineit=mapBeamLine.begin(); mapBeamLineit != mapBeamLine.end(); ++mapBeamLineit){
-    		msg << "=============================="<< endl;
-    		msg	<< "Name: " <<  mapBeamLineit->elementName << endl;
-			msg	<< "InPosition:  "<< mapBeamLineit->elementPos <<endl;
-			msg	<< "FinPosition: "<< mapBeamLineit->elementPos + mapBeamLineit->nSlices*mapBeamLineit->stepSize << endl;
+    for (mapBeamLineit=mapBeamLine.begin(); mapBeamLineit != mapBeamLine.end(); ++mapBeamLineit) {
+        msg << "=============================="<< endl
+            << "Name: " <<  mapBeamLineit->elementName << endl
+            << "InPosition:  "<< mapBeamLineit->elementPos <<endl
+            << "FinPosition: "<< mapBeamLineit->elementPos + mapBeamLineit->nSlices*mapBeamLineit->stepSize << endl;
     }
     //=================================
 
     std::size_t totalSlices=0;
 
     //combined map_t
-	for(mapBeamLineit=mapBeamLine.begin(); mapBeamLineit != mapBeamLine.end(); ++mapBeamLineit) {
-		for (std::size_t slice=0; slice < mapBeamLineit->nSlices; slice++){
-			combinedMaps= mapBeamLineit->elementMap * combinedMaps;
-			totalSlices++;
-		}
-	}
+    for (mapBeamLineit=mapBeamLine.begin(); mapBeamLineit != mapBeamLine.end(); ++mapBeamLineit) {
+        for (std::size_t slice=0; slice < mapBeamLineit->nSlices; slice++){
+            combinedMaps= mapBeamLineit->elementMap * combinedMaps;
+                totalSlices++;
+        }
+    }
 
-	outfile <<"Total Particle Number:  " <<  itsBunch_m->getTotalNum() << "  Total number of Slices:   "<< totalSlices << std::endl;
+#ifdef PHIL_WRITE
+    outfile <<"Total Particle Number:  " <<  itsBunch_m->getTotalNum() << "  Total number of Slices:   "<< totalSlices << std::endl;
 
     //eliminate higher order terms (occurring through multiplication)
-	combinedMaps=combinedMaps.truncate(truncOrder_m);
+    combinedMaps=combinedMaps.truncate(truncOrder_m);
 
-	tmap << "A customized FODO" << std::endl;
-	tmap << combinedMaps << std::endl;
+    tmap << "A customized FODO" << std::endl;
+    tmap << combinedMaps << std::endl;
+#endif
 
-
-	//track the Particles
-	int sliceidx;
-	//(1) Loop Elements
-	for(mapBeamLineit=mapBeamLine.begin(); mapBeamLineit != mapBeamLine.end(); ++mapBeamLineit) {
-
-		//(2) Loop Slices
-		for (std::size_t slice=0; slice < mapBeamLineit->nSlices; slice++){
-			//(3) Loop Particles
-				for (unsigned int partidx=0; partidx< itsBunch_m->getTotalNum(); ++partidx){
-					sliceidx=0;
-
-					for (int d = 0; d < 3; ++d) {
-						particle[2 * d] = itsBunch_m->R[partidx](d);
-						particle[2 *d + 1] = itsBunch_m->P[partidx](d);
-					}
-					outfile << sliceidx <<"  "<< partidx << " ["<< particle;
-				//Units
-				particle[5] = (particle[5]*itsBunch_m->getM()/itsBunch_m->getP())
-					* std::sqrt( 1./(particle[5]* particle[5]) +1)
-					-1./itsBunch_m->getInitialBeta();
-
-				//Apply map_t
-				particle= (*mapBeamLineit).elementMap * particle;
+    trackParticles_m(
+#ifdef PHIL_WRITE
+        outfile,
+#endif
+        mapBeamLine);
+    
+}
 
 
-				//Units back
-				particle[4]= mapBeamLineit->elementPos + mapBeamLineit->stepSize * slice+1;
+void ThickTracker::trackParticles_m(
+#ifdef PHIL_WRITE
+    std::ofstream& outfile,
+#endif
+                                    const std::list<structMapTracking>& mapBeamLine) {
+    int sliceidx;
+    
+    FVector<double, 6> particle;
+    
+    for(auto mapBeamLineit=mapBeamLine.begin(); mapBeamLineit != mapBeamLine.end(); ++mapBeamLineit) {
 
-				particle[5] = (particle[5] + 1./itsBunch_m->getInitialBeta()) * itsBunch_m->getP()/itsBunch_m->getM()
-						/std::sqrt( 1./(itsBunch_m ->get_part(partidx)[5]* itsBunch_m ->get_part(partidx)[5]) +1) ;
+        //(2) Loop Slices
+        for (std::size_t slice=0; slice < mapBeamLineit->nSlices; slice++){
+            //(3) Loop Particles
+            for (unsigned int partidx=0; partidx< itsBunch_m->getLocalNum(); ++partidx){
+                sliceidx=0;
 
-				//Write in File
-				outfile << sliceidx <<"  "<< partidx << " ["<< particle;
+                for (int d = 0; d < 3; ++d) {
+                    particle[2 * d] = itsBunch_m->R[partidx](d);
+                    particle[2 *d + 1] = itsBunch_m->P[partidx](d);
+                }
+                
+#ifdef PHIL_WRITE
+                outfile << sliceidx <<"  "<< partidx << " ["<< particle;
+#endif
+                //Units
+                particle[5] = (particle[5]*itsBunch_m->getM()/itsBunch_m->getP())
+                                * std::sqrt( 1./(particle[5]* particle[5]) +1)
+                                -1./itsBunch_m->getInitialBeta();
 
-				itsBunch_m->set_part(particle, partidx);
+                //Apply map_t
+                particle= (*mapBeamLineit).elementMap * particle;
+
+                //Units back
+                particle[4]= mapBeamLineit->elementPos + mapBeamLineit->stepSize * slice+1;
+
+                particle[5] = (particle[5] + 1./itsBunch_m->getInitialBeta()) * itsBunch_m->getP()/itsBunch_m->getM()
+                                /std::sqrt( 1./(itsBunch_m ->get_part(partidx)[5]* itsBunch_m ->get_part(partidx)[5]) +1) ;
+
+#ifdef PHIL_WRITE
+                //Write in File
+                outfile << sliceidx <<"  "<< partidx << " ["<< particle;
+#endif
+
+                itsBunch_m->set_part(particle, partidx);
 
 
 
-			}
-			bool const psDump = true;//((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1 == Options::psDumpFreq);
-			bool const statDump = true;//((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1 == Options::statDumpFreq);
+            }
+            bool const psDump = true;//((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1 == Options::psDumpFreq);
+            bool const statDump = true;//((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1 == Options::statDumpFreq);
 
-			dumpStats(sliceidx, psDump, statDump);
-			sliceidx ++;
-			itsBunch_m->set_sPos(mapBeamLineit->elementPos + mapBeamLineit->stepSize * slice);
-
-			//form ParalellTTracker
-
-
-		}
-
-	}
-
-
+            dumpStats(sliceidx, psDump, statDump);
+            sliceidx ++;
+            itsBunch_m->set_sPos(mapBeamLineit->elementPos + mapBeamLineit->stepSize * slice);
+            //form ParalellTTracker
+        }
+    }    
 }
 
 void ThickTracker::dumpStats(long long step, bool psDump, bool statDump) {
 
-	OPALTimer::Timer myt2;
+    OPALTimer::Timer myt2;
     Inform msg("ThickTracker", *gmsg);
 
     std::size_t numParticlesInSimulation_m = itsBunch_m->getTotalNum();
@@ -902,7 +917,7 @@ void ThickTracker::writePhaseSpace(const long long step, bool psDump, bool statD
     if (statDump) {
         std::vector<std::pair<std::string, unsigned int> > collimatorLosses;
         FieldList collimators = itsOpalBeamline_m.getElementByType(ElementBase::COLLIMATOR);
-	if (collimators.size() != 0) {
+        if (collimators.size() != 0) {
             for (FieldList::iterator it = collimators.begin(); it != collimators.end(); ++ it) {
                 Collimator* coll = static_cast<Collimator*>(it->getElement().get());
                 std::string name = coll->getName();
@@ -923,7 +938,8 @@ void ThickTracker::writePhaseSpace(const long long step, bool psDump, bool statD
             for (size_t i = 0; i < collimatorLosses.size(); ++ i){
                 collimatorLosses[i].second = bareLosses[i];
             }
-	}
+        }
+        
         // Write statistical data.
         itsDataSink_m->writeStatData(itsBunch_m, FDext, collimatorLosses);
 

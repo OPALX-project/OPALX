@@ -57,6 +57,8 @@
 
 #define PSdim 6
 
+#define PHIL_WRITE 0
+
 class BMultipoleField;
 
 template <class T, unsigned Dim>
@@ -252,6 +254,12 @@ private:
     ThickTracker();
     ThickTracker(const ThickTracker &);
     void operator=(const ThickTracker &);
+    
+    void trackParticles_m(
+#ifdef PHIL_WRITE
+        std::ofstream& outfile,
+#endif
+                          const std::list<structMapTracking>& mapBeamLine);
 
     // Fringe fields for entrance and exit of magnetic elements.
     void applyEntranceFringe(double edge, double curve,
