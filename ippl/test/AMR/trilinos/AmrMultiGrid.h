@@ -687,25 +687,6 @@ private:
     IpplTimings::TimerRef residnofineTimer_m;   ///< timer for no-fine residual computation
     IpplTimings::TimerRef bottomTimer_m;        ///< bottom solver timer
 #endif
-
-    IpplTimings::TimerRef bopen_m;
-    IpplTimings::TimerRef bclose_m;
-    IpplTimings::TimerRef bcloseR_m;
-    IpplTimings::TimerRef bcloseI_m;
-    IpplTimings::TimerRef bcloseC_m;
-    IpplTimings::TimerRef bcloseP_m;
-    IpplTimings::TimerRef bcloseBf_m;
-    IpplTimings::TimerRef bcloseBc_m;
-    IpplTimings::TimerRef bcloseG_m;
-    IpplTimings::TimerRef bclear_m;
-    IpplTimings::TimerRef bRestict_m;
-    IpplTimings::TimerRef bInterp_m;
-    IpplTimings::TimerRef bCompo_m;
-    IpplTimings::TimerRef bPoiss_m;
-    IpplTimings::TimerRef bBf_m;
-    IpplTimings::TimerRef bBc_m;
-    IpplTimings::TimerRef bG_m;
-    IpplTimings::TimerRef bSmoother_m;
 };
 
 #endif
