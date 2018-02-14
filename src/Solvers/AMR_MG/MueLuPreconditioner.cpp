@@ -4,10 +4,12 @@
 
 
 
-MueLuPreconditioner::MueLuPreconditioner(const AmrIntVect_t& grid)
+MueLuPreconditioner::MueLuPreconditioner(const AmrIntVect_t& grid,
+                                         const bool& rebalance)
     : prec_mp(Teuchos::null),
       coords_mp(Teuchos::null),
-      grid_m(grid)
+      grid_m(grid),
+      rebalance_m(rebalance)
 {
     this->init_m();
 }
@@ -15,17 +17,21 @@ MueLuPreconditioner::MueLuPreconditioner(const AmrIntVect_t& grid)
 
 void MueLuPreconditioner::create(const Teuchos::RCP<amr::matrix_t>& A) {
 
-    coords_mp = Teuchos::rcp( new amr::multivector_t(A->getDomainMap(),
-                                                     AMREX_SPACEDIM, false) );
+    coords_mp = Teuchos::null;
+
+    if ( rebalance_m ) {
+        coords_mp = Teuchos::rcp( new amr::multivector_t(A->getDomainMap(),
+                                                         AMREX_SPACEDIM, false) );
     
-    const Teuchos::RCP<const amr::dmap_t>& map_r = A->getMap();
+        const Teuchos::RCP<const amr::dmap_t>& map_r = A->getMap();
     
-    for (std::size_t i = 0; i < map_r->getNodeNumElements(); ++i) {
-        AmrIntVect_t iv = deserialize_m(map_r->getGlobalElement(i));
-        for (int d = 0; d < AMREX_SPACEDIM; ++d)
-            coords_mp->replaceLocalValue(i, 0, iv[d]);
+        for (std::size_t i = 0; i < map_r->getNodeNumElements(); ++i) {
+            AmrIntVect_t iv = deserialize_m(map_r->getGlobalElement(i));
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                coords_mp->replaceLocalValue(i, 0, iv[d]);
+        }
     }
-    
+
     prec_mp = MueLu::CreateTpetraPreconditioner(A, params_m, coords_mp);
 
     coords_mp = Teuchos::null;
