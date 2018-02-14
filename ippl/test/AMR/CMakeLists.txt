@@ -17,6 +17,10 @@ IF ( ENABLE_AMR )
         
         add_definitions(${AMREX_DEFINES})
         
+        set (CMAKE_CXX_FLAGS
+             "${IPPL_CMAKE_CXX_FLAGS} -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
+        )
+        
         include_directories (
             ${CMAKE_SOURCE_DIR}/src
             ${CMAKE_SOURCE_DIR}/ippl/src
@@ -24,6 +28,9 @@ IF ( ENABLE_AMR )
             ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/
             ${CMAKE_SOURCE_DIR}/src/Utilities/
             ${IPPL_INCLUDE_DIR}
+            ${H5Hut_INCLUDE_DIR}
+            ${HDF5_INCLUDE_DIR}
+            ${GSL_INCLUDE_DIR}
             ${AMREX_INCLUDE_DIR}
             ${Trilinos_INCLUDE_DIRS}
             ${Trilinos_TPL_INCLUDE_DIRS}
@@ -33,6 +40,7 @@ IF ( ENABLE_AMR )
             ${CMAKE_CURRENT_SOURCE_DIR}
             ${CMAKE_SOURCE_DIR}/src
             ${IPPL_LIBRARY_DIR}
+            ${GSL_LIBRARY_DIR}
             ${AMREX_LIBRARY_DIR}
             ${Trilinos_LIBRARY_DIRS}
             ${Trilinos_TPL_LIBRARY_DIRS}
@@ -40,11 +48,16 @@ IF ( ENABLE_AMR )
 
         add_library(multigrid
                     trilinos/AmrMultiGridCore.h
+                    trilinos/AmrMultiGridDefs.h
                     trilinos/BelosBottomSolver.cpp
                     trilinos/AmesosBottomSolver.cpp
+                    trilinos/FFTBottomSolver.cpp
                     trilinos/AmrSmoother.cpp
                     trilinos/AmrMultiGrid.cpp
                     trilinos/AmrRedistributor.cpp
+                    trilinos/Ifpack2Preconditioner.cpp
+		    trilinos/MueLuPreconditioner.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Solvers/FFTPoissonSolver.cpp
                     ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
                     ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp)
         
@@ -54,6 +67,9 @@ IF ( ENABLE_AMR )
                               ${Fortran_LIBS}
                               ${Trilinos_LIBRARIES}
                               ${Trilinos_TPL_LIBRARIES}
+                              ${IPPL_LIBRARY}
+                              ${H5Hut_LIBRARY}
+                              ${HDF5_LIBRARY}
                               ${AMREX_EXTRA_Fortran_LINK_LINE}
                               ${AMREX_LIBRARIES})
                               

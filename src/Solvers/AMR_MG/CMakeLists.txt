@@ -3,6 +3,8 @@ set (_SRCS
     AmrMultiGrid.cpp
     AmrSmoother.cpp
     BelosBottomSolver.cpp
+    Ifpack2Preconditioner.cpp
+    MueLuPreconditioner.cpp
 )
 
 include_directories (
@@ -19,6 +21,7 @@ set (HDRS
     AmrLagrangeInterpolater.h
     AmrLagrangeInterpolater.hpp
     AmrMultiGridCore.h
+    AmrMultiGridDefs.h
     AmrMultiGrid.h
     AmrMultiGridLevel.h
     AmrMultiGridLevel.hpp
@@ -26,11 +29,14 @@ set (HDRS
     AmrPCInterpolater.h
     AmrPCInterpolater.hpp
     AmrPeriodicBoundary.h
+    AmrPreconditioner.h
     AmrSmoother.h
     AmrTrilinearInterpolater.h
     AmrTrilinearInterpolater.hpp
     BelosBottomSolver.h
     BottomSolver.h
+    Ifpack2Preconditioner.h
+    MueLuPreconditioner.h
 )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Solvers/AMR_MG/")

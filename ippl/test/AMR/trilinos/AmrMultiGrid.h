@@ -10,7 +10,7 @@
 
 #include "AmrMultiGridCore.h"
 
-#include "AmrRedistributor.h"
+//#include "AmrRedistributor.h"
 
 #include "AmrMultiGridLevel.h"
 
@@ -39,6 +39,11 @@ public:
     typedef AmrMultiGridLevel_t::coefficients_t coefficients_t;
     typedef AmrMultiGridLevel_t::umap_t         umap_t;
     typedef AmrMultiGridLevel_t::boundary_t     boundary_t;
+    
+    typedef BottomSolver<
+        Teuchos::RCP<matrix_t>,
+        Teuchos::RCP<mv_t>
+    > bsolver_t;
 
     typedef amrex::BoxArray boxarray_t;
     typedef amrex::Box box_t;
@@ -106,8 +111,30 @@ public:
 public:
     
     /*!
+     * Instantiation used in Structure/FieldSolver.cpp for
+     * OPAL bottom solvers.
+     * @param bsolver the bottom solver
+     * @param bcx boundary condition in x
+     * @param bcy boundary condition in y
+     * @param bcz boundary condition in z
+     * @param smoother for level solution
+     * @param nSweeps when smoothing
+     * @param interp interpolater between levels
+     * @param norm for convergence criteria
+     */
+    AmrMultiGrid(bsolver_t* bsolver,
+                 const std::string& bcx,
+                 const std::string& bcy,
+                 const std::string& bcz,
+                 const std::string& smoother,
+                 const std::size_t& nSweeps,
+                 const std::string& interp,
+                 const std::string& norm);
+    
+    /*!
      * Instantiation used in Structure/FieldSolver.cpp
      * @param bsolver bottom solver
+     * @param bgrid is the bottom grid dimension
      * @param prec preconditioner for bottom solver
      * @param bcx boundary condition in x
      * @param bcy boundary condition in y
@@ -118,6 +145,7 @@ public:
      * @param norm for convergence criteria
      */
     AmrMultiGrid(const std::string& bsolver,
+                 const std::size_t bgrid[AMREX_SPACEDIM],
                  const std::string& prec,
                  const std::string& bcx,
                  const std::string& bcy,
@@ -129,6 +157,7 @@ public:
     
     /*!
      * Instantiation.
+     * @param bgrid is the bottomg grid dimension
      * @param bcx physical boundary condition in x
      * @param bcy physical boundary condition in y
      * @param bcz physical boundary condition in z
@@ -140,7 +169,8 @@ public:
      * @param smoother for error
      * @param norm convergence criteria
      */
-    AmrMultiGrid(Boundary bcx = Boundary::DIRICHLET,
+    AmrMultiGrid(const std::size_t bgrid[AMREX_SPACEDIM],
+                 Boundary bcx = Boundary::DIRICHLET,
                  Boundary bcy = Boundary::DIRICHLET,
                  Boundary bcz = Boundary::DIRICHLET,
                  Interpolater interp = Interpolater::TRILINEAR,
@@ -207,6 +237,25 @@ public:
     
     
 private:
+    
+    /*!
+     * This constructor should be called by
+     * all other constructors. (i.e. constructor delegation)
+     * @param bcx boundary condition in x
+     * @param bcy boundary condition in y
+     * @param bcz boundary condition in z
+     * @param smoother for level solution
+     * @param nSweeps when smoothing
+     * @param interp interpolater between levels
+     * @param norm for convergence criteria
+     */
+    AmrMultiGrid(const std::string& bcx,
+                 const std::string& bcy,
+                 const std::string& bcz,
+                 const std::string& smoother,
+                 const std::size_t& nSweeps,
+                 const std::string& interp,
+                 const std::string& norm);
     
     /*!
      * Instantiate boundary object
@@ -545,10 +594,16 @@ private:
     /*!
      * Instantiate a bottom solver
      * @param solver type
-     * @param precond preconditioner
      */
-    void initBaseSolver_m(const BaseSolver& solver,
-                          const Preconditioner& precond);
+    void initBaseSolver_m(const BaseSolver& solver);
+    
+    /*!
+     * Instantiate a preconditioner for the bottom solver
+     * @param precond type
+     * @param grid is the number of grid points per dimension
+     */
+    void initPrec_m(const Preconditioner& prec,
+                    const std::size_t grid[AMREX_SPACEDIM]);
     
     /*!
      * Convertstring to enum Boundary
@@ -605,10 +660,13 @@ private:
     std::vector<std::unique_ptr<AmrMultiGridLevel_t > > mglevel_m;
     
     /// bottom solver
-    std::shared_ptr<BottomSolver<Teuchos::RCP<matrix_t>, Teuchos::RCP<mv_t> > > solver_mp;
+    std::shared_ptr<bsolver_t> solver_mp;
     
     /// error smoother
     std::vector<std::shared_ptr<AmrSmoother> > smoother_m;
+    
+    // preconditioner for bottom solver
+    std::shared_ptr<AmrPreconditioner<matrix_t> > prec_mp;
     
     int lbase_m;            ///< base level (currently only 0 supported)
     int lfine_m;            ///< fineste level
@@ -619,7 +677,7 @@ private:
     
     Norm norm_m;            ///< norm for convergence criteria (l1, l2, linf)
     
-    std::unique_ptr<AmrRedistributor> balancer_mp;
+//    std::unique_ptr<AmrRedistributor> balancer_mp;
     
 #if AMR_MG_TIMER
     IpplTimings::TimerRef buildTimer_m;         ///< timer for matrix and vector construction
@@ -629,25 +687,6 @@ private:
     IpplTimings::TimerRef residnofineTimer_m;   ///< timer for no-fine residual computation
     IpplTimings::TimerRef bottomTimer_m;        ///< bottom solver timer
 #endif
-
-    IpplTimings::TimerRef bopen_m;
-    IpplTimings::TimerRef bclose_m;
-    IpplTimings::TimerRef bcloseR_m;
-    IpplTimings::TimerRef bcloseI_m;
-    IpplTimings::TimerRef bcloseC_m;
-    IpplTimings::TimerRef bcloseP_m;
-    IpplTimings::TimerRef bcloseBf_m;
-    IpplTimings::TimerRef bcloseBc_m;
-    IpplTimings::TimerRef bcloseG_m;
-    IpplTimings::TimerRef bclear_m;
-    IpplTimings::TimerRef bRestict_m;
-    IpplTimings::TimerRef bInterp_m;
-    IpplTimings::TimerRef bCompo_m;
-    IpplTimings::TimerRef bPoiss_m;
-    IpplTimings::TimerRef bBf_m;
-    IpplTimings::TimerRef bBc_m;
-    IpplTimings::TimerRef bG_m;
-    IpplTimings::TimerRef bSmoother_m;
 };
 
 #endif

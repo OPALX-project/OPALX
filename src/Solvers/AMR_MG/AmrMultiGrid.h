@@ -42,6 +42,13 @@ public:
     typedef AmrMultiGridLevel_t::coefficients_t coefficients_t;
     typedef AmrMultiGridLevel_t::umap_t         umap_t;
     typedef AmrMultiGridLevel_t::boundary_t     boundary_t;
+    
+    typedef BottomSolver<
+        Teuchos::RCP<matrix_t>,
+        Teuchos::RCP<mv_t>
+    > bsolver_t;
+    
+    typedef AmrPreconditioner<matrix_t> preconditioner_t;
 
     typedef amrex::BoxArray boxarray_t;
     typedef amrex::Box box_t;
@@ -131,30 +138,6 @@ public:
                  const std::size_t& nSweeps,
                  const std::string& interp,
                  const std::string& norm);
-    
-    /*!
-     * Instantiation.
-     * @param bcx physical boundary condition in x
-     * @param bcy physical boundary condition in y
-     * @param bcz physical boundary condition in z
-     * @param interp interpolater from coarse to fine grids without taking care of
-     * coarse-fine interface
-     * @param interface interpolater taking care of coarse-fine interface
-     * @param solver for bottom level
-     * @param preconditioner for bottom solver if available
-     * @param smoother for error
-     * @param norm convergence criteria
-     */
-    AmrMultiGrid(Boundary bcx = Boundary::DIRICHLET,
-                 Boundary bcy = Boundary::DIRICHLET,
-                 Boundary bcz = Boundary::DIRICHLET,
-                 Interpolater interp = Interpolater::TRILINEAR,
-                 Interpolater interface = Interpolater::LAGRANGE,
-                 BaseSolver solver = BaseSolver::CG,
-                 Preconditioner precond = Preconditioner::NONE,
-                 Smoother smoother = Smoother::JACOBI,
-                 Norm norm = Norm::LINF
-                );
     
     /*!
      * Compute the potential and the electric field
@@ -578,10 +561,14 @@ private:
     /*!
      * Instantiate a bottom solver
      * @param solver type
-     * @param precond preconditioner
      */
-    void initBaseSolver_m(const BaseSolver& solver,
-                          const Preconditioner& precond);
+    void initBaseSolver_m(const BaseSolver& solver);
+    
+    /*!
+     * Instantiate a preconditioner for the bottom solver
+     * @param precond type
+     */
+    void initPrec_m(const Preconditioner& prec);
     
     /*!
      * Convertstring to enum Boundary
@@ -658,10 +645,13 @@ private:
     std::vector<std::unique_ptr<AmrMultiGridLevel_t > > mglevel_m;
     
     /// bottom solver
-    std::shared_ptr<BottomSolver<Teuchos::RCP<matrix_t>, Teuchos::RCP<mv_t> > > solver_mp;
+    std::shared_ptr<bsolver_t> solver_mp;
     
     /// error smoother
     std::vector<std::shared_ptr<AmrSmoother> > smoother_m;
+    
+    /// preconditioner for bottom solver
+    std::shared_ptr<preconditioner_t> prec_mp;
     
     int lbase_m;            ///< base level (currently only 0 supported)
     int lfine_m;            ///< fineste level
