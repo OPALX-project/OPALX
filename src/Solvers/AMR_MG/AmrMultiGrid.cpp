@@ -67,63 +67,13 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
     // interpolater for crse-fine-interface
     this->initCrseFineInterp_m(Interpolater::LAGRANGE);
     
+    // preconditioner
+    const Preconditioner precond = this->convertToEnumPreconditioner_m(prec);
+    this->initPrec_m(precond);
+    
     // base level solver
     const BaseSolver solver = this->convertToEnumBaseSolver_m(bsolver);
-    const Preconditioner precond = this->convertToEnumPreconditioner_m(prec);
-    this->initBaseSolver_m(solver, precond);
-    
-    if (boost::filesystem::exists(fname_m)) {
-        flag_m = std::ios::app;
-        INFOMSG("Appending solver information to existing file: " << fname_m << endl);
-    } else {
-        INFOMSG("Creating new file for solver information: " << fname_m << endl);
-    }
-}
-
-
-AmrMultiGrid::AmrMultiGrid(Boundary bcx,
-                           Boundary bcy,
-                           Boundary bcz,
-                           Interpolater interp,
-                           Interpolater interface,
-                           BaseSolver solver,
-                           Preconditioner precond,
-                           Smoother smoother,
-                           Norm norm
-                          )
-    : AmrPoissonSolver<AmrBoxLib>(nullptr),
-      nIter_m(0),
-      bIter_m(0),
-      maxiter_m(100),
-      nSweeps_m(12),
-      smootherType_m(smoother),
-      lbase_m(0),
-      lfine_m(0),
-      nlevel_m(1),
-      nBcPoints_m(0),
-      norm_m(norm),
-      verbose_m(false),
-      fname_m(OpalData::getInstance()->getInputBasename() + std::string(".solver")),
-      flag_m(std::ios::out)
-{
-    comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
-    node_mp = KokkosClassic::Details::getNode<amr::node_t>(); //KokkosClassic::DefaultNode::getDefaultNode();
-    
-#if AMR_MG_TIMER
-    this->initTimer_m();
-#endif
-    
-    const Boundary bcs[AMREX_SPACEDIM] = { bcx, bcy, bcz };
-    
-    this->initPhysicalBoundary_m(&bcs[0]);
-    
-    this->initInterpolater_m(interp);
-    
-    // interpolater for crse-fine-interface
-    this->initCrseFineInterp_m(interface);
-    
-    // base level solver
-    this->initBaseSolver_m(solver, precond);
+    this->initBaseSolver_m(solver);
     
     if (boost::filesystem::exists(fname_m)) {
         flag_m = std::ios::app;
@@ -746,18 +696,21 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
     IpplTimings::startTimer(buildTimer_m);
 #endif
     
+    bool isNewOperator = (mglevel_m[lbase_m]->Anf_p == Teuchos::null);
+    
     if ( lbase_m == lfine_m )
-        this->buildSingleLevel_m(rho, phi, matrices);
+        this->buildSingleLevel_m(rho, phi, isNewOperator);
     else
         this->buildMultiLevel_m(rho, phi, matrices);
     
     mglevel_m[lfine_m]->error_p->putScalar(0.0);
     
-    if ( matrices ) {
+    if ( matrices )
+        this->clearMasks_m();
+    
+    if ( isNewOperator ) {
         // set the bottom solve operator
         solver_mp->setOperator(mglevel_m[lbase_m]->Anf_p);
-        
-        this->clearMasks_m();
     }
 
     
@@ -835,7 +788,10 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
     if ( matrices )
         smoother_m.resize(nlevel_m-1);
     
-    for (int lev = 0; lev < nlevel_m; ++lev) {
+    // we need to build base level only at beginning of simulation
+    int startLevel = (mglevel_m[lbase_m]->Anf_p == Teuchos::null) ? 0 : 1;
+    
+    for (int lev = startLevel; lev < nlevel_m; ++lev) {
 
         this->open_m(lev, matrices);
 
@@ -1918,34 +1874,33 @@ void AmrMultiGrid::initCrseFineInterp_m(const Interpolater& interface) {
 }
 
 
-void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
-                                    const Preconditioner& precond)
+void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver)
 {
     switch ( solver ) {
         // Belos solvers
         case BaseSolver::BICGSTAB:
-            solver_mp.reset( new BelosBottomSolver("BICGSTAB", precond) );
+            solver_mp.reset( new BelosBottomSolver("BICGSTAB", prec_mp) );
             break;
         case BaseSolver::MINRES:
-            solver_mp.reset( new BelosBottomSolver("MINRES", precond) );
+            solver_mp.reset( new BelosBottomSolver("MINRES", prec_mp) );
             break;
         case BaseSolver::PCPG:
-            solver_mp.reset( new BelosBottomSolver("PCPG", precond) );
+            solver_mp.reset( new BelosBottomSolver("PCPG", prec_mp) );
             break;
         case BaseSolver::CG:
-            solver_mp.reset( new BelosBottomSolver("Pseudoblock CG", precond) );
+            solver_mp.reset( new BelosBottomSolver("Pseudoblock CG", prec_mp) );
             break;
         case BaseSolver::GMRES:
-            solver_mp.reset( new BelosBottomSolver("Pseudoblock GMRES", precond) );
+            solver_mp.reset( new BelosBottomSolver("Pseudoblock GMRES", prec_mp) );
             break;
         case BaseSolver::STOCHASTIC_CG:
-            solver_mp.reset( new BelosBottomSolver("Stochastic CG", precond) );
+            solver_mp.reset( new BelosBottomSolver("Stochastic CG", prec_mp) );
             break;
         case BaseSolver::RECYCLING_CG:
-            solver_mp.reset( new BelosBottomSolver("RCG", precond) );
+            solver_mp.reset( new BelosBottomSolver("RCG", prec_mp) );
             break;
         case BaseSolver::RECYCLING_GMRES:
-            solver_mp.reset( new BelosBottomSolver("GCRODR", precond) );
+            solver_mp.reset( new BelosBottomSolver("GCRODR", prec_mp) );
             break;
         // Amesos2 solvers
 #ifdef HAVE_AMESOS2_KLU2
@@ -1981,6 +1936,28 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
         default:
             throw OpalException("AmrMultiGrid::initBaseSolver_m()",
                                 "No such bottom solver available.");
+    }
+}
+
+
+void AmrMultiGrid::initPrec_m(const Preconditioner& prec)
+{
+    switch ( prec ) {
+        case Preconditioner::ILUT:
+        case Preconditioner::CHEBYSHEV:
+        case Preconditioner::RILUK:
+            prec_mp.reset( new Ifpack2Preconditioner(prec) );
+            break;
+        case Preconditioner::SA:
+            AmrIntVect_t grid = itsAmrObject_mp->Geom(0).Domain().size();
+            prec_mp.reset( new MueLuPreconditioner(grid) );
+            break;
+        case Preconditioner::NONE:
+            prec_mp.reset();
+            break;
+        default:
+            throw OpalException("AmrMultiGrid::initPrec_m()",
+                                "No such preconditioner available.");
     }
 }
 
