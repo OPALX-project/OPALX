@@ -382,7 +382,7 @@ AmrMultiGrid::scalar_t AmrMultiGrid::iterate_m() {
         
         ++nIter_m;
         
-#ifdef AMR_MG_WRITE
+#if AMR_MG_WRITE
         this->writeResidualNorm_m();
 #endif
         

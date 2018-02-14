@@ -294,7 +294,7 @@ private:
                             const Teuchos::RCP<vector_t>& crs_rhs,
                             const Teuchos::RCP<vector_t>& b);
                            
-#ifdef AMR_MG_WRITE
+#if AMR_MG_WRITE
     /*!
      * Dumps the residual norm per level into a file (for each iteration).
      */
