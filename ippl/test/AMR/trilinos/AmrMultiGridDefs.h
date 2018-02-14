@@ -1,5 +1,5 @@
-#ifndef AMR_MULTI_GRID_DEFS
-#define AMR_MULTI_GRID_DEFS
+#ifndef AMR_MULTI_GRID_DEFS_H
+#define AMR_MULTI_GRID_DEFS_H
 
 // Trilinos headers
 #include <Tpetra_Map.hpp>
@@ -17,8 +17,18 @@ namespace amr {
     typedef double scalar_t;
     typedef int local_ordinal_t;
     typedef int global_ordinal_t;
+    
+#ifdef AMR_MG_SERIAL_NODE
     typedef ::Kokkos::Compat::KokkosSerialWrapperNode node_t;
-//     typedef KokkosClassic::DefaultNode::DefaultNodeType node_t;
+#elif AMR_MG_PTHREAD_NODE
+    typedef ::Kokkos::Compat::KokkosThreadsWrapperNode node_t;
+#elif AMR_MG_OPENMP_NODE
+    typedef ::Kokkos::Compat::KokkosOpenMPWrapperNode node_t;
+#elif AMR_MG_CUDA_NODE
+    typedef ::Kokkos::Compat::KokkosCudaWrapperNode node_t;
+#else
+    typedef KokkosClassic::DefaultNode::DefaultNodeType node_t;
+#endif
     
     typedef Tpetra::CrsMatrix<scalar_t,
                               local_ordinal_t,

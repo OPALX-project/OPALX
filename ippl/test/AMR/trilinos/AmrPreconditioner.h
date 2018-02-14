@@ -1,5 +1,5 @@
-#ifndef AMR_PRECONDITIONER
-#define AMR_PRECONDITIONER
+#ifndef AMR_PRECONDITIONER_H
+#define AMR_PRECONDITIONER_H
 
 #include "AmrMultiGridDefs.h"
 

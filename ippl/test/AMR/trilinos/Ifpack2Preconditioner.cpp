@@ -33,7 +33,7 @@ void Ifpack2Preconditioner::init_m(Preconditioner prec)
             // inclomplete LU
             prectype_m = "ILUT";
             
-            params_mp->set("fact: ilut level-of-fill", 1.0);
+            params_mp->set("fact: ilut level-of-fill", 5.0);
             params_mp->set("fact: drop tolerance", 0.0);
             
             break;
