@@ -1,6 +1,7 @@
 #include "AmrMultiGrid.h"
 
 #include <algorithm>
+#include <functional>
 #include <map>
 #include <numeric>
 
@@ -398,7 +399,7 @@ bool AmrMultiGrid::isConverged_m(std::vector<scalar_t>& rhsNorms,
                                  std::vector<scalar_t>& resNorms)
 {
     return std::equal(resNorms.begin(), resNorms.end(),
-                      rhsNorms.begin(), rhsNorms.end(),
+                      rhsNorms.begin(),
                       std::less<scalar_t>());
 }
 
