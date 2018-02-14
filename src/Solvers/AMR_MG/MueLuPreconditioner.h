@@ -21,7 +21,8 @@ public:
     
 public:
     
-    MueLuPreconditioner(const AmrIntVect_t& grid);
+    MueLuPreconditioner(const AmrIntVect_t& grid,
+                        const bool& rebalance);
     
     void create(const Teuchos::RCP<amr::matrix_t>& A);
     
@@ -40,6 +41,7 @@ private:
     Teuchos::RCP<amr::multivector_t> coords_mp;
 
     const AmrIntVect_t grid_m;
+    const bool rebalance_m;
 };
 
 #endif
