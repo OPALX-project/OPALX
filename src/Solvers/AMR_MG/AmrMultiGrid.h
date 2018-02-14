@@ -258,7 +258,13 @@ private:
      * @returns the the max. residual
      */
     scalar_t iterate_m();
-    
+
+    /*!
+     * Compute norms / level and check convergence
+     * @returns true if converged
+     */
+    bool isConverged_m();
+
     /*!
      * Compute composite residual of a level
      * @param r is the residual to compute
