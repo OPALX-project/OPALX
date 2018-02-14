@@ -18,6 +18,8 @@
 #include <fstream>
 
 #define AMR_MG_TIMER 1
+#define AMR_MG_WRITE 0
+#define DEBUG 0
 
 class AmrMultiGrid : public AmrPoissonSolver< AmrBoxLib > {
     
@@ -200,12 +202,6 @@ public:
     scalar_t getLevelResidualNorm(lo_t level);
     
     /*!
-     * Obtain the residual norm
-     * @returns the maximum of all residual norms over all levels
-     */
-    scalar_t getMaxResidualNorm();
-    
-    /*!
      * Enable solver info dumping into SDDS file
      */
     void setVerbose(bool verbose);
@@ -263,7 +259,8 @@ private:
      * Compute norms / level and check convergence
      * @returns true if converged
      */
-    bool isConverged_m();
+    bool isConverged_m(std::vector<scalar_t>& rhsNorms,
+                       std::vector<scalar_t>& resNorms);
 
     /*!
      * Compute composite residual of a level
@@ -297,11 +294,12 @@ private:
                             const Teuchos::RCP<vector_t>& crs_rhs,
                             const Teuchos::RCP<vector_t>& b);
                            
+#ifdef AMR_MG_WRITE
     /*!
-     * @returns the maximum norm over all levels using the norm specified
-     * by the user
+     * Dumps the residual norm per level into a file (for each iteration).
      */
-    scalar_t residualNorm_m();
+    void writeResidualNorm_m();
+#endif
     
     /*!
      * Vector norm computation.
@@ -312,10 +310,11 @@ private:
     
     /*!
      * Initial convergence criteria values.
-     * @param maxResidual maximum norm of residual over all levels
-     * @param maxRho maximum norm of right-hand side over all levels
+     * @param rhsNorms per level of right-hand side (is filled)
+     * @param resNorms per level of residual (is filled)
      */
-    void initResidual_m(scalar_t& maxResidual, scalar_t& maxRho);
+    void initResidual_m(std::list<scalar_t>& rhsNorms,
+                        std::list<scalar_t>& resNorms);
     
     /*!
      * @param efield to compute
