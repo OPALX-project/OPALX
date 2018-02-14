@@ -1,6 +1,8 @@
 #include "AmrMultiGrid.h"
 
+#include <algorithm>
 #include <map>
+#include <numeric>
 
 #include "OPALconfig.h"
 #include "AbstractObjects/OpalData.h"
@@ -9,10 +11,6 @@
 #include "Utilities/Util.h"
 
 #include <boost/filesystem.hpp>
-
-#define AMR_MG_WRITE 0
-
-#define DEBUG 0
 
 #if AMR_MG_WRITE
     #include <iomanip>
@@ -35,6 +33,7 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
       bIter_m(0),
       maxiter_m(100),
       nSweeps_m(nSweeps),
+      mglevel_m(0),
       lbase_m(0),
       lfine_m(0),
       nlevel_m(1),
@@ -204,11 +203,6 @@ AmrMultiGrid::scalar_t AmrMultiGrid::getLevelResidualNorm(lo_t level) {
 }
 
 
-AmrMultiGrid::scalar_t AmrMultiGrid::getMaxResidualNorm() {
-    return residualNorm_m();
-}
-
-
 void AmrMultiGrid::setVerbose(bool verbose) {
     verbose_m = verbose;
 }
@@ -249,12 +243,13 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
     if ( previous )
         return;
     
+    // we need to build base level only at beginning of simulation
+    int startLevel = (mglevel_m.empty()) ? 0 : 1;
+    
     mglevel_m.resize(nlevel_m);
     
     AmrIntVect_t rr = AmrIntVect_t(D_DECL(2, 2, 2));
     
-    // we need to build base level only at beginning of simulation
-    int startLevel = (mglevel_m[lbase_m]->Anf_p == Teuchos::null) ? 0 : 1;
 
     for (int lev = startLevel; lev < nlevel_m; ++lev) {
         int ilev = lbase_m + lev;
@@ -345,16 +340,20 @@ void AmrMultiGrid::initGuess_m(bool previous) {
 
 AmrMultiGrid::scalar_t AmrMultiGrid::iterate_m() {
     
-    scalar_t eps = 1.0e-8;
-    
     // initial error
-    scalar_t max_residual = 0.0;
-    scalar_t max_rho = max_residual;
+    std::vector<scalar_t> rhsNorms;
+    std::vector<scalar_t> resNorms;
+    
+    this->initResidual_m(rhsNorms, resNorms);
+    
+    scalar_t eps = 1.0e-8;
+    std::for_each(rhsNorms.begin(), rhsNorms.end(),
+                  [&eps](double& val){ val *= eps; });
     
     nIter_m = 0;
     bIter_m = 0;
     
-    while ( isConverged_m() && nIter_m < maxiter_m ) {
+    while ( isConverged_m(rhsNorms, resNorms) && nIter_m < maxiter_m ) {
         
         relax_m(lfine_m);
         
@@ -376,33 +375,31 @@ AmrMultiGrid::scalar_t AmrMultiGrid::iterate_m() {
                              mglevel_m[lev]->phi_p);
         }
         
-        //max_residual = residualNorm_m();
+        
+        for (lo_t lev = 0; lev < nlevel_m; ++lev)
+            resNorms[lev] = getLevelResidualNorm(lev);
         
         ++nIter_m;
+        
+#ifdef AMR_MG_WRITE
+        this->writeResidualNorm_m();
+#endif
         
         bIter_m += solver_mp->getNumIters();
     }
     
-    return max_residual;
+    return std::accumulate(resNorms.begin(),
+                           resNorms.end(), 0.0,
+                           std::plus<scalar_t>());
 }
 
 
-bool AmrMultiGrid::isConverged_m() {
-    bool converged = true;
-    scalar_t eps = 1.0e-8;
-
-    for (int lev = 0; lev < nlevel_m; ++lev) {
-	this->residual_m(lev,
-                         mglevel_m[lev]->residual_p,
-                         mglevel_m[lev]->rho_p,
-                         mglevel_m[lev]->phi_p);
-
-	scalar_t res = evalNorm_m(mglevel_m[lev]->residual_p);
-        scalar_t rhs = evalNorm_m(mglevel_m[lev]->rho_p);
-        converged &= (res < eps * rhs);
-    }
-
-    return converged;
+bool AmrMultiGrid::isConverged_m(std::vector<scalar_t>& rhsNorms,
+                                 std::vector<scalar_t>& resNorms)
+{
+    return std::equal(resNorms.begin(), resNorms.end(),
+                      rhsNorms.begin(), rhsNorms.end(),
+                      std::less<scalar_t>());
 }
 
 
@@ -591,36 +588,25 @@ void AmrMultiGrid::residual_no_fine_m(const lo_t& level,
 }
 
 
-typename AmrMultiGrid::scalar_t AmrMultiGrid::residualNorm_m() {
+#if AMR_MG_WRITE
+void AmrMultiGrid::writeResidualNorm_m() {
     scalar_t err = 0.0;
     
-#if AMR_MG_WRITE
     std::ofstream out;
     if ( Ippl::myNode() == 0 )
         out.open("residual.dat", std::ios::app);
-#endif
-    
     
     for (int lev = 0; lev < nlevel_m; ++lev) {
         scalar_t tmp = evalNorm_m(mglevel_m[lev]->residual_p);
-        err = std::max(err, tmp);
         
-#if AMR_MG_WRITE
         if ( Ippl::myNode() == 0 )
             out << std::setw(15) << std::right << tmp;
-#endif
     }
     
-#if AMR_MG_WRITE
-    if ( Ippl::myNode() == 0 ) {
-        out << std::setw(15) << err << std::endl;
+    if ( Ippl::myNode() == 0 )
         out.close();
-    }
-#endif
-    
-    
-    return err;
 }
+#endif
 
 
 typename AmrMultiGrid::scalar_t
@@ -652,7 +638,12 @@ AmrMultiGrid::evalNorm_m(const Teuchos::RCP<const vector_t>& x)
 }
 
 
-void AmrMultiGrid::initResidual_m(scalar_t& maxResidual, scalar_t& maxRho) {
+void AmrMultiGrid::initResidual_m(std::vector<scalar_t>& rhsNorms,
+                                  std::vector<scalar_t>& resNorms)
+{
+    rhsNorms.clear();
+    resNorms.clear();
+    
 #if AMR_MG_WRITE
     std::ofstream out;
     
@@ -661,11 +652,9 @@ void AmrMultiGrid::initResidual_m(scalar_t& maxResidual, scalar_t& maxRho) {
     
         for (int lev = 0; lev < nlevel_m; ++lev)
             out << std::setw(14) << std::right << "level" << lev;
-        out << std::setw(15) << std::right << "max";
         out << std::endl;
     }
 #endif
-    
     
     for (int lev = 0; lev < nlevel_m; ++lev) {
         this->residual_m(lev,
@@ -673,23 +662,19 @@ void AmrMultiGrid::initResidual_m(scalar_t& maxResidual, scalar_t& maxRho) {
                          mglevel_m[lev]->rho_p,
                          mglevel_m[lev]->phi_p);
         
-        scalar_t tmp = evalNorm_m(mglevel_m[lev]->residual_p);
-        maxResidual = std::max(maxResidual, tmp);
+        resNorms.push_back(evalNorm_m(mglevel_m[lev]->residual_p));
         
 #if AMR_MG_WRITE
         if ( Ippl::myNode() == 0 )
-            out << std::setw(15) << std::right << tmp;
+            out << std::setw(15) << std::right << resNorms.back();
 #endif
         
-        tmp = evalNorm_m(mglevel_m[lev]->rho_p);
-        maxRho = std::max(maxRho, tmp);
+        rhsNorms.push_back(evalNorm_m(mglevel_m[lev]->rho_p));
     }
     
 #if AMR_MG_WRITE
-    if ( Ippl::myNode() == 0 ) {
-        out << std::setw(15) << maxResidual << std::endl;
+    if ( Ippl::myNode() == 0 )
         out.close();
-    }
 #endif
 }
 
