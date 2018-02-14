@@ -1949,9 +1949,11 @@ void AmrMultiGrid::initPrec_m(const Preconditioner& prec)
             prec_mp.reset( new Ifpack2Preconditioner(prec) );
             break;
         case Preconditioner::SA:
+        {
             AmrIntVect_t grid = itsAmrObject_mp->Geom(0).Domain().size();
             prec_mp.reset( new MueLuPreconditioner(grid) );
             break;
+        }
         case Preconditioner::NONE:
             prec_mp.reset();
             break;
