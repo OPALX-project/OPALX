@@ -591,7 +591,6 @@ int main(int argc, char *argv[]){
 	//read the remaining sim params
 	double alpha =atof(argv[param++]);
 	double dt = atof(argv[param++]);
-	double ampl_alpha = atof(argv[param++]);
 	double eps = atof(argv[param++]);
 	int iterations =  atoi(argv[param++]);
 	Vektor<double,3> source(0,0,0);
@@ -629,6 +628,7 @@ int main(int argc, char *argv[]){
 	Vektor<int,Dim> Nx(4,4,32);
 	Vektor<int,Dim> Nv(8,8,128);
 	Vektor<double,Dim> Vmax(6,6,6);
+	double ampl_alpha = atof(argv[param++]);
 	//refinement factor for mesh in 2d phase space
 	int refine = 1;
 	P = new ChargedParticles<playout_t>(PL, nr, decomp, extend_l, extend_r,refine*Nx,refine*Nv,Vmax);
@@ -643,6 +643,7 @@ int main(int argc, char *argv[]){
 	Vektor<int,Dim> Nx(8,8,8);
 	Vektor<int,Dim> Nv(32,32,32);
 	Vektor<double,Dim> Vmax(6,6,6);
+	double ampl_alpha = atof(argv[param++]);
 	//refinement factor for mesh in 2d phase space
 	int refine = 1;
 	P = new ChargedParticles<playout_t>(PL, nr, decomp, extend_l, extend_r,refine*Nx,refine*Nv,Vmax);
@@ -839,7 +840,7 @@ dumpVTKVector(P->eg_m, P,it+1,"EFieldAfterPMandPP");
 		l2_V_exact += exactV*exactV;
 	}
 	//reduce all relevant quantities:
-	double Error, L2_exact, ErrorV,L2_V_exact, Total_E, Total_V, Total_E_exact, Total_V_exact, Potential_energy, A;
+	double Error, L2_exact, ErrorV,L2_V_exact, Total_E, Total_V, Total_E_exact, Total_V_exact; // A, Potential_energy;
 	reduce(error, Error, OpAddAssign());
 	reduce(l2_exact, L2_exact, OpAddAssign());
 	reduce(errorV, ErrorV, OpAddAssign());
@@ -856,7 +857,7 @@ dumpVTKVector(P->eg_m, P,it+1,"EFieldAfterPMandPP");
 	double Relative_V_error = std::sqrt(ErrorV)/std::sqrt(L2_V_exact);
 	double U = k0*3./5.*total_charge*total_charge/sphere_radius; //electric energy stored in solid charged sphere for infinite domain
 
-	double Ufinite = 0.0394785; //electric energy stored in solid charged sphere for finite domain 8^3
+	//	double Ufinite = 0.0394785; //electric energy stored in solid charged sphere for finite domain 8^3
 	//double U = Ufinite;
 
 	if(Ippl::myNode()==0) {

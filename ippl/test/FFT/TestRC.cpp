@@ -12,41 +12,21 @@
  ***************************************************************************/
 
 #include "Ippl.h"
-#include <typeinfo>
+#include "Utilities/Timer.h"
+
+#include <fstream>
 
 #include <complex>
 using namespace std;
 
-
 bool Configure(int argc, char *argv[],
 	       unsigned int *nx, unsigned int *ny, unsigned int *nz,
-	       int *serialDim, unsigned int *processes,  unsigned int *nLoop) 
+	       int *domainDec, unsigned int *processes,  unsigned int *nLoop) 
 {
 
   Inform msg("Configure ");
   Inform errmsg("Error ");
 
-  /*
-    string bc_str;
-    string dist_str;
-    *nx = 8; 
-    *ny = 8;
-    *nz = 16;
-    *nLoop = 1; 
-    *serialDim = 0;
-
-    if (*serialDim == 0)
-    msg << "Serial dimension is x" << endl;
-    else if (*serialDim == 1)
-    msg << "Serial dimension is y" << endl;
-    else if (*serialDim == 2)
-    msg << "Serial dimension is z" << endl;
-    else {
-    *serialDim = 0;
-    msg << "Serial dimension is x" << endl;
-    }
-    *processes = Ippl::getNodes();
-    */
   for (int i=1; i < argc; ++i) {
     string s(argv[i]);
     if (s == "-grid") {
@@ -56,52 +36,172 @@ bool Configure(int argc, char *argv[],
     }   else if (s == "-Loop") {
       *nLoop = atoi(argv[++i]);
     } else if (s == "-Decomp") {
-      *serialDim = atoi(argv[++i]);
+      *domainDec = atoi(argv[++i]);
     } 
     else {
       errmsg << "Illegal format for or unknown option '" << s.c_str() << "'.";
       errmsg << endl;
     }
   }
-  if (*serialDim == 0)
-    msg << "Serial dimension is x" << endl;
-  else if (*serialDim == 1)
-    msg << "Serial dimension is y" << endl;
-  else if (*serialDim == 2)
-    msg << "Serial dimension is z" << endl;
-  else {
-    msg << "All parallel" << endl;
-    *serialDim = -1;
-  }
 
   *processes = Ippl::getNodes();
-
-
   return true;
+}
+
+
+void writeMemoryHeader(std::ofstream &outputFile)
+{
+
+    std::string dateStr("no time");
+    std::string timeStr("no time");
+    std::string indent("        ");
+
+    IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+
+    outputFile << "SDDS1" << std::endl;
+    outputFile << "&description\n"
+               << indent << "text=\"Memory statistics '"
+               << "TestFFT" << "' "
+               << dateStr << "" << timeStr << "\",\n"
+               << indent << "contents=\"stat parameters\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=processors,\n"
+               << indent << "type=long,\n"
+               << indent << "description=\"Number of Cores used\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=revision,\n"
+               << indent << "type=string,\n"
+               << indent << "description=\"git revision of TestFFT\"\n"
+               << "&end\n";
+    outputFile << "&parameter\n"
+               << indent << "name=flavor,\n"
+               << indent << "type=string,\n"
+               << indent << "description=\"n.a\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=t,\n"
+               << indent << "type=double,\n"
+               << indent << "units=ns,\n"
+               << indent << "description=\"1 Time\"\n"
+               << "&end\n";
+    outputFile << "&column\n"
+               << indent << "name=memory,\n"
+               << indent << "type=double,\n"
+               << indent << "units=" + memory->getUnit() + ",\n"
+               << indent << "description=\"2 Total Memory\"\n"
+               << "&end\n";
+
+    unsigned int columnStart = 3;
+
+    for (int p = 0; p < Ippl::getNodes(); ++p) {
+        outputFile << "&column\n"
+                   << indent << "name=processor-" << p << ",\n"
+                   << indent << "type=double,\n"
+                   << indent << "units=" + memory->getUnit() + ",\n"
+                   << indent << "description=\"" << columnStart
+                   << " Memory per processor " << p << "\"\n"
+                   << "&end\n";
+        ++columnStart;
+    }
+
+    outputFile << "&data\n"
+               << indent << "mode=ascii,\n"
+               << indent << "no_row_counts=1\n"
+               << "&end\n";
+
+    outputFile << Ippl::getNodes() << std::endl;
+    outputFile << "IPPL test" << " " << "no version" << " git rev. #" << "no version " << std::endl;
+    outputFile << "IPPL test" << std::endl;
+}
+
+void open_m(std::ofstream& os, const std::string& fileName, const std::ios_base::openmode mode) {
+    os.open(fileName.c_str(), mode);
+    os.precision(15);
+    os.setf(std::ios::scientific, std::ios::floatfield);
+}
+
+void writeMemoryData(std::ofstream &os_memData, unsigned int pwi, unsigned int step)
+{
+    os_memData << step << "\t";     // 1
+
+    IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+
+    int nProcs = Ippl::getNodes();
+    double total = 0.0;
+    for (int p = 0; p < nProcs; ++p) {
+        total += memory->getMemoryUsage(p);
+    }
+
+    os_memData << total << std::setw(pwi) << "\t";
+
+    for (int p = 0; p < nProcs; p++) {
+        os_memData << memory->getMemoryUsage(p)  << std::setw(pwi);
+
+        if ( p < nProcs - 1 )
+            os_memData << "\t";
+
+    }
+    os_memData << std::endl;
 }
 
 int main(int argc, char *argv[])
 {
   
   Ippl ippl(argc,argv);
-  Inform testmsg(NULL,0);
+  Inform msg(NULL,0);
 
-  static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
-  static IpplTimings::TimerRef fftTimer = IpplTimings::getTimer("fftTimer");
-
-  IpplTimings::startTimer(mainTimer);
-  
   const unsigned D=3U;
-  bool compressTemps = false;
+  bool compressTemps = true;
   bool constInput    = true;  // preserve input field in two-field transform
 
-
   unsigned int processes;
-  int serialDim;
+  int domDec;
   unsigned int nx,ny,nz;
   unsigned int nLoop;
 
-  Configure(argc, argv, &nx, &ny, &nz, &serialDim, &processes, &nLoop); 
+  Configure(argc, argv, &nx, &ny, &nz, &domDec, &processes, &nLoop); 
+
+  /*
+    domDec == 3: 3D domain dec all parallel          
+    domDec == 1: 1D domain dec x,y serial    z: parallel 
+    domDec == 2: 2D domain dec x,y parallel  z: serial
+   */
+
+  if (domDec == 3)
+    msg << "3D domain decomposition " << endl;
+  else if (domDec == 1)
+    msg << "1D domain decomposition: serial dimension is x,y" << endl;
+  else if (domDec == 2)
+    msg << "2D domain decomposition: serial dimension is z" << endl;
+  else {
+    msg << "Domain decompostion not known going for 3D, all parallel" << endl;
+    domDec = 3;
+  }
+
+  std::string baseFn = std::string(argv[0])  + 
+    std::string("-mx=") + std::to_string(nx) +
+    std::string("-my=") + std::to_string(ny) +
+    std::string("-mz=") + std::to_string(nz) +
+    std::string("-p=") + std::to_string(processes) +
+    std::string("-ddec=") + std::to_string(domDec) ;
+
+  unsigned int pwi = 10;
+  std::ios_base::openmode mode_m = std::ios::out;
+
+  std::ofstream os_memData;
+  open_m(os_memData, baseFn+std::string(".mem"), mode_m);
+
+  static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");           
+  IpplTimings::startTimer(mainTimer);                                                    
+
+  static IpplTimings::TimerRef fftTimer = IpplTimings::getTimer("FFT");           
+  static IpplTimings::TimerRef ifftTimer = IpplTimings::getTimer("IFFT");           
+  static IpplTimings::TimerRef fEvalTimer = IpplTimings::getTimer("fEval");           
+  static IpplTimings::TimerRef fInitTimer = IpplTimings::getTimer("init");           
+
+  writeMemoryHeader(os_memData);
 
   int vnodes = processes;
   unsigned ngrid[D];   // grid sizes
@@ -117,9 +217,6 @@ int main(int argc, char *argv[])
   double pi = acos(-1.0);
   double twopi = 2.0*pi;
 
-  // Timer:
-  Timer timer;
-
   e_dim_tag allParallel[D];    // Specifies SERIAL, PARALLEL dims
   for (unsigned int d=0; d<D; d++) 
     allParallel[d] = PARALLEL;
@@ -127,8 +224,10 @@ int main(int argc, char *argv[])
   e_dim_tag serialParallel[D]; // Specifies SERIAL, PARALLEL dims
   for (unsigned int d=0; d<D; d++) 
     serialParallel[d] = PARALLEL;
-  serialParallel[serialDim] = SERIAL;
+  serialParallel[domDec] = SERIAL;
 
+
+  IpplTimings::startTimer(fInitTimer);
   // create standard domain
   NDIndex<D> ndiStandard;
   for (unsigned int d=0; d<D; d++) 
@@ -149,6 +248,7 @@ int main(int argc, char *argv[])
   // zeroth axis serial, zeroth axis half-size domain, normal axis order
   FieldLayout<D> layoutSPStan0h(ndiStandard0h,serialParallel,vnodes);
     
+
   // create test Fields for complex-to-complex FFT
   BareField<dcomplex,D> CFieldPPStan(layoutPPStan);
   
@@ -160,9 +260,6 @@ int main(int argc, char *argv[])
   BareField<double,D> RFieldSPStan(layoutSPStan);
   BareField<double,D> RFieldSPStan_save(layoutSPStan);
   BareField<dcomplex,D> CFieldSPStan0h(layoutSPStan0h);
-  
-  INFOMSG("RFieldSPStan   layout= " << layoutSPStan << endl;);
-  INFOMSG("CFieldSPStan0h layout= " << layoutSPStan0h << endl;);
   
   // Rather more complete test functions (sine or cosine mode):
   dcomplex sfact(1.0,0.0);      // (1,0) for sine mode; (0,0) for cosine mode
@@ -187,35 +284,12 @@ int main(int argc, char *argv[])
 	     cos( (ndiStandard[0]+1) * kx * xfact -
 		  ndiStandard[1]    * ky * yfact -
 		  ndiStandard[2]    * kz * zfact ) );
-  
-  cout << "TYPEINFO:" << endl;
-  cout << typeid(RFieldSPStan[0][0][0]).name() << endl;
-  cout << typeid(CFieldPPStan[0][0][0]).name() << endl;
-
   // RC FFT tests  
 
-  //RFieldSPStan = real(CFieldPPStan);
-  for(int x = ndiStandard[0].first(); x <= ndiStandard[0].last(); x++) {
-    for(int y = ndiStandard[1].first(); y <= ndiStandard[1].last(); y++) {
-      for(int z = ndiStandard[2].first(); z <= ndiStandard[2].last(); z++) {
-	RFieldSPStan[x][y][z] = real(CFieldPPStan[x][y][z].get());
-      }
-    }
-  }
- 
-  CFieldSPStan0h = dcomplex(0.0,0.0);
+  RFieldSPStan = real(CFieldPPStan);
 
-  /*
-    Inform fo1(NULL,"realField.dat",Inform::OVERWRITE);
-   
-    for(int x = ndiStandard[0].first(); x <= ndiStandard[0].last(); x++) {
-    for(int y = ndiStandard[1].first(); y <= ndiStandard[1].last(); y++) {
-    for(int z = ndiStandard[2].first(); z <= ndiStandard[2].last(); z++) {
-    fo1 << x << " " << y << " " << z << " " <<  RFieldSPStan[x][y][z].get() << endl;
-    }
-    }
-    }
-  */
+  CFieldSPStan0h = dcomplex(0.0,0.0);
+  IpplTimings::stopTimer(fInitTimer);
 
   // create RC FFT object
   FFT<RCTransform,D,double> rcfft(ndiStandard, ndiStandard0h, compressTemps);
@@ -224,31 +298,70 @@ int main(int argc, char *argv[])
   rcfft.setDirectionName(+1, "forward");
   rcfft.setDirectionName(-1, "inverse");
 
-  Inform fo2(NULL,"FFTrealField.dat",Inform::OVERWRITE);
-  
-  testmsg << "RC transform using layout with zeroth dim serial ..." << endl;
+  msg << "RC transform using layout with zeroth dim serial: compress tmp, constInput" << endl;
 
-
+  IpplTimings::startTimer(fftTimer);                                                    
   rcfft.transform("forward", RFieldSPStan,  CFieldSPStan0h, constInput);
+  IpplTimings::stopTimer(fftTimer);                                       
+             
+  IpplTimings::startTimer(ifftTimer);                                                    
   rcfft.transform("inverse", CFieldSPStan0h, RFieldSPStan, constInput);
+  IpplTimings::stopTimer(ifftTimer);                                       
+
+  IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+  memory->sample();
+  writeMemoryData(os_memData, pwi, 0);
 
   for (unsigned i=0; i<nLoop; i++) {
     RFieldSPStan_save = RFieldSPStan;
 
-    IpplTimings::startTimer(fftTimer);
+    IpplTimings::startTimer(fftTimer);                                                    
     rcfft.transform("forward", RFieldSPStan,  CFieldSPStan0h, constInput);
-    /*
-      for(int x = ndiStandard0h[0].first(); x <= ndiStandard0h[0].last(); x++) {
-      for(int y = ndiStandard0h[1].first(); y <= ndiStandard0h[1].last(); y++) {
-      for(int z = ndiStandard0h[2].first(); z <= ndiStandard0h[2].last(); z++) {
-      fo2 << x << " " << y << " " << z << " " <<  real(CFieldSPStan0h[x][y][z].get()) << " " << imag(CFieldSPStan0h[x][y][z].get()) << endl;
-      }
-      }
-      }   
-    */
+    IpplTimings::stopTimer(fftTimer);                                                    
 
+    IpplTimings::startTimer(ifftTimer);                                                    
     rcfft.transform("inverse", CFieldSPStan0h, RFieldSPStan, constInput);
-    IpplTimings::stopTimer(fftTimer);
+    IpplTimings::stopTimer(ifftTimer);                                                    
+
+    IpplTimings::startTimer(fEvalTimer);                                         
+    diffFieldSPStan = Abs(RFieldSPStan - RFieldSPStan_save);
+    realDiff = max(diffFieldSPStan);
+    IpplTimings::stopTimer(fEvalTimer);                                         
+    msg << "fabs(realDiff) = " << fabs(realDiff) << endl;
+
+    memory->sample();
+    writeMemoryData(os_memData, pwi, i+1);
+
+  }
+
+  IpplTimings::stopTimer(mainTimer);                                                    
+  IpplTimings::print();
+  IpplTimings::print(baseFn+std::string(".timing"));
+  return 0;
+}
+
+
+
+
+  /* cout << "TYPEINFO:" << endl;
+  cout << typeid(RFieldSPStan[0][0][0]).name() << endl;
+  cout << typeid(CFieldPPStan[0][0][0]).name() << endl;
+  */
+  
+  /*
+  for(int x = ndiStandard[0].first(); x <= ndiStandard[0].last(); x++) {
+    for(int y = ndiStandard[1].first(); y <= ndiStandard[1].last(); y++) {
+      for(int z = ndiStandard[2].first(); z <= ndiStandard[2].last(); z++) {
+	RFieldSPStan[x][y][z] = real(CFieldPPStan[x][y][z].get());
+      }
+    }
+  }
+  */
+
+
+  //  Inform fo2(NULL,"FFTrealField.dat",Inform::OVERWRITE);
+  
+
 
     //double total_time = 0;
     //total_time+= timer.cpu_time();
@@ -263,18 +376,7 @@ int main(int argc, char *argv[])
       }
     */
 
-  
-    diffFieldSPStan = Abs(RFieldSPStan - RFieldSPStan_save);
-    realDiff = max(diffFieldSPStan);
-    testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
-  }
 
-  IpplTimings::stopTimer(mainTimer);
-  IpplTimings::print();
-  IpplTimings::print(std::string("TestRC.timing"));
-
-  return 0;
-}
 /***************************************************************************
  * $RCSfile: TestRC.cpp,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:36 $

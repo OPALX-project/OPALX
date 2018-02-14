@@ -123,7 +123,6 @@ OPTION (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
 OPTION (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
 OPTION (AMR_YT_DUMP "Dump AMR field data to yt readable format" OFF)
 OPTION (AMR_PYTHON_DUMP "Dump AMR grids and particles" OFF)
-OPTION (BUILD_LIBOPAL "Enable building the OPAL library" OFF)
 
 OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
 
@@ -215,10 +214,6 @@ IF (AMR_PYTHON_DUMP AND ENABLE_AMR)
     MESSAGE (STATUS "\nWrite AMR grids and particles is enabled ")
     SET (CMAKE_CXX_FLAGS "-DAMR_PYTHON_DUMP ${CMAKE_CXX_FLAGS}")
 ENDIF (AMR_PYTHON_DUMP AND ENABLE_AMR)
-
-IF (BUILD_LIBOPAL)
-    MESSAGE (STATUS "\nBuilding OPAL library")
-ENDIF (BUILD_LIBOPAL)
 
 IF (NO_FIELD_ASSIGN_OPTIMIZATION)
     MESSAGE (STATUS "\nCompiler will not try to optimize field assignment")
