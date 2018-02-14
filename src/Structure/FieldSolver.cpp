@@ -582,7 +582,7 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << "* AMR_MG_PREC          "
            << Util::toUpper(Attributes::getString(itsAttr[AMR_MG_PREC])) << '\n'
            << "* AMR_MG_REBALANCE     "
-           << Util::toUpper(Attributes::getString(itsAttr[AMR_MG_REBALANCE])) << '\n'
+           << Attributes::getBool(itsAttr[AMR_MG_REBALANCE]) << '\n'
            << "* AMR_MG_SMOOTHER      "
            << Util::toUpper(Attributes::getString(itsAttr[AMR_MG_SMOOTHER])) << '\n'
            << "* AMR_MG_NSWEEPS       "
