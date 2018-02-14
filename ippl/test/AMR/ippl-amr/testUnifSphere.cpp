@@ -658,7 +658,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // solve
 #ifdef HAVE_AMR_MG_SOLVER
     if ( params.useTrilinos ) {
-        AmrMultiGrid sol(params.bcx, params.bcy, params.bcz,
+        const std::size_t grid[] = { params.nr[0], params.nr[1], params.nr[2] };
+        AmrMultiGrid sol(grid, params.bcx, params.bcy, params.bcz,
                          AmrMultiGrid::Interpolater::PIECEWISE_CONST,
                          AmrMultiGrid::Interpolater::LAGRANGE, params.bs,
                          params.prec, params.smoother);

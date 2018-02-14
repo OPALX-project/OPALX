@@ -193,6 +193,10 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     params.prec = AmrMultiGrid::Preconditioner::ILUT;
                 else if ( prec == "CHEBYSHEV" )
                     params.prec = AmrMultiGrid::Preconditioner::CHEBYSHEV;
+                else if ( prec == "RILUK" )
+                    params.prec = AmrMultiGrid::Preconditioner::RILUK;
+                else if ( prec == "SA" )
+                    params.prec = AmrMultiGrid::Preconditioner::SA;
                 else
                     throw std::runtime_error("Error: Check preconditioner argument");
                 break;
@@ -701,7 +705,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // solve
 #ifdef HAVE_AMR_MG_SOLVER
     if ( params.useTrilinos ) {
-        AmrMultiGrid sol(params.bcx, params.bcy, params.bcz,
+        const std::size_t grid[] = { params.nr[0], params.nr[1], params.nr[2] };
+        AmrMultiGrid sol(grid, params.bcx, params.bcy, params.bcz,
                          AmrMultiGrid::Interpolater::PIECEWISE_CONST,
                          AmrMultiGrid::Interpolater::LAGRANGE, params.bs,
                          params.prec, params.smoother);
