@@ -253,7 +253,10 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
     
     AmrIntVect_t rr = AmrIntVect_t(D_DECL(2, 2, 2));
     
-    for (int lev = 0; lev < nlevel_m; ++lev) {
+    // we need to build base level only at beginning of simulation
+    int startLevel = (mglevel_m[lbase_m]->Anf_p == Teuchos::null) ? 0 : 1;
+
+    for (int lev = startLevel; lev < nlevel_m; ++lev) {
         int ilev = lbase_m + lev;
         
         mglevel_m[lev].reset(new AmrMultiGridLevel_t(rho[ilev]->boxArray(),
@@ -348,12 +351,10 @@ AmrMultiGrid::scalar_t AmrMultiGrid::iterate_m() {
     scalar_t max_residual = 0.0;
     scalar_t max_rho = max_residual;
     
-    this->initResidual_m(max_residual, max_rho);
-    
     nIter_m = 0;
     bIter_m = 0;
     
-    while ( max_residual > eps * max_rho && nIter_m < maxiter_m ) {
+    while ( isConverged_m() && nIter_m < maxiter_m ) {
         
         relax_m(lfine_m);
         
@@ -375,7 +376,7 @@ AmrMultiGrid::scalar_t AmrMultiGrid::iterate_m() {
                              mglevel_m[lev]->phi_p);
         }
         
-        max_residual = residualNorm_m();
+        //max_residual = residualNorm_m();
         
         ++nIter_m;
         
@@ -383,6 +384,25 @@ AmrMultiGrid::scalar_t AmrMultiGrid::iterate_m() {
     }
     
     return max_residual;
+}
+
+
+bool AmrMultiGrid::isConverged_m() {
+    bool converged = true;
+    scalar_t eps = 1.0e-8;
+
+    for (int lev = 0; lev < nlevel_m; ++lev) {
+	this->residual_m(lev,
+                         mglevel_m[lev]->residual_p,
+                         mglevel_m[lev]->rho_p,
+                         mglevel_m[lev]->phi_p);
+
+	scalar_t res = evalNorm_m(mglevel_m[lev]->residual_p);
+        scalar_t rhs = evalNorm_m(mglevel_m[lev]->rho_p);
+        converged &= (res < eps * rhs);
+    }
+
+    return converged;
 }
 
 
