@@ -72,7 +72,7 @@ void BelosBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
     problem_mp->setOperator(A);
     
     if ( prec_mp != nullptr ) {
-	prec_mp->create(A);
+        prec_mp->create(A);
         problem_mp->setLeftPrec(prec_mp->get());
     }
 }
