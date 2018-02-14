@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "AmrDefs.h"
+#include "Amr/AmrDefs.h"
 
 template <class AmrMultiGridLevel>
 class AmrBoundary {
@@ -13,6 +13,7 @@ public:
     typedef typename AmrMultiGridLevel::lo_t lo_t;
     typedef typename AmrMultiGridLevel::scalar_t scalar_t;
     typedef typename AmrMultiGridLevel::basefab_t basefab_t;
+    typedef amr::AmrIntVect_t AmrIntVect_t;
     
 public:
     

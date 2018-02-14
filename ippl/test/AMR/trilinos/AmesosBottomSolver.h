@@ -1,7 +1,7 @@
 #ifndef AMESOS_SOLVER_H
 #define AMESOS_SOLVER_H
 
-#include "AmrMultiGridCore.h"
+#include "BottomSolver.h"
 
 #include <Amesos2.hpp>
 

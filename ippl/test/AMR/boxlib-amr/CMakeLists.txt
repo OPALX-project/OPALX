@@ -72,7 +72,6 @@ add_executable (testGaussian
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ../H5Reader.cpp ../Distribution.cpp
                 ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
     
 add_executable (testUniform
@@ -80,27 +79,23 @@ add_executable (testUniform
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ../H5Reader.cpp ../Distribution.cpp
                 ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
     
 add_executable (testUnifSphere
                 testUnifSphere.cpp
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ${F90_source_files} 
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)# HypreABecLap.H HypreABecLap.cpp)
     
 add_executable (testGridSolve
                 testGridSolve.cpp
                 ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
     
 add_executable (testUnifSphereGrid
                 testUnifSphereGrid.cpp
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
     
     
@@ -109,7 +104,6 @@ add_executable(testReal
                 ../H5Reader.cpp ../Distribution.cpp
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
     
 add_executable(testMultiBunch
@@ -117,7 +111,6 @@ add_executable(testMultiBunch
                 ../H5Reader.cpp ../Distribution.cpp
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
     
 add_executable (testH5Read testH5Read.cpp ../H5Reader.cpp)
@@ -131,7 +124,6 @@ add_executable (testTracker
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ../H5Reader.cpp ../Distribution.cpp
                 ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
     
 add_executable (testOldPlasma
@@ -139,7 +131,6 @@ add_executable (testOldPlasma
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ../H5Reader.cpp ../Distribution.cpp
                 ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
     
 add_executable (testPerfectLoadBalancing
@@ -147,7 +138,6 @@ add_executable (testPerfectLoadBalancing
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ../H5Reader.cpp ../Distribution.cpp
                 ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
 
 add_executable (testOldPerformance
@@ -155,7 +145,6 @@ add_executable (testOldPerformance
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ../H5Reader.cpp ../Distribution.cpp
                 ${F90_source_files}
-                ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
                 ../Solver.cpp)
     
     # Boxlib has a circular dependency between -lcboxlib and -lfboxlib --> resolve by: -lcboxlib -lfboxlib -lcboxlib

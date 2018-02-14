@@ -7,7 +7,7 @@
 
 #include "Ippl.h"
 
-#include "AmrMultiGridCore.h"
+#include "AmrMultiGridDefs.h"
 
 #include <unordered_map>
 

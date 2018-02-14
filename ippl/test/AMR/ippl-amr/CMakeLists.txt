@@ -63,7 +63,6 @@ add_library(amropal
             ../Distribution.cpp
             ../H5Reader.cpp
             ${F90_source_files}
-            ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
             ../Solver.cpp
             ../MGTSolver.cpp)
 

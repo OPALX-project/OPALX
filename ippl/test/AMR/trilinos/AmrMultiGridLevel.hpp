@@ -141,7 +141,7 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildLevelMask_m() {
 
 
 template <class MatrixType, class VectorType>
-const AmrIntVect_t& AmrMultiGridLevel<MatrixType, VectorType>::refinement() const {
+const amr::AmrIntVect_t& AmrMultiGridLevel<MatrixType, VectorType>::refinement() const {
     return rr_m;
 }
 
