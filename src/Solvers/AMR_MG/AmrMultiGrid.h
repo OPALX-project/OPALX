@@ -313,8 +313,8 @@ private:
      * @param rhsNorms per level of right-hand side (is filled)
      * @param resNorms per level of residual (is filled)
      */
-    void initResidual_m(std::list<scalar_t>& rhsNorms,
-                        std::list<scalar_t>& resNorms);
+    void initResidual_m(std::vector<scalar_t>& rhsNorms,
+                        std::vector<scalar_t>& resNorms);
     
     /*!
      * @param efield to compute
