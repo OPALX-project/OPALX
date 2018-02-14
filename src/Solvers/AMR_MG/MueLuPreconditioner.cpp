@@ -54,8 +54,8 @@ void MueLuPreconditioner::init_m() {
     params_m.set("coarse: max size", grid_m[0]);
     params_m.set("multigrid algorithm", "sa");
     
-    params_m.set("repartition: enable", true);
-    params_m.set("repartition: rebalance P and R", true);
+    params_m.set("repartition: enable", rebalance_m);
+    params_m.set("repartition: rebalance P and R", rebalance_m);
     params_m.set("repartition: partitioner", "zoltan2");
     params_m.set("repartition: min rows per proc", grid_m[0]);
     params_m.set("repartition: start level", 1);
