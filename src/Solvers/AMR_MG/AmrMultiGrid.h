@@ -120,6 +120,7 @@ public:
      * @param itsAmrObject_p has information about refinemen ratios, etc.
      * @param bsolver bottom solver
      * @param prec preconditioner for bottom solver
+     * @param rebalance of preconditioner (SA only)
      * @param bcx boundary condition in x
      * @param bcy boundary condition in y
      * @param bcz boundary condition in z
@@ -131,6 +132,7 @@ public:
     AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
                  const std::string& bsolver,
                  const std::string& prec,
+                 const bool& rebalance,
                  const std::string& bcx,
                  const std::string& bcy,
                  const std::string& bcz,
@@ -567,8 +569,10 @@ private:
     /*!
      * Instantiate a preconditioner for the bottom solver
      * @param precond type
+     * @param rebalance preconditioner (SA only)
      */
-    void initPrec_m(const Preconditioner& prec);
+    void initPrec_m(const Preconditioner& prec,
+                    const bool& rebalance);
     
     /*!
      * Convertstring to enum Boundary

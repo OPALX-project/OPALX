@@ -22,6 +22,7 @@
 AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
                            const std::string& bsolver,
                            const std::string& prec,
+                           const bool& rebalance,
                            const std::string& bcx,
                            const std::string& bcy,
                            const std::string& bcz,
@@ -69,7 +70,7 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
     
     // preconditioner
     const Preconditioner precond = this->convertToEnumPreconditioner_m(prec);
-    this->initPrec_m(precond);
+    this->initPrec_m(precond, rebalance);
     
     // base level solver
     const BaseSolver solver = this->convertToEnumBaseSolver_m(bsolver);
@@ -1940,7 +1941,8 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver)
 }
 
 
-void AmrMultiGrid::initPrec_m(const Preconditioner& prec)
+void AmrMultiGrid::initPrec_m(const Preconditioner& prec,
+                              const bool& rebalance)
 {
     switch ( prec ) {
         case Preconditioner::ILUT:
@@ -1951,7 +1953,7 @@ void AmrMultiGrid::initPrec_m(const Preconditioner& prec)
         case Preconditioner::SA:
         {
             AmrIntVect_t grid = itsAmrObject_mp->Geom(0).Domain().size();
-            prec_mp.reset( new MueLuPreconditioner(grid) );
+            prec_mp.reset( new MueLuPreconditioner(grid, rebalance) );
             break;
         }
         case Preconditioner::NONE:
@@ -2044,6 +2046,7 @@ AmrMultiGrid::convertToEnumPreconditioner_m(const std::string& prec) {
     map["ILUT"]         = Preconditioner::ILUT;
     map["CHEBYSHEV"]    = Preconditioner::CHEBYSHEV;
     map["RILUK"]        = Preconditioner::RILUK;
+    map["SA"]           = Preconditioner::SA;
     map["NONE"]         = Preconditioner::NONE;
     
     auto precond = map.find(Util::toUpper(prec));
