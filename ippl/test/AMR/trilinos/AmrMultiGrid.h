@@ -143,26 +143,26 @@ public:
                  const std::string& interp,
                  const std::string& norm);
     
-    /*!
-     * Instantiation used in Structure/FieldSolver.cpp for
-     * OPAL bottom solvers.
-     * @param bsolver the bottom solver
-     * @param bcx boundary condition in x
-     * @param bcy boundary condition in y
-     * @param bcz boundary condition in z
-     * @param smoother for level solution
-     * @param nSweeps when smoothing
-     * @param interp interpolater between levels
-     * @param norm for convergence criteria
-     */
-    AmrMultiGrid(bsolver_t* bsolver,
-                 const std::string& bcx,
-                 const std::string& bcy,
-                 const std::string& bcz,
-                 const std::string& smoother,
-                 const std::size_t& nSweeps,
-                 const std::string& interp,
-                 const std::string& norm);
+//     /*!
+//      * Instantiation used in Structure/FieldSolver.cpp for
+//      * OPAL bottom solvers.
+//      * @param bsolver the bottom solver
+//      * @param bcx boundary condition in x
+//      * @param bcy boundary condition in y
+//      * @param bcz boundary condition in z
+//      * @param smoother for level solution
+//      * @param nSweeps when smoothing
+//      * @param interp interpolater between levels
+//      * @param norm for convergence criteria
+//      */
+//     AmrMultiGrid(bsolver_t* bsolver,
+//                  const std::string& bcx,
+//                  const std::string& bcy,
+//                  const std::string& bcz,
+//                  const std::string& smoother,
+//                  const std::size_t& nSweeps,
+//                  const std::string& interp,
+//                  const std::string& norm);
     
     /*!
      * Used in OPAL
@@ -225,25 +225,6 @@ public:
     Inform &print(Inform &os) const;
     
 private:
-    
-    /*!
-     * This constructor should be called by
-     * all other constructors. (i.e. constructor delegation)
-     * @param bcx boundary condition in x
-     * @param bcy boundary condition in y
-     * @param bcz boundary condition in z
-     * @param smoother for level solution
-     * @param nSweeps when smoothing
-     * @param interp interpolater between levels
-     * @param norm for convergence criteria
-     */
-    AmrMultiGrid(const std::string& bcx,
-                 const std::string& bcy,
-                 const std::string& bcz,
-                 const std::string& smoother,
-                 const std::size_t& nSweeps,
-                 const std::string& interp,
-                 const std::string& norm);
     
     /*!
      * Instantiate boundary object
