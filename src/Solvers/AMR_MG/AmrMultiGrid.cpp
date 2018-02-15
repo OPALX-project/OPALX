@@ -307,7 +307,7 @@ AmrMultiGrid::scalar_t AmrMultiGrid::iterate_m() {
     nIter_m = 0;
     bIter_m = 0;
     
-    while ( isConverged_m(rhsNorms, resNorms) && nIter_m < maxiter_m ) {
+    while ( !isConverged_m(rhsNorms, resNorms) && nIter_m < maxiter_m ) {
         
         relax_m(lfine_m);
         
