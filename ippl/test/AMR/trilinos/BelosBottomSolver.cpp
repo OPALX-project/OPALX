@@ -7,7 +7,7 @@ BelosBottomSolver::BelosBottomSolver(std::string solvertype,
     : problem_mp( Teuchos::rcp( new problem_t() ) ),
       prec_mp(prec_p),
       reltol_m(1.0e-9),
-      maxiter_m(1000)
+      maxiter_m(100)
 {
     this->initSolver_m(solvertype);
 }
@@ -35,17 +35,7 @@ void BelosBottomSolver::solve(const Teuchos::RCP<mv_t>& x,
     solver_mp->setProblem(problem_mp);
     
     Belos::ReturnType ret = solver_mp->solve();
-
-/*
-    Teuchos::Array<typename Teuchos::ScalarTraits<scalar_t>::magnitudeType> normVec(1);
-    mv_t Ax(b->getMap(),1);
-    mv_t residual(b->getMap(),1);
-    problem_mp->getOperator()->apply(*x, residual);
-    residual.update(1.0, *b, -1.0);
-    residual.norm2(normVec);
-
-    std::cout << normVec[0] << std::endl;
-*/  
+    
     if ( ret != Belos::Converged ) {
         //TODO When put into OPAL: Replace with gmsg
         std::cerr << "Warning: Bottom solver not converged. Achieved tolerance"
@@ -78,6 +68,15 @@ void BelosBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
 }
 
 
+std::size_t BelosBottomSolver::getNumIters() {
+    if ( solver_mp == Teuchos::null )
+        throw OpalException("BelosBottomSolver::getNumIters()",
+                            "No solver initialized.");
+    
+    return solver_mp->getNumIters();
+}
+
+
 void BelosBottomSolver::initSolver_m(std::string solvertype) {
     
     Belos::SolverFactory<scalar_t, mv_t, op_t> factory;
@@ -90,10 +89,8 @@ void BelosBottomSolver::initSolver_m(std::string solvertype) {
     params_mp->set("Use Single Reduction", true);
     params_mp->set("Explicit Residual Scaling", "Norm of RHS");
     params_mp->set("Maximum Iterations", maxiter_m);
-    params_mp->set("Verbosity", Belos::Errors + Belos::Warnings +
-                                Belos::TimingDetails + Belos::FinalSummary +
-                                Belos::StatusTestDetails);
-    params_mp->set("Output Frequency", 10);
+    params_mp->set("Verbosity", Belos::Errors + Belos::Warnings);
+    params_mp->set("Output Frequency", 1);
     
     solver_mp = factory.create(solvertype, params_mp);
 }
