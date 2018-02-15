@@ -5,10 +5,10 @@
 #include <map>
 #include <numeric>
 
-#include "OPALconfig.h"
-#include "AbstractObjects/OpalData.h"
+//#include "OPALconfig.h"
+//#include "AbstractObjects/OpalData.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Timer.h"
+//#include "Utilities/Timer.h"
 #include "Utilities/Util.h"
 
 #include <boost/filesystem.hpp>
@@ -39,7 +39,7 @@ AmrMultiGrid::AmrMultiGrid(AmrOpal* itsAmrObject_p,
       nlevel_m(1),
       nBcPoints_m(0),
       verbose_m(false),
-      fname_m(OpalData::getInstance()->getInputBasename() + std::string(".solver")),
+      fname_m(/*OpalData::getInstance()->getInputBasename()*/ "Solver.solver"),
       flag_m(std::ios::out)
 {
     comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
@@ -2045,6 +2045,7 @@ AmrMultiGrid::convertToEnumNorm_m(const std::string& norm) {
 
 
 void AmrMultiGrid::writeSDDSHeader_m(std::ofstream& outfile) {
+/*
     OPALTimer::Timer simtimer;
 
     std::string dateStr(simtimer.date());
@@ -2110,12 +2111,13 @@ void AmrMultiGrid::writeSDDSHeader_m(std::ofstream& outfile) {
             << PACKAGE_NAME << " " << OPAL_VERSION_STR << " git rev. #" << Util::getGitRevision() << '\n'
             << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
                 (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << std::endl;
+*/
 }
 
 
 void AmrMultiGrid::writeSDDSData_m(const scalar_t& error) {
     IpplTimings::startTimer(dumpTimer_m);
-    
+/*    
     unsigned int pwi = 10;
     
     std::ofstream outfile;
@@ -2136,7 +2138,7 @@ void AmrMultiGrid::writeSDDSData_m(const scalar_t& error) {
                 << this->regrid_m << std::setw(pwi) <<  '\t'                // 4
                 << error << '\n';                                           // 5
     }
-    
+*/    
     IpplTimings::stopTimer(dumpTimer_m);
 }
 

@@ -94,11 +94,11 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     params.useTrilinos = false;
     params.nsweeps = 12;
     params.bcx = "dirichlet";
-    params.bcy = "dirichlet"
-    params.bcz = "dirichlet"
-    params.bs = "CG;
+    params.bcy = "dirichlet";
+    params.bcz = "dirichlet";
+    params.bs = "CG";
     params.smoother = "GS";
-    params.prec = "NONE;
+    params.prec = "NONE";
     params.rebalance = false;
 #endif
     
@@ -592,17 +592,18 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // solve
 #ifdef HAVE_AMR_MG_SOLVER
     if ( params.useTrilinos ) {
-        AmrMultiGrid sol(myAmrOpal, params.bs, params.prec,
+	std::string interp = "PC";
+        std::string norm = "L2";
+        AmrMultiGrid sol(&myAmrOpal, params.bs, params.prec,
                          params.rebalance, params.bcx, params.bcy,
                          params.bcz, params.smoother, params.nsweeps,
-                         "PC", "L2");
+                         interp, norm);
         
         IpplTimings::startTimer(solvTimer);
         
         sol.solve(rhs,            // [V m]
                   phi,            // [V m^3]
                   efield,       // [V m^2]
-                  geom,
                   base_level,
                   finest_level);
     
