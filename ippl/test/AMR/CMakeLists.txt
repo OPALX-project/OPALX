@@ -18,13 +18,14 @@ IF ( ENABLE_AMR )
         add_definitions(${AMREX_DEFINES})
         
         set (CMAKE_CXX_FLAGS
-             "${IPPL_CMAKE_CXX_FLAGS} -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
+             "${IPPL_CMAKE_CXX_FLAGS} -DPARALLEL_IO ${CMAKE_CXX_FLAGS} -DIPPL_AMR"
         )
         
         include_directories (
             ${CMAKE_SOURCE_DIR}/src
             ${CMAKE_SOURCE_DIR}/ippl/src
             ${CMAKE_SOURCE_DIR}/src/Classic/
+            ${CMAKE_SOURCE_DIR}/src/Classic/Algorithm/
             ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/
             ${CMAKE_SOURCE_DIR}/src/Utilities/
             ${IPPL_INCLUDE_DIR}
@@ -57,6 +58,8 @@ IF ( ENABLE_AMR )
                     trilinos/AmrRedistributor.cpp
                     trilinos/Ifpack2Preconditioner.cpp
 		    trilinos/MueLuPreconditioner.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Algorithms/Quaternion.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/Util.cpp
                     ${CMAKE_SOURCE_DIR}/src/Solvers/FFTPoissonSolver.cpp
                     ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
                     ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp)

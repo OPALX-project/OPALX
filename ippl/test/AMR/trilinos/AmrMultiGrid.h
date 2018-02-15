@@ -32,6 +32,7 @@ public:
     typedef amr::local_ordinal_t  lo_t;
     typedef amr::global_ordinal_t go_t;
     typedef amr::scalar_t         scalar_t;
+    typedef amr::AmrFieldContainer_t AmrFieldContainer_t;
     
     typedef AmrMultiGridLevel<matrix_t, vector_t> AmrMultiGridLevel_t;
     
