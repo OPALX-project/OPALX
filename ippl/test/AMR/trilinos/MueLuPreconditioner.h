@@ -17,9 +17,12 @@ public:
         amr::node_t
     > precond_t;
     
+    typedef amr::AmrIntVect_t AmrIntVect_t;
+    
 public:
     
-    MueLuPreconditioner(const std::size_t grid[AMREX_SPACEDIM]);
+    MueLuPreconditioner(const AmrIntVect_t& grid,
+                        const bool& rebalance);
     
     void create(const Teuchos::RCP<amr::matrix_t>& A);
     
@@ -28,7 +31,7 @@ public:
 private:
     void init_m();
 
-    amr::AmrIntVect_t deserialize_m(const std::size_t& gidx);
+    AmrIntVect_t deserialize_m(const std::size_t& gidx);
     
 private:
     Teuchos::ParameterList params_m;
@@ -37,7 +40,8 @@ private:
 
     Teuchos::RCP<amr::multivector_t> coords_mp;
 
-    const std::size_t* grid_mp;
+    const AmrIntVect_t grid_m;
+    const bool rebalance_m;
 };
 
 #endif
