@@ -83,70 +83,18 @@ AmrMultiGrid::AmrMultiGrid(AmrOpal* itsAmrObject_p,
     }
 }
 
-AmrMultiGrid::AmrMultiGrid(bsolver_t* bsolver,
-                           const std::string& bcx,
-                           const std::string& bcy,
-                           const std::string& bcz,
-                           const std::string& smoother,
-                           const std::size_t& nSweeps,
-                           const std::string& interp,
-                           const std::string& norm)
-    : AmrMultiGrid(bcx, bcy, bcz, smoother, nSweeps, interp, norm)
-{
-    solver_mp.reset(bsolver);
-}
-
-
-AmrMultiGrid::AmrMultiGrid(const std::size_t bgrid[AMREX_SPACEDIM],
-                           Boundary bcx,
-                           Boundary bcy,
-                           Boundary bcz,
-                           Interpolater interp,
-                           Interpolater interface,
-                           BaseSolver solver,
-                           Preconditioner precond,
-                           Smoother smoother,
-                           Norm norm
-                          )
-    : itsAmrObject_mp(nullptr),
-      nIter_m(0),
-      maxiter_m(100),
-      nSweeps_m(12),
-      smootherType_m(smoother),
-      lbase_m(0),
-      lfine_m(0),
-      nlevel_m(1),
-      nBcPoints_m(0),
-    norm_m(norm)//,
-//      balancer_mp(new AmrRedistributor())
-{
-    comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
-    node_mp = KokkosClassic::Details::getNode<amr::node_t>(); //KokkosClassic::DefaultNode::getDefaultNode();
-    
-#if AMR_MG_TIMER
-    buildTimer_m        = IpplTimings::getTimer("AMR MG matrix setup");
-    restrictTimer_m     = IpplTimings::getTimer("AMR MG restrict");
-    smoothTimer_m       = IpplTimings::getTimer("AMR MG smooth");
-    interpTimer_m       = IpplTimings::getTimer("AMR MG prolongate");
-    residnofineTimer_m  = IpplTimings::getTimer("AMR MG resid-no-fine");
-    bottomTimer_m       = IpplTimings::getTimer("AMR MG bottom-solver");
-#endif
-    
-    const Boundary bcs[AMREX_SPACEDIM] = { bcx, bcy, bcz };
-    
-    this->initPhysicalBoundary_m(&bcs[0]);
-    
-    this->initInterpolater_m(interp);
-    
-    // interpolater for crse-fine-interface
-    this->initCrseFineInterp_m(interface);
-    
-    // preconditioner
-    this->initPrec_m(precond, bgrid);
-    
-    // base level solver
-    this->initBaseSolver_m(solver);
-}
+// AmrMultiGrid::AmrMultiGrid(bsolver_t* bsolver,
+//                            const std::string& bcx,
+//                            const std::string& bcy,
+//                            const std::string& bcz,
+//                            const std::string& smoother,
+//                            const std::size_t& nSweeps,
+//                            const std::string& interp,
+//                            const std::string& norm)
+//     : AmrMultiGrid(bcx, bcy, bcz, smoother, nSweeps, interp, norm)
+// {
+//     solver_mp.reset(bsolver);
+// }
 
 
 void AmrMultiGrid::solve(AmrFieldContainer_t &rho,
