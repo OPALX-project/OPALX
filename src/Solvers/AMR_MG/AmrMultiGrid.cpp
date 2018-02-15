@@ -15,7 +15,6 @@
 
 #if AMR_MG_WRITE
     #include <iomanip>
-    #include <fstream>
 #endif
 
 AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
@@ -82,51 +81,6 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
     } else {
         INFOMSG("Creating new file for solver information: " << fname_m << endl);
     }
-}
-
-
-void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
-                         amrex::Array<AmrField_u>& phi,
-                         amrex::Array<AmrField_u>& efield,
-                         const amrex::Array<AmrGeometry_t>& geom,
-                         int lbase, int lfine, bool previous)
-{
-    lbase_m = lbase;
-    lfine_m = lfine;
-    nlevel_m = lfine - lbase + 1;
-    
-    /* we cannot use the previous solution
-     * if we have to regrid (AmrPoissonSolver::hasToRegrid())
-     * 
-     * regrid_m is set in AmrBoxlib::regrid()
-     */
-    previous = !this->regrid_m;
-    
-    this->initLevels_m(rho, geom, previous);
-    
-    // build all necessary matrices and vectors
-    this->setup_m(rho, phi, !previous);
-    
-    this->initGuess_m(previous);
-    
-    // actual solve
-    scalar_t error = this->iterate_m();
-    
-    // write efield to AMReX
-    this->computeEfield_m(efield);    
-    
-    // copy solution back
-    for (int lev = 0; lev < nlevel_m; ++lev) {
-        int ilev = lbase + lev;
-        
-        this->trilinos2amrex_m(0, *phi[ilev], mglevel_m[lev]->phi_p);
-    }
-    
-    if ( verbose_m )
-        this->writeSDDSData_m(error);
-    
-    // we can now reset
-    this->regrid_m = false;
 }
 
 
@@ -251,7 +205,6 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
     
     AmrIntVect_t rr = AmrIntVect_t(D_DECL(2, 2, 2));
     
-
     for (int lev = startLevel; lev < nlevel_m; ++lev) {
         int ilev = lbase_m + lev;
         

@@ -10,13 +10,18 @@
 
 #include "AmrMultiGridCore.h"
 
-//#include "AmrRedistributor.h"
+// #include "Solvers/AmrPoissonSolver.h"
+#include "../AmrOpal.h"
 
 #include "AmrMultiGridLevel.h"
 
-#define AMR_MG_TIMER 1
+#include <fstream>
 
-class AmrMultiGrid {
+#define AMR_MG_TIMER 1
+#define AMR_MG_WRITE 0
+#define DEBUG 0
+
+class AmrMultiGrid /*: public AmrPoissonSolver< AmrOpal >*/ {
     
 public:
     typedef amr::matrix_t         matrix_t;
@@ -44,7 +49,9 @@ public:
         Teuchos::RCP<matrix_t>,
         Teuchos::RCP<mv_t>
     > bsolver_t;
-
+    
+    typedef AmrPreconditioner<matrix_t> preconditioner_t;
+    
     typedef amrex::BoxArray boxarray_t;
     typedef amrex::Box box_t;
     typedef amrex::BaseFab<int> basefab_t;
@@ -111,6 +118,32 @@ public:
 public:
     
     /*!
+     * Instantiation used in Structure/FieldSolver.cpp
+     * @param itsAmrObject_p has information about refinemen ratios, etc.
+     * @param bsolver bottom solver
+     * @param prec preconditioner for bottom solver
+     * @param rebalance of preconditioner (SA only)
+     * @param bcx boundary condition in x
+     * @param bcy boundary condition in y
+     * @param bcz boundary condition in z
+     * @param smoother for level solution
+     * @param nSweeps when smoothing
+     * @param interp interpolater between levels
+     * @param norm for convergence criteria
+     */
+    AmrMultiGrid(AmrOpal* itsAmrObject_p,
+                 const std::string& bsolver,
+                 const std::string& prec,
+                 const bool& rebalance,
+                 const std::string& bcx,
+                 const std::string& bcy,
+                 const std::string& bcz,
+                 const std::string& smoother,
+                 const std::size_t& nSweeps,
+                 const std::string& interp,
+                 const std::string& norm);
+    
+    /*!
      * Instantiation used in Structure/FieldSolver.cpp for
      * OPAL bottom solvers.
      * @param bsolver the bottom solver
@@ -132,70 +165,21 @@ public:
                  const std::string& norm);
     
     /*!
-     * Instantiation used in Structure/FieldSolver.cpp
-     * @param bsolver bottom solver
-     * @param bgrid is the bottom grid dimension
-     * @param prec preconditioner for bottom solver
-     * @param bcx boundary condition in x
-     * @param bcy boundary condition in y
-     * @param bcz boundary condition in z
-     * @param smoother for level solution
-     * @param nSweeps when smoothing
-     * @param interp interpolater between levels
-     * @param norm for convergence criteria
+     * Used in OPAL
+     * 
+     * @param rho right-hand side charge density on grid [C / m]
+     * @param phi electrostatic potential (unknown) [V]
+     * @param efield electric field [V / m]
+     * @param baseLevel for solve
+     * @param finestLevel for solve
+     * @param prevAsGuess use of previous solution as initial guess
      */
-    AmrMultiGrid(const std::string& bsolver,
-                 const std::size_t bgrid[AMREX_SPACEDIM],
-                 const std::string& prec,
-                 const std::string& bcx,
-                 const std::string& bcy,
-                 const std::string& bcz,
-                 const std::string& smoother,
-                 const std::size_t& nSweeps,
-                 const std::string& interp,
-                 const std::string& norm);
-    
-    /*!
-     * Instantiation.
-     * @param bgrid is the bottomg grid dimension
-     * @param bcx physical boundary condition in x
-     * @param bcy physical boundary condition in y
-     * @param bcz physical boundary condition in z
-     * @param interp interpolater from coarse to fine grids without taking care of
-     * coarse-fine interface
-     * @param interface interpolater taking care of coarse-fine interface
-     * @param solver for bottom level
-     * @param preconditioner for bottom solver if available
-     * @param smoother for error
-     * @param norm convergence criteria
-     */
-    AmrMultiGrid(const std::size_t bgrid[AMREX_SPACEDIM],
-                 Boundary bcx = Boundary::DIRICHLET,
-                 Boundary bcy = Boundary::DIRICHLET,
-                 Boundary bcz = Boundary::DIRICHLET,
-                 Interpolater interp = Interpolater::TRILINEAR,
-                 Interpolater interface = Interpolater::LAGRANGE,
-                 BaseSolver solver = BaseSolver::CG,
-                 Preconditioner precond = Preconditioner::NONE,
-                 Smoother smoother = Smoother::JACOBI,
-                 Norm norm = Norm::LINF
-                );
-    
-    /*!
-     * Compute the potential and the electric field
-     * @param rho is the right-hand side
-     * @param phi is the potential
-     * @param efield is the electric field
-     * @param geom specifies the geometry
-     * @param lbase is the start level (currently only lbase = 0 supported)
-     * @param lfine is the finest level
-     * @param previous solution as initial guess
-     */
-    void solve(const amrex::Array<AmrField_u>& rho,
-               amrex::Array<AmrField_u>& phi,
-               amrex::Array<AmrField_u>& efield,
-               const amrex::Array<AmrGeometry_t>& geom,
-               int lbase, int lfine, bool previous = false);
+    void solve(AmrFieldContainer_t &rho,
+               AmrFieldContainer_t &phi,
+               AmrFieldContainer_t &efield,
+               unsigned short baseLevel,
+               unsigned short finestLevel,
+               bool prevAsGuess = true);
     
     /*!
      * Specify the number of smoothing steps
@@ -213,28 +197,32 @@ public:
      * Obtain some convergence info
      * @returns the number of iterations till convergence
      */
-    std::size_t getNumIters() {
-        return nIter_m;
-    }
+    std::size_t getNumIters();
     
     /*!
      * Obtain the residual norm of a level
      * @param level for which error is requested
      * @returns the norm of the residual
      */
-    scalar_t getLevelResidualNorm(lo_t level) {
-        return evalNorm_m(mglevel_m[level]->residual_p);
-    }
-    
+    scalar_t getLevelResidualNorm(lo_t level);
     
     /*!
-     * Obtain the residual norm
-     * @returns the maximum of all residual norms over all levels
+     * Enable solver info dumping into SDDS file
      */
-    scalar_t getMaxResidualNorm() {
-        return residualNorm_m();
-    }
+    void setVerbose(bool verbose);
     
+    double getXRangeMin(unsigned short level = 0);
+    double getXRangeMax(unsigned short level = 0);
+    double getYRangeMin(unsigned short level = 0);
+    double getYRangeMax(unsigned short level = 0);
+    double getZRangeMin(unsigned short level = 0);
+    double getZRangeMax(unsigned short level = 0);
+    
+    /**
+     * Print information abour tolerances.
+     * @param os output stream where to write to
+     */
+    Inform &print(Inform &os) const;
     
 private:
     
@@ -287,8 +275,16 @@ private:
     
     /*!
      * Actual solve.
+     * @returns the the max. residual
      */
-    void iterate_m();
+    scalar_t iterate_m();
+    
+    /*!
+     * Compute norms / level and check convergence
+     * @returns true if converged
+     */
+    bool isConverged_m(std::vector<scalar_t>& rhsNorms,
+                       std::vector<scalar_t>& resNorms);
     
     /*!
      * Compute composite residual of a level
@@ -321,12 +317,13 @@ private:
                             const Teuchos::RCP<vector_t>& rhs,
                             const Teuchos::RCP<vector_t>& crs_rhs,
                             const Teuchos::RCP<vector_t>& b);
-                           
+    
+#if AMR_MG_WRITE
     /*!
-     * @returns the maximum norm over all levels using the norm specified
-     * by the user
+     * Dumps the residual norm per level into a file (for each iteration).
      */
-    scalar_t residualNorm_m();
+    void writeResidualNorm_m();
+#endif
     
     /*!
      * Vector norm computation.
@@ -337,10 +334,11 @@ private:
     
     /*!
      * Initial convergence criteria values.
-     * @param maxResidual maximum norm of residual over all levels
-     * @param maxRho maximum norm of right-hand side over all levels
+     * @param rhsNorms per level of right-hand side (is filled)
+     * @param resNorms per level of residual (is filled)
      */
-    void initResidual_m(scalar_t& maxResidual, scalar_t& maxRho);
+    void initResidual_m(std::vector<scalar_t>& rhsNorms,
+                        std::vector<scalar_t>& resNorms);
     
     /*!
      * @param efield to compute
@@ -600,10 +598,10 @@ private:
     /*!
      * Instantiate a preconditioner for the bottom solver
      * @param precond type
-     * @param grid is the number of grid points per dimension
+     * @param rebalance preconditioner (SA only)
      */
     void initPrec_m(const Preconditioner& prec,
-                    const std::size_t grid[AMREX_SPACEDIM]);
+                    const bool& rebalance);
     
     /*!
      * Convertstring to enum Boundary
@@ -641,7 +639,28 @@ private:
      */
     Norm convertToEnumNorm_m(const std::string& norm);
     
+    /*!
+     * SDDS header is written by root core
+     * @param outfile output stream
+     */
+    void writeSDDSHeader_m(std::ofstream& outfile);
+    
+    /*!
+     * SDDS data write (done by root core)
+     * @param error to write
+     */
+    void writeSDDSData_m(const scalar_t& error);
+    
+#if AMR_MG_TIMER
+    /*!
+     * Create timers
+     */
+    void initTimer_m();
+#endif
+    
 private:
+    AmrOpal* itsAmrObject_mp;
+    
     Teuchos::RCP<comm_t> comm_mp;       ///< communicator
     Teuchos::RCP<amr::node_t> node_mp;  ///< kokkos node
     
@@ -652,6 +671,7 @@ private:
     std::unique_ptr<AmrInterpolater<AmrMultiGridLevel_t> > interface_mp;
     
     std::size_t nIter_m;            ///< number of iterations till convergence
+    std::size_t bIter_m;            ///< number of iterations of bottom solver
     std::size_t maxiter_m;          ///< maximum number of iterations allowed
     std::size_t nSweeps_m;          ///< number of smoothing iterations
     Smoother smootherType_m;        ///< type of smoother
@@ -665,8 +685,8 @@ private:
     /// error smoother
     std::vector<std::shared_ptr<AmrSmoother> > smoother_m;
     
-    // preconditioner for bottom solver
-    std::shared_ptr<AmrPreconditioner<matrix_t> > prec_mp;
+    /// preconditioner for bottom solver
+    std::shared_ptr<preconditioner_t> prec_mp;
     
     int lbase_m;            ///< base level (currently only 0 supported)
     int lfine_m;            ///< fineste level
@@ -677,7 +697,9 @@ private:
     
     Norm norm_m;            ///< norm for convergence criteria (l1, l2, linf)
     
-//    std::unique_ptr<AmrRedistributor> balancer_mp;
+    bool verbose_m;                 ///< If true, a SDDS file is written
+    std::string fname_m;            ///< SDDS filename
+    std::ios_base::openmode flag_m; ///< std::ios::out or std::ios::app
     
 #if AMR_MG_TIMER
     IpplTimings::TimerRef buildTimer_m;         ///< timer for matrix and vector construction
@@ -686,7 +708,13 @@ private:
     IpplTimings::TimerRef interpTimer_m;        ///< prolongation timer
     IpplTimings::TimerRef residnofineTimer_m;   ///< timer for no-fine residual computation
     IpplTimings::TimerRef bottomTimer_m;        ///< bottom solver timer
+    IpplTimings::TimerRef dumpTimer_m;          ///< write SDDS file timer
 #endif
 };
+
+
+inline Inform &operator<<(Inform &os, const AmrMultiGrid &fs) {
+    return fs.print(os);
+}
 
 #endif
