@@ -51,7 +51,7 @@ public:
     > bsolver_t;
     
     typedef AmrPreconditioner<matrix_t> preconditioner_t;
-
+    
     typedef amrex::BoxArray boxarray_t;
     typedef amrex::Box box_t;
     typedef amrex::BaseFab<int> basefab_t;
@@ -144,22 +144,6 @@ public:
                  const std::string& norm);
     
     /*!
-     * Compute the potential and the electric field
-     * @param rho is the right-hand side
-     * @param phi is the potential
-     * @param efield is the electric field
-     * @param geom specifies the geometry
-     * @param lbase is the start level (currently only lbase = 0 supported)
-     * @param lfine is the finest level
-     * @param previous solution as initial guess
-     */
-    void solve(const amrex::Array<AmrField_u>& rho,
-               amrex::Array<AmrField_u>& phi,
-               amrex::Array<AmrField_u>& efield,
-               const amrex::Array<AmrGeometry_t>& geom,
-               int lbase, int lfine, bool previous = false);
-    
-    /*!
      * Used in OPAL
      * 
      * @param rho right-hand side charge density on grid [C / m]
@@ -170,11 +154,11 @@ public:
      * @param prevAsGuess use of previous solution as initial guess
      */
     void solve(AmrFieldContainer_t &rho,
-                       AmrFieldContainer_t &phi,
-                       AmrFieldContainer_t &efield,
-                       unsigned short baseLevel,
-                       unsigned short finestLevel,
-                       bool prevAsGuess = true);
+               AmrFieldContainer_t &phi,
+               AmrFieldContainer_t &efield,
+               unsigned short baseLevel,
+               unsigned short finestLevel,
+               bool prevAsGuess = true);
     
     /*!
      * Specify the number of smoothing steps
@@ -254,14 +238,14 @@ private:
      * @returns the the max. residual
      */
     scalar_t iterate_m();
-
+    
     /*!
      * Compute norms / level and check convergence
      * @returns true if converged
      */
     bool isConverged_m(std::vector<scalar_t>& rhsNorms,
                        std::vector<scalar_t>& resNorms);
-
+    
     /*!
      * Compute composite residual of a level
      * @param r is the residual to compute
@@ -293,7 +277,7 @@ private:
                             const Teuchos::RCP<vector_t>& rhs,
                             const Teuchos::RCP<vector_t>& crs_rhs,
                             const Teuchos::RCP<vector_t>& b);
-                           
+    
 #if AMR_MG_WRITE
     /*!
      * Dumps the residual norm per level into a file (for each iteration).

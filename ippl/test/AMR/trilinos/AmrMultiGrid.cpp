@@ -1,44 +1,52 @@
 #include "AmrMultiGrid.h"
 
+#include <algorithm>
+#include <functional>
 #include <map>
+#include <numeric>
 
+#include "OPALconfig.h"
+#include "AbstractObjects/OpalData.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Timer.h"
+#include "Utilities/Util.h"
 
-#define AMR_MG_WRITE 0
-
-#define DEBUG 0
+#include <boost/filesystem.hpp>
 
 #if AMR_MG_WRITE
     #include <iomanip>
-    #include <fstream>
 #endif
 
-AmrMultiGrid::AmrMultiGrid(const std::string& bcx,
+AmrMultiGrid::AmrMultiGrid(AmrOpal* itsAmrObject_p,
+                           const std::string& bsolver,
+                           const std::string& prec,
+                           const bool& rebalance,
+                           const std::string& bcx,
                            const std::string& bcy,
                            const std::string& bcz,
                            const std::string& smoother,
                            const std::size_t& nSweeps,
                            const std::string& interp,
                            const std::string& norm)
-    : nIter_m(0),
+    : itsAmrObject_mp(itsAmrObject_p),
+      nIter_m(0),
+      bIter_m(0),
       maxiter_m(100),
-      nSweeps_m(12),
-      prec_mp(nullptr),
+      nSweeps_m(nSweeps),
+      mglevel_m(0),
       lbase_m(0),
       lfine_m(0),
       nlevel_m(1),
-      nBcPoints_m(0)
+      nBcPoints_m(0),
+      verbose_m(false),
+      fname_m(OpalData::getInstance()->getInputBasename() + std::string(".solver")),
+      flag_m(std::ios::out)
 {
     comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
     node_mp = KokkosClassic::Details::getNode<amr::node_t>(); //KokkosClassic::DefaultNode::getDefaultNode();
     
 #if AMR_MG_TIMER
-    buildTimer_m        = IpplTimings::getTimer("AMR MG matrix setup");
-    restrictTimer_m     = IpplTimings::getTimer("AMR MG restrict");
-    smoothTimer_m       = IpplTimings::getTimer("AMR MG smooth");
-    interpTimer_m       = IpplTimings::getTimer("AMR MG prolongate");
-    residnofineTimer_m  = IpplTimings::getTimer("AMR MG resid-no-fine");
-    bottomTimer_m       = IpplTimings::getTimer("AMR MG bottom-solver");
+    this->initTimer_m();
 #endif
     
     const Boundary bcs[AMREX_SPACEDIM] = {
@@ -58,8 +66,22 @@ AmrMultiGrid::AmrMultiGrid(const std::string& bcx,
     
     // interpolater for crse-fine-interface
     this->initCrseFineInterp_m(Interpolater::LAGRANGE);
+    
+    // preconditioner
+    const Preconditioner precond = this->convertToEnumPreconditioner_m(prec);
+    this->initPrec_m(precond, rebalance);
+    
+    // base level solver
+    const BaseSolver solver = this->convertToEnumBaseSolver_m(bsolver);
+    this->initBaseSolver_m(solver);
+    
+    if (boost::filesystem::exists(fname_m)) {
+        flag_m = std::ios::app;
+        INFOMSG("Appending solver information to existing file: " << fname_m << endl);
+    } else {
+        INFOMSG("Creating new file for solver information: " << fname_m << endl);
+    }
 }
-
 
 AmrMultiGrid::AmrMultiGrid(bsolver_t* bsolver,
                            const std::string& bcx,
@@ -74,27 +96,6 @@ AmrMultiGrid::AmrMultiGrid(bsolver_t* bsolver,
     solver_mp.reset(bsolver);
 }
 
-AmrMultiGrid::AmrMultiGrid(const std::string& bsolver,
-                           const std::size_t bgrid[AMREX_SPACEDIM],
-                           const std::string& prec,
-                           const std::string& bcx,
-                           const std::string& bcy,
-                           const std::string& bcz,
-                           const std::string& smoother,
-                           const std::size_t& nSweeps,
-                           const std::string& interp,
-                           const std::string& norm)
-    : AmrMultiGrid(bcx, bcy, bcz, smoother, nSweeps, interp, norm)
-{
-    // preconditioner
-    const Preconditioner precond = this->convertToEnumPreconditioner_m(prec);
-    this->initPrec_m(precond, bgrid);
-    
-    // base level solver
-    const BaseSolver solver = this->convertToEnumBaseSolver_m(bsolver);
-    this->initBaseSolver_m(solver);
-}
-
 
 AmrMultiGrid::AmrMultiGrid(const std::size_t bgrid[AMREX_SPACEDIM],
                            Boundary bcx,
@@ -107,7 +108,8 @@ AmrMultiGrid::AmrMultiGrid(const std::size_t bgrid[AMREX_SPACEDIM],
                            Smoother smoother,
                            Norm norm
                           )
-    : nIter_m(0),
+    : itsAmrObject_mp(nullptr),
+      nIter_m(0),
       maxiter_m(100),
       nSweeps_m(12),
       smootherType_m(smoother),
@@ -146,35 +148,41 @@ AmrMultiGrid::AmrMultiGrid(const std::size_t bgrid[AMREX_SPACEDIM],
     this->initBaseSolver_m(solver);
 }
 
-void AmrMultiGrid::solve(const amrex::Array<AmrField_u>& rho,
-                         amrex::Array<AmrField_u>& phi,
-                         amrex::Array<AmrField_u>& efield,
-                         const amrex::Array<AmrGeometry_t>& geom,
-                         int lbase, int lfine, bool previous)
+
+void AmrMultiGrid::solve(AmrFieldContainer_t &rho,
+                         AmrFieldContainer_t &phi,
+                         AmrFieldContainer_t &efield,
+                         unsigned short baseLevel,
+                         unsigned short finestLevel,
+                         bool prevAsGuess)
 {
-    lbase_m = lbase;
-    lfine_m = lfine;
-    nlevel_m = lfine - lbase + 1;
+    lbase_m = baseLevel;
+    lfine_m = finestLevel;
+    nlevel_m = lfine_m - lbase_m + 1;
     
-    this->initLevels_m(rho, geom, previous);
+    this->initLevels_m(rho, itsAmrObject_mp->Geom(), prevAsGuess);
     
     // build all necessary matrices and vectors
-    this->setup_m(rho, phi, !previous);
+    this->setup_m(rho, phi, !prevAsGuess);
     
-    this->initGuess_m(previous);
+    this->initGuess_m(prevAsGuess);
     
     // actual solve
-    this->iterate_m();
+    scalar_t error = this->iterate_m();
     
     // write efield to AMReX
     this->computeEfield_m(efield);    
     
     // copy solution back
     for (int lev = 0; lev < nlevel_m; ++lev) {
-        int ilev = lbase + lev;
+        int ilev = lbase_m + lev;
         
         this->trilinos2amrex_m(0, *phi[ilev], mglevel_m[lev]->phi_p);
     }
+    
+    if ( verbose_m )
+        this->writeSDDSData_m(error);
+    
 }
 
 
@@ -193,6 +201,21 @@ void AmrMultiGrid::setMaxNumberOfIterations(const std::size_t& maxiter) {
                             "The max. number of iterations needs to be positive!");
     
     maxiter_m = maxiter;
+}
+
+
+std::size_t AmrMultiGrid::getNumIters() {
+    return nIter_m;
+}
+
+
+AmrMultiGrid::scalar_t AmrMultiGrid::getLevelResidualNorm(lo_t level) {
+    return evalNorm_m(mglevel_m[level]->residual_p);
+}
+
+
+void AmrMultiGrid::setVerbose(bool verbose) {
+    verbose_m = verbose;
 }
 
 
@@ -231,11 +254,14 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
     if ( previous )
         return;
     
+    // we need to build base level only at beginning of simulation
+    int startLevel = (mglevel_m.empty()) ? 0 : 1;
+    
     mglevel_m.resize(nlevel_m);
     
     AmrIntVect_t rr = AmrIntVect_t(D_DECL(2, 2, 2));
     
-    for (int lev = 0; lev < nlevel_m; ++lev) {
+    for (int lev = startLevel; lev < nlevel_m; ++lev) {
         int ilev = lbase_m + lev;
         
         mglevel_m[lev].reset(new AmrMultiGridLevel_t(rho[ilev]->boxArray(),
@@ -322,19 +348,22 @@ void AmrMultiGrid::initGuess_m(bool previous) {
 }
 
 
-void AmrMultiGrid::iterate_m() {
-    
-    scalar_t eps = 1.0e-8;
+AmrMultiGrid::scalar_t AmrMultiGrid::iterate_m() {
     
     // initial error
-    scalar_t max_residual = 0.0;
-    scalar_t max_rho = max_residual;
+    std::vector<scalar_t> rhsNorms;
+    std::vector<scalar_t> resNorms;
     
-    this->initResidual_m(max_residual, max_rho);
+    this->initResidual_m(rhsNorms, resNorms);
+    
+    scalar_t eps = 1.0e-8;
+    std::for_each(rhsNorms.begin(), rhsNorms.end(),
+                  [&eps](double& val){ val *= eps; });
     
     nIter_m = 0;
+    bIter_m = 0;
     
-    while ( max_residual > eps * max_rho && nIter_m < maxiter_m ) {
+    while ( isConverged_m(rhsNorms, resNorms) && nIter_m < maxiter_m ) {
         
         relax_m(lfine_m);
         
@@ -356,10 +385,31 @@ void AmrMultiGrid::iterate_m() {
                              mglevel_m[lev]->phi_p);
         }
         
-        max_residual = residualNorm_m();
+        
+        for (lo_t lev = 0; lev < nlevel_m; ++lev)
+            resNorms[lev] = getLevelResidualNorm(lev);
         
         ++nIter_m;
+        
+#if AMR_MG_WRITE
+        this->writeResidualNorm_m();
+#endif
+        
+        bIter_m += solver_mp->getNumIters();
     }
+    
+    return std::accumulate(resNorms.begin(),
+                           resNorms.end(), 0.0,
+                           std::plus<scalar_t>());
+}
+
+
+bool AmrMultiGrid::isConverged_m(std::vector<scalar_t>& rhsNorms,
+                                 std::vector<scalar_t>& resNorms)
+{
+    return std::equal(resNorms.begin(), resNorms.end(),
+                      rhsNorms.begin(),
+                      std::less<scalar_t>());
 }
 
 
@@ -502,10 +552,6 @@ void AmrMultiGrid::relax_m(const lo_t& level) {
         mglevel_m[level]->phi_p->update(1.0, *phi_save, 1.0, *mglevel_m[level]->error_p, 0.0);
         
     } else {
-        
-	//        balancer_mp->doExport(mglevel_m[level]->error_p);
-        //balancer_mp->doExport(mglevel_m[level]->residual_p);
-        
         // e = A^(-1)r
 #if AMR_MG_TIMER
     IpplTimings::startTimer(bottomTimer_m);
@@ -517,10 +563,6 @@ void AmrMultiGrid::relax_m(const lo_t& level) {
 #if AMR_MG_TIMER
     IpplTimings::stopTimer(bottomTimer_m);
 #endif
-        
-    //balancer_mp->doImport(mglevel_m[level]->error_p);
-    //   balancer_mp->doImport(mglevel_m[level]->residual_p);
-        
         // phi = phi + e
         mglevel_m[level]->phi_p->update(1.0, *mglevel_m[level]->error_p, 1.0);
     }
@@ -556,36 +598,25 @@ void AmrMultiGrid::residual_no_fine_m(const lo_t& level,
 }
 
 
-typename AmrMultiGrid::scalar_t AmrMultiGrid::residualNorm_m() {
+#if AMR_MG_WRITE
+void AmrMultiGrid::writeResidualNorm_m() {
     scalar_t err = 0.0;
     
-#if AMR_MG_WRITE
     std::ofstream out;
     if ( Ippl::myNode() == 0 )
         out.open("residual.dat", std::ios::app);
-#endif
-    
     
     for (int lev = 0; lev < nlevel_m; ++lev) {
         scalar_t tmp = evalNorm_m(mglevel_m[lev]->residual_p);
-        err = std::max(err, tmp);
         
-#if AMR_MG_WRITE
         if ( Ippl::myNode() == 0 )
             out << std::setw(15) << std::right << tmp;
-#endif
     }
     
-#if AMR_MG_WRITE
-    if ( Ippl::myNode() == 0 ) {
-        out << std::setw(15) << err << std::endl;
+    if ( Ippl::myNode() == 0 )
         out.close();
-    }
-#endif
-    
-    
-    return err;
 }
+#endif
 
 
 typename AmrMultiGrid::scalar_t
@@ -617,7 +648,12 @@ AmrMultiGrid::evalNorm_m(const Teuchos::RCP<const vector_t>& x)
 }
 
 
-void AmrMultiGrid::initResidual_m(scalar_t& maxResidual, scalar_t& maxRho) {
+void AmrMultiGrid::initResidual_m(std::vector<scalar_t>& rhsNorms,
+                                  std::vector<scalar_t>& resNorms)
+{
+    rhsNorms.clear();
+    resNorms.clear();
+    
 #if AMR_MG_WRITE
     std::ofstream out;
     
@@ -626,11 +662,9 @@ void AmrMultiGrid::initResidual_m(scalar_t& maxResidual, scalar_t& maxRho) {
     
         for (int lev = 0; lev < nlevel_m; ++lev)
             out << std::setw(14) << std::right << "level" << lev;
-        out << std::setw(15) << std::right << "max";
         out << std::endl;
     }
 #endif
-    
     
     for (int lev = 0; lev < nlevel_m; ++lev) {
         this->residual_m(lev,
@@ -638,23 +672,19 @@ void AmrMultiGrid::initResidual_m(scalar_t& maxResidual, scalar_t& maxRho) {
                          mglevel_m[lev]->rho_p,
                          mglevel_m[lev]->phi_p);
         
-        scalar_t tmp = evalNorm_m(mglevel_m[lev]->residual_p);
-        maxResidual = std::max(maxResidual, tmp);
+        resNorms.push_back(evalNorm_m(mglevel_m[lev]->residual_p));
         
 #if AMR_MG_WRITE
         if ( Ippl::myNode() == 0 )
-            out << std::setw(15) << std::right << tmp;
+            out << std::setw(15) << std::right << resNorms.back();
 #endif
         
-        tmp = evalNorm_m(mglevel_m[lev]->rho_p);
-        maxRho = std::max(maxRho, tmp);
+        rhsNorms.push_back(evalNorm_m(mglevel_m[lev]->rho_p));
     }
     
 #if AMR_MG_WRITE
-    if ( Ippl::myNode() == 0 ) {
-        out << std::setw(15) << maxResidual << std::endl;
+    if ( Ippl::myNode() == 0 )
         out.close();
-    }
 #endif
 }
 
@@ -665,8 +695,6 @@ void AmrMultiGrid::computeEfield_m(amrex::Array<AmrField_u>& efield) {
         int ilev = lbase_m + lev;
         
         efield_p = Teuchos::rcp( new vector_t(mglevel_m[lev]->map_p, false) );
-        
-        //averageDown_m(lev);
         
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             mglevel_m[lev]->G_p[d]->apply(*mglevel_m[lev]->phi_p, *efield_p);
@@ -685,24 +713,19 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
 #endif
     
     bool isNewOperator = (mglevel_m[lbase_m]->Anf_p == Teuchos::null);
-
-    if ( lbase_m == lfine_m ) {
+    
+    if ( lbase_m == lfine_m )
         this->buildSingleLevel_m(rho, phi, isNewOperator);
-    } else
+    else
         this->buildMultiLevel_m(rho, phi, matrices);
     
     mglevel_m[lfine_m]->error_p->putScalar(0.0);
     
-    if ( matrices ) {
-//        balancer_mp->solve(mglevel_m[lbase_m]->Anf_p);
-        
-//        balancer_mp->doExport(mglevel_m[lbase_m]->Anf_p);
-        
+    if ( matrices )
         this->clearMasks_m();
-    }
-
+    
     if ( isNewOperator ) {
-        // set the bottom solve operator (might change sign values)
+        // set the bottom solve operator
         solver_mp->setOperator(mglevel_m[lbase_m]->Anf_p);
     }
 
@@ -783,7 +806,7 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
     
     // we need to build base level only at beginning of simulation
     int startLevel = (mglevel_m[lbase_m]->Anf_p == Teuchos::null) ? 0 : 1;
-
+    
     for (int lev = startLevel; lev < nlevel_m; ++lev) {
 
         this->open_m(lev, matrices);
@@ -972,7 +995,6 @@ void AmrMultiGrid::open_m(const lo_t& level,
                              Tpetra::StaticProfile) );
         }
     }
-    
     
     mglevel_m[level]->rho_p = Teuchos::rcp(
         new vector_t(mglevel_m[level]->map_p, false) );
@@ -1935,7 +1957,7 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver)
 
 
 void AmrMultiGrid::initPrec_m(const Preconditioner& prec,
-                              const std::size_t grid[AMREX_SPACEDIM])
+                              const bool& rebalance)
 {
     switch ( prec ) {
         case Preconditioner::ILUT:
@@ -1944,10 +1966,13 @@ void AmrMultiGrid::initPrec_m(const Preconditioner& prec,
             prec_mp.reset( new Ifpack2Preconditioner(prec) );
             break;
         case Preconditioner::SA:
-            prec_mp.reset( new MueLuPreconditioner(grid) );
+        {
+            AmrIntVect_t grid = itsAmrObject_mp->Geom(0).Domain().size();
+            prec_mp.reset( new MueLuPreconditioner(grid, rebalance) );
             break;
+        }
         case Preconditioner::NONE:
-            prec_mp.reset( );
+            prec_mp.reset();
             break;
         default:
             throw OpalException("AmrMultiGrid::initPrec_m()",
@@ -1964,7 +1989,7 @@ AmrMultiGrid::convertToEnumBoundary_m(const std::string& bc) {
     map["OPEN"]         = Boundary::OPEN;
     map["PERIODIC"]     = Boundary::PERIODIC;
     
-    auto boundary = map.find(bc);
+    auto boundary = map.find(Util::toUpper(bc));
     
     if ( boundary == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumBoundary_m()",
@@ -1980,7 +2005,7 @@ AmrMultiGrid::convertToEnumInterpolater_m(const std::string& interp) {
     map["LAGRANGE"]     = Interpolater::LAGRANGE;
     map["PC"]           = Interpolater::PIECEWISE_CONST;
     
-    auto interpolater = map.find(interp);
+    auto interpolater = map.find(Util::toUpper(interp));
     
     if ( interpolater == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumInterpolater_m()",
@@ -2020,7 +2045,7 @@ AmrMultiGrid::convertToEnumBaseSolver_m(const std::string& bsolver) {
     map["LAPACK"]           =  BaseSolver::LAPACK;
 #endif
     
-    auto solver = map.find(bsolver);
+    auto solver = map.find(Util::toUpper(bsolver));
     
     if ( solver == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumBaseSolver_m()",
@@ -2039,7 +2064,7 @@ AmrMultiGrid::convertToEnumPreconditioner_m(const std::string& prec) {
     map["SA"]           = Preconditioner::SA;
     map["NONE"]         = Preconditioner::NONE;
     
-    auto precond = map.find(prec);
+    auto precond = map.find(Util::toUpper(prec));
     
     if ( precond == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumPreconditioner_m()",
@@ -2062,10 +2087,158 @@ AmrMultiGrid::convertToEnumNorm_m(const std::string& norm) {
     map["L2"]   = Norm::L2;
     map["LINF"] = Norm::LINF;
     
-    auto n = map.find(norm);
+    auto n = map.find(Util::toUpper(norm));
     
     if ( n == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumNorm_m()",
                             "No norm '" + norm + "'.");
     return n->second;
+}
+
+
+void AmrMultiGrid::writeSDDSHeader_m(std::ofstream& outfile) {
+    OPALTimer::Timer simtimer;
+
+    std::string dateStr(simtimer.date());
+    std::string timeStr(simtimer.time());
+    std::string indent("        ");
+
+    outfile << "SDDS1" << std::endl;
+    outfile << "&description\n"
+            << indent << "text=\"Solver statistics '" << OpalData::getInstance()->getInputFn()
+            << "' " << dateStr << "" << timeStr << "\",\n"
+            << indent << "contents=\"solver info\"\n"
+            << "&end\n";
+    outfile << "&parameter\n"
+            << indent << "name=processors,\n"
+            << indent << "type=long,\n"
+            << indent << "description=\"Number of Cores used\"\n"
+            << "&end\n";
+    outfile << "&parameter\n"
+            << indent << "name=revision,\n"
+            << indent << "type=string,\n"
+            << indent << "description=\"git revision of opal\"\n"
+            << "&end\n";
+    outfile << "&parameter\n"
+            << indent << "name=flavor,\n"
+            << indent << "type=string,\n"
+            << indent << "description=\"OPAL flavor that wrote file\"\n"
+            << "&end\n";
+    outfile << "&column\n"
+            << indent << "name=t,\n"
+            << indent << "type=double,\n"
+            << indent << "units=ns,\n"
+            << indent << "description=\"1 Time\"\n"
+            << "&end\n";
+    outfile << "&column\n"
+            << indent << "name=mg_iter,\n"
+            << indent << "type=long,\n"
+            << indent << "units=1,\n"
+            << indent << "description=\"2 Number of Multigrid Iterations\"\n"
+            << "&end\n";
+    outfile << "&column\n"
+            << indent << "name=bottom_iter,\n"
+            << indent << "type=long,\n"
+            << indent << "units=1,\n"
+            << indent << "description=\"3 Total Number of Bottom Solver Iterations\"\n"
+            << "&end\n";
+    outfile << "&column\n"
+            << indent << "name=regrid,\n"
+            << indent << "type=bool,\n"
+            << indent << "units=1,\n"
+            << indent << "description=\"4 Regrid Step\"\n"
+            << "&end\n";
+    outfile << "&column\n"
+            << indent << "name=error,\n"
+            << indent << "type=double,\n"
+            << indent << "units=1,\n"
+            << indent << "description=\"5 Error\"\n"
+            << "&end\n"
+            << "&data\n"
+            << indent << "mode=ascii,\n"
+            << indent << "no_row_counts=1\n"
+            << "&end\n"
+            << Ippl::getNodes() << '\n'
+            << PACKAGE_NAME << " " << OPAL_VERSION_STR << " git rev. #" << Util::getGitRevision() << '\n'
+            << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
+                (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << std::endl;
+}
+
+
+void AmrMultiGrid::writeSDDSData_m(const scalar_t& error) {
+    IpplTimings::startTimer(dumpTimer_m);
+    
+    unsigned int pwi = 10;
+    
+    std::ofstream outfile;
+    
+    if ( Ippl::myNode() == 0 ) {
+        outfile.open(fname_m.c_str(), flag_m);
+        outfile.precision(15);
+        outfile.setf(std::ios::scientific, std::ios::floatfield);
+        
+        if ( flag_m == std::ios::out ) {
+            flag_m = std::ios::app;
+            writeSDDSHeader_m(outfile);
+        }
+        
+        outfile << itsAmrObject_mp->getT() * 1e9 << std::setw(pwi) << '\t'  // 1
+                << this->nIter_m << std::setw(pwi) << '\t'                  // 2
+                << this->bIter_m << std::setw(pwi) << '\t'                  // 3
+                << this->regrid_m << std::setw(pwi) <<  '\t'                // 4
+                << error << '\n';                                           // 5
+    }
+    
+    IpplTimings::stopTimer(dumpTimer_m);
+}
+
+
+#if AMR_MG_TIMER
+void AmrMultiGrid::initTimer_m() {
+    buildTimer_m        = IpplTimings::getTimer("AMR MG matrix setup");
+    restrictTimer_m     = IpplTimings::getTimer("AMR MG restrict");
+    smoothTimer_m       = IpplTimings::getTimer("AMR MG smooth");
+    interpTimer_m       = IpplTimings::getTimer("AMR MG prolongate");
+    residnofineTimer_m  = IpplTimings::getTimer("AMR MG resid-no-fine");
+    bottomTimer_m       = IpplTimings::getTimer("AMR MG bottom-solver");
+    dumpTimer_m         = IpplTimings::getTimer("AMR MG dump");
+}
+#endif
+
+
+double AmrMultiGrid::getXRangeMin(unsigned short level) {
+    return itsAmrObject_mp->Geom(level).ProbLo(0);
+}
+
+
+double AmrMultiGrid::getXRangeMax(unsigned short level) {
+    return itsAmrObject_mp->Geom(level).ProbHi(0);
+}
+
+
+double AmrMultiGrid::getYRangeMin(unsigned short level) {
+    return itsAmrObject_mp->Geom(level).ProbLo(1);
+}
+
+
+double AmrMultiGrid::getYRangeMax(unsigned short level) {
+    return itsAmrObject_mp->Geom(level).ProbHi(1);
+}
+
+
+double AmrMultiGrid::getZRangeMin(unsigned short level) {
+    return itsAmrObject_mp->Geom(level).ProbLo(2);
+}
+
+
+double AmrMultiGrid::getZRangeMax(unsigned short level) {
+    return itsAmrObject_mp->Geom(level).ProbHi(2);
+}
+
+
+Inform &AmrMultiGrid::print(Inform &os) const {
+    os << "* ********************* A M R M u l t i G r i d ********************** " << endl
+    //FIXME
+       << "* ******************************************************************** " << endl;
+    return os;
 }

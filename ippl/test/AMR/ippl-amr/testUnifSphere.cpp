@@ -61,32 +61,17 @@ struct param_t {
 #ifdef HAVE_AMR_MG_SOLVER
     bool useTrilinos;
     size_t nsweeps;
-    AmrMultiGrid::Boundary bcx;
-    AmrMultiGrid::Boundary bcy;
-    AmrMultiGrid::Boundary bcz;
-    AmrMultiGrid::BaseSolver bs;
-    AmrMultiGrid::Smoother smoother;
-    AmrMultiGrid::Preconditioner prec;
+    std::string bcx;
+    std::string bcy;
+    std::string bcz;
+    std::string bs;
+    std::string smoother;
+    std::string prec;
+    bool rebalance;
 #endif
     AmrOpal::TaggingCriteria criteria;
     double tagfactor;
 };
-
-
-#ifdef HAVE_AMR_MG_SOLVER
-void getBC(AmrMultiGrid::Boundary& boundary, const char* optarg) {
-    std::string bc = optarg;
-    
-    if ( bc == "dirichlet" )
-        boundary = AmrMultiGrid::Boundary::DIRICHLET;
-    else if ( bc == "open" )
-        boundary = AmrMultiGrid::Boundary::OPEN;
-    else if ( bc == "periodic" )
-        boundary = AmrMultiGrid::Boundary::PERIODIC;
-    else
-        throw std::runtime_error("Error: Check boundary condition argument");
-}
-#endif
 
 
 bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
@@ -108,12 +93,13 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 #ifdef HAVE_AMR_MG_SOLVER
     params.useTrilinos = false;
     params.nsweeps = 12;
-    params.bcx = AmrMultiGrid::Boundary::DIRICHLET;
-    params.bcy = AmrMultiGrid::Boundary::DIRICHLET;
-    params.bcz = AmrMultiGrid::Boundary::DIRICHLET;
-    params.bs = AmrMultiGrid::BaseSolver::CG;
-    params.smoother = AmrMultiGrid::Smoother::GAUSS_SEIDEL;
-    params.prec = AmrMultiGrid::Preconditioner::NONE;
+    params.bcx = "dirichlet";
+    params.bcy = "dirichlet"
+    params.bcz = "dirichlet"
+    params.bs = "CG;
+    params.smoother = "GS";
+    params.prec = "NONE;
+    params.rebalance = false;
 #endif
     
     
@@ -148,6 +134,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "bcy",             required_argument, 0, 'j' },
             { "bcz",             required_argument, 0, 'k' },
             { "basesolver",      required_argument, 0, 'u' },
+            { "rebalance",      no_argument,       0, 'R' },
 #endif
             { "tagging",         required_argument, 0, 't' },
             { "tagging-factor",  required_argument, 0, 'f' },
@@ -157,7 +144,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
         int option_index = 0;
         
 #ifdef HAVE_AMR_MG_SOLVER
-        c = getopt_long(argc, argv, "a:cd:f:g:hi:j:k:l:m:n:o:pq:r:st:u:vwx:y:z:", long_options, &option_index);
+        c = getopt_long(argc, argv, "a:cd:f:g:hi:j:k:l:m:n:o:pq:r:R:st:u:vwx:y:z:", long_options, &option_index);
 #else
         c = getopt_long(argc, argv, "x:y:z:l:m:r:n:whcvpst:f:", long_options, &option_index);
 #endif
@@ -173,91 +160,37 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.nsweeps = std::atoi(optarg); break;
             case 'q':
             {
-                std::string smoother = optarg;
-                if ( smoother == "GS" )
-                    params.smoother = AmrMultiGrid::Smoother::GAUSS_SEIDEL;
-                else if ( smoother == "SGS" )
-                    params.smoother = AmrMultiGrid::Smoother::SGS;
-                else if ( smoother == "JACOBI" )
-                    params.smoother = AmrMultiGrid::Smoother::JACOBI;
-                else
-                    throw std::runtime_error("Error: Check smoother argument");
+                params.smoother = optarg;
                 break;
             }
             case 'o':
             {
-                std::string prec = optarg;
-                if ( prec == "ILUT" )
-                    params.prec = AmrMultiGrid::Preconditioner::ILUT;
-                else if ( prec == "RILUK" )
-                    params.prec = AmrMultiGrid::Preconditioner::RILUK;
-                else if ( prec == "CHEBYSHEV" )
-                    params.prec = AmrMultiGrid::Preconditioner::CHEBYSHEV;
-                else
-                    throw std::runtime_error("Error: Check preconditioner argument");
+                params.prec = optarg;
                 break;
             }
             case 'i':
             {
-                getBC(params.bcx, optarg);
+                params.bcx =  optarg;
                 break;
             }
             case 'j':
             {
-                getBC(params.bcy, optarg);
+                params.bcy =  optarg;
                 break;
             }
             case 'k':
             {
-                getBC(params.bcz, optarg);
+                params.bcz =  optarg;
                 break;
             }
             case 'u':
             {
-                std::string bs = optarg;
-                
-                if ( bs == "cg" )
-                    params.bs = AmrMultiGrid::BaseSolver::CG;
-                else if ( bs == "bicgstab" )
-                    params.bs = AmrMultiGrid::BaseSolver::BICGSTAB;
-                else if ( bs == "minres" )
-                    params.bs = AmrMultiGrid::BaseSolver::MINRES;
-                else if ( bs == "pcpg" )
-                    params.bs = AmrMultiGrid::BaseSolver::PCPG;
-                else if ( bs == "gmres" )
-                    params.bs = AmrMultiGrid::BaseSolver::GMRES;
-                else if ( bs == "stochastic_cg" )
-                    params.bs = AmrMultiGrid::BaseSolver::STOCHASTIC_CG;
-                else if ( bs == "recycling_cg" )
-                    params.bs = AmrMultiGrid::BaseSolver::RECYCLING_CG;
-                else if ( bs == "recycling_gmres" )
-                    params.bs = AmrMultiGrid::BaseSolver::RECYCLING_GMRES;
-#ifdef HAVE_AMESOS2_KLU2
-                else if ( bs == "klu2" )
-                    params.bs = AmrMultiGrid::BaseSolver::KLU2;
-#endif
-#ifdef HAVE_AMESOS2_SUPERLU
-                else if ( bs == "superlu" )
-                    params.bs = AmrMultiGrid::BaseSolver::SUPERLU;
-#endif
-#ifdef HAVE_AMESOS2_UMFPACK
-                else if ( bs == "umfpack" )
-                    params.bs = AmrMultiGrid::BaseSolver::UMFPACK;
-#endif
-#ifdef HAVE_AMESOS2_PARDISO_MKL
-                else if ( bs == "pardiso_mkl" )
-                    params.bs = AmrMultiGrid::BaseSolver::PARDISO_MKL;
-#endif
-#ifdef HAVE_AMESOS2_MUMPS
-                else if ( bs == "mumps" )
-                    params.bs = AmrMultiGrid::BaseSolver::MUMPS;
-#endif
-#ifdef HAVE_AMESOS2_LAPACK
-                else if ( bs == "lapack" )
-                    params.bs = AmrMultiGrid::BaseSolver::LAPACK;
-#endif
-                else
-                    throw std::runtime_error("Error: Check base solver argument");
+                params.bs = optarg;
+                break;
+            }
+            case 'R':
+            {
+                params.rebalance = true;
                 break;
             }
 #endif
@@ -327,6 +260,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--bcy (optional, dirichlet or open, default: dirichlet)" << endl
                     << "--bcz (optional, dirichlet or open, default: dirichlet)" << endl
                     << "--basesolver (optional, trilinos only, default: CG)" << endl
+                    << "--rebalance (optional, trilinos only)" << endl
 #endif
                     << "--tagging charge (default) / efield / potential (optional)" << endl
                     << "--tagfactor [charge value / 0 ... 1] (optiona)" << endl;
@@ -658,14 +592,11 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // solve
 #ifdef HAVE_AMR_MG_SOLVER
     if ( params.useTrilinos ) {
-        const std::size_t grid[] = { params.nr[0], params.nr[1], params.nr[2] };
-        AmrMultiGrid sol(grid, params.bcx, params.bcy, params.bcz,
-                         AmrMultiGrid::Interpolater::PIECEWISE_CONST,
-                         AmrMultiGrid::Interpolater::LAGRANGE, params.bs,
-                         params.prec, params.smoother);
+        AmrMultiGrid sol(myAmrOpal, params.bs, params.prec,
+                         params.rebalance, params.bcx, params.bcy,
+                         params.bcz, params.smoother, params.nsweeps,
+                         "PC", "L2");
         
-        sol.setNumberOfSweeps(params.nsweeps);
-    
         IpplTimings::startTimer(solvTimer);
         
         sol.solve(rhs,            // [V m]
@@ -919,14 +850,9 @@ int main(int argc, char *argv[]) {
         
 #ifdef HAVE_AMR_MG_SOLVER
         if ( params.useTrilinos ) {
-            std::string smoother = "Gauss-Seidel";
-            if ( params.smoother == AmrMultiGrid::Smoother::SGS )
-                smoother = "symmetric" + smoother;
-            else if ( params.smoother == AmrMultiGrid::Smoother::JACOBI )
-                smoother = "Jacobi";
             msg << "- Trilinos solver is used with: " << endl
                 << "    - nsweeps:     " << params.nsweeps << endl
-                << "    - smoother:    " << smoother
+                << "    - smoother:    " << params.smoother
                 << endl;
         }
 #endif
