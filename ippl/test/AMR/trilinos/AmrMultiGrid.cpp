@@ -1872,7 +1872,7 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver)
             solver_mp.reset( new AmesosBottomSolver("klu2") );
             break;
 #endif
-#if HAVE_AMESOS2_SUPERLU
+#ifdef HAVE_AMESOS2_SUPERLU
         case BaseSolver::SUPERLU:
             solver_mp.reset( new AmesosBottomSolver("superlu") );
             break;
