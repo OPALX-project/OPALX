@@ -40,12 +40,22 @@ message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
 message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
 message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
 
+OPTION (ENABLE_OpenMP "Use hybrid parallelism MPI-OpenMP", OFF)
+
 # compiler dependent flags
 if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -diag-disable 383 -diag-disable 981 -std=c++11")
 
+    if (ENABLE_OpenMP)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -openmp")
+    endif (ENABLE_OpenMP)
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG -std=c++11")
+
+    if (ENABLE_OpenMP)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    endif (ENABLE_OpenMP)
+
 
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.3")
@@ -53,6 +63,11 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     endif ()
     # Warning flags, -Wno-unused-local-typedefs is needed for boost versions below 1.59
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11")
+
+    if (ENABLE_OpenMP)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    endif (ENABLE_OpenMP
+
 else ()
     message (STATUS "Unknown C++ compiler. Please use the GNU or Intel compiler, IF you are having problems.")
 endif ()
