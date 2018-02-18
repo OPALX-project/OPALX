@@ -30,8 +30,6 @@ public:
     
 private:
     void init_m();
-
-    AmrIntVect_t deserialize_m(const std::size_t& gidx);
     
 private:
     Teuchos::ParameterList params_m;
