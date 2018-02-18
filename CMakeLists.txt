@@ -40,7 +40,7 @@ message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
 message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
 message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
 
-OPTION (ENABLE_OpenMP "Use hybrid parallelism MPI-OpenMP", OFF)
+OPTION (ENABLE_OpenMP "Use hybrid parallelism MPI-OpenMP" OFF)
 
 # compiler dependent flags
 if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
