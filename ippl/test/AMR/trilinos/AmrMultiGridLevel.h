@@ -77,7 +77,7 @@ public:
      * @param comm MPI communicator
      * @param node Kokkos node type (Serial, OpenMP, CUDA)
      */
-    AmrMultiGridLevel(const Vector_t& meshScaling,
+    AmrMultiGridLevel(const Vektor<double, 3>& meshScaling,
                       const amrex::BoxArray& _grids,
                       const amrex::DistributionMapping& _dmap,
                       const AmrGeometry_t& _geom,
@@ -147,7 +147,7 @@ public:
      * @returns the mesh spacing in particle rest frame for a
      * certain direction
      */
-    const scalar_t* cellSize(lo_t dir) const;
+    const scalar_t& cellSize(lo_t dir) const;
     
     /*!
      * @returns the inverse mesh spacing in particle rest frame
@@ -158,7 +158,7 @@ public:
      * @returns the inverse mesh spacing in particle rest
      * frame for a certain direction
      */
-    const scalar_t* invCellSize(lo_t dir) const;
+    const scalar_t& invCellSize(lo_t dir) const;
     
 private:
     /*!
