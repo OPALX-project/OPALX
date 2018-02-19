@@ -61,6 +61,7 @@ IF ( ENABLE_AMR )
                     ${CMAKE_SOURCE_DIR}/src/Classic/Algorithms/Quaternion.cpp
                     ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/Util.cpp
                     ${CMAKE_SOURCE_DIR}/src/Solvers/FFTPoissonSolver.cpp
+                    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/GeneralClassicException.cpp
                     ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
                     ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp)
         
