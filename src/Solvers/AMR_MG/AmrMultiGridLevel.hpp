@@ -167,7 +167,7 @@ const amr::scalar_t* AmrMultiGridLevel<MatrixType, VectorType>::cellSize() const
 
 
 template <class MatrixType, class VectorType>
-const amr::scalar_t AmrMultiGridLevel<MatrixType, VectorType>::cellSize(lo_t dir) const {
+const amr::scalar_t& AmrMultiGridLevel<MatrixType, VectorType>::cellSize(lo_t dir) const {
     return dx_m[dir];
 }
 
@@ -179,7 +179,7 @@ const amr::scalar_t* AmrMultiGridLevel<MatrixType, VectorType>::invCellSize() co
 
 
 template <class MatrixType, class VectorType>
-const amr::scalar_t AmrMultiGridLevel<MatrixType, VectorType>::invCellSize(lo_t dir) const {
+const amr::scalar_t& AmrMultiGridLevel<MatrixType, VectorType>::invCellSize(lo_t dir) const {
     return invdx_m[dir];
 }
 

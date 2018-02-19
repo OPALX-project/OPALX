@@ -147,7 +147,7 @@ public:
      * @returns the mesh spacing in particle rest frame for a
      * certain direction
      */
-    const scalar_t* cellSize(lo_t dir) const;
+    const scalar_t& cellSize(lo_t dir) const;
     
     /*!
      * @returns the inverse mesh spacing in particle rest frame
@@ -158,7 +158,7 @@ public:
      * @returns the inverse mesh spacing in particle rest
      * frame for a certain direction
      */
-    const scalar_t* invCellSize(lo_t dir) const;
+    const scalar_t& invCellSize(lo_t dir) const;
     
 private:
     /*!
