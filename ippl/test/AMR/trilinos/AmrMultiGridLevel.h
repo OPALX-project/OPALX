@@ -15,15 +15,15 @@ template <class MatrixType, class VectorType>
 class AmrMultiGridLevel {
     
 public:
-    typedef amr::AmrField_t AmrField_t;
-    typedef amr::AmrGeometry_t AmrGeometry_t;
+    typedef amr::AmrField_t             AmrField_t;
+    typedef amr::AmrGeometry_t          AmrGeometry_t;
     typedef std::unique_ptr<AmrField_t> AmrField_u;
     typedef std::shared_ptr<AmrField_t> AmrField_s;
-    typedef amr::AmrIntVect_t AmrIntVect_t;
-    typedef MatrixType matrix_t;
-    typedef VectorType vector_t;
-    typedef amrex::BaseFab<int> basefab_t;
-    typedef amrex::FabArray<basefab_t> mask_t;
+    typedef amr::AmrIntVect_t           AmrIntVect_t;
+    typedef MatrixType                  matrix_t;
+    typedef VectorType                  vector_t;
+    typedef amrex::BaseFab<int>         basefab_t;
+    typedef amrex::FabArray<basefab_t>  mask_t;
     typedef std::shared_ptr<AmrBoundary<AmrMultiGridLevel<MatrixType,
                                                           VectorType
                                                           >
@@ -38,10 +38,10 @@ public:
     typedef amr::local_ordinal_t lo_t;
     
     /// Type for matrix indices
-    typedef std::vector<lo_t>                  indices_t;
+    typedef std::vector<lo_t> indices_t;
     
     /// Type for matrix entries
-    typedef std::vector<scalar_t>              coefficients_t;
+    typedef std::vector<scalar_t> coefficients_t;
     
     // Type with matrix index (column) and coefficient value
     typedef std::unordered_map<lo_t, scalar_t> umap_t;
@@ -68,6 +68,7 @@ public:
     
 public:
     /*!
+     * @param mesh scaling due to particle rest frame
      * @param _grids of this level
      * @param _dmap AMReX core distribution map
      * @param _geom of domain
@@ -76,7 +77,8 @@ public:
      * @param comm MPI communicator
      * @param node Kokkos node type (Serial, OpenMP, CUDA)
      */
-    AmrMultiGridLevel(const amrex::BoxArray& _grids,
+    AmrMultiGridLevel(const Vector_t& meshScaling,
+                      const amrex::BoxArray& _grids,
                       const amrex::DistributionMapping& _dmap,
                       const AmrGeometry_t& _geom,
                       const AmrIntVect_t& rr,
@@ -136,6 +138,28 @@ public:
     
     const AmrIntVect_t& refinement() const;
     
+    /*!
+     * @returns the mesh spacing in particle rest frame
+     */
+    const scalar_t* cellSize() const;
+    
+    /*!
+     * @returns the mesh spacing in particle rest frame for a
+     * certain direction
+     */
+    const scalar_t* cellSize(lo_t dir) const;
+    
+    /*!
+     * @returns the inverse mesh spacing in particle rest frame
+     */
+    const scalar_t* invCellSize() const;
+    
+    /*!
+     * @returns the inverse mesh spacing in particle rest
+     * frame for a certain direction
+     */
+    const scalar_t* invCellSize(lo_t dir) const;
+    
 private:
     /*!
      * Build a mask specifying if a grid point is covered,
@@ -184,6 +208,9 @@ private:
     AmrIntVect_t rr_m;                  ///< refinement
     
     boundary_t bc_mp[AMREX_SPACEDIM];   ///< boundary conditions
+    
+    scalar_t dx_m[AMREX_SPACEDIM];      ///< cell size in particle rest frame
+    scalar_t invdx_m[AMREX_SPACEDIM];   ///< inverse cell size in particle rest frame
 };
 
 
