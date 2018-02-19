@@ -36,7 +36,8 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
       layout_mp(static_cast<AmrLayout_t*>(&bunch_p->getLayout())),
       rho_m(maxLevel + 1),
       phi_m(maxLevel + 1),
-      efield_m(maxLevel + 1)
+      efield_m(maxLevel + 1),
+      meshScaling_m(Vector_t(1.0, 1.0, 1.0))
 {
     /*
      * The layout needs to know how many levels we can make.
@@ -261,6 +262,9 @@ void AmrBoxLib::computeSelfFields() {
     gammaz *= gammaz;
     gammaz = std::sqrt(gammaz + 1.0);
     
+    // mesh scaling for solver
+    meshScaling_m = Vector_t(1.0, 1.0, gammaz);
+    
     // calculate Possion equation (with coefficient: -1/(eps))
     double tmp = -1.0 / bunch_mp->getdT() / gammaz * scalefactor / Physics::epsilon_0;
     for (int i = 0; i <= finest_level; ++i) {
@@ -400,6 +404,8 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
                                 "NANs at level " + std::to_string(i) + ".");
     }
     
+    // mesh scaling for solver
+    meshScaling_m = Vector_t(1.0, gamma, 1.0);
     
     // charge density is in rho_m
     // calculate Possion equation (with coefficient: -1/(eps))
@@ -525,6 +531,9 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
                                 "NANs at level " + std::to_string(i) + ".");
     }
     
+    // mesh scaling for solver
+    meshScaling_m = Vector_t(1.0, gamma, 1.0);
+    
     PoissonSolver *solver = bunch_mp->getFieldSolver();
     
     IpplTimings::startTimer(this->amrSolveTimer_m);
@@ -621,6 +630,12 @@ void AmrBoxLib::updateMesh() {
     
     bunch_mp->setBaseLevelMeshSpacing(hr);
 }
+
+
+const Vector_t& AmrBoxLib::getMeshScaling() const {
+    return meshScaling_m;
+}
+
 
 Vektor<int, 3> AmrBoxLib::getBaseLevelGridPoints() const {
     const Box_t& bx = this->geom[0].Domain();

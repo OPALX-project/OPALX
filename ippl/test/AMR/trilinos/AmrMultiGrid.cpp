@@ -212,7 +212,8 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
     for (int lev = startLevel; lev < nlevel_m; ++lev) {
         int ilev = lbase_m + lev;
         
-        mglevel_m[lev].reset(new AmrMultiGridLevel_t(rho[ilev]->boxArray(),
+        mglevel_m[lev].reset(new AmrMultiGridLevel_t(itsAmrObject_mp->getMeshScaling(),
+                                                     rho[ilev]->boxArray(),
                                                      rho[ilev]->DistributionMap(),
                                                      geom[ilev],
                                                      rr,
@@ -690,7 +691,7 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
 {
     this->open_m(lbase_m, matrices);
     
-    const scalar_t* invdx = mglevel_m[lbase_m]->geom.InvCellSize();
+    const scalar_t* invdx = mglevel_m[lbase_m]->invCellSize();
     
     const scalar_t invdx2[] = {
         D_DECL( invdx[0] * invdx[0],
@@ -765,7 +766,7 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
         AmrIntVect_t rr = mglevel_m[lev]->refinement();
 
 
-        const scalar_t* invdx = mglevel_m[lev]->geom.InvCellSize();
+        const scalar_t* invdx = mglevel_m[lev]->invCellSize();
 
         const scalar_t invdx2[] = {
             D_DECL( invdx[0] * invdx[0],
@@ -1183,8 +1184,8 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const lo_t& level,
                  * @precondition: refinement of 2
                  */
                 // top and bottom for all directions
-                const scalar_t* invcdx = mglevel_m[level]->geom.InvCellSize();
-                const scalar_t* invfdx = mglevel_m[level+1]->geom.InvCellSize();
+                const scalar_t* invcdx = mglevel_m[level]->invCellSize();
+                const scalar_t* invfdx = mglevel_m[level+1]->invCellSize();
                 scalar_t invavg = AMREX_D_PICK(1.0, 0.5, 0.25);
                 scalar_t value = - invavg * invcdx[d] * invfdx[d];
                 
@@ -1388,8 +1389,8 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(const lo_t& level,
     if ( rfab(iv) == AmrMultiGridLevel_t::Refined::YES || level == lfine_m )
         return;
     
-    const scalar_t* invcdx = mglevel_m[level]->geom.InvCellSize();
-    const scalar_t* invfdx = mglevel_m[level+1]->geom.InvCellSize();
+    const scalar_t* invcdx = mglevel_m[level]->invCellSize();
+    const scalar_t* invfdx = mglevel_m[level+1]->invCellSize();
 
     // inverse of number of fine cell gradients
     scalar_t invavg = AMREX_D_PICK(1, 0.5, 0.25);
