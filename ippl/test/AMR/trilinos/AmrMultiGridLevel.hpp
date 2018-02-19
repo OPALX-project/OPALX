@@ -1,6 +1,10 @@
+#define AMR_NO_SCALE false
+
+
 template <class MatrixType, class VectorType>
 AmrMultiGridLevel<MatrixType,
-                  VectorType>::AmrMultiGridLevel(const amrex::BoxArray& _grids,
+                  VectorType>::AmrMultiGridLevel(const Vector_t& meshScaling,
+                                                 const amrex::BoxArray& _grids,
                                                  const amrex::DistributionMapping& _dmap,
                                                  const AmrGeometry_t& _geom,
                                                  const AmrIntVect_t& rr,
@@ -30,6 +34,16 @@ AmrMultiGridLevel<MatrixType,
         G_p[j] = Teuchos::null;
         
         nr_m[j] = _geom.Domain().length(j);
+        
+#if AMR_NO_SCALE
+        // mesh spacing in particle rest frame
+        dx_m[j] = geom.CellSize(j);
+        invdx_m[j] = geom.InvCellSize(j);
+#else
+        // mesh spacing in particle rest frame
+        dx_m[j] = meshScaling[j] * geom.CellSize(j);
+        invdx_m[j] = meshScaling[j] * geom.InvCellSize(j);
+#endif
         
         bc_mp[j] = bc[j];
     }
@@ -143,6 +157,30 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildLevelMask_m() {
 template <class MatrixType, class VectorType>
 const amr::AmrIntVect_t& AmrMultiGridLevel<MatrixType, VectorType>::refinement() const {
     return rr_m;
+}
+
+
+template <class MatrixType, class VectorType>
+const amr::scalar_t* AmrMultiGridLevel<MatrixType, VectorType>::cellSize() const {
+    return dx_m;
+}
+
+
+template <class MatrixType, class VectorType>
+const amr::scalar_t AmrMultiGridLevel<MatrixType, VectorType>::cellSize(lo_t dir) const {
+    return dx_m[dir];
+}
+
+
+template <class MatrixType, class VectorType>
+const amr::scalar_t* AmrMultiGridLevel<MatrixType, VectorType>::invCellSize() const {
+    return invdx_m;
+}
+
+
+template <class MatrixType, class VectorType>
+const amr::scalar_t AmrMultiGridLevel<MatrixType, VectorType>::invCellSize(lo_t dir) const {
+    return invdx_m[dir];
 }
 
 
