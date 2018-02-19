@@ -102,12 +102,18 @@ IF ( ${AMREX_DIM} EQUAL 3 )
     
     add_executable( testBitPattern testBitPattern.cpp)
     
-    
     target_link_libraries (testBitPattern ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    
+    add_executable( trilinos2ippl trilinos2ippl.cpp)
+    
+    target_link_libraries (trilinos2ippl ${LIBS}
+                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
+                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     set( EXECS
          ${EXECS}
          testBitPattern
+         trilinos2ippl
          testCopy
     )
 ENDIF ( ${AMREX_DIM} EQUAL 3 )
