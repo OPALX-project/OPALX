@@ -106,7 +106,7 @@ IF ( ${AMREX_DIM} EQUAL 3 )
     
     add_executable( trilinos2ippl trilinos2ippl.cpp)
     
-    target_link_libraries (trilinos2ippl ${LIBS}
+    target_link_libraries (trilinos2ippl ${TESTLIBS}
                            ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
