@@ -45,9 +45,9 @@ void setupField() {
     using amrex::Box;
     using amrex::DistributionMapping;
     
-    int nx = 32;
-    int ny = 32;
-    int nz = 32;
+    int nx = 8;
+    int ny = 8;
+    int nz = 8;
     
     NDIndex<3> domain;
     domain[0] = Index(0, nx);
@@ -59,8 +59,8 @@ void setupField() {
     
     
     // ================
-    int ngrids = 32;
-    int max_grid_size = 8;
+    int ngrids = 8;
+    int max_grid_size = 4;
     
     RealBox real_box;
     for (int n = 0; n < AMREX_SPACEDIM; n++) {
@@ -120,23 +120,27 @@ void setupField() {
 
 amrex::IntVect deserialize(const std::size_t& gidx)
 {
-    int nxny = 32 * 32;
+    int nxny = 8 * 8;
     int z = gidx / nxny;
-    int y = (gidx %  nxny) / 32;
-    int x = gidx - z * nxny - y * 32;
+    int y = (gidx %  nxny) / 8;
+    int x = gidx - z * nxny - y * 8;
     return amrex::IntVect(x, y, z);
 }
 
 void test(const Teuchos::RCP<Teuchos::MpiComm<int> >& comm)
 {
-    const size_t numLocalEntries = 32 * 32 * 32 / comm->getSize();
-    const Tpetra::global_size_t numGlobalEntries =
-        comm->getSize () * numLocalEntries;
+    if ( (8 * 8 * 8) % comm->getSize() ) {
+        std::cout << "Error: 512 % " << comm->getSize() << " != 0" << std::endl;
+        return;
+    }
+    
+    const size_t numLocalEntries = 8 * 8 * 8 / comm->getSize();
+    const Tpetra::global_size_t numGlobalEntries = 8 * 8 * 8;
         
     const global_ordinal_type indexBase = 0;
     
     RCP<const map_type> contigMap =
-        rcp (new map_type (numGlobalEntries, indexBase, comm));
+        rcp (new map_type (numGlobalEntries, numLocalEntries, indexBase, comm));
     
     vector_type x (contigMap);
     
@@ -159,17 +163,26 @@ void test(const Teuchos::RCP<Teuchos::MpiComm<int> >& comm)
     
     rho.initialize(*mesh,
                    *fl,
-                    GuardCellSizes<3>(1),
+                   GuardCellSizes<3>(1),
                    bc_m);
     
+    double globalsum = 0;
     for (size_t i = 0; i < x.getLocalLength(); ++i) {
         std::size_t gidx = contigMap->getGlobalElement(i);
         amrex::IntVect iv = deserialize(gidx);
-        rho[iv[0]][iv[1]][iv[2]] = x.getData()[i];
+            rho[iv[0]][iv[1]][iv[2]] = x.getData()[i];
+            globalsum += rho[iv[0]][iv[1]][iv[2]].get();
     }
     
-    std::cout << rho << std::endl;
+    double pete_sum = sum(rho);
     
+    allreduce(globalsum, 1, std::plus<double>());
+    
+    if ( Ippl::myNode() == 0) {
+        std::cout << "reference: " << 8 * 8 * 8 << std::endl
+                  << "computed:  " << globalsum << std::endl
+                  << "pete sum:  " << pete_sum << std::endl;
+    }
 }
 
 
