@@ -605,7 +605,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
                   phi,            // [V m^3]
                   efield,       // [V m^2]
                   base_level,
-                  finest_level);
+                  finest_level, false);
     
         IpplTimings::stopTimer(solvTimer);
         
