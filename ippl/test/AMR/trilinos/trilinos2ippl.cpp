@@ -10,8 +10,11 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_DistributionMapping.H>
+#include <AMReX_MultiFab.H>
 
 #include <vector>
+#include <map>
+#include <chrono>
 
 typedef UniformCartesian<3, double> Mesh_t;
 
@@ -35,6 +38,11 @@ typedef Tpetra::Vector<> vector_type;
 std::unique_ptr<Mesh_t> mesh;
 std::unique_ptr<FieldLayout_t> fl;
 
+std::map<int, amrex::IntVect> mapper;
+
+#define nx 32
+#define ny 32
+#define nz 32
 
 void setupField() {
     
@@ -44,10 +52,6 @@ void setupField() {
     using amrex::BoxArray;
     using amrex::Box;
     using amrex::DistributionMapping;
-    
-    int nx = 8;
-    int ny = 8;
-    int nz = 8;
     
     NDIndex<3> domain;
     domain[0] = Index(0, nx);
@@ -59,8 +63,7 @@ void setupField() {
     
     
     // ================
-    int ngrids = 8;
-    int max_grid_size = 4;
+    int max_grid_size = nx / 4;
     
     RealBox real_box;
     for (int n = 0; n < AMREX_SPACEDIM; n++) {
@@ -69,7 +72,7 @@ void setupField() {
     }
 
     IntVect domain_lo(0 , 0, 0); 
-    IntVect domain_hi(ngrids - 1, ngrids - 1, ngrids - 1); 
+    IntVect domain_hi(nx - 1, ny - 1, nz - 1); 
     const Box amr_domain(domain_lo, domain_hi);
 
     // This says we are using Cartesian coordinates
@@ -112,30 +115,53 @@ void setupField() {
         nodes.push_back( pmap[i] );
     }
     
+    
+    
+    
 //     for (uint i = 0; i < regions.size(); ++i)
 //         std::cout << regions[i] << " " << nodes[i] << std::endl;
 
     fl.reset(new FieldLayout_t(*mesh, &regions[0], &regions[0] + regions.size(), &nodes[0], &nodes[0] + nodes.size()));
 }
 
-amrex::IntVect deserialize(const std::size_t& gidx)
+
+void buildMap(const amrex::BoxArray& ba,
+              const amrex::DistributionMapping& dmap)
 {
-    int nxny = 8 * 8;
-    int z = gidx / nxny;
-    int y = (gidx %  nxny) / 8;
-    int x = gidx - z * nxny - y * 8;
-    return amrex::IntVect(x, y, z);
+//     int localid = 0;
+    for (amrex::MFIter mfi(ba, dmap, true); mfi.isValid(); ++mfi)
+    {
+        const amrex::Box&       tbx = mfi.tilebox();
+        
+        const int* lo = tbx.loVect();
+        const int* hi = tbx.hiVect();
+        
+        for (int i = lo[0]; i <= hi[0]; ++i) {
+            for (int j = lo[1]; j <= hi[1]; ++j) {
+#if AMREX_SPACEDIM == 3
+                for (int k = lo[2]; k <= hi[2]; ++k) {
+#endif
+                    amrex::IntVect iv(D_DECL(i, j, k));
+                    int gidx = iv[0] + (iv[1] + ny * iv[2]) * nx;
+                    mapper[gidx/*localid++*/] = iv;
+                        
+#if AMREX_SPACEDIM == 3
+                }
+#endif
+            }
+        }
+    }
 }
 
 void test(const Teuchos::RCP<Teuchos::MpiComm<int> >& comm)
 {
-    if ( (8 * 8 * 8) % comm->getSize() ) {
-        std::cout << "Error: 512 % " << comm->getSize() << " != 0" << std::endl;
+    if ( (nx * ny * nz) % comm->getSize() ) {
+        std::cout << "Error: " << nx * ny * nz << " % " << comm->getSize() << " != 0" << std::endl;
         return;
     }
     
-    const size_t numLocalEntries = 8 * 8 * 8 / comm->getSize();
-    const Tpetra::global_size_t numGlobalEntries = 8 * 8 * 8;
+    const size_t numLocalEntries = nx * ny * nz / comm->getSize();
+    const Tpetra::global_size_t numGlobalEntries = nx * ny * nz;
         
     const global_ordinal_type indexBase = 0;
     
@@ -165,21 +191,30 @@ void test(const Teuchos::RCP<Teuchos::MpiComm<int> >& comm)
                    *fl,
                    GuardCellSizes<3>(1),
                    bc_m);
+  
+    
+    auto start = std::chrono::high_resolution_clock::now();
     
     double globalsum = 0;
     for (size_t i = 0; i < x.getLocalLength(); ++i) {
-        std::size_t gidx = contigMap->getGlobalElement(i);
-        amrex::IntVect iv = deserialize(gidx);
-            rho[iv[0]][iv[1]][iv[2]] = x.getData()[i];
-            globalsum += rho[iv[0]][iv[1]][iv[2]].get();
+            std::size_t gidx = contigMap->getGlobalElement(i);
+            rho[mapper[gidx][0]][mapper[gidx][1]][mapper[gidx][2]] = x.getData()[i];
+            
+            globalsum += rho[mapper[gidx][0]][mapper[gidx][1]][mapper[gidx][2]].get();
     }
+    
+    auto end = std::chrono::high_resolution_clock::now();
+    
+    std::chrono::duration<double> diff = end-start;
+    
+    std::cout << "Time: " << diff.count() << std::endl;
     
     double pete_sum = sum(rho);
     
     allreduce(globalsum, 1, std::plus<double>());
     
     if ( Ippl::myNode() == 0) {
-        std::cout << "reference: " << 8 * 8 * 8 << std::endl
+        std::cout << "reference: " << nx * ny * nz << std::endl
                   << "computed:  " << globalsum << std::endl
                   << "pete sum:  " << pete_sum << std::endl;
     }
