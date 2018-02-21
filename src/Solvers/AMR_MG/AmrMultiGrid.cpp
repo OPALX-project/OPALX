@@ -693,6 +693,9 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
     };
 
     if ( matrices ) {
+#ifdef _OPENMP
+    #pragma omp parallel
+#endif
         for (amrex::MFIter mfi(*mglevel_m[lbase_m]->mask, true);
              mfi.isValid(); ++mfi)
         {
@@ -765,7 +768,9 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
         };
 
         if ( matrices ) {
-            
+#ifdef _OPENMP
+            #pragma omp parallel
+#endif
             for (amrex::MFIter mfi(*mglevel_m[lev]->mask, true);
                  mfi.isValid(); ++mfi)
             {
