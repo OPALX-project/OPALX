@@ -119,7 +119,7 @@ void AmrMultiGrid::solve(AmrFieldContainer_t &rho,
     for (int lev = 0; lev < nlevel_m; ++lev) {
         int ilev = lbase_m + lev;
         
-        this->trilinos2amrex_m(0, *phi[ilev], mglevel_m[lev]->phi_p);
+        this->trilinos2amrex_m(lev, 0, *phi[ilev], mglevel_m[lev]->phi_p);
     }
     
     if ( verbose_m )
@@ -198,14 +198,11 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
     if ( previous )
         return;
     
-    // we need to build base level only at beginning of simulation
-    int startLevel = (mglevel_m.empty()) ? 0 : 1;
-    
     mglevel_m.resize(nlevel_m);
     
     AmrIntVect_t rr = AmrIntVect_t(D_DECL(2, 2, 2));
     
-    for (int lev = startLevel; lev < nlevel_m; ++lev) {
+    for (int lev = 0; lev < nlevel_m; ++lev) {
         int ilev = lbase_m + lev;
         
         mglevel_m[lev].reset(new AmrMultiGridLevel_t(itsAmrObject_mp->getMeshScaling(),
@@ -643,7 +640,7 @@ void AmrMultiGrid::computeEfield_m(amrex::Array<AmrField_u>& efield) {
         
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             mglevel_m[lev]->G_p[d]->apply(*mglevel_m[lev]->phi_p, *efield_p);
-            this->trilinos2amrex_m(d, *efield[ilev], efield_p);
+            this->trilinos2amrex_m(lev, d, *efield[ilev], efield_p);
         }
     }
 }
@@ -749,10 +746,7 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
     if ( matrices )
         smoother_m.resize(nlevel_m-1);
     
-    // we need to build base level only at beginning of simulation
-    int startLevel = (mglevel_m[lbase_m]->Anf_p == Teuchos::null) ? 0 : 1;
-    
-    for (int lev = startLevel; lev < nlevel_m; ++lev) {
+    for (int lev = 0; lev < nlevel_m; ++lev) {
 
         this->open_m(lev, matrices);
 
@@ -1612,7 +1606,10 @@ void AmrMultiGrid::amrex2trilinos_m(const lo_t& level,
 {
     if ( mv.is_null() )
         mv = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
-    
+
+#ifdef _OPENMP
+    #pragma omp parallel
+#endif
     for (amrex::MFIter mfi(mf, true); mfi.isValid(); ++mfi) {
         const amrex::Box&          tbx  = mfi.tilebox();
         const amrex::FArrayBox&    fab = mf[mfi];
@@ -1639,13 +1636,16 @@ void AmrMultiGrid::amrex2trilinos_m(const lo_t& level,
 }
 
 
-void AmrMultiGrid::trilinos2amrex_m(const lo_t& comp,
+void AmrMultiGrid::trilinos2amrex_m(const lo_t& level,
+                                    const lo_t& comp,
                                     AmrField_t& mf,
                                     const Teuchos::RCP<vector_t>& mv)
 {
     Teuchos::ArrayRCP<const amr::scalar_t> data =  mv->get1dView();
     
-    int localidx = 0;
+#ifdef _OPENMP
+    #pragma omp parallel
+#endif
     for (amrex::MFIter mfi(mf, true); mfi.isValid(); ++mfi) {
         const amrex::Box&          tbx  = mfi.tilebox();
         amrex::FArrayBox&          fab = mf[mfi];
@@ -1659,7 +1659,11 @@ void AmrMultiGrid::trilinos2amrex_m(const lo_t& comp,
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     AmrIntVect_t iv(D_DECL(i, j, k));
-                    fab(iv, comp) = data[localidx++];
+                    
+                    go_t gidx = mglevel_m[level]->serialize(iv);
+                    lo_t lidx = mglevel_m[level]->map_p->getLocalElement(gidx);
+                    
+                    fab(iv, comp) = data[lidx];
                 }
 #if AMREX_SPACEDIM == 3
             }
