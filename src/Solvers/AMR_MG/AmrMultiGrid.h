@@ -491,11 +491,13 @@ private:
     
     /*!
      * Data transfer from Trilinos to AMReX.
-     * @param mf is the multifab to be filled
+     * @param level to copy
      * @param comp component to copy
+     * @param mf is the multifab to be filled
      * @param mv is the corresponding Trilinos vector
      */
-    void trilinos2amrex_m(const lo_t& comp,
+    void trilinos2amrex_m(const lo_t& level,
+                          const lo_t& comp,
                           AmrField_t& mf,
                           const Teuchos::RCP<vector_t>& mv);
     
