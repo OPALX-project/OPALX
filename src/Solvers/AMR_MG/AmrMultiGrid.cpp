@@ -1917,6 +1917,10 @@ void AmrMultiGrid::initPrec_m(const Preconditioner& prec,
         case Preconditioner::ILUT:
         case Preconditioner::CHEBYSHEV:
         case Preconditioner::RILUK:
+        case Preconditioner::JACOBI:
+        case Preconditioner::BLOCK_JACOBI:
+        case Preconditioner::GS:
+        case Preconditioner::BLOCK_GS:
             prec_mp.reset( new Ifpack2Preconditioner(prec) );
             break;
         case Preconditioner::SA:
@@ -2012,11 +2016,11 @@ AmrMultiGrid::Preconditioner
 AmrMultiGrid::convertToEnumPreconditioner_m(const std::string& prec) {
     std::map<std::string, Preconditioner> map;
     
-    map["ILUT"]         = Preconditioner::ILUT;
-    map["CHEBYSHEV"]    = Preconditioner::CHEBYSHEV;
-    map["RILUK"]        = Preconditioner::RILUK;
-    map["SA"]           = Preconditioner::SA;
     map["NONE"]         = Preconditioner::NONE;
+    
+    Ifpack2Preconditioner::fillMap(map);
+    
+    MueLuPreconditioner::fillMap(map);
     
     auto precond = map.find(Util::toUpper(prec));
     

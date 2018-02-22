@@ -10,6 +10,8 @@
 class MueLuPreconditioner : public AmrPreconditioner<amr::matrix_t>
 {
 public:
+    typedef amr::Preconditioner Preconditioner;
+    
     typedef MueLu::TpetraOperator<
         amr::scalar_t,
         amr::local_ordinal_t,
@@ -18,6 +20,8 @@ public:
     > precond_t;
     
     typedef amr::AmrIntVect_t AmrIntVect_t;
+    
+    typedef std::map<std::string, Preconditioner> map_t;
     
 public:
     
@@ -28,9 +32,11 @@ public:
     
     Teuchos::RCP<amr::operator_t> get();
     
+    static void fillMap(map_t& map);
+    
 private:
     void init_m();
-    
+
 private:
     Teuchos::ParameterList params_m;
     
