@@ -6,10 +6,14 @@
 namespace amr {
     enum Preconditioner {
         NONE,
-        ILUT,       //incomplete LU
+        ILUT,           ///< incomplete LU
         CHEBYSHEV,
-        RILUK,      // ILU(k)
-        SA          // smoothed aggregation multigrid
+        RILUK,          ///< ILU(k)
+        SA,             ///< smoothed aggregation multigrid
+        JACOBI,         ///< Jacobi point relaxation
+        BLOCK_JACOBI,   ///< Jacobi block relaxation
+        GS,             ///> Gauss-Seidel point relaxation
+        BLOCK_GS        ///< Gauss-Seidel block relaxation
     };
 }
 

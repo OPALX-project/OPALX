@@ -19,6 +19,8 @@ public:
     
     typedef amr::AmrIntVect_t AmrIntVect_t;
     
+    typedef std::map<std::string, Preconditioner> map_t;
+    
 public:
     
     MueLuPreconditioner(const AmrIntVect_t& grid,
@@ -27,6 +29,8 @@ public:
     void create(const Teuchos::RCP<amr::matrix_t>& A);
     
     Teuchos::RCP<amr::operator_t> get();
+    
+    static void fillMap(map_t& map);
     
 private:
     void init_m();
