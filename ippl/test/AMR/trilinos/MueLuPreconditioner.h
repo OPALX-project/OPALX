@@ -10,6 +10,8 @@
 class MueLuPreconditioner : public AmrPreconditioner<amr::matrix_t>
 {
 public:
+    typedef amr::Preconditioner Preconditioner;
+    
     typedef MueLu::TpetraOperator<
         amr::scalar_t,
         amr::local_ordinal_t,
