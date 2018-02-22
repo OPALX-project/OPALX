@@ -16,6 +16,8 @@ public:
         amr::node_t
     > precond_t;
     
+    typedef std::map<std::string, Preconditioner> map_t;
+    
 public:
     
     Ifpack2Preconditioner(Preconditioner prec);
@@ -23,6 +25,8 @@ public:
     void create(const Teuchos::RCP<amr::matrix_t>& A);
     
     Teuchos::RCP<amr::operator_t> get();
+    
+    static void fillMap(map_t& map);
     
 private:
     /*!

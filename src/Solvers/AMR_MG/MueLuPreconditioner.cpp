@@ -40,15 +40,20 @@ Teuchos::RCP<amr::operator_t> MueLuPreconditioner::get() {
 }
 
 
+void MueLuPreconditioner::fillMap(map_t& map) {
+    map["SA"] = Preconditioner::SA;
+}
+
+
 void MueLuPreconditioner::init_m() {
     params_m.set("problem: type", "Poisson-3D");
 //    params_m.set("problem: symmetric", false);
     params_m.set("verbosity", "extreme");
     params_m.set("number of equations", 1);
-    params_m.set("max levels", 4);
+    params_m.set("max levels", 8);
     params_m.set("cycle type", "V");
 
-    params_m.set("coarse: max size", 2000);
+    params_m.set("coarse: max size", 200);
     params_m.set("multigrid algorithm", "sa");
     
     params_m.set("repartition: enable", rebalance_m);
