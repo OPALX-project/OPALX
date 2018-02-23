@@ -1907,6 +1907,8 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver)
             solver_mp.reset( new AmesosBottomSolver("lapack") );
             break;
 #endif
+        case BaseSolver::SA:
+            solver_mp.reset( new MueLuBottomSolver() );
         default:
             throw OpalException("AmrMultiGrid::initBaseSolver_m()",
                                 "No such bottom solver available.");
@@ -2004,8 +2006,9 @@ AmrMultiGrid::convertToEnumBaseSolver_m(const std::string& bsolver) {
     map["MUMPS"]            = BaseSolver::MUMPS;
 #endif
 #ifdef HAVE_AMESOS2_LAPACK
-    map["LAPACK"]           =  BaseSolver::LAPACK;
+    map["LAPACK"]           = BaseSolver::LAPACK;
 #endif
+    map["SA"]               = BaseSolver::SA;
     
     auto solver = map.find(Util::toUpper(bsolver));
     

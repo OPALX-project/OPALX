@@ -15,6 +15,7 @@
 #include "BottomSolver.h"
 #include "BelosBottomSolver.h"
 #include "AmesosBottomSolver.h"
+#include "MueLuBottomSolver.h"
 
 #include "AmrSmoother.h"
 
