@@ -99,6 +99,8 @@ public:
 #ifdef HAVE_AMESOS2_LAPACK
         , LAPACK
 #endif
+        // all MueLu
+        , SA
         // add others ...
     };
     
