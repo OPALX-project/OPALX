@@ -5,6 +5,7 @@
 
 #include <MueLu.hpp>
 #include <MueLu_Level.hpp>
+#include <MueLu_Utilities.hpp>
 
 class MueLuBottomSolver : public BottomSolver<Teuchos::RCP<amr::matrix_t>,
                                               Teuchos::RCP<amr::multivector_t> >
@@ -21,6 +22,9 @@ public:
     
     typedef MueLu::Hierarchy<scalar_t, lo_t, go_t, node_t> hierarchy_t;
     typedef MueLu::Level level_t;
+    typedef Xpetra::Matrix<scalar_t, lo_t, go_t, node_t> xmatrix_t;
+    typedef Xpetra::MultiVector<scalar_t, lo_t, go_t, node_t> xmv_t;
+    typedef MueLu::Utilities<scalar_t, lo_t, go_t, node_t> util_t;
     
 public:
     
@@ -34,12 +38,14 @@ public:
     std::size_t getNumIters();
     
     
-private::
+private:
     Teuchos::RCP<hierarchy_t> hierarchy_mp;     ///< manages the multigrid hierarchy
     
-    Teuchos:RCP<level_t> finest_mp;             ///< finest level of hierarchy
-    
-    hierarchy_t::ConvData conv_m;               ///< stopping criteria of multigrid iteration
+    Teuchos::RCP<level_t> finest_mp;            ///< finest level of hierarchy
+
+    Teuchos::RCP<xmatrix_t> A_mp;               ///< MueLu requires Xpetra
+
+    scalar_t tolerance_m;                       ///< stopping criteria of multigrid iteration
     
 };
 
