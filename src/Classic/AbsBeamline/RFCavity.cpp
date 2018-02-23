@@ -604,6 +604,35 @@ ElementBase::ElementType RFCavity::getType() const {
     return RFCAVITY;
 }
 
+double RFCavity::getAutoPhaseEstimateFallback(double E0, double t0, double q, double mass) {
+    const double dt = 1e-13;
+    const double dphi = pi / 18;
+    const double p0 = Util::getP(E0, mass);
+
+    double phi = 0.0;
+    setPhasem(phi);
+    std::pair<double, double> ret = trackOnAxisParticle(E0 / mass, t0, dt, q, mass);
+    double phimax = ret.first;
+    double Emax = ret.second;
+    phi += dphi;
+
+    for (unsigned int i = 1; i < 36; ++ i, phi += dphi) {
+        setPhasem(phi);
+        ret = trackOnAxisParticle(p0, t0, dt, q, mass);
+        if (ret.second > Emax) {
+            Emax = ret.second;
+            phimax = ret.second;
+        }
+    }
+
+    const int prevPrecision = Ippl::Info->precision(8);
+    INFOMSG(level2 << "estimated phase= " << phimax << " rad = "
+            << phimax * Physics::rad2deg << " deg \n"
+            << "Ekin= " << Emax << " MeV" << setprecision(prevPrecision) << endl);
+
+    return phimax;
+}
+
 double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const double &q, const double &mass) {
     vector<double> t, E, t2, E2;
     std::vector< double > F;
@@ -695,8 +724,7 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
             E2[i] += q * scale_m * getdE(i, t2, dz, phi + dphi, frequency_m, F);
             double a = E[i], b = E2[i];
             if (std::isnan(a) || std::isnan(b)) {
-                throw GeneralClassicException("RFCavity::getAutoPhaseEstimate",
-                                              "solution is nan");
+                return getAutoPhaseEstimateFallback(E0, t0, q, mass);
             }
             t[i] = t[i - 1] + getdT(i, E, dz, mass);
             t2[i] = t2[i - 1] + getdT(i, E2, dz, mass);

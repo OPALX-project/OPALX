@@ -35,21 +35,28 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
     }
 
     initialP_m = Vector_t(0, 0, euclidean_norm(P));
-    double tErr  = (initialR_m(2) - R(2)) * sqrt(dot(P,P) + 1.0) / (P(2) * Physics::c);
-    double initialEnergy = Util::getEnergy(P, itsReference_m.getM()) * 1e-6;
-    double newPhase = 0.0, AstraPhase = 0.0;
-    double initialPhase = guessCavityPhase(t + tErr);
-    double optimizedPhase = 0.0;
-    double finalEnergy = 0.0;
 
-    RFCavity *element = static_cast<RFCavity *>(itsCavity_m.get());
-    double amplitude     = element->getAmplitudem();
-    double designEnergy  = element->getDesignEnergy();
-    double originalPhase = element->getPhasem();
-    bool   apVeto        = element->getAutophaseVeto();
-    double basePhase = std::fmod(element->getFrequencym() * (t + tErr), Physics::two_pi);
+    RFCavity *element     = static_cast<RFCavity *>(itsCavity_m.get());
+    bool apVeto           = element->getAutophaseVeto();
+    double originalPhase  = element->getPhasem();
+    double tErr           = (initialR_m(2) - R(2)) * sqrt(dot(P,P) + 1.0) / (P(2) * Physics::c);
+    double optimizedPhase = 0.0;
+    double finalEnergy    = 0.0;
+    double newPhase       = 0.0;
+    double amplitude      = element->getAmplitudem();
+    double basePhase      = std::fmod(element->getFrequencym() * (t + tErr), Physics::two_pi);
 
     if (!apVeto) {
+        double initialEnergy = Util::getEnergy(P, itsReference_m.getM()) * 1e-6;
+        double AstraPhase    = 0.0;
+        double initialPhase  = guessCavityPhase(t + tErr);
+        double designEnergy  = element->getDesignEnergy();
+
+        if (amplitude < 0.0) {
+            amplitude = -amplitude;
+            element->setAmplitudem(amplitude);
+        }
+
         if (amplitude == 0.0 && designEnergy <= 0.0) {
             throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
                                 "neither amplitude or design energy given to cavity " + element->getName());
