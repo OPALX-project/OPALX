@@ -18,7 +18,7 @@ IF ( ENABLE_AMR )
         add_definitions(${AMREX_DEFINES})
         
         set (CMAKE_CXX_FLAGS
-             "${IPPL_CMAKE_CXX_FLAGS} -DPARALLEL_IO ${CMAKE_CXX_FLAGS} -DIPPL_AMR"
+             "${IPPL_CMAKE_CXX_FLAGS} -DPARALLEL_IO ${CMAKE_CXX_FLAGS} -Wno-unused-function -DIPPL_AMR"
         )
         
         include_directories (
