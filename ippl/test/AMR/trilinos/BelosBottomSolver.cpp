@@ -65,9 +65,9 @@ void BelosBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
     static IpplTimings::TimerRef precTimer = IpplTimings::getTimer("AMR MG prec setup");
 
     if ( prec_mp != nullptr ) {
-	IpplTimings::startTimer(precTimer);
+        IpplTimings::startTimer(precTimer);
         prec_mp->create(A);
-	IpplTimings::stopTimer(precTimer);
+        IpplTimings::stopTimer(precTimer);
         problem_mp->setLeftPrec(prec_mp->get());
     }
 }
