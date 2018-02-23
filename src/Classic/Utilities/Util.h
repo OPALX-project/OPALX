@@ -27,6 +27,12 @@ namespace Util {
     }
 
     inline
+    double getP(double E, double mass) {
+        double gamma = E / mass + 1;
+        return sqrt(std::pow(gamma, 2.0) - 1.0);
+    }
+
+    inline
     std::string getTimeString(double time, unsigned int precision = 3) {
         std::string timeUnit(" [ps]");
 
@@ -127,12 +133,12 @@ namespace Util {
         std::string chargeUnit(" [fC]");
 
         charge *= 1e15;
-        
+
         if (std::abs(charge) > 1000.0) {
             charge /= 1000.0;
             chargeUnit = std::string(" [pC]");
         }
-        
+
         if (std::abs(charge) > 1000.0) {
             charge /= 1000.0;
             chargeUnit = std::string(" [nC]");
