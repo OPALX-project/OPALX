@@ -36,7 +36,11 @@ public:
     void setOperator(const Teuchos::RCP<matrix_t>& A);
     
     std::size_t getNumIters();
-    
+
+private:
+    void setupAggregation_m();
+    void setupSmoother_m();
+    void setupCoarser_m();    
     
 private:
     Teuchos::RCP<hierarchy_t> hierarchy_mp;     ///< manages the multigrid hierarchy
