@@ -1909,6 +1909,7 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver)
 #endif
         case BaseSolver::SA:
             solver_mp.reset( new MueLuBottomSolver() );
+            break;
         default:
             throw OpalException("AmrMultiGrid::initBaseSolver_m()",
                                 "No such bottom solver available.");
