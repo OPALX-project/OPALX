@@ -1,19 +1,5 @@
 #include "MueLuBottomSolver.h"
 
-#include "MueLu_Factory.hpp"
-#include "MueLu_TentativePFactory.hpp"
-#include "MueLu_SaPFactory.hpp"
-#include "MueLu_SmootherFactory.hpp"
-#include "MueLu_TransPFactory.hpp"
-#include "MueLu_TrilinosSmoother.hpp"
-#include "MueLu_DirectSolver.hpp"
-#include "MueLu_RAPFactory.hpp"
-#include "MueLu_RepartitionHeuristicFactory.hpp"
-#include "MueLu_RebalanceTransferFactory.hpp"
-#include "MueLu_CoordinatesTransferFactory.hpp"
-#include "MueLu_Zoltan2Interface.hpp"
-#include "MueLu_RebalanceAcFactory.hpp"
-
 MueLuBottomSolver::MueLuBottomSolver()
     : hierarchy_mp(Teuchos::null),
       finest_mp(Teuchos::null),
