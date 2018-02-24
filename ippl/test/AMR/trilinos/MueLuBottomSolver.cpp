@@ -8,10 +8,10 @@
 #include "MueLu_TrilinosSmoother.hpp"
 #include "MueLu_DirectSolver.hpp"
 #include "MueLu_RAPFactory.hpp"
-#include "MueLu_RepartitionFactory.hpp"
+#include "MueLu_RepartitionHeuristicFactory.hpp"
 #include "MueLu_RebalanceTransferFactory.hpp"
 #include "MueLu_CoordinatesTransferFactory.hpp"
-#include "MueLu_ZoltanInterface.hpp"
+#include "MueLu_Zoltan2Interface.hpp"
 #include "MueLu_RebalanceAcFactory.hpp"
 
 MueLuBottomSolver::MueLuBottomSolver()
@@ -105,20 +105,21 @@ void MueLuBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
 
 
     // Repartitioning (creates "Importer" from "Partition")
-    Teuchos::RCP<MueLu::RepartitionFactory<scalar_t, lo_t, go_t, node_t> > RepartitionFact = Teuchos::rcp(new MueLu::RepartitionFactory<scalar_t, lo_t, go_t, node_t>());
+    Teuchos::RCP<MueLu::RepartitionHeuristicFactory<scalar_t, lo_t, go_t, node_t> > RepartitionFact = Teuchos::rcp(new MueLu::RepartitionHeuristicFactory<scalar_t, lo_t, go_t, node_t>());
     {
 	Teuchos::ParameterList paramList;
-        //paramList.set("repartition: min rows per proc", 200);
-	//paramList.set("repartition: max imbalance", 1.3);
+        paramList.set("repartition: start level", 2);
+        paramList.set("repartition: min rows per proc", 200);
+	paramList.set("repartition: max imbalance", 1.3);
 	RepartitionFact->SetParameterList(paramList);
     }
     RepartitionFact->SetFactory("A", AFact);
 
 
-    Teuchos::RCP<MueLu::Factory> ZoltanFact = Teuchos::rcp(new MueLu::ZoltanInterface<scalar_t, lo_t, go_t, node_t>());
+    Teuchos::RCP<MueLu::Factory> ZoltanFact = Teuchos::rcp(new MueLu::Zoltan2Interface<scalar_t, lo_t, go_t, node_t>());
     ZoltanFact->SetFactory("A", AFact);
     ZoltanFact->SetFactory("Coordinates", TransferCoordinatesFact);
-    RepartitionFact->SetFactory("Partition", ZoltanFact);
+    ZoltanFact->SetFactory("number of partitions", RepartitionFact);
 
     // Reordering of the transfer operators
     Teuchos::RCP<MueLu::RebalanceTransferFactory<scalar_t, lo_t, go_t, node_t> > RebalancedPFact = Teuchos::rcp(new MueLu::RebalanceTransferFactory<scalar_t, lo_t, go_t, node_t>());
@@ -141,7 +142,7 @@ void MueLuBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
     M.SetFactory("R", RebalancedRFact);
     M.SetFactory("Nullspace",   RebalancedPFact);
     M.SetFactory("Coordinates", RebalancedPFact);
-    M.SetFactory("Importer",    RepartitionFact);
+    //M.SetFactory("Importer",    RepartitionFact);
 
     // -------------------
 
