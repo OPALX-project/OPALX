@@ -56,15 +56,13 @@ void MueLuBottomSolver::solve(const Teuchos::RCP<mv_t>& x,
 
 
 void MueLuBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
-    Teuchos::RCP<MueLu::TentativePFactory<scalar_t, lo_t, go_t, node_t> > TentativePFact = Teuchos::rcp( new MueLu::TentativePFactory<scalar_t, lo_t, go_t, node_t>() );
-    Teuchos::RCP<MueLu::SaPFactory<scalar_t, lo_t, go_t, node_t> > SaPFact = Teuchos::rcp( new MueLu::SaPFactory<scalar_t, lo_t, go_t, node_t>() );
-    Teuchos::RCP<MueLu::TransPFactory<scalar_t, lo_t, go_t, node_t> >     RFact          = Teuchos::rcp( new MueLu::TransPFactory<scalar_t, lo_t, go_t, node_t>());
-
-    Teuchos::RCP<MueLu::RAPFactory<scalar_t, lo_t, go_t, node_t> > AFact = rcp(new MueLu::RAPFactory<scalar_t, lo_t, go_t, node_t>());
+    Teuchos::RCP<tentPFactory_t> TentativePFact = Teuchos::rcp( new tentPFactory_t() );
+    Teuchos::RCP<saPFactory_t> SaPFact = Teuchos::rcp( new saPFactory_t() );
+    Teuchos::RCP<transPFactory_t> RFact = Teuchos::rcp( new transPFactory_t());
+    Teuchos::RCP<rAPFactory_t> AFact = rcp(new rAPFactory_t());
     AFact->setVerbLevel(Teuchos::VERB_HIGH);
-
-
-    MueLu::FactoryManager<scalar_t, lo_t, go_t, node_t> M;
+    
+    fManager_t M;
     M.SetFactory("Ptent", TentativePFact);
     //M.SetFactory("P",     SaPFact);
     //M.SetFactory("R",     RFact);
@@ -100,40 +98,39 @@ void MueLuBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
     AFact->SetFactory("R", RFact);
 
     // Transfer coordinates
-    Teuchos::RCP<MueLu::CoordinatesTransferFactory<scalar_t, lo_t, go_t, node_t> > TransferCoordinatesFact = Teuchos::rcp(new MueLu::CoordinatesTransferFactory<scalar_t, lo_t, go_t, node_t>());
+    Teuchos::RCP<coordTransferFactory_t> TransferCoordinatesFact = Teuchos::rcp(new coordTransferFactory_t());
     AFact->AddTransferFactory(TransferCoordinatesFact); // FIXME REMOVE
 
-
     // Repartitioning (creates "Importer" from "Partition")
-    Teuchos::RCP<MueLu::RepartitionHeuristicFactory<scalar_t, lo_t, go_t, node_t> > RepartitionFact = Teuchos::rcp(new MueLu::RepartitionHeuristicFactory<scalar_t, lo_t, go_t, node_t>());
+    Teuchos::RCP<repartFactory_t> RepartitionFact = Teuchos::rcp(new repartFactory_t());
     {
-	Teuchos::ParameterList paramList;
+        Teuchos::ParameterList paramList;
         paramList.set("repartition: start level", 2);
         paramList.set("repartition: min rows per proc", 200);
-	paramList.set("repartition: max imbalance", 1.3);
-	RepartitionFact->SetParameterList(paramList);
+        paramList.set("repartition: max imbalance", 1.3);
+        RepartitionFact->SetParameterList(paramList);
     }
     RepartitionFact->SetFactory("A", AFact);
 
 
-    Teuchos::RCP<MueLu::Factory> ZoltanFact = Teuchos::rcp(new MueLu::Zoltan2Interface<scalar_t, lo_t, go_t, node_t>());
+    Teuchos::RCP<MueLu::Factory> ZoltanFact = Teuchos::rcp(new zoltan_t());
     ZoltanFact->SetFactory("A", AFact);
     ZoltanFact->SetFactory("Coordinates", TransferCoordinatesFact);
     ZoltanFact->SetFactory("number of partitions", RepartitionFact);
 
     // Reordering of the transfer operators
-    Teuchos::RCP<MueLu::RebalanceTransferFactory<scalar_t, lo_t, go_t, node_t> > RebalancedPFact = Teuchos::rcp(new MueLu::RebalanceTransferFactory<scalar_t, lo_t, go_t, node_t>());
+    Teuchos::RCP<rebalTransferFactory_t> RebalancedPFact = Teuchos::rcp(new rebalTransferFactory_t());
     RebalancedPFact->SetParameter("type", Teuchos::ParameterEntry(std::string("Interpolation")));
     RebalancedPFact->SetFactory("P", SaPFact);
     RebalancedPFact->SetFactory("Coordinates", TransferCoordinatesFact);
     RebalancedPFact->SetFactory("Nullspace", M.GetFactory("Ptent")); // TODO
 
-    Teuchos::RCP<MueLu::RebalanceTransferFactory<scalar_t, lo_t, go_t, node_t> > RebalancedRFact = Teuchos::rcp(new MueLu::RebalanceTransferFactory<scalar_t, lo_t, go_t, node_t>());
+    Teuchos::RCP<rebalTransferFactory_t> RebalancedRFact = Teuchos::rcp(new rebalTransferFactory_t());
     RebalancedRFact->SetParameter("type", Teuchos::ParameterEntry(std::string("Restriction")));
     RebalancedRFact->SetFactory("R", RFact);
 
     // Compute Ac from rebalanced P and R
-    Teuchos::RCP<MueLu::RebalanceAcFactory<scalar_t, lo_t, go_t, node_t> > RebalancedAFact = Teuchos::rcp(new MueLu::RebalanceAcFactory<scalar_t, lo_t, go_t, node_t>());
+    Teuchos::RCP<rebalAcFactory_t> RebalancedAFact = Teuchos::rcp(new rebalAcFactory_t());
     RebalancedAFact->SetFactory("A", AFact);
 
     // Configure FactoryManager
@@ -156,27 +153,27 @@ void MueLuBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
     Teuchos::ParameterList ifpackList;
     ifpackList.set("relaxation: sweeps", (lo_t) 4);
     ifpackList.set("relaxation: damping factor", (scalar_t) 1.0);
-    Teuchos::RCP<MueLu::SmootherPrototype<scalar_t, lo_t, go_t, node_t> > smootherPrototype = Teuchos::rcp(new MueLu::TrilinosSmoother<scalar_t, lo_t, go_t, node_t>(ifpackType, ifpackList));
+    Teuchos::RCP<smootherPrototype_t> smootherPrototype = Teuchos::rcp(new smoother_t(ifpackType, ifpackList));
 
-    M.SetFactory("Smoother", Teuchos::rcp(new MueLu::SmootherFactory<scalar_t, lo_t, go_t, node_t>(smootherPrototype)));
+    M.SetFactory("Smoother", Teuchos::rcp(new smootherFactory_t(smootherPrototype)));
 
     // Create coarsest solver.
-    Teuchos::RCP<MueLu::SmootherPrototype<scalar_t, lo_t, go_t, node_t> > coarseSolverPrototype = Teuchos::rcp( new MueLu::DirectSolver<scalar_t, lo_t, go_t, node_t>() );
-    Teuchos::RCP<MueLu::SmootherFactory<scalar_t, lo_t, go_t, node_t> >   coarseSolverFact = Teuchos::rcp( new MueLu::SmootherFactory<scalar_t, lo_t, go_t, node_t>(coarseSolverPrototype, Teuchos::null) );
+    Teuchos::RCP<smootherFactory_t> coarseSolverPrototype = Teuchos::rcp( new solver_t() );
+    Teuchos::RCP<smootherFactory_t>   coarseSolverFact = Teuchos::rcp( new smootherFactory_t(coarseSolverPrototype, Teuchos::null) );
     M.SetFactory("CoarseSolver", coarseSolverFact);
 
     A_mp = MueLu::TpetraCrs_To_XpetraMatrix<scalar_t, lo_t, go_t, node_t>(A);
     A_mp->SetFixedBlockSize(1); // only 1 DOF per node (pure Laplace problem)
 
     Teuchos::RCP<mv_t> coords_mp = Teuchos::rcp( new amr::multivector_t(A->getDomainMap(),
-		                 		     1/*AMREX_SPACEDIM*/, false) );
+                                                                        1/*AMREX_SPACEDIM*/, false) );
 
     const Teuchos::RCP<const amr::dmap_t>& map_r = A->getMap();
 
     for (std::size_t i = 0; i < map_r->getNodeNumElements(); ++i) {
 //            AmrIntVect_t iv = deserialize_m(map_r->getGlobalElement(i));                                            
 //            for (int d = 0; d < AMREX_SPACEDIM; ++d)                                                                
-	coords_mp->replaceLocalValue(i, 0, map_r->getGlobalElement(i)); //iv[d]);                                 
+        coords_mp->replaceLocalValue(i, 0, map_r->getGlobalElement(i)); //iv[d]);                                 
     }
 
 

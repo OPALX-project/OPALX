@@ -26,6 +26,22 @@ public:
     typedef Xpetra::MultiVector<scalar_t, lo_t, go_t, node_t> xmv_t;
     typedef MueLu::Utilities<scalar_t, lo_t, go_t, node_t> util_t;
     
+    typedef MueLu::TentativePFactory<scalar_t, lo_t, go_t, node_t> tentPFactory_t;
+    typedef MueLu::SaPFactory<scalar_t, lo_t, go_t, node_t> saPFactory_t;
+    typedef MueLu::TransPFactory<scalar_t, lo_t, go_t, node_t> transPFactory_t;
+    typedef MueLu::RAPFactory<scalar_t, lo_t, go_t, node_t> rAPFactory_t;
+    typedef MueLu::FactoryManager<scalar_t, lo_t, go_t, node_t> fManager_t;
+    
+    typedef MueLu::CoordinatesTransferFactory<scalar_t, lo_t, go_t, node_t> coordTransferFactory_t;
+    typedef MueLu::RepartitionHeuristicFactory<scalar_t, lo_t, go_t, node_t> repartFactory_t;
+    typedef MueLu::Zoltan2Interface<scalar_t, lo_t, go_t, node_t> zoltan_t;
+    typedef MueLu::RebalanceTransferFactory<scalar_t, lo_t, go_t, node_t> rebalTransferFactory_t;
+    typedef MueLu::RebalanceAcFactory<scalar_t, lo_t, go_t, node_t> rebalAcFactory_t;
+    typedef MueLu::SmootherPrototype<scalar_t, lo_t, go_t, node_t> smootherPrototype_t;
+    typedef MueLu::SmootherFactory<scalar_t, lo_t, go_t, node_t> smootherFactory_t;
+    typedef MueLu::TrilinosSmoother<scalar_t, lo_t, go_t, node_t> smoother_t;
+    typedef MueLu::DirectSolver<scalar_t, lo_t, go_t, node_t> solver_t;
+    
 public:
     
     MueLuBottomSolver();
