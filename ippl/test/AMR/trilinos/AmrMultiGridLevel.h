@@ -180,7 +180,7 @@ public:
     const amrex::DistributionMapping& dmap; ///< AMReX core distribution map
     const AmrGeometry_t& geom;              ///< geometry of this problem
     
-    Teuchos::RCP<dmap_t> map_p;         ///< Tpetra core map
+    Teuchos::RCP</*const*/ dmap_t> map_p;   ///< Tpetra core map
     
     Teuchos::RCP<matrix_t> Anf_p;       ///< no fine Poisson matrix
     Teuchos::RCP<matrix_t> R_p;         ///< restriction matrix
