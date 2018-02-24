@@ -7,6 +7,20 @@
 #include <MueLu_Level.hpp>
 #include <MueLu_Utilities.hpp>
 
+#include "MueLu_Factory.hpp"
+#include "MueLu_TentativePFactory.hpp"
+#include "MueLu_SaPFactory.hpp"
+#include "MueLu_SmootherFactory.hpp"
+#include "MueLu_TransPFactory.hpp"
+#include "MueLu_TrilinosSmoother.hpp"
+#include "MueLu_DirectSolver.hpp"
+#include "MueLu_RAPFactory.hpp"
+#include "MueLu_RepartitionHeuristicFactory.hpp"
+#include "MueLu_RebalanceTransferFactory.hpp"
+#include "MueLu_CoordinatesTransferFactory.hpp"
+#include "MueLu_Zoltan2Interface.hpp"
+#include "MueLu_RebalanceAcFactory.hpp"
+
 class MueLuBottomSolver : public BottomSolver<Teuchos::RCP<amr::matrix_t>,
                                               Teuchos::RCP<amr::multivector_t> >
 {
