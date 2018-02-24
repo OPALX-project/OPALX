@@ -4,11 +4,12 @@
  * http://prod.sandia.gov/techlib/access-control.cgi/2014/1418624r.pdf
  */
 
-MueLuBottomSolver::MueLuBottomSolver()
+MueLuBottomSolver::MueLuBottomSolver(/*const AmrGeometry_t& geom*/)
     : hierarchy_mp(Teuchos::null),
       finest_mp(Teuchos::null),
       A_mp(Teuchos::null),
-      tolerance_m(1.0e-4)
+      nSweeps_m(6)//,
+//      geom_mr(geom)
 {
     this->initMueLuList_m();
 }
@@ -23,7 +24,7 @@ void MueLuBottomSolver::solve(const Teuchos::RCP<mv_t>& x,
 
     // InitialGuessIsZero = true
     // startLevel = 0
-    hierarchy_mp->Iterate(*xb, *xx, 4/*tolerance_m*/, true, 0);
+    hierarchy_mp->Iterate(*xb, *xx, nSweeps_m, true, 0);
     
     // put multivector back
     x->assign(*util_t::MV2NonConstTpetraMV2(*xx));
@@ -36,15 +37,18 @@ void MueLuBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
     A_mp->SetFixedBlockSize(1); // only 1 DOF per node (pure Laplace problem)
 
     Teuchos::RCP<mv_t> coords_mp = Teuchos::rcp( new amr::multivector_t(A->getDomainMap(),
-                                                                        1/*AMREX_SPACEDIM*/, false) );
+                                                                        1 /*AMREX_SPACEDIM*/, false) );
 
     const Teuchos::RCP<const amr::dmap_t>& map_r = A->getMap();
 
-    for (std::size_t i = 0; i < map_r->getNodeNumElements(); ++i) {
-//            AmrIntVect_t iv = deserialize_m(map_r->getGlobalElement(i));
-//            for (int d = 0; d < AMREX_SPACEDIM; ++d) 
-        coords_mp->replaceLocalValue(i, 0, map_r->getGlobalElement(i)); //iv[d]);                                 
-    }
+    //  const scalar_t* domain = geom_mr.ProbLo();
+    //const scalar_t* spacing = geom_mr.CellSize();
+    //for (lo_t d = 0; d < AMREX_SPACEDIM; ++d) {
+        for (std::size_t i = 0; i < map_r->getNodeNumElements(); ++i) {
+	    //      coords_mp->replaceLocalValue(i, d, 0.5 * spacing + 
+            coords_mp->replaceLocalValue(i, 0, map_r->getGlobalElement(i)); //iv[d]);
+        }
+//    }
 
 
     Teuchos::RCP<xmv_t> coordinates = MueLu::TpetraMultiVector_To_XpetraMultiVector(coords_mp);
@@ -97,7 +101,7 @@ void MueLuBottomSolver::initMueLuList_m() {
     mueluList_m.set("repartition: rebalance P and R", true);
     mueluList_m.set("repartition: partitioner", "zoltan2");
     mueluList_m.set("repartition: min rows per proc", 800);
-    mueluList_m.set("repartition: start level", 2);
+    mueluList_m.set("repartition: start level", 1);
 
     Teuchos::ParameterList reparms;
     reparms.set("algorithm", "rcb");
@@ -114,7 +118,7 @@ void MueLuBottomSolver::initMueLuList_m() {
     mueluList_m.set("aggregation: min agg size", 3);
     mueluList_m.set("aggregation: max agg size", 27);
 
-    mueluList_m.set("transpose: use implicit", true);
+    mueluList_m.set("transpose: use implicit", false);
 
     mueluList_m.set("reuse: type", "none");
 }

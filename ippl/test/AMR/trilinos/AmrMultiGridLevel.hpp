@@ -234,7 +234,8 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Teuchos::RCP<co
     // numGlobalElements == N
     int N = grids.numPts();
     
-    Teuchos::RCP<dmap_t> full = Teuchos::rcp( new dmap_t(N, globalindices, baseIndex, comm, node) );
+    /*Teuchos::RCP<dmap_t> full = Teuchos::rcp( new dmap_t(N, globalindices, baseIndex, comm, node) );
     
-    map_p = full->removeEmptyProcesses();
+      map_p = full->removeEmptyProcesses();*/
+    map_p = Teuchos::rcp( new dmap_t(N, globalindices, baseIndex, comm, node) );
 }
