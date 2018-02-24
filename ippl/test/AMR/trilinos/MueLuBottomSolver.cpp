@@ -1,5 +1,9 @@
 #include "MueLuBottomSolver.h"
 
+/* https://trilinos.org/wordpress/wp-content/uploads/2015/03/MueLu_tutorial.pdf
+ * http://prod.sandia.gov/techlib/access-control.cgi/2014/1418624r.pdf
+ */
+
 MueLuBottomSolver::MueLuBottomSolver()
     : hierarchy_mp(Teuchos::null),
       finest_mp(Teuchos::null),
@@ -7,22 +11,6 @@ MueLuBottomSolver::MueLuBottomSolver()
       tolerance_m(1.0e-4)
 {
     this->initMueLuList_m();
-/*
-    hierarchy_mp = Teuchos::rcp(new hierarchy_t());
-    
-    // WCYCLE also supported
-    hierarchy_mp->SetCycle(MueLu::CycleType::VCYCLE);
-    hierarchy_mp->SetMaxCoarseSize(200);
-    hierarchy_mp->SetPRrebalance(false);
-    hierarchy_mp->SetImplicitTranspose(true);
-    hierarchy_mp->IsPreconditioner(false);
-    
-    hierarchy_mp->setDefaultVerbLevel(Teuchos::VERB_HIGH);
-    
-    finest_mp = hierarchy_mp->GetLevel();
-    
-    finest_mp->setDefaultVerbLevel(Teuchos::VERB_HIGH);
-*/
 }
 
 
@@ -44,21 +32,6 @@ void MueLuBottomSolver::solve(const Teuchos::RCP<mv_t>& x,
 
 void MueLuBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
     
-    Teuchos::RCP<manager_t> mueluFactory = Teuchos::rcp(
-        new pListInterpreter_t(mueluList_m)
-    );
-    
-    // empty multigrid hierarchy with a finest level only
-    hierarchy_mp = mueluFactory->CreateHierarchy();
-    
-    hierarchy_mp->GetLevel(0)->Set("A", A_mp);
-    hierarchy_mp->GetLevel(0)->Set("Nullspace", nullspace);
-    hierarchy_mp->GetLevel(0)->Set("Coordinates", coordinates);
-    hierarchy_mp->IsPreconditioner(false);
-    hierarchy_mp->setDefaultVerbLevel(Teuchos::VERB_HIGH);
-    
-    
-    
     A_mp = MueLu::TpetraCrs_To_XpetraMatrix<scalar_t, lo_t, go_t, node_t>(A);
     A_mp->SetFixedBlockSize(1); // only 1 DOF per node (pure Laplace problem)
 
@@ -68,25 +41,37 @@ void MueLuBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
     const Teuchos::RCP<const amr::dmap_t>& map_r = A->getMap();
 
     for (std::size_t i = 0; i < map_r->getNodeNumElements(); ++i) {
-//            AmrIntVect_t iv = deserialize_m(map_r->getGlobalElement(i));                                            
-//            for (int d = 0; d < AMREX_SPACEDIM; ++d)                                                                
+//            AmrIntVect_t iv = deserialize_m(map_r->getGlobalElement(i));
+//            for (int d = 0; d < AMREX_SPACEDIM; ++d) 
         coords_mp->replaceLocalValue(i, 0, map_r->getGlobalElement(i)); //iv[d]);                                 
     }
 
 
     Teuchos::RCP<xmv_t> coordinates = MueLu::TpetraMultiVector_To_XpetraMultiVector(coords_mp);
+
+
+    Teuchos::RCP<manager_t> mueluFactory = Teuchos::rcp(
+        new pListInterpreter_t(mueluList_m)
+	);
+
+    // empty multigrid hierarchy with a finest level only
+    hierarchy_mp = mueluFactory->CreateHierarchy();
+
+    hierarchy_mp->GetLevel(0)->Set("A", A_mp);
+
+    Teuchos::RCP<mv_t> nullspace = Teuchos::rcp(new mv_t(A->getRowMap(), 1));
+    Teuchos::RCP<xmv_t> xnullspace = MueLu::TpetraMultiVector_To_XpetraMultiVector(nullspace);
+    xnullspace->putScalar(1.0);
+
+    hierarchy_mp->GetLevel(0)->Set("Nullspace", xnullspace);
+    hierarchy_mp->GetLevel(0)->Set("Coordinates", coordinates);
+    hierarchy_mp->IsPreconditioner(false);
+    hierarchy_mp->setDefaultVerbLevel(Teuchos::VERB_HIGH);
    
     finest_mp = hierarchy_mp->GetLevel();
     finest_mp->Set("A", A_mp);
     finest_mp->Set("Coordinates", coordinates);
-    
-    Teuchos::RCP<mv_t> nullspace = Teuchos::rcp(new mv_t(A->getRowMap(), 1));
-    Teuchos::RCP<xmv_t> xnullspace = MueLu::TpetraMultiVector_To_XpetraMultiVector(nullspace);
-    nullspace->putScalar(1.0);
     finest_mp->Set("Nullspace", xnullspace);
-
-    hierarchy_mp->Setup(M,startLevel,maxLevels);
-    
     
     mueluFactory->SetupHierarchy(*hierarchy_mp);
 }
