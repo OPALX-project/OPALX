@@ -21,6 +21,7 @@ public:
     typedef amr::local_ordinal_t lo_t;
     typedef amr::global_ordinal_t go_t;
     typedef amr::node_t node_t;
+//    typedef amr::AmrGeometry_t AmrGeometry_t;
     
     typedef MueLu::Hierarchy<scalar_t, lo_t, go_t, node_t> hierarchy_t;
     typedef MueLu::Level level_t;
@@ -33,7 +34,7 @@ public:
         
 public:
     
-    MueLuBottomSolver();
+    MueLuBottomSolver(/*const AmrGeometry_t& geom*/);
     
     void solve(const Teuchos::RCP<mv_t>& x,
                const Teuchos::RCP<mv_t>& b);
@@ -52,9 +53,11 @@ private:
 
     Teuchos::RCP<xmatrix_t> A_mp;               ///< MueLu requires Xpetra
 
-    scalar_t tolerance_m;                       ///< stopping criteria of multigrid iteration
+    lo_t nSweeps_m;                             ///< the number of multigrid iterations
     
     Teuchos::ParameterList mueluList_m;
+
+//    const AmrGeometry_t& geom_mr;               ///< reference to bottom geometry
     
 };
 
