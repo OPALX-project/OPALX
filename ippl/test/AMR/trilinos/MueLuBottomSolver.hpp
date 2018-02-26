@@ -130,7 +130,7 @@ void MueLuBottomSolver<Level>::initMueLuList_m() {
     mueluList_m.set("repartition: start level", 2);
 
     Teuchos::ParameterList reparms;
-    reparms.set("algorithm", "rcb");
+    reparms.set("algorithm", "multijagged"); // rcb
     //    reparms.set("partitioning_approach", "partition");
 
     mueluList_m.set("repartition: params", reparms);
@@ -138,20 +138,22 @@ void MueLuBottomSolver<Level>::initMueLuList_m() {
     mueluList_m.set("smoother: type", "CHEBYSHEV");
     mueluList_m.set("smoother: pre or post", "both");
     Teuchos::ParameterList smparms;
-    smparms.set("chebyshev: degree", 5);
+    smparms.set("chebyshev: degree", 3);
     smparms.set("chebyshev: assume matrix does not change", false);
     smparms.set("chebyshev: zero starting solution", true);
     mueluList_m.set("smoother: params", smparms);
 
-/*
+
     mueluList_m.set("coarse: type", "RELAXATION");
     Teuchos::ParameterList cparms;
     cparms.set("relaxation: type", "Gauss-Seidel");
     cparms.set("relaxation: sweeps", nSweeps_m);
     cparms.set("relaxation: zero starting solution", true);
+    cparms.set("relaxation: use l1", true);
+    cparms.set("relaxation: l1 eta", 1.5);
     mueluList_m.set("coarse: params", cparms);
-*/
-    mueluList_m.set("coarse: type", "KLU2");
+
+//    mueluList_m.set("coarse: type", "KLU2");
 
     mueluList_m.set("aggregation: type", "uncoupled");
     mueluList_m.set("aggregation: min agg size", 3);
