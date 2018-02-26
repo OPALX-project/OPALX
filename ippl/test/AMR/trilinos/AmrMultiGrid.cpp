@@ -33,7 +33,7 @@ AmrMultiGrid::AmrMultiGrid(AmrOpal* itsAmrObject_p,
       bIter_m(0),
       maxiter_m(100),
       nSweeps_m(nSweeps),
-      mglevel_m(0),
+      mglevel_m(1),
       lbase_m(0),
       lfine_m(0),
       nlevel_m(1),
@@ -49,6 +49,8 @@ AmrMultiGrid::AmrMultiGrid(AmrOpal* itsAmrObject_p,
     this->initTimer_m();
 #endif
     
+    mglevel_m[0].reset(nullptr);
+
     const Boundary bcs[AMREX_SPACEDIM] = {
         this->convertToEnumBoundary_m(bcx),
         this->convertToEnumBoundary_m(bcy),
@@ -672,7 +674,7 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
     
     if ( isNewOperator ) {
         // set the bottom solve operator
-        solver_mp->setOperator(mglevel_m[lbase_m]->Anf_p);
+        solver_mp->setOperator(mglevel_m[lbase_m]->Anf_p, mglevel_m[0].get());
     }
 
     
@@ -1853,62 +1855,62 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver)
     switch ( solver ) {
         // Belos solvers
         case BaseSolver::BICGSTAB:
-            solver_mp.reset( new BelosBottomSolver("BICGSTAB", prec_mp) );
+            solver_mp.reset( new BelosBottomSolver<AmrMultiGridLevel_t>("BICGSTAB", prec_mp) );
             break;
         case BaseSolver::MINRES:
-            solver_mp.reset( new BelosBottomSolver("MINRES", prec_mp) );
+            solver_mp.reset( new BelosBottomSolver<AmrMultiGridLevel_t>("MINRES", prec_mp) );
             break;
         case BaseSolver::PCPG:
-            solver_mp.reset( new BelosBottomSolver("PCPG", prec_mp) );
+            solver_mp.reset( new BelosBottomSolver<AmrMultiGridLevel_t>("PCPG", prec_mp) );
             break;
         case BaseSolver::CG:
-            solver_mp.reset( new BelosBottomSolver("Pseudoblock CG", prec_mp) );
+            solver_mp.reset( new BelosBottomSolver<AmrMultiGridLevel_t>("Pseudoblock CG", prec_mp) );
             break;
         case BaseSolver::GMRES:
-            solver_mp.reset( new BelosBottomSolver("Pseudoblock GMRES", prec_mp) );
+            solver_mp.reset( new BelosBottomSolver<AmrMultiGridLevel_t>("Pseudoblock GMRES", prec_mp) );
             break;
         case BaseSolver::STOCHASTIC_CG:
-            solver_mp.reset( new BelosBottomSolver("Stochastic CG", prec_mp) );
+            solver_mp.reset( new BelosBottomSolver<AmrMultiGridLevel_t>("Stochastic CG", prec_mp) );
             break;
         case BaseSolver::RECYCLING_CG:
-            solver_mp.reset( new BelosBottomSolver("RCG", prec_mp) );
+            solver_mp.reset( new BelosBottomSolver<AmrMultiGridLevel_t>("RCG", prec_mp) );
             break;
         case BaseSolver::RECYCLING_GMRES:
-            solver_mp.reset( new BelosBottomSolver("GCRODR", prec_mp) );
+            solver_mp.reset( new BelosBottomSolver<AmrMultiGridLevel_t>("GCRODR", prec_mp) );
             break;
         // Amesos2 solvers
 #ifdef HAVE_AMESOS2_KLU2
         case BaseSolver::KLU2:
-            solver_mp.reset( new AmesosBottomSolver("klu2") );
+            solver_mp.reset( new AmesosBottomSolver<AmrMultiGridLevel_t>("klu2") );
             break;
 #endif
 #ifdef HAVE_AMESOS2_SUPERLU
         case BaseSolver::SUPERLU:
-            solver_mp.reset( new AmesosBottomSolver("superlu") );
+            solver_mp.reset( new AmesosBottomSolver<AmrMultiGridLevel_t>("superlu") );
             break;
 #endif
 #ifdef HAVE_AMESOS2_UMFPACK
         case BaseSolver::UMFPACK:
-            solver_mp.reset( new AmesosBottomSolver("umfpack") );
+            solver_mp.reset( new AmesosBottomSolver<AmrMultiGridLevel_t>("umfpack") );
             break;
 #endif
 #ifdef HAVE_AMESOS2_PARDISO_MKL
         case BaseSolver::PARDISO_MKL:
-            solver_mp.reset( new AmesosBottomSolver("pardiso_mkl") );
+            solver_mp.reset( new AmesosBottomSolver<AmrMultiGridLevel_t>("pardiso_mkl") );
             break;
 #endif
 #ifdef HAVE_AMESOS2_MUMPS
         case BaseSolver::MUMPS:
-            solver_mp.reset( new AmesosBottomSolver("mumps") );
+            solver_mp.reset( new AmesosBottomSolver<AmrMultiGridLevel_t>("mumps") );
             break;
 #endif
 #ifdef HAVE_AMESOS2_LAPACK
         case BaseSolver::LAPACK:
-            solver_mp.reset( new AmesosBottomSolver("lapack") );
+            solver_mp.reset( new AmesosBottomSolver<AmrMultiGridLevel_t>("lapack") );
             break;
 #endif
         case BaseSolver::SA:
-            solver_mp.reset( new MueLuBottomSolver() );
+            solver_mp.reset( new MueLuBottomSolver<AmrMultiGridLevel_t>() );
             break;
         default:
             throw OpalException("AmrMultiGrid::initBaseSolver_m()",

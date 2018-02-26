@@ -48,7 +48,8 @@ public:
     
     typedef BottomSolver<
         Teuchos::RCP<matrix_t>,
-        Teuchos::RCP<mv_t>
+        Teuchos::RCP<mv_t>,
+        AmrMultiGridLevel_t
     > bsolver_t;
     
     typedef AmrPreconditioner<matrix_t> preconditioner_t;
