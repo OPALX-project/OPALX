@@ -33,7 +33,7 @@ AmrMultiGrid::AmrMultiGrid(AmrOpal* itsAmrObject_p,
       bIter_m(0),
       maxiter_m(100),
       nSweeps_m(nSweeps),
-      mglevel_m(1),
+      mglevel_m(0),
       lbase_m(0),
       lfine_m(0),
       nlevel_m(1),
@@ -49,8 +49,6 @@ AmrMultiGrid::AmrMultiGrid(AmrOpal* itsAmrObject_p,
     this->initTimer_m();
 #endif
     
-    mglevel_m[0].reset(nullptr);
-
     const Boundary bcs[AMREX_SPACEDIM] = {
         this->convertToEnumBoundary_m(bcx),
         this->convertToEnumBoundary_m(bcy),
