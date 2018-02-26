@@ -62,10 +62,10 @@ void MueLuBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
 		    AmrIntVect_t iv(D_DECL(i, j, k));
 		    go_t gidx = level_p->serialize(iv);
                     
-                    coords_mp->replaceGlobalValue(gidx, 0, (0.5 + i) * dx[0]);
-                    coords_mp->replaceGlobalValue(gidx, 1, (0.5 + j) * dx[1]);
+                    coords_mp->replaceGlobalValue(gidx, 0, domain[0] + (0.5 + i) * dx[0]);
+                    coords_mp->replaceGlobalValue(gidx, 1, domain[1] + (0.5 + j) * dx[1]);
 #if AMREX_SPACEDIM == 3
-                    coords_mp->replaceGlobalValue(gidx, 2, (0.5 + k) * dx[2]);
+                    coords_mp->replaceGlobalValue(gidx, 2, domain[2] + (0.5 + k) * dx[2]);
 		}
 #endif
 	    }
