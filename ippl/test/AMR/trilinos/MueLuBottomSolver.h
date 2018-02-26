@@ -3,14 +3,18 @@
 
 #include "BottomSolver.h"
 
+#include "Amr/AmrDefs.h"
+
 #include <MueLu.hpp>
 #include <MueLu_Level.hpp>
 #include <MueLu_Utilities.hpp>
 
 #include <MueLu_ParameterListInterpreter.hpp>
 
+template <class Level>
 class MueLuBottomSolver : public BottomSolver<Teuchos::RCP<amr::matrix_t>,
-                                              Teuchos::RCP<amr::multivector_t> >
+                                              Teuchos::RCP<amr::multivector_t>,
+                                              Level >
 {
 public:
     typedef amr::matrix_t matrix_t;
@@ -21,6 +25,10 @@ public:
     typedef amr::local_ordinal_t lo_t;
     typedef amr::global_ordinal_t go_t;
     typedef amr::node_t node_t;
+
+    typedef amr::AmrBox_t AmrBox_t;
+    typedef amr::AmrIntVect_t AmrIntVect_t;
+
 //    typedef amr::AmrGeometry_t AmrGeometry_t;
     
     typedef MueLu::Hierarchy<scalar_t, lo_t, go_t, node_t> hierarchy_t;
@@ -34,12 +42,13 @@ public:
         
 public:
     
-    MueLuBottomSolver(/*const AmrGeometry_t& geom*/);
+    MueLuBottomSolver();
     
     void solve(const Teuchos::RCP<mv_t>& x,
                const Teuchos::RCP<mv_t>& b);
     
-    void setOperator(const Teuchos::RCP<matrix_t>& A);
+    void setOperator(const Teuchos::RCP<matrix_t>& A,
+                     Level* level_p = nullptr);
     
     std::size_t getNumIters();
 
@@ -55,10 +64,9 @@ private:
 
     lo_t nSweeps_m;                             ///< the number of multigrid iterations
     
-    Teuchos::ParameterList mueluList_m;
-
-//    const AmrGeometry_t& geom_mr;               ///< reference to bottom geometry
-    
+    Teuchos::ParameterList mueluList_m;    
 };
+
+#include "MueLuBottomSolver.hpp"
 
 #endif
