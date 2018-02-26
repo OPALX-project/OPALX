@@ -50,9 +50,9 @@ IF ( ENABLE_AMR )
         add_library(multigrid
                     trilinos/AmrMultiGridCore.h
                     trilinos/AmrMultiGridDefs.h
-                    trilinos/BelosBottomSolver.cpp
-                    trilinos/AmesosBottomSolver.cpp
-                    trilinos/MueLuBottomSolver.cpp
+                    trilinos/BelosBottomSolver.hpp
+                    trilinos/AmesosBottomSolver.hpp
+                    trilinos/MueLuBottomSolver.hpp
 #                     trilinos/FFTBottomSolver.cpp
                     trilinos/AmrSmoother.cpp
                     trilinos/AmrMultiGrid.cpp

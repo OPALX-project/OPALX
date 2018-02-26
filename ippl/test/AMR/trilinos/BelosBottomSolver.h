@@ -13,8 +13,10 @@
 #include <string>
 
 /// Interface to Belos solvers of the Trilinos package
+template <class Level>
 class BelosBottomSolver : public BottomSolver<Teuchos::RCP<amr::matrix_t>,
-                                              Teuchos::RCP<amr::multivector_t> >
+                                              Teuchos::RCP<amr::multivector_t>,
+                                              Level>
 {
 public:
     typedef amr::matrix_t matrix_t;
@@ -45,7 +47,8 @@ public:
     void solve(const Teuchos::RCP<mv_t>& x,
                const Teuchos::RCP<mv_t>& b);
     
-    void setOperator(const Teuchos::RCP<matrix_t>& A);
+    void setOperator(const Teuchos::RCP<matrix_t>& A,
+                     Level* level_p = nullptr);
     
     std::size_t getNumIters();
     
@@ -67,5 +70,7 @@ private:
     /// allowed number of steps for iterative solvers
     int maxiter_m;
 };
+
+#include "BelosBottomSolver.hpp"
 
 #endif
