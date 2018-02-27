@@ -13,10 +13,10 @@ Solver::solve_for_accel(const container_t& rhs,
 {
     using amrex::Array;
 
-    static IpplTimings::TimerRef edge2centerTimer;
+//    static IpplTimings::TimerRef edge2centerTimer;
     
-    if ( timing )
-        edge2centerTimer = IpplTimings::getTimer("grad-edge2center");
+    //  if ( timing )
+    //  edge2centerTimer = IpplTimings::getTimer("grad-edge2center");
     
 //     amrex::Real reltol = 1.0e-14;
 //     amrex::Real abstol = 1.0e-12;
@@ -62,9 +62,9 @@ Solver::solve_for_accel(const container_t& rhs,
                      timing,
                      doGradient);
 
-    // Average edge-centered gradients to cell centers and fill the values in ghost cells.
-    if ( timing )
-        IpplTimings::startTimer(edge2centerTimer);
+//    // Average edge-centered gradients to cell centers and fill the values in ghost cells.
+//    if ( timing )
+//        IpplTimings::startTimer(edge2centerTimer);
     
     if ( doGradient ) {
         for (int lev = base_level; lev <= finest_level; lev++)
@@ -81,8 +81,8 @@ Solver::solve_for_accel(const container_t& rhs,
         }
     }
 
-    if ( timing )
-        IpplTimings::stopTimer(edge2centerTimer);
+//    if ( timing )
+//        IpplTimings::stopTimer(edge2centerTimer);
 }
 
 
@@ -103,10 +103,10 @@ Solver::solve_with_f90(const container_pt& rhs,
     static IpplTimings::TimerRef gradientTimer;
     
     if ( timing ) {
-        initSolverTimer = IpplTimings::getTimer("init-solver");
-        doSolveTimer = IpplTimings::getTimer("do-solve");
+        initSolverTimer = IpplTimings::getTimer("FMG initialize");
+        doSolveTimer = IpplTimings::getTimer("FMG solve");
         if ( doGradient )
-            gradientTimer = IpplTimings::getTimer("gradient");
+            gradientTimer = IpplTimings::getTimer("FMG gradient");
     }
     
     if ( timing )

@@ -68,6 +68,7 @@ public:
     
 public:
     /*!
+     * @param mesh scaling due to particle rest frame
      * @param _grids of this level
      * @param _dmap AMReX core distribution map
      * @param _geom of domain
@@ -76,7 +77,8 @@ public:
      * @param comm MPI communicator
      * @param node Kokkos node type (Serial, OpenMP, CUDA)
      */
-    AmrMultiGridLevel(const amrex::BoxArray& _grids,
+    AmrMultiGridLevel(const Vector_t& meshScaling,
+                      const amrex::BoxArray& _grids,
                       const amrex::DistributionMapping& _dmap,
                       const AmrGeometry_t& _geom,
                       const AmrIntVect_t& rr,
@@ -136,6 +138,28 @@ public:
     
     const AmrIntVect_t& refinement() const;
     
+    /*!
+     * @returns the mesh spacing in particle rest frame
+     */
+    const scalar_t* cellSize() const;
+    
+    /*!
+     * @returns the mesh spacing in particle rest frame for a
+     * certain direction
+     */
+    const scalar_t& cellSize(lo_t dir) const;
+    
+    /*!
+     * @returns the inverse mesh spacing in particle rest frame
+     */
+    const scalar_t* invCellSize() const;
+    
+    /*!
+     * @returns the inverse mesh spacing in particle rest
+     * frame for a certain direction
+     */
+    const scalar_t& invCellSize(lo_t dir) const;
+    
 private:
     /*!
      * Build a mask specifying if a grid point is covered,
@@ -184,6 +208,9 @@ private:
     AmrIntVect_t rr_m;                  ///< refinement
     
     boundary_t bc_mp[AMREX_SPACEDIM];   ///< boundary conditions
+    
+    scalar_t dx_m[AMREX_SPACEDIM];      ///< cell size in particle rest frame
+    scalar_t invdx_m[AMREX_SPACEDIM];   ///< inverse cell size in particle rest frame
 };
 
 

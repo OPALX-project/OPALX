@@ -1,9 +1,9 @@
-#include "BelosBottomSolver.h"
-
+#include "Ippl.h"
 #include "Utilities/OpalException.h"
 
-BelosBottomSolver::BelosBottomSolver(std::string solvertype,
-                                     const std::shared_ptr<prec_t>& prec_p)
+template <class Level>
+BelosBottomSolver<Level>::BelosBottomSolver(std::string solvertype,
+                                            const std::shared_ptr<prec_t>& prec_p)
     : problem_mp( Teuchos::rcp( new problem_t() ) ),
       prec_mp(prec_p),
       reltol_m(1.0e-9),
@@ -13,15 +13,17 @@ BelosBottomSolver::BelosBottomSolver(std::string solvertype,
 }
 
 
-BelosBottomSolver::~BelosBottomSolver() {
+template <class Level>
+BelosBottomSolver<Level>::~BelosBottomSolver() {
     problem_mp = Teuchos::null;
     params_mp = Teuchos::null;
     solver_mp = Teuchos::null;
 }
 
 
-void BelosBottomSolver::solve(const Teuchos::RCP<mv_t>& x,
-                              const Teuchos::RCP<mv_t>& b)
+template <class Level>
+void BelosBottomSolver<Level>::solve(const Teuchos::RCP<mv_t>& x,
+                                     const Teuchos::RCP<mv_t>& b)
 {
     /*
      * solve linear system Ax = b
@@ -48,7 +50,10 @@ void BelosBottomSolver::solve(const Teuchos::RCP<mv_t>& x,
 }
 
 
-void BelosBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
+template <class Level>
+void BelosBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
+                                           Level* level_p)
+{
     
     // make positive definite --> rhs has to change sign as well
     A->resumeFill();
@@ -61,14 +66,19 @@ void BelosBottomSolver::setOperator(const Teuchos::RCP<matrix_t>& A) {
     
     problem_mp->setOperator(A);
     
+    static IpplTimings::TimerRef precTimer = IpplTimings::getTimer("AMR MG prec setup");
+
     if ( prec_mp != nullptr ) {
-        prec_mp->create(A);
+        IpplTimings::startTimer(precTimer);
+        prec_mp->create(A, level_p);
+        IpplTimings::stopTimer(precTimer);
         problem_mp->setLeftPrec(prec_mp->get());
     }
 }
 
 
-std::size_t BelosBottomSolver::getNumIters() {
+template <class Level>
+std::size_t BelosBottomSolver<Level>::getNumIters() {
     if ( solver_mp == Teuchos::null )
         throw OpalException("BelosBottomSolver::getNumIters()",
                             "No solver initialized.");
@@ -77,7 +87,8 @@ std::size_t BelosBottomSolver::getNumIters() {
 }
 
 
-void BelosBottomSolver::initSolver_m(std::string solvertype) {
+template <class Level>
+void BelosBottomSolver<Level>::initSolver_m(std::string solvertype) {
     
     Belos::SolverFactory<scalar_t, mv_t, op_t> factory;
     

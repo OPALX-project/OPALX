@@ -11,17 +11,17 @@
 
 #include "Ippl.h"
 
-template <class AmrMultiGridLevel>
-class AmrLagrangeInterpolater : public AmrInterpolater<AmrMultiGridLevel>
+template <class Level>
+class AmrLagrangeInterpolater : public AmrInterpolater<Level>
 {
 public:
     
-    typedef typename AmrMultiGridLevel::global_ordinal_t go_t;
-    typedef typename AmrMultiGridLevel::lo_t lo_t;
-    typedef typename AmrMultiGridLevel::scalar_t scalar_t;
-    typedef typename AmrMultiGridLevel::umap_t umap_t;
-    typedef typename AmrMultiGridLevel::basefab_t basefab_t;
-    typedef amr::AmrIntVect_t AmrIntVect_t;
+    typedef typename Level::global_ordinal_t    go_t;
+    typedef typename Level::lo_t                lo_t;
+    typedef typename Level::scalar_t            scalar_t;
+    typedef typename Level::umap_t              umap_t;
+    typedef typename Level::basefab_t           basefab_t;
+    typedef amr::AmrIntVect_t                   AmrIntVect_t;
 
     enum Order {
         LINEAR = 1,
@@ -43,20 +43,20 @@ public:
                  const basefab_t& fab,
                  umap_t& map,
                  const scalar_t& scale,
-                 AmrMultiGridLevel* mglevel);
+                 Level* mglevel);
     
     void coarse(const AmrIntVect_t& iv,
                 umap_t& map,
                 const scalar_t& scale,
                 lo_t dir, lo_t shift, const basefab_t& rfab,
                 const AmrIntVect_t& riv,
-                AmrMultiGridLevel* mglevel);
+                Level* mglevel);
     
     void fine(const AmrIntVect_t& iv,
               umap_t& map,
               const scalar_t& scale,
               lo_t dir, lo_t shift,
-              AmrMultiGridLevel* mglevel);
+              Level* mglevel);
     
 private:
     
@@ -79,7 +79,7 @@ private:
                       umap_t& map,
                       const scalar_t& scale,
                       lo_t dir, lo_t shift,
-                      AmrMultiGridLevel* mglevel);
+                      Level* mglevel);
     
     /*!
      * Second order interpolation on fine cell interface side
@@ -100,7 +100,7 @@ private:
                          umap_t& map,
                          const scalar_t& scale,
                          lo_t dir, lo_t shift,
-                         AmrMultiGridLevel* mglevel);
+                         Level* mglevel);
     
     /*!
      * First oder interpolation on coarse cell interface side
@@ -122,7 +122,7 @@ private:
                       const scalar_t& scale,
                       lo_t dir, lo_t shift, const basefab_t& rfab,
                       const AmrIntVect_t& riv,
-                      AmrMultiGridLevel* mglevel);
+                      Level* mglevel);
     
     /*!
      * Second order interpolation on coarse cell interface side
@@ -145,7 +145,7 @@ private:
                          const scalar_t& scale,
                          lo_t dir, lo_t shift, const basefab_t& rfab,
                          const AmrIntVect_t& riv,
-                         AmrMultiGridLevel* mglevel);
+                         Level* mglevel);
     
 private:
 #if AMREX_SPACEDIM == 3
