@@ -35,6 +35,8 @@ set (HDRS
     BottomSolver.h
     Ifpack2Preconditioner.h
     Ifpack2Preconditioner.hpp
+    MueLuBottomSolver.h
+    MueLuBottomSolver.hpp
     MueLuPreconditioner.h
     MueLuPreconditioner.hpp
 )
