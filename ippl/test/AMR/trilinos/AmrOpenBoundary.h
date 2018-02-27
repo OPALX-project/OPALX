@@ -3,36 +3,36 @@
 
 #include "AmrBoundary.h"
 
-template <class AmrMultiGridLevel>
-class AmrOpenBoundary : public AmrBoundary<AmrMultiGridLevel> {
+template <class Level>
+class AmrOpenBoundary : public AmrBoundary<Level> {
 
 public:
-    typedef typename AmrMultiGridLevel::umap_t umap_t;
-    typedef typename AmrMultiGridLevel::lo_t lo_t;
-    typedef typename AmrMultiGridLevel::scalar_t scalar_t;
+    typedef typename Level::umap_t umap_t;
+    typedef typename Level::lo_t lo_t;
+    typedef typename Level::scalar_t scalar_t;
     typedef amr::AmrIntVect_t AmrIntVect_t;
     
 public:
     
-    AmrOpenBoundary() : AmrBoundary<AmrMultiGridLevel>(2) { }
+    AmrOpenBoundary() : AmrBoundary<Level>(2) { }
     
     void apply(const AmrIntVect_t& iv,
                const lo_t& dir,
                umap_t& map,
                const scalar_t& value,
-               AmrMultiGridLevel* mglevel,
+               Level* mglevel,
                const lo_t* nr);
     
 };
 
 
-template <class AmrMultiGridLevel>
-void AmrOpenBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
-                                               const lo_t& dir,
-                                               umap_t& map,
-                                               const scalar_t& value,
-                                               AmrMultiGridLevel* mglevel,
-                                               const lo_t* nr)
+template <class Level>
+void AmrOpenBoundary<Level>::apply(const AmrIntVect_t& iv,
+                                   const lo_t& dir,
+                                   umap_t& map,
+                                   const scalar_t& value,
+                                   Level* mglevel,
+                                   const lo_t* nr)
 {
     /* depending on boundary we need forward
      * or backward difference for the gradient

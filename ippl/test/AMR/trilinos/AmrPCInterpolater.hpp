@@ -1,16 +1,16 @@
-template <class AmrMultiGridLevel>
-AmrPCInterpolater<AmrMultiGridLevel>::AmrPCInterpolater()
-    : AmrInterpolater<AmrMultiGridLevel>(1)
+template <class Level>
+AmrPCInterpolater<Level>::AmrPCInterpolater()
+    : AmrInterpolater<Level>(1)
 { }
 
 
-template <class AmrMultiGridLevel>
-void AmrPCInterpolater<AmrMultiGridLevel>::stencil(
+template <class Level>
+void AmrPCInterpolater<Level>::stencil(
     const AmrIntVect_t& iv,
     const basefab_t& fab,
     umap_t& map,
     const scalar_t& scale,
-    AmrMultiGridLevel* mglevel)
+    Level* mglevel)
 {
     AmrIntVect_t civ = iv;
     civ.coarsen(mglevel->refinement());
@@ -20,26 +20,26 @@ void AmrPCInterpolater<AmrMultiGridLevel>::stencil(
 }
 
 
-template <class AmrMultiGridLevel>
-void AmrPCInterpolater<AmrMultiGridLevel>::coarse(
+template <class Level>
+void AmrPCInterpolater<Level>::coarse(
     const AmrIntVect_t& iv,
     umap_t& map,
     const scalar_t& scale,
     lo_t dir, lo_t shift, const basefab_t& rfab,
     const AmrIntVect_t& riv,
-    AmrMultiGridLevel* mglevel)
+    Level* mglevel)
 {
     // do nothing
 }
 
 
-template <class AmrMultiGridLevel>
-void AmrPCInterpolater<AmrMultiGridLevel>::fine(
+template <class Level>
+void AmrPCInterpolater<Level>::fine(
     const AmrIntVect_t& iv,
     umap_t& map,
     const scalar_t& scale,
     lo_t dir, lo_t shift, const basefab_t& fab,
-    AmrMultiGridLevel* mglevel)
+    Level* mglevel)
 {
     /*
      * The AmrPCInterpolater interpolates directly to the

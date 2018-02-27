@@ -70,7 +70,7 @@ void BelosBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
 
     if ( prec_mp != nullptr ) {
         IpplTimings::startTimer(precTimer);
-        prec_mp->create(A);
+        prec_mp->create(A, level_p);
         IpplTimings::stopTimer(precTimer);
         problem_mp->setLeftPrec(prec_mp->get());
     }

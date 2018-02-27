@@ -52,7 +52,7 @@ public:
         AmrMultiGridLevel_t
     > bsolver_t;
     
-    typedef AmrPreconditioner<matrix_t> preconditioner_t;
+    typedef AmrPreconditioner<matrix_t, AmrMultiGridLevel_t> preconditioner_t;
     
     typedef amrex::BoxArray boxarray_t;
     typedef amrex::Box box_t;
