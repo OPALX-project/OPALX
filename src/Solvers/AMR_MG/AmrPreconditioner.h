@@ -12,13 +12,13 @@ namespace amr {
         SA,             ///< smoothed aggregation multigrid
         JACOBI,         ///< Jacobi point relaxation
         BLOCK_JACOBI,   ///< Jacobi block relaxation
-        GS,             ///> Gauss-Seidel point relaxation
+        GS,             ///< Gauss-Seidel point relaxation
         BLOCK_GS        ///< Gauss-Seidel block relaxation
     };
 }
 
 /// Bottom solver preconditioners
-template <class MatrixType>
+template <class Matrix, class Level>
 class AmrPreconditioner
 {
 public:
@@ -29,9 +29,13 @@ public:
     /*!
      * Instantiate the preconditioner matrix
      * @param A matrix for which to create preconditioner
+     * @param level_p bottom level if necessary to build preconditioner
      */
-    virtual void create(const Teuchos::RCP<MatrixType>& A) = 0;
+    virtual void create(const Teuchos::RCP<Matrix>& A, Level* level_p = nullptr) = 0;
     
+    /*!
+     * @returns the preconditioner
+     */
     virtual Teuchos::RCP<operator_t> get() = 0;
 };
 
