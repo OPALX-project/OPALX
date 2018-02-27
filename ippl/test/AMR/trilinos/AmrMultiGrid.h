@@ -586,8 +586,10 @@ private:
     /*!
      * Instantiate a bottom solver
      * @param solver type
+     * @param rebalance solver (SA only)
      */
-    void initBaseSolver_m(const BaseSolver& solver);
+    void initBaseSolver_m(const BaseSolver& solver,
+                          const bool& rebalance);
     
     /*!
      * Instantiate a preconditioner for the bottom solver
