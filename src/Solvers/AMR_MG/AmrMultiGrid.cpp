@@ -38,6 +38,7 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
       lfine_m(0),
       nlevel_m(1),
       nBcPoints_m(0),
+      eps_m(1.0e-12),
       verbose_m(false),
       fname_m(OpalData::getInstance()->getInputBasename() + std::string(".solver")),
       flag_m(std::ios::out)
@@ -298,9 +299,8 @@ AmrMultiGrid::scalar_t AmrMultiGrid::iterate_m() {
     
     this->initResidual_m(rhsNorms, resNorms);
     
-    scalar_t eps = 1.0e-8;
     std::for_each(rhsNorms.begin(), rhsNorms.end(),
-                  [&eps](double& val){ val *= eps; });
+                  [&eps_m](double& val){ val *= eps_m; });
     
     nIter_m = 0;
     bIter_m = 0;
