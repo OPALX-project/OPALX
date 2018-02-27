@@ -5,7 +5,8 @@
 
 #include <Ifpack2_Factory.hpp>
 
-class Ifpack2Preconditioner : public AmrPreconditioner<amr::matrix_t>
+template <class Level>
+class Ifpack2Preconditioner : public AmrPreconditioner<amr::matrix_t, Level>
 {
 public:
     typedef amr::Preconditioner Preconditioner;
@@ -16,13 +17,17 @@ public:
         amr::node_t
     > precond_t;
     
+    typedef std::map<std::string, Preconditioner> map_t;
+    
 public:
     
     Ifpack2Preconditioner(Preconditioner prec);
     
-    void create(const Teuchos::RCP<amr::matrix_t>& A);
+    void create(const Teuchos::RCP<amr::matrix_t>& A, Level* level_p = nullptr);
     
     Teuchos::RCP<amr::operator_t> get();
+    
+    static void fillMap(map_t& map);
     
 private:
     /*!
@@ -39,5 +44,7 @@ private:
     
     Teuchos::RCP<precond_t> prec_mp;
 };
+
+#include "Ifpack2Preconditioner.hpp"
 
 #endif
