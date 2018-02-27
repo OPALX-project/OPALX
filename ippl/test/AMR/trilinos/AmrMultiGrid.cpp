@@ -1853,62 +1853,62 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver)
     switch ( solver ) {
         // Belos solvers
         case BaseSolver::BICGSTAB:
-            solver_mp.reset( new BelosBottomSolver<AmrMultiGridLevel_t>("BICGSTAB", prec_mp) );
+            solver_mp.reset( new BelosSolver_t("BICGSTAB", prec_mp) );
             break;
         case BaseSolver::MINRES:
-            solver_mp.reset( new BelosBottomSolver<AmrMultiGridLevel_t>("MINRES", prec_mp) );
+            solver_mp.reset( new BelosSolver_t("MINRES", prec_mp) );
             break;
         case BaseSolver::PCPG:
-            solver_mp.reset( new BelosBottomSolver<AmrMultiGridLevel_t>("PCPG", prec_mp) );
+            solver_mp.reset( new BelosSolver_t("PCPG", prec_mp) );
             break;
         case BaseSolver::CG:
-            solver_mp.reset( new BelosBottomSolver<AmrMultiGridLevel_t>("Pseudoblock CG", prec_mp) );
+            solver_mp.reset( new BelosSolver_t("Pseudoblock CG", prec_mp) );
             break;
         case BaseSolver::GMRES:
-            solver_mp.reset( new BelosBottomSolver<AmrMultiGridLevel_t>("Pseudoblock GMRES", prec_mp) );
+            solver_mp.reset( new BelosSolver_t("Pseudoblock GMRES", prec_mp) );
             break;
         case BaseSolver::STOCHASTIC_CG:
-            solver_mp.reset( new BelosBottomSolver<AmrMultiGridLevel_t>("Stochastic CG", prec_mp) );
+            solver_mp.reset( new BelosSolver_t("Stochastic CG", prec_mp) );
             break;
         case BaseSolver::RECYCLING_CG:
-            solver_mp.reset( new BelosBottomSolver<AmrMultiGridLevel_t>("RCG", prec_mp) );
+            solver_mp.reset( new BelosSolver_t("RCG", prec_mp) );
             break;
         case BaseSolver::RECYCLING_GMRES:
-            solver_mp.reset( new BelosBottomSolver<AmrMultiGridLevel_t>("GCRODR", prec_mp) );
+            solver_mp.reset( new BelosSolver_t("GCRODR", prec_mp) );
             break;
         // Amesos2 solvers
 #ifdef HAVE_AMESOS2_KLU2
         case BaseSolver::KLU2:
-            solver_mp.reset( new AmesosBottomSolver<AmrMultiGridLevel_t>("klu2") );
+            solver_mp.reset( new Amesos2Solver_t("klu2") );
             break;
 #endif
 #ifdef HAVE_AMESOS2_SUPERLU
         case BaseSolver::SUPERLU:
-            solver_mp.reset( new AmesosBottomSolver<AmrMultiGridLevel_t>("superlu") );
+            solver_mp.reset( new Amesos2Solver_t("superlu") );
             break;
 #endif
 #ifdef HAVE_AMESOS2_UMFPACK
         case BaseSolver::UMFPACK:
-            solver_mp.reset( new AmesosBottomSolver<AmrMultiGridLevel_t>("umfpack") );
+            solver_mp.reset( new Amesos2Solver_t("umfpack") );
             break;
 #endif
 #ifdef HAVE_AMESOS2_PARDISO_MKL
         case BaseSolver::PARDISO_MKL:
-            solver_mp.reset( new AmesosBottomSolver<AmrMultiGridLevel_t>("pardiso_mkl") );
+            solver_mp.reset( new Amesos2Solver_t("pardiso_mkl") );
             break;
 #endif
 #ifdef HAVE_AMESOS2_MUMPS
         case BaseSolver::MUMPS:
-            solver_mp.reset( new AmesosBottomSolver<AmrMultiGridLevel_t>("mumps") );
+            solver_mp.reset( new Amesos2Solver_t("mumps") );
             break;
 #endif
 #ifdef HAVE_AMESOS2_LAPACK
         case BaseSolver::LAPACK:
-            solver_mp.reset( new AmesosBottomSolver<AmrMultiGridLevel_t>("lapack") );
+            solver_mp.reset( new Amesos2Solver_t("lapack") );
             break;
 #endif
         case BaseSolver::SA:
-            solver_mp.reset( new MueLuBottomSolver<AmrMultiGridLevel_t>() );
+            solver_mp.reset( new MueLuSolver_t() );
             break;
         default:
             throw OpalException("AmrMultiGrid::initBaseSolver_m()",
@@ -1928,11 +1928,11 @@ void AmrMultiGrid::initPrec_m(const Preconditioner& prec,
         case Preconditioner::BLOCK_JACOBI:
         case Preconditioner::GS:
         case Preconditioner::BLOCK_GS:
-            prec_mp.reset( new Ifpack2Preconditioner<AmrMultiGridLevel_t>(prec) );
+            prec_mp.reset( new Ifpack2Preconditioner_t(prec) );
             break;
         case Preconditioner::SA:
         {
-            prec_mp.reset( new MueLuPreconditioner<AmrMultiGridLevel_t>(rebalance) );
+            prec_mp.reset( new MueLuPreconditioner_t(rebalance) );
             break;
         }
         case Preconditioner::NONE:
@@ -2025,9 +2025,9 @@ AmrMultiGrid::convertToEnumPreconditioner_m(const std::string& prec) {
     
     map["NONE"]         = Preconditioner::NONE;
     
-    Ifpack2Preconditioner<AmrMultiGridLevel_t>::fillMap(map);
+    Ifpack2Preconditioner_t::fillMap(map);
     
-    MueLuPreconditioner<AmrMultiGridLevel_t>::fillMap(map);
+    MueLuPreconditioner_t::fillMap(map);
     
     auto precond = map.find(Util::toUpper(prec));
     
