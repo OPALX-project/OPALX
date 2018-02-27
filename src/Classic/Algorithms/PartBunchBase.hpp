@@ -2581,4 +2581,25 @@ void PartBunchBase<T, Dim>::setBeamFrequency(double f) {
     periodLength_m = Physics::c / f;
 }
 
+template <class T, unsigned Dim>
+FMatrix<double, 2 * Dim, 2 * Dim> PartBunchBase<T, Dim>::getSigmaMatrix() {
+	const double  N =  static_cast<double>(pbase->getLocalNum());
+
+	Vektor<double, 2*Dim> rpmean;
+	for (unsigned int i=0; i<Dim; i++){
+		rpmean(2*i)= rmean_m(i);
+		rpmean((2*i)+1)= pmean_m(i);
+	}
+
+	FMatrix<double, 2 * Dim, 2 * Dim> sigmaMatrix=moments_m / N;
+	for (unsigned int i=0; i<2*Dim; i++){
+		for (unsigned int j=0; j<=i; j++){
+			sigmaMatrix[i][j] = moments_m(i, j) -  rpmean(i) * rpmean(j);
+			sigmaMatrix[j][i] = sigmaMatrix[i][j];
+		}
+	}
+	return sigmaMatrix;
+}
+
+
 #endif
