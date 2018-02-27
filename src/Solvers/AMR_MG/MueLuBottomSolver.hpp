@@ -5,11 +5,12 @@
 #include <AMReX.H>
 
 template <class Level>
-MueLuBottomSolver<Level>::MueLuBottomSolver()
+MueLuBottomSolver<Level>::MueLuBottomSolver(const bool& rebalance)
     : hierarchy_mp(Teuchos::null),
       finest_mp(Teuchos::null),
       A_mp(Teuchos::null),
-      nSweeps_m(4)
+      nSweeps_m(4).
+      rebalance_m(rebalance)
 {
     this->initMueLuList_m();
 }
@@ -123,8 +124,8 @@ void MueLuBottomSolver<Level>::initMueLuList_m() {
     mueluList_m.set("sa: use filtered matrix", true);
     mueluList_m.set("filtered matrix: reuse eigenvalue", false); // false: more expensive
     
-    mueluList_m.set("repartition: enable", true);
-    mueluList_m.set("repartition: rebalance P and R", true);
+    mueluList_m.set("repartition: enable", rebalance_m);
+    mueluList_m.set("repartition: rebalance P and R", rebalance_m);
     mueluList_m.set("repartition: partitioner", "zoltan2");
     mueluList_m.set("repartition: min rows per proc", 800);
     mueluList_m.set("repartition: start level", 2);
