@@ -304,7 +304,7 @@ AmrMultiGrid::scalar_t AmrMultiGrid::iterate_m() {
     this->initResidual_m(rhsNorms, resNorms);
     
     std::for_each(rhsNorms.begin(), rhsNorms.end(),
-                  [&eps_m](double& val){ val *= eps_m; });
+                  [this](double& val){ val *= eps_m; });
     
     nIter_m = 0;
     bIter_m = 0;
