@@ -97,12 +97,13 @@ public:
     virtual bool getAutophaseVeto() const;
 
     virtual double getAutoPhaseEstimate(const double & E0, const double & t0, const double & q, const double & m);
+    virtual double getAutoPhaseEstimateFallback(double E0, double t0, double q, double m);
 
     virtual std::pair<double, double> trackOnAxisParticle(const double & p0,
-                                                  const double & t0,
-                                                  const double & dt,
-                                                  const double & q,
-                                                  const double & mass);
+                                                          const double & t0,
+                                                          const double & dt,
+                                                          const double & q,
+                                                          const double & mass);
 
     virtual void addKR(int i, double t, Vector_t &K);
 
