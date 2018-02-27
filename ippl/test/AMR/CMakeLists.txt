@@ -57,8 +57,8 @@ IF ( ENABLE_AMR )
                     trilinos/AmrSmoother.cpp
                     trilinos/AmrMultiGrid.cpp
                     trilinos/AmrRedistributor.cpp
-                    trilinos/Ifpack2Preconditioner.cpp
-		    trilinos/MueLuPreconditioner.cpp
+                    trilinos/Ifpack2Preconditioner.hpp
+		    trilinos/MueLuPreconditioner.hpp
                     ${CMAKE_SOURCE_DIR}/src/Classic/Algorithms/Quaternion.cpp
                     ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/Util.cpp
                     ${CMAKE_SOURCE_DIR}/src/Solvers/FFTPoissonSolver.cpp
