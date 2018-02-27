@@ -2176,7 +2176,7 @@ Inform &PartBunchBase<T, Dim>::print(Inform &os) {
         os << "* ************** B U N C H ********************************************************* \n";
         os << "* NP              = " << getTotalNum() << "\n";
         os << "* Qtot            = " << std::setw(17) << Util::getChargeString(std::abs(sum(Q))) << "         "
-	   << "Qi    = "             << std::setw(17) << Util::getChargeString(std::abs(qi_m)) << "\n";
+        << "Qi    = "             << std::setw(17) << Util::getChargeString(std::abs(qi_m)) << "\n";
         os << "* Ekin            = " << std::setw(17) << Util::getEnergyString(eKin_m) << "         "
            << "dEkin = "             << std::setw(17) << Util::getEnergyString(dE_m) << "\n";
         os << "* rmax            = " << Util::getLengthString(rmax_m, 5) << "\n";
@@ -2583,7 +2583,7 @@ void PartBunchBase<T, Dim>::setBeamFrequency(double f) {
 
 template <class T, unsigned Dim>
 FMatrix<double, 2 * Dim, 2 * Dim> PartBunchBase<T, Dim>::getSigmaMatrix() {
-	const double  N =  static_cast<double>(pbase->getLocalNum());
+	const double  N =  static_cast<double>(this->getTotalNum());
 
 	Vektor<double, 2*Dim> rpmean;
 	for (unsigned int i=0; i<Dim; i++){
