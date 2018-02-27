@@ -42,7 +42,7 @@ public:
         
 public:
     
-    MueLuBottomSolver();
+    MueLuBottomSolver(const bool& rebalance);
     
     void solve(const Teuchos::RCP<mv_t>& x,
                const Teuchos::RCP<mv_t>& b);
@@ -64,7 +64,9 @@ private:
 
     lo_t nSweeps_m;                             ///< the number of multigrid iterations
     
-    Teuchos::ParameterList mueluList_m;    
+    Teuchos::ParameterList mueluList_m;
+    
+    bool rebalance_m;                           ///< use subcommunicators (less communication)
 };
 
 #include "MueLuBottomSolver.hpp"

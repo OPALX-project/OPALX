@@ -73,7 +73,7 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
     
     // base level solver
     const BaseSolver solver = this->convertToEnumBaseSolver_m(bsolver);
-    this->initBaseSolver_m(solver);
+    this->initBaseSolver_m(solver, rebalance);
     
     if (boost::filesystem::exists(fname_m)) {
         flag_m = std::ios::app;
@@ -1844,7 +1844,8 @@ void AmrMultiGrid::initCrseFineInterp_m(const Interpolater& interface) {
 }
 
 
-void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver)
+void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
+                                    const bool& rebalance)
 {
     switch ( solver ) {
         // Belos solvers
@@ -1904,7 +1905,7 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver)
             break;
 #endif
         case BaseSolver::SA:
-            solver_mp.reset( new MueLuSolver_t() );
+            solver_mp.reset( new MueLuSolver_t(rebalance) );
             break;
         default:
             throw OpalException("AmrMultiGrid::initBaseSolver_m()",
