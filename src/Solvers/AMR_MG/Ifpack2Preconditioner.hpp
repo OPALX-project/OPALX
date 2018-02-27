@@ -1,15 +1,17 @@
-#include "Ifpack2Preconditioner.h"
-
 #include "Utilities/OpalException.h"
 
-Ifpack2Preconditioner::Ifpack2Preconditioner(Preconditioner prec)
+template <class Level>
+Ifpack2Preconditioner<Level>::Ifpack2Preconditioner(Preconditioner prec)
     : prec_mp(Teuchos::null)
 {
     this->init_m(prec);
 }
 
 
-void Ifpack2Preconditioner::create(const Teuchos::RCP<amr::matrix_t>& A) {
+template <class Level>
+void Ifpack2Preconditioner<Level>::create(const Teuchos::RCP<amr::matrix_t>& A,
+                                          Level* level_p)
+{
     Ifpack2::Factory factory;
     
     prec_mp = factory.create(prectype_m, A.getConst());
@@ -19,12 +21,14 @@ void Ifpack2Preconditioner::create(const Teuchos::RCP<amr::matrix_t>& A) {
 }
 
 
-Teuchos::RCP<amr::operator_t> Ifpack2Preconditioner::get() {
+template <class Level>
+Teuchos::RCP<amr::operator_t> Ifpack2Preconditioner<Level>::get() {
     return prec_mp;
 }
 
 
-void Ifpack2Preconditioner::fillMap(map_t& map) {
+template <class Level>
+void Ifpack2Preconditioner<Level>::fillMap(map_t& map) {
     map["ILUT"]         = Preconditioner::ILUT;
     map["CHEBYSHEV"]    = Preconditioner::CHEBYSHEV;
     map["RILUK"]        = Preconditioner::RILUK;
@@ -35,7 +39,8 @@ void Ifpack2Preconditioner::fillMap(map_t& map) {
 }
 
 
-void Ifpack2Preconditioner::init_m(Preconditioner prec)
+template <class Level>
+void Ifpack2Preconditioner<Level>::init_m(Preconditioner prec)
 {
     params_mp = Teuchos::parameterList();
     

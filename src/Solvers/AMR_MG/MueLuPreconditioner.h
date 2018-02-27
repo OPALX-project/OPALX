@@ -7,15 +7,21 @@
 #include <MueLu.hpp>
 #include <MueLu_TpetraOperator.hpp>
 
-class MueLuPreconditioner : public AmrPreconditioner<amr::matrix_t>
+template <class Level>
+class MueLuPreconditioner : public AmrPreconditioner<amr::matrix_t, Level>
 {
 public:
     typedef amr::Preconditioner Preconditioner;
     
+    typedef amr::scalar_t scalar_t;
+    typedef amr::local_ordinal_t lo_t;
+    typedef amr::global_ordinal_t go_t;
+    typedef amr::AmrBox_t AmrBox_t;
+    
     typedef MueLu::TpetraOperator<
-        amr::scalar_t,
-        amr::local_ordinal_t,
-        amr::global_ordinal_t,
+        scalar_t,
+        lo_t,
+        go_t,
         amr::node_t
     > precond_t;
     
@@ -25,10 +31,9 @@ public:
     
 public:
     
-    MueLuPreconditioner(const AmrIntVect_t& grid,
-                        const bool& rebalance);
+    MueLuPreconditioner(const bool& rebalance);
     
-    void create(const Teuchos::RCP<amr::matrix_t>& A);
+    void create(const Teuchos::RCP<amr::matrix_t>& A, Level* level_p =  nullptr);
     
     Teuchos::RCP<amr::operator_t> get();
     
@@ -43,9 +48,10 @@ private:
     Teuchos::RCP<precond_t> prec_mp;
 
     Teuchos::RCP<amr::multivector_t> coords_mp;
-
-    const AmrIntVect_t grid_m;
+    
     const bool rebalance_m;
 };
+
+#include "MueLuPreconditioner.hpp"
 
 #endif
