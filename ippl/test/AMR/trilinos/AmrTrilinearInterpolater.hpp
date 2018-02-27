@@ -1,16 +1,16 @@
-template <class AmrMultiGridLevel>
-AmrTrilinearInterpolater<AmrMultiGridLevel>::AmrTrilinearInterpolater()
-    : AmrInterpolater<AmrMultiGridLevel>(2 << (AMREX_SPACEDIM - 1))
+template <class Level>
+AmrTrilinearInterpolater<Level>::AmrTrilinearInterpolater()
+    : AmrInterpolater<Level>(2 << (AMREX_SPACEDIM - 1))
 { }
 
 
-template <class AmrMultiGridLevel>
-void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
+template <class Level>
+void AmrTrilinearInterpolater<Level>::stencil(
     const AmrIntVect_t& iv,
     const basefab_t& fab,
     umap_t& map,
     const scalar_t& scale,
-    AmrMultiGridLevel* mglevel)
+    Level* mglevel)
 {
     /* lower left coarse cell (i, j, k)
      * floor( i - 0.5 ) / rr[0]
@@ -94,26 +94,26 @@ void AmrTrilinearInterpolater<AmrMultiGridLevel>::stencil(
 }
 
 
-template <class AmrMultiGridLevel>
-void AmrTrilinearInterpolater<AmrMultiGridLevel>::coarse(
+template <class Level>
+void AmrTrilinearInterpolater<Level>::coarse(
     const AmrIntVect_t& iv,
     umap_t& map,
     const scalar_t& scale,
     lo_t dir, lo_t shift, const basefab_t& rfab,
     const AmrIntVect_t& riv,
-    AmrMultiGridLevel* mglevel)
+    Level* mglevel)
 {
     // do nothing
 }
 
 
-template <class AmrMultiGridLevel>
-void AmrTrilinearInterpolater<AmrMultiGridLevel>::fine(
+template <class Level>
+void AmrTrilinearInterpolater<Level>::fine(
     const AmrIntVect_t& iv,
     umap_t& map,
     const scalar_t& scale,
     lo_t dir, lo_t shift, const basefab_t& fab,
-    AmrMultiGridLevel* mglevel)
+    Level* mglevel)
 {
     /*
      * The AmrTrilinearInterpolater interpolates directly to the

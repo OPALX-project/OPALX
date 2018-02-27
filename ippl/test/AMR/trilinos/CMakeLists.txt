@@ -84,14 +84,14 @@ IF ( ${AMREX_DIM} EQUAL 2 )
     
 ENDIF ( ${AMREX_DIM} EQUAL 2 )
 
-add_executable( testAmrMultigrid
-                testAmrMultigrid.cpp
-                ${F90_source_files})
+# add_executable( testAmrMultigrid
+#                 testAmrMultigrid.cpp
+#                 ${F90_source_files})
 
-add_executable( testSolverComparison
-                testSolverComparison.cpp
-                ../Solver.cpp
-                ${F90_source_files})
+# add_executable( testSolverComparison
+#                 testSolverComparison.cpp
+#                 ../Solver.cpp
+#                 ${F90_source_files})
 
 IF ( ${AMREX_DIM} EQUAL 3 )
     add_executable( testCopy testCopy.cpp)
@@ -102,12 +102,18 @@ IF ( ${AMREX_DIM} EQUAL 3 )
     
     add_executable( testBitPattern testBitPattern.cpp)
     
-    
     target_link_libraries (testBitPattern ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+    
+    add_executable( trilinos2ippl trilinos2ippl.cpp)
+    
+    target_link_libraries (trilinos2ippl ${TESTLIBS}
+                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
+                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
     set( EXECS
          ${EXECS}
          testBitPattern
+         trilinos2ippl
          testCopy
     )
 ENDIF ( ${AMREX_DIM} EQUAL 3 )
@@ -164,19 +170,19 @@ IF ( ${AMREX_DIM} EQUAL 2 )
     )
 ENDIF ( ${AMREX_DIM} EQUAL 2 )
 
-target_link_libraries (testAmrMultigrid ${TESTLIBS}
-                          ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
-                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+# target_link_libraries (testAmrMultigrid ${TESTLIBS}
+#                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
+#                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
-target_link_libraries (testSolverComparison ${TESTLIBS}
-                          ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
-                           ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+# target_link_libraries (testSolverComparison ${TESTLIBS}
+#                           ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
+#                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
 
 set( EXECS
      ${EXECS}
-     testAmrMultigrid
-     testSolverComparison
+#      testAmrMultigrid
+#      testSolverComparison
 )
 
 install (TARGETS ${EXECS} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/libexec/amr/trilinos")

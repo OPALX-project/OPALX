@@ -111,6 +111,7 @@ namespace {
         AMR_MG_INTERP,      // AMR, interpolater for solution from level l to l+1
         AMR_MG_NORM,        // AMR, norm convergence criteria
         AMR_MG_VERBOSE,     // AMR, enable solver info writing (SDDS file)
+        AMR_MG_REBALANCE,   // AMR, rebalance smoothed aggregation (SA) preconditioner
 #endif
         // FOR XXX BASED SOLVER
         SIZE
@@ -291,6 +292,11 @@ FieldSolver::FieldSolver():
     itsAttr[AMR_MG_VERBOSE] = Attributes::makeBool("AMR_MG_VERBOSE",
                                                    "Write solver info in SDDS format (*.solver)",
                                                    false);
+
+    itsAttr[AMR_MG_REBALANCE] = Attributes::makeBool("AMR_MG_REBALANCE",
+                                                     "Rebalancing of Smoothed Aggregation "
+                                                     "Preconditioner",
+                                                     false);
 #endif
 
     mesh_m = 0;
@@ -575,6 +581,8 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << Util::toUpper(Attributes::getString(itsAttr[ITSOLVER])) << '\n'
            << "* AMR_MG_PREC          "
            << Util::toUpper(Attributes::getString(itsAttr[AMR_MG_PREC])) << '\n'
+           << "* AMR_MG_REBALANCE     "
+           << Attributes::getBool(itsAttr[AMR_MG_REBALANCE]) << '\n'
            << "* AMR_MG_SMOOTHER      "
            << Util::toUpper(Attributes::getString(itsAttr[AMR_MG_SMOOTHER])) << '\n'
            << "* AMR_MG_NSWEEPS       "
@@ -691,6 +699,7 @@ void FieldSolver::initAmrSolver_m() {
         solver_m = new AmrMultiGrid(static_cast<AmrBoxLib*>(itsAmrObject_mp.get()),
                                     Attributes::getString(itsAttr[ITSOLVER]),
                                     Attributes::getString(itsAttr[AMR_MG_PREC]),
+                                    Attributes::getBool(itsAttr[AMR_MG_REBALANCE]),
                                     Attributes::getString(itsAttr[BCFFTX]),
                                     Attributes::getString(itsAttr[BCFFTY]),
                                     bcz,

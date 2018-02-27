@@ -25,7 +25,8 @@ AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<
       scaling_m(0.75),
       nCharge_m(1.0e-15),
       minNumPart_m(1),
-      maxNumPart_m(1)
+      maxNumPart_m(1),
+      meshScaling_m(Vector_t(1.0, 1.0, 1.0))
 {
     initBaseLevel();
     
@@ -40,7 +41,8 @@ AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<
       scaling_m(0.75),
       nCharge_m(1.0e-15),
       minNumPart_m(1),
-      maxNumPart_m(1)
+      maxNumPart_m(1),
+      meshScaling_m(Vector_t(1.0, 1.0, 1.0))
 {
     finest_level = 0;
     
@@ -60,7 +62,8 @@ AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<
       scaling_m(0.75),
       nCharge_m(1.0e-15),
       minNumPart_m(1),
-      maxNumPart_m(1)
+      maxNumPart_m(1),
+      meshScaling_m(Vector_t(1.0, 1.0, 1.0))
 {
     finest_level = 0;
     

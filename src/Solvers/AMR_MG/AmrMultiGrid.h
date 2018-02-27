@@ -17,7 +17,9 @@
 
 #include <fstream>
 
-#define AMR_MG_TIMER 1
+#define AMR_MG_TIMER true
+#define AMR_MG_WRITE false
+#define DEBUG false
 
 class AmrMultiGrid : public AmrPoissonSolver< AmrBoxLib > {
     
@@ -45,11 +47,19 @@ public:
     
     typedef BottomSolver<
         Teuchos::RCP<matrix_t>,
-        Teuchos::RCP<mv_t>
+        Teuchos::RCP<mv_t>,
+        AmrMultiGridLevel_t
     > bsolver_t;
     
-    typedef AmrPreconditioner<matrix_t> preconditioner_t;
-
+    typedef BelosBottomSolver<AmrMultiGridLevel_t>      BelosSolver_t;
+    typedef Amesos2BottomSolver<AmrMultiGridLevel_t>    Amesos2Solver_t;
+    typedef MueLuBottomSolver<AmrMultiGridLevel_t>      MueLuSolver_t;
+    
+    typedef AmrPreconditioner<matrix_t, AmrMultiGridLevel_t> preconditioner_t;
+    
+    typedef Ifpack2Preconditioner<AmrMultiGridLevel_t> Ifpack2Preconditioner_t;
+    typedef MueLuPreconditioner<AmrMultiGridLevel_t> MueLuPreconditioner_t;
+    
     typedef amrex::BoxArray boxarray_t;
     typedef amrex::Box box_t;
     typedef amrex::BaseFab<int> basefab_t;
@@ -96,6 +106,8 @@ public:
 #ifdef HAVE_AMESOS2_LAPACK
         , LAPACK
 #endif
+        // all MueLu
+        , SA
         // add others ...
     };
     
@@ -120,6 +132,7 @@ public:
      * @param itsAmrObject_p has information about refinemen ratios, etc.
      * @param bsolver bottom solver
      * @param prec preconditioner for bottom solver
+     * @param rebalance of preconditioner (SA only)
      * @param bcx boundary condition in x
      * @param bcy boundary condition in y
      * @param bcz boundary condition in z
@@ -131,6 +144,7 @@ public:
     AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
                  const std::string& bsolver,
                  const std::string& prec,
+                 const bool& rebalance,
                  const std::string& bcx,
                  const std::string& bcy,
                  const std::string& bcz,
@@ -138,22 +152,6 @@ public:
                  const std::size_t& nSweeps,
                  const std::string& interp,
                  const std::string& norm);
-    
-    /*!
-     * Compute the potential and the electric field
-     * @param rho is the right-hand side
-     * @param phi is the potential
-     * @param efield is the electric field
-     * @param geom specifies the geometry
-     * @param lbase is the start level (currently only lbase = 0 supported)
-     * @param lfine is the finest level
-     * @param previous solution as initial guess
-     */
-    void solve(const amrex::Array<AmrField_u>& rho,
-               amrex::Array<AmrField_u>& phi,
-               amrex::Array<AmrField_u>& efield,
-               const amrex::Array<AmrGeometry_t>& geom,
-               int lbase, int lfine, bool previous = false);
     
     /*!
      * Used in OPAL
@@ -166,11 +164,11 @@ public:
      * @param prevAsGuess use of previous solution as initial guess
      */
     void solve(AmrFieldContainer_t &rho,
-                       AmrFieldContainer_t &phi,
-                       AmrFieldContainer_t &efield,
-                       unsigned short baseLevel,
-                       unsigned short finestLevel,
-                       bool prevAsGuess = true);
+               AmrFieldContainer_t &phi,
+               AmrFieldContainer_t &efield,
+               unsigned short baseLevel,
+               unsigned short finestLevel,
+               bool prevAsGuess = true);
     
     /*!
      * Specify the number of smoothing steps
@@ -196,12 +194,6 @@ public:
      * @returns the norm of the residual
      */
     scalar_t getLevelResidualNorm(lo_t level);
-    
-    /*!
-     * Obtain the residual norm
-     * @returns the maximum of all residual norms over all levels
-     */
-    scalar_t getMaxResidualNorm();
     
     /*!
      * Enable solver info dumping into SDDS file
@@ -258,6 +250,13 @@ private:
     scalar_t iterate_m();
     
     /*!
+     * Compute norms / level and check convergence
+     * @returns true if converged
+     */
+    bool isConverged_m(std::vector<scalar_t>& rhsNorms,
+                       std::vector<scalar_t>& resNorms);
+    
+    /*!
      * Compute composite residual of a level
      * @param r is the residual to compute
      * @param b is the right-hand side
@@ -288,12 +287,13 @@ private:
                             const Teuchos::RCP<vector_t>& rhs,
                             const Teuchos::RCP<vector_t>& crs_rhs,
                             const Teuchos::RCP<vector_t>& b);
-                           
+    
+#if AMR_MG_WRITE
     /*!
-     * @returns the maximum norm over all levels using the norm specified
-     * by the user
+     * Dumps the residual norm per level into a file (for each iteration).
      */
-    scalar_t residualNorm_m();
+    void writeResidualNorm_m();
+#endif
     
     /*!
      * Vector norm computation.
@@ -304,10 +304,11 @@ private:
     
     /*!
      * Initial convergence criteria values.
-     * @param maxResidual maximum norm of residual over all levels
-     * @param maxRho maximum norm of right-hand side over all levels
+     * @param rhsNorms per level of right-hand side (is filled)
+     * @param resNorms per level of residual (is filled)
      */
-    void initResidual_m(scalar_t& maxResidual, scalar_t& maxRho);
+    void initResidual_m(std::vector<scalar_t>& rhsNorms,
+                        std::vector<scalar_t>& resNorms);
     
     /*!
      * @param efield to compute
@@ -500,11 +501,13 @@ private:
     
     /*!
      * Data transfer from Trilinos to AMReX.
-     * @param mf is the multifab to be filled
+     * @param level to copy
      * @param comp component to copy
+     * @param mf is the multifab to be filled
      * @param mv is the corresponding Trilinos vector
      */
-    void trilinos2amrex_m(const lo_t& comp,
+    void trilinos2amrex_m(const lo_t& level,
+                          const lo_t& comp,
                           AmrField_t& mf,
                           const Teuchos::RCP<vector_t>& mv);
     
@@ -561,14 +564,18 @@ private:
     /*!
      * Instantiate a bottom solver
      * @param solver type
+     * @param rebalance solver (SA onl)
      */
-    void initBaseSolver_m(const BaseSolver& solver);
+    void initBaseSolver_m(const BaseSolver& solver,
+                          const bool& rebalance);
     
     /*!
      * Instantiate a preconditioner for the bottom solver
      * @param precond type
+     * @param rebalance preconditioner (SA only)
      */
-    void initPrec_m(const Preconditioner& prec);
+    void initPrec_m(const Preconditioner& prec,
+                    const bool& rebalance);
     
     /*!
      * Convertstring to enum Boundary
