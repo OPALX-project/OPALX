@@ -9,7 +9,7 @@ MueLuBottomSolver<Level>::MueLuBottomSolver(const bool& rebalance)
     : hierarchy_mp(Teuchos::null),
       finest_mp(Teuchos::null),
       A_mp(Teuchos::null),
-      nSweeps_m(4).
+      nSweeps_m(4),
       rebalance_m(rebalance)
 {
     this->initMueLuList_m();
