@@ -108,6 +108,12 @@ public:
     
     void updateMesh();
     
+    /*!
+     * Mesh scaling for solver (gamma factor)
+     * (in particle rest frame, the longitudinal length enlarged)
+     */
+    const Vector_t& getMeshScaling() const;
+    
     Vektor<int, 3> getBaseLevelGridPoints() const;
     
     const int& maxLevel() const;
@@ -307,7 +313,10 @@ private:
     AmrFieldContainer_t phi_m;
     
     /// vector field on the grid for all levels
-    AmrFieldContainer_t efield_m;    
+    AmrFieldContainer_t efield_m;
+    
+    /// in particle rest frame, the longitudinal length enlarged
+    Vector_t meshScaling_m;
 };
 
 #endif

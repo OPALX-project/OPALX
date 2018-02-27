@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "AmrMultiGridCore.h"
+#include "AmrMultiGridDefs.h"
 
 #include "Ifpack2_Factory.hpp"
 

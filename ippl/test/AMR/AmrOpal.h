@@ -179,6 +179,10 @@ public:
         maxNumPart_m = maxNumPart;
     }
     
+    const Vector_t& getMeshScaling() const {
+        return meshScaling_m;
+    }
+    
 protected:
     /*!
      * Is called in the AmrCore function for performing tagging.
@@ -225,6 +229,8 @@ private:
     
     size_t minNumPart_m;
     size_t maxNumPart_m;
+    
+    Vector_t meshScaling_m;
 };
 
 #endif
