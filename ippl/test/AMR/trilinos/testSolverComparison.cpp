@@ -173,7 +173,8 @@ void doSolve(const Array<BoxArray>& ba,
     IpplTimings::startTimer(solvTimer);
     
     if ( trilinos ) {
-        AmrMultiGrid sol1;
+        const std::size_t grid[] = { params.nr[0], params.nr[1], params.nr[2] };
+        AmrMultiGrid sol1(grid);
         sol1.solve(rhs,            // [V m]
                    phi,            // [V m^3]
                    efield,       // [V m^2]

@@ -7,35 +7,35 @@
  * Dirichlet boundary is on faces of physical domain the boundary
  * value would be at different locations depending on the level.
  */
-template <class AmrMultiGridLevel>
-class AmrPeriodicBoundary : public AmrBoundary<AmrMultiGridLevel> {
+template <class Level>
+class AmrPeriodicBoundary : public AmrBoundary<Level> {
 
 public:
-    typedef typename AmrMultiGridLevel::umap_t      umap_t;
-    typedef typename AmrMultiGridLevel::lo_t        lo_t;
-    typedef typename AmrMultiGridLevel::scalar_t    scalar_t;
-    typedef amr::AmrIntVect_t                       AmrIntVect_t;
+    typedef typename Level::umap_t      umap_t;
+    typedef typename Level::lo_t        lo_t;
+    typedef typename Level::scalar_t    scalar_t;
+    typedef amr::AmrIntVect_t           AmrIntVect_t;
 
 public:
     
-    AmrPeriodicBoundary() : AmrBoundary<AmrMultiGridLevel>(1) { }
+    AmrPeriodicBoundary() : AmrBoundary<Level>(1) { }
     
     void apply(const AmrIntVect_t& iv,
                const lo_t& dir,
                umap_t& map,
                const scalar_t& value,
-               AmrMultiGridLevel* mglevel,
+               Level* mglevel,
                const lo_t* nr);
 };
 
 
-template <class AmrMultiGridLevel>
-void AmrPeriodicBoundary<AmrMultiGridLevel>::apply(const AmrIntVect_t& iv,
-						   const lo_t& dir,
-                                                   umap_t& map,
-                                                   const scalar_t& value,
-                                                   AmrMultiGridLevel* mglevel,
-                                                   const lo_t* nr)
+template <class Level>
+void AmrPeriodicBoundary<Level>::apply(const AmrIntVect_t& iv,
+                                       const lo_t& dir,
+                                       umap_t& map,
+                                       const scalar_t& value,
+                                       Level* mglevel,
+                                       const lo_t* nr)
 {
     // find interior neighbour cell on opposite site
     AmrIntVect_t niv = iv;

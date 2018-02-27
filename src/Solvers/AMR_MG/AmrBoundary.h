@@ -5,15 +5,15 @@
 
 #include "Amr/AmrDefs.h"
 
-template <class AmrMultiGridLevel>
+template <class Level>
 class AmrBoundary {
 
 public:
-    typedef typename AmrMultiGridLevel::umap_t      umap_t;
-    typedef typename AmrMultiGridLevel::lo_t        lo_t;
-    typedef typename AmrMultiGridLevel::scalar_t    scalar_t;
-    typedef typename AmrMultiGridLevel::basefab_t   basefab_t;
-    typedef amr::AmrIntVect_t                       AmrIntVect_t;
+    typedef typename Level::umap_t      umap_t;
+    typedef typename Level::lo_t        lo_t;
+    typedef typename Level::scalar_t    scalar_t;
+    typedef typename Level::basefab_t   basefab_t;
+    typedef amr::AmrIntVect_t           AmrIntVect_t;
     
 public:
     
@@ -58,7 +58,7 @@ public:
                        const lo_t& dir,
                        umap_t& map,
                        const scalar_t& value,
-                       AmrMultiGridLevel* mglevel,
+                       Level* mglevel,
                        const lo_t* nr) = 0;
     
     /*!

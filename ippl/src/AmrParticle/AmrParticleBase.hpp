@@ -212,12 +212,12 @@ template<class PLayout>
 const double& AmrParticleBase<PLayout>::domainMapping(bool inverse) {
     IpplTimings::startTimer(domainMappingTimer_m);
     
-    Vector_t rmin, rmax;
-    bounds(this->R, rmin, rmax);
-    
     double scale = scale_m;
     
     if ( !inverse ) {
+        Vector_t rmin, rmax;
+        bounds(this->R, rmin, rmax);
+        
         Vector_t tmp = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
                                 std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
                                 std::max( std::abs(rmin[2]), std::abs(rmax[2]) )

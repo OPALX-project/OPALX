@@ -1,8 +1,6 @@
 set (_SRCS
-    AmesosBottomSolver.cpp
     AmrMultiGrid.cpp
     AmrSmoother.cpp
-    BelosBottomSolver.cpp
 )
 
 include_directories (
@@ -12,13 +10,15 @@ include_directories (
 add_opal_sources(${_SRCS})
 
 set (HDRS
-    AmesosBottomSolver.h
+    Amesos2BottomSolver.h
+    Amesos2BottomSolver.hpp
     AmrBoundary.h
     AmrDirichletBoundary.h
     AmrInterpolater.h
     AmrLagrangeInterpolater.h
     AmrLagrangeInterpolater.hpp
     AmrMultiGridCore.h
+    AmrMultiGridDefs.h
     AmrMultiGrid.h
     AmrMultiGridLevel.h
     AmrMultiGridLevel.hpp
@@ -26,11 +26,20 @@ set (HDRS
     AmrPCInterpolater.h
     AmrPCInterpolater.hpp
     AmrPeriodicBoundary.h
+    AmrPreconditioner.h
     AmrSmoother.h
     AmrTrilinearInterpolater.h
     AmrTrilinearInterpolater.hpp
     BelosBottomSolver.h
+    BelosBottomSolver.hpp
     BottomSolver.h
+    Ifpack2Preconditioner.h
+    Ifpack2Preconditioner.hpp
+    MueLuBottomSolver.h
+    MueLuBottomSolver.hpp
+    MueLuPreconditioner.h
+    MueLuPreconditioner.hpp
 )
+
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Solvers/AMR_MG/")

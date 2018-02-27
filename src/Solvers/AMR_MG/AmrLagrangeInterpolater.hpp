@@ -1,88 +1,88 @@
 #include "Utilities/OpalException.h"
 
 #if AMREX_SPACEDIM == 3
-template <class AmrMultiGridLevel>
-constexpr typename AmrLagrangeInterpolater<AmrMultiGridLevel>::qpattern_t
-    AmrLagrangeInterpolater<AmrMultiGridLevel>::qpattern_ms;
+template <class Level>
+constexpr typename AmrLagrangeInterpolater<Level>::qpattern_t
+    AmrLagrangeInterpolater<Level>::qpattern_ms;
 
 
-template <class AmrMultiGridLevel>
-constexpr typename AmrLagrangeInterpolater<AmrMultiGridLevel>::lpattern_t
-    AmrLagrangeInterpolater<AmrMultiGridLevel>::lpattern_ms;
+template <class Level>
+constexpr typename AmrLagrangeInterpolater<Level>::lpattern_t
+    AmrLagrangeInterpolater<Level>::lpattern_ms;
 #endif
 
 //                                                      y_t   y_b
-template <class AmrMultiGridLevel>
-const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
-    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup1_ms[2] = {-0.25, 0.25};
+template <class Level>
+const typename AmrLagrangeInterpolater<Level>::scalar_t
+    AmrLagrangeInterpolater<Level>::lookup1_ms[2] = {-0.25, 0.25};
 
-template <class AmrMultiGridLevel>
-const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
-    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup2_ms[2] = {1.25, 0.75};
+template <class Level>
+const typename AmrLagrangeInterpolater<Level>::scalar_t
+    AmrLagrangeInterpolater<Level>::lookup2_ms[2] = {1.25, 0.75};
 
 #if AMREX_SPACEDIM == 3
-template <class AmrMultiGridLevel>
-const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
-    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup3_ms[2] = {5.0 / 32.0, -3.0 / 32.0 };
+template <class Level>
+const typename AmrLagrangeInterpolater<Level>::scalar_t
+    AmrLagrangeInterpolater<Level>::lookup3_ms[2] = {5.0 / 32.0, -3.0 / 32.0 };
 
-template <class AmrMultiGridLevel>
-const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
-    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup3r_ms[2] = {-3.0 / 32.0, 5.0 / 32.0 };
+template <class Level>
+const typename AmrLagrangeInterpolater<Level>::scalar_t
+    AmrLagrangeInterpolater<Level>::lookup3r_ms[2] = {-3.0 / 32.0, 5.0 / 32.0 };
 
-template <class AmrMultiGridLevel>
-const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
-    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup4_ms[2] = {7.0 / 16.0, -9.0 / 16.0 };
+template <class Level>
+const typename AmrLagrangeInterpolater<Level>::scalar_t
+    AmrLagrangeInterpolater<Level>::lookup4_ms[2] = {7.0 / 16.0, -9.0 / 16.0 };
 
-template <class AmrMultiGridLevel>
-const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
-    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup4r_ms[2] = {-9.0 / 16.0, 7.0 / 16.0 };
+template <class Level>
+const typename AmrLagrangeInterpolater<Level>::scalar_t
+    AmrLagrangeInterpolater<Level>::lookup4r_ms[2] = {-9.0 / 16.0, 7.0 / 16.0 };
 
-template <class AmrMultiGridLevel>
-const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
-    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup5_ms[2] = {45.0 / 32.0, 21.0 / 32.0};
+template <class Level>
+const typename AmrLagrangeInterpolater<Level>::scalar_t
+    AmrLagrangeInterpolater<Level>::lookup5_ms[2] = {45.0 / 32.0, 21.0 / 32.0};
 
-template <class AmrMultiGridLevel>
-const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
-    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup5r_ms[2] = {21.0 / 32.0, 45.0 / 32.0};
+template <class Level>
+const typename AmrLagrangeInterpolater<Level>::scalar_t
+    AmrLagrangeInterpolater<Level>::lookup5r_ms[2] = {21.0 / 32.0, 45.0 / 32.0};
 
-template <class AmrMultiGridLevel>
-const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
-    AmrLagrangeInterpolater<AmrMultiGridLevel>::lookup6_ms = 15.0 / 16.0;
+template <class Level>
+const typename AmrLagrangeInterpolater<Level>::scalar_t
+    AmrLagrangeInterpolater<Level>::lookup6_ms = 15.0 / 16.0;
 
-template <class AmrMultiGridLevel>
-const typename AmrLagrangeInterpolater<AmrMultiGridLevel>::scalar_t
-    AmrLagrangeInterpolater<AmrMultiGridLevel>::factor_ms = 8.0 / 15.0;
+template <class Level>
+const typename AmrLagrangeInterpolater<Level>::scalar_t
+    AmrLagrangeInterpolater<Level>::factor_ms = 8.0 / 15.0;
 #endif
 
 
 
 
-template <class AmrMultiGridLevel>
-AmrLagrangeInterpolater<AmrMultiGridLevel>::AmrLagrangeInterpolater(Order order)
-    : AmrInterpolater<AmrMultiGridLevel>( lo_t(order) + 1 )
+template <class Level>
+AmrLagrangeInterpolater<Level>::AmrLagrangeInterpolater(Order order)
+    : AmrInterpolater<Level>( lo_t(order) + 1 )
 { }
 
 
-template <class AmrMultiGridLevel>
-void AmrLagrangeInterpolater<AmrMultiGridLevel>::stencil(
+template <class Level>
+void AmrLagrangeInterpolater<Level>::stencil(
     const AmrIntVect_t& iv,
     const basefab_t& fab,
-    typename AmrMultiGridLevel::umap_t& map,
-    const typename AmrMultiGridLevel::scalar_t& scale,
-    AmrMultiGridLevel* mglevel)
+    typename Level::umap_t& map,
+    const typename Level::scalar_t& scale,
+    Level* mglevel)
 {
     
 }
 
 
-template <class AmrMultiGridLevel>
-void AmrLagrangeInterpolater<AmrMultiGridLevel>::coarse(
+template <class Level>
+void AmrLagrangeInterpolater<Level>::coarse(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::umap_t& map,
-    const typename AmrMultiGridLevel::scalar_t& scale,
+    typename Level::umap_t& map,
+    const typename Level::scalar_t& scale,
     lo_t dir, lo_t shift, const basefab_t& rfab,
     const AmrIntVect_t& riv,
-    AmrMultiGridLevel* mglevel)
+    Level* mglevel)
 {
     // polynomial degree = #points - 1
     switch ( this->nPoints_m - 1 ) {
@@ -100,13 +100,13 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::coarse(
 }
 
 
-template <class AmrMultiGridLevel>
-void AmrLagrangeInterpolater<AmrMultiGridLevel>::fine(
+template <class Level>
+void AmrLagrangeInterpolater<Level>::fine(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::umap_t& map,
-    const typename AmrMultiGridLevel::scalar_t& scale,
+    typename Level::umap_t& map,
+    const typename Level::scalar_t& scale,
     lo_t dir, lo_t shift,
-    AmrMultiGridLevel* mglevel)
+    Level* mglevel)
 {
     // polynomial degree = #points - 1
     switch ( this->nPoints_m - 1 ) {
@@ -124,13 +124,13 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fine(
 }
 
 
-template <class AmrMultiGridLevel>
-void AmrLagrangeInterpolater<AmrMultiGridLevel>::fineLinear_m(
+template <class Level>
+void AmrLagrangeInterpolater<Level>::fineLinear_m(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::umap_t& map,
-    const typename AmrMultiGridLevel::scalar_t& scale,
+    typename Level::umap_t& map,
+    const typename Level::scalar_t& scale,
     lo_t dir, lo_t shift,
-    AmrMultiGridLevel* mglevel)
+    Level* mglevel)
 {
     /*
      * computes the ghost cell directly
@@ -146,13 +146,13 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fineLinear_m(
 }
 
 
-template <class AmrMultiGridLevel>
-void AmrLagrangeInterpolater<AmrMultiGridLevel>::fineQuadratic_m(
+template <class Level>
+void AmrLagrangeInterpolater<Level>::fineQuadratic_m(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::umap_t& map,
-    const typename AmrMultiGridLevel::scalar_t& scale,
+    typename Level::umap_t& map,
+    const typename Level::scalar_t& scale,
     lo_t dir, lo_t shift,
-    AmrMultiGridLevel* mglevel)
+    Level* mglevel)
 {
     AmrIntVect_t tmp = iv;
     // first fine cell on refined coarse cell (closer to interface)
@@ -165,14 +165,14 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::fineQuadratic_m(
 }
 
 
-template <class AmrMultiGridLevel>
-void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
+template <class Level>
+void AmrLagrangeInterpolater<Level>::crseLinear_m(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::umap_t& map,
-    const typename AmrMultiGridLevel::scalar_t& scale,
+    typename Level::umap_t& map,
+    const typename Level::scalar_t& scale,
     lo_t dir, lo_t shift, const basefab_t& rfab,
     const AmrIntVect_t& riv,
-    AmrMultiGridLevel* mglevel)
+    Level* mglevel)
 {
     //TODO Extend to 3D
 #if AMREX_SPACEDIM == 2
@@ -189,12 +189,12 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
     // factor for fine
     scalar_t fac = 8.0 / 15.0 * scale;
     
-    if ( rfab(niv) != AmrMultiGridLevel::Refined::YES ) {
+    if ( rfab(niv) != Level::Refined::YES ) {
         // check r / u / b --> 1: valid; 0: not valid
         map[mglevel->serialize(iv)] += fac * lookup2[top];
         map[mglevel->serialize(niv)] += fac * lookup1[top];
         
-    } else if ( rfab(miv) != AmrMultiGridLevel::Refined::YES ) {
+    } else if ( rfab(miv) != Level::Refined::YES ) {
         // check l / f --> 1: valid; 0: not valid
         map[mglevel->serialize(iv)] += fac * lookup2[top];
         map[mglevel->serialize(miv)] += fac * lookup1[top];
@@ -356,14 +356,14 @@ void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseLinear_m(
 }
 
 
-template <class AmrMultiGridLevel>
-void AmrLagrangeInterpolater<AmrMultiGridLevel>::crseQuadratic_m(
+template <class Level>
+void AmrLagrangeInterpolater<Level>::crseQuadratic_m(
     const AmrIntVect_t& iv,
-    typename AmrMultiGridLevel::umap_t& map,
-    const typename AmrMultiGridLevel::scalar_t& scale,
+    typename Level::umap_t& map,
+    const typename Level::scalar_t& scale,
     lo_t dir, lo_t shift, const basefab_t& rfab,
     const AmrIntVect_t& riv,
-    AmrMultiGridLevel* mglevel)
+    Level* mglevel)
 {
 #if AMREX_SPACEDIM == 2
     
