@@ -55,9 +55,11 @@
                        
 #include "Elements/OpalBeamline.h"
 
+#include <cmath>
+
 #define PSdim 6
 
-#define PHIL_WRITE 0
+#define PHIL_WRITE 1
 
 class BMultipoleField;
 
@@ -222,9 +224,12 @@ public:
     void findStartPosition(const BorisPusher &pusher);
 
 
-    typedef FTps<double, PSdim> series_t;
 
+
+    typedef FTps<double, PSdim> series_t;
     typedef FVps<double, PSdim> map_t;
+    typedef FMatrix<double, PSdim, PSdim> fMatrix_t;
+    typedef FMatrix<std::complex<double>, PSdim, PSdim> cfMatrix_t;
 
     series_t x, px, y, py, delta; //z
 
@@ -237,16 +242,23 @@ public:
                 	double stepSize;
                 };
 
-    void createHamiltonian(series_t& H, std::shared_ptr<Component> element, double& stepSize, std::size_t& nSlices);
+
+    series_t createHamiltonian(std::shared_ptr<Component> element, double& stepSize, std::size_t& nSlices);
     void fillDrift(std::list<structMapTracking>& mapBeamLine,double& elementPos, double& undefSpace);
 
-    void setHamiltonianDrift(series_t& H, double& beta0, double& gamma0, double& q );
+    void setHamiltonianDrift(series_t& H, double& beta0, double& gamma0);
     void setHamiltonianSBend(series_t& H, double& beta0, double& gamma0, double& q, double& h, double& K0 );
     void setHamiltonianRBend(series_t& H, double& beta0, double& gamma0, double& q, double& h, double& K0 );
     void setHamiltonianQuadrupole(series_t& H, double& beta0, double& gamma0, double& q, double& K1 );
 
+    void eigenDecomp(fMatrix_t& M, cfMatrix_t& eigenVal, cfMatrix_t& eigenVec, cfMatrix_t& invEigenVec);
+    void linTAnalyze(fMatrix_t& tMatrix);
+    void linSigAnalyze();
+    cfMatrix_t getBlockDiagonal(fMatrix_t& M, cfMatrix_t& eigenVecM, cfMatrix_t& invEigenVecM);
+
     void dumpStats(long long step, bool psDump, bool statDump);
     void writePhaseSpace(const long long step, bool psDump, bool statDump);
+    void setTime();
 
 private:
 

@@ -37,7 +37,7 @@
 #include "Algorithms/CavityAutophaser.h"
 
 #include <cfloat>
-#include <cmath>
+
 
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
@@ -49,6 +49,8 @@
 #include "Classic/FixedAlgebra/FTps.h"
 #include "Classic/FixedAlgebra/FTpsMath.h"
 #include "Classic/FixedAlgebra/FVps.h"
+#include "Classic/FixedAlgebra/FDoubleEigen.h"
+
 
 #include "Classic/Fields/BSingleMultipoleField.h"
 
@@ -66,6 +68,10 @@
 #include "Distribution/MapGenerator.h"
 
 
+#include <gsl/gsl_math.h>
+#include <gsl/gsl_eigen.h>
+#include <gsl/gsl_linalg.h>
+
 #define DIM 3
 
 class Beamline;
@@ -82,7 +88,7 @@ namespace {
                           int nx = 50);
     Vector fixedPointInt4(const Vector &zin, const VSeries &f, double s, double ds,
                           int nx = 50, int cx = 4);
-};
+};235507
 */
 
 //
@@ -101,12 +107,12 @@ ThickTracker::ThickTracker(const Beamline &beamline,
   localTrackSteps_m(),
   truncOrder_m(1) // linear
 {
-		series_t x=(series_t::makeVariable(0));
-			series_t px = series_t::makeVariable(1);		//SIXVect::PX);
-			series_t y = series_t::makeVariable(2);			//SIXVect::Y);
-			series_t py = series_t::makeVariable(3);		//SIXVect::PY);
-			//Series z = Series::makeVariable(4);		//SIXVect::TT);
-			series_t delta = series_t::makeVariable(5);		//SIXVect::PT);
+		 x=(series_t::makeVariable(0));
+		 px = series_t::makeVariable(1);		//SIXVect::PX);
+		 y = series_t::makeVariable(2);			//SIXVect::Y);
+		 py = series_t::makeVariable(3);		//SIXVect::PY);
+		//z = Series::makeVariable(4);		//SIXVect::TT);
+		 delta = series_t::makeVariable(5);		//SIXVect::PT);
 }
 
 
@@ -144,12 +150,12 @@ ThickTracker::ThickTracker(const Beamline &beamline,
   for (std::vector<double>::const_iterator it = zstop.begin(); it != zstop.end(); ++ it) {
     zStop_m.push(*it);
   }
-  series_t x=(series_t::makeVariable(0));
-  series_t px = series_t::makeVariable(1);		//SIXVect::PX);
-  series_t y = series_t::makeVariable(2);			//SIXVect::Y);
-  series_t py = series_t::makeVariable(3);		//SIXVect::PY);
+   x=(series_t::makeVariable(0));
+   px = series_t::makeVariable(1);		//SIXVect::PX);
+   y = series_t::makeVariable(2);			//SIXVect::Y);
+   py = series_t::makeVariable(3);		//SIXVect::PY);
   //Series z = Series::makeVariable(4);		//SIXVect::TT);
-  series_t delta = series_t::makeVariable(5);		//SIXVect::PT);
+   delta = series_t::makeVariable(5);		//SIXVect::PT);
 }
 
 
@@ -367,7 +373,7 @@ void ThickTracker::findStartPosition(const BorisPusher &pusher) {
 * \f[H_{Drift}= \frac{\delta}{\beta_0} -
 * \sqrt{\left(\frac{1}{\beta_0} + \delta \right)^2 -p_x^2 -p_y^2 - \frac{1}{\left(\beta_0 \gamma_0\right)^2 } } \f]
 */
-void ThickTracker::setHamiltonianDrift(series_t& H, double& beta0, double& gamma0, double& q ){
+void ThickTracker::setHamiltonianDrift(series_t& H, double& beta0, double& gamma0){
 
 			H=( delta / beta0 )
 			- sqrt((1./ beta0 + delta ) *(1./ beta0 + delta )
@@ -453,14 +459,12 @@ void ThickTracker::setHamiltonianQuadrupole(series_t& H, double& beta0, double& 
 */
 void ThickTracker::fillDrift(std::list<structMapTracking>& mapBeamLine,double& elementPos, double& undefSpace){
 
-	//TODO: fill in a message for each created drift
+
 	series_t H;
 	structMapTracking fillDrift;
 
 	double  gamma0 =  (itsBunch_m->getInitialGamma())   ;   //(EProt + E) / EProt;
 	double  beta0 =  (itsBunch_m->getInitialBeta());   		//std::sqrt(gamma0 * gamma0 - 1.0) / gamma0;
-
-	double  q =  (itsBunch_m->getQ());						// particle change [e]
 
 //=====================================================
 //Redefine constants for comparison with COSY Infinity
@@ -490,7 +494,7 @@ void ThickTracker::fillDrift(std::list<structMapTracking>& mapBeamLine,double& e
 	fillDrift.elementPos= elementPos;
 	fillDrift.nSlices=1;
 	fillDrift.stepSize=undefSpace;
-	setHamiltonianDrift(H, beta0, gamma0, q);
+	setHamiltonianDrift(H, beta0, gamma0);
 
 	fillDrift.elementMap=ExpMap(-H * fillDrift.stepSize, truncOrder_m);
 
@@ -503,8 +507,9 @@ void ThickTracker::fillDrift(std::list<structMapTracking>& mapBeamLine,double& e
 /** \param element iterative pointer to the elements along the beam line
 *
 */
-void ThickTracker::createHamiltonian(series_t& H, std::shared_ptr<Component> element, double& stepSize, std::size_t& nSlices){
+FTps<double, PSdim> ThickTracker::createHamiltonian(std::shared_ptr<Component> element, double& stepSize, std::size_t& nSlices){
 
+	series_t H;
 	double  gamma0 =  (itsBunch_m->getInitialGamma())   ;   //(EProt + E) / EProt;
 	double  beta0 =  (itsBunch_m->getInitialBeta());   		//std::sqrt(gamma0 * gamma0 - 1.0) / gamma0;
 
@@ -544,7 +549,7 @@ void ThickTracker::createHamiltonian(series_t& H, std::shared_ptr<Component> ele
 			nSlices= pDrift->getNSlices();
 			stepSize= pDrift->getElementLength()/nSlices;
 
-			setHamiltonianDrift(H, beta0, gamma0, q);
+			setHamiltonianDrift(H, beta0, gamma0);
 		break;
 		}
 
@@ -596,13 +601,14 @@ void ThickTracker::createHamiltonian(series_t& H, std::shared_ptr<Component> ele
 			break;
 		}
 
-		default:
-		throw LogicalError("ThickTracker::exercute,",
-				"Please use already defined beam line element:  At this time just driftspace, multipoles and dipoles");
+		default:{
+			throw LogicalError("ThickTracker::exercute,",
+					"Please use already defined beam line element:  At this time just driftspace, multipoles and dipoles");
 		break;
+		}
 
 	}
-
+	return H;
 }
 
 
@@ -634,14 +640,11 @@ void ThickTracker::execute() {
     msg << *itsBunch_m << endl;
     msg << std::setprecision(10);
 
-//=======================================================================
+
     
     msg << "Tuncation order: " << this->truncOrder_m << endl;
 
-    //int truncOrder = 1;  //actually already defined  ---> implement in .in file??
     series_t::setGlobalTruncOrder(truncOrder_m+1);
-
-//=======================================================================
 
     map_t combinedMaps; //Final Transfer map_t
     series_t H;         //createHamiltonian
@@ -657,6 +660,7 @@ void ThickTracker::execute() {
     double positionMapTracking =0;
 
     //files for analysis
+
 #ifdef PHIL_WRITE
     std::ofstream outfile;
     outfile.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/generatedMaps.txt");
@@ -664,7 +668,7 @@ void ThickTracker::execute() {
 
     std::ofstream tmap;
     tmap.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/TransferMap.txt");
-    tmap << std::setprecision(20);
+    tmap << std::setprecision(16);
 #endif
     
     FieldList allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
@@ -700,7 +704,8 @@ void ThickTracker::execute() {
         // Fill Drift , if necessary
         if (positionMapTracking < mapTrackingElement.elementPos -1e-6){
             double undefSpace=mapTrackingElement.elementPos - positionMapTracking;
-            msg << undefSpace<<endl;
+            msg <<"filled in a drift in between:  " << mapTrackingElement.elementPos << " and "
+            		<< positionMapTracking<< " length: "<<undefSpace<<endl;
             fillDrift(mapBeamLine, positionMapTracking, undefSpace);
         }
 
@@ -736,17 +741,22 @@ void ThickTracker::execute() {
 //        }
 
         //Create createHamiltonian
-        createHamiltonian(H, element, mapTrackingElement.stepSize, mapTrackingElement.nSlices);
+
 
 
         //Save 'slice'Hamiltoninan and repetition
-        mapTrackingElement.elementMap=ExpMap(-H *mapTrackingElement.stepSize  ,truncOrder_m);
+        mapTrackingElement.elementMap=
+        		ExpMap(-createHamiltonian(element, mapTrackingElement.stepSize, mapTrackingElement.nSlices)
+        				*mapTrackingElement.stepSize  ,truncOrder_m);
+
         mapBeamLine.push_back(mapTrackingElement);
 
+#ifdef PHIL_WRITE
+    //outfile << element->getName() << std::endl;
+    //outfile << createHamiltonian(element, mapTrackingElement.stepSize, mapTrackingElement.nSlices);
 
+#endif
     }
-
-
     //=================================
     // TODO: remove Messages later
     //=================================
@@ -762,9 +772,10 @@ void ThickTracker::execute() {
 
     //combined map_t
     for (mapBeamLineit=mapBeamLine.begin(); mapBeamLineit != mapBeamLine.end(); ++mapBeamLineit) {
+
         for (std::size_t slice=0; slice < mapBeamLineit->nSlices; slice++){
             combinedMaps= mapBeamLineit->elementMap * combinedMaps;
-                totalSlices++;
+            totalSlices++;
         }
     }
 
@@ -772,18 +783,71 @@ void ThickTracker::execute() {
     outfile <<"Total Particle Number:  " <<  itsBunch_m->getTotalNum() << "  Total number of Slices:   "<< totalSlices << std::endl;
 
     //eliminate higher order terms (occurring through multiplication)
-    combinedMaps=combinedMaps.truncate(truncOrder_m);
 
+	combinedMaps=combinedMaps.truncate(truncOrder_m);
+
+
+	tmap << "Transfermap" << std::endl;
     tmap << "A customized FODO" << std::endl;
     tmap << combinedMaps << std::endl;
 #endif
+    //track the Particles
+	setTime();
 
-    trackParticles_m(
-#ifdef PHIL_WRITE
-        outfile,
-#endif
-        mapBeamLine);
+	double t = itsBunch_m->getT();
+	itsBunch_m->setT(t);
+	OpalData::getInstance()->setInPrepState(false);
+	selectDT();
+
+//    trackParticles_m(
+//#ifdef PHIL_WRITE
+//        outfile,
+//#endif
+//        mapBeamLine);
     
+//-------------------------
+
+
+
+    //fMatrix_t sFMatrix=  itsBunch_m->getSigmaMatrix();
+    //fMatrix_t tFMatrix= combinedMaps.linearTerms();
+
+    /*
+    
+	FMatrix<double, 2 * DIM, 2 * DIM> sigmaSFMatrix= sFMatrix*skewMatrix;
+
+	cfMatrix_t eigenValM, eigenVecM, invEigenValM;*/
+
+    //linTAnalyze(tFMatrix);
+    linSigAnalyze();
+
+
+#ifdef PHIL_WRITE
+
+    /*tmap<< "\n\n--------------------------"<< std::endl;
+    tmap<< "the S*SigmaMatrix -> Bunch"<< std::endl;
+    tmap<< "--------------------------"<< std::endl;
+    tmap<< sigmaSFMatrix<<std::endl;
+    tmap<< "--------------------------"<< std::endl;
+
+	tmap<<"EigenValues D"<<std::endl;
+	tmap<< eigenValM<<std::endl;
+	tmap<<"EigenVectors E"<<std::endl;
+	tmap<< eigenVecM<<std::endl;
+	tmap<<"InvEigenVectors E-1"<<std::endl;
+	tmap<< invEigenValM<<std::endl;
+	tmap<<"================\n\n"<<std::endl;
+
+	tmap<<"S*Sigma"<<std::endl;
+	tmap<< sigmaSFMatrix<<std::endl;
+
+	tmap<<"Compositon: E*D*E-1"<<std::endl;
+	tmap<< eigenVecM * eigenValM * invEigenValM<< std::endl;*/
+
+
+
+#endif
+
 }
 
 
@@ -791,18 +855,19 @@ void ThickTracker::trackParticles_m(
 #ifdef PHIL_WRITE
     std::ofstream& outfile,
 #endif
-                                    const std::list<structMapTracking>& mapBeamLine) {
-    int sliceidx;
-    
-    FVector<double, 6> particle;
-    
-    for(auto mapBeamLineit=mapBeamLine.begin(); mapBeamLineit != mapBeamLine.end(); ++mapBeamLineit) {
 
+    const std::list<structMapTracking>& mapBeamLine) {
+    int sliceidx=0;
+    
+    FVector<double, 6> particle, partout;
+    dumpStats(sliceidx, true, true);
+    //(1) Loop Beamline
+    for(auto mapBeamLineit=mapBeamLine.begin(); mapBeamLineit != mapBeamLine.end(); ++mapBeamLineit) {
         //(2) Loop Slices
         for (std::size_t slice=0; slice < mapBeamLineit->nSlices; slice++){
-            //(3) Loop Particles
+            //(3) Loop Particl i es
             for (unsigned int partidx=0; partidx< itsBunch_m->getLocalNum(); ++partidx){
-                sliceidx=0;
+
 
                 for (int d = 0; d < 3; ++d) {
                     particle[2 * d] = itsBunch_m->R[partidx](d);
@@ -810,7 +875,7 @@ void ThickTracker::trackParticles_m(
                 }
                 
 #ifdef PHIL_WRITE
-                outfile << sliceidx <<"  "<< partidx << " ["<< particle;
+                if (sliceidx==0) outfile << sliceidx <<"  "<< partidx << " ["<< particle;
 #endif
                 //Units
                 particle[5] = (particle[5]*itsBunch_m->getM()/itsBunch_m->getP())
@@ -818,33 +883,273 @@ void ThickTracker::trackParticles_m(
                                 -1./itsBunch_m->getInitialBeta();
 
                 //Apply map_t
-                particle= (*mapBeamLineit).elementMap * particle;
+                particle= mapBeamLineit->elementMap * particle;
+
 
                 //Units back
-                particle[4]= mapBeamLineit->elementPos + mapBeamLineit->stepSize * slice+1;
 
                 particle[5] = (particle[5] + 1./itsBunch_m->getInitialBeta()) * itsBunch_m->getP()/itsBunch_m->getM()
                                 /std::sqrt( 1./(itsBunch_m ->get_part(partidx)[5]* itsBunch_m ->get_part(partidx)[5]) +1) ;
 
 #ifdef PHIL_WRITE
                 //Write in File
-                outfile << sliceidx <<"  "<< partidx << " ["<< particle;
+                partout=particle;
+                partout[4]+=mapBeamLineit->elementPos + mapBeamLineit->stepSize * (slice+1);
+                //outfile<< "partout" << mapBeamLineit->elementPos << "+" << mapBeamLineit->stepSize * slice+1<< std::endl;
+                outfile << sliceidx+1 <<"  "<< partidx << " ["<< partout;
 #endif
+
 
                 itsBunch_m->set_part(particle, partidx);
 
 
 
             }
-            bool const psDump = true;//((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1 == Options::psDumpFreq);
-            bool const statDump = true;//((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1 == Options::statDumpFreq);
+            bool const psDump = true;   //((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1 == Options::psDumpFreq);
+            bool const statDump = true; //((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1 == Options::statDumpFreq);
 
+            changeDT();
+            itsBunch_m->set_sPos(mapBeamLineit->elementPos + mapBeamLineit->stepSize * (slice+1));
             dumpStats(sliceidx, psDump, statDump);
             sliceidx ++;
-            itsBunch_m->set_sPos(mapBeamLineit->elementPos + mapBeamLineit->stepSize * slice);
-            //form ParalellTTracker
         }
     }    
+}
+
+//TODO: Write a nice comment
+void ThickTracker::eigenDecomp(fMatrix_t& M, cfMatrix_t& eigenVal, cfMatrix_t& eigenVec, cfMatrix_t& invEigenVec){
+
+	double data[4 * DIM * DIM];
+	int idx, s;
+	for (int i = 0; i < 2 * DIM; i++) {
+		for (int j = 0; j < 2 * DIM; j++) {
+			idx = i * 2 * DIM + j;
+			data[idx] = M[i][j];
+		}
+	}
+
+
+	gsl_matrix_view m = gsl_matrix_view_array(data, 2 * DIM, 2 * DIM);
+	gsl_vector_complex *eval = gsl_vector_complex_alloc(2 * DIM);
+	gsl_matrix_complex *evec = gsl_matrix_complex_alloc(2 * DIM, 2 * DIM);
+	gsl_matrix_complex *eveci = gsl_matrix_complex_alloc(2 * DIM, 2 * DIM);
+	gsl_permutation * p = gsl_permutation_alloc(2 * DIM);
+	gsl_eigen_nonsymmv_workspace * w = gsl_eigen_nonsymmv_alloc(2 * DIM);
+
+	//get Eigenvalues and Eigenvectors
+	gsl_eigen_nonsymmv(&m.matrix, eval, evec, w);
+	gsl_eigen_nonsymmv_free(w);
+	gsl_eigen_nonsymmv_sort(eval, evec, GSL_EIGEN_SORT_ABS_DESC);
+
+	for (int i = 0; i < 2 * DIM; ++i) {
+		eigenVal[i][i] = complex<double>(
+				GSL_REAL(gsl_vector_complex_get(eval, i)),
+				GSL_IMAG(gsl_vector_complex_get(eval, i)));
+		for (int j = 0; j < 2 * DIM; ++j) {
+			eigenVec[i][j] = complex<double>(
+					GSL_REAL(gsl_matrix_complex_get(evec, i, j)),
+					GSL_IMAG(gsl_matrix_complex_get(evec, i, j)));
+		}
+	}
+
+	//invert Eigenvectormatrix
+	gsl_linalg_complex_LU_decomp(evec, p, &s);
+	gsl_linalg_complex_LU_invert(evec, p, eveci);
+
+	//Create invEigenVecMatrix
+	for (int i = 0; i < 2 * DIM; ++i) {
+		for (int j = 0; j < 2 * DIM; ++j) {
+			invEigenVec[i][j] = complex<double>(
+					GSL_REAL(gsl_matrix_complex_get(eveci, i, j)),
+					GSL_IMAG(gsl_matrix_complex_get(eveci, i, j)));
+		}
+	}
+
+
+	//free space
+	gsl_vector_complex_free(eval);
+	gsl_matrix_complex_free(evec);
+	gsl_matrix_complex_free(eveci);
+
+
+}
+
+//Analyzes a TransferMap for the tunes, symplecticity and stability1
+void ThickTracker::linTAnalyze(fMatrix_t& tMatrix){
+
+	fMatrix_t blocktMatrix;
+
+	cfMatrix_t eigenValM, eigenVecM, invEigenVecM;
+	eigenDecomp(tMatrix,eigenValM, eigenVecM, invEigenVecM);
+
+	cfMatrix_t cblocktMatrix = getBlockDiagonal(tMatrix, eigenVecM,invEigenVecM);
+
+
+	std::ofstream tmap;
+	tmap.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/TransferMap.txt",std::ios::app);
+	tmap << std::setprecision(16);
+
+
+	for (int i=0; i<2*DIM; i++){
+			for (int j =0; j<2*DIM; j++){
+				blocktMatrix[i][j]=cblocktMatrix[i][j].real();
+				if (j==2*DIM-1) tmap<<std::endl;
+			}
+
+	}
+
+	cfMatrix_t teigenValM, teigenVecM, tinvEigenVecM;
+	eigenDecomp(blocktMatrix, teigenValM, teigenVecM, tinvEigenVecM);
+
+
+
+	tmap << cblocktMatrix;
+
+	tmap << "the EigenValues of Transfer" << std::endl;
+	for (int i=0; i<2*DIM; i++){
+	    tmap << eigenValM[i][i] << "  " << std::endl;
+	}
+
+	tmap << "the abs() of EigenValues of Transfer => Stability (equal 1)" << std::endl;
+    for (int i=0; i<2*DIM; i++){
+        tmap << std::abs(eigenValM[i][i]) << "  " << std::endl;
+    }
+
+	FVector<std::complex<double>, DIM> betaTunes, betaTunes2;
+	tmap << "Beta tunes in 2 ways" << std::endl;
+	for (int i = 0; i < DIM; i++){
+	    betaTunes[i]=std::log(eigenValM[i*2][i*2])/ (2*Physics::pi * complex<double>(0, 1));
+	    betaTunes2[i]= std::acos(cblocktMatrix[i*2][i*2])/(complex<double>(2*Physics::pi, 0));
+	    tmap<<"1: "<<betaTunes[i] <<std::endl;
+	    tmap<<"1: "<<betaTunes2[i]<< std::endl;
+	}
+
+
+//	tmap << "the EigenValues of RE(TM)" << std::endl;
+//	for (int i=0; i<2*DIM; i++){
+//		tmap << teigenValM[i][i] << "  " << std::endl;
+//		}
+//	tmap << teigenValM;
+//	tmap << eigenValM;
+
+
+	//TODO: do something with the Twiss, tunes etc
+}
+
+//TODO: Write a nice comment
+void ThickTracker::linSigAnalyze(){
+	fMatrix_t sigmaBlockM;
+	fMatrix_t sigMatrix = itsBunch_m->getSigmaMatrix();
+
+	fMatrix_t skewMatrix;
+	    for (int i=0; i <6 ; i=i+2){
+	    	skewMatrix[0+i][1+i]=1.;
+	    	skewMatrix[1+i][0+i]=-1.;
+	    }
+
+	sigMatrix=sigMatrix*skewMatrix;
+
+	cfMatrix_t eigenValM, eigenVecM, invEigenVecM;
+
+	eigenDecomp(sigMatrix,eigenValM, eigenVecM, invEigenVecM);
+
+	cfMatrix_t cblocksigM = getBlockDiagonal(sigMatrix, eigenVecM,invEigenVecM);
+
+
+	std::ofstream tmap;
+	tmap.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/TransferMap.txt",std::ios::app);
+	tmap << std::setprecision(16);
+
+
+
+	for (int i=0; i<2*DIM; i++){
+			for (int j =0; j<2*DIM; j++){
+				sigmaBlockM[i][j]=cblocksigM[i][j].real();
+				if (j==2*DIM-1) tmap<<std::endl;
+			}
+
+	}
+	tmap<< "sigmaBlock"<< std::endl;
+	tmap<< sigmaBlockM;
+//	tmap<< "\n\n\n" << std::endl;
+//	for (int i=0; i<2*DIM; i++){
+//				for (int j =0; j<2*DIM; j++){
+//					tmap << cSigmaBlockM[i][j].imag() << "  ";
+//					if (j==5) tmap<<std::endl;
+//				}
+//		}
+
+	cfMatrix_t teigenValM, teigenVecM, tinvEigenVecM;
+	eigenDecomp(sigmaBlockM, teigenValM, teigenVecM, tinvEigenVecM);
+
+	tmap << "the EigenValues of Sigmamap => Beam emitances" << std::endl;
+	for (int i=0; i<2*DIM; i++){
+	tmap << eigenValM[i][i] << "  " << std::endl;
+	}
+
+//	tmap << "the EigenValues of RE(BlockTM)" << std::endl;
+//	for (int i=0; i<2*DIM; i++){
+//		tmap << teigenValM[i][i] << "  " << std::endl;
+//		}
+
+	//TODO: Where to go with EigenValues?
+}
+
+//TODO: Write a nice comment
+ThickTracker::cfMatrix_t ThickTracker::getBlockDiagonal(fMatrix_t& M,
+		cfMatrix_t& eigenVecM, cfMatrix_t& invEigenVecM){
+
+	cfMatrix_t cM, qMatrix, invqMatrix, nMatrix, invnMatrix, rMatrix;
+
+	std::ofstream tmap;
+	tmap.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/TransferMap.txt",std::ios::app);
+	tmap << std::setprecision(16);
+
+
+	for (int i=0; i<2*DIM; i++){
+		for (int j =0; j<2*DIM; j++){
+			cM[i][j]=complex<double>(M[i][j],0);
+		}
+	}
+
+
+	for (int i=0; i <6 ; i=i+2){
+		qMatrix[0+i][0+i]=complex<double>(1.,0);
+		qMatrix[0+i][1+i]=complex<double>(0,1.);
+		qMatrix[1+i][0+i]=complex<double>(1.,0);
+		qMatrix[1+i][1+i]=complex<double>(0,-1);
+
+		invqMatrix[0+i][0+i]=complex<double>(1.,0);
+		invqMatrix[0+i][1+i]=complex<double>(1.,0);
+		invqMatrix[1+i][0+i]=complex<double>(0.,-1.);
+		invqMatrix[1+i][1+i]=complex<double>(0,1.);
+		}
+	qMatrix/=std::sqrt(2.);
+	invqMatrix/=std::sqrt(2);
+
+	nMatrix=eigenVecM*qMatrix;
+	invnMatrix= invqMatrix* invEigenVecM;
+
+	rMatrix= invnMatrix * cM * nMatrix;
+
+	tmap<< "Qmatrix"<< std::endl;
+	tmap<< qMatrix<< std::endl;
+	tmap<< "invQ"<< std::endl;
+	tmap<< invqMatrix<< std::endl;
+
+	tmap<< "Q*Q-1"<< std::endl;
+	tmap<< qMatrix* invqMatrix<< std::endl;
+
+	tmap<< "NMatrix"<< std::endl;
+	tmap<< nMatrix<< std::endl;
+	tmap<< "invNMatrix"<< std::endl;
+	tmap<< invnMatrix<< std::endl;
+	tmap<< "N* invNMatrix"<< std::endl;
+	tmap<< nMatrix*invnMatrix << std::endl;
+
+
+	return rMatrix;
+
 }
 
 void ThickTracker::dumpStats(long long step, bool psDump, bool statDump) {
@@ -995,4 +1300,12 @@ void ThickTracker::writePhaseSpace(const long long step, bool psDump, bool statD
         msg << level2 << "* Wrote beam phase space." << endl;
     }
 }
+
+void ThickTracker::setTime() {
+    const unsigned int localNum = itsBunch_m->getLocalNum();
+    for (unsigned int i = 0; i < localNum; ++i) {
+        itsBunch_m->dt[i] = itsBunch_m->getdT();
+    }
+}
+
 
