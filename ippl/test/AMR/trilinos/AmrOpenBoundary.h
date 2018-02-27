@@ -7,10 +7,10 @@ template <class Level>
 class AmrOpenBoundary : public AmrBoundary<Level> {
 
 public:
-    typedef typename Level::umap_t umap_t;
-    typedef typename Level::lo_t lo_t;
-    typedef typename Level::scalar_t scalar_t;
-    typedef amr::AmrIntVect_t AmrIntVect_t;
+    typedef typename Level::umap_t      umap_t;
+    typedef typename Level::lo_t        lo_t;
+    typedef typename Level::scalar_t    scalar_t;
+    typedef amr::AmrIntVect_t           AmrIntVect_t;
     
 public:
     
