@@ -8,6 +8,9 @@ template <class Matrix, class Vector, class Level>
 class BottomSolver {
     
 public:
+    
+    virtual ~BottomSolver() { };
+    
     /*!
      * Solves
      * \f[

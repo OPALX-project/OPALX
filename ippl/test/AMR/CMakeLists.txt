@@ -51,7 +51,7 @@ IF ( ENABLE_AMR )
                     trilinos/AmrMultiGridCore.h
                     trilinos/AmrMultiGridDefs.h
                     trilinos/BelosBottomSolver.hpp
-                    trilinos/AmesosBottomSolver.hpp
+                    trilinos/Amesos2BottomSolver.hpp
                     trilinos/MueLuBottomSolver.hpp
 #                     trilinos/FFTBottomSolver.cpp
                     trilinos/AmrSmoother.cpp

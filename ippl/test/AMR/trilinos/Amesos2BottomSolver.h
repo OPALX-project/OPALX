@@ -9,9 +9,9 @@
 
 /// Interface to Amesos2 solvers of the Trilinos package
 template <class Level>
-class AmesosBottomSolver : public BottomSolver<Teuchos::RCP<amr::matrix_t>,
-                                               Teuchos::RCP<amr::multivector_t>,
-                                               Level>
+class Amesos2BottomSolver : public BottomSolver<Teuchos::RCP<amr::matrix_t>,
+                                                Teuchos::RCP<amr::multivector_t>,
+                                                Level>
 {
 public:
     typedef amr::matrix_t matrix_t;
@@ -25,9 +25,9 @@ public:
      * Instantiate
      * @param solvertype of Amesos2
      */
-    AmesosBottomSolver(std::string solvertype = "klu2");
+    Amesos2BottomSolver(std::string solvertype = "klu2");
     
-    ~AmesosBottomSolver();
+    ~Amesos2BottomSolver();
     
     void solve(const Teuchos::RCP<mv_t>& x,
                const Teuchos::RCP<mv_t>& b);
@@ -44,6 +44,6 @@ private:
     Teuchos::RCP<solver_t> solver_mp;   ///< solver instance
 };
 
-#include "AmesosBottomSolver.hpp"
+#include "Amesos2BottomSolver.hpp"
 
 #endif
