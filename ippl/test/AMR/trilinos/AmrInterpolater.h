@@ -4,15 +4,15 @@
 #include <AMReX_BoxArray.H>
 
 ///< Abstract base class for all coarse to fine cell interpolaters
-template <class AmrMultiGridLevel>
+template <class Level>
 class AmrInterpolater {
 
 public:
-    typedef typename AmrMultiGridLevel::global_ordinal_t go_t;
-    typedef typename AmrMultiGridLevel::lo_t lo_t;
-    typedef typename AmrMultiGridLevel::scalar_t scalar_t;
-    typedef typename AmrMultiGridLevel::umap_t umap_t;
-    typedef typename AmrMultiGridLevel::basefab_t basefab_t;
+    typedef typename Level::global_ordinal_t go_t;
+    typedef typename Level::lo_t lo_t;
+    typedef typename Level::scalar_t scalar_t;
+    typedef typename Level::umap_t umap_t;
+    typedef typename Level::basefab_t basefab_t;
     typedef amr::AmrIntVect_t AmrIntVect_t;
     
 public:
@@ -42,7 +42,7 @@ public:
                          const basefab_t& fab,
                          umap_t& map,
                          const scalar_t& scale,
-                         AmrMultiGridLevel* mglevel) = 0;
+                         Level* mglevel) = 0;
     
     /*!
      * Coarse-Fine-Interface
@@ -65,7 +65,7 @@ public:
                         const scalar_t& scale,
                         lo_t dir, lo_t shift, const basefab_t& rfab,
                         const AmrIntVect_t& riv,
-                        AmrMultiGridLevel* mglevel) = 0;
+                        Level* mglevel) = 0;
     
     /*!
      * Coarse-Fine-Interface
@@ -87,7 +87,7 @@ public:
                       umap_t& map,
                       const scalar_t& scale,
                       lo_t dir, lo_t shift, const basefab_t& fab,
-                      AmrMultiGridLevel* mglevel)
+                      Level* mglevel)
     { };
 
     /*!
@@ -109,7 +109,7 @@ public:
                       umap_t& map,
                       const scalar_t& scale,
                       lo_t dir, lo_t shift,
-                      AmrMultiGridLevel* mglevel)
+                      Level* mglevel)
     { };
     
 protected:

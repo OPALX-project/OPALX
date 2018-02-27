@@ -39,8 +39,9 @@ void MueLuBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
     A_mp = MueLu::TpetraCrs_To_XpetraMatrix<scalar_t, lo_t, go_t, node_t>(A);
     A_mp->SetFixedBlockSize(1); // only 1 DOF per node (pure Laplace problem)
 
-    Teuchos::RCP<mv_t> coords_mp = Teuchos::rcp( new amr::multivector_t(A->getDomainMap(),
-                                                                        AMREX_SPACEDIM, false) );
+    Teuchos::RCP<mv_t> coords_mp = Teuchos::rcp(
+        new amr::multivector_t(A->getDomainMap(), AMREX_SPACEDIM, false)
+    );
 
     const scalar_t* domain = level_p->geom.ProbLo();
     const scalar_t* dx = level_p->cellSize();
@@ -48,28 +49,28 @@ void MueLuBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
     #pragma omp parallel
 #endif
     for (amrex::MFIter mfi(level_p->grids, level_p->dmap, true);
-	 mfi.isValid(); ++mfi)
+         mfi.isValid(); ++mfi)
     {
-	const AmrBox_t&       tbx = mfi.tilebox();
-	const lo_t* lo = tbx.loVect();
-	const lo_t* hi = tbx.hiVect();
+        const AmrBox_t&       tbx = mfi.tilebox();
+        const lo_t* lo = tbx.loVect();
+        const lo_t* hi = tbx.hiVect();
 
-	for (lo_t i = lo[0]; i <= hi[0]; ++i) {
-	    for (lo_t j = lo[1]; j <= hi[1]; ++j) {
+        for (lo_t i = lo[0]; i <= hi[0]; ++i) {
+            for (lo_t j = lo[1]; j <= hi[1]; ++j) {
 #if AMREX_SPACEDIM == 3
-		for (lo_t k = lo[2]; k <= hi[2]; ++k) {
+                for (lo_t k = lo[2]; k <= hi[2]; ++k) {
 #endif
-		    AmrIntVect_t iv(D_DECL(i, j, k));
-		    go_t gidx = level_p->serialize(iv);
+                    AmrIntVect_t iv(D_DECL(i, j, k));
+                    go_t gidx = level_p->serialize(iv);
                     
                     coords_mp->replaceGlobalValue(gidx, 0, domain[0] + (0.5 + i) * dx[0]);
                     coords_mp->replaceGlobalValue(gidx, 1, domain[1] + (0.5 + j) * dx[1]);
 #if AMREX_SPACEDIM == 3
                     coords_mp->replaceGlobalValue(gidx, 2, domain[2] + (0.5 + k) * dx[2]);
-		}
+                }
 #endif
-	    }
-	}
+            }
+        }
     }
 
     Teuchos::RCP<xmv_t> coordinates = MueLu::TpetraMultiVector_To_XpetraMultiVector(coords_mp);
@@ -77,7 +78,7 @@ void MueLuBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
 
     Teuchos::RCP<manager_t> mueluFactory = Teuchos::rcp(
         new pListInterpreter_t(mueluList_m)
-	);
+    );
 
     // empty multigrid hierarchy with a finest level only
     hierarchy_mp = mueluFactory->CreateHierarchy();
@@ -111,7 +112,6 @@ std::size_t MueLuBottomSolver<Level>::getNumIters() {
 template <class Level>
 void MueLuBottomSolver<Level>::initMueLuList_m() {
     mueluList_m.set("problem: type", "Poisson-3D");
-//    mueluList_m.set("problem: symmetric", false);
     mueluList_m.set("verbosity", "extreme");
     mueluList_m.set("number of equations", 1);
     mueluList_m.set("max levels", 8);

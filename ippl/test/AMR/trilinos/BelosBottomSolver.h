@@ -31,7 +31,7 @@ public:
     typedef Belos::SolverManager<scalar_t, mv_t, op_t> solver_t;
     typedef Belos::LinearProblem<scalar_t, mv_t, op_t> problem_t;
     
-    typedef AmrPreconditioner<matrix_t> prec_t;
+    typedef AmrPreconditioner<matrix_t, Level> prec_t;
     
 public:
     

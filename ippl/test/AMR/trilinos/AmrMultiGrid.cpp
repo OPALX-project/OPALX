@@ -1928,12 +1928,11 @@ void AmrMultiGrid::initPrec_m(const Preconditioner& prec,
         case Preconditioner::BLOCK_JACOBI:
         case Preconditioner::GS:
         case Preconditioner::BLOCK_GS:
-            prec_mp.reset( new Ifpack2Preconditioner(prec) );
+            prec_mp.reset( new Ifpack2Preconditioner<AmrMultiGridLevel_t>(prec) );
             break;
         case Preconditioner::SA:
         {
-            AmrIntVect_t grid = itsAmrObject_mp->Geom(0).Domain().size();
-            prec_mp.reset( new MueLuPreconditioner(grid, rebalance) );
+            prec_mp.reset( new MueLuPreconditioner<AmrMultiGridLevel_t>(rebalance) );
             break;
         }
         case Preconditioner::NONE:
@@ -2026,9 +2025,9 @@ AmrMultiGrid::convertToEnumPreconditioner_m(const std::string& prec) {
     
     map["NONE"]         = Preconditioner::NONE;
     
-    Ifpack2Preconditioner::fillMap(map);
+    Ifpack2Preconditioner<AmrMultiGridLevel_t>::fillMap(map);
     
-    MueLuPreconditioner::fillMap(map);
+    MueLuPreconditioner<AmrMultiGridLevel_t>::fillMap(map);
     
     auto precond = map.find(Util::toUpper(prec));
     
