@@ -287,7 +287,7 @@ FieldSolver::FieldSolver():
 
     itsAttr[AMR_MG_NORM] = Attributes::makeString("AMR_MG_NORM",
                                                   "Norm for convergence criteria",
-                                                  "L2");
+                                                  "LINF");
     
     itsAttr[AMR_MG_VERBOSE] = Attributes::makeBool("AMR_MG_VERBOSE",
                                                    "Write solver info in SDDS format (*.solver)",
