@@ -1,19 +1,19 @@
 #ifndef AMR_INTERPOLATER_H
 #define AMR_INTERPOLATER_H
 
-#include <AMReX_BoxArray.H>
+#include "Amr/AmrDefs.h"
 
 ///< Abstract base class for all coarse to fine cell interpolaters
 template <class Level>
 class AmrInterpolater {
 
 public:
-    typedef typename Level::global_ordinal_t go_t;
-    typedef typename Level::lo_t lo_t;
-    typedef typename Level::scalar_t scalar_t;
-    typedef typename Level::umap_t umap_t;
-    typedef typename Level::basefab_t basefab_t;
-    typedef amr::AmrIntVect_t AmrIntVect_t;
+    typedef typename Level::global_ordinal_t    go_t;
+    typedef typename Level::lo_t                lo_t;
+    typedef typename Level::scalar_t            scalar_t;
+    typedef typename Level::umap_t              umap_t;
+    typedef typename Level::basefab_t           basefab_t;
+    typedef amr::AmrIntVect_t                   AmrIntVect_t;
     
 public:
     
