@@ -40,12 +40,22 @@ message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
 message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
 message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
 
+OPTION (ENABLE_OpenMP "Use hybrid parallelism MPI-OpenMP" OFF)
+
 # compiler dependent flags
 if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -diag-disable 383 -diag-disable 981 -std=c++11")
 
+    if (ENABLE_OpenMP)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -openmp")
+    endif (ENABLE_OpenMP)
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG -std=c++11")
+
+    if (ENABLE_OpenMP)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    endif (ENABLE_OpenMP)
+
 
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.3")
@@ -53,6 +63,11 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     endif ()
     # Warning flags, -Wno-unused-local-typedefs is needed for boost versions below 1.59
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-local-typedefs -Werror=unused-variable -std=c++11")
+
+    if (ENABLE_OpenMP)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    endif (ENABLE_OpenMP)
+
 else ()
     message (STATUS "Unknown C++ compiler. Please use the GNU or Intel compiler, IF you are having problems.")
 endif ()
@@ -123,7 +138,6 @@ OPTION (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
 OPTION (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
 OPTION (AMR_YT_DUMP "Dump AMR field data to yt readable format" OFF)
 OPTION (AMR_PYTHON_DUMP "Dump AMR grids and particles" OFF)
-OPTION (BUILD_LIBOPAL "Enable building the OPAL library" OFF)
 
 OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
 
@@ -215,10 +229,6 @@ IF (AMR_PYTHON_DUMP AND ENABLE_AMR)
     MESSAGE (STATUS "\nWrite AMR grids and particles is enabled ")
     SET (CMAKE_CXX_FLAGS "-DAMR_PYTHON_DUMP ${CMAKE_CXX_FLAGS}")
 ENDIF (AMR_PYTHON_DUMP AND ENABLE_AMR)
-
-IF (BUILD_LIBOPAL)
-    MESSAGE (STATUS "\nBuilding OPAL library")
-ENDIF (BUILD_LIBOPAL)
 
 IF (NO_FIELD_ASSIGN_OPTIMIZATION)
     MESSAGE (STATUS "\nCompiler will not try to optimize field assignment")

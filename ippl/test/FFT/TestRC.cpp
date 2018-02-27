@@ -19,36 +19,14 @@
 #include <complex>
 using namespace std;
 
-
 bool Configure(int argc, char *argv[],
 	       unsigned int *nx, unsigned int *ny, unsigned int *nz,
-	       int *serialDim, unsigned int *processes,  unsigned int *nLoop) 
+	       int *domainDec, unsigned int *processes,  unsigned int *nLoop) 
 {
 
   Inform msg("Configure ");
   Inform errmsg("Error ");
 
-  /*
-    string bc_str;
-    string dist_str;
-    *nx = 8; 
-    *ny = 8;
-    *nz = 16;
-    *nLoop = 1; 
-    *serialDim = 0;
-
-    if (*serialDim == 0)
-    msg << "Serial dimension is x" << endl;
-    else if (*serialDim == 1)
-    msg << "Serial dimension is y" << endl;
-    else if (*serialDim == 2)
-    msg << "Serial dimension is z" << endl;
-    else {
-    *serialDim = 0;
-    msg << "Serial dimension is x" << endl;
-    }
-    *processes = Ippl::getNodes();
-    */
   for (int i=1; i < argc; ++i) {
     string s(argv[i]);
     if (s == "-grid") {
@@ -58,27 +36,15 @@ bool Configure(int argc, char *argv[],
     }   else if (s == "-Loop") {
       *nLoop = atoi(argv[++i]);
     } else if (s == "-Decomp") {
-      *serialDim = atoi(argv[++i]);
+      *domainDec = atoi(argv[++i]);
     } 
     else {
       errmsg << "Illegal format for or unknown option '" << s.c_str() << "'.";
       errmsg << endl;
     }
   }
-  if (*serialDim == 0)
-    msg << "Serial dimension is x" << endl;
-  else if (*serialDim == 1)
-    msg << "Serial dimension is y" << endl;
-  else if (*serialDim == 2)
-    msg << "Serial dimension is z" << endl;
-  else {
-    msg << "All parallel" << endl;
-    *serialDim = -1;
-  }
 
   *processes = Ippl::getNodes();
-
-
   return true;
 }
 
@@ -184,25 +150,42 @@ int main(int argc, char *argv[])
 {
   
   Ippl ippl(argc,argv);
-  Inform testmsg(NULL,0);
+  Inform msg(NULL,0);
 
   const unsigned D=3U;
-  bool compressTemps = false;
+  bool compressTemps = true;
   bool constInput    = true;  // preserve input field in two-field transform
 
   unsigned int processes;
-  int serialDim;
+  int domDec;
   unsigned int nx,ny,nz;
   unsigned int nLoop;
 
-  Configure(argc, argv, &nx, &ny, &nz, &serialDim, &processes, &nLoop); 
+  Configure(argc, argv, &nx, &ny, &nz, &domDec, &processes, &nLoop); 
+
+  /*
+    domDec == 3: 3D domain dec all parallel          
+    domDec == 1: 1D domain dec x,y serial    z: parallel 
+    domDec == 2: 2D domain dec x,y parallel  z: serial
+   */
+
+  if (domDec == 3)
+    msg << "3D domain decomposition " << endl;
+  else if (domDec == 1)
+    msg << "1D domain decomposition: serial dimension is x,y" << endl;
+  else if (domDec == 2)
+    msg << "2D domain decomposition: serial dimension is z" << endl;
+  else {
+    msg << "Domain decompostion not known going for 3D, all parallel" << endl;
+    domDec = 3;
+  }
 
   std::string baseFn = std::string(argv[0])  + 
     std::string("-mx=") + std::to_string(nx) +
     std::string("-my=") + std::to_string(ny) +
     std::string("-mz=") + std::to_string(nz) +
     std::string("-p=") + std::to_string(processes) +
-    std::string("-ddec=") + std::to_string(serialDim) ;
+    std::string("-ddec=") + std::to_string(domDec) ;
 
   unsigned int pwi = 10;
   std::ios_base::openmode mode_m = std::ios::out;
@@ -234,9 +217,6 @@ int main(int argc, char *argv[])
   double pi = acos(-1.0);
   double twopi = 2.0*pi;
 
-  // Timer:
-  Timer timer;
-
   e_dim_tag allParallel[D];    // Specifies SERIAL, PARALLEL dims
   for (unsigned int d=0; d<D; d++) 
     allParallel[d] = PARALLEL;
@@ -244,7 +224,7 @@ int main(int argc, char *argv[])
   e_dim_tag serialParallel[D]; // Specifies SERIAL, PARALLEL dims
   for (unsigned int d=0; d<D; d++) 
     serialParallel[d] = PARALLEL;
-  serialParallel[serialDim] = SERIAL;
+  serialParallel[domDec] = SERIAL;
 
 
   IpplTimings::startTimer(fInitTimer);
@@ -268,6 +248,7 @@ int main(int argc, char *argv[])
   // zeroth axis serial, zeroth axis half-size domain, normal axis order
   FieldLayout<D> layoutSPStan0h(ndiStandard0h,serialParallel,vnodes);
     
+
   // create test Fields for complex-to-complex FFT
   BareField<dcomplex,D> CFieldPPStan(layoutPPStan);
   
@@ -279,9 +260,6 @@ int main(int argc, char *argv[])
   BareField<double,D> RFieldSPStan(layoutSPStan);
   BareField<double,D> RFieldSPStan_save(layoutSPStan);
   BareField<dcomplex,D> CFieldSPStan0h(layoutSPStan0h);
-  
-  //INFOMSG("RFieldSPStan   layout= " << layoutSPStan << endl;);
-  //INFOMSG("CFieldSPStan0h layout= " << layoutSPStan0h << endl;);
   
   // Rather more complete test functions (sine or cosine mode):
   dcomplex sfact(1.0,0.0);      // (1,0) for sine mode; (0,0) for cosine mode
@@ -306,23 +284,10 @@ int main(int argc, char *argv[])
 	     cos( (ndiStandard[0]+1) * kx * xfact -
 		  ndiStandard[1]    * ky * yfact -
 		  ndiStandard[2]    * kz * zfact ) );
-  
-  /* cout << "TYPEINFO:" << endl;
-  cout << typeid(RFieldSPStan[0][0][0]).name() << endl;
-  cout << typeid(CFieldPPStan[0][0][0]).name() << endl;
-  */
-
   // RC FFT tests  
 
-  //RFieldSPStan = real(CFieldPPStan);
-  for(int x = ndiStandard[0].first(); x <= ndiStandard[0].last(); x++) {
-    for(int y = ndiStandard[1].first(); y <= ndiStandard[1].last(); y++) {
-      for(int z = ndiStandard[2].first(); z <= ndiStandard[2].last(); z++) {
-	RFieldSPStan[x][y][z] = real(CFieldPPStan[x][y][z].get());
-      }
-    }
-  }
- 
+  RFieldSPStan = real(CFieldPPStan);
+
   CFieldSPStan0h = dcomplex(0.0,0.0);
   IpplTimings::stopTimer(fInitTimer);
 
@@ -333,9 +298,7 @@ int main(int argc, char *argv[])
   rcfft.setDirectionName(+1, "forward");
   rcfft.setDirectionName(-1, "inverse");
 
-  testmsg << " Start test " << endl;
-
-  testmsg << "RC transform using layout with zeroth dim serial ..." << endl;
+  msg << "RC transform using layout with zeroth dim serial: compress tmp, constInput" << endl;
 
   IpplTimings::startTimer(fftTimer);                                                    
   rcfft.transform("forward", RFieldSPStan,  CFieldSPStan0h, constInput);
@@ -364,18 +327,37 @@ int main(int argc, char *argv[])
     diffFieldSPStan = Abs(RFieldSPStan - RFieldSPStan_save);
     realDiff = max(diffFieldSPStan);
     IpplTimings::stopTimer(fEvalTimer);                                         
-    testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
+    msg << "fabs(realDiff) = " << fabs(realDiff) << endl;
 
     memory->sample();
     writeMemoryData(os_memData, pwi, i+1);
 
   }
 
-  IpplTimings::startTimer(stopTimer);                                                    
+  IpplTimings::stopTimer(mainTimer);                                                    
   IpplTimings::print();
   IpplTimings::print(baseFn+std::string(".timing"));
   return 0;
 }
+
+
+
+
+  /* cout << "TYPEINFO:" << endl;
+  cout << typeid(RFieldSPStan[0][0][0]).name() << endl;
+  cout << typeid(CFieldPPStan[0][0][0]).name() << endl;
+  */
+  
+  /*
+  for(int x = ndiStandard[0].first(); x <= ndiStandard[0].last(); x++) {
+    for(int y = ndiStandard[1].first(); y <= ndiStandard[1].last(); y++) {
+      for(int z = ndiStandard[2].first(); z <= ndiStandard[2].last(); z++) {
+	RFieldSPStan[x][y][z] = real(CFieldPPStan[x][y][z].get());
+      }
+    }
+  }
+  */
+
 
   //  Inform fo2(NULL,"FFTrealField.dat",Inform::OVERWRITE);
   

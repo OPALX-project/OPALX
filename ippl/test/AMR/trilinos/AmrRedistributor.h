@@ -1,7 +1,7 @@
 #ifndef AMR_REDISTRIBUTOR_H
 #define AMR_REDISTRIBUTOR_H
 
-#include "AmrMultiGridCore.h"
+#include "AmrMultiGridDefs.h"
 
 #include <Zoltan2_PartitioningProblem.hpp>
 #include <Zoltan2_XpetraCrsMatrixAdapter.hpp>
