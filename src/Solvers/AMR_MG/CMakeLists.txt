@@ -10,8 +10,8 @@ include_directories (
 add_opal_sources(${_SRCS})
 
 set (HDRS
-    AmesosBottomSolver.h
-    AmesosBottomSolver.hpp
+    Amesos2BottomSolver.h
+    Amesos2BottomSolver.hpp
     AmrBoundary.h
     AmrDirichletBoundary.h
     AmrInterpolater.h

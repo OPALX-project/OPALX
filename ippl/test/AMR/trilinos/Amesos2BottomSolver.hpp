@@ -1,18 +1,18 @@
 template <class Level>
-AmesosBottomSolver<Level>::AmesosBottomSolver(std::string solvertype)
+Amesos2BottomSolver<Level>::Amesos2BottomSolver(std::string solvertype)
     : solvertype_m(solvertype)
 { }
 
 
 template <class Level>
-AmesosBottomSolver<Level>::~AmesosBottomSolver() {
+Amesos2BottomSolver<Level>::~Amesos2BottomSolver() {
     solver_mp = Teuchos::null;
 }
 
 
 template <class Level>
-void AmesosBottomSolver<Level>::solve(const Teuchos::RCP<mv_t>& x,
-                                      const Teuchos::RCP<mv_t>& b)
+void Amesos2BottomSolver<Level>::solve(const Teuchos::RCP<mv_t>& x,
+                                       const Teuchos::RCP<mv_t>& b)
 {
     /*
      * solve linear system Ax = b
@@ -22,8 +22,8 @@ void AmesosBottomSolver<Level>::solve(const Teuchos::RCP<mv_t>& x,
 
 
 template <class Level>
-void AmesosBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
-                                            Level* level_p)
+void Amesos2BottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
+                                             Level* level_p)
 {
     try {
         solver_mp = Amesos2::create<matrix_t, mv_t>(solvertype_m, A);
@@ -38,6 +38,6 @@ void AmesosBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
 
 
 template <class Level>
-std::size_t AmesosBottomSolver<Level>::getNumIters() {
+std::size_t Amesos2BottomSolver<Level>::getNumIters() {
     return 1;   // direct solvers do only one step
 }

@@ -47,10 +47,18 @@ public:
     
     typedef BottomSolver<
         Teuchos::RCP<matrix_t>,
-        Teuchos::RCP<mv_t>
+        Teuchos::RCP<mv_t>,
+        AmrMultiGridLevel_t
     > bsolver_t;
     
-    typedef AmrPreconditioner<matrix_t> preconditioner_t;
+    typedef BelosBottomSolver<AmrMultiGridLevel_t>      BelosSolver_t;
+    typedef Amesos2BottomSolver<AmrMultiGridLevel_t>    Amesos2Solver_t;
+    typedef MueLuBottomSolver<AmrMultiGridLevel_t>      MueLuSolver_t;
+    
+    typedef AmrPreconditioner<matrix_t, AmrMultiGridLevel_t> preconditioner_t;
+    
+    typedef Ifpack2Preconditioner<AmrMultiGridLevel_t> Ifpack2Preconditioner_t;
+    typedef MueLuPreconditioner<AmrMultiGridLevel_t> MueLuPreconditioner_t;
     
     typedef amrex::BoxArray boxarray_t;
     typedef amrex::Box box_t;
@@ -98,6 +106,8 @@ public:
 #ifdef HAVE_AMESOS2_LAPACK
         , LAPACK
 #endif
+        // all MueLu
+        , SA
         // add others ...
     };
     
