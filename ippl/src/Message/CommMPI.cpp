@@ -101,7 +101,7 @@ CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpi
     }
 
     // initialize mpi
-    if (weInitialized)
+    if (weInitialized) {
 #ifdef _OPENMP
         int provided = 0;
         MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
@@ -113,6 +113,7 @@ CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpi
 #else
         MPI_Init(&argc, &argv);
 #endif
+    }
     //else
     //    INFOMSG("NOT initializing MPI = " << endl);
 
