@@ -104,7 +104,7 @@ CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpi
     if (weInitialized)
 #ifdef _OPENMP
         int provided = 0;
-        MPI_Init_Thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+        MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
         INFOMSG("Ippl will be initialized with " <<
                 omp_get_max_threads() << " OMP threads\n");
         
