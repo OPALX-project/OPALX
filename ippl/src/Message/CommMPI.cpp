@@ -35,6 +35,10 @@
 // include mpi header file
 #include <mpi.h>
 
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
+
 #include <cstring>
 #include <cstdlib>
 #include <unistd.h>
@@ -98,7 +102,17 @@ CommMPI::CommMPI(int& argc , char**& argv, int procs, bool mpiinit, MPI_Comm mpi
 
     // initialize mpi
     if (weInitialized)
+#ifdef _OPENMP
+        int provided = 0;
+        MPI_Init_Thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+        INFOMSG("Ippl will be initialized with " <<
+                omp_get_max_threads() << " OMP threads\n");
+        
+        if ( provided != MPI_THREAD_FUNNELED )
+            ERRORMSG("CommMPI: Didn't get requested MPI-OpenMP setting.\n");
+#else
         MPI_Init(&argc, &argv);
+#endif
     //else
     //    INFOMSG("NOT initializing MPI = " << endl);
 
