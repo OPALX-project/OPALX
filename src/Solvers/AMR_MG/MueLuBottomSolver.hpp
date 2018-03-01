@@ -46,9 +46,6 @@ void MueLuBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
 
     const scalar_t* domain = level_p->geom.ProbLo();
     const scalar_t* dx = level_p->cellSize();
-#ifdef _OPENMP
-    #pragma omp parallel
-#endif
     for (amrex::MFIter mfi(level_p->grids, level_p->dmap, true);
          mfi.isValid(); ++mfi)
     {
