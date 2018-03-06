@@ -266,13 +266,22 @@ void AmrBoxLib::computeSelfFields() {
     meshScaling_m = Vector_t(1.0, 1.0, gammaz);
     
     // calculate Possion equation (with coefficient: -1/(eps))
-    double tmp = -1.0 / bunch_mp->getdT() / gammaz * scalefactor / Physics::epsilon_0;
+    double tmp = -1.0 / bunch_mp->getdT() / gammaz / Physics::epsilon_0;
     for (int i = 0; i <= finest_level; ++i) {
         this->rho_m[i]->mult(tmp, 0, 1);
         
         if ( this->rho_m[i]->contains_nan(false) )
             throw OpalException("AmrBoxLib::computeSelfFields() ",
                                 "NANs at level " + std::to_string(i) + ".");
+    }
+    
+    // find maximum and normalize each level (faster convergence)
+    double l0norm = 1.0;
+    for (int i = 0; i <= finest_level; ++i)
+        l0norm = std::max(l0norm, this->rho_m[i]->norm0(0));
+    
+    for (int i = 0; i <= finest_level; ++i) {
+        this->rho_m[i]->mult(1.0 / l0norm, 0, 1);
     }
     
     // charge density is in rho_m
@@ -282,9 +291,13 @@ void AmrBoxLib::computeSelfFields() {
     solver->solve(rho_m, phi_m, efield_m, 0, finest_level);
     IpplTimings::stopTimer(this->amrSolveTimer_m);
     
-    // apply scale of electric-field in order to undo the transformation
-    for (int i = 0; i <= finest_level; ++i)
-        this->efield_m[i]->mult(scalefactor, 0, 3);
+    /* apply scale of electric-field in order to undo the transformation
+     * + undo normalization
+     */
+    for (int i = 0; i <= finest_level; ++i) {
+        this->phi_m[i]->mult(scalefactor * l0norm, 0, 1);
+        this->efield_m[i]->mult(scalefactor * scalefactor * l0norm, 0, 3);
+    }
     
     
     for (int i = 0; i <= finest_level; ++i) {
@@ -330,7 +343,7 @@ void AmrBoxLib::computeSelfFields() {
     
     // we need to undo coefficient when writing charge density
     for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
+        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
     
     ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
     INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
@@ -356,7 +369,7 @@ void AmrBoxLib::computeSelfFields() {
 #else
     // we need to undo coefficient when writing charge density
     for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
+        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
 #endif
     
     sliceWriter.writeFields(rho_m, phi_m, efield_m,
@@ -397,7 +410,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     /// Lorentz transformation
     /// In particle rest frame, the longitudinal length (y for cyclotron) enlarged
     for (int i = 0; i <= finest_level; ++i) {
-        this->rho_m[i]->mult(invGamma * scalefactor, 0 /*comp*/, 1 /*ncomp*/);
+        this->rho_m[i]->mult(invGamma, 0 /*comp*/, 1 /*ncomp*/);
         
         if ( this->rho_m[i]->contains_nan(false) )
             throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
@@ -413,14 +426,27 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
         this->rho_m[i]->mult(-1.0 / Physics::epsilon_0, 0, 1);
     }
     
+    // find maximum and normalize each level (faster convergence)
+    double l0norm = 1.0;
+    for (int i = 0; i <= finest_level; ++i)
+        l0norm = std::max(l0norm, this->rho_m[i]->norm0(0));
+    
+    for (int i = 0; i <= finest_level; ++i) {
+        this->rho_m[i]->mult(1.0 / l0norm, 0, 1);
+    }
+    
     PoissonSolver *solver = bunch_mp->getFieldSolver();
     IpplTimings::startTimer(this->amrSolveTimer_m);
     solver->solve(rho_m, phi_m, efield_m, baseLevel, finest_level);
     IpplTimings::stopTimer(this->amrSolveTimer_m);
     
-    // apply scale of electric-field in order to undo the transformation
-    for (int i = 0; i <= finestLevel(); ++i)
-        this->efield_m[i]->mult(scalefactor, 0, 3);
+    /* apply scale of electric-field in order to undo the transformation
+     * + undo normalization
+     */
+    for (int i = 0; i <= finestLevel(); ++i) {
+        this->phi_m[i]->mult(scalefactor * l0norm, 0, 1);
+        this->efield_m[i]->mult(scalefactor * scalefactor * l0norm, 0, 3);
+    }
     
     for (int i = 0; i <= finest_level; ++i) {
         if ( this->efield_m[i]->contains_nan(false) )
@@ -465,7 +491,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     
     // we need to undo coefficient when writing charge density
     for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
+        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
     
     ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
     INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
@@ -491,7 +517,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
 #else
     // we need to undo coefficient when writing charge density
     for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
+        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
 #endif
     
     sliceWriter.writeFields(rho_m, phi_m, efield_m,
@@ -524,11 +550,20 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     // In particle rest frame, the longitudinal length (y for cyclotron) enlarged
     // calculate Possion equation (with coefficient: -1/(eps))
     for (int i = 0; i <= finest_level; ++i) {
-        this->rho_m[i]->mult(-scalefactor / (gamma * Physics::epsilon_0), 0 /*comp*/, 1 /*ncomp*/);
+        this->rho_m[i]->mult(-1.0 / (gamma * Physics::epsilon_0), 0 /*comp*/, 1 /*ncomp*/);
         
         if ( this->rho_m[i]->contains_nan(false) )
             throw OpalException("AmrBoxLib::computeSelfFields_cycl(int bin) ",
                                 "NANs at level " + std::to_string(i) + ".");
+    }
+    
+    // find maximum and normalize each level (faster convergence)
+    double l0norm = 1.0;
+    for (int i = 0; i <= finest_level; ++i)
+        l0norm = std::max(l0norm, this->rho_m[i]->norm0(0));
+    
+    for (int i = 0; i <= finest_level; ++i) {
+        this->rho_m[i]->mult(1.0 / l0norm, 0, 1);
     }
     
     // mesh scaling for solver
@@ -543,9 +578,13 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     IpplTimings::stopTimer(this->amrSolveTimer_m);
     
     
-    // apply scale of electric-field in order to undo the transformation
-    for (int i = 0; i <= finestLevel(); ++i)
-        this->efield_m[i]->mult(scalefactor, 0, 3);
+    /* apply scale of electric-field in order to undo the transformation
+     * + undo normalization
+     */
+    for (int i = 0; i <= finestLevel(); ++i) {
+        this->phi_m[i]->mult(scalefactor * l0norm, 0, 1);
+        this->efield_m[i]->mult(scalefactor * scalefactor * l0norm, 0, 3);
+    }
 
     for (int i = 0; i <= finest_level; ++i) {
         if ( this->efield_m[i]->contains_nan(false) )
@@ -585,7 +624,7 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     
     // we need to undo coefficient when writing charge density
     for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
+        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
     
     ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
     INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
@@ -611,7 +650,7 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
 #else
     // we need to undo coefficient when writing charge density
     for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
+        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
 #endif
 
     sliceWriter.writeFields(rho_m, phi_m, efield_m,
