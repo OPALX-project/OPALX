@@ -343,7 +343,7 @@ void AmrBoxLib::computeSelfFields() {
     
     // we need to undo coefficient when writing charge density
     for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
+        this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
     
     ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
     INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
@@ -369,7 +369,7 @@ void AmrBoxLib::computeSelfFields() {
 #else
     // we need to undo coefficient when writing charge density
     for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
+        this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
 #endif
     
     sliceWriter.writeFields(rho_m, phi_m, efield_m,
@@ -491,7 +491,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     
     // we need to undo coefficient when writing charge density
     for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
+        this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
     
     ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
     INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
@@ -517,7 +517,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
 #else
     // we need to undo coefficient when writing charge density
     for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
+        this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
 #endif
     
     sliceWriter.writeFields(rho_m, phi_m, efield_m,
@@ -624,7 +624,7 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     
     // we need to undo coefficient when writing charge density
     for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
+        this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
     
     ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
     INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
@@ -650,7 +650,7 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
 #else
     // we need to undo coefficient when writing charge density
     for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0, 0, 1);
+        this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
 #endif
 
     sliceWriter.writeFields(rho_m, phi_m, efield_m,
