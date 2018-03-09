@@ -214,24 +214,34 @@ int main(int argc, char *argv[])
    
   // Various counters, constants, etc:
   
-  double pi = acos(-1.0);
-  double twopi = 2.0*pi;
+  const double pi = acos(-1.0);
+  const double twopi = 2.0*pi;
 
   e_dim_tag allParallel[D];    // Specifies SERIAL, PARALLEL dims
-  for (unsigned int d=0; d<D; d++) 
-    allParallel[d] = PARALLEL;
-
   e_dim_tag serialParallel[D]; // Specifies SERIAL, PARALLEL dims
-  for (unsigned int d=0; d<D; d++) 
-    serialParallel[d] = PARALLEL;
-  serialParallel[domDec] = SERIAL;
 
+  if (domDec == 3) {
+    for (unsigned int d=0; d<D; d++) 
+      allParallel[d] = PARALLEL;
+  }
+  if (domDec == 2) {
+    for (unsigned int d=0; d<D; d++) 
+      serialParallel[d] = PARALLEL;
+    serialParallel[2] = SERIAL;
+  } 
+  else {
+    for (unsigned int d=0; d<D; d++) 
+      serialParallel[d] = SERIAL;
+    serialParallel[2] = PARALLEL;
+  }
 
   IpplTimings::startTimer(fInitTimer);
+
   // create standard domain
   NDIndex<D> ndiStandard;
   for (unsigned int d=0; d<D; d++) 
     ndiStandard[d] = Index(ngrid[d]);
+
   // create new domain with axes permuted to match FFT output
   
   // create half-size domain for RC transform along zeroth axis
@@ -298,7 +308,7 @@ int main(int argc, char *argv[])
   rcfft.setDirectionName(+1, "forward");
   rcfft.setDirectionName(-1, "inverse");
 
-  msg << "RC transform using layout with zeroth dim serial: compress tmp, constInput" << endl;
+  msg << "RC transform using compress tmp and  constInput" << endl;
 
   IpplTimings::startTimer(fftTimer);                                                    
   rcfft.transform("forward", RFieldSPStan,  CFieldSPStan0h, constInput);
