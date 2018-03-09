@@ -250,25 +250,25 @@ int main(int argc, char *argv[])
   
   // all parallel layout, standard domain, normal axis order
   FieldLayout<D> layoutPPStan(ndiStandard,allParallel,vnodes);
-  // zeroth axis serial, standard domain, normal axis order
-  FieldLayout<D> layoutSPStan(ndiStandard,serialParallel,vnodes);
   
   // all parallel layout, zeroth axis half-size domain, normal axis order
   FieldLayout<D> layoutPPStan0h(ndiStandard0h,allParallel,vnodes);
-  // zeroth axis serial, zeroth axis half-size domain, normal axis order
+
+
+  FieldLayout<D> layoutSPStan(ndiStandard,serialParallel,vnodes); 
   FieldLayout<D> layoutSPStan0h(ndiStandard0h,serialParallel,vnodes);
-    
+
+
 
   // create test Fields for complex-to-complex FFT
   BareField<dcomplex,D> CFieldPPStan(layoutPPStan);
-  
-  BareField<dcomplex,D> CFieldSPStan(layoutSPStan);
   
   BareField<double,D> diffFieldSPStan(layoutSPStan);
   
   // create test Fields for real-to-complex FFT
   BareField<double,D> RFieldSPStan(layoutSPStan);
   BareField<double,D> RFieldSPStan_save(layoutSPStan);
+
   BareField<dcomplex,D> CFieldSPStan0h(layoutSPStan0h);
   
   // Rather more complete test functions (sine or cosine mode):
@@ -280,7 +280,7 @@ int main(int argc, char *argv[])
   yfact = 2.0*twopi/(ngrid[1]);
   zfact = 2.0*twopi/(ngrid[2]);
   kx = 1.0; ky = 2.0; kz = 32.0; // wavenumbers
-
+  msg << "Init 1  fields done ..." << endl;
   CFieldPPStan[ndiStandard[0]][ndiStandard[1]][ndiStandard[2]] = 
     sfact * ( sin( (ndiStandard[0]+1) * kx * xfact +
 		   ndiStandard[1]    * ky * yfact +
@@ -295,7 +295,7 @@ int main(int argc, char *argv[])
 		  ndiStandard[1]    * ky * yfact -
 		  ndiStandard[2]    * kz * zfact ) );
   // RC FFT tests  
-
+  msg << "Init 2  fields done ..." << endl;
   RFieldSPStan = real(CFieldPPStan);
 
   CFieldSPStan0h = dcomplex(0.0,0.0);
@@ -321,7 +321,7 @@ int main(int argc, char *argv[])
   IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
   memory->sample();
   writeMemoryData(os_memData, pwi, 0);
-
+  msg << "Setup FFT  done ..." << endl;
   for (unsigned i=0; i<nLoop; i++) {
     RFieldSPStan_save = RFieldSPStan;
 
@@ -350,51 +350,4 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-
-
-
-  /* cout << "TYPEINFO:" << endl;
-  cout << typeid(RFieldSPStan[0][0][0]).name() << endl;
-  cout << typeid(CFieldPPStan[0][0][0]).name() << endl;
-  */
-  
-  /*
-  for(int x = ndiStandard[0].first(); x <= ndiStandard[0].last(); x++) {
-    for(int y = ndiStandard[1].first(); y <= ndiStandard[1].last(); y++) {
-      for(int z = ndiStandard[2].first(); z <= ndiStandard[2].last(); z++) {
-	RFieldSPStan[x][y][z] = real(CFieldPPStan[x][y][z].get());
-      }
-    }
-  }
-  */
-
-
-  //  Inform fo2(NULL,"FFTrealField.dat",Inform::OVERWRITE);
-  
-
-
-    //double total_time = 0;
-    //total_time+= timer.cpu_time();
-    /*
-      Inform fo2(NULL,"FFTrealResult.dat",Inform::OVERWRITE);
-      for(int x = ndiStandard[0].first(); x <= ndiStandard[0].last(); x++) {
-      for(int y = ndiStandard[1].first(); y <= ndiStandard[1].last(); y++) {
-      for(int z = ndiStandard[2].first(); z <= ndiStandard[2].last(); z++) {
-      fo2 << x << " " << y << " " << z << " " <<  RFieldSPStan[x][y][z].get() << endl;
-      }
-      }
-      }
-    */
-
-
-/***************************************************************************
- * $RCSfile: TestRC.cpp,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:36 $
- ***************************************************************************/
-
-/***************************************************************************
- * $RCSfile: addheaderfooter,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:17 $
- * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $ 
- ***************************************************************************/
 
