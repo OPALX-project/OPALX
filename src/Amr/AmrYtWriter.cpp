@@ -15,12 +15,12 @@
 AmrYtWriter::AmrYtWriter(int step)
     : step_m(step)
 {
-    intData_m.resize(3);
-    intData_m[0] = "particle_id";
-    intData_m[1] = "particle_cpu";
-    intData_m[2] = "particle_energy_bin";
+    intData_m.resize(1);
+//     intData_m[0] = "id";
+//     intData_m[1] = "cpu";
+    intData_m[0] = "energy_bin";
     
-    realData_m.resize(3 +  // coordinates
+    realData_m.resize(//3 +  // coordinates
                       3 +  // momenta
                       3 +  // charge + mass + timestep
                       1 +  // potential at particle location
@@ -28,22 +28,22 @@ AmrYtWriter::AmrYtWriter(int step)
                       3);  // magnetic field at particle location
     
     int idx = 0;
-    realData_m[idx++] ="particle_position_x";
-    realData_m[idx++] ="particle_position_y";
-    realData_m[idx++] ="particle_position_z";
-    realData_m[idx++] ="particle_momentum_x";
-    realData_m[idx++] ="particle_momentum_y";
-    realData_m[idx++] ="particle_momentum_z";
-    realData_m[idx++] ="particle_charge";
-    realData_m[idx++] ="particle_mass";
-    realData_m[idx++] ="particle_timestep";
-    realData_m[idx++] ="particle_potential";
-    realData_m[idx++] ="particle_electric_field_x";
-    realData_m[idx++] ="particle_electric_field_y";
-    realData_m[idx++] ="particle_electric_field_z";
-    realData_m[idx++] ="particle_magnetic_field_x";
-    realData_m[idx++] ="particle_magnetic_field_y";
-    realData_m[idx++] ="particle_magnetic_field_z";
+//     realData_m[idx++] ="position_x";
+//     realData_m[idx++] ="position_y";
+//     realData_m[idx++] ="position_z";
+    realData_m[idx++] ="momentum_x";
+    realData_m[idx++] ="momentum_y";
+    realData_m[idx++] ="momentum_z";
+    realData_m[idx++] ="charge";
+    realData_m[idx++] ="mass";
+    realData_m[idx++] ="timestep";
+    realData_m[idx++] ="potential";
+    realData_m[idx++] ="electric_field_x";
+    realData_m[idx++] ="electric_field_y";
+    realData_m[idx++] ="electric_field_z";
+    realData_m[idx++] ="magnetic_field_x";
+    realData_m[idx++] ="magnetic_field_y";
+    realData_m[idx++] ="magnetic_field_z";
     
     namespace fs = boost::filesystem;
     
@@ -76,7 +76,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
      */
     std::string dir = amrex::Concatenate((dir_m / "plt").string(), step_m, 10);
     
-    int nLevels = rho.size();
+    int nLevels = 1; /*FIXME*/
     //
     // Only let 64 CPUs be writing at any one time.
     //
@@ -92,7 +92,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
     //
     Ippl::Comm->barrier();
 
-    std::string HeaderFileName = dir + "/OpalAmrHeader";
+    std::string HeaderFileName = dir + "/Header";
 
     amrex::VisMF::IO_Buffer io_buffer(amrex::VisMF::IO_Buffer_Size);
 
@@ -110,7 +110,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
         if (!HeaderFile.good())
             amrex::FileOpenFailed(HeaderFileName);
-        HeaderFile << "OpalAmr-V1.0\n";
+        HeaderFile << "HyperClaw-V1.1\n";
 
         HeaderFile << nData << '\n';
 
@@ -188,6 +188,8 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         //
         Ippl::Comm->barrier();
         
+        std::cout << "hi 1 level " << lev << " of " << nLevels << std::endl;
+        
         if ( Ippl::myNode() == 0 )
         {
             HeaderFile << lev << ' ' << rho[lev]->boxArray().size() << ' ' << 0 << '\n';
@@ -254,6 +256,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
 
 
 void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
+                             const double& time,
                              const double& scale)
 {
     /* According to
@@ -286,13 +289,16 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
     //
     // We store the particles in a subdirectory of "dir".
     //
-    std::string pdir = dir_m.string();
+    std::string dir = amrex::Concatenate((dir_m / "plt").string(), step_m, 10);
+    
+    
+    std::string pdir = dir;
 
     if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') {
         pdir += '/';
     }
     
-    pdir += "particle";
+    pdir += "opal";
     //
     // Make the particle directories if they don't already exist.
     //
@@ -435,7 +441,7 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
         // Write out the header for each particle
         if (gotsome && amrex::ParallelDescriptor::IOProcessor()) {
             std::string HeaderFileName = LevelDir;
-            HeaderFileName += "/OpalParticle_H";
+            HeaderFileName += "/Particle_H";
             std::ofstream ParticleHeader(HeaderFileName);
             
             layout_p->ParticleBoxArray(lev).writeOn(ParticleHeader);
@@ -580,7 +586,7 @@ void AmrYtWriter::writeParticles_m(int level,
         
         
         // First write out the integer data in binary.
-        const int iChunkSize = intData_m.size();
+        const int iChunkSize = 2 + intData_m.size();
         amrex::Vector<int> istuff(count[grid]*iChunkSize);
         int* iptr = istuff.dataPtr();
         
@@ -594,13 +600,14 @@ void AmrYtWriter::writeParticles_m(int level,
                 iptr[1] = Ippl::myNode();
                 iptr[2] = bunch_p->Bin[ip];
                 
+                iptr += 2 + intData_m.size();
             }
         }
 
         amrex::writeIntData(istuff.dataPtr(), istuff.size(), ofs);
       
         // Write the Real data in binary.
-        const int rChunkSize = realData_m.size();
+        const int rChunkSize = AMREX_SPACEDIM + realData_m.size();
         amrex::Vector<double> rstuff(count[grid]*rChunkSize);
         double* rptr = rstuff.dataPtr();
         
@@ -640,6 +647,8 @@ void AmrYtWriter::writeParticles_m(int level,
                 // magnetic field
                 for (int j = 0; j < AMREX_SPACEDIM; ++j)
                     rptr[idx++] = bunch_p->Bf[ip](j);
+                
+                rptr += idx; //realData_m.size();
             }
         }
         amrex::writeDoubleData(rstuff.dataPtr(), rstuff.size(), ofs);

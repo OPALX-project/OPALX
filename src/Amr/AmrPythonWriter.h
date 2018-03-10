@@ -36,6 +36,7 @@ public:
      * @param bunch_p
      */
     void writeBunch(const AmrPartBunch* bunch_p,
+                    const double& time,
                     const double& scale);
     
 private:

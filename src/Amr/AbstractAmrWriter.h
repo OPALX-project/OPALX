@@ -33,6 +33,7 @@ public:
      * @param bunch_p
      */
     virtual void writeBunch(const AmrPartBunch* bunch_p,
+                            const double& time,
                             const double& scale = 1.0) = 0;
     
     virtual ~AbstractAmrWriter() { }
