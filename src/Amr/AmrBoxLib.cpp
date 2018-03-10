@@ -4,17 +4,7 @@
 #include "Structure/FieldSolver.h"
 #include "Solvers/PoissonSolver.h"
 
-#ifdef AMR_YT_DUMP
-    #include "Amr/AmrYtWriter.h"
-#endif
-
-#ifdef AMR_PYTHON_DUMP
-    #include "Amr/AmrPythonWriter.h"
-#endif
-
-#ifdef DBG_SCALARFIELD
-    #include "Amr/AmrSliceWriter.h"
-#endif
+#include "Amr/AmrYtWriter.h"
     
 #include "AmrBoxLib_F.h"
 #include <AMReX_MultiFabUtil.H>
@@ -330,51 +320,29 @@ void AmrBoxLib::computeSelfFields() {
     /*
      * dumping only
      */
-
-#ifdef AMR_YT_DUMP
-    INFOMSG("*** START DUMPING FIELDS IN YT FORMAT ***" << endl);
-    AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
+    if ( !(bunch_mp->getGlobalTrackStep()  % Options::amrYtDumpFreq) ) {
+        AmrYtWriter ytWriter(bunch_mp->getGlobalTrackStep());
     
-    AmrIntArray_t rr(nLevel);
-    for (int i = 0; i < nLevel - 1; ++i)
-        rr[i] = this->MaxRefRatio(i);
-    
-    double time = bunch_mp->getT(); // in seconds
-    
-    // we need to undo coefficient when writing charge density
-    for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
-    
-    ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
-    INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
-#endif
-
-#ifdef AMR_PYTHON_DUMP
-    INFOMSG("*** START DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
-    AmrPythonWriter pyWriter;
-    pyWriter.writeBunch(bunch_mp, scalefactor);
-    INFOMSG("*** FINISHED DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
-#endif
-    
-#ifdef DBG_SCALARFIELD
-    if ( Ippl::getNodes() > 1 )
-        throw OpalException("AmrBoxLib::computeSelfFields() ",
-                            "Dumping only in serial execution.");
-    
-    int step = bunch_mp->getLocalTrackStep();
-    AmrSliceWriter sliceWriter;
-
-#ifdef AMR_YT_DUMP
-    // make sure we undo only once if AMR_YT_DUMP is also enabled
-#else
-    // we need to undo coefficient when writing charge density
-    for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
-#endif
-    
-    sliceWriter.writeFields(rho_m, phi_m, efield_m,
-                            AmrIntArray_t(), this->geom, step, scalefactor);
-#endif
+        AmrIntArray_t rr(finest_level + 1);
+        for (int i = 0; i < finest_level; ++i)
+            rr[i] = this->MaxRefRatio(i);
+        
+        double time = bunch_mp->getT(); // in seconds
+        
+        
+        // we need to undo coefficient when writing charge density
+        for (int i = 0; i <= finest_level; ++i)
+            this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
+        
+        
+        ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
+        
+        ytWriter.writeBunch(bunch_mp, time, scalefactor);
+        
+        // we need to undo coefficient when writing charge density
+        for (int i = 0; i <= finest_level; ++i)
+            this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
+    }
 }
 
 
@@ -478,51 +446,29 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     /*
      * dumping only
      */
+    if ( !(bunch_mp->getGlobalTrackStep()  % Options::amrYtDumpFreq) ) {
+        AmrYtWriter ytWriter(bunch_mp->getGlobalTrackStep());
     
-#ifdef AMR_YT_DUMP
-    INFOMSG("*** START DUMPING FIELDS IN YT FORMAT ***" << endl);
-    AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
-    
-    AmrIntArray_t rr(nLevel);
-    for (int i = 0; i < nLevel - 1; ++i)
-        rr[i] = this->MaxRefRatio(i);
-    
-    double time = bunch_mp->getT(); // ps
-    
-    // we need to undo coefficient when writing charge density
-    for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
-    
-    ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
-    INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
-#endif
-
-#ifdef AMR_PYTHON_DUMP
-    INFOMSG("*** START DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
-    AmrPythonWriter pyWriter;
-    pyWriter.writeBunch(bunch_mp, scalefactor);
-    INFOMSG("*** FINISHED DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
-#endif
-    
-#ifdef DBG_SCALARFIELD
-    if ( Ippl::getNodes() > 1 )
-        throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
-                            "Dumping only in serial execution.");
-    
-    int step = bunch_mp->getLocalTrackStep();
-    AmrSliceWriter sliceWriter;
-    
-#ifdef AMR_YT_DUMP
-    // make sure we undo only once if AMR_YT_DUMP is also enabled
-#else
-    // we need to undo coefficient when writing charge density
-    for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
-#endif
-    
-    sliceWriter.writeFields(rho_m, phi_m, efield_m,
-                            AmrIntArray_t(), this->geom, step, scalefactor);
-#endif
+        AmrIntArray_t rr(nLevel);
+        for (int i = 0; i < nLevel - 1; ++i)
+            rr[i] = this->MaxRefRatio(i);
+        
+        double time = bunch_mp->getT(); // in seconds
+        
+        
+        // we need to undo coefficient when writing charge density
+        for (int i = 0; i <= finest_level; ++i)
+            this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
+        
+        
+        ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
+        
+        ytWriter.writeBunch(bunch_mp, time, scalefactor);
+        
+        // we need to undo coefficient when writing charge density
+        for (int i = 0; i <= finest_level; ++i)
+            this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
+    }
 }
 
 
@@ -612,50 +558,29 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     /*
      * dumping only
      */
-#ifdef AMR_YT_DUMP
-    INFOMSG("*** START DUMPING FIELDS IN YT FORMAT ***" << endl);
-    AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
+    if ( !(bunch_mp->getGlobalTrackStep()  % Options::amrYtDumpFreq) ) {
+        AmrYtWriter ytWriter(bunch_mp->getGlobalTrackStep());
     
-    AmrIntArray_t rr(nLevel);
-    for (int i = 0; i < nLevel - 1; ++i)
-        rr[i] = this->MaxRefRatio(i);
-    
-    double time = bunch_mp->getT(); // ps
-    
-    // we need to undo coefficient when writing charge density
-    for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
-    
-    ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
-    INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
-#endif
-
-#ifdef AMR_PYTHON_DUMP
-    INFOMSG("*** START DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
-    AmrPythonWriter pyWriter;
-    pyWriter.writeBunch(bunch_mp, scalefactor);
-    INFOMSG("*** FINISHED DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
-#endif
-    
-#ifdef DBG_SCALARFIELD
-    if ( Ippl::getNodes() > 1 )
-        throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
-                            "Dumping only in serial execution.");
-    
-    int step = bunch_mp->getLocalTrackStep();
-    AmrSliceWriter sliceWriter;
-    
-#ifdef AMR_YT_DUMP
-    // make sure we undo only once if AMR_YT_DUMP is also enabled
-#else
-    // we need to undo coefficient when writing charge density
-    for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
-#endif
-
-    sliceWriter.writeFields(rho_m, phi_m, efield_m,
-                            AmrIntArray_t(), this->geom, step, scalefactor);
-#endif
+        AmrIntArray_t rr(finest_level + 1);
+        for (int i = 0; i < finest_level; ++i)
+            rr[i] = this->MaxRefRatio(i);
+        
+        double time = bunch_mp->getT(); // in seconds
+        
+        
+        // we need to undo coefficient when writing charge density
+        for (int i = 0; i <= finest_level; ++i)
+            this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
+        
+        
+        ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
+        
+        ytWriter.writeBunch(bunch_mp, time, scalefactor);
+        
+        // we need to undo coefficient when writing charge density
+        for (int i = 0; i <= finest_level; ++i)
+            this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
+    }
 }
 
 

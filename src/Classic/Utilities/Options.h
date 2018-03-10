@@ -147,6 +147,9 @@ namespace Options {
     
 #ifdef ENABLE_AMR
     extern bool amr;
+    
+    /// The frequency to dump AMR grid data and particles into file
+    extern int amrYtDumpFreq;
 #endif
     
     extern bool memoryDump;

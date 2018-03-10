@@ -94,6 +94,9 @@ namespace Options {
     
 #ifdef ENABLE_AMR
     bool amr = false;
+    
+    /// The frequency to dump AMR grid data and particles into file
+    int amrYtDumpFreq = 10;
 #endif
     
     bool memoryDump = false;
