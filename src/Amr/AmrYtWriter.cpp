@@ -68,6 +68,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
                               const amr::AmrFieldContainer_t& efield,
                               const amr::AmrIntArray_t& refRatio,
                               const amr::AmrGeomContainer_t& geom,
+                              const int& nLevel,
                               const double& time,
                               const double& scale)
 {
@@ -76,7 +77,6 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
      */
     std::string dir = amrex::Concatenate((dir_m / "plt").string(), step_m, 10);
     
-    int nLevels = 1; /*FIXME*/
     //
     // Only let 64 CPUs be writing at any one time.
     //
@@ -128,7 +128,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         
         // time
         HeaderFile << time << '\n';
-        HeaderFile << nLevels - 1 << std::endl; // maximum level number (0=single level)
+        HeaderFile << nLevel - 1 << std::endl; // maximum level number (0=single level)
         
         // physical domain
         for (int i = 0; i < AMREX_SPACEDIM; i++)
@@ -144,7 +144,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         HeaderFile << std::endl;
         
         // geometry domain for all levels
-        for (int i = 0; i < nLevels; ++i)
+        for (int i = 0; i < nLevel; ++i)
             HeaderFile << geom[i].Domain() << ' ';
         HeaderFile << std::endl;
         
@@ -152,7 +152,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         HeaderFile << 0 << " " << std::endl;
         
         // cell sizes for all level
-        for (int i = 0; i < nLevels; ++i) {
+        for (int i = 0; i < nLevel; ++i) {
             for (int k = 0; k < AMREX_SPACEDIM; k++)
                 HeaderFile << geom[i].CellSize()[k] / scale << ' ';
             HeaderFile << '\n';
@@ -163,7 +163,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         HeaderFile << "0\n"; // write boundary data
     }
     
-    for (int lev = 0; lev < nLevels; ++lev) {
+    for (int lev = 0; lev < nLevel; ++lev) {
         // Build the directory to hold the MultiFab at this level.
         // The name is relative to the directory containing the Header file.
         //
@@ -188,7 +188,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         //
         Ippl::Comm->barrier();
         
-        std::cout << "hi 1 level " << lev << " of " << nLevels << std::endl;
+        std::cout << "hi 1 level " << lev << " of " << nLevel << std::endl;
         
         if ( Ippl::myNode() == 0 )
         {
