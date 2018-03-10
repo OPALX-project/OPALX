@@ -40,6 +40,7 @@ void AmrPythonWriter::writeFields(const amr::AmrFieldContainer_t& rho,
 }
 
 void AmrPythonWriter::writeBunch(const AmrPartBunch* bunch_p,
+                                 const double& time,
                                  const double& scale)
 {
     /* We need to scale the geometry and cell sizes according to the
