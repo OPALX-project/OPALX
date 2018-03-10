@@ -132,6 +132,7 @@ void AmrSliceWriter::writeFields(const amr::AmrFieldContainer_t& rho,
 }
 
 void AmrSliceWriter::writeBunch(const AmrPartBunch* bunch_p,
+                                const double& time,
                                 const double& scale)
 {
     throw OpalException("AmrSliceWriter::writeBunch()",
