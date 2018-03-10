@@ -35,6 +35,7 @@ public:
                      const amr::AmrFieldContainer_t& efield,
                      const amr::AmrIntArray_t& refRatio,
                      const amr::AmrGeomContainer_t& geom,
+                     const int& nLevel,
                      const double& time,
                      const double& scale);
     
