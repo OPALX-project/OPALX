@@ -1,3 +1,6 @@
+#include "Algorithms/CoordinateSystemTrafo.h"
+#include "Physics/Physics.h"
+
 #include <boost/regex.hpp>
 
 #include <iostream>
@@ -9,25 +12,64 @@ std::string Double("(-?[0-9]+\\.?[0-9]*([Ee][+-]?[0-9]+)?)");
 std::string UInt("([0-9]+)");
 std::string FCall("([a-z]*)\\((.*)");
 
+struct base;
+
 struct function {
+    virtual ~function() {};
+
     virtual void print(int indent) = 0;
+    virtual void apply(std::vector<base*> &bfuncs) = 0;
 };
 
 typedef std::string::iterator iterator;
 
 bool parse(iterator &it, const iterator &end, function* &fun);
 
-struct rectangle: public function {
+struct base: public function {
+    CoordinateSystemTrafo trafo;
+    base():
+        trafo(Vector_t(0.0),
+              Quaternion(0.0, 0.0, 0.0, 1.0))
+    { }
+
+    virtual base* clone() = 0;
+};
+
+struct rectangle: public base {
     double width;
     double height;
+
+    rectangle():
+        base(),
+        width(0.0),
+        height(0.0)
+    { }
+
+    virtual ~rectangle() { }
 
     virtual void print(int indentwidth) {
         std::string indent(indentwidth, ' ');
         std::string indent2(indentwidth + 8, ' ');
+        Vector_t origin = trafo.getOrigin();
+        double angle = trafo.getRotation()[0] * 2 * Physics::rad2deg;
         std::cout << indent << "rectangle, \n"
                   << indent2 << "w: " << width << ", \n"
-                  << indent2 << "h: " << height;
-                  // << std::endl;
+                  << indent2 << "h: " << height << ", \n"
+                  << indent2 << "origin: " << origin[0] << ", " << origin[1] << ",\n"
+                  << indent2 << "angle: " << angle;
+    }
+
+    virtual void apply(std::vector<base*> &bfuncs) {
+        bfuncs.push_back(this->clone());
+    }
+
+    virtual base* clone() {
+        rectangle *rect = new rectangle;
+        rect->width = width;
+        rect->height = height;
+        rect->trafo = trafo;
+
+        return rect;
     }
 
     static
@@ -51,17 +93,40 @@ struct rectangle: public function {
     }
 };
 
-struct ellipse: public function {
+struct ellipse: public base {
     double width;
     double height;
+
+    ellipse():
+        width(0.0),
+        height(0.0)
+    { }
+
+    virtual ~ellipse() { }
 
     virtual void print(int indentwidth) {
         std::string indent(indentwidth, ' ');
         std::string indent2(indentwidth + 8, ' ');
+        Vector_t origin = trafo.getOrigin();
+        double angle = trafo.getRotation()[0] * 2 * Physics::rad2deg;
         std::cout << indent << "ellipse, \n"
                   << indent2 << "w: " << width << ", \n"
-                  << indent2 << "h: " << height;
-                  // << std::endl;
+                  << indent2 << "h: " << height << ", \n"
+                  << indent2 << "origin: " << origin[0] << ", " << origin[1] << ",\n"
+                  << indent2 << "angle: " << angle;
+    }
+
+    virtual void apply(std::vector<base*> &bfuncs) {
+        bfuncs.push_back(this->clone());
+    }
+
+    virtual base* clone() {
+        ellipse *elps = new ellipse;
+        elps->width = width;
+        elps->height = height;
+        elps->trafo = trafo;
+
+        return elps;
     }
 
     static
@@ -91,6 +156,10 @@ struct repeat: public function {
     double shiftx;
     double shifty;
 
+    virtual ~repeat() {
+        delete func;
+    }
+
     virtual void print(int indentwidth) {
         std::string indent(indentwidth, ' ');
         std::string indent2(indentwidth + 8, ' ');
@@ -100,7 +169,24 @@ struct repeat: public function {
                   << indent2 << "N: " << N << ", \n"
                   << indent2 << "dx: " << shiftx << ", \n"
                   << indent2 << "dy: " << shifty;
-                  // << std::endl;
+    }
+
+    virtual void apply(std::vector<base*> &bfuncs) {
+        CoordinateSystemTrafo shift(Vector_t(shiftx, shifty, 0.0),
+                                    Quaternion(0.0, 0.0, 0.0, 1.0));
+        func->apply(bfuncs);
+        const unsigned int size = bfuncs.size();
+
+        CoordinateSystemTrafo current_shift = shift;
+        for (unsigned int i = 0; i < N; ++ i) {
+            for (unsigned int j = 0; j < size; ++ j) {
+                base *obj = bfuncs[j]->clone();
+                obj->trafo = current_shift * obj->trafo;
+                bfuncs.push_back(obj);
+            }
+
+            current_shift *= shift;
+        }
     }
 
     static
@@ -132,6 +218,10 @@ struct translate: public function {
     double shiftx;
     double shifty;
 
+    virtual ~translate() {
+        delete func;
+    }
+
     virtual void print(int indentwidth) {
         std::string indent(indentwidth, ' ');
         std::string indent2(indentwidth + 8, ' ');
@@ -140,7 +230,18 @@ struct translate: public function {
         std::cout << ",\n"
                   << indent2 << "dx: " << shiftx << ", \n"
                   << indent2 << "dy: " << shifty;
-                  // << std::endl;
+    }
+
+    virtual void apply(std::vector<base*> &bfuncs) {
+        CoordinateSystemTrafo shift(Vector_t(shiftx, shifty, 0.0),
+                                    Quaternion(0.0, 0.0, 0.0, 1.0));
+        func->apply(bfuncs);
+        const unsigned int size = bfuncs.size();
+
+        for (unsigned int j = 0; j < size; ++ j) {
+            base *obj = bfuncs[j];
+            obj->trafo = shift * obj->trafo;
+        }
     }
 
     static
@@ -171,6 +272,10 @@ struct rotate: public function {
     function* func;
     double angle;
 
+    virtual ~rotate() {
+        delete func;
+    }
+
     virtual void print(int indentwidth) {
         std::string indent(indentwidth, ' ');
         std::string indent2(indentwidth + 8, ' ');
@@ -178,7 +283,18 @@ struct rotate: public function {
         func->print(indentwidth + 8);
         std::cout << ",\n"
                   << indent2 << "angle: " << angle;
-                  // << std::endl;
+    }
+
+    virtual void apply(std::vector<base*> &bfuncs) {
+        CoordinateSystemTrafo rotation(Vector_t(0.0, 0.0, 0.0),
+                                       Quaternion(0.5 * angle, 0.0, 0.0, 1.0));
+        func->apply(bfuncs);
+        const unsigned int size = bfuncs.size();
+
+        for (unsigned int j = 0; j < size; ++ j) {
+            base *obj = bfuncs[j];
+            obj->trafo = rotation * obj->trafo;
+        }
     }
 
     static
@@ -206,6 +322,12 @@ struct rotate: public function {
 struct unionf: public function {
     std::vector<function*> funcs;
 
+    virtual ~unionf () {
+        for (function* func: funcs) {
+            delete func;
+        }
+    }
+
     virtual void print(int indentwidth) {
         std::string indent(indentwidth, ' ');
         std::string indent2(indentwidth + 8, ' ');
@@ -214,11 +336,19 @@ struct unionf: public function {
         std::cout << indent2 << "funcs: {\n";
         funcs.front()->print(indentwidth + 16);
         for (unsigned int i = 1; i < funcs.size(); ++ i) {
-            std::cout << indent3 << "," << std::endl;
+            std::cout << "\n"
+                      << indent3 << "," << std::endl;
             funcs[i]->print(indentwidth + 16);
         }
         std::cout << "\n"
-                  << indent2 << "} ";// << std::endl;
+                  << indent2 << "} ";
+    }
+
+    virtual void apply(std::vector<base*> &bfuncs) {
+        for (unsigned int i = 0; i < funcs.size(); ++ i) {
+            function *func = funcs[i];
+            func->apply(bfuncs);
+        }
     }
 
     static
@@ -339,7 +469,22 @@ main()
 
     if (parse(str, fun)) {
         fun->print(0);
-        std::cout << std::endl;
+        std::cout << "\n" << std::endl;
+
+        std::vector<base*> baseBlocks;
+        fun->apply(baseBlocks);
+
+        for (base* bfun: baseBlocks) {
+            bfun->print(0);
+            std::cout << std::endl;
+        }
+
+        for (base* func: baseBlocks) {
+            delete func;
+        }
     }
+
+    delete fun;
+
     return 0;
 }
