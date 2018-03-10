@@ -322,26 +322,24 @@ void AmrBoxLib::computeSelfFields() {
      */
     if ( !(bunch_mp->getGlobalTrackStep()  % Options::amrYtDumpFreq) ) {
         AmrYtWriter ytWriter(bunch_mp->getGlobalTrackStep());
-    
-        AmrIntArray_t rr(finest_level + 1);
+        
+        int nLevel = finest_level + 1;
+        
+        AmrIntArray_t rr(nLevel);
         for (int i = 0; i < finest_level; ++i)
             rr[i] = this->MaxRefRatio(i);
         
         double time = bunch_mp->getT(); // in seconds
         
-        
         // we need to undo coefficient when writing charge density
         for (int i = 0; i <= finest_level; ++i)
             this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
         
         
-        ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
+        ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom,
+                             nLevel, time, scalefactor);
         
         ytWriter.writeBunch(bunch_mp, time, scalefactor);
-        
-        // we need to undo coefficient when writing charge density
-        for (int i = 0; i <= finest_level; ++i)
-            this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
     }
 }
 
@@ -455,19 +453,15 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
         
         double time = bunch_mp->getT(); // in seconds
         
-        
         // we need to undo coefficient when writing charge density
         for (int i = 0; i <= finest_level; ++i)
             this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
         
         
-        ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
+        ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom,
+                             nLevel, time, scalefactor);
         
         ytWriter.writeBunch(bunch_mp, time, scalefactor);
-        
-        // we need to undo coefficient when writing charge density
-        for (int i = 0; i <= finest_level; ++i)
-            this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
     }
 }
 
@@ -560,26 +554,24 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
      */
     if ( !(bunch_mp->getGlobalTrackStep()  % Options::amrYtDumpFreq) ) {
         AmrYtWriter ytWriter(bunch_mp->getGlobalTrackStep());
-    
-        AmrIntArray_t rr(finest_level + 1);
+        
+        int nLevel = finest_level + 1;
+        
+        AmrIntArray_t rr(nLevel);
         for (int i = 0; i < finest_level; ++i)
             rr[i] = this->MaxRefRatio(i);
         
         double time = bunch_mp->getT(); // in seconds
         
-        
         // we need to undo coefficient when writing charge density
         for (int i = 0; i <= finest_level; ++i)
             this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
         
         
-        ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
+        ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom,
+                             nLevel, time, scalefactor);
         
         ytWriter.writeBunch(bunch_mp, time, scalefactor);
-        
-        // we need to undo coefficient when writing charge density
-        for (int i = 0; i <= finest_level; ++i)
-            this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
     }
 }
 
