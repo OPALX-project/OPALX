@@ -23,7 +23,7 @@ AmrYtWriter::AmrYtWriter(int step)
     realData_m.resize(//3 +  // coordinates
                       3 +  // momenta
                       3 +  // charge + mass + timestep
-                      1 +  // potential at particle location
+//                       1 +  // potential at particle location
                       3 +  // electric field at particle location
                       3);  // magnetic field at particle location
     
@@ -37,7 +37,7 @@ AmrYtWriter::AmrYtWriter(int step)
     realData_m[idx++] ="charge";
     realData_m[idx++] ="mass";
     realData_m[idx++] ="timestep";
-    realData_m[idx++] ="potential";
+//     realData_m[idx++] ="potential";
     realData_m[idx++] ="electric_field_x";
     realData_m[idx++] ="electric_field_y";
     realData_m[idx++] ="electric_field_z";
@@ -637,8 +637,8 @@ void AmrYtWriter::writeParticles_m(int level,
                 // timestep
                 rptr[idx++] = bunch_p->dt[ip];
                 
-                // potential
-                rptr[idx++] = bunch_p->Phi[ip];
+//                 // potential
+//                 rptr[idx++] = bunch_p->Phi[ip];
                 
                 // electric field
                 for (int j = 0; j < AMREX_SPACEDIM; ++j)
