@@ -1,13 +1,22 @@
 repeat(
-        union(
-                translate(
-                        rectangle(0.1, 0.1),
-                        -0.01,
-                        -0.02
-                        ),
-                        ellipse(0.1, 0.1)
-                ),
-        2,
-        0.1,
-        0.2
-)
+       union(
+             ellipse(
+                     0.1,
+                     0.1
+                    ),
+             translate(
+                       rotate(
+                              rectangle(
+                                        0.1,
+                                        0.1
+                                       ),
+                              0.52359877
+                             ),
+                       -0.01,
+                       -0.02
+                      )
+            ),
+       2,
+       0.1,
+       0.2
+      )
