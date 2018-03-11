@@ -304,8 +304,8 @@ struct rotate: public function {
     bool parse_detail(iterator &it, const iterator &end, function* &fun) {
         rotate *rot = static_cast<rotate*>(fun);
         if (!parse(it, end, rot->func)) return false;
-
-        boost::regex argumentList("," + Double + "," + Double + "\\)(.*)");
+        std::cout << std::string(it, end) << std::endl;
+        boost::regex argumentList("," + Double + "\\)(.*)");
         boost::smatch what;
 
         std::string str(it, end);
@@ -436,10 +436,11 @@ bool parse(iterator &it, const iterator &end, function* &fun) {
         return true;
     } else if (identifier == "rotate") {
         fun = new rotate;
-        iterator it2 = it + shift;
-        if (!rotate::parse_detail(it2, end, fun)) return false;
+        // iterator it2 =
+            it += shift;
+        if (!rotate::parse_detail(it, end, fun)) return false;
 
-        it = it2;
+        // it = it2;
 
         return true;
     } else if (identifier == "translate") {
