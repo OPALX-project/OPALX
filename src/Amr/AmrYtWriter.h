@@ -65,7 +65,7 @@ private:
                           const AmrPartBunch* bunch_p) const;
     
 private:
-    boost::filesystem::path dir_m;          ///< directory where to write files
+    std::string dir_m;                      ///< directory where to write files
     int step_m;                             ///< that we write
     
     std::vector<std::string> intData_m;     ///< integer bunch data

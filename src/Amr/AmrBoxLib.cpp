@@ -320,8 +320,8 @@ void AmrBoxLib::computeSelfFields() {
     /*
      * dumping only
      */
-    if ( !(bunch_mp->getGlobalTrackStep()  % Options::amrYtDumpFreq) ) {
-        AmrYtWriter ytWriter(bunch_mp->getGlobalTrackStep());
+    if ( !(bunch_mp->getLocalTrackStep()  % Options::amrYtDumpFreq) ) {
+        AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
         
         int nLevel = finest_level + 1;
         
@@ -444,8 +444,9 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     /*
      * dumping only
      */
-    if ( !(bunch_mp->getGlobalTrackStep()  % Options::amrYtDumpFreq) ) {
-        AmrYtWriter ytWriter(bunch_mp->getGlobalTrackStep());
+    
+    if ( !(bunch_mp->getLocalTrackStep()  % Options::amrYtDumpFreq) ) {
+        AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
     
         AmrIntArray_t rr(nLevel);
         for (int i = 0; i < nLevel - 1; ++i)
@@ -552,8 +553,8 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     /*
      * dumping only
      */
-    if ( !(bunch_mp->getGlobalTrackStep()  % Options::amrYtDumpFreq) ) {
-        AmrYtWriter ytWriter(bunch_mp->getGlobalTrackStep());
+    if ( !(bunch_mp->getLocalTrackStep()  % Options::amrYtDumpFreq) ) {
+        AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
         
         int nLevel = finest_level + 1;
         

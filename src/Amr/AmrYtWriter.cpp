@@ -48,13 +48,14 @@ AmrYtWriter::AmrYtWriter(int step)
     namespace fs = boost::filesystem;
     
     fs::path dir = OpalData::getInstance()->getInputBasename();
-    dir_m = dir.parent_path() / "data" / "amr" / "yt";
+    boost::filesystem::path path = dir.parent_path() / "data" / "amr" / "yt";
+    dir_m = amrex::Concatenate((path / "plt").string(), step, 10);
     
-    if ( Ippl::myNode() == 0 && !fs::exists(dir_m) ) {
+    if ( Ippl::myNode() == 0 && !fs::exists(path) ) {
         try {
-            fs::create_directories( dir_m );
+            fs::create_directories( path );
         } catch(const fs::filesystem_error& ex) {
-            throw OpalException("AmrPythonWriter::AmrPythonWriter()",
+            throw OpalException("AmrYtWriter::AmrYtWriter()",
                                 ex.what());
         }
     }
@@ -75,7 +76,6 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
     /* We need to scale the geometry and cell sizes according to the
      * particle mapping
      */
-    std::string dir = amrex::Concatenate((dir_m / "plt").string(), step_m, 10);
     
     //
     // Only let 64 CPUs be writing at any one time.
@@ -85,14 +85,14 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if ( Ippl::myNode() == 0 )
-        if (!amrex::UtilCreateDirectory(dir, 0755))
-            amrex::CreateDirectoryFailed(dir);
+        if (!amrex::UtilCreateDirectory(dir_m, 0755))
+            amrex::CreateDirectoryFailed(dir_m);
     //
     // Force other processors to wait till directory is built.
     //
     Ippl::Comm->barrier();
 
-    std::string HeaderFileName = dir + "/Header";
+    std::string HeaderFileName = dir_m + "/Header";
 
     amrex::VisMF::IO_Buffer io_buffer(amrex::VisMF::IO_Buffer_Size);
 
@@ -173,7 +173,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         //
         // Now for the full pathname of that directory.
         //
-        std::string FullPath = dir;
+        std::string FullPath = dir_m;
         if (!FullPath.empty() && FullPath[FullPath.length()-1] != '/')
             FullPath += '/';
         FullPath += Level;
@@ -187,8 +187,6 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         // Force other processors to wait till directory is built.
         //
         Ippl::Comm->barrier();
-        
-        std::cout << "hi 1 level " << lev << " of " << nLevel << std::endl;
         
         if ( Ippl::myNode() == 0 )
         {
@@ -283,17 +281,13 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
     const int  NProcs       = amrex::ParallelDescriptor::NProcs();
     const int  IOProcNumber = amrex::ParallelDescriptor::IOProcessorNumber();
     
-    bool levelDirectoriesCreated = false;
     bool doUnlink = true;
     
     //
     // We store the particles in a subdirectory of "dir".
     //
-    std::string dir = amrex::Concatenate((dir_m / "plt").string(), step_m, 10);
+    std::string pdir = dir_m;
     
-    
-    std::string pdir = dir;
-
     if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') {
         pdir += '/';
     }
@@ -302,17 +296,14 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
     //
     // Make the particle directories if they don't already exist.
     //
-    if ( ! levelDirectoriesCreated) {
-        if (amrex::ParallelDescriptor::IOProcessor()) {
-            amrex::Print() << "IOIOIOIO:CD  Particle::Checkpoint:0:  creating directory:  "
-                           << pdir << '\n';
-            if ( ! amrex::UtilCreateDirectory(pdir, 0755)) {
-                amrex::CreateDirectoryFailed(pdir);
-            }
+    if ( Ippl::myNode() == 0 ) {
+        if ( ! amrex::UtilCreateDirectory(pdir, 0755)) {
+            amrex::CreateDirectoryFailed(pdir);
         }
-        // Force other processors to wait until directory is built.
-        amrex::ParallelDescriptor::Barrier();
     }
+    
+    // Force other processors to wait until directory is built.
+    Ippl::Comm->barrier();
     
     //
     // The header contains the info we need to read back in the particles.
@@ -338,7 +329,7 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
            *globalPartPerLevel.get(),
            nLevel, std::plus<size_t>());
     
-    if (amrex::ParallelDescriptor::IOProcessor())
+    if ( Ippl::myNode() == 0 )
     {
         std::string HdrFileName = pdir;
         
@@ -423,23 +414,19 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
             
             LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
             
-            if ( ! levelDirectoriesCreated) {
-                if (amrex::ParallelDescriptor::IOProcessor()) {
-                    amrex::Print() << "IOIOIOIO:CD  Particle::Checkpoint:1:  creating directory:  "
-                                   << LevelDir << '\n';
-                    if ( ! amrex::UtilCreateDirectory(LevelDir, 0755)) {
-                        amrex::CreateDirectoryFailed(LevelDir);
-                    }
+            if ( Ippl::myNode() == 0 ) {
+                if ( ! amrex::UtilCreateDirectory(LevelDir, 0755)) {
+                    amrex::CreateDirectoryFailed(LevelDir);
                 }
-                //
-                // Force other processors to wait until directory is built.
-                //
-                amrex::ParallelDescriptor::Barrier();
             }
+            //
+            // Force other processors to wait until directory is built.
+            //
+            Ippl::Comm->barrier();
         }
         
         // Write out the header for each particle
-        if (gotsome && amrex::ParallelDescriptor::IOProcessor()) {
+        if ( gotsome && Ippl::myNode() == 0 ) {
             std::string HeaderFileName = LevelDir;
             HeaderFileName += "/Particle_H";
             std::ofstream ParticleHeader(HeaderFileName);
@@ -485,7 +472,7 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
             amrex::ParallelDescriptor::ReduceLongSum(where.dataPtr(), where.size(), IOProcNumber);
         }
 
-        if (amrex::ParallelDescriptor::IOProcessor()) {
+        if ( Ippl::myNode() == 0 ) {
             for (int j = 0; j < state.size(); j++) {
                 //
                 // We now write the which file, the particle count, and the
@@ -496,7 +483,6 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
             }
 
             if (gotsome && doUnlink) {
-                BL_PROFILE_VAR("PC<NNNN>::Checkpoint:unlink", unlink);
                 //
                 // Unlink any zero-length data files.
                 //
@@ -509,8 +495,6 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
                 for (int i = 0, N=cnt.size(); i < N; i++) {
                     if (cnt[i] == 0) {
                         std::string FullFileName = amrex::NFilesIter::FileName(i, filePrefix);
-                        amrex::Print() << "::IOIOIOIO:  Unlinking file:  "<< FullFileName << '\n';
-
                         amrex::UnlinkFile(FullFileName.c_str());
                     }
                 }
@@ -518,11 +502,12 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
         }
     }            // ---- end for(lev...)
 
-    if (amrex::ParallelDescriptor::IOProcessor()) {
+    if ( Ippl::myNode() == 0 ) {
         HdrFile.flush();
         HdrFile.close();
         if ( ! HdrFile.good()) {
-            amrex::Abort("ParticleContainer<NSR, NSI, NAR, NAI>::Checkpoint(): problem writing HdrFile");
+            throw OpalException("AmrYtWriter:writeBunch()",
+                                "Problem writing HdrFile");
         }
     }
 }
