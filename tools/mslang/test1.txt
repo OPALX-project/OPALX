@@ -1,16 +1,19 @@
 repeat(
        union(
-             ellipse(
-                     0.1,
-                     0.1
-                    ),
+             rotate(
+                    ellipse(
+                            0.1,
+                            0.2
+                           ),
+                    0.52359877
+                   ),
              translate(
                        rotate(
                               rectangle(
-                                        0.1,
+                                        0.2,
                                         0.1
                                        ),
-                              0.52359877
+                              0.252359877
                              ),
                        -0.01,
                        -0.02
