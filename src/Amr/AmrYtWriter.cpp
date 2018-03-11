@@ -119,7 +119,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
             HeaderFile << "rho\n";
         
         for (int ivar = 1; ivar <= phi[0]->nComp(); ivar++)
-            HeaderFile << "potential\n";
+            HeaderFile << "phi\n";
         
         HeaderFile << "Ex\nEy\nEz\n";
         
@@ -128,7 +128,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         
         // time
         HeaderFile << time << '\n';
-        HeaderFile << nLevel - 1 << std::endl; // maximum level number (0=single level)
+        HeaderFile << nLevel - 1 << '\n'; // maximum level number (0=single level)
         
         // physical domain
         for (int i = 0; i < AMREX_SPACEDIM; i++)
@@ -136,20 +136,22 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         HeaderFile << '\n';
         for (int i = 0; i < AMREX_SPACEDIM; i++)
             HeaderFile << geom[0].ProbHi(i) / scale << ' ';
-        HeaderFile << std::endl;
+        HeaderFile << '\n';
         
         // reference ratio
         for (int i = 0; i < refRatio.size(); ++i)
             HeaderFile << refRatio[i] << ' ';
-        HeaderFile << std::endl;
+        HeaderFile << '\n';
         
         // geometry domain for all levels
         for (int i = 0; i < nLevel; ++i)
             HeaderFile << geom[i].Domain() << ' ';
-        HeaderFile << std::endl;
+        HeaderFile << '\n';
         
         // number of time steps
-        HeaderFile << 0 << " " << std::endl;
+        for (int i = 0; i < nLevel; ++i)
+            HeaderFile << 0 << ' ';
+        HeaderFile << '\n';
         
         // cell sizes for all level
         for (int i = 0; i < nLevel; ++i) {
@@ -190,8 +192,8 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         
         if ( Ippl::myNode() == 0 )
         {
-            HeaderFile << lev << ' ' << rho[lev]->boxArray().size() << ' ' << 0 << '\n';
-            HeaderFile << 0 << '\n';    // # time steps at this level
+            HeaderFile << lev << ' ' << rho[lev]->boxArray().size() << ' ' << 0 /*time*/ << '\n';
+            HeaderFile << 0 /* level steps */ << '\n';
     
             for (int i = 0; i < rho[lev]->boxArray().size(); ++i)
             {
@@ -227,7 +229,10 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         //
         // We combine all of the multifabs 
         //
-        amr::AmrField_t data(rho[lev]->boxArray(), rho[lev]->DistributionMap(), nData, 0);
+        amr::AmrField_t data(rho[lev]->boxArray(),
+                             rho[lev]->DistributionMap(),
+                             nData, 0,
+                             amrex::MFInfo());
         
         //
         // Cull data -- use no ghost cells.
@@ -250,6 +255,9 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
     
         amrex::VisMF::Write(data,TheFullPath);
     }
+    
+    if ( Ippl::myNode() == 0 )
+        HeaderFile.close();
 }
 
 
