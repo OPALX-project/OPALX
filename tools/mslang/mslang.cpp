@@ -348,12 +348,12 @@ struct unionf: public function {
     }
 
     virtual void apply(std::vector<base*> &bfuncs) {
-        std::vector<base*> children;
         for (unsigned int i = 0; i < funcs.size(); ++ i) {
+            std::vector<base*> children;
             function *func = funcs[i];
             func->apply(children);
+            bfuncs.insert(bfuncs.end(), children.begin(), children.end());
         }
-        bfuncs.insert(bfuncs.end(), children.begin(), children.end());
     }
 
     static
