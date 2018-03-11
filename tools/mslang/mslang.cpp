@@ -5,6 +5,8 @@
 
 #include <iostream>
 #include <string>
+#include <fstream>
+#include <streambuf>
 #include <cstdlib>
 
 std::string UDouble("([0-9]+\\.?[0-9]*([Ee][+-]?[0-9]+)?)");
@@ -29,7 +31,7 @@ struct base: public function {
     CoordinateSystemTrafo trafo;
     base():
         trafo(Vector_t(0.0),
-              Quaternion(0.0, 0.0, 0.0, 1.0))
+              Quaternion(1.0, 0.0, 0.0, 0.0))
     { }
 
     virtual base* clone() = 0;
@@ -51,7 +53,7 @@ struct rectangle: public base {
         std::string indent(indentwidth, ' ');
         std::string indent2(indentwidth + 8, ' ');
         Vector_t origin = trafo.getOrigin();
-        double angle = trafo.getRotation()[0] * 2 * Physics::rad2deg;
+        double angle = acos(trafo.getRotation()[0]) * 2 * Physics::rad2deg;
         std::cout << indent << "rectangle, \n"
                   << indent2 << "w: " << width << ", \n"
                   << indent2 << "h: " << height << ", \n"
@@ -108,7 +110,7 @@ struct ellipse: public base {
         std::string indent(indentwidth, ' ');
         std::string indent2(indentwidth + 8, ' ');
         Vector_t origin = trafo.getOrigin();
-        double angle = trafo.getRotation()[0] * 2 * Physics::rad2deg;
+        double angle = acos(trafo.getRotation()[0]) * 2 * Physics::rad2deg;
         std::cout << indent << "ellipse, \n"
                   << indent2 << "w: " << width << ", \n"
                   << indent2 << "h: " << height << ", \n"
@@ -173,7 +175,7 @@ struct repeat: public function {
 
     virtual void apply(std::vector<base*> &bfuncs) {
         CoordinateSystemTrafo shift(Vector_t(shiftx, shifty, 0.0),
-                                    Quaternion(0.0, 0.0, 0.0, 1.0));
+                                    Quaternion(1.0, 0.0, 0.0, 0.0));
         func->apply(bfuncs);
         const unsigned int size = bfuncs.size();
 
@@ -234,12 +236,13 @@ struct translate: public function {
 
     virtual void apply(std::vector<base*> &bfuncs) {
         CoordinateSystemTrafo shift(Vector_t(shiftx, shifty, 0.0),
-                                    Quaternion(0.0, 0.0, 0.0, 1.0));
+                                    Quaternion(1.0, 0.0, 0.0, 0.0));
         func->apply(bfuncs);
         const unsigned int size = bfuncs.size();
 
         for (unsigned int j = 0; j < size; ++ j) {
             base *obj = bfuncs[j];
+            CoordinateSystemTrafo trafo = obj->trafo;
             obj->trafo = shift * obj->trafo;
         }
     }
@@ -287,7 +290,7 @@ struct rotate: public function {
 
     virtual void apply(std::vector<base*> &bfuncs) {
         CoordinateSystemTrafo rotation(Vector_t(0.0, 0.0, 0.0),
-                                       Quaternion(0.5 * angle, 0.0, 0.0, 1.0));
+                                       Quaternion(cos(0.5 * angle), 0.0, 0.0, sin(0.5 * angle)));
         func->apply(bfuncs);
         const unsigned int size = bfuncs.size();
 
@@ -345,10 +348,12 @@ struct unionf: public function {
     }
 
     virtual void apply(std::vector<base*> &bfuncs) {
+        std::vector<base*> children;
         for (unsigned int i = 0; i < funcs.size(); ++ i) {
             function *func = funcs[i];
-            func->apply(bfuncs);
+            func->apply(children);
         }
+        bfuncs.insert(bfuncs.end(), children.begin(), children.end());
     }
 
     static
@@ -460,12 +465,19 @@ bool parse(iterator &it, const iterator &end, function* &fun) {
 
 }
 
-int
-main()
+int main(int argc, char *argv[])
 {
+    if (argc < 2) {
+        std::cout << "please provide the name of the file that contains your code" << std::endl;
+        return 1;
+    }
     function *fun;
-    //std::string str("rectangle(0.1, 0.01)");
-    std::string str("repeat( translate(union(rectangle(0.1, 0.1), ellipse(0.1, 0.1)), -0.01, -0.02), 2, 0.1, 0.2)");
+
+    std::ifstream t(argv[1]);
+    std::string str((std::istreambuf_iterator<char>(t)),
+                    std::istreambuf_iterator<char>());
+
+    // std::string str("repeat( translate(union(rectangle(0.1, 0.1), ellipse(0.1, 0.1)), -0.01, -0.02), 2, 0.1, 0.2)");
 
     if (parse(str, fun)) {
         fun->print(0);
