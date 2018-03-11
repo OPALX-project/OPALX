@@ -8,6 +8,7 @@
 #include <fstream>
 #include <streambuf>
 #include <cstdlib>
+#include <cmath>
 
 std::string UDouble("([0-9]+\\.?[0-9]*([Ee][+-]?[0-9]+)?)");
 std::string Double("(-?[0-9]+\\.?[0-9]*([Ee][+-]?[0-9]+)?)");
@@ -35,6 +36,7 @@ struct base: public function {
     { }
 
     virtual base* clone() = 0;
+    virtual void writeGnuplot(std::ofstream &out) const = 0;
 };
 
 struct rectangle: public base {
@@ -59,6 +61,23 @@ struct rectangle: public base {
                   << indent2 << "h: " << height << ", \n"
                   << indent2 << "origin: " << origin[0] << ", " << origin[1] << ",\n"
                   << indent2 << "angle: " << angle;
+    }
+
+    virtual void writeGnuplot(std::ofstream &out) const {
+        std::vector<Vector_t> pts({Vector_t(0.5 * width, 0.5 * height, 0),
+                                   Vector_t(-0.5 * width, 0.5 * height, 0),
+                                   Vector_t(-0.5 * width, -0.5 * height, 0),
+                                   Vector_t(0.5 * width, -0.5 * height, 0)});
+        unsigned int width = out.precision() + 8;
+        for (unsigned int i = 0; i < 5; ++ i) {
+            Vector_t pt = pts[i % 4];
+            pt = trafo.transformFrom(pt);
+
+            out << std::setw(width) << pt[0]
+                << std::setw(width) << pt[1]
+                << std::endl;
+        }
+        out << std::endl;
     }
 
     virtual void apply(std::vector<base*> &bfuncs) {
@@ -116,6 +135,42 @@ struct ellipse: public base {
                   << indent2 << "h: " << height << ", \n"
                   << indent2 << "origin: " << origin[0] << ", " << origin[1] << ",\n"
                   << indent2 << "angle: " << angle;
+    }
+
+    virtual void writeGnuplot(std::ofstream &out) const {
+        std::vector<Vector_t> pts({Vector_t(0.5 * width, 0.5 * height, 0),
+                                   Vector_t(-0.5 * width, 0.5 * height, 0),
+                                   Vector_t(-0.5 * width, -0.5 * height, 0),
+                                   Vector_t(0.5 * width, -0.5 * height, 0)});
+        const unsigned int N = 101;
+        const double dp = Physics::two_pi / (N - 1);
+        const unsigned int colwidth = out.precision() + 8;
+
+        double phi = 0;
+        for (unsigned int i = 0; i < N; ++ i, phi += dp) {
+            Vector_t pt(0.0);
+            pt[0] = std::copysign(sqrt(std::pow(height * width * 0.25, 2) /
+                                       (std::pow(height * 0.5, 2) +
+                                        std::pow(width * 0.5 * tan(phi), 2))),
+                                  cos(phi));
+            pt[1] = pt[0] * tan(phi);
+            pt = trafo.transformFrom(pt);
+
+            out << std::setw(colwidth) << pt[0]
+                << std::setw(colwidth) << pt[1]
+                << std::endl;
+        }
+        out << std::endl;
+
+        for (unsigned int i = 0; i < 5; ++ i) {
+            Vector_t pt = pts[i % 4];
+            pt = trafo.transformFrom(pt);
+
+            out << std::setw(colwidth) << pt[0]
+                << std::setw(colwidth) << pt[1]
+                << std::endl;
+        }
+        out << std::endl;
     }
 
     virtual void apply(std::vector<base*> &bfuncs) {
@@ -183,7 +238,7 @@ struct repeat: public function {
         for (unsigned int i = 0; i < N; ++ i) {
             for (unsigned int j = 0; j < size; ++ j) {
                 base *obj = bfuncs[j]->clone();
-                obj->trafo = current_shift * obj->trafo;
+                obj->trafo *= current_shift;// * obj->trafo;
                 bfuncs.push_back(obj);
             }
 
@@ -243,7 +298,7 @@ struct translate: public function {
         for (unsigned int j = 0; j < size; ++ j) {
             base *obj = bfuncs[j];
             CoordinateSystemTrafo trafo = obj->trafo;
-            obj->trafo = shift * obj->trafo;
+            obj->trafo *= shift;// * obj->trafo;
         }
     }
 
@@ -290,13 +345,13 @@ struct rotate: public function {
 
     virtual void apply(std::vector<base*> &bfuncs) {
         CoordinateSystemTrafo rotation(Vector_t(0.0, 0.0, 0.0),
-                                       Quaternion(cos(0.5 * angle), 0.0, 0.0, sin(0.5 * angle)));
+                                       Quaternion(cos(-0.5 * angle), 0.0, 0.0, sin(-0.5 * angle)));
         func->apply(bfuncs);
         const unsigned int size = bfuncs.size();
 
         for (unsigned int j = 0; j < size; ++ j) {
             base *obj = bfuncs[j];
-            obj->trafo = rotation * obj->trafo;
+            obj->trafo *= rotation;
         }
     }
 
@@ -487,9 +542,11 @@ int main(int argc, char *argv[])
         std::vector<base*> baseBlocks;
         fun->apply(baseBlocks);
 
+        std::ofstream out("test.gpl");
         for (base* bfun: baseBlocks) {
             bfun->print(0);
             std::cout << std::endl;
+            bfun->writeGnuplot(out);
         }
 
         for (base* func: baseBlocks) {
