@@ -1,0 +1,13 @@
+repeat(
+        union(
+                translate(
+                        rectangle(0.1, 0.1),
+                        -0.01,
+                        -0.02
+                        ),
+                        ellipse(0.1, 0.1)
+                ),
+        2,
+        0.1,
+        0.2
+)
