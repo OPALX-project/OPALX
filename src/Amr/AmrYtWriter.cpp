@@ -333,9 +333,9 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
     for (size_t i = 0; i < LocalNumPerLevel.size(); ++i)
         partPerLevel[i] = LocalNumPerLevel[i];
     
-    reduce(*partPerLevel.get(),
-           *globalPartPerLevel.get(),
-           nLevel, std::plus<size_t>());
+    allreduce(*partPerLevel.get(),
+              *globalPartPerLevel.get(),
+              nLevel, std::plus<size_t>());
     
     if ( Ippl::myNode() == 0 )
     {
