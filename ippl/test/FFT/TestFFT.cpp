@@ -1,48 +1,43 @@
 // -*- C++ -*-
 /***************************************************************************
  *
- * The IPPL Framework
- * 
- * This program was prepared by PSI. 
- * All rights in the program are reserved by PSI.
- * Neither PSI nor the author(s)
- * makes any warranty, express or implied, or assumes any liability or
- * responsibility for the use of this software
- *
- * Visit http://www.acl.lanl.gov/POOMS for more details
- *
  ***************************************************************************/
-
-// -*- C++ -*-
-/***************************************************************************
- *
- * The IPPL Framework
- * 
- *
- * Visit http://people.web.psi.ch/adelmann/ for more details
- *
- ***************************************************************************/
-
-// TestFFT.cpp , Tim Williams 1/27/1997
-// Updated by Julian Cummings, 3/31/98
-
-// Tests the use of the (parallel) FFT class.
 
 #include "Ippl.h"
 #include "Utilities/Timer.h"
 
 #include <fstream>
-
 #include <complex>
 using namespace std;
 
-#define THREED
+bool Configure(int argc, char *argv[],
+	       unsigned int *nx, unsigned int *ny, unsigned int *nz,
+	       int *domainDec, unsigned *processes,  unsigned int *nLoop) 
+{
 
-enum FsT {FFTSolver,Pt2PtSolver,TreeSolver,None};
-enum InterPolT {NGP,CIC};
-enum BCT {OOO,OOP,PPP,DDD,DDO,DDP};   // OOO == all dim, open BC
-enum TestCases {test1};
+  Inform msg("Configure ");
+  Inform errmsg("Error ");
 
+  for (int i=1; i < argc; ++i) {
+    string s(argv[i]);
+    if (s == "-grid") {
+      *nx = atoi(argv[++i]);
+      *ny = atoi(argv[++i]);
+      *nz = atoi(argv[++i]);
+    }   else if (s == "-Loop") {
+      *nLoop = atoi(argv[++i]);
+    } else if (s == "-Decomp") {
+      *domainDec = atoi(argv[++i]);
+    } 
+    else {
+      errmsg << "Illegal format for or unknown option '" << s.c_str() << "'.";
+      errmsg << endl;
+    }
+  }
+
+  *processes = Ippl::getNodes();
+  return true;
+}
 
 
 void writeMemoryHeader(std::ofstream &outputFile)
@@ -142,180 +137,178 @@ void writeMemoryData(std::ofstream &os_memData, unsigned int pwi, unsigned int s
     os_memData << std::endl;
 }
 
-bool Configure(int argc, char *argv[], InterPolT *interPol, 
-	       unsigned int *nx, unsigned int *ny, unsigned int *nz,
-	       TestCases *test2Perform,
-	       int *serialDim, unsigned int *processes,  unsigned int *nLoop) 
-{
-
-  Inform msg("Configure ");
-  Inform errmsg("Error ");
-
-  string bc_str;
-  string interPol_str;
-  string dist_str;
-
-  for (int i=1; i < argc; ++i) {
-    string s(argv[i]);
-    if (s == "-grid") {
-      *nx = atoi(argv[++i]);
-      *ny = atoi(argv[++i]);
-      *nz = atoi(argv[++i]);
-    } else if (s == "-test1") {
-      *test2Perform = test1;
-    } else if (s == "-NGP") {
-      *interPol = NGP;
-      msg << "Interploation NGP" << endl;
-    } else if (s == "-CIC") {
-      *interPol = CIC;
-      msg << "Interploation CIC" << endl;
-    } else if (s == "-Loop") {
-      *nLoop = atoi(argv[++i]);
-    } else if (s == "-Decomp") {
-      *serialDim = atoi(argv[++i]);
-    } 
-    else {
-      errmsg << "Illegal format for or unknown option '" << s.c_str() << "'.";
-      errmsg << endl;
-    }
-  }
-  if (*serialDim == 0)
-    msg << "Serial dimension is x" << endl;
-  else if (*serialDim == 1)
-    msg << "Serial dimension is y" << endl;
-  else if (*serialDim == 2)
-    msg << "Serial dimension is z" << endl;
-  else {
-    msg << "All parallel" << endl;
-    *serialDim = -1;
-  }
-
-  *processes = Ippl::getNodes();
-
-  return true;
-}
-
 int main(int argc, char *argv[])
 {
   Ippl ippl(argc,argv);
   Inform testmsg(NULL,0);
+  const unsigned D=3U;
 
-  unsigned int processes;
-  int serialDim;
-  TestCases test2do;
   unsigned int nx,ny,nz;
-  unsigned int nLoop;
-  InterPolT interPol;
+  int domDec;
+  unsigned processes;
+  unsigned int nLoop; 
 
-  Configure(argc, argv, &interPol, &nx, &ny, &nz, 
-            &test2do, &serialDim, &processes, &nLoop); 
+  Configure(argc, argv, &nx, &ny, &nz, &domDec, &processes, &nLoop);
+  
+  // Compression of temporaries:
+  bool compressTemps = true;
+  bool constInput = true;  // preserve input field in two-field transform
+
+  unsigned ngrid[D];   // grid sizes
+  ngrid[0] = nx;
+  ngrid[1] = ny;
+  ngrid[2] = ny;
+
+  // Used in evaluating correctness of results:
+  double realDiff;
+  const double errorTol = 1.0e-10;
+  bool correct = true;
+
+  // Various counters, constants, etc:
+  double pi = acos(-1.0);
+  double twopi = 2.0*pi;
+
+
+  // probes etc.
+
   std::string baseFn = std::string(argv[0])  + 
     std::string("-mx=") + std::to_string(nx) +
     std::string("-my=") + std::to_string(ny) +
     std::string("-mz=") + std::to_string(nz) +
-    std::string("-p=") + std::to_string(processes) +
-    std::string("-ddec=") + std::to_string(serialDim) ;
+    std::string("-p=") + std::to_string(processes);
 
   unsigned int pwi = 10;
   std::ios_base::openmode mode_m = std::ios::out;
 
-  std::ofstream os_memData;
-  open_m(os_memData, baseFn+std::string(".mem"), mode_m);
+  //  std::ofstream os_memData;
+  //open_m(os_memData, baseFn+std::string(".mem"), mode_m);
 
   static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");           
   IpplTimings::startTimer(mainTimer);                                                    
 
-  static IpplTimings::TimerRef fftTimer = IpplTimings::getTimer("FFT");           
-  static IpplTimings::TimerRef ifftTimer = IpplTimings::getTimer("IFFT");           
-  static IpplTimings::TimerRef fEvalTimer = IpplTimings::getTimer("fEval");           
-  static IpplTimings::TimerRef fInitTimer = IpplTimings::getTimer("init");           
+  static IpplTimings::TimerRef fftccppTimer = IpplTimings::getTimer("FFTCCPP");           
+  static IpplTimings::TimerRef ifftccppTimer = IpplTimings::getTimer("IFFTCCPP");
+  static IpplTimings::TimerRef fftccpsTimer = IpplTimings::getTimer("FFTCCPS");           
+  static IpplTimings::TimerRef ifftccpsTimer = IpplTimings::getTimer("IFFTCCPS");
 
-  writeMemoryHeader(os_memData);
+  static IpplTimings::TimerRef fftrcppTimer = IpplTimings::getTimer("FFTRCPP");           
+  static IpplTimings::TimerRef ifftrcppTimer = IpplTimings::getTimer("IFFTRCPP");
+  static IpplTimings::TimerRef fftrcpsTimer = IpplTimings::getTimer("FFTRCPS");           
+  static IpplTimings::TimerRef ifftrcpsTimer = IpplTimings::getTimer("IFFTRCPS");
+           
+  static IpplTimings::TimerRef fEvalccppTimer = IpplTimings::getTimer("fEvalCCPP");
+  static IpplTimings::TimerRef fEvalccpsTimer = IpplTimings::getTimer("fEvalCCPS");
 
-  // The preceding cpp definition causes compile-time setting of D:
-  const unsigned D=3U;
+  static IpplTimings::TimerRef fEvalrcppTimer = IpplTimings::getTimer("fEvalRCPP");
+  static IpplTimings::TimerRef fEvalrcpsTimer = IpplTimings::getTimer("fEvalRCPS");
+           
+  static IpplTimings::TimerRef fInitTimer = IpplTimings::getTimer("init fields");           
+  static IpplTimings::TimerRef fsetupTimer = IpplTimings::getTimer("setup fields");           
 
-  testmsg << "Dimensionality: D= " << D << " P= " << processes;
-  testmsg << " nx= " << nx << " ny= " << ny << " nz= " << nz << endl;
+  //  writeMemoryHeader(os_memData);
   
-  unsigned ngrid[D];   // grid sizes
-
-  // Used in evaluating correctness of results:
-  double realDiff;
-  
-  // Various counters, constants, etc:
-  unsigned int d;
-  
-  Ippl::Comm->next_tag(IPPL_APP_TAG0);
-  double pi = acos(-1.0);
-  double twopi = 2.0*pi;
-  // Timer:
-  Timer timer;
-  
-  // Layout information:
-  unsigned vnodes;             // number of vnodes; input at cmd line
   e_dim_tag allParallel[D];    // Specifies SERIAL, PARALLEL dims
-  for (d=0; d<D; d++) 
+  for (int d=0; d<D; d++) 
     allParallel[d] = PARALLEL;
 
-  // Compression of temporaries:
-  bool compressTemps;
-  vnodes = processes;
-  compressTemps = true;
-  ngrid[0]=nx;
-  ngrid[1]=ny;
-  ngrid[2]=nz;
+  e_dim_tag serialParallel[D]; // Specifies SERIAL, PARALLEL dims
+  serialParallel[0] = SERIAL;
+  for (int d=1; d<D; d++) 
+    serialParallel[d] = PARALLEL;
 
-  testmsg << "In-place CC transform using all-parallel layout ..." << endl;
+  testmsg << "Make fields" << endl;
+  IpplTimings::startTimer(fsetupTimer);
 
-  // ================BEGIN INTERACTION LOOP====================================
- 
-    //------------------------complex<-->complex-------------------------------
-    // Complex test Fields
-    // create standard domain
-  IpplTimings::startTimer(fInitTimer);
+  //------------------------complex<-->complex-------------------------------
+  // Complex test Fields
+
+  // create standard domain
   NDIndex<D> ndiStandard;
-  for (d=0; d<D; d++) 
+  for (int d=0; d<D; d++) 
     ndiStandard[d] = Index(ngrid[d]);
-  
-  // create new domain with axes permuted to match FFT output
+    // create new domain with axes permuted to match FFT output
   NDIndex<D> ndiPermuted;
   ndiPermuted[0] = ndiStandard[D-1];
-  for (d=1; d<D; d++) 
+  for (int d=1; d<D; d++) 
     ndiPermuted[d] = ndiStandard[d-1];
 
   // create half-size domain for RC transform along zeroth axis
   NDIndex<D> ndiStandard0h = ndiStandard;
   ndiStandard0h[0] = Index(ngrid[0]/2+1);
+
   // create new domain with axes permuted to match FFT output
   NDIndex<D> ndiPermuted0h;
   ndiPermuted0h[0] = ndiStandard0h[D-1];
-  for (d=1; d<D; d++) 
+  for (int d=1; d<D; d++) 
     ndiPermuted0h[d] = ndiStandard0h[d-1];
 
   // create half-size domain for sine transform along zeroth axis
   // and RC transform along first axis
   NDIndex<D> ndiStandard1h = ndiStandard;
   ndiStandard1h[1] = Index(ngrid[1]/2+1);
+
   // create new domain with axes permuted to match FFT output
   NDIndex<D> ndiPermuted1h;
   ndiPermuted1h[0] = ndiStandard1h[D-1];
-  for (d=1; d<D; d++) 
+  for (int d=1; d<D; d++) 
     ndiPermuted1h[d] = ndiStandard1h[d-1];
 
   // all parallel layout, standard domain, normal axis order
-  FieldLayout<D> layoutPPStan(ndiStandard,allParallel,vnodes);
-    
-  FieldLayout<D> layoutPPStan0h(ndiStandard0h,allParallel,vnodes);
-    
-  FieldLayout<D> layoutPPStan1h(ndiStandard1h,allParallel,vnodes);
-    
+  FieldLayout<D> layoutPPStan(ndiStandard,allParallel,processes);
+
+  // zeroth axis serial, standard domain, normal axis order
+  FieldLayout<D> layoutSPStan(ndiStandard,serialParallel,processes);
+  // zeroth axis serial, standard domain, permuted axis order
+  FieldLayout<D> layoutSPPerm(ndiPermuted,serialParallel,processes);
+
+  // all parallel layout, zeroth axis half-size domain, normal axis order
+  FieldLayout<D> layoutPPStan0h(ndiStandard0h,allParallel,processes);
+
+  // zeroth axis serial, zeroth axis half-size domain, normal axis order
+  FieldLayout<D> layoutSPStan0h(ndiStandard0h,serialParallel,processes);
+  // zeroth axis serial, zeroth axis half-size domain, permuted axis order
+  FieldLayout<D> layoutSPPerm0h(ndiPermuted0h,serialParallel,processes);
+
+
+  // all parallel layout, first axis half-size domain, normal axis order
+  FieldLayout<D> layoutPPStan1h(ndiStandard1h,allParallel,processes);
+
+  // zeroth axis serial, first axis half-size domain, normal axis order
+  FieldLayout<D> layoutSPStan1h(ndiStandard1h,serialParallel,processes);
+  // zeroth axis serial, first axis half-size domain, permuted axis order
+  FieldLayout<D> layoutSPPerm1h(ndiPermuted1h,serialParallel,processes);
+
+
   // create test Fields for complex-to-complex FFT
   BareField<dcomplex,D> CFieldPPStan(layoutPPStan);
   BareField<dcomplex,D> CFieldPPStan_save(layoutPPStan);
   BareField<double,D> diffFieldPPStan(layoutPPStan);
-  
 
+  BareField<dcomplex,D> CFieldSPStan(layoutSPStan);
+  BareField<dcomplex,D> CFieldSPStan_save(layoutSPStan);
+  BareField<double,D> diffFieldSPStan(layoutSPStan);
+  BareField<dcomplex,D> CFieldSPPerm(layoutSPPerm);
+
+  // create test Fields for real-to-complex FFT
+  BareField<double,D> RFieldPPStan(layoutPPStan);
+  BareField<double,D> RFieldPPStan_save(layoutPPStan);
+  BareField<dcomplex,D> CFieldPPStan0h(layoutPPStan0h);
+
+  BareField<double,D> RFieldSPStan(layoutSPStan);
+  BareField<double,D> RFieldSPStan_save(layoutSPStan);
+  BareField<dcomplex,D> CFieldSPStan0h(layoutSPStan0h);
+  BareField<dcomplex,D> CFieldSPPerm0h(layoutSPPerm0h);
+
+  // create test Fields for sine transform and real-to-complex FFT
+  BareField<dcomplex,D> CFieldPPStan1h(layoutPPStan1h);
+
+  BareField<dcomplex,D> CFieldSPStan1h(layoutSPStan1h);
+  BareField<dcomplex,D> CFieldSPPerm1h(layoutSPPerm1h);
+
+  testmsg << "Initialize fields ..." << endl;
+  IpplTimings::stopTimer(fsetupTimer);
+
+  IpplTimings::startTimer(fInitTimer);
   // Rather more complete test functions (sine or cosine mode):
   dcomplex sfact(1.0,0.0);      // (1,0) for sine mode; (0,0) for cosine mode
   dcomplex cfact(0.0,0.0);      // (0,0) for sine mode; (1,0) for cosine mode
@@ -325,97 +318,342 @@ int main(int argc, char *argv[])
   yfact = 2.0*twopi/(ngrid[1]);
   zfact = 2.0*twopi/(ngrid[2]);
   kx = 1.0; ky = 2.0; kz = 3.0; // wavenumbers
-
+  /*
   CFieldPPStan[ndiStandard[0]][ndiStandard[1]][ndiStandard[2]] = 
     sfact * ( sin( (ndiStandard[0]+1) * kx * xfact +
-		    ndiStandard[1]    * ky * yfact +
-		    ndiStandard[2]    * kz * zfact ) +
+		   ndiStandard[1]    * ky * yfact +
+		   ndiStandard[2]    * kz * zfact ) +
 	      sin( (ndiStandard[0]+1) * kx * xfact -
-		    ndiStandard[1]    * ky * yfact -
-		    ndiStandard[2]    * kz * zfact ) ) + 
+		   ndiStandard[1]    * ky * yfact -
+		   ndiStandard[2]    * kz * zfact ) ) + 
     cfact * (-cos( (ndiStandard[0]+1) * kx * xfact +
-		    ndiStandard[1]    * ky * yfact +
-		    ndiStandard[2]    * kz * zfact ) + 
-	      cos( (ndiStandard[0]+1) * kx * xfact -
-		    ndiStandard[1]    * ky * yfact -
-		    ndiStandard[2]    * kz * zfact ) );
+		   ndiStandard[1]    * ky * yfact +
+		   ndiStandard[2]    * kz * zfact ) + 
+	     cos( (ndiStandard[0]+1) * kx * xfact -
+		  ndiStandard[1]    * ky * yfact -
+		  ndiStandard[2]    * kz * zfact ) );
+  */
+  CFieldPPStan = dcomplex(0.0,0.0);// 
+  CFieldSPStan = dcomplex(0.0,0.0); //CFieldPPStan;
+  CFieldSPPerm = dcomplex(0.0,0.0);
 
   CFieldPPStan_save = CFieldPPStan; // Save values for checking later
-    
+  CFieldSPStan_save = CFieldSPStan;
+  IpplTimings::stopTimer(fInitTimer);
+
   // CC FFT tests
   // Instantiate complex<-->complex FFT object
   // Transform in all directions
   FFT<CCTransform,D,double> ccfft(ndiStandard, compressTemps);
-  IpplTimings::stopTimer(fInitTimer);
-
+  
   // set direction names
   ccfft.setDirectionName(+1, "forward");
   ccfft.setDirectionName(-1, "inverse");
-  
-  testmsg << " Start test " << endl;
-                                                    
-  IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
-  memory->sample();
-  writeMemoryData(os_memData, pwi, 0);
 
-  for (unsigned int i=0; i<nLoop; i++)  {
-    // Test complex<-->complex transform (simple test: forward then inverse transform, see if get back original values.
-
-    IpplTimings::startTimer(ifftTimer);                                                    
-    ccfft.transform( "inverse" , CFieldPPStan);
-    IpplTimings::stopTimer(ifftTimer);                                                         
-    IpplTimings::startTimer(fftTimer);                                                    
-    ccfft.transform( "forward" , CFieldPPStan);
-    IpplTimings::stopTimer(fftTimer);                                                    
-
-
-    IpplTimings::startTimer(fEvalTimer);                                                    
+  testmsg << nLoop << " x In-place CC transform using all-parallel layout ..." << endl;
+  for (int i=0; i<nLoop; i++) {
+    IpplTimings::startTimer(fftccppTimer);
+    ccfft.transform("forward", CFieldPPStan);
+    IpplTimings::stopTimer(fftccppTimer);
+    IpplTimings::startTimer(ifftccppTimer);
+    ccfft.transform("inverse", CFieldPPStan);
+    IpplTimings::stopTimer(ifftccppTimer);
+    IpplTimings::startTimer(fEvalccppTimer);
     diffFieldPPStan = Abs(CFieldPPStan - CFieldPPStan_save);
     realDiff = max(diffFieldPPStan);
-
-    CFieldPPStan[ndiStandard[0]][ndiStandard[1]][ndiStandard[2]] = 
-    sfact * ( sin( (ndiStandard[0]+1) * kx * xfact +
-		    ndiStandard[1]    * ky * yfact +
-		    ndiStandard[2]    * kz * zfact ) +
-	      sin( (ndiStandard[0]+1) * kx * xfact -
-		    ndiStandard[1]    * ky * yfact -
-		    ndiStandard[2]    * kz * zfact ) ) + 
-    cfact * (-cos( (ndiStandard[0]+1) * kx * xfact +
-		    ndiStandard[1]    * ky * yfact +
-		    ndiStandard[2]    * kz * zfact ) + 
-	      cos( (ndiStandard[0]+1) * kx * xfact -
-		    ndiStandard[1]    * ky * yfact -
-		    ndiStandard[2]    * kz * zfact ) );
-    CFieldPPStan_save = CFieldPPStan;
-    IpplTimings::stopTimer(fEvalTimer);                
-                                    
-    testmsg << "FFT->IFFT: CC <-> CC: fabs(realDiff) = " << fabs(realDiff) << endl;
-
-    memory->sample();
-    writeMemoryData(os_memData, pwi, i+1);
+    if (fabs(realDiff) > errorTol) {
+      correct = false;
+      testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
+    }
+    IpplTimings::stopTimer(fEvalccppTimer);
   }
-  testmsg << " Stop test " << endl;
-  IpplTimings::stopTimer(mainTimer);
-  IpplTimings::print();
-  IpplTimings::print(std::string(baseFn+std::string(".timing")));
-    
-  return 0;
-}
 
-/***************************************************************************
- * $RCSfile: TestFFT.cpp,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:36 $
- ***************************************************************************/
+  testmsg << "In-place CC transform using layout with zeroth dim serial ..." << endl;
+  for (int i=0; i<nLoop; i++) {
+    IpplTimings::startTimer(fftccpsTimer);
+    ccfft.transform("forward", CFieldSPStan);
+    IpplTimings::stopTimer(fftccpsTimer);
+    IpplTimings::startTimer(ifftccpsTimer);
+    ccfft.transform("inverse", CFieldSPStan);
+    IpplTimings::stopTimer(ifftccpsTimer);
+    IpplTimings::startTimer(fEvalccpsTimer);
+    diffFieldSPStan = Abs(CFieldSPStan - CFieldSPStan_save);
+    realDiff = max(diffFieldSPStan);
+    if (fabs(realDiff) > errorTol) {
+      correct = false;
+      testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
+    }
+    IpplTimings::stopTimer(fEvalccpsTimer);
+  }
 
-/***************************************************************************
- * $RCSfile: addheaderfooter,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:17 $
- * IPPL_VERSION_ID: $Id: addheaderfooter,v 1.1.1.1 2003/01/23 07:40:17 adelmann Exp $ 
- ***************************************************************************/
+  /*
+
+  //-------------------------------------------------------------------------
+    CFieldSPStan = CFieldSPStan_save;  // restore field, just in case ...
+
+    timer.start();
+    // Test complex<-->complex transform (simple test: forward then inverse
+    // transform, see if get back original values.
+    testmsg << "Forward transform ..." << endl;
+    ccfft.transform("forward", CFieldSPStan, CFieldSPPerm, constInput);
+    testmsg << "Inverse transform ..." << endl;
+    ccfft.transform("inverse", CFieldSPPerm, CFieldSPStan, constInput);
+    timer.stop();
+
+    diffFieldSPStan = Abs(CFieldSPStan - CFieldSPStan_save);
+    realDiff = max(diffFieldSPStan);
+    if (fabs(realDiff) > errorTol) {
+      correct = false;
+      testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
+    }
+    testmsg << "CPU time used = " << timer.cpu_time() << " secs." << endl;
+    timer.clear();
+    //-------------------------------------------------------------------------
+
+    */
+
+    // RC FFT tests
+    RFieldPPStan = real(CFieldPPStan_save);
+    CFieldPPStan0h = dcomplex(0.0,0.0);
+    RFieldSPStan = real(CFieldSPStan_save);
+    CFieldSPStan0h = dcomplex(0.0,0.0);
+    CFieldSPPerm0h = dcomplex(0.0,0.0);
+
+    RFieldPPStan_save = RFieldPPStan;  // save input data for checking results
+    RFieldSPStan_save = RFieldSPStan;
+
+    // create RC FFT object
+    FFT<RCTransform,D,double> rcfft(ndiStandard, ndiStandard0h, compressTemps);
+
+    rcfft.setDirectionName(+1, "forward");
+    rcfft.setDirectionName(-1, "inverse");
+
+    testmsg << "RC transform using all-parallel layout ..." << endl;
+    for (int i=0; i<nLoop; i++) {
+      IpplTimings::startTimer(fftrcppTimer);
+      rcfft.transform("forward", RFieldPPStan, CFieldPPStan0h, constInput);
+      IpplTimings::stopTimer(fftrcppTimer);
+      IpplTimings::startTimer(ifftrcppTimer);
+      rcfft.transform("inverse", CFieldPPStan0h, RFieldPPStan, constInput);
+      IpplTimings::stopTimer(ifftrcppTimer);
+      IpplTimings::startTimer(fEvalrcppTimer);
+      diffFieldPPStan = Abs(RFieldPPStan - RFieldPPStan_save);
+      realDiff = max(diffFieldPPStan);
+      if (fabs(realDiff) > errorTol) {
+	correct = false;
+	testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
+      }
+      IpplTimings::stopTimer(fEvalrcppTimer);
+    }
+
+    testmsg << "RC transform using layout with zeroth dim serial ..." << endl;
+
+    for (int i=0; i<nLoop; i++) {
+      IpplTimings::startTimer(fftrcpsTimer);
+      rcfft.transform("forward", RFieldSPStan, CFieldSPStan0h, constInput);
+      IpplTimings::stopTimer(fftrcpsTimer);
+      IpplTimings::startTimer(ifftrcpsTimer);
+      rcfft.transform("inverse", CFieldSPStan0h, RFieldSPStan, constInput);
+      IpplTimings::stopTimer(ifftrcpsTimer);
+      IpplTimings::startTimer(fEvalrcpsTimer);
+      diffFieldSPStan = Abs(RFieldSPStan - RFieldSPStan_save);
+      realDiff = max(diffFieldSPStan);
+      if (fabs(realDiff) > errorTol) {
+	correct = false;
+	testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
+      }
+      IpplTimings::stopTimer(fEvalrcpsTimer);
+    }
 
     /*
-    ofstream myfile;
-    myfile.open("IPPL_FFT", ofstream::app);
-    myfile << nx << "\t" << timer.clock_time() << "\t" << timer.clock_time() / nLoop << endl;
-    myfile.close();
+
+    RFieldSPStan = RFieldSPStan_save;  // restore field, just in case ...
+
+    testmsg << "RC transform using layout with axes permuted ..." << endl;
+    timer.start();
+
+    // Test real<-->complex transform (simple test: forward then inverse
+    // transform, see if we get back original values.
+    testmsg << "Forward transform ..." << endl;
+    rcfft.transform("forward", RFieldSPStan, CFieldSPPerm0h, constInput);
+    testmsg << "Inverse transform ..." << endl;
+    rcfft.transform("inverse", CFieldSPPerm0h, RFieldSPStan, constInput);
+    timer.stop();
+
+    diffFieldSPStan = Abs(RFieldSPStan - RFieldSPStan_save);
+    realDiff = max(diffFieldSPStan);
+    if (fabs(realDiff) > errorTol) {
+      correct = false;
+      testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
+    }
+    testmsg << "CPU time used = " << timer.cpu_time() << " secs." << endl;
+    timer.clear();
+
+  */
+
+    /*
+    // define zeroth axis to be sine transform
+    bool sineTransformDims[D];
+    sineTransformDims[0] = true;
+    for (int d=1; d<D; ++d) sineTransformDims[d] = false;
+
+    // Sine and RC transform tests
+
+    RFieldPPStan = RFieldPPStan_save;
+    CFieldPPStan1h = dcomplex(0.0,0.0);
+    RFieldSPStan = RFieldSPStan_save;
+    CFieldSPStan1h = dcomplex(0.0,0.0);
+    CFieldSPPerm1h = dcomplex(0.0,0.0);
+
+    // create Sine FFT object
+    FFT<SineTransform,D,double> sinefft(ndiStandard, ndiStandard1h,
+                                        sineTransformDims, compressTemps);
+    // set direction names
+    sinefft.setDirectionName(+1,"forward");
+    sinefft.setDirectionName(-1,"inverse");
+
+    testmsg << "Sine and RC transform using all-parallel layout ..." << endl;
+    timer.start();
+    // Test sine transform (simple test: forward then inverse
+    // transform, see if we get back original values.
+    testmsg << "Forward transform ..." << endl;
+    sinefft.transform("forward", RFieldPPStan, CFieldPPStan1h, constInput);
+    testmsg << "Inverse transform ..." << endl;
+    sinefft.transform("inverse", CFieldPPStan1h, RFieldPPStan, constInput);
+    timer.stop();
+
+    diffFieldPPStan = Abs(RFieldPPStan - RFieldPPStan_save);
+    realDiff = max(diffFieldPPStan);
+    if (fabs(realDiff) > errorTol) {
+      correct = false;
+      testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
+    }
+    testmsg << "CPU time used = " << timer.cpu_time() << " secs." << endl;
+    timer.clear();
+    //-------------------------------------------------------------------------
+
+    testmsg << "Sine and RC transform using layout with zeroth dim serial ..."
+            << endl;
+    timer.start();
+    // Test sine transform (simple test: forward then inverse
+    // transform, see if we get back original values.
+    testmsg << "Forward transform ..." << endl;
+    sinefft.transform("forward", RFieldSPStan, CFieldSPStan1h, constInput);
+    testmsg << "Inverse transform ..." << endl;
+    sinefft.transform("inverse", CFieldSPStan1h, RFieldSPStan, constInput);
+    timer.stop();
+
+    diffFieldSPStan = Abs(RFieldSPStan - RFieldSPStan_save);
+    realDiff = max(diffFieldSPStan);
+    if (fabs(realDiff) > errorTol) {
+      correct = false;
+      testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
+    }
+    testmsg << "CPU time used = " << timer.cpu_time() << " secs." << endl;
+    timer.clear();
+    //-------------------------------------------------------------------------
+
+    RFieldSPStan = RFieldSPStan_save;  // restore field, just in case ...
+
+    testmsg << "Sine and RC transform using layout with axes permuted ..."
+            << endl;
+    timer.start();
+    // Test sine transform (simple test: forward then inverse
+    // transform, see if we get back original values.
+    testmsg << "Forward transform ..." << endl;
+    sinefft.transform("forward", RFieldSPStan, CFieldSPPerm1h, constInput);
+    testmsg << "Inverse transform ..." << endl;
+    sinefft.transform("inverse", CFieldSPPerm1h, RFieldSPStan, constInput);
+    timer.stop();
+
+    diffFieldSPStan = Abs(RFieldSPStan - RFieldSPStan_save);
+    realDiff = max(diffFieldSPStan);
+    if (fabs(realDiff) > errorTol) {
+      correct = false;
+      testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
+    }
+    testmsg << "CPU time used = " << timer.cpu_time() << " secs." << endl;
+    timer.clear();
+    //-------------------------------------------------------------------------
+
+    // Sine transform tests
+    RFieldPPStan = RFieldPPStan_save;
+    RFieldSPStan = RFieldSPStan_save;
+
+    // create Sine FFT object
+    FFT<SineTransform,D,double> sinefft2(ndiStandard, sineTransformDims,
+                                         compressTemps);
+    // set direction names
+    sinefft2.setDirectionName(+1,"forward");
+    sinefft2.setDirectionName(-1,"inverse");
+
+    testmsg << "In-place sine transform using all-parallel layout ..." << endl;
+    timer.start();
+    // Test sine transform (simple test: forward then inverse
+    // transform, see if we get back original values.
+    testmsg << "Forward transform ..." << endl;
+    sinefft2.transform("forward", RFieldPPStan);
+    testmsg << "Inverse transform ..." << endl;
+    sinefft2.transform("inverse", RFieldPPStan);
+    timer.stop();
+
+    diffFieldPPStan = Abs(RFieldPPStan - RFieldPPStan_save);
+    realDiff = max(diffFieldPPStan);
+    if (fabs(realDiff) > errorTol) {
+      correct = false;
+      testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
+    }
+    testmsg << "CPU time used = " << timer.cpu_time() << " secs." << endl;
+    timer.clear();
+    //-------------------------------------------------------------------------
+
+    testmsg << "In-place sine transform using layout with zeroth dim serial ..." << endl;
+    timer.start();
+    // Test sine transform (simple test: forward then inverse
+    // transform, see if we get back original values.
+    testmsg << "Forward transform ..." << endl;
+    sinefft2.transform("forward", RFieldSPStan);
+    testmsg << "Inverse transform ..." << endl;
+    sinefft2.transform("inverse", RFieldSPStan);
+    timer.stop();
+
+    diffFieldSPStan = Abs(RFieldSPStan - RFieldSPStan_save);
+    realDiff = max(diffFieldSPStan);
+    if (fabs(realDiff) > errorTol) {
+      correct = false;
+      testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
+    }
+    testmsg << "CPU time used = " << timer.cpu_time() << " secs." << endl;
+    timer.clear();
+    //-------------------------------------------------------------------------
+
+    RFieldSPStan = RFieldSPStan_save;  // restore input field, just in case
+
+    testmsg << "Two-field sine transform using layout with zeroth dim serial ..." << endl;
+    timer.start();
+    // Test sine transform (simple test: forward then inverse
+    // transform, see if we get back original values.
+    testmsg << "Forward transform ..." << endl;
+    sinefft2.transform("forward", RFieldSPStan, RFieldSPStan, constInput);
+    testmsg << "Inverse transform ..." << endl;
+    sinefft2.transform("inverse", RFieldSPStan, RFieldSPStan, constInput);
+    timer.stop();
+
+    diffFieldSPStan = Abs(RFieldSPStan - RFieldSPStan_save);
+    realDiff = max(diffFieldSPStan);
+    if (fabs(realDiff) > errorTol) {
+      correct = false;
+      testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
+    }
+    testmsg << "CPU time used = " << timer.cpu_time() << " secs." << endl;
+    timer.clear();
     */
+    IpplTimings::stopTimer(mainTimer);                                                    
+    IpplTimings::print();
+    IpplTimings::print(baseFn+std::string(".timing"));
+    return 0;
+}
+/***************************************************************************
+ * $RCSfile: TestFFT.cpp.org,v $   $Author: adelmann $
+ * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:36 $
+ ***************************************************************************/
