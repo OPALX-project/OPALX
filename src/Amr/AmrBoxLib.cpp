@@ -325,7 +325,7 @@ void AmrBoxLib::computeSelfFields() {
         
         int nLevel = finest_level + 1;
         
-        AmrIntArray_t rr(nLevel);
+        AmrIntArray_t rr(finest_level);
         for (int i = 0; i < finest_level; ++i)
             rr[i] = this->MaxRefRatio(i);
         
@@ -448,8 +448,8 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     if ( !(bunch_mp->getLocalTrackStep()  % Options::amrYtDumpFreq) ) {
         AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
     
-        AmrIntArray_t rr(nLevel);
-        for (int i = 0; i < nLevel - 1; ++i)
+        AmrIntArray_t rr(finest_level);
+        for (int i = 0; i < finest_level; ++i)
             rr[i] = this->MaxRefRatio(i);
         
         double time = bunch_mp->getT(); // in seconds
@@ -558,7 +558,7 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
         
         int nLevel = finest_level + 1;
         
-        AmrIntArray_t rr(nLevel);
+        AmrIntArray_t rr(finest_level);
         for (int i = 0; i < finest_level; ++i)
             rr[i] = this->MaxRefRatio(i);
         
