@@ -110,7 +110,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
         if (!HeaderFile.good())
             amrex::FileOpenFailed(HeaderFileName);
-        HeaderFile << "HyperClaw-V1.1\n";
+        HeaderFile << "HyperCLaw-V1.1\n";
 
         HeaderFile << nData << '\n';
 
@@ -170,15 +170,17 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         // The name is relative to the directory containing the Header file.
         //
         static const std::string BaseName = "/Cell";
+        char buf[64];
+        sprintf(buf, "Level_%d", lev);
+        std::string sLevel = buf;
     
-        std::string Level = amrex::Concatenate("Level_", lev, 1);
         //
         // Now for the full pathname of that directory.
         //
         std::string FullPath = dir_m;
         if (!FullPath.empty() && FullPath[FullPath.length()-1] != '/')
             FullPath += '/';
-        FullPath += Level;
+        FullPath += sLevel;
         //
         // Only the I/O processor makes the directory if it doesn't already exist.
         //
@@ -221,7 +223,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
                     HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
             }
     
-            std::string PathNameInHeader = Level;
+            std::string PathNameInHeader = sLevel;
             PathNameInHeader += BaseName;
             HeaderFile << PathNameInHeader << '\n';
         }
@@ -253,7 +255,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         std::string TheFullPath = FullPath;
         TheFullPath += BaseName;
     
-        amrex::VisMF::Write(data,TheFullPath);
+        amrex::VisMF::Write(data, TheFullPath, amrex::VisMF::NFiles, true);
     }
     
     if ( Ippl::myNode() == 0 )
